@@ -1,4 +1,4 @@
-! $Id: input.f,v 1.2 2003/07/08 15:32:39 bmy Exp $
+! $Id: input.f,v 1.3 2004/05/24 17:28:58 bmy Exp $
       SUBROUTINE INPUT
 !
 ! NOTE: INPUT is mostly historical baggage, but it works for now.
@@ -87,6 +87,11 @@ C-------INPUT BASIC GRID DATA + SPECIFIC CTM DATA
       READ(5,*)
       READ(5,904) NTRACE,I0,IM,J0,JM
       
+      ! For tagged tracer runs, set LSPLIT=T if we are using more
+      ! than one tracer, since the 1st tracer is always total tracer.
+      ! (bmy, 5/20/04)
+      LSPLIT = ( NTRACE > 1 )
+
       ! BMY added ISCALYR here for scaling of fossil fuels from 1985 data!
       READ(5,904) DUM1, NSRCX, DUM1, DUM1, FSCALYR
 

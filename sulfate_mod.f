@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.10 2004/04/19 15:09:54 bmy Exp $
+! $Id: sulfate_mod.f,v 1.11 2004/05/24 17:28:59 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 4/14/04)
+!  (rjp, bdf, bmy, 6/22/00, 5/20/04)
 !
 !  Module variables:
 !  ============================================================================
@@ -31,32 +31,33 @@
 !  (20) ESO2_nv    (REAL*8 ) : SO2 non-eruptive volcanic em.    [kg SO2/box/s]
 !  (21) ESO2_bb    (REAL*8 ) : SO2 biomass burning emissions    [kg SO2/box/s]
 !  (22) ESO2_bf    (REAL*8 ) : SO2 biofuel burning emissions    [kg SO2/box/s]
-!  (23) ESO4_an    (REAL*8 ) : SO4 anthropogenic emissions      [kg SO2/box/s]
-!  (24) IJSURF     (INTEGER) : 1-D grid box indices             [unitless]
-!  (25) JH2O2      (REAL*8 ) : Monthly mean J(H2O2) values      [s-1]
-!  (26) O3m        (REAL*8 ) : Monthly mean O3 concentration    [v/v]
-!  (27) PH2O2m     (REAL*8 ) : Monthly mean P(H2O2)             [molec/cm3/s]
-!  (28) PMSA_DMS   (REAL*8 ) : P(MSA) from DMS                  [v/v/timestep]
-!  (29) PSO2_DMS   (REAL*8 ) : P(SO2) from DMS                  [v/v/timestep]
-!  (30) PSO4_SO2   (REAL*8 ) : P(SO4) from SO2                  [v/v/timestep]
-!  (31) SSTEMP     (REAL*8 ) : Sea surface temperatures         [K]
-!  (32) VCLDF      (REAL*8 ) : Volume cloud frac. for SO2 aq.   [unitless]
-!  (33) NEV        (INTEGER) : Max # of eruptive volcanoes      [unitless]
-!  (34) IEV        (INTEGER) : Longitudes of eruptive volcanoes [degrees]  
-!  (35) JEV        (INTEGER) : Latitudes of eruptive volcanoes  [degrees ]
-!  (36) IHGHT      (INTEGER) : Height of eruptive volcano plume [m]
-!  (37) IELVe      (INTEGER) : Elevation of eruptive volcanoes  [m]
-!  (38) Eev        (REAL*8 ) : SO2 em. from eruptive volcanoes  [kg SO2/box/s]
-!  (39) NNV        (INTEGER) : Max # of non-eruptive volcanoes  [unitless]
-!  (40) NNVOL      (INTEGER) : Number of non-eruptive volcanoes [unitless]
-!  (41) INV        (INTEGER) : Longitude of non-erup volcanoes  [degrees]
-!  (42) JNV        (INTEGER) : Latitude of non-erup volcanoes   [degrees]
-!  (43) IELVn      (INTEGER) : Elevation of non-erup volcanoes  [m]
-!  (44) Env        (INTEGER) : SO2 em. from non-erup volcanoes  [kg SO2/box/s]
-!  (45) TCOSZ      (REAL*8 ) : Sum of cos(SZA) for offline run  [unitless] 
-!  (46) TTDAY      (REAL*8 ) : Total daylight length at (I,J)   [minutes]
-!  (47) SMALLNUM   (REAL*8 ) : Small number - prevent underflow [unitless]
-!  (48) COSZM      (REAL*8 ) : Array for MAX(cos(SZA)) at (I,J) [unitless]
+!  (23) ESO2_sh    (REAL*8 ) : SO2 ship emissions               [kg SO2/box/s]
+!  (24) ESO4_an    (REAL*8 ) : SO4 anthropogenic emissions      [kg SO2/box/s]
+!  (25) IJSURF     (INTEGER) : 1-D grid box indices             [unitless]
+!  (26) JH2O2      (REAL*8 ) : Monthly mean J(H2O2) values      [s-1]
+!  (27) O3m        (REAL*8 ) : Monthly mean O3 concentration    [v/v]
+!  (28) PH2O2m     (REAL*8 ) : Monthly mean P(H2O2)             [molec/cm3/s]
+!  (29) PMSA_DMS   (REAL*8 ) : P(MSA) from DMS                  [v/v/timestep]
+!  (30) PSO2_DMS   (REAL*8 ) : P(SO2) from DMS                  [v/v/timestep]
+!  (31) PSO4_SO2   (REAL*8 ) : P(SO4) from SO2                  [v/v/timestep]
+!  (32) SSTEMP     (REAL*8 ) : Sea surface temperatures         [K]
+!  (33) VCLDF      (REAL*8 ) : Volume cloud frac. for SO2 aq.   [unitless]
+!  (34) NEV        (INTEGER) : Max # of eruptive volcanoes      [unitless]
+!  (35) IEV        (INTEGER) : Longitudes of eruptive volcanoes [degrees]  
+!  (36) JEV        (INTEGER) : Latitudes of eruptive volcanoes  [degrees ]
+!  (37) IHGHT      (INTEGER) : Height of eruptive volcano plume [m]
+!  (38) IELVe      (INTEGER) : Elevation of eruptive volcanoes  [m]
+!  (39) Eev        (REAL*8 ) : SO2 em. from eruptive volcanoes  [kg SO2/box/s]
+!  (40) NNV        (INTEGER) : Max # of non-eruptive volcanoes  [unitless]
+!  (41) NNVOL      (INTEGER) : Number of non-eruptive volcanoes [unitless]
+!  (42) INV        (INTEGER) : Longitude of non-erup volcanoes  [degrees]
+!  (43) JNV        (INTEGER) : Latitude of non-erup volcanoes   [degrees]
+!  (44) IELVn      (INTEGER) : Elevation of non-erup volcanoes  [m]
+!  (45) Env        (INTEGER) : SO2 em. from non-erup volcanoes  [kg SO2/box/s]
+!  (46) TCOSZ      (REAL*8 ) : Sum of cos(SZA) for offline run  [unitless] 
+!  (47) TTDAY      (REAL*8 ) : Total daylight length at (I,J)   [minutes]
+!  (48) SMALLNUM   (REAL*8 ) : Small number - prevent underflow [unitless]
+!  (49) COSZM      (REAL*8 ) : Array for MAX(cos(SZA)) at (I,J) [unitless]
 !  
 !  Module Routines:
 !  ===========================================================================
@@ -89,13 +90,14 @@
 !  (27) READ_SST          : Reads monthly mean sea-surface temperatures
 !  (28) READ_BIOMASS_SO2  : Reads SO2 emissions from biomass burning
 !  (29) READ_AIRCRAFT_SO2 : Reads SO2 emissions from aircraft exhaust
-!  (30) READ_ANTHRO_NH3   : Reads NH3 emissions from anthropogenic sources
-!  (31) READ_NATURAL_NH3  : Reads NH3 emissions from natural sources
-!  (32) READ_BIOMASS_NH3  : Reads NH3 biomass burning emissions
-!  (33) READ_OXIDANT      : Reads monthly mean O3 and H2O2 for offline run
-!  (34) OHNO3TIME         : Computes time arrays for scaling offline OH, NO3
-!  (35) INIT_SULFATE      : Allocates & zeroes module arrays
-!  (36) CLEANUP_SULFATE   : Deallocates module arrays
+!  (30) READ_SHIP_SO2     : Reads SO2 emissions from ship exhaust
+!  (31) READ_ANTHRO_NH3   : Reads NH3 emissions from anthropogenic sources
+!  (32) READ_NATURAL_NH3  : Reads NH3 emissions from natural sources
+!  (33) READ_BIOMASS_NH3  : Reads NH3 biomass burning emissions
+!  (34) READ_OXIDANT      : Reads monthly mean O3 and H2O2 for offline run
+!  (35) OHNO3TIME         : Computes time arrays for scaling offline OH, NO3
+!  (36) INIT_SULFATE      : Allocates & zeroes module arrays
+!  (37) CLEANUP_SULFATE   : Deallocates module arrays
 !
 !  GEOS-CHEM modules referenced by sulfate_mod.f
 !  ============================================================================
@@ -158,6 +160,7 @@
 !  (21) Added COSZM array.  Now use diurnal varying JH2O2 in CHEM_H2O2. 
 !        (rjp, bmy, 3/39/04)
 !  (22) Added more parallel DO-loops (bmy, 4/14/04)
+!  (23) Now add SO2 from ships (bec, bmy, 5/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -180,6 +183,7 @@
       PRIVATE :: DRYSO2,     DRYSO4,     DRYMSA,     DRYNH3
       PRIVATE :: DRYNH4,     DRYNIT,     DRYH2O2,    TCOSZ
       PRIVATE :: TTDAY,      ESO2_bf,    SMALLNUM,   COSZM
+      PRIVATE :: ESO2_sh
 
       ! PRIVATE module routines
       PRIVATE :: GET_VCLDF,         GET_LWC,           CHEM_DMS 
@@ -191,7 +195,7 @@
       PRIVATE :: READ_AIRCRAFT_SO2, READ_ANTHRO_NH3,   READ_NATURAL_NH3
       PRIVATE :: READ_BIOMASS_NH3,  AQCHEM_SO2,        GET_O3            
       PRIVATE :: GET_OH,            SET_OH,            READ_OXIDANT
-      PRIVATE :: OHNO3TIME
+      PRIVATE :: OHNO3TIME,         READ_SHIP_SO2
 
       !=================================================================
       ! MODULE VARIABLES (see descriptions listed above)
@@ -223,6 +227,7 @@
       REAL*8,  ALLOCATABLE :: ESO2_bf(:,:)
       REAL*8,  ALLOCATABLE :: ESO2_ev(:,:,:)
       REAL*8,  ALLOCATABLE :: ESO2_nv(:,:,:)
+      REAL*8,  ALLOCATABLE :: ESO2_sh(:,:) 
       REAL*8,  ALLOCATABLE :: ESO4_an(:,:,:) 
       REAL*8,  ALLOCATABLE :: IJSURF(:,:)
       REAL*8,  ALLOCATABLE :: JH2O2(:,:,:)
@@ -2338,7 +2343,7 @@
 !
 !******************************************************************************
 !  Subroutine EMISSSULFATE is the interface between the GEOS-CHEM model and
-!  the sulfate emissions routines in "sulfate_mod.f" (bmy, 6/7/00, 4/6/04)
+!  the sulfate emissions routines in "sulfate_mod.f" (bmy, 6/7/00, 5/20/04)
 ! 
 !  NOTES:
 !  (1 ) BXHEIGHT is now dimensioned IIPAR,JJPAR,LLPAR (bmy, 9/26/01)
@@ -2357,15 +2362,18 @@
 !  (5 ) Now use functions GET_SEASON and GET_MONTH from the new "time_mod.f"
 !        (bmy, 3/27/03)
 !  (6 ) Added first-time printout message (bmy, 4/6/04)
+!  (7 ) Now references CMN_SETUP.  Now read ship SO2 if LSHIPSO2=T.  Also
+!        references ITS_A_NEW_MONTH from "time_mod.f". (bec, bmy, 5/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : CHECK_STT
-      USE TIME_MOD,    ONLY : GET_SEASON, GET_MONTH
+      USE TIME_MOD,    ONLY : GET_SEASON, GET_MONTH, ITS_A_NEW_MONTH
       USE TRACERID_MOD
 
-#     include "CMN_SIZE" ! Size parameters
-#     include "CMN"      ! STT, NSRCX
+#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN"       ! STT, NSRCX
+#     include "CMN_SETUP" ! LSHIPSO2
 
       ! Local variables
       LOGICAL, SAVE      :: FIRSTEMISS = .TRUE. 
@@ -2411,8 +2419,12 @@
       !=================================================================
       ! If this is a new month, read in the monthly mean quantities
       !=================================================================
-      IF ( MONTH /= LASTMONTH ) THEN 
-      
+      !-------------------------------------
+      ! Prior to 5/20/04:
+      !IF ( MONTH /= LASTMONTH ) THEN 
+      !-------------------------------------
+      IF ( ITS_A_NEW_MONTH() ) THEN 
+
          ! Read monthly mean data
          CALL READ_SST( MONTH )
          CALL READ_OCEAN_DMS( MONTH )
@@ -2422,12 +2434,18 @@
          CALL READ_ANTHRO_NH3( MONTH )
          CALL READ_BIOMASS_NH3( MONTH )
          CALL READ_NATURAL_NH3( MONTH )
-      
+     
+         ! Also read ship exhaust SO2 if necessary 
+         IF ( LSHIPSO2 ) CALL READ_SHIP_SO2( MONTH )
+
          ! Read oxidants for the offline simulation only
          IF ( NSRCX == 10 ) CALL READ_OXIDANT( MONTH )
       
-         ! Save for next month
-         LASTMONTH = MONTH
+         !--------------------------------------------
+         ! Prior to 5/20/04:
+         !! Save for next month
+         !LASTMONTH = MONTH
+         !--------------------------------------------
       ENDIF
 
       !=================================================================
@@ -2676,7 +2694,7 @@
 !
 !******************************************************************************
 !  Subroutine SRCSO2 (originally from Mian Chin) computes SO2 emissons from 
-!  aircraft, biomass, and anthro sources. (rjp, bdf, bmy, 6/2/00, 1/15/04)
+!  aircraft, biomass, and anthro sources. (rjp, bdf, bmy, 6/2/00, 5/20/04)
 !
 !  Arguments as Input/Output:
 !  ===========================================================================
@@ -2692,11 +2710,14 @@
 !  (3 ) For GEOS-4, convert PBL from [m] to [hPa] w/ the hydrostatic law.
 !        Now references SCALE_HEIGHT from "CMN_GCTM".  Added BLTHIK variable
 !        to hold PBL thickness in [hPa]. (bmy, 1/15/04)
+!  (4 ) Now references AD13_SO2_sh array from "diag_mod.f".  Also references
+!        LSHIPSO2 from "CMN_SETUP" (bec, bmy, 5/20/04) 
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
       USE DIAG_MOD,     ONLY : AD13_SO2_an, AD13_SO2_ac, AD13_SO2_bb,
-     &                         AD13_SO2_nv, AD13_SO2_ev, AD13_SO2_bf
+     &                         AD13_SO2_nv, AD13_SO2_ev, AD13_SO2_bf,
+     &                         AD13_SO2_sh
       USE DAO_MOD,      ONLY : BXHEIGHT, PBL
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE PRESSURE_MOD, ONLY : GET_PEDGE
@@ -2706,7 +2727,8 @@
 #     include "CMN"          ! XTRA2
 #     include "CMN_DIAG"     ! ND13, LD13 (for now)
 #     include "CMN_GCTM"     ! SCALE_HEIGHT
-  
+#     include "CMN_SETUP"    ! LSHIPSO2
+
       ! Arguments
       INTEGER, INTENT(IN)    :: NSEASON
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -2894,6 +2916,9 @@
          ! Sum of anthro (surface + 100m), biomass, biofuel SO2 at (I,J)
          TSO2  = SUM( ESO2_an(I,J,:) ) + ESO2_bb(I,J) + ESO2_bf(I,J)
 
+         ! Also add SO2 from ship exhaust if necessary (bec, bmy, 5/20/04)
+         IF ( LSHIPSO2 ) TSO2 = TSO2 + ESO2_sh(I,J)
+        
          ! Zero SO2SRC
          SO2SRC = 0d0
 
@@ -2957,6 +2982,10 @@
             SO2(1) = ESO2_an(I,J,1) + ESO2_bb(I,J) + ESO2_bf(I,J)
             SO2(2) = ESO2_an(I,J,2) 
 
+            ! Also add ship exhaust SO2 into surface if necessary 
+            ! (bec, bmy, 5/20/04)
+            IF ( LSHIPSO2 ) SO2(1) = SO2(1) + ESO2_sh(I,J)
+
          ENDIF 
 
          ! Error check
@@ -3004,6 +3033,12 @@
             ! SO2 from biofuel burning
             AD13_SO2_bf(I,J)      = AD13_SO2_bf(I,J) +
      &                              ( ESO2_bf(I,J) * S_SO2 * DTSRCE )
+
+            ! SO2 from ship emissions (bec, bmy, 5/20/04)
+            IF ( LSHIPSO2 ) THEN
+               AD13_SO2_sh(I,J)   = AD13_SO2_sh(I,J) +
+     &                              ( ESO2_sh(I,J) * S_SO2 * DTSRCE )
+            ENDIF
 
             ! Loop thru LD13 levels
             DO L = 1, LD13 
@@ -4480,6 +4515,89 @@
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE READ_SHIP_SO2( THISMONTH )
+!
+!******************************************************************************
+!  Subroutine READ_SHIP_SO2 reads in ship SO2 emissions. (bec, qli, 10/01/03)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) THISMONTH (INTEGER) : Current month (1-12)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE BPCH2_MOD
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE TRACERID_MOD, ONLY : IDTSO2
+      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+
+#     include "CMN_SIZE"     ! Size parameters 
+#     include "CMN_SETUP"    ! DATA_DIR
+#     include "CMN_O3"       ! XNUMOL
+
+      ! Arguments
+      INTEGER, INTENT(IN)    :: THISMONTH
+
+      ! Local variables
+      INTEGER                :: I, J
+      REAL*4                 :: ARRAY(IGLOB,JGLOB,1)
+      REAL*4                 :: SHIPSO2(IIPAR,JJPAR)
+      REAL*8                 :: XTAU, AREA_CM2
+      CHARACTER (LEN=255)    :: FILENAME
+
+      !=================================================================
+      ! READ_SHIP_SO2 begins here!
+      !=================================================================
+
+      ! Filename
+      FILENAME = TRIM( DATA_DIR )                   // 
+     &           'sulfate_sim_200210/shipSOx.geos.' // GET_RES_EXT()
+
+      ! Echo some information to the standard output
+      WRITE( 6, 110 ) TRIM( FILENAME )
+ 110  FORMAT( '     - READ_SHIP_SO2 ', a )
+
+      ! TAU value at the beginning of this month
+      XTAU = GET_TAU0( THISMONTH, 1, 1985 )
+      
+      ! Read in this month's ship SO2 emissions
+      CALL READ_BPCH2( FILENAME, 'SO2-SHIP',     26,  
+     &                 XTAU,      IIPAR,         JJPAR, 
+     &                 1,         ARRAY(:,:,1),  QUIET=.TRUE. )
+
+      ! Cast from REAL*4 to REAL*8
+      CALL TRANSFER_2D( ARRAY(:,:,1), SHIPSO2 )
+
+      !=================================================================
+      ! Convert ship SO2 from [molec SO2/cm2/s] to [kg SO2/box/s]
+      !=================================================================
+
+      ! Loop over latitudes
+      DO J = 1, JJPAR
+
+         ! Grid box surface area [cm2]
+         AREA_CM2 = GET_AREA_CM2( J )
+
+         ! Loop over longitudes
+         DO I = 1, IIPAR
+            
+            ! Convert to [kg SO2/box/s]
+!            ESO2_sh(I,J) = ( SHIPSO2(I,J) * 0.064d0 * AREA_CM2 ) / 
+!     &                     ( 6.022d23 )
+ 
+            ! Convert to [kg SO2/box/s]
+            ESO2_sh(I,J) = SHIPSO2(I,J) * AREA_CM2 / XNUMOL(IDTSO2)
+              
+         ENDDO 
+      ENDDO
+
+      ! Return to calling program
+      END SUBROUTINE READ_SHIP_SO2
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE READ_ANTHRO_NH3( THISMONTH )
 !
 !******************************************************************************
@@ -5036,7 +5154,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_SULFATE initializes and zeros all allocatable arrays
-!  declared in "sulfate_mod.f" (bmy, 6/2/00, 3/30/04)
+!  declared in "sulfate_mod.f" (bmy, 6/2/00, 5/20/04)
 !
 !  NOTES:
 !  (1 ) Only allocate some arrays for the standalone simulation (NSRCX==10).
@@ -5047,6 +5165,7 @@
 !        and O3m for offline runs.  Also allocate ESO2_bf (bmy, 1/16/03)
 !  (3 ) Now allocate ENH3_na array (rjp, bmy, 3/23/03)
 !  (4 ) Now allocate COSZM for offline runs (bmy, 3/30/04)
+!  (5 ) Now allocate ESO2_sh array (bec, bmy, 5/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -5122,6 +5241,10 @@
       ALLOCATE( ESO2_nv( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_nv' )
       ESO2_nv = 0d0
+
+      ALLOCATE( ESO2_sh( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_sh' )
+      ESO2_sh = 0d0
 
       ALLOCATE( ESO4_an( IIPAR, JJPAR, 2  ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO4_an' )
@@ -5238,12 +5361,13 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_SULFATE deallocates all previously allocated arrays 
-!  for sulfate emissions -- call at the end of the run (bmy, 6/1/00, 3/30/04)
+!  for sulfate emissions -- call at the end of the run (bmy, 6/1/00, 5/20/04)
 ! 
 !  NOTES:
 !  (1 ) Now also deallocates IJSURF. (bmy, 11/12/02)
 !  (2 ) Now also deallocates ENH3_na (rjp, bmy, 3/23/03)
 !  (3 ) Now also deallocates COSZM (rjp, bmy, 3/30/04)
+!  (4 ) Now also deallocates ESO4_sh (bec, bmy, 5/20/04)
 !******************************************************************************
 ! 
       !=================================================================
@@ -5262,6 +5386,7 @@
       IF ( ALLOCATED( ESO2_ev   ) ) DEALLOCATE( ESO2_ev   )
       IF ( ALLOCATED( ESO2_bb   ) ) DEALLOCATE( ESO2_bb   )
       IF ( ALLOCATED( ESO2_bf   ) ) DEALLOCATE( ESO2_bf   )
+      IF ( ALLOCATED( ESO2_sh   ) ) DEALLOCATE( ESO2_sh   )
       IF ( ALLOCATED( ESO4_an   ) ) DEALLOCATE( ESO4_an   )
       IF ( ALLOCATED( IDAYs     ) ) DEALLOCATE( IDAYs     )
       IF ( ALLOCATED( IDAYe     ) ) DEALLOCATE( IDAYe     )

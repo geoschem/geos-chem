@@ -1,9 +1,9 @@
-! $Id: ndxx_setup.f,v 1.9 2004/05/03 14:46:18 bmy Exp $
+! $Id: ndxx_setup.f,v 1.10 2004/05/24 17:28:58 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
 !  NDXX_SETUP dynamically allocates memory for certain diagnostic arrays that 
-!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 4/20/04)
+!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 5/20/04)
 !
 !  This allows us to reduce the amount of memory that needs to be declared 
 !  globally.  We only allocate memory for arrays if the corresponding 
@@ -98,6 +98,7 @@
 !  (45) Now initialize AD08 array.  Reset TRCOFFSET for tagged CO from
 !        84 to 80.  Also activate ND52 diagnostic for ICARTT.
 !        (rjp, bec, stu, cas, bmy, 4/20/04)
+!  (46) Now allocate AD13_SO2_sh array for ND13 (bec, bmy, 5/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -301,7 +302,6 @@
       !=================================================================
       IF ( ND13 > 0 ) THEN 
          LD13 = MIN( ND13, LLPAR )
-         !LD13 = LLPAR
 
          ALLOCATE( AD13_DMS( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_DMS' )
@@ -326,6 +326,9 @@
 
          ALLOCATE( AD13_SO4_an( IIPAR, JJPAR, 2 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_SO4_an' )
+
+         ALLOCATE( AD13_SO2_sh( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_SO4_sh' )
 
          ALLOCATE( AD13_NH3_an( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_NH3_an' )

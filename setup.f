@@ -1,4 +1,4 @@
-! $Id: setup.f,v 1.7 2004/04/19 15:09:54 bmy Exp $
+! $Id: setup.f,v 1.8 2004/05/24 17:28:59 bmy Exp $
       SUBROUTINE SETUP( NYMDb, NYMDe,     NHMSb,   NHMSe,   NDT,      
      &                  NTDT,  NDIAGTIME, ALPHA_d, ALPHA_n, IORD,     
      &                  JORD,  KORD,      J1,      Umax,    IGD,      
@@ -6,7 +6,7 @@
 !
 !******************************************************************************
 !  Subroutine SETUP reads in parameters specific to the GEOS-CHEM model.
-!  (bmy, bey, bdf, 5/27/99, 4/2/04)
+!  (bmy, bey, bdf, 5/27/99, 5/20/04)
 !                                                                           
 !  NOTES:
 !  (1 ) SETUP is written in Fixed-Form Fortran 90.
@@ -79,6 +79,8 @@
 !        Disable checking of GEOS_1_DIR etc directory paths. (bmy, 12/9/03)
 !  (37) Added flags for carbon & dust aerosols. Also do not read extra
 !        lines from the top of the file. (rjp, tdf, bmy, 4/6/04) 
+!  (38) Now reads LSHIPSO2 instead of LSPLIT.  LSPLIT is now automatically
+!        set in "input.f" (bec, bmy, 5/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -163,7 +165,12 @@
       IF ( IOS /= 0 ) CALL IOERROR( IOS, 99, 'setup:11' )
 
       READ ( 99, 25, IOSTAT=IOS ) 
-     &     LMFCT,  LFILL,  LSTDRUN, LDEAD,  LSPLIT,  STR4   
+!----------------------------------------------------------------------
+! Prior to 5/20/04:
+! Now read LSHIPSO2 instead of LSPLIT (bec, bmy, 5/20/04)
+!     &     LMFCT,  LFILL,  LSTDRUN, LDEAD,  LSPLIT,  STR4   
+!----------------------------------------------------------------------
+     &     LMFCT,  LFILL,  LSTDRUN, LDEAD,  LSHIPSO2, STR4   
       IF ( IOS /= 0 ) CALL IOERROR( IOS, 99, 'setup:12' )
 
       ! Added for various aerosol chemistry (rjp, tdf, bmy, 4/2/04)
@@ -175,7 +182,12 @@
       WRITE ( 6, 25 ) LEMIS,  LDRYD,  LCHEM,   LTRAN,  LTPFV,   STR1 
       WRITE ( 6, 25 ) LTURB,  LCONV,  LWETD,   LDBUG,  LMONOT,  STR2 
       WRITE ( 6, 25 ) LWAIT,  LBBSEA, LUNZIP,  LSVGLB, LTOMSAI, STR3 
-      WRITE ( 6, 25 ) LMFCT,  LFILL,  LSTDRUN, LDEAD,  LSPLIT,  STR4
+      !--------------------------------------------------------------------
+      ! Prior to 5/20/04:
+      ! Now write LSHIPSO2 instead of LSPLIT (bec, bmy, 5/20/04)
+      !WRITE ( 6, 25 ) LMFCT,  LFILL,  LSTDRUN, LDEAD,  LSPLIT,  STR4
+      !--------------------------------------------------------------------
+      WRITE ( 6, 25 ) LMFCT,  LFILL,  LSTDRUN, LDEAD,  LSHIPSO2,STR4
       WRITE ( 6, 25 ) LSULF,  LCARB,  LDUST,   LSSALT, LATEQ,   STR5   
 !
 !******************************************************************************

@@ -1,4 +1,4 @@
-! $Id: initialize.f,v 1.4 2004/05/03 14:46:17 bmy Exp $
+! $Id: initialize.f,v 1.5 2004/05/24 17:28:58 bmy Exp $
       SUBROUTINE INITIALIZE( IFLAG )
 !
 !******************************************************************************
@@ -32,6 +32,7 @@
 !  (4a) AD13_SO2_bf : ND13 array -- SO2 biofuel emissions
 !  (5 ) AD13_SO2_nv : ND13 array -- SO2 non-eruptive volcano emissions
 !  (6 ) AD13_SO2_ev : ND13 array -- SO2 eruptive volcano emissions
+!  (6a) AD13_SO2_sh : ND13 array -- SO2 ship emissions
 !  (7 ) AD13_SO4_an : ND13 array -- SO4 anthro emissions
 !  (8 ) AD13_NH3_an : ND13 array -- NH3 anthro emissions
 !  (8a) AD13_NH3_na : ND13 array -- NH3 natural source emissions
@@ -142,6 +143,7 @@
 !  (23) Now zeroes AD03 array for Kr85 prod/loss diag. (jsw, bmy, 8/20/03)
 !  (24) Now also zeroes AD06 and AD07* arrays (rjp, tdf, bmy, 4/5/04)
 !  (25) Now also zeroes AD08 array (rjp, bec, bmy, 4/20/04)
+!  (26) Now also initialize AD13_SO2_sh array (bec, bmy, 5/20/04)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -235,7 +237,7 @@
             AD07_OC  = 0e0
          ENDIF
          
-         ! For ND13 - sulfur emissions (bmy, 6/6/00, 3/23/03)
+         ! For ND13 - sulfur emissions (bmy, 6/6/00, 5/20/04)
          IF ( ND13 > 0 ) THEN
             AD13_DMS    = 0e0  
             AD13_SO2_ac = 0e0
@@ -244,6 +246,7 @@
             AD13_SO2_bf = 0e0
             AD13_SO2_nv = 0e0
             AD13_SO2_ev = 0e0
+            AD13_SO2_sh = 0e0
             AD13_SO4_an = 0e0
             AD13_NH3_an = 0e0
             AD13_NH3_na = 0e0

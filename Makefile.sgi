@@ -1,6 +1,6 @@
-# $Id: Makefile.sgi,v 1.14 2004/05/03 14:46:14 bmy Exp $
+# $Id: Makefile.sgi,v 1.15 2004/05/24 17:28:57 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for SGI/Origin (bmy, Tue Apr 20 14:28:03 2004)
+# GEOS-CHEM Makefile for SGI/Origin (bmy, Thu May 20 14:47:27 2004)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -370,7 +370,7 @@ diag3.o                    : diag3.f                    CMN CMN_DIAG CMN_O3 CMN_
 	$(F90) -c -OPT:olimit=4500 $*.f
 diag41.o                   : diag41.f                   CMN CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 diag48.o                   : diag48.f                   CMN CMN_DEP CMN_DIAG CMN_O3 CMN_SIZE define.h 
-diag49.o                   : diag49.f                   CMN CMN_DIAG CMN_O3 CMN_SIZE define.h CMN_TIMES 
+diag49.o                   : diag49.f                   CMN CMN_DIAG CMN_O3 CMN_TIMES cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 diag5.o                    : diag5.f                    CMN CMN_DIAG CMN_O3 CMN_SIZE define.h 
 diag50.o                   : diag50.f                   CMN CMN_DIAG CMN_O3 CMN_SETUP CMN_SIZE define.h CMN_TIMES 
 diag51_mod.o               : diag51_mod.f               CMN CMN_DIAG CMN_O3 CMN_SETUP CMN_SIZE define.h CMN_TIMES 
@@ -465,7 +465,7 @@ phis_read_mod.o            : phis_read_mod.f            CMN_DIAG CMN_GCTM CMN_SE
 photoj.o                   : photoj.f                   cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 physproc.o                 : physproc.f                 CMN_SIZE define.h comode.h 
 pjc_pfix_mod.o             : pjc_pfix_mod.f             CMN CMN_GCTM CMN_SIZE define.h 
-planeflight_mod.o          : planeflight_mod.f          CMN CMN_DIAG CMN_SIZE define.h comode.h 
+planeflight_mod.o          : planeflight_mod.f          CMN CMN_DIAG CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h comode.h jv_cmn.h 
 plsave.o                   : plsave.f                   CMN_SIZE define.h comode.h 
 polint.o                   : polint.f                   
 precipfrac.o               : precipfrac.f               CMN_SIZE define.h 

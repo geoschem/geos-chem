@@ -1,9 +1,9 @@
-! $Id: diag_mod.f,v 1.6 2004/05/03 14:46:16 bmy Exp $
+! $Id: diag_mod.f,v 1.7 2004/05/24 17:28:58 bmy Exp $
       MODULE DIAG_MOD 
 !
 !******************************************************************************
 !  Module DIAG_MOD contains declarations for allocatable arrays for use with 
-!  GEOS-CHEM diagnostics. (amf, bdf, bmy, 11/30/99, 4/20/04)
+!  GEOS-CHEM diagnostics. (amf, bdf, bmy, 11/30/99, 5/20/04)
 !
 !  Module Routines:
 !  ============================================================================
@@ -41,6 +41,7 @@
 !        Also added AD03 array for Kr85 prod/loss diag. (jsw, bmy, 8/20/03)
 !  (15) Added ND06 (dust emission) and ND07 (carbon aerosol emission) 
 !        diagnostic arrays (rjp, tdf, bmy, 4/5/04)
+!  (16) Added AD13_SO2_sh diagnostic array for ND13 (bec, bmy, 5/20/04)
 !******************************************************************************
 !     
       !=================================================================
@@ -84,6 +85,7 @@
       REAL*4,  ALLOCATABLE :: AD13_SO2_bf(:,:)
       REAL*4,  ALLOCATABLE :: AD13_SO2_nv(:,:,:)
       REAL*4,  ALLOCATABLE :: AD13_SO2_ev(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD13_SO2_sh(:,:)
       REAL*4,  ALLOCATABLE :: AD13_SO4_an(:,:,:)
       REAL*4,  ALLOCATABLE :: AD13_NH3_an(:,:)
       REAL*4,  ALLOCATABLE :: AD13_NH3_na(:,:)
@@ -238,7 +240,7 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_DIAG deallocates all module arrays.
-!  (bmy, 12/13/02, 4/20/04)
+!  (bmy, 12/13/02, 5/20/04)
 !
 !  NOTES:
 !  (1 ) Now also deallocate AD13_NH3_an, AD13_NH3_bb, AD13_NH3_bf arrays
@@ -248,6 +250,7 @@
 !       Now also deallocate AD03 array for Kr85 prod/loss (jsw, bmy, 8/20/03)
 !  (4 ) Now also deallocate AD06 and AD07* arrays (rjp, bdf, bmy, 4/5/04)
 !  (5 ) Now also deallocate AD08 array (rjp, bec, bmy, 4/20/04)
+!  (6 ) Now also deallocaes AD13_SO2_sh array (bec, bmy, 5/20/04)
 !******************************************************************************
 !
       !=================================================================
@@ -270,6 +273,7 @@
       IF ( ALLOCATED( AD13_SO2_bf ) ) DEALLOCATE( AD13_SO2_bf )
       IF ( ALLOCATED( AD13_SO2_nv ) ) DEALLOCATE( AD13_SO2_nv )
       IF ( ALLOCATED( AD13_SO2_ev ) ) DEALLOCATE( AD13_SO2_ev )
+      IF ( ALLOCATED( AD13_SO2_sh ) ) DEALLOCATE( AD13_SO2_sh )
       IF ( ALLOCATED( AD13_SO4_an ) ) DEALLOCATE( AD13_SO4_an )
       IF ( ALLOCATED( AD13_NH3_an ) ) DEALLOCATE( AD13_NH3_an )
       IF ( ALLOCATED( AD13_NH3_na ) ) DEALLOCATE( AD13_NH3_na )

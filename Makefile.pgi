@@ -1,6 +1,6 @@
-# $Id: Makefile.pgi,v 1.2 2004/05/03 14:46:13 bmy Exp $
+# $Id: Makefile.pgi,v 1.3 2004/05/24 17:28:57 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for LINUX/PGI (bmy, Tue Apr 20 14:28:29 2004)
+# GEOS-CHEM Makefile for LINUX/PGI (bmy, Thu May 20 14:47:52 2004)
 #
 # NOTE: If you want to run the 2 x 2.5 GEOS-CHEM model, then try adding
 #       -Bstatic to the F90 compilation line.  It appears that setting 
@@ -47,6 +47,7 @@ diag48.o                  \
 diag49.o                  \
 diag5.o                   \
 diag50.o                  \
+diag52.o                  \
 diag_2pm.o                \
 diagoh.o                  \
 diagpl.o                  \
@@ -376,10 +377,11 @@ diag20.o                   : diag20.f                   CMN CMN_O3 CMN_SIZE defi
 diag3.o                    : diag3.f                    CMN CMN_DIAG CMN_O3 CMN_SETUP CMN_SIZE define.h comode.h 
 diag41.o                   : diag41.f                   CMN CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 diag48.o                   : diag48.f                   CMN CMN_DEP CMN_DIAG CMN_O3 CMN_SIZE define.h 
-diag49.o                   : diag49.f                   CMN CMN_DIAG CMN_O3 CMN_SIZE define.h CMN_TIMES 
+diag49.o                   : diag49.f                   CMN CMN_DIAG CMN_O3 CMN_TIMES cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 diag5.o                    : diag5.f                    CMN CMN_DIAG CMN_O3 CMN_SIZE define.h 
 diag50.o                   : diag50.f                   CMN CMN_DIAG CMN_O3 CMN_SETUP CMN_SIZE define.h CMN_TIMES 
 diag51_mod.o               : diag51_mod.f               CMN CMN_DIAG CMN_O3 CMN_SETUP CMN_SIZE define.h CMN_TIMES 
+diag52.o                   : diag52.f                   CMN CMN_DIAG CMN_O3 CMN_SIZE define.h CMN_TIMES 
 diag_2pm.o                 : diag_2pm.f                 CMN_DIAG CMN_SETUP CMN_SIZE define.h 
 diag_mod.o                 : diag_mod.f                 
 diagoh.o                   : diagoh.f                   CMN_DIAG CMN_O3 CMN_SIZE define.h 
@@ -469,7 +471,7 @@ phis_read_mod.o            : phis_read_mod.f            CMN_DIAG CMN_GCTM CMN_SE
 photoj.o                   : photoj.f                   cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 physproc.o                 : physproc.f                 CMN_SIZE define.h comode.h 
 pjc_pfix_mod.o             : pjc_pfix_mod.f             CMN CMN_GCTM CMN_SIZE define.h 
-planeflight_mod.o          : planeflight_mod.f          CMN CMN_DIAG CMN_SIZE define.h comode.h 
+planeflight_mod.o          : planeflight_mod.f          CMN CMN_DIAG CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h comode.h jv_cmn.h 
 plsave.o                   : plsave.f                   CMN_SIZE define.h comode.h 
 polint.o                   : polint.f                   
 precipfrac.o               : precipfrac.f               CMN_SIZE define.h 

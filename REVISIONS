@@ -1,149 +1,47 @@
-REVISIONS (v6-02-04)  
-bmy, 26 Apr 2004
+REVISIONS (v6-02-05)  
+bmy, 20 May 2004
 
 
-New in v6-02-04:
--------------------------------------------------------------------------------
-
-seasalt_mod.f		-- Module containing routines for seasalt
-			   emissions and chemistry
-
-
-
-Removed in v6-02-04:
+New in v6-02-05:
 -------------------------------------------------------------------------------
 
 
 
-
-Changed from v6-02-03:
+Removed in v6-02-05:
 -------------------------------------------------------------------------------
 
-aero_sfcRsI		-- Now use particle size & density values
-("drydep_mod.f")	   from A_RADI and A_DEN arrays
 
-aero_sfcRsII		-- Now use particle size & density values
-("drydep_mod.f")	   from A_RADI and A_DEN arrays
 
-anthroems.f		-- Added fancy output
+Changed from v6-02-04:
+-------------------------------------------------------------------------------
 
-bioburn			-- Added fancy output
-("biomass_mod.f")
-
-biofuel_burn		-- Added fancy output
-("biofuel_mod.f")	
-
-cleanup_diag		-- Now also deallocates AD08 array
+cleanup_diag		-- Now also deallocaes AD13_SO2_sh array
 ("diag_mod.f")
 
-CMN_DIAG		-- Change PD08 from 0 to 2 
+cleanup_sulfate		-- Now also deallocates ESO4_sh
+("sulfate_mod.f")
 
-CMN_SIZE		-- Increase NNPAR to 41 for seasalt tracers
+CMN_SETUP		-- Added LSHIPSO2 flag for adding ship SO2 emissions
 
-chemdr.f		-- Added SALA and SALC arrays for passing seasalt 
-			   to rdaer.f.  
-			-- Now rearranged the DO loop for computational 
-			   efficiency.
+diag_mod.f		-- Added AD13_SO2_sh diagnostic array for ND13
 
-close_files		-- Now also close IU_ND52 (for ICARTT output)
+diag3.f			-- Now save out SO2 from ships (if LSHIPSO2=T)
 
-compute_f		-- Added slots in the CASE statement for seasalt
-("wetscav_mod.f")	   aerosol tracers
+emisssulfate		-- Now references CMN_SETUP
+("sulfate_mod.f")	-- Now read ship SO2 if LSHIPSO2=T
+			-- Also references ITS_A_NEW_MONTH from "time_mod.f"
 
-compute_grid		-- Added fancy output
-("grid_mod.f")
+init_sulfate		-- Now allocate ESO2_sh array
+("sulfate_mod.f")
 
-depvel			-- Now also use size-resolved drydep
-("drydep_mod.f")	   for seasalt tracers
+initialize.f		-- Now also initialize AD13_SO2_sh array
 
-diag_mod.f		-- Added ND08 array
+input.f			-- Set LSPLIT=T if we are using more than one tracer
 
-diag3.f			-- Added ND08 diagnostic for seasalt aerosol tracers
+ndxx_setup.f		-- Now allocate AD13_SO2_sh array for ND13
 
-diag49.f		-- Added parallel DO loops
-			-- Replaced calls to O3COMP by references to the
-			   arrays FRACO3 and FRACNO.
-			-- Added aerosol optical depths to the CASE statement
-			-- Also save out total dust and seasalt mass.
+setup.f			-- Now reads LSHIPSO2 instead of LSPLIT.  
+			   LSPLIT is now automatically set in "input.f".
 
-do_chemistry		-- Now calls CHEMSEASALT to do seasalt aerosol 
-("chemistry_mod.f")	   chemistry 
-
-do_emissions		-- Now calls EMISSSEASALT to do seasalt aerosol 
-("chemistry_mod.f")	   chemistry 
-
-drydep_mod.f		-- Increased MAXDEP to 26
-			-- Added A_RADI and A_DEN module variables
-			-- Other modifications for size-resolved drydep
-
-file_mod.f		-- Added IU_ND52=20 for ICARTT output
-
-get_global_oh		-- Add Mat's OH (v5-07-08) as an option
-("global_oh_mod.f")	-- Now reads bpch file quietly 
-
-get_wetdep_nmax		-- Modified to include seasalt aerosol tracers
-("wetscav_mod.f")
-
-init_drydep		-- Added seasalt aerosol tracers.  
-("drydep_mod.f")	-- Now use A_RADI and A_DEN to store radius & density 
-			   of size-resolved tracers.  
-			-- Also added fancy output
-
-init_global_oh		-- OH should be (IIPAR,JJPAR,LLPAR) in order to
-("global_oh_mod.f")	   avoid subscript errors
-
-init_tracerid		-- Now zero extra flags for seasalt tracers 
-("tracerid_mod.f")
-
-initialize		-- Now also zeroes ND08 array 
-
-inptr.f			-- Add fancy output
-
-ioerror			-- Now don't flush the buffer for LINUX_EFC
-("file_mod.f")
-
-ndxx_setup.f		-- Now initialize AD08 array
-			-- Reset TRCOFFSET for tagged CO from 84 to 80
-			-- Now activate ND52 diagnostic for ICARTT
-
-planeflight		-- Now references UWND and VWND from "dao_mod.f"
-("planeflight_mod.f")	-- Now references GET_PEDGE from "pressure_mod.f"
-			-- Added CASEs for surface pressure, UWND, VWND to 
-			   the CASE statement
-
-rainout			-- Now updated for seasalt aerosol tracers
-("wetscav_mod.f")
-
-rdaer.f			-- Add SALA, SALC to the arg list
-
-read_restart_file	-- Add fancy output string
-("restart_mod.f")	
-
-read_variables		-- Changed variable name prefix "DAO" to "GMAO"
-("planeflight_mod.f")   -- Also added aerosol optical depths w/ tracer 	
-			   offset 2000
-
-settrace		-- Make sure IDEMIS etc doesn't go out of array bounds
-("tracerid_mod.f")
-
-setup_planeflight	-- Add fancy output string 
-("planeflight_mod.f")
-
-test_valid		-- Bug fix: add 0.5 in expression for I so that 
-("planeflight_mod.f")	   the rounding will be done correctly
-			-- Also make sure that I is computed correctly
-			   for points near the date line
-
-tracerid		-- Added extra CASEs to the CASE statement for 
-("tracerid_mod.f")	   seasalt tracers
-
-tracerid_mod.f		-- Increase NNNTRID for carb+dust+seasalt tracers
-
-washout			-- Now updated for seasalt aerosol tracers
-("wetscav_mod.f")
-
-wetdepid		-- Updated for seasalt aerosol tracers
-("wetscav_mod.f")	-- Also added fancy output 
-
-wetscav_mod.f		-- Increased NSOLMAX to 20 for seasalt tracers
-			-- Other modifications for seasalt aerosol tracers
+srcso2			-- Now references AD13_SO2_sh array from "diag_mod.f"
+("sulfate_mod.f")	-- Also references LSHIPSO2 from "CMN_SETUP"

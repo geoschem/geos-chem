@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.11 2004/05/03 14:46:15 bmy Exp $
+! $Id: diag3.f,v 1.12 2004/05/24 17:28:57 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out I-J (Long-Lat) diagnostics to the BINARY
-!  format punch file (bmy, bey, mgs, rvm, 5/27/99, 4/20/04)
+!  format punch file (bmy, bey, mgs, rvm, 5/27/99, 5/20/04)
 !
 !  The preferred file format is binary punch file format v. 2.0.  This
 !  file format is very GAMAP-friendly.  GAMAP also supports the ASCII
@@ -130,6 +130,7 @@
 !        Now scale online dust optical depths by SCALECHEM in ND21 diagnostic.
 !        (rjp, tdf, bmy, 4/5/04)
 !  (50) Added ND08 (seasalt aerosol) diagnostic (rjp, bec, bmy, 4/20/04)
+!  (51) Now save out SO2 from ships (if LSHIPSO2=T) (bec, bmy, 5/20/04)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -765,6 +766,22 @@
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &               IIPAR,     JJPAR,     LD13,     IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD13) )
+
+
+         !==============================================================
+         ! Ship SO2     bec (5/17/04)
+         !==============================================================
+         IF ( LSHIPSO2 ) THEN
+            CATEGORY     = 'SO2-SHIP'
+            ARRAY(:,:,1) = AD13_SO2_sh(:,:)
+            N            = IDTSO2 + TRCOFFSET
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         ENDIF
 
          !==============================================================
          ! Anthropogenic SO4 

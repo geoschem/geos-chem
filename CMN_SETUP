@@ -1,8 +1,8 @@
-! $Id: CMN_SETUP,v 1.3 2004/04/13 14:52:27 bmy Exp $
+! $Id: CMN_SETUP,v 1.4 2004/05/24 17:28:56 bmy Exp $
 !
 !******************************************************************************
 !  CMN_SETUP contains logical switches and I/O units for SETUP.F and MAIN.F.
-!  (bmy, bey, bdf, 3/3/98, 4/1/04)
+!  (bmy, bey, bdf, 3/3/98, 5/20/04)
 !
 !  NOTES:
 !  (1 ) The 'ts.out' file capability has been eliminated since the same
@@ -41,6 +41,7 @@
 !  (17) Deleted GEOS_2_DIR.  Added GEOS_4_DIR (bmy, 6/18/03)
 !  (18) Renamed LRERD to LUNZIP (bmy, 12/10/03)
 !  (19) Added extra flags for carbon tracers (rjp, bmy, 4/1/04)
+!  (20) Added LSHIPSO2 flag for adding ship SO2 emissions (bec, bmy, 5/20/04)
 !******************************************************************************
 !
       !=================================================================
@@ -50,12 +51,10 @@
       ! LDRYD    : on/off switch for DRY DEPOSITION
       ! LCHEM    : on/off switch for CHEMISTRY
       ! LTRAN    : on/off switch for TRANSPORT       
-      ! LKZZ     : *** NOW OBSOLETE ***
       ! LTURB    : on/off switch for PBL MIXING (via TURBDAY)
       ! LCONV    : on/off switch for CLOUD CONVECTION (via NFCLDMX)
       ! LWETD    : on/off switch for WET DEPOSITION  
       ! LDBUG    : *** NOW OBSOLETE ***
-      ! LDIAG    : *** NOW OBSOLETE ***
       ! LUNZIP   : on/off switch for unzipping met field data
       ! LMFCT    : Argument for TPCORE (transport)
       ! LFILL    : Argument for TPCORE (transport)
@@ -66,18 +65,24 @@
       ! LSULF    : on/off switch for coupled full chemistry/aerosol run
       ! LSPLIT   : on/off switch for using tagged tracers
       ! LMONOT   : on/off switch for scaling MONOTERPENES from ACET
+      ! LCARB    : on/off switch for carbonaceous BC/OC aerosols
+      ! LSSALT   : on/off switch for sea salt 
+      ! LDUST    : on/off switch for desert dust
+      ! LATEQ    : *** for future expansion ***
+      ! LDEAD    : Toggles between DEAD and GINOUX dust source fn's
+      ! LSHIPSO2 : on/off switch for ship SO2 emissions
       !=================================================================
       LOGICAL                                                           
      &   LEMIS,  LDRYD,   LCHEM,  LTRAN,   LTPFV,  LTURB,  LCONV,       
      &   LWETD,  LDBUG,   LDIAG,  LUNZIP,  LSVGLB, LMFCT,  LFILL,       
      &   LWAIT,  LTOMSAI, LBBSEA, LSTDRUN, LSULF,  LSPLIT, LMONOT,
-     &   LCARB,  LSSALT,  LDUST,  LATEQ,   LDEAD
+     &   LCARB,  LSSALT,  LDUST,  LATEQ,   LDEAD,  LSHIPSO2
 
       COMMON /LFLAGS/                                                   
      &   LEMIS,  LDRYD,   LCHEM,  LTRAN,   LTPFV,  LTURB,  LCONV,       
      &   LWETD,  LDBUG,   LDIAG,  LUNZIP,  LSVGLB, LMFCT,  LFILL,       
      &   LWAIT,  LTOMSAI, LBBSEA, LSTDRUN, LSULF,  LSPLIT, LMONOT,
-     &   LCARB,  LSSALT,  LDUST,  LATEQ,   LDEAD
+     &   LCARB,  LSSALT,  LDUST,  LATEQ,   LDEAD,  LSHIPSO2
 
       !=================================================================
       ! Directory and character string variables, from 'input.geos'
