@@ -1,10 +1,10 @@
-! $Id: readchem.f,v 1.5 2003/08/06 15:30:52 bmy Exp $
+! $Id: readchem.f,v 1.6 2003/08/12 17:08:13 bmy Exp $
       SUBROUTINE READCHEM 
 !
 !******************************************************************************
 !  Subroutine READCHEM reads species names, chemical rxns, and photolysis 
 !  reactions from the "globchem.dat" chemistry mechanism file for SMVGEAR II.  
-!  (M. Jacobson 1997; bdf, bmy, 5/9/03, 7/16/03)
+!  (M. Jacobson 1997; bdf, bmy, 5/9/03, 8/7/03)
 !
 !  NOTES:
 !  (1 ) Added space in FORMAT strings for more products.  Also now references
@@ -20,6 +20,7 @@
 !        criteria.  (bnd, bmy, 7/9/03)
 !  (3 ) Now declare ININT as a local variable instead of being declared w/in 
 !        "comode.h".  Remove reference to IPORD. (bmy, 7/16/03)
+!  (4 ) Now flag the N2O5 hydrolysis rxn for later use. (mje, bmy, 8/7/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -132,6 +133,9 @@ C
 C
       NAMEGAS(0)     = ' '
 C
+      ! Initialize flag for N2O5 hydrolysis rxn (bmy, 8/7/03)
+      NKN2O5         = 0
+
       DO 44 I            = 1, NMDEAD
        NAMD(I)           = ' '
  44   CONTINUE
@@ -449,8 +453,10 @@ C   E         = IDENTIFIES REVERSE EQUILIBRIUM REACTION
 C   V         = IDENTIFIES CH3SCH3 + OH --> CH3S(OH)CH3
 C   W         = IDENTIFIES O(1D) + N2 OR O2 
 C   X         = IDENTIFIES OH  + HNO3 
-C   Y         = IDENDIFIES OH  + CO   
-C   Z         = IDENDIFIES HO2 + HO2  
+C   Y         = IDENTIFIES OH  + CO   
+C   Z         = IDENTIFIES HO2 + HO2  
+C   G         = IDENTIFIES DMS + OH + O2
+C   K         = IDENTIFIES WETDEP or HYDROLYSIS REACTIONS
 C
 C Fc COLUMN   = VALUE OF Fc FOR THREE-BODY RATE REACTIONS (SEE REF 9, P.1145)
 C Fc(T)       = Fc CALCULATED AS EXP(-T(K)/Fc(T)) 
@@ -806,10 +812,8 @@ C NKSPECX = SPECIAL REACTION OH      + HNO3             (SPECL = 'X')
 C NKSPECY = SPECIAL REACTION OH      + CO               (SPECL = 'Y')
 C NKSPECZ = SPECIAL REACTION HO2     + HO2              (SPECL = 'Z') 
 C
-
-C               IF (SPECL(1).EQ.'V')         NKSPECV(NCS) = NK
-C bdf smv2 'V' reaction has a special rate.  More than one reaction of
-C   this type
+               ! bdf smv2 'V' reaction has a special rate.  
+               ! More than one reaction of this type
                IF (SPECL(1).EQ.'V') THEN
                   NNADDV(NCS)                = NNADDV(NCS)+1
                   NKSPECV( NNADDV(NCS),NCS ) = NK
@@ -825,6 +829,12 @@ C   this type
                IF (SPECL(1).EQ.'K')  THEN
                   NNADDK(NCS)               = NNADDK(NCS) + 1
                   NKSPECK( NNADDK(NCS),NCS) = NK
+
+                  ! Also denote N2O5 hydrolysis rxn (mje, bmy, 8/7/03)
+                  IF ( XINP(1) == 'N2O5' ) THEN
+                     NKN2O5 = NK
+                     PRINT*, '### N2O5 is : ', NKN2O5
+                  ENDIF
                ENDIF
 C
                IF (SPECL(1).EQ.'D')  THEN
@@ -1121,6 +1131,6 @@ C
 C *********************************************************************
 C *******************   END OF SUBROUTINE READCHEM   ****************** 
 C *********************************************************************
-C
+C     
       RETURN
       END SUBROUTINE READCHEM

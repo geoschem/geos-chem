@@ -1,9 +1,9 @@
-! $Id: diag1.f,v 1.1 2003/06/30 20:26:01 bmy Exp $
+! $Id: diag1.f,v 1.2 2003/08/12 17:08:11 bmy Exp $
       SUBROUTINE DIAG1 
 !
 !******************************************************************************
 !  Subroutine DIAG1 accumulates diagnostic quantities every NDIAG minutes
-!  (bmy, bey, 6/16/98, 6/23/03)
+!  (bmy, bey, 6/16/98, 8/8/03)
 !
 !  NOTES:
 !  (1 ) This subroutine was reconstructed from gmg's version of (10/10/97)
@@ -44,7 +44,7 @@
 !  (21) Now compute PBL top for ND67 for GEOS-4/fvDAS.  Also now include
 !        SCALE_HEIGHT from header file "CMN_GCTM". (bmy, 6/23/03)
 !******************************************************************************
-!  List of GEOS-CHEM Diagnostics (bmy, 12/13/02)
+!  List of GEOS-CHEM Diagnostics (bmy, 8/8/03)
 !
 !  FLAG  DIM'S    QUANTITY                                     UNITS
 !  ---- --------  --------                                     -----
@@ -54,7 +54,19 @@
 !
 !  ND03   ----    Free Diagnostic    
 !  ND04   ----    Free Diagnostic  
-!  ND05   ----    Free Diagnostic  
+!
+!  ND05           PROD/LOSS for SULFATE CHEMISTRY QUANTITIES
+!       (I,J,L)    P(SO2) from DMS + OH                        [kg S]
+!       (I,J,L)    P(SO2) from DMS + NO3                       [kg S]
+!       (I,J,L)    Total P(SO2)                                [kg S]
+!       (I,J,L)    P(MSA) from DMS                             [kg S]
+!       (I,J,L)    P(SO4) gas phase                            [kg S]         
+!       (I,J,L)    P(SO4) aqueous phase                        [kg S]
+!       (I,J,L)    Total P(SO4)                                [kg S]
+!       (I,J,L)    L(OH) by DMS                                [kg OH] 
+!       (I,J,L)    L(NO3) by DMS                               [kg NO3]
+!       (I,J,L)    L(H2O2)                                     [kg H2O2]
+!
 !  ND06   ----    Free Diagnostic 
 !  ND07   ----    Free Diagnostic 
 !  ND08   ----    Free Diagnostic 

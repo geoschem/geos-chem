@@ -1,10 +1,10 @@
-! $Id: transport_mod.f,v 1.2 2003/07/08 15:30:32 bmy Exp $
+! $Id: transport_mod.f,v 1.3 2003/08/12 17:08:14 bmy Exp $
       MODULE TRANSPORT_MOD
 !
 !******************************************************************************
 !  Module TRANSPORT_MOD is used to call the proper version of TPCORE for
 !  GEOS-1, GEOS-STRAT, GEOS-3 or GEOS-4 nested-grid or global simulations.
-!  (yxw, bmy, 3/10/03, 6/24/03)
+!  (yxw, bmy, 3/10/03, 8/7/03)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -44,6 +44,7 @@
 !  (2 ) Now delete DSIG array, it's obsolete.  Also added new PRIVATE function 
 !        GET_AIR_MASS to compute air masses from the input/output pressures
 !        from the new GEOS-4/fvDAS TPCORE. (bmy, 6/24/03)
+!  (3 ) Now references DEBUG_MSG from "error_mod.f". (bmy, 8/7/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -143,7 +144,7 @@
 !******************************************************************************
 !  Subroutine DO_TRANSPORT is the driver routine for the proper TPCORE |
 !  program for GEOS-1, GEOS-STRAT, GEOS-3 or GEOS-4 global simulations. 
-!  (bdf, bmy, 3/10/03, 6/24/03)
+!  (bdf, bmy, 3/10/03, 8/7/03)
 ! 
 !  Arguments as Input:
 !  ===========================================================================
@@ -159,6 +160,7 @@
 !        for the GEOS-4/fvDAS transport scheme. (bdf, bmy, 5/8/03)
 !  (2 ) Now call GET_AIR_MASS to compute air masses based on the input/output
 !        pressures of the GEOS-4 version of TPCORE (bmy, 6/24/03)
+!  (3 ) Now references DEBUG_MSG from "error_mod.f". (bmy, 8/7/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -169,7 +171,7 @@
       USE TPCORE_BC_MOD,    ONLY : SAVE_GLOBAL_TPCORE_BC
       USE TPCORE_MOD,       ONLY : TPCORE
       USE TPCORE_FVDAS_MOD, ONLY : TPCORE_FVDAS
-      USE ERROR_MOD,        ONLY : IT_IS_NAN
+      USE ERROR_MOD,        ONLY : IT_IS_NAN, DEBUG_MSG
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN"       ! STT, NTRACE, LPRT, LWINDO, TCVV
@@ -410,7 +412,7 @@
 !
 !******************************************************************************
 !  Subroutine DO_WINDOW_TRANSPORT is the driver program for the proper TPCORE
-!  program for nested-grid window simulations. (yxw, bmy, 3/10/03)
+!  program for nested-grid window simulations. (yxw, bmy, 8/7/03)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -419,10 +421,12 @@
 !  (3 ) KORD (INTEGER) : TPCORE vertical transport option flag
 !
 !  NOTES:
+!  (1 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,           ONLY : PSC2, UWND, VWND
+      USE ERROR_MOD,         ONLY : DEBUG_MSG
       USE GRID_MOD,          ONLY : GET_XOFFSET, GET_YOFFSET
       USE PRESSURE_MOD,      ONLY : GET_PEDGE,   SET_FLOATING_PRESSURE
       USE TIME_MOD,          ONLY : GET_TS_DYN

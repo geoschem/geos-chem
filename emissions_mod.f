@@ -1,9 +1,9 @@
-! $Id: emissions_mod.f,v 1.1 2003/06/30 20:26:04 bmy Exp $
+! $Id: emissions_mod.f,v 1.2 2003/08/12 17:08:12 bmy Exp $
       MODULE EMISSIONS_MOD
 !
 !******************************************************************************
 !  Module EMISSIONS_MOD is used to call the proper emissions subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 2/11/03)
+!  for the various GEOS-CHEM simulations. (bmy, 2/11/03, 8/7/03)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -13,12 +13,14 @@
 !  ============================================================================
 !  (1 ) c2h6_mod.f       : Module containing routines for C2H6 chemistry
 !  (2 ) ch3i_mod.f       : Module containing routines for CH3I chemistry
-!  (3 ) global_ch4_mod.f : Module containing routines for CH4 chemistry
-!  (4 ) RnPbBe_mod.f     : Module containing routines for Rn-Pb-Be chemistry
-!  (5 ) tagged_co_mod.f  : Module containing routines for Tagged CO chemistry
-!  (6 ) sulfate_mod.f    : Module containing routines for sulfate chemistry
+!  (3 ) error_mod.f      : Module containing NaN and other error checks
+!  (4 ) global_ch4_mod.f : Module containing routines for CH4 chemistry
+!  (5 ) RnPbBe_mod.f     : Module containing routines for Rn-Pb-Be chemistry
+!  (6 ) tagged_co_mod.f  : Module containing routines for Tagged CO chemistry
+!  (7 ) sulfate_mod.f    : Module containing routines for sulfate chemistry
 !
 !  NOTES:
+!  (1 )Now references DEBUG_MSG from "error_mod.f"
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -34,14 +36,17 @@
 !
 !******************************************************************************
 !  Subroutine DO_EMISSIONS is the driver routine which calls the appropriate
-!  emissions subroutine for the various GEOS-CHEM simulations. (bmy, 2/11/03)
+!  emissions subroutine for the various GEOS-CHEM simulations. 
+!  (bmy, 2/11/03, 8/7/03)
 !
 !  NOTES:
+!  (1 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
 !******************************************************************************
 !
       ! References to F90 modules
       USE C2H6_MOD,       ONLY : EMISSC2H6
       USE CH3I_MOD,       ONLY : EMISSCH3I
+      USE ERROR_MOD,      ONLY : DEBUG_MSG
       USE GLOBAL_CH4_MOD, ONLY : EMISSCH4
       USE TAGGED_CO_MOD,  ONLY : EMISS_TAGGED_CO
       USE RnPbBe_MOD,     ONLY : EMISSRnPbBe

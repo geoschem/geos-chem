@@ -1,8 +1,8 @@
-! $Id: comode.h,v 1.5 2003/08/06 15:30:36 bmy Exp $
+! $Id: comode.h,v 1.6 2003/08/12 17:08:11 bmy Exp $
 !
 !******************************************************************************
 !  Header file COMODE contains common blocks and variables for SMVGEAR II.
-!  (M. Jacobson 1997; bdf, bmy, 4/23/03, 7/28/03)
+!  (M. Jacobson 1997; bdf, bmy, 4/23/03, 8/7/03)
 !
 !  NOTES:
 !  (1 ) Removed many commented-out common blocks not needed for GEOS-CHEM.
@@ -38,6 +38,8 @@
 !        to be held THREADPRIVATE.  Removed /DKBLOOP/ and /DKBLOOP5/, since
 !        these contain variables which are used locally within either
 !        "calcrate.f" or "smvgear.f".  Cosmetic changes. (bmy, 7/28/03)
+!  (6 ) Add NKN2O5 to /CHEM4/ common block to flag N2O5 hydrolysis rxn.
+!         (mje, bmy, 8/7/03)
 !******************************************************************************
 !
 C         CCCCCCC  OOOOOOO  M     M  OOOOOOO  DDDDDD   EEEEEEE 
@@ -357,16 +359,17 @@ C
       COMMON /CHEM3/     NGAS,        NMREAC
 
       ! Added NNADDG to /CHEM4/ for DMS+OH+O2 rxn (bdf, bmy, 4/18/03)
+      ! Add NKN2O5 to /CHEM4/ to flag N2O5 hydrolysis rxn (mje, bmy, 8/7/03)
       INTEGER ::         NNADD1,      NNADDA,      NNADDB
       INTEGER ::         NNADDC,      NNADDD,      NNADDK
       INTEGER ::         NNADDV,      NNADDZ,      NKO3PHOT
       INTEGER ::         NNADDG,      NEMIS,       NDRYDEP
-      INTEGER ::         NKHNO4      
+      INTEGER ::         NKHNO4,      NKN2O5      
       COMMON /CHEM4/     NNADD1,      NNADDA(ICS), NNADDB(  ICS), 
      &                   NNADDC(ICS), NNADDD(ICS), NNADDK(  ICS), 
      &                   NNADDV(ICS), NNADDZ,      NKO3PHOT(ICS),
      &                   NNADDG(ICS), NEMIS( ICS), NDRYDEP( ICS),
-     &                   NKHNO4(ICS)
+     &                   NKHNO4(ICS), NKN2O5
 
       INTEGER ::         IH2O,        IOXYGEN,   MB1,      MB2
       COMMON /SPECIES/   IH2O,        IOXYGEN,   MB1,      MB2

@@ -1,138 +1,58 @@
-REVISIONS (v5-07-06)  
-bmy, 05 Aug 2003
+REVISIONS (v5-07-07)  
+bmy, 08 Aug 2003
 
 
-New in v5-07-06:
+New in v5-07-07:
 ----------------------------------------------------------------------------- 
 
 
 
-Removed from v5-07-06:
+Removed from v5-07-07:
 ----------------------------------------------------------------------------- 
 
+debug_msg.f		-- Now bundled into "error_mod.f"
 
 
-Changed from v5-07-05:
+
+Changed from v5-07-06:
 -------------------------------------------------------------------------------
 
-calcrate.f		-- Now apply dry deposition throughout the entire PBL,
-			   in order to prevent short-lived species such as 
-			   HNO3 from being depleted too much in the shallow 
-			   GEOS-3 surface layer
-			-- Now reference PBLFRAC from "drydep_mod.f"
-			-- Now declare DENAIR, CONCO2, CONCN2, T3I, TEMP1, 
-			   T3K, and PRESSK as local variables, since these 
-			   are only used w/in this routine and nowhere else --
-			   also removed these from /DKBLOOP/ in "comode.h"
+archive_rxns_for_pf	-- Now also pass N2O5 hydrolysis rxn rate array 
+("planeflight_mod.f")      via the arg list
+			-- Also bug fix: replace TMP with RATE in 
+			   under/overflow checking for JO1D and N2O5.
 
-chem.f			-- Remove LSAMERAD argument, it's obsolete
-			-- Add SUNCOSB to the arg list
-			-- Now remove test for GETIFSUN, since FAST-J has an 
-			   internal test for daytime/nighttime
-			-- Pass SUNCOSB to "physproc.f"
+calcrate.f		-- Now references GEOS_CHEM_STOP from "error_mod.f"
+			-- Added internal function N2O5 to compute the GAMMA 
+			   "stickiness" parameter for N2O5 hydrolysis, which 
+			   is a function of aerosol type.  
+			-- Now also pass N2O5 reaction rate to 
+		           ARCHIVE_RXNS_FOR_PF
 
-chemdr.f		-- Now reference SUNCOSB from "dao_mod.f"
-			-- Now pass SUNCOSB to "chem.f"
-			-- Also remove LSAMERAD from call to CHEM,
-			   since it's obsolete.
+chemistry_mod.f		-- Now references DEBUG_MSG from "error_mod.f"
 
-chem_h2o2		-- Now references PBLFRAC from "drydep_mod.f"  
-("sulfate_mod.f")	-- Now apply dry deposition throughout the entire PBL
-			-- Added FREQ variable.
+chemo3.f		-- Cosmetic changes
+			-- Now apply drydep to the entire PBL
+			-- Now prevent underflow in drydep computation
 
-chem_msa		-- Now reference PBLFRAC from "drydep_mod.f"  
-("sulfate_mod.f")	-- Now apply dry deposition to the entire PBL
+emissions_mod.f		-- Now references DEBUG_MSG from "error_mod.f"
 
-chem_nh3		-- Now reference PBLFRAC from "drydep_mod.f"
-("sulfate_mod.f")	-- Now apply dry deposition to the entire PBL
-			-- Added L and FREQ variables.
-			-- Recode to avoid underflow from EXP()
+comode.h		-- Add NKN2O5 to /CHEM4/ common block to flag 
+			   N2O5 hydrolysis rxn
 
-chem_nh4		-- Now reference PBLFRAC from "drydep_mod.f"
-("sulfate_mod.f")	-- Now apply dry deposition to the entire PBL
-			-- Added L and FREQ variables.
-			-- Recode to avoid underflow from EXP()
+diagpl.f		-- Added OpenMP parallelization commands
 
-chem_nit		-- Now reference PBLFRAC from "drydep_mod.f"
-("sulfate_mod.f")	-- Now apply dry deposition to the entire PBL
-			-- Added L and FREQ variables.
-			-- Recode to avoid underflow from EXP()
-
-chem_so2		-- Now apply dry deposition to entire PBL
-("sulfate_mod.f")	-- Now references PBLFRAC array from "drydep_mod.f
-
-chem_so4		-- Now reference PBLFRAC from "drydep_mod.f"
-("sulfate_mod.f")	-- Now apply dry deposition to the entire PBL
-
-cleanup_drydep		-- Now deallocates PBLFRAC array
-("drydep_mod.f")
-
-comode.h		-- Split off NOCC into the /CHEM3B/ common block, 
-			   since it doesn't need to be held THREADPRIVATE
-			-- Removed /DKBLOOP/ and /DKBLOOP5/, since these 
-			   contain variables which are used locally within
-			   either "calcrate.f" or "smvgear.f"
-			-- Cosmetic changes.
-
-depvel			-- Remove the cap of surface resistance RLUXX
-("drydep_mod.f")
-
-do_drydep		-- Now make sure that the PBL depth (THIK) is greater
-("drydep_mod.f")	   than or equal to than the thickness of the 1st layer
-			-- Now initialize PBLFRA7C on each call 
-
-drydep_mod.f		-- Changed MAXDEP from 15 to 16 for N2O5
-			-- added PBLFRAC array
-
-dryflx			-- Now sum drydep fluxes throughout the entire PBL  
-("drydep_mod.f")	-- Added L variable
-			-- AREA_CM2 has now been made into a lookup table
-			-- Now implement a parallel DO loop for efficiency
-	
-dryflxRnPbBe		-- Now compute drydep fluxes throughout the entire PBL
-("drydep_mod.f")	-- Now references PBLFRAC
-			-- Added L_PBLTOP variable
-
-init_drydep		-- Added N2O5 as a drydep tracer, w/ the same 
-("drydep_mod.f")	   drydep velocity as HNO3.
-			-- Now allocates PBLFRAC array
-
-lump.f			-- Added OpenMP parallelization commands 
-
-plsave.f		-- Added OpenMP parallelization commands 
-
-ohsave.f		-- Added OpenMP parallelization commands
-
-partition.f		-- Added OpenMP parallelization commands 
-
-planeflight		-- Now references T from "dao_mod.f", so that we 
-("planeflight_mod.f")	   can save out temperature for non-SMVGEAR runs. 
-
-read_variables		-- Now locate reordered rxn numbers for SMVGEAR II
+read_variables.f	-- Now flag N2O5 hydrolysis rxn as a special case
 ("planeflight_mod.f")
 
-ro2_setup		-- Replace NAMESPEC w/ NAMEGAS for SMVGEAR II
-("planeflight_mod.f")
+readchem.f		-- Now flag the N2O5 hydrolysis rxn for later use.
 
-smvgear.f		-- Now declare DELY, ERRHOLD, YABST, as local 
-			   variables, since these are used only w/in this 
-			   routine and nowhere else --- also removed these
-			   from /DKBLOOP/ and /DKBLOOP5/ in "comode.h".
+setup_planeflight	-- Rename from "plane.dat" to "plane.log", 
+("planeflight_mod.f")	   since "*.dat" implies an input file name. 
 
------
-backsub.f		<-- Removed commented-out, obsolete code from
-calcrate.f		    these routines	
-ch3i_mod.f
-chemdr.f
-comode.h
-diag3.f
-diag41.f
-fast_j.f
-gasconc.f
-global_ch4_mod.f
-photoj.f		
-physproc.f
-readchem.f
-reader.f
-RnPbBe_mod.f
-smvgear.f
+transport_mod.f		-- Now references DEBUG_MSG from "error_mod.f"
+
+
+---
+calcrate.f		<-- Removed commented-out, obsolete code
+planeflight_mod.f

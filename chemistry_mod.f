@@ -1,9 +1,9 @@
-! $Id: chemistry_mod.f,v 1.3 2003/08/06 15:30:35 bmy Exp $
+! $Id: chemistry_mod.f,v 1.4 2003/08/12 17:08:11 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
 !  Module CHEMISTRY_MOD is used to call the proper chemistry subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 4/14/03)
+!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 8/7/03)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -13,12 +13,14 @@
 !  ============================================================================
 !  (1 ) c2h6_mod.f         : Module containing routines for C2H6 chemistry
 !  (2 ) ch3i_mod.f         : Module containing routines for CH3I chemistry
-!  (3 ) global_ch4_mod.f   : Module containing routines for CH4 chemistry
-!  (4 ) RnPbBe_mod.f       : Module containing routines for Rn-Pb-Be chemistry
-!  (5 ) tagged_co_mod.f    : Module containing routines for Tagged CO chemistry
+!  (3 ) error_mod.f        : Module containing NaN and error checks
+!  (4 ) global_ch4_mod.f   : Module containing routines for CH4 chemistry
+!  (5 ) RnPbBe_mod.f       : Module containing routines for Rn-Pb-Be chemistry
+!  (6 ) tagged_co_mod.f    : Module containing routines for Tagged CO chemistry
 !
 !  NOTES:
 !  (1 ) Bug fix in DO_CHEMISTRY (bnd, bmy, 4/14/03)
+!  (2 ) Now references DEBUG_MSG from "error_mod.f"
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -34,11 +36,13 @@
 !
 !******************************************************************************
 !  Subroutine DO_CHEMISTRY is the driver routine which calls the appropriate
-!  chemistry subroutine for the various GEOS-CHEM simulations. (bmy, 2/11/03)
+!  chemistry subroutine for the various GEOS-CHEM simulations. 
+!  (bmy, 2/11/03, 8/7/03)
 !
 !  NOTES:
 !  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this
 !        to OPTDEPTH for GEOS-1 or GEOS-STRAT met fields (bnd, bmy, 4/14/03)
+!  (2 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -47,6 +51,7 @@
       USE CH3I_MOD,        ONLY : CHEMCH3I
       USE DAO_MOD,         ONLY : CLMOSW,  CLROSW, DELP, 
      &                            MAKE_RH, OPTDEP, OPTD, T
+      USE ERROR_MOD,       ONLY : DEBUG_MSG
       USE GLOBAL_CH4_MOD,  ONLY : CHEMCH4
       USE DRYDEP_MOD,      ONLY : DRYFLX, DRYFLXRnPbBe
       USE OPTDEPTH_MOD,    ONLY : OPTDEPTH

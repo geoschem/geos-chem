@@ -1,9 +1,9 @@
-! $Id: chemo3.f,v 1.1 2003/06/30 20:26:08 bmy Exp $
+! $Id: chemo3.f,v 1.2 2003/08/12 17:08:11 bmy Exp $
       SUBROUTINE CHEMO3
 !
 !******************************************************************************
 !  Subroutine CHEMO3 performs ozone chemistry with specified production
-!  and loss rates (amf, bey, bmy, 6/9/99, 2/11/03)
+!  and loss rates (amf, bey, bmy, 6/9/99, 8/8/03)
 ! 
 !  Arguments as input:
 !  ==========================================================================
@@ -45,16 +45,19 @@
 !        Now removed NYMD, NHMS from the arg list.  Now references functions
 !        DATE_STRING, GET_NHMS, GET_MONTH, GET_DAY, GET_YEAR, GET_TS_CHEM,
 !        GET_TAU from the new "time_mod.f"(bmy, 2/11/03)
+!  (14) Cosmetic changes.  Now apply drydep to the entire PBL.  Now also
+!        prevent underflow in drydep computation. (bmy, 8/8/03)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
       USE DIAG_MOD,   ONLY : AD44, AD65, P24H, L24H
-      USE DRYDEP_MOD, ONLY : DEPSAV
-      USE ERROR_MOD,  ONLY : ALLOC_ERR
-      USE GRID_MOD,   ONLY : GET_AREA_M2
+      USE DRYDEP_MOD, ONLY : DEPSAV,      PBLFRAC
+      USE ERROR_MOD,  ONLY : ALLOC_ERR,   GEOS_CHEM_STOP
+      USE GRID_MOD,   ONLY : GET_AREA_CM2
       USE TIME_MOD,   ONLY : DATE_STRING, GET_NHMS, GET_TS_CHEM,
-     &                       GET_MONTH,   GET_DAY,  GET_YEAR,   GET_TAU
+     &                       GET_MONTH,   GET_DAY,  GET_YEAR,   
+     &                       GET_TAU,     TIMESTAMP_STRING
 
       IMPLICIT NONE
 
@@ -70,6 +73,7 @@
       INTEGER                :: I, J, L, N, NN,  IOS, GMTRC, GMNL
       REAL*4                 :: ARRAY(IGLOB,JGLOB,LLTROP) 
       REAL*8                 :: DTCHEM, XTAU, PP, LL, PL, DTC
+      REAL*8                 :: FREQ, Ox_0, Ox_LOST, FLUX
       CHARACTER(LEN=80)      :: TOPTITLE
       CHARACTER(LEN=255)     :: FILENAME
 
@@ -81,7 +85,8 @@
       !
       ! Convert NCHEM from mn to sec, store in DTCHEM
       !=================================================================
-      WRITE( 6, '( '' --- CHEMO3 - at : '', f10.2 )' ) GET_TAU()
+      WRITE( 6, 95 ) TIMESTAMP_STRING()
+ 95   FORMAT( '     - CHEMO3: Simple Ox chemistry at ', a )
 
       DTCHEM   = GET_TS_CHEM() * 60d0
       TOPTITLE = 'GEOS-CHEM time series for geographical domain'
@@ -114,22 +119,24 @@
          !FILENAME = TRIM( FILENAME ) // '1994/'
          !FILENAME = TRIM( FILENAME ) // '1994v4.6/'
          !FILENAME = TRIM( FILENAME ) // '1995/'
-         FILENAME = TRIM( FILENAME ) // '1996-97r2x25v4.26.aer/'
+         !FILENAME = TRIM( FILENAME ) // '1996-97r2x25v4.26.aer/'
          !FILENAME = TRIM( FILENAME ) // '1996v4.6/'
          !FILENAME = TRIM( FILENAME ) // '1997v4.11/'
          !FILENAME = TRIM( FILENAME ) // '1998/'
          !FILENAME = TRIM( FILENAME ) // '2000v4.26/'
          !FILENAME = TRIM( FILENAME ) // '2001v4.26/'
+         FILENAME = TRIM( FILENAME ) // '2001v4.33/amf_4x5/'
 
          ! Pick the filename
          FILENAME  = TRIM( FILENAME ) // 'rate.' // DATE_STRING()
 
          ! Echo information
          WRITE( 6, 100 ) TRIM( FILENAME )
- 100     FORMAT( ' --- CHEMO3 - reading ', a )
+ 100     FORMAT( '     - CHEMO3: reading ', a )
 
          ! Get the TAU0 value for today
-         XTAU = GET_TAU0( GET_MONTH(), GET_DAY(), GET_YEAR() )
+         !XTAU = GET_TAU0( GET_MONTH(), GET_DAY(), GET_YEAR() )
+         XTAU = GET_TAU()
 
          !==============================================================
          ! Read P(O3)
@@ -271,44 +278,86 @@
             ! DEPSAV = Drydep loss frequency of O3 [s^-1]
             ! DTCHEM = Chemistry time interval     [s  ]   
             !===========================================================
-            IF ( L == 1 ) THEN 
-               IF ( LDRYD ) THEN
+!------------------------------------------------------------------------------
+! Prior to 8/8/03:
+! Now apply drydep throughout the entire PBL (bmy, 8/8/03)
+!            IF ( L == 1 ) THEN 
+!               IF ( LDRYD ) THEN
+!
+!                  ! Loop over drydep species (for now, just do O3)
+!                  DO N = 1, 1
+!
+!                     ! Save fluxes to ND44
+!                     IF ( ND44 > 0 ) THEN
+!
+!!-----------------------------------------------------------------------
+!! TO SAVE In kg/sec.  Don't forget to change units in diag3.f!!
+!!                        DTC = DEPSAV(I,J,N) * STT(I,J,1,N)
+!!------------------------------------------------------------------------
+!! TO SAVE IN molec/cm^2/s for comparison with full chemistry run, 
+!! uncomment this line: (convert dxyp to cm^2)
+!                        DTC = DEPSAV(I,J,N) * STT(I,J,1,N) * 
+!     &                        XNUMOL(1)     * 1e-4 / GET_AREA_M2(J)
+!!------------------------------------------------------------------------
+!
+!                        AD44(I,J,N,1) = AD44(I,J,N,1) + DTC
+!                     ENDIF
+!                  ENDDO         
+!
+!                  ! Apply drydep loss to STT tracer array --
+!                  ! Only if drydep is turned on and for 1st layer only
+!                  STT(I,J,L,1) = STT(I,J,L,1) * 
+!     &                           EXP( -DEPSAV(I,J,N) * DTCHEM )
+!
+!               ENDIF
+!            ENDIF               
+!------------------------------------------------------------------------------
+            IF ( LDRYD ) THEN
 
-                  ! Loop over drydep species (for now, just do O3)
-                  DO N = 1, 1
+               ! ... but only apply drydep to the PBL
+               IF ( PBLFRAC(I,J,L) > 0d0 ) THEN
+                     
+                  ! Ox Drydep frequency [1/s]
+                  FREQ = DEPSAV(I,J,1) * PBLFRAC(I,J,L)
 
-                     ! Save fluxes to ND44
+                  ! Only proceed if drydep frequency is nonzero
+                  IF ( FREQ > 0d0 ) THEN
+
+                     ! Initial Ox [kg]
+                     Ox_0    = STT(I,J,L,1)
+                     
+                     ! Amount of Ox LOST to drydep [kg]1
+                     Ox_LOST = Ox_0 * ( 1d0 - EXP( -FREQ * DTCHEM ) )
+
+                     ! Prevent underflow condition
+                     IF ( Ox_LOST < 1d-20 ) Ox_LOST = 0d0
+
+                     ! Subtract Ox lost [kg] 
+                     STT(I,J,L,1) = Ox_0 - Ox_LOST 
+
+                     !==================================================
+                     ! ND44 diagnostic: save in molec/cm2/s
+                     !==================================================
                      IF ( ND44 > 0 ) THEN
 
-!-----------------------------------------------------------------------
-! TO SAVE In kg/sec.  Don't forget to change units in diag3.f!!
-!                        DTC = DEPSAV(I,J,N) * STT(I,J,1,N)
-!------------------------------------------------------------------------
-! TO SAVE IN molec/cm^2/s for comparison with full chemistry run, 
-! uncomment this line: (convert dxyp to cm^2)
-                        DTC = DEPSAV(I,J,N) * STT(I,J,1,N) * 
-     &                        XNUMOL(1)     * 1e-4 / GET_AREA_M2(J)
-!------------------------------------------------------------------------
+                        ! Convert from [kg] to [molec/cm2/s]
+                        FLUX = Ox_LOST         * XNUMOL(1) / 
+     &                         GET_AREA_CM2(J) / DTCHEM 
 
-                        AD44(I,J,N,1) = AD44(I,J,N,1) + DTC
+                        ! Store as [molec/cm2/s] in AD44
+                        AD44(I,J,1,1) = AD44(I,J,1,1) + FLUX
                      ENDIF
-                  ENDDO         
-
-                  ! Apply drydep loss to STT tracer array --
-                  ! Only if drydep is turned on and for 1st layer only
-                  STT(I,J,L,1) = STT(I,J,L,1) * 
-     &                           EXP( -DEPSAV(I,J,N) * DTCHEM )
-
+                  ENDIF
                ENDIF
-            ENDIF               
+            ENDIF
 
             ! Apply production & loss to STT -- all layers
             STT(I,J,L,1) = STT(I,J,L,1) + PP - LL
 
-            ! Warn if STT is negative
+            ! Stop if STT is negative
             IF ( STT(I,J,L,1) < 0d0 ) THEN
-               WRITE( 6, 110 ) I, J, L, GET_TAU()
-               !STOP
+               WRITE( 6, 120 ) I, J, L, GET_TAU()
+               CALL GEOS_CHEM_STOP
             ENDIF
          ENDDO
          ENDDO

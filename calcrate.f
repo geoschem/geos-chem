@@ -1,9 +1,9 @@
-! $Id: calcrate.f,v 1.4 2003/08/06 15:30:31 bmy Exp $
+! $Id: calcrate.f,v 1.5 2003/08/12 17:08:10 bmy Exp $
       SUBROUTINE CALCRATE( SUNCOS )
 !
 !******************************************************************************
 !  Subroutine CALCRATE computes reaction rates before passing them to the
-!  SMVGEAR solver.  (M. Jacobson 1997; gcc, bdf, bmy, 4/1/03, 7/30/03)
+!  SMVGEAR solver.  (M. Jacobson 1997; gcc, bdf, bmy, 4/1/03, 8/8/03)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -35,6 +35,10 @@
 !        and PRESSK as local variables, since these are only used w/in 
 !        this routine and nowhere else -- also remove these from /DKBLOOP/ in
 !        "comode.h".  (rjp, bmy, 7/30/03)
+!  (5 ) Now references GEOS_CHEM_STOP from "error_mod.f".  Added internal
+!        function N2O5 to compute the GAMMA "stickiness" parameter for N2O5
+!        hydrolysis, which is a function of aerosol type.  Now also pass N2O5
+!        reaction rate to ARCHIVE_RXNS_FOR_PF. (bmy, 8/8/03)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -43,7 +47,7 @@
      &                            REMIS,  T3,      TAREA
       USE DIAG_MOD,        ONLY : AD22,   LTJV
       USE DRYDEP_MOD,      ONLY : DEPSAV, PBLFRAC
-      USE ERROR_MOD,       ONLY : ERROR_STOP
+      USE ERROR_MOD,       ONLY : ERROR_STOP, GEOS_CHEM_STOP
       USE GRID_MOD,        ONLY : GET_YMID
       USE PLANEFLIGHT_MOD, ONLY : ARCHIVE_RXNS_FOR_PF
 
@@ -71,9 +75,10 @@
 
       CHARACTER*4      :: SPECNAME
 
-      ! Added for heterogeneous chemistry (bmy, 11/15/01)
+      ! Added for heterogeneous chemistry (bmy, 11/15/01, 8/7/03)
       LOGICAL          :: HETCHEM
       INTEGER          :: N
+      REAL*8           :: SUMAREA, TOTAREA, DUMMY2(KBLOOP)
 
       ! For grid-box latitude (bnd, bmy, 7/1/03)
       REAL*8           :: YLAT
@@ -305,23 +310,14 @@ C
          NK = NTDEP(I)
          IF (NK.NE.0) THEN
             DO KLOOP = 1,KTLOOP
+
+               ! 1-D grid box index (accounts for reordering)
                JLOOP = LREORDER(KLOOP+JLOOPLO)
+
+               ! 3-D grid box index
                IX    = IXSAVE(JLOOP)
                IY    = IYSAVE(JLOOP)
                IZ    = IZSAVE(JLOOP)
-               
-               !--------------------------------------------------------
-               ! Prior to 7/30/03:
-               ! Now compute drydep throughout the entire PBL
-               ! (rjp, bmy, 7/30/03)
-               !! for drydep, RRATE is only finite at the surface, 
-               !! otherwise it is zero, (bdf, 4/15/99)
-               !IF (IZ .GT. 1) THEN
-               !   RRATE(KLOOP,NK) = 0.0d0
-               !ELSE
-               !   RRATE(KLOOP,NK) = DEPSAV(IX,IY,I)
-               !ENDIF
-               !--------------------------------------------------------
                
                ! Now compute drydep throughout the entire PBL
                ! PBLFRAC is the fraction of grid box (I,J,L) below the PBL top
@@ -548,91 +544,122 @@ C  dependence of HO2/NO3 + HO2 on water vapor
          ENDIF
 
       !=================================================================
-      ! For loss on wet aerosol:
+      ! Perform loss on wet aerosol 
       !=================================================================
-
-      ! Add NCS index to NNADDK, NKSPECK, ARR, BRR (gcc)
 
       ! Set HETCHEM = T to perform het chem on aerosols
       HETCHEM = .TRUE.
 
-      DO KLOOP     = 1, KTLOOP
-!-----------------------------------------------------------------------------
-! Prior to 9/8/00:
-! Remove deliquescence criterion (rvm, djj, bmy, 9/8/00)
-!         IF (ABSHUMK(KLOOP).GE.RH100) THEN
-!C wet enough:
-!-----------------------------------------------------------------------------
-            JLOOP = LREORDER(JLOOPLO+KLOOP)
+      DO KLOOP = 1, KTLOOP
 
-            IF ( HETCHEM ) THEN
+         ! 1-D grid box index
+         JLOOP = LREORDER(JLOOPLO+KLOOP)
 
-               !========================================================
-               ! Perform heterogeneous chemistry on sulfate aerosol
-               ! plus each of the NDUST dust size bins from FAST-J
-               !========================================================
-               XDENA   = DENAIR(KLOOP)
-               XSTK    = SQRT(T3K(KLOOP))
+         IF ( HETCHEM ) THEN
 
-               DO I       = 1, NNADDK(NCS)
-                  NK      = NKSPECK(I,NCS)
-                  XSQM    = SQRT(ARR(NK,NCS))
-                  XSTKCF  = BRR(NK,NCS)
+            !===========================================================
+            ! Perform heterogeneous chemistry on sulfate aerosol
+            ! plus each of the NDUST dust size bins from FAST-J
+            !===========================================================
+            XDENA   = DENAIR(KLOOP)
+            XSTK    = SQRT(T3K(KLOOP))
 
-                  ! Surface area for sulfate aerosol [cm2 arsl/cm3 air]
-                  XAREA   = TAREA(JLOOP,1)
-
-                  ! Radius for sulfate aerosol [cm]
-                  XRADIUS = ERADIUS(JLOOP,1)
-
-                  ! Reaction rate for sulfate aerosol [cm3/s]
-                  RRATE(KLOOP,NK) =
-     &                 ARSL1K(XAREA,XRADIUS,XDENA,XSTKCF,XSTK,XSQM)
-
-                  DO N = 2, NDUST + NAER
-
-                     ! Surface area for dust size bin N
-                     XAREA   = TAREA(JLOOP,N)
-
-                     ! Radius for dust size bin N
-                     XRADIUS = ERADIUS(JLOOP,N)
-
-                     ! Reaction rate for dust size bin N
-                     RRATE(KLOOP,NK) = RRATE(KLOOP,NK) +
-     +                    ARSL1K(XAREA,XRADIUS,XDENA,XSTKCF,XSTK,XSQM)
-                  ENDDO
-               ENDDO
-
-            ELSE
-
-               !========================================================
-               ! Don't perform heterogeneous chemistry at all
-               !========================================================
-               XAREA   = TAREA(JLOOP,1)
-               XRADIUS = ERADIUS(JLOOP,1)
-               XDENA   = DENAIR(KLOOP)
-               XSTK    = SQRT(T3K(KLOOP))
-               DO I       = 1, NNADDK(NCS)
-                  NK      = NKSPECK(I,NCS)
-                  XSQM    = SQRT(ARR(NK,NCS))
-                  XSTKCF  = BRR(NK,NCS)
-                  RRATE(KLOOP,NK) =
-     &                 ARSL1K(XAREA,XRADIUS,XDENA,XSTKCF,XSTK,XSQM)
-            ENDDO
-
-
-         ENDIF
-!-----------------------------------------------------------------------------
-! Prior to 9/8/00:
-! Remove deliquescence criterion (rvm, djj, bmy, 9/8/00)
-!         ELSE
-!C too dry: set aerosol rates to zero
-!            DO I          = 1, NNADDK
-!               NK         = NKSPECK( I )
-!               RRATE(KLOOP,NK) = 0.D0
+            DO I       = 1, NNADDK(NCS)
+               NK      = NKSPECK(I,NCS)
+               XSQM    = SQRT(ARR(NK,NCS))
+!------------------------------------------------------------------------------
+! Prior to 8/7/03:
+! Modify code below for updated N2O5 hydroylsis (mje, bmy, 8/7/03)
+!               XSTKCF  = BRR(NK,NCS)
+!               
+!               ! Surface area for sulfate aerosol [cm2 arsl/cm3 air]
+!               XAREA   = TAREA(JLOOP,1)
+!
+!               ! Radius for sulfate aerosol [cm]
+!               XRADIUS = ERADIUS(JLOOP,1)
+!
+!               ! Reaction rate for sulfate aerosol [cm3/s]
+!               RRATE(KLOOP,NK) =
+!     &              ARSL1K(XAREA,XRADIUS,XDENA,XSTKCF,XSTK,XSQM)
+!
+!               DO N = 2, NDUST + NAER
+!
+!                  ! Surface area for dust size bin N
+!                  XAREA   = TAREA(JLOOP,N)
+!
+!                  ! Radius for dust size bin N
+!                  XRADIUS = ERADIUS(JLOOP,N)
+!
+!                  ! Reaction rate for dust size bin N
+!                  RRATE(KLOOP,NK) = RRATE(KLOOP,NK) +
+!     &                 ARSL1K(XAREA,XRADIUS,XDENA,XSTKCF,XSTK,XSQM)
+!               ENDDO
 !            ENDDO
-!         ENDIF
-!-----------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+
+               ! Initialize
+               RRATE(KLOOP,NK) = 0d0
+               DUMMY2(KLOOP)   = 0d0
+
+               ! Sum up total surface area for all aerosol types
+               ! so that we can use it for the planeflight diagnostic
+               ! (mje, bmy, 8/7/03)
+               IF ( NK == NKN2O5 ) THEN
+                  TOTAREA = 0.d0
+                  DO N = 1, NDUST + NAER
+                     TOTAREA = TOTAREA + TAREA(JLOOP,N)
+                  ENDDO
+               ENDIF
+
+               ! Loop over sulfate and other aerosols
+               DO N = 1, NDUST + NAER
+
+                  ! Surface area of aerosol [cm2 aerosol/cm3 air]
+                  XAREA = TAREA(JLOOP,N) 
+                  
+                  ! Test if N2O5 hydrolysis rxn
+                  IF ( NK == NKN2O5 ) THEN
+                     
+                     ! Get GAMMA for N2O5 hydrolysis, which is
+                     ! a function of aerosol type, temp, and RH
+                     XSTKCF = N2O5( N, T3K(KLOOP), ABSHUMK(KLOOP) )
+
+                     ! Archive N2O5 hydrolysis for ND40 diagnostic
+                     DUMMY2(KLOOP) = DUMMY2(KLOOP) +
+     &                               ( XAREA / TOTAREA * XSTKCF )
+                    
+                  ELSE
+                     
+                     ! Get GAMMA for species other than N2O5
+                     XSTKCF = BRR(NK,NCS)
+
+                  ENDIF
+
+                  ! Radius for dust size bin N
+                  XRADIUS = ERADIUS(JLOOP,N) 
+
+                  ! Reaction rate for dust size bin N
+                  RRATE(KLOOP,NK) = RRATE(KLOOP,NK) + 
+     $                 ARSL1K(XAREA,XRADIUS,XDENA,XSTKCF,XSTK,XSQM)
+               ENDDO
+            ENDDO
+         ELSE
+
+            !===========================================================
+            ! Don't perform heterogeneous chemistry at all
+            !===========================================================
+            XAREA   = TAREA(JLOOP,1)
+            XRADIUS = ERADIUS(JLOOP,1)
+            XDENA   = DENAIR(KLOOP)
+            XSTK    = SQRT(T3K(KLOOP))
+            DO I       = 1, NNADDK(NCS)
+               NK      = NKSPECK(I,NCS)
+               XSQM    = SQRT(ARR(NK,NCS))
+               XSTKCF  = BRR(NK,NCS)
+               RRATE(KLOOP,NK) =
+     &              ARSL1K(XAREA,XRADIUS,XDENA,XSTKCF,XSTK,XSQM)
+            ENDDO
+         ENDIF
       ENDDO
 
       ENDIF
@@ -641,6 +668,9 @@ C
 C *********************************************************************
 C *********************************************************************
 C *             REORDER RRATE ARRAY THEN CALL SOLVER                  * 
+C *                                                                   *
+C * NOTE: If after this point you want to reference a SMVGEAR rxn #,  *
+C * then you must use NOLDFNEW(NK,1) instead of NK. (bmy, 8/8/03)     *
 C *********************************************************************
 C
       NFDH3              = ITHRR(NCS) 
@@ -696,8 +726,6 @@ C
             TRATE(KLOOP,NH)   = -RRATE(KLOOP,NKN)
  760     CONTINUE
  765  CONTINUE
-
-!---smv2-s
 C
 C *********************************************************************
 C              Photorates for Harvard Geos Code
@@ -903,12 +931,153 @@ C *********************************************************************
 C                ARCHIVE FOR PLANE-FOLLOWING DIAGNOSTIC   
 C *********************************************************************
 C
-      ! Pass JO1D to "planeflight_mod.f" via the DUMMY variable 
-      CALL ARCHIVE_RXNS_FOR_PF( DUMMY )
+      ! Pass JO1D and N2O5 to "planeflight_mod.f" (mje, bmy, 8/7/03)
+      CALL ARCHIVE_RXNS_FOR_PF( DUMMY, DUMMY2 )
+C
+C *********************************************************************
+C                     RETURN TO CALLING PROGRAM
+C *********************************************************************
+C
+      RETURN
+C
+C *********************************************************************
+C                       INTERNAL SUBROUTINES 
+C *********************************************************************
+C
+      CONTAINS
+
+      FUNCTION N2O5( AEROTYPE, TEMP, RH ) RESULT( GAMMA )
+
+      !=================================================================
+      ! Internal function N2O5 computes the GAMMA sticking factor
+      ! for N2O5 hydrolysis. (mje, bmy, 8/7/030
+      ! 
+      ! Arguments as Input:
+      ! ----------------------------------------------------------------
+      ! (1 ) AEROTYPE (INTEGER) : # denoting aerosol type (cf FAST-J)
+      ! (2 ) TEMP     (REAL*8 ) : Temperature [K]
+      ! (3 ) RH       (REAL*8 ) : Relative Humidity [fraction]
+      !
+      ! NOTES:
+      !=================================================================
+      
+      ! Arguments
+      INTEGER, INTENT(IN) :: AEROTYPE
+      REAL*8,  INTENT(IN) :: TEMP, RH
+
+      ! Local variables
+      REAL*8              :: RH_P, FACT, TTEMP
+
+      ! Function return value
+      REAL*8              :: GAMMA
+      
+      !=================================================================
+      ! N2O5 begins here!
+      !=================================================================
+
+      ! Convert RH to % (max = 100%)
+      RH_P  = MIN( RH * 100d0, 100d0 )
+
+      ! Default value
+      GAMMA = 0.01d0
+
+      ! Special handling for various aerosols
+      SELECT CASE ( AEROTYPE )
+
+         !----------------
+         ! Dust 
+         !----------------
+         CASE ( 1, 2, 3, 4, 5, 6, 7 )      
+                                
+            ! Based on unpublished Crowley work
+            GAMMA = 0.01d0
+
+         !----------------
+         ! Sulfate
+         !----------------
+         CASE ( 8 )            
+    
+            !===========================================================
+            ! RH dependence from Kane et al., Heterogenous uptake of 
+            ! gaseous N2O5 by (NH4)2SO4, NH4HSO4 and H2SO4 aerosols
+            ! J. Phys. Chem. A , 2001, 105, 6465-6470 
+            !===========================================================
+            GAMMA = 2.79d-4 + RH_P*(  1.30d-4 + 
+     &                        RH_P*( -3.43d-6 + 
+     &                        RH_P*(  7.52d-8 ) ) )
+
+            !===========================================================
+            ! Temperature dependence factor (Cox et al, Cambridge UK) 
+            ! is of the form:
+            !
+            !          10^( LOG10( G294 ) - 0.04 * ( TTEMP - 294 ) )
+            ! FACT = -------------------------------------------------
+            !                     10^( LOG10( G294 ) )
+            !
+            ! Where G294 = 1e-2 and TTEMP is MAX( TEMP, 282 ).
+            ! 
+            ! For computational speed, replace LOG10( 1e-2 ) with -2
+            ! and replace 10^( LOG10( G294 ) ) with G294 
+            !===========================================================
+            TTEMP = MAX( TEMP, 282d0 )
+            FACT  = 10.d0**( -2d0 - 4d-2*( TTEMP - 294.d0 ) ) / 1d-2
+
+            ! Apply temperature dependence
+            GAMMA = GAMMA * FACT
+
+         !----------------
+         ! Black Carbon
+         !----------------
+         CASE ( 9 )  
+
+             ! From IUPAC
+             GAMMA = 0.005d0
+
+         !----------------
+         ! Organic Carbon
+         !----------------           
+         CASE ( 10 )          
+
+            !===========================================================
+            ! Based on Thornton, Braban and Abbatt, 2003
+            ! N2O5 hydrolysis on sub-micron organic aerosol: the effect
+            ! of relative humidity, particle phase and particle size
+            !===========================================================
+            IF ( RH_P >= 57d0 ) THEN
+               GAMMA = 0.03d0
+            ELSE
+               GAMMA = RH_P * 5.2d-4
+            ENDIF
+
+         !----------------
+         ! Sea salt
+         ! accum & coarse
+         !----------------
+         CASE ( 11, 12 )        
+          
+            ! Based on IUPAC recomendation
+            IF ( RH_P >= 62 ) THEN 
+               GAMMA = 0.03d0
+            ELSE
+               GAMMA = 0.005d0
+            ENDIF
+
+         !----------------         
+         ! Default
+         !----------------
+         CASE DEFAULT
+            WRITE (6,*) 'Not a suitable aerosol surface '
+            WRITE (6,*) 'for N2O5 hydrolysis'
+            WRITE (6,*) 'AEROSOL TYPE =',AEROTYPE
+            CALL GEOS_CHEM_STOP
+
+      END SELECT   
+         
+      ! Return to CALCRATE
+      END FUNCTION N2O5
 C
 C *********************************************************************
 C ******************** END OF SUBROUTINE CALCRATE *********************
 C *********************************************************************
 C
-      RETURN
       END SUBROUTINE CALCRATE

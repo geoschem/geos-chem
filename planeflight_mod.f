@@ -1,11 +1,11 @@
-! $Id: planeflight_mod.f,v 1.4 2003/08/06 15:30:48 bmy Exp $
+! $Id: planeflight_mod.f,v 1.5 2003/08/12 17:08:13 bmy Exp $
       MODULE PLANEFLIGHT_MOD
 !
 !******************************************************************************
 !  Module PLANEFLIGHT_MOD contains variables and routines which are used to
 !  "fly" a plane through the GEOS-CHEM model simulation.  This is useful for
 !  comparing model results with aircraft observations. 
-!  (mje, bmy, 7/30/02, 8/1/03)
+!  (mje, bmy, 7/30/02, 8/8/03)
 !
 !  Module Variables:
 !  ============================================================================
@@ -65,6 +65,8 @@
 !  (8 ) Bug fix: Use T instead of T3 for GMAO temperature.  Also replace
 !        NAMESPEC w/ NAMEGAS in RO2_SETUP.  Now locate reordered rxn 
 !        numbers for SMVGEAR II.(tdf, mje, bmy, 8/1/03)
+!  (9 ) Now print out N2O5 hydrolysis rxn as a special case.   Also rename
+!        output file. (bmy, 8/8/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -152,6 +154,8 @@
 !  at the start of the GEOS-CHEM run (in "ndxx_setup.f" or similar routine).
 !
 !  NOTES:
+!  (1 ) Rename from "plane.dat" to "plane.log", since "*.dat" implies an input
+!        file name. (bmy, 8/8/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -170,7 +174,13 @@
 
       ! Hardwire filenames for now -- change later (bmy, 7/2/02)
       INFILENAME  = 'Planeflight.dat'
-      OUTFILENAME = 'plane.dat'
+      !-----------------------------------------------------------------
+      ! Prior to 8/8/03
+      ! Rename from "plane.dat" to "plane.log", since "*.dat" implies
+      ! an input file name. (bmy, 8/8/03)
+      !OUTFILENAME = 'plane.dat'
+      !-----------------------------------------------------------------
+      OUTFILENAME = 'plane.log'
 
       ! Echo info
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -221,7 +231,7 @@
 !  Subroutine READ_VARIABLES reads the list of variables (SMVGEAR species,
 !  SMVGEAR rxn rates, DAO met fields, or GEOS-CHEM tracers) to be printed
 !  out and sorts the information into the appropriate module variables.
-!  (mje, bmy, 7/30/02, 8/1/03)
+!  (mje, bmy, 7/30/02, 8/8/03)
 !
 !  NOTES:
 !  (1 ) Now references GEOS_CHEM_STOP from "error_mod.f", which frees all
@@ -229,6 +239,7 @@
 !  (2 ) Bug fix: replace missing commas in FORMAT statement (bmy, 3/23/03)
 !  (3 ) Bug fix: replace NAMESPEC w/ NAMEGAS for SMVGEAR II (lyj, bmy, 7/9/09)
 !  (4 ) Now locate reordered rxn numbers for SMVGEAR II. (mje, bmy, 8/1/03)
+!  (5 ) Now flag N2O5 hydrolysis rxn as a special case (bmy, 8/8/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -329,19 +340,20 @@
                   ! Increment rxn counter
                   R = R + 1
 
-                  ! O1D is a special reaction, give it offset of 20000
-                  ! Offset other reaction rates by 10000
                   IF ( TRIM( LINE ) == 'REA_O1D' ) THEN
+
+                     ! O1D is a special rxn, give it offset of 20000
                      PVAR(N)  = 20000
                      PREAC(R) = 20000
+
+                  ELSE IF ( TRIM( LINE ) == 'REA_N2O5' ) THEN
+
+                     ! N2O5 hydrolysis is another special rxn
+                     ! give it an offset of 21000
+                     PVAR(N)  = 21000
+                     PREAC(R) = 21000
+
                   ELSE
-                     !----------------------------------------------------
-                     ! Prior to 8/1/03:
-                     ! Need to use reordered rxn #'s for SMVGEAR II
-                     !READ( LINE(5:14), '(i10)' ) NUM
-                     !PVAR(N)  = 10000 + NUM
-                     !PREAC(R) = 10000 + NUM
-                     !----------------------------------------------------
                      !==================================================
                      ! NOTE: the reaction numbers listed in smv2.log 
                      ! aren't really used to index SMVGEAR II rxns.  The 
@@ -356,6 +368,8 @@
 
                      ! Search for proper rxn number
                      DO IK = 1, NMTRATE 
+
+                        ! Offset other reaction rates by 10000
                         IF ( NOLDFNEW(IK,1) == NUM ) THEN 
                            PVAR(N)  = 10000 + IK
                            PREAC(R) = 10000 + IK
@@ -601,11 +615,6 @@
 
          ! If we have found an RO2 compoent, add its species # to
          ! the PRO2 global array, and increment counter
-         !--------------------------------------------------------------
-         ! Prior to 8/1/03:
-         ! Replace NAMESPEC w/ NAMEGAS for SMVGEAR II (bmy, 8/1/03)
-         !SELECT CASE( TRIM( NAMESPEC(M,NCS) ) )
-         !--------------------------------------------------------------
          SELECT CASE( TRIM( NAMEGAS(M) ) )
 
             CASE ( 'HO2',  'MO2',  'A3O2', 'ATO2', 'B3O2', 
@@ -766,14 +775,6 @@
                   ! PVAR(V) = 1001: DAO temperature
                   !===================================================== 
                   CASE ( 1001 )
-
-                     !--------------------------------------------------
-                     ! Prior to 8/1/03:
-                     ! Use T instead of T3 -- this will be valid for
-                     ! non-SMVGEAR runs (bmy, 8/1/03)
-                     !! Only archive where SMVGEAR chem is done
-                     !IF ( PCHEM ) VARI(V) = T3(JLOOP)
-                     !--------------------------------------------------
                      VARI(V) = T(I,J,L)
 
                   !=====================================================
@@ -1034,22 +1035,26 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE ARCHIVE_RXNS_FOR_PF( JO1D )
+      SUBROUTINE ARCHIVE_RXNS_FOR_PF( JO1D, N2O5 )
 !
 !******************************************************************************
 !  Subroutine ARCHIVE_RXNS_FOR_PF is called from "calcrate.f" to pass reaction
 !  rates from the SMVGEAR solver for the planeflight diagnostic. 
-!  (mje, bmy, 7/8/02, 10/15/02)
+!  (mje, bmy, 7/8/02, 8/8/03)
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) JO1D (REAL*4) : Array w/ JO1D photolysis rates [s-1] from "calcrate.f"
+!  (1 ) JO1D (REAL*8) : Array w/ JO1D photolysis rates [s-1] from "calcrate.f"
+!  (2 ) N2O5 (REAL*8) : Array w/ JO1D photolysis rates [s-1] from "calcrate.f"
 !
 !  NOTES:
 !  (1 ) Now avoid overflow/underflow errors in PRATE (bmy, 7/8/02)
 !  (2 ) Now reference GEOS_CHEM_STOP from "error_mod.f", which frees all
 !        allocated memory before stopping the run (bmy, 10/15/02)
 !  (3 ) Renamed PRATE to PRRATE to avoid conflict w/ SMVGEAR II (bmy, 4/1/03)
+!  (4 ) Now also pass N2O5 hydrolysis rxn rate array via the arg list.  
+!        Also bug fix: replace TMP with RATE in under/overflow checking
+!        for JO1D and N2O5. (bmy, 8/8/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1062,10 +1067,15 @@
  
       ! Arguments 
       REAL*8, INTENT(IN) :: JO1D(KBLOOP)
+      REAL*8, INTENT(IN) :: N2O5(KBLOOP)
    
       ! Local variables
       INTEGER            :: KLOOP, JLOOP, V, R, I, J, L 
-      REAL*8             :: RATE,  TMP
+      !-----------------------------------------------------------------
+      ! Prior to 8/8/03:
+      !REAL*8             :: RATE, TMP
+      !-----------------------------------------------------------------
+      REAL*8             :: RATE
 
       ! Smallest, largest REAL*4 #'s representable on this machine
       REAL*4, PARAMETER  :: SMALLEST=TINY(1e0), LARGEST=HUGE(1e0)
@@ -1081,7 +1091,9 @@
             ! Test SMVGEAR rxn number
             SELECT CASE ( PREAC(R) ) 
 
-               ! All reacions except JO1D
+               !-----------------------
+               ! All except JO1D, N2O5
+               !-----------------------
                CASE( 10000:19999 )
                          
                   ! Store rate in PRRATE
@@ -1096,7 +1108,9 @@
                      PRRATE(JLOOP,R) = RATE
                   ENDDO
 
-               ! JO1D rxn 
+               !-----------------------
+               ! JO1D photolysis rxn 
+               !-----------------------
                CASE ( 20000 )
 
                   ! Store rate in PRATE
@@ -1105,13 +1119,44 @@
                      RATE  = JO1D(KLOOP)
 
                      ! Avoid overflow/underflow
-                     IF ( RATE < SMALLEST ) TMP = 0e0
-                     IF ( RATE > LARGEST  ) TMP = LARGEST 
+                     !-----------------------------------------------
+                     ! Prior to 8/8/03:
+                     ! Bug fix: TMP should be RATE (bmy, 8/8/03)
+                     !IF ( RATE < SMALLEST ) TMP = 0e0
+                     !IF ( RATE > LARGEST  ) TMP = LARGEST 
+                     !-----------------------------------------------
+                     IF ( RATE < SMALLEST ) RATE = 0e0
+                     IF ( RATE > LARGEST  ) RATE = LARGEST 
 
                      PRRATE(JLOOP,R) = RATE
                   ENDDO
                  
+               !-----------------------
+               ! N2O5 hydrolysis rxn
+               !-----------------------
+               CASE ( 21000 ) 
+
+                  ! Store rate in PRATE
+                  DO KLOOP = 1, KTLOOP
+                     JLOOP = JLOOPLO + KLOOP
+                     RATE  = N2O5(KLOOP)
+
+                     ! Avoid overflow/underflow
+                     !----------------------------------------------
+                     ! Prior to 8/8/03:
+                     ! Bug fix: TMP should be RATE (bmy, 8/8/03)
+                     !IF ( RATE < SMALLEST ) TMP = 0e0
+                     !IF ( RATE > LARGEST  ) TMP = LARGEST 
+                     !----------------------------------------------
+                     IF ( RATE < SMALLEST ) RATE = 0e0
+                     IF ( RATE > LARGEST  ) RATE = LARGEST 
+
+                     PRRATE(JLOOP,R) = RATE
+                  ENDDO
+
+               !-----------------------
                ! Error: invalid rxn
+               !-----------------------
                CASE DEFAULT
                   WRITE( 6, '(a)' ) REPEAT( '=', 79 )
                   WRITE( 6, '(a)' ) 'ERROR -- Invalid SMVGEAR rxn #!'

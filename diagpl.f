@@ -1,9 +1,9 @@
-! $Id: diagpl.f,v 1.1 2003/06/30 20:26:05 bmy Exp $
+! $Id: diagpl.f,v 1.2 2003/08/12 17:08:12 bmy Exp $
       SUBROUTINE DIAGPL
 !
 !*****************************************************************************
 !  Subroutine DIAGPL records production and loss for specified families 
-!  for the ND65 diagnostic (bey, bmy, 3/16/00, 6/25/02)
+!  for the ND65 diagnostic (bey, bmy, 3/16/00, 8/7/03)
 !
 !  NOTES:
 !  (1 ) Original code is from Loretta Mickley and Isabelle Bey
@@ -13,6 +13,7 @@
 !  (4 ) Replaced all instances of IM with IIPAR and JM with JJPAR, in order
 !        to prevent namespace confusion for the new TPCORE.  Also removed
 !        obsolete, commented-out code. (bmy, 6/25/02)
+!  (5 ) Added OpenMP parallelization commands (bmy, 8/7/03)
 !*****************************************************************************
 !
       ! References to F90 modules
@@ -34,6 +35,9 @@
       ! and store in the AD65 array. 
       !=================================================================
       IF ( ND65 > 0 ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N )
          DO N = 1, NFAM
          DO L = 1, LD65
          DO J = 1, JJPAR
@@ -43,6 +47,7 @@
          ENDDO
          ENDDO
          ENDDO
+!$OMP END PARALLEL DO
       ENDIF
 
       ! Return to calling program
