@@ -1,4 +1,4 @@
-! $Id: aerosol_mod.f,v 1.1 2004/09/21 18:04:08 bmy Exp $
+! $Id: aerosol_mod.f,v 1.2 2004/09/27 19:07:06 bmy Exp $
       MODULE AEROSOL_MOD
 !
 !******************************************************************************
@@ -1063,7 +1063,7 @@
                ! Optical Depths (scaled to 400nm)
                AD21(I,J,L,3+3*N) = AD21(I,J,L,3+3*N) + 
      &                             ODAER(I,J,L,IRHN) * 
-     &                             QAA(2,IND(N)-R+1) / QAA(4,IND(N)-R+1)
+     &                             QAA(2,IND(N)+R-1) / QAA(4,IND(N)+R-1)
             ENDDO
             ENDDO
             ENDDO
