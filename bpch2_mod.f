@@ -1,9 +1,9 @@
-! $Id: bpch2_mod.f,v 1.1 2003/06/30 20:26:07 bmy Exp $
+! $Id: bpch2_mod.f,v 1.2 2003/11/06 21:07:17 bmy Exp $
       MODULE BPCH2_MOD
 !
 !******************************************************************************
 !  Module BPCH2_MOD contains the routines used to read data from and write
-!  data to binary punch (BPCH) file format (v. 2.0). (bmy, 6/28/00, 3/11/03)
+!  data to binary punch (BPCH) file format (v. 2.0). (bmy, 6/28/00, 11/3/03)
 !
 !  Module Routines:
 !  ============================================================================
@@ -55,6 +55,7 @@
 !  (25) Now references "error_mod.f".  Also obsoleted routine GET_TAU0_2A.
 !        (bmy, 10/15/02)
 !  (26) Made modification in READ_BPCH2 for 1x1 nested grids (bmy, 3/11/03)
+!  (27) Modifications for GEOS-4, 30-layer grid (bmy, 11/3/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -463,6 +464,9 @@
      &        NI,       NJ,       NL,   IFIRST, JFIRST, LFIRST,
      &        NSKIP
 
+         PRINT*, '### CATEGORY  : ', CATEGORY
+         PRINT*, '### NI, NJ, NL: ', NI, NJ, NL
+
          IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'read_bpch2:5' )
 
          READ( IU_FILE, IOSTAT=IOS ) 
@@ -539,6 +543,8 @@
 !  NOTES:
 !  (1 ) Now use special model name for GEOS-3 w/ 30 layers (bmy, 10/9/01)
 !  (2 ) Added modelname for GEOS-4/fvDAS model type (bmy, 11/20/01)
+!  (2 ) Added "GEOS4_30L" for reduced GEOS-4 grid.  Also now use C-preprocessor
+!        switch "GRID30LEV" instead of IF statements. (bmy, 11/3/03)
 !******************************************************************************
 !
 #     include "CMN_SIZE"
@@ -546,27 +552,55 @@
       ! MODELNAME holds the return value for the function
       CHARACTER(LEN=20) :: MODELNAME
 
+      !=================================================================
+      ! GET_MODELNAME begins here!
+      !=================================================================
+
 #if   defined( GEOS_1 ) 
       MODELNAME = 'GEOS1'
      
 #elif defined( GEOS_STRAT ) 
       MODELNAME = 'GEOS_STRAT'
 
-#elif defined( GEOS_2 ) 
-      MODELNAME = 'GEOS2'
+!------------------------------------------------------------
+! Prior to 11/3/03:
+! Remove GEOS_2 model name -- it's obsolete! (bmy, 11/3/03)
+!#elif defined( GEOS_2 ) 
+!      MODELNAME = 'GEOS2'
+!------------------------------------------------------------
 
 #elif defined( GEOS_3 )
       
-      ! Write a special model name to the punch file for GAMAP
-      ! if we are using regridded vertical resolution (bmy, 10/9/01)
-      IF ( LLPAR == 30 ) THEN 
-         MODELNAME = 'GEOS3_30L'
-      ELSE
-         MODELNAME = 'GEOS3'
-      ENDIF
+      !----------------------------------------------------------------------
+      ! Prior to 11/3/03:
+      !! Write a special model name to the punch file for GAMAP
+      !! if we are using regridded vertical resolution (bmy, 10/9/01)
+      ! Now use GRID30LEV Cpp switch -- eliminate IF statement (bmy, 11/3/03)
+      !IF ( LLPAR == 30 ) THEN 
+      !   MODELNAME = 'GEOS3_30L'
+      !ELSE
+      !   MODELNAME = 'GEOS3'
+      !ENDIF
+      !-----------------------------------------------------------------------
+#if   defined( GRID30LEV )
+      MODELNAME = 'GEOS3_30L'   ! Special modelname for GAMAP (GEOS-3 30L)
+#else
+      MODELNAME = 'GEOS3'       ! Normal modelname (GEOS-3 48L)
+#endif
+
 
 #elif defined( GEOS_4 )
-      MODELNAME = 'GEOS4'
+      !--------------------------------------------------------------
+      ! Prior to 11/3/03:
+      ! Need to save the bpch file under the name "GEOS4_30L" for
+      ! the reduced 30-level grid (bmy, 11/3/03)
+      !MODELNAME = 'GEOS4'
+      !--------------------------------------------------------------
+#if   defined( GRID30LEV )
+      MODELNAME = 'GEOS4_30L'   ! Special modelname for GAMAP (GEOS-4 30L)
+#else 
+      MODELNAME = 'GEOS4'       ! Original modelname (GEOS-4 55L)
+#endif
 
 #endif
 
@@ -579,11 +613,12 @@
 !
 !******************************************************************************
 !  Function GET_NAME_EXT returns the proper filename extension for CTM
-!  model name (i.e. "geos1", "geoss", "geos2", "geos3", or "geos4").  
-!  (bmy, 6/28/00, 11/20/01)
+!  model name (i.e. "geos1", "geoss", "geos3", or "geos4").  
+!  (bmy, 6/28/00, 11/3/03)
 !  
 !  NOTES:
 !  (1 ) Added name string for GEOS-4/fvDAS model type (bmy, 11/20/01)
+!  (2 ) Remove obsolete "geos2" model name strning (bmy, 11/3/03)
 !******************************************************************************
 !
 #     include "define.h"
@@ -597,8 +632,12 @@
 #elif defined( GEOS_STRAT ) 
       NAME_EXT = 'geoss'
 
-#elif defined( GEOS_2 ) 
-      NAME_EXT = 'geos2'
+!-----------------------------------------------------------------
+! Prior to 11/3/03:
+! Remove obsolete "geos2" model name strning (bmy, 11/3/03)
+!#elif defined( GEOS_2 ) 
+!      NAME_EXT = 'geos2'
+!-----------------------------------------------------------------
 
 #elif defined( GEOS_3 )
       NAME_EXT = 'geos3'

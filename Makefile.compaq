@@ -1,6 +1,6 @@
-# $Id: Makefile.compaq,v 1.8 2003/10/30 16:17:15 bmy Exp $
+# $Id: Makefile.compaq,v 1.9 2003/11/06 21:07:16 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for COMPAQ/Alpha (bmy, Tue Oct 14 15:38:38 2003)
+# GEOS-CHEM Makefile for COMPAQ/Alpha (bmy, Thu Nov  6 12:13:19 2003)
 #
 # NOTE: For GEOS-CHEM v5-07-08, we must compile everything -fast except 
 #       "calcrate.f", which must be compiled -O2.  (hamid, bmy, 10/10/03)
@@ -259,7 +259,7 @@ tpcore_window_mod.o       \
 transport_mod.o           \
 upbdflx_mod.o             \
 chemistry_mod.o           \
-emissions_mod.o 
+emissions_mod.o
 
 SJ =                      \
 findxsect.o               \
@@ -376,7 +376,7 @@ decomp.o                   : decomp.f                   CMN_SIZE define.h comode
 diag1.o                    : diag1.f                    CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h 
 diag20.o                   : diag20.f                   CMN CMN_O3 CMN_SIZE define.h CMN_TIMES 
 diag3.o                    : diag3.f                    CMN CMN_DIAG CMN_O3 CMN_SETUP CMN_SIZE define.h comode.h 
-diag41.o                   : diag41.f                   CMN CMN_DIAG CMN_SIZE define.h 
+diag41.o                   : diag41.f                   CMN CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 diag48.o                   : diag48.f                   CMN CMN_DEP CMN_DIAG CMN_O3 CMN_SIZE define.h 
 diag49.o                   : diag49.f                   CMN CMN_DIAG CMN_O3 CMN_SIZE define.h CMN_TIMES 
 diag5.o                    : diag5.f                    CMN CMN_DIAG CMN_O3 CMN_SIZE define.h 
@@ -560,7 +560,7 @@ xltmmp.o                   : xltmmp.f                   CMN_SIZE define.h
 #  Other Makefile Commands
 #=============================================================================
 clean:
-        rm -f *.o *.mod ifc* geos geos_sj geosco geoscof
+        rm -f *.o *.mod geos geos_sj geosco geoscof
 
 .SUFFIXES: .f .F .f90 .F90
 .f.o:                   ; $(F90) $(Fopt) -c $*.f

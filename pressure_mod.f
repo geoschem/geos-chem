@@ -1,11 +1,11 @@
-! $Id: pressure_mod.f,v 1.3 2003/10/30 16:17:18 bmy Exp $
+! $Id: pressure_mod.f,v 1.4 2003/11/06 21:07:19 bmy Exp $
       MODULE PRESSURE_MOD
 !
 !******************************************************************************
 !  Module PRESSURE_MOD contains variables and routines which specify the grid 
 !  box pressures for both hybrid or pure-sigma models.  This is necessary
 !  for running GEOS-CHEM with the new GEOS-4/fvDAS meteorological fields.
-!  (dsa, bmy, 8/27/02, 10/24/03)
+!  (dsa, bmy, 8/27/02, 11/3/03)
 !
 !  The Hybrid ETA-coordinate (dsa, 8/27/02, 10/24/03)
 !  ============================================================================
@@ -52,6 +52,7 @@
 !  (2 ) Updated comments (bmy, 5/8/03)
 !  (3 ) Updated format string for fvDAS (bmy, 6/19/03)
 !  (4 ) Bug fix: use PFLT instead of PFLT-PTOP for GEOS-4 (bmy, 10/24/03)
+!  (5 ) Modifications for 30L and 55L GEOS-4 grids (bmy, 11/3/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -275,18 +276,25 @@
 !  It must be called in "main.f", after SIGE is defined.  GEOS-4 uses fvDAS, 
 !  which requires the hybred pressure system specified by the listed values 
 !  of AP and BP, while earlier versions of GEOS use a pure sigma pressure
-!  system. (dsa, bmy, 8/20/02, 3/14/03)
+!  system. (dsa, bmy, 8/20/02, 11/3/03)
 !
 !  NOTES:
 !  (1 ) Now reference ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
 !  (2 ) Now echo Ap, Bp to std output (bmy, 3/14/03)
+!  (3 ) Now print LLPAR+1 levels for Ap, Bp.  Remove reference to SIGE, it's
+!        obsolete.  Also now use C-preprocessor switch GRID30LEV instead of
+!        IF statements to define vertical coordinates. (bmy, 11/3/03)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
 #     include "CMN_SIZE"  ! LLPAR, PTOP
-#     include "CMN"       ! SIGE
+!-----------------------------------------------------------------------
+! Prior to 11/3/03:
+! This reference is now obsolete (bmy, 11/3/03)
+!#     include "CMN"       ! SIGE
+!-----------------------------------------------------------------------
 
       ! Local Variables
       INTEGER :: AS
@@ -310,10 +318,42 @@
 #if   defined( GEOS_4 )
       
       !=================================================================
-      ! GEOS-4/fvDAS: 55 levels
+      ! GEOS-4 vertical coordinates (30 or 55 levels)
       !=================================================================
 
-      ! AP has units of [hPa]
+#if   defined( GRID30LEV )
+
+      !----------------------
+      ! GEOS-4 30 level grid
+      !----------------------
+
+      ! Ap [hPa] for 30 levels (31 edges)
+      AP = (/  0.000000d0,   0.000000d0,  12.704939d0,  35.465965d0, 
+     &        66.098427d0, 101.671654d0, 138.744400d0, 173.403183d0, 
+     &       198.737839d0, 215.417526d0, 223.884689d0, 224.362869d0, 
+     &       216.864929d0, 201.192093d0, 176.929993d0, 150.393005d0, 
+     &       127.837006d0, 108.663429d0,  92.365662d0,  78.512299d0, 
+     &        56.387939d0,  40.175419d0,  28.367815d0,  19.791553d0, 
+     &         9.292943d0,   4.076567d0,   1.650792d0,   0.616779d0, 
+     &         0.211349d0,   0.066000d0,   0.010000d0 /)
+
+      ! Bp [unitless] for 30 levels (31 edges)
+      BP = (/  1.000000d0,   0.985110d0,   0.943290d0,   0.867830d0, 
+     &         0.764920d0,   0.642710d0,   0.510460d0,   0.378440d0, 
+     &         0.270330d0,   0.183300d0,   0.115030d0,   0.063720d0, 
+     &         0.028010d0,   0.006960d0,   0.000000d0,   0.000000d0, 
+     &         0.000000d0,   0.000000d0,   0.000000d0,   0.000000d0, 
+     &         0.000000d0,   0.000000d0,   0.000000d0,   0.000000d0, 
+     &         0.000000d0,   0.000000d0,   0.000000d0,   0.000000d0, 
+     &         0.000000d0,   0.000000d0,   0.000000d0 /)
+
+#else
+
+      !----------------------
+      ! GEOS-4 55 level grid
+      !----------------------
+
+      ! AP [hPa] for 55 levels (56 edges)
       AP = (/ 0.000000d0,   0.000000d0,  12.704939d0,  35.465965d0, 
      &       66.098427d0, 101.671654d0, 138.744400d0, 173.403183d0,
      &      198.737839d0, 215.417526d0, 223.884689d0, 224.362869d0,
@@ -329,7 +369,7 @@
      &        0.159495d0,   0.119703d0,   0.089345d0,   0.066000d0, 
      &        0.047585d0,   0.032700d0,   0.020000d0,   0.010000d0 /)
 
-      ! BP is unitless
+      ! BP [unitless] for 55 levels (56 edges)
       BP = (/  1.000000d0,  0.985110d0,   0.943290d0,   0.867830d0,
      &         0.764920d0,  0.642710d0,   0.510460d0,   0.378440d0,
      &         0.270330d0,  0.183300d0,   0.115030d0,   0.063720d0,
@@ -346,52 +386,63 @@
      &         0.000000d0,  0.000000d0,   0.000000d0,   0.000000d0 /)
 
 
+#endif
+
 #elif defined( GEOS_3 )
 
       !=================================================================
-      ! GEOS-3: 30 or 48 levels
+      ! GEOS-3 vertical coordinates (30 or 48 levels)
       !=================================================================
-      IF ( LLPAR == 30 ) THEN
 
-         ! AP [hPa] is just PTOP for a pure-sigma grid
-         AP = PTOP
+#if   defined( GRID30LEV )
 
-         ! BP [unitless] is just SIGE for a pure-sigma grid
-         BP = (/ 1.000000d0, 0.997095d0, 0.991200d0, 0.981500d0, 
-     &           0.967100d0, 0.946800d0, 0.919500d0, 0.884000d0, 
-     &           0.839000d0, 0.783000d0, 0.718200d0, 0.647600d0, 
-     &           0.574100d0, 0.500000d0, 0.427800d0, 0.359500d0, 
-     &           0.297050d0, 0.241950d0, 0.194640d0, 0.155000d0, 
-     &           0.122680d0, 0.096900d0, 0.076480d0, 0.047610d0, 
-     &           0.029600d0, 0.018380d0, 0.007040d0, 0.002530d0, 
-     &           0.000765d0, 0.000155d0, 0.000000d0 /)
+      !----------------------
+      ! GEOS-3 30 level grid
+      !----------------------
 
-      ELSE
+      ! AP [hPa] is just PTOP for a pure-sigma grid
+      AP = PTOP
 
-         ! AP [hPa] is just PTOP for a pure-sigma grid
-         AP = PTOP
+      ! BP [unitless] is just SIGE for a pure-sigma grid
+      BP = (/ 1.000000d0, 0.997095d0, 0.991200d0, 0.981500d0, 
+     &        0.967100d0, 0.946800d0, 0.919500d0, 0.884000d0, 
+     &        0.839000d0, 0.783000d0, 0.718200d0, 0.647600d0, 
+     &        0.574100d0, 0.500000d0, 0.427800d0, 0.359500d0, 
+     &        0.297050d0, 0.241950d0, 0.194640d0, 0.155000d0, 
+     &        0.122680d0, 0.096900d0, 0.076480d0, 0.047610d0, 
+     &        0.029600d0, 0.018380d0, 0.007040d0, 0.002530d0, 
+     &        0.000765d0, 0.000155d0, 0.000000d0 /)
+
+#else
+
+      !----------------------
+      ! GEOS-3 55 level grid
+      !----------------------
+
+      ! AP [hPa] is just PTOP for a pure-sigma grid
+      AP = PTOP
          
-         ! BP [unitless] is just SIGE for a pure-sigma grid
-         BP = (/ 1.000000d0, 0.997095d0, 0.991200d0, 0.981500d0,    
-     &           0.967100d0, 0.946800d0, 0.919500d0, 0.884000d0,    
-     &           0.839000d0, 0.783000d0, 0.718200d0, 0.647600d0,    
-     &           0.574100d0, 0.500000d0, 0.427800d0, 0.359500d0,    
-     &           0.297050d0, 0.241950d0, 0.194640d0, 0.155000d0,    
-     &           0.122680d0, 0.096900d0, 0.076480d0, 0.060350d0,   
-     &           0.047610d0, 0.037540d0, 0.029600d0, 0.023330d0,   
-     &           0.018380d0, 0.014480d0, 0.011405d0, 0.008975d0,  
-     &           0.007040d0, 0.005500d0, 0.004280d0, 0.003300d0,  
-     &           0.002530d0, 0.001900d0, 0.001440d0, 0.001060d0,  
-     &           0.000765d0, 0.000540d0, 0.000370d0, 0.000245d0, 
-     &           0.000155d0, 9.20000d-5, 4.75000d-5, 1.76800d-5, 
-     &           0.000000d0 /)
-         
-      ENDIF
+      ! BP [unitless] is just SIGE for a pure-sigma grid
+      BP = (/ 1.000000d0, 0.997095d0, 0.991200d0, 0.981500d0,    
+     &        0.967100d0, 0.946800d0, 0.919500d0, 0.884000d0,    
+     &        0.839000d0, 0.783000d0, 0.718200d0, 0.647600d0,    
+     &        0.574100d0, 0.500000d0, 0.427800d0, 0.359500d0,    
+     &        0.297050d0, 0.241950d0, 0.194640d0, 0.155000d0,    
+     &        0.122680d0, 0.096900d0, 0.076480d0, 0.060350d0,   
+     &        0.047610d0, 0.037540d0, 0.029600d0, 0.023330d0,   
+     &        0.018380d0, 0.014480d0, 0.011405d0, 0.008975d0,  
+     &        0.007040d0, 0.005500d0, 0.004280d0, 0.003300d0,  
+     &        0.002530d0, 0.001900d0, 0.001440d0, 0.001060d0,  
+     &        0.000765d0, 0.000540d0, 0.000370d0, 0.000245d0, 
+     &        0.000155d0, 9.20000d-5, 4.75000d-5, 1.76800d-5, 
+     &        0.000000d0 /)
+       
+#endif  
 
 #elif defined( GEOS_STRAT )
 
       !=================================================================
-      ! GEOS-STRAT: 26 levels
+      ! GEOS-STRAT vertical coordinates (26 levels)
       !=================================================================
 
       ! AP [hPa] is just PTOP for a pure-sigma grid
@@ -409,7 +460,7 @@
 #elif defined( GEOS_1 )
 
       !=================================================================
-      ! GEOS-1: 20 levels
+      ! GEOS-1 vertical coordinates (20 levels)
       !=================================================================
 
       ! AP [hPa] is just PTOP for a pure-sigma model
@@ -428,9 +479,9 @@
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       WRITE( 6, '(a)' ) 'INIT_PRESSURE: Vertical coordinates!'
       WRITE( 6, '(a)' )
-      WRITE( 6, '( ''Ap '', /, 6(f11.6,1x) )' ) AP(1:LLPAR)
+      WRITE( 6, '( ''Ap '', /, 6(f11.6,1x) )' ) AP(1:LLPAR+1)
       WRITE( 6, '(a)' )
-      WRITE( 6, '( ''Bp '', /, 6(f11.6,1x) )' ) BP(1:LLPAR)
+      WRITE( 6, '( ''Bp '', /, 6(f11.6,1x) )' ) BP(1:LLPAR+1)
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
       ! Return to calling program

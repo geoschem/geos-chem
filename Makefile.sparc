@@ -1,6 +1,6 @@
-# $Id: Makefile.sparc,v 1.7 2003/10/30 16:17:15 bmy Exp $
+# $Id: Makefile.sparc,v 1.8 2003/11/06 21:07:17 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for SUN/Sparc (bmy, Tue Oct 14 15:38:58 2003)
+# GEOS-CHEM Makefile for SUN/Sparc (bmy, Thu Nov  6 12:13:44 2003)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -12,7 +12,6 @@ F90 = $(FFLAGS) -Dmultitask -openmp
 
 # F90 options -- single processor
 #F90 = $(FFLAGS)
-
 
 OBJS =                    \
 CO_strat_pl.o             \
@@ -252,7 +251,7 @@ tpcore_window_mod.o       \
 transport_mod.o           \
 upbdflx_mod.o             \
 chemistry_mod.o           \
-emissions_mod.o 
+emissions_mod.o
 
 SJ =                      \
 findxsect.o               \
@@ -364,7 +363,7 @@ decomp.o                   : decomp.F                   CMN_SIZE define.h comode
 diag1.o                    : diag1.F                    CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h 
 diag20.o                   : diag20.F                   CMN CMN_O3 CMN_SIZE define.h CMN_TIMES 
 diag3.o                    : diag3.F                    CMN CMN_DIAG CMN_O3 CMN_SETUP CMN_SIZE define.h comode.h 
-diag41.o                   : diag41.F                   CMN CMN_DIAG CMN_SIZE define.h 
+diag41.o                   : diag41.F                   CMN CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 diag48.o                   : diag48.F                   CMN CMN_DEP CMN_DIAG CMN_O3 CMN_SIZE define.h 
 diag49.o                   : diag49.F                   CMN CMN_DIAG CMN_O3 CMN_SIZE define.h CMN_TIMES 
 diag5.o                    : diag5.F                    CMN CMN_DIAG CMN_O3 CMN_SIZE define.h 
@@ -548,7 +547,7 @@ xltmmp.o                   : xltmmp.F                   CMN_SIZE define.h
 #  Other Makefile Commands
 #=============================================================================
 clean:
-        rm -f *.o *.mod ifc* geos geos_sj geosco
+        rm -f *.o *.mod geos geos_sj geosco
 
 .SUFFIXES: .F .F90
 .F.o:                   ; $(F90) -c $*.F

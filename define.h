@@ -1,9 +1,9 @@
-! $Id: define.h,v 1.3 2003/10/30 16:17:17 bmy Exp $
+! $Id: define.h,v 1.5 2003/11/06 21:09:10 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
 !  used to include or exclude certain sections of code.  
-!  (bmy, bdf, 1/30/98, 10/21/03)
+!  (bmy, bdf, 1/30/98, 10/31/03)
 !
 !  List of "Switches"
 !  ===========================================================================
@@ -11,22 +11,22 @@
 !  (2 ) GEOS_STRAT : Enables code for GEOS-STRAT met fields & chemistry
 !  (3 ) GEOS_3     : Enables code for GEOS-3 met fields & chemistry
 !  (4 ) GEOS_4     : Enables code for GEOS-4 met fields & chemistry
-!  (5 ) GRID1x1    : Enables code for 1 x 1   grid
-!  (6 ) GRID2x25   : Enables code for 2 x 2.5 grid 
-!  (7 ) GRID4x5    : Enables code for 4 x 5   grid 
-!  (8 ) FULLCHEM   : Enables code for "Full" Chemistry (ISOP and NMHC)
-!  (9 ) SMALLCHEM  : Enables code for "Small" chemistry (No ISOP, no NMHC)
-!  (10) LGEOSCO    : Enables code for CO run w/ parameterized OH
-!  (11) LFASTJ     : Enables code for FAST-J photolysis
-!  (12) LSLOWJ     : Enables code for SLOW-J photolysis
-!  (13) SGI        : Enables SGI specific code
-!  (14) COMPAQ     : Enables COMPAQ Alpha specific code
-!  (15) LINUX      : Enables Linux specific code
-!  (16) SPARC      : Enables Sun/Sparc specific code
-!  (17) IBM_AIX    : Enables IBM/AIX specific code
-!  (18) INTEL_FC   : Enables INTEL FORTRAN COMPILER code
+!  (5 ) GRID30LEV  : Enables code for 30-level GEOS-3 or GEOS-4 grid
+!  (6 ) GRID1x1    : Enables code for 1 x 1   grid
+!  (7 ) GRID2x25   : Enables code for 2 x 2.5 grid 
+!  (8 ) GRID4x5    : Enables code for 4 x 5   grid 
+!  (9 ) FULLCHEM   : Enables code for "Full" Chemistry (ISOP and NMHC)
+!  (10) SMALLCHEM  : Enables code for "Small" chemistry (No ISOP, no NMHC)
+!  (11) LGEOSCO    : Enables code for CO run w/ parameterized OH
+!  (12) LFASTJ     : Enables code for FAST-J photolysis
+!  (13) LSLOWJ     : Enables code for SLOW-J photolysis
+!  (14) SGI        : Enables SGI specific code
+!  (15) COMPAQ     : Enables COMPAQ Alpha specific code
+!  (16) LINUX      : Enables Linux specific code
+!  (17) SPARC      : Enables Sun/Sparc specific code
+!  (18) IBM_AIX    : Enables IBM/AIX specific code
+!  (19) INTEL_FC   : Enables INTEL FORTRAN COMPILER code
 ! 
-!
 !  NOTES:
 !  (1 ) "define.h" is #include'd at the top of CMN_SIZE.  All subroutines
 !        that normally reference CMN_SIZE will also reference "define.h".
@@ -52,6 +52,7 @@
 !        to invoke Sun/Sparc specific code. (bmy, 3/23/03)
 !  (14) Added IBM_AIX switch (bmy, 6/27/03)
 !  (15) Added INTEL_FC switch (bmy, 10/21/03)
+!  (16) Added GRID30LEV switch for 30L GEOS-3 or GEOS-4 grid (bmy, 10/31/03)
 !******************************************************************************
 !
 !==============================================================================
@@ -61,6 +62,7 @@
 #undef GEOS_STRAT
 #undef GEOS_3
 #undef GEOS_4
+#undef GRID30LEV
 #undef GRID2x25  
 #undef GRID4x5
 #undef GRID1x1   
@@ -89,6 +91,7 @@
 !#define GRID1x1     'GRID1x1'
 !#define GRID2x25    'GRID2x25'
 #define GRID4x5     'GRID4x5'
+#define GRID30LEV   'GRID30LEV'
 
 !#define SMALLCHEM   'SMALLCHEM'
 #define FULLCHEM    'FULLCHEM'

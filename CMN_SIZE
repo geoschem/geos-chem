@@ -1,6 +1,6 @@
-! $Id: CMN_SIZE,v 1.2 2003/10/21 16:05:26 bmy Exp $
+! $Id: CMN_SIZE,v 1.3 2003/11/06 21:07:16 bmy Exp $
       !=======================================================================
-      ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 6/18/03)
+      ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 10/31/03)
       !
       ! NOTES:
       ! (1 ) Now set LLTROP = 20 for GEOS-3 (bmy, 4/12/01)
@@ -24,6 +24,9 @@
       ! (12) Removed I0, J0; these are now superseded by "grid_mod.f"
       !       (bmy, 2/11/03)
       ! (13) Added parameters for GEOS-4 (bmy, 6/18/03)
+      ! (14) Now defines both 55 level and 30 level GEOS-4 grids.  Also
+      !       define LLTROP=19 for GEOS-4 grids.  Also remove obsolete
+      !       GEOS-2 grid declarations. (mje, bmy, 10/31/03)
       !=======================================================================
 
       ! C Preprocessor #define statements for conditional compilation
@@ -60,16 +63,20 @@
       ! PTOP   = model top pressure (mb)
       !
       ! NOTES: 
-      ! (1) GEOS-CHEM is usually set up for a global run, thus,
-      !     IIPAR=IGLOB, JJPAR=JGLOB, LLPAR=LGLOB (bmy, 4/9/99)
-      !
-      ! (2) IIPAR, JJPAR, LLPAR may be smaller than or equal to 
-      !     IGLOB, JGLOB, LGLOB (bmy, 4/12/99)    
-      !
-      ! (3) PTOP is now correct (0.01 hPa) for GEOS-2, GEOS-3 grids
-      !     (bmy, 10/2/00)
+      ! (1 ) GEOS-CHEM is usually set up for a global run, thus,
+      !       IIPAR=IGLOB, JJPAR=JGLOB, LLPAR=LGLOB (bmy, 4/9/99)
+      ! (2 ) IIPAR, JJPAR, LLPAR may be smaller than or equal to 
+      !       IGLOB, JGLOB, LGLOB (bmy, 4/12/99)    
+      ! (3 )  PTOP is now correct (0.01 hPa) for GEOS-2, GEOS-3 grids
+      !        (bmy, 10/2/00)
+      ! (4 ) Now define both 55L and 30L GEOS-4 grids.  Also set
+      !       LLTROP=18 for GEOS-4 (bmy, 10/
       !=================================================================
 #if   defined( GEOS_1 ) && defined( GRID4x5 ) 
+
+      !--------------------
+      ! GEOS-1 4 x 5
+      !--------------------
       INTEGER, PARAMETER :: IGLOB  = 72
       INTEGER, PARAMETER :: JGLOB  = 46
       INTEGER, PARAMETER :: LGLOB  = 20
@@ -83,6 +90,10 @@
       REAL*8,  PARAMETER :: PTOP   = 10d0
 
 #elif defined( GEOS_1 ) && defined( GRID2x25 )
+
+      !--------------------
+      ! GEOS-1 2 x 2.5
+      !--------------------
       INTEGER, PARAMETER :: IGLOB  = 144
       INTEGER, PARAMETER :: JGLOB  = 91
       INTEGER, PARAMETER :: LGLOB  = 20
@@ -96,6 +107,10 @@
       REAL*8,  PARAMETER :: PTOP   = 10d0
 
 #elif defined( GEOS_STRAT ) && defined( GRID4x5 )
+
+      !--------------------
+      ! GEOS-STRAT 4 x 5
+      !--------------------
       INTEGER, PARAMETER :: IGLOB  = 72
       INTEGER, PARAMETER :: JGLOB  = 46
       INTEGER, PARAMETER :: LGLOB  = 26      
@@ -109,6 +124,10 @@
       REAL*8,  PARAMETER :: PTOP   = 0.1d0
 
 #elif defined( GEOS_STRAT ) && defined( GRID2x25 )
+
+      !--------------------
+      ! GEOS-STRAT 2 x 2.5
+      !--------------------
       INTEGER, PARAMETER :: IGLOB  = 144
       INTEGER, PARAMETER :: JGLOB  = 91
       INTEGER, PARAMETER :: LGLOB  = 26            
@@ -121,113 +140,114 @@
 
       REAL*8,  PARAMETER :: PTOP   = 0.1d0
 
-#elif defined( GEOS_2 ) && defined( GRID4x5 )
-      INTEGER, PARAMETER :: IGLOB  = 72
-      INTEGER, PARAMETER :: JGLOB  = 46
-      INTEGER, PARAMETER :: LGLOB  = 47
-
-      INTEGER, PARAMETER :: IIPAR  = IGLOB
-      INTEGER, PARAMETER :: JJPAR  = JGLOB
-      INTEGER, PARAMETER :: LLPAR  = LGLOB
-
-      INTEGER, PARAMETER :: LLTROP = 31
-
-      REAL*8,  PARAMETER :: PTOP   = 0.01d0
-
-#elif defined( GEOS_2 ) && defined( GRID2x25 )
-      INTEGER, PARAMETER :: IGLOB  = 144
-      INTEGER, PARAMETER :: JGLOB  = 91
-      INTEGER, PARAMETER :: LGLOB  = 47           
-
-      INTEGER, PARAMETER :: IIPAR  = IGLOB
-      INTEGER, PARAMETER :: JJPAR  = JGLOB
-      INTEGER, PARAMETER :: LLPAR  = LGLOB
-
-      INTEGER, PARAMETER :: LLTROP = 31
-
-      REAL*8,  PARAMETER :: PTOP   = 0.01d0
-
 #elif defined( GEOS_3 ) && defined( GRID4x5 )
+
+      !--------------------
+      ! GEOS-3 4 x 5
+      !--------------------
       INTEGER, PARAMETER :: IGLOB  = 72
       INTEGER, PARAMETER :: JGLOB  = 46
       INTEGER, PARAMETER :: LGLOB  = 48            
 
       INTEGER, PARAMETER :: IIPAR  = IGLOB
       INTEGER, PARAMETER :: JJPAR  = JGLOB
-      !-----------------------------------------------------------------
-      ! Uncomment this line for GEOS-3 4 x 5 w/ 48 sigma levels 
-      !INTEGER, PARAMETER :: LLPAR  = LGLOB      
-      !-----------------------------------------------------------------
-      ! Uncomment this line for GEOS-3 4 x 5 w/ 30 sigma levels 
-      INTEGER, PARAMETER :: LLPAR  = 30
-      !-----------------------------------------------------------------
+
+#if   defined( GRID30LEV )
+      INTEGER, PARAMETER :: LLPAR  = 30     ! 30 levels
+#else
+      INTEGER, PARAMETER :: LLPAR  = LGLOB  ! 48 levels
+#endif
 
       INTEGER, PARAMETER :: LLTROP = 20       
 
       REAL*8,  PARAMETER :: PTOP   = 0.01d0
 
 #elif defined( GEOS_3 ) && defined( GRID2x25 )
+
+      !--------------------
+      ! GEOS-3 2 x 2.5
+      !--------------------
       INTEGER, PARAMETER :: IGLOB  = 144
       INTEGER, PARAMETER :: JGLOB  = 91
       INTEGER, PARAMETER :: LGLOB  = 48            
 
       INTEGER, PARAMETER :: IIPAR  = IGLOB
       INTEGER, PARAMETER :: JJPAR  = JGLOB
-      !-----------------------------------------------------------------
-      ! Uncomment this line for GEOS-3 2 x 2.5 with 48 sigma levels
-      !INTEGER, PARAMETER :: LLPAR  = LGLOB
-      !-----------------------------------------------------------------
-      ! Uncomment this line for GEOS-3 2 x 2.5 with 30 sigma levels
-      INTEGER, PARAMETER :: LLPAR  = 30
-      !-----------------------------------------------------------------
+
+#if   defined( GRID30LEV )
+      INTEGER, PARAMETER :: LLPAR  = 30     ! 30 levels
+#else
+      INTEGER, PARAMETER :: LLPAR  = LGLOB  ! 48 levels
+#endif 
 
       INTEGER, PARAMETER :: LLTROP = 20       
 
       REAL*8,  PARAMETER :: PTOP   = 0.01d0
 
 #elif defined( GEOS_3 ) && defined( GRID1x1 )
-      ! For yxw's China grid
+
+      !--------------------
+      ! GEOS-3 1 x 1
+      ! yxw's China grid
+      !--------------------
       INTEGER, PARAMETER :: IGLOB  = 81
       INTEGER, PARAMETER :: JGLOB  = 67
       INTEGER, PARAMETER :: LGLOB  = 48           
 
       INTEGER, PARAMETER :: IIPAR  = IGLOB
       INTEGER, PARAMETER :: JJPAR  = JGLOB
-      !-----------------------------------------------------------------
-      ! Uncomment this line for GEOS-3 1 x 1 with 48 sigma levels
-      !INTEGER, PARAMETER :: LLPAR  = LGLOB
-      !-----------------------------------------------------------------
-      ! Uncomment this line for GEOS-3 1 x 1 with 30 sigma levels
-      INTEGER, PARAMETER :: LLPAR  = 30
-      !-----------------------------------------------------------------
+
+#if   defined( GRID30LEV )
+      INTEGER, PARAMETER :: LLPAR  = 30     ! 30 levels
+#else
+      INTEGER, PARAMETER :: LLPAR  = LGLOB  ! 48 levels
+#endif
 
       INTEGER, PARAMETER :: LLTROP = 20       
 
       REAL*8,  PARAMETER :: PTOP   = 0.01d0
 
 #elif defined( GEOS_4 ) && defined( GRID4x5 )
+
+      !--------------------
+      ! GEOS-4 4 x 5
+      !--------------------
       INTEGER, PARAMETER :: IGLOB  = 72
       INTEGER, PARAMETER :: JGLOB  = 46
       INTEGER, PARAMETER :: LGLOB  = 55           
 
       INTEGER, PARAMETER :: IIPAR  = IGLOB
       INTEGER, PARAMETER :: JJPAR  = JGLOB
-      INTEGER, PARAMETER :: LLPAR  = LGLOB      
 
-      INTEGER, PARAMETER :: LLTROP = 20
+#if   defined( GRID30LEV ) 
+      INTEGER, PARAMETER :: LLPAR  = 30     ! 30 levels
+#else
+      INTEGER, PARAMETER :: LLPAR  = LGLOB  ! 55 levels
+#endif
+
+      INTEGER, PARAMETER :: LLTROP = 18
 
       REAL*8,  PARAMETER :: PTOP   = 0.01d0
 
 #elif defined( GEOS_4 ) && defined( GRID2x25 )
+
+      !--------------------
+      ! GEOS-4 2 x 2.5
+      !--------------------
       INTEGER, PARAMETER :: IGLOB  = 144
       INTEGER, PARAMETER :: JGLOB  = 91
       INTEGER, PARAMETER :: LGLOB  = 55
 
       INTEGER, PARAMETER :: IIPAR  = IGLOB
       INTEGER, PARAMETER :: JJPAR  = JGLOB
-      INTEGER, PARAMETER :: LLPAR  = LGLOB
 
-      INTEGER, PARAMETER :: LLTROP = 20
+#if   defined( GRID30LEV )
+      INTEGER, PARAMETER :: LLPAR  = 30     ! 30 levels
+#else 
+      INTEGER, PARAMETER :: LLPAR  = LGLOB  ! 55 levels
+#endif
+
+      INTEGER, PARAMETER :: LLTROP = 18
 
       REAL*8,  PARAMETER :: PTOP   = 0.01d0
 

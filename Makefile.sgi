@@ -1,6 +1,6 @@
-# $Id: Makefile.sgi,v 1.8 2003/10/30 16:17:15 bmy Exp $
+# $Id: Makefile.sgi,v 1.9 2003/11/06 21:07:17 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for SGI/Origin (bmy, Tue Oct 14 15:38:27 2003)
+# GEOS-CHEM Makefile for SGI/Origin (bmy, Thu Nov  6 12:13:04 2003)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -251,9 +251,9 @@ tpcore_window_mod.o       \
 transport_mod.o           \
 upbdflx_mod.o             \
 chemistry_mod.o           \
-emissions_mod.o 
+emissions_mod.o
 
-SJ =                      \
+SJ = 	                  \
 findxsect.o               \
 funbas.o                  \
 funo1dham2.o              \
@@ -364,7 +364,7 @@ diag1.o                    : diag1.f                    CMN CMN_DIAG CMN_GCTM CM
 diag20.o                   : diag20.f                   CMN CMN_O3 CMN_SIZE define.h CMN_TIMES 
 diag3.o                    : diag3.f                    CMN CMN_DIAG CMN_O3 CMN_SETUP CMN_SIZE define.h comode.h 
 	$(F90) -c -OPT:olimit=4500 $*.f
-diag41.o                   : diag41.f                   CMN CMN_DIAG CMN_SIZE define.h 
+diag41.o                   : diag41.f                   CMN CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 diag48.o                   : diag48.f                   CMN CMN_DEP CMN_DIAG CMN_O3 CMN_SIZE define.h 
 diag49.o                   : diag49.f                   CMN CMN_DIAG CMN_O3 CMN_SIZE define.h CMN_TIMES 
 diag5.o                    : diag5.f                    CMN CMN_DIAG CMN_O3 CMN_SIZE define.h 
@@ -550,7 +550,7 @@ xltmmp.o                   : xltmmp.f                   CMN_SIZE define.h
 #  Other Makefile Commands
 #=============================================================================
 clean:
-	rm -f *.o *.mod ifc* geos geos_sj geosco
+	rm -f *.o *.mod geos geos_sj geosco
 
 .SUFFIXES: .f .F .f90 .F90
 .f.o:			; $(F90) -c $*.f

@@ -1,4 +1,4 @@
-# $Id: Makefile.ibm,v 1.6 2003/10/21 16:05:26 bmy Exp $
+# $Id: Makefile.ibm,v 1.7 2003/11/06 21:07:16 bmy Exp $
 #=============================================================================
 # Makefile for GEOS-CHEM on IBM AIX: (gcc, Mon Feb 03 11:56:55 2003)
 #=============================================================================
@@ -257,7 +257,7 @@ tpcore_window_mod.o       \
 transport_mod.o           \
 upbdflx_mod.o             \
 chemistry_mod.o           \
-emissions_mod.o 
+emissions_mod.o
 
 SJ =                      \
 findxsect.o               \
@@ -375,7 +375,7 @@ decomp.o                   : decomp.f                   CMN_SIZE define.h comode
 diag1.o                    : diag1.f                    CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h 
 diag20.o                   : diag20.f                   CMN CMN_O3 CMN_SIZE define.h CMN_TIMES 
 diag3.o                    : diag3.f                    CMN CMN_DIAG CMN_O3 CMN_SETUP CMN_SIZE define.h comode.h 
-diag41.o                   : diag41.f                   CMN CMN_DIAG CMN_SIZE define.h 
+diag41.o                   : diag41.f                   CMN CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 diag48.o                   : diag48.f                   CMN CMN_DEP CMN_DIAG CMN_O3 CMN_SIZE define.h 
 diag49.o                   : diag49.f                   CMN CMN_DIAG CMN_O3 CMN_SIZE define.h CMN_TIMES 
 diag5.o                    : diag5.f                    CMN CMN_DIAG CMN_O3 CMN_SIZE define.h 

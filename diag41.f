@@ -1,13 +1,10 @@
-! $Id: diag41.f,v 1.3 2003/08/06 15:30:39 bmy Exp $
+! $Id: diag41.f,v 1.4 2003/11/06 21:07:18 bmy Exp $
       SUBROUTINE DIAG41 
 !
-!*****************************************************************************
+!******************************************************************************
 !  Subroutine DIAG41 produces monthly mean boundary layer height in meters 
 !  between 1200-1600 local time for the U.S. geographical domain. 
-!  (amf, bmy, 11/18/99, 7/9/03)
-!
-!  DIAG41 writes timseries output to disk using the Harvard CTM binary
-!  punch file version 2.0.  This format is very GAMAP-friendly!
+!  (amf, swu, bmy, 11/18/99, 11/6/03)
 !
 !  Input via "CMN" header file:
 !  ===========================================================================
@@ -30,25 +27,40 @@
 !        code. (bmy, 9/18/02)
 !  (10) Now use function GET_LOCALTIME from "dao_mod.f" (bmy, 2/11/03)
 !  (11) Bug fix in DO-loop for calculating local time (bmy, 7/9/03)
-!*****************************************************************************
+!  (12) For GEOS-4, PBL depth is already in meters, so we only have to
+!        multiply that by the GOOD array.  Also now references PBL array
+!        from "dao_mod.f".  Bug fix: now use barometric law to compute PBL 
+!        height in meters for GEOS-1, GEOS-STRAT, GEOS-3.  This eliminates an 
+!        overprediction of the PBL height. (swu, bmy, 11/6/03)
+!******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,  ONLY : BXHEIGHT
-      USE DIAG_MOD, ONLY : AD41, AFTTOT
-      USE TIME_MOD, ONLY : GET_LOCALTIME
+      USE DAO_MOD,      ONLY : PBL
+      USE DIAG_MOD,     ONLY : AD41, AFTTOT
+      USE PRESSURE_MOD, ONLY : GET_PEDGE
+      USE TIME_MOD,     ONLY : GET_LOCALTIME
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"   ! IIPAR, DISIZE
-#     include "CMN_DIAG"   ! AIJ, AFTTOT
-#     include "CMN"        ! TOFDAY
+#     include "CMN_GCTM"   ! SCALE_HEIGHT
+#     include "CMN_DIAG"   ! ND41, AFTTOT
+#     include "CMN"        ! XTRA2
 
       ! Local variables
       INTEGER             :: GOOD(IIPAR)
-      INTEGER             :: I, IREF, J, JREF, L, M, PBLINT
+      !-----------------------------------------------------------------
+      ! Prior to 11/6/03:
+      !INTEGER             :: I, IREF, J, JREF, L, M, PBLINT
+      !-----------------------------------------------------------------
+      INTEGER             :: I, J, L, M
 
       REAL*8              :: XLOCTM(IIPAR)
-      REAL*8              :: TEMPBL, PBLDEC
+      !-----------------------------------------------------------------
+      ! Prior to 11/6/03:
+      !REAL*8              :: TEMPBL, PBLDEC
+      !-----------------------------------------------------------------
+      REAL*8              :: TEMPBL, P_SURF, P_BLTOP
 
       !=================================================================
       ! DIAG41 begins here!
@@ -63,65 +75,67 @@
       GOOD = 0
       WHERE ( XLOCTM >= 12d0 .and. XLOCTM <= 16d0 ) GOOD = 1
 
-      !=================================================================
-      ! For grid boxes where it is between 1200 and 1600 local time, 
-      ! do the following:
-      !
-      ! (1) Set TEMPBL = 0.0.  TEMPBL will be used to store the boundary
-      !     layer height in meters.
-      !
-      ! (2) Get the integer (PBLINT) and decimal (PBLDEC) parts of PBL.  
-      !     Recall that XTRA2 is the boundary layer height in number of 
-      !     boxes, so if XTRA2 = 2.5 (for example), then PBLINT = 2 and 
-      !     PBLDEC = 0.5
-      !
-      ! (3) If PBLINT > 0 then the boundary layer height for this grid 
-      !     box is nonzero.  Add to TEMPBL all of the box heights for 
-      !     each of the "full" grid boxes, and then add on the fraction 
-      !     of the highest box. 
-      !
-      ! (4) Store TEMPBL for this (I,J) location to AD41(I,J,1) array.  
-      !     Also increment AFTTOT(I,J), which keeps track of the number 
-      !     of entries in AD41(I,J,1).
-      !
-      ! (5) Store the afternoon B-L height in # of boses in AD41(I,J,2).
-      !     (bmy, 12/6/99)
-      !  
-      !  NOTES:
-      !  (1) Multiplying BXHEIGHT by GOOD will only cause the boxes 
-      !      between 1200-1600 LT to be counted.  Recall that GOOD = 1 
-      !      for boxes between 1200-1600 LT, and GOOD = 0 otherwise.  
-      !      This should execute faster than performing IF tests on 
-      !      every grid box. (bmy, 11/18/99)
-      !=================================================================
+      ! Loop over surface grid boxes
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         TEMPBL = 0d0
 
-         ! Integer and fractional parts of XTRA2
-         PBLINT = FLOOR( XTRA2(I,J) )
-         PBLDEC = XTRA2(I,J) - PBLINT
+#if   defined( GEOS_4 ) 
+      
+         !==============================================================
+         ! GEOS-4: PBL is already in [m]
+         !==============================================================
+         TEMPBL = PBL(I,J) * GOOD(I)
 
-         ! "Full" grid boxes
-         IF ( PBLINT > 0 ) THEN
-            DO M = 1, PBLINT 
-               TEMPBL = TEMPBL + ( BXHEIGHT(I,J,M) * GOOD(I) )
-            ENDDO
-         ENDIF
+#else
 
-            ! "Fraction" of the highest grid box
-         TEMPBL = TEMPBL + 
-     &            ( PBLDEC * BXHEIGHT(I,J,PBLINT+1) * GOOD(I) )
+!----------------------------------------------------------------------------
+! Prior to 11/6/03:
+! Old code caused an overestimate of PBL height (swu, bmy, 11/6/03)
+!         TEMPBL = 0d0
+!
+!         ! Integer and fractional parts of XTRA2
+!         PBLINT = FLOOR( XTRA2(I,J) )
+!         PBLDEC = XTRA2(I,J) - PBLINT
+!
+!         ! "Full" grid boxes
+!         IF ( PBLINT > 0 ) THEN
+!            DO M = 1, PBLINT 
+!               TEMPBL = TEMPBL + ( BXHEIGHT(I,J,M) * GOOD(I) )
+!            ENDDO
+!         ENDIF
+!
+!         ! "Fraction" of the highest grid box
+!         TEMPBL = TEMPBL + 
+!     &            ( PBLDEC * BXHEIGHT(I,J,PBLINT+1) * GOOD(I) )
+!----------------------------------------------------------------------------
 
+         !==============================================================
+         ! GEOS-1, GEOS-STRAT, GEOS-3; PBL is in [hPa]
+         ! so we must use the barometric law to convert to [m]
+         !==============================================================
+
+         ! Surface pressure [hPa]
+         P_SURF  = GET_PEDGE(I,J,1)   
+
+         ! Pressure at BL top [hPa]
+         P_BLTOP = P_SURF - PBL(I,J)    
+
+         ! Convert PBL top pressure to [m]
+         TEMPBL  = LOG( P_SURF / P_BLTOP ) * SCALE_HEIGHT * GOOD(I)
+
+#endif
+
+         !==============================================================
          ! Store to diagnostic arrays 
+         !==============================================================
          AD41(I,J,1) = AD41(I,J,1) + TEMPBL
          AD41(I,J,2) = AD41(I,J,2) + ( XTRA2(I,J) * GOOD(I) )
 
          ! Increment counter of afternoon boxes
          AFTTOT(I,J) = AFTTOT(I,J) + GOOD(I)
 
-         ENDDO     ! end I loop
-      ENDDO        ! end J loop
+      ENDDO    
+      ENDDO    
 
       ! Return to calling program
       END SUBROUTINE DIAG41

@@ -1,4 +1,4 @@
-! $Id: tagged_co_mod.f,v 1.2 2003/07/08 15:30:43 bmy Exp $
+! $Id: tagged_co_mod.f,v 1.3 2003/11/06 21:07:19 bmy Exp $
       MODULE TAGGED_CO_MOD
 !
 !******************************************************************************
@@ -1397,7 +1397,7 @@
       !=================================================================
 
       ! Construct filename
-      FILENAME = TRIM( DATA_DIR ) // 'pco_lco_200203/COprod' //
+      FILENAME = TRIM( DATA_DIR ) // 'pco_lco_200203/COprod.' //
      &           GET_NAME_EXT()   // '.' // GET_RES_EXT()
       
       ! Read P(CO)

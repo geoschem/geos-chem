@@ -1,10 +1,10 @@
-! $Id: file_mod.f,v 1.1 2003/06/30 20:26:06 bmy Exp $
+! $Id: file_mod.f,v 1.2 2003/11/06 21:07:18 bmy Exp $
       MODULE FILE_MOD
 !
 !******************************************************************************
 !  Module FILE_MOD contains file unit numbers, as well as file I/O routines
 !  for GEOS-CHEM.  FILE_MOD keeps all of the I/O unit numbers in a single
-!  location for convenient access. (bmy, 7/1/02, 4/21/03)
+!  location for convenient access. (bmy, 7/1/02, 11/6/03)
 !
 !  Module Variables:
 !  ============================================================================
@@ -48,6 +48,7 @@
 !  (4 ) Now added IU_BC for nested boundary conditions as unit 18 
 !        (bmy, 3/27/03)
 !  (5 ) Renamed IU_CTMCHEM to IU_SMV2LOG (bmy, 4/21/03)
+!  (6 ) Now print out I/O errors for IBM and INTEL_FC compilers (bmy, 11/6/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -91,7 +92,7 @@
 !******************************************************************************
 !  Subroutine IOERRROR prints out I/O error messages.  The error number, 
 !  file unit, location, and a brief description will be printed, and 
-!  program execution will be halted. (bmy, 5/28/99, 3/27/03)
+!  program execution will be halted. (bmy, 5/28/99, 11/6/03)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -112,6 +113,7 @@
 !        "error_mod.f".  Updated comments, cosmetic changes. (bmy, 10/15/02)
 !  (4 ) Renamed cpp switch from DEC_COMPAQ to COMPAQ.  Also added code to 
 !        display I/O errors on SUN platform. (bmy, 3/23/03)
+!  (5 ) Now call GERROR for IBM and INTEL_FC compilers (bmy, 11/6/03)
 !******************************************************************************
 !  
       ! References to F90 modules
@@ -197,7 +199,7 @@
       WRITE( 6, 120 ) TRIM( ERROR_MSG )
  120  FORMAT( /, 'Error: ', a )
 
-#elif defined( LINUX ) 
+#elif defined( LINUX )
 
       !=================================================================
       ! For LINUX platform: call gerror() to get the I/O error msg
@@ -214,6 +216,32 @@
 
       !=================================================================
       ! For SUN/Sparc platform: call gerror() to get the I/O error msg
+      !=================================================================
+
+      ! GERROR returns ERROR_MSG corresponding to ERROR_NUM 
+      ERROR_MSG = GERROR()
+ 
+      ! Print error message to std output
+      WRITE( 6, 120 ) TRIM( ERROR_MSG )
+ 120  FORMAT( /, 'Error: ', a )
+
+#elif defined( IBM ) 
+
+      !=================================================================
+      ! For IBM/AIX platform: call gerror() to get the I/O error msg
+      !=================================================================
+
+      ! GERROR returns ERROR_MSG corresponding to ERROR_NUM 
+      ERROR_MSG = GERROR()
+ 
+      ! Print error message to std output
+      WRITE( 6, 120 ) TRIM( ERROR_MSG )
+ 120  FORMAT( /, 'Error: ', a )
+
+#elif defined( INTEL_FC ) 
+
+      !=================================================================
+      ! For INTEL F90 Compiler: call gerror() to get the I/O error msg
       !=================================================================
 
       ! GERROR returns ERROR_MSG corresponding to ERROR_NUM 

@@ -1,15 +1,15 @@
-! $Id: transfer_mod.f,v 1.1 2003/06/30 20:26:05 bmy Exp $
+! $Id: transfer_mod.f,v 1.2 2003/11/06 21:07:19 bmy Exp $
       MODULE TRANSFER_MOD
 !
 !******************************************************************************
 !  Module TRANSFER_MOD contains routines used to copy data from REAL*4 to
 !  REAL*8 arrays after being read from disk.  Also, regridding of GEOS-3
 !  vertical levels from 48 levels to 30 levels will be done if necessary.
-!  (mje, bmy, 9/27/01, 3/11/03)
+!  (mje, bmy, 9/27/01, 10/31/03)
 !
 !  Module Variables:
 !  ============================================================================
-!  (1 ) SIGE_IN          : Input sigma edges for the current model grid
+!  (1 ) EDGE_IN          : Input sigma edges (for pure sigma models)
 !
 !  Module Routines:
 !  ============================================================================
@@ -28,8 +28,8 @@
 !  (13) LUMP_2_R8        : Combines 2 sigma levels into 1 thick level (REAL*8) 
 !  (14) LUMP_4_R4        : Combines 4 sigma levels into 1 thick level (REAL*4)
 !  (15) LUMP_4_R8        : Combines 4 sigma levels into 1 thick level (REAL*8)
-!  (16) INIT_TRANSFER    : Allocates and initializes the SIGE_IN array
-!  (17) CLEANUP_TRANSFER : Deallocates the SIGE_IN array
+!  (16) INIT_TRANSFER    : Allocates and initializes the EDGE_IN array
+!  (17) CLEANUP_TRANSFER : Deallocates the EDGE_IN array
 !
 !  Module Interfaces:
 !  ============================================================================
@@ -49,15 +49,15 @@
 !        and groups of 4 levels on the original grid are merged together into
 !        thick levels for the output grid. (mje, bmy, 9/26/01)
 !  (2 ) Assumes that LLPAR == LGLOB for GEOS-1, GEOS-STRAT (bmy, 9/26/01)
-!  (3 ) SIGE_IN needs to be provided for each model type, within an #ifdef
-!        block, in order to ensure compilation.  However, SIGE_IN is currently
+!  (3 ) EDGE_IN needs to be provided for each model type, within an #ifdef
+!        block, in order to ensure compilation.  However, EDGE_IN is currently
 !        only used for regridding GEOS-3 data (and probably also GEOS-4 when 
 !        that becomes available). (bmy, 9/26/01)
 !  (4 ) Add interfaces TRANSFER_2D and TRANSFER_ZONAL (bmy, 9/27/01)
 !  (5 ) Added routine TRANSFER_2D_R4.  Added TRANSFER_2D_R4 to the generic
 !        TRANSFER_2D interface. (bmy, 1/25/02)
 !  (6 ) Updated comments, cosmetic changes (bmy, 2/28/02) 
-!  (7 ) Bug fix: remove extraneous "," in GEOS-1 definition of SIGE_IN array.
+!  (7 ) Bug fix: remove extraneous "," in GEOS-1 definition of EDGE_IN array.
 !        (bmy, 3/25/02)
 !  (8 ) Now divide module header into MODULE PRIVATE, MODULE VARIABLES, and
 !        MODULE ROUTINES sections.  Also add MODULE INTERFACES section,
@@ -68,6 +68,8 @@
 !  (11) Added routine TRANSFER_3D_TROP.  Also updated comments. (bmy, 10/31/02)
 !  (12) Now uses functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f". 
 !        (bmy, 3/11/03)
+!  (13) Added code to regrid GEOS-4 from 55 --> 30 levels.  Renamed module
+!        variable SIGE_IN to EDGE_IN. (mje, bmy, 10/31/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -78,7 +80,7 @@
       !=================================================================
 
       ! PRIVATE module variables
-      PRIVATE SIGE_IN
+      PRIVATE EDGE_IN
 
       ! PRIVATE module routines
       PRIVATE LUMP_2_R4,         LUMP_2_R8
@@ -89,7 +91,7 @@
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
-      REAL*8, ALLOCATABLE :: SIGE_IN(:)
+      REAL*8, ALLOCATABLE :: EDGE_IN(:)
 
       !=================================================================
       ! MODULE INTERFACES -- "bind" two or more routines with different
@@ -129,18 +131,21 @@
       FUNCTION GET_L_COPY() RESULT( L_COPY )
 !
 !******************************************************************************
-!  Function GET_L_COPY returns the value L_COPY, which is the number of 
-!  vertical levels to copy from a REAL*4 array to a REAL*8 array.  Levels
-!  above L_COPY will be vertically regridded, if necessary. (bmy, 6/18/03)
+!  Function GET_L_COPY returns the value L_COPY, which is the number
+!  of vertical levels to copy from a REAL*4 array to a REAL*8 array.  
+!  Levels above L_COPY will be vertically regridded, if necessary. 
+!  (bmy, 6/18/03, 10/31/03)
 !
-!               { LGLOB,            for GEOS-1
-!               { LGLOB,            for GEOS-STRAT
-!      L_INT =  { LGLOB,            for GEOS-3 if LLPAR == LGLOB 
-!               { 22   ,            for GEOS-3 if LLPAR /= LGLOB
-!               { to be deterimned, for GEOS-4/fvDAS
+!               { LGLOB, for GEOS-1
+!               { LGLOB, for GEOS-STRAT
+!      L_INT =  { LGLOB, for GEOS-3      (if LLPAR == LGLOB)
+!               { 22   , for GEOS-3      (if LLPAR /= LGLOB)
+!               { LGLOB, for GEOS-4      (if LLPAR == LGLOB)
+!               { 19   , for GEOS-4      (if LLPAR /= LGLOB)
 !
 !  NOTES:
-!  (1 ) Add value of L_COPY for GEOS-4/fvDAS (bmy, 6/18/03)
+!  (1 ) Add value of L_COPY for GEOS-4/fvDAS (6/18/03)
+!  (2 ) Add LCOPY = 19 for GEOS-4 if regridding (bmy, 10/31/03)
 !******************************************************************************
 !
 #     include "CMN_SIZE"
@@ -173,8 +178,9 @@
       IF ( LLPAR == LGLOB ) THEN
          L_COPY = LGLOB
       ELSE
-         L_COPY = 22  ! change later (bmy, 6/18/03)
+         L_COPY = 19
       ENDIF
+
 #endif
 
       ! Return to calling program
@@ -187,8 +193,8 @@
 !******************************************************************************
 !  Subroutine TRANSFER_A6 transfers A-6 data from a REAL*4 array of dimension
 !  (IGLOB,JGLOB,LGLOB) to a REAL*8 array of dimension (LLPAR,IIPAR,JJPAR).
-!  Also, GEOS-3 data will be regridded from 48 --> 30 levels if necessary.
-!  (bmy, 9/21/01, 3/11/03)
+!  Regrid GEOS-3 data from 48 --> 30 levels or GEOS-4 data from 55 --> 30 
+!  levels if necessary. (bmy, 9/21/01, 10/31/03)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -205,6 +211,7 @@
 !  (2 ) Assumes that LLPAR == LGLOB for GEOS-1, GEOS-STRAT (bmy, 9/21/01)
 !  (3 ) Now use functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f".
 !        Now I0, J0 are local variables. (bmy, 3/11/03)
+!  (4 ) Added code to regrid GEOS-4 from 55 --> 30 levels (mje, bmy, 10/31/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -228,7 +235,7 @@
       ! window indices (I,J), for consistency with existing code
       !================================================================
 
-      ! Allocate SIGE_IN on the first call, if necessary
+      ! Allocate EDGE_IN on the first call, if necessary
       IF ( FIRST ) THEN
          CALL INIT_TRANSFER
          FIRST = .FALSE.
@@ -301,8 +308,46 @@
 #elif defined( GEOS_4 )
 
       !================================================================
-      ! Leave room for future expansion to GEOS-4 
-      !================================================================    
+      ! For GEOS-4, when LLPAR /= LGLOB, then lump 55 levels into 
+      ! 30 levels, according to the formulation proposed by Mat Evans.  
+      ! Lump levels above L_COPY = 19 in groups of 2 or groups of 4.
+      !================================================================ 
+
+      ! Return if LLPAR = LGLOB
+      IF ( LLPAR == LGLOB ) RETURN
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, IREF, J, JREF, L, INCOL )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO J = 1, JJPAR
+         JREF = J + J0
+
+         DO I = 1, IIPAR
+            IREF = I + I0
+
+            ! Store vertical column at (IREF,JREF) in a 1-D vector
+            DO L = 1, LGLOB
+               INCOL(L) = IN(IREF,JREF,L)
+            ENDDO
+
+            ! Lump 2 levels together at a time
+            OUT(20,I,J) = LUMP_2( INCOL, LGLOB, 20 )
+            OUT(21,I,J) = LUMP_2( INCOL, LGLOB, 22 )
+            OUT(22,I,J) = LUMP_2( INCOL, LGLOB, 24 )
+            OUT(23,I,J) = LUMP_2( INCOL, LGLOB, 26 )
+
+            ! Lump 4 levels together at a time
+            OUT(24,I,J) = LUMP_4( INCOL, LGLOB, 28 )
+            OUT(25,I,J) = LUMP_4( INCOL, LGLOB, 32 )
+            OUT(26,I,J) = LUMP_4( INCOL, LGLOB, 36 ) 
+            OUT(27,I,J) = LUMP_4( INCOL, LGLOB, 40 ) 
+            OUT(28,I,J) = LUMP_4( INCOL, LGLOB, 44 ) 
+            OUT(29,I,J) = LUMP_4( INCOL, LGLOB, 48 ) 
+            OUT(30,I,J) = LUMP_4( INCOL, LGLOB, 52 ) 
+         ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
 #endif
 
@@ -316,8 +361,8 @@
 !******************************************************************************
 !  Subroutine TRANSFER_3D transfers 3-D data from a REAL*4 array of dimension
 !  (IGLOB,JGLOB,LGLOB) to a REAL*8 array of dimension (IIPAR,JJPAR,LLPAR).
-!  Also, GEOS-3 data will be regridded from 48 --> 30 levels if necessary.
-!  (bmy, 9/21/01, 3/11/03)
+!  Regrid GEOS-3 data from 48 --> 30 levels or GEOS-4 data from 55 --> 30 
+!  levels if necessary. (bmy, 9/21/01, 10/31/03)
 !
 !  NOTE: TRANSFER_3D can be used w/ I-6 met fields, since these are of
 !  dimensions (IIPAR,JJPAR,LLPAR).
@@ -336,6 +381,7 @@
 !  (2 ) Assumes that LLPAR == LGLOB for GEOS-1, GEOS-STRAT (bmy, 9/21/01)
 !  (3 ) Now use functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f".
 !        Now I0, J0 are local variables. (bmy, 3/11/03)
+!  (4 ) Added code to regrid GEOS-4 from 55 --> 30 levels (mje, bmy, 10/31/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -353,13 +399,10 @@
       REAL*4               :: INCOL(LGLOB)
      
       !================================================================
-      ! TRANSFER_I6 begins here!
-      !
-      ! Also convert from global horizontal indices (IREF,JREF) to
-      ! window indices (I,J), for consistency with existing code
+      ! TRANSFER_3D begins here!
       !================================================================
 
-      ! Allocate SIGE_IN on the first call, if necessary
+      ! Allocate EDGE_IN on the first call, if necessary
       IF ( FIRST ) THEN
          CALL INIT_TRANSFER
          FIRST = .FALSE.
@@ -432,8 +475,46 @@
 #elif defined( GEOS_4 )
 
       !================================================================
-      ! Leave room for future expansion to GEOS-4 
-      !================================================================    
+      ! For GEOS-4, when LLPAR /= LGLOB, then lump 55 levels into 
+      ! 30 levels, according to the formulation proposed by Mat Evans.  
+      ! Lump levels above L_COPY = 19 in groups of 2 or groups of 4.
+      !================================================================ 
+
+      ! Return if LLPAR = LGLOB
+      IF ( LLPAR == LGLOB ) RETURN
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, IREF, J, JREF, L, INCOL )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO J = 1, JJPAR
+         JREF = J + J0
+
+         DO I = 1, IIPAR
+            IREF = I + I0
+
+            ! Store vertical column at (I,J) in a 1-D vector
+            DO L = 1, LGLOB
+               INCOL(L) = IN(IREF,JREF,L)
+            ENDDO
+
+            ! Lump 2 levels together at a time
+            OUT(I,J,20) = LUMP_2( INCOL, LGLOB, 20 )
+            OUT(I,J,21) = LUMP_2( INCOL, LGLOB, 22 )
+            OUT(I,J,22) = LUMP_2( INCOL, LGLOB, 24 )
+            OUT(I,J,23) = LUMP_2( INCOL, LGLOB, 26 )
+
+            ! Lump 4 levels together at a time
+            OUT(I,J,24) = LUMP_4( INCOL, LGLOB, 28 )
+            OUT(I,J,25) = LUMP_4( INCOL, LGLOB, 32 )
+            OUT(I,J,26) = LUMP_4( INCOL, LGLOB, 36 ) 
+            OUT(I,J,27) = LUMP_4( INCOL, LGLOB, 40 ) 
+            OUT(I,J,28) = LUMP_4( INCOL, LGLOB, 44 ) 
+            OUT(I,J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
+            OUT(I,J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
+         ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
 #endif
 
@@ -489,8 +570,8 @@
 !******************************************************************************
 !  Subroutine TRANSFER_ZONAL_R4 transfers zonal mean or lat-alt data from a 
 !  REAL*4 array of dimension (JGLOB,LGLOB) to a REAL*4 array of dimension 
-!  (JJPAR,LLPAR).  Also, GEOS-3 data will be regridded from  48 --> 30 levels 
-!  if necessary. (bmy, 9/21/01, 3/11/03)
+!  (JJPAR,LLPAR).   Regrid GEOS-3 data from 48 --> 30 levels or GEOS-4 data
+!  from 55 --> 30 levels if necessary. (bmy, 9/21/01, 10/31/03)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -506,6 +587,7 @@
 !  (2 ) Assumes that LLPAR == LGLOB for GEOS-1, GEOS-STRAT (bmy, 9/21/01)
 !  (3 ) Now use function GET_YOFFSET from "grid_mod.f".  Now I0 and J0 are 
 !        local variables (bmy, 3/11/03)
+!  (4 ) Added code to regrid GEOS-4 from 55 --> 30 levels (mje, bmy, 10/31/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -524,12 +606,9 @@
      
       !================================================================
       ! TRANSFER_ZONAL_R4 begins here!
-      !
-      ! Also convert from global horizontal indices (IREF,JREF) to
-      ! window indices (I,J), for consistency with existing code
       !================================================================
 
-      ! Allocate SIGE_IN on the first call, if necessary
+      ! Allocate EDGE_IN on the first call, if necessary
       IF ( FIRST ) THEN
          CALL INIT_TRANSFER
          FIRST = .FALSE.
@@ -577,12 +656,12 @@
             INCOL(L) = IN(JREF,L)
          ENDDO
 
-         ! Lump 2 levels together at a time, starting at the given level
+         ! Lump 2 levels together at a time
          OUT(J,23) = LUMP_2( INCOL, LGLOB, 23 )
          OUT(J,24) = LUMP_2( INCOL, LGLOB, 25 )
          OUT(J,25) = LUMP_2( INCOL, LGLOB, 27 )
 
-         ! Lump 4 levels together at a time, starting at the given level
+         ! Lump 4 levels together at a time
          OUT(J,26) = LUMP_4( INCOL, LGLOB, 29 )
          OUT(J,27) = LUMP_4( INCOL, LGLOB, 33 )
          OUT(J,28) = LUMP_4( INCOL, LGLOB, 37 ) 
@@ -594,8 +673,42 @@
 #elif defined( GEOS_4 )
       
       !================================================================
-      ! Leave room for future expansion to GEOS-4 
-      !================================================================  
+      ! For GEOS-4, when LLPAR /= LGLOB, then lump 55 levels into 
+      ! 30 levels, according to the formulation proposed by Mat Evans.  
+      ! Lump levels above L_COPY = 19 in groups of 2 or groups of 4.
+      !================================================================ 
+
+      ! Return if LLPAR = LGLOB
+      IF ( LLPAR == LGLOB ) RETURN
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( J, JREF, L, INCOL )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO J = 1, JJPAR
+         JREF = J + J0
+
+         ! Store vertical column at (I,J) in a 1-D vector
+         DO L = 1, LGLOB
+            INCOL(L) = IN(JREF,L)
+         ENDDO
+
+         ! Lump 2 levels together at a time
+         OUT(J,20) = LUMP_2( INCOL, LGLOB, 20 )
+         OUT(J,21) = LUMP_2( INCOL, LGLOB, 22 )
+         OUT(J,22) = LUMP_2( INCOL, LGLOB, 24 )
+         OUT(J,23) = LUMP_2( INCOL, LGLOB, 26 )
+
+         ! Lump 4 levels together at a time
+         OUT(J,24) = LUMP_4( INCOL, LGLOB, 28 )
+         OUT(J,25) = LUMP_4( INCOL, LGLOB, 32 )
+         OUT(J,26) = LUMP_4( INCOL, LGLOB, 36 ) 
+         OUT(J,27) = LUMP_4( INCOL, LGLOB, 40 ) 
+         OUT(J,28) = LUMP_4( INCOL, LGLOB, 44 ) 
+         OUT(J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
+         OUT(J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
+      ENDDO
+!$OMP END PARALLEL DO
 
 #endif
 
@@ -609,8 +722,8 @@
 !******************************************************************************
 !  Subroutine TRANSFER_ZONAL_R8 transfers zonal mean or lat-alt data from a 
 !  REAL*4 array of dimension (JGLOB,LGLOB) to a REAL*8 array of dimension 
-!  (JJPAR,LLPAR).  Also, GEOS-3 data will be regridded from  48 --> 30 levels 
-!  if necessary. (bmy, 9/21/01)
+!  (JJPAR,LLPAR).  Regrid GEOS-3 data from 48 --> 30 levels or GEOS-4 data
+!  from 55 --> 30 levels if necessary. (bmy, 9/21/01, 10/31/03)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -623,6 +736,7 @@
 !  (2 ) Assumes that LLPAR == LGLOB for GEOS-1, GEOS-STRAT (bmy, 9/21/01)
 !  (3 ) Now use functions GET_YOFFSET from "grid_mod.f".  Now J0 is a local 
 !        variable. (bmy, 3/11/03)
+!  (4 ) Added code to regrid GEOS-4 from 55 --> 30 levels (mje, bmy, 10/31/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -641,12 +755,9 @@
      
       !================================================================
       ! TRANSFER_ZONAL begins here!
-      !
-      ! Also convert from global horizontal indices (IREF,JREF) to
-      ! window indices (I,J), for consistency with existing code
       !================================================================
 
-      ! Allocate SIGE_IN on the first call, if necessary
+      ! Allocate EDGE_IN on the first call, if necessary
       IF ( FIRST ) THEN
          CALL INIT_TRANSFER
          FIRST = .FALSE.
@@ -676,7 +787,7 @@
       !================================================================
       ! For GEOS-3, when LLPAR /= LGLOB, then lump 48 levels into 
       ! 30 levels, according to the formulation proposed by Mat Evans.  
-      ! Lump levels above L_INT = 22 in groups of 2 or groups of 4.
+      ! Lump levels above L_COPY = 22 in groups of 2 or groups of 4.
       !================================================================    
 
       ! Return if LLPAR = LGLOB
@@ -694,12 +805,12 @@
             INCOL(L) = IN(JREF,L)
          ENDDO
 
-         ! Lump 2 levels together at a time, starting at the given level
+         ! Lump 2 levels together at a time
          OUT(J,23) = LUMP_2( INCOL, LGLOB, 23 )
          OUT(J,24) = LUMP_2( INCOL, LGLOB, 25 )
          OUT(J,25) = LUMP_2( INCOL, LGLOB, 27 )
 
-         ! Lump 4 levels together at a time, starting at the given level
+         ! Lump 4 levels together at a time
          OUT(J,26) = LUMP_4( INCOL, LGLOB, 29 )
          OUT(J,27) = LUMP_4( INCOL, LGLOB, 33 )
          OUT(J,28) = LUMP_4( INCOL, LGLOB, 37 ) 
@@ -711,8 +822,42 @@
 #elif defined( GEOS_4 )
       
       !================================================================
-      ! Leave room for future expansion to GEOS-4 
+      ! For GEOS-4, when LLPAR /= LGLOB, then lump 55 levels into 
+      ! 30 levels, according to the formulation proposed by Mat Evans.  
+      ! Lump levels above L_COPY = 19 in groups of 2 or groups of 4.
       !================================================================  
+
+      ! Return if LLPAR = LGLOB
+      IF ( LLPAR == LGLOB ) RETURN
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( J, JREF, L, INCOL )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO J = 1, JJPAR
+         JREF = J + J0
+
+         ! Store vertical column at (I,J) in a 1-D vector
+         DO L = 1, LGLOB
+            INCOL(L) = IN(JREF,L)
+         ENDDO
+
+         ! Lump 2 levels together at a time
+         OUT(J,20) = LUMP_2( INCOL, LGLOB, 20 )
+         OUT(J,21) = LUMP_2( INCOL, LGLOB, 22 )
+         OUT(J,22) = LUMP_2( INCOL, LGLOB, 24 )
+         OUT(J,23) = LUMP_2( INCOL, LGLOB, 26 )
+
+         ! Lump 4 levels together at a time
+         OUT(J,24) = LUMP_4( INCOL, LGLOB, 28 )
+         OUT(J,25) = LUMP_4( INCOL, LGLOB, 32 )
+         OUT(J,26) = LUMP_4( INCOL, LGLOB, 36 ) 
+         OUT(J,27) = LUMP_4( INCOL, LGLOB, 40 ) 
+         OUT(J,28) = LUMP_4( INCOL, LGLOB, 44 ) 
+         OUT(J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
+         OUT(J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
+      ENDDO
+!$OMP END PARALLEL DO
 
 #endif
 
@@ -957,7 +1102,7 @@
 !
 !******************************************************************************
 !  Function LUMP_2_R4 lumps 2 sigma levels into one thick level. 
-!  Input arguments must be REAL*4. (bmy, 9/18/01)
+!  Input arguments must be REAL*4. (bmy, 9/18/01, 10/31/03)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -971,6 +1116,8 @@
 ! 
 !  NOTES:
 !  (1 ) Now references GEOS_CHEM_STOP from "error_mod.f" (bmy, 10/15/02)
+!  (2 ) Renamed SIGE_IN to EDGE_IN to denote that it is not always a sigma
+!        coordinate (as for GEOS-4).  Also updated comments (bmy, 10/31/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -997,21 +1144,54 @@
       ENDIF
       
       !=================================================================
-      ! The quantity Q(L') on the new merged sigma level is given 
-      ! by the weighted average:
+      ! When lumping the levels together, we need to perform a weighted
+      ! average by air mass.  The air mass in a grid box is given by:
       !
-      !             [ ( Q(L  ) * ( SIGE(L  ) - SIGE(L+1) ) ) + 
-      !               ( Q(L+1) * ( SIGE(L+1) - SIGE(L+2) ) ) ]
-      !  Q(L') = ------------------------------------------------
-      !                       SIGE(L) - SIGE(L+2)
+      !  Air Mass = Delta-P [hPa] * 100/g * Grid box sfc area [cm2]
+      !    
+      ! Where Delta-P is the difference in pressure between the bottom 
+      ! and top edges of the grid box (Delta-P is positive), 100/g is a 
+      ! constant, and the grid box surface area is also constant w/in 
+      ! the same vertical column.  Therefore, for a vertical column,
+      ! the air mass in a grid box really only depends on Delta-P.
+      !
+      ! Because of this, we may compute the quantity Q(L') on the new 
+      ! merged sigma according to the weighted average (EQUATION 1):
+      !
+      !             [ ( Q(L  ) * ( PEDGE(L  ) - PEDGE(L+1) ) ) + 
+      !               ( Q(L+1) * ( PEDGE(L+1) - PEDGE(L+2) ) ) ]
+      !  Q(L') = -------------------------------------------------
+      !                       PEDGE(L) - PEDGE(L+2)
+      !
+      ! where PEDGE(L) is the pressure at the bottom edge of layer L.
+      !
+      ! GEOS-4 is a hybrid sigma-pressure grid, with all of the levels
+      ! above level 14 being pure pressure levels.  Therefore, for 
+      ! GEOS-4, we may just use EQUATION 1 exactly as written above.
+      !
+      ! However, GEOS-3 is a pure sigma grid.  The pressure at the 
+      ! edge of a grid box is given by (EQUATION 2):
+      ! 
+      !  PEDGE(I,J,L) = PTOP + ( SIG_EDGE(L) * ( Psurf(I,J) - PTOP) )
+      !
+      ! In a vertical column, then ( Psurf(I,J) - PTOP ) will be the 
+      ! same for all vertical levels, and will divide out of the
+      ! equation.  Also the PTOP's will cancel each other out.  Thus
+      ! for GEOS-3, the above equation reduces to (EQUATION 3):
+      !
+      !           [ ( Q(L  ) * ( SIG_EDGE(L  ) - SIG_EDGE(L+1) ) ) + 
+      !             ( Q(L+1) * ( SIG_EDGE(L+1) - SIG_EDGE(L+2) ) ) ]
+      !  Q(L') = ----------------------------------------------------
+      !                     SIG_EDGE(L) - SIG_EDGE(L+2)
       !=================================================================     
 
-      ! Compute weighted sum over 2 sigma levels
-      OUT   = ( IN(L  ) * ( SIGE_IN(L  ) - SIGE_IN(L+1) ) ) +
-     &        ( IN(L+1) * ( SIGE_IN(L+1) - SIGE_IN(L+2) ) )
+      ! For GEOS-3, EDGE_IN are the sigma values at grid box edges
+      ! For GEOS-4, EDGE_IN are the pressures at grid box edges
+      OUT   = ( IN(L  ) * ( EDGE_IN(L  ) - EDGE_IN(L+1) ) ) +
+     &        ( IN(L+1) * ( EDGE_IN(L+1) - EDGE_IN(L+2) ) )
 
       ! Divde by sigma thickness of new thick level
-      OUT   = OUT / ( SIGE_IN(L) - SIGE_IN(L+2) )
+      OUT   = OUT / ( EDGE_IN(L) - EDGE_IN(L+2) )
        
       ! Return to calling routine
       END FUNCTION LUMP_2_R4
@@ -1022,7 +1202,7 @@
 !
 !******************************************************************************
 !  Function LUMP_2_R8 lumps 2 sigma levels into one thick level. 
-!  Input arguments must be REAL*8. (bmy, 9/18/01, 10/15/02)
+!  Input arguments must be REAL*8. (bmy, 9/18/01, 10/31/03)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1036,6 +1216,8 @@
 !
 !  NOTES:
 !  (1 ) Now references GEOS_CHEM_STOP from "error_mod.f" (bmy, 10/15/02)
+!  (2 ) Renamed SIGE_IN to EDGE_IN to denote that it is not always a sigma
+!        coordinate (as for GEOS-4).  Also updated comments (bmy, 10/31/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1061,22 +1243,57 @@
          CALL GEOS_CHEM_STOP
       ENDIF
 
-      !=================================================================      
-      ! The quantity Q(L') on the new merged sigma level is given by
-      ! the weighted average:
+      !=================================================================
+      ! When lumping the levels together, we need to perform a weighted
+      ! average by air mass.  The air mass in a grid box is given by:
       !
-      !             [ ( Q(L  ) * ( SIGE(L  ) - SIGE(L+1) ) ) + 
-      !               ( Q(L+1) * ( SIGE(L+1) - SIGE(L+2) ) ) ]
+      !  Air Mass = Delta-P [hPa] * 100/g * Grid box sfc area [cm2]
+      !    
+      ! Where Delta-P is the difference in pressure between the bottom 
+      ! and top edges of the grid box (Delta-P is positive), 100/g is a 
+      ! constant, and the grid box surface area is also constant w/in 
+      ! the same vertical column.  Therefore, for a vertical column,
+      ! the air mass in a grid box really only depends on Delta-P.
+      !
+      ! Because of this, we may compute the quantity Q(L') on the new 
+      ! merged sigma according to the weighted average (EQUATION 1):
+      !
+      !             [ ( Q(L  ) * ( PEDGE(L  ) - PEDGE(L+1) ) ) + 
+      !               ( Q(L+1) * ( PEDGE(L+1) - PEDGE(L+2) ) ) +
+      !               ( Q(L+2) * ( PEDGE(L+2) - PEDGE(L+3) ) ) +
+      !               ( Q(L+3) * ( PEDGE(L+3) - PEDGE(L+4) ) ) ]
       !  Q(L') = ------------------------------------------------
-      !                       SIGE(L) - SIGE(L+2)
+      !                       PEDGE(L) - PEDGE(L+4)
+      !
+      ! where PEDGE(L) is the pressure at the bottom edge of layer L.
+      !
+      ! GEOS-4 is a hybrid sigma-pressure grid, with all of the levels
+      ! above level 14 being pure pressure levels.  Therefore, for 
+      ! GEOS-4, we may just use EQUATION 1 exactly as written above.
+      !
+      ! However, GEOS-3 is a pure sigma grid.  The pressure at the 
+      ! edge of a grid box is given by EQUATION 2:
+      ! 
+      !  PEDGE(I,J,L) = PTOP + ( SIG_EDGE(L) * ( Psurf(I,J) - PTOP) )
+      !
+      ! In a vertical column, then ( Psurf(I,J) - PTOP ) will be the 
+      ! same for all vertical levels, and will divide out of the
+      ! equation.  Also the PTOP's will cancel each other out.  Thus
+      ! for GEOS-3, the above equation reduces to (EQUATION 3):
+      !
+      !           [ ( Q(L  ) * ( SIG_EDGE(L  ) - SIG_EDGE(L+1) ) ) + 
+      !             ( Q(L+1) * ( SIG_EDGE(L+1) - SIG_EDGE(L+2) ) ) ]
+      !  Q(L') = ----------------------------------------------------
+      !                     SIG_EDGE(L) - SIG_EDGE(L+2)
       !=================================================================     
 
-      ! Compute weighted sum over 2 sigma levels
-      OUT   = ( IN(L  ) * ( SIGE_IN(L  ) - SIGE_IN(L+1) ) ) +
-     &        ( IN(L+1) * ( SIGE_IN(L+1) - SIGE_IN(L+2) ) )
+      ! For GEOS-3, EDGE_IN are the sigma values at grid box edges
+      ! For GEOS-4, EDGE_IN are the pressures at grid box edges
+      OUT   = ( IN(L  ) * ( EDGE_IN(L  ) - EDGE_IN(L+1) ) ) +
+     &        ( IN(L+1) * ( EDGE_IN(L+1) - EDGE_IN(L+2) ) )
 
-      ! Divde by sigma thickness of new thick level
-      OUT   = OUT / ( SIGE_IN(L) - SIGE_IN(L+2) )
+      ! Divde by thickness of new lumped level
+      OUT   = OUT / ( EDGE_IN(L) - EDGE_IN(L+2) )
        
       ! Return to calling routine
       END FUNCTION LUMP_2_R8
@@ -1087,7 +1304,7 @@
 !
 !******************************************************************************
 !  Function LUMP_4_R4 lumps 4 sigma levels into one thick level. 
-!  Input arguments must be REAL*4. (bmy, 9/18/01, 10/15/02)
+!  Input arguments must be REAL*4. (bmy, 9/18/01, 10/31/03)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1101,6 +1318,8 @@
 !
 !  NOTES:
 !  (1 ) Now references GEOS_CHEM_STOP from "error_mod.f" (bmy, 10/15/02)
+!  (2 ) Renamed SIGE_IN to EDGE_IN to denote that it is not always a sigma
+!        coordinate (as for GEOS-4).  Also updated comments (bmy, 10/31/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1127,25 +1346,60 @@
       ENDIF
 
       !=================================================================
-      ! The quantity Q(L') on the new merged sigma level is given by
-      ! the weighted average:
+      ! When lumping the levels together, we need to perform a weighted
+      ! average by air mass.  The air mass in a grid box is given by:
       !
-      !             [ ( Q(L  ) * ( SIGE(L  ) - SIGE(L+1) ) ) + 
-      !               ( Q(L+1) * ( SIGE(L+1) - SIGE(L+2) ) ) +
-      !               ( Q(L+2) * ( SIGE(L+2) - SIGE(L+3) ) ) +
-      !               ( Q(L+3) * ( SIGE(L+3) - SIGE(L+4) ) ) ]
-      !  Q(L') = ------------------------------------------------
-      !                       SIGE(L) - SIGE(L+4)
+      !  Air Mass = Delta-P [hPa] * 100/g * Grid box sfc area [cm2]
+      !    
+      ! Where Delta-P is the difference in pressure between the bottom 
+      ! and top edges of the grid box (Delta-P is positive), 100/g is a 
+      ! constant, and the grid box surface area is also constant w/in 
+      ! the same vertical column.  Therefore, for a vertical column,
+      ! the air mass in a grid box really only depends on Delta-P.
+      !
+      ! Because of this, we may compute the quantity Q(L') on the new 
+      ! merged sigma according to the weighted average (EQUATION 1):
+      !
+      !             [ ( Q(L  ) * ( PEDGE(L  ) - PEDGE(L+1) ) ) + 
+      !               ( Q(L+1) * ( PEDGE(L+1) - PEDGE(L+2) ) ) +
+      !               ( Q(L+2) * ( PEDGE(L+2) - PEDGE(L+3) ) ) +
+      !               ( Q(L+3) * ( PEDGE(L+3) - PEDGE(L+4) ) ) ]
+      !  Q(L') = --------------------------------------------------
+      !                       PEDGE(L) - PEDGE(L+4)
+      !
+      ! where PEDGE(L) is the pressure at the bottom edge of layer L.
+      !
+      ! GEOS-4 is a hybrid sigma-pressure grid, with all of the levels
+      ! above level 14 being pure pressure levels.  Therefore, for 
+      ! GEOS-4, we may just use EQUATION 1 exactly as written above.
+      !
+      ! However, GEOS-3 is a pure sigma grid.  The pressure at the 
+      ! edge of a grid box is given by EQUATION 2:
+      ! 
+      !  PEDGE(I,J,L) = PTOP + ( SIG_EDGE(L) * ( Psurf(I,J) - PTOP) )
+      !
+      ! In a vertical column, then ( Psurf(I,J) - PTOP ) will be the 
+      ! same for all vertical levels, and will divide out of the
+      ! equation.  Also the PTOP's will cancel each other out.  Thus
+      ! for GEOS-3, the above equation reduces to (EQUATION 3):
+      !
+      !           [ ( Q(L  ) * ( SIG_EDGE(L  ) - SIG_EDGE(L+1) ) ) + 
+      !             ( Q(L+1) * ( SIG_EDGE(L+1) - SIG_EDGE(L+2) ) ) +
+      !             ( Q(L+2) * ( SIG_EDGE(L+2) - SIG_EDGE(L+3) ) ) +
+      !             ( Q(L+3) * ( SIG_EDGE(L+3) - SIG_EDGE(L+4) ) ) ]
+      !  Q(L') = ----------------------------------------------------
+      !                     SIG_EDGE(L) - SIG_EDGE(L+4)
       !=================================================================     
 
-      ! Compute weighted sum over 4 sigma levels
-      OUT   = ( IN(L  ) * ( SIGE_IN(L  ) - SIGE_IN(L+1) ) ) +
-     &        ( IN(L+1) * ( SIGE_IN(L+1) - SIGE_IN(L+2) ) ) +
-     &        ( IN(L+2) * ( SIGE_IN(L+2) - SIGE_IN(L+3) ) ) +
-     &        ( IN(L+3) * ( SIGE_IN(L+3) - SIGE_IN(L+4) ) ) 
+      ! For GEOS-3, EDGE_IN are the sigma values at grid box edges
+      ! For GEOS-4, EDGE_IN are the pressures at grid box edges
+      OUT   = ( IN(L  ) * ( EDGE_IN(L  ) - EDGE_IN(L+1) ) ) +
+     &        ( IN(L+1) * ( EDGE_IN(L+1) - EDGE_IN(L+2) ) ) +
+     &        ( IN(L+2) * ( EDGE_IN(L+2) - EDGE_IN(L+3) ) ) +
+     &        ( IN(L+3) * ( EDGE_IN(L+3) - EDGE_IN(L+4) ) ) 
 
-      ! Divde by sigma thickness of new thick level
-      OUT   = OUT / ( SIGE_IN(L) - SIGE_IN(L+4) )
+      ! Divde by thickness of new lumped level
+      OUT   = OUT / ( EDGE_IN(L) - EDGE_IN(L+4) )
        
       ! Return to calling routine
       END FUNCTION LUMP_4_R4
@@ -1156,7 +1410,7 @@
 !
 !******************************************************************************
 !  Function LUMP_4_R8 lumps 4 sigma levels into one thick level. 
-!  Input arguments must be REAL*8. (bmy, 9/18/01, 10/15/02)
+!  Input arguments must be REAL*8. (bmy, 9/18/01, 10/31/03)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1170,6 +1424,8 @@
 !
 !  NOTES:
 !  (1 ) Now references GEOS_CHEM_STOP from "error_mod.f" (bmy, 10/15/02)
+!  (2 ) Renamed SIGE_IN to EDGE_IN to denote that it is not always a sigma
+!        coordinate (as for GEOS-4).  Also updated comments (bmy, 10/31/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1198,25 +1454,60 @@
       ENDIF
 
       !=================================================================
-      ! The quantity Q(L') on the new merged sigma level is given by
-      ! the weighted average:
+      ! When lumping the levels together, we need to perform a weighted
+      ! average by air mass.  The air mass in a grid box is given by:
       !
-      !             [ ( Q(L  ) * ( SIGE(L  ) - SIGE(L+1) ) ) + 
-      !               ( Q(L+1) * ( SIGE(L+1) - SIGE(L+2) ) ) +
-      !               ( Q(L+2) * ( SIGE(L+2) - SIGE(L+3) ) ) +
-      !               ( Q(L+3) * ( SIGE(L+3) - SIGE(L+4) ) ) ]
+      !  Air Mass = Delta-P [hPa] * 100/g * Grid box sfc area [cm2]
+      !    
+      ! Where Delta-P is the difference in pressure between the bottom 
+      ! and top edges of the grid box (Delta-P is positive), 100/g is a 
+      ! constant, and the grid box surface area is also constant w/in 
+      ! the same vertical column.  Therefore, for a vertical column,
+      ! the air mass in a grid box really only depends on Delta-P.
+      !
+      ! Because of this, we may compute the quantity Q(L') on the new 
+      ! merged sigma according to the weighted average (EQUATION 1):
+      !
+      !             [ ( Q(L  ) * ( PEDGE(L  ) - PEDGE(L+1) ) ) + 
+      !               ( Q(L+1) * ( PEDGE(L+1) - PEDGE(L+2) ) ) +
+      !               ( Q(L+2) * ( PEDGE(L+2) - PEDGE(L+3) ) ) +
+      !               ( Q(L+3) * ( PEDGE(L+3) - PEDGE(L+4) ) ) ]
       !  Q(L') = ------------------------------------------------
-      !                       SIGE(L) - SIGE(L+4)
-      !=================================================================     
+      !                       PEDGE(L) - PEDGE(L+4)
+      !
+      ! where PEDGE(L) is the pressure at the bottom edge of layer L.
+      !
+      ! GEOS-4 is a hybrid sigma-pressure grid, with all of the levels
+      ! above level 14 being pure pressure levels.  Therefore, for 
+      ! GEOS-4, we may just use EQUATION 1 exactly as written above.
+      !
+      ! However, GEOS-3 is a pure sigma grid.  The pressure at the 
+      ! edge of a grid box is given by EQUATION 2:
+      ! 
+      !  PEDGE(I,J,L) = PTOP + ( SIG_EDGE(L) * ( Psurf(I,J) - PTOP) )
+      !
+      ! In a vertical column, then ( Psurf(I,J) - PTOP ) will be the 
+      ! same for all vertical levels, and will divide out of the
+      ! equation.  Also the PTOP's will cancel each other out.  Thus
+      ! for GEOS-3, the above equation reduces to (EQUATION 3):
+      !
+      !           [ ( Q(L  ) * ( SIG_EDGE(L  ) - SIG_EDGE(L+1) ) ) + 
+      !             ( Q(L+1) * ( SIG_EDGE(L+1) - SIG_EDGE(L+2) ) ) +
+      !             ( Q(L+2) * ( SIG_EDGE(L+2) - SIG_EDGE(L+3) ) ) +
+      !             ( Q(L+3) * ( SIG_EDGE(L+3) - SIG_EDGE(L+4) ) ) ]
+      !  Q(L') = ------------------------------------------------
+      !                     SIG_EDGE(L) - SIG_EDGE(L+4)
+      !================================================================= 
 
-      ! Compute weighted sum over 4 sigma levels
-      OUT   = ( IN(L  ) * ( SIGE_IN(L  ) - SIGE_IN(L+1) ) ) +
-     &        ( IN(L+1) * ( SIGE_IN(L+1) - SIGE_IN(L+2) ) ) +
-     &        ( IN(L+2) * ( SIGE_IN(L+2) - SIGE_IN(L+3) ) ) +
-     &        ( IN(L+3) * ( SIGE_IN(L+3) - SIGE_IN(L+4) ) ) 
+      ! For GEOS-3, EDGE_IN are the sigma values at grid box edges
+      ! For GEOS-4, EDGE_IN are the pressures at grid box edges
+      OUT   = ( IN(L  ) * ( EDGE_IN(L  ) - EDGE_IN(L+1) ) ) +
+     &        ( IN(L+1) * ( EDGE_IN(L+1) - EDGE_IN(L+2) ) ) +
+     &        ( IN(L+2) * ( EDGE_IN(L+2) - EDGE_IN(L+3) ) ) +
+     &        ( IN(L+3) * ( EDGE_IN(L+3) - EDGE_IN(L+4) ) ) 
 
-      ! Divde by sigma thickness of new thick level
-      OUT   = OUT / ( SIGE_IN(L) - SIGE_IN(L+4) )
+      ! Divde by thickness of new lumped level
+      OUT   = OUT / ( EDGE_IN(L) - EDGE_IN(L+4) )
        
       ! Return to calling routine
       END FUNCTION LUMP_4_R8
@@ -1226,15 +1517,18 @@
       SUBROUTINE INIT_TRANSFER
 !
 !******************************************************************************
-!  Subroutine INIT_TRANSFER initializes and zeroes the SIGE_IN array.
-!  (bmy, 9/19/01, 10/15/02)
+!  Subroutine INIT_TRANSFER initializes and zeroes the EDGE_IN array.
+!  (bmy, 9/19/01, 10/31/03)
 !
 !  NOTES:
-!  (1 ) Removed additional "," for GEOS-1 definition of SIGE_IN (bmy, 3/25/02)
+!  (1 ) Removed additional "," for GEOS-1 definition of EDGE_IN (bmy, 3/25/02)
 !  (2 ) Now use GET_BP from "pressure_mod.f" to get sigma edges for all
 !        grids except GEOS-3 (dsa, bdf, bmy, 8/22/02)
 !  (3 ) Declare L as a local variable.  Also reference ALLOC_ERR from module
 !        "error_mod.f" (bmy, 10/15/02)
+!  (4 ) Renamed SIGE_IN to EDGE_IN to denote that it is not always a sigma
+!        coordinate (as for GEOS-4).  Now assign original Ap coordinates from
+!        the GEOS-4 grid to the EDGE_IN array (bmy, 10/31/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1244,21 +1538,49 @@
 #     include "CMN_SIZE" 
 
       ! Local variables
-      INTEGER       :: AS, L
+      INTEGER :: AS, L
       
       !=================================================================
       ! INIT_TRANSFER begins here!
-      !
-      ! Allocate, initialize, and assign values to SIGE_IN
       !=================================================================
-      IF ( .not. ALLOCATED( SIGE_IN ) ) THEN
-         ALLOCATE( SIGE_IN( LGLOB + 1 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'SIGE_IN' )
 
-#if   defined( GEOS_3 ) 
+      ! Test if EDGE_IN has already been allocated
+      IF ( .not. ALLOCATED( EDGE_IN ) ) THEN
 
-         ! SIGE_IN = 49 sigma edges 
-         SIGE_IN = (/ 1.000000d0, 0.997095d0, 0.991200d0, 0.981500d0,    
+         ! Allocate the EDGE_IN array
+         ALLOCATE( EDGE_IN( LGLOB + 1 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGE_IN' )
+
+#if   defined( GEOS_4 ) 
+
+         ! For GEOS-4, this is a hybrid grid.  Assign the original 56 
+         ! Ap values (which for stratospheric levels are pressures
+         ! at grid box edges in [hPa]) to the EDGE_IN array.
+         EDGE_IN = (/  0.000000d0,   0.000000d0,  12.704939d0,  
+     &                35.465965d0,  66.098427d0, 101.671654d0, 
+     &               138.744400d0, 173.403183d0, 198.737839d0, 
+     &               215.417526d0, 223.884689d0, 224.362869d0,
+     &               216.864929d0, 201.192093d0, 176.929993d0, 
+     &               150.393005d0, 127.837006d0, 108.663429d0,  
+     &                92.365662d0,  78.512299d0,  66.603378d0,  
+     &                56.387939d0,  47.643932d0,  40.175419d0, 
+     &                33.809956d0,  28.367815d0,  23.730362d0,  
+     &                19.791553d0,  16.457071d0,  13.643393d0,  
+     &                11.276889d0,   9.292943d0,   7.619839d0,   
+     &                 6.216800d0,   5.046805d0,   4.076567d0, 
+     &                 3.276433d0,   2.620212d0,   2.084972d0,   
+     &                 1.650792d0,   1.300508d0,   1.019442d0,   
+     &                 0.795134d0,   0.616779d0,   0.475806d0,   
+     &                 0.365041d0,   0.278526d0,   0.211349d0, 
+     &                 0.159495d0,   0.119703d0,   0.089345d0,   
+     &                 0.066000d0,   0.047585d0,   0.032700d0,   
+     &                 0.020000d0,   0.010000d0 /)
+
+#elif defined( GEOS_3 ) 
+
+         ! For GEOS-3, this is a pure-sigma grid.  Assign 
+         ! the original 49 sigma edges to the EDGE_IN array.
+         EDGE_IN = (/ 1.000000d0, 0.997095d0, 0.991200d0, 0.981500d0,    
      &                0.967100d0, 0.946800d0, 0.919500d0, 0.884000d0,    
      &                0.839000d0, 0.783000d0, 0.718200d0, 0.647600d0,    
      &                0.574100d0, 0.500000d0, 0.427800d0, 0.359500d0,    
@@ -1273,11 +1595,12 @@
      &                0.000000d0 /)
 
 #else
+
          ! We are not reducing the layers for GEOS-1 and GEOS-STRAT,
-         ! thus LGLOB = LLPAR.  Use GET_BP to initialize SIGE_IN,
+         ! thus LGLOB = LLPAR.  Use GET_BP to initialize EDGE_IN,
          ! since for a pure sigma grid, BP are just the sigma edges.
          DO L = 1, LGLOB+1
-            SIGE_IN(L) = GET_BP(L)
+            EDGE_IN(L) = GET_BP(L)
          ENDDO
 
 #endif
@@ -1292,11 +1615,17 @@
       SUBROUTINE CLEANUP_TRANSFER 
 !
 !******************************************************************************
-!  Subroutine CLEANUP_TRANSFER deallocates the SIGE_IN array (bmy, 9/19/01)
+!  Subroutine CLEANUP_TRANSFER deallocates the EDGE_IN array.
+!  (bmy, 9/19/01, 10/31/03)
+!
+!  NOTES:
+!  (1 ) Renamed SIGE_IN to EDGE_IN to denote that it is not always a sigma
+!        coordinate (as for GEOS-4). (bmy, 10/31/03)
 !******************************************************************************
 !
-      IF ( ALLOCATED( SIGE_IN ) ) DEALLOCATE( SIGE_IN )
+      IF ( ALLOCATED( EDGE_IN ) ) DEALLOCATE( EDGE_IN )
 
+      ! Return to calling program
       END SUBROUTINE CLEANUP_TRANSFER
       
 !------------------------------------------------------------------------------

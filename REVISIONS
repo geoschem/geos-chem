@@ -1,88 +1,92 @@
-REVISIONS (v6-01-01)  
-bmy, 28 Oct 2003
+REVISIONS (v6-01-02)  
+bmy, 06 Nov 2003
 
 
-New in v6-01-01:
+New in v6-01-02:
 ----------------------------------------------------------------------------- 
 
 
 
-Removed from v6-01-01:
+Removed from v6-01-02:
 ----------------------------------------------------------------------------- 
 
-ch3ccl3_lifetime	-- Renamed to "print_mean_oh"
-("main.f")
 
 
-
-Changed from v5-07-08:
+Changed from v6-01-01:
 -------------------------------------------------------------------------------
 
-define.h		-- added INTEL_FC flag for IFC compiler
+cleanup_transfer	-- Renamed SIGE_IN to EDGE_IN to denote that it is 
+("transfer_mod.f")	   not always a sigma coordinate (as for GEOS-4).
 
-do_global_transport	-- Bug fix in parallel DO-loop, parallelize over
-("transport_mod.f")	   I-J-L instead of I-J-L-N.
-			-- Bug fix: rewrote first parallel DO-loop to 
-			   avoid NaN's.  
-			-- Now also make sure to pass surface pressures which
-			   are consistent with the Ap and Bp coordinates which
-			   define the vertical grid to both TPCORE and
-			   DO_PJC_PFIX. 
+CMN_SIZE		-- Now defines both 55L and 30L GEOS-4 grids
+			-- Also define LLTROP=18 for GEOS-4 grids
+			-- Also remove obsolete GEOS-2 grid declarations
 
-do_pjc_pfix		-- Now P1 and P2 are "true" surface pressures, and 
-("pjc_pfix_mod.f")	   not PS-PTOP.  If using this P-fixer w/ GEOS-3 
-			   winds, pass true surface pressure to this
-			   routine.
+define.h		-- added GRID30LEV switch
 
-expand_date		-- Now replace 2 and 4 digit year strings for all
-("time_mod.f")             model types
+diag41.f		-- For GEOS-4, PBL depth is already in meters, so 
+			   we only have to multiply that by the GOOD array
+			-- Also now references PBL array from "dao_mod.f"
+			-- Bug fix: now use barometric law to compute PBL 
+			   height in meters for GEOS-1, GEOS-STRAT, GEOS-3.  
+			   This eliminates an overprediction of the PBL height.
 
-finite_dble		-- Use LINUX error-trapping for INTEL_FC
-("error_mod.f")
+get_l_copy		-- Add LCOPY = 19 for GEOS-4 if regridding
+("transfer_mod.f")
 
-finite_float		-- Use LINUX error-trapping for INTEL_FC
-("error_mod.f")
+get_modelname		-- Also now use C-preprocessor switch "GRID30LEV" 
+("bpch2_mod.f")		   instead of IF statements
 
-get_pedge		-- Bug fix: use PFLT instead of PFLT-PTOP in 
-("pressure_mod.f")         equation for PEDGE w/ GEOS-4 met fields
+get_name_ext		-- Remove obsolete "geos2" model name string
+("bpch2_mod.f")
 
-main.f			-- Deleted routine "ch3ccl3_lifetime"
-			-- Now print mass-weighted OH in "print_mean_oh"
+init_pressure		-- Now print LLPAR+1 levels for Ap, Bp.  
+("pressure_mod.f")	-- Remove reference to SIGE, it's obsolete.  
+			-- Also now use C-preprocessor switch GRID30LEV 
+			   instead of IF statements to define vertical 
+			   coordinates.
 
-nan_dble		-- Use LINUX error-trapping for INTEL_FC
-("error_mod.f")
+init_transfer		-- Renamed SIGE_IN to EDGE_IN to denote that it is 
+("transfer_mod.f")	   not always a sigma coordinate (as for GEOS-4)
+			-- Now assign original Ap coordinates from the GEOS-4 
+			   grid to the EDGE_IN array
 
-nan_float		-- Use LINUX error-trapping for INTEL_FC
-("error_mod.f")
+ioerror			-- Now call GERROR for IBM and INTEL_FC compilers
+("file_mod.f")
 
-read_a3			-- Now use function TIMESTAMP_STRING from "time_mod.f"
-("a3_read_mod.f")	   for formatted date/time output.
+lump_2_r4		-- Renamed SIGE_IN to EDGE_IN to denote that it is 
+("transfer_mod.f")	   not always a sigma coordinate (as for GEOS-4)
+			-- Also updated comments
 
-read_a6			-- Now use function TIMESTAMP_STRING from "time_mod.f"
-("a6_read_mod.f")	   for formatted date/time output.
+lump_2_r8		-- Renamed SIGE_IN to EDGE_IN to denote that it is 
+("transfer_mod.f")	   not always a sigma coordinate (as for GEOS-4)
+			-- Also updated comments
 
-read_i6			-- Now use function TIMESTAMP_STRING from "time_mod.f"
-("i6_read_mod.f")	   for formatted date/time output.
+lump_4_r4		-- Renamed SIGE_IN to EDGE_IN to denote that it is 
+("transfer_mod.f")	   not always a sigma coordinate (as for GEOS-4)
+			-- Also updated comments
 
-read_phis		-- Now use function TIMESTAMP_STRING from "time_mod.f"
-("phis_read_mod.f")	   for formatted date/time output.
+lump_4_r8		-- Renamed SIGE_IN to EDGE_IN to denote that it is 
+("transfer_mod.f")	   not always a sigma coordinate (as for GEOS-4)
+			-- Also updated comments
 
-soilnoxems.f		-- Need to pass SUNCOS to SOILCRF when computing 
-			   FERTDIAG. 
+main.f			-- deleted obsolete code
 
-timestamp_string	-- Now add optional arguments YYYYMMDD and HHMMSS
-("time_mod.f")
+transfer_a6		-- Added code to regrid GEOS-4 from 55 --> 30 levels
+("transfer_mod.f")
+
+transfer_3d		-- Added code to regrid GEOS-4 from 55 --> 30 levels
+("transfer_mod.f")
+
+transfer_mod.f		-- Renamed module variable SIGE_IN to EDGE_IN.
+
+transfer_zonal_r4	-- Added code to regrid GEOS-4 from 55 --> 30 levels
+("transfer_mod.f")
+
+transfer_zonal_r8	-- Added code to regrid GEOS-4 from 55 --> 30 levels
+("transfer_mod.f")
 
 
 ---
-calcrate.f		<-- Removed obsolete, commented out code from the
-chem.f			    following source code files	
-chemdr.f
-comode.h
-diag3.f
-drydep_mod.f
-error_mod.f
-physproc.f
-planeflight_mod.f
-restart_mod.f
-schem.f
+CMN_SIZE		<-- Removed obsolete commented-out code
+pjc_pfix_mod.f

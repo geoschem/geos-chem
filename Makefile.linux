@@ -1,6 +1,6 @@
-# $Id: Makefile.linux,v 1.8 2003/10/30 16:17:15 bmy Exp $
+# $Id: Makefile.linux,v 1.9 2003/11/06 21:07:16 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for LINUX/PGI (bmy, Tue Oct 14 15:38:48 2003)
+# GEOS-CHEM Makefile for LINUX/PGI (bmy, Thu Nov  6 12:13:31 2003)
 #
 # NOTE: If you want to run the 2 x 2.5 GEOS-CHEM model, then try adding
 #       -Bstatic to the F90 compilation line.  It appears that setting 
@@ -260,7 +260,7 @@ tpcore_window_mod.o       \
 transport_mod.o           \
 upbdflx_mod.o             \
 chemistry_mod.o           \
-emissions_mod.o 
+emissions_mod.o
 
 SJ =                      \
 findxsect.o               \
@@ -371,7 +371,7 @@ decomp.o                   : decomp.f                   CMN_SIZE define.h comode
 diag1.o                    : diag1.f                    CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h 
 diag20.o                   : diag20.f                   CMN CMN_O3 CMN_SIZE define.h CMN_TIMES 
 diag3.o                    : diag3.f                    CMN CMN_DIAG CMN_O3 CMN_SETUP CMN_SIZE define.h comode.h 
-diag41.o                   : diag41.f                   CMN CMN_DIAG CMN_SIZE define.h 
+diag41.o                   : diag41.f                   CMN CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 diag48.o                   : diag48.f                   CMN CMN_DEP CMN_DIAG CMN_O3 CMN_SIZE define.h 
 diag49.o                   : diag49.f                   CMN CMN_DIAG CMN_O3 CMN_SIZE define.h CMN_TIMES 
 diag5.o                    : diag5.f                    CMN CMN_DIAG CMN_O3 CMN_SIZE define.h 
@@ -561,7 +561,7 @@ linux_err.o                : linux_err.c
 #  Other Makefile Commands
 #=============================================================================
 clean:
-        rm -f *.o *.mod ifc* geos geos_sj geosco
+        rm -f *.o *.mod geos geos_sj geosco
 
 .SUFFIXES: .f .F .f90 .F90
 .f.o:                   ; $(F90) -c $*.f
