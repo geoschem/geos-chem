@@ -1,8 +1,8 @@
-! $Id: error_mod.f,v 1.2 2003/10/01 20:32:21 bmy Exp $
+! $Id: error_mod.f,v 1.3 2003/10/30 16:17:17 bmy Exp $
       MODULE ERROR_MOD
 !
 !******************************************************************************
-!  Module ERROR_MOD contains error checking routines. (bmy, 3/8/01, 9/27/03)
+!  Module ERROR_MOD contains error checking routines. (bmy, 3/8/01, 10/24/03)
 !
 !  Module Routines:
 !  ===========================================================================
@@ -47,6 +47,7 @@
 !        platform. (bmy, 3/21/03)
 !  (8 ) Added patches for IBM/AIX platform (gcc, bmy, 6/27/03)
 !  (9 ) Bug fixes for LINUX platform (bmy, 9/29/03)
+!  (10) Now supports INTEL_FC compiler (bmy, 10/24/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -92,7 +93,7 @@
 !
 !*****************************************************************************
 !  Module NAN_FLOAT returns TRUE if a REAL*4 number is equal to the IEEE NaN 
-!  (Not-a-Number) flag.  Returns FALSE otherwise. (bmy, 3/8/01, 3/23/03)
+!  (Not-a-Number) flag.  Returns FALSE otherwise. (bmy, 3/8/01, 10/24/03)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -105,6 +106,7 @@
 !        the Sun/Sparc platform.  Rename cpp switch from DEC_COMPAQ to
 !        COMPAQ. (bmy, 3/23/03)
 !  (4 ) Added patches for IBM/AIX platform (gcc, bmy, 6/27/03)
+!  (5 ) Use LINUX error-trapping for INTEL_FC (bmy, 10/24/03)
 !*****************************************************************************
 !
 #     include "define.h" ! C-preprocessor switches
@@ -123,18 +125,19 @@
       ! NAN_FLOAT begins here!
       !=================================================================
 #if   defined( SGI )
-      IT_IS_A_NAN = IEEE_IS_NAN( VALUE )   ! for SGI platform
+      IT_IS_A_NAN = IEEE_IS_NAN( VALUE )   
 
 #elif defined( COMPAQ )
-      IT_IS_A_NAN = ISNAN( VALUE )         ! for DEC, Compaq platforms
+      IT_IS_A_NAN = ISNAN( VALUE )         
 
-#elif defined( LINUX )
+#elif defined( LINUX ) || defined( INTEL_FC ) 
 
       ! Declare IS_NAN as an external function
       INTEGER, EXTERNAL  :: IS_NAN
 
-      ! For LINUX platform, use C routine "is_nan" to test if VALUE is NaN.  
-      ! VALUE must be cast to DBLE since "is_nan" only takes doubles.
+      ! For LINUX or INTEL_FC compilers, use C routine "is_nan" to test if 
+      ! VALUE is NaN.   VALUE must be cast to DBLE since "is_nan" only
+      ! takes doubles.
       IT_IS_A_NAN = ( IS_NAN( DBLE( VALUE ) ) /= 0 )
 
 #elif defined( SPARC )
@@ -163,7 +166,7 @@
 !
 !*****************************************************************************
 !  Module NAN_DBLE returns TRUE if a REAL*8 number is equal to the IEEE NaN 
-! (Not-a-Number) flag.  Returns FALSE otherwise. (bmy, 3/8/01, 6/27/03)
+! (Not-a-Number) flag.  Returns FALSE otherwise. (bmy, 3/8/01, 10/24/03)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -176,6 +179,7 @@
 !        the Sun/Sparc platform.  Rename cpp switch from DEC_COMPAQ to
 !        COMPAQ. (bmy, 3/23/03)
 !  (4 ) Added patches for IBM/AIX (gcc, bmy, 6/27/03)
+!  (5 ) Use LINUX error-trapping for INTEL_FC (bmy, 10/24/03)
 !*****************************************************************************
 !
 #     include "define.h" ! C-preprocessor switches
@@ -194,17 +198,18 @@
       ! NAN_DBLE begins here!
       !=================================================================
 #if   defined( SGI )
-      IT_IS_A_NAN = IEEE_IS_NAN( VALUE )   ! for SGI platform
+      IT_IS_A_NAN = IEEE_IS_NAN( VALUE )   
 
 #elif defined( COMPAQ )
-      IT_IS_A_NAN = ISNAN( VALUE )         ! for DEC, Compaq platforms
+      IT_IS_A_NAN = ISNAN( VALUE )         
 
-#elif defined( LINUX )
+#elif defined( LINUX ) || defined( INTEL_FC )
 
       ! Declare IS_NAN as an external function
       INTEGER, EXTERNAL  :: IS_NAN
 
-      ! For LINUX platform, use C routine "is_nan" to test if VALUE is NaN.  
+      ! For LINUX or INTEL_FC compilers, use C routine 
+      ! "is_nan" to test if VALUE is NaN.  
       IT_IS_A_NAN = ( IS_NAN( VALUE ) /= 0 )
 
 #elif defined( SPARC )
@@ -233,7 +238,7 @@
 !
 !*****************************************************************************
 !  Module FINITE_FLOAT returns TRUE if a REAL*4 number is equal to the 
-!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 9/29/03)
+!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 10/24/03)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -247,6 +252,7 @@
 !        COMPAQ. (bmy, 3/23/03)
 !  (4 ) Added patches for IBM/AIX platform (gcc, bmy, 6/27/03)
 !  (5 ) Bug fix: now use external C IS_FINITE for PGI/Linux (bmy, 9/29/03)
+!  (6 ) Use LINUX error-trapping for INTEL_FC (bmy, 10/24/03)
 !*****************************************************************************
 !
 #     include "define.h" ! C-preprocessor switches
@@ -265,7 +271,7 @@
       ! FINITE_FLOAT begins here!
       !=================================================================       
 #if   defined( SGI )
-      IT_IS_A_FINITE = IEEE_FINITE( VALUE )  ! for SGI platform
+      IT_IS_A_FINITE = IEEE_FINITE( VALUE )  
  
 #elif defined( COMPAQ ) 
 
@@ -278,23 +284,14 @@
          IT_IS_A_FINITE = .TRUE.
       ENDIF
 
-#elif defined( LINUX )
+#elif defined( LINUX ) || defined( INTEL_FC )
 
-      !---------------------------------------------------------------------
-      ! Prior to 9/29/03:
-      !! Declare IS_INF as an external function
-      !INTEGER, EXTERNAL  :: IS_INF
-      !
-      !! For LINUX, use C routine "is_inf" to test if VALUE is infinity  
-      !! VALUE must be cast to DBLE since "is_inf" only takes doubles.
-      !IT_IS_A_FINITE = ( IS_INF( DBLE( VALUE ) ) /= 0 )
-      !---------------------------------------------------------------------
-      
       ! Declare IS_FINITE as an external function
       INTEGER, EXTERNAL :: IS_FINITE
       
-      ! For LINUX, use C routine "is_finite" to test if VALUE is finite  
-      ! VALUE must be cast to DBLE since "is_inf" only takes doubles. 
+      ! For LINUX or INTEL_FC compilers use C routine "is_finite" to test 
+      ! if VALUE is finite.  VALUE must be cast to DBLE since "is_inf" 
+      ! only takes doubles. 
       IT_IS_A_FINITE = ( IS_FINITE( DBLE( VALUE ) ) /= 0 )
 
 #elif defined( SPARC )
@@ -323,7 +320,7 @@
 !
 !*****************************************************************************
 !  Module FINITE_DBLE returns TRUE if a REAL*8 number is equal to the 
-!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 9/29/03)
+!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 10/24/03)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -337,6 +334,7 @@
 !        COMPAQ. (bmy, 3/23/03)
 !  (4 ) Added patches for IBM/AIX platform (gcc, bmy, 6/27/03)
 !  (5 ) Bug fix: now use external C IS_FINITE for PGI/Linux (bmy, 9/29/03)
+!  (6 ) Use LINUX error-trapping for INTEL_FC (bmy, 10/24/03)
 !*****************************************************************************
 !
 #     include "define.h" ! C-preprocessor switches
@@ -355,7 +353,7 @@
       ! FINITE_DBLE begins here!
       !=================================================================
 #if   defined( SGI )
-      IT_IS_A_FINITE = IEEE_FINITE( VALUE )  ! for SGI platform
+      IT_IS_A_FINITE = IEEE_FINITE( VALUE )  
 
 #elif defined( COMPAQ ) 
 
@@ -367,21 +365,13 @@
          IT_IS_A_FINITE = .TRUE.
       ENDIF
 
-#elif defined( LINUX )
-
-      !----------------------------------------------------------------------
-      ! Prior to 9/29/03:
-      !! Declare IS_INF as an external function
-      !INTEGER, EXTERNAL  :: IS_INF
-      !
-      ! For LINUX, use C routine "is_inf" to test if VALUE is infinity  
-      !IT_IS_A_FINITE = ( IS_INF( VALUE ) /= 0 )
-      !----------------------------------------------------------------------
+#elif defined( LINUX ) || defined( INTEL_FC )
 
       ! Declare IS_FINITE as an external function
       INTEGER, EXTERNAL :: IS_FINITE
 
-      ! For LINUX, use C routine "is_finite" to test if VALUE is infinity
+      ! For LINUX or INTEL_FC compilers, use C routine 
+      ! "is_finite" to test if VALUE is infinity
       IT_IS_A_FINITE = ( IS_FINITE( VALUE ) /= 0 )
 
 #elif defined( SPARC )
@@ -675,6 +665,8 @@
 !  and then stops the run.  (bmy, 10/15/02) 
 !******************************************************************************
 !
+#     include "define.h"
+
       !=================================================================
       ! GEOS_CHEM_STOP begins here!
       !=================================================================
@@ -685,7 +677,12 @@
       CALL CLEANUP
 
       ! Flush all files and stop
+      !CALL EXIT( 99999 )
+#if   defined( INTEL_FC )
+      STOP
+#else
       CALL EXIT( 99999 )
+#endif
 
 !$OMP END CRITICAL
 

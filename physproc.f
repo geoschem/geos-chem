@@ -1,4 +1,4 @@
-! $Id: physproc.f,v 1.5 2003/10/01 20:32:22 bmy Exp $
+! $Id: physproc.f,v 1.6 2003/10/30 16:17:18 bmy Exp $
       SUBROUTINE PHYSPROC( SUNCOS, SUNCOSB )
 !
 !******************************************************************************
@@ -94,11 +94,6 @@ C
       IF (IFSOLVE.EQ.0) RETURN
 
       ! Echo timestamp
-      !-----------------------------------------------------------------------
-      ! Prior to 9/29/03:
-      ! LINUX can't write a function in a FORMATted WRITE call (bmy, 9/29/03)
-      !WRITE( 6, 100 ) TIMESTAMP_STRING()
-      !-----------------------------------------------------------------------
       STAMP = TIMESTAMP_STRING()
       WRITE( 6, 100 ) STAMP
  100  FORMAT( '     - PHYSPROC: Trop chemistry at ', a )
@@ -270,13 +265,6 @@ C
                 JLOOP             = JREORDER(JLOOPLO+KLOOP)
                 CBLK( KLOOP,JOLD) = CSPEC(JLOOP,JOLD)
                 CORIG(KLOOP,JNEW) = CSPEC(JLOOP,JOLD)
-                !------------------------------------------------------------
-                ! Prior to 7/28/03:
-                ! We can make DENAIR a local variable w/in "calcrate.f"
-                ! and thereby eliminate the THREADPRIVATE common block
-                ! named /DKBLOOP/.  (bmy, 7/28/03)
-                !DENAIR(KLOOP)   = AIRDENS(JLOOP)
-                !------------------------------------------------------------
  570         CONTINUE
  572      CONTINUE
 

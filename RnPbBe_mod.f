@@ -1,9 +1,9 @@
-! $Id: RnPbBe_mod.f,v 1.2 2003/08/06 15:30:29 bmy Exp $
+! $Id: RnPbBe_mod.f,v 1.3 2003/10/30 16:17:15 bmy Exp $
       MODULE RnPbBe_MOD
 !
 !******************************************************************************
 !  Module RnPbBe_MOD contains variables and routines used for the 
-!  222Rn-210Pb-7Be simulation. (hyl, bmy, 6/14/01, 6/10/03)
+!  222Rn-210Pb-7Be simulation. (hyl, swu, bmy, 6/14/01, 10/28/03)
 !
 !  Module Variables:
 !  ============================================================================
@@ -34,8 +34,11 @@
 !        and 7Be on wet deposition and transport in a global three-dimensional
 !        chemical tracer model driven by assimilated meteorological fields, 
 !        JGR, 106, D11, 12,109-12,128, 2001.
-!  (2 ) Dorothy Koch, JGR 101, D13, 18651, 1996.
-!  (3 ) Lal, D., and B. Peters, Cosmic ray produced radioactivity on the 
+!  (2 ) Jacob et al.,Evaluation and intercomparison of global atmospheric 
+!        transport models using Rn-222 and other short-lived tracers, 
+!        JGR, 1997 (102):5953-5970
+!  (3 ) Dorothy Koch, JGR 101, D13, 18651, 1996.
+!  (4 ) Lal, D., and B. Peters, Cosmic ray produced radioactivity on the 
 !        Earth. Handbuch der Physik, 46/2, 551-612, edited by K. Sitte, 
 !        Springer-Verlag, New York, 1967. 
 !
@@ -57,6 +60,8 @@
 !        Moved routine DRYFLXRnPbBe into "drydep_mod.f".  (bmy, 1/27/03)
 !  (10) Now references the new "time_mod.f" (bmy, 2/11/03)
 !  (11) Bug fix in EMISSRnPbBe -- take abs( lat) for 7Be emiss. (bmy, 6/10/03)
+!  (12) Bug fix in EMISSRnPbBe -- shut off 222Rn emissions in polar regions
+!        (swu, bmy, 10/28/03)
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -203,7 +208,7 @@
       EMISSION = EMISSION / 3.5d0 
 
 #elif defined( GEOS_4 )
-      EMISSION = 0.D0           ! to be determined later
+      !EMISSION = 0d0           ! to be determined later
 
 #endif
       
@@ -216,7 +221,7 @@
 !
 !******************************************************************************
 !  Subroutine EMISSRnPbBe emits 222Rn and 7Be into the tracer array STT.
-!  (hyl, bey, bmy, 5/28/99, 6/10/03)
+!  (hyl, bey, bmy, 5/28/99, 10/28/03)
 !
 !  NOTES:
 !  (1 ) Also added Hongyu's code for emission of Be7 (bmy, 3/22/99)
@@ -246,12 +251,17 @@
 !        (bmy, 2/11/03)
 !  (14) Bug fix: take the absolute value of latitude -- this was a bug when
 !        implementing the GET_YMID function from v5-04. (bmy, 6/10/03)
+!  (15) Now reference GET_YEDGE from "grid_mod.f".  
+!  (16) Bug fix: the Rn emission in antarctic area in the original code would 
+!        lead to enormously hight Rn concentrations there, esp. after boundary
+!        layer mixing.  Now apply different emissions over land and water,
+!        and also shut off emissions poleward of 70 deg. (swu, bmy, 10/28/03)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD, TS
       USE DIAG_MOD,     ONLY : AD01 
-      USE GRID_MOD,     ONLY : GET_AREA_CM2, GET_YMID
+      USE GRID_MOD,     ONLY : GET_AREA_CM2, GET_YMID, GET_YEDGE 
       USE TIME_MOD,     ONLY : GET_TS_EMIS
       USE PRESSURE_MOD, ONLY : GET_PCENTER
 
@@ -262,9 +272,12 @@
 
       ! Local variables
       LOGICAL, SAVE      :: FIRSTEMISS = .TRUE.
-      INTEGER            :: I,       J,      L,      N
-      REAL*8             :: A_CM2,   ADD_Be, ADD_Rn, DTSRCE
-      REAL*8             :: LAT_TMP, P_TMP,  Be_TMP, Rn_TMP
+      INTEGER            :: I,          J,          L,         N
+      REAL*8             :: A_CM2,      ADD_Be,     ADD_Rn,    Rn_LAND
+      REAL*8             :: Rn_WATER,   DTSRCE,     LAT_TMP,   P_TMP
+      REAL*8             :: Be_TMP,     Rn_TMP,     LAT_S,     LAT_N
+      REAL*8             :: LAT_H,      LAT_L,      F_LAND,    F_WATER
+      REAL*8             :: F_BELOW_70, F_BELOW_60, F_ABOVE_60
 
       !=================================================================
       ! EMISSRnPbBe begins here!
@@ -277,20 +290,127 @@
       DTSRCE = GET_TS_EMIS() * 60d0
 
       !=================================================================
-      ! Add 222Rn emissions into tracer #1
+      ! Add 222Rn emissions into tracer #1 according to the following:
+      !
+      ! (1) 222Rn emission poleward of 70 degrees = 0.0 [atoms/cm2/s]
+      ! 
+      ! (2) For latitudes 70S-60S and 60N-70N (both land & ocean),
+      !     222Rn emission is 0.005 [atoms/cm2/s]
+      !
+      ! (3) For latitudes between 60S and 60N, 
+      !     222Rn emission is 1     [atoms/cm2/s] over land or
+      !                       0.005 [atoms/cm2/s] over oceans
+      !
+      ! (4) For grid boxes where the surface temperature is below 
+      !     0 deg Celsius, reduce 222Rn emissions by a factor of 3.
+      ! 
+      ! Reference: Jacob et al.,Evaluation and intercomparison of 
+      !  global atmospheric transport models using Rn-222 and other 
+      !  short-lived tracers, JGR, 1997 (102):5953-5970
       !=================================================================
       
-      ! Loop over surface grid boxes
+      ! Loop over latitudes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, LAT_S, LAT_N, LAT_H, LAT_L, F_BELOW_70     )
+!$OMP+PRIVATE( F_BELOW_60, F_ABOVE_60, A_CM2, Rn_LAND, Rn_WATER )
+!$OMP+PRIVATE( F_LAND, F_WATER, ADD_Rn                          )
       DO J = 1, JJPAR
          
-         ! Surface area in cm2
-         A_CM2 = GET_AREA_CM2( J )
+         ! Get ABS( latitude ) at S and N edges of grid box
+         LAT_S      = ABS( GET_YEDGE(J)   ) 
+         LAT_N      = ABS( GET_YEDGE(J+1) )
+         LAT_H      = MAX( LAT_S, LAT_N )
+         LAT_L      = MIN( LAT_S, LAT_N ) 
 
+         ! Fraction of grid box w/ ABS( latitude ) less than 70 degrees
+         F_BELOW_70 = ( 70.0d0 - LAT_L ) / ( LAT_H - LAT_L )
+
+         ! Fraction of grid box w/ ABS( latitude ) less than 60 degrees
+         F_BELOW_60 = ( 60.0d0 - LAT_L ) / ( LAT_H - LAT_L )
+
+         ! Fraction of grid box w/ ABS( latitude ) greater than 60 degrees
+         F_ABOVE_60 = 1d0 - F_BELOW_60
+
+         ! Grid box surface area [cm2]
+         A_CM2      = GET_AREA_CM2( J )
+
+         ! Baseline 222Rn emissions over land [kg]
+         ! Rn_LAND [kg] = [1 atom 222Rn/cm2/s] / [atoms/kg] * [s] * [cm2]
+         Rn_LAND    = 1d0 / XNUMOL_Rn * DTSRCE * A_CM2 
+
+         ! Baseline 222Rn emissions over water or ice [kg]
+         Rn_WATER   = Rn_LAND * 0.005d0
+
+      ! Loop over longitudes
       DO I = 1, IIPAR
 
-         ! ADD_Rn = [1 atom Rn/cm2/s] / [atoms/kg] * [s] * [cm2] * [land frac]
-         !        = 222 Rn emissions from soils [kg]
-         ADD_Rn = 1d0 / XNUMOL_Rn * DTSRCE * A_CM2 * FRCLND(I,J)
+         ! Fraction of grid box that is land
+         F_LAND  = FRCLND(I,J)
+
+         ! Fraction of grid box that is water
+         F_WATER = 1d0 - F_LAND
+
+         !--------------------
+         ! 90S-70S or 70N-90N
+         !--------------------
+         IF ( LAT_L >= 70d0 ) THEN 
+
+            ! 222Rn emissions are shut off poleward of 70 degrees
+            ADD_Rn = 0.0d0
+
+         !--------------------
+         ! 70S-60S or 60N-70N 
+         !--------------------
+         ELSE IF ( LAT_L >= 60d0 ) THEN    
+
+            IF ( LAT_H <= 70d0 ) THEN             
+
+               ! If the entire grid box lies equatorward of 70 deg,
+               ! then 222Rn emissions here are 0.005 [atoms/cm2/s]
+               ADD_Rn = Rn_WATER
+               
+            ELSE
+               
+               ! If the grid box straddles the 70S or 70N latitude line,
+               ! then only count 222Rn emissions equatorward of 70 degrees.
+               ! 222Rn emissions here are 0.005 [atoms/cm2/s].
+               ADD_Rn = F_BELOW_70 * Rn_WATER
+               
+            ENDIF
+            
+         ELSE 
+
+            !--------------------
+            ! 70S-60S or 60N-70N
+            !--------------------
+            IF ( LAT_H > 60d0 ) THEN
+
+               ADD_Rn = 
+                        ! Consider 222Rn emissions equatorward of 
+                        ! 60 degrees for both land (1.0 [atoms/cm2/s]) 
+                        ! and water (0.005 [atoms/cm2/s])
+     &                  F_BELOW_60 * 
+     &                  ( Rn_LAND  * F_LAND  ) + 
+     &                  ( Rn_WATER * F_WATER ) +
+
+                        ! If the grid box straddles the 60 degree boundary
+                        ! then also consider the emissions poleward of 60
+                        ! degrees.  222Rn emissions here are 0.005 [at/cm2/s].
+     &                  F_ABOVE_60 * Rn_WATER
+
+
+            !--------------------
+            ! 60S-60N
+            !--------------------
+            ELSE 
+
+               ! Consider 222Rn emissions equatorward of 60 deg for
+               ! land (1.0 [atoms/cm2/s]) and water (0.005 [atoms/cm2/s])
+               ADD_Rn = ( Rn_LAND * F_LAND ) + ( Rn_WATER * F_WATER )
+
+            ENDIF
+         ENDIF
 
          ! For boxes below freezing, reduce 222Rn emissions by 3x
          IF ( TS(I,J) < 273.15 ) ADD_Rn = ADD_Rn / 3d0
@@ -300,10 +420,11 @@
          
          ! ND01 diag: 222Rn emission [kg/s] 
          IF ( ND01 > 0 ) THEN
-             AD01(I,J,1,1) = AD01(I,J,1,1) + ( ADD_Rn / DTSRCE )
+            AD01(I,J,1,1) = AD01(I,J,1,1) + ( ADD_Rn / DTSRCE )
          ENDIF
       ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
       !=================================================================
       ! Add 7Be emissions into tracer #3 (if necessary)

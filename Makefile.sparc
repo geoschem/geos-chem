@@ -1,4 +1,4 @@
-# $Id: Makefile.sparc,v 1.6 2003/10/21 16:05:27 bmy Exp $
+# $Id: Makefile.sparc,v 1.7 2003/10/30 16:17:15 bmy Exp $
 #=============================================================================
 # GEOS-CHEM Makefile for SUN/Sparc (bmy, Tue Oct 14 15:38:58 2003)
 #=============================================================================
@@ -548,7 +548,7 @@ xltmmp.o                   : xltmmp.F                   CMN_SIZE define.h
 #  Other Makefile Commands
 #=============================================================================
 clean:
-        rm -f *.o *.mod geos geos_sj geosco
+        rm -f *.o *.mod ifc* geos geos_sj geosco
 
 .SUFFIXES: .F .F90
 .F.o:                   ; $(F90) -c $*.F

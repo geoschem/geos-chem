@@ -1,4 +1,4 @@
-# $Id: Makefile.linux,v 1.7 2003/10/21 16:05:26 bmy Exp $
+# $Id: Makefile.linux,v 1.8 2003/10/30 16:17:15 bmy Exp $
 #=============================================================================
 # GEOS-CHEM Makefile for LINUX/PGI (bmy, Tue Oct 14 15:38:48 2003)
 #
@@ -561,7 +561,7 @@ linux_err.o                : linux_err.c
 #  Other Makefile Commands
 #=============================================================================
 clean:
-        rm -f *.o *.mod geos geos_sj geosco
+        rm -f *.o *.mod ifc* geos geos_sj geosco
 
 .SUFFIXES: .f .F .f90 .F90
 .f.o:                   ; $(F90) -c $*.f

@@ -1,5 +1,14 @@
-C $Id: main.f,v 1.3 2003/10/01 20:32:22 bmy Exp $
+C $Id: main.f,v 1.4 2003/10/30 16:17:18 bmy Exp $
 C $Log: main.f,v $
+C Revision 1.4  2003/10/30 16:17:18  bmy
+C GEOS-CHEM v6-01-01, includes the following modifications:
+C - The fvDAS/TPCORE code conserves global airmass for GEOS-3/GEOS-4 winds
+C - Improved 222Rn emissions so that they now reflect
+C - Bug fix in "soilnoxems.f": now pass SUNCOS to "soilcrf.f"
+C - Updated code to support for the IFC fortran compiler
+C - Improved log file output formatting slightly
+C - Removed obsolete code from several routines
+C
 C Revision 1.3  2003/10/01 20:32:22  bmy
 C GEOS-CHEM v5.07.07, includes the following modifications:
 C - GAMMA coeff for N2O5 hydrolysis is now a function of T, RH, aerosol type
@@ -647,7 +656,6 @@ C
             IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:2' )
          ENDIF
 
-
          !==============================================================
          !       ***** A R C H I V E   D I A G N O S T I C S *****
          !==============================================================
@@ -785,12 +793,19 @@ C
       CALL UNZIP_I6_FIELDS(  'remove all' )
       CALL UNZIP_PHIS_FIELD( 'remove all' )
 
-      ! Compute methyl chloroform lifetime (certain runs only)
-      IF ( ND23 > 0 .and. LCHEM ) THEN
-         IF ( NSRCX == 3 .or. NSRCX == 5 .or. NSRCX == 9 ) THEN
-            CALL CH3CCl3_LIFETIME
-         ENDIF
-      ENDIF
+      !---------------------------------------------------------------------
+      ! Prior to 10/22/03:
+      ! Now print mean mass-weighted OH concentration (bmy, 10/22/030
+      !! Compute methyl chloroform lifetime (certain runs only)
+      !IF ( ND23 > 0 .and. LCHEM ) THEN
+      !   IF ( NSRCX == 3 .or. NSRCX == 5 .or. NSRCX == 9 ) THEN
+      !      CALL CH3CCl3_LIFETIME
+      !   ENDIF
+      !ENDIF
+      !---------------------------------------------------------------------
+
+      ! Print the mass-weighted mean OH concentration (if applicable)
+      CALL PRINT_MEAN_OH
 
       ! For model benchmarking, save final masses of 
       ! Rn,Pb,Be or Ox to a binary punch file 
@@ -946,11 +961,6 @@ C
       LASTDAY = JD - JD0 
 
       ! Skip past the element of NJDAY for Feb 29, if necessary
-      !-----------------------------------------------------------------
-      ! Prior to 9/25/03:
-      ! Now test the year of the ending date for leapyear (bmy, 9/25/03)
-      !IF ( .not. ITS_A_LEAPYEAR() .and. LASTDAY > 59 ) THEN
-      !-----------------------------------------------------------------
       IF ( .not. ITS_A_LEAPYEAR( Y ) .and. LASTDAY > 59 ) THEN
          LASTDAY = LASTDAY + 1
       ENDIF
@@ -1102,51 +1112,118 @@ C
       END SUBROUTINE CTM_FLUSH
 
 !-----------------------------------------------------------------------------
+! Prior to 10/23/03:
+! We don't use this as a metric of chemistry anymore, we use the
+! mean mass-weighted OH concentration instead (bmy, 10/23/03)
+!      SUBROUTINE CH3CCl3_LIFETIME
+!
+!      !=================================================================
+!      ! Internal Subroutine CH3CCl3_LIFETIME computes the lifetime 
+!      ! of methyl chloroform (for full chemistry or CO/OH chemistry)
+!      !=================================================================
+!
+!      ! References to F90 modules
+!      USE DIAG_MOD, ONLY : DIAGCHLORO
+!
+!      ! Local variables 
+!      REAL*8 :: SUM_LOSS, SUM_OHMASS, SUM_MASS, LIFETIME, OHCONC
+!      
+!      ! Compute the sum for loss, OH mass, and total mass
+!      SUM_LOSS   = SUM( DIAGCHLORO(:,:,:,1) ) 
+!      SUM_OHMASS = SUM( DIAGCHLORO(:,:,:,2) )
+!      SUM_MASS   = SUM( DIAGCHLORO(:,:,:,3) ) 
+!         
+!      ! Make sure that we avoid divide-by-zero errors 
+!      IF ( SUM_LOSS > 0.0 .and. SUM_MASS > 0.0 ) THEN 
+!         LIFETIME = ( SUM_MASS   / SUM_LOSS ) / ( 3600d0*365d0*24d0 )
+!         OHCONC   = ( SUM_OHMASS / SUM_MASS )
+!         
+!         WRITE( 6, *     ) 
+!         WRITE( 6, '(a)' ) REPEAT( '=', 79 ) 
+!         WRITE( 6, *     ) 'ND23: Methyl Chloroform (CH3CCl3)'
+!         WRITE( 6, *     ) 'SUM( OH Loss term ) = ', SUM_LOSS
+!         WRITE( 6, *     ) 'SUM( OH Mass      ) = ', SUM_OHMASS
+!         WRITE( 6, *     ) 'SUM( Total Mass   ) = ', SUM_MASS
+!         WRITE( 6, *     ) 'CH3CCl3 LIFETIME    = ', LIFETIME
+!         WRITE( 6, *     ) 'OH CONCENTRATION    = ', OHCONC 
+!         WRITE( 6, '(a)' ) REPEAT( '=', 79 ) 
+!      ELSE
+!         WRITE( 6, *     )
+!         WRITE( 6, '(a)' ) REPEAT( '=', 79 ) 
+!         WRITE( 6, *     ) 'Could not compute CH3CCl3 lifetime!'
+!         WRITE( 6, *     ) 'One or both of the following is/are zero!'
+!         WRITE( 6, *     ) 'SUM_MASS = ', SUM_MASS
+!         WRITE( 6, *     ) 'SUM_LOSS = ', SUM_LOSS
+!         WRITE( 6, '(a)' ) REPEAT( '=', 79 ) 
+!      ENDIF
+!
+!      ! Return to MAIN program
+!      END SUBROUTINE CH3CCl3_LIFETIME
+!
+!-----------------------------------------------------------------------------
 
-      SUBROUTINE CH3CCl3_LIFETIME
+      SUBROUTINE PRINT_MEAN_OH
 
       !=================================================================
-      ! Internal Subroutine CH3CCl3_LIFETIME computes the lifetime 
-      ! of methyl chloroform (for full chemistry or CO/OH chemistry)
+      ! Internal Subroutine PRINT_MEAN_OH prints the mass-weighted OH
+      ! concentration for selected simulation types. (bmy, 10/21/03)
       !=================================================================
 
       ! References to F90 modules
       USE DIAG_MOD, ONLY : DIAGCHLORO
 
       ! Local variables 
-      REAL*8 :: SUM_LOSS, SUM_OHMASS, SUM_MASS, LIFETIME, OHCONC
-      
-      ! Compute the sum for loss, OH mass, and total mass
-      SUM_LOSS   = SUM( DIAGCHLORO(:,:,:,1) ) 
-      SUM_OHMASS = SUM( DIAGCHLORO(:,:,:,2) )
-      SUM_MASS   = SUM( DIAGCHLORO(:,:,:,3) ) 
-         
-      ! Make sure that we avoid divide-by-zero errors 
-      IF ( SUM_LOSS > 0.0 .and. SUM_MASS > 0.0 ) THEN 
-         LIFETIME = ( SUM_MASS   / SUM_LOSS ) / ( 3600d0*365d0*24d0 )
-         OHCONC   = ( SUM_OHMASS / SUM_MASS )
-         
-         WRITE( 6, *     ) 
-         WRITE( 6, '(a)' ) REPEAT( '=', 79 ) 
-         WRITE( 6, *     ) 'ND23: Methyl Chloroform (CH3CCl3)'
-         WRITE( 6, *     ) 'SUM( OH Loss term ) = ', SUM_LOSS
-         WRITE( 6, *     ) 'SUM( OH Mass      ) = ', SUM_OHMASS
-         WRITE( 6, *     ) 'SUM( Total Mass   ) = ', SUM_MASS
-         WRITE( 6, *     ) 'CH3CCl3 LIFETIME    = ', LIFETIME
-         WRITE( 6, *     ) 'OH CONCENTRATION    = ', OHCONC 
-         WRITE( 6, '(a)' ) REPEAT( '=', 79 ) 
+      LOGICAL :: DO_PRINT
+      REAL*8  :: SUM_OHMASS, SUM_MASS, LIFETIME, OHCONC
+     
+      !=================================================================
+      ! PRINT_MEAN_OH begins here!
+      !=================================================================
+
+      ! First figure out if this type of simulation has OH
+      IF ( ( ND23 > 0   .and. LCHEM                      )  .and.
+     &     ( NSRCX == 3 .or.  NSRCX == 5 .or. NSRCX == 9 ) ) THEN
+         DO_PRINT = .TRUE.
       ELSE
-         WRITE( 6, *     )
-         WRITE( 6, '(a)' ) REPEAT( '=', 79 ) 
-         WRITE( 6, *     ) 'Could not compute CH3CCl3 lifetime!'
-         WRITE( 6, *     ) 'One or both of the following is/are zero!'
-         WRITE( 6, *     ) 'SUM_MASS = ', SUM_MASS
-         WRITE( 6, *     ) 'SUM_LOSS = ', SUM_LOSS
-         WRITE( 6, '(a)' ) REPEAT( '=', 79 ) 
+         DO_PRINT = .FALSE.
+      ENDIF
+      
+      ! Print out Mean OH if it's the appropriate simulation type
+      IF ( DO_PRINT ) THEN
+ 
+         ! Total Mass-weighted OH [molec OH/cm3] * [molec air]
+         SUM_OHMASS = SUM( DIAGCHLORO(:,:,:,2) )
+
+         ! Atmospheric air mass [molec air]
+         SUM_MASS   = SUM( DIAGCHLORO(:,:,:,3) ) 
+         
+         ! Avoid divide-by-zero errors 
+         IF ( SUM_MASS > 0d0 ) THEN 
+            
+            ! Divide OH by [molec air] and report as [1e5 molec/cm3]
+            OHCONC = ( SUM_OHMASS / SUM_MASS ) / 1d5
+         
+            ! Write value to log file
+            WRITE( 6, '(a)' ) 
+            WRITE( 6, '(a)' ) REPEAT( '=', 79 ) 
+            WRITE( 6, *     ) 'ND23: Mass-Weighted OH Concentration'
+            WRITE( 6, *     ) 'Mean OH = ', OHCONC, ' [1e5 molec/cm3]' 
+            WRITE( 6, '(a)' ) REPEAT( '=', 79 ) 
+
+         ELSE
+
+            ! Write error msg if SUM_MASS is zero
+            WRITE( 6, '(a)' ) 
+            WRITE( 6, '(a)' ) REPEAT( '=', 79 ) 
+            WRITE( 6, '(a)' ) 'Could not print mass-weighted OH!'
+            WRITE( 6, '(a)' ) 'Atmospheric air mass is zero!'
+            WRITE( 6, '(a)' ) REPEAT( '=', 79 ) 
+            
+         ENDIF
       ENDIF
 
       ! Return to MAIN program
-      END SUBROUTINE CH3CCl3_LIFETIME
+      END SUBROUTINE PRINT_MEAN_OH
 
 !-----------------------------------------------------------------------------
 

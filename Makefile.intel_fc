@@ -1,14 +1,20 @@
-# $Id: Makefile.intel_fc,v 1.1 2003/10/20 20:33:47 bmy Exp $
+# $Id: Makefile.intel_fc,v 1.2 2003/10/30 16:17:15 bmy Exp $
 #=============================================================================
 # GEOS-CHEM Makefile for INTEL FC (bmy, Tue Oct 14 15:39:19 2003)
 #=============================================================================
 SHELL = /bin/sh
 
+# 32-bit F90 compiler (PC Linux)
+#FC  = ifc
+
+# 64-bit F90 compiler (SGI Itanium)
+FC  = efc
+
 # F90 options -- multiprocessor
-F90 = ifc -cpp -w -O2 -openmp
+F90 = $(FC) -cpp -w -O2 -openmp
 
 # F90 options -- single processor
-F90 = ifc -cpp -w -O2 
+F90 = $(FC) -cpp -w -O2 
 
 # C compiler
 CC  = gcc
@@ -253,6 +259,8 @@ tpcore_mod.o              \
 tpcore_window_mod.o       \
 transport_mod.o           \
 upbdflx_mod.o             \
+chemistry_mod.o           \
+emissions_mod.o 
 
 SJ =                      \
 findxsect.o               \
@@ -525,11 +533,11 @@ time_mod.o                 : time_mod.f                 define.h
 toms_mod.o                 : toms_mod.f                 CMN_SETUP CMN_SIZE define.h 
 tpcore_bc_mod.o            : tpcore_bc_mod.f            CMN CMN_SIZE define.h 
 tpcore_fvdas_mod.o         : tpcore_fvdas_mod.f90         
-	$(FF) -c -Mextend -r8 $(Fopt) $*.f90
+	$(F90) -c -r8 $*.f90
 tpcore_mod.o               : tpcore_mod.f               CMN CMN_CO CMN_CO_BUDGET CMN_DIAG CMN_GCTM CMN_SIZE define.h define.h 
-	$(FF) -c -Mextend -r8 $(Fopt) $*.f
+	$(F90) -c -r8 $*.f
 tpcore_window_mod.o        : tpcore_window_mod.f        CMN CMN_CO CMN_CO_BUDGET CMN_DIAG CMN_GCTM CMN_SIZE define.h define.h 
-	$(FF) -c -Mextend -r8 $(Fopt) $*.f
+	$(F90) -c -r8 $*.f
 tracerid_mod.o             : tracerid_mod.f             CMN CMN_SIZE define.h comode.h 
 transfer_mod.o             : transfer_mod.f             CMN_SIZE define.h 
 transport_mod.o            : transport_mod.f            CMN CMN_GCTM CMN_SETUP CMN_SIZE define.h 
@@ -553,7 +561,7 @@ linux_err.o                : linux_err.c
 #  Other Makefile Commands
 #=============================================================================
 clean:
-	rm -f *.o *.mod geos geos_sj geosco
+	rm -f *.o *.mod geos geos_sj geosco ifc*
 
 .SUFFIXES: .f .F .f90 .F90
 .f.o:			; $(F90) -c $*.f

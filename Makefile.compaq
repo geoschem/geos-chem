@@ -1,4 +1,4 @@
-# $Id: Makefile.compaq,v 1.7 2003/10/21 16:05:26 bmy Exp $
+# $Id: Makefile.compaq,v 1.8 2003/10/30 16:17:15 bmy Exp $
 #=============================================================================
 # GEOS-CHEM Makefile for COMPAQ/Alpha (bmy, Tue Oct 14 15:38:38 2003)
 #
@@ -560,7 +560,7 @@ xltmmp.o                   : xltmmp.f                   CMN_SIZE define.h
 #  Other Makefile Commands
 #=============================================================================
 clean:
-        rm -f *.o *.mod geos geos_sj geosco geoscof
+        rm -f *.o *.mod ifc* geos geos_sj geosco geoscof
 
 .SUFFIXES: .f .F .f90 .F90
 .f.o:                   ; $(F90) $(Fopt) -c $*.f

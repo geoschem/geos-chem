@@ -1,4 +1,4 @@
-! $Id: drydep_mod.f,v 1.3 2003/10/01 20:32:21 bmy Exp $
+! $Id: drydep_mod.f,v 1.4 2003/10/30 16:17:17 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
@@ -137,11 +137,6 @@
       !=================================================================
 
       ! Parameters
-      !-----------------------------------------------------------------
-      ! Prior to 7/21/03:
-      ! Set MAXDEP=16 since we have now added N2O5 (rjp, bmy, 7/21/03)
-      !INTEGER, PARAMETER   :: MAXDEP    = 15     
-      !-----------------------------------------------------------------
       INTEGER, PARAMETER   :: MAXDEP    = 16     
       INTEGER, PARAMETER   :: NNTYPE    = 15     ! NTYPE    from "CMN_SIZE"
       INTEGER, PARAMETER   :: NNPOLY    = 20     ! NPOLY    from "CMN_SIZE"
@@ -607,11 +602,6 @@
 
       ! Local variables
       INTEGER :: I, J, JJ, JLOOP, L, L_PBLTOP, N, NK, NN
-      !--------------------------------------------------------------
-      ! Prior to 7/21/03:
-      ! AREA_CM2 has now been made into a lookup table. 
-      !REAL*8  :: DTCHEM, TDRYFX, AREA_CM2
-      !--------------------------------------------------------------
       REAL*8  :: DTCHEM, TDRYFX, AREA_CM2(JJPAR)
 
       !=================================================================
@@ -663,34 +653,6 @@
             CALL ERROR_STOP( 'Drydep species mis-indexing!', 
      &                       'DRYFLX ("error_mod.f")' )
          ENDIF
-
-         !--------------------------------------------------------------------
-         ! Prior to 7/21/03:
-         ! Now sum drydep fluxes over all levels (bmy, 7/10/03)
-         !! Loop over surface grid boxes
-         !DO J = 1, JJPAR
-         !
-         !   ! Grid box surface area [cm2]
-         !   AREA_CM2 = GET_AREA_CM2( J )
-         !
-         !   DO I = 1, IIPAR
-         !
-         !      ! Surface grid box index for CSPEC & VOLUME
-         !      JLOOP = JLOP(I,J,1)
-         !
-         !      ! Dry dep flux [molec] for species N = 
-         !      !  CSPEC(JLOOP,JJ) * VOLUME(JLOOP)
-         !      !  [molec/cm3]     * [cm3]  
-         !      TDRYFX = CSPEC(JLOOP,JJ) * VOLUME(JLOOP)
-         !
-         !      ! Convert TDRYFX from [molec] to [molec/cm2/s]
-         !      TDRYFX = TDRYFX / ( AREA_CM2 * DTCHEM ) 
-         !                 
-         !      ! Save into AD44 diagnostic array
-         !      AD44(I,J,N,1) = AD44(I,J,N,1) + TDRYFX
-         !   ENDDO
-         !ENDDO
-         !--------------------------------------------------------------------
 
          ! Loop over grid boxes
          DO L = 1, LLTROP
@@ -790,78 +752,6 @@
             ! Loop over surface grid boxes
             DO J = 1, JJPAR
             DO I = 1, IIPAR
-
-!------------------------------------------------------------------------------
-! Prior to 7/21/03:
-! Now compute drydep fluxes throughout the entire PBL (bmy, 7/21/03)
-!               ! DEPSAV   = Dry deposition frequency [s^-1]
-!               ! FRACLOST = Fraction of species lost to drydep [unitless]
-!               FRACLOST = DEPSAV(I,J,N) * DTCHEM
-!
-!#if defined( GEOS_1 ) || defined( GEOS_STRAT )
-!               !========================================================
-!               ! GEOS-1 or GEOS-STRAT:
-!               ! ---------------------
-!               ! (a) If FRACLOST >= 1 or FRACLOST < 0, stop the run.
-!               ! (b) If not, then subtract deposition losses from STT.
-!               !========================================================
-!                  IF ( FRACLOST >= 1 .or. FRACLOST < 0 ) THEN
-!                  WRITE(6,*) 'DEPSAV*DTCHEM >=1 or <0 : '
-!                  WRITE(6,*) 'DEPSAV*DTCHEM   = ', FRACLOST
-!                  WRITE(6,*) 'DEPSAV(I,J,1,N) = ', DEPSAV(I,J,N)
-!                  WRITE(6,*) 'DTCHEM (s)      = ', DTCHEM
-!                  WRITE(6,*) 'I,J             = ', I, J
-!                  WRITE(6,*) 'STOP in dryflxRnPbBe.f'
-!                  CALL GEOS_CHEM_STOP
-!               ENDIF
-!
-!               ! AMT_LOST = amount of species lost to drydep [kg]
-!               AMT_LOST = STT(I,J,1,NN) * FRACLOST
-!
-!               ! ND44 diagnostic: drydep flux [kg/s]
-!               IF ( ND44 > 0 ) THEN
-!                  AD44(I,J,N,1) = AD44(I,J,N,1) + ( AMT_LOST / DTCHEM )
-!               ENDIF
-!
-!               ! Subtract AMT_LOST from the STT array [kg]
-!               STT(I,J,1,NN) = STT(I,J,1,NN) - AMT_LOST
-!
-!#elif defined( GEOS_3 )
-!               !========================================================
-!               ! GEOS-3:
-!               ! -------
-!               ! (a) If FRACLOST < 0, then stop the run.
-!               !
-!               ! (b) If FRACLOST > 1, use an exponential loss to 
-!               !     avoid negative tracer
-!               !
-!               ! (c) If FRACLOST is in the range (0-1), then use the 
-!               !     regular formula (STT * FRACLOST) to compute
-!               !     the loss from dry deposition.
-!               !========================================================
-!
-!               ! Stop the run on negative FRACLOST!
-!               IF ( FRACLOST < 0 ) THEN
-!                  CALL ERROR_STOP( 'FRACLOST < 0', 'dryflxRnPbBe' )
-!               ENDIF
-!
-!               ! AMT_LOST = amount of tracer lost to drydep [kg]
-!               IF ( FRACLOST > 1 ) THEN
-!                  AMT_LOST = STT(I,J,1,NN) * ( 1d0 - EXP( -FRACLOST ) )
-!               ELSE
-!                  AMT_LOST = STT(I,J,1,NN) * FRACLOST
-!               ENDIF
-!
-!               ! ND44 diagnostic: drydep flux [kg/s]
-!               IF ( ND44 > 0 ) THEN
-!                  AD44(I,J,N,1) = AD44(I,J,N,1) + ( AMT_LOST / DTCHEM ) 
-!               ENDIF
-!
-!               ! Subtract AMT_LOST from the STT array [kg]
-!               STT(I,J,1,NN)  = STT(I,J,1,NN) - AMT_LOST
-!
-!#endif
-!------------------------------------------------------------------------------
 
                ! L_PBLTOP is the level where the PBL top occurs
                L_PBLTOP = INT( XTRA2(I,J) ) + 1

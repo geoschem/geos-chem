@@ -1,4 +1,4 @@
-! $Id: planeflight_mod.f,v 1.5 2003/08/12 17:08:13 bmy Exp $
+! $Id: planeflight_mod.f,v 1.6 2003/10/30 16:17:18 bmy Exp $
       MODULE PLANEFLIGHT_MOD
 !
 !******************************************************************************
@@ -174,12 +174,6 @@
 
       ! Hardwire filenames for now -- change later (bmy, 7/2/02)
       INFILENAME  = 'Planeflight.dat'
-      !-----------------------------------------------------------------
-      ! Prior to 8/8/03
-      ! Rename from "plane.dat" to "plane.log", since "*.dat" implies
-      ! an input file name. (bmy, 8/8/03)
-      !OUTFILENAME = 'plane.dat'
-      !-----------------------------------------------------------------
       OUTFILENAME = 'plane.log'
 
       ! Echo info
@@ -1071,10 +1065,6 @@
    
       ! Local variables
       INTEGER            :: KLOOP, JLOOP, V, R, I, J, L 
-      !-----------------------------------------------------------------
-      ! Prior to 8/8/03:
-      !REAL*8             :: RATE, TMP
-      !-----------------------------------------------------------------
       REAL*8             :: RATE
 
       ! Smallest, largest REAL*4 #'s representable on this machine
@@ -1119,12 +1109,6 @@
                      RATE  = JO1D(KLOOP)
 
                      ! Avoid overflow/underflow
-                     !-----------------------------------------------
-                     ! Prior to 8/8/03:
-                     ! Bug fix: TMP should be RATE (bmy, 8/8/03)
-                     !IF ( RATE < SMALLEST ) TMP = 0e0
-                     !IF ( RATE > LARGEST  ) TMP = LARGEST 
-                     !-----------------------------------------------
                      IF ( RATE < SMALLEST ) RATE = 0e0
                      IF ( RATE > LARGEST  ) RATE = LARGEST 
 
@@ -1142,12 +1126,6 @@
                      RATE  = N2O5(KLOOP)
 
                      ! Avoid overflow/underflow
-                     !----------------------------------------------
-                     ! Prior to 8/8/03:
-                     ! Bug fix: TMP should be RATE (bmy, 8/8/03)
-                     !IF ( RATE < SMALLEST ) TMP = 0e0
-                     !IF ( RATE > LARGEST  ) TMP = LARGEST 
-                     !----------------------------------------------
                      IF ( RATE < SMALLEST ) RATE = 0e0
                      IF ( RATE > LARGEST  ) RATE = LARGEST 
 

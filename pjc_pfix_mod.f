@@ -1,10 +1,10 @@
-! $Id: pjc_pfix_mod.f,v 1.2 2003/07/08 15:31:39 bmy Exp $
+! $Id: pjc_pfix_mod.f,v 1.3 2003/10/30 16:17:18 bmy Exp $
       MODULE PJC_PFIX_MOD
 !
 !******************************************************************************
 !  Module PJC_PFIX_MOD contains routines which implements the Philip Cameron-
 !  Smith pressure fixer for the new GEOS-4/fvDAS transport scheme.
-!  (bdf, bmy, 5/8/03, 6/24/03)
+!  (bdf, bmy, 5/8/03, 10/27/03)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -81,6 +81,7 @@
 !  NOTES:
 !  (1 ) Bug fix for Linux/PGI compiler in routines ADJUST_PRESS and 
 !        INIT_PRESS_FIX. (bmy, 6/23/03)
+!  (2 ) Now make P1, P2 true surface pressure in DO_PJC_PFIX (bmy, 10/27/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -175,8 +176,8 @@
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) D_DYN (REAL*8) : Dynamic timestep [s]
-!  (2 ) P1    (REAL*8) : PS - PTOP at middle of dynamic timestep [hPa]
-!  (3 ) P2    (REAL*8) : PS - PTOP at end    of dynamic timestep [hPa]
+!  (2 ) P1    (REAL*8) : True PSurface at middle of dynamic timestep [hPa]
+!  (3 ) P2    (REAL*8) : True PSurface at end    of dynamic timestep [hPa]
 !  (4 ) UWND  (REAL*8) : Zonal (E-W) wind [m/s]
 !  (5 ) VWND  (REAL*8) : Meridional (N-S) wind [m/s]
 !
@@ -186,6 +187,9 @@
 !  (7 ) YMASS (REAL*8) : N-S mass fluxes [kg/s ??]
 !  
 !  NOTES:
+!  (1 ) Now P1 and P2 are "true" surface pressures, and not PS-PTOP.  If using
+!        this P-fixer w/ GEOS-3 winds, pass true surface pressure to this
+!        routine. (bmy, 10/27/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -205,8 +209,12 @@
       ! Local variables
       LOGICAL, SAVE        :: FIRST = .TRUE.
       INTEGER              :: I, J
-      REAL*8               :: P1_TEMP(IIPAR,JJPAR)
-      REAL*8               :: P2_TEMP(IIPAR,JJPAR)
+      !---------------------------------------------------------------
+      ! Prior to 10/27/03:
+      ! P1_TEMP, P2_TEMP are no longer needed (bmy, 10/27/03)
+      !REAL*8               :: P1_TEMP(IIPAR,JJPAR)
+      !REAL*8               :: P2_TEMP(IIPAR,JJPAR)
+      !---------------------------------------------------------------
 
       ! Parameters
       LOGICAL, PARAMETER   :: INTERP_WINDS     = .TRUE.  ! winds are interp'd 
@@ -231,16 +239,33 @@
          ! Reset first-time flag
          FIRST = .FALSE.
       ENDIF
-    
-      ! P1 and P2 are really PS-PTOP, so we have to add PTOP
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         P1_TEMP(I,J) = P1(I,J) + PTOP
-         P2_TEMP(I,J) = P2(I,J) + PTOP
-      ENDDO
-      ENDDO
 
+!------------------------------------------------------------------------------
+! Prior to 10/27/03:
+!      ! P1 and P2 are really PS-PTOP, so we have to add PTOP
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!         P1_TEMP(I,J) = P1(I,J) + PTOP
+!         P2_TEMP(I,J) = P2(I,J) + PTOP
+!      ENDDO
+!      ENDDO
+!
+!      ! Call PJC pressure fixer w/ the proper arguments
+!      CALL ADJUST_PRESS( 'GEOS-CHEM',        INTERP_WINDS,  
+!     &                   .TRUE.,             MET_GRID_TYPE, 
+!     &                   ADVEC_CONSRV_OPT,   PMET2_OPT, 
+!     &                   PRESS_FIX_OPT,      D_DYN, 
+!     &                   GEOFAC_PC,          GEOFAC, 
+!     &                   COSE_FV,            COSP_FV, 
+!     &                   REL_AREA,           DAP, 
+!     &                   DBK,                P1_TEMP, 
+!     &                   P2_TEMP,            P2_TEMP,            
+!     &                   UWND,               VWND, 
+!     &                   XMASS,              YMASS )
+!------------------------------------------------------------------------------
+      
       ! Call PJC pressure fixer w/ the proper arguments
+      ! NOTE: P1 and P2 are now "true" surface pressure, not PS-PTOP!!!
       CALL ADJUST_PRESS( 'GEOS-CHEM',        INTERP_WINDS,  
      &                   .TRUE.,             MET_GRID_TYPE, 
      &                   ADVEC_CONSRV_OPT,   PMET2_OPT, 
@@ -248,11 +273,11 @@
      &                   GEOFAC_PC,          GEOFAC, 
      &                   COSE_FV,            COSP_FV, 
      &                   REL_AREA,           DAP, 
-     &                   DBK,                P1_TEMP, 
-     &                   P2_TEMP,            P2_TEMP,            
+     &                   DBK,                P1, 
+     &                   P2,                 P2,            
      &                   UWND,               VWND, 
      &                   XMASS,              YMASS )
-      
+
       ! Return to calling program
       END SUBROUTINE DO_PJC_PFIX
 

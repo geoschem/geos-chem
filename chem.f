@@ -1,11 +1,4 @@
-! $Id: chem.f,v 1.2 2003/08/06 15:30:34 bmy Exp $
-!-----------------------------------------------------------------------------
-! Prior to 7/30/03:
-! Remove LSAMERAD, it's obsolete.  Add SUNCOSB. (bmy, 7/30/03)
-!      SUBROUTINE CHEM( FIRSTCHEM, LSAMERAD, NPTS,    SUNCOS, 
-!     &                 CLOUDS,    ALT,      SURFALT, TOTO3, 
-!     &                 IDXAIR,    IDXO3,    OPTD,    UVALBEDO ) 
-!-----------------------------------------------------------------------------
+! $Id: chem.f,v 1.3 2003/10/30 16:17:16 bmy Exp $
       SUBROUTINE CHEM( FIRSTCHEM, NPTS,     SUNCOS,  SUNCOSB, 
      &                 CLOUDS,    ALT,      SURFALT, TOTO3, 
      &                 IDXAIR,    IDXO3,    OPTD,    UVALBEDO  )
@@ -50,11 +43,6 @@
 
       ! Arguments
       LOGICAL, INTENT(INOUT) :: FIRSTCHEM
-      !-----------------------------------------------------------------
-      ! Prior to 7/30/03:
-      ! Remove LSAMERAD, it's obsolete (bmy, 7/30/03)
-      !LOGICAL, INTENT(IN)    :: LSAMERAD
-      !-----------------------------------------------------------------
       INTEGER, INTENT(IN)    :: NPTS
       INTEGER, INTENT(IN)    :: IDXAIR(NLAT)
       INTEGER, INTENT(IN)    :: IDXO3(NLAT)
@@ -67,63 +55,13 @@
       REAL*8,  INTENT(IN)    :: UVALBEDO(IIPAR,JJPAR)
       REAL*8,  INTENT(IN)    :: OPTD(LLPAR,IIPAR,JJPAR)                   
 
-      !-----------------------------------------------------------------
-      ! Prior to 7/30/03:
-      ! Remove GETIFSUN, it's obsolete (bmy, 7/30/03)
-      !! External functions
-      !INTEGER, EXTERNAL      :: GETIFSUN
-      !-----------------------------------------------------------------
-
       !=================================================================
       ! CHEM begins here!
       !=================================================================
-
-      !-----------------------------------------------------------------
-      ! Prior to 7/30/03:
-      ! Update comments
-      !! Do gas phase calculation only at this stage, NCS=1
-      !NCS = 1
-      !-----------------------------------------------------------------
       
       ! At present, we are only doing tropospheric chemistry, which 
       ! for the moment we are storing in SMVGEAR II's "urban" slot
       NCS = NCSURBAN
-
-!------------------------------------------------------------------------------
-! Prior to 7/30/03:
-! Now call photolysis on each timestep.  FAST-J has an internal check to
-! return if it is nighttime.  This was just historical baggage. (bmy, 7/30/03)
-!      ! Test if we have sunlight boxes
-!      IFSUN = GETIFSUN( SUNCOS )
-!
-!      !=================================================================
-!      ! Call photolysis routine to compute J-Values
-!      !=================================================================
-!      IF ( ( IFSUN == 1 .AND. .NOT. LSAMERAD ) .OR. FIRSTCHEM ) THEN
-!
-!#if   defined( LFASTJ )
-!
-!         ! FAST-J only: call FAST_J to compute J-values
-!         CALL FAST_J( SUNCOS, OPTD, UVALBEDO )              
-!
-!#elif defined( LSLOWJ )                                            
-!
-!         ! SLOW-J only: call SOL to compute column densities and J-values
-!         CALL SOL( NPTS,  SUNCOS,  ALT,   SURFALT,
-!     &             TOTO3, CLOUDS, IDXAIR, IDXO3 )
-!
-!#endif
-!
-!      ENDIF
-!
-!#if   defined( LSLOWJ )
-!      
-!      ! SLOW-J only: Call FINDXSECT which gets index INAME, which gives the
-!      ! position of each photolysis species in the cross-section array XSECT  
-!      IF ( FIRSTCHEM ) CALL FINDXSECT
-!
-!#endif
-!------------------------------------------------------------------------------
 
       !=================================================================
       ! Call photolysis routine to compute J-Values
@@ -151,11 +89,6 @@
 
       ! PHYSPROC calls both CALCRATE, which computes rxn rates 
       ! and SMVGEAR, which is the chemistry solver
-      !----------------------------------------------------------------
-      ! Prior to 7/30/03:
-      ! Also need to pass SUNCOSB to "physproc.f" (gcc, bmy, 7/30/03)
-      !CALL PHYSPROC( SUNCOS )
-      !----------------------------------------------------------------
       CALL PHYSPROC( SUNCOS, SUNCOSB )
       
       ! SCHEM applies a simplified strat chemistry in order

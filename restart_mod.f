@@ -1,4 +1,4 @@
-! $Id: restart_mod.f,v 1.3 2003/10/21 16:05:29 bmy Exp $
+! $Id: restart_mod.f,v 1.4 2003/10/30 16:17:19 bmy Exp $
       MODULE RESTART_MOD
 !
 !******************************************************************************
@@ -55,11 +55,6 @@
       PRIVATE :: TRUE_TRACER_INDEX
       PRIVATE :: COPY_STT
       PRIVATE :: COPY_STT_FOR_CO_OH
-      !-----------------------------------------------------------------
-      ! Prior to 8/18/03:
-      ! Remove COPY_STT_FOR_OX, it's obsolete (bmy, 8/18/03)
-      !PRIVATE :: COPY_STT_FOR_OX
-      !-----------------------------------------------------------------
       PRIVATE :: CHECK_DATA_BLOCKS
 
       !=================================================================
@@ -399,15 +394,6 @@
                ! For CO-OH 
                CASE ( 5 )
                   CALL COPY_STT_FOR_CO_OH( NTRACER, TRACER, NCOUNT )
-
-               !---------------------------------------------------------
-               ! Prior to 8/18/03:
-               ! Remove COPY_STT_FOR_OX, you can do the same thing with
-               ! IDL routine "create_tagox_restart.pro." (bmy, 8/18/03)
-               !! For Tagged OX
-               !CASE ( 6 )
-               !   CALL COPY_STT_FOR_OX( NTRACER, TRACER, NCOUNT )
-               !---------------------------------------------------------
 
                ! All other simulations
                CASE DEFAULT    
@@ -771,85 +757,6 @@
       ! Return to READ_RESTART_FILE
       END SUBROUTINE COPY_STT_FOR_CO_OH
 
-!------------------------------------------------------------------------------
-! Prior to 8/18/03:
-! Remove COPY_STT_FOR_OX, it's obsolete (bmy, 8/18/03)
-!
-!      SUBROUTINE COPY_STT_FOR_OX( NTRACER, TRACER, NCOUNT )
-!!
-!!******************************************************************************
-!!  Subroutine COPY_STT_FOR_OX copies data from the TRACER array into the 
-!!  STT array for the single-tracer or tagged Ox run, readjusting the
-!!  tracer number accordingly. (bmy, 6/25/02, 9/18/02)
-!!
-!!  Arguments as Input:
-!!  ============================================================================
-!!  (1 ) NTRACER (INTEGER) : Tracer number
-!!  (2 ) NCOUNT  (INTEGER) : Ctr array - # of data blocks read for each tracer
-!!  (3 ) TRACER  (REAL*4 ) : Tracer concentrations [v/v]
-!!
-!!  NOTES:
-!!  (1 ) Added to "restart_mod.f".  Also added parallel loops. (bmy, 6/25/02)
-!!  (2 ) Now reference AD from "dao_mod.f" (bmy, 9/18/02)
-!!******************************************************************************
-!!
-!      ! References to F90 modules
-!      USE DAO_MOD, ONLY : AD
-!
-!#     include "CMN_SIZE"     ! Size parameters
-!#     include "CMN"          ! TCVV, STT
-!#     include "CMN_SETUP"    ! LSPLIT 
-!
-!      ! Arguments
-!      INTEGER, INTENT(IN)    :: NTRACER
-!      REAL*4,  INTENT(IN)    :: TRACER(IIPAR,JJPAR,LLPAR)
-!      INTEGER, INTENT(INOUT) :: NCOUNT(NNPAR)
-!
-!      ! Local variables
-!      INTEGER                :: I, J, L
-! 
-!      !=================================================================
-!      ! COPY_STT_FOR_OX begins here!
-!      !
-!      ! Here we are reading from a full-chemistry restart
-!      ! file, where Ox is tracer #2
-!      !=================================================================
-!      IF ( NTRACER == 2 ) THEN
-!
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
-!         DO L = 1, LLPAR
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!            STT(I,J,L,1) = TRACER(I,J,L) * AD(I,J,L) / TCVV(1)
-!
-!            ! Also intialize tagged tracers
-!            IF ( LSPLIT ) THEN
-!               STT(I,J,L,12)   = STT(I,J,L,1)
-!               STT(I,J,L,2:11) = 0d0
-!               STT(I,J,L,13)   = 0d0
-!            ENDIF
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO
-!
-!         ! Update count: tracer 1 only
-!         NCOUNT(1) = NCOUNT(1) + 1
-!      
-!      !=================================================================
-!      ! Here we are reading from a tagged Ox restart file
-!      ! with tracer numbers starting at 41
-!      !=================================================================
-!      ELSE IF ( NTRACER > 40 .and. NTRACER < 60 ) THEN
-!         CALL COPY_STT( NTRACER, TRACER, NCOUNT )
-!         
-!      ENDIF
-!
-!      ! Return to READ_RESTART_FILE
-!      END SUBROUTINE COPY_STT_FOR_OX
-!
 !------------------------------------------------------------------------------
 
       SUBROUTINE CHECK_DATA_BLOCKS( NTRACE, NCOUNT )

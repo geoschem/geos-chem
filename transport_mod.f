@@ -1,10 +1,10 @@
-! $Id: transport_mod.f,v 1.3 2003/08/12 17:08:14 bmy Exp $
+! $Id: transport_mod.f,v 1.4 2003/10/30 16:17:19 bmy Exp $
       MODULE TRANSPORT_MOD
 !
 !******************************************************************************
 !  Module TRANSPORT_MOD is used to call the proper version of TPCORE for
 !  GEOS-1, GEOS-STRAT, GEOS-3 or GEOS-4 nested-grid or global simulations.
-!  (yxw, bmy, 3/10/03, 8/7/03)
+!  (yxw, bmy, 3/10/03, 10/27/03)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -45,6 +45,7 @@
 !        GET_AIR_MASS to compute air masses from the input/output pressures
 !        from the new GEOS-4/fvDAS TPCORE. (bmy, 6/24/03)
 !  (3 ) Now references DEBUG_MSG from "error_mod.f". (bmy, 8/7/03)
+!  (4 ) Bug fix in DO_GLOBAL_TRANSPORT (bmy, 10/21/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -144,7 +145,7 @@
 !******************************************************************************
 !  Subroutine DO_TRANSPORT is the driver routine for the proper TPCORE |
 !  program for GEOS-1, GEOS-STRAT, GEOS-3 or GEOS-4 global simulations. 
-!  (bdf, bmy, 3/10/03, 8/7/03)
+!  (bdf, bmy, 3/10/03, 10/27/03)
 ! 
 !  Arguments as Input:
 !  ===========================================================================
@@ -161,6 +162,10 @@
 !  (2 ) Now call GET_AIR_MASS to compute air masses based on the input/output
 !        pressures of the GEOS-4 version of TPCORE (bmy, 6/24/03)
 !  (3 ) Now references DEBUG_MSG from "error_mod.f". (bmy, 8/7/03)
+!  (4 ) Bug fix: rewrote first parallel DO-loop to avoid NaN's.  Now also make
+!        sure to pass surface pressures which are consistent with the Ap and
+!        Bp coordinates which define the vertical grid to both TPCORE and
+!        DO_PJC_PFIX. (bmy, 10/27/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -235,7 +240,48 @@
       ENDIF
 
       !=================================================================
-      ! Prepare some variables for call to TPCORE
+      ! Prepare variables for calls to PJC P-fixer and TPCORE
+      !
+      ! For GEOS-4 (hybrid grid), the pressure at the bottom edge 
+      ! grid box (I,J,L) is given by:
+      !
+      !    P(I,J,L) = Ap(L) + Bp(L) * Psurf(I,J)
+      !
+      ! where:
+      !
+      !    Ap(L) and Bp(L) are defined in "pressure_mod.f"
+      !    Psurf(I,J) = "true" surface pressure at surface box (I,J)
+      !
+      ! However, for GEOS-1, GEOS-STRAT, and GEOS-3, these are pure
+      ! sigma grids, and the pressure at the bottom edge of level L
+      ! is given by:
+      !
+      !    P(I,J,L) = Ap(L) + Bp(L) * ( Psurf(I,J) - PTOP )
+      !
+      ! where:
+      !
+      !    Ap(L)      = PTOP for all L
+      !    Bp(L)      = bottom sigma edge of level L
+      !    Psurf(I,J) = "true" surface pressure at surface box (I,J)
+      !    PTOP       = model top pressure
+      !
+      ! When passing pressures to TPCORE, we must make sure that they
+      ! are consistent with the definition of the corresponding Ap and
+      ! Bp vertical coordinates.  This means:
+      !
+      !    GEOS-4    : pass Psurf(I,J)            to TPCORE
+      !    GEOS-3    : pass ( Psurf(I,J) - PTOP ) to TPCORE
+      !    GEOS-STRAT: pass ( Psurf(I,J) - PTOP ) to TPCORE
+      !    GEOS-1    : pass ( Psurf(I,J) - PTOP ) to TPCORE
+      !
+      ! where Psurf(I,J) is the true surface pressure at box (I,J) 
+      ! and PTOP the model top pressure.  
+      !
+      ! Also, the PJC P-fixer driver routine, DO_PJC_PFIX, now accepts 
+      ! the true surface pressure instead of Psurf-PTOP.  This means:
+      !
+      !    GEOS-4    : pass P_TP1,      P_TP2      to DO_PJC_PFIX
+      !    GEOS-3    : pass P_TP1+PTOP, P_TP2+PTOP to DO_PJC_PFIX
       !=================================================================
        
       ! Dynamic timestep [s]
@@ -243,11 +289,28 @@
       D_DYN = DBLE( N_DYN )
 
       ! P_TP1 = PS - PTOP at the middle of the dynamic timestep
-      ! P_TP2 = PS - PTOP at the end    of the dynamic timestep
+      ! P_TP2 = PS - PTOP at the end    of the dynamic timestep      
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+
+#if defined( GEOS_4 )
+
+         ! For GEOS-4 winds, we need to have P_TP1 and P_TP2 as the
+         ! true surface pressure, in order to be consistent with the
+         ! Ap and Bp coordinates which define the GEOS-4 hybrid grid.
+         P_TP1(I,J) = GET_PEDGE(I,J,1)
+         P_TP2(I,J) = PSC2(I,J)       
+
+#else 
+
+         ! For GEOS-3, GEOS-STRAT, GEOS-1 winds, we need to have
+         ! P_TP1 and P_TP2 to be ( true surface pressure - PTOP )
+         ! in order to be consistent with the Ap and Bp coordinates
+         ! which define the pure-sigma grid.  
          P_TP1(I,J) = GET_PEDGE(I,J,1) - PTOP
          P_TP2(I,J) = PSC2(I,J)        - PTOP
+
+#endif
       ENDDO
       ENDDO
 
@@ -257,31 +320,51 @@
          !==============================================================
          ! GEOS-3 or GEOS-4: Use GEOS-4/fvDAS version of TPCORE
          !==============================================================
+         DO N = 1, NTRACE
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
+!$OMP+PRIVATE( I, J, L )
 !$OMP+SCHEDULE( DYNAMIC )
-         DO N = 1, NTRACE
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
 
-            ! Airmass [kg] before transport
-            IF ( N == 1 ) THEN
-               AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J) )
-            ENDIF
+               ! Airmass [kg] before transport
+               IF ( N == 1 ) THEN
+                  AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J) )
+               ENDIF
 
-            ! Tracer mass [kg] before transport
-            TR_B(I,J,L,N) = STT(I,J,L,N) * AD_B(I,J,L) / TCVV(N)
-         ENDDO
-         ENDDO
-         ENDDO
-         ENDDO
+               ! Tracer mass [kg] before transport
+               TR_B(I,J,L,N) = STT(I,J,L,N) * AD_B(I,J,L) / TCVV(N)
+            ENDDO
+            ENDDO
+            ENDDO
 !$OMP END PARALLEL DO
+         ENDDO
 
-         ! Call PJC P-fixer -- get adjusted air masses (XMASS, YMASS)
+!----------------------------------------------------------------------------
+! Prior to 10/27/03:
+! Now always pass "true" surface pressure to DO_PJC_PFIX (bmy, 10/27/03)
+!         CALL DO_PJC_PFIX( D_DYN, P_TP1, P_TP2, 
+!     &                     UWND,  VWND,  XMASS, YMASS )
+!----------------------------------------------------------------------------
+
+#if   defined( GEOS_4 )
+
+         ! Call PJC P-fixer to get adjusted air masses (XMASS, YMASS)
+         ! For GEOS-4, pass "true" surface pressures P_TP1 and P_TP2 
+         ! to routine DO_PJC_PFIX.
          CALL DO_PJC_PFIX( D_DYN, P_TP1, P_TP2, 
      &                     UWND,  VWND,  XMASS, YMASS )
+
+#else
+         ! Call PJC P-fixer to get adjusted air masses (XMASS, YMASS)
+         ! For GEOS-3, P_TP1 and P_TP2 are ( Psurface - PTOP ), so we must 
+         ! call DO_PJC_PFIX with ( P_TP1 + PTOP ) and ( P_TP2 + PTOP ). 
+         CALL DO_PJC_PFIX( D_DYN, P_TP1+PTOP, P_TP2+PTOP, 
+     &                     UWND,  VWND,       XMASS, YMASS )
+
+#endif
 
          ! Flip arrays in vertical dimension for TPCORE
          ! Store winds in UTMP, VTMP to preserve UWND, VWND for diagnostics
@@ -292,6 +375,9 @@
          STT  (:,:,1:LLPAR,1:NTRACE) = STT  (:,:,LLPAR:1:-1,1:NTRACE)
 
          ! GEOS-4/fvDAS transport (the output pressure is P_TEMP)
+         ! NOTE: P_TP1 and P_TP2 must be consistent with the definition
+         ! of Ap and Bp.  For GEOS-4, P_TP1 and P_TP2 must be the "true"
+         ! surface pressure, but for GEOS-3, they must be ( Psurface -PTOP ).  
          CALL TPCORE_FVDAS( D_DYN,  Re,     IIPAR,   JJPAR,
      &                      LLPAR,  JFIRST, JLAST,   NG,
      &                      MG,     NTRACE, Ap,      Bp,
@@ -300,9 +386,20 @@
      &                      IORD,   JORD,   KORD,    N_ADJ,
      &                      XMASS,  YMASS )
 
-         ! Reset the floating pressure w/ the met field pressure,
-         ! this is correct for the new GEOS-4/fvDAS transport
+#if   defined( GEOS_4 )
+
+         ! For GEOS-4, P_TP2 is the "true" surface pressure at the end of 
+         ! the dynamic timestep.  Reset the pressure with P_TP2.  This will 
+         ! be the pressure at the start of the next dynamic timestep.
+         CALL SET_FLOATING_PRESSURE( P_TP2 )
+#else
+
+         ! For GEOS-3, P_TP2 is the "true" surface pressure at the end of 
+         ! the dynamic timestep - PTOP.  Reset the pressure with P_TP2+PTOP.  
+         ! This will be the pressure at the start of the next dynamic timestep.
          CALL SET_FLOATING_PRESSURE( P_TP2 + PTOP )
+
+#endif
 
          ! Re-Flip STT in the vertical dimension
          STT(:,:,1:LLPAR,1:NTRACE) = STT(:,:,LLPAR:1:-1,1:NTRACE)
@@ -363,13 +460,18 @@
          STT  (:,:,1:LLPAR,1:NTRACE) = STT  (:,:,LLPAR:1:-1,1:NTRACE)
 
          ! TPCORE v7.1.m transport scheme (output pressure is P_TP2)
+         ! The pressures P_TP1 and P_TP2 are PS-PTOP, in order to
+         ! be consistent with the definition of Ap and Bp for GEOS-3
+         ! GEOS-STRAT, and GEOS-1 winds. (bmy, 10/27/03)
          CALL TPCORE( IGD,   STT(:,:,:,1:NTRACE), P_TP1,   
      &                P_TP2, UTMP, VTMP,  WW,     N_DYN, 
      &                IORD,  JORD, KORD,  NTRACE, IIPAR, 
      &                JJPAR, J1,   LLPAR, Ap,     Bp,     
      &                PTOP,  Re,   LFILL, LMFCT,  Umax )
 
-         ! Reset floating pressure w/ pressure adjusted by TPCORE
+         ! Reset floating pressure w/ pressure adjusted by TPCORE.  Here
+         ! P_TP2 is PS-PTOP, so reset the pressure with P_TP2+PTOP. This
+         ! will be the pressure at the start of the next dynamic timestep.
          CALL SET_FLOATING_PRESSURE( P_TP2 + PTOP )
            
          ! Re-Flip STT in the vertical dimension

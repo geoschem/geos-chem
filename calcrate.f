@@ -1,4 +1,4 @@
-! $Id: calcrate.f,v 1.5 2003/08/12 17:08:10 bmy Exp $
+! $Id: calcrate.f,v 1.6 2003/10/30 16:17:16 bmy Exp $
       SUBROUTINE CALCRATE( SUNCOS )
 !
 !******************************************************************************
@@ -567,35 +567,6 @@ C  dependence of HO2/NO3 + HO2 on water vapor
             DO I       = 1, NNADDK(NCS)
                NK      = NKSPECK(I,NCS)
                XSQM    = SQRT(ARR(NK,NCS))
-!------------------------------------------------------------------------------
-! Prior to 8/7/03:
-! Modify code below for updated N2O5 hydroylsis (mje, bmy, 8/7/03)
-!               XSTKCF  = BRR(NK,NCS)
-!               
-!               ! Surface area for sulfate aerosol [cm2 arsl/cm3 air]
-!               XAREA   = TAREA(JLOOP,1)
-!
-!               ! Radius for sulfate aerosol [cm]
-!               XRADIUS = ERADIUS(JLOOP,1)
-!
-!               ! Reaction rate for sulfate aerosol [cm3/s]
-!               RRATE(KLOOP,NK) =
-!     &              ARSL1K(XAREA,XRADIUS,XDENA,XSTKCF,XSTK,XSQM)
-!
-!               DO N = 2, NDUST + NAER
-!
-!                  ! Surface area for dust size bin N
-!                  XAREA   = TAREA(JLOOP,N)
-!
-!                  ! Radius for dust size bin N
-!                  XRADIUS = ERADIUS(JLOOP,N)
-!
-!                  ! Reaction rate for dust size bin N
-!                  RRATE(KLOOP,NK) = RRATE(KLOOP,NK) +
-!     &                 ARSL1K(XAREA,XRADIUS,XDENA,XSTKCF,XSTK,XSQM)
-!               ENDDO
-!            ENDDO
-!------------------------------------------------------------------------------
 
                ! Initialize
                RRATE(KLOOP,NK) = 0d0

@@ -1,4 +1,4 @@
-! $Id: a3_read_mod.f,v 1.1 2003/06/30 20:26:07 bmy Exp $
+! $Id: a3_read_mod.f,v 1.2 2003/10/30 16:17:16 bmy Exp $
       MODULE A3_READ_MOD
 !
 !******************************************************************************
@@ -610,7 +610,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_A3 reads GEOS A-3 (3-hr avg) fields from disk.
-!  (bmy, 5/8/98, 6/23/03)
+!  (bmy, 5/8/98, 10/28/03)
 ! 
 !  Arguments as input:
 !  ============================================================================
@@ -638,12 +638,14 @@
 !  (15) Z0      : (2-D) GMAO roughness height                  [m] 
 !
 !  NOTES:
+!  (1 ) Now use function TIMESTAMP_STRING from "time_mod.f" for formatted 
+!        date/time output. (bmy, 10/28/03)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIAG_MOD,     ONLY : AD67
-      USE FILE_MOD,     ONLY : IOERROR, IU_A3
-      USE TIME_MOD,     ONLY : SET_CT_A3
+      USE FILE_MOD,     ONLY : IOERROR,     IU_A3
+      USE TIME_MOD,     ONLY : SET_CT_A3,   TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_2D, TRANSFER_TO_1D
 
 #     include "CMN_SIZE"             ! Size parameters
@@ -673,6 +675,7 @@
       INTEGER                        :: I, IJLOOP, IOS, J, N_A3, NFOUND 
       REAL*4                         :: Q2(IGLOB,JGLOB)
       CHARACTER(LEN=8)               :: NAME
+      CHARACTER(LEN=16)              :: STAMP
 
       ! XYMD, XHMS must be REAL*4 for GEOS-1, GEOS-STRAT
       ! but INTEGER for GEOS-3 and GEOS-4 (bmy, 6/23/03)
@@ -958,10 +961,17 @@
          !==============================================================
          IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) .and. 
      &        NFOUND == N_A3 ) THEN 
-            WRITE( 6, 210 ) NFOUND, NYMD, NHMS
- 210        FORMAT( '     - Found all ', i3, 
-     &              ' A-3 met fields for NYMD, NHMS = ', 
-     &              i8.8, 1x, i6.6 )
+!----------------------------------------------------------------------------
+! Prior to 10/28/03:
+! Now use TIMESTAMP_STRING for formatted output (bmy, 10/28/03)
+!            WRITE( 6, 210 ) NFOUND, NYMD, NHMS
+! 210        FORMAT( '     - Found all ', i3, 
+!     &              ' A-3 met fields for NYMD, NHMS = ', 
+!     &              i8.8, 1x, i6.6 )
+!----------------------------------------------------------------------------
+            STAMP = TIMESTAMP_STRING( NYMD, NHMS )
+            WRITE( 6, 210 ) NFOUND, STAMP
+ 210        FORMAT( '     - Found all ', i3, ' A-3 met fields for ', a )
             EXIT
          ENDIF
       ENDDO

@@ -1,9 +1,10 @@
-! $Id: phis_read_mod.f,v 1.1 2003/06/30 20:26:10 bmy Exp $
+! $Id: phis_read_mod.f,v 1.2 2003/10/30 16:17:18 bmy Exp $
       MODULE PHIS_READ_MOD
 !
 !******************************************************************************
-!  Module PHIS_READ_MOD contains subroutines that unzip, open, and read the
-!  GEOS-CHEM PHIS (geopotential heights) field from disk. (bmy, 6/16/03)
+!  Module PHIS_READ_MOD contains subroutines that unzip, open, and 
+!  read the GEOS-CHEM PHIS (geopotential heights) field from disk. 
+!  (bmy, 6/16/03, 10/28/03)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -26,6 +27,7 @@
 !
 !  NOTES:
 !  (1 ) Adapted from "dao_read_mod.f" (bmy, 6/16/03)
+!  (2 ) Now use TIMESTAMP_STRING for formatted date/time output (bmy, 10/28/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -419,11 +421,14 @@
 !
 !  NOTES:
 !  (1 ) Adapted from READ_PHIS from "dao_read_mod.f" (bmy, 6/16/03)
+!  (2 ) Now use function TIMESTAMP_STRING from "time_mod.f" for formatted 
+!        date/time output. (bmy, 10/28/03)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIAG_MOD,     ONLY : AD67
       USE FILE_MOD,     ONLY : IOERROR, IU_PH
+      USE TIME_MOD,     ONLY : TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"   ! Size parameters
@@ -438,7 +443,8 @@
       INTEGER              :: NFOUND, IOS
       INTEGER, PARAMETER   :: N_PHIS = 1
       REAL*4               :: Q2(IGLOB,JGLOB)
-      CHARACTER (LEN=8)    :: NAME
+      CHARACTER(LEN=8)     :: NAME
+      CHARACTER(LEN=16)    :: STAMP
 
       ! XYMD, XHMS have to be REAL*4 for GEOS-1 and GEOS-STRAT
       ! but INTEGER for GEOS-3 and GEOS-4 (bmy, 6/16/03)
@@ -500,9 +506,16 @@
          !==============================================================
          IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) .AND. 
      &        NFOUND == N_PHIS ) THEN
-            WRITE( 6, 200 ) NYMD, NHMS 
- 200        FORMAT( '     - Found PHIS met field for NYMD, NHMS = ', 
-     &              i8.8, 1x, i6.6 )
+!----------------------------------------------------------------------------
+! Prior to 10/28/03:
+! Now use TIMESTAMP_STRING for formatted output (bmy, 10/28/03)
+!            WRITE( 6, 200 ) NYMD, NHMS 
+! 200        FORMAT( '     - Found PHIS met field for NYMD, NHMS = ', 
+!     &              i8.8, 1x, i6.6 )
+!----------------------------------------------------------------------------
+            STAMP = TIMESTAMP_STRING( NYMD, NHMS )
+            WRITE( 6, 200 ) STAMP
+ 200        FORMAT( '     - Found PHIS met fields for ', a )
             EXIT
          ENDIF                  
       ENDDO

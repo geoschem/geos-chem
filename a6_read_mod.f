@@ -1,9 +1,9 @@
-! $Id: a6_read_mod.f,v 1.1 2003/06/30 20:26:07 bmy Exp $
+! $Id: a6_read_mod.f,v 1.2 2003/10/30 16:17:16 bmy Exp $
       MODULE A6_READ_MOD
 !
 !******************************************************************************
 !  Module A6_READ_MOD contains subroutines that unzip, open, and read
-!  GEOS-CHEM A-3 (avg 3-hour) met fields from disk. (bmy, 6/19/03)
+!  GEOS-CHEM A-3 (avg 3-hour) met fields from disk. (bmy, 6/19/03, 10/28/03)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -29,6 +29,7 @@
 !
 !  NOTES:
 !  (1 ) Adapted from "dao_read_mod.f" (bmy, 6/19/03)
+!  (2 ) Now use TIMESTAMP_STRING for formatted output (bmy, 10/28/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -699,7 +700,7 @@
 !
 !*****************************************************************************
 !  Subroutine READ_A6 reads A-6 (avg 6-hr) met fields from disk. 
-!  (bmy, 6/5/98, 6/19/03)
+!  (bmy, 6/5/98, 10/28/03)
 ! 
 !  Arguments as input:
 !  ===========================================================================
@@ -728,12 +729,14 @@
 !
 !  NOTES:
 !  (1 ) Adapted from READ_A6 of "dao_read_mod.f" (bmy, 6/19/03)
+!  (2 ) Now use function TIMESTAMP_STRING from "time_mod.f" for formatted 
+!        date/time output. (bmy, 10/28/03)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIAG_MOD,     ONLY : AD66,        AD67
       USE FILE_MOD,     ONLY : IOERROR,     IU_A6
-      USE TIME_MOD,     ONLY : SET_CT_A6
+      USE TIME_MOD,     ONLY : SET_CT_A6,   TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_A6, TRANSFER_3D
 
 #     include "CMN_SIZE"             ! Size parameters
@@ -767,6 +770,7 @@
       REAL*8                         :: TAUCLD(LLPAR,IIPAR,JJPAR)
       REAL*8                         :: CLDTOT(LLPAR,IIPAR,JJPAR)
       CHARACTER(LEN=8)               :: NAME
+      CHARACTER(LEN=16)              :: STAMP
 
       ! XYMD, XHMS must be REAL*4 for GEOS-1 and GEOS-STRAT
       ! but INTEGER for GEOS-3 and GEOS-4 (bmy, 6/19/03)
@@ -1052,10 +1056,17 @@
          !==============================================================
          IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) .AND. 
      &        NFOUND == N_A6 ) THEN
-            WRITE( 6, 210 ) NFOUND, NYMD, NHMS
- 210        FORMAT( '     - Found all ', i3, 
-     &              ' A-6 met fields for NYMD, NHMS = ', 
-     &              i8.8, 1x, i6.6 )
+!------------------------------------------------------------------------
+! Prior to 10/28/03:
+! Now use TIMESTAMP_STRING for formatted output (bmy, 10/28/03)
+!            WRITE( 6, 210 ) NFOUND, NYMD, NHMS
+! 210        FORMAT( '     - Found all ', i3, 
+!     &              ' A-6 met fields for NYMD, NHMS = ', 
+!     &              i8.8, 1x, i6.6 )
+!------------------------------------------------------------------------
+            STAMP = TIMESTAMP_STRING( NYMD, NHMS )
+            WRITE( 6, 210 ) NFOUND, STAMP
+ 210        FORMAT( '     - Found all ', i3, ' A-6 met fields for ', a )
             EXIT
          ENDIF
       ENDDO

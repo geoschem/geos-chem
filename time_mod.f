@@ -1,9 +1,9 @@
-! $Id: time_mod.f,v 1.3 2003/10/01 20:32:23 bmy Exp $
+! $Id: time_mod.f,v 1.4 2003/10/30 16:17:19 bmy Exp $
       MODULE TIME_MOD
 !
 !******************************************************************************
 !  TIME_MOD contains GEOS-CHEM date and time variables and timesteps, and 
-!  routines for accessing them. (bmy, 6/21/00, 9/29/03) 
+!  routines for accessing them. (bmy, 6/21/00, 10/28/03) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -145,6 +145,8 @@
 !        reading fvDAS fields. (bmy, 6/26/03)
 !  (10) Now allow ITS_A_LEAPYEAR to take an optional argument.  Bug fix for
 !        Linux: must use ENCODE to convert numbers to strings (bmy, 9/29/03)
+!  (11) Bug fix in EXPAND_DATE.  Also add optional arguments to function
+!        TIMESTAMP_STRNIG. (bmy, 10/28/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -2434,35 +2436,66 @@
 
 !------------------------------------------------------------------------------
 
-      FUNCTION TIMESTAMP_STRING() RESULT( TIME_STR )
+      FUNCTION TIMESTAMP_STRING( YYYYMMDD, HHMMSS ) RESULT( TIME_STR )
 !
 !******************************************************************************
-!  TIMESTAMP_STRING returns a formatted string "YYYY/MM/DD HH:MM" for the 
-!  current date.  (bmy, 3/21/03, 9/29/03)
+!  TIMESTAMP_STRING returns a formatted string "YYYY/MM/DD HH:MM" for the a
+!  date and time specified by YYYYMMDD and HHMMSS.  If YYYYMMDD and HHMMSS are
+!  omitted, then TIMESTAMP_STRING will create a formatted string for the 
+!  current date and time. (bmy, 3/21/03, 10/28/03)
 !                                                                          
 !  NOTES:
 !  (1 ) Now use ENCODE statement for PGI/F90 on Linux (bmy, 9/29/03)
+!  (2 ) Now add optional arguments YYYYMMDD and HHMMSS (bmy, 10/27/03)
 !******************************************************************************
 !     
 #     include "define.h"
 
+      ! Arguments
+      INTEGER, INTENT(IN), OPTIONAL :: YYYYMMDD, HHMMSS 
+
+      ! Local variables
+      INTEGER                       :: THISYEAR, THISMONTH,  THISDAY
+      INTEGER                       :: THISHOUR, THISMINUTE, THISSECOND
+
       ! Function value
-      CHARACTER(LEN=16) :: TIME_STR
+      CHARACTER(LEN=16)             :: TIME_STR
       
       !=================================================================
       ! TIMESTAMP_STRING begins here!
       !=================================================================
 
+      ! If YYYYMMDD is passed, then use that date.  Otherwise use the 
+      ! current date stored in global variables YEAR, MONTH, DAY.
+      IF ( PRESENT( YYYYMMDD ) ) THEN
+         CALL YMD_EXTRACT( YYYYMMDD, THISYEAR, THISMONTH, THISDAY )
+      ELSE
+         THISYEAR  = YEAR
+         THISMONTH = MONTH
+         THISDAY   = DAY
+      ENDIF
+         
+      ! If HHMMSS is passed, then use that time.  Otherwise use the 
+      ! current time stored in global variables HOUR and MINUTE.
+      IF ( PRESENT( HHMMSS ) ) THEN
+         CALL YMD_EXTRACT( HHMMSS, THISHOUR, THISMINUTE, THISSECOND )
+      ELSE
+         THISHOUR   = HOUR
+         THISMINUTE = MINUTE
+      ENDIF
+
 #if   defined( LINUX ) 
       
       ! For PGI/F90 Linux, we must use the ENCODE command
       ! to convert from numeric to string format (bmy, 9/29/03)
-      ENCODE( 16, 100, TIME_STR ) YEAR, MONTH, DAY, HOUR, MINUTE
+      ENCODE( 16, 100, TIME_STR ) THISYEAR, THISMONTH, 
+     &                            THISDAY,  THISHOUR, THISMINUTE
 
 #else
 
-      ! For other platforms, we can just use an internal read
-      WRITE( TIME_STR, 100 ) YEAR, MONTH, DAY, HOUR, MINUTE
+      ! For other platforms, we can just use a FORTRAN internal write
+      WRITE( TIME_STR, 100 ) THISYEAR, THISMONTH, 
+     &                       THISDAY,  THISHOUR, THISMINUTE
 
 #endif
 
@@ -2525,7 +2558,7 @@
 !
 !******************************************************************************
 !  Subroutine EXPAND_DATE replaces "YYYYMMDD" and "hhmmss" tokens within
-!  a filename string with the actual values. (bmy, 6/27/02, 9/29/03)
+!  a filename string with the actual values. (bmy, 6/27/02, 10/23/03)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -2541,6 +2574,7 @@
 !  NOTES:
 !  (1 ) Bug fix for Linux: use ENCODE statement to convert number to string 
 !        instead of F90 internal read. (bmy, 9/29/03)
+!  (2 ) Now replace 2 and 4 digit year strings for all models (bmy, 10/23/03)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -2553,73 +2587,53 @@
       INTEGER,          INTENT(IN)    :: YYYYMMDD, HHMMSS
 
       ! Local variables
-      INTEGER                         :: YYYY, MM, DD, HH, II, SS
+      INTEGER                         :: YYYY, YY, MM, DD, HH, II, SS
       CHARACTER(LEN=2)                :: MM_STR, DD_STR
       CHARACTER(LEN=2)                :: HH_STR, II_STR, SS_STR
-
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-      CHARACTER(LEN=2)                :: YYYY_STR
-#else
+      CHARACTER(LEN=2)                :: YY_STR
       CHARACTER(LEN=4)                :: YYYY_STR
-#endif
 
       !=================================================================
       ! EXPAND_DATE begins here!
       !=================================================================
 
       ! Extract today's date into year, month, and day sections
-      CALL YMD_EXTRACT( NYMD_Y2K( YYYYMMDD ), YYYY, MM, DD )
+      CALL YMD_EXTRACT( YYYYMMDD, YYYY, MM, DD )
 
       ! Extract today's time into HH, MM, and SS sections
       ! (rename minutes to II so as not to overwrite MM)
       CALL YMD_EXTRACT( HHMMSS, HH, II, SS )
 
-      ! Convert integer values to char strings
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-
-      ! Use ENCODE statement for PGI/Linux (bmy, 9/29/03)
-#if   defined( LINUX )
-      ENCODE( 2, '(i2.2)', YYYY_STR ), YYYY
-#else
-      WRITE( YYYY_STR, '(i2.2)' ) YYYY
-#endif
-
-#else
-    
-      ! Use ENCODE statement for PGI/Linux (bmy, 9/29/03)
-#if   defined( LINUX ) 
-      ENCODE( 4, '(i4.4)', YYYY_STR ), YYYY
-#else      
-      WRITE( YYYY_STR, '(i4.4)' ) YYYY
-#endif
-
-#endif
+      ! 2-digit year number (e.g. "97" instead of "1997")
+      YY = YYYY - 1900
+      IF ( YY >= 100 ) YY = YY - 100
 
 #if   defined( LINUX )
       
       ! Use ENCODE statement for PGI/Linux (bmy, 9/29/03)
-      ENCODE( 2, '(i2.2)', MM_STR ) MM
-      ENCODE( 2, '(i2.2)', DD_STR ) DD
-      ENCODE( 2, '(i2.2)', HH_STR ) HH
-      ENCODE( 2, '(i2.2)', II_STR ) II
-      ENCODE( 2, '(i2.2)', SS_STR ) SS
+      ENCODE( 4, '(i4.4)', YYYY_STR ) YYYY
+      ENCODE( 2, '(i2.2)', YY_STR   ) YY
+      ENCODE( 2, '(i2.2)', MM_STR   ) MM
+      ENCODE( 2, '(i2.2)', DD_STR   ) DD
+      ENCODE( 2, '(i2.2)', HH_STR   ) HH
+      ENCODE( 2, '(i2.2)', II_STR   ) II
+      ENCODE( 2, '(i2.2)', SS_STR   ) SS
 #else
 
-      ! For other platforms, use an F90 internal read (bmy, 9/29/03)
-      WRITE( MM_STR, '(i2.2)' ) MM
-      WRITE( DD_STR, '(i2.2)' ) DD
-      WRITE( HH_STR, '(i2.2)' ) HH
-      WRITE( II_STR, '(i2.2)' ) II
-      WRITE( SS_STR, '(i2.2)' ) SS
+      ! For other platforms, use an F90 internal write (bmy, 9/29/03)
+      WRITE( YYYY_STR, '(i4.4)' ) YYYY
+      WRITE( YY_STR,   '(i2.2)' ) YY
+      WRITE( MM_STR,   '(i2.2)' ) MM
+      WRITE( DD_STR,   '(i2.2)' ) DD
+      WRITE( HH_STR,   '(i2.2)' ) HH
+      WRITE( II_STR,   '(i2.2)' ) II
+      WRITE( SS_STR,   '(i2.2)' ) SS
 
 #endif
 
       ! Replace YYYY, MM, DD, HH tokens w/ actual values 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-      CALL STRREPL( FILENAME, 'YY',   YYYY_STR )
-#else
       CALL STRREPL( FILENAME, 'YYYY', YYYY_STR )
-#endif
+      CALL STRREPL( FILENAME, 'YY',   YY_STR   )
       CALL STRREPL( FILENAME, 'MM',   MM_STR   )
       CALL STRREPL( FILENAME, 'DD',   DD_STR   )
       CALL STRREPL( FILENAME, 'hh',   HH_STR   )

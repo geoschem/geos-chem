@@ -1,4 +1,4 @@
-! $Id: comode.h,v 1.6 2003/08/12 17:08:11 bmy Exp $
+! $Id: comode.h,v 1.7 2003/10/30 16:17:16 bmy Exp $
 !
 !******************************************************************************
 !  Header file COMODE contains common blocks and variables for SMVGEAR II.
@@ -329,20 +329,6 @@ C
       COMMON /CHEM2/     NPHOT,       NPRODLO,   NPRODHI,   MSTEP,     
      &                   MAXORD,      MBETWEEN,  IC3H8,     IC2H6
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! Prior to 7/28/03:
-! NOCC does not need to be held threadprivate, since it is not w/in the
-! parallel DO-loop section.  Split it off into a different common block.
-! (bmy, 7/28/03)
-!      ! /CHEM2A/ has to be held THREADPRIVATE (bmy, 7/16/03)
-!      INTEGER ::         ISCHAN,      NOCC,      NFDH3,     NFDL2   
-!      INTEGER ::         NFDH2,       NFDL1,     NFDH1,     NFDREP
-!      INTEGER ::         NFDREP1,     NFDL0,     NALLR
-!      COMMON /CHEM2A/    ISCHAN,      NOCC,      NFDH3,     NFDL2,
-!     &                   NFDH2,       NFDL1,     NFDH1,     NFDREP, 
-!     &                   NFDREP1,     NFDL0,     NALLR
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                   
       ! /CHEM2A/ has to be held THREADPRIVATE (bmy, 7/16/03)
       INTEGER ::         ISCHAN,      NFDH3,     NFDL2,     NFDH2
       INTEGER ::         NFDL1,       NFDH1,     NFDREP,    NFDREP1   
@@ -398,25 +384,6 @@ C
       INTEGER ::        ITWO,             NCSLOOP
       COMMON /IITLOOP/  JREORDER(ITLOOP), LREORDER(ITLOOP), 
      &                  ITWO(    ITLOOP), NCSLOOP( ITLOOP,ICS)
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! Prior to 7/28/03:
-! All of these variables are either used only w/in "calcrate.f", or only
-! w/in "smvgear.f".  Therefore, we can declare them as local variables w/in
-! these routines and remove this common block. (bmy, 7/28/03)
-!      REAL*8 ::         DENAIR,         CONCO2,         CONCN2
-!      REAL*8 ::         T3I,            TEMP1,          T3K
-!      REAL*8 ::         PRESSK,         DELY,           ERRHOLD
-!      COMMON /DKBLOOP/  DENAIR(KBLOOP), CONCO2(KBLOOP), CONCN2( KBLOOP),
-!     &                  T3I(   KBLOOP), TEMP1( KBLOOP), T3K(    KBLOOP),  
-!     &                  PRESSK(KBLOOP), DELY(  KBLOOP), ERRHOLD(KBLOOP)
-!
-! Prior to 7/28/03:
-! YABST is only ever used w/in "smvgear.f", so we can make it a local
-! variable there and remove the /DKBLOOP5/ common block. (bmy, 7/28/03)
-!      REAL*8 ::         YABST
-!      COMMON /DKBLOOP5/ YABST(KBLOOP)
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Add NKSPECG for DMS+OH+O2 rxn (bdf, bmy, 4/18/03)
       INTEGER NMOTH,NTSPEC,JPHOTRAT,ISGAINR,ISPORL,NOGAINE,NOUSE
@@ -726,18 +693,8 @@ C     6  JHIZ2(   MXGSAER,      ICP)
 !$OMP THREADPRIVATE( /CHEM2A/   )  
 !$OMP THREADPRIVATE( /CTLLOOP2/ )
 !$OMP THREADPRIVATE( /DGEAR2/   )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! Prior to 7/28/03:
-! We don't need to hold this THREADPRIVATE anymore. (bmy, 7/28/03)
-!!$OMP THREADPRIVATE( /DKBLOOP/  )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !$OMP THREADPRIVATE( /DKBLOOP0/ )
 !$OMP THREADPRIVATE( /DKBLOOP2/ )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! Prior to 7/28/03:
-! We don't need to hold this THREADPRIVATE anymore (bmy, 7/28/03)
-!!$OMP THREADPRIVATE( /DKBLOOP5/ )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !$OMP THREADPRIVATE( /IGEAR2/   )
 !$OMP THREADPRIVATE( /IXYGD2/   )
 C

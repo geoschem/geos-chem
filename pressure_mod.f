@@ -1,20 +1,23 @@
-! $Id: pressure_mod.f,v 1.2 2003/07/08 15:31:28 bmy Exp $
+! $Id: pressure_mod.f,v 1.3 2003/10/30 16:17:18 bmy Exp $
       MODULE PRESSURE_MOD
 !
 !******************************************************************************
 !  Module PRESSURE_MOD contains variables and routines which specify the grid 
 !  box pressures for both hybrid or pure-sigma models.  This is necessary
 !  for running GEOS-CHEM with the new GEOS-4/fvDAS meteorological fields.
-!  (dsa, bmy, 8/27/02, 6/19/03)
+!  (dsa, bmy, 8/27/02, 10/24/03)
 !
-!  The Hybrid ETA-coordinate (dsa, 8/27/02, 5/8/03)
+!  The Hybrid ETA-coordinate (dsa, 8/27/02, 10/24/03)
 !  ============================================================================
 !  Pressure at layer edges are defined as follows:
 !  
 !     P(I,J,L) = AP(L) + ( BP(L) * PS(i,j) )
 !  
 !  where
-!     PS = Psfc - PTOP, where Psfc is the true surface pressure [hPa]
+!     PS = Psfc - PTOP (GEOS-1, GEOS-STRAT, GEOS-3) or
+!     PS = Psfc        (GEOS-4) 
+!        here Psfc is the true surface pressure [hPa]
+!
 !     AP has the same units as PS [hPa]
 !     BP is a unitless constant given at layer edges.
 !     In all cases  BP(LLPAR+1) = 0., BP(1) = 1.
@@ -48,6 +51,7 @@
 !  (1 ) Be sure to check PFLT for NaN or Infinities (bmy, 8/27/02)
 !  (2 ) Updated comments (bmy, 5/8/03)
 !  (3 ) Updated format string for fvDAS (bmy, 6/19/03)
+!  (4 ) Bug fix: use PFLT instead of PFLT-PTOP for GEOS-4 (bmy, 10/24/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -184,7 +188,7 @@
 !
 !******************************************************************************
 !  Function GET_PEDGE returns the pressure at the bottom edge of level L.
-!  (dsa, bmy, 8/20/02)
+!  (dsa, bmy, 8/20/02, 10/24/03)
 ! 
 !  Arguments as Input:
 !  ============================================================================
@@ -192,6 +196,7 @@
 !  (2 ) L (INTEGER) : Pressure will be returned at the bottom edge of level L
 !
 !  NOTES:
+!  (1 ) Bug fix: use PFLT instead of PFLT-PTOP for GEOS-4 (bmy, 10/24/03)
 !******************************************************************************
 !
 #     include "CMN_SIZE"  ! PTOP
@@ -205,11 +210,22 @@
       !=================================================================
       ! GET_PEDGE begins here!
       !=================================================================
+#if   defined( GEOS_4 )
 
-      ! Here Ap is in [hPa] and Bp is unitless.  
-      ! PFLT is the true surface pressure, so subtract PTOP from it.
+      ! Here Ap is in [hPa] and Bp is [unitless].  
+      ! For GEOS-4, we need to have PFLT as true surface pressure, 
+      ! since Ap(1)=0 and Bp(1)=1.0.  This ensures that the true
+      ! surface pressure will be returned for L=1. (bmy, 10/24/03)
+      PEDGE = AP(L) + ( BP(L) * PFLT(I,J) )
+
+#else 
+
+      ! Here Ap is just PTOP in [hPa] and Bp are the sigma edges [unitless]  
+      ! PFLT is the true surface pressure, so subtract PTOP from it
       PEDGE = AP(L) + ( BP(L) * ( PFLT(I,J) - PTOP ) )
-      
+
+#endif     
+ 
       ! Return to calling program
       END FUNCTION GET_PEDGE 
 

@@ -1,4 +1,4 @@
-! $Id: chemdr.f,v 1.4 2003/08/06 15:30:35 bmy Exp $
+! $Id: chemdr.f,v 1.5 2003/10/30 16:17:16 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
@@ -400,13 +400,6 @@
       !=================================================================
       ! Call CHEM which PERFORMS GAS-PHASE CHEMISTRY. 
       !=================================================================
-!----------------------------------------------------------------------------
-! Prior to 7/30/03:
-! Now pass SUNCOSB to CHEM.  Also remove LSAMERAD, it's obsolete.
-! (gcc, bmy, 7/30/03)
-!      CALL CHEM( FIRSTCHEM, .FALSE., NPTS,   SUNCOS, CLOUDS, ALT,
-!     &           SURFALT,   TOTO3,   IDXAIR, IDXO3,  OPTD,   UVALBEDO )
-!----------------------------------------------------------------------------
       CALL CHEM( FIRSTCHEM, NPTS,  SUNCOS, SUNCOSB, CLOUDS, ALT,
      &           SURFALT,   TOTO3, IDXAIR, IDXO3,   OPTD,   UVALBEDO )
 

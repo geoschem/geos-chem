@@ -1,9 +1,9 @@
-! $Id: define.h,v 1.2 2003/10/21 16:05:27 bmy Exp $
+! $Id: define.h,v 1.3 2003/10/30 16:17:17 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
 !  used to include or exclude certain sections of code.  
-!  (bmy, bdf, 1/30/98, 6/27/03)
+!  (bmy, bdf, 1/30/98, 10/21/03)
 !
 !  List of "Switches"
 !  ===========================================================================
@@ -24,6 +24,7 @@
 !  (15) LINUX      : Enables Linux specific code
 !  (16) SPARC      : Enables Sun/Sparc specific code
 !  (17) IBM_AIX    : Enables IBM/AIX specific code
+!  (18) INTEL_FC   : Enables INTEL FORTRAN COMPILER code
 ! 
 !
 !  NOTES:
@@ -50,6 +51,7 @@
 !  (13) Removed GEOS_2 switch; added GEOS_4 switch.  Also added SPARC switch 
 !        to invoke Sun/Sparc specific code. (bmy, 3/23/03)
 !  (14) Added IBM_AIX switch (bmy, 6/27/03)
+!  (15) Added INTEL_FC switch (bmy, 10/21/03)
 !******************************************************************************
 !
 !==============================================================================
@@ -72,6 +74,7 @@
 #undef LINUX
 #undef SPARC
 #undef IBM_AIX
+#undef INTEL_FC
 
 !==============================================================================
 ! Define the necessary "switches" for GEOS-CHEM. 
@@ -80,8 +83,8 @@
 !==============================================================================
 !#define GEOS_1      'GEOS_1'       
 !#define GEOS_STRAT  'GEOS_STRAT'
-!#define GEOS_3      'GEOS_3'
-#define GEOS_4      'GEOS_4'
+#define GEOS_3      'GEOS_3'
+!#define GEOS_4      'GEOS_4'
 
 !#define GRID1x1     'GRID1x1'
 !#define GRID2x25    'GRID2x25'
@@ -99,6 +102,7 @@
 !#define LINUX       'LINUX'
 !#define SPARC       'SPARC'
 !#define IBM_AIX     'IBM_AIX'
+!#define INTEL_FC    'INTEL_FC'
 
 !==============================================================================
 ! Force a compile-time error if switches GEOS_1, GEOS_STRAT, 
@@ -110,8 +114,8 @@
 #endif
 
 !==============================================================================
-!  Force a compile-time error if switches GRID1x1, GRID2x25,
-!  and GRID4x5 are all undefined. 
+! Force a compile-time error if switches GRID1x1, GRID2x25,
+! and GRID4x5 are all undefined. 
 !==============================================================================
 #if !defined( GRID2x25 ) && !defined( GRID4x5 ) && !defined( GRID1x1 )
 #error "ERROR: GRID2x25, GRID4x5, and GRID1x1"
@@ -119,8 +123,8 @@
 #endif
 
 !==============================================================================
-!  Force a compile-time error if switches FULLCHEM, 
-!  SMALLCHEM, and LGEOSCO are all undefined
+! Force a compile-time error if switches FULLCHEM, 
+! SMALLCHEM, and LGEOSCO are all undefined
 !==============================================================================
 #if !defined( FULLCHEM ) && !defined( SMALLCHEM ) && !defined( LGEOSCO )
 #error "ERROR: One of FULLCHEM, SMALLCHEM, LGEOSCO" 
@@ -128,10 +132,10 @@
 #endif
 
 !==============================================================================
-!  Force a compile-time error if switches SGI, 
-!  DEC_COMPAQ, and LINUX are ALL undefined
+! Force a compile-time error if switches SGI, 
+! DEC_COMPAQ, and LINUX are ALL undefined
 !==============================================================================
-#if !defined( SGI ) && !defined( COMPAQ ) && !defined( LINUX ) && !defined( SPARC ) && !defined( IBM_AIX )
-#error "ERROR: One of SGI, DEC_COMPAQ, LINUX, SPARC, IBM_AIX"
+#if !defined( SGI ) && !defined( COMPAQ ) && !defined( LINUX ) && !defined( SPARC ) && !defined( IBM_AIX ) && !defined( INTEL_FC )
+#error "ERROR: One of SGI, DEC_COMPAQ, LINUX, SPARC, IBM_AIX, INTEL_FC"
 #error "needs to be defined in header file define.h"
 #endif
