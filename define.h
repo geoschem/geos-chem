@@ -1,4 +1,4 @@
-! $Id: define.h,v 1.16 2004/09/22 15:45:26 bmy Exp $
+! $Id: define.h,v 1.17 2004/09/24 14:03:55 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
@@ -102,8 +102,8 @@
 
 !----- Grid sizes -----
 !#define GRID1x1     'GRID1x1'
-#define GRID2x25    'GRID2x25'
-!#define GRID4x5     'GRID4x5'
+!#define GRID2x25    'GRID2x25'
+#define GRID4x5     'GRID4x5'
 #define GRID30LEV   'GRID30LEV'
 
 !----- Chemistry -----
@@ -119,8 +119,8 @@
 !#define IBM_AIX     'IBM_AIX'
 !#define LINUX_PGI   'LINUX_PGI'
 !#define LINUX_IFC   'LINUX_IFC'
-#define LINUX_EFC   'LINUX_EFC'
-!#define SGI_MIPS    'SGI_MIPS'
+!#define LINUX_EFC   'LINUX_EFC'
+#define SGI_MIPS    'SGI_MIPS'
 !#define SPARC       'SPARC'
 
 !==============================================================================

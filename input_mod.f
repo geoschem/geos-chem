@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.3 2004/09/21 18:04:15 bmy Exp $
+! $Id: input_mod.f,v 1.4 2004/09/24 14:03:56 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -43,10 +43,11 @@
 !  (20) READ_NESTED_GRID_MENU : Reads the GEOS-CHEM nested grid menu
 !  (21) READ_ARCHIVED_OH_MENU : Reads the GEOS-CHEM archived OH menu
 !  (22) READ_O3PL_MENU        : Reads the GEOS-CHEM O3 P/L menu
-!  (23) VALIDATE_DIRECTORIES  : Makes sure all given directories are valid
-!  (24) CHECK_DIRECTORY       : Checks a single directory for errors
-!  (25) CHECK_TIME_STEPS      : Sets the GEOS_CHEM timesteps
-!  (26) INIT_INPUT            : Initializes directory & logical variables
+!  (23) READ_BENCHMARK_MENU   : Reads the GEOS-CHEM benchmark cmds menu
+!  (24) VALIDATE_DIRECTORIES  : Makes sure all given directories are valid
+!  (25) CHECK_DIRECTORY       : Checks a single directory for errors
+!  (26) CHECK_TIME_STEPS      : Sets the GEOS_CHEM timesteps
+!  (27) INIT_INPUT            : Initializes directory & logical variables
 !
 !  GEOS-CHEM modules referenced by "input_mod.f"
 !  ============================================================================
@@ -246,6 +247,9 @@
 
          ELSE IF ( INDEX( LINE, 'O3 P/L MENU'      ) > 0 ) THEN 
             CALL READ_O3PL_MENU
+
+         ELSE IF ( INDEX( LINE, 'BENCHMARK MENU'   ) > 0 ) THEN 
+            CALL READ_BENCHMARK_MENU
                                                   
          ELSE IF ( INDEX( LINE, 'END OF FILE'      ) > 0 ) THEN 
             EXIT
@@ -2252,24 +2256,24 @@
       ENDIF
 
       ! Turn on ND48 diagnostic
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd49_menu:1' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nd49_menu:1' )
       READ( SUBSTRS(1:N), * ) DO_ND48
 
       ! Timeseries file
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd49_menu:1' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nd49_menu:1' )
       READ( SUBSTRS(1:N), '(a)' ) FILE
 
       ! Frequency
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd49_menu:2' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nd49_menu:2' )
       READ( SUBSTRS(1:N), * ) FREQ
 
       ! Number of stations 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd49_menu:3' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nd49_menu:3' )
       READ( SUBSTRS(1:N), * ) N_STA
       
       ! Read individual stations
       DO N = 1, N_STA
-         CALL SPLIT_ONE_LINE( SUBSTRS, N, 4,  'read_nd49_menu:4' )
+         CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 'read_nd49_menu:4' )
          READ( SUBSTRS(1), * ) IARR(N) 
          READ( SUBSTRS(2), * ) JARR(N) 
          READ( SUBSTRS(3), * ) LARR(N) 
@@ -2761,9 +2765,9 @@
       !=================================================================
       WRITE( 6, '(/,a)' ) 'PROD & LOSS DIAGNOSTIC MENU'
       WRITE( 6, '(  a)' ) '---------------------------'      
-      WRITE( 6, 100      ) 'Turn on prod & loss diag?   : ', DO_SAVE_PL
-      WRITE( 6, 110      ) '# of levels for P/L diag    : ', ND65
-      WRITE( 6, 100      ) 'Save P(Ox), L(Ox) for TagOx?: ', DO_SAVE_O3
+      WRITE( 6, 100     ) 'Turn on prod & loss diag?   : ', DO_SAVE_PL
+      WRITE( 6, 110     ) '# of levels for P/L diag    : ', ND65
+      WRITE( 6, 100     ) 'Save P(Ox), L(Ox) for TagOx?: ', DO_SAVE_O3
       
       ! Loop over families
       DO F = 1, NFAM
@@ -2958,6 +2962,62 @@
 
       ! Return to calling program
       END SUBROUTINE READ_NESTED_GRID_MENU
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE READ_BENCHMARK_MENU
+!
+!******************************************************************************
+!  Subroutine READ_BENCHMARK_MENU reads the BENCHMARK MENU section of 
+!  the GEOS-CHEM input file. (bmy, 7/20/04)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE BENCHMARK_MOD, ONLY : INITIAL_FILE, FINAL_FILE
+      USE LOGICAL_MOD,   ONLY : LSTDRUN
+ 
+      ! Local variables
+      INTEGER            :: N 
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+
+      !=================================================================
+      ! READ_NESTED_GRID_MENU begins here!
+      !=================================================================
+
+      ! Save benchmark diagnostic output?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_benchmark_menu:1' )
+      READ( SUBSTRS(1:N), * ) LSTDRUN
+
+      ! Filename for initial tracer mass
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_benchmark_menu:2' )
+      READ( SUBSTRS(1:N), '(a)' ) INITIAL_FILE
+
+      ! Filename for initial tracer mass
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_benchmark_menu:3' )
+      READ( SUBSTRS(1:N), '(a)' ) FINAL_FILE
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_benchmark_menu:4' )
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+      WRITE( 6, '(/,a)' ) 'BENCHMARK MENU'
+      WRITE( 6, '(  a)' ) '--------------'
+      WRITE( 6, 100     ) 'Save benchmark diag output? : ', LSTDRUN
+      WRITE( 6, 110     ) 'File for initial tracer mass: ',  
+     &                     TRIM( INITIAL_FILE )
+      WRITE( 6, 110     ) 'File for final tracer mass  : ',  
+     &                     TRIM( FINAL_FILE )
+
+      ! FORMAT statements
+ 100  FORMAT( A, L5  )
+ 110  FORMAT( A, A   )
+    
+      ! Return to calling program
+      END SUBROUTINE READ_BENCHMARK_MENU
 
 !------------------------------------------------------------------------------
 

@@ -1,4 +1,4 @@
-! $Id: diag49_mod.f,v 1.1 2004/09/21 18:04:10 bmy Exp $
+! $Id: diag49_mod.f,v 1.2 2004/09/24 14:03:55 bmy Exp $
       MODULE DIAG49_MOD
 !
 !******************************************************************************
@@ -587,7 +587,7 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ODAER(I,J,L,R) * SCALE400nm
+                  Q(X,Y,K) = ODAER(I,J,L,R) * SCALE400nm
                ENDDO
                ENDDO
                ENDDO
@@ -621,7 +621,7 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ODAER(I,J,L,H) * SCALE400nm
+                  Q(X,Y,K) = ODAER(I,J,L,H) * SCALE400nm
                ENDDO
                ENDDO
                ENDDO
@@ -655,7 +655,7 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ODAER(I,J,L,H) * SCALE400nm
+                  Q(X,Y,K) = ODAER(I,J,L,H) * SCALE400nm
                ENDDO
                ENDDO
                ENDDO
@@ -689,7 +689,7 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ODAER(I,J,L,H) * SCALE400nm
+                  Q(X,Y,K) = ODAER(I,J,L,H) * SCALE400nm
                ENDDO
                ENDDO
                ENDDO
@@ -723,7 +723,7 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ODAER(I,J,L,H) * SCALE400nm
+                  Q(X,Y,K) = ODAER(I,J,L,H) * SCALE400nm
                ENDDO
                ENDDO
                ENDDO
@@ -754,7 +754,7 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ODMDUST(I,J,L,R) * SCALE400nm
+                  Q(X,Y,K) = ODMDUST(I,J,L,R) * SCALE400nm
                ENDDO
                ENDDO
                ENDDO

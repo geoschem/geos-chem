@@ -1,6 +1,6 @@
-# $Id: Makefile.compaq,v 1.19 2004/09/21 18:04:06 bmy Exp $
+# $Id: Makefile.compaq,v 1.20 2004/09/24 14:03:54 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for COMPAQ/Alpha (bmy, Tue Sep 14 13:20:54 2004)
+# GEOS-CHEM Makefile for COMPAQ/Alpha (bmy, Thu Sep 23 13:03:44 2004)
 #
 # NOTE: For GEOS-CHEM v5-07-08, we must compile everything -fast except 
 #       "calcrate.f", which must be compiled -O2.  (hamid, bmy, 10/10/03)
@@ -196,6 +196,7 @@ bpch2_mod.o               \
 pressure_mod.o            \
 transfer_mod.o            \
 tracerid_mod.o            \
+benchmark_mod.o           \
 comode_mod.o              \
 diag_mod.o                \
 dao_mod.o                 \
@@ -343,6 +344,7 @@ avgavgw.o                  : avgavgw.f                  CMN_CO CMN_SIZE define.h
 avgrefl.o                  : avgrefl.f                  CMN CMN_CO CMN_SIZE define.h 
 avgtp.o                    : avgtp.f                    CMN CMN_CO CMN_SIZE define.h 
 backsub.o                  : backsub.f                  CMN_SIZE define.h comode.h 
+benchmark_mod.o            : benchmark_mod.f            CMN_DIAG CMN_SIZE define.h 
 biofit.o                   : biofit.f                   CMN_DEP CMN_SIZE define.h 
 biofuel_mod.o              : biofuel_mod.f              CMN_DIAG CMN_SIZE define.h 
 biomass_mod.o              : biomass_mod.f              CMN_DIAG CMN_SIZE define.h 
@@ -358,7 +360,7 @@ chem.o                     : chem.f                     CMN_SIZE define.h comode
 chemco.o                   : chemco.f                   CMN CMN_CO CMN_DIAG CMN_SIZE define.h 
 chemdr.o                   : chemdr.f                   CMN CMN_DEP CMN_DIAG CMN_NOX CMN_O3 CMN_SIZE define.h comode.h 
 chemhcn.o                  : chemhcn.f                  CMN_DEP CMN_DIAG CMN_HCN CMN_SIZE define.h comode.h comsol.h hcn.h 
-chemistry_mod.o            : chemistry_mod.f            CMN_DIAG CMN_SIZE define.h 
+chemistry_mod.o            : chemistry_mod.f            CMN_DIAG CMN_SIZE define.h comode.h 
 clean.o                    : clean.f                    CMN_OH 
 cleanisop.o                : cleanisop.f                CMN_OH 
 cleanup.o                  : cleanup.f                  
@@ -416,10 +418,10 @@ getinfo.o                  : getinfo.f                  CMN CMN_CO CMN_CO_BUDGET
 getoh.o                    : getoh.f                    CMN_OH 
 gettoto3.o                 : gettoto3.f                 CMN CMN_SIZE define.h comode.h comsol.h 
 global_ch4_mod.o           : global_ch4_mod.f           CMN CMN_DIAG CMN_SIZE define.h 
-global_hno3_mod.o          : global_hno3_mod.f          CMN CMN_SETUP CMN_SIZE define.h 
-global_no3_mod.o           : global_no3_mod.f           CMN_SETUP CMN_SIZE define.h 
-global_nox_mod.o           : global_nox_mod.f           CMN_SETUP CMN_SIZE define.h 
-global_o3_mod.o            : global_o3_mod.f            CMN_SETUP CMN_SIZE define.h 
+global_hno3_mod.o          : global_hno3_mod.f          CMN_SIZE define.h 
+global_no3_mod.o           : global_no3_mod.f           CMN_SIZE define.h 
+global_nox_mod.o           : global_nox_mod.f           CMN_SIZE define.h 
+global_o3_mod.o            : global_o3_mod.f            CMN_SIZE define.h 
 global_oh_mod.o            : global_oh_mod.f            CMN_SIZE define.h 
 grid_mod.o                 : grid_mod.f                 CMN_GCTM CMN_SIZE define.h 
 gwet_read_mod.o            : gwet_read_mod.f            CMN_DIAG CMN_SIZE define.h 

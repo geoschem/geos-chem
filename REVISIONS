@@ -8,6 +8,10 @@ New in v7-01-01:
 aerosol_mod.f		-- Contains routines for computing aerosol optical
 			   depth and other quantities for photolysis
 
+benchmark_mod.f		-- Contains STDRUN routine, formerly in "main.f",
+			   which saves initial & final tracer mass to disk
+			   for GEOS-CHEM benchmark output
+
 diag_oh_mod.f		-- Contains routines & variables for ND23 diagnostic
 	                   (Mean OH or CHC3CCl3 lifetime)
 
@@ -561,6 +565,7 @@ main.f			-- Now references "directory_mod.f"
 			-- Now references "logical_mod.f"
 			-- Now references "tracer_mod.f"
 			-- Now moved PRINT_MEAN_OH to "diag_oh_mod.f"
+			-- Removed internal routine STDRUN
 
 make_qq			-- Added parallel loop
 ("wetscav_mod.f")
