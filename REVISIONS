@@ -1,5 +1,5 @@
 REVISIONS (v6-01-05)  
-bmy, 18 Feb 2004
+bmy, 23 Feb 2004
 
 
 New in v6-01-05:
@@ -25,6 +25,9 @@ CMN_DIAG		-- Changed PD37 from 4 to 10
 CMN_SIZE		-- LLTROP should be 17 for GEOS-4...based on the ND55 
 			   diagnostic when computed for 2003 met fields
 
+chem_tagged_ox		-- Bug fix: do not put call to function
+("tagged_ox_mod.f")	   TIMESTAMP_STRING in WRITE statement
+
 convtran		-- Added references to "diag_mod.f" and "grid_mod.f"
 ("fvdas_convect_mod.f") -- Also added TCVV and INDEXSOL as arguments
 			-- Now only save LD38 levels of the ND38 diagnostic
@@ -41,6 +44,9 @@ do_chemistry		-- Bug fix: added GEOS-4 to the #if block in the
 do_convection		-- Added changes for GEOS-4/fvDAS convection
 ("convection_mod.f")	-- Also placed calls to DEBUG_MSG for debugging 
 			   msg output.
+			-- Only pass NTRACE elements of TCVV to FVDAS_CONVECT 
+			   to prevent array out-of-bounds error for less than
+                           NTRACE tracers
 
 fast_j.f		-- Bug fix: PRES needs to be the true surface pressure
 			   for GEOS-4, but PS-PTOP for all prior GEOS models. 

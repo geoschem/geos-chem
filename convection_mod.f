@@ -1,10 +1,10 @@
-! $Id: convection_mod.f,v 1.2 2004/01/27 21:25:05 bmy Exp $
+! $Id: convection_mod.f,v 1.3 2004/02/24 16:27:15 bmy Exp $
       MODULE CONVECTION_MOD
 !
 !******************************************************************************
 !  Module CONVECTION_MOD contains routines which select the proper convection
 !  code for GEOS-1, GEOS-STRAT, GEOS-3, or GEOS-4 met field data sets. 
-!  (bmy, 6/28/03, 1/27/04)
+!  (bmy, 6/28/03, 2/23/04)
 !
 !  Module Routines:
 !  ============================================================================
@@ -25,6 +25,8 @@
 !  (1 ) Contains new updates for GEOS-4/fvDAS convection.  Also now references
 !        "error_mod.f".  Now make F in routine NFCLDMX a 4-D array to avoid
 !        memory problems on the Altix. (bmy, 1/27/04)
+!  (2 ) Bug fix: Now pass NTRACE elements of TCVV to FVDAS_CONVECT in routine 
+!        DO_CONVECTION (bmy, 2/23/04)   
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -41,11 +43,13 @@
 !******************************************************************************
 !  Subroutine DO_CONVECTION is a wrapper for the GEOS-CHEM convection code.
 !  It calls the proper convection routine for GEOS-1, GEOS-S, GEOS-3, or 
-!  GEOS-4 met field types. (bmy, 6/26/03, 1/27/04)
+!  GEOS-4 met field types. (bmy, 6/26/03, 2/23/04)
 !
 !  NOTES:
 !  (1 ) Now updated for GEOS-4/fvDAS convection.  Also placed calls to 
 !         DEBUG_MSG for debugging msg output. (swu, bmy, 1/27/04)
+!  (2 ) Only pass NTRACE elements of TCVV to FVDAS_CONVECT to prevent array
+!        out-of-bounds error for less than NTRACE tracers (bmy, 2/23/04)
 !******************************************************************************
 !     
       ! References to F90 modules
@@ -197,10 +201,20 @@
       ZMMU_F  (:,:,1:LLPAR) = ZMMU  (:,:,LLPAR:1:-1)
 
       ! Call the fvDAS convection routines (originally from NCAR!)
+!----------------------------------------------------------------------------
+! Prior to 2/23/04:
+! Only pass NTRACE elements of TCVV to FVDAS_CONVECT to prevent array
+! out-of-bounds error for less than NTRACE tracers (bmy, 2/23/04)
+!      CALL FVDAS_CONVECT( TDT,    NTRACE,  STT(:,:,:,1:NTRACE),    
+!     &                    RPDEL,  HKETA_F, HKBETA_F, ZMMU_F, 
+!     &                    ZMMD_F, ZMEU_F,  DP,       NSTEP,  
+!     &                    F,      TCVV,    INDEXSOL )
+!----------------------------------------------------------------------------
       CALL FVDAS_CONVECT( TDT,    NTRACE,  STT(:,:,:,1:NTRACE),    
-     &                    RPDEL,  HKETA_F, HKBETA_F, ZMMU_F, 
-     &                    ZMMD_F, ZMEU_F,  DP,       NSTEP,  
-     &                    F,      TCVV,    INDEXSOL )
+     &                    RPDEL,  HKETA_F, HKBETA_F, 
+     &                    ZMMU_F, ZMMD_F,  ZMEU_F,  
+     &                    DP,     NSTEP,   F,      
+     &                    TCVV(1:NTRACE),  INDEXSOL )
 
       ! Reflip STT array after FVDAS_CONVECT
       STT(:,:,1:LLPAR,1:NTRACE) = STT(:,:,LLPAR:1:-1,1:NTRACE)

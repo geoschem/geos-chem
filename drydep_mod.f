@@ -1,4 +1,4 @@
-! $Id: drydep_mod.f,v 1.7 2004/01/27 21:25:06 bmy Exp $
+! $Id: drydep_mod.f,v 1.8 2004/02/24 16:27:15 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
@@ -338,7 +338,7 @@
       !=================================================================
       CALL DEPVEL( MAXIJ, RADIAT, TC0, SUNCOS, F0, HSTAR, XMW,  AIROSOL,
      &             USTAR, CZ1,    OBK, CFRAC,  ZH, LSNOW, DVEL, AZO ) 
-      
+
       !=================================================================
       ! Compute dry deposition frequencies; archive diagnostics
       !=================================================================

@@ -1,10 +1,10 @@
-! $Id: tagged_ox_mod.f,v 1.2 2004/01/27 21:25:09 bmy Exp $
+! $Id: tagged_ox_mod.f,v 1.3 2004/02/24 16:27:16 bmy Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
 !  Module TAGGED_OX_MOD contains variables and routines to perform a tagged Ox
 !  simulation.  P(Ox) and L(Ox) rates need to be archived from a full chemistry
-!  simulation before you can run w/ Tagged Ox. (amf, rch, bmy, 8/20/03,1/15/04)
+!  simulation before you can run w/ Tagged Ox. (amf, rch, bmy, 8/20/03,2/20/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -38,6 +38,7 @@
 !
 !  NOTES:
 !  (1 ) Now accounts for GEOS-4 PBL being in meters (bmy, 1/15/04)
+!  (2 ) Bug fix: don't put function call in WRITE statement (bmy, 2/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -356,10 +357,11 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_TAGGED_OX performs chemistry for several Ox tracers which
-!  are tagged by geographic and altitude regions. (rch, bmy, 8/20/03)
+!  are tagged by geographic and altitude regions. (rch, bmy, 8/20/03, 2/20/04)
 ! 
 !  NOTES:
 !  (1 ) Updated from the old routine "chemo3_split.f" (rch, bmy, 8/20/03)
+!  (2 ) Bug fix: don't put function call in WRITE statement (bmy, 2/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -386,6 +388,7 @@
       REAL*8           :: DTCHEM,  FREQ, FLUX
       REAL*8           :: LL,      PL,   Ox_0
       REAL*8           :: Ox_LOST, X,    Y
+      CHARACTER(LEN=16):: STAMP
 
       ! External routines
       REAL*8, EXTERNAL :: BOXVL
@@ -394,8 +397,17 @@
       ! CHEM_TAGGED_OX begins here!
       !=================================================================
 
+!-----------------------------------------------------------------------------
+! Prior to 2/23/04:
+! LINUX has problems w/ a function call in a WRITE statement (bmy, 2/23/04)
+!      ! Echo date
+!      WRITE( 6, 100 ) TIMESTAMP_STRING()
+! 100  FORMAT( '     - CHEM_TAGGED_OX: Tagged Ox chem at: ', a )
+!-----------------------------------------------------------------------------
+
       ! Echo date
-      WRITE( 6, 100 ) TIMESTAMP_STRING()
+      STAMP = TIMESTAMP_STRING()
+      WRITE( 6, 100 ) STAMP
  100  FORMAT( '     - CHEM_TAGGED_OX: Tagged Ox chem at: ', a )
 
       ! Chemistry timestep [s]
