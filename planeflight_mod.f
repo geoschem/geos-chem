@@ -1,11 +1,11 @@
-! $Id: planeflight_mod.f,v 1.2 2003/07/11 13:43:34 bmy Exp $
+! $Id: planeflight_mod.f,v 1.3 2003/07/21 15:09:26 bmy Exp $
       MODULE PLANEFLIGHT_MOD
 !
 !******************************************************************************
 !  Module PLANEFLIGHT_MOD contains variables and routines which are used to
 !  "fly" a plane through the GEOS-CHEM model simulation.  This is useful for
 !  comparing model results with aircraft observations. 
-!  (mje, bmy, 7/30/02, 7/9/03)
+!  (mje, bmy, 7/30/02, 7/18/03)
 !
 !  Module Variables:
 !  ============================================================================
@@ -61,6 +61,7 @@
 !  (4 ) Now references "time_mod.f". (bmy, 3/27/03)
 !  (5 ) Renamed PRATE to PRRATE to avoid conflict w/ SMVGEAR II (bmy, 4/1/03)
 !  (6 ) Bug fix: use NAMEGAS instead of NAMESPEC (lyj, bmy, 7/9/03)
+!  (7 ) Bug fix: avoid referencing JLOP for non-SMVGEAR runs (bmy, 7/18/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -217,7 +218,7 @@
 !  Subroutine READ_VARIABLES reads the list of variables (SMVGEAR species,
 !  SMVGEAR rxn rates, DAO met fields, or GEOS-CHEM tracers) to be printed
 !  out and sorts the information into the appropriate module variables.
-!  (mje, bmy, 7/30/02, 7/9/09)
+!  (mje, bmy, 7/30/02, 7/9/03)
 !
 !  NOTES:
 !  (1 ) Now references GEOS_CHEM_STOP from "error_mod.f", which frees all
@@ -605,13 +606,14 @@
 !
 !******************************************************************************
 !  Subroutine PLANEFLIGHT saves concentrations to disk at locations 
-!  corresponding to a flight track (mje, bmy, 7/8/02, 3/27/03)
+!  corresponding to a flight track (mje, bmy, 7/8/02, 7/18/03)
 !
 !  NOTES:
 !  (1 ) Now reference AD from "dao_mod.f".  Now references GEOS_CHEM_STOP from
 !        "error_mod.f", which frees memory before stopping. (bmy, 10/15/02)
 !  (2 ) Now uses functions GET_TAU, GET_TS_CHEM from "time_mod.f".
 !        (bmy, 3/27/03)
+!  (3 ) Updated comments, cosmetic changes (bmy, 7/18/03)
 !******************************************************************************
 !
       ! Reference to F90 modules 
@@ -643,10 +645,6 @@
       DO M = PPOINT, NPOINTS
 
          ! Starting & end times of chemistry interval
-         !----------------------------------------
-         !PTAUS = TAU
-         !PTAUE = TAU + ( NCHEM / 60d0 )
-         !----------------------------------------
          PTAUS = GET_TAU()
          PTAUE = PTAUS + ( GET_TS_CHEM() / 60d0 )
 
@@ -681,9 +679,10 @@
             
             ! Print the flight track point number
             WRITE( 6, 100 ) PTYPE(M), PDATE(M), PTIME(M) 
- 100        FORMAT( 'PLANEFLIGHT: Archived ', a5, 1x, i8.8, 1x, i4.4 )
+ 100        FORMAT( '     - PLANEFLIGHT: Archived ',a5,1x,i8.8,1x,i4.4 )
 
             ! Return grid box indices for the chemistry region
+            ! NOTE: PCHEM and JLOOP are only defined for SMVGEAR runs!
             CALL TEST_VALID( M, PCHEM, JLOOP, I, J, L )
 
             ! Initialize SMVGEAR reaction counter
@@ -816,7 +815,7 @@
 !
 !******************************************************************************
 !  Subroutine TEST_VALID tests to see if we are w/in the tropopause, which
-!  is where SMVGEAR chemistry is done (mje, bmy, 7/8/02, 8/21/02)
+!  is where SMVGEAR chemistry is done (mje, bmy, 7/8/02, 7/18/03)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -831,6 +830,8 @@
 !  NOTES:
 !  (1 ) Now use GET_PEDGE of "pressure_mod.f" to return the pressure at the
 !        bottom edge of box (I,J,L), for hybrid grid. (dsa, bdf, bmy, 8/21/02)
+!  (2 ) Since JLOP is not allocated for non-SMVGEAR runs, set PCHEM=F and 
+!        JLOOP=0 even if we are in the troposphere. (bmy, 7/18/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -838,7 +839,7 @@
       USE PRESSURE_MOD, ONLY : GET_PEDGE
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN"        ! SIGE, P, LPAUSE  
+#     include "CMN"        ! SIGE, P, LPAUSE, NSRCX
 
       ! Arguments
       INTEGER, INTENT(IN)  :: IND
@@ -880,11 +881,32 @@
       ! L >= LPAUSE(I,J) is a STRATOSPHERIC box -- no chem is done
       !=================================================================
       IF ( L < LPAUSE(I,J) ) THEN 
-         PCHEM = .TRUE.
-         JLOOP = JLOP(I,J,L)
+         !------------------------
+         ! Prior to 7/18/03:
+         !PCHEM = .TRUE.
+         !JLOOP = JLOP(I,J,L)
+         !------------------------
+         IF ( NSRCX == 3 ) THEN
+            
+            ! This is a tropospheric box where SMVGEAR chemistry is done
+            PCHEM = .TRUE.
+            JLOOP = JLOP(I,J,L)
+
+         ELSE
+
+            ! For non-SMVGEAR runs, PCHEM has no meaning.
+            ! Set it to false to avoid out-of-bounds array errors.
+            PCHEM = .FALSE.
+            JLOOP = 0
+
+         ENDIF
+
       ELSE
+
+         ! This is a stratospheric box where SMVGEAR chem is not done
          PCHEM = .FALSE.
          JLOOP = 0
+
       ENDIF
 
       ! Return to calling program

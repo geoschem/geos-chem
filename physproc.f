@@ -1,10 +1,10 @@
-! $Id: physproc.f,v 1.2 2003/07/08 15:31:49 bmy Exp $
+! $Id: physproc.f,v 1.3 2003/07/21 15:09:26 bmy Exp $
       SUBROUTINE PHYSPROC( SUNCOS, SUNCOSB )
 !
 !******************************************************************************
 !  Subroutine PHYSPROC is the driver for SMVGEAR II chemistry.  It calls both
 !  CALCRATE to compute the rxn rates and the SMVGEAR solver routine.
-!  (M. Jacobson 1993; bdf, bmy, 4/18/03)
+!  (M. Jacobson 1993; bdf, bmy, 4/18/03, 7/18/03)
 !
 !  NOTES:
 !  (1 ) For GEOS-CHEM we had to remove ABSHUM, AIRDENS, CSPEC, IXSAVE, IYSAVE,
@@ -13,10 +13,16 @@
 !        doing a fullchem run.  Now references TIMESTAMP_STRING from 
 !        "time_mod.f".  Now pass SUNCOSB via the arg list.  Now force double
 !        precision with the "D" exponent. (bmy, 4/18/03)
+!  (2 ) Comment out section that computes photorates from original SMVGEAR II
+!        file "photrate.dat"...this is not needed.  Remove TFROMID, it's not
+!        used anywhere else.  Remove references to LASTCHEM, this is mpt 
+!        initialized anywhere.  Now reference CSUMA, CSUMC, ERRMX2 from
+!        "comode_mod.f". (bmy, 7/18/03)
 !******************************************************************************
 !
       ! References to F90 modules (bmy, 10/19/00)
-      USE COMODE_MOD, ONLY : ABSHUM, AIRDENS, CSPEC, IXSAVE, IYSAVE, T3
+      USE COMODE_MOD, ONLY : ABSHUM, AIRDENS, CSPEC,  CSUMA, 
+     &                       CSUMC,  ERRMX2,  IXSAVE, IYSAVE, T3
       USE TIME_MOD,   ONLY : TIMESTAMP_STRING
 
       IMPLICIT NONE
@@ -49,11 +55,6 @@ C *********************************************************************
 C ****************         UPDATE 24-HOUR CLOCK        ****************
 C *********************************************************************
 C CHEMINTV = TIME INTERVAL FOR CHEMISTRY
-C TFROMID  = STANDARD TIME (SEC) PAST MIDNIGHT OF FIRST MODEL DAY 
-C TSPMIDC  = START TIME OF CHEM INTERVAL, IN SECONDS PAST MIDNIGHT, P.S.T. 
-C IDAYR    = DAY OF RUN, STARTING WITH 1
-C bdf smv2 rename iday.
-C IDAY_SMV     = DAY OF MONTH
 C IRCHEM   = COUNTS # CHEMINTV TIME-INTERVALS
 C
       ! Arguments
@@ -80,7 +81,11 @@ C
       !=================================================================
       IRCHEM  = IRCHEM + 1
       TIME    = TIME        + CHEMINTV
-      TFROMID = TFROMID     + CHEMINTV
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! Prior to 7/16/03:
+      ! Remove TFROMID, it's obsolete (bmy, 7/16/03)
+      !TFROMID = TFROMID     + CHEMINTV
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       TSPMIDC = MOD(TSPMIDC + CHEMINTV,SCDAY) 
       COUNTER = 0
 
@@ -90,60 +95,65 @@ C
       ! Echo timestamp
       WRITE( 6, 100 ) TIMESTAMP_STRING()
  100  FORMAT( '     - PHYSPROC: Trop chemistry at ', a )
-C
-C *********************************************************************
-C *               SET ZENITH ANGLE, SUNRISE, SUNSET                   *
-C *********************************************************************
-C IDAYR     = DAY OF RUN, STARTING WITH 1
-C RAGSUT    = RIGHT ASCENSION OF SUN - GREENWICH MEAN SIDEREAL TIME,
-C             ALL IN UNIVIRSAL TIME SECONDS
-C RSET      = TIME OF SUNSET (SEC PAST MIDNIGHT)
-C RRIS      = TIME OF SUNRISE (SEC PAST MIDNIGHT)
-C XLAT,XLON = LATITUDE, LONGITUDE ON GRID
-C DMERIDUT  = DIFF (UNIVERSAL TIME SEC) BETWEEN LOCAL MERIDIAN AND 
-C             LOCAL LONGITUDE
-C UTSECY    = CONVERTS RADIANS IN SIDEREAL TIME TO SECONDS IN 
-C             UNIVERSAL TIME AND MULTIPLIES BY A CORRECTION FACTOR
-C ZENITH    = COS(ZENITH ANGLE) 
-C XLONUT    = LONGITUDE (UNIVERSAL TIME RADIANS x CORRECTION)
-C XU0       = HOUR ANGLE (RADIANS - SOLAR TIME = UNIVERSAL TIME)
-C ZENRAT0   = RATIO OF COS(ZENITH ANGLE AT BEGIN OF INTERVAL) TO
-C                      COS(ZENITH ANGLE USED TO CALCULATE PRATE) 
-C           = 0 IF TBEGIN OCCURS BEFORE SUNRISE OR AFTER SUNSET)   
-C ZENRAT1   = RATIO OF COS(ZENITH ANGLE AT END OF INTERVAL) TO 
-C                      COS(ZENITH ANGLE USED TO CALCULATE PRATE) 
-C           = 0 IF TFINISH OCCURS BEFORE SUNRISE OR AFTER SUNSET)  
-C
-! bdf smv2 no need for ifprat, harvard-geos uses fast-j and slow-j
-      IF (IFPRAT.EQ.1) THEN
-       DO 210 MLOOP  = 1, NLOOP 
-        S1CON        = SINXLAT(MLOOP) * SINDEC(IDAYR)  
-        S2CON        = COSXLAT(MLOOP) * COSDEC(IDAYR)  
-        ZENITH       = S1CON + S2CON * COS(XU0 + XLONUT(MLOOP)) 
-
-        ZENRAT0(MLOOP) = ZENRAT1(MLOOP)
-        ZENRAT1(MLOOP) = MAX(ZENITH/ZENFIXED,0.d0)
-C
-        ARGS         = -S1CON / S2CON
-        IF (ABS(ARGS).LT.1.) THEN
-         CONSTQ      = UTSECY * ACOS(ARGS) 
-         SNOON       = DMERIDUT(MLOOP) + RAGSUT(IDAYR) 
-         RSET(MLOOP) = SNOON  + CONSTQ
-         RRIS(MLOOP) = SNOON  - CONSTQ
-        ELSEIF (ARGS.GE.1.) THEN
-         RRIS(MLOOP) = HALFDAY
-         RSET(MLOOP) = HALFDAY 
-        ELSE
-         RRIS(MLOOP) = 0.
-         RSET(MLOOP) = SCDAY 
-        ENDIF
- 210   CONTINUE
-C      CONTINUE MLOOP = 1, NLOOP
-C
-       XU0             = XU0    + CONSTIM 
-
-      ENDIF
-!      ENDIF IFPRAT.EQ.1
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! Prior to 7/11/03:
+! GEOS-CHEM uses FAST-J or SLOW-J for the photolysis, there is no need to
+! use the default photorates from photrate.dat.  (bmy, 7/11/03)
+!C
+!C *********************************************************************
+!C *               SET ZENITH ANGLE, SUNRISE, SUNSET                   *
+!C *********************************************************************
+!C IDAYR     = DAY OF RUN, STARTING WITH 1
+!C RAGSUT    = RIGHT ASCENSION OF SUN - GREENWICH MEAN SIDEREAL TIME,
+!C             ALL IN UNIVIRSAL TIME SECONDS
+!C RSET      = TIME OF SUNSET (SEC PAST MIDNIGHT)
+!C RRIS      = TIME OF SUNRISE (SEC PAST MIDNIGHT)
+!C XLAT,XLON = LATITUDE, LONGITUDE ON GRID
+!C DMERIDUT  = DIFF (UNIVERSAL TIME SEC) BETWEEN LOCAL MERIDIAN AND 
+!C             LOCAL LONGITUDE
+!C UTSECY    = CONVERTS RADIANS IN SIDEREAL TIME TO SECONDS IN 
+!C             UNIVERSAL TIME AND MULTIPLIES BY A CORRECTION FACTOR
+!C ZENITH    = COS(ZENITH ANGLE) 
+!C XLONUT    = LONGITUDE (UNIVERSAL TIME RADIANS x CORRECTION)
+!C XU0       = HOUR ANGLE (RADIANS - SOLAR TIME = UNIVERSAL TIME)
+!C ZENRAT0   = RATIO OF COS(ZENITH ANGLE AT BEGIN OF INTERVAL) TO
+!C                      COS(ZENITH ANGLE USED TO CALCULATE PRATE) 
+!C           = 0 IF TBEGIN OCCURS BEFORE SUNRISE OR AFTER SUNSET)   
+!C ZENRAT1   = RATIO OF COS(ZENITH ANGLE AT END OF INTERVAL) TO 
+!C                      COS(ZENITH ANGLE USED TO CALCULATE PRATE) 
+!C           = 0 IF TFINISH OCCURS BEFORE SUNRISE OR AFTER SUNSET)  
+!C
+!! bdf smv2 no need for ifprat, harvard-geos uses fast-j and slow-j
+!      IF (IFPRAT.EQ.1) THEN
+!       DO 210 MLOOP  = 1, NLOOP 
+!        S1CON        = SINXLAT(MLOOP) * SINDEC(IDAYR)  
+!        S2CON        = COSXLAT(MLOOP) * COSDEC(IDAYR)  
+!        ZENITH       = S1CON + S2CON * COS(XU0 + XLONUT(MLOOP)) 
+!
+!        ZENRAT0(MLOOP) = ZENRAT1(MLOOP)
+!        ZENRAT1(MLOOP) = MAX(ZENITH/ZENFIXED,0.d0)
+!C
+!        ARGS         = -S1CON / S2CON
+!        IF (ABS(ARGS).LT.1.) THEN
+!         CONSTQ      = UTSECY * ACOS(ARGS) 
+!         SNOON       = DMERIDUT(MLOOP) + RAGSUT(IDAYR) 
+!         RSET(MLOOP) = SNOON  + CONSTQ
+!         RRIS(MLOOP) = SNOON  - CONSTQ
+!        ELSEIF (ARGS.GE.1.) THEN
+!         RRIS(MLOOP) = HALFDAY
+!         RSET(MLOOP) = HALFDAY 
+!        ELSE
+!         RRIS(MLOOP) = 0.
+!         RSET(MLOOP) = SCDAY 
+!        ENDIF
+! 210   CONTINUE
+!C      CONTINUE MLOOP = 1, NLOOP
+!C
+!       XU0             = XU0    + CONSTIM 
+!
+!      ENDIF
+!!      ENDIF IFPRAT.EQ.1
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 C                                                                       
 C *********************************************************************
 C *********************************************************************
@@ -619,8 +629,12 @@ C
        IF (ITESTGEAR.EQ.2) THEN
         WRITE(KCPD,996) TIME,DELT,IRCHEM,(NAMENCS(INEWOLD(I,NCS),NCS),
      1                  CMODEL(I),I=1,ICG)
-        IF (IRCHEM.LT.LASTCHEM) WRITE(KCPD,998)
-        IF (IRCHEM.GE.LASTCHEM) WRITE(KCPD,1000)
+        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        ! Prior to 7/16/03:
+        ! LASTCHEM is obsolete and never initialized (bmy, 7/16/03)
+        !IF (IRCHEM.LT.LASTCHEM) WRITE(KCPD,998)
+        !IF (IRCHEM.GE.LASTCHEM) WRITE(KCPD,1000)
+        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        ENDIF
 C
        IF (ITESTGEAR.EQ.1) THEN
@@ -690,19 +704,27 @@ C
         TELAPS   = TELAPS  + XELAPS 
         WRITE(IOUT,992) IRCHEM,TIME,FSTEPT,FITS,FITS/FSTEPT,
      1                  NGCOUNT,NGHI,AVGERR,AVGHI,RMSCUR,RMSCURH
-        IF (IRCHEM.EQ.LASTCHEM) THEN
-         TSTEPIT =  TOTIT / TOTSTEP
-         WRITE(IOUT,994)
-         WRITE(IOUT,992)IRCHEM,TELAPS,TOTSTEP,TOTIT,TSTEPIT,0,0,SUMAVGE/
-     1                  NOCC,SUMAVHI/NOCC,SUMRMSE/NOCC,SUMRMHI/NOCC
-        ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! Prior to 7/16/03:
+! LASTCHEM is obsolete and is never initialized (bmy, 7/16/03)
+!        IF (IRCHEM.EQ.LASTCHEM) THEN
+!         TSTEPIT =  TOTIT / TOTSTEP
+!         WRITE(IOUT,994)
+!         WRITE(IOUT,992)IRCHEM,TELAPS,TOTSTEP,TOTIT,TSTEPIT,0,0,SUMAVGE/
+!     1                  NOCC,SUMAVHI/NOCC,SUMRMSE/NOCC,SUMRMHI/NOCC
+!        ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        ENDIF
       ENDIF
 C
-      IF (IRCHEM.EQ.LASTCHEM) THEN
-       WRITE(IOUT,1002) KBLK,NSFTOT,NPDTOT,NSTTOT,
-     1               IFAILTOT,NFAILTOT,LFAILTOT
-      ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! Prior to 7/16/03:
+! LASTCHEM is obsolete and is never initialized (bmy, 7/16/03)
+!      IF (IRCHEM.EQ.LASTCHEM) THEN
+!       WRITE(IOUT,1002) KBLK,NSFTOT,NPDTOT,NSTTOT,
+!     1               IFAILTOT,NFAILTOT,LFAILTOT
+!      ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 C
 C *********************************************************************
 C *                            FORMATS                                * 

@@ -1,9 +1,9 @@
-! $Id: reader.f,v 1.2 2003/07/08 15:31:20 bmy Exp $
+! $Id: reader.f,v 1.3 2003/07/21 15:09:27 bmy Exp $
       SUBROUTINE READER( FIRSTCHEM )
 !
 !******************************************************************************
 !  Subroutine READER reads on/off switches and other settings for SMVGEAR II.
-!  (M. Jacobson 1997; bdf, bmy, 4/18/03)
+!  (M. Jacobson 1997; bdf, bmy, 4/18/03, 7/16/03)
 !
 !  NOTES:
 !  (1 ) Now force double-precision values with the "D" exponent.  Also use
@@ -12,6 +12,11 @@
 !        GEOS_CHEM_STOP from "error_mod.f".  Now force double-precision with
 !        the "D" exponent.  Set KGLC = IU_CHEMDAT = 7 from "file_mod.f" 
 !        (bmy, 4/18/03)
+!  (2 ) Remove obsolete variables AERSURF, MLOPJ, REARTHC, DENCONS, HALFDAY, 
+!        GRAVC, FOURPI, TWOPI, REARTH, RPRIMB, AVOG1, HALF, THIRD, THRPI2, 
+!        PID180, PID2, SCTWOPI, AMRGAS, TWPISC, REARTH. these aren't used w/in 
+!        "reader.f" anymore.  Use F90-style variable declarations.  Also 
+!        remove obsolete variables from documentation. (bmy, 7/16/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -34,11 +39,7 @@ C        R     R  E          A A    D     D  E        R     R
 C        RRRRRRR  EEEEEEE   A   A   D     D  EEEEEEE  RRRRRRR 
 C        R  R     E        AAAAAAA  D     D  E        R  R  
 C        R   R    EEEEEEE A       A DDDDDDD  EEEEEEE  R   R
-Ch
 C
-C *********************************************************************
-C ******** FOR MORE VARIABLE DEFINITIONS, SEE DEFINE.DAT **************
-C *********************************************************************
 C
 C *********************************************************************
 C *              NAMELIST DATA FOR DATA FILE m.dat                    *
@@ -54,8 +55,6 @@ C           = 0: USE DEFAULT PHOTORATES FROM globchem.dat
 C INCVMIX   = 1: INTERPOLATE MIXING RATIO PROFILES FROM DATA IN MIXRATIO.DAT
 C ITESTGEAR = 1: CREATE EXACT SOLUTION TO COMPARE OTHER GEAR SOLUTIONS AGAINST
 C           = 2: COMPARE CURRENT SOLUTION TO EXACT SOLUTION
-! bdf smv2, no use for ifsin.  Harvard-geos uses fast/slowj for photorates
-C IFSIN     = 1: USE SINE FUNCTION TO SCALE PHOTRATES IF IFPRAT=0 (mglob.dat)
 C
 C IFURBAN  IFTROP  IFSTRAT            TYPE OF CHEMISTRY SOLVED  
 C                             (U=URBAN, T=TROPOSPHERIC, S=STRATOSPHERIC)
@@ -70,11 +69,24 @@ C    0        2       2      SOLVE T/S   CHEMISTRY EVERYWHERE
 C    2        2       2      SOLVE U/T/S CHEMISTRY EVERYWHERE   
 C
       LOGICAL, INTENT(IN) :: FIRSTCHEM
-      INTEGER K,REARTHC,M2,M1,MLOOP,KLOOP,JLOOP,IAVBLOK,IAVGSIZE
-      INTEGER IREMAIN,JADD,IFCHEM,I,NALLREAC,NMPROD,I1,J,NK
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! Prior to 7/16/03:
+      ! Remove REARTHC -- also use F90-style declarations
+      !INTEGER K,REARTHC,M2,M1,MLOOP,KLOOP,JLOOP,IAVBLOK,IAVGSIZE
+      !INTEGER IREMAIN,JADD,IFCHEM,I,NALLREAC,NMPROD,I1,J,NK
+      !
+      !REAL*8 ERRMAXU,YLOWU,YHIU,HMAXDAYU,ERRMAXR,YLOWR,YHIR,HMAXDAYR
+      !REAL*8 ERRMAXS,YLOWS,YHIS,HMAXDAYS,ABHI,ABLO
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      INTEGER             :: K,      M2,      M1,       MLOOP,   KLOOP 
+      INTEGER             :: JLOOP,  IAVBLOK, IAVGSIZE, IREMAIN, JADD
+      INTEGER             :: IFCHEM, I,       NALLREAC, NMPROD,  I1
+      INTEGER             :: J,      NK
 
-      REAL*8 ERRMAXU,YLOWU,YHIU,HMAXDAYU,ERRMAXR,YLOWR,YHIR,HMAXDAYR
-      REAL*8 ERRMAXS,YLOWS,YHIS,HMAXDAYS,ABHI,ABLO
+      REAL*8              :: ERRMAXU, YLOWU, YHIU, HMAXDAYU
+      REAL*8              :: ERRMAXR, YLOWR, YHIR, HMAXDAYR
+      REAL*8              :: ERRMAXS, YLOWS, YHIS, HMAXDAYS
+      REAL*8              :: ABHI,    ABLO
 
       NAMELIST /CTLFLG/ IFSOLVE, ITESTGEAR,   
      1                  IFURBAN, IFTROP,  IFSTRAT
@@ -96,48 +108,15 @@ C
 C *********************************************************************
 C            SWITCHES FOR TIME, TIME-STEPS, AND OUTPUT
 C *********************************************************************
-C FINHOUR    = NUMBER OF HOURS OF SIMULATION REQUIRED
-C FINMIN     = NUMBER OF MINUTES OF SIMULATION BEYOND FINHOUR
-C FINSEC     = NUMBER OF SECONDS OF SIMULATION BEYOND FINSEC
-C DTOUT      = TIME STEP BETWEEN CALLS TO OUTPUT
 C CHEMINTV   = TIME STEP FOR GAS AND RADIATIVE PROCESS CALCULATIONS  
-C ICOORD     = 1: RECTANGULAR COORDINATE SYSTEM
-C            = 2: NON-GLOBAL SPHERICAL COORDINATES
-C            = 3: GLOBAL SPHERICAL COORDINATES 
-C IHOUR      = STARTING HOUR   (0,1,2,..23) OF MODEL RUN  
-C IMIN       = STARTING MINUTE (0,1,2,..59) OF MODEL RUN  
-C IMONTH     = STARTING MONTH  (  1,2,..12) OF MODEL RUN  
-C IDAY       = STARTING DAY OF MONTH (1,2,..31) OF MODEL RUN 
-C IYEAR      = BEGIN YEAR OF SIMULATION
-C SWLATDC    = SOUTHWEST CORNER GRID-CELL CENTER LATITUDE (DEGREES)
-C SWLONDC    = SOUTHWEST CORNER GRID-CELL CENTER LONGITUDE (DEGREES)
-C DYLAT      = SOUTH-NORTH GRID SPACING (DEGREES) IF ICOORD = 2, 3 
-C DXLON      = WEST-EAST GRID SPACING (DEGREES) IF ICOORD = 2, 3 
-C DY0        = SOUTH-NORTH GRID SPACING (CM) IF ICOORD = 1  
-C DX0        = WEST-EAST GRID SPACING (CM) IF ICOORD = 1  
 C
       NAMELIST /CTLTIM/ CHEMINTV
 C
 C *********************************************************************
 C                         SWITCHES FOR OUTPUT
 C *********************************************************************
-C IPONEND    = 1: CALL OUT.F ONLY AT END OF SIMULATION
-C IFPR1      = 1: CALL OUT.F AFTER INITIALIZATION
-C IPRMET     = 1: PRINT METEOROLOGICAL FIELDS IN OUT.F
-C INCXY      = PRINT XY-PLANE DATA IN OUT.F EVERY INCXY LAYER
-C INCXZ      = PRINT XZ-PLANE DATA IN OUT.F EVERY INCXZ SLICE 
-C INCYZ      = PRINT YZ-PLANE DATA IN OUT.F EVERY INCYZ SLICE 
-C IPMASBUD   = 1: PRINT MASS BALANCE BUDGETS IN OUT.F
-C IPRPRESS   = 1: PRINT AIR PRESSURE OUTPUT IN OUT.F
-C IPRTEMP    = 1: PRINT AIR TEMPERATURE OUTPUT IN OUT.F
-C IPGASES    = 1: PRINT GAS INFORMATION TO GASCONC.OUT
 C IPRATES    = 1: PRINT CHEMICAL RATE COEFFICIENT DATA IN UPDATE.F 
 C IPREADER   = 1: PRINT INPUT DATA READ IN READER.F
-C IPRMANY    = 1: PRINT OUTPUT FOR GASES NUMBERED BETWEEN IPRGASLO, HI
-C IPRGASLO   = LOWEST GAS INDEX NUMBER FOR PRINTING WHEN IPRMANY = 1 
-C IPRGASHI   = HIGHEST GAS INDEX NUMBER FOR PRINTING WHEN IPRMANY = 1 
-C IPGMTOT    = 1: PRINT TOTAL MASS BALANCE DATA FOR GASES
-C IOSPEC     = 1: PRINT LIST OF GASES IN READCHEM.F
 C IOREAC     = 1: PRINT LIST OF REACTIONS IN READCHEM.F
 C APGASA..H  = GASES FOR WHICH OUTPUT ARE PRINTED. OVERRIDES IPRMANY
 C
@@ -157,9 +136,9 @@ C PLOURB     = PRESSURE (MB) BELOW WHICH URBAN CHEM IS SOLVED
 C ERRMAXU    = RELATIVE ERROR TOLERANCE (FRACTION) FOR URBAN CHEMISTRY 
 C ERRMAXR    = RELATIVE ERROR TOLERANCE (FRACTION) FOR TROPOSPHERIC CHEMISTRY 
 C ERRMAXS    = RELATIVE ERROR TOLERANCE (FRACTION) FOR STRATOSPHERIC CHEMISTRY 
-C YLOWU,HIU  = LOW /HIGH ABS. ERROR TOLERANCES (MOLEC. CM-3) FOR URBAN CHEM 
-C YLOWR,HIR  = LOW /HIGH ABS. ERROR TOLERANCES (MOLEC. CM-3) FOR TROP. CHEM 
-C YLOWS,HIS  = LOW /HIGH ABS. ERROR TOLERANCES (MOLEC. CM-3) FOR STRAT. CHEM 
+C YLOWU,YHIU = LOW /HIGH ABS. ERROR TOLERANCES (MOLEC. CM-3) FOR URBAN CHEM 
+C YLOWR,YHIR = LOW /HIGH ABS. ERROR TOLERANCES (MOLEC. CM-3) FOR TROP. CHEM 
+C YLOWS,YHIS = LOW /HIGH ABS. ERROR TOLERANCES (MOLEC. CM-3) FOR STRAT. CHEM 
 C HMAXDAYU   = MAXIMUM TIME STEP FOR DAYTIME URBAN CHEMISTRY (S)
 C HMAXDAYR   = MAXIMUM TIME STEP FOR DAYTIME TROP. CHEMISTRY (S)
 C HMAXDAYS   = MAXIMUM TIME STEP FOR DAYTIME STRAT. CHEMISTRY (S)
@@ -308,13 +287,9 @@ C
 C *********************************************************************
 C *******             THE VALUES OF BASIC PARAMETERS            *******
 C *********************************************************************
-C GRAVC   = GRAVITY (CM S-2);
-C REARTH  = EQUATORIAL RADIUS OF EARTH (CM) (CRC)
-C OMEGA   = CORIOLIS CONSTANT (S-1) = 2 * ONEPI / SCDAY 
 C BOLTG   = BOLTZMANN"S CONSTANT, 1.381E-16 ERG DEG K**-1 = RGAS / AVG 
 C         = (1 J = 10**7 ERG = 1 N-M = 1 KG M2 S-2)
 C RSTARG  = UNIVERSAL GAS CONSTANT = 8.3145E+07 G CM2 S-2 MOLE-1 K-1
-C RPRIMB  = GAS CONSTANT FOR DRY AIR = 2870.4 CM3 MB G-1 K-1 
 C AVG     = AVOGADRO"S NUMBER,MOL**-1
 C WTAIR   = MOLECULAR WEIGHT OF AIR; 
 C RGAS    = GAS CONSTANT             (ERG DEG K-1 MOL-1) 
@@ -323,35 +298,55 @@ C           1 ATM = 1.013 BAR = 10**5 PA. 1PA = 1 N M-2 = 10 DYNES CM-2.
 C SCDAY   = SECONDS PER DAY
 C
       ! Now force double-precision values with the "D" exponent (bmy, 4/1/03)
-      REARTH      = Re
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! Prior to 7/16/03:
+      ! This is obsolete (bmy, 7/16/03)
+      !REARTH      = Re
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ONEPI       = PI
       RSTARG      = 8.31450d+07
-      RPRIMB      = 2870.4d0
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! Prior to 7/16/03:
+      ! These are obsolete and have been removed from "comode.h"
+      !RPRIMB      = 2870.4d0
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       BOLTG       = 1.38054d-16
       AVG         = 6.02252d+23
       WTAIR       = AIRMW
       SCDAY       = 86400.0d0
-      GRAVC       = g0 * 100d0 
-C
-      ! Now force double-precision with the "D" exponent (bmy, 4/1/03)
-      TWOPI       = 2.d0    * ONEPI 
-      RGAS        = BOLTG   * AVG
-      FOURPI      = 4.d0    * ONEPI 
-      PID2        = ONEPI   / 2.d0
-      PID180      = ONEPI   / 180.d0
-      THRPI2      = ONEPI   + PID2
-      EIGHTDPI    = 8.d0    / ONEPI
-      HALF        = 0.5d0
-      HALFDAY     = HALF    * SCDAY
-      THIRD       = 1.d0    / 3.d0
-      CONPSUR     = 1000.d0 
-      AVOG1       = 1.d0 / AVG
-      TWPISC      = TWOPI / SCDAY
-      SCTWOPI     = SCDAY / TWOPI
-      AMRGAS      = WTAIR / RGAS 
-      DENCONS     = AVG   / WTAIR 
-      CONSVAP     = 6.1078D+03 / BOLTG
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! Prior to 7/16/03:
+      ! These are obsolete and have been removed from "comode.h"
+      !GRAVC       = g0 * 100d0 
+C     !
+      !! Now force double-precision with the "D" exponent (bmy, 4/1/03)
+      !TWOPI       = 2.d0    * ONEPI 
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+      RGAS        = BOLTG   * AVG
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! Prior to 7/16/03:
+      ! These are obsolete and have been removed from "comode.h"
+      !FOURPI      = 4.d0    * ONEPI 
+      !PID2        = ONEPI   / 2.d0
+      !PID180      = ONEPI   / 180.d0
+      !THRPI2      = ONEPI   + PID2
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      EIGHTDPI    = 8.d0    / ONEPI
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! Prior to 7/16/03:
+      ! These are obsolete and have been removed from "comode.h"
+      !HALF        = 0.5d0
+      !HALFDAY     = HALF    * SCDAY
+      !THIRD       = 1.d0    / 3.d0
+      !CONPSUR     = 1000.d0 
+      !AVOG1       = 1.d0 / AVG
+      !TWPISC      = TWOPI / SCDAY
+      !SCTWOPI     = SCDAY / TWOPI
+      !AMRGAS      = WTAIR / RGAS 
+      !DENCONS     = AVG   / WTAIR 
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      CONSVAP     = 6.1078D+03 / BOLTG
 C
       NMASBAL     = 9 
       NAMEMB(  1) = 'SULFUR ATOMS'
@@ -375,28 +370,17 @@ C
       SMAL3      = 1d-50
 C
 C *********************************************************************
-C *         DEFINE SOUTHWEST CORNER OF GRID AND GRID SPACING          *
-C *********************************************************************
-C XLAT,XLON= LATITUDE, LONGITUDE ON GRID
-C DX,  DY  = SPACINGS BETWEEN LONG AND LAT POINTS, RESPECTIVELY (CM)
-C            DX0 MULTIPLIED BY HMET1 THROUGHOUT PROGRAM TO GET TRUE DX0
-C SWLONDC = SOUTHWEST CORNER GRID-CELL CENTER LONGITUDE (DEGREES)
-C SWLATDC = SOUTHWEST CORNER GRID-CELL CENTER LATITUDE (DEGREES)
-C
-      REARTHC      = REARTH * PID180
-C
-C *********************************************************************
 C *                    DEFINE SOME FIXED PARAMETERS                   *
 C *********************************************************************
 C
 C BK      = BOLTZMANN'S CONSTANT, ERG (DEG K)**-1
 C AVG     = AVOGADRO'S NUMBER,MOL**-1
 C WTAIR   = MOLECULAR WEIGHT OF AIR;
+C REARTHC = RADIUS OF EARTH * PI / 180
 C
       BK      =   1.38054D-16
       AVG     =   6.02252D+23
       WTAIR   =   28.966d0
-
 C
 C *********************************************************************
 C
@@ -434,7 +418,13 @@ C
 
          ! JLOP set differently in ruralbox (bdf, 4/1/03)
          JLOP_SMV(M1,M2,K) = JLOOP
-         IF (K.LE.NVERT) MLOPJ(JLOOP)  = MLOOP
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! Prior to 7/11/03:
+         ! This is the only instance of MLOPJ.  MLOPJ is a 3-D array, so 
+         ! we can comment this out to get some memory savings.  Leave this
+         ! section commented out for future reference. (bmy, 7/11/03)
+         !IF (K.LE.NVERT) MLOPJ(JLOOP)  = MLOOP
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  220  CONTINUE
 C
       LLOOP            = JLOP_SMV(LYOUT,LXOUT,LZOUT)
@@ -656,9 +646,13 @@ C
       TELAPS         = 0.d0
       RMSERR         = 0.d0
 C
-      DO 650 JLOOP    = 1, NTLOOP
-       AERSURF(JLOOP) = 0.d0
- 650  CONTINUE 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! Prior to 7/11/03:
+! Comment out AERSURF to save memory (bmy, 7/11/03)
+!      DO 650 JLOOP    = 1, NTLOOP
+!       AERSURF(JLOOP) = 0.d0
+! 650  CONTINUE 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 C
       MB1            = 1 
       MB2            = 2 

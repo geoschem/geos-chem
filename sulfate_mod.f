@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.1 2003/06/30 20:26:07 bmy Exp $
+! $Id: sulfate_mod.f,v 1.2 2003/07/21 15:09:28 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -1758,7 +1758,7 @@
 
          ! Amount of NH3 left after drydep
          NH3  = NH30 * EXP( -DEPSAV(I,J,DRYNH3) * DTCHEM )
-         NH3  = MAX( NH3, 1.0d-32 )
+         NH3  = MAX( NH3, 1d-32 )
             
          ! Final NH3 [v/v]
          STT(I,J,1,IDTNH3) = NH3

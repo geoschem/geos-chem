@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.1 2003/06/30 20:26:01 bmy Exp $
+! $Id: diag3.f,v 1.2 2003/07/21 15:09:25 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out I-J (Long-Lat) diagnostics to the BINARY
-!  format punch file (bmy, bey, mgs, rvm, 5/27/99, 6/23/03)
+!  format punch file (bmy, bey, mgs, rvm, 5/27/99, 7/15/03)
 !
 !  The preferred file format is binary punch file format v. 2.0.  This
 !  file format is very GAMAP-friendly.  GAMAP also supports the ASCII
@@ -116,6 +116,8 @@
 !  (43) Added TSKIN, PARDF, PARDR, GWET to ND67 diagnostic.  For GEOS-4/fvDAS,
 !        UWND, VWND, TMPU, SPHU are A-6 fields.  Adjust the ND66 scale factors 
 !        accordingly.  Delete KZZ from ND66.  Updated comments. (bmy, 6/23/03)
+!  (44) Bug fix: use LD68 instead of ND68 in DO-loop to avoid out-of-bounds 
+!        error. (bec, bmy, 7/15/03)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -2352,7 +2354,11 @@
             IF ( N > PD68 ) CYCLE
             NN = N 
 
-            DO L = 1, ND68
+            !---------------------------------
+            ! Prior to 7/13/03:
+            !DO L = 1, ND68
+            !---------------------------------
+            DO L = 1, LD68
                ARRAY(:,:,L) = AD68(:,:,L,N) / SCALEDYN
             ENDDO
 

@@ -1,9 +1,9 @@
-! $Id: cleanup.f,v 1.1 2003/06/30 20:26:05 bmy Exp $
+! $Id: cleanup.f,v 1.2 2003/07/21 15:09:25 bmy Exp $
       SUBROUTINE CLEANUP
 !
 !******************************************************************************
 !  Subroutine CLEANUP deallocates the memory assigned to dynamic allocatable 
-!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 5/9/03)
+!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 7/14/03)
 !
 !  NOTES:
 !  (1 ) CLEANUP is written in Fixed-Format F90.
@@ -47,6 +47,7 @@
 !  (20) Now reference cleanup routine from "transport_mod.f" (bmy, 2/10/03)
 !  (21) Now reference cleanup routine from "pjc_pfix_mod.f" and 
 !        "tpcore_fvdas_mod.f90". (bmy, 5/9/03)
+!  (22) Now reference cleanup routine from "toms_mod.f" (bmy, 7/14/03)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -70,6 +71,7 @@
       USE PRESSURE_MOD,     ONLY : CLEANUP_PRESSURE
       USE SULFATE_MOD,      ONLY : CLEANUP_SULFATE
       USE TAGGED_CO_MOD,    ONLY : CLEANUP_TAGGED_CO
+      USE TOMS_MOD,         ONLY : CLEANUP_TOMS
       USE TPCORE_FVDAS_MOD, ONLY : EXIT_TPCORE
       USE TRANSPORT_MOD,    ONLY : CLEANUP_TRANSPORT
       USE UVALBEDO_MOD,     ONLY : CLEANUP_UVALBEDO
@@ -93,6 +95,7 @@
       CALL CLEANUP_TRANSPORT
       CALL CLEANUP_SULFATE
       CALL CLEANUP_DIAG51
+      CALL CLEANUP_TOMS
       CALL CLEANUP_GLOBAL_CH4
       CALL CLEANUP_GLOBAL_HNO3
       CALL CLEANUP_GLOBAL_NO3

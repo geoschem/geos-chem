@@ -1,9 +1,9 @@
-! $Id: chemdr.f,v 1.2 2003/07/08 15:28:00 bmy Exp $
+! $Id: chemdr.f,v 1.3 2003/07/21 15:09:25 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
 !  Subroutine CHEMDR is the driver subroutine for full chemistry w/ SMVGEAR.
-!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 7/1/03)
+!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 7/16/03)
 !
 !  Important input variables from "dao_mod.f" and "uvalbedo_mod.f":
 !  ============================================================================
@@ -117,6 +117,8 @@
 !        (bdf, ljm, bmy, 5/8/03)
 !  (15) Now reference routine GET_GLOBAL_CH4 from "global_ch4_mod.f".  Also
 !        added CH4_YEAR as a SAVEd variable. (bnd, bmy, 7/1/03)
+!  (16) Remove references to MONTHP, IMIN, ISEC; they are obsolete and not 
+!        defined anywhere. (bmy, 7/16/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -165,12 +167,16 @@
       NPVERT = NVERT
       NPVERT = NVERT + IPLUME
 
-      ! Set some "comode.h" variables
-      MONTHP = GET_MONTH()
-
-      ! clean first
-      IMIN   = 0
-      ISEC   = 0
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! Prior to 7/16/03:
+      ! These are now obsolete and have been removed from "comode.h"
+      ! (bmy, 7/16/03)
+      !MONTHP = GET_MONTH()
+      !
+      !! clean first
+      !IMIN   = 0
+      !ISEC   = 0
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       !=================================================================
       ! Compute AVGW, the mixing ratio of water vapor

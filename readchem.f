@@ -1,10 +1,10 @@
-! $Id: readchem.f,v 1.3 2003/07/11 13:43:48 bmy Exp $
+! $Id: readchem.f,v 1.4 2003/07/21 15:09:27 bmy Exp $
       SUBROUTINE READCHEM 
 !
 !******************************************************************************
 !  Subroutine READCHEM reads species names, chemical rxns, and photolysis 
 !  reactions from the "globchem.dat" chemistry mechanism file for SMVGEAR II.  
-!  (M. Jacobson 1997; bdf, bmy, 5/9/03, 7/9/03)
+!  (M. Jacobson 1997; bdf, bmy, 5/9/03, 7/16/03)
 !
 !  NOTES:
 !  (1 ) Added space in FORMAT strings for more products.  Also now references
@@ -18,6 +18,8 @@
 !        define lookup table ITS_NOT_A_ND65_FAMILY, which is used to exclude
 !        ND65 prod/loss families from modifying the SMVGEAR II convergence
 !        criteria.  (bnd, bmy, 7/9/03)
+!  (3 ) Now declare ININT as a local variable instead of being declared w/in 
+!        "comode.h".  Remove reference to IPORD. (bmy, 7/16/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -114,6 +116,13 @@ C
 
       REAL*8 C1,CSTRAT,CTROPL,CTROPS,CURBAN,QTHERMG
 
+      ! ININT used to be defined w/in "comode.h", but it is only ever used
+      ! w/in "readchem.f".  Declare here as a local variable. (bmy, 7/16/03)
+      INTEGER :: ININT(10)  
+
+      !=================================================================
+      ! READCHEM begins here!
+      !=================================================================
       NINAC          = 0
       NACTIVE        = 0 
       NSDEAD         = 0 
@@ -601,7 +610,12 @@ C
        ! record photalysis numbers for harvard-geos code (bdf, 4/18/03)
        NPHOT = NPHOTALL
        !DEFPRAT(NPHOTALL)    = ARRT(1)
-       IPORD(  NPHOTALL)    = IORD
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       ! Prior to 7/16/03:
+       ! IPORD is not used in GEOS-CHEM implementation of SMVGEAR II
+       ! so remove it from "comode.h" (bmy, 7/16/03)
+       !IPORD(  NPHOTALL)    = IORD
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
        DO 640 NCS           = 1, NCSGAS
         IF (NOUSE(NCS).EQ.0) THEN

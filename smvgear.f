@@ -1,9 +1,9 @@
-! $Id: smvgear.f,v 1.2 2003/07/11 13:45:31 bmy Exp $ 
+! $Id: smvgear.f,v 1.3 2003/07/21 15:09:27 bmy Exp $ 
       SUBROUTINE SMVGEAR
 !
 !******************************************************************************
 !  Subroutine SMVGEAR solves ODE's for chemical reactions using a GEAR-type
-!  method.  (M. Jacobson 1997; bdf, bmy, 5/12/03, 7/9/03)
+!  method.  (M. Jacobson 1997; bdf, bmy, 5/12/03, 7/18/03)
 !
 !  NOTES:
 !  (1 ) For GEOS-CHEM we had to remove IXSAVE, IYSAVE, and IZSAVE from 
@@ -18,10 +18,13 @@
 !        faster, particularly on Linux.  Comment out counter variable 
 !        NUM_TIMESTEPS, you can get the same info w/ a profiling run. 
 !        Cosmetic changes. (bmy, 7/9/03)
+!  (3 ) Declare NSTEPS, KLOOP, IABOVK as local variables since they are only 
+!        ever used w/in "smvgear.f"  Also reference ERRMX2 from "comode_mod.f"
+!        (bmy, 7/18/03)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE COMODE_MOD, ONLY : IXSAVE, IYSAVE, IZSAVE
+      USE COMODE_MOD, ONLY : ERRMX2, IXSAVE, IYSAVE, IZSAVE
       USE ERROR_MOD, ONLY  : IT_IS_NAN, GEOS_CHEM_STOP
 
       IMPLICIT NONE
@@ -259,19 +262,27 @@ C
       REAL*8 CONSMULT
 
       ! Add counter
-      INTEGER ICOUNT,NK
+      INTEGER            :: ICOUNT, NK
       
       !=================================================================
       ! Added for the ND65 prod/loss diagnostic (ljm, bmy, 5/9/03)
-      INTEGER       :: NNOFAM
+      INTEGER            :: NNOFAM
       !=================================================================
 
       ! ljm stop 700 trouble
-      INTEGER IJSAVE,JSPCSAVE(KTLOOP),IX,IY,IZ,JJ,JJJ,KSAVE,COUNTER
-      REAL*8 SPECMAX
+      INTEGER            :: IJSAVE, JSPCSAVE(KTLOOP)
+      INTEGER            :: IX, IY, IZ, JJ, JJJ, KSAVE, COUNTER
+      REAL*8             :: SPECMAX
 
       ! Maximum iteration count for SMVGEAR (bmy, 4/11/03)
       INTEGER, PARAMETER :: MAX_ITERATIONS = 9999
+
+      ! Variables from "comode.h" which are only ever used in "smvgear.f"
+      ! Remove them from "comode.h" and the THREADPRIVATE declarations
+      ! (bmy, 7/15/03)
+      INTEGER            :: NSTEPS
+      INTEGER            :: KGRP(KBLOOP,5)
+      INTEGER            :: IABOVK(KBLOOP)    
 
       !=================================================================
       ! SMVGEAR begins here!
@@ -1509,61 +1520,4 @@ C ***************     END OF SUBROUTINE SMVGEAR     *******************
 C *********************************************************************
 C
       RETURN
-
-!------------------------------------------------------------------------------
-! Prior to 7/8/03:
-! Now use a lookup table to test for ND65 families (bmy, 7/8/03)
-!      !=================================================================
-!      ! INTERNAL FUNCTIONS -- can "see" all variable 
-!      ! declarations that are made w/in routine SMVGEAR
-!      !=================================================================
-!      CONTAINS
-!
-!!-----------------------------------------------------------------------------
-!
-!      !FUNCTION ITS_NOT_A_ND65_FAMILY( JSPC ) RESULT( LCOUNT )
-!      FUNCTION ND65_FAMILY_TEST( JSPC ) RESULT( LCOUNT )
-!!
-!!******************************************************************************
-!!  Function ITS_NOT_A_ND65_FAMILY returns TRUE if a species is not a ND65
-!!  prod.loss family, or FALSE otherwise.  This is needed to keep the "fake"
-!!  ND65 prod/loss family names from being included in the convergence
-!!  criteria for the SMVGEAR II solver. (ljm, bmy, 5/12/03)
-!!
-!!  Arguments as Input:
-!!  ============================================================================
-!!  (1 ) JSPC (INTEGER) : SMVGEAR species index
-!!
-!!  NOTES:
-!!******************************************************************************
-!!
-!      ! Arguments
-!      INTEGER, INTENT(IN) :: JSPC
-!
-!      ! Local variables
-!      INTEGER             :: N
-!
-!      ! Function value
-!      LOGICAL             :: LCOUNT
-!
-!      !=================================================================
-!      ! ITS_NOT_A_ND65_FAMILY begins here!
-!      !=================================================================
-!      LCOUNT = .TRUE.
-!
-!      ! Test if this species is a ND65 prod/loss family name
-!      ! For now just assume urban chemistry
-!      DO N = 1, NFAMILIES
-!         IF ( JSPC == MAPPL(IFAM(N),NCSURBAN) ) THEN
-!            LCOUNT = .FALSE.
-!            EXIT
-!         ENDIF
-!      ENDDO  
-!
-!      ! Return to SMVGEAR
-!      !END FUNCTION ITS_NOT_A_ND65_FAMILY
-!      END FUNCTION ND65_FAMILY_TEST
-!
-!-----------------------------------------------------------------------------
-
       END SUBROUTINE SMVGEAR

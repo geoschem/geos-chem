@@ -1,6 +1,6 @@
-# $Id: Makefile.sparc,v 1.2 2003/07/08 15:33:41 bmy Exp $
+# $Id: Makefile.sparc,v 1.3 2003/07/21 15:09:24 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for SUN/Sparc (bmy, Mon Jun 30 13:23:43 2003)
+# GEOS-CHEM Makefile for SUN/Sparc (bmy, Tue Jul 15 11:49:08 2003)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -165,6 +165,7 @@ paramF.o                  \
 polint.o                  \
 read_COPminusL.o          \
 read_TOMSO3.o             \
+read_TOMSO3.o             \
 read_coeff.o              \
 read_percentages.o        \
 readavgOH.o               \
@@ -199,6 +200,7 @@ photoj.o                  \
 rd_js.o                   \
 rd_prof.o                 \
 set_aer.o                 \
+set_prof.o                \
 set_prof.o                
 
 MODS =                    \
@@ -245,6 +247,7 @@ tagged_co_mod.o           \
 fvdas_convect_mod.o       \
 convection_mod.o          \
 pjc_pfix_mod.o            \
+toms_mod.o                \
 tpcore_bc_mod.o           \
 tpcore_fvdas_mod.o        \
 tpcore_mod.o              \
@@ -479,6 +482,7 @@ rdust.o                    : rdust.F                    CMN_DIAG CMN_SETUP cmn_f
 read49.o                   : read49.F                   CMN CMN_SIZE define.h CMN_TIMES 
 read_COPminusL.o           : read_COPminusL.F           CMN_CO CMN_SETUP CMN_SIZE define.h 
 read_TOMSO3.o              : read_TOMSO3.F              CMN CMN_CO CMN_OH CMN_SETUP CMN_SIZE define.h 
+read_TOMSO3.o              : read_TOMSO3.F_mje              CMN CMN_CO CMN_OH CMN_SETUP CMN_SIZE define.h 
 read_coeff.o               : read_coeff.F               CMN_OH 
 read_correction.o          : read_correction.F          CMN_OH 
 read_percentages.o         : read_percentages.F         CMN_OH 
@@ -499,6 +503,7 @@ scattr.o                   : scattr.F                   CMN_SIZE define.h comode
 schem.o                    : schem.F                    CMN CMN_O3 CMN_SETUP CMN_SIZE define.h 
 set_aer.o                  : set_aer.F                  cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 set_prof.o                 : set_prof.F                 cmn_fj.h CMN_SIZE define.h jv_cmn.h 
+set_prof.o                 : set_prof.F_old                 cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 setbase.o                  : setbase.F                  CMN CMN_ISOP CMN_MONOT CMN_SIZE define.h CMN_VEL 
 setcloud.o                 : setcloud.F                 CMN_CLD CMN_SIZE define.h comode.h 
 setemdep.o                 : setemdep.F                 CMN_SIZE define.h comode.h 
@@ -524,6 +529,7 @@ sunparam.o                 : sunparam.F
 tagged_co_mod.o            : tagged_co_mod.F            CMN CMN_DIAG CMN_O3 CMN_SETUP CMN_SIZE define.h 
 tcorr.o                    : tcorr.F                    
 time_mod.o                 : time_mod.F                 define.h 
+toms_mod.o                 : toms_mod.F                 CMN_SETUP CMN_SIZE define.h 
 tpcore_bc_mod.o            : tpcore_bc_mod.F            CMN CMN_SIZE define.h 
 tpcore_fvdas_mod.o         : tpcore_fvdas_mod.F90         
 	$(F90) -c -xtypemap=real:64 $*.F90

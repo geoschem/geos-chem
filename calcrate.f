@@ -1,9 +1,9 @@
-! $Id: calcrate.f,v 1.2 2003/07/08 15:27:23 bmy Exp $
+! $Id: calcrate.f,v 1.3 2003/07/21 15:09:24 bmy Exp $
       SUBROUTINE CALCRATE( SUNCOS )
 !
 !******************************************************************************
 !  Subroutine CALCRATE computes reaction rates before passing them to the
-!  SMVGEAR solver.  (M. Jacobson 1997; gcc, bdf, bmy, 4/1/03, 7/7/03)
+!  SMVGEAR solver.  (M. Jacobson 1997; gcc, bdf, bmy, 4/1/03, 7/16/03)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -22,6 +22,12 @@
 !        from "grid_mod.f".  Now reference AIRDENS array from "comode_mod.f". 
 !        Added YLAT variable for grid-box latitude.  Cosmetic changes.
 !        (bnd, bmy, 7/1/03)
+!  (3 ) Comment out AREAXT, this is not needed.  Also comment out sections 
+!        which compute surface rxns and 3-body rxns, since these are not
+!        applicable to GEOS-CHEM.  Declare ABSHUMK as a local variables since 
+!        it is only ever used w/in "smvgear.f".  Remove obsolete variables 
+!        from documentation.  Now call ARCHIVE_RXNS_FOR_PF to save rxn rates
+!        for the ND40 planeflight diagnostic before exiting. (bmy, 7/16/03)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -64,6 +70,11 @@
 
       ! For grid-box latitude (bnd, bmy, 7/1/03)
       REAL*8           :: YLAT
+
+      ! Variables from "comode.h" which are only ever used in "calcrate.f"
+      ! Remove them from "comode.h" and the THREADPRIVATE declarations
+      ! (bmy, 7/15/03) 
+      REAL*8           :: ABSHUMK(KBLOOP)
 
 #if   defined( LSLOWJ )
       ! Include SLOW-J header file if FAST-J is turned off (bmy, 9/30/99)
@@ -111,7 +122,6 @@ C KTLOOP   = NUMBER OF GRID-CELLS IN A GRID-BLOCK
 C AM       = MOLECULAR WEIGHT OF AIR (28.966 G MOLE-1)
 C AVG      = AVOGADRO'S NUMBER (6.02252E+23  # MOLE-1)
 C BOLTG    = BOLTZMANN'S CONSTANT (1.38054E-16 ERG K-1) 
-C     DENCONS  = AVG / WTAIR 
 C RHO3     = DENSITY OF AIR         (G CM-3) = WTAIR*P(DYN CM-2)/(RSTARG*T) 
 C RSTARG   = BOLTG * AVG
 C DENAIR   = DENSITY OF AIR         (# CM-3) = P(DYNCM-2) / (T * BOLTG) 
@@ -135,7 +145,13 @@ C
             TEMP1(KLOOP)      = 300.d0    / T3K(KLOOP)
             CONCO2(KLOOP)     = 0.2095d0  * DENAIR(KLOOP)
             CONCN2(KLOOP)     = 0.7808d0  * DENAIR(KLOOP)
-            AREAXT(KLOOP)     = AERSURF(JLOOP) * SQRT(T3(JLOOP))
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            ! Prior to 7/11/03:
+            ! AREAXT is not used in the GEOS-CHEM implementation of SMVGEAR,
+            ! so comment it out for now.  Leave here for further reference.
+            ! (bmy, 7/11/03)
+            !AREAXT(KLOOP)     = AERSURF(JLOOP) * SQRT(T3(JLOOP))
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 C
 C   Check if sun is up anywhere in this block of grid-boxes.
 C   IFSUN gets used in CALCRATE
@@ -291,49 +307,54 @@ C
             ENDDO
          ENDIF
       ENDDO
-C
-C
-C *********************************************************************
-C *                          SURFACE REACTIONS                        *
-C *********************************************************************
-C VTHERMG     = SQRT(8*R*T/(PI*MW))  (CM S-1) = THERMAL VELOCITY OF GAS 
-C AREAXT      = SURFACE AREA OF AEROSOLS (CM2 CM-3) * SQRT(T) 
-C RRATE(INIT) = (1/4)*SQRT(8*RSTARG/(PI*WTGAS)) * REACT PROBABILITY 
-C RRATE(FIN)  = (1/4)  * VTHERMG * REACT PROBAB * SURFACE AREA 
-C   (S-1)                (CM S-1)      ---         (CM2 CM-3)
-C JOLD2       = SPECIES COATING THE SURFACE 
-C
-         DO 62 I           = 1, NSURFACE(NCS) 
-
-            ! Stop run safely if NSURFACE > 1 (bdf, bmy, 4/1/03)
-            CALL ERROR_STOP( 'Cannot do surface rxns!', 'calcrate.f' )
-
-            NK               = NKSURF(I) 
-            JOLD2            = NCOATG(I) 
-C
-C IF SECOND SPECIES IS WATER, NO NEED TO ADJUST RATE COEFFICIENT
-C
-            IF (JOLD2.EQ.0) THEN 
-               DO 60 KLOOP      = 1, KTLOOP 
-                  RRATE(KLOOP,NK) = RRATE(KLOOP,NK) * AREAXT(KLOOP)
- 60            CONTINUE
-            ELSE
-C
-C IF SECOND SPECIES IS HCL, DIVIDE RATE COEFFICIENT BY CURRENT HCL
-C CONCENTRATION AND CALCULATE CHANGE IN HCL AND FIRST SPECIES.
-C IF SECOND SPECIES CONC. IS SMALL, IT IS NOT COATING A SURFACE,
-C AND NO REACTION OCCURS.
-C
-               DO 61 KLOOP      = 1, KTLOOP 
-                  IF (CINIT(KLOOP,JOLD2).GT.1.0d+06) THEN
-                     RRATE(KLOOP,NK) = RRATE(KLOOP,NK) * AREAXT(KLOOP)
-     1                    / CINIT(KLOOP,JOLD2) 
-                  ELSE
-                     RRATE(KLOOP,NK) = 0.d0
-                  ENDIF
- 61            CONTINUE 
-            ENDIF
- 62      CONTINUE 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! Prior to 7/11/03:
+! GEOS-CHEM does not implement surface reactions, so comment out this section
+! LEAVE HERE FOR FUTURE REFERENCE (bmy, 7/11/03)
+!C
+!C
+!C *********************************************************************
+!C *                          SURFACE REACTIONS                        *
+!C *********************************************************************
+!C VTHERMG     = SQRT(8*R*T/(PI*MW))  (CM S-1) = THERMAL VELOCITY OF GAS 
+!C AREAXT      = SURFACE AREA OF AEROSOLS (CM2 CM-3) * SQRT(T) 
+!C RRATE(INIT) = (1/4)*SQRT(8*RSTARG/(PI*WTGAS)) * REACT PROBABILITY 
+!C RRATE(FIN)  = (1/4)  * VTHERMG * REACT PROBAB * SURFACE AREA 
+!C   (S-1)                (CM S-1)      ---         (CM2 CM-3)
+!C JOLD2       = SPECIES COATING THE SURFACE 
+!C
+!         DO 62 I           = 1, NSURFACE(NCS) 
+!
+!            ! Stop run safely if NSURFACE > 1 (bdf, bmy, 4/1/03)
+!            CALL ERROR_STOP( 'Cannot do surface rxns!', 'calcrate.f' )
+!
+!            NK               = NKSURF(I) 
+!            JOLD2            = NCOATG(I) 
+!C
+!C IF SECOND SPECIES IS WATER, NO NEED TO ADJUST RATE COEFFICIENT
+!C
+!            IF (JOLD2.EQ.0) THEN 
+!               DO 60 KLOOP      = 1, KTLOOP 
+!                  RRATE(KLOOP,NK) = RRATE(KLOOP,NK) * AREAXT(KLOOP)
+! 60            CONTINUE
+!            ELSE
+!C
+!C IF SECOND SPECIES IS HCL, DIVIDE RATE COEFFICIENT BY CURRENT HCL
+!C CONCENTRATION AND CALCULATE CHANGE IN HCL AND FIRST SPECIES.
+!C IF SECOND SPECIES CONC. IS SMALL, IT IS NOT COATING A SURFACE,
+!C AND NO REACTION OCCURS.
+!C
+!               DO 61 KLOOP      = 1, KTLOOP 
+!                  IF (CINIT(KLOOP,JOLD2).GT.1.0d+06) THEN
+!                     RRATE(KLOOP,NK) = RRATE(KLOOP,NK) * AREAXT(KLOOP)
+!     1                    / CINIT(KLOOP,JOLD2) 
+!                  ELSE
+!                     RRATE(KLOOP,NK) = 0.d0
+!                  ENDIF
+! 61            CONTINUE 
+!            ENDIF
+! 62      CONTINUE 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 C
 C *********************************************************************
 C ********  MULTIPLY RATES BY CONSTANT SPECIES CONCENTRATIONS  ********
@@ -368,23 +389,28 @@ C
                RRATE(KLOOP,NK) = RRATE(KLOOP,NK) * CONCN2(KLOOP) 
  90         CONTINUE
  92      CONTINUE
-C
-C *********************************************************************
-C  MULTIPLY RATE COEFFICIENT BY ANY OTHER THIRD BODY CONC (E.G., H2O) 
-C           MULTIPLY BY OTHER INACTIVE CONCENTRATIONS LATER 
-C *********************************************************************
-C
-         DO 102 I          = 1, NM3BOD(NCS)
-
-            ! Stop run safely if NM3BOD > 0 (bmy, 4/1/03)
-            CALL ERROR_STOP( 'Cannot do 3-body rxns!', 'calcrate.f' )
-
-            NK               = NREAC3B(I,NCS)
-            JOLD             = LGAS3BOD(I,NCS)
-            DO 100 KLOOP     = 1, KTLOOP
-               RRATE(KLOOP,NK) = RRATE(KLOOP,NK) * CINIT(KLOOP,JOLD) 
- 100        CONTINUE
- 102     CONTINUE
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! Prior to 7/11/03:
+! GEOS-CHEM does not implement 3-body reactions, so comment out this section
+! LEAVE HERE FOR FUTURE REFERENCE (bmy, 7/11/03)
+!C
+!C *********************************************************************
+!C  MULTIPLY RATE COEFFICIENT BY ANY OTHER THIRD BODY CONC (E.G., H2O) 
+!C           MULTIPLY BY OTHER INACTIVE CONCENTRATIONS LATER 
+!C *********************************************************************
+!C
+!         DO 102 I          = 1, NM3BOD(NCS)
+!
+!            ! Stop run safely if NM3BOD > 0 (bmy, 4/1/03)
+!            CALL ERROR_STOP( 'Cannot do 3-body rxns!', 'calcrate.f' )
+!
+!            NK               = NREAC3B(I,NCS)
+!            JOLD             = LGAS3BOD(I,NCS)
+!            DO 100 KLOOP     = 1, KTLOOP
+!               RRATE(KLOOP,NK) = RRATE(KLOOP,NK) * CINIT(KLOOP,JOLD) 
+! 100        CONTINUE
+! 102     CONTINUE
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 C
 C *********************************************************************
 C *                   PRESSURE-DEPENDENT EFFECTS                      * 
@@ -921,6 +947,12 @@ C           = NCS + ICS FOR NIGHTTIME GAS CHEM
 C
       NCSP            = (IFSUN - 1) * ICS + NCS
 C
+C *********************************************************************
+C                ARCHIVE FOR PLANE-FOLLOWING DIAGNOSTIC   
+C *********************************************************************
+C
+      ! Pass JO1D to "planeflight_mod.f" via the DUMMY variable 
+      CALL ARCHIVE_RXNS_FOR_PF( DUMMY )
 C
 C *********************************************************************
 C ******************** END OF SUBROUTINE CALCRATE *********************

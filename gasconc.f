@@ -1,10 +1,10 @@
-! $Id: gasconc.f,v 1.1 2003/06/30 20:26:05 bmy Exp $
+! $Id: gasconc.f,v 1.2 2003/07/21 15:09:26 bmy Exp $
       SUBROUTINE GASCONC( FIRSTCHEM, STT,    NTRACER,
      &                    XNUMOL,    LPAUSE, FRCLND )
 !
 !******************************************************************************
 !  Subroutine GASCONC initializes gas concentrations for SMVGEAR II.
-!  (M. Jacobson 1997; bdf, bmy, 4/18/03)
+!  (M. Jacobson 1997; bdf, bmy, 4/18/03, 7/16/03)
 !
 !  NOTES:
 !  (1 ) Now reference ABSHUM, AIRDENS, CSPEC, IXSAVE, IYSAVE, IZSAVE,  
@@ -12,6 +12,8 @@
 !        from "tracerid_mod.f".  Also removed code that is not needed for
 !        GEOS-CHEM.  Now also force double precision with "D" exponents.
 !        (bdf, bmy, 4/18/03)
+!  (2 ) Remove IRUN -- it's obsolete.  Remove obsolete variables from
+!        documentation. (bmy, 7/16/03)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -59,7 +61,6 @@ C NVERT     = NUMBER OF VERTICAL LAYERS.
 C
 C QBKGAS    = INITIAL BACKGROUND CONCENTRATION (VOL MIXING RATIO) 
 C RHO3      = G-AIR CM-3-AIR
-C DENCONS   = AVG / WTAIR 
 C C(GAS)    = GAS CONCENTRATION IN A GIVEN GRID-CELL (# CM-3)
 C
       ! Local variables
@@ -247,17 +248,12 @@ C     then calculate R.H.
 C *********************************************************************
 C *           INITIALIZE O2 (# CM-3) IF O2 IS INACTIVE                *
 C *********************************************************************
-C RHO3    = AIR DENSITY (G CM-3)
+C AIRDENS = AIR DENSITY (G CM-3)
 C OXYCONS = (# G-1) CONVERSION OF O2 FROM G CM-3 TO # CM-3
 C
-
-! bdf smv2, using cspec as chemistry matrix.
-!      write(6,*) 'must take this out later.'
-!      if (ioxygen .ne. 79) stop 400
       IF (IOXYGEN.GT.NGAS) THEN
          OXYCONS           = 0.2095d0
          DO 260 JLOOP      = 1, NTLOOP
-! 260    CSPEC(JLOOP,IOXYGEN) = RHO3(JLOOP) * OXYCONS
  260        CSPEC(JLOOP,IOXYGEN) = AIRDENS(JLOOP) * OXYCONS
       ENDIF
  999  format(E10.3)
@@ -308,8 +304,14 @@ C *********************************************************************
 C
       NCS         =  1
 C
-      IF (ITESTGEAR.EQ.2) THEN 
-       WRITE(KCPD,810) 0.,0.,IRUN,(NAMENCS(INEWOLD(I,NCS),NCS),
+      IF (ITESTGEAR.EQ.2) THEN
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! Prior to 7/16/03:
+! Remove IRUN -- it's obsolete (bmy, 7/16/03) 
+!       WRITE(KCPD,810) 0.,0.,IRUN,(NAMENCS(INEWOLD(I,NCS),NCS),
+!     1        CSPEC(LLOOP,INEWOLD(I,NCS)), I = 1, ISCHANG(NCS))
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       WRITE(KCPD,810) 0.,0.,(NAMENCS(INEWOLD(I,NCS),NCS),
      1        CSPEC(LLOOP,INEWOLD(I,NCS)), I = 1, ISCHANG(NCS))
        WRITE(KCPD,820)
       ENDIF
