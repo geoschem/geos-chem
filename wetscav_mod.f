@@ -1,4 +1,4 @@
-! $Id: wetscav_mod.f,v 1.11 2004/09/21 18:04:20 bmy Exp $
+! $Id: wetscav_mod.f,v 1.12 2004/12/02 21:48:42 bmy Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
@@ -729,10 +729,6 @@
       ! 210Pb (aerosol)
       !----------------------------
       IF ( N == IDTPB ) THEN
-         !-------------------------
-         ! Prior to 7/20/04:
-         !CALL F_AEROSOL( F )
-         !-------------------------
          CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
 
@@ -740,10 +736,6 @@
       ! 7Be (aerosol)
       !----------------------------
       ELSE IF ( N == IDTBE7 ) THEN
-         !-------------------------
-         ! Prior to 7/20/04:
-         !CALL F_AEROSOL( F )
-         !-------------------------
          CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
 
@@ -751,10 +743,6 @@
       ! HNO3 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTHNO3 ) THEN
-         !-------------------------
-         ! Prior to 7/20/04:
-         !CALL F_AEROSOL( F )
-         !-------------------------
          CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N ) 
 
@@ -931,10 +919,6 @@
       ELSE IF ( N == IDTSO2 ) THEN
 
          ! Compute fraction of SO2 scavenged
-         !------------------------
-         ! Prior to 7/20/04:
-         !CALL F_AEROSOL( F )
-         !------------------------
          CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
 
@@ -977,10 +961,6 @@
       ! SO4 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTSO4 ) THEN
-         !------------------------
-         ! Prior to 7/20/04:
-         !CALL F_AEROSOL( F )
-         !------------------------
          CALL F_AEROSOL( KC, F ) 
          ISOL = GET_ISOL( N ) 
 
@@ -988,10 +968,6 @@
       ! MSA (aerosol)
       !---------------------------
       ELSE IF ( N == IDTMSA ) THEN
-         !------------------------
-         ! Prior to 7/20/04:
-         !CALL F_AEROSOL( F )
-         !------------------------
          CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
 
@@ -1057,10 +1033,6 @@
       ! NH4 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTNH4 ) THEN
-         !------------------------
-         ! Prior to 7/20/04:
-         !CALL F_AEROSOL( F )
-         !------------------------
          CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
          
@@ -1068,10 +1040,6 @@
       ! NIT (aerosol)
       !----------------------------
       ELSE IF ( N == IDTNIT ) THEN
-         !------------------------
-         ! Prior to 7/20/04:
-         !CALL F_AEROSOL( F )
-         !------------------------
          CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
 
@@ -1079,10 +1047,6 @@
       ! BC HYDROPHILIC (aerosol)
       !----------------------------
       ELSE IF ( N == IDTBCPI ) THEN
-         !------------------------
-         ! Prior to 7/20/04:
-         !CALL F_AEROSOL( F )
-         !------------------------
          CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
 
@@ -1090,10 +1054,6 @@
       ! OC HYDROPHILIC (aerosol)
       !----------------------------
       ELSE IF ( N == IDTOCPI ) THEN
-         !------------------------
-         ! Prior to 7/20/04:
-         !CALL F_AEROSOL( F )
-         !------------------------
          CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
 
@@ -1119,10 +1079,6 @@
       ! DUST1 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTDST1 ) THEN
-         !-------------------------
-         ! Prior to 7/20/04:
-         !CALL F_AEROSOL( F )
-         !-------------------------
          CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
          
@@ -1130,10 +1086,6 @@
       ! DUST2 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTDST2 ) THEN
-         !-------------------------
-         ! Prior to 7/20/04:
-         !CALL F_AEROSOL( F )
-         !-------------------------
          CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
          
@@ -1141,10 +1093,6 @@
       ! DUST3 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTDST3 ) THEN
-         !-------------------------
-         ! Prior to 7/20/04:
-         !CALL F_AEROSOL( F )
-         !-------------------------
          CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
          
@@ -1152,10 +1100,6 @@
       ! DUST4 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTDST4 ) THEN
-         !-------------------------
-         ! Prior to 7/20/04:
-         !CALL F_AEROSOL( F )
-         !-------------------------
          CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
 
@@ -1163,10 +1107,6 @@
       ! Accum mode seasalt aerosol
       !----------------------------
       ELSE IF ( N == IDTSALA ) THEN
-         !-------------------------
-         ! Prior to 7/20/04:
-         !CALL F_AEROSOL( F )
-         !-------------------------
          CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
 
@@ -1174,10 +1114,6 @@
       ! Coarse mode seasalt aerosol
       !----------------------------
       ELSE IF ( N == IDTSALC ) THEN
-         !-------------------------
-         ! Prior to 7/20/04:
-         !CALL F_AEROSOL( F )
-         !-------------------------
          CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
 
@@ -1393,10 +1329,6 @@
       ! Scavenging efficiency for SOA is 0.8
       !---------------------------------------
       ELSE IF ( N == IDTSOA1 .OR. N == IDTSOA2 .OR. N == IDTSOA3 ) THEN
-         !-------------------------
-         ! Prior to 7/20/04:
-         !CALL F_AEROSOL( F )
-         !-------------------------
          CALL F_AEROSOL( KC, F )
 
          DO L = 2, LLPAR
@@ -1417,65 +1349,6 @@
          ISOL     = 0
 
       ENDIF
-
-!------------------------------------------------------------------------------
-! Prior to 7/20/04:
-! Now made into a module routine, in order to facilitate parallelization on
-! the Altix platform (bmy, 7/20/04)
-!
-!         
-!      !=================================================================
-!      ! Internal subroutines -- they can "see" all variables 
-!      ! that have been declared in COMPUTE_F
-!      !=================================================================
-!      CONTAINS
-!
-!      !-----------------------------------------------------------------------
-!
-!      SUBROUTINE F_AEROSOL( F ) 
-!
-!      !=================================================================
-!      ! Internal routine F_AEROSOL returns the fraction of aerosol
-!      ! scavenged in updrafts (bmy, 11/7/02)
-!      !=================================================================
-!
-!      ! Arguments
-!      REAL*8, INTENT(OUT) :: F(IIPAR,JJPAR,LLPAR)
-!
-!      ! Local variables
-!      INTEGER             :: I, J, L
-!      REAL*8              :: TMP
-!     
-!      !=================================================================
-!      ! GET_F_AEROSOL begins here!
-!      !
-!      ! Aerosol tracers are 100% in the cloud condensate phase, so 
-!      ! we set K = Kc, and compute F accordingly (cf Jacob et al 2000 )    
-!      !=================================================================
-!      
-!      ! Turn off scavenging in the first level by setting F = 0
-!      F(:,:,1) = 0d0
-!  
-!      ! Apply scavenging in levels 2 and higher
-!      DO L = 2, LLPAR
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!                
-!         ! Distance between grid box centers [m]
-!         TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-!       
-!         ! (Eq. 2, Jacob et al, 2000, with K = Kc)
-!         F(I,J,L) = 1d0 - EXP( -KC * TMP / Vud(I,J) )
-!            
-!      ENDDO
-!      ENDDO
-!      ENDDO
-!
-!      ! Return to COMPUTE_F
-!      END SUBROUTINE F_AEROSOL 
-!
-!      !-----------------------------------------------------------------------
-!------------------------------------------------------------------------------
 
       ! Return to calling program
       END SUBROUTINE COMPUTE_F
@@ -3884,10 +3757,6 @@
       
       ! Also check to see if NSOL is larger than the maximum
       ! number of soluble tracers for a particular simulation
-      !-----------------------------------------------
-      ! Prior to 7/20/04:
-      !IF ( NSOL > GET_WETDEP_NMAX( NSRCX ) ) THEN
-      !-----------------------------------------------
       IF ( NSOL > GET_WETDEP_NMAX() ) THEN
          CALL ERROR_STOP( 'NSOL > NMAX', 'WETDEPID (wetscav_mod.f)')
       ENDIF

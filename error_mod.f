@@ -1,4 +1,4 @@
-! $Id: error_mod.f,v 1.7 2004/09/21 18:04:13 bmy Exp $
+! $Id: error_mod.f,v 1.8 2004/12/02 21:48:36 bmy Exp $
       MODULE ERROR_MOD
 !
 !******************************************************************************
@@ -405,110 +405,6 @@
       ! Return to calling program
       END FUNCTION FINITE_DBLE
       
-!-----------------------------------------------------------------------------
-! Prior to 7/20/04:
-! Move CHECK_STT to tracer_mod.f to avoid circular reference (bmy, 7/20/04)
-!
-!      SUBROUTINE CHECK_STT( LOCATION )
-!!
-!!******************************************************************************
-!!  Subroutine CHECK_STT checks the STT tracer array for negative values,
-!!  NaN values, or Infinity values.  If any of these are found, the code
-!!  will stop with an error message. (bmy, 3/8/01, 3/23/03)
-!!
-!!  Arguments as Input:
-!!  ============================================================================
-!!  (1) LOCATION (CHARACTER) : String describing location of error in code
-!!
-!!  NOTES:
-!!  (1 ) CHECK_STT uses the interfaces defined above -- these will do the
-!!        proper error checking for either SGI or DEC/Compaq platforms.
-!!        (bmy, 3/8/01)
-!!  (2 ) Now call GEOS_CHEM_STOP to shutdown safely.  Now use logicals LNAN,
-!!        LNEG, LINF to flag if we have error conditions, and then stop the
-!!        run outside of the parallel DO-loop. (bmy, 11/27/02)
-!!  (3 ) Bug fix in FORMAT statement: replace missing commas (bmy, 3/23/03)
-!!******************************************************************************
-!!
-!#     include "CMN_SIZE"           ! Size parameters
-!#     include "CMN"                ! STT, NTRACE
-!
-!      ! Arguments
-!      CHARACTER(LEN=*), INTENT(IN) :: LOCATION
-!
-!      ! Local variables
-!      LOGICAL                      :: LNEG, LNAN, LINF
-!      INTEGER                      :: I,    J,    L,   N
-!      
-!      !=================================================================
-!      ! CHECK_STT begins here!
-!      !=================================================================
-!
-!      ! Initialize
-!      LNEG = .FALSE.
-!      LNAN = .FALSE.
-!      LINF = .FALSE.
-!
-!      ! Loop over grid boxes
-!!$OMP PARALLEL DO 
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, N )
-!      DO N = 1, NTRACE
-!      DO L = 1, LLPAR
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!
-!         !---------------------------
-!         ! Check for Negatives
-!         !---------------------------
-!         IF ( STT(I,J,L,N) < 0d0 ) THEN 
-!!$OMP CRITICAL
-!            LNEG = .TRUE.
-!            WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
-!!$OMP END CRITICAL
-!
-!         !---------------------------
-!         ! Check for NaN's
-!         !---------------------------
-!         ELSE IF ( IT_IS_NAN( STT(I,J,L,N) ) ) THEN
-!!$OMP CRITICAL
-!            LNAN = .TRUE.
-!            WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
-!!$OMP END CRITICAL
-!
-!         !----------------------------
-!         ! Check STT's for Infinities
-!         !----------------------------
-!         ELSE IF ( .not. IT_IS_FINITE( STT(I,J,L,N) ) ) THEN
-!!$OMP CRITICAL
-!            LINF = .TRUE.
-!            WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
-!!$OMP END CRITICAL            
-!
-!         ENDIF
-!      ENDDO
-!      ENDDO
-!      ENDDO
-!      ENDDO
-!!$OMP END PARALLEL DO
-!
-!      !=================================================================
-!      ! Stop the run if any of LNEG, LNAN, LINF is true
-!      !=================================================================
-!      IF ( LNEG .or. LNAN .or. LINF ) THEN
-!         WRITE( 6, 120 ) TRIM( LOCATION )
-!         CALL GEOS_CHEM_STOP
-!      ENDIF
-!
-!      !=================================================================
-!      ! FORMAT statements
-!      !=================================================================
-! 100  FORMAT( 'CHECK_STT: STT(',i3,',',i3,',',i3,',',i3,') = ', f13.6 )
-! 120  FORMAT( 'CHECK_STT: STOP at ', a )
-!
-!      ! Return to calling program
-!      END SUBROUTINE CHECK_STT
-!
 !------------------------------------------------------------------------------
 
       SUBROUTINE CHECK_REAL_VALUE( VALUE, LOCATION, VARNAME, MESSAGE )

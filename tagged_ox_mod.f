@@ -1,4 +1,4 @@
-! $Id: tagged_ox_mod.f,v 1.7 2004/10/15 20:16:43 bmy Exp $
+! $Id: tagged_ox_mod.f,v 1.8 2004/12/02 21:48:40 bmy Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
@@ -510,12 +510,6 @@
             ! Apply drydep of Ox to each tagged tracer.  We need 
             ! to do this using before P(Ox) - L(Ox) is applied.
             !========================================================
-            !--------------------------------------------------------
-            ! Prior to 10/12/04:
-            ! Error...if PBLFRAC is not allocated (i.e. if LDRYD
-            ! is FALSE) we will get a seg fault error here)
-            !IF ( LDRYD .and. PBLFRAC(I,J,L) > 0d0 ) THEN
-            !--------------------------------------------------------
             IF ( LDRYD ) THEN
 
                ! PBLFRAC won't be allocated if LDRYD=F, so we should avoid

@@ -1,4 +1,4 @@
-! $Id: ndxx_setup.f,v 1.13 2004/10/15 20:16:42 bmy Exp $
+! $Id: ndxx_setup.f,v 1.14 2004/12/02 21:48:38 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
@@ -104,6 +104,7 @@
 !        and "CMN_SETUP".  Now references INIT_DIAG_OH from "diag_oh_mod.f"
 !        Adjust TRCOFFSET for various aerosol simulations. (bmy, 7/20/04)
 !  (49) Make sure ND21 only goes from 1-LLTROP (bmy, 9/28/04)
+!  (50) Now allocate AD13_SO4_bf array (bmy, 11/17/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -356,6 +357,9 @@
          ALLOCATE( AD13_SO4_an( IIPAR, JJPAR, 2 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_SO4_an' )
 
+         ALLOCATE( AD13_SO4_bf( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_SO4_bf' )
+
          ALLOCATE( AD13_SO2_sh( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_SO4_sh' )
 
@@ -466,10 +470,6 @@
       !       --> uses AD21 array (allocatable) 
       !=================================================================
       IF ( ND21 > 0 ) THEN
-         !-----------------------------
-         ! Prior to 9/28/04:
-         !LD21 = MIN( ND21, LLPAR )
-         !-----------------------------
          LD21 = MIN( ND21, LLTROP )
 
          ALLOCATE( AD21( IIPAR, JJPAR, LD21, PD21 ), STAT=AS )
@@ -608,10 +608,6 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_fe' ) 
 
          ! For Lightning NOx
-         !------------------------------------------------------
-         ! Prior to 7/20/04:
-         !ALLOCATE( AD32_li( IIPAR, JJPAR, LCONVM ), STAT=AS )
-         !------------------------------------------------------
          ALLOCATE( AD32_li( IIPAR, JJPAR, LLCONVM ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_li' )
 
@@ -883,34 +879,6 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOBOX' )
       ENDIF        
 
-!-----------------------------------------------------------------------------
-! Prior to 7/20/04:
-!      !=================================================================
-!      ! ND49: Geographic domain -- inst. time series of tracers
-!      ! ND50: Geographic domain -- 24h average time series of tracers
-!      ! ND51: Geographic domain -- 1-4pm time series for tracers
-!      !
-!      ! Call READ49 to read "timeseries.dat" for ND49, ND50, ND51
-!      !=================================================================
-!      !--------------------------------------------------------
-!      ! Prior to 4/22/04: 
-!      ! Now activate for ND52 diagnostic (bmy, 4/22/04)
-!      !IF ( ND49 > 0 .or. ND50 .gt. 0 .or. ND51 > 0 ) THEN
-!      !--------------------------------------------------------
-!      IF ( ND49 > 0 .or. ND50 > 0 .or. ND51 > 0 .or. ND52 > 0 ) THEN
-!         CALL READ49
-!
-!         ! For ND50 -- allocate space for the STT_TEMPO2 array. 
-!         ! Use NTRACE tracers, and pure O3 and NO if necessary (bmy, 10/13/00)
-!         IF ( ND50 > 0 ) THEN
-!            ALLOCATE( STT_TEMPO2( IIPAR, JJPAR, LLPAR, NTRACE+2 ), 
-!     &                            STAT=AS )
-!
-!            IF ( AS /= 0 ) CALL ALLOC_ERR( 'STT_TEMPO2' )
-!         ENDIF
-!      ENDIF
-!-----------------------------------------------------------------------------
-
       !=================================================================
       ! ND52 - ND54: Free diagnostics
       ! 
@@ -925,80 +893,6 @@
       !=================================================================
       ! ND56 - ND64: Free diagnostics
       !
-!-----------------------------------------------------------------------------
-! Prior to 7/20/04:
-! We now do this in "diag_pl_mod.f"
-!      ! ND65: Chemical family production and loss [molec/cm3/s]
-!      !       Call setnfam to get # of families to keep track of (nfam)
-!      !=================================================================
-!      NFAM = 0
-!
-!
-!      IF ( ND65 > 0 ) THEN
-!
-!         ! Select NFAM by simulation
-!         SELECT CASE ( NSRCX )
-!
-!            ! CH3I: NTRACE families 
-!            CASE ( 2 )
-!               NFAM = NTRACE
-!
-!            ! Tagged Ox: NTRACE*2 families
-!            CASE ( 6 )
-!               NFAM = NTRACE * 2
-!
-!            ! Tagged CO: NTRACE+5 families
-!            CASE ( 7 )
-!               NFAM = NTRACE + 5
-!
-!            ! Other simulations: call SETNFAM
-!            CASE DEFAULT
-!               CALL SETNFAM
-!
-!         END SELECT
-!
-!         ! Error check: NFAM must be > 0! (bmy, 1/15/02)
-!         IF ( NFAM == 0 ) THEN 
-!            CALL ERROR_STOP( 'NFAM must be >0 for ND65', 'ndxx_setup.f')
-!         ENDIF
-!
-!         ! Select by simulation
-!         SELECT CASE ( NSRCX )
-!
-!            !----------------------------------------------
-!            ! For full chem w/ SMVGEAR: save up to LLTROP
-!            !----------------------------------------------
-!            CASE ( 3 )
-!
-!               ! Number of vertical levels to print out
-!               LD65 = MIN( ND65, LLTROP )
-!
-!               ! Allocate AD65
-!               ALLOCATE( AD65( IIPAR, JJPAR, LD65, NFAM ), STAT=AS )
-!               IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD65' )
-!
-!               ! Allocate FAMPL for "plsave.f", "diag20.f", etc.
-!               ALLOCATE( FAMPL( IIPAR, JJPAR, LLTROP, NFAM ), STAT=AS )
-!               IF ( AS /= 0 ) CALL ALLOC_ERR( 'FAMPL' )
-!
-!            !----------------------------------------------
-!            ! All other simulations: save up to LLPAR
-!            !----------------------------------------------
-!            CASE DEFAULT
-!
-!               ! Number of vertical levels to print out
-!               LD65 = MIN( ND65, LLPAR )
-!
-!               ! Allocate AD65
-!               ALLOCATE( AD65( IIPAR, JJPAR, LD65, NFAM ), STAT=AS )
-!               IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD65' )
-!
-!          END SELECT
-!
-!      ENDIF
-!-----------------------------------------------------------------------------
-
-      !=================================================================
       ! ND66: DAO 3-D fields (UWND, VWND, SPHU, TMPU, RH) 
       !       --> uses AD66 array (allocatable)
       !=================================================================
@@ -1037,21 +931,6 @@
          ALLOCATE( AD69( IIPAR, JJPAR, PD69 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD69' )
       ENDIF
-
-!------------------------------------------------------------------------------
-! Prior to 7/20/04:
-!      !=================================================================
-!      ! Write NDxx's to standard output
-!      !=================================================================
-! 975  FORMAT(' ND', I1, '-', 10I4)
-!      WRITE(6,975) 0,ND01,ND02,ND03,ND04,ND05,ND06,ND07,ND08,ND09,ND10
-!      WRITE(6,975) 1,ND11,ND12,ND13,ND14,ND15,ND16,ND17,ND18,ND19,ND20
-!      WRITE(6,975) 2,ND21,ND22,ND23,ND24,ND25,ND26,ND27,ND28,ND29,ND30
-!      WRITE(6,975) 3,ND31,ND32,ND33,ND34,ND35,ND36,ND37,ND38,ND39,ND40
-!      WRITE(6,975) 4,ND41,ND42,ND43,ND44,ND45,ND46,ND47,ND48,ND49,ND50
-!      WRITE(6,975) 5,ND51,ND52,ND53,ND54,ND55,ND56,ND57,ND58,ND59,ND60
-!      WRITE(6,975) 6,ND61,ND62,ND63,ND64,ND65,ND66,ND67,ND68,ND69,ND70
-!------------------------------------------------------------------------------
 
       ! Return to calling program
       END SUBROUTINE NDXX_SETUP

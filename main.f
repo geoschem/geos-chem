@@ -1,21 +1,15 @@
-C $Id: main.f,v 1.18 2004/10/15 20:16:41 bmy Exp $
+C $Id: main.f,v 1.19 2004/12/02 21:48:38 bmy Exp $
 C $Log: main.f,v $
-C Revision 1.18  2004/10/15 20:16:41  bmy
-C GEOS-CHEM v7-01-01, includes the following modifications:
-C - Brand new user GEOS-CHEM user interface with new "input.geos" file
-C - ND48, ND49, ND50, ND51 timeseries diagnostics rewritten for consistency
-C - Bundled code for Mean OH diagnostic into "diag_oh_mod.f"
-C - Bundled code for ND65, ND20 diagnostics into "diag_pl_mod.f"
-C - Aerosol Opt Depths for FAST-J, Hetchem are now computed in "aerosol_mod.f"
-C - Now use inquiry functions (in "tracer_mod.f") to test for simulation type
-C - Dust & Aerosol Opt Depths now scaled to 400 nm in ND21 diag & timeseries
-C - Rewrote parallel loops to facilitate parallelization on Altix and Altix-2
-C - All GEOS-CHEM logical switches are now contained w/in "logical_mod.f"
-C - All GEOS-CHEM directories are now contained w/in "directory_mod.f"
-C - All Unix zipping commands are now bundled into "tracer_mod.f"
-C - Deleted lots of obsolete code; updated comments
+C Revision 1.19  2004/12/02 21:48:38  bmy
+C GEOS-CHEM v7-02-01, includes the following modifications:
+C - Can now toggle EPA/NEI99 emissions over the USA on/off
+C - Now overwrite N.Am. with Cooke/RJP emissions in "carbon_mod.f"
+C - Now read carbon aerosol emissions from carbon_200411 subdirectory
+C - Added C-preprocessor switches for 1 x 1 nested grids in "define.h"
+C - Added C-preprocessor switch for GEOS-4 1 x 1.25 grid in "define.h"
+C - Several other minor bug fixes
 C
-C Revision 1.17  2004/09/24 14:03:56  bmy
+C Revision 1.18  2004/10/15 20:16:41  bmy
 C GEOS-CHEM v7-01-01, includes the following modifications:
 C - Brand new user GEOS-CHEM user interface with new "input.geos" file
 C - ND48, ND49, ND50, ND51 timeseries diagnostics rewritten for consistency
@@ -162,12 +156,6 @@ C
       CALL READ_TROPOPAUSE
 
       ! Initialize allocatable SMVGEAR arrays
-      !--------------------------------------------------------------
-      ! Prior to 9/28/04:
-      !IF ( ITS_A_FULLCHEM_SIM() .and. ( LEMIS .or. LCHEM ) ) THEN 
-      !   CALL INIT_COMODE
-      !ENDIF
-      !--------------------------------------------------------------
       IF ( LEMIS .or. LCHEM ) THEN
          IF ( ITS_A_FULLCHEM_SIM() ) CALL INIT_COMODE
          IF ( ITS_AN_AEROSOL_SIM() ) CALL INIT_COMODE
@@ -852,29 +840,35 @@ C
 
       !=================================================================
       ! Internal Subroutine DISPLAY_GRID_AND_MODEL displays the 
-      ! appropriate messages for the given model grid (2 x 2.5, 4 x 5)
-      ! and machine type (bmy, 12/2/03)
+      ! appropriate messages for the given model grid and machine type 
+      ! (bmy, 12/2/03, 12/1/04)
       !=================================================================
 
       !-----------------------
       ! Print resolution info
       !-----------------------
-#if   defined( GRID4x5  )
+#if   defined( GRID4x5   )
       WRITE( 6, '(a)' )                   
-     &    REPEAT( '*', 13 )                                    //
-     &    '   S T A R T I N G   4 x 5   G E O S--C H E M   '   //
+     &    REPEAT( '*', 13 )                                      //
+     &    '   S T A R T I N G   4 x 5   G E O S--C H E M   '     //
      &    REPEAT( '*', 13 )
 
-#elif defined( GRID2x25 )
+#elif defined( GRID2x25  )
       WRITE( 6, '(a)' ) 
-     &    REPEAT( '*', 13 )                                    // 
-     &    '   S T A R T I N G   2 x 2.5   G E O S--C H E M   ' //
+     &    REPEAT( '*', 13 )                                      // 
+     &    '   S T A R T I N G   2 x 2.5   G E O S--C H E M   '   //
+     &    REPEAT( '*', 13 )
+
+#elif defined( GRID1x125 )
+      WRITE( 6, '(a)' ) 
+     &    REPEAT( '*', 13 )                                      // 
+     &    '   S T A R T I N G   1 x 1.25   G E O S--C H E M   '  //
      &    REPEAT( '*', 13 )
 
 #elif defined( GRID1x1 )
       WRITE( 6, '(a)' ) 
-     &    REPEAT( '*', 13 )                                    // 
-     &    '   S T A R T I N G   1 x 1   G E O S--C H E M   '   //
+     &    REPEAT( '*', 13 )                                      // 
+     &    '   S T A R T I N G   1 x 1   G E O S--C H E M   '     //
      &    REPEAT( '*', 13 )
 
 #endif
@@ -1132,9 +1126,7 @@ C
       ! FLUSH is an intrinsic FORTRAN subroutine and takes as input 
       ! the unit number of the file to be flushed to disk.
       !================================================================
-      ! Prior to 7/20/04:
-      !CALL FLUSH( IU_TS      )  
-      CALL FLUSH( IU_ND48      )  
+      CALL FLUSH( IU_ND48    )  
       CALL FLUSH( IU_BPCH    )  
       CALL FLUSH( IU_SMV2LOG )  
       CALL FLUSH( IU_DEBUG   ) 

@@ -1,4 +1,4 @@
-! $Id: CMN_NOX,v 1.2 2004/04/19 15:09:49 bmy Exp $
+! $Id: CMN_NOX,v 1.3 2004/12/02 21:48:31 bmy Exp $
       !=================================================================    
       ! CMN_NOX is the header file for containing NOx from aircraft,
       ! lightning, and soils.  CMN_NOX also contains variables for the
@@ -13,46 +13,9 @@
       !       "lightning_mod.f" (bmy, 4/14/04)
       !=================================================================
 
-      !------------------------------------------------------------------------
-      ! Prior to 4/14/04:
-      ! This is now in "lightning_mod.f" (bmy, 4/14/04)
-      ! 
-      !! SLBASE(i,j,L) is the average lightning NOx release per flash
-      !! in molecules NOx/per 6 hours (DAO time step)
-      !REAL*8            ::  SLBASE(IIPAR,JJPAR,LLPAR)
-      !COMMON /LIGHT/        SLBASE
-      !------------------------------------------------------------------------
-
       ! BXHEIGHT  = Grid box heights [m]
       ! GEMISNOX  = Aircraft & Lightning NOx [molec NOx/cm3/s]
       ! GEMISNOX2 = Soil Nox [molec NOx/cm3/s]
       REAL*8            :: GEMISNOX(IIPAR,JJPAR,LLPAR)
       REAL*8            :: GEMISNOX2(IIPAR,JJPAR)
       COMMON /BOXH/        GEMISNOX, GEMISNOX2
-
-      !------------------------------------------------------------------------
-      ! Prior to 4/14/04:
-      ! These are now in "lightning_mod.f" (bmy, 4/14/04)
-      !
-      !! NOx molecules per flash per meter (should be 4Tg/y)
-      !REAL*8, PARAMETER :: RFLASH = 2.073D22
-      !
-      !! IC/CG energy ratio
-      !REAL*8, PARAMETER :: CICG = 0.33333333
-      !
-      !! Temperature of negative charge center (K)
-      !REAL*8, PARAMETER :: TNCHARGE = 263.0
-      !
-      !! We should have FLASHSCALE = 0.75 (since RFLASH must be multiplied by
-      !! 0.75 to change from 4 Tg/yr to 3 Tg/yr) but for some reason this 
-      !! produces only 0.33 Tg NOx/yr.  The cheap solution is to just set
-      !! FLASHSCALE = 7.5 (thus including the factor of 10) and not ask too 
-      !! many more questions (bmy, bey, mgs, 3/5/98)
-      !!-----------------------------------------------------------------
-      !! Uncomment this line if you want 3 Tg N/yr from lightning
-      !!REAL*8, PARAMETER :: FLASHSCALE = 7.5d0
-      !!-----------------------------------------------------------------
-      !! Uncomment this line if you want 6 Tg N/yr from lightning
-      !REAL*8, PARAMETER :: FLASHSCALE = 15d0
-      !!-----------------------------------------------------------------
-      !------------------------------------------------------------------------

@@ -1,10 +1,10 @@
-! $Id: biofuel_mod.f,v 1.3 2004/09/21 18:04:08 bmy Exp $
+! $Id: biofuel_mod.f,v 1.4 2004/12/02 21:48:32 bmy Exp $
       MODULE BIOFUEL_MOD
 !
 !******************************************************************************
 !  Module BIOFUEL_MOD contains arrays and routines to compute yearly
 !  biofuel emissions for NOx, CO, ALK4, ACET, MEK, ALD2, PRPE, C3H8, 
-!  CH2O, and C2H6 (bmy, 9/12/00, 7/19/04)
+!  CH2O, and C2H6 (bmy, 9/12/00, 11/5/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -28,11 +28,12 @@
 !  (2 ) dao_mod.f       : Module containing DAO met field arrays
 !  (3 ) diag_mod.f      : Module containing GEOS-CHEM diagnostic arrays
 !  (4 ) directory_mod.f : Module containing GEOS-CHEM data & met field dirs
-!  (5 ) error_mod.f     : Module containing NaN and other error check routines
-!  (6 ) logical_mod.f   : Module containing GEOS-CHEM logical switches
-!  (7 ) tracer_mod.f    : Module containing GEOS-CHEM tracer array etc.
-!  (8 ) tracerid_mod.f  : Module containing pointers to tracers & emissions 
-!  (9 ) transfer_mod.f  : Module containing routines to cast & resize arrays
+!  (5 ) epa_nei_mod.f     : Module containing routines to read EPA/NEI99 data
+!  (6 ) error_mod.f     : Module containing NaN and other error check routines
+!  (7 ) logical_mod.f   : Module containing GEOS-CHEM logical switches
+!  (8 ) tracer_mod.f    : Module containing GEOS-CHEM tracer array etc.
+!  (9 ) tracerid_mod.f  : Module containing pointers to tracers & emissions 
+!  (10) transfer_mod.f  : Module containing routines to cast & resize arrays
 !
 !  NOTES:
 !  (1 ) Now account for extra production of CO from VOC's for Tagged CO
@@ -63,6 +64,7 @@
 !        "tracerid_mod.f"  Added routine SET_NBFTRACE. (bmy, 11/6/02)
 !  (12) Now call READ_BPCH2 with QUIET=.TRUE. to suppress output (bmy, 3/14/03)
 !  (13) Now references "directory_mod.f" (bmy, 7/19/04)
+!  (14) Now references "time_mod.f" and "epa_nei_mod.f" (bmy, 11/5/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -103,7 +105,7 @@
 !******************************************************************************
 !  Subroutine BIOFUEL_BURN computes the yearly biofuel burning emissions
 !  and also archives them into GEOS-CHEM diagnostics. 
-!  (rvm, acs, bnd, bmy, 9/12/00, 3/14/03)
+!  (rvm, acs, bnd, bmy, 9/12/00, 11/5/04)
 !
 !  Biofuel emissions are based on estimates by Rose Yevich and Jennifer
 !  Logan (reference TBA).
@@ -145,6 +147,10 @@
 !        from being printed (bmy, 3/14/03)
 !  (15) Added fancy output (bmy, 4/26/04)
 !  (16) Now references "tracer_mod.f" and "directory_mod.f" (bmy, 7/19/04)
+!  (17) Now can overwrite USA with EPA/NEI biofuel emissions.  Now references 
+!        function GET_DAY_OF_WEEK from "time_mod.f".  Now references LNEI99
+!        from "logical_mod.f".  Now reference GET_EPA_BIOFUEL and
+!        GET_USA_MASK from "epa_nei_mod.f". (rch, rjp, bmy, 11/5/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -152,6 +158,9 @@
       USE DAO_MOD,       ONLY : BXHEIGHT
       USE DIAG_MOD,      ONLY : AD29, AD32_bf, AD34
       USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE EPA_NEI_MOD,   ONLY : GET_EPA_BIOFUEL, GET_USA_MASK
+      USE LOGICAL_MOD,   ONLY : LNEI99
+      USE TIME_MOD,      ONLY : GET_DAY_OF_WEEK
       USE TRACER_MOD
       USE TRACERID_MOD 
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
@@ -159,23 +168,16 @@
       IMPLICIT NONE
       
 #     include "CMN_SIZE"  ! Size parameters
-!---------------------------------------------------
-! Prior to 7/19/04:
-!#     include "CMN"       ! NSRCX, TCNAME
-!---------------------------------------------------
 #     include "CMN_DIAG"  ! ND29, ND32, ND34
-!---------------------------------------------------
-! Prior to 7/19/04:
-!#     include "CMN_SETUP" ! DATA_DIR
-!---------------------------------------------------
       
       ! Local variables
+      LOGICAL            :: WEEKDAY
       LOGICAL, SAVE      :: FIRST = .TRUE.
       LOGICAL, SAVE      :: DO_ND29, DO_ND32, DO_ND34
-      INTEGER            :: AS, I, J, N, NN
+      INTEGER            :: AS, I, J, N, NN, DAY_NUM
       REAL*4             :: ARRAY(IGLOB,JGLOB,1)
       REAL*8,  SAVE      :: MOLWT(NBFMAX)
-      REAL*8             :: TOTAL, BXHEIGHT_CM
+      REAL*8             :: TOTAL, BXHEIGHT_CM, EPA_NEI
       CHARACTER(LEN=255) :: FILENAME 
       
       ! External functions
@@ -447,9 +449,16 @@
       !
       ! Also archive diagnostics w/in parallel loop (bmy, 5/30/02)
       !=================================================================
+
+      ! Get current day of the week
+      DAY_NUM = GET_DAY_OF_WEEK()
+
+      ! Is it a weekday?
+      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, BXHEIGHT_CM, N )
+!$OMP+PRIVATE( I, J, BXHEIGHT_CM, N, NN, EPA_NEI )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -463,6 +472,25 @@
             BIOFUEL(N,I,J) = BIOFUEL_KG(N,I,J)                  * 
      &                       ( 6.023d23 / MOLWT(N)            ) /
      &                       ( 365d0 * 86400d0 * BOXVL(I,J,1) )
+
+
+            !-----------------------------------------------------------
+            ! Overwrite biofuels w/ EPA/NEI emissions over the USA
+            !-----------------------------------------------------------
+            
+            ! If we are over the USA ...
+            IF ( LNEI99 .and. GET_USA_MASK( I, J ) > 0d0 ) THEN
+               
+               ! Get GEOS-CHEM tracer number
+               NN      = BFTRACE(N)
+
+               ! Get EPA/NEI biofuel [molec/cm2/s or atoms C/cm2/s]
+               EPA_NEI = GET_EPA_BIOFUEL( I, J, NN, WEEKDAY )
+
+               ! Convert [molec/cm2/s] to [molec/cm3/s]
+               BIOFUEL(N,I,J) = EPA_NEI / BXHEIGHT_CM
+
+            ENDIF
 
             ! ND34 -- archive biofuel burning species [molec/cm2/s]
             IF ( DO_ND34 ) THEN
@@ -521,9 +549,6 @@
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGCO_SIM
 
 #     include "CMN_SIZE"    ! Size parameters
-!----------------------------------------
-!#     include "CMN"         ! NSRCX 
-!----------------------------------------
       
       ! Arguments
       REAL*8, INTENT(INOUT) :: BFARRAY(IIPAR,JJPAR) 
@@ -531,27 +556,6 @@
       !=================================================================
       ! SCALE_BIOFUEL_CO begins here!
       !=================================================================
-      !---------------------------------------------------------------------
-      ! Prior to 7/19/04:
-      !SELECT CASE ( NSRCX )
-      !
-      !   ! Full chemistry w/ SMVGEAR  -- enhance by 8.6%
-      !   CASE ( 3 ) 
-      !      BFARRAY = BFARRAY * 1.086d0
-      !   
-      !   !CASE ( 5 )
-      !   !   BFARRAY = BFARRAY * 
-      !
-      !   ! Tagged CO -- enhance by 18.9%
-      !   CASE ( 7 )
-      !      BFARRAY = BFARRAY * 1.189d0
-      !   
-      !   CASE DEFAULT
-      !      ! Nothing
-      !
-      !END SELECT 
-      !---------------------------------------------------------------------
-      
       IF ( ITS_A_FULLCHEM_SIM() ) THEN 
 
          ! Full chemistry w/ SMVGEAR  -- enhance by 8.6%
@@ -684,10 +688,6 @@
       USE TRACERID_MOD
 
 #     include "CMN_SIZE"  ! Size parameters, etc
-!---------------------------------------
-! Prior to 7/19/04:
-!#     include "CMN"       ! LWOODCO
-!---------------------------------------
 
       ! Local variables
       INTEGER :: AS
@@ -695,10 +695,6 @@
       !=================================================================
       ! INIT_BIOFUEL begins here!
       !=================================================================
-      !-----------------------------------------------
-      ! Prior to 7/19/04:
-      !IF ( LWOODCO .and. NBFTRACE > 0 ) THEN
-      !-----------------------------------------------
       IF ( LBIOFUEL .and. NBFTRACE > 0 ) THEN
          ALLOCATE( BIOFUEL( NBFTRACE, IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOFUEL' )

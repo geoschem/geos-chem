@@ -1,4 +1,4 @@
-! $Id: global_nox_mod.f,v 1.2 2004/09/21 18:04:14 bmy Exp $
+! $Id: global_nox_mod.f,v 1.3 2004/12/02 21:48:37 bmy Exp $
       MODULE GLOBAL_NOX_MOD
 !
 !******************************************************************************
@@ -83,10 +83,6 @@
       USE UNIX_CMDS_MOD
 
 #     include "CMN_SIZE"    ! Size parameters
-!---------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"   ! TEMP_DIR, DATA_DIR
-!---------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)  :: THISMONTH
@@ -131,10 +127,6 @@
      &         GET_NAME_EXT()      // TRIM( ZIP_SUFFIX )
 
       ! Construct the command to unzip the file & copy to TEMP_DIR
-      !-------------------------------------------------------------
-      ! Prior to 7/20/04:
-      !CHAROP = TRIM( 'gzcat' )   // SPACE(1:1)          //
-      !-------------------------------------------------------------
       CHAROP = TRIM( UNZIP_CMD ) // SPACE(1:1)          //
      &         TRIM( RGNAME  )   // TRIM( REDIRECT  )   //
      &         SPACE(1:1)        // TRIM( TEMP_DIR  )   //

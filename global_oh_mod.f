@@ -1,4 +1,4 @@
-! $Id: global_oh_mod.f,v 1.3 2004/09/21 18:04:14 bmy Exp $
+! $Id: global_oh_mod.f,v 1.4 2004/12/02 21:48:37 bmy Exp $
       MODULE GLOBAL_OH_MOD
 !
 !******************************************************************************
@@ -110,24 +110,6 @@
          CALL INIT_GLOBAL_OH
          FIRST = .FALSE.
       ENDIF
-
-!-----------------------------------------------------------------------------
-! Prior to 7/20/04:
-! Now use OH_DIR from "directory_mod.f" (bmy, 7/20/04)
-!!-----------------------------------------------------------------------------
-!! Use Randall's OH (v4-26)
-!!      FILENAME = '/data/ctm/GEOS_MEAN/OHmerge/v4-26/OH_3Dglobal.' //
-!!     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
-!!-----------------------------------------------------------------------------
-!! Use Arlene's OH (v4-33)
-!      FILENAME = '/data/ctm/GEOS_MEAN/OHmerge/v4-33/OH_3Dglobal.' //
-!     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
-!!-----------------------------------------------------------------------------
-!! Use Mat's OH (v5-07-08)
-!!      FILENAME = '/data/ctm/GEOS_MEAN/OHmerge/v5-07-08/OH_3Dglobal.' //
-!!     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
-!!-----------------------------------------------------------------------------
-!-----------------------------------------------------------------------------
 
       ! Filename
       FILENAME = TRIM( OH_DIR ) // 'OH_3Dglobal.' // GET_NAME_EXT() // 

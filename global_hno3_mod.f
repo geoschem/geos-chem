@@ -1,4 +1,4 @@
-! $Id: global_hno3_mod.f,v 1.2 2004/09/21 18:04:14 bmy Exp $
+! $Id: global_hno3_mod.f,v 1.3 2004/12/02 21:48:37 bmy Exp $
       MODULE GLOBAL_HNO3_MOD
 !
 !******************************************************************************
@@ -79,10 +79,6 @@
       USE TRACER_MOD, ONLY : TCVV
 
 #     include "CMN_SIZE"  ! Size parameters
-!-------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"       ! TCVV
-!-------------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -130,10 +126,6 @@
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
-!--------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP" ! DATA_DIR
-!--------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH

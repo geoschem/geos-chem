@@ -1,4 +1,4 @@
-! $Id: global_o3_mod.f,v 1.2 2004/09/21 18:04:14 bmy Exp $
+! $Id: global_o3_mod.f,v 1.3 2004/12/02 21:48:37 bmy Exp $
       MODULE GLOBAL_O3_MOD
 !
 !******************************************************************************
@@ -76,10 +76,6 @@
       IMPLICIT NONE
 
 #     include "CMN_SIZE"   ! Size parameters
-!-----------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"  ! DATA_DIR
-!-----------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)  :: THISMONTH

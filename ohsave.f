@@ -1,9 +1,4 @@
-! $Id: ohsave.f,v 1.3 2004/09/21 18:04:16 bmy Exp $
-!-----------------------------------------------------------------------
-! Prior to 7/20/04:
-!      SUBROUTINE OHSAVE( XNUMOL, STT,     FRACO3, FRACNO,  FRACNO2, 
-!     &                   SAVEOH, SAVEHO2, SAVENO, SAVENO2, SAVENO3 )
-!-----------------------------------------------------------------------
+! $Id: ohsave.f,v 1.4 2004/12/02 21:48:38 bmy Exp $
       SUBROUTINE OHSAVE( N_TRACERS, XNUMOL,  STT,    FRACO3,  
      &                   FRACNO,    FRACNO2, SAVEOH, SAVEHO2, 
      &                   SAVENO,    SAVENO2, SAVENO3 )
@@ -56,18 +51,9 @@
 
 #     include "CMN_SIZE"   ! Size parameters
 #     include "comode.h"   ! VOLUME, CSPEC, NPVERT, NLAT, NLONG
-!----------------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_DIAG"   ! ND23
-!----------------------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: N_TRACERS
-      !----------------------------------------------------------
-      ! Prior to 7/20/04:
-      !REAL*8, INTENT(IN)  :: XNUMOL(NNPAR)
-      !REAL*8, INTENT(IN)  :: STT(IIPAR,JJPAR,LLPAR,NNPAR) 
-      !----------------------------------------------------------
       REAL*8, INTENT(IN)  :: XNUMOL(N_TRACERS)
       REAL*8, INTENT(IN)  :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS) 
       REAL*8, INTENT(OUT) :: FRACO3(IIPAR,JJPAR,LLPAR)
@@ -92,10 +78,6 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!------------------------------------------------------------------------
-! Prior to 7/20/04:
-!!$OMP+PRIVATE( I, J, L, JLOOP, TEMPOX, TEMPNOX, KCLO, XLOSS, XOHMASS )
-!------------------------------------------------------------------------
 !$OMP+PRIVATE( I, J, L, JLOOP, TEMPOX, TEMPNOX )
 !$OMP+SCHEDULE( DYNAMIC )
       DO 370 L = 1, NPVERT
@@ -139,34 +121,6 @@
 
          ! NO3 concentration [v/v]
          SAVENO3(I,J,L) = CSPEC(JLOOP,IDNO3) / AIRDENS(JLOOP)
-
-!-----------------------------------------------------------------------------
-! Prior to 7/20/04:
-! This is now computed in "diag_oh_mod.f" (bmy, 7/20/04)
-!         !==============================================================
-!         ! ND23 diagnostic: archive for CH3CCl3 lifetime 
-!         !==============================================================
-!         IF ( ND23 > 0 ) THEN
-!
-!            ! Now force double precision w/ "D" exponents (bmy, 4/25/00)
-!            KCLO    = 1.8d-12 * EXP( -1550.d0 / T3(JLOOP) )
-!
-!            XLOSS   = KCLO           * CSPEC(JLOOP,IDOH) * 
-!     &                AIRDENS(JLOOP) * VOLUME(JLOOP)
-!
-!            XOHMASS = CSPEC(JLOOP,IDOH) * AIRDENS(JLOOP) * VOLUME(JLOOP)
-!
-!            ! Store loss term in DIAGCHLORO(:,:,:,1)
-!            DIAGCHLORO(I,J,L,1) = DIAGCHLORO(I,J,L,1) + XLOSS
-!
-!            ! Store OH mass in DIAGCHLORO(:,:,:,2)
-!            DIAGCHLORO(I,J,L,2) = DIAGCHLORO(I,J,L,2) + XOHMASS
-!
-!            ! Store total mass in DIAGCHLORO(:,:,:,3)
-!            DIAGCHLORO(I,J,L,3) = DIAGCHLORO(I,J,L,3) + 
-!     &                            ( AIRDENS(JLOOP) * VOLUME(JLOOP) )
-!        ENDIF
-!-----------------------------------------------------------------------------
 
  350  CONTINUE
  360  CONTINUE

@@ -1,8 +1,4 @@
-! $Id: partition.f,v 1.4 2004/09/21 18:04:16 bmy Exp $
-      !-----------------------------------------------
-      ! Prior to 7/20/04:
-      !SUBROUTINE PARTITION( STT, NTRACER, XNUMOL ) 
-      !-----------------------------------------------
+! $Id: partition.f,v 1.5 2004/12/02 21:48:38 bmy Exp $
       SUBROUTINE PARTITION( NTRACER, STT, XNUMOL ) 
 !
 !******************************************************************************
@@ -39,11 +35,6 @@
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NTRACER
-      !-----------------------------------------------------------
-      ! Prior to 7/20/04:
-      !REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NNPAR)
-      !REAL*8,  INTENT(IN)    :: XNUMOL(NNPAR)
-      !-----------------------------------------------------------
       REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NTRACER)
       REAL*8,  INTENT(IN)    :: XNUMOL(NTRACER)
 

@@ -1,9 +1,9 @@
-! $Id: grid_mod.f,v 1.3 2004/09/21 18:04:14 bmy Exp $
+! $Id: grid_mod.f,v 1.4 2004/12/02 21:48:37 bmy Exp $
       MODULE GRID_MOD
 !
 !******************************************************************************
 !  Module GRID_MOD contains variables and routines which are used to specify 
-!  the parameters of a GEOS-CHEM horizontal grid. (bmy, 3/11/03, 4/28/03)
+!  the parameters of a GEOS-CHEM horizontal grid. (bmy, 3/11/03, 12/1/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -44,9 +44,10 @@
 !  (11) GET_YEDGE_R       : Returns grid box S. edge latitude  [radians]
 !  (12) GET_AREA_M2       : Returns grid box surface area      [m2]
 !  (13) GET_AREA_CM2      : Returns grid box surface area      [cm2]
-!  (14) ITS_A_NESTED_GRID : Returns T for nested grid simulations; F otherwise
-!  (15) INIT_GRID         : Allocates and zeroes all module arrays
-!  (16) CLEANUP_GRID      : Deallocates all module arrays
+!  (14) GET_BOUNDING_BOX  : Returns indices for a region denoted by lats/lons
+!  (15) ITS_A_NESTED_GRID : Returns T for nested grid simulations; F otherwise
+!  (16) INIT_GRID         : Allocates and zeroes all module arrays
+!  (17) CLEANUP_GRID      : Deallocates all module arrays
 !
 !  GEOS-CHEM modules referenced by grid_mod.f:
 !  ============================================================================
@@ -54,6 +55,7 @@
 !
 !  NOTES:
 !  (1 ) Fixed typos in "grid_mod.f" (bmy, 4/28/03)
+!  (2 ) Added routine GET_BOUNDING_BOX.  Now define 1x125 grid. (bmy, 12/1/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -95,11 +97,12 @@
 !
 !******************************************************************************
 !  Subroutine COMPUTE_GRID initializes the longitude, latitude and surface 
-!  area arrays. (bmy, 3/11/03, 7/20/04)
+!  area arrays. (bmy, 3/11/03, 12/1/04)
 !
 !  NOTES:
 !  (1 ) Added fancy output (bmy, 4/26/04)
 !  (2 ) Suppress some output lines (bmy, 7/20/04)
+!  (3 ) Now also support 1 x 1.25 grid (bmy, 12/1/040
 !******************************************************************************
 !
 #     include "CMN_SIZE"  ! Size parameters
@@ -142,8 +145,8 @@
       YMID_G(1)      = -89.5d0
       YMID_G(JJGLOB) = +89.5d0
 
-#elif defined ( GRID1x1 )
-      ! Overwrite YMID at poles for 1 x 1 grid
+#elif defined ( GRID1x1 ) || defined( GRID1x125 )
+      ! Overwrite YMID at poles for 1 x 1 and 1 x 1.25 grids
       YMID_G(1)      = -89.75d0
       YMID_G(JJGLOB) = +89.75d0
 
@@ -223,12 +226,6 @@
       !=================================================================
       ! Echo info to stdout
       !=================================================================
-      !--------------------------------------------------------------------
-      ! Prior to 7/20/04:
-      !WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
-      !WRITE( 6, '(/,a)' ) 'H O R I Z O N T A L   G R I D   S E T U P' 
-      !WRITE( 6, '(a,/)' ) 'COMPUTE_GRID: Horizontal Grid Information!'
-      !--------------------------------------------------------------------
       WRITE( 6, '(''Nested-Grid X-offset [boxes]:'', i4 )' ) I0
       WRITE( 6, '(''Nested-Grid Y-offset [boxes]:'', i4 )' ) J0
       WRITE( 6, '(a)' )
@@ -243,10 +240,6 @@
       WRITE( 6, '(a)' )
       WRITE( 6, '(''Grid box latitude edges [degrees]: '')' )
       WRITE( 6, '(8(f8.3,1x))' ) ( YEDGE(J), J=1,JJPAR+1 )
-      !-------------------------------------
-      ! Prior to 7/20/04:
-      !WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-      !-------------------------------------
 
       !=================================================================
       ! Deallocate global arrays -- we don't need these anymore
@@ -627,6 +620,102 @@
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE GET_BOUNDING_BOX( COORDS, INDICES )
+!
+!******************************************************************************
+!  Subroutine GET_BOUNDING_BOX returns the indices which specify the lower
+!  left (LL) and upper right (UR) corners of a rectangular region, given the 
+!  corresponding longitude and latitude values. (bmy, 12/1/04)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) COORDS  (REAL*8)  : Contains (/LON_LL, LAT_LL, LON_UR, LAT_UR/) values
+!
+!  Arguments as Output:
+!  ============================================================================
+!  (2 ) INDICES (INTEGER) : Contains indices (/I_LL, J_LL, I_UR, J_UR/)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE ERROR_MOD, ONLY : ERROR_STOP
+
+#     include "CMN_SIZE"    ! Size parameters
+
+      ! Arguments
+      REAL*8,  INTENT(IN)  :: COORDS(4)
+      INTEGER, INTENT(OUT) :: INDICES(4)
+
+      ! Local variables
+      INTEGER              :: I, J
+      CHARACTER(LEN=255)   :: LOCATION
+
+      !=================================================================
+      ! GET_BOUNDING_BOX begins here!
+      !=================================================================
+      
+      ! Location
+      LOCATION = 'GET_BOUNDING_BOX (grid_mod.f)'
+
+      ! Initialize
+      INDICES(:) = 0
+
+      !=================================================================
+      ! Longitude search
+      !=================================================================
+      DO I = 1, IIPAR
+
+         ! Locate index corresponding to the lower-left longitude
+         IF ( COORDS(1) >  XEDGE(I  )   .and. 
+     &        COORDS(1) <= XEDGE(I+1) ) INDICES(1) = I
+
+         ! Locate index corresponding to upper-right longitude
+         IF ( COORDS(3) >  XEDGE(I  )   .and. 
+     &        COORDS(3) <= XEDGE(I+1) ) INDICES(3) = I
+
+      ENDDO
+
+      ! Error check lower-left longitude
+      IF ( INDICES(1) == 0 ) THEN
+         CALL ERROR_STOP( 'Invalid lower-left lon index!',  LOCATION )
+      ENDIF
+
+      ! Error check upper-right longitude
+      IF ( INDICES(3) == 0 ) THEN
+         CALL ERROR_STOP( 'Invalid upper-right lon index!', LOCATION )
+      ENDIF
+      
+      !=================================================================
+      ! Latitude search
+      !=================================================================
+      DO J = 1, JJPAR
+
+         ! Locate index corresponding to the lower-left latitude
+         IF ( COORDS(2) >  YEDGE(J  )   .and. 
+     &        COORDS(2) <= YEDGE(J+1) ) INDICES(2) = J
+
+         ! Locate index corresponding to the upper-right latitude
+         IF ( COORDS(4) >  YEDGE(J  )   .and. 
+     &        COORDS(4) <= YEDGE(J+1) ) INDICES(4) = J
+
+      ENDDO
+
+      ! Error check lower-left longitude
+      IF ( INDICES(2) == 0 ) THEN
+         CALL ERROR_STOP( 'Invalid lower-left lat index!',  LOCATION )
+      ENDIF
+
+      ! Error check upper-right longitude
+      IF ( INDICES(4) == 0 ) THEN
+         CALL ERROR_STOP( 'Invalid upper-right lat index!', LOCATION )
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE GET_BOUNDING_BOX
+
+!------------------------------------------------------------------------------
+
       FUNCTION ITS_A_NESTED_GRID() RESULT( IT_IS_NESTED )
 !
 !******************************************************************************
@@ -653,11 +742,12 @@
 !
 !******************************************************************************
 !  Subroutine INIT_GRID initializes variables and allocates module arrays.
-!  (bmy, 3/11/03, 4/28/03)
+!  (bmy, 3/11/03, 12/1/04)
 !
 !  NOTES:
 !  (1 ) Fixed typos that caused AREA_CM2_G and AREA_CM2 to be initialized 
 !        before they were allocated. (bmy, 4/28/03)
+!  (2 ) Now define IIGLOB & JJGLOB for 1 x 1.25 grid (bmy, 12/1/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -676,6 +766,9 @@
       ! since for the nested grid, we set IGLOB=IIPAR and JGLOB=JJPAR
 #if   defined( GRID1x1 )
       IIGLOB = 360
+      JJGLOB = 181
+#elif defined( GRID1x125 )
+      IIGLOB = 288
       JJGLOB = 181
 #elif defined( GRID2x25 )
       IIGLOB = 144

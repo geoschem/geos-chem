@@ -1,4 +1,4 @@
-! $Id: comode_mod.f,v 1.3 2004/10/15 20:16:40 bmy Exp $
+! $Id: comode_mod.f,v 1.4 2004/12/02 21:48:34 bmy Exp $
       MODULE COMODE_MOD
 !
 !******************************************************************************
@@ -109,73 +109,6 @@
       !=================================================================
       WRITE( 6, 100 )
  100  FORMAT( '     - INIT_COMODE: Allocating arrays for SMVGEAR...' )
-
-      !-----------------------------------------------------------------
-      ! Prior to 9/28/04:
-      !ALLOCATE( ABSHUM( ITLOOP ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'ABSHUM' )
-      !ABSHUM = 0d0
-      !
-      !ALLOCATE( AIRDENS( ITLOOP ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDENS' )
-      !AIRDENS = 0d0      
-      !
-      !ALLOCATE( CSPEC( ITLOOP, IGAS ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSPEC' )
-      !CSPEC = 0d0
-      !
-      !ALLOCATE( CSUMA( ITLOOP ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSUMA' )
-      !CSUMA = 0d0
-      !
-      !ALLOCATE( CSUMC( ITLOOP ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSUMC' )
-      !CSUMC = 0d0
-      !
-      !ALLOCATE( ERADIUS( ITLOOP, NDUST+NAER ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'ERADIUS' )
-      !ERADIUS = 0d0      
-      !
-      !ALLOCATE( ERRMX2( ITLOOP ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'ERRMX2' )
-      !ERRMX2 = 0d0
-      !
-      !ALLOCATE( IXSAVE( ITLOOP ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'IXSAVE' )
-      !IXSAVE = 0
-      !
-      !ALLOCATE( IYSAVE( ITLOOP ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'IYSAVE' )
-      !IYSAVE = 0
-      !
-      !ALLOCATE( IZSAVE( ITLOOP ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'IZSAVE' )
-      !IZSAVE = 0
-      !
-      !ALLOCATE( JLOP( ILONG, ILAT, IPVERT ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'JLOP' )
-      !JLOP = 0
-      !
-      !ALLOCATE( PRESS3( ITLOOP ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRESS3' )
-      !PRESS3 = 0d0
-      !
-      !ALLOCATE( REMIS( ITLOOP, MAXGL3 ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'REMIS' )
-      !REMIS = 0d0
-      !
-      !ALLOCATE( T3( ITLOOP ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'T3' )
-      !T3 = 0d0
-      !
-      !ALLOCATE( TAREA( ITLOOP, NDUST+NAER ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAREA' )
-      !TAREA = 0d0      
-      !
-      !ALLOCATE( VOLUME( ITLOOP ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'VOLUME' )
-      !VOLUME = 0d0
-      !-----------------------------------------------------------------
 
       !----------------------------------
       ! FULL CHEMISTRY SIMULATION

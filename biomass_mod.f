@@ -1,10 +1,10 @@
-! $Id: biomass_mod.f,v 1.4 2004/09/21 18:04:08 bmy Exp $
+! $Id: biomass_mod.f,v 1.5 2004/12/02 21:48:32 bmy Exp $
       MODULE BIOMASS_MOD
 !
 !******************************************************************************
 !  Module BIOMASS_MOD contains arrays and routines to compute monthly
 !  biomass burning emissions for NOx, CO, ALK4, ACET, MEK, ALD2, PRPE, 
-!  C3H8, CH2O, C2H6, CH4, and CH3I. (bmy, 9/11/00, 7/20/04)
+!  C3H8, CH2O, C2H6, CH4, and CH3I. (bmy, 9/11/00, 12/1/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -273,15 +273,7 @@
       USE TRACERID_MOD
 
 #     include "CMN_SIZE"   ! Size parameters
-!------------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"        ! NSRCX
-!------------------------------------------------------------
 #     include "CMN_DIAG"   ! Diagnostic arrays & switches
-!------------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"  ! DATA_DIR, LBBSEA, LTOMSAI
-!------------------------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE       :: FIRST = .TRUE.
@@ -897,28 +889,6 @@
       !=================================================================
       ! SCALE_BIOMASS_CO begins here!
       !=================================================================
-!------------------------------------------------------------------------------
-! Prior to 7/20/04:
-!      SELECT CASE ( NSRCX )
-!
-!         ! Full chemistry w/ SMVGEAR  -- enhance by 5%
-!         CASE ( 3 ) 
-!            BBARRAY = BBARRAY * 1.05d0
-!         
-!         ! CO-OH parameterization -- implement later
-!         !CASE ( 5 )
-!         !   BFARRAY = BFARRAY * 
-!
-!         ! Tagged CO -- enhance by 11%
-!         CASE ( 7 )
-!            BBARRAY = BBARRAY * 1.11d0
-!         
-!         CASE DEFAULT
-!            ! Nothing
-!
-!      END SELECT 
-!-----------------------------------------------------------------------------
-
       IF ( ITS_A_FULLCHEM_SIM() ) THEN
 
          ! Full chemistry w/ SMVGEAR  -- enhance by 5%
@@ -969,10 +939,6 @@
       USE LOGICAL_MOD, ONLY : LBBSEA, LTOMSAI
 
 #     include "CMN_SIZE"    ! Size parameters
-!----------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"   ! LBBSEA, LTOMSAI
-!----------------------------------------------------
 
       ! Arguments
       REAL*8, INTENT(INOUT) :: BBARRAY(IIPAR,JJPAR)
@@ -1126,7 +1092,7 @@
 !  and May 1993 - August 1996. 
 !
 !  Written by Bryan Duncan 8/2000.
-!  Inserted into F90 module "biomass_mod.f" (bmy, 9/25/00, 7/20/04)
+!  Inserted into F90 module "biomass_mod.f" (bmy, 9/25/00, 12/1/04)
 !
 !  Subroutine TOMSAI is called from routine BIOBURN of "biomass_mod.f".
 !
@@ -1157,6 +1123,7 @@
 !        local variables. (bmy, 2/11/03)
 !  (5 ) Change VAL_ANN and VAL_SEAS to INTENT(IN). (bmy, 4/28/03)
 !  (6 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  (7 ) Added space in #ifdef block for 1 x 1.25 grid (bmy, 12/1/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1165,10 +1132,6 @@
       USE TIME_MOD,      ONLY : GET_MONTH, GET_TAU, GET_YEAR
 
 #     include "CMN_SIZE"   ! Size parameters
-!------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"  ! DATA_DIR
-!------------------------------------------------
   
       ! Arguments
       INTEGER, INTENT(IN)    :: I, J
@@ -1240,6 +1203,11 @@
 
       IF (J == 1     ) CTM_LAT = 1
       IF (J == JJPAR ) CTM_LAT = 89 + 90
+
+#elif defined( GRID1x125 )
+      PRINT*, 'Need to compute CONVERT_LON for 1 x 1.25 grid!'
+      PRINT*, 'STOP in TOMSAI (biomass_mod.f)'
+      STOP
 
 #elif defined( GRID1x1 )
       PRINT*, 'Need to compute CONVERT_LON for 1 x 1 grid!'
@@ -1480,10 +1448,6 @@
       USE TRACERID_MOD
 
 #     include "CMN_SIZE"  ! Size parameters, etc
-!----------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"       ! LBIONOX
-!----------------------------------------------------
 
       ! Local variables
       INTEGER :: AS
@@ -1491,10 +1455,6 @@
       !=================================================================
       ! INIT_BIOMASS begins here!
       !=================================================================
-      !------------------------------------------
-      ! Prior to 7/20/04:
-      !IF ( LBIONOX .and. NBIOTRCE > 0 ) THEN 
-      !------------------------------------------
       IF ( LBIOMASS .and. NBIOTRCE > 0 ) THEN 
 
          ! Allocate and zero BURNEMIS array [molec/cm3/s]

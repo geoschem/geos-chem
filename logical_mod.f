@@ -1,9 +1,9 @@
-! $Id: logical_mod.f,v 1.1 2004/09/21 18:04:15 bmy Exp $
+! $Id: logical_mod.f,v 1.2 2004/12/02 21:48:38 bmy Exp $
       MODULE LOGICAL_MOD
 !
 !******************************************************************************
 !  Module LOGICAL_MOD contains all of the logical switches used by GEOS-CHEM.
-!  (bmy, 7/9/04)
+!  (bmy, 7/9/04, 11/5/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -27,27 +27,29 @@
 !  (18) LLIGHTNOX (LOGICAL) : ON/OFF switch for LIGHTNING NOx EMISSIONS
 !  (19) LMFCT     (LOGICAL) : Argument for TPCORE (transport)
 !  (20) LMONOT    (LOGICAL) : Scales acetone to monoterpene emission
-!  (21) LPRT      (LOGICAL) : Toggles ND70 debug output (via DEBUG_MSG)
-!  (22) LSHIPSO2  (LOGICAL) : ON/OFF switch for SO2 EMISSIONS FROM SHIP EXHAUST
-!  (23) LSOA      (LOGICAL) : ON/OFF switch for SECONDARY ORGANIC AEROSOLS
-!  (24) LSOILNOX  (LOGICAL) : ON/OFF switch for SOIL NOx EMISSIONS
-!  (25) LSPLIT    (LOGICAL) : Splits
-!  (26) LSSALT    (LOGICAL) : ON/OFF switch for online SEA SALT AEROSOLS
-!  (27) LSTDRUN   (LOGICAL) : ON/OFF switch to save init/final masses std runs
-!  (28) LSULF     (LOGICAL) : ON/OFF switch for online SULFATE AEROSOLS
-!  (29) LSVGLB    (LOGICAL) : ON/OFF switch for SAVING A RESTART FILE
-!  (30) LTPFV     (LOGICAL) : If =T, will use fvDAS TPCORE for GEOS-3 winds
-!  (31) LTRAN     (LOGICAL) : ON/OFF switch for TRANSPORT  
-!  (32) LTOMSAI   (LOGICAL) : ON/OFF switch for scaling biomass w/ TOMS AI data
-!  (33) LTURB     (LOGICAL) : ON/OFF switch for PBL MIXING
-!  (34) LUNZIP    (LOGICAL) : ON/OFF switch for unzipping met field data 
-!  (35) LUPBD     (LOGICAL) : ON/OFF switch for STRATOSPHERIC O3, NOy BC's
-!  (36) LWAIT     (LOGICAL) : ON/OFF switch for unzipping met fields in fg
-!  (37) LWETD     (LOGICAL) : ON/OFF switch for WET DEPOSITION 
-!  (38) LWINDO    (LOGICAL) : ON/OFF switch for WINDOW TRANSPORT (usually 1x1)
-!  (39) LWOODCO   (LOGICAL) : ON/OFF switch for BIOFUEL EMISSIONS
+!  (21) LNEI99    (LOGICAL) : Toggles on EPA/NEI 99 emissions over cont. USA
+!  (22) LPRT      (LOGICAL) : Toggles ND70 debug output (via DEBUG_MSG)
+!  (23) LSHIPSO2  (LOGICAL) : ON/OFF switch for SO2 EMISSIONS FROM SHIP EXHAUST
+!  (24) LSOA      (LOGICAL) : ON/OFF switch for SECONDARY ORGANIC AEROSOLS
+!  (25) LSOILNOX  (LOGICAL) : ON/OFF switch for SOIL NOx EMISSIONS
+!  (26) LSPLIT    (LOGICAL) : Splits
+!  (27) LSSALT    (LOGICAL) : ON/OFF switch for online SEA SALT AEROSOLS
+!  (28) LSTDRUN   (LOGICAL) : ON/OFF switch to save init/final masses std runs
+!  (29) LSULF     (LOGICAL) : ON/OFF switch for online SULFATE AEROSOLS
+!  (30) LSVGLB    (LOGICAL) : ON/OFF switch for SAVING A RESTART FILE
+!  (31) LTPFV     (LOGICAL) : If =T, will use fvDAS TPCORE for GEOS-3 winds
+!  (32) LTRAN     (LOGICAL) : ON/OFF switch for TRANSPORT  
+!  (33) LTOMSAI   (LOGICAL) : ON/OFF switch for scaling biomass w/ TOMS AI data
+!  (34) LTURB     (LOGICAL) : ON/OFF switch for PBL MIXING
+!  (35) LUNZIP    (LOGICAL) : ON/OFF switch for unzipping met field data 
+!  (36) LUPBD     (LOGICAL) : ON/OFF switch for STRATOSPHERIC O3, NOy BC's
+!  (37) LWAIT     (LOGICAL) : ON/OFF switch for unzipping met fields in fg
+!  (38) LWETD     (LOGICAL) : ON/OFF switch for WET DEPOSITION 
+!  (39) LWINDO    (LOGICAL) : ON/OFF switch for WINDOW TRANSPORT (usually 1x1)
+!  (40) LWOODCO   (LOGICAL) : ON/OFF switch for BIOFUEL EMISSIONS
 !
 !  NOTES:
+!  (1 ) Added LNEI99 switch to toggle EPA/NEI emissions (bmy, 11/5/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -94,6 +96,7 @@
       LOGICAL :: LFOSSIL    ! <-- deprecated: replace w/ LANTHRO soon
       LOGICAL :: LLIGHTNOX
       LOGICAL :: LMONOT
+      LOGICAL :: LNEI99    
       LOGICAL :: LSHIPSO2
       LOGICAL :: LSOILNOX
       LOGICAL :: LTOMSAI

@@ -1,4 +1,4 @@
-! $Id: planeflight_mod.f,v 1.9 2004/09/21 18:04:16 bmy Exp $
+! $Id: planeflight_mod.f,v 1.10 2004/12/02 21:48:39 bmy Exp $
       MODULE PLANEFLIGHT_MOD
 !
 !******************************************************************************
@@ -91,23 +91,6 @@
       PUBLIC :: SETUP_PLANEFLIGHT
       PUBLIC :: SET_PLANEFLIGHT
 
-      !-----------------------------------------------------------------
-      ! Prior to 7/20/04:
-      !! PRIVATE module variables
-      !PRIVATE :: MAXVARS, MAXRO2, MAXPOINTS, NPVAR,  PVAR
-      !PRIVATE :: NPREAC,  PREAC,  NPOINTS,   PPOINT, NPRO2
-      !PRIVATE :: PRRATE,  PTYPE,  PDATE,     PTIME,  PTAU
-      !PRIVATE :: PLAT,    PLON,   PPRESS,    PNAME
-      !
-      !! PRIVATE module routines
-      !PRIVATE :: READ_VARIABLES
-      !PRIVATE :: READ_POINTS
-      !PRIVATE :: RO2_SETUP
-      !PRIVATE :: INIT_PLANEFLIGHT
-      !PRIVATE :: TEST_VALID
-      !PRIVATE :: WRITE_VARS_TO_FILE
-      !-----------------------------------------------------------------
-
       !=================================================================
       ! MODULE VARIABLES 
       !=================================================================
@@ -198,13 +181,6 @@
       ! SETUP_PLANEFLIGHT begins here!
       !=================================================================
 
-      !-----------------------------------------------------------------
-      ! Prior to 7/20/04:
-      !! Hardwire filenames for now -- change later (bmy, 7/2/02)
-      !INFILENAME  = 'Planeflight.dat'
-      !OUTFILENAME = 'plane.log'
-      !-----------------------------------------------------------------
-
       ! Get date & time
       NYMD = GET_NYMD()
       NHMS = GET_NHMS()
@@ -284,10 +260,6 @@
       USE TRACER_MOD, ONLY : N_TRACERS, ITS_A_FULLCHEM_SIM
 
 #     include "CMN_SIZE"  ! Size parameters
-!----------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"       ! NTRACE, NSRCX
-!----------------------------------------------
 #     include "comode.h"  ! NAMEGAS, NSPEC
 
       ! Local variables
@@ -351,10 +323,6 @@
                READ( LINE(5:14), '(i10)' ) NUM
 
                ! Make sure the tracer # is valid!
-               !----------------------------------------------
-               ! Prior to 7/20/04:
-               !IF ( NUM < 0 .or. NUM > NTRACE ) THEN         
-               !----------------------------------------------          
                IF ( NUM < 0 .or. NUM > N_TRACERS ) THEN                   
                   WRITE( 6, 100 ) TRIM( LINE )
  100              FORMAT( 'TRACER ', i4, ' is out of range!' )
@@ -398,10 +366,6 @@
             CASE ( 'REA_' )
 
                ! Skip if not SMVGEAR!
-               !---------------------------
-               ! Prior to 7/20/04:
-               !IF ( NSRCX == 3 ) THEN 
-               !---------------------------
                IF ( IS_FULLCHEM ) THEN 
                
                   ! Increment rxn counter
@@ -463,10 +427,6 @@
             CASE DEFAULT
 
                ! Skip if not SMVGEAR!
-               !-------------------------
-               ! Prior to 7/20/04:
-               !IF ( NSRCX == 3 ) THEN
-               !-------------------------
                IF ( IS_FULLCHEM ) THEN
 
                   ! Loop over all SMVGEAR species -- 
@@ -666,10 +626,6 @@
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
 
 #     include "CMN_SIZE" ! Size parameters
-!-----------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"      ! NSRCX
-!-----------------------------------------------
 #     include "comode.h" ! NSPEC, NAMEGAS, NCS
 
       ! Local variables
@@ -759,10 +715,6 @@
       
 #     include "cmn_fj.h"   ! FAST-J parameters (includes CMN_SIZE)
 #     include "jv_cmn.h"   ! ODAER
-!-----------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"        ! STT, TCVV, etc
-!-----------------------------------------------
 #     include "comode.h"   ! CSPEC, etc.
       
       ! Local variables
@@ -1067,10 +1019,6 @@
       !=================================================================
       IF ( L < LPAUSE(I,J) ) THEN 
 
-         !-----------------------------------
-         ! Prior to 7/20/04:
-         !IF ( NSRCX == 3 ) THEN
-         !-----------------------------------
          IF ( ITS_A_FULLCHEM_SIM() ) THEN
   
             ! This is a tropospheric box where SMVGEAR chemistry is done

@@ -1,4 +1,4 @@
-! $Id: setemdep.f,v 1.2 2004/09/21 18:04:18 bmy Exp $
+! $Id: setemdep.f,v 1.3 2004/12/02 21:48:40 bmy Exp $
       SUBROUTINE SETEMDEP( NTRACER )
 !
 !******************************************************************************
@@ -74,15 +74,6 @@
                ENDIF
             ENDDO
 
-!------------------------------------------------------------------------------
-! Prior to 7/20/04:
-!            ! Write warning to "smv2.log" if no emission rxn was found
-!            IF ( NTEMIS(I,NCS) == 0 ) THEN
-!               WRITE( IO93, 100 ) I
-! 100           FORMAT( 'WARNING: no emission reaction for tracer ', i3 )
-!            ENDIF
-!------------------------------------------------------------------------------
-
             ! Flag emitted tracer
             IF ( NTEMIS(I,NCS) > 0 ) THEN
                WRITE( IO93, 100 ) I, TRACER_NAME(I)
@@ -130,15 +121,6 @@
                EXIT
             ENDIF
          ENDDO
-
-!-----------------------------------------------------------------------------
-! Prior to 7/20/04
-!         ! Write warning to "smv2.log" if no drydep rxn was found
-!         IF ( NTDEP(I) == 0 ) THEN
-!            WRITE( IO93, 120 ) DEPNAME(I)
-! 120        FORMAT( 'WARNING: no deposition reaction for ', a )
-!         ENDIF
-!-----------------------------------------------------------------------------
 
          ! Flag drydep tracers
          IF ( NTDEP(I) > 0 ) THEN 

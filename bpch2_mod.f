@@ -1,9 +1,9 @@
-! $Id: bpch2_mod.f,v 1.4 2004/03/24 20:52:28 bmy Exp $
+! $Id: bpch2_mod.f,v 1.5 2004/12/02 21:48:33 bmy Exp $
       MODULE BPCH2_MOD
 !
 !******************************************************************************
 !  Module BPCH2_MOD contains the routines used to read data from and write
-!  data to binary punch (BPCH) file format (v. 2.0). (bmy, 6/28/00, 11/3/03)
+!  data to binary punch (BPCH) file format (v. 2.0). (bmy, 6/28/00, 12/1/04)
 !
 !  Module Routines:
 !  ============================================================================
@@ -56,6 +56,7 @@
 !        (bmy, 10/15/02)
 !  (26) Made modification in READ_BPCH2 for 1x1 nested grids (bmy, 3/11/03)
 !  (27) Modifications for GEOS-4, 30-layer grid (bmy, 11/3/03)
+!  (28) Added cpp switches for GEOS-4 1x125 grid (bmy, 12/1/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -358,7 +359,7 @@
 !******************************************************************************
 !  Subroutine READ_BPCH2 reads a binary punch file (v. 2.0) and extracts
 !  a data block that matches the given category, tracer, and tau value.
-!  (bmy, 12/10/99, 3/14/03)
+!  (bmy, 12/10/99, 12/1/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -388,7 +389,9 @@
 !        as the unit number instead of a locally-defined IUNIT. (bmy, 7/30/02)
 !  (11) Now references ERROR_STOP from "error_mod.f" (bmy, 10/15/02)
 !  (12) Now set IFIRST=1, JFIRST=1 for 1x1 nested grids.  Now needs to
-!        reference "define.h".  Added OPTIONAL QUIET flag. (bmy, 3/14/03) 
+!        reference "define.h".  Added OPTIONAL QUIET flag. (bmy, 3/14/03)
+!  (13) Now separate off nested grid code in an #ifdef block using
+!        NESTED_CH or NESTED_NA cpp switches (bmy, 12/1/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -488,13 +491,19 @@
       !=================================================================
       IF ( FOUND ) THEN 
 
-#if   defined( GRID1x1 ) 
+#if   defined( GRID1x1 )
+
+#if   defined( NESTED_CH ) || defined( NESTED_NA )
+         ! *** NOTE: now use NESTED_CH or NESTED_NA cpp switches ***
+         ! *** to block off this section of code (bmy, 12/1/04)  ***
          ! This is a kludge to overwrite the IFIRST, JFIRST, LFIRST For
          ! the 1x1 nested grid.  1x1 met fields & other data are already
          ! cut down to size to save space. (bmy, 3/11/03)
          I1 = 1
          J1 = 1
          L1 = LFIRST
+#endif
+
 #else
          ! Otherwise IFIRST, JFIRST, FIRST from the file (bmy, 3/11/03)
          I1 = IFIRST
@@ -622,7 +631,10 @@
 !
 !******************************************************************************
 !  Function GET_RES_EXT returns the proper filename extension for
-!  CTM grid resolution (i.e. "1x1", "2x25", "4x5").  (bmy, 6/28/00)
+!  CTM grid resolution (i.e. "1x1", "2x25", "4x5").  (bmy, 6/28/00, 12/1/04)
+! 
+!  NOTES:
+!  (1 ) Added extension for 1 x 1.25 grid (bmy, 12/1/04)
 !******************************************************************************
 !
 #     include "define.h"
@@ -634,6 +646,10 @@
 #elif defined( GRID2x25 ) 
       CHARACTER(LEN=4) :: RES_EXT
       RES_EXT = '2x25'
+
+#elif defined( GRID1x125 )
+      CHARACTER(LEN=5) :: RES_EXT
+      RES_EXT = '1x125'
 
 #elif defined( GRID1x1 ) 
       CHARACTER(LEN=3) :: RES_EXT

@@ -1,4 +1,4 @@
-! $Id: schem.f,v 1.4 2004/09/21 18:04:18 bmy Exp $
+! $Id: schem.f,v 1.5 2004/12/02 21:48:40 bmy Exp $
       SUBROUTINE SCHEM
 !
 !******************************************************************************
@@ -76,10 +76,6 @@
 #     include "CMN_SIZE"        ! Size parameters
 #     include "CMN"             ! LPAUSE
 #     include "CMN_O3"          ! XNUMOLAIR
-!----------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP" ! DATA_DIR
-!----------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE             :: FIRST = .TRUE.
@@ -289,10 +285,6 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, M, TK, RC, k0, k1, RDLOSS, T1L )
 !$OMP+SCHEDULE( DYNAMIC )
-      !-------------------------
-      ! Prior to 7/20/04:
-      !DO N = 1, NNPAR
-      !-------------------------
       DO N = 1, N_TRACERS
       DO L = MINVAL( LPAUSE ), LLPAR
       DO J = 1, JJPAR
@@ -382,11 +374,6 @@
          ! Oxidation of PRPE as source of ACET with 80% yield
          IF ( N == IDTPRPE ) THEN
             STT(I,J,L,IDTACET) = STT(I,J,L,IDTACET) +
-!---------------------------------------------------------------
-! Prior to 7/20/04:
-! Replace FMOL w/ TRACER_MW_KG (bmy, 7/20/04)
-!     &           0.8d0 * T1L * FMOL(IDTACET) / FMOL(IDTPRPE)
-!---------------------------------------------------------------
      &           0.8d0 * T1L * 
      &           TRACER_MW_KG(IDTACET) / TRACER_MW_KG(IDTPRPE)
          ENDIF

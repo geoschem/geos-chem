@@ -1,4 +1,4 @@
-! $Id: diag48_mod.f,v 1.2 2004/10/15 20:16:41 bmy Exp $
+! $Id: diag48_mod.f,v 1.3 2004/12/02 21:48:35 bmy Exp $
       MODULE DIAG48_MOD
 !
 !******************************************************************************
@@ -307,7 +307,7 @@
             UNIT     = 'molec/cm3'
             GMTRC    = 2
 
-            DO K = 1, L
+            DO L = 1, K
                Q(L) = SAVEOH(I,J,L)
             ENDDO
 
@@ -321,7 +321,7 @@
             UNIT     = ''           ! Let GAMAP pick the unit
             GMTRC    = 19
 
-            DO K = 1, L
+            DO L = 1, K
                Q(L) = SAVENO2(I,J,L)
             ENDDO
 

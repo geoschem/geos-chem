@@ -1,4 +1,4 @@
-! $Id: chemhcn.f,v 1.3 2004/09/21 18:04:09 bmy Exp $
+! $Id: chemhcn.f,v 1.4 2004/12/02 21:48:34 bmy Exp $
       SUBROUTINE CHEMHCN
 !
 !******************************************************************************
@@ -64,10 +64,6 @@
       IMPLICIT NONE
 
 #     include "CMN_SIZE"
-!------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"       
-!------------------------------
 #     include "CMN_DEP" 
 #     include "CMN_HCN" 
 #     include "CMN_DIAG"  ! For J-Value diagnostic

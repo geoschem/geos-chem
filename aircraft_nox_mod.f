@@ -1,4 +1,4 @@
-! $Id: aircraft_nox_mod.f,v 1.2 2004/09/21 18:04:08 bmy Exp $
+! $Id: aircraft_nox_mod.f,v 1.3 2004/12/02 21:48:32 bmy Exp $
       MODULE AIRCRAFT_NOX_MOD
 !
 !******************************************************************************
@@ -134,11 +134,6 @@
       USE TIME_MOD,      ONLY : GET_MONTH
 
 #     include "CMN_SIZE"    ! Size parameters
-!-------------------------------------------------------
-! Prior to 7/19/04:
-!#     include "CMN"         ! STT
-!#     include "CMN_SETUP"   ! DATA_DIR
-!-------------------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE      :: FIRST     = .TRUE.

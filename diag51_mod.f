@@ -1,11 +1,11 @@
-! $Id: diag51_mod.f,v 1.11 2004/11/01 16:32:03 bmy Exp $
+! $Id: diag51_mod.f,v 1.12 2004/12/02 21:48:35 bmy Exp $
       MODULE DIAG51_MOD
 !
 !******************************************************************************
 !  Module DIAG51_MOD contains variables and routines to generate save 
 !  timeseries data where the local time is between two user-defined limits. 
 !  This facilitates comparisons with morning or afternoon-passing satellites
-!  such as GOME. (amf, bey, bdf, pip, bmy, 11/30/00, 10/25/04)
+!  such as GOME. (amf, bey, bdf, pip, bmy, 11/30/00, 11/9/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -97,6 +97,7 @@
 !  (1 ) Rewritten for clarity (bmy, 7/20/04)
 !  (2 ) Added extra counters for NO, NO2, OH, O3.  Also all diagnostic counter
 !        arrays are 1-D since they only depend on longitude. (bmy, 10/25/04)
+!  (3 ) Bug fix: Now get I0 and J0 properly for nested grids (bmy, 11/9/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -344,18 +345,6 @@
       !=================================================================
       ! Archive tracers into accumulating array Q 
       !=================================================================
-
-      !-------------------------------------------------------------------
-      ! Prior to 10/25/04:
-      ! Now counters are 1-D since they only depend on X (bmy, 10/25/04)
-      !! Archive counter array of good points 
-      !DO Y = 1, ND51_NJ
-      !DO X = 1, ND51_NI
-      !   I            = GET_I( X )
-      !   GOOD_CT(X,Y) = GOOD_CT(X,Y) + GOOD(I)
-      !ENDDO
-      !ENDDO 
-      !-------------------------------------------------------------------
 
       ! Archive counter array of good points 
       DO X = 1, ND51_NI
@@ -854,10 +843,6 @@
       REAL*8, INTENT(IN) :: TAU_W
 
       ! Local variables
-      !---------------------------------------
-      ! Prior to 10/25/04:
-      !LOGICAL, SAVE      :: FIRST = .TRUE.
-      !---------------------------------------
       LOGICAL            :: IS_CHEM
       INTEGER            :: I,   J,  L,  W, N, GMNL, GMTRC
       INTEGER            :: IOS, X, Y, K
@@ -882,10 +867,6 @@
       CALL OPEN_BPCH2_FOR_WRITE( IU_ND51, FILENAME, TITLE )
 
       ! Set ENDING TAU for this bpch write 
-      !------------------------
-      ! Prior to 9/28/04:
-      !TAU1 = GET_TAU()
-      !------------------------
       TAU1 = TAU_W
     
       !=================================================================
@@ -914,15 +895,6 @@
          DO Y = 1, ND51_NJ
          DO X = 1, ND51_NI
 
-            !---------------------------------------------
-            ! Prior to 10/25/04:
-            !! Avoid division by zero
-            !IF ( GOOD_CT(X,Y) > 0 ) THEN
-            !   Q(X,Y,K,W) = Q(X,Y,K,W) / GOOD_CT(X,Y) 
-            !ELSE
-            !   Q(X,Y,K,W) = 0d0
-            !ENDIF
-            !---------------------------------------------
             IF ( IS_CHEM ) THEN 
 
                ! Avoid division by zero for tracers
@@ -1245,10 +1217,6 @@
  130  FORMAT( '     - DIAG51: Zeroing arrays at ', a )
 
       ! Set STARTING TAU for the next bpch write
-      !-------------------
-      ! Prior to 9/28/04:
-      !TAU0 = GET_TAU() 
-      !-------------------
       TAU0 = TAU_W
 
 !$OMP PARALLEL DO 
@@ -1321,7 +1289,7 @@
 !******************************************************************************
 !  Subroutine INIT_DIAG51 allocates and zeroes all module arrays.  
 !  It also gets values for module variables from "input_mod.f". 
-!  (bmy, 7/20/04, 10/25/04)
+!  (bmy, 7/20/04, 11/9/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1343,12 +1311,13 @@
 !  (1 ) Diagnostic counter arrays are now only 1-D.  Also add GOOD_CT_CHEM
 !        which is the counter array of "good" boxes at each chemistry
 !        timesteps.  Now allocate GOOD_CT_CHEM. (bmy, 10/25/04)
+!  (2 ) Now get I0 and J0 correctly for nested grid simulations (bmy, 11/9/04)
 !******************************************************************************
 !    
       ! References to F90 modules
       USE BPCH2_MOD,  ONLY : GET_MODELNAME
       USE ERROR_MOD,  ONLY : ALLOC_ERR,   ERROR_STOP
-      USE GRID_MOD,   ONLY : GET_XOFFSET, GET_YOFFSET
+      USE GRID_MOD,   ONLY : GET_XOFFSET, GET_YOFFSET, ITS_A_NESTED_GRID
       USE TIME_MOD,   ONLY : GET_TAUb
       USE TRACER_MOD, ONLY : N_TRACERS
   
@@ -1401,9 +1370,21 @@
       ! Error check longitude, latitude, altitude limits
       !=================================================================
 
+      !------------------------------------------
+      ! Prior to 11/9/04:
+      !! Get grid offsets
+      !I0 = GET_XOFFSET( GLOBAL=.TRUE. )
+      !J0 = GET_YOFFSET( GLOBAL=.TRUE. )
+      !------------------------------------------
+
       ! Get grid offsets
-      I0 = GET_XOFFSET( GLOBAL=.TRUE. )
-      J0 = GET_YOFFSET( GLOBAL=.TRUE. )
+      IF ( ITS_A_NESTED_GRID() ) THEN
+         I0 = GET_XOFFSET()
+         J0 = GET_YOFFSET()
+      ELSE
+         I0 = GET_XOFFSET( GLOBAL=.TRUE. )
+         J0 = GET_YOFFSET( GLOBAL=.TRUE. )
+      ENDIF
 
       !-----------
       ! Longitude
@@ -1486,6 +1467,10 @@
       LATRES    = DJSIZE
       MODELNAME = GET_MODELNAME()
 
+      ! Reset offsets to global values for bpch write
+      I0        = GET_XOFFSET( GLOBAL=.TRUE. )
+      J0        = GET_YOFFSET( GLOBAL=.TRUE. ) 
+
       !=================================================================
       ! Allocate arrays
       !=================================================================
@@ -1496,19 +1481,11 @@
       GOOD(:) = 0
 
       ! Counter of "good" times per day at each grid box
-      !--------------------------------------------------------
-      ! Prior to 10/25/04:
-      !ALLOCATE( GOOD_CT( ND51_NI, ND51_NJ ), STAT=AS )
-      !--------------------------------------------------------
       ALLOCATE( GOOD_CT( ND51_NI ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'GOOD_CT' )
       GOOD_CT(:) = 0
 
       ! Counter of "good" times per day for each chemistry timestep
-      !--------------------------------------------------------
-      ! Prior to 10/25/04:
-      !ALLOCATE( GOOD_CT_NOx( ND51_NI, ND51_NJ ), STAT=AS )
-      !--------------------------------------------------------
       ALLOCATE( GOOD_CT_CHEM( ND51_NI ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'GOOD_CT_CHEM' )
       GOOD_CT_CHEM(:) = 0

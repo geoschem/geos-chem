@@ -1,9 +1,9 @@
-! $Id: upbdflx_mod.f,v 1.8 2004/09/21 18:04:20 bmy Exp $
+! $Id: upbdflx_mod.f,v 1.9 2004/12/02 21:48:42 bmy Exp $
       MODULE UPBDFLX_MOD
 !
 !******************************************************************************
 !  Module UPBDFLX_MOD contains subroutines which impose stratospheric boundary
-!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 7/20/04)
+!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 12/1/04)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -51,10 +51,10 @@
 !  (15) Now activated parallel DO loops (bmy, 4/15/04)
 !  (16) Now made IORD, JORD, KORD module variables.  Now added routine
 !        SET_UPBDFLX.  Now added routine SET_TRANSPORT (bmy, 7/20/04)
+!  (17) Bug fix for COMPAQ compiler.  Now supports 1x125 grid. (bmy, 12/1/04)
 !******************************************************************************
 !      
       IMPLICIT NONE
-
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
       ! and routines from being seen outside "upbdflx_mod.f"
@@ -81,10 +81,6 @@
 
 !------------------------------------------------------------------------------
       
-      !-------------------------------------------------
-      ! Prior to 7/20/04:
-      !SUBROUTINE DO_UPBDFLX( IORD, JORD, KORD )
-      !-------------------------------------------------
       SUBROUTINE DO_UPBDFLX
 !
 !******************************************************************************
@@ -144,7 +140,7 @@
 !******************************************************************************
 !  Subroutine UPBDFLX_O3 establishes the flux boundary condition for Ozone
 !  coming down from the stratosphere, using the Synoz algorithm of
-!  McLinden et al, 2000. (qli, bmy, 12/13/99, 4/15/04)
+!  McLinden et al, 2000. (qli, bmy, 12/13/99, 12/1/04)
 !
 !  Reference:
 !  ===========================================================================
@@ -195,7 +191,10 @@
 !  (21) Activated parallel DO-loops.  Now made STFLUX a local array
 !        in order to facilitate parallelization. (bmy, 4/15/04)
 !  (22) Removed IORD, JORD, KORD from the arg list.  Now reference STT and
-!        ITS_A_TAGOX_SIM from "tracer_mod.f".  
+!        ITS_A_TAGOX_SIM from "tracer_mod.f".  (bmy, 7/20/04)
+!  (23) Use an #ifdef block to comment out an EXIT statement from w/in a
+!        parallel loop for COMPAQ compiler.  COMPAQ seems to have some 
+!        problems with this.  Now supports 1x125 grid. (auvray, bmy, 12/1/04)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -219,15 +218,23 @@
       REAL*8               :: STFLUX(IIPAR,JJPAR,LLPAR)
 
       ! Select the grid boxes at the edges of the O3 release region, 
-      ! for the proper model resolution (qli, bmy, 12/5/00)
+      ! for the proper model resolution (qli, bmy, 12/1/04)
 #if   defined( GRID4x5 ) 
       INTEGER, PARAMETER   :: J30S = 16, J30N = 31  
 
 #elif defined( GRID2x25 ) 
       INTEGER, PARAMETER   :: J30S = 31, J30N = 61
 
+#elif defined( GRID1x125 ) 
+      INTEGER, PARAMETER   :: J30S = 61, J30N = 121
+
 #elif defined( GRID1x1 ) 
-      INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR   
+
+#if   defined( NESTED_CH ) || defined( NESTED_NA )
+      INTEGER, PARAMETER   :: J30S = 1,  J30N = JJPAR  ! 1x1 nested grids
+#else  
+      INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
+#endif
 
 #endif
 
@@ -318,7 +325,20 @@
                
             IF ( P2 < P70mb ) THEN
                L70mb = L
+               !--------------------------------------------------------
+               ! Prior to 11/15/04:
+               ! COMPAQ compiler seems to have problems with an EXIT
+               ! statement from an inner loop from w/in an OPENMP 
+               ! parallel loop block.  Therefore do not apply this
+               ! if we are compiling under the COMPAQ platform.
+               ! (auvray, bmy, 11/15/04)
+               !EXIT
+               !--------------------------------------------------------
+#if   defined( COMPAQ )
+               ! Nothing
+#else
                EXIT
+#endif
             ENDIF
          ENDDO
          

@@ -1,4 +1,4 @@
-! $Id: rpmares_mod.f,v 1.2 2004/09/21 18:04:17 bmy Exp $
+! $Id: rpmares_mod.f,v 1.3 2004/12/02 21:48:39 bmy Exp $
       MODULE RPMARES_MOD
 !
 !******************************************************************************
@@ -98,10 +98,6 @@
       USE TRACERID_MOD
       
 #     include "CMN_SIZE"     ! Size parameters
-!----------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"          ! STT, NSRCX, MONTH
-!----------------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST     = .TRUE.
@@ -134,28 +130,6 @@
       ! Check to see if we have to read in monthly mean HNO3
       IF ( IDTHNO3 == 0 ) THEN
 
-         !---------------------------------------------------------------
-         ! Prior to 7/20/04:
-         !! Test for simulation type
-         !SELECT CASE ( NSRCX )
-         !
-         !   ! Coupled simulation: stop w/ error since we need HNO3
-         !   CASE ( 3 )
-         !      CALL ERROR_STOP( 'IDTHNO3 is not defined!', X )
-         !
-         !   ! Offline simulation: read monthly mean HNO3
-         !   CASE ( 10 )
-         !      IF ( GET_MONTH() /= LASTMONTH ) THEN
-         !         CALL GET_GLOBAL_HNO3( GET_MONTH() )
-         !         LASTMONTH = GET_MONTH() 
-         !      ENDIF
-         !
-         !   ! Otherwise stop w/ error
-         !   CASE DEFAULT
-         !      CALL ERROR_STOP( 'Invalid simulation type!', X )
-         !
-         !END SELECT
-         !---------------------------------------------------------------
          IF ( ITS_A_FULLCHEM_SIM() ) THEN
 
             ! Coupled simulation: stop w/ error since we need HNO3

@@ -1,4 +1,4 @@
-! $Id: global_ch4_mod.f,v 1.4 2004/09/21 18:04:14 bmy Exp $
+! $Id: global_ch4_mod.f,v 1.5 2004/12/02 21:48:37 bmy Exp $
       MODULE GLOBAL_CH4_MOD
 !
 !******************************************************************************
@@ -395,10 +395,6 @@
       USE TIME_MOD,     ONLY : GET_TS_DYN, GET_TS_CHEM, GET_ELAPSED_MIN
 
 #     include "CMN_SIZE"  ! Size parameters
-!---------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"       ! T
-!---------------------------------------------
 
       ! Local variables
       INTEGER             :: NTDT, NMIN
@@ -558,15 +554,7 @@
       USE TRACER_MOD,    ONLY : STT
 
 #     include "CMN_SIZE"     ! Size parameters
-!-----------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"          ! STT
-!-----------------------------------------------------
 #     include "CMN_DIAG"     ! Diagnostic switches
-!-----------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"    ! DATA_DIR
-!-----------------------------------------------------
 
       ! Local Variables
       LOGICAL, SAVE          :: FIRSTEMISS = .TRUE. 
@@ -898,10 +886,6 @@
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN"          ! LPAUSE
 #     include "CMN_DIAG"     ! ND43, AD43
-!--------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"    ! DATA_DIR
-!--------------------------------------------
 
       ! Local variables
       LOGICAL                :: FIRSTCHEM = .TRUE.
@@ -1158,10 +1142,6 @@
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
-!----------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP" ! DATA_DIR
-!----------------------------------------------
 
       ! Local variables
       INTEGER            :: J, L, M
@@ -1234,10 +1214,6 @@
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN"       ! LPAUSE
-!-------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP" ! DATA_DIR   
-!-------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: LMN, LDY
@@ -1275,19 +1251,6 @@
       !=================================================================
 
       ! Compute the proper season for indexing the OH file
-      !------------------------------------------------------
-      ! Prior to 7/20/04:
-      !SELECT CASE ( LMN )
-      !   CASE ( 12, 1:2 )
-      !      SEASON = 1
-      !   CASE ( 3:5 )
-      !      SEASON = 2
-      !   CASE ( 6:8 ) 
-      !      SEASON = 3
-      !   CASE ( 9:11 )
-      !      SEASON = 4
-      !END SELECT
-      !------------------------------------------------------
       SEASON = GET_SEASON()
 
       ! Initialize BOH array
@@ -1607,30 +1570,8 @@
             
             ! Only process tropospheric boxes (bmy, 4/17/00)
             IF ( L < LPAUSE(I,J) ) THEN
-!-------------------------------------------------------------------------
-! Prior to 7/20/04:
-! Now just print mean OH
-!               KCLO   = 1.8D-12 * EXP( -1550.D0 / Tavg(I,J,L) )
-!              
-!               LOSS   = KCLO            * BOH(I,J,L)  *
-!     &                  BAIRDENS(I,J,L) * BOXVL(I,J,L)
-!-------------------------------------------------------------------------
-                
                OHMASS = BOH(I,J,L) * BAIRDENS(I,J,L) * BOXVL(I,J,L)
-               
                MASST  = BAIRDENS(I,J,L) * BOXVL(I,J,L)
-
-               !--------------------------------------------------------
-               ! Prior to 7/20/04:
-               !! Store loss in DIAGCHLORO(I,J,L,1)
-               !DIAGCHLORO(I,J,L,1) = DIAGCHLORO(I,J,L,1) + LOSS
-               !
-               !! Store OH mass in DIAGCHLORO(I,J,L,2)
-               !DIAGCHLORO(I,J,L,2) = DIAGCHLORO(I,J,L,2) + OHMASS
-               !
-               !! Store total mass in DIAGCHLORO(I,J,L,3)
-               !DIAGCHLORO(I,J,L,3) = DIAGCHLORO(I,J,L,3) + MASST
-               !--------------------------------------------------------
 
                ! Pass OH mass & total mass to "diag_oh_mod.f"
                CALL DO_DIAG_OH_CH4( I, J, L, OHMASS, MASST )

@@ -1,4 +1,4 @@
-! $Id: calcrate.f,v 1.7 2004/07/19 17:57:19 bmy Exp $
+! $Id: calcrate.f,v 1.8 2004/12/02 21:48:33 bmy Exp $
       SUBROUTINE CALCRATE( SUNCOS )
 !
 !******************************************************************************
@@ -819,14 +819,6 @@ C
                ! OH Production Rate'.  One of the RSC Journals
                ! (mje 4/5/04)
                !========================================================
-!-----------------------------------------------------------------------------
-! Prior to 5/26/04:
-! Update rxn coefficient for JO1D (mje, bmy, 5/26/04)
-!               RRATE(KLOOP,NKN) = RRATE(KLOOP,NKN) * 2.2D-10 *
-!     $            CBLK(KLOOP,IH2O) / ( 2.2D-10*CBLK(KLOOP,IH2O) +
-!     $            2.14D-11 * EXP(110.D0 * T3I(KLOOP)) * CONCN2(KLOOP) +
-!     $            3.2D-11*EXP( 70.D0*T3I(KLOOP))*CONCO2(KLOOP) )
-!-----------------------------------------------------------------------------
                RRATE(KLOOP,NKN) = RRATE(KLOOP,NKN) *
      $            1.45d-10 * EXP( 89.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) /
      $          ( 1.45d-10 * EXP( 89.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) +

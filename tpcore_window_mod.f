@@ -1,9 +1,9 @@
-! $Id: tpcore_window_mod.f,v 1.4 2004/09/21 18:04:20 bmy Exp $
+! $Id: tpcore_window_mod.f,v 1.5 2004/12/02 21:48:41 bmy Exp $
       MODULE TPCORE_WINDOW_MOD
 !
 !******************************************************************************
 !  Module TPCORE_MOD contains the TPCORE transport subroutine package by
-!  S-J Lin, version 7.1. (yxw, bmy, 12/2/03, 1/26/04)
+!  S-J Lin, version 7.1. (yxw, bmy, 12/2/03, 11/9/04)
 !  
 !  Module routines:
 !  ============================================================================
@@ -113,6 +113,8 @@
 !  (2 ) Updated information output depending on what type of machine it is.
 !        (bmy, 12/2/03)
 !  (3 ) Commented out call to FLUSH(6) (bmy, 1/26/04)
+!  (4 ) Simplify PRIVATE definitions.  Also fixed bug in FZPPM which was
+!        preventing the nested grid run from working on Altix (bmy, 11/9/04)
 !******************************************************************************
 !
       !=================================================================
@@ -120,14 +122,23 @@
       ! and routines from being seen outside "tpcore_mod.f"
       !=================================================================
 
-      ! PRIVATE module routines
-      PRIVATE :: COSA,      COSC,      FILEW   !FCT3D,   FILEW    
-      PRIVATE :: FILNS,     FXPPM,     FYPPM,   FZPPM    
-      PRIVATE :: HILO,      HILO3D,    QCKXYZ,  LMTPPM_x 
-      PRIVATE :: LMTPPM_y,  LMTPPM_z,  XADV,    XMIST
-      PRIVATE :: XTP,       YMIST,     YTP,     PRESS_FIX
-      PRIVATE :: DYN0,      PFILTR,    LOCFLT,  POLFLT
-      PRIVATE :: DIAG_FLUX, POSITION_WINDOW
+      ! Make everything PRIVATE ...
+      PRIVATE
+
+      ! ... except this routine
+      PUBLIC :: TPCORE_WINDOW
+      
+      !--------------------------------------------------------------
+      ! Prior to 11/9/04:
+      !! PRIVATE module routines
+      !PRIVATE :: COSA,      COSC,      FILEW   !FCT3D,   FILEW    
+      !PRIVATE :: FILNS,     FXPPM,     FYPPM,   FZPPM    
+      !PRIVATE :: HILO,      HILO3D,    QCKXYZ,  LMTPPM_x 
+      !PRIVATE :: LMTPPM_y,  LMTPPM_z,  XADV,    XMIST
+      !PRIVATE :: XTP,       YMIST,     YTP,     PRESS_FIX
+      !PRIVATE :: DYN0,      PFILTR,    LOCFLT,  POLFLT
+      !PRIVATE :: DIAG_FLUX, POSITION_WINDOW
+      !--------------------------------------------------------------
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -569,10 +580,6 @@ C     write window size information (yxw, 8/21/2001)
       WRITE(6,*) 'J1_W=', J1_W, ' J2_W=', J2_W
       WRITE(6,*) 'I0_W=', I0_W, ' J0_W=', J0_W
       WRITE(6,*) NC, IORD,JORD,KORD,NDT
-      !----------------------------
-      ! Prior to 1/26/04:
-      !call flush(6)
-      !----------------------------
       
       if(NL.LT.6) then
         write(6,*) 'stop in module tpcore'
@@ -2551,7 +2558,12 @@ C Bottom 2 layers
          DQ(I,J, 1) = DQ(I,J, 1) - DC(I, 2)
          DQ(I,J,NL) = DQ(I,J,NL) + DC(I,NL)
          FZ1_TP(I,J,NL) = DC(I,NL) !(yxw, 01/21/2003)
-         FZ1_TP(I,J,NL+1) = 0      !(yxw, 02/09/2003)
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !%%% ERROR!  FZ1_TP is only declared with NL layers.  This line
+         !%%% causes an out-of-bounds error which causes the run to die
+         !%%% when running on the ALTIX platform.  Comment out. (bmy, 11/9/04)
+         !%%%FZ1_TP(I,J,NL+1) = 0      !(yxw, 02/09/2003)
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          FZ1_TP(I,J,1) = 0.        !(yxw, 01/21/2003)
  350  CONTINUE
  
@@ -3962,10 +3974,6 @@ C
       IMPLICIT NONE
 
 #     include "CMN_SIZE"     ! Size parameters
-!------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"          ! lots of stuff
-!------------------------------------------------
 
       ! Arguments
 !%%%
@@ -5020,10 +5028,6 @@ C
       IMPLICIT NONE
 
 #     include "CMN_SIZE"      ! Size parameters
-!-----------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"           ! TCVV, DSIG, NSRCX
-!-----------------------------------------------------
 #     include "CMN_DIAG"      ! Diagnostic switches
 #     include "CMN_GCTM"      ! g0_100
 #     include "CMN_CO"        ! CO arrays
@@ -5151,10 +5155,6 @@ C
 #endif
 
                   ! Contribution for CH4 run (bmy, 1/17/01)
-                  !------------------------
-                  ! Prior to 7/20/04:
-                  !IF ( NSRCX == 9 ) THEN
-                  !------------------------
                   IF ( ITS_A_CH4_SIM() ) THEN
                   TCH4(I+I0_W,J+J0_W,K,10)=TCH4(I+I0_W,J+J0_W,K,10)+ 
      &                                ( DTC * DTDYN * XNUMOL_CH4 )

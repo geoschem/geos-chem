@@ -1,4 +1,4 @@
-! $Id: comode.h,v 1.9 2004/04/13 14:52:29 bmy Exp $
+! $Id: comode.h,v 1.10 2004/12/02 21:48:34 bmy Exp $
 !
 !******************************************************************************
 !  Header file COMODE contains common blocks and variables for SMVGEAR II.
@@ -144,11 +144,6 @@ C
       PARAMETER ( NMTRATE = NMRATE + IPHOT,    NMQRATE = 1           ) 
       PARAMETER ( NMRPROD = 25,                NMDEAD  = 100         )
       PARAMETER ( MAXGL   = 430,               MAXGL2  = 50          )
-      !-----------------------------------------------------------------------
-      ! Prior to 4/7/04:
-      ! Now set MAXGL3 to NNPAR for new # of tracers (bmy, 4/6/04)
-      !PARAMETER ( MAXGL3  = 32,                MAXGL4  = 10          )
-      !-----------------------------------------------------------------------
       PARAMETER ( MAXGL3  = NNPAR,             MAXGL4  = 10          )
       PARAMETER ( ICS     = 3,                 ICP     = 2*ICS       ) 
       PARAMETER ( MORDER  = 7                                        ) 
@@ -506,7 +501,11 @@ C
 
       ! /DKBLOOP2/ needs to be declared THREADPRIVATE
       REAL*8 CNEW,CEST,GLOSS,CHOLD,VDIAG,CBLK,DTLOS,EXPLIC,CONC
-      REAL*8 RRATE,URATE,TRATE,PRATK1,PRATKD,CORIG
+      !-------------------------------------------------------------
+      ! Prior to 11/8/04:
+      !REAL*8 RRATE,URATE,TRATE,PRATK1,PRATKD,CORIG
+      !-------------------------------------------------------------
+      REAL*8 RRATE,URATE,TRATE,CORIG
       COMMON /DKBLOOP2/
      2  CNEW(   KBLOOP,  MXGSAER),  
      3  CEST(   KBLOOP,  MXGSAER),  

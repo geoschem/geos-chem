@@ -1,4 +1,4 @@
-C $Id: read_COPminusL.f,v 1.2 2004/09/21 18:04:17 bmy Exp $
+C $Id: read_COPminusL.f,v 1.3 2004/12/02 21:48:39 bmy Exp $
       SUBROUTINE READ_COPminusL( MCOSTRAT ) 
 !
 !******************************************************************************
@@ -29,10 +29,6 @@ C $Id: read_COPminusL.f,v 1.2 2004/09/21 18:04:17 bmy Exp $
       IMPLICIT NONE
 
 #     include "CMN_SIZE"   ! Size parameters
-!------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"  ! DATA_DIR
-!------------------------------------------------
 #     include "CMN_CO"     ! BAIRDENS, STT2GCO, CO arrays
 
       ! Arguments
@@ -61,11 +57,6 @@ C $Id: read_COPminusL.f,v 1.2 2004/09/21 18:04:17 bmy Exp $
       !=================================================================
       ! Read in CO production rates
       !=================================================================
-!-----------------------------------------------------------------------
-! Prior to 4/2/02:
-!      FILENAME = TRIM( DATA_DIR ) // 'COprod.'  //
-!     &           GET_NAME_EXT()   // '.'         // GET_RES_EXT()
-!-----------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR ) // 'pco_lco_200203/COprod.' //
      &           GET_NAME_EXT()   // '.'                      // 
      &           GET_RES_EXT()
@@ -80,11 +71,6 @@ C $Id: read_COPminusL.f,v 1.2 2004/09/21 18:04:17 bmy Exp $
       !=================================================================
       ! Read in CO loss rates
       !=================================================================
-!-----------------------------------------------------------------------
-! Prior to 4/2/02:
-!      FILENAME = TRIM( DATA_DIR ) // 'COloss.'  //
-!     &           GET_NAME_EXT()   // '.'        // GET_RES_EXT()
-!-----------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR ) // 'pco_lco_200203/COloss.'  //
      &           GET_NAME_EXT()   // '.'                       // 
      &           GET_RES_EXT()

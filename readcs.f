@@ -1,4 +1,4 @@
-! $Id: readcs.f,v 1.3 2004/09/21 18:04:17 bmy Exp $
+! $Id: readcs.f,v 1.4 2004/12/02 21:48:39 bmy Exp $
       SUBROUTINE READCS(LDEBUG)
       
       ! References to F90 modules (bmy, 10/15/02)
@@ -23,10 +23,7 @@ C**************************************************************
 
 #     include "CMN_SIZE"
 #     include "comsol.h"
-!--------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP" ! (bmy, 4/3/02)
-!--------------------------------------------
+
       LOGICAL LDEBUG
 
       CHARACTER*8 CHARSPEC, TITLE, BLANK

@@ -1,6 +1,6 @@
-! $Id: CMN_SIZE,v 1.9 2004/09/21 18:04:06 bmy Exp $
+! $Id: CMN_SIZE,v 1.10 2004/12/02 21:48:31 bmy Exp $
       !=======================================================================
-      ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 7/20/04)
+      ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 12/1/04)
       !
       ! NOTES:
       ! (1 ) Now set LLTROP = 20 for GEOS-3 (bmy, 4/12/01)
@@ -33,6 +33,9 @@
       !       declare NDSTBIN as # of dust bins. (rvm, tdf, bmy, 4/1/04)
       ! (17) Increase NNPAR to 41 for seasalt tracers (rjp, bec, bmy, 4/20/04)
       ! (18) Increase NNPAR to 50 for SOA tracers (rjp, bmy, 7/15/04)
+      ! (19) Now use NESTED_CH and NESTED_NA cpp switches to define 
+      !       parameters for 1x1 nested grids.  Also add parameters for
+      !       the 1 x 1.25 global grid. (bmy, 12/1/04)
       !=======================================================================
 
       ! C Preprocessor #define statements for conditional compilation
@@ -42,15 +45,19 @@
       ! DISIZE = size (in degrees) of a longitude grid box
       ! DJSIZE = size (in degrees) of a latitude  grid box
       !=================================================================
-#if   defined( GRID4x5  ) 
+#if   defined( GRID4x5   ) 
       REAL*8, PARAMETER :: DISIZE = 5.0d0
       REAL*8, PARAMETER :: DJSIZE = 4.0d0
 
-#elif defined( GRID2x25 )
+#elif defined( GRID2x25  )
       REAL*8, PARAMETER :: DISIZE = 2.5d0 
       REAL*8, PARAMETER :: DJSIZE = 2.0d0
 
-#elif defined( GRID1x1 )
+#elif defined( GRID1x125 )
+      REAL*8, PARAMETER :: DISIZE = 1.25d0 
+      REAL*8, PARAMETER :: DJSIZE = 1.0d0
+
+#elif defined( GRID1x1   )
       REAL*8, PARAMETER :: DISIZE = 1.0d0 
       REAL*8, PARAMETER :: DJSIZE = 1.0d0
 
@@ -68,15 +75,10 @@
       ! LLTROP = number of tropospheric levels 
       ! PTOP   = model top pressure (mb)
       !
-      ! NOTES: 
-      ! (1 ) GEOS-CHEM is usually set up for a global run, thus,
-      !       IIPAR=IGLOB, JJPAR=JGLOB, LLPAR=LGLOB (bmy, 4/9/99)
-      ! (2 ) IIPAR, JJPAR, LLPAR may be smaller than or equal to 
-      !       IGLOB, JGLOB, LGLOB (bmy, 4/12/99)    
-      ! (3 )  PTOP is now correct (0.01 hPa) for GEOS-2, GEOS-3 grids
-      !        (bmy, 10/2/00)
-      ! (4 ) Now define both 55L and 30L GEOS-4 grids.  Also set
-      !       LLTROP=18 for GEOS-4 (bmy, 10/
+      ! Most of the time, GEOS-CHEM is used for global simulations.
+      ! In this case, then IIPAR=IGLOB, JJPAR=JGLOB, LLPAR=LGLOB.
+      !
+      ! For nested grids, then IIPAR<IGLOB, JJPAR<JGLOB, LLPAR<LGLOB.
       !=================================================================
 #if   defined( GEOS_1 ) && defined( GRID4x5 ) 
 
@@ -193,12 +195,31 @@
 #elif defined( GEOS_3 ) && defined( GRID1x1 )
 
       !--------------------
-      ! GEOS-3 1 x 1
-      ! yxw's China grid
+      ! GEOS-3 1 x 1 
       !--------------------
+
+#if   defined( NESTED_CH )
+
+      ! Parameters for the 1x1 CHINA NESTED GRID
       INTEGER, PARAMETER :: IGLOB  = 81
       INTEGER, PARAMETER :: JGLOB  = 67
       INTEGER, PARAMETER :: LGLOB  = 48           
+
+#elif defined( NESTED_NA )
+
+      ! Parameters for the 1x1 NORTH AMERICA NESTED GRID
+      INTEGER, PARAMETER :: IGLOB  = 101   
+      INTEGER, PARAMETER :: JGLOB  = 51    
+      INTEGER, PARAMETER :: LGLOB  = 48    
+
+#else
+
+      ! Parameters for the 1x1 GLOBAL GRID
+      INTEGER, PARAMETER :: IGLOB  = 360
+      INTEGER, PARAMETER :: JGLOB  = 181
+      INTEGER, PARAMETER :: LGLOB  = 48                 
+
+#endif
 
       INTEGER, PARAMETER :: IIPAR  = IGLOB
       INTEGER, PARAMETER :: JJPAR  = JGLOB
@@ -257,6 +278,28 @@
 
       REAL*8,  PARAMETER :: PTOP   = 0.01d0
 
+#elif defined( GEOS_4 ) && defined( GRID1x125 )
+
+      !--------------------
+      ! GEOS-4 1 x 1.2.5
+      !--------------------
+      INTEGER, PARAMETER :: IGLOB  = 288
+      INTEGER, PARAMETER :: JGLOB  = 181
+      INTEGER, PARAMETER :: LGLOB  = 55
+
+      INTEGER, PARAMETER :: IIPAR  = IGLOB
+      INTEGER, PARAMETER :: JJPAR  = JGLOB
+
+#if   defined( GRID30LEV )
+      INTEGER, PARAMETER :: LLPAR  = 30     ! 30 levels
+#else 
+      INTEGER, PARAMETER :: LLPAR  = LGLOB  ! 55 levels
+#endif
+
+      INTEGER, PARAMETER :: LLTROP = 17
+
+      REAL*8,  PARAMETER :: PTOP   = 0.01d0
+
 #endif
 
       !=================================================================
@@ -269,17 +312,17 @@
       ! NOTE: Need to define these for LGEOSCO, even if FULLCHEM
       !       and SMALLCHEM switches are turned off (bmy, 10/2/00)
       !=================================================================
-#if   defined( SMALLCHEM )
-      INTEGER, PARAMETER :: NNPAR   = 6
-      INTEGER, PARAMETER :: NEMPARA = 10
-      INTEGER, PARAMETER :: NEMPARB = 1
-
-#elif defined( FULLCHEM  )
-      !---------------------------------------------------
-      ! Prior to 7/15/04:
-      ! Increase NNPAR for SOA tracers (bmy, 7/15/04)
-      !INTEGER, PARAMETER :: NNPAR   = 41
-      !---------------------------------------------------
+!----------------------------------------------------
+! Prior to 12/1/04:
+! SMALLCHEM is now obsolete (bmy, 12/1/04)
+!#if   defined( SMALLCHEM )
+!      INTEGER, PARAMETER :: NNPAR   = 6
+!      INTEGER, PARAMETER :: NEMPARA = 10
+!      INTEGER, PARAMETER :: NEMPARB = 1
+!           
+!#elif   defined( FULLCHEM  )          
+!----------------------------------------------------
+#if   defined( FULLCHEM  )
       INTEGER, PARAMETER :: NNPAR   = 50
       INTEGER, PARAMETER :: NEMPARA = 10
       INTEGER, PARAMETER :: NEMPARB = 1
@@ -318,8 +361,6 @@
       INTEGER, PARAMETER :: NOXEXTENT = 2 
 
       ! MAXFAM -- Max number of families for prod and loss output
-      ! Prior to 8/30/04:
-      !INTEGER, PARAMETER :: MAXFAM = 12
       INTEGER, PARAMETER :: MAXFAM = 40
 
       ! NDUST -- Number of FAST-J aerosol size bins (rvm, bmy, 11/15/01)

@@ -1,4 +1,4 @@
-! $Id: gwet_read_mod.f,v 1.3 2004/09/21 18:04:14 bmy Exp $
+! $Id: gwet_read_mod.f,v 1.4 2004/12/02 21:48:37 bmy Exp $
       MODULE GWET_READ_MOD
 !
 !******************************************************************************
@@ -85,10 +85,6 @@
       USE UNIX_CMDS_MOD
 
 #     include "CMN_SIZE"            ! Size parameters
-!---------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"           ! GEOS_1_DIR, etc.
-!---------------------------------------------------------
 
       ! Arguments
       CHARACTER(LEN=*),  INTENT(IN) :: OPTION
@@ -283,10 +279,6 @@
       USE TIME_MOD,     ONLY : EXPAND_DATE
 
 #     include "CMN_SIZE"  ! Size parameters
-!------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP" ! GEOS directories
-!------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS

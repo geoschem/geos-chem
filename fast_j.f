@@ -1,4 +1,4 @@
-! $Id: fast_j.f,v 1.5 2004/09/21 18:04:13 bmy Exp $
+! $Id: fast_j.f,v 1.6 2004/12/02 21:48:36 bmy Exp $
       SUBROUTINE FAST_J( SUNCOS, OD, ALBD )  
 !
 !******************************************************************************
@@ -61,10 +61,6 @@
       IMPLICIT NONE
 
 #     include "cmn_fj.h" ! IPAR, JPAR, LPAR, CMN_SIZE
-!------------------------------------------------------
-! Prior to 7/20/04;
-!#     include "CMN"      ! P, T, YLMID            
-!------------------------------------------------------
 #     include "jv_cmn.h" ! ODMDUST 
 
       ! Arguments

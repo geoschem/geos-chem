@@ -1,4 +1,4 @@
-! $Id: uvalbedo_mod.f,v 1.2 2004/09/21 18:04:20 bmy Exp $
+! $Id: uvalbedo_mod.f,v 1.3 2004/12/02 21:48:42 bmy Exp $
       MODULE UVALBEDO_MOD
 !
 !******************************************************************************
@@ -96,10 +96,6 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"   ! Size parameters
-!------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"  ! DATA_DIR
-!------------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)  :: MONTH

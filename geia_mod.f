@@ -1,4 +1,4 @@
-! $Id: geia_mod.f,v 1.3 2004/09/21 18:04:14 bmy Exp $
+! $Id: geia_mod.f,v 1.4 2004/12/02 21:48:37 bmy Exp $
       MODULE GEIA_MOD
 !
 !******************************************************************************
@@ -82,10 +82,6 @@
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
 #     include "CMN_SIZE"   ! Size parameters
-!----------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"  ! DATA_DIR
-!----------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)  :: SCALEYEAR
@@ -174,10 +170,6 @@
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
 #     include "CMN_SIZE"   ! Size parameters
-!--------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"  ! DATA_DIR
-!--------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)  :: SCALEYEAR
@@ -241,7 +233,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_TODX reads the time-of-day emission scale factors and 
-!  weekday/weekend scale factors for GEIA emissions. (bmy, 7/18/00, 7/20/04)
+!  weekday/weekend scale factors for GEIA emissions. (bmy, 7/18/00, 12/1/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -260,6 +252,7 @@
 !  (5 ) Now reference IU_FILE and IOERROR from "file_mod.f".  Also deleted
 !        obsolete code from April 2002 (bmy, 6/27/02)
 !  (6 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  (7 ) Added space in the #ifdef block for 1 x 1.25 grid (bmy, 12/1/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -267,10 +260,6 @@
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
 #     include "CMN_SIZE"  ! Size parameters
-!--------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP" ! DATA_DIR
-!--------------------------------------------
 
       ! Arguments
       REAL*8, INTENT(OUT) :: TODH(6), TODN(6), TODB(6), SCNR89(3,3)
@@ -346,6 +335,10 @@
       ! Close the file
       CLOSE( IUNIT )
 
+#elif defined( GRID1x125 )
+
+      ! NOTE: Need to define this!
+
 #elif defined( GRID1x1 )
 
       ! Define the file name
@@ -419,10 +412,6 @@
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
 #     include "CMN_SIZE"            ! Size parameters
-!------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"           ! DATA_DIR
-!------------------------------------------------------
 
       ! Arguments
       REAL*4, INTENT(OUT), OPTIONAL :: E_NOX (IGLOB,JGLOB,4,2)
@@ -542,10 +531,6 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
 
 #     include "CMN_SIZE"            ! Size parameters
-!-------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"           ! DATA_DIR
-!-------------------------------------------------------
 
       ! Arguments
       REAL*4, INTENT(OUT), OPTIONAL :: E_NOX (IGLOB,JGLOB,4,2)
@@ -781,10 +766,6 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
 
 #     include "CMN_SIZE"            ! Size parameters
-!------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"           ! DATA_DIR
-!------------------------------------------------------
 
       ! Arguments
       REAL*4, INTENT(OUT), OPTIONAL :: E_C3H8(IGLOB,JGLOB) 

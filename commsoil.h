@@ -1,4 +1,4 @@
-! $Id: commsoil.h,v 1.1 2003/06/30 20:26:01 bmy Exp $
+! $Id: commsoil.h,v 1.2 2004/12/02 21:48:34 bmy Exp $
 !
 !**********************************************************************
 !                                                                     *
@@ -17,6 +17,8 @@
 !       freeform compilation.  Also added & continuation characters in 
 !       column 73 to allow header files to be included in F90 freeform 
 !       files. Updated comments, cosmetic changes. (bmy, 6/25/02)
+! (3 ) Now use cpp switches to define 1x1 parameters.  Also added
+!       space in the #ifdef block for the 1x125 grid (bmy, 12/1/04)
 !**********************************************************************
 !
 ! header file for soil NOx emissions
@@ -33,17 +35,37 @@
 #elif defined( GRID2x25 )
       PARAMETER( NLAND=3920, NPULSE=3 ) 
 
+#elif defined( GRID1x125 )
+      ! NOTE: NEED TO DEFINE THESE!!!
+      PARAMETER( NLAND=????, NPULSE=3 )       
+
 #elif defined( GRID1x1 )
-      !--------------------------------------------
-      ! Uncomment for 1x1 global grid
-      !PARAMETER( NLAND=17174, NPULSE=3 )
-      !--------------------------------------------
-      ! Uncomment for 1x1 nested grid -- China
+      !---------------------------------------------------------------------
+      ! Prior to 11/18/04:
+      ! Now use Cpp switches to pick the # of land points (bmy, 11/18/04)
+      !!--------------------------------------------
+      !! Uncomment for 1x1 global grid
+      !!PARAMETER( NLAND=17174, NPULSE=3 )
+      !!--------------------------------------------
+      !! Uncomment for 1x1 nested grid -- China
+      !!PARAMETER( NLAND=2681, NPULSE=3 ) 
+      !!--------------------------------------------
+      !! Uncomment for 1x1 nested grid -- USA
+      !!PARAMETER( NLAND=2118, NPULSE=3 )
+      !!--------------------------------------------
+      !----------------------------------------------------------------------
+
+      ! There are 2681  land points for the CHINA nested grid
+      ! There are 2118  land points for the N. AMERICA nested grid
+      ! There are 17174 land points for the global grid
+#if   defined( NESTED_CH )
       PARAMETER( NLAND=2681, NPULSE=3 ) 
-      !--------------------------------------------
-      ! Uncomment for 1x1 nested grid -- USA
-      !PARAMETER( NLAND=2118, NPULSE=3 )
-      !--------------------------------------------
+#elif defined( NESTED_NA )
+      PARAMETER( NLAND=2118, NPULSE=3 )
+#else   
+      PARAMETER( NLAND=17174, NPULSE=3 )
+#endif
+
 #endif
 
       PARAMETER (NSOIL=11)      !the defined soil types

@@ -1,4 +1,4 @@
-! $Id: rdland.f,v 1.2 2004/09/21 18:04:16 bmy Exp $
+! $Id: rdland.f,v 1.3 2004/12/02 21:48:39 bmy Exp $
       SUBROUTINE RDLAND
 
       ! References to F90 modules
@@ -38,10 +38,6 @@ C
 #     include "CMN_SIZE"
 #     include "CMN_DEP"
 #     include "CMN_VEL"
-!-------------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"  ! for DATA_DIR (bmy, 7/6/01)
-!-------------------------------------------------------------
 
       INTEGER I,J,K,IJLOOP,IREF,JREF
       

@@ -1,4 +1,4 @@
-! $Id: tagged_co_mod.f,v 1.6 2004/09/21 18:04:19 bmy Exp $
+! $Id: tagged_co_mod.f,v 1.7 2004/12/02 21:48:40 bmy Exp $
       MODULE TAGGED_CO_MOD
 !
 !******************************************************************************
@@ -125,11 +125,6 @@
       !=================================================================
 
       ! PRIVATE module variables
-      !-------------------------------------------------------
-      ! Prior to 7/20/04:
-      ! Now remove IJLOOP_CO (bmy, 7/20/04)
-      !PRIVATE BB_REGION, FF_REGION,   IJLOOP_CO, SUMCH3OHCO
-      !-------------------------------------------------------
       PRIVATE BB_REGION, FF_REGION,   SUMCH3OHCO
       PRIVATE SUMISOPCO, SUMMONOCO,   SUMACETCO, EMACET
       PRIVATE CO_PRODS,  CO_LOSSS,    FMOL_CO,   XNUMOL_CO
@@ -146,10 +141,6 @@
       !=================================================================
       INTEGER, ALLOCATABLE :: BB_REGION(:,:)
       INTEGER, ALLOCATABLE :: FF_REGION(:,:)
-      !-------------------------------------------
-      ! Prior to 7/20/04:
-      !INTEGER, ALLOCATABLE :: IJLOOP_CO(:,:)
-      !-------------------------------------------
       REAL*8,  ALLOCATABLE :: SUMCH3OHCO(:,:)
       REAL*8,  ALLOCATABLE :: SUMISOPCO(:,:)
       REAL*8,  ALLOCATABLE :: SUMMONOCO(:,:)
@@ -411,10 +402,6 @@
       USE DIAG_MOD,     ONLY : AD29,        AD46
       USE GEIA_MOD
       USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET, GET_AREA_CM2
-      !------------------------------------------------------------------
-      ! Prior to 7/20/04:
-      !USE LOGICAL_MOD,  ONLY : LSPLIT, LFOSSIL, LBIONOX, LWOODCO
-      !------------------------------------------------------------------
       USE LOGICAL_MOD,  ONLY : LSPLIT, LANTHRO, LBIOMASS, LBIOFUEL
       USE TIME_MOD,     ONLY : GET_MONTH,   GET_TAU, 
      &                         GET_YEAR,    GET_TS_EMIS  
@@ -424,16 +411,8 @@
       IMPLICIT NONE
 
 #     include "CMN_SIZE"     ! Size parameters
-!--------------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"          ! STT, NSRCE, MONTH, etc.
-!--------------------------------------------------------------
 #     include "CMN_O3"       ! FSCALYR, SCNR89, TODH, EMISTCO
 #     include "CMN_DIAG"     ! Diagnostic arrays & switches
-!--------------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"    ! LSPLIT
-!--------------------------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE          :: FIRSTEMISS = .TRUE.
@@ -545,10 +524,6 @@
       !     (bmy, 1/2/01)
       ! (2) Need to save ND29 diagnostics here (bmy, 1/2/01)
       !=================================================================
-      !-----------------------
-      ! Prior to 7/20/04:
-      !IF ( LFOSSIL ) THEN
-      !-----------------------
       IF ( LANTHRO ) THEN
 
          ! NTAU is just the integral value of TAU (ave, bmy, 6/10/03)
@@ -625,10 +600,6 @@
       ! (2) ND29 diagnostics are saved within routine BIOBURN.
       !      (bmy, 1/3/01)
       !=================================================================
-      !---------------------
-      ! Prior to 7/20/04:
-      !IF ( LBIONOX ) THEN 
-      !---------------------
       IF ( LBIOMASS ) THEN
          CALL BIOBURN
 
@@ -673,10 +644,6 @@
       !       biofuel burning array (bmy, 6/8/01).
       ! (3 ) Now add biofuel burning to tagged tracer #13 (bmy, 6/14/01)
       !=================================================================
-      !---------------------
-      ! Prior to 7/20/04:
-      !IF ( LWOODCO ) THEN
-      !---------------------
       IF ( LBIOFUEL ) THEN
          CALL BIOFUEL_BURN
 
@@ -717,10 +684,6 @@
          DO I = 1, IIPAR
 
             ! 1-D array index 
-            !---------------------------
-            ! Prior to 7/20/04:
-            !IJLOOP = IJLOOP_CO(I,J)
-            !---------------------------
             IJLOOP = ( (J-1) * IIPAR ) + I
 
             !===========================================================
@@ -838,10 +801,6 @@
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN"          ! LPAUSE
-!------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"    ! LSPLIT
-!------------------------------------------------------
 #     include "CMN_DIAG"     ! ND65
 
       ! Local variables
@@ -1202,10 +1161,6 @@
             IF ( LSPLIT ) THEN
 
                ! Loop over regional CO tracers
-               !--------------------
-               ! Prior to 7/20/04:
-               !DO N = 2, NTRACE
-               !--------------------
                DO N = 2, N_TRACERS
 
                   ! Loss
@@ -1261,10 +1216,6 @@
             IF ( LSPLIT ) THEN
 
                ! Loop over regional CO tracers
-               !-------------------
-               ! Prior to 7/20/04:
-               !DO N = 2, NTRACE
-               !-------------------
                DO N = 2, N_TRACERS
 
                   ! Use tropospheric rate constant 
@@ -1437,10 +1388,6 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_ZONAL
 
 #     include "CMN_SIZE"   ! Size parameters
-!---------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"  ! DATA_DIR
-!---------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -1535,10 +1482,6 @@
 !******************************************************************************
 !
 #     include "CMN_SIZE"       ! Size parameters
-!--------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"            ! STT, LPAUSE
-!--------------------------------------------------
 
       ! Arguments
       LOGICAL, INTENT(IN)  :: IS_PROD
@@ -1593,11 +1536,6 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"  ! Size parameters
-!-----------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"       ! STT 
-!#     include "CMN_SETUP" ! DATA_DIR
-!-----------------------------------------------
 
       ! Arguments 
       INTEGER, INTENT(IN) :: THISMONTH
@@ -1700,22 +1638,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'FF_REGION' )
       FF_REGION = 0
       
-      !------------------------------------------------------------
-      ! Prior to 7/20/04:
-      ! Replace IJLOOP_CO w/ an analytical function (bmy, 7/20/04)
-      !! Allocate and initialize IJLOOP_CO -- 1-D array index
-      !ALLOCATE( IJLOOP_CO( IIPAR, JJPAR ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'IJLOOPCO' )         
-      !
-      !IJLOOP = 0
-      !DO J = 1, JJPAR
-      !DO I = 1, IIPAR
-      !   IJLOOP         = IJLOOP + 1
-      !   IJLOOP_CO(I,J) = IJLOOP
-      !ENDDO
-      !ENDDO
-      !------------------------------------------------------------
-
       ! Allocate SUMISOPCO -- array for CO from isoprene
       ALLOCATE( SUMISOPCO( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMISOPCO' )         
@@ -1771,10 +1693,6 @@
 !
       IF ( ALLOCATED( BB_REGION  ) ) DEALLOCATE( BB_REGION  )
       IF ( ALLOCATED( FF_REGION  ) ) DEALLOCATE( FF_REGION  )
-      !----------------------------------------------------------
-      ! Prior to 7/20/04:
-      !IF ( ALLOCATED( IJLOOP_CO  ) ) DEALLOCATE( IJLOOP_CO  )
-      !----------------------------------------------------------
       IF ( ALLOCATED( SUMISOPCO  ) ) DEALLOCATE( SUMISOPCO  )
       IF ( ALLOCATED( SUMMONOCO  ) ) DEALLOCATE( SUMMONOCO  )
       IF ( ALLOCATED( SUMCH3OHCO ) ) DEALLOCATE( SUMCH3OHCO )

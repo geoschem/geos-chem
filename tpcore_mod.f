@@ -1,4 +1,4 @@
-! $Id: tpcore_mod.f,v 1.3 2004/09/21 18:04:19 bmy Exp $
+! $Id: tpcore_mod.f,v 1.4 2004/12/02 21:48:41 bmy Exp $
       MODULE TPCORE_MOD
 !
 !******************************************************************************
@@ -3119,10 +3119,6 @@ C
       IMPLICIT NONE
 
 #     include "CMN_SIZE"     ! Size parameters
-!-------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"          ! lots of stuff
-!-------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)    :: J1 
@@ -4073,10 +4069,6 @@ C
       IMPLICIT NONE
 
 #     include "CMN_SIZE"      ! Size parameters
-!--------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"           ! TCVV, DSIG, NSRCX
-!--------------------------------------------------------
 #     include "CMN_DIAG"      ! Diagnostic switches
 #     include "CMN_GCTM"      ! g0_100
 #     include "CMN_CO"        ! CO arrays
@@ -4185,10 +4177,6 @@ C
 #endif
 
                   ! Contribution for CH4 run (bmy, 1/17/01)
-                  !------------------------------------------
-                  ! Prior to 7/20/04:
-                  !IF ( NSRCX == 9 ) THEN
-                  !------------------------------------------
                   IF ( ITS_A_CH4_SIM() ) THEN
                      TCH4(I,J,K,10) = TCH4(I,J,K,10) + 
      &                                ( DTC * DTDYN * XNUMOL_CH4 )

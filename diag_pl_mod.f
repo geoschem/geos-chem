@@ -1,10 +1,10 @@
-! $Id: diag_pl_mod.f,v 1.1 2004/09/21 18:04:11 bmy Exp $
+! $Id: diag_pl_mod.f,v 1.2 2004/12/02 21:48:35 bmy Exp $
       MODULE DIAG_PL_MOD
 !
 !******************************************************************************
 !  Module DIAG_PL_MOD contains variables and routines which are used to 
 !  compute the production and loss of chemical families in SMVGEAR chemistry.
-!  (bmy, 7/20/04)
+!  (bmy, 7/20/04, 11/15/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -17,16 +17,17 @@
 !  (7 ) COUNT      (INTEGER ) : Counter for timesteps per day
 !  (8 ) FAM_NMEM   (INTEGER ) : Number of members w/in each prod/loss family
 !  (9 ) TAUb       (REAL*8  ) : TAU value at start of GEOS-CHEM simulation
-!  (10) TAU0       (REAL*8  ) : TAU value at start of diagnostic interval
-!  (11) TAU1       (REAL*8  ) : TAU value at end of diagnostic interval
-!  (12) AD65       (REAL*8  ) : Array for prod/loss diagnostic (a.k.a. ND65)
-!  (13) PL24H      (REAL*8  ) : Array for saving P(Ox), L(Ox)  (a.k.a. ND20)
-!  (14) FAM_PL     (REAL*8  ) : Array to archive prod & loss from SMVGEAR
-!  (15) FAM_COEF   (REAL*8  ) : Coefficient for each prod/loss family member 
-!  (16) FILENAME   (CHAR*255) : Name of output file for saving P(Ox) & L(Ox)
-!  (17) FAM_NAME   (CHAR*14 ) : Array for name of each prod/loss family 
-!  (18) FAM_TYPE   (CHAR*14 ) : Type of each prod/loss family 
-!  (19) FAM_MEMB   (CHAR*14 ) : Array of members in each prod/loss family
+!  (10) TAUe       (REAL*8  ) : TAU value at end   of GEOS-CHEM simulation
+!  (11) TAU0       (REAL*8  ) : TAU value at start of diagnostic interval
+!  (12) TAU1       (REAL*8  ) : TAU value at end of diagnostic interval
+!  (13) AD65       (REAL*8  ) : Array for prod/loss diagnostic (a.k.a. ND65)
+!  (14) PL24H      (REAL*8  ) : Array for saving P(Ox), L(Ox)  (a.k.a. ND20)
+!  (15) FAM_PL     (REAL*8  ) : Array to archive prod & loss from SMVGEAR
+!  (16) FAM_COEF   (REAL*8  ) : Coefficient for each prod/loss family member 
+!  (17) FILENAME   (CHAR*255) : Name of output file for saving P(Ox) & L(Ox)
+!  (18) FAM_NAME   (CHAR*14 ) : Array for name of each prod/loss family 
+!  (19) FAM_TYPE   (CHAR*14 ) : Type of each prod/loss family 
+!  (20) FAM_MEMB   (CHAR*14 ) : Array of members in each prod/loss family
 !
 !  Module Routines:
 !  ============================================================================
@@ -51,6 +52,9 @@
 !  (9 ) tracerid_mod.f  : Module containing pointers to tracers & emissions
 !
 !  NOTES:
+!  (1 ) Add TAUe as a module variable.  Bug fixes: Make sure WRITE20 uses the 
+!        global FILENAME, and also write to disk on the last timestep before
+!        the end of the simulation. (bmy, 11/15/04)
 !******************************************************************************
 !      
       IMPLICIT NONE
@@ -85,7 +89,7 @@
       INTEGER, PARAMETER             :: MMAXFAM = 40  ! MAXFAM=40 in "CMN_SIZE"
       INTEGER                        :: NFAM
       INTEGER                        :: YYYYMMDD, COUNT
-      REAL*8                         :: TAUb, TAU0, TAU1
+      REAL*8                         :: TAUb, TAUe, TAU0, TAU1
       CHARACTER(LEN=255)             :: FILENAME
 
       ! Arrays
@@ -358,10 +362,6 @@
                      IF ( NPROD < ICOUNT ) NPROD = ICOUNT
 
                      ! Loop over all family members
-                     !-----------------------
-                     ! Prior to 7/20/04:
-                     !DO J = 1, NFAMMEM(N)
-                     !-----------------------
                      DO J = 1, FAM_NMEM(N)
 
                         ! Test for product or reactant
@@ -606,7 +606,7 @@
       SUBROUTINE DIAG20
 !
 !******************************************************************************
-!  Subroutine DIAG20 (bey, bmy, 6/9/99, 7/20/04) computes production and 
+!  Subroutine DIAG20 (bey, bmy, 6/9/99, 11/15/04) computes production and 
 !  loss rates of O3, and then calls subroutine WRITE20 to save the these 
 !  rates to disk. 
 !
@@ -618,13 +618,16 @@
 !
 !  NOTES:
 !  (1 ) Now bundled into "diag20_mod.f" (bmy, 7/20/04)
+!  (2 ) Now also write to disk when it is the last timestep before the end of 
+!        the run.  Now references GET_TAUE from "time_mod.f". (bmy, 11/15/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : O3PL_DIR
       USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE TIME_MOD,      ONLY : EXPAND_DATE,   GET_NYMD,      
+      USE TIME_MOD,      ONLY : EXPAND_DATE,   GET_NYMD, 
      &                          GET_TAU,       GET_TAUb, 
+     &                          GET_TAUE,      GET_TS_CHEM,
      &                          ITS_A_NEW_DAY, TIMESTAMP_STRING
       USE TRACER_MOD,    ONLY : STT
       USE TRACERID_MOD,  ONLY : IDTOX
@@ -634,8 +637,10 @@
 
       ! Local variables
       LOGICAL, SAVE     :: FIRST = .TRUE.
+      LOGICAL           :: DO_WRITE
       INTEGER           :: I, J, L, N
-      REAL*8            :: P_Ox, L_Ox, TAU0, TAU1, TAUb
+      REAL*8            :: P_Ox, L_Ox, TAU0, TAU1
+      REAL*8,  SAVE     :: CHEM_HRS
       CHARACTER(LEN=16) :: STAMP 
 
       !=================================================================
@@ -651,13 +656,19 @@
       IF ( FIRST ) THEN
 
          ! Starting time of run
-         TAUb = GET_TAUb()
+         TAUb     = GET_TAUb()
+
+         ! Ending time of run
+         TAUe     = GET_TAUe()
+
+         ! Chemistry timestep in hours
+         CHEM_HRS = GET_TS_CHEM() / 60d0
 
          ! Get time of run at 1st timestep
-         TAU0 = TAUb
+         TAU0     = TAUb
 
          ! Reset first-time flag
-         FIRST = .FALSE.
+         FIRST    = .FALSE.
 
       ENDIF
 
@@ -669,8 +680,18 @@
       ! and PL24H arrays so that we can be ready for the next timestep
       !=================================================================
 
+      ! Check to see if it's a new day (or the last timestep) 
+      DO_WRITE = ( ( ITS_A_NEW_DAY() .and. TAU1 > TAUb ) .or.
+     &             ( TAU1 + CHEM_HRS == TAUe ) )
+
       ! Don't write to disk on the very first timestep
-      IF ( ITS_A_NEW_DAY() .and. ( TAU1 > TAUb ) ) THEN
+      !------------------------------------------------------------------
+      ! Prior to 11/15/04:
+      ! Now use DO_WRITE logical which also takes into account if we 
+      ! are on the last timestep before the run ends (bmy, 11/15/04)
+      !IF ( ITS_A_NEW_DAY() .and. ( TAU1 > TAUb ) ) THEN
+      !------------------------------------------------------------------
+      IF ( DO_WRITE ) THEN
 
          ! Compute average daily values
 !$OMP PARALLEL DO
@@ -783,10 +804,12 @@
 !
 !******************************************************************************
 !  Subroutine WRITE20 saves production and loss rates to disk, where they 
-!  will be later read by subroutine CHEMO3. (bey, bmy, 6/9/99, 7/20/04)
+!  will be later read by subroutine CHEMO3. (bey, bmy, 6/9/99, 11/15/04)
 !
 !  NOTES:
 !  (1 ) Now bundled into "diag20_mod.f" (bmy, 7/20/04)
+!  (2 ) Bug fix: remove declaration of FILENAME which masked the global
+!        declaration (bmy, 11/15/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -808,7 +831,11 @@
       CHARACTER(LEN=40)   :: UNIT
       CHARACTER(LEN=40)   :: RESERVED
       CHARACTER(LEN=80)   :: TITLE
-      CHARACTER(LEN=255)  :: FILENAME
+      !-----------------------------------------------------------------
+      ! Prior to 11/15/04:
+      ! Remove local declaration of FILENAME, use global declaration
+      !CHARACTER(LEN=255)  :: FILENAME
+      !-----------------------------------------------------------------
 
       !=================================================================
       ! WRITE20 begins here!

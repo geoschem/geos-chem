@@ -1,9 +1,4 @@
-! $Id: gasconc.f,v 1.4 2004/09/21 18:04:13 bmy Exp $
-!-------------------------------------------------------------
-! Prior to 7/20/04;
-!      SUBROUTINE GASCONC( FIRSTCHEM, STT,    NTRACER,
-!     &                    XNUMOL,    LPAUSE, FRCLND )
-!-------------------------------------------------------------
+! $Id: gasconc.f,v 1.5 2004/12/02 21:48:37 bmy Exp $
       SUBROUTINE GASCONC( FIRSTCHEM, NTRACER, STT,
      &                    XNUMOL,    LPAUSE,  FRCLND )
 !
@@ -36,11 +31,6 @@
       LOGICAL, INTENT(IN)    :: FIRSTCHEM
       INTEGER, INTENT(IN)    :: NTRACER
       INTEGER, INTENT(IN)    :: LPAUSE(IIPAR,JJPAR)
-      !-----------------------------------------------------------------
-      ! Prior to 7/20/04:
-      !REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NNPAR)
-      !REAL*8,  INTENT(IN)    :: XNUMOL(NNPAR)
-      !-----------------------------------------------------------------
       REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NTRACER)
       REAL*8,  INTENT(IN)    :: XNUMOL(NTRACER)
       REAL*8,  INTENT(IN)    :: FRCLND(IIPAR,JJPAR)
@@ -214,11 +204,6 @@ C
 !   should be added as needed to other chemistries.
 !      if (NCS .eq. 1) then
 !  maybe??
-      !----------------------------------------------------
-      ! Prior to 7/20/04:
-      ! Pass NTRACER first to "partition.f' (bmy, 7/20/04)
-      !CALL PARTITION(STT, NTRACER, XNUMOL)
-      !----------------------------------------------------
       CALL PARTITION( NTRACER, STT, XNUMOL ) 
 !      endif
 C

@@ -1,4 +1,4 @@
-! $Id: dust_dead_mod.f,v 1.4 2004/09/21 18:04:12 bmy Exp $
+! $Id: dust_dead_mod.f,v 1.5 2004/12/02 21:48:36 bmy Exp $
       MODULE DUST_DEAD_MOD
 !
 !******************************************************************************
@@ -4451,10 +4451,6 @@ c Fix up for negative argument, erf, etc.
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"     ! Size parameters
-!-------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"    ! DATA_DIR
-!-------------------------------------------------
 
       ! Local variables
       REAL*4                :: ARRAY(IGLOB,JGLOB,1)
@@ -4650,10 +4646,6 @@ c Fix up for negative argument, erf, etc.
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"     ! Size parameters
-!--------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"    ! DATA_DIR
-!--------------------------------------------------------
 
       ! Local variables
       INTEGER               :: THISMONTH

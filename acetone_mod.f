@@ -1,4 +1,4 @@
-! $Id: acetone_mod.f,v 1.3 2004/09/21 18:04:08 bmy Exp $
+! $Id: acetone_mod.f,v 1.4 2004/12/02 21:48:32 bmy Exp $
       MODULE ACETONE_MOD
 !
 !******************************************************************************
@@ -126,9 +126,6 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"   ! Size parameters
-!-----------------------------------------
-!#     include "CMN_SETUP"  ! DATA_DIR
-!-----------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)  :: THISMONTH
@@ -217,10 +214,6 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"   ! Size parameters
-!--------------------------------------------------
-! Prior to 7/19/04:
-!#     include "CMN_SETUP" ! DATA_DIR
-!--------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)  :: THISMONTH
@@ -283,7 +276,7 @@
 !
 !******************************************************************************
 !  Subroutine OCEAN_SOURCE_ACET specifies the ocean source of acetone.
-!  (bdf, bmy, 9/12/01, 3/15/04)
+!  (bdf, bmy, 9/12/01, 12/1/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -319,6 +312,7 @@
 !        make the total ocean source the same as for 4x5. (yxw, bmy, 5/16/03)
 !  (10) Scale the ocean source to Jacob et al 2002 for GEOS-4.  Also account
 !        for surface area ratio for all GEOS grids. (bmy, 3/15/04)
+!  (11) Added space in #ifdef block for GEOS-4 x 1x125 grid (bmy, 12/1/04)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -384,6 +378,11 @@
 
       ! GEOS-4 2 x 2.5 (accounts for 2x2.5 surface area)
       REAL*8, PARAMETER :: SCALE_FACTOR = 0.2085d0
+
+#elif defined( GEOS_4 ) && defined( GRID1x125 )
+
+      ! GEOS-4 1 x 1.25: NOTE: NEED TO DEFINE THIS!! (bmy, 12/1/04)
+      REAL*8, PARAMETER :: SCALE_FACTOR = ???
 
 #elif  defined( GEOS_3 ) && defined( GRID4x5 )
 

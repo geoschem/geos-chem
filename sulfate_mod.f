@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.12 2004/09/21 18:04:18 bmy Exp $
+! $Id: sulfate_mod.f,v 1.13 2004/12/02 21:48:40 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 7/20/04)
+!  (rjp, bdf, bmy, 6/22/00, 11/16/04)
 !
 !  Module variables:
 !  ============================================================================
@@ -106,19 +106,20 @@
 !  (4 ) diag_mod.f        : Module containing GEOS-CHEM diagnostic arrays
 !  (5 ) directory_mod.f   : Module containing GEOS-CHEM data & met field dirs
 !  (6 ) drydep_mod.f      : Module containing GEOS-CHEM dry deposition routines
-!  (7 ) error_mod.f       : Module containing NaN, other error check routines
-!  (8 ) file_mod.f        : Module containing file unit numbers & error checks
-!  (9 ) grid_mod.f        : Module containing horizontal grid information
-!  (10) global_no3_mod.f  : Module containing routines to read 3-D NO3 field
-!  (11) global_oh_mod.f   : Module containing routines to read 3-D OH field
-!  (12) logical_mod.f     : Module containing GEOS-CHEM logical switches
-!  (13) pressure_mod.f    : Module containing routines to compute P(I,J,L)
-!  (14) tracer_mod.f      : Module containing GEOS-CHEM tracer array STT etc.
-!  (15) tracerid_mod.f    : Module containing pointers to tracers & emissions
-!  (16) transfer_mod.f    : Module containing routines to cast & resize arrays
-!  (17) time_mod.f        : Module containing routines to compute time & date
-!  (18) uvalbedo_mod.f    : Module containing UV albedo array and reader
-!  (19) wetscav_mod.f     : Module containing routines for wetdep & scavenging
+!  (7 ) epa_nei_mod.f     : Module containing routines to read EPA/NEI99 data
+!  (8 ) error_mod.f       : Module containing NaN, other error check routines
+!  (9 ) file_mod.f        : Module containing file unit numbers & error checks
+!  (10) grid_mod.f        : Module containing horizontal grid information
+!  (11) global_no3_mod.f  : Module containing routines to read 3-D NO3 field
+!  (12) global_oh_mod.f   : Module containing routines to read 3-D OH field
+!  (13) logical_mod.f     : Module containing GEOS-CHEM logical switches
+!  (14) pressure_mod.f    : Module containing routines to compute P(I,J,L)
+!  (15) tracer_mod.f      : Module containing GEOS-CHEM tracer array STT etc.
+!  (16) tracerid_mod.f    : Module containing pointers to tracers & emissions
+!  (17) transfer_mod.f    : Module containing routines to cast & resize arrays
+!  (18) time_mod.f        : Module containing routines to compute time & date
+!  (19) uvalbedo_mod.f    : Module containing UV albedo array and reader
+!  (29) wetscav_mod.f     : Module containing routines for wetdep & scavenging
 !
 !  References
 !  ============================================================================
@@ -165,6 +166,7 @@
 !  (23) Now add SO2 from ships (bec, bmy, 5/20/04)
 !  (24) Now references "directory_mod.f", "logical_mod.f" and "tracer_mod.f".
 !        Now removed IJSURF. (bmy, 7/20/04)
+!  (25) Can overwrite USA with EPA/NEI99 emissions (rjp, rch, bmy, 11/16/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -233,10 +235,6 @@
       REAL*8,  ALLOCATABLE :: ESO2_nv(:,:,:)
       REAL*8,  ALLOCATABLE :: ESO2_sh(:,:) 
       REAL*8,  ALLOCATABLE :: ESO4_an(:,:,:) 
-      !------------------------------------------
-      ! Prior to 7/20/04:
-      !REAL*8,  ALLOCATABLE :: IJSURF(:,:)
-      !------------------------------------------
       REAL*8,  ALLOCATABLE :: JH2O2(:,:,:)
       REAL*8,  ALLOCATABLE :: LSO2_AQ(:,:,:)
       REAL*8,  ALLOCATABLE :: O3m(:,:,:)
@@ -431,10 +429,6 @@
       USE TRACERID_MOD
  
 #     include "CMN_SIZE"     ! Size parameters 
-!--------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"          ! STT, TCVV, NSRCX
-!--------------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE       :: FIRSTCHEM = .TRUE.
@@ -484,19 +478,6 @@
          FIRSTCHEM = .FALSE.
       ENDIF
 
-      !------------------------------------------------------------
-      ! Prior to 7/20/04:
-      !! Read monthly mean fields for offline runs 
-      !IF ( NSRCX == 10 .and. GET_MONTH() /= LASTMONTH ) THEN
-      !   CALL GET_GLOBAL_OH( GET_MONTH() )
-      !   CALL GET_GLOBAL_NO3( GET_MONTH() )
-      !   LASTMONTH = GET_MONTH()
-      !ENDIF
-      !
-      !! Compute time scaling arrays for offline OH, NO3
-      !IF ( NSRCX == 10 ) CALL OHNO3TIME
-      !------------------------------------------------------------
-
       ! If it's an offline simulation ...
       IF ( ITS_AN_AEROSOL_SIM() ) THEN
 
@@ -527,27 +508,7 @@
       !=================================================================
 
       ! Convert STT from [kg] -> [v/v] 
-!-----------------------------------------------------------
-! Prior to 7/20/04:
-!      CALL CONVERT_UNITS( 1, NTRACE, TCVV(1:NTRACE), 
-!     &                    AD,  STT(:,:,:,1:NTRACE) )
-!-----------------------------------------------------------
       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT )
-
-      !---------------------------------------------------------------------
-      ! Prior to 7/20/04:
-      !! DMS (offline only)
-      !IF ( NSRCX == 10 ) THEN
-      !   CALL CHEM_DMS
-      !   IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: after CHEM_DMS' ) 
-      !ENDIF
-      ! 
-      !! H2O2 (offline only)
-      !IF ( NSRCX == 10 ) THEN
-      !   CALL CHEM_H2O2
-      !   IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: CHEM_H2O2' )
-      !ENDIF
-      !---------------------------------------------------------------------
 
       ! For offline runs only ...
       IF ( ITS_AN_AEROSOL_SIM() ) THEN
@@ -587,12 +548,7 @@
       CALL CHEM_NIT
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: after CHEM_NIT' )
  
-!-------------------------------------------------------------------------     
-! Prior to 7/20/04:
-!      ! Convert STT from [v/v] -> [kg]
-!      CALL CONVERT_UNITS( 2, NTRACE, TCVV(1:NTRACE), 
-!     &                    AD, STT(:,:,:,1:NTRACE) )
-!-------------------------------------------------------------------------     
+      ! Convert STT from [v/v] -> [kg]
       CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT )
 
       ! We have already gone thru one chemistry iteration
@@ -717,11 +673,6 @@
          IF ( L >= LPAUSE(I,J) ) CYCLE
 
          ! IJLOOP is the 1-D grid box index for SUNCOS
-         !----------------------------------------------
-         ! Prior to 7/20/04:
-         ! Replace IJSURF w/ analytic function
-         !IJLOOP = IJSURF(I,J)
-         !----------------------------------------------
          IJLOOP = ( (J-1) * IIPAR ) + I
 
          ! Temperature [K]
@@ -775,10 +726,6 @@
          OH0    = OH
          XNO30  = XNO3
 
-         !------------------------
-         ! Prior to 7/20/04:
-         !IF ( NSRCX == 3 ) THEN
-         !------------------------
          IF ( IS_FULLCHEM ) THEN
          
             ! Update OH after rxn w/ DMS (coupled runs only)
@@ -856,10 +803,6 @@
          ! For a coupled fullchem/aerosol run, save OH [molec/cm3] 
          ! and NO3 [molec/cm3] back into the CSPEC array of SMVGEAR
          !==============================================================
-         !------------------------
-         ! Prior to 7/20/04:
-         !IF ( NSRCX == 3 ) THEN
-         !------------------------
          IF ( IS_FULLCHEM ) THEN
             CALL SET_OH( I, J, L, OH )
             CALL SET_NO3( I, J, L, XNO3 )
@@ -917,10 +860,6 @@
 #     include "CMN"          ! LPAUSE
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_GCTM"     ! AIRMW
-!------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"    ! DATA_DIR
-!------------------------------------------
 #     include "CMN_DIAG"     ! ND44
       
       ! Local variables
@@ -1021,10 +960,6 @@
          FREQ  = DEPSAV(I,J,DRYH2O2) * PBLFRAC(I,J,L)
 
          ! 1-D grid box index for SUNCOS
-         !--------------------------------
-         ! Prior to 7/20/04:
-         !JLOOP = IJSURF(I,J)
-         !--------------------------------
          JLOOP = ( (J-1) * IIPAR ) + I
 
          ! Impose a diurnal variation of jH2O2 by multiplying COS of 
@@ -1158,9 +1093,6 @@
 #     include "CMN_GCTM"    ! AIRMW
 #     include "CMN_O3"      ! XNUMOL
 #     include "CMN_DIAG"    ! LD05, ND05, ND44
-!-------------------------------------------------
-!#     include "CMN_SETUP"   ! DATA_DIR
-!-------------------------------------------------
 
       ! Local variables
       LOGICAL               :: IS_OFFLINE
@@ -1239,10 +1171,6 @@
          ! TK : Temperature [K]
          TK     = T(I,J,L)
 
-         !---------------------------
-         ! Prior to 7/20/04:
-         !IF ( NSRCX == 10 ) THEN
-         !---------------------------
          IF ( IS_OFFLINE ) THEN
 
             ! Gas phase SO4 production is done here in offline run only 
@@ -2058,10 +1986,6 @@
       USE TRACERID_MOD, ONLY : IDTNH3
 
 #     include "CMN_SIZE"     ! Size parameters
-!-----------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"          ! LPAUSE
-!-----------------------------------------------
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44
 
@@ -2206,10 +2130,6 @@
       USE TRACERID_MOD, ONLY : IDTNH4
 
 #     include "CMN_SIZE"  ! Size parameters
-!--------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"       ! LPAUSE
-!--------------------------------------------
 #     include "CMN_O3"    ! XNUMOL
 #     include "CMN_DIAG"  ! ND44
 
@@ -2353,10 +2273,6 @@
       USE TRACERID_MOD, ONLY : IDTNIT
 
 #     include "CMN_SIZE"     ! Size parameters
-!------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"          ! LPAUSE
-!------------------------------------------
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44
 
@@ -2499,18 +2415,9 @@
       USE TRACERID_MOD
 
 #     include "CMN_SIZE"  ! Size parameters
-!----------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"       ! STT, NSRCX
-!#     include "CMN_SETUP" ! LSHIPSO2
-!----------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE      :: FIRSTEMISS = .TRUE. 
-      !--------------------------------------------
-      ! Prior to 7/20/04:
-      !INTEGER, SAVE      :: LASTMONTH  = -99
-      !--------------------------------------------
       INTEGER            :: NSEASON, MONTH   
 
       !=================================================================
@@ -2568,10 +2475,6 @@
          IF ( LSHIPSO2 ) CALL READ_SHIP_SO2( MONTH )
 
          ! Read oxidants for the offline simulation only
-         !---------------------------------------------------------
-         ! Prior to 7/20/04:
-         !IF ( NSRCX == 10 ) CALL READ_OXIDANT( MONTH )
-         !---------------------------------------------------------
          IF ( ITS_AN_AEROSOL_SIM() ) CALL READ_OXIDANT( MONTH )
 
       ENDIF
@@ -2822,7 +2725,7 @@
 !
 !******************************************************************************
 !  Subroutine SRCSO2 (originally from Mian Chin) computes SO2 emissons from 
-!  aircraft, biomass, and anthro sources. (rjp, bdf, bmy, 6/2/00, 7/20/04)
+!  aircraft, biomass, and anthro sources. (rjp, bdf, bmy, 6/2/00, 11/16/04)
 !
 !  Arguments as Input/Output:
 !  ===========================================================================
@@ -2841,6 +2744,12 @@
 !  (4 ) Now references AD13_SO2_sh array from "diag_mod.f".  Also references
 !        LSHIPSO2 from "CMN_SETUP" (bec, bmy, 5/20/04) 
 !  (5 ) Now references LSHIPSO2 from "logical_mod.f" (bmy, 7/20/04)
+!  (6 ) Now references routines GET_EPA_ANTHRO and GET_USA_MASK from 
+!        "epa_nei_mod.f".  Now references GET_AREA_CM2 from "grid_mod.f".  
+!        Now references GET_DAY_OF_WEEK from "time_mod.f"  Now references 
+!        LNEI99 from "logical_mod.f".  Now can overwrite the anthro SOx 
+!        emissions over the continental US if LNEI99=T.  Now references IDTSO2
+!        from "tracerid_mod.f. (rch, rjp, bmy, 11/16/04)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -2848,31 +2757,38 @@
      &                         AD13_SO2_nv, AD13_SO2_ev, AD13_SO2_bf,
      &                         AD13_SO2_sh
       USE DAO_MOD,      ONLY : BXHEIGHT, PBL
+      USE EPA_NEI_MOD,  ONLY : GET_EPA_ANTHRO, GET_EPA_BIOFUEL,
+     &                         GET_USA_MASK
       USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE LOGICAL_MOD,  ONLY : LSHIPSO2
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,  ONLY : LNEI99, LSHIPSO2
       USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE TIME_MOD,     ONLY : GET_TS_EMIS, GET_DAY_OF_YEAR
+      USE TIME_MOD,     ONLY : GET_TS_EMIS, GET_DAY_OF_YEAR, 
+     &                         GET_DAY_OF_WEEK
+      USE TRACERID_MOD, ONLY : IDTSO2
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN"          ! XTRA2
 #     include "CMN_DIAG"     ! ND13, LD13 (for now)
 #     include "CMN_GCTM"     ! SCALE_HEIGHT
-!-----------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"    ! LSHIPSO2
-!-----------------------------------------------------------
+#     include "CMN_O3"       ! XNUMOL
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NSEASON
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
 
       ! Local variables
+      LOGICAL                :: WEEKDAY
       INTEGER                :: I, J, K, L, LV1, LV2, NTOP, JDAY
+      INTEGER                :: DAY_NUM
       REAL*8                 :: ZH(0:LLPAR), DZ(LLPAR), SO2(LLPAR)
       REAL*8                 :: DTSRCE,      HGHT,      SO2SRC
       REAL*8                 :: SLAB,        SLAB1,     BLTOP
       REAL*8                 :: TSO2,        P1,        P2
       REAL*8                 :: DELP,        FEMIS,     BLTHIK
+      REAL*8                 :: AREA_CM2,    EPA_AN,    EPA_BF
+      REAL*8                 :: SO2an(IIPAR,JJPAR,2)
+      REAL*8                 :: SO2bf(IIPAR,JJPAR)
 
       ! Ratio of molecular weights: S/SO2
       REAL*8,  PARAMETER     :: S_SO2 = 32d0 / 64d0
@@ -2882,10 +2798,16 @@
       !================================================================
 
       ! DTSRCE is the emission timestep in seconds
-      DTSRCE = GET_TS_EMIS() * 60d0
+      DTSRCE  = GET_TS_EMIS() * 60d0
 
       ! JDAY is the day of year (0-365 or 0-366)
-      JDAY   = GET_DAY_OF_YEAR()
+      JDAY    = GET_DAY_OF_YEAR()
+
+      ! Get current day of the week
+      DAY_NUM = GET_DAY_OF_WEEK()
+
+      ! Is it a weekday?
+      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
 
       !=================================================================
       ! SO2 emissions from non-eruptive volcanoes [kg SO2/box/s].
@@ -3028,6 +2950,62 @@
       ENDIF  
 
       !=================================================================
+      ! Overwrite USA w/ EPA/NEI99 SO4 emissions (if necessary)
+      ! Store emissions into local arrays SO2an, SO2bf 
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_CM2, EPA_AN, EPA_BF )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO J = 1, JJPAR
+
+         ! Grid box surface area [cm2]
+         AREA_CM2 = GET_AREA_CM2(J)
+
+         DO I = 1, IIPAR
+         
+            ! If we are using EPA/NEI99 emissions
+            IF ( LNEI99 ) THEN
+
+               ! If we are over the USA ...
+               IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
+            
+                  ! Read SO2 emissions in [molec/cm2/s]
+                  EPA_AN       = GET_EPA_ANTHRO( I, J, IDTSO2, WEEKDAY )
+                  EPA_BF       = GET_EPA_BIOFUEL(I, J, IDTSO2, WEEKDAY )
+               
+                  ! Convert anthro SO2 from [molec/cm2/s] to [kg/box/s] 
+                  ! Place all anthro SO2 into surface layer
+                  SO2an(I,J,1) = EPA_AN * AREA_CM2 / XNUMOL(IDTSO2)
+                  SO2an(I,J,2) = 0d0
+               
+                  ! Convert anthro SO2 from [molec/cm2/s] to [kg/box/s] 
+                  SO2bf(I,J)   = EPA_BF * AREA_CM2 / XNUMOL(IDTSO2)
+
+               ELSE
+
+                  ! If we are not over the USA, then just use the regular 
+                  ! emissions from ESO2_an and ESO2_bf (bmy, 11/16/04)
+                  SO2an(I,J,1) = ESO2_an(I,J,1)
+                  SO2an(I,J,2) = ESO2_an(I,J,2)
+                  SO2bf(I,J)   = ESO2_bf(I,J)
+        
+               ENDIF
+
+            ELSE
+             
+               ! If we are not using EPA/NEI99 emissions, then just copy 
+               ! ESO2_an and ESO2_bf into local arrays (bmy, 11/16/04)
+               SO2an(I,J,1) = ESO2_an(I,J,1)
+               SO2an(I,J,2) = ESO2_an(I,J,2)
+               SO2bf(I,J)   = ESO2_bf(I,J)
+
+            ENDIF
+         ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      !=================================================================
       ! Add SO2 emissions into model levels
       !=================================================================
 !$OMP PARALLEL DO
@@ -3047,7 +3025,13 @@
          ENDDO
 
          ! Sum of anthro (surface + 100m), biomass, biofuel SO2 at (I,J)
-         TSO2  = SUM( ESO2_an(I,J,:) ) + ESO2_bb(I,J) + ESO2_bf(I,J)
+         !-----------------------------------------------------------------
+         ! Prior to 11/16/04:
+         ! Now use local arrays SO2an, SO2bf, which can contain emissions 
+         ! from the EPA/NEI99 inventory (bmy, 11/16/04) 
+         !TSO2  = SUM( ESO2_an(I,J,:) ) + ESO2_bb(I,J) + ESO2_bf(I,J)
+         !-----------------------------------------------------------------
+         TSO2  = SUM( SO2an(I,J,:) ) + ESO2_bb(I,J) + SO2bf(I,J)
 
          ! Also add SO2 from ship exhaust if necessary (bec, bmy, 5/20/04)
          IF ( LSHIPSO2 ) TSO2 = TSO2 + ESO2_sh(I,J)
@@ -3112,8 +3096,15 @@
          ! stack SO2 goes into level 2.
          !===============================================================
          ELSE
-            SO2(1) = ESO2_an(I,J,1) + ESO2_bb(I,J) + ESO2_bf(I,J)
-            SO2(2) = ESO2_an(I,J,2) 
+            !-------------------------------------------------------------
+            ! Prior to 11/16/04:
+            ! Now use local arrays SO2an & SO2bf, which can contain 
+            ! EPA/NEI99 emissions over the USA (bmy, 11/16/04)
+            !SO2(1) = ESO2_an(I,J,1) + ESO2_bb(I,J) + ESO2_bf(I,J)
+            !SO2(2) = ESO2_an(I,J,2) 
+            !-------------------------------------------------------------
+            SO2(1) = SO2an(I,J,1) + ESO2_bb(I,J) + SO2bf(I,J)
+            SO2(2) = SO2an(I,J,2) 
 
             ! Also add ship exhaust SO2 into surface if necessary 
             ! (bec, bmy, 5/20/04)
@@ -3156,7 +3147,12 @@
             ! Anthropogenic SO2 -- Levels 1-2
             DO L = 1, 2
                AD13_SO2_an(I,J,L) = AD13_SO2_an(I,J,L) +
-     &                              ( ESO2_an(I,J,L) * S_SO2 * DTSRCE )
+!----------------------------------------------------------------------------
+! Prior to 11/16/04:
+! Now use local SO4an array, which can contain EPA/NEI99 emissions
+!     &                              ( ESO2_an(I,J,L) * S_SO2 * DTSRCE )
+!----------------------------------------------------------------------------
+     &                              ( SO2an(I,J,L) * S_SO2 * DTSRCE )
             ENDDO
 
             ! SO2 from biomass burning
@@ -3165,7 +3161,12 @@
  
             ! SO2 from biofuel burning
             AD13_SO2_bf(I,J)      = AD13_SO2_bf(I,J) +
-     &                              ( ESO2_bf(I,J) * S_SO2 * DTSRCE )
+!-----------------------------------------------------------------------------
+! Prior to 11/16/04:
+! Now use local SO4bf array, which can contain EPA/NEI99 emissions
+!     &                              ( ESO2_bf(I,J) * S_SO2 * DTSRCE )
+!-----------------------------------------------------------------------------
+     &                              ( SO2bf(I,J)   * S_SO2 * DTSRCE )
 
             ! SO2 from ship emissions (bec, bmy, 5/20/04)
             IF ( LSHIPSO2 ) THEN
@@ -3202,7 +3203,7 @@
 !
 !******************************************************************************
 !  Subroutine SRCSO4 (originally from Mian Chin) computes SO4 emissions from 
-!  anthropogenic sources (rjp, bdf, bmy, 6/2/00, 1/15/04)
+!  anthropogenic sources (rjp, bdf, bmy, 6/2/00, 11/16/04)
 !
 !  Arguments as Input/Output:
 !  ===========================================================================
@@ -3215,28 +3216,45 @@
 !  (3 ) For GEOS-4, convert PBL from [m] to [hPa] w/ the barometric law.
 !        Now references SCALE_HEIGHT from "CMN_GCTM".  Added BLTHIK variable
 !        to hold PBL thickness in [hPa]. (bmy, 1/15/04)
+!  (4 ) Now references GET_EPA_ANTHRO, GET_EPA_BIOFUEL, and GET_USA_MASK from 
+!        "epa_nei_mod.f".  Now references AD13_SO4_bf from "diag_mod.f".  Now 
+!        references GET_AREA_CM2 from "grid_mod.f".  Now references 
+!        GET_DAY_OF_WEEK from "time_mod.f".  Now references LNEI99 from 
+!        "logical_mod.f".  Now can overwrite the anthro SOx emissions over 
+!        the continental US if LNEI99=T.  Now references IDTSO4 from 
+!        "tracerid_mod.f". (rch, rjp, bmy, 11/16/04)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
       USE DAO_MOD,      ONLY : PBL
-      USE DIAG_MOD,     ONLY : AD13_SO4_an
+      USE DIAG_MOD,     ONLY : AD13_SO4_an,     AD13_SO4_bf
+      USE EPA_NEI_MOD,  ONLY : GET_EPA_ANTHRO,  GET_EPA_BIOFUEL,
+     &                         GET_USA_MASK
       USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,  ONLY : LNEI99
       USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE TIME_MOD,     ONLY : GET_TS_EMIS
+      USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
+      USE TRACERID_MOD, ONLY : IDTSO4
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN"          ! XTRA2
 #     include "CMN_DIAG"     ! ND13 (for now)
 #     include "CMN_GCTM"     ! SCALE_HEIGHT
+#     include "CMN_O3"       ! XNUMOL
 
       ! Arguments      
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
 
       ! Local variables
-      INTEGER                :: I, J, K, L, NTOP
-      REAL*8                 :: SO4(LLPAR), DTSRCE, BLTOP
-      REAL*8                 :: TSO4,       P1,     P2     
-      REAL*8                 :: DELP,       FEMIS,  BLTHIK
+      LOGICAL                :: WEEKDAY
+      INTEGER                :: I, J, K, L, DAY_NUM, NTOP
+      REAL*8                 :: SO4(LLPAR), DTSRCE,  BLTOP
+      REAL*8                 :: TSO4,       P1,      P2     
+      REAL*8                 :: DELP,       FEMIS,   BLTHIK
+      REAL*8                 :: AREA_CM2,   EPA_AN,  EPA_BF
+      REAL*8                 :: SO4an(IIPAR,JJPAR,2)
+      REAL*8                 :: SO4bf(IIPAR,JJPAR)
 
       ! Ratio of molecular weights: S/SO4
       REAL*8,  PARAMETER     :: S_SO4 = 32d0 / 96d0
@@ -3246,7 +3264,70 @@
       !=================================================================
 
       ! DTSRCE is the emission timestep in seconds
-      DTSRCE = GET_TS_EMIS() * 60d0
+      DTSRCE  = GET_TS_EMIS() * 60d0
+
+      ! Get current day of the week
+      DAY_NUM = GET_DAY_OF_WEEK()
+
+      ! Is it a weekday?
+      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
+
+      !=================================================================
+      ! Overwrite USA w/ EPA/NEI99 SO4 emissions (if necessary)
+      ! Store emissions into local arrays SO4an, SO4bf
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_CM2, EPA_AN, EPA_BF )
+      DO J = 1, JJPAR
+         
+         ! Grid box surface area [cm2]
+         AREA_CM2 = GET_AREA_CM2(J)
+
+         DO I = 1, IIPAR
+
+            ! If we are using EPA/NEI99 emissions
+            IF ( LNEI99 ) THEN
+
+               ! If we are over the USA ...
+               IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
+            
+                  ! Read SO4 emissions in [molec/cm2/s]
+                  EPA_AN       = GET_EPA_ANTHRO( I, J, IDTSO4, WEEKDAY )
+                  EPA_BF       = GET_EPA_BIOFUEL(I, J, IDTSO4, WEEKDAY ) 
+
+                  ! Convert anthro SO4 from [molec/cm2/s] to [kg/box/s] 
+                  ! Place all EPA/NEI99 anthro SO4 into surface layer
+                  SO4an(I,J,1) = EPA_AN * AREA_CM2 / XNUMOL(IDTSO4)
+                  SO4an(I,J,2) = 0d0
+               
+                  ! Convert biofuel SO4 from [molec/cm2/s] to [kg/box/s]
+                  SO4bf(I,J)   = EPA_BF * AREA_CM2 / XNUMOL(IDTSO4)
+
+               ELSE
+
+                  ! If we are not over the USA, then just use the regular 
+                  ! emissions from ESO4_an.  Also set biofuel SO4 to zero
+                  ! since we currently don't read this in. (bmy, 11/16/04)
+                  SO4an(I,J,1) = ESO4_an(I,J,1)
+                  SO4an(I,J,2) = ESO4_an(I,J,2)
+                  SO4bf(I,J)   = 0d0
+
+               ENDIF
+
+            ELSE
+             
+               ! If we are not using EPA/NEI99 emissions, then just copy 
+               ! ESO4_an into ESO4 array.  Also set biofuel SO4 to zero
+               ! since we currently don't read this in. (bmy, 11/16/04)
+               SO4an(I,J,1) = ESO4_an(I,J,1)
+               SO4an(I,J,2) = ESO4_an(I,J,2)
+               SO4bf(I,J)   = 0d0
+
+            ENDIF
+         ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
       !=================================================================
       ! Compute SO4 emissions 
@@ -3267,8 +3348,13 @@
             SO4(L) = 0.0
          ENDDO
 
-         ! Compute total anthropogenic SO4 (surface + 100m)
-         TSO4 = SUM( ESO4_an(I,J,:) )
+         ! Compute total anthro SO4 (surface + 100m) plus biofuel SO4
+         !--------------------------------------------------------------------
+         ! Prior to 11/16/04:
+         ! Now us local arrays SO4an, SO4bb which can hold EPA/NEI emissions
+         !TSO4 = SUM( ESO4_an(I,J,:) )
+         !--------------------------------------------------------------------
+         TSO4 = SUM( SO4an(I,J,:) ) + SO4bf(I,J)
 
          !==============================================================
          ! Partition the total anthro SO4 emissions thru the entire 
@@ -3326,12 +3412,19 @@
          ! If PBL height is low and lower or similar to the second 
          ! model layer then surface emission is emitted to the first
          ! model layer and the stack emission goes to the second model
-         ! layer
+         ! layer.  Also add biofuel SO4 into the surface layer.
          !==============================================================
          ELSE
 
-            SO4(1) = ESO4_an(I,J,1)
-            SO4(2) = ESO4_an(I,J,2) 
+            !-----------------------------------------------------------------
+            ! Prior to 11/16/04:
+            ! Now use local arrays SO4an, SO4bf, which can contain 
+            ! EPA/NEI99 emissions (bmy, 11/16/04)
+            !SO4(1) = ESO4_an(I,J,1)
+            !SO4(2) = ESO4_an(I,J,2) 
+            !-----------------------------------------------------------------
+            SO4(1) = SO4an(I,J,1) + SO4bf(I,J)
+            SO4(2) = SO4an(I,J,2) 
             
          ENDIF 
 
@@ -3358,10 +3451,21 @@
          ! ND13 Diagnostic: SO4 emission in [kg S/box/timestep]       
          !==============================================================
          IF ( ND13 > 0 ) THEN 
+
+            ! Anthro SO4
             DO L = 1, 2      
                AD13_SO4_an(I,J,L) = AD13_SO4_an(I,J,L) + 
-     &                              ( ESO4_an(I,J,L) * S_SO4 * DTSRCE )
+!-----------------------------------------------------------------------------
+! Prior to 11/16/04:
+! Now use local SO4an array which can contain EPA/NEI99 emissions
+!     &                              ( ESO4_an(I,J,L) * S_SO4 * DTSRCE )
+!-----------------------------------------------------------------------------
+     &                              ( SO4an(I,J,L) * S_SO4 * DTSRCE )
             ENDDO
+
+            ! Biofuel SO4
+            AD13_SO4_bf(I,J) = AD13_SO4_bf(I,J) + 
+     &                         ( SO4bf(I,J) * S_SO4 * DTSRCE ) 
          ENDIF
       ENDDO
       ENDDO
@@ -3376,7 +3480,7 @@
 !
 !******************************************************************************
 !  Subroutine SRCNH3 handles NH3 emissions into the GEOS-CHEM tracer array.
-!  (rjp, bmy, 12/17/01, 1/15/04)
+!  (rjp, bmy, 12/17/01, 11/16/04)
 ! 
 !  Arguments as Input/Output
 !  ============================================================================
@@ -3391,37 +3495,139 @@
 !  (4 ) For GEOS-4, convert PBL from [m] to [hPa] w/ the barometric law.
 !        Now references SCALE_HEIGHT from "CMN_GCTM".  Added BLTHIK variable
 !        to hold PBL thickness in [hPa]. (bmy, 1/15/04)
+!  (5 ) Now references GET_EPA_ANTHRO, GET_EPA_BIOFUEL, and GET_USA_MASK from 
+!        "epa_nei_mod.f".  Now references GET_DAY_OF_WEEK from "time_mod.f".  
+!        Now references LNEI99 from "logical_mod.f".  Now references 
+!        GET_AREA_CM2 from "grid_mod.f".  Now references IDTNH3 from 
+!        "tracerid_mod.f".  Now references XNUMOL from CMN_O3.  Now can 
+!        overwrite the anthro & biofuel NH3 emissions over the continental US 
+!        if LNEI99=T.  Now references IDTNH3 from "tracerid_mod.f". 
+!        (rjp, rch, bmy, 11/16/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIAG_MOD,     ONLY : AD13_NH3_an, AD13_NH3_bb,
      &                         AD13_NH3_bf, AD13_NH3_na
       USE DAO_MOD,      ONLY : PBL
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE EPA_NEI_MOD,  ONLY : GET_EPA_ANTHRO, GET_EPA_BIOFUEL, 
+     &                         GET_USA_MASK
       USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE LOGICAL_MOD,  ONLY : LNEI99
       USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE TIME_MOD,     ONLY : GET_TS_EMIS
+      USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
+      USE TRACERID_MOD, ONLY : IDTNH3
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN"          ! XTRA2
 #     include "CMN_DIAG"     ! ND13
 #     include "CMN_GCTM"     ! SCALE_HEIGHT
+#     include "CMN_O3"       ! XNUMOL
       
       ! Argumetns
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
 
       ! Local variables
-      INTEGER                :: I, J, L, K, NTOP
-      REAL*8                 :: BLTOP,  P1,    P2 
-      REAL*8                 :: DELP,   FEMIS, DTSRCE
-      REAL*8                 :: NH3SRC, TNH3,  BLTHIK
+      LOGICAL                :: WEEKDAY
+      INTEGER                :: I, J, L,  K, NTOP, DAY_NUM
+      REAL*8                 :: BLTOP,    P1,      P2 
+      REAL*8                 :: DELP,     FEMIS,   DTSRCE
+      REAL*8                 :: NH3SRC,   TNH3,    BLTHIK
+      REAL*8                 :: AREA_CM2, EPA_AN,  EPA_BF
+      REAL*8                 :: NH3an(IIPAR,JJPAR)
+      REAL*8                 :: NH3bf(IIPAR,JJPAR)
 
       !=================================================================
       ! SRCNH3 begins here!
       !=================================================================
 
       ! Emission timestep [s]
-      DTSRCE = GET_TS_EMIS() * 60d0
+      DTSRCE  = GET_TS_EMIS() * 60d0
  
+      ! Get current day of the week
+      DAY_NUM = GET_DAY_OF_WEEK()
+
+      ! Is it a weekday?
+      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
+
+      !=================================================================
+      ! Overwrite USA with EPA/NEI NH3 emissions (if necessary)
+      ! Store emissions into local arrays NH3an, NH3bf
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!-----------------------------------------------------------------------------
+! NOTE: There seems to be some problems with the EPA/NEI NH3 emissions.  
+! Therefore we will use the existing emissions for NH3 until further notice.  
+! Comment out the lines below until further notice.  (bmy, 11/17/04)
+!!$OMP+PRIVATE( I, J, AREA_CM2, EPA_AN, EPA_BF )
+!-----------------------------------------------------------------------------
+!$OMP+PRIVATE( I, J )
+      DO J = 1, JJPAR
+         
+         !-------------------------------------------------------------------
+         ! NOTE: There seems to be some problems with the EPA/NEI NH3 
+         ! emissions.  Therefore we will use the existing emissions for NH3 
+         ! until further notice.  Comment out the lines below until 
+         ! further notice.  (bmy, 11/17/04) 
+         !! Grid box surface area [cm2]
+         !AREA_CM2 = GET_AREA_CM2( J )
+         !-------------------------------------------------------------------
+
+         DO I = 1, IIPAR
+
+            !-----------------------------------------------------------------
+            ! NOTE: There seems to be some problems with the EPA/NEI NH3 
+            ! emissions.  Therefore we will use the existing emissions for 
+            ! NH3 until further notice.  Comment out the lines below until 
+            ! further notice.  (bmy, 11/17/04) 
+            !
+            !! If we are using EPA/NEI99 emissions ...
+            !IF ( LNEI99 ) THEN
+            !
+            !   ! If we are over the USA ...
+            !   IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
+            !
+            !      ! Read NH3 anthro emissions in [molec NH3/cm2/s]
+            !      EPA_AN     = GET_EPA_ANTHRO(  I, J, IDTNH3, WEEKDAY )
+            !      EPA_BF     = GET_EPA_BIOFUEL( I, J, IDTNH3, WEEKDAY )
+            !
+            !      ! Convert from [molec NH3/cm2/s] to [kg NH3/box/sec]
+            !      NH3an(I,J) = EPA_AN * AREA_CM2 / XNUMOL(IDTNH3)
+            !      NH3bf(I,J) = EPA_BF * AREA_CM2 / XNUMOL(IDTNH3)
+            !
+            !   ELSE
+            !
+            !      ! If we are not over the USA, just use the regular 
+            !      ! emissions in NH3_an and NH3bf (bmy, 11/16/04)
+            !      NH3an(I,J) = ENH3_an(I,J)
+            !      NH3bf(I,J) = ENH3_bf(I,J)
+            !
+            !   ENDIF
+            !
+            !ELSE
+            !-----------------------------------------------------------------
+
+               ! If we are not using the EPA/NEI emissions, just copy the 
+               ! regular ENH3_an and ENH3_bf to local arrays. (bmy, 11/16/04)
+               NH3an(I,J) = ENH3_an(I,J)
+               NH3bf(I,J) = ENH3_bf(I,J)
+            
+            !-----------------------------------------------------------------
+            ! NOTE: There seems to be some problems with the EPA/NEI NH3 
+            ! emissions.  Therefore we will use the existing emissions for 
+            ! NH3 until further notice.  Comment out the lines below until 
+            ! further notice.  (bmy, 11/17/04) 
+            !ENDIF
+            !-----------------------------------------------------------------
+         ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      !=================================================================
+      ! Partition NH3 emissions into the STT tracer array
+      !=================================================================
+
       ! Loop over surface grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -3438,8 +3644,14 @@
          NH3SRC = 0.d0
 
          ! Sum all types of NH3 emission [kg/box/s]
-         TNH3   = ENH3_an(I,J) + ENH3_bb(I,J) + 
-     &            ENH3_bf(I,J) + ENH3_na(I,J)
+!-----------------------------------------------------------------------------
+! Prior to 11/16/04:
+! Now use local arrays NH3an and NH3bf, which can contain EPA/NEI99 emissions
+!         TNH3   = ENH3_an(I,J) + ENH3_bb(I,J) + 
+!     &            ENH3_bf(I,J) + ENH3_na(I,J)
+!-----------------------------------------------------------------------------
+         TNH3   = NH3an(I,J) + ENH3_bb(I,J) + 
+     &            NH3bf(I,J) + ENH3_na(I,J)
 
          !==============================================================
          ! Add NH3 emissions [kg NH3/box] into the tracer array
@@ -3502,9 +3714,19 @@
                PRINT*, '### ERROR in SRCNH3!'
                PRINT*, '### I, J         : ', I, J
                PRINT*, '### NH3SRC       : ', NH3SRC
-               PRINT*, '### ENH3_an(I,J) : ', ENH3_an(I,J) 
+               !--------------------------------------------------------------
+               ! Prior to 11/16/04:
+               ! Now use local ENH3 array which can contain EPA/NEI emissions
+               !PRINT*, '### ENH3_an(I,J) : ', ENH3_an(I,J) 
+               !--------------------------------------------------------------
+               PRINT*, '### ENH3_an(I,J) : ', NH3an(I,J) 
                PRINT*, '### ENH3_bb(I,J) : ', ENH3_bb(I,J)
-               PRINT*, '### ENH3_bf(I,J) : ', ENH3_bf(I,J)
+               !--------------------------------------------------------------
+               ! Prior to 11/16/04:
+               ! Now use local ENH3 array which can contain EPA/NEI emissions
+               !PRINT*, '### ENH3_bf(I,J) : ', ENH3_bf(I,J)
+               !--------------------------------------------------------------
+               PRINT*, '### ENH3_bf(I,J) : ', NH3bf(I,J)
 !$OMP END CRITICAL
                CALL ERROR_STOP( 'Check NH3 redistribution', 
      &                          'SRCNH3 (sulfate_mod.f)' )
@@ -3525,15 +3747,25 @@
 
             ! Anthro NH3
             AD13_NH3_an(I,J) = AD13_NH3_an(I,J) + 
-     &                         ( ENH3_an(I,J) * DTSRCE )
-            
+!-----------------------------------------------------------------------------
+! Prior to 11/16/04:
+! Now use NH3an array which can contain EPA/NEI99 emissions
+!     &                         ( ENH3_an(I,J) * DTSRCE )
+!-----------------------------------------------------------------------------
+     &                         ( NH3an(I,J)   * DTSRCE )            
+
             ! Biomass NH3
             AD13_NH3_bb(I,J) = AD13_NH3_bb(I,J) + 
      &                         ( ENH3_bb(I,J) * DTSRCE )
                   
             ! Biofuel NH3
             AD13_NH3_bf(I,J) = AD13_NH3_bf(I,J) +
-     &                         ( ENH3_bf(I,J) * DTSRCE )
+!-----------------------------------------------------------------------------
+! Prior to 11/16/04:
+! Now use NH3bf array which can contain EPA/NEI99 emissions
+!     &                         ( ENH3_bf(I,J) * DTSRCE )
+!-----------------------------------------------------------------------------
+     &                         ( NH3bf(I,J)   * DTSRCE )   
 
             ! Natural source NH3
             AD13_NH3_na(I,J) = AD13_NH3_na(I,J) + 
@@ -3577,10 +3809,6 @@
       USE TRACERID_MOD,  ONLY : IDOH
 
 #     include "CMN_SIZE"  ! Size parameters
-!-----------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"       ! NSRCX
-!-----------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -3592,60 +3820,6 @@
       !=================================================================
       ! GET_OH begins here!
       !=================================================================
-!--------------------------------------------------------------------------- 
-! Prior to 7/20/04:
-! Now use inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
-!      SELECT CASE ( NSRCX ) 
-!      
-!         !---------------------
-!         ! Coupled simulation
-!         !---------------------
-!         CASE ( 3 )
-!
-!            ! JLOOP = SMVGEAR 1-D grid box index
-!            JLOOP = JLOP(I,J,L)
-!
-!            ! Take OH from the SMVGEAR array CSPEC
-!            ! OH is defined only in the troposphere
-!            IF ( JLOOP > 0 ) THEN
-!               OH_MOLEC_CM3 = CSPEC(JLOOP,IDOH)
-!            ELSE
-!               OH_MOLEC_CM3 = 0d0
-!            ENDIF
-!
-!         !---------------------
-!         ! Offline simulation
-!         !---------------------
-!         CASE ( 10 )
-!
-!            ! 1-D grid box index for SUNCOS
-!            JLOOP = IJSURF(I,J)
-!
-!            ! Test for sunlight...
-!            IF ( SUNCOS(JLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
-!
-!               ! Impose a diurnal variation on OH during the day
-!               OH_MOLEC_CM3 = OH(I,J,L)                      *           
-!     &                        ( SUNCOS(JLOOP) / TCOSZ(I,J) ) *
-!     &                        ( 1440d0        / GET_TS_CHEM() )
-!
-!               ! Make sure OH is not negative
-!               OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0d0 )
-!               
-!            ELSE
-!
-!               ! At night, OH goes to zero
-!               OH_MOLEC_CM3 = 0d0
-!
-!            ENDIF
-!
-!         ! Error check
-!         CASE DEFAULT
-!            CALL ERROR_STOP( 'Invalid NSRCX!', 'GET_OH (sulfate_mod.f)')
-!
-!      END SELECT
-!--------------------------------------------------------------------------- 
-
       IF ( ITS_A_FULLCHEM_SIM() ) THEN
 
          !---------------------
@@ -3670,10 +3844,6 @@
          !---------------------
 
          ! 1-D grid box index for SUNCOS
-         !--------------------------------
-         ! Prior to 7/20/04:
-         !JLOOP = IJSURF(I,J)
-         !--------------------------------
          JLOOP = ( (J-1) * IIPAR ) + I
 
          ! Test for sunlight...
@@ -3743,7 +3913,7 @@
       ! JLOOP = SMVGEAR 1-D grid box index
       JLOOP = JLOP(I,J,L) 
 
-      ! Replace OH into CSPEC (troposphere only)
+      ! Replace OH into CSPEC(troposphere only)
       IF ( JLOOP > 0 ) THEN
          CSPEC(JLOOP,IDOH) = OH
       ENDIF
@@ -3782,10 +3952,6 @@
       USE TRACERID_MOD,   ONLY : IDNO3
 
 #     include "CMN_SIZE"  ! Size parameters
-!---------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"       ! NSRCX
-!---------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -3800,78 +3966,6 @@
       !=================================================================
       ! GET_NO3 begins here!
       !=================================================================
-!------------------------------------------------------------------------------
-! Prior to 7/20/04:
-!      SELECT CASE ( NSRCX )
-!
-!         ! Coupled chemistry/aerosol simulation
-!         CASE ( 3 )
-!            
-!            ! 1-D SMVGEAR grid box index
-!            JLOOP = JLOP(I,J,L)
-!
-!            ! Take NO3 from the SMVGEAR array CSPEC
-!            ! NO3 is defined only in the troposphere
-!            IF ( JLOOP > 0 ) THEN
-!               NO3_MOLEC_CM3 = CSPEC(JLOOP,IDNO3)
-!            ELSE
-!               NO3_MOLEC_CM3 = 0d0
-!            ENDIF
-!
-!         !==============================================================  
-!         ! Offline simulation: Read monthly mean GEOS-CHEM NO3 fields
-!         ! in [v/v].  Convert these to [molec/cm3] as follows:
-!         !
-!         !  vol NO3   moles NO3    kg air     kg NO3/mole NO3
-!         !  ------- = --------- * -------- * ---------------- =  kg NO3 
-!         !  vol air   moles air      1        kg air/mole air
-!         !
-!         ! And then we convert [kg NO3] to [molec NO3/cm3] by:
-!         !  
-!         !  kg NO3   molec NO3   mole NO3     1     molec NO3
-!         !  ------ * --------- * -------- * ----- = --------- 
-!         !     1     mole NO3     kg NO3     cm3       cm3
-!         !          ^                    ^
-!         !          |____________________|  
-!         !            this is XNUMOL_NO3
-!         !
-!         ! If at nighttime, use the monthly mean NO3 concentration from
-!         ! the NO3 array of "global_no3_mod.f".  If during the daytime,
-!         ! set the NO3 concentration to zero.  We don't have to relax to 
-!         ! the monthly mean concentration every 3 hours (as for HNO3) 
-!         ! since NO3 has a very short lifetime. (rjp, bmy, 12/16/02) 
-!         !==============================================================
-!         CASE ( 10 )
-!
-!            ! 1-D grid box index for SUNCOS
-!            JLOOP = IJSURF(I,J)
-!
-!            ! Test if daylight
-!            IF ( SUNCOS(JLOOP) > 0d0 ) THEN
-!
-!               ! NO3 goes to zero during the day
-!               NO3_MOLEC_CM3 = 0d0
-!              
-!            ELSE
-!
-!               ! At night: Get NO3 [v/v] and convert it to [kg]
-!               NO3_MOLEC_CM3 = NO3(I,J,L) * AD(I,J,L) * ( 62d0/28.97d0 ) 
-!               
-!               ! Convert NO3 from [kg] to [molec/cm3]
-!               NO3_MOLEC_CM3 = NO3_MOLEC_CM3 * XNUMOL_NO3 / BOXVL(I,J,L)
-!                  
-!            ENDIF
-!            
-!            ! Make sure NO3 is not negative
-!            NO3_MOLEC_CM3  = MAX( NO3_MOLEC_CM3, 0d0 )
-!
-!         ! Error check
-!         CASE DEFAULT
-!            CALL ERROR_STOP( 'Invalid NSRCX!','GET_NO3 (sulfate_mod.f)')
-!
-!      END SELECT
-!------------------------------------------------------------------------------
-
       IF ( ITS_A_FULLCHEM_SIM() ) THEN
 
          !--------------------
@@ -3915,12 +4009,7 @@
          ! since NO3 has a very short lifetime. (rjp, bmy, 12/16/02) 
          !==============================================================
 
-
          ! 1-D grid box index for SUNCOS
-         !--------------------------------
-         ! Prior to 7/20/04:
-         !JLOOP = IJSURF(I,J)
-         !--------------------------------
          JLOOP = ( (J-1) * IIPAR ) + I
 
          ! Test if daylight
@@ -3974,17 +4063,9 @@
 !
       ! References to F90 modules
       USE COMODE_MOD,   ONLY : CSPEC, JLOP
-      !----------------------------------------
-      ! Prior to 7/20/04:
-      !USE ERROR_MOD,    ONLY : ERROR_STOP
-      !----------------------------------------
       USE TRACERID_MOD, ONLY : IDNO3
       
 #     include "CMN_SIZE"  ! Size parameters 
-!---------------------------------------------
-! Prior 7/20/04:
-!#     include "CMN"       ! NSRCX
-!---------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -3996,31 +4077,6 @@
       !=================================================================
       ! SET_NO3 begins here!
       !=================================================================
-!------------------------------------------------------------------------------
-! Prior to 7/20/04:
-! We don't have to test here, because the call to SET_NO3 only called
-! for a fullchem simulation (bmy, 7/20/04)
-!      SELECT CASE ( NSRCX )
-!
-!         !--------------------
-!         ! Coupled simulation
-!         !--------------------
-!         CASE ( 3 ) 
-!
-!            ! 1-D grid box index for CSPEC
-!            JLOOP = JLOP(I,J,L) 
-!
-!            ! Replace OH into CSPEC (troposphere only)
-!            IF ( JLOOP > 0 ) THEN
-!               CSPEC(JLOOP,IDNO3) = NO3
-!            ENDIF
-!
-!         ! Error check
-!         CASE DEFAULT
-!            CALL ERROR_STOP( 'Invalid NSRCX!','SET_NO3 (sulfate_mod.f)')
-!
-!      END SELECT
-!-----------------------------------------------------------------------------
 
       ! 1-D grid box index for CSPEC
       JLOOP = JLOP(I,J,L) 
@@ -4071,47 +4127,6 @@
       !=================================================================
       ! GET_O3 begins here!
       !=================================================================
-!------------------------------------------------------------------------------
-! Prior to 7/20/04:
-!      SELECT CASE ( NSRCX ) 
-!
-!         !--------------------
-!         ! Coupled simulation
-!         !--------------------
-!         CASE ( 3 )
-!
-!            ! JLOOP = SMVGEAR 1-D grid box index
-!            JLOOP = JLOP(I,J,L)
-!
-!            ! Get O3 from CSPEC [molec/cm3] and convert it to [v/v]
-!            ! O3 data will only be defined below the tropopause
-!            IF ( JLOOP  > 0 ) THEN
-!               O3_VV = ( CSPEC(JLOOP,IDO3) * 1d6       ) / 
-!     &                 ( AIRDEN(L,I,J)     * XNUMOLAIR )
-!            ELSE
-!               O3_VV = 0d0
-!            ENDIF
-!         
-!         !--------------------
-!         ! Offline simulation
-!         !--------------------
-!         CASE ( 10 )
-!
-!            ! Get O3 [v/v] for this gridbox & month
-!            ! O3 data will only be defined below the tropopause
-!            IF ( L <= LLTROP ) THEN
-!               O3_VV = O3m(I,J,L)
-!            ELSE
-!               O3_VV = 0d0
-!            ENDIF
-!
-!         ! Error check
-!         CASE DEFAULT
-!            CALL ERROR_STOP( 'Invalid NSRCX!', 'GET_OH (sulfate_mod.f)')
-!
-!      END SELECT
-!------------------------------------------------------------------------------
-
       IF ( ITS_A_FULLCHEM_SIM() ) THEN
 
          !--------------------
@@ -4175,10 +4190,6 @@
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
 #     include "CMN_SIZE"  ! Size parameters
-!---------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP" ! DATA_DIR
-!---------------------------------------------
 
       ! Local variables
       INTEGER              :: I, IOS, J, K, L
@@ -4264,10 +4275,6 @@
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
       
 #     include "CMN_SIZE"   ! Size parameters
-!----------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"  ! DATA_DIR
-!----------------------------------------------
  
       ! Local variables
       INTEGER              :: I, IOS, IUNIT, J, K, L, M
@@ -4366,7 +4373,7 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD      
       USE GRID_MOD,      ONLY : GET_XMID, GET_YMID, GET_AREA_CM2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TIME_MOD,      ONLY : GET_YEAR
@@ -4374,15 +4381,7 @@
       USE TRACERID_MOD,  ONLY : IDTSO2, IDTSO4
 
 #     include "CMN_SIZE"  ! Size parameters
-!----------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"       ! FSCALYR
-!----------------------------------------------
 #     include "CMN_O3"    ! XNUMOL, FSCALYR
-!----------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP" ! DATA_DIR
-!----------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH, NSEASON
@@ -4522,7 +4521,7 @@
 
       ! Return to calling program
       END SUBROUTINE READ_ANTHRO_SOx
-
+ 
 !------------------------------------------------------------------------------
 
       SUBROUTINE READ_OCEAN_DMS( THISMONTH )
@@ -4547,10 +4546,6 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"  ! Size parameters 
-!---------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP" ! DATA_DIR
-!---------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -4611,10 +4606,6 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"  ! Size parameters
-!--------------------------------------------- 
-! Prior to 7/20/04:
-!#     include "CMN_SETUP" ! DATA_DIR
-!--------------------------------------------- 
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -4681,11 +4672,6 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
       
 #     include "CMN_SIZE"  ! Size parameters
-!----------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"       ! MONTH
-!#     include "CMN_SETUP" ! DATA_DIR
-!----------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -4793,10 +4779,6 @@
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
 #     include "CMN_SIZE"  ! Size parameters
-!---------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP" ! DATA_DIR
-!---------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -4932,10 +4914,6 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"     ! Size parameters 
-!------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"    ! DATA_DIR
-!------------------------------------------------
 #     include "CMN_O3"       ! XNUMOL
 
       ! Arguments
@@ -4985,10 +4963,6 @@
          DO I = 1, IIPAR
             
             ! Convert to [kg SO2/box/s]
-!            ESO2_sh(I,J) = ( SHIPSO2(I,J) * 0.064d0 * AREA_CM2 ) / 
-!     &                     ( 6.022d23 )
- 
-            ! Convert to [kg SO2/box/s]
             ESO2_sh(I,J) = SHIPSO2(I,J) * AREA_CM2 / XNUMOL(IDTSO2)
               
          ENDDO 
@@ -5026,17 +5000,15 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"  ! Size parameters
-!---------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP" ! DATA_DIR
-!---------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
 
       ! Local variables
+      LOGICAL             :: WEEKDAY
+      INTEGER             :: I, J, DAY_NUM
       REAL*4              :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8              :: XTAU
+      REAL*8              :: AREA_CM2, EPA_NEI, XTAU
       REAL*8              :: NMDAY(12) = (/ 31d0, 28d0, 31d0, 30d0,
      &                                      31d0, 30d0, 31d0, 31d0, 
      &                                      30d0, 31d0, 30d0, 31d0 /)
@@ -5069,7 +5041,7 @@
       ! Convert from [kg N/box/mon] to [kg NH3/box/s]
       ENH3_an = ENH3_an * ( 17.d0 / 14.d0 ) 
      &        / ( NMDAY(THISMONTH) * 86400.d0 ) 
- 
+
       ! Return to calling program
       END SUBROUTINE READ_ANTHRO_NH3
 
@@ -5098,10 +5070,6 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"  ! Size parameters
-!-------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP" ! DATA_DIR
-!-------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -5185,11 +5153,6 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"  ! Size parameters
-!------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"       ! JYEAR
-!#     include "CMN_SETUP" ! DATA_DIR, LBBSEA
-!------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -5351,10 +5314,6 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
 
 #     include "CMN_SIZE"  ! Size parameters
-!--------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP" ! DATA_DIR
-!--------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: MONTH
@@ -5599,10 +5558,6 @@
       USE TRACER_MOD,    ONLY : ITS_AN_AEROSOL_SIM
 
 #     include "CMN_SIZE" ! Size parameters
-!---------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"      ! NSRCX
-!---------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE      :: IS_INIT = .FALSE.
@@ -5739,10 +5694,6 @@
       !=================================================================
       ! Only initialize the following for offline runs (NSRCX == 10)
       !=================================================================
-      !-----------------------------
-      ! Prior to 7/20/04:
-      !IF ( NSRCX == 10 ) THEN
-      !-----------------------------
       IF ( ITS_AN_AEROSOL_SIM() ) THEN
 
          ALLOCATE( PH2O2m( IIPAR, JJPAR, LLTROP ), STAT=AS )
@@ -5769,24 +5720,6 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'COSZM' )
          COSZM = 0d0
       ENDIF
-
-      !---------------------------------------------------------------------
-      ! Prior to 7/20/04:
-      ! Replace IJSURF with an analytic function (bmy, 7/20/04)
-      !!=================================================================
-      !! Initialize IJSURF, which indexes the 1-D SUNCOS array
-      !!=================================================================
-      !ALLOCATE( IJSURF( IIPAR, JJPAR ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'IJSURF' )
-      !
-      !IJLOOP = 0
-      !DO J = 1, JJPAR
-      !DO I = 1, IIPAR
-      !   IJLOOP      = IJLOOP +1 
-      !   IJSURF(I,J) = IJLOOP
-      !ENDDO
-      !ENDDO
-      !---------------------------------------------------------------------
 
       ! Set IS_INIT
       IS_INIT = .TRUE.
@@ -5834,10 +5767,6 @@
       IF ( ALLOCATED( IELVn     ) ) DEALLOCATE( IELVn     )
       IF ( ALLOCATED( IEV       ) ) DEALLOCATE( IEV       )
       IF ( ALLOCATED( IHGHT     ) ) DEALLOCATE( IHGHT     )
-      !---------------------------------------------------------------
-      ! Prior to 7/20/04:
-      !IF ( ALLOCATED( IJSURF    ) ) DEALLOCATE( IJSURF    )
-      !---------------------------------------------------------------
       IF ( ALLOCATED( INV       ) ) DEALLOCATE( INV       )
       IF ( ALLOCATED( JEV       ) ) DEALLOCATE( JEV       )
       IF ( ALLOCATED( JH2O2     ) ) DEALLOCATE( JH2O2     )

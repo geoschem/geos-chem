@@ -1,4 +1,4 @@
-! $Id: emissdr.f,v 1.6 2004/09/21 18:04:13 bmy Exp $
+! $Id: emissdr.f,v 1.7 2004/12/02 21:48:36 bmy Exp $
       SUBROUTINE EMISSDR
 !
 !******************************************************************************
@@ -76,10 +76,6 @@
 #     include "CMN_O3"       ! Emissions arrays, XNUMOL
 #     include "CMN_NOX"      ! GEMISNOX, GEMISNOX2
 #     include "CMN_MONOT"    ! Monoterpenes
-!--------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"    ! LMONOT (bmy, 11/4/99)
-!--------------------------------------------------------
 #     include "comode.h"     ! IVERT?
 
       ! Local variables
@@ -192,14 +188,9 @@
 
             ! Fossil Fuel emissions (kg / Grid-Box / Time-Step)
             ! NN = tracer number corresponding to emission species N
-            !------------------------
-            ! Prior to 7/20/04:
-            !IF ( LFOSSIL ) THEN
-            !------------------------
             IF ( LANTHRO ) THEN 
                DO N = 1, NEMANTHRO
                   NN = IDEMS(N)
-
                   IF ( NN /= 0 ) THEN
                      CALL EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
                   ENDIF

@@ -1,10 +1,10 @@
-! $Id: carbon_mod.f,v 1.7 2004/10/15 20:16:39 bmy Exp $
+! $Id: carbon_mod.f,v 1.8 2004/12/02 21:48:33 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
 !  Module CARBON_MOD contains arrays and routines for performing a 
 !  carbonaceous aerosol simulation.  Original code taken from Mian Chin's 
-!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 7/15/04)
+!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 12/1/04)
 !
 !  4 Aerosol species : Organic and Black carbon 
 !                    : hydrophilic (soluble) and hydrophobic of each
@@ -47,18 +47,22 @@
 !  (28) EF_BLKC          (REAL*8 ) : Emission factors for BC          [kg/kg]
 !  (29) EF_ORGC          (REAL*8 ) : Emission factors for OC          [kg/kg]
 !  (30) GEIA_ORVC        (REAL*8 ) : NVOC emissions from GEIA         [kg C ]
-!  (31) GPROD            (REAL*8 ) : Gas mass ratio                   
-!  (32) MHC              (INTEGER) : Number of VOC clasees
-!  (33) NDAYS            (INTEGER) : Array w/ number of days per month
-!  (34) NPROD            (INTEGER) : Number of products by oxdation
-!  (35) OCCONV           (REAL*8 ) : Hydrophilic OC from Hydrophobic  [kg C ]
-!  (36) ORVC_SESQ        (REAL*8 ) : SESQTERPENE concentration        [kg]
-!  (37) ORVC_TERP        (REAL*8 ) : MONOTERPENES concentration       [kg]
-!  (38) TCOSZ            (REAL*8 ) : Summing array for SUNCOS
-!  (39) TERP_ORGC        (REAL*8 ) : Lumped terpene emissions         [kg C ]
-!  (40) SMALLNUM         (REAL*8 ) : A small positive number
-!  (41) USE_MONTHLY_ANTH (LOGICAL) : Toggles monthly or annual anthro emissions
-!  (42) USE_MONTHLY_BIOB (LOGICAL) : Toggles monthly or annual biomass emiss.
+!  (31) I1_NA            (REAL*8 ) : Starting lon index for N. America region
+!  (32) I2_NA            (REAL*8 ) : Ending   lon index for N. America region
+!  (33) J1_NA            (REAL*8 ) : Starting lat index for N. America region
+!  (34) J2_NA            (REAL*8 ) : Ending   lat index for N. America region
+!  (35) GPROD            (REAL*8 ) : Gas mass ratio                   
+!  (36) MHC              (INTEGER) : Number of VOC clasees
+!  (37) NDAYS            (INTEGER) : Array w/ number of days per month
+!  (38) NPROD            (INTEGER) : Number of products by oxdation
+!  (39) OCCONV           (REAL*8 ) : Hydrophilic OC from Hydrophobic  [kg C ]
+!  (40) ORVC_SESQ        (REAL*8 ) : SESQTERPENE concentration        [kg]
+!  (41) ORVC_TERP        (REAL*8 ) : MONOTERPENES concentration       [kg]
+!  (42) TCOSZ            (REAL*8 ) : Summing array for SUNCOS
+!  (43) TERP_ORGC        (REAL*8 ) : Lumped terpene emissions         [kg C ]
+!  (44) SMALLNUM         (REAL*8 ) : A small positive number
+!  (45) USE_MONTHLY_ANTH (LOGICAL) : Toggles monthly or annual anthro emissions
+!  (46) USE_MONTHLY_BIOB (LOGICAL) : Toggles monthly or annual biomass emiss.
 !
 !  Module Routines:
 !  ============================================================================
@@ -103,7 +107,7 @@
 !  (7 ) global_no3_mod.f : Module containing routines to read 3-D NO3 field
 !  (8 ) global_oh_mod.f  : Module containing routines to read 3-D OH  field
 !  (9 ) global_o3_mod.f  : Module containing routines to read 3-D O3  field
-!  (10) grid_mod.f       : Module containing horizontal grid informatio
+!  (10) grid_mod.f       : Module containing horizontal grid information
 !  (11) logical_mod.f    : Module containing GEOS-CHEM logical switches
 !  (12) pressure_mod.f   : Module containing routines to compute P(I,J,L)
 !  (13) time_mod.f       : Module containing routines for computing time & date
@@ -115,6 +119,11 @@
 !  (1 ) Added code from the Caltech group for SOA chemistry (rjp, bmy, 7/15/04)
 !  (2 ) Now references "directory_mod.f", "logical_mod.f", "tracer_mod.f".
 !        (bmy, 7/20/04)
+!  (3 ) Now read data from carbon_200411/ subdir of DATA_DIR.  Also added
+!        some extra debug output.  Now read T. Bond yearly emissions as 
+!        default, but overwrite N. America with the monthly Cooke/RJP 
+!        emissions.  Added module variables I1_NA, I2_NA, J1_NA, J2_NA.
+!        (rjp, bmy, 12/1/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -137,7 +146,11 @@
       !=================================================================
 
       ! Scalars
-      LOGICAL             :: USE_MONTHLY_ANTH = .FALSE.
+      !---------------------------------------------------------
+      ! Prior to 12/1/04:
+      ! We don't need this flag anymore (bmy, 12/1/04)
+      !LOGICAL             :: USE_MONTHLY_ANTH = .FALSE.
+      !---------------------------------------------------------
       LOGICAL             :: USE_MONTHLY_BIOB = .TRUE.
 
       INTEGER, PARAMETER  :: MHC              = 5  
@@ -146,6 +159,8 @@
       INTEGER             :: DRYALPH, DRYLIMO, DRYALCO
       INTEGER             :: DRYSOG1, DRYSOG2, DRYSOG3
       INTEGER             :: DRYSOA1, DRYSOA2, DRYSOA3
+      INTEGER             :: I1_NA,   J1_NA
+      INTEGER             :: I2_NA,   J2_NA
       REAL*8,  PARAMETER  :: SMALLNUM         = 1d-20
 
       ! Arrays
@@ -1337,19 +1352,6 @@
       ENDDO                
       ENDDO   
 
-      !---------------------------------------------------------------
-      ! Prior to 7/8/04:
-      ! If mass is zero, we have a problem anyway.  Also this is
-      ! bad style since you shouldn't use an equality test for
-      ! floating-point numbers (bmy, 7/8/04)
-      !! not necessary since mass will not be 0.D0
-      !IF ( Mpoc .EQ. 0.D0 ) THEN
-      !   SOA_MASS = VALUE-1.D0
-      !ELSE
-      !   SOA_MASS = VALUE+(1.D5*Mpoc)/(1.D5*mass)-1.0D0
-      !ENDIF
-      !---------------------------------------------------------------
-
       ! Compute SOA mass
       SOA_MASS = VALUE + ( 1.D5 * MPOC ) / ( 1.D5 * MASS ) - 1.0D0
 
@@ -1391,6 +1393,9 @@
 !  the algol 60 procedure  zero  given in  richard brent, algorithms for
 !  minimization without derivatives, prentice - hall, inc. (1973).
 !
+!  NOTES:
+!  (1 ) Change dabs to ABS and dsign to SIGN, in order to avoid conflicts
+!        with intrinsic function names on the PGI compiler. (bmy, 12/2/04)
 !******************************************************************************
 !
       real*8, intent(in) :: ax,bx,tol
@@ -1401,7 +1406,11 @@
       !local variables
       real*8             :: MNEW
       real*8             :: a,b,c,d,e,eps,fa,fb,fc,tol1,xm,p,q,r,s
-      real*8             :: dabs,dsign
+      !---------------------------------------------------------------------
+      ! Prior to 12/2/04:
+      ! In F90 the dabs, dsign have been replaced w/ ABS & SIGN functions
+      !real*8             :: dabs,dsign
+      !---------------------------------------------------------------------
 c
 c  compute eps, the relative machine precision
 c
@@ -1423,7 +1432,11 @@ c
       fc = fa
       d = b - a
       e = d
-   30 if (dabs(fc) .ge. dabs(fb)) go to 40
+!-------------------------------------------------
+! Prior to 12/2/04:
+!   30 if (dabs(fc) .ge. dabs(fb)) go to 40
+!-------------------------------------------------
+   30 if (ABS(fc) .ge. ABS(fb)) go to 40
       a = b
       b = c
       c = a
@@ -1433,15 +1446,28 @@ c
 c
 c convergence test
 c
-   40 tol1 = 2.0d0*eps*dabs(b) + 0.5d0*tol
+!----------------------------------------------------------------
+! Prior to 12/2/04:
+!   40 tol1 = 2.0d0*eps*dabs(b) + 0.5d0*tol
+!----------------------------------------------------------------
+   40 tol1 = 2.0d0*eps*ABS(b) + 0.5d0*tol
       xm = 0.5D0*(c - b)
-      if (dabs(xm) .le. tol1) go to 90
+!----------------------------------------------------------------
+! Prior to 12/2/04:
+!      if (dabs(xm) .le. tol1) go to 90
+!----------------------------------------------------------------
+      if (ABS(xm) .le. tol1) go to 90
       if (fb .eq. 0.0d0) go to 90
 c
 c is bisection necessary
 c
-      if (dabs(e) .lt. tol1) go to 70
-      if (dabs(fa) .le. dabs(fb)) go to 70
+!----------------------------------------------------------------
+! Prior to 12/2/04:
+!      if (dabs(e) .lt. tol1) go to 70
+!      if (dabs(fa) .le. dabs(fb)) go to 70
+!----------------------------------------------------------------
+      if (ABS(e) .lt. tol1) go to 70
+      if (ABS(fa) .le. ABS(fb)) go to 70
 c
 c is quadratic interpolation possible
 c
@@ -1465,12 +1491,22 @@ c
 c adjust signs
 c
    60 if (p .gt. 0.0d0) q = -q
-      p = dabs(p)
+!----------------------------------------------------------------
+! Prior to 12/2/04:
+!      p = dabs(p)
+!----------------------------------------------------------------
+      p = ABS(p)
 c
 c is interpolation acceptable
 c
-      if ((2.0d0*p) .ge. (3.0d0*xm*q - dabs(tol1*q))) go to 70
-      if (p .ge. dabs(0.5d0*e*q)) go to 70
+!----------------------------------------------------------------
+! Prior to 12/2/04:
+!      if ((2.0d0*p) .ge. (3.0d0*xm*q - dabs(tol1*q))) go to 70
+!      if (p .ge. dabs(0.5d0*e*q)) go to 70
+!----------------------------------------------------------------
+      if ((2.0d0*p) .ge. (3.0d0*xm*q - ABS(tol1*q))) go to 70
+      if (p .ge. ABS(0.5d0*e*q)) go to 70
+
       e = d
       d = p/q
       go to 80
@@ -1484,11 +1520,20 @@ c complete step
 c
    80 a = b
       fa = fb
-      if (dabs(d) .gt. tol1) b = b + d
-      if (dabs(d) .le. tol1) b = b + dsign(tol1, xm)
+!-----------------------------------------------------------------
+! Prior to 12/2/04:
+!      if (dabs(d) .gt. tol1) b = b + d
+!      if (dabs(d) .le. tol1) b = b + dsign(tol1, xm)
+!-----------------------------------------------------------------
+      if (ABS(d) .gt. tol1) b = b + d
+      if (ABS(d) .le. tol1) b = b + SIGN(tol1, xm)
 
       fb = SOA_equil( B, MPOC, Aerosol, GAS, Kom ) 
-      if ((fb*(fc/dabs(fc))) .gt. 0.0d0) go to 20
+!-----------------------------------------------------------------
+!  Prior to 12/2/04:
+!      if ((fb*(fc/dabs(fc))) .gt. 0.0d0) go to 20
+!-----------------------------------------------------------------
+      if ((fb*(fc/ABS(fc))) .gt. 0.0d0) go to 20
       go to 30
 c
 c done
@@ -2331,13 +2376,19 @@ c
 !
 !******************************************************************************
 !  Subroutine EMISSCARBON is the interface between the GEOS-CHEM model
-!  and the CARBONACEOUS AEROSOL emissions (rjp, bmy, 1/24/02, 7/20/04)
+!  and the CARBONACEOUS AEROSOL emissions (rjp, bmy, 1/24/02, 12/1/04)
 !
 !  NOTES:
 !  (1 ) Now references LSOA from "CMN_SETUP".  Also now call OHNO3TIME since
 !        biogenic emissions also have a diurnal variation. (rjp, bmy, 7/15/04)
 !  (2 ) Now references LSOA and LPRT from "logical_mod.f".  Now references
 !        STT from "tracer_mod.f" (bmy, 7/20/04)
+!  (3 ) Bug fix: removed "," from FORMAT 111.  Also added extra DEBUG_MSG
+!        output after calling emissions routines. (bmy, 11/19/04)
+!  (4 ) Now always call ANTHRO_CARB_TBOND and ANTHRO_CARB_COOKE.  This will
+!        read the T. Bond et al [2004] emissions but overwrite the North
+!        America region with monthly-mean emissions from Cooke et al [1999] 
+!        with imposed seasonality from R. Park [2003].  (bmy, 12/1/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2375,19 +2426,47 @@ c
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          WRITE( 6, 100 )
 
-         ! Monthly or annual ANTHRO emissions?
-         IF ( USE_MONTHLY_ANTH ) THEN
-            WRITE( 6, 110 )
-            WRITE( 6, 111 )
-         ELSE
-            WRITE( 6, 120 )
-         ENDIF
+!------------------------------------------------------------------------------
+! Prior to 12/1/04:
+! Update informational output section below:
+!         ! Monthly or annual ANTHRO emissions?
+!         IF ( USE_MONTHLY_ANTH ) THEN
+!            WRITE( 6, 110 )
+!            WRITE( 6, 111 )
+!         ELSE
+!            WRITE( 6, 120 )
+!         ENDIF
+!
+!         ! Monthly or annual BIOMASS emissions?
+!         IF ( USE_MONTHLY_BIOB ) THEN
+!            WRITE( 6, 130 )
+!         ELSE
+!            WRITE( 6, 140 )
+!         ENDIF
+!         
+!         ! Write spacer
+!         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+!
+!         ! FORMAT strings
+! 100     FORMAT( 'C A R B O N   A E R O S O L   E M I S S I O N S'    )
+! 110     FORMAT( 'w/ ANTHROPOGENIC emissions from Cooke et al [1999]' )
+! 111     FORMAT( ' and seasonality following Park et al [2003]'       )
+! 120     FORMAT( 'w/ ANTHROPOGENIC emissions from Bond et al [2004]'  )
+! 130     FORMAT( 'w/ BIOMASS emissions from GEOS-CHEM inventory'      )
+! 140     FORMAT( 'w/ BIOMASS emissions from Bond et al [2004]'        )
+!------------------------------------------------------------------------------
+
+         ! Echo info about ANTHRO emissionls
+         WRITE( 6, 110 )
+         WRITE( 6, 111 )
+         WRITE( 6, 112 )
+         WRITE( 6, 113 )
 
          ! Monthly or annual BIOMASS emissions?
          IF ( USE_MONTHLY_BIOB ) THEN
-            WRITE( 6, 130 )
+            WRITE( 6, 120 )
          ELSE
-            WRITE( 6, 140 )
+            WRITE( 6, 130 )
          ENDIF
          
          ! Write spacer
@@ -2395,20 +2474,36 @@ c
 
          ! FORMAT strings
  100     FORMAT( 'C A R B O N   A E R O S O L   E M I S S I O N S'    )
- 110     FORMAT( 'w/ ANTHROPOGENIC emissions from Cooke et al [1999]' )
- 111     FORMAT( ' and seasonality following Park et al [2003]',      )
- 120     FORMAT( 'w/ ANTHROPOGENIC emissions from Bond et al [2004]'  )
- 130     FORMAT( 'w/ BIOMASS emissions from GEOS-CHEM inventory'      )
- 140     FORMAT( 'w/ BIOMASS emissions from Bond et al [2004]'        )
+ 110     FORMAT( 'w/ ANTHROPOGENIC emissions from Bond et al [2004]'  )
+ 111     FORMAT( '   overwritten with North American emissions from'  )
+ 112     FORMAT( '   Cooke et al [1999] having imposed seasonality'   )
+ 113     FORMAT( '   following Park et al [2003]'                     )
+ 120     FORMAT( 'w/ BIOMASS emissions from GEOS-CHEM inventory'      )
+ 130     FORMAT( 'w/ BIOMASS emissions from Bond et al [2004]'        )
+
 
          ! Initialize arrays
          CALL INIT_CARBON       
+         
+         !-------------------------------------------------------------------
+         ! Prior to 12/1/04:
+         ! We always read TBOND emissions now (bmy, 12/1/04)
+         !! Read annual mean anthro emissions
+         !IF ( .not. USE_MONTHLY_ANTH ) THEN
+         !   CALL ANTHRO_CARB_TBOND
+         !   IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_TBOND' )
+         !ENDIF
+         !-------------------------------------------------------------------
 
-         ! Read annual mean anthro emissions
-         IF ( .not. USE_MONTHLY_ANTH ) CALL ANTHRO_CARB_TBOND
+         ! Read annual mean anthro emissions from T. Bond [2004]
+         CALL ANTHRO_CARB_TBOND
+         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_TBOND' )
 
-         ! Read annual mean biomass emissions
-         IF ( .not. USE_MONTHLY_BIOB ) CALL BIOMASS_CARB_TBOND
+         ! Read annual mean biomass emissions if necessary
+         IF ( .not. USE_MONTHLY_BIOB ) THEN
+            CALL BIOMASS_CARB_TBOND
+            IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a B_CRB_TBOND' )
+         ENDIF
 
          ! Reset flag
          FIRST = .FALSE.
@@ -2429,18 +2524,36 @@ c
          ! Current month
          MONTH = GET_MONTH()
 
-         ! Read monthly mean anthro emissions
-         IF ( USE_MONTHLY_ANTH ) CALL ANTHRO_CARB_COOKE( MONTH )
+         !-------------------------------------------------------------------
+         ! Prior to 12/1/04:
+         ! We now always call ANTHRO_CARB_COOKE to get the North American
+         ! emissions from Cooke/RJP (bmy, 12/1/04)
+         !! Read monthly mean anthro emissions
+         !IF ( USE_MONTHLY_ANTH ) THEN
+         !   CALL ANTHRO_CARB_COOKE( MONTH )
+         !   IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_COOKE' )
+         !ENDIF
+         !-------------------------------------------------------------------
+
+         ! Overwrite the T. Bond [2004] emissions over North America
+         ! with monthly mean anthro emissions from Cooke et al [1999] 
+         ! having imposed seasonality by R. Park [2003]
+         CALL ANTHRO_CARB_COOKE( MONTH )
+         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_COOKE' )
 
          ! Read monthly mean biomass emissions
-         IF ( USE_MONTHLY_BIOB ) CALL BIOMASS_CARB_GEOS( MONTH )
+         IF ( USE_MONTHLY_BIOB ) THEN
+            CALL BIOMASS_CARB_GEOS( MONTH )
+            IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a B_CRB_COOKE' )
+         ENDIF
+
       ENDIF
 
       !--------------------------
       ! Compute biogenic OC
       !--------------------------
       CALL BIOGENIC_OC
-      IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARBON: after data' )
+      IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: after BIOGENIC_OC' )
 
       !=================================================================
       ! Sum up BC and OC sources. 
@@ -2500,7 +2613,7 @@ c
 
       ! Sum up all carbon tracers throughout the boundary layer
       CALL EMITHIGH( BCSRC, OCSRC )
-      IF ( LPRT ) CALL DEBUG_MSG( '### EMISCARBON: after EMITHIGH' )
+      IF ( LPRT ) CALL DEBUG_MSG( '### EMISCARB: after EMITHIGH' )
 
       !=================================================================
       ! ND07 diagnostic: Carbon aerosol emissions [kg/timestep]
@@ -2562,7 +2675,7 @@ c
 !$OMP END PARALLEL DO
 
          !### Debug
-         IF ( LPRT ) CALL DEBUG_MSG( '### EMISCARBON: after ND07' )
+         IF ( LPRT ) CALL DEBUG_MSG( '### EMISCARB: after ND07' )
       ENDIF
 
       ! Return to calling program
@@ -2574,7 +2687,7 @@ c
 !
 !******************************************************************************
 !  Subroutine BIOGENIC_OC emits secondary organic carbon aerosols.
-!  Also modified for SOA tracers. (rjp, bmy, 4/1/04, 7/20/04)
+!  Also modified for SOA tracers. (rjp, bmy, 4/1/04, 11/15/04)
 !
 !  Terpene emissions as a source of OC:  TERP.GEIA90.a1.2x2.5.*
 !  Assuming 10% yield of OC(hydrophilic) from terpene emission.
@@ -2583,6 +2696,7 @@ c
 !  (1 ) Now separate computation for FULLCHEM and OFFLINE runs (bmy, 7/8/04)
 !  (2 ) Now references DATA_DIR from "directory_mod.f".  Now references LSOA
 !        from "logical_mod.f". (bmy, 7/20/04)
+!  (3 ) Now reads data from "carbon_200411" subdir of DATA_DIR (bmy, 11/15/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2681,7 +2795,12 @@ c
 
             ! Filename for carbon aerosol from fossil fuel use
             FILENAME = TRIM( DATA_DIR ) //
-     &                 'carbon_200404/NVOC.geos.' // GET_RES_EXT()
+!-----------------------------------------------------------------------------
+! Prior to 11/15/04:
+! Now read data from carbon_200411 directory (bmy, 11/15/04)
+!     &                 'carbon_200404/NVOC.geos.' // GET_RES_EXT()
+!-----------------------------------------------------------------------------
+     &                 'carbon_200411/NVOC.geos.' // GET_RES_EXT()
 
             ! Echo info
             WRITE( 6, 100 ) TRIM( FILENAME )
@@ -2796,7 +2915,7 @@ c
 !  Subroutine ANTHRO_CARB_TBOND computes annual mean anthropogenic and 
 !  biofuel emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC 
 !  CARBON.  It also separates these into HYDROPHILIC and HYDROPHOBIC 
-!  fractions. (rjp, bmy, 4/2/04, 7/20/04)
+!  fractions. (rjp, bmy, 4/2/04, 11/15/04)
 !
 !  Emissions data comes from the Bond et al [2004] inventory and has units
 !  of [kg C/yr].  This will be converted to [kg C/timestep] below.
@@ -2806,6 +2925,7 @@ c
 !
 !  NOTES:
 !  (1 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  (2 ) Now read data from "carbon_200411" subdir of DATA_DIR (bmy, 11/15/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2847,7 +2967,11 @@ c
 
       ! Filename for carbon aerosol from fossil fuel use
       FILENAME = TRIM( DATA_DIR )                        // 
-     &           'carbon_200404/BCOC_TBond_fossil.geos.' // 
+!----------------------------------------------------------------------------
+! Prior to 11/15/04:
+!     &           'carbon_200404/BCOC_TBond_fossil.geos.' // 
+!----------------------------------------------------------------------------
+     &           'carbon_200411/BCOC_TBond_fossil.geos.' // 
      &           GET_RES_EXT()
 
       ! Echo info
@@ -2914,7 +3038,11 @@ c
 
       ! Filename
       FILENAME = TRIM( DATA_DIR )                         // 
-     &           'carbon_200404/BCOC_TBond_biofuel.geos.' // 
+!-----------------------------------------------------------------------------
+! Prior to 11/15/04:
+!     &           'carbon_200404/BCOC_TBond_biofuel.geos.' // 
+!-----------------------------------------------------------------------------
+     &           'carbon_200411/BCOC_TBond_biofuel.geos.' // 
      &           GET_RES_EXT()
 
       ! Echo info
@@ -2983,7 +3111,7 @@ c
 !  Subroutine ANTHRO_CARB_COOKE computes monthly mean anthropogenic and 
 !  biofuel emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC 
 !  CARBON.  It also separates these into HYDROPHILIC and HYDROPHOBIC 
-!  fractions. (rjp, bmy, 4/2/04, 7/20/04)
+!  fractions. (rjp, bmy, 4/2/04, 12/1/04)
 !
 !  Emissions data comes from the Cooke et al. [1999] inventory and 
 !  seasonality imposed by Park et al. [2003].  The data has units of 
@@ -2994,6 +3122,9 @@ c
 !
 !  NOTES:
 !  (1 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  (2 ) Now read data from "carbon_200411" subdir of DATA_DIR.  Now only apply
+!        Cooke/RJP emissions over the North American region (i.e. the region
+!        bounded by indices I1_NA, J1_NA, I2_NA, J2_NA).  (rjp, bmy, 12/1/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3024,6 +3155,10 @@ c
       ! ANTHRO_CARB_COOKE begins here!
       !=================================================================
 
+      ! Return if we are running on a nested grid (e.g. China) which
+      ! does not cover the North America region (rjp, bmy, 12/1/04)
+      IF ( I1_NA + J1_NA + I2_NA + J2_NA == 0 ) RETURN
+
       ! Number of emission timesteps per month
       STEPS_PER_MON = ( ( 1440 * NDAYS( THISMONTH ) ) / GET_TS_EMIS() )
       
@@ -3034,11 +3169,19 @@ c
       ! Read BLACK CARBON (aka ELEMENTAL CARBON) emission from 
       ! anthropogenic sources as tracer #34 in [kg C/month].  
       ! Then convert to [kg C/timestep] and store in ANTH_BLKC.
+      !
+      ! The ANTH_BLKC array is initialized with the Bond et al [2004]
+      ! emissions in READ_ANTHRO_TBOND on the very first timestep.
+      ! Overwrite the contents of ANTH_BLKC over North America below.
       !=================================================================
 
       ! Filename
       FILENAME = TRIM( DATA_DIR )                    //
-     &           'carbon_200404/BCOC_anthsrce.geos.' // 
+!------------------------------------------------------------------------------
+! Prior to 11/15/04:
+!     &           'carbon_200404/BCOC_anthsrce.geos.' // 
+!------------------------------------------------------------------------------
+     &           'carbon_200411/BCOC_anthsrce.geos.' // 
      &            GET_RES_EXT()
        
       ! Echo info
@@ -3053,11 +3196,16 @@ c
       ! Cast to REAL*8 and resize
       CALL TRANSFER_2D( ARRAY(:,:,1), FD2D )
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+!-----------------------------
+! Prior to 12/1/04:
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J )
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!-----------------------------
+      DO J = J1_NA, J2_NA
+      DO I = I1_NA, I2_NA
 
          ! Hydrophilic BLACK CARBON from anthropogenics [kg C/timestep]
          ANTH_BLKC(I,J,1) =          FHB   * FD2D(I,J) / STEPS_PER_MON
@@ -3066,12 +3214,19 @@ c
          ANTH_BLKC(I,J,2) = ( 1.d0 - FHB ) * FD2D(I,J) / STEPS_PER_MON
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
+!-----------------------------
+! Prior to 12/1/04:
+!!$OMP END PARALLEL DO
+!-----------------------------
 
       !=================================================================
       ! Read ORGANIC CARBON from anthropogenic sources as tracer #35
       ! in [kg C/month].  Then Convert to [kg C/timestep] and store in 
       ! ANTH_ORGC.
+      ! 
+      ! The ANTH_ORGC array is initialized with the Bond et al [2004]
+      ! emissions in READ_ANTHRO_TBOND on the very first timestep.
+      ! Overwrite the contents of ANTH_ORGC over North America below.
       !=================================================================
       CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 35, 
      &                 XTAU,      IGLOB,     JGLOB,
@@ -3080,11 +3235,16 @@ c
       ! Cast to REAL*8 and resize
       CALL TRANSFER_2D( ARRAY(:,:,1), FD2D )
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+!-----------------------------
+! Prior to 12/1/04:
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J )
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!-----------------------------
+      DO J = J1_NA, J2_NA
+      DO I = I1_NA, I2_NA
          
          ! Hydrophilic ORGANIC CARBON from anthropogenics [kg C/timestep]
          ANTH_ORGC(I,J,1) = FHO * FD2D(I,J) / STEPS_PER_MON
@@ -3093,7 +3253,10 @@ c
          ANTH_ORGC(I,J,2) = ( 1.d0 - FHO ) * FD2D(I,J) / STEPS_PER_MON
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
+!-----------------------------
+! Prior to 12/1/04:
+!!$OMP END PARALLEL DO
+!-----------------------------
 
       !=================================================================
       ! Read BLACK CARBON (aka ELEMENTAL CARBON) emission from biofuel 
@@ -3102,17 +3265,25 @@ c
       !
       ! Seasonality has been imposed using the heating degree approach 
       ! for year 1998 [Park et al., 2003].
+      !
+      ! The BIOF_BLKC array is initialized with the Bond et al [2004]
+      ! emissions in READ_ANTHRO_TBOND on the very first timestep.
+      ! Overwrite the contents of BIOF_BLKC over North America below.
       !=================================================================
 
       ! Filename
       FILENAME = TRIM( DATA_DIR )                   //
-     &           'carbon_200404/BCOC_biofuel.geos.' // 
+!-----------------------------------------------------------------------------
+! Prior to 11/15/04:
+!     &           'carbon_200404/BCOC_biofuel.geos.' // 
+!-----------------------------------------------------------------------------
+     &           'carbon_200411/BCOC_biofuel.geos.' // 
      &           GET_RES_EXT()
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
 
-      ! Read data
+      ! Read data7
       CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 34, 
      &                 XTAU,      IGLOB,     JGLOB,
      &                 1,         ARRAY,     QUIET=.TRUE. ) 
@@ -3120,11 +3291,16 @@ c
       ! Cast to REAL*8 and resize
       CALL TRANSFER_2D( ARRAY(:,:,1), FD2D )
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+!-----------------------------
+! Prior to 12/1/04:
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J )
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!-----------------------------
+      DO J = J1_NA, J2_NA
+      DO I = I1_NA, I2_NA
          
          ! Hydrophilic BLACK CARBON from biofuels [kg C/timestep]
          BIOF_BLKC(I,J,1) =          FHB   * FD2D(I,J) / STEPS_PER_MON
@@ -3134,7 +3310,10 @@ c
 
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
+!-----------------------------
+! Prior to 12/1/04:
+!!$OMP END PARALLEL DO
+!-----------------------------
 
       !=================================================================
       ! Read ORGANIC CARBON emission from biofuel combustion over 
@@ -3143,6 +3322,10 @@ c
       !
       ! Seasonality has been imposed using the heating degree approach 
       ! for year 1998 [Park et al., 2003].
+      !
+      ! The BIOF_ORGC array is initialized with the Bond et al [2004]
+      ! emissions in READ_ANTHRO_TBOND on the very first timestep.
+      ! Overwrite the contents of BIOF_ORGC over North America below.
       !=================================================================
       CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 35, 
      &                 XTAU,      IGLOB,     JGLOB,     
@@ -3151,11 +3334,16 @@ c
       ! Cast to REAL*8 and resize
       CALL TRANSFER_2D( ARRAY(:,:,1), FD2D )
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+!-----------------------------
+! Prior to 12/1/04:
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J )
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!-----------------------------
+      DO J = J1_NA, J2_NA
+      DO I = I1_NA, I2_NA
 
          ! Hydrophilic ORGANIC CARBON from biofuels [kg C/timestep]
          BIOF_ORGC(I,J,1) =          FHO   * FD2D(I,J) / STEPS_PER_MON
@@ -3165,7 +3353,10 @@ c
 
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
+!-----------------------------
+! Prior to 12/1/04:
+!!$OMP END PARALLEL DO
+!-----------------------------
 
       ! Return to calling program
       END SUBROUTINE ANTHRO_CARB_COOKE
@@ -3178,7 +3369,7 @@ c
 !  Subroutine BIOMASS_CARB_TBOND computes annual mean biomass burning 
 !  emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC CARBON.  
 !  It also separates these into HYDROPHILIC and HYDROPHOBIC fractions. 
-!  (rjp, bmy, 4/2/04, 7/20/04)
+!  (rjp, bmy, 4/2/04, 11/15/04)
 !
 !  Emissions data comes from the Bond et al [2004] inventory and has units
 !  of [kg C/yr].  This will be converted to [kg C/timestep] below.
@@ -3188,6 +3379,7 @@ c
 !
 !  NOTES:
 !  (1 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  (2 ) Now read data from "carbon_200411" subdir of DATA_DIR (bmy, 11/15/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3218,7 +3410,11 @@ c
 
       ! Filename containing biomass emissions
       FILENAME = TRIM( DATA_DIR )                         //
-     &           'carbon_200404/BCOC_TBond_biomass.geos.' // 
+!------------------------------------------------------------------------------
+! Prior to 11/15/04:
+!     &           'carbon_200404/BCOC_TBond_biomass.geos.' // 
+!------------------------------------------------------------------------------
+     &           'carbon_200411/BCOC_TBond_biomass.geos.' // 
      &            GET_RES_EXT()
 
       ! Get TAU0 value to index the punch file
@@ -3306,6 +3502,7 @@ c
 !  NOTES:
 !  (1 ) Now references DATA_DIR from "directory_mod.f".  Also removed CMN,
 !        it's obsolete. (bmy, 7/20/04)
+!  (2 ) Now read data from "carbon_200411" subdir of DATA_DIR (bmy, 11/15/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3369,7 +3566,11 @@ c
             ! are from Andreae and Merlet [2001].
             !===========================================================
             FILENAME = TRIM( DATA_DIR )               //
-     &                'carbon_200404/emis_fac.EC-OC.' // GET_RES_EXT()
+!-----------------------------------------------------------------------------
+! Prior to 11/15/04:
+!     &                'carbon_200404/emis_fac.EC-OC.' // GET_RES_EXT()
+!-----------------------------------------------------------------------------
+     &                'carbon_200411/emis_fac.EC-OC.' // GET_RES_EXT()
 
             ! TAU value for reading from the bpch files
             XTAU = GET_TAU0( 1, 1, 1985 )
@@ -3823,10 +4024,6 @@ c
       USE TRACERID_MOD,  ONLY : IDOH
 
 #     include "CMN_SIZE"  ! Size parameters
-!------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"       ! NSRCX
-!------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -3838,60 +4035,6 @@ c
       !=================================================================
       ! GET_OH begins here!
       !=================================================================
-!----------------------------------------------------------------------------
-! Prior to 7/20/04:
-! Now use inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
-!      SELECT CASE ( NSRCX ) 
-!      
-!         !---------------------
-!         ! Coupled simulation
-!         !---------------------
-!         CASE ( 3 )
-!
-!            ! JLOOP = SMVGEAR 1-D grid box index
-!            JLOOP = JLOP(I,J,L)
-!
-!            ! Take OH from the SMVGEAR array CSPEC
-!            ! OH is defined only in the troposphere
-!            IF ( JLOOP > 0 ) THEN
-!               OH_MOLEC_CM3 = CSPEC(JLOOP,IDOH)
-!            ELSE
-!               OH_MOLEC_CM3 = 0d0
-!            ENDIF
-!
-!         !---------------------
-!         ! Offline simulation
-!         !---------------------
-!         CASE ( 10 )
-!
-!            ! 1-D grid box index for SUNCOS
-!            JLOOP = ( (J-1) * IIPAR ) + I
-!
-!            ! Test for sunlight...
-!            IF ( SUNCOS(JLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
-!
-!               ! Impose a diurnal variation on OH during the day
-!               OH_MOLEC_CM3 = OH(I,J,L)                      *           
-!     &                        ( SUNCOS(JLOOP) / TCOSZ(I,J) ) *
-!     &                        ( 1440d0        / GET_TS_CHEM() )
-!
-!               ! Make sure OH is not negative
-!               OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0d0 )
-!               
-!            ELSE
-!
-!               ! At night, OH goes to zero
-!               OH_MOLEC_CM3 = 0d0
-!
-!            ENDIF
-!
-!         ! Error check
-!         CASE DEFAULT
-!            CALL ERROR_STOP( 'Invalid NSRCX!', 'GET_OH (sulfate_mod.f)')
-!
-!      END SELECT
-!----------------------------------------------------------------------------
-
       IF ( ITS_A_FULLCHEM_SIM() ) THEN
 
          !---------------------
@@ -3993,77 +4136,6 @@ c
       !=================================================================
       ! GET_NO3 begins here!
       !=================================================================
-!-----------------------------------------------------------------------------
-!      SELECT CASE ( NSRCX )
-!
-!         ! Coupled chemistry/aerosol simulation
-!         CASE ( 3 )
-!            
-!            ! 1-D SMVGEAR grid box index
-!            JLOOP = JLOP(I,J,L)
-!
-!            ! Take NO3 from the SMVGEAR array CSPEC
-!            ! NO3 is defined only in the troposphere
-!            IF ( JLOOP > 0 ) THEN
-!               NO3_MOLEC_CM3 = CSPEC(JLOOP,IDNO3)
-!            ELSE
-!               NO3_MOLEC_CM3 = 0d0
-!            ENDIF
-!
-!         !==============================================================  
-!         ! Offline simulation: Read monthly mean GEOS-CHEM NO3 fields
-!         ! in [v/v].  Convert these to [molec/cm3] as follows:
-!         !
-!         !  vol NO3   moles NO3    kg air     kg NO3/mole NO3
-!         !  ------- = --------- * -------- * ---------------- =  kg NO3 
-!         !  vol air   moles air      1        kg air/mole air
-!         !
-!         ! And then we convert [kg NO3] to [molec NO3/cm3] by:
-!         !  
-!         !  kg NO3   molec NO3   mole NO3     1     molec NO3
-!         !  ------ * --------- * -------- * ----- = --------- 
-!         !     1     mole NO3     kg NO3     cm3       cm3
-!         !          ^                    ^
-!         !          |____________________|  
-!         !            this is XNUMOL_NO3
-!         !
-!         ! If at nighttime, use the monthly mean NO3 concentration from
-!         ! the NO3 array of "global_no3_mod.f".  If during the daytime,
-!         ! set the NO3 concentration to zero.  We don't have to relax to 
-!         ! the monthly mean concentration every 3 hours (as for HNO3) 
-!         ! since NO3 has a very short lifetime. (rjp, bmy, 12/16/02) 
-!         !==============================================================
-!         CASE ( 10 )
-!
-!            ! 1-D grid box index for SUNCOS
-!            JLOOP = ( (J-1) * IIPAR ) + I
-!
-!            ! Test if daylight
-!            IF ( SUNCOS(JLOOP) > 0d0 ) THEN
-!
-!               ! NO3 goes to zero during the day
-!               NO3_MOLEC_CM3 = 0d0
-!              
-!            ELSE
-!
-!               ! At night: Get NO3 [v/v] and convert it to [kg]
-!               NO3_MOLEC_CM3 = NO3(I,J,L) * AD(I,J,L) * ( 62d0/28.97d0 ) 
-!               
-!               ! Convert NO3 from [kg] to [molec/cm3]
-!               NO3_MOLEC_CM3 = NO3_MOLEC_CM3 * XNUMOL_NO3 / BOXVL(I,J,L)
-!                  
-!            ENDIF
-!            
-!            ! Make sure NO3 is not negative
-!            NO3_MOLEC_CM3  = MAX( NO3_MOLEC_CM3, 0d0 )
-!
-!         ! Error check
-!         CASE DEFAULT
-!            CALL ERROR_STOP( 'Invalid NSRCX!','GET_NO3 (sulfate_mod.f)')
-!
-!      END SELECT
-!-----------------------------------------------------------------------------
-
       IF ( ITS_A_FULLCHEM_SIM() ) THEN
 
          !----------------------
@@ -4168,10 +4240,6 @@ c
       USE TRACERID_MOD,  ONLY : IDO3
 
 #     include "CMN_SIZE"  ! Size parameters
-!-----------------------------------------------------
-! Prior to 7/20/04
-!#     include "CMN"       ! NSRCX, LPAUSE
-!-----------------------------------------------------
 #     include "CMN_O3"    ! XNUMOLAIR
 
       ! Arguments
@@ -4188,69 +4256,6 @@ c
       !=================================================================
       ! GET_O3 begins here!
       !=================================================================
-!----------------------------------------------------------------------------
-! Prior to 7/20/04:
-!      SELECT CASE ( NSRCX ) 
-!
-!         !--------------------
-!         ! Coupled simulation
-!         !--------------------
-!         CASE ( 3 )
-!
-!            ! JLOOP = SMVGEAR 1-D grid box index
-!            JLOOP = JLOP(I,J,L)
-!
-!            ! Get O3 from CSPEC [molec/cm3]
-!            ! O3 data will only be defined below the tropopause
-!            IF ( JLOOP  > 0 ) THEN
-!               O3_MOLEC_CM3 = CSPEC(JLOOP,IDO3)
-!            ELSE
-!               O3_MOLEC_CM3 = 0d0
-!            ENDIF
-!         
-!         !--------------------
-!         ! Offline simulation
-!         !--------------------
-!         CASE ( 10 )
-!
-!            ! Get O3 [v/v] for this gridbox & month
-!            ! O3 data will only be defined below the tropopause
-!            IF ( L <= LLTROP ) THEN
-!
-!               ! Get O3 [v/v] and convert it to [kg]
-!               O3_MOLEC_CM3 = O3(I,J,L) * AD(I,J,L) * ( 48d0/28.97d0 )
-!               
-!               ! Convert O3 from [kg] to [molec/cm3]
-!               O3_MOLEC_CM3 = O3_MOLEC_CM3 * XNUMOL_O3 / BOXVL(I,J,L)
-!            ELSE
-!               O3_MOLEC_CM3 = 0d0
-!            ENDIF
-!
-!            ! 1-D grid box index for SUNCOS
-!            JLOOP = ( (J-1) * IIPAR ) + I
-!
-!            ! Test for sunlight...
-!            IF ( SUNCOS(JLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
-!
-!               ! Impose a diurnal variation on OH during the day
-!               O3_MOLEC_CM3 = O3_MOLEC_CM3                     *        
-!     &                        ( SUNCOS(JLOOP) / TCOSZ(I,J) )   *
-!     &                        ( 1440d0        / GET_TS_CHEM() )
-!
-!               ! Make sure OH is not negative
-!               O3_MOLEC_CM3 = MAX( O3_MOLEC_CM3, 0d0 )
-!
-!            ELSE
-!               O3_MOLEC_CM3 = 0d0
-!            ENDIF
-!
-!         ! Error check
-!         CASE DEFAULT
-!            CALL ERROR_STOP( 'Invalid NSRCX!', 'GET_O3 (sulfate_mod.f)')
-!
-!      END SELECT
-!----------------------------------------------------------------------------
-
       IF ( ITS_A_FULLCHEM_SIM() ) THEN
 
          !--------------------
@@ -4323,27 +4328,27 @@ c
 !
 !******************************************************************************
 !  Subroutine INIT_CARBON initializes all module arrays. 
-!  (rjp, bmy, 4/1/04, 7/20/04)
+!  (rjp, bmy, 4/1/04, 12/1/04)
 !
 !  NOTES:
 !  (1 ) Also added arrays for secondary organic aerosols (rjp, bmy, 7/8/04)
 !  (2 ) Remove reference to CMN, it's obsolete (bmy, 7/20/04)
+!  (3 ) Now reference LSOA from "logical_mod.f" not CMN_SETUP.  Now call
+!        GET_BOUNDING_BOX from "grid_mod.f" to compute the indices I1_NA,
+!        I2_NA, J1_NA, J2_NA which define the N. America region. (bmy, 12/1/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,  ONLY : ALLOC_ERR
-      USE TRACER_MOD, ONLY : 
+      USE ERROR_MOD,   ONLY : ALLOC_ERR, ERROR_STOP
+      USE GRID_MOD,    ONLY : GET_BOUNDING_BOX
+      USE LOGICAL_MOD, ONLY : LSOA
 
 #     include "CMN_SIZE"  ! Size parameters
-!-------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"       ! NSRCX
-!-------------------------------------------------
-#     include "CMN_SETUP" ! LSOA
 
       ! Local variables
       LOGICAL, SAVE :: IS_INIT = .FALSE.
-      INTEGER       :: AS, I, J
+      INTEGER       :: AS, INDICES(4)
+      REAL*8        :: COORDS(4)
 
       !=================================================================
       ! INIT_CARBON begins here!
@@ -4459,7 +4464,47 @@ c
 
       ENDIF
 
-      ! Reset IS_INIT
+      !=================================================================
+      ! Compute indices which define the N. America region so that we 
+      ! can overwrite T. Bond emissions w/ Cooke/RJP emissions 
+      !=================================================================
+
+#if   defined( GRID1x1 ) && defined( NESTED_NA )
+
+      ! For 1x1 N. America nested grid: set indices to grid extent
+      I1_NA = 1
+      J1_NA = 1
+      I2_NA = IIPAR
+      J2_NA = JJPAR
+
+#elif defined( GRID1x1 ) && defined( NESTED_CH )
+
+      ! For 1x1 China nested grid: we don't cover N. America region
+      ! Setting these to zero will turn off Cooke/RJP emissions
+      I1_NA = 0
+      J1_NA = 0
+      I2_NA = 0
+      J2_NA = 0
+
+#else
+
+      ! Definition of the N. American bounding box
+      ! with LL corner (10N,165W) and UR corner (90N,40W)
+      !            Lon_LL  Lat_LL  Lon_UR  Lat_UR
+      COORDS = (/ -165d0,  10d0,  -40d0,   90d0  /)
+      
+      ! Get the indices corresponding to the lon/lat values in COORDS
+      CALL GET_BOUNDING_BOX( COORDS, INDICES )
+
+      ! Copy values from INDEX array to scalars
+      I1_NA = INDICES(1)
+      J1_NA = INDICES(2)
+      I2_NA = INDICES(3)
+      J2_NA = INDICES(4)
+
+#endif
+              
+      ! Reset IS_INIT before exiting
       IS_INIT = .TRUE.
 
       ! Return to calling program

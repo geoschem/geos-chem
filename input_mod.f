@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.6 2004/11/01 16:32:03 bmy Exp $
+! $Id: input_mod.f,v 1.7 2004/12/02 21:48:38 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS_CHEM input file at the start of the run
 !  and passes the information to several other GEOS-CHEM F90 modules.
-!  (bmy, 7/20/04, 10/29/04)
+!  (bmy, 7/20/04, 11/19/04)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -845,18 +845,22 @@
 !
 !******************************************************************************
 !  Subroutine READ_AEROSOL_MENU reads the AEROSOL MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 11/19/04)
 !
 !  NOTES:
 !  (1 ) Now reference LSOA (bmy, 9/28/04)
+!  (2 ) Now stop run if LSOA=T and SOA tracers are undefined (bmy, 11/19/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE LOGICAL_MOD, ONLY : LSULF, LCARB, LSOA, LDUST, LDEAD, LSSALT
-      USE TRACER_MOD,  ONLY : N_TRACERS, 
-     &                        SALA_REDGE_um,      SALC_REDGE_um,
-     &                        ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
+      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE LOGICAL_MOD,  ONLY : LSULF, LCARB, LSOA, LDUST, LDEAD, LSSALT
+      USE TRACER_MOD,   ONLY : N_TRACERS, 
+     &                         SALA_REDGE_um,      SALC_REDGE_um,
+     &                         ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
+      USE TRACERID_MOD, ONLY : IDTALPH, IDTLIMO, IDTALCO,
+     &                         IDTSOG1, IDTSOG2, IDTSOG3,
+     &                         IDTSOA1, IDTSOA2, IDTSOA3
 
       ! Local variables
       INTEGER            :: N, T
@@ -935,6 +939,16 @@
          LSSALT = .FALSE.
       ENDIF
 
+      ! Make sure that SOA tracers are defined if LSOA=T
+      IF ( LSOA ) THEN
+         IF ( IDTALPH + IDTLIMO + IDTALCO + 
+     &        IDTSOG1 + IDTSOG2 + IDTSOG3 + 
+     &        IDTSOA1 + IDTSOA2 + IDTSOA3 == 0 ) THEN
+            MSG = 'SOA tracers must be defined if LSOA=T!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+ 
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -962,9 +976,10 @@
 !
 !******************************************************************************
 !  Subroutine READ_EMISSIONS_MENU reads the EMISSIONS MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 11/5/04)
 !
 !  NOTES:
+!  (1 ) Now read LNEI99 -- switch for EPA/NEI99 emissions (bmy, 11/5/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1048,8 +1063,12 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:14' )
       READ( SUBSTRS(1:N), * ) LSHIPSO2
 
-      ! Separator line
+      ! Use EPA/NEI99 emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:15' )
+      READ( SUBSTRS(1:N), * ) LNEI99
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:16' )
 
       !=================================================================
       ! Error check logical flags
@@ -1086,6 +1105,7 @@
       WRITE( 6, 100     ) 'Turn on AIRCRAFT NOx?       : ', LAIRNOX
       WRITE( 6, 100     ) 'Turn on SOIL NOx?           : ', LSOILNOX
       WRITE( 6, 100     ) 'Turn on SHIP SO2 EMISSIONS? : ', LSHIPSO2
+      WRITE( 6, 100     ) 'Turn on EPA/NEI99 EMISSIONS?: ', LNEI99
       
       ! FORMAT statements
  100  FORMAT( A, L5 )
@@ -1171,9 +1191,10 @@
 !
 !******************************************************************************
 !  Subroutine READ_TRANSPORT_MENU reads the TRANSPORT MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 12/1/04)
 !
 !  NOTES:
+!  (1 ) Now define MAX_DYN for 1 x 1.25 grid (bmy, 12/1/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1236,11 +1257,13 @@
      &     .not. ITS_A_TAGOX_SIM()    ) LUPBD = .FALSE.
       
       ! Define maximum timestep for transport
-#if   defined( GRID4x5  ) 
+#if   defined( GRID4x5   ) 
       MAX_DYN = 30
-#elif defined( GRID2x25 )
+#elif defined( GRID2x25  )
       MAX_DYN = 15
-#elif defined( GRID1x1  )
+#elif defined( GRID1x125 )
+      MAX_DYN = 10
+#elif defined( GRID1x1   ) 
       MAX_DYN = 10
 #endif
 
@@ -2040,7 +2063,7 @@
 !
 !******************************************************************************
 !  Subroutine SET_TINDEX sets the TINDEX and TMAX arrays, which determine how 
-!  many tracers to print to the punch file. (bmy, 7/20/04)
+!  many tracers to print to the punch file. (bmy, 7/20/04, 11/15/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -2051,6 +2074,8 @@
 !  (5 ) NMAX    (INTEGER  ) : Maximum number of tracers for this diagnostic
 !      
 !  NOTES:
+!  (1 ) Bug fix: now do not drop the last tracer number if "all" is not
+!        explicitly specified (tmf, bmy, 11/15/04)
 !******************************************************************************
 !      
 #     include "CMN_SIZE"  ! Size parameters
@@ -2100,7 +2125,12 @@
 
          ! Otherwise, set TMAX, TINDEX to the # of tracers
          ! listed in "input.ctm" -- need some error checks too
-         TMAX(N_DIAG) = N-1
+         !-----------------------------------------------------------------
+         ! Prior to 11/15/04:
+         ! Prevent dropping the last tracer number (tmf, bmy, 11/15/04)
+         !TMAX(N_DIAG) = N-1
+         !-----------------------------------------------------------------
+         TMAX(N_DIAG) = N
 
          ! Use explicit DO-loop
          DO M = 1, N
@@ -3387,9 +3417,10 @@
 !
 !******************************************************************************
 !  Subroutine INIT_INPUT initializes all variables from "directory_mod.f" and
-!  "logical_mod.f" for safety's sake. (bmy, 7/20/04)
+!  "logical_mod.f" for safety's sake. (bmy, 7/20/04, 11/5/04)
 !
 !  NOTES:
+!  (1 ) Now also initialize LNEI99 from "logical_mod.f" (bmy, 11/5/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3440,6 +3471,7 @@
       LFOSSIL    = .FALSE.  
       LLIGHTNOX  = .FALSE.
       LMONOT     = .FALSE.
+      LNEI99     = .FALSE.
       LSHIPSO2   = .FALSE.
       LSOILNOX   = .FALSE.
       LTOMSAI    = .FALSE.

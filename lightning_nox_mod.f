@@ -1,11 +1,11 @@
-! $Id: lightning_nox_mod.f,v 1.2 2004/09/21 18:04:15 bmy Exp $
+! $Id: lightning_nox_mod.f,v 1.3 2004/12/02 21:48:38 bmy Exp $
       MODULE LIGHTNING_NOX_MOD
 !
 !******************************************************************************
 !  Module LIGHTNING_NOX_MOD contains variables and routines for emitting NOx
 !  from lightning into the atmosphere.  Original code comes from the old 
 !  GISS-II CTM's of Yuhang Wang, Gerry Gardner, & Larry Horowitz.  Cleaned 
-!  up for inclusion into GEOS-CHEM. (bmy, 4/14/04, 7/20/04)
+!  up for inclusion into GEOS-CHEM. (bmy, 4/14/04, 12/1/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -101,7 +101,7 @@
 !
 !******************************************************************************
 !  Subroutine LIGHTNING uses Price & Rind's formulation for computing
-!  NOx emission from lightning. (bmy, bey, mgs, bdf, 3/4/98, 4/14/04)
+!  NOx emission from lightning. (bmy, bey, mgs, bdf, 3/4/98, 12/1/04)
 !
 !  Arguments as input:
 !  ============================================================================
@@ -156,6 +156,7 @@
 !  (13) Scale GEOS-4 lightning NOx to 6 Tg N/yr (bmy, 3/8/04)
 !  (14) Added parallel DO-loops for better optimization.  Now bundled into
 !        "lightning_nox_mod.f" (bmy, 4/14/04)
+!  (15) Added space in #ifdef block for GEOS-4 1 x 1.25 grid (bmy, 12/1/04)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -397,6 +398,10 @@
 
 #if   defined( GRID4x5 )
 
+      !----------------------------
+      ! GEOS-4 4 x 5
+      !----------------------------
+
       ! For a GEOS-4 4x5 1-year run with 2003 met fields, 4.1749 Tg N/yr 
       ! from lightning is produced.  We need to scale this up to 6 Tg N/yr 
       ! as per Randall Martin's research.  Thus we multiply SLBASE by the 
@@ -413,7 +418,11 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#else defined( GRID2x25 )
+#elif defined( GRID2x25 )
+
+      !----------------------------
+      ! GEOS-4 2 x 2.5
+      !----------------------------
 
       ! For a GEOS-4 2x25 1-year run with 2003 met fields, 12.355 Tg N/yr 
       ! from lightning is produced.  We need to scale this down to 6 Tg N/yr 
@@ -431,8 +440,15 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#endif
+#else defined( GRID1x125 )
+      
+      !----------------------------
+      ! GEOS-4 1 x 1.25
+      !----------------------------
 
+      !NOTE: NEED TO DEFINE THIS!!!
+
+#endif
 
 #else 
 
@@ -441,6 +457,10 @@
       !=================================================================
 
 #if   defined ( GRID2x25 )
+
+      !----------------------------
+      ! 2 x 2.5 (all model types)
+      !----------------------------
 
       ! In the 2x2.5 model the emissions from lightning are too high.
       ! Emissions need to be scaled by the factor .522 to match the 4x5 
@@ -457,10 +477,13 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-
 #endif
 
 #if   defined( GEOS_3 ) 
+
+      !----------------------------
+      ! GEOS-3 (all resolutions)
+      !----------------------------
 
       ! Also, for GEOS-3, the convective cloud tops are a lot higher 
       ! than in GEOS-1 or GEOS-STRAT, so more NOx will be produced.  
@@ -481,12 +504,14 @@
 
 #endif
 
-#if   defined( GRID1x1 ) 
+#if   defined( GRID1x1 ) && defined( NESTED_CH )
+
+      !----------------------------
+      ! For China nested grid
+      !----------------------------
 
       ! Further scaling is necessary for 1x1 nested grids in order to
       ! match the amount of lightning from 4x5 (yxw, bmy, 5/16/03)
-
-      ! For China nested-grid
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
@@ -499,7 +524,16 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! North America, Europe nested grid scale factors need to be defined
+#endif
+
+#if   defined( GRID1x1 ) && defined( NESTED_NA )
+
+      !----------------------------
+      ! For N. America nested grid
+      !----------------------------
+
+      ! NOTE! Need to define this!
+
 #endif
 
 #endif
@@ -557,10 +591,6 @@
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
 #     include "CMN_SIZE"   ! Size parameters
-!------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"  ! DATA_DIR
-!------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)  :: I,  J,    LTOP
@@ -822,10 +852,6 @@
       USE FILE_MOD
 
 #     include "CMN_SIZE"  ! Size parameters
-!---------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP" ! DATA_DIR
-!---------------------------------------------
   
       ! Local variables
       INTEGER            :: AS, III, IOS, JJJ

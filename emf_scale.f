@@ -1,4 +1,4 @@
-! $Id: emf_scale.f,v 1.2 2004/09/21 18:04:13 bmy Exp $
+! $Id: emf_scale.f,v 1.3 2004/12/02 21:48:36 bmy Exp $
       SUBROUTINE EMF_SCALE( I,    J,    N,     NN, 
      &                      IREF, JREF, JSCEN, XEMISR, XEMISRN )       
 !
@@ -30,10 +30,6 @@
       IMPLICIT NONE
 
 #     include "CMN_SIZE"
-!-------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"
-!-------------------------------
 #     include "CMN_O3"
 #     include "comode.h"
       
@@ -63,21 +59,6 @@
       ELSE
          XEMISR = EMISR(IREF,JREF,N)
       ENDIF
-!-----------------------------------------------------------------------------
-! Prior to 7/20/04:
-!
-!*****************************************************************************
-!  If LFFNOX=F then set fossil fuel NOx, Ox emissions = 0
-!*****************************************************************************
-!
-!      IF ( .not. LFFNOX ) THEN
-!         IF ( N == IDENOX ) THEN
-!            EMISRN(IREF,JREF,1:NOXLEVELS) = 0d0
-!         ELSE IF ( N == IDTOX ) THEN
-!            EMISR(IREF,JREF,N) = 0d0
-!         ENDIF
-!      ENDIF
-!-----------------------------------------------------------------------------
 !
 !*****************************************************************************
 !  Scale emissions by weekend/weekday:

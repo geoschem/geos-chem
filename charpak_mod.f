@@ -1,4 +1,4 @@
-! $Id: charpak_mod.f,v 1.2 2004/09/21 18:04:09 bmy Exp $
+! $Id: charpak_mod.f,v 1.3 2004/12/02 21:48:33 bmy Exp $
       MODULE CHARPAK_MOD
 !
 !******************************************************************************
@@ -238,10 +238,6 @@ C
       !=================================================================
 
       ! Error check: make sure PATTERN and REPLTXT have the same # of chars
-      !---------------------------------------------------------
-      ! Prior to 7/20/04:
-      !IF ( LEN_TRIM( PATTERN ) /= LEN_TRIM( REPLTXT ) ) THEN 
-      !---------------------------------------------------------
       IF ( LEN( PATTERN ) /= LEN( REPLTXT ) ) THEN 
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          WRITE( 6, '(a)' ) 

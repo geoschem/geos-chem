@@ -1,4 +1,4 @@
-! $Id: tpcore_bc_mod.f,v 1.4 2004/09/21 18:04:19 bmy Exp $
+! $Id: tpcore_bc_mod.f,v 1.5 2004/12/02 21:48:41 bmy Exp $
       MODULE TPCORE_BC_MOD
 !
 !******************************************************************************
@@ -364,13 +364,6 @@
       !=================================================================
       ! DO_WINDOW_TPCORE_BC begins here!
       !=================================================================
-
-      ! Prior to 7/20/04:
-      !! First-time initialization
-      !IF ( FIRST ) THEN 
-      !   CALL INIT_TPCORE_BC
-      !   FIRST = .FALSE.
-      !ENDIF
 
       ! Either zero BC's or read them from disk
       IF ( CLEAN_BC ) THEN

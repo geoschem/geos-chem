@@ -1,4 +1,4 @@
-C $Id: read_TOMSO3.f,v 1.2 2004/09/21 18:04:17 bmy Exp $
+C $Id: read_TOMSO3.f,v 1.3 2004/12/02 21:48:39 bmy Exp $
       SUBROUTINE read_TOMSO3(NSKIPTOMS)
 C**********************************************************************
       ! References to F90 modules
@@ -10,10 +10,6 @@ C**********************************************************************
 
 #     include "CMN_SIZE"
 #     include "CMN"
-!--------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"
-!--------------------------------
 #     include "CMN_CO"
 #     include "CMN_OH"
 

@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# $Id: build,v 1.5 2003/12/05 21:13:57 bmy Exp $
+# $Id: build,v 1.6 2004/12/02 21:48:33 bmy Exp $
 
 =head1 NAME
 
@@ -127,6 +127,7 @@ sub main() {
   # Compile GEOS-CHEM w/ the right makefile
   if ( length( $makeFile ) > 0 ) { 
     print "Compiling $target in $makeFile\n";
+    #qx( source /opt/intel_fc_80/bin/ifortvars.sh; make $target -f $makeFile );
     qx( make $target -f $makeFile );      
   } else { 
     die "Could not find makefile name!\n" 

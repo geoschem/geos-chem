@@ -1,9 +1,9 @@
-! $Id: diag49_mod.f,v 1.3 2004/10/26 13:42:04 bmy Exp $
+! $Id: diag49_mod.f,v 1.4 2004/12/02 21:48:35 bmy Exp $
       MODULE DIAG49_MOD
 !
 !******************************************************************************
 !  Module DIAG49_MOD contains variables and routines to save out 3-D 
-!  timeseries output to disk (bmy, 7/20/04, 10/25/04)
+!  timeseries output to disk (bmy, 7/20/04, 11/9/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -80,6 +80,7 @@
 !  99            : Temperature                              [K        ]
 !  
 !  NOTES:
+!  (1 ) Bug fix: get I0, J0 properly for nested grids (bmy, 11/9/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -402,10 +403,6 @@
             CATEGORY = 'TIME-SER'
             UNIT     = ''           ! Let GAMAP pick the unit
             GMNL     = ND49_NL
-            !------------------------
-            ! Prior to 10/25/04
-            !GMTRC    = 19
-            !------------------------
             GMTRC    = 25
 
 !$OMP PARALLEL DO
@@ -1102,11 +1099,12 @@
 !  (11) FILE    (CHAR*255) : ND49 output file name read by "input_mod.f"
 ! 
 !  NOTES:
+!  (1 ) Now get I0 and J0 correctly for nested grid simulations (bmy, 11/9/04)
 !******************************************************************************
 !      
       ! References to F90 modules
       USE BPCH2_MOD, ONLY : GET_MODELNAME
-      USE GRID_MOD,  ONLY : GET_XOFFSET, GET_YOFFSET
+      USE GRID_MOD,  ONLY : GET_XOFFSET, GET_YOFFSET, ITS_A_NESTED_GRID
       USE ERROR_MOD, ONLY : ERROR_STOP
 
 #     include "CMN_SIZE" ! Size parameters
@@ -1151,9 +1149,22 @@
       ! Compute lon, lat, alt extents and check for errors
       !=================================================================
 
-      ! Get grid offsets
-      I0 = GET_XOFFSET( GLOBAL=.TRUE. )
-      J0 = GET_YOFFSET( GLOBAL=.TRUE. )
+      !---------------------------------------------
+      ! Prior to 11/9/04:
+      ! Fix for nested grid (bmy, 11/9/04)
+      !! Get grid offsets
+      !I0 = GET_XOFFSET( GLOBAL=.TRUE. )
+      !J0 = GET_YOFFSET( GLOBAL=.TRUE. )
+      !---------------------------------------------
+
+      ! Get grid offsets for error checking
+      IF ( ITS_A_NESTED_GRID() ) THEN
+         I0 = GET_XOFFSET()
+         J0 = GET_YOFFSET()
+      ELSE
+         I0 = GET_XOFFSET( GLOBAL=.TRUE. )
+         J0 = GET_YOFFSET( GLOBAL=.TRUE. )
+      ENDIF
 
       !-----------
       ! Longitude
@@ -1235,6 +1246,10 @@
       LATRES    = DJSIZE
       MODELNAME = GET_MODELNAME()
       
+      ! Reset grid offsets to global values for bpch write
+      I0        = GET_XOFFSET( GLOBAL=.TRUE. )
+      J0        = GET_YOFFSET( GLOBAL=.TRUE. )      
+
       ! Return to calling program
       END SUBROUTINE INIT_DIAG49
 

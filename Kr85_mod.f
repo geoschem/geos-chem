@@ -1,4 +1,4 @@
-! $Id: Kr85_mod.f,v 1.2 2004/09/21 18:04:06 bmy Exp $
+! $Id: Kr85_mod.f,v 1.3 2004/12/02 21:48:31 bmy Exp $
       MODULE Kr85_MOD
 !
 !******************************************************************************
@@ -265,10 +265,6 @@
       USE TRACER_MOD, ONLY : STT
 
 #     include "CMN_SIZE"      ! Size parameters
-!---------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"           ! STT 
-!---------------------------------------------------
 #     include "CMN_DIAG"      ! Diagnostics
 #     include "CMN_O3"        ! FSCALYR
 
@@ -345,10 +341,6 @@
       USE TRACER_MOD, ONLY : STT
 
 #     include "CMN_SIZE" ! Size parameters
-!-------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"      ! STT
-!-------------------------------------------
 #     include "CMN_DIAG" ! ND03
 
       ! Local variables

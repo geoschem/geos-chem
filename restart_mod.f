@@ -1,4 +1,4 @@
-! $Id: restart_mod.f,v 1.6 2004/09/21 18:04:17 bmy Exp $
+! $Id: restart_mod.f,v 1.7 2004/12/02 21:48:39 bmy Exp $
       MODULE RESTART_MOD
 !
 !******************************************************************************
@@ -120,10 +120,6 @@
       USE TRACER_MOD,  ONLY : STT, N_TRACERS, TCVV
 
 #     include "CMN_SIZE"   ! Size parameters
-!---------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"        ! STT, TCVV, LPRT
-!---------------------------------------------------
 #     include "CMN_DIAG"   ! TRCOFFSET
 
       ! Arguments
@@ -149,17 +145,6 @@
       !=================================================================
       ! MAKE_RESTART_FILE begins here!
       !=================================================================
-
-!------------------------------------------------------------
-! Prior to 7/20/04:
-! Now get filenames passed from "input_mod.f" (bmy, 7/20/04)
-!      ! Hardwire output file for now
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-!      OUTPUT_RESTART_FILE = 'gctm.trc.YYMMDD'
-!#else
-!      OUTPUT_RESTART_FILE = 'gctm.trc.YYYYMMDD'
-!#endif
-!------------------------------------------------------------
 
       ! Define variables for BINARY PUNCH FILE OUTPUT
       TITLE    = 'GEOS-CHEM Restart File: ' // 
@@ -196,10 +181,6 @@
       !=================================================================
       ! Write each tracer to the restart file
       !=================================================================
-      !-------------------
-      ! Prior to 7/20/04:
-      !DO N = 1, NTRACE
-      !-------------------
       DO N = 1, N_TRACERS
          
          ! Convert from [kg] to [v/v] and store in the TRACER array
@@ -298,15 +279,7 @@
       USE TRACER_MOD
 
 #     include "CMN_SIZE"   ! Size parameters
-!-----------------------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"        ! STT, NSRCX, TCVV, NTRACE, TCMASS, etc..
-!-----------------------------------------------------------------------
 #     include "CMN_DIAG"   ! TRCOFFSET
-!--------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"  ! LSPLIT
-!--------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: YYYYMMDD, HHMMSS
@@ -333,17 +306,6 @@
       !=================================================================
       ! READ_RESTART_FILE begins here!
       !=================================================================
-
-!------------------------------------------------------
-! Prior to 7/20/04:
-! No longer use hardwired filename (bmy, 7/20/04)
-!      ! Hardwire output file for now
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-!      INPUT_RESTART_FILE = 'gctm.trc.YYMMDD'
-!#else
-!      INPUT_RESTART_FILE = 'gctm.trc.YYYYMMDD'
-!#endif
-!------------------------------------------------------
 
       ! Initialize some variables
       NCOUNT(:)     = 0
@@ -412,22 +374,6 @@
             ! Convert TRACER from its native units to [v/v] mixing ratio
             CALL CONVERT_TRACER_TO_VV( NTRACER, TRACER, UNIT )
 
-            !----------------------------------------------------------------
-            ! Prior to 7/20/04:
-            !! Convert TRACER from [v/v] to [kg] and copy into STT array
-            !SELECT CASE ( NSRCX )
-            !
-            !   ! For CO-OH 
-            !   CASE ( 5 )
-            !      CALL COPY_STT_FOR_CO_OH( NTRACER, TRACER, NCOUNT )
-            !
-            !   ! All other simulations
-            !   CASE DEFAULT    
-            !      CALL COPY_STT( NTRACER, TRACER, NCOUNT )
-            !
-            !END SELECT
-            !----------------------------------------------------------------
-
             ! Convert TRACER from [v/v] to [kg] and copy into STT array
             IF ( ITS_A_COPARAM_SIM() ) THEN
                CALL COPY_STT_FOR_CO_OH( NTRACER, TRACER, NCOUNT )            
@@ -443,10 +389,6 @@
       !=================================================================
 
       ! Check for missing or duplicate data blocks
-      !-----------------------------------------------
-      ! Prior to 7/20/04:
-      !CALL CHECK_DATA_BLOCKS( NTRACE, NCOUNT )
-      !-----------------------------------------------
       CALL CHECK_DATA_BLOCKS( N_TRACERS, NCOUNT )
 
       ! Close file
@@ -456,17 +398,9 @@
       WRITE( 6, 120 )
  120  FORMAT( /, 'Total atmospheric masses for each tracer: ' ) 
 
-      !-------------------
-      ! Prior to 7/20/04:
-      !DO N = 1, NTRACE
-      !-------------------
       DO N = 1, N_TRACERS
 
          ! For tracers in kg C, be sure to use correct unit string
-         !-----------------------------------------------------
-         ! Prior to 7/20/04:
-         !IF ( INT( TCMASS(N) + 0.5 ) == 12 ) THEN
-         !-----------------------------------------------------
          IF ( INT( TRACER_MW_G(N) + 0.5 ) == 12 ) THEN
             UNIT = 'kg C'
          ELSE
@@ -474,10 +408,6 @@
          ENDIF
 
          ! Print totals
-         !----------------------------------------------------------------
-         ! Prior to 7/20/04:
-         !WRITE( 6, 130 ) N, TCNAME(N), SUM(STT(:,:,:,N)), ADJUSTL(UNIT)
-         !----------------------------------------------------------------
          WRITE( 6, 130 ) N,                   TRACER_NAME(N), 
      &                   SUM( STT(:,:,:,N) ), ADJUSTL( UNIT )
  130     FORMAT( 'Tracer ', i3, ' (', a4, ') ', es12.5, 1x, a4)
@@ -700,10 +630,6 @@
       USE TRACER_MOD, ONLY : N_TRACERS, STT, TCVV
       
 #     include "CMN_SIZE"  ! Size parameters
-!---------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"       ! TCVV, STT
-!---------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NTRACER
@@ -721,10 +647,6 @@
       N = TRUE_TRACER_INDEX( NTRACER )
 
       ! Exit if N is out of range
-      !------------------------------------------
-      ! Prior to 7/20/04:
-      !IF ( N < 1 .or. N > NTRACE ) RETURN
-      !------------------------------------------
       IF ( N < 1 .or. N > N_TRACERS ) RETURN
 
       ! Convert from [v/v] to [kg] and store in STT

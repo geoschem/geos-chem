@@ -1,10 +1,10 @@
-! $Id: emissco.f,v 1.2 2003/12/11 21:54:10 bmy Exp $
+! $Id: emissco.f,v 1.3 2004/12/02 21:48:36 bmy Exp $
       SUBROUTINE EMISSCO( FIRSTEMISS, NSEASON, LMN, SUNCOS ) 
 ! 
 !******************************************************************************
 !  Subroutine EMISSCO reads CO emissions routine for the CO simulation
 !  with parameterized OH.  EMISSCO is based on subroutine "emissdr.f".
-!  (bey, 02/02/99, bnd & bmy, 9/13/00, 12/9/03)
+!  (bey, 02/02/99, bnd & bmy, 9/13/00, 12/1/04)
 !
 !  NOTES:
 !  (1 ) STT should be referenced (I,J,L,N) and not (IREF,JREF,L,N),
@@ -40,6 +40,7 @@
 !        IDBFCO from "tracerid_mod.f".  Now do not let SCALEYEAR exceed 1998 
 !        for the fossil fuel scaling. (bmy, 1/13/03)
 !  (19) Now pass I, J to EMISOP (bmy, 12/9/03)
+!  (20) Added space in the #ifdef block for 1 x 1.25 grid (bmy, 12/1/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -330,7 +331,12 @@ cbnd
       IF(J.EQ.1)     CTM_lat=1
       IF(J.EQ.JJPAR) CTM_lat=179
 
-#elif defined( GRID1x1 )
+#elif defined( GRID1x125 ) 
+      PRINT*, 'Need to compute CONVERT_LON for 1 x 1.25 grid!'
+      PRINT*, 'STOP in TOMSAI (biomass_mod.f)'
+      STOP
+
+#elif defined( GRID1x1 ) 
       PRINT*, 'Need to compute CONVERT_LON for 1 x 1 grid!'
       PRINT*, 'STOP in TOMSAI (biomass_mod.f)'
       STOP

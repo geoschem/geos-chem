@@ -1,4 +1,4 @@
-! $Id: initialize.f,v 1.7 2004/09/21 18:04:14 bmy Exp $
+! $Id: initialize.f,v 1.8 2004/12/02 21:48:38 bmy Exp $
       SUBROUTINE INITIALIZE( IFLAG )
 !
 !******************************************************************************
@@ -178,13 +178,6 @@
       !=================================================================
       IF ( IFLAG == 1 ) THEN
          XTRA2 = 0d0
-
-         !-------------------------------------------------------------------
-         ! Prior to 7/20/04:
-         !! Only zero DIAGCHLORO if ND23 is turned on.  DIAGCHLORO only 
-         !! needs to be zeroed at the start of the run. (bmy, 11/30/99)
-         !IF ( ND23 > 0 ) DIAGCHLORO = 0d0
-         !-------------------------------------------------------------------
       ENDIF  
 
       !=================================================================
@@ -255,6 +248,7 @@
             AD13_SO2_ev = 0e0
             AD13_SO2_sh = 0e0
             AD13_SO4_an = 0e0
+            AD13_SO4_bf = 0e0
             AD13_NH3_an = 0e0
             AD13_NH3_na = 0e0
             AD13_NH3_bb = 0e0
@@ -276,10 +270,6 @@
          ! For ND65 -- Chemical production & loss (bmy, 12/5/00)
          IF ( ND65 > 0 ) THEN
             AD65  = 0e0
-            !----------------------------------------
-            ! Prior to 7/20/04:
-            !IF ( ALLOCATED( FAMPL ) ) FAMPL = 0d0      
-            !----------------------------------------
             IF ( ALLOCATED( FAM_PL ) ) FAM_PL = 0d0      
          ENDIF
 

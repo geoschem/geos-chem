@@ -1,4 +1,4 @@
-! $Id: ch3i_mod.f,v 1.3 2004/09/21 18:04:09 bmy Exp $
+! $Id: ch3i_mod.f,v 1.4 2004/12/02 21:48:33 bmy Exp $
       MODULE CH3I_MOD
 !
 !******************************************************************************
@@ -106,10 +106,6 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"  ! Size parameters
-!----------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP" ! DATA_DIR
-!----------------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) ::  THISMONTH    ! month of the year (1, 2, .., 12)
@@ -319,10 +315,6 @@
       USE TRACERID_MOD, ONLY : IDBCO,     IDBFCO
 
 #     include "CMN_SIZE"    ! Size parameters
-!------------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"         ! Many other variables
-!------------------------------------------------------------
 #     include "CMN_DEP"     ! RADIAT, FRCLND
 #     include "CMN_DIAG"    ! Diagnostic switches
 
@@ -430,13 +422,6 @@
 
          ! Make sure that emissions are turned on. 
          ! CH3I simulation doesn't make sense w/o emissions
-         !--------------------------------------------------------------
-         ! Prior to 7/20/04:
-         !IF ( .not. LSRCE ) THEN
-         !   PRINT*,'**** LSRCE=.FALSE.! I turn emissions on now!'
-         !   LSRCE = .TRUE.
-         !ENDIF
-         !--------------------------------------------------------------
          IF ( .not. LEMIS ) THEN
             PRINT*,'**** LEMIS=.FALSE.! I turn emissions on now!'
             LEMIS = .TRUE.
@@ -948,10 +933,6 @@
       USE TRACER_MOD,   ONLY : STT, N_TRACERS
 
 #     include "CMN_SIZE"     ! Size parameters
-!--------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"          ! STT
-!--------------------------------------------------
 #     include "CMN_DIAG"     ! ND36
 #     include "comode.h"     ! SPECNAME
 
@@ -1008,10 +989,6 @@
             CALL READCHEM
             
             ! Call INPHOT to initialize the fast-J variables. 
-            !--------------------------------
-            ! Prior to 7/20/04:
-            !CALL INPHOT( NSKIPL-1, NPHOT )
-            !--------------------------------
             CALL INPHOT( LLTROP, NPHOT )
             
             ! Echo output
@@ -1061,10 +1038,6 @@
             SPECNAME = NAMEGAS(IRM(1,NK,NCS))            
 
             ! Maybe later can replace this w/ the ann mean tropopause...
-            !---------------------
-            ! Prior to 7/20/04:
-            !DO L = 1, NSKIPL-1
-            !---------------------
             DO L = 1, LLTROP
             DO J = 1, JJPAR
             DO I = 1, IIPAR
@@ -1077,10 +1050,6 @@
 
                   ! Loop over all individual CH3I tracers
                   ! (which have the same loss rate)
-                  !-----------------------
-                  ! Prior to 7/20/04:
-                  !DO N = 1, NTRACE
-                  !-----------------------
                   DO N = 1, N_TRACERS
                      STT(I,J,L,N) = STT(I,J,L,N) * RDLOSS
                   ENDDO
@@ -1095,10 +1064,6 @@
                   ! ND65: Loss rates for each tracer 
                   IF ( ND65 > 0 ) THEN
                      IF ( L <= LD65 ) THEN
-                        !-------------------
-                        ! Prior to 7/20/04:
-                        !DO N = 1, NTRACE
-                        !-------------------
                         DO N = 1, N_TRACERS
                            AD65(I,J,L,N) = AD65(I,J,L,N) + 
      &                          ( STT(I,J,L,N) * JVALUE * DTCHEM )
@@ -1137,11 +1102,6 @@
          RLRAD    = DTCHEM * TCHEMA
          RDLOSS   = EXP( -RLRAD )
 
-         !----------------------
-         ! Prior to 7/20/04:
-         !DO N = 1, NTRACE
-         !DO L = 1, NSKIPL-1
-         !----------------------
          DO N = 1, N_TRACERS
          DO L = 1, LLTROP
          DO J = 1, JJPAR

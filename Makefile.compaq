@@ -1,6 +1,6 @@
-# $Id: Makefile.compaq,v 1.20 2004/09/24 14:03:54 bmy Exp $
+# $Id: Makefile.compaq,v 1.21 2004/12/02 21:48:31 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for COMPAQ/Alpha (bmy, Thu Sep 23 13:03:44 2004)
+# GEOS-CHEM Makefile for COMPAQ/Alpha (bmy, Fri Nov  5 14:17:39 2004)
 #
 # NOTE: For GEOS-CHEM v5-07-08, we must compile everything -fast except 
 #       "calcrate.f", which must be compiled -O2.  (hamid, bmy, 10/10/03)
@@ -201,6 +201,7 @@ comode_mod.o              \
 diag_mod.o                \
 dao_mod.o                 \
 drydep_mod.o              \
+epa_nei_mod.o             \
 geia_mod.o                \
 diag_oh_mod.o             \
 diag48_mod.o              \
@@ -335,7 +336,7 @@ XSECO3.o                   : XSECO3.f                   cmn_fj.h CMN_SIZE define
 a3_read_mod.o              : a3_read_mod.f              CMN_DIAG CMN_SIZE define.h 
 a6_read_mod.o              : a6_read_mod.f              CMN_DIAG CMN_SIZE define.h 
 acetone_mod.o              : acetone_mod.f              CMN_DEP CMN_DIAG CMN_MONOT CMN_SIZE define.h 
-aerosol_mod.o              : aerosol_mod.f              CMN_DIAG CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h comode.h jv_cmn.h 
+aerosol_mod.o              : aerosol_mod.f              CMN CMN_DIAG CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h comode.h jv_cmn.h 
 aircraft_nox_mod.o         : aircraft_nox_mod.f         CMN CMN_DIAG CMN_NOX CMN_SIZE define.h 
 airmas.o                   : airmas.f                   
 anthroems.o                : anthroems.f                CMN CMN_O3 CMN_SIZE define.h comode.h 
@@ -397,6 +398,7 @@ emissdr.o                  : emissdr.f                  CMN CMN_DIAG CMN_MONOT C
 emisshcn.o                 : emisshcn.f                 CMN_DIAG CMN_HCN CMN_MONOT CMN_SIZE define.h hcn.h 
 emissions_mod.o            : emissions_mod.f            CMN_SIZE define.h 
 emmonot.o                  : emmonot.f                  CMN_MONOT CMN_SIZE define.h CMN_VEL 
+epa_nei_mod.o              : epa_nei_mod.f              CMN_O3 CMN_SIZE define.h 
 error_mod.o                : error_mod.f                define.h 
 fast_j.o                   : fast_j.f                   cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 fastjO3col.o               : fastjO3col.f               cmn_fj.h CMN_SIZE define.h jv_cmn.h 
@@ -534,7 +536,7 @@ tpcore_window_mod.o        : tpcore_window_mod.f        CMN_CO CMN_CO_BUDGET CMN
 tracer_mod.o               : tracer_mod.f               CMN_SIZE define.h 
 tracerid_mod.o             : tracerid_mod.f             CMN_SIZE define.h comode.h 
 transfer_mod.o             : transfer_mod.f             CMN_SIZE define.h 
-transport_mod.o            : transport_mod.f            CMN CMN_GCTM CMN_SIZE define.h 
+transport_mod.o            : transport_mod.f            CMN CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 tropopause.o               : tropopause.f               CMN CMN_DIAG CMN_SIZE define.h 
 turbday.o                  : turbday.f                  CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 unix_cmds_mod.o            : unix_cmds_mod.f            

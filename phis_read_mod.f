@@ -1,4 +1,4 @@
-! $Id: phis_read_mod.f,v 1.5 2004/09/21 18:04:16 bmy Exp $
+! $Id: phis_read_mod.f,v 1.6 2004/12/02 21:48:38 bmy Exp $
       MODULE PHIS_READ_MOD
 !
 !******************************************************************************
@@ -84,10 +84,6 @@
       USE UNIX_CMDS_MOD
 
 #     include "CMN_SIZE"
-!---------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"
-!---------------------------------
 
       ! Arguments
       CHARACTER(LEN=*),  INTENT(IN) :: OPTION
@@ -234,10 +230,6 @@
       USE TIME_MOD,     ONLY : EXPAND_DATE
 
 #     include "CMN_SIZE"           ! Size parameters
-!--------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"          ! GEOS directories
-!--------------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS

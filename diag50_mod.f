@@ -1,10 +1,10 @@
-! $Id: diag50_mod.f,v 1.3 2004/11/01 16:32:03 bmy Exp $
+! $Id: diag50_mod.f,v 1.4 2004/12/02 21:48:35 bmy Exp $
       MODULE DIAG50_MOD
 !
 !******************************************************************************
 !  Module DIAG50_MOD contains variables and routines to generate save 
 !  timeseries data over the United States where the local time is between 
-!  two user-defined limits. (amf, bey, bdf, pip, bmy, 11/30/00, 10/25/04)
+!  two user-defined limits. (amf, bey, bdf, pip, bmy, 11/30/00, 11/9/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -93,6 +93,7 @@
 !  (1 ) Rewritten for clarity and to save extra quantities (bmy, 7/20/04)
 !  (2 ) Added COUNT_CHEM to count the chemistry timesteps per day, since some
 !        quantities are only archived after a fullchem call (bmy, 10/25/04)
+!  (3 ) Bug fix: Now get I0 and J0 properly for nested grids (bmy, 11/9/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -685,10 +686,6 @@
 #     include "CMN_DIAG"  ! TRCOFFSET
 
       ! Local variables
-      !---------------------------------------------------
-      ! Prior to 10/25/04:
-      !LOGICAL            :: FIRST = .TRUE.
-      !---------------------------------------------------
       INTEGER            :: DIVISOR
       INTEGER            :: I,    J,     L,   W, N  
       INTEGER            :: GMNL, GMTRC, IOS, X, Y, K
@@ -742,16 +739,6 @@
          DO K = 1, ND50_NL
          DO Y = 1, ND50_NJ
          DO X = 1, ND50_NI
-
-            !---------------------------------------------
-            ! Prior to 10/25/04:
-            !! Avoid division by zero
-            !IF ( COUNT > 0 ) THEN
-            !   Q(X,Y,K,W) = Q(X,Y,K,W) / COUNT_CHEM
-            !ELSE
-            !   Q(X,Y,K,W) = 0d0
-            !ENDIF
-            !---------------------------------------------
 
             ! Avoid division by zero
             IF ( DIVISOR > 0 ) THEN
@@ -1143,12 +1130,13 @@
 !  (11) FILE    (CHAR*255) : ND50 output file name read by "input_mod.f"
 !
 !  NOTES:
+!  (1 ) Now get I0 and J0 correctly for nested grid simulations (bmy, 11/9/04)
 !******************************************************************************
 !    
       ! References to F90 modules
       USE BPCH2_MOD,  ONLY : GET_MODELNAME
       USE ERROR_MOD,  ONLY : ALLOC_ERR,   ERROR_STOP
-      USE GRID_MOD,   ONLY : GET_XOFFSET, GET_YOFFSET
+      USE GRID_MOD,   ONLY : GET_XOFFSET, GET_YOFFSET, ITS_A_NESTED_GRID
       USE TIME_MOD,   ONLY : GET_TAUb
       USE TRACER_MOD, ONLY : N_TRACERS
   
@@ -1193,9 +1181,21 @@
       ! Error check longitude, latitude, altitude limits
       !=================================================================
 
-      ! Get grid offsets between global & nested grid
-      I0 = GET_XOFFSET( GLOBAL=.TRUE. )
-      J0 = GET_YOFFSET( GLOBAL=.TRUE. )
+      !-----------------------------------------------------
+      ! Prior to 11/9/04:
+      !! Get grid offsets between global & nested grid
+      !I0 = GET_XOFFSET( GLOBAL=.TRUE. )
+      !J0 = GET_YOFFSET( GLOBAL=.TRUE. )
+      !-----------------------------------------------------
+
+      ! Get grid offsets
+      IF ( ITS_A_NESTED_GRID() ) THEN
+         I0 = GET_XOFFSET()
+         J0 = GET_YOFFSET() 
+      ELSE
+         I0 = GET_XOFFSET( GLOBAL=.TRUE. )
+         J0 = GET_YOFFSET( GLOBAL=.TRUE. ) 
+      ENDIF
 
       !-----------
       ! Longitude
@@ -1282,6 +1282,10 @@
       LONRES    = DISIZE
       LATRES    = DJSIZE
       MODELNAME = GET_MODELNAME()
+
+      ! Reset offsets to global values for bpch write
+      I0        = GET_XOFFSET( GLOBAL=.TRUE. )
+      J0        = GET_YOFFSET( GLOBAL=.TRUE. ) 
 
       !=================================================================
       ! Allocate arrays

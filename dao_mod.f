@@ -1,10 +1,10 @@
-! $Id: dao_mod.f,v 1.9 2004/10/15 20:16:40 bmy Exp $
+! $Id: dao_mod.f,v 1.10 2004/12/02 21:48:34 bmy Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
 !  Module DAO_MOD contains both arrays that hold DAO met fields, as well as
 !  subroutines that compute, interpolate, or otherwise process DAO met field 
-!  data. (bmy, 6/27/00, 9/28/04)
+!  data. (bmy, 6/27/00, 12/1/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -151,6 +151,7 @@
 !  (18) Added CLDFRC, RADSWG, RADLWG, SNOW arrays (bmy, 12/9/03)
 !  (19) Added routine COPY_I6_FIELDS w/ parallel DO-loops (bmy, 4/13/04)
 !  (20) Now also allocate AVGW for offline aerosol simulation (bmy, 9/28/04)
+!  (21) AVGPOLE now uses NESTED_CH and NESTED_NA cpp switches (bmy, 12/1/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -242,7 +243,7 @@
 !
 !******************************************************************************
 !  Subroutine AVGPOLE computes average quantity near polar caps, defined 
-!  by (J = 1, 2) and (J = JJPAR-1, JJPAR).  (bmy, 1/30/98, 3/11/03)
+!  by (J = 1, 2) and (J = JJPAR-1, JJPAR).  (bmy, 1/30/98, 12/1/04)
 ! 
 !  Arguments as Input:
 !  ===========================================================================
@@ -258,6 +259,8 @@
 !  (4 ) Updated comments (bmy, 4/4/01)
 !  (5 ) Now replaced DXYP(J) with routine GET_AREA_M2 of "grid_mod.f"
 !        Now also return immediately if GRID1x1 is selected. (bmy, 3/11/03)
+!  (6 ) Now use cpp switches NESTED_CH and NESTED_NA to denote nested
+!        grids...GRID1x1 can now also denote a global grid (bmy, 12/1/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -279,8 +282,11 @@
       !=================================================================
 
 #if   defined( GRID1x1 )
+#if   defined( NESTED_CH ) || defined( NESTED_NA ) 
+      ! NOTE: Only do this for 1x1 nested grids (bmy, 12/1/04)
       ! 1x1 window grid does not extend to poles
       RETURN
+#endif
 #endif
 
       TOTAL_Z1 = 0.

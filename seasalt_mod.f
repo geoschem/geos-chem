@@ -1,4 +1,4 @@
-! $Id: seasalt_mod.f,v 1.2 2004/09/21 18:04:18 bmy Exp $
+! $Id: seasalt_mod.f,v 1.3 2004/12/02 21:48:40 bmy Exp $
       MODULE SEASALT_MOD
 !
 !******************************************************************************
@@ -75,30 +75,12 @@
       PUBLIC :: EMISSSEASALT
       PUBLIC :: CLEANUP_SEASALT
 
-      !---------------------------------------------------
-      ! Prior to 7/20/04:
-      !! PRIVATE module variables
-      !PRIVATE            :: DRYSALA, DRYSALC, NSALT 
-      !PRIVATE            :: IDDEP,   REDGE,   RMID
-      !PRIVATE            :: SRC,     SS_SIZE, SS_DEN
-      !
-      !! PRIVATE module routines
-      !PRIVATE            :: INIT_SEASALT
-      !PRIVATE            :: WET_SETTLING
-      !PRIVATE            :: DRY_DEPOSITION
-      !PRIVATE            :: SRCSALT
-      !---------------------------------------------------
-
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
 
       ! Scalars
       INTEGER, PARAMETER   :: NSALT = 2
-      !------------------------------------------
-      ! Prior to 7/20/04:
-      !INTEGER, PARAMETER   :: NR_MAX = 150
-      !------------------------------------------
       INTEGER, PARAMETER   :: NR_MAX = 200
       INTEGER              :: DRYSALA, DRYSALC
 
@@ -107,10 +89,6 @@
       REAL*8,  ALLOCATABLE :: REDGE(:,:)   
       REAL*8,  ALLOCATABLE :: RMID(:,:)
       REAL*8,  ALLOCATABLE :: SRC(:,:)     
-      !------------------------------------------------------------------
-      ! Prior to 7/20/04:
-      !REAL*8               :: SS_SIZE(NSALT+1) = (/0.1d0, 2.5d0, 10d0/)
-      !------------------------------------------------------------------
       REAL*8               :: SS_DEN(NSALT)    = (/2200.d0, 2200.d0  /)
 
       !=================================================================
@@ -140,10 +118,6 @@
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
 
 #     include "CMN_SIZE"     ! Size parameters 
-!-----------------------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"          ! AD, STT, TCVV, NCHEM, NSRCX, MONTH
-!-----------------------------------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.
@@ -410,13 +384,6 @@
             ! Surface area [cm2]
             AREA_CM2 = GET_AREA_CM2( J )
 
-            !--------------------------------------------------------------
-            ! Prior to 4/20/04:
-            ! Now use explicit DO loop to facilititate parallelization
-            !FLUX     = ( SUM(TC0) - SUM(TC(I,J,:)) ) / DTCHEM  ! kg/s
-            !FLUX     =   FLUX * XNUMOL(IDTSALA) / AREA_CM2    
-            !--------------------------------------------------------------
-
             ! Convert sea salt flux from [kg/s] to [molec/cm2/s]
             FLUX     = ( TOT1 - TOT2 ) / DTCHEM
             FLUX     = FLUX * XNUMOL(IDTSALA) / AREA_CM2 
@@ -655,11 +622,6 @@
       CONST = 4d0/3d0 * PI * DR * DTEMIS * 1.d-18 * 1.373d0
 
       ! Lower and upper limit of size bin N [um]
-      !--------------------------------------------
-      ! Prior to 7/20/04:
-      !R0    = SS_SIZE( N )
-      !R1    = SS_SIZE( N+1 )
-      !--------------------------------------------
       SELECT CASE( N ) 
        
          ! Accum mode

@@ -1,4 +1,4 @@
-! $Id: convection_mod.f,v 1.6 2004/09/21 18:04:09 bmy Exp $
+! $Id: convection_mod.f,v 1.7 2004/12/02 21:48:34 bmy Exp $
       MODULE CONVECTION_MOD
 !
 !******************************************************************************
@@ -69,10 +69,6 @@
       USE WETSCAV_MOD,       ONLY : COMPUTE_F
 
 #     include "CMN_SIZE"  ! Size parameters
-!------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"       ! STT, TCVV, NTRACE, LPRT
-!------------------------------------------------------
 #     include "CMN_DIAG"  ! ND37, LD37 
 
 #if   defined( GEOS_4 )
@@ -80,18 +76,8 @@
       ! More local variables 
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: I, ISOL, J, L, L2, N, NSTEP  
-      !--------------------------------------------------------
-      ! Prior to 7/20/04:
-      ! Replace NTRACE with N_TRACERS
-      !INTEGER       :: INDEXSOL(NTRACE) 
       INTEGER       :: INDEXSOL(N_TRACERS) 
-      !--------------------------------------------------------
       INTEGER       :: CONVDT    
-      !--------------------------------------------------------
-      ! Prior to 7/20/04:
-      ! Replace NTRACE with N_TRACERS
-      !REAL*8        :: F(IIPAR,JJPAR,LLPAR,NTRACE)
-      !--------------------------------------------------------
       REAL*8        :: F(IIPAR,JJPAR,LLPAR,N_TRACERS)
       REAL*8        :: RPDEL(IIPAR,JJPAR,LLPAR)
       REAL*8        :: DP(IIPAR,JJPAR,LLPAR)
@@ -139,10 +125,6 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, ISOL )
 !$OMP+SCHEDULE( DYNAMIC )
-      !-------------------------
-      ! Prior to 7/20/04:
-      !DO N = 1, NTRACE
-      !-------------------------
       DO N = 1, N_TRACERS
 
          ! Get fraction of tracer scavenged and the soluble tracer 
@@ -212,11 +194,6 @@
       !=================================================================
 
       ! Flip 4-D arrays for FVDAS_CONVECT
-      !-----------------------------------------------------------------
-      ! Prior to 7/20/04:
-      !STT(:,:,1:LLPAR,1:NTRACE) = STT(:,:,LLPAR:1:-1,1:NTRACE)
-      !F  (:,:,1:LLPAR,1:NTRACE) = F  (:,:,LLPAR:1:-1,1:NTRACE)
-      !-----------------------------------------------------------------
       STT(:,:,1:LLPAR,1:N_TRACERS) = STT(:,:,LLPAR:1:-1,1:N_TRACERS)
       F  (:,:,1:LLPAR,1:N_TRACERS) = F  (:,:,LLPAR:1:-1,1:N_TRACERS)
 
@@ -230,19 +207,6 @@
       ZMMU_F  (:,:,1:LLPAR) = ZMMU  (:,:,LLPAR:1:-1)
 
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_CONVECTION: a flip' )
-
-!----------------------------------------------------------------------------
-! Prior to 7/20/04:
-!      ! Call the fvDAS convection routines (originally from NCAR!)
-!      CALL FVDAS_CONVECT( TDT,    NTRACE,  STT(:,:,:,1:NTRACE),    
-!     &                    RPDEL,  HKETA_F, HKBETA_F, 
-!     &                    ZMMU_F, ZMMD_F,  ZMEU_F,  
-!     &                    DP,     NSTEP,   F,      
-!     &                    TCVV(1:NTRACE),  INDEXSOL )
-!
-!      ! Reflip STT array after FVDAS_CONVECT
-!      STT(:,:,1:LLPAR,1:NTRACE) = STT(:,:,LLPAR:1:-1,1:NTRACE)
-!----------------------------------------------------------------------------
 
       ! Call the fvDAS convection routines (originally from NCAR!)
       CALL FVDAS_CONVECT( TDT,      N_TRACERS, STT,    RPDEL,  HKETA_F, 
@@ -262,10 +226,6 @@
       !==================================================================
 
       ! Call the S-J Lin convection routine for GEOS-1, GEOS-S, GEOS-3
-      !-------------------------------------------------------------------
-      ! Prior to 7/20/04:
-      !CALL NFCLDMX( NTRACE, TCVV(1:NTRACE), STT(:,:,:,1:NTRACE) )
-      !-------------------------------------------------------------------
       CALL NFCLDMX( N_TRACERS, TCVV, STT )
 
       !### Debug

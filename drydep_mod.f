@@ -1,4 +1,4 @@
-! $Id: drydep_mod.f,v 1.14 2004/09/21 18:04:12 bmy Exp $
+! $Id: drydep_mod.f,v 1.15 2004/12/02 21:48:35 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
@@ -155,11 +155,6 @@
       !=================================================================
 
       ! Parameters
-      !----------------------------------------------
-      ! Prior to 7/13/04:
-      ! Increase MAXDEP for SOA (rjp, bmy, 7/13/04)
-      !INTEGER, PARAMETER   :: MAXDEP    = 26
-      !----------------------------------------------
       INTEGER, PARAMETER   :: MAXDEP    = 35
       INTEGER, PARAMETER   :: NNTYPE    = 15     ! NTYPE    from "CMN_SIZE"
       INTEGER, PARAMETER   :: NNPOLY    = 20     ! NPOLY    from "CMN_SIZE"
@@ -295,21 +290,11 @@
       ! Compute mixing heights
       !=================================================================
       
-      !----------------------
-      ! Prior to 7/20/04:
-      !! 1-D grid box index
-      !IJLOOP = 0
-      !----------------------
-
       ! Compute mixing heights
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Increment IJLOOP
-         !------------------------------
-         ! Prior to 7/20/04:
-         !IJLOOP        = IJLOOP + 1
-         !------------------------------
          IJLOOP        = ( (J-1) * IIPAR ) + I
 
          ! Set logical LSNOW if snow and sea ice (ALBEDO > 0.4)
@@ -376,21 +361,8 @@
       !=================================================================
       ! Compute dry deposition frequencies; archive diagnostics
       !=================================================================
-
-      !----------------------
-      ! Prior to 7/20/04:
-      !! 1-D grid box index
-      !IJLOOP = 0
-      !----------------------
-
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-
-         !----------------------
-         ! Prior to 7/20/04:
-         ! Increment IJLOOP
-         !IJLOOP  = IJLOOP + 1
-         !----------------------
 
          ! 1-D grid box index
          IJLOOP  = ( (J-1) * IIPAR ) + I
@@ -462,10 +434,6 @@
       USE TRACERID_MOD
 
 #     include "CMN_SIZE"   ! Size parameters!
-!--------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"        ! NSRCX
-!--------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: N
@@ -577,20 +545,12 @@
       !=================================================================
       ! METERO begins here!
       !=================================================================
-      !---------------------
-      ! Prior to 7/20/04:
-      !IJLOOP = 0
-      !---------------------
 
       ! Loop over surface grid boxes
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! 1-D grid box index
-         !---------------------------
-         ! Prior to 7/20/04:
-         !IJLOOP = IJLOOP + 1
-         !---------------------------
          IJLOOP = ( (J-1) * IIPAR ) + I
 
          ! THIK = thickness of layer 1 [m]
@@ -830,10 +790,6 @@
 #     include "CMN"       ! XTRA2
 #     include "CMN_DIAG"  ! Diagnostic switches & arrays
 #     include "CMN_DEP"   ! Dry deposition variables
-!--------------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP" ! LDRYD
-!--------------------------------------------------------------
 
       ! Local variables
       INTEGER             :: I, J, L, L_PBLTOP, N, NN
@@ -1764,10 +1720,6 @@ C** Load array DVEL
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
-!--------------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP" ! for DATA_DIR (bmy, 7/6/01)
-!--------------------------------------------------------------
 
       ! Local variables
       INTEGER             :: L, IOLSON, I, IOS, IUNIT
@@ -1878,10 +1830,6 @@ C** Load array DVEL
       IMPLICIT NONE
       
 #     include "CMN_SIZE"  ! Size parameters
-!------------------------------------------------------
-! Prior to 7/20/04
-!#     include "CMN_SETUP" ! DATA_DIR
-!------------------------------------------------------
 
       ! Local variables
       INTEGER            :: I, IOS
@@ -1973,20 +1921,6 @@ C** Load array DVEL
       REAL*8  :: DIAM, DEN
       REAL*8  :: EB, EIM, EIN, R1, AA, VTS
 
-      !-----------------------------------------------------------------------
-      ! Prior to 4/20/04:
-      ! Now each drydep aerosol species carries its size and density 
-      ! (rjp, bec, bmy, 4/20/04)
-      !! Dust size and density are hardwired now but we have to come up
-      !! with a better way to handle this
-      !
-      !! Dust Particle radii (m)
-      !REAL*8  :: DUSTREFF( 4 ) = ( /0.73d-6, 1.4d-6, 2.4d-6, 4.5d-6/ )
-      !
-      !! Soil density (kg/m3)
-      !REAL*8  :: DUSTDEN(  4 ) = ( /2500.d0, 2650.d0, 2650.d0, 2650.d0/)
-      !-----------------------------------------------------------------------
-
       !=================================================================
       ! Ref. Zhang et al., AE 35(2001) 549-560 and Seinfeld(1986)
       ! 
@@ -2033,13 +1967,6 @@ C** Load array DVEL
       !
       !      R1 (Particle rebound)  = exp(-St^0.5)
       !=================================================================
-
-      !----------------------------------------------------------------
-      ! Prior to 4/20/04:
-      ! Now use values from A_RADI and A_DEN (rjp, bec, bmy, 4/20/04)
-      !DIAM  = DUSTREFF(K) * 2.d0
-      !DEN   = DUSTDEN(K)
-      !----------------------------------------------------------------
 
       ! Particle diameter [m]
       DIAM  = A_RADI(K) * 2.d0 
@@ -2245,23 +2172,6 @@ C** Load array DVEL
      &            2.0d0,   2.0d0, -999.d0, -999.d0, 10.0d0, 
      &           10.0d0, -999.d0, -999.d0, -999.d0, 10.0d0  /
 
-      !----------------------------------------------------------------------
-      ! Prior to 4/20/04:
-      ! Now each drydep aerosol species carries its size and density 
-      ! (rjp, bec, bmy, 04/20/04)
-      ! 
-      !!=================================================================
-      !! Dust size and density are hardwired now but we have to come up
-      !! with a better way to handle this
-      !!=================================================================
-      !
-      !! Dust Particle radii (m)
-      !REAL*8  :: DUSTREFF( 4 ) = ( /0.73d-6, 1.4d-6, 2.4d-6, 4.5d-6/ )
-      !
-      !! Soil density (kg/m3)
-      !REAL*8  :: DUSTDEN(  4 ) = ( /2500.d0, 2650.d0, 2650.d0, 2650.d0/)
-      !----------------------------------------------------------------------
-
       ! Annual average of A
       Aavg(:) = (A(:,1)+A(:,2)+A(:,3)+A(:,4)+A(:,5))/5.
       LUC     = LUCINDEX(II)
@@ -2314,13 +2224,6 @@ C** Load array DVEL
       !      R1 (Particle rebound)  = exp(-St^0.5)
       !=================================================================
       
-      !----------------------------------------------------
-      ! Prior to 4/20/04:
-      ! Now use values from A_RADI and A_DEN (bmy, 4/20/04)
-      !DIAM  = DUSTREFF(K) * 2.d0  
-      !DEN   = DUSTDEN(K)
-      !----------------------------------------------------
-
       ! Particle diameter [m]
       DIAM  = A_RADI(K) * 2.d0  
 
@@ -2456,10 +2359,6 @@ C** Load array DVEL
       ! First identify tracers that dry deposit and then initialize 
       ! DEPNAME, NDVZIND, HSTAR, F0, XMW and AIROSOL accordingly
       !=================================================================
-      !--------------------
-      ! Prior to 7/20/04:
-      !DO N = 1, NTRACE
-      !--------------------
       DO N = 1, N_TRACERS
 
          ! 210Pb (aerosol)
@@ -2779,10 +2678,6 @@ C** Load array DVEL
             HSTAR(NUMDEP)   = 0.0d0
             F0(NUMDEP)      = 0.0d0
             XMW(NUMDEP)     = 36d-3     
-            !---------------------------------
-            ! Prior to 7/20/04:
-            !A_RADI(NUMDEP)  = 0.65d-6
-            !---------------------------------
             A_RADI(NUMDEP)  = ( SALA_REDGE_um(1) + 
      &                          SALA_REDGE_um(2) ) * 0.5d-6
             A_DEN(NUMDEP)   = 2200.d0         
@@ -2797,10 +2692,6 @@ C** Load array DVEL
             HSTAR(NUMDEP)   = 0.0d0
             F0(NUMDEP)      = 0.0d0
             XMW(NUMDEP)     = 36d-3 
-            !-----------------------------------
-            ! Prior to 7/20/04:
-            !A_RADI(NUMDEP)  = 3.125d-6
-            !-----------------------------------
             A_RADI(NUMDEP)  = ( SALC_REDGE_um(1) + 
      &                          SALC_REDGE_um(2) ) * 0.5d-6
             A_DEN(NUMDEP)   = 2200.d0         
@@ -2922,15 +2813,7 @@ C** Load array DVEL
       !=================================================================
       ! Echo information to stdout
       !=================================================================
-      !----------------------------------------------------------------------
-      ! Prior to 7/20/04:
-      !WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
-      !WRITE( 6, '(a,/)' ) 'D R Y   D E P O S I T I O N   S E T U P'
-      !WRITE( 6, '(a,/)' ) 'INIT_DRYDEP: List of dry deposition species:'
-      !WRITE( 6, '(a)'   )
-      !----------------------------------------------------------------------
       WRITE( 6, '(/,a)' ) 'INIT_DRYDEP: List of dry deposition species:'
-      !WRITE( 6, '(a,/)' ) '--------------------------------------------'
       WRITE( 6, '(a)'   )
      & '  #   Name  Tracer DEPVEL Henry''s    React.   Molec.  Aerosol?'
       WRITE( 6, '(a)'   )
@@ -2942,11 +2825,6 @@ C** Load array DVEL
      &                   HSTAR(N),  F0(N),      XMW(N),     AIROSOL(N)
       ENDDO
  100  FORMAT( i3, 3x, a4, 2(3x,i3), 4x, es8.1, 2(3x,f6.3), 3x, L3 )
-
-      !----------------------------------------------------------------------
-      ! Prior to 7/20/04:
-      !WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
-      !----------------------------------------------------------------------
 
       ! Return to calling program
       END SUBROUTINE INIT_DRYDEP

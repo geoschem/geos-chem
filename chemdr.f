@@ -1,4 +1,4 @@
-! $Id: chemdr.f,v 1.11 2004/10/15 20:16:40 bmy Exp $
+! $Id: chemdr.f,v 1.12 2004/12/02 21:48:33 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
@@ -176,15 +176,6 @@
       REAL*8              :: SURFALT(MAXIJ)
       REAL*8              :: TOTO3(JJPAR)
       REAL*8              :: CLOUDS(MAXIJ,11)
-      ! Prior to 7/20/04:
-      !REAL*8              :: SO4_NH4_NIT(IIPAR,JJPAR,LLPAR)
-      !REAL*8              :: BCPI(IIPAR,JJPAR,LLPAR)
-      !REAL*8              :: BCPO(IIPAR,JJPAR,LLPAR)
-      !REAL*8              :: OCPI(IIPAR,JJPAR,LLPAR)
-      !REAL*8              :: OCPO(IIPAR,JJPAR,LLPAR)
-      !REAL*8              :: SALA(IIPAR,JJPAR,LLPAR)
-      !REAL*8              :: SALC(IIPAR,JJPAR,LLPAR)
-      !REAL*8              :: SOILDUST(IIPAR,JJPAR,LLPAR,NDUST)
 
       !=================================================================
       ! CHEMDR begins here!
@@ -281,21 +272,6 @@
       ! Do the following only on the first call ...
       IF ( FIRSTCHEM ) THEN
 
-        ! Prior to 7/20/04:
-        ! ! Zero SO4_NH4_NIT on the first call only
-        ! SO4_NH4_NIT = 0d0
-        ! 
-        ! ! Zero EC/OC on the first call only
-        ! BCPI        = 0d0
-        ! BCPO        = 0d0
-        ! OCPI        = 0d0
-        ! OCPO        = 0d0
-        ! SALA        = 0d0
-        ! SALC        = 0d0
-        ! 
-        ! ! Zero dust on the first call only
-        ! SOILDUST    = 0d0
-
          !==============================================================
          ! Call READCHEM -- the setup routine for gas-phase chemistry
          !==============================================================
@@ -361,135 +337,6 @@
       ! Skip this section if all these are turned off
       IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
 
-!----------------------------------------------------------------------------
-! Prior to 7/20/04:
-! Moved this code to AEROSOL_CONC
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, N )
-!!$OMP+SCHEDULE( DYNAMIC )
-!         DO L = 1, LLPAR
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!
-!            !===========================================================
-!            ! Dump hydrophilic aerosols into one array that will be 
-!            ! passed to RDAER and then used for heterogeneous chemistry 
-!            ! as well as photolysis rate calculations interatively. 
-!            !
-!            ! If LSULF=F, then we read these aerosol data from Mian's 
-!            ! simulation.  If LSULF=T then we use the online tracers.
-!            !
-!            ! Now assume that all sulfate, ammonium, and nitrate are 
-!            ! hydrophilic but sooner or later we can pass only 
-!            ! hydrophilic aerosols from the thermodynamic calculations 
-!            ! for this purpose.  This dumping should be done before 
-!            ! calling INITGAS, which converts the unit of STT array 
-!            ! from kg/box to molec/cm3.
-!            !
-!            ! Units of SO4_NH4_NIT are [kg/m3].  (rjp, bmy, 3/23/03)
-!            !===========================================================
-!            IF ( LSULF ) THEN
-!               SO4_NH4_NIT(I,J,L) = ( STT(I,J,L,IDTSO4) + 
-!     &                                STT(I,J,L,IDTNH4) +
-!     &                                STT(I,J,L,IDTNIT) ) / 
-!     &                              AIRVOL(I,J,L)
-!            ENDIF
-!
-!            !===========================================================
-!            ! Compute hydrophilic and hydrophobic BC and OC in [kg/m3]
-!            ! for passing to "rdaer.f" 
-!            !===========================================================
-!            IF ( LCARB ) THEN
-!
-!               ! Hydrophilic BC [kg/m3]
-!               BCPI(I,J,L) = STT(I,J,L,IDTBCPI) / AIRVOL(I,J,L)
-!
-!               ! Hydrophobic BC [kg/m3]
-!               BCPO(I,J,L) = STT(I,J,L,IDTBCPO) / AIRVOL(I,J,L)
-!
-!               ! Hydrophobic OC [kg/m3] 
-!               OCPO(I,J,L) = STT(I,J,L,IDTOCPO) * OCF / AIRVOL(I,J,L)
-!
-!               IF ( LSOA ) THEN
-!
-!                  ! Hydrophilic primary OC plus SOA [kg/m3A.  We need
-!                  ! to multiply by OCF to account for the mass of other 
-!                  ! components which are attached to the OC aerosol.
-!                  ! (rjp, bmy, 7/15/04)
-!                  OCPI(I,J,L) = ( STT(I,J,L,IDTOCPI) * OCF 
-!     &                        +   STT(I,J,L,IDTSOA1)
-!     &                        +   STT(I,J,L,IDTSOA2)
-!     &                        +   STT(I,J,L,IDTSOA3)  ) / AIRVOL(I,J,L)
-! 
-!               ELSE
-!
-!                  ! Hydrophilic primary and SOA OC [kg/m3].   We need
-!                  ! to multiply by OCF to account for the mass of other 
-!                  ! components which are attached to the OC aerosol.
-!                  ! (rjp, bmy, 7/15/04)
-!                  OCPI(I,J,L) = STT(I,J,L,IDTOCPI) * OCF / AIRVOL(I,J,L)
-!                  
-!               ENDIF
-!
-!               ! Now avoid division by zero (bmy, 4/20/04)
-!               BCPI(I,J,L) = MAX( BCPI(I,J,L), 1d-35 )
-!               OCPI(I,J,L) = MAX( OCPI(I,J,L), 1d-35 )
-!               BCPO(I,J,L) = MAX( BCPO(I,J,L), 1d-35 )
-!               OCPO(I,J,L) = MAX( OCPO(I,J,L), 1d-35 )
-!            ENDIF
-!
-!            !===========================================================
-!            ! Full chemistry with dust aerosol turned on.
-!            !
-!            ! Note, we can do better than this! Currently we carry 4 
-!            ! dust tracers...but het. chem and fast-j use 7 dust bins 
-!            ! hardwired from Ginoux.
-!            !
-!            ! Now, I apportion the first dust tracer into four smallest 
-!            ! dust bins equally in mass for het. chem and fast-j. 
-!            ! 
-!            ! Maybe we need to think about chaning our fast-j and het. 
-!            ! chem to use just four dust bins or more flexible 
-!            ! calculations depending on the number of dust bins. 
-!            ! (rjp, 03/27/04)
-!            !===========================================================
-!            IF ( LDUST ) THEN
-!
-!               ! Lump 1st dust tracer for het chem
-!               DO N = 1, 4
-!                  SOILDUST(I,J,L,N) = 
-!     &                 0.25d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
-!               ENDDO
-!
-!               ! Other hetchem bins
-!               SOILDUST(I,J,L,5) = STT(I,J,L,IDTDST2) / AIRVOL(I,J,L)
-!               SOILDUST(I,J,L,6) = STT(I,J,L,IDTDST3) / AIRVOL(I,J,L)
-!               SOILDUST(I,J,L,7) = STT(I,J,L,IDTDST4) / AIRVOL(I,J,L)
-!            ENDIF
-!
-!            !===========================================================
-!            ! Sea salt tracers
-!            !===========================================================
-!            IF ( LSSALT ) THEN
-!
-!               ! Accumulation mode seasalt aerosol [kg/m3]
-!               SALA(I,J,L) = STT(I,J,L,IDTSALA) / AIRVOL(I,J,L)
-!            
-!               ! Coarse mode seasalt aerosol [kg/m3]
-!               SALC(I,J,L) = STT(I,J,L,IDTSALC) / AIRVOL(I,J,L)
-!
-!               ! Avoid division by zero
-!               SALA(I,J,L) = MAX( SALA(I,J,L), 1d-35 )
-!               SALC(I,J,L) = MAX( SALC(I,J,L), 1d-35 )
-!            ENDIF
-!
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO
-!----------------------------------------------------------------------------
-
          ! Get concentrations of aerosols in [kg/m3] 
          ! for FAST-J and optical depth diagnostics
          CALL AEROSOL_CONC
@@ -520,12 +367,6 @@
       !=================================================================
       ! Call RDAER -- computes aerosol optical depths
       !=================================================================
-!------------------------------------------------
-! Prior to 7/20/04:
-!      CALL RDAER( MONTH, YEAR, SO4_NH4_NIT, 
-!     &            BCPI,  BCPO, OCPI, 
-!     &            OCPO,  SALA, SALC )
-!------------------------------------------------
       CALL RDAER( MONTH, YEAR )
 
       !### Debug

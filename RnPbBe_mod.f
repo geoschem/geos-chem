@@ -1,4 +1,4 @@
-! $Id: RnPbBe_mod.f,v 1.4 2004/09/21 18:04:07 bmy Exp $
+! $Id: RnPbBe_mod.f,v 1.5 2004/12/02 21:48:32 bmy Exp $
       MODULE RnPbBe_MOD
 !
 !******************************************************************************
@@ -114,10 +114,6 @@
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
 #     include "CMN_SIZE"  ! Size parameters
-!----------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP" ! DATA_DIR 
-!----------------------------------------------
 
       ! Local variables
       INTEGER            :: IOS, J, L
@@ -298,10 +294,6 @@
       !=================================================================
 
       ! Return if we are not doing emissions!
-      !----------------------------
-      ! Prior to 7/20/04:
-      !IF ( .not. LSRCE ) RETURN   
-      !----------------------------
       IF ( .not. LEMIS ) RETURN   
 
       ! Emission timestep [s]
@@ -450,10 +442,6 @@
       ! Original units of 7Be emissions are [stars/g air/sec],
       ! where "stars" = # of nuclear disintegrations of cosmic rays
       !=================================================================
-      !----------------------------
-      ! Prior to 7/20/04:
-      !IF ( NTRACE >= 3 ) THEN
-      !----------------------------
       IF ( N_TRACERS >= 3 ) THEN
 
          ! Read 7Be emissions on the first timestep only
@@ -602,10 +590,6 @@
       !=================================================================
       ! Radioactive decay of 210Pb (tracer #2)
       !=================================================================
-      !------------------------
-      ! Prior to 7/20/04:
-      !IF ( NTRACE >= 2 ) THEN
-      !------------------------
       IF ( N_TRACERS >= 2 ) THEN
 
 !$OMP PARALLEL DO
@@ -649,10 +633,6 @@
       !=================================================================
       ! Radioactive decay of 7Be (tracer #3)
       !=================================================================
-      !---------------------------
-      ! Prior to 7/20/04:
-      !IF ( NTRACE >= 3 ) THEN 
-      !---------------------------
       IF ( N_TRACERS >= 3 ) THEN 
 
 !$OMP PARALLEL DO

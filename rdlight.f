@@ -1,4 +1,4 @@
-! $Id: rdlight.f,v 1.2 2004/09/21 18:04:17 bmy Exp $
+! $Id: rdlight.f,v 1.3 2004/12/02 21:48:39 bmy Exp $
       SUBROUTINE RDLIGHT
 !
 !******************************************************************************
@@ -28,10 +28,6 @@
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN_ISOP"  ! SOPCOEFF
-!--------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP" ! DATA_DIR 
-!--------------------------------------------
 
       INTEGER            :: I, IOS
       CHARACTER(LEN=80)  :: DUM

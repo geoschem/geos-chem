@@ -1,4 +1,4 @@
-! $Id: chemistry_mod.f,v 1.10 2004/10/15 20:16:40 bmy Exp $
+! $Id: chemistry_mod.f,v 1.11 2004/12/02 21:48:34 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
@@ -16,23 +16,22 @@
 !  (3 ) carbon_mod.f       : Module containing routines for carbon arsl chem.
 !  (4 ) ch3i_mod.f         : Module containing routines for CH3I chemistry
 !  (5 ) dao_mod.f          : Module containing arrays for DAO met fields
-!  (6 ) diag20_mod.f       : Module containing routines to save P(Ox), L(Ox)
-!  (7 ) diag65_mod.f       : Module containing routines for prod/loss diag's
-!  (8 ) drydep_mod.f       : Module containing GEOS-CHEM drydep routines
-!  (9 ) dust_mod.f         : Module containing routines for dust arsl chem.
-!  (10) error_mod.f        : Module containing NaN and error checks
-!  (11) global_ch4_mod.f   : Module containing routines for CH4 chemistry
-!  (12) Kr85_mod.f         : Module containing routines for Kr85 chemistry
-!  (13) logical_mod.f      : Module containing GEOS-CHEM logical switches
-!  (14) RnPbBe_mod.f       : Module containing routines for Rn-Pb-Be chemistry
-!  (15) rpmares_mod.f      : Module containing routines for arsl phase equilib.
-!  (16) seasalt_mod.f      : Module containing routines for seasalt chemistry
-!  (17) sulfate_mod.f      : Module containing routines for sulfate chemistry
-!  (18) tagged_co_mod.f    : Module containing routines for Tagged CO chemistry
-!  (19) tagged_ox_mod.f    : Module containing routines for Tagged Ox chemistry
-!  (20) time_mod.f         : Module containing routines to compute time & date
-!  (21) tracer_mod.f       : Module containing GEOS-CHEM tracer array STT etc. 
-!  (22) tracerid_mod.f     : Module containing pointers to tracers & emissions
+!  (6 ) diag_pl_mod.f      : Module containing routines to save P(Ox), L(Ox)
+!  (7 ) drydep_mod.f       : Module containing GEOS-CHEM drydep routines
+!  (8 ) dust_mod.f         : Module containing routines for dust arsl chem.
+!  (9 ) error_mod.f        : Module containing NaN and error checks
+!  (10) global_ch4_mod.f   : Module containing routines for CH4 chemistry
+!  (11) Kr85_mod.f         : Module containing routines for Kr85 chemistry
+!  (12) logical_mod.f      : Module containing GEOS-CHEM logical switches
+!  (13) RnPbBe_mod.f       : Module containing routines for Rn-Pb-Be chemistry
+!  (14) rpmares_mod.f      : Module containing routines for arsl phase equilib.
+!  (15) seasalt_mod.f      : Module containing routines for seasalt chemistry
+!  (16) sulfate_mod.f      : Module containing routines for sulfate chemistry
+!  (17) tagged_co_mod.f    : Module containing routines for Tagged CO chemistry
+!  (18) tagged_ox_mod.f    : Module containing routines for Tagged Ox chemistry
+!  (19) time_mod.f         : Module containing routines to compute time & date
+!  (20) tracer_mod.f       : Module containing GEOS-CHEM tracer array STT etc. 
+!  (21) tracerid_mod.f     : Module containing pointers to tracers & emissions
 !
 !  NOTES:
 !  (1 ) Bug fix in DO_CHEMISTRY (bnd, bmy, 4/14/03)

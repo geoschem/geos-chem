@@ -1,12 +1,20 @@
-REVISIONS (v7-01-02)  
-bmy, 29 Oct 2004
+REVISIONS (v7-02-01)  
+bmy, 02 Dec 2004
 
 
-New in v7-01-02:
+New in v7-02-01:
 -------------------------------------------------------------------------------
 
-aerosol_ruralbox	-- Added to supply variables such as IXSAVE, IYSAVE,
-("aerosol_mod.f")	   IZSAVE, AIRDENS, ABSHUM to offline aerosol sim
+epa_nei_mod.f		-- Module conta ining routines to read the EPA/NEI99
+			   anthropogenic and biofuel emission data over
+			   the continental USA
+
+get_bounding_box	-- Added this routine to compute the lon/lat indices
+("grid_mod.f")	           which bound a rectangular region, given the lats
+	                   and lons at the lower-left and upper-right corners.
+
+get_day_of_week		-- Returns day number of the week
+("time_mod.f")	 	   Sun=0, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6
 
 
 
@@ -15,81 +23,185 @@ Removed in v7-01-02:
 
 
 
-Changed from v7-01-01:
+
+Changed from v7-01-02:
 -------------------------------------------------------------------------------
 
-accumulate_diag50	-- Now reference GET_ELAPSED_MIN and GET_TS_CHEM 
-("diag50_mod.f")	-- from "time_mod.f".  
-			-- Also now use extra counter COUNT_CHEM to count 
-			   the number of chemistry timesteps, because NO, NO2,
-			   OH, O3 are only archived when a full-chemistry
-		           timestep happens. 
+anthro_carb_tbond  	-- Now reads data from "carbon_200411" subdirectory
+("carbon_mod.f")	   of DATA_DIR
 
-accumulate_diag51	-- Now reference GET_ELAPSED_MIN and GET_TS_CHEM from
-("diag51_mod.f")	   "time_mod.f".  
-			-- Also now all diagnostic counters are 1-D since 
-			   they only depend on longitude.
-			-- Now only archive NO, NO2, OH, O3 on every chemistry
-			   timestep (i.e. only when fullchem is called)
+anthro_carb_cooke 	-- Now reads data from "carbon_200411" subdirectory
+("carbon_mod.f")	   of DATA_DIR
+			-- Now only apply Cooke/RJP emissions over the North 
+			   American region (i.e. the region bounded by indices
+			   I1_NA, J1_NA, I2_NA, J2_NA).
 
-cleanup_diag51		-- Now deallocate GOOD_CT_CHEM
-("diag51_mod.f")
+avgpole			-- Now use cpp switches NESTED_CH and NESTED_NA to 
+("dao_mod.f")		   denote nested grids...GRID1x1 can now also denote 
+			   a 1x1 global grid
 
-chem_tagged_ox		-- Bug fix: Now avoid a SEG FAULT error if 
-("tagged_ox_mod.f")	   PBLFRAC isn't allocated
+biofuel_burn	       	-- Now can overwrite USA with EPA/NEI biofuels
+("biofuel_mod.f")	-- Now reference GET_DAY_OF_WEEK from "time_mod.f"
+			-- Now reference LNEI99 from "logical_mod.f"
+			-- Now reference GET_EPA_BIOFUEL and GET_USA_MASK 
+			   from "epa_nei_mod.f". 
 
-diag3.f			-- Comment out ND27 for GEOS-4.  It isn't working 100%
-			   right.  If you examine the flux at 200 hPa, you get
-			   the same info.
+biogenic_oc		-- Now reads data from "carbon_200411" subdirector
+("carbon_mod.f")	   of DATA_DIR
 
-diag49			-- Updated tracer # for NO2
-("diag49_mod.f")
+biomass_carb_cooke 	-- Now reads data from "carbon_200411" subdirectory
+("carbon_mod.f")	   of DATA_DIR
 
-diag51			-- Added local variable TAU_W
-("diag51_mod.f")
+biomass_carb_geos 	-- Now reads data from "carbon_200411" subdirectory
+("carbon_mod.f")	   of DATA_DIR
 
-do_transport		-- Now references MASSFLEW, MASSFLNS, MASSFLUP 
-("transport_mod.f")	   from "diag_mod.f"
-			-- Also references ND24, ND25, ND26 from "CMN_DIAG"
+carbon_mod.f		-- Now read data from carbon_200411/ subdir of 
+			   DATA_DIR 
+			-- Also added some extra debug output
+			-- Now read T. Bond yearly emissions as default, but 
+			   overwrite N. America with the monthly Cooke/RJP 
+			   emissions
+			-- Added module variables I1_NA, I2_NA, J1_NA, J2_NA.
 
-init_dao		-- Now also allocate AVGW for offline aerosol sim
-("dao_mod.f")
+cleanup.f		-- Now calls cleanup routine from "epa_nei_mod.f"
 
-init_diag51		-- Diagnostic counter arrays are now only 1-D.  
-("diag51_mod.f") 	-- Also add GOOD_CT_CHEM which is the counter array 
-			   of "good" boxes at each chemistry timesteps.
-			-- Now allocate GOOD_CT_CHEM
+cleanup_diag		-- Now also deallocate AD13_SO4_bf array 
+("diag_mod.f")
 
-init_comode		-- Now allocate certain arrays for offline aerosol sim
-("comode_mod.f")
+CMN_SIZE		-- Now use NESTED_CH and NESTED_NA cpp switches to 
+			   define parameters for 1x1 nested grids
+			-- Also add parameters for the 1 x 1.25 global grid
 
-its_time_for_write_diag51- Add TAU_W as an output argument
-("diag51_mod.f")
+commsoil.h		-- Now use Cpp switches to pick the # of land points
+			-- Also added space in the #ifdef block for the 
+			   GEOS-4 1 x 1.25 grid
 
-ndxx_setup.f		-- Now make sure that LD21 = MAX( ND21, LLTROP )
-		           instead of LLPAR
+compute_grid		-- Now also support 1 x 1.25 grid
+("grid_mod.f")
 
-read_prod_loss_menu	-- Bug fix: Only error check # of prod/loss families 
-("input_mod.f")		   for TagOx and TagCO runs if DO_SAVE_PL=T.  
-			-- Also turn off this diagnostic for the offline 
-			   aerosol run.
+define.h		-- Added NESTED_CH and NESTED_NA switches
+			-- Also add GRID1x125 cpp switch.
 
-tpcore_fvdas_mod.f90	-- Added Brendan Field's mass flux diagnostic code
-			   for ND24, ND25, ND26 diagnostic
-			-- Highlighted places where Harvard modified the
-			   original code (in case we need to know this for
-			   MPI parallelization)
-			-- Added parallel loops for ND26 diagnostic
+diag_mod.f		-- Added array AD13_SO4_bf
 
+diag3.f			-- Added biofuel SO4 to the bpch file under ND13
+			-- Bug fix: replace ND68 with LD68 in call to BPCH2
 
-write_diag50		-- Now only archive NO, NO2, OH, O3 on every chemistry
-("diag50_mod.f")	   timestep (i.e. only when fullchem is called).  
-			-- Also remove reference to FIRST. 
+diag20			-- Now also write to disk when it is the last 
+("diag_pl_mod.f")	   timestep before the end of the run
+			-- Now references GET_TAUE from "time_mod.f
 
-write_diag51		-- Add TAU_W as an input argument
-("diag51_mod.f")	-- Use TAU_W to set TAU0, TAU1 variables
-			-- Also now all diagnostic counters are 1-D since they
-			   only depend on longitude.  
-			-- Now only archive NO, NO2, OH, O3 on every chemistry
-			   timestep (i.e. only when fullchem is called)
-			-- Also remove reference to FIRST. 
+display_grid_and_model  -- Now print info for 1 x 1.25 grid
+("main.f")
+
+do_emissions		-- Now references ITS_A_NEW_MONTH from "time_mod.f"
+("emissions_mod.f")	-- Now references EMISS_EPA_NEI from "epa_nei_mod.f"
+
+emfossil.f		-- Now can overwrite existing emissions with EPA/NEI
+			   data over the continental USA if LNEI99=T.  
+			-- Now reference LNEI99 from "logical_mod.f".  
+			-- Now reference GET_EPA_ANTHRO and GET_USA_MASK 
+			   from "epa_nei_mod.f". 
+
+emisscarbon		-- Now always call ANTHRO_CARB_TBOND and 
+("carbon_mod.f")	   ANTHRO_CARB_COOKE.  This will read the T. Bond et 
+	                   al [2004] emissions but overwrite the North
+		           America region with monthly-mean emissions from 
+			   Cooke et al [1999] with imposed seasonality from 
+			   R. Park [2003].
+
+get_res_ext		-- Added extension for 1 x 1.25 grid
+("bpch2_mod.f")
+
+init_carbon		-- Now reference LSOA from "logical_mod.f" 
+("carbon_mod.f")	   instead of "CMN_SETUP"
+			-- Now call GET_BOUNDING_BOX from "grid_mod.f" to 
+			   compute the indices I1_NA, I2_NA, J1_NA, J2_NA,
+			   which define the N. America region. 
+
+init_diag49		-- Now get I0 and J0 correctly for nested 
+("diag49_mod.f")	   grid simulations
+
+init_diag50		-- Now get I0 and J0 correctly for nested 
+("diag50_mod.f")	   grid simulations
+
+init_diag51		-- Now get I0 and J0 correctly for nested 
+("diag51_mod.f")	   grid simulations
+
+init_grid		-- Now define IIGLOB & JJGLOB for 1 x 1.25 grid
+("grid_mod.f")
+
+initialize.f		-- Now initialize AD13_SO4_bf array
+
+lightning.f		-- Added space in #ifdef block for GEOS-4 1 x 1.25 grid
+("lightning_nox_mod.f")
+
+logical_mod.f		-- Added LNEI99 switch to toggle EPA/NEI emissions
+
+ndxx_setup.f		-- Now allocate AD13_SO4_bf array
+
+read_aerosol_menu	-- Now stop run if LSOA=T and SOA tracers are undefined
+
+read_bpch2		-- Now separate off nested grid code in an #ifdef 
+("bpch2_mod.f")		   block using NESTED_CH or NESTED_NA cpp switches
+
+read_emissions_menu	-- Now read LNEI99 -- switch for EPA/NEI99 emissions
+("input_mod.f")
+
+read_todx		-- Added space in the #ifdef block for 1 x 1.25 grid
+("geia_mod.f")
+
+ocean_source_acet	-- Added space in #ifdef block for GEOS-4 1x125 grid
+("acetone_mod.f")
+
+setemis.f		-- Bug fix for COMPAQ compiler...do not use EXIT 
+			   from w/in parallel loop
+
+set_tindex		-- Bug fix: now do not drop the last tracer number 
+("input_mod.f")		   if "all" is not explicitly specified
+
+srcnh3			-- Now references GET_EPA_ANTHRO, GET_EPA_BIOFUEL, 
+("sulfate_mod.f")	   and GET_USA_MASK from "epa_nei_mod.f"
+			-- Now references GET_DAY_OF_WEEK from "time_mod.f"
+			-- Now references LNEI99 from "logical_mod.f"
+			-- Now references GET_AREA_CM2 from "grid_mod.f"
+			-- Now references IDTNH3 from "tracerid_mod.f"
+			-- Now references XNUMOL from CMN_O3
+			-- Now can overwrite the anthro & biofuel NH3 
+			   emissions over the continental US if LNEI99=T
+			-- Now references IDTNH3 from "tracerid_mod.f". 
+
+srcso2			-- Now references GET_EPA_ANTHRO, GET_EPA_BIOFUEL,
+("sulfate_mod.f")          and GET_USA_MASK from "epa_nei_mod.f"
+			-- Now references GET_AREA_CM2 from "grid_mod.f"  
+			-- Now references GET_DAY_OF_WEEK from "time_mod.f"
+			-- Now references LNEI99 from "logical_mod.f"
+			-- Now can overwrite the anthro SOx emissions over
+			   the continental US if LNEI99=T.  
+			-- Now references IDTSO2 from "tracerid_mod.f
+
+srcso4			-- Now references GET_EPA_ANTHRO, GET_EPA_BIOFUEL, 
+("sulfate_mod.f")	   and GET_USA_MASK from "epa_nei_mod.f" 
+			-- Now references AD13_SO4_bf from "diag_mod.f".
+			-- Now references GET_AREA_CM2 from "grid_mod.f"
+			-- Now references GET_DAY_OF_WEEK from "time_mod.f"
+			-- Now references LNEI99 from "logical_mod.f"  
+			-- Now can overwrite the anthro SOx emissions over 
+			   the continental US if LNEI99=T.  
+			-- Now references IDTSO4 from "tracerid_mod.f"
+
+tomsai			-- Added space in #ifdef block for 1 x 1.25 grid
+("biomass_mod.f")
+
+tracerid		-- Reverse the position of IDEISOP and IDECH2O so as 
+("tracerid_mod.f")	   to keep all of the anthropogenic tracers together 
+			   in IDEMS 
+
+upbdflx_o3		-- Use an #ifdef block to comment out an EXIT 
+("upbdflx_mod.f")	   statement from w/in a parallel loop for COMPAQ 
+			   compiler.  COMPAQ seems to have some problems 
+			   with this.
+			-- Now supports 1 x 1.25 grid
+
+write20			-- Bug fix: remove declaration of FILENAME which 
+("diag_mod.f") 		   masked the global declaration 

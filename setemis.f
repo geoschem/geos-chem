@@ -1,10 +1,10 @@
-! $Id: setemis.f,v 1.3 2004/04/19 15:09:54 bmy Exp $
+! $Id: setemis.f,v 1.4 2004/12/02 21:48:40 bmy Exp $
       SUBROUTINE SETEMIS( EMISRR, EMISRRN )
 !
 !******************************************************************************
 !  Subroutine SETEMIS places emissions computed from GEOS-CHEM 
 !  subroutines into arrays for SMVGEAR II chemistry. 
-!  (lwh, jyl, gmg, djj, bdf, bmy, 6/8/98, 3/19/04)
+!  (lwh, jyl, gmg, djj, bdf, bmy, 6/8/98, 11/29/04)
 !
 !  SETEMIS converts from units of [molec tracer/box/s] to units of
 !  [molec chemical species/cm3/s], and stores in the REMIS array.  For
@@ -78,6 +78,8 @@
 !  (21) NEMIS is now NEMIS(NCS) for SMVGEAR II (gcc, bdf, bmy, 4/1/03)
 !  (22) Added parallel loop over N.  Also directly substituted JLOP(I,J,1) 
 !        for all instances of JLOOP1.  Updated comments. (hamid, bmy, 3/19/04)
+!  (23) Bug fix for COMPAQ compiler...do not use EXIT from w/in parallel loop.
+!        (auvray, bmy, 11/29/04)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -129,7 +131,12 @@
             DO I = 1, NBIOTRCE
                IF ( BIOTRCE(I) == NN ) THEN 
                   NBB = I
+#if   defined( COMPAQ )
+                  ! COMPAQ has an issue with EXIT from w/in parallel loop
+                  ! (auvray, bmy, 11/29/04)
+#else
                   EXIT
+#endif
                ENDIF
             ENDDO
          ENDIF
@@ -141,8 +148,13 @@
             DO I = 1, NBFTRACE
                IF ( BFTRACE(I) == NN ) THEN
                   NBF = I
+#if   defined( COMPAQ )
+                  ! COMPAQ has an issue with EXIT from w/in parallel loop
+                  ! (auvray, bmy, 11/29/04)
+#else
                   EXIT
-               ENDIF
+#endif 
+              ENDIF
             ENDDO
          ENDIF            
 

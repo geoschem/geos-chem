@@ -1,4 +1,4 @@
-! $Id: rdmonot.f,v 1.2 2004/09/21 18:04:17 bmy Exp $
+! $Id: rdmonot.f,v 1.3 2004/12/02 21:48:39 bmy Exp $
       SUBROUTINE RDMONOT( GMONOT )
 !
 !******************************************************************************
@@ -30,10 +30,6 @@
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
-!----------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP" ! DATA_DIR 
-!----------------------------------------------
 
       ! Arguments
       REAL*8, INTENT(OUT) :: GMONOT(NVEGTYPE)

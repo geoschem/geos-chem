@@ -1,4 +1,4 @@
-! $Id: tropopause.f,v 1.2 2004/09/21 18:04:20 bmy Exp $
+! $Id: tropopause.f,v 1.3 2004/12/02 21:48:41 bmy Exp $
       SUBROUTINE TROPOPAUSE
 !
 !******************************************************************************
@@ -162,10 +162,6 @@
 
                   ! If none of the above conditions were met, then
                   ! test here to make sure we don't violate array bounds
-                  !---------------------------------------
-                  ! Prior to 7/20/04:
-                  !IF ( ( L + K ) <= LM ) THEN
-                  !---------------------------------------
                   IF ( ( L + K ) <= LLPAR ) THEN
 
                      ! If Level L+K is within 2 km of level K, 

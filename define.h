@@ -1,9 +1,9 @@
-! $Id: define.h,v 1.19 2004/10/15 20:16:40 bmy Exp $
+! $Id: define.h,v 1.20 2004/12/02 21:48:34 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
 !  used to include or exclude certain sections of code.  
-!  (bmy, bdf, 1/30/98, 3/22/04)
+!  (bmy, bdf, 1/30/98, 12/1/04)
 !
 !  List of "Switches"
 !  ===========================================================================
@@ -13,20 +13,22 @@
 !  (4 ) GEOS_4     : Enables code for GEOS-4 met fields & chemistry
 !  (5 ) A_LLK_03   : Enables code for GEOS-4 Version 3 data ("a_llk_03")
 !  (6 ) GRID30LEV  : Enables code for 30-level GEOS-3 or GEOS-4 grid
-!  (7 ) GRID1x1    : Enables code for 1 x 1   grid
-!  (8 ) GRID2x25   : Enables code for 2 x 2.5 grid 
-!  (9 ) GRID4x5    : Enables code for 4 x 5   grid 
-!  (10) FULLCHEM   : Enables code for "Full" Chemistry (ISOP and NMHC)
-!  (11) LGEOSCO    : Enables code for CO run w/ parameterized OH
-!  (12) LFASTJ     : Enables code for FAST-J photolysis
-!  (13) LSLOWJ     : Enables code for SLOW-J photolysis
-!  (14) COMPAQ     : Enables code for Alpha w/ COMPAQ/HP Alpha compiler
-!  (15) IBM_AIX    : Enables code for IBM/AIX compiler
-!  (16) LINUX_PGI  : Enables code for Linux w/ PGI compiler
-!  (17) LINUX_IFC  : Enables code for Linux w/ 32-bit Intel Fortran compiler
-!  (18) LINUX_EFC  : Enables code for Linux w/ 64-bit Intel Fortran compiler
-!  (19) SGI_MIPS   : Enables code for SGI Origin w/ MIPS compiler
-!  (20) SPARC      : Enables code for Sun w/ SPARC compiler
+!  (7 ) GRID1x1    : Enables code for 1 x 1   GLOBAL        GRID
+!  (8 ) NESTED_CH  : Enables code for 1 x 1   CHINA  NESTED GRID
+!  (9 ) NESTED_NA  : Enables code for 1 x 1   N. AM. NESTED GRID
+!  (10) GRID2x25   : Enables code for 2 x 2.5 GLOBAL        GRID
+!  (11) GRID4x5    : Enables code for 4 x 5   GLOBAL        GRID 
+!  (12) FULLCHEM   : Enables code for "Full" Chemistry (ISOP and NMHC)
+!  (13) LGEOSCO    : Enables code for CO run w/ parameterized OH
+!  (14) LFASTJ     : Enables code for FAST-J photolysis
+!  (15) LSLOWJ     : Enables code for SLOW-J photolysis
+!  (16) COMPAQ     : Enables code for Alpha w/ COMPAQ/HP Alpha compiler
+!  (17) IBM_AIX    : Enables code for IBM/AIX compiler
+!  (18) LINUX_PGI  : Enables code for Linux w/ PGI compiler
+!  (19) LINUX_IFC  : Enables code for Linux w/ 32-bit Intel Fortran compiler
+!  (20) LINUX_EFC  : Enables code for Linux w/ 64-bit Intel Fortran compiler
+!  (21) SGI_MIPS   : Enables code for SGI Origin w/ MIPS compiler
+!  (22) SPARC      : Enables code for Sun w/ SPARC compiler
 ! 
 !  NOTES:
 !  (1 ) "define.h" is #include'd at the top of CMN_SIZE.  All subroutines
@@ -61,6 +63,8 @@
 !  (18) Added "A_LLK_03" switch to denote GEOS-4 "a_llk_03" met fields.  This
 !        will be temporary since "a_llk_03" met fields will be replaced by
 !        a newer product.  (bmy, 3/22/04) 
+!  (19) Added NESTED_NA and NESTED_CH cpp switches.  Also add GRID1x125
+!        cpp switch. (bmy, 12/1/04)
 !******************************************************************************
 !
 !==============================================================================
@@ -72,9 +76,12 @@
 #undef GEOS_4
 #undef A_LLK_03
 #undef GRID30LEV
-#undef GRID2x25  
 #undef GRID4x5
-#undef GRID1x1   
+#undef GRID2x25  
+#undef GRID1x125
+#undef GRID1x1
+#undef NESTED_NA
+#undef NESTED_CH
 #undef FULLCHEM  
 #undef LGEOSCO
 #undef LFASTJ
@@ -96,12 +103,15 @@
 !----- Model types -----
 !#define GEOS_1      'GEOS_1'       
 !#define GEOS_STRAT  'GEOS_STRAT'
-#define GEOS_3      'GEOS_3'
-!#define GEOS_4      'GEOS_4'
+!#define GEOS_3      'GEOS_3'
+#define GEOS_4      'GEOS_4'
 !#define A_LLK_03    'A_LLK_03'
 
 !----- Grid sizes -----
 !#define GRID1x1     'GRID1x1'
+!#define NESTED_CH   'NESTED_CH'
+!#define NESTED_NA   'NESTED_NA'
+!#define GRID1x125   'GRID1x125'
 !#define GRID2x25    'GRID2x25'
 #define GRID4x5     'GRID4x5'
 #define GRID30LEV   'GRID30LEV'
@@ -119,8 +129,8 @@
 !#define IBM_AIX     'IBM_AIX'
 !#define LINUX_PGI   'LINUX_PGI'
 !#define LINUX_IFC   'LINUX_IFC'
-!#define LINUX_EFC   'LINUX_EFC'
-#define SGI_MIPS    'SGI_MIPS'
+#define LINUX_EFC   'LINUX_EFC'
+!#define SGI_MIPS    'SGI_MIPS'
 !#define SPARC       'SPARC'
 
 !==============================================================================
@@ -134,8 +144,8 @@
 !==============================================================================
 ! Force a compile error if GRID1x1, GRID2x25, and GRID4x5 are all undefined 
 !==============================================================================
-#if !defined( GRID2x25 ) && !defined( GRID4x5 ) && !defined( GRID1x1 )
-#error "ERROR: GRID2x25, GRID4x5, and GRID1x1"
+#if !defined( GRID2x25 ) && !defined( GRID4x5 ) && !defined( GRID1x125 ) && !defined( GRID1x1 )
+#error "ERROR: GRID4x5, GRID2x25, GRID1x125, and GRID1x1"
 #error "are ALL undefined in header file define.h"
 #endif
 

@@ -1,4 +1,4 @@
-! $Id: c2h6_mod.f,v 1.2 2004/09/21 18:04:08 bmy Exp $
+! $Id: c2h6_mod.f,v 1.3 2004/12/02 21:48:33 bmy Exp $
       MODULE C2H6_MOD
 !
 !******************************************************************************
@@ -127,10 +127,6 @@
 #     include "CMN"          ! STT, etc.
 #     include "CMN_O3"       ! EMISTC2H6
 #     include "CMN_DIAG"     ! Diagnostic arrays & switches
-!-----------------------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"    ! LSPLIT, DATA_DIR
-!-----------------------------------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE          :: FIRSTEMISS = .TRUE.
@@ -164,10 +160,6 @@
       ! Process biomass C2H6 emissions ored in BURNEMIS(IDBC2H6,:,:) 
       ! in [molec C/cm3/s].  Convert to [kg C2H6] and store in STT.
       !=================================================================
-      !---------------------
-      ! Prior to 7/20/04:
-      !IF ( LBIONOX ) THEN
-      !---------------------
       IF ( LBIOMASS ) THEN
 
          ! Get biomass burning emissions (and update ND28 diagnostic)
@@ -199,10 +191,6 @@
       ! Process biofuel C2H6 emissions stored in BIOFUEL(IDBFC2H6,:,:) 
       ! in [molec C/cm3/s.  Convert to [kg C2H6] and store in STT. 
       !=================================================================
-      !----------------------
-      ! Prior to 7/20/04:
-      !IF ( LWOODCO ) THEN
-      !----------------------
       IF ( LBIOFUEL ) THEN
 
          ! Read biofuel burning emissions (and update ND34 diagnostic)
@@ -236,10 +224,6 @@
       ! The distribution follows natural gas venting/leakage of CH4.
       ! Contact: Yaping Xiao (xyp@io.harvard.edu)
       !=================================================================
-      !-----------------------
-      ! Prior to 7/20/04:
-      !IF ( LFOSSIL ) THEN 
-      !-----------------------
       IF ( LANTHRO ) THEN 
 
          ! Read C2H6 emissions only if it's a new month
@@ -334,11 +318,6 @@
       USE TRACER_MOD,    ONLY : N_TRACERS, STT
 
 #     include "CMN_SIZE"     ! Size parameters
-!---------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"          ! STT
-!#     include "CMN_SETUP"    ! LSPLIT
-!---------------------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
@@ -395,10 +374,6 @@
          ! If we are running w/ tagged tracers,
          ! then also apply the loss to each of these
          IF ( LSPLIT ) THEN 
-            !--------------------
-            ! Prior to 7/20/04:
-            !DO N = 2, NTRACE
-            !--------------------
             DO N = 2, N_TRACERS
             
                ! Subtract loss of C2H6 by OH and store in STT [kg C2H6]

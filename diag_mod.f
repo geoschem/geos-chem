@@ -1,9 +1,9 @@
-! $Id: diag_mod.f,v 1.9 2004/09/21 18:04:11 bmy Exp $
+! $Id: diag_mod.f,v 1.10 2004/12/02 21:48:35 bmy Exp $
       MODULE DIAG_MOD 
 !
 !******************************************************************************
 !  Module DIAG_MOD contains declarations for allocatable arrays for use with 
-!  GEOS-CHEM diagnostics. (amf, bdf, bmy, 11/30/99, 7/20/04)
+!  GEOS-CHEM diagnostics. (amf, bdf, bmy, 11/30/99, 11/17/04)
 !
 !  Module Routines:
 !  ============================================================================
@@ -18,7 +18,7 @@
 !  (2 ) Call subroutine CLEANUP at the end of the MAIN program to deallocate
 !        the memory before the run stops.  It is always good style to free
 !        any memory we have dynamically allocated when we don't need it
-!        anymore
+!        anymoren
 !  (3 ) Added ND13 arrays for sulfur emissions (bmy, 6/6/00)
 !  (4 ) Moved ND51 arrays to "diag51_mod.f" (bmy, 11/29/00)
 !  (5 ) Added AD34 array for biofuel burning emissions (bmy, 3/15/01)
@@ -44,6 +44,7 @@
 !  (16) Added AD13_SO2_sh diagnostic array for ND13 (bec, bmy, 5/20/04)
 !  (17) Added AD07_HC diagnostic array for ND07 (rjp, bmy, 7/13/04)
 !  (18) Moved AD65 & FAMPL to "diag65_mod.f" (bmy, 7/20/04)
+!  (19) Added array AD13_SO4_bf (bmy, 11/17/04)
 !******************************************************************************
 !     
       !=================================================================
@@ -90,6 +91,7 @@
       REAL*4,  ALLOCATABLE :: AD13_SO2_ev(:,:,:)
       REAL*4,  ALLOCATABLE :: AD13_SO2_sh(:,:)
       REAL*4,  ALLOCATABLE :: AD13_SO4_an(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD13_SO4_bf(:,:)
       REAL*4,  ALLOCATABLE :: AD13_NH3_an(:,:)
       REAL*4,  ALLOCATABLE :: AD13_NH3_na(:,:)
       REAL*4,  ALLOCATABLE :: AD13_NH3_bb(:,:)
@@ -112,13 +114,6 @@
       ! For ND18 -- Fraction of tracer lost to washout
       REAL*4,  ALLOCATABLE :: AD18(:,:,:,:,:)   
       INTEGER, ALLOCATABLE :: CT18(:,:,:,:)
-
-      !----------------------------------------------------
-      ! Prior to 7/20/04:
-      ! Move this into "diag20_mod.f" (bmy, 7/20/04)
-      !! For ND20 -- saves P,L rates for Ox
-      !REAL*8,  ALLOCATABLE :: PL24H(:,:,:,:)
-      !----------------------------------------------------
 
       ! For ND21 -- Optical Depth diagnostic
       REAL*4,  ALLOCATABLE :: AD21(:,:,:,:)
@@ -220,14 +215,6 @@
       ! For ND55 -- tropopause diagnostics
       REAL*4,  ALLOCATABLE :: AD55(:,:,:)
 
-      !------------------------------------------------
-      ! Prior to 7/20/04:      
-      ! Now move this to "diag65_mod.f" (bmy, 7/20/04)
-      !! For ND65 -- Chemical family P-L diagnostic
-      !REAL*4,  ALLOCATABLE :: AD65(:,:,:,:)
-      !REAL*8,  ALLOCATABLE :: FAMPL(:,:,:,:)
-      !------------------------------------------------
-
       ! For ND66 -- I-6 fields diagnostic
       REAL*4,  ALLOCATABLE :: AD66(:,:,:,:)      
 
@@ -251,7 +238,7 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_DIAG deallocates all module arrays.
-!  (bmy, 12/13/02, 7/13/04)
+!  (bmy, 12/13/02, 11/17/04)
 !
 !  NOTES:
 !  (1 ) Now also deallocate AD13_NH3_an, AD13_NH3_bb, AD13_NH3_bf arrays
@@ -263,6 +250,7 @@
 !  (5 ) Now also deallocate AD08 array (rjp, bec, bmy, 4/20/04)
 !  (6 ) Now also deallocaes AD13_SO2_sh array (bec, bmy, 5/20/04)
 !  (7 ) Now also deallocates AD07_HC array (rjp, bmy, 7/13/04)
+!  (8 ) Now also deallocate AD13_SO4_bf array (bmy, 11/17/04)
 !******************************************************************************
 !
       !=================================================================
@@ -288,6 +276,7 @@
       IF ( ALLOCATED( AD13_SO2_ev ) ) DEALLOCATE( AD13_SO2_ev )
       IF ( ALLOCATED( AD13_SO2_sh ) ) DEALLOCATE( AD13_SO2_sh )
       IF ( ALLOCATED( AD13_SO4_an ) ) DEALLOCATE( AD13_SO4_an )
+      IF ( ALLOCATED( AD13_SO4_bf ) ) DEALLOCATE( AD13_SO4_bf )
       IF ( ALLOCATED( AD13_NH3_an ) ) DEALLOCATE( AD13_NH3_an )
       IF ( ALLOCATED( AD13_NH3_na ) ) DEALLOCATE( AD13_NH3_na )
       IF ( ALLOCATED( AD13_NH3_bb ) ) DEALLOCATE( AD13_NH3_bb )
@@ -322,10 +311,6 @@
       IF ( ALLOCATED( AD46        ) ) DEALLOCATE( AD46        )
       IF ( ALLOCATED( AD47        ) ) DEALLOCATE( AD47        )
       IF ( ALLOCATED( AD55        ) ) DEALLOCATE( AD55        )
-      !-----------------------------------------------------------------
-      ! Prior to 7/20/04:
-      !IF ( ALLOCATED( AD65        ) ) DEALLOCATE( AD65        )
-      !-----------------------------------------------------------------
       IF ( ALLOCATED( AD66        ) ) DEALLOCATE( AD66        )
       IF ( ALLOCATED( AD68        ) ) DEALLOCATE( AD68        )
       IF ( ALLOCATED( AD69        ) ) DEALLOCATE( AD69        )
@@ -342,10 +327,6 @@
       IF ( ALLOCATED( CTHO2       ) ) DEALLOCATE( CTHO2       )
       IF ( ALLOCATED( CTOTH       ) ) DEALLOCATE( CTOTH       )
       IF ( ALLOCATED( DIAGCHLORO  ) ) DEALLOCATE( DIAGCHLORO  )
-      !-----------------------------------------------------------------
-      ! Prior to 7/20/04:
-      !IF ( ALLOCATED( FAMPL       ) ) DEALLOCATE( FAMPL       )
-      !-----------------------------------------------------------------
       IF ( ALLOCATED( LTJV        ) ) DEALLOCATE( LTJV        )
       IF ( ALLOCATED( LTNO        ) ) DEALLOCATE( LTNO        )
       IF ( ALLOCATED( LTOH        ) ) DEALLOCATE( LTOH        )
@@ -356,10 +337,6 @@
       IF ( ALLOCATED( MASSFLEW    ) ) DEALLOCATE( MASSFLEW    )
       IF ( ALLOCATED( MASSFLNS    ) ) DEALLOCATE( MASSFLNS    )
       IF ( ALLOCATED( MASSFLUP    ) ) DEALLOCATE( MASSFLUP    )
-      !-----------------------------------------------------------------
-      ! Prior to 7/20/04:
-      !IF ( ALLOCATED( PL24H       ) ) DEALLOCATE( PL24H       )
-      !-----------------------------------------------------------------
       IF ( ALLOCATED( TCOBOX      ) ) DEALLOCATE( TCOBOX      )
       IF ( ALLOCATED( TURBFLUP    ) ) DEALLOCATE( TURBFLUP    )
       IF ( ALLOCATED( STT_TEMPO2  ) ) DEALLOCATE( STT_TEMPO2  ) 
