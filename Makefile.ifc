@@ -1,6 +1,6 @@
-# $Id: Makefile.ifc,v 1.7 2004/07/15 18:17:43 bmy Exp $
+# $Id: Makefile.ifc,v 1.8 2004/07/16 13:34:05 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for LINUX/IFC compiler (bmy, Tue Jul 13 12:49:36 2004)
+# GEOS-CHEM Makefile for LINUX/IFC compiler (bmy, Fri Jul 16 09:28:38 2004)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -262,7 +262,7 @@ tpcore_window_mod.o       \
 transport_mod.o           \
 upbdflx_mod.o             \
 chemistry_mod.o           \
-emissions_mod.o
+emissions_mod.o           
 
 SJ =                      \
 findxsect.o               \

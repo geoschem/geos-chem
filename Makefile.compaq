@@ -1,6 +1,6 @@
-# $Id: Makefile.compaq,v 1.16 2004/07/15 18:17:42 bmy Exp $
+# $Id: Makefile.compaq,v 1.17 2004/07/16 13:34:05 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for COMPAQ/Alpha (bmy, Tue Jul 13 12:48:46 2004)
+# GEOS-CHEM Makefile for COMPAQ/Alpha (bmy, Fri Jul 16 09:27:51 2004)
 #
 # NOTE: For GEOS-CHEM v5-07-08, we must compile everything -fast except 
 #       "calcrate.f", which must be compiled -O2.  (hamid, bmy, 10/10/03)
@@ -264,7 +264,7 @@ tpcore_window_mod.o       \
 transport_mod.o           \
 upbdflx_mod.o             \
 chemistry_mod.o           \
-emissions_mod.o
+emissions_mod.o           
 
 SJ =                      \
 findxsect.o               \

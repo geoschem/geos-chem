@@ -1,4 +1,4 @@
-# $Id: Makefile.ibm,v 1.14 2004/07/15 18:17:43 bmy Exp $
+# $Id: Makefile.ibm,v 1.15 2004/07/16 13:34:05 bmy Exp $
 #=============================================================================
 # Makefile for GEOS-CHEM on IBM AIX: (gcc, Mon Feb 03 11:56:55 2003)
 #=============================================================================
@@ -262,7 +262,7 @@ tpcore_window_mod.o       \
 transport_mod.o           \
 upbdflx_mod.o             \
 chemistry_mod.o           \
-emissions_mod.o
+emissions_mod.o           
 
 SJ =                      \
 findxsect.o               \
