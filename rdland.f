@@ -1,4 +1,4 @@
-! $Id: rdland.f,v 1.4 2004/12/16 16:52:45 bmy Exp $
+! $Id: rdland.f,v 1.5 2004/12/17 14:59:30 bmy Exp $
       SUBROUTINE RDLAND
 !
 !******************************************************************************
@@ -20,10 +20,10 @@
 !  (3 ) IJUSE(IJLOOP,LDT)  : 2-D (I*J, LDT) version of IJUSE  (for DEPVEL)
 !
 !  NOTES:
-!  (1 ) Now use AVHRR LAI derived land-type data which is stored in the 
-!        leaf_area_index_200412 subdirectory of DATA_DIR.  Also updated
-!        comments and added standard GEOS-CHEM program documentation header.
-!        (tmf, bmy, 12/6/04)
+!  (1 ) Now read the "vegtype.global" file from the leaf_area_index_200412 
+!        subdirectory of DATA_DIR.  This is the same Olson land map as was
+!        used previously.  Also updated comments and added standard GEOS-CHEM 
+!        program documentation header. (tmf, bmy, 12/6/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -56,7 +56,7 @@
       FILENAME = TRIM( DATA_DIR ) // 
 !-----------------------------------------------------------------------------
 ! Prior to 12/6/04:
-! Now read AVHRR derived land types from "vegtype.global" (tmf, bmy, 12/6/04)
+! Now read "vegtype.global" from a different directory (tmf, bmy, 12/6/04)
 !     &           'leaf_area_index_200202/vegtype.global'
 !-----------------------------------------------------------------------------
      &           'leaf_area_index_200412/vegtype.global'
