@@ -1,9 +1,9 @@
-! $Id: diag49_mod.f,v 1.2 2004/09/24 14:03:55 bmy Exp $
+! $Id: diag49_mod.f,v 1.3 2004/10/26 13:42:04 bmy Exp $
       MODULE DIAG49_MOD
 !
 !******************************************************************************
 !  Module DIAG49_MOD contains variables and routines to save out 3-D 
-!  timeseries output to disk (bmy, 7/20/04)
+!  timeseries output to disk (bmy, 7/20/04, 10/25/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -128,12 +128,13 @@
 !******************************************************************************
 !  Subroutine DIAG49 produces time series (instantaneous fields) for a 
 !  geographical domain from the information read in timeseries.dat.  Output 
-!  will be in binary punch (BPCH) format. (bey, bmy, rvm, 4/9/99, 7/9/04)
+!  will be in binary punch (BPCH) format. (bey, bmy, rvm, 4/9/99, 10/25/04)
 !
 !  NOTES:
 !  (1 ) Now bundled into "diag49_mod.f".  Now reference STT from 
 !        "tracer_mod.f".  Now scale aerosol & dust OD's to 400 nm.  
 !        (bmy, rvm, aad, 7/9/04)
+!  (2 ) Updated tracer # for NO2 (bmy, 10/25/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -401,7 +402,11 @@
             CATEGORY = 'TIME-SER'
             UNIT     = ''           ! Let GAMAP pick the unit
             GMNL     = ND49_NL
-            GMTRC    = 19
+            !------------------------
+            ! Prior to 10/25/04
+            !GMTRC    = 19
+            !------------------------
+            GMTRC    = 25
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )

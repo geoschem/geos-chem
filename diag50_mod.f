@@ -1,41 +1,42 @@
-! $Id: diag50_mod.f,v 1.1 2004/09/21 18:04:11 bmy Exp $
+! $Id: diag50_mod.f,v 1.2 2004/10/26 13:42:04 bmy Exp $
       MODULE DIAG50_MOD
 !
 !******************************************************************************
 !  Module DIAG50_MOD contains variables and routines to generate save 
 !  timeseries data over the United States where the local time is between 
-!  two user-defined limits. (amf, bey, bdf, pip, bmy, 11/30/00, 7/20/04)
+!  two user-defined limits. (amf, bey, bdf, pip, bmy, 11/30/00, 10/25/04)
 !
 !  Module Variables:
 !  ============================================================================
 !  (1 ) COUNT            (INTEGER ) : Counter of timesteps per day
-!  (2 ) DO_SAVE_DIAG50   (LOGICAL ) : Flag to turn on DIAG50 timseries
-!  (3 ) I0               (INTEGER ) : Lon offset between global & nested grid
-!  (4 ) J0               (INTEGER ) : Lat offset between global & nested grid
-!  (4 ) IOFF             (INTEGER ) : Offset between relative & absolute lon
-!  (5 ) JOFF             (INTEGER ) : Offset between relative & absolute lat
-!  (6 ) LOFF             (INTEGER ) : Offset between relative & absolute alt 
-!  (7 ) ND50_IMIN        (INTEGER ) : Minimum lat index for DIAG50 region
-!  (8 ) ND50_IMAX        (INTEGER ) : Maximum lat index for DIAG50 region
-!  (9 ) ND50_JMIN        (INTEGER ) : Minimum lon index for DIAG50 region
-!  (10) ND50_JMAX        (INTEGER ) : Maximum lon index for DIAG50 region
-!  (11) ND50_LMIN        (INTEGER ) : Minimum alt index for DIAG50 region
-!  (12) ND50_LMAX        (INTEGER ) : Minimum alt index for DIAG50 region
-!  (13) ND50_NI          (INTEGER ) : Number of longitudes in DIAG50 region 
-!  (14) ND50_NJ          (INTEGER ) : Number of latitudes  in DIAG50 region
-!  (15) ND50_NL          (INTEGER ) : Number of levels     in DIAG50 region
-!  (16) ND50_N_TRACERS   (INTEGER ) : Number of tracers for DIAG50
-!  (17) ND50_OUTPUT_FILE (CHAR*255) : Name of output file for timeseries data
-!  (18) ND50_TRACERS     (INTEGER ) : Array of DIAG50 tracer numbers
-!  (19) Q                (REAL*8  ) : Accumulator array for various quantities
-!  (20) TAU0             (REAL*8  ) : Starting TAU used to index the bpch file
-!  (21) TAU1             (REAL*8  ) : Ending TAU used to index the bpch file
-!  (22) HALFPOLAR        (INTEGER ) : Used for bpch file output
-!  (23) CENTER180        (INTEGER ) : Used for bpch file output
-!  (24) LONRES           (REAL*4  ) : Used for bpch file output
-!  (25) LATRES           (REAL*4  ) : Used for bpch file output
-!  (26) MODELNAME        (CHAR*20 ) : Used for bpch file output
-!  (27) RESERVED         (CHAR*40 ) : Used for bpch file output
+!  (2 ) COUNT_CHEM       (INTEGER ) : Counter of chemistry timesteps per day
+!  (3 ) DO_SAVE_DIAG50   (LOGICAL ) : Flag to turn on DIAG50 timseries
+!  (4 ) I0               (INTEGER ) : Lon offset between global & nested grid
+!  (5 ) J0               (INTEGER ) : Lat offset between global & nested grid
+!  (6 ) IOFF             (INTEGER ) : Offset between relative & absolute lon
+!  (7 ) JOFF             (INTEGER ) : Offset between relative & absolute lat
+!  (8 ) LOFF             (INTEGER ) : Offset between relative & absolute alt 
+!  (9 ) ND50_IMIN        (INTEGER ) : Minimum lat index for DIAG50 region
+!  (10) ND50_IMAX        (INTEGER ) : Maximum lat index for DIAG50 region
+!  (11) ND50_JMIN        (INTEGER ) : Minimum lon index for DIAG50 region
+!  (12) ND50_JMAX        (INTEGER ) : Maximum lon index for DIAG50 region
+!  (13) ND50_LMIN        (INTEGER ) : Minimum alt index for DIAG50 region
+!  (14) ND50_LMAX        (INTEGER ) : Minimum alt index for DIAG50 region
+!  (15) ND50_NI          (INTEGER ) : Number of longitudes in DIAG50 region 
+!  (16) ND50_NJ          (INTEGER ) : Number of latitudes  in DIAG50 region
+!  (17) ND50_NL          (INTEGER ) : Number of levels     in DIAG50 region
+!  (18) ND50_N_TRACERS   (INTEGER ) : Number of tracers for DIAG50
+!  (19) ND50_OUTPUT_FILE (CHAR*255) : Name of output file for timeseries data
+!  (20) ND50_TRACERS     (INTEGER ) : Array of DIAG50 tracer numbers
+!  (21) Q                (REAL*8  ) : Accumulator array for various quantities
+!  (22) TAU0             (REAL*8  ) : Starting TAU used to index the bpch file
+!  (23) TAU1             (REAL*8  ) : Ending TAU used to index the bpch file
+!  (24) HALFPOLAR        (INTEGER ) : Used for bpch file output
+!  (25) CENTER180        (INTEGER ) : Used for bpch file output
+!  (26) LONRES           (REAL*4  ) : Used for bpch file output
+!  (27) LATRES           (REAL*4  ) : Used for bpch file output
+!  (28) MODELNAME        (CHAR*20 ) : Used for bpch file output
+!  (29) RESERVED         (CHAR*40 ) : Used for bpch file output
 !
 !  Module Procedures:
 !  ============================================================================
@@ -90,6 +91,8 @@
 !
 !  NOTES:
 !  (1 ) Rewritten for clarity and to save extra quantities (bmy, 7/20/04)
+!  (2 ) Added COUNT_CHEM to count the chemistry timesteps per day, since some
+!        quantities are only archived after a fullchem call (bmy, 10/25/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -116,7 +119,7 @@
       
       ! Scalars
       LOGICAL              :: DO_SAVE_DIAG50
-      INTEGER              :: COUNT
+      INTEGER              :: COUNT,          COUNT_CHEM
       INTEGER              :: IOFF,           JOFF   
       INTEGER              :: LOFF,           I0
       INTEGER              :: J0,             ND50_NI
@@ -178,6 +181,10 @@
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
 !        diagnostics and updated numbering scheme.  Now scale aerosol & dust
 !        optical depths to 400 nm. (rvm, aad, bmy, 7/20/04) 
+!  (2 ) Now reference GET_ELAPSED_MIN and GET_TS_CHEM from "time_mod.f".  
+!        Also now use extra counter COUNT_CHEM to count the number of
+!        chemistry timesteps since NO, NO2, OH, O3 only when a full-chemistry
+!        timestep happens. (bmy, 10/25/04)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -185,7 +192,8 @@
      &                         CLMOSW, CLROSW, OPTD,     RH, T, 
      &                         PBL,    UWND,   VWND,     SLP
       USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE TIME_MOD,     ONLY : TIMESTAMP_STRING
+      USE TIME_MOD,     ONLY : GET_ELAPSED_MIN, GET_TS_CHEM,
+     &                         TIMESTAMP_STRING
       USE TRACER_MOD,   ONLY : STT, TCVV, ITS_A_FULLCHEM_SIM, N_TRACERS
       USE TRACERID_MOD
 
@@ -200,6 +208,7 @@
       LOGICAL, SAVE       :: FIRST = .TRUE.
       LOGICAL, SAVE       :: IS_FULLCHEM, IS_NOx, IS_Ox,  IS_SEASALT
       LOGICAL, SAVE       :: IS_CLDTOPS,  IS_NOy, IS_OPTD
+      LOGICAL             :: IS_CHEM
       INTEGER             :: H, I, J, K, L, M, N
       INTEGER             :: PBLINT,  R, X, Y, W
       REAL*8              :: C1, C2, PBLDEC, TEMPBL, TMP, SCALE400nm
@@ -228,6 +237,9 @@
          FIRST       = .FALSE.
       ENDIF
 
+      ! Is it a chemistry timestep?
+      IS_CHEM = ( MOD( GET_ELAPSED_MIN(), GET_TS_CHEM() ) > 0 )
+
       ! Echo time information to the screen
       STAMP = TIMESTAMP_STRING()
       WRITE( 6, 100 ) STAMP
@@ -239,6 +251,9 @@
 
       ! Increment counter
       COUNT = COUNT + 1
+
+      ! Increment chemistry timestep counter
+      IF ( IS_CHEM ) COUNT_CHEM = COUNT_CHEM + 1
 
       ! Accumulate quantities
 !$OMP PARALLEL DO 
@@ -271,19 +286,21 @@
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                      ( STT(I,J,L,N) * TCVV(N) / AD(I,J,L) )
 
-            ELSE IF ( N == 71 .and. IS_Ox ) THEN
+            ELSE IF ( N == 71 .and. IS_Ox .and. IS_CHEM ) THEN
 
                !--------------------------------------
                ! PURE O3 CONCENTRATION [v/v]
+               ! NOTE: Only archive at chem timestep
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                      ( STT(I,J,L,IDTOX) * FRACO3(I,J,L) *
      &                        TCVV(IDTOX)      / AD(I,J,L)      )
 
-            ELSE IF ( N == 72 .and. IS_NOx ) THEN
+            ELSE IF ( N == 72 .and. IS_NOx .and. IS_CHEM ) THEN
 
                !--------------------------------------
                ! NO CONCENTRATION [v/v]
+               ! NOTE: Only archive at chem timestep
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                      ( STT(I,J,L,IDTNOX) * FRACNO(I,J,L) *
@@ -333,17 +350,19 @@
                ! Accumulate into Q
                Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
     
-            ELSE IF ( N == 74 .and. IS_FULLCHEM ) THEN
+            ELSE IF ( N == 74 .and. IS_FULLCHEM .and. IS_CHEM ) THEN
 
                !--------------------------------------
                ! OH CONCENTRATION [molec/cm3]
+               ! NOTE: Only archive at chem timestep
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + SAVEOH(I,J,L)
               
-            ELSE IF ( N == 75 .and. IS_NOx ) THEN
+            ELSE IF ( N == 75 .and. IS_NOx .and. IS_CHEM ) THEN
 
                !--------------------------------------
                ! NO2 CONCENTRATION [v/v]
+               ! NOTE: Only archive at chem timestep
                !--------------------------------------     
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                      ( STT(I,J,L,IDTNOX) * FRACNO2(I,J,L) *
@@ -643,11 +662,14 @@
 !
 !******************************************************************************
 !  Subroutine WRITE_DIAG50 computes the 24-hr time-average of quantities
-!  and saves to bpch file format. (bmy, 12/1/00, 7/20/04)  
+!  and saves to bpch file format. (bmy, 12/1/00, 10/25/04)  
 !
 !  NOTES:
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
-!        diagnostics and updated numbering scheme. (bmy, 7/20/04) 
+!        diagnostics and updated numbering scheme. (bmy, 7/20/04)
+!  (2 ) Now only archive NO, NO2, OH, O3 on every chemistry timestep (i.e. 
+!        only when fullchem is called).  Also remove reference to FIRST. 
+!        (bmy, 10/25/04)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -663,7 +685,11 @@
 #     include "CMN_DIAG"  ! TRCOFFSET
 
       ! Local variables
-      LOGICAL            :: FIRST = .TRUE.
+      !---------------------------------------------------
+      ! Prior to 10/25/04:
+      !LOGICAL            :: FIRST = .TRUE.
+      !---------------------------------------------------
+      INTEGER            :: DIVISOR
       INTEGER            :: I,    J,     L,   W, N  
       INTEGER            :: GMNL, GMTRC, IOS, X, Y, K
       CHARACTER(LEN=16)  :: STAMP
@@ -700,22 +726,43 @@
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( X, Y, K, W )
+!$OMP+PRIVATE( X, Y, K, W, DIVISOR )
       DO W = 1, ND50_N_TRACERS
-      DO K = 1, ND50_NL
-      DO Y = 1, ND50_NJ
-      DO X = 1, ND50_NI
 
-         ! Avoid division by zero
-         IF ( COUNT > 0 ) THEN
-            Q(X,Y,K,W) = Q(X,Y,K,W) / COUNT 
+         ! Pick the proper divisor, depending on whether or not the
+         ! species in question is archived only each chem timestep
+         IF ( ND50_TRACERS(W) == 71 .or. ND50_TRACERS(W) == 72  .or. 
+     &        ND50_TRACERS(W) == 74 .or. ND50_TRACERS(W) == 75 ) THEN 
+            DIVISOR = COUNT_CHEM
          ELSE
-            Q(X,Y,K,W) = 0d0
+            DIVISOR = COUNT
          ENDIF
 
-      ENDDO
-      ENDDO
-      ENDDO
+         ! Loop over grid boxes
+         DO K = 1, ND50_NL
+         DO Y = 1, ND50_NJ
+         DO X = 1, ND50_NI
+
+            !---------------------------------------------
+            ! Prior to 10/25/04:
+            !! Avoid division by zero
+            !IF ( COUNT > 0 ) THEN
+            !   Q(X,Y,K,W) = Q(X,Y,K,W) / COUNT_CHEM
+            !ELSE
+            !   Q(X,Y,K,W) = 0d0
+            !ENDIF
+            !---------------------------------------------
+
+            ! Avoid division by zero
+            IF ( DIVISOR > 0 ) THEN
+               Q(X,Y,K,W) = Q(X,Y,K,W) / DIVISOR
+            ELSE
+               Q(X,Y,K,W) = 0d0
+            ENDIF
+
+         ENDDO
+         ENDDO
+         ENDDO
       ENDDO
 !$OMP END PARALLEL DO
       
@@ -1012,10 +1059,11 @@
  130  FORMAT( '     - DIAG50: Zeroing arrays at ', a )
 
       ! Set STARTING TAU for the next bpch write
-      TAU0  = GET_TAU() + ( GET_TS_DYN() / 60d0 )
+      TAU0       = GET_TAU() + ( GET_TS_DYN() / 60d0 )
 
-      ! Zero counter
-      COUNT = 0
+      ! Zero counters
+      COUNT      = 0
+      COUNT_CHEM = 0
       
       ! Zero accumulating array
 !$OMP PARALLEL DO 

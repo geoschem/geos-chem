@@ -1,46 +1,47 @@
-! $Id: diag51_mod.f,v 1.9 2004/10/15 20:16:41 bmy Exp $
+! $Id: diag51_mod.f,v 1.10 2004/10/26 13:42:04 bmy Exp $
       MODULE DIAG51_MOD
 !
 !******************************************************************************
 !  Module DIAG51_MOD contains variables and routines to generate save 
 !  timeseries data where the local time is between two user-defined limits. 
 !  This facilitates comparisons with morning or afternoon-passing satellites
-!  such as GOME. (amf, bey, bdf, pip, bmy, 11/30/00, 9/28/04)
+!  such as GOME. (amf, bey, bdf, pip, bmy, 11/30/00, 10/25/04)
 !
 !  Module Variables:
 !  ============================================================================
 !  (1 ) DO_SAVE_DIAG51   (LOGICAL ) : Flag to turn on DIAG51 timseries
 !  (2 ) GOOD             (INTEGER ) : Array denoting grid boxes w/in LT limits
-!  (3 ) GOOD_CT          (INTEGER ) : Number of "good" times per grid box
-!  (4 ) ND51_HR_WRITE    (INTEGER ) : Hour at which to save to disk
-!  (5 ) I0               (INTEGER ) : Offset between global & nested grid
-!  (6 ) J0               (INTEGER ) : Offset between global & nested grid
-!  (7 ) IOFF             (INTEGER ) : Longitude offset
-!  (8 ) JOFF             (INTEGER ) : Latitude offset
-!  (9 ) LOFF             (INTEGER ) : Altitude offset
-!  (10) ND51_HR1         (REAL*8  ) : Starting hour of user-defined LT interval
-!  (11) ND51_HR2         (REAL*8  ) : Ending hour of user-defined LT interval
-!  (12) ND51_IMIN        (INTEGER ) : Minimum latitude  index for DIAG51 region
-!  (13) ND51_IMAX        (INTEGER ) : Maximum latitude  index for DIAG51 region
-!  (14) ND51_JMIN        (INTEGER ) : Minimum longitude index for DIAG51 region
-!  (15) ND51_JMAX        (INTEGER ) : Maximum longitude index for DIAG51 region
-!  (16) ND51_LMIN        (INTEGER ) : Minimum altitude  index for DIAG51 region
-!  (17) ND51_LMAX        (INTEGER ) : Minimum latitude  index for DIAG51 region
-!  (18) ND51_NI          (INTEGER ) : Number of longitudes in DIAG51 region 
-!  (19) ND51_NJ          (INTEGER ) : Number of latitudes  in DIAG51 region
-!  (20) ND51_NL          (INTEGER ) : Number of levels     in DIAG51 region
-!  (21) ND51_N_TRACERS   (INTEGER ) : Number of tracers for DIAG51
-!  (22) ND51_OUTPUT_FILE (CHAR*255) : Name of bpch file w  timeseries data
-!  (23) ND51_TRACERS     (INTEGER ) : Array of DIAG51 tracer numbers
-!  (24) Q                (REAL*8  ) : Accumulator array for various quantities
-!  (25) TAU0             (REAL*8  ) : Starting TAU used to index the bpch file
-!  (26) TAU1             (REAL*8  ) : Ending TAU used to index the bpch file
-!  (27) HALFPOLAR        (INTEGER ) : Used for bpch file output
-!  (28) CENTER180        (INTEGER ) : Used for bpch file output
-!  (29) LONRES           (REAL*4  ) : Used for bpch file output
-!  (30) LATRES           (REAL*4  ) : Used for bpch file output
-!  (31) MODELNAME        (CHAR*20 ) : Used for bpch file output
-!  (32) RESERVED         (CHAR*40 ) : Used for bpch file output
+!  (3 ) GOOD_CT          (INTEGER ) : # of "good" times per grid box
+!  (4 ) GOOD_CT_CHEM     (INTEGER ) : # of "good" chemistry timesteps
+!  (5 ) ND51_HR_WRITE    (INTEGER ) : Hour at which to save to disk
+!  (6 ) I0               (INTEGER ) : Offset between global & nested grid
+!  (7 ) J0               (INTEGER ) : Offset between global & nested grid
+!  (8 ) IOFF             (INTEGER ) : Longitude offset
+!  (9 ) JOFF             (INTEGER ) : Latitude offset
+!  (10) LOFF             (INTEGER ) : Altitude offset
+!  (11) ND51_HR1         (REAL*8  ) : Starting hour of user-defined LT interval
+!  (12) ND51_HR2         (REAL*8  ) : Ending hour of user-defined LT interval
+!  (13) ND51_IMIN        (INTEGER ) : Minimum latitude  index for DIAG51 region
+!  (14) ND51_IMAX        (INTEGER ) : Maximum latitude  index for DIAG51 region
+!  (15) ND51_JMIN        (INTEGER ) : Minimum longitude index for DIAG51 region
+!  (16) ND51_JMAX        (INTEGER ) : Maximum longitude index for DIAG51 region
+!  (17) ND51_LMIN        (INTEGER ) : Minimum altitude  index for DIAG51 region
+!  (18) ND51_LMAX        (INTEGER ) : Minimum latitude  index for DIAG51 region
+!  (19) ND51_NI          (INTEGER ) : Number of longitudes in DIAG51 region 
+!  (20) ND51_NJ          (INTEGER ) : Number of latitudes  in DIAG51 region
+!  (21) ND51_NL          (INTEGER ) : Number of levels     in DIAG51 region
+!  (22) ND51_N_TRACERS   (INTEGER ) : Number of tracers for DIAG51
+!  (23) ND51_OUTPUT_FILE (CHAR*255) : Name of bpch file w  timeseries data
+!  (24) ND51_TRACERS     (INTEGER ) : Array of DIAG51 tracer numbers
+!  (25) Q                (REAL*8  ) : Accumulator array for various quantities
+!  (26) TAU0             (REAL*8  ) : Starting TAU used to index the bpch file
+!  (27) TAU1             (REAL*8  ) : Ending TAU used to index the bpch file
+!  (28) HALFPOLAR        (INTEGER ) : Used for bpch file output
+!  (29) CENTER180        (INTEGER ) : Used for bpch file output
+!  (30) LONRES           (REAL*4  ) : Used for bpch file output
+!  (31) LATRES           (REAL*4  ) : Used for bpch file output
+!  (32) MODELNAME        (CHAR*20 ) : Used for bpch file output
+!  (33) RESERVED         (CHAR*40 ) : Used for bpch file output
 !
 !  Module Procedures:
 !  ============================================================================
@@ -94,6 +95,8 @@
 !
 !  NOTES:
 !  (1 ) Rewritten for clarity (bmy, 7/20/04)
+!  (2 ) Added extra counters for NO, NO2, OH, O3.  Also all diagnostic counter
+!        arrays are 1-D since they only depend on longitude. (bmy, 10/25/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -140,7 +143,8 @@
 
       ! Arrays
       INTEGER, ALLOCATABLE :: GOOD(:)
-      INTEGER, ALLOCATABLE :: GOOD_CT(:,:)
+      INTEGER, ALLOCATABLE :: GOOD_CT(:)
+      INTEGER, ALLOCATABLE :: GOOD_CT_CHEM(:)
       REAL*8,  ALLOCATABLE :: Q(:,:,:,:)
 
       !=================================================================
@@ -273,6 +277,10 @@
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
 !        diagnostics and updated numbering scheme.  Now scale optical depths
 !        to 400 nm (which is usually what QAA(2,*) is.  (bmy, 7/20/04) 
+!  (2 ) Now reference GET_ELAPSED_MIN and GET_TS_CHEM from "time_mod.f".  
+!        Also now all diagnostic counters are 1-D since they only depend on 
+!        longitude. Now only archive NO, NO2, OH, O3 on every chemistry 
+!        timestep (i.e. only when fullchem is called). (bmy, 10/25/04)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -280,7 +288,8 @@
      &                         CLMOSW, CLROSW, OPTD,     RH,  T, 
      &                         PBL,    UWND,   VWND,     SLP
       USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE TIME_MOD,     ONLY : TIMESTAMP_STRING
+      USE TIME_MOD,     ONLY : GET_ELAPSED_MIN, GET_TS_CHEM, 
+     &                         TIMESTAMP_STRING
       USE TRACER_MOD,   ONLY : STT, TCVV, ITS_A_FULLCHEM_SIM, N_TRACERS
       USE TRACERID_MOD
 
@@ -293,10 +302,11 @@
 
       ! Local variables
       LOGICAL, SAVE     :: FIRST = .TRUE.
-      LOGICAL           :: IS_FULLCHEM, IS_NOx, IS_Ox, IS_SEASALT
-      LOGICAL           :: IS_CLDTOPS,  IS_NOy, IS_OPTD
+      LOGICAL, SAVE     :: IS_FULLCHEM, IS_NOx, IS_Ox,  IS_SEASALT
+      LOGICAL, SAVE     :: IS_CLDTOPS,  IS_NOy, IS_OPTD
+      LOGICAL           :: IS_CHEM
       INTEGER           :: H, I, J, K, L, M, N
-      INTEGER           :: PBLINT,  R, X, Y, W
+      INTEGER           :: PBLINT,  R, X, Y, W, XMIN
       REAL*8            :: C1, C2, PBLDEC, TEMPBL, TMP, SCALE400nm
       CHARACTER(LEN=16) :: STAMP
 
@@ -323,6 +333,9 @@
          FIRST       = .FALSE.
       ENDIF
 
+      ! Is it a chemistry timestep?
+      IS_CHEM = ( MOD( GET_ELAPSED_MIN(), GET_TS_CHEM() ) > 0 )
+
       ! Echo info
       STAMP = TIMESTAMP_STRING()
       WRITE( 6, 100 ) STAMP
@@ -332,13 +345,31 @@
       ! Archive tracers into accumulating array Q 
       !=================================================================
 
+      !-------------------------------------------------------------------
+      ! Prior to 10/25/04:
+      ! Now counters are 1-D since they only depend on X (bmy, 10/25/04)
+      !! Archive counter array of good points 
+      !DO Y = 1, ND51_NJ
+      !DO X = 1, ND51_NI
+      !   I            = GET_I( X )
+      !   GOOD_CT(X,Y) = GOOD_CT(X,Y) + GOOD(I)
+      !ENDDO
+      !ENDDO 
+      !-------------------------------------------------------------------
+
       ! Archive counter array of good points 
-      DO Y = 1, ND51_NJ
       DO X = 1, ND51_NI
-         I            = GET_I( X )
-         GOOD_CT(X,Y) = GOOD_CT(X,Y) + GOOD(I)
+         I          = GET_I( X )
+         GOOD_CT(X) = GOOD_CT(X) + GOOD(I)
       ENDDO
-      ENDDO 
+
+      ! Archive counter array of good points for chemistry timesteps only
+      IF ( IS_CHEM ) THEN
+         DO X = 1, ND51_NI
+            I               = GET_I( X )
+            GOOD_CT_CHEM(X) = GOOD_CT_CHEM(X) + GOOD(I)
+         ENDDO
+      ENDIF
 
       ! Accumulate quantities
 !$OMP PARALLEL DO 
@@ -374,20 +405,26 @@
      &                      ( STT(I,J,L,N) * TCVV(N) / 
      &                        AD(I,J,L)    * GOOD(I) )
 
-            ELSE IF ( N == 71 .and. IS_Ox ) THEN
+            ELSE IF ( N == 71 .and. IS_Ox .and. IS_CHEM ) THEN
 
                !--------------------------------------
                ! Pure O3 [v/v]
+               ! NOTE: Only archive at chem timestep
                !--------------------------------------
+
+               ! Accumulate data
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &              ( STT(I,J,L,IDTOX) * FRACO3(I,J,L) *
      &                TCVV(IDTOX)      / AD(I,J,L)     * GOOD(I) )
 
-            ELSE IF ( N == 72 .and. IS_NOx ) THEN
+            ELSE IF ( N == 72 .and. IS_NOx .and. IS_CHEM ) THEN
 
                !--------------------------------------
                ! NO [v/v]
+               ! NOTE: Only archive at chem timestep
                !--------------------------------------
+               
+               ! Accumulate data
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                ( STT(I,J,L,IDTNOX) * FRACNO(I,J,L) *
      &                  TCVV(IDTNOX)      / AD(I,J,L)     * GOOD(I) )
@@ -435,17 +472,21 @@
                ! Save afternoon points
                Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
     
-            ELSE IF ( N == 74 .and. IS_FULLCHEM ) THEN
+            ELSE IF ( N == 74 .and. IS_FULLCHEM .and. IS_CHEM ) THEN
 
                !--------------------------------------
                ! OH [molec/cm3]
+               ! NOTE: Only archive at chem timestep
                !--------------------------------------
+
+               ! Accumulate data
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( SAVEOH(I,J,L) * GOOD(I) )
               
-            ELSE IF ( N == 75 .and. IS_NOx ) THEN
+            ELSE IF ( N == 75 .and. IS_NOx .and. IS_CHEM ) THEN
 
                !--------------------------------------
                ! NO2 [v/v]
+               ! NOTE: Only archive at chem timestep
                !--------------------------------------     
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &              ( STT(I,J,L,IDTNOX)  * FRACNO2(I,J,L) *
@@ -781,7 +822,7 @@
 !  Subroutine WRITE_DIAG51 computes the time-average of quantities between
 !  local time limits ND51_HR1 and ND51_HR2 and writes them to a bpch file.
 !  Arrays and counters are also zeroed for the next diagnostic interval.
-!  (bmy, 12/1/00, 9/28/04)  
+!  (bmy, 12/1/00, 10/25/04)  
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -791,7 +832,10 @@
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
 !        diagnostics and updated numbering scheme. (bmy, 7/20/04) 
 !  (2 ) Added TAU_W to the arg list.  Now use TAU_W to set TAU0 and TAU0.
-!        (bmy, 9/28/04)
+!        Also now all diagnostic counters are 1-D since they only depend on 
+!        longitude.  Now only archive NO, NO2, OH, O3 on every chemistry
+!        timestep (i.e. only when fullchem is called).  Also remove reference
+!        to FIRST. (bmy, 10/25/04)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -810,7 +854,11 @@
       REAL*8, INTENT(IN) :: TAU_W
 
       ! Local variables
-      LOGICAL            :: FIRST = .TRUE.
+      !---------------------------------------
+      ! Prior to 10/25/04:
+      !LOGICAL, SAVE      :: FIRST = .TRUE.
+      !---------------------------------------
+      LOGICAL            :: IS_CHEM
       INTEGER            :: I,   J,  L,  W, N, GMNL, GMTRC
       INTEGER            :: IOS, X, Y, K
       CHARACTER(LEN=16)  :: STAMP
@@ -851,22 +899,54 @@
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( X, Y, K, W )
+!$OMP+PRIVATE( X, Y, K, W, IS_CHEM )
       DO W = 1, ND51_N_TRACERS
-      DO K = 1, ND51_NL
-      DO Y = 1, ND51_NJ
-      DO X = 1, ND51_NI
+         
+         ! Set a flag to denote tracers which are only
+         ! accumulated on every chemistry timestep
+         IS_CHEM = ( ND51_TRACERS(W) == 71 .or.
+     &               ND51_TRACERS(W) == 72 .or. 
+     &               ND51_TRACERS(W) == 74 .or.
+     &               ND51_TRACERS(W) == 75 )
 
-         ! Avoid division by zero
-         IF ( GOOD_CT(X,Y) > 0 ) THEN
-            Q(X,Y,K,W) = Q(X,Y,K,W) / GOOD_CT(X,Y) 
-         ELSE
-            Q(X,Y,K,W) = 0d0
-         ENDIF
+         ! Loop over grid boxes
+         DO K = 1, ND51_NL
+         DO Y = 1, ND51_NJ
+         DO X = 1, ND51_NI
 
-      ENDDO
-      ENDDO
-      ENDDO
+            !---------------------------------------------
+            ! Prior to 10/25/04:
+            !! Avoid division by zero
+            !IF ( GOOD_CT(X,Y) > 0 ) THEN
+            !   Q(X,Y,K,W) = Q(X,Y,K,W) / GOOD_CT(X,Y) 
+            !ELSE
+            !   Q(X,Y,K,W) = 0d0
+            !ENDIF
+            !---------------------------------------------
+            IF ( IS_CHEM ) THEN 
+
+               ! Avoid division by zero for tracers
+               ! which are archived each chem timestep
+               IF ( GOOD_CT_CHEM(X) > 0 ) THEN
+                  Q(X,Y,K,W) = Q(X,Y,K,W) / GOOD_CT_CHEM(X) 
+               ELSE
+                  Q(X,Y,K,W) = 0d0
+               ENDIF
+
+            ELSE
+
+               ! Avoid division by zero for all other tracers
+               IF ( GOOD_CT(X) > 0 ) THEN
+                  Q(X,Y,K,W) = Q(X,Y,K,W) / GOOD_CT(X) 
+               ELSE
+                  Q(X,Y,K,W) = 0d0
+               ENDIF
+
+            ENDIF
+
+         ENDDO
+         ENDDO
+         ENDDO
       ENDDO
 !$OMP END PARALLEL DO
       
@@ -1182,8 +1262,11 @@
          ! Zero accumulating array for tracer
          Q(X,Y,K,W) = 0d0
 
-         ! Zero counter
-         IF ( W == 1 .and. K == 1 ) GOOD_CT(X,Y) = 0
+         ! Zero counters
+         IF ( W == 1 .and. K == 1 ) THEN
+            GOOD_CT(X) = 0
+            IF ( IS_CHEM ) GOOD_CT_CHEM(X) = 0
+         ENDIF
       ENDDO
       ENDDO
       ENDDO
@@ -1238,7 +1321,7 @@
 !******************************************************************************
 !  Subroutine INIT_DIAG51 allocates and zeroes all module arrays.  
 !  It also gets values for module variables from "input_mod.f". 
-!  (bmy, 7/20/04)
+!  (bmy, 7/20/04, 10/25/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1257,6 +1340,9 @@
 !  (13) FILE     (CHAR*255) : ND51 output file name read by "input_mod.f"
 !
 !  NOTES:
+!  (1 ) Diagnostic counter arrays are now only 1-D.  Also add GOOD_CT_CHEM
+!        which is the counter array of "good" boxes at each chemistry
+!        timesteps.  Now allocate GOOD_CT_CHEM. (bmy, 10/25/04)
 !******************************************************************************
 !    
       ! References to F90 modules
@@ -1410,9 +1496,22 @@
       GOOD(:) = 0
 
       ! Counter of "good" times per day at each grid box
-      ALLOCATE( GOOD_CT( ND51_NI, ND51_NJ ), STAT=AS )
+      !--------------------------------------------------------
+      ! Prior to 10/25/04:
+      !ALLOCATE( GOOD_CT( ND51_NI, ND51_NJ ), STAT=AS )
+      !--------------------------------------------------------
+      ALLOCATE( GOOD_CT( ND51_NI ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'GOOD_CT' )
-      GOOD_CT(:,:) = 0
+      GOOD_CT(:) = 0
+
+      ! Counter of "good" times per day for each chemistry timestep
+      !--------------------------------------------------------
+      ! Prior to 10/25/04:
+      !ALLOCATE( GOOD_CT_NOx( ND51_NI, ND51_NJ ), STAT=AS )
+      !--------------------------------------------------------
+      ALLOCATE( GOOD_CT_CHEM( ND51_NI ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GOOD_CT_CHEM' )
+      GOOD_CT_CHEM(:) = 0
 
       ! Accumulating array
       ALLOCATE( Q( ND51_NI, ND51_NJ, ND51_NL, ND51_N_TRACERS), STAT=AS )
@@ -1428,17 +1527,19 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_DIAG51 deallocates all module arrays. 
-!  (bmy, 11/29/00, 7/20/04)
+!  (bmy, 11/29/00, 10/25/04)
 !
 !  NOTES:
+!  (1 ) Now deallocate GOOD_CT_CHEM (bmy, 10/25/04)
 !******************************************************************************
 ! 
       !=================================================================
       ! CLEANUP_DIAG51 begins here!
       !=================================================================
-      IF ( ALLOCATED( GOOD    ) ) DEALLOCATE( GOOD    )
-      IF ( ALLOCATED( GOOD_CT ) ) DEALLOCATE( GOOD_CT )
-      IF ( ALLOCATED( Q       ) ) DEALLOCATE( Q       )
+      IF ( ALLOCATED( GOOD         ) ) DEALLOCATE( GOOD         )
+      IF ( ALLOCATED( GOOD_CT      ) ) DEALLOCATE( GOOD_CT      )
+      IF ( ALLOCATED( GOOD_CT_CHEM ) ) DEALLOCATE( GOOD_CT_CHEM )
+      IF ( ALLOCATED( Q            ) ) DEALLOCATE( Q            )
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_DIAG51
