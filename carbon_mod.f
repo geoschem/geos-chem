@@ -1,4 +1,4 @@
-! $Id: carbon_mod.f,v 1.4 2004/07/16 17:57:31 bmy Exp $
+! $Id: carbon_mod.f,v 1.5 2004/07/19 14:36:38 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
@@ -132,7 +132,7 @@
       !=================================================================
 
       ! Scalars
-      LOGICAL             :: USE_MONTHLY_ANTH = .TRUE.
+      LOGICAL             :: USE_MONTHLY_ANTH = .FALSE.
       LOGICAL             :: USE_MONTHLY_BIOB = .TRUE.
 
       INTEGER, PARAMETER  :: MHC              = 5  
@@ -2472,7 +2472,7 @@ c
             OCSRC(I,J,1) = ANTH_ORGC(I,J,1) + 
      &                     BIOF_ORGC(I,J,1) + 
      &                     BIOB_ORGC(I,J,1) + 
-     &                     TERP_ORGC(I,J)
+     &                     TERP_ORGCI,J)
 
          ENDIF
 
