@@ -1,10 +1,10 @@
-! $Id: tracerid_mod.f,v 1.8 2004/12/02 21:48:41 bmy Exp $
+! $Id: tracerid_mod.f,v 1.9 2004/12/16 16:52:46 bmy Exp $
       MODULE TRACERID_MOD
 !
 !******************************************************************************
 !  Module TRACERID_MOD contains variables which point to SMVGEAR species,
 !  CTM Tracers, Biomass species, and biofuel species located within various
-!  GEOS-CHEM arrays. (bmy, 11/12/02, 11/15/04)
+!  GEOS-CHEM arrays. (bmy, 11/12/02, 12/7/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -56,95 +56,99 @@
 !  (46 ) IDDRYO3   (INTEGER) : DRYO3  index w/in CSPEC array ("comode_mod.f")
 !  (47 ) IDDRYPAN  (INTEGER) : DRYPAN index w/in CSPEC array ("comode_mod.f")
 !  (48 ) IDDRYNO2  (INTEGER) : DRYNO2 index w/in CSPEC array ("comode_mod.f")
-!  (49 ) IDTNOX    (INTEGER) : NOx  index w/in STT tracer array ("CMN")
-!  (50 ) IDTOX     (INTEGER) : Ox   index w/in STT tracer array ("CMN")     
-!  (51 ) IDTPAN    (INTEGER) : PAN  index w/in STT tracer array ("CMN")      
-!  (52 ) IDTCO     (INTEGER) : CO   index w/in STT tracer array ("CMN")     
-!  (53 ) IDTALK4   (INTEGER) : ALK4 index w/in STT tracer array ("CMN")    
-!  (54 ) IDTISOP   (INTEGER) : ISOP index w/in STT tracer array ("CMN")    
-!  (55 ) IDTHNO3   (INTEGER) : HNO3 index w/in STT tracer array ("CMN")     
-!  (56 ) IDTH2O2   (INTEGER) : H2O2 index w/in STT tracer array ("CMN")    
-!  (57 ) IDTACET   (INTEGER) : ACET index w/in STT tracer array ("CMN")    
-!  (58 ) IDTMEK    (INTEGER) : MEK  index w/in STT tracer array ("CMN")    
-!  (59 ) IDTALD2   (INTEGER) : ALD2 index w/in STT tracer array ("CMN")    
-!  (60 ) IDTRCHO   (INTEGER) : RCHO index w/in STT tracer array ("CMN")     
-!  (61 ) IDTMVK    (INTEGER) : MVK  index w/in STT tracer array ("CMN")    
-!  (62 ) IDTMACR   (INTEGER) : MACR index w/in STT tracer array ("CMN")    
-!  (63 ) IDTPMN    (INTEGER) : PMN  index w/in STT tracer array ("CMN")    
-!  (64 ) IDTPPN    (INTEGER) : PPN  index w/in STT tracer array ("CMN")    
-!  (65 ) IDTISN2   (INTEGER) : ISN2 index w/in STT tracer array ("CMN")     
-!  (66 ) IDTR4N2   (INTEGER) : R4N2 index w/in STT tracer array ("CMN")    
-!  (67 ) IDTPRPE   (INTEGER) : PRPE index w/in STT tracer array ("CMN")    
-!  (68 ) IDTC3H8   (INTEGER) : C3H8 index w/in STT tracer array ("CMN")    
-!  (69 ) IDTCH2O   (INTEGER) : CH2O index w/in STT tracer array ("CMN")    
-!  (70 ) IDTMP     (INTEGER) : MP   index w/in STT tracer array ("CMN")    
-!  (71 ) IDTN2O5   (INTEGER) : N2O5 index w/in STT tracer array ("CMN")    
-!  (72 ) IDTHNO4   (INTEGER) : HNO4 index w/in STT tracer array ("CMN")    
-!  (73 ) IDTC2H6   (INTEGER) : C2H6 index w/in STT tracer array ("CMN")    
-!  (74 ) IDTDMS    (INTEGER) : DMS  index w/in STT tracer array ("CMN")     
-!  (75 ) IDTSO2    (INTEGER) : SO2  index w/in STT tracer array ("CMN")      
-!  (76 ) IDTSO4    (INTEGER) : SO4  index w/in STT tracer array ("CMN")    
-!  (77 ) IDTMSA    (INTEGER) : MSA  index w/in STT tracer array ("CMN")    
-!  (78 ) IDTNH3    (INTEGER) : NH3  index w/in STT tracer array ("CMN")    
-!  (79 ) IDTNH4    (INTEGER) : NH4  index w/in STT tracer array ("CMN")    
-!  (80 ) IDTNIT    (INTEGER) : NIT  index w/in STT tracer array ("CMN")    
-!  (81 ) IDTRN     (INTEGER) : Rn   index w/in STT tracer array ("CMN")    
-!  (82 ) IDTPB     (INTEGER) : Pb   index w/in STT tracer array ("CMN")    
-!  (83 ) IDTBE7    (INTEGER) : Be7  index w/in STT tracer array ("CMN")    
-!  (84 ) IDTBCPI   (INTEGER) : BCPI index w/in STT tracer array ("CMN")
-!  (85 ) IDTBCPO   (INTEGER) : BCPO index w/in STT tracer array ("CMN")
-!  (86 ) IDTOCPI   (INTEGER) : OCPI index w/in STT tracer array ("CMN")
-!  (87 ) IDTOCPO   (INTEGER) : OCPO index w/in STT tracer array ("CMN")
-!  (88 ) IDTALPH   (INTEGER) : ALPH index w/in STT tracer array ("CMN")
-!  (89 ) IDTLIMO   (INTEGER) : LIMO index w/in STT tracer array ("CMN")
-!  (90 ) IDTALCO   (INTEGER) : ALCO index w/in STT tracer array ("CMN")
-!  (91 ) IDTSOG1   (INTEGER) : SOG1 index w/in STT tracer array ("CMN")
-!  (92 ) IDTSOG2   (INTEGER) : SOG2 index w/in STT tracer array ("CMN")
-!  (93 ) IDTSOG3   (INTEGER) : SOG3 index w/in STT tracer array ("CMN")
-!  (94 ) IDTSOA1   (INTEGER) : SOA1 index w/in STT tracer array ("CMN")
-!  (95 ) IDTSOA2   (INTEGER) : SOA2 index w/in STT tracer array ("CMN")
-!  (96 ) IDTSOA3   (INTEGER) : SOA3 index w/in STT tracer array ("CMN")
-!  (97 ) IDTDST1   (INTEGER) : DST1 index w/in STT tracer array ("CMN")
-!  (98 ) IDTDST2   (INTEGER) : DST2 index w/in STT tracer array ("CMN")
-!  (99 ) IDTDST3   (INTEGER) : DST3 index w/in STT tracer array ("CMN")
-!  (100) IDTDST4   (INTEGER) : DST4 index w/in STT tracer array ("CMN")
-!  (101) IDTSALA   (INTEGER) : SALA index w/in STT tracer array ("CMN")
-!  (102) IDTSALC   (INTEGER) : SALC index w/in STT tracer array ("CMN")
-!  (103) IDENOX    (INTEGER) : NOx  index w/in EMISRRN array ("CMN_O3")  
-!  (104) IDEOX     (INTEGER) : Ox   index w/in EMISRR  array ("CMN_O3")  
-!  (105) IDECO     (INTEGER) : CO   index w/in EMISRR  array ("CMN_O3")     
-!  (106) IDEPRPE   (INTEGER) : PRPE index w/in EMISRR  array ("CMN_O3")     
-!  (107) IDEC3H8   (INTEGER) : C3H8 index w/in EMISRR  array ("CMN_O3")     
-!  (108) IDEALK4   (INTEGER) : ALK4 index w/in EMISRR  array ("CMN_O3")     
-!  (109) IDEC2H6   (INTEGER) : C2H6 index w/in EMISRR  array ("CMN_O3")    
-!  (110) IDEISOP   (INTEGER) : ISOP index w/in EMISRR  array ("CMN_O3")    
-!  (111) IDEACET   (INTEGER) : ACET index w/in EMISRR  array ("CMN_O3")     
-!  (112) IDEMEK    (INTEGER) : MEK  index w/in EMISRR  array ("CMN_O3")     
-!  (113) IDEALD2   (INTEGER) : ALD2 index w/in EMISRR  array ("CMN_O3")    
-!  (114) IDECH2O   (INTEGER) : CH2O  index w/in EMISRR  array ("CMN_O3")     
-!  (115) NEMBIOG   (INTEGER) : # of biogenic emission species for SMVGEAR
-!  (116) NEMANTHRO (INTEGER) : # of anthro   emission species for SMVGEAR
-!  (117) IDBNOX    (INTEGER) : NOx  index w/in BURNEMIS array (biomass_mod.f)
-!  (118) IDBCO     (INTEGER) : CO   index w/in BURNEMIS array (biomass_mod.f)
-!  (119) IDBC2H6   (INTEGER) : C2H6 index w/in BURNEMIS array (biomass_mod.f)
-!  (120) IDBPRPE   (INTEGER) : PRPE index w/in BURNEMIS array (biomass_mod.f)
-!  (121) IDBACET   (INTEGER) : ACET index w/in BURNEMIS array (biomass_mod.f)
-!  (122) IDBMEK    (INTEGER) : MEK  index w/in BURNEMIS array (biomass_mod.f)
-!  (123) IDBC3H8   (INTEGER) : C3H8 index w/in BURNEMIS array (biomass_mod.f)
-!  (124) IDBALD2   (INTEGER) : ALD2 index w/in BURNEMIS array (biomass_mod.f)
-!  (125) IDBCH2O   (INTEGER) : CH2O index w/in BURNEMIS array (biomass_mod.f)
-!  (126) IDBFPRPE  (INTEGER) : PRPE index w/in BURNEMIS array (biofuel_mod.f)
-!  (127) IDBALK4   (INTEGER) : ALD4 index w/in BURNEMIS array (biomass_mod.f)
-!  (128) IDBFNOX   (INTEGER) : NOx  index w/in BIOFUEL array (biofuel_mod.f)
-!  (129) IDBFCO    (INTEGER) : CO   index w/in BIOFUEL array (biofuel_mod.f)
-!  (130) IDBFALK4  (INTEGER) : ALK4 index w/in BIOFUEL array (biofuel_mod.f)
-!  (131) IDBFACET  (INTEGER) : ACET index w/in BIOFUEL array (biofuel_mod.f)
-!  (132) IDBFMEK   (INTEGER) : MEK  index w/in BIOFUEL array (biofuel_mod.f)
-!  (133) IDBFALD2  (INTEGER) : ALD2 index w/in BIOFUEL array (biofuel_mod.f)
-!  (134) IDBFPRPE  (INTEGER) : PRPE index w/in BIOFUEL array (biofuel_mod.f)
-!  (135) IDBFC3H8  (INTEGER) : NOx  index w/in BIOFUEL array (biofuel_mod.f)
-!  (136) IDBFCH2O  (INTEGER) : NOx  index w/in BIOFUEL array (biofuel_mod.f)
-!  (137) IDBFC2H6  (INTEGER) : NOx  index w/in BIOFUEL array (biofuel_mod.f)   
+!  (49 ) IDTNOX    (INTEGER) : NOx  index w/in STT array ("tracer_mod.f")
+!  (50 ) IDTOX     (INTEGER) : Ox   index w/in STT array ("CMN")     
+!  (51 ) IDTPAN    (INTEGER) : PAN  index w/in STT array ("tracer_mod.f")      
+!  (52 ) IDTCO     (INTEGER) : CO   index w/in STT array ("tracer_mod.f")     
+!  (53 ) IDTALK4   (INTEGER) : ALK4 index w/in STT array ("tracer_mod.f")    
+!  (54 ) IDTISOP   (INTEGER) : ISOP index w/in STT array ("tracer_mod.f")    
+!  (55 ) IDTHNO3   (INTEGER) : HNO3 index w/in STT array ("tracer_mod.f")     
+!  (56 ) IDTH2O2   (INTEGER) : H2O2 index w/in STT array ("tracer_mod.f")    
+!  (57 ) IDTACET   (INTEGER) : ACET index w/in STT array ("tracer_mod.f")    
+!  (58 ) IDTMEK    (INTEGER) : MEK  index w/in STT array ("tracer_mod.f")    
+!  (59 ) IDTALD2   (INTEGER) : ALD2 index w/in STT array ("tracer_mod.f")    
+!  (60 ) IDTRCHO   (INTEGER) : RCHO index w/in STT array ("tracer_mod.f")     
+!  (61 ) IDTMVK    (INTEGER) : MVK  index w/in STT array ("tracer_mod.f")    
+!  (62 ) IDTMACR   (INTEGER) : MACR index w/in STT array ("tracer_mod.f")    
+!  (63 ) IDTPMN    (INTEGER) : PMN  index w/in STT array ("tracer_mod.f")    
+!  (64 ) IDTPPN    (INTEGER) : PPN  index w/in STT array ("tracer_mod.f")    
+!  (65 ) IDTISN2   (INTEGER) : ISN2 index w/in STT array ("tracer_mod.f")     
+!  (66 ) IDTR4N2   (INTEGER) : R4N2 index w/in STT array ("tracer_mod.f")    
+!  (67 ) IDTPRPE   (INTEGER) : PRPE index w/in STT array ("tracer_mod.f")    
+!  (68 ) IDTC3H8   (INTEGER) : C3H8 index w/in STT array ("tracer_mod.f")    
+!  (69 ) IDTCH2O   (INTEGER) : CH2O index w/in STT array ("tracer_mod.f")    
+!  (70 ) IDTMP     (INTEGER) : MP   index w/in STT array ("tracer_mod.f")    
+!  (71 ) IDTN2O5   (INTEGER) : N2O5 index w/in STT array ("tracer_mod.f")    
+!  (72 ) IDTHNO4   (INTEGER) : HNO4 index w/in STT array ("tracer_mod.f")    
+!  (73 ) IDTC2H6   (INTEGER) : C2H6 index w/in STT array ("tracer_mod.f")    
+!  (74 ) IDTDMS    (INTEGER) : DMS  index w/in STT array ("tracer_mod.f")     
+!  (75 ) IDTSO2    (INTEGER) : SO2  index w/in STT array ("tracer_mod.f")      
+!  (76 ) IDTSO4    (INTEGER) : SO4  index w/in STT array ("tracer_mod.f")    
+!  (77 ) IDTMSA    (INTEGER) : MSA  index w/in STT array ("tracer_mod.f")    
+!  (78 ) IDTNH3    (INTEGER) : NH3  index w/in STT array ("tracer_mod.f")    
+!  (79 ) IDTNH4    (INTEGER) : NH4  index w/in STT array ("tracer_mod.f")    
+!  (80 ) IDTNIT    (INTEGER) : NIT  index w/in STT array ("tracer_mod.f")    
+!  (81 ) IDTRN     (INTEGER) : Rn   index w/in STT array ("tracer_mod.f")    
+!  (82 ) IDTPB     (INTEGER) : Pb   index w/in STT array ("tracer_mod.f")    
+!  (83 ) IDTBE7    (INTEGER) : Be7  index w/in STT array ("tracer_mod.f")    
+!  (84 ) IDTBCPI   (INTEGER) : BCPI index w/in STT array ("tracer_mod.f")
+!  (85 ) IDTBCPO   (INTEGER) : BCPO index w/in STT array ("tracer_mod.f")
+!  (86 ) IDTOCPI   (INTEGER) : OCPI index w/in STT array ("tracer_mod.f")
+!  (87 ) IDTOCPO   (INTEGER) : OCPO index w/in STT array ("tracer_mod.f")
+!  (88 ) IDTALPH   (INTEGER) : ALPH index w/in STT array ("tracer_mod.f")
+!  (89 ) IDTLIMO   (INTEGER) : LIMO index w/in STT array ("tracer_mod.f")
+!  (90 ) IDTALCO   (INTEGER) : ALCO index w/in STT array ("tracer_mod.f")
+!  (91 ) IDTSOG1   (INTEGER) : SOG1 index w/in STT array ("tracer_mod.f")
+!  (92 ) IDTSOG2   (INTEGER) : SOG2 index w/in STT array ("tracer_mod.f")
+!  (93 ) IDTSOG3   (INTEGER) : SOG3 index w/in STT array ("tracer_mod.f")
+!  (94 ) IDTSOA1   (INTEGER) : SOA1 index w/in STT array ("tracer_mod.f")
+!  (95 ) IDTSOA2   (INTEGER) : SOA2 index w/in STT array ("tracer_mod.f")
+!  (96 ) IDTSOA3   (INTEGER) : SOA3 index w/in STT array ("tracer_mod.f")
+!  (97 ) IDTDST1   (INTEGER) : DST1 index w/in STT array ("tracer_mod.f")
+!  (98 ) IDTDST2   (INTEGER) : DST2 index w/in STT array ("tracer_mod.f")
+!  (99 ) IDTDST3   (INTEGER) : DST3 index w/in STT array ("tracer_mod.f")
+!  (100) IDTDST4   (INTEGER) : DST4 index w/in STT array ("tracer_mod.f")
+!  (101) IDTSALA   (INTEGER) : SALA index w/in STT array ("tracer_mod.f")
+!  (102) IDTSALC   (INTEGER) : SALC index w/in STT array ("tracer_mod.f")
+!  (103) IDTHG0    (INTEGER) : Hg0  index w/in STT array ("tracer_mod.f")
+!  (104) IDTHG2    (INTEGER) : Hg2  index w/in STT array ("tracer_mod.f")
+!  (105) IDTHGP    (INTEGER) : HgP  index w/in STT array ("tracer_mod.f")
+!  (106) IDENOX    (INTEGER) : NOx  index w/in EMISRRN array ("CMN_O3")  
+!  (107) IDEOX     (INTEGER) : Ox   index w/in EMISRR  array ("CMN_O3")  
+!  (108) IDECO     (INTEGER) : CO   index w/in EMISRR  array ("CMN_O3")     
+!  (109) IDEPRPE   (INTEGER) : PRPE index w/in EMISRR  array ("CMN_O3")     
+!  (110) IDEC3H8   (INTEGER) : C3H8 index w/in EMISRR  array ("CMN_O3")     
+!  (111) IDEALK4   (INTEGER) : ALK4 index w/in EMISRR  array ("CMN_O3")     
+!  (112) IDEC2H6   (INTEGER) : C2H6 index w/in EMISRR  array ("CMN_O3")    
+!  (113) IDEISOP   (INTEGER) : ISOP index w/in EMISRR  array ("CMN_O3")    
+!  (114) IDEACET   (INTEGER) : ACET index w/in EMISRR  array ("CMN_O3")     
+!  (115) IDEMEK    (INTEGER) : MEK  index w/in EMISRR  array ("CMN_O3")     
+!  (116) IDEALD2   (INTEGER) : ALD2 index w/in EMISRR  array ("CMN_O3")    
+!  (117) IDECH2O   (INTEGER) : CH2O  index w/in EMISRR  array ("CMN_O3")     
+!  (118) NEMBIOG   (INTEGER) : # of biogenic emission species for SMVGEAR
+!  (119) NEMANTHRO (INTEGER) : # of anthro   emission species for SMVGEAR
+!  (120) IDBNOX    (INTEGER) : NOx  index w/in BURNEMIS array (biomass_mod.f)
+!  (121) IDBCO     (INTEGER) : CO   index w/in BURNEMIS array (biomass_mod.f)
+!  (122) IDBC2H6   (INTEGER) : C2H6 index w/in BURNEMIS array (biomass_mod.f)
+!  (123) IDBPRPE   (INTEGER) : PRPE index w/in BURNEMIS array (biomass_mod.f)
+!  (124) IDBACET   (INTEGER) : ACET index w/in BURNEMIS array (biomass_mod.f)
+!  (125) IDBMEK    (INTEGER) : MEK  index w/in BURNEMIS array (biomass_mod.f)
+!  (126) IDBC3H8   (INTEGER) : C3H8 index w/in BURNEMIS array (biomass_mod.f)
+!  (127) IDBALD2   (INTEGER) : ALD2 index w/in BURNEMIS array (biomass_mod.f)
+!  (128) IDBCH2O   (INTEGER) : CH2O index w/in BURNEMIS array (biomass_mod.f)
+!  (129) IDBFPRPE  (INTEGER) : PRPE index w/in BURNEMIS array (biofuel_mod.f)
+!  (130) IDBALK4   (INTEGER) : ALD4 index w/in BURNEMIS array (biomass_mod.f)
+!  (131) IDBFNOX   (INTEGER) : NOx  index w/in BIOFUEL array (biofuel_mod.f)
+!  (132) IDBFCO    (INTEGER) : CO   index w/in BIOFUEL array (biofuel_mod.f)
+!  (133) IDBFALK4  (INTEGER) : ALK4 index w/in BIOFUEL array (biofuel_mod.f)
+!  (134) IDBFACET  (INTEGER) : ACET index w/in BIOFUEL array (biofuel_mod.f)
+!  (135) IDBFMEK   (INTEGER) : MEK  index w/in BIOFUEL array (biofuel_mod.f)
+!  (136) IDBFALD2  (INTEGER) : ALD2 index w/in BIOFUEL array (biofuel_mod.f)
+!  (137) IDBFPRPE  (INTEGER) : PRPE index w/in BIOFUEL array (biofuel_mod.f)
+!  (138) IDBFC3H8  (INTEGER) : NOx  index w/in BIOFUEL array (biofuel_mod.f)
+!  (139) IDBFCH2O  (INTEGER) : NOx  index w/in BIOFUEL array (biofuel_mod.f)
+!  (140) IDBFC2H6  (INTEGER) : NOx  index w/in BIOFUEL array (biofuel_mod.f)   
+!  Plus 21 flags for tagged Hg tracers
 !
 !  Module Routines:
 !  ============================================================================
@@ -166,6 +170,7 @@
 !  (5 ) Increase NNNTRID for carb+dust+seasalt tracers (bmy, 4/26/04)
 !  (6 ) Increase NNNTRID & add extra flags for SOA tracers. (rjp, bmy, 7/13/04)
 !  (7 ) Bug fix: reverse IDECH2O and IDEISOP (bmy, 11/15/04)
+!  (8 ) Added IDTHG0, IDTHG2, IDTHGP + tagged Hg's (eck, bmy, 12/7/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -200,7 +205,17 @@
       INTEGER            :: IDTBCPI, IDTBCPO,  IDTOCPI, IDTOCPO, IDTDST1
       INTEGER            :: IDTDST2, IDTDST3,  IDTDST4, IDTSALA, IDTSALC
       INTEGER            :: IDTALPH, IDTLIMO,  IDTALCO, IDTSOG1, IDTSOG2  
-      INTEGER            :: IDTSOG3, IDTSOA1,  IDTSOA2, IDTSOA3
+      INTEGER            :: IDTSOG3, IDTSOA1,  IDTSOA2, IDTSOA3, IDTHG0
+      INTEGER            :: IDTHG2,  IDTHGP
+
+      ! Extra tracer ID's for tagged mercury simulation
+      ! (we need these or else the wetdep code won't work)
+      INTEGER            :: IDTHG0_NA, IDTHG0_EU, IDTHG0_AS, IDTHG0_RW
+      INTEGER            :: IDTHG0_OC, IDTHG0_LN, IDTHG0_NT
+      INTEGER            :: IDTHG2_NA, IDTHG2_EU, IDTHG2_AS, IDTHG2_RW
+      INTEGER            :: IDTHG2_OC, IDTHG2_LN, IDTHG2_NT
+      INTEGER            :: IDTHGP_NA, IDTHGP_EU, IDTHGP_AS, IDTHGP_RW
+      INTEGER            :: IDTHGP_OC, IDTHGP_LN, IDTHGP_NT
 
       ! GEOS-CHEM emission ID's
       INTEGER            :: IDENOX,  IDEOX,    IDECO,   IDEPRPE, IDEC3H8
@@ -225,7 +240,7 @@
 !******************************************************************************
 !  Subroutine TRACERID reads the "tracer.dat" file and determines which
 !  tracers, emission species, biomass burning species, and biofuel burning
-!  species are turned on/off. (bmy, 3/16/01, 11/15/04)
+!  species are turned on/off. (bmy, 3/16/01, 12/7/04)
 !
 !  NOTES:
 !  (1 ) Original code from Loretta's version of the GISS-II model.  Now we
@@ -239,6 +254,7 @@
 !  (5 ) Now references "tracer_mod.f".  NAME is now CHAR*14. (bmy, 7/20/04)
 !  (6 ) Reverse the position of IDEISOP and IDECH2O so as to keep all of the
 !        anthropogenic tracers together in IDEMS (bmy, 11/15/04)
+!  (7 ) Added IDTHG0, IDTHG2, IDTHGP flags (eck, bmy, 12/7/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -500,6 +516,82 @@
                IDBFCO   = COUNT
                EXIT
 
+            !----------------------------------
+            ! Total and tagged mercury tracers 
+            ! (eck, bmy, 12/14/04)
+            !----------------------------------
+            CASE ( 'HG0' )
+               IDTHG0   = N
+ 
+            CASE ( 'HG2' )
+               IDTHG2   = N
+
+            CASE ( 'HGP' )
+               IDTHGP   = N
+
+            CASE ( 'HG0_AN_NA' )
+               IDTHG0_NA = N
+
+            CASE ( 'HG0_AN_EU' )
+               IDTHG0_EU = N
+
+            CASE ( 'HG0_AN_AS' )
+               IDTHG0_AS = N
+
+            CASE ( 'HG0_AN_RW' )
+               IDTHG0_RW = N
+
+            CASE ( 'HG0_OC' )
+               IDTHG0_OC = N
+
+            CASE ( 'HG0_LN' )
+               IDTHG0_LN = N
+
+            CASE ( 'HG0_NT' )
+               IDTHG0_NT = N
+
+            CASE ( 'HG2_AN_NA' )
+               IDTHG2_NA = N
+
+            CASE ( 'HG2_AN_EU' )
+               IDTHG2_EU = N
+
+            CASE ( 'HG2_AN_AS' )
+               IDTHG2_AS = N
+
+            CASE ( 'HG2_AN_RW' )
+               IDTHG2_RW = N
+
+            CASE ( 'HG2_OC' )
+               IDTHG2_OC = N
+
+            CASE ( 'HG2_LN' )
+               IDTHG2_LN = N
+
+            CASE ( 'HG2_NT' )
+               IDTHG2_NT = N
+
+            CASE ( 'HGP_AN_NA' )
+               IDTHGP_NA = N
+
+            CASE ( 'HGP_AN_EU' )
+               IDTHGP_EU = N
+
+            CASE ( 'HGP_AN_AS' )
+               IDTHGP_AS = N
+
+            CASE ( 'HGP_AN_RW' )
+               IDTHGP_RW = N
+
+            CASE ( 'HGP_OC' )
+               IDTHGP_OC = N
+
+            CASE ( 'HGP_LN' )
+               IDTHGP_LN = N
+
+            CASE ( 'HGP_NT' )
+               IDTHGP_NT = N
+
             CASE DEFAULT
                ! Nothing
 
@@ -524,14 +616,6 @@
          IDEACET   = 7
          IDEMEK    = 8
          IDEALD2   = 9
-         !------------------------------------------------------------------
-         ! Prior to 11/15/04:
-         ! NOTE: CH2O should come before ISOP so that all of the anthro
-         ! tracers are grouped together.  Also note: CH2O is not emitted in
-         ! "anthroems.f" so it really doesn't matter. (tmf, bmy, 11/15/04)
-         !IDEISOP   = 10
-         !IDECH2O   = 11
-         !------------------------------------------------------------------
          IDECH2O   = 10
          IDEISOP   = 11
       ENDIF
@@ -742,13 +826,14 @@
       SUBROUTINE INIT_TRACERID
 !
 !******************************************************************************
-!  Subroutine INIT_TRACERID zeroes module variables. (bmy, 11/12/02, 7/13/04)
+!  Subroutine INIT_TRACERID zeroes module variables. (bmy, 11/12/02, 12/7/04)
 !
 !  NOTES:
 !  (1 ) Now also zero IDDMS, IDSO2, IDSO4, IDMSA (rjp, bmy, 3/23/03)
 !  (2 ) Now zero extra flags for carbon & dust tracers (rjp, tdf, bmy, 4/1/04)
 !  (3 ) Now zero extra flags for seasalt tracers (rjp, bec, bmy, 4/1/04)
 !  (4 ) Now zero extra flags for SOA tracers (rjp, bmy, 7/13/04)
+!  (5 ) Now zero IDTHG0, IDTHG2, IDTHGP + tagged Hg's (eck, bmy, 12/7/04)
 !******************************************************************************
 !
       ! SMVGEAR species ID #'s
@@ -850,6 +935,25 @@
       IDTRN     = 0
       IDTPB     = 0
       IDTBE7    = 0
+      IDTHG0    = 0
+      IDTHG2    = 0
+      IDTHGP    = 0
+
+      ! GEOS-CHEM Tagged Hg tracers
+      IDTHG2_NA = 0 
+      IDTHG2_EU = 0 
+      IDTHG2_AS = 0 
+      IDTHG2_RW = 0
+      IDTHG2_OC = 0 
+      IDTHG2_LN = 0 
+      IDTHG2_NT = 0
+      IDTHGP_NA = 0 
+      IDTHGP_EU = 0 
+      IDTHGP_AS = 0 
+      IDTHGP_RW = 0
+      IDTHGP_OC = 0 
+      IDTHGP_LN = 0 
+      IDTHGP_NT = 0
       
       ! GEOS-CHEM Emission ID #'s
       NEMANTHRO = 0

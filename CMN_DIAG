@@ -1,4 +1,4 @@
-! $Id: CMN_DIAG,v 1.7 2004/09/21 18:04:06 bmy Exp $
+! $Id: CMN_DIAG,v 1.8 2004/12/16 16:52:41 bmy Exp $
 ! 
 ! NOTES:
 ! (1 ) Changed RCS ID tag comment character from "C" to "!" to allow freeform
@@ -106,9 +106,11 @@
       INTEGER, PARAMETER :: PD70=0
 
 !----------------------------------------------------------------------------
-! TOFDY0 is used in diag0.f -- preserve for now (bmy, 4/18/00)
-      REAL*4 ::     TOFDY0
-      COMMON /CCA2/ TOFDY0
+! Prior to 12/7/04: 
+! This is obsolete, comment out
+!! TOFDY0 is used in diag0.f -- preserve for now (bmy, 4/18/00)
+!      REAL*4 ::     TOFDY0
+!      COMMON /CCA2/ TOFDY0
 !----------------------------------------------------------------------------
 ! Diagnostic counters & time variables
 ! NJDAY is now 366 for leap years (bmy, 3/17/99)

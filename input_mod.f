@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.7 2004/12/02 21:48:38 bmy Exp $
+! $Id: input_mod.f,v 1.8 2004/12/16 16:52:45 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS_CHEM input file at the start of the run
 !  and passes the information to several other GEOS-CHEM F90 modules.
-!  (bmy, 7/20/04, 11/19/04)
+!  (bmy, 7/20/04, 12/15/04)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -82,7 +82,7 @@
 !
 !  NOTES:
 !  (1 ) Now references LSOA in READ_AEROSOL_MENU (bmy, 9/28/04)
-!  (2 ) Fixed error checks
+!  (2 ) Fixed error checks and assign LSPLIT for tagged Hg (eck, bmy, 12/13/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -606,9 +606,10 @@
 !
 !******************************************************************************
 !  Subroutine READ_TRACER_MENU reads the TRACER MENU section of the 
-!  GEOS-CHEM input file (bmy, 7/20/04)
+!  GEOS-CHEM input file (bmy, 7/20/04, 12/13/04)
 !
 !  NOTES:
+!  (1 ) Now set LSPLIT correctly for Tagged Hg simulation (eck, bmy, 12/13/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -785,8 +786,9 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      WRITE( 6, '(/,a)' ) 'TRACER MENU (==> denotes emitted species)' 
-      WRITE( 6, '(  a)' ) '-----------------------------------------'
+      WRITE( 6, '(/,a)' ) 
+     &       'TRACER MENU (==> denotes SMVGEAR emitted species)' 
+      WRITE( 6, '(  a)' ) REPEAT( '-', 48 )
       WRITE( 6, '(  a)' ) '  # Tracer          g/mole'
 
       ! Print info about each tracer
@@ -821,8 +823,14 @@
       ! Call setup routines from other F90 modules
       !=================================================================
 
-      ! Split into tagged tracers
-      LSPLIT = ( N_TRACERS > 1 )
+      ! Split into tagged tracers (turn off for full-chemistry)
+      IF ( SIM_TYPE == 3 ) THEN
+         LSPLIT = .FALSE.
+      ELSE IF ( SIM_TYPE == 11 ) THEN
+         LSPLIT = ( N_TRACERS > 3 )
+      ELSE
+         LSPLIT = ( N_TRACERS > 1 )
+      ENDIF
 
       ! Set up tracer flags
       CALL TRACERID
@@ -1370,15 +1378,16 @@
 !
 !******************************************************************************
 !  Subroutine READ_DEPOSITION_MENU reads the DEPOSITION MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 12/15/04)
 !
 !  NOTES:
+!  (1 ) Now print an informational message for tagged Hg (bmy, 12/15/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE DRYDEP_MOD,  ONLY : INIT_DRYDEP
-      USE LOGICAL_MOD, ONLY : LDRYD, LWETD
+      USE LOGICAL_MOD, ONLY : LDRYD, LWETD, LSPLIT
       USE TRACER_MOD
       USE WETSCAV_MOD, ONLY : WETDEPID
 
@@ -1442,10 +1451,30 @@
       !=================================================================
 
       ! Initialize dry deposition arrays
-      IF ( LDRYD ) CALL INIT_DRYDEP
+      !---------------------------------------------
+      ! Prior to 12/15/04:
+      !IF ( LDRYD ) CALL INIT_DRYDEP
+      !---------------------------------------------
+      IF ( LDRYD ) THEN
+
+         ! Setup for dry deposition
+         CALL INIT_DRYDEP
       
+         ! Print extra info message for Hg simulation
+         IF ( ITS_A_MERCURY_SIM() .and. LSPLIT ) THEN
+            WRITE ( 6, 120 )
+            WRITE ( 6, 121 )
+         ENDIF
+      ENDIF
+
       ! Initialize wet deposition tracers
       IF ( LWETD ) CALL WETDEPID
+
+      ! FORMAT strings
+ 120  FORMAT( /, 'All tagged Hg2 tracers have the same dep velocity '
+     &           'as the total Hg2 tracer.' )
+ 121  FORMAT( 'All tagged HgP tracers have the same dep velocity '
+     &        'as the total HgP tracer.' )
 
       ! Return to calling program
       END SUBROUTINE READ_DEPOSITION_MENU

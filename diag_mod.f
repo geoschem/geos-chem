@@ -1,9 +1,9 @@
-! $Id: diag_mod.f,v 1.10 2004/12/02 21:48:35 bmy Exp $
+! $Id: diag_mod.f,v 1.11 2004/12/16 16:52:44 bmy Exp $
       MODULE DIAG_MOD 
 !
 !******************************************************************************
 !  Module DIAG_MOD contains declarations for allocatable arrays for use with 
-!  GEOS-CHEM diagnostics. (amf, bdf, bmy, 11/30/99, 11/17/04)
+!  GEOS-CHEM diagnostics. (amf, bdf, bmy, 11/30/99, 12/7/04)
 !
 !  Module Routines:
 !  ============================================================================
@@ -44,7 +44,8 @@
 !  (16) Added AD13_SO2_sh diagnostic array for ND13 (bec, bmy, 5/20/04)
 !  (17) Added AD07_HC diagnostic array for ND07 (rjp, bmy, 7/13/04)
 !  (18) Moved AD65 & FAMPL to "diag65_mod.f" (bmy, 7/20/04)
-!  (19) Added array AD13_SO4_bf (bmy, 11/17/04)
+!  (19) Added array AD13_SO4_bf (bmy, 11/17/04)!
+!  (20) Added extra arrays for ND03 mercury diagnostics (eck, bmy, 12/7/04)
 !******************************************************************************
 !     
       !=================================================================
@@ -57,8 +58,21 @@
       ! For ND02 -- Rn, Pb, Be decay
       REAL*4,  ALLOCATABLE :: AD02(:,:,:,:)
 
-      ! For ND03 -- Kr85 prod/loss
-      REAL*4,  ALLOCATABLE :: AD03(:,:,:,:)
+      !--------------------------------------------
+      !! For ND03 -- Kr85 prod/loss
+      !REAL*4,  ALLOCATABLE :: AD03(:,:,:,:)
+      !--------------------------------------------
+
+      ! ND03: Mercury simulation
+      REAL*4,  ALLOCATABLE :: AD03_Hg0_an(:,:)
+      REAL*4,  ALLOCATABLE :: AD03_Hg2_an(:,:)
+      REAL*4,  ALLOCATABLE :: AD03_HgP_an(:,:)
+      REAL*4,  ALLOCATABLE :: AD03_Hg0_oc(:,:)
+      REAL*4,  ALLOCATABLE :: AD03_Hg0_ln(:,:)
+      REAL*4,  ALLOCATABLE :: AD03_Hg0_nt(:,:)
+      REAL*4,  ALLOCATABLE :: AD03_Hg2_Hg0(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD03_Hg2_OH(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD03_Hg2_O3(:,:,:)
 
       ! For ND05 -- Sulfate prod/loss diagnostics
       REAL*4,  ALLOCATABLE :: AD05(:,:,:,:)
@@ -238,7 +252,7 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_DIAG deallocates all module arrays.
-!  (bmy, 12/13/02, 11/17/04)
+!  (bmy, 12/13/02, 12/7/04)
 !
 !  NOTES:
 !  (1 ) Now also deallocate AD13_NH3_an, AD13_NH3_bb, AD13_NH3_bf arrays
@@ -251,6 +265,7 @@
 !  (6 ) Now also deallocaes AD13_SO2_sh array (bec, bmy, 5/20/04)
 !  (7 ) Now also deallocates AD07_HC array (rjp, bmy, 7/13/04)
 !  (8 ) Now also deallocate AD13_SO4_bf array (bmy, 11/17/04)
+!  (9 ) Now deallocate extra arrays for ND03 diagnostics (eck, bmy, 12/7/04)
 !******************************************************************************
 !
       !=================================================================
@@ -258,7 +273,19 @@
       !=================================================================
       IF ( ALLOCATED( AD01        ) ) DEALLOCATE( AD01        )
       IF ( ALLOCATED( AD02        ) ) DEALLOCATE( AD02        )
-      IF ( ALLOCATED( AD03        ) ) DEALLOCATE( AD03        )
+      !---------------------------------------------------------------------
+      ! Prior to 12/7/04:
+      !IF ( ALLOCATED( AD03        ) ) DEALLOCATE( AD03        )
+      !---------------------------------------------------------------------
+      IF ( ALLOCATED( AD03_Hg0_an ) ) DEALLOCATE( AD03_Hg0_an )
+      IF ( ALLOCATED( AD03_Hg2_an ) ) DEALLOCATE( AD03_Hg2_an )
+      IF ( ALLOCATED( AD03_HgP_an ) ) DEALLOCATE( AD03_HgP_an )
+      IF ( ALLOCATED( AD03_Hg0_oc ) ) DEALLOCATE( AD03_Hg0_oc )
+      IF ( ALLOCATED( AD03_Hg0_ln ) ) DEALLOCATE( AD03_Hg0_ln )
+      IF ( ALLOCATED( AD03_Hg0_nt ) ) DEALLOCATE( AD03_Hg0_nt )
+      IF ( ALLOCATED( AD03_Hg2_Hg0) ) DEALLOCATE( AD03_Hg2_Hg0)
+      IF ( ALLOCATED( AD03_Hg2_OH ) ) DEALLOCATE( AD03_Hg2_OH )
+      IF ( ALLOCATED( AD03_Hg2_O3 ) ) DEALLOCATE( AD03_Hg2_O3 )
       IF ( ALLOCATED( AD06        ) ) DEALLOCATE( AD06        )
       IF ( ALLOCATED( AD07        ) ) DEALLOCATE( AD07        )
       IF ( ALLOCATED( AD07_BC     ) ) DEALLOCATE( AD07_BC     )

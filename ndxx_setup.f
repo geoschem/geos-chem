@@ -1,9 +1,9 @@
-! $Id: ndxx_setup.f,v 1.14 2004/12/02 21:48:38 bmy Exp $
+! $Id: ndxx_setup.f,v 1.15 2004/12/16 16:52:45 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
 !  NDXX_SETUP dynamically allocates memory for certain diagnostic arrays that 
-!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 9/28/04)
+!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 12/14/04)
 !
 !  This allows us to reduce the amount of memory that needs to be declared 
 !  globally.  We only allocate memory for arrays if the corresponding 
@@ -105,6 +105,8 @@
 !        Adjust TRCOFFSET for various aerosol simulations. (bmy, 7/20/04)
 !  (49) Make sure ND21 only goes from 1-LLTROP (bmy, 9/28/04)
 !  (50) Now allocate AD13_SO4_bf array (bmy, 11/17/04)
+!  (51) Now allocate extra arrays for ND03 mercury diag.  Also set up for
+!        mercury tracers in ND44 diagnostic. (bmy, 12/14/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -190,6 +192,9 @@
       ELSE IF ( ITS_A_CH4_SIM() ) THEN
          TRCOFFSET = 54         
 
+      ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
+         TRCOFFSET = 70
+
       ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
          TRCOFFSET = 50         
 
@@ -250,12 +255,44 @@
       !=================================================================
       IF ( ND03 > 0 ) THEN 
          LD03 = MIN( ND03, LLPAR )
+         
+         !--------------------------------------------------------------
+         ! Prior to 12/7/04:
+         ! Kr85 was never really implemented.  Comment out for now
+         ! (eck, bmy, 12/7/04)
+         !ALLOCATE( AD03( IIPAR, JJPAR, LD03, PD03 ), STAT=AS )
+         !IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03' )
+         !
+         !! Also need to turn on ND25 N/S flux diagnostic
+         !ND25 = LLPAR
+         !--------------------------------------------------------------
 
-         ALLOCATE( AD03( IIPAR, JJPAR, LD03, PD03 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03' )
+         ALLOCATE( AD03_Hg0_an( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg0_an' )
 
-         ! Also need to turn on ND25 N/S flux diagnostic
-         ND25 = LLPAR
+         ALLOCATE( AD03_Hg2_an( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_an' )
+
+         ALLOCATE( AD03_HgP_an( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_HgP_an' )
+
+         ALLOCATE( AD03_Hg0_oc( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg0_oc' )
+
+         ALLOCATE( AD03_Hg0_ln( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg0_ln' )
+
+         ALLOCATE( AD03_Hg0_nt( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg0_nt' ) 
+
+         ALLOCATE( AD03_Hg2_Hg0( IIPAR, JJPAR, LD03 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_Hg0')
+
+         ALLOCATE( AD03_Hg2_OH( IIPAR, JJPAR, LD03 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_OH')
+
+         ALLOCATE( AD03_Hg2_O3( IIPAR, JJPAR, LD03 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_O3')
       ENDIF
 
       !=================================================================
@@ -811,7 +848,7 @@
       IF ( ND44 > 0 ) THEN
 
          ! Get number of tracers for ND44
-         IF ( ITS_A_TAGOX_SIM() ) THEN
+         IF ( ITS_A_TAGOX_SIM() .or. ITS_A_MERCURY_SIM() ) THEN
             NMAX = N_TRACERS
          ELSE
             NMAX = NUMDEP

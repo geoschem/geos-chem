@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.17 2004/12/02 21:48:34 bmy Exp $
+! $Id: diag3.f,v 1.18 2004/12/16 16:52:44 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out I-J (Long-Lat) diagnostics to the BINARY
-!  format punch file (bmy, bey, mgs, rvm, 5/27/99, 11/29/04)
+!  format punch file (bmy, bey, mgs, rvm, 5/27/99, 12/14/04)
 !
 !  The preferred file format is binary punch file format v. 2.0.  This
 !  file format is very GAMAP-friendly.  GAMAP also supports the ASCII
@@ -138,6 +138,8 @@
 !        examine the flux at 200 hPa, you get the same info. (bmy, 10/15/04)
 !  (55) Added biofuel SO4 to the bpch file under ND13.  Bug fix: replace ND68 
 !        with LD68 in call to BPCH2 (auvray, bmy, 11/17/04)
+!  (56) Now save ND03 mercury diagnostic arrays to bpch file.  Also updated
+!        ND44 for tagged Hg tracers (eck, bmy, 12/14/04)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -293,44 +295,199 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD02) )
          ENDDO
       ENDIF
+!------------------------------------------------------------------------------
+! Prior to 12/7/04:
+! Now use ND03 for mercury diagnostics (eck, bmy, 12/7/04)
+!!
+!!******************************************************************************
+!!  ND03: Rn, Pb, Be emissions (Category: "RN--SRCE")
+!!
+!!   # : Field  : Description                    : Units      : Scale factor
+!!  ----------------------------------------------------------------------------
+!!  (1)  P(Kr)  : Emissions of Kr85              : kg         : SCALESRCE
+!!  (2)  L(Kr)  : Decay of Kr85                  : kg         : SCALECHEM
+!!******************************************************************************
+!!
+!      IF ( ND03 > 0 ) THEN
+!         CATEGORY = 'KRBUDGET'
+!         UNIT     = 'kg'
+!
+!         DO M = 1, TMAX(3)
+!            N  = TINDEX(3,M)
+!            IF ( N > PD03 ) CYCLE
+!            NN = N
+!               
+!            ! Pick proper scale factor
+!            IF ( N == 1 ) THEN
+!               SCALEX = SCALESRCE
+!            ELSE
+!               SCALEX = SCALECHEM
+!            ENDIF
+!
+!            ! Divide by # of emission timesteps
+!            DO L = 1, LD03
+!               ARRAY(:,:,L) = AD03(:,:,L,N) / SCALEX
+!            ENDDO
+!
+!            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+!     &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
+!     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
+!     &                  IIPAR,     JJPAR,     LD03,     IFIRST,     
+!     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD03) )
+!         ENDDO
+!      ENDIF
+!------------------------------------------------------------------------------
 !
 !******************************************************************************
-!  ND03: Rn, Pb, Be emissions (Category: "RN--SRCE")
+!  ND03: Diagnostics from Hg0/Hg2/HgP offline simulation (eck, bmy, 12/7/04)
 !
-!   # : Field  : Description                    : Units      : Scale factor
-!  ----------------------------------------------------------------------------
-!  (1)  P(Kr)  : Emissions of Kr85              : kg         : SCALESRCE
-!  (2)  L(Kr)  : Decay of Kr85                  : kg         : SCALECHEM
+!   # : Field    : Description                     : Units    : Scale factor
+!  --------------------------------------------------------------------------
+!  (1 ) HG-SRCE  : Anthropogenic HG0 emission      : kg       : 1
+!  (2 ) HG-SRCE  : Oceanic HgO emission            : kg       : 1
+!  (3 ) HG-SRCE  : Land reemission                 : kg       : 1
+!  (4 ) HG-SRCE  : Land natural emission           : kg       : 1
+!  (5 ) HG-SRCE  : Anthropogenic Hg2 emission      : kg       : 1
+!  (6 ) HG-SRCE  : Anthropogenic HgP emission      : kg       : 1
+!  (1 ) PL-HG2-$ : Production of Hg2 from Hg0      : kg       : 1
+!  (2 ) PL-HG2-$ : Production of Hg2 from rxn w/OH : kg       : 1
+!  (3 ) PL-HG2-$ : Production of Hg2 from rxn w/O3 : kg       : 1
+!
+!  NOTES:
 !******************************************************************************
 !
-      IF ( ND03 > 0 ) THEN
-         CATEGORY = 'KRBUDGET'
-         UNIT     = 'kg'
+      IF ( ND03 > 0 .and. ITS_A_MERCURY_SIM() ) THEN
 
-         DO M = 1, TMAX(3)
-            N  = TINDEX(3,M)
-            IF ( N > PD03 ) CYCLE
-            NN = N
-               
-            ! Pick proper scale factor
-            IF ( N == 1 ) THEN
-               SCALEX = SCALESRCE
-            ELSE
-               SCALEX = SCALECHEM
-            ENDIF
+         ! Unit string
+         UNIT = 'kg'
+         
+         !------------------------------
+         ! Hg(0) anthro emissions
+         !------------------------------
+         CATEGORY     = 'HG-SRCE'
+         N            = 1
+         ARRAY(:,:,1) = AD03_Hg0_an(:,:)
 
-            ! Divide by # of emission timesteps
-            DO L = 1, LD03
-               ARRAY(:,:,L) = AD03(:,:,L,N) / SCALEX
-            ENDDO
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &               IIPAR,     JJPAR,     1,        IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
-            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     LD03,     IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD03) )
+         !------------------------------
+         ! Hg(0) ocean emissions
+         !------------------------------
+         CATEGORY     = 'HG-SRCE'
+         N            = 2
+         ARRAY(:,:,1) = AD03_Hg0_oc(:,:)
+
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &               IIPAR,     JJPAR,     1,        IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+         !------------------------------
+         ! Hg(0) re-emission from land
+         !------------------------------
+         CATEGORY     = 'HG-SRCE'
+         N            = 3
+         ARRAY(:,:,1) = AD03_Hg0_ln(:,:)
+
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &               IIPAR,     JJPAR,     1,        IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+         !------------------------------
+         ! Hg(0) natural land emissions
+         !------------------------------
+         CATEGORY     = 'HG-SRCE'
+         N            = 4
+         ARRAY(:,:,1) = AD03_Hg0_nt(:,:)
+
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &               IIPAR,     JJPAR,     1,        IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+         !------------------------------
+         ! Hg(II) anthro emissions
+         !------------------------------
+         CATEGORY     = 'HG-SRCE'
+         N            = 5
+         ARRAY(:,:,1) = AD03_Hg2_an(:,:)
+
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &               IIPAR,     JJPAR,     1,        IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+         !------------------------------
+         ! HgP anthro emissions
+         !------------------------------
+         CATEGORY     = 'HG-SRCE'
+         N            = 6
+         ARRAY(:,:,1) = AD03_HgP_an(:,:)
+
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &               IIPAR,     JJPAR,     1,        IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+         !------------------------------
+         ! Prod of Hg(II) from Hg(0)
+         !------------------------------
+         CATEGORY     = 'PL-HG2-$'
+         N            = 1
+         
+         DO L = 1, LD03
+            ARRAY(:,:,L) = AD03_Hg2_Hg0(:,:,L)
          ENDDO
-      ENDIF
+
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &               IIPAR,     JJPAR,     LD03,     IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD03) )
+
+         !------------------------------
+         ! Prod of Hg(II) from OH rxn
+         !------------------------------
+         CATEGORY     = 'PL-HG2-$'
+         N            = 2
+
+         DO L = 1, LD03
+            ARRAY(:,:,L) = AD03_Hg2_OH(:,:,L)
+         ENDDO
+
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &               IIPAR,     JJPAR,     LD03,     IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD03) )
+
+         !------------------------------
+         ! Prod of Hg(II) from O3 rxn
+         !------------------------------
+         CATEGORY     = 'PL-HG2-$'
+         N            = 3
+
+         DO L = 1, LD03
+            ARRAY(:,:,L) = AD03_Hg2_O3(:,:,L)
+         ENDDO
+
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &               IIPAR,     JJPAR,     LD03,     IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD03) )
+
+      ENDIF    
 !
 !******************************************************************************
 !  ND05: Production/Loss for coupled fullchem/aerosol runs (NSRCX==3) or
@@ -2202,7 +2359,7 @@
          CATEGORY = 'DRYD-FLX'
 
          ! # of drydep flux tracers
-         IF ( ITS_A_TAGOX_SIM() ) THEN
+         IF ( ITS_A_TAGOX_SIM() .or. ITS_A_MERCURY_SIM() ) THEN
             M = N_TRACERS
          ELSE
             M = NUMDEP
@@ -2211,16 +2368,24 @@
          ! Loop over drydep tracers
          DO N = 1, M
 
-            ! Tracer number plus GAMAP offset
             IF ( ITS_A_RnPbBe_SIM()  ) THEN
+
+               ! Radon
                UNIT = 'kg/s'       
                NN   = NTRAIND(N) + TRCOFFSET
-            ELSE IF ( ITS_A_TAGOX_SIM() ) THEN
+ 
+            ELSE IF ( ITS_A_TAGOX_SIM() .or. ITS_A_MERCURY_SIM() ) THEN
+
+               ! Tagged Ox or Tagged Hg
                UNIT = 'molec/cm2/s'
                NN   = N + TRCOFFSET
+  
             ELSE 
+     
+               ! Other simulations
                UNIT = 'molec/cm2/s'
                NN   = NTRAIND(N) + TRCOFFSET
+ 
             ENDIF
 
             ! Save into ARRAY
@@ -2246,6 +2411,8 @@
          ! # of drydep velocity tracers
          IF ( ITS_A_TAGOX_SIM() ) THEN
             M = 1
+         ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
+            M = 2
          ELSE
             M = NUMDEP
          ENDIF

@@ -1,9 +1,9 @@
-! $Id: time_mod.f,v 1.10 2004/12/02 21:48:41 bmy Exp $
+! $Id: time_mod.f,v 1.11 2004/12/16 16:52:46 bmy Exp $
       MODULE TIME_MOD
 !
 !******************************************************************************
 !  TIME_MOD contains GEOS-CHEM date and time variables and timesteps, and 
-!  routines for accessing them. (bmy, 6/21/00, 11/5/04) 
+!  routines for accessing them. (bmy, 6/21/00, 12/10/04) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -163,6 +163,7 @@
 !  (15) Added routines ITS_A_NEW_SEASON, GET_NDIAGTIME, SET_NDIAGTIME, and
 !        variable NDIAGTIME. (bmy, 7/20/04)
 !  (17) Added routine GET_DAY_OF_WEEK (bmy, 11/5/04)
+!  (18) Removed obsolete FIRST variable in GET_A3_TIME (bmy, 12/10/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1744,16 +1745,21 @@
 !******************************************************************************
 !  Function GET_A3_TIME returns the correct YYYYMMDD and HHMMSS values
 !  that are needed to read in the next average 3-hour (A-3) fields. 
-!  (bmy, 3/21/03, 6/19/03)
+!  (bmy, 3/21/03, 12/10/04)
 !
 !  NOTES:
 !  (1 ) Now return proper time for GEOS-4/fvDAS fields (bmy, 6/19/03)
+!  (2 ) Remove reference to FIRST variable (bmy, 12/10/04)
 !******************************************************************************
 !
 #     include "define.h"
 
-      ! Local variables
-      LOGICAL, SAVE :: FIRST
+      !-------------------------------------------
+      ! Prior to 12/10/04;:
+      ! This is no longer needed (bmy, 12/10/04)
+      !! Local variables
+      !LOGICAL, SAVE :: FIRST
+      !-------------------------------------------
 
       ! Function value
       INTEGER :: DATE(2)

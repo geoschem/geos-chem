@@ -1,9 +1,9 @@
-! $Id: emissions_mod.f,v 1.7 2004/12/02 21:48:36 bmy Exp $
+! $Id: emissions_mod.f,v 1.8 2004/12/16 16:52:45 bmy Exp $
       MODULE EMISSIONS_MOD
 !
 !******************************************************************************
 !  Module EMISSIONS_MOD is used to call the proper emissions subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 2/11/03, 11/5/04)
+!  for the various GEOS-CHEM simulations. (bmy, 2/11/03, 12/7/04)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -20,12 +20,13 @@
 !  (7 ) global_ch4_mod.f : Module containing routines for CH4 emissions
 !  (8 ) Kr85_mod.f       : Module containing routines for Kr85 emissions
 !  (9 ) logical_mod.f    : Module containing GEOS-CHEM logical switches
-!  (10) RnPbBe_mod.f     : Module containing routines for Rn-Pb-Be emissions
-!  (11) tagged_co_mod.f  : Module containing routines for Tagged CO emissions
-!  (12) time_mod.f       : Module containing routines to compute date & time
-!  (13) tracer_mod.f     : Module containing GEOS-CHEM tracer array STT etc.
-!  (14) seasalt_mod.f    : Module containing routines for seasalt emissions
-!  (15) sulfate_mod.f    : Module containing routines for sulfate emissions
+!  (10) mercury_mod.f    : Module containing routines for mercury chemistry
+!  (11) RnPbBe_mod.f     : Module containing routines for Rn-Pb-Be emissions
+!  (12) tagged_co_mod.f  : Module containing routines for Tagged CO emissions
+!  (13) time_mod.f       : Module containing routines to compute date & time
+!  (14) tracer_mod.f     : Module containing GEOS-CHEM tracer array STT etc.
+!  (15) seasalt_mod.f    : Module containing routines for seasalt emissions
+!  (16) sulfate_mod.f    : Module containing routines for sulfate emissions
 !
 !  NOTES:
 !  (1 ) Now references DEBUG_MSG from "error_mod.f"
@@ -34,6 +35,7 @@
 !  (4 ) Now references "seasalt_mod.f" (rjp, bmy, bec, 4/20/04)
 !  (5 ) Now references "logical_mod" & "tracer_mod.f" (bmy, 7/20/04)
 !  (6 ) Now references "epa_nei_mod.f" and "time_mod.f" (bmy, 11/5/04)
+!  (7 ) Now references "emissions_mod.f" (bmy, 12/7/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -50,7 +52,7 @@
 !******************************************************************************
 !  Subroutine DO_EMISSIONS is the driver routine which calls the appropriate
 !  emissions subroutine for the various GEOS-CHEM simulations. 
-!  (bmy, 2/11/03, 7/20/04)
+!  (bmy, 2/11/03, 12/7/04)
 !
 !  NOTES:
 !  (1 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
@@ -62,6 +64,7 @@
 !        "logical_mod.f" (bmy, 7/20/04)
 !  (6 ) Now references ITS_A_NEW_MONTH from "time_mod.f".  Now references
 !        EMISS_EPA_NEI from "epa_nei_mod.f" (bmy, 11/5/04)
+!  (7 ) Now calls EMISSMERCURY from "mercury_mod.f" (eck, bmy, 12/7/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -74,6 +77,7 @@
       USE GLOBAL_CH4_MOD, ONLY : EMISSCH4
       USE Kr85_MOD,       ONLY : EMISSKr85
       USE LOGICAL_MOD
+      USE MERCURY_MOD,    ONLY : EMISSMERCURY
       USE RnPbBe_MOD,     ONLY : EMISSRnPbBe
       USE SEASALT_MOD,    ONLY : EMISSSEASALT
       USE SULFATE_MOD,    ONLY : EMISSSULFATE 
@@ -129,6 +133,11 @@
 
          ! CH4
          CALL EMISSCH4
+
+      ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
+
+         ! Mercury
+         CALL EMISSMERCURY
 
       ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
 

@@ -1,207 +1,90 @@
-REVISIONS (v7-02-01)  
-bmy, 02 Dec 2004
+REVISIONS (v7-02-02)  
+bmy, 16 Dec 2004
 
 
-New in v7-02-01:
+New in v7-02-02:
 -------------------------------------------------------------------------------
 
-epa_nei_mod.f		-- Module conta ining routines to read the EPA/NEI99
-			   anthropogenic and biofuel emission data over
-			   the continental USA
-
-get_bounding_box	-- Added this routine to compute the lon/lat indices
-("grid_mod.f")	           which bound a rectangular region, given the lats
-	                   and lons at the lower-left and upper-right corners.
-
-get_day_of_week		-- Returns day number of the week
-("time_mod.f")	 	   Sun=0, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6
+mercury_mod.f		-- Contains routines and variables for the GEOS-CHEM
+			   mercury simulation
 
 
 
-Removed in v7-01-02:
+Removed in v7-02-02:
 -------------------------------------------------------------------------------
 
 
 
 
-Changed from v7-01-02:
+Changed from v7-02-01:
 -------------------------------------------------------------------------------
 
-anthro_carb_tbond  	-- Now reads data from "carbon_200411" subdirectory
-("carbon_mod.f")	   of DATA_DIR
+cleanup.f		-- Now call CLEANUP_MERCURY from "mercury_mod.f"
 
-anthro_carb_cooke 	-- Now reads data from "carbon_200411" subdirectory
-("carbon_mod.f")	   of DATA_DIR
-			-- Now only apply Cooke/RJP emissions over the North 
-			   American region (i.e. the region bounded by indices
-			   I1_NA, J1_NA, I2_NA, J2_NA).
+CMN_DIAG		-- Remove reference to obsolete TOFDY0 variable
 
-avgpole			-- Now use cpp switches NESTED_CH and NESTED_NA to 
-("dao_mod.f")		   denote nested grids...GRID1x1 can now also denote 
-			   a 1x1 global grid
+compute_f		-- Updated for mercury aerosol tracers
+("wetscav_mod.f")
 
-biofuel_burn	       	-- Now can overwrite USA with EPA/NEI biofuels
-("biofuel_mod.f")	-- Now reference GET_DAY_OF_WEEK from "time_mod.f"
-			-- Now reference LNEI99 from "logical_mod.f"
-			-- Now reference GET_EPA_BIOFUEL and GET_USA_MASK 
-			   from "epa_nei_mod.f". 
+diag3.f		       	-- Now save ND03 mercury diagnostic arrays to bpch file
+			-- Also updated ND44 for tagged Hg tracers
 
-biogenic_oc		-- Now reads data from "carbon_200411" subdirector
-("carbon_mod.f")	   of DATA_DIR
+diag_mod.f		-- Added extra arrays for ND03 mercury diagnostics
 
-biomass_carb_cooke 	-- Now reads data from "carbon_200411" subdirectory
-("carbon_mod.f")	   of DATA_DIR
+do_chemistry		-- Now call routine CHEMMERCURY from "mercury_mod.f" 
+("chemistry_mod.f")	   for an offline Hg0/Hg2/HgP simulation
 
-biomass_carb_geos 	-- Now reads data from "carbon_200411" subdirectory
-("carbon_mod.f")	   of DATA_DIR
+do_emissions		-- Now calls EMISSMERCURY from "mercury_mod.f"
+("emissions_mod.f")
 
-carbon_mod.f		-- Now read data from carbon_200411/ subdir of 
-			   DATA_DIR 
-			-- Also added some extra debug output
-			-- Now read T. Bond yearly emissions as default, but 
-			   overwrite N. America with the monthly Cooke/RJP 
-			   emissions
-			-- Added module variables I1_NA, I2_NA, J1_NA, J2_NA.
+get_a3_time		-- Remove reference to FIRST variable
+("time_mod.f")
 
-cleanup.f		-- Now calls cleanup routine from "epa_nei_mod.f"
+get_wetdep_nmax		-- Updated for mercury aerosol tracers 
+("wetscav_mod.f")
 
-cleanup_diag		-- Now also deallocate AD13_SO4_bf array 
+init_diag		-- Now deallocate extra arrays for ND03 diagnostics
 ("diag_mod.f")
 
-CMN_SIZE		-- Now use NESTED_CH and NESTED_NA cpp switches to 
-			   define parameters for 1x1 nested grids
-			-- Also add parameters for the 1 x 1.25 global grid
+init_drydep		-- Add Hg2, HgP tracers to the case statement
+("drydep_mod.f")
 
-commsoil.h		-- Now use Cpp switches to pick the # of land points
-			-- Also added space in the #ifdef block for the 
-			   GEOS-4 1 x 1.25 grid
+init_tracerid		-- Now zero flags for total & tagged Hg tracers
+("tracerid_mod.f")
 
-compute_grid		-- Now also support 1 x 1.25 grid
-("grid_mod.f")
+initialize.f		-- Now initialize extra arrays for ND03 mercury diag
+			-- Also remove reference to obsolete TOFDY0 variable
 
-define.h		-- Added NESTED_CH and NESTED_NA switches
-			-- Also add GRID1x125 cpp switch.
+main.f			-- Simplify IF statement for daily data
 
-diag_mod.f		-- Added array AD13_SO4_bf
+ndxx_setup.f		-- Now allocate extra arrays for ND03 mercury diag
+			-- Also set up for mercury tracers in ND44 diagnostic
 
-diag3.f			-- Added biofuel SO4 to the bpch file under ND13
-			-- Bug fix: replace ND68 with LD68 in call to BPCH2
+ohno3time		-- Also added parallel loop over grid boxes
+("mercury_mod.f")
 
-diag20			-- Now also write to disk when it is the last 
-("diag_pl_mod.f")	   timestep before the end of the run
-			-- Now references GET_TAUE from "time_mod.f
+rainout			-- Updated for mercury aerosol tracers 
+("wetscav_mod.f")
 
-display_grid_and_model  -- Now print info for 1 x 1.25 grid
-("main.f")
+rdland.f		-- Now use AVHRR LAI derived land-type data which 
+			   is stored in the leaf_area_index_200412 
+			   subdirectory of DATA_DIR
+			-- Also updated comments and added standard GEOS-CHEM
+			   program documentation header.
 
-do_emissions		-- Now references ITS_A_NEW_MONTH from "time_mod.f"
-("emissions_mod.f")	-- Now references EMISS_EPA_NEI from "epa_nei_mod.f"
-
-emfossil.f		-- Now can overwrite existing emissions with EPA/NEI
-			   data over the continental USA if LNEI99=T.  
-			-- Now reference LNEI99 from "logical_mod.f".  
-			-- Now reference GET_EPA_ANTHRO and GET_USA_MASK 
-			   from "epa_nei_mod.f". 
-
-emisscarbon		-- Now always call ANTHRO_CARB_TBOND and 
-("carbon_mod.f")	   ANTHRO_CARB_COOKE.  This will read the T. Bond et 
-	                   al [2004] emissions but overwrite the North
-		           America region with monthly-mean emissions from 
-			   Cooke et al [1999] with imposed seasonality from 
-			   R. Park [2003].
-
-get_res_ext		-- Added extension for 1 x 1.25 grid
-("bpch2_mod.f")
-
-init_carbon		-- Now reference LSOA from "logical_mod.f" 
-("carbon_mod.f")	   instead of "CMN_SETUP"
-			-- Now call GET_BOUNDING_BOX from "grid_mod.f" to 
-			   compute the indices I1_NA, I2_NA, J1_NA, J2_NA,
-			   which define the N. America region. 
-
-init_diag49		-- Now get I0 and J0 correctly for nested 
-("diag49_mod.f")	   grid simulations
-
-init_diag50		-- Now get I0 and J0 correctly for nested 
-("diag50_mod.f")	   grid simulations
-
-init_diag51		-- Now get I0 and J0 correctly for nested 
-("diag51_mod.f")	   grid simulations
-
-init_grid		-- Now define IIGLOB & JJGLOB for 1 x 1.25 grid
-("grid_mod.f")
-
-initialize.f		-- Now initialize AD13_SO4_bf array
-
-lightning.f		-- Added space in #ifdef block for GEOS-4 1 x 1.25 grid
-("lightning_nox_mod.f")
-
-logical_mod.f		-- Added LNEI99 switch to toggle EPA/NEI emissions
-
-ndxx_setup.f		-- Now allocate AD13_SO4_bf array
-
-read_aerosol_menu	-- Now stop run if LSOA=T and SOA tracers are undefined
-
-read_bpch2		-- Now separate off nested grid code in an #ifdef 
-("bpch2_mod.f")		   block using NESTED_CH or NESTED_NA cpp switches
-
-read_emissions_menu	-- Now read LNEI99 -- switch for EPA/NEI99 emissions
+read_deposition_menu	-- Now print informational message for Tagged Hg
 ("input_mod.f")
 
-read_todx		-- Added space in the #ifdef block for 1 x 1.25 grid
-("geia_mod.f")
+readlai.f 		-- Now use AVHRR LAI derived leaf-area index data 
+			   which is stored in the leaf_area_index_200412 
+			   subdirectory of DATA_DIR
 
-ocean_source_acet	-- Added space in #ifdef block for GEOS-4 1x125 grid
-("acetone_mod.f")
 
-setemis.f		-- Bug fix for COMPAQ compiler...do not use EXIT 
-			   from w/in parallel loop
+tracerid		-- Added IDTHG0, IDTHG2, IDTHGP + tagged Hg's flags
+("tracerid_mod.f")
 
-set_tindex		-- Bug fix: now do not drop the last tracer number 
-("input_mod.f")		   if "all" is not explicitly specified
+washout			-- Updated for mercury aerosol tracers 
+("wetscav_mod.f")
 
-srcnh3			-- Now references GET_EPA_ANTHRO, GET_EPA_BIOFUEL, 
-("sulfate_mod.f")	   and GET_USA_MASK from "epa_nei_mod.f"
-			-- Now references GET_DAY_OF_WEEK from "time_mod.f"
-			-- Now references LNEI99 from "logical_mod.f"
-			-- Now references GET_AREA_CM2 from "grid_mod.f"
-			-- Now references IDTNH3 from "tracerid_mod.f"
-			-- Now references XNUMOL from CMN_O3
-			-- Now can overwrite the anthro & biofuel NH3 
-			   emissions over the continental US if LNEI99=T
-			-- Now references IDTNH3 from "tracerid_mod.f". 
-
-srcso2			-- Now references GET_EPA_ANTHRO, GET_EPA_BIOFUEL,
-("sulfate_mod.f")          and GET_USA_MASK from "epa_nei_mod.f"
-			-- Now references GET_AREA_CM2 from "grid_mod.f"  
-			-- Now references GET_DAY_OF_WEEK from "time_mod.f"
-			-- Now references LNEI99 from "logical_mod.f"
-			-- Now can overwrite the anthro SOx emissions over
-			   the continental US if LNEI99=T.  
-			-- Now references IDTSO2 from "tracerid_mod.f
-
-srcso4			-- Now references GET_EPA_ANTHRO, GET_EPA_BIOFUEL, 
-("sulfate_mod.f")	   and GET_USA_MASK from "epa_nei_mod.f" 
-			-- Now references AD13_SO4_bf from "diag_mod.f".
-			-- Now references GET_AREA_CM2 from "grid_mod.f"
-			-- Now references GET_DAY_OF_WEEK from "time_mod.f"
-			-- Now references LNEI99 from "logical_mod.f"  
-			-- Now can overwrite the anthro SOx emissions over 
-			   the continental US if LNEI99=T.  
-			-- Now references IDTSO4 from "tracerid_mod.f"
-
-tomsai			-- Added space in #ifdef block for 1 x 1.25 grid
-("biomass_mod.f")
-
-tracerid		-- Reverse the position of IDEISOP and IDECH2O so as 
-("tracerid_mod.f")	   to keep all of the anthropogenic tracers together 
-			   in IDEMS 
-
-upbdflx_o3		-- Use an #ifdef block to comment out an EXIT 
-("upbdflx_mod.f")	   statement from w/in a parallel loop for COMPAQ 
-			   compiler.  COMPAQ seems to have some problems 
-			   with this.
-			-- Now supports 1 x 1.25 grid
-
-write20			-- Bug fix: remove declaration of FILENAME which 
-("diag_mod.f") 		   masked the global declaration 
+wetdepid	       	-- Updated for mercury aerosol tracers 
+("wetscav_mod.f")

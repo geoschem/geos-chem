@@ -1,5 +1,11 @@
-C $Id: main.f,v 1.19 2004/12/02 21:48:38 bmy Exp $
+C $Id: main.f,v 1.20 2004/12/16 16:52:45 bmy Exp $
 C $Log: main.f,v $
+C Revision 1.20  2004/12/16 16:52:45  bmy
+C GEOS-CHEM v7-02-02, includes the following modifications:
+C - Now uses leaf area indices derived from AVHRR data (cf May Fu)
+C - Now can perform offline tagged Hg simulation (cf Noelle Eckley)
+C - Fixed minor bugs and removed obsolete code
+C
 C Revision 1.19  2004/12/02 21:48:38  bmy
 C GEOS-CHEM v7-02-01, includes the following modifications:
 C - Can now toggle EPA/NEI99 emissions over the USA on/off
@@ -480,32 +486,38 @@ C
 
          !==============================================================
          !              ***** D A I L Y   D A T A *****
-         !
-         ! RDLAI  returns today's leaf-area index
-         ! RDSOIL returns today's soil type information
          !==============================================================
          IF ( ITS_A_NEW_DAY() ) THEN 
 
-            IF ( ITS_A_FULLCHEM_SIM() ) THEN
-               CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
-               CALL RDSOIL               
+            !-----------------------------------------------------------
+            ! Prior to 12/9/04: 
+            ! Simplify the IF statement (bmy, 12/9/04)
+            !! Also need to read soil type info for fullchem
+            !IF ( ITS_A_FULLCHEM_SIM() ) THEN
+            !   CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
+            !   CALL RDSOIL               
+            !
+            !ELSE IF ( ITS_A_RnPbBe_SIM() ) THEN
+            !   CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
+            !
+            !ELSE IF ( ITS_A_COPARAM_SIM() ) THEN
+            !   CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
+            !
+            !ELSE IF ( ITS_A_TAGOX_SIM() ) THEN
+            !   CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
+            !
+            !ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
+            !   CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
+            !
+            !ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+            !   CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
+            !-----------------------------------------------------------
 
-            ELSE IF ( ITS_A_RnPbBe_SIM() ) THEN
-               CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
+            ! Read leaf-area index (needed for drydep)
+            CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
 
-            ELSE IF ( ITS_A_COPARAM_SIM() ) THEN
-               CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
-
-            ELSE IF ( ITS_A_TAGOX_SIM() ) THEN
-               CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
-
-            ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
-               CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
-
-            ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
-               CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
-
-            ENDIF
+            ! Also read soil-type info for fullchem simulation
+            IF ( ITS_A_FULLCHEM_SIM() ) CALL RDSOIL 
 
             !### Debug
             IF ( LPRT ) CALL DEBUG_MSG ( '### MAIN: a DAILY DATA' )

@@ -1,4 +1,4 @@
-! $Id: biomass_mod.f,v 1.5 2004/12/02 21:48:32 bmy Exp $
+! $Id: biomass_mod.f,v 1.6 2004/12/16 16:52:43 bmy Exp $
       MODULE BIOMASS_MOD
 !
 !******************************************************************************
@@ -879,10 +879,7 @@
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGCO_SIM
 
 #     include "CMN_SIZE"    ! Size parameters
-!------------------------------------------------
-!#     include "CMN"         ! NSRCX 
-!------------------------------------------------
-      
+
       ! Arguments
       REAL*8, INTENT(INOUT) :: BBARRAY(IIPAR,JJPAR) 
 

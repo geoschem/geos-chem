@@ -1,9 +1,9 @@
-! $Id: chemistry_mod.f,v 1.11 2004/12/02 21:48:34 bmy Exp $
+! $Id: chemistry_mod.f,v 1.12 2004/12/16 16:52:44 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
 !  Module CHEMISTRY_MOD is used to call the proper chemistry subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 7/20/04)
+!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 12/7/04)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -43,6 +43,7 @@
 !  (7 ) Now references "seasalt_mod.f" (rjp, bec, bmy, 4/20/04)
 !  (8 ) Now references "logical_mod.f", "tracer_mod.f", "diag20_mod.f", and
 !        "diag65_mod.f", and "aerosol_mod." (bmy, 7/20/04)
+!  (9 ) Now references "mercury_mod.f" (bmy, 12/7/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -59,7 +60,7 @@
 !******************************************************************************
 !  Subroutine DO_CHEMISTRY is the driver routine which calls the appropriate
 !  chemistry subroutine for the various GEOS-CHEM simulations. 
-!  (bmy, 2/11/03, 7/20/04)
+!  (bmy, 2/11/03, 12/7/04)
 !
 !  NOTES:
 !  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this
@@ -79,6 +80,8 @@
 !        Now includes "CMN_DIAG" and "comode.h".  Also call READER, READCHEM, 
 !        and INPHOT to initialize the FAST-J arrays so that we can save out !
 !        AOD's to the ND21 diagnostic for offline runs. (bmy, 7/20/04)
+!  (8 ) Now call routine CHEMMERCURY from "mercury_mod.f" for an offline
+!        Hg0/Hg2/HgP simulation. (eck, bmy, 12/7/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -96,6 +99,7 @@
       USE GLOBAL_CH4_MOD,  ONLY : CHEMCH4
       USE Kr85_MOD,        ONLY : CHEMKr85
       USE LOGICAL_MOD
+      USE MERCURY_MOD,     ONLY : CHEMMERCURY
       USE OPTDEPTH_MOD,    ONLY : OPTDEPTH
       USE RnPbBe_MOD,      ONLY : CHEMRnPbBe
       USE RPMARES_MOD,     ONLY : DO_RPMARES
@@ -230,6 +234,17 @@
             IF ( GET_ELAPSED_MIN() >= GET_TS_CHEM() ) THEN
                CALL CHEMCH4
             ENDIF
+
+         !---------------------------------
+         ! Mercury
+         !---------------------------------
+         ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
+
+            ! Get relative humidity
+            CALL MAKE_RH    
+
+            ! Do Hg chemistry
+            CALL CHEMMERCURY
 
          !---------------------------------
          ! Offline aerosol simulation

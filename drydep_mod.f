@@ -1,9 +1,9 @@
-! $Id: drydep_mod.f,v 1.15 2004/12/02 21:48:35 bmy Exp $
+! $Id: drydep_mod.f,v 1.16 2004/12/16 16:52:44 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
 !  Module DRYDEP_MOD contains variables and routines for the GEOS-CHEM dry
-!  deposition scheme. (bmy, 1/27/03, 7/20/04)
+!  deposition scheme. (bmy, 1/27/03, 12/14/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -130,6 +130,7 @@
 !  (11) Increased MAXDEP to 35 and handle extra SOA tracers (rjp, bmy, 7/13/04)
 !  (12) Now references "logical_mod.f", "directory_mod.f", and "tracer_mod.f"
 !        (bmy, 7/20/04)
+!  (13) Add Hg2, HgP as drydep tracers (eck, bmy, 12/8/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -2308,7 +2309,7 @@ C** Load array DVEL
 !
 !******************************************************************************
 !  Subroutine INIT_DRYDEP initializes certain variables for the GEOS-CHEM
-!  dry deposition subroutines. (bmy, 11/19/02, 7/13/04)
+!  dry deposition subroutines. (bmy, 11/19/02, 12/14/04)
 !
 !  NOTES:
 !  (1 ) Added N2O5 as a drydep tracer, w/ the same drydep velocity as
@@ -2320,6 +2321,7 @@ C** Load array DVEL
 !  (3 ) Now handles extra SOA tracers (rjp, bmy, 7/13/04)
 !  (4 ) Now references LDRYD from "logical_mod.f" and N_TRACERS, 
 !        SALA_REDGE_um, and SALC_REDGE_um from "tracer_mod.f" (bmy, 7/20/04)
+!  (5 ) Included Hg2, HgP tracers (eck, bmy, 12/14/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2329,10 +2331,6 @@ C** Load array DVEL
       USE TRACERID_MOD
 
 #     include "CMN_SIZE"  ! Size parameters
-!-----------------------------------------------
-!#     include "CMN"       ! NSRCX, NTRACE
-!#     include "CMN_SETUP" ! LDRYD
-!-----------------------------------------------
 
       ! Local variables
       INTEGER :: AS, N
@@ -2796,6 +2794,28 @@ C** Load array DVEL
             XMW(NUMDEP)     = 220d-3
             AIROSOL(NUMDEP) = .TRUE.
 
+         ! Hg2 -- Divalent Mercury
+         ELSE IF ( N == IDTHG2 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTHG2
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'Hg2'
+            HSTAR(NUMDEP)   = 1.4d6
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 201d-3
+            AIROSOL(NUMDEP) = .FALSE. 
+
+         ! HgP -- Particulate Mercury
+         ELSE IF ( N == IDTHGP ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTHGP
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'HgP'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 201d-3
+            AIROSOL(NUMDEP) = .TRUE. 
+
          ENDIF
       ENDDO
       
@@ -2814,7 +2834,7 @@ C** Load array DVEL
       ! Echo information to stdout
       !=================================================================
       WRITE( 6, '(/,a)' ) 'INIT_DRYDEP: List of dry deposition species:'
-      WRITE( 6, '(a)'   )
+      WRITE( 6, '(/,a)'   )
      & '  #   Name  Tracer DEPVEL Henry''s    React.   Molec.  Aerosol?'
       WRITE( 6, '(a)'   )
      & '            Number Index  Law Const  Factor   Weight  (T or F)'

@@ -1,9 +1,9 @@
-! $Id: wetscav_mod.f,v 1.12 2004/12/02 21:48:42 bmy Exp $
+! $Id: wetscav_mod.f,v 1.13 2004/12/16 16:52:46 bmy Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
 !  Module WETSCAV_MOD contains arrays for used in the wet scavenging of
-!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 7/20/04)
+!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 12/9/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -106,6 +106,7 @@
 !  (15) Now references "logical_mod.f" and "tracer_mod.f".  Now move all 
 !        internal routines to the module and pass arguments explicitly in
 !        order to facilitate parallelization on the Altix. (bmy, 7/20/04)
+!  (16) Updated for mercury aerosol tracers (eck, bmy, 12/9/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -626,7 +627,7 @@
 !
 !******************************************************************************
 !  Subroutine COMPUTE_F computes F, the fraction of soluble tracer lost by 
-!  scavenging in convective cloud updrafts. (hyl, bmy, djj, 2/23/00, 7/20/04)
+!  scavenging in convective cloud updrafts. (hyl, bmy, djj, 2/23/00, 12/9/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -679,6 +680,7 @@
 !        F_AEROSOL a module procedure rather than an internal routine to
 !        COMPUTE_F in order to facilitate parallelization on the Altix.  Also
 !        now pass all arguments explicitly to F_AEROSOL. (bmy, 7/20/04)
+!  (15) Now wet scavenge mercury aerosol tracers (eck, bmy, 12/9/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -706,23 +708,7 @@
       ! COMPUTE_F begins here!
       !
       ! For aerosol tracers, compute F with internal routine F_AEROSOL.
-      !
-      ! ISOL = tracer index for the ND38 diagnostic.  Values are:
-      !
-      ! Tracer   Rn-Pb-Be run   Fullchem run   Offline sulfate run
-      ! ------   ------------   ------------   -------------------
-      !  210Pb         1              -                -
-      !  7Be           2              -                -
-      !  HNO3          -              1                -
-      !  H2O2          -              2                7 
-      !  CH2O          -              3                -
-      !  MP            -              4                -
-      !  SO2           -              5                1
-      !  SO4           -              6                2
-      !  MSA           -              7                3
-      !  NH3           -              8                4
-      !  NH4           -              9                5
-      !  NIT           -             10                6
+      ! ISOL = tracer index for the ND38 diagnostic.
       !=================================================================
 
       !----------------------------
@@ -1339,6 +1325,72 @@
          ENDDO
          ENDDO
 
+         ! ND38 index
+         ISOL = GET_ISOL( N )
+
+      !----------------------------
+      ! Hg2 (liquid phase only)
+      !----------------------------
+      ELSE IF ( N == IDTHg2    .or. N == IDTHg2_NA  .or. 
+     &          N == IDTHg2_EU .or. N == IDTHg2_AS  .or.
+     &          N == IDTHg2_RW .or. N == IDTHg2_OC  .or.
+     &          N == IDTHg2_LN .or. N == IDTHg2_NT ) THEN
+         
+         ! No scavenging at the surface
+         F(:,:,1) = 0d0
+
+         ! Apply scavenging in levels 2 and higher
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Compute liquid to gas ratio for HgCl2, using
+            ! the appropriate parameters for Henry's law
+            ! (Refs: INSERT HERE)
+            !
+            CALL COMPUTE_L2G( 1.4d6,    -8.4d3, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+            ! Fraction of HgCl2 in liquid phase 
+            ! Assume that HgCl2 is not present in ice phase
+            ! (Eqs. 4, 5, 6, Jacob et al, 2000)
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
+
+            ! Compute the rate constant K.  Assume scavenging takes
+            ! place only in warm clouds (retention = 0 where T<268)
+            ! 
+            IF ( T(I,J,L) >= 268d0 ) THEN
+               K = KC * F_L  
+
+            ELSE
+               K = 0d0
+
+            ENDIF
+
+            ! Distance between grid box centers [m]
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+               
+            ! F is the fraction of HgCl2 scavenged out of the updraft
+            ! (Eq. 2, Jacob et al, 2000)
+            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ! ND38 index
+         ISOL = GET_ISOL( N )
+
+      !----------------------------
+      ! HgP (treat like aerosol)
+      !----------------------------
+      ELSE IF ( N == IDTHgP    .or. N == IDTHgP_NA  .or. 
+     &          N == IDTHgP_EU .or. N == IDTHgP_AS  .or.
+     &          N == IDTHgP_RW .or. N == IDTHgP_OC  .or.
+     &          N == IDTHgP_LN .or. N == IDTHgP_NT ) THEN
+
+         CALL F_AEROSOL( KC, F ) 
          ISOL = GET_ISOL( N )
 
       !----------------------------
@@ -1491,7 +1543,7 @@
 !
 !******************************************************************************
 !  Subroutine RAINOUT computes RAINFRAC, the fraction of soluble tracer
-!  lost to rainout events in precipitation. (djj, bmy, 2/28/00, 7/13/04)
+!  lost to rainout events in precipitation. (djj, bmy, 2/28/00, 12/9/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1529,7 +1581,7 @@
 !  (7 ) Now updated for carbon & dust aerosol tracers (rjp, bmy, 4/5/04)
 !  (8 ) Now updated for seasalt aerosol tracers (rjp, bec, bmy, 4/20/04)
 !  (9 ) Now updated for secondary aerosol tracers (rjp, bmy, 7/13/04)
-!  (10) Now
+!  (10) Now treat rainout of mercury aerosol tracers (eck, bmy, 12/9/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1999,6 +2051,49 @@
          RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
          RAINFRAC = RAINFRAC * 0.8d0
 
+
+      !----------------------------
+      ! Hg2 (liquid phase only)
+      !----------------------------
+      ELSE IF ( N == IDTHg2    .or. N == IDTHg2_NA  .or. 
+     &          N == IDTHg2_EU .or. N == IDTHg2_AS  .or.
+     &          N == IDTHg2_RW .or. N == IDTHg2_OC  .or.
+     &          N == IDTHg2_LN .or. N == IDTHg2_NT ) THEN
+
+         ! Compute liquid to gas ratio for HgCl2, using
+         ! the appropriate parameters for Henry's law
+         ! (Refs: INSERT HERE)
+         !
+         CALL COMPUTE_L2G( 1.4d6,    -8.4d3, 
+     &                     T(I,J,L), CLDLIQ(I,J,L), L2G )
+         
+         ! Fraction of HgCl2 in liquid phase
+         ! Assume no HgCl2 in the ice phase
+         C_TOT = 1d0 + L2G
+         F_L   = L2G / C_TOT
+
+         ! Compute the rate constant K.  Assume the retention factor  
+         ! for liquid HgCl2 is 0 for T < 268 K, and 
+         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
+         IF ( TK >= 268d0 ) THEN
+            K = K_RAIN * F_L  
+         ELSE
+            K = 0d0               
+         ENDIF
+  
+         ! Compute RAINFRAC, the fraction of rained-out HgCl2
+         ! (Eq. 10, Jacob et al, 2000)
+         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
+
+      !----------------------------
+      ! HgP (treat like aerosol)
+      !----------------------------
+      ELSE IF ( N == IDTHgP    .or. N == IDTHgP_NA  .or. 
+     &          N == IDTHgP_EU .or. N == IDTHgP_AS  .or.
+     &          N == IDTHgP_RW .or. N == IDTHgP_OC  .or.
+     &          N == IDTHgP_LN .or. N == IDTHgP_NT ) THEN
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+
       !----------------------------
       ! ERROR: insoluble tracer!
       !----------------------------  
@@ -2052,7 +2147,7 @@
 !
 !******************************************************************************
 !  Subroutine WASHOUT computes WASHFRAC, the fraction of soluble tracer
-!  lost to washout events in precipitation. (djj, bmy, 2/28/00, 7/20/04)
+!  lost to washout events in precipitation. (djj, bmy, 2/28/00, 12/9/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -2096,6 +2191,7 @@
 !  (10) Now move internal routines WASHFRAC_AEROSOL and WASHFRAC_LIQ_GAS
 !        to the module and pass all arguments explicitly.  This facilitates
 !        parallelization on the Altix platform (bmy, 7/20/04)
+!  (11) Now handle washout of mercury aerosol tracers (eck, bmy, 12/9/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2363,6 +2459,27 @@
          WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
       !----------------------------
+      ! Hg2 (liquid & gas phases)
+      !----------------------------
+      ELSE IF ( N == IDTHG2    .or. N == IDTHG2_NA  .or. 
+     &          N == IDTHG2_EU .or. N == IDTHG2_AS  .or.
+     &          N == IDTHG2_RW .or. N == IDTHG2_OC  .or.
+     &          N == IDTHG2_LN .or. N == IDTHG2_NT ) THEN        
+         AER      = .FALSE.
+         WASHFRAC = WASHFRAC_LIQ_GAS( 1.4d6, -8.4d3, PP, DT, 
+     &                                F,      DZ,    TK, K_WASH )
+
+      !----------------------------
+      ! HgP (treat like aerosol) 
+      !----------------------------
+      ELSE IF ( N == IDTHgP    .or. N == IDTHgP_NA  .or. 
+     &          N == IDTHgP_EU .or. N == IDTHgP_AS  .or.
+     &          N == IDTHgP_RW .or. N == IDTHgP_OC  .or.
+     &          N == IDTHgP_LN .or. N == IDTHgP_NT ) THEN
+         AER      = .TRUE.
+         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
+
+      !----------------------------
       ! ERROR: Insoluble tracer
       !----------------------------
       ELSE 
@@ -2394,7 +2511,7 @@
 !  NOTES:
 !  (1 ) WASHFRAC_AEROSOL used to be an internal function to subroutine WASHOUT.
 !        This caused NaN's in the parallel loop on Altix, so we moved it to
-!        the module and now pass all arguments explicitly (bmy, 7/20/04)
+!        the module and now pass Iall arguments explicitly (bmy, 7/20/04)
 !******************************************************************************
 !   
       ! Arguments
@@ -3591,7 +3708,7 @@
 !
 !******************************************************************************
 !  Subroutine WETDEPID sets up the index array of soluble tracers used in
-!  the WETDEP routine above (bmy, 11/8/02, 7/20/04)
+!  the WETDEP routine above (bmy, 11/8/02, 12/9/04)
 ! 
 !  NOTES:
 !  (1 ) Now references "tracerid_mod.f".  Also references "CMN" in order to
@@ -3602,11 +3719,12 @@
 !  (4 ) Updated for secondary organic aerosol tracers (bmy, 7/13/04)
 !  (5 ) Now references N_TRACERS, TRACER_NAME, TRACER_MW_KG from
 !        "tracer_mod.f".  Removed reference to NSRCX.  (bmy, 7/20/04)
+!  (6 ) Updated for mercury aerosol tracers (eck, bmy, 12/9/04)
 !******************************************************************************
 !
       ! References To F90 modules
-      USE ERROR_MOD,  ONLY : ERROR_STOP
-      USE TRACER_MOD, ONLY : N_TRACERS, TRACER_NAME, TRACER_MW_G
+      USE ERROR_MOD,   ONLY : ERROR_STOP
+      USE TRACER_MOD,  ONLY : N_TRACERS, TRACER_NAME, TRACER_MW_G
       USE TRACERID_MOD
 
 #     include "CMN_SIZE"  ! Size parameters
@@ -3623,6 +3741,10 @@
 
       ! Sort soluble tracers into IDWETD
       DO N = 1, N_TRACERS
+
+         !-----------------------------
+         ! Rn-Pb-Be tracers
+         !-----------------------------
          IF ( N == IDTPB ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTPB
@@ -3631,6 +3753,9 @@
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTBE7
 
+         !-----------------------------
+         ! Full chemistry tracers
+         !-----------------------------
          ELSE IF ( N == IDTHNO3 ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTHNO3
@@ -3647,6 +3772,9 @@
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTMP
 
+         !-----------------------------
+         ! Sulfate aerosol tracers
+         !-----------------------------
          ELSE IF ( N == IDTSO2 ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTSO2
@@ -3671,6 +3799,9 @@
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTNIT
             
+         !-----------------------------
+         ! Carbon aerosol tracers
+         !-----------------------------
          ELSE IF ( N == IDTBCPI ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTBCPI
@@ -3687,6 +3818,9 @@
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTOCPO
 
+         !-----------------------------
+         ! Dust aerosol tracers
+         !-----------------------------
          ELSE IF ( N == IDTDST1 ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTDST1
@@ -3703,6 +3837,9 @@
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTDST4
 
+         !-----------------------------
+         ! Seasalt aerosol tracers
+         !-----------------------------
          ELSE IF ( N == IDTSALA ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTSALA
@@ -3711,6 +3848,9 @@
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTSALC
 
+         !-----------------------------
+         ! SOA tracers
+         !-----------------------------
          ELSE IF ( N == IDTALPH ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTALPH
@@ -3747,6 +3887,73 @@
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTSOA3
 
+         !-----------------------------
+         ! Total and tagged Hg tracers 
+         !-----------------------------
+         ELSE IF ( N == IDTHg2 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTHg2
+
+         ELSE IF ( N == IDTHgP ) THEN 
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTHgP
+
+         ELSE IF ( N == IDTHg2_NA ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTHg2_NA
+
+         ELSE IF ( N == IDTHg2_EU ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTHg2_EU
+
+         ELSE IF ( N == IDTHg2_AS ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTHg2_AS
+
+         ELSE IF ( N == IDTHg2_RW ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTHg2_RW
+
+         ELSE IF ( N == IDTHg2_OC ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTHg2_OC
+
+         ELSE IF ( N == IDTHg2_LN ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTHg2_LN
+
+         ELSE IF ( N == IDTHg2_NT ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTHg2_NT
+
+         ELSE IF ( N == IDTHgP_NA ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTHgP_NA
+
+         ELSE IF ( N == IDTHgP_EU ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTHgP_EU
+
+         ELSE IF ( N == IDTHgP_AS ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTHgP_AS
+
+         ELSE IF ( N == IDTHgP_RW ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTHgP_RW
+
+         ELSE IF ( N == IDTHgP_OC ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTHgP_OC
+
+         ELSE IF ( N == IDTHgP_LN ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTHgP_LN
+
+         ELSE IF ( N == IDTHgP_NT ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTHgP_NT
+
          ENDIF
       ENDDO
 
@@ -3764,21 +3971,17 @@
       !=================================================================
       ! Echo list of soluble tracers to the screen
       !=================================================================
-      !WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
-      !WRITE( 6, '(a,/)' ) 'W E T   D E P O S I T I O N   S E T U P'
       WRITE( 6, '(/,a,/)' ) 'WETDEPID: List of soluble tracers: '
-      WRITE( 6, '(a)  '   ) '  #   Name  Tracer Mol Wt'
-      WRITE( 6, '(a)'     ) '            Number g/mole'
-      WRITE( 6, '(a)'     ) REPEAT( '-', 26 )
+      WRITE( 6, '(a)  '   ) '  #             Name  Tracer Mol Wt'
+      WRITE( 6, '(a)'     ) '                      Number g/mole'
+      WRITE( 6, '(a)'     ) REPEAT( '-', 36 )
 
       DO NN = 1, NSOL
          N = IDWETD(NN)
-         WRITE( 6, '(i3,3x,a4,3x,i3,3x,f6.1)' )
+         WRITE( 6, '(i3,3x,a14,3x,i3,3x,f6.1)' )
      &        NN, TRIM( TRACER_NAME(N) ), N, TRACER_MW_G(N)
       ENDDO
-
-      !WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
-
+      
       ! Return to calling program
       END SUBROUTINE WETDEPID
 
@@ -3789,7 +3992,7 @@
 !******************************************************************************
 !  Function GET_WETDEP_NMAX returns the maximum number of soluble tracers
 !  for a given type of simulation.  Primarily used for allocation of 
-!  diagnostic arrays. (bmy, 12/2/02, 7/20/04)
+!  diagnostic arrays. (bmy, 12/2/02, 12/14/04)
 !
 !  NOTES:
 !  (1 ) Modified to include carbon & dust aerosol tracers (rjp, bmy, 4/5/04)
@@ -3798,13 +4001,13 @@
 !  (4 ) Now references ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM, and 
 !        ITS_A_RnPbBe_SIM from "tracer_mod.f".  Now references LCARB, LDUST,
 !        LSOA, LSSALT, LSULF from "logical_mod.f". (bmy, 7/20/04)
+!  (5 ) Modified to include mercury aerosol tracers (eck, bmy, 12/14/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE LOGICAL_MOD, ONLY : LCARB, LDUST, LSOA, LSSALT, LSULF
-      USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM, 
-     &                        ITS_AN_AEROSOL_SIM,
-     &                        ITS_A_RnPbBe_SIM
+      USE LOGICAL_MOD, ONLY : LCARB, LDUST, LSOA, LSSALT, LSULF, LSPLIT
+      USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM,
+     &                        ITS_A_RnPbBe_SIM,   ITS_A_MERCURY_SIM
 
 #     include "CMN_SIZE"   ! Size Parameters
 
@@ -3856,6 +4059,14 @@
          ! Rn-Pb-Be simulation
          !-----------------------
          NMAX = 2                               ! 210Pb, 7Be
+
+      ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
+
+         !-----------------------
+         ! Mercury simulation
+         !-----------------------
+         NMAX = 2                               ! Hg2, HgP
+         IF ( LSPLIT ) NMAX = NMAX + 14         ! Tagged tracers
 
       ELSE 
 

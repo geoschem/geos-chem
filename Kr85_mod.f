@@ -1,4 +1,4 @@
-! $Id: Kr85_mod.f,v 1.3 2004/12/02 21:48:31 bmy Exp $
+! $Id: Kr85_mod.f,v 1.4 2004/12/16 16:52:42 bmy Exp $
       MODULE Kr85_MOD
 !
 !******************************************************************************
@@ -260,7 +260,11 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD,   ONLY : AD03
+      !--------------------------------------------------------------
+      ! Prior to 12/7/04:
+      ! Need to reassign the diagnostic number
+      !USE DIAG_MOD,   ONLY : AD03
+      !--------------------------------------------------------------      
       USE TIME_MOD,   ONLY : GET_TS_EMIS, GET_YEAR
       USE TRACER_MOD, ONLY : STT
 
@@ -314,10 +318,14 @@
          ! Add Kr85 into STT array
          STT(I,J,1,1) = STT(I,J,1,1) + Kr85_KG
 
-         ! Archive emitted Kr85 for ND04 diagnostic [kg]
-         IF ( ND03 > 0 ) THEN
-            AD03(I,J,1,1) = AD03(I,J,1,1) + Kr85_KG
-         ENDIF
+         !--------------------------------------------------------------
+         ! Prior to 12/7/04:
+         ! Need to reassign the diagnostic number (bmy, 12/7/04)
+         !! Archive emitted Kr85 for ND04 diagnostic [kg]
+         !IF ( ND03 > 0 ) THEN
+         !   AD03(I,J,1,1) = AD03(I,J,1,1) + Kr85_KG
+         !ENDIF
+         !--------------------------------------------------------------
       ENDDO
 
       ! Return to calling program
@@ -336,7 +344,11 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD,   ONLY : AD03
+      !------------------------------------------
+      ! Prior to 12/7/04:
+      ! Need to reassign diagnostic number
+      !USE DIAG_MOD,   ONLY : AD03
+      !------------------------------------------
       USE TIME_MOD,   ONLY : GET_TS_CHEM
       USE TRACER_MOD, ONLY : STT
 
@@ -380,10 +392,14 @@
          ! Subtract Kr85 lost from the tracer array 
          STT(I,J,L,1) = STT(I,J,L,1) - Kr_LOST
          
-         ! Archive Kr85 lost by decay [kg] in ND04 diagnostic
-         IF ( ND03 > 0 ) THEN
-            AD03(I,J,L,2) = AD03(I,J,L,2) + Kr_LOST
-         ENDIF
+         !-------------------------------------------------------------
+         ! Prior to 12/7/04:
+         ! Need to reassign the diagnostic number
+         !! Archive Kr85 lost by decay [kg] in ND04 diagnostic
+         !IF ( ND03 > 0 ) THEN
+         !   AD03(I,J,L,2) = AD03(I,J,L,2) + Kr_LOST
+         !ENDIF
+         !-------------------------------------------------------------
       ENDDO
       ENDDO
       ENDDO

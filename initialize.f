@@ -1,8 +1,8 @@
-! $Id: initialize.f,v 1.8 2004/12/02 21:48:38 bmy Exp $
+! $Id: initialize.f,v 1.9 2004/12/16 16:52:45 bmy Exp $
       SUBROUTINE INITIALIZE( IFLAG )
 !
 !******************************************************************************
-!  Subroutine INITIALIZE (bmy, 6/15/98, 7/13/04) does the following:
+!  Subroutine INITIALIZE (bmy, 6/15/98, 12/8/04) does the following:
 !     (1) Zeroes globally defined GEOS-CHEM variables.
 !     (2) Zeroes accumulating diagnostic arrays.
 !     (3) Resets certain year/month/day and counter variables used 
@@ -147,6 +147,8 @@
 !  (27) Now also initialize AD07_HC array (rjp, bmy, 7/13/04)
 !  (28) Now references AD65 & FAM_PL from "diag_pl_mod.f".  Now remove
 !        reference to DIAGCHLORO, it's obsolete. (bmy, 7/20/04)
+!  (29) Now initialize extra arrays for ND03 mercury diag.  Also remove
+!        reference to obsolete TOFDY0 variable. (eck, bmy, 12/7/04)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -184,13 +186,21 @@
       ! If IFLAG=2 then zero the accumulating arrays
       !=================================================================
       IF ( IFLAG == 2 ) THEN
-         TOFDY0 = 0e0
+         !-------------------------------------------------------
+         ! Prior to 12/8/04:
+         ! This is now obsolete (bmy, 12/8/04)
+         !TOFDY0 = 0e0
+         !-------------------------------------------------------
 
          ! Allocatable arrays are zeroed only if their
          ! respective diagnostics are turned on (bmy, 2/17/00)
          IF ( ND01 > 0 ) AD01     = 0e0
          IF ( ND02 > 0 ) AD02     = 0e0
-         IF ( ND03 > 0 ) AD03     = 0e0
+         !------------------------------------------
+         ! Prior to 12/8/04:
+         ! Need to renumber diagnostic for Kr85 run
+         !IF ( ND03 > 0 ) AD03     = 0e0
+         !------------------------------------------
          IF ( ND05 > 0 ) AD05     = 0e0
          IF ( ND06 > 0 ) AD06     = 0e0
          IF ( ND08 > 0 ) AD08     = 0e0
@@ -228,6 +238,19 @@
          IF ( ND67 > 0 ) AD67     = 0e0
          IF ( ND68 > 0 ) AD68     = 0e0
          IF ( ND69 > 0 ) AD69     = 0e0
+
+         ! For ND03 - mercury simulations (eck, bmy, 12/7/04)
+         IF ( ND03 > 0 ) THEN
+            AD03_Hg0_an  = 0e0
+            AD03_Hg2_an  = 0e0
+            AD03_HgP_an  = 0e0
+            AD03_Hg0_oc  = 0e0
+            AD03_Hg0_ln  = 0e0
+            AD03_Hg0_nt  = 0e0
+            AD03_Hg2_Hg0 = 0e0
+            AD03_Hg2_OH  = 0e0
+            AD03_Hg2_O3  = 0e0
+         ENDIF
 
          ! ND07 -- carbon aerosol emissions (rjp, tdf, bmy, 4/5/04)
          IF ( ND07 > 0 ) THEN

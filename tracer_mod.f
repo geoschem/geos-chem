@@ -1,4 +1,4 @@
-! $Id: tracer_mod.f,v 1.1 2004/09/21 18:04:20 bmy Exp $
+! $Id: tracer_mod.f,v 1.2 2004/12/16 16:52:46 bmy Exp $
       MODULE TRACER_MOD
 !
 !******************************************************************************
@@ -303,7 +303,7 @@
 !
 !******************************************************************************
 !  Function ITS_A_MERCURY_SIM returns TRUE if we are doing a GEOS-CHEM
-!  Hg (Mercury) simulation. (bmy, 7/15/04)
+!  Hg0/Hg2/HgP offline mercury simulation. (bmy, 7/15/04)
 !
 !  NOTES:
 !******************************************************************************
