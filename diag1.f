@@ -1,4 +1,4 @@
-! $Id: diag1.f,v 1.2 2003/08/12 17:08:11 bmy Exp $
+! $Id: diag1.f,v 1.3 2004/05/25 15:56:03 bmy Exp $
       SUBROUTINE DIAG1 
 !
 !******************************************************************************
@@ -44,7 +44,7 @@
 !  (21) Now compute PBL top for ND67 for GEOS-4/fvDAS.  Also now include
 !        SCALE_HEIGHT from header file "CMN_GCTM". (bmy, 6/23/03)
 !******************************************************************************
-!  List of GEOS-CHEM Diagnostics (bmy, 8/8/03)
+!  List of GEOS-CHEM Diagnostics (bmy, 5/25/04)
 !
 !  FLAG  DIM'S    QUANTITY                                     UNITS
 !  ---- --------  --------                                     -----
@@ -67,9 +67,21 @@
 !       (I,J,L)    L(NO3) by DMS                               [kg NO3]
 !       (I,J,L)    L(H2O2)                                     [kg H2O2]
 !
-!  ND06   ----    Free Diagnostic 
-!  ND07   ----    Free Diagnostic 
-!  ND08   ----    Free Diagnostic 
+!  ND06           SOURCES OF BLACK CARBON & ORGANIC CARBON    
+!       (I,J)      BLACK CARBON from anthro sources            [kg]
+!       (I,J)      BLACK CARBON from biomass burning           [kg]
+!       (I,J)      BLACK CARBON from biofuels                  [kg]
+!       (I,J,L)    Hydrophilic BC from Hydrophobic BC          [kg]
+!       (I,J)      ORGANIC CARBON from anthro sources          [kg]
+!       (I,J)      ORGANIC CARBON from biomass burning         [kg]
+!       (I,J)      ORGANIC CARBON from biofuels                [kg]
+!       (I,J)      ORGANIC CARBON from biogenic sources        [kg]
+!       (I,J)      Hydrophilic OC from Hydrophobic OC          [kg]
+!
+!  ND07  (I,J)    DESERT DUST EMISSIONS                        [kg]
+!
+!  ND08  (I,J)    SEA SALT EMISSIONS                           [kg] 
+!
 !  ND09   ----    Free Diagnostic 
 !  ND10   ----    Free Diagnostic 
 !
