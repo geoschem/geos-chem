@@ -94,6 +94,7 @@ do_chemistry		-- Now do not call DO_RPMARES if we are doing an
 do_emissions		-- Now calls EMISSSULFATE if LCRYST=T
 ("emissions_mod.f")	-- Also read EPA/NEI emissions for the offline 
 			   sulfate simulation
+			-- Also call EMISS_EPA_NEI for the tagCO simulation
 
 emissseasalt		-- Now make sure IDTSALA, IDTSALC are nonzero before 
 ("sulfate_mod.f")	   calling SRCSALT.  
