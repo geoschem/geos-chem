@@ -1,9 +1,9 @@
-! $Id: wetscav_mod.f,v 1.7 2004/04/19 15:09:55 bmy Exp $
+! $Id: wetscav_mod.f,v 1.8 2004/05/03 14:46:19 bmy Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
 !  Module WETSCAV_MOD contains arrays for used in the wet scavenging of
-!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 4/5/04)
+!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 4/20/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -100,6 +100,7 @@
 !        WETDEP and MAKE_QQ PRIVATE to this module. (bmy, 3/27/03)
 !  (11) Add parallelization to routine WETDEP (bmy, 3/17/04)
 !  (12) Added carbon and dust aerosol tracers (rjp, tdf, bmy, 4/5/04)
+!  (13) Added seasalt aerosol tracers (rjp, bec, bmy, 4/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -120,7 +121,12 @@
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
-      INTEGER, PARAMETER   :: NSOLMAX = 18
+      !--------------------------------------------------------------
+      ! Prior to 4/20/04:
+      ! Increase NSOLMAX to 20 for seasalts (rjp, bec, bmy, 4/20/04)
+      !INTEGER, PARAMETER   :: NSOLMAX = 18
+      !--------------------------------------------------------------
+      INTEGER, PARAMETER   :: NSOLMAX = 20
       INTEGER              :: NSOL 
       INTEGER              :: IDWETD(NSOLMAX)
       REAL*8,  ALLOCATABLE :: Vud(:,:)
@@ -604,7 +610,7 @@
 !
 !******************************************************************************
 !  Subroutine COMPUTE_F computes F, the fraction of soluble tracer lost by 
-!  scavenging in convective cloud updrafts. (hyl, bmy, djj, 2/23/00, 4/5/04)
+!  scavenging in convective cloud updrafts. (hyl, bmy, djj, 2/23/00, 4/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -651,6 +657,7 @@
 !        simulations (rjp, bmy, 3/23/03)
 !  (11) Added slots for carbon aerosol & dust tracers.  Now modified internal
 !        routine GET_ISOL so it's not hardwired anymore. (rjp, bmy, 4/5/04)
+!  (12) Added slots for sea salt aerosol tracers (rjp, bec, bmy, 4/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -703,7 +710,6 @@
       !----------------------------
       IF ( N == IDTPB ) THEN
          CALL F_AEROSOL( F )
-         !ISOL = 1
          ISOL = GET_ISOL( N )
 
       !----------------------------        
@@ -711,7 +717,6 @@
       !----------------------------
       ELSE IF ( N == IDTBE7 ) THEN
          CALL F_AEROSOL( F )
-         !ISOL = 2
          ISOL = GET_ISOL( N )
 
       !----------------------------
@@ -719,7 +724,6 @@
       !----------------------------
       ELSE IF ( N == IDTHNO3 ) THEN
          CALL F_AEROSOL( F )
-         !ISOL = 1
          ISOL = GET_ISOL( N ) 
 
       !----------------------------
@@ -781,7 +785,6 @@
          ENDDO
             
          ! ND38 index
-         !ISOL = GET_ISOL( 2, 7 )
          ISOL = GET_ISOL( N )
 
       !----------------------------
@@ -835,7 +838,6 @@
          ENDDO
 
          ! ND38 index
-         !ISOL = 3
          ISOL = GET_ISOL( N ) 
   
       !----------------------------
@@ -889,7 +891,6 @@
          ENDDO
 
          ! ND38 index
-         !ISOL = 4
          ISOL = GET_ISOL( N )
 
       !---------------------------
@@ -942,7 +943,6 @@
       !----------------------------
       ELSE IF ( N == IDTSO4 ) THEN
          CALL F_AEROSOL( F ) 
-         !ISOL = GET_ISOL( 6, 2 )
          ISOL = GET_ISOL( N ) 
 
       !---------------------------
@@ -950,7 +950,6 @@
       !---------------------------
       ELSE IF ( N == IDTMSA ) THEN
          CALL F_AEROSOL( F )
-         !ISOL = GET_ISOL( 7, 3 )
          ISOL = GET_ISOL( N )
 
       !----------------------------
@@ -1016,7 +1015,6 @@
       !----------------------------
       ELSE IF ( N == IDTNH4 ) THEN
          CALL F_AEROSOL( F )
-         !ISOL = GET_ISOL( 9, 5 )
          ISOL = GET_ISOL( N )
          
       !----------------------------
@@ -1024,7 +1022,6 @@
       !----------------------------
       ELSE IF ( N == IDTNIT ) THEN
          CALL F_AEROSOL( F )
-         !ISOL = GET_ISOL( 10, 6 )
          ISOL = GET_ISOL( N )
 
       !----------------------------
@@ -1084,6 +1081,20 @@
       ! DUST4 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTDST4 ) THEN
+         CALL F_AEROSOL( F )
+         ISOL = GET_ISOL( N )
+
+      !----------------------------
+      ! Accum mode seasalt aerosol
+      !----------------------------
+      ELSE IF ( N == IDTSALA ) THEN
+         CALL F_AEROSOL( F )
+         ISOL = GET_ISOL( N )
+
+      !----------------------------
+      ! Coarse mode seasalt aerosol
+      !----------------------------
+      ELSE IF ( N == IDTSALC ) THEN
          CALL F_AEROSOL( F )
          ISOL = GET_ISOL( N )
 
@@ -1225,7 +1236,7 @@
 !
 !******************************************************************************
 !  Subroutine RAINOUT computes RAINFRAC, the fraction of soluble tracer
-!  lost to rainout events in precipitation. (djj, bmy, 2/28/00, 4/5/04)
+!  lost to rainout events in precipitation. (djj, bmy, 2/28/00, 4/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1261,6 +1272,7 @@
 !        into "wetscav_mod.f". Now refererences "tracerid_mod.f".  Also 
 !        removed reference to CMN since we don't need NSRCX. (bmy, 11/8/02)
 !  (7 ) Now updated for carbon & dust aerosol tracers (rjp, bmy, 4/5/04)
+!  (8 ) Now updated for seasalt aerosol tracers (rjp, bec, bmy, 4/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1580,6 +1592,18 @@
          RAINFRAC = GET_RAINFRAC( K_RAIN )      
 
       !----------------------------
+      ! Accum. seasalt (aerosol)
+      !----------------------------
+      ELSE IF ( N == IDTSALA ) THEN
+         RAINFRAC = GET_RAINFRAC( K_RAIN )      
+
+      !----------------------------
+      ! Coarse seasalt (aerosol)
+      !----------------------------
+      ELSE IF ( N == IDTSALC ) THEN
+         RAINFRAC = GET_RAINFRAC( K_RAIN )      
+
+      !----------------------------
       ! ERROR: insoluble tracer!
       !----------------------------  
       ELSE
@@ -1629,7 +1653,7 @@
 !
 !******************************************************************************
 !  Subroutine WASHOUT computes WASHFRAC, the fraction of soluble tracer
-!  lost to washout events in precipitation. (djj, bmy, 2/28/00, 4/5/04)
+!  lost to washout events in precipitation. (djj, bmy, 2/28/00, 4/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1668,6 +1692,7 @@
 !        WASHFRAC_AEROSOL and WASHFRAC_LIQ_GAS.  Also removed reference to
 !        CMN since we don't need to use NSRCX here. (bmy, 11/6/02)
 !  (7 ) Updated for carbon aerosol and dust tracers (rjp, bmy, 4/5/04)
+!  (8 ) Updated for seasalt aerosol tracers (rjp, bec, bmy, 4/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1879,6 +1904,20 @@
       ! DUST4 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTDST4 ) THEN
+         AER      = .TRUE.
+         WASHFRAC = WASHFRAC_AEROSOL()
+
+      !----------------------------
+      ! Accum. seasalt (aerosol)
+      !----------------------------
+      ELSE IF ( N == IDTSALA ) THEN
+         AER      = .TRUE.
+         WASHFRAC = WASHFRAC_AEROSOL()
+
+      !----------------------------
+      ! Coarse seasalt (aerosol)
+      !----------------------------
+      ELSE IF ( N == IDTSALC ) THEN
          AER      = .TRUE.
          WASHFRAC = WASHFRAC_AEROSOL()
 
@@ -3069,20 +3108,22 @@
 !
 !******************************************************************************
 !  Subroutine WETDEPID sets up the index array of soluble tracers used in
-!  the WETDEP routine above (bmy, 11/8/02, 4/5/04)
+!  the WETDEP routine above (bmy, 11/8/02, 4/20/04)
 ! 
 !  NOTES:
 !  (1 ) Now references "tracerid_mod.f".  Also references "CMN" in order to
 !        pass variables NSRCX and NTRACE. (bmy, 11/8/02)
 !  (2 ) Updated for carbon aerosol & dust tracers (rjp, bmy, 4/5/04)
+!  (3 ) Updated for seasalt aerosol tracers.  Also added fancy output.
+!        (rjp, bec, bmy, 4/20/04)
 !******************************************************************************
 !
       ! References To F90 modules
       USE ERROR_MOD,  ONLY : ERROR_STOP
       USE TRACERID_MOD
 
-#     include "CMN_SIZE" ! Size parameters
-#     include "CMN"      ! NSRCX, NTRACE, TCNAME
+#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN"       ! NSRCX, NTRACE, TCNAME
 
       ! Local variables
       INTEGER            :: N, NN
@@ -3176,14 +3217,28 @@
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTDST4
 
+         ELSE IF ( N == IDTSALA ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTSALA
+
+         ELSE IF ( N == IDTSALC ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTSALC
+
          ENDIF
       ENDDO
+
+      PRINT*, '### NSOL : ', NSOL
+      PRINT*, '### NSOLMAX: ', NSOLMAX
 
       ! Error check: Make sure that NSOL is less than NSOLMAX
       IF ( NSOL > NSOLMAX ) THEN
          CALL ERROR_STOP( 'NSOL > NSOLMAX!', 'WETDEPID (wetscav_mod.f)')
       ENDIF
       
+      PRINT*, '### NSOL : ', NSOL
+      PRINT*, '### NSOLMAX: ', GET_WETDEP_NMAX( NSRCX )
+
       ! Also check to see if NSOL is larger than the maximum
       ! number of soluble tracers for a particular simulation
       IF ( NSOL > GET_WETDEP_NMAX( NSRCX ) ) THEN
@@ -3194,6 +3249,7 @@
       ! Echo list of soluble tracers to the screen
       !=================================================================
       WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+      WRITE( 6, '(a,/)' ) 'W E T   D E P O S I T I O N   S E T U P'
       WRITE( 6, '(a,/)' ) 'WETDEPID: List of soluble tracers: '
       WRITE( 6, '(a)'   ) '  #   Name  Tracer Molec.'
       WRITE( 6, '(a)'   ) '            Number Weight'
@@ -3217,7 +3273,7 @@
 !******************************************************************************
 !  Function GET_WETDEP_NMAX returns the maximum number of soluble tracers
 !  for a given type of simulation.  Primarily used for allocation of 
-!  diagnostic arrays. (bmy, 12/2/02, 4/5/04)
+!  diagnostic arrays. (bmy, 12/2/02, 4/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -3225,6 +3281,7 @@
 !
 !  NOTES:
 !  (1 ) Modified to include carbon & dust aerosol tracers (rjp, bmy, 4/5/04)
+!  (2 ) Modified to include seasalt aerosol tracers (rjp, bec, bmy, 4/20/04)
 !******************************************************************************
 !
 #     include "CMN_SIZE"   ! Size Parameters
@@ -3249,17 +3306,19 @@
 
          ! Fullchem simulation
          CASE ( 3 )
-            NMAX = 4                            ! HNO3, H2O2
-            IF ( LSULF ) NMAX = NMAX + 6        ! SO2, SO4, MSA, NH3, NH4, NIT
-            IF ( LCARB ) NMAX = NMAX + 4        ! BCPI, BCPO, OCPI, OCPO
-            IF ( LDUST ) NMAX = NMAX + NDSTBIN  ! plus # of dust bins
+            NMAX = 4                             ! HNO3, H2O2
+            IF ( LSULF  ) NMAX = NMAX + 6        ! SO2, SO4, MSA, NH3, NH4, NIT
+            IF ( LCARB  ) NMAX = NMAX + 4        ! BCPI, BCPO, OCPI, OCPO
+            IF ( LDUST  ) NMAX = NMAX + NDSTBIN  ! plus # of dust bins
+            IF ( LSSALT ) NMAX = NMAX + 2        ! plus 2 seasalts
 
          ! Offline sulfate simulation: 7 soluble tracers
          CASE ( 10 ) 
             NMAX = 0
-            IF ( LSULF ) NMAX = NMAX + 7        ! add 7 sulfur species
-            IF ( LCARB ) NMAX = NMAX + 4        ! add carbonaceous aerosols
-            IF ( LDUST ) NMAX = NMAX + NDSTBIN  ! Add number of dust bins
+            IF ( LSULF  ) NMAX = NMAX + 7        ! add 7 sulfur species
+            IF ( LCARB  ) NMAX = NMAX + 4        ! add carbonaceous aerosols
+            IF ( LDUST  ) NMAX = NMAX + NDSTBIN  ! Add number of dust bins
+            IF ( LSSALT ) NMAX = NMAX + 2        ! plus 2 seasalts
 
          ! Default: No soluble tracers
          CASE DEFAULT

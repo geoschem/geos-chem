@@ -1,106 +1,143 @@
-REVISIONS (v6-02-03)  
-bmy, 15 Apr 2004
+REVISIONS (v6-02-04)  
+bmy, 26 Apr 2004
 
 
-New in v6-02-02:
+New in v6-02-04:
 -------------------------------------------------------------------------------
 
-copy_i6_fields		-- Added routine to copy I-6 fields at the end of
-("dao_mod.f")              a 6-hr timestep using parallel DO-loops
-
-lightning_nox_mod.f	-- Now contains previous standalone routines
-			   "lightning.f", "lightdist.f", "emlightning.f".
-			-- Also added parallel loops for better optimization
+seasalt_mod.f		-- Module containing routines for seasalt
+			   emissions and chemistry
 
 
 
-Removed in v6-02-02:
+Removed in v6-02-04:
 -------------------------------------------------------------------------------
 
-emlightning.f		-- Now bundled into "lightning_nox_mod.f"
-
-lightning.f		-- Now bundled into "lightning_nox_mod.f"
-
-lightdist.f		-- Now bundled into "lightning_nox_mod.f"
 
 
 
-Changed from v6-02-02:
+Changed from v6-02-03:
 -------------------------------------------------------------------------------
 
-CMN_NOX			-- Only GEMISNOX, GEMISNOX2 are left here;
-			   everything else is merged into "lightning_mod.f"
+aero_sfcRsI		-- Now use particle size & density values
+("drydep_mod.f")	   from A_RADI and A_DEN arrays
 
-chem_h2o2		-- Now use parallel DO-loop to zero ND44_TMP
-("sulfate_mod.f")  	-- Now uses ITS_A_NEW_MONTH from time_mod.f
+aero_sfcRsII		-- Now use particle size & density values
+("drydep_mod.f")	   from A_RADI and A_DEN arrays
 
-chem_msa		-- Now use parallel DO-loop to zero ND44_TMP
-("sulfate_mod.f")
+anthroems.f		-- Added fancy output
 
-chem_nh3		-- Now use parallel DO-loop to zero ND44_TMP
-("sulfate_mod.f")
+bioburn			-- Added fancy output
+("biomass_mod.f")
 
-chem_nh4		-- Now use parallel DO-loop to zero ND44_TMP
-("sulfate_mod.f")
+biofuel_burn		-- Added fancy output
+("biofuel_mod.f")	
 
-chem_nit		-- Now use parallel DO-loop to zero ND44_TMP
-("sulfate_mod.f")
+cleanup_diag		-- Now also deallocates AD08 array
+("diag_mod.f")
 
-chem_so2		-- Now use parallel DO-loop to zero ND44_TMP
-("sulfate_mod.f")
+CMN_DIAG		-- Change PD08 from 0 to 2 
 
-chem_so4		-- Now use parallel DO-loop to zero ND44_TMP
-("sulfate_mod.f")
+CMN_SIZE		-- Increase NNPAR to 41 for seasalt tracers
 
-cleanup.f		-- Now references cleanup routine CLEANUP_LIGHTNING
-	 		   from "lightning_mod.f"
+chemdr.f		-- Added SALA and SALC arrays for passing seasalt 
+			   to rdaer.f.  
+			-- Now rearranged the DO loop for computational 
+			   efficiency.
 
-diag49.f		-- Readjust tracer numbers for other fields to 
-			   accommodate 41 regular CTM tracers -- QUICK FIX 
+close_files		-- Now also close IU_ND52 (for ICARTT output)
 
-emissdr.f		-- Now references EMLIGHTNING from F90 module
-			   "lightning_nox_mod.f"
+compute_f		-- Added slots in the CASE statement for seasalt
+("wetscav_mod.f")	   aerosol tracers
 
-get_oro			-- Added parallel DO-loop
-("dust_dead_mod.f")
+compute_grid		-- Added fancy output
+("grid_mod.f")
 
-lightning.f		-- Added parallel DO-loops for better optimization
+depvel			-- Now also use size-resolved drydep
+("drydep_mod.f")	   for seasalt tracers
 
-main.f			-- Now call COPY_I6_FIELDS from "dao_mod.f"
-			   to copy I-6 fields at end of 6-hr timestep
-			   using parallel DO-loops
-			-- Now references LIGHTNING from "lightning_nox_mod.f"
+diag_mod.f		-- Added ND08 array
 
-set_floating_pressure	-- Added parallel DO-loop
-("pressure_mod.f")
+diag3.f			-- Added ND08 diagnostic for seasalt aerosol tracers
 
-src_dust_dead		-- Bug fix: DSRC needs to be held PRIVATE
-("dust_mod.f")
+diag49.f		-- Added parallel DO loops
+			-- Replaced calls to O3COMP by references to the
+			   arrays FRACO3 and FRACNO.
+			-- Added aerosol optical depths to the CASE statement
+			-- Also save out total dust and seasalt mass.
 
-upbdflx_o3		-- Activated parallel DO-loops.  
-("upbdflx_mod.f")	-- Now made STFLUX a local array in order to 
-			   facilitate parallelization.
+do_chemistry		-- Now calls CHEMSEASALT to do seasalt aerosol 
+("chemistry_mod.f")	   chemistry 
 
-upbdflx_noy		-- Activated parallel DO-loops.  
-("upbdflx_mod.f")	-- Moved the computation of XRATIO into the IF block 
-			   which only gets done once per month.
+do_emissions		-- Now calls EMISSSEASALT to do seasalt aerosol 
+("chemistry_mod.f")	   chemistry 
 
-write_diag51		-- 
+drydep_mod.f		-- Increased MAXDEP to 26
+			-- Added A_RADI and A_DEN module variables
+			-- Other modifications for size-resolved drydep
 
----
-a6_read_mod.f		<-- Removed obsolete, commented-out code
-arsl1k.f		    from the following routines
-chemdr.f
-convection_mod.f	
-diag3.f
-diag51_mod.f
-ndxx_setup.f
-setemis.f
-fvdas_convect_mod.f
-setup.f
-sulfate_mod.f
-time_mod.f		
-wetscav_mod.f   
-CMN_SIZE 
-CMN_DEP	
+file_mod.f		-- Added IU_ND52=20 for ICARTT output
 
+get_wetdep_nmax		-- Modified to include seasalt aerosol tracers
+("wetscav_mod.f")
+
+init_drydep		-- Added seasalt aerosol tracers.  
+("drydep_mod.f")	-- Now use A_RADI and A_DEN to store radius & density 
+			   of size-resolved tracers.  
+			-- Also added fancy output
+
+init_tracerid		-- Now zero extra flags for seasalt tracers 
+("tracerid_mod.f")
+
+initialize		-- Now also zeroes ND08 array 
+
+inptr.f			-- Add fancy output
+
+ioerror			-- Now don't flush the buffer for LINUX_EFC
+("file_mod.f")
+
+ndxx_setup.f		-- Now initialize AD08 array
+			-- Reset TRCOFFSET for tagged CO from 84 to 80
+			-- Now activate ND52 diagnostic for ICARTT
+
+planeflight		-- Now references UWND and VWND from "dao_mod.f"
+("planeflight_mod.f")	-- Now references GET_PEDGE from "pressure_mod.f"
+			-- Added CASEs for surface pressure, UWND, VWND to 
+			   the CASE statement
+
+rainout			-- Now updated for seasalt aerosol tracers
+("wetscav_mod.f")
+
+rdaer.f			-- Add SALA, SALC to the arg list
+
+read_restart_file	-- Add fancy output string
+("restart_mod.f")	
+
+read_variables		-- Changed variable name prefix "DAO" to "GMAO"
+("planeflight_mod.f")   -- Also added aerosol optical depths w/ tracer 	
+			   offset 2000
+
+settrace		-- Make sure IDEMIS etc doesn't go out of array bounds
+("tracerid_mod.f")
+
+setup_planeflight	-- Add fancy output string 
+("planeflight_mod.f")
+
+test_valid		-- Bug fix: add 0.5 in expression for I so that 
+("planeflight_mod.f")	   the rounding will be done correctly
+			-- Also make sure that I is computed correctly
+			   for points near the date line
+
+tracerid		-- Added extra CASEs to the CASE statement for 
+("tracerid_mod.f")	   seasalt tracers
+
+tracerid_mod.f		-- Increase NNNTRID for carb+dust+seasalt tracers
+
+washout			-- Now updated for seasalt aerosol tracers
+("wetscav_mod.f")
+
+wetdepid		-- Updated for seasalt aerosol tracers
+("wetscav_mod.f")	-- Also added fancy output 
+
+wetscav_mod.f		-- Increased NSOLMAX to 20 for seasalt tracers
+			-- Other modifications for seasalt aerosol tracers

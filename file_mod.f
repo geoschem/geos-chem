@@ -1,10 +1,10 @@
-! $Id: file_mod.f,v 1.4 2004/01/27 21:25:07 bmy Exp $
+! $Id: file_mod.f,v 1.5 2004/05/03 14:46:17 bmy Exp $
       MODULE FILE_MOD
 !
 !******************************************************************************
 !  Module FILE_MOD contains file unit numbers, as well as file I/O routines
 !  for GEOS-CHEM.  FILE_MOD keeps all of the I/O unit numbers in a single
-!  location for convenient access. (bmy, 7/1/02, 12/2/03)
+!  location for convenient access. (bmy, 7/1/02, 4/23/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -69,6 +69,7 @@
       INTEGER, PARAMETER :: IU_ND49    = 14
       INTEGER, PARAMETER :: IU_ND50    = 15
       INTEGER, PARAMETER :: IU_ND51    = 16
+      INTEGER, PARAMETER :: IU_ND52    = 20  ! For ICARTT (bmy, 4/21/04)
       INTEGER, PARAMETER :: IU_PLANE   = 17
       INTEGER, PARAMETER :: IU_BC      = 18
       INTEGER, PARAMETER :: IU_FILE    = 65
@@ -93,7 +94,7 @@
 !******************************************************************************
 !  Subroutine IOERRROR prints out I/O error messages.  The error number, 
 !  file unit, location, and a brief description will be printed, and 
-!  program execution will be halted. (bmy, 5/28/99, 12/2/03)
+!  program execution will be halted. (bmy, 5/28/99, 4/23/04)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -117,6 +118,7 @@
 !  (5 ) Now call GERROR for IBM and INTEL_FC compilers (bmy, 11/6/03)
 !  (6 ) Renamed SGI to SGI_MIPS, LINUX to LINUX_PGI, INTEL_FC to INTEL_IFC, 
 !        and added LINUX_EFC. (bmy, 12/2/03)
+!  (7 ) Now don't flush the buffer for LINUX_EFC (bmy, 4/23/04)
 !******************************************************************************
 !  
       ! References to F90 modules
@@ -258,7 +260,10 @@
       
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+
+#if   !defined( LINUX_EFC )
       CALL FLUSH( 6 )
+#endif
 
       ! Deallocate arrays and stop safely 
       CALL GEOS_CHEM_STOP
@@ -308,6 +313,9 @@
       CLOSE( IU_GWET    )
       CLOSE( IU_SMV2LOG )
       CLOSE( IU_DEBUG   )
+
+      ! For ICARTT (bmy, 4/21/04)
+      CLOSE( IU_ND52    )
 
       ! Return to calling program
       END SUBROUTINE CLOSE_FILES

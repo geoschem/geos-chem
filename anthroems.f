@@ -1,4 +1,4 @@
-! $Id: anthroems.f,v 1.1 2003/06/30 20:26:02 bmy Exp $
+! $Id: anthroems.f,v 1.2 2004/05/03 14:46:14 bmy Exp $
       SUBROUTINE ANTHROEMS( NSEASON )
 !
 !******************************************************************************
@@ -111,9 +111,10 @@
       !
       ! Echo JYEAR and NSEASON to the standard output
       !=================================================================
-      WRITE ( 6, '(a)' ) REPEAT( '=', 79 ) 
-
-      WRITE ( 6, 110 ) GET_YEAR(), GET_SEASON()
+      WRITE( 6, '(a)' ) REPEAT( '=', 79 ) 
+      WRITE( 6, '(a)' ) 'A N T H R O P O G E N I C   E M I S S I O N S'
+      WRITE( 6, '(a)' )
+      WRITE( 6, 110   ) GET_YEAR(), GET_SEASON()
  110  FORMAT( 'ANTHROEMS: NYEAR, NSEASON = ', i4, 1x, i2 )
 
       ! Emission timestep [s]

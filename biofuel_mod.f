@@ -1,10 +1,10 @@
-! $Id: biofuel_mod.f,v 1.1 2003/06/30 20:26:06 bmy Exp $
+! $Id: biofuel_mod.f,v 1.2 2004/05/03 14:46:14 bmy Exp $
       MODULE BIOFUEL_MOD
 !
 !******************************************************************************
 !  Module BIOFUEL_MOD contains arrays and routines to compute yearly
 !  biofuel emissions for NOx, CO, ALK4, ACET, MEK, ALD2, PRPE, C3H8, 
-!  CH2O, and C2H6 (bmy, 9/12/00, 3/14/03)
+!  CH2O, and C2H6 (bmy, 9/12/00, 4/26/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -139,6 +139,7 @@
 !        IDBFNOX, etc. from "tracerid_mod.f". (bmy, 11/6/02)
 !  (14) Now call READ_BPCH2 with QUIET=.TRUE. flag to suppress extra info 
 !        from being printed (bmy, 3/14/03)
+!  (15) Added fancy output (bmy, 4/26/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -183,8 +184,9 @@
          DO_ND34 = ( ND34 > 0                    ) 
 
          ! Fancy output..
-         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-         
+         WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+         WRITE( 6, '(a,/)' ) 'B I O F U E L   E M I S S I O N S'
+
          !==============================================================
          ! GEOS-CHEM has the following biofuel burning species:
          !

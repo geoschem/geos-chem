@@ -1,9 +1,9 @@
-! $Id: diag_mod.f,v 1.5 2004/04/13 14:52:30 bmy Exp $
+! $Id: diag_mod.f,v 1.6 2004/05/03 14:46:16 bmy Exp $
       MODULE DIAG_MOD 
 !
 !******************************************************************************
 !  Module DIAG_MOD contains declarations for allocatable arrays for use with 
-!  GEOS-CHEM diagnostics. (amf, bdf, bmy, 11/30/99, 4/5/04)
+!  GEOS-CHEM diagnostics. (amf, bdf, bmy, 11/30/99, 4/20/04)
 !
 !  Module Routines:
 !  ============================================================================
@@ -66,6 +66,9 @@
       REAL*4,  ALLOCATABLE :: AD07(:,:,:)
       REAL*4,  ALLOCATABLE :: AD07_BC(:,:,:)
       REAL*4,  ALLOCATABLE :: AD07_OC(:,:,:)
+
+      ! For ND08 -- seasalt emission
+      REAL*4,  ALLOCATABLE :: AD08(:,:,:)
 
       ! For ND12 -- boundary layer multiplication factor
       REAL*4,  ALLOCATABLE :: AD11(:,:,:)
@@ -235,7 +238,7 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_DIAG deallocates all module arrays.
-!  (bmy, 12/13/02, 4/5/04)
+!  (bmy, 12/13/02, 4/20/04)
 !
 !  NOTES:
 !  (1 ) Now also deallocate AD13_NH3_an, AD13_NH3_bb, AD13_NH3_bf arrays
@@ -244,6 +247,7 @@
 !  (3 ) Removed P24H and L24H, these are now defined within "tagged_ox_mod.f".
 !       Now also deallocate AD03 array for Kr85 prod/loss (jsw, bmy, 8/20/03)
 !  (4 ) Now also deallocate AD06 and AD07* arrays (rjp, bdf, bmy, 4/5/04)
+!  (5 ) Now also deallocate AD08 array (rjp, bec, bmy, 4/20/04)
 !******************************************************************************
 !
       !=================================================================
@@ -256,6 +260,7 @@
       IF ( ALLOCATED( AD07        ) ) DEALLOCATE( AD07        )
       IF ( ALLOCATED( AD07_BC     ) ) DEALLOCATE( AD07_BC     )
       IF ( ALLOCATED( AD07_OC     ) ) DEALLOCATE( AD07_OC     )
+      IF ( ALLOCATED( AD08        ) ) DEALLOCATE( AD08        )
       IF ( ALLOCATED( AD11        ) ) DEALLOCATE( AD11        )
       IF ( ALLOCATED( AD12        ) ) DEALLOCATE( AD12        )
       IF ( ALLOCATED( AD13_DMS    ) ) DEALLOCATE( AD13_DMS    )

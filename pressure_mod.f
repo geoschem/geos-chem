@@ -1,4 +1,4 @@
-! $Id: pressure_mod.f,v 1.6 2004/04/19 15:09:54 bmy Exp $
+! $Id: pressure_mod.f,v 1.7 2004/05/03 14:46:18 bmy Exp $
       MODULE PRESSURE_MOD
 !
 !******************************************************************************
@@ -477,13 +477,13 @@
 #endif
       
       ! Echo info to std output
-      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-      WRITE( 6, '(a)' ) 'INIT_PRESSURE: Vertical coordinates!'
-      WRITE( 6, '(a)' )
+      WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+      WRITE( 6, '(a,/)' ) 'V E R T I C A L   G R I D   S E T U P'
+      WRITE( 6, '(a,/)' ) 'INIT_PRESSURE: Vertical coordinates!'
       WRITE( 6, '( ''Ap '', /, 6(f11.6,1x) )' ) AP(1:LLPAR+1)
-      WRITE( 6, '(a)' )
+      WRITE( 6, '(a)'   )
       WRITE( 6, '( ''Bp '', /, 6(f11.6,1x) )' ) BP(1:LLPAR+1)
-      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+      WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
 
       ! Return to calling program
       END SUBROUTINE INIT_PRESSURE

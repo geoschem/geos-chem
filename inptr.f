@@ -1,4 +1,4 @@
-! $Id: inptr.f,v 1.1 2003/06/30 20:26:01 bmy Exp $
+! $Id: inptr.f,v 1.2 2004/05/03 14:46:17 bmy Exp $
       SUBROUTINE INPTR                                                       
       
       !=================================================================
@@ -63,6 +63,7 @@
       ! Print out tracer information in a better way (bmy, 11/20/02)
       !=================================================================
       WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+      WRITE( 6, '(a,/)' ) 'T R A C E R   S E T U P'
       WRITE( 6, '(a,/)' ) 'INPTR: Tracer Quantities'
       WRITE( 6, '(a)'   ) '  #   Name   Molec.    TCVV     XNUMOL'
       WRITE( 6, '(a)'   ) '             Weight             molec/kg'

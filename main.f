@@ -1,5 +1,13 @@
-C $Id: main.f,v 1.14 2004/04/19 15:09:54 bmy Exp $
+C $Id: main.f,v 1.15 2004/05/03 14:46:17 bmy Exp $
 C $Log: main.f,v $
+C Revision 1.15  2004/05/03 14:46:17  bmy
+C GEOS-CHEM v6-02-04, includes the following modifications:
+C - Added seasalt tracers SALA, SALC
+C - Added timeseries diagnostics for ICARTT
+C - Bug fix in "planeflight_mod.f": lon index is now correct
+C - Added fancy output to log file for better readability
+C - Updated comments, cosmetic changes
+C
 C Revision 1.14  2004/04/19 15:09:54  bmy
 C GEOS-CHEM v6-02-03, includes the following modifications:
 C - bundled lightning NOx routines into "lightning_nox_mod.f"
@@ -134,7 +142,11 @@ C
       USE I6_READ_MOD
       USE LIGHTNING_NOX_MOD, ONLY : LIGHTNING
       USE PHIS_READ_MOD
-      USE PLANEFLIGHT_MOD,   ONLY : SETUP_PLANEFLIGHT
+      !------------------------------------------------------
+      ! Prior to 4/22/04:
+      !USE PLANEFLIGHT_MOD,   ONLY : SETUP_PLANEFLIGHT
+      !------------------------------------------------------
+      USE PLANEFLIGHT_MOD,   ONLY : SETUP_PLANEFLIGHT, PLANEFLIGHT
       USE PRESSURE_MOD
       USE TIME_MOD
       USE RESTART_MOD,       ONLY : READ_RESTART_FILE, MAKE_RESTART_FILE
@@ -726,30 +738,34 @@ C
             ! (for comparison w/ Holzworth, 1967
             IF ( ND41 > 0 ) CALL DIAG41
 
-            ! ND49: 3-D timeseries ("tsYYYYMMDD.bpch")
-            IF ( ND49 > 0 ) THEN
-               IF ( GET_TAU() >= DAT1_AREA .and. 
-     &              GET_TAU() <= DAT2_AREA .and. 
-     &              MOD( GET_ELAPSED_MIN(), FREQ_AREA ) == 0 ) THEN
-                  CALL DIAG49
-               ENDIF
-            ENDIF
-
-            ! ND50: 24-h avg timeseries ("ts24h.bpch")
-            IF ( ND50 > 0 ) THEN
-               IF ( GET_TAU() >= DAT1_AREA  .and. 
-     &              GET_TAU() <= DAT2_AREA ) THEN
-                  CALL DIAG50
-               ENDIF
-            ENDIF
-    
-            ! ND51: 10-12 LT or 13-16 LT timeseries ("ts1_4pm.bpch")
-            IF ( ND51 > 0 ) THEN
-               IF ( GET_TAU() >= DAT1_AREA  .and. 
-     &              GET_TAU() <= DAT2_AREA ) THEN
-                  CALL DIAG51
-               ENDIF
-            ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 4/22/04:
+! Move this to after wet scavenging (bmy, 4/20/04)
+!            ! ND49: 3-D timeseries ("tsYYYYMMDD.bpch")
+!            IF ( ND49 > 0 ) THEN
+!               IF ( GET_TAU() >= DAT1_AREA .and. 
+!     &              GET_TAU() <= DAT2_AREA .and. 
+!     &              MOD( GET_ELAPSED_MIN(), FREQ_AREA ) == 0 ) THEN
+!                  CALL DIAG49
+!               ENDIF
+!            ENDIF
+!
+!            ! ND50: 24-h avg timeseries ("ts24h.bpch")
+!            IF ( ND50 > 0 ) THEN
+!               IF ( GET_TAU() >= DAT1_AREA  .and. 
+!     &              GET_TAU() <= DAT2_AREA ) THEN
+!                  CALL DIAG50
+!               ENDIF
+!            ENDIF
+!    
+!            ! ND51: 10-12 LT or 13-16 LT timeseries ("ts1_4pm.bpch")
+!            IF ( ND51 > 0 ) THEN
+!               IF ( GET_TAU() >= DAT1_AREA  .and. 
+!     &              GET_TAU() <= DAT2_AREA ) THEN
+!                  CALL DIAG51
+!               ENDIF
+!            ENDIF
+!-----------------------------------------------------------------------------
             
             !### Debug
             IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a DIAGNOSTICS' )
@@ -808,7 +824,43 @@ C
          IF ( ITS_TIME_FOR_DYN() ) THEN
             IF ( LWETD ) CALL DO_WETDEP
          ENDIF
-            
+
+         !==============================================================
+         !    ***** T I M E S E R I E S   F O R   I C A R T T  *****
+         !
+         ! NOTE: Since we are saving soluble tracers, we must move
+         !       the ND40, ND49, and ND52 timeseries diagnostics
+         !       to after the call to DO_WETDEP (bmy, 4/22/04)
+         !============================================================== 
+
+         ! Plane following diagnostic
+         IF ( ND40 > 0 ) THEN
+            CALL PLANEFLIGHT
+            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a PLANEFLIGHT' )
+         ENDIF
+
+         ! Timeseries diagnostics
+         IF ( ND49 + ND52 > 0 ) THEN
+
+            ! Check if it's time to write out diagnostics
+            IF ( GET_TAU() >= DAT1_AREA .and. 
+     &           GET_TAU() <= DAT2_AREA .and. 
+     &           MOD( GET_ELAPSED_MIN(), FREQ_AREA ) == 0 ) THEN
+
+               ! 3-D timeseries
+               IF ( ND49 > 0 ) THEN
+                  CALL DIAG49
+                  IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a ND49' )
+               ENDIF
+
+               ! Column timeseries
+               IF ( ND52 > 0 ) THEN
+                  CALL DIAG52
+                  IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a ND52' )
+               ENDIF
+            ENDIF
+         ENDIF
+
          !==============================================================
          !  ***** E N D   O F   D Y N A M I C   T I M E S T E P *****
          !==============================================================
@@ -828,20 +880,6 @@ C
       !        The I-6 fields at the end of this timestep become
       !        the fields at the beginning of the next timestep
       !=================================================================
-!------------------------------------------------------------------------------
-! Prior to 4/13/04:
-! Now call routine COPY_I6_FIELDS from "dao_mod.f".  This uses
-! parallel loops for better optimization. (bmy, 4/13/04)
-!      PS1   = PS2 
-!
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
-!      ALBD1 = ALBD2    
-!      UWND1 = UWND2
-!      VWND1 = VWND2
-!      TMPU1 = TMPU2
-!      SPHU1 = SPHU2
-!#endif
-!------------------------------------------------------------------------------
       CALL COPY_I6_FIELDS
 
       ENDDO

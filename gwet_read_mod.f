@@ -1,4 +1,4 @@
-! $Id: gwet_read_mod.f,v 1.1 2004/04/13 14:52:58 bmy Exp $
+! $Id: gwet_read_mod.f,v 1.2 2004/05/03 14:46:17 bmy Exp $
       MODULE GWET_READ_MOD
 !
 !******************************************************************************
@@ -584,7 +584,7 @@
      &        NFOUND == N_GWET ) THEN 
             STAMP = TIMESTAMP_STRING( NYMD, NHMS )
             WRITE( 6, 210 ) NFOUND, STAMP
- 210        FORMAT( '   - Found all ', i3, ' GWET met fields for ', a )
+ 210        FORMAT( '     - Found all ', i3, ' GWET met fields for ', a)
             EXIT
          ENDIF
       ENDDO

@@ -1,9 +1,9 @@
-! $Id: ndxx_setup.f,v 1.8 2004/04/19 15:09:54 bmy Exp $
+! $Id: ndxx_setup.f,v 1.9 2004/05/03 14:46:18 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
 !  NDXX_SETUP dynamically allocates memory for certain diagnostic arrays that 
-!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 4/5/04)
+!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 4/20/04)
 !
 !  This allows us to reduce the amount of memory that needs to be declared 
 !  globally.  We only allocate memory for arrays if the corresponding 
@@ -95,6 +95,9 @@
 !        ND18, and ND19.  Also set NFAM=NTRACE+5 for Tagged CO simulation. 
 !        (3/18/04)
 !  (44) Now initialize AD06 and AD07* arrays (rjp, tdf, bmy, 4/5/04)
+!  (45) Now initialize AD08 array.  Reset TRCOFFSET for tagged CO from
+!        84 to 80.  Also activate ND52 diagnostic for ICARTT.
+!        (rjp, bec, stu, cas, bmy, 4/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -171,7 +174,11 @@
             TRCOFFSET = 40      ! Tagged Ox
 
          CASE ( 7 )
-            TRCOFFSET = 84      ! 5-tracer  or 10-tracer Tagged CO
+            !----------------------------------------------------------
+            ! Prior to 4/20/04:
+            !TRCOFFSET = 84      ! 5-tracer  or 10-tracer Tagged CO
+            !----------------------------------------------------------
+            TRCOFFSET = 80      ! 5-tracer  or 10-tracer Tagged CO
 
          CASE ( 8 )
             TRCOFFSET = 64      ! C2H6
@@ -259,8 +266,16 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD19_OC' )
       ENDIF  
 
+      !================================================================
+      ! ND08: Dust emissions
+      !================================================================
+      IF ( ND08 > 0 .and. LSSALT ) THEN 
+         ALLOCATE( AD08( IIPAR, JJPAR, PD08 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD08' )
+      ENDIF
+
       !=================================================================
-      ! ND08 - ND10: Free diagnostics
+      ! ND09 - ND10: Free diagnostics
       !
       ! ND11: Acetone source diagnostics [atoms C/cm2/s]
       !       --> uses AD11 array (allocatable)
@@ -865,7 +880,12 @@
       !
       ! Call READ49 to read "timeseries.dat" for ND49, ND50, ND51
       !=================================================================
-      IF ( ND49 > 0 .or. ND50 .gt. 0 .or. ND51 > 0 ) THEN
+      !--------------------------------------------------------
+      ! Prior to 4/22/04: 
+      ! Now activate for ND52 diagnostic (bmy, 4/22/04)
+      !IF ( ND49 > 0 .or. ND50 .gt. 0 .or. ND51 > 0 ) THEN
+      !--------------------------------------------------------
+      IF ( ND49 > 0 .or. ND50 > 0 .or. ND51 > 0 .or. ND52 > 0 ) THEN
          CALL READ49
 
          ! For ND50 -- allocate space for the STT_TEMPO2 array. 

@@ -1,18 +1,19 @@
-! $Id: rdaer.f,v 1.2 2004/04/13 14:52:31 bmy Exp $
+! $Id: rdaer.f,v 1.3 2004/05/03 14:46:18 bmy Exp $
 !------------------------------------------------------------------------------
-! Prior to 4/1/04:
-! Add arguments for extra carbon aerosol tracers (rjp, tdf, bmy, 4/1/04)
-!      SUBROUTINE RDAER( THISMONTH, THISYEAR, SO4_NH4_NIT )
+! Prior to 4/20/04:
+!      SUBROUTINE RDAER( THISMONTH, THISYEAR, SO4_NH4_NIT, 
+!     &                  BCPI,      BCPO,     OCPI,    OCPO )
 !------------------------------------------------------------------------------
       SUBROUTINE RDAER( THISMONTH, THISYEAR, SO4_NH4_NIT, 
-     &                  BCPI,      BCPO,     OCPI,    OCPO )
+     &                  BCPI,      BCPO,     OCPI,    
+     &                  OCPO,      SALA,     SALC )
 !
 !******************************************************************************
 !  Subroutine RDAER reads global aerosol concentrations as determined by
 !  Mian Chin.  Calculates optical depth at each level for "set_prof.f".
 !  Also calculates surface area for heterogeneous chemistry.  It uses aerosol
 !  parameters in FAST-J input file "jv_spec.dat" for these calculations.
-!  (rvm, rjp, tdf, bmy, 11/04/01, 4/9/04)
+!  (rvm, rjp, tdf, bmy, 11/04/01, 4/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -23,6 +24,8 @@
 !  (5 ) BCPO        (REAL*8 ) : Online Hydrophobic BC aerosol       [kg/m3]
 !  (6 ) OCPI        (REAL*8 ) : Online Hydrophilic OC aerosol       [kg/m3]
 !  (7 ) OCPO        (REAL*8 ) : Online Hydrophobic OC aerosol       [kg/m3]
+!  (8 ) SALA        (REAL*8 ) : Online accum  mode seasalt aerosol  [kg/m3]
+!  (9 ) SALC        (REAL*8 ) : Online coarse mode seasalt aerosol  [kg/m3]
 !
 !  NOTES:
 !  (1 ) At the point in which "rdaer.f" is called, ABSHUM is actually
@@ -47,6 +50,7 @@
 !        every timestep.  Now references "time_mod.f".  Now echo info about
 !        which online/offline aerosols we are using.  Updated comments.
 !        (bmy, 4/9/04)
+!  (9 ) Add SALA, SALC to the arg list (rjp, bec, bmy, 4/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -74,6 +78,8 @@
       REAL*8,  INTENT(IN) :: BCPO(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(IN) :: OCPI(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(IN) :: OCPO(IIPAR,JJPAR,LLPAR)
+      REAL*8,  INTENT(IN) :: SALA(IIPAR,JJPAR,LLPAR)
+      REAL*8,  INTENT(IN) :: SALC(IIPAR,JJPAR,LLPAR)
 
       ! Local variables
       LOGICAL             :: FIRST = .TRUE.
@@ -185,14 +191,13 @@
       ENDIF
 
       !=================================================================
-      ! If LSULF is turned ON, then take the lumped SO4, NH4, NIT
+      ! If LSULF = TRUE, then take the lumped SO4, NH4, NIT
       ! concentrations [kg/m3] passed from "chemdr.f", and save into 
       ! WAERSL(:,:,:,1) for use w/ FAST-J and hetchem.  This is updated
       ! every timestep.
       !
-      ! If LSULF is turned OFF, then read monthly mean offline sulfate
-      ! aerosol concentrations [kg/m3] from disk at the start of each
-      ! month.
+      ! If LSULF = FALSE, then read monthly mean offline sulfate aerosol   
+      ! concentrations [kg/m3] from disk at the start of each month.
       !=================================================================
       IF ( LSULF ) THEN 
 
@@ -238,13 +243,13 @@
       ENDIF
 
       !=================================================================
-      ! If LCARB is turned ON, then take Hydrophilic OC, Hydrophobic OC,
+      ! If LCARB = TRUE, then take Hydrophilic OC, Hydrophobic OC,
       ! Hydropilic BC, and Hydrophobic BC concentrations [kg/m3] that
       ! are passed from "chemdr.f".  Save these into DAERSL and WAERSL
       ! for use w/ FAST-J and hetchem.  These fields are updated every
       ! chemistry timestep.
       !
-      ! If LCARB is turned OFF, then read monthly mean carbon aerosol
+      ! If LCARB = FALSE, then read monthly mean carbon aerosol
       ! concentrations [kg/m3] from disk at the start of each month.
       !=================================================================
       IF ( LCARB ) THEN
@@ -331,60 +336,98 @@
       ENDIF
 
       !=================================================================
-      ! Read monthly-mean coarse sea-salt aerosol concentrations 
-      ! [kg/m3] from the binary punch file.  Also merge the coarse sea 
-      ! salt aerosols into a combined bin rather than carrying them 
-      ! separately.
+      ! If LSSALT = TRUE, then take accumulation and coarse mode
+      ! seasalt aerosol concentrations [kg/m3] that are passed from
+      ! "chemdr.f".  Save these into WAERSL for use w/ FAST-J and
+      ! hetchem.  These fields are updated every chemistry timestep.
       !
-      ! At some point, add Becky's seasalt tracers here (bmy, 4/1/04)
+      ! If LSSALT = FALSE, then read monthly-mean coarse sea-salt 
+      ! aerosol concentrations [kg/m3] from the binary punch file.  
+      ! Also merge the coarse sea salt aerosols into a combined bin 
+      ! rather than carrying them separately.
       !=================================================================
-      IF ( ITS_A_NEW_MONTH() ) THEN
+      IF ( LSSALT ) THEN
 
-         ! Print filename
-         WRITE( 6, 120 ) TRIM( FILENAME )
- 120     FORMAT( '     - RDAER: Reading SEASALT from ', a )
+         !----------
+         ! Online 
+         !----------
+         IF ( FIRST ) THEN
+            WRITE( 6, 120 ) 
+ 120        FORMAT( '     - RDAER: Using online SALA SALC' )
+         ENDIF
 
-         !-------------------
-         ! Sea Salt (accum)
-         !-------------------
-         CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 6,     
-     &                    XTAU,      IGLOB,     JGLOB,     
-     &                    LGLOB,     TEMP,      QUIET=.TRUE. )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
-         CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,4) )
+            ! Accumulation mode seasalt aerosol [kg/m3]
+            WAERSL(I,J,L,4) = SALA(I,J,L)
 
-         !-------------------
-         ! Sea Salt (coarse)
-         !-------------------
-         CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 7,     
-     &                    XTAU,      IGLOB,     JGLOB,     
-     &                    LGLOB,     TEMP,      QUIET=.TRUE. )
+            ! Coarse mode seasalt aerosol [kg/m3]
+            WAERSL(I,J,L,5) = SALC(I,J,L)
 
-         CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,5) )
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
 
-         !-------------------
-         ! Sea Salt (coarse)
-         !-------------------
-         CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 8,     
-     &                    XTAU,      IGLOB,     JGLOB,     
-     &                    LGLOB,     TEMP,      QUIET=.TRUE. )
+      ELSE
+            
+         !----------
+         ! Offline
+         !----------            
+         IF ( ITS_A_NEW_MONTH() ) THEN
 
-         CALL TRANSFER_3D( TEMP, TEMP2 )
+            ! Print filename
+            WRITE( 6, 125 ) TRIM( FILENAME )
+ 125        FORMAT( '     - RDAER: Reading SEASALT from ', a )
 
-         ! Accumulate into one size bin
-         WAERSL(:,:,:,5) = WAERSL(:,:,:,5) + TEMP2 
+            !----------------------------------
+            ! Offline -- read Sea Salt (accum)
+            !----------------------------------
+            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 6,     
+     &                       XTAU,      IGLOB,     JGLOB,     
+     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
 
-         !-------------------
-         ! Sea Salt (coarse)
-         !-------------------
-         CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 9,     
-     &                    XTAU,      IGLOB,     JGLOB,     
-     &                    LGLOB,     TEMP,      QUIET=.TRUE. )
+            CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,4) )
 
-         CALL TRANSFER_3D( TEMP, TEMP2 )
+            !----------------------------------
+            ! Offline -- read Sea Salt (coarse)
+            !----------------------------------
+            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 7,     
+     &                       XTAU,      IGLOB,     JGLOB,     
+     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
 
-         ! Accumulate into one size bin
-         WAERSL(:,:,:,5) = WAERSL(:,:,:,5) + TEMP2 
+            CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,5) )
+
+            !----------------------------------
+            ! Offline -- read Sea Salt (coarse)
+            !----------------------------------
+            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 8,     
+     &                       XTAU,      IGLOB,     JGLOB,     
+     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
+
+            CALL TRANSFER_3D( TEMP, TEMP2 )
+
+            ! Accumulate into one size bin
+            WAERSL(:,:,:,5) = WAERSL(:,:,:,5) + TEMP2 
+
+            !----------------------------------
+            ! Offline -- read Sea Salt (coarse)
+            !----------------------------------
+            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 9,     
+     &                       XTAU,      IGLOB,     JGLOB,     
+     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
+
+            CALL TRANSFER_3D( TEMP, TEMP2 )
+
+            ! Accumulate into one size bin
+            WAERSL(:,:,:,5) = WAERSL(:,:,:,5) + TEMP2 
+
+         ENDIF   
       ENDIF 
 
       !=================================================================

@@ -1,6 +1,6 @@
-! $Id: CMN_SIZE,v 1.6 2004/04/19 15:09:49 bmy Exp $
+! $Id: CMN_SIZE,v 1.7 2004/05/03 14:46:13 bmy Exp $
       !=======================================================================
-      ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 4/1/04)
+      ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 4/20/04)
       !
       ! NOTES:
       ! (1 ) Now set LLTROP = 20 for GEOS-3 (bmy, 4/12/01)
@@ -31,6 +31,7 @@
       !       when computed for 2003 met fields (bmy, 2/18/04)
       ! (16) Increase NNPAR from 31 to 39 for carbon & dust tracers.  Also
       !       declare NDSTBIN as # of dust bins. (rvm, tdf, bmy, 4/1/04)
+      ! (17) Increase NNPAR to 41 for seasalt tracers (rjp, bec, bmy, 4/20/04)
       !=======================================================================
 
       ! C Preprocessor #define statements for conditional compilation
@@ -273,7 +274,12 @@
       INTEGER, PARAMETER :: NEMPARB = 1
 
 #elif defined( FULLCHEM  )
-      INTEGER, PARAMETER :: NNPAR   = 39
+      !---------------------------------------------------
+      ! Prior to 4/20/04:
+      ! Increase NNPAR for seasalt tracers (bmy, 4/20/04)
+      !INTEGER, PARAMETER :: NNPAR   = 39
+      !---------------------------------------------------
+      INTEGER, PARAMETER :: NNPAR   = 41
       INTEGER, PARAMETER :: NEMPARA = 10
       INTEGER, PARAMETER :: NEMPARB = 1
 

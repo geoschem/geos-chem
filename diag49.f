@@ -1,10 +1,10 @@
-! $Id: diag49.f,v 1.5 2004/04/19 17:23:44 bmy Exp $
+! $Id: diag49.f,v 1.6 2004/05/03 14:46:15 bmy Exp $
       SUBROUTINE DIAG49
 ! 
 !******************************************************************************
 !  Subroutine DIAG49 produces time series (instantaneous fields) for a 
 !  geographical domain from the information read in timeseries.dat. Output 
-!  will be in binary punch (BPCH) format. (bey, bmy, rvm, 4/9/99, 4/16/04)
+!  will be in binary punch (BPCH) format. (bey, bmy, rvm, 4/9/99, 4/26/04)
 !
 !  NOTES:
 !  (1 ) Now use F90 syntax for declarations (bmy, 3/26/99)
@@ -62,7 +62,11 @@
 !        Now save output from TIMESTAMP_STRING to STAMP and print that.
 !        (bmy, 9/29/03)
 !  (23) Readjust tracer numbers for other fields to accommodate 41 regular 
-!        CTM tracers -- QUICK FIX (bmy, 4/16/04)        
+!        CTM tracers -- QUICK FIX.  (bmy, 4/16/04)
+!  (24) Added parallel DO-loops.  Replaced calls to O3COMP by references to 
+!        the arrays FRACO3 and FRACNO.  Added aerosol optical depths to
+!        the CASE statement.  Also save out total dust and seasalt mass.
+!        (bmy, 4/26/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -70,14 +74,15 @@
       USE DAO_MOD,      ONLY : AD, T, UWND, VWND
       USE FILE_MOD,     ONLY : IU_ND49
       USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
-      USE TIME_MOD,     ONLY : DATE_STRING, GET_DAY, 
+      USE TIME_MOD,     ONLY : DATE_STRING, ITS_A_NEW_DAY, 
      &                         GET_TAU,     TIMESTAMP_STRING
       USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE TRACERID_MOD, ONLY : IDTNOX, IDTOX
+      USE TRACERID_MOD
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"        ! Size parameters
+#     include "cmn_fj.h"        ! FAST-J stuff, includes CMN_SIZE
+#     include "jv_cmn.h"        ! ODAER
 #     include "CMN_O3"		! Pure O3, SAVENO2
 #     include "CMN"             ! STT, T
 #     include "CMN_TIMES"       ! STT_TEMPO
@@ -90,10 +95,10 @@
       INTEGER, SAVE            :: DAY_LAST
       INTEGER, SAVE            :: COUNT_IN_DAY
       INTEGER, SAVE            :: NUMBER_OF_ARCHIVAL
-      INTEGER                  :: TT, I_MID, IOS
-      INTEGER                  :: XTRAC, XI0, XJ0, XL0, GMTRC
-      INTEGER                  :: NL2,   XI1, XJ1, XL1 
-      INTEGER                  :: I,     J,   L, IFIRST, JFIRST
+      INTEGER                  :: TT,  I_MID, IOS,    XTRAC,  XI0 
+      INTEGER                  :: XJ0, XL0,   GMTRC,  NL2,    XI1
+      INTEGER                  :: XJ1, XL1,   I,      J,      L
+      INTEGER                  :: N,   R,     IFIRST, JFIRST, RH
       REAL*4                   :: XARRAY(IIPAR, JJPAR, LLPAR)
       REAL*8                   :: XTAU1, XTAU2
       REAL*8                   :: STT_TEMPO(IIPAR, JJPAR, LLPAR)  
@@ -102,315 +107,540 @@
       REAL*4                   :: LONRES, LATRES
       INTEGER, PARAMETER       :: HALFPOLAR = 1
       INTEGER, PARAMETER       :: CENTER180 = 1 
-
       CHARACTER(LEN=20)        :: MODELNAME
       CHARACTER(LEN=40)        :: CATEGORY
       CHARACTER(LEN=40)        :: UNIT
       CHARACTER(LEN=40)        :: RESERVED = ''
-
       CHARACTER(LEN=80)        :: TITLE
       
       !=================================================================
       ! DIAG49 begins here!
-      !
-      ! Information for the header of the file
       !=================================================================
-      TITLE     = 'GEOS-CTM time series for geographical domain'
+
+      ! Initialize
+      TITLE     = 'GEOS-CHEM time series for geographical domain'
       LONRES    = DISIZE
       LATRES    = DJSIZE
-
-      ! Get the proper model name for the binary punch file (bmy, 6/22/00)
       MODELNAME = GET_MODELNAME()
 
       !=================================================================
-      ! Test if it is the first time in the subroutine.
-      ! Now also set FIRSTDIAG49 = .FALSE. here instead of in MAIN 
+      ! If it's a new day, open a new BPCH file and write file header
       !=================================================================
-      IF ( FIRSTDIAG49 ) THEN
-         DAY_LAST    = -1
-         FIRSTDIAG49 = .FALSE.
-      ENDIF
-
-      !=================================================================
-      ! Test if it is a new day.
-      !
-      ! If it is a new day, open a new file tsYYMMDD.bpch and call 
-      ! BPCH2_HDR to write the file header (binary punch file v. 2.0).
-      !
-      !  The header is made of
-      !  - fti (character*40)
-      !  - title (character*80)
-      !=================================================================
-      IF ( GET_DAY() /= DAY_LAST ) THEN
+      IF ( ITS_A_NEW_DAY() ) THEN
          COUNT_IN_DAY = 0
-         NUMBER_OF_ARCHIVAL = (24*60)/FREQ_AREA
+         NUMBER_OF_ARCHIVAL = ( 24 * 60 ) / FREQ_AREA
 
-         ! Use DATE_STRING to insert the proper date (bmy, 3/27/03)
+         ! Filename
          FILENAME = 'ts' // DATE_STRING() // '.bpch'
 
+         ! Echo info
          WRITE( 6, 100 ) TRIM( FILENAME )
  100     FORMAT( '     - DIAG49: Opening file ', a )
         
-         ! Open *bpch file and write top-of-file header
+         ! Open bpch file and write top-of-file header
          CALL OPEN_BPCH2_FOR_WRITE( IU_ND49, FILENAME, TITLE )
-
-         DAY_LAST = GET_DAY()
       ENDIF
 
       !=================================================================
-      ! Extract tracer concentration from the global fields)
-      ! 
-      ! For now, we have only the ND45 diag - "IJ-AVG-$"
+      ! Define time and grid information
       !=================================================================
-      IF ( DIAG_AREA == 45 ) THEN
 
-         ! Increment counter
-         COUNT_IN_DAY = COUNT_IN_DAY + 1
+      ! Increment counter
+      COUNT_IN_DAY = COUNT_IN_DAY + 1
  
-         STAMP = TIMESTAMP_STRING()
-         WRITE( 6, 110 ) STAMP
- 110     FORMAT( '     - DIAG49: Saving timeseries at ', a )
+      ! Echo info
+      STAMP = TIMESTAMP_STRING()
+      WRITE( 6, 110 ) STAMP
+ 110  FORMAT( '     - DIAG49: Saving timeseries at ', a )
 
-         ! loop over tracers
-         DO TT = 1, NTRAC_AREA
+      ! Times
+      XTAU1 = GET_TAU()
+      XTAU2 = XTAU1
 
-            ! Tracer number
-            XTRAC = TRAC_AREA(TT)
+      ! Starting indices
+      XI0   = IMIN_AREA
+      XJ0   = JMIN_AREA
+      XL0   = LMIN_AREA
 
-            ! Times
-            XTAU1 = GET_TAU()
-            XTAU2 = GET_TAU()
+      ! Ending indices
+      ! We must subtract 1 from XI0, XJ0, XL0 (bmy, 5/11/00)
+      XI1   = ( XI0 - 1 ) + NI
+      XJ1   = ( XJ0 - 1 ) + NJ
+      XL1   = ( XL0 - 1 ) + NL
 
-            ! Starting indices
-            XI0   = IMIN_AREA
-            XJ0   = JMIN_AREA
-            XL0   = LMIN_AREA
+      ! Get nested-grid offsets
+      IFIRST = XI0 + GET_XOFFSET( GLOBAL=.TRUE. )
+      JFIRST = XJ0 + GET_YOFFSET( GLOBAL=.TRUE. )
 
-            ! Ending indices
-            ! We must subtract 1 from XI0, XJ0, XL0 (bmy, 5/11/00)
-            XI1   = ( XI0 - 1 ) + NI
-            XJ1   = ( XJ0 - 1 ) + NJ
-            XL1   = ( XL0 - 1 ) + NL
+      !=================================================================
+      ! Loop over tracers
+      !=================================================================
+      DO TT = 1, NTRAC_AREA
 
-            ! Get nested-grid offsets
-            IFIRST = XI0 + GET_XOFFSET( GLOBAL=.TRUE. )
-            JFIRST = XJ0 + GET_YOFFSET( GLOBAL=.TRUE. )
+         ! Tracer number
+         XTRAC = TRAC_AREA(TT)
 
-            ! Zero STT_TEMPO for safety's sake (bmy, 1/7/02)
-            STT_TEMPO(:,:,:) = 0d0
+         ! Zero STT_TEMPO for safety's sake (bmy, 1/7/02)
+         STT_TEMPO(:,:,:) = 0d0
 
-            ! CASE statement for tracers
-            SELECT CASE ( XTRAC ) 
+         ! CASE statement for tracers
+         SELECT CASE ( XTRAC ) 
 
-               !========================================================
-               ! Save pure O3 as tracer #71 (bmy, 4/16/04)
-               !========================================================
-               CASE ( 71 )
+            !===========================================================
+            ! Save pure O3 as tracer #71 (bmy, 4/16/04)
+            !===========================================================
+            CASE ( 71 )
                   
-                  ! Skip if not a full-chemistry simulation 
-                  ! or a single-tracer Ox simulation 
-                  IF ( NSRCX /= 3 .and. NSRCX /= 6 ) CYCLE
+               ! Skip if not a full-chemistry simulation 
+               ! or a single-tracer Ox simulation 
+               IF ( NSRCX /= 3 .and. NSRCX /= 6 ) CYCLE
 
-                  CATEGORY = 'IJ-AVG-$'
-                  UNIT     = ''
-                  NL2      = NL
+               CATEGORY = 'IJ-AVG-$'
+               UNIT     = ''
+               NL2      = NL
+               GMTRC    = NNPAR + 1 + TRCOFFSET
 
-                  ! For GAMAP: save tracer # plus special chem offset
-                  GMTRC    = NNPAR + 1 + TRCOFFSET
-
-
-                  IF ( IDTOX > 0 ) THEN
-                     DO L = 1, LLPAR
-                     DO J = 1, JJPAR
-                     DO I = 1, IIPAR
-            
-                        ! Get the fraction of Ox that is pure O3 -- FO3(5)
-                        CALL O3COMP(I,J,L)
-               
-                        ! Archive O3 -- convert from [kg] to [v/v]
-                        STT_TEMPO(I,J,L) = STT(I,J,L,IDTOX) * 
-     &                       TCVV(IDTOX) / AD(I,J,L) * FO3(5)  
-                     ENDDO
-                     ENDDO
-                     ENDDO
-                  ENDIF
-
-               !========================================================
-               ! Save NO as tracer #72 (bmy, 4/16/04)
-               !========================================================
-               CASE ( 72 )
-
-                  ! NO is only defined for full chemistry simulations
-                  IF ( NSRCX /= 3 ) CYCLE
-
-                  CATEGORY = 'TIME-SER'
-                  UNIT     = ''
-                  NL2      = NL
-
-                  ! For GAMAP: NO is tracer #9 in the 'TIME-SER' category
-                  GMTRC    = 9
-               
-                  IF ( IDTNOX > 0 ) THEN
-                     DO L = 1, LLPAR
-                     DO J = 1, JJPAR
-                     DO I = 1, IIPAR
-            
-                        ! Get the fraction of NOx that is pure NO -- FNO(5)
-                        CALL O3COMP(I,J,L)
-               
-                        ! Archive NO -- convert from [kg] to [v/v]
-                        STT_TEMPO(I,J,L) = STT(I,J,L,IDTNOX) *
-     &                       TCVV(IDTNOX) * FNO(5) / AD(I,J,L)
-                     ENDDO
-                     ENDDO
-                     ENDDO
-                  ENDIF
-
-               !========================================================
-               ! Skip over NOy (tracer #73)  (bmy, 4/16/04)
-               !========================================================
-               CASE ( 73 )
-                  CYCLE
-
-               !========================================================
-               ! Store OH as tracer #74 (bmy, 4/16/04)
-               !========================================================
-               CASE ( 74 )
-                  
-                  ! Skip if not a full chemistry run (bmy, 1/7/02)
-                  IF ( NSRCX /= 3 ) CYCLE
-                  
-                  CATEGORY         = 'TIME-SER'
-                  UNIT             = ''
-                  STT_TEMPO(:,:,:) = SAVEOH(:,:,:)
-                  NL2              = NL
-
-                  ! For GAMAP: OH is tracer #2 for "TIME-SER" category
-                  GMTRC            = 2
-
-               !========================================================
-               ! Store NO2 as tracer #75 (bmy, 4/16/04)
-               !========================================================
-               CASE ( 75 )
-
-                  ! Skip if not a full chemistry run (bmy, 1/7/02)
-                  IF ( NSRCX /= 3 ) CYCLE
-
-                  CATEGORY         = 'TIME-SER'
-                  UNIT             = ''
-                  STT_TEMPO(:,:,:) = SAVENO2(:,:,:)
-                  NL2              = NL
-
-                  ! For GAMAP: NO2 is tracer #19 for "TIME-SER" category
-                  GMTRC            = 19
-
-               !========================================================
-               ! Leave #76 - #95 blank for now (bmy, 4/16/04)
-               !========================================================
-               CASE ( 76:95 )
-                  CYCLE
-
-               !========================================================
-               ! Store UWND as tracer #96 (bmy, 4/16/04)
-               !========================================================
-               CASE ( 96 )
-                  CATEGORY         = 'DAO-3D-$'
-                  UNIT             = 'm/s'
-                  STT_TEMPO(:,:,:) = UWND(:,:,:)
-                  GMTRC            = 1
-                  NL2              = NL
-
-               !========================================================
-               ! Store VWND as tracer #97 (bmy, 4/16/04)
-               !========================================================
-               CASE ( 97 )
-                  CATEGORY         = 'DAO-3D-$'
-                  UNIT             = 'm/s'
-                  STT_TEMPO(:,:,:) = VWND(:,:,:)
-                  GMTRC            = 2
-                  NL2              = NL
-
-               !========================================================
-               ! Store Psurface - PTOP as tracer #98 (bmy, 4/16/04)
-               !========================================================
-               CASE ( 98 )
-                  CATEGORY         = 'PS-PTOP'
-                  UNIT             = 'mb'
-                  NL2              = 1
-                  XL1              = 1 
-                  
-                  ! Need to loop over w/ I and J (yxw, bmy, 1/30/03)
+               IF ( IDTOX > 0 ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+                  DO L = 1, LLPAR
                   DO J = 1, JJPAR
                   DO I = 1, IIPAR
-                     STT_TEMPO(I,J,1) = GET_PEDGE(I,J,1) - PTOP
+            
+                     ! Archive pure O3 -- convert from [kg] to [v/v]
+                     STT_TEMPO(I,J,L) = STT(I,J,L,IDTOX) * 
+     &                    TCVV(IDTOX) / AD(I,J,L) * FRACO3(I,J,L) 
+
                   ENDDO
                   ENDDO
+                  ENDDO
+!$OMP END PARALLEL DO
+               ENDIF
 
-                  ! For GAMAP: PS is tracer #1 for 'PS-PTOP' category
-                  GMTRC            = 1
+            !===========================================================
+            ! Save NO as tracer #72 (bmy, 4/16/04)
+            !===========================================================
+            CASE ( 72 )
 
-               !========================================================
-               ! Store temperature as tracer #99 (bmy, 4/16/04)
-               !========================================================
-               CASE ( 99 )
-                  CATEGORY         = 'DAO-3D-$'
-                  UNIT             = 'K'
-                  STT_TEMPO(:,:,:) = T(:,:,:)
-                  NL2              = NL
+               ! NO is only defined for full chemistry simulations
+               IF ( NSRCX /= 3 ) CYCLE
 
-                  ! For GAMAP: Temp is tracer #3 for 'DAO-3D-$' category
-                  GMTRC            = 3
+               CATEGORY = 'TIME-SER'
+               UNIT     = ''
+               NL2      = NL
+               GMTRC    = 9
+               
+               IF ( IDTNOX > 0 ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+                  DO L = 1, LLPAR
+                  DO J = 1, JJPAR
+                  DO I = 1, IIPAR
+ 
+                        ! Archive NO -- convert from [kg] to [v/v]
+                        STT_TEMPO(I,J,L) = STT(I,J,L,IDTNOX) *
+     &                       TCVV(IDTNOX) * FRACNO(I,J,L) / AD(I,J,L)
+                  ENDDO
+                  ENDDO
+                  ENDDO
+!$OMP END PARALLEL DO
+               ENDIF
 
-               !========================================================
-               ! Store CTM Tracers [v/v] as tracers 1-41
-               !========================================================
-               CASE DEFAULT
-                  CATEGORY         = 'IJ-AVG-$'
-                  UNIT             = ''
-                  GMTRC            = XTRAC + TRCOFFSET
-                  NL2              = NL
+            !===========================================================
+            ! Skip over NOy (tracer #73)  (bmy, 4/16/04)
+            !===========================================================
+            CASE ( 73 )
+               CYCLE
+
+            !===========================================================
+            ! Store OH as tracer #74 (bmy, 4/16/04)
+            !===========================================================
+            CASE ( 74 )
                   
-                  ! Convert STT from [kg] to [v/v]
-                  STT_TEMPO(:,:,:) = STT(:,:,:,XTRAC) * 
-     &                               TCVV(XTRAC) / AD(:,:,:) 
+               ! Skip if not a full chemistry run (bmy, 1/7/02)
+               IF ( NSRCX /= 3 ) CYCLE
+                  
+               CATEGORY = 'TIME-SER'
+               UNIT     = ''
+               NL2      = NL
+               GMTRC    = 2
 
-            END SELECT
-
-            !===========================================================
-            ! IF (word_wrap) then we are going through the date line
-            !===========================================================
-            IF ( WORD_WRAP ) THEN      
-               I_MID = (IIPAR-XI0) + 1
-
-               XARRAY(1:I_MID,1:NJ,1:NL2) =
-     &              STT_TEMPO( XI0:IIPAR, XJ0:XJ1, XL0:XL1 )
-
-               XARRAY(I_MID+1:NI,1:NJ,1:NL2) =
-     &              STT_TEMPO( 1:IMAX_AREA, XJ0:XJ1, XL0:XL1 )
-
-            ELSE
-
-               ! Don't wrap around the date line
-               XARRAY(1:NI,1:NJ,1:NL2) =
-     &              STT_TEMPO( XI0:XI1, XJ0:XJ1, XL0:XL1 )
-
-            ENDIF
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+               DO L = 1, LLPAR
+               DO J = 1, JJPAR
+               DO I = 1, IIPAR
+                  STT_TEMPO(I,J,L) = SAVEOH(I,J,L)
+               ENDDO
+               ENDDO
+               ENDDO
+!$OMP END PARALLEL DO
 
             !===========================================================
-            ! Write the block data + header for each block
-            ! we need to pass twice tau as xtau1, xtau2 for GAMAP
-            ! Also write model information (name, resolution, etc) 
-            ! to each data block
+            ! Store NO2 as tracer #75 (bmy, 4/16/04)
             !===========================================================
-            CALL BPCH2( IU_ND49,   MODELNAME,       LONRES,   
-     &                  LATRES,    HALFPOLAR,       CENTER180, 
-     &                  CATEGORY,  GMTRC,           UNIT,      
-     &                  XTAU1,     XTAU2,           RESERVED,  
-     &                  NI,        NJ,              NL2,  
-     &                  IFIRST,    JFIRST,          XL0, 
-     &                  XARRAY(1:NI, 1:NJ, 1:NL2) )
-         ENDDO
-      ENDIF
+            CASE ( 75 )
+
+               ! Skip if not a full chemistry run (bmy, 1/7/02)
+               IF ( NSRCX /= 3 ) CYCLE
+
+               CATEGORY = 'TIME-SER'
+               UNIT     = ''
+               NL2      = NL
+               GMTRC    = 19
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L)
+               DO L = 1, LLPAR
+               DO J = 1, JJPAR
+               DO I = 1, IIPAR
+                  STT_TEMPO(I,J,L) = SAVENO2(I,J,L)
+               ENDDO
+               ENDDO
+               ENDDO
+!$OMP END PARALLEL DO
+
+            !===========================================================
+            ! Leave #76 - #81 blank for now (bmy, 4/16/04)
+            !===========================================================
+            CASE ( 76:81 )
+               CYCLE
+
+            !===========================================================
+            ! #82: Sulfate aerosol optical depth [unitless]
+            !===========================================================
+            CASE ( 82 )
+               CATEGORY = 'OD-MAP-$'
+               UNIT     = 'unitless'
+               GMTRC    = 6
+               NL2      = NL
+               N        = 1
+
+               DO R = 1, NRH
+               DO L = 1, LLPAR
+               DO J = 1, JJPAR
+               DO I = 1, IIPAR
+
+                  ! Index for type of aerosol and RH value
+                  RH = ( (N-1) * NRH ) + R
+
+                  ! Save into STT_TEMPO
+                  STT_TEMPO(I,J,L) = STT_TEMPO(I,J,L) + ODAER(I,J,L,RH)
+               ENDDO
+               ENDDO
+               ENDDO
+               ENDDO
+
+            !===========================================================
+            ! #83: Black Carbon aerosol optical depth [unitless]
+            !===========================================================
+            CASE ( 83 )
+               CATEGORY = 'OD-MAP-$'
+               UNIT     = 'unitless'
+               GMTRC    = 9
+               NL2      = NL
+               N        = 2
+
+               DO R = 1, NRH
+               DO L = 1, LLPAR
+               DO J = 1, JJPAR
+               DO I = 1, IIPAR
+
+                  ! Index for type of aerosol and RH value
+                  RH = ( (N-1) * NRH ) + R
+
+                  ! Save into STT_TEMPO
+                  STT_TEMPO(I,J,L) = STT_TEMPO(I,J,L) + ODAER(I,J,L,RH)
+               ENDDO
+               ENDDO
+               ENDDO
+               ENDDO
+
+            !===========================================================
+            ! #84: Organic Carbon aerosol optical depth (unitless)
+            !===========================================================
+            CASE ( 84 )
+               CATEGORY = 'OD-MAP-$'
+               UNIT     = 'unitless'
+               GMTRC    = 12
+               NL2      = NL
+               N        = 3
+
+               DO R = 1, NRH
+               DO L = 1, LLPAR
+               DO J = 1, JJPAR
+               DO I = 1, IIPAR
+
+                  ! Index for type of aerosol and RH value
+                  RH = ( (N-1) * NRH ) + R
+
+                  ! Save into STT_TEMPO
+                  STT_TEMPO(I,J,L) = STT_TEMPO(I,J,L) + ODAER(I,J,L,RH)
+               ENDDO
+               ENDDO
+               ENDDO
+               ENDDO
+
+            !===========================================================
+            ! #85: Accum Sea Salt aerosol optical depth (unitless)
+            !===========================================================
+            CASE ( 85 )
+               CATEGORY = 'OD-MAP-$'
+               UNIT     = 'unitless'
+               GMTRC    = 15
+               NL2      = NL
+               N        = 4
+
+               DO R = 1, NRH
+               DO L = 1, LLPAR
+               DO J = 1, JJPAR
+               DO I = 1, IIPAR
+
+                  ! Index for type of aerosol and RH value
+                  RH = ( (N-1) * NRH ) + R
+
+                  ! Save into STT_TEMPO
+                  STT_TEMPO(I,J,L) = STT_TEMPO(I,J,L) + ODAER(I,J,L,RH)
+               ENDDO
+               ENDDO
+               ENDDO
+               ENDDO
+
+            !===========================================================
+            ! #86: Coarse Sea Salt aerosol optical depth (unitless)
+            !===========================================================
+            CASE ( 86 )
+               CATEGORY = 'OD-MAP-$'
+               UNIT     = 'unitless'
+               GMTRC    = 18
+               NL2      = NL
+               N        = 5
+
+               DO R = 1, NRH
+               DO L = 1, LLPAR
+               DO J = 1, JJPAR
+               DO I = 1, IIPAR
+
+                  ! Index for type of aerosol and RH value
+                  RH = ( (N-1) * NRH ) + R
+
+                  ! Save into STT_TEMPO
+                  STT_TEMPO(I,J,L) = STT_TEMPO(I,J,L) + ODAER(I,J,L,RH)
+               ENDDO
+               ENDDO
+               ENDDO
+               ENDDO
+
+            !===========================================================
+            ! #87: Total dust tracer (all size bins) [v/v]
+            !===========================================================
+            CASE ( 87 )
+
+               ! Skip if DUST isn't defined
+               IF ( IDTDST1 + IDTDST2 + IDTDST3 + IDTDST4 > 0 ) THEN
+
+                  CATEGORY = 'TIME-SER'
+                  UNIT     = ''          ! Let GAMAP pick unit
+                  GMTRC    = 23
+                  NL2      = NL
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+                  DO L = 1, LLPAR
+                  DO J = 1, JJPAR
+                  DO I = 1, IIPAR
+                     STT_TEMPO(I,J,L) = ( STT(I,J,L,IDTDST1) + 
+     &                                    STT(I,J,L,IDTDST2) +
+     &                                    STT(I,J,L,IDTDST3) + 
+     &                                    STT(I,J,L,IDTDST4) ) *
+     &                                  TCVV(IDTDST1) / AD(I,J,L) 
+
+                  ENDDO
+                  ENDDO
+                  ENDDO
+!$OMP END PARALLEL DO
+               ENDIF
+
+            !===========================================================
+            ! #88: Total seasalt tracer (accum + coarse) [v/v]
+            !===========================================================
+            CASE ( 88 )
+
+               ! Skip if SEASALT isn't defined
+               IF ( IDTSALA + IDTSALC > 0 ) THEN
+
+                  CATEGORY = 'TIME-SER'
+                  UNIT     = ''            ! Let GAMAP pick unit
+                  GMTRC    = 24
+                  NL2      = NL
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+                  DO L = 1, LLPAR
+                  DO J = 1, JJPAR
+                  DO I = 1, IIPAR
+                     STT_TEMPO(I,J,L) = ( STT(I,J,L,IDTSALA) + 
+     &                                    STT(I,J,L,IDTSALC) ) *
+     &                                  TCVV(IDTSALA) / AD(I,J,L) 
+                  ENDDO
+                  ENDDO
+                  ENDDO
+!$OMP END PARALLEL DO
+               ENDIF
+               
+            !===========================================================
+            ! Leave #89-95 blank for now
+            !===========================================================
+            CASE ( 89:95 )
+               CYCLE
+
+            !========================================================
+            ! Store UWND as tracer #96 (bmy, 4/16/04)
+            !========================================================
+            CASE ( 96 )
+               CATEGORY = 'DAO-3D-$'
+               UNIT     = 'm/s'
+               GMTRC    = 1
+               NL2      = NL
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L)
+               DO L = 1, LLPAR
+               DO J = 1, JJPAR
+               DO I = 1, IIPAR
+                  STT_TEMPO(I,J,L) = UWND(I,J,L)
+               ENDDO
+               ENDDO
+               ENDDO
+!$OMP END PARALLEL DO
+
+            !===========================================================
+            ! Store VWND as tracer #97 (bmy, 4/16/04)
+            !===========================================================
+            CASE ( 97 )
+               CATEGORY = 'DAO-3D-$'
+               UNIT     = 'm/s'
+               GMTRC    = 2
+               NL2      = NL
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+               DO L = 1, LLPAR
+               DO J = 1, JJPAR
+               DO I = 1, IIPAR
+                  STT_TEMPO(I,J,L) = VWND(I,J,L)
+               ENDDO
+               ENDDO
+               ENDDO
+!$OMP END PARALLEL DO                   
+
+            !===========================================================
+            ! Store Psurface - PTOP as tracer #98 (bmy, 4/16/04)
+            !===========================================================
+            CASE ( 98 )
+               CATEGORY = 'PS-PTOP'
+               UNIT     = 'hPa'
+               NL2      = 1
+               XL1      = 1 
+               GMTRC    = 1
+                  
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+               DO J = 1, JJPAR
+               DO I = 1, IIPAR
+                  STT_TEMPO(I,J,1) = GET_PEDGE(I,J,1) - PTOP
+               ENDDO
+               ENDDO
+!$OMP END PARALLEL DO
+
+            !===========================================================
+            ! Store temperature as tracer #99 (bmy, 4/16/04)
+            !===========================================================
+            CASE ( 99 )
+               CATEGORY = 'DAO-3D-$'
+               UNIT     = 'K'
+               NL2      = NL
+               GMTRC    = 3
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L ) 
+               DO L = 1, LLPAR
+               DO J = 1, JJPAR
+               DO I = 1, IIPAR
+                  STT_TEMPO(I,J,L) = T(I,J,L)
+               ENDDO
+               ENDDO
+               ENDDO
+!$OMP END PARALLEL DO
+
+            !===========================================================
+            ! Store CTM Tracers [v/v] as tracers 1-41
+            !===========================================================
+            CASE DEFAULT
+               CATEGORY = 'IJ-AVG-$'
+               UNIT     = ''
+               GMTRC    = XTRAC + TRCOFFSET
+               NL2      = NL
+                  
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+               DO L = 1, LLPAR
+               DO J = 1, JJPAR
+               DO I = 1, IIPAR
+                  STT_TEMPO(I,J,L) = STT(I,J,L,XTRAC) *
+     &                               TCVV(XTRAC) / AD(I,J,L) 
+               ENDDO
+               ENDDO
+               ENDDO
+!$OMP END PARALLEL DO
+
+         END SELECT
+
+         !==============================================================
+         ! IF (word_wrap) then we are going through the date line
+         !==============================================================
+         IF ( WORD_WRAP ) THEN      
+            I_MID = (IIPAR-XI0) + 1
+
+            XARRAY(1:I_MID,1:NJ,1:NL2) =
+     &           STT_TEMPO( XI0:IIPAR, XJ0:XJ1, XL0:XL1 )
+
+            XARRAY(I_MID+1:NI,1:NJ,1:NL2) =
+     &           STT_TEMPO( 1:IMAX_AREA, XJ0:XJ1, XL0:XL1 )
+
+         ELSE
+
+            ! Don't wrap around the date line
+            XARRAY(1:NI,1:NJ,1:NL2) =
+     &           STT_TEMPO( XI0:XI1, XJ0:XJ1, XL0:XL1 )
+
+         ENDIF
+
+         !==============================================================
+         ! Write the block data + header for each block
+         ! we need to pass twice tau as xtau1, xtau2 for GAMAP
+         ! Also write model information (name, resolution, etc) 
+         ! to each data block
+         !==============================================================
+         CALL BPCH2( IU_ND49,   MODELNAME,       LONRES,   
+     &               LATRES,    HALFPOLAR,       CENTER180, 
+     &               CATEGORY,  GMTRC,           UNIT,      
+     &               XTAU1,     XTAU2,           RESERVED,  
+     &               NI,        NJ,              NL2,  
+     &               IFIRST,    JFIRST,          XL0, 
+     &               XARRAY(1:NI, 1:NJ, 1:NL2) )
+      ENDDO
             
       !=================================================================
       ! close the file if it is the last time in the day

@@ -1,10 +1,10 @@
-! $Id: restart_mod.f,v 1.4 2003/10/30 16:17:19 bmy Exp $
+! $Id: restart_mod.f,v 1.5 2004/05/03 14:46:19 bmy Exp $
       MODULE RESTART_MOD
 !
 !******************************************************************************
 !  Module RESTART_MOD contains variables and routines which are used to read
 !  and write GEOS-CHEM restart files, which contain tracer concentrations
-!  in [v/v] mixing ratio. (bmy, 6/25/02, 8/18/03)
+!  in [v/v] mixing ratio. (bmy, 6/25/02, 4/26/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -40,6 +40,7 @@
 !  (3 ) Now references "grid_mod.f" and the new "time_mod.f" (bmy, 2/11/03)
 !  (4 ) Added error-check and cosmetic changes (bmy, 4/29/03)
 !  (5 ) Removed call to COPY_STT_FOR_OX, it's obsolete (bmy, 8/18/03)
+!  (6 ) Add fancy output (bmy, 4/26/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -231,7 +232,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_RESTART_FILE initializes GEOS-CHEM tracer concentrations 
-!  from a restart file (binary punch file format) (bmy, 5/27/99, 8/18/03)
+!  from a restart file (binary punch file format) (bmy, 5/27/99, 4/26/04)
 !
 !  Arguments as input:
 !  ============================================================================
@@ -275,6 +276,7 @@
 !  (14) Now reference AD from "dao_mod.f" (bmy, 9/18/02)
 !  (15) Now added a call to DEBUG_MSG from "error_mod.f" (bmy, 2/11/03)
 !  (16) Remove call to COPY_STT_FOR_OX, it's obsolete. (bmy, 8/18/03)
+!  (17) Add fancy output string (bmy, 4/26/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -337,9 +339,10 @@
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
 
       ! Echo some input to the screen
-      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+      WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+      WRITE( 6, '(a,/)' ) 'R E S T A R T   F I L E   I N P U T'
       WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( 'READ_RESTART_FILE: Reading restart file ', a )
+ 100  FORMAT( 'READ_RESTART_FILE: Reading ', a )
 
       ! Open the binary punch file for input
       CALL OPEN_BPCH2_FOR_READ( IU_RST, FILENAME )

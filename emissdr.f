@@ -1,4 +1,4 @@
-! $Id: emissdr.f,v 1.4 2004/04/19 15:09:53 bmy Exp $
+! $Id: emissdr.f,v 1.5 2004/05/03 14:46:16 bmy Exp $
       SUBROUTINE EMISSDR
 !
 !******************************************************************************
@@ -318,7 +318,7 @@
             !========================================================
             TMPVAL            = ( EMMO / DTSRCE ) * 0.2d0
             EMISRR(I,J,IDECO) = EMISRR(I,J,IDECO) + TMPVAL
-            
+         
             ! ND29: CO-source from monoterpenes [molec/cm2/s]
             IF ( ND29 > 0 ) THEN
                AD29(I,J,5) = AD29(I,J,5) + ( TMPVAL / AREA_CM2 )

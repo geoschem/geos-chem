@@ -1,6 +1,6 @@
-# $Id: Makefile.efc,v 1.4 2004/04/19 15:09:49 bmy Exp $
+# $Id: Makefile.efc,v 1.5 2004/05/03 14:46:13 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for LINUX/EFC compiler (bmy, Thu Apr 15 09:34:42 2004)
+# GEOS-CHEM Makefile for LINUX/EFC compiler (bmy, Tue Apr 20 14:29:14 2004)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -44,6 +44,7 @@ diag48.o                  \
 diag49.o                  \
 diag5.o                   \
 diag50.o                  \
+diag52.o                  \
 diag_2pm.o                \
 diagoh.o                  \
 diagpl.o                  \
@@ -64,7 +65,6 @@ fyrno3.o                  \
 gasconc.o                 \
 getalt.o                  \
 getifsun.o                \
-gwet_read_mod.o           \
 hpsort_int.o              \
 humeff.o                  \
 hunt.o                    \
@@ -169,7 +169,6 @@ read_percentages.o        \
 readavgOH.o               \
 remote.o                  \
 skip.o                    \
-sol.o                     \
 sumup.o                   
 
 FJ =                      \
@@ -199,7 +198,7 @@ photoj.o                  \
 rd_js.o                   \
 rd_prof.o                 \
 set_aer.o                 \
-set_prof.o
+set_prof.o                
 
 MODS =                    \
 charpak_mod.o             \
@@ -236,6 +235,7 @@ a3_read_mod.o             \
 a6_read_mod.o             \
 i6_read_mod.o             \
 phis_read_mod.o           \
+gwet_read_mod.o           \
 diag51_mod.o              \
 lightning_nox_mod.o       \
 optdepth_mod.o            \
@@ -251,6 +251,7 @@ convection_mod.o          \
 pjc_pfix_mod.o            \
 dust_dead_mod.o           \
 dust_mod.o                \
+seasalt_mod.o             \
 toms_mod.o                \
 tpcore_bc_mod.o           \
 tpcore_fvdas_mod.o        \
@@ -274,7 +275,8 @@ numo3.o                   \
 readcs.o                  \
 readcshcn.o               \
 rtfunc.o                  \
-scattr.o
+scattr.o                  \
+sol.o                     
 
 #=============================================================================
 #  Executable with FAST-J (default)
@@ -376,6 +378,7 @@ diag49.o                   : diag49.f                   CMN CMN_DIAG CMN_O3 CMN_
 diag5.o                    : diag5.f                    CMN CMN_DIAG CMN_O3 CMN_SIZE define.h 
 diag50.o                   : diag50.f                   CMN CMN_DIAG CMN_O3 CMN_SETUP CMN_SIZE define.h CMN_TIMES 
 diag51_mod.o               : diag51_mod.f               CMN CMN_DIAG CMN_O3 CMN_SETUP CMN_SIZE define.h CMN_TIMES 
+diag52.o                   : diag52.f                   CMN CMN_DIAG CMN_O3 CMN_SIZE define.h CMN_TIMES 
 diag_2pm.o                 : diag_2pm.f                 CMN_DIAG CMN_SETUP CMN_SIZE define.h 
 diag_mod.o                 : diag_mod.f                 
 diagoh.o                   : diagoh.f                   CMN_DIAG CMN_O3 CMN_SIZE define.h 
@@ -501,6 +504,7 @@ rtfunc.o                   : rtfunc.f                   CMN_SIZE define.h comsol
 ruralbox.o                 : ruralbox.f                 CMN_SIZE define.h comode.h 
 scattr.o                   : scattr.f                   CMN_SIZE define.h comode.h 
 schem.o                    : schem.f                    CMN CMN_O3 CMN_SETUP CMN_SIZE define.h 
+seasalt_mod.o              : seasalt_mod.f              CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h 
 set_aer.o                  : set_aer.f                  cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 set_prof.o                 : set_prof.f                 cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 setbase.o                  : setbase.f                  CMN CMN_ISOP CMN_MONOT CMN_SIZE define.h CMN_VEL 

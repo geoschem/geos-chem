@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.10 2004/04/19 15:09:51 bmy Exp $
+! $Id: diag3.f,v 1.11 2004/05/03 14:46:15 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out I-J (Long-Lat) diagnostics to the BINARY
-!  format punch file (bmy, bey, mgs, rvm, 5/27/99, 4/9/04)
+!  format punch file (bmy, bey, mgs, rvm, 5/27/99, 4/20/04)
 !
 !  The preferred file format is binary punch file format v. 2.0.  This
 !  file format is very GAMAP-friendly.  GAMAP also supports the ASCII
@@ -129,6 +129,7 @@
 !  (49) Added ND06 (dust aerosol) and ND07 (carbon aerosol) diagnostics.
 !        Now scale online dust optical depths by SCALECHEM in ND21 diagnostic.
 !        (rjp, tdf, bmy, 4/5/04)
+!  (50) Added ND08 (seasalt aerosol) diagnostic (rjp, bec, bmy, 4/20/04)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -539,6 +540,40 @@
      &               IIPAR,     JJPAR,     LD07,     IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
 
+      ENDIF   
+!
+!******************************************************************************
+!  ND08: Sea salt aerosol emissions
+!
+!   # : Field    : Description                     : Units      : Scale factor
+!  --------------------------------------------------------------------------
+!  (1)  SALA     : Accumulation mode seasalt       : kg         : 1
+!  (2)  SALC     : Coarse mode seasalt             : kg         : 1
+!******************************************************************************
+!
+      IF ( ND08 > 0 .and. LSSALT ) THEN
+
+         ! Category & unit string
+         UNIT     = 'kg'
+         CATEGORY = 'SALTSRCE'
+
+         ! Loop over seasalt tracers
+         DO N = 1, 2
+
+            ! At present we have 2 seasalts
+            IF ( N == 1 ) NN = IDTSALA + TRCOFFSET
+            IF ( N == 2 ) NN = IDTSALC + TRCOFFSET
+
+            ! Save seasalts into ARRAY
+            ARRAY(:,:,1) = AD08(:,:,N) 
+
+            ! Write to BPCH file
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         ENDDO
       ENDIF   
 !
 !******************************************************************************

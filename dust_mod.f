@@ -1,4 +1,4 @@
-! $Id: dust_mod.f,v 1.2 2004/04/19 15:09:52 bmy Exp $
+! $Id: dust_mod.f,v 1.3 2004/05/03 14:46:16 bmy Exp $
       MODULE DUST_MOD
 !
 !******************************************************************************
@@ -497,8 +497,7 @@
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_GINOUX')
 
-      ENDIF
-     
+      ENDIF     
       ! Return to calling program
       END SUBROUTINE EMISSDUST
 
@@ -507,9 +506,9 @@
       SUBROUTINE SRC_DUST_DEAD( TC )
 !
 !******************************************************************************
-!  DEAD model dust emission scheme, alternative to Ginoux scheme
-!  Increments the TC array with emissions from the DEAD model.
-!  (tdf, bmy, 4/8/04, 4/14/04)
+!  Subroutine SRC_DUST_DEAD is the DEAD model dust emission scheme, 
+!  alternative to Ginoux scheme.  Increments the TC array with emissions 
+!  from the DEAD model.  (tdf, bmy, 4/8/04, 4/14/04)
 !
 !  Input:
 !         SRCE_FUNK Source function                               (-)
@@ -1068,9 +1067,13 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Echo information
-      WRITE( 6, 110 ) 
- 110  FORMAT( '     - RDUST: Finished computing optical depths' )
+!------------------------------------------------------------------------
+! Prior to 4/22/04:
+! Suppress printing out on each timestep (bmy, 4/22/04)
+!      ! Echo information
+!      WRITE( 6, 110 ) 
+! 110  FORMAT( '     - RDUST: Finished computing optical depths' )
+!------------------------------------------------------------------------
 
       !==============================================================
       ! Calculate Dust Surface Area

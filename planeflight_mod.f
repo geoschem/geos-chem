@@ -1,11 +1,11 @@
-! $Id: planeflight_mod.f,v 1.7 2004/01/27 21:25:08 bmy Exp $
+! $Id: planeflight_mod.f,v 1.8 2004/05/03 14:46:18 bmy Exp $
       MODULE PLANEFLIGHT_MOD
 !
 !******************************************************************************
 !  Module PLANEFLIGHT_MOD contains variables and routines which are used to
 !  "fly" a plane through the GEOS-CHEM model simulation.  This is useful for
 !  comparing model results with aircraft observations. 
-!  (mje, bmy, 7/30/02, 1/26/04)
+!  (mje, bmy, 7/30/02, 4/23/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -67,7 +67,8 @@
 !        numbers for SMVGEAR II.(tdf, mje, bmy, 8/1/03)
 !  (9 ) Now print out N2O5 hydrolysis rxn as a special case.   Also rename
 !        output file. (bmy, 8/8/03)
-!  (10) Now references "flush_ifc_efc.h" (bmy, 1/26/04)
+!  (10) Changed "DAO" to "GMAO" for met field variable names.  Now can save 
+!        aerosol optical depths.  Bug fix in TEST_VALID. (bmy, 4/23/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -145,7 +146,7 @@
 !******************************************************************************
 !  Subroutine SETUP_PLANEFLIGHT reads information from the input file in order
 !  to initialize the planeflight diagnostic.  Also calls INIT_PLANEFLIGHT
-!  to allocate and zero module arrays. (mje, bmy, 7/30/02)
+!  to allocate and zero module arrays. (mje, bmy, 7/30/02, 4/26/04)
 !
 !  For SMVGEAR simulations, the call to SETUP_PLANEFLIGHT is made from routine
 !  "chemdr.f", after the "chem.dat" file is read.  This is necessary since
@@ -157,6 +158,7 @@
 !  NOTES:
 !  (1 ) Rename from "plane.dat" to "plane.log", since "*.dat" implies an input
 !        file name. (bmy, 8/8/03)
+!  (2 ) Add fancy output string (bmy, 4/26/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -179,8 +181,9 @@
 
       ! Echo info
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+      WRITE( 6, '(a)' ) 'P L A N E   F L I G H T   D I A G N O S T I C'
       WRITE( 6, 100   ) TRIM( INFILENAME )
- 100  FORMAT( 'SETUP_PLANEFLIGHT: Reading ',a )
+ 100  FORMAT( /, 'SETUP_PLANEFLIGHT: Reading ',a )
       WRITE( 6, '(a)' )  
 
       ! Compute # of species and # of points, allocate arrays accordingly
@@ -226,7 +229,7 @@
 !  Subroutine READ_VARIABLES reads the list of variables (SMVGEAR species,
 !  SMVGEAR rxn rates, DAO met fields, or GEOS-CHEM tracers) to be printed
 !  out and sorts the information into the appropriate module variables.
-!  (mje, bmy, 7/30/02, 8/8/03)
+!  (mje, bmy, 7/30/02, 4/23/04)
 !
 !  NOTES:
 !  (1 ) Now references GEOS_CHEM_STOP from "error_mod.f", which frees all
@@ -235,6 +238,8 @@
 !  (3 ) Bug fix: replace NAMESPEC w/ NAMEGAS for SMVGEAR II (lyj, bmy, 7/9/09)
 !  (4 ) Now locate reordered rxn numbers for SMVGEAR II. (mje, bmy, 8/1/03)
 !  (5 ) Now flag N2O5 hydrolysis rxn as a special case (bmy, 8/8/03)
+!  (6 ) Changed variable name prefix "DAO" to "GMAO".  Also added aerosol
+!        optical depths w/ tracer offset 2000. (bmy, 4/23/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -314,15 +319,30 @@
                PVAR(N) = 100000 + NUM
 
             !===========================================================
-            ! DAO met field: listed as "DAO_TEMP", etc.
+            ! GMAO met field: listed as "GMAO_TEMP", etc.
             ! PVAR offset: 1000
             !===========================================================
-            CASE ( 'DAO_' )
+            CASE ( 'GMAO' )
                
-               IF ( LINE == 'DAO_TEMP' ) PVAR(N) = 1001
-               IF ( LINE == 'DAO_ABSH' ) PVAR(N) = 1002
-               IF ( LINE == 'DAO_SURF' ) PVAR(N) = 1003      
+               IF ( LINE == 'GMAO_TEMP' ) PVAR(N) = 1001
+               IF ( LINE == 'GMAO_ABSH' ) PVAR(N) = 1002
+               IF ( LINE == 'GMAO_SURF' ) PVAR(N) = 1003 
+               IF ( LINE == 'GMAO_PSFC' ) PVAR(N) = 1004
+               IF ( LINE == 'GMAO_UWND' ) PVAR(N) = 1005      
+               IF ( LINE == 'GMAO_VWND' ) PVAR(N) = 1006 
 
+            !===========================================================
+            ! Aerosol optical depths (same order as for FAST-J)
+            ! PVAR offset: 2000
+            !===========================================================
+            CASE ( 'AOD_' )
+
+               IF ( LINE == 'AOD_SULF'  ) PVAR(N) = 2001
+               IF ( LINE == 'AOD_BLKC'  ) PVAR(N) = 2002
+               IF ( LINE == 'AOD_ORGC'  ) PVAR(N) = 2003
+               IF ( LINE == 'AOD_SALA'  ) PVAR(N) = 2004
+               IF ( LINE == 'AOD_SALC'  ) PVAR(N) = 2005
+               
             !===========================================================
             ! SMVGEAR rxn rate: listed as "REA_001", etc.
             ! PVAR offset: 10000
@@ -531,7 +551,7 @@
          !==============================================================
 
          ! Put LONGITUDE in the range [-180...180]
-         IF ( LON > 180.0 ) LON = LON - 360
+         IF ( LON > 180.0 ) LON = LON - 360e0
 
          ! Error check LONGITUDE
          IF ( LON < -180 .OR. LON > 180 ) THEN 
@@ -658,34 +678,43 @@
 !  (3 ) Updated comments, cosmetic changes (bmy, 7/18/03)
 !  (4 ) Now references T from "dao_mod.f", so that we can save out temperature
 !        for non-SMVGEAR runs. (bmy, 8/1/03)
+!  (5 ) Now references UWND and VWND from "dao_mod.f".  Now references
+!        GET_PEDGE from "pressure_mod.f".  Added CASEs for surface pressure,
+!        UWND, VWND to the CASE statement (bmy, 4/23/04)
 !******************************************************************************
 !
       ! Reference to F90 modules 
-      USE COMODE_MOD, ONLY : AIRDENS, CSPEC,  JLOP, T3,
-     &                       VOLUME,  ABSHUM, TAREA
-      USE DAO_MOD,    ONLY : AD, T
-      USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
-      USE TIME_MOD,   ONLY : GET_TAU, GET_TS_CHEM
-
+      USE COMODE_MOD,   ONLY : AIRDENS, CSPEC,  JLOP, T3,
+     &                         VOLUME,  ABSHUM, TAREA
+      USE DAO_MOD,      ONLY : AD, T,   UWND,   VWND
+      USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
+      USE PRESSURE_MOD, ONLY : GET_PEDGE
+      USE TIME_MOD,     ONLY : GET_TAU, GET_TS_CHEM
+      
       IMPLICIT NONE
       
-#     include "CMN_SIZE"   ! Size parameters
+!-------------------------------------------------------------------------
+! Prior to 2/22/04:
+!#     include "CMN_SIZE"   ! Size parameters
+!-------------------------------------------------------------------------
+#     include "cmn_fj.h"   ! FAST-J parameters (includes CMN_SIZE)
+#     include "jv_cmn.h"   ! ODAER
 #     include "CMN"        ! STT, TCVV, etc
 #     include "comode.h"   ! CSPEC, etc.
       
       ! Local variables
       LOGICAL, SAVE       :: FIRST = .TRUE.
       LOGICAL             :: PCHEM
-      INTEGER             :: I, IP, J, L, JLOOP, M, N, R, V
+      INTEGER             :: I, IP, IRHN, J, L, JLOOP, M, N, R, RH, V
       REAL*8              :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O
       REAL*8              :: VARI(NPVAR)
       REAL*8,  PARAMETER  :: MISSING = -999.99999999d0
 
       !=================================================================
       ! PLANEFLIGHT begins here!
-      !
-      ! Loop over all the locations that have not yet been found
       !=================================================================
+
+      ! Loop over all the locations that have not yet been found
       DO M = PPOINT, NPOINTS
 
          ! Starting & end times of chemistry interval
@@ -735,12 +764,12 @@
             ! Loop over all variables to save out
             DO V = 1, NPVAR
 
-               ! Handle 
+               ! Handle each variable
                SELECT CASE ( PVAR(V) )
 
-                  !=====================================================
-                  ! PVAR(V) = 1-998: SMVGEAR species 
-                  !=====================================================
+                  !-------------------------
+                  ! SMVGEAR species
+                  !-------------------------
                   CASE ( 1:998 )
 
                      ! Only archive where SMVGEAR chem is done
@@ -749,9 +778,9 @@
                         VARI(V) = CSPEC(JLOOP,PVAR(V)) / AIRDENS(JLOOP)
                      ENDIF
 
-                  !=====================================================
-                  ! PVAR(V) = 999: RO2 family
-                  !=====================================================
+                  !-------------------------
+                  ! RO2 family
+                  !-------------------------   
                   CASE ( 999 )
 
                      ! Only archive where SMVGEAR chem is done
@@ -766,15 +795,15 @@
                         VARI(V) = VARI(V) / AIRDENS(JLOOP)
                      ENDIF
 
-                  !=====================================================
-                  ! PVAR(V) = 1001: DAO temperature
-                  !===================================================== 
+                  !--------------------------
+                  ! GMAO temperature [K]
+                  !--------------------------
                   CASE ( 1001 )
                      VARI(V) = T(I,J,L)
 
-                  !=====================================================
-                  ! PVAR(V) = 1002: DAO absolute humidity
-                  !===================================================== 
+                  !--------------------------
+                  ! GMAO abs humidity [frac]
+                  !--------------------------
                   CASE ( 1002 ) 
                      
                      ! Only archive where SMVGEAR chem is done
@@ -790,9 +819,9 @@
      &                             VPRESH2O      / AIRDENS(JLOOP)
                      ENDIF
 
-                  !=====================================================
-                  ! PVAR(V) = 1003: DAO aerosol surface area
-                  !===================================================== 
+                  !--------------------------
+                  ! GMAO aerosol sfc area
+                  !--------------------------
                   CASE ( 1003 )
 
                      ! Only archive where SMVGEAR chem is done
@@ -804,9 +833,52 @@
                         ENDDO
                      ENDIF
 
-                  !=====================================================
-                  ! PVAR(V) = 10000-99999: SMVGEAR rxn rates
-                  !=====================================================
+                  !--------------------------
+                  ! GMAO sfc pressure [hPa]
+                  !--------------------------
+                  CASE ( 1004 )
+                     VARI(V) = GET_PEDGE(I,J,1)
+
+                  !-------------------------
+                  ! GMAO U-wind [m/s]
+                  !-------------------------
+                  CASE ( 1005 )
+                     VARI(V) = UWND(I,J,L)
+
+                  !--------------------------
+                  ! GMAO V-wind [m/s]
+                  !--------------------------
+                  CASE ( 1006 )
+                     VARI(V) = VWND(I,J,L)
+
+                  !--------------------------
+                  ! Aerosol optical depths
+                  !--------------------------
+                  CASE ( 2001:2005 )
+
+                     ! Only archive where SMVGEAR chem is done
+                     IF ( PCHEM ) THEN 
+
+                        ! Remove MISSING flag
+                        VARI(V) = 0d0
+
+                        ! Aerosol number
+                        N = PVAR(V) - 2000
+
+                        ! Loop over RH bins
+                        DO RH = 1, NRH
+                        
+                           ! Index for type of aerosol and RH value
+                           IRHN = ( (N-1) * NRH ) + RH
+                        
+                           ! Sum AOD over all RH bins and store in VARI(V)
+                           VARI(V) = VARI(V) + ODAER(I,J,L,IRHN)
+                        ENDDO
+                     ENDIF
+
+                  !--------------------------
+                  ! SMVGEAR reaction rates
+                  !--------------------------
                   CASE ( 10000:99999 )
 
                      ! Increment reaction count
@@ -815,9 +887,9 @@
                      ! Only archive where SMVGEAR chem is done 
                      IF ( PCHEM ) VARI(V) = PRRATE(JLOOP,R)
 
-                  !=====================================================
-                  ! PVAR(V) = 100000-199999: CTM tracer
-                  !=====================================================
+                  !--------------------------
+                  ! GEOS-CHEM tracers [v/v]
+                  !--------------------------
                   CASE( 100000:199999 )
 
                      ! Remove offset from PVAR
@@ -826,9 +898,9 @@
                      ! Convert from [kg] --> [v/v]
                      VARI(V) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
 
-                  !=====================================================
-                  ! Otherwise we have an error!
-                  !=====================================================
+                  !--------------------------
+                  ! Otherwise it's an error!
+                  !--------------------------
                   CASE DEFAULT
                      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
                      WRITE( 6, '(a)' ) 'PLANEFLIGHT: Bad variable #!' 
@@ -857,7 +929,7 @@
 !
 !******************************************************************************
 !  Subroutine TEST_VALID tests to see if we are w/in the tropopause, which
-!  is where SMVGEAR chemistry is done (mje, bmy, 7/8/02, 7/18/03)
+!  is where SMVGEAR chemistry is done (mje, bmy, 7/8/02, 4/23/03)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -874,6 +946,9 @@
 !        bottom edge of box (I,J,L), for hybrid grid. (dsa, bdf, bmy, 8/21/02)
 !  (2 ) Since JLOP is not allocated for non-SMVGEAR runs, set PCHEM=F and 
 !        JLOOP=0 even if we are in the troposphere. (bmy, 7/18/03)
+!  (3 ) Bug fix: add 0.5 in expression for I so that the rounding will
+!        be done correctly.  Also make sure that I is computed correctly
+!	 for points near the date line.  (bmy, 4/23/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -900,7 +975,16 @@
       FOUND = .FALSE.
 
       ! Get I corresponding to PLON(IND)
-      I = INT( ( PLON(IND) + 180d0 ) / DISIZE + 1.0d0 )
+      !-----------------------------------------------------------------
+      ! Prior to 4/22/04:
+      ! Bug fix: We need to add 0.5 so that the rounding
+      ! is done correctly (bmy, 4/22/04)
+      !I = INT( ( PLON(IND) + 180d0 ) / DISIZE + 1.0d0 )
+      !-----------------------------------------------------------------
+      I = INT( ( PLON(IND) + 180d0 ) / DISIZE + 1.5d0 )
+
+      ! Handle date line correctly (bmy, 4/23/04)
+      IF ( I > IIPAR ) I = I - IIPAR 
 
       ! Get J corresponding to PLAT(IND)
       J = INT( ( PLAT(IND) +  90d0 ) / DJSIZE + 1.5d0 )

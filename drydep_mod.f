@@ -1,9 +1,9 @@
-! $Id: drydep_mod.f,v 1.11 2004/04/28 19:53:34 bmy Exp $
+! $Id: drydep_mod.f,v 1.12 2004/05/03 14:46:16 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
 !  Module DRYDEP_MOD contains variables and routines for the GEOS-CHEM dry
-!  deposition scheme. (bmy, 1/27/03, 4/20/04)
+!  deposition scheme. (bmy, 1/27/03, 4/26/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -122,7 +122,7 @@
 !  (8 ) Now handle extra carbon & dust tracers (rjp, tdf, bmy, 4/1/04)
 !  (9 ) Added routines AERO_SFCRS1, AERO_SFCRSII.  Increased MAXDEP to 25.
 !        Now handles extra carbon & dust tracers. (rjp, tdf, bmy, 4/1/04)
-!  (10) Increased MAXDEP to 27.  Added A_RADI and A_DEN module variables.
+!  (10) Increased MAXDEP to 26.  Added A_RADI and A_DEN module variables.
 !        Other modifications for size-resolved drydep. (rjp, bec, bmy, 4/20/04)
 !******************************************************************************
 !
@@ -154,7 +154,7 @@
       ! Increase for seasalt tracers (bmy, 4/20/04)
       !INTEGER, PARAMETER   :: MAXDEP    = 25
       !---------------------------------------------------------
-      INTEGER, PARAMETER   :: MAXDEP    = 27
+      INTEGER, PARAMETER   :: MAXDEP    = 26
       INTEGER, PARAMETER   :: NNTYPE    = 15     ! NTYPE    from "CMN_SIZE"
       INTEGER, PARAMETER   :: NNPOLY    = 20     ! NPOLY    from "CMN_SIZE"
       INTEGER, PARAMETER   :: NNVEGTYPE = 74     ! NVEGTYPE from "CMN_SIZE"
@@ -1321,7 +1321,9 @@ C** equations (15)-(17) of Walcek et al. [1986]
                IF ( ( DEPNAME(K) == 'DST1' )  .OR. 
      &              ( DEPNAME(K) == 'DST2' )  .OR. 
      &              ( DEPNAME(K) == 'DST3' )  .OR. 
-     &              ( DEPNAME(K) == 'DST4' ) ) THEN
+     &              ( DEPNAME(K) == 'DST4' )  .OR.
+     &              ( DEPNAME(K) == 'SALA' )  .OR.
+     &              ( DEPNAME(K) == 'SALC' ) ) THEN 
 
                   !=====================================================
                   ! Use size-resolved dry deposition calculations for 
@@ -2347,14 +2349,15 @@ C** Load array DVEL
 !
 !******************************************************************************
 !  Subroutine INIT_DRYDEP initializes certain variables for the GEOS-CHEM
-!  dry deposition subroutines. (bmy, 11/19/02, 4/20/04)
+!  dry deposition subroutines. (bmy, 11/19/02, 4/26/04)
 !
 !  NOTES:
 !  (1 ) Added N2O5 as a drydep tracer, w/ the same drydep velocity as
 !        HNO3.  Now initialize PBLFRAC array. (rjp, bmy, 7/21/03)
 !  (2 ) Added extra carbon & dust aerosol tracers (rjp, tdf, bmy, 4/1/04)
 !  (3 ) Added seasalt aerosol tracers.  Now use A_RADI and A_DEN to store
-!        radius & density of size-resolved tracers. (rjp, bec, bmy, 4/20/04)
+!        radius & density of size-resolved tracers.  Also added fancy
+!        output. (bec, rjp, bmy, 4/26/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2700,6 +2703,32 @@ C** Load array DVEL
             A_DEN(NUMDEP)   = 2650.d0   
             AIROSOL(NUMDEP) = .TRUE.
 
+         ! Accum mode seasalt (aerosol) 
+         ELSE IF ( N == IDTSALA ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTSALA
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'SALA'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 36d-3     
+            A_RADI(NUMDEP)  = 0.65d-6
+            A_DEN(NUMDEP)   = 2200.d0         
+            AIROSOL(NUMDEP) = .TRUE. 
+
+         ! Coarse mode seasalt (aerosol) 
+         ELSE IF ( N == IDTSALC ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTSALC
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'SALC'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 36d-3     
+            A_RADI(NUMDEP)  = 3.125d-6
+            A_DEN(NUMDEP)   = 2200.d0         
+            AIROSOL(NUMDEP) = .TRUE. 
+
          ENDIF
       ENDDO
       
@@ -2718,6 +2747,7 @@ C** Load array DVEL
       ! Echo information to stdout
       !=================================================================
       WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+      WRITE( 6, '(a,/)' ) 'D R Y   D E P O S I T I O N   S E T U P'
       WRITE( 6, '(a,/)' ) 'INIT_DRYDEP: List of dry deposition species:'
       WRITE( 6, '(a)'   )
      & '  #   Name  Tracer DEPVEL Henry''s    React.   Molec.  Aerosol?'

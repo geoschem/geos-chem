@@ -1,9 +1,9 @@
-! $Id: cleanup.f,v 1.4 2004/04/19 15:09:51 bmy Exp $
+! $Id: cleanup.f,v 1.5 2004/05/03 14:46:15 bmy Exp $
       SUBROUTINE CLEANUP
 !
 !******************************************************************************
 !  Subroutine CLEANUP deallocates the memory assigned to dynamic allocatable 
-!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 4/14/04)
+!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 4/26/04)
 !
 !  NOTES:
 !  (1 ) CLEANUP is written in Fixed-Format F90.
@@ -52,6 +52,7 @@
 !        "dust_dead_mod.f". (bmy, 7/14/03)
 !  (23) Now references cleanup routine from "lightning__nox_mod.f" 
 !        (bmy, 4/14/04)
+!  (24) Now references cleanup routine from "seasalt_mod.f" (bmy, 4/26/04)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -77,6 +78,7 @@
       USE PJC_PFIX_MOD,      ONLY : CLEANUP_PJC_PFIX
       USE PLANEFLIGHT_MOD,   ONLY : CLEANUP_PLANEFLIGHT
       USE PRESSURE_MOD,      ONLY : CLEANUP_PRESSURE
+      USE SEASALT_MOD,       ONLY : CLEANUP_SEASALT
       USE SULFATE_MOD,       ONLY : CLEANUP_SULFATE
       USE TAGGED_CO_MOD,     ONLY : CLEANUP_TAGGED_CO
       USE TOMS_MOD,          ONLY : CLEANUP_TOMS
@@ -121,6 +123,7 @@
       CALL CLEANUP_DUST_DEAD
       CALL CLEANUP_DUST
       CALL CLEANUP_LIGHTNING_NOX
+      CALL CLEANUP_SEASALT
       CALL CLEANUP_UVALBEDO
       CALL CLEANUP_WETSCAV
       CALL CLEANUP_PRESSURE

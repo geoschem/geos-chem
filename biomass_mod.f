@@ -1,10 +1,10 @@
-! $Id: biomass_mod.f,v 1.2 2003/07/08 15:29:04 bmy Exp $
+! $Id: biomass_mod.f,v 1.3 2004/05/03 14:46:14 bmy Exp $
       MODULE BIOMASS_MOD
 !
 !******************************************************************************
 !  Module BIOMASS_MOD contains arrays and routines to compute monthly
 !  biomass burning emissions for NOx, CO, ALK4, ACET, MEK, ALD2, PRPE, 
-!  C3H8, CH2O, C2H6, CH4, and CH3I. (bmy, 9/11/00, 5/16/03)
+!  C3H8, CH2O, C2H6, CH4, and CH3I. (bmy, 9/11/00, 4/26/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -252,6 +252,7 @@
 !         (bmy, 2/10/03)
 !  (20) Bug fix: make sure only to pass BIOMASS_SEA(1:NBIOTRCE,:,:) and 
 !         BIOMASS_ANN(1:NBIOTRCE,:,:) to READ_BIOMASS. (bnd, bmy, 5/16/03)
+!  (21) Added fancy output (bmy, 4/26/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -370,7 +371,9 @@
          WRITE( CYEAR, '(i4)' ) GET_YEAR()
 
          ! Fancy output...
-         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+         WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+         WRITE( 6, '(a,/)' ) 
+     &        'B I O M A S S   B U R N I N G   E M I S S I O N S'
 
          !==============================================================
          ! Set BIOMASS_DIR to the subdirectory where the current

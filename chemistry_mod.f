@@ -1,9 +1,9 @@
-! $Id: chemistry_mod.f,v 1.7 2004/04/13 14:52:28 bmy Exp $
+! $Id: chemistry_mod.f,v 1.8 2004/05/03 14:46:15 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
 !  Module CHEMISTRY_MOD is used to call the proper chemistry subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 4/5/04)
+!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 4/20/04)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -23,6 +23,7 @@
 !  (10) Kr85_mod.f         : Module containing routines for Kr85 chemistry
 !  (11) RnPbBe_mod.f       : Module containing routines for Rn-Pb-Be chemistry
 !  (12) rpmares_mod.f      : Module containing routines for arsl phase equilib.
+!  (13) seasalt_mod.f      : Module containing routines for seasalt chemistry
 !  (13) sulfate_mod.f      : Module containing routines for sulfate chemistry
 !  (14) tagged_co_mod.f    : Module containing routines for Tagged CO chemistry
 !  (15) tagged_ox_mod.f    : Module containing routines for Tagged Ox chemistry
@@ -36,6 +37,7 @@
 !  (4 ) Now references "Kr85_mod.f" (jsw, bmy, 8/20/03)
 !  (5 ) Bug fix: Now also call OPTDEPTH for GEOS-4 (bmy, 1/27/04)
 !  (6 ) Now references "carbon_mod.f" and "dust_mod.f" (rjp, tdf, bmy, 4/5/04)
+!  (7 ) Now references "seasalt_mod.f" (rjp, bec, bmy, 4/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -52,7 +54,7 @@
 !******************************************************************************
 !  Subroutine DO_CHEMISTRY is the driver routine which calls the appropriate
 !  chemistry subroutine for the various GEOS-CHEM simulations. 
-!  (bmy, 2/11/03, 4/2/04)
+!  (bmy, 2/11/03, 4/20/04)
 !
 !  NOTES:
 !  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this
@@ -65,6 +67,8 @@
 !        (bmy, 1/27/04)
 !  (5 ) Now calls CHEMCARBON and CHEMDUST to do carbon aerosol & dust 
 !        aerosol chemistry (rjp, tdf, bmy, 4/2/04)
+!  (5 ) Now calls CHEMSEASALT to do seasalt aerosol chemistry 
+!        (rjp, bec, bmy, 4/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -80,9 +84,10 @@
       USE GLOBAL_CH4_MOD,  ONLY : CHEMCH4
       USE Kr85_MOD,        ONLY : CHEMKr85
       USE OPTDEPTH_MOD,    ONLY : OPTDEPTH
-      USE PLANEFLIGHT_MOD, ONLY : PLANEFLIGHT
+      !USE PLANEFLIGHT_MOD, ONLY : PLANEFLIGHT
       USE RnPbBe_MOD,      ONLY : CHEMRnPbBe
       USE RPMARES_MOD,     ONLY : DO_RPMARES
+      USE SEASALT_MOD,     ONLY : CHEMSEASALT
       USE SULFATE_MOD,     ONLY : CHEMSULFATE
       USE TAGGED_CO_MOD,   ONLY : CHEM_TAGGED_CO
       USE TAGGED_OX_MOD,   ONLY : CHEM_TAGGED_OX
@@ -163,6 +168,9 @@
                ! Do dust aerosol chemistry
                IF ( LDUST ) CALL CHEMDUST
 
+               ! Do seasalt aerosol chemistry
+               IF ( LSSALT ) CALL CHEMSEASALT
+
                ! ND44 drydep fluxes
                CALL DRYFLX     
 
@@ -236,6 +244,8 @@
                ! Do dust aerosol chemistry
                IF ( LDUST ) CALL CHEMDUST
 
+               ! Do seasalt aerosol chemistry
+               IF ( LSSALT ) CALL CHEMSEASALT
 
 !-----------------------------------------------------------------------------
 ! Prior 
@@ -262,15 +272,20 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CHEMISTRY' )
       ENDIF
 
-      !=================================================================
-      ! Call the planeflight diagnostic
-      !=================================================================
-      IF ( ND40 > 0 ) THEN
-         CALL PLANEFLIGHT
-
-         !### Debug
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a PLANEFLIGHT' )
-      ENDIF
+      !-----------------------------------------------------------------------
+      ! Prior to 4/22/04:
+      ! Now call this from "main.f", after wetdep, since we need to save
+      ! out soluble tracers for ICARTT (bmy, 4/22/04)
+      !!=================================================================
+      !! Call the planeflight diagnostic
+      !!=================================================================
+      !IF ( ND40 > 0 ) THEN
+      !   CALL PLANEFLIGHT
+      !
+      !   !### Debug
+      !   IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a PLANEFLIGHT' )
+      !ENDIF
+      !-----------------------------------------------------------------------
          
       ! Return to calling program
       END SUBROUTINE DO_CHEMISTRY

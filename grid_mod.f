@@ -1,4 +1,4 @@
-! $Id: grid_mod.f,v 1.1 2003/06/30 20:26:02 bmy Exp $
+! $Id: grid_mod.f,v 1.2 2004/05/03 14:46:17 bmy Exp $
       MODULE GRID_MOD
 !
 !******************************************************************************
@@ -95,9 +95,10 @@
 !
 !******************************************************************************
 !  Subroutine COMPUTE_GRID initializes the longitude, latitude and surface 
-!  area arrays. (bmy, 3/11/03)
+!  area arrays. (bmy, 3/11/03, 4/26/04)
 !
 !  NOTES:
+!  (1 ) Added fancy output (bmy, 4/26/04)
 !******************************************************************************
 !
 #     include "CMN_SIZE"  ! Size parameters
@@ -221,9 +222,9 @@
       !=================================================================
       ! Echo info to stdout
       !=================================================================
-      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-      WRITE( 6, '(a)' ) 'COMPUTE_GRID: Horizontal Grid Information!'
-      WRITE( 6, '(a)' ) 
+      WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+      WRITE( 6, '(a,/)' ) 'H O R I Z O N T A L   G R I D   S E T U P' 
+      WRITE( 6, '(a,/)' ) 'COMPUTE_GRID: Horizontal Grid Information!'
       WRITE( 6, '(''Nested-Grid X-offset (boxes) :'', i4 )' ) I0
       WRITE( 6, '(''Nested-Grid Y-offset (boxes) :'', i4 )' ) J0
       WRITE( 6, '(a)' )

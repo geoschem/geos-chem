@@ -1,4 +1,4 @@
-! $Id: CMN_DIAG,v 1.4 2004/04/13 14:52:26 bmy Exp $
+! $Id: CMN_DIAG,v 1.5 2004/05/03 14:46:12 bmy Exp $
 ! 
 ! NOTES:
 ! (1 ) Changed RCS ID tag comment character from "C" to "!" to allow freeform
@@ -31,7 +31,8 @@
       ! Changed PD03 to 5  (bmy, 8/20/03)
       ! Changed PD37 to 10 (bmy, 1/21/04)
       ! Changed PD06 to NDSTBIN (bmy, 4/5/04)
-      ! Chagned PD07 to 7 (bmy, 4/5/04)
+      ! Changed PD07 to 7 (bmy, 4/5/04)
+      ! Changed PD08 to 2 (bmy, 4/20/04)
       INTEGER, PARAMETER :: PD01=3            
       INTEGER, PARAMETER :: PD02=3           
       INTEGER, PARAMETER :: PD03=2
@@ -39,8 +40,8 @@
       INTEGER, PARAMETER :: PD05=10         
       INTEGER, PARAMETER :: PD06=NDSTBIN
       INTEGER, PARAMETER :: PD07=7
-      INTEGER, PARAMETER :: PD08=0
-      INTEGER, PARAMETER :: PD09=0 
+      INTEGER, PARAMETER :: PD08=2
+      INTEGER, PARAMETER :: PD09=0
       INTEGER, PARAMETER :: PD10=5            
       INTEGER, PARAMETER :: PD11=7           
       INTEGER, PARAMETER :: PD12=0     
