@@ -1,4 +1,4 @@
-! $Id: carbon_mod.f,v 1.3 2004/07/15 18:17:44 bmy Exp $
+! $Id: carbon_mod.f,v 1.4 2004/07/16 17:57:31 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
@@ -2525,21 +2525,24 @@ c
             ! Terpene source
             AD07(I,J,7) = AD07(I,J,7)        + TERP_ORGC(I,J)
 
-            ! ALPHA-PINENE
-            AD07(I,J,8) = AD07(I,J,8)        + BIOG_ALPH(I,J)
+            IF ( LSOA ) THEN
 
-            ! LIMONENE
-            AD07(I,J,9) = AD07(I,J,9)        + BIOG_LIMO(I,J)
+               ! ALPHA-PINENE
+               AD07(I,J,8)  = AD07(I,J,8)    + BIOG_ALPH(I,J)
 
-            ! TERPENE
-            AD07(I,J,10) = AD07(I,J,10)      + BIOG_TERP(I,J)
+               ! LIMONENE
+               AD07(I,J,9)  = AD07(I,J,9)    + BIOG_LIMO(I,J)
 
-            ! ALCOHOL
-            AD07(I,J,11) = AD07(I,J,11)      + BIOG_ALCO(I,J)
+               ! TERPENE
+               AD07(I,J,10) = AD07(I,J,10)   + BIOG_TERP(I,J)
 
-            ! SESQTERPENE
-            AD07(I,J,12) = AD07(I,J,12)      + BIOG_SESQ(I,J)
+               ! ALCOHOL
+               AD07(I,J,11) = AD07(I,J,11)   + BIOG_ALCO(I,J)
 
+               ! SESQTERPENE
+               AD07(I,J,12) = AD07(I,J,12)   + BIOG_SESQ(I,J)
+
+            ENDIF
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO

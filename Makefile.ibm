@@ -1,4 +1,4 @@
-# $Id: Makefile.ibm,v 1.15 2004/07/16 13:34:05 bmy Exp $
+# $Id: Makefile.ibm,v 1.16 2004/07/16 17:57:30 bmy Exp $
 #=============================================================================
 # Makefile for GEOS-CHEM on IBM AIX: (gcc, Mon Feb 03 11:56:55 2003)
 #=============================================================================
@@ -65,7 +65,6 @@ fyrno3.o                  \
 gasconc.o                 \
 getalt.o                  \
 getifsun.o                \
-global_o3_mod.o           \
 hpsort_int.o              \
 humeff.o                  \
 hunt.o                    \

@@ -1,4 +1,4 @@
-# $Id: Makefile.pgi,v 1.5 2004/07/16 13:34:05 bmy Exp $
+# $Id: Makefile.pgi,v 1.6 2004/07/16 17:57:31 bmy Exp $
 #=============================================================================
 # GEOS-CHEM Makefile for LINUX/PGI (bmy, Fri Jul 16 09:28:02 2004)
 #
@@ -68,7 +68,6 @@ fyrno3.o                  \
 gasconc.o                 \
 getalt.o                  \
 getifsun.o                \
-global_o3_mod.o           \
 hpsort_int.o              \
 humeff.o                  \
 hunt.o                    \

@@ -1,4 +1,4 @@
-! $Id: diag3.f,v 1.13 2004/07/15 18:17:45 bmy Exp $
+! $Id: diag3.f,v 1.14 2004/07/16 17:57:32 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
@@ -153,7 +153,7 @@
 #     include "CMN"        ! STT, P, T, NSRCX, etc...
 #     include "CMN_DIAG"   ! Diagnostic switches & arrays
 #     include "CMN_O3"     ! FMOL, XNUMOL
-#     include "CMN_SETUP"  ! LSPLIT
+#     include "CMN_SETUP"  ! LSPLIT, etc.
 #     include "comode.h"   ! IDEMS
 
       ! Local variables
@@ -542,86 +542,78 @@
      &               IIPAR,     JJPAR,     LD07,     IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
 
+         ! Only save extra SOA diagnostics if LSOA=T
+         IF ( LSOA ) THEN
 
-         !------------------------------
-         ! NVOC SOURCE diagnostics
-         !------------------------------
-         DO N = 8, 12
+            !------------------------------
+            ! NVOC SOURCE diagnostics
+            !------------------------------
+            DO N = 8, 12
 
-            SELECT CASE ( N )
+               SELECT CASE ( N )
 
-            !------------------------------ 
-            ! ALPH Source
-            !------------------------------ 
-            CASE ( 8 )
-               CATEGORY     = 'OC-ALPH'
-               NN           = IDTALPH + TRCOFFSET
+                  ! ALPH
+                  CASE ( 8 )
+                     CATEGORY = 'OC-ALPH'
+                     NN       = IDTALPH + TRCOFFSET
 
-            !------------------------------ 
-            ! LIMO Source
-            !------------------------------ 
-            CASE ( 9 )
-               CATEGORY     = 'OC-LIMO'
-               NN           = IDTLIMO + TRCOFFSET
+                  ! LIMO
+                  CASE ( 9 )
+                     CATEGORY = 'OC-LIMO'
+                     NN       = IDTLIMO + TRCOFFSET
 
-            !------------------------------ 
-            ! TERP Source
-            !------------------------------ 
-            CASE ( 10 )
-               CATEGORY     = 'OC-TERP'
-               NN           = IDTLIMO + TRCOFFSET + 1
+                  ! TERP
+                  CASE ( 10 )
+                     CATEGORY = 'OC-TERP'
+                     NN       = IDTLIMO + TRCOFFSET + 1
 
-            !------------------------------ 
-            ! ALCO Source
-            !------------------------------ 
-            CASE ( 11 )
-               CATEGORY     = 'OC-ALCO'
-               NN           = IDTLIMO + TRCOFFSET + 2
+                  ! ALCO
+                  CASE ( 11 )
+                     CATEGORY = 'OC-ALCO'
+                     NN       = IDTLIMO + TRCOFFSET + 2
 
-            !------------------------------ 
-            ! SESQ Source
-            !------------------------------ 
-            CASE ( 12 )
-               CATEGORY     = 'OC-SESQ'
-               NN           = IDTLIMO + TRCOFFSET + 3
+                  ! SESQ
+                  CASE ( 12 )
+                     CATEGORY = 'OC-SESQ'
+                     NN       = IDTLIMO + TRCOFFSET + 3
 
-            END SELECT
+               END SELECT
 
-            ARRAY(:,:,1) = AD07(:,:,N)
+               ARRAY(:,:,1) = AD07(:,:,N)
+                  
+               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                     HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                     IIPAR,     JJPAR,     1,        IFIRST,
+     &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
-            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     1,        IFIRST,
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
-
-         ENDDO
-
-         !-----------------------------------------------
-         ! SOA Production from NVOC oxidation [kg]
-         ! 1:ALPH+LIMO+TERP, 2:ALCO, 3:SESQ
-         !-----------------------------------------------
-         CATEGORY     = 'PL-OC=$'
-         SCALEX       = 1.d0
-
-         DO N = 1, 3
-
-            IF ( N == 1 ) NN = IDTSOA1 + TRCOFFSET
-            IF ( N == 2 ) NN = IDTSOA2 + TRCOFFSET
-            IF ( N == 3 ) NN = IDTSOA3 + TRCOFFSET
-
-            DO L = 1, LD07
-               ARRAY(:,:,L) = AD07_HC(:,:,L,N) / SCALEX
             ENDDO
 
-            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     LD07,     IFIRST,
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
+            !-----------------------------------------------
+            ! SOA Production from NVOC oxidation [kg]
+            ! 1:ALPH+LIMO+TERP, 2:ALCO, 3:SESQ
+            !-----------------------------------------------
+            CATEGORY     = 'PL-OC=$'
+            SCALEX       = 1.d0
 
-         ENDDO
+            DO N = 1, 3
 
+               IF ( N == 1 ) NN = IDTSOA1 + TRCOFFSET
+               IF ( N == 2 ) NN = IDTSOA2 + TRCOFFSET
+               IF ( N == 3 ) NN = IDTSOA3 + TRCOFFSET
+
+               DO L = 1, LD07
+                  ARRAY(:,:,L) = AD07_HC(:,:,L,N) / SCALEX
+               ENDDO
+
+               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                     HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                     IIPAR,     JJPAR,     LD07,     IFIRST,
+     &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
+            
+            ENDDO
+         ENDIF
       ENDIF   
 !
 !******************************************************************************

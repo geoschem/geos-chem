@@ -1,4 +1,4 @@
-# $Id: Makefile.compaq,v 1.17 2004/07/16 13:34:05 bmy Exp $
+# $Id: Makefile.compaq,v 1.18 2004/07/16 17:57:30 bmy Exp $
 #=============================================================================
 # GEOS-CHEM Makefile for COMPAQ/Alpha (bmy, Fri Jul 16 09:27:51 2004)
 #
@@ -67,7 +67,6 @@ fyrno3.o                  \
 gasconc.o                 \
 getalt.o                  \
 getifsun.o                \
-global_o3_mod.o           \
 hpsort_int.o              \
 humeff.o                  \
 hunt.o                    \

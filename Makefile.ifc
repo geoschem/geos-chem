@@ -1,4 +1,4 @@
-# $Id: Makefile.ifc,v 1.8 2004/07/16 13:34:05 bmy Exp $
+# $Id: Makefile.ifc,v 1.9 2004/07/16 17:57:30 bmy Exp $
 #=============================================================================
 # GEOS-CHEM Makefile for LINUX/IFC compiler (bmy, Fri Jul 16 09:28:38 2004)
 #=============================================================================
@@ -65,7 +65,6 @@ fyrno3.o                  \
 gasconc.o                 \
 getalt.o                  \
 getifsun.o                \
-global_o3_mod.o           \
 hpsort_int.o              \
 humeff.o                  \
 hunt.o                    \
