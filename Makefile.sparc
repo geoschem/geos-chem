@@ -1,6 +1,6 @@
-# $Id: Makefile.sparc,v 1.22 2005/02/10 19:53:22 bmy Exp $
+# $Id: Makefile.sparc,v 1.23 2005/03/29 15:52:39 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for SUN/Sparc (bmy, Fri Jan 21 12:42:07 2005)
+# GEOS-CHEM Makefile for SUN/Sparc (bmy, Mon Mar 28 13:59:20 2005)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -31,7 +31,6 @@ correctOH.o               \
 decomp.o                  \
 diag1.o                   \
 diag3.o                   \
-diag41.o                  \
 diag52.o                  \
 diag_2pm.o                \
 diagoh.o                  \
@@ -72,7 +71,6 @@ rdlight.o                 \
 rdmonot.o                 \
 rdsoil.o                  \
 read_correction.o         \
-read_tindex.o             \
 read_tropopause.o         \
 readchem.o                \
 reader.o                  \
@@ -95,7 +93,6 @@ subfun.o                  \
 sunparam.o                \
 tcorr.o                   \
 tropopause.o              \
-turbday.o                 \
 update.o                  \
 write49.o                 \
 xltmmp.o                  
@@ -193,12 +190,14 @@ benchmark_mod.o           \
 comode_mod.o              \
 diag_mod.o                \
 dao_mod.o                 \
+pbl_mix_mod.o             \
 diag03_mod.o              \
-diag_oh_mod.o             \
+diag41_mod.o              \
 diag48_mod.o              \
 diag49_mod.o              \
 diag50_mod.o              \
 diag51_mod.o              \
+diag_oh_mod.o             \
 diag_pl_mod.o             \
 ocean_mercury_mod.o       \
 drydep_mod.o              \
@@ -364,11 +363,11 @@ decomp.o                   : decomp.F                   CMN_SIZE define.h comode
 diag03_mod.o               : diag03_mod.F               CMN_DIAG CMN_SIZE define.h 
 diag1.o                    : diag1.F                    CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h 
 diag3.o                    : diag3.F                    CMN CMN_DIAG CMN_O3 CMN_SIZE define.h comode.h 
-diag41.o                   : diag41.F                   CMN CMN_DIAG CMN_GCTM CMN_SIZE define.h 
-diag48_mod.o               : diag48_mod.F               CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h jv_cmn.h 
-diag49_mod.o               : diag49_mod.F               CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h jv_cmn.h 
-diag50_mod.o               : diag50_mod.F               CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h jv_cmn.h 
-diag51_mod.o               : diag51_mod.F               CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h jv_cmn.h 
+diag41_mod.o               : diag41_mod.F               CMN_DIAG CMN_SIZE define.h 
+diag48_mod.o               : diag48_mod.F               CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h jv_cmn.h 
+diag49_mod.o               : diag49_mod.F               CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h jv_cmn.h 
+diag50_mod.o               : diag50_mod.F               CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h jv_cmn.h 
+diag51_mod.o               : diag51_mod.F               CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 diag52.o                   : diag52.F                   CMN CMN_DIAG CMN_O3 CMN_SIZE define.h CMN_TIMES 
 diag_2pm.o                 : diag_2pm.F                 CMN_DIAG CMN_SIZE define.h 
 diag_mod.o                 : diag_mod.F                 
@@ -377,7 +376,7 @@ diag_pl_mod.o              : diag_pl_mod.F              CMN_DIAG CMN_O3 CMN_SIZE
 diagoh.o                   : diagoh.F                   CMN_DIAG CMN_O3 CMN_SIZE define.h 
 diffg.o                    : diffg.F                    
 directory_mod.o            : directory_mod.F            
-drydep_mod.o               : drydep_mod.F               CMN CMN_DEP CMN_DIAG CMN_GCTM CMN_SIZE define.h CMN_VEL commsoil.h comode.h 
+drydep_mod.o               : drydep_mod.F               CMN_DEP CMN_DIAG CMN_GCTM CMN_SIZE define.h CMN_VEL commsoil.h comode.h 
 dust_dead_mod.o            : dust_dead_mod.F            CMN_GCTM CMN_SIZE define.h 
 dust_mod.o                 : dust_mod.F                 CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h comode.h jv_cmn.h 
 emf_scale.o                : emf_scale.F                CMN_O3 CMN_SIZE define.h comode.h 
@@ -456,6 +455,7 @@ paramD.o                   : paramD.F
 paramE.o                   : paramE.F                   
 paramF.o                   : paramF.F                   
 partition.o                : partition.F                CMN_SIZE define.h comode.h 
+pbl_mix_mod.o              : pbl_mix_mod.F              CMN CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 pderiv.o                   : pderiv.F                   CMN_SIZE define.h comode.h 
 phis_read_mod.o            : phis_read_mod.F            CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 photoj.o                   : photoj.F                   cmn_fj.h CMN_SIZE define.h jv_cmn.h 
@@ -479,7 +479,6 @@ read_TOMSO3.o              : read_TOMSO3.F              CMN CMN_CO CMN_OH CMN_SI
 read_coeff.o               : read_coeff.F               CMN_OH 
 read_correction.o          : read_correction.F          CMN_OH 
 read_percentages.o         : read_percentages.F         CMN_OH 
-read_tindex.o              : read_tindex.F              CMN_DIAG CMN_SIZE define.h 
 read_tropopause.o          : read_tropopause.F          CMN CMN_SIZE define.h 
 readavgOH.o                : readavgOH.F                CMN_OH 
 readchem.o                 : readchem.F                 CMN_SIZE define.h comode.h 
@@ -494,7 +493,7 @@ rtfunc.o                   : rtfunc.F                   CMN_SIZE define.h comsol
 ruralbox.o                 : ruralbox.F                 CMN_SIZE define.h comode.h 
 scattr.o                   : scattr.F                   CMN_SIZE define.h comode.h 
 schem.o                    : schem.F                    CMN CMN_O3 CMN_SIZE define.h 
-seasalt_mod.o              : seasalt_mod.F              CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h 
+seasalt_mod.o              : seasalt_mod.F              CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h 
 set_aer.o                  : set_aer.F                  cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 set_prof.o                 : set_prof.F                 cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 setbase.o                  : setbase.F                  CMN CMN_ISOP CMN_MONOT CMN_SIZE define.h CMN_VEL 
@@ -532,7 +531,7 @@ tracerid_mod.o             : tracerid_mod.F             CMN_SIZE define.h comode
 transfer_mod.o             : transfer_mod.F             CMN_SIZE define.h 
 transport_mod.o            : transport_mod.F            CMN CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 tropopause.o               : tropopause.F               CMN CMN_DIAG CMN_SIZE define.h 
-turbday.o                  : turbday.F                  CMN_DIAG CMN_GCTM CMN_SIZE define.h 
+tropopause_mod.o           : tropopause_mod.F           CMN_SIZE define.h 
 unix_cmds_mod.o            : unix_cmds_mod.F            
 upbdflx_mod.o              : upbdflx_mod.F              CMN CMN_GCTM CMN_O3 CMN_SIZE define.h 
 update.o                   : update.F                   CMN_SIZE define.h comode.h 

@@ -1,4 +1,4 @@
-! $Id: CO_strat_pl.f,v 1.2 2004/09/21 18:04:06 bmy Exp $
+! $Id: CO_strat_pl.f,v 1.3 2005/03/29 15:52:38 bmy Exp $
       SUBROUTINE CO_STRAT_PL( COPROD, COLOSS )
 !
 !******************************************************************************
@@ -41,7 +41,7 @@
       REAL*4,  INTENT(IN) :: COLOSS(JJPAR,LLPAR)
 
       ! Local variables
-      INTEGER             :: I, J, L, M, N
+      INTEGER             :: I, J, L, M, N, LMIN
 
       REAL*8              :: BAIRDENS, DT, GCO, STTTOGCO
 
@@ -78,6 +78,7 @@
 
          ! Skip tropospheric grid boxes
          IF ( L < LPAUSE(I,J) ) CYCLE
+         !IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
 
          ! conversion factor from [kg/box] to [molec/cm3]
          STTTOGCO = 6.022d23 / ( 28d-3 * BOXVL(I,J,L) )

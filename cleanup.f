@@ -1,9 +1,9 @@
-! $Id: cleanup.f,v 1.9 2005/02/10 19:53:24 bmy Exp $
+! $Id: cleanup.f,v 1.10 2005/03/29 15:52:40 bmy Exp $
       SUBROUTINE CLEANUP
 !
 !******************************************************************************
 !  Subroutine CLEANUP deallocates the memory assigned to dynamic allocatable 
-!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 1/21/05)
+!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 2/17/05)
 !
 !  NOTES:
 !  (1 ) CLEANUP is written in Fixed-Format F90.
@@ -58,6 +58,8 @@
 !  (27) Now call CLEANUP_MERCURY from "mercury_mod.f" (eck, bmy, 12/7/04)
 !  (28) Now call CLEANUP_OCEAN_MERCURY from "ocean_mercury_mod.f".  Also
 !        reordered the calling sequence. (sas, bmy, 1/21/05)
+!  (29) Now call CLEANUP_PBL_MIX from "pbl_mix_mod.f".  Now call CLEANUP_DIAG41
+!        from "diag41_mod.f". (bmy, 2/17/05)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -72,6 +74,7 @@
       USE DAO_MOD,           ONLY : CLEANUP_DAO
       USE DIAG_MOD,          ONLY : CLEANUP_DIAG
       USE DIAG03_MOD,        ONLY : CLEANUP_DIAG03
+      USE DIAG41_MOD,        ONLY : CLEANUP_DIAG41
       USE DIAG50_MOD,        ONLY : CLEANUP_DIAG50
       USE DIAG51_MOD,        ONLY : CLEANUP_DIAG51
       USE DIAG_OH_MOD,       ONLY : CLEANUP_DIAG_OH
@@ -89,6 +92,7 @@
       USE LIGHTNING_NOX_MOD, ONLY : CLEANUP_LIGHTNING_NOX
       USE MERCURY_MOD,       ONLY : CLEANUP_MERCURY
       USE OCEAN_MERCURY_MOD, ONLY : CLEANUP_OCEAN_MERCURY
+      USE PBL_MIX_MOD,       ONLY : CLEANUP_PBL_MIX
       USE PJC_PFIX_MOD,      ONLY : CLEANUP_PJC_PFIX
       USE PLANEFLIGHT_MOD,   ONLY : CLEANUP_PLANEFLIGHT
       USE PRESSURE_MOD,      ONLY : CLEANUP_PRESSURE
@@ -121,6 +125,7 @@
       CALL CLEANUP_DAO
       CALL CLEANUP_DIAG
       CALL CLEANUP_DIAG03
+      CALL CLEANUP_DIAG41
       CALL CLEANUP_DIAG50
       CALL CLEANUP_DIAG51
       CALL CLEANUP_DIAG_OH
@@ -138,6 +143,7 @@
       CALL CLEANUP_LIGHTNING_NOX
       CALL CLEANUP_MERCURY
       CALL CLEANUP_OCEAN_MERCURY
+      CALL CLEANUP_PBL_MIX
       CALL CLEANUP_PJC_PFIX
       CALL CLEANUP_PLANEFLIGHT
       CALL CLEANUP_PRESSURE

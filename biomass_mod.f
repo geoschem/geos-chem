@@ -1,10 +1,10 @@
-! $Id: biomass_mod.f,v 1.6 2004/12/16 16:52:43 bmy Exp $
+! $Id: biomass_mod.f,v 1.7 2005/03/29 15:52:39 bmy Exp $
       MODULE BIOMASS_MOD
 !
 !******************************************************************************
 !  Module BIOMASS_MOD contains arrays and routines to compute monthly
 !  biomass burning emissions for NOx, CO, ALK4, ACET, MEK, ALD2, PRPE, 
-!  C3H8, CH2O, C2H6, CH4, and CH3I. (bmy, 9/11/00, 12/1/04)
+!  C3H8, CH2O, C2H6, CH4, and CH3I. (bmy, 9/11/00, 3/18/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -142,6 +142,7 @@
 !        Fixed bug in BIOBURN when passing arrays BIOMASS_SEA and BIOMASS_ANN
 !        to routine READ_BIOMASS. (bmy, 4/28/03)
 !  (26) Now references "directory_mod.f" & "logical_mod.f" (bmy, 7/20/04)
+!  (27) Bug fix in BIOBURN for TAU w/ interannual emissions (bmy, 3/18/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -195,7 +196,7 @@
 !
 !******************************************************************************
 !  Subroutine BIOBURN computes the biomass burning emissions for several
-!  species for the given month (jal, acs, rvm, bmy, 9/11/00, 5/16/03)
+!  species for the given month (jal, acs, rvm, bmy, 9/11/00, 3/18/05)
 !
 !  NOTES:
 !  (1 ) Incorporated original functionality of "bioburn.f" and "biomass.h"
@@ -259,6 +260,10 @@
 !  (22) Removed reference to CMN, it's obsolete.  Now reference DATA_DIR from
 !        "directory_mod.f".  Now references LBBSEA and LTOMSAI from
 !        "logical_mod.f". (bmy, 7/20/04)
+!  (23) Bug fix: if using interannual biomass emissions then get the TAU value
+!         for the first of the current month & year.  This will make sure that
+!         runs which start mid-month will access the biomass data correctly.
+!         (bmy, 3/18/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -512,8 +517,17 @@
          !==============================================================
          ELSE IF ( ( .not. LBBSEA ) .and. ( .not. LTOMSAI ) ) THEN
 
-            ! Use actual TAU0 value to index punch file
-            XTAU = GET_TAU()
+            !--------------------------------------------------------------
+            ! Prior to 3/18/05:
+            ! Need to get the TAU0 value for the first day of the current 
+            ! month and year so that runs which don't start on the first 
+            ! day of the month won't die (bmy, 3/18/05)
+            !! Use actual TAU0 value to index punch file
+            !XTAU = GET_TAU()
+            !---------------------------------------------------------------
+
+            ! TAU0 value for 0 GMT on the first day of this month & year
+            XTAU = GET_TAU0( GET_MONTH(), 1, GET_YEAR() )
 
             ! Filename for interannual variability biomass burning emissions
             FILENAME = TRIM( DATA_DIR ) // TRIM( BIOMASS_DIR ) //      

@@ -1,4 +1,4 @@
-! $Id: CMN_DIAG,v 1.9 2005/02/10 19:53:21 bmy Exp $
+! $Id: CMN_DIAG,v 1.10 2005/03/29 15:52:38 bmy Exp $
 ! 
 ! NOTES:
 ! (1 ) Changed RCS ID tag comment character from "C" to "!" to allow freeform
@@ -37,6 +37,7 @@
       ! Changed PD07 to 12 (bmy, 7/15/04)
       ! Changed PD21 to 26 (bmy, 1/5/05)
       ! Removed PD03 -- now in "diag03_mod.f" (bmy, 1/21/05)
+      ! Removed PD41 -- now in "diag41_mod.f" (bmy, 1/21/05)
       INTEGER, PARAMETER :: PD01=3            
       INTEGER, PARAMETER :: PD02=3
       INTEGER, PARAMETER :: PD04=0
@@ -76,7 +77,6 @@
       INTEGER, PARAMETER :: PD38=4 
       INTEGER, PARAMETER :: PD39=4            
       INTEGER, PARAMETER :: PD40=4       
-      INTEGER, PARAMETER :: PD41=2     
       INTEGER, PARAMETER :: PD42=0           
       INTEGER, PARAMETER :: PD43=5           
       INTEGER, PARAMETER :: PD44=30
@@ -131,7 +131,7 @@
      &   ND11, ND12, ND13, ND14, ND15, ND16, ND17, ND18, ND19, ND20,        
      &   ND21, ND22, ND23, ND24, ND25, ND26, ND27, ND28, ND29, ND30,     
      &   ND31, ND32, ND33, ND34, ND35, ND36, ND37, ND38, ND39, ND40,     
-     &   ND41, ND42, ND43, ND44, ND45, ND46, ND47, ND48, ND49, ND50,    
+     &         ND42, ND43, ND44, ND45, ND46, ND47, ND48, ND49, ND50,    
      &   ND51, ND52, ND53, ND54, ND55, ND56, ND57, ND58, ND59, ND60,     
      &   ND61, ND62, ND63, ND64, ND65, ND66, ND67, ND68, ND69, ND70,     
      &   ND71, ND72, ND73, ND74, ND75
@@ -141,7 +141,7 @@
      &   ND11, ND12, ND13, ND14, ND15, ND16, ND17, ND18, ND19, ND20,      
      &   ND21, ND22, ND23, ND24, ND25, ND26, ND27, ND28, ND29, ND30,     
      &   ND31, ND32, ND33, ND34, ND35, ND36, ND37, ND38, ND39, ND40,     
-     &   ND41, ND42, ND43, ND44, ND45, ND46, ND47, ND48, ND49, ND50,    
+     &         ND42, ND43, ND44, ND45, ND46, ND47, ND48, ND49, ND50,    
      &   ND51, ND52, ND53, ND54, ND55, ND56, ND57, ND58, ND59, ND60,     
      &   ND61, ND62, ND63, ND64, ND65, ND66, ND67, ND68, ND69, ND70,     
      &   ND71, ND72, ND73, ND74, ND75

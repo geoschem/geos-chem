@@ -1,9 +1,9 @@
-! $Id: a6_read_mod.f,v 1.9 2004/12/02 21:48:32 bmy Exp $
+! $Id: a6_read_mod.f,v 1.10 2005/03/29 15:52:39 bmy Exp $
       MODULE A6_READ_MOD
 !
 !******************************************************************************
 !  Module A6_READ_MOD contains subroutines that unzip, open, and read
-!  GEOS-CHEM A-3 (avg 3-hour) met fields from disk. (bmy, 6/19/03, 7/20/04)
+!  GEOS-CHEM A-3 (avg 3-hour) met fields from disk. (bmy, 6/19/03, 3/23/05)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -40,6 +40,7 @@
 !  (6 ) Now modified for GEOS-4 "a_llk_03" and "a_llk_04" data (bmy, 3/4/04)
 !  (7 ) Now references "unix_cmds_mod.f", "directory_mod.f" and
 !        "logical_mod.f" (bmy, 7/20/04)
+!  (8 ) Now references FILE_EXISTS from "file_mod.f" (bmy, 3/23/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -296,6 +297,8 @@
 !  (4 ) Now references "directory_mod.f" instead of CMN_SETUP.  Also now
 !        references LUNZIP from "logical_mod.f".  Also now prevents EXPAND_DATE
 !        from overwriting Y/M/D tokens in directory paths. (bmy, 7/20/04)
+!  (5 ) Now use FILE_EXISTS from "file_mod.f" to determine if file unit IU_A6 
+!        refers to a valid file on disk (bmy, 3/23/05)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -303,22 +306,22 @@
       USE DIRECTORY_MOD
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE LOGICAL_MOD,  ONLY : LUNZIP
-      USE FILE_MOD,     ONLY : IU_A6, IOERROR
+      USE FILE_MOD,     ONLY : IU_A6, IOERROR, FILE_EXISTS
       USE TIME_MOD,     ONLY : EXPAND_DATE
 
-#     include "CMN_SIZE"           ! Size parameters
+#     include "CMN_SIZE"     ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN) :: NYMD, NHMS
+      INTEGER, INTENT(IN)   :: NYMD, NHMS
 
       ! Local variables
-      LOGICAL, SAVE       :: FIRST = .TRUE.
-      LOGICAL             :: IT_EXISTS
-      INTEGER             :: IOS, IUNIT
-      CHARACTER(LEN=8)    :: IDENT
-      CHARACTER(LEN=255)  :: A6_FILE
-      CHARACTER(LEN=255)  :: GEOS_DIR
-      CHARACTER(LEN=255)  :: PATH
+      LOGICAL, SAVE         :: FIRST = .TRUE.
+      LOGICAL               :: IT_EXISTS
+      INTEGER               :: IOS, IUNIT
+      CHARACTER(LEN=8)      :: IDENT
+      CHARACTER(LEN=255)    :: A6_FILE
+      CHARACTER(LEN=255)    :: GEOS_DIR
+      CHARACTER(LEN=255)    :: PATH
 
       !=================================================================
       ! OPEN_A6_FIELDS begins here!
@@ -369,11 +372,17 @@
          ! Close previously opened A-3 file
          CLOSE( IU_A6 )
 
-         ! Make sure the file exists before we open it!
-         ! Maybe make this a function in ERROR_MOD (bmy, 6/19/03)
-         INQUIRE( IU_A6, EXIST=IT_EXISTS )
-            
-         IF ( .not. IT_EXISTS ) THEN
+         !------------------------------------------------------------------
+         ! Prior to 3/23/05:
+         !! Make sure the file exists before we open it!
+         !! Maybe make this a function in ERROR_MOD (bmy, 6/19/03)
+         !INQUIRE( IU_A6, EXIST=IT_EXISTS )
+         !
+         !IF ( .not. IT_EXISTS ) THEN
+         !------------------------------------------------------------------
+
+         ! Make sure the file unit is valid before we open the file
+         IF ( .not. FILE_EXISTS( IU_A6 ) ) THEN
             CALL ERROR_STOP( 'Could not find file!', 
      &                       'OPEN_A6_FIELDS (a6_read_mod.f)' )
          ENDIF

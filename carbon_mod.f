@@ -1,10 +1,10 @@
- ! $Id: carbon_mod.f,v 1.9 2005/02/10 19:53:23 bmy Exp $
+ ! $Id: carbon_mod.f,v 1.10 2005/03/29 15:52:39 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
 !  Module CARBON_MOD contains arrays and routines for performing a 
 !  carbonaceous aerosol simulation.  Original code taken from Mian Chin's 
-!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 1/18/05)
+!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 3/4/05)
 !
 !  4 Aerosol species : Organic and Black carbon 
 !                    : hydrophilic (soluble) and hydrophobic of each
@@ -98,22 +98,23 @@
 !
 !  GEOS-CHEM modules referenced by carbon_mod.f
 !  ============================================================================
-!  (1 ) bpch2_mod.f      : Module containing routines for binary punch file I/O
-!  (2 ) dao_mod.f        : Module containing arrays for DAO met fields
-!  (3 ) diag_mod.f       : Module containing GEOS-CHEM diagnostic arrays
-!  (4 ) directory_mod.f  : Module containing GEOS-CHEM data & met field dirs
-!  (5 ) drydep_mod.f     : Module containing routines for dry deposition
-!  (6 ) error_mod.f      : Module containing I/O error and NaN check routines
-!  (7 ) global_no3_mod.f : Module containing routines to read 3-D NO3 field
-!  (8 ) global_oh_mod.f  : Module containing routines to read 3-D OH  field
-!  (9 ) global_o3_mod.f  : Module containing routines to read 3-D O3  field
-!  (10) grid_mod.f       : Module containing horizontal grid information
-!  (11) logical_mod.f    : Module containing GEOS-CHEM logical switches
-!  (12) pressure_mod.f   : Module containing routines to compute P(I,J,L)
-!  (13) time_mod.f       : Module containing routines for computing time & date
-!  (14) tracer_mod.f     : Module containing GEOS-CHEM tracer array STT etc. 
-!  (15) tracerid_mod.f   : Module containing pointers to tracers & emissions
-!  (16) transfer_mod.f   : Module containing routines to cast & resize arrays
+!  (1 ) bpch2_mod.f        : Module w/ routines for binary punch file I/O
+!  (2 ) dao_mod.f          : Module w/ arrays for DAO met fields
+!  (3 ) diag_mod.f         : Module w/ GEOS-CHEM diagnostic arrays
+!  (4 ) directory_mod.f    : Module w/ GEOS-CHEM data & met field dirs
+!  (5 ) drydep_mod.f       : Module w/ routines for dry deposition
+!  (6 ) error_mod.f        : Module w/ I/O error and NaN check routines
+!  (7 ) global_no3_mod.f   : Module w/ routines to read 3-D NO3 field
+!  (8 ) global_oh_mod.f    : Module w/ routines to read 3-D OH  field
+!  (9 ) global_o3_mod.f    : Module w/ routines to read 3-D O3  field
+!  (10) grid_mod.f         : Module w/ horizontal grid information
+!  (11) logical_mod.f      : Module w/ GEOS-CHEM logical switches
+!  (12) pbl_mix_mod.f      : Module w/ routines for PBL height & mixing
+!  (13) pressure_mod.f     : Module w/ routines to compute P(I,J,L)
+!  (14) time_mod.f         : Module w/ routines for computing time & date
+!  (15) tracer_mod.f       : Module w/ GEOS-CHEM tracer array STT etc. 
+!  (16) tracerid_mod.f     : Module w/ pointers to tracers & emissions
+!  (17) transfer_mod.f     : Module w/ routines to cast & resize arrays
 !
 !  NOTES:
 !  (1 ) Added code from the Caltech group for SOA chemistry (rjp, bmy, 7/15/04)
@@ -126,6 +127,8 @@
 !        (rjp, bmy, 12/1/04)
 !  (4 ) Now can read seasonal or interannual BCPO, OCPO biomass emissions.
 !        Also parallelize loop in OHNO3TIME. (rjp, bmy, 1/18/05)
+!  (5 ) Now references "pbl_mix_mod.f".  Bug fix: now make sure only to save
+!        up to LD07 levels for the ND07 diagnostic in SOA_LUMP. (bmy, 3/4/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -347,7 +350,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_BCPO converts hydrophobic BC to hydrophilic BC and
-!  calculates the dry deposition of hydrophobic BC. (rjp, bmy, 4/1/04, 7/20/04)
+!  calculates the dry deposition of hydrophobic BC. (rjp, bmy, 4/1/04, 2/17/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -355,13 +358,20 @@
 !
 !  NOTES:
 !  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
+!  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP 
+!        from "pbl_mix_mod.f" (bmy, 2/17/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44, AD07_BC 
-      USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
+      !-----------------------------------------------
+      ! Prior to 2/17/05:
+      !USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
+      !-----------------------------------------------
+      USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
       USE TRACERID_MOD, ONLY : IDTBCPO
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
@@ -378,7 +388,6 @@
       REAL*8                 :: DTCHEM, FLUX, KBC, FREQ
       REAL*8                 :: TC0,    CNEW, RKT, AREA_CM2, BL_FRAC
       REAL*8,  PARAMETER     :: BC_LIFE = 1.15D0
-
 
       !=================================================================
       ! CHEM_BCPO begins here!
@@ -433,18 +442,24 @@
          ! Zero drydep freq
          FREQ = 0d0
 
-         ! PBLFRAC is only defined up to the tropopause, but we need to 
-         ! do the conversion from H-philic to H-phobic at all levels
-         IF ( L > LLTROP ) THEN
-            BL_FRAC = 0d0
-         ELSE
-            BL_FRAC = PBLFRAC(I,J,L)
-         ENDIF
+         !------------------------------------------------------------------
+         ! Prior to 2/17/05:
+         !! PBLFRAC is only defined up to the tropopause, but we need to 
+         !! do the conversion from H-philic to H-phobic at all levels
+         !IF ( L > LLTROP ) THEN
+         !   BL_FRAC = 0d0
+         !ELSE
+         !   BL_FRAC = PBLFRAC(I,J,L)
+         !ENDIF
+         !------------------------------------------------------------------
+
+         ! Fraction of grid box underneath PBL top [unitless]
+         BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
 
          ! Only apply drydep to boxes w/in the PBL
          IF ( BL_FRAC > 0d0 ) THEN
 
-            ! BC drydep frequency [1/s] -- PBLFRAC accounts for the fraction
+            ! BC drydep frequency [1/s] -- BL_FRAC accounts for the fraction
             ! of each grid box (I,J,L) that is located beneath the PBL top
             FREQ = DEPSAV(I,J,DRYBCPO) * BL_FRAC
 
@@ -518,7 +533,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_BCPI calculates dry deposition of hydrophilic BC.
-!  (rjp, bmy, 4/1/04, 7/20/04)
+!  (rjp, bmy, 4/1/04, 2/17/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -526,13 +541,20 @@
 ! 
 !  NOTES:
 !  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
+!  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
+!        "pbl_mix_mod.f" (bmy, 2/17/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44 
-      USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
+      !---------------------------------------------
+      ! Prior to 2/17/05:
+      !USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
+      !---------------------------------------------
+      USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
       USE TRACERID_MOD, ONLY : IDTBCPI
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
@@ -588,13 +610,19 @@
          ! H-philic BC that used to be H-phobic BC [kg]
          CCV = BCCONV(I,J,L)
          
-         ! PBLFRAC is only defined up to the tropopause, but we need to 
-         ! do the conversion from H-philic to H-phobic everywhere
-         IF ( L > LLTROP ) THEN
-            BL_FRAC = 0d0
-         ELSE
-            BL_FRAC = PBLFRAC(I,J,L)
-         ENDIF
+         !-------------------------------------------------------------------
+         ! Prior to 2/17/05:
+         !! PBLFRAC is only defined up to the tropopause, but we need to 
+         !! do the conversion from H-philic to H-phobic everywhere
+         !IF ( L > LLTROP ) THEN
+         !   BL_FRAC = 0d0
+         !ELSE
+         !   BL_FRAC = PBLFRAC(I,J,L)
+         !ENDIF
+         !-------------------------------------------------------------------
+
+         ! Fraction of grid box under the PBL top [unitless]
+         BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L ) 
 
          ! Only apply drydep to boxes w/in the PBL
          IF ( BL_FRAC > 0d0 ) THEN
@@ -693,7 +721,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_OCPO converts hydrophobic OC to hydrophilic OC and
-!  calculates the dry deposition of hydrophobic OC. (rjp, bmy, 4/1/04, 7/20/04)
+!  calculates the dry deposition of hydrophobic OC. (rjp, bmy, 4/1/04, 2/17/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -701,13 +729,20 @@
 !
 !  NOTES:
 !  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
+!  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
+!        "pbl_mix_mod.f" (bmy, 2/17/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44, AD07_OC 
-      USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
+      !----------------------------------------------
+      ! Prior to 2/17/05:
+      !USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
+      !----------------------------------------------
+      USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
       USE TRACERID_MOD, ONLY : IDTOCPO
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
@@ -777,18 +812,24 @@
          ! Zero drydep freq 
          FREQ = 0d0
 
-         ! PBLFRAC is only defined up to the tropopause, but we need to 
-         ! do the conversion from H-philic to H-phobic everywhere
-         IF ( L > LLTROP ) THEN
-            BL_FRAC = 0d0
-         ELSE
-            BL_FRAC = PBLFRAC(I,J,L)
-         ENDIF
+         !------------------------------------------------------------------
+         ! Prior to 2/17/05:
+         !! PBLFRAC is only defined up to the tropopause, but we need to 
+         !! do the conversion from H-philic to H-phobic everywhere
+         !IF ( L > LLTROP ) THEN
+         !   BL_FRAC = 0d0
+         !ELSE
+         !   BL_FRAC = PBLFRAC(I,J,L)
+         !ENDIF
+         !------------------------------------------------------------------
+
+         ! Fraction of grid box under the PBL top [unitless]
+         BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
 
          ! Only apply drydep to boxes w/in the PBL
          IF ( BL_FRAC > 0d0 ) THEN
 
-            ! OC drydep frequency [1/s] -- PBLFRAC accounts for the fraction
+            ! OC drydep frequency [1/s] -- BL_FRAC accounts for the fraction
             ! of each grid box (I,J,L) that is located beneath the PBL top
             FREQ = DEPSAV(I,J,DRYOCPO) * BL_FRAC
 
@@ -863,7 +904,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_BCPI calculates dry deposition of hydrophilic OC.
-!  (rjp, bmy, 4/1/04, 7/20/04)
+!  (rjp, bmy, 4/1/04, 2/17/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -871,13 +912,20 @@
 ! 
 !  NOTES:
 !  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
+!  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
+!        "pbl_mix_mod.f" (bmy, 2/17/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44 
-      USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
+      !----------------------------------------------
+      ! Prior to 2/17/05
+      !USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
+      !----------------------------------------------
+      USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
       USE TRACERID_MOD, ONLY : IDTOCPI
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
@@ -931,13 +979,19 @@
          ! H-philic OC that used to be H-phobic OC [kg]
          CCV = OCCONV(I,J,L)
 
-         ! PBLFRAC is only defined up to the tropopause, but we need to 
-         ! do the conversion from H-philic to H-phobic everywhere
-         IF ( L > LLTROP ) THEN
-            BL_FRAC = 0d0
-         ELSE
-            BL_FRAC = PBLFRAC(I,J,L)
-         ENDIF
+         !------------------------------------------------------------------
+         ! Prior to 2/17/05:
+         !! PBLFRAC is only defined up to the tropopause, but we need to 
+         !! do the conversion from H-philic to H-phobic everywhere
+         !IF ( L > LLTROP ) THEN
+         !   BL_FRAC = 0d0
+         !ELSE
+         !   BL_FRAC = PBLFRAC(I,J,L)
+         !ENDIF
+         !------------------------------------------------------------------
+
+         ! Fraction of box under the PBL top [unitless]
+         BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
 
          ! Only apply drydep to boxes w/in the PBL
          IF ( BL_FRAC > 0d0 ) THEN
@@ -2001,7 +2055,7 @@ c
 !
 !******************************************************************************
 !  Subroutine SOA_LUMP returns the organic gas and aerosol back to the
-!  STT array.  (rjp, bmy, 7/7/04, 7/20/04)
+!  STT array.  (rjp, bmy, 7/7/04, 3/4/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -2013,15 +2067,17 @@ c
 ! 
 !  NOTES:
 !  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
+!  (2 ) Bug fix: make sure L <= LD07 before saving into AD07 array, or else
+!        we will get an out-of-bounds error. (bmy, 3/4/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD,     ONLY : AD07_HC 
-      USE TRACER_MOD,   ONLY : STT
+      USE DIAG_MOD,    ONLY : AD07_HC 
+      USE TRACER_MOD,  ONLY : STT
       USE TRACERID_MOD
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND44
+#     include "CMN_SIZE"    ! Size parameters
+#     include "CMN_DIAG"    ! ND44, ND07, LD07
       
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J, L
@@ -2050,7 +2106,11 @@ c
       !----------------------------
       ! SOA1 net Production (kg)
       !----------------------------
-      IF ( ND07 > 0 ) THEN
+      !-----------------------
+      ! Prior to 3/4/05:
+      !IF ( ND07 > 0 ) THEN
+      !-----------------------
+      IF ( ND07 > 0 .and. L <= LD07 ) THEN
          AD07_HC(I,J,L,1) = AD07_HC(I,J,L,1)
      &                    + ( AERMASS - STT(I,J,L,IDTSOA1) )
       ENDIF
@@ -2102,7 +2162,11 @@ c
       !---------------------------
       ! SOA2 net Production (kg)
       !---------------------------
-      IF ( ND07 > 0 ) THEN
+      !------------------------
+      ! Prior to 3/4/05:
+      !IF ( ND07 > 0 ) THEN
+      !------------------------
+      IF ( ND07 > 0 .and. L <= LD07 ) THEN
          AD07_HC(I,J,L,2) = AD07_HC(I,J,L,2)
      &                    + ( AERMASS - STT(I,J,L,IDTSOA2) )
       ENDIF
@@ -2145,7 +2209,11 @@ c
       !---------------------------
       ! SOA3 net Production (kg)
       !---------------------------
-      IF ( ND07 > 0 ) THEN
+      !-----------------------
+      ! Prior to 3/4/05:
+      !IF ( ND07 > 0 ) THEN
+      !-----------------------
+      IF ( ND07 > 0 .and. L <= LD07 ) THEN
          AD07_HC(I,J,L,3) = AD07_HC(I,J,L,3)
      &                    + ( AERMASS - STT(I,J,L,IDTSOA3) )
       ENDIF
@@ -2187,7 +2255,7 @@ c
 !
 !******************************************************************************
 !  Subroutine SOA_DEPO computes dry-deposition of a particular SOA species.
-!  (rjp, bmy, 7/8/04, 7/20/04)
+!  (rjp, bmy, 7/8/04, 2/17/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -2197,13 +2265,20 @@ c
 ! 
 !  NOTES:
 !  (1 ) Remove reference to CMN, it's obsolete (bmy, 7/20/04)
+!  (2 ) Replace PBLFRAC from "drydep_mod.f" with  GET_FRAC_UNDER_PBLTOP from 
+!        "pbl_mix_mod.f" (bmy, 2/17/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44 
-      USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
+      !-----------------------------------------------
+      ! Prior to 2/17/05:
+      !USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
+      !-----------------------------------------------
+      USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
 #     include "CMN_SIZE"     ! Size parameters
@@ -2256,12 +2331,17 @@ c
          ! Initial SOA [kg]
          TC0 = TC(I,J,L)
 
-         ! PBLFRAC is only defined up to the tropopause
-         IF ( L > LLTROP ) THEN
-            BL_FRAC = 0d0
-         ELSE
-            BL_FRAC = PBLFRAC(I,J,L)
-         ENDIF
+         !------------------------------------------------------
+         !! PBLFRAC is only defined up to the tropopause
+         !IF ( L > LLTROP ) THEN
+         !   BL_FRAC = 0d0
+         !ELSE
+         !   BL_FRAC = PBLFRAC(I,J,L)
+         !ENDIF
+         !------------------------------------------------------
+
+         ! Fraction of box under the PBL top [unitless]
+         BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
 
          ! Only apply drydep to boxes w/in the PBL
          IF ( BL_FRAC > 0d0 ) THEN
@@ -3707,7 +3787,7 @@ c
 !
 !******************************************************************************
 !  Subroutine EMITHIGH mixes tracer completely from the surface to the PBL
-!  top. (rjp, bmy, 4/2/04, 7/8/04)
+!  top. (rjp, bmy, 4/2/04, 2/17/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -3717,18 +3797,31 @@ c
 !  NOTES:
 !  (1 ) Now also mix ALPH, LIMO, ALCO tracers (rjp, bmy, 7/8/04)
 !  (2 ) Now reference STT from "tracer_mod.f" (bmy, 7/20/04)
+!  (3 ) Remove references to "dao_mod.f", "pressure_mod.f", and "error_mod.f".
+!        Rewrote for computational expediency using routines from
+!        "pbl_mix_mod.f".  (bmy, 2/17/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : PBL
-      USE ERROR_MOD,    ONLY : ERROR_STOP
+      !-------------------------------------------
+      ! Prior to 2/17/05:
+      !USE DAO_MOD,      ONLY : PBL
+      !USE ERROR_MOD,    ONLY : ERROR_STOP
+      !-------------------------------------------
+      USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO, 
      &                         IDTALPH, IDTLIMO, IDTALCO
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
+      !------------------------------------------
+      ! Prior to 2/17/05:
+      !USE PRESSURE_MOD, ONLY : GET_PEDGE
+      !------------------------------------------
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_GCTM"  ! SCALE_HEIGHT
+!-----------------------------------------------
+! Prior to 2/17/05;
+!#     include "CMN_GCTM"  ! SCALE_HEIGHT
+!-----------------------------------------------
 
       ! Arguments
       REAL*8, INTENT(IN) :: BCSRC(IIPAR,JJPAR,2)
@@ -3737,9 +3830,13 @@ c
       ! Local variables
       LOGICAL            :: IS_BCPO, IS_OCPO, IS_BCPI, IS_OCPI
       LOGICAL            :: IS_ALPH, IS_LIMO, IS_ALCO
-      INTEGER            :: I,       J,       L
-      REAL*8             :: BLTOP,   BLTHIK,  FTOT,    PB
-      REAL*8             :: PT,      DELP,    FEMIS
+      INTEGER            :: I,       J,       L,       PBL_MAX
+      !------------------------------------------------------------
+      ! Prior to 2/17/05:
+      !REAL*8             :: BLTOP,   BLTHIK,  FTOT,    PB
+      !REAL*8             :: PT,      DELP,    FEMIS
+      !------------------------------------------------------------
+      REAL*8             :: F_OF_PBL
 
       !=================================================================
       ! EMITHIGH begins here!
@@ -3754,129 +3851,202 @@ c
       IS_LIMO = ( IDTLIMO > 0 )
       IS_ALCO = ( IDTALCO > 0 )
 
+      ! Maximum extent of PBL [model levels]
+      PBL_MAX = GET_PBL_MAX_L()
+
+!------------------------------------------------------------------------------
+! Prior to 2/17/05:
+! Rewrite using routines from "pbl_mix_mod.f" for expediency
+!      !=================================================================
+!      ! Compute FEMIS -- fraction of box (I,J,L) w/in the PBL
+!      !=================================================================
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, FTOT, BLTOP, BLTHIK, L, PB, PT, DELP, FEMIS )
+!!$OMP+SCHEDULE( DYNAMIC )
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!
+!         ! Initialize
+!         FTOT  = 0d0
+!         FEMIS = 0d0
+!
+!#if   defined( GEOS_4 )
+!
+!         ! BLTOP = pressure at PBL top [hPa]
+!         ! Use barometric law since PBL is in [m]
+!         BLTOP  = GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT )
+!
+!         ! BLTHIK is PBL thickness [hPa]
+!         BLTHIK = GET_PEDGE(I,J,1) - BLTOP
+!
+!#else
+!
+!         ! BLTOP = pressure of PBL top [hPa]
+!         BLTOP  = GET_PEDGE(I,J,1) - MAX( PBL(I,J), 1.D0 )
+!
+!         ! BLTHIK is PBL thickness [hPa]
+!         BLTHIK = MAX( PBL(I,J), 1.D0 )
+!
+!#endif
+!
+!         !==============================================================
+!         ! Loop thru tropospheric levels
+!         !==============================================================
+!         DO L = 1, LLTROP
+!
+!            ! Pressure at edges of grid box(I,J,L) [hPa]
+!            PB   = GET_PEDGE(I,J,L)
+!            PT   = GET_PEDGE(I,J,L+1)
+!
+!            ! Thickness of grid box (I,J,L) [hPa]
+!            DELP = PB - PT
+!
+!            ! FEMIS is the fraction of the PBL 
+!            ! which is occupied by this level L
+!            IF ( BLTOP <= PT )  THEN
+!               FEMIS = DELP / BLTHIK
+!
+!            ELSEIF ( BLTOP > PT .AND. BLTOP <= PB ) THEN
+!               FEMIS = ( PB - BLTOP ) / BLTHIK
+!
+!            ELSEIF ( BLTOP > PB ) THEN
+!               CYCLE      
+! 
+!            ENDIF
+!            
+!            ! Fraction of data partitioned into 
+!            ! each level should sum to 1.0
+!            FTOT = FTOT + FEMIS
+!
+!            !===========================================================
+!            ! Partition organic tracers equally throughout the 
+!            ! boundary layer -- store back into STT array
+!            !===========================================================
+!
+!            ! Hydrophilic BLACK CARBON
+!            IF ( IS_BCPI ) THEN
+!               STT(I,J,L,IDTBCPI) = STT(I,J,L,IDTBCPI) + 
+!     &                              ( FEMIS * BCSRC(I,J,1) )
+!            ENDIF
+!
+!            ! Hydrophilic ORGANIC CARBON
+!            IF ( IS_OCPI ) THEN
+!               STT(I,J,L,IDTOCPI) = STT(I,J,L,IDTOCPI) + 
+!     &                              ( FEMIS * OCSRC(I,J,1) )
+!            ENDIF
+!            
+!            ! Hydrophobic BLACK CARBON
+!            IF ( IS_BCPO ) THEN
+!               STT(I,J,L,IDTBCPO) = STT(I,J,L,IDTBCPO) + 
+!     &                              ( FEMIS * BCSRC(I,J,2) )
+!            ENDIF
+!
+!            ! Hydrophobic ORGANIC CARBON
+!            IF ( IS_OCPO ) THEN
+!               STT(I,J,L,IDTOCPO) = STT(I,J,L,IDTOCPO) + 
+!     &                              ( FEMIS * OCSRC(I,J,2) )
+!            ENDIF
+!
+!            ! ALPHA-PINENE
+!            IF ( IS_ALPH ) THEN
+!               STT(I,J,L,IDTALPH) = STT(I,J,L,IDTALPH) + 
+!     &                              ( FEMIS * BIOG_ALPH(I,J) )
+!            ENDIF
+!
+!            ! LIMONENE
+!            IF ( IS_LIMO ) THEN
+!               STT(I,J,L,IDTLIMO) = STT(I,J,L,IDTLIMO) + 
+!     &                              ( FEMIS * BIOG_LIMO(I,J) )
+!
+!               ORVC_TERP(I,J,L)   = ORVC_TERP(I,J,L) + 
+!     &                              ( FEMIS * BIOG_TERP(I,J) )
+!            ENDIF
+!
+!            ! ALCOHOL and SESQTERPENE (not a tracer)
+!            IF ( IS_ALCO ) THEN
+!               STT(I,J,L,IDTALCO) = STT(I,J,L,IDTALCO) + 
+!     &                              ( FEMIS * BIOG_ALCO(I,J) )
+!               
+!               ORVC_SESQ(I,J,L)   = ORVC_SESQ(I,J,L) + 
+!     &                              ( FEMIS * BIOG_SESQ(I,J) )
+!            ENDIF
+!
+!         ENDDO
+!
+!         ! Error check
+!         IF ( ABS( FTOT - 1.d0 ) > 1.d-3 ) THEN
+!            CALL ERROR_STOP( 'Check vertical. distribution!',
+!     &                       'EMITHIGH ("carbon_mod.f")' )
+!         ENDIF
+!
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!------------------------------------------------------------------------------
+
       !=================================================================
-      ! Compute FEMIS -- fraction of box (I,J,L) w/in the PBL
+      ! Partition emissions throughout the boundary layer
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, FTOT, BLTOP, BLTHIK, L, PB, PT, DELP, FEMIS )
-!$OMP+SCHEDULE( DYNAMIC )
+!$OMP+PRIVATE( I, J, L, F_OF_PBL )
+      DO L = 1, PBL_MAX
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Initialize
-         FTOT  = 0d0
-         FEMIS = 0d0
+         ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
+         F_OF_PBL = GET_FRAC_OF_PBL( I, J, L )
 
-#if   defined( GEOS_4 )
-
-         ! BLTOP = pressure at PBL top [hPa]
-         ! Use barometric law since PBL is in [m]
-         BLTOP  = GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT )
-
-         ! BLTHIK is PBL thickness [hPa]
-         BLTHIK = GET_PEDGE(I,J,1) - BLTOP
-
-#else
-
-         ! BLTOP = pressure of PBL top [hPa]
-         BLTOP  = GET_PEDGE(I,J,1) - MAX( PBL(I,J), 1.D0 )
-
-         ! BLTHIK is PBL thickness [hPa]
-         BLTHIK = MAX( PBL(I,J), 1.D0 )
-
-#endif
-
-         !==============================================================
-         ! Loop thru tropospheric levels
-         !==============================================================
-         DO L = 1, LLTROP
-
-            ! Pressure at edges of grid box(I,J,L) [hPa]
-            PB   = GET_PEDGE(I,J,L)
-            PT   = GET_PEDGE(I,J,L+1)
-
-            ! Thickness of grid box (I,J,L) [hPa]
-            DELP = PB - PT
-
-            ! FEMIS is the fraction of the PBL 
-            ! which is occupied by this level L
-            IF ( BLTOP <= PT )  THEN
-               FEMIS = DELP / BLTHIK
-
-            ELSEIF ( BLTOP > PT .AND. BLTOP <= PB ) THEN
-               FEMIS = ( PB - BLTOP ) / BLTHIK
-
-            ELSEIF ( BLTOP > PB ) THEN
-               CYCLE      
- 
-            ENDIF
-            
-            ! Fraction of data partitioned into 
-            ! each level should sum to 1.0
-            FTOT = FTOT + FEMIS
-
-            !===========================================================
-            ! Partition organic tracers equally throughout the 
-            ! boundary layer -- store back into STT array
-            !===========================================================
-
-            ! Hydrophilic BLACK CARBON
-            IF ( IS_BCPI ) THEN
-               STT(I,J,L,IDTBCPI) = STT(I,J,L,IDTBCPI) + 
-     &                              ( FEMIS * BCSRC(I,J,1) )
-            ENDIF
-
-            ! Hydrophilic ORGANIC CARBON
-            IF ( IS_OCPI ) THEN
-               STT(I,J,L,IDTOCPI) = STT(I,J,L,IDTOCPI) + 
-     &                              ( FEMIS * OCSRC(I,J,1) )
-            ENDIF
-            
-            ! Hydrophobic BLACK CARBON
-            IF ( IS_BCPO ) THEN
-               STT(I,J,L,IDTBCPO) = STT(I,J,L,IDTBCPO) + 
-     &                              ( FEMIS * BCSRC(I,J,2) )
-            ENDIF
-
-            ! Hydrophobic ORGANIC CARBON
-            IF ( IS_OCPO ) THEN
-               STT(I,J,L,IDTOCPO) = STT(I,J,L,IDTOCPO) + 
-     &                              ( FEMIS * OCSRC(I,J,2) )
-            ENDIF
-
-            ! ALPHA-PINENE
-            IF ( IS_ALPH ) THEN
-               STT(I,J,L,IDTALPH) = STT(I,J,L,IDTALPH) + 
-     &                              ( FEMIS * BIOG_ALPH(I,J) )
-            ENDIF
-
-            ! LIMONENE
-            IF ( IS_LIMO ) THEN
-               STT(I,J,L,IDTLIMO) = STT(I,J,L,IDTLIMO) + 
-     &                              ( FEMIS * BIOG_LIMO(I,J) )
-
-               ORVC_TERP(I,J,L)   = ORVC_TERP(I,J,L) + 
-     &                              ( FEMIS * BIOG_TERP(I,J) )
-            ENDIF
-
-            ! ALCOHOL and SESQTERPENE (not a tracer)
-            IF ( IS_ALCO ) THEN
-               STT(I,J,L,IDTALCO) = STT(I,J,L,IDTALCO) + 
-     &                              ( FEMIS * BIOG_ALCO(I,J) )
-               
-               ORVC_SESQ(I,J,L)   = ORVC_SESQ(I,J,L) + 
-     &                              ( FEMIS * BIOG_SESQ(I,J) )
-            ENDIF
-
-         ENDDO
-
-         ! Error check
-         IF ( ABS( FTOT - 1.d0 ) > 1.d-3 ) THEN
-            CALL ERROR_STOP( 'Check vertical. distribution!',
-     &                       'EMITHIGH ("carbon_mod.f")' )
+         ! Hydrophilic BLACK CARBON
+         IF ( IS_BCPI ) THEN
+            STT(I,J,L,IDTBCPI) = STT(I,J,L,IDTBCPI) + 
+     &                           ( F_OF_PBL * BCSRC(I,J,1) )
          ENDIF
 
+         ! Hydrophilic ORGANIC CARBON
+         IF ( IS_OCPI ) THEN
+            STT(I,J,L,IDTOCPI) = STT(I,J,L,IDTOCPI) + 
+     &                           ( F_OF_PBL * OCSRC(I,J,1) )
+         ENDIF
+            
+         ! Hydrophobic BLACK CARBON
+         IF ( IS_BCPO ) THEN
+            STT(I,J,L,IDTBCPO) = STT(I,J,L,IDTBCPO) + 
+     &                           ( F_OF_PBL * BCSRC(I,J,2) )
+         ENDIF
+
+         ! Hydrophobic ORGANIC CARBON
+         IF ( IS_OCPO ) THEN
+            STT(I,J,L,IDTOCPO) = STT(I,J,L,IDTOCPO) + 
+     &                           ( F_OF_PBL * OCSRC(I,J,2) )
+         ENDIF
+
+         ! ALPHA-PINENE
+         IF ( IS_ALPH ) THEN
+            STT(I,J,L,IDTALPH) = STT(I,J,L,IDTALPH) + 
+     &                           ( F_OF_PBL * BIOG_ALPH(I,J) )
+         ENDIF
+
+         ! LIMONENE
+         IF ( IS_LIMO ) THEN
+            STT(I,J,L,IDTLIMO) = STT(I,J,L,IDTLIMO) + 
+     &                           ( F_OF_PBL * BIOG_LIMO(I,J) )
+
+            ORVC_TERP(I,J,L)   = ORVC_TERP(I,J,L) + 
+     &                           ( F_OF_PBL * BIOG_TERP(I,J) )
+         ENDIF
+
+         ! ALCOHOL and SESQTERPENE (not a tracer)
+         IF ( IS_ALCO ) THEN
+            STT(I,J,L,IDTALCO) = STT(I,J,L,IDTALCO) + 
+     &                           ( F_OF_PBL * BIOG_ALCO(I,J) )
+               
+            ORVC_SESQ(I,J,L)   = ORVC_SESQ(I,J,L) + 
+     &                           ( F_OF_PBL * BIOG_SESQ(I,J) )
+         ENDIF
+
+      ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -3960,12 +4130,6 @@ c
             ! Zero SUNTMP array
             SUNTMP(:) = 0d0
 
-            !-------------------------------------------
-            ! Prior to 1/18/05:
-            !! IJLOOP is the 1-D loop index for SUNCOS
-            !IJLOOP = 0
-            !-------------------------------------------
-
             ! Loop over surface grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -3978,11 +4142,6 @@ c
             DO I = 1, IIPAR
 
                ! Increment IJLOOP
-               !---------------------------------------
-               ! Prior to 1/18/05:
-               ! Now use analytic function for IJLOOP
-               !IJLOOP = IJLOOP + 1
-               !---------------------------------------
                IJLOOP = ( (J-1) * IIPAR ) + I
                TIMLOC = real(LHR0) + real(NT)/3600.0 + GET_XMID(I)/15.0
          

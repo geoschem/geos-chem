@@ -1,9 +1,9 @@
-! $Id: calcrate.f,v 1.8 2004/12/02 21:48:33 bmy Exp $
+! $Id: calcrate.f,v 1.9 2005/03/29 15:52:39 bmy Exp $
       SUBROUTINE CALCRATE( SUNCOS )
 !
 !******************************************************************************
 !  Subroutine CALCRATE computes reaction rates before passing them to the
-!  SMVGEAR solver.  (M. Jacobson 1997; gcc, bdf, bmy, 4/1/03, 5/26/04)
+!  SMVGEAR solver.  (M. Jacobson 1997; gcc, bdf, bmy, 4/1/03, 2/17/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -41,6 +41,8 @@
 !        reaction rate to ARCHIVE_RXNS_FOR_PF. (bmy, 8/8/03)
 !  (6 ) Updated loss rate for O(1D) with H2O according to new rate measurement
 !        from JPL (mje, bmy, 5/26/04)
+!  (7 ) Now use GET_FRAC_UNDER_PBLTOP from "pbl_mix_mod.f" instead of
+!        PBLFRAC from "drydep_mod.f" (bmy, 2/17/05)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -48,9 +50,14 @@
      &                            IYSAVE, IZSAVE,  JLOP,    PRESS3,  
      &                            REMIS,  T3,      TAREA
       USE DIAG_MOD,        ONLY : AD22,   LTJV
-      USE DRYDEP_MOD,      ONLY : DEPSAV, PBLFRAC
+      !-------------------------------------------------------------
+      ! Prior to 2/17/05
+      !USE DRYDEP_MOD,      ONLY : DEPSAV, PBLFRAC
+      !-------------------------------------------------------------
+      USE DRYDEP_MOD,      ONLY : DEPSAV
       USE ERROR_MOD,       ONLY : ERROR_STOP, GEOS_CHEM_STOP
       USE GRID_MOD,        ONLY : GET_YMID
+      USE PBL_MIX_MOD,     ONLY : GET_FRAC_UNDER_PBLTOP
       USE PLANEFLIGHT_MOD, ONLY : ARCHIVE_RXNS_FOR_PF
 
       IMPLICIT NONE
@@ -322,8 +329,15 @@ C
                IZ    = IZSAVE(JLOOP)
                
                ! Now compute drydep throughout the entire PBL
-               ! PBLFRAC is the fraction of grid box (I,J,L) below the PBL top
-               RRATE(KLOOP,NK) = DEPSAV(IX,IY,I) * PBLFRAC(IX,IY,IZ)
+               !---------------------------------------------------------------
+               ! Prior to 2/17/05:
+               !! PBLFRAC is the fraction of grid box (I,J,L) below the PBL top
+               !RRATE(KLOOP,NK) = DEPSAV(IX,IY,I) * PBLFRAC(IX,IY,IZ)
+               !---------------------------------------------------------------
+               ! GET_FRAC_UNDER_PBLTOP returns the fraction of layer
+               ! (IX, IY, IZ) that is beneath the PBL top
+               RRATE(KLOOP,NK) = DEPSAV(IX,IY,I) * 
+     &                           GET_FRAC_UNDER_PBLTOP( IX, IY, IZ )
             ENDDO
          ENDIF
       ENDDO

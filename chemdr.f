@@ -1,9 +1,9 @@
-! $Id: chemdr.f,v 1.12 2004/12/02 21:48:33 bmy Exp $
+! $Id: chemdr.f,v 1.13 2005/03/29 15:52:40 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
 !  Subroutine CHEMDR is the driver subroutine for full chemistry w/ SMVGEAR.
-!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 7/20/04)
+!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 3/24/05)
 !
 !  Important input variables from "dao_mod.f" and "uvalbedo_mod.f":
 !  ============================================================================
@@ -135,6 +135,8 @@
 !        "tracer_mod.f".  Now references DO_DIAG_PL from "diag_pl_mod.f".
 !        Now references DO_DIAG_OH from "diag_oh_mod.f".  Now references
 !        AEROSOL_CONC, RDAER, & SOILDUST from "aerosol_mod.f" (bmy, 7/20/04)
+!  (22) Now references ITS_A_NEW_DAY from "time_mod.f".  Now calls routine
+!        SETUP_PLANEFLIGHT at the start of each new day. (bmy, 3/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -150,7 +152,7 @@
       USE GLOBAL_CH4_MOD,  ONLY : GET_GLOBAL_CH4
       USE LOGICAL_MOD
       USE PLANEFLIGHT_MOD, ONLY : SETUP_PLANEFLIGHT
-      USE TIME_MOD,        ONLY : GET_MONTH, GET_YEAR
+      USE TIME_MOD,        ONLY : GET_MONTH, GET_YEAR, ITS_A_NEW_DAY
       USE TRACER_MOD,      ONLY : STT, N_TRACERS
       USE TRACERID_MOD 
       USE UVALBEDO_MOD,    ONLY : UVALBEDO
@@ -284,8 +286,11 @@
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after READCHEM' )
 
-         ! Set up plane flight diagnostic here -- test 
-         IF ( ND40 > 0 ) CALL SETUP_PLANEFLIGHT
+         !--------------------------------------------------------
+         ! Prior to 3/24/05:
+         !! Set up plane flight diagnostic here -- test 
+         !IF ( ND40 > 0 ) CALL SETUP_PLANEFLIGHT
+         !--------------------------------------------------------
 
          !==============================================================
          ! If CH4 is a SMVGEAR II species, then call GET_GLOBAL_CH4
@@ -334,11 +339,21 @@
 
       ENDIF ! IF (FIRSTCHEM)
 
-      ! Skip this section if all these are turned off
+      !=================================================================
+      ! At the beginning of each new day, call SETUP_PLANEFLIGHT
+      ! to see if there are any plane flight points to be processed
+      !=================================================================
+      IF ( ND40 > 0 .and. ITS_A_NEW_DAY() ) THEN
+         CALL SETUP_PLANEFLIGHT
+      ENDIF
+
+      !================================================================
+      ! Get concentrations of aerosols in [kg/m3] 
+      ! for FAST-J and optical depth diagnostics
+      !=================================================================
       IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
 
-         ! Get concentrations of aerosols in [kg/m3] 
-         ! for FAST-J and optical depth diagnostics
+         ! Skip this section if all these are turned off
          CALL AEROSOL_CONC
 
       ENDIF

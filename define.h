@@ -1,4 +1,4 @@
-! $Id: define.h,v 1.24 2004/12/17 15:00:05 bmy Exp $
+! $Id: define.h,v 1.26 2005/03/29 15:53:23 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 

@@ -1,91 +1,138 @@
-REVISIONS (v7-02-03)  
-bmy, 03 Feb 2005
+REVISIONS (v7-02-04)  
+bmy, 25 Mar 2005
 
 
-New in v7-02-03:
+New in v7-02-04:
 -------------------------------------------------------------------------------
 
-diag03_mod.f		-- Module for ND03 diagnostics (mercury quantities)
+diag41_mod.f		-- Module containing arrays & routines for the 
+			   afternoon PBL height diagnostic (DIAG41)
 
-is_last_day_good        -- Moved here from "main.f"
+file_ex_c		-- Routine to test if a file exists on disk in a
+("file_mod.f")		   platform-independent way. (CHARACTER argument)
+
+file_ex_i		-- Routine to test if a file exists on disk in a
+("file_mod.f")		   platform-independent way. (INTEGER argument)
+
+pbl_mix_mod.f		-- Module containing routines & variables for
+			   computing PBL heights etc. and mixing tracer
+			   w/in the planetary boundary layer 
+
+
+
+Removed in v7-02-04:
+-------------------------------------------------------------------------------
+
+diag41.f		-- Now bundled into "diag41_mod.f"
+
+turbday.f		-- Now bundled into "pbl_mix_mod.f"
+
+
+
+Changed from v7-02-03:
+-------------------------------------------------------------------------------
+
+accumulate_diag50	-- Remove reference to "CMN"
+("diag50_mod.f")	-- Also now get PBL heights in meters and model 
+			   layers from GET_PBL_TOP_m and GET_PBL_TOP_L of 
+			   "pbl_mix_mod.f"
+
+accumulate_diag51	-- Remove reference to "CMN"
+("diag51_mod.f")	-- Also now get PBL heights in meters and model 
+			   layers from GET_PBL_TOP_m and GET_PBL_TOP_L of 
+			   "pbl_mix_mod.f"
+
+bioburn			-- Bug fix: if using interannual biomass emissions 
+("biomass_mod.f")	   then get the TAU value for the first of the 
+			   current month & year.  This will make sure that
+			   runs which start mid-month will access the biomass
+			   data correctly.
+
+calcrate.f		-- Now use GET_FRAC_UNDER_PBLTOP from "pbl_mix_mod.f" 
+			   instead of PBLFRAC from "drydep_mod.f"
+
+check_directory		-- Now references FILE_EXISTS from "file_mod.f"
 ("input_mod.f")
 
-ocean_mercury_mod.f	-- Module for computing the ocean flux of Hg(0)
+chem_bcpo		-- Replace PBLFRAC from "drydep_mod.f" with 
+("carbon_mod.f")	   GET_FRAC_UNDER_PBLTOP from "pbl_mix_mod.f"
 
-phase_so4		-- Computes phase transition for crystalline
-("sulfate_mod.f")	   sulfur tracers (AS, AHS, LET, SO4aq)
+chem_bcpi		-- Replace PBLFRAC from "drydep_mod.f" with 
+("carbon_mod.f")	   GET_FRAC_UNDER_PBLTOP from "pbl_mix_mod.f"
 
-phase_radiative		-- Computes radiative forcing for crystalline 
-("sulfate_mod.f")	   sulfur tracers (AS, AHS, LET, SO4aq)
+chemdr.f		-- Now references ITS_A_NEW_DAY from "time_mod.f".
+			-- Now calls routine SETUP_PLANEFLIGHT at the start 
+		           of each new day.
+
+chem_h2o2		-- Replace PBLFRAC from "drydep_mod.f" with 
+("sulfate_mod.f")	   GET_FRAC_UNDER_PBLTOP from "pbl_mix_mod.f"
+
+chem_hg0_hg2		-- Now references GET_FRAC_UNDER_PBLTOP in 
+("mercury_mod.f")	   "pbl_mix_mod.f"
+			-- Now performs drydep for all levels in the PBL
+
+chem_hgp		-- Removed references to AD44 and "CMN_DIAG"
+("mercury_mod.f")	-- Now compute drydep for all levels within the PBL
+			-- Now references ND03, LD03 from "diag03_mod.f"
+
+chem_ocpo		-- Replace PBLFRAC from "drydep_mod.f" with 
+("carbon_mod.f")	   GET_FRAC_UNDER_PBLTOP from "pbl_mix_mod.f"
+
+chem_ocpi		-- Replace PBLFRAC from "drydep_mod.f" with 
+("carbon_mod.f")	   GET_FRAC_UNDER_PBLTOP from "pbl_mix_mod.f"
+
+chemmercury		-- Now references routine GET_PBL_MAX_L from 
+("mercury_mod.f")	   "pbl_mix_mod.f"
+			-- Now references AD44 from "diag_mod.f"
+			-- Now sum the levels from T44 into the AD44 array
+			-- Now references N_TRACERS from "tracer_mod.f"
+
+chem_msa		-- Replace PBLFRAC from "drydep_mod.f" with 
+("sulfate_mod.f")	   GET_FRAC_UNDER_PBLTOP from "pbl_mix_mod.f"
+			-- Also reference GET_PBL_MAX_L from "pbl_mix_mod.f"
+			-- Vertical DO-loops can run up to PBL_MAX 
+			   and not LLTROP
+			-- Also remove reference to header file CMN
+
+chem_nh3		-- Replace PBLFRAC from "drydep_mod.f" with 
+("sulfate_mod.f")	   GET_FRAC_UNDER_PBLTOP from "pbl_mix_mod.f"
+			-- Also reference GET_PBL_MAX_L from "pbl_mix_mod.f"
+			-- Vertical DO-loops can run up to PBL_MAX 
+			   and not LLTROP
+
+chem_nh4		-- Replace PBLFRAC from "drydep_mod.f" with 
+("sulfate_mod.f")	   GET_FRAC_UNDER_PBLTOP from "pbl_mix_mod.f"
+			-- Also reference GET_PBL_MAX_L from "pbl_mix_mod.f"
+			-- Vertical DO-loops can run up to PBL_MAX 
+			   and not LLTROP
+
+chem_nh4aq		-- Replace PBLFRAC from "drydep_mod.f" with 
+("sulfate_mod.f")	   GET_FRAC_UNDER_PBLTOP from "pbl_mix_mod.f"
+			-- Also reference GET_PBL_MAX_L from "pbl_mix_mod.f"
+			-- Vertical DO-loops can run up to PBL_MAX 
+			   and not LLTROP
+
+chem_nit		-- Replace PBLFRAC from "drydep_mod.f" with 
+("sulfate_mod.f")	   GET_FRAC_UNDER_PBLTOP from "pbl_mix_mod.f"
+			-- Also reference GET_PBL_MAX_L from "pbl_mix_mod.f"
+			-- Vertical DO-loops can run up to PBL_MAX 
+			   and not LLTROP
 
 
+chem_so2		-- Replace PBLFRAC from "drydep_mod.f" with 
+("sulfate_mod.f")	   GET_FRAC_UNDER_PBLTOP from "pbl_mix_mod.f"
 
-Removed in v7-02-03:
--------------------------------------------------------------------------------
-
-is_last_day_good        -- Moved into "input_mod.f"
-("input_mod.f")
-
-read_tindex.f		-- Functionality is replaced in "input_mod.f"
+chem_so4		-- Replace PBLFRAC from "drydep_mod.f" with 
+("sulfate_mod.f")	   GET_FRAC_UNDER_PBLTOP from "pbl_mix_mod.f"
 
 
+chem_tagged_ox		-- Replace PBLFRAC from "drydep_mod.f" with 
+("tagged_ox_mod.f")	   GET_FRAC_UNDER_PBLTOP from "pbl_mix_mod.f"
+			-- Now only sum ND44 diagnostic up to the
+			   maximum tropopsheric level
 
-Changed from v7-02-02:
--------------------------------------------------------------------------------
-
-accumulate_diag50	-- Only archive AOD's when it is a chem timestep 
-("diag50_mod.f")           (ND50 tracers 82-87)
-
-accumulate_diag51	-- Only archive AOD's when it is a chem timestep 
-("diag51_mod.f")           (ND51 tracers 82-87)
-
-aerosol_ruralbox	-- Now convert ABSHUM from absolute humidity to 
-("aerosol_mod.f")	   relative humidity in AEROSOL_RURALBOX, using the
-			   same algorithm as in "gasconc.f"
-
-biomass_carb_geos	-- Now read BCPO, OCPO biomass burning data directly 
-("carbon_mod.f")	   from files instead of computing from emission 
-			   factors
-
-chem_h2o2		-- Now suppress output from READ_BPCH with 
-("sulfate_mod.f")	   QUIET keyword
-
-chemmercury		-- Updated for reduction reaction
-("mercury_mod.f")
-
-chem_so4		-- Now references LCRYST from "logical_mod.f"
-("sulfate_mod.f")	-- Modified for crystalline and aqueous sulfate 
-			   tracers: AS, AHS, LET, SO4aq
-			-- Also changed name of ND44_TMP to T44 to save space
-
-chemsulfate		-- Updated for AS, AHS, LET, SO4aq, NH4aq
-("sulfate_mod.f")	-- Now locate species in the DEPSAV array w/in 
-			   INIT_SULFATE instead of here
-			-- Now references LCRYST from logical_mod.f
-
-cleanup.f		-- Now call CLEANUP_OCEAN_MERCURY from 
-			   "ocean_mercury_mod.f".  
-			-- Also reordered the calling sequence.
-
-cleanup_diag		-- Now deallocates AD21_cr, AD03 arrays
-("diag_mod.f") 	
-
-CMN_DIAG		-- Changed PD03 to 11
-
-compute_f		-- Updated for AS, AHS, LET, NH4aq, SO4aq  
-("wetscav_mod.f")	-- Also condensed the IF statement by combining 
-			   branches for aerosols
-
-convtran		-- Now pass Hg2 that is wet scavenged to 
-("fvdas_convect_mod.f")    "ocean_mercury_mod.f" for computation of mercury 
-			   ocean flux
-
-diag_mod.f		-- Added extra ND21 array for cryst sulfur tracers
-			-- Also remove ND03 and ND48 arrays; they're obsolete
-
-diag3.f			-- Now print out extra ND21 diagnostics for 
-			   crystalline sulfur tracers
-			-- Also now save total oceanic mass of Hg0 and Hg2
+cleanup.f		-- Now calls CLEANUP_PBL_MIX from "pbl_mix_mod.f"
+			-- Now calls CLEANUP_DIAG41 from "diag41_mod.f"
 
 do_chemistry		-- Now do not call DO_RPMARES if we are doing an 
 ("chemistry_mod.f")	   offline aerosol run with crystalline sulfur & 
@@ -111,117 +158,205 @@ get_wetdep_nmax		-- Modified for AS, AHS, LET, NH4aq, SO4aq
 init_drydep		-- Included AS, AHS, LET, NH4aq, SO4aq tracers
 ("drydep_mod.f")
 
-initialize.f		-- Now initialize AD21_cr array for ND21 diag
-			-- Also references LCRYST from "logical_mod.f"
-			-- Now call ZERO_DIAG03 from "diag03_mod.f"
-			   to zero ND03 arrays
-
-init_sulfate		-- Now locate species in the DEPSAV array w/in 
-("sulfate_mod.f")	   INIT_SULFATE instead of here 
-			-- Now reference LDRYD from "logical_mod.f"
-			-- Updated for AS, AHS, LET, SO4aq, NH4aq
-
-init_tracerid		-- Now zero IDTAS, IDTAHS, IDTNH4aq, IDTLET, IDTSO4aq
-("tracerid_mod.f")
-
-logical_mod.f		-- Added LCRYST switch to turn on crystalline sulfate
-			   & aqueous tracers (AS, AHS, LET, SO4aq, NH4aq)
-
-main.f			-- Moved call to OPEN_BPCH2_FOR_WRITE to "input_mod.f"
-			-- Removed reference to "bpch2_mod.f"
-
-mercury_readyr		-- Now read data from mercury_200501 subdirectory.  
-("mercury_mod.f")	-- Now compute oceanic Hg(0) emissions w/ ocean 
-			   flux module instead of reading them from disk
-			-- Now use 1985 TAU values
-
-ndxx_setup.f		-- Added separate ND21 array for cryst sulfur tracers
-			-- Now move ND03 diagnostics into "diag03_mod.f"
-			-- Remove TCOBOX reference, it's obsolete
-
-nfcldmx			-- Now call ADD_Hg2_WD from "ocean_mercury_mod.f" 
-("convection_mod.f")	   to pass the amt of Hg2 lost by wet scavenging 
-			-- Now references both "ocean_mercury_mod.f" and 
-			   "tracerid_mod.f"
-
-ohno3time		-- Also added parallel loop over grid boxes
-("carbon_mod.f")
-
-rainout			-- Updated for AS, AHS, LET, NH4aq, SO4aq.  
-("wetscav_mod.f")	-- Also condensed the IF statement by grouping 
-			   blocks together
-
-read_diagnostic_menu	-- Now reference IU_BPCH from "file_mod.f" and 
-("input_mod.f")		   OPEN_BPCH2_FOR_WRITE from "bpch2_mod.f"
-			-- Now opens the bpch file for output here
-			   instead of w/in "main.f"
-
-rxn_hg2_dryd		-- Now use 2 different solutions, depending on whether
-("mercury_mod.f")	   or not LOST_Hg0 (amt of converted Hg0 -> Hg2) is 
-			   positive
-			-- Also now archive the amount of total Hg(II) tracer 
-			   lost to drydep for the ocean flux routines in 
-			   "ocean_mercury_mod.f"
-
-rxn_hg0_hg2		-- Changed equation to reflect reduction rxn
+cleanup_mercury		-- Now deallocate T44 array
 ("mercury_mod.f")
 
-read_aerosol_menu	-- Now reference LCRYST from "logical_mod.f"
-("input_mod.f")		-- Also now check to make prevent aerosol tracers 
-			   from being undefined if the corresponding
-		           logical switch is set
+CMN_DIAG		-- Removed ND41 and PD41, these have now been
+			   bundled into "diag41_mod.f"
 
-read_biomass_nh3	-- Now can read either seasonal or interannual 
-("sulfate_mod.f")	   biomass burning emissions
-			-- Now references routines from "time_mod.f"
-			-- Now reads SO2 biomass emissions directly rather 
-			   than computing it by mole fraction from CO
+diag3.f			-- Now call WRITE_DIAG41 from "diag41_mod.f"
 
-read_biomass_so2	-- Now can read either seasonal or interannual 
-("sulfate_mod.f")	   biomass burning emissions
-			-- Now references routines from both "logical_mod.f" 
-			   and "time_mod.f"
-			-- Now reads SO2 biomass emissions directly rather 
-			   than computing it by mole fraction from CO
+diag48			-- Remove reference to "CMN"
+("diag48_mod.f")	-- Also now get PBL heights in meters and model 
+			   layers from GET_PBL_TOP_m and GET_PBL_TOP_L of 
+			   "pbl_mix_mod.f".
 
-srcHg0			-- Now use diagnostic arrays from "diag03_mod.f"
-("mercury_mod.f")
+diag49			-- Remove reference to "CMN"
+("diag49_mod.f")	-- Also now get PBL heights in meters and model 
+			   layers from GET_PBL_TOP_m and GET_PBL_TOP_L of 
+			   "pbl_mix_mod.f".
 
-srcHg2			-- Now use diagnostic arrays from "diag03_mod.f"
-("mercury_mod.f")
+diag_mod.f		-- Removed AD41 and AFTTOT arrays; they're obsolete
 
-srcHgP			-- Now use diagnostic arrays from "diag03_mod.f"
-("mercury_mod.f")
+do_drydep		-- Now use routines from "pbl_mix_mod.f" to get PBL 
+("drydep_mod.f")	   quantities, instead of re-computing them here
+			-- Removed PBLFRAC array
+			-- Removed reference to "pressure_mod.f"
+			-- Parallelize DO-loops
+			-- Remove reference to header file CMN
 
-stdrun			-- Now expand date tokens in the filename
-("benchmark_mod.f")
+dryflx			-- Now reference GET_FRAC_UNDER_PBLTOP and 
+("drydep_mod.f")	   GET_PBL_MAX_L from "pbl_mix_mod.f"
+			-- Remove reference to CMN.
 
-total_anthro_tg		-- Prevent out of bounds error when tracers are 
-("epa_nei_mod.f") 	   undefined
+e_ice			-- Now use analytical function of Kelvin temperature
+("wetscav_mod.f")	   instead of the old log interpolation scheme 
 
-total_biofuel_tg	-- Prevent out of bounds error when tracers are 
-("epa_nei_mod.f") 	   undefined
+emisop.f		-- Now force ISOP totals to be the same for GEOS-3 and
+			   GEOS-4 met fields for the year 2001.  This will 
+			   facilitate cross-model intercomparison.
 
-tracerid		-- Added IDTAS, IDTAHS, IDTNH4aq, IDTLET, IDTSO4aq
-("tracerid_mod.f")	-- Now no longer need to declare IDTCO, IDBCO, 
-			   IDBFCO for offline aerosol simulations. 
+emisop_grass.f		-- Now force ISOP totals to be the same for GEOS-3 and
+			   GEOS-4 met fields for the year 2001.  This will 
+			   facilitate cross-model intercomparison.
 
-washout			-- Updated for AS, AHS, LET, NH4aq, SO4aq.  
-("wetscav_mod.f")	-- Also condensed the IF statement by grouping 
-			   blocks together
+emisop_mb.f		-- Now force ISOP totals to be the same for GEOS-3 and
+			   GEOS-4 met fields for the year 2001.  This will 
+			   facilitate cross-model intercomparison.
 
-wetdep			-- Now references IDTHg2 from "tracerid_mod.f".  
-("wetscav_mod.f")	-- Now pass the amt of Hg2 wet scavenged out of the 
-			   column to "ocean_mercury_mod.f" via routine 
-			   ADD_Hg2_WET
+emissmercury		-- Now no longer call COMPUTE_FEMIS, since we can get
+("mercury_mod.f")	   the same information from routine GET_FRAC_IN_PBL 
+			   in "pbl_mix_mod.f" 
 
-wetdepid		-- Updated for AS, AHS, LET, NH4aq, SO4aq
-("wetscav_mod.f")
+emissseasalt		-- Remove reference to header file "CMN"
+("seasalt_mod.f")
 
-write_diag50		-- Now divide tracers 82-87 (i.e. various AOD's) by 
-("diag50_mod.f")	   GOOD_CT_CHEM since these are only updated once per
-			   chemistry timestep
+emithigh		-- Remove references to "dao_mod.f", "pressure_mod.f",
+("carbon_mod.f")	   and "error_mod.f".
+			-- Rewrote for computational expediency using routines
+			   from "pbl_mix_mod.f". 
 
-write_diag51		-- Now divide tracers 82-87 (i.e. various AOD's) by 
-("diag51_mod.f")	   GOOD_CT_CHEM since these are only updated once per
-			   chemistry timestep
+init_drydep		-- Remove reference to PBLFRAC array -- it's obsolete
+("drydep_mod.f")
+
+initialize.f		-- Now call ZERO_DIAG41 from "diag41_mod.f"
+			-- Also removed references to AD41 and AFTTOT
+
+init_mercury		-- Removed reference to FEMIS array 
+("mercury_mod.f")	-- Now also allocates and zeroes the T44 array
+			-- Added reference to CMN_DIAG
+			-- Now references N_TRACERS from "tracer_mod.f"
+
+init_planeflight	-- INIT_PLANEFLIGHT is now called each day but the 
+("planeflight_mod.f")      arrays are only allocated once.  Arrays are now 
+			   allocated to the maximum size.
+
+init_wetscav		-- Now references new function E_ICE, which is an
+("wetscav_mod.f")          analytic function of Kelvin temperature instead
+			   of Celsius.
+
+lightning		-- Added scale factors to make GEOS-4 lightning 
+("lightning_nox_mod.f)	   NOx come out to the same total value as for
+			   2001 GEOS-3
+
+main.f			-- Now references "pbl_mix_mod.f"
+			-- Now calls routine DO_PBL_MIX instead of "turbday.f"
+			-- Now references DIAG41, ND41 from "diag41_mod.f"
+			-- Now calls SETUP_PLANEFLIGHT at the start of each
+		           new day for non-full-ch
+
+metero			-- Now compute ZH and LSNOW here instead of w/in 
+("drydep_mod.")		   DO_DRYDEP  
+			-- Parallelize DO-loops
+			-- Now use BXHEIGHT from "dao_mod.f" instead of 
+			   computing the thickness of the 1st level here
+			-- Remove reference to "pressure_mod.f"
+			-- Remove reference to T from "dao_mod.f"
+			-- Now reference ALBD from "dao_mod.f" 
+
+ndxx_setup.f		-- Now remove references to AD41 & AFTTOT
+
+ocean_mercury_flux	-- Change Ks to make ocean flux for 2001 = 
+("ocean_mercury_mod.f")    2.03e6 kg/year.
+
+open_a3_fields		-- Now use FILE_EXISTS from "file_mod.f" to determine 
+("a3_read_mod.f")	   if file unit IU_A3 refers to a valid file on disk 
+
+open_a6_fields		-- Now use FILE_EXISTS from "file_mod.f" to determine 
+("a6_read_mod.f")	   if file unit IU_A3 refers to a valid file on disk 
+
+open_gwet_fields	-- Now use FILE_EXISTS from "file_mod.f" to determine 
+("gwet_read_mod.f")	   if file unit IU_GWET refers to a valid file on disk 
+
+open_i6_fields		-- Now use FILE_EXISTS from "file_mod.f" to determine 
+("i6_read_mod.f")	   if file unit IU_A3 refers to a valid file on disk 
+
+open_phis_fields	-- Now use FILE_EXISTS from "file_mod.f" to determine 
+("phis_read_mod.f")	   if file unit IU_PH refers to a valid file on disk 
+
+oro_is_lnd		-- Bug fix: Replaced ": :" with "::"  in order to 
+("dust_dead_mod.f")	   prevent compile error on Linux w/ PGI compiler
+
+planeflight_mod.f	-- Added MAXREAC = 50 
+			-- Now set MAXPOINTS = 10000 
+
+read_deposition_menu 	-- We need to call WETDEPID for both wetdep and cloud
+("input_mod.f")		   convection since this sets up the list of soluble 
+			   tracers
+
+read_diagnostic_menu	-- Now references routines from "diag03_mod.f" and
+("input_mod.f")		   "diag41_mod.f"
+			-- Now calls EXPAND_DATE to replace YYYYMMDD and 
+			   HHMMSS tokens in the bpch file name with the actual
+			   starting date & time of the run. 
+
+read_simulation_menu	-- Bug fix: Read LSVGLB with the * format and not 
+("input_mod.f")		   with the '(a)' format
+
+read_transport_menu	-- Update text in error message
+("input_mod.f")	
+
+rpmares			-- Force double precision with D exponents in 
+("rpmares_mod.f")	   previously-overlooked places
+
+rxn_hg2_dryd		-- Remove references to "diag_mod.f" and "CMN_DIAG"
+("mercury_mod.f")	-- Now save drydep fluxes into T44 array
+
+rxn_hgp_dryd		-- Remove references to "diag_mod.f" and "CMN_DIAG"
+("mercury_mod.f")	-- Now save drydep fluxes into T44 array
+
+setup_planeflight	-- Now references FILE_EXISTS from "file_mod.f".  
+("planeflight_mod.f")	   Modified so that we check if a flight track file 
+			   exists on each day.
+			-- Open file for output on each day and write header
+
+soa_depo		-- Replace PBLFRAC from "drydep_mod.f" with 
+("carbon_mod.f")	   GET_FRAC_UNDER_PBLTOP from "pbl_mix_mod.f"
+
+soa_lump		-- Bug fix: make sure L <= LD07 before saving into 
+("carbon_mod.f")	   AD07 array, or else we will get an out-of-bounds 
+			   error
+
+srcdms			-- Remove reference to "pressure_mod.f"
+("sulfate_mod.f")	-- Now reference GET_FRAC_OF_PBL and GET_PBL_TOP_L 
+			   from "pbl_mix_mod.f"
+			-- Removed reference to header file CMN
+
+srcHg0			-- Now references GET_FRAC_OF_PBL and GET_PBL_MAX_L 
+("mercury_mod.f")	   from "pbl_mix_mod.f"
+			-- Remove reference to FEMIS
+
+srcHg2			-- Now references GET_FRAC_OF_PBL and GET_PBL_MAX_L 
+("mercury_mod.f")	   from "pbl_mix_mod.f"
+			-- Remove reference to FEMIS
+
+srcHgP			-- Now references GET_FRAC_OF_PBL and GET_PBL_MAX_L 
+("mercury_mod.f")	   from "pbl_mix_mod.f"
+			-- Remove reference to FEMIS
+
+srcnh3			-- Remove reference to "pressure_mod.f"
+("sulfate_mod.f")	-- Now reference GET_FRAC_OF_PBL and GET_PBL_TOP_L 
+			   from "pbl_mix_mod.f"
+			-- Removed reference to header file CMN
+
+srcsalt			-- Now references GET_FRAC_OF_PBL and GET_PBL_TOP_L 
+("seasalt_mod.f")	   from "pbl_mix_mod.f"
+			-- Removed reference to header file CMN
+			-- Removed reference to "pressure_mod.f"
+
+srcso2			-- Remove reference to "pressure_mod.f"
+("sulfate_mod.f")	-- Now reference GET_FRAC_OF_PBL and GET_PBL_TOP_L 
+			   from "pbl_mix_mod.f"
+			-- Removed reference to header file CMN
+
+srcso4			-- Remove reference to "pressure_mod.f"
+("sulfate_mod.f")	-- Now reference GET_FRAC_OF_PBL and GET_PBL_TOP_L 
+			   from "pbl_mix_mod.f"
+			-- Removed reference to header file CMN
+
+wetdep			-- Bug fix: replace line that can cause numerical 
+("wetscav_mod.f")	   blowup with a safer analytical expression.
+
+write_vars_to_file	-- Now do not write file header -- this is now done 
+("planeflight_mod.f")	   in subroutine SETUP_PLANEFLIGHT at the start of 
+			   each day
