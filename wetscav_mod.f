@@ -1,4 +1,4 @@
-! $Id: wetscav_mod.f,v 1.4 2004/03/19 14:42:54 bmy Exp $
+! $Id: wetscav_mod.f,v 1.5 2004/03/22 16:35:35 bmy Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
@@ -1903,6 +1903,7 @@
       ! Process rainout / washout by columns.
       !=================================================================
 
+#if   !defined( LINUX_EFC ) 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,       J,           FTOP,      DSTT,     ALPHA    )
@@ -1911,6 +1912,7 @@
 !$OMP+PRIVATE( WETLOSS, L,           Q,         NN,       N        )
 !$OMP+PRIVATE( XDSTT,   QDOWN,       AER,       TMP                )
 !$OMP+SCHEDULE( DYNAMIC )
+#endif
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -2654,7 +2656,9 @@
          ENDIF
       ENDDO	
       ENDDO	
+#if   !defined( LINUX_EFC )
 !$OMP END PARALLEL DO
+#endif
 
 !------------------------------------------------------------------------------
 ! Prior to 3/18/04:
