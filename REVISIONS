@@ -1,136 +1,21 @@
 REVISIONS (v5-07-03)  
-bmy, 18 Jul 2003
+bmy, 28 Jul 2003
 
 
-New in v5-07-03:
+New in v5-07-05:
 ----------------------------------------------------------------------------- 
 
-toms_mod.f		-- Module containing routines to read EP-TOMS O3
-			   column data from disk (needed for FAST-J)
+globchem.dat		-- Certain rxns now updated to JPL 2000
+			   (see chemistry mechanism document by
+			    Arlene Fiore & Mat Evansfor more info)
 
 
 
-Removed from v5-07-03:
+Removed from v5-07-05:
 ----------------------------------------------------------------------------- 
 
 
 
 
-Changed from v5-07-02:
+Changed from v5-07-03:
 -------------------------------------------------------------------------------
-
-calcrate.f		-- Comment out AREAXT, this is not needed.  
-			-- Also comment out sections which compute surface 
-			   rxns and 3-body rxns, since these are not
-			   applicable to GEOS-CHEM.
-			-- Declare ABSHUMK as a local variables since it  
-			   is only ever used w/in "smvgear.f"
-			-- Remove obsolete variables from documentation
-			-- Now call ARCHIVE_RXNS_FOR_PF to save rxn rates
-			   for the ND40 planeflight diagnostic before exiting
-
-chemdr.f		-- Remove references to MONTHP, IMIN, ISEC; 
-			   they are obsolete and not defined anywhere
-
-cleanup.f		-- Now reference cleanup routine from "toms_mod.f"
-
-cleanup_comode		-- Now deallocate CSUMA, CSUMC, ERRMX2
-("comode_mod.f")	-- Cosmetic changes
-
-comode.h		-- Removed the following variables from common blocks 
-			   which are not needed for GEOS-CHEM: COLENG, 
-			   AERSURF, VHMET1, VHMET, VMET3, CINIT, RHO3,
-			   GRIDVH, CSUMA1, XELRAT, T1BEG, T2BEG, T1FIN, 
-			   T2FIN, DECLIN, RAGSUT, SINDEC, COSDEC, SIGMAL, 
-			   PRESSL, RHOA, DSIG_SMV, TEMPL, VMET, SIGDIF,
-			   TMORN, PRESSC, XLAT, XLON, DMERIDUT, GRIDAREA, 
-		           DSX, XLONUT, DSY, SINXLAT, COSXLAT, HMETT, HMET1, 
-			   HMET2, RSET, RRIS, TZDIF, ZENRAT0, ZENRAT1, MLOPJ, 
-			   REORDER_SAVE, RHO3K, GRIDVH3K, FIELDXY, FIELDYZ,
-			   FIELDXZ, RATMIX, GQSCHEM, C, QPRODA, QPRODB, 
-			   QPRODC, QPRODD, QPROD, CINP, NUMSDT, NKSDT, PRATE,
-		           MONTHP, KYEAR, LDMONTH, ININT, ICLO, JCLO, FIELD1,
-			   MZLO1, MZLO2, MZHI0, MZHI1, KZLO1, KZLO2, KZHI0,
-			   KZHI1, IHIZ1, IHIZ2, IHIZ3, PRESS5KM, KGRP, IABOVK.
-			   NSTEPS, YLOW, HMAXDAY, KPHT, KRDD, KMIX, KINS, KGCO,
-			   ABSHUMK. DX0, DY0, XU0, DTOUT, CONPSUR, DXLONG, 
-			   DYLAT, SWLONDC, CONSTIM, SWLATDC, UTSECY, 
-			   TOTSEC, FINHOUR, FINMIN, FINSEC, TFROMID, ZENFIXED,
-			   ZENITH, DENCONS, HALFDAY, GRAVC, FOURPI, TWOPI, 
-			   REARTH, RPRIMB, AVOG1, HALF, THIRD, THRPI2, PID180,
-			   PID2, SCTWOPI, AMRGAS, TWPISC, IPORD. 
-			   This should free up more memory for runs.
-			-- Split /DGEAR2/ into two common blocks, /DGEAR2/,
-			   which needs to be held THREADPRIVATE, and /DGEAR3/
-			   which doesn't need to be held THREADPRIVATE
-			-- Move CSUMA, CSUMC, ERRMX2 into "comode_mod.f", where
-			   they are declared allocatable.
-
-comode_mod.f		-- Now add CSUMA, CSUMC, ERRMX2 for SMVGEAR II
-
-diag3.f			-- Bug fix: use LD68 instead of ND68 in DO-loop
-			   to avoid out-of-bounds error
-
-fast_j.f		-- Now reference routine GET_YEAR from "time_mod.f"  
-			-- Added LASTMONTH as a SAVEd variable
-			-- Now call READ_TOMSO3 from "toms_mod.f" at the
-			   beginning of a new month (or the first timestep) 
-			   to read TOMS O3 columns which will be used by 
-			   "set_prof.f".
-			-- Now also reference routine GET_DAY from "time_mod.f"
-			-- Rename IDAY to DAY_OF_YR
-			-- Also pass day of month to PHOTOJ
-			-- Updated comments, cosmetic changes
-
-gasconc.f		-- Remove IRUN, it's obsolete
-			-- Remove obsolete variables from documentation.
-
-init_comode		-- Now allocate CSUMA, CSUMC, ERRMX2
-("comode_mod.f")	-- Cosmetic changes
-
-photoj.f		-- Renamed NSLON to NLON and NSLAT to NLAT
-			-- Now add DAY_OF_YR and DAY to the arg list.  
-			-- Swap places in arg list of SA and OD.  
-			-- Now pass NSLON, NSLAT, DAY_OF_YR and DAY to 
-			   "set_prof.f".  
-			-- Added standard documentation header
-			-- cosmetic changes 
-
-physproc.f		-- Comment out section that computes photorates from 
-			   original SMVGEAR II file "photrate.dat"...this is 
-			   not needed.  
-			-- Remove TFROMID, it's not used anywhere else
-			-- Also obsolete variables from documentation.
-			-- Comment out references to LASTCHEM, this is not
-			   initialized anywhere
-			-- Now reference CSUMA, CSUMC, ERRMX2 from
-               		   "comode_mod.f". 
-
-planeflight		-- Updated comments, cosmetic changes
-("planeflight_mod.f")
-
-readchem.f		-- Now declare ININT as a local variable instead of
-			   being declared w/in "comode.h"
-			-- Remove reference to IPORD
-
-reader.f		-- Remove obsolete variables AERSURF, MLOPJ, REARTHC, 
-			   DENCONS, HALFDAY, GRAVC, FOURPI, TWOPI, REARTH, 
-			   RPRIMB, AVOG1, HALF, THIRD, THRPI2, PID180, PID2, 
-			   SCTWOPI, AMRGAS, TWPISC, REARTH; these aren't 
-			   used w/in "reader.f" anymore.  
-			-- Use F90-style variable declarations.  
-			-- Also remove obsolete variables from documentation
-
-set_prof.f		-- Added NLON, NLAT, DAY to the arg list
-			-- Now weight the O3 column by the observed monthly 
-			   mean EP-TOMS data
-			-- Also updated comments and added standard GEOS-CHEM 
-			   documentation header 
-
-smvgear.f		-- Declare NSTEPS, KLOOP, IABOVK as local variables 
-			   since they are only ever used w/in "smvgear.f"
-			-- Also reference ERRMX2 from "comode_mod.f"	
-
-test_valid		-- Since JLOP is not allocated for non-SMVGEAR runs, 
-("planeflight_mod.f")	   set PCHEM=F and JLOOP=0 even if we are in the 
-			   troposphere.
