@@ -1,0 +1,300 @@
+! $Id: CMN_SIZE,v 1.1 2003/06/30 20:26:09 bmy Exp $
+      !=======================================================================
+      ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 6/18/03)
+      !
+      ! NOTES:
+      ! (1 ) Now set LLTROP = 20 for GEOS-3 (bmy, 4/12/01)
+      ! (2 ) Eliminated obsolete commented-out code (bmy, 4/20/01)
+      ! (3 ) Now set MAXFAM = 12 for more P-L families (bmy, 6/28/01)  
+      ! (4 ) Comment out {IJL}GCMPAR -- these are obosolete (bmy, 9/24/01)
+      ! (5 ) Also set LLPAR = 30 for GEOS-3, will regrid online (bmy, 9/24/01) 
+      ! (6 ) Removed obsolete code from 9/01 (bmy, 10/23/01)
+      ! (7 ) Removed NAIR, LAIREMS, these are now defined 
+      !       in "aircraft_nox_mod.f" (bmy, 2/14/02)
+      ! (8 ) Eliminated commented-out code from 2/14/02.  Also added NAER 
+      !       and NRH parameters for aerosols. (rvm, bmy, 2/27/02)
+      ! (9 ) Removed IM, JM, IMX, JMX to avoid namespace pollution.  This
+      !       is needed to get the new TPCORE to work.  Also changed RCS
+      !       ID tag comment character from "C" to "!" to allow freeform
+      !       compilation. (bmy, 6/25/02)
+      ! (10) Removed obsolete code from 6/02 (bmy, 8/26/02)
+      ! (11) Added NUMDEP_SULF in a common block for sulfate dry deposition. 
+      !       Also set MAXDEP=31 and NNPAR=31 for coupled fullchem/sulfate
+      !       simulations. (rjp, bdf, bmy, 11/15/02)
+      ! (12) Removed I0, J0; these are now superseded by "grid_mod.f"
+      !       (bmy, 2/11/03)
+      ! (13) Added parameters for GEOS-4 (bmy, 6/18/03)
+      !=======================================================================
+
+      ! C Preprocessor #define statements for conditional compilation
+#     include "define.h"
+
+      !=================================================================
+      ! DISIZE = size (in degrees) of a longitude grid box
+      ! DJSIZE = size (in degrees) of a latitude  grid box
+      !=================================================================
+#if   defined( GRID4x5  ) 
+      REAL*8, PARAMETER :: DISIZE = 5.0d0
+      REAL*8, PARAMETER :: DJSIZE = 4.0d0
+
+#elif defined( GRID2x25 )
+      REAL*8, PARAMETER :: DISIZE = 2.5d0 
+      REAL*8, PARAMETER :: DJSIZE = 2.0d0
+
+#elif defined( GRID1x1 )
+      REAL*8, PARAMETER :: DISIZE = 1.0d0 
+      REAL*8, PARAMETER :: DJSIZE = 1.0d0
+
+#endif
+
+      !=================================================================
+      ! GRID PARAMETERS
+      !
+      ! IGLOB  = global longitude dimension
+      ! JGLOB  = global latitude dimension
+      ! LGLOB  = max number of sigma levels 
+      ! IIPAR  = window longitude dimension
+      ! JJPAR  = window latitude dimension
+      ! LLPAR  = window vertical dimension
+      ! LLTROP = number of tropospheric levels 
+      ! PTOP   = model top pressure (mb)
+      !
+      ! NOTES: 
+      ! (1) GEOS-CHEM is usually set up for a global run, thus,
+      !     IIPAR=IGLOB, JJPAR=JGLOB, LLPAR=LGLOB (bmy, 4/9/99)
+      !
+      ! (2) IIPAR, JJPAR, LLPAR may be smaller than or equal to 
+      !     IGLOB, JGLOB, LGLOB (bmy, 4/12/99)    
+      !
+      ! (3) PTOP is now correct (0.01 hPa) for GEOS-2, GEOS-3 grids
+      !     (bmy, 10/2/00)
+      !=================================================================
+#if   defined( GEOS_1 ) && defined( GRID4x5 ) 
+      INTEGER, PARAMETER :: IGLOB  = 72
+      INTEGER, PARAMETER :: JGLOB  = 46
+      INTEGER, PARAMETER :: LGLOB  = 20
+
+      INTEGER, PARAMETER :: IIPAR  = IGLOB
+      INTEGER, PARAMETER :: JJPAR  = JGLOB
+      INTEGER, PARAMETER :: LLPAR  = LGLOB
+
+      INTEGER, PARAMETER :: LLTROP = 16
+
+      REAL*8,  PARAMETER :: PTOP   = 10d0
+
+#elif defined( GEOS_1 ) && defined( GRID2x25 )
+      INTEGER, PARAMETER :: IGLOB  = 144
+      INTEGER, PARAMETER :: JGLOB  = 91
+      INTEGER, PARAMETER :: LGLOB  = 20
+
+      INTEGER, PARAMETER :: IIPAR  = IGLOB
+      INTEGER, PARAMETER :: JJPAR  = JGLOB
+      INTEGER, PARAMETER :: LLPAR  = LGLOB
+
+      INTEGER, PARAMETER :: LLTROP = 16
+
+      REAL*8,  PARAMETER :: PTOP   = 10d0
+
+#elif defined( GEOS_STRAT ) && defined( GRID4x5 )
+      INTEGER, PARAMETER :: IGLOB  = 72
+      INTEGER, PARAMETER :: JGLOB  = 46
+      INTEGER, PARAMETER :: LGLOB  = 26      
+
+      INTEGER, PARAMETER :: IIPAR  = IGLOB
+      INTEGER, PARAMETER :: JJPAR  = JGLOB
+      INTEGER, PARAMETER :: LLPAR  = LGLOB
+
+      INTEGER, PARAMETER :: LLTROP = 19
+
+      REAL*8,  PARAMETER :: PTOP   = 0.1d0
+
+#elif defined( GEOS_STRAT ) && defined( GRID2x25 )
+      INTEGER, PARAMETER :: IGLOB  = 144
+      INTEGER, PARAMETER :: JGLOB  = 91
+      INTEGER, PARAMETER :: LGLOB  = 26            
+
+      INTEGER, PARAMETER :: IIPAR  = IGLOB
+      INTEGER, PARAMETER :: JJPAR  = JGLOB
+      INTEGER, PARAMETER :: LLPAR  = LGLOB
+
+      INTEGER, PARAMETER :: LLTROP = 19
+
+      REAL*8,  PARAMETER :: PTOP   = 0.1d0
+
+#elif defined( GEOS_2 ) && defined( GRID4x5 )
+      INTEGER, PARAMETER :: IGLOB  = 72
+      INTEGER, PARAMETER :: JGLOB  = 46
+      INTEGER, PARAMETER :: LGLOB  = 47
+
+      INTEGER, PARAMETER :: IIPAR  = IGLOB
+      INTEGER, PARAMETER :: JJPAR  = JGLOB
+      INTEGER, PARAMETER :: LLPAR  = LGLOB
+
+      INTEGER, PARAMETER :: LLTROP = 31
+
+      REAL*8,  PARAMETER :: PTOP   = 0.01d0
+
+#elif defined( GEOS_2 ) && defined( GRID2x25 )
+      INTEGER, PARAMETER :: IGLOB  = 144
+      INTEGER, PARAMETER :: JGLOB  = 91
+      INTEGER, PARAMETER :: LGLOB  = 47           
+
+      INTEGER, PARAMETER :: IIPAR  = IGLOB
+      INTEGER, PARAMETER :: JJPAR  = JGLOB
+      INTEGER, PARAMETER :: LLPAR  = LGLOB
+
+      INTEGER, PARAMETER :: LLTROP = 31
+
+      REAL*8,  PARAMETER :: PTOP   = 0.01d0
+
+#elif defined( GEOS_3 ) && defined( GRID4x5 )
+      INTEGER, PARAMETER :: IGLOB  = 72
+      INTEGER, PARAMETER :: JGLOB  = 46
+      INTEGER, PARAMETER :: LGLOB  = 48            
+
+      INTEGER, PARAMETER :: IIPAR  = IGLOB
+      INTEGER, PARAMETER :: JJPAR  = JGLOB
+      !-----------------------------------------------------------------
+      ! Uncomment this line for GEOS-3 4 x 5 w/ 48 sigma levels 
+      !INTEGER, PARAMETER :: LLPAR  = LGLOB      
+      !-----------------------------------------------------------------
+      ! Uncomment this line for GEOS-3 4 x 5 w/ 30 sigma levels 
+      INTEGER, PARAMETER :: LLPAR  = 30
+      !-----------------------------------------------------------------
+
+      INTEGER, PARAMETER :: LLTROP = 20       
+
+      REAL*8,  PARAMETER :: PTOP   = 0.01d0
+
+#elif defined( GEOS_3 ) && defined( GRID2x25 )
+      INTEGER, PARAMETER :: IGLOB  = 144
+      INTEGER, PARAMETER :: JGLOB  = 91
+      INTEGER, PARAMETER :: LGLOB  = 48            
+
+      INTEGER, PARAMETER :: IIPAR  = IGLOB
+      INTEGER, PARAMETER :: JJPAR  = JGLOB
+      !-----------------------------------------------------------------
+      ! Uncomment this line for GEOS-3 2 x 2.5 with 48 sigma levels
+      !INTEGER, PARAMETER :: LLPAR  = LGLOB
+      !-----------------------------------------------------------------
+      ! Uncomment this line for GEOS-3 2 x 2.5 with 30 sigma levels
+      INTEGER, PARAMETER :: LLPAR  = 30
+      !-----------------------------------------------------------------
+
+      INTEGER, PARAMETER :: LLTROP = 20       
+
+      REAL*8,  PARAMETER :: PTOP   = 0.01d0
+
+#elif defined( GEOS_3 ) && defined( GRID1x1 )
+      ! For yxw's China grid
+      INTEGER, PARAMETER :: IGLOB  = 81
+      INTEGER, PARAMETER :: JGLOB  = 67
+      INTEGER, PARAMETER :: LGLOB  = 48           
+
+      INTEGER, PARAMETER :: IIPAR  = IGLOB
+      INTEGER, PARAMETER :: JJPAR  = JGLOB
+      !-----------------------------------------------------------------
+      ! Uncomment this line for GEOS-3 1 x 1 with 48 sigma levels
+      !INTEGER, PARAMETER :: LLPAR  = LGLOB
+      !-----------------------------------------------------------------
+      ! Uncomment this line for GEOS-3 1 x 1 with 30 sigma levels
+      INTEGER, PARAMETER :: LLPAR  = 30
+      !-----------------------------------------------------------------
+
+      INTEGER, PARAMETER :: LLTROP = 20       
+
+      REAL*8,  PARAMETER :: PTOP   = 0.01d0
+
+#elif defined( GEOS_4 ) && defined( GRID4x5 )
+      INTEGER, PARAMETER :: IGLOB  = 72
+      INTEGER, PARAMETER :: JGLOB  = 46
+      INTEGER, PARAMETER :: LGLOB  = 55           
+
+      INTEGER, PARAMETER :: IIPAR  = IGLOB
+      INTEGER, PARAMETER :: JJPAR  = JGLOB
+      INTEGER, PARAMETER :: LLPAR  = LGLOB      
+
+      INTEGER, PARAMETER :: LLTROP = 20
+
+      REAL*8,  PARAMETER :: PTOP   = 0.01d0
+
+#elif defined( GEOS_4 ) && defined( GRID_2x25 )
+      INTEGER, PARAMETER :: IGLOB  = 144
+      INTEGER, PARAMETER :: JGLOB  = 91
+      INTEGER, PARAMETER :: LGLOB  = 55
+
+      INTEGER, PARAMETER :: IIPAR  = IGLOB
+      INTEGER, PARAMETER :: JJPAR  = JGLOB
+      INTEGER, PARAMETER :: LLPAR  = LGLOB
+
+      INTEGER, PARAMETER :: LLTROP = 20
+
+      REAL*8,  PARAMETER :: PTOP   = 0.01d0
+
+#endif
+
+      !=================================================================
+      ! TRACER & EMISSION SPECIES PARAMETERS
+      !
+      ! NNPAR   = max number of tracers
+      ! NEMPARA = max number of anthropogenic emission species
+      ! NEMPARB = max number of biogenic      emission species
+      !
+      ! NOTE: Need to define these for LGEOSCO, even if FULLCHEM
+      !       and SMALLCHEM switches are turned off (bmy, 10/2/00)
+      !=================================================================
+#if   defined( SMALLCHEM )
+      INTEGER, PARAMETER :: NNPAR   = 6
+      INTEGER, PARAMETER :: NEMPARA = 10
+      INTEGER, PARAMETER :: NEMPARB = 1
+
+#elif defined( FULLCHEM  )
+      INTEGER, PARAMETER :: NNPAR   = 31
+      INTEGER, PARAMETER :: NEMPARA = 10
+      INTEGER, PARAMETER :: NEMPARB = 1
+
+#elif defined( LGEOSCO ) && !defined( FULLCHEM ) && !defined( SMALLCHEM )
+      INTEGER, PARAMETER :: NNPAR   = 10
+      INTEGER, PARAMETER :: NEMPARA = 10
+      INTEGER, PARAMETER :: NEMPARB = 1
+      
+#endif
+
+      !=================================================================
+      ! OTHER PARAMETERS 
+      !=================================================================
+
+      ! NVEGTYPE - Maximum number of surface types: 74 olson
+      ! NTYPE    - Maximum number of veg types in a CTM grid box
+      ! NPOLY    - Number of coefficients for polynomial fits
+      INTEGER, PARAMETER :: NVEGTYPE = 74
+      INTEGER, PARAMETER :: NTYPE    = 15
+      INTEGER, PARAMETER :: NPOLY    = 20
+
+      ! NNSTA = max number of time series stations (in inptr.ctm)
+      INTEGER, PARAMETER :: NNSTA = 800
+
+      ! MAXIJ - Maximum number of 1st level grid boxes
+      INTEGER, PARAMETER :: MAXIJ = IIPAR * JJPAR
+
+      ! LLCONVM - Max number of layers for convection
+      INTEGER, PARAMETER :: LLCONVM = LLPAR - 1
+
+      ! NOXLEVELS = Number of levels of anthro NOx emission 
+      !             (e.g. surface and 100m)
+      ! NOXEXTENT = Highest sigma level that receives anthro NOx emission 
+      INTEGER, PARAMETER :: NOXLEVELS = 2
+      INTEGER, PARAMETER :: NOXEXTENT = 2 
+
+      ! MAXFAM -- Max number of families for prod and loss output
+      INTEGER, PARAMETER :: MAXFAM = 12
+
+      ! NDUST -- Number of FAST-J aerosol size bins (rvm, bmy, 11/15/01)
+      INTEGER, PARAMETER :: NDUST = 7
+
+      ! NAER -- number of other aerosol categories (rvm, bmy, 2/27/02)
+      INTEGER, PARAMETER :: NAER = 5
+
+      ! NRH -- number of relative humidity bins (rvm, bmy, 2/27/02)
+      INTEGER, PARAMETER :: NRH = 5
+

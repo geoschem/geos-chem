@@ -1,0 +1,91 @@
+! $Id: CMN_O3,v 1.1 2003/06/30 20:26:08 bmy Exp $
+
+!-----COMMON BLOCKS FOR ANTHRO EMISSIONS (via SMVGEAR!)-----
+!
+! NOTES:
+! (1 ) Changed RCS ID tag comment character from "C" to "!" to allow freeform
+!       compilation.  Also added & continuation characters in column 73
+!       to allow header files to be included in F90 freeform files.
+!       (bmy, 6/25/02)
+!
+!
+! NOTE: Now NEMPARA = max no. of anthropogenic emissions
+!           NEMPARB = max no. of biogenic emissions
+!
+! XNUMOL    = molec / kg tracer
+! XNUMOLAIR = molec / kg air
+! FMOL      = mol. wt. of tracer                                     
+      REAL*8          XNUMOL,        XNUMOLAIR, FMOL
+      COMMON /CCHMRY/ XNUMOL(NNPAR), XNUMOLAIR, FMOL(NNPAR)
+
+! OZCOL = column ozone in Dobson Units
+      REAL*8          OZCOL
+      COMMON /CCHMR2/ OZCOL(15,12)
+
+! Rural Emissions: EMISRN = NOx (1:NOXLEVELS), EMISR = all other tracers
+! Total Emissions: EMISTN = NOx (1:NOXLEVELS), EMIST = all other tracers
+      REAL*8 EMISR, EMISRN, EMIST, EMISTN
+      COMMON /EMIS/                                                     &
+     &   EMISR(IGLOB,JGLOB,2:NEMPARA), EMISRN(IGLOB,JGLOB,NOXLEVELS),   &
+     &   EMIST(IIPAR,JJPAR,2:NEMPARA), EMISTN(IIPAR,JJPAR,NOXLEVELS)
+
+! Rural Emissions:
+! EMISRRN = NOx emissions into sigma levels L=1,NOXEXTENT
+! EMISRR  = All other tracer emissions into sigma level L=1
+      REAL*8 EMISRR, EMISRRN
+      COMMON /EMIS2/                                                    &
+     &   EMISRR (IIPAR,JJPAR,2:NEMPARA+NEMPARB),                        &
+     &   EMISRRN(IIPAR,JJPAR,NOXEXTENT        )
+ 
+! bey for archive ND48
+      REAL*8 EMISRR48
+      COMMON /EMIS3/ EMISRR48(IIPAR,JJPAR)
+
+! Arrays to read emissions from updated merge file : 
+!        NOx, CO, PRPE, C3H8, ALK4, C2H6, ACET, MEK
+      REAL*4 EMISTNOX,EMISTCO,EMISTETHE,EMISTPRPE,EMISTC2H6,            &
+     &       EMISTC3H8,EMISTALK4,EMISTACET,EMISTMEK,EMISTSOX
+      COMMON/EMIS4/                                                     &
+     &  EMISTNOX (IGLOB,JGLOB,4,2), EMISTETHE(IGLOB,JGLOB    ),         &
+     &  EMISTCO  (IGLOB,JGLOB    ), EMISTPRPE(IGLOB,JGLOB    ),         &
+     &  EMISTC3H8(IGLOB,JGLOB    ), EMISTALK4(IGLOB,JGLOB    ),         &
+     &  EMISTC2H6(IGLOB,JGLOB    ), EMISTSOX (IGLOB,JGLOB,4,2),         &
+     &  EMISTACET(IGLOB,JGLOB    ), EMISTMEK (IGLOB,JGLOB    )
+
+
+! Time of day and weekday/weekend scale factors
+! NOTE: Now SCNR89 is (3,3) because of the weekday scale factor!!!
+      REAL*8         TODH,    TODN,    TODB,    SCNR89
+      COMMON /PLUAD/ TODH(6), TODN(6), TODB(6), SCNR89(3,3)
+
+! IFSCLYR = Year to use for scaling fossil fuel emissions (1985 = no scaling!)
+      INTEGER         FSCALYR
+      COMMON /FSCAL1/ FSCALYR
+
+! FTOTCO2 = yearly scale factors based on Total  Fuel CO2 emissions 
+! FLIQCO2 = yearly scale factors based on Liquid Fuel CO2 emissions
+      REAL*4          FTOTCO2,              FLIQCO2
+      COMMON /FSCAL2/ FTOTCO2(IGLOB,JGLOB), FLIQCO2(IGLOB,JGLOB)
+
+! Arrays to store fractions of O3, O2, NO
+      REAL*8       FO3,    FNO2,    FNO
+      COMMON /O3C/ FO3(5), FNO2(5), FNO(5)
+
+! FRACO3, FRACNO          = fractions of O3, NO
+! SAVEOH, SAVENO, SAVENO3 = array to save OH, NO, & NO3 fields 
+! SAVENO2                 = array to save NO2 fields (rvm, 5/9/00)
+! FRACNO2                 = fraction of NO2 (rvm, bmy, 2/27/02)
+! SAVEHO2                 = array to save HO2 fields (rvm, bmy, 2/27/02)
+      REAL*8 FRACO3, SAVEOH, FRACNO, SAVENO, SAVENO2, SAVENO3 
+      REAL*8 FRACNO2, SAVEHO2
+      COMMON /FRO3/                                                     &
+     &   FRACO3(IIPAR,JJPAR,LLPAR),                                     &
+     &   SAVEOH(IIPAR,JJPAR,LLPAR),                                     &
+     &   FRACNO(IIPAR,JJPAR,LLPAR),                                     &
+     &   SAVENO(IIPAR,JJPAR,LLPAR),                                     &
+     &   SAVENO2(IIPAR,JJPAR,LLPAR),                                    & 
+     &   SAVENO3(IIPAR,JJPAR,LLPAR),                                    &
+     &   FRACNO2(IIPAR,JJPAR,LLPAR),                                    &
+     &   SAVEHO2(IIPAR,JJPAR,LLPAR)
+
+

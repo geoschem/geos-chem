@@ -1,0 +1,29 @@
+! $Id: CMN_TIMES,v 1.1 2003/06/30 20:26:01 bmy Exp $
+!
+!  CMN_TIMES for timeseries archival of areas (bey, bmy, qli, 6/9/99, 6/25/02)
+!
+! NOTES:
+! (1 ) Changed RCS ID tag comment character from "C" to "!" to allow freeform
+!       compilation.  Also added & continuation characters in column 73
+!       to allow header files to be included in F90 freeform files.
+!       (bmy, 6/25/02)
+!
+       ! TRAC_AREA should be dimensioned NNPAR (bey, bmy, 10/12/00)
+       ! Now define TRAC_AREA 2*NNPAR, for extra tracers (bmy, 9/4/01)
+       INTEGER IMIN_AREA, IMAX_AREA, JMIN_AREA, JMAX_AREA,              &
+     &         LMIN_AREA, LMAX_AREA,                                    &
+     &         NI, NJ, NL,                                              &
+     &         FREQ_AREA, TRAC_AREA(2*NNPAR), NTRAC_AREA,               &
+     &         DIAG_AREA                        
+       REAL*8  DAT1_AREA, DAT2_AREA
+
+       COMMON /INFO/ IMIN_AREA, IMAX_AREA, JMIN_AREA, JMAX_AREA,        &
+     &         LMIN_AREA, LMAX_AREA, DAT1_AREA, DAT2_AREA,              &
+     &         NI, NJ, NL,                                              &
+     &         FREQ_AREA, TRAC_AREA, NTRAC_AREA,                        &
+     &         DIAG_AREA
+
+       LOGICAL WORD_WRAP
+       COMMON /INFO2/ WORD_WRAP
+
+

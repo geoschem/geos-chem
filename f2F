@@ -1,0 +1,34 @@
+#!/bin/perl -w
+
+#==============================================================================
+# Perl Script f2F renames Fortran files from "*.f" to "*.F".  
+# This is necessary for Sun/Sparc compilers. (bmy, 5/8/03)
+#==============================================================================
+
+# Define variables
+my $f        = "";
+my $fnew     = "";
+my @allfiles = "";
+
+# Get a list of files
+opendir( THISDIR, "." ) or die "bad directory";
+@allfiles = readdir( THISDIR );
+closedir( THISDIR );
+
+# Loop over each file
+foreach $f ( @allfiles ) {
+
+  # If the file ends in ".f", then...
+  if ( $f =~ '\.f' ) {
+
+    # Replace .f with .F 
+    $fnew = $f;
+    $fnew =~ s/\.f/\.F/g;
+  
+    # Rename file
+    qx( mv $f $fnew );
+  }  
+}
+
+# Exit normally
+exit(0);

@@ -1,0 +1,131 @@
+! $Id: CMN_SETUP,v 1.1 2003/06/30 20:26:05 bmy Exp $
+!
+!******************************************************************************
+!  CMN_SETUP contains logical switches and I/O units for SETUP.F and MAIN.F.
+!  (bmy, bey, bdf, 3/3/98, 6/18/03)
+!
+!  NOTES:
+!  (1 ) The 'ts.out' file capability has been eliminated since the same
+!        information can be obtained from the 'ctm.dbg' file.  LSVSTA
+!        and IUSTA0 have been removed.
+!  (2 ) LSVMR and LSVGM have been removed.  SAVE_TRACER now only writes
+!        mixing ratio (V/V) concentrations to disk. 
+!  (3 ) Rename LDIFF to LKZZ -- for turning on KZZ diffusion routines
+!        (bdf, bmy, 3/18/99)
+!  (4 ) Eliminate IUTIME -- "timing.dat" is not used anymore (bmy, 3/18/99)
+!  (5 ) Add LFORCE switch for reading binary restart files (bmy, 5/27/99)
+!  (6 ) Add LSPLIT and LMONOT switches.  Also eliminate PH_FLDS, I6_FLDS,
+!        A6_FLDS, A3_FLDS, KZZ_FLDS as these are now obsolete. (bmy, 11/4/99)
+!  (7 ) Rename LCRSS to LMFCT for TPCORE v. 7.1 (parallel-processor version)
+!        (bmy, 4/24/00)
+!  (8 ) Rename LGEOS1 to LBBSEA, for selecting seasonal or interannual
+!        variability biomass burning emission (bmy, 9/11/00)
+!  (9 ) Rename LRWND to LTOMSAI, for computing interannual variability in
+!        biomass burning emissions from TOMS Aerosol Index data (bmy, 9/28/00)
+!  (10) Rename LUNZIP to LSTDRUN, for standard run testing (bmy, 12/6/00)
+!  (11) Rename LNOOPS to LWAIT.  This will cause GEOS-CHEM to wait until
+!        the met fields have been unzipped (i.e. it will place the unzip
+!        job in the foreground).  This is sometimes necessary for fast 
+!        simulations. (bmy, 4/17/01)
+!  (12) Eliminated obsolete commented-out code (bmy, 4/20/01)
+!  (13) Changed RCS ID tag comment character from C to ! in order to 
+!        allow freeform compilation.  Also added & continuation characters 
+!        in column 73 to allow header files to be included in F90 freeform 
+!        files. (bmy, 6/25/02)
+!  (14) File unit numbers are now contained w/in "file_mod.f" (bmy, 6/27/02)
+!  (15) Removed IRES, IJLN...these are now obsolete.   Renamed LFORCE to 
+!        LSULF for coupled chem/aerosol run.  Also updated comments and made 
+!        cosmetic changes (bmy, 11/15/02)
+!  (16) Renamed LKZZ to LTPFV to select GEOS-4/fvDAS transport or the
+!        TPCORE 7.1m for GEOS-3 winds (bmy, 4/28/03)
+!  (17) Deleted GEOS_2_DIR.  Added GEOS_4_DIR (bmy, 6/18/03)
+!******************************************************************************
+!
+      !=================================================================
+      ! Logical switches for GEOS-CHEM routines and operators:
+      !
+      ! LEMIS    : on/off switch for EMISSIONS       
+      ! LDRYD    : on/off switch for DRY DEPOSITION
+      ! LCHEM    : on/off switch for CHEMISTRY
+      ! LTRAN    : on/off switch for TRANSPORT       
+      ! LKZZ     : *** NOW OBSOLETE ***
+      ! LTURB    : on/off switch for PBL MIXING (via TURBDAY)
+      ! LCONV    : on/off switch for CLOUD CONVECTION (via NFCLDMX)
+      ! LWETD    : on/off switch for WET DEPOSITION  
+      ! LDBUG    : *** NOW OBSOLETE ***
+      ! LDIAG    : *** NOW OBSOLETE ***
+      ! LRERD    : on/off switch for rereading met field data
+      ! LMFCT    : Argument for TPCORE (transport)
+      ! LFILL    : Argument for TPCORE (transport)
+      ! LWAIT    : on/off switch for unzipping met fields in foreground
+      ! LTOMSAI  : on/off switch for scaling biomass w/ TOMS AI data 
+      ! LBBSEA   : on/off switch for seasonal biomass burning emissions
+      ! LSTDRUN  : on/off switch to save initial/final mass for STDRUN
+      ! LSULF    : on/off switch for coupled full chemistry/aerosol run
+      ! LSPLIT   : on/off switch for using tagged tracers
+      ! LMONOT   : on/off switch for scaling MONOTERPENES from ACET
+      !=================================================================
+      LOGICAL                                                           &
+     &   LEMIS,  LDRYD,   LCHEM,  LTRAN,   LTPFV,  LTURB,  LCONV,       &
+     &   LWETD,  LDBUG,   LDIAG,  LRERD,   LSVGLB, LMFCT,  LFILL,       &
+     &   LWAIT,  LTOMSAI, LBBSEA, LSTDRUN, LSULF,  LSPLIT, LMONOT
+
+      COMMON /LFLAGS/                                                   &
+     &   LEMIS,  LDRYD,   LCHEM,  LTRAN,   LTPFV,  LTURB,  LCONV,       &
+     &   LWETD,  LDBUG,   LDIAG,  LRERD,   LSVGLB, LMFCT,  LFILL,       &
+     &   LWAIT,  LTOMSAI, LBBSEA, LSTDRUN, LSULF,  LSPLIT, LMONOT
+
+      !=================================================================
+      ! Directory and character string variables, from 'input.geos'
+      !
+      ! BACKGROUND  : String for background operator  (' &'    in Unix) 
+      ! REDIRECT    : String for redirection operator (' >'    in Unix)
+      ! REMOVE_CMD  : String for remove command       ('rm'    in Unix)
+      ! SEPARATOR   : String for dir path separator   ('/'     in Unix)
+      ! SPACE       : String for blank spaces         (' '     in Unix)    
+      ! STAR        : String for wild card operator   ('*'     in Unix)
+      ! UNZIP_CMD   : String for unzip command        ('gzcat' in Unix) 
+      ! A3_SUFFIX   : Suffix for DAO A-3  (Average 3h      ) met fields 
+      ! A6_SUFFIX   : Suffix for DAO A-6  (Average 6h      ) met fields 
+      ! I6_SUFFIX   : Suffix for DAO I-6  (Instantaneous 6h) met fields 
+      ! PH_SUFFIX   : Suffix for DAO PHIS (geopotential hts) met fields 
+      ! KZZ_SUFFIX  : Suffix for DAO KZZ  (Average 3h      ) met fields 
+      ! GRID_SUFFIX : Suffix for grid resolution
+      ! ZIP_SUFFIX  : Suffix for denoting compressed files
+      ! DATA_DIR    : Main DAO met field directory
+      ! GEOS_1_DIR  : Subdirectory where GEOS-1     met data are stored
+      ! GEOS_S_DIR  : Subdirectory where GEOS-STRAT met data are stored
+      ! GEOS_3_DIR  : Subdirectory where GEOS-3     met data are stored
+      ! GEOS_4_DIR  : Subdirectory where GEOS-4     met data are stored
+      ! TEMP_DIR    : Temporary directory for unzipping
+      !=================================================================
+      CHARACTER(LEN=30)                                                 &
+     &   BACKGROUND,  REDIRECT,   REMOVE_CMD, SEPARATOR,                &
+     &   SPACE,       UNZIP_CMD,  WILD_CARD  
+
+      CHARACTER(LEN=30)                                                 &
+     &   A3_SUFFIX,   A6_SUFFIX,  I6_SUFFIX,  PH_SUFFIX,                &
+     &   KZZ_SUFFIX,  GRID_SUFFIX, ZIP_SUFFIX
+
+      CHARACTER(LEN=30)                                                 &
+     &   DATA_DIR,    GEOS_1_DIR, GEOS_S_DIR, GEOS_3_DIR,               &
+     &   GEOS_4_DIR,  TEMP_DIR
+
+      COMMON /CHARVARS/                                                 &
+     &   BACKGROUND,  REDIRECT,   REMOVE_CMD, SEPARATOR,                &
+     &   SPACE,       UNZIP_CMD,  WILD_CARD,                            &
+     &                                                                  &
+     &   A3_SUFFIX,   A6_SUFFIX,  I6_SUFFIX,  PH_SUFFIX,                &
+     &   KZZ_SUFFIX,  GRID_SUFFIX, ZIP_SUFFIX,                          &
+     &                                                                  &
+     &   DATA_DIR,    GEOS_1_DIR, GEOS_S_DIR, GEOS_3_DIR,               &
+     &   GEOS_4_DIR,  TEMP_DIR                                          &
+
+      !=================================================================
+      ! NO, J-Value, and 2-PM diagnostic arrays (bmy, 9/25/98)
+      !=================================================================
+      REAL*8           HR1_NO, HR2_NO, HR1_JV,  HR2_JV,                 &
+     &                 HR1_OH, HR2_OH, HR1_OTH, HR2_OTH
+
+      COMMON /JVNO2OH/ HR1_NO, HR2_NO, HR1_JV,  HR2_JV,                 &
+     &                 HR1_OH, HR2_OH, HR1_OTH, HR2_OTH

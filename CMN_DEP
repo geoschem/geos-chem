@@ -1,0 +1,35 @@
+! $Id: CMN_DEP,v 1.1 2003/06/30 20:26:09 bmy Exp $
+!
+!-----COMMON BLOCKS FOR DRYDEP
+!
+! NOTES:
+! (1 ) Changed RCS ID tag comment character from "C" to "!" to allow freeform
+!       compilation.  Changed continuation character from numbers
+!       to &.  Changed comment character from C to !.  Added & continuation 
+!       characters in column 73 to allow header files to be included in 
+!       F90 freeform files. (bmy, 6/25/02)*
+
+ 
+      !  IREG    - Number of landtypes in grid square (I,J)
+      !  ILAND   - Land type ID in grid square (I,J) for IREG landtypes
+      !  IUSE    - Fraction ((per mil) of gridbox area occupied by
+      !                          land type
+      INTEGER IREG,ILAND,IUSE
+      REAL*8  FRCLND
+      COMMON /DEPSV6/ IREG(IGLOB,JGLOB),                                &
+     &                ILAND(IGLOB,JGLOB,NTYPE),                         &
+     &                IUSE(IGLOB,JGLOB,NTYPE),                          &
+     &                FRCLND(IIPAR,JJPAR)
+
+      ! XLAI    - Leaf Area Index of land type for current MONTH
+      REAL*8 XLAI
+      COMMON /DEPSV7/ XLAI(IGLOB,JGLOB,NTYPE)
+
+      ! XLAI2   - Leaf Area Index of land type for following MONTH
+      REAL*8 XLAI2
+      COMMON /DEPSV5/ XLAI2(IGLOB,JGLOB,NTYPE)
+
+      ! CFRAC  - Fractional cloud cover
+      ! RADIAT - Solar radiation in W m-2
+      REAL*8 CFRAC,RADIAT
+      COMMON /RADI1/ CFRAC(MAXIJ),RADIAT(MAXIJ)

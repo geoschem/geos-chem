@@ -1,0 +1,10 @@
+! $Id: CMN_CLD,v 1.1 2003/06/30 20:26:09 bmy Exp $
+!
+! CMN_CLD is needed by "setcloud.f" -- only if you are
+! using the SLOW-J photolysis.  This is pretty obsolete...
+!
+      INTEGER    NCATG
+      PARAMETER (NCATG=226)
+      REAL*8     OPTDEP(NCATG),ZENIT(5)
+      INTEGER         NRADEN(NCATG,5)
+      COMMON /CLDTBL/ NRADEN,   OPTDEP,       ZENIT
