@@ -55,6 +55,9 @@ init_tracerid		-- Now zero flags for total & tagged Hg tracers
 initialize.f		-- Now initialize extra arrays for ND03 mercury diag
 			-- Also remove reference to obsolete TOFDY0 variable
 
+logical_mod.f		-- Added LAVHRRLAI switch to toggle AVHRR-derived
+			   leaf area index data
+
 main.f			-- Simplify IF statement for daily data
 
 ndxx_setup.f		-- Now allocate extra arrays for ND03 mercury diag
@@ -67,18 +70,21 @@ rainout			-- Updated for mercury aerosol tracers
 ("wetscav_mod.f")
 
 rdland.f		-- Now read the "vegtype.global" file from the 
-			   leaf_area_index_200412 subdirectory of DATA_DIR.  
-			   This is the same Olson land map as was used 
-			   previously. 
+			   leaf_area_index_200412 subdirectory if the
+		           LAVHRRLAI flag is set to TRUE.  
 			-- Also updated comments and added standard GEOS-CHEM
 			   program documentation header.
 
 read_deposition_menu	-- Now print informational message for Tagged Hg
 ("input_mod.f")
 
+read_emissions_menu	-- Now read LAVHRRLAI-switch for using AVHRR-derived 
+("input_mod.f")		   leaf-area-index fields 
+
 readlai.f 		-- Now use AVHRR LAI derived leaf-area index data 
-			   which is stored in the leaf_area_index_200412 
-			   subdirectory of DATA_DIR
+			   (stored in the leaf_area_index_200412 subdir of 
+			   DATA_DIR) if the logical switch LAVHRRLAI=T.  
+			   Otherwise use the old LAI data.
 
 
 tracerid		-- Added IDTHG0, IDTHG2, IDTHGP + tagged Hg's flags

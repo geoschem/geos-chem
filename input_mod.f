@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.8 2004/12/16 16:52:45 bmy Exp $
+! $Id: input_mod.f,v 1.9 2004/12/20 16:43:18 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS_CHEM input file at the start of the run
 !  and passes the information to several other GEOS-CHEM F90 modules.
-!  (bmy, 7/20/04, 12/15/04)
+!  (bmy, 7/20/04, 12/20/04)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -82,7 +82,8 @@
 !
 !  NOTES:
 !  (1 ) Now references LSOA in READ_AEROSOL_MENU (bmy, 9/28/04)
-!  (2 ) Fixed error checks and assign LSPLIT for tagged Hg (eck, bmy, 12/13/04)
+!  (2 ) Fixed error checks and assign LSPLIT for tagged Hg.  Also now 
+!        refernces LAVHRRLAI from "logical_mod.f" (eck, bmy, 12/13/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -988,6 +989,7 @@
 !
 !  NOTES:
 !  (1 ) Now read LNEI99 -- switch for EPA/NEI99 emissions (bmy, 11/5/04)
+!  (2 ) Now read LAVHRRLAI-switch for using AVHRR-derived LAI (bmy, 12/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1075,8 +1077,12 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:15' )
       READ( SUBSTRS(1:N), * ) LNEI99
 
-      ! Separator line
+      ! Use AVHRR-derived LAI fields?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:16' )
+      READ( SUBSTRS(1:N), * ) LAVHRRLAI
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:17' )
 
       !=================================================================
       ! Error check logical flags
@@ -1114,6 +1120,7 @@
       WRITE( 6, 100     ) 'Turn on SOIL NOx?           : ', LSOILNOX
       WRITE( 6, 100     ) 'Turn on SHIP SO2 EMISSIONS? : ', LSHIPSO2
       WRITE( 6, 100     ) 'Turn on EPA/NEI99 EMISSIONS?: ', LNEI99
+      WRITE( 6, 100     ) 'Turn on AVHRR-derived LAI?  : ', LAVHRRLAI
       
       ! FORMAT statements
  100  FORMAT( A, L5 )
