@@ -69,6 +69,11 @@ its_time_for_write_diag51- Add TAU_W as an output argument
 ndxx_setup.f		-- Now make sure that LD21 = MAX( ND21, LLTROP )
 		           instead of LLPAR
 
+read_prod_loss_menu	-- Bug fix: Only error check # of prod/loss families 
+("input_mod.f")		   for TagOx and TagCO runs if DO_SAVE_PL=T.  
+			-- Also turn off this diagnostic for the offline 
+			   aerosol run.
+
 tpcore_fvdas_mod.f90	-- Added Brendan Field's mass flux diagnostic code
 			   for ND24, ND25, ND26 diagnostic
 			-- Highlighted places where Harvard modified the

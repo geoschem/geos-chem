@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.5 2004/10/15 20:16:41 bmy Exp $
+! $Id: input_mod.f,v 1.6 2004/11/01 16:32:03 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS_CHEM input file at the start of the run
 !  and passes the information to several other GEOS-CHEM F90 modules.
-!  (bmy, 7/20/04, 9/28/04)
+!  (bmy, 7/20/04, 10/29/04)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -82,6 +82,7 @@
 !
 !  NOTES:
 !  (1 ) Now references LSOA in READ_AEROSOL_MENU (bmy, 9/28/04)
+!  (2 ) Fixed error checks
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -2637,17 +2638,20 @@
 !
 !******************************************************************************
 !  Subroutine READ_PROD_LOSS_MENU reads the PROD & LOSS MENU section of the 
-!  GEOS-CHEM input file (bmy, 7/20/04)
+!  GEOS-CHEM input file (bmy, 7/20/04, 10/29/04)
 !  
 !  NOTES:
+!  (1 ) Bug fixes.  Only error check # of prod/loss families for TagOx and 
+!        TagCO runs if DO_SAVE_PL=T.  Also turn off this diagnostic for
+!        the offline aerosol run. (bmy, 10/29/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE CHARPAK_MOD, ONLY : ISDIGIT, STRSPLIT
       USE DIAG_PL_MOD, ONLY : INIT_DIAG_PL
       USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE TRACER_MOD,  ONLY : N_TRACERS, 
-     &                        ITS_A_TAGCO_SIM, ITS_A_TAGOX_SIM
+      USE TRACER_MOD,  ONLY : N_TRACERS,       ITS_A_TAGCO_SIM, 
+     &                        ITS_A_TAGOX_SIM, ITS_AN_AEROSOL_SIM
 
 #     include "CMN_SIZE"  ! MAXFAM
 #     include "CMN_DIAG"  ! ND65
@@ -2757,15 +2761,33 @@
       !=================================================================
 
       ! Tagged Ox
-      IF ( ITS_A_TAGOX_SIM() .and. NFAM /= 2*N_TRACERS ) THEN
-         MSG = 'Wrong number of P/L families for Tagged Ox!'
-         CALL ERROR_STOP( MSG, LOCATION )
+      IF ( DO_SAVE_PL .and. ITS_A_TAGOX_SIM() ) THEN
+         IF ( NFAM /= 2*N_TRACERS ) THEN
+            MSG = 'Wrong number of P/L families for Tagged Ox!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
       ENDIF
 
       ! Tagged CO
-      IF ( ITS_A_TAGCO_SIM() .and. NFAM /= N_TRACERS+5 ) THEN
-         MSG = 'Wrong number of P/L families for Tagged CO!'
-         CALL ERROR_STOP( MSG, LOCATION )
+      IF ( DO_SAVE_PL .and. ITS_A_TAGCO_SIM() ) THEN
+         IF ( NFAM /= N_TRACERS+5 ) THEN
+            MSG = 'Wrong number of P/L families for Tagged CO!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
+      ! Offline aerosol -- turn off DO_SAVE_PL, since we use ND05,
+      ! ND06, ND07, ND08, ND13 etc diagnostics instead of ND65
+      IF ( ITS_AN_AEROSOL_SIM() ) THEN 
+         DO_SAVE_PL    = .FALSE.
+         DO_SAVE_O3    = .FALSE.
+         ND65          = 0
+         NFAM          = 0
+         FAM_NAME(:)   = ''
+         FAM_TYPE(:)   = ''
+         FAM_NMEM(:)   = 0
+         FAM_MEMB(:,:) = ''
+         FAM_COEF(:,:) = 0d0
       ENDIF
 
       !=================================================================

@@ -1,10 +1,10 @@
-! $Id: tpcore_fvdas_mod.f90,v 1.3 2004/10/15 20:16:43 bmy Exp $
+! $Id: tpcore_fvdas_mod.f90,v 1.4 2004/11/01 16:32:04 bmy Exp $
 module tpcore_fvdas_mod
 !
 !******************************************************************************
 !  Module TPCORE_FVDAS_MOD contains routines for the GEOS-4/fvDAS 
 !  transport scheme.  Original code from S-J Lin and Kevin Yeh. 
-!  (bdf, bmy, 5/7/03, 9/28/04)
+!  (bdf, bmy, 5/7/03, 10/29/04)
 !
 !  The Harvard Atmospheric Chemistry Modeling Group has modified the original
 !  code in order to implement the Philip-Cameron Smith pressure fixer for mass 
@@ -55,6 +55,8 @@ module tpcore_fvdas_mod
 !  (4 ) Added modifications to save mass fluxes in ND24, ND25, ND26
 !        diagnostics.  Also now make places in the code which have been
 !        modified by Harvard more clear to discern. (bdf, bmy, 9/28/04)
+!  (5 ) Bug fix: Need to multiply ND25 N/S transport fluxes by the array 
+!        RGW_25 which accounts for the latitude factor (bdf, bmy, 10/29/04)
 !
 !******************************************************************************
 !
@@ -144,10 +146,17 @@ module tpcore_fvdas_mod
  !%%% Added DLAT as allocatable array for PJC pressure fixer 
  !%%% (bdf, bmy, 5/7/03)
  !%%%
- REAL ,ALLOCATABLE, SAVE :: DLAT(:)
+ REAL, ALLOCATABLE, SAVE :: DLAT(:)
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Added RGW_25 as allocatable array for ND25 N/S mass flux diagnostic.
+ !%%% This accounts for the latitude factor. (bdf, bmy, 10/29/04)
+ !%%%
+ REAL, ALLOCATABLE, SAVE :: RGW_25(:) 
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-contains
+CONTAINS
 
 !-------------------------------------------------------------------------
  subroutine init_tpcore(im, jm, km, jfirst, jlast, ng, mg, dt, ae, clat)
@@ -195,6 +204,14 @@ contains
  !%%% as ALLOCATABLE for use in TPCORE_FVDAS. (bdf, bmy, 5/7/03)
  !%%%
  !%%%real dlat(jm)      ! delta-latitude in radian
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Add SINE_25 array as a local variable.  This is used to initialize
+ !%%% the RGW_25 array, which is necessary for the ND25 diagnostic. 
+ !%%% (bdf, bmy, 10/29/04)
+ !%%%
+ REAL SINE_25(JM+1)
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
  real dlon
@@ -259,6 +276,13 @@ contains
  !%%%
  ALLOCATE ( DLAT(JM) )
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% We must allocate RGW_25 here for ND25 N/S transport fluxes diagnostic.
+ !%%% This accounts for the latitude factor.  (bdf, bmy, 10/29/04)
+ !%%%
+ ALLOCATE ( RGW_25(JM) )
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
  pi = 4. * atan(1.)
 
@@ -266,16 +290,37 @@ contains
 
     elat(1) = -0.5*pi         ! S. Pole
     sine(1) = -1.
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+    !%%%
+    !%%% Initialize SINE_25 array (bmy, bdf, 10/29/04)
+    !%%%
+    SINE_25(1) = -1.0
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     cose(1) =  0.
 
  do j=2,jm
     elat(j) = 0.5*(clat(j-1) + clat(j))
     sine(j) = sin(elat(j))
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+    !%%%
+    !%%% Initialize SINE_25 array (bmy, bdf, 10/29/04)
+    !%%%
+    SINE_25(J) = SIN( CLAT(J) )
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     cose(j) = cos(elat(j))
  enddo
 
     elat(jm+1) = 0.5*pi       ! N. Pole
     sine(jm+1) = 1.
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+    !%%%
+    !%%% Initialize SINE_25 array (bmy, bdf, 10/29/04)
+    !%%%
+    SINE_25(JM+1) = 1.0
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     dlat(1) = 2.*(elat(2) - elat(1))  ! Polar cap
  do j=2,jm-1
@@ -287,16 +332,30 @@ contains
       gw(j) = sine(j+1) - sine(j)
     cosp(j) = gw(j) / dlat(j)
     rgw(j) =  1. / gw(j)
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+    !%%%
+    !%%% Initialize RGW_25 for the ND25 N/S transport fluxes diagnostic.
+    !%%% RGW_25 takes into account the latitude factor. (bdf, bmy, 10/29/04)
+    !%%%
+    RGW_25(J) = 1. / ( SINE_25(J+1) - SINE_25(J) )
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     dtdx5(j) = 0.5 * dt / (dlon*ae*cosp(j))
     dtdy5(j) = 0.5 * dt / (ae*dlat(j))
  enddo
 
- ! Prior to 7/20/04:
- ! Comment out the === lines (bmy, 7/20/04)
- !! Now use REPEAT cmd (bmy, 4/29/03)
- !PRT_PREFIX write( 6, '(a)' ) REPEAT( '=', 79 )
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%% Comment out the === lines (bmy, 7/20/04)
+ !%%%! Now use REPEAT cmd (bmy, 4/29/03)
+ !%%%PRT_PREFIX write( 6, '(a)' ) REPEAT( '=', 79 )
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  PRT_PREFIX write( 6, '(a)' ) 'NASA-GSFC Tracer Transport Module successfully initialized'
- !PRT_PREFIX write( 6, '(a)' ) REPEAT( '=', 79 )
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%% Comment out the === lines (bmy, 7/20/04)
+ !%%%PRT_PREFIX write( 6, '(a)' ) REPEAT( '=', 79 )
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
  end subroutine init_tpcore
 
@@ -333,14 +392,16 @@ contains
  !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
  !%%%
  !%%% Now deallocate arrays only if they have been allocated (bmy, 5/9/03)
+ !%%% Also deallocate RGW_25 array (bdf, bmy, 10/29/04)
  !%%%
- IF ( ALLOCATED( COSP  ) ) DEALLOCATE( COSP  ) 
- IF ( ALLOCATED( COSE  ) ) DEALLOCATE( COSE  ) 
- IF ( ALLOCATED( GW    ) ) DEALLOCATE( GW    ) 
- IF ( ALLOCATED( RGW   ) ) DEALLOCATE( RGW   ) 
- IF ( ALLOCATED( DTDX5 ) ) DEALLOCATE( DTDX5 ) 
- IF ( ALLOCATED( DTDY5 ) ) DEALLOCATE( DTDY5 ) 
- IF ( ALLOCATED( DLAT  ) ) DEALLOCATE( DLAT  )
+ IF ( ALLOCATED( COSP   ) ) DEALLOCATE( COSP   ) 
+ IF ( ALLOCATED( COSE   ) ) DEALLOCATE( COSE   ) 
+ IF ( ALLOCATED( GW     ) ) DEALLOCATE( GW     ) 
+ IF ( ALLOCATED( RGW    ) ) DEALLOCATE( RGW    ) 
+ IF ( ALLOCATED( RGW_25 ) ) DEALLOCATE( RGW_25 )  ! (bdf, bmy, 10/29/04)
+ IF ( ALLOCATED( DTDX5  ) ) DEALLOCATE( DTDX5  ) 
+ IF ( ALLOCATED( DTDY5  ) ) DEALLOCATE( DTDY5  ) 
+ IF ( ALLOCATED( DLAT   ) ) DEALLOCATE( DLAT   )
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -1211,12 +1272,18 @@ contains
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
  !%%%  
- !%%% Implement ND25 diag: N/S flux of tracer [kg/s] (bmy, bdf, 9/28/04)
+ !%%% Implement ND25 diag: N/S flux of tracer [kg/s] (bdf, bmy, 9/28/04)
+ !%%% Now multiply fluxes by latitude factor RGW_25 (bdf, bmy, 19/29/04)
  !%%%
    IF ( ND25 > 0 ) THEN
       DO J = JS2G0, JN2G0
       DO I = 1,     IM
-         DTC        = FY(I,J)*AREA_M2(J)*100.d0 / (TCV*DT*9.8d0)
+         !--------------------------------------------------------------
+         ! Prior to 10/29/04:
+         ! Now add 
+         !DTC        = FY(I,J)*AREA_M2(J)*100.d0 / (TCV*DT*9.8d0)
+         !--------------------------------------------------------------
+         DTC        = FY(I,J)*RGW_25(J)*AREA_M2(J)*100./ (TCV*DT*9.8)
          MFLNS(I,J) = MFLNS(I,J) + DTC
       ENDDO
       ENDDO
@@ -1224,7 +1291,11 @@ contains
       ! South Pole
       IF ( JFIRST == 1 ) THEN
          DO I = 1, IM
-            DTC        = -FY(I,2)*AREA_M2(1)*100.d0 / (TCV*DT*9.8d0)
+            !------------------------------------------------------------
+            ! Prior to 10/29/04:
+            !DTC        = -FY(I,2)*AREA_M2(1)*100.d0 / (TCV*DT*9.8d0)
+            !------------------------------------------------------------
+            DTC        = -FY(I,2)*RGW_25(1)*AREA_M2(1)*100./(TCV*DT*9.8)
             MFLNS(I,1) = MFLNS(I,1) + DTC
          ENDDO
       ENDIF
@@ -1232,7 +1303,12 @@ contains
       ! North Pole
       IF ( JLAST == JM ) THEN
          DO I = 1, IM
-            DTC         = FY(I,JM)*AREA_M2(JM)*100.d0 / (TCV*DT*9.8d0)
+            !------------------------------------------------------------
+            ! Prior to 10/29/04:
+            !DTC         = FY(I,JM)*AREA_M2(JM)*100.d0 / (TCV*DT*9.8d0)
+            !------------------------------------------------------------
+            ! Should it be RGW_25(JM) or RGW_25(J) asked bdf (bmy, 10/29/04)
+            DTC     = FY(I,JM)*RGW_25(JM)*AREA_M2(JM)*100./(TCV*DT*9.8)
             MFLNS(I,JM) = MFLNS(I,JM) + DTC
          ENDDO
       ENDIF

@@ -1,4 +1,4 @@
-! $Id: diag50_mod.f,v 1.2 2004/10/26 13:42:04 bmy Exp $
+! $Id: diag50_mod.f,v 1.3 2004/11/01 16:32:03 bmy Exp $
       MODULE DIAG50_MOD
 !
 !******************************************************************************
@@ -238,7 +238,7 @@
       ENDIF
 
       ! Is it a chemistry timestep?
-      IS_CHEM = ( MOD( GET_ELAPSED_MIN(), GET_TS_CHEM() ) > 0 )
+      IS_CHEM = ( MOD( GET_ELAPSED_MIN(), GET_TS_CHEM() ) == 0 )
 
       ! Echo time information to the screen
       STAMP = TIMESTAMP_STRING()

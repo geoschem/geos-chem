@@ -1,4 +1,4 @@
-! $Id: diag51_mod.f,v 1.10 2004/10/26 13:42:04 bmy Exp $
+! $Id: diag51_mod.f,v 1.11 2004/11/01 16:32:03 bmy Exp $
       MODULE DIAG51_MOD
 !
 !******************************************************************************
@@ -334,7 +334,7 @@
       ENDIF
 
       ! Is it a chemistry timestep?
-      IS_CHEM = ( MOD( GET_ELAPSED_MIN(), GET_TS_CHEM() ) > 0 )
+      IS_CHEM = ( MOD( GET_ELAPSED_MIN(), GET_TS_CHEM() ) == 0 )
 
       ! Echo info
       STAMP = TIMESTAMP_STRING()
@@ -1264,8 +1264,8 @@
 
          ! Zero counters
          IF ( W == 1 .and. K == 1 ) THEN
-            GOOD_CT(X) = 0
-            IF ( IS_CHEM ) GOOD_CT_CHEM(X) = 0
+            GOOD_CT(X)      = 0
+            GOOD_CT_CHEM(X) = 0
          ENDIF
       ENDDO
       ENDDO
