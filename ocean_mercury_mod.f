@@ -1,4 +1,4 @@
-! $Id: ocean_mercury_mod.f,v 1.1 2005/02/10 19:54:37 bmy Exp $
+! $Id: ocean_mercury_mod.f,v 1.2 2005/02/17 18:54:02 bmy Exp $
       MODULE OCEAN_MERCURY_MOD
 !
 !******************************************************************************
@@ -312,7 +312,7 @@
                
                ! Surface air temperature in both [K] and [C]
                ! (Use as surrogate for SST, cap at freezing point)
-               TK        = MAX( TS(I,J) - 273.15d0, 273.15d0 )
+               TK        = MAX( TS(I,J), 273.15d0 )
                TC        = TK - 273.15d0
 
                ! Henry's law constant [unitless]  

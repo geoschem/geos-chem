@@ -1,4 +1,4 @@
-! $Id: diag03_mod.f,v 1.1 2005/02/11 16:23:32 bmy Exp $
+! $Id: diag03_mod.f,v 1.2 2005/02/17 18:54:21 bmy Exp $
       MODULE DIAG03_MOD
 !
 !******************************************************************************
@@ -225,7 +225,7 @@
             UNIT              = 'kg/m2/s'
             LMAX              = 1
             NN                = N
-            ARRAY(:,:,1)      = AD03(:,:,N) !/ SCALE
+            ARRAY(:,:,1)      = AD03(:,:,N) / SCALE
 
          ELSE IF ( N == 10 ) THEN
                
