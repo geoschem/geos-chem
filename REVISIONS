@@ -165,6 +165,9 @@ wetdep			-- Now parallelize over outermost J-loop.
 whenfgt			-- Updated comments
 ("fvdas_convect_mod.f") -- Now use F90-style declarations.
 
+write_diag51		-- Bug fix: GMNL should be NL for tracer #39, not 1
+("diag51_mod.f")
+
 ---
 a3_read_mod.f		<-- Removed obsolete, commented-out code
 a6_read_mod.f		    from the following routines

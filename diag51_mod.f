@@ -1,10 +1,10 @@
-! $Id: diag51_mod.f,v 1.4 2004/01/27 21:25:06 bmy Exp $
+! $Id: diag51_mod.f,v 1.5 2004/03/23 20:36:00 bmy Exp $
       MODULE DIAG51_MOD
 !
 !******************************************************************************
 !  Module DIAG51_MOD contains variables and routines to generate save 
 !  timeseries data over the United States where the local time is between 
-!  two user-defined limits. (amf, bey, bdf, pip, bmy, 11/30/00, 3/27/03)
+!  two user-defined limits. (amf, bey, bdf, pip, bmy, 11/30/00, 3/23/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -87,6 +87,7 @@
 !        comments (rjp, bmy, 3/23/03)
 !  (14) Now references "time_mod.f" and "grid_mod.f" (bmy, 3/27/03)
 !  (15) Bug fix for LINUX in calls to TIMESTAMP_STRING (bmy, 9/29/03)
+!  (16) Bug fix in WRITE_DIAG51 (bmy, 3/23/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -313,7 +314,7 @@
       SUBROUTINE WRITE_DIAG51
 !
 !******************************************************************************
-!  Subroutine WRITE_DIAG51 (bmy, 12/1/00, 9/29/03) does the following:
+!  Subroutine WRITE_DIAG51 (bmy, 12/1/00, 3/23/04) does the following:
 !  
 !  (1) Divides quantities by the number of times it was between
 !       HR1 and HR2 local time in each grid box  
@@ -343,6 +344,7 @@
 !  (12) LINUX has a problem putting a function call w/in a WRITE statement.  
 !        Now save output from TIMESTAMP_STRING to STAMP and print that.
 !        (bmy, 9/29/03)
+!  (13) Bug fix: GMNL should be NL for tracer #39, not 1 (bmy, 3/23/04)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -533,7 +535,12 @@
             CASE ( 39 )
                ZZ(1:NI, 1:NJ, 1:NL) = STT_TEMP51(1:NI, 1:NJ, 1:NL, N)
                CATEGORY             = 'TIME-SER'
-               GMNL                 = 1
+               !-----------------------------------------
+               ! Prior to 3/23/04:
+               ! GMNL should be NL, not 1 (bmy, 3/23/04)
+               !GMNL                 = 1
+               !-----------------------------------------
+               GMNL                 = NL
                GMTRC                = 22
 
             ! Cloud fractions (1-D field)
