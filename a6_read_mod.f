@@ -1,9 +1,9 @@
-! $Id: a6_read_mod.f,v 1.4 2004/01/27 21:25:05 bmy Exp $
+! $Id: a6_read_mod.f,v 1.5 2004/03/05 21:15:38 bmy Exp $
       MODULE A6_READ_MOD
 !
 !******************************************************************************
 !  Module A6_READ_MOD contains subroutines that unzip, open, and read
-!  GEOS-CHEM A-3 (avg 3-hour) met fields from disk. (bmy, 6/19/03, 12/12/03)
+!  GEOS-CHEM A-3 (avg 3-hour) met fields from disk. (bmy, 6/19/03, 3/4/04)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -33,6 +33,7 @@
 !  (3 ) CLDFRC is now a 2-D array in MAKE_CLDFRC< GET_A6_FIELDS.  Also now
 !        read from either zipped or unzipped files. (bmy, 12/9/03)
 !  (4 ) Now skips past the GEOS-4 ident string (bmy, 12/12/03)
+!  (5 ) Bug fix: need to determine CLDTOPS for GEOS-4 (bmy, 3/4/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -435,7 +436,7 @@
 !******************************************************************************
 !  Subroutine GET_A6_FIELDS is a wrapper for routine READ_A6.  GET_A6_FIELDS
 !  calls READ_A6 properly for reading A-6 fields from GEOS-1, GEOS-STRAT, 
-!  GEOS-3, or GEOS-4 met data sets. (bmy, 6/19/03)
+!  GEOS-3, or GEOS-4 met data sets. (bmy, 6/19/03, 3/4/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -445,6 +446,7 @@
 !  NOTES:
 !  (1 ) CFRAC has been removed from CMN_DEP.  Now use CLDFRC(I,J) from
 !        "dao_mod.f" (bmy, 12/9/03)
+!  (2 ) Now pass CLDTOPS to READ_A6 for GEOS-4 (bmy, 3/4/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -508,10 +510,11 @@
 #elif defined( GEOS_4 ) 
 
       !=================================================================      
-      ! GEOS-4: read CLDF, HKBETA, HKETA, MOISTQ, OPTDEP, SPHU
-      !              TMPU, UWND,   VWND,  ZMEU,   ZMMD,   ZMMU
+      ! GEOS-4: read CLDTOPS, CLDF, HKBETA, HKETA, MOISTQ, OPTDEP, SPHU
+      !                       TMPU, UWND,   VWND,  ZMEU,   ZMMD,   ZMMU
+      !
       !=================================================================
-      CALL READ_A6( NYMD=NYMD,     NHMS=NHMS,     
+      CALL READ_A6( NYMD=NYMD,     NHMS=NHMS,       CLDTOPS=CLDTOPS,
      &              CLDF=CLDF,     HKBETA=HKBETA,   HKETA=HKETA,   
      &              MOISTQ=MOISTQ, OPTDEPTH=OPTDEP, Q=SPHU,        
      &              T=T,           U=UWND,          V=VWND,        
@@ -780,6 +783,7 @@
 !  (1 ) Adapted from READ_A6 of "dao_read_mod.f" (bmy, 6/19/03)
 !  (2 ) Now use function TIMESTAMP_STRING from "time_mod.f" for formatted 
 !        date/time output. (bmy, 10/28/03)
+!  (3 ) Now compute CLDTOPS using ZMMU for GEOS-4 (bmy, 3/4/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1123,26 +1127,46 @@
       !=================================================================
       ! CLDTOPS(I,J) = level of convective cloud top at (I,J).
       ! GEOS-CHEM cloud top at (I,J) is at top of first level where 
-      ! CLDMAS goes from being nonzero to zero.  In other words:
+      ! cloud mass flux goes from being nonzero to zero.  
       !
-      ! If at vertical level L, CLDMAS(L,  :,:) == 0 and 
-      !                         CLDMAS(L-1,:,:) /= 0 
-      !
-      ! then CLDTOPS(I,J) = L.
+      ! For GEOS-1, GEOS-STRAT, GEOS-3: mass flux is "CLDMAS" field
+      ! For GEOS_4                    : mass flux is "ZMMU"   field
       !=================================================================
-      IF ( PRESENT( CLDTOPS ) .and. PRESENT( CLDMAS ) ) THEN
+#if   defined( GEOS_4 )
+
+      ! CLDTOPS is highest location of ZMMU in the column (I,J)
+      IF ( PRESENT( CLDTOPS ) .and. PRESENT( ZMMU ) ) THEN
          DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               K = 1
-               DO L = 1, LLPAR
-                  IF ( CLDMAS(I,J,L) > 0d0 ) THEN
-                     K = K + 1
-                  ENDIF
-               ENDDO
-               CLDTOPS(I,J) = K
-            ENDDO
+         DO I = 1, IIPAR
+            K = 1
+            DO L = 1, LLPAR
+               IF ( ZMMU(I,J,L) > 0d0 ) THEN
+                  K = K + 1
+               ENDIF
+            ENDDO         
+            CLDTOPS(I,J) = K
+         ENDDO
          ENDDO
       ENDIF
+
+#else
+
+      ! CLDTOPS highest location of CLDMAS in the column (I,J)
+      IF ( PRESENT( CLDTOPS ) .and. PRESENT( CLDMAS ) ) THEN
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            K = 1
+            DO L = 1, LLPAR
+               IF ( CLDMAS(I,J,L) > 0d0 ) THEN
+                  K = K + 1
+               ENDIF
+            ENDDO
+            CLDTOPS(I,J) = K
+         ENDDO
+         ENDDO
+      ENDIF
+
+#endif
 
       !=================================================================
       ! CLDF(IIPAR,JJPAR,LLPAR), is the DAO total cloud fraction.

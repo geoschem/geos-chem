@@ -1,9 +1,9 @@
-! $Id: ndxx_setup.f,v 1.3 2004/01/27 21:25:08 bmy Exp $
+! $Id: ndxx_setup.f,v 1.4 2004/03/05 21:15:41 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
 !  NDXX_SETUP dynamically allocates memory for certain diagnostic arrays that 
-!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 1/20/04)
+!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 2/2604)
 !
 !  This allows us to reduce the amount of memory that needs to be declared 
 !  globally.  We only allocate memory for arrays if the corresponding 
@@ -92,7 +92,7 @@
 !  (42) Added ND03 diagnostic for Kr85 prod/loss.  Also removed special case
 !        TRCOFFSET for single-tracer Ox. (jsw, bmy, 8/20/03)
 !  (43) Now use GET_WETDEP_NMAX to get max # of soluble tracers for ND37.
-!        (bmy, 1/20/04)
+!        Also set NFAM=NTRACE+5 for Tagged CO simulation. (bmy, 2/26/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -896,9 +896,13 @@
             CASE ( 6 )
                NFAM = NTRACE * 2
 
-            ! Tagged CO: NTRACE+4 families
+            ! Tagged CO: NTRACE+5 families
             CASE ( 7 )
-               NFAM = NTRACE + 4
+               !-------------------------------------
+               ! Prior to 2/26/04:
+               !NFAM = NTRACE + 4
+               !-------------------------------------
+               NFAM = NTRACE + 5
 
             ! Other simulations: call SETNFAM
             CASE DEFAULT

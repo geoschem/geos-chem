@@ -1,9 +1,9 @@
-! $Id: emisop_mb.f,v 1.2 2003/12/11 21:54:09 bmy Exp $      
+! $Id: emisop_mb.f,v 1.3 2004/03/05 21:15:40 bmy Exp $      
       FUNCTION EMISOP_MB( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL )
 !
 !******************************************************************************
 !  Subroutine EMISOP_MB computes METHYL BUTENOL emissions in units
-!  of [atoms C/box/step]. (bdf, bmy, 8/2/01, 12/9/03)
+!  of [atoms C/box/step]. (bdf, bmy, 8/2/01, 3/5/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -33,6 +33,7 @@
 !  (4 ) Now pass I, J via the arg list.  Now reference CLDFRC directly from
 !        "dao_mod.f" instead of referencing CFRAC from "CMN_DEP".  Now 
 !        remove reference to CMN_DEP. (bmy, 12/9/03)
+!  (5 ) Now scale ISOP emissions to 400 Tg C/yr for GEOS-4 (bmy, 3/5/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -41,10 +42,6 @@
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
-!----------------------------------------------------------------------
-! Prior to 12/9/03:
-!#     include "CMN_DEP"   ! CFRAC
-!----------------------------------------------------------------------
 #     include "CMN_VEL"   ! IJREG, IJLAND, IJUSE
 #     include "CMN_ISOP"  ! SOPCOEFF, BASEISOP, BASEMB
 
@@ -106,11 +103,6 @@
 
                ! Compute light correction -- polynomial fit
                CLIGHT = BIOFIT( SOPCOEFF,       XYLAI(IJLOOP,INVEG),
-!---------------------------------------------------------------------------
-! Prior to 12/9/03:
-! Now use CLDFRC(I,J) instead of CFRAC(IJLOOP) (bmy, 12/9/03)
-!     &                          SUNCOS(IJLOOP), CFRAC(IJLOOP) )
-!---------------------------------------------------------------------------
      &                          SUNCOS(IJLOOP), CLDFRC(I,J) )
 
                ! Apply light correction to baseline MB emissions.
@@ -141,10 +133,19 @@
       EMISOP_MB = EMISOP_MB * XNUMOL
 
 #if   defined( GEOS_3 )
+
       ! GEOS-3 meteorology results in 579 Tg C/yr from biogenic ISOP.
       ! Compute ISOP from MBO based on 400 Tg C/yr from biogenic ISOP, 
       ! which is what we get from GEOS-STRAT (mje, bdf, djj, 9/10/02)
       EMISOP_MB = EMISOP_MB * ( 400d0 / 579d0 )
+
+#else defined( GEOS_4 )
+
+      ! GEOS-4 2003 meteorology results in 443 Tg C/yr from ISOP.
+      ! Scale this down to 400 Tg C/yr, which is what we get from 
+      ! GEOS-STRAT.  This will be replaced soon. (jal, bmy, 3/5/04)
+      EMISOP = EMISOP * ( 400d0 / 443d0 )
+
 #endif
 
       ! Return to calling program

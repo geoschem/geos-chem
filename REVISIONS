@@ -1,14 +1,14 @@
 REVISIONS (v6-01-05)  
-bmy, 23 Feb 2004
+bmy, 05 Mar 2004
 
 
 New in v6-01-05:
------------------------------------------------------------------------------ 
+-------------------------------------------------------------------------------
 
 
 
 Removed from v6-01-05:
------------------------------------------------------------------------------ 
+-------------------------------------------------------------------------------
 
 
 
@@ -48,6 +48,12 @@ do_convection		-- Added changes for GEOS-4/fvDAS convection
 			   to prevent array out-of-bounds error for less than
                            NTRACE tracers
 
+emisop.f		-- Now scale ISOP emissions to 400 Tg C/yr for GEOS-4
+
+emisop_grass.f		-- Now scale ISOP emissions to 400 Tg C/yr for GEOS-4
+
+emisop_mb.f             -- Now scale ISOP emissions to 400 Tg C/yr for GEOS-4
+
 fast_j.f		-- Bug fix: PRES needs to be the true surface pressure
 			   for GEOS-4, but PS-PTOP for all prior GEOS models. 
 
@@ -62,6 +68,9 @@ fvdas_convect		-- Added TCVV and INDEXSOL to the arg list and in the
 		           NTRACE is needed to define Q and thus cannot
 			   be listed first.	
 
+get_a6_fields		-- Now pass CLDTOPS to routine READ_A6 for GEOS-4
+("a6_read_mod.f")
+
 get_regional_pox	-- For GEOS-4, convert PBL from [m] to [hPa]
 ("tagged_ox_mod.f")	   w/ the barometric law.
 			-- Now references SCALE_HEIGHT from "CMN_GCTM". 
@@ -69,8 +78,11 @@ get_regional_pox	-- For GEOS-4, convert PBL from [m] to [hPa]
 init_fvdas_convect	-- Now compute HYPI in a more efficient way
 ("fvdas_convect_mod.f")
 
+lightdist.f		-- Bug fix: add GEOS_4 to the #if block
+
 ndxx_setup.f		-- Now use GET_WETDEP_NMAX to get max # of 
 			   soluble tracers for ND37 diagnostic
+			-- Also set NFAM=NTRACE+5 for Tagged CO simulation
 
 nfcldmx			-- Make sure that K does not go out of bounds
 ("convection_mod.f")	   for ND38 diagnostic
@@ -89,6 +101,9 @@ open_i6_fields		-- Now skips past the GEOS-4 ident string
 
 open_phis_fields	-- Now skips past the GEOS-4 ident string
 ("a3_read_mod.f")
+
+read_a6			-- Now pass CLDTOPS to READ_A6 for GEOS-4
+("a6_read_mod.f")
 
 setup_co_oh_chem	-- Bug fix: added GEOS-4 to the #if block in the 
 ("main.f")		   call to OPTDEPTH.
@@ -127,6 +142,8 @@ a3_read_mod.f		<-- Removed obsolete, commented-out code
 a6_read_mod.f		    from the following routines
 diag_mod.f
 drydep_mod.f
+emisop.f
+emisop_grass.f
 i6_read_mod.f
 main.f		      
 phis_read_mod.f

@@ -1,9 +1,9 @@
-! $Id: lightdist.f,v 1.1 2003/06/30 20:26:05 bmy Exp $
+! $Id: lightdist.f,v 1.2 2004/03/05 21:15:41 bmy Exp $
       SUBROUTINE LIGHTDIST( I, J, LTOP, H0, XLAT, TOTAL )
 !
 !******************************************************************************
 !  Subroutine LIGHTDIST reads in the CDF used to partition the column lightning
-!  NOx into the GEOS-CHEM vertical layers. (yhw, 1997; mje, bmy, 9/18/02)
+!  NOx into the GEOS-CHEM vertical layers. (yhw, 1997; mje,bmy,9/18/02,3/4/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -37,6 +37,7 @@
 !        IOERROR from "file_mod.f".  Now use IU_FILE instead of IUNIT as the
 !        file unit number. (bmy, 6/27/02)
 !  (4 ) Now reference BXHEIGHT from "dao_mod.f" (bmy, 9/18/02)
+!  (5 ) Bug fix: add GEOS_4 to the #if block (bmy, 3/4/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -61,7 +62,7 @@
       ! Types of lightning to consider
       INTEGER, PARAMETER  :: NLTYPE = 3
 
-#if   defined( GEOS_3 )
+#if   defined( GEOS_3 ) || defined( GEOS_4 )
 
       ! Number of data points in the PDF -- GEOS-3 only
       ! Should work for other fields, however I seem to have 
@@ -93,7 +94,7 @@
          ! Reset first-time flag
          FIRST = .FALSE.
 
-#if   defined( GEOS_3 ) 
+#if   defined( GEOS_3 ) || defined( GEOS_4 )
          
          !==============================================================
          ! Read data for GEOS-3
@@ -186,7 +187,7 @@
       ENDIF
 
       ! Add fix for GEOS-3 fields (mje, bmy, 6/19/01)
-#if   defined( GEOS_3 )
+#if   defined( GEOS_3 ) || defined( GEOS_4 )
 
       !=================================================================
       ! For GEOS-3 only:
