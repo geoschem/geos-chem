@@ -1,9 +1,9 @@
-! $Id: rdland.f,v 1.5 2004/12/17 14:59:30 bmy Exp $
+! $Id: rdland.f,v 1.6 2004/12/20 16:43:18 bmy Exp $
       SUBROUTINE RDLAND
 !
 !******************************************************************************
 !  Subroutine RDLAND reads the land types and fractions (times 1000)
-!  from the "vegtype.global" file.  (yhw, gmg, djj, 1994; bmy, 12/6/04)
+!  from the "vegtype.global" file.  (yhw, gmg, djj, 1994; bmy, 12/20/04)
 !
 !  Common-block variables from header file "CMN_DEP":
 !  ============================================================================
@@ -24,12 +24,16 @@
 !        subdirectory of DATA_DIR.  This is the same Olson land map as was
 !        used previously.  Also updated comments and added standard GEOS-CHEM 
 !        program documentation header. (tmf, bmy, 12/6/04)
+!  (2 ) Now read the "vegtype.global" file from the leaf_area_index_200412
+!        subdirectory if LAVHRRLAI=T.  Also updated comments and added 
+!        standard GEOS-CHEM program documentation header. (bmy, 12/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE GRID_MOD,      ONLY : GET_XOFFSET, GET_YOFFSET
+      USE LOGICAL_MOD,   ONLY : LAVHRRLAI
 
       IMPLICIT NONE
 
@@ -52,14 +56,23 @@
       I0 = GET_XOFFSET()
       J0 = GET_YOFFSET()
 
-      ! File name
-      FILENAME = TRIM( DATA_DIR ) // 
 !-----------------------------------------------------------------------------
-! Prior to 12/6/04:
-! Now read "vegtype.global" from a different directory (tmf, bmy, 12/6/04)
+! Prior to 12/20/04:
+!      ! File name
+!      FILENAME = TRIM( DATA_DIR ) // 
 !     &           'leaf_area_index_200202/vegtype.global'
 !-----------------------------------------------------------------------------
-     &           'leaf_area_index_200412/vegtype.global'
+
+      ! Read the "vegtype.global" from the proper directory
+      ! depending on the setting of the LAVHRRLAI flag (bmy, 12/20/04)
+      IF ( LAVHRRLAI ) THEN
+         FILENAME = TRIM( DATA_DIR ) // 
+     &              'leaf_area_index_200412/vegtype.global'
+      ELSE
+         FILENAME = TRIM( DATA_DIR ) // 
+     &              'leaf_area_index_200202/vegtype.global'         
+      ENDIF
+
 
       WRITE( 6, 50 ) TRIM( FILENAME )
  50   FORMAT( '     - RDLAND: Reading ', a )

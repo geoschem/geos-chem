@@ -1,9 +1,9 @@
-! $Id: readlai.f,v 1.4 2004/12/16 16:52:46 bmy Exp $
+! $Id: readlai.f,v 1.5 2004/12/20 16:43:18 bmy Exp $
       SUBROUTINE READLAI( MM )
 !
 !******************************************************************************
 !  Subroutine READLAI reads the leaf area indices from disk for two months.
-!  (yhw, gmg, djj, 1994; bmy, 12/6/04)
+!  (yhw, gmg, djj, 1994; bmy, 12/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -20,13 +20,15 @@
 !  (6 ) Now define FILENAME and echo FILENAME to stdout.  Now use F90 style
 !        declaration statements.  Cleaned up old code. (bmy, 11/13/02)
 !  (7 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  (8 ) Now use AVHRR LAI derived leaf-area index data which is stored in the 
-!        leaf_area_index_200412 subdirectory of DATA_DIR (tmf, bmy, 12/6/04)
+!  (8 ) Now use AVHRR LAI derived leaf-area index data (stored in the
+!        leaf_area_index_200412 subdir of DATA_DIR) if the logical switch 
+!        LAVHRRLAI=T.  Otherwise use the old LAI data. (tmf, bmy, 12/20/04)
 !******************************************************************************
 !     
       ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IU_FILE
+      USE LOGICAL_MOD,   ONLY : LAVHRRLAI
 
       IMPLICIT NONE
 
@@ -62,14 +64,21 @@
       ! Read current month's lai (XLAI) at (I,J) and for landtype K
       !=================================================================
 
-      ! File name
       !-----------------------------------------------------------------------
       ! Prior to 12/6/04:
-      ! Now use AVHRR LAI derived leaf-area index data (tmf, bmy, 12/6/04)
       !FILENAME = TRIM( DATA_DIR ) // 'leaf_area_index_200202/lai' //
       !-----------------------------------------------------------------------
-      FILENAME = TRIM( DATA_DIR ) // 'leaf_area_index_200412/lai' //
-     &           CMONTH(MM)       // '.global'
+
+      ! Pick proper filename for the old Yuhang Wang LAI, or
+      ! for AVHRR satellite-derived LAI (tmf, bmy, 12/20/04)
+      IF ( LAVHRRLAI ) THEN
+         FILENAME = TRIM( DATA_DIR ) // 'leaf_area_index_200412/lai' //
+     &              CMONTH(MM)       // '.global'
+      ELSE
+         FILENAME = TRIM( DATA_DIR ) // 'leaf_area_index_200202/lai' //
+     &              CMONTH(MM)       // '.global'
+      ENDIF
+
 
       ! Echo filename
       WRITE( 6, 100 ) TRIM( FILENAME )

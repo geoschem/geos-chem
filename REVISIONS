@@ -49,11 +49,16 @@ init_diag		-- Now deallocate extra arrays for ND03 diagnostics
 init_drydep		-- Add Hg2, HgP tracers to the case statement
 ("drydep_mod.f")
 
-init_tracerid		-- Now zero flags for total & tagged Hg tracers
-("tracerid_mod.f")
+
+init_input		-- Now initializes LAVHRRLAI flag 
+("input_mod.f")
 
 initialize.f		-- Now initialize extra arrays for ND03 mercury diag
 			-- Also remove reference to obsolete TOFDY0 variable
+
+init_tracerid		-- Now zero flags for total & tagged Hg tracers
+("tracerid_mod.f")
+
 
 logical_mod.f		-- Added LAVHRRLAI switch to toggle AVHRR-derived
 			   leaf area index data

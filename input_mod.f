@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.9 2004/12/20 16:43:18 bmy Exp $
+! $Id: input_mod.f,v 1.10 2004/12/20 16:47:23 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -83,7 +83,7 @@
 !  NOTES:
 !  (1 ) Now references LSOA in READ_AEROSOL_MENU (bmy, 9/28/04)
 !  (2 ) Fixed error checks and assign LSPLIT for tagged Hg.  Also now 
-!        refernces LAVHRRLAI from "logical_mod.f" (eck, bmy, 12/13/04)
+!        refernces LAVHRRLAI from "logical_mod.f" (eck, bmy, 12/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -3457,6 +3457,7 @@
 !
 !  NOTES:
 !  (1 ) Now also initialize LNEI99 from "logical_mod.f" (bmy, 11/5/04)
+!  (2 ) Now also initialize LAVHRRLAI from "logical_mod.f" (bmy, 12/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3481,6 +3482,7 @@
 
       ! Initialize logicals
       LATEQ      = .FALSE.
+      LAVHRRLAI  = .FALSE.
       LCARB      = .FALSE.
       LDEAD      = .FALSE.
       LDUST      = .FALSE.
