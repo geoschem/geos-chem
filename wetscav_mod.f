@@ -1,9 +1,9 @@
-! $Id: wetscav_mod.f,v 1.9 2004/05/03 15:36:39 bmy Exp $
+! $Id: wetscav_mod.f,v 1.10 2004/07/15 18:17:47 bmy Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
 !  Module WETSCAV_MOD contains arrays for used in the wet scavenging of
-!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 4/20/04)
+!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 7/13/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -101,6 +101,7 @@
 !  (11) Add parallelization to routine WETDEP (bmy, 3/17/04)
 !  (12) Added carbon and dust aerosol tracers (rjp, tdf, bmy, 4/5/04)
 !  (13) Added seasalt aerosol tracers (rjp, bec, bmy, 4/20/04)
+!  (14) Added secondary organic aerosol tracers (rjp, bmy, 7/13/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -122,11 +123,11 @@
       ! MODULE VARIABLES
       !=================================================================
       !--------------------------------------------------------------
-      ! Prior to 4/20/04:
-      ! Increase NSOLMAX to 20 for seasalts (rjp, bec, bmy, 4/20/04)
-      !INTEGER, PARAMETER   :: NSOLMAX = 18
+      ! Prior to 7/13/04:
+      ! Increase NSOLMAX to 29 for SOA tracers (rjp, bmy, 4/20/04)
+      !INTEGER, PARAMETER   :: NSOLMAX = 20
       !--------------------------------------------------------------
-      INTEGER, PARAMETER   :: NSOLMAX = 20
+      INTEGER, PARAMETER   :: NSOLMAX = 29
       INTEGER              :: NSOL 
       INTEGER              :: IDWETD(NSOLMAX)
       REAL*8,  ALLOCATABLE :: Vud(:,:)
@@ -610,7 +611,7 @@
 !
 !******************************************************************************
 !  Subroutine COMPUTE_F computes F, the fraction of soluble tracer lost by 
-!  scavenging in convective cloud updrafts. (hyl, bmy, djj, 2/23/00, 4/20/04)
+!  scavenging in convective cloud updrafts. (hyl, bmy, djj, 2/23/00, 7/13/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -658,6 +659,7 @@
 !  (11) Added slots for carbon aerosol & dust tracers.  Now modified internal
 !        routine GET_ISOL so it's not hardwired anymore. (rjp, bmy, 4/5/04)
 !  (12) Added slots for sea salt aerosol tracers (rjp, bec, bmy, 4/20/04)
+!  (13) Added slots for secondary organic aerosol tracers (rjp, bmy, 7/13/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1098,6 +1100,231 @@
          CALL F_AEROSOL( F )
          ISOL = GET_ISOL( N )
 
+
+      !----------------------------
+      ! ALPH (liquid phase only)
+      !----------------------------
+      ELSE IF ( N == IDTALPH ) THEN
+
+         ! No scavenging at the surface
+         F(:,:,1) = 0d0
+
+         ! Start scavenging at level 2
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Compute liquid to gas ratio for ALPH, using
+            ! the appropriate parameters for Henry's law
+            ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
+            CALL COMPUTE_L2G( 0.023d0, 0.d0, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+            ! Fraction of ALPH in liquid phase
+            ! (Eq. 4, 5, 6, Jacob et al, 2000)
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
+
+            ! Compute the rate constant K.  Assume retention factor  
+            ! for liquid ALPH is 0.0 for T <= 248 K and 0.02 for 
+            ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
+            IF ( T(I,J,L) >= 268d0 ) THEN
+               K = KC * F_L  
+
+            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
+               K = KC * ( 2d-2 * F_L ) 
+                  
+            ELSE
+               K = 0d0
+
+            ENDIF
+               
+            ! Distance between grid box centers [m]
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+
+            ! F is the fraction of ALPH scavenged out of the updraft
+            ! (Eq. 2, Jacob et al, 2000)
+            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ISOL = GET_ISOL( N )
+
+      !----------------------------
+      ! LIMO (liquid phase only)
+      !----------------------------
+      ELSE IF ( N == IDTLIMO ) THEN
+
+         ! No scavenging at the surface
+         F(:,:,1) = 0d0
+
+         ! Start scavenging at level 2
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Compute liquid to gas ratio for LIMO, using
+            ! the appropriate parameters for Henry's law
+            ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
+            CALL COMPUTE_L2G( 0.07d0, 0.d0, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+            ! Fraction of LIMO in liquid phase
+            ! (Eq. 4, 5, 6, Jacob et al, 2000)
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
+
+            ! Compute the rate constant K.  Assume retention factor  
+            ! for liquid LIMO is 0.0 for T <= 248 K and 0.02 for 
+            ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
+            IF ( T(I,J,L) >= 268d0 ) THEN
+               K = KC * F_L  
+
+            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
+               K = KC * ( 2d-2 * F_L ) 
+                  
+            ELSE
+               K = 0d0
+
+            ENDIF
+               
+            ! Distance between grid box centers [m]
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+
+            ! F is the fraction of LIMO scavenged out of the updraft
+            ! (Eq. 2, Jacob et al, 2000)
+            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ! ND38 index
+         ISOL = GET_ISOL( N )
+
+      !----------------------------
+      ! ALCO (liquid phase only)
+      !----------------------------
+      ELSE IF ( N == IDTALCO ) THEN
+
+         ! No scavenging at the surface
+         F(:,:,1) = 0d0
+
+         ! Start scavenging at level 2
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Compute liquid to gas ratio for ALCO, using
+            ! the appropriate parameters for Henry's law
+            ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
+            CALL COMPUTE_L2G( 54.d0, 0.d0, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+            ! Fraction of ALCO in liquid phase
+            ! (Eq. 4, 5, 6, Jacob et al, 2000)
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
+
+            ! Compute the rate constant K.  Assume retention factor  
+            ! for liquid ALCO is 0.0 for T <= 248 K and 0.02 for 
+            ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
+            IF ( T(I,J,L) >= 268d0 ) THEN
+               K = KC * F_L  
+
+            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
+               K = KC * ( 2d-2 * F_L ) 
+                  
+            ELSE
+               K = 0d0
+
+            ENDIF
+               
+            ! Distance between grid box centers [m]
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+
+            ! F is the fraction of ALCO scavenged out of the updraft
+            ! (Eq. 2, Jacob et al, 2000)
+            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ! ND38 index
+         ISOL = GET_ISOL( N )
+
+      !--------------------------------
+      ! SOG[1,2,3] (liquid phase only)
+      !--------------------------------
+      ELSE IF ( N == IDTSOG1 .OR. N == IDTSOG2 .OR. N == IDTSOG3 ) THEN
+
+         ! No scavenging at the surface
+         F(:,:,1) = 0d0
+
+         ! Start scavenging at level 2
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Compute liquid to gas ratio for GAS1, using
+            ! the appropriate parameters for Henry's law
+            ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
+            CALL COMPUTE_L2G( 1.0d5, -6.039d3, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+            ! Fraction of GAS1 in liquid phase
+            ! (Eq. 4, 5, 6, Jacob et al, 2000)
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
+
+            ! Compute the rate constant K.  Assume retention factor  
+            ! for liquid GAS1 is 0.0 for T <= 248 K and 0.02 for 
+            ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
+            IF ( T(I,J,L) >= 268d0 ) THEN
+               K = KC * F_L  
+
+            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
+               K = KC * ( 2d-2 * F_L ) 
+                  
+            ELSE
+               K = 0d0
+
+            ENDIF
+               
+            ! Distance between grid box centers [m]
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+
+            ! F is the fraction of GAS1 scavenged out of the updraft
+            ! (Eq. 2, Jacob et al, 2000)
+            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ! ND38 index
+         ISOL = GET_ISOL( N )
+
+      !---------------------------------------
+      ! SOA[1,2,3] (aerosol)
+      ! Scavenging efficiency for SOA is 0.8
+      !---------------------------------------
+      ELSE IF ( N == IDTSOA1 .OR. N == IDTSOA2 .OR. N == IDTSOA3 ) THEN
+         CALL F_AEROSOL( F )
+
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            F(I,J,L) = 0.8d0 * F(I,J,L)
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ISOL = GET_ISOL( N )
+
       !----------------------------
       ! Insoluble tracer, set F=0
       !----------------------------
@@ -1236,7 +1463,7 @@
 !
 !******************************************************************************
 !  Subroutine RAINOUT computes RAINFRAC, the fraction of soluble tracer
-!  lost to rainout events in precipitation. (djj, bmy, 2/28/00, 4/20/04)
+!  lost to rainout events in precipitation. (djj, bmy, 2/28/00, 7/13/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1273,6 +1500,7 @@
 !        removed reference to CMN since we don't need NSRCX. (bmy, 11/8/02)
 !  (7 ) Now updated for carbon & dust aerosol tracers (rjp, bmy, 4/5/04)
 !  (8 ) Now updated for seasalt aerosol tracers (rjp, bec, bmy, 4/20/04)
+!  (9 ) Now updated for secondary aerosol tracers (rjp, bmy, 7/13/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1604,6 +1832,138 @@
          RAINFRAC = GET_RAINFRAC( K_RAIN )      
 
       !----------------------------
+      ! ALPH (liquid phase only)
+      !----------------------------
+      ELSE IF ( N == IDTALPH ) THEN
+
+         ! Compute liquid to gas ratio for ALPH, using
+         ! the appropriate parameters for Henry's law
+         ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
+         CALL COMPUTE_L2G( 0.023d0, 0.d0, TK, CLDLIQ(I,J,L), L2G )
+
+         ! Fraction of ALPH in liquid phase
+         ! (Eqs. 4, 5, Jacob et al, 2000)
+         C_TOT = 1d0 + L2G
+         F_L   = L2G / C_TOT
+
+         ! Compute the rate constant K.  Assume that the retention factor
+         ! for liquid ALPH is 0.02 for 248 K < T < 268 K, and
+         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
+         IF ( TK >= 268d0 ) THEN
+            K = K_RAIN * F_L
+
+         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
+            K = K_RAIN * ( 2d-2 * F_L )
+
+         ELSE
+            K = 0d0
+
+         ENDIF
+ 
+         RAINFRAC = GET_RAINFRAC( K )
+
+      !----------------------------
+      ! LIMO (liquid phase only)
+      !----------------------------
+      ELSE IF ( N == IDTLIMO ) THEN
+
+         ! Compute liquid to gas ratio for LIMO, using
+         ! the appropriate parameters for Henry's law
+         ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
+         CALL COMPUTE_L2G( 0.07d0, 0.d0, TK, CLDLIQ(I,J,L), L2G )
+
+         ! Fraction of LIMO in liquid phase
+         ! (Eqs. 4, 5, Jacob et al, 2000)
+         C_TOT = 1d0 + L2G
+         F_L   = L2G / C_TOT
+
+         ! Compute the rate constant K.  Assume that the retention factor
+         ! for liquid LIMO is 0.02 for 248 K < T < 268 K, and
+         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
+         IF ( TK >= 268d0 ) THEN
+            K = K_RAIN * F_L
+
+         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
+            K = K_RAIN * ( 2d-2 * F_L )
+
+         ELSE
+            K = 0d0
+
+         ENDIF
+ 
+         RAINFRAC = GET_RAINFRAC( K )
+
+      !----------------------------
+      ! ALCO (liquid phase only)
+      !----------------------------
+      ELSE IF ( N == IDTALCO ) THEN
+
+         ! Compute liquid to gas ratio for ALCO, using
+         ! the appropriate parameters for Henry's law
+         ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
+         CALL COMPUTE_L2G( 54.d0, 0.d0, TK, CLDLIQ(I,J,L), L2G )
+
+         ! Fraction of ALCO in liquid phase
+         ! (Eqs. 4, 5, Jacob et al, 2000)
+         C_TOT = 1d0 + L2G
+         F_L   = L2G / C_TOT
+
+         ! Compute the rate constant K.  Assume that the retention factor
+         ! for liquid ALCO is 0.02 for 248 K < T < 268 K, and
+         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
+         IF ( TK >= 268d0 ) THEN
+            K = K_RAIN * F_L
+
+         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
+            K = K_RAIN * ( 2d-2 * F_L )
+
+         ELSE
+            K = 0d0
+
+         ENDIF
+ 
+         RAINFRAC = GET_RAINFRAC( K )
+
+      !--------------------------------
+      ! SOG[1,2,3] (liquid phase only)
+      !--------------------------------
+      ELSE IF ( N == IDTSOG1 .OR. N == IDTSOG2 .OR. N == IDTSOG3 ) THEN
+
+         ! Compute liquid to gas ratio for GAS1, using
+         ! the appropriate parameters for Henry's law
+         ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
+         CALL COMPUTE_L2G( 1.0d5, -6.039d3, TK, CLDLIQ(I,J,L), L2G )
+
+         ! Fraction of GAS1 in liquid phase
+         ! (Eqs. 4, 5, Jacob et al, 2000)
+         C_TOT = 1d0 + L2G
+         F_L   = L2G / C_TOT
+
+         ! Compute the rate constant K.  Assume that the retention factor
+         ! for liquid GAS1 is 0.02 for 248 K < T < 268 K, and
+         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
+         IF ( TK >= 268d0 ) THEN
+            K = K_RAIN * F_L
+
+         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
+            K = K_RAIN * ( 2d-2 * F_L )
+
+         ELSE
+            K = 0d0
+
+         ENDIF
+ 
+         RAINFRAC = GET_RAINFRAC( K )
+
+      !--------------------------------------
+      ! SOA[1,2,3] (aerosol)
+      ! Scavenging efficiency for SOA is 0.8
+      !--------------------------------------
+      ELSE IF ( N == IDTSOA1 .OR. N == IDTSOA2 .OR. N == IDTSOA3 ) THEN
+         RAINFRAC = GET_RAINFRAC( K_RAIN )
+         RAINFRAC = RAINFRAC * 0.8d0
+
+      !----------------------------
       ! ERROR: insoluble tracer!
       !----------------------------  
       ELSE
@@ -1653,7 +2013,7 @@
 !
 !******************************************************************************
 !  Subroutine WASHOUT computes WASHFRAC, the fraction of soluble tracer
-!  lost to washout events in precipitation. (djj, bmy, 2/28/00, 4/20/04)
+!  lost to washout events in precipitation. (djj, bmy, 2/28/00, 7/13/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1693,6 +2053,7 @@
 !        CMN since we don't need to use NSRCX here. (bmy, 11/6/02)
 !  (7 ) Updated for carbon aerosol and dust tracers (rjp, bmy, 4/5/04)
 !  (8 ) Updated for seasalt aerosol tracers (rjp, bec, bmy, 4/20/04)
+!  (9 ) Updated for secondary organic aerosol tracers (rjp, bmy, 7/13/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1918,6 +2279,41 @@
       ! Coarse seasalt (aerosol)
       !----------------------------
       ELSE IF ( N == IDTSALC ) THEN
+         AER      = .TRUE.
+         WASHFRAC = WASHFRAC_AEROSOL()
+
+      !----------------------------
+      ! ALPH (liquid & gas phases)
+      !----------------------------
+      ELSE IF ( N == IDTALPH ) THEN
+         AER      = .FALSE.
+         WASHFRAC = WASHFRAC_LIQ_GAS( 0.023d0, 0.d0 )
+
+      !----------------------------
+      ! LIMO (liquid & gas phases)
+      !----------------------------
+      ELSE IF ( N == IDTLIMO ) THEN
+         AER      = .FALSE.
+         WASHFRAC = WASHFRAC_LIQ_GAS( 0.07d0, 0.d0 )
+
+      !----------------------------
+      ! ALCO (liquid & gas phases)
+      !----------------------------
+      ELSE IF ( N == IDTALCO ) THEN
+         AER      = .FALSE.
+         WASHFRAC = WASHFRAC_LIQ_GAS( 54.d0, 0.d0 )
+
+      !----------------------------
+      ! SOG[1,2,3] (liquid & gas phases)
+      !----------------------------
+      ELSE IF ( N == IDTSOG1 .OR. N == IDTSOG2 .OR. N == IDTSOG3 ) THEN
+         AER      = .FALSE.
+         WASHFRAC = WASHFRAC_LIQ_GAS( 1.0d5, -6.039d3 )
+
+      !----------------------------
+      ! SOA[1,2,3] (aerosol)
+      !----------------------------
+      ELSE IF ( N == IDTSOA1 .OR. N == IDTSOA2 .OR. N == IDTSOA3 ) THEN
          AER      = .TRUE.
          WASHFRAC = WASHFRAC_AEROSOL()
 
@@ -3108,7 +3504,7 @@
 !
 !******************************************************************************
 !  Subroutine WETDEPID sets up the index array of soluble tracers used in
-!  the WETDEP routine above (bmy, 11/8/02, 4/20/04)
+!  the WETDEP routine above (bmy, 11/8/02, 7/13/04)
 ! 
 !  NOTES:
 !  (1 ) Now references "tracerid_mod.f".  Also references "CMN" in order to
@@ -3116,6 +3512,7 @@
 !  (2 ) Updated for carbon aerosol & dust tracers (rjp, bmy, 4/5/04)
 !  (3 ) Updated for seasalt aerosol tracers.  Also added fancy output.
 !        (rjp, bec, bmy, 4/20/04)
+!  (4 ) Updated for secondary organic aerosol tracers (bmy, 7/13/04)
 !******************************************************************************
 !
       ! References To F90 modules
@@ -3225,6 +3622,42 @@
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTSALC
 
+         ELSE IF ( N == IDTALPH ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTALPH
+
+         ELSE IF ( N == IDTLIMO ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTLIMO
+
+         ELSE IF ( N == IDTALCO ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTALCO
+
+         ELSE IF ( N == IDTSOG1 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTSOG1
+
+         ELSE IF ( N == IDTSOG2 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTSOG2
+
+         ELSE IF ( N == IDTSOG3 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTSOG3
+
+         ELSE IF ( N == IDTSOA1 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTSOA1
+
+         ELSE IF ( N == IDTSOA2 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTSOA2
+
+         ELSE IF ( N == IDTSOA3 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTSOA3
+
          ENDIF
       ENDDO
 
@@ -3267,7 +3700,7 @@
 !******************************************************************************
 !  Function GET_WETDEP_NMAX returns the maximum number of soluble tracers
 !  for a given type of simulation.  Primarily used for allocation of 
-!  diagnostic arrays. (bmy, 12/2/02, 4/20/04)
+!  diagnostic arrays. (bmy, 12/2/02, 7/13/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -3276,10 +3709,11 @@
 !  NOTES:
 !  (1 ) Modified to include carbon & dust aerosol tracers (rjp, bmy, 4/5/04)
 !  (2 ) Modified to include seasalt aerosol tracers (rjp, bec, bmy, 4/20/04)
+!  (3 ) Modified to include 2ndary organic aerosol tracers (rjp, bmy, 7/13/04)
 !******************************************************************************
 !
 #     include "CMN_SIZE"   ! Size Parameters
-#     include "CMN_SETUP"  ! LSULF
+#     include "CMN_SETUP"  ! LSULF, LSOA
 
       ! Arguments
       INTEGER, INTENT(IN) :: NSRCX 
@@ -3302,7 +3736,13 @@
          CASE ( 3 )
             NMAX = 4                             ! HNO3, H2O2
             IF ( LSULF  ) NMAX = NMAX + 6        ! SO2, SO4, MSA, NH3, NH4, NIT
-            IF ( LCARB  ) NMAX = NMAX + 4        ! BCPI, BCPO, OCPI, OCPO
+
+            IF ( LSOA ) THEN
+               IF ( LCARB ) NMAX = NMAX + 13     ! carbon + SOA aerosols
+            ELSE                                 
+               IF ( LCARB ) NMAX = NMAX + 4      ! just carbon aerosols
+            ENDIF
+
             IF ( LDUST  ) NMAX = NMAX + NDSTBIN  ! plus # of dust bins
             IF ( LSSALT ) NMAX = NMAX + 2        ! plus 2 seasalts
 
@@ -3310,7 +3750,13 @@
          CASE ( 10 ) 
             NMAX = 0
             IF ( LSULF  ) NMAX = NMAX + 7        ! add 7 sulfur species
-            IF ( LCARB  ) NMAX = NMAX + 4        ! add carbonaceous aerosols
+
+            IF ( LSOA ) THEN
+               IF ( LCARB ) NMAX = NMAX + 13     ! carbon + SOA aerosols
+            ELSE
+               IF ( LCARB ) NMAX = NMAX + 4      ! just carbon aerosols
+            ENDIF
+               
             IF ( LDUST  ) NMAX = NMAX + NDSTBIN  ! Add number of dust bins
             IF ( LSSALT ) NMAX = NMAX + 2        ! plus 2 seasalts
 

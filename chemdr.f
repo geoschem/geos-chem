@@ -1,9 +1,9 @@
-! $Id: chemdr.f,v 1.8 2004/05/03 14:46:15 bmy Exp $
+! $Id: chemdr.f,v 1.9 2004/07/15 18:17:44 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
 !  Subroutine CHEMDR is the driver subroutine for full chemistry w/ SMVGEAR.
-!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 4/20/04)
+!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 7/15/04)
 !
 !  Important input variables from "dao_mod.f" and "uvalbedo_mod.f":
 !  ============================================================================
@@ -128,6 +128,9 @@
 !       "rdaer.f".  Now references "dust_mod.f". (rjp, tdf, bmy, 4/1/04)
 !  (19) Added SALA and SALC arrays for passing seasalt to rdaer.f.  Now
 !        rearranged the DO loop for computational efficiency. (bmy, 4/20/04)
+!  (20) Added OCF parameter to account for the other chemical components that
+!        are attached to OC.  Also now handle hydrophilic OC differently for
+!        online & offline SOA. (rjp, bmy, 7/15/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -152,7 +155,7 @@
 #     include "comode.h"  ! SMVGEAR variables
 #     include "CMN_DEP"   ! FRCLND
 #     include "CMN_DIAG"  ! ND40
-#     include "CMN_SETUP" ! LSULF
+#     include "CMN_SETUP" ! LSULF, LCARB, LSOA, LDUST, LSSALT
 
       ! Local variables
       LOGICAL, SAVE       :: FIRSTCHEM = .TRUE.
@@ -173,6 +176,11 @@
       REAL*8              :: SALA(IIPAR,JJPAR,LLPAR)
       REAL*8              :: SALC(IIPAR,JJPAR,LLPAR)
       REAL*8              :: SOILDUST(IIPAR,JJPAR,LLPAR,NDUST)
+
+      ! We carry carbon mass only in OC and here need to multiply by
+      ! 1.4 to account for the mass of the other chemical components
+      ! (rjp, bmy, 7/15/04)
+      REAL*8, PARAMETER   :: OCF = 1.4d0
 
       !=================================================================
       ! CHEMDR begins here!
@@ -355,125 +363,6 @@
 
       ENDIF ! IF (FIRSTCHEM)
 
-!------------------------------------------------------------------------------
-! Prior to 4/20/04:
-! Now arrange all these into one big DO-loop so that we do more per iteration,
-! which is more computationally efficient. (bmy, 4/20/04)
-!      !=================================================================
-!      ! Dump hydrophilic aerosols into one array that will be passed
-!      ! to RDAER and then used for heterogeneous chemistry as well as 
-!      ! photolysis rate calculations interatively. 
-!      !
-!      ! Previously we read these aerosol data from Mian's simulation.
-!      ! Now assume that all sulfate, ammonium, and nitrate are 
-!      ! hydrophilic but sooner or later we can pass only hydrophilic 
-!      ! aerosols from the thermodynamic calculations for this purpose
-!      ! This dumping should be done before calling INITGAS that convert 
-!      ! the unit of STT arrary from kg/box to molec/cm3.
-!      !
-!      ! Units of SO4_NH4_NIT are [kg/m3].  (rjp, bmy, 3/23/03)
-!      !=================================================================
-!      IF ( LSULF ) THEN
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
-!         DO L = 1, LLPAR
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!            SO4_NH4_NIT(I,J,L) = ( STT(I,J,L,IDTSO4) + 
-!     &                             STT(I,J,L,IDTNH4) +
-!     &                             STT(I,J,L,IDTNIT) ) / AIRVOL(I,J,L)
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO
-!      ENDIF
-!
-!      !=================================================================
-!      ! Compute hydrophilic and hydrophobiC BC and OC in [kg/m3]
-!      ! for passing to RDUST
-!      !=================================================================
-!      IF ( LCARB ) THEN
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
-!         DO L = 1, LLPAR
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!
-!            ! Hydrophilic BC [kg/m3]
-!            BCPI(I,J,L) = STT(I,J,L,IDTBCPI) / AIRVOL(I,J,L)
-!
-!            ! Hydrophilic OC [kg/m3]
-!            OCPI(I,J,L) = STT(I,J,L,IDTOCPI) / AIRVOL(I,J,L)
-!
-!            ! Hydrophobic BC [kg/m3]
-!            BCPO(I,J,L) = STT(I,J,L,IDTBCPO) / AIRVOL(I,J,L)
-!
-!            ! Hydrophobic OC [kg/m3] 
-!            OCPO(I,J,L) = STT(I,J,L,IDTOCPO) / AIRVOL(I,J,L)
-!
-!            ! Now avoid division by zero (bmy, 4/20/04)
-!            BCPI(I,J,L) = MAX( BCPI(I,J,L), 1d-35 )
-!            OCPI(I,J,L) = MAX( OCPI(I,J,L), 1d-35 )
-!            BCPO(I,J,L) = MAX( BCPO(I,J,L), 1d-35 )
-!            OCPO(I,J,L) = MAX( OCPO(I,J,L), 1d-35 )
-!
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO
-!      ENDIF    
-!
-!      !=================================================================
-!      ! Full chemistry with dust aerosol turned on.
-!      !
-!      ! Note, we can do better than this! Currently we carry 4 dust 
-!      ! tracers...but het. chem and fast-j use 7 dust bins hardwired
-!      ! from Ginoux.
-!      !
-!      ! Now, I apportion the first dust tracer into four smallest dust 
-!      ! bins equally in mass for het. chem and fast-j. 
-!      ! 
-!      ! Maybe we need to think about chaning our fast-j and het. chem 
-!      ! to use just four dust bins or more flexible calculations 
-!      ! depending on the number of dust bins. (rjp, 03/27/04)
-!      !=================================================================
-!      IF ( LDUST ) THEN
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, N )
-!         DO L = 1, LLPAR
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!
-!            ! Lump 1st dust tracer for het chem
-!            DO N = 1, 4
-!               SOILDUST(I,J,L,N) = 
-!     &              0.25d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
-!            ENDDO
-!
-!            ! Other hetchem bins
-!            SOILDUST(I,J,L,5) = STT(I,J,L,IDTDST2) / AIRVOL(I,J,L)
-!            SOILDUST(I,J,L,6) = STT(I,J,L,IDTDST3) / AIRVOL(I,J,L)
-!            SOILDUST(I,J,L,7) = STT(I,J,L,IDTDST4) / AIRVOL(I,J,L)
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO
-!      ENDIF
-!
-!      IF ( LSSALT ) THEN
-!
-!         ! Accumulation mode seasalt [kg/m3]
-!         SALA(I,J,L) = STT(I,J,L,IDTSALA) / AIRVOL(I,J,L)
-!            
-!         ! Coarse mode seasalt [kg/m3]
-!         SALC(I,J,L) = STT(I,J,L,IDTSALC) / AIRVOL(I,J,L)
-!
-!      ENDIF
-!------------------------------------------------------------------------------
-
       ! Skip this section if all these are turned off
       IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
 
@@ -513,19 +402,60 @@
             ! Compute hydrophilic and hydrophobic BC and OC in [kg/m3]
             ! for passing to "rdaer.f" 
             !===========================================================
+            !----------------------------------------------------------------
+            ! Prior to 7/15/04:
+            !IF ( LCARB ) THEN
+            !
+            !   ! Hydrophilic BC [kg/m3]
+            !   BCPI(I,J,L) = STT(I,J,L,IDTBCPI) / AIRVOL(I,J,L)
+            !
+            !   ! Hydrophilic OC [kg/m3]
+            !   OCPI(I,J,L) = STT(I,J,L,IDTOCPI) / AIRVOL(I,J,L)
+            !
+            !   ! Hydrophobic BC [kg/m3]
+            !   BCPO(I,J,L) = STT(I,J,L,IDTBCPO) / AIRVOL(I,J,L)
+            !
+            !   ! Hydrophobic OC [kg/m3]                
+            !   OCPO(I,J,L) = STT(I,J,L,IDTOCPO) / AIRVOL(I,J,L)
+            !
+            !   ! Now avoid division by zero (bmy, 4/20/04)
+            !   BCPI(I,J,L) = MAX( BCPI(I,J,L), 1d-35 )
+            !   OCPI(I,J,L) = MAX( OCPI(I,J,L), 1d-35 )
+            !   BCPO(I,J,L) = MAX( BCPO(I,J,L), 1d-35 )
+            !   OCPO(I,J,L) = MAX( OCPO(I,J,L), 1d-35 )
+            !ENDIF
+            !----------------------------------------------------------------
             IF ( LCARB ) THEN
 
                ! Hydrophilic BC [kg/m3]
                BCPI(I,J,L) = STT(I,J,L,IDTBCPI) / AIRVOL(I,J,L)
 
-               ! Hydrophilic OC [kg/m3]
-               OCPI(I,J,L) = STT(I,J,L,IDTOCPI) / AIRVOL(I,J,L)
-
                ! Hydrophobic BC [kg/m3]
                BCPO(I,J,L) = STT(I,J,L,IDTBCPO) / AIRVOL(I,J,L)
 
                ! Hydrophobic OC [kg/m3] 
-               OCPO(I,J,L) = STT(I,J,L,IDTOCPO) / AIRVOL(I,J,L)
+               OCPO(I,J,L) = STT(I,J,L,IDTOCPO) * OCF / AIRVOL(I,J,L)
+
+               IF ( LSOA ) THEN
+
+                  ! Hydrophilic primary OC plus SOA [kg/m3A.  We need
+                  ! to multiply by OCF to account for the mass of other 
+                  ! components which are attached to the OC aerosol.
+                  ! (rjp, bmy, 7/15/04)
+                  OCPI(I,J,L) = ( STT(I,J,L,IDTOCPI) * OCF 
+     &                        +   STT(I,J,L,IDTSOA1)
+     &                        +   STT(I,J,L,IDTSOA2)
+     &                        +   STT(I,J,L,IDTSOA3)  ) / AIRVOL(I,J,L)
+ 
+               ELSE
+
+                  ! Hydrophilic primary and SOA OC [kg/m3].   We need
+                  ! to multiply by OCF to account for the mass of other 
+                  ! components which are attached to the OC aerosol.
+                  ! (rjp, bmy, 7/15/04)
+                  OCPI(I,J,L) = STT(I,J,L,IDTOCPI) * OCF / AIRVOL(I,J,L)
+                  
+               ENDIF
 
                ! Now avoid division by zero (bmy, 4/20/04)
                BCPI(I,J,L) = MAX( BCPI(I,J,L), 1d-35 )

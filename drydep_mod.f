@@ -1,9 +1,9 @@
-! $Id: drydep_mod.f,v 1.12 2004/05/03 14:46:16 bmy Exp $
+! $Id: drydep_mod.f,v 1.13 2004/07/15 18:17:45 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
 !  Module DRYDEP_MOD contains variables and routines for the GEOS-CHEM dry
-!  deposition scheme. (bmy, 1/27/03, 4/26/04)
+!  deposition scheme. (bmy, 1/27/03, 7/13/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -124,6 +124,7 @@
 !        Now handles extra carbon & dust tracers. (rjp, tdf, bmy, 4/1/04)
 !  (10) Increased MAXDEP to 26.  Added A_RADI and A_DEN module variables.
 !        Other modifications for size-resolved drydep. (rjp, bec, bmy, 4/20/04)
+!  (11) Increased MAXDEP to 35 and handle extra SOA tracers (rjp, bmy, 7/13/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -149,12 +150,12 @@
       !=================================================================
 
       ! Parameters
-      !---------------------------------------------------------
-      ! Prior to 4/20/04:
-      ! Increase for seasalt tracers (bmy, 4/20/04)
-      !INTEGER, PARAMETER   :: MAXDEP    = 25
-      !---------------------------------------------------------
-      INTEGER, PARAMETER   :: MAXDEP    = 26
+      !----------------------------------------------
+      ! Prior to 7/13/04:
+      ! Increase MAXDEP for SOA (rjp, bmy, 7/13/04)
+      !INTEGER, PARAMETER   :: MAXDEP    = 26
+      !----------------------------------------------
+      INTEGER, PARAMETER   :: MAXDEP    = 35
       INTEGER, PARAMETER   :: NNTYPE    = 15     ! NTYPE    from "CMN_SIZE"
       INTEGER, PARAMETER   :: NNPOLY    = 20     ! NPOLY    from "CMN_SIZE"
       INTEGER, PARAMETER   :: NNVEGTYPE = 74     ! NVEGTYPE from "CMN_SIZE"
@@ -2349,7 +2350,7 @@ C** Load array DVEL
 !
 !******************************************************************************
 !  Subroutine INIT_DRYDEP initializes certain variables for the GEOS-CHEM
-!  dry deposition subroutines. (bmy, 11/19/02, 4/26/04)
+!  dry deposition subroutines. (bmy, 11/19/02, 7/13/04)
 !
 !  NOTES:
 !  (1 ) Added N2O5 as a drydep tracer, w/ the same drydep velocity as
@@ -2358,6 +2359,7 @@ C** Load array DVEL
 !  (3 ) Added seasalt aerosol tracers.  Now use A_RADI and A_DEN to store
 !        radius & density of size-resolved tracers.  Also added fancy
 !        output. (bec, rjp, bmy, 4/26/04)
+!  (3 ) Now handles extra SOA tracers (rjp, bmy, 7/13/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2728,6 +2730,105 @@ C** Load array DVEL
             A_RADI(NUMDEP)  = 3.125d-6
             A_DEN(NUMDEP)   = 2200.d0         
             AIROSOL(NUMDEP) = .TRUE. 
+
+         ! ALPH
+         ELSE IF ( N == IDTALPH ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTALPH
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'ALPH'
+            HSTAR(NUMDEP)   = 0.023d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 136d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ! LIMO
+         ELSE IF ( N == IDTLIMO ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTLIMO
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'LIMO'
+            HSTAR(NUMDEP)   = 0.07d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 136d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ! ALCO
+         ELSE IF ( N == IDTALCO ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTALCO
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'ALCO'
+            HSTAR(NUMDEP)   = 54.d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 142d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ! SOG1
+         ELSE IF ( N == IDTSOG1 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTSOG1
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'SOG1'
+            HSTAR(NUMDEP)   = 1d5
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 150d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ! SOG2
+         ELSE IF ( N == IDTSOG2 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTSOG2
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'SOG2'
+            HSTAR(NUMDEP)   = 1d5
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 160d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ! SOG3
+         ELSE IF ( N == IDTSOG3 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTSOG3
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'SOG3'
+            HSTAR(NUMDEP)   = 1d5
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 220d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ! SOA1
+         ELSE IF ( N == IDTSOA1 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTSOA1
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'SOA1'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 150d-3
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! SOA2
+         ELSE IF ( N == IDTSOA2 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTSOA2
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'SOA2'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 160d-3
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! SOA3
+         ELSE IF ( N == IDTSOA3 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTSOA3
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'SOA3'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 220d-3
+            AIROSOL(NUMDEP) = .TRUE.
 
          ENDIF
       ENDDO

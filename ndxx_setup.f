@@ -1,9 +1,9 @@
-! $Id: ndxx_setup.f,v 1.10 2004/05/24 17:28:58 bmy Exp $
+! $Id: ndxx_setup.f,v 1.11 2004/07/15 18:17:46 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
 !  NDXX_SETUP dynamically allocates memory for certain diagnostic arrays that 
-!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 5/20/04)
+!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 7/13/04)
 !
 !  This allows us to reduce the amount of memory that needs to be declared 
 !  globally.  We only allocate memory for arrays if the corresponding 
@@ -99,6 +99,7 @@
 !        84 to 80.  Also activate ND52 diagnostic for ICARTT.
 !        (rjp, bec, stu, cas, bmy, 4/20/04)
 !  (46) Now allocate AD13_SO2_sh array for ND13 (bec, bmy, 5/20/04)
+!  (47) Now allocate AD07_HC array for ND07 (rjp, bmy, 7/13/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -261,10 +262,13 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07' )
 
          ALLOCATE( AD07_BC( IIPAR, JJPAR, LD07 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD19_BC' )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_BC' )
 
          ALLOCATE( AD07_OC( IIPAR, JJPAR, LD07 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD19_OC' )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_OC' )
+
+         ALLOCATE( AD07_HC( IIPAR, JJPAR, LD07, 5 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_HC' )
       ENDIF  
 
       !================================================================

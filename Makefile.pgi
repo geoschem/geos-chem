@@ -1,6 +1,6 @@
-# $Id: Makefile.pgi,v 1.3 2004/05/24 17:28:57 bmy Exp $
+# $Id: Makefile.pgi,v 1.4 2004/07/15 18:17:43 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for LINUX/PGI (bmy, Thu May 20 14:47:52 2004)
+# GEOS-CHEM Makefile for LINUX/PGI (bmy, Tue Jul 13 12:48:59 2004)
 #
 # NOTE: If you want to run the 2 x 2.5 GEOS-CHEM model, then try adding
 #       -Bstatic to the F90 compilation line.  It appears that setting 
@@ -68,6 +68,7 @@ fyrno3.o                  \
 gasconc.o                 \
 getalt.o                  \
 getifsun.o                \
+global_o3_mod.o           \
 hpsort_int.o              \
 humeff.o                  \
 hunt.o                    \
@@ -224,6 +225,7 @@ global_hno3_mod.o         \
 global_no3_mod.o          \
 global_nox_mod.o          \
 global_oh_mod.o           \
+global_o3_mod.o           \
 uvalbedo_mod.o            \
 RnPbBe_mod.o              \
 Kr85_mod.o                \
@@ -426,6 +428,7 @@ global_ch4_mod.o           : global_ch4_mod.f           CMN CMN_DIAG CMN_SETUP C
 global_hno3_mod.o          : global_hno3_mod.f          CMN CMN_SETUP CMN_SIZE define.h 
 global_no3_mod.o           : global_no3_mod.f           CMN_SETUP CMN_SIZE define.h 
 global_nox_mod.o           : global_nox_mod.f           CMN_SETUP CMN_SIZE define.h 
+global_o3_mod.o            : global_o3_mod.f            CMN_SETUP CMN_SIZE define.h 
 global_oh_mod.o            : global_oh_mod.f            CMN_SIZE define.h 
 grid_mod.o                 : grid_mod.f                 CMN_GCTM CMN_SIZE define.h 
 gwet_read_mod.o            : gwet_read_mod.f            CMN_DIAG CMN_SETUP CMN_SIZE define.h 

@@ -1,6 +1,6 @@
-# $Id: Makefile.sgi,v 1.15 2004/05/24 17:28:57 bmy Exp $
+# $Id: Makefile.sgi,v 1.16 2004/07/15 18:17:43 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for SGI/Origin (bmy, Thu May 20 14:47:27 2004)
+# GEOS-CHEM Makefile for SGI/Origin (bmy, Tue Jul 13 12:48:32 2004)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -59,6 +59,7 @@ fyrno3.o                  \
 gasconc.o                 \
 getalt.o                  \
 getifsun.o                \
+global_o3_mod.o           \
 hpsort_int.o              \
 humeff.o                  \
 hunt.o                    \
@@ -215,6 +216,7 @@ global_hno3_mod.o         \
 global_no3_mod.o          \
 global_nox_mod.o          \
 global_oh_mod.o           \
+global_o3_mod.o           \
 uvalbedo_mod.o            \
 RnPbBe_mod.o              \
 Kr85_mod.o                \
@@ -254,7 +256,7 @@ tpcore_window_mod.o       \
 transport_mod.o           \
 upbdflx_mod.o             \
 chemistry_mod.o           \
-emissions_mod.o
+emissions_mod.o           
 
 SJ =                      \
 findxsect.o               \
@@ -419,6 +421,7 @@ global_ch4_mod.o           : global_ch4_mod.f           CMN CMN_DIAG CMN_SETUP C
 global_hno3_mod.o          : global_hno3_mod.f          CMN CMN_SETUP CMN_SIZE define.h 
 global_no3_mod.o           : global_no3_mod.f           CMN_SETUP CMN_SIZE define.h 
 global_nox_mod.o           : global_nox_mod.f           CMN_SETUP CMN_SIZE define.h 
+global_o3_mod.o            : global_o3_mod.f            CMN_SETUP CMN_SIZE define.h 
 global_oh_mod.o            : global_oh_mod.f            CMN_SIZE define.h 
 grid_mod.o                 : grid_mod.f                 CMN_GCTM CMN_SIZE define.h 
 gwet_read_mod.o            : gwet_read_mod.f            CMN_DIAG CMN_SETUP CMN_SIZE define.h 

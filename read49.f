@@ -1,10 +1,10 @@
-! $Id: read49.f,v 1.1 2003/06/30 20:26:03 bmy Exp $
+! $Id: read49.f,v 1.2 2004/07/15 18:17:46 bmy Exp $
       SUBROUTINE READ49
 !
 !******************************************************************************
 !  Subroutine READ49 reads the "timeseries.dat" file and returns values 
 !  pertaining to timeseries geographical domain & diagnostics in the 
-!  CMN_TIMES common block. (bey, bmy, 5/28/99, 2/11/03)
+!  CMN_TIMES common block. (bey, bmy, 5/28/99, 7/15/04)
 !
 !  Sample "timeseries.dat" input file:
 !  ===========================================================================
@@ -65,6 +65,8 @@
 !        and CTM_TIME from the old "time_mod.f".  Now uses function GET_TAU0 
 !        from "bpch2_mod.f".  Now use functions YMD_EXTRACT from "time_mod.f"
 !        (bmy, 2/11/03)
+!  (18) Now can read more than a 100 char string for tracer numbers. 
+!        (rjp, bmy, 7/15/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -93,7 +95,7 @@
       CHARACTER(LEN=4  ) :: LJMONTH
       CHARACTER(LEN=5  ) :: TNAME
       CHARACTER(LEN=20 ) :: NOTION
-      CHARACTER(LEN=100) :: HEADER
+      CHARACTER(LEN=255) :: HEADER
 
       ! Now make I0, J0 local variables (bmy, 2/11/03)
       INTEGER            :: I0, J0
@@ -138,7 +140,7 @@
 
       IF (TNAME .eq. '*area') THEN
          N_READ=1
- 22      READ(66,'(a100)', IOSTAT=IOS) HEADER
+ 22      READ(66,'(a)', IOSTAT=IOS) HEADER
          IF ( IOS /= 0 ) CALL IOERROR( IOS, 66, 'read49:4' )
 
          M = 0

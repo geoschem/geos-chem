@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.12 2004/05/24 17:28:57 bmy Exp $
+! $Id: diag3.f,v 1.13 2004/07/15 18:17:45 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out I-J (Long-Lat) diagnostics to the BINARY
-!  format punch file (bmy, bey, mgs, rvm, 5/27/99, 5/20/04)
+!  format punch file (bmy, bey, mgs, rvm, 5/27/99, 7/13/04)
 !
 !  The preferred file format is binary punch file format v. 2.0.  This
 !  file format is very GAMAP-friendly.  GAMAP also supports the ASCII
@@ -131,6 +131,7 @@
 !        (rjp, tdf, bmy, 4/5/04)
 !  (50) Added ND08 (seasalt aerosol) diagnostic (rjp, bec, bmy, 4/20/04)
 !  (51) Now save out SO2 from ships (if LSHIPSO2=T) (bec, bmy, 5/20/04)
+!  (52) Added NVOC source diagnostics for ND07 (rjp, bmy, 7/13/04)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -540,6 +541,86 @@
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,
      &               IIPAR,     JJPAR,     LD07,     IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
+
+
+         !------------------------------
+         ! NVOC SOURCE diagnostics
+         !------------------------------
+         DO N = 8, 12
+
+            SELECT CASE ( N )
+
+            !------------------------------ 
+            ! ALPH Source
+            !------------------------------ 
+            CASE ( 8 )
+               CATEGORY     = 'OC-ALPH'
+               NN           = IDTALPH + TRCOFFSET
+
+            !------------------------------ 
+            ! LIMO Source
+            !------------------------------ 
+            CASE ( 9 )
+               CATEGORY     = 'OC-LIMO'
+               NN           = IDTLIMO + TRCOFFSET
+
+            !------------------------------ 
+            ! TERP Source
+            !------------------------------ 
+            CASE ( 10 )
+               CATEGORY     = 'OC-TERP'
+               NN           = IDTLIMO + TRCOFFSET + 1
+
+            !------------------------------ 
+            ! ALCO Source
+            !------------------------------ 
+            CASE ( 11 )
+               CATEGORY     = 'OC-ALCO'
+               NN           = IDTLIMO + TRCOFFSET + 2
+
+            !------------------------------ 
+            ! SESQ Source
+            !------------------------------ 
+            CASE ( 12 )
+               CATEGORY     = 'OC-SESQ'
+               NN           = IDTLIMO + TRCOFFSET + 3
+
+            END SELECT
+
+            ARRAY(:,:,1) = AD07(:,:,N)
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  IIPAR,     JJPAR,     1,        IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+         ENDDO
+
+         !-----------------------------------------------
+         ! SOA Production from NVOC oxidation [kg]
+         ! 1:ALPH+LIMO+TERP, 2:ALCO, 3:SESQ
+         !-----------------------------------------------
+         CATEGORY     = 'PL-OC=$'
+         SCALEX       = 1.d0
+
+         DO N = 1, 3
+
+            IF ( N == 1 ) NN = IDTSOA1 + TRCOFFSET
+            IF ( N == 2 ) NN = IDTSOA2 + TRCOFFSET
+            IF ( N == 3 ) NN = IDTSOA3 + TRCOFFSET
+
+            DO L = 1, LD07
+               ARRAY(:,:,L) = AD07_HC(:,:,L,N) / SCALEX
+            ENDDO
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  IIPAR,     JJPAR,     LD07,     IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
+
+         ENDDO
 
       ENDIF   
 !

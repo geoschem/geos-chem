@@ -1,4 +1,4 @@
-! $Id: CMN_SETUP,v 1.4 2004/05/24 17:28:56 bmy Exp $
+! $Id: CMN_SETUP,v 1.5 2004/07/15 18:17:42 bmy Exp $
 !
 !******************************************************************************
 !  CMN_SETUP contains logical switches and I/O units for SETUP.F and MAIN.F.
@@ -68,7 +68,7 @@
       ! LCARB    : on/off switch for carbonaceous BC/OC aerosols
       ! LSSALT   : on/off switch for sea salt 
       ! LDUST    : on/off switch for desert dust
-      ! LATEQ    : *** for future expansion ***
+      ! LATEQ    : on/off switch for SOA
       ! LDEAD    : Toggles between DEAD and GINOUX dust source fn's
       ! LSHIPSO2 : on/off switch for ship SO2 emissions
       !=================================================================
@@ -76,13 +76,13 @@
      &   LEMIS,  LDRYD,   LCHEM,  LTRAN,   LTPFV,  LTURB,  LCONV,       
      &   LWETD,  LDBUG,   LDIAG,  LUNZIP,  LSVGLB, LMFCT,  LFILL,       
      &   LWAIT,  LTOMSAI, LBBSEA, LSTDRUN, LSULF,  LSPLIT, LMONOT,
-     &   LCARB,  LSSALT,  LDUST,  LATEQ,   LDEAD,  LSHIPSO2
+     &   LCARB,  LSSALT,  LDUST,  LSOA,    LDEAD,  LSHIPSO2
 
       COMMON /LFLAGS/                                                   
      &   LEMIS,  LDRYD,   LCHEM,  LTRAN,   LTPFV,  LTURB,  LCONV,       
      &   LWETD,  LDBUG,   LDIAG,  LUNZIP,  LSVGLB, LMFCT,  LFILL,       
      &   LWAIT,  LTOMSAI, LBBSEA, LSTDRUN, LSULF,  LSPLIT, LMONOT,
-     &   LCARB,  LSSALT,  LDUST,  LATEQ,   LDEAD,  LSHIPSO2
+     &   LCARB,  LSSALT,  LDUST,  LSOA,    LDEAD,  LSHIPSO2
 
       !=================================================================
       ! Directory and character string variables, from 'input.geos'
