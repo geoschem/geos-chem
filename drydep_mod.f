@@ -1,4 +1,4 @@
-! $Id: drydep_mod.f,v 1.2 2003/08/06 15:30:39 bmy Exp $
+! $Id: drydep_mod.f,v 1.3 2003/10/01 20:32:21 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
@@ -242,7 +242,6 @@
       LOGICAL           :: LSNOW(MAXIJ)
       INTEGER           :: I, J, L, N, M, IJLOOP, LAYBOT, NN, NDVZ
       REAL*8            :: PS, X25, RESIDU, P1, P2, THIK, DVZ, PL1, PL2 
-      REAL*8            :: PS, X25, P1, P2, THIK, DVZ, PL1, PL2 
       REAL*8            :: HEIGHT(LLPAR),      CZ1(MAXIJ), TC0(MAXIJ)  
       REAL*8            :: DVEL(MAXIJ,MAXDEP), ZH(MAXIJ),  OBK(MAXIJ)
 

@@ -1,4 +1,4 @@
-! $Id: geia_mod.f,v 1.1 2003/06/30 20:26:02 bmy Exp $
+! $Id: geia_mod.f,v 1.2 2003/10/01 20:32:21 bmy Exp $
       MODULE GEIA_MOD
 !
 !******************************************************************************
@@ -58,7 +58,7 @@
 !******************************************************************************
 !  Subroutine READ_TOTCO2 reads in the scale factors (SCALEYEAR/1985) based 
 !  on total CO2 emissions.  These are used to scale anthropogenic NOx 
-!  emissions from 1985 to the present. (bmy, 9/13/00, 6/26/02)
+!  emissions from 1985 to the present. (bmy, 9/13/00, 9/29/03)
 !
 !  NOTES:
 !  (1 ) Now use IOS /= 0 to trap both I/O errors and EOF. (bmy, 9/13/00)
@@ -70,6 +70,7 @@
 !  (5 ) Now write file name to stdout (bmy, 4/3/02)
 !  (6 ) Now use IU_FILE instead of IUNIT.  Also reference IU_FILE and IOERROR
 !        from "file_mod.f" (bmy, 6/27/02)
+!  (7 ) Now use ENCODE to define CYEAR string for PGI/Linux (bmy, 9/29/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -95,7 +96,13 @@
  10   FORMAT( 'READ_TOTCO2: Year for Total CO2 scale factor: ', i4 )
       
       ! Define the file name and the file unit
+      ! Now use ENCODE for PGI/F90 on Linux (bmy, 9/29/03)
+#if   defined( LINUX ) 
+      ENCODE( 4, '(i4)', CYEAR ) SCALEYEAR
+#else 
       WRITE( CYEAR, '(i4)' ) SCALEYEAR
+#endif
+
       FILENAME = TRIM( DATA_DIR )                  // 
      &           'scalefoss_200202/scalefoss.tot.' // 
      &           GET_RES_EXT() // '.' // CYEAR
@@ -138,7 +145,7 @@
 !******************************************************************************
 !  Subroutine READ_LIQCO2 reads in the scale factors (SCALEYEAR/1985) based 
 !  on liquid CO2 emissions.  These are used to scale anthropogenic CO and
-!  hydrocarbon emissions from 1985 to the present. (bmy, 9/13/00, 6/26/02)
+!  hydrocarbon emissions from 1985 to the present. (bmy, 9/13/00, 9/29/03)
 !
 !  NOTES:
 !  (1 ) Now use IOS /= 0 to trap both I/O errors and EOF. (bmy, 9/13/00)
@@ -150,6 +157,7 @@
 !  (5 ) Now write file name to stdout (bmy, 4/3/02)
 !  (6 ) Now use IU_FILE instead of IUNIT.  Also reference IU_FILE and IOERROR
 !        from "file_mod.f" (bmy, 6/27/02)
+!  (7 ) Now use ENCODE to define CYEAR string for PGI/Linux (bmy, 9/29/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -175,7 +183,12 @@
  10   FORMAT( 'READ_LIQCO2: Year for Liquid CO2 scale factor: ', i4 )
 
       ! Define the file name and the file unit
+      ! Now use ENCODE to define CYEAR string for Linux (bmy, 9/29/03)
+#if   defined( LINUX ) 
+      ENCODE( 4, '(i4)', CYEAR ) SCALEYEAR
+#else
       WRITE( CYEAR, '(i4)' ) SCALEYEAR
+#endif
       FILENAME = TRIM( DATA_DIR )                  // 
      &           'scalefoss_200202/scalefoss.liq.' // 
      &           GET_RES_EXT() // '.' // CYEAR

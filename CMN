@@ -1,4 +1,4 @@
-! $Id: CMN,v 1.1 2003/06/30 20:26:01 bmy Exp $
+! $Id: CMN,v 1.2 2003/10/01 20:32:19 bmy Exp $
       !=================================================================
       ! NOTES:
       ! (1 ) Changed RCS ID tag comment character from "C" to "!" to
@@ -53,7 +53,7 @@
       INTEGER ::      IPRMIN, IPRMAX, JPRMIN, JPRMAX
       INTEGER ::      LPRMIN, LPRMAX, NPRMIN, NPRMAX
 
-      COMMON /CPRINT/ IPRMIN, IPRMAX, JPRMIN, JPRMAX,                   &
+      COMMON /CPRINT/ IPRMIN, IPRMAX, JPRMIN, JPRMAX,                   
      &                LPRMIN, LPRMAX, NPRMIN, NPRMAX
 
       !=================================================================

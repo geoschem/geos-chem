@@ -1,5 +1,12 @@
-C $Id: main.f,v 1.2 2003/07/08 15:27:48 bmy Exp $
+C $Id: main.f,v 1.3 2003/10/01 20:32:22 bmy Exp $
 C $Log: main.f,v $
+C Revision 1.3  2003/10/01 20:32:22  bmy
+C GEOS-CHEM v5.07.07, includes the following modifications:
+C - GAMMA coeff for N2O5 hydrolysis is now a function of T, RH, aerosol type
+C - Now apply drydep to entire PBL in single-tracer Ox routine chemo3.f
+C - Added OpenMP parallelization commands to ND65 routine diagpl.f
+C - Other minor bug fixes and updates
+C
 C Revision 1.2  2003/07/08 15:27:48  bmy
 C GEOS-CHEM v5.07.01, now contains:
 C - interannually varying latitudinal CH4 gradient full chemistry
@@ -913,7 +920,7 @@ C
 
       !=================================================================
       ! Internal function IS_LAST_DAY_GOOD tests to see if there is
-      ! output scheduled on the last day of the run.  (bmy, 3/11/03)
+      ! output scheduled on the last day of the run.  (bmy, 9/25/03)
       !=================================================================
 
       ! References to F90 modules
@@ -939,7 +946,12 @@ C
       LASTDAY = JD - JD0 
 
       ! Skip past the element of NJDAY for Feb 29, if necessary
-      IF ( .not. ITS_A_LEAPYEAR() .and. LASTDAY > 59 ) THEN
+      !-----------------------------------------------------------------
+      ! Prior to 9/25/03:
+      ! Now test the year of the ending date for leapyear (bmy, 9/25/03)
+      !IF ( .not. ITS_A_LEAPYEAR() .and. LASTDAY > 59 ) THEN
+      !-----------------------------------------------------------------
+      IF ( .not. ITS_A_LEAPYEAR( Y ) .and. LASTDAY > 59 ) THEN
          LASTDAY = LASTDAY + 1
       ENDIF
 

@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.3 2003/08/06 15:30:56 bmy Exp $
+! $Id: sulfate_mod.f,v 1.4 2003/10/01 20:32:23 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -4466,7 +4466,7 @@
 !******************************************************************************
 !  Subroutine READ_BIOMASS_NH3 reads the monthly mean biomass NH3 
 !  and biofuel emissions from disk and converts to [kg NH3/box/s]. 
-!  (rjp, bdf, bmy, 9/20/02, 5/15/03)
+!  (rjp, bdf, bmy, 9/20/02, 9/29/03)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -4483,6 +4483,7 @@
 !  (3 ) If using interannual biomass emissions, substitute seasonal emissions
 !        for years where internannual emissions do not exist.  Now also
 !        reference GET_TAU from "time_mod.f" (bmy, 5/15/03)
+!  (4 ) Now use ENCODE statement for PGI/F90 on Linux (bmy, 9/29/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4557,8 +4558,13 @@
          YEAR = MAX( MIN( GET_YEAR(), 2000 ), 1996 )
 
          ! Convert YEAR to a string
+         ! Now use ENCODE to define CYEAR string for PGI/Linux (bmy, 9/29/03)
+#if   defined ( LINUX ) 
+         ENCODE( 4, '(i4)', CYEAR ) YEAR
+#else
          WRITE( CYEAR, '(i4)' ) YEAR
-         
+#endif
+    
          ! File name for interannual biomass burning emissions
          FILENAME = TRIM( DATA_DIR )                           //
      &              'biomass_200110/bioburn.interannual.geos.' //

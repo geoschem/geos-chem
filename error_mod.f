@@ -1,8 +1,8 @@
-! $Id: error_mod.f,v 1.1 2003/06/30 20:26:06 bmy Exp $
+! $Id: error_mod.f,v 1.2 2003/10/01 20:32:21 bmy Exp $
       MODULE ERROR_MOD
 !
 !******************************************************************************
-!  Module ERROR_MOD contains error checking routines. (bmy, 3/8/01, 6/27/03)
+!  Module ERROR_MOD contains error checking routines. (bmy, 3/8/01, 9/27/03)
 !
 !  Module Routines:
 !  ===========================================================================
@@ -46,6 +46,7 @@
 !        DEC_COMPAQ to COMPAQ.  Also added code to trap errors on SUN 
 !        platform. (bmy, 3/21/03)
 !  (8 ) Added patches for IBM/AIX platform (gcc, bmy, 6/27/03)
+!  (9 ) Bug fixes for LINUX platform (bmy, 9/29/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -232,7 +233,7 @@
 !
 !*****************************************************************************
 !  Module FINITE_FLOAT returns TRUE if a REAL*4 number is equal to the 
-!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 6/27/03)
+!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 9/29/03)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -245,6 +246,7 @@
 !        the Sun/Sparc platform.  Rename cpp switch from DEC_COMPAQ to
 !        COMPAQ. (bmy, 3/23/03)
 !  (4 ) Added patches for IBM/AIX platform (gcc, bmy, 6/27/03)
+!  (5 ) Bug fix: now use external C IS_FINITE for PGI/Linux (bmy, 9/29/03)
 !*****************************************************************************
 !
 #     include "define.h" ! C-preprocessor switches
@@ -278,12 +280,22 @@
 
 #elif defined( LINUX )
 
-      ! Declare IS_INF as an external function
-      INTEGER, EXTERNAL  :: IS_INF
-
-      ! For LINUX, use C routine "is_inf" to test if VALUE is infinity  
-      ! VALUE must be cast to DBLE since "is_inf" only takes doubles.
-      IT_IS_A_FINITE = ( IS_INF( DBLE( VALUE ) ) /= 0 )
+      !---------------------------------------------------------------------
+      ! Prior to 9/29/03:
+      !! Declare IS_INF as an external function
+      !INTEGER, EXTERNAL  :: IS_INF
+      !
+      !! For LINUX, use C routine "is_inf" to test if VALUE is infinity  
+      !! VALUE must be cast to DBLE since "is_inf" only takes doubles.
+      !IT_IS_A_FINITE = ( IS_INF( DBLE( VALUE ) ) /= 0 )
+      !---------------------------------------------------------------------
+      
+      ! Declare IS_FINITE as an external function
+      INTEGER, EXTERNAL :: IS_FINITE
+      
+      ! For LINUX, use C routine "is_finite" to test if VALUE is finite  
+      ! VALUE must be cast to DBLE since "is_inf" only takes doubles. 
+      IT_IS_A_FINITE = ( IS_FINITE( DBLE( VALUE ) ) /= 0 )
 
 #elif defined( SPARC )
 
@@ -311,7 +323,7 @@
 !
 !*****************************************************************************
 !  Module FINITE_DBLE returns TRUE if a REAL*8 number is equal to the 
-!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 6/27/03)
+!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 9/29/03)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -324,6 +336,7 @@
 !        the Sun/Sparc platform.  Rename cpp switch from DEC_COMPAQ to
 !        COMPAQ. (bmy, 3/23/03)
 !  (4 ) Added patches for IBM/AIX platform (gcc, bmy, 6/27/03)
+!  (5 ) Bug fix: now use external C IS_FINITE for PGI/Linux (bmy, 9/29/03)
 !*****************************************************************************
 !
 #     include "define.h" ! C-preprocessor switches
@@ -356,11 +369,20 @@
 
 #elif defined( LINUX )
 
-      ! Declare IS_INF as an external function
-      INTEGER, EXTERNAL  :: IS_INF
-
+      !----------------------------------------------------------------------
+      ! Prior to 9/29/03:
+      !! Declare IS_INF as an external function
+      !INTEGER, EXTERNAL  :: IS_INF
+      !
       ! For LINUX, use C routine "is_inf" to test if VALUE is infinity  
-      IT_IS_A_FINITE = ( IS_INF( VALUE ) /= 0 )
+      !IT_IS_A_FINITE = ( IS_INF( VALUE ) /= 0 )
+      !----------------------------------------------------------------------
+
+      ! Declare IS_FINITE as an external function
+      INTEGER, EXTERNAL :: IS_FINITE
+
+      ! For LINUX, use C routine "is_finite" to test if VALUE is infinity
+      IT_IS_A_FINITE = ( IS_FINITE( VALUE ) /= 0 )
 
 #elif defined( SPARC )
  

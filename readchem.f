@@ -1,4 +1,4 @@
-! $Id: readchem.f,v 1.6 2003/08/12 17:08:13 bmy Exp $
+! $Id: readchem.f,v 1.7 2003/10/01 20:32:22 bmy Exp $
       SUBROUTINE READCHEM 
 !
 !******************************************************************************
@@ -833,7 +833,6 @@ C
                   ! Also denote N2O5 hydrolysis rxn (mje, bmy, 8/7/03)
                   IF ( XINP(1) == 'N2O5' ) THEN
                      NKN2O5 = NK
-                     PRINT*, '### N2O5 is : ', NKN2O5
                   ENDIF
                ENDIF
 C

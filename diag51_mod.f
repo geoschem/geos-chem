@@ -1,4 +1,4 @@
-! $Id: diag51_mod.f,v 1.1 2003/06/30 20:26:03 bmy Exp $
+! $Id: diag51_mod.f,v 1.2 2003/10/01 20:32:21 bmy Exp $
       MODULE DIAG51_MOD
 !
 !******************************************************************************
@@ -86,6 +86,7 @@
 !  (13) Change tracer #'s for sulfate tracers beyond 24.  Also updated
 !        comments (rjp, bmy, 3/23/03)
 !  (14) Now references "time_mod.f" and "grid_mod.f" (bmy, 3/27/03)
+!  (15) Bug fix for LINUX in calls to TIMESTAMP_STRING (bmy, 9/29/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -312,7 +313,7 @@
       SUBROUTINE WRITE_DIAG51
 !
 !******************************************************************************
-!  Subroutine WRITE_DIAG51 (bmy, 12/1/00, 3/27/03) does the following:
+!  Subroutine WRITE_DIAG51 (bmy, 12/1/00, 9/29/03) does the following:
 !  
 !  (1) Divides quantities by the number of times it was between
 !       HR1 and HR2 local time in each grid box  
@@ -339,6 +340,9 @@
 !  (11) Now uses functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f". 
 !        I0 and J0 are now local variables.  Now uses TIMESTAMP_STRING and
 !        ITS_TIME_FOR_EXIT from "time_mod.f" (bmy, 3/27/03)     
+!  (12) LINUX has a problem putting a function call w/in a WRITE statement.  
+!        Now save output from TIMESTAMP_STRING to STAMP and print that.
+!        (bmy, 9/29/03)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -367,6 +371,9 @@
       CHARACTER(LEN=40)   :: UNIT     = '' 
       CHARACTER(LEN=40)   :: RESERVED = ''
       CHARACTER(LEN=80)   :: TITLE
+
+      ! For LINUX fix (bmy, 9/29/03)
+      CHARACTER(LEN=16)   :: STAMP
 
       !=================================================================
       ! WRITE_DIAG51 begins here!
@@ -412,7 +419,12 @@
       !WRITE( 6, '('' --- DIAG51 : Writing to '', a)' ) TRIM( FILENAME )
       
       ! Echo info
-      WRITE( 6, 110 ) TIMESTAMP_STRING()
+      !-----------------------------------------------------------------
+      ! Prior to 9/29/03:
+      !WRITE( 6, 110 ) TIMESTAMP_STRING()
+      !-----------------------------------------------------------------
+      STAMP = TIMESTAMP_STRING()
+      WRITE( 6, 110 ) STAMP
  110  FORMAT( '     - DIAG51: Saving to disk at ', a ) 
 
       !=================================================================
@@ -598,7 +610,13 @@
       ! Zero diagnostic and counter arrays after writing to disk
       ! Use a parallel DO-loop for efficiency
       !=================================================================
-      WRITE( 6, 130 ) TIMESTAMP_STRING()
+      !-----------------------------------------------------------------
+      ! Prior to 9/29/03:
+      ! LINUX can't write the result of a function call (bmy, 9/29/03)
+      !WRITE( 6, 130 ) TIMESTAMP_STRING()
+      !-----------------------------------------------------------------
+      STAMP = TIMESTAMP_STRING()
+      WRITE( 6, 130 ) STAMP
  130  FORMAT( '     - DIAG51: Zeroing arrays at ', a )
 
 !$OMP PARALLEL DO 
@@ -642,7 +660,7 @@
 !
 !******************************************************************************
 !  Subroutine ACCUMULATE_DIAG51 accumulates tracers into the STT_TEMP51
-!  array. (bmy, 8/20/02, 3/27/03)
+!  array. (bmy, 8/20/02, 9/29/03)
 !
 !  NOTES:
 !  (1 ) Now reference routine GET_PEDGE from "pressure_mod.f", which
@@ -652,6 +670,9 @@
 !  (3 ) Change tracer #'s for sulfate tracers beyond 24.  Also updated
 !        comments (rjp, bmy, 3/23/03)
 !  (4 ) Now uses routine TIMESTAMP_STRING from "time_mod.f" (bmy, 3/14/03)
+!  (5 ) LINUX has a problem putting a function call w/in a WRITE statement.  
+!        Now save output from TIMESTAMP_STRING to STAMP and print that.
+!        (bmy, 9/29/03)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -672,12 +693,21 @@
       INTEGER             :: I, J, L, M, N, II, JJ, LL, PBLINT, XTRAC
       REAL*8              :: C1, C2, PBLDEC, TEMPBL, XX
 
+      ! For LINUX fix
+      CHARACTER(LEN=16)   :: STAMP
+
       !=================================================================
       ! ACCUMULATE_DIAG51 begins here!
       !
       ! Echo time information to the screen
       !=================================================================
-      WRITE( 6, 100 ) TIMESTAMP_STRING()
+      !-----------------------------------------------------------------
+      ! Prior to 9/29/03:
+      ! LINUX cannot write the result of a function call
+      !WRITE( 6, 100 ) TIMESTAMP_STRING()
+      !-----------------------------------------------------------------
+      STAMP = TIMESTAMP_STRING()
+      WRITE( 6, 100 ) STAMP
  100  FORMAT( '     - DIAG51: Accumulation at ', a )
 
       !=================================================================

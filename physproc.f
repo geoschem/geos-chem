@@ -1,10 +1,10 @@
-! $Id: physproc.f,v 1.4 2003/08/06 15:30:45 bmy Exp $
+! $Id: physproc.f,v 1.5 2003/10/01 20:32:22 bmy Exp $
       SUBROUTINE PHYSPROC( SUNCOS, SUNCOSB )
 !
 !******************************************************************************
 !  Subroutine PHYSPROC is the driver for SMVGEAR II chemistry.  It calls both
 !  CALCRATE to compute the rxn rates and the SMVGEAR solver routine.
-!  (M. Jacobson 1993; bdf, bmy, 4/18/03, 7/30/03)
+!  (M. Jacobson 1993; bdf, bmy, 4/18/03, 9/29/03)
 !
 !  NOTES:
 !  (1 ) For GEOS-CHEM we had to remove ABSHUM, AIRDENS, CSPEC, IXSAVE, IYSAVE,
@@ -18,6 +18,9 @@
 !        used anywhere else.  Remove references to LASTCHEM, this is mpt 
 !        initialized anywhere.  Now reference CSUMA, CSUMC, ERRMX2 from
 !        "comode_mod.f". (bmy, 7/30/03)
+!  (3 ) LINUX has a problem putting a function call w/in a WRITE statement.  
+!        Now save output from TIMESTAMP_STRING to STAMP and print that.
+!        (bmy, 9/29/03)
 !******************************************************************************
 !
       ! References to F90 modules (bmy, 10/19/00)
@@ -76,6 +79,9 @@ C
       REAL*8 RMSCUR,AVGHI,RMSCURH,FSTEPT,FITS,TSTEPIT,PHIDYN
       REAL*8 GMU
 
+      ! For LINUX fix (bmy, 9/29/03)
+      CHARACTER(LEN=16) :: STAMP
+
       !=================================================================
       ! PHYSPROC begins here!
       !=================================================================
@@ -88,7 +94,13 @@ C
       IF (IFSOLVE.EQ.0) RETURN
 
       ! Echo timestamp
-      WRITE( 6, 100 ) TIMESTAMP_STRING()
+      !-----------------------------------------------------------------------
+      ! Prior to 9/29/03:
+      ! LINUX can't write a function in a FORMATted WRITE call (bmy, 9/29/03)
+      !WRITE( 6, 100 ) TIMESTAMP_STRING()
+      !-----------------------------------------------------------------------
+      STAMP = TIMESTAMP_STRING()
+      WRITE( 6, 100 ) STAMP
  100  FORMAT( '     - PHYSPROC: Trop chemistry at ', a )
 C                                                                       
 C *********************************************************************

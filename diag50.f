@@ -1,10 +1,10 @@
-! $Id: diag50.f,v 1.1 2003/06/30 20:26:05 bmy Exp $
+! $Id: diag50.f,v 1.2 2003/10/01 20:32:21 bmy Exp $
       SUBROUTINE DIAG50
 !
 !******************************************************************************
 !  Subroutine DIAG50 produces time series (24-h averages) for a geographical 
 !  domain from the information read in timeseries.dat Output is in binary 
-!  punch (BPCH) file format. (bey, bmy, 6/10/99, 3/14/03)
+!  punch (BPCH) file format. (bey, bmy, 6/10/99, 9/29/03)
 !
 !  NOTES:
 !  (1 ) Now use F90 syntax for declarations (bmy, 4/9/99)
@@ -44,9 +44,12 @@
 !  (18) Now reference AD from "dao_mod.f".  Now reference IDTOX from F90
 !        module "tracerid_mod.f". (bmy, 11/6/02)
 !  (19) Now remove FIRSTDIAG50 from the arg list -- this is now a local
-!         variable.  Now use functions GET_DAY, GET_TAU, GET_TAUE, 
-!         GET_LOCALTIME, and TIMESTAMP_STRING from "time_mod.f".  Now use 
-!         GET_XOFFSET and GET_YOFFSET from "grid_mod.f". (bmy, 3/14/03)
+!        variable.  Now use functions GET_DAY, GET_TAU, GET_TAUE, 
+!        GET_LOCALTIME, and TIMESTAMP_STRING from "time_mod.f".  Now use 
+!        GET_XOFFSET and GET_YOFFSET from "grid_mod.f". (bmy, 3/14/03)
+!  (20) LINUX has a problem putting a function call w/in a WRITE statement.  
+!        Now save output from TIMESTAMP_STRING to STAMP and print that.
+!        (bmy, 9/29/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -70,6 +73,7 @@
 
       ! Local variables
       CHARACTER(LEN=16), SAVE :: FILENAME
+      CHARACTER(LEN=16)       :: STAMP
       LOGICAL, SAVE           :: FIRSTDIAG50 = .TRUE.
       INTEGER, SAVE           :: COUNT_NO(IIPAR,JJPAR)
       INTEGER, SAVE           :: DAY_LAST
@@ -285,7 +289,13 @@
             COUNT_IN_DAY = COUNT_IN_DAY + 1
             IF ( COUNT_IN_DAY .EQ. 1 ) ZTAU1 = GET_TAU()
 
-            WRITE( 6, 110 ) TIMESTAMP_STRING()
+            !-----------------------------------------------------------------
+            ! Prior to 9/29/03:
+            ! LINUX cannot write the result of a function call (bmy, 9/29/03)
+            !WRITE( 6, 110 ) TIMESTAMP_STRING()
+            !-----------------------------------------------------------------
+            STAMP = TIMESTAMP_STRING()
+            WRITE( 6, 110 ) STAMP
  110        FORMAT( '     - DIAG50: Accumulation at ', a )
 
             ! Accumulate TRACERS into STT_TEMPO as tracer #'s 1 - NTRACE 
@@ -356,7 +366,13 @@
             COUNT_IN_DAY = COUNT_IN_DAY + 1
 
             ! Echo output
-            WRITE( 6, 110 ) TIMESTAMP_STRING()
+            !----------------------------------------------------------------
+            ! Prior to 9/29/03:
+            ! LINUX cannot write the result of a function call (bmy, 9/29/03)
+            !WRITE( 6, 110 ) TIMESTAMP_STRING()
+            !----------------------------------------------------------------
+            STAMP = TIMESTAMP_STRING()
+            WRITE( 6, 110 ) STAMP
 
             ! Accumulate TRACERS into STT_TEMPO as tracer #'s 1 - NTRACE
             ! Add parallel DO-loops (bmy, 10/13/00)

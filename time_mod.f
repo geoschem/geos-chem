@@ -1,9 +1,9 @@
-! $Id: time_mod.f,v 1.2 2003/07/08 15:29:52 bmy Exp $
+! $Id: time_mod.f,v 1.3 2003/10/01 20:32:23 bmy Exp $
       MODULE TIME_MOD
 !
 !******************************************************************************
 !  TIME_MOD contains GEOS-CHEM date and time variables and timesteps, and 
-!  routines for accessing them. (bmy, 6/21/00, 6/26/03) 
+!  routines for accessing them. (bmy, 6/21/00, 9/29/03) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -143,6 +143,8 @@
 !  (8 ) Bug fix in DATE_STRING (bmy, 5/15/03)
 !  (9 ) Added GET_FIRST_A3_TIME and GET_FIRST_A6_TIME.  Also added changes for
 !        reading fvDAS fields. (bmy, 6/26/03)
+!  (10) Now allow ITS_A_LEAPYEAR to take an optional argument.  Bug fix for
+!        Linux: must use ENCODE to convert numbers to strings (bmy, 9/29/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -2073,23 +2075,87 @@
       END FUNCTION ITS_TIME_FOR_EXIT
 
 !------------------------------------------------------------------------------
+! Prior to 9/25/03:
+! Now allow an argument to be passed to ITS_A_LEAPYEAR (bmy, 9/25/03)
+!      FUNCTION ITS_A_LEAPYEAR() RESULT( IS_LEAPYEAR )
+!!
+!!******************************************************************************
+!!  Function ITS_A_LEAPYEAR returns TRUE if YEAR is a leapyear, 
+!!  and FALSE otherwise. (bmy, 3/17/99, 3/21/03)
+!!
+!!  NOTES: 
+!!  (1 ) Now remove YEAR from ARG list; use the module variable (bmy, 3/21/03)
+!!******************************************************************************
+!!
+!      ! Function value
+!      LOGICAL :: IS_LEAPYEAR
+!
+!      !=================================================================
+!      ! LEAPYEAR begins here!
+!      !
+!      ! A leap year is:
+!      ! (1) evenly divisible by 4 (if not a century year)
+!      ! (2) evenly divisible by 4, 100, and 400 (if a century year)
+!      !
+!      ! EXAMPLES:
+!      ! (a) 1992 is a leap year since it is evenly divisible by 4, and 
+!      !     is not a century year (i.e. it doesn't end in '00').
+!      !
+!      ! (b) 1900 is NOT a leap year, since while being evenly divisible 
+!      !     by 4 and 100, it is NOT divisible by 400.
+!      !
+!      ! (c) 2000 is a leap year, since it is divisible by 4, 100, and 
+!      !     400.
+!      !=================================================================
+!      IS_LEAPYEAR = .FALSE.
+!
+!      IF ( MOD( YEAR, 4 ) == 0 ) THEN
+!         IF ( MOD( YEAR, 100 ) == 0 ) THEN
+!            IF ( MOD( YEAR, 400 ) == 0 ) THEN
+!               IS_LEAPYEAR = .TRUE.
+!            ENDIF
+!         ELSE
+!            IS_LEAPYEAR = .TRUE.
+!         ENDIF
+!      ENDIF        
+!
+!      ! Return to calling program
+!      END FUNCTION ITS_A_LEAPYEAR
 
-      FUNCTION ITS_A_LEAPYEAR() RESULT( IS_LEAPYEAR )
+      FUNCTION ITS_A_LEAPYEAR( YEAR_IN ) RESULT( IS_LEAPYEAR )
 !
 !******************************************************************************
-!  Function ITS_A_LEAPYEAR returns TRUE if YEAR is a leapyear, 
-!  and FALSE otherwise. (bmy, 3/17/99, 3/21/03)
+!  Function ITS_A_LEAPYEAR tests to see if a year is really a leapyear. 
+!  (bmy, 3/17/99, 9/25/03)
 !
 !  NOTES: 
 !  (1 ) Now remove YEAR from ARG list; use the module variable (bmy, 3/21/03)
+!  (2 ) Now add YEAR_IN as an optional argument.  If YEAR_IN is not passed,
+!        then test if the current year is a leapyear (bmy, 9/25/03)
 !******************************************************************************
 !
+      ! Arguments
+      INTEGER, INTENT(IN), OPTIONAL :: YEAR_IN
+      
+      ! Local variables
+      INTEGER                       :: THISYEAR
+
       ! Function value
-      LOGICAL :: IS_LEAPYEAR
+      LOGICAL                       :: IS_LEAPYEAR
 
       !=================================================================
       ! LEAPYEAR begins here!
-      !
+      !=================================================================
+
+      ! If YEAR_IN is passed, use that value; otherwise use the value 
+      ! of the current year as stored in module variable YEAR.
+      IF ( PRESENT( YEAR_IN ) ) THEN
+         THISYEAR = YEAR_IN
+      ELSE
+         THISYEAR = YEAR
+      ENDIF
+
+      !=================================================================
       ! A leap year is:
       ! (1) evenly divisible by 4 (if not a century year)
       ! (2) evenly divisible by 4, 100, and 400 (if a century year)
@@ -2106,9 +2172,9 @@
       !=================================================================
       IS_LEAPYEAR = .FALSE.
 
-      IF ( MOD( YEAR, 4 ) == 0 ) THEN
-         IF ( MOD( YEAR, 100 ) == 0 ) THEN
-            IF ( MOD( YEAR, 400 ) == 0 ) THEN
+      IF ( MOD( THISYEAR, 4 ) == 0 ) THEN
+         IF ( MOD( THISYEAR, 100 ) == 0 ) THEN
+            IF ( MOD( THISYEAR, 400 ) == 0 ) THEN
                IS_LEAPYEAR = .TRUE.
             ENDIF
          ELSE
@@ -2310,8 +2376,9 @@
       FUNCTION DATE_STRING() RESULT( DATE_STR )
 !
 !******************************************************************************
-!  DATE_STRING returns a string variable for the current date: YYMMDD for
-!  GEOS-1 or GEOS-STRAT and YYYYMMDD for GEOS-3 or GEOS-4.  (bmy, 2/5/03)
+!  DATE_STRING returns a string variable for the current date: YYMMDD 
+!  for GEOS-1 or GEOS-STRAT and YYYYMMDD for GEOS-3 or GEOS-4. 
+!  (bmy, 2/5/03, 9/29/03)
 !                                                                          
 !  Arguments as Input:
 !  ============================================================================
@@ -2320,6 +2387,8 @@
 !  NOTES:
 !  (1 ) Adapted from routine NYMD_STRING (bmy, 2/5/03)
 !  (2 ) Bug fix for GEOS-1/GEOS-S: print YEAR-1900 for 2 digits (bmy, 5/15/03)
+!  (3 ) Bug fix for Linux: use ENCODE statement to convert number to string 
+!        instead of a F90 internal read. (bmy, 9/29/03)
 !******************************************************************************
 !     
       ! Reference C-preprocessor switches
@@ -2330,15 +2399,33 @@
       !=================================================================
 #if   defined( GEOS_1 ) || defined( GEOS_STRAT )
 
+      !-----------------------
       ! Write YYMMDD format
+      !-----------------------
       CHARACTER(LEN=6) :: DATE_STR
+      
+      ! Use ENCODE statement for PGI/F90 on Linux, or a regular 
+      ! F90 internal read for other platforms (bmy, 9/29/03)
+#if   defined( LINUX ) 
+      ENCODE( 6, '(3i2.2)', DATE_STR ) YEAR-1900, MONTH, DAY
+#else
       WRITE( DATE_STR, '(3i2.2)' ) YEAR-1900, MONTH, DAY
+#endif
 
 #else
 
+      !-----------------------
       ! Write YYYYMMDD format
+      !-----------------------
       CHARACTER(LEN=8) :: DATE_STR
+
+      ! Use ENCODE statement for PGI/F90 on Linux, or a regular 
+      ! F90 internal read for other platforms (bmy, 9/29/03)
+#if   defined( LINUX ) 
+      ENCODE( 8, '(i4.4,2i2.2)', DATE_STR ) YEAR, MONTH, DAY
+#else
       WRITE( DATE_STR, '(i4.4,2i2.2)' ) YEAR, MONTH, DAY
+#endif
 
 #endif
 
@@ -2351,18 +2438,35 @@
 !
 !******************************************************************************
 !  TIMESTAMP_STRING returns a formatted string "YYYY/MM/DD HH:MM" for the 
-!  current date.  (bmy, 3/21/03)
+!  current date.  (bmy, 3/21/03, 9/29/03)
 !                                                                          
 !  NOTES:
+!  (1 ) Now use ENCODE statement for PGI/F90 on Linux (bmy, 9/29/03)
 !******************************************************************************
 !     
+#     include "define.h"
+
       ! Function value
       CHARACTER(LEN=16) :: TIME_STR
       
       !=================================================================
       ! TIMESTAMP_STRING begins here!
       !=================================================================
+
+#if   defined( LINUX ) 
+      
+      ! For PGI/F90 Linux, we must use the ENCODE command
+      ! to convert from numeric to string format (bmy, 9/29/03)
+      ENCODE( 16, 100, TIME_STR ) YEAR, MONTH, DAY, HOUR, MINUTE
+
+#else
+
+      ! For other platforms, we can just use an internal read
       WRITE( TIME_STR, 100 ) YEAR, MONTH, DAY, HOUR, MINUTE
+
+#endif
+
+      ! Format statement
  100  FORMAT( i4.4, '/', i2.2, '/', i2.2, ' ', i2.2, ':', i2.2 )
 
       ! Return to calling program
@@ -2421,7 +2525,7 @@
 !
 !******************************************************************************
 !  Subroutine EXPAND_DATE replaces "YYYYMMDD" and "hhmmss" tokens within
-!  a filename string with the actual values. (bmy, 6/27/02)
+!  a filename string with the actual values. (bmy, 6/27/02, 9/29/03)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -2435,6 +2539,8 @@
 !  (1 ) FILENAME (CHARACTER) : Modified filename 
 !
 !  NOTES:
+!  (1 ) Bug fix for Linux: use ENCODE statement to convert number to string 
+!        instead of F90 internal read. (bmy, 9/29/03)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -2470,16 +2576,44 @@
 
       ! Convert integer values to char strings
 #if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-      WRITE( YYYY_STR, '(i2.2)' ) YYYY
+
+      ! Use ENCODE statement for PGI/Linux (bmy, 9/29/03)
+#if   defined( LINUX )
+      ENCODE( 2, '(i2.2)', YYYY_STR ), YYYY
 #else
+      WRITE( YYYY_STR, '(i2.2)' ) YYYY
+#endif
+
+#else
+    
+      ! Use ENCODE statement for PGI/Linux (bmy, 9/29/03)
+#if   defined( LINUX ) 
+      ENCODE( 4, '(i4.4)', YYYY_STR ), YYYY
+#else      
       WRITE( YYYY_STR, '(i4.4)' ) YYYY
 #endif
-      WRITE( MM_STR,   '(i2.2)' ) MM
-      WRITE( DD_STR,   '(i2.2)' ) DD
-      WRITE( HH_STR,   '(i2.2)' ) HH
-      WRITE( II_STR,   '(i2.2)' ) II
-      WRITE( SS_STR,   '(i2.2)' ) SS
+
+#endif
+
+#if   defined( LINUX )
       
+      ! Use ENCODE statement for PGI/Linux (bmy, 9/29/03)
+      ENCODE( 2, '(i2.2)', MM_STR ) MM
+      ENCODE( 2, '(i2.2)', DD_STR ) DD
+      ENCODE( 2, '(i2.2)', HH_STR ) HH
+      ENCODE( 2, '(i2.2)', II_STR ) II
+      ENCODE( 2, '(i2.2)', SS_STR ) SS
+#else
+
+      ! For other platforms, use an F90 internal read (bmy, 9/29/03)
+      WRITE( MM_STR, '(i2.2)' ) MM
+      WRITE( DD_STR, '(i2.2)' ) DD
+      WRITE( HH_STR, '(i2.2)' ) HH
+      WRITE( II_STR, '(i2.2)' ) II
+      WRITE( SS_STR, '(i2.2)' ) SS
+
+#endif
+
       ! Replace YYYY, MM, DD, HH tokens w/ actual values 
 #if   defined( GEOS_1 ) || defined( GEOS_STRAT )
       CALL STRREPL( FILENAME, 'YY',   YYYY_STR )

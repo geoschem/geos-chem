@@ -1,9 +1,9 @@
-! $Id: upbdflx_mod.f,v 1.3 2003/08/15 20:13:39 bmy Exp $
+! $Id: upbdflx_mod.f,v 1.4 2003/10/01 20:32:23 bmy Exp $
       MODULE UPBDFLX_MOD
 !
 !******************************************************************************
 !  Module UPBDFLX_MOD contains subroutines which impose stratospheric boundary
-!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 8/15/03)
+!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 9/15/03)
 !
 !  Module Routines:
 !  ============================================================================
@@ -37,6 +37,7 @@
 !        UPBDFLX_O3. (bmy, 3/14/03)
 !  (11) Now references AD from "dao_mod.f" in UPBDFLX_NOY (bnd, bmy, 4/14/03)
 !  (12) Added printout of O3 in Tg/yr in UPBDFLX_O3 (mje, bmy, 8/15/03)
+!  (13) Change O3 flux for GEOS-3 to 500 Tg/yr in UPBDFLX_O3 (bmy, 9/15/03)
 !******************************************************************************
 !      
       IMPLICIT NONE
@@ -153,6 +154,7 @@
 !  (16) Make sure to pass AD via "dao_mod.f" for GEOS-1 (bnd, bmy, 4/14/03)
 !  (17) On the first timestep, print how much O3 flux is coming down from the 
 !        stratosphere in Tg/yr. (mje, bmy, 8/15/03)
+!  (18) Change O3 flux to 500 Tg/yr for GEOS-3 (mje, bmy, 9/15/03)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -237,8 +239,12 @@
 
 #elif defined( GEOS_3 )
 
-      ! Use the GEOS-STRAT ozone flux just to get going (bmy, 7/3/01)
-      PO3_vmr = 4.2d-14                                  ! 3,3,7
+      !--------------------------------------------------------------------
+      ! Prior to 9/15/03:
+      ! Increase O3 flux from 475 Tg/yr to 500 Tg/yr (mje, bmy, 9/15/03)
+      !PO3_vmr = 4.2d-14                                  ! 3,3,7
+      !--------------------------------------------------------------------
+      PO3_vmr = 5.14d-14                                 ! 3,3,7
       IF ( IORD + JORD + KORD == 17 ) PO3_vmr = 4.07d-14 ! 5,5,7
 
 #endif

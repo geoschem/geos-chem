@@ -1,58 +1,72 @@
-REVISIONS (v5-07-07)  
-bmy, 08 Aug 2003
+REVISIONS (v5-07-08)  
+bmy, 29 Sep 2003
 
 
-New in v5-07-07:
+New in v5-07-08:
 ----------------------------------------------------------------------------- 
 
 
 
-Removed from v5-07-07:
+Removed from v5-07-08:
 ----------------------------------------------------------------------------- 
 
-debug_msg.f		-- Now bundled into "error_mod.f"
 
 
-
-Changed from v5-07-06:
+Changed from v5-07-07:
 -------------------------------------------------------------------------------
 
-archive_rxns_for_pf	-- Now also pass N2O5 hydrolysis rxn rate array 
-("planeflight_mod.f")      via the arg list
-			-- Also bug fix: replace TMP with RATE in 
-			   under/overflow checking for JO1D and N2O5.
+accumulate_diag51	-- LINUX has a problem putting a function call w/in a 
+("diag51_mod.f")	   WRITE statement.  Now save output from 
+			   TIMESTAMP_STRING to STAMP and print that.
 
-calcrate.f		-- Now references GEOS_CHEM_STOP from "error_mod.f"
-			-- Added internal function N2O5 to compute the GAMMA 
-			   "stickiness" parameter for N2O5 hydrolysis, which 
-			   is a function of aerosol type.  
-			-- Now also pass N2O5 reaction rate to 
-		           ARCHIVE_RXNS_FOR_PF
+date_string		-- Bug fix for Linux: use ENCODE statement to convert 
+("time_mod.f")		   number to string instead of F90 internal read.
 
-chemistry_mod.f		-- Now references DEBUG_MSG from "error_mod.f"
+diag49.f		-- LINUX has a problem putting a function call w/in a 
+			   WRITE statement.  Now save output from 
+			   TIMESTAMP_STRING to STAMP and print that.
 
-chemo3.f		-- Cosmetic changes
-			-- Now apply drydep to the entire PBL
-			-- Now prevent underflow in drydep computation
+diag50.f		-- LINUX has a problem putting a function call w/in a 
+			   WRITE statement.  Now save output from 
+			   TIMESTAMP_STRING to STAMP and print that.
 
-emissions_mod.f		-- Now references DEBUG_MSG from "error_mod.f"
+expand_date		-- Bug fix for Linux: use ENCODE statement to convert 
+("time_mod.f")		   number to string instead of F90 internal read.
 
-comode.h		-- Add NKN2O5 to /CHEM4/ common block to flag 
-			   N2O5 hydrolysis rxn
+finite_dble             -- Bug fix: now use external C IS_FINITE for PGI/Linux
+("error_mod.f")
 
-diagpl.f		-- Added OpenMP parallelization commands
+finite_float		-- Bug fix: now use external C IS_FINITE for PGI/Linux
+("error_mod.f")
 
-read_variables.f	-- Now flag N2O5 hydrolysis rxn as a special case
-("planeflight_mod.f")
+is_last_day_good	-- Now pass the year of the ending date of the run
+("main.f")                 to routine ITS_A_LEAPYEAR of "time_mod.f"
 
-readchem.f		-- Now flag the N2O5 hydrolysis rxn for later use.
+its_a_leapyear		-- Now add YEAR_IN as an optional argument.  If 
+("time_mod.f")		   YEAR_IN is not passed, then test if the current 
+			   year is a leapyear
 
-setup_planeflight	-- Rename from "plane.dat" to "plane.log", 
-("planeflight_mod.f")	   since "*.dat" implies an input file name. 
+physproc.f		-- LINUX has a problem putting a function call w/in a 
+			   WRITE statement.  Now save output from 
+			   TIMESTAMP_STRING to STAMP and print that.
 
-transport_mod.f		-- Now references DEBUG_MSG from "error_mod.f"
+read_biomass_nh3	-- Now use ENCODE to define CYEAR string for PGI/Linux 
+("sulfate_mod.f")
 
+read_liqco2		-- Now use ENCODE to define CYEAR string for PGI/Linux
+("geia_mod.f")
 
----
-calcrate.f		<-- Removed commented-out, obsolete code
-planeflight_mod.f
+read_totco2		-- Now use ENCODE to define CYEAR string for PGI/Linux
+("geia_mod.f")
+
+smvgear.f		-- Increase max allowable iteration count to 99999
+
+timestamp_string	-- Now use ENCODE statement for PGI/F90 on Linux 
+("time_mod.f")
+
+upbdflx_o3	       	-- Change O3 flux to 500 Tg/yr for GEOS-3
+("upbdflx_mod.f")
+
+write_diag51		-- LINUX has a problem putting a function call w/in a 
+("diag51_mod.f")	   WRITE statement.  Now save output from 
+			   TIMESTAMP_STRING to STAMP and print that.

@@ -1,6 +1,6 @@
-# $Id: Makefile.compaq,v 1.4 2003/07/28 14:20:35 bmy Exp $
+# $Id: Makefile.compaq,v 1.5 2003/10/01 20:32:19 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for COMPAQ/Alpha (bmy, Tue Jul 15 11:48:46 2003)
+# GEOS-CHEM Makefile for COMPAQ/Alpha (bmy, Mon Sep 29 12:01:36 2003)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -35,7 +35,6 @@ chemo3.o                  \
 chemo3_split.o            \
 cleanup.o                 \
 correctOH.o               \
-debug_msg.o               \
 decomp.o                  \
 diag1.o                   \
 diag20.o                  \
@@ -168,7 +167,6 @@ paramF.o                  \
 polint.o                  \
 read_COPminusL.o          \
 read_TOMSO3.o             \
-read_TOMSO3.o             \
 read_coeff.o              \
 read_percentages.o        \
 readavgOH.o               \
@@ -278,7 +276,7 @@ sol.o
 #=============================================================================
 #  Executable with FAST-J (default)
 #=============================================================================
-geos          : $(MODS) $(OBJS) $(FJ)     Makefile.compaq
+geos          : $(MODS) $(OBJS) $(FJ)   Makefile.compaq
                 $(F90)  $(MODS) $(OBJS) $(FJ) $(ZLIB) -o geos
 
 #=============================================================================
@@ -372,7 +370,6 @@ comode_mod.o               : comode_mod.f               CMN_SIZE define.h comode
 convection_mod.o           : convection_mod.f           CMN CMN_DIAG CMN_SIZE define.h 
 correctOH.o                : correctOH.f                CMN_OH 
 dao_mod.o                  : dao_mod.f                  CMN CMN_GCTM CMN_SETUP CMN_SIZE define.h 
-debug_msg.o                : debug_msg.f                
 decomp.o                   : decomp.f                   CMN_SIZE define.h comode.h 
 diag1.o                    : diag1.f                    CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h 
 diag20.o                   : diag20.f                   CMN CMN_O3 CMN_SIZE define.h CMN_TIMES 
@@ -490,7 +487,6 @@ rdust.o                    : rdust.f                    CMN_DIAG CMN_SETUP cmn_f
 read49.o                   : read49.f                   CMN CMN_SIZE define.h CMN_TIMES 
 read_COPminusL.o           : read_COPminusL.f           CMN_CO CMN_SETUP CMN_SIZE define.h 
 read_TOMSO3.o              : read_TOMSO3.f              CMN CMN_CO CMN_OH CMN_SETUP CMN_SIZE define.h 
-read_TOMSO3.o              : read_TOMSO3.f_mje              CMN CMN_CO CMN_OH CMN_SETUP CMN_SIZE define.h 
 read_coeff.o               : read_coeff.f               CMN_OH 
 read_correction.o          : read_correction.f          CMN_OH 
 read_percentages.o         : read_percentages.f         CMN_OH 

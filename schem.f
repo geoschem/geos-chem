@@ -1,11 +1,11 @@
-! $Id: schem.f,v 1.1 2003/06/30 20:26:05 bmy Exp $
+! $Id: schem.f,v 1.2 2003/10/01 20:32:22 bmy Exp $
       SUBROUTINE SCHEM
 !
 !******************************************************************************
 !  Subroutine SCHEM performs simplified stratospheric chemistry, which means
 !  only reactions with OH and photolysis are considered. The production and
 !  loss of CO and NOy in the stratosphere are taken from Dylan Jones' 2-D 
-!  model. (qli, bmy, 11/20/1999, 3/14/03) 
+!  model. (qli, bmy, 11/20/1999, 9/29/03) 
 !
 !  We now use the annual mean tropopause, as read into the LPAUSE
 !  array by "read_tropopause.f".
@@ -51,6 +51,9 @@
 !        TIMESTAMP_STRING from the new "time_mod.f".   Also call READ_BPCH2 
 !        with QUIET=.TRUE., which prevents info from being printed to the 
 !        log file. (bmy, 3/14/03)
+!  (17) LINUX has a problem putting a function call w/in a WRITE statement.  
+!        Now save output from TIMESTAMP_STRING to STAMP and print that.
+!        (bmy, 9/29/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -84,6 +87,7 @@
      &                              14, 17, 20, 22, 23, 24 /)
 
       ! Character variables
+      CHARACTER(LEN=16 )        :: STAMP
       CHARACTER(LEN=255)        :: FILENAME
 
       ! REAL*4 arrays -- for reading from binary data files
@@ -107,7 +111,13 @@
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
 
-      WRITE( 6, 100 ) TIMESTAMP_STRING()
+      !-----------------------------------------------------------------
+      ! Prior to 9/29/03:
+      ! LINUX can't write the result of a function call (bmy, 9/29/03)
+      !WRITE( 6, 100 ) TIMESTAMP_STRING()
+      !-----------------------------------------------------------------
+      STAMP = TIMESTAMP_STRING()
+      WRITE( 6, 100 ) STAMP
  100  FORMAT( '     - SCHEM: Strat chemistry at ', a )
 
       !=================================================================

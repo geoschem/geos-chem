@@ -1,10 +1,10 @@
-! $Id: tpcore_bc_mod.f,v 1.1 2003/06/30 20:26:05 bmy Exp $
+! $Id: tpcore_bc_mod.f,v 1.2 2003/10/01 20:32:23 bmy Exp $
       MODULE TPCORE_BC_MOD
 !
 !******************************************************************************
 !  Module TPCORE_BC_MOD contains modules and variables which are needed to
 !  save and read TPCORE nested-grid boundary conditions to/from disk.
-!  (yxw, bmy, 3/4/03)
+!  (yxw, bmy, 3/4/03, 9/29/03)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -123,6 +123,7 @@
 !      from the 4x5 model since presently it takes too long to run at 2x25.
 !
 !  NOTES:
+!  (1 ) Bug fix for LINUX w/ TIMESTAMP_STRING (bmy, 9/29/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -464,6 +465,9 @@
 !  will be used as boundary conditions for TPCORE transport. (bmy, 3/7/03)
 !
 !  NOTES:
+!  (1 ) LINUX has a problem putting a function call w/in a WRITE statement.  
+!        Now save output from TIMESTAMP_STRING to STAMP and print that.
+!        (bmy, 9/29/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -486,6 +490,9 @@
       CHARACTER(LEN=40) :: CATEGORY  
       CHARACTER(LEN=40) :: UNIT      
       CHARACTER(LEN=40) :: RESERVED  
+
+      ! For LINUX fix
+      CHARACTER(LEN=16) :: STAMP
 
       !=================================================================
       ! READ_WINDOW_TPCORE_BC begins here!
@@ -546,7 +553,13 @@
             ! Exit if we've found all tracers for this TAU value
             !===========================================================
             IF ( NFOUND == NTRACE ) THEN
-               WRITE( 6, 100 ) NTRACE, TIMESTAMP_STRING()
+               !--------------------------------------------------------
+               ! Prior to 9/29/03:
+               ! LINUX can't write the output of a function call
+               !WRITE( 6, 100 ) NTRACE, TIMESTAMP_STRING()
+               !--------------------------------------------------------
+               STAMP = TIMESTAMP_STRING()
+               WRITE( 6, 100 ) NTRACE, STAMP
  100           FORMAT( '     - READ_WINDOW_TPCORE_BC: Found all ',
      &                       i3, ' BC''s at ', a )
                EXIT

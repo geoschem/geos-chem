@@ -1,10 +1,10 @@
-! $Id: diag49.f,v 1.1 2003/06/30 20:26:04 bmy Exp $
+! $Id: diag49.f,v 1.2 2003/10/01 20:32:21 bmy Exp $
       SUBROUTINE DIAG49
 ! 
 !******************************************************************************
 !  Subroutine DIAG49 produces time series (instantaneous fields) for a 
 !  geographical domain from the information read in timeseries.dat. Output 
-!  will be in binary punch (BPCH) format. (bey, bmy, rvm, 4/9/99, 3/27/03)
+!  will be in binary punch (BPCH) format. (bey, bmy, rvm, 4/9/99, 9/29/03)
 !
 !  NOTES:
 !  (1 ) Now use F90 syntax for declarations (bmy, 3/26/99)
@@ -51,13 +51,16 @@
 !        is a function and not an array.  (yxw, bmy, 1/30/03)
 !  (20) Change tracer #'s for sulfate tracers beyond 24.  Also updated
 !        comments (rjp, bmy, 3/23/03)
-!  (20) Remove FIRSTDIAG49 from the arg list -- this is now a local variable.
+!  (21) Remove FIRSTDIAG49 from the arg list -- this is now a local variable.
 !        Remove NYMD from the arg list, now use function DATE_STRING from
 !        the new "time_mod.f".  Now use functions GET_TAU, GET_DAY, and
 !        TIMESTAMP_STRING from "time_mod.f".  Now use functions GET_XOFFSET, 
 !        GET_YOFFSET from "grid_mod.f".  Now adjust diagnostic tracer numbers 
 !        for the extra fullchem sulfate tracers.  Now also add UWND and
 !        VWND as tracers 71, 72. (bmy, 3/31/03)
+!  (22) LINUX has a problem putting a function call w/in a WRITE statement.
+!        Now save output from TIMESTAMP_STRING to STAMP and print that.
+!        (bmy, 9/29/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -80,6 +83,7 @@
 
       ! Local variables
       CHARACTER(LEN=255), SAVE :: FILENAME
+      CHARACTER(LEN=16)        :: STAMP
       LOGICAL, SAVE            :: FIRSTDIAG49 = .TRUE.
       INTEGER, SAVE            :: DAY_LAST
       INTEGER, SAVE            :: COUNT_IN_DAY
@@ -161,9 +165,14 @@
          ! Increment counter
          COUNT_IN_DAY = COUNT_IN_DAY + 1
  
-         WRITE( 6, 110 ) TIMESTAMP_STRING()
+!--------------------------------------------------------------------------
+! Prior to 9/29/03:
+! LINUX has a problem putting a function call w/in a WRITE statement
+!         WRITE( 6, 110 ) TIMESTAMP_STRING()
+!--------------------------------------------------------------------------
+         STAMP = TIMESTAMP_STRING()
+         WRITE( 6, 110 ) STAMP
  110     FORMAT( '     - DIAG49: Saving timeseries at ', a )
-
 
          ! loop over tracers
          DO TT = 1, NTRAC_AREA

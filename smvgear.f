@@ -1,9 +1,9 @@
-! $Id: smvgear.f,v 1.4 2003/08/06 15:30:53 bmy Exp $ 
+! $Id: smvgear.f,v 1.5 2003/10/01 20:32:23 bmy Exp $ 
       SUBROUTINE SMVGEAR
 !
 !******************************************************************************
 !  Subroutine SMVGEAR solves ODE's for chemical reactions using a GEAR-type
-!  method.  (M. Jacobson 1997; bdf, bmy, 5/12/03, 7/28/03)
+!  method.  (M. Jacobson 1997; bdf, bmy, 5/12/03, 9/15/03)
 !
 !  NOTES:
 !  (1 ) For GEOS-CHEM we had to remove IXSAVE, IYSAVE, and IZSAVE from 
@@ -23,6 +23,7 @@
 !  (4 ) Now declare DELY, ERRHOLD, YABST, as local variables, since these are
 !        used only w/in this routine and nowhere else --- also removed these
 !        from /DKBLOOP/ and /DKBLOOP5/ in "comode.h". (bmy, 7/28/03)
+!  (5 ) Increase max allowable iteration count to 99999 (mje, bmy, 9/15/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -277,8 +278,13 @@ C
       REAL*8             :: SPECMAX
 
       ! Maximum iteration count for SMVGEAR (bmy, 4/11/03)
-      INTEGER, PARAMETER :: MAX_ITERATIONS = 9999
-
+      !-----------------------------------------------------------------
+      ! Prior to 9/15/03:
+      ! Increase max iteration count (mje, bmy, 9/15/03)
+      !INTEGER, PARAMETER :: MAX_ITERATIONS = 9999
+      !-----------------------------------------------------------------
+      INTEGER, PARAMETER :: MAX_ITERATIONS = 99999
+      
       ! Variables from "comode.h" which are only ever used in "smvgear.f"
       ! Remove them from "comode.h" and the THREADPRIVATE declarations
       ! (bmy, 7/28/03)
