@@ -1,5 +1,5 @@
 REVISIONS (v7-01-01)  
-bmy, 20 Sep 2004
+bmy, 21 Sep 2004
 
 
 New in v7-01-01:
@@ -62,17 +62,33 @@ diffuse.f		-- This was part of the old obsolete KZZ routine.
 
 diag20.f		-- Now bundled into "diag_pl_mod.f"
 
+diag48.f		-- Now replaced by "diag48_mod.f"
+
 diag49.f		-- Now replaced by "diag49_mod.f"
+
+diag5.f			-- Now replaced by "diag48_mod.f"
+
+diag50.f		-- Now replaced by "diag50_mod.f"
 
 diagpl.f		-- Now replaced by into "diag_pl_mod.f"
 
 flashes.f		-- Now bundled into "lightning_nox_mod.f"
 
+inptr.f			-- Now replaced by "input_mod.f"
+
+input.f			-- Now replaced by "input_mod.f"
+
 plsave.f	        -- Now bundled into "diag_pl_mod.f"
+
+rdaer.f			-- Now bundled into "aerosol_mod.f"
+
+read49.f		-- Now replaced by "input_mod.f"
 
 setjfam.f		-- Now bundled into "diag_pl_mod.f"
 
 setpl.f			-- Now bundled into "diag_pl_mod.f
+
+setup.f			-- Now replaced by "input_mod.f"
 
 o3comp.f		-- This was just historical baggage.  You can
 			   replace the call w/ a reference to FRACO3(I,J,L)
