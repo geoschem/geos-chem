@@ -1,9 +1,9 @@
-! $Id: lightning.f,v 1.1 2003/06/30 20:26:05 bmy Exp $
+! $Id: lightning.f,v 1.2 2004/03/10 15:08:56 bmy Exp $
       SUBROUTINE LIGHTNING( T, CLDTOPS )
 !
 !******************************************************************************
 !  Subroutine LIGHTNING uses Price & Rind's formulation for computing
-!  NOx emission from lightning. (bmy, bey, mgs, bdf, 3/4/98, 5/16/03)
+!  NOx emission from lightning. (bmy, bey, mgs, bdf, 3/4/98, 3/8/04)
 !
 !  Arguments as input:
 !  ============================================================================
@@ -55,6 +55,7 @@
 !        references to JREF. (bmy, 2/11/03)
 !  (12) Scale lightning NOx for 1x1 China nested-grid in order to match the 
 !        lightning NOx total from the 4x5 simulation. (yxw, bmy, 5/16/03)
+!  (13) Scale GEOS-4 lightning NOx to 6 Tg N/yr (bmy, 3/8/04)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -264,35 +265,69 @@
          ENDDO  ! I
       ENDDO     ! J
 
+
+#if   defined( GEOS_4 ) 
+
+      !================================================================= 
+      ! Scaling: For GEOS-4 met fields only
       !=================================================================
+
+#if   defined( GRID4x5 )
+
+      ! For a GEOS-4 4x5 1-year run with 2003 met fields, 4.1749 Tg N/yr 
+      ! from lightning is produced.  We need to scale this up to 6 Tg N/yr 
+      ! as per Randall Martin's research.  Thus we multiply SLBASE by the 
+      ! scale factor 6 / 4.1749 = 1.43716.  (rvm, djj, bmy, 3/9/04)
+      SLBASE(:,:,:) = SLBASE(:,:,:) * 1.43716d0
+
+#else defined( GRID2x25 )
+
+      ! For a GEOS-4 2x25 1-year run with 2003 met fields, 12.355 Tg N/yr 
+      ! from lightning is produced.  We need to scale this down to 6 Tg N/yr 
+      ! as per Randall Martin's research.  Thus we multiply SLBASE by the 
+      ! scale factor 6 / 12.355 = 0.48562  (rvm, djj, bmy, 3/9/04)
+      SLBASE(:,:,:) = SLBASE(:,:,:) * 0.48562d0
+
+#endif
+
+
+#else 
+
+      !=================================================================
+      ! Scaling: For GEOS-1, GEOS-STRAT, and GEOS-3
+      !=================================================================
+
+#if   defined ( GRID2x25 )
+
       ! In the 2x2.5 model the emissions from lightning are too high.
       ! Emissions need to be scaled by the factor .522 to match the 4x5 
-      ! emissions.
-      !
+      ! emissions. 
+      SLBASE(:,:,:) = SLBASE(:,:,:) * .522d0
+
+#endif
+
+#if   defined( GEOS_3 ) 
+
       ! Also, for GEOS-3, the convective cloud tops are a lot higher 
       ! than in GEOS-1 or GEOS-STRAT, so more NOx will be produced.  
       ! Mat Evans found that approx 7.2 Tg NOx was produced in 1 year 
       ! by GEOS-3.  We scale that to 3 Tg NOx by multiplying by 
       ! 3/7.2 ~= 0.4 (mje, bmy, 7/3/01)
-      !=================================================================
-#if   defined ( GRID2x25 )
-      SLBASE(:,:,:) = SLBASE(:,:,:) * .522d0
-#endif
-
-#if   defined( GEOS_3 ) 
       SLBASE(:,:,:) = SLBASE(:,:,:) * 0.4d0
+
 #endif
 
-      !=================================================================
+#if   defined( GRID1x1 ) 
+
       ! Further scaling is necessary for 1x1 nested grids in order to
       ! match the amount of lightning from 4x5 (yxw, bmy, 5/16/03)
-      !=================================================================
-#if   defined( GRID1x1 ) 
 
       ! For China nested-grid
       SLBASE(:,:,:) = SLBASE(:,:,:) * 0.158d0
 
       ! North America, Europe nested grid scale factors need to be defined
+#endif
+
 #endif
 
       ! Return to calling program

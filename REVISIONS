@@ -1,5 +1,5 @@
 REVISIONS (v6-01-05)  
-bmy, 05 Mar 2004
+bmy, 08 Mar 2004
 
 
 New in v6-01-05:
@@ -77,6 +77,8 @@ get_regional_pox	-- For GEOS-4, convert PBL from [m] to [hPa]
 
 init_fvdas_convect	-- Now compute HYPI in a more efficient way
 ("fvdas_convect_mod.f")
+
+lightning.f		-- Scale GEOS-4 lightning NOx to 6 Tg N/yr 
 
 lightdist.f		-- Bug fix: add GEOS_4 to the #if block
 

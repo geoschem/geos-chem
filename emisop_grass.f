@@ -1,4 +1,4 @@
-! $Id: emisop_grass.f,v 1.3 2004/03/05 21:15:40 bmy Exp $
+! $Id: emisop_grass.f,v 1.4 2004/03/10 15:08:55 bmy Exp $
       FUNCTION EMISOP_GRASS( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL ) 
 !
 !******************************************************************************
@@ -139,7 +139,7 @@
       ! GEOS-4 2003 meteorology results in 443 Tg C/yr from ISOP.
       ! Scale this down to 400 Tg C/yr, which is what we get from 
       ! GEOS-STRAT.  This will be replaced soon. (jal, bmy, 3/5/04)
-      EMISOP = EMISOP * ( 400d0 / 443d0 )
+      EMISOP_GRASS = EMISOP_GRASS * ( 400d0 / 443d0 )
 
 #endif
 
