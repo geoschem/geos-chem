@@ -1,11 +1,18 @@
-C $Id: main.f,v 1.6 2003/12/05 21:14:03 bmy Exp $
+C $Id: main.f,v 1.7 2003/12/11 21:54:11 bmy Exp $
 C $Log: main.f,v $
+C Revision 1.7  2003/12/11 21:54:11  bmy
+C GEOS-CHEM v6-01-04, includes the following modifications:
+C - RADSWG, SNOW, USTAR, Z0 are now 2-D met field arrays in "dao_mod.f"
+C - Renamed LRERD to LUNZIP in "input.geos"
+C - Can now read either zipped or unzipped met field files
+C - Now specify year/month info in the GEOS_1_DIR etc variables ("setup.f")
+C
 C Revision 1.6  2003/12/05 21:14:03  bmy
 C GEOS-CHEM v6-01-03, includes the following modifications:
 C - Added LINUX_IFC, LINUX_EFC C-preprocessor switches
 C - Renamed SGI C-preprocessor switch to SGI_MIPS
 C - Now includes Makefile.ifc and Makefile.efc for INTEL compiler
-C - Updated "build" script to automatically select proper makefile
+C - Updated "build" script to automatically select proper makefile2
 C
 C Revision 1.5  2003/11/06 21:07:18  bmy
 C GEOS-CHEM v6-01-02, includes the following modifications:
@@ -170,7 +177,10 @@ C
 #     include "CMN_SIZE"    ! IIPAR, JJPAR, IM, JM, I0, J0, #define statements
 #     include "CMN"         ! pretty much everything!
 #     include "CMN_DIAG"    ! Diagnostic switches
-#     include "CMN_DEP"     ! CFRAC, RADIAT
+!-------------------------------------------------------------------------
+! Prior to 12/9/03:
+!#     include "CMN_DEP"     ! CFRAC, RADIAT
+!-------------------------------------------------------------------------
 #     include "CMN_GCTM"    ! Physical constants
 #     include "CMN_O3"      ! TCOBOX, FMOL, SAVEOH
 #     include "CMN_SETUP"   ! GEOS-CTM logical flags and file I/O units
@@ -268,21 +278,23 @@ C
       !=================================================================
       !   ***** U N Z I P   M E T   F I E L D S  @ start of run *****
       !=================================================================
+      IF ( LUNZIP ) THEN
 
-      ! Remove any leftover A-3, A-6, I-6, and PHIS files in temp dir
-      CALL UNZIP_A3_FIELDS(  'remove all' )
-      CALL UNZIP_A6_FIELDS(  'remove all' )
-      CALL UNZIP_I6_FIELDS(  'remove all' )
-      CALL UNZIP_PHIS_FIELD( 'remove all' )
+         ! Remove any leftover A-3, A-6, I-6, and PHIS files in temp dir
+         CALL UNZIP_A3_FIELDS(  'remove all' )
+         CALL UNZIP_A6_FIELDS(  'remove all' )
+         CALL UNZIP_I6_FIELDS(  'remove all' )
+         CALL UNZIP_PHIS_FIELD( 'remove all' )
 
-      ! Unzip A-3, A-6, I-6 files for START of run
-      CALL UNZIP_A3_FIELDS(  'unzip foreground', GET_NYMDb() )
-      CALL UNZIP_A6_FIELDS(  'unzip foreground', GET_NYMDb() )
-      CALL UNZIP_I6_FIELDS(  'unzip foreground', GET_NYMDb() )
-
-      ! Only unzip PHIS file for fullchem run
-      IF ( NSRCX == 3 ) THEN
-         CALL UNZIP_PHIS_FIELD( 'unzip foreground', NYMD_PHIS )
+         ! Unzip A-3, A-6, I-6 files for START of run
+         CALL UNZIP_A3_FIELDS(  'unzip foreground', GET_NYMDb() )
+         CALL UNZIP_A6_FIELDS(  'unzip foreground', GET_NYMDb() )
+         CALL UNZIP_I6_FIELDS(  'unzip foreground', GET_NYMDb() )
+         
+         ! Only unzip PHIS file for fullchem run
+         IF ( NSRCX == 3 ) THEN
+            CALL UNZIP_PHIS_FIELD( 'unzip foreground', NYMD_PHIS )
+         ENDIF
       ENDIF
       
       !=================================================================
@@ -293,7 +305,11 @@ C
       IF ( NSRCX == 3 ) THEN
          CALL OPEN_PHIS_FIELD( NYMD_PHIS, 000000 )
          CALL GET_PHIS_FIELD(  NYMD_PHIS, 000000 ) 
-         CALL UNZIP_PHIS_FIELD( 'remove date', NYMD_PHIS )
+
+         ! Remove PHIS field from temp dir
+         IF ( LUNZIP ) THEN
+            CALL UNZIP_PHIS_FIELD( 'remove date', NYMD_PHIS )
+         ENDIF
       ENDIF
 
       ! Open and read A-3 fields
@@ -420,7 +436,7 @@ C
          !===============================================================
          !        ***** U N Z I P   M E T   F I E L D S *****
          !===============================================================
-         IF ( ITS_TIME_FOR_UNZIP() ) THEN
+         IF ( LUNZIP .and. ITS_TIME_FOR_UNZIP() ) THEN
             
             ! Get the date & time for 12h (720 mins) from now
             DATE = GET_TIME_AHEAD( 720 )
@@ -441,7 +457,7 @@ C
          !===============================================================
          !        ***** R E M O V E   M E T   F I E L D S *****  
          !===============================================================
-         IF ( ITS_TIME_FOR_DEL() ) THEN
+         IF ( LUNZIP .and. ITS_TIME_FOR_DEL() ) THEN
 
             ! Get the current date
             DATE(1) = GET_NYMD()
@@ -801,10 +817,12 @@ C
  9999 CONTINUE
 
       ! Remove all files from temporary directory 
-      CALL UNZIP_A3_FIELDS(  'remove all' )
-      CALL UNZIP_A6_FIELDS(  'remove all' )
-      CALL UNZIP_I6_FIELDS(  'remove all' )
-      CALL UNZIP_PHIS_FIELD( 'remove all' )
+      IF ( LUNZIP ) THEN
+         CALL UNZIP_A3_FIELDS(  'remove all' )
+         CALL UNZIP_A6_FIELDS(  'remove all' )
+         CALL UNZIP_I6_FIELDS(  'remove all' )
+         CALL UNZIP_PHIS_FIELD( 'remove all' )
+      ENDIF
 
       ! Print the mass-weighted mean OH concentration (if applicable)
       CALL PRINT_MEAN_OH
@@ -1230,7 +1248,7 @@ C
       IF ( ALLOCATED( ALBD     ) ) PRINT*, 'ALBD    : ', ALBD(I,J) 
       IF ( ALLOCATED( AVGW     ) ) PRINT*, 'AVGW    : ', AVGW(I,J,L) 
       IF ( ALLOCATED( BXHEIGHT ) ) PRINT*, 'BXHEIGHT: ', BXHEIGHT(I,J,L) 
-                                   PRINT*, 'CFRAC   : ', CFRAC(IJ)
+      IF ( ALLOCATED( CLDFRC   ) ) PRINT*, 'CLDFRC  : ', CLDFRC(I,J)
       IF ( ALLOCATED( CLDF     ) ) PRINT*, 'CLDF    : ', CLDF(L,I,J) 
       IF ( ALLOCATED( CLDMAS   ) ) PRINT*, 'CLDMAS  : ', CLDMAS(I,J,L) 
       IF ( ALLOCATED( CLDTOPS  ) ) PRINT*, 'CLDTOPS : ', CLDTOPS(I,J) 
@@ -1253,9 +1271,11 @@ C
       IF ( ALLOCATED( PS1      ) ) PRINT*, 'PS1     : ', PS1(I,J) 
       IF ( ALLOCATED( PS2      ) ) PRINT*, 'PS2     : ', PS2(I,J) 
       IF ( ALLOCATED( PSC2     ) ) PRINT*, 'PSC2    : ', PSC2(I,J)
-                                   PRINT*, 'RADIAT  : ', RADIAT(IJ)
+      IF ( ALLOCATED( RADLWG   ) ) PRINT*, 'RADLWG  : ', RADLWG(I,J)
+      IF ( ALLOCATED( RADSWG   ) ) PRINT*, 'RADSWG  : ', RADSWG(I,J)
       IF ( ALLOCATED( RH       ) ) PRINT*, 'RH      : ', RH(I,J,L) 
       IF ( ALLOCATED( SLP      ) ) PRINT*, 'SLP     : ', SLP(I,J) 
+      IF ( ALLOCATED( SNOW     ) ) PRINT*, 'SNOW    : ', SNOW(I,J) 
       IF ( ALLOCATED( SPHU1    ) ) PRINT*, 'SPHU1   : ', SPHU1(I,J,L) 
       IF ( ALLOCATED( SPHU2    ) ) PRINT*, 'SPHU2   : ', SPHU2(I,J,L) 
       IF ( ALLOCATED( SPHU     ) ) PRINT*, 'SPHU    : ', SPHU(I,J,L) 
@@ -1268,7 +1288,7 @@ C
       IF ( ALLOCATED( TS       ) ) PRINT*, 'TS      : ', TS(I,J) 
       IF ( ALLOCATED( TSKIN    ) ) PRINT*, 'TSKIN   : ', TSKIN(I,J) 
       IF ( ALLOCATED( U10M     ) ) PRINT*, 'U10M    : ', U10M(I,J) 
-      IF ( ALLOCATED( USTAR    ) ) PRINT*, 'USTAR   : ', USTAR(IJ) 
+      IF ( ALLOCATED( USTAR    ) ) PRINT*, 'USTAR   : ', USTAR(I,J) 
       IF ( ALLOCATED( UWND1    ) ) PRINT*, 'UWND1   : ', UWND1(I,J,L) 
       IF ( ALLOCATED( UWND2    ) ) PRINT*, 'UWND2   : ', UWND2(I,J,L) 
       IF ( ALLOCATED( UWND     ) ) PRINT*, 'UWND    : ', UWND(I,J,L) 
@@ -1277,7 +1297,7 @@ C
       IF ( ALLOCATED( VWND2    ) ) PRINT*, 'VWND2   : ', VWND2(I,J,L) 
       IF ( ALLOCATED( VWND     ) ) PRINT*, 'VWND    : ', VWND(I,J,L) 
       IF ( ALLOCATED( WIND_10M ) ) PRINT*, 'WIND_10M: ', WIND_10M(I,J) 
-      IF ( ALLOCATED( Z0       ) ) PRINT*, 'Z0      : ', Z0(IJ) 
+      IF ( ALLOCATED( Z0       ) ) PRINT*, 'Z0      : ', Z0(I,J) 
       IF ( ALLOCATED( ZMEU     ) ) PRINT*, 'ZMEU    : ', ZMEU(I,J,L) 
       IF ( ALLOCATED( ZMMD     ) ) PRINT*, 'ZMMD    : ', ZMMD(I,J,L) 
       IF ( ALLOCATED( ZMMU     ) ) PRINT*, 'ZMMU    : ', ZMMU(I,J,L) 

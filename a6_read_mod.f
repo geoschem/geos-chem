@@ -1,9 +1,9 @@
-! $Id: a6_read_mod.f,v 1.2 2003/10/30 16:17:16 bmy Exp $
+! $Id: a6_read_mod.f,v 1.3 2003/12/11 21:54:08 bmy Exp $
       MODULE A6_READ_MOD
 !
 !******************************************************************************
 !  Module A6_READ_MOD contains subroutines that unzip, open, and read
-!  GEOS-CHEM A-3 (avg 3-hour) met fields from disk. (bmy, 6/19/03, 10/28/03)
+!  GEOS-CHEM A-3 (avg 3-hour) met fields from disk. (bmy, 6/19/03, 12/11/03)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -30,6 +30,8 @@
 !  NOTES:
 !  (1 ) Adapted from "dao_read_mod.f" (bmy, 6/19/03)
 !  (2 ) Now use TIMESTAMP_STRING for formatted output (bmy, 10/28/03)
+!  (3 ) CLDFRC is now a 2-D array in MAKE_CLDFRC< GET_A6_FIELDS.  Also now
+!        read from either zipped or unzipped files. (bmy, 12/9/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -56,7 +58,7 @@
 !  Subroutine UNZIP_A6_FIELDS invokes a FORTRAN system call to uncompress
 !  GEOS-CHEM A-6 met field files and store the uncompressed data in a 
 !  temporary directory, where GEOS-CHEM can read them.  The original data 
-!  files are not disturbed.  (bmy, bdf, 6/15/98, 6/19/03)
+!  files are not disturbed.  (bmy, bdf, 6/15/98, 12/11/03)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -65,6 +67,8 @@
 !
 !  NOTES:
 !  (1 ) Adapted from UNZIP_MET_FIELDS of "dao_read_mod.f" (bmy, 6/19/03)
+!  (2 ) Directory information YYYY/MM or YYYYMM is now contained w/in 
+!        GEOS_1_DIR, GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR (bmy, 12/11/03)
 !*****************************************************************************
 !
       ! References to F90 modules
@@ -93,7 +97,11 @@
 
          ! Location of zipped A-3 file in data dir (GEOS-1)
          A6_FILE_GZ  = TRIM( DATA_DIR )      // TRIM( GEOS_1_DIR ) // 
-     &                 'YYMM/YYMMDD.a6.'     // GET_RES_EXT()      // 
+!-----------------------------------------------------------------------------
+! Prior to 12/11/03:
+!     &                 'YYMM/YYMMDD.a6.'     // GET_RES_EXT()      // 
+!-----------------------------------------------------------------------------
+     &                 'YYMMDD.a6.'          // GET_RES_EXT()      // 
      &                 TRIM( ZIP_SUFFIX )
 
          ! Location of unzipped A-3 file in temp dir (GEOS-1)
@@ -109,7 +117,11 @@
 
          ! Location of zipped A-3 file in data dir (GEOS-STRAT)
          A6_FILE_GZ  = TRIM( DATA_DIR )      // TRIM( GEOS_S_DIR ) // 
-     &                 'YYMM/YYMMDD.a6.'     // GET_RES_EXT()      // 
+!-----------------------------------------------------------------------------
+! Prior to 12/11/03:
+!     &                 'YYMM/YYMMDD.a6.'     // GET_RES_EXT()      // 
+!-----------------------------------------------------------------------------
+     &                 'YYMMDD.a6.'          // GET_RES_EXT()      // 
      &                 TRIM( ZIP_SUFFIX )
 
          ! Location of unzipped A-3 file in temp dir (GEOS-STRAT)
@@ -125,7 +137,11 @@
 
          ! Location of zipped A-3 file in data dir (GEOS-3)
          A6_FILE_GZ  = TRIM( DATA_DIR )      // TRIM( GEOS_3_DIR ) // 
-     &                 'YYYYMM/YYYYMMDD.a6.' // GET_RES_EXT()      // 
+!-----------------------------------------------------------------------------
+! Prior to 12/11/03:
+!     &                 'YYYYMM/YYYYMMDD.a6.' // GET_RES_EXT()      // 
+!-----------------------------------------------------------------------------
+     &                 'YYYYMMDD.a6.'        // GET_RES_EXT()      // 
      &                 TRIM( ZIP_SUFFIX )
 
          ! Location of unzipped A-3 file in temp dir (GEOS-3)
@@ -141,7 +157,10 @@
 
          ! Location of zipped A-3 file in data dir (GEOS-4)
          A6_FILE_GZ  = TRIM( DATA_DIR )      // TRIM( GEOS_4_DIR ) // 
-     &                 'YYYYMM/YYYYMMDD.a6.' // GET_RES_EXT()      // 
+!-----------------------------------------------------------------------------
+!     &                 'YYYYMM/YYYYMMDD.a6.' // GET_RES_EXT()      // 
+!-----------------------------------------------------------------------------
+     &                 'YYYYMMDD.a6.'        // GET_RES_EXT()      // 
      &                 TRIM( ZIP_SUFFIX )
 
          ! Location of unzipped A-3 file in temp dir (GEOS-4)
@@ -294,7 +313,7 @@
 !
 !******************************************************************************
 !  Subroutine OPEN_A6_FIELDS opens the A-6 met fields file for date NYMD and 
-!  time NHMS. (bmy, bdf, 6/15/98, 6/19/03)
+!  time NHMS. (bmy, bdf, 6/15/98, 12/11/03)
 !  
 !  Arguments as input:
 !  ===========================================================================
@@ -303,6 +322,7 @@
 !
 !  NOTES:
 !  (1 ) Adapted from OPEN_MET_FIELDS of "dao_read_mod.f" (bmy, 6/19/03)
+!  (2 ) Now opens either zipped or unzipped files (bmy, 12/11/03)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -331,15 +351,65 @@
       ! Open A-6 file at the proper time, or on the first call
       IF ( DO_OPEN_A6( NYMD, NHMS ) ) THEN
 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!-----------------------------------------------------------------------------
+! Prior to 12/11/03:
+! Now open either zipped or unzipped data (bmy, 12/11/03)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!
+!         ! Location of A-3 file in temp dir (GEOS-1, GEOS-S)
+!         PATH = TRIM( TEMP_DIR )  // 'YYMMDD.a6.' // GET_RES_EXT()
+!
+!#else
+!
+!         ! Location of A-3 file in temp dir (GEOS-3, GEOS_4)
+!         PATH = TRIM( TEMP_DIR )  // 'YYYYMMDD.a6.' // GET_RES_EXT()
+!
+!#endif
+!-----------------------------------------------------------------------------
 
-         ! Location of A-3 file in temp dir (GEOS-1, GEOS-S)
-         PATH = TRIM( TEMP_DIR )  // 'YYMMDD.a6.' // GET_RES_EXT()
+#if   defined( GEOS_1 ) 
 
-#else
+         ! If unzipping, open GEOS-1 file in TEMP dir
+         ! If not unzipping, open GEOS-1 file in DATA dir
+         IF ( LUNZIP ) THEN
+            PATH = TRIM( TEMP_DIR ) // 'YYMMDD.a6.' // GET_RES_EXT()
+         ELSE
+            PATH = TRIM( DATA_DIR ) // TRIM( GEOS_1_DIR ) // 
+     &             'YYMMDD.a6.'     // GET_RES_EXT() 
+         ENDIF
 
-         ! Location of A-3 file in temp dir (GEOS-3, GEOS_4)
-         PATH = TRIM( TEMP_DIR )  // 'YYYYMMDD.a6.' // GET_RES_EXT()
+#elif defined( GEOS_STRAT )
+
+         ! If unzipping, open GEOS-STRAT file in TEMP dir
+         ! If not unzipping, open GEOS-STRAT file in DATA dir
+         IF ( LUNZIP ) THEN
+            PATH = TRIM( TEMP_DIR ) // 'YYMMDD.a6.' // GET_RES_EXT()
+         ELSE
+            PATH = TRIM( DATA_DIR ) // TRIM( GEOS_S_DIR ) // 
+     &             'YYMMDD.a6.'     // GET_RES_EXT() 
+         ENDIF
+
+#elif defined( GEOS_3 )
+
+         ! If unzipping, open GEOS-3 file in TEMP dir
+         ! If not unzipping, open GEOS-3 file in DATA dir
+         IF ( LUNZIP ) THEN
+            PATH = TRIM( TEMP_DIR ) // 'YYYYMMDD.a6.' // GET_RES_EXT()
+         ELSE
+            PATH = TRIM( DATA_DIR ) // TRIM( GEOS_3_DIR ) // 
+     &             'YYYYMMDD.a6.'   // GET_RES_EXT() 
+         ENDIF
+
+#elif defined( GEOS_4 )
+
+         ! If unzipping, open GEOS-4 file in TEMP dir
+         ! If not unzipping, open GEOS-4 file in DATA dir
+         IF ( LUNZIP ) THEN
+            PATH = TRIM( TEMP_DIR ) // 'YYYYMMDD.a6.' // GET_RES_EXT()
+         ELSE
+            PATH = TRIM( DATA_DIR ) // TRIM( GEOS_4_DIR ) // 
+     &             'YYYYMMDD.a6.'   // GET_RES_EXT() 
+         ENDIF
 
 #endif
 
@@ -388,16 +458,21 @@
 !  (2 ) NHMS (INTEGER) :  and HHMMSS of A-6 fields to be read from disk
 !
 !  NOTES:
+!  (1 ) CFRAC has been removed from CMN_DEP.  Now use CLDFRC(I,J) from
+!        "dao_mod.f" (bmy, 12/9/03)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD, ONLY : CLDF,   CLDMAS, CLMOSW, CLROSW, CLDTOPS,
-     &                    DTRAIN, HKBETA, HKETA,  MOISTQ, OPTDEP, 
-     &                    SPHU,   T,      UWND,   VWND,   ZMEU,
-     &                    ZMMD,   ZMMU  
+      USE DAO_MOD, ONLY : CLDF,    CLDFRC, CLDMAS, CLMOSW, CLROSW, 
+     &                    CLDTOPS, DTRAIN, HKBETA, HKETA,  MOISTQ, 
+     &                    OPTDEP,  SPHU,   T,      UWND,   VWND,   
+     &                    ZMEU,    ZMMD,   ZMMU  
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DEP"   ! CFRAC
+!-----------------------------------------------------
+! Prior to 12/9/03:
+!#     include "CMN_DEP"   ! CFRAC
+!-----------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS 
@@ -438,7 +513,11 @@
 
       ! Construct the 2-D CFRAC field from CLMO and CLRO
       ! since this field is missing from GEOS-STRAT data
-      CALL MAKE_CLDFRC( CLMOSW, CLROSW, CFRAC )
+      !-----------------------------------------------------
+      ! Prior to 12/9/03:
+      !CALL MAKE_CLDFRC( CLMOSW, CLROSW, CFRAC )
+      !-----------------------------------------------------
+      CALL MAKE_CLDFRC( CLMOSW, CLROSW, CLDFRC )
 
 #elif defined( GEOS_3 ) 
 
@@ -476,16 +555,16 @@
 !
 !******************************************************************************
 !  Subroutine MAKE_CLDFRC constructs the DAO CLDFRC field from the 
-!  GEOS-STRAT CLMOSW and CLROSW fields. (bmy, 3/17/99, 6/19/03) 
+!  GEOS-STRAT CLMOSW and CLROSW fields. (bmy, 3/17/99, 12/9/03) 
 !
 !  Arguments as Input:
 !  ===========================================================================
-!  (1) CLMOSW (REAL*8) : DAO Maximum Overlap Cloud Fraction Field
-!  (2) CLROSW (REAL*8) : DAO Random  Overlap Cloud Fraction Field
+!  (1) CLMOSW (REAL*8) : GMAO Maximum Overlap Cloud Fraction Field
+!  (2) CLROSW (REAL*8) : GMAO Random  Overlap Cloud Fraction Field
 !
 !  Arguments as Output:
 !  ===========================================================================
-!  (3) CLDFRC (REAL*8) : DAO Column Cloud Fraction
+!  (3) CLDFRC (REAL*8) : GMAO Column Cloud Fraction
 !
 !  NOTES:
 !  (1 ) CLDFRC is not archived for GEOS-STRAT data, so we must compute it
@@ -497,6 +576,7 @@
 !  (5 ) Replaced all instances of IM with IIPAR and JM with JJPAR, in order
 !        to prevent namespace confusion for the new TPCORE (bmy, 6/25/02)
 !  (6 ) Moved from "dao_mod.f" to "a6_read_mod.f" (bmy, 6/19/03)
+!  (7 ) CLDFRC is now a 2-D array (bmy, 12/9/03)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -508,10 +588,18 @@
       ! Arguments
       REAL*8, INTENT(IN)  :: CLMOSW(LLPAR,IIPAR,JJPAR)
       REAL*8, INTENT(IN)  :: CLROSW(LLPAR,IIPAR,JJPAR)
-      REAL*8, INTENT(OUT) :: CLDFRC(MAXIJ)
+      !-------------------------------------------
+      ! Prior to 12/9/03:
+      !REAL*8, INTENT(OUT) :: CLDFRC(MAXIJ)
+      !-------------------------------------------
+      REAL*8, INTENT(OUT) :: CLDFRC(IIPAR,JJPAR)
 
       ! Local variables
-      INTEGER             :: I, IJLOOP, J, L
+      !-------------------------------------------
+      ! Prior to 12/9/03
+      !INTEGER             :: I, IJLOOP, J, L
+      !-------------------------------------------
+      INTEGER             :: I, J, L
       REAL*8              :: C1, C2
 
       !=================================================================
@@ -543,15 +631,18 @@
       !
       !     CLDFRC is used by the Harvard CTM dry deposition routines.
       !
-      ! (2) CLDFRC is of dimension MAXIJ = IIPAR * JJPAR, to conform with
-      !     the Harvard dry deposition subroutines.
-      !
-      ! (3) In GEOS-1 and GEOS-STRAT, CLMOLW=CLMOSW and CLROLW=CLROSW.
+      ! (2) In GEOS-1 and GEOS-STRAT, CLMOLW=CLMOSW and CLROLW=CLROSW.
       !=================================================================
-      IJLOOP = 0
+      !--------------------------
+      ! Prior to 12/9/03:
+      !IJLOOP = 0
+      !--------------------------
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         IJLOOP = IJLOOP + 1
+         !-----------------------
+         ! Prior to 12/9/03:
+         !IJLOOP = IJLOOP + 1
+         !-----------------------
 
          C1 = CLMOSW(1,I,J)       
          C2 = 1.0d0 - CLROSW(1,I,J) 
@@ -565,7 +656,11 @@
          ENDDO
 
          C1             = 1.0d0 - C1
-         CLDFRC(IJLOOP) = 1.0d0 - (C1 * C2)
+         !--------------------------------------------------------
+         ! Prior to 12/9/03:
+         !CLDFRC(IJLOOP) = 1.0d0 - (C1 * C2)
+         !--------------------------------------------------------
+         CLDFRC(I,J) = 1.0d0 - (C1 * C2)
       ENDDO
       ENDDO
       
@@ -573,11 +668,18 @@
       ! ND67 diagnostic -- save CLDFRC as tracer #10
       !=================================================================
       IF ( ND67 > 0 ) THEN
-         IJLOOP = 0
+         !-------------------------------
+         ! Prior to 12/9/03:
+         !IJLOOP = 0
+         !-------------------------------
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            IJLOOP       = IJLOOP + 1
-            AD67(I,J,10) = AD67(I,J,10) + CLDFRC(IJLOOP)
+            !---------------------------------------------------
+            ! Prior to 12/9/03:
+            !IJLOOP       = IJLOOP + 1
+            !AD67(I,J,10) = AD67(I,J,10) + CLDFRC(IJLOOP)
+            !---------------------------------------------------
+            AD67(I,J,10) = AD67(I,J,10) + CLDFRC(I,J)
          ENDDO
          ENDDO
       ENDIF

@@ -1,9 +1,9 @@
-! $Id: emisshcn.f,v 1.1 2003/06/30 20:26:04 bmy Exp $
+! $Id: emisshcn.f,v 1.2 2003/12/11 21:54:10 bmy Exp $
       SUBROUTINE EMISSHCN
 !
 !******************************************************************************
 !  Subroutine EMISSHCN specifies hydrogen cyanide (HCN) emissions 
-!  (qli, bmy, 1/10/99, 2/11/03)
+!  (qli, bmy, 1/10/99, 12/9/03)
 !
 !  NOTES:
 !  (1 ) The following sources of HCN are now used:
@@ -38,6 +38,7 @@
 !  (16) Now replace DXYP(J+J0)*1d4 with routine GET_AREA_CM2 from "grid_mod.f"
 !        Now use function GET_TS_EMIS from "time_mod.f".  Removed MONTH from
 !        call to BIOBURN. (bmy, 2/11/03)
+!  (17) Now pass I, J to EMISOP (bmy, 12/9/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -177,7 +178,11 @@
       DO I = 1, IIPAR
          IJLOOP = IJLOOP + 1
          TMMP = XLTMMP(I,J, IJLOOP) 
-         EMXX = EMISOP(IJLOOP,SUNCOS,TMMP,XNUMOL_ISOP) 
+         !------------------------------------------------------
+         ! Prior to 12/9/03:
+         !EMXX = EMISOP(IJLOOP,SUNCOS,TMMP,XNUMOL_ISOP) 
+         !------------------------------------------------------
+         EMXX = EMISOP(I,J,IJLOOP,SUNCOS,TMMP,XNUMOL_ISOP) 
   
          EMX          = EMXX
          EMXKG        = EMXX / XNUMOL_HCN * HCNSCAL

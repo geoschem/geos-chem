@@ -1,10 +1,10 @@
-! $Id: emissdr.f,v 1.1 2003/06/30 20:26:04 bmy Exp $
+! $Id: emissdr.f,v 1.2 2003/12/11 21:54:10 bmy Exp $
       SUBROUTINE EMISSDR
 !
 !******************************************************************************
 !  Subroutine EMISSDR computes emissions for the full chemistry simulation
 !  (NSRCX == 3).  Emissions are stored in GEMISNOX and EMISRR arrays, 
-!  which are then passed to the SMVGEAR subroutines (bmy, 10/8/98, 2/11/03)
+!  which are then passed to the SMVGEAR subroutines (bmy, 10/8/98, 12/9/03)
 !
 !  NOTES:
 !  (1 ) Now accounts for seasonal NOx emissions, and multi-level NOx 
@@ -47,6 +47,7 @@
 !        GET_LOCALTIME, GET_ELAPSED_MIN, GET_TS_EMIS, GET_LOCALTIME from 
 !        "time_mod.f".  Now use functions GET_XOFFSET and GET_YOFFSET from 
 !        "grid_mod.f". (bmy, 2/11/03)
+!  (20) Now pass I, J to EMISOP, EMISOP_GRASS, EMISOP_MB (bmy, 12/9/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -225,13 +226,25 @@
             EMMO  = EMMONOT( IJLOOP, TMMP, XNUMOL_C )
 
             ! Isoprene
-            EMIS  = EMISOP( IJLOOP, SUNCOS, TMMP, XNUMOL_C )
+            !--------------------------------------------------------------
+            ! Prior to 12/9/03:
+            !EMIS  = EMISOP( IJLOOP, SUNCOS, TMMP, XNUMOL_C )
+            !--------------------------------------------------------------
+            EMIS  = EMISOP( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C )
  
             ! Methyl Butenol (MBO)
-            EMMB  = EMISOP_MB( IJLOOP, SUNCOS, TMMP, XNUMOL_C )
+            !--------------------------------------------------------------
+            ! Prior to 12/9/03:
+            !EMMB  = EMISOP_MB( IJLOOP, SUNCOS, TMMP, XNUMOL_C )
+            !--------------------------------------------------------------
+            EMMB  = EMISOP_MB( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C )
 
             ! Isoprene emissions from grasslands
-            GRASS = EMISOP_GRASS( IJLOOP, SUNCOS, TMMP, XNUMOL_C )
+            !--------------------------------------------------------------
+            ! Prior to 12/9/03:
+            !GRASS = EMISOP_GRASS( IJLOOP, SUNCOS, TMMP, XNUMOL_C )
+            !--------------------------------------------------------------
+            GRASS = EMISOP_GRASS( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C) 
 !-----------------------------------------------------------------------------
 ! BIOGENIC ACETONE EMISSIONS
 !

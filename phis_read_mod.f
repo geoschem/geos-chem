@@ -1,10 +1,10 @@
-! $Id: phis_read_mod.f,v 1.2 2003/10/30 16:17:18 bmy Exp $
+! $Id: phis_read_mod.f,v 1.3 2003/12/11 21:54:11 bmy Exp $
       MODULE PHIS_READ_MOD
 !
 !******************************************************************************
 !  Module PHIS_READ_MOD contains subroutines that unzip, open, and 
 !  read the GEOS-CHEM PHIS (geopotential heights) field from disk. 
-!  (bmy, 6/16/03, 10/28/03)
+!  (bmy, 6/16/03, 12/11/03)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -28,6 +28,7 @@
 !  NOTES:
 !  (1 ) Adapted from "dao_read_mod.f" (bmy, 6/16/03)
 !  (2 ) Now use TIMESTAMP_STRING for formatted date/time output (bmy, 10/28/03)
+!  (3 ) Now can read either zipped or unzipped files (bmy, 12/11/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -49,11 +50,11 @@
 
       SUBROUTINE UNZIP_PHIS_FIELD( OPTION, NYMD )
 !
-!*****************************************************************************
+!******************************************************************************
 !  Subroutine UNZIP_PHIS_FIELDS invokes a FORTRAN system call to uncompress
 !  GEOS-CHEM PHIS met field files and store the uncompressed data in a 
 !  temporary directory, where GEOS-CHEM can read them.  The original data 
-!  files are not disturbed.  (bmy, bdf, 6/15/98, 6/16/03)
+!  files are not disturbed.  (bmy, bdf, 6/15/98, 12/11/03)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -62,7 +63,9 @@
 !
 !  NOTES:
 !  (1 ) Adapted from UNZIP_MET_FIELDS of "dao_read_mod.f" (bmy, 6/16/03)
-!*****************************************************************************
+!  (2 ) Directory information YYYY/MM or YYYYMM is now contained w/in 
+!        GEOS_1_DIR, GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR (bmy, 12/11/03)
+!******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD, ONLY : GET_RES_EXT
@@ -90,7 +93,11 @@
 
          ! Location of zipped A-3 file in data dir (GEOS-1)
          PHIS_FILE_GZ = TRIM( DATA_DIR )    // TRIM( GEOS_1_DIR )     // 
-     &                  'YYMM/YYMMDD.phis.' // GET_RES_EXT()          // 
+!----------------------------------------------------------------------------
+! Prior to 12/11/03:
+!     &                  'YYMM/YYMMDD.phis.' // GET_RES_EXT()          // 
+!----------------------------------------------------------------------------
+     &                  'YYMMDD.phis.'      // GET_RES_EXT()          // 
      &                  TRIM( ZIP_SUFFIX )
 
          ! Location of unzipped A-3 file in temp dir (GEOS-1)
@@ -106,7 +113,11 @@
 
          ! Location of zipped A-3 file in data dir (GEOS-STRAT)
          PHIS_FILE_GZ = TRIM( DATA_DIR )    // TRIM( GEOS_S_DIR )     // 
-     &                  'YYMM/YYMMDD.phis.' // GET_RES_EXT()          // 
+!----------------------------------------------------------------------------
+! Prior to 12/11/03:
+!     &                  'YYMM/YYMMDD.phis.' // GET_RES_EXT()          // 
+!----------------------------------------------------------------------------
+     &                  'YYMMDD.phis.'      // GET_RES_EXT()          // 
      &                  TRIM( ZIP_SUFFIX )
 
          ! Location of unzipped A-3 file in temp dir (GEOS-STRAT)
@@ -121,24 +132,32 @@
 #elif defined( GEOS_3 )
 
          ! Location of zipped A-3 file in data dir (GEOS-3)
-         PHIS_FILE_GZ = TRIM( DATA_DIR )        // TRIM( GEOS_3_DIR ) // 
-     &                  'YYYYMM/YYYYMMDD.phis.' // GET_RES_EXT()      // 
+         PHIS_FILE_GZ = TRIM( DATA_DIR )    // TRIM( GEOS_3_DIR )     // 
+!----------------------------------------------------------------------------
+! Prior to 12/11/03:
+!     &                  'YYYYMM/YYYYMMDD.phis.' // GET_RES_EXT()          // 
+!----------------------------------------------------------------------------
+     &                  'YYYYMMDD.phis.'    // GET_RES_EXT()          // 
      &                   TRIM( ZIP_SUFFIX )
 
          ! Location of unzipped A-3 file in temp dir (GEOS-3)
-         PHIS_FILE    = TRIM( TEMP_DIR )   // 'YYYYMMDD.phis.'        // 
+         PHIS_FILE    = TRIM( TEMP_DIR )    // 'YYYYMMDD.phis.'       // 
      &                  GET_RES_EXT()
 
          ! Remove A-3 files for this date from temp dir (GEOS-3)
-         REMOVE_DATE  = TRIM( REMOVE_CMD ) // ' '                     // 
-     &                  TRIM( TEMP_DIR   ) // 'YYYYMMDD.phis.'        // 
+         REMOVE_DATE  = TRIM( REMOVE_CMD )  // ' '                    // 
+     &                  TRIM( TEMP_DIR   )  // 'YYYYMMDD.phis.'       // 
      &                  GET_RES_EXT()  
 
 #elif defined( GEOS_4 )
 
          ! Location of zipped A-3 file in data dir (GEOS-4)
-         PHIS_FILE_GZ = TRIM( DATA_DIR )        // TRIM( GEOS_4_DIR ) // 
-     &                  'YYYYMM/YYYYMMDD.phis.' // GET_RES_EXT()      // 
+         PHIS_FILE_GZ = TRIM( DATA_DIR )    // TRIM( GEOS_4_DIR ) // 
+!----------------------------------------------------------------------------
+! Prior to 12/11/03:
+!     &                  'YYYYMM/YYYYMMDD.phis.' // GET_RES_EXT()          // 
+!----------------------------------------------------------------------------
+     &                  'YYYYMMDD.phis.'    // GET_RES_EXT()      // 
      &                  TRIM( ZIP_SUFFIX )
 
          ! Location of unzipped A-3 file in temp dir (GEOS-4)
@@ -182,12 +201,12 @@
       !=================================================================
       SELECT CASE ( TRIM( OPTION ) )
          
-         ! Unzip A-3 fields in the Unix foreground
+         ! Unzip PHIS field in the Unix foreground
          CASE ( 'unzip foreground' )
             WRITE( 6, 100 ) TRIM( PHIS_FILE_GZ )
             CALL SYSTEM( TRIM( UNZIP_FG ) )
 
-         ! Unzip A-3 fields in the Unix background
+         ! Unzip PHIS field in the Unix background
          CASE ( 'unzip background' )
             WRITE( 6, 100 ) TRIM( PHIS_FILE_GZ )
             CALL SYSTEM( TRIM( UNZIP_BG ) )
@@ -232,6 +251,7 @@
 !
 !  NOTES:
 !  (1 ) Adapted from OPEN_MET_FIELDS of "dao_read_mod.f" (bmy, 6/13/03)
+!  (2 ) Now opens either zipped or unzipped files (bmy, 12/11/03)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -260,15 +280,64 @@
       ! Open the A-3 file 0 GMT of each day, or on the first call
       IF ( NHMS == 000000 .or. FIRST ) THEN
 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!-----------------------------------------------------------------------------
+! Prior to 12/11/03:
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!
+!         ! Location of A-3 file in temp dir (GEOS-1, GEOS-S)
+!         PATH = TRIM( TEMP_DIR )  // 'YYMMDD.phis.' // GET_RES_EXT()
+!
+!#else
+!
+!         ! Location of A-3 file in temp dir (GEOS-3, GEOS-4)
+!         PATH = TRIM( TEMP_DIR )  // 'YYYYMMDD.phis.' // GET_RES_EXT()
+!
+!#endif
+!-----------------------------------------------------------------------------
 
-         ! Location of A-3 file in temp dir (GEOS-1, GEOS-S)
-         PATH = TRIM( TEMP_DIR )  // 'YYMMDD.phis.' // GET_RES_EXT()
+#if   defined( GEOS_1 ) 
 
-#else
+         ! If unzipping, open GEOS-1 file in TEMP dir
+         ! If not unzipping, open GEOS-1 file in DATA dir
+         IF ( LUNZIP ) THEN
+            PATH = TRIM( TEMP_DIR ) // 'YYMMDD.phis.' // GET_RES_EXT()
+         ELSE
+            PATH = TRIM( DATA_DIR ) // TRIM( GEOS_1_DIR ) // 
+     &             'YYMMDD.phis.'   // GET_RES_EXT() 
+         ENDIF
 
-         ! Location of A-3 file in temp dir (GEOS-3, GEOS-4)
-         PATH = TRIM( TEMP_DIR )  // 'YYYYMMDD.phis.' // GET_RES_EXT()
+#elif defined( GEOS_STRAT )
+
+         ! If unzipping, open GEOS-STRAT file in TEMP dir
+         ! If not unzipping, open GEOS-STRAT file in DATA dir
+         IF ( LUNZIP ) THEN
+            PATH = TRIM( TEMP_DIR ) // 'YYMMDD.phis.' // GET_RES_EXT()
+         ELSE
+            PATH = TRIM( DATA_DIR ) // TRIM( GEOS_S_DIR ) // 
+     &             'YYMMDD.phis.'   // GET_RES_EXT() 
+         ENDIF
+
+#elif defined( GEOS_3 )
+
+         ! If unzipping, open GEOS-3 file in TEMP dir
+         ! If not unzipping, open GEOS-3 file in DATA dir
+         IF ( LUNZIP ) THEN
+            PATH = TRIM( TEMP_DIR ) // 'YYYYMMDD.phis.' // GET_RES_EXT()
+         ELSE
+            PATH = TRIM( DATA_DIR ) // TRIM( GEOS_3_DIR ) // 
+     &             'YYYYMMDD.phis.' // GET_RES_EXT() 
+         ENDIF
+
+#elif defined( GEOS_4 )
+
+         ! If unzipping, open GEOS-4 file in TEMP dir
+         ! If not unzipping, open GEOS-4 file in DATA dir
+         IF ( LUNZIP ) THEN
+            PATH = TRIM( TEMP_DIR ) // 'YYYYMMDD.phis.' // GET_RES_EXT()
+         ELSE
+            PATH = TRIM( DATA_DIR ) // TRIM( GEOS_4_DIR ) // 
+     &             'YYYYMMDD.phis.' // GET_RES_EXT() 
+         ENDIF
 
 #endif
 

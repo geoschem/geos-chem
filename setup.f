@@ -1,4 +1,4 @@
-! $Id: setup.f,v 1.2 2003/07/08 15:30:57 bmy Exp $
+! $Id: setup.f,v 1.3 2003/12/11 21:54:11 bmy Exp $
       SUBROUTINE SETUP( NYMDb, NYMDe,     NHMSb,   NHMSe,   NDT,      
      &                  NTDT,  NDIAGTIME, ALPHA_d, ALPHA_n, IORD,     
      &                  JORD,  KORD,      J1,      Umax,    IGD,      
@@ -6,7 +6,7 @@
 !
 !******************************************************************************
 !  Subroutine SETUP reads in parameters specific to the GEOS-CHEM model.
-!  (bmy, bey, bdf, 5/27/99, 6/18/03)
+!  (bmy, bey, bdf, 5/27/99, 12/11/03)
 !                                                                           
 !  NOTES:
 !  (1 ) SETUP is written in Fixed-Form Fortran 90.
@@ -75,13 +75,15 @@
 !        we can use for testing.  Renamed LKZZ to LTPFV to select GEOS-4/fvDAS
 !        transport or the TPCORE 7.1m for GEOS-3 winds (bmy, 4/28/03) 
 !  (35) Removed GEOS_2_DIR.  Added GEOS_4_DIR (bmy, 6/18/03)
+!  (36) Renamed LRERD to LUNZIP, this toggles met field unzipping on/off.
+!        Disable checking of GEOS_1_DIR etc directory paths. (bmy, 12/9/03)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD, ONLY : GET_RES_EXT
       USE FILE_MOD,  ONLY : IOERROR
       USE ERROR_MOD, ONLY : ERROR_STOP, GEOS_CHEM_STOP
-      USE TIME_MOD,  ONLY : NYMD6_2_NYMD8
+      USE TIME_MOD,  ONLY : NYMD6_2_NYMD8, EXPAND_DATE
 
       IMPLICIT NONE
 
@@ -100,6 +102,7 @@
       ! Local variables
       CHARACTER(LEN=79)    :: TITLE 
       CHARACTER(LEN=46)    :: STR1, STR2, STR3, STR4
+      CHARACTER(LEN=30)    :: TMPSTR
 
       INTEGER              :: I, I1, I2, IS, J, JS, K ! Loop and 
       INTEGER              :: L, L1, L2, LS, N, NS    !  counter variables
@@ -167,8 +170,13 @@
      &     LTURB,  LCONV,  LWETD,   LDBUG,  LMONOT,  STR2 
       IF ( IOS /= 0 ) CALL IOERROR( IOS, 99, 'setup:10' )
 
-      READ ( 99, 25, IOSTAT=IOS ) 
-     &     LWAIT,  LBBSEA, LRERD,   LSVGLB, LTOMSAI, STR3 
+      READ ( 99, 25, IOSTAT=IOS )
+!-------------------------------------------------------------------------- 
+! Prior to 12/10/03:
+! Renamed LRERD to LUNZIP (bmy, 12/10/03
+!     &     LWAIT,  LBBSEA, LRERD,   LSVGLB, LTOMSAI, STR3
+!--------------------------------------------------------------------------  
+     &     LWAIT,  LBBSEA, LUNZIP,   LSVGLB, LTOMSAI, STR3 
       IF ( IOS /= 0 ) CALL IOERROR( IOS, 99, 'setup:11' )
 
       READ ( 99, 25, IOSTAT=IOS ) 
@@ -178,11 +186,18 @@
       WRITE ( 6, 10 ) TITLE
       WRITE ( 6, 25 ) LEMIS,  LDRYD,  LCHEM,   LTRAN,  LTPFV,   STR1 
       WRITE ( 6, 25 ) LTURB,  LCONV,  LWETD,   LDBUG,  LMONOT,  STR2 
-      WRITE ( 6, 25 ) LWAIT,  LBBSEA, LRERD,   LSVGLB, LTOMSAI, STR3 
+      !-------------------------------------------------------------------
+      ! Prior to 12/10/03;
+      !WRITE ( 6, 25 ) LWAIT,  LBBSEA, LRERD,   LSVGLB, LTOMSAI, STR3 
+      !-------------------------------------------------------------------
+      WRITE ( 6, 25 ) LWAIT,  LBBSEA, LUNZIP,   LSVGLB, LTOMSAI, STR3 
       WRITE ( 6, 25 ) LMFCT,  LFILL,  LSTDRUN, LSULF,  LSPLIT,  STR4
 
-      ! Set LRERD=F since it's more or less obsolete now (bmy, 3/14/03) 
-      LRERD = .FALSE.
+      !--------------------------------------------------------------------
+      ! Prior to 12/10/03:
+      !! Set LRERD=F since it's more or less obsolete now (bmy, 3/14/03) 
+      !LRERD = .FALSE.
+      !--------------------------------------------------------------------
 !
 !******************************************************************************
 !  Read in other GEOS-CTM parameters                                        
@@ -332,21 +347,29 @@
 !******************************************************************************
 !
       CALL CHECK_DIRECTORY( TRIM( DATA_DIR ) )
-      CALL CHECK_DIRECTORY( TRIM( TEMP_DIR ) ) 
 
-#if   defined( GEOS_1 )
-      CALL CHECK_DIRECTORY( TRIM( DATA_DIR ) // TRIM( GEOS_1_DIR ) )
+      ! Only check TEMP_DIR if we are unzipping met fields (bmy, 12/11/03)
+      IF ( LUNZIP ) THEN
+         CALL CHECK_DIRECTORY( TRIM( TEMP_DIR ) ) 
+      ENDIF
 
-#elif defined( GEOS_STRAT )
-      CALL CHECK_DIRECTORY( TRIM( DATA_DIR ) // TRIM( GEOS_S_DIR ) )
-
-#elif defined( GEOS_2 )
-      CALL CHECK_DIRECTORY( TRIM( DATA_DIR ) // TRIM( GEOS_2_DIR ) )      
-
-#elif defined( GEOS_3 )
-      CALL CHECK_DIRECTORY( TRIM( DATA_DIR ) // TRIM( GEOS_3_DIR ) )      
-
-#endif
+!-----------------------------------------------------------------------------
+! Prior to 12/11/03:
+! Disable these directory checks (bmy, 12/11/03)
+!#if   defined( GEOS_1 )
+!      CALL CHECK_DIRECTORY( TRIM( DATA_DIR ) // TRIM( GEOS_1_DIR ) )
+!
+!#elif defined( GEOS_STRAT )
+!      CALL CHECK_DIRECTORY( TRIM( DATA_DIR ) // TRIM( GEOS_S_DIR ) )
+!
+!#elif defined( GEOS_2 )
+!      CALL CHECK_DIRECTORY( TRIM( DATA_DIR ) // TRIM( GEOS_2_DIR ) )      
+!
+!#elif defined( GEOS_3 )
+!      CALL CHECK_DIRECTORY( TRIM( DATA_DIR ) // TRIM( GEOS_3_DIR ) )      
+!
+!#endif
+!----------------------------------------------------------------------------
 !
 !******************************************************************************
 !  If LMFCT = T, then set LFILL = F (bmy, 4/24/00)

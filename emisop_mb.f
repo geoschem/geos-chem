@@ -1,12 +1,13 @@
-! $Id: emisop_mb.f,v 1.1 2003/06/30 20:26:01 bmy Exp $      
-      FUNCTION EMISOP_MB( IJLOOP, SUNCOS, TMMP, XNUMOL )
+! $Id: emisop_mb.f,v 1.2 2003/12/11 21:54:09 bmy Exp $      
+      FUNCTION EMISOP_MB( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL )
 !
 !******************************************************************************
 !  Subroutine EMISOP_MB computes METHYL BUTENOL emissions in units
-!  of [atoms C/box/step]. (bdf, bmy, 8/2/01, 9/10/02)
+!  of [atoms C/box/step]. (bdf, bmy, 8/2/01, 12/9/03)
 !
 !  Arguments as Input:
 !  ============================================================================
+!  (1-2) I, J     (INTEGER ) : 2-D grid box indices
 !  (1 ) IJLOOP (INTEGER) : 1-D grid box index
 !  (2 ) SUNCOS (REAL*8 ) : 1-D array of cos( solar zenith angle )
 !  (3 ) TMMP   (REAL*8 ) : Local air temperature (K)
@@ -14,14 +15,13 @@
 !
 !  Important Common Block Variables:
 !  ============================================================================
-!  (1 ) CFRAC     (CMN_DEP ) : Fractional cloud cover
-!  (2 ) XYLAI     (CMN_VEL ) : Leaf Area Index of land type for current MONTH
-!  (3 ) IJREG     (CMN_VEL ) : Number of Olson land types per grid box
-!  (4 ) IJLAND+1  (CMN_VEL ) : Olson land type index
-!  (5 ) IJUSE     (CMN_VEL ) : Olson land type fraction per box (in mils)
-!  (6 ) SOPCOEFF  (CMN_ISOP) : 2nd order polynomial coeffs for light correction
-!  (7 ) BASEISOP  (CMN_ISOP) : Baseline ISOPRENE emissions    [kg C/box/step]
-!  (8 ) BASEMB    (CMN_ISOP) : Baseline METHYL BUT. emissions [kg C/box/step]
+!  (1 ) XYLAI     (CMN_VEL ) : Leaf Area Index of land type for current MONTH
+!  (2 ) IJREG     (CMN_VEL ) : Number of Olson land types per grid box
+!  (3 ) IJLAND+1  (CMN_VEL ) : Olson land type index
+!  (4 ) IJUSE     (CMN_VEL ) : Olson land type fraction per box (in mils)
+!  (5 ) SOPCOEFF  (CMN_ISOP) : 2nd order polynomial coeffs for light correction
+!  (6 ) BASEISOP  (CMN_ISOP) : Baseline ISOPRENE emissions    [kg C/box/step]
+!  (7 ) BASEMB    (CMN_ISOP) : Baseline METHYL BUT. emissions [kg C/box/step]
 !
 !  NOTES:
 !  (1 ) Now use F90 syntax.  Use "D" exponents to force double precision.
@@ -30,17 +30,26 @@
 !  (3 ) GEOS-3 meteorology results in 579 Tg C/yr from biogenic ISOP.  Compute
 !        ISOP from grasslands based on 400 Tg C/yr from biogenic ISOP, which 
 !        is what we get from GEOS-STRAT. (mje, bdf, djj, 9/10/02)
+!  (4 ) Now pass I, J via the arg list.  Now reference CLDFRC directly from
+!        "dao_mod.f" instead of referencing CFRAC from "CMN_DEP".  Now 
+!        remove reference to CMN_DEP. (bmy, 12/9/03)
 !******************************************************************************
 !
+      ! References to F90 modules
+      USE DAO_MOD, ONLY : CLDFRC
+
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DEP"   ! CFRAC
+!----------------------------------------------------------------------
+! Prior to 12/9/03:
+!#     include "CMN_DEP"   ! CFRAC
+!----------------------------------------------------------------------
 #     include "CMN_VEL"   ! IJREG, IJLAND, IJUSE
 #     include "CMN_ISOP"  ! SOPCOEFF, BASEISOP, BASEMB
 
       ! Arguments
-      INTEGER, INTENT(IN) :: IJLOOP
+      INTEGER, INTENT(IN) :: IJLOOP,        I,    J
       REAL*8,  INTENT(IN) :: SUNCOS(MAXIJ), TMMP, XNUMOL
 
       ! Local variables   
@@ -48,7 +57,7 @@
       REAL*8              :: EMBIO, TLAI, CLIGHT, EMISOP_MB
 
       ! External functions
-      REAL*8,EXTERNAL     :: BIOFIT, TCORR
+      REAL*8,  EXTERNAL   :: BIOFIT, TCORR
 
       !=================================================================
       ! EMISOP_MB begins here!
@@ -97,7 +106,12 @@
 
                ! Compute light correction -- polynomial fit
                CLIGHT = BIOFIT( SOPCOEFF,       XYLAI(IJLOOP,INVEG),
-     &                          SUNCOS(IJLOOP), CFRAC(IJLOOP) )
+!---------------------------------------------------------------------------
+! Prior to 12/9/03:
+! Now use CLDFRC(I,J) instead of CFRAC(IJLOOP) (bmy, 12/9/03)
+!     &                          SUNCOS(IJLOOP), CFRAC(IJLOOP) )
+!---------------------------------------------------------------------------
+     &                          SUNCOS(IJLOOP), CLDFRC(I,J) )
 
                ! Apply light correction to baseline MB emissions.
                ! Also multiply by the fraction of the grid box occupied

@@ -1,4 +1,4 @@
-! $Id: CMN_DEP,v 1.1 2003/06/30 20:26:09 bmy Exp $
+! $Id: CMN_DEP,v 1.2 2003/12/11 21:54:07 bmy Exp $
 !
 !-----COMMON BLOCKS FOR DRYDEP
 !
@@ -29,7 +29,11 @@
       REAL*8 XLAI2
       COMMON /DEPSV5/ XLAI2(IGLOB,JGLOB,NTYPE)
 
-      ! CFRAC  - Fractional cloud cover
-      ! RADIAT - Solar radiation in W m-2
-      REAL*8 CFRAC,RADIAT
-      COMMON /RADI1/ CFRAC(MAXIJ),RADIAT(MAXIJ)
+      !-----------------------------------------------------------------------
+      ! Prior to 12/9/03:
+      ! Now define these as local variables in "drydep_mod.f" (bmy, 12/9/03)
+      !! CFRAC  - Fractional cloud cover
+      !! RADIAT - Solar radiation in W m-2
+      !REAL*8 CFRAC,RADIAT
+      !COMMON /RADI1/ CFRAC(MAXIJ),RADIAT(MAXIJ)
+      !-----------------------------------------------------------------------

@@ -1,10 +1,10 @@
-! $Id: dao_mod.f,v 1.2 2003/07/08 15:33:58 bmy Exp $
+! $Id: dao_mod.f,v 1.3 2003/12/11 21:54:08 bmy Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
 !  Module DAO_MOD contains both arrays that hold DAO met fields, as well as
 !  subroutines that compute, interpolate, or otherwise process DAO met field 
-!  data. (bmy, 6/27/00, 6/25/03)
+!  data. (bmy, 6/27/00, 12/9/03)
 !
 !  Module Variables:
 !  ============================================================================
@@ -54,35 +54,38 @@
 !  ----------------------------------------------------------------------------
 !  (36) GWETTOP  (REAL*8 ) : GEOS-4 topsoil wetness              
 !  (37) HFLUX    (REAL*8 ) : Sensible heat flux                  [W/m2]
-!  (39) PARDF    (REAL*8 ) : Photosyn active diffuse radiation   [W/m2]
-!  (40) PARDR    (REAL*8 ) : Photosyn active direct radiation    [W/m2]
-!  (41) PBL      (REAL*8 ) : Mixed layer depth                   [hPa]
-!  (42) PREACC   (REAL*8 ) : Total precip at the ground          [mm H2O/day]
-!  (43) PRECON   (REAL*8 ) : Convective precip at the ground     [mm H2O/day]
-!  (44) TS       (REAL*8 ) : Surface air temperature             [K]
-!  (45) TSKIN    (REAL*8 ) : Surface ground/sea surface temp     [K]
-!  (46) U10M     (REAL*8 ) : Zonal wind at 10 m altitude         [m/s]
-!  (47) USTAR    (REAL*8 ) : Friction velocity                   [m/s]
-!  (48) V10M     (REAL*8 ) : Meridional wind at 10 m altitude    [m/s]
-!  (49) WIND_10M (REAL*8 ) : Wind speed @ 10 m for GEOS-STRAT    [m/s]
-!  (50) Z0       (REAL*8 ) : Roughness height                    [m]
+!  (38) PARDF    (REAL*8 ) : Photosyn active diffuse radiation   [W/m2]
+!  (39) PARDR    (REAL*8 ) : Photosyn active direct radiation    [W/m2]
+!  (40) PBL      (REAL*8 ) : Mixed layer depth                   [hPa]
+!  (41) PREACC   (REAL*8 ) : Total precip at the ground          [mm H2O/day]
+!  (42) PRECON   (REAL*8 ) : Convective precip at the ground     [mm H2O/day]
+!  (43) RADLWG   (REAL*8 ) : Net upward LW rad at the ground     [W/m2]
+!  (44) RADSWG   (REAL*8 ) : Net downward SW rad at the ground   [W/m2]
+!  (45) SNOW     (REAL*8 ) : Snow cover (H2O equivalent)         [mm H2O]
+!  (46) TS       (REAL*8 ) : Surface air temperature             [K]
+!  (47) TSKIN    (REAL*8 ) : Surface ground/sea surface temp     [K]
+!  (48) U10M     (REAL*8 ) : Zonal wind at 10 m altitude         [m/s]
+!  (59) USTAR    (REAL*8 ) : Friction velocity                   [m/s]
+!  (50) V10M     (REAL*8 ) : Meridional wind at 10 m altitude    [m/s]
+!  (51) WIND_10M (REAL*8 ) : Wind speed @ 10 m for GEOS-STRAT    [m/s]
+!  (52) Z0       (REAL*8 ) : Roughness height                    [m]
 !
 !  Computed meteorolgical quantities:
 !  ----------------------------------------------------------------------------
-!  (51) AD       (REAL*8 ) : Dry air mass                        [kg]
-!  (52) AIRVOL   (REAL*8 ) : Volume of air in grid box           [m3]
-!  (53) AIRDEN   (REAL*8 ) : Density of air in grid box          [kg/m3]
-!  (54) AVGW     (REAL*8 ) : Mixing ratio of water vapor         [v/v]
-!  (55) BXHEIGHT (REAL*8 ) : Grid box height                     [m]
-!  (56) DELP     (REAL*8 ) : Pressure thickness of grid box      [hPa]
-!  (57) OBK      (REAL*8 ) : Monin-Obhukov length                [m]
-!  (58) RH       (REAL*8 ) : Relative humidity                   [%]
-!  (59) SUNCOS   (REAL*8 ) : COSINE( solar zenith angle )        [unitless]
-!  (60) SUNCOSB  (REAL*8 ) : COSINE( SZA ) at next chem time     [unitless]
+!  (54) AD       (REAL*8 ) : Dry air mass                        [kg]
+!  (55) AIRVOL   (REAL*8 ) : Volume of air in grid box           [m3]
+!  (56) AIRDEN   (REAL*8 ) : Density of air in grid box          [kg/m3]
+!  (57) AVGW     (REAL*8 ) : Mixing ratio of water vapor         [v/v]
+!  (58) BXHEIGHT (REAL*8 ) : Grid box height                     [m]
+!  (59) DELP     (REAL*8 ) : Pressure thickness of grid box      [hPa]
+!  (60) OBK      (REAL*8 ) : Monin-Obhukov length                [m]
+!  (61) RH       (REAL*8 ) : Relative humidity                   [%]
+!  (62) SUNCOS   (REAL*8 ) : COSINE( solar zenith angle )        [unitless]
+!  (63) SUNCOSB  (REAL*8 ) : COSINE( SZA ) at next chem time     [unitless]
 !
 !  Other variables:
 !  ----------------
-!  (51) USE_WIND_10M (LOGICAL) : Flag to denote if make_wind10m.f is called 
+!  (64) USE_WIND_10M (LOGICAL) : Flag to denote if make_wind10m.f is called 
 !
 !  Module Routines:
 !  ============================================================================
@@ -144,6 +147,7 @@
 !  (17) Now moved MAKE_CLDFRC into "a6_read_mod.f".  Added HKBETA, HKETA, 
 !        TSKIN, GWETTOP, ZMEU, ZMMD, ZMMU, PARDF, PARDR fields for 
 !        GEOS-4/fvDAS. (bmy, 6/25/03)
+!  (18) Added CLDFRC, RADSWG, RADLWG, SNOW arrays (bmy, 12/9/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -169,16 +173,16 @@
       REAL*8,  ALLOCATABLE :: TMPU2(:,:,:)
       REAL*8,  ALLOCATABLE :: T(:,:,:)
       REAL*8,  ALLOCATABLE :: TROPP(:,:)
-      REAL*8,  ALLOCATABLE :: UWND (:,:,:)
+      REAL*8,  ALLOCATABLE :: UWND(:,:,:)
       REAL*8,  ALLOCATABLE :: UWND1(:,:,:)
       REAL*8,  ALLOCATABLE :: UWND2(:,:,:)
-      REAL*8,  ALLOCATABLE :: VWND (:,:,:)
+      REAL*8,  ALLOCATABLE :: VWND(:,:,:)
       REAL*8,  ALLOCATABLE :: VWND1(:,:,:)
       REAL*8,  ALLOCATABLE :: VWND2(:,:,:)
 
       ! A-6 fields
       INTEGER, ALLOCATABLE :: CLDTOPS(:,:)
-      REAL*8,  ALLOCATABLE :: CLDF  (:,:,:)
+      REAL*8,  ALLOCATABLE :: CLDF(:,:,:)
       REAL*8,  ALLOCATABLE :: CLDMAS(:,:,:)
       REAL*8,  ALLOCATABLE :: CLMOSW(:,:,:)
       REAL*8,  ALLOCATABLE :: CLROSW(:,:,:)
@@ -194,6 +198,7 @@
 
       ! A-3 fields
       LOGICAL              :: USE_WIND_10M   ! Internal flag
+      REAL*8,  ALLOCATABLE :: CLDFRC(:,:)
       REAL*8,  ALLOCATABLE :: GWETTOP(:,:)
       REAL*8,  ALLOCATABLE :: HFLUX(:,:)
       REAL*8,  ALLOCATABLE :: PARDF(:,:)
@@ -201,13 +206,26 @@
       REAL*8,  ALLOCATABLE :: PBL(:,:)
       REAL*8,  ALLOCATABLE :: PREACC(:,:)
       REAL*8,  ALLOCATABLE :: PRECON(:,:)
+      REAL*8,  ALLOCATABLE :: RADLWG(:,:)
+      REAL*8,  ALLOCATABLE :: RADSWG(:,:)
+      REAL*8,  ALLOCATABLE :: SNOW(:,:)
       REAL*8,  ALLOCATABLE :: TS(:,:)
       REAL*8,  ALLOCATABLE :: TSKIN(:,:)
       REAL*8,  ALLOCATABLE :: U10M(:,:)
-      REAL*8,  ALLOCATABLE :: USTAR(:)  
+      !----------------------------------------------------
+      ! Prior to 12/9/03:
+      ! Now make USTAR a 2-D array (bmy, 12/9/03)
+      !REAL*8,  ALLOCATABLE :: USTAR(:)  
+      !----------------------------------------------------
+      REAL*8,  ALLOCATABLE :: USTAR(:,:)  
       REAL*8,  ALLOCATABLE :: V10M(:,:)
       REAL*8,  ALLOCATABLE :: WIND_10M(:,:)
-      REAL*8,  ALLOCATABLE :: Z0(:)
+      !----------------------------------------------------
+      ! Prior to 12/9/03:
+      ! Now make Z0 a 2-D array (bmy, 12/9/03)
+      !REAL*8,  ALLOCATABLE :: Z0(:)
+      !----------------------------------------------------
+      REAL*8,  ALLOCATABLE :: Z0(:,:)
 
       ! Computed quantities
       REAL*8,  ALLOCATABLE :: AD(:,:,:)
@@ -872,7 +890,7 @@
       SUBROUTINE MAKE_WIND10M( UWND, VWND, BXHEIGHT, Z0 )
 !
 !******************************************************************************
-!  Subroutine MAKE_WIND10M (bmy, 3/17/99, 6/26/00) creates the wind speed 
+!  Subroutine MAKE_WIND10M (bmy, 3/17/99, 12/9/03) creates the wind speed 
 !  at 10 meters altitude from GEOS-STRAT wind vectors at the center of the 
 !  first sigma level.  This is necessary since GEOS-STRAT does not store 
 !  U10M and V10M wind fields, as does GEOS-1.  
@@ -896,6 +914,7 @@
 !        "dao_mod.f"  (bmy, 6/23/00)
 !  (4 ) Updated comments (bmy, 4/4/01)
 !  (5 ) Now references routine CHECK_VALUE from "error_mod.f" (bmy, 7/16/01)
+!  (6 ) Now make Z0 a 2-D array (bmy, 12/9/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -909,7 +928,12 @@
       REAL*8, INTENT(IN) :: UWND(IIPAR,JJPAR)
       REAL*8, INTENT(IN) :: VWND(IIPAR,JJPAR)
       REAL*8, INTENT(IN) :: BXHEIGHT(IIPAR,JJPAR)
-      REAL*8, INTENT(IN) :: Z0(MAXIJ)
+      !-------------------------------------------------
+      ! Prior to 12/9/03:
+      ! Now make Z0 a 2-D array (bmy, 12/9/03)
+      !REAL*8, INTENT(IN) :: Z0(MAXIJ)
+      !-------------------------------------------------
+      REAL*8, INTENT(IN) :: Z0(IIPAR,JJPAR)
 
       ! Local variables
       REAL*8             :: WIND_50M, NUMER, DENOM
@@ -936,15 +960,23 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Loop Index for Z0
-         IJLOOP        = IJLOOP + 1
+         !-------------------------------------------------
+         ! Prior to 12/9/03:
+         !! Loop Index for Z0
+         !IJLOOP        = IJLOOP + 1
+         !-------------------------------------------------
           
          ! Wind speed at ~50 meters
          WIND_50M      = SQRT( UWND(I,J)**2 + VWND(I,J)**2 )
 
          ! Numerator and denominator of the log law expressions
-         NUMER         = LOG( 10d0 / Z0(IJLOOP) )  
-         DENOM         = LOG( ( BXHEIGHT(I,J) / 2.0d0 ) / Z0(IJLOOP) ) 
+         !----------------------------------------------------------------
+         ! Prior to 12/9/03:
+         !NUMER         = LOG( 10d0 / Z0(IJLOOP) ) 
+         !DENOM         = LOG( ( BXHEIGHT(I,J) / 2.0d0 ) / Z0(IJLOOP) ) 
+         !----------------------------------------------------------------
+         NUMER         = LOG( 10d0 / Z0(I,J) )  
+         DENOM         = LOG( ( BXHEIGHT(I,J) / 2.0d0 ) / Z0(I,J) ) 
 
          ! Wind speed at 10 m
          WIND_10M(I,J) = WIND_50M * ( NUMER / DENOM )
@@ -1255,7 +1287,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_DAO allocates memory for all allocatable module arrays. 
-!  (bmy, 6/26/00, 6/16/03)
+!  (bmy, 6/26/00, 12/9/03)
 !
 !  NOTES:
 !  (1 ) Now allocate AVGW for either NSRCX == 3 or NSRCX == 5 (bmy, 9/24/01)
@@ -1274,6 +1306,8 @@
 !  (8 ) Now order all arrays in alphabetical order.  Also added new fields
 !        for GEOS-4/fvDAS: HKBETA, HKETA, ZMEU, ZMMD, ZMMU, TSKIN, PARDF,
 !        and PARDR. (bmy, 6/25/03)
+!  (9 ) Now allocate CLDFRC, RADLWG, RADSWG, SNOW arrays.  USTAR, CLDFRC,
+!        and Z0 and RADSWG are now 2-D arrays. (bmy, 12/9/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1334,6 +1368,11 @@
       ALLOCATE( CLDF( LLPAR, IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF' )
       CLDF = 0d0
+
+      ! Added CLDFRC array (bmy, 12/9/03)
+      ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
+      CLDFRC = 0d0
 
 #if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
 
@@ -1473,6 +1512,11 @@
          RH = 0d0
       ENDIF
 
+      ! Added RADSWG (bmy, 12/9/03)
+      ALLOCATE( RADSWG( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADSWG' )
+      RADSWG = 0d0
+
 #if   defined( GEOS_3 ) || defined( GEOS_4 )
 
       ! SLP is only defined for GEOS-3 and GEOS-4
@@ -1482,6 +1526,20 @@
 
 #endif
 
+#if   defined( GEOS_4 ) 
+
+      ! RADLWG is only defined for GEOS-4 (bmy, 12/9/03)
+      ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
+      RADLWG = 0d0
+
+      ! SNOW is only defined for GEOS-4 (bmy, 12/9/03)
+      ALLOCATE( SNOW( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOW' )
+      SNOW = 0d0
+
+#endif
+   
 #if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
 
       ! SPHU1 is only defined for GEOS-1, GEOS-S, GEOS-3
@@ -1555,7 +1613,12 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'U10M' )
       U10M = 0d0
 
-      ALLOCATE( USTAR( MAXIJ ), STAT=AS )
+      !--------------------------------------------------
+      ! Prior to 12/9/03:
+      ! USTAR is now a 2-D array (bmy, 12/9/03)
+      !ALLOCATE( USTAR( MAXIJ ), STAT=AS )
+      !--------------------------------------------------
+      ALLOCATE( USTAR( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'USTAR' )
       USTAR = 0d0
 
@@ -1608,7 +1671,12 @@
 
 #endif
 
-      ALLOCATE( Z0( MAXIJ ), STAT=AS )
+      !---------------------------------------
+      ! Prior to 12/9/03:
+      ! Z0 is now a 2-D array (bmy, 12/9/03)
+      !ALLOCATE( Z0( MAXIJ ), STAT=AS )
+      !--------------------------------------
+      ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
       Z0 = 0d0
 
@@ -1640,7 +1708,7 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_DAO deallocates all met field arrays. 
-!  (bmy, 6/26/00, 6/25/03)
+!  (bmy, 6/26/00, 12/9/03)
 ! 
 !  NOTES:
 !  (1 ) Now deallocate SLP met field for GEOS-3 (bmy, 10/10/00)
@@ -1656,6 +1724,7 @@
 !        that is now obsolete. (bmy, 4/28/03)
 !  (10) Now list all arrays in order.  Now also deallocate new arrays
 !        for GEOS-4/fvDAS. (bmy, 6/25/03)
+!  (11) Now deallocate CLDFRC, RADLWG, RADSWG, SNOW arrays (bmy, 12/9/03)
 !******************************************************************************
 !
       !=================================================================
@@ -1670,6 +1739,7 @@
       IF ( ALLOCATED( AVGW     ) ) DEALLOCATE( AVGW     )
       IF ( ALLOCATED( BXHEIGHT ) ) DEALLOCATE( BXHEIGHT )
       IF ( ALLOCATED( CLDF     ) ) DEALLOCATE( CLDF     )
+      IF ( ALLOCATED( CLDFRC   ) ) DEALLOCATE( CLDFRC   )
       IF ( ALLOCATED( CLDMAS   ) ) DEALLOCATE( CLDMAS   )
       IF ( ALLOCATED( CLDTOPS  ) ) DEALLOCATE( CLDTOPS  )
       IF ( ALLOCATED( CLMOSW   ) ) DEALLOCATE( CLMOSW   )
@@ -1693,8 +1763,11 @@
       IF ( ALLOCATED( PS1      ) ) DEALLOCATE( PS1      )
       IF ( ALLOCATED( PS2      ) ) DEALLOCATE( PS2      )
       IF ( ALLOCATED( PSC2     ) ) DEALLOCATE( PSC2     )
+      IF ( ALLOCATED( RADLWG   ) ) DEALLOCATE( RADLWG   )
+      IF ( ALLOCATED( RADSWG   ) ) DEALLOCATE( RADSWG   )
       IF ( ALLOCATED( RH       ) ) DEALLOCATE( RH       )
       IF ( ALLOCATED( SLP      ) ) DEALLOCATE( SLP      )
+      IF ( ALLOCATED( SNOW     ) ) DEALLOCATE( SNOW     )
       IF ( ALLOCATED( SPHU1    ) ) DEALLOCATE( SPHU1    )
       IF ( ALLOCATED( SPHU2    ) ) DEALLOCATE( SPHU2    )
       IF ( ALLOCATED( SPHU     ) ) DEALLOCATE( SPHU     )

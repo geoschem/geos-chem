@@ -1,65 +1,128 @@
-REVISIONS (v6-01-03)  
-bmy, 02 Dec 2003
+REVISIONS (v6-01-04)  
+bmy, 10 Dec 2003
 
 
-New in v6-01-03:
+New in v6-01-04:
 ----------------------------------------------------------------------------- 
 
 
 
-Removed from v6-01-03:
+Removed from v6-01-04:
 ----------------------------------------------------------------------------- 
 
 
 
-Changed from v6-01-02:
+Changed from v6-01-03:
 -------------------------------------------------------------------------------
 
-comode.h		-- Eliminated SMALLCHEM cpp switch
+cleanup_dao		-- Now deallocate CLDFRC, RADLWG, RADSWG, SNOW arrays
+("dao_mod.f")
 
-date_string		-- Renamed LINUX to LINUX_PGI
-("time_mod.f")
+CMN_DEP			-- Comment out CFRAC, RADIAT.  These are now defined 
+			   as local variables in "drydep_mod.f".
 
-define.h		-- Renamed cpp switch "LINUX" to "LINUX_PGI"
-			-- Renamed cpp switch "INTEL_FC" to "LINUX_IFC"
-			-- Renamed cpp switch "SGI" to "SGI_MIPS"
-			-- Added cpp switch "LINUX_EFC"
-			-- Removed cpp switch SMALLCHEM
+CMN_SETUP		-- Renamed LRERD to LUNZIP
 
-dryflxRnPbBe		-- Now follow GEOS-3 algorithm for GEOS-4 model
-("drydep_mod.f")
+dao_mod.f		-- Added CLDFRC, RADSWG, RADLWG, SNOW arrays (RADSWG 
+("dao_mod.f") 		   was formerly stored in the RADIAT and CLDFRC was
+			   formerly stored in the CFRAC array of "CMN_DEP")
 
-expand_date		-- Renamed LINUX to LINUX_PGI
-("time_mod.f")
+do_drydep		-- Now declare CFRAC, RADIAT, AZO, USTAR as local 
+("drydep_mod.f")	   variables, which are returned by METERO. 
 
-finite_float		-- Renamed SGI to SGI_MIPS, LINUX to LINUX_PGI, 
-("error_mod.f")		   INTEL_FC to INTEL_IFC, and added LINUX_EFC. 
+emisop.f		-- Now pass I, J via the arg list.  
+			-- Now reference CLDFRC directly from "dao_mod.f" 
+			   instead of referencing CFRAC from "CMN_DEP"
+			-- Now remove reference to CMN_DEP 
 
-finite_dble		-- Renamed SGI to SGI_MIPS, LINUX to LINUX_PGI, 
-("error_mod.f")		   INTEL_FC to INTEL_IFC, and added LINUX_EFC. 
+emisop_grass.f		-- Now pass I, J via the arg list.  
+			-- Now reference CLDFRC directly from "dao_mod.f" 
+			   instead of referencing CFRAC from "CMN_DEP"
+			-- Now remove reference to CMN_DEP 
 
-ioerror			-- Renamed SGI to SGI_MIPS, LINUX to LINUX_PGI, 
-("file_mod.f")		   INTEL_FC to INTEL_IFC, and added LINUX_EFC. 
-			-- Renamed IBM to IBM_AIX
+emisop_mb.f		-- Now pass I, J via the arg list.  
+			-- Now reference CLDFRC directly from "dao_mod.f" 
+			   instead of referencing CFRAC from "CMN_DEP"
+			-- Now remove reference to CMN_DEP 
 
-nan_float		-- Renamed SGI to SGI_MIPS, LINUX to LINUX_PGI, 
-("error_mod.f")		   INTEL_FC to INTEL_IFC, and added LINUX_EFC. 
+emissdr.f		-- Now pass I, J to EMISOP, EMISOP_GRASS, EMISOP_MB
 
-nan_dble		-- Renamed SGI to SGI_MIPS, LINUX to LINUX_PGI, 
-("error_mod.f")		   INTEL_FC to INTEL_IFC, and added LINUX_EFC. 
+emisshcn.f		-- Now pass I, J to EMISOP
 
-read_biomass_nh3	-- Changed cpp switch name from LINUX to LINUX_PGI
-("sulfate_mod.f")
+emiss_tagged_co		-- Now pass I, J to EMISOP
+("tagged_co_mod.f") 
 
-timestamp_string	-- Renamed LINUX to LINUX_PGI
-("time_mod.f")
+get_a3_fields		-- Now save RADSWG in RADSWG array (instead of RADIAT)
+("a3_read_mod.f")	-- Now save CLDFRC in CLDFRC array (instead of CFRAC)
+			-- Now also get RADLWG, SNOW arrays
+			-- Remove reference to "CMN_DEP"
+			-- Updated comments
+	
+get_a6_fields		-- CFRAC has been removed from CMN_DEP.  
+("a6_read_mod.f") 	   Now use CLDFRC(I,J) from "dao_mod.f"
 
-tpcore			-- Added diagnostic output for LINUX_PGI, 
-("tpcore_mod.f")	   LINUX_IFC, LINUX_EFC
-			-- Renamed SGI to SGI_MIPS
+get_n_a3		-- GEOS-4/fvDAS now has 19 A-3 fields; 		
+("a3_read_mod.f")          we added LAI, RADLWG, SNOW.
+
+init_dao		-- Now allocate RADLWG, RADSWG, SNOW arrays
+("dao_mod.f")		-- USTAR, CLDFRC, Z0, RADSWG are now 2-D arrays
+
+main.f			-- Remove reference to "CMN_DEP", it's obsolete
+			-- Now bracket calls to UNZIP_A3_FIELDS, 
+			   UNZIP_A6_FIELDS, UNZIP_I6_FIELDS, UNZIP_PHIS_FIELDS
+			   with an "IF ( LUNZIP ) THEN" statement
+
+make_cldfrc		-- CLDFRC is now a 2-D array
+("a6_read_mod.f")	
+
+make_wind10m		-- Z0 is now a 2-D array
+("dao_mod.f")	
+
+met_field_debug		-- Updated for new met field definitions in "dao_mod.f"
+("main.f")
+
+metero			-- Now reference CLDFRC, RADSWG, ZO, USTAR 
+("drydep_mod.f")	   from "dao_mod.f".  
+			-- Also now pass CFRAC, RADIAT, AZO, USTR back to 
+			   the calling routine via the arg list.
+
+open_a3_fields		-- Now opens either zipped or unzipped files
+("a3_read_mod.f")
+
+open_a6_fields		-- Now opens either zipped or unzipped files
+("a6_read_mod.f")
+
+open_i6_fields		-- Now opens either zipped or unzipped files
+("i6_read_mod.f")
+
+open_phis_fields	-- Now opens either zipped or unzipped files
+("phis_read_mod.f")
+
+setup.f			-- Renamed LRERD to LUNZIP
+			-- Disable checking of GEOS_1_DIR etc directory paths
+
+read_a3			-- RADSWG and CLDFRC are now 2-D arrays
+("a3_read_mod.f")	-- Also added RADLWG and SNOW arrays via the arg list
+			-- Now skip over LAI
+
+unzip_a3_fields		-- Directory information YYYY/MM or YYYYMM is now
+("a3_read_mod.f")	   contained w/in GEOS_1_DIR, GEOS_S_DIR, GEOS_3_DIR, 
+			   GEOS_4_DIR variables
+
+unzip_a6_fields		-- Directory information YYYY/MM or YYYYMM is now
+("a6_read_mod.f")	   contained w/in GEOS_1_DIR, GEOS_S_DIR, GEOS_3_DIR, 
+			   GEOS_4_DIR variables
+
+unzip_i6_fields		-- Directory information YYYY/MM or YYYYMM is now
+("a6_read_mod.f")	   contained w/in GEOS_1_DIR, GEOS_S_DIR, GEOS_3_DIR, 
+			   GEOS_4_DIR variables
+
+unzip_phis_fields	-- Directory information YYYY/MM or YYYYMM is now
+("a6_read_mod.f")	   contained w/in GEOS_1_DIR, GEOS_S_DIR, GEOS_3_DIR, 
+			   GEOS_4_DIR variables
+
 
 ---
-diag49.f		<-- Removed obsolete, commented-out code
-diag50.f		    from the following routines
-main.f
-tpcore_bc_mod.f
+			<-- Removed obsolete, commented-out code
+			    from the following routines
+

@@ -1,10 +1,10 @@
-! $Id: i6_read_mod.f,v 1.2 2003/10/30 16:17:17 bmy Exp $
+! $Id: i6_read_mod.f,v 1.3 2003/12/11 21:54:10 bmy Exp $
       MODULE I6_READ_MOD
 !
 !******************************************************************************
 !  Module I6_READ_MOD contains subroutines that unzip, open, and read
 !  GEOS-CHEM I-6 (instantaneous 6-hr) met fields from disk. 
-!  (bmy, 6/23/03, 10/28/03)
+!  (bmy, 6/23/03, 12/11/03)
 ! 
 !  Module Routines:
 !  =========================================================================
@@ -28,6 +28,7 @@
 !  NOTES:
 !  (1 ) Adapted from "dao_read_mod.f" (bmy, 6/23/03)
 !  (2 ) Now use TIMESTAMP_STRING for formatted date/time output (bmy, 10/28/03)
+!  (3 ) Now reads either zipped or unzipped files (bmy, 12/11/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -53,7 +54,7 @@
 !  Subroutine UNZIP_I6_FIELDS invokes a FORTRAN system call to uncompress
 !  GEOS-CHEM I-6 met field files and store the uncompressed data in a 
 !  temporary directory, where GEOS-CHEM can read them.  The original data 
-!  files are not disturbed.  (bmy, bdf, 6/15/98, 6/23/03)
+!  files are not disturbed.  (bmy, bdf, 6/15/98, 12/11/03)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -62,6 +63,8 @@
 !
 !  NOTES:
 !  (1 ) Adapted from UNZIP_MET_FIELDS of "dao_read_mod.f" (bmy, 6/23/03)
+!  (2 ) Directory information YYYY/MM or YYYYMM is now contained w/in 
+!        GEOS_1_DIR, GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR (bmy, 12/11/03)
 !*****************************************************************************
 !
       ! References to F90 modules
@@ -90,7 +93,11 @@
 
          ! Location of zipped A-3 file in data dir (GEOS-1)
          I6_FILE_GZ  = TRIM( DATA_DIR )      // TRIM( GEOS_1_DIR ) // 
-     &                 'YYMM/YYMMDD.i6.'     // GET_RES_EXT()      // 
+!----------------------------------------------------------------------------
+! Prior to 12/11/03:
+!     &                 'YYMM/YYMMDD.i6.'     // GET_RES_EXT()      // 
+!----------------------------------------------------------------------------
+     &                 'YYMMDD.i6.'          // GET_RES_EXT()      // 
      &                 TRIM( ZIP_SUFFIX )
 
          ! Location of unzipped A-3 file in temp dir (GEOS-1)
@@ -106,7 +113,11 @@
 
          ! Location of zipped A-3 file in data dir (GEOS-STRAT)
          I6_FILE_GZ  = TRIM( DATA_DIR )      // TRIM( GEOS_S_DIR ) // 
-     &                 'YYMM/YYMMDD.i6.'     // GET_RES_EXT()      // 
+!-----------------------------------------------------------------------------
+! Prior to 12/11/03:
+!     &                 'YYMM/YYMMDD.i6.'     // GET_RES_EXT()      // 
+!-----------------------------------------------------------------------------
+     &                 'YYMMDD.i6.'          // GET_RES_EXT()      // 
      &                 TRIM( ZIP_SUFFIX )
 
          ! Location of unzipped A-3 file in temp dir(GEOS-STRAT)
@@ -122,7 +133,11 @@
 
          ! Location of zipped A-3 file in data dir (GEOS-3)
          I6_FILE_GZ  = TRIM( DATA_DIR )      // TRIM( GEOS_3_DIR ) // 
-     &                 'YYYYMM/YYYYMMDD.i6.' // GET_RES_EXT()      // 
+!----------------------------------------------------------------------------
+! Prior to 12/11/03:
+!     &                 'YYYYMM/YYYYMMDD.i6.' // GET_RES_EXT()      // 
+!----------------------------------------------------------------------------
+     &                 'YYYYMMDD.i6.'        // GET_RES_EXT()      // 
      &                 TRIM( ZIP_SUFFIX )
 
          ! Location of unzipped A-3 file in temp dir (GEOS-3)
@@ -138,7 +153,11 @@
 
          ! Location of zipped A-3 file in data dir (GEOS-4)
          I6_FILE_GZ  = TRIM( DATA_DIR )      // TRIM( GEOS_4_DIR ) // 
-     &                 'YYYYMM/YYYYMMDD.i6.' // GET_RES_EXT()      // 
+!----------------------------------------------------------------------------
+! Prior to 12/11/03:
+!     &                 'YYYYMM/YYYYMMDD.i6.' // GET_RES_EXT()      // 
+!----------------------------------------------------------------------------
+     &                 'YYYYMMDD.i6.'        // GET_RES_EXT()      // 
      &                 TRIM( ZIP_SUFFIX )
 
          ! Location of unzipped A-3 file in temp dir (GEOS-4)
@@ -223,15 +242,16 @@
 !
 !******************************************************************************
 !  Subroutine OPEN_I6_FIELDS opens the I-6 met fields file for date NYMD and 
-!  time NHMS. (bmy, bdf, 6/15/98, 6/23/03)
+!  time NHMS. (bmy, bdf, 6/15/98, 12/11/03)
 !  
 !  Arguments as input:
 !  ===========================================================================
-!  (1 ) NYMD (INTEGER)   : Current value of YYYYMMDD
-!  (2 ) NHMS (INTEGER)   : Current value of HHMMSS
+!  (1 ) NYMD (INTEGER) : Current value of YYYYMMDD
+!  (2 ) NHMS (INTEGER) : Current value of HHMMSS
 !
 !  NOTES:
 !  (1 ) Adapted from OPEN_MET_FIELDS of "dao_read_mod.f" (bmy, 6/13/03)
+!  (2 ) Now opens either zipped or unzipped files (bmy, 12/11/03)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -260,15 +280,65 @@
       ! Open the A-3 file 0 GMT of each day, or on the first call
       IF ( NHMS == 000000 .or. FIRST ) THEN
 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!----------------------------------------------------------------------------
+! Prior to 12/11/03:
+! Now opens either zipped or unzipped files (bmy, 12/11/03)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!
+!         ! Location of A-3 file in temp dir (GEOS-1, GEOS-S)
+!         PATH = TRIM( TEMP_DIR )  // 'YYMMDD.i6.' // GET_RES_EXT()
+!
+!#else
+!
+!         ! Location of A-3 file in temp dir (GEOS-3, GEOS-4)
+!         PATH = TRIM( TEMP_DIR )  // 'YYYYMMDD.i6.' // GET_RES_EXT()
+!
+!#endif
+!----------------------------------------------------------------------------
 
-         ! Location of A-3 file in temp dir (GEOS-1, GEOS-S)
-         PATH = TRIM( TEMP_DIR )  // 'YYMMDD.i6.' // GET_RES_EXT()
+#if   defined( GEOS_1 ) 
 
-#else
+         ! If unzipping, open GEOS-1 file in TEMP dir
+         ! If not unzipping, open GEOS-1 file in DATA dir
+         IF ( LUNZIP ) THEN
+            PATH = TRIM( TEMP_DIR ) // 'YYMMDD.i6.' // GET_RES_EXT()
+         ELSE
+            PATH = TRIM( DATA_DIR ) // TRIM( GEOS_1_DIR ) // 
+     &             'YYMMDD.i6.'     // GET_RES_EXT() 
+         ENDIF
 
-         ! Location of A-3 file in temp dir (GEOS-3, GEOS-4)
-         PATH = TRIM( TEMP_DIR )  // 'YYYYMMDD.i6.' // GET_RES_EXT()
+#elif defined( GEOS_STRAT )
+
+         ! If unzipping, open GEOS-STRAT file in TEMP dir
+         ! If not unzipping, open GEOS-STRAT file in DATA dir
+         IF ( LUNZIP ) THEN
+            PATH = TRIM( TEMP_DIR ) // 'YYMMDD.i6.' // GET_RES_EXT()
+         ELSE
+            PATH = TRIM( DATA_DIR ) // TRIM( GEOS_S_DIR ) // 
+     &             'YYMMDD.i6.'     // GET_RES_EXT() 
+         ENDIF
+
+#elif defined( GEOS_3 )
+
+         ! If unzipping, open GEOS-3 file in TEMP dir
+         ! If not unzipping, open GEOS-3 file in DATA dir
+         IF ( LUNZIP ) THEN
+            PATH = TRIM( TEMP_DIR ) // 'YYYYMMDD.i6.' // GET_RES_EXT()
+         ELSE
+            PATH = TRIM( DATA_DIR ) // TRIM( GEOS_3_DIR ) // 
+     &             'YYYYMMDD.i6.'   // GET_RES_EXT() 
+         ENDIF
+
+#elif defined( GEOS_4 )
+
+         ! If unzipping, open GEOS-4 file in TEMP dir
+         ! If not unzipping, open GEOS-4 file in DATA dir
+         IF ( LUNZIP ) THEN
+            PATH = TRIM( TEMP_DIR ) // 'YYYYMMDD.i6.' // GET_RES_EXT()
+         ELSE
+            PATH = TRIM( DATA_DIR ) // TRIM( GEOS_4_DIR ) // 
+     &             'YYYYMMDD.i6.'   // GET_RES_EXT() 
+         ENDIF
 
 #endif
 

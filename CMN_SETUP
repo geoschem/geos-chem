@@ -1,8 +1,8 @@
-! $Id: CMN_SETUP,v 1.1 2003/06/30 20:26:05 bmy Exp $
+! $Id: CMN_SETUP,v 1.2 2003/12/11 21:54:07 bmy Exp $
 !
 !******************************************************************************
 !  CMN_SETUP contains logical switches and I/O units for SETUP.F and MAIN.F.
-!  (bmy, bey, bdf, 3/3/98, 6/18/03)
+!  (bmy, bey, bdf, 3/3/98, 12/10/03)
 !
 !  NOTES:
 !  (1 ) The 'ts.out' file capability has been eliminated since the same
@@ -39,6 +39,7 @@
 !  (16) Renamed LKZZ to LTPFV to select GEOS-4/fvDAS transport or the
 !        TPCORE 7.1m for GEOS-3 winds (bmy, 4/28/03)
 !  (17) Deleted GEOS_2_DIR.  Added GEOS_4_DIR (bmy, 6/18/03)
+!  (18) Renamed LRERD to LUNZIP (bmy, 12/10/03)
 !******************************************************************************
 !
       !=================================================================
@@ -54,7 +55,7 @@
       ! LWETD    : on/off switch for WET DEPOSITION  
       ! LDBUG    : *** NOW OBSOLETE ***
       ! LDIAG    : *** NOW OBSOLETE ***
-      ! LRERD    : on/off switch for rereading met field data
+      ! LUNZIP   : on/off switch for unzipping met field data
       ! LMFCT    : Argument for TPCORE (transport)
       ! LFILL    : Argument for TPCORE (transport)
       ! LWAIT    : on/off switch for unzipping met fields in foreground
@@ -65,14 +66,14 @@
       ! LSPLIT   : on/off switch for using tagged tracers
       ! LMONOT   : on/off switch for scaling MONOTERPENES from ACET
       !=================================================================
-      LOGICAL                                                           &
-     &   LEMIS,  LDRYD,   LCHEM,  LTRAN,   LTPFV,  LTURB,  LCONV,       &
-     &   LWETD,  LDBUG,   LDIAG,  LRERD,   LSVGLB, LMFCT,  LFILL,       &
+      LOGICAL                                                           
+     &   LEMIS,  LDRYD,   LCHEM,  LTRAN,   LTPFV,  LTURB,  LCONV,       
+     &   LWETD,  LDBUG,   LDIAG,  LUNZIP,  LSVGLB, LMFCT,  LFILL,       
      &   LWAIT,  LTOMSAI, LBBSEA, LSTDRUN, LSULF,  LSPLIT, LMONOT
 
-      COMMON /LFLAGS/                                                   &
-     &   LEMIS,  LDRYD,   LCHEM,  LTRAN,   LTPFV,  LTURB,  LCONV,       &
-     &   LWETD,  LDBUG,   LDIAG,  LRERD,   LSVGLB, LMFCT,  LFILL,       &
+      COMMON /LFLAGS/                                                   
+     &   LEMIS,  LDRYD,   LCHEM,  LTRAN,   LTPFV,  LTURB,  LCONV,       
+     &   LWETD,  LDBUG,   LDIAG,  LUNZIP,  LSVGLB, LMFCT,  LFILL,       
      &   LWAIT,  LTOMSAI, LBBSEA, LSTDRUN, LSULF,  LSPLIT, LMONOT
 
       !=================================================================

@@ -1,9 +1,9 @@
-! $Id: tagged_co_mod.f,v 1.3 2003/11/06 21:07:19 bmy Exp $
+! $Id: tagged_co_mod.f,v 1.4 2003/12/11 21:54:12 bmy Exp $
       MODULE TAGGED_CO_MOD
 !
 !******************************************************************************
 !  Module TAGGED_CO_MOD contains variables and routines used for the 
-!  geographically tagged CO simulation. (bmy, 7/28/00, 6/30/03)
+!  geographically tagged CO simulation. (bmy, 7/28/00, 12/9/03)
 !
 !  Module Variables:
 !  ============================================================================
@@ -109,6 +109,7 @@
 !  (21) Now references "grid_mod.f" and the new "time_mod.f". (bmy, 2/3/03)
 !  (22) Bug fix for NTAU in EMISS_TAGGED_CO.  Bug fix for FILENAME in routine
 !        READ_PCO_LCO_STRAT. (ave, bnd, bmy, 6/3/03)
+!  (23) Updated arg list in call to EMISOP in EMISS_TAGGED_CO (bmy, 12/9/03)
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -344,7 +345,7 @@
 !
 !******************************************************************************
 !  Subroutine EMISS_TAGGED_CO reads in CO emissions for the Tagged CO run
-!  (bey, bdf, bnd, bmy, 7/21/00, 6/10/03)
+!  (bey, bdf, bnd, bmy, 7/21/00, 12/9/03)
 !
 !  NOTES:
 !  (1 ) Adapted from "emiss_co.f" (bmy, 7/2100)
@@ -384,6 +385,7 @@
 !        call to GET_IHOUR. Now use functions GET_XOFFSET, GET_YOFFSET from
 !        "grid_mod.f".  I0 and J0 are now local variables. (bmy, 2/11/03)
 !  (15) Bug fix: NTAU should be the integer value of TAU (bmy, 6/10/03)
+!  (16) Now pass I, J to EMISOP (bmy, 12/9/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -689,7 +691,11 @@
       
             ! ISOP and MONOTERPENE emissions in [atoms C/box/time step] 
             ! SUNCOS is COSINE( solar zenith angle ) 
-            EMXX = EMISOP( IJLOOP, SUNCOS, TMMP, XNUMOL_ISOP ) 
+            !----------------------------------------------------------------
+            ! Prior to 12/9/03:
+            !EMXX = EMISOP( IJLOOP, SUNCOS, TMMP, XNUMOL_ISOP ) 
+            !----------------------------------------------------------------
+            EMXX = EMISOP( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_ISOP ) 
             EMMO = EMMONOT( IJLOOP, TMMP, XNUMOL_MONO )
 
             ! Store ISOP and MONOTERPENE emissions [atoms C/box/time step]

@@ -1,10 +1,10 @@
-! $Id: emissco.f,v 1.1 2003/06/30 20:26:04 bmy Exp $
+! $Id: emissco.f,v 1.2 2003/12/11 21:54:10 bmy Exp $
       SUBROUTINE EMISSCO( FIRSTEMISS, NSEASON, LMN, SUNCOS ) 
 ! 
 !******************************************************************************
 !  Subroutine EMISSCO reads CO emissions routine for the CO simulation
 !  with parameterized OH.  EMISSCO is based on subroutine "emissdr.f".
-!  (bey, 02/02/99, bnd & bmy, 9/13/00, 1/13/03)
+!  (bey, 02/02/99, bnd & bmy, 9/13/00, 12/9/03)
 !
 !  NOTES:
 !  (1 ) STT should be referenced (I,J,L,N) and not (IREF,JREF,L,N),
@@ -39,6 +39,7 @@
 !  (18) Now reference BXHEIGHT from "dao_mod.f".  Also references IDBCO and
 !        IDBFCO from "tracerid_mod.f".  Now do not let SCALEYEAR exceed 1998 
 !        for the fossil fuel scaling. (bmy, 1/13/03)
+!  (19) Now pass I, J to EMISOP (bmy, 12/9/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -527,7 +528,11 @@ cbnd
             TMMP = XLTMMP(I,J,IJLOOP)
 
             ! EMXX = atoms C/box/time step from Isoprene
-            EMXX = EMISOP( IJLOOP, SUNCOS, TMMP, XNUMOL_C ) 
+            !----------------------------------------------------------
+            ! Prior to 12/9/03:
+            !EMXX = EMISOP( IJLOOP, SUNCOS, TMMP, XNUMOL_C ) 
+            !----------------------------------------------------------
+            EMXX = EMISOP( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C ) 
 
             ! Sum isoprene emissions for use in SR CO_fromHCs.  
             ! Units are [atoms C/box/time step].

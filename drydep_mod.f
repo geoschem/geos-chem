@@ -1,9 +1,9 @@
-! $Id: drydep_mod.f,v 1.5 2003/12/05 21:14:00 bmy Exp $
+! $Id: drydep_mod.f,v 1.6 2003/12/11 21:54:09 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
 !  Module DRYDEP_MOD contains variables and routines for the GEOS-CHEM dry
-!  deposition scheme. (bmy, 1/27/03, 12/2/03)
+!  deposition scheme. (bmy, 1/27/03, 12/9/03)
 !
 !  Module Variables:
 !  ============================================================================
@@ -113,6 +113,7 @@
 !        from being depleted in the shallow GEOS-3 surface layer.  
 !        (rjp, bmy, 7/21/03)
 !  (5 ) Bug fix for GEOS-4 in DRYFLXRnPbBe (bmy, 12/2/03)
+!  (6 ) Now made CFRAC, RADIAT local variables in DO_DRYDEP (bmy, 12/9/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -184,7 +185,7 @@
 !  Subroutine DO_DRYDEP is the driver for the GEOS-CHEM dry deposition scheme.
 !  DO_DRYDEP calls DEPVEL to compute deposition velocities [m/s], which are 
 !  then converted to [cm/s].  Drydep frequencies are also computed.  
-!  (lwh, gmg, djj, 1989, 1994; bmy, 2/11/03, 7/21/03)
+!  (lwh, gmg, djj, 1989, 1994; bmy, 2/11/03, 12/9/03)
 !
 !  DAO met fields passed via "dao_mod.f":
 !  ============================================================================
@@ -198,11 +199,13 @@
 !  Other important quantities:
 !  ============================================================================
 !  (1 ) LSNOW   (LOGICAL) : Array to flag whether there is snow/ice on the sfc.
-!  (2 ) CZ1     (REAL*8 ) : Midpoint height of first model level        [m]
-!  (3 ) OBK     (REAL*8 ) : Array for Monin-Obhukov Length              [m]
-!  (4 ) TC0     (REAL*8 ) : Array for grid box surface temperature      [K]
-!  (5 ) ZH      (REAL*8 ) : Array for PBL heights at each grid box      [m]
-!  (6 ) DVEL    (REAL*8 ) : Array containing drydep velocities          [m/s]
+!  (2 ) CZ1     (REAL*8 ) : Midpoint height of first model level     [m]
+!  (3 ) OBK     (REAL*8 ) : Array for Monin-Obhukov Length           [m]
+!  (4 ) TC0     (REAL*8 ) : Array for grid box surface temperature   [K]
+!  (5 ) ZH      (REAL*8 ) : Array for PBL heights at each grid box   [m]
+!  (6 ) DVEL    (REAL*8 ) : Array containing drydep velocities       [m/s]
+!  (7 ) CFRAC   (REAL*8 ) : Array containing column cloud frac       [unitless]
+!  (8 ) RADIAT  (REAL*8 ) : Array containing solar radiation         [W/m2]
 !
 !  References (see full citations above):
 !  ============================================================================
@@ -219,11 +222,19 @@
 !  (2 ) Now make sure that the PBL depth (THIK) is greater than or equal to 
 !        the thickness of the first layer.  Now initialize PBLFRAC array on
 !        each call. (rjp, bmy, 7/21/03)
+!  (3 ) Now declare CFRAC, RADIAT, AZO, USTAR as local variables, which are 
+!        returned by METERO.  CFRAC and RADIAT have also been deleted from 
+!        "CMN_DEP". (bmy, 12/9/03)
 !******************************************************************************
 !
       ! Reference to F90 modules
       USE DIAG_MOD,     ONLY : AD44
-      USE DAO_MOD,      ONLY : AD, ALBD, AZO=>Z0, SUNCOS, T, USTAR
+      !--------------------------------------------------------------
+      ! Prior to 12/9/03:
+      ! Now declare AZO and USTAR as local variables
+      !USE DAO_MOD,      ONLY : AD, ALBD, AZO=>Z0, SUNCOS, T, USTAR
+      !--------------------------------------------------------------
+      USE DAO_MOD,      ONLY : AD, ALBD, SUNCOS, T
       USE ERROR_MOD,    ONLY : DEBUG_MSG
       USE PRESSURE_MOD, ONLY : GET_PEDGE
       USE TRACERID_MOD
@@ -231,15 +242,18 @@
 #     include "CMN_SIZE" ! Size parameters
 #     include "CMN"      ! XTRA2
 #     include "CMN_DIAG" ! ND44
-#     include "CMN_DEP"  ! IREG, ILAND, IUSE, CFRAC, RADIAT, etc.
+#     include "CMN_DEP"  ! IREG, ILAND, IUSE, etc.
 
       ! Local variables
       LOGICAL, SAVE     :: FIRST = .TRUE.
       LOGICAL           :: LSNOW(MAXIJ)
       INTEGER           :: I, J, L, N, M, IJLOOP, LAYBOT, NN, NDVZ
       REAL*8            :: PS, X25, RESIDU, P1, P2, THIK, DVZ, PL1, PL2 
-      REAL*8            :: HEIGHT(LLPAR),      CZ1(MAXIJ), TC0(MAXIJ)  
-      REAL*8            :: DVEL(MAXIJ,MAXDEP), ZH(MAXIJ),  OBK(MAXIJ)
+      REAL*8            :: HEIGHT(LLPAR),  CZ1(MAXIJ) 
+      REAL*8            :: TC0(MAXIJ),     DVEL(MAXIJ,MAXDEP)
+      REAL*8            :: ZH(MAXIJ),      OBK(MAXIJ)
+      REAL*8            :: CFRAC(MAXIJ),   RADIAT(MAXIJ)
+      REAL*8            :: USTAR(MAXIJ),   AZO(MAXIJ)
 
       !=================================================================
       ! DO_DRYDEP begins here!
@@ -252,8 +266,8 @@
          FIRST = .FALSE.
       ENDIF
  
-      ! Call METERO to obtain CZ1, TC0, OBK fields
-      CALL METERO( CZ1, TC0, OBK )
+      ! Call METERO to obtain meterological fields (all 1-D arrays)
+      CALL METERO( CZ1, TC0, OBK, CFRAC, RADIAT, AZO, USTAR )
 
       !=================================================================
       ! Compute mixing heights
@@ -457,17 +471,21 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE METERO( CZ1, TC0, OBK )
+      SUBROUTINE METERO( CZ1, TC0, OBK, CFRAC, RADIAT, AZO, USTR )
 !
 !******************************************************************************
 !  Subroutine METERO calculates meteorological constants needed for the      
-!  dry deposition velocity module. (lwh, gmg, djj, 1989, 1994; bmy, 11/21/02)
+!  dry deposition velocity module. (lwh, gmg, djj, 1989, 1994; bmy, 12/9/03)
 !
 !  Arguments as Output:
 !  ============================================================================
-!  (1 ) CZ1 (REAL*8) : Midpoint height of first model level   [m]
-!  (2 ) TC0 (REAL*8) : Array for grid box surface temperature [K]
-!  (3 ) OBK (REAL*8) : Array for the Monin-Obhukov length     [m]
+!  (1 ) CZ1    (REAL*8) : Midpoint height of first model level   [m]
+!  (2 ) TC0    (REAL*8) : Array for grid box surface temperature [K]
+!  (3 ) OBK    (REAL*8) : Array for the Monin-Obhukov length     [m]
+!  (4 ) CFRAC  (REAL*8) : Array for the column cloud fraction    [unitless]
+!  (5 ) RADIAT (REAL*8) : Array for the solar radiation @ ground [W/mw]
+!  (6 ) AZO    (REAL*8) : Array for the roughness heights        [m]
+!  (7 ) USTR   (REAL*8) : Array for the friction velocity        [m/s]
 !
 !  References (see full citations above):
 !  ============================================================================
@@ -480,10 +498,14 @@
 !         documentation header.  Now force double precision with "D" 
 !         exponents.  Now compute OBK here as well.  Bundled into F90 module
 !         "drydep_mod.f" (bmy, 11/20/02)
+!  (2 ) Now reference CLDFRC, RADSWG, ZO, USTAR from "dao_mod.f".  Also now 
+!         pass CFRAC, RADIAT, AZO, USTR back to the calling routine 
+!         via the arg list. (bmy, 12/9/03)
 !******************************************************************************
 !
       ! References to F90 modules 
-      USE DAO_MOD,      ONLY : AIRDEN, HFLUX, T, TS, USTAR
+      USE DAO_MOD,      ONLY : AIRDEN, CLDFRC, HFLUX, RADSWG,
+     &                         T,      TS,     USTAR, Z0
       USE PRESSURE_MOD, ONLY : GET_PEDGE
                                   
 #     include "CMN_SIZE"  ! Size parameters
@@ -493,6 +515,10 @@
       REAL*8, INTENT(OUT) :: CZ1(MAXIJ)
       REAL*8, INTENT(OUT) :: TC0(MAXIJ)
       REAL*8, INTENT(OUT) :: OBK(MAXIJ)
+      REAL*8, INTENT(OUT) :: CFRAC(MAXIJ)
+      REAL*8, INTENT(OUT) :: RADIAT(MAXIJ)
+      REAL*8, INTENT(OUT) :: AZO(MAXIJ)
+      REAL*8, INTENT(OUT) :: USTR(MAXIJ)
 
       ! Local variables
       INTEGER             :: I,  J,  IJLOOP
@@ -541,8 +567,13 @@
          !=================================================================
 
          ! Numerator
-         NUM = -AIRDEN(1,I,J) *  CP            * TS(I,J) * 
-     &          USTAR(IJLOOP) *  USTAR(IJLOOP) * USTAR(IJLOOP)
+         NUM = -AIRDEN(1,I,J) *  CP            * TS(I,J) *
+!-------------------------------------------------------------------------- 
+! Prior to 12/9/03:
+! USTAR is now a 2-D array (bmy, 12/9/03)
+!     &          USTAR(IJLOOP) *  USTAR(IJLOOP) * USTAR(IJLOOP)
+!-------------------------------------------------------------------------- 
+     &          USTAR(I,J)    *  USTAR(I,J)    * USTAR(I,J)
 
          ! Denominator
          DEN =  KAPPA * g0 * HFLUX(I,J) 
@@ -553,6 +584,22 @@
          ELSE
             OBK(IJLOOP) = 1.0d5
          ENDIF
+
+         !=================================================================
+         ! Return meterological quantities as 1-D arrays for DEPVEL
+         !=================================================================
+
+         ! Roughness height [m]
+         AZO(IJLOOP)    = Z0(I,J)
+
+         ! Column cloud fraction [unitless]
+         CFRAC(IJLOOP)  = CLDFRC(I,J)
+
+         ! Solar insolation @ ground [W/m2]
+         RADIAT(IJLOOP) = RADSWG(I,J) 
+         
+         ! Friction velocity [m/s]
+         USTR(IJLOOP)   = USTAR(I,J)
 
       ENDDO
       ENDDO
