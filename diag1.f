@@ -1,4 +1,4 @@
-! $Id: diag1.f,v 1.3 2004/05/25 15:56:03 bmy Exp $
+! $Id: diag1.f,v 1.4 2004/05/25 18:02:43 bmy Exp $
       SUBROUTINE DIAG1 
 !
 !******************************************************************************
@@ -67,7 +67,9 @@
 !       (I,J,L)    L(NO3) by DMS                               [kg NO3]
 !       (I,J,L)    L(H2O2)                                     [kg H2O2]
 !
-!  ND06           SOURCES OF BLACK CARBON & ORGANIC CARBON    
+!  ND06  (I,J)    DESERT DUST EMISSIONS                        [kg]
+!
+!  ND07           SOURCES OF BLACK CARBON & ORGANIC CARBON    
 !       (I,J)      BLACK CARBON from anthro sources            [kg]
 !       (I,J)      BLACK CARBON from biomass burning           [kg]
 !       (I,J)      BLACK CARBON from biofuels                  [kg]
@@ -77,8 +79,6 @@
 !       (I,J)      ORGANIC CARBON from biofuels                [kg]
 !       (I,J)      ORGANIC CARBON from biogenic sources        [kg]
 !       (I,J)      Hydrophilic OC from Hydrophobic OC          [kg]
-!
-!  ND07  (I,J)    DESERT DUST EMISSIONS                        [kg]
 !
 !  ND08  (I,J)    SEA SALT EMISSIONS                           [kg] 
 !
