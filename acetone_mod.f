@@ -1,9 +1,9 @@
-! $Id: acetone_mod.f,v 1.1 2003/06/30 20:26:07 bmy Exp $
+! $Id: acetone_mod.f,v 1.2 2004/03/17 15:39:27 bmy Exp $
       MODULE ACETONE_MOD
 !
 !******************************************************************************
 !  F90 module ACETONE_MOD contains subroutines to emit the biogenic flux of
-!  acetone into the full chemistry simulation (bdf, bmy, 9/18/01, 5/16/03)
+!  acetone into the full chemistry simulation (bdf, bmy, 9/18/01, 3/15/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -53,6 +53,8 @@
 !  (12) Minor modifications to READ_JO1D, READ_RESP (bmy, 3/14/03)
 !  (13) Add surface area scale factor for ocean source for 1x1 nested
 !        grids.  (yxw, bmy, 5/16/03)
+!  (14) Scale ACET ocean source to Jacob et al 2002 for GEOS-4, and now
+!        account for surface area ratio for all GEOS grids. (bmy, 3/15/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -270,7 +272,7 @@
 !
 !******************************************************************************
 !  Subroutine OCEAN_SOURCE_ACET specifies the ocean source of acetone.
-!  (bdf, bmy, 9/12/01, 5/16/03)
+!  (bdf, bmy, 9/12/01, 3/15/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -304,6 +306,8 @@
 !        Remove reference to CMN header file. (bmy, 2/11/03)
 !  (9 ) Apply surface area scale factor for 1x1 nested grids, in order to
 !        make the total ocean source the same as for 4x5. (yxw, bmy, 5/16/03)
+!  (10) Scale the ocean source to Jacob et al 2002 for GEOS-4.  Also account
+!        for surface area ratio for all GEOS grids. (bmy, 3/15/04)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -340,13 +344,80 @@
       REAL*8,  EXTERNAL      :: SFCWINDSQR
 
       !=================================================================
-      ! OCEAN_SOURCE_ACET begins here!
+      ! Since the algorithm below was developed for the 4x5 GEOS-STRAT
+      ! model, we need to scale the emissions to the A Posterioris in 
+      ! Jacob et al 2002.  Define a further scale factor below.
       !
-      ! Define some variables
+      ! This scaling is necessary in order (1) to account for variations
+      ! in surface temperature and wind speed between the different
+      ! GEOS met field versions and (2) to account for the different
+      ! surface areas between the 1x1, 2x2.5 and 4x5 grid boxes.
+      ! 
+      ! Model  Res   ACET Produced    Target        Scale factor  
+      ! ----------------------------------------------------------------
+      ! GEOS-4 4x5   19.0973 Tg C   16.74 Tg C  16.74/19.0973 = 0.8765
+      ! GEOS-4 2x25  80.2888 Tg C   16.74 Tg C  16.74/80.2888 = 0.2085
+      ! GEOS-3 4x5   20.16   Tg C   16.74 Tg C  16.74/20.16   = 0.83
+      ! GEOS-3 2x25  80.76   Tg C   16.74 Tg C  16.74/80.76   = 0.2075
+      ! GEOS-3 1x1                                            = 0.05
+      ! GEOS-S 2x25                                           = 0.25
+      ! GEOS-1 2x25                                           = 0.25
+      !
       !=================================================================
-      DTSRCE   = GET_TS_EMIS() * 60d0 ! Emission timestep in seconds
-      FOCEAN   = 1d0 - FRCLND(I,J)    ! Fraction of (I,J) that is ocean
-      AREA_CM2 = GET_AREA_CM2( J )    ! Area of grid box (I,J) in cm^2
+#if   defined( GEOS_4 ) && defined( GRID4x5 )
+
+      ! GEOS-4 4x5 
+      REAL*8, PARAMETER :: SCALE_FACTOR = 0.8765d0
+
+#elif defined( GEOS_4 ) && defined( GRID2x25 )
+
+      ! GEOS-4 2 x 2.5 (accounts for 2x2.5 surface area)
+      REAL*8, PARAMETER :: SCALE_FACTOR = 0.2085d0
+
+#elif  defined( GEOS_3 ) && defined( GRID4x5 )
+
+      ! GEOS-3 4x5 (accounts for higher surface temp in GEOS-3)
+      REAL*8, PARAMETER :: SCALE_FACTOR = 0.83d0
+
+#elif defined( GEOS_3 ) && defined( GRID2x25 )
+
+      ! GEOS-3 2 x 2.5 (also accounts for 2x2.5 surface area)
+      REAL*8, PARAMETER :: SCALE_FACTOR = 0.2075d0
+
+#elif defined( GEOS_3 ) && defined( GRID1x1 )
+
+      ! GEOS-3 1 x 1 (accounts for 1x1 surface area)
+      REAL*8, PARAMETER :: SCALE_FACTOR = 0.05d0
+
+#elif defined( GEOS_STRAT ) && defined( GRID2x25 )
+
+      ! GEOS-STRAT 2 x 2.5 (accounts for 2x2.5 surface area)
+      REAL*8, PARAMETER :: SCALE_FACTOR = 0.25d0
+
+#elif defined( GEOS_1 ) && defined( GRID2x25 )
+      
+      ! GEOS-1 2 x 2.5 (accounts for 2x2.5 surface area)
+      REAL*8, PARAMETER :: SCALE_FACTOR = 0.25d0
+
+#else
+      
+      ! Otherwise set to 1
+      REAL*8, PARAMETER :: SCALE_FACTOR = 1d0
+
+#endif
+
+      !=================================================================
+      ! OCEAN_SOURCE_ACET begins here!
+      !=================================================================
+
+      ! Emission timestep in seconds
+      DTSRCE   = GET_TS_EMIS() * 60d0 
+
+      ! Fraction of (I,J) that is ocean
+      FOCEAN   = 1d0 - FRCLND(I,J)    
+
+      ! Area of grid box (I,J) in cm^2
+      AREA_CM2 = GET_AREA_CM2( J )    
 
       !=================================================================
       ! Compute ocean source by Henry's law
@@ -415,21 +486,11 @@
          !  time step                                          time step
          !==============================================================
          OCEAN_ACET = OCEAN_SCALE * JO1D(I,J) * KKL * FOCEAN 
-
-#if   defined( GEOS_3 ) 
-         ! NOTE: since the surface temperatures in GEOS-3 are slightly
-         ! higher than in GEOS-1 or GEOS-STRAT, the ocean source will 
-         ! also be higher.  We need to apply a scale factor of 0.83 in 
-         ! order to match Jacob et al 2002. (bdf, bmy, 9/16/02)
-         OCEAN_ACET = OCEAN_ACET * 0.83d0
-#endif
-
-#if   defined( GRID1x1 )
-         ! For 1x1 nested grids, we need to scale by the ratio of the
-         ! 1x1 grid box surface area to the 4x5 grid box surface area.
-         ! (yxw, bmy, 5/16/03)
-         OCEAN_ACET = OCEAN_ACET * 0.05d0
-#endif
+         
+         ! Apply further scale factor to account for variations in surface 
+         ! temperature wind speed between GEOS met fields -- and also 
+         ! surface area between 1x1, 2x2.5, and 4x5 grids. (bmy, 3/15/04)
+         OCEAN_ACET = OCEAN_ACET * SCALE_FACTOR
 
       ELSE
 

@@ -1,5 +1,5 @@
 REVISIONS (v6-01-05)  
-bmy, 08 Mar 2004
+bmy, 17 Mar 2004
 
 
 New in v6-01-05:
@@ -91,6 +91,11 @@ nfcldmx			-- Make sure that K does not go out of bounds
 			-- Now make F a 4-D array, so we don't have to hold 
 			   it PRIVATE.  This prevents memory problems on the 
 			   Altix 
+
+ocean_source_acet       -- Scale the ocean source to Jacob et al 2002 for 
+("acetone_mod.f")          GEOS-4.  
+			-- Also account for surface area ratio for all 
+			   GEOS grids.
 
 open_a3_fields		-- Now skips past the GEOS-4 ident string
 ("a3_read_mod.f")
