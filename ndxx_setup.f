@@ -1,9 +1,9 @@
-! $Id: ndxx_setup.f,v 1.4 2004/03/05 21:15:41 bmy Exp $
+! $Id: ndxx_setup.f,v 1.5 2004/03/18 21:22:04 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
 !  NDXX_SETUP dynamically allocates memory for certain diagnostic arrays that 
-!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 2/2604)
+!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 3/18/04)
 !
 !  This allows us to reduce the amount of memory that needs to be declared 
 !  globally.  We only allocate memory for arrays if the corresponding 
@@ -91,8 +91,9 @@
 !  (41) Now also allocate AD13_NH3_na array for ND13 (rjp, bmy, 3/23/03)
 !  (42) Added ND03 diagnostic for Kr85 prod/loss.  Also removed special case
 !        TRCOFFSET for single-tracer Ox. (jsw, bmy, 8/20/03)
-!  (43) Now use GET_WETDEP_NMAX to get max # of soluble tracers for ND37.
-!        Also set NFAM=NTRACE+5 for Tagged CO simulation. (bmy, 2/26/04)
+!  (43) Now use GET_WETDEP_NMAX to get max # of soluble tracers for ND37,
+!        ND18, and ND19.  Also set NFAM=NTRACE+5 for Tagged CO simulation. 
+!        (bmy, 3/18/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -345,10 +346,17 @@
       IF ( ND17 > 0 ) THEN
          LD17 = MIN( ND17, LLPAR )
 
-         ! Rn-Pb-Be simulation has 2 soluble tracers
-         ! Full chemistry simulation has 4 soluble tracers 
-         IF ( NSRCX == 1 ) NMAX = 2
-         IF ( NSRCX == 3 ) NMAX = PD17
+         !----------------------------------------------------------------
+         ! Prior to 3/18/04:
+         ! Bug fix: Now call GET_WETDEP_NMAX to get # of soluble tracers
+         !! Rn-Pb-Be simulation has 2 soluble tracers
+         !! Full chemistry simulation has 4 soluble tracers 
+         !IF ( NSRCX == 1 ) NMAX = 2
+         !IF ( NSRCX == 3 ) NMAX = PD17
+         !----------------------------------------------------------------
+
+         ! Get max # of soluble tracers for this simulation
+         NMAX = GET_WETDEP_NMAX( NSRCX )
 
          ! Store both LS and convective rainout fractions
          ALLOCATE( AD17( IIPAR, JJPAR, LD17, NMAX, 2 ), STAT=AS ) 
@@ -366,10 +374,17 @@
       IF ( ND18 > 0 ) THEN
          LD18 = MIN( ND18, LLPAR )
 
-         ! Rn-Pb-Be simulation has 2 soluble tracers
-         ! Full chemistry simulation has 4 soluble tracers 
-         IF ( NSRCX == 1 ) NMAX = 2
-         IF ( NSRCX == 3 ) NMAX = PD40
+         !--------------------------------------------------------------
+         ! Prior to 3/18/04:
+         ! Bug fix: Mow call GET_WETDEP_NMAX to get # of soluble tracers
+         !! Rn-Pb-Be simulation has 2 soluble tracers
+         !! Full chemistry simulation has 4 soluble tracers 
+         !IF ( NSRCX == 1 ) NMAX = 2
+         !IF ( NSRCX == 3 ) NMAX = PD40
+         !--------------------------------------------------------------
+
+         ! Get max # of soluble tracers for this simulation
+         NMAX = GET_WETDEP_NMAX( NSRCX )
 
          ! Store both LS and convective rainout fractions         
          ALLOCATE( AD18( IIPAR, JJPAR, LD18, NMAX, 2 ), STAT=AS) 

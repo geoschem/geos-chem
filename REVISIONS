@@ -1,5 +1,5 @@
 REVISIONS (v6-01-05)  
-bmy, 17 Mar 2004
+bmy, 18 Mar 2004
 
 
 New in v6-01-05:
@@ -82,8 +82,8 @@ lightning.f		-- Scale GEOS-4 lightning NOx to 6 Tg N/yr
 
 lightdist.f		-- Bug fix: add GEOS_4 to the #if block
 
-ndxx_setup.f		-- Now use GET_WETDEP_NMAX to get max # of 
-			   soluble tracers for ND37 diagnostic
+ndxx_setup.f		-- Now use GET_WETDEP_NMAX to get max # of soluble 
+			   tracers for ND37, ND18, and ND19.  
 			-- Also set NFAM=NTRACE+5 for Tagged CO simulation
 
 nfcldmx			-- Make sure that K does not go out of bounds
