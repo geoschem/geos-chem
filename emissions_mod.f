@@ -1,4 +1,4 @@
-! $Id: emissions_mod.f,v 1.9 2005/02/10 19:53:25 bmy Exp $
+! $Id: emissions_mod.f,v 1.10 2005/02/15 17:48:19 bmy Exp $
       MODULE EMISSIONS_MOD
 !
 !******************************************************************************
@@ -68,7 +68,8 @@
 !        EMISS_EPA_NEI from "epa_nei_mod.f" (bmy, 11/5/04)
 !  (7 ) Now calls EMISSMERCURY from "mercury_mod.f" (eck, bmy, 12/7/04)
 !  (8 ) Now calls EMISSSULFATE if LCRYST=T.  Also read EPA/NEI emissions for
-!        the offline sulfate simulation. (cas, bmy, 1/10/05).
+!        the offline sulfate simulation.  Also call EMISS_EPA_NEI for the
+!        tagged CO simulation. (cas, bmy, stu, 1/10/05).
 !******************************************************************************
 !
       ! References to F90 modules
@@ -135,6 +136,9 @@
          CALL EMISSHCN
 
       ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
+
+         ! Read EPA/NEI99 emissions once per month
+         IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
 
          ! Tagged CO
          CALL EMISS_TAGGED_CO
