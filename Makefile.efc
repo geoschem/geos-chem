@@ -1,6 +1,6 @@
-# $Id: Makefile.efc,v 1.1 2003/12/05 21:13:55 bmy Exp $
+# $Id: Makefile.efc,v 1.2 2004/01/27 21:25:03 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for LINUX/EFC compiler (bmy, Thu Nov  6 12:14:09 2003)
+# GEOS-CHEM Makefile for LINUX/EFC compiler (bmy, Tue Jan 27 14:37:56 2004)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -257,7 +257,7 @@ tpcore_window_mod.o       \
 transport_mod.o           \
 upbdflx_mod.o             \
 chemistry_mod.o           \
-emissions_mod.o
+emissions_mod.o 
 
 SJ =                      \
 findxsect.o               \
@@ -331,8 +331,8 @@ VTRI0.o                    : VTRI0.f
 XSEC1D.o                   : XSEC1D.f                   cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 XSECO2.o                   : XSECO2.f                   cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 XSECO3.o                   : XSECO3.f                   cmn_fj.h CMN_SIZE define.h jv_cmn.h 
-a3_read_mod.o              : a3_read_mod.f              CMN_DEP CMN_DIAG CMN_SETUP CMN_SIZE define.h 
-a6_read_mod.o              : a6_read_mod.f              CMN_DEP CMN_DIAG CMN_SETUP CMN_SIZE define.h 
+a3_read_mod.o              : a3_read_mod.f              CMN_DIAG CMN_SETUP CMN_SIZE define.h 
+a6_read_mod.o              : a6_read_mod.f              CMN_DIAG CMN_SETUP CMN_SIZE define.h 
 acetone_mod.o              : acetone_mod.f              CMN_DEP CMN_DIAG CMN_MONOT CMN_SETUP CMN_SIZE define.h 
 aircraft_nox_mod.o         : aircraft_nox_mod.f         CMN CMN_DIAG CMN_NOX CMN_SETUP CMN_SIZE define.h 
 airmas.o                   : airmas.f                   
@@ -383,9 +383,9 @@ diffuse.o                  : diffuse.f
 drydep_mod.o               : drydep_mod.f               CMN CMN_DEP CMN_DIAG CMN_GCTM CMN_SETUP CMN_SIZE define.h CMN_VEL commsoil.h comode.h 
 emf_scale.o                : emf_scale.f                CMN CMN_O3 CMN_SIZE define.h comode.h 
 emfossil.o                 : emfossil.f                 CMN CMN_DIAG CMN_O3 CMN_SIZE define.h comode.h 
-emisop.o                   : emisop.f                   CMN_DEP CMN_ISOP CMN_SIZE define.h CMN_VEL 
-emisop_grass.o             : emisop_grass.f             CMN_DEP CMN_ISOP CMN_SIZE define.h CMN_VEL 
-emisop_mb.o                : emisop_mb.f                CMN_DEP CMN_ISOP CMN_SIZE define.h CMN_VEL 
+emisop.o                   : emisop.f                   CMN_ISOP CMN_SIZE define.h CMN_VEL 
+emisop_grass.o             : emisop_grass.f             CMN_ISOP CMN_SIZE define.h CMN_VEL 
+emisop_mb.o                : emisop_mb.f                CMN_ISOP CMN_SIZE define.h CMN_VEL 
 emissco.o                  : emissco.f                  CMN CMN_CO CMN_CO_BUDGET CMN_DIAG CMN_O3 CMN_SIZE define.h 
 emissdr.o                  : emissdr.f                  CMN CMN_DIAG CMN_MONOT CMN_NOX CMN_O3 CMN_SETUP CMN_SIZE define.h comode.h 
 emisshcn.o                 : emisshcn.f                 CMN CMN_DIAG CMN_HCN CMN_MONOT CMN_SIZE define.h hcn.h 
@@ -403,7 +403,7 @@ fjfunc.o                   : fjfunc.f                   cmn_fj.h CMN_SIZE define
 flashes.o                  : flashes.f                  CMN_SIZE define.h 
 funbas.o                   : funbas.f                   CMN_SIZE define.h comsol.h 
 funo1dham2.o               : funo1dham2.f               
-fvdas_convect_mod.o        : fvdas_convect_mod.f        CMN_SIZE define.h 
+fvdas_convect_mod.o        : fvdas_convect_mod.f        CMN_DIAG CMN_SIZE define.h 
 fyrno3.o                   : fyrno3.f                   
 gasconc.o                  : gasconc.f                  CMN_SIZE define.h comode.h 
 geia_mod.o                 : geia_mod.f                 CMN_SETUP CMN_SIZE define.h 
@@ -440,7 +440,7 @@ ksparse.o                  : ksparse.f                  CMN_SIZE define.h comode
 lightdist.o                : lightdist.f                CMN_NOX CMN_SETUP CMN_SIZE define.h 
 lightning.o                : lightning.f                CMN_GCTM CMN_NOX CMN_SIZE define.h 
 lump.o                     : lump.f                     CMN_SIZE define.h comode.h 
-main.o                     : main.f                     CMN CMN_DEP CMN_DIAG CMN_GCTM CMN_O3 CMN_SETUP CMN_SIZE define.h CMN_TIMES comode.h 
+main.o                     : main.f                     CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SETUP CMN_SIZE define.h CMN_TIMES comode.h 
 matinv.o                   : matinv.f                   
 modpolluted.o              : modpolluted.f              CMN_OH 
 ndxx_setup.o               : ndxx_setup.f               CMN CMN_DIAG CMN_SETUP CMN_SIZE define.h 
@@ -524,7 +524,7 @@ sulfate_mod.o              : sulfate_mod.f              CMN CMN_DIAG CMN_GCTM CM
 sumup.o                    : sumup.f                    CMN CMN_CO_BUDGET CMN_SIZE define.h 
 sunparam.o                 : sunparam.f                 
 tagged_co_mod.o            : tagged_co_mod.f            CMN CMN_DIAG CMN_O3 CMN_SETUP CMN_SIZE define.h 
-tagged_ox_mod.o            : tagged_ox_mod.f            CMN CMN_DIAG CMN_O3 CMN_SETUP CMN_SIZE define.h 
+tagged_ox_mod.o            : tagged_ox_mod.f            CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SETUP CMN_SIZE define.h 
 tcorr.o                    : tcorr.f                    
 time_mod.o                 : time_mod.f                 define.h 
 toms_mod.o                 : toms_mod.f                 CMN_SETUP CMN_SIZE define.h 

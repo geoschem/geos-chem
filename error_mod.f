@@ -1,8 +1,8 @@
-! $Id: error_mod.f,v 1.4 2003/12/05 21:14:02 bmy Exp $
+! $Id: error_mod.f,v 1.5 2004/01/27 21:25:06 bmy Exp $
       MODULE ERROR_MOD
 !
 !******************************************************************************
-!  Module ERROR_MOD contains error checking routines. (bmy, 3/8/01, 12/2/03)
+!  Module ERROR_MOD contains error checking routines. (bmy, 3/8/01, 1/21/04)
 !
 !  Module Routines:
 !  ===========================================================================
@@ -49,6 +49,7 @@
 !  (9 ) Bug fixes for LINUX platform (bmy, 9/29/03)
 !  (10) Now supports INTEL_FC compiler (bmy, 10/24/03)
 !  (11) Changed the name of some cpp switches in "define.h" (bmy, 12/2/03)
+!  (12) Minor fix for LINUX_IFC and LINUX_EFC (bmy, 1/24/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -671,7 +672,11 @@
 !
 !******************************************************************************
 !  Subroutine GEOS_CHEM_STOP calls CLEANUP to deallocate all module arrays
-!  and then stops the run.  (bmy, 10/15/02) 
+!  and then stops the run.  (bmy, 10/15/02, 1/24/04) 
+!
+!  NOTES
+!  (1 ) Now EXIT works for LINUX_IFC, LINUX_EFC, so remove #if block.
+!        (bmy, 1/24/04)
 !******************************************************************************
 !
 #     include "define.h"
@@ -686,12 +691,7 @@
       CALL CLEANUP
 
       ! Flush all files and stop
-      !CALL EXIT( 99999 )
-#if   defined( INTEL_FC )
-      STOP
-#else
       CALL EXIT( 99999 )
-#endif
 
 !$OMP END CRITICAL
 
@@ -741,7 +741,7 @@
 !******************************************************************************
 !  Subroutine DEBUG_MSG prints a message to the stdout buffer and flushes.
 !  This is useful for determining the exact location where errors occur.
-!  (bmy, 1/7/02, 11/22/02)
+!  (bmy, 1/7/02, 1/26/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -761,7 +761,10 @@
       !=================================================================
       ! DEBUG_MSG begins here!
       !================================================================= 
-      WRITE( 6, '(a)' ) TRIM( MESSAGE )
+      !WRITE( 6, '(a)' ) TRIM( MESSAGE )
+      WRITE( 6, '(a)' ) MESSAGE
+ 
+      ! Call FLUSH routine to flush the output buffer
       CALL FLUSH( 6 )
 
       ! Return to calling program

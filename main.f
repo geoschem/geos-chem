@@ -1,5 +1,13 @@
-C $Id: main.f,v 1.7 2003/12/11 21:54:11 bmy Exp $
+C $Id: main.f,v 1.8 2004/01/27 21:25:08 bmy Exp $
 C $Log: main.f,v $
+C Revision 1.8  2004/01/27 21:25:08  bmy
+C GEOS-CHEM v6-01-05, includes the following modifications:
+C - Updated deep & shallow convection code for GEOS-4 met fields
+C - Bug fix in routine NFCLDMX to allow 2x25 runs on Altix
+C - Updated code to read GEOS-4 met fields; now looks for ident strings
+C - Bug fix in sulfate emissions code: convert GEOS-4 PBL from [m] to [hPa]
+C - Updated comments, cosmetic changes
+C
 C Revision 1.7  2003/12/11 21:54:11  bmy
 C GEOS-CHEM v6-01-04, includes the following modifications:
 C - RADSWG, SNOW, USTAR, Z0 are now 2-D met field arrays in "dao_mod.f"
@@ -174,18 +182,14 @@ C
       IMPLICIT NONE
       
       ! Header files 
-#     include "CMN_SIZE"    ! IIPAR, JJPAR, IM, JM, I0, J0, #define statements
-#     include "CMN"         ! pretty much everything!
-#     include "CMN_DIAG"    ! Diagnostic switches
-!-------------------------------------------------------------------------
-! Prior to 12/9/03:
-!#     include "CMN_DEP"     ! CFRAC, RADIAT
-!-------------------------------------------------------------------------
-#     include "CMN_GCTM"    ! Physical constants
-#     include "CMN_O3"      ! TCOBOX, FMOL, SAVEOH
-#     include "CMN_SETUP"   ! GEOS-CTM logical flags and file I/O units
-#     include "CMN_TIMES"   ! areas time series archival (diag49)
-#     include "comode.h"    ! CSAVE, IDEMS
+#     include "CMN_SIZE"        ! Size parameters
+#     include "CMN"             ! STT
+#     include "CMN_DIAG"        ! Diagnostic switches
+#     include "CMN_GCTM"        ! Physical constants
+#     include "CMN_O3"          ! TCOBOX, FMOL, SAVEOH
+#     include "CMN_SETUP"       ! GEOS-CTM logical flags and file I/O units
+#     include "CMN_TIMES"       ! areas time series archival (diag49)
+#     include "comode.h"        ! CSAVE, IDEMS
 
       ! Local variables
       LOGICAL :: FIRST = .TRUE.

@@ -1,4 +1,4 @@
-! $Id: file_mod.f,v 1.3 2003/12/05 21:14:02 bmy Exp $
+! $Id: file_mod.f,v 1.4 2004/01/27 21:25:07 bmy Exp $
       MODULE FILE_MOD
 !
 !******************************************************************************
@@ -122,9 +122,9 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 
-#     include "define.h"           ! C-preprocessor switches
-
       IMPLICIT NONE
+
+#     include "define.h"           ! C-preprocessor switches
     
       ! Arguments
       INTEGER,          INTENT(IN) :: ERROR_NUM, UNIT
@@ -258,8 +258,6 @@
       
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-
-      ! Flush the buffer, in case we are piping stdout to a log file
       CALL FLUSH( 6 )
 
       ! Deallocate arrays and stop safely 

@@ -1,9 +1,9 @@
-! $Id: ndxx_setup.f,v 1.2 2003/10/21 16:05:28 bmy Exp $
+! $Id: ndxx_setup.f,v 1.3 2004/01/27 21:25:08 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
 !  NDXX_SETUP dynamically allocates memory for certain diagnostic arrays that 
-!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 8/20/03)
+!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 1/20/04)
 !
 !  This allows us to reduce the amount of memory that needs to be declared 
 !  globally.  We only allocate memory for arrays if the corresponding 
@@ -91,6 +91,8 @@
 !  (41) Now also allocate AD13_NH3_na array for ND13 (rjp, bmy, 3/23/03)
 !  (42) Added ND03 diagnostic for Kr85 prod/loss.  Also removed special case
 !        TRCOFFSET for single-tracer Ox. (jsw, bmy, 8/20/03)
+!  (43) Now use GET_WETDEP_NMAX to get max # of soluble tracers for ND37.
+!        (bmy, 1/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -625,10 +627,17 @@
       IF ( ND37 > 0 ) THEN
          LD37 = MIN( ND37, LLPAR )
          
-         ! Rn-Pb-Be simulation has 2 soluble tracers
-         ! Full chemistry simulation has 4 soluble tracers
-         IF ( NSRCX == 1 ) NMAX = 2
-         IF ( NSRCX == 3 ) NMAX = 4
+         !--------------------------------------------------------------
+         ! Prior to 1/20/04:
+         ! Now use GET_WETDEP_NMAX to get max # of soluble tracers
+         !! Rn-Pb-Be simulation has 2 soluble tracers
+         !! Full chemistry simulation has 4 soluble tracers
+         !IF ( NSRCX == 1 ) NMAX = 2
+         !IF ( NSRCX == 3 ) NMAX = 4
+         !--------------------------------------------------------------
+
+         ! Get max # of soluble tracers for this simulation
+         NMAX = GET_WETDEP_NMAX( NSRCX )
 
          ALLOCATE( AD37( IIPAR, JJPAR, LD37, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD37' )

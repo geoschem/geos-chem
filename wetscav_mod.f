@@ -1,4 +1,4 @@
-! $Id: wetscav_mod.f,v 1.2 2003/07/08 15:30:02 bmy Exp $
+! $Id: wetscav_mod.f,v 1.3 2004/01/27 21:25:10 bmy Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
@@ -1050,7 +1050,7 @@
       
       ! Turn off scavenging in the first level by setting F = 0
       F(:,:,1) = 0d0
-            
+  
       ! Apply scavenging in levels 2 and higher
       DO L = 2, LLPAR
       DO J = 1, JJPAR

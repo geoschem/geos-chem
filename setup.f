@@ -1,4 +1,4 @@
-! $Id: setup.f,v 1.3 2003/12/11 21:54:11 bmy Exp $
+! $Id: setup.f,v 1.4 2004/01/27 21:25:09 bmy Exp $
       SUBROUTINE SETUP( NYMDb, NYMDe,     NHMSb,   NHMSe,   NDT,      
      &                  NTDT,  NDIAGTIME, ALPHA_d, ALPHA_n, IORD,     
      &                  JORD,  KORD,      J1,      Umax,    IGD,      
@@ -6,7 +6,7 @@
 !
 !******************************************************************************
 !  Subroutine SETUP reads in parameters specific to the GEOS-CHEM model.
-!  (bmy, bey, bdf, 5/27/99, 12/11/03)
+!  (bmy, bey, bdf, 5/27/99, 12/9/03)
 !                                                                           
 !  NOTES:
 !  (1 ) SETUP is written in Fixed-Form Fortran 90.
@@ -171,11 +171,6 @@
       IF ( IOS /= 0 ) CALL IOERROR( IOS, 99, 'setup:10' )
 
       READ ( 99, 25, IOSTAT=IOS )
-!-------------------------------------------------------------------------- 
-! Prior to 12/10/03:
-! Renamed LRERD to LUNZIP (bmy, 12/10/03
-!     &     LWAIT,  LBBSEA, LRERD,   LSVGLB, LTOMSAI, STR3
-!--------------------------------------------------------------------------  
      &     LWAIT,  LBBSEA, LUNZIP,   LSVGLB, LTOMSAI, STR3 
       IF ( IOS /= 0 ) CALL IOERROR( IOS, 99, 'setup:11' )
 
@@ -186,18 +181,8 @@
       WRITE ( 6, 10 ) TITLE
       WRITE ( 6, 25 ) LEMIS,  LDRYD,  LCHEM,   LTRAN,  LTPFV,   STR1 
       WRITE ( 6, 25 ) LTURB,  LCONV,  LWETD,   LDBUG,  LMONOT,  STR2 
-      !-------------------------------------------------------------------
-      ! Prior to 12/10/03;
-      !WRITE ( 6, 25 ) LWAIT,  LBBSEA, LRERD,   LSVGLB, LTOMSAI, STR3 
-      !-------------------------------------------------------------------
       WRITE ( 6, 25 ) LWAIT,  LBBSEA, LUNZIP,   LSVGLB, LTOMSAI, STR3 
       WRITE ( 6, 25 ) LMFCT,  LFILL,  LSTDRUN, LSULF,  LSPLIT,  STR4
-
-      !--------------------------------------------------------------------
-      ! Prior to 12/10/03:
-      !! Set LRERD=F since it's more or less obsolete now (bmy, 3/14/03) 
-      !LRERD = .FALSE.
-      !--------------------------------------------------------------------
 !
 !******************************************************************************
 !  Read in other GEOS-CTM parameters                                        

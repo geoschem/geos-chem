@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.5 2003/12/05 21:14:05 bmy Exp $
+! $Id: sulfate_mod.f,v 1.6 2004/01/27 21:25:09 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 8/1/03)
+!  (rjp, bdf, bmy, 6/22/00, 1/15/04)
 !
 !  Module variables:
 !  ============================================================================
@@ -152,6 +152,7 @@
 !        cosmetic changes. (bmy, 3/27/03)
 !  (18) Updated chemistry routines to apply drydep losses throughout the
 !        entire PBL. (rjp, bmy, 8/1/03)
+!  (19) Now accounts for GEOS-4 PBL being in meters (bmy, 1/15/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -2379,7 +2380,7 @@
 !***************************************************************************** 
 !  Subroutine SRCDMS, from Mian Chin's GOCART model, add DMS emissions 
 !  to the tracer array.  Modified for use with the GEOS-CHEM model.
-!  (bmy, 6/2/00, 3/27/03)
+!  (bmy, 6/2/00, 1/15/04)
 !
 !  Arguments as Input/Output:
 !  ===========================================================================
@@ -2391,6 +2392,9 @@
 !        grid box surface pressures. (bmy, 9/18/02)
 !  (2 ) Now replace DXYP(J) with routine GET_AREA_M2 of "grid_mod.f"
 !        Now use routine GET_TS_EMIS from the new "time_mod.f". (bmy, 3/27/03)
+!  (3 ) For GEOS-4, convert PBL from [m] to [hPa] w/ the hydrostatic law.
+!        Now references SCALE_HEIGHT from "CMN_GCTM".  Added BLTHIK variable
+!        for PBL thickness in [hPa]. (bmy, 1/15/04)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -2403,6 +2407,7 @@
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN"          ! STT, XTRA2
 #     include "CMN_DIAG"     ! ND13 (for now)
+#     include "CMN_GCTM"     ! SCALE_HEIGHT
 
       ! Arguments
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -2411,7 +2416,7 @@
       INTEGER                :: I,      J,    L,     NTOP
       REAL*8                 :: DTSRCE, SST,  Sc,    CONC,   W10 
       REAL*8                 :: ScCO2,  AKw,  ERATE, DMSSRC, BLTOP
-      REAL*8                 :: P1,     P2,   DELP,  FEMIS
+      REAL*8                 :: P1,     P2,   DELP,  FEMIS,  BLTHIK
 
       ! Molecular weight of DMS, kg/mole
       REAL*8,  PARAMETER     :: DMS_MW = 62d0
@@ -2434,8 +2439,8 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, SST, Sc, CONC, W10, ScCO2, AKw, ERATE )
-!$OMP+PRIVATE( DMSSRC, NTOP, BLTOP, L, P1, P2, DELP, FEMIS )
+!$OMP+PRIVATE( I, J,   SST,  Sc,    CONC,   W10, ScCO2, AKw, ERATE )
+!$OMP+PRIVATE( DMSSRC, NTOP, BLTOP, BLTHIK, L, P1, P2, DELP, FEMIS )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -2524,8 +2529,24 @@
             ! PBL height is in the 3rd model layer or higher
             IF ( NTOP >= 2 ) THEN
 
-               ! PBL top pressure [hPa]
-               BLTOP = GET_PEDGE(I,J,1) - PBL(I,J)
+#if   defined( GEOS_4 )
+
+               ! BLTOP = pressure at PBL top [hPa]
+               ! Use barometric law since PBL is in [m]
+               BLTOP  = GET_PEDGE(I,J,1) * EXP(-PBL(I,J)/SCALE_HEIGHT)
+
+               ! BLTHIK is PBL thickness [hPa]
+               BLTHIK = GET_PEDGE(I,J,1) - BLTOP
+
+#else
+
+               ! BLTOP = pressure of PBL top [hPa]
+               BLTOP  = GET_PEDGE(I,J,1) - PBL(I,J)
+
+               ! BLTHIK is PBL thickness [hPa]
+               BLTHIK = PBL(I,J)
+
+#endif
 
                ! Loop thru the boundary layer
                DO L = 1, NTOP
@@ -2535,13 +2556,32 @@
                   P2   = GET_PEDGE(I,J,L+1)
                   DELP = P1 - P2
 
+                  !-----------------------------------------------------
+                  ! Prior to 1/15/04:
+                  ! Need to use BLTHIK in order to accommodate both 
+                  ! GEOS-4 and GEOS-3 units for PBL (bmy, 1/15/04)
+                  !! PBL top occurs at level L
+                  !IF ( BLTOP <= P2 )  THEN
+                  !   FEMIS = DELP / PBL(I,J)
+                  !
+                  !! Level L lies completely w/in the PBL
+                  !ELSE IF ( BLTOP > P2 .AND. BLTOP < P1 ) THEN
+                  !   FEMIS = ( P1 - BLTOP ) / PBL(I,J)               
+                  !
+                  !! Level L lies completely out of the PBL
+                  !ELSE IF ( BLTOP > P1 ) THEN
+                  !   CYCLE       
+                  !
+                  !ENDIF
+                  !-----------------------------------------------------
+
                   ! PBL top occurs at level L
-                  IF ( BLTOP <= P2 )  THEN
-                     FEMIS = DELP / PBL(I,J)
+                  IF ( BLTOP <= P2 ) THEN
+                     FEMIS = DELP / BLTHIK
    
                   ! Level L lies completely w/in the PBL
                   ELSE IF ( BLTOP > P2 .AND. BLTOP < P1 ) THEN
-                     FEMIS = ( P1 - BLTOP ) / PBL(I,J)               
+                     FEMIS = ( P1 - BLTOP ) / BLTHIK           
 
                   ! Level L lies completely out of the PBL
                   ELSE IF ( BLTOP > P1 ) THEN
@@ -2587,7 +2627,7 @@
 !
 !******************************************************************************
 !  Subroutine SRCSO2 (originally from Mian Chin) computes SO2 emissons from 
-!  aircraft, biomass, and anthro sources. (rjp, bdf, bmy, 6/2/00, 3/27/03)
+!  aircraft, biomass, and anthro sources. (rjp, bdf, bmy, 6/2/00, 1/15/04)
 !
 !  Arguments as Input/Output:
 !  ===========================================================================
@@ -2600,6 +2640,9 @@
 !        compute grid box pressures. (bmy, 9/18/02)
 !  (2 ) Now use routines GET_TS_EMIS and GET_DAY_OF_YEAR from the new 
 !        "time_mod.f" (bmy, 3/27/03)
+!  (3 ) For GEOS-4, convert PBL from [m] to [hPa] w/ the hydrostatic law.
+!        Now references SCALE_HEIGHT from "CMN_GCTM".  Added BLTHIK variable
+!        to hold PBL thickness in [hPa]. (bmy, 1/15/04)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -2613,6 +2656,7 @@
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN"          ! XTRA2
 #     include "CMN_DIAG"     ! ND13, LD13 (for now)
+#     include "CMN_GCTM"     ! SCALE_HEIGHT
   
       ! Arguments
       INTEGER, INTENT(IN)    :: NSEASON
@@ -2624,7 +2668,7 @@
       REAL*8                 :: DTSRCE,      HGHT,      SO2SRC
       REAL*8                 :: SLAB,        SLAB1,     BLTOP
       REAL*8                 :: TSO2,        P1,        P2
-      REAL*8                 :: DELP,        FEMIS
+      REAL*8                 :: DELP,        FEMIS,     BLTHIK
 
       ! Ratio of molecular weights: S/SO2
       REAL*8,  PARAMETER     :: S_SO2 = 32d0 / 64d0
@@ -2784,8 +2828,8 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,     J,  NTOP, L,    SO2,   TSO2   ) 
-!$OMP+PRIVATE( BLTOP, P1, P2,   DELP, FEMIS, SO2SRC )
+!$OMP+PRIVATE( I,     J,      NTOP, L,  SO2,  TSO2          ) 
+!$OMP+PRIVATE( BLTOP, BLTHIK, P1,   P2, DELP, FEMIS, SO2SRC )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -2810,8 +2854,24 @@
          !===============================================================
          IF ( NTOP > 2 ) THEN
 
+#if   defined( GEOS_4 )
+
+            ! BLTOP = pressure at PBL top [hPa]
+            ! Use barometric law since PBL is in [m]
+            BLTOP  = GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT )
+
+            ! BLTHIK is PBL thickness [hPa]
+            BLTHIK = GET_PEDGE(I,J,1) - BLTOP
+
+#else
+
             ! BLTOP = pressure of PBL top [hPa]
-            BLTOP = GET_PEDGE(I,J,1) - PBL(I,J)
+            BLTOP  = GET_PEDGE(I,J,1) - PBL(I,J)
+
+            ! BLTHIK is PBL thickness [hPa]
+            BLTHIK = PBL(I,J)
+
+#endif
 
             ! Loop thru levels in the PBL
             DO L  = 1, NTOP
@@ -2821,18 +2881,37 @@
                P2   = GET_PEDGE(I,J,L+1)
                DELP = P1 - P2
 
+               !-------------------------------------------------------
+               ! Prior to 1/15/04:
+               ! Need to use BLTHIK in order to accommodate both 
+               ! GEOS-4 and GEOS-3 units for PBL (bmy, 1/15/04)
+               !! PBL top occurs w/in level L
+               !IF ( BLTOP <= P2 )  THEN
+               !   FEMIS = DELP / PBL(I,J)
+               !
+               !! Level L lies completely w/in the PBL
+               !ELSE IF ( BLTOP >  P2 .AND. BLTOP < P1 ) THEN
+               !   FEMIS = ( P1 - BLTOP ) / PBL(I,J)
+               !
+               !! Level L lies completely out of the PBL
+               !ELSE IF ( BLTOP > P1 ) THEN
+               !   CYCLE
+               !
+               !ENDIF
+               !-------------------------------------------------------
+
                ! PBL top occurs w/in level L
                IF ( BLTOP <= P2 )  THEN
-                  FEMIS = DELP / PBL(I,J)
-
+                  FEMIS = DELP / BLTHIK
+               
                ! Level L lies completely w/in the PBL
                ELSE IF ( BLTOP >  P2 .AND. BLTOP < P1 ) THEN
-                  FEMIS = ( P1 - BLTOP ) / PBL(I,J)
-
+                  FEMIS = ( P1 - BLTOP ) / BLTHIK
+              
                ! Level L lies completely out of the PBL
                ELSE IF ( BLTOP > P1 ) THEN
                   CYCLE
-
+               
                ENDIF
 
                ! Partition total SO2 into level K
@@ -2861,7 +2940,7 @@
             CALL ERROR_STOP( 'Check SO2 redistribution!',
      &                       'SRCSO2 (sulfate_mod.f)' )
          ENDIF
-              
+        
          !==============================================================
          ! Add anthro SO2, aircraft SO2, volcano SO2, and biomass SO2
          ! Convert from [kg SO2/box/s] -> [kg SO2/box/timestep]
@@ -2923,9 +3002,9 @@
 
       SUBROUTINE SRCSO4( TC )
 !
-!***************************************************************************** 
+!******************************************************************************
 !  Subroutine SRCSO4 (originally from Mian Chin) computes SO4 emissions from 
-!  anthropogenic sources (rjp, bdf, bmy, 6/2/00, 3/27/03)
+!  anthropogenic sources (rjp, bdf, bmy, 6/2/00, 1/15/04)
 !
 !  Arguments as Input/Output:
 !  ===========================================================================
@@ -2935,7 +3014,10 @@
 !  (1 ) Emission of SO4 is read in SULFATE_READYR, in [kg/box/s]. 
 !        It is converted to [kg/box/timestep] here.  
 !  (2 ) Now use routine GET_TS_EMIS from the new "time_mod.f" (bmy, 3/27/03)
-!*****************************************************************************
+!  (3 ) For GEOS-4, convert PBL from [m] to [hPa] w/ the barometric law.
+!        Now references SCALE_HEIGHT from "CMN_GCTM".  Added BLTHIK variable
+!        to hold PBL thickness in [hPa]. (bmy, 1/15/04)
+!******************************************************************************
 !
       ! Reference to diagnostic arrays
       USE DAO_MOD,      ONLY : PBL
@@ -2947,14 +3029,16 @@
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN"          ! XTRA2
 #     include "CMN_DIAG"     ! ND13 (for now)
+#     include "CMN_GCTM"     ! SCALE_HEIGHT
 
       ! Arguments      
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
 
       ! Local variables
       INTEGER                :: I, J, K, L, NTOP
-      REAL*8                 :: SO4(LLPAR), DTSRCE, BLTOP, TSO4
-      REAL*8                 :: P1,         P2,     DELP,  FEMIS
+      REAL*8                 :: SO4(LLPAR), DTSRCE, BLTOP
+      REAL*8                 :: TSO4,       P1,     P2     
+      REAL*8                 :: DELP,       FEMIS,  BLTHIK
 
       ! Ratio of molecular weights: S/SO4
       REAL*8,  PARAMETER     :: S_SO4 = 32d0 / 96d0
@@ -2971,7 +3055,8 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, NTOP, SO4, TSO4, L, BLTOP, P1, P2, DELP, FEMIS )
+!$OMP+PRIVATE( I,     J,      NTOP, SO4, TSO4, L     )
+!$OMP+PRIVATE( BLTOP, BLTHIK, P1,   P2,  DELP, FEMIS )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -2993,9 +3078,25 @@
          !==============================================================
          IF ( NTOP > 2 ) THEN
 
-            ! Boundary layer top
-            BLTOP = GET_PEDGE(I,J,1) - PBL(I,J)
-           
+#if   defined( GEOS_4 )
+
+            ! BLTOP = pressure at PBL top [hPa]
+            ! Use barometric law since PBL is in [m]
+            BLTOP  = GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT )
+
+            ! BLTHIK is PBL thickness [hPa]
+            BLTHIK = GET_PEDGE(I,J,1) - BLTOP
+
+#else
+
+            ! BLTOP = pressure of PBL top [hPa]
+            BLTOP  = GET_PEDGE(I,J,1) - PBL(I,J)
+            
+            ! BLTHIK is PBL thickness [hPa]
+            BLTHIK = PBL(I,J)
+
+#endif
+
             ! Loop thru boundary layer
             DO L = 1, NTOP
 
@@ -3004,19 +3105,39 @@
                P2   = GET_PEDGE(I,J,L+1)
                DELP = P1 - P2
 
+               !-------------------------------------------------------
+               ! Prior to 1/15/04:
+               ! Need to use BLTHIK in order to accommodate both 
+               ! GEOS-4 and GEOS-3 units for PBL (bmy, 1/15/04)
+               !! PBL top occurs w/in level L
+               !IF ( BLTOP <= P2 )  THEN
+               !   FEMIS = DELP / PBL(I,J)
+               !
+               !! Level L lies completely w/in the PBL
+               !ELSE IF ( BLTOP >  P2 .AND. BLTOP < P1 ) THEN
+               !   FEMIS = ( P1 - BLTOP ) / PBL(I,J)               
+               !
+               !! Level L lies completely out of the PBL
+               !ELSE IF ( BLTOP > P1 ) THEN
+               !   CYCLE 
+               !
+               !ENDIF
+               !-------------------------------------------------------
+
                ! PBL top occurs w/in level L
                IF ( BLTOP <= P2 )  THEN
-                  FEMIS = DELP / PBL(I,J)
+                  FEMIS = DELP / BLTHIK
 
                ! Level L lies completely w/in the PBL
                ELSE IF ( BLTOP >  P2 .AND. BLTOP < P1 ) THEN
-                  FEMIS = ( P1 - BLTOP ) / PBL(I,J)               
+                  FEMIS = ( P1 - BLTOP ) / BLTHIK               
 
                ! Level L lies completely out of the PBL
                ELSE IF ( BLTOP > P1 ) THEN
                   CYCLE 
 
                ENDIF
+
 
                ! Fraction of total SO4 in layer L
                SO4(L) = FEMIS * TSO4
@@ -3076,7 +3197,7 @@
 !
 !******************************************************************************
 !  Subroutine SRCNH3 handles NH3 emissions into the GEOS-CHEM tracer array.
-!  (rjp, bmy, 12/17/01, 3/27/03)
+!  (rjp, bmy, 12/17/01, 1/15/04)
 ! 
 !  Arguments as Input/Output
 !  ============================================================================
@@ -3088,6 +3209,9 @@
 !        source NH3 diagnostics for ND13.  Also consider natural source NH3
 !        when partitioning by level into the STT array. (rjp, bmy, 3/23/03)
 !  (3 ) Now use routine GET_TS_EMIS from the new "time_mod.f" (bmy, 3/27/03)
+!  (4 ) For GEOS-4, convert PBL from [m] to [hPa] w/ the barometric law.
+!        Now references SCALE_HEIGHT from "CMN_GCTM".  Added BLTHIK variable
+!        to hold PBL thickness in [hPa]. (bmy, 1/15/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3101,14 +3225,16 @@
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN"          ! STT, XTRA2
 #     include "CMN_DIAG"     ! ND13
+#     include "CMN_GCTM"     ! SCALE_HEIGHT
       
       ! Argumetns
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
 
       ! Local variables
       INTEGER                :: I, J, L, K, NTOP
-      REAL*8                 :: BLTOP, P1, P2, DELP 
-      REAL*8                 :: FEMIS, DTSRCE, NH3SRC, TNH3
+      REAL*8                 :: BLTOP,  P1,    P2 
+      REAL*8                 :: DELP,   FEMIS, DTSRCE
+      REAL*8                 :: NH3SRC, TNH3,  BLTHIK
 
       !=================================================================
       ! SRCNH3 begins here!
@@ -3120,7 +3246,8 @@
       ! Loop over surface grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, NTOP, NH3SRC, TNH3, BLTOP, L, P1, P2, DELP, FEMIS )
+!$OMP+PRIVATE( I,      J, NTOP, NH3SRC, TNH3, BLTOP ) 
+!$OMP+PRIVATE( BLTHIK, L, P1,   P2,     DELP, FEMIS )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -3141,8 +3268,24 @@
          !==============================================================
          IF ( NTOP >= 2 ) THEN
 
-            ! Boundary layer top pressure [hPa]
-            BLTOP = GET_PEDGE(I,J,1) - PBL(I,J)
+#if   defined( GEOS_4 )
+
+            ! BLTOP = pressure at PBL top [hPa]
+            ! Use barometric law since PBL is in [m]
+            BLTOP  = GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT )
+
+            ! BLTHIK is PBL thickness [hPa]
+            BLTHIK = GET_PEDGE(I,J,1) - BLTOP
+
+#else
+
+            ! BLTOP = pressure of PBL top [hPa]
+            BLTOP  = GET_PEDGE(I,J,1) - PBL(I,J)
+
+            ! BLTHIK is PBL thickness [hPa]
+            BLTHIK = PBL(I,J)
+
+#endif
 
             ! Loop over all levels in the boundary layer
             DO L = 1, NTOP
@@ -3152,15 +3295,34 @@
                P2   = GET_PEDGE(I,J,L+1)
                DELP = P1 - P2
 
+               !-------------------------------------------------------
+               ! Prior to 1/15/04:
+               ! Need to use BLTHIK in order to accommodate both 
+               ! GEOS-4 and GEOS-3 units for PBL (bmy, 1/15/04)
+               !! Case of model grid is lower than PBL
+               !IF ( BLTOP <= P2 )  THEN
+               !   FEMIS = DELP / PBL(I,J)
+               ! 
+               !ELSE IF ( BLTOP >  P2 .AND. BLTOP < P1 ) THEN
+               !   FEMIS = ( P1 - BLTOP ) / PBL(I,J)               
+               ! 
+               !ELSE IF ( BLTOP > P1 ) THEN
+               !   CYCLE       
+               !ENDIF
+               !-------------------------------------------------------
+
                ! Case of model grid is lower than PBL
                IF ( BLTOP <= P2 )  THEN
-                  FEMIS = DELP / PBL(I,J)
+                  FEMIS = DELP / BLTHIK
 
+               ! Level L lies completely w/in the PBL
                ELSE IF ( BLTOP >  P2 .AND. BLTOP < P1 ) THEN
-                  FEMIS = ( P1 - BLTOP ) / PBL(I,J)               
+                  FEMIS = ( P1 - BLTOP ) / BLTHIK
 
+               ! Level L lies completely out of the PBL
                ELSE IF ( BLTOP > P1 ) THEN
                   CYCLE       
+
                ENDIF
 
                ! Partition total NH3 into level K [kg NH3/s]

@@ -1,11 +1,11 @@
-! $Id: planeflight_mod.f,v 1.6 2003/10/30 16:17:18 bmy Exp $
+! $Id: planeflight_mod.f,v 1.7 2004/01/27 21:25:08 bmy Exp $
       MODULE PLANEFLIGHT_MOD
 !
 !******************************************************************************
 !  Module PLANEFLIGHT_MOD contains variables and routines which are used to
 !  "fly" a plane through the GEOS-CHEM model simulation.  This is useful for
 !  comparing model results with aircraft observations. 
-!  (mje, bmy, 7/30/02, 8/8/03)
+!  (mje, bmy, 7/30/02, 1/26/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -67,6 +67,7 @@
 !        numbers for SMVGEAR II.(tdf, mje, bmy, 8/1/03)
 !  (9 ) Now print out N2O5 hydrolysis rxn as a special case.   Also rename
 !        output file. (bmy, 8/8/03)
+!  (10) Now references "flush_ifc_efc.h" (bmy, 1/26/04)
 !******************************************************************************
 !
       IMPLICIT NONE

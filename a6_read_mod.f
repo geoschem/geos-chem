@@ -1,9 +1,9 @@
-! $Id: a6_read_mod.f,v 1.3 2003/12/11 21:54:08 bmy Exp $
+! $Id: a6_read_mod.f,v 1.4 2004/01/27 21:25:05 bmy Exp $
       MODULE A6_READ_MOD
 !
 !******************************************************************************
 !  Module A6_READ_MOD contains subroutines that unzip, open, and read
-!  GEOS-CHEM A-3 (avg 3-hour) met fields from disk. (bmy, 6/19/03, 12/11/03)
+!  GEOS-CHEM A-3 (avg 3-hour) met fields from disk. (bmy, 6/19/03, 12/12/03)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -32,6 +32,7 @@
 !  (2 ) Now use TIMESTAMP_STRING for formatted output (bmy, 10/28/03)
 !  (3 ) CLDFRC is now a 2-D array in MAKE_CLDFRC< GET_A6_FIELDS.  Also now
 !        read from either zipped or unzipped files. (bmy, 12/9/03)
+!  (4 ) Now skips past the GEOS-4 ident string (bmy, 12/12/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -97,10 +98,6 @@
 
          ! Location of zipped A-3 file in data dir (GEOS-1)
          A6_FILE_GZ  = TRIM( DATA_DIR )      // TRIM( GEOS_1_DIR ) // 
-!-----------------------------------------------------------------------------
-! Prior to 12/11/03:
-!     &                 'YYMM/YYMMDD.a6.'     // GET_RES_EXT()      // 
-!-----------------------------------------------------------------------------
      &                 'YYMMDD.a6.'          // GET_RES_EXT()      // 
      &                 TRIM( ZIP_SUFFIX )
 
@@ -117,10 +114,6 @@
 
          ! Location of zipped A-3 file in data dir (GEOS-STRAT)
          A6_FILE_GZ  = TRIM( DATA_DIR )      // TRIM( GEOS_S_DIR ) // 
-!-----------------------------------------------------------------------------
-! Prior to 12/11/03:
-!     &                 'YYMM/YYMMDD.a6.'     // GET_RES_EXT()      // 
-!-----------------------------------------------------------------------------
      &                 'YYMMDD.a6.'          // GET_RES_EXT()      // 
      &                 TRIM( ZIP_SUFFIX )
 
@@ -137,10 +130,6 @@
 
          ! Location of zipped A-3 file in data dir (GEOS-3)
          A6_FILE_GZ  = TRIM( DATA_DIR )      // TRIM( GEOS_3_DIR ) // 
-!-----------------------------------------------------------------------------
-! Prior to 12/11/03:
-!     &                 'YYYYMM/YYYYMMDD.a6.' // GET_RES_EXT()      // 
-!-----------------------------------------------------------------------------
      &                 'YYYYMMDD.a6.'        // GET_RES_EXT()      // 
      &                 TRIM( ZIP_SUFFIX )
 
@@ -157,9 +146,6 @@
 
          ! Location of zipped A-3 file in data dir (GEOS-4)
          A6_FILE_GZ  = TRIM( DATA_DIR )      // TRIM( GEOS_4_DIR ) // 
-!-----------------------------------------------------------------------------
-!     &                 'YYYYMM/YYYYMMDD.a6.' // GET_RES_EXT()      // 
-!-----------------------------------------------------------------------------
      &                 'YYYYMMDD.a6.'        // GET_RES_EXT()      // 
      &                 TRIM( ZIP_SUFFIX )
 
@@ -313,7 +299,7 @@
 !
 !******************************************************************************
 !  Subroutine OPEN_A6_FIELDS opens the A-6 met fields file for date NYMD and 
-!  time NHMS. (bmy, bdf, 6/15/98, 12/11/03)
+!  time NHMS. (bmy, bdf, 6/15/98, 12/12/03)
 !  
 !  Arguments as input:
 !  ===========================================================================
@@ -323,6 +309,7 @@
 !  NOTES:
 !  (1 ) Adapted from OPEN_MET_FIELDS of "dao_read_mod.f" (bmy, 6/19/03)
 !  (2 ) Now opens either zipped or unzipped files (bmy, 12/11/03)
+!  (3 ) Now skips past the GEOS-4 ident string (bmy, 12/12/03)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -335,14 +322,14 @@
 #     include "CMN_SETUP"          ! GEOS directories
 
       ! Arguments
-      INTEGER,          INTENT(IN) :: NYMD, NHMS
+      INTEGER, INTENT(IN) :: NYMD, NHMS
 
       ! Local variables
-      LOGICAL, SAVE                :: FIRST = .TRUE.
-      LOGICAL                      :: IT_EXISTS
-      INTEGER                      :: IOS, IUNIT
-      CHARACTER(LEN=255)           :: INPUT_DIR
-      CHARACTER(LEN=255)           :: PATH
+      LOGICAL, SAVE       :: FIRST = .TRUE.
+      LOGICAL             :: IT_EXISTS
+      INTEGER             :: IOS, IUNIT
+      CHARACTER(LEN=8)    :: IDENT
+      CHARACTER(LEN=255)  :: PATH
 
       !=================================================================
       ! OPEN_A6_FIELDS begins here!
@@ -350,22 +337,6 @@
 
       ! Open A-6 file at the proper time, or on the first call
       IF ( DO_OPEN_A6( NYMD, NHMS ) ) THEN
-
-!-----------------------------------------------------------------------------
-! Prior to 12/11/03:
-! Now open either zipped or unzipped data (bmy, 12/11/03)
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-!
-!         ! Location of A-3 file in temp dir (GEOS-1, GEOS-S)
-!         PATH = TRIM( TEMP_DIR )  // 'YYMMDD.a6.' // GET_RES_EXT()
-!
-!#else
-!
-!         ! Location of A-3 file in temp dir (GEOS-3, GEOS_4)
-!         PATH = TRIM( TEMP_DIR )  // 'YYYYMMDD.a6.' // GET_RES_EXT()
-!
-!#endif
-!-----------------------------------------------------------------------------
 
 #if   defined( GEOS_1 ) 
 
@@ -437,7 +408,21 @@
             CALL IOERROR( IOS, IU_A6, 'open_a6_fields:1' )
          ENDIF
 
-         WRITE( 6, '( ''     - Opening: '', a )' ) TRIM( PATH )
+         ! Echo info
+         WRITE( 6, 100 ) TRIM( PATH )
+ 100     FORMAT( '     - Opening: ', a ) 
+
+#if   defined( GEOS_4 )
+
+         ! Skip past the GEOS-4 ident string
+         READ( IU_A6, IOSTAT=IOS ) IDENT
+
+         IF ( IOS /= 0 ) THEN
+            CALL IOERROR( IOS, IU_A6, 'open_a6_fields:2' )
+         ENDIF
+
+#endif
+
       ENDIF
 
       ! Return to calling program
@@ -469,10 +454,6 @@
      &                    ZMEU,    ZMMD,   ZMMU  
 
 #     include "CMN_SIZE"  ! Size parameters
-!-----------------------------------------------------
-! Prior to 12/9/03:
-!#     include "CMN_DEP"   ! CFRAC
-!-----------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS 
@@ -513,10 +494,6 @@
 
       ! Construct the 2-D CFRAC field from CLMO and CLRO
       ! since this field is missing from GEOS-STRAT data
-      !-----------------------------------------------------
-      ! Prior to 12/9/03:
-      !CALL MAKE_CLDFRC( CLMOSW, CLROSW, CFRAC )
-      !-----------------------------------------------------
       CALL MAKE_CLDFRC( CLMOSW, CLROSW, CLDFRC )
 
 #elif defined( GEOS_3 ) 
@@ -588,17 +565,9 @@
       ! Arguments
       REAL*8, INTENT(IN)  :: CLMOSW(LLPAR,IIPAR,JJPAR)
       REAL*8, INTENT(IN)  :: CLROSW(LLPAR,IIPAR,JJPAR)
-      !-------------------------------------------
-      ! Prior to 12/9/03:
-      !REAL*8, INTENT(OUT) :: CLDFRC(MAXIJ)
-      !-------------------------------------------
       REAL*8, INTENT(OUT) :: CLDFRC(IIPAR,JJPAR)
 
       ! Local variables
-      !-------------------------------------------
-      ! Prior to 12/9/03
-      !INTEGER             :: I, IJLOOP, J, L
-      !-------------------------------------------
       INTEGER             :: I, J, L
       REAL*8              :: C1, C2
 
@@ -633,17 +602,8 @@
       !
       ! (2) In GEOS-1 and GEOS-STRAT, CLMOLW=CLMOSW and CLROLW=CLROSW.
       !=================================================================
-      !--------------------------
-      ! Prior to 12/9/03:
-      !IJLOOP = 0
-      !--------------------------
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         !-----------------------
-         ! Prior to 12/9/03:
-         !IJLOOP = IJLOOP + 1
-         !-----------------------
-
          C1 = CLMOSW(1,I,J)       
          C2 = 1.0d0 - CLROSW(1,I,J) 
 
@@ -655,11 +615,7 @@
             C2 = C2 * ( 1.0d0 - CLROSW(L,I,J) )
          ENDDO
 
-         C1             = 1.0d0 - C1
-         !--------------------------------------------------------
-         ! Prior to 12/9/03:
-         !CLDFRC(IJLOOP) = 1.0d0 - (C1 * C2)
-         !--------------------------------------------------------
+         C1          = 1.0d0 - C1
          CLDFRC(I,J) = 1.0d0 - (C1 * C2)
       ENDDO
       ENDDO
@@ -668,17 +624,8 @@
       ! ND67 diagnostic -- save CLDFRC as tracer #10
       !=================================================================
       IF ( ND67 > 0 ) THEN
-         !-------------------------------
-         ! Prior to 12/9/03:
-         !IJLOOP = 0
-         !-------------------------------
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            !---------------------------------------------------
-            ! Prior to 12/9/03:
-            !IJLOOP       = IJLOOP + 1
-            !AD67(I,J,10) = AD67(I,J,10) + CLDFRC(IJLOOP)
-            !---------------------------------------------------
             AD67(I,J,10) = AD67(I,J,10) + CLDFRC(I,J)
          ENDDO
          ENDDO
@@ -1158,14 +1105,6 @@
          !==============================================================
          IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) .AND. 
      &        NFOUND == N_A6 ) THEN
-!------------------------------------------------------------------------
-! Prior to 10/28/03:
-! Now use TIMESTAMP_STRING for formatted output (bmy, 10/28/03)
-!            WRITE( 6, 210 ) NFOUND, NYMD, NHMS
-! 210        FORMAT( '     - Found all ', i3, 
-!     &              ' A-6 met fields for NYMD, NHMS = ', 
-!     &              i8.8, 1x, i6.6 )
-!------------------------------------------------------------------------
             STAMP = TIMESTAMP_STRING( NYMD, NHMS )
             WRITE( 6, 210 ) NFOUND, STAMP
  210        FORMAT( '     - Found all ', i3, ' A-6 met fields for ', a )

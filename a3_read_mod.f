@@ -1,9 +1,9 @@
-! $Id: a3_read_mod.f,v 1.3 2003/12/11 21:54:08 bmy Exp $
+! $Id: a3_read_mod.f,v 1.4 2004/01/27 21:25:05 bmy Exp $
       MODULE A3_READ_MOD
 !
 !******************************************************************************
 !  Module A3_READ_MOD contains routines that unzip, open, and read the
-!  GEOS-CHEM A-3 (avg 3-hour) met fields from disk. (bmy, 6/23/03, 12/11/03)
+!  GEOS-CHEM A-3 (avg 3-hour) met fields from disk. (bmy, 6/23/03, 12/12/03)
 ! 
 !  Module Routines:
 !  =========================================================================
@@ -30,6 +30,7 @@
 !  NOTES:
 !  (1 ) Adapted from "dao_read_mod.f" (bmy, 6/23/03)
 !  (2 ) Now can read from either zipped or unzipped files. (bmy, 12/11/03)
+!  (3 ) Now skips past the GEOS-4 met field ident string (bmy, 12/12/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -94,10 +95,6 @@
 
          ! Location of zipped A-3 file in data dir (GEOS-1)
          A3_FILE_GZ  = TRIM( DATA_DIR )      // TRIM( GEOS_1_DIR ) // 
-!-----------------------------------------------------------------------------
-! Prior to 12/11/03:
-!     &                 'YYMM/YYMMDD.a3.'     // GET_RES_EXT()      // 
-!----------------------------------------------------------------------------
      &                 'YYMMDD.a3.'          // GET_RES_EXT()      // 
      &                 TRIM( ZIP_SUFFIX )
 
@@ -114,10 +111,6 @@
 
          ! Location of zipped A-3 file in data dir (GEOS-STRAT)
          A3_FILE_GZ  = TRIM( DATA_DIR )      // TRIM( GEOS_S_DIR ) // 
-!-----------------------------------------------------------------------------
-! Prior to 12/11/03:
-!     &                 'YYMM/YYMMDD.a3.'     // GET_RES_EXT()      // 
-!-----------------------------------------------------------------------------
      &                 'YYMMDD.a3.'          // GET_RES_EXT()      // 
      &                 TRIM( ZIP_SUFFIX )
 
@@ -134,10 +127,6 @@
 
          ! Location of zipped A-3 file in data dir (GEOS-3)
          A3_FILE_GZ  = TRIM( DATA_DIR )      // TRIM( GEOS_3_DIR ) // 
-!----------------------------------------------------------------------------
-! Prior to 12/11/03:
-!     &                 'YYYYMM/YYYYMMDD.a3.' // GET_RES_EXT()      // 
-!----------------------------------------------------------------------------
      &                 'YYYYMMDD.a3.'       // GET_RES_EXT()       // 
      &                 TRIM( ZIP_SUFFIX )
 
@@ -154,10 +143,6 @@
 
          ! Location of zipped A-3 file in data dir (GEOS-4)
          A3_FILE_GZ  = TRIM( DATA_DIR )      // TRIM( GEOS_4_DIR ) // 
-!-----------------------------------------------------------------------------
-! Prior to 12/11/03:
-!     &                 'YYYYMM/YYYYMMDD.a3.' // GET_RES_EXT()      // 
-!-----------------------------------------------------------------------------
      &                 'YYYYMMDD.a3.'        // GET_RES_EXT()      // 
      &                 TRIM( ZIP_SUFFIX )
 
@@ -311,7 +296,7 @@
 !
 !******************************************************************************
 !  Subroutine OPEN_A3_FIELDS opens the A-3 met fields file for date NYMD and 
-!  time NHMS. (bmy, bdf, 6/15/98, 12/11/03)
+!  time NHMS. (bmy, bdf, 6/15/98, 12/12/03)
 !  
 !  Arguments as input:
 !  ===========================================================================
@@ -321,6 +306,7 @@
 !  NOTES:
 !  (1 ) Adapted from OPEN_MET_FIELDS of "dao_read_mod.f" (bmy, 6/13/03)
 !  (2 ) Now opens either zipped or unzipped files (bmy, 12/11/03)
+!  (3 ) Now skips past the GEOS-4 ident string (bmy, 12/12/03)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -339,6 +325,7 @@
       LOGICAL             :: DO_OPEN
       LOGICAL             :: IT_EXISTS
       INTEGER             :: IOS
+      CHARACTER(LEN=8)    :: IDENT
       CHARACTER(LEN=255)  :: PATH
 
       !=================================================================
@@ -347,22 +334,6 @@
 
       ! Open A-3 fields at the proper time, or on the first call
       IF ( DO_OPEN_A3( NYMD, NHMS ) ) THEN
-
-!-----------------------------------------------------------------------------
-! Prior to 12/11/03:
-! Now opens either zipped or unzipped data (bmy, 12/11/03)
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-!
-!         ! Location of A-3 file in temp dir (GEOS-1, GEOS-S)
-!         PATH = TRIM( TEMP_DIR )  // 'YYMMDD.a3.' // GET_RES_EXT()
-!
-!#else
-!
-!         ! Location of A-3 file in temp dir (GEOS-3, GEOS-4)
-!         PATH = TRIM( TEMP_DIR )  // 'YYYYMMDD.a3.' // GET_RES_EXT()
-!
-!#endif
-!-----------------------------------------------------------------------------
 
 #if   defined( GEOS_1 ) 
 
@@ -434,7 +405,21 @@
             CALL IOERROR( IOS, IU_A3, 'open_a3_fields:1' )
          ENDIF
 
-         WRITE( 6, '( ''     - Opening: '', a )' ) TRIM( PATH )
+         ! Echo info
+         WRITE( 6, 100 ) TRIM( PATH )
+ 100     FORMAT( '     - Opening: ', a )
+         
+#if   defined( GEOS_4 )
+
+         ! Skip past the GEOS-4 ident string
+         READ( IU_A3, IOSTAT=IOS ) IDENT
+
+         IF ( IOS /= 0 ) THEN
+            CALL IOERROR( IOS, IU_A3, 'open_a3_fields:2' )
+         ENDIF
+
+#endif
+
       ENDIF
 
       ! Return to calling program
@@ -466,11 +451,6 @@
      &                    TS,   TSKIN,  U10M,    USTAR,  V10M,   Z0
 
 #     include "CMN_SIZE"  ! Size parameters
-!----------------------------------------------------------------------------
-! Prior to 12/9/03:
-! Remove reference to "CMN_DEP" (bmy, 12/9/03)
-!#     include "CMN_DEP"   ! CFRAC
-!----------------------------------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS 
@@ -497,18 +477,8 @@
       !    HFLUX, RADSWG, PREACC, PRECON, USTAR, 
       !    Z0,    PBL,    CLDFRC, U10M,   V10M
       !=================================================================
-!----------------------------------------------------------------------------
-! Prior to 12/9/03:
-! Now save CLDFRC in CLDFRC array instead of CFRAC (bmy, 12/9/03)
-!      CALL READ_A3( NYMD=NYMD,     NHMS=NHMS,     CLDFRC=CFRAC,  
-!----------------------------------------------------------------------------
       CALL READ_A3( NYMD=NYMD,     NHMS=NHMS,     CLDFRC=CLDFRC,  
      &              HFLUX=HFLUX,   PBL=PBL,       PREACC=PREACC, 
-!----------------------------------------------------------------------------
-! Prior to 12/9/03:
-! Now save RADSWG in RADSWG array instead of RADIAT (bmy, 12/9/03)
-!     &              PRECON=PRECON, RADSWG=RADIAT, TS=TS,
-!----------------------------------------------------------------------------
      &              PRECON=PRECON, RADSWG=RADSWG, TS=TS,
      &              U10M=U10M,     USTAR=USTAR,   V10M=V10M, 
      &              Z0=Z0 )              
@@ -527,11 +497,6 @@
          ! Prior to 13 Feb 1997, read 7 A-3 fields
          CALL READ_A3( NYMD=NYMD,     NHMS=NHMS,     HFLUX=HFLUX,   
      &                 PBL=PBL,       PREACC=PREACC, PRECON=PRECON, 
-!----------------------------------------------------------------------------
-! Prior to 12/9/03:
-! Now save RADSWG in RADSWG array instead of RADIAT (bmy, 12/9/03)
-!     &                 RADSWG=RADIAT, TS=TS,         USTAR=USTAR,
-!---------------------------------------------------------------------------- 
      &                 RADSWG=RADSWG, TS=TS,         USTAR=USTAR,
      &                 Z0=Z0 )  
 
@@ -540,11 +505,6 @@
          ! On or after 13 Feb 1997, read 9 A-3 fields
          CALL READ_A3( NYMD=NYMD,     NHMS=NHMS,     HFLUX=HFLUX,   
      &                 PBL=PBL,       PREACC=PREACC, PRECON=PRECON, 
-!---------------------------------------------------------------------------- 
-! Prior to 12/9/03:
-! Now save RADSWG in RADSWG array instead of RADIAT (bmy, 12/9/03)
-!     &                 RADSWG=RADIAT, TS=TS,         U10M=U10M,
-!---------------------------------------------------------------------------- 
      &                 RADSWG=RADSWG, TS=TS,         U10M=U10M,
      &                 USTAR=USTAR,   V10M=V10M,     Z0=Z0 )         
  
@@ -564,19 +524,9 @@
       ! (2 ) T2M is used as a proxy for TS in GEOS-4.
       !================================================================
       CALL READ_A3( NYMD=NYMD,       NHMS=NHMS,     
-!---------------------------------------------------------------------------
-! Prior to 12/9/03:
-! Now save CLDFRC in CLDFRC array, instead of CFRAC (bmy, 12/9/03)
-!     &              ALBEDO=ALBD,     CLDFRC=CFRAC,  HFLUX=HFLUX,   
-!---------------------------------------------------------------------------
      &              ALBEDO=ALBD,     CLDFRC=CLDFRC, HFLUX=HFLUX,   
      &              GWETTOP=GWETTOP, PARDF=PARDF,   PARDR=PARDR,
      &              PBL=PBL,         PREACC=PREACC, PRECON=PRECON,   
-!---------------------------------------------------------------------------
-! Prior to 12/9/03:
-! Now save RADSWG in RADSWG array.  Also get RADLWG, SNOW. (bmy, 12/9/03)
-!     &              RADSWG=RADIAT,   TS=TS,         TSKIN=TSKIN,     
-!---------------------------------------------------------------------------
      &              RADLWG=RADLWG,   RADSWG=RADSWG, SNOW=SNOW,  
      &              TS=TS,           TSKIN=TSKIN,   U10M=U10M,       
      &              USTAR=USTAR ,    V10M=V10M,     Z0=Z0 )
@@ -648,12 +598,6 @@
 
 #elif defined( GEOS_4 )
 
-      !-------------------------------------------------------
-      ! Prior to 12/9/03:
-      ! GEOS_4/fvDAS now has 19 A-3 fields (bmy, 12/8/03)
-      !! GEOS-4/fvDAS has 16 fields
-      !N_A3 = 1
-      !-------------------------------------------------------
       ! GEOS-4/fvDAS has 19 fields
       N_A3 = 19
 
@@ -781,11 +725,6 @@
       ! Arguments
       INTEGER, INTENT(IN)            :: NYMD, NHMS
       REAL*8,  INTENT(OUT), OPTIONAL :: ALBEDO(IIPAR,JJPAR) 
-      !-------------------------------------------------------------------
-      ! Prior to 12/9/03:
-      ! Now define CLDFRC as (IIPAR,JJPAR) (bmy, 12/9/03)
-      !REAL*8,  INTENT(OUT), OPTIONAL :: CLDFRC(MAXIJ)
-      !-------------------------------------------------------------------
       REAL*8,  INTENT(OUT), OPTIONAL :: CLDFRC(IIPAR,JJPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: GWETTOP(IIPAR,JJPAR) 
       REAL*8,  INTENT(OUT), OPTIONAL :: HFLUX(IIPAR,JJPAR)
@@ -795,29 +734,14 @@
       REAL*8,  INTENT(OUT), OPTIONAL :: PREACC(IIPAR,JJPAR) 
       REAL*8,  INTENT(OUT), OPTIONAL :: PRECON(IIPAR,JJPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: RADLWG(IIPAR,JJPAR)
-      !-------------------------------------------------------------------
-      ! Prior to 12/9/03:
-      ! Now define RADSWG as (IIPAR,JJPAR) (bmy, 12/9/03)
-      !REAL*8,  INTENT(OUT), OPTIONAL :: RADSWG(MAXIJ)
-      !-------------------------------------------------------------------
       REAL*8,  INTENT(OUT), OPTIONAL :: RADSWG(IIPAR,JJPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: RADSWT(IIPAR,JJPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: SNOW(IIPAR,JJPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: TS(IIPAR,JJPAR) 
       REAL*8,  INTENT(OUT), OPTIONAL :: TSKIN(IIPAR,JJPAR) 
       REAL*8,  INTENT(OUT), OPTIONAL :: U10M(IIPAR,JJPAR) 
-      !-------------------------------------------------------------------
-      ! Prior to 12/9/03:
-      ! Now define USTAR as (IIPAR,JJPAR) (bmy, 12/9/03)
-      !REAL*8,  INTENT(OUT), OPTIONAL :: USTAR(MAXIJ) 
-      !-------------------------------------------------------------------
       REAL*8,  INTENT(OUT), OPTIONAL :: USTAR(IIPAR,JJPAR) 
       REAL*8,  INTENT(OUT), OPTIONAL :: V10M(IIPAR,JJPAR)
-      !-------------------------------------------------------------------    
-      ! Prior to 12/9/03:
-      ! Now define Z0 as (IIPAR,JJPAR) (bmy, 12/9/03)
-      !REAL*8,  INTENT(OUT), OPTIONAL :: Z0(MAXIJ)
-      !-------------------------------------------------------------------    
       REAL*8,  INTENT(OUT), OPTIONAL :: Z0(IIPAR,JJPAR)
 
       ! Local Variables
@@ -884,13 +808,6 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:3' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  !-------------------------------------------------------
-                  ! Prior to 12/9/03:
-                  ! CLDFRC is now a 2-D array (bmy, 12/9/03)
-                  !IF ( PRESENT( CLDFRC ) ) THEN
-                  !   CALL TRANSFER_TO_1D( Q2, CLDFRC )
-                  !ENDIF
-                  !-------------------------------------------------------
                   IF ( PRESENT( CLDFRC ) ) CALL TRANSFER_2D( Q2,CLDFRC )
                   NFOUND = NFOUND + 1
                ENDIF
@@ -999,12 +916,6 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:12' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  !----------------------------------------------------------
-                  ! RADSWG is now a 2-D array (bmy, 12/9/03)
-                  !IF ( PRESENT( RADSWG ) ) THEN
-                  !   CALL TRANSFER_TO_1D( Q2, RADSWG )
-                  !ENDIF
-                  !----------------------------------------------------------
                   IF ( PRESENT( RADSWG ) ) CALL TRANSFER_2D( Q2,RADSWG )
                   NFOUND = NFOUND + 1
                ENDIF
@@ -1077,12 +988,6 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:18' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  !--------------------------------------------------------
-                  ! Prior to 12/9/03:
-                  !IF ( PRESENT( USTAR ) ) THEN
-                  !   CALL TRANSFER_TO_1D( Q2, USTAR )
-                  !ENDIF
-                  !--------------------------------------------------------
                   IF ( PRESENT( USTAR ) ) CALL TRANSFER_2D( Q2, USTAR )
                   NFOUND = NFOUND + 1
                ENDIF
@@ -1107,12 +1012,6 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:20' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  !----------------------------------------------------
-                  ! Prior to 12/9/03:
-                  !IF ( PRESENT( Z0 ) ) THEN
-                  !   CALL TRANSFER_TO_1D( Q2, Z0 )
-                  !ENDIF
-                  !----------------------------------------------------
                   IF ( PRESENT( Z0 ) ) CALL TRANSFER_2D( Q2, Z0 ) 
                   NFOUND = NFOUND + 1
                ENDIF
@@ -1192,8 +1091,6 @@
       ! (22) GWET   : Top soil wetness                   [unitless]
       !=================================================================
       IF ( ND67 > 0 ) THEN
-
-         ! Archive 2-D arrays
          IF ( PRESENT( HFLUX   ) ) AD67(:,:,1 ) = AD67(:,:,1 ) + HFLUX
          IF ( PRESENT( RADSWG  ) ) AD67(:,:,1 ) = AD67(:,:,2 ) + RADSWG
          IF ( PRESENT( PREACC  ) ) AD67(:,:,3 ) = AD67(:,:,3 ) + PREACC
@@ -1211,17 +1108,6 @@
          IF ( PRESENT( PARDF   ) ) AD67(:,:,20) = AD67(:,:,20) + PARDF
          IF ( PRESENT( PARDR   ) ) AD67(:,:,21) = AD67(:,:,21) + PARDR
          IF ( PRESENT( GWETTOP ) ) AD67(:,:,22) = AD67(:,:,22) + GWETTOP
-
-         !----------------------------------------------------------------
-         ! Prior to 12/9/03:
-         ! These are all now 2-D arrays (by, 12/9/03)
-         !! Archive 1-D arrays
-         !IF ( PRESENT( RADSWG  ) ) CALL ARCHIVE_ND67_1D( RADSWG,  2 ) 
-         !IF ( PRESENT( USTAR   ) ) CALL ARCHIVE_ND67_1D( USTAR,   7 ) 
-         !IF ( PRESENT( Z0      ) ) CALL ARCHIVE_ND67_1D( Z0,      8 ) 
-         !IF ( PRESENT( CLDFRC  ) ) CALL ARCHIVE_ND67_1D( CLDFRC, 10 ) 
-         !----------------------------------------------------------------
-
       ENDIF
          
       ! Increment KDA3FLDS -- this is the # of times READ_A3 is called

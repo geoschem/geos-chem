@@ -1,9 +1,9 @@
-! $Id: tpcore_window_mod.f,v 1.2 2003/12/05 21:14:07 bmy Exp $
+! $Id: tpcore_window_mod.f,v 1.3 2004/01/27 21:25:09 bmy Exp $
       MODULE TPCORE_WINDOW_MOD
 !
 !******************************************************************************
 !  Module TPCORE_MOD contains the TPCORE transport subroutine package by
-!  S-J Lin, version 7.1. (yxw, bmy, 12/2/03)
+!  S-J Lin, version 7.1. (yxw, bmy, 12/2/03, 1/26/04)
 !  
 !  Module routines:
 !  ============================================================================
@@ -112,6 +112,7 @@
 !        (yxw, bmy, 3/10/03)
 !  (2 ) Updated information output depending on what type of machine it is.
 !        (bmy, 12/2/03)
+!  (3 ) Commented out call to FLUSH(6) (bmy, 1/26/04)
 !******************************************************************************
 !
       !=================================================================
@@ -568,7 +569,10 @@ C     write window size information (yxw, 8/21/2001)
       WRITE(6,*) 'J1_W=', J1_W, ' J2_W=', J2_W
       WRITE(6,*) 'I0_W=', I0_W, ' J0_W=', J0_W
       WRITE(6,*) NC, IORD,JORD,KORD,NDT
-      call flush(6)
+      !----------------------------
+      ! Prior to 1/26/04:
+      !call flush(6)
+      !----------------------------
       
       if(NL.LT.6) then
         write(6,*) 'stop in module tpcore'

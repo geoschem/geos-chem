@@ -1,10 +1,10 @@
-! $Id: convection_mod.f,v 1.1 2003/06/30 20:26:07 bmy Exp $
+! $Id: convection_mod.f,v 1.2 2004/01/27 21:25:05 bmy Exp $
       MODULE CONVECTION_MOD
 !
 !******************************************************************************
 !  Module CONVECTION_MOD contains routines which select the proper convection
 !  code for GEOS-1, GEOS-STRAT, GEOS-3, or GEOS-4 met field data sets. 
-!  (bmy, 6/28/03)
+!  (bmy, 6/28/03, 1/27/04)
 !
 !  Module Routines:
 !  ============================================================================
@@ -22,6 +22,9 @@
 !  (7 ) wetscav_mod.f       : Module containing routines for wetdep/scavenging
 !
 !  NOTES:
+!  (1 ) Contains new updates for GEOS-4/fvDAS convection.  Also now references
+!        "error_mod.f".  Now make F in routine NFCLDMX a 4-D array to avoid
+!        memory problems on the Altix. (bmy, 1/27/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -38,64 +41,184 @@
 !******************************************************************************
 !  Subroutine DO_CONVECTION is a wrapper for the GEOS-CHEM convection code.
 !  It calls the proper convection routine for GEOS-1, GEOS-S, GEOS-3, or 
-!  GEOS-4 met field types. (bmy, 6/26/03)
+!  GEOS-4 met field types. (bmy, 6/26/03, 1/27/04)
 !
 !  NOTES:
+!  (1 ) Now updated for GEOS-4/fvDAS convection.  Also placed calls to 
+!         DEBUG_MSG for debugging msg output. (swu, bmy, 1/27/04)
 !******************************************************************************
 !     
       ! References to F90 modules
       USE DAO_MOD,           ONLY : HKETA, HKBETA, ZMEU, ZMMU, ZMMD
       USE DIAG_MOD,          ONLY : AD37
+      USE ERROR_MOD,         ONLY : DEBUG_MSG
       USE FVDAS_CONVECT_MOD, ONLY : INIT_FVDAS_CONVECT, FVDAS_CONVECT
       USE WETSCAV_MOD,       ONLY : COMPUTE_F
+      USE TIME_MOD,          ONLY : GET_TS_CONV
+      USE PRESSURE_MOD              
 
-#     include "CMN_SIZE" ! Size parameters
-#     include "CMN"      ! STT, TCVV, NTRACE
+#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN"       ! STT, TCVV, NTRACE, LPRT
+#     include "CMN_DIAG"  ! ND37, LD37 
 
-      ! Local variables
+#if   defined( GEOS_4 )
+      
+      ! More local variables 
       LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER       :: I, ISOL, J, L, L2, N, NSTEP  
+      INTEGER       :: INDEXSOL(NTRACE) 
+      INTEGER       :: CONVDT    
+      REAL*8        :: F(IIPAR,JJPAR,LLPAR,NTRACE)
+      REAL*8        :: RPDEL(IIPAR,JJPAR,LLPAR)
+      REAL*8        :: DP(IIPAR,JJPAR,LLPAR)
+      REAL*8        :: TEMP_DIAG
+      REAL*8        :: P1, P2, TDT   
+
+      ! Declare temporary arrays to hold flipped met fields.  This means 
+      ! that we won't have to reflip them after convection. (bmy, 12/12/03)
+      REAL*8        :: HKBETA_F(IIPAR,JJPAR,LLPAR)
+      REAL*8        :: HKETA_F(IIPAR,JJPAR,LLPAR)
+      REAL*8        :: ZMEU_F(IIPAR,JJPAR,LLPAR)
+      REAL*8        :: ZMMD_F(IIPAR,JJPAR,LLPAR)
+      REAL*8        :: ZMMU_F(IIPAR,JJPAR,LLPAR)
 
       !=================================================================
-      ! DO_CONVECTION begins here!
+      ! DO_CONVECTION begins here! (for GEOS-4!)
       !=================================================================
       
-#if   defined( GEOS_4 )
+      ! Convection timestep [s]
+      CONVDT = GET_TS_CONV() * 60d0 
+       
+      ! NSTEP is the # of internal convection timesteps.  According to
+      ! notes in the old convection code, 300s works well. (swu, 12/12/03)
+      NSTEP  = CONVDT / 300    
+      NSTEP  = MAX( NSTEP, 1 ) 
 
-! Deal w/ this later (bmy, 6/26/03)
-!      ! Tracer for soluble fraction
-!      REAL*8 :: F(IIPAR,JJPAR,LLPAR,NTRACE)
-!
-!      ! First-time initialization
-!      IF ( FIRST ) THEN
-!         CALL INIT_FVDAS_CONVECT
-!         FIRST = .FALSE.
-!      ENDIF
-!         
-!      ! Compute fraction of soluble tracer
-!      DO N = 1, NTRACE
-!         CALL COMPUTE_F( N, F(:,:,:,N), ISOL )
-!         
-!         ! ND37 diagnostic -- store F only for soluble tracers
-!         IF ( ND37 > 0 .and. ISOL > 0 ) THEN
-!            AD37(:,:,1:LD37,ISOL) = 
-!     &           AD37(:,:,1:LD37,ISOL) + F(:,:,1:LD37)
-!         ENDIF
-!         
-!         ! fvDAS routines need the insoluble fraction
-!         F(:,:,:,N) = 1d0 - F(:,:,:,N)
-!      ENDDO
-!
-!      ! Call the fvDAS convection routines (originally from NCAR!)
-!      CALL FVDAS_CONVECT( TDT, STT(:,:,:,1:NTRACE),    
-!     &                    RPDEL, HKETA, HKBETA, NTRACE, ZMMU, 
-!     &                    ZMMD,  ZMEU,  DP,     NSTEP,  F )
+      ! TIMESTEP*2; will be divided by 2 before passing to CONVTRAN 
+      TDT    = DBLE( CONVDT ) *2.0D0 / DBLE( NSTEP )
+
+      ! First-time initialization
+      IF ( FIRST ) THEN
+         CALL INIT_FVDAS_CONVECT
+         FIRST = .FALSE.
+      ENDIF
+         
+      !### Debug
+      IF ( LPRT ) CALL DEBUG_MSG( '### DO_CONVECTION: a INIT_FV' )
+
+      !=================================================================
+      ! Before calling convection, compute the fraction of insoluble
+      ! tracer (Finsoluble) lost in updrafts.  Finsoluble = 1-Fsoluble.
+      !=================================================================
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N, ISOL )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO N = 1, NTRACE
+
+         ! Get fraction of tracer scavenged and the soluble tracer 
+         ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
+         CALL COMPUTE_F( N, F(:,:,:,N), ISOL ) 
+         
+         ! Store ISOL in an array for later use
+         INDEXSOL(N) = ISOL
+
+         ! Loop over grid boxes
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! ND37 diagnostic: store fraction of tracer 
+            ! lost in moist convective updrafts ("MC-FRC-$")
+            IF ( ND37 > 0 .and. ISOL > 0 .and. L <= LD37 ) THEN
+               AD37(I,J,L,ISOL) = AD37(I,J,L,ISOL) + F(I,J,L,N) 
+            ENDIF
+
+            ! GEOS-4 convection routines need the insoluble fraction
+            F(I,J,L,N) = 1d0 - F(I,J,L,N)
+         ENDDO
+         ENDDO
+         ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+       
+      !### Debug
+      IF ( LPRT ) CALL DEBUG_MSG( '### DO_CONVECTION: a COMPUTE_F' )
+
+      !=================================================================
+      ! Compute pressure thickness arrays DP and RPDEL
+      ! These arrays are indexed from atm top --> surface
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, L2, P1, P2 )
+      DO L = 1, LLPAR
+
+         ! L2 runs from the atm top down to the surface
+         L2 = LLPAR - L + 1
+
+         ! Loop over surface grid boxes
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+               
+            ! Pressure at bottom and top edges of grid box [hPa]
+            P1 = GET_PEDGE(I,J,L)
+            P2 = GET_PEDGE(I,J,L+1)
+
+            ! DP = Pressure difference between top & bottom edges [Pa]
+            DP(I,J,L2) = ( P1 - P2 ) * 100.0d0
+
+            ! RPDEL = reciprocal of DP [1/hPa]
+            RPDEL(I,J,L2) = 100.0d0 / DP(I,J,L2) 
+         ENDDO
+         ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      !### Debug
+      IF ( LPRT ) CALL DEBUG_MSG( '### DO_CONVECTION: a DP, RPDEL' )
+   
+      !=================================================================
+      ! Flip arrays in the vertical and call FVDAS_CONVECT
+      !=================================================================
+
+      ! Flip 4-D arrays for FVDAS_CONVECT
+      STT(:,:,1:LLPAR,1:NTRACE) = STT(:,:,LLPAR:1:-1,1:NTRACE)
+      F  (:,:,1:LLPAR,1:NTRACE) = F  (:,:,LLPAR:1:-1,1:NTRACE)
+
+      ! Flip met fields for FVDAS_CONVECT.  Store them in temporary
+      ! local arrays so that we don't have to reflip them,  This
+      ! is more efficient and saves clock cycles. (bmy, 12/16/03)
+      HKBETA_F(:,:,1:LLPAR) = HKBETA(:,:,LLPAR:1:-1)
+      HKETA_F (:,:,1:LLPAR) = HKETA (:,:,LLPAR:1:-1)
+      ZMEU_F  (:,:,1:LLPAR) = ZMEU  (:,:,LLPAR:1:-1)
+      ZMMD_F  (:,:,1:LLPAR) = ZMMD  (:,:,LLPAR:1:-1)
+      ZMMU_F  (:,:,1:LLPAR) = ZMMU  (:,:,LLPAR:1:-1)
+
+      ! Call the fvDAS convection routines (originally from NCAR!)
+      CALL FVDAS_CONVECT( TDT,    NTRACE,  STT(:,:,:,1:NTRACE),    
+     &                    RPDEL,  HKETA_F, HKBETA_F, ZMMU_F, 
+     &                    ZMMD_F, ZMEU_F,  DP,       NSTEP,  
+     &                    F,      TCVV,    INDEXSOL )
+
+      ! Reflip STT array after FVDAS_CONVECT
+      STT(:,:,1:LLPAR,1:NTRACE) = STT(:,:,LLPAR:1:-1,1:NTRACE)
+
+      !### Debug
+      IF ( LPRT ) CALL DEBUG_MSG( '### DO_CONVECTION: a FVDAS_CONVECT' )
 
 #else
 
       !==================================================================
-      ! Call the S-J Lin convection routine for GEOS-1, GEOS-S, GEOS-3
+      ! DO_CONVECTION begins here! (for GEOS-3)
       !==================================================================
+
+      ! Call the S-J Lin convection routine for GEOS-1, GEOS-S, GEOS-3
       CALL NFCLDMX( NTRACE, TCVV(1:NTRACE), STT(:,:,:,1:NTRACE) )
+
+      !### Debug
+      IF ( LPRT ) CALL DEBUG_MSG( '### DO_CONVECTION: a NFCLDMX' )
 
 #endif
 
@@ -110,7 +233,7 @@
 !  Subroutine NFCLDMX is S-J Lin's cumulus transport module for 3D GSFC-CTM,
 !  modified for the GEOS-CHEM model.  The "NF" stands for "no flipping", and
 !  denotes that you don't have to flip the tracer array Q in the main
-!  program before passing it to NFCLDMX. (bmy, 2/12/97, 6/26/03)
+!  program before passing it to NFCLDMX. (bmy, 2/12/97, 1/26/04)
 !
 !  NOTE: NFCLDMX can be used with GEOS-1, GEOS-STRAT, and GEOS-3 met fields.
 !  For GEOS-4/fVDAS, you must use the routines in "fvdas_convect_mod.f"
@@ -235,6 +358,9 @@
 !        "dao_mod.f", "grid_mod.f", "pressure_mod.f", and "time_mod.f".
 !        (bmy, 3/27/03)
 !  (12) Bundled into "convection_mod.f" (bmy, 6/26/03)
+!  (13) Make sure K does not go out of bounds in ND38 diagnostic.  Now make 
+!        F a 4-D array in order to avoid memory problems on the Altix.  
+!        (bmy, 1/27/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -249,7 +375,7 @@
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! Diagnostic switches & arrays
- 
+
       ! Arguments
       INTEGER, INTENT(IN)    :: NC 
       REAL*8,  INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NC)
@@ -266,7 +392,13 @@
       REAL*8                 :: DTCSUM(IIPAR,JJPAR,LLPAR,NNPAR)
 
       ! F is the fraction of tracer lost to wet scavenging in updrafts
-      REAL*8                 :: F(IIPAR,JJPAR,LLPAR)
+      !-------------------------------------------------------------------
+      ! Prior to 1/27/04:
+      ! Now make F a 4-D array, so we don't have to hold it PRIVATE.  
+      ! This prevents memory problems on the Altix (bmy, 1/27/04)
+      !REAL*8                 :: F(IIPAR,JJPAR,LLPAR)
+      !-------------------------------------------------------------------
+      REAL*8                 :: F(IIPAR,JJPAR,LLPAR,NC)
 
       ! Local Work arrays
       REAL*8                 :: BMASS(IIPAR,JJPAR,LLPAR)
@@ -298,7 +430,7 @@
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          WRITE( 6, '(a)' ) 'N F C L D M X  -- by S-J Lin'
          WRITE( 6, '(a)' ) 'Modified for GEOS-CHEM by Bob Yantosca'
-         WRITE( 6, '(a)' ) 'Last Modification Date: 2/4/03'
+         WRITE( 6, '(a)' ) 'Last Modification Date: 1/27/04'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
          ! DSIG is the sigma-level thickness (NOTE: this assumes that
@@ -376,7 +508,6 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-
       !=================================================================
       ! (1)  T r a c e r   L o o p 
       !
@@ -393,11 +524,20 @@
       !     ( CMOUT, DELQ, ENTRN, ISOL, QC_PRES, etc. )
       ! (3) Arrays independent of tracer ( F, MB, QB, QC )
       !=================================================================
+!-----------------------------------------------------------------------------
+! Prior to 1/27/04:
+! Now make F a 4-D array, so we don't have to hold it PRIVATE.  
+! This prevents memory problems on the Altix (bmy, 1/27/04)
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( CMOUT, DELQ, ENTRN, F, I, IC, ISOL, ISTEP, J, AREA_M2 ) 
+!!$OMP+PRIVATE( K, MB, QB, QC, QC_PRES, QC_SCAV, T0, T1, T2, T3, T4   )
+!!$OMP+PRIVATE( TSUM                                                  ) 
+!-----------------------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( CMOUT, DELQ, ENTRN, F, I, IC, ISOL, ISTEP, J, AREA_M2 ) 
-!$OMP+PRIVATE( K, MB, QB, QC, QC_PRES, QC_SCAV, T0, T1, T2, T3, T4   )
-!$OMP+PRIVATE( TSUM                                                  ) 
+!$OMP+PRIVATE( CMOUT, DELQ, ENTRN, I, IC, ISOL, ISTEP, J, AREA_M2, K  ) 
+!$OMP+PRIVATE( MB, QB, QC, QC_PRES, QC_SCAV, T0, T1, T2, T3, T4, TSUM )
 !$OMP+SCHEDULE( DYNAMIC )
       DO IC = 1, NC
 
@@ -416,12 +556,29 @@
          ! used for diagnostic arrays AD37 and AD38.  ISOL = 0 for all 
          ! non-soluble tracers.   
          !==============================================================
-         CALL COMPUTE_F( IC, F, ISOL )
+         !-----------------------------------------------------------------
+         ! Prior to 1/27/04:
+         ! Now make F a 4-D array, so we don't have to hold it PRIVATE.  
+         ! This prevents memory problems on the Altix (bmy, 1/27/04)
+         !CALL COMPUTE_F( IC, F, ISOL ) 
+         !-----------------------------------------------------------------
+         CALL COMPUTE_F( IC, F(:,:,:,IC), ISOL ) 
 
          ! ND37 diagnostic -- store F only for soluble tracers
          IF ( ND37 > 0 .and. ISOL > 0 ) THEN
-            AD37(:,:,1:LD37,ISOL) = 
-     &           AD37(:,:,1:LD37,ISOL) + F(:,:,1:LD37)
+!-----------------------------------------------------------------------
+! Prior to 1/27/04:
+! Now use parallel do loop instead of array masks (bmy, 1/27/04)
+!            AD37(:,:,1:LD37,ISOL) = 
+!     &           AD37(:,:,1:LD37,ISOL) + F(:,:,1:LD37)
+!-----------------------------------------------------------------------
+            DO K = 1, LD37
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               AD37(I,J,K,ISOL) = AD37(I,J,K,ISOL) + F(I,J,K,IC) 
+            ENDDO
+            ENDDO
+            ENDDO
          ENDIF
       
          !==============================================================
@@ -503,7 +660,7 @@
                ENDIF
             ENDDO !I
             ENDDO !J
-!
+
             !===========================================================
             ! (5)  A b o v e   C l o u d   B a s e
             !
@@ -551,8 +708,16 @@
                   IF ( CLDMAS(I,J,K-1) .gt. TINY ) THEN
                      CMOUT    = CLDMAS(I,J,K) + DTRN(I,J,K)
                      ENTRN    = CMOUT         - CLDMAS(I,J,K-1)
-                     QC_PRES  = QC(I,J) * ( 1d0 - F(I,J,K) )
-                     QC_SCAV  = QC(I,J) * F(I,J,K)
+                     !--------------------------------------------------------
+                     ! Prior to 1/27/04:
+                     ! Now make F a 4-D array, so we don't have to hold it 
+                     ! PRIVATE.  This prevents memory problems on the Altix 
+                     ! (bmy, 1/27/04)
+                     !QC_PRES  = QC(I,J) * ( 1d0 - F(I,J,K) )
+                     !QC_SCAV  = QC(I,J) * F(I,J,K)
+                     !--------------------------------------------------------
+                     QC_PRES  = QC(I,J) * ( 1d0 - F(I,J,K,IC) )
+                     QC_SCAV  = QC(I,J) * F(I,J,K,IC)
 
                      IF ( ENTRN .ge. 0 ) THEN
                         QC(I,J) = ( CLDMAS(I,J,K-1) * QC_PRES       + 
@@ -640,7 +805,12 @@
                      ! scavenging in cloud updrafts [kg/s].  We must 
                      ! divide by DNS, the # of internal timesteps.
                      !==================================================
-                     IF ( ND38 > 0 .and. ISOL > 0 ) THEN
+                     !--------------------------------------------------------
+                     ! Prior to 1/27/04:
+                     ! Make sure AD38 doesn't go out of bounds (bmy, 1/27/04)
+                     !IF ( ND38 > 0 .and. ISOL > 0 ) THEN
+                     !--------------------------------------------------------
+                     IF ( ND38 > 0 .and. ISOL > 0 .and. K <= LD38 ) THEN
                         AD38(I,J,K,ISOL) = AD38(I,J,K,ISOL) +
      &                       ( T0 * AREA_M2 / ( TCVV(IC) * DNS ) )
                      ENDIF

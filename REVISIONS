@@ -1,128 +1,110 @@
-REVISIONS (v6-01-04)  
-bmy, 10 Dec 2003
+REVISIONS (v6-01-05)  
+bmy, 27 Jan 2004
 
 
-New in v6-01-04:
+New in v6-01-05:
 ----------------------------------------------------------------------------- 
 
 
 
-Removed from v6-01-04:
+Removed from v6-01-05:
 ----------------------------------------------------------------------------- 
 
 
 
-Changed from v6-01-03:
+Changed from v6-01-04:
 -------------------------------------------------------------------------------
 
-cleanup_dao		-- Now deallocate CLDFRC, RADLWG, RADSWG, SNOW arrays
-("dao_mod.f")
+arconvtran		-- Removed NSTEP from arg list; it's not used
+("fvdas_convect_mod.f") -- Also zero arrays in order to prevent them from 
+			   being filled with compiler junk for latitudes
+			   where no convection occurs at all.
 
-CMN_DEP			-- Comment out CFRAC, RADIAT.  These are now defined 
-			   as local variables in "drydep_mod.f".
+CMN_DIAG		-- Changed PD37 from 4 to 10
 
-CMN_SETUP		-- Renamed LRERD to LUNZIP
+convtran		-- Added references to "diag_mod.f" and "grid_mod.f"
+("fvdas_convect_mod.f") -- Also added TCVV and INDEXSOL as arguments
+			-- Now only save LD38 levels of the ND38 diagnostic
+			-- Now put NTRACE before Q on the arg list, since
+		           NTRACE is needed to define Q and thus cannot
+			   be listed first.
 
-dao_mod.f		-- Added CLDFRC, RADSWG, RADLWG, SNOW arrays (RADSWG 
-("dao_mod.f") 		   was formerly stored in the RADIAT and CLDFRC was
-			   formerly stored in the CFRAC array of "CMN_DEP")
+diag3.f			-- Now use actual tracer number for ND37 diagnostic
 
-do_drydep		-- Now declare CFRAC, RADIAT, AZO, USTAR as local 
-("drydep_mod.f")	   variables, which are returned by METERO. 
+do_convection		-- Added changes for GEOS-4/fvDAS convection
+("convection_mod.f")	-- Also placed calls to DEBUG_MSG for debugging 
+			   msg output.
 
-emisop.f		-- Now pass I, J via the arg list.  
-			-- Now reference CLDFRC directly from "dao_mod.f" 
-			   instead of referencing CFRAC from "CMN_DEP"
-			-- Now remove reference to CMN_DEP 
+fvdas_convect		-- Added TCVV and INDEXSOL to the arg list and in the 
+("fvdas_convect_mod.f")	   call to CONVTRAN.  
+			-- Now perform convection in a loop over NSTEP 
+			   iterations.  
+			-- Added an OpenMP parallel loop over latitude.   
+			-- Removed IL1G and IL2G, since these are no longer 
+			   needed in this routine.
+			-- Now put NTRACE before Q on the arg list, since
+		           NTRACE is needed to define Q and thus cannot
+			   be listed first.	
 
-emisop_grass.f		-- Now pass I, J via the arg list.  
-			-- Now reference CLDFRC directly from "dao_mod.f" 
-			   instead of referencing CFRAC from "CMN_DEP"
-			-- Now remove reference to CMN_DEP 
+get_regional_pox	-- For GEOS-4, convert PBL from [m] to [hPa]
+("tagged_ox_mod.f")	   w/ the barometric law.
+			-- Now references SCALE_HEIGHT from "CMN_GCTM". 
 
-emisop_mb.f		-- Now pass I, J via the arg list.  
-			-- Now reference CLDFRC directly from "dao_mod.f" 
-			   instead of referencing CFRAC from "CMN_DEP"
-			-- Now remove reference to CMN_DEP 
+init_fvdas_convect	-- Now compute HYPI in a more efficient way
+("fvdas_convect_mod.f")
 
-emissdr.f		-- Now pass I, J to EMISOP, EMISOP_GRASS, EMISOP_MB
+ndxx_setup.f		-- Now use GET_WETDEP_NMAX to get max # of 
+			   soluble tracers for ND37 diagnostic
 
-emisshcn.f		-- Now pass I, J to EMISOP
+nfcldmx			-- Make sure that K does not go out of bounds
+("convection_mod.f")	   for ND38 diagnostic
+			-- Now make F a 4-D array, so we don't have to hold 
+			   it PRIVATE.  This prevents memory problems on the 
+			   Altix 
 
-emiss_tagged_co		-- Now pass I, J to EMISOP
-("tagged_co_mod.f") 
-
-get_a3_fields		-- Now save RADSWG in RADSWG array (instead of RADIAT)
-("a3_read_mod.f")	-- Now save CLDFRC in CLDFRC array (instead of CFRAC)
-			-- Now also get RADLWG, SNOW arrays
-			-- Remove reference to "CMN_DEP"
-			-- Updated comments
-	
-get_a6_fields		-- CFRAC has been removed from CMN_DEP.  
-("a6_read_mod.f") 	   Now use CLDFRC(I,J) from "dao_mod.f"
-
-get_n_a3		-- GEOS-4/fvDAS now has 19 A-3 fields; 		
-("a3_read_mod.f")          we added LAI, RADLWG, SNOW.
-
-init_dao		-- Now allocate RADLWG, RADSWG, SNOW arrays
-("dao_mod.f")		-- USTAR, CLDFRC, Z0, RADSWG are now 2-D arrays
-
-main.f			-- Remove reference to "CMN_DEP", it's obsolete
-			-- Now bracket calls to UNZIP_A3_FIELDS, 
-			   UNZIP_A6_FIELDS, UNZIP_I6_FIELDS, UNZIP_PHIS_FIELDS
-			   with an "IF ( LUNZIP ) THEN" statement
-
-make_cldfrc		-- CLDFRC is now a 2-D array
-("a6_read_mod.f")	
-
-make_wind10m		-- Z0 is now a 2-D array
-("dao_mod.f")	
-
-met_field_debug		-- Updated for new met field definitions in "dao_mod.f"
-("main.f")
-
-metero			-- Now reference CLDFRC, RADSWG, ZO, USTAR 
-("drydep_mod.f")	   from "dao_mod.f".  
-			-- Also now pass CFRAC, RADIAT, AZO, USTR back to 
-			   the calling routine via the arg list.
-
-open_a3_fields		-- Now opens either zipped or unzipped files
+open_a3_fields		-- Now skips past the GEOS-4 ident string
 ("a3_read_mod.f")
 
-open_a6_fields		-- Now opens either zipped or unzipped files
-("a6_read_mod.f")
+open_a6_fields		-- Now skips past the GEOS-4 ident string
+("a3_read_mod.f")
 
-open_i6_fields		-- Now opens either zipped or unzipped files
-("i6_read_mod.f")
+open_i6_fields		-- Now skips past the GEOS-4 ident string
+("a3_read_mod.f")
 
-open_phis_fields	-- Now opens either zipped or unzipped files
-("phis_read_mod.f")
+open_phis_fields	-- Now skips past the GEOS-4 ident string
+("a3_read_mod.f")
 
-setup.f			-- Renamed LRERD to LUNZIP
-			-- Disable checking of GEOS_1_DIR etc directory paths
+srcdms			-- For GEOS-4, convert PBL from [m] to [hPa]
+("sulfate_mod.f")	   w/ the barometric law.
+			-- Now references SCALE_HEIGHT from "CMN_GCTM". 
+			-- Added BLTHIK variable for PBL thickness in [hPa].
 
-read_a3			-- RADSWG and CLDFRC are now 2-D arrays
-("a3_read_mod.f")	-- Also added RADLWG and SNOW arrays via the arg list
-			-- Now skip over LAI
+srcnh3			-- For GEOS-4, convert PBL from [m] to [hPa]
+("sulfate_mod.f")	   w/ the barometric law.
+			-- Now references SCALE_HEIGHT from "CMN_GCTM". 
+			-- Added BLTHIK variable for PBL thickness in [hPa].
 
-unzip_a3_fields		-- Directory information YYYY/MM or YYYYMM is now
-("a3_read_mod.f")	   contained w/in GEOS_1_DIR, GEOS_S_DIR, GEOS_3_DIR, 
-			   GEOS_4_DIR variables
+srcso2			-- For GEOS-4, convert PBL from [m] to [hPa]
+("sulfate_mod.f")	   w/ the barometric law.
+			-- Now references SCALE_HEIGHT from "CMN_GCTM". 
+			-- Added BLTHIK variable for PBL thickness in [hPa].
 
-unzip_a6_fields		-- Directory information YYYY/MM or YYYYMM is now
-("a6_read_mod.f")	   contained w/in GEOS_1_DIR, GEOS_S_DIR, GEOS_3_DIR, 
-			   GEOS_4_DIR variables
+srcso4			-- For GEOS-4, convert PBL from [m] to [hPa] w/ 
+("sulfate_mod.f")	   w/ the barometric law.
+			-- Now references SCALE_HEIGHT from "CMN_GCTM". 
+			-- Added BLTHIK variable for PBL thickness in [hPa].
 
-unzip_i6_fields		-- Directory information YYYY/MM or YYYYMM is now
-("a6_read_mod.f")	   contained w/in GEOS_1_DIR, GEOS_S_DIR, GEOS_3_DIR, 
-			   GEOS_4_DIR variables
-
-unzip_phis_fields	-- Directory information YYYY/MM or YYYYMM is now
-("a6_read_mod.f")	   contained w/in GEOS_1_DIR, GEOS_S_DIR, GEOS_3_DIR, 
-			   GEOS_4_DIR variables
-
+tpcore_window		-- Commented out call to FLUSH(6)
+("tpcore_window_mod.f")
+     
+whenfgt			-- Updated comments
+("fvdas_convect_mod.f") -- Now use F90-style declarations.
 
 ---
-			<-- Removed obsolete, commented-out code
-			    from the following routines
-
+a3_read_mod.f		<-- Removed obsolete, commented-out code
+a6_read_mod.f		    from the following routines
+diag_mod.f
+drydep_mod.f
+i6_read_mod.f
+main.f		      
+phis_read_mod.f

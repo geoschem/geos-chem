@@ -1,10 +1,10 @@
-! $Id: phis_read_mod.f,v 1.3 2003/12/11 21:54:11 bmy Exp $
+! $Id: phis_read_mod.f,v 1.4 2004/01/27 21:25:08 bmy Exp $
       MODULE PHIS_READ_MOD
 !
 !******************************************************************************
 !  Module PHIS_READ_MOD contains subroutines that unzip, open, and 
 !  read the GEOS-CHEM PHIS (geopotential heights) field from disk. 
-!  (bmy, 6/16/03, 12/11/03)
+!  (bmy, 6/16/03, 12/12/03)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -29,6 +29,7 @@
 !  (1 ) Adapted from "dao_read_mod.f" (bmy, 6/16/03)
 !  (2 ) Now use TIMESTAMP_STRING for formatted date/time output (bmy, 10/28/03)
 !  (3 ) Now can read either zipped or unzipped files (bmy, 12/11/03)
+!  (4 ) Now skips over the GEOS-4 ident string (bmy, 12/12/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -93,10 +94,6 @@
 
          ! Location of zipped A-3 file in data dir (GEOS-1)
          PHIS_FILE_GZ = TRIM( DATA_DIR )    // TRIM( GEOS_1_DIR )     // 
-!----------------------------------------------------------------------------
-! Prior to 12/11/03:
-!     &                  'YYMM/YYMMDD.phis.' // GET_RES_EXT()          // 
-!----------------------------------------------------------------------------
      &                  'YYMMDD.phis.'      // GET_RES_EXT()          // 
      &                  TRIM( ZIP_SUFFIX )
 
@@ -113,10 +110,6 @@
 
          ! Location of zipped A-3 file in data dir (GEOS-STRAT)
          PHIS_FILE_GZ = TRIM( DATA_DIR )    // TRIM( GEOS_S_DIR )     // 
-!----------------------------------------------------------------------------
-! Prior to 12/11/03:
-!     &                  'YYMM/YYMMDD.phis.' // GET_RES_EXT()          // 
-!----------------------------------------------------------------------------
      &                  'YYMMDD.phis.'      // GET_RES_EXT()          // 
      &                  TRIM( ZIP_SUFFIX )
 
@@ -133,10 +126,6 @@
 
          ! Location of zipped A-3 file in data dir (GEOS-3)
          PHIS_FILE_GZ = TRIM( DATA_DIR )    // TRIM( GEOS_3_DIR )     // 
-!----------------------------------------------------------------------------
-! Prior to 12/11/03:
-!     &                  'YYYYMM/YYYYMMDD.phis.' // GET_RES_EXT()          // 
-!----------------------------------------------------------------------------
      &                  'YYYYMMDD.phis.'    // GET_RES_EXT()          // 
      &                   TRIM( ZIP_SUFFIX )
 
@@ -152,12 +141,8 @@
 #elif defined( GEOS_4 )
 
          ! Location of zipped A-3 file in data dir (GEOS-4)
-         PHIS_FILE_GZ = TRIM( DATA_DIR )    // TRIM( GEOS_4_DIR ) // 
-!----------------------------------------------------------------------------
-! Prior to 12/11/03:
-!     &                  'YYYYMM/YYYYMMDD.phis.' // GET_RES_EXT()          // 
-!----------------------------------------------------------------------------
-     &                  'YYYYMMDD.phis.'    // GET_RES_EXT()      // 
+         PHIS_FILE_GZ = TRIM( DATA_DIR )    // TRIM( GEOS_4_DIR )     // 
+     &                  'YYYYMMDD.phis.'    // GET_RES_EXT()          // 
      &                  TRIM( ZIP_SUFFIX )
 
          ! Location of unzipped A-3 file in temp dir (GEOS-4)
@@ -252,6 +237,7 @@
 !  NOTES:
 !  (1 ) Adapted from OPEN_MET_FIELDS of "dao_read_mod.f" (bmy, 6/13/03)
 !  (2 ) Now opens either zipped or unzipped files (bmy, 12/11/03)
+!  (3 ) Now skips past the GEOS-4 ident string (bmy, 12/12/04)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -264,14 +250,14 @@
 #     include "CMN_SETUP"          ! GEOS directories
 
       ! Arguments
-      INTEGER,          INTENT(IN) :: NYMD, NHMS
+      INTEGER, INTENT(IN) :: NYMD, NHMS
 
       ! Local variables
-      LOGICAL, SAVE                :: FIRST = .TRUE.
-      LOGICAL                      :: IT_EXISTS
-      INTEGER                      :: IOS, IUNIT
-      CHARACTER(LEN=255)           :: INPUT_DIR
-      CHARACTER(LEN=255)           :: PATH
+      LOGICAL, SAVE       :: FIRST = .TRUE.
+      LOGICAL             :: IT_EXISTS
+      INTEGER             :: IOS, IUNIT
+      CHARACTER(LEN=8)    :: IDENT
+      CHARACTER(LEN=255)  :: PATH
 
       !=================================================================
       ! OPEN_PHIS_FIELDS begins here!
@@ -279,21 +265,6 @@
 
       ! Open the A-3 file 0 GMT of each day, or on the first call
       IF ( NHMS == 000000 .or. FIRST ) THEN
-
-!-----------------------------------------------------------------------------
-! Prior to 12/11/03:
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-!
-!         ! Location of A-3 file in temp dir (GEOS-1, GEOS-S)
-!         PATH = TRIM( TEMP_DIR )  // 'YYMMDD.phis.' // GET_RES_EXT()
-!
-!#else
-!
-!         ! Location of A-3 file in temp dir (GEOS-3, GEOS-4)
-!         PATH = TRIM( TEMP_DIR )  // 'YYYYMMDD.phis.' // GET_RES_EXT()
-!
-!#endif
-!-----------------------------------------------------------------------------
 
 #if   defined( GEOS_1 ) 
 
@@ -365,10 +336,23 @@
             CALL IOERROR( IOS, IU_PH, 'open_phis_fields:1' )
          ENDIF
 
-         WRITE( 6, '( ''     - Opening: '', a )' ) TRIM( PATH )
+         ! Echo info
+         WRITE( 6, 100 ) TRIM( PATH )
+ 100     FORMAT( '     - Opening: ', a )
          
          ! Set the proper first-time-flag false
          FIRST = .FALSE.
+
+#if   defined( GEOS_4 )
+
+         ! Skip past the GEOS-4 ident string
+         READ( IU_PH, IOSTAT=IOS ) IDENT
+
+         IF ( IOS /= 0 ) THEN
+            CALL IOERROR( IOS, IU_PH, 'open_phis_fields:2' )
+         ENDIF
+
+#endif
 
       ENDIF
 
@@ -575,13 +559,6 @@
          !==============================================================
          IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) .AND. 
      &        NFOUND == N_PHIS ) THEN
-!----------------------------------------------------------------------------
-! Prior to 10/28/03:
-! Now use TIMESTAMP_STRING for formatted output (bmy, 10/28/03)
-!            WRITE( 6, 200 ) NYMD, NHMS 
-! 200        FORMAT( '     - Found PHIS met field for NYMD, NHMS = ', 
-!     &              i8.8, 1x, i6.6 )
-!----------------------------------------------------------------------------
             STAMP = TIMESTAMP_STRING( NYMD, NHMS )
             WRITE( 6, 200 ) STAMP
  200        FORMAT( '     - Found PHIS met fields for ', a )

@@ -1,10 +1,10 @@
-! $Id: tagged_ox_mod.f,v 1.1 2003/10/20 20:34:43 bmy Exp $
+! $Id: tagged_ox_mod.f,v 1.2 2004/01/27 21:25:09 bmy Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
 !  Module TAGGED_OX_MOD contains variables and routines to perform a tagged Ox
 !  simulation.  P(Ox) and L(Ox) rates need to be archived from a full chemistry
-!  simulation before you can run w/ Tagged Ox. (amf, rch, bmy, 8/20/03)
+!  simulation before you can run w/ Tagged Ox. (amf, rch, bmy, 8/20/03,1/15/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -37,6 +37,7 @@
 !  (9 ) tracerid_mod.f : Module containing pointers to tracers & emissions
 !
 !  NOTES:
+!  (1 ) Now accounts for GEOS-4 PBL being in meters (bmy, 1/15/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -174,7 +175,7 @@
 !******************************************************************************
 !  Subroutine GET_REGIONAL_POX returns the P(Ox) for each of the tagged Ox 
 !  tracers. Tagged Ox tracers are defined by both geographic location and 
-!  altitude. (amf, rch, bmy, 8/19/03)
+!  altitude. (amf, rch, bmy, 8/19/03, 1/15/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -186,6 +187,8 @@
 ! 
 !  NOTES:
 !  (1 ) Updated from the old routine "chemo3_split.f" (rch, bmy, 8/20/03)
+!  (2 ) For GEOS-4, convert PBL from [m] to [hPa] w/ the hydrostatic law.
+!        Now references SCALE_HEIGHT from "CMN_GCTM". (bmy, 1/15/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -196,6 +199,7 @@
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN"       ! LPAUSE
+#     include "CMN_GCTM"  ! SCALE_HEIGHT
 
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J, L
@@ -234,8 +238,18 @@
       X          = GET_XMID( I )   
       Y          = GET_YMID( J )
 
-      ! Pressure at top of PBL [hPa]
-      PBLTOP     = GET_PEDGE( I, J, 1 ) - PBL(I,J) 
+#if   defined( GEOS_4 )
+
+      ! BLTOP = pressure at PBL top [hPa]
+      ! Use barometric law since PBL is in [m]
+      PBLTOP     = GET_PEDGE( I, J, 1 ) * EXP( -PBL(I,J)/SCALE_HEIGHT )
+
+#else
+
+      ! BLTOP = pressure of PBL top [hPa]
+      PBLTOP     = GET_PEDGE( I, J, 1 ) - PBL(I,J)
+
+#endif
 
       ! Pressure at level bottom [hPa]
       P          = GET_PEDGE( I, J, L ) 
@@ -429,8 +443,8 @@
 
          ! NOTE: As of 8/20/03, the drydep diagnostic yields different
          ! results on single-processor than on multi-processor.  The code
-         ! is correct for single-processor, so use this for now and try
-         ! to track down the problem later. (bmy, 8/20/03)
+         ! below is correct for single-processor, so use this for now and
+         ! try to track down the problem later. (bmy, 8/20/03)
 !!$OMP PARALLEL DO
 !!$OMP+DEFAULT( SHARED )
 !!$OMP+PRIVATE( I, J, L, LL, PL, FREQ, Ox_0, Ox_LOST, FLUX )  

@@ -1,4 +1,4 @@
-! $Id: diag51_mod.f,v 1.3 2003/12/05 21:14:00 bmy Exp $
+! $Id: diag51_mod.f,v 1.4 2004/01/27 21:25:06 bmy Exp $
       MODULE DIAG51_MOD
 !
 !******************************************************************************
@@ -415,14 +415,7 @@
          FIRST = .FALSE.
       ENDIF
 
-      ! Echo write info to screen
-      !WRITE( 6, '('' --- DIAG51 : Writing to '', a)' ) TRIM( FILENAME )
-      
       ! Echo info
-      !-----------------------------------------------------------------
-      ! Prior to 9/29/03:
-      !WRITE( 6, 110 ) TIMESTAMP_STRING()
-      !-----------------------------------------------------------------
       STAMP = TIMESTAMP_STRING()
       WRITE( 6, 110 ) STAMP
  110  FORMAT( '     - DIAG51: Saving to disk at ', a ) 

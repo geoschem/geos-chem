@@ -1,10 +1,10 @@
-! $Id: i6_read_mod.f,v 1.3 2003/12/11 21:54:10 bmy Exp $
+! $Id: i6_read_mod.f,v 1.4 2004/01/27 21:25:07 bmy Exp $
       MODULE I6_READ_MOD
 !
 !******************************************************************************
 !  Module I6_READ_MOD contains subroutines that unzip, open, and read
 !  GEOS-CHEM I-6 (instantaneous 6-hr) met fields from disk. 
-!  (bmy, 6/23/03, 12/11/03)
+!  (bmy, 6/23/03, 12/12/03)
 ! 
 !  Module Routines:
 !  =========================================================================
@@ -29,6 +29,7 @@
 !  (1 ) Adapted from "dao_read_mod.f" (bmy, 6/23/03)
 !  (2 ) Now use TIMESTAMP_STRING for formatted date/time output (bmy, 10/28/03)
 !  (3 ) Now reads either zipped or unzipped files (bmy, 12/11/03)
+!  (4 ) Now skips past the GEOS-4 ident string (bmy, 12/12/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -93,10 +94,6 @@
 
          ! Location of zipped A-3 file in data dir (GEOS-1)
          I6_FILE_GZ  = TRIM( DATA_DIR )      // TRIM( GEOS_1_DIR ) // 
-!----------------------------------------------------------------------------
-! Prior to 12/11/03:
-!     &                 'YYMM/YYMMDD.i6.'     // GET_RES_EXT()      // 
-!----------------------------------------------------------------------------
      &                 'YYMMDD.i6.'          // GET_RES_EXT()      // 
      &                 TRIM( ZIP_SUFFIX )
 
@@ -113,10 +110,6 @@
 
          ! Location of zipped A-3 file in data dir (GEOS-STRAT)
          I6_FILE_GZ  = TRIM( DATA_DIR )      // TRIM( GEOS_S_DIR ) // 
-!-----------------------------------------------------------------------------
-! Prior to 12/11/03:
-!     &                 'YYMM/YYMMDD.i6.'     // GET_RES_EXT()      // 
-!-----------------------------------------------------------------------------
      &                 'YYMMDD.i6.'          // GET_RES_EXT()      // 
      &                 TRIM( ZIP_SUFFIX )
 
@@ -133,10 +126,6 @@
 
          ! Location of zipped A-3 file in data dir (GEOS-3)
          I6_FILE_GZ  = TRIM( DATA_DIR )      // TRIM( GEOS_3_DIR ) // 
-!----------------------------------------------------------------------------
-! Prior to 12/11/03:
-!     &                 'YYYYMM/YYYYMMDD.i6.' // GET_RES_EXT()      // 
-!----------------------------------------------------------------------------
      &                 'YYYYMMDD.i6.'        // GET_RES_EXT()      // 
      &                 TRIM( ZIP_SUFFIX )
 
@@ -153,10 +142,6 @@
 
          ! Location of zipped A-3 file in data dir (GEOS-4)
          I6_FILE_GZ  = TRIM( DATA_DIR )      // TRIM( GEOS_4_DIR ) // 
-!----------------------------------------------------------------------------
-! Prior to 12/11/03:
-!     &                 'YYYYMM/YYYYMMDD.i6.' // GET_RES_EXT()      // 
-!----------------------------------------------------------------------------
      &                 'YYYYMMDD.i6.'        // GET_RES_EXT()      // 
      &                 TRIM( ZIP_SUFFIX )
 
@@ -242,7 +227,7 @@
 !
 !******************************************************************************
 !  Subroutine OPEN_I6_FIELDS opens the I-6 met fields file for date NYMD and 
-!  time NHMS. (bmy, bdf, 6/15/98, 12/11/03)
+!  time NHMS. (bmy, bdf, 6/15/98, 12/12/03)
 !  
 !  Arguments as input:
 !  ===========================================================================
@@ -252,6 +237,7 @@
 !  NOTES:
 !  (1 ) Adapted from OPEN_MET_FIELDS of "dao_read_mod.f" (bmy, 6/13/03)
 !  (2 ) Now opens either zipped or unzipped files (bmy, 12/11/03)
+!  (3 ) Now skips past the GEOS-4 ident string (bmy, 12/12/03)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -264,14 +250,14 @@
 #     include "CMN_SETUP"          ! GEOS directories
 
       ! Arguments
-      INTEGER,          INTENT(IN) :: NYMD, NHMS
+      INTEGER, INTENT(IN) :: NYMD, NHMS
 
       ! Local variables
-      LOGICAL, SAVE                :: FIRST = .TRUE.
-      LOGICAL                      :: IT_EXISTS
-      INTEGER                      :: IOS, IUNIT
-      CHARACTER(LEN=255)           :: INPUT_DIR
-      CHARACTER(LEN=255)           :: PATH
+      LOGICAL, SAVE       :: FIRST = .TRUE.
+      LOGICAL             :: IT_EXISTS
+      INTEGER             :: IOS, IUNIT
+      CHARACTER(LEN=8)    :: IDENT
+      CHARACTER(LEN=255)  :: PATH
 
       !=================================================================
       ! OPEN_I6_FIELDS begins here!
@@ -279,22 +265,6 @@
 
       ! Open the A-3 file 0 GMT of each day, or on the first call
       IF ( NHMS == 000000 .or. FIRST ) THEN
-
-!----------------------------------------------------------------------------
-! Prior to 12/11/03:
-! Now opens either zipped or unzipped files (bmy, 12/11/03)
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-!
-!         ! Location of A-3 file in temp dir (GEOS-1, GEOS-S)
-!         PATH = TRIM( TEMP_DIR )  // 'YYMMDD.i6.' // GET_RES_EXT()
-!
-!#else
-!
-!         ! Location of A-3 file in temp dir (GEOS-3, GEOS-4)
-!         PATH = TRIM( TEMP_DIR )  // 'YYYYMMDD.i6.' // GET_RES_EXT()
-!
-!#endif
-!----------------------------------------------------------------------------
 
 #if   defined( GEOS_1 ) 
 
@@ -366,10 +336,23 @@
             CALL IOERROR( IOS, IU_I6, 'open_i6_fields:1' )
          ENDIF
 
-         WRITE( 6, '( ''     - Opening: '', a )' ) TRIM( PATH )
+         ! Echo info
+         WRITE( 6, 100 ) TRIM( PATH )
+ 100     FORMAT( '     - Opening: ', a )
          
          ! Set the proper first-time-flag false
          FIRST = .FALSE.
+
+#if   defined( GEOS_4 )
+
+         ! Skip past the GEOS-4 ident string
+         READ( IU_I6, IOSTAT=IOS ) IDENT
+
+         IF ( IOS /= 0 ) THEN
+            CALL IOERROR( IOS, IU_I6, 'open_i6_fields:2' )
+         ENDIF
+
+#endif
 
       ENDIF
 
@@ -877,14 +860,6 @@
          !==============================================================
          IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) .AND. 
      &        NFOUND == N_I6 ) THEN
-!---------------------------------------------------------------------------
-! Prior to 10/28/03:
-! Now use TIMESTAMP_STRING for formatted output (bmy, 10/28/03)
-!            WRITE( 6, 210 ) NFOUND, NYMD, NHMS
-! 210        FORMAT ( '     - Found all ', i3, 
-!     &               ' I-6 met fields for NYMD, NHMS = ', 
-!     &               i8.8, 1x, i6.6 )
-!---------------------------------------------------------------------------
             STAMP = TIMESTAMP_STRING( NYMD, NHMS )
             WRITE( 6, 210 ) NFOUND, STAMP
  210        FORMAT( '     - Found all ', i3, ' I-6 met fields for ', a )

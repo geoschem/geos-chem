@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.5 2003/10/30 16:17:17 bmy Exp $
+! $Id: diag3.f,v 1.6 2004/01/27 21:25:05 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out I-J (Long-Lat) diagnostics to the BINARY
-!  format punch file (bmy, bey, mgs, rvm, 5/27/99, 8/20/03)
+!  format punch file (bmy, bey, mgs, rvm, 5/27/99, 1/21/04)
 !
 !  The preferred file format is binary punch file format v. 2.0.  This
 !  file format is very GAMAP-friendly.  GAMAP also supports the ASCII
@@ -121,6 +121,7 @@
 !  (45) Now print out NTRACE drydep fluxes for tagged Ox.  Also tagged Ox 
 !        now saves drydep in molec/cm2/s.  Now print out Kr85 prod/loss in 
 !        ND03. (bmy, 8/20/03)
+!  (46) Now use actual tracer number for ND37 diagnostic (bmy, 1/21/04)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -1597,7 +1598,13 @@
             IF ( NSRCX == 1 .and. N > 2    ) CYCLE
             IF ( NSRCX == 3 .and. N > PD37 ) CYCLE
 
-            NN = N + TRCOFFSET
+            !--------------------------------------------
+            ! Prior to 1/21/04
+            !NN = N + TRCOFFSET
+            !--------------------------------------------
+
+            ! Tracer number plus GAMAP offset
+            NN = GET_WETDEP_IDWETD(N) + TRCOFFSET
 
             DO L = 1, LD37
                ARRAY(:,:,L) = AD37(:,:,L,M) / SCALECONV

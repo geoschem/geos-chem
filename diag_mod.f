@@ -1,4 +1,4 @@
-! $Id: diag_mod.f,v 1.2 2003/10/21 16:05:28 bmy Exp $
+! $Id: diag_mod.f,v 1.3 2004/01/27 21:25:06 bmy Exp $
       MODULE DIAG_MOD 
 !
 !******************************************************************************
@@ -320,12 +320,6 @@
       IF ( ALLOCATED( MASSFLEW    ) ) DEALLOCATE( MASSFLEW    )
       IF ( ALLOCATED( MASSFLNS    ) ) DEALLOCATE( MASSFLNS    )
       IF ( ALLOCATED( MASSFLUP    ) ) DEALLOCATE( MASSFLUP    )
-      !-----------------------------------------------------------------------
-      ! Prior to 8/18/03:
-      ! Moved these to "tagged_ox_mod.f" (bmy, 8/18/03)
-      !IF ( ALLOCATED( P24H        ) ) DEALLOCATE( P24H        )
-      !IF ( ALLOCATED( L24H        ) ) DEALLOCATE( L24H        )
-      !-----------------------------------------------------------------------
       IF ( ALLOCATED( PL24H       ) ) DEALLOCATE( PL24H       )
       IF ( ALLOCATED( TCOBOX      ) ) DEALLOCATE( TCOBOX      )
       IF ( ALLOCATED( TURBFLUP    ) ) DEALLOCATE( TURBFLUP    )

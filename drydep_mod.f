@@ -1,4 +1,4 @@
-! $Id: drydep_mod.f,v 1.6 2003/12/11 21:54:09 bmy Exp $
+! $Id: drydep_mod.f,v 1.7 2004/01/27 21:25:06 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
@@ -229,11 +229,6 @@
 !
       ! Reference to F90 modules
       USE DIAG_MOD,     ONLY : AD44
-      !--------------------------------------------------------------
-      ! Prior to 12/9/03:
-      ! Now declare AZO and USTAR as local variables
-      !USE DAO_MOD,      ONLY : AD, ALBD, AZO=>Z0, SUNCOS, T, USTAR
-      !--------------------------------------------------------------
       USE DAO_MOD,      ONLY : AD, ALBD, SUNCOS, T
       USE ERROR_MOD,    ONLY : DEBUG_MSG
       USE PRESSURE_MOD, ONLY : GET_PEDGE
@@ -568,11 +563,6 @@
 
          ! Numerator
          NUM = -AIRDEN(1,I,J) *  CP            * TS(I,J) *
-!-------------------------------------------------------------------------- 
-! Prior to 12/9/03:
-! USTAR is now a 2-D array (bmy, 12/9/03)
-!     &          USTAR(IJLOOP) *  USTAR(IJLOOP) * USTAR(IJLOOP)
-!-------------------------------------------------------------------------- 
      &          USTAR(I,J)    *  USTAR(I,J)    * USTAR(I,J)
 
          ! Denominator
