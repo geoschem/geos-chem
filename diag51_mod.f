@@ -1,10 +1,10 @@
-! $Id: diag51_mod.f,v 1.5 2004/03/23 20:36:00 bmy Exp $
+! $Id: diag51_mod.f,v 1.6 2004/03/24 14:46:06 bmy Exp $
       MODULE DIAG51_MOD
 !
 !******************************************************************************
 !  Module DIAG51_MOD contains variables and routines to generate save 
 !  timeseries data over the United States where the local time is between 
-!  two user-defined limits. (amf, bey, bdf, pip, bmy, 11/30/00, 3/23/04)
+!  two user-defined limits. (amf, bey, bdf, pip, bmy, 11/30/00, 3/24/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -87,7 +87,8 @@
 !        comments (rjp, bmy, 3/23/03)
 !  (14) Now references "time_mod.f" and "grid_mod.f" (bmy, 3/27/03)
 !  (15) Bug fix for LINUX in calls to TIMESTAMP_STRING (bmy, 9/29/03)
-!  (16) Bug fix in WRITE_DIAG51 (bmy, 3/23/04)
+!  (16) Bug fix in WRITE_DIAG51.  Also multiply AIRDEN by 1d-6 to convert
+!        from m3 to cm3. (bmy, 3/24/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -344,7 +345,8 @@
 !  (12) LINUX has a problem putting a function call w/in a WRITE statement.  
 !        Now save output from TIMESTAMP_STRING to STAMP and print that.
 !        (bmy, 9/29/03)
-!  (13) Bug fix: GMNL should be NL for tracer #39, not 1 (bmy, 3/23/04)
+!  (13) Bug fix: GMNL should be NL for tracer #39, not 1.  Also multiply 
+!        AIRDEN by 1d-6 to convert from m3 to cm3. (bmy, 3/23/04)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -994,7 +996,7 @@
                ENDDO
 
             !===========================================================
-            ! Archive AIR DENSITY [molec/cm3/s]
+            ! Archive AIR DENSITY [molec/cm3]
             !===========================================================
             CASE ( 39 )
 
@@ -1008,7 +1010,12 @@
 
                      ! Archive the afternoon points into STT_TEMP51
                      STT_TEMP51(I,J,L,N) = STT_TEMP51(I,J,L,N) +
-     &                    ( AIRDEN(LL,II,JJ) * XNUMOLAIR * GOOD(II) )
+!------------------------------------------------------------------------------
+! Prior to 3/24/04:
+! We need to multiply by the factor 1d-6 to convert to molec/cm3 (bmy, 3/24/04)
+!     &                    ( AIRDEN(LL,II,JJ) * XNUMOLAIR * GOOD(II) )
+!------------------------------------------------------------------------------
+     &                    ( AIRDEN(LL,II,JJ) *XNUMOLAIR*1d-6*GOOD(II) )
                   ENDDO
                   ENDDO
                   ENDDO

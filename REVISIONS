@@ -166,7 +166,8 @@ whenfgt			-- Updated comments
 ("fvdas_convect_mod.f") -- Now use F90-style declarations.
 
 write_diag51		-- Bug fix: GMNL should be NL for tracer #39, not 1
-("diag51_mod.f")
+("diag51_mod.f")	-- Also multiply AIRDEN by 1d-6 to convert from 
+			   m3 to cm3.
 
 ---
 a3_read_mod.f		<-- Removed obsolete, commented-out code
