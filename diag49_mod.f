@@ -1,9 +1,9 @@
-! $Id: diag49_mod.f,v 1.4 2004/12/02 21:48:35 bmy Exp $
+! $Id: diag49_mod.f,v 1.5 2005/03/29 15:52:40 bmy Exp $
       MODULE DIAG49_MOD
 !
 !******************************************************************************
 !  Module DIAG49_MOD contains variables and routines to save out 3-D 
-!  timeseries output to disk (bmy, 7/20/04, 11/9/04)
+!  timeseries output to disk (bmy, 7/20/04, 2/16/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -41,14 +41,15 @@
 !
 !  GEOS-CHEM modules referenced by "diag49_mod.f" 
 !  ============================================================================
-!  (1 ) bpch2_mod.f    : Module containing routines for binary punch file I/O
-!  (2 ) dao_mod.f      : Module containing arrays for DAO met fields
-!  (3 ) file_mod.f     : Module containing file unit numbers & error checks
-!  (4 ) grid_mod.f     : Module containing horizontal grid information   
-!  (5 ) pressure_mod.f : Module containing routines to compute P(I,J,L)
-!  (6 ) time_mod.f     : Module containing routines for computing time & date 
-!  (7 ) tracer_mod.f   : Module containing GEOS-CHEM tracer array STT etc.  
-!  (8 ) tracerid_mod.f : Module containing pointers to tracers & emissions
+!  (1 ) bpch2_mod.f    : Module w/ routines for binary punch file I/O
+!  (2 ) dao_mod.f      : Module w/ arrays for DAO met fields
+!  (3 ) file_mod.f     : Module w/ file unit numbers & error checks
+!  (4 ) grid_mod.f     : Module w/ horizontal grid information   
+!  (5 ) pbl_mix_mod.f  : Module w/ routines for PBL height & mixing
+!  (6 ) pressure_mod.f : Module w/ routines to compute P(I,J,L)
+!  (7 ) time_mod.f     : Module w/ routines for computing time & date 
+!  (8 ) tracer_mod.f   : Module w/ GEOS-CHEM tracer array STT etc.  
+!  (9 ) tracerid_mod.f : Module w/ pointers to tracers & emissions
 !
 !  ND49 tracer numbers:
 !  ============================================================================
@@ -81,6 +82,7 @@
 !  
 !  NOTES:
 !  (1 ) Bug fix: get I0, J0 properly for nested grids (bmy, 11/9/04)
+!  (2 ) Now references "pbl_mix_mod.f" (bmy, 2/16/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -129,13 +131,16 @@
 !******************************************************************************
 !  Subroutine DIAG49 produces time series (instantaneous fields) for a 
 !  geographical domain from the information read in timeseries.dat.  Output 
-!  will be in binary punch (BPCH) format. (bey, bmy, rvm, 4/9/99, 10/25/04)
+!  will be in binary punch (BPCH) format. (bey, bmy, rvm, 4/9/99, 2/16/05)
 !
 !  NOTES:
 !  (1 ) Now bundled into "diag49_mod.f".  Now reference STT from 
 !        "tracer_mod.f".  Now scale aerosol & dust OD's to 400 nm.  
 !        (bmy, rvm, aad, 7/9/04)
 !  (2 ) Updated tracer # for NO2 (bmy, 10/25/04)
+!  (3 ) Remove reference to "CMN".  Also now get PBL heights in meters and 
+!        model layers from GET_PBL_TOP_m and GET_PBL_TOP_L of "pbl_mix_mod.f".
+!        (bmy, 2/16/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -148,6 +153,7 @@
      &                         GET_NYMD,           GET_NHMS,
      &                         GET_TAU,            GET_HOUR,
      &                         ITS_A_NEW_DAY,      TIMESTAMP_STRING
+      USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM, N_TRACERS,
      &                         STT,                TCVV
       USE PRESSURE_MOD, ONLY : GET_PEDGE
@@ -155,7 +161,10 @@
 
 #     include "cmn_fj.h"        ! FAST-J stuff, includes CMN_SIZE
 #     include "jv_cmn.h"        ! ODAER
-#     include "CMN"             ! XTRA2
+!---------------------------------------------------------------
+! Prior to 2/16/05:
+!#     include "CMN"             ! XTRA2
+!---------------------------------------------------------------
 #     include "CMN_O3"		! Pure O3, SAVENO2
 #     include "CMN_DIAG"        ! TRCOFFSET
 #     include "CMN_GCTM"        ! XTRA2
@@ -438,19 +447,24 @@
             DO X = 1, ND49_NI
                I = GET_I( X )
 
-#if   defined( GEOS_4 ) 
-
-               ! PBL is in meters already
-               Q(X,Y,1) = PBL(I,J)
-
-#else
-               ! Surface pressure
-               TMP = GET_PEDGE(I,J,1)
-
-               ! Convert [hPa] to [m]
-               Q(X,Y,1) = ( -SCALE_HEIGHT * 
-     &                       LOG( ( TMP - PBL(I,J) ) / TMP ) )
-#endif
+!-------------------------------------------------------------------------
+! Prior to 2/16/05:
+! Now get PBL depth in meters from GET_PBL_TOP_m (bmy, 2/16/05)
+!#if   defined( GEOS_4 ) 
+!
+!               ! PBL is in meters already
+!               Q(X,Y,1) = PBL(I,J)
+!
+!#else
+!               ! Surface pressure
+!               TMP = GET_PEDGE(I,J,1)
+!
+!               ! Convert [hPa] to [m]
+!               Q(X,Y,1) = ( -SCALE_HEIGHT * 
+!     &                       LOG( ( TMP - PBL(I,J) ) / TMP ) )
+!#endif
+!-------------------------------------------------------------------------
+               Q(X,Y,1) = GET_PBL_TOP_m( I, J )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -472,7 +486,12 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = XTRA2(I,J)
+               !------------------------------------------------------
+               ! Prior to 2/16/05:
+               ! Now get PBL depth from GET_PBL_TOP_L (bmy, 2/16/05)
+               !Q(X,Y,1) = XTRA2(I,J)
+               !------------------------------------------------------
+               Q(X,Y,1) = GET_PBL_TOP_L( I, J )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO

@@ -1,11 +1,11 @@
-! $Id: lightning_nox_mod.f,v 1.3 2004/12/02 21:48:38 bmy Exp $
+! $Id: lightning_nox_mod.f,v 1.4 2005/03/29 15:52:43 bmy Exp $
       MODULE LIGHTNING_NOX_MOD
 !
 !******************************************************************************
 !  Module LIGHTNING_NOX_MOD contains variables and routines for emitting NOx
 !  from lightning into the atmosphere.  Original code comes from the old 
 !  GISS-II CTM's of Yuhang Wang, Gerry Gardner, & Larry Horowitz.  Cleaned 
-!  up for inclusion into GEOS-CHEM. (bmy, 4/14/04, 12/1/04)
+!  up for inclusion into GEOS-CHEM. (bmy, 4/14/04, 3/16/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -45,6 +45,7 @@
 !  NOTES:
 !  (1 ) Now references "directory_mod.f".  Now also bundle "flashes.f" into 
 !        this module (bmy, 7/20/04)
+!  (2 ) Update scaling for GEOS-4 in routine LIGHTNING (bmy, 3/16/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -101,7 +102,7 @@
 !
 !******************************************************************************
 !  Subroutine LIGHTNING uses Price & Rind's formulation for computing
-!  NOx emission from lightning. (bmy, bey, mgs, bdf, 3/4/98, 12/1/04)
+!  NOx emission from lightning. (bmy, bey, mgs, bdf, 3/4/98, 3/15/05)
 !
 !  Arguments as input:
 !  ============================================================================
@@ -157,6 +158,8 @@
 !  (14) Added parallel DO-loops for better optimization.  Now bundled into
 !        "lightning_nox_mod.f" (bmy, 4/14/04)
 !  (15) Added space in #ifdef block for GEOS-4 1 x 1.25 grid (bmy, 12/1/04)
+!  (16) Added scale factors to make GEOS-4 lightning NOx come out to the same
+!        total value as for 2001 GEOS-3 = 4.72 Tg N/yr (jal, bmy, 3/15/05)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -164,20 +167,39 @@
       USE GRID_MOD,     ONLY : GET_YMID
       USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_GCTM"  ! Physical constants
+#     include "CMN_SIZE"     ! Size parameters
+#     include "CMN_GCTM"     ! Physical constants
 
       ! Arguments
-      INTEGER, INTENT(IN) :: CLDTOPS(IIPAR,JJPAR)
-      REAL*8,  INTENT(IN) :: T(IIPAR,JJPAR,LLPAR) 
+      INTEGER, INTENT(IN)   :: CLDTOPS(IIPAR,JJPAR)
+      REAL*8,  INTENT(IN)   :: T(IIPAR,JJPAR,LLPAR) 
 
       ! Local variables
-      LOGICAL, SAVE       :: FIRST = .TRUE.
-      INTEGER             :: I, J, L, LCHARGE, LMAX, LTOP
-      REAL*8              :: P1, P2, P3, T1, T2, DLNP, DZ, ZUP
-      REAL*8              :: HCHARGE, H0, XIGCRATIO, FLASHRATE
-      REAL*8              :: X, RATE, TSUM, Z1, Z2, TOTAL, YMID
-      REAL*8              :: VERTPROF(LLPAR)
+      LOGICAL, SAVE         :: FIRST = .TRUE.
+      INTEGER               :: I, J, L, LCHARGE, LMAX, LTOP
+      REAL*8                :: P1, P2, P3, T1, T2, DLNP, DZ, ZUP
+      REAL*8                :: HCHARGE, H0, XIGCRATIO, FLASHRATE
+      REAL*8                :: X, RATE, TSUM, Z1, Z2, TOTAL, YMID
+      REAL*8                :: VERTPROF(LLPAR)
+
+#if   defined( GEOS_4 ) && defined( GRID4x5 ) 
+
+      ! Scale GEOS-4 4x5 LNOx to GEOS-3 4x5 2001 total of 4.72 Tg N/yr
+      REAL*8,  PARAMETER    :: G4_SCALE = ( 6.0d0    / 4.1749d0  ) * 
+     &                                    ( 4.7238d0 / 2.5375d0  )
+
+#elif defined( GEOS_4 ) && defined( GRID2x25 )
+
+      ! Scale GEOS-4 2x25 LNOx to GEOS-3 2x25 2001 total of 4.72 Tg N/yr
+      REAL*8,  PARAMETER    :: G4_SCALE = ( 6.0d0    / 12.355d0  ) *
+     &                                    ( 4.7238d0 /  3.1523d0 )
+
+#elif defined( GEOS_4 ) && defined( GRID1x125 )
+
+      ! NOTE: Need to define this, set to 1 for now (bmy, 3/15/05)
+      REAL*8,  PARAMETER    :: G4_SCALE = 1d0
+
+#endif
 
       !=================================================================
       ! LIGHTNING begins here!
@@ -396,59 +418,94 @@
       ! Scaling: For GEOS-4 met fields only
       !=================================================================
 
-#if   defined( GRID4x5 )
+!------------------------------------------------------------------------------
+! Prior to 3/16/05:
+! Make the coding much simpler (bmy, 3/16/05)
+!#if   defined( GRID4x5 )
+!
+!      !----------------------------
+!      ! GEOS-4 4 x 5
+!      !----------------------------
+!
+!      !-----------------------------------------------------------------------
+!      ! Prior to
+!      !! For a GEOS-4 4x5 1-year run with 2003 met fields, 4.1749 Tg N/yr 
+!      !! from lightning is produced.  We need to scale this up to 6 Tg N/yr 
+!      !! as per Randall Martin's research.  Thus we multiply SLBASE by the 
+!      !! scale factor 6 / 4.1749 = 1.43716.  (rvm, djj, bmy, 3/9/04)
+!      !-----------------------------------------------------------------------
+!      
+!      ! Make GEOS-4 4x5 LNOx come out to the same total as GEOS-3 4x5
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!      DO L = 1, LLPAR
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!         !---------------------------------------------
+!         ! Prior to 3/15/05:
+!         !SLBASE(I,J,L) = SLBASE(I,J,L) * 1.43716d0
+!         !---------------------------------------------
+!         SLBASE(I,J,L) = SLBASE(I,J,L) * G4_4x5
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!
+!#elif defined( GRID2x25 )
+!
+!      !----------------------------
+!      ! GEOS-4 2 x 2.5
+!      !----------------------------
+!      
+!      !-----------------------------------------------------------------------
+!      !! For a GEOS-4 2x25 1-year run with 2003 met fields, 12.355 Tg N/yr 
+!      !! from lightning is produced.  We need to scale this down to 6 Tg N/yr 
+!      !! as per Randall Martin's research.  Thus we multiply SLBASE by the 
+!      !! scale factor 6 / 12.355 = 0.48562  (rvm, djj, bmy, 3/9/04)
+!      !-----------------------------------------------------------------------
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!      DO L = 1, LLPAR
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!         !--------------------------------------------
+!         ! Prior to 3/15/05:
+!         !SLBASE(I,J,L) = SLBASE(I,J,L) * 0.48562d0
+!         !--------------------------------------------
+!         SLBASE(I,J,L) = SLBASE(I,J,L) * G4_2x25
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!
+!#else defined( GRID1x125 )
+!      
+!      !----------------------------
+!      ! GEOS-4 1 x 1.25
+!      !----------------------------
+!
+!      !NOTE: NEED TO DEFINE THIS!!!
+!
+!#endif
+!------------------------------------------------------------------------------
 
-      !----------------------------
-      ! GEOS-4 4 x 5
-      !----------------------------
-
-      ! For a GEOS-4 4x5 1-year run with 2003 met fields, 4.1749 Tg N/yr 
-      ! from lightning is produced.  We need to scale this up to 6 Tg N/yr 
-      ! as per Randall Martin's research.  Thus we multiply SLBASE by the 
-      ! scale factor 6 / 4.1749 = 1.43716.  (rvm, djj, bmy, 3/9/04)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         SLBASE(I,J,L) = SLBASE(I,J,L) * 1.43716d0
+
+         ! Scale GEOS-4 LNOx to match the same total that we get with
+         ! GEOS-3 meteorology for 2001 = 4.72 Tg N/yr (jal, bmy, 3/16/05)
+         SLBASE(I,J,L) = SLBASE(I,J,L) * G4_SCALE
+
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-#elif defined( GRID2x25 )
-
-      !----------------------------
-      ! GEOS-4 2 x 2.5
-      !----------------------------
-
-      ! For a GEOS-4 2x25 1-year run with 2003 met fields, 12.355 Tg N/yr 
-      ! from lightning is produced.  We need to scale this down to 6 Tg N/yr 
-      ! as per Randall Martin's research.  Thus we multiply SLBASE by the 
-      ! scale factor 6 / 12.355 = 0.48562  (rvm, djj, bmy, 3/9/04)
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         SLBASE(I,J,L) = SLBASE(I,J,L) * 0.48562d0
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#else defined( GRID1x125 )
-      
-      !----------------------------
-      ! GEOS-4 1 x 1.25
-      !----------------------------
-
-      !NOTE: NEED TO DEFINE THIS!!!
-
-#endif
 
 #else 
 

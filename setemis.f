@@ -1,4 +1,4 @@
-! $Id: setemis.f,v 1.4 2004/12/02 21:48:40 bmy Exp $
+! $Id: setemis.f,v 1.5 2005/03/29 15:52:44 bmy Exp $
       SUBROUTINE SETEMIS( EMISRR, EMISRRN )
 !
 !******************************************************************************
@@ -236,8 +236,8 @@
                      DELTPRES = GET_PEDGE(I,J,L) - GET_PEDGE(I,J,L+1)
                      
                      ! Soil NOx is in [molec/cm3/s], so we need to multiply
-                     ! by VOLUME(JLOOP1) to convert it to [molec/box/s],
-                     ! VOLUME(JLOOP1) is the volume in cm3 of the surface
+                     ! by VOLUME(JLOP(I,J,1)) to convert it to [molec/box/s],
+                     ! VOLUME(JLOP(I,J,1)) is the volume in cm3 of the surface
                      ! grid box (I,J,1).  Then we need to divide that by 
                      ! COEF1 to convert from [molec NOx/box/s] to 
                      ! [molec NO/box/s], which is really what gets emitted.  
@@ -324,8 +324,8 @@
                      DELTPRES = GET_PEDGE(I,J,L) - GET_PEDGE(I,J,L+1)
                                           
                      ! Biomass burning is in [molec/cm3/s], so we need to 
-                     ! multiply by VOLUME(JLOOP1) to convert it to 
-                     ! [molec/box/s], VOLUME(JLOOP1) is the volume in cm3 
+                     ! multiply by VOLUME(JLOP(I,J,1)) to convert it to 
+                     ! [molec/box/s], VOLUME(JLOP(I,J,1)) is the volume in cm3 
                      ! of the surface grid box (I,J,1).  Then we need to 
                      ! divide that by COEF1 to convert from 
                      ! [molec tracer/box/s] to [molec species/cm3/s].
@@ -362,8 +362,8 @@
                      DELTPRES = GET_PEDGE(I,J,L) - GET_PEDGE(I,J,L+1)
 
                      ! Biofuel burning is in [molec/cm3/s], so we need to 
-                     ! multiply by VOLUME(JLOOP1) to convert it to 
-                     ! [molec/box/s], VOLUME(JLOOP1) is the volume in cm3 
+                     ! multiply by VOLUME(JLOP(I,J,1)) to convert it to 
+                     ! [molec/box/s], VOLUME(JLOP(I,J,1)) is the volume in cm3 
                      ! of the surface grid box (I,J,1).  Then we need to 
                      ! divide that by COEF1 to convert from 
                      ! [molec tracer/box/s] to [molec species/cm3/s].

@@ -1,9 +1,9 @@
-! $Id: diag_mod.f,v 1.12 2005/02/10 19:53:25 bmy Exp $
+! $Id: diag_mod.f,v 1.13 2005/03/29 15:52:41 bmy Exp $
       MODULE DIAG_MOD 
 !
 !******************************************************************************
 !  Module DIAG_MOD contains declarations for allocatable arrays for use with 
-!  GEOS-CHEM diagnostics. (amf, bdf, bmy, 11/30/99, 1/21/05)
+!  GEOS-CHEM diagnostics. (amf, bdf, bmy, 11/30/99, 2/17/05)
 !
 !  Module Routines:
 !  ============================================================================
@@ -48,6 +48,7 @@
 !  (20) Added extra arrays for ND03 mercury diagnostics (eck, bmy, 12/7/04)
 !  (21) Added extra ND21 array for crystalline sulfur tracers.  Also remove
 !        ND03 and ND48 arrays; they are obsolete (bmy, 1/21/05)
+!  (22) Removed AD41 and AFTTOT arrays; they're obsolete (bmy, 2/17/05)
 !******************************************************************************
 !     
       !=================================================================
@@ -197,9 +198,12 @@
       ! For ND39 -- Washout in aerosol wet deposition diagnostic
       REAL*4,  ALLOCATABLE :: AD39(:,:,:,:)      
 
-      ! For ND41 -- afternoon PBL depths
-      REAL*4,  ALLOCATABLE :: AD41(:,:,:)
-      INTEGER, ALLOCATABLE :: AFTTOT(:,:)
+      !----------------------------------------------------
+      ! Prior to 2/17/05:
+      !! For ND41 -- afternoon PBL depths
+      !REAL*4,  ALLOCATABLE :: AD41(:,:,:)
+      !INTEGER, ALLOCATABLE :: AFTTOT(:,:)
+      !----------------------------------------------------
 
       ! For ND43 -- OH, NO, NO2, HO2 chemical diagnostics
       REAL*4,  ALLOCATABLE :: AD43(:,:,:,:)      
@@ -279,6 +283,7 @@
 !  (9 ) Now deallocate extra arrays for ND03 diagnostics (eck, bmy, 12/7/04)
 !  (10) Now deallocates AD21_cr array.  Remove reference to arrays for ND03
 !        and ND48 diagnostics, they're obsolete. (cas, sas, bmy, 1/21/05)
+!  (11) Removed AD41 and AFTTOT arrays; they're obsolete (bmy, 2/17/05)
 !******************************************************************************
 !
       !=================================================================
@@ -346,7 +351,10 @@
       IF ( ALLOCATED( AD37        ) ) DEALLOCATE( AD37        )
       IF ( ALLOCATED( AD38        ) ) DEALLOCATE( AD38        )  
       IF ( ALLOCATED( AD39        ) ) DEALLOCATE( AD39        )
-      IF ( ALLOCATED( AD41        ) ) DEALLOCATE( AD41        )
+      !---------------------------------------------------------------
+      ! Prior to 2/17/05:
+      !IF ( ALLOCATED( AD41        ) ) DEALLOCATE( AD41        )
+      !---------------------------------------------------------------
       IF ( ALLOCATED( AD43        ) ) DEALLOCATE( AD43        )
       IF ( ALLOCATED( AD44        ) ) DEALLOCATE( AD44        )
       IF ( ALLOCATED( AD45        ) ) DEALLOCATE( AD45        )
@@ -356,7 +364,10 @@
       IF ( ALLOCATED( AD66        ) ) DEALLOCATE( AD66        )
       IF ( ALLOCATED( AD68        ) ) DEALLOCATE( AD68        )
       IF ( ALLOCATED( AD69        ) ) DEALLOCATE( AD69        )
-      IF ( ALLOCATED( AFTTOT      ) ) DEALLOCATE( AFTTOT      )
+      !---------------------------------------------------------------
+      ! Prior to 2/17/05:
+      !IF ( ALLOCATED( AFTTOT      ) ) DEALLOCATE( AFTTOT      )
+      !---------------------------------------------------------------
       IF ( ALLOCATED( CONVFLUP    ) ) DEALLOCATE( CONVFLUP    )
       IF ( ALLOCATED( CT16        ) ) DEALLOCATE( CT16        )
       IF ( ALLOCATED( CT17        ) ) DEALLOCATE( CT17        )

@@ -1,9 +1,9 @@
-! $Id: mercury_mod.f,v 1.2 2005/02/10 19:53:26 bmy Exp $
+! $Id: mercury_mod.f,v 1.3 2005/03/29 15:52:43 bmy Exp $
       MODULE MERCURY_MOD
 !
 !******************************************************************************
 !  Module MERCURY_MOD contains variables and routines for the GEOS-CHEM 
-!  mercury simulation. (eck, bmy, 12/14/04, 1/21/05)
+!  mercury simulation. (eck, bmy, 12/14/04, 2/24/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -19,18 +19,17 @@
 !  (10) EHg0_oc (REAL*8 ) : Hg0 emissions from oceans [kg/s]
 !  (11) EHg0_ln (REAL*8 ) : Re-emissions of Hg0 from land [kg/s]
 !  (12) EHg0_nt (REAL*8 ) : Hg0 emissions from natural land sources [kg/s] 
-!  (13) FEMIS   (REAL*8 ) : Fraction of emissions in layer [unitless]
-!  (14) LN_Hg0  (INTEGER) : Tracer index for tagged land re-emission of Hg(0)
-!  (15) LN_Hg2  (INTEGER) : Tracer index for tagged land re-emission of Hg(II)
-!  (16) LN_HgP  (INTEGER) : Tracer index for tagged land re-emission of HgP
-!  (17) NT_Hg0  (INTEGER) : Tracer index for natural land emissions of Hg(0)
-!  (18) NT_Hg2  (INTEGER) : Tracer index for natural land emissions of Hg(II)
-!  (19) NT_HgP  (INTEGER) : Tracer index for natural land emissions of HgP
-!  (20) OC_Hg0  (INTEGER) : Tracer index for oceanic emissions of Hg(0)
-!  (21) OC_Hg2  (INTEGER) : Tracer index for oceanic emissions of Hg(II)
-!  (22) OC_HgP  (INTEGER) : Tracer index for oceanic emissions of HgP 
-!  (23) TCOSZ   (REAL*8 ) : Sum of COS( Solar Zenith Angle ) [unitless]
-!  (24) TTDAY   (REAL*8 ) : Total daylight time at location (I,J) [minutes]
+!  (13) LN_Hg0  (INTEGER) : Tracer index for tagged land re-emission of Hg(0)
+!  (14) LN_Hg2  (INTEGER) : Tracer index for tagged land re-emission of Hg(II)
+!  (15) LN_HgP  (INTEGER) : Tracer index for tagged land re-emission of HgP
+!  (16) NT_Hg0  (INTEGER) : Tracer index for natural land emissions of Hg(0)
+!  (17) NT_Hg2  (INTEGER) : Tracer index for natural land emissions of Hg(II)
+!  (18) NT_HgP  (INTEGER) : Tracer index for natural land emissions of HgP
+!  (19) OC_Hg0  (INTEGER) : Tracer index for oceanic emissions of Hg(0)
+!  (20) OC_Hg2  (INTEGER) : Tracer index for oceanic emissions of Hg(II)
+!  (21) OC_HgP  (INTEGER) : Tracer index for oceanic emissions of HgP 
+!  (22) TCOSZ   (REAL*8 ) : Sum of COS( Solar Zenith Angle ) [unitless]
+!  (23) TTDAY   (REAL*8 ) : Total daylight time at location (I,J) [minutes]
 !
 !  Module Routines:
 !  ============================================================================
@@ -46,14 +45,13 @@
 !  (10) SRCHG0            : Applies emissions of Hg0
 !  (11) SRCHG2            : Applies emissions of Hg2
 !  (12) SRCHGP            : Applies emissions of HgP
-!  (13) COMPUTE_FEMIS     : Compute fraction of emissions in layer
-!  (14) MERCURY_READYR    : Reads mercury emissions and converts to [kg/s]
-!  (15) GET_LWC           : Computes liquid water content as a function of T
-!  (16) GET_VCLDF         : Computes volume cloud fraction for SO2 chemistry 
-!  (17) GET_O3            : Returns monthly mean O3 values
-!  (18) GET_OH            : Returns monthly mean OH values (w/ diurnal scaling)
-!  (19) OHNO3TIME         : Computes diurnal scaling for monthly mean OH
-!  (20) DEFINE_TAGGED_Hg  : Defines tracer number for tagged Hg tracers 
+!  (13) MERCURY_READYR    : Reads mercury emissions and converts to [kg/s]
+!  (14) GET_LWC           : Computes liquid water content as a function of T
+!  (15) GET_VCLDF         : Computes volume cloud fraction for SO2 chemistry 
+!  (16) GET_O3            : Returns monthly mean O3 values
+!  (17) GET_OH            : Returns monthly mean OH values (w/ diurnal scaling)
+!  (18) OHNO3TIME         : Computes diurnal scaling for monthly mean OH
+!  (19) DEFINE_TAGGED_Hg  : Defines tracer number for tagged Hg tracers 
 !  (20) INIT_MERCURY      : Allocates and zeroes module arrays
 !  (21) CLEANUP_MERCURY   : Deallocates module arrays
 !
@@ -69,11 +67,12 @@
 !  (8 ) global_oh_mod.f   : Module w/ routines to read 3-D OH field
 !  (9 ) grid_mod.f        : Module w/ horizontal grid information
 !  (10) logical_mod.f     : Module w/ GEOS-CHEM logical switches
-!  (11) pressure_mod.f    : Module w/ routines to compute P(I,J,L)
-!  (12) time_mod.f        : Module w/ routines to compute date & time
-!  (13) tracer_mod.f      : Module w/ GEOS-CHEM tracer array STT etc.
-!  (14) tracerid_mod.f    : Module w/ pointers to tracers & emissions
-!  (15) transfer_mod.f    : Module w/ routines to cast & resize arrays
+!  (11) pbl_mix_mod.f     : Module w/ routines for PBL height & mixing
+!  (12) pressure_mod.f    : Module w/ routines to compute P(I,J,L)
+!  (13) time_mod.f        : Module w/ routines to compute date & time
+!  (14) tracer_mod.f      : Module w/ GEOS-CHEM tracer array STT etc.
+!  (15) tracerid_mod.f    : Module w/ pointers to tracers & emissions
+!  (16) transfer_mod.f    : Module w/ routines to cast & resize arrays
 !
 !  Nomenclature: 
 !  ============================================================================
@@ -121,6 +120,8 @@
 !  NOTES:
 !  (1 ) Updated for reduction rxn and online Hg0 ocean flux.  Now use 
 !        diagnostic arrays from "diag03_mod.f".  (eck, sas, bmy, 1/21/05)
+!  (2 ) Now references "pbl_mix_mod.f".  Remove FEMIS array and routine
+!        COMPUTE_FEMIS. (bmy, 2/15/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -161,7 +162,7 @@
       REAL*8,  ALLOCATABLE :: EHg0_oc(:,:)
       REAL*8,  ALLOCATABLE :: EHg0_ln(:,:)
       REAL*8,  ALLOCATABLE :: EHg0_nt(:,:)
-      REAL*8,  ALLOCATABLE :: FEMIS(:,:,:)
+      REAL*4,  ALLOCATABLE :: T44(:,:,:,:)
       REAL*8,  ALLOCATABLE :: TCOSZ(:,:)
       REAL*8,  ALLOCATABLE :: TTDAY(:,:)
 
@@ -176,24 +177,32 @@
 !
 !******************************************************************************
 !  Subroutine CHEMMERCURY is the driver routine for mercury chemistry
-!  in the GEOS-CHEM module. (eck, bmy, 12/6/04)
+!  in the GEOS-CHEM module. (eck, bmy, 12/6/04, 2/24/05)
 !
 !  NOTES:
+!  (1 ) Now references routine GET_PBL_MAX_L from "pbl_mix_mod.f".  Now
+!        references AD44 from "diag_mod.f".  Now sum the levels from T44 into 
+!        the AD44 array.  Now references N_TRACERS from "tracer_mod.f".
+!        (bmy, 2/24/05)
 !******************************************************************************
 !
-      ! References to F90 modulees
+      ! References to F90 modules
+      USE DIAG_MOD,      ONLY : AD44
       USE DRYDEP_MOD,    ONLY : DEPSAV
       USE ERROR_MOD,     ONLY : DEBUG_MSG
       USE GLOBAL_O3_MOD, ONLY : GET_GLOBAL_O3
       USE GLOBAL_OH_MOD, ONLY : GET_GLOBAL_OH
+      USE PBL_MIX_MOD,   ONLY : GET_PBL_MAX_L
       USE LOGICAL_MOD,   ONLY : LPRT
       USE TIME_MOD,      ONLY : GET_MONTH, ITS_A_NEW_MONTH
+      USE TRACER_MOD,    ONLY : N_TRACERS
 
 #     include "CMN_SIZE"      ! Size parameters
+#     include "CMN_DIAG"      ! ND44
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
-      INTEGER                :: N, MONTH
+      INTEGER                :: I, J, L, MONTH, N, PBL_MAX
 
       !=================================================================
       ! CHEMMERCURY begins here!
@@ -229,17 +238,56 @@
       
       ! Compute diurnal scaling for OH
       CALL OHNO3TIME
+      
+      ! Zero dry deposition tmp array
+      IF ( ND44 > 0 ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N )
+         DO N = 1, N_TRACERS
+         DO L = 1, LLTROP
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            T44(I,J,L,N) = 0D0
+         ENDDO
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+      ENDIF
 
-      ! Hg0 and Hg2 
+      ! Hg0 and Hg2 chemistry
       IF ( DRYHg2 > 0 ) THEN
          CALL CHEM_Hg0_Hg2( DEPSAV(:,:,DRYHg2) )
          IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: a CHEM_Hg0_Hg2' )
       ENDIF
 
-      ! HgP
+      ! HgP chemistry
       IF ( DRYHgP > 0 ) THEN
          CALL CHEM_HgP( DEPSAV(:,:,DRYHgP) )
          IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: a CHEM_HgP' )
+      ENDIF
+
+      ! Archive drydep fluxes into ND44
+      IF ( ND44 > 0 ) THEN
+         
+         ! Model layers where the PBL top occurs
+         PBL_MAX = GET_PBL_MAX_L()
+
+         ! Sum levels into AD44 
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N )
+         DO N = 1, N_TRACERS
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+         DO L = 1, PBL_MAX
+            AD44(I,J,N,1) = AD44(I,J,N,1) + T44(I,J,L,N)
+         ENDDO
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
       ENDIF
 
       ! Return to calling program
@@ -253,7 +301,7 @@
 !  Subroutine CHEM_Hg0_Hg2 is the chemistry subroutine for the oxidation/
 !  reduction of Hg0/Hg(II).  For tracers with dry deposition, the loss rate 
 !  of dry dep is combined in the chemistry loss term. 
-!  (eck, bmy, 12/6/04, 1/21/05)
+!  (eck, bmy, 12/6/04, 2/24/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -277,17 +325,16 @@
 !  NOTES:
 !  (1 ) Updated for reduction reaction.  Now use diagnostic arrays from
 !        "diag03_mod.f" (eck, bmy, 1/21/05)
+!  (2 ) Now references GET_FRAC_UNDER_PBLTOP from "pbl_mix_mod.f".  Now
+!        performs drydep for all levels in the PBL. (bmy, 2/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      !-------------------------------------------------------------------
-      ! Prior to 1/21/05:
-      !USE DIAG_MOD,     ONLY : AD03_Hg2_Hg0, AD03_Hg2_O3, AD03_Hg2_OH
-      !-------------------------------------------------------------------
+      USE DAO_MOD,      ONLY : T, AD
       USE DIAG03_MOD,   ONLY : AD03_Hg2_Hg0, AD03_Hg2_O3,
      &                         AD03_Hg2_OH,  LD03,  ND03
-      USE DAO_MOD,      ONLY : T, AD
       USE LOGICAL_MOD,  ONLY : LSPLIT
+      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTHg0, IDTHg2
@@ -296,38 +343,39 @@
 #     include "CMN_O3"       ! XNUMOL
 
       ! Arguments
-      REAL*8, INTENT(IN)     :: V_DEP_Hg2(IIPAR,JJPAR)
+      REAL*8, INTENT(IN)    :: V_DEP_Hg2(IIPAR,JJPAR)
 
       ! Local variables
-      INTEGER                :: I, J, L, N
-      REAL*8                 :: AREA_CM2,    C_O3,        C_OH
-      REAL*8                 :: DRYDEP,      DTCHEM,      E_RKT
-      REAL*8                 :: E_K1,        E_K2,        FA
-      REAL*8                 :: FC,          K1,          K2          
-      REAL*8                 :: Ko,          Kr,          Kt
-      REAL*8                 :: Kr_Kt,       NK1,         NK2
-      REAL*8                 :: LOST_Hg0,    LOST_Hg0_an, LOST_Hg0_oc
-      REAL*8                 :: LOST_Hg0_ln, LOST_Hg0_nt, LOST_Hg0_O3
-      REAL*8                 :: LOST_Hg0_OH, LWC,         RKT
+      INTEGER               :: I, J, L, N
+      REAL*8                :: AREA_CM2,    C_O3,        C_OH
+      REAL*8                :: DRYDEP,      DTCHEM,      E_RKT
+      REAL*8                :: E_K1,        E_K2,        FA
+      REAL*8                :: FC,          K1,          K2          
+      REAL*8                :: Ko,          Kr,          Kt
+      REAL*8                :: Kr_Kt,       NK1,         NK2
+      REAL*8                :: LOST_Hg0,    LOST_Hg0_an, LOST_Hg0_oc
+      REAL*8                :: LOST_Hg0_ln, LOST_Hg0_nt, LOST_Hg0_O3
+      REAL*8                :: LOST_Hg0_OH, LWC,         RKT
+      REAL*8                :: F_UNDER_TOP
 
       ! K for reaction Hg0 + O3 in cm3 molec-1 s-1 (Source: Hall '95)
-      REAL*8, PARAMETER      :: K       = 3.0d-20
+      REAL*8, PARAMETER     :: K       = 3.0d-20
 
       ! K for reaction Hg2 + OH in cm3 s-1 
-      REAL*8, PARAMETER      :: K_HG_OH = 8.7d-14
+      REAL*8, PARAMETER     :: K_HG_OH = 8.7d-14
 
       ! Henry's Law constant for Hg2
-      REAL*8, PARAMETER      :: HL      = 1.4d6
+      REAL*8, PARAMETER     :: HL      = 1.4d6
 
       ! Gas constant??
-      REAL*8, PARAMETER      :: R       = 8.2d-2
+      REAL*8, PARAMETER     :: R       = 8.2d-2
 
       ! K for reduction (scaled to budget and OH conc)
       ! eck may change this later
-      REAL*8, PARAMETER      :: Kred    = 1.05d-10
+      REAL*8, PARAMETER     :: Kred    = 1.05d-10
      
       ! External functions
-      REAL*8,  EXTERNAL      :: BOXVL
+      REAL*8,  EXTERNAL     :: BOXVL
 
       !=================================================================
       ! CHEM_Hg0_Hg2 begins here!
@@ -340,11 +388,11 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,           J,           L,           LOST_Hg0    )
 !$OMP+PRIVATE( LOST_Hg0_an, LOST_Hg0_oc, LOST_Hg0_ln, LOST_Hg0_nt )
-!$OMP+PRIVATE( LOST_Hg0_O3, LOST_Hg0_OH, C_O3,        C_OH        )
-!$OMP+PRIVATE( FC,          LWC,         FA,          K1          )
-!$OMP+PRIVATE( K2,          Ko,          Kr,          Kt          )
-!$OMP+PRIVATE( Kr_Kt,       RKT,         E_RKT,       E_K1        )
-!$OMP+PRIVATE( E_K2,        NK1,         NK2                      )
+!$OMP+PRIVATE( LOST_Hg0_O3, LOST_Hg0_OH, F_UNDER_TOP, C_O3        )
+!$OMP+PRIVATE( C_OH,        FC,          LWC,         FA          )
+!$OMP+PRIVATE( K1,          K2,          Ko,          Kr          )
+!$OMP+PRIVATE( Kt,          Kr_Kt,       RKT,         E_RKT       )
+!$OMP+PRIVATE( E_K1,        E_K2,        NK1,         NK2         )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -358,6 +406,9 @@
          LOST_Hg0_O3 = 0d0
          LOST_Hg0_OH = 0d0
    
+         ! Fraction of box (I,J,L) underneath the PBL top [unitless]
+         F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
+
          ! Monthly mean O3 and OH concentrations [molec/cm3]
          C_O3        = GET_O3(I,J,L)
          C_OH        = GET_OH(I,J,L)
@@ -522,7 +573,7 @@
          !==============================================================
          ! Hg(II) chemistry: Conversion from Hg(0) and drydep loss
          !
-         ! CASE 1: SURFACE LEVEL
+         ! CASE 1: WITHIN THE PLANETARY BOUNDARY LAYER (PBL)
          ! -------------------------------------------------------------
          ! At the surface we have both dry deposition of Hg(II) plus
          ! conversion of Hg(0) into Hg(II).  In this case we use the
@@ -542,7 +593,7 @@
          !       "Conv Hg(0)" = Amt of Hg(0) that became Hg(II), which
          !                      is archived from the Hg(0) rxns above
          !
-         ! CASE 2: ALL OTHER LEVELS
+         ! CASE 2: OUTSIDE THE PLANETARY BOUNDARY LAYER (PBL)
          ! -------------------------------------------------------------
          ! At levels higher than the surface, we do not have drydep.
          ! Therefore we only have conversion of Hg(0) into Hg(II), and
@@ -553,59 +604,72 @@
          !
          ! NOTE: ND44 diagnostics are archived in RXN_Hg2_DRYD.
          !==============================================================
-         IF ( L == 1 ) THEN
 
-            ! Compute exponential terms from drydep rxns for use below
-            RKT      = V_DEP_Hg2(I,J) * DTCHEM
-            E_RKT    = EXP( -RKT )
+         ! If we are in the PBL ...
+         IF ( F_UNDER_TOP > 0d0 ) THEN
+         
+            ! Hg2 drydep frequency [1/s] -- F_UNDER_TOP accounts for the 
+            ! fraction of box (I,J,L) that is located beneath the PBL top
+            RKT   = V_DEP_Hg2(I,J) * DTCHEM * F_UNDER_TOP
+
+            ! If there is drydep occurring ...
+            IF ( RKT > 0d0 ) THEN
+
+               ! Pre-compute exponential term 
+               E_RKT = EXP( -RKT )
             
-            !--------------------------------------------
-            ! CASE 1: Total Hg(II) tracer, surface
-            !--------------------------------------------
+               !--------------------------------------------
+               ! CASE 1: Total Hg(II) tracer, in PBL
+               !--------------------------------------------
 
-            ! Compute new Hg(II) concentration at surface
-            CALL RXN_Hg2_DRYD( I,   J,     1,        IDTHG2,   
-     &                         RKT, E_RKT, LOST_Hg0, DTCHEM )
+               ! Compute new Hg(II) concentration in PBL
+               CALL RXN_Hg2_DRYD( I,   J,     L,        IDTHg2,   
+     &                            RKT, E_RKT, LOST_Hg0, DTCHEM )
           
-            !--------------------------------------------
-            ! CASE 1: Tagged Hg(II) tracers: surface
-            !--------------------------------------------
-            IF ( LSPLIT ) THEN
+               !--------------------------------------------
+               ! CASE 1: Tagged Hg(II) tracers: in PBL
+               !--------------------------------------------
+               IF ( LSPLIT ) THEN
 
-               ! Compute new conc of tagged anthro Hg(II) at surface
-               CALL RXN_Hg2_DRYD( I,   J,     1,           AN_Hg2(I,J), 
-     &                            RKT, E_RKT, LOST_Hg0_an, DTCHEM )
+                  ! Compute new conc of tagged anthro Hg(II) in PBL 
+                  CALL RXN_Hg2_DRYD( I,           J,     L,           
+     &                               AN_Hg2(I,J), RKT,   E_RKT, 
+     &                               LOST_Hg0_an, DTCHEM )
 
-               ! Compute new conc of tagged oceanic Hg(II) at surface
-               CALL RXN_Hg2_DRYD( I,   J,     1,           OC_Hg2,      
-     &                            RKT, E_RKT, LOST_Hg0_oc, DTCHEM )
+                  ! Compute new conc of tagged oceanic Hg(II) in PBL
+                  CALL RXN_Hg2_DRYD( I,           J,     L,           
+     &                               OC_Hg2,      RKT,   E_RKT, 
+     &                               LOST_Hg0_oc, DTCHEM )
 
-               ! Compute new conc of land re-emission Hg(II) at surface
-               CALL RXN_Hg2_DRYD( I,   J,     1,           LN_Hg2,      
-     &                            RKT, E_RKT, LOST_Hg0_ln, DTCHEM )
+                  ! Compute new conc of land re-emission Hg(II) in PBL
+                  CALL RXN_Hg2_DRYD( I,           J,     L,           
+     &                               LN_Hg2,      RKT,   E_RKT, 
+     &                               LOST_Hg0_ln, DTCHEM )
 
-               ! Compute new conc of tagged natural source Hg(II) at surface
-               CALL RXN_Hg2_DRYD( I,   J,     1,           NT_Hg2,      
-     &                            RKT, E_RKT, LOST_Hg0_nt, DTCHEM )
+                  ! Compute new conc of tagged natural source Hg(II) in PBL
+                  CALL RXN_Hg2_DRYD( I,           J,     L,           
+     &                               NT_Hg2,      RKT,   E_RKT, 
+     &                               LOST_Hg0_nt, DTCHEM )
+               ENDIF
 
             ENDIF
                    
          ELSE
 
             !--------------------------------------------
-            ! CASE 2: Total Hg(II) tracer, other levels
+            ! CASE 2: Total Hg(II) tracer, outside PBL
             !--------------------------------------------
 
-            ! Compute new concentration of total Hg(II) for other levels [kg]
+            ! Compute new concentration of total Hg(II) outside PBL [kg]
             CALL RXN_Hg2( I, J, L, IDTHg2, LOST_Hg0 )
             
             !--------------------------------------------
-            ! CASE 2: Tagged Hg(II) tracers, other levels
+            ! CASE 2: Tagged Hg(II) tracers, outside PBL
             !--------------------------------------------
             IF ( LSPLIT ) THEN
 
                ! Compute new concentration of tagged Hg(II) tracers
-               ! at levels higher than the surface [kg]
+               ! at levels higher than the PBL top [kg]
                CALL RXN_Hg2( I, J, L, AN_Hg2(I,J), LOST_Hg0_an )
                CALL RXN_Hg2( I, J, L, OC_Hg2,      LOST_Hg0_oc )
                CALL RXN_Hg2( I, J, L, LN_Hg2,      LOST_Hg0_ln )
@@ -683,12 +747,6 @@
       OLD_Hg2          = MAX( STT(I,J,L,N_Hg2), SMALLNUM )
 
       ! New concentration of Hg(0) [kg]
-!----------------------------------------------------------------------------
-! Prior to 1/13/05:
-! Updated rxn to account for reduction term (eck, bmy, 1/13/05)
-!      NEW_Hg0          = ( OLD_Hg0      *   E_RKT         ) + 
-!     &                   ( OLD_Hg2/RKT  * ( 1d0 - E_RKT ) )
-!----------------------------------------------------------------------------
       NEW_Hg0 = (             OLD_Hg0   *                   E_RKT   ) + 
      &          ((( OLD_Hg2 + OLD_Hg0 ) * Kr_Kt ) * ( 1d0 - E_RKT ) )
 
@@ -764,7 +822,7 @@
 !
 !******************************************************************************
 !  Subroutine RXN_Hg0_DRYD computes the new concentration of Hg(II) from the
-!  converted Hg(0) plus the drydep of Hg(II). (eck, bmy, 12/14/04, 1/19/05)
+!  converted Hg(0) plus the drydep of Hg(II). (eck, bmy, 12/14/04, 2/24/05)
 ! 
 !  Arguments as Input:
 !  ============================================================================
@@ -780,18 +838,19 @@
 !         (amt of converted Hg0 -> Hg2) is positive.  Also now archive the 
 !         amount of total Hg(II) tracer lost to drydep for the ocean flux 
 !         routines in "ocean_mercury_mod.f". (sas, bmy, 1/19/05)
+!  (2  ) Remove references to "diag_mod.f" and "CMN_DIAG".  Now save drydep
+!         fluxes into T44 array. (bmy, 2/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD,          ONLY : AD44
       USE GRID_MOD,          ONLY : GET_AREA_CM2
       USE OCEAN_MERCURY_MOD, ONLY : ADD_Hg2_DD
       USE TRACER_MOD,        ONLY : STT
       USE TRACERID_MOD,      ONLY : IDTHg2
 
 #     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_DIAG"    ! ND44
 #     include "CMN_O3"      ! XNUMOL
+#     include "CMN_DIAG"    ! ND44
 
       ! Arguments
       INTEGER, INTENT(IN)  :: I,   J,     L,        N
@@ -859,19 +918,15 @@
          AREA_CM2 = GET_AREA_CM2( J )
       
          ! Amt of Hg(II) lost to drydep [molec/cm2/s]
-         !--------------------------------------------------------------
-         ! Prior to 1/19/05:
-         ! Now compute this above (sas, bmy, 1/19/05)
-         !DRYDEP   = ( OLD_Hg2 - NEW_Hg2 ) + LOST_Hg0
-         !--------------------------------------------------------------
          DRYDEP   = DRYDEP * XNUMOL(IDTHG2) / ( AREA_CM2 * DTCHEM )
       
-         ! Archive Hg(II) drydep flux in AD44 array [molec/cm2/s]
-         AD44(I,J,N,1) = AD44(I,J,N,1) + DRYDEP
+         ! Archive Hg(II) drydep flux in T44 array [molec/cm2/s]
+         T44(I,J,L,N) = T44(I,J,L,N) + DRYDEP
+
       ENDIF
           
       ! Return to calling program
-      END SUBROUTINE RXN_HG2_DRYD
+      END SUBROUTINE RXN_Hg2_DRYD
 
 !------------------------------------------------------------------------------
 
@@ -926,76 +981,90 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_HgP is the chemistry subroutine for HgP (particulate
-!  mercury.  HgP is lost via dry deposition. (eck, bmy, 12/7/04)
+!  mercury.  HgP is lost via dry deposition. (eck, bmy, 12/7/04, 2/24/05)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) V_DEP_HgP (REAL*8) : Dry deposition velocity for Hg(II) [cm/s]
 !     
 !  NOTES:
+!  (1 ) Removed references to AD44 and "CMN_DIAG".  Now compute drydep for all
+!        levels within the PBL.  Now references ND03, LD03 from "diag03_mod.f".
+!        (bmy, 2/24/05)
 !******************************************************************************
 !
       ! Refernces to F90 modules
-      USE DIAG_MOD,     ONLY : AD44 
+      USE DIAG03_MOD,   ONLY : ND03, LD03
       USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE LOGICAL_MOD,  ONLY : LSPLIT
+      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
+      USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTHGP,    IDTHGP_NA,
      &                         IDTHGP_EU, IDTHGP_AS, IDTHGP_RW
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN_O3"    ! XNUMOL
-#     include "CMN_DIAG"  ! ND03, LD03
 
       ! Arguments
       REAL*8, INTENT(IN) :: V_DEP_HgP(IIPAR,JJPAR)
 
       ! Local variables
-      INTEGER            :: I,       J
-      REAL*8             :: DTCHEM, E_KT
+      INTEGER            :: I,      J,    L,  PBL_MAX
+      REAL*8             :: DTCHEM, E_KT, F_UNDER_TOP
 
       !=================================================================
       ! CHEM_HgP begins here!
       !=================================================================
 
       ! Chemistry timestep [s]
-      DTCHEM = GET_TS_CHEM() * 60d0
+      DTCHEM  = GET_TS_CHEM() * 60d0
+
+      ! Maximum extent of the PBL
+      PBL_MAX = GET_PBL_MAX_L()
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, E_KT )
+!$OMP+PRIVATE( I, J, L, F_UNDER_TOP, E_KT )
+      DO L = 1, PBL_MAX
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Pre-compute the exponential term for use below [unitless]
-         E_KT = EXP( -V_DEP_HgP(I,J) * DTCHEM )
+         ! Fraction of box (I,J,L) underneath the PBL top [unitless]
+         F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
 
-         !--------------------
-         ! Total HgP
-         !--------------------
+         ! If we are in the PBL ...
+         IF ( F_UNDER_TOP > 0d0 ) THEN
 
-         ! Compute new concentration of HgP after drydep [kg]
-         CALL RXN_HgP_DRYD( I, J, 1, IDTHgP, E_KT, DTCHEM )
+            ! Pre-compute the exponential term for use below [unitless]
+            E_KT = EXP( -V_DEP_HgP(I,J) * DTCHEM * F_UNDER_TOP  )
+
+            !--------------------
+            ! Total HgP
+            !--------------------
+
+            ! Compute new concentration of HgP after drydep [kg]
+            CALL RXN_HgP_DRYD( I, J, 1, IDTHgP, E_KT, DTCHEM )
          
-         !--------------------
-         ! Tagged HgP tracers
-         !--------------------
-         IF ( LSPLIT ) THEN
+            !--------------------
+            ! Tagged HgP tracers
+            !--------------------
+            IF ( LSPLIT ) THEN
 
-            ! Compute new conc of tagged HgP tracers after drydep [kg]
-            CALL RXN_HgP_DRYD( I, J, 1, AN_HgP(I,J), E_KT, DTCHEM )
+               ! Compute new conc of tagged HgP tracers after drydep [kg]
+               CALL RXN_HgP_DRYD( I, J, 1, AN_HgP(I,J), E_KT, DTCHEM )
 
 !------------------------------------------------------------------------------
 ! NOTE: Leave for future expansion for other HgP tagged tracers
 ! (eck, bmy, 12/14/04)
-!            CALL RXN_HgP_DRYD( I, J, 1, OC_HgP, E_KT, DTCHEM )
-!            CALL RXN_HgP_DRYD( I, J, 1, LN_HgP, E_KT, DTCHEM )
-!            CALL RXN_HgP_DRYD( I, J, 1, NT_HgP, E_KT, DTCHEM )
+!               CALL RXN_HgP_DRYD( I, J, 1, OC_HgP, E_KT, DTCHEM )
+!               CALL RXN_HgP_DRYD( I, J, 1, LN_HgP, E_KT, DTCHEM )
+!               CALL RXN_HgP_DRYD( I, J, 1, NT_HgP, E_KT, DTCHEM )
 !------------------------------------------------------------------------------
             
+            ENDIF
          ENDIF
-
+      ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -1008,8 +1077,9 @@
       SUBROUTINE RXN_HgP_DRYD( I, J, L, N, E_KT, DTCHEM )
 !
 !******************************************************************************
-!  Subroutine RXN_Hg0_DRYD computes the new concentration of HgP after
-!  dry deposition.  ND44 diagnostics are also archived. (eck, bmy, 12/14/04)
+!  Subroutine RXN_Hg0_DRYD computes the new concentration of HgP 
+!  after dry deposition.  ND44 diagnostics are also archived. 
+!  (eck, bmy, 12/14/04, 2/24/05)
 ! 
 !  Arguments as Input:
 !  ============================================================================
@@ -1019,24 +1089,25 @@
 !  (6  ) DTCHEM   (INTEGER) : Chemistry timestep [s]
 !
 !  NOTES:
+!  (1  ) Remove references to "diag_mod.f" and "CMN_DIAG".  Now save drydep
+!         fluxes into T44 array. (bmy, 2/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD,     ONLY : AD44
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTHGP
-    
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_DIAG"   ! ND44
-#     include "CMN_O3"     ! XNUMOL
+     
+#     include "CMN_SIZE"     ! Size parameters
+#     include "CMN_O3"       ! XNUMOL
+#     include "CMN_DIAG"     ! ND44 
 
       ! Arguments
-      INTEGER, INTENT(IN)  :: I, J, L, N
-      REAL*8,  INTENT(IN)  :: DTCHEM, E_KT
+      INTEGER, INTENT(IN)   :: I, J, L, N
+      REAL*8,  INTENT(IN)   :: DTCHEM, E_KT
 
       ! Local variables
-      REAL*8               :: AREA_CM2, DRYDEP, OLD_HgP, NEW_HgP
+      REAL*8                :: AREA_CM2, DRYDEP, OLD_HgP, NEW_HgP
 
       !=================================================================
       ! RXN_HgP_DRYD begins here!
@@ -1066,8 +1137,8 @@
          DRYDEP   = OLD_HgP - NEW_HgP  
          DRYDEP   = DRYDEP * XNUMOL(IDTHGP) / ( AREA_CM2 * DTCHEM )
 
-         ! Archive Hg(II) drydep flux in AD44 array [molec/cm2/s]
-         AD44(I,J,N,1) = AD44(I,J,N,1) + DRYDEP
+         ! Archive Hg(II) drydep flux in T44 array [molec/cm2/s]
+         T44(I,J,L,N) = T44(I,J,L,N) + DRYDEP
 
       ENDIF
 
@@ -1080,12 +1151,14 @@
 !
 !******************************************************************************
 !  Subroutine EMISSMERCURY is the driver routine for mercury emissions.
-!  (eck, bmy, 12/7/04, 1/20/05)
+!  (eck, bmy, 12/7/04, 2/22/05)
 ! 
 !  NOTES:
 !  (1 ) Now call OCEAN_MERCURY_FLUX from "ocean_mercury_mod.f" to compute 
 !        the emissions of Hg0 from the ocean instead of reading it from disk.
 !        (sas, bmy, 1/20/05)
+!  (2 ) Now no longer call COMPUTE_FEMIS, since we can get the same information
+!        from routine GET_FRAC_OF_PBL in "pbl_mix_mod.f" (bmy, 2/22/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1123,9 +1196,6 @@
       ! Call emission routines for Hg(0), Hg(II), and Hg(P)
       !=================================================================
 
-      ! Compute fraction of each layer in the PBL
-      CALL COMPUTE_FEMIS
-
       ! Ocean flux of Hg(0)
       CALL OCEAN_MERCURY_FLUX( EHg0_oc )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a OCEAN_FLUX' )
@@ -1152,7 +1222,7 @@
 !******************************************************************************
 !  Subroutine SRCHg0 is the subroutine for Hg(0) emissions.  
 !  Emissions of Hg(0) will be distributed throughout the boundary layer. 
-!  (eck, bmy, 1/21/05)
+!  (eck, bmy, 1/21/05, 2/22/05)
 ! 
 !  Arguments as Input/Output:
 !  ============================================================================
@@ -1160,17 +1230,15 @@
 !
 !  NOTES:
 !  (1 ) Now use diagnostic arrays from "diag03_mod.f" (bmy, 1/21/05)
+!  (2 ) Now references GET_FRAC_OF_PBL and GET_PBL_MAX_L from "pbl_mix_mod.f".
+!        Remove reference to FEMIS. (bmy, 2/22/05)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
-!------------------------------------------------------------
-! Prior to 1/20/05:
-!      USE DIAG_MOD,     ONLY : AD03_Hg0_an, AD03_Hg0_oc, 
-!     &                         AD03_Hg0_ln, AD03_Hg0_nt
-!------------------------------------------------------------
       USE DIAG03_MOD,   ONLY : AD03, ND03
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE LOGICAL_MOD,  ONLY : LSPLIT
+      USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE TIME_MOD,     ONLY : GET_TS_EMIS
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTHG0
@@ -1178,19 +1246,22 @@
 #     include "CMN_SIZE"     ! Size parameters
 
       ! Local variables
-      INTEGER               :: I,      J,    L,    N
-      REAL*8                :: DTSRCE, E_Hg, T_Hg, T_Hg_An
+      INTEGER               :: I,      J,    L,        N,    PBL_MAX
+      REAL*8                :: DTSRCE, E_Hg, F_OF_PBL, T_Hg, T_Hg_An
 
       !=================================================================
       ! SRCHg0 begins here!
       !=================================================================
 
       ! Emission timestep [s]
-      DTSRCE = GET_TS_EMIS() * 60d0
+      DTSRCE  = GET_TS_EMIS() * 60d0
+
+      ! Maximum extent of the PBL [model levels]
+      PBL_MAX = GET_PBL_MAX_L() 
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, T_Hg_An, T_Hg, E_Hg )
+!$OMP+PRIVATE( I, J, L, N, T_Hg_An, T_Hg, F_OF_PBL, E_Hg )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -1206,8 +1277,9 @@
      &             EHg0_ln(I,J)   + EHg0_nt(I,J)
 
          ! Partition total Hg(0) throughout PBL; store into STT [kg]
-         DO L = 1, LLTROP
-            E_Hg              = FEMIS(L,I,J)      * T_Hg
+         DO L = 1, PBL_MAX
+            F_OF_PBL          = GET_FRAC_OF_PBL( I, J, L )
+            E_Hg              = F_OF_PBL          * T_Hg
             STT(I,J,L,IDTHG0) = STT(I,J,L,IDTHG0) + ( E_Hg * DTSRCE )
          ENDDO
 
@@ -1217,29 +1289,33 @@
          IF ( LSPLIT ) THEN
 
             ! Partition tagged Hg(0) throughout PBL; store into STT [kg]
-            DO L = 1, LLTROP
+            DO L = 1, PBL_MAX
 
+               ! Get fraction of each level in the PBL
+               F_OF_PBL     = GET_FRAC_OF_PBL( I, J, L ) 
+              
                ! Anthro Hg0 by region
                N            = AN_Hg0(I,J)
-               E_Hg         = FEMIS(L,I,J) * T_Hg_an
+               E_Hg         = F_OF_PBL     * T_Hg_an
                STT(I,J,L,N) = STT(I,J,L,N) + ( E_Hg * DTSRCE )
 
                ! Oceanic Hg0 
                N            = OC_Hg0
-               E_Hg         = FEMIS(L,I,J) * EHg0_oc(I,J)
+               E_Hg         = F_OF_PBL     * EHg0_oc(I,J)
                STT(I,J,L,N) = STT(I,J,L,N) + ( E_Hg * DTSRCE )
 
                ! Land re-emissions of Hg0
                N            = LN_Hg0
-               E_Hg         = FEMIS(L,I,J) * EHg0_ln(I,J)
+               E_Hg         = F_OF_PBL     * EHg0_ln(I,J)
                STT(I,J,L,N) = STT(I,J,L,N) + ( E_Hg * DTSRCE ) 
 
                ! Natural land sources
                N            = NT_Hg0
-               E_Hg         = FEMIS(L,I,J) * EHg0_nt(I,J)
+               E_Hg         = F_OF_PBL     * EHg0_nt(I,J)
                STT(I,J,L,N) = STT(I,J,L,N) + ( E_Hg * DTSRCE )
 
             ENDDO
+
          ENDIF
         
          !==============================================================
@@ -1266,7 +1342,7 @@
 !******************************************************************************
 !  Subroutine SRCHg2 is the subroutine for Hg(II) emissions.  
 !  Emissions of Hg(II) will be distributed throughout the boundary layer. 
-!  (eck, bmy, 12/7/04, 1/21/05)
+!  (eck, bmy, 12/7/04, 2/22/05)
 ! 
 !  Arguments as Input/Output:
 !  ============================================================================
@@ -1274,16 +1350,15 @@
 !
 !  NOTES:
 !  (1 ) Now use diagnostic arrays from "diag03_mod.f" (bmy, 1/21/05)
+!  (2 ) Now references GET_FRAC_OF_PBL and GET_PBL_MAX_L from "pbl_mix_mod.f".
+!        Remove reference to FEMIS. (bmy, 2/22/05)
 !******************************************************************************
 !
       ! Reference to F90 modules
-      !--------------------------------------
-      ! Prior to 1/20/05:
-      !USE DIAG_MOD,     ONLY : AD03_HG2_AN
-      !--------------------------------------
       USE DIAG03_MOD,   ONLY : AD03, ND03
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE LOGICAL_MOD,  ONLY : LSPLIT
+      USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE TIME_MOD,     ONLY : GET_TS_EMIS
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTHg2
@@ -1291,19 +1366,22 @@
 #     include "CMN_SIZE"     ! Size parameters
 
       ! Local variables
-      INTEGER               :: I,      J,    L,   N
-      REAL*8                :: DTSRCE, T_Hg, E_Hg
+      INTEGER               :: I,      J,        L,    N,   PBL_MAX
+      REAL*8                :: DTSRCE, F_OF_PBL, T_Hg, E_Hg 
 
       !=================================================================
       ! SRCHg2 begins here!
       !=================================================================
       
       ! Emission timestep [s]
-      DTSRCE = GET_TS_EMIS() * 60d0
+      DTSRCE  = GET_TS_EMIS() * 60d0
+
+      ! Maximum extent of the PBL [model levels]
+      PBL_MAX = GET_PBL_MAX_L()
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, T_Hg, E_Hg )
+!$OMP+PRIVATE( I, J, L, N, T_Hg, F_OF_PBL, E_Hg )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -1315,8 +1393,9 @@
          T_Hg  = EHg2_an(I,J,1) + EHg2_an(I,J,2) + EHg2_an(I,J,3)
 
          ! Partition total Hg(II) throughout PBL; store in STT [kg]
-         DO L  = 1, LLTROP
-            E_Hg              = FEMIS(L,I,J)      * T_Hg
+         DO L  = 1, PBL_MAX
+            F_OF_PBL          = GET_FRAC_OF_PBL( I, J, L )
+            E_Hg              = F_OF_PBL          * T_Hg
             STT(I,J,L,IDTHg2) = STT(I,J,L,IDTHg2) + ( E_Hg * DTSRCE )
          ENDDO
 
@@ -1326,22 +1405,18 @@
          IF ( LSPLIT ) THEN 
 
             ! Partition tagged Hg(II) throughout PBL; store in STT [kg]
-            DO L = 1, LLTROP
+            DO L = 1, PBL_MAX
                N            = AN_Hg2(I,J)
-               E_Hg         = FEMIS(L,I,J) * T_Hg
+               F_OF_PBL     = GET_FRAC_OF_PBL( I, J, L )
+               E_Hg         = F_OF_PBL     * T_Hg
                STT(I,J,L,N) = STT(I,J,L,N) + ( E_Hg * DTSRCE ) 
             ENDDO
-
          ENDIF
 
          !==============================================================
          ! ND03 diagnostic: Total anthro Hg(II) emissions [kg]
          !==============================================================
          IF ( ND03 > 0 ) THEN
-            !---------------------------------------------------------
-            ! Prior to 1/21/05:
-            !AD03_Hg2_an(I,J) = AD03_Hg2_an(I,J) + ( T_Hg * DTSRCE )
-            !---------------------------------------------------------
             AD03(I,J,6) = AD03(I,J,6) + ( T_Hg * DTSRCE )
          ENDIF
 
@@ -1359,7 +1434,7 @@
 !******************************************************************************
 !  Subroutine SRCHgP is the subroutine for HgP emissions.  
 !  Emissions of HgP will be distributed throughout the boundary layer. 
-!  (eck, bmy, 12/7/04, 1/21/05)
+!  (eck, bmy, 12/7/04, 2/22/05)
 ! 
 !  Arguments as Input/Output:
 !  ============================================================================
@@ -1367,16 +1442,15 @@
 !
 !  NOTES:
 !  (1 ) Now use diagnostic arrays from "diag03_mod.f" (bmy, 1/21/05)
+!  (2 ) Now references GET_FRAC_OF_PBL and GET_PBL_MAX_L from "pbl_mix_mod.f".
+!        Remove reference to FEMIS. (bmy, 2/22/05)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
-      !-----------------------------------------
-      ! Prior to 1/20/05:
-      !USE DIAG_MOD,     ONLY : AD03_HGP_AN
-      !-----------------------------------------
       USE DIAG03_MOD,   ONLY : AD03, ND03
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE LOGICAL_MOD,  ONLY : LSPLIT
+      USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE TIME_MOD,     ONLY : GET_TS_EMIS 
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTHGP
@@ -1384,19 +1458,22 @@
 #     include "CMN_SIZE"     ! Size paramters
 
       ! Local variables
-      INTEGER               :: I,      J,    L,   N
-      REAL*8                :: DTSRCE, T_Hg, E_Hg 
+      INTEGER               :: I,      J,        L,    N,   PBL_MAX
+      REAL*8                :: DTSRCE, F_OF_PBL, T_Hg, E_Hg 
 
       !=================================================================
       ! SRCHgP begins here!
       !=================================================================
 
       ! Chemistry timestep [s]
-      DTSRCE = GET_TS_EMIS() * 60d0
+      DTSRCE   = GET_TS_EMIS() * 60d0
+      
+      ! Maximum extent of the PBL [model levels]
+      F_OF_PBL = GET_PBL_MAX_L()
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, T_Hg, E_Hg )
+!$OMP+PRIVATE( I, J, L, N, T_Hg, F_OF_PBL, E_Hg )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -1408,8 +1485,9 @@
          T_Hg  = EHgP_an(I,J,1) + EHgP_an(I,J,2) + EHgP_an(I,J,3) 
 
          ! Partition total HgP throughout PBL; store into STT [kg]
-         DO L  = 1, LLTROP
-            E_Hg              = FEMIS(L,I,J)      * T_Hg
+         DO L  = 1, PBL_MAX
+            F_OF_PBL          = GET_FRAC_OF_PBL( I, J, L )
+            E_Hg              = F_OF_PBL          * T_Hg
             STT(I,J,L,IDTHGP) = STT(I,J,L,IDTHGP) + ( E_Hg * DTSRCE )
          ENDDO
 
@@ -1419,9 +1497,10 @@
          IF ( LSPLIT ) THEN
 
             ! Partition total HgP throughout PBL; store into STT [kg]
-            DO L  = 1, LLTROP
+            DO L  = 1, PBL_MAX
                N            = AN_HgP(I,J)
-               E_Hg         = FEMIS(L,I,J) * T_Hg
+               F_OF_PBL     = GET_FRAC_OF_PBL( I, J, L )
+               E_Hg         = F_OF_PBL     * T_Hg
                STT(I,J,L,N) = STT(I,J,L,N) + ( E_Hg * DTSRCE )
             ENDDO
             
@@ -1431,10 +1510,6 @@
          ! ND03 diagnostic: Total anthro HgP emissions [kg]
          !==============================================================
          IF ( ND03 > 0 ) THEN
-            !---------------------------------------------------------
-            ! Prior to 1/20/05:
-            !AD03_HgP_an(I,J) = AD03_HgP_an(I,J) + ( T_Hg * DTSRCE )
-            !---------------------------------------------------------
             AD03(I,J,9) = AD03(I,J,9) + ( T_Hg * DTSRCE )
          ENDIF
 
@@ -1444,110 +1519,6 @@
 
       ! Return to calling program
       END SUBROUTINE SRCHgP
-
-!------------------------------------------------------------------------------
-
-      SUBROUTINE COMPUTE_FEMIS
-!
-!******************************************************************************
-!  Subroutine COMPUTE_FEMIS computes the fraction of the entire boundary
-!  layer which is occupied by each vertical level. (eck, bmy, 12/7/04)
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! Reference to diagnostic arrays
-      USE DAO_MOD,      ONLY : PBL
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
-
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_GCTM"     ! Physical constants
-
-      ! Local variables 
-      INTEGER               :: I,     J,      L
-      REAL*8                :: BLTOP, BLTHIK, DELP, FTOT, PB, PT
-
-      !=================================================================
-      ! COMPUTE_FEMIS begins here
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, FTOT, BLTOP, BLTHIK, PB, PT, DELP )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Zero FTOT summing variable
-         FTOT = 0d0
-
-         ! Zero FEMIS array
-         DO L = 1, LLTROP
-            FEMIS(L,I,J) = 0d0
-         ENDDO
-
-#if   defined( GEOS_4 )
-
-         ! BLTOP = pressure at PBL top [hPa]
-         ! Use barometric law since PBL is in [m]
-         BLTOP  = GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT )
-
-         ! BLTHIK is PBL thickness [hPa]
-         BLTHIK = GET_PEDGE(I,J,1) - BLTOP
-
-#else
-
-         ! BLTOP = pressure of PBL top [hPa]
-         BLTOP  = GET_PEDGE(I,J,1) - MAX( PBL(I,J), 1.D0 )
-
-         ! BLTHIK is PBL thickness [hPa]
-         BLTHIK = MAX( PBL(I,J), 1.D0 )
-
-#endif
-
-         !==============================================================
-         ! Loop thru tropospheric levels and compute the fraction
-         ! of the PBL occupied by each level.  Store in FEMIS array.
-         !==============================================================
-         DO L  = 1, LLTROP
-
-            ! Pressure at bottom & top edges of grid box (I,J,L) [hPa]
-            PB   = GET_PEDGE(I,J,L)
-            PT   = GET_PEDGE(I,J,L+1)
-
-            ! Thickness of grid box (I,J,L) [hPa]
-            DELP = PB - PT
-
-            ! FEMIS is the fraction of the PBL 
-            ! which is occupied by this level L
-            IF ( BLTOP <= PT )  THEN
-               FEMIS(L,I,J) = DELP / BLTHIK
-
-            ELSEIF ( BLTOP > PT .AND. BLTOP <= PB ) THEN
-               FEMIS(L,I,J) = ( PB - BLTOP ) / BLTHIK
-
-            ELSEIF ( BLTOP > PB ) THEN
-               CYCLE      
- 
-            ENDIF
-            
-            ! Fraction of data partitioned into 
-            ! each level should sum to 1.0
-            FTOT = FTOT + FEMIS(L,I,J)
-
-         ENDDO
-
-         ! Error check
-         IF ( ABS( FTOT - 1.d0 ) > 1.d-3 ) THEN
-            CALL ERROR_STOP( 'Check vertical. distribution!',
-     &                       'COMPUTE_FEMIS ("mercury_mod.f")' )
-         ENDIF
-
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      ! Return to calling program
-      END SUBROUTINE COMPUTE_FEMIS
 
 !------------------------------------------------------------------------------
 
@@ -2307,18 +2278,24 @@
       SUBROUTINE INIT_MERCURY
 !
 !******************************************************************************
-!  Subroutine INIT_MERCURY allocates all module arrays (eck, bmy, 12/2/04)
+!  Subroutine INIT_MERCURY allocates all module arrays
+!  (eck, bmy, 12/2/04, 2/24/05)
 !  
 !  NOTES:
+!  (1 ) Removed reference to FEMIS array.  Now also allocates and zeroes
+!        the T44 array.  Added reference to CMN_DIAG.  Now references 
+!        N_TRACERS from "tracer_mod.f". (bmy, 2/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DRYDEP_MOD,   ONLY : DEPNAME,   NUMDEP
       USE ERROR_MOD,    ONLY : ALLOC_ERR, ERROR_STOP
       USE LOGICAL_MOD,  ONLY : LSPLIT,    LDRYD
+      USE TRACER_MOD,   ONLY : N_TRACERS
       USE TRACERID_MOD, ONLY : IDTHg0,    IDTHg2,   IDTHgP
 
 #     include "CMN_SIZE"     ! Size parameters
+#     include "CMN_DIAG"     ! ND44
 
       ! Local variables
       LOGICAL, SAVE         :: IS_INIT = .FALSE. 
@@ -2380,10 +2357,6 @@
       ALLOCATE( EHg0_nt( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_nt' )
       EHg0_nt = 0d0
-
-      ALLOCATE( FEMIS( LLTROP, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FEMIS' )
-      FEMIS = 0d0
 
       ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOSZ' )
@@ -2455,6 +2428,13 @@
                   ! nothing
             END SELECT
          ENDDO
+
+         ! Temporary array for ND44 diagnostic
+         IF ( ND44 > 0 ) THEN
+            ALLOCATE( T44( IIPAR, JJPAR, LLTROP, N_TRACERS ), STAT=AS )
+            IF ( AS /= 0 ) CALL ALLOC_ERR( 'T44' )
+            T44 = 0e0            
+         ENDIF
       ENDIF
 
       ! Reset IS_INIT, since we have already allocated arrays
@@ -2468,10 +2448,12 @@
       SUBROUTINE CLEANUP_MERCURY
 !
 !******************************************************************************
-!  Subroutine CLEANUP_MERCURY deallocates all module arrays (eck, bmy, 12/6/04)
+!  Subroutine CLEANUP_MERCURY deallocates all module arrays.
+!  (eck, bmy, 12/6/04, 2/24/05)
 !
 !  NOTES:
 !  (1 ) Now deallocate MLD, NPP, RAD (sas, bmy, 1/18/05)
+!  (2 ) Now deallocate T44 (bmy, 2/24/05)
 !******************************************************************************
 !
       !=================================================================
@@ -2487,8 +2469,8 @@
       IF ( ALLOCATED( EHg0_oc ) ) DEALLOCATE( EHg0_oc )
       IF ( ALLOCATED( EHg0_ln ) ) DEALLOCATE( EHg0_ln )
       IF ( ALLOCATED( EHg0_nt ) ) DEALLOCATE( EHg0_nt )
-      IF ( ALLOCATED( FEMIS   ) ) DEALLOCATE( FEMIS   )
       IF ( ALLOCATED( TCOSZ   ) ) DEALLOCATE( TCOSZ   )
+      IF ( ALLOCATED( T44     ) ) DEALLOCATE( T44     )
       IF ( ALLOCATED( TTDAY   ) ) DEALLOCATE( TTDAY   )
 
       ! Return to calling program

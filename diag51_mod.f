@@ -1,11 +1,11 @@
-! $Id: diag51_mod.f,v 1.13 2005/02/10 19:53:24 bmy Exp $
+! $Id: diag51_mod.f,v 1.14 2005/03/29 15:52:41 bmy Exp $
       MODULE DIAG51_MOD
 !
 !******************************************************************************
 !  Module DIAG51_MOD contains variables and routines to generate save 
 !  timeseries data where the local time is between two user-defined limits. 
 !  This facilitates comparisons with morning or afternoon-passing satellites
-!  such as GOME. (amf, bey, bdf, pip, bmy, 11/30/00, 1/14/05)
+!  such as GOME. (amf, bey, bdf, pip, bmy, 11/30/00, 2/16/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -55,14 +55,15 @@
 !
 !  GEOS-CHEM modules referenced by diag51_mod.f
 !  ============================================================================
-!  (1 ) bpch2_mod.f    : Module containing routines for binary punch file I/O
-!  (2 ) dao_mod.f      : Module containing arrays for DAO met fields
-!  (3 ) error_mod.f    : Module containing NaN and other error check routines
-!  (4 ) file_mod.f     : Module containing file unit numbers and error checks
-!  (5 ) grid_mod.f     : Module containing horizontal grid information
-!  (6 ) pressure_mod.f : Module containing routines to compute P(I,J,L) 
-!  (7 ) time_mod.f     : Module containing routines to compute date & time
-!  (8 ) tracerid_mod.f : Module containing pointers to tracers & emissions
+!  (1 ) bpch2_mod.f    : Module w/ routines for binary punch file I/O
+!  (2 ) dao_mod.f      : Module w/ arrays for DAO met fields
+!  (3 ) error_mod.f    : Module w/ NaN and other error check routines
+!  (4 ) file_mod.f     : Module w/ file unit numbers and error checks
+!  (5 ) grid_mod.f     : Module w/ horizontal grid information
+!  (6 ) pbl_mix_mod.f  : Module w/ routines for PBL height & mixing
+!  (7 ) pressure_mod.f : Module w/ routines to compute P(I,J,L) 
+!  (8 ) time_mod.f     : Module w/ routines to compute date & time
+!  (9 ) tracerid_mod.f : Module w/ pointers to tracers & emissions
 !
 !  ND51 tracer numbers:
 !  ============================================================================
@@ -99,6 +100,7 @@
 !        arrays are 1-D since they only depend on longitude. (bmy, 10/25/04)
 !  (3 ) Bug fix: Now get I0 and J0 properly for nested grids (bmy, 11/9/04)
 !  (4 ) Now only archive AOD's once per chemistry timestep (bmy, 1/14/05)
+!  (5 ) Now references "pbl_mix_mod.f" (bmy, 2/16/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -273,7 +275,7 @@
 !
 !******************************************************************************
 !  Subroutine ACCUMULATE_DIAG51 accumulates tracers into the Q array. 
-!  (bmy, 8/20/02, 1/14/05)
+!  (bmy, 8/20/02, 2/16/05)
 !
 !  NOTES:
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
@@ -284,12 +286,16 @@
 !        longitude. Now only archive NO, NO2, OH, O3 on every chemistry 
 !        timestep (i.e. only when fullchem is called). (bmy, 10/25/04)
 !  (3 ) Only archive AOD's when it is a chem timestep (bmy, 1/14/05)
+!  (4 ) Remove reference to "CMN".  Also now get PBL heights in meters and 
+!        model layers from GET_PBL_TOP_m and GET_PBL_TOP_L of "pbl_mix_mod.f".
+!        (bmy, 2/16/05)
 !******************************************************************************
 !
       ! Reference to F90 modules
       USE DAO_MOD,      ONLY : AD,     AIRDEN, BXHEIGHT, CLDTOPS, 
      &                         CLMOSW, CLROSW, OPTD,     RH,  T, 
      &                         PBL,    UWND,   VWND,     SLP
+      USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L,   GET_PBL_TOP_m
       USE PRESSURE_MOD, ONLY : GET_PEDGE
       USE TIME_MOD,     ONLY : GET_ELAPSED_MIN, GET_TS_CHEM, 
      &                         TIMESTAMP_STRING
@@ -298,7 +304,10 @@
 
 #     include "cmn_fj.h"  ! includes CMN_SIZE
 #     include "jv_cmn.h"  ! ODAER
-#     include "CMN"       ! XTRA2
+!-------------------------------------------------------
+! Prior to 2/16/05:
+!#     include "CMN"       ! XTRA2
+!-------------------------------------------------------
 #     include "CMN_O3"    ! FRACO3, FRACNO, SAVEO3, SAVENO2, SAVEHO2, FRACNO2
 #     include "CMN_DIAG"  ! TRCOFFSET
 #     include "CMN_GCTM"  ! SCALE_HEIGHT
@@ -488,35 +497,47 @@
                !--------------------------------------
                ! PBL HEIGHTS [m] 
                !--------------------------------------
-#if   defined( GEOS_4 ) 
-
-               ! PBL is in meters
+!-----------------------------------------------------------------------------
+! Prior to 2/16/05)
+!#if   defined( GEOS_4 ) 
+!
+!               ! PBL is in meters
+!               IF ( K == 1 ) THEN
+!                  Q(X,Y,K,W) = Q(X,Y,K,W) + ( PBL(I,J) * GOOD(I) )
+!               ENDIF
+!
+!#else
+!               ! Convert PBL from [hPa] to [m]
+!               IF ( K == 1 ) THEN
+!                  
+!                  ! Surface pressure
+!                  TMP = GET_PEDGE(I,J,1)
+!
+!                  ! Convert [hPa] to [m]
+!                  Q(X,Y,K,W) = Q(X,Y,K,W) +
+!     &                         ( -SCALE_HEIGHT  * GOOD(I) *
+!     &                            LOG( ( TMP - PBL(I,J) ) / TMP ) )
+!               ENDIF
+!
+!#endif
+!-----------------------------------------------------------------------------
                IF ( K == 1 ) THEN
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + ( PBL(I,J) * GOOD(I) )
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + 
+     &                         ( GET_PBL_TOP_m( I, J ) * GOOD(I) )  
                ENDIF
 
-#else
-               ! Convert PBL from [hPa] to [m]
-               IF ( K == 1 ) THEN
-                  
-                  ! Surface pressure
-                  TMP = GET_PEDGE(I,J,1)
-
-                  ! Convert [hPa] to [m]
-                  Q(X,Y,K,W) = Q(X,Y,K,W) +
-     &                         ( -SCALE_HEIGHT  * GOOD(I) *
-     &                            LOG( ( TMP - PBL(I,J) ) / TMP ) )
-               ENDIF
-
-#endif
- 
             ELSE IF ( N == 77 ) THEN
 
                !--------------------------------------
                ! PBL HEIGHTS [layers] 
                !--------------------------------------
                IF ( K == 1 ) THEN
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + ( XTRA2(I,J) * GOOD(I) )
+                  !--------------------------------------------------------
+                  ! Prior to 2/16/05:
+                  !Q(X,Y,K,W) = Q(X,Y,K,W) + ( XTRA2(I,J) * GOOD(I) )
+                  !--------------------------------------------------------
+                  Q(X,Y,K,W) = Q(X,Y,K,W) +
+     &                         ( GET_PBL_TOP_L( I, J ) * GOOD(I) )
                ENDIF
 
             ELSE IF ( N == 78 ) THEN

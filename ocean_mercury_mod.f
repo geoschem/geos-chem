@@ -1,10 +1,10 @@
-! $Id: ocean_mercury_mod.f,v 1.2 2005/02/17 18:54:02 bmy Exp $
+! $Id: ocean_mercury_mod.f,v 1.3 2005/03/29 15:52:43 bmy Exp $
       MODULE OCEAN_MERCURY_MOD
 !
 !******************************************************************************
 !  Module OCEAN_MERCURY_MOD contains variables and routines needed to compute
 !  the oceanic flux of mercury.  Original code by Sarah Strode at UWA/Seattle.
-!  (sas, bmy, 1/21/05)
+!  (sas, bmy, 1/21/05, 2/24/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -53,8 +53,8 @@
 !  (4 ) Poissant et al (2000).  Mercury water-air exchange over the upper St.
 !        Lawrence River and Lake Ontario.  Environ. Sci. Technol., 34, 
 !        3069-3078. And other references therein.
-!  (5 ) Wangberg et al (1998) is a poster which is found online at:
-!        http://w3g.gkss.de/staff/schmolke/PDFfiles/BASYannual98.pdf.
+!  (5 ) Wangberg et al. (2001).  Estimates of air-sea exchange of mercury in 
+!        the Baltic Sea.  Atmospheric Environment 35, 5477-5484.
 !  (6 ) Clever, Johnson and Derrick (1985).  The Solubility of Mercury and some
 !        sparingly soluble mercury salts in water and aqueous electrolyte
 !        solutions.  J. Phys. Chem. Ref. Data, Vol. 14, No. 3, 1985.
@@ -65,6 +65,7 @@
 !  (2 ) Hg(II) a.k.a. Hg2 : Divalent  mercury
 !
 !  NOTES:
+!  (1 ) Modified ocean flux w/ Sarah's new Ks value (sas, bmy, 2/24/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -169,13 +170,15 @@
 !
 !******************************************************************************
 !  Subroutine OCEAN_MERCURY_FLUX calculates annual monthly emissions from 
-!  the ocean in [kg/s].  
+!  the ocean in [kg/s].  (sas, bmy, 1/19/05, 2/24/05)
 !
 !  Arguments as Output
 !  ============================================================================
 !  (1 ) FLUX (REAL*8) : Flux of Hg(0) from the ocean [kg/s]
 !
 !  NOTES:
+!  (1 ) Change Ks to make ocean flux for 2001 = 2.03e6 kg/year.
+!        (sas, bmy, 2/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -260,9 +263,14 @@
       ! Emission timestep [s]
       DTSRCE = GET_TS_EMIS() * 60d0
 
-      ! Determine Ks (sinking term) to compete with K1 [unitless]
-      Ks     = 8.4d-7 * DTSRCE 
-      
+      ! Define sinking term Ks [unitless] to get 2.03e6 kg/year 
+      ! (sas, bmy, 3/8/05)
+#if   defined( GEOS_4 )
+      Ks     = 7.3d-7 * DTSRCE
+#else
+      Ks     = 9.2d-7 * DTSRCE
+#endif
+
       ! We are at the surface level
       L      = 1
 

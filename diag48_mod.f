@@ -1,9 +1,9 @@
-! $Id: diag48_mod.f,v 1.3 2004/12/02 21:48:35 bmy Exp $
+! $Id: diag48_mod.f,v 1.4 2005/03/29 15:52:40 bmy Exp $
       MODULE DIAG48_MOD
 !
 !******************************************************************************
 !  Module DIAG48_MOD contains variables and routines to save out 3-D 
-!  timeseries output to disk (bmy, 7/20/04)
+!  timeseries output to disk (bmy, 7/20/04, 2/16/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -16,16 +16,17 @@
 !  (2 ) ITS_TIME_FOR_DIAG48    : Returns TRUE if it's time to save to disk
 !  (3 ) INIT_DIAG48            : Gets variable values from "input_mod.f"
 !
-!  GEOS-CHEM modules referenced by "diag49_mod.f" 
+!  GEOS-CHEM modules referenced by "diag48_mod.f" 
 !  ============================================================================
-!  (1 ) bpch2_mod.f    : Module containing routines for binary punch file I/O
-!  (2 ) dao_mod.f      : Module containing arrays for DAO met fields
-!  (3 ) file_mod.f     : Module containing file unit numbers & error checks
-!  (4 ) grid_mod.f     : Module containing horizontal grid information   
-!  (5 ) pressure_mod.f : Module containing routines to compute P(I,J,L)
-!  (6 ) time_mod.f     : Module containing routines for computing time & date 
-!  (7 ) tracer_mod.f   : Module containing GEOS-CHEM tracer array STT etc.  
-!  (8 ) tracerid_mod.f : Module containing pointers to tracers & emissions
+!  (1 ) bpch2_mod.f    : Module w/ routines for binary punch file I/O
+!  (2 ) dao_mod.f      : Module w/ arrays for DAO met fields
+!  (3 ) file_mod.f     : Module w/ file unit numbers & error checks
+!  (4 ) grid_mod.f     : Module w/ horizontal grid information   
+!  (5 ) pbl_mix_mod.f  : Module w/ routines for PBL height & mixing
+!  (6 ) pressure_mod.f : Module w/ routines to compute P(I,J,L)
+!  (7 ) time_mod.f     : Module w/ routines for computing time & date 
+!  (8 ) tracer_mod.f   : Module w/ GEOS-CHEM tracer array STT etc.  
+!  (9 ) tracerid_mod.f : Module w/ pointers to tracers & emissions
 !
 !  ND48 tracer numbers:
 !  ============================================================================
@@ -116,6 +117,9 @@
 !  (bmy, bey, amf, 6/1/99, 7/20/04)
 !
 !  NOTES:
+!  (1 ) Remove reference to "CMN".  Also now get PBL heights in meters and
+!        model layers from GET_PBL_TOP_m and GET_PBL_TOP_L of "pbl_mix_mod.f".
+!        (bmy, 2/16/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -125,6 +129,7 @@
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE FILE_MOD,     ONLY : IU_ND48
       USE GRID_MOD,     ONLY : GET_XOFFSET,        GET_YOFFSET
+      USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE PRESSURE_MOD, ONLY : GET_PEDGE
       USE TIME_MOD,     ONLY : GET_LOCALTIME,      GET_NYMD,
      &                         GET_NHMS,           GET_TAU,
@@ -135,7 +140,10 @@
 
 #     include "cmn_fj.h"    ! Size parameters + FAST-J stuff
 #     include "jv_cmn.h"    ! ODAER, ODMDUST
-#     include "CMN"         ! XTRA2
+!--------------------------------------------------------------
+! Prior to 2/16/05:
+!#     include "CMN"         ! XTRA2
+!--------------------------------------------------------------
 #     include "CMN_DIAG"    ! TRCOFFSET
 #     include "CMN_O3"      ! XNUMOLAIR
 #     include "CMN_GCTM"    ! SCALE_HEIGHT
@@ -328,7 +336,7 @@
          ELSE IF ( N == 76 ) THEN
 
             !-------------------------------------
-            ! PBL HEIGHTS [layers] 
+            ! PBL HEIGHTS [m] 
             !-------------------------------------
             CATEGORY = 'PBLDEPTH'
             UNIT     = 'm'  
@@ -336,19 +344,25 @@
 
             IF ( K == 1 ) THEN
 
-#if   defined( GEOS_4 ) 
+!----------------------------------------------------------------------
+! Prior to 2/16/05:
+! Now call GET_PBL_TOP_m to get PBL depth in meters (bmy, 2/16/05)
+!#if   defined( GEOS_4 ) 
+!
+!               ! PBL is in meters already
+!               Q(1) = PBL(I,J)
+!
+!#else
+!               ! Surface pressure
+!               TMP = GET_PEDGE(I,J,1)
+!
+!               ! Convert [hPa] to [m]
+!               Q(1) = ( -SCALE_HEIGHT * 
+!     &                   LOG( ( TMP - PBL(I,J) ) / TMP ) )
+!#endif
+!----------------------------------------------------------------------
+               Q(1) = GET_PBL_TOP_m( I, J )
 
-               ! PBL is in meters already
-               Q(1) = PBL(I,J)
-
-#else
-               ! Surface pressure
-               TMP = GET_PEDGE(I,J,1)
-
-               ! Convert [hPa] to [m]
-               Q(1) = ( -SCALE_HEIGHT * 
-     &                   LOG( ( TMP - PBL(I,J) ) / TMP ) )
-#endif
             ENDIF
                
          ELSE IF ( N == 77 ) THEN
@@ -361,7 +375,12 @@
             GMTRC    = 2
 
             IF ( K == 1 ) THEN
-               Q(1) = XTRA2(I,J)
+               !---------------------------------------------------------------
+               ! Prior to 2/16/05:
+               ! Now get PBL depth in layers from GET_PBL_TOP_L (bmy, 2/16/05)
+               !Q(1) = XTRA2(I,J)
+               !---------------------------------------------------------------
+               Q(1) = GET_PBL_TOP_L( I, J )
             ENDIF
 
          ELSE IF ( N == 78 ) THEN 

@@ -1,8 +1,8 @@
-! $Id: initialize.f,v 1.10 2005/02/10 19:53:26 bmy Exp $
+! $Id: initialize.f,v 1.11 2005/03/29 15:52:42 bmy Exp $
       SUBROUTINE INITIALIZE( IFLAG )
 !
 !******************************************************************************
-!  Subroutine INITIALIZE (bmy, 6/15/98, 1/20/05) does the following:
+!  Subroutine INITIALIZE (bmy, 6/15/98, 2/17/05) does the following:
 !     (1) Zeroes globally defined GEOS-CHEM variables.
 !     (2) Zeroes accumulating diagnostic arrays.
 !     (3) Resets certain year/month/day and counter variables used 
@@ -151,12 +151,15 @@
 !        reference to obsolete TOFDY0 variable. (eck, bmy, 12/7/04)
 !  (30) Now initialize AD21_cr array for ND21 diag.  Also references 
 !        LCRYST from "logical_mod.f"  Now call ZERO_DIAG03 from "diag03_mod.f"
-!        to zero ND03 arrays (bmy, 1/21/05)
+!        to zero ND03 arrays (bmy, 1/21/05) 
+!  (31) Now call ZERO_DIAG41 from "diag41_mod.f".  Also removed references
+!        to AD41 and AFTTOT. (bmy, 2/17/05)
 !******************************************************************************
 ! 
       ! References to F90 modules
       USE DIAG_MOD
       USE DIAG03_MOD,  ONLY : ND03, ZERO_DIAG03
+      USE DIAG41_MOD,  ONLY : ND41, ZERO_DIAG41
       USE DIAG_PL_MOD, ONLY : AD65, FAM_PL
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE LOGICAL_MOD, ONLY : LCRYST
@@ -206,10 +209,6 @@
          IF ( ND16 > 0 ) AD16     = 0e0
          IF ( ND17 > 0 ) AD17     = 0e0
          IF ( ND18 > 0 ) AD18     = 0e0         
-         !----------------------------------
-         ! Prior to 1/5/04
-         !IF ( ND21 > 0 ) AD21     = 0e0
-         !----------------------------------
          IF ( ND22 > 0 ) AD22     = 0e0
          IF ( ND24 > 0 ) MASSFLEW = 0d0
          IF ( ND25 > 0 ) MASSFLNS = 0d0
@@ -224,16 +223,15 @@
          IF ( ND37 > 0 ) AD37     = 0e0
          IF ( ND38 > 0 ) AD38     = 0e0
          IF ( ND39 > 0 ) AD39     = 0e0
-         IF ( ND41 > 0 ) AD41     = 0e0
+         !------------------------------------
+         ! Prior to 2/17/05:
+         !IF ( ND41 > 0 ) AD41     = 0e0
+         !------------------------------------
          IF ( ND43 > 0 ) AD43     = 0e0
          IF ( ND44 > 0 ) AD44     = 0e0
          IF ( ND45 > 0 ) AD45     = 0e0
          IF ( ND46 > 0 ) AD46     = 0e0
          IF ( ND47 > 0 ) AD47     = 0e0
-         !------------------------------------
-         ! Prior to 1/21/05:
-         !IF ( ND48 > 0 ) TCOBOX   = 0d0
-         !------------------------------------
          IF ( ND55 > 0 ) AD55     = 0e0
          IF ( ND66 > 0 ) AD66     = 0e0
          IF ( ND67 > 0 ) AD67     = 0e0
@@ -242,20 +240,6 @@
 
          ! For ND03 - mercury simulations (eck, sas, bmy, 1/20/05)
          IF ( ND03 > 0 ) THEN
-            !------------------------
-            ! Prior to 1/21/05:
-            !AD03_Hg0_an  = 0e0
-            !AD03_Hg0_aq  = 0e0
-            !AD03_Hg0_oc  = 0e0
-            !AD03_Hg0_ln  = 0e0
-            !AD03_Hg0_nt  = 0e0
-            !AD03_Hg2_an  = 0e0
-            !AD03_Hg2_aq  = 0e0
-            !AD03_HgP_an  = 0e0
-            !AD03_Hg2_Hg0 = 0e0
-            !AD03_Hg2_OH  = 0e0
-            !AD03_Hg2_O3  = 0e0
-            !------------------------
             CALL ZERO_DIAG03
          ENDIF
 
@@ -303,6 +287,11 @@
             AD32_ub = 0e0
          ENDIF
 
+         ! For ND41 - afternoon PBL heights (bmy, 2/17/05)
+         IF ( ND41 > 0 ) THEN
+            CALL ZERO_DIAG41
+         ENDIF
+
          ! For ND65 -- Chemical production & loss (bmy, 12/5/00)
          IF ( ND65 > 0 ) THEN
             AD65  = 0e0
@@ -335,7 +324,10 @@
          IF ( ND17 > 0 ) CT17   = 0
          IF ( ND18 > 0 ) CT18   = 0
          IF ( ND22 > 0 ) CTJV   = 0
-         IF ( ND41 > 0 ) AFTTOT = 0
+         !--------------------------------
+         ! Prior to 2/17/05:
+         !IF ( ND41 > 0 ) AFTTOT = 0
+         !--------------------------------
          IF ( ND43 > 0 ) CTNO   = 0
          IF ( ND43 > 0 ) CTOH   = 0
          IF ( ND45 > 0 ) CTOTH  = 0

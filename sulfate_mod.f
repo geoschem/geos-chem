@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.14 2005/02/10 19:53:28 bmy Exp $
+! $Id: sulfate_mod.f,v 1.15 2005/03/29 15:52:44 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 1/11/05)
+!  (rjp, bdf, bmy, 6/22/00, 3/15/05)
 !
 !  Module variables:
 !  ============================================================================
@@ -102,26 +102,27 @@
 !
 !  GEOS-CHEM modules referenced by sulfate_mod.f
 !  ============================================================================
-!  (1 ) bpch2_mod.f       : Module containing routines for binary pch file I/O
-!  (2 ) comode_mod.f      : Module containing SMVGEAR allocatable arrays
-!  (3 ) dao_mod.f         : Module containing DAO met field arrays
-!  (4 ) diag_mod.f        : Module containing GEOS-CHEM diagnostic arrays
-!  (5 ) directory_mod.f   : Module containing GEOS-CHEM data & met field dirs
-!  (6 ) drydep_mod.f      : Module containing GEOS-CHEM dry deposition routines
-!  (7 ) epa_nei_mod.f     : Module containing routines to read EPA/NEI99 data
-!  (8 ) error_mod.f       : Module containing NaN, other error check routines
-!  (9 ) file_mod.f        : Module containing file unit numbers & error checks
-!  (10) grid_mod.f        : Module containing horizontal grid information
-!  (11) global_no3_mod.f  : Module containing routines to read 3-D NO3 field
-!  (12) global_oh_mod.f   : Module containing routines to read 3-D OH field
-!  (13) logical_mod.f     : Module containing GEOS-CHEM logical switches
-!  (14) pressure_mod.f    : Module containing routines to compute P(I,J,L)
-!  (15) tracer_mod.f      : Module containing GEOS-CHEM tracer array STT etc.
-!  (16) tracerid_mod.f    : Module containing pointers to tracers & emissions
-!  (17) transfer_mod.f    : Module containing routines to cast & resize arrays
-!  (18) time_mod.f        : Module containing routines to compute time & date
-!  (19) uvalbedo_mod.f    : Module containing UV albedo array and reader
-!  (29) wetscav_mod.f     : Module containing routines for wetdep & scavenging
+!  (1 ) bpch2_mod.f       : Module w/ routines for binary pch file I/O
+!  (2 ) comode_mod.f      : Module w/ SMVGEAR allocatable arrays
+!  (3 ) dao_mod.f         : Module w/ DAO met field arrays
+!  (4 ) diag_mod.f        : Module w/ GEOS-CHEM diagnostic arrays
+!  (5 ) directory_mod.f   : Module w/ GEOS-CHEM data & met field dirs
+!  (6 ) drydep_mod.f      : Module w/ GEOS-CHEM dry deposition routines
+!  (7 ) epa_nei_mod.f     : Module w/ routines to read EPA/NEI99 data
+!  (8 ) error_mod.f       : Module w/ NaN, other error check routines
+!  (9 ) file_mod.f        : Module w/ file unit numbers & error checks
+!  (10) grid_mod.f        : Module w/ horizontal grid information
+!  (11) global_no3_mod.f  : Module w/ routines to read 3-D NO3 field
+!  (12) global_oh_mod.f   : Module w/ routines to read 3-D OH field
+!  (13) logical_mod.f     : Module w/ GEOS-CHEM logical switches
+!  (14) pbl_mix_mod.f     : Module w/ routines for PBL height & mixing
+!  (15) pressure_mod.f    : Module w/ routines to compute P(I,J,L)
+!  (16) tracer_mod.f      : Module w/ GEOS-CHEM tracer array STT etc.
+!  (17) tracerid_mod.f    : Module w/ pointers to tracers & emissions
+!  (18) transfer_mod.f    : Module w/ routines to cast & resize arrays
+!  (19) time_mod.f        : Module w/ routines to compute time & date
+!  (20) uvalbedo_mod.f    : Module w/ UV albedo array and reader
+!  (21) wetscav_mod.f     : Module w/ routines for wetdep & scavenging
 !
 !  References
 !  ============================================================================
@@ -170,6 +171,9 @@
 !        Now removed IJSURF. (bmy, 7/20/04)
 !  (25) Can overwrite USA with EPA/NEI99 emissions (rjp, rch, bmy, 11/16/04)
 !  (26) Modified for AS, AHS, LET, SO4aq, NH4aq (cas, bmy, 1/11/05)
+!  (27) Now also references "pbl_mix_mod.f".  NOTE: Comment out phase 
+!        transition  code for now since it is still under development and
+!        will take a while to be rewritten. (bmy, 3/15/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -498,19 +502,22 @@
       CALL CHEM_SO4
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4' )
 
-      ! Only do the following if the crystalline sulfate & aqueous 
-      ! tracers (AS, AHS, LET, SO4aq, NH4aq) are defined
-      IF ( LCRYST ) THEN
-         
-         ! Phase change
-         CALL PHASE_SO4
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a PHASE_SO4' )
-
-         ! Radiative forcing
-         CALL PHASE_RADIATIVE
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a PHASE_RAD' )
-
-      ENDIF
+!-----------------------------------------------------------------------------
+!%%% Currently under development (rjp, bmy, 3/15/05)
+!%%%      ! Only do the following if the crystalline sulfate & aqueous 
+!%%%      ! tracers (AS, AHS, LET, SO4aq, NH4aq) are defined
+!%%%      IF ( LCRYST ) THEN
+!%%%         
+!%%%         ! Phase change
+!%%%         CALL PHASE_SO4
+!%%%         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a PHASE_SO4' )
+!%%%      
+!%%%         ! Radiative forcing
+!%%%         CALL PHASE_RADIATIVE
+!%%%         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a PHASE_RAD' )
+!%%%      
+!%%%      ENDIF
+!-----------------------------------------------------------------------------
 
       ! MSA 
       CALL CHEM_MSA
@@ -524,11 +531,14 @@
       CALL CHEM_NH4
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH4' )
 
-      ! NH4 (aqueous phase)
-      IF ( LCRYST ) THEN
-         CALL CHEM_NH4aq
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH4aq' )
-      ENDIF
+!-----------------------------------------------------------------------------
+!%%% Currently under development (rjp, bmy, 3/15/05)
+!%%%      ! NH4 (aqueous phase)
+!%%%      IF ( LCRYST ) THEN
+!%%%         CALL CHEM_NH4aq
+!%%%         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH4aq' )
+!%%%      ENDIF
+!-----------------------------------------------------------------------------
 
       ! Sulfur Nitrate 
       CALL CHEM_NIT
@@ -808,7 +818,7 @@
 !******************************************************************************
 !  Subroutine CHEM_H2O2 is the H2O2 chemistry subroutine for offline sulfate
 !  simulations.  For coupled runs, H2O2 chemistry is already computed by
-!  the SMVGEAR module. (rjp, bmy, 11/26/02, 1/25/05)
+!  the SMVGEAR module. (rjp, bmy, 11/26/02, 2/22/05)
 !                                                                           
 !  NOTES:
 !  (1 ) Bug fix: need to multiply DXYP by 1d4 for cm2 (bmy, 3/23/03)
@@ -828,6 +838,8 @@
 !        with an analytic function.  Now references DATA_DIR from 
 !        "directory_mod.f". (bmy, 7/20/04)
 !  (8 ) Now suppress output from READ_BPCH with QUIET keyword (bmy, 1/25/05)
+!  (9 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP
+!        from "pbl_mix_mod.f" (bmy, 2/22/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -835,8 +847,13 @@
       USE DAO_MOD,       ONLY : AD, AIRDEN, OPTD, SUNCOS, T
       USE DIAG_MOD,      ONLY : AD44 
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE DRYDEP_MOD,    ONLY : DEPSAV, PBLFRAC
+      !---------------------------------------------
+      ! Prior to 2/22/05:
+      !USE DRYDEP_MOD,    ONLY : DEPSAV, PBLFRAC
+      !---------------------------------------------
+      USE DRYDEP_MOD,    ONLY : DEPSAV
       USE GRID_MOD,      ONLY : GET_AREA_CM2
+      USE PBL_MIX_MOD,   ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,      ONLY : GET_MONTH, GET_TS_CHEM, ITS_A_NEW_MONTH
       USE TRACER_MOD,    ONLY : STT, TCVV
       USE TRACERID_MOD,  ONLY : IDTH2O2
@@ -951,9 +968,16 @@
          ! Loss frequenty due to OH oxidation [s-1]
          KOH   = A * EXP( -160.d0 / T(I,J,L) ) * GET_OH(I,J,L)  
 
-         ! H2O2 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
-         ! of the grid box (I,J,L) that is located beneath the PBL top
-         FREQ  = DEPSAV(I,J,DRYH2O2) * PBLFRAC(I,J,L)
+         !--------------------------------------------------------------------
+         ! Prior to 2/22/05:
+         !! H2O2 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
+         !! of the grid box (I,J,L) that is located beneath the PBL top
+         !FREQ  = DEPSAV(I,J,DRYH2O2) * PBLFRAC(I,J,L)
+         !--------------------------------------------------------------------
+
+         ! H2O2 drydep frequency [1/s].  Account for the fraction
+         ! of grid box (I,J,L) that is located beneath the PBL top.
+         FREQ  = DEPSAV(I,J,DRYH2O2) * GET_FRAC_UNDER_PBLTOP( I, J, L ) 
 
          ! 1-D grid box index for SUNCOS
          JLOOP = ( (J-1) * IIPAR ) + I
@@ -1026,7 +1050,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_SO2 is the SO2 chemistry subroutine 
-!  (rjp, bmy, 11/26/02, 7/20/04) 
+!  (rjp, bmy, 11/26/02, 2/22/05) 
 !                                                                          
 !  Module variables used:
 !  ============================================================================
@@ -1070,14 +1094,21 @@
 !  (6 ) Now use parallel DO-loop to zero ND44_TMP (bmy, 4/14/04)
 !  (7 ) Now reference STT, TCVV, & ITS_AN_AEROSOL_SIM from "tracer_mod.f".
 !        Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  (8 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
+!        "pbl_mix_mod.f" (bmy, 2/22/05)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
       USE DAO_MOD,       ONLY : AD,      AIRDEN, T
       USE DIAG_MOD,      ONLY : AD05,    AD44
-      USE DRYDEP_MOD,    ONLY : DEPSAV,  PBLFRAC
+      !-----------------------------------------------
+      ! Prior to 2/22/05:
+      !USE DRYDEP_MOD,    ONLY : DEPSAV,  PBLFRAC
+      !-----------------------------------------------
+      USE DRYDEP_MOD,    ONLY : DEPSAV
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE GRID_MOD,      ONLY : GET_AREA_CM2
+      USE PBL_MIX_MOD,   ONLY : GET_FRAC_UNDER_PBLTOP
       USE PRESSURE_MOD,  ONLY : GET_PCENTER
       USE TIME_MOD,      ONLY : GET_TS_CHEM
       USE TRACER_MOD,    ONLY : STT,     TCVV,  ITS_AN_AEROSOL_SIM
@@ -1189,9 +1220,16 @@
 
          ENDIF
 
-         ! SO2 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
-         ! of grid box (I,J,L) that is located beneath the PBL top
-         RK2    = DEPSAV(I,J,DRYSO2) * PBLFRAC(I,J,L)
+         !--------------------------------------------------------------------
+         ! Prior to 2/22/05;
+         !! SO2 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
+         !! of grid box (I,J,L) that is located beneath the PBL top
+         !RK2    = DEPSAV(I,J,DRYSO2) * PBLFRAC(I,J,L)
+         !--------------------------------------------------------------------
+
+         ! SO2 drydep frequency [1/s].  Also accounts for the fraction
+         ! of grid box (I,J,L) that is located beneath the PBL top.
+         RK2    = DEPSAV(I,J,DRYSO2) * GET_FRAC_UNDER_PBLTOP( I, J, L )
 
          ! RK: total reaction rate [1/s]
          RK     = ( RK1 + RK2 )
@@ -1623,7 +1661,7 @@
 !  Subroutine CHEM_SO4 is the SO4 chemistry subroutine from Mian Chin's GOCART
 !  model, modified for the GEOS-CHEM model.  Now also modified to account
 !  for production of crystalline & aqueous sulfur tracers. 
-!  (rjp, bdf, cas, bmy, 5/31/00, 12/21/04) 
+!  (rjp, bdf, cas, bmy, 5/31/00, 2/22/05) 
 !                                                                          
 !  Module Variables Used:
 !  ============================================================================
@@ -1652,14 +1690,21 @@
 !  (7 ) Now references LCRYST from "logical_mod.f".  Modified for crystalline
 !        and aqueous sulfate2 tracers: AS, AHS, LET, SO4aq.  Also changed name
 !        of ND44_TMP to T44 to save space. (cas, bmy, 12/21/04)
+!  (8 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
+!        "pbl_mix_mod.f" (bmy, 2/22/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44
-      USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
+      !---------------------------------------------
+      ! Prior to 2/22/05:
+      !USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
+      !---------------------------------------------
+      USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,  ONLY : LCRYST
+      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, TCVV
       USE TRACERID_MOD, ONLY : IDTSO4, IDTAS,    IDTAHS, 
@@ -1685,12 +1730,18 @@
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
 
+!------------------------------------------------------------------------------
+!%%% Currently under development (rjp, bmy, 3/15/05)
+!%%%       ! Number of drydep tracers to save
+!%%%       IF ( LCRYST ) THEN 
+!%%%          N_ND44 = 5
+!%%%       ELSE
+!%%%          N_ND44 = 1
+!%%%       ENDIF
+!------------------------------------------------------------------------------
+
       ! Number of drydep tracers to save
-      IF ( LCRYST ) THEN 
-         N_ND44 = 5
-      ELSE
-         N_ND44 = 1
-      ENDIF
+      N_ND44 = 1
 
       ! Zero T44 array
       IF ( ND44 > 0 ) THEN
@@ -1710,12 +1761,19 @@
       ENDIF
 
       ! Loop over tropospheric grid boxes
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I,    J,    L,   SO40,     SO4aq0, AS0   )
-!!$OMP+PRIVATE( AHS0, LET0, RKT, E_RKT,    SO4,    SO4aq ) 
-!!$OMP+PRIVATE( AS,   AHS,  LET, AREA_CM2, FLUX          )
-!!$OMP+SCHEDULE( DYNAMIC ) 
+!------------------------------------------------------------------------------
+!%%% Currently under development (rjp, bmy, 3/15/05)
+!%%% !$OMP PARALLEL DO
+!%%% !$OMP+DEFAULT( SHARED )
+!%%% !$OMP+PRIVATE( I,    J,    L,   SO40,     SO4aq0, AS0   )
+!%%% !$OMP+PRIVATE( AHS0, LET0, RKT, E_RKT,    SO4,    SO4aq ) 
+!%%% !$OMP+PRIVATE( AS,   AHS,  LET, AREA_CM2, FLUX          )
+!%%% !$OMP+SCHEDULE( DYNAMIC ) 
+!------------------------------------------------------------------------------
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, AREA_CM2, RKT, E_RKT, FLUX, SO4, SO40 )
+!$OMP+SCHEDULE( DYNAMIC ) 
       DO L = 1, LLTROP 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -1726,10 +1784,13 @@
          E_RKT    = 0d0
          FLUX     = 0d0
          SO4      = 0d0
-         SO4aq    = 0d0
-         AS       = 0d0
-         AHS      = 0d0
-         LET      = 0d0
+!------------------------------------------------------------------------------
+!%%% Currently under development (rjp, bmy, 3/15/05)
+!%%%         SO4aq    = 0d0
+!%%%         AS       = 0d0
+!%%%         AHS      = 0d0
+!%%%         LET      = 0d0
+!------------------------------------------------------------------------------
 
          ! Skip stratospheric boxes
          IF ( L >= LPAUSE(I,J) ) CYCLE
@@ -1741,13 +1802,16 @@
          ! SO4 [v/v]
          SO40 = STT(I,J,L,IDTSO4)
 
-         ! SO4aq, AS, LET, AHS (if necessary) [v/v]
-         IF ( LCRYST ) THEN
-            SO4aq0 = STT(I,J,L,IDTSO4aq)
-            AS0    = STT(I,J,L,IDTAS)
-            AHS0   = STT(I,J,L,IDTAHS)
-            LET0   = STT(I,J,L,IDTLET)          
-         ENDIF
+!------------------------------------------------------------------------------
+!%%% Currently under development (rjp, bmy, 3/15/05)
+!%%%          ! SO4aq, AS, LET, AHS (if necessary) [v/v]
+!%%%          IF ( LCRYST ) THEN
+!%%%             SO4aq0 = STT(I,J,L,IDTSO4aq)
+!%%%             AS0    = STT(I,J,L,IDTAS)
+!%%%             AHS0   = STT(I,J,L,IDTAHS)
+!%%%             LET0   = STT(I,J,L,IDTLET)          
+!%%%          ENDIF
+!------------------------------------------------------------------------------
 
          !==============================================================
          ! SO4 chemistry: 
@@ -1758,9 +1822,16 @@
          ! (CASE 2) SO4 production from SO2 with no SO4 loss by drydep
          !==============================================================
 
-         ! SO4 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
+         !--------------------------------------------------------------------
+         ! Prior to 2/22/05:
+         !! SO4 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
+         !! of each vertical level that is located below the PBL top
+         !RKT = DEPSAV(I,J,DRYSO4) * PBLFRAC(I,J,L)
+         !--------------------------------------------------------------------
+
+         ! SO4 drydep frequency [1/s].  Also accounts for the fraction
          ! of each vertical level that is located below the PBL top
-         RKT = DEPSAV(I,J,DRYSO4) * PBLFRAC(I,J,L)
+         RKT = DEPSAV(I,J,DRYSO4) * GET_FRAC_UNDER_PBLTOP( I, J, L )
 
          ! RKT > 0 denotes that we have drydep occurring
          IF ( RKT > 0d0 ) THEN
@@ -1779,18 +1850,22 @@
             SO4   = ( SO40                *          E_RKT ) + 
      &              ( PSO4_SO2(I,J,L)/RKT * ( 1.d0 - E_RKT ) )
 
-            IF ( LCRYST ) THEN
 
-               ! Updated SO4 (aqueous phase) [v/v]
-               SO4aq = ( SO4aq0              *          E_RKT   ) + 
-     &                 ( PSO4_SO2(I,J,L)/RKT * ( 1.d0 - E_RKT ) ) 
-
-               ! Updated AS, AHS, LET [v/v] 
-               AS    = AS0  * E_RKT
-               AHS   = AHS0 * E_RKT
-               LET   = LET0 * E_RKT
-
-            ENDIF
+!------------------------------------------------------------------------------
+!%%% Currently under development (rjp, bmy, 3/15/05)
+!%%%             IF ( LCRYST ) THEN
+!%%% 
+!%%%                ! Updated SO4 (aqueous phase) [v/v]
+!%%%                SO4aq = ( SO4aq0              *          E_RKT   ) + 
+!%%%      &                 ( PSO4_SO2(I,J,L)/RKT * ( 1.d0 - E_RKT ) ) 
+!%%% 
+!%%%                ! Updated AS, AHS, LET [v/v] 
+!%%%                AS    = AS0  * E_RKT
+!%%%                AHS   = AHS0 * E_RKT
+!%%%                LET   = LET0 * E_RKT
+!%%% 
+!%%%             ENDIF
+!------------------------------------------------------------------------------
 
          ELSE
 
@@ -1798,35 +1873,29 @@
             ! CASE 2: Production of SO4 from SO2; no SO4 drydep loss
             !-----------------------------------------------------------
 
-            !------------------------------------------------------
-            ! Prior to 1/6/05:
-            ! Save original code here (cas, bmy, 1/6/05)
-            !! SO4 production from SO2 [v/v/timestep]
-            !SO4 = SO40 + PSO4_SO2(I,J,L)
-            !
-            !! SO4 production from SO2 [v/v/timestep]
-            !! *cas * updated [ASO4] -> underestimation by a factor of 2 
-            !! of sulfate  concentrations from atmospheric oxidations (bec)
-            !SO4 = SO40 + ( 2d0 * PSO4_SO2(I,J,L) )            
-            !------------------------------------------------------
-
-            IF ( LCRYST ) THEN
-
-               ! SO4 production from SO2 (both gas-phase & aqueous)
-               SO4   = SO40   + ( 2d0 * PSO4_SO2(I,J,L) )
-               SO4aq = SO4aq0 + ( 2d0 * PSO4_SO2(I,J,L) )
-
-               ! No production from AS, AHS, LET
-               AS    = AS0
-               AHS   = AHS0
-               LET   = LET0
-
-            ELSE
+!-----------------------------------------------------------------------------
+!%%% Currently under development (rjp, bmy, 3/15/05)
+!%%%            IF ( LCRYST ) THEN
+!%%%
+!%%%               ! SO4 production from SO2 (both gas-phase & aqueous)
+!%%%               SO4   = SO40   + ( 2d0 * PSO4_SO2(I,J,L) )
+!%%%               SO4aq = SO4aq0 + ( 2d0 * PSO4_SO2(I,J,L) )
+!%%%
+!%%%               ! No production from AS, AHS, LET
+!%%%               AS    = AS0
+!%%%               AHS   = AHS0
+!%%%               LET   = LET0
+!%%%
+!%%%            ELSE
+!%%%
+!%%%               ! SO4 production from SO2 [v/v/timestep]
+!%%%               SO4 = SO40 + PSO4_SO2(I,J,L)
+!%%%
+!%%%            ENDIF
+!-----------------------------------------------------------------------------
 
                ! SO4 production from SO2 [v/v/timestep]
                SO4 = SO40 + PSO4_SO2(I,J,L)
-
-            ENDIF
 
          ENDIF
 
@@ -1840,22 +1909,25 @@
          ! Final SO4 [v/v]
          STT(I,J,L,IDTSO4) = SO4
 
-         ! SO4aq, AS, AHS, LET (if necessary)
-         IF ( LCRYST ) THEN
-
-            ! Error check
-            IF ( SO4aq < SMALLNUM ) SO4aq = 0d0
-            IF ( AS    < SMALLNUM ) AS    = 0d0
-            IF ( AHS   < SMALLNUM ) AHS   = 0d0
-            IF ( LET   < SMALLNUM ) LET   = 0d0
-
-            ! Final SO4aq, AS, AHS, LET [v/v]
-            STT(I,J,L,IDTSO4aq) = SO4aq
-            STT(I,J,L,IDTAS)    = AS
-            STT(I,J,L,IDTAHS)   = AHS
-            STT(I,J,L,IDTLET)   = LET
-
-         ENDIF
+!-----------------------------------------------------------------------------
+!%%% Currently under development (bmy, 3/15/05)
+!%%%          ! SO4aq, AS, AHS, LET (if necessary)
+!%%%          IF ( LCRYST ) THEN
+!%%% 
+!%%%             ! Error check
+!%%%             IF ( SO4aq < SMALLNUM ) SO4aq = 0d0
+!%%%             IF ( AS    < SMALLNUM ) AS    = 0d0
+!%%%             IF ( AHS   < SMALLNUM ) AHS   = 0d0
+!%%%             IF ( LET   < SMALLNUM ) LET   = 0d0
+!%%% 
+!%%%             ! Final SO4aq, AS, AHS, LET [v/v]
+!%%%             STT(I,J,L,IDTSO4aq) = SO4aq
+!%%%             STT(I,J,L,IDTAS)    = AS
+!%%%             STT(I,J,L,IDTAHS)   = AHS
+!%%%             STT(I,J,L,IDTLET)   = LET
+!%%% 
+!%%%          ENDIF
+!-----------------------------------------------------------------------------
 
          !==============================================================
          ! ND44 Diagnostic: Drydep flux of SO4 and the crystalline & 
@@ -1872,39 +1944,42 @@
             FLUX = FLUX  * XNUMOL(IDTSO4) / AREA_CM2 / DTCHEM
             T44(I,J,L,1) = T44(I,J,L,1) + FLUX
 
-            ! SO4aq, AS, AHS, LET drydep fluxes (if necessary)
-            IF ( LCRYST ) THEN
-
-               ! SO4aq drydep flux [molec/cm2/s]
-               FLUX = SO4aq0 - SO4aq + PSO4_SO2(I,J,L)     
-               FLUX = FLUX  * AD(I,J,L)        / TCVV(IDTSO4aq)
-               FLUX = FLUX  * XNUMOL(IDTSO4aq) / AREA_CM2 / DTCHEM
-               T44(I,J,L,2) = T44(I,J,L,2) + FLUX
-
-               ! AS drydep flux [molec/cm2/s]
-               FLUX = AS0   - AS
-               FLUX = FLUX  * AD(I,J,L)     / TCVV(IDTAS)
-               FLUX = FLUX  * XNUMOL(IDTAS) / AREA_CM2 / DTCHEM
-               T44(I,J,L,3) = T44(I,J,L,3) + FLUX
-
-               ! AHS drydep flux [molec/cm2/s]
-               FLUX = AHS0  - AHS
-               FLUX = FLUX  * AD(I,J,L)      / TCVV(IDTAHS)
-               FLUX = FLUX  * XNUMOL(IDTAHS) / AREA_CM2 / DTCHEM
-               T44(I,J,L,4) = T44(I,J,L,4) + FLUX
-
-               ! LET drydep flux [molec/cm2/s]
-               FLUX = LET0  - LET
-               FLUX = FLUX  * AD(I,J,L)      / TCVV(IDTLET)
-               FLUX = FLUX  * XNUMOL(IDTLET) / AREA_CM2 / DTCHEM
-               T44(I,J,L,5) = T44(I,J,L,5) + FLUX
-
-            ENDIF
+!------------------------------------------------------------------------------
+!%%% Currently under development (rjp, bmy, 3/15/05)
+!%%%             ! SO4aq, AS, AHS, LET drydep fluxes (if necessary)
+!%%%             IF ( LCRYST ) THEN
+!%%% 
+!%%%                ! SO4aq drydep flux [molec/cm2/s]
+!%%%                FLUX = SO4aq0 - SO4aq + PSO4_SO2(I,J,L)     
+!%%%                FLUX = FLUX  * AD(I,J,L)        / TCVV(IDTSO4aq)
+!%%%                FLUX = FLUX  * XNUMOL(IDTSO4aq) / AREA_CM2 / DTCHEM
+!%%%                T44(I,J,L,2) = T44(I,J,L,2) + FLUX
+!%%% 
+!%%%                ! AS drydep flux [molec/cm2/s]
+!%%%                FLUX = AS0   - AS
+!%%%                FLUX = FLUX  * AD(I,J,L)     / TCVV(IDTAS)
+!%%%                FLUX = FLUX  * XNUMOL(IDTAS) / AREA_CM2 / DTCHEM
+!%%%                T44(I,J,L,3) = T44(I,J,L,3) + FLUX
+!%%% 
+!%%%                ! AHS drydep flux [molec/cm2/s]
+!%%%                FLUX = AHS0  - AHS
+!%%%                FLUX = FLUX  * AD(I,J,L)      / TCVV(IDTAHS)
+!%%%                FLUX = FLUX  * XNUMOL(IDTAHS) / AREA_CM2 / DTCHEM
+!%%%                T44(I,J,L,4) = T44(I,J,L,4) + FLUX
+!%%% 
+!%%%                ! LET drydep flux [molec/cm2/s]
+!%%%                FLUX = LET0  - LET
+!%%%                FLUX = FLUX  * AD(I,J,L)      / TCVV(IDTLET)
+!%%%                FLUX = FLUX  * XNUMOL(IDTLET) / AREA_CM2 / DTCHEM
+!%%%                T44(I,J,L,5) = T44(I,J,L,5) + FLUX
+!%%% 
+!%%%             ENDIF
+!------------------------------------------------------------------------------
          ENDIF
       ENDDO
       ENDDO
       ENDDO
-!!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 
       !===============================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
@@ -1921,14 +1996,17 @@
             ! Sum SO4 drydep flux 
             AD44(I,J,DRYSO4,1) = AD44(I,J,DRYSO4,1) + T44(I,J,L,1)
 
-            ! Sum SO4aq, AS, AHS, LET drydep fluxes (if necessary)
-            IF ( LCRYST ) THEN
-               AD44(I,J,DRYSO4aq,1) = AD44(I,J,DRYSO4aq,1)+T44(I,J,L,2)
-               AD44(I,J,DRYAS,   1) = AD44(I,J,DRYAS,   1)+T44(I,J,L,3)
-               AD44(I,J,DRYAHS,  1) = AD44(I,J,DRYAHS,  1)+T44(I,J,L,4)
-               AD44(I,J,DRYLET,  1) = AD44(I,J,DRYLET,  1)+T44(I,J,L,5)
-            ENDIF
-               
+!------------------------------------------------------------------------------
+!%%% Currently under development (rjp, bmy, 3/15/05)
+!%%%             ! Sum SO4aq, AS, AHS, LET drydep fluxes (if necessary)
+!%%%             IF ( LCRYST ) THEN
+!%%%                AD44(I,J,DRYSO4aq,1) = AD44(I,J,DRYSO4aq,1)+T44(I,J,L,2)
+!%%%                AD44(I,J,DRYAS,   1) = AD44(I,J,DRYAS,   1)+T44(I,J,L,3)
+!%%%                AD44(I,J,DRYAHS,  1) = AD44(I,J,DRYAHS,  1)+T44(I,J,L,4)
+!%%%                AD44(I,J,DRYLET,  1) = AD44(I,J,DRYLET,  1)+T44(I,J,L,5)
+!%%%             ENDIF
+!------------------------------------------------------------------------------
+
          ENDDO
          ENDDO
          ENDDO
@@ -1940,770 +2018,19 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE PHASE_SO4
-!
-!******************************************************************************
-!  Subroutine PHASE_SO4 is the subroutine which computes the phase change of
-!  crystalline sulfur tracers. (cas, bmy, 1/5/05)
-! 
-!  NOTES:              
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE DAO_MOD,      ONLY : RH,     AIRDEN
-      USE LOGICAL_MOD,  ONLY : LCRYST, LSULF
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTAS,  IDTAHS, IDTLET, 
-     &                         IDTNH3, IDTNH4, IDTNH4aq, IDTSO4aq
-           
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! STT
-#     include "CMN_O3"       ! XNUMOL
-
-      ! Local variables
-      INTEGER                :: I, J, L
-      REAL*8                 :: SO4aq, SO4aq0, AS,      AS0  
-      REAL*8                 :: LET,   LET0,   AHS,     AHS0
-      REAL*8                 :: NH4aq, NH4aq0, NH3,     NH30, RHUM
-      REAL*8                 :: X,     X0,     VOL_CM3, SO4aqLIM
-      REAL*8                 :: CRH1,  CRH2,   CRH3,    TNH4
-
-      ! Deliquescence relative humidity for AS, AHS, LET [%]
-      REAL*8, PARAMETER      :: DRHAS  = 80.d0
-      REAL*8, PARAMETER      :: DRHAHS = 40.d0
-      REAL*8, PARAMETER      :: DRHLET = 69.d0
-
-      ! Avogadro's Number     
-      REAL*8, PARAMETER      :: AVO = 6.023d+23
-
-      ! Ratio of SO4/tracer 
-      REAL*8, PARAMETER      :: S_AS  =  96d0 / 132d0 
-      REAL*8, PARAMETER      :: S_AHS =  96d0 / 115d0 
-      REAL*8, PARAMETER      :: S_LET =  96d0 / 127d0 
-
-      ! Ratio of NH4/tracer 
-      REAL*8, PARAMETER      :: N_AS  =  18d0 / 132d0 
-      REAL*8, PARAMETER      :: N_AHS =  18d0 / 115d0 
-      REAL*8, PARAMETER      :: N_LET =  18d0 / 127d0 
-
-      ! Ratio of LET/tracer
-      REAL*8, PARAMETER      :: L_SO4 = 124d0 /  96d0
-      REAL*8, PARAMETER      :: L_AHS = 124d0 / 115d0 
-      REAL*8, PARAMETER      :: X_LET =  33d0 /  31d0
-
-      ! External functions
-      REAL*8, EXTERNAL       :: BOXVL
-
-      !=================================================================
-      ! PHASE_SO4 begins here!
-      !=================================================================
-
-      ! Return if LSULF and LCRYST are both false
-      IF ( .not. ( LSULF .and. LCRYST ) ) RETURN
-
-      ! Loop over tropospheric grid boxes
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I,    J,    L,    AS,    AS0,    AHS,      AHS0   )
-!!$OMP+PRIVATE( LET,  LET0, NH3,  NH4aq, NH4aq0, SO4aq,    SO4aq0 )
-!!$OMP+PRIVATE( RHUM, TNH4, CRH1, CRH2,  CRH3,   SO4aqLIM, X      )
-!!$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLTROP 
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Initialization
-         AS       = 0d0
-         AS0      = 0d0
-         AHS      = 0d0
-         AHS0     = 0d0
-         LET      = 0d0
-         LET0     = 0d0
-         NH3      = 0d0
-         NH4aq    = 0d0
-         NH4aq0   = 0d0
-         SO4aq    = 0d0
-         SO4aq0   = 0d0
-         VOL_CM3  = 0d0
-         RHUM     = 0d0
-         TNH4     = 0d0
-         CRH1     = 0d0
-         CRH2     = 0d0
-         CRH3     = 0d0
-         SO4aqLIM = 0d0
-         X        = 0d0
-
-         ! Skip stratospheric boxes - really!!!
-         IF ( L >= LPAUSE(I,J) ) CYCLE
-
-         !------------------------------
-         ! Define various quantities
-         !------------------------------
-
-         ! Relative Humidity [%]
-         RHUM     = RH(I,J,L)
-
-         !------------------------------
-         ! Initial concentrations [v/v]
-         !------------------------------
-         AS0      = STT(I,J,L,IDTAS)  
-         AHS0     = STT(I,J,L,IDTAHS)
-         LET0     = STT(I,J,L,IDTLET)
-         NH30     = STT(I,J,L,IDTNH3)
-         NH4aq0   = STT(I,J,L,IDTNH4aq)
-         SO4aq0   = STT(I,J,L,IDTSO4aq)
-
-         !==============================================================
-         ! Aerosol equilibrium / neutralization
-         ! Do a quick partition says Scot Martin :-)
-         ! Also need to disable RPMARES
-         !==============================================================
-
-         ! SO4 concentration [v/v]
-         SO4aq    = SO4aq0
-
-         ! Total of NH3 + NH4 (gas phase) [v/v]
-         TNH4     = STT(I,J,L,IDTNH3) + STT(I,J,L,IDTNH4aq)
-
-         ! Limiting aqueous SO4 concentration [v/v]
-         SO4aqLIM = 2d0 * SO4aq
-        
-         IF ( TNH4 > SO4aqLIM ) THEN
-            NH4aq = 2d0  * SO4aq
-            NH3   = TNH4 - NH4aq
-         ELSE
-            NH4aq = TNH4
-            NH3   = SMALLNUM
-         ENDIF
-         
-         ! Molar fraction of Ammonia to Sulfate [unitless]
-         IF ( SO4aq > SMALLNUM ) THEN
-            X = NH4aq / ( 2d0 * SO4aq ) 
-         ELSE
-            X = 0d0
-         ENDIF
-        
-         !==============================================================
-         ! CRYSTALLIZATION / DELIQUESCENCE (cf Martin et al 2003)
-         !
-         ! Determine crystallizing RH (CRH) using polynomial rules  
-         ! Use deliquescence RH (DRH) values from lab data
-         !==============================================================
-         IF  ( X < 0.5d0 ) THEN 
-
-            !-----------------------------------------------------------
-            ! CASE 1: X < 0.5
-            ! No crystallization & crystalline phase remains solid
-            !-----------------------------------------------------------
-
-            ! Crystallization Relative humidity
-            CRH1 = 0.0d0
-
-            IF ( ( RHUM > 0d0  .and. RHUM <= CRH1   )  .or.
-     &           ( RHUM > CRH1 .and. RHUM <  DRHAHS ) ) THEN
-
-               ! CASE 1.1 and CASE 1.4: Set equal to the initial values
-               AS    = AS0
-               LET   = LET0
-               AHS   = AHS0
-               NH4aq = NH4aq0
-               SO4aq = SO4aq0
-
-            ELSE IF ( RHUM <= DRHAS .and. RHUM > DRHLET ) THEN
-
-               ! CASE 1.2
-               SO4aq = SO4aq0 + S_LET*LET0 + S_AHS*AHS0 + S_AS*AS0
-               NH4aq = NH4aq0 + N_LET*LET0 + N_AHS*AHS0 + N_AS*AS0
-               AS    = SMALLNUM
-               LET   = SMALLNUM
-               AHS   = SMALLNUM
-
-            ELSE IF ( RHUM <= DRHLET .and. RHUM >= DRHAHS ) THEN
-
-               ! CASE 1.3
-               SO4aq = SO4aq0 + S_LET*LET0 + S_AHS*AHS0
-               NH4aq = NH4aq0 + N_LET*LET0 + N_AHS*AHS0
-               AS    = AS0
-               LET   = SMALLNUM
-               AHS   = SMALLNUM
-
-            ENDIF
-    
-         ELSE IF ( X >= 0.5d0 .and. X <= 0.75d0 ) THEN
-
-            !-----------------------------------------------------------
-            ! CASE 2: 0.5 <= X <= 0.75 
-            ! AHS and LET can be crystallized
-            !-----------------------------------------------------------
-
-            ! Crystallization relative humidity
-            CRH2 = 100.0d0 * ( -697.908d0      - 15.351d0*X 
-     &                         +  0.43d0*(X*X) - 22.11d0 
-     &                         + 33.882d0*X    - 1.818d0*(X*X)
-     &                         +  0.772d0      - 1.636d0*X 
-     &                         + ( 17707.6d0   / 
-     &                           ( 25.0d0 + (X - 0.7d0) * 0.5d0 ) ) )
-         
-            IF ( RHUM > 0.0d0 .and. RHUM <= CRH2 ) THEN 
- 
-               ! CASE 2.1: Simplification for LET -> MW/2. 
-               ! So, to get the right [LET], we * by 2
-!------------------------------------------------------------------------------
-! Prior to 1/13/05:
-!               AHS   = AHS0 + ( 2d0 * 115d0) / ( VOL_CM3 * 18d0 ) * 
-!     &                 ( NH4aq0 - 1.5d0 * ( 18.0d0 / 96d0 ) * SO4aq0 )
-!------------------------------------------------------------------------------
-               AHS   = AHS0 + ( 2d0*115d0/18d0 ) * 
-     &                 ( NH4aq0 - 1.5d0*(18.0d0/96d0)*SO4aq0 )
-!-----------------------------------------------------------------------------
-! Prior to 1/13/05:
-!               LET   = LET0   + ( 124d0 / ( VOL_CM3 * 96d0 ) ) *
-!     &                 SO4aq0 - ( 124d0 / 115d0              ) * AHS
-!-----------------------------------------------------------------------------
-               LET   = LET0   + L_SO4*SO4aq0 - L_AHS*AHS
-               AS    = AS0
-               NH4aq = SMALLNUM
-               SO4aq = SMALLNUM
-
-            ELSE IF ( RHUM <= DRHAS .and. RHUM > DRHLET ) THEN
-
-               ! CASE 2.2
-               SO4aq = SO4aq0 + S_LET*LET0 + S_AHS*AHS0 + S_AS*AS0
-               NH4aq = NH4aq0 + N_LET*LET0 + N_AHS*AHS0 + N_AS*AS0
-               AS    = SMALLNUM
-               LET   = SMALLNUM
-               AHS   = SMALLNUM
-
-            ELSE IF ( RHUM <= DRHLET .and. RHUM >= DRHAHS ) THEN
-
-               ! CASE 2.3
-               SO4aq = SO4aq0 + S_LET*LET0 + S_AHS*AHS0
-               NH4aq = NH4aq0 + N_LET*LET0 + N_AHS*AHS0
-               AS    = AS0
-               LET   = SMALLNUM
-               AHS   = SMALLNUM
-           
-            ELSE IF ( RHUM < DRHAHS .and. RHUM > CRH2 ) THEN
-
-               ! CASE 2.4
-               SO4aq = SO4aq0 
-               NH4aq = NH4aq0  
-               AS    = AS0
-               LET   = LET0
-               AHS   = AHS0  
-
-            ENDIF
-
-         ELSE IF ( X >= 0.75 .and. X <= 1d0 ) THEN
-
-            !-----------------------------------------------------------
-            ! CASE 3: 0.75 <= X <= 1.0 
-            ! AS and LET can be crystallized
-            !-----------------------------------------------------------
-
-            ! Crystallization relative humidity
-            CRH3 = 100d0 * ( -697.908d0      - 15.351d0*X 
-     &                       +  0.43d0*(X*X) - 22.11d0 
-     &                       + 33.882d0*X    - 1.818d0*(X*X)
-     &                       +  0.772d0      - 1.636d0*X 
-     &                       + ( 17707.6d0   / 
-     &                        ( 25.0d0 + (X - 0.7d0) * 0.5d0 ) ) )
- 
-            IF ( RHUM > 0d0 .and. RHUM <= CRH3 ) THEN   
-
-               ! CASE 3.1
-               LET   = LET0 + ( 124d0*4d0/18d0 ) *
-     &                        ( NH4aq0 - ( 2d0*18d0/96d0 ) * SO4aq )
-               !-----------------------------------------------------------
-               ! Prior to 11/15/04:
-               ! Remove VOL_CM3
-               !AS    = AS0  + (132d0/96d0*VOL_CM3)*SO4aq-(33d0/31d0)*LET
-               !-----------------------------------------------------------
-               AS    = AS0  + SO4aq/S_AS - X_LET*LET
-               AHS   = AHS0 
-               NH4aq = SMALLNUM
-               SO4aq = SMALLNUM
-               
-            ELSE IF ( RHUM <= DRHAS .and. RHUM > DRHLET ) THEN
-
-               ! CASE 3.2
-               SO4aq = SO4aq0 + S_LET*LET0 + S_AHS*AHS0 + S_AS*AS0
-               NH4aq = NH4aq0 + N_LET*LET0 + N_AHS*AHS0 + N_AS*AS0
-               AS    = SMALLNUM
-               LET   = SMALLNUM
-               AHS   = SMALLNUM
-
-            ELSE IF ( RHUM <= DRHLET .and. RHUM >= DRHAHS ) THEN
-
-               ! CASE 3.3
-               SO4aq = SO4aq + S_LET*LET + S_AHS*AHS 
-               NH4aq = NH4aq + N_LET*LET + N_AHS*AHS
-               AS    = AS0
-               AHS   = SMALLNUM
-               LET   = SMALLNUM
-
-            ELSE IF ( RHUM < DRHAHS .and. RHUM > CRH3 ) THEN
-               
-               ! CASE 3.4
-               AS    = AS0
-               AHS   = AHS0  
-               LET   = LET0
-               NH4aq = NH4aq0  
-               SO4aq = SO4aq0
-
-            ENDIF
-            
-         ELSE
-
-            !-----------------------------------------------------------
-            ! CASE 4: X > 1.0 
-            ! No crystallization; set everything to initial values
-            !-----------------------------------------------------------
-            AS    = AS0
-            AHS   = AHS0  
-            LET   = LET0
-            NH4aq = NH4aq0  
-            SO4aq = SO4aq0
-
-         ENDIF
-     
-         ! Prevent underflow condition
-         IF ( AS    < SMALLNUM ) AS    = 0d0
-         IF ( AHS   < SMALLNUM ) AHS   = 0d0
-         IF ( LET   < SMALLNUM ) LET   = 0d0
-         IF ( NH4aq < SMALLNUM ) NH4aq = 0d0
-         IF ( SO4aq < SMALLNUM ) SO4aq = 0d0
-
-         ! Save final concentrations back into STT tracer array [v/v]
-         STT(I,J,L,IDTAS)    = AS
-         STT(I,J,L,IDTAHS)   = AHS
-         STT(I,J,L,IDTLET)   = LET      
-         STT(I,J,L,IDTNH4aq) = NH4aq
-         STT(I,J,L,IDTSO4aq) = SO4aq
-       
-         IF ( I==23 .and. J==34 ) THEN
-            PRINT*, '###---PHASE SO4-------------------------'
-            PRINT*, '### I, J, L   : ', I, J, L
-            PRINT*, '### AS        : ', AS0,    AS
-            PRINT*, '### AHS       : ', AHS0,   AHS
-            PRINT*, '### LET       : ', LET0,   LET
-            PRINT*, '### NH4aq     : ', NH4aq0, NH4aq
-            PRINT*, '### SO4aq     : ', SO4aq0, SO4aq
-            PRINT*, '### VOL_CM3   : ', VOL_CM3
-            PRINT*, '### RHUM      : ', RHUM
-            PRINT*, '### TNH4      : ', TNH4
-            PRINT*, '### SO4aqLIM  : ', SO4aqLIM
-            PRINT*, '### X         : ', X
-            PRINT*, '### CRH1      : ', CRH1
-            PRINT*, '### CRH2      : ', CRH2
-            PRINT*, '### CRH3      : ', CRH3
-         ENDIF      
-      ENDDO
-      ENDDO
-      ENDDO    
-!!$OMP END PARALLEL DO
-
-      STOP
-      
-      ! Return to calling program
-      END SUBROUTINE PHASE_SO4
+      !SUBROUTINE PHASE_SO4
+      !
+      ! *** Currently under development ***
+      !
+      !END SUBROUTINE PHASE_SO4
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE PHASE_RADIATIVE
-!
-!******************************************************************************
-!  Subroutine PHASE_RADIATIVE computes radiative forcing from crystalline
-!  and aqueous sulfur aerosol tracers. (cas, bmy, 1/5/05)
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE COMODE_MOD,   ONLY : JLOP,   ERADIUS
-      USE DAO_MOD,      ONLY : RH,     AIRDEN, BXHEIGHT, 
-     &                         SUNCOS, ALBD,   CLDFRC
-      USE DIAG_MOD,     ONLY : AD21,   AD21_cr
-      USE LOGICAL_MOD,  ONLY : LSULF,  LCRYST
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTAS,    IDTAHS, IDTLET, 
-     &                         IDTNH4aq, IDTSO4aq
-     
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! STT
-#     include "CMN_GCTM"     ! AIRMW
-#     include "CMN_DIAG"     ! ND21
-
-      ! Local variables
-      INTEGER               :: JLOOP,      IJLOOP
-      INTEGER               :: I,          J,          L
-      REAL*8                :: AS,         AHS,        LET
-      REAL*8                :: NH4,        NH4aq,      NH4aq0
-      REAL*8                :: SO4aq,      F_CONV,     TNH4
-      REAL*8                :: TROP_HT,    FRAC_HT,    MASS_S
-      REAL*8                :: MASS_L,     CONC_S,     CONC_L
-      REAL*8                :: F_L,        F_S,        F_H   
-      REAL*8                :: SIGMA_H,    SIGMA_S,    SIGMA_L
-      REAL*8                :: BETA_S,     BETA_L,     Ta 
-      REAL*8                :: Fo,         SCOS,       ALBEDO
-      REAL*8                :: OPTDEPTH_H, OPTDEPTH_S, OPTDEPTH_L 
-      REAL*8                :: SCOS,       RADIUS,     UPSCA_AE 
-      REAL*8                :: T_DW,       R_UP,       CLRO 
-      REAL*8                :: F_CONV,     VOL_CM3,    SSA
-      REAL*8                :: RHUM
-
-      ! Local Arrays
-      REAL*8                :: DELTA_S(IIPAR,JJPAR)
-      REAL*8                :: DELTA_L(IIPAR,JJPAR)
-      REAL*8                :: DELTA_F(IIPAR,JJPAR)
-      REAL*8                :: OPT_S(IIPAR,JJPAR)
-      REAL*8                :: OPT_H(IIPAR,JJPAR)
-      REAL*8                :: OPT_L(IIPAR,JJPAR)
-
-      ! External functions
-      REAL*8, EXTERNAL      :: BOXVL
-      
-      ! Avogadro's Number
-      REAL*8, PARAMETER     :: AVO = 6.023d+23
-
-      !=================================================================
-      ! PHASE_RADIATIVE begins here!
-      !=================================================================
-
-      ! Return if LSULF and LCRYST are both false
-      IF ( .not. ( LSULF .and. LCRYST ) ) RETURN
-
-      ! Loop over grid boxes
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I,          J,        L,       OPTDEPTH_H, OPTDEPTH_L )
-!!$OMP+PRIVATE( OPTDEPTH_S, TROP_HT,  F_CONV,  FRAC_HT,    CONC_S     )
-!!$OMP+PRIVATE( CONC_L,     F_S,      F_L,     F_H,        MASS_L     )
-!!$OMP+PRIVATE( MASS_S,     BETA_L,   BETA_S,  SIGMA_H,    SIGMA_L    )
-!!$OMP+PRIVATE( SIGMA_S,    UPSCA_AE, T_DW,    R_UP,       DELTA_F    )
-!!$OMP+PRIVATE( AS,         AHS,      LET,     NH4aq,      SO4aq      )
-!!$OMP+PRIVATE( IJLOOP,     SCOS,     ALBEDO,  SSA,        Fo         )
-!!$OMP+PRIVATE( TA,         JLOOP,    RADIUS                          )
-!!$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         !-------------------------------------
-         ! Define quantities for the column
-         !-------------------------------------
-
-         ! Initialize 
-         OPTDEPTH_H = 0d0
-         OPTDEPTH_L = 0d0
-         OPTDEPTH_S = 0d0
-         TROP_HT    = 0d0
-
-         ! Compute height of tropospheric column [m]
-         DO L = 1, LLTROP
-            IF ( L < LPAUSE(I,J) ) THEN
-               TROP_HT = TROP_HT + BXHEIGHT(I,J,L) 
-            ENDIF
-         ENDDO
-
-         ! Loop over all levels in this column
-         DO L = 1, LLTROP 
-
-            ! Initialize
-            CONC_L   = 0d0
-            CONC_S   = 0d0
-            F_S      = 0d0
-            F_L      = 0d0
-            F_H      = 0d0
-            MASS_L   = 0d0
-            MASS_S   = 0d0
-            BETA_L   = 0d0
-            BETA_S   = 0d0
-            SIGMA_H  = 0d0
-            SIGMA_L  = 0d0
-            SIGMA_S  = 0d0
-            UPSCA_AE = 0d0
-            T_DW     = 0d0
-            R_UP     = 0d0
-            DELTA_F  = 0d0
-
-            ! Only process for tropospheric boxes
-            IF ( L >= LPAUSE(I,J) ) CYCLE      
-
-            !----------------------------------
-            ! Define quantities for this level
-            !----------------------------------
-
-            ! Pre-compute conversion factor
-            F_CONV   = 1d6 * AIRDEN(L,I,J) / AIRMW
-
-            ! Fraction of trop column occupied by this level [unitless]
-            FRAC_HT  = BXHEIGHT(I,J,L) / TROP_HT
-
-            ! Grid box volume in [cm3]
-            VOL_CM3  = BOXVL(I,J,L)
-
-            ! Relative humidity [%]
-            RHUM     = RH(I,J,L)
-         
-            !----------------------------------
-            ! Initial concentrations [v/v]
-            !----------------------------------
-            AS       = STT(I,J,L,IDTAS)  
-            AHS      = STT(I,J,L,IDTAHS)
-            LET      = STT(I,J,L,IDTLET)
-            NH4aq    = STT(I,J,L,IDTNH4aq)
-            SO4aq    = STT(I,J,L,IDTSO4aq)
-
-            !===========================================================
-            ! OPTICAL DEPTHS OF SULFATE AEROSOLS (Chin et al., 2002)
-            !===========================================================
-
-            ! Concentration of solid = AS + LET + AHS [v/v]
-            CONC_S = AS + LET + AHS 
-
-            ! Concentration of liquid = SO4aq + NH4aq [v/v]
-            CONC_L = SO4aq + NH4aq
-             
-            ! Factors to convert solid, liquid, hyst phases to SIGMA [g/m3]
-            F_S    = CONC_S              * F_CONV
-            F_L    = CONC_L              * F_CONV
-            F_H    = ( CONC_L + CONC_S ) * F_CONV
-
-            ! Liquid mass = MASS NH4 + MASS SO4 = 14 + 96 = 100 [g/mol]
-            MASS_L = 100.d0
-
-            ! Solid mass = MASS AS + MASS AHS + MASS LET = 495 [g/mol]
-            MASS_S = 495.d0
-
-            ! BETA for solid values (cf Chin et al, 2002)
-            BETA_S = 3.849d0
-         
-            ! Compute optical depths as a function of RH
-            IF ( RHUM > 0.d0 .and. RHUM <= 80.0d0 ) THEN 
-               
-               !---------------------------
-               ! CASE 1: 0% < RH <= 80%
-               !---------------------------
-
-               ! BETA for liquid values (cf Chin et al, 2002)
-               BETA_L     = 3.849d0 + RHUM * ( 0.067241d0   
-     &                              + RHUM * ( 0.001077d00 ) )
-
-               ! CASE 1.1: Optical depth for HYSTERESIS CASE 
-               SIGMA_H    = ( BETA_L * MASS_L * F_L ) + 
-     &                      ( BETA_S * MASS_S * F_S )
-               OPTDEPTH_H = OPTDEPTH_H + ( SIGMA_H * FRAC_HT )
-
-               ! CASE 1.2: Optical depth for ALL SOLID CASE
-               SIGMA_S    = BETA_S     * ( MASS_L + MASS_S ) * F_S
-               OPTDEPTH_S = OPTDEPTH_S + ( SIGMA_S * FRAC_HT )
-
-               ! CASE 1.3: Optical depth for ALL LIQUID CASE
-               SIGMA_L    = BETA_L     * ( MASS_L + MASS_S ) * F_L
-               OPTDEPTH_L = OPTDEPTH_L + ( SIGMA_L * FRAC_HT )
-
-            ELSE IF ( RHUM > 80.d0 .and. RHUM <= 97.0d0 ) THEN 
-
-               !---------------------------
-               ! CASE 2: 80% < RH <= 97%
-               !---------------------------
-
-               ! BETA for liquid values (cf Chin et al, 2002)
-               BETA_L     = -1443.2d0 + RHUM * (  52.213d0   
-     &                                + RHUM * ( -0.62642d0 
-     &                                + RHUM * (  0.0025226d0 ) ) )
-
-               ! CASE 2.1: Optical depth for HYSTERESIS CASE
-               SIGMA_H    = ( BETA_L * MASS_L * F_L ) + 
-     &                      ( BETA_S * MASS_S * F_S )
-               OPTDEPTH_H = OPTDEPTH_H + ( SIGMA_H * FRAC_HT )
-
-               ! CASE 2.2: Optical depth for ALL SOLID CASE
-               SIGMA_S    = BETA_S     * ( MASS_L  + MASS_S  ) * F_S
-               OPTDEPTH_S = OPTDEPTH_S + ( SIGMA_S * FRAC_HT )
-
-               ! CASE 2.3: Optical depth for ALL LIQUID CASE
-               SIGMA_L    = BETA_L     * ( MASS_L  + MASS_S  ) * F_L
-               OPTDEPTH_L = OPTDEPTH_L + ( SIGMA_L * FRAC_HT )
-      
-            ELSE IF ( RHUM > 97.d0 .and. RHUM <= 100.0d0  ) THEN 
-
-               !---------------------------
-               ! CASE 3: 97% < RH <= 100%
-               !---------------------------
-
-               ! BETA for liquid values (cf Chin et al, 2002)
-               BETA_L     = -399.6d0 + 4.422 * RHUM
-
-               ! CASE 3.1 : Optical depth for HYSTERESIS CASE
-               SIGMA_H    = ( BETA_L * MASS_L * F_L ) + 
-     &                      ( BETA_S * MASS_S * F_S )
-               OPTDEPTH_H = OPTDEPTH_H + ( SIGMA_H * FRAC_HT )
-
-               ! CASE 3.2 : Optical depth for ALL SOLID CASE
-               SIGMA_S    = BETA_S     * ( MASS_L  + MASS_S  ) * F_S
-               OPTDEPTH_S = OPTDEPTH_S + ( SIGMA_S * FRAC_HT )
-
-               ! CASE 3.3: Optical depth for ALL LIQUID CASE
-               SIGMA_L    = BETA_L     * ( MASS_L  + MASS_S  ) * F_L 
-               OPTDEPTH_L = OPTDEPTH_L + ( SIGMA_L * FRAC_HT )
-
-            ENDIF 
-
-            !IF ( I==23 .and. J==34 ) THEN
-            !   PRINT*, '###---PHASE RADIATIVE--------------------'
-            !   PRINT*, '### I, J, L   : ', I, J, L
-            !   PRINT*, '### AS        : ', AS
-            !   PRINT*, '### AHS       :  ', AHS
-            !   PRINT*, '### LET       : ', LET
-            !   PRINT*, '### NH4aq     : ', NH4aq
-            !   PRINT*, '### SO4aq     : ', SO4aq
-            !   PRINT*, '### TROP_HT   : ', TROP_HT
-            !   PRINT*, '### FRAC_HT   : ', FRAC_HT
-            !   PRINT*, '### F_CONV    : ', F_CONV
-            !   PRINT*, '### RHUM      : ', RHUM
-            !   PRINT*, '### F_L       : ', F_L
-            !   PRINT*, '### CONC_L    : ', CONC_L
-            !   PRINT*, '### BETA_L    : ', BETA_L
-            !   PRINT*, '### SIGMA_L   : ', SIGMA_L
-            !   PRINT*, '### OPTDEPTH_L: ', OPTDEPTH_L
-            !   PRINT*, '### F_S       : ', F_S
-            !   PRINT*, '### CONC_S    : ', CONC_S
-            !   PRINT*, '### BETA_S    : ', BETA_S
-            !   PRINT*, '### SIGMA_S   : ', SIGMA_S
-            !   PRINT*, '### OPTDEPTH_S: ', OPTDEPTH_S
-            !   PRINT*, '### F_H       : ', F_H
-            !   PRINT*, '### SIGMA_H   : ', SIGMA_H
-            !   PRINT*, '### OPTDEPTH_H: ', OPTDEPTH_H
-            !ENDIF
-
-         ENDDO
-
-         !==============================================================
-         ! Archive column optical depth quantities
-         ! NOTE: at here we are at the surface outside of the L loop
-         !==============================================================
-
-         ! Save optical depths in 2-D arrays
-         OPT_S(I,J)   = OPTDEPTH_S
-         OPT_L(I,J)   = OPTDEPTH_L
-         OPT_H(I,J)   = OPTDEPTH_H
-
-         ! Save delta in 2-D arrays
-         DELTA_S(I,J) = OPTDEPTH_H - OPTDEPTH_S
-         DELTA_L(I,J) = OPTDEPTH_H - OPTDEPTH_L
-
-         !==============================================================
-         ! Radiative Forcing 
-         ! Equation #22.5.6 from Seinfeld and Pandis
-         !==============================================================
-  
-         ! IJLOOP is the 1-D grid box index for SUNCOS
-         IJLOOP = ( (J-1) * IIPAR ) + I
-
-         ! Cosine of solar zenith angle [unitless]
-         SCOS   = SUNCOS(IJLOOP)
-
-         ! Albedo at Earth's surface [unitless]
-         ALBEDO = ALBD(I,J)
-
-         ! Single scattering albedo [unitless]
-         SSA    = 1d0 
-
-         ! Incident solar flux [W/m2]
-         Fo     = MAX( 1348d0 * SCOS, 0d0 )
-
-         ! Fractional transmittance of the atmosphere [unitless]
-         ! (Central Estimate, Table 5.10a, IPCC 2001)
-         Ta     = 0.87d0
-       
-         ! Sulfate radius [um], loop over all levels
-         RADIUS = 0d0
-         DO L = 1, LLTROP
-            JLOOP = JLOP(I,J,L)
-            IF ( JLOOP > 0 ) THEN
-               RADIUS = RADIUS + ERADIUS(JLOOP,NDUST+1) * 1D-4 
-            ENDIF
-         ENDDO
-
-         ! UPSCA_AE = upscatter fraction of the aerosol, which depends
-         ! on the size of the aerosol (cf Fig 5, Nemesure et al, 1995)
-         IF ( RADIUS < 0.058d0 ) THEN 
-            UPSCA_AE = -0.344d0 * RADIUS * SCOS + 8.6206d0
-
-         ELSE IF ( RADIUS < 0.120d0 ) THEN
-            UPSCA_AE = -0.576d0 * RADIUS * SCOS + 4.1666d0 
-  
-         ELSE IF ( RADIUS < 0.178d0 ) THEN
-            UPSCA_AE = -0.842d0 * RADIUS * SCOS + 2.8089d0 
- 
-         ELSE IF ( RADIUS < 0.242d0 ) THEN
-            UPSCA_AE = -1.239d0 * RADIUS * SCOS + 2.0661d0 
- 
-         ELSE IF ( RADIUS < 0.308d0 ) THEN
-            UPSCA_AE = -1.038d0 * RADIUS * SCOS + 1.6233d0 
- 
-         ENDIF    
-          
-         ! Total transmitted downwards fraction of incident radiation 
-         T_DW = 1d0-OPTDEPTH_H + SSA*(1d0-UPSCA_AE)*OPTDEPTH_H
-         
-         ! Fraction reflected upward
-         R_UP = OPTDEPTH_H * SSA * UPSCA_AE
-
-         ! Calculation of the radiative forcing 
-         DELTA_F(I,J) = Fo * ( ( 1d0 - CLDFRC(I,J) ) * (Ta**2) * 
-     &                         ( ( R_UP + ( T_DW**2*ALBEDO / 
-     &                         ( 1d0 - ALBEDO*R_UP) ) - ALBEDO ) ) ) 
-
-         !==============================================================
-         ! ND21 Diagnostic: Optical Depth Quantities
-         !
-         ! #1: Opt depth for HYSTERESIS CASE            [unitless]
-         ! #2: Opt depth for SOLID CASE                 [unitless]
-         ! #3: Opt depth for LIQUID CASE                [unitless]
-         ! #4: Opt depth HYSTERESIS - Opt depth SOLID   [unitless] 
-         ! #5: Opt depth HYSTERESIS - Opt depth LIQUID  [unitless]
-         ! #6: Radiative forcing                        [W/m2    ]
-         !==============================================================
-
-         ! Save to AD21 array only if ND21 is turned on
-         IF ( ND21 > 0 ) THEN
-            AD21_cr(I,J,1) = AD21_cr(I,J,1) + OPT_H(I,J)
-            AD21_cr(I,J,2) = AD21_cr(I,J,2) + OPT_S(I,J)
-            AD21_cr(I,J,3) = AD21_cr(I,J,3) + OPT_L(I,J)
-            AD21_cr(I,J,4) = AD21_cr(I,J,4) + DELTA_S(I,J)
-            AD21_cr(I,J,5) = AD21_cr(I,J,5) + DELTA_L(I,J)
-            AD21_cr(I,J,6) = AD21_cr(I,J,6) + DELTA_F(I,J)
-         ENDIF
-         
-         !IF ( I==23 .and. J==34 ) THEN
-         !   PRINT*, '###---'
-         !   PRINT*, '### OPT_S    : ', OPT_S(I,J)
-         !   PRINT*, '### OPT_L    : ', OPT_L(I,J)
-         !   PRINT*, '### OPT_H    : ', OPT_H(I,J)
-         !   PRINT*, '### DELTA_S  : ', DELTA_S(I,J)
-         !   PRINT*, '### DELTA_L  : ', DELTA_L(I,J)
-         !   PRINT*, '### IJLOOP   : ', IJLOOP
-         !   PRINT*, '### SCOS     : ', SCOS
-         !   PRINT*, '### ALBEDO   : ', ALBEDO
-         !   PRINT*, '### SSA      : ', SSA
-         !   PRINT*, '### Fo       : ', Fo
-         !   PRINT*, '### Ta       : ', Ta
-         !   PRINT*, '### RADIUS   : ', RADIUS
-         !   PRINT*, '### UPSCA_AE : ', UPSCA_AE
-         !   PRINT*, '### T_DW     : ', T_DW
-         !   PRINT*, '### R_UP     : ', R_UP
-         !   PRINT*, '### DELTA_F  : ', DELTA_F(I,J)
-         !ENDIF
-
-      ENDDO 
-      ENDDO    
-!!$OMP END PARALLEL DO
-
-      ! Return to calling program
-      END SUBROUTINE PHASE_RADIATIVE
+      !SUBROUTINE PHASE_RADIATIVE
+      !
+      ! *** Currently under development ***
+      !
+      !END SUBROUTINE PHASE_RADIATIVE
 
 !------------------------------------------------------------------------------
 
@@ -2711,7 +2038,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_MSA is the SO4 chemistry subroutine from Mian Chin's GOCART
-!  model, modified for the GEOS-CHEM model. (rjp, bdf, bmy, 5/31/00, 7/20/04)
+!  model, modified for the GEOS-CHEM model. (rjp, bdf, bmy, 5/31/00, 2/22/05)
 !                                                                          
 !  Module Variables Used:
 !  ============================================================================
@@ -2737,27 +2064,40 @@
 !        multiple processors. (bmy, 3/24/04) 
 !  (5 ) Now use parallel DO-loop to zero ND44_TMP (bmy, 4/14/04)
 !  (6 ) Now references STT & TCVV from "tracer_mod.f" (bmy, 7/20/04)
+!  (7 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
+!        "pbl_mix_mod.f".  Also reference GET_PBL_MAX_L from "pbl_mix_mod.f"
+!        Vertical DO-loops can run up to PBL_MAX and not LLTROP.   Also
+!        remove reference to header file CMN. (bmy, 2/22/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44
-      USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
+      !----------------------------------------------
+      ! Prior to 2/22/05:
+      !USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
+      !----------------------------------------------
+      USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, TCVV
       USE TRACERID_MOD, ONLY : IDTMSA
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! LPAUSE
+!-----------------------------------------------------
+! Prior to 2/22/05:
+!#     include "CMN"          ! LPAUSE
+!-----------------------------------------------------
 #     include "CMN_GCTM"     ! AIRMW
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44
 
       ! Local variables
-      INTEGER  :: I,      J,    L
-      REAL*8   :: DTCHEM, MSA0, MSA, RK, RKT, FLUX, AREA_CM2
-      REAL*8   :: ND44_TMP(IIPAR,JJPAR,LLTROP)
+      INTEGER               :: I,      J,    L,        PBL_MAX
+      REAL*8                :: DTCHEM, MSA0, MSA,      RK       
+      REAL*8                :: RKT,    FLUX, AREA_CM2, F_UNDER_TOP
+      REAL*8                :: ND44_TMP(IIPAR,JJPAR,LLTROP)
 
       !=================================================================
       ! CHEM_MSA begins here!
@@ -2765,7 +2105,10 @@
       IF ( IDTMSA == 0 .or. DRYMSA == 0 ) RETURN
 
       ! DTCHEM is the chemistry interval in seconds
-      DTCHEM = GET_TS_CHEM() * 60d0 
+      DTCHEM  = GET_TS_CHEM() * 60d0 
+
+      ! Model level where maximum PBL height occurs 
+      PBL_MAX = GET_PBL_MAX_L()
 
       ! Zero ND44_TMP array
       IF ( ND44 > 0 ) THEN
@@ -2786,21 +2129,40 @@
       ! Loop over tropospheric grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, MSA0, RKT, MSA, AREA_CM2, FLUX )
+!$OMP+PRIVATE( I, J, L, F_UNDER_TOP, MSA0, RKT, MSA, AREA_CM2, FLUX )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLTROP 
+      !----------------------------------------------------------
+      ! Prior to 2/22/05:
+      ! We only have to loop up to the PBL_MAX (bmy, 2/22/05)
+      !DO L = 1, LLTROP 
+      !----------------------------------------------------------
+      DO L = 1, PBL_MAX 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
+         ! Fraction of box (I,J,L) underneath the PBL top [unitless]
+         F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
+
          ! Only apply drydep loss to boxes w/in the PBL
-         IF ( PBLFRAC(I,J,L) > 0 ) THEN
+         !-----------------------------------------------
+         ! Prior to 2/22/05:
+         !IF ( PBLFRAC(I,J,L) > 0 ) THEN
+         !-----------------------------------------------
+         IF ( F_UNDER_TOP > 0 ) THEN
          
             ! Initial MSA [v/v]
             MSA0 = STT(I,J,L,IDTMSA) 
 
-            ! MSA drydep frequency [1/s] -- PBLFRAC accounts for the fraction
+            !------------------------------------------------------------------
+            ! Prior to 2/22/05:
+            !! MSA drydep frequency [1/s] -- PBLFRAC accounts for the fraction
+            !! of each grid box (I,J,L) that is located beneath the PBL top
+            !RKT = DEPSAV(I,J,DRYMSA) * PBLFRAC(I,J,L)
+            !------------------------------------------------------------------
+
+            ! MSA drydep frequency [1/s].  Also accounts for the fraction
             ! of each grid box (I,J,L) that is located beneath the PBL top
-            RKT = DEPSAV(I,J,DRYMSA) * PBLFRAC(I,J,L)
+            RKT = DEPSAV(I,J,DRYMSA) * F_UNDER_TOP
 
             ! RKT > 0 denotes that we have drydep occurring
             IF ( RKT > 0.d0 ) THEN
@@ -2855,7 +2217,12 @@
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-         DO L = 1, LLTROP
+         !----------------------------------------------------
+         ! Prior to 2/22/05:
+         ! We only have to loop up to PBL_MAX (bmy, 2/22/05)
+         !DO L = 1, LLTROP
+         !----------------------------------------------------
+         DO L = 1, PBL_MAX
             AD44(I,J,DRYMSA,1) = AD44(I,J,DRYMSA,1) + ND44_TMP(I,J,L)
          ENDDO
          ENDDO
@@ -2872,7 +2239,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_NH3 removes NH3 from the surface via dry deposition.
-!  (rjp, bdf, bmy, 1/2/02, 7/20/04)  
+!  (rjp, bdf, bmy, 1/2/02, 2/22/05)  
 !                                                                          
 !  Reaction List:
 !  ============================================================================
@@ -2892,13 +2259,21 @@
 !  (5 ) Now use parallel DO-loop to zero ND44_TMP (bmy, 4/14/04)
 !  (6 ) Now references STT & TCVV from "tracer_mod.f" Also remove reference to
 !        CMN, it's not needed(bmy, 7/20/04)
+!  (7 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
+!        "pbl_mix_mod.f".  Also reference GET_PBL_MAX_L from "pbl_mix_mod.f"
+!        Vertical DO-loops can run up to PBL_MAX and not LLTROP. (bmy, 2/22/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44
-      USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
+      !-------------------------------------------
+      ! Prior to 2/22/05:
+      !USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
+      !-------------------------------------------
+      USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, TCVV
       USE TRACERID_MOD, ONLY : IDTNH3
@@ -2908,9 +2283,9 @@
 #     include "CMN_DIAG"     ! ND44
 
       ! Local variables
-      INTEGER :: I,      J,        L
+      INTEGER :: I,      J,        L,    PBL_MAX
       REAL*8  :: DTCHEM, NH30,     NH3
-      REAL*8  :: FREQ,   AREA_CM2, FLUX
+      REAL*8  :: FREQ,   AREA_CM2, FLUX, F_UNDER_TOP
       REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLTROP)
 
       !=================================================================
@@ -2919,7 +2294,10 @@
       IF ( IDTNH3 == 0 .or. DRYNH3 == 0 ) RETURN
 
       ! DTCHEM is the chemistry interval in seconds
-      DTCHEM = GET_TS_CHEM() * 60d0
+      DTCHEM  = GET_TS_CHEM() * 60d0
+
+      ! Model level where maximum PBL height occurs 
+      PBL_MAX = GET_PBL_MAX_L()
 
       ! Zero ND44_TMP array
       IF ( ND44 > 0 ) THEN
@@ -2939,18 +2317,37 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, FREQ, NH30, NH3, AREA_CM2, FLUX )
+!$OMP+PRIVATE( I, J, L, F_UNDER_TOP, FREQ, NH30, NH3, AREA_CM2, FLUX )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLTROP
+      !--------------------------------------------------------------------
+      ! Prior to 2/22/05:
+      ! We only need to loop up to PBL_MAX and not LLTROP (bmy, 2/22/05)
+      !DO L = 1, LLTROP
+      !--------------------------------------------------------------------
+      DO L = 1, PBL_MAX
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Only apply drydep to boxes w/in the PBL
-         IF ( PBLFRAC(I,J,L) > 0d0 ) THEN
+         ! Fraction of box (I,J,L) underneath the PBL top [unitless]
+         F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
 
-            ! NH3 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
+         ! Only apply drydep to boxes w/in the PBL
+         !------------------------------------------------
+         ! Prior to 2/22/05:
+         !IF ( PBLFRAC(I,J,L) > 0d0 ) THEN
+         !------------------------------------------------
+         IF ( F_UNDER_TOP > 0d0 ) THEN
+
+            !-----------------------------------------------------------------
+            ! Prior to 2/22/05:
+            !! NH3 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
+            !! of each grid box (I,J,L) that is located beneath the PBL top
+            !FREQ = DEPSAV(I,J,DRYNH3) * PBLFRAC(I,J,L)
+            !-----------------------------------------------------------------
+
+            ! NH3 drydep frequency [1/s].  Also accounts for the fraction
             ! of each grid box (I,J,L) that is located beneath the PBL top
-            FREQ = DEPSAV(I,J,DRYNH3) * PBLFRAC(I,J,L)
+            FREQ = DEPSAV(I,J,DRYNH3) * F_UNDER_TOP
 
             ! Only compute drydep loss if FREQ is nonzero
             IF ( FREQ > 0d0 ) THEN
@@ -2999,7 +2396,12 @@
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-         DO L = 1, LLTROP
+         !---------------------------------------------------------------------
+         ! Prior to 2/22/05:
+         ! We only need to loop up to PBL_MAX instead of LLTROP (bmy, 2/22/05)
+         !DO L = 1, LLTROP
+         !---------------------------------------------------------------------
+         DO L = 1, PBL_MAX
             AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + ND44_TMP(I,J,L)
          ENDDO
          ENDDO
@@ -3016,7 +2418,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_NH4 removes NH4 from the surface via dry deposition.
-!  (rjp, bdf, bmy, 1/2/02, 7/20/04)  
+!  (rjp, bdf, bmy, 1/2/02, 2/22/05)  
 !                                                                          
 !  Reaction List:
 !  ============================================================================
@@ -3036,13 +2438,21 @@
 !  (5 ) Now use parallel DO-loop to zero ND44_TMP (bmy, 4/14/04)
 !  (6 ) Now reference STT & TCVV from "tracer_mod.f".   Also remove reference 
 !        to CMN, it's not needed (bmy, 7/20/04)
+!  (7 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
+!        "pbl_mix_mod.f".  Also reference GET_PBL_MAX_L from "pbl_mix_mod.f"
+!        Vertical DO-loops can run up to PBL_MAX and not LLTROP. (bmy, 2/22/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44
-      USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
+      !-----------------------------------------------------------
+      ! Prior to 2/22/05:
+      !USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
+      !-----------------------------------------------------------
+      USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, TCVV
       USE TRACERID_MOD, ONLY : IDTNH4
@@ -3052,9 +2462,9 @@
 #     include "CMN_DIAG"  ! ND44
 
       ! Local variables
-      INTEGER :: I,      J,    L
+      INTEGER :: I,      J,    L,        PBL_MAX
       REAL*8  :: DTCHEM, NH4,  NH40
-      REAL*8  :: FREQ,   FLUX, AREA_CM2
+      REAL*8  :: FREQ,   FLUX, AREA_CM2, F_UNDER_TOP
       REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLTROP)
 
       !=================================================================
@@ -3064,6 +2474,9 @@
 
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM = GET_TS_CHEM() * 60d0 
+
+      ! Model level where maximum PBL height occurs 
+      PBL_MAX = GET_PBL_MAX_L()
 
       ! Zero ND44_TMP array
       IF ( ND44 > 0 ) THEN
@@ -3082,18 +2495,36 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, FREQ, NH40, NH4, AREA_CM2, FLUX )
+!$OMP+PRIVATE( I, J, L, F_UNDER_TOP, FREQ, NH40, NH4, AREA_CM2, FLUX )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLTROP
+      !-----------------------------------------------
+      ! Prior to 2/22/05:
+      !DO L = 1, LLTROP
+      !-----------------------------------------------
+      DO L = 1, PBL_MAX
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Only apply drydep to boxes w/in the PBL
-         IF ( PBLFRAC(I,J,L) > 0d0 ) THEN
+         ! Fraction of box (I,J,L) underneath the PBL top [unitless]
+         F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )       
 
-            ! NH4 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
+         ! Only apply drydep to boxes w/in the PBL
+         !-------------------------------------------------------
+         ! Prior to 2/22/05:
+         !IF ( PBLFRAC(I,J,L) > 0d0 ) THEN
+         !-------------------------------------------------------
+         IF ( F_UNDER_TOP > 0d0 ) THEN
+
+            !------------------------------------------------------------------
+            ! Prior to 2/22/05:
+            !! NH4 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
+            !! of each grid box (I,J,L) that is located beneath the PBL top
+            !FREQ = DEPSAV(I,J,DRYNH4) * PBLFRAC(I,J,L)
+            !------------------------------------------------------------------
+
+            ! NH4 drydep frequency [1/s].  Also accounts for the fraction
             ! of each grid box (I,J,L) that is located beneath the PBL top
-            FREQ = DEPSAV(I,J,DRYNH4) * PBLFRAC(I,J,L)
+            FREQ = DEPSAV(I,J,DRYNH4) * F_UNDER_TOP
 
             ! Only apply drydep loss if FREQ is nonzero
             IF ( FREQ > 0d0 ) THEN
@@ -3142,7 +2573,12 @@
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-         DO L = 1, LLTROP
+         !------------------------------------------------------------------
+         ! Prior to 2/22/05:
+         ! We only need to loop up to PBL_MAX and not LLTROP (bmy, 2/22/05)
+         !DO L = 1, LLTROP
+         !------------------------------------------------------------------
+         DO L = 1, PBL_MAX
             AD44(I,J,DRYNH4,1) = AD44(I,J,DRYNH4,1) + ND44_TMP(I,J,L)
          ENDDO
          ENDDO
@@ -3166,13 +2602,21 @@
 !  (1 ) NH4aq = NH4_0aq * EXP( -dt )  where d = dry deposition rate [s-1]
 !        
 !  NOTES:
+!  (1 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
+!        "pbl_mix_mod.f".  Also reference GET_PBL_MAX_L from "pbl_mix_mod.f"
+!        Vertical DO-loops can run up to PBL_MAX and not LLTROP. (bmy, 2/22/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44
-      USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
+      !----------------------------------------------------------------
+      ! Prior to 2/22/05:
+      !USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
+      !----------------------------------------------------------------
+      USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, TCVV
       USE TRACERID_MOD, ONLY : IDTNH4aq
@@ -3182,9 +2626,9 @@
 #     include "CMN_DIAG"  ! ND44
 
       ! Local variables
-      INTEGER :: I,      J,     L
+      INTEGER :: I,      J,     L,        PBL_MAX
       REAL*8  :: DTCHEM, NH4aq, NH4aq0
-      REAL*8  :: FREQ,   FLUX,  AREA_CM2
+      REAL*8  :: FREQ,   FLUX,  AREA_CM2, F_UNDER_TOP
       REAL*8  :: T44(IIPAR,JJPAR,LLTROP)
 
       !=================================================================
@@ -3193,7 +2637,10 @@
       IF ( IDTNH4aq == 0 .or. DRYNH4aq == 0 ) RETURN
 
       ! DTCHEM is the chemistry interval in seconds
-      DTCHEM = GET_TS_CHEM() * 60d0 
+      DTCHEM  = GET_TS_CHEM() * 60d0 
+
+      ! Model level where maximum PBL height occurs 
+      PBL_MAX = GET_PBL_MAX_L()      
 
       ! Zero T44 array
       IF ( ND44 > 0 ) THEN
@@ -3212,18 +2659,38 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, FREQ, NH4aq0, NH4aq, AREA_CM2, FLUX )
+!$OMP+PRIVATE( I,      J,     L,        F_UNDER_TOP, FREQ  )
+!$OMP+PRIVATE( NH4aq0, NH4aq, AREA_CM2, FLUX               )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLTROP
+      !--------------------------------------------------
+      ! Prior to 2/22/05:
+      ! We only need to loop up to PBL_MAX (bmy, 2/22/05)
+      !DO L = 1, LLTROP
+      !--------------------------------------------------
+      DO L = 1, PBL_MAX
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
+         ! Fraction of box (I,J,L) underneath the PBL top [unitless]
+         F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )     
+
          ! Only apply drydep to boxes w/in the PBL
-         IF ( PBLFRAC(I,J,L) > 0d0 ) THEN
+         !-------------------------------------------------------------
+         ! Prior to 2/22/05:
+         !IF ( PBLFRAC(I,J,L) > 0d0 ) THEN
+         !-------------------------------------------------------------
+         IF ( F_UNDER_TOP > 0d0 ) THEN
+
+            !------------------------------------------------------------------
+            ! Prior to 2/22/05:
+            !! NH4 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
+            !! of each grid box (I,J,L) that is located beneath the PBL top
+            !FREQ = DEPSAV(I,J,DRYNH4aq) * PBLFRAC(I,J,L)
+            !------------------------------------------------------------------
 
             ! NH4 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
             ! of each grid box (I,J,L) that is located beneath the PBL top
-            FREQ = DEPSAV(I,J,DRYNH4aq) * PBLFRAC(I,J,L)
+            FREQ = DEPSAV(I,J,DRYNH4aq) * F_UNDER_TOP
 
             ! Only apply drydep loss if FREQ is nonzero
             IF ( FREQ > 0d0 ) THEN
@@ -3272,7 +2739,12 @@
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-         DO L = 1, LLTROP
+         !---------------------------------------------------------------
+         ! Prior to 2/22/05:
+         ! We really only need to loop up to PBL_MAX (bmy, 2/22/05)
+         !DO L = 1, LLTROP
+         !---------------------------------------------------------------
+         DO L = 1, PBL_MAX
             AD44(I,J,DRYNH4aq,1) = AD44(I,J,DRYNH4aq,1) + T44(I,J,L)
          ENDDO
          ENDDO
@@ -3289,7 +2761,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_NIT removes SULFUR NITRATES (NIT) from the surface 
-!  via dry deposition. (rjp, bdf, bmy, 1/2/02, 7/20/04)  
+!  via dry deposition. (rjp, bdf, bmy, 1/2/02, 2/22/05)  
 !                                                                          
 !  Reaction List:
 !  ============================================================================
@@ -3309,13 +2781,21 @@
 !  (5 ) Now use parallel DO-loop to zero ND44_TMP (bmy, 4/14/04)
 !  (6 ) Now reference STT & TCVV from "tracer_mod.f".  Also remove reference
 !        to CMN, it's not needed anymore. (bmy, 7/20/04)
+!  (7 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
+!        "pbl_mix_mod.f".  Also reference GET_PBL_MAX_L from "pbl_mix_mod.f"
+!        Vertical DO-loops can run up to PBL_MAX and not LLTROP. (bmy, 2/22/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44
-      USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
+      !-------------------------------------------------------------
+      ! Prior to 2/22/05:
+      !USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
+      !-------------------------------------------------------------
+      USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, TCVV
       USE TRACERID_MOD, ONLY : IDTNIT
@@ -3325,8 +2805,9 @@
 #     include "CMN_DIAG"     ! ND44
 
       ! Local variables
-      INTEGER :: I,      J,   L
-      REAL*8  :: DTCHEM, NIT, NIT0, FREQ, AREA_CM2, FLUX
+      INTEGER :: I,        J,    L,    PBL_MAX
+      REAL*8  :: DTCHEM,   NIT,  NIT0, FREQ
+      REAL*8  :: AREA_CM2, FLUX, F_UNDER_TOP
       REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLTROP)
 
       !=================================================================
@@ -3336,6 +2817,9 @@
 
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM = GET_TS_CHEM() * 60d0 
+
+      ! Model level where maximum PBL height occurs 
+      PBL_MAX = GET_PBL_MAX_L()      
       
       ! Zero ND44_TMP array
       IF ( ND44 > 0 ) THEN
@@ -3354,18 +2838,37 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, FREQ, NIT0, NIT, AREA_CM2, FLUX )
+!$OMP+PRIVATE( I, J, L, F_UNDER_TOP, FREQ, NIT0, NIT, AREA_CM2, FLUX )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLTROP
+      !----------------------------------------------------------------
+      ! Prior to 2/22/05:
+      ! We really only have to loop up to PBL_MAX (bmy, 2/22/05)
+      !DO L = 1, LLTROP
+      !----------------------------------------------------------------
+      DO L = 1, PBL_MAX
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Only apply drydep to boxes w/in the PBL
-         IF ( PBLFRAC(I,J,L) > 0d0 ) THEN 
+         ! Fraction of box (I,J,L) underneath the PBL top [unitless]
+         F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )     
 
-            ! NIT drydep frequency [1/s] -- PBLFRAC accounts for the fraction
+         ! Only apply drydep to boxes w/in the PBL
+         !-------------------------------------------------------
+         ! Prior to 2/22/05:
+         !IF ( PBLFRAC(I,J,L) > 0d0 ) THEN 
+         !-------------------------------------------------------
+         IF ( F_UNDER_TOP > 0d0 ) THEN 
+
+            !------------------------------------------------------------------
+            ! Prior to 2/22/05:
+            !! NIT drydep frequency [1/s] -- PBLFRAC accounts for the fraction
+            !! of each vertical level that is located below the PBL top
+            !FREQ = DEPSAV(I,J,DRYNIT) * PBLFRAC(I,J,L)
+            !------------------------------------------------------------------
+
+            ! NIT drydep frequency [1/s].  Also accounts for the fraction
             ! of each vertical level that is located below the PBL top
-            FREQ = DEPSAV(I,J,DRYNIT) * PBLFRAC(I,J,L)
+            FREQ = DEPSAV(I,J,DRYNIT) * F_UNDER_TOP
 
             ! Only apply drydep loss if FREQ is nonzero
             IF ( FREQ > 0d0 ) THEN
@@ -3414,7 +2917,12 @@
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-         DO L = 1, LLTROP
+         !----------------------------------------------------------
+         ! Prior to 2/22/05:
+         ! We really only need to loop up to PBL_MAX (bmy, 2/22/05)
+         !DO L = 1, LLTROP
+         !----------------------------------------------------------
+         DO L = 1, PBL_MAX
             AD44(I,J,DRYNIT,1) = AD44(I,J,DRYNIT,1) + ND44_TMP(I,J,L)
          ENDDO
          ENDDO
@@ -3545,7 +3053,7 @@
 !***************************************************************************** 
 !  Subroutine SRCDMS, from Mian Chin's GOCART model, add DMS emissions 
 !  to the tracer array.  Modified for use with the GEOS-CHEM model.
-!  (bmy, 6/2/00, 1/15/04)
+!  (bmy, 6/2/00, 2/22/05)
 !
 !  Arguments as Input/Output:
 !  ===========================================================================
@@ -3560,17 +3068,26 @@
 !  (3 ) For GEOS-4, convert PBL from [m] to [hPa] w/ the hydrostatic law.
 !        Now references SCALE_HEIGHT from "CMN_GCTM".  Added BLTHIK variable
 !        for PBL thickness in [hPa]. (bmy, 1/15/04)
+!  (4 ) Remove reference to "pressure_mod.f".  Now reference GET_FRAC_OF_PBL
+!        and GET_PBL_TOP_L from "pbl_mix_mod.f". (bmy, 2/22/05)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
       USE DIAG_MOD,     ONLY : AD13_DMS
       USE DAO_MOD,      ONLY : IS_WATER, LWI, PBL
       USE GRID_MOD,     ONLY : GET_AREA_M2
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
+      USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
+      !---------------------------------------------------
+      ! Prior to 2/22/05:
+      !USE PRESSURE_MOD, ONLY : GET_PEDGE
+      !---------------------------------------------------
       USE TIME_MOD,     ONLY : GET_TS_EMIS
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! XTRA2
+!----------------------------------------------------
+! Prior to 2/22/05:
+!#     include "CMN"          ! XTRA2
+!----------------------------------------------------
 #     include "CMN_DIAG"     ! ND13 (for now)
 #     include "CMN_GCTM"     ! SCALE_HEIGHT
 
@@ -3580,8 +3097,12 @@
       ! Local variables
       INTEGER                :: I,      J,    L,     NTOP
       REAL*8                 :: DTSRCE, SST,  Sc,    CONC,   W10 
-      REAL*8                 :: ScCO2,  AKw,  ERATE, DMSSRC, BLTOP
-      REAL*8                 :: P1,     P2,   DELP,  FEMIS,  BLTHIK
+      !------------------------------------------------------------------
+      ! Prior to 2/22/05:
+      !REAL*8                 :: ScCO2,  AKw,  ERATE, DMSSRC, BLTOP
+      !REAL*8                 :: P1,     P2,   DELP,  FEMIS,  BLTHIK
+      !------------------------------------------------------------------
+      REAL*8                 :: ScCO2,  AKw,  ERATE, DMSSRC, FEMIS
 
       ! Molecular weight of DMS, kg/mole
       REAL*8,  PARAMETER     :: DMS_MW = 62d0
@@ -3602,10 +3123,18 @@
       !=================================================================      
       ! Compute DMS emissions = seawater DMS * transfer velocity
       !=================================================================
+!--------------------------------------------------------------------------
+! Prior to 2/22/05:
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J,   SST,  Sc,    CONC,   W10, ScCO2, AKw, ERATE )
+!!$OMP+PRIVATE( DMSSRC, NTOP, BLTOP, BLTHIK, L, P1, P2, DELP, FEMIS )
+!!$OMP+SCHEDULE( DYNAMIC )
+!--------------------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J,   SST,  Sc,    CONC,   W10, ScCO2, AKw, ERATE )
-!$OMP+PRIVATE( DMSSRC, NTOP, BLTOP, BLTHIK, L, P1, P2, DELP, FEMIS )
+!$OMP+PRIVATE( I,   J,     SST,    Sc,   CONC, W10,  ScCO2 )
+!$OMP+PRIVATE( AKw, ERATE, DMSSRC, NTOP, L,    FEMIS       )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -3688,64 +3217,81 @@
             ! Add DMS emissions [kg DMS/box] into the tracer array
             !===========================================================
 
+!------------------------------------------------------------------------------
+! Prior to 2/22/05:
+!            ! Top layer of the PBL
+!            NTOP = CEILING( XTRA2(I,J) )
+!            
+!            ! PBL height is in the 3rd model layer or higher
+!            IF ( NTOP >= 2 ) THEN
+!
+!#if   defined( GEOS_4 )
+!
+!               ! BLTOP = pressure at PBL top [hPa]
+!               ! Use barometric law since PBL is in [m]
+!               BLTOP  = GET_PEDGE(I,J,1) * EXP(-PBL(I,J)/SCALE_HEIGHT)
+!
+!               ! BLTHIK is PBL thickness [hPa]
+!               BLTHIK = GET_PEDGE(I,J,1) - BLTOP
+!
+!#else
+!
+!               ! BLTOP = pressure of PBL top [hPa]
+!               BLTOP  = GET_PEDGE(I,J,1) - PBL(I,J)
+!
+!               ! BLTHIK is PBL thickness [hPa]
+!               BLTHIK = PBL(I,J)
+!
+!#endif
+!
+!               ! Loop thru the boundary layer
+!               DO L = 1, NTOP
+!
+!                  ! DELP is the pressure thickness of level L [hPa]
+!                  P1   = GET_PEDGE(I,J,L) 
+!                  P2   = GET_PEDGE(I,J,L+1)
+!                  DELP = P1 - P2
+!
+!                  ! PBL top occurs at level L
+!                  IF ( BLTOP <= P2 ) THEN
+!                     FEMIS = DELP / BLTHIK
+!   
+!                  ! Level L lies completely w/in the PBL
+!                  ELSE IF ( BLTOP > P2 .AND. BLTOP < P1 ) THEN
+!                     FEMIS = ( P1 - BLTOP ) / BLTHIK           
+!
+!                  ! Level L lies completely out of the PBL
+!                  ELSE IF ( BLTOP > P1 ) THEN
+!                     CYCLE       
+!
+!                  ENDIF
+!
+!                  ! Fraction of total DMS in level L
+!                  TC(I,J,L) = TC(I,J,L) + ( FEMIS * DMSSRC )
+!               ENDDO
+!
+!            ELSE
+!
+!               ! If PBL height and lower or similar to the second model layer
+!               ! then surface emission is emitted to the first model layer.
+!               TC(I,J,1) = TC(I,J,1) + DMSSRC 
+!
+!            ENDIF 
+!------------------------------------------------------------------------------
+
             ! Top layer of the PBL
-            NTOP = CEILING( XTRA2(I,J) )
+            NTOP = CEILING( GET_PBL_TOP_L( I, J ) )
             
-            ! PBL height is in the 3rd model layer or higher
-            IF ( NTOP >= 2 ) THEN
+            ! Loop thru the boundary layer
+            DO L = 1, NTOP
 
-#if   defined( GEOS_4 )
+               ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
+               FEMIS     = GET_FRAC_OF_PBL( I, J, L )
 
-               ! BLTOP = pressure at PBL top [hPa]
-               ! Use barometric law since PBL is in [m]
-               BLTOP  = GET_PEDGE(I,J,1) * EXP(-PBL(I,J)/SCALE_HEIGHT)
+               ! DMS in box (I,J,L) plus emissions [kg]
+               TC(I,J,L) = TC(I,J,L) + ( FEMIS * DMSSRC )
 
-               ! BLTHIK is PBL thickness [hPa]
-               BLTHIK = GET_PEDGE(I,J,1) - BLTOP
-
-#else
-
-               ! BLTOP = pressure of PBL top [hPa]
-               BLTOP  = GET_PEDGE(I,J,1) - PBL(I,J)
-
-               ! BLTHIK is PBL thickness [hPa]
-               BLTHIK = PBL(I,J)
-
-#endif
-
-               ! Loop thru the boundary layer
-               DO L = 1, NTOP
-
-                  ! DELP is the pressure thickness of level L [hPa]
-                  P1   = GET_PEDGE(I,J,L) 
-                  P2   = GET_PEDGE(I,J,L+1)
-                  DELP = P1 - P2
-
-                  ! PBL top occurs at level L
-                  IF ( BLTOP <= P2 ) THEN
-                     FEMIS = DELP / BLTHIK
-   
-                  ! Level L lies completely w/in the PBL
-                  ELSE IF ( BLTOP > P2 .AND. BLTOP < P1 ) THEN
-                     FEMIS = ( P1 - BLTOP ) / BLTHIK           
-
-                  ! Level L lies completely out of the PBL
-                  ELSE IF ( BLTOP > P1 ) THEN
-                     CYCLE       
-
-                  ENDIF
-
-                  ! Fraction of total DMS in level L
-                  TC(I,J,L) = TC(I,J,L) + ( FEMIS * DMSSRC )
-               ENDDO
-
-            ELSE
-
-               ! If PBL height and lower or similar to the second model layer
-               !then surface emission is emitted to the first model layer.
-               TC(I,J,1) = TC(I,J,1) + DMSSRC 
-
-            ENDIF 
+            ENDDO
 
          ELSE                   
 
@@ -3773,7 +3319,7 @@
 !
 !******************************************************************************
 !  Subroutine SRCSO2 (originally from Mian Chin) computes SO2 emissons from 
-!  aircraft, biomass, and anthro sources. (rjp, bdf, bmy, 6/2/00, 11/16/04)
+!  aircraft, biomass, and anthro sources. (rjp, bdf, bmy, 6/2/00, 2/22/05)
 !
 !  Arguments as Input/Output:
 !  ===========================================================================
@@ -3798,6 +3344,9 @@
 !        LNEI99 from "logical_mod.f".  Now can overwrite the anthro SOx 
 !        emissions over the continental US if LNEI99=T.  Now references IDTSO2
 !        from "tracerid_mod.f. (rch, rjp, bmy, 11/16/04)
+!  (7 ) Remove reference to "pressure_mod.f".  Now reference GET_FRAC_OF_PBL 
+!        and GET_PBL_TOP_L from "pbl_mix_mod.f".  Removed reference to header
+!        file CMN. (bmy, 2/22/05)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -3810,13 +3359,20 @@
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,  ONLY : LNEI99, LSHIPSO2
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
+      USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
+      !-----------------------------------------------------------------
+      ! Prior to 2/22/05:
+      !USE PRESSURE_MOD, ONLY : GET_PEDGE
+      !-----------------------------------------------------------------      
       USE TIME_MOD,     ONLY : GET_TS_EMIS, GET_DAY_OF_YEAR, 
      &                         GET_DAY_OF_WEEK
       USE TRACERID_MOD, ONLY : IDTSO2
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! XTRA2
+!---------------------------------------------------------
+! Prior to 2/22/05:
+!#     include "CMN"          ! XTRA2
+!---------------------------------------------------------
 #     include "CMN_DIAG"     ! ND13, LD13 (for now)
 #     include "CMN_GCTM"     ! SCALE_HEIGHT
 #     include "CMN_O3"       ! XNUMOL
@@ -3831,9 +3387,14 @@
       INTEGER                :: DAY_NUM
       REAL*8                 :: ZH(0:LLPAR), DZ(LLPAR), SO2(LLPAR)
       REAL*8                 :: DTSRCE,      HGHT,      SO2SRC
-      REAL*8                 :: SLAB,        SLAB1,     BLTOP
-      REAL*8                 :: TSO2,        P1,        P2
-      REAL*8                 :: DELP,        FEMIS,     BLTHIK
+      !-----------------------------------------------------------------
+      ! Prior to 2/22/05:
+      !REAL*8                 :: SLAB,        SLAB1,     BLTOP
+      !REAL*8                 :: TSO2,        P1,        P2
+      !REAL*8                 :: DELP,        FEMIS,     BLTHIK
+      !-----------------------------------------------------------------
+      REAL*8                 :: SLAB,        SLAB1
+      REAL*8                 :: TSO2,        FEMIS
       REAL*8                 :: AREA_CM2,    EPA_AN,    EPA_BF
       REAL*8                 :: SO2an(IIPAR,JJPAR,2)
       REAL*8                 :: SO2bf(IIPAR,JJPAR)
@@ -4056,16 +3617,27 @@
       !=================================================================
       ! Add SO2 emissions into model levels
       !=================================================================
+!----------------------------------------------------------------------
+! Prior to 2/22/05:
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I,     J,      NTOP, L,  SO2,  TSO2          ) 
+!!$OMP+PRIVATE( BLTOP, BLTHIK, P1,   P2, DELP, FEMIS, SO2SRC )
+!!$OMP+SCHEDULE( DYNAMIC )
+!----------------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,     J,      NTOP, L,  SO2,  TSO2          ) 
-!$OMP+PRIVATE( BLTOP, BLTHIK, P1,   P2, DELP, FEMIS, SO2SRC )
+!$OMP+PRIVATE( I, J, NTOP, L, SO2, TSO2, FEMIS, SO2SRC )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Top of the boundary layer
-         NTOP  = CEILING( XTRA2(I,J) )
+         !---------------------------------
+         ! Prior to 2/22/05:
+         !NTOP  = CEILING( XTRA2(I,J) )
+         !---------------------------------
+         NTOP = CEILING( GET_PBL_TOP_L( I, J ) ) 
 
          ! Zero SO2 array
          DO L = 1, LLPAR
@@ -4087,49 +3659,63 @@
          !===============================================================
          IF ( NTOP > 2 ) THEN
 
-#if   defined( GEOS_4 )
-
-            ! BLTOP = pressure at PBL top [hPa]
-            ! Use barometric law since PBL is in [m]
-            BLTOP  = GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT )
-
-            ! BLTHIK is PBL thickness [hPa]
-            BLTHIK = GET_PEDGE(I,J,1) - BLTOP
-
-#else
-
-            ! BLTOP = pressure of PBL top [hPa]
-            BLTOP  = GET_PEDGE(I,J,1) - PBL(I,J)
-
-            ! BLTHIK is PBL thickness [hPa]
-            BLTHIK = PBL(I,J)
-
-#endif
+!------------------------------------------------------------------------------
+! Prior to 2/22/05:
+!#if   defined( GEOS_4 )
+!                 
+!            ! BLTOP = pressure at PBL top [hPa]
+!            ! Use barometric law since PBL is in [m]
+!            BLTOP  = GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT )
+!                 
+!            ! BLTHIK is PBL thickness [hPa]
+!            BLTHIK = GET_PEDGE(I,J,1) - BLTOP
+!                 
+!#else            
+!                 
+!            ! BLTOP = pressure of PBL top [hPa]
+!            BLTOP  = GET_PEDGE(I,J,1) - PBL(I,J)
+!                 
+!            ! BLTHIK is PBL thickness [hPa]
+!            BLTHIK = PBL(I,J)
+!                 
+!#endif           
+!                 
+!            ! Loop thru levels in the PBL
+!            DO L  = 1, NTOP
+!                 
+!               ! DELP is the pressure thickness of level K
+!               P1   = GET_PEDGE(I,J,L)
+!               P2   = GET_PEDGE(I,J,L+1)
+!               DELP = P1 - P2
+!                 
+!               ! PBL top occurs w/in level L
+!               IF ( BLTOP <= P2 )  THEN
+!                  FEMIS = DELP / BLTHIK
+!                 
+!               ! Level L lies completely w/in the PBL
+!               ELSE IF ( BLTOP >  P2 .AND. BLTOP < P1 ) THEN
+!                  FEMIS = ( P1 - BLTOP ) / BLTHIK
+!                 
+!               ! Level L lies completely out of the PBL
+!               ELSE IF ( BLTOP > P1 ) THEN
+!                  CYCLE
+!                 
+!               ENDIF
+!                 
+!               ! Partition total SO2 into level K
+!               SO2(L) = FEMIS * TSO2
+!            ENDDO
+!-----------------------------------------------------------------------------
 
             ! Loop thru levels in the PBL
             DO L  = 1, NTOP
-
-               ! DELP is the pressure thickness of level K
-               P1   = GET_PEDGE(I,J,L)
-               P2   = GET_PEDGE(I,J,L+1)
-               DELP = P1 - P2
-
-               ! PBL top occurs w/in level L
-               IF ( BLTOP <= P2 )  THEN
-                  FEMIS = DELP / BLTHIK
-               
-               ! Level L lies completely w/in the PBL
-               ELSE IF ( BLTOP >  P2 .AND. BLTOP < P1 ) THEN
-                  FEMIS = ( P1 - BLTOP ) / BLTHIK
-              
-               ! Level L lies completely out of the PBL
-               ELSE IF ( BLTOP > P1 ) THEN
-                  CYCLE
-               
-               ENDIF
-
+                 
+               ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
+               FEMIS  = GET_FRAC_OF_PBL( I, J, L )
+                 
                ! Partition total SO2 into level K
                SO2(L) = FEMIS * TSO2
+
             ENDDO
 
          !===============================================================
@@ -4248,6 +3834,9 @@
 !        "logical_mod.f".  Now can overwrite the anthro SOx emissions over 
 !        the continental US if LNEI99=T.  Now references IDTSO4 from 
 !        "tracerid_mod.f". (rch, rjp, bmy, 11/16/04)
+!  (5 ) Remove reference to "pressure_mod.f".  Now reference GET_FRAC_OF_PBL 
+!        and GET_PBL_TOP_L from "pbl_mix_mod.f".  Removed reference to header 
+!        file CMN. (bmy, 2/22/05)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -4258,12 +3847,19 @@
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,  ONLY : LNEI99
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
+      USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
+      !----------------------------------------------------------------
+      ! Prior to 2/22/05:
+      !USE PRESSURE_MOD, ONLY : GET_PEDGE
+      !----------------------------------------------------------------
       USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
       USE TRACERID_MOD, ONLY : IDTSO4
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! XTRA2
+!-------------------------------------------------------------
+! Prior to 2/22/05:
+!#     include "CMN"          ! XTRA2
+!-------------------------------------------------------------
 #     include "CMN_DIAG"     ! ND13 (for now)
 #     include "CMN_GCTM"     ! SCALE_HEIGHT
 #     include "CMN_O3"       ! XNUMOL
@@ -4274,9 +3870,14 @@
       ! Local variables
       LOGICAL                :: WEEKDAY
       INTEGER                :: I, J, K, L, DAY_NUM, NTOP
-      REAL*8                 :: SO4(LLPAR), DTSRCE,  BLTOP
-      REAL*8                 :: TSO4,       P1,      P2     
-      REAL*8                 :: DELP,       FEMIS,   BLTHIK
+      !--------------------------------------------------------------
+      ! Prior to 2/22/05:
+      !REAL*8                 :: SO4(LLPAR), DTSRCE,  BLTOP
+      !REAL*8                 :: TSO4,       P1,      P2     
+      !REAL*8                 :: DELP,       FEMIS,   BLTHIK
+      !--------------------------------------------------------------
+      REAL*8                 :: SO4(LLPAR), DTSRCE  
+      REAL*8                 :: TSO4,       FEMIS
       REAL*8                 :: AREA_CM2,   EPA_AN,  EPA_BF
       REAL*8                 :: SO4an(IIPAR,JJPAR,2)
       REAL*8                 :: SO4bf(IIPAR,JJPAR)
@@ -4357,16 +3958,28 @@
       !=================================================================
       ! Compute SO4 emissions 
       !=================================================================
+!-------------------------------------------------------------
+! Prior to 2/22/05:
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I,     J,      NTOP, SO4, TSO4, L     )
+!!$OMP+PRIVATE( BLTOP, BLTHIK, P1,   P2,  DELP, FEMIS )
+!!$OMP+SCHEDULE( DYNAMIC )
+!-------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,     J,      NTOP, SO4, TSO4, L     )
-!$OMP+PRIVATE( BLTOP, BLTHIK, P1,   P2,  DELP, FEMIS )
+!$OMP+PRIVATE( I, J, NTOP, SO4, TSO4, L, FEMIS )
 !$OMP+SCHEDULE( DYNAMIC )
+
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Top level of boundary layer at (I,J)
-         NTOP = CEILING( XTRA2(I,J) )
+         !-------------------------------------------
+         ! Prior to 2/22/05:
+         !NTOP = CEILING( XTRA2(I,J) )
+         !-------------------------------------------
+         NTOP = CEILING( GET_PBL_TOP_L( I, J ) )
 
          ! Zero SO4 array at all levels 
          DO L = 1, LLPAR
@@ -4382,49 +3995,62 @@
          !==============================================================
          IF ( NTOP > 2 ) THEN
 
-#if   defined( GEOS_4 )
-
-            ! BLTOP = pressure at PBL top [hPa]
-            ! Use barometric law since PBL is in [m]
-            BLTOP  = GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT )
-
-            ! BLTHIK is PBL thickness [hPa]
-            BLTHIK = GET_PEDGE(I,J,1) - BLTOP
-
-#else
-
-            ! BLTOP = pressure of PBL top [hPa]
-            BLTOP  = GET_PEDGE(I,J,1) - PBL(I,J)
-            
-            ! BLTHIK is PBL thickness [hPa]
-            BLTHIK = PBL(I,J)
-
-#endif
+!------------------------------------------------------------------------------
+!#if   defined( GEOS_4 )
+!                 
+!            ! BLTOP = pressure at PBL top [hPa]
+!            ! Use barometric law since PBL is in [m]
+!            BLTOP  = GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT )
+!                 
+!            ! BLTHIK is PBL thickness [hPa]
+!            BLTHIK = GET_PEDGE(I,J,1) - BLTOP
+!                 
+!#else            
+!                 
+!            ! BLTOP = pressure of PBL top [hPa]
+!            BLTOP  = GET_PEDGE(I,J,1) - PBL(I,J)
+!                 
+!            ! BLTHIK is PBL thickness [hPa]
+!            BLTHIK = PBL(I,J)
+!                 
+!#endif           
+!                 
+!            ! Loop thru boundary layer
+!            DO L = 1, NTOP
+!                 
+!               ! DELP is the pressure thickness of level L [hPa]
+!               P1   = GET_PEDGE(I,J,L)
+!               P2   = GET_PEDGE(I,J,L+1)
+!               DELP = P1 - P2
+!                 
+!               ! PBL top occurs w/in level L
+!               IF ( BLTOP <= P2 )  THEN
+!                  FEMIS = DELP / BLTHIK
+!                 
+!               ! Level L lies completely w/in the PBL
+!               ELSE IF ( BLTOP >  P2 .AND. BLTOP < P1 ) THEN
+!                  FEMIS = ( P1 - BLTOP ) / BLTHIK               
+!                 
+!               ! Level L lies completely out of the PBL
+!               ELSE IF ( BLTOP > P1 ) THEN
+!                  CYCLE 
+!                 
+!               ENDIF
+!                 
+!               ! Fraction of total SO4 in layer L
+!               SO4(L) = FEMIS * TSO4
+!            ENDDO
+!------------------------------------------------------------------------------
 
             ! Loop thru boundary layer
             DO L = 1, NTOP
-
-               ! DELP is the pressure thickness of level L [hPa]
-               P1   = GET_PEDGE(I,J,L)
-               P2   = GET_PEDGE(I,J,L+1)
-               DELP = P1 - P2
-
-               ! PBL top occurs w/in level L
-               IF ( BLTOP <= P2 )  THEN
-                  FEMIS = DELP / BLTHIK
-
-               ! Level L lies completely w/in the PBL
-               ELSE IF ( BLTOP >  P2 .AND. BLTOP < P1 ) THEN
-                  FEMIS = ( P1 - BLTOP ) / BLTHIK               
-
-               ! Level L lies completely out of the PBL
-               ELSE IF ( BLTOP > P1 ) THEN
-                  CYCLE 
-
-               ENDIF
-
+                 
+               ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
+               FEMIS  = GET_FRAC_OF_PBL( I, J, L )
+                 
                ! Fraction of total SO4 in layer L
                SO4(L) = FEMIS * TSO4
+
             ENDDO
 
          !==============================================================
@@ -4487,8 +4113,8 @@
 !
 !******************************************************************************
 !  Subroutine SRCNH3 handles NH3 emissions into the GEOS-CHEM tracer array.
-!  (rjp, bmy, 12/17/01, 11/16/04)
-! 
+!  (rjp, bmy, 12/17/01, 2/22/05)
+!
 !  Arguments as Input/Output
 !  ============================================================================
 !  (1 ) TC (REAL*8 ) : Array for NH3 tracer mass in kg
@@ -4510,6 +4136,9 @@
 !        overwrite the anthro & biofuel NH3 emissions over the continental US 
 !        if LNEI99=T.  Now references IDTNH3 from "tracerid_mod.f". 
 !        (rjp, rch, bmy, 11/16/04)
+!  (6 ) Remove reference to "pressure_mod.f".  Now reference GET_FRAC_OF_PBL 
+!        and GET_PBL_TOP_L from "pbl_mix_mod.f".  Removed reference to header 
+!        file CMN. (bmy, 2/22/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4521,12 +4150,19 @@
      &                         GET_USA_MASK
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE LOGICAL_MOD,  ONLY : LNEI99
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
+      USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
+      !---------------------------------------------------------
+      ! Prior to 2/22/05:
+      !USE PRESSURE_MOD, ONLY : GET_PEDGE
+      !---------------------------------------------------------
       USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
       USE TRACERID_MOD, ONLY : IDTNH3
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! XTRA2
+!-----------------------------------------------
+! Prior to 2/22/05:
+!#     include "CMN"          ! XTRA2
+!-----------------------------------------------
 #     include "CMN_DIAG"     ! ND13
 #     include "CMN_GCTM"     ! SCALE_HEIGHT
 #     include "CMN_O3"       ! XNUMOL
@@ -4537,9 +4173,13 @@
       ! Local variables
       LOGICAL                :: WEEKDAY
       INTEGER                :: I, J, L,  K, NTOP, DAY_NUM
-      REAL*8                 :: BLTOP,    P1,      P2 
-      REAL*8                 :: DELP,     FEMIS,   DTSRCE
-      REAL*8                 :: NH3SRC,   TNH3,    BLTHIK
+      !--------------------------------------------------------
+      ! Prior to 2/22/05:
+      !REAL*8                 :: BLTOP,    P1,      P2 
+      !REAL*8                 :: DELP,     FEMIS,   DTSRCE
+      !REAL*8                 :: NH3SRC,   TNH3,    BLTHIK
+      !--------------------------------------------------------
+      REAL*8                 :: FEMIS,    DTSRCE,  TNH3    
       REAL*8                 :: AREA_CM2, EPA_AN,  EPA_BF
       REAL*8                 :: NH3an(IIPAR,JJPAR)
       REAL*8                 :: NH3bf(IIPAR,JJPAR)
@@ -4636,100 +4276,133 @@
       !=================================================================
 
       ! Loop over surface grid boxes
+!--------------------------------------------------------------
+! Prior ot 2/22/05:
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I,      J, NTOP, NH3SRC, TNH3, BLTOP ) 
+!!$OMP+PRIVATE( BLTHIK, L, P1,   P2,     DELP, FEMIS )
+!!$OMP+SCHEDULE( DYNAMIC )
+!--------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,      J, NTOP, NH3SRC, TNH3, BLTOP ) 
-!$OMP+PRIVATE( BLTHIK, L, P1,   P2,     DELP, FEMIS )
+!$OMP+PRIVATE( I, J, NTOP, TNH3, L, FEMIS )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
           
          ! Layer where the PBL top happens
-         NTOP   = CEILING( XTRA2(I,J) )
+         !-----------------------------------------
+         ! Prior to 2/25/05:
+         !NTOP   = CEILING( XTRA2(I,J) )
+         !-----------------------------------------
+         NTOP   = CEILING( GET_PBL_TOP_L( I, J ) )
 
-         ! Initialize
-         NH3SRC = 0.d0
+         !--------------------
+         ! Prior to 2/22/05:
+         !! Initialize
+         !NH3SRC = 0.d0
+         !--------------------
 
          ! Sum all types of NH3 emission [kg/box/s]
          TNH3   = NH3an(I,J) + ENH3_bb(I,J) + 
      &            NH3bf(I,J) + ENH3_na(I,J)
 
+!-----------------------------------------------------------------------------
+! Prior to 2/22/05:
+!         !==============================================================
+!         ! Add NH3 emissions [kg NH3/box] into the tracer array
+!         ! Partition total NH3 throughout the entire boundary layer
+!         !==============================================================
+!         IF ( NTOP >= 2 ) THEN
+!
+!#if   defined( GEOS_4 )
+!
+!            ! BLTOP = pressure at PBL top [hPa]
+!            ! Use barometric law since PBL is in [m]
+!            BLTOP  = GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT )
+!
+!            ! BLTHIK is PBL thickness [hPa]
+!            BLTHIK = GET_PEDGE(I,J,1) - BLTOP
+!
+!#else
+!
+!            ! BLTOP = pressure of PBL top [hPa]
+!            BLTOP  = GET_PEDGE(I,J,1) - PBL(I,J)
+!
+!            ! BLTHIK is PBL thickness [hPa]
+!            BLTHIK = PBL(I,J)
+!
+!#endif
+!
+!            ! Loop over all levels in the boundary layer
+!            DO L = 1, NTOP
+!
+!               ! DELP is the pressure thickness of level K [hPa]
+!               P1   = GET_PEDGE(I,J,L)
+!               P2   = GET_PEDGE(I,J,L+1)
+!               DELP = P1 - P2
+!
+!               ! Case of model grid is lower than PBL
+!               IF ( BLTOP <= P2 )  THEN
+!                  FEMIS = DELP / BLTHIK
+!
+!               ! Level L lies completely w/in the PBL
+!               ELSE IF ( BLTOP >  P2 .AND. BLTOP < P1 ) THEN
+!                  FEMIS = ( P1 - BLTOP ) / BLTHIK
+!
+!               ! Level L lies completely out of the PBL
+!               ELSE IF ( BLTOP > P1 ) THEN
+!                  CYCLE       
+!
+!               ENDIF
+!
+!               ! Partition total NH3 into level K [kg NH3/s]
+!               ! This is just for error checking
+!               NH3SRC    = NH3SRC  + ( FEMIS * TNH3 )
+!
+!               ! Add NH3 emissions into tracer array [kg NH3/timestep]
+!               TC(I,J,L) = TC(I,J,L) + ( TNH3 * FEMIS * DTSRCE )
+!            ENDDO
+!
+!            ! Error check
+!            IF ( ABS( NH3SRC - TNH3 ) > 1.D-5 ) THEN
+!!$OMP CRITICAL
+!               PRINT*, '### ERROR in SRCNH3!'
+!               PRINT*, '### I, J         : ', I, J
+!               PRINT*, '### NH3SRC       : ', NH3SRC
+!               PRINT*, '### ENH3_an(I,J) : ', NH3an(I,J) 
+!               PRINT*, '### ENH3_bb(I,J) : ', ENH3_bb(I,J)
+!               PRINT*, '### ENH3_bf(I,J) : ', NH3bf(I,J)
+!!$OMP END CRITICAL
+!               CALL ERROR_STOP( 'Check NH3 redistribution', 
+!     &                          'SRCNH3 (sulfate_mod.f)' )
+!            ENDIF
+!
+!         !============================================================
+!         ! If PBL height close to the top of level 2, then put all of
+!         ! the emission into the surface layer [kg NH3/box/timestep]
+!         !============================================================
+!         ELSE
+!            TC(I,J,1) = TC(I,J,1) + ( TNH3 * DTSRCE )
+!         ENDIF
+!-----------------------------------------------------------------------------
+
          !==============================================================
          ! Add NH3 emissions [kg NH3/box] into the tracer array
          ! Partition total NH3 throughout the entire boundary layer
          !==============================================================
-         IF ( NTOP >= 2 ) THEN
 
-#if   defined( GEOS_4 )
+         ! Loop over all levels in the boundary layer
+         DO L = 1, NTOP
 
-            ! BLTOP = pressure at PBL top [hPa]
-            ! Use barometric law since PBL is in [m]
-            BLTOP  = GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT )
+            ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
+            FEMIS     = GET_FRAC_OF_PBL( I, J, L )
 
-            ! BLTHIK is PBL thickness [hPa]
-            BLTHIK = GET_PEDGE(I,J,1) - BLTOP
+            ! Add NH3 emissions into tracer array [kg NH3/timestep]
+            TC(I,J,L) = TC(I,J,L) + ( TNH3 * FEMIS * DTSRCE )
 
-#else
-
-            ! BLTOP = pressure of PBL top [hPa]
-            BLTOP  = GET_PEDGE(I,J,1) - PBL(I,J)
-
-            ! BLTHIK is PBL thickness [hPa]
-            BLTHIK = PBL(I,J)
-
-#endif
-
-            ! Loop over all levels in the boundary layer
-            DO L = 1, NTOP
-
-               ! DELP is the pressure thickness of level K [hPa]
-               P1   = GET_PEDGE(I,J,L)
-               P2   = GET_PEDGE(I,J,L+1)
-               DELP = P1 - P2
-
-               ! Case of model grid is lower than PBL
-               IF ( BLTOP <= P2 )  THEN
-                  FEMIS = DELP / BLTHIK
-
-               ! Level L lies completely w/in the PBL
-               ELSE IF ( BLTOP >  P2 .AND. BLTOP < P1 ) THEN
-                  FEMIS = ( P1 - BLTOP ) / BLTHIK
-
-               ! Level L lies completely out of the PBL
-               ELSE IF ( BLTOP > P1 ) THEN
-                  CYCLE       
-
-               ENDIF
-
-               ! Partition total NH3 into level K [kg NH3/s]
-               ! This is just for error checking
-               NH3SRC    = NH3SRC  + ( FEMIS * TNH3 )
-
-               ! Add NH3 emissions into tracer array [kg NH3/timestep]
-               TC(I,J,L) = TC(I,J,L) + ( TNH3 * FEMIS * DTSRCE )
-            ENDDO
-
-            ! Error check
-            IF ( ABS( NH3SRC - TNH3 ) > 1.D-5 ) THEN
-!$OMP CRITICAL
-               PRINT*, '### ERROR in SRCNH3!'
-               PRINT*, '### I, J         : ', I, J
-               PRINT*, '### NH3SRC       : ', NH3SRC
-               PRINT*, '### ENH3_an(I,J) : ', NH3an(I,J) 
-               PRINT*, '### ENH3_bb(I,J) : ', ENH3_bb(I,J)
-               PRINT*, '### ENH3_bf(I,J) : ', NH3bf(I,J)
-!$OMP END CRITICAL
-               CALL ERROR_STOP( 'Check NH3 redistribution', 
-     &                          'SRCNH3 (sulfate_mod.f)' )
-            ENDIF
-
-         !============================================================
-         ! If PBL height close to the top of level 2, then put all of
-         ! the emission into the surface layer [kg NH3/box/timestep]
-         !============================================================
-         ELSE
-            TC(I,J,1) = TC(I,J,1) + ( TNH3 * DTSRCE )
-         ENDIF
+         ENDDO
 
          !============================================================
          ! ND13 diagnostics: NH3 emissions [kg NH3/box/timestep]

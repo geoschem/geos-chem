@@ -1,10 +1,10 @@
-! $Id: file_mod.f,v 1.6 2004/09/21 18:04:13 bmy Exp $
+! $Id: file_mod.f,v 1.7 2005/03/29 15:52:42 bmy Exp $
       MODULE FILE_MOD
 !
 !******************************************************************************
 !  Module FILE_MOD contains file unit numbers, as well as file I/O routines
 !  for GEOS-CHEM.  FILE_MOD keeps all of the I/O unit numbers in a single
-!  location for convenient access. (bmy, 7/1/02, 4/23/04)
+!  location for convenient access. (bmy, 7/1/02, 3/23/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -32,7 +32,9 @@
 !  Module Routines
 !  ============================================================================
 !  (1 ) IOERROR     : Stops w/ error msg output if I/O errors are detected
-!  (2 ) CLOSE_FILES : Closes all files at the end of a GEOS-CHEM run
+!  (2 ) FILE_EX_C   : Tests if a directory or file is valid
+!  (3 ) FILE_EX_I   : Tests if a file unit refers to a valid file
+!  (4 ) CLOSE_FILES : Closes all files at the end of a GEOS-CHEM run
 !
 !  GEOS-CHEM modules referenced by file_mod.f
 !  ============================================================================
@@ -50,9 +52,19 @@
 !  (7 ) Changed the name of some cpp switches in "define.h" (bmy, 12/2/03)
 !  (8 ) Renumbered the order of the files.  Also removed IU_INPTR and 
 !        IU_INPUT since they are now obsolete. (bmy, 7/20/04)
+!  (9 ) Added overloaded routines FILE_EX_C and FILE_EX_I (bmy, 3/23/05)
 !******************************************************************************
 !
       IMPLICIT NONE
+
+      !=================================================================
+      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
+      ! and routines from being seen outside "file_mod.f"
+      !=================================================================
+      
+      ! PRIVATE routines
+      PRIVATE :: FILE_EX_C
+      PRIVATE :: FILE_EX_I
 
       !=================================================================
       ! MODULE VARIABLES
@@ -79,6 +91,14 @@
       INTEGER, PARAMETER :: IU_GWET    = 75
       INTEGER, PARAMETER :: IU_SMV2LOG = 93
       INTEGER, PARAMETER :: IU_DEBUG   = 98
+
+      !=================================================================
+      ! MODULE INTERFACES -- "bind" two or more routines with different
+      ! argument types or # of arguments under one unique name
+      !=================================================================
+      INTERFACE FILE_EXISTS
+         MODULE PROCEDURE FILE_EX_C, FILE_EX_I
+      END INTERFACE
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -268,6 +288,94 @@
       
       ! End of program
       END SUBROUTINE IOERROR
+
+!------------------------------------------------------------------------------
+
+      FUNCTION FILE_EX_C( FILENAME ) RESULT( IT_EXISTS )
+!
+!******************************************************************************
+!  Function FILE_EX_C returns TRUE if FILENAME exists or FALSE otherwise.  
+!  This is handled in a platform-independent way.  The argument is of
+!  CHARACTER type. (bmy, 3/23/05)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) FILENAME (CHARACTER) : Name of file or directory to test
+!
+!  NOTES: 
+!******************************************************************************
+!
+#     include "define.h"
+
+      ! Arguments
+      CHARACTER(LEN=*), INTENT(IN) :: FILENAME
+
+      ! Function value
+      LOGICAL                      :: IT_EXISTS
+
+      !=================================================================
+      ! FILE_EX_C begins here!
+      !=================================================================
+
+#if   defined( COMPAQ )
+
+      !------------------
+      ! COMPAQ compiler
+      !------------------
+
+      ! Reference external library function
+      INTEGER*4, EXTERNAL :: ACCESS
+
+      ! Test whether directory exists for COMPAQ
+      IT_EXISTS = ( ACCESS( TRIM( FILENAME ), ' ' ) == 0 )
+
+#else
+
+      !------------------
+      ! Other compilers
+      !------------------
+
+      ! Test whether directory exists w/ F90 INQUIRE function
+      INQUIRE( FILE=TRIM( FILENAME ), EXIST=IT_EXISTS )
+
+#endif 
+
+      ! Return to calling program
+      END FUNCTION FILE_EX_C
+
+!------------------------------------------------------------------------------
+
+      FUNCTION FILE_EX_I( IUNIT ) RESULT( IT_EXISTS )
+!
+!******************************************************************************
+!  Function FILE_EX_I returns TRUE if FILENAME exists or FALSE otherwise.  
+!  This is handled in a platform-independent way.  The argument is of
+!  INTEGER type. (bmy, 3/23/05)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) FILENAME (INTEGER) : Name of file unit to test
+!
+!  NOTES: 
+!******************************************************************************
+!
+#     include "define.h"
+
+      ! Arguments
+      INTEGER, INTENT(IN) :: IUNIT
+
+      ! Function value
+      LOGICAL             :: IT_EXISTS
+
+      !=================================================================
+      ! FILE_EX_I begins here!
+      !=================================================================
+
+      ! Test whether file unit exists w/ F90 INQUIRE function
+      INQUIRE( IUNIT, EXIST=IT_EXISTS )
+
+      ! Return to calling program
+      END FUNCTION FILE_EX_I
 
 !------------------------------------------------------------------------------
 

@@ -1,11 +1,11 @@
-! $Id: dust_dead_mod.f,v 1.5 2004/12/02 21:48:36 bmy Exp $
+! $Id: dust_dead_mod.f,v 1.6 2005/03/29 15:52:41 bmy Exp $
       MODULE DUST_DEAD_MOD
 !
 !******************************************************************************
 !  Module DUST_DEAD_MOD contains routines and variables from Charlie Zender's
 !  DEAD dust mobilization model.  Most routines are from Charlie Zender, but 
 !  have been modified and/or cleaned up for inclusion into GEOS-CHEM. 
-!  (tdf, rjp, bmy, 4/6/04, 7/20/04) 
+!  (tdf, rjp, bmy, 4/6/04, 3/1/05) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -122,6 +122,7 @@
 !  NOTES:
 !  (1 ) Added parallel DO loop in GET_ORO (bmy, 4/14/04)
 !  (2 ) Now references "directory_mod.f" (bmy, 7/20/04)
+!  (3 ) Fixed typo in ORO_IS_LND for PGI compiler (bmy, 3/1/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1830,17 +1831,19 @@ ctdf        print *,' no mobilisation candidates'
 !
 !******************************************************************************
 !  Function ORO_IS_LND returns TRUE if a grid box contains more than 50%
-!  land. (tdf, bmy, 3/30/04)
+!  land. (tdf, bmy, 3/30/04, 3/1/05)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) ORO_VAL (REAL*8) : Orography at a grid box (0=ocean; 1=land; 2=ice)
 !
 !  NOTES:
+!  (1 ) Bug fix: Replaced ": :" with "::" in order to prevent compile error
+!        on Linux w/ PGI compiler.  (bmy, 3/1/05)
 !******************************************************************************
 !
       ! Arguments
-      REAL*8, INTENT(IN) : :ORO_VAL 
+      REAL*8, INTENT(IN) :: ORO_VAL 
 
       !=================================================================
       ! ORO_IS_OCN begins here!

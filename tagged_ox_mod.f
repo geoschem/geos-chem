@@ -1,10 +1,10 @@
-! $Id: tagged_ox_mod.f,v 1.8 2004/12/02 21:48:40 bmy Exp $
+! $Id: tagged_ox_mod.f,v 1.9 2005/03/29 15:52:45 bmy Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
 !  Module TAGGED_OX_MOD contains variables and routines to perform a tagged Ox
 !  simulation.  P(Ox) and L(Ox) rates need to be archived from a full chemistry
-!  simulation before you can run w/ Tagged Ox. (amf,rch,bmy, 8/20/03, 10/12/04)
+!  simulation before you can run w/ Tagged Ox. (amf,rch,bmy, 8/20/03, 2/17/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -26,16 +26,17 @@
 !
 !  GEOS-CHEM modules referenced by biomass_mod.f
 !  ============================================================================
-!  (1 ) bpch2_mod.f    : Module containing routines for binary punch file I/O
-!  (2 ) dao_mod.f      : Module containing arrays for DAO met fields
-!  (3 ) diag_mod.f     : Module containing GEOS-CHEM diagnostic arrays
-!  (4 ) diag_pl_mod.f  : Module containing routines for ND65 & ND20 diagnostics
-!  (4 ) error_mod.f    : Module containing I/O error and NaN check routines
-!  (5 ) grid_mod.f     : Module containing horizontal grid information
-!  (6 ) pressure_mod.f : Module containing routines to compute P(I,J,L)
-!  (7 ) time_mod.f     : Module containing routines for computing time & date
-!  (8 ) transfer_mod.f : Module containing routines to cast & resize arrays
-!  (9 ) tracerid_mod.f : Module containing pointers to tracers & emissions
+!  (1 ) bpch2_mod.f        : Module w/ routines for binary punch file I/O
+!  (2 ) dao_mod.f          : Module w/ arrays for DAO met fields
+!  (3 ) diag_mod.f         : Module w/ GEOS-CHEM diagnostic arrays
+!  (4 ) diag_pl_mod.f      : Module w/ routines for ND65 & ND20 diagnostics
+!  (5 ) error_mod.f        : Module w/ I/O error and NaN check routines
+!  (6 ) grid_mod.f         : Module w/ horizontal grid information
+!  (7 ) pbl_mix_mod.f      : Module w/ routines for PBL height & mixing 
+!  (8 ) pressure_mod.f     : Module w/ routines to compute P(I,J,L)
+!  (9 ) time_mod.f         : Module w/ routines for computing time & date
+!  (10) transfer_mod.f     : Module w/ routines to cast & resize arrays
+!  (11) tracerid_mod.f     : Module w/ pointers to tracers & emissions
 !
 !  NOTES:
 !  (1 ) Now accounts for GEOS-4 PBL being in meters (bmy, 1/15/04)
@@ -43,6 +44,7 @@
 !  (3 ) Now bracket AD44 with an !$OMP CRITICAL block (bmy, 3/24/04)
 !  (4 ) Now define regions w/ levels in GET_REGIONAL_POX (amf,rch,bmy,5/27/04)
 !  (5 ) Bug fix-avoid seg fault if PBLFRAC isn't allocated (bdf, bmy, 10/12/04)
+!  (6 ) Now reference "pbl_mix_mod.f" (bmy, 2/17/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -368,7 +370,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_TAGGED_OX performs chemistry for several Ox tracers which
-!  are tagged by geographic and altitude regions. (rch, bmy, 8/20/03, 7/20/04)
+!  are tagged by geographic and altitude regions. (rch, bmy, 8/20/03, 2/17/05)
 ! 
 !  NOTES:
 !  (1 ) Updated from the old routine "chemo3_split.f" (rch, bmy, 8/20/03)
@@ -382,18 +384,26 @@
 !        (bmy, 7/20/04)
 !  (5 ) Bug fix: Now avoid a SEG FAULT error if PBLFRAC isn't allocated.
 !        (bdf, bmy, 10/12/04)
+!  (6 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP
+!        from "pbl_mix_mod.f".  Now only sum ND44 diagnostic up to the
+!        maximum tropopsheric level. (bmy, 2/17/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIAG_MOD,     ONLY : AD44
       USE DIAG_PL_MOD,  ONLY : AD65
       USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
-      USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
+      !------------------------------------------------------
+      ! Prior to 2/17/05:
+      !USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
+      !------------------------------------------------------
+      USE DRYDEP_MOD,   ONLY : DEPSAV      
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,  ONLY : LDRYD
-      USE TIME_MOD,     ONLY : GET_TS_CHEM,     ITS_A_NEW_DAY, 
+      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
+      USE TIME_MOD,     ONLY : GET_TS_CHEM,           ITS_A_NEW_DAY, 
      &                         TIMESTAMP_STRING
-      USE TRACER_MOD,   ONLY : STT,             N_TRACERS
+      USE TRACER_MOD,   ONLY : STT,                   N_TRACERS
       USE TRACERID_MOD, ONLY : IDTOX
 
       IMPLICIT NONE
@@ -408,9 +418,9 @@
       INTEGER           :: I, J, L, N
       REAL*8            :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
       REAL*8            :: ND44_TMP(IIPAR,JJPAR,LLTROP)
-      REAL*8            :: DTCHEM,  FREQ, FLUX
-      REAL*8            :: LL,      PL,   Ox_0
-      REAL*8            :: Ox_LOST
+      REAL*8            :: DTCHEM,  FREQ,    FLUX
+      REAL*8            :: LL,      PL,      Ox_0
+      REAL*8            :: Ox_LOST, PBL_MAX, F_UNDER_TOP
       CHARACTER(LEN=16) :: STAMP
 
       ! External routines
@@ -438,7 +448,10 @@
       IF ( ITS_A_NEW_DAY() ) THEN
          CALL READ_POX_LOX
       ENDIF
- 
+      
+      ! Maximum extent of the PBL [model layers]
+      PBL_MAX = GET_PBL_MAX_L()
+
       !=================================================================
       ! Tagged Ox chemistry contains the following terms:
       !
@@ -472,15 +485,15 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, LL, PL, FREQ, Ox_0, Ox_LOST, FLUX )  
+!$OMP+PRIVATE( I, J, L, LL, PL, FREQ, Ox_0, Ox_LOST, FLUX, F_UNDER_TOP )  
 !$OMP+SCHEDULE( DYNAMIC )
          DO L = 1, LLTROP
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            !==========================================================
+            !===========================================================
             ! Get P(Ox) and L(Ox) for each tagged tracer in [kg]
-            !==========================================================
+            !===========================================================
 
             ! P(Ox) is a function of geographic & altitude location
             ! NOTE: We call this only when N==1 for optimal looping
@@ -489,9 +502,9 @@
             ! L(Ox) is originally in [1/cm3/s]; convert to [kg] 
             LL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL(I,J,L) * DTCHEM 
                            
-            !========================================================
+            !===========================================================
             ! ND65 diagnostic: Chemical prod/loss [kg/s]
-            !========================================================
+            !===========================================================
             IF ( ND65 > 0 ) THEN
 
                ! Only archive chemical production if this
@@ -506,18 +519,30 @@
                AD65(I,J,L,N_TRACERS+N) = AD65(I,J,L,N_TRACERS+N) + PL
             ENDIF
 
-            !========================================================
+            !===========================================================
             ! Apply drydep of Ox to each tagged tracer.  We need 
             ! to do this using before P(Ox) - L(Ox) is applied.
-            !========================================================
+            !===========================================================
             IF ( LDRYD ) THEN
 
-               ! PBLFRAC won't be allocated if LDRYD=F, so we should avoid
-               ! a seg fault error by moving this here (bdf, bmy, 10/12/04)
-               IF ( PBLFRAC(I,J,L) > 0d0 ) THEN
-                     
+               ! Fraction of box underneath the PBL top [unitless]
+               F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
+
+               !---------------------------------------------------------------
+               ! Prior to 2/17/05:
+               ! Now replace PBLFRAC from "drydep_mod.f" with function
+               ! GET_FRAC_UNDER_PBLTOP from "pbl_mix_mod.f" (bmy, 2/17/05)
+               !! PBLFRAC won't be allocated if LDRYD=F, so we should avoid
+               !! a seg fault error by moving this here (bdf, bmy, 10/12/04)
+               !IF ( PBLFRAC(I,J,L) > 0d0 ) THEN
+               !      
+               !   ! Ox Drydep frequency [1/s]
+               !   FREQ = DEPSAV(I,J,1) * PBLFRAC(I,J,L)
+               !---------------------------------------------------------------
+               IF ( F_UNDER_TOP > 0d0 ) THEN
+               
                   ! Ox Drydep frequency [1/s]
-                  FREQ = DEPSAV(I,J,1) * PBLFRAC(I,J,L)
+                  FREQ = DEPSAV(I,J,1) * F_UNDER_TOP
 
                   ! Only proceed if drydep frequency is nonzero
                   IF ( FREQ > 0d0 ) THEN
@@ -550,27 +575,31 @@
                ENDIF
             ENDIF
                
-            !========================================================
+            !===========================================================
             ! After removing Ox lost to dry deposition, apply 
             ! chemical P(Ox) - L(Ox) to each tagged tracer
-            !========================================================
+            !===========================================================
             STT(I,J,L,N) = STT(I,J,L,N) + PP(I,J,L,N) - LL
          ENDDO
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
 
-         !============================================================
+         !==============================================================
          ! ND44: Sum drydep fluxes by level into the AD44 array in
          ! order to ensure that  we get the same results w/ sp or mp 
-         !============================================================
+         !==============================================================
          IF ( ND44 > 0 ) THEN 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
             DO J = 1, JJPAR
             DO I = 1, IIPAR
-            DO L = 1, LLTROP
+            !------------------------
+            ! Prior to 2/17/05
+            !DO L = 1, LLTROP
+            !------------------------
+            DO L = 1, PBL_MAX
                AD44(I,J,N,1) = AD44(I,J,N,1) + ND44_TMP(I,J,L)
             ENDDO
             ENDDO

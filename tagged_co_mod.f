@@ -1,9 +1,9 @@
-! $Id: tagged_co_mod.f,v 1.7 2004/12/02 21:48:40 bmy Exp $
+! $Id: tagged_co_mod.f,v 1.8 2005/03/29 15:52:44 bmy Exp $
       MODULE TAGGED_CO_MOD
 !
 !******************************************************************************
 !  Module TAGGED_CO_MOD contains variables and routines used for the 
-!  geographically tagged CO simulation. (bmy, 7/28/00, 7/20/04)
+!  geographically tagged CO simulation. (bmy, 7/28/00, 3/7/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -115,6 +115,7 @@
 !  (23) Updated arg list in call to EMISOP in EMISS_TAGGED_CO (bmy, 12/9/03)
 !  (24) Now references "directory_mod.f", "logical_mod.f", "tracer_mod.f".
 !        Now remove IJLOOP_CO. (bmy, 7/20/04)
+!  (25) Fixed bug in CHEM_TAGGED_CO (bmy, 3/7/05)
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -743,7 +744,7 @@
 !******************************************************************************
 !  Subroutine CHEM_TAGGED_CO performs CO chemistry on geographically
 !  "tagged" CO tracers.  Loss is via reaction with OH. 
-!  (qli, bnd, bdf, bmy, 10/19/99, 7/20/04)
+!  (qli, bnd, bdf, bmy, 10/19/99, 3/7/05)
 !
 !  NOTES:
 !  (1 ) Now do chemistry all the way to the model top. 
@@ -783,6 +784,8 @@
 !  (16) Now reference STT & N_TRACERS from "tracer_mod.f".  Now references
 !        LSPLIT from "logical_mod.f".  Now references AD65 from 
 !        "diag_pl_mod.f".  Updated comments. (bmy, 7/20/04)
+!  (17) Bug fix: re-insert ELSE between (1a-1) and (1a-2); it appears to have
+!        been mistakenly deleted. (bmy, 3/7/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -918,6 +921,8 @@
             ! Convert units of CH4RATE from [v/v/s] to [molec CO/cm3]
             CO_CH4 = CH4RATE * DTCHEM * DENS
 
+         ELSE
+            
             !===========================================================
             ! (1a-2) Production of CO from CH4 in the troposphere 
             !===========================================================

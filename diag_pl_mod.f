@@ -1,10 +1,10 @@
-! $Id: diag_pl_mod.f,v 1.2 2004/12/02 21:48:35 bmy Exp $
+! $Id: diag_pl_mod.f,v 1.3 2005/03/29 15:52:41 bmy Exp $
       MODULE DIAG_PL_MOD
 !
 !******************************************************************************
 !  Module DIAG_PL_MOD contains variables and routines which are used to 
 !  compute the production and loss of chemical families in SMVGEAR chemistry.
-!  (bmy, 7/20/04, 11/15/04)
+!  (bmy, 7/20/04, 3/3/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -36,8 +36,9 @@
 !  (3 ) DO_DIAG_PL            : Driver routine for prod/loss diags (ND65, ND20)
 !  (4 ) DIAG20                : Driver routine for saving O3 P/L (a.k.a. ND20)
 !  (5 ) WRITE20               : Writes P(Ox) and L(Ox) to bpch file format
-!  (6 ) INIT_DIAG_PL          : Allocates & zeroes all module arrays
-!  (7 ) CLEANUP_DIAG_PL       : Deallocates all module arrays
+!  (6 ) ITS_TIME_FOR_WRITE20  : Returns T if it's time to save files to disk
+!  (7 ) INIT_DIAG_PL          : Allocates & zeroes all module arrays
+!  (8 ) CLEANUP_DIAG_PL       : Deallocates all module arrays
 !
 !  GEOS-CHEM modules referenced by "diag_pl_mod.f":
 !  ============================================================================
@@ -55,6 +56,7 @@
 !  (1 ) Add TAUe as a module variable.  Bug fixes: Make sure WRITE20 uses the 
 !        global FILENAME, and also write to disk on the last timestep before
 !        the end of the simulation. (bmy, 11/15/04)
+!  (2 ) Added routine ITS_TIME_FOR_WRITE20 (bmy, 3/3/05)
 !******************************************************************************
 !      
       IMPLICIT NONE
@@ -606,9 +608,9 @@
       SUBROUTINE DIAG20
 !
 !******************************************************************************
-!  Subroutine DIAG20 (bey, bmy, 6/9/99, 11/15/04) computes production and 
-!  loss rates of O3, and then calls subroutine WRITE20 to save the these 
-!  rates to disk. 
+!  Subroutine DIAG20 computes production and loss rates of O3, and 
+!  then calls subroutine WRITE20 to save the these rates to disk. 
+!  (bey, bmy, 6/9/99, 3/3/05)
 !
 !  By saving, the production and loss rates from a full-chemistry run,
 !  a user can use these archived rates to perform a quick O3 chemistry
@@ -620,14 +622,24 @@
 !  (1 ) Now bundled into "diag20_mod.f" (bmy, 7/20/04)
 !  (2 ) Now also write to disk when it is the last timestep before the end of 
 !        the run.  Now references GET_TAUE from "time_mod.f". (bmy, 11/15/04)
+!  (3 ) Now call function ITS_TIME_FOR_WRITE20 to determine if the next
+!        chemistry timestep is the start of a new day.  Remove reference
+!        to GET_TAUe and GET_TS_CHEM.  Now archive P(Ox) and L(Ox) first
+!        and then test if we have to save the file to disk. (bmy, 3/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : O3PL_DIR
       USE ERROR_MOD,     ONLY : ERROR_STOP
+!------------------------------------------------------------------------
+! Prior to 3/3/05:
+!      USE TIME_MOD,      ONLY : EXPAND_DATE,   GET_NYMD, 
+!     &                          GET_TAU,       GET_TAUb, 
+!     &                          GET_TAUE,      GET_TS_CHEM,
+!     &                          ITS_A_NEW_DAY, TIMESTAMP_STRING
+!------------------------------------------------------------------------
       USE TIME_MOD,      ONLY : EXPAND_DATE,   GET_NYMD, 
      &                          GET_TAU,       GET_TAUb, 
-     &                          GET_TAUE,      GET_TS_CHEM,
      &                          ITS_A_NEW_DAY, TIMESTAMP_STRING
       USE TRACER_MOD,    ONLY : STT
       USE TRACERID_MOD,  ONLY : IDTOX
@@ -639,8 +651,12 @@
       LOGICAL, SAVE     :: FIRST = .TRUE.
       LOGICAL           :: DO_WRITE
       INTEGER           :: I, J, L, N
-      REAL*8            :: P_Ox, L_Ox, TAU0, TAU1
-      REAL*8,  SAVE     :: CHEM_HRS
+      !-----------------------------------------------------------------
+      ! Prior to 3/3/05:
+      !REAL*8            :: P_Ox, L_Ox, TAU0, TAU1
+      !REAL*8,  SAVE     :: CHEM_HRS
+      !-----------------------------------------------------------------
+      REAL*8            :: P_Ox, L_Ox
       CHARACTER(LEN=16) :: STAMP 
 
       !=================================================================
@@ -658,93 +674,12 @@
          ! Starting time of run
          TAUb     = GET_TAUb()
 
-         ! Ending time of run
-         TAUe     = GET_TAUe()
-
-         ! Chemistry timestep in hours
-         CHEM_HRS = GET_TS_CHEM() / 60d0
-
          ! Get time of run at 1st timestep
          TAU0     = TAUb
 
          ! Reset first-time flag
          FIRST    = .FALSE.
 
-      ENDIF
-
-      ! Get current TAU
-      TAU1 = GET_TAU()
-
-      !=================================================================
-      ! If it is a new day, then write to disk and zero the counter
-      ! and PL24H arrays so that we can be ready for the next timestep
-      !=================================================================
-
-      ! Check to see if it's a new day (or the last timestep) 
-      DO_WRITE = ( ( ITS_A_NEW_DAY() .and. TAU1 > TAUb ) .or.
-     &             ( TAU1 + CHEM_HRS == TAUe ) )
-
-      ! Don't write to disk on the very first timestep
-      !------------------------------------------------------------------
-      ! Prior to 11/15/04:
-      ! Now use DO_WRITE logical which also takes into account if we 
-      ! are on the last timestep before the run ends (bmy, 11/15/04)
-      !IF ( ITS_A_NEW_DAY() .and. ( TAU1 > TAUb ) ) THEN
-      !------------------------------------------------------------------
-      IF ( DO_WRITE ) THEN
-
-         ! Compute average daily values
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, 2
-         DO L = 1, LLTROP
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            PL24H(I,J,L,N) = PL24H(I,J,L,N) / COUNT
-         ENDDO
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-
-         ! Get YYYYMMDD date for this new day
-         YYYYMMDD = GET_NYMD()        
-
-         ! Replace YYYYMMDD in filename w/ the actual date
-         FILENAME = 'rate.YYYYMMDD'
-         CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
-
-         ! Then prefix FILENAME w/ the data directory name
-         FILENAME = TRIM( O3PL_DIR ) // FILENAME
-
-         ! Echo info
-         WRITE( 6, 110 ) TRIM( FILENAME )
- 110     FORMAT( '     - DIAG20: Writing ', a )
-
-         ! Write P(Ox) and L(Ox) to disk
-         CALL WRITE20
-
-         ! Zero counter
-         COUNT = 0
-
-         ! Zero PL24H array
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, 2
-         DO L = 1, LLTROP
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            PL24H(I,J,L,N) = 0d0
-         ENDDO
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO        
-
-         ! Reset for the next day
-         TAU0 = GET_TAU()
       ENDIF
 
       !=================================================================
@@ -795,6 +730,72 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      !=================================================================
+      ! Write data to disk and zero counters for next timestep
+      !=================================================================
+
+      ! Check to see if the next chemistry timestep is the start of a
+      ! new day.  If so then we need to write to disk. (bmy, 3/3/05)
+      IF ( ITS_TIME_FOR_WRITE20( TAU1 ) ) THEN
+
+         ! Compute average daily values
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N )
+         DO N = 1, 2
+         DO L = 1, LLTROP
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            PL24H(I,J,L,N) = PL24H(I,J,L,N) / COUNT
+         ENDDO
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+
+         ! Get YYYYMMDD date for this day
+         YYYYMMDD = GET_NYMD()        
+
+         ! Replace YYYYMMDD in filename w/ the actual date
+         FILENAME = 'rate.YYYYMMDD'
+         CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
+
+         ! Then prefix FILENAME w/ the data directory name
+         FILENAME = TRIM( O3PL_DIR ) // FILENAME
+
+         ! Echo info
+         WRITE( 6, 110 ) TRIM( FILENAME )
+ 110     FORMAT( '     - DIAG20: Writing ', a )
+
+         ! Write P(Ox) and L(Ox) to disk
+         CALL WRITE20
+
+         ! Zero counter
+         COUNT = 0
+
+         ! Zero PL24H array
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N )
+         DO N = 1, 2
+         DO L = 1, LLTROP
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            PL24H(I,J,L,N) = 0d0
+         ENDDO
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO        
+
+         ! Reset for the next day
+         !-------------------------------
+         ! Prior to 3/3/05:
+         !TAU0 = GET_TAU()
+         !-------------------------------
+         TAU0 = TAU1
+      ENDIF
+
       ! Return to calling program
       END SUBROUTINE DIAG20
 
@@ -831,11 +832,6 @@
       CHARACTER(LEN=40)   :: UNIT
       CHARACTER(LEN=40)   :: RESERVED
       CHARACTER(LEN=80)   :: TITLE
-      !-----------------------------------------------------------------
-      ! Prior to 11/15/04:
-      ! Remove local declaration of FILENAME, use global declaration
-      !CHARACTER(LEN=255)  :: FILENAME
-      !-----------------------------------------------------------------
 
       !=================================================================
       ! WRITE20 begins here!
@@ -914,6 +910,69 @@
 
       ! Return to calling program
       END SUBROUTINE WRITE20
+
+!------------------------------------------------------------------------------
+
+      FUNCTION ITS_TIME_FOR_WRITE20( TAU_W ) RESULT( ITS_TIME )
+!
+!******************************************************************************
+!  Function ITS_TIME_FOR_WRITE_DIAG51 returns TRUE if it's time to write
+!  the ND20 ozone P/L rate file to disk.  We test the time at the next 
+!  chemistry timestep so that we can write to disk properly. 
+!  (bmy, 3/3/05)
+!
+!  Arguments as Output:
+!  ============================================================================
+!  (1 ) TAU_W (REAL*8) : TAU value at time of writing to disk
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE TIME_MOD, ONLY : GET_HOUR, GET_MINUTE, GET_TAU,  
+     &                     GET_TAUb, GET_TAUe,   GET_TS_CHEM, GET_TS_DYN
+
+      ! Arguments
+      REAL*8,  INTENT(OUT) :: TAU_W
+
+      ! Local variables
+      LOGICAL              :: ITS_TIME
+      REAL*8               :: TAU, HOUR, CHEM, DYN
+
+      !=================================================================
+      ! ITS_TIME_FOR_WRITE20 begins here!
+      !=================================================================
+
+      ! Initialize
+      ITS_TIME = .FALSE.
+
+      ! Current TAU, Hour, and Dynamic Timestep [hrs]
+      TAU      = GET_TAU()
+      HOUR     = ( GET_MINUTE()  / 60d0 ) + GET_HOUR()
+      CHEM     = ( GET_TS_CHEM() / 60d0 )
+      DYN      = ( GET_TS_DYN()  / 60d0 )
+
+      ! If first timestep, return FALSE
+      IF ( TAU == GET_TAUb() ) RETURN
+
+      ! If the next chemistry timestep is the hour of day
+      ! when we have to save to disk, return TRUE
+      IF ( MOD( HOUR + CHEM, 24d0 ) == 0 ) THEN
+         ITS_TIME = .TRUE.
+         TAU_W    = TAU + CHEM
+         RETURN
+      ENDIF
+
+      ! If the next dyn timestep is the 
+      ! end of the run, return TRUE
+      IF ( TAU + DYN == GET_TAUe() ) THEN
+         ITS_TIME = .TRUE.
+         TAU_W    = TAU + DYN
+         RETURN
+      ENDIF
+
+      ! Return to calling program
+      END FUNCTION ITS_TIME_FOR_WRITE20
 
 !------------------------------------------------------------------------------
       

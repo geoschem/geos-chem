@@ -1,10 +1,10 @@
-! $Id: phis_read_mod.f,v 1.6 2004/12/02 21:48:38 bmy Exp $
+! $Id: phis_read_mod.f,v 1.7 2005/03/29 15:52:43 bmy Exp $
       MODULE PHIS_READ_MOD
 !
 !******************************************************************************
 !  Module PHIS_READ_MOD contains subroutines that unzip, open, and 
 !  read the GEOS-CHEM PHIS (geopotential heights) field from disk. 
-!  (bmy, 6/16/03, 7/20/04)
+!  (bmy, 6/16/03, 3/23/05)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -35,6 +35,7 @@
 !  (4 ) Now skips over the GEOS-4 ident string (bmy, 12/12/03)
 !  (5 ) Now references "directory_mod.f", "unix_cmds_mod.f", and
 !        "logical_mod.f" (bmy, 7/20/04)
+!  (6 ) Now references FILE_EXISTS from "file_mod.f" (bmy, 3/23/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -205,7 +206,7 @@
 !
 !******************************************************************************
 !  Subroutine OPEN_PHIS_FIELDS opens the I-6 met fields file for date NYMD and 
-!  time NHMS. (bmy, bdf, 6/15/98, 7/20/04)
+!  time NHMS. (bmy, bdf, 6/15/98, 3/23/05)
 !  
 !  Arguments as input:
 !  ===========================================================================
@@ -219,6 +220,8 @@
 !  (4 ) Now references "directory_mod.f" instead of CMN_SETUP.  Also now
 !        references LUNZIP from "logical_mod.f".  Also now prevents EXPAND_DATE
 !        from overwriting Y/M/D tokens in directory paths. (bmy, 7/20/04)
+!  (5 ) Now use FILE_EXISTS from "file_mod.f" to determine if file unit IU_PH 
+!        refers to a valid file on disk (bmy, 3/23/05)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -226,22 +229,22 @@
       USE DIRECTORY_MOD
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE LOGICAL_MOD,  ONLY : LUNZIP
-      USE FILE_MOD,     ONLY : IU_PH, IOERROR
+      USE FILE_MOD,     ONLY : IU_PH, IOERROR, FILE_EXISTS
       USE TIME_MOD,     ONLY : EXPAND_DATE
 
-#     include "CMN_SIZE"           ! Size parameters
+#     include "CMN_SIZE"     ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN) :: NYMD, NHMS
+      INTEGER, INTENT(IN)   :: NYMD, NHMS
 
       ! Local variables
-      LOGICAL, SAVE       :: FIRST = .TRUE.
-      LOGICAL             :: IT_EXISTS
-      INTEGER             :: IOS, IUNIT
-      CHARACTER(LEN=8)    :: IDENT
-      CHARACTER(LEN=255)  :: GEOS_DIR
-      CHARACTER(LEN=255)  :: PHIS_FILE
-      CHARACTER(LEN=255)  :: PATH
+      LOGICAL, SAVE         :: FIRST = .TRUE.
+      LOGICAL               :: IT_EXISTS
+      INTEGER               :: IOS, IUNIT
+      CHARACTER(LEN=8)      :: IDENT
+      CHARACTER(LEN=255)    :: GEOS_DIR
+      CHARACTER(LEN=255)    :: PHIS_FILE
+      CHARACTER(LEN=255)    :: PATH
 
       !=================================================================
       ! OPEN_PHIS_FIELDS begins here!
@@ -292,11 +295,17 @@
          ! Close previously opened A-3 file
          CLOSE( IU_PH )
 
-         ! Make sure the file exists before we open it!
-         ! Maybe make this a function in ERROR_MOD (bmy, 6/16/03)
-         INQUIRE( IU_PH, EXIST=IT_EXISTS )
-            
-         IF ( .not. IT_EXISTS ) THEN
+         !-------------------------------------------------------------
+         ! Prior to 3/23/05:
+         !! Make sure the file exists before we open it!
+         !! Maybe make this a function in ERROR_MOD (bmy, 6/16/03)
+         !INQUIRE( IU_PH, EXIST=IT_EXISTS )
+         !   
+         !IF ( .not. IT_EXISTS ) THEN
+         !-------------------------------------------------------------
+
+         ! Make sure the file unit is valid before we open the file
+         IF ( .not. FILE_EXISTS( IU_PH ) ) THEN
             CALL ERROR_STOP( 'Could not find file!', 
      &                       'OPEN_PHIS_FIELD (phis_read_mod.f)' )
          ENDIF

@@ -1,5 +1,17 @@
-C $Id: main.f,v 1.21 2005/02/10 19:53:26 bmy Exp $
+C $Id: main.f,v 1.22 2005/03/29 15:52:43 bmy Exp $
 C $Log: main.f,v $
+C Revision 1.22  2005/03/29 15:52:43  bmy
+C GEOS-CHEM v7-02-04, includes the following modifications:
+C - Centralized PBL mixing routines into "pbl_mix_mod.f"
+C - GEOS-4 LNOx and ISOP are now scaled to the same values as GEOS-3
+C - Updated mercury simulation according to latest reduction constant
+C - Ocean sinking term of mercury is now 2.03E6 kg/yr (cf. S. Strode)
+C - Parallelized dry deposition routine DEPVEL (in "drydep_mod.f")
+C - Now uses analytic function for sat vap pressure of water (E_ICE)
+C - ND40 planeflight diag now looks for a new flight track file each day
+C - Now looks for files on disk in a platform-independent way
+C - Fixed minor bugs; updated comments
+C
 C Revision 1.21  2005/02/10 19:53:26  bmy
 C GEOS-CHEM v7-02-03, includes the following modifications:
 C - Added online ocean fluxes of Hg0 in "ocean_mercury_mod.f"
@@ -85,16 +97,11 @@ C
       USE A3_READ_MOD
       USE A6_READ_MOD
       USE BENCHMARK_MOD,     ONLY : STDRUN
-!-----------------------------------------------------------------
-! Prior to 2/3/05:
-! We no longer write to bpch files in "main.f"
-!      USE BPCH2_MOD,         ONLY : BPCH2, GET_MODELNAME, 
-!     &                              OPEN_BPCH2_FOR_WRITE
-!-----------------------------------------------------------------
       USE CHEMISTRY_MOD,     ONLY : DO_CHEMISTRY
       USE CONVECTION_MOD,    ONLY : DO_CONVECTION
       USE COMODE_MOD,        ONLY : INIT_COMODE
       USE DIAG_MOD,          ONLY : DIAGCHLORO
+      USE DIAG41_MOD,        ONLY : DIAG41, ND41
       USE DIAG48_MOD,        ONLY : DIAG48, ITS_TIME_FOR_DIAG48
       USE DIAG49_MOD,        ONLY : DIAG49, ITS_TIME_FOR_DIAG49
       USE DIAG50_MOD,        ONLY : DIAG50, DO_SAVE_DIAG50
@@ -111,6 +118,7 @@ C
       USE INPUT_MOD,         ONLY : READ_INPUT_FILE
       USE LIGHTNING_NOX_MOD, ONLY : LIGHTNING
       USE LOGICAL_MOD
+      USE PBL_MIX_MOD,       ONLY : DO_PBL_MIX
       USE PHIS_READ_MOD
       USE PLANEFLIGHT_MOD,   ONLY : SETUP_PLANEFLIGHT, PLANEFLIGHT
       USE PRESSURE_MOD
@@ -157,13 +165,6 @@ C
       ! Read input file and call init routines from other modules
       CALL READ_INPUT_FILE 
 
-      !-----------------------------------------------------------------
-      ! Prior to 1/11/05
-      ! Now move this into "input_mod.f" (bmy, 1/11/05)
-      !! Make sure last day of run has diagnostic output scheduled
-      !CALL IS_LAST_DAY_GOOD
-      !-----------------------------------------------------------------
-
       ! Initialize met field arrays from "dao_mod.f"
       CALL INIT_DAO
 
@@ -186,13 +187,6 @@ C
          
       ! Allocate arrays from "global_ch4_mod.f" for CH4 run 
       IF ( ITS_A_CH4_SIM() ) CALL INIT_GLOBAL_CH4
-
-      !-----------------------------------------------------------
-      ! Prior to 2/2/05:
-      ! Now move this to w/in "input_mod.f"
-      !! Open BPCH file for output
-      !CALL OPEN_BPCH2_FOR_WRITE( IU_BPCH, 'ctm.bpch' )
-      !-----------------------------------------------------------
 
       !=================================================================
       !   ***** U N Z I P   M E T   F I E L D S  @ start of run *****
@@ -282,8 +276,14 @@ C
       ! Read land types and fractions from "vegtype.global"
       CALL RDLAND   
 
-      ! Initialize XTRA2 array (PBL heights, # of layers)
-      CALL TURBDAY( .FALSE.,  XTRA2, N_TRACERS, STT, TCVV )
+      !------------------------------------------------------------
+      ! Prior to 3/24/05:
+      !! Initialize XTRA2 array (PBL heights, # of layers)
+      !CALL TURBDAY( .FALSE.,  XTRA2, N_TRACERS, STT, TCVV )
+      !------------------------------------------------------------
+
+      ! Initialize PBL quantities but do not do mixing
+      CALL DO_PBL_MIX( .FALSE. )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
@@ -510,30 +510,6 @@ C
          !==============================================================
          IF ( ITS_A_NEW_DAY() ) THEN 
 
-            !-----------------------------------------------------------
-            ! Prior to 12/9/04: 
-            ! Simplify the IF statement (bmy, 12/9/04)
-            !! Also need to read soil type info for fullchem
-            !IF ( ITS_A_FULLCHEM_SIM() ) THEN
-            !   CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
-            !   CALL RDSOIL               
-            !
-            !ELSE IF ( ITS_A_RnPbBe_SIM() ) THEN
-            !   CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
-            !
-            !ELSE IF ( ITS_A_COPARAM_SIM() ) THEN
-            !   CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
-            !
-            !ELSE IF ( ITS_A_TAGOX_SIM() ) THEN
-            !   CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
-            !
-            !ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
-            !   CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
-            !
-            !ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
-            !   CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
-            !-----------------------------------------------------------
-
             ! Read leaf-area index (needed for drydep)
             CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
 
@@ -643,7 +619,11 @@ C
             !===========================================================
             !      ***** M I X E D   L A Y E R   M I X I N G *****
             !===========================================================
-            CALL TURBDAY( LTURB, XTRA2, N_TRACERS, STT, TCVV )
+            !-----------------------------------------------------
+            ! Prior to 3/24/05:
+            !CALL TURBDAY( LTURB, XTRA2, N_TRACERS, STT, TCVV )
+            !-----------------------------------------------------
+            CALL DO_PBL_MIX( LTURB )
 
             !### Debug
             IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:2' )
@@ -678,7 +658,7 @@ C
             CALL DIAG1
 
             ! ND41: save PBL height in 1200-1600 LT (amf)
-            ! (for comparison w/ Holzworth, 1967
+            ! (for comparison w/ Holzworth, 1967)
             IF ( ND41 > 0 ) CALL DIAG41
 
             !### Debug
@@ -755,8 +735,28 @@ C
          !============================================================== 
 
          ! Plane following diagnostic
-         IF ( ND40 > 0 ) CALL PLANEFLIGHT
+         !-------------------------------------
+         ! Prior to 3/24/05:
+         !IF ( ND40 > 0 ) CALL PLANEFLIGHT
+         !-------------------------------------
+         IF ( ND40 > 0 ) THEN 
+         
+            ! Call SETUP_PLANEFLIGHT routine if necessary
+            IF ( ITS_A_NEW_DAY() ) THEN
+               
+               ! If it's a full-chemistry simulation but LCHEM=F,
+               ! or if it's an offline simulation, call setup routine 
+               IF ( ITS_A_FULLCHEM_SIM() ) THEN
+                  IF ( .not. LCHEM ) CALL SETUP_PLANEFLIGHT
+               ELSE
+                  CALL SETUP_PLANEFLIGHT
+               ENDIF
+            ENDIF
 
+            ! Archive data along the flight track
+            CALL PLANEFLIGHT
+         ENDIF
+            
          ! Station timeseries
          IF ( ITS_TIME_FOR_DIAG48() ) CALL DIAG48
 

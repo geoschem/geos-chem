@@ -1,9 +1,9 @@
-! $Id: drydep_mod.f,v 1.17 2005/02/10 19:53:25 bmy Exp $
+! $Id: drydep_mod.f,v 1.18 2005/03/29 15:52:41 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
 !  Module DRYDEP_MOD contains variables and routines for the GEOS-CHEM dry
-!  deposition scheme. (bmy, 1/27/03, 1/6/05)
+!  deposition scheme. (bmy, 1/27/03, 2/22/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -58,16 +58,17 @@
 !
 !  GEOS-CHEM modules referenced by "drydep_mod.f":
 !  ============================================================================
-!  (1 ) comode_mod.f       : Module containing SMVGEAR allocatable arrays
-!  (2 ) dao_mod.f          : Module containing arrays for DAO met fields
-!  (3 ) diag_mod.f         : Module containing GEOS-CHEM diagnostic arrays
-!  (4 ) directory_mod.f    : Module containing GEOS-CHEM data & met field dirs
-!  (4 ) error_mod.f        : Module containing NaN, other error check routines
-!  (5 ) file_mod.f         : Module containing file unit #'s and error checks
-!  (6 ) logical_mod.f      : Module containing GEOS-CHEM logical switches
-!  (7 ) pressure_mod.f     : Module containing routines to compute P(I,J,L)
-!  (8 ) tracer_mod.f       : Module containing GEOS-CHEM tracer array etc.
-!  (9 ) tracerid_mod.f     : Module containing pointers to tracers & emissions
+!  (1 ) comode_mod.f       : Module w/ SMVGEAR allocatable arrays
+!  (2 ) dao_mod.f          : Module w/ arrays for DAO met fields
+!  (3 ) diag_mod.f         : Module w/ GEOS-CHEM diagnostic arrays
+!  (4 ) directory_mod.f    : Module w/ GEOS-CHEM data & met field dirs
+!  (4 ) error_mod.f        : Module w/ NaN, other error check routines
+!  (5 ) file_mod.f         : Module w/ file unit #'s and error checks
+!  (6 ) logical_mod.f      : Module w/ GEOS-CHEM logical switches
+!  (7 ) pbl_mix_mod.f      : Module w/ routines for PBL height & mixing
+!  (8 ) pressure_mod.f     : Module w/ routines to compute P(I,J,L)
+!  (9 ) tracer_mod.f       : Module w/ GEOS-CHEM tracer array etc.
+!  (10) tracerid_mod.f     : Module w/ pointers to tracers & emissions
 !
 !  References:
 !  ============================================================================
@@ -132,6 +133,7 @@
 !        (bmy, 7/20/04)
 !  (13) Add Hg2, HgP as drydep tracers (eck, bmy, 12/8/04)
 !  (14) Updated for AS, AHS, LET, NH4aq, SO4aq (cas, bmy, 1/6/05)
+!  (15) Now references "pbl_mix_mod.f".  Removed PBLFRAC array. (bmy, 2/22/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -149,7 +151,10 @@
       PUBLIC :: MAXDEP
       PUBLIC :: NUMDEP
       PUBLIC :: NTRAIND
-      PUBLIC :: PBLFRAC
+      !--------------------------
+      ! Prior to 2/22/05:
+      !PUBLIC :: PBLFRAC
+      !--------------------------
 
       ! ... and these routines
       PUBLIC :: CLEANUP_DRYDEP     
@@ -158,21 +163,6 @@
       PUBLIC :: DRYFLXRnPbBe       
       PUBLIC :: DVZ_MINVAL         
       PUBLIC :: INIT_DRYDEP        
-
-      !---------------------------------------------------------
-      ! Prior to 1/6/04:
-      !! Module variables
-      !PRIVATE :: NNTYPE,   NNPOLY,   NNVEGTYPE, XCKMAN
-      !PRIVATE :: DRYDPAN,  DRYDHNO3, DRYDNO2,   NWATER
-      !PRIVATE :: AIROSOL,  NDVZIND,  IDEP,      IZO       
-      !PRIVATE :: IWATER,   IRI,      IRLU,      IRAC      
-      !PRIVATE :: IRGSS,    IRGSO,    IRCLS,     IRCLO
-      !PRIVATE :: IVSMAX,   DRYCOEFF, HSTAR,     F0
-      !PRIVATE :: XMW,      A_RADI,   A_DEN
-      !
-      !! Module Routines
-      !PRIVATE :: DEPVEL,   METERO,   MODIN,     RDDRYCF
-      !---------------------------------------------------------
 
       !=================================================================
       ! MODULE VARIABLES 
@@ -205,7 +195,10 @@
       INTEGER              :: NDVZIND(MAXDEP)
       INTEGER              :: NTRAIND(MAXDEP)
       REAL*8,  ALLOCATABLE :: DEPSAV(:,:,:)
-      REAL*8,  ALLOCATABLE :: PBLFRAC(:,:,:)
+      !--------------------------------------------------
+      ! Prior to 2/22/05:
+      !REAL*8,  ALLOCATABLE :: PBLFRAC(:,:,:)
+      !--------------------------------------------------
       REAL*8               :: DRYCOEFF(NNPOLY)
       REAL*8               :: HSTAR(MAXDEP)
       REAL*8               :: F0(MAXDEP)
@@ -228,7 +221,7 @@
 !  Subroutine DO_DRYDEP is the driver for the GEOS-CHEM dry deposition scheme.
 !  DO_DRYDEP calls DEPVEL to compute deposition velocities [m/s], which are 
 !  then converted to [cm/s].  Drydep frequencies are also computed.  
-!  (lwh, gmg, djj, 1989, 1994; bmy, 2/11/03, 7/20/04)
+!  (lwh, gmg, djj, 1989, 1994; bmy, 2/11/03, 2/22/05)
 !
 !  DAO met fields passed via "dao_mod.f":
 !  ============================================================================
@@ -270,20 +263,31 @@
 !        "CMN_DEP". (bmy, 12/9/03)
 !  (4 ) Now use explicit formula for IJLOOP to allow parallelization.
 !        Also reference LPRT from "logical_mod.f" (bmy, 7/20/04)
+!  (5 ) Now use routines from "pbl_mix_mod.f" to get PBL quantities, instead
+!        of re-computing them here.  Removed PBLFRAC array.  Removed reference
+!        to "pressure_mod.f".  Removed reference to header file CMN.
+!        Parallelize DO-loops. (bmy, 2/22/05)
 !******************************************************************************
 !
       ! Reference to F90 modules
       USE DIAG_MOD,     ONLY : AD44
-      USE DAO_MOD,      ONLY : AD, ALBD, SUNCOS, T
+      USE DAO_MOD,      ONLY : AD, ALBD, BXHEIGHT, SUNCOS
       USE ERROR_MOD,    ONLY : DEBUG_MSG
       USE LOGICAL_MOD,  ONLY : LPRT
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
+      !------------------------------------------------------
+      ! Prior to 2/22/05:
+      !USE PRESSURE_MOD, ONLY : GET_PEDGE
+      !------------------------------------------------------
       USE TRACERID_MOD
-      
+
 #     include "CMN_SIZE" ! Size parameters
-#     include "CMN"      ! XTRA2
+!------------------------------------------------------------------
+! Prior to 2/22/05:
+!#     include "CMN"      ! XTRA2
+!------------------------------------------------------------------
 #     include "CMN_DIAG" ! ND44
 #     include "CMN_DEP"  ! IREG, ILAND, IUSE, etc.
+#     include "CMN_GCTM"
 
       ! Local variables
       LOGICAL, SAVE     :: FIRST = .TRUE.
@@ -308,73 +312,85 @@
       ENDIF
  
       ! Call METERO to obtain meterological fields (all 1-D arrays)
-      CALL METERO( CZ1, TC0, OBK, CFRAC, RADIAT, AZO, USTAR )
+      !-------------------------------------------------------------------
+      ! Prior to 2/22/05:
+      ! Now also get ZH and LSNOW from METERO (bmy, 2/22/05)
+      !CALL METERO( CZ1, TC0, OBK, CFRAC, RADIAT, AZO, USTAR )
+      !-------------------------------------------------------------------
+      CALL METERO( CZ1, TC0, OBK, CFRAC, RADIAT, AZO, USTAR, ZH, LSNOW )
 
       !=================================================================
       ! Compute mixing heights
       !=================================================================
-      
-      ! Compute mixing heights
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
 
-         ! Increment IJLOOP
-         IJLOOP        = ( (J-1) * IIPAR ) + I
-
-         ! Set logical LSNOW if snow and sea ice (ALBEDO > 0.4)
-         LSNOW(IJLOOP) = ( ALBD(I,J) > 0.4 )
-
-         ! Calculate height of mixed layer [m]
-         ZH(IJLOOP)    = 0.0d0
-         X25           = XTRA2(I,J)
-         LAYBOT        = INT(X25)
-           
-         ! Compute height of each level that is fully
-         ! included w/in the mixed layer [m]
-         DO L = 1, LAYBOT + 1
-            PL1        = GET_PEDGE(I,J,L)
-            PL2        = GET_PEDGE(I,J,L+1)
-            HEIGHT(L)  = 2.9271d+01 * T(I,J,L) * LOG( PL1 / PL2 )
-         ENDDO
-
-         ! Sum the mixed layer height up to level LAYBOT [m]
-         DO M = 1, LAYBOT
-            ZH(IJLOOP) = ZH(IJLOOP) + HEIGHT(M)
-         ENDDO
-
-         ! For the level where the mixed layer ends, compute the
-         ! fractional height of that level w/in the mixed layer [m]
-         RESIDU        = X25 - LAYBOT
-         ZH(IJLOOP)    = ZH(IJLOOP) + RESIDU * HEIGHT(LAYBOT+1)
-
-         ! If the PBL top occurs in the first level, then set 
-         ! RESIDU=1 to apply drydep throughout the surface layer
-         IF ( LAYBOT == 0 ) RESIDU = 1d0
-
-         ! Loop up to tropopause
-         DO L = 1, LLTROP
-
-            ! Test for level ...
-            IF ( L <= LAYBOT ) THEN
-
-               ! Below PBL top: apply drydep frequency to entire level
-               PBLFRAC(I,J,L) = 1d0
-
-            ELSE IF ( L == LAYBOT+1 ) THEN
-
-               ! Layer LAYBOT+1 is where PBL top occurs.  Only apply drydep
-               ! frequency to the fraction of this level below PBL top.
-               PBLFRAC(I,J,L) = RESIDU
-
-            ELSE
-
-               ! Above PBL top: there is no drydep
-               PBLFRAC(I,J,L) = 0d0
-
-            ENDIF
-         ENDDO
-      ENDDO
-      ENDDO
+!-----------------------------------------------------------------------------
+! Prior to 2/22/05:
+! Now use PBL functions from "pbl_mix_mod.f" so that we don't have to
+! recompute the boundary layer height.  Also get ZH & LSNOW from
+! subroutine METERO, above. (bmy, 2/22/05)     
+!      ! Compute mixing heights
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!
+!         ! Increment IJLOOP
+!         IJLOOP        = ( (J-1) * IIPAR ) + I
+!
+!         ! Set logical LSNOW if snow and sea ice (ALBEDO > 0.4)
+!         LSNOW(IJLOOP) = ( ALBD(I,J) > 0.4 )
+!
+!         ! Calculate height of mixed layer [m]
+!         ZH(IJLOOP)    = 0.0d0
+!         X25           = XTRA2(I,J)
+!         LAYBOT        = INT(X25)
+!           
+!         ! Compute height of each level that is fully
+!         ! included w/in the mixed layer [m]
+!         DO L = 1, LAYBOT + 1
+!            PL1        = GET_PEDGE(I,J,L)
+!            PL2        = GET_PEDGE(I,J,L+1)
+!            HEIGHT(L)  = 2.9271d+01 * T(I,J,L) * LOG( PL1 / PL2 )
+!         ENDDO
+!
+!         ! Sum the mixed layer height up to level LAYBOT [m]
+!         DO M = 1, LAYBOT
+!            ZH(IJLOOP) = ZH(IJLOOP) + HEIGHT(M)
+!         ENDDO
+!
+!         ! For the level where the mixed layer ends, compute the
+!         ! fractional height of that level w/in the mixed layer [m]
+!         RESIDU        = X25 - LAYBOT
+!         ZH(IJLOOP)    = ZH(IJLOOP) + RESIDU * HEIGHT(LAYBOT+1)
+!
+!         ! If the PBL top occurs in the first level, then set 
+!         ! RESIDU=1 to apply drydep throughout the surface layer
+!         IF ( LAYBOT == 0 ) RESIDU = 1d0
+!
+!         ! Loop up to tropopause
+!         DO L = 1, LLTROP
+!
+!            ! Test for level ...
+!            IF ( L <= LAYBOT ) THEN
+!
+!               ! Below PBL top: apply drydep frequency to entire level
+!               PBLFRACI,J,L) = 1d0
+!
+!            ELSE IF ( L == LAYBOT+1 ) THEN
+!
+!               ! Layer LAYBOT+1 is where PBL top occurs.  Only apply drydep
+!               ! frequency to the fraction of this level below PBL top.
+!               PBLFRAC(I,J,L) = RESIDU
+!
+!            ELSE
+!
+!               ! Above PBL top: there is no drydep
+!               PBLFRAC(I,J,L) = 0d0
+!
+!            ENDIF
+!         ENDDO
+!
+!      ENDDO
+!      ENDDO
+!-----------------------------------------------------------------------------
 
       !=================================================================
       ! Call DEPVEL to compute dry deposition velocities [m/s]
@@ -385,16 +401,29 @@
       !=================================================================
       ! Compute dry deposition frequencies; archive diagnostics
       !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, IJLOOP, THIK, N, NN, NDVZ, DVZ )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! 1-D grid box index
          IJLOOP  = ( (J-1) * IIPAR ) + I
 
+         !---------------------------------------------------------------
+         ! Prior to 2/22/05:
+         ! This is essentially the same computation as BXHEIGHT.  So
+         ! we can use BXHEIGHT instead of recomputing.  This will be
+         ! slightly different...but the difference is in the constant
+         ! of 29.271 vs. 29.2857 in the constant (bmy, 2/22/05)
+         !! THIK = thickness of surface layer [m]
+         !P1      = GET_PEDGE(I,J,1)
+         !P2      = GET_PEDGE(I,J,2)
+         !THIK    = 2.9271d+01 * T(I,J,1) * LOG( P1 / P2 )    
+         !---------------------------------------------------------------
+
          ! THIK = thickness of surface layer [m]
-         P1      = GET_PEDGE(I,J,1)
-         P2      = GET_PEDGE(I,J,2)
-         THIK    = 2.9271d+01 * T(I,J,1) * LOG( P1 / P2 )    
+         THIK    = BXHEIGHT(I,J,1)
 
          ! Now we calculate drydep throughout the entire PBL.  
          ! Make sure that the PBL depth is greater than or equal 
@@ -427,6 +456,7 @@
          ENDDO
       ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_DRYDEP: after dry dep' )
@@ -506,21 +536,24 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE METERO( CZ1, TC0, OBK, CFRAC, RADIAT, AZO, USTR )
+      SUBROUTINE METERO( CZ1,    TC0, OBK,  CFRAC, 
+     &                   RADIAT, AZO, USTR, ZH,   LSNOW )
 !
 !******************************************************************************
 !  Subroutine METERO calculates meteorological constants needed for the      
-!  dry deposition velocity module. (lwh, gmg, djj, 1989, 1994; bmy, 7/20/04)
+!  dry deposition velocity module. (lwh, gmg, djj, 1989, 1994; bmy, 2/22/05)
 !
 !  Arguments as Output:
 !  ============================================================================
-!  (1 ) CZ1    (REAL*8) : Midpoint height of first model level   [m]
-!  (2 ) TC0    (REAL*8) : Array for grid box surface temperature [K]
-!  (3 ) OBK    (REAL*8) : Array for the Monin-Obhukov length     [m]
-!  (4 ) CFRAC  (REAL*8) : Array for the column cloud fraction    [unitless]
-!  (5 ) RADIAT (REAL*8) : Array for the solar radiation @ ground [W/mw]
-!  (6 ) AZO    (REAL*8) : Array for the roughness heights        [m]
-!  (7 ) USTR   (REAL*8) : Array for the friction velocity        [m/s]
+!  (1 ) CZ1    (REAL*8)  : Midpoint height of first model level    [m]
+!  (2 ) TC0    (REAL*8)  : Array for grid box surface temperature  [K]
+!  (3 ) OBK    (REAL*8)  : Array for the Monin-Obhukov length      [m]
+!  (4 ) CFRAC  (REAL*8)  : Array for the column cloud fraction     [unitless]
+!  (5 ) RADIAT (REAL*8)  : Array for the solar radiation @ ground  [W/m2]
+!  (6 ) AZO    (REAL*8)  : Array for the roughness heights         [m]
+!  (7 ) USTR   (REAL*8)  : Array for the friction velocity         [m/s]
+!  (8 ) ZH     (REAL*8)  : Height of the mixed layer (aka PBL)     [m]
+!  (9 ) LSNOW  (LOGICAL) : Flag to denote ice & snow (ALBEDO < 0.4)
 !
 !  References (see full citations above):
 !  ============================================================================
@@ -538,55 +571,77 @@
 !         via the arg list. (bmy, 12/9/03)
 !  (3 ) Now use explicit formula for IJLOOP to allow parallelization
 !        (bmy, 7/20/04)
+!  (4 ) Now compute ZH and LSNOW here instead of w/in DO_DRYDEP.  Parallelize
+!        DO-loops.  Now use BXHEIGHT from "dao_mod.f" instead of computing 
+!        the thickness of the 1st level here.  Remove reference to 
+!        "pressure_mod.f".  Remove reference to T from "dao_mod.f".  Now
+!        reference ALBD from "dao_mod.f" (bmy, 2/22/05)
 !******************************************************************************
 !
       ! References to F90 modules 
-      USE DAO_MOD,      ONLY : AIRDEN, CLDFRC, HFLUX, RADSWG,
-     &                         T,      TS,     USTAR, Z0
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
+      USE DAO_MOD,      ONLY : AIRDEN, ALBD,  BXHEIGHT, 
+     &                         CLDFRC, HFLUX, RADSWG, 
+     &                         TS,     USTAR, Z0
+      !-------------------------------------------------------------
+      ! Prior to 2/22/05:
+      !USE PRESSURE_MOD, ONLY : GET_PEDGE
+      !-------------------------------------------------------------
+      USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_m
                                   
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_GCTM"  ! Physical constants
+#     include "CMN_SIZE"     ! Size parameters
+#     include "CMN_GCTM"     ! Physical constants
 
       ! Arguments
-      REAL*8, INTENT(OUT) :: CZ1(MAXIJ)
-      REAL*8, INTENT(OUT) :: TC0(MAXIJ)
-      REAL*8, INTENT(OUT) :: OBK(MAXIJ)
-      REAL*8, INTENT(OUT) :: CFRAC(MAXIJ)
-      REAL*8, INTENT(OUT) :: RADIAT(MAXIJ)
-      REAL*8, INTENT(OUT) :: AZO(MAXIJ)
-      REAL*8, INTENT(OUT) :: USTR(MAXIJ)
+      LOGICAL, INTENT(OUT)  :: LSNOW(MAXIJ)
+      REAL*8,  INTENT(OUT)  :: CZ1(MAXIJ)
+      REAL*8,  INTENT(OUT)  :: TC0(MAXIJ)
+      REAL*8,  INTENT(OUT)  :: OBK(MAXIJ)
+      REAL*8,  INTENT(OUT)  :: CFRAC(MAXIJ)
+      REAL*8,  INTENT(OUT)  :: RADIAT(MAXIJ)
+      REAL*8,  INTENT(OUT)  :: AZO(MAXIJ)
+      REAL*8,  INTENT(OUT)  :: USTR(MAXIJ)
+      REAL*8,  INTENT(OUT)  :: ZH(MAXIJ)
 
       ! Local variables
-      INTEGER             :: I,  J,  IJLOOP
-      REAL*8              :: P1, P2, THIK, NUM, DEN
-      REAL*8, PARAMETER   :: KAPPA = 0.4d0 
-      REAL*8, PARAMETER   :: CP    = 1000.0d0
+      INTEGER               :: I,  J,  IJLOOP
+      REAL*8                :: P1, P2, THIK, NUM, DEN
+      REAL*8, PARAMETER     :: KAPPA = 0.4d0 
+      REAL*8, PARAMETER     :: CP    = 1000.0d0
 
       ! External functions
-      REAL*8, EXTERNAL    :: XLTMMP
+      REAL*8, EXTERNAL      :: XLTMMP
 
       !=================================================================
       ! METERO begins here!
       !=================================================================
 
       ! Loop over surface grid boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, IJLOOP, THIK, NUM, DEN )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! 1-D grid box index
          IJLOOP = ( (J-1) * IIPAR ) + I
 
+         !-------------------------------------------------------------------
+         ! Prior to 2/22/05:
+         ! This is essentially the same computation as BXHEIGHT.  So
+         ! we can use BXHEIGHT instead of recomputing.  This will be
+         ! slightly different...but the difference is in the constant
+         ! of 29.271 vs. 29.2857 in the constant (bmy, 2/22/05)
+         !! THIK = thickness of surface layer [m]         
+         !P1     = GET_PEDGE(I,J,1)
+         !P2     = GET_PEDGE(I,J,2)
+         !THIK   = 2.9271d+01 * T(I,J,1) * LOG( P1 / P2 )
+         !-------------------------------------------------------------------
+
          ! THIK = thickness of layer 1 [m]
-         P1     = GET_PEDGE(I,J,1)
-         P2     = GET_PEDGE(I,J,2)
-         THIK   = 2.9271d+01 * T(I,J,1) * LOG( P1 / P2 )
+         THIK        = BXHEIGHT(I,J,1)
 
          ! Midpoint height of first model level [m]
          CZ1(IJLOOP) = THIK / 2.0d0
-
-         ! Surface temperature [K]
-         TC0(IJLOOP) = TS(I,J)
 
          !==============================================================
          ! The direct computation of the Monin-Obhukov length is:
@@ -626,14 +681,24 @@
          ! Column cloud fraction [unitless]
          CFRAC(IJLOOP)  = CLDFRC(I,J)
 
+         ! Set logical LSNOW if snow and sea ice (ALBEDO > 0.4)
+         LSNOW(IJLOOP)  = ( ALBD(I,J) > 0.4 )
+
          ! Solar insolation @ ground [W/m2]
          RADIAT(IJLOOP) = RADSWG(I,J) 
+
+         ! Surface temperature [K]
+         TC0(IJLOOP)    = TS(I,J)
          
          ! Friction velocity [m/s]
          USTR(IJLOOP)   = USTAR(I,J)
 
+         ! Mixed layer depth [m]
+         ZH(IJLOOP)     = GET_PBL_TOP_m( I, J )
+
       ENDDO
       ENDDO
+!$OMP END PARALLEL DO
       
       ! Return to calling program
       END SUBROUTINE METERO
@@ -667,23 +732,29 @@
 !        parallel DO loop for efficiency. (rjp, bmy, 7/21/03)
 !  (10) Now bracket AD44 with a !$OMP CRITICAL block in order to avoid
 !        multiple threads writing to the same element (bmy, 3/24/04)
+!  (11) Now reference GET_FRAC_UNDER_PBLTOP and GET_PBL_MAX_L from 
+!        "pbl_mix_mod.f".  Remove reference to CMN. (bmy, 2/22/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE COMODE_MOD, ONLY : CSPEC, JLOP, VOLUME
-      USE DIAG_MOD,   ONLY : AD44
-      USE ERROR_MOD,  ONLY : ERROR_STOP
-      USE GRID_MOD,   ONLY : GET_AREA_CM2
-      USE TIME_MOD,   ONLY : GET_TS_CHEM
+      USE COMODE_MOD,  ONLY : CSPEC, JLOP, VOLUME
+      USE DIAG_MOD,    ONLY : AD44
+      USE ERROR_MOD,   ONLY : ERROR_STOP
+      USE GRID_MOD,    ONLY : GET_AREA_CM2
+      USE PBL_MIX_MOD, ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
+      USE TIME_MOD,    ONLY : GET_TS_CHEM
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN"        ! STT, many other variables
+!------------------------------------------------------------------------
+! Prior to 2/22/05:
+!#     include "CMN"        ! STT, many other variables
+!------------------------------------------------------------------------
 #     include "CMN_DIAG"   ! Diagnostic switches & arrays
 #     include "comode.h"   ! CSPEC
 
       ! Local variables
       INTEGER :: I, J, JJ, JLOOP, L, L_PBLTOP, N, NK, NN
-      REAL*8  :: DTCHEM, TDRYFX, AREA_CM2(JJPAR)
+      REAL*8  :: DTCHEM, PBL_MAX, TDRYFX, AREA_CM2(JJPAR)
 
       !=================================================================
       ! DRYFLX begins here!
@@ -694,10 +765,13 @@
 
       ! There is only drydep in the surface layer, which
       ! is accounted for in the "URBAN" chemistry slot
-      NCS    = NCSURBAN
+      NCS     = NCSURBAN
 
       ! Chemistry timestep [s]
-      DTCHEM = GET_TS_CHEM() * 60d0
+      DTCHEM  = GET_TS_CHEM() * 60d0
+
+      ! Highest extent of the PBL [model layers]
+      PBL_MAX = GET_PBL_MAX_L()
 
       !=================================================================
       ! ND44 diagnostic: Dry deposition flux [molec/cm2/s]
@@ -736,12 +810,22 @@
          ENDIF
 
          ! Loop over grid boxes
-         DO L = 1, LLTROP
+         !----------------------------------------------------
+         ! Prior to 2/22/05:
+         ! Only loop up to highest PBL level (bmy, 2/22/05)
+         !DO L = 1, LLTROP
+         !----------------------------------------------------
+         DO L = 1, PBL_MAX
          DO J = 1, JJPAR
          DO I = 1, IIPAR
          
             ! Only deal w/ boxes w/in the boundary layer
-            IF ( PBLFRAC(I,J,L) > 0d0 ) THEN
+            !-----------------------------------------------------------------
+            ! Prior to 2/22/05:
+            ! Now use GET_FRAC_UNDER_PBLTOP instead of PBLFRAC (bmy, 2/22/05)
+            !IF ( PBLFRAC(I,J,L) > 0d0 ) THEN
+            !-----------------------------------------------------------------
+            IF ( GET_FRAC_UNDER_PBLTOP( I, J, L ) > 0d0 ) THEN
 
                ! 1-D grid box index for CSPEC & VOLUME
                JLOOP = JLOP(I,J,L)
@@ -807,117 +891,227 @@
       USE DIAG_MOD,    ONLY : AD44
       USE ERROR_MOD,   ONLY : ERROR_STOP, GEOS_CHEM_STOP
       USE LOGICAL_MOD, ONLY : LDRYD
+      USE PBL_MIX_MOD, ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
       USE TIME_MOD,    ONLY : GET_TS_CHEM
       USE TRACER_MOD,  ONLY : STT
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! XTRA2
-#     include "CMN_DIAG"  ! Diagnostic switches & arrays
+!---------------------------------------------------------------------------
+! Prior to 2/22/05:
+!#     include "CMN"       ! XTRA2
+!---------------------------------------------------------------------------
+#     include "CMN_DIAG"  ! ND44
 #     include "CMN_DEP"   ! Dry deposition variables
 
       ! Local variables
-      INTEGER             :: I, J, L, L_PBLTOP, N, NN
-      REAL*8              :: DTCHEM, FRACLOST, AMT_LOST, RESIDU
+      !--------------------------------------------------------------
+      ! Prior to 2/22/05:
+      !INTEGER             :: I, J, L, L_PBLTOP, N, NN
+      !REAL*8              :: DTCHEM, FRACLOST, AMT_LOST, RESIDU
+      !--------------------------------------------------------------
+      INTEGER             :: I, J, L, PBL_MAX, N, NN
+      REAL*8              :: DTCHEM, FRACLOST, F_UNDER_TOP, AMT_LOST
 
       !=================================================================
       ! DRYFLXRnPbBe begins here!!
       !=================================================================
 
+      ! Return if drydep is turned off
+      IF ( .not. LDRYD ) RETURN
+
       ! Chemistry timestep in seconds
-      DTCHEM = GET_TS_CHEM() * 60d0
+      DTCHEM  = GET_TS_CHEM() * 60d0
 
-      ! Only do the following if DRYDEP is turned on
-      IF ( LDRYD ) THEN
+      ! Maximum extent of the PBL [model layers]
+      PBL_MAX = GET_PBL_MAX_L() 
 
-         ! Loop over drydep species
-         DO N = 1, NUMDEP
+!------------------------------------------------------------------------------
+! Prior to 2/22/05:
+! Reorganize and parallelize for computational expediency
+!      ! Only do the following if DRYDEP is turned on
+!      IF ( LDRYD ) THEN
+!
+!         ! Loop over drydep species
+!         DO N = 1, NUMDEP
+!
+!            ! Tracer index in STT that corresponds to drydep species N
+!            ! If invalid, then cycle
+!            NN = NTRAIND(N)
+!            IF ( NN == 0 ) CYCLE
+!
+!            ! Loop over surface grid boxes
+!            DO J = 1, JJPAR
+!            DO I = 1, IIPAR
+!
+!               ! L_PBLTOP is the level where the PBL top occurs
+!               L_PBLTOP = INT( XTRA2(I,J) ) + 1
+!               
+!               ! Loop up to the PBL top
+!               DO L = 1, L_PBLTOP
+!
+!                  ! FRACLOST is the fraction of tracer lost.  PBLFRAC is 
+!                  ! the fraction of layer L located totally w/in the PBL.
+!                  FRACLOST = DEPSAV(I,J,N) * PBLFRAC(I,J,L) * DTCHEM
+!
+!#if defined( GEOS_1 ) || defined( GEOS_STRAT )
+!                  !=====================================================
+!                  ! GEOS-1 or GEOS-STRAT:
+!                  ! ---------------------
+!                  ! (a) If FRACLOST >= 1 or FRACLOST < 0, stop the run
+!                  ! (b) If not, then subtract drydep losses from STT
+!                  !=====================================================
+!                  IF ( FRACLOST >= 1 .or. FRACLOST < 0 ) THEN
+!                     WRITE(6,*) 'DEPSAV*DTCHEM >=1 or <0 : '
+!                     WRITE(6,*) 'DEPSAV*DTCHEM   = ', FRACLOST
+!                     WRITE(6,*) 'DEPSAV(I,J,1,N) = ', DEPSAV(I,J,N)
+!                     WRITE(6,*) 'DTCHEM (s)      = ', DTCHEM
+!                     WRITE(6,*) 'I,J             = ', I, J
+!                     WRITE(6,*) 'STOP in dryflxRnPbBe.f'
+!                     CALL GEOS_CHEM_STOP
+!                  ENDIF
+!
+!                  ! AMT_LOST = amount of species lost to drydep [kg]
+!                  AMT_LOST = STT(I,J,L,NN) * FRACLOST
+!
+!                  ! ND44 diagnostic: drydep flux [kg/s]
+!                  IF ( ND44 > 0 ) THEN
+!                     AD44(I,J,N,1) = AD44(I,J,N,1) + ( AMT_LOST/DTCHEM )
+!                  ENDIF
+!
+!                  ! Subtract AMT_LOST from the STT array [kg]
+!                  STT(I,J,L,NN) = STT(I,J,L,NN) - AMT_LOST
+!
+!#elif defined( GEOS_3 ) || defined( GEOS_4 )
+!                  !=====================================================
+!                  ! GEOS-3 or GEOS-4:
+!                  ! -----------------
+!                  ! (a) If FRACLOST < 0, then stop the run.
+!                  !
+!                  ! (b) If FRACLOST > 1, use an exponential loss to 
+!                  !     avoid negative tracer
+!                  !
+!                  ! (c) If FRACLOST is in the range (0-1), then use the
+!                  !     the regular formula (STT * FRACLOST) to compute
+!                  !     loss from dry deposition.
+!                  !=====================================================
+!
+!                  ! Stop the run on negative FRACLOST!
+!                  IF ( FRACLOST < 0 ) THEN
+!                     CALL ERROR_STOP( 'FRACLOST < 0', 'dryflxRnPbBe' )
+!                  ENDIF
+!
+!                  ! AMT_LOST = amount of tracer lost to drydep [kg]
+!                  IF ( FRACLOST > 1 ) THEN
+!                     AMT_LOST = STT(I,J,L,NN) * ( 1d0 - EXP(-FRACLOST) )
+!                  ELSE
+!                     AMT_LOST = STT(I,J,L,NN) * FRACLOST
+!                  ENDIF
+!
+!                  ! ND44 diagnostic: drydep flux [kg/s]
+!                  IF ( ND44 > 0 ) THEN
+!                     AD44(I,J,N,1) = AD44(I,J,N,1) + ( AMT_LOST/DTCHEM ) 
+!                  ENDIF
+!
+!                  ! Subtract AMT_LOST from the STT array [kg]
+!                  STT(I,J,L,NN)  = STT(I,J,L,NN) - AMT_LOST
+!#endif
+!               ENDDO
+!            ENDDO
+!            ENDDO
+!         ENDDO
+!      ENDIF
+!------------------------------------------------------------------------------
 
-            ! Tracer index in STT that corresponds to drydep species N
-            ! If invalid, then cycle
-            NN = NTRAIND(N)
-            IF ( NN == 0 ) CYCLE
+      ! Loop over drydep species
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, N, NN, F_UNDER_TOP, FRACLOST, AMT_LOST )
+      DO N = 1, NUMDEP
 
-            ! Loop over surface grid boxes
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
+         ! Tracer index in STT that corresponds to drydep species N
+         ! If invalid, then cycle
+         NN = NTRAIND(N)
+         IF ( NN == 0 ) CYCLE
 
-               ! L_PBLTOP is the level where the PBL top occurs
-               L_PBLTOP = INT( XTRA2(I,J) ) + 1
+         ! Loop over grid boxes
+         DO L = 1, PBL_MAX
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            
+            ! Fraction of box (I,J,L) under PBL top [unitless]
+            F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
 
-               ! Loop up to the PBL top
-               DO L = 1, L_PBLTOP
-
-                  ! FRACLOST is the fraction of tracer lost.  PBLFRAC is 
-                  ! the fraction of layer L located totally w/in the PBL.
-                  FRACLOST = DEPSAV(I,J,N) * PBLFRAC(I,J,L) * DTCHEM
+            ! FRACLOST is the fraction of tracer lost.  PBLFRAC is 
+            ! the fraction of layer L located totally w/in the PBL.
+            FRACLOST = DEPSAV(I,J,N) * F_UNDER_TOP * DTCHEM
 
 #if defined( GEOS_1 ) || defined( GEOS_STRAT )
-                  !=====================================================
-                  ! GEOS-1 or GEOS-STRAT:
-                  ! ---------------------
-                  ! (a) If FRACLOST >= 1 or FRACLOST < 0, stop the run
-                  ! (b) If not, then subtract drydep losses from STT
-                  !=====================================================
-                  IF ( FRACLOST >= 1 .or. FRACLOST < 0 ) THEN
-                     WRITE(6,*) 'DEPSAV*DTCHEM >=1 or <0 : '
-                     WRITE(6,*) 'DEPSAV*DTCHEM   = ', FRACLOST
-                     WRITE(6,*) 'DEPSAV(I,J,1,N) = ', DEPSAV(I,J,N)
-                     WRITE(6,*) 'DTCHEM (s)      = ', DTCHEM
-                     WRITE(6,*) 'I,J             = ', I, J
-                     WRITE(6,*) 'STOP in dryflxRnPbBe.f'
-                     CALL GEOS_CHEM_STOP
-                  ENDIF
+            !===========================================================
+            ! GEOS-1 or GEOS-STRAT:
+            ! ---------------------
+            ! (a) If FRACLOST >= 1 or FRACLOST < 0, stop the run
+            ! (b) If not, then subtract drydep losses from STT
+            !===========================================================
+            IF ( FRACLOST >= 1 .or. FRACLOST < 0 ) THEN
+               WRITE(6,*) 'DEPSAV*DTCHEM >=1 or <0 : '
+               WRITE(6,*) 'DEPSAV*DTCHEM   = ', FRACLOST
+               WRITE(6,*) 'DEPSAV(I,J,1,N) = ', DEPSAV(I,J,N)
+               WRITE(6,*) 'DTCHEM (s)      = ', DTCHEM
+               WRITE(6,*) 'I,J             = ', I, J
+               WRITE(6,*) 'STOP in dryflxRnPbBe.f'
+               CALL GEOS_CHEM_STOP
+            ENDIF
 
-                  ! AMT_LOST = amount of species lost to drydep [kg]
-                  AMT_LOST = STT(I,J,L,NN) * FRACLOST
+            ! AMT_LOST = amount of species lost to drydep [kg]
+            AMT_LOST = STT(I,J,L,NN) * FRACLOST
 
-                  ! ND44 diagnostic: drydep flux [kg/s]
-                  IF ( ND44 > 0 ) THEN
-                     AD44(I,J,N,1) = AD44(I,J,N,1) + ( AMT_LOST/DTCHEM )
-                  ENDIF
+            ! ND44 diagnostic: drydep flux [kg/s]
+            IF ( ND44 > 0 ) THEN
+               AD44(I,J,N,1) = AD44(I,J,N,1) + ( AMT_LOST/DTCHEM )
+            ENDIF
 
-                  ! Subtract AMT_LOST from the STT array [kg]
-                  STT(I,J,L,NN) = STT(I,J,L,NN) - AMT_LOST
+            ! Subtract AMT_LOST from the STT array [kg]
+            STT(I,J,L,NN) = STT(I,J,L,NN) - AMT_LOST
 
 #elif defined( GEOS_3 ) || defined( GEOS_4 )
-                  !=====================================================
-                  ! GEOS-3 or GEOS-4:
-                  ! -----------------
-                  ! (a) If FRACLOST < 0, then stop the run.
-                  !
-                  ! (b) If FRACLOST > 1, use an exponential loss to 
-                  !     avoid negative tracer
-                  !
-                  ! (c) If FRACLOST is in the range (0-1), then use the
-                  !     the regular formula (STT * FRACLOST) to compute
-                  !     loss from dry deposition.
-                  !=====================================================
+            !===========================================================
+            ! GEOS-3 or GEOS-4:
+            ! -----------------
+            ! (a) If FRACLOST < 0, then stop the run.
+            !
+            ! (b) If FRACLOST > 1, use an exponential loss to 
+            !     avoid negative tracer
+            !
+            ! (c) If FRACLOST is in the range (0-1), then use the
+            !     the regular formula (STT * FRACLOST) to compute
+            !     loss from dry deposition.
+            !=====================================================
 
-                  ! Stop the run on negative FRACLOST!
-                  IF ( FRACLOST < 0 ) THEN
-                     CALL ERROR_STOP( 'FRACLOST < 0', 'dryflxRnPbBe' )
-                  ENDIF
+            ! Stop the run on negative FRACLOST!
+            IF ( FRACLOST < 0 ) THEN
+               CALL ERROR_STOP( 'FRACLOST < 0', 'dryflxRnPbBe' )
+            ENDIF
 
-                  ! AMT_LOST = amount of tracer lost to drydep [kg]
-                  IF ( FRACLOST > 1 ) THEN
-                     AMT_LOST = STT(I,J,L,NN) * ( 1d0 - EXP(-FRACLOST) )
-                  ELSE
-                     AMT_LOST = STT(I,J,L,NN) * FRACLOST
-                  ENDIF
+            ! AMT_LOST = amount of tracer lost to drydep [kg]
+            IF ( FRACLOST > 1 ) THEN
+               AMT_LOST = STT(I,J,L,NN) * ( 1d0 - EXP(-FRACLOST) )
+            ELSE
+               AMT_LOST = STT(I,J,L,NN) * FRACLOST
+            ENDIF
 
-                  ! ND44 diagnostic: drydep flux [kg/s]
-                  IF ( ND44 > 0 ) THEN
-                     AD44(I,J,N,1) = AD44(I,J,N,1) + ( AMT_LOST/DTCHEM ) 
-                  ENDIF
+            ! ND44 diagnostic: drydep flux [kg/s]
+            IF ( ND44 > 0 ) THEN
+               AD44(I,J,N,1) = AD44(I,J,N,1) + ( AMT_LOST/DTCHEM ) 
+            ENDIF
 
-                  ! Subtract AMT_LOST from the STT array [kg]
-                  STT(I,J,L,NN)  = STT(I,J,L,NN) - AMT_LOST
+            ! Subtract AMT_LOST from the STT array [kg]
+            STT(I,J,L,NN)  = STT(I,J,L,NN) - AMT_LOST
 #endif
-               ENDDO
-            ENDDO
-            ENDDO
          ENDDO
-      ENDIF
+         ENDDO
+         ENDDO
+!!$OMP END PARALLEL DO
+      ENDDO
 
       ! Return to calling program
       END SUBROUTINE DRYFLXRnPbBe
@@ -1131,6 +1325,18 @@ C*
 C*    Begin section for computing deposition velocities           
 C*                                 
 C*                                 
+      ! Add parallel DO-loop (bmy, 2/22/05)
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( IJLOOP, CZ,     TEMPK,  TEMPC,  K,      VD     )
+!$OMP+PRIVATE( LDT,    RSURFC, C1,     XNU,    RT,     IOLSON )
+!$OMP+PRIVATE( II,     RI,     RLU,    RAC,    RGSS,   RGSO   )
+!$OMP+PRIVATE( RCLS,   RCLO,   RAD0,   RIX,    GFACT,  GFACI  )
+!$OMP+PRIVATE( RDC,    XMWH2O, RIXX,   RLUXX,  RGSX,   RCLX   )
+!$OMP+PRIVATE( DTMP1,  DTMP2,  DTMP3,  DTMP4,  VDS,    CZH    )
+!$OMP+PRIVATE( CKUSTR, REYNO,  CORR1,  CORR2,  Z0OBK,  RA     )
+!$OMP+PRIVATE( DUMMY1, DUMMY2, DUMMY3, DUMMY4, DAIR,   RB     )
+!$OMP+PRIVATE( C1X,    VK                                     )
       DO 560 IJLOOP =1,NPTS
 
 C** CZ is Altitude (m) at which deposition velocity is computed
@@ -1658,6 +1864,7 @@ C** Load array DVEL
             ! before returning to calling program (bmy, 4/16/00)
             ! Also call CLEANUP to deallocate arrays (bmy, 10/15/02)
             IF ( DVEL(IJLOOP,K) < 0d0 ) THEN
+!$OMP CRITICAL
                PRINT*, 'DEPVEL: Deposition velocity is negative!'
                PRINT*, 'Dep. Vel = ', DVEL(IJLOOP,K)
                PRINT*, 'Species  = ', K
@@ -1675,12 +1882,14 @@ C** Load array DVEL
                PRINT*, 'STOP in depvel.f!'
                CALL CLEANUP
                STOP
+!$OMP END CRITICAL
             ENDIF
 
             ! Now check for IEEE NaN (not-a-number) condition 
             ! before returning to calling program (bmy, 4/16/00)
             ! Also call CLEANUP to deallocate arrays (bmy, 10/15/02)
             IF ( IT_IS_NAN( DVEL(IJLOOP,K) ) ) THEN
+!$OMP CRITICAL
                PRINT*, 'DEPVEL: Deposition velocity is NaN!'
                PRINT*, 'Dep. Vel = ', DVEL(IJLOOP,K)
                PRINT*, 'Species  = ', K
@@ -1697,9 +1906,11 @@ C** Load array DVEL
                PRINT*, 'ZO       = ', ZO(IJLOOP)
                CALL CLEANUP
                STOP
+!$OMP END CRITICAL
             ENDIF
  550     CONTINUE
  560  CONTINUE
+!$OMP END PARALLEL DO
 
       ! Return to calling program
       END SUBROUTINE DEPVEL
@@ -2332,7 +2543,7 @@ C** Load array DVEL
 !
 !******************************************************************************
 !  Subroutine INIT_DRYDEP initializes certain variables for the GEOS-CHEM
-!  dry deposition subroutines. (bmy, 11/19/02, 1/6/05)
+!  dry deposition subroutines. (bmy, 11/19/02, 2/22/05)
 !
 !  NOTES:
 !  (1 ) Added N2O5 as a drydep tracer, w/ the same drydep velocity as
@@ -2346,6 +2557,7 @@ C** Load array DVEL
 !        SALA_REDGE_um, and SALC_REDGE_um from "tracer_mod.f" (bmy, 7/20/04)
 !  (5 ) Included Hg2, HgP tracers (eck, bmy, 12/14/04)
 !  (6 ) Included AS, AHS, LET, NH4aq, SO4aq tracers (cas, bmy, 1/6/05)
+!  (7 ) Remove reference to PBLFRAC array -- it's obsolete (bmy, 2/22/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2933,9 +3145,12 @@ C** Load array DVEL
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DEPSAV' )
       DEPSAV = 0d0
 
-      ALLOCATE( PBLFRAC( IIPAR, JJPAR, LLTROP ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBLFRAC' )
-      PBLFRAC = 0d0
+      !-----------------------------------------------------------------
+      ! Prior to 2/22/05:
+      !ALLOCATE( PBLFRAC( IIPAR, JJPAR, LLTROP ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBLFRAC' )
+      !PBLFRAC = 0d0
+      !-----------------------------------------------------------------
 
       !=================================================================
       ! Echo information to stdout
@@ -2959,12 +3174,23 @@ C** Load array DVEL
 !------------------------------------------------------------------------------
       
       SUBROUTINE CLEANUP_DRYDEP
-
+!
+!******************************************************************************
+!  Subroutine CLEANUP_DRYDEP deallocates all module arrays.
+!  (bmy, 2/27/03, 2/22/05)
+! 
+!  NOTES:
+!  (1 ) Remove reference to PBLFRAC array; it's obsolete (bmy, 2/22/05)
+!******************************************************************************
+!
       !=================================================================
       ! CLEANUP_DRYDEP begins here!
       !=================================================================
       IF ( ALLOCATED( DEPSAV  ) ) DEALLOCATE( DEPSAV  )
-      IF ( ALLOCATED( PBLFRAC ) ) DEALLOCATE( PBLFRAC )
+      !-----------------------------------------------------
+      ! Prior to 2/22/05:
+      !IF ( ALLOCATED( PBLFRAC ) ) DEALLOCATE( PBLFRAC )
+      !-----------------------------------------------------
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_DRYDEP

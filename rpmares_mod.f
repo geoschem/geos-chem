@@ -1,4 +1,4 @@
-! $Id: rpmares_mod.f,v 1.3 2004/12/02 21:48:39 bmy Exp $
+! $Id: rpmares_mod.f,v 1.4 2005/03/29 15:52:44 bmy Exp $
       MODULE RPMARES_MOD
 !
 !******************************************************************************
@@ -698,7 +698,12 @@
 
       ! Compute temperature dependent equilibrium constant for NH4NO3
       ! (from Mozurkewich, 1993)
-      K3 = EXP( 118.87  - 24084.0 / TEMP -  6.025  * LOG( TEMP ) )
+      !----------------------------------------------------------------------
+      ! Prior to 2/23/05:
+      ! Now force double-precision with D exponents (bmy, 2/23/05)
+      !K3 = EXP( 118.87  - 24084.0 / TEMP -  6.025  * LOG( TEMP ) )
+      !----------------------------------------------------------------------
+      K3 = EXP( 118.87d0  - 24084.0d0 / TEMP -  6.025d0  * LOG( TEMP ) )
 
       ! Convert to (micromoles/m**3) **2
       K3     = K3 * CONVT * CONVT
@@ -736,11 +741,22 @@
       !=================================================================
       IF ( RATIO .GT. 2.0d0 ) THEN
         
-         GAMAAN = 0.1
+         !--------------------------------------------------------------
+         ! Prior to 2/23/05:
+         ! Now force double-precision with D exponents (bmy, 2/23/05)
+         !GAMAAN = 0.1
+         !
+         !! Set up twice the sulfate for future use.
+         !TWOSO4 = 2.0 * TSO4
+         !XNO3   = 0.0
+         !YNH4   = TWOSO4
+         !--------------------------------------------------------------
+
+         GAMAAN = 0.1d0
 
          ! Set up twice the sulfate for future use.
-         TWOSO4 = 2.0 * TSO4
-         XNO3   = 0.0
+         TWOSO4 = 2.0d0 * TSO4
+         XNO3   = 0.0d0
          YNH4   = TWOSO4
 
          ! Treat different regimes of relative humidity
@@ -774,7 +790,12 @@
            ELSE
               AA   = 1.0d0
               BB   = -( TNO3 + FNH3 )
-              DISC = BB * BB - 4.0 * CC
+              !------------------------------------------------------------
+              ! Prior to 2/23/05:
+              ! Now force double-precision with D exponents (bmy, 2/23/05)
+              !DISC = BB * BB - 4.0 * CC
+              !------------------------------------------------------------
+              DISC = BB * BB - 4.0d0 * CC
 
               ! Check for complex roots of the quadratic
               ! set retain initial values of nitrate and RETURN 
@@ -813,13 +834,25 @@
            RETURN
         ENDIF                  ! WFRAC .LT. 0.2
 
+        !---------------------------------------------------------------------
+        ! Prior to 2/23/05:
+        ! Now force double-precision with D exponents (bmy, 2/23/05)
+        !! liquid phase containing completely neutralized sulfate and
+        !! some nitrate.  Solve for composition and quantity.
+        !MAS    = TSO4 / WH2O
+        !MAN    = 0.0
+        !XNO3   = 0.0
+        !YNH4   = TWOSO4
+        !PHIOLD = 1.0
+        !---------------------------------------------------------------------
+
         ! liquid phase containing completely neutralized sulfate and
         ! some nitrate.  Solve for composition and quantity.
         MAS    = TSO4 / WH2O
-        MAN    = 0.0
-        XNO3   = 0.0
+        MAN    = 0.0d0
+        XNO3   = 0.0d0
         YNH4   = TWOSO4
-        PHIOLD = 1.0
+        PHIOLD = 1.0d0
 
         !===============================================================
         ! Start loop for iteration
@@ -839,7 +872,12 @@
 
            ! This is a quadratic for XNO3 [MICROMOLES / M**3] 
            ! of nitrate in solution
-           DISC = BB * BB - 4.0 * AA * CC
+           !-------------------------------------------------------------
+           ! Prior to 2/23/05:
+           ! Now force double-precision with D exponents (bmy, 2/23/05)
+           !DISC = BB * BB - 4.0 * AA * CC
+           !-------------------------------------------------------------
+           DISC = BB * BB - 4.0d0 * AA * CC
 
            ! Check for complex roots, retain inital values and RETURN
            IF ( DISC .LT. 0.0 ) THEN
@@ -881,22 +919,42 @@
            ! ZSR relationship is used to set water levels. Units are
            ! 10**(-6) kg water/ (cubic meter of air).  The conversion 
            ! from micromoles to moles is done by the units of WH2O.
-           WH2O = 1.0E-3 * AH2O 
+           !-------------------------------------------------------------
+           ! Prior to 2/23/05:
+           ! Now force double precision w/ D exponents (bmy, 2/23/05)
+           !WH2O = 1.0E-3 * AH2O 
+           !-------------------------------------------------------------
+           WH2O = 1.0d-3 * AH2O 
 
            ! Ionic balance determines the ammonium in solution.
            MAN  = XNO3 / WH2O
            MAS  = TSO4 / WH2O
-           MNH4 = 2.0 * MAS + MAN
+           !-------------------------------------------------------------
+           ! Prior to 2/23/05:
+           ! Now force double-precision with D exponents (bmy, 2/23/05)
+           !MNH4 = 2.0 * MAS + MAN
+           !-------------------------------------------------------------
+           MNH4 = 2.0d0 * MAS + MAN
            YNH4 = MNH4 * WH2O
 
            ! MAS, MAN and MNH4 are the aqueous concentrations of sulfate, 
            ! nitrate, and ammonium in molal units (moles/(kg water) ).
-           STION = 3.0 * MAS + MAN
-           CAT( 1 ) = 0.0
+           !----------------------------------------------------------------
+           ! Prior to 2/23/05:
+           ! Now force double-precision with D exponents (bmy, 2/23/05)
+           !STION = 3.0 * MAS + MAN
+           !CAT( 1 ) = 0.0
+           !CAT( 2 ) = MNH4
+           !AN ( 1 ) = MAS
+           !AN ( 2 ) = MAN
+           !AN ( 3 ) = 0.0
+           !----------------------------------------------------------------
+           STION    = 3.0d0 * MAS + MAN
+           CAT( 1 ) = 0.0d0
            CAT( 2 ) = MNH4
            AN ( 1 ) = MAS
            AN ( 2 ) = MAN
-           AN ( 3 ) = 0.0
+           AN ( 3 ) = 0.0d0
            CALL ACTCOF ( CAT, AN, GAMS, MOLNU, PHIBAR )
            GAMAAN = GAMS( 2, 2 )
 
@@ -907,12 +965,22 @@
            ! Check to see if we have a solution
            IF ( EROR .LE. TOLER1 ) THEN
               ASO4  = TSO4 * MWSO4
-              AHSO4 = 0.0       ! [rjp, 12/12/01]
+              !-----------------------------------------------------------
+              ! Prior to 2/23/05:
+              ! Now force double-precision with D exponents (bmy, 2/23/05)
+              !AHSO4 = 0.0       ! [rjp, 12/12/01]
+              !-----------------------------------------------------------
+              AHSO4 = 0.0d0       ! [rjp, 12/12/01]
               ANO3  = XNO3 * MWNO3
               ANH4  = YNH4 * MWNH4
               GNO3  = MAX( FLOOR, ( TMASSHNO3  - ANO3 ) )
               GNH3  = MWNH3 * MAX( FLOOR, ( TNH4 - YNH4 ) )
-              AH2O  = 1000.0 * WH2O
+              !-----------------------------------------------------------
+              ! Prior to 2/23/05:
+              ! Now force double-precision with D exponents (bmy, 2/23/05)
+              !AH2O  = 1000.0 * WH2O
+              !-----------------------------------------------------------
+              AH2O  = 1000.0d0 * WH2O
               RETURN
            ENDIF
 
@@ -1033,7 +1101,12 @@
 
             ! molality of nitrate ion
             MNA   = RKNA * TNO3 / ( HPLUS + RKNWET ) 
-            MNA   = MAX( 0.0, MNA )
+            !-------------------------------------------------------------
+            ! Prior to 2/23/05:
+            ! Now force double-precision with D exponents (bmy, 2/23/05)
+            !MNA   = MAX( 0.0, MNA )
+            !-------------------------------------------------------------
+            MNA   = MAX( 0.0d0, MNA )
             MNA   = MIN( MNA, TNO3 / WH2O )
             XNO3  = MNA * WH2O
             ANO3  = MNA * WH2O * MWNO3

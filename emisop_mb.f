@@ -1,9 +1,9 @@
-! $Id: emisop_mb.f,v 1.4 2004/03/10 15:08:55 bmy Exp $      
+! $Id: emisop_mb.f,v 1.5 2005/03/29 15:52:42 bmy Exp $      
       FUNCTION EMISOP_MB( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL )
 !
 !******************************************************************************
 !  Subroutine EMISOP_MB computes METHYL BUTENOL emissions in units
-!  of [atoms C/box/step]. (bdf, bmy, 8/2/01, 3/5/04)
+!  of [atoms C/box/step]. (bdf, bmy, 8/2/01, 3/15/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -34,6 +34,9 @@
 !        "dao_mod.f" instead of referencing CFRAC from "CMN_DEP".  Now 
 !        remove reference to CMN_DEP. (bmy, 12/9/03)
 !  (5 ) Now scale ISOP emissions to 400 Tg C/yr for GEOS-4 (bmy, 3/5/04)
+!  (6 ) Now force ISOP totals to be the same for GEOS-3 and GEOS-4 met fields
+!        for the year 2001.  This will facilitate cross-model intercomparison.
+!        (jal, bmy, 3/15/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -134,19 +137,27 @@
 
 #if   defined( GEOS_3 )
 
-      ! GEOS-3 meteorology results in 579 Tg C/yr from biogenic ISOP.
-      ! Compute ISOP from MBO based on 400 Tg C/yr from biogenic ISOP, 
-      ! which is what we get from GEOS-STRAT (mje, bdf, djj, 9/10/02)
+      ! GEOS-3 meteorology results in 579 Tg C/yr from ISOP.  Scale 
+      ! this down to 400 Tg C/yr, which is what we get from GEOS-STRAT 
+      ! (mje, djj, bmy, 8/26/02)  
+      !
+      ! NOTE: This actually produces more like 341 Tg for 2001 GEOS-3 
+      !       met fields, but that is OK (jal, bmy, 3/15/05)
       EMISOP_MB = EMISOP_MB * ( 400d0 / 579d0 )
 
 #else defined( GEOS_4 )
 
-      ! GEOS-4 2003 meteorology results in 443 Tg C/yr from ISOP.
-      ! Scale this down to 400 Tg C/yr, which is what we get from 
-      ! GEOS-STRAT.  This will be replaced soon. (jal, bmy, 3/5/04)
-      EMISOP_MB = EMISOP_MB * ( 400d0 / 443d0 )
+      ! Original GEOS-4 scaling produced 443 Tg C/yr w/ 2003 "V3" met 
+      ! fields.  However we have since switched to GEOS-4 "V4" met fields 
+      ! and need to rescale the ISOP total.  A recent run with GEOS-4 "V4"
+      ! met fields for 2001 produced 443 Tg C/yr.  We need to force the
+      ! total to be the same as for GEOS-3, for comparison purposes.
+      ! Therefore apply a second scale factor so that we get 341 Tg C/yr
+      ! of ISOP for GEOS-4 "V4" met fields for 2001. (bmy, 3/15/05)
+      EMISOP_MB = EMISOP_MB * ( 400d0      / 443d0      )
+      EMISOP_MB = EMISOP_MB * ( 341.2376d0 / 442.7354d0 )
 
-#endif
+#endif 
 
       ! Return to calling program
       END FUNCTION EMISOP_MB

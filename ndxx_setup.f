@@ -1,9 +1,9 @@
-! $Id: ndxx_setup.f,v 1.16 2005/02/10 19:53:27 bmy Exp $
+! $Id: ndxx_setup.f,v 1.17 2005/03/29 15:52:43 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
 !  NDXX_SETUP dynamically allocates memory for certain diagnostic arrays that 
-!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 1/21/05)
+!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 3/24/05)
 !
 !  This allows us to reduce the amount of memory that needs to be declared 
 !  globally.  We only allocate memory for arrays if the corresponding 
@@ -111,6 +111,9 @@
 !        AD03 array for mercury simulation.  Now move ND03 diagnostics into
 !        a separate module.  Remove TCOBOX reference, it's obsolete.
 !        (cas, sas, bmy, 1/21/05)
+!  (53) Now remove references to AD41 & AFTTOT.  Now call SETUP_PLANEFLIGHT 
+!        for non-full-chemistry runs in main.f -- this will allow it to look 
+!        for flight files for each day (bmy, 3/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -141,10 +144,6 @@
       !=================================================================
       LD01 = 1
       LD02 = 1
-      !--------------------
-      ! Prior to 1/21/05:
-      !LD03 = 1
-      !--------------------
       LD05 = 1
       LD07 = 1
       LD12 = 1
@@ -256,61 +255,6 @@
          ALLOCATE( AD02( IIPAR, JJPAR, LD02, N_TRACERS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD02' )
       ENDIF
-
-      !-----------------------------------------------------------------------
-      ! Prior to 1/21/05:
-      ! This is now obsolete (bmy, 1/21/05)
-      !!=================================================================
-      !! ND03: Kr85 prod/loss
-      !!=================================================================
-      !IF ( ND03 > 0 ) THEN 
-      !   !LD03 = MIN( ND03, LLPAR )
-      !   
-      !   !--------------------------------------------------------------
-      !   ! Prior to 12/7/04:
-      !   ! Kr85 was never really implemented.  Comment out for now
-      !   ! (eck, bmy, 12/7/04)
-      !   !ALLOCATE( AD03( IIPAR, JJPAR, LD03, PD03 ), STAT=AS )
-      !   !IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03' )
-      !   !
-      !   !! Also need to turn on ND25 N/S flux diagnostic
-      !   !ND25 = LLPAR
-      !   !--------------------------------------------------------------
-      !
-      !   ALLOCATE( AD03_Hg0_an( IIPAR, JJPAR ), STAT=AS )
-      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg0_an' )
-      !   
-      !   ALLOCATE( AD03_Hg0_aq( IIPAR, JJPAR ), STAT=AS )
-      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg0_aq' )
-      !   
-      !   ALLOCATE( AD03_Hg0_oc( IIPAR, JJPAR ), STAT=AS )
-      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg0_oc' )
-      !   
-      !   ALLOCATE( AD03_Hg0_ln( IIPAR, JJPAR ), STAT=AS )
-      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg0_ln' )
-      !   
-      !   ALLOCATE( AD03_Hg0_nt( IIPAR, JJPAR ), STAT=AS )
-      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg0_nt' ) 
-      !   
-      !   ALLOCATE( AD03_Hg2_an( IIPAR, JJPAR ), STAT=AS )
-      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_an' )
-      !   
-      !   ALLOCATE( AD03_Hg2_aq( IIPAR, JJPAR ), STAT=AS )
-      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_aq' )
-      !   
-      !   ALLOCATE( AD03_HgP_an( IIPAR, JJPAR ), STAT=AS )
-      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_HgP_an' )
-      !
-      !   ALLOCATE( AD03_Hg2_Hg0( IIPAR, JJPAR, LD03 ), STAT=AS )
-      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_Hg0' )
-      !
-      !   ALLOCATE( AD03_Hg2_OH( IIPAR, JJPAR, LD03 ), STAT=AS )
-      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_OH' )
-      !
-      !   ALLOCATE( AD03_Hg2_O3( IIPAR, JJPAR, LD03 ), STAT=AS )
-      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_O3' )
-      !ENDIF
-      !-----------------------------------------------------------------------
 
       !=================================================================
       ! ND04: Free diagnostic
@@ -775,35 +719,45 @@
          ENDIF
       ENDIF
 
-      !=================================================================
-      ! ND40: Plane flight track diagnostic
+      !----------------------------------------------------------------------
+      ! Prior to 3/23/05:
+      ! Now call SETUP_PLANEFLIGHT for non-full-chemistry runs in
+      ! main.f -- this will allow it to look for flight files for
+      ! each day (bmy, 3/24/05)
+      !!=================================================================
+      !! ND40: Plane flight track diagnostic
+      !!
+      !! NOTE: For SMVGEAR chemistry, we first have to read "chem.dat"
+      !!       before initializing the plane flight diagnostic.  Call
+      !!       routine SETUP_PLANEFLIGHT from "chemdr.f" in that case.
+      !!=================================================================
+      !IF ( ND40 > 0 .and. ( .not. ITS_A_FULLCHEM_SIM() ) ) THEN
+      !   CALL SETUP_PLANEFLIGHT
+      !ENDIF
+      !----------------------------------------------------------------------
+
+      !------------------------------------------------------------------------
+      ! Prior to 2/17/05:
+      ! ND41 diagnostics are now bundled into "diag41_mod.f" (bmy, 2/17/05)
+      !!=================================================================
+      !! ND41: PM (1200-1600 LT) boundary layer height [layers]
+      !!       --> uses AD41 array (allocatable)
+      !!=================================================================
+      !IF ( ND41 > 0 ) THEN
       !
-      ! NOTE: For SMVGEAR chemistry, we first have to read "chem.dat"
-      !       before initializing the plane flight diagnostic.  Call
-      !       routine SETUP_PLANEFLIGHT from "chemdr.f" in that case.
-      !=================================================================
-      IF ( ND40 > 0 .and. ( .not. ITS_A_FULLCHEM_SIM() ) ) THEN
-         CALL SETUP_PLANEFLIGHT
-      ENDIF
-
-      !=================================================================
-      ! ND41: PM (1200-1600 LT) boundary layer height [layers]
-      !       --> uses AD41 array (allocatable)
-      !=================================================================
-      IF ( ND41 > 0 ) THEN
-
-         ! Accumulating diagnostic array
-         ALLOCATE( AD41( IIPAR, JJPAR, PD41 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD41' )
-
-         ! Locations where local time is between 1 and 4 PM 
-         ALLOCATE( AFTTOT( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AFTTOT' )
-
-         ! SAVENO2 is not used for now...
-         !ALLOCATE( SAVENO2( IIPAR, JJPAR, PD41 ), STAT=AS )
-         !IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD41' )
-      ENDIF
+      !   ! Accumulating diagnostic array
+      !   ALLOCATE( AD41( IIPAR, JJPAR, PD41 ), STAT=AS )
+      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD41' )
+      !
+      !   ! Locations where local time is between 1 and 4 PM 
+      !   ALLOCATE( AFTTOT( IIPAR, JJPAR ), STAT=AS )
+      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'AFTTOT' )
+      !
+      !   ! SAVENO2 is not used for now...
+      !   !ALLOCATE( SAVENO2( IIPAR, JJPAR, PD41 ), STAT=AS )
+      !   !IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD41' )
+      !ENDIF
+      !------------------------------------------------------------------------
 
       !=================================================================
       ! ND42: Free diagnostic
@@ -931,19 +885,6 @@
          ALLOCATE( AD47( IIPAR, JJPAR, LD47, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD47' )
       ENDIF
-
-      !-----------------------------------------------------------------------
-      ! Prior to 1/21/05:
-      ! This is now obsolete (bmy, 1/21/05)
-      !!=================================================================
-      !! ND48: Station timeseries diagnostics (also see diag48.f)
-      !!       --> uses TCOBOX array (allocatable)
-      !!=================================================================
-      !IF ( ND48 > 0 ) THEN
-      !   ALLOCATE( TCOBOX( MAXACC, NNSTA ), STAT=AS )
-      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOBOX' )
-      !ENDIF        
-      !-----------------------------------------------------------------------
 
       !=================================================================
       ! ND52 - ND54: Free diagnostics

@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.19 2005/02/10 19:53:24 bmy Exp $
+! $Id: diag3.f,v 1.20 2005/03/29 15:52:40 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out diagnostics to the BINARY format punch file 
-!  (bmy, bey, mgs, rvm, 5/27/99, 1/21/05)
+!  (bmy, bey, mgs, rvm, 5/27/99, 2/17/05)
 !
 !  NOTES: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
@@ -51,6 +51,7 @@
 !  (57) Now print out extra ND21 diagnostics for crystalline sulfur tracers.  
 !        Also now save total oceanic mass of Hg0 and Hg2.  Now call 
 !        WRITE_DIAG03 from "diag03_mod.f" (bmy, 1/21/05)
+!  (58) Now call WRITE_DIAG41 from "diag41_mod.f" (bmy, 2/17/05)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -60,6 +61,7 @@
       USE DAO_MOD,     ONLY : LWI
       USE DIAG_MOD
       USE DIAG03_MOD,  ONLY : ND03, WRITE_DIAG03
+      USE DIAG41_MOD,  ONLY : ND41, WRITE_DIAG41
       USE DIAG_PL_MOD, ONLY : AD65
       USE DRYDEP_MOD,  ONLY : NUMDEP, NTRAIND
       USE FILE_MOD,    ONLY : IU_BPCH
@@ -1974,46 +1976,55 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD39) )
          ENDDO
       ENDIF
+!------------------------------------------------------------------------------
+! Prior to 2/15/04
+!!
+!!******************************************************************************
+!!  ND40: Free diagnostic
+!!
+!!  ND41: Afternoon PBL depth (between 1200 and 1600 Local Time)
+!!
+!!   #  Field    : Description                 : Units     : Scale factor
+!!  --------------------------------------------------------------------------
+!!  (1) PBLDEPTH : Afternoon PBL heights       : m         : AFTTOT
+!!
+!!  NOTES:
+!!  (1) Bug fix: write one level to binary punch file (bmy, 12/12/00)
+!!******************************************************************************
+!!
+!      IF ( ND41 > 0 ) THEN 
+!         CATEGORY  = 'PBLDEPTH'
+!         SCALE_TMP = FLOAT( AFTTOT ) + 1d-20 
+!
+!         DO M = 1, TMAX(41)
+!            N = TINDEX(41,M)
+!            IF ( N > PD41 ) CYCLE
+!            NN = N
+!               
+!            ! Select the proper unit string
+!            SELECT CASE ( N ) 
+!               CASE ( 1 )
+!                  UNIT = 'm'
+!               CASE ( 2 )
+!                  UNIT = 'level'
+!            END SELECT
+!                     
+!            ARRAY(:,:,1) = AD41(:,:,N) / SCALE_TMP
+!
+!            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+!     &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
+!     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
+!     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+!     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+!         ENDDO
+!      ENDIF   
+!------------------------------------------------------------------------------
 !
 !******************************************************************************
-!  ND40: Free diagnostic
-!
-!  ND41: Afternoon PBL depth (between 1200 and 1600 Local Time)
-!
-!   #  Field    : Description                 : Units     : Scale factor
-!  --------------------------------------------------------------------------
-!  (1) PBLDEPTH : Afternoon PBL heights       : m         : AFTTOT
-!
-!  NOTES:
-!  (1) Bug fix: write one level to binary punch file (bmy, 12/12/00)
+!  ND41: Afternoon boundary layer heights
 !******************************************************************************
 !
-      IF ( ND41 > 0 ) THEN 
-         CATEGORY  = 'PBLDEPTH'
-         SCALE_TMP = FLOAT( AFTTOT ) + 1d-20 
-
-         DO M = 1, TMAX(41)
-            N = TINDEX(41,M)
-            IF ( N > PD41 ) CYCLE
-            NN = N
-               
-            ! Select the proper unit string
-            SELECT CASE ( N ) 
-               CASE ( 1 )
-                  UNIT = 'm'
-               CASE ( 2 )
-                  UNIT = 'level'
-            END SELECT
-                     
-            ARRAY(:,:,1) = AD41(:,:,N) / SCALE_TMP
-
-            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     1,        IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
-         ENDDO
-      ENDIF   
+      IF ( ND41 > 0 ) CALL WRITE_DIAG41
 !
 !******************************************************************************
 !  ND42: Free diagnostic as of 11/24/99

@@ -1,36 +1,37 @@
-! $Id: planeflight_mod.f,v 1.11 2005/02/10 19:53:27 bmy Exp $
+! $Id: planeflight_mod.f,v 1.12 2005/03/29 15:52:43 bmy Exp $
       MODULE PLANEFLIGHT_MOD
 !
 !******************************************************************************
 !  Module PLANEFLIGHT_MOD contains variables and routines which are used to
 !  "fly" a plane through the GEOS-CHEM model simulation.  This is useful for
 !  comparing model results with aircraft observations. 
-!  (mje, bmy, 7/30/02, 1/7/05)
+!  (mje, bmy, 7/30/02, 3/25/05)
 !
 !  Module Variables:
 !  ============================================================================
 !  (1 ) MAXVARS     (INTEGER  ) : Maximum # of variables allowed
 !  (2 ) MAXPOINTS   (INTEGER  ) : Maximum # of flight track points allowed
-!  (3 ) MAXRO2      (INTEGER  ) : Maximum # of RO2 constituents allowed
-!  (4 ) NPOINTS     (INTEGER  ) : Number of flight track points 
-!  (5 ) PPOINT      (INTEGER  ) : Pointer to last measured output
-!  (6 ) PDATE       (REAL*4   ) : Array of dates     at each flight point
-!  (7 ) PTIME       (REAL*4   ) : Array of times     at each flight point
-!  (8 ) PTAU        (REAL*4   ) : Array of TAU's     at each flight point
-!  (9 ) PLAT        (REAL*4   ) : Array of latitude  at each flight point
-!  (10) PLON        REAL*4   ) : Array of longitude at each flight point
-!  (11) PPRESS      (REAL*4   ) : Array of pressure  at each flight point
-!  (12) PTYPE       (CHARACTER) : Array of ID'#S     at each flight point
-!  (13) NPVAR       (INTEGER  ) : # of var's to be saved at each flight point
-!  (14) PVAR        (INTEGER  ) : Array of variable indices
-!  (15) PNAME       (CHARACTER) : Array of variable names corresponding to PVAR
-!  (16) NPREAC      (INTEGER  ) : # of variables that are really SMVGEAR rxns
-!  (17) PREAC       (INTEGER  ) : Array of SMVGEAR rxn index numbers
-!  (18) PRRATE      (REAL*4   ) : Array of rxn rates for each entry in PREAC
-!  (19) NRO2        (INTEGER  ) : # number of RO2 constituents
-!  (20) PRO2        (INTEGER  ) : Array of SMVGEAR species that are RO2 const's
-!  (21) INFILENAME  (CHARACTER) : Name of input file defining the flight track
-!  (22) OUTFILENAME (CHARACTER) : Name of output file 
+!  (3 ) MAXREAC     (INTEGER  ) : Maximum # of SMVGEAR reactions allowed
+!  (4 ) MAXRO2      (INTEGER  ) : Maximum # of RO2 constituents allowed
+!  (5 ) NPOINTS     (INTEGER  ) : Number of flight track points 
+!  (6 ) PPOINT      (INTEGER  ) : Pointer to last measured output
+!  (7 ) PDATE       (REAL*4   ) : Array of dates     at each flight point
+!  (8 ) PTIME       (REAL*4   ) : Array of times     at each flight point
+!  (9 ) PTAU        (REAL*4   ) : Array of TAU's     at each flight point
+!  (10) PLAT        (REAL*4   ) : Array of latitude  at each flight point
+!  (11) PLON        (REAL*4   ) : Array of longitude at each flight point
+!  (12) PPRESS      (REAL*4   ) : Array of pressure  at each flight point
+!  (13) PTYPE       (CHARACTER) : Array of ID'#S     at each flight point
+!  (14) NPVAR       (INTEGER  ) : # of var's to be saved at each flight point
+!  (15) PVAR        (INTEGER  ) : Array of variable indices
+!  (16) PNAME       (CHARACTER) : Array of variable names corresponding to PVAR
+!  (17) NPREAC      (INTEGER  ) : # of variables that are really SMVGEAR rxns
+!  (18) PREAC       (INTEGER  ) : Array of SMVGEAR rxn index numbers
+!  (19) PRRATE      (REAL*4   ) : Array of rxn rates for each entry in PREAC
+!  (20) NRO2        (INTEGER  ) : # number of RO2 constituents
+!  (21) PRO2        (INTEGER  ) : Array of SMVGEAR species that are RO2 const's
+!  (22) INFILENAME  (CHARACTER) : Name of input file defining the flight track
+!  (23) OUTFILENAME (CHARACTER) : Name of output file 
 !
 !  Module Routines:
 !  ============================================================================
@@ -48,12 +49,12 @@
 !
 !  GEOS-CHEM modules referenced by biomass_mod.f
 !  ============================================================================
-!  (1 ) bpch2_mod.f    : Module containing routines for binary punch file I/O
-!  (2 ) error_mod.f    : Module containing NaN and other error check routines
-!  (3 ) file_mod.f     : Module containing file unit numbers and error checks
-!  (4 ) pressure_mod.f : Module containing routines to compute P(I,J,L)
-!  (5 ) time_mod.f     : Module containing routines to compute date & time
-!  (6 ) tracer_mod.f   : Module containing GEOS-CHEM tracer array STT etc.
+!  (1 ) bpch2_mod.f             : Module w/ routines for binary punch file I/O
+!  (2 ) error_mod.f             : Module w/ NaN and other error check routines
+!  (3 ) file_mod.f              : Module w/ file unit numbers and error checks
+!  (4 ) pressure_mod.f          : Module w/ routines to compute P(I,J,L)
+!  (5 ) time_mod.f              : Module w/ routines to compute date & time
+!  (6 ) tracer_mod.f            : Module w/ GEOS-CHEM tracer array STT etc.
 !
 !  NOTES:
 !  (1 ) Now references "pressure_mod.f" (dsa, bdf, bmy, 8/21/02)
@@ -73,6 +74,8 @@
 !        aerosol optical depths.  Bug fix in TEST_VALID. (bmy, 4/23/03)
 !  (11) Now references "tracer_mod.f" (bmy, 7/20/04)
 !  (12) Bug fix in READ_VARIABLES (1/7/05)
+!  (13) Modified the plane flight diagnostic so that it writes output files
+!        for each day where flight track files are defined. (bmy, 3/24/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -101,7 +104,8 @@
 
       ! Parameters
       INTEGER,           PARAMETER   :: MAXVARS   = 95
-      INTEGER,           PARAMETER   :: MAXPOINTS = 30000
+      INTEGER,           PARAMETER   :: MAXPOINTS = 10000
+      INTEGER,           PARAMETER   :: MAXREAC   = 50
       INTEGER,           PARAMETER   :: MAXRO2    = 20
 
       ! For specifying flight track points
@@ -134,8 +138,8 @@
       INTEGER                        :: PRO2(MAXRO2)
 
       ! Input/output file names
-      CHARACTER(LEN=255)             :: INFILENAME
-      CHARACTER(LEN=255)             :: OUTFILENAME
+      CHARACTER(LEN=255)             :: INFILENAME,  INF
+      CHARACTER(LEN=255)             :: OUTFILENAME, OUTF
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -149,7 +153,7 @@
 !******************************************************************************
 !  Subroutine SETUP_PLANEFLIGHT reads information from the input file in order
 !  to initialize the planeflight diagnostic.  Also calls INIT_PLANEFLIGHT
-!  to allocate and zero module arrays. (mje, bmy, 7/30/02, 4/26/04)
+!  to allocate and zero module arrays. (mje, bmy, 7/30/02, 3/24/05)
 !
 !  For SMVGEAR simulations, the call to SETUP_PLANEFLIGHT is made from routine
 !  "chemdr.f", after the "chem.dat" file is read.  This is necessary since
@@ -164,11 +168,15 @@
 !  (2 ) Add fancy output string (bmy, 4/26/04)
 !  (3 ) Now references GET_NYMD, GET_NHMS, and EXPAND_DATE from "time_mod.f".
 !        Now also replaces date & time tokens in the filenames. (bmy, 7/20/04)
+!  (4 ) Now references FILE_EXISTS from "file_mod.f".  Modified so that we
+!        check if a flight track file exists on each day.  Open file for 
+!        output on each day and write header. (bmy, 3/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE FILE_MOD, ONLY : IU_FILE,  IOERROR
-      USE TIME_MOD, ONLY : GET_NYMD, GET_NHMS, EXPAND_DATE
+      USE FILE_MOD,   ONLY : FILE_EXISTS, IOERROR,  IU_FILE, IU_PLANE
+      USE TIME_MOD,   ONLY : EXPAND_DATE, GET_NYMD, GET_NHMS
+      USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
 
       ! Local variables
       LOGICAL, SAVE      :: FIRST = .TRUE.
@@ -182,32 +190,73 @@
       ! SETUP_PLANEFLIGHT begins here!
       !=================================================================
 
-      ! Get date & time
-      NYMD = GET_NYMD()
-      NHMS = GET_NHMS()
+      ! Assume that there is flight data for today
+      DO_PF = .TRUE.
 
+      ! Get date & time
+      NYMD  = GET_NYMD()
+      NHMS  = GET_NHMS()
+
+      ! Copy file names to local variables
+      INF   = INFILENAME
+      OUTF  = OUTFILENAME
+
+      !-----------------------------------------------------------------
+      ! Prior to 3/24/05:
+      !! Replace any date & time tokens in the file names
+      !CALL EXPAND_DATE( INFILENAME,  NYMD, NHMS )
+      !CALL EXPAND_DATE( OUTFILENAME, NYMD, NHMS )
+      !-----------------------------------------------------------------
+      
       ! Replace any date & time tokens in the file names
-      CALL EXPAND_DATE( INFILENAME,  NYMD, NHMS )
-      CALL EXPAND_DATE( OUTFILENAME, NYMD, NHMS )
+      CALL EXPAND_DATE( INF,  NYMD, NHMS )
+      CALL EXPAND_DATE( OUTF, NYMD, NHMS )
+
+      ! If we can't find a flighttrack file for today's date, return
+      IF ( .not. FILE_EXISTS( INF ) ) THEN 
+         DO_PF = .FALSE.
+         RETURN
+      ENDIF
 
       ! Echo info
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       WRITE( 6, '(a)' ) 'P L A N E   F L I G H T   D I A G N O S T I C'
-      WRITE( 6, 100   ) TRIM( INFILENAME )
+      !---------------------------------------------------------------------
+      ! Prior to 3/24/05:
+      !WRITE( 6, 100   ) TRIM( INFILENAME )
+      !---------------------------------------------------------------------
+      WRITE( 6, 100   ) TRIM( INF )
  100  FORMAT( /, 'SETUP_PLANEFLIGHT: Reading ',a )
       WRITE( 6, '(a)' )  
 
-      ! Compute # of species and # of points, allocate arrays accordingly
-      IF ( FIRST ) THEN
-         CALL INIT_PLANEFLIGHT
-         FIRST = .FALSE.
+      !---------------------------------------------------------------------
+      ! Prior to 3/24/05:
+      !! Compute # of species and # of points, allocate arrays accordingly
+      !IF ( FIRST ) THEN
+      !   CALL INIT_PLANEFLIGHT
+      !   FIRST = .FALSE.
+      !ENDIF
+      !----------------------------------------------------------------------
+
+      ! Compute # of species and # of points & allocate arrays
+      CALL INIT_PLANEFLIGHT
+
+      ! Return if there are no flight track points for today
+      IF ( NPOINTS == 0 ) THEN
+         WRITE( 6, '(a)' ) 'No flight track found for today!'
+         DO_PF = .FALSE.
+         RETURN
       ENDIF
 
       !=================================================================
       ! Open file and read info
       !=================================================================
-      OPEN( IU_FILE, FILE=TRIM( INFILENAME ), IOSTAT=IOS )
-      IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'planesetup:1' )
+      !-----------------------------------------------------------------
+      ! Prior to 3/24/05:
+      !OPEN( IU_FILE, FILE=TRIM( INFILENAME ), IOSTAT=IOS )
+      !-----------------------------------------------------------------
+      OPEN( IU_FILE, FILE=TRIM( INF ), IOSTAT=IOS )
+      IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'setup_planeflight:1')
 
       ! Read variables to be output -- sort into PVAR array by type
       CALL READ_VARIABLES
@@ -225,9 +274,31 @@
       ! Find the species # for all components of RO2 (SMVGEAR only)
       !=================================================================
       CALL RO2_SETUP
-           
+    
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+
+      !=================================================================
+      ! Open today's plane.log file and write file header
+      !=================================================================
+
+      ! Close previously-opened file
+      CLOSE( IU_PLANE )
+
+      ! Open new file
+      OPEN( IU_PLANE, FILE=TRIM( OUTF ), STATUS='UNKNOWN', IOSTAT=IOS )
+
+      ! Error check
+      IF ( IOS /= 0 ) THEN
+         CALL IOERROR( IOS, IU_PLANE, 'setup_planeflight:1' )
+      ENDIF
+
+      ! Write header
+      WRITE( IU_PLANE, 110 ) 'POINT', 'TYPE', 'YYYYMMDD', 'HHMM',
+     &     'LAT', 'LON', 'PRESS', ( PNAME(I), I=1,NPVAR )
+
+      ! FORMAT string
+ 110  FORMAT( A5,X,A5,X,A8,X,A4,X,A7,X,A7,X,A7,X,95(a10,x) )
 
       ! Return to calling program
       END SUBROUTINE SETUP_PLANEFLIGHT
@@ -370,8 +441,12 @@
                ! Skip if not SMVGEAR!
                IF ( IS_FULLCHEM ) THEN 
                
-                  ! Extract tracer # from the string
-                  READ( LINE(5:14), '(i10)' ) NUM
+                  !--------------------------------------------
+                  ! Prior to 3/24/05:
+                  ! This is a problem if the string is _O1D
+                  !! Extract tracer # from the string
+                  !READ( LINE(5:14), '(i10)' ) NUM
+                  !--------------------------------------------
 
                   ! Increment rxn counter
                   R = R + 1
@@ -397,6 +472,9 @@
                      ! which is stored in NOLDFNEW.  We assume only one 
                      ! chemistry scheme. (mje, bmy, 8/1/03)
                      !==================================================
+
+                     ! Extract tracer # from the string
+                     READ( LINE(5:14), '(i10)' ) NUM
 
                      ! Initialize
                      PVAR(N)  = -999
@@ -691,7 +769,7 @@
 !
 !******************************************************************************
 !  Subroutine PLANEFLIGHT saves concentrations to disk at locations 
-!  corresponding to a flight track (mje, bmy, 7/8/02, 7/20/04)
+!  corresponding to a flight track (mje, bmy, 7/8/02, 3/25/04)
 !
 !  NOTES:
 !  (1 ) Now reference AD from "dao_mod.f".  Now references GEOS_CHEM_STOP from
@@ -705,6 +783,7 @@
 !        GET_PEDGE from "pressure_mod.f".  Added CASEs for surface pressure,
 !        UWND, VWND to the CASE statement (bmy, 4/23/04)
 !  (6 ) Now references STT & TCVV from "tracer_mod.f" (bmy, 7/20/04)
+!  (7 ) Now return if DO_PF = .FALSE. (bmy, 3/24/05)
 !******************************************************************************
 !
       ! Reference to F90 modules 
@@ -733,6 +812,9 @@
       !=================================================================
       ! PLANEFLIGHT begins here!
       !=================================================================
+
+      ! Return if there is no flighttrack data for today
+      IF ( .not. DO_PF ) RETURN
 
       ! Loop over all the locations that have not yet been found
       DO M = PPOINT, NPOINTS
@@ -1056,7 +1138,7 @@
 !
 !******************************************************************************
 !  Subroutine WRITE_VARS_TO_FILE writes the values of all the variables for
-!  a given flight track point to the output file. (mje, bmy, 7/8/02)
+!  a given flight track point to the output file. (mje, bmy, 7/8/02. 3/25/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1066,6 +1148,8 @@
 !  NOTES:
 !  (1 ) The max line length for output seems to be 1024 characters.  Adjust
 !        MAXVARS accordingly so that we don't exceed this. (bmy, 7/8/02)
+!  (2 ) Now do not write file header -- this is now done in subroutine
+!        SETUP_PLANEFLIGHT at the start of each day (bmy, 3/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1081,46 +1165,53 @@
 
       !=================================================================
       ! WRITE_VARS_TO_FILE begins here!
-      !
-      ! Open the file on the first call and write header line
       !=================================================================
-      IF ( FIRST ) THEN
+!-----------------------------------------------------------------------------
+! Prior to 3/24/05:
+! Header is written in SETUP_PLANEFLIGHT, when file is opened (bmy, 3/24/05
+!      ! Open the file on the first call and write header line
+!      !=================================================================
+!      IF ( FIRST ) THEN
+!
+!         ! Open file
+!         OPEN( IU_PLANE,         FILE=TRIM( OUTFILENAME ), 
+!     &         STATUS='UNKNOWN', IOSTAT=IOS )
+!
+!         ! Error check
+!         IF ( IOS /= 0 ) THEN
+!            CALL IOERROR( IOS, IU_PLANE, 'write_vars_to_file:1' )
+!         ENDIF
+!
+!         ! Write header
+!         WRITE( IU_PLANE, 100 ) 'POINT', 'TYPE', 'YYYYMMDD', 'HHMM',
+!     &        'LAT', 'LON', 'PRESS', ( PNAME(I), I=1,NPVAR )
+!
+! 100     FORMAT( A5,X,A5,X,A8,X,A4,X,A7,X,A7,X,A7,X,95(a10,x) )
+!         
+!         ! Error check
+!         IF ( IOS /= 0 ) THEN
+!            CALL IOERROR( IOS, IU_PLANE, 'write_vars_to_file:2' )
+!         ENDIF
+!
+!         ! Reset FIRST flag
+!         FIRST = .FALSE.
+!      ENDIF
+!
+!      !=================================================================
+!      ! Write data to file
+!      !=================================================================
+!-----------------------------------------------------------------------------
 
-         ! Open file
-         OPEN( IU_PLANE,         FILE=TRIM( OUTFILENAME ), 
-     &         STATUS='UNKNOWN', IOSTAT=IOS )
-
-         ! Error check
-         IF ( IOS /= 0 ) THEN
-            CALL IOERROR( IOS, IU_PLANE, 'write_vars_to_file:1' )
-         ENDIF
-
-         ! Write header
-         WRITE( IU_PLANE, 100 ) 'POINT', 'TYPE', 'YYYYMMDD', 'HHMM',
-     &        'LAT', 'LON', 'PRESS', ( PNAME(I), I=1,NPVAR )
-
- 100     FORMAT( A5,X,A5,X,A8,X,A4,X,A7,X,A7,X,A7,X,95(a10,x) )
-         
-         ! Error check
-         IF ( IOS /= 0 ) THEN
-            CALL IOERROR( IOS, IU_PLANE, 'write_vars_to_file:2' )
-         ENDIF
-
-         ! Reset FIRST flag
-         FIRST = .FALSE.
-      ENDIF
-
-      !=================================================================
       ! Write data to file
-      !=================================================================
       WRITE( IU_PLANE, 110, IOSTAT=IOS ) 
      &     IND, PTYPE(IND), INT( PDATE(IND) ), INT( PTIME(IND) ),
      &     PLAT(IND), PLON(IND), PPRESS(IND), ( VARI(I), I=1,NPVAR )
       
+      ! Format string
  110  FORMAT(I5,X,A5,X,I8.8,X,I4.4,X,F7.2,X,F7.2,X,F7.2,X,95(es10.3,x))
 
       ! Error check
-      IF ( IOS /= 0 ) CALL IOERROR( IOS,IU_PLANE,'write_vars_to_file:3')
+      IF ( IOS /= 0 ) CALL IOERROR( IOS,IU_PLANE,'write_vars_to_file:1')
 
       ! Flush the file to disk
       CALL FLUSH( IU_PLANE )
@@ -1289,13 +1380,16 @@
 !******************************************************************************
 !  Subroutine INIT_PLANEFLIGHT reads the input file to compute the number
 !  of variables and flight track points to print out.  Also allocates all
-!  module arrays. (mje, bmy, 7/8/02, 10/15/02)
+!  module arrays. (mje, bmy, 7/8/02, 3/25/05)
 !
 !  NOTES:
 !  (1 ) Now reference GEOS_CHEM_STOP from "error_mod.f", which frees all
 !        allocated memory before stopping the run.  Also reference ALLOC_ERR
 !        from "error_mod.f" (bmy, 10/15/02)
 !  (2 ) Renamed PRATE to PRRATE to avoid conflict w/ SMVGEAR II (bmy, 4/1/03)
+!  (3 ) INIT_PLANEFLIGHT is now called each day but the arrays are only
+!        allocated once.  Arrays are now allocated to the maximum size.
+!        (bmy, 3/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1306,6 +1400,7 @@
 #     include "comode.h" ! ITLOOP
 
       ! Local variables 
+      LOGICAL            :: IS_INIT = .FALSE.
       INTEGER            :: N, AS, IOS
       CHARACTER(LEN=20)  :: LINE
 
@@ -1314,7 +1409,11 @@
       !=================================================================
 
       ! Open file 
-      OPEN( IU_FILE, FILE=TRIM( INFILENAME ), IOSTAT=IOS )
+      !-----------------------------------------------------------------
+      ! Prior to 3/25/05:
+      !OPEN( IU_FILE, FILE=TRIM( INFILENAME ), IOSTAT=IOS )
+      !-----------------------------------------------------------------
+      OPEN( IU_FILE, FILE=TRIM( INF ), IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'init_planeflight:1' )
 
       ! Read four lines of header
@@ -1392,12 +1491,21 @@
       ! Close file
       CLOSE( IU_FILE )
  
-      ! Make sure NPOINTS is at least 1
+      !---------------------------------------------------------------------
+      ! Prior to 3/25/05
+      !! Make sure NPOINTS is at least 1
+      !IF ( NPOINTS < 1 ) THEN
+      !   WRITE( 6, '(a)') 'NPOINTS=0!  No valid plane flight pts found!'
+      !   WRITE( 6, '(a)') 'STOP in INIT_PLANEFLIGHT (planeflight_mod.f)'
+      !   WRITE( 6, '(a)') REPEAT( '=', 79 )
+      !   CALL GEOS_CHEM_STOP
+      !ENDIF
+      !---------------------------------------------------------------------
+
+      ! If there are no flight-track points then just return
       IF ( NPOINTS < 1 ) THEN
-         WRITE( 6, '(a)') 'NPOINTS=0!  No valid plane flight pts found!'
-         WRITE( 6, '(a)') 'STOP in INIT_PLANEFLIGHT (planeflight_mod.f)'
-         WRITE( 6, '(a)') REPEAT( '=', 79 )
-         CALL GEOS_CHEM_STOP
+         DO_PF = .FALSE.
+         RETURN
       ENDIF
 
       ! Make sure NPOINTS is less than MAXPOINTS
@@ -1407,62 +1515,137 @@
          WRITE( 6, '(a)') REPEAT( '=', 79 )
          CALL GEOS_CHEM_STOP
       ENDIF
-
-      !=================================================================
-      ! Allocate and zero module arrays of size NPREAC
+         
+      !----------------------------------------------------------------------
+      ! Prior to 3/25/05:
+      ! We now need to dimension the arrays with their maximum sizes
+      ! since we don't know a-priori how many points each day will have
+      ! (bmy, 3/24/05)
+      !!=================================================================
+      !! Allocate and zero module arrays of size NPREAC
+      !!
+      !! If NPREAC=0, then allocate these arrays w/ 1 element in order 
+      !! to avoid allocation errors.  NPREAC can be zero if we did not
+      !! list any SMVGEAR rxns, or are doing another kind of simulation.
+      !!=================================================================
+      !ALLOCATE( PREAC( MAX( NPREAC, 1 ) ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREAC' )
+      !PREAC = 0
       !
-      ! If NPREAC=0, then allocate these arrays w/ 1 element in order 
-      ! to avoid allocation errors.  NPREAC can be zero if we did not
-      ! list any SMVGEAR rxns, or are doing another kind of simulation.
-      !=================================================================
-      ALLOCATE( PREAC( MAX( NPREAC, 1 ) ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREAC' )
-      PREAC = 0
+      !ALLOCATE( PRRATE( ITLOOP, MAX( NPREAC, 1 ) ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRRATE' )
+      !PRRATE = 0e0
+      !
+      !!=================================================================
+      !! Allocate and zero module arrays of size NPVAR
+      !!=================================================================
+      !ALLOCATE( PVAR( NPVAR ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'PVAR' )
+      !PVAR = 0
+      !
+      !ALLOCATE( PNAME( NPVAR ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'PNAMES' )
+      !PNAME = ''
+      !
+      !!=================================================================
+      !! Allocate and zero module arrays of size NPOINTS
+      !!=================================================================
+      !ALLOCATE( PTYPE( NPOINTS ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'PTYPE' )
+      !PTYPE = ''
+      !
+      !ALLOCATE( PDATE( NPOINTS ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'PDATE' )
+      !PDATE = 0e0
+      !
+      !ALLOCATE( PTIME( NPOINTS ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'PTIME' )
+      !PTIME = 0e0
+      !
+      !ALLOCATE( PTAU( NPOINTS ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'PTAU' )
+      !PTAU = 0e0
+      !
+      !ALLOCATE( PLAT( NPOINTS ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'PLAT' )
+      !PLAT = 0e0
+      !
+      !ALLOCATE( PLON( NPOINTS ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'PLON' )
+      !PLON = 0e0
+      !
+      !ALLOCATE( PPRESS( NPOINTS ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'PPRESS' )
+      !PPRESS = 0e0
+      !----------------------------------------------------------------------
 
-      ALLOCATE( PRRATE( ITLOOP, MAX( NPREAC, 1 ) ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRRATE' )
+      !=================================================================
+      ! Allocate arrays to maximum sizes
+      !
+      ! NOTE: To save space, NPREAC is the actual number of reactions
+      !       found.  We will worry about this later.  (bmy, 3/25/05)
+      !=================================================================
+      IF ( .not. IS_INIT ) THEN 
+
+         !-------------------------
+         ! Arrays of size NPREAC
+         !-------------------------
+         ALLOCATE( PREAC( MAX( NPREAC, 1 ) ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREAC' )
+
+         ALLOCATE( PRRATE( ITLOOP, MAX( NPREAC, 1 ) ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRRATE' )
+
+         !--------------------------
+         ! Arrays of size MAXVARS
+         !--------------------------
+         ALLOCATE( PVAR( MAXVARS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PVAR' )
+
+         ALLOCATE( PNAME( MAXVARS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PNAMES' )
+
+         !---------------------------
+         ! Arrays of size MAXPOINTS
+         !---------------------------
+         ALLOCATE( PTYPE( MAXPOINTS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PTYPE' )
+
+         ALLOCATE( PDATE( MAXPOINTS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PDATE' )
+
+         ALLOCATE( PTIME( MAXPOINTS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PTIME' )
+
+         ALLOCATE( PTAU( MAXPOINTS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PTAU' )
+         
+         ALLOCATE( PLAT( MAXPOINTS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PLAT' )
+
+         ALLOCATE( PLON( MAXPOINTS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PLON' )
+
+         ALLOCATE( PPRESS( MAXPOINTS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PPRESS' )
+
+         ! Reset IS_INIT flag
+         IS_INIT = .TRUE.
+      ENDIF
+
+      !=================================================================
+      ! Initialize arrays 
+      !=================================================================
+      PREAC  = 0
       PRRATE = 0e0
-
-      !=================================================================
-      ! Allocate and zero module arrays of size NPVAR
-      !=================================================================
-      ALLOCATE( PVAR( NPVAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PVAR' )
-      PVAR = 0
-
-      ALLOCATE( PNAME( NPVAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PNAMES' )
-      PNAME = ''
-
-      !=================================================================
-      ! Allocate and zero module arrays of size NPOINTS
-      !=================================================================
-      ALLOCATE( PTYPE( NPOINTS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PTYPE' )
-      PTYPE = ''
-
-      ALLOCATE( PDATE( NPOINTS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PDATE' )
-      PDATE = 0e0
-
-      ALLOCATE( PTIME( NPOINTS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PTIME' )
-      PTIME = 0e0
-
-      ALLOCATE( PTAU( NPOINTS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PTAU' )
-      PTAU = 0e0
-
-      ALLOCATE( PLAT( NPOINTS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PLAT' )
-      PLAT = 0e0
-
-      ALLOCATE( PLON( NPOINTS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PLON' )
-      PLON = 0e0
-
-      ALLOCATE( PPRESS( NPOINTS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PPRESS' )
+      PVAR   = 0
+      PNAME  = ''
+      PTYPE  = ''
+      PDATE  = 0e0
+      PTIME  = 0e0
+      PTAU   = 0e0
+      PLAT   = 0e0
+      PLON   = 0e0
       PPRESS = 0e0
 
       ! Return to calling program

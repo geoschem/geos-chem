@@ -1,10 +1,10 @@
-! $Id: gwet_read_mod.f,v 1.4 2004/12/02 21:48:37 bmy Exp $
+! $Id: gwet_read_mod.f,v 1.5 2005/03/29 15:52:42 bmy Exp $
       MODULE GWET_READ_MOD
 !
 !******************************************************************************
 !  Module GWET_READ_MOD contains routines that unzip, open, and 
 !  read the GEOS-CHEM GWET (avg 3-hour) met fields from disk. 
-!  (tdf, bmy, 3/30/04, 7/20/04)
+!  (tdf, bmy, 3/30/04, 3/23/05)
 !
 !  NOTE: GWET fields are included in GEOS-4 met data, so we only need this
 !        module to read GWET data from other GMAO data sets. (bmy, 3/30/04)
@@ -36,6 +36,7 @@
 !  (1 ) Adapted from "a3_read_mod.f" (tdf, rjp, 6/30/04)
 !  (2 ) Now references "directory_mod.f", "logical_mod.f", and 
 !        "unix_cmds_mod.f" (bmy, 7/20/04)
+!  (3 ) Now references FILE_EXISTS from "file_mod.f" (bmy, 3/23/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -256,7 +257,7 @@
 !
 !******************************************************************************
 !  Subroutine OPEN_gwet_FIELDS opens the A-3 met fields file for date NYMD 
-!  and time NHMS. (tdf, bmy, 3/30/04, 7/20/04)
+!  and time NHMS. (tdf, bmy, 3/30/04, 3/23/05)
 !  
 !  Arguments as Input:
 !  ===========================================================================
@@ -268,6 +269,8 @@
 !  (2 ) Now references "directory_mod.f" instead of CMN_SETUP.  Also now
 !        references LUNZIP from "logical_mod.f".  Also now prevents EXPAND_DATE
 !        from overwriting Y/M/D tokens in directory paths. (bmy, 7/20/04)
+!  (3 ) Now use FILE_EXISTS from "file_mod.f" to determine if file unit 
+!        IU_GWET refers to a valid file on disk (bmy, 3/23/05)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -275,7 +278,7 @@
       USE DIRECTORY_MOD
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE LOGICAL_MOD,  ONLY : LUNZIP
-      USE FILE_MOD,     ONLY : IU_GWET, IOERROR
+      USE FILE_MOD,     ONLY : IU_GWET, IOERROR, FILE_EXISTS
       USE TIME_MOD,     ONLY : EXPAND_DATE
 
 #     include "CMN_SIZE"  ! Size parameters
@@ -293,7 +296,7 @@
       CHARACTER(LEN=255)  :: PATH
 
       !=================================================================
-      ! OPEN_gwet_FIELDS begins here!
+      ! OPEN_GWET_FIELDS begins here!
       !=================================================================
 
       ! Open A-3 fields at the proper time, or on the first call
@@ -335,13 +338,19 @@
          ! Close previously opened A-3 file
          CLOSE( IU_GWET )
          
-         ! Make sure the file exists before we open it!
-         ! Maybe make this a function in ERROR_MOD (bmy, 6/23/03)
-         INQUIRE( IU_GWET, EXIST=IT_EXISTS )
-            
-         IF ( .not. IT_EXISTS ) THEN
+         !---------------------------------------------------------------
+         ! Prior to 3/23/05:
+         !! Make sure the file exists before we open it!
+         !! Maybe make this a function in ERROR_MOD (bmy, 6/23/03)
+         !INQUIRE( IU_GWET, EXIST=IT_EXISTS )
+         !   
+         !IF ( .not. IT_EXISTS ) THEN
+         !---------------------------------------------------------------
+
+         ! Make sure file unit is valid before we open the file
+         IF ( .not. FILE_EXISTS( IU_GWET ) ) THEN
             CALL ERROR_STOP( 'Could not find file!', 
-     &                       'OPEN_gwet_FIELDS (gwet_read_mod.f)' )
+     &                       'OPEN_GWET_FIELDS (gwet_read_mod.f)' )
          ENDIF
 
          ! Open the file

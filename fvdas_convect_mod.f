@@ -1,4 +1,4 @@
-! $Id: fvdas_convect_mod.f,v 1.6 2005/02/10 19:53:25 bmy Exp $
+! $Id: fvdas_convect_mod.f,v 1.7 2005/03/29 15:52:42 bmy Exp $
       MODULE FVDAS_CONVECT_MOD
 !
 !******************************************************************************
@@ -1049,7 +1049,7 @@
                ! the calling program) so we don't have to divide by
                ! it here, as is done above for ND38. (sas, bmy, 1/21/05)
                !========================================================
-               IF ( NN > 0 .and. NN == IDTHg2 ) THEN
+               IF ( M == IDTHg2 ) THEN
 
                   ! GEOS-CHEM lon & lat indices
                   II      = IDEEP(I)
@@ -1059,8 +1059,8 @@
                   AREA_M2 = GET_AREA_M2( JJ )
 
                   ! Hg2 wet-scavenged out of the column [kg]
-                  WET_Hg2 = MU(I,KP1) * AREA_M2      * 100d0         / 
-     &                      GRAV      * CONU(I,KP1)  * (1-FISG(I,K)) /
+                  WET_Hg2 = MU(I,KP1) * AREA_M2     * 100d0         / 
+     &                      GRAV      * CONU(I,KP1) * (1-FISG(I,K)) /
      &                      TCVV(M)   * DELT 
 
                   ! Pass to "ocean_mercury_mod.f"

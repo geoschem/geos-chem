@@ -1,4 +1,4 @@
-C $Id: optdepth_mod.f,v 1.1 2003/06/30 20:26:03 bmy Exp $
+C $Id: optdepth_mod.f,v 1.2 2005/03/29 15:52:43 bmy Exp $
       MODULE OPTDEPTH_MOD
 !
 !******************************************************************************
@@ -73,7 +73,7 @@ C $Id: optdepth_mod.f,v 1.1 2003/06/30 20:26:03 bmy Exp $
 !
 !  Reference:
 !  =======================================================================
-!     L. Takacs, A. Molod, T. Wang, "Technical Report Series on Global
+!  (1 ) L. Takacs, A. Molod, T. Wang, "Technical Report Series on Global
 !        Modeling and Data Assimilation": NASA Technical Memorandum
 !        104606, Vol 1., Sept. 1994, pp. 14-15.
 !

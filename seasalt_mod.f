@@ -1,11 +1,11 @@
-! $Id: seasalt_mod.f,v 1.4 2005/02/10 19:53:27 bmy Exp $
+! $Id: seasalt_mod.f,v 1.5 2005/03/29 15:52:44 bmy Exp $
       MODULE SEASALT_MOD
 !
 !******************************************************************************
 !  Module SEASALT_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline seasalt aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (bec, rjp, bmy, 6/22/00, 1/20/05)
+!  (bec, rjp, bmy, 6/22/00, 2/22/05)
 !
 !  Seasalt aerosol species: (1) Accumulation mode (0.1 -  2.5 um)  
 !                           (2) Coarse mode       (2.5 - 10.0 um)
@@ -33,16 +33,17 @@
 !
 !  GEOS-CHEM modules referenced by "seasalt_mod.f":
 !  ============================================================================
-!  (1 ) dao_mod.f          : Module containing arrays for GMAO met fields
-!  (2 ) diag_mod.f         : Module containing GEOS-CHEM diagnostic arrays
-!  (3 ) drydep_mod.f       : Module containing GEOS-CHEM drydep routines
-!  (4 ) error_mod.f        : Module containing I/O error and NaN check routines
-!  (5 ) grid_mod.f         : Module containing horizontal grid information
-!  (6 ) logical_mod.f      : Module containing GEOS-CHEM logical switches
-!  (7 ) pressure_mod.f     : Module containing routines to compute P(I,J,L)
-!  (8 ) time_mod.f         : Module containing routines to compute date & time
-!  (9 ) tracer_mod.f       : Module containing GEOS-CHEM tracer array STT etc.
-!  (10) tracerid_mod.f     : Module containing pointers to tracers & emissions 
+!  (1 ) dao_mod.f          : Module w/ arrays for GMAO met fields
+!  (2 ) diag_mod.f         : Module w/ GEOS-CHEM diagnostic arrays
+!  (3 ) drydep_mod.f       : Module w/ GEOS-CHEM drydep routines
+!  (4 ) error_mod.f        : Module w/ I/O error and NaN check routines
+!  (5 ) grid_mod.f         : Module w/ horizontal grid information
+!  (6 ) logical_mod.f      : Module w/ GEOS-CHEM logical switches
+!  (7 ) pbl_mix_mod.f      : Module w/ routines for PBL height & mixing
+!  (8 ) pressure_mod.f     : Module w/ routines to compute P(I,J,L)
+!  (9 ) time_mod.f         : Module w/ routines to compute date & time
+!  (10) tracer_mod.f       : Module w/ GEOS-CHEM tracer array STT etc.
+!  (11) tracerid_mod.f     : Module w/ pointers to tracers & emissions 
 !
 !  References:
 !  ============================================================================
@@ -59,6 +60,7 @@
 !        SS_SIZE, this has been replaced by SALA_REDGE_um and SALC_REDGE_um
 !        from "tracer_mod.f".  Increased NR_MAX to 200. (bmy, 7/20/04)
 !  (2 ) Added error check in EMISSSEASALT (bmy, 1/20/05)
+!  (3 ) Now references "pbl_mix_mod.f" (bmy, 2/22/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -244,11 +246,6 @@
 
       ! Sea salt density [kg/m3]
       DEN  = SS_DEN( N )
-
-      !-------------------------------------------------------
-      ! Sea salt radius [m]
-      !REFF = 0.5d-6 * ( SS_SIZE( N ) + SS_SIZE( N+1 ) )
-      !-------------------------------------------------------
 
       ! Seasalt effective radius (i.e. midpt of radius bin) [m]
       SELECT CASE ( N )
@@ -501,13 +498,14 @@
 !******************************************************************************
 !  Subroutine EMISSSEASALT is the interface between the GEOS-CHEM model
 !  and the SEASALT emissions routines in "seasalt_mod.f".
-!  (bec, rjp, bmy, 3/24/03, 1/26/05)
+!  (bec, rjp, bmy, 3/24/03, 2/22/05)
 !
 !  NOTES:
 !  (1 ) Now references LPRT from "logical_mod.f" and STT from "tracer_mod.f".
 !        (bmy, 7/20/04)
 !  (2 ) Now make sure IDTSALA, IDTSALC are nonzero before calling SRCSALT.
 !        (bmy, 1/26/05)
+!  (3 ) Remove reference to header file "CMN" (bmy, 2/22/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -516,8 +514,11 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
 
-#     include "CMN_SIZE" ! Size parameters
-#     include "CMN"      ! STT, LPRT
+#     include "CMN_SIZE"     ! Size parameters
+!----------------------------------------------
+! Prior to 2/22/05:
+!#     include "CMN"      ! STT, LPRT
+!----------------------------------------------
 
       !=================================================================
       ! EMISSSEASALT begins here! 
@@ -546,7 +547,7 @@
 !  Subroutine SRCSALT updates the surface mixing ratio of dry sea salt
 !  aerosols for NSALT size bins.  The generation of sea salt aerosols
 !  has been parameterized following Monahan et al. [1986] parameterization
-!  as described by Gong et al. [1997].  (bec, rjp, bmy, 4/20/04)
+!  as described by Gong et al. [1997].  (bec, rjp, bmy, 4/20/04, 2/22/05)
 ! 
 !  Contact: Becky Alexander (bec@io.harvard.edu) or 
 !           Rokjin Park     (rjp@io.harvard.edu)
@@ -573,6 +574,9 @@
 !  NOTES:
 !  (1 ) Now references SALA_REDGE_um and SALC_REDGE_um from "tracer_mod.f"
 !        (bmy, 7/20/04)
+!  (2 ) Now references GET_FRAC_OF_PBL and GET_PBL_TOP_L from "pbl_mix_mod.f".
+!        Removed reference to header file CMN.  Removed reference to 
+!        "pressure_mod.f".  (bmy, 2/22/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -580,12 +584,19 @@
       USE DIAG_MOD,      ONLY : AD08
       USE ERROR_MOD,     ONLY : DEBUG_MSG, ERROR_STOP
       USE GRID_MOD,      ONLY : GET_AREA_M2
-      USE PRESSURE_MOD,  ONLY : GET_PEDGE
+      USE PBL_MIX_MOD,   ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
+      !----------------------------------------------------------------
+      ! Prior to 2/22/05:
+      !USE PRESSURE_MOD,  ONLY : GET_PEDGE
+      !----------------------------------------------------------------
       USE TIME_MOD,      ONLY : GET_TS_EMIS
       USE TRACER_MOD,    ONLY : SALA_REDGE_um, SALC_REDGE_um
 
 #     include "CMN_SIZE"      ! Size parameters
-#     include "CMN"           ! XTRA2
+!------------------------------------------------------------
+! Prior to 2/22/05:
+!#     include "CMN"           ! XTRA2
+!------------------------------------------------------------
 #     include "CMN_O3"        ! XNUMOL
 #     include "CMN_DIAG"      ! ND44, ND08
 #     include "CMN_GCTM"      ! PI, SCALE_HEIGHT
@@ -597,11 +608,16 @@
       ! Local variables 
       LOGICAL, SAVE          :: FIRST = .TRUE.
       LOGICAL, SAVE          :: FLAG  = .TRUE.
-      INTEGER                :: I,    J,     L
-      INTEGER                :: R,    NR,    NTOP
-      REAL*8                 :: W10M, BLTOP, DTEMIS,  R0
-      REAL*8                 :: R1,   CONST, P1,      P2
-      REAL*8                 :: DELP, FEMIS, SALTSRC, BLTHIK
+      INTEGER                :: I,    J,      L
+      INTEGER                :: R,    NR,     NTOP
+      !--------------------------------------------------------------
+      ! Prior to 2/22/05:
+      !REAL*8                 :: W10M, BLTOP, DTEMIS,  R0
+      !REAL*8                 :: R1,   CONST, P1,      P2
+      !REAL*8                 :: DELP, FEMIS, SALTSRC, BLTHIK
+      !--------------------------------------------------------------
+      REAL*8                 :: W10M, DTEMIS, R0
+      REAL*8                 :: R1,   CONST,  FEMIS
       REAL*8                 :: A_M2
       REAL*8                 :: SALT(IIPAR,JJPAR)
 
@@ -734,100 +750,119 @@
 !$OMP END PARALLEL DO
 
       !=================================================================
-      ! Emission calculation is done. 
-      ! Now partition emissions through boundary layer
+      ! Now partition seasalt emissions through boundary layer
       !=================================================================
+!-----------------------------------------------------------------------------
+! Prior to 2/22/05:
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J,  NTOP, SALTSRC, BLTOP, BLTHIK )
+!!$OMP+PRIVATE( L, P1, P2,   DELP,    FEMIS         )
+!!$OMP+SCHEDULE( DYNAMIC ) 
+!
+!         ! Layer where the PBL top happens
+!         NTOP = CEILING( XTRA2(I,J) )
+!         
+!         ! Initialize
+!         SALTSRC = 0.d0
+!
+!         !==============================================================
+!         ! PBL height is in the 3rd model layer or higher
+!         !==============================================================
+!         IF ( NTOP >= 2 ) THEN
+!
+!#if   defined( GEOS_4 )
+!
+!            ! BLTOP = pressure at PBL top [hPa]
+!            ! Use barometric law since PBL is in [m]
+!            BLTOP  = GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT )
+!
+!            ! BLTHIK is PBL thickness [hPa]
+!            BLTHIK = GET_PEDGE(I,J,1) - BLTOP
+!
+!#else
+!
+!            ! BLTOP = pressure of PBL top [hPa]
+!            BLTOP  = GET_PEDGE(I,J,1) - PBL(I,J)
+!
+!            ! BLTHIK is PBL thickness [hPa]
+!            BLTHIK = PBL(I,J)
+!
+!#endif
+!
+!            ! Loop thru the boundary layer
+!            DO L = 1, NTOP
+!
+!               ! DELP is the pressure thickness of level L [hPa]
+!               P1   = GET_PEDGE(I,J,L) 
+!               P2   = GET_PEDGE(I,J,L+1)
+!               DELP = P1 - P2
+!
+!               ! Case of model grid is lower than PBL
+!               IF ( BLTOP <= P2 )  THEN
+!                  FEMIS = DELP / BLTHIK
+!   
+!               ! Level L lies completely w/in the PBL
+!               ELSE IF ( BLTOP > P2 .AND. BLTOP < P1 ) THEN
+!                  FEMIS = ( P1 - BLTOP ) / BLTHIK
+!
+!               ! Level L lies completely out of the PBL
+!               ELSE IF ( BLTOP > P1 ) THEN
+!                  CYCLE
+!
+!               ENDIF
+!
+!               ! Partition total seasalt into level K [kg/ts]
+!               ! This is just for error checking
+!               SALTSRC   = SALTSRC   + ( FEMIS * SALT(I,J) )
+!
+!               ! Fraction of total seasalt in level L
+!               TC(I,J,L) = TC(I,J,L) + ( FEMIS * SALT(I,J) )
+!            ENDDO
+!
+!            ! Error check
+!            IF ( ABS( SALTSRC - SALT(I,J) ) > 1.D-5 ) THEN
+!!$OMP CRITICAL
+!               PRINT*, '### ERROR in SRCSALT!'
+!               PRINT*, '### I, J           : ', I, J
+!               PRINT*, '### SALTSRC        : ', SALTSRC
+!               PRINT*, '### SRCE_SEAS(I,J) : ', SALT(I,J)
+!!$OMP END CRITICAL
+!               CALL ERROR_STOP( 'Check SEASALT redistribution', 
+!     &                          'SRCSALT (seasalt_mod.f)' )
+!            ENDIF
+!
+!         !==============================================================
+!         ! If PBL height and lower or similar to the second model layer
+!         ! then surface emission is emitted to the first model layer	
+!         !==============================================================
+!         ELSE         
+!            TC(I,J,1) = TC(I,J,1) + SALT(I,J)
+!         ENDIF 
+!-----------------------------------------------------------------------------
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J,  NTOP, SALTSRC, BLTOP, BLTHIK )
-!$OMP+PRIVATE( L, P1, P2,   DELP,    FEMIS         )
+!$OMP+PRIVATE( I, J, NTOP, L, FEMIS )
 !$OMP+SCHEDULE( DYNAMIC ) 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Layer where the PBL top happens
-         NTOP = CEILING( XTRA2(I,J) )
+         ! Layer in which the PBL top occurs
+         NTOP = CEILING( GET_PBL_TOP_L( I, J ) )
+        
+         ! Loop thru the boundary layer
+         DO L = 1, NTOP
 
-         ! Initialize
-         SALTSRC = 0.d0
+            ! Fraction of the PBL spanned by box (I,J,L) [unitless]
+            FEMIS     = GET_FRAC_OF_PBL( I, J, L )
 
-         !==============================================================
-         ! PBL height is in the 3rd model layer or higher
-         !==============================================================
-         IF ( NTOP >= 2 ) THEN
+            ! Add seasalt emissions into box (I,J,L) [kg]
+            TC(I,J,L) = TC(I,J,L) + ( FEMIS * SALT(I,J) )
 
-#if   defined( GEOS_4 )
+         ENDDO
 
-            ! BLTOP = pressure at PBL top [hPa]
-            ! Use barometric law since PBL is in [m]
-            BLTOP  = GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT )
-
-            ! BLTHIK is PBL thickness [hPa]
-            BLTHIK = GET_PEDGE(I,J,1) - BLTOP
-
-#else
-
-            ! BLTOP = pressure of PBL top [hPa]
-            BLTOP  = GET_PEDGE(I,J,1) - PBL(I,J)
-
-            ! BLTHIK is PBL thickness [hPa]
-            BLTHIK = PBL(I,J)
-
-#endif
-
-            ! Loop thru the boundary layer
-            DO L = 1, NTOP
-
-               ! DELP is the pressure thickness of level L [hPa]
-               P1   = GET_PEDGE(I,J,L) 
-               P2   = GET_PEDGE(I,J,L+1)
-               DELP = P1 - P2
-
-               ! Case of model grid is lower than PBL
-               IF ( BLTOP <= P2 )  THEN
-                  FEMIS = DELP / BLTHIK
-   
-               ! Level L lies completely w/in the PBL
-               ELSE IF ( BLTOP > P2 .AND. BLTOP < P1 ) THEN
-                  FEMIS = ( P1 - BLTOP ) / BLTHIK
-
-               ! Level L lies completely out of the PBL
-               ELSE IF ( BLTOP > P1 ) THEN
-                  CYCLE
-
-               ENDIF
-
-               ! Partition total seasalt into level K [kg/ts]
-               ! This is just for error checking
-               SALTSRC   = SALTSRC   + ( FEMIS * SALT(I,J) )
-
-               ! Fraction of total seasalt in level L
-               TC(I,J,L) = TC(I,J,L) + ( FEMIS * SALT(I,J) )
-            ENDDO
-
-            ! Error check
-            IF ( ABS( SALTSRC - SALT(I,J) ) > 1.D-5 ) THEN
-!$OMP CRITICAL
-               PRINT*, '### ERROR in SRCSALT!'
-               PRINT*, '### I, J           : ', I, J
-               PRINT*, '### SALTSRC        : ', SALTSRC
-               PRINT*, '### SRCE_SEAS(I,J) : ', SALT(I,J)
-!$OMP END CRITICAL
-               CALL ERROR_STOP( 'Check SEASALT redistribution', 
-     &                          'SRCSALT (seasalt_mod.f)' )
-            ENDIF
-
-         !==============================================================
-         ! If PBL height and lower or similar to the second model layer
-         ! then surface emission is emitted to the first model layer	
-         !==============================================================
-         ELSE         
-            TC(I,J,1) = TC(I,J,1) + SALT(I,J)
-         ENDIF 
-
-         !==============================================================
          ! ND08 diagnostic: sea salt emissions [kg]
-         !==============================================================
          IF ( ND08 > 0 ) THEN
             AD08(I,J,N) = AD08(I,J,N) + SALT(I,J)
          ENDIF

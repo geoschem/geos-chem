@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.11 2005/02/10 19:53:26 bmy Exp $
+! $Id: input_mod.f,v 1.12 2005/03/29 15:52:42 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS_CHEM input file at the start of the run
 !  and passes the information to several other GEOS-CHEM F90 modules.
-!  (bmy, 7/20/04, 2/3/05)
+!  (bmy, 7/20/04, 3/28/05)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -41,7 +41,7 @@
 !  (18) READ_PROD_LOSS_MENU   : Reads the GEOS-CHEM ND65 timeseries menu
 !  (19) READ_UNIX_CMDS_MENU   : Reads the GEOS-CHEM unix commands menu
 !  (20) READ_NESTED_GRID_MENU : Reads the GEOS-CHEM nested grid menu
-!  (21) READ_ARCHIVED_OH_MENU : Reads the GEOS-CHEM archived OH menu
+!  (21) READ_ARCHIVED_OH_MENU : logs/log.v7-02-04.0840930
 !  (22) READ_O3PL_MENU        : Reads the GEOS-CHEM O3 P/L menu
 !  (23) READ_BENCHMARK_MENU   : Reads the GEOS-CHEM benchmark cmds menu
 !  (24) VALIDATE_DIRECTORIES  : Makes sure all given directories are valid
@@ -58,29 +58,31 @@
 !  (4 ) charpak_mod.f         : Module w/ string handling routines
 !  (5 ) dao_mod.f             : Module w/ arrays for DAO met fields
 !  (6 ) diag_mod.f            : Module w/ GEOS-CHEM diagnostic arrays
-!  (7 ) diag49_mod.f          : Module w/ routines for inst timeseries
-!  (8 ) diag50_mod.f          : Module w/ routines for 24hr avg timeseries
-!  (9 ) diag51_mod.f          : Module w/ routines for morning/aft t-series
-!  (10) diag_oh_mod.f         : Module w/ arrays & routines for mean OH diag
-!  (11) diag_pl_mod.f         : Module w/ routines for prod & loss diag's
-!  (12) directory_mod.f       : Module w/ GEOS-CHEM data & met field dirs
-!  (13) drydep_mod.f          : Module w/ GEOS-CHEM drydep routines
-!  (14) error_mod.f           : Module w/ I/O error and NaN check routines
-!  (15) file_mod.f            : Module w/ file unit numbers and error checks
-!  (13) grid_mod.f            : Module w/ horizontal grid information
-!  (14) logical_mod.f         : Module w/ GEOS-CHEM logical switches
-!  (15) ocean_mercury_mod.f   : Module w/ routines for ocean flux of Hg0
-!  (16) planeflight_mod.f     : Module w/ routines for flight track diag
-!  (17) pressure_mod.f        : Module w/ routines to compute P(I,J,L)
-!  (18) restart_mod.f         : Module w/ routines for restart file I/O
-!  (19) time_mod.f            : Module w/ routines for computing time & date
-!  (20) tpcore_bc_mod.f       : Module w/ routines to read/write TPCORE BC's
-!  (21) tracer_mod.f          : Module w/ GEOS-CHEM tracer array STT etc.
-!  (22) tracerid_mod.f        : Module w/ pointers to tracers & emissions  
-!  (23) transport_mod.f       : Module w/ driver routine for TPCORE 
-!  (24) unix_cmds_mod.f       : Module w/ Unix commands for unzipping etc
-!  (25) upbdflx_mod.f         : Module w/ routines for strat O3, NOy BC's
-!  (26) wetscav_mod.f         : Module w/ routines for wetdep/scavenging
+!  (7 ) diag03_mod.f          : Module w/ routines for mercury diagnostics
+!  (8 ) diag41_mod.f          : Module w/ routines for afternoon PBL diag's
+!  (9 ) diag49_mod.f          : Module w/ routines for inst timeseries
+!  (10) diag50_mod.f          : Module w/ routines for 24hr avg timeseries
+!  (11) diag51_mod.f          : Module w/ routines for morning/aft t-series
+!  (12) diag_oh_mod.f         : Module w/ arrays & routines for mean OH diag
+!  (13) diag_pl_mod.f         : Module w/ routines for prod & loss diag's
+!  (14) directory_mod.f       : Module w/ GEOS-CHEM data & met field dirs
+!  (15) drydep_mod.f          : Module w/ GEOS-CHEM drydep routines
+!  (16) error_mod.f           : Module w/ I/O error and NaN check routines
+!  (17) file_mod.f            : Module w/ file unit numbers and error checks
+!  (18) grid_mod.f            : Module w/ horizontal grid information
+!  (19) logical_mod.f         : Module w/ GEOS-CHEM logical switches
+!  (20) ocean_mercury_mod.f   : Module w/ routines for ocean flux of Hg0
+!  (21) planeflight_mod.f     : Module w/ routines for flight track diag
+!  (22) pressure_mod.f        : Module w/ routines to compute P(I,J,L)
+!  (23) restart_mod.f         : Module w/ routines for restart file I/O
+!  (24) time_mod.f            : Module w/ routines for computing time & date
+!  (25) tpcore_bc_mod.f       : Module w/ routines to read/write TPCORE BC's
+!  (26) tracer_mod.f          : Module w/ GEOS-CHEM tracer array STT etc.
+!  (27) tracerid_mod.f        : Module w/ pointers to tracers & emissions  
+!  (28) transport_mod.f       : Module w/ driver routine for TPCORE 
+!  (29) unix_cmds_mod.f       : Module w/ Unix commands for unzipping etc
+!  (30) upbdflx_mod.f         : Module w/ routines for strat O3, NOy BC's
+!  (31) wetscav_mod.f         : Module w/ routines for wetdep/scavenging
 !
 !  NOTES:
 !  (1 ) Now references LSOA in READ_AEROSOL_MENU (bmy, 9/28/04)
@@ -90,6 +92,9 @@
 !        IS_LAST_DAY_GOOD here from "main.f".  Also now references 
 !        "ocean_mercury_mod.f".  Also now open the bpch file for output in
 !        READ_DIAGNOSTIC_MENU instead of in "main.f".  (cas, sas, bmy, 2/3/05)
+!  (4 ) Now references "diag03_mod.f" and "diag41_mod.f".  Fixed minor
+!        bugs.  Now references FILE_EXISTS from "file_mod.f".  Updated
+!        comments. (bmy, 3/28/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -445,9 +450,10 @@
 !
 !******************************************************************************
 !  Subroutine READ_SIMULATION_MENU reads the SIMULATION MENU section of 
-!  the GEOS-CHEM input file (bmy, 7/20/04)
+!  the GEOS-CHEM input file (bmy, 7/20/04, 2/23/05)
 !
 !  NOTES:
+!  (1 ) Bug fix: Read LSVGLB w/ the * format and not w/ '(a)'. (bmy, 2/23/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -490,7 +496,12 @@
 
       ! Make new restart file?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:5' )
-      READ( SUBSTRS(1:N), '(a)' ) LSVGLB
+      !-----------------------------------------------------------------
+      ! Prior to 2/23/05:
+      ! Bug fix: LSVGLB is not a character variable (bmy, 2/23/05)
+      !READ( SUBSTRS(1:N), '(a)' ) LSVGLB
+      !-----------------------------------------------------------------
+      READ( SUBSTRS(1:N), * ) LSVGLB
 
       ! Output restart file(s)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:6' )
@@ -529,11 +540,11 @@
       READ( SUBSTRS(1:N), *     ) LWAIT
 
       ! I0, J0
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_grid_size_menu:1' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:15' )
       READ( SUBSTRS(1:N), * ) I0, J0
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:15' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:16' )
 
       !=================================================================
       ! Print to screen
@@ -668,7 +679,7 @@
       DO T = 1, N_TRACERS
 
          ! Split line into substrings
-         CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_tracer_menu:2' )
+         CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_tracer_menu:4' )
 
          ! Save tracer number
          READ( SUBSTRS(1), * ) ID_TRACER(T)
@@ -973,6 +984,11 @@
          LSSALT = .FALSE.
       ENDIF
 
+      !%%% The cryst/aq code is currently under development so make
+      !%%% sure that LCRYST = FALSE for now until further notice
+      !%%% (rjp, bmy, 3/15/05)
+      LCRYST = .FALSE.
+
       !---------------------------------
       ! Error check SULFUR AEROSOLS
       !---------------------------------
@@ -1189,19 +1205,19 @@
       READ( SUBSTRS(1:N), * ) LSOILNOX
 
       ! Use ship SO2 emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:14' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:15' )
       READ( SUBSTRS(1:N), * ) LSHIPSO2
 
       ! Use EPA/NEI99 emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:15' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:16' )
       READ( SUBSTRS(1:N), * ) LNEI99
 
       ! Use AVHRR-derived LAI fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:16' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:17' )
       READ( SUBSTRS(1:N), * ) LAVHRRLAI
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:17' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:18' )
 
       !=================================================================
       ! Error check logical flags
@@ -1325,10 +1341,11 @@
 !
 !******************************************************************************
 !  Subroutine READ_TRANSPORT_MENU reads the TRANSPORT MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 12/1/04)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 2/23/05)
 !
 !  NOTES:
 !  (1 ) Now define MAX_DYN for 1 x 1.25 grid (bmy, 12/1/04)
+!  (2 ) Update text in error message (bmy, 2/23/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1403,7 +1420,11 @@
 
       ! If TS_DYN is greater than MAX_DYN, then stop w/ error
       IF ( TS_DYN > MAX_DYN ) THEN
-         MSG = 'Transport timestep is too small!'
+         !---------------------------------------------
+         ! Prior to 2/23/05:
+         !MSG = 'Transport timestep is too small!'
+         !---------------------------------------------
+         MSG = 'Transport timestep is too big!'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
@@ -1476,11 +1497,11 @@
       READ( SUBSTRS(1:N), * ) LTURB
 
       ! Convection timestep
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_convection_menu:4' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_convection_menu:3' )
       READ( SUBSTRS(1:N), * ) TS_CONV
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_convection_menu:5' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_convection_menu:4' )
 
       !=================================================================
       ! Print to screen
@@ -1504,16 +1525,18 @@
 !
 !******************************************************************************
 !  Subroutine READ_DEPOSITION_MENU reads the DEPOSITION MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 12/15/04)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 3/1/05)
 !
 !  NOTES:
 !  (1 ) Now print an informational message for tagged Hg (bmy, 12/15/04)
+!  (2 ) We need to call WETDEPID for both wetdep and cloud convection
+!        since this sets up the list of soluble tracers (bmy, 3/1/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE DRYDEP_MOD,  ONLY : INIT_DRYDEP
-      USE LOGICAL_MOD, ONLY : LDRYD, LWETD, LSPLIT
+      USE LOGICAL_MOD, ONLY : LCONV, LDRYD, LWETD, LSPLIT
       USE TRACER_MOD
       USE WETSCAV_MOD, ONLY : WETDEPID
 
@@ -1590,7 +1613,13 @@
       ENDIF
 
       ! Initialize wet deposition tracers
-      IF ( LWETD ) CALL WETDEPID
+      !-----------------------------------------------------------------
+      ! Prior to 3/1/05:
+      ! We need to call WETDEPID for both wetdep and cloud convection
+      ! since this sets up the list of soluble tracers (bmy, 3/1/05)
+      !IF ( LWETD ) CALL WETDEPID
+      !-----------------------------------------------------------------
+      IF ( LWETD .or. LCONV ) CALL WETDEPID
 
       ! FORMAT strings
  120  FORMAT( /, 'All tagged Hg2 tracers have the same dep velocity '
@@ -1664,12 +1693,16 @@
 !
 !******************************************************************************
 !  Subroutine READ_DIAGNOSTIC_MENU reads the DIAGNOSTIC MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 2/3/05)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 3/25/05)
 !
 !  NOTES:
 !  (1 ) Now reference IU_BPCH from "file_mod.f" and OPEN_BPCH2_FOR_WRITE
 !        from "bpch2_mod.f".  Now opens the bpch file for output here
 !        instead of w/in "main.f" (bmy, 2/3/05)
+!  (2 ) Now references "diag03_mod.f" and "diag41_mod.f".  Now turn off ND38
+!        when both LWETD=F and LCONV=F.  Now calls EXPAND_DATE to replace
+!        YYYYMMDD and HHMMSS tokens in the bpch file name with the actual
+!        starting date & time of the run. (bmy, 3/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1678,11 +1711,13 @@
       USE BPCH2_MOD,    ONLY : OPEN_BPCH2_FOR_WRITE
       USE DIAG_MOD
       USE DIAG03_MOD,   ONLY : ND03, PD03, INIT_DIAG03
+      USE DIAG41_MOD,   ONLY : ND41, PD41, INIT_DIAG41
       USE DIAG_OH_MOD,  ONLY : INIT_DIAG_OH
       USE DRYDEP_MOD,   ONLY : NUMDEP
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE FILE_MOD,     ONLY : IU_BPCH
       USE LOGICAL_MOD
+      USE TIME_MOD,     ONLY : EXPAND_DATE, GET_NYMDb, GET_NHMSb
       USE TRACER_MOD
       USE TRACERID_MOD, ONLY : NEMANTHRO
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_NMAX
@@ -1867,7 +1902,7 @@
       !--------------------------
       ! ND21: Opt depths etc.
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:23' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:22' )
       READ( SUBSTRS(1), * ) ND21
       CALL SET_TINDEX( 21, ND21, SUBSTRS(2:N), N-1, PD21 )
 
@@ -1881,45 +1916,45 @@
       !--------------------------
       ! ND22: J-values
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:24' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:23' )
       READ( SUBSTRS(1), * ) ND22
       CALL SET_TINDEX( 22, ND22, SUBSTRS(2:N), N-1, PD22 )
 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_diagnostic_menu:25' ) 
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_diagnostic_menu:24' ) 
       READ( SUBSTRS(1:N), * ) HR1_JV, HR2_JV
 
       !--------------------------
       ! ND24: E/W transport flux
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:27' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:25' )
       READ( SUBSTRS(1), * ) ND24
       CALL SET_TINDEX( 24, ND24, SUBSTRS(2:N), N-1, N_MAX )
 
       !--------------------------
       ! ND25: N/S transport flux
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:28' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:26' )
       READ( SUBSTRS(1), * ) ND25
       CALL SET_TINDEX( 25, ND25, SUBSTRS(2:N), N-1, N_MAX )
 
       !--------------------------
       ! ND26: U/D transport flux
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:29' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:27' )
       READ( SUBSTRS(1), * ) ND26
       CALL SET_TINDEX( 26, ND26, SUBSTRS(2:N), N-1, N_MAX )
 
       !--------------------------
       ! ND27: Strat fluxes
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:30' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:28' )
       READ( SUBSTRS(1), * ) ND27
       CALL SET_TINDEX( 27, ND27, SUBSTRS(2:N), N-1, PD27 )
 
       !--------------------------
       ! ND28: Biomass emissions
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:31' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:29' )
       READ( SUBSTRS(1), * ) ND28
       IF ( .not. LBIOMASS ) ND28 = 0
       CALL SET_TINDEX( 28, ND28, SUBSTRS(2:N), N-1, NBIOTRCE )
@@ -1927,42 +1962,42 @@
       !--------------------------
       ! ND29: CO sources
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:32' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:30' )
       READ( SUBSTRS(1), * ) ND29
       CALL SET_TINDEX( 29, ND29, SUBSTRS(2:N), N-1, PD29 )
 
       !--------------------------
       ! ND30: Land map
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:33' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:31' )
       READ( SUBSTRS(1), * ) ND30
       CALL SET_TINDEX( 30, ND30, SUBSTRS(2:N), N-1, PD30 )
 
       !--------------------------
       ! ND31: Surface pressure
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:34' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:32' )
       READ( SUBSTRS(1), * ) ND31
       CALL SET_TINDEX( 31, ND31, SUBSTRS(2:N), N-1, PD31 )
 
       !--------------------------
       ! ND32: NOx sources
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:34' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:33' )
       READ( SUBSTRS(1), * ) ND32
       CALL SET_TINDEX( 32, ND32, SUBSTRS(2:N), N-1, PD32 )
 
       !--------------------------
       ! ND33: Column tracer
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:35' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:34' )
       READ( SUBSTRS(1), * ) ND33
       CALL SET_TINDEX( 33, ND33, SUBSTRS(2:N), N-1, N_MAX )
 
       !--------------------------
       ! ND34: Biofuel sources
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:36' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:35' )
       READ( SUBSTRS(1), * ) ND34
       IF ( .not. LBIOFUEL ) ND34 = 0
       CALL SET_TINDEX( 34, ND34, SUBSTRS(2:N), N-1, NBFTRACE )
@@ -1970,14 +2005,14 @@
       !--------------------------
       ! ND35: 500 hPa tracer
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:37' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:36' )
       READ( SUBSTRS(1), * ) ND35
       CALL SET_TINDEX( 35, ND35, SUBSTRS(2:N), N-1, N_MAX )
 
       !--------------------------
       ! ND36: Anthro emissions
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:38' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:37' )
       READ( SUBSTRS(1), * ) ND36
       CALL SET_TINDEX( 36, ND36, SUBSTRS(2:N), N-1, NEMANTHRO )
 
@@ -1985,24 +2020,28 @@
       ! ND37: Updraft scav frac
       !--------------------------
       N_TMP = GET_WETDEP_NMAX()
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:39' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:38' )
       READ( SUBSTRS(1), * ) ND37
       CALL SET_TINDEX( 37, ND37, SUBSTRS(2:N), N-1, N_TMP )
 
       !--------------------------
-      ! ND38: Wet scav losses
+      ! ND38: Cld conv losses
       !--------------------------
       N_TMP = GET_WETDEP_NMAX()
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:40' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:39' )
       READ( SUBSTRS(1), * ) ND38
-      IF ( .not. LWETD ) ND38 = 0
+      !---------------------------------
+      ! Prior to 3/1/05:
+      !IF ( .not. LWETD ) ND38 = 0
+      !---------------------------------
+      IF ( .not. LWETD .and. .not. LCONV ) ND38 = 0
       CALL SET_TINDEX( 38, ND38, SUBSTRS(2:N), N-1, N_TMP )
 
       !--------------------------
       ! ND39: Wet scav losses
       !--------------------------
       N_TMP = GET_WETDEP_NMAX()
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:41' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:40' )
       READ( SUBSTRS(1), * ) ND39
       IF ( .not. LWETD ) ND39 = 0
       CALL SET_TINDEX( 39, ND39, SUBSTRS(2:N), N-1, N_TMP )
@@ -2010,29 +2049,29 @@
       !--------------------------
       ! ND41: Afternoon PBL ht
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:43' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:41' )
       READ( SUBSTRS(1), * ) ND41
       CALL SET_TINDEX( 41, ND41, SUBSTRS(2:N), N-1, PD41 )
 
       !--------------------------
       ! ND42: Free
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:44' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:42' )
       READ( SUBSTRS(1), * ) ND42
       CALL SET_TINDEX( 42, ND42, SUBSTRS(2:N), N-1, PD42 )
 
       !--------------------------
       ! ND43: OH, NO, etc.
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:45' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:43' )
       READ( SUBSTRS(1), * ) ND43
       IF ( .not. ITS_A_FULLCHEM_SIM() ) ND43 = 0
       CALL SET_TINDEX( 43, ND43, SUBSTRS(2:N), N-1, PD43 )
 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_diagnostic_menu:46' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_diagnostic_menu:44' )
       READ( SUBSTRS(1:N), * ) HR1_OH, HR2_OH
 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_diagnostic_menu:47' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_diagnostic_menu:45' )
       READ( SUBSTRS(1:N), * ) HR1_NO, HR2_NO
 
       !--------------------------
@@ -2046,7 +2085,7 @@
          N_TMP = NUMDEP
       ENDIF
 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:48' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:46' )
       READ( SUBSTRS(1), * ) ND44
       IF ( .not. LDRYD ) ND44 = 0
       CALL SET_TINDEX( 44, ND44, SUBSTRS(2:N), N-1, N_TMP )
@@ -2054,156 +2093,156 @@
       !--------------------------
       ! ND45: Tracer conc.
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:49' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:47' )
       READ( SUBSTRS(1), * ) ND45
       CALL SET_TINDEX( 45, ND45, SUBSTRS(2:N), N-1, N_TRACERS )
 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_diagnostic_menu:25' ) 
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_diagnostic_menu:48' ) 
       READ( SUBSTRS(1:N), * ) HR1_OTH, HR2_OTH
 
       !--------------------------
       ! ND46: Biogenic sources
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:50' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:49' )
       READ( SUBSTRS(1), * ) ND46
       CALL SET_TINDEX( 46, ND46, SUBSTRS(2:N), N-1, PD46 )
 
       !--------------------------
       ! ND47: 24h avg tracer
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:51' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:50' )
       READ( SUBSTRS(1), * ) ND47
       CALL SET_TINDEX( 47, ND47, SUBSTRS(2:N), N-1, N_TRACERS )
 
       !--------------------------
       ! ND52: Free
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:52' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:51' )
       READ( SUBSTRS(1), * ) ND52
       CALL SET_TINDEX( 52, ND48, SUBSTRS(2:N), N-1, PD52 )
 
       !--------------------------
       ! ND53: Free
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:53' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:52' )
       READ( SUBSTRS(1), * ) ND53
       CALL SET_TINDEX( 53, ND53, SUBSTRS(2:N), N-1, N_TRACERS )
 
       !--------------------------
       ! ND54: Free
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:54' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:53' )
       READ( SUBSTRS(1), * ) ND54
       CALL SET_TINDEX( 54, ND54, SUBSTRS(2:N), N-1, N_TRACERS )
 
       !--------------------------
       ! ND55: Tropopause diags
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:55' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:54' )
       READ( SUBSTRS(1), * ) ND55
       CALL SET_TINDEX( 55, ND55, SUBSTRS(2:N), N-1, PD55 )
 
       !--------------------------
       ! ND56: Free
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:56' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:55' )
       READ( SUBSTRS(1), * ) ND56
       CALL SET_TINDEX( 56, ND56, SUBSTRS(2:N), N-1, PD56 )
 
       !--------------------------
       ! ND57: Free
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:57' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:56' )
       READ( SUBSTRS(1), * ) ND57
       CALL SET_TINDEX( 57, ND57, SUBSTRS(2:N), N-1, PD57 )
 
       !--------------------------
       ! ND58: Free
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:58' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:57' )
       READ( SUBSTRS(1), * ) ND58
       CALL SET_TINDEX( 58, ND58, SUBSTRS(2:N), N-1, PD58 )
 
       !--------------------------
       ! ND59: Free
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:59' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:58' )
       READ( SUBSTRS(1), * ) ND59
       CALL SET_TINDEX( 59, ND59, SUBSTRS(2:N), N-1, PD59 )
 
       !--------------------------
       ! ND60: Free
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:60' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:59' )
       READ( SUBSTRS(1), * ) ND60
       CALL SET_TINDEX( 60, ND60, SUBSTRS(2:N), N-1, PD60 )
 
       !--------------------------
       ! ND61: Free
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:61' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:60' )
       READ( SUBSTRS(1), * ) ND61
       CALL SET_TINDEX( 61, ND61, SUBSTRS(2:N), N-1, PD61 )
 
       !--------------------------
       ! ND62: Free
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:62' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:61' )
       READ( SUBSTRS(1), * ) ND62
       CALL SET_TINDEX( 62, ND62, SUBSTRS(2:N), N-1, PD62 )
 
       !--------------------------
       ! ND63: Free
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:63' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:62' )
       READ( SUBSTRS(1), * ) ND63
       CALL SET_TINDEX( 63, ND63, SUBSTRS(2:N), N-1, PD63 )
 
       !--------------------------
       ! ND64: Free
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:64' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:63' )
       READ( SUBSTRS(1), * ) ND64
       CALL SET_TINDEX( 64, ND64, SUBSTRS(2:N), N-1, PD64 )
 
       !--------------------------
       ! ND66: DAO 3-D fields
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:66' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:64' )
       READ( SUBSTRS(1), * ) ND66
       CALL SET_TINDEX( 66, ND66, SUBSTRS(2:N), N-1, PD66 )
 
       !--------------------------
       ! ND67: DAO 2-D fields
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:67' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:65' )
       READ( SUBSTRS(1), * ) ND67
       CALL SET_TINDEX( 67, ND67, SUBSTRS(2:N), N-1, PD67 )
 
       !--------------------------
       ! ND68: Air masses etc
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:68' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:66' )
       READ( SUBSTRS(1), * ) ND68
       CALL SET_TINDEX( 68, ND68, SUBSTRS(2:N), N-1, PD68 )
 
       !--------------------------
       ! ND69: Surface areas
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:69' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:67' )
       READ( SUBSTRS(1), * ) ND69
       CALL SET_TINDEX( 69, ND69, SUBSTRS(2:N), N-1, PD69 )
 
       !--------------------------
       ! ND70: Debug info
       !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:70' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:68' )
       READ( SUBSTRS(1), * ) ND70
       LPRT = ( ND70 > 0 )
       CALL SET_TINDEX( 70, ND70, SUBSTRS(2:N), N-1, PD70 )
      
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_diagnostic_menu:71' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_diagnostic_menu:69' )
 
       !=================================================================
       ! Call other setup routines
@@ -2211,10 +2250,14 @@
 
       ! Allocate diagnostic arrays
       CALL INIT_DIAG03
+      CALL INIT_DIAG41
       CALL NDXX_SETUP
 
       ! Enable Mean OH (or CH3CCl3) diag for runs which need it
       CALL INIT_DIAG_OH 
+
+      ! Expand YYYYMMDD tokens in the bpch file name
+      CALL EXPAND_DATE( BPCH_FILE, GET_NYMDb(), GET_NHMSb() )
 
       ! Open the binary punch file for output 
       CALL OPEN_BPCH2_FOR_WRITE( IU_BPCH, BPCH_FILE )
@@ -2343,8 +2386,9 @@
       SUBROUTINE READ_PLANEFLIGHT_MENU
 !
 !******************************************************************************
-!  Subroutine READ_ND65_MENU reads the ND65 MENU section of the GEOS-CHEM
-!  input file (bmy, 7/20/04)
+!  Subroutine READ_PLANEFLIGHT_MENU reads the PLANEFLIGHT MENU section of the 
+!  GEOS-CHEM input file.  This turns on the ND40 flight track diagnostic.
+!  (bmy, 7/20/04)
 !  
 !  NOTES:
 !******************************************************************************
@@ -2364,7 +2408,7 @@
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG
 
       !=================================================================
-      ! READ_PLANEFLIOHT_MENU begins here!
+      ! READ_PLANEFLIGHT_MENU begins here!
       !=================================================================
 
       ! Error check
@@ -2391,7 +2435,7 @@
       READ( SUBSTRS(1:N), '(a)' ) IFILE
 
       ! Output file name
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_prod_loss_menu:3' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_planeflight_menu:3' )
       READ( SUBSTRS(1:N), '(a)' ) OFILE
 
       !=================================================================
@@ -2455,24 +2499,24 @@
       ENDIF
 
       ! Turn on ND48 diagnostic
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nd49_menu:1' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nd48_menu:1' )
       READ( SUBSTRS(1:N), * ) DO_ND48
 
       ! Timeseries file
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nd49_menu:1' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nd48_menu:2' )
       READ( SUBSTRS(1:N), '(a)' ) FILE
 
       ! Frequency
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nd49_menu:2' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nd48_menu:3' )
       READ( SUBSTRS(1:N), * ) FREQ
 
       ! Number of stations 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nd49_menu:3' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nd48_menu:4' )
       READ( SUBSTRS(1:N), * ) N_STA
       
       ! Read individual stations
       DO N = 1, N_STA
-         CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 'read_nd49_menu:4' )
+         CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 'read_nd48_menu:5' )
          READ( SUBSTRS(1), * ) IARR(N) 
          READ( SUBSTRS(2), * ) JARR(N) 
          READ( SUBSTRS(3), * ) LARR(N) 
@@ -2678,7 +2722,7 @@
       READ( SUBSTRS(1:N), * ) LMIN, LMAX
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd50_menu:8' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd50_menu:7' )
 
       !=================================================================
       ! Print to screen
@@ -2774,19 +2818,19 @@
       READ( SUBSTRS(1:N), * ) HR1, HR2
 
       ! IMIN, IMAX
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd51_menu:5' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd51_menu:6' )
       READ( SUBSTRS(1:N), * ) IMIN, IMAX
 
       ! JMIN, JMAX
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd51_menu:6' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd51_menu:7' )
       READ( SUBSTRS(1:N), * ) JMIN, JMAX
 
       ! LMIN, LMAX
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd51_menu:7' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd51_menu:8' )
       READ( SUBSTRS(1:N), * ) LMIN, LMAX
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd51_menu:8' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd51_menu:9' )
 
       !=================================================================
       ! Print to screen
@@ -2944,7 +2988,7 @@
       ENDDO
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_prod_loss_menu:7' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_prod_loss_menu:6' )
 
       !=================================================================
       ! Error check families for certain types of simulations
@@ -3308,7 +3352,7 @@
       READ( SUBSTRS(1:N), '(a)' ) O3PL_DIR
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:1' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:2' )
 
       !=================================================================
       ! Print to screen
@@ -3373,7 +3417,7 @@
 #if   defined( GEOS_1 )
 
       ! Check GEOS-1 met field directory (starting date)
-      DIR = GEOS_1_DIR
+      DIR = GEOS_1_DIR7
       CALL EXPAND_DATE( DIR, NYMDb, 000000 )
       DIR = TRIM( DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( DIR )
@@ -3439,17 +3483,19 @@
 !******************************************************************************
 !  Subroutine CHECK_DIRECTORY makes sure that the given directory 
 !  is valid.  Also a trailing slash character will be added if necessary. 
-!  (bmy, 3/20/03, 7/20/04)
+!  (bmy, 3/20/03, 3/23/05)
 ! 
 !  Arguments as Input/Output:
 !  ============================================================================
 !  (1 ) DIR (CHARACTER) : Directory to be checked
 !
 !  NOTES:
+!  (1 ) Now references FILE_EXISTS from "file_mod.f" (bmy, 3/23/05)
 !******************************************************************************
 !
       ! References to F90 modules 
       USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE FILE_MOD,      ONLY : FILE_EXISTS
       USE UNIX_CMDS_MOD, ONLY : SEPARATOR
 
 #     include "define.h"      ! C-preprocessor flags
@@ -3458,12 +3504,18 @@
       CHARACTER(LEN=*), INTENT(INOUT) :: DIR
       
       ! Local variables
-      LOGICAL                         :: IT_EXISTS
+!-----------------------------------------------------------------
+! Prior to 3/23/05:
+!      LOGICAL                         :: IT_EXISTS
+!-----------------------------------------------------------------
       INTEGER                         :: C
       CHARACTER(LEN=255)              :: MSG
-#if   defined( COMPAQ )
-      INTEGER*4, EXTERNAL             :: ACCESS
-#endif
+!------------------------------------------------------------------
+! Prior to 3/23/05:
+!#if   defined( COMPAQ )
+!      INTEGER*4, EXTERNAL             :: ACCESS
+!#endif
+!------------------------------------------------------------------
       
       !=================================================================
       ! CHECK_DIRECTORY begins here!
@@ -3481,21 +3533,27 @@
       ! Test if the directory actually exists
       !=================================================================
 
-#if   defined( COMPAQ )
+!---------------------------------------------------------------------------
+! Prior to 3/23/05:
+!#if   defined( COMPAQ )
+!
+!      ! Test whether directory exists for COMPAQ
+!      IT_EXISTS = ( ACCESS( TRIM( DIR ), ' ' ) == 0 )
+!
+!#else
+!
+!      ! Test whether directory exists w/ F90 INQUIRE function
+!      INQUIRE( FILE=TRIM( DIR ), EXIST=IT_EXISTS )
+!
+!#endif     
+! 
+!      ! If the directory doesn't exist, write an error
+!      ! message, flush the std output buffer, and stop
+!      IF ( .not. IT_EXISTS ) THEN
+!---------------------------------------------------------------------------
 
-      ! Test whether directory exists for COMPAQ
-      IT_EXISTS = ( ACCESS( TRIM( DIR ), ' ' ) == 0 )
-
-#else
-
-      ! Test whether directory exists w/ F90 INQUIRE function
-      INQUIRE( FILE=TRIM( DIR ), EXIST=IT_EXISTS )
-
-#endif     
- 
-      ! If the directory doesn't exist, write an error
-      ! message, flush the std output buffer, and stop
-      IF ( .not. IT_EXISTS ) THEN
+      ! If the directory does not exist then stop w/ an error message
+      IF ( .not. FILE_EXISTS( DIR ) ) THEN 
          MSG = 'Invalid directory: ' // TRIM( DIR ) 
          CALL ERROR_STOP( MSG, 'CHECK_DIRECTORY ("input_mod.f")' )
       ENDIF
