@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.6 2004/01/27 21:25:05 bmy Exp $
+! $Id: diag3.f,v 1.7 2004/03/19 18:41:54 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out I-J (Long-Lat) diagnostics to the BINARY
-!  format punch file (bmy, bey, mgs, rvm, 5/27/99, 1/21/04)
+!  format punch file (bmy, bey, mgs, rvm, 5/27/99, 3/19/04)
 !
 !  The preferred file format is binary punch file format v. 2.0.  This
 !  file format is very GAMAP-friendly.  GAMAP also supports the ASCII
@@ -121,7 +121,9 @@
 !  (45) Now print out NTRACE drydep fluxes for tagged Ox.  Also tagged Ox 
 !        now saves drydep in molec/cm2/s.  Now print out Kr85 prod/loss in 
 !        ND03. (bmy, 8/20/03)
-!  (46) Now use actual tracer number for ND37 diagnostic (bmy, 1/21/04)
+!  (46) Now use actual tracer number for ND37 diagnostic. (bmy, 1/21/04)
+!  (47) Now loop over the actual # of soluble tracers for ND17, ND18.  
+!        (bmy, 3/19/04)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -721,19 +723,34 @@
 !  --------------------------------------------------------------------------
 !  (1) WD-LSR-$ : Rainout fraction/LS Precip   : unitless  : CT17(:,:,:,1)
 !  (2) WD-CVR-$ : Rainout fraction/conv precip : unitless  : CT17(:,:,:,2)
+!
+!  NOTES:
+!  (1) Now loop over all soluble tracers (bmy, 3/19/04)
 !******************************************************************************
 !
       IF ( ND17 > 0 ) THEN
          UNIT = 'unitless'
 
-         DO M = 1, TMAX(17)
-            N = TINDEX(17,M)
+         ! Get max # of soluble tracers for this simulation
+         NMAX = GET_WETDEP_NSOL()
 
-            ! Rn-Pb-Be run has 2 soluble tracers
-            ! Full chemistry run has 4 soluble tracers
-            IF ( NSRCX == 1 .and. N > 2    ) CYCLE
-            IF ( NSRCX == 3 .and. N > PD17 ) CYCLE
+         !---------------------------------------------------
+         ! Prior to 3/19/04:
+         ! Now loop over all soluble tracers (bmy, 3/19/04)
+         !DO M = 1, TMAX(17)
+         !   N = TINDEX(17,M)
+         !---------------------------------------------------
+         DO N = 1, NMAX
 
+            !----------------------------------------------------
+            ! Prior to 3/19/04:
+            !! Rn-Pb-Be run has 2 soluble tracers
+            !! Full chemistry run has 4 soluble tracers
+            !IF ( NSRCX == 1 .and. N > 2    ) CYCLE
+            !IF ( NSRCX == 3 .and. N > PD17 ) CYCLE
+            !----------------------------------------------------
+
+            ! Add GAMAP tracer offset
             NN = N + TRCOFFSET
 
             ! Large-scale rainout/washout fractions
@@ -774,19 +791,33 @@
 !  --------------------------------------------------------------------------
 !  (1) WD-LSW-$ : Washout fraction/LS precip   : unitless  : CT18(:,:,:,1)
 !  (2) WD-CVW-$ : Washout fraction/conv precip : unitless  : CT18(:,:,:,2)
+!
+!  NOTES:
+!  (1) Now loop over all soluble tracers (bmy, 3/19/04)
 !******************************************************************************
 !
       IF ( ND18 > 0 ) THEN
          UNIT = 'unitless'
 
-         DO M = 1, TMAX(18)
-            N = TINDEX(18,M)
+         ! Get max # of soluble tracers for this simulation
+         NMAX = GET_WETDEP_NSOL()
 
-            ! Rn-Pb-Be run has 2 soluble tracers
-            ! Full chemistry run has 4 soluble tracers
-            IF ( NSRCX == 1 .and. N > 2    ) CYCLE
-            IF ( NSRCX == 3 .and. N > PD18 ) CYCLE
+         !--------------------------------------------------
+         ! Prior to 3/19/04:
+         !DO M = 1, TMAX(18)
+         !   N = TINDEX(18,M)
+         !--------------------------------------------------
+         DO N = 1, NMAX
 
+            !-----------------------------------------------
+            ! Prior to 3/19/04:
+            !! Rn-Pb-Be run has 2 soluble tracers
+            !! Full chemistry run has 4 soluble tracers
+            !IF ( NSRCX == 1 .and. N > 2    ) CYCLE
+            !IF ( NSRCX == 3 .and. N > PD18 ) CYCLE
+            !-----------------------------------------------
+
+            ! Add GAMAP tracer offset
             NN = N + TRCOFFSET
 
             ! Large-scale rainout/washout fractions
@@ -1590,13 +1621,22 @@
          CATEGORY = 'MC-FRC-$'
          UNIT     = 'unitless'
 
+         ! Get actual # of soluble tracers
+         NMAX = GET_WETDEP_NSOL()
+
          DO M = 1, TMAX(37)
             N = TINDEX(37,M)
-               
-            ! Rn-Pb-Be run has 2 soluble tracers
-            ! Full chemistry run has 4 soluble tracers
-            IF ( NSRCX == 1 .and. N > 2    ) CYCLE
-            IF ( NSRCX == 3 .and. N > PD37 ) CYCLE
+             
+            !------------------------------------------------
+            ! Prior to 3/19/04:
+            !! Rn-Pb-Be run has 2 soluble tracers
+            !! Full chemistry run has 4 soluble tracers
+            !IF ( NSRCX == 1 .and. N > 2    ) CYCLE
+            !IF ( NSRCX == 3 .and. N > PD37 ) CYCLE
+            !------------------------------------------------
+
+            ! Cycle if N is too high
+            IF ( N > NMAX ) CYCLE
 
             !--------------------------------------------
             ! Prior to 1/21/04

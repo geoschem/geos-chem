@@ -1,14 +1,27 @@
 REVISIONS (v6-01-05)  
-bmy, 18 Mar 2004
+bmy, 19 Mar 2004
 
 
 New in v6-01-05:
 -------------------------------------------------------------------------------
 
+ls_k_rain		-- Now moved from being an internal routine w/in
+("wetscav_mod.f")	   WETDEP to a module routine
+
+ls_f_prime		-- Now moved from being an internal routine w/in
+("wetscav_mod.f")	   WETDEP to a module routine
+
+conv_f_prime		-- Now moved from being an internal routine w/in
+("wetscav_mod.f")	   WETDEP to a module routine
+
+safety			-- Now moved from being an internal routine w/in
+("wetscav_mod.f")	   WETDEP to a module routine
+
 
 
 Removed from v6-01-05:
 -------------------------------------------------------------------------------
+
 
 
 
@@ -36,6 +49,8 @@ convtran		-- Added references to "diag_mod.f" and "grid_mod.f"
 			   be listed first.
 
 diag3.f			-- Now use actual tracer number for ND37 diagnostic
+			-- Now loop over the actual # of soluble tracers for 
+			   ND17, ND18. 
 
 do_chemistry		-- Bug fix: added GEOS-4 to the #if block in the 
 ("chemistry_mod.f")	   call to OPTDEPTH.
@@ -140,6 +155,12 @@ tpcore_window		-- Commented out call to FLUSH(6)
      
 upbdflx_o3		-- Added GEOS-4 to the #if block where the 
 ("upbdflx_mod.f")	   mixing ratio of Ozone is defined
+
+wetdep			-- Now parallelize over outermost J-loop.  
+("wetscav_mod.f")	-- Also move internal routines LS_K_RAIN, LS_F_PRIME, 
+	  		   CONV_F_PRIME, and SAFETY to the module, since we 
+			   cannot call internal routines from w/in a parallel
+			   loop. 
 
 whenfgt			-- Updated comments
 ("fvdas_convect_mod.f") -- Now use F90-style declarations.
