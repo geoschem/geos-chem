@@ -1,6 +1,6 @@
-# $Id: Makefile.sgi,v 1.12 2004/04/13 14:52:28 bmy Exp $
+# $Id: Makefile.sgi,v 1.13 2004/04/19 15:09:50 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for SGI/Origin (bmy, Mon Apr 12 12:53:48 2004)
+# GEOS-CHEM Makefile for SGI/Origin (bmy, Thu Apr 15 09:33:12 2004)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -50,7 +50,6 @@ emisop_grass.o            \
 emisop_mb.o               \
 emissdr.o                 \
 emisshcn.o                \
-emlightning.o             \
 emmonot.o                 \
 fertadd.o                 \
 findmon.o                 \
@@ -68,8 +67,6 @@ inptr.o                   \
 input.o                   \
 jsparse.o                 \
 ksparse.o                 \
-lightdist.o               \
-lightning.o               \
 lump.o                    \
 main.o                    \
 ndxx_setup.o              \
@@ -196,7 +193,7 @@ photoj.o                  \
 rd_js.o                   \
 rd_prof.o                 \
 set_aer.o                 \
-set_prof.o                
+set_prof.o
 
 MODS =                    \
 charpak_mod.o             \
@@ -234,6 +231,7 @@ a6_read_mod.o             \
 i6_read_mod.o             \
 phis_read_mod.o           \
 diag51_mod.o              \
+lightning_nox_mod.o       \
 optdepth_mod.o            \
 planeflight_mod.o         \
 restart_mod.o             \
@@ -258,7 +256,6 @@ chemistry_mod.o           \
 emissions_mod.o
 
 SJ =                      \
-fast_j.o                  \
 findxsect.o               \
 funbas.o                  \
 funo1dham2.o              \
@@ -271,7 +268,7 @@ numo3.o                   \
 readcs.o                  \
 readcshcn.o               \
 rtfunc.o                  \
-scattr.o                  
+scattr.o
 
 #=============================================================================
 #  Executable with FAST-J (default)
@@ -393,7 +390,6 @@ emissco.o                  : emissco.f                  CMN CMN_CO CMN_CO_BUDGET
 emissdr.o                  : emissdr.f                  CMN CMN_DIAG CMN_MONOT CMN_NOX CMN_O3 CMN_SETUP CMN_SIZE define.h comode.h 
 emisshcn.o                 : emisshcn.f                 CMN CMN_DIAG CMN_HCN CMN_MONOT CMN_SIZE define.h hcn.h 
 emissions_mod.o            : emissions_mod.f            CMN CMN_SETUP CMN_SIZE define.h 
-emlightning.o              : emlightning.f              CMN CMN_DIAG CMN_NOX CMN_SIZE define.h 
 emmonot.o                  : emmonot.f                  CMN_MONOT CMN_SIZE define.h CMN_VEL 
 error_mod.o                : error_mod.f                CMN CMN_SIZE define.h define.h 
 fast_j.o                   : fast_j.f                   CMN cmn_fj.h CMN_SIZE define.h jv_cmn.h 
@@ -442,8 +438,7 @@ jv_index.o                 : jv_index.f                 cmn_fj.h CMN_SIZE define
 jvaluein.o                 : jvaluein.f                 CMN_SETUP CMN_SIZE define.h comsol.h 
 jvalueinhcn.o              : jvalueinhcn.f              CMN_SIZE define.h comsol.h 
 ksparse.o                  : ksparse.f                  CMN_SIZE define.h comode.h 
-lightdist.o                : lightdist.f                CMN_NOX CMN_SETUP CMN_SIZE define.h 
-lightning.o                : lightning.f                CMN_GCTM CMN_NOX CMN_SIZE define.h 
+lightning_nox_mod.o        : lightning_nox_mod.f        CMN_DIAG CMN_GCTM CMN_NOX CMN_SETUP CMN_SIZE define.h 
 lump.o                     : lump.f                     CMN_SIZE define.h comode.h 
 main.o                     : main.f                     CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SETUP CMN_SIZE define.h CMN_TIMES comode.h 
 matinv.o                   : matinv.f                   
@@ -526,7 +521,6 @@ soiltype.o                 : soiltype.f                 CMN_SIZE define.h commso
 sol.o                      : sol.f                      CMN_SIZE define.h comode.h comsol.h 
 subfun.o                   : subfun.f                   CMN_SIZE define.h comode.h 
 sulfate_mod.o              : sulfate_mod.f              CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SETUP CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h 
-sulfate_mod.o              : sulfate_mod.f_bmy              CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SETUP CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h 
 sumup.o                    : sumup.f                    CMN CMN_CO_BUDGET CMN_SIZE define.h 
 sunparam.o                 : sunparam.f                 
 tagged_co_mod.o            : tagged_co_mod.f            CMN CMN_DIAG CMN_O3 CMN_SETUP CMN_SIZE define.h 

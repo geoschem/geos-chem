@@ -1,10 +1,10 @@
-! $Id: dao_mod.f,v 1.5 2004/04/13 14:52:29 bmy Exp $
+! $Id: dao_mod.f,v 1.6 2004/04/19 15:09:51 bmy Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
 !  Module DAO_MOD contains both arrays that hold DAO met fields, as well as
 !  subroutines that compute, interpolate, or otherwise process DAO met field 
-!  data. (bmy, 6/27/00, 4/2/04)
+!  data. (bmy, 6/27/00, 4/13/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -100,8 +100,9 @@
 !  (9 ) MOLENGTH       : computes the Monin-Obhukov length
 !  (10) COSSZA         : computes the cosine of the solar zenith angle
 !  (11) CONVERT_UNITS  : Converts STT tracer array to/from [kg] and [v/v]
-!  (12) INIT_DAO       : allocates memory for all met field arrays
-!  (13) CLEANUP_DAO    : deallocates memory for all met field arrays
+!  (12) COPY_I6_FIELDS : Copies I-6 fields from one 6-hr timestep to the next
+!  (13) INIT_DAO       : allocates memory for all met field arrays
+!  (14) CLEANUP_DAO    : deallocates memory for all met field arrays
 !
 !  GEOS-CHEM modules referenced by dao_mod.f
 !  ============================================================================
@@ -148,6 +149,7 @@
 !        TSKIN, GWETTOP, ZMEU, ZMMD, ZMMU, PARDF, PARDR fields for 
 !        GEOS-4/fvDAS. (bmy, 6/25/03)
 !  (18) Added CLDFRC, RADSWG, RADLWG, SNOW arrays (bmy, 12/9/03)
+!  (19) Added routine COPY_I6_FIELDS w/ parallel DO-loops (bmy, 4/13/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1257,6 +1259,71 @@
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE COPY_I6_FIELDS
+!
+!******************************************************************************
+!  Subroutine COPY_I6_FIELDS copies the I-6 fields at the end of a 6-hr 
+!  timestep.  The I-6 fields at the end of a given 6-hr timestep become the
+!  fields at the beginning of the next 6-hr timestep. (bmy, 4/13/04)
+!
+!  NOTES:
+!  (1 ) Added parallel DO-loops (bmy, 4/13/04)
+!******************************************************************************
+! 
+#     include "CMN_SIZE" ! Size parameters
+      
+      ! Local variables
+      INTEGER :: I, J, L
+
+      !=================================================================
+      ! COPY_I6_FIELDS begins here!
+      !=================================================================
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Copy surface pressure
+         PS1(I,J)   = PS2(I,J) 
+
+#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+         ! Also copy surface albedo (GEOS-1, GEOS-S, GEOS-3 only)
+         ALBD1(I,J) = ALBD2(I,J)  
+#endif
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+
+      !=================================================================
+      ! GEOS-1, GEOS-S, GEOS-3: UWND, VWND, SPHU, TMPU are I-6 fields
+      ! so we need to copy these too.  (These are A-6 in GEOS-4.)
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         UWND1(I,J,L) = UWND2(I,J,L)
+         VWND1(I,J,L) = VWND2(I,J,L)
+         TMPU1(I,J,L) = TMPU2(I,J,L)
+         SPHU1(I,J,L) = SPHU2(I,J,L)
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+#endif
+
+      ! Return to calling program
+      END SUBROUTINE COPY_I6_FIELDS
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE INIT_DAO
 !
 !******************************************************************************
@@ -1500,12 +1567,6 @@
       SLP = 0d0      
 
 #endif
-
-!----------------------------------------------------------
-! Prior to 4/2/04:
-! Allocate these for both GEOS-3 and GEOS-4 (bmy, 4/2/04)
-!#if   defined( GEOS_4 ) 
-!-----------------------------------------------------------
 
 #if   defined( GEOS_3 ) || defined( GEOS_4 )
 

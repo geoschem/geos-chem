@@ -1,4 +1,4 @@
-! $Id: chemdr.f,v 1.6 2004/04/13 14:52:28 bmy Exp $
+! $Id: chemdr.f,v 1.7 2004/04/19 15:09:51 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
@@ -477,11 +477,6 @@
       !=================================================================
       ! Call RDAER -- Reads aerosol fields from disk
       !=================================================================
-      !-----------------------------------------------------------------
-      ! Prior to 4/1/04:
-      ! Now pass BCPI, BCPO, OCPI, OCPO to RDAER (rjp, tdf, bmy, 4/1/04)
-      !CALL RDAER( GET_MONTH(), GET_YEAR(), SO4_NH4_NIT )
-      !-----------------------------------------------------------------
       CALL RDAER( MONTH, YEAR, SO4_NH4_NIT, BCPI, BCPO, OCPI, OCPO )
 
       !### Debug
@@ -496,11 +491,6 @@
       ! in GEOS-CHEM...so read monthly-mean dust files from disk.
       ! (rjp, tdf, bmy, 4/1/04)
       !=================================================================
-      !-----------------------------------------------------------------
-      ! Prior to 4/1/04:
-      ! Now pass SOILDUST to RDUST (rjp, tdf, bmy, 4/1/04)
-      !CALL RDUST( GET_MONTH(), GET_YEAR() )
-      !-----------------------------------------------------------------
       IF ( LDUST ) THEN
          CALL RDUST_ONLINE( SOILDUST )
       ELSE

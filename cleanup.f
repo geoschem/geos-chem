@@ -1,9 +1,9 @@
-! $Id: cleanup.f,v 1.3 2004/04/13 14:52:29 bmy Exp $
+! $Id: cleanup.f,v 1.4 2004/04/19 15:09:51 bmy Exp $
       SUBROUTINE CLEANUP
 !
 !******************************************************************************
 !  Subroutine CLEANUP deallocates the memory assigned to dynamic allocatable 
-!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 4/5/04)
+!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 4/14/04)
 !
 !  NOTES:
 !  (1 ) CLEANUP is written in Fixed-Format F90.
@@ -50,38 +50,41 @@
 !  (22) Now reference cleanup routine from "toms_mod.f" (bmy, 7/14/03)
 !  (23) Now reference cleanup routine from "carbon_mod.f", "dust_mod.f", and
 !        "dust_dead_mod.f". (bmy, 7/14/03)
+!  (23) Now references cleanup routine from "lightning__nox_mod.f" 
+!        (bmy, 4/14/04)
 !******************************************************************************
 !
       ! References to F90 modules 
-      USE ACETONE_MOD,      ONLY : CLEANUP_ACETONE
-      USE AIRCRAFT_NOX_MOD, ONLY : CLEANUP_AIRCRAFT_NOX
-      USE BIOMASS_MOD,      ONLY : CLEANUP_BIOMASS
-      USE BIOFUEL_MOD,      ONLY : CLEANUP_BIOFUEL
-      USE C2H6_MOD,         ONLY : CLEANUP_C2H6
-      USE CARBON_MOD,       ONLY : CLEANUP_CARBON
-      USE COMODE_MOD,       ONLY : CLEANUP_COMODE
-      USE DAO_MOD,          ONLY : CLEANUP_DAO
-      USE DIAG_MOD,         ONLY : CLEANUP_DIAG
-      USE DIAG51_MOD,       ONLY : CLEANUP_DIAG51
-      USE DRYDEP_MOD,       ONLY : CLEANUP_DRYDEP
-      USE DUST_MOD,         ONLY : CLEANUP_DUST
-      USE DUST_DEAD_MOD,    ONLY : CLEANUP_DUST_DEAD
-      USE GLOBAL_CH4_MOD,   ONLY : CLEANUP_GLOBAL_CH4
-      USE GLOBAL_HNO3_MOD,  ONLY : CLEANUP_GLOBAL_HNO3
-      USE GLOBAL_NO3_MOD,   ONLY : CLEANUP_GLOBAL_NO3
-      USE GLOBAL_NOX_MOD,   ONLY : CLEANUP_GLOBAL_NOX
-      USE GLOBAL_OH_MOD,    ONLY : CLEANUP_GLOBAL_OH
-      USE PJC_PFIX_MOD,     ONLY : CLEANUP_PJC_PFIX
-      USE PLANEFLIGHT_MOD,  ONLY : CLEANUP_PLANEFLIGHT
-      USE PRESSURE_MOD,     ONLY : CLEANUP_PRESSURE
-      USE SULFATE_MOD,      ONLY : CLEANUP_SULFATE
-      USE TAGGED_CO_MOD,    ONLY : CLEANUP_TAGGED_CO
-      USE TOMS_MOD,         ONLY : CLEANUP_TOMS
-      USE TPCORE_FVDAS_MOD, ONLY : EXIT_TPCORE
-      USE TRANSPORT_MOD,    ONLY : CLEANUP_TRANSPORT
-      USE UVALBEDO_MOD,     ONLY : CLEANUP_UVALBEDO
-      USE WETSCAV_MOD,      ONLY : CLEANUP_WETSCAV
-      USE ERROR_MOD,        ONLY : DEBUG_MSG
+      USE ACETONE_MOD,       ONLY : CLEANUP_ACETONE
+      USE AIRCRAFT_NOX_MOD,  ONLY : CLEANUP_AIRCRAFT_NOX
+      USE BIOMASS_MOD,       ONLY : CLEANUP_BIOMASS
+      USE BIOFUEL_MOD,       ONLY : CLEANUP_BIOFUEL
+      USE C2H6_MOD,          ONLY : CLEANUP_C2H6
+      USE CARBON_MOD,        ONLY : CLEANUP_CARBON
+      USE COMODE_MOD,        ONLY : CLEANUP_COMODE
+      USE DAO_MOD,           ONLY : CLEANUP_DAO
+      USE DIAG_MOD,          ONLY : CLEANUP_DIAG
+      USE DIAG51_MOD,        ONLY : CLEANUP_DIAG51
+      USE DRYDEP_MOD,        ONLY : CLEANUP_DRYDEP
+      USE DUST_MOD,          ONLY : CLEANUP_DUST
+      USE DUST_DEAD_MOD,     ONLY : CLEANUP_DUST_DEAD
+      USE GLOBAL_CH4_MOD,    ONLY : CLEANUP_GLOBAL_CH4
+      USE GLOBAL_HNO3_MOD,   ONLY : CLEANUP_GLOBAL_HNO3
+      USE GLOBAL_NO3_MOD,    ONLY : CLEANUP_GLOBAL_NO3
+      USE GLOBAL_NOX_MOD,    ONLY : CLEANUP_GLOBAL_NOX
+      USE GLOBAL_OH_MOD,     ONLY : CLEANUP_GLOBAL_OH
+      USE LIGHTNING_NOX_MOD, ONLY : CLEANUP_LIGHTNING_NOX
+      USE PJC_PFIX_MOD,      ONLY : CLEANUP_PJC_PFIX
+      USE PLANEFLIGHT_MOD,   ONLY : CLEANUP_PLANEFLIGHT
+      USE PRESSURE_MOD,      ONLY : CLEANUP_PRESSURE
+      USE SULFATE_MOD,       ONLY : CLEANUP_SULFATE
+      USE TAGGED_CO_MOD,     ONLY : CLEANUP_TAGGED_CO
+      USE TOMS_MOD,          ONLY : CLEANUP_TOMS
+      USE TPCORE_FVDAS_MOD,  ONLY : EXIT_TPCORE
+      USE TRANSPORT_MOD,     ONLY : CLEANUP_TRANSPORT
+      USE UVALBEDO_MOD,      ONLY : CLEANUP_UVALBEDO
+      USE WETSCAV_MOD,       ONLY : CLEANUP_WETSCAV
+      USE ERROR_MOD,         ONLY : DEBUG_MSG
 
       IMPLICIT NONE
 
@@ -117,6 +120,7 @@
       CALL CLEANUP_COMODE
       CALL CLEANUP_DUST_DEAD
       CALL CLEANUP_DUST
+      CALL CLEANUP_LIGHTNING_NOX
       CALL CLEANUP_UVALBEDO
       CALL CLEANUP_WETSCAV
       CALL CLEANUP_PRESSURE

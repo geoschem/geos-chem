@@ -1,4 +1,4 @@
-! $Id: carbon_mod.f,v 1.1 2004/04/13 14:52:57 bmy Exp $
+! $Id: carbon_mod.f,v 1.2 2004/04/19 15:09:51 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
@@ -61,7 +61,7 @@
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "biomass_mod.f"
+      ! and routines from being seen outside "carbon_mod.f"
       !=================================================================
 
       ! PRIVATE module variables

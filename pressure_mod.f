@@ -1,13 +1,13 @@
-! $Id: pressure_mod.f,v 1.5 2004/03/24 20:52:31 bmy Exp $
+! $Id: pressure_mod.f,v 1.6 2004/04/19 15:09:54 bmy Exp $
       MODULE PRESSURE_MOD
 !
 !******************************************************************************
 !  Module PRESSURE_MOD contains variables and routines which specify the grid 
 !  box pressures for both hybrid or pure-sigma models.  This is necessary
 !  for running GEOS-CHEM with the new GEOS-4/fvDAS meteorological fields.
-!  (dsa, bmy, 8/27/02, 11/3/03)
+!  (dsa, bmy, 8/27/02, 4/14/04)
 !
-!  The Hybrid ETA-coordinate (dsa, 8/27/02, 10/24/03)
+!  The Hybrid ETA-coordinate (dsa, 8/27/02, 4/14/04)
 !  ============================================================================
 !  Pressure at layer edges are defined as follows:
 !  
@@ -53,6 +53,7 @@
 !  (3 ) Updated format string for fvDAS (bmy, 6/19/03)
 !  (4 ) Bug fix: use PFLT instead of PFLT-PTOP for GEOS-4 (bmy, 10/24/03)
 !  (5 ) Modifications for 30L and 55L GEOS-4 grids (bmy, 11/3/03)
+!  (6 ) Added parallel DO-loop in SET_FLOATING_PRESSURE (bmy, 4/14/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -144,7 +145,7 @@
 !******************************************************************************
 !  Subroutine SET_FLOATING_PRESSURE initializes the floating pressure field
 !  PFLT with a pressure from the main program.  This is needed to initialize 
-!  and reset PFLT after transport. (dsa, bdf, bmy, 8/27/02)
+!  and reset PFLT after transport. (dsa, bdf, bmy, 8/27/02, 4/14/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -152,6 +153,7 @@
 !
 !  NOTES:
 !  (1 ) Now check PFLT for NaN or Infinities (bmy, 8/27/02)
+!  (2 ) Added parallel DO-loop (bmy, 4/14/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -168,6 +170,9 @@
       !=================================================================
       ! SET_FLOATING_PRESSURE begins here!
       !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -179,6 +184,7 @@
      &                    'PFLT',   'set_floating_pressure:1' )
       ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
       ! Return to calling program
       END SUBROUTINE SET_FLOATING_PRESSURE

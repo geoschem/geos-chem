@@ -1,10 +1,11 @@
-! $Id: dust_dead_mod.f,v 1.1 2004/04/13 14:52:57 bmy Exp $
+! $Id: dust_dead_mod.f,v 1.2 2004/04/19 15:09:52 bmy Exp $
       MODULE DUST_DEAD_MOD
 !
 !******************************************************************************
 !  Module DUST_DEAD_MOD contains routines and variables from Charlie Zender's
-!  DEAD dust mobilization model.  Most routines are from Zender, but have
-!  been modified and/or cleaned up for GEOS-CHEM. (tdf, rjp, bmy, 4/6/04) 
+!  DEAD dust mobilization model.  Most routines are from Charlie Zender, but 
+!  have been modified and/or cleaned up for inclusion into GEOS-CHEM. 
+!  (tdf, rjp, bmy, 4/6/04, 4/14/04) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -118,6 +119,7 @@
 !  (6 ) transfer_mod.f : Module containing routines to cast & resize arrays
 !
 !  NOTES:
+!  (1 ) Added parallel DO loop in GET_ORO (bmy, 4/14/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1169,13 +1171,14 @@ ctdf        print *,' no mobilisation candidates'
 !
 !******************************************************************************
 !  Subroutine GET_ORO creates a 2D orography array, OROGRAPHY, from the
-!  GMAO LWI fields.  Ocean= 0; Land=1; ice=2. (tdf, bmy, 3/30/04)
+!  GMAO LWI fields.  Ocean= 0; Land=1; ice=2. (tdf, bmy, 3/30/04, 4/14/04)
 !
 !  Arguments as Output:
 !  ============================================================================
 !  (1 ) OROGRAPHY (INTEGER) : Array for orography flags
 !
 !  NOTES:
+!  (1 ) Added parallel DO-loop (bmy, 4/14/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1192,6 +1195,9 @@ ctdf        print *,' no mobilisation candidates'
       !=================================================================
       ! GET_ORO begins here!
       !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -1220,6 +1226,7 @@ ctdf        print *,' no mobilisation candidates'
 
       ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
       ! Return to calling program
       END SUBROUTINE GET_ORO

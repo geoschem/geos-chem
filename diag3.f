@@ -1,4 +1,4 @@
-! $Id: diag3.f,v 1.9 2004/04/13 14:52:29 bmy Exp $
+! $Id: diag3.f,v 1.10 2004/04/19 15:09:51 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
@@ -1803,21 +1803,8 @@
          DO M = 1, TMAX(37)
             N = TINDEX(37,M)
              
-            !------------------------------------------------
-            ! Prior to 3/19/04:
-            !! Rn-Pb-Be run has 2 soluble tracers
-            !! Full chemistry run has 4 soluble tracers
-            !IF ( NSRCX == 1 .and. N > 2    ) CYCLE
-            !IF ( NSRCX == 3 .and. N > PD37 ) CYCLE
-            !------------------------------------------------
-
             ! Cycle if N is too high
             IF ( N > NMAX ) CYCLE
-
-            !--------------------------------------------
-            ! Prior to 1/21/04
-            !NN = N + TRCOFFSET
-            !--------------------------------------------
 
             ! Tracer number plus GAMAP offset
             NN = GET_WETDEP_IDWETD(N) + TRCOFFSET

@@ -1,4 +1,4 @@
-! $Id: setup.f,v 1.6 2004/04/13 14:52:31 bmy Exp $
+! $Id: setup.f,v 1.7 2004/04/19 15:09:54 bmy Exp $
       SUBROUTINE SETUP( NYMDb, NYMDe,     NHMSb,   NHMSe,   NDT,      
      &                  NTDT,  NDIAGTIME, ALPHA_d, ALPHA_n, IORD,     
      &                  JORD,  KORD,      J1,      Umax,    IGD,      
@@ -142,24 +142,6 @@
       ! Change NYMDb, NYMDe to YYYYMMDD format
       NYMDb = NYMD6_2_NYMD8( NYMDb )
       NYMDe = NYMD6_2_NYMD8( NYMDe )
-!------------------------------------------------------------------------------
-! Prior to 4/6/04:
-! Comment these lines out (bmy, 4/5/04)
-!!
-!!******************************************************************************
-!!  Read FORTRAN file I/O units from INPUT.GEOS 
-!!  PH_FLDS is the number of met fields in the file with unit IU_PH, etc..
-!!******************************************************************************
-!!
-!      READ( 99, '(a)', IOSTAT=IOS )
-!      IF ( IOS /= 0 ) CALL IOERROR( IOS, 99, 'setup:4' )
-!       
-!      READ( 99, '(a)', IOSTAT=IOS )
-!      IF ( IOS /= 0 ) CALL IOERROR( IOS, 99, 'setup:5' )
-!       
-!      READ( 99, '(a)', IOSTAT=IOS )
-!      IF ( IOS /= 0 ) CALL IOERROR( IOS, 99, 'setup:6' )
-!------------------------------------------------------------------------------
 !
 !******************************************************************************
 !  Read in GEOS-CTM logical flags from INPUT.GEOS                            
@@ -181,12 +163,6 @@
       IF ( IOS /= 0 ) CALL IOERROR( IOS, 99, 'setup:11' )
 
       READ ( 99, 25, IOSTAT=IOS ) 
-!--------------------------------------------------------------------
-! Prior to 4/2/04:
-! Move LSULF down one line (rjp, tdf, bmy, 4/2/04)
-! Now use LDEAD to toggle Ginoux or Zender dust schemes
-!     &     LMFCT,  LFILL,  LSTDRUN, LSULF,  LSPLIT,  STR4   
-!--------------------------------------------------------------------
      &     LMFCT,  LFILL,  LSTDRUN, LDEAD,  LSPLIT,  STR4   
       IF ( IOS /= 0 ) CALL IOERROR( IOS, 99, 'setup:12' )
 

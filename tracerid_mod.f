@@ -1,4 +1,4 @@
-! $Id: tracerid_mod.f,v 1.3 2004/04/13 14:52:32 bmy Exp $
+! $Id: tracerid_mod.f,v 1.4 2004/04/19 15:09:55 bmy Exp $
       MODULE TRACERID_MOD
 !
 !******************************************************************************
@@ -156,10 +156,6 @@
       IMPLICIT NONE
 
       ! for CTM tracers
-      !--------------------------------------------------      
-      ! Prior to 4/1/04:
-      !INTEGER, PARAMETER :: NNNTRID  = 32
-      !--------------------------------------------------
       INTEGER, PARAMETER :: NNNTRID  = 40
       INTEGER, PARAMETER :: MMMEMBER = 10
       INTEGER            :: NMEMBER(NNNTRID) 

@@ -1,5 +1,14 @@
-C $Id: main.f,v 1.13 2004/04/13 14:52:31 bmy Exp $
+C $Id: main.f,v 1.14 2004/04/19 15:09:54 bmy Exp $
 C $Log: main.f,v $
+C Revision 1.14  2004/04/19 15:09:54  bmy
+C GEOS-CHEM v6-02-03, includes the following modifications:
+C - bundled lightning NOx routines into "lightning_nox_mod.f"
+C - parallelized routines in "lightning_nox_mod.f"
+C - parallelized routines in "upbdflx_mod.f"
+C - parallelized other sections of code for better optimization
+C - bug fix in parallel loop in routine SRC_DUST_DEAD ("dust_mod.f")
+C - Cosmetic changes, updated comments
+C
 C Revision 1.13  2004/04/13 14:52:31  bmy
 C GEOS-CHEM v6-02-02, includes the following modifications:
 C - Added carbon aerosol tracers BCPI, OCPI, BCPO, OCPO
@@ -123,6 +132,7 @@ C
       USE GLOBAL_CH4_MOD,    ONLY : INIT_GLOBAL_CH4, CH4_AVGTP
       USE GWET_READ_MOD
       USE I6_READ_MOD
+      USE LIGHTNING_NOX_MOD, ONLY : LIGHTNING
       USE PHIS_READ_MOD
       USE PLANEFLIGHT_MOD,   ONLY : SETUP_PLANEFLIGHT
       USE PRESSURE_MOD
@@ -818,15 +828,21 @@ C
       !        The I-6 fields at the end of this timestep become
       !        the fields at the beginning of the next timestep
       !=================================================================
-      PS1   = PS2 
-
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
-      ALBD1 = ALBD2    
-      UWND1 = UWND2
-      VWND1 = VWND2
-      TMPU1 = TMPU2
-      SPHU1 = SPHU2
-#endif
+!------------------------------------------------------------------------------
+! Prior to 4/13/04:
+! Now call routine COPY_I6_FIELDS from "dao_mod.f".  This uses
+! parallel loops for better optimization. (bmy, 4/13/04)
+!      PS1   = PS2 
+!
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!      ALBD1 = ALBD2    
+!      UWND1 = UWND2
+!      VWND1 = VWND2
+!      TMPU1 = TMPU2
+!      SPHU1 = SPHU2
+!#endif
+!------------------------------------------------------------------------------
+      CALL COPY_I6_FIELDS
 
       ENDDO
 

@@ -1,20 +1,23 @@
-# $Id: Makefile.ifc,v 1.4 2004/04/19 15:09:49 bmy Exp $
+# $Id: Makefile.pgi,v 1.1 2004/04/19 15:09:50 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for LINUX/IFC compiler (bmy, Thu Apr 15 09:34:30 2004)
+# GEOS-CHEM Makefile for LINUX/PGI (bmy, Thu Apr 15 09:33:53 2004)
+#
+# NOTE: If you want to run the 2 x 2.5 GEOS-CHEM model, then try adding
+#       -Bstatic to the F90 compilation line.  It appears that setting 
+#       -Bstatic causes the compiler to access more than 1GB of memory.
+#       However, you probably don't need -Bstatic for the 4x5 though.
+#       (hyl, bmy, 10/10/03)
 #=============================================================================
 SHELL = /bin/sh
 
-# IFC compilation options
-FFLAGS = -cpp -w -O2 -Vaxlib -auto -noalign
+# Multi-processor
+F90 = pgf90 -byteswapio -Mpreprocess -fast -mp -Mnosgimp -Dmultitask -Bstatic
 
-# Compile command -- multiprocessor
-F90 = ifc $(FFLAGS) -openmp 
+# Single-processor
+#F90 = pgf90 -byteswapio -Mpreprocess -fast -Bstatic
 
-# Compile  command -- single processor
-#F90 = ifc $(FFLAGS)
-
-# C compiler
-CC  = gcc
+# C-compiler
+CC = gcc
 
 OBJSc =                   \
 linux_err.o
@@ -198,8 +201,8 @@ jv_index.o                \
 photoj.o                  \
 rd_js.o                   \
 rd_prof.o                 \
-set_aer.o                
-set_prof.o                
+set_aer.o                 \
+set_prof.o
 
 MODS =                    \
 charpak_mod.o             \
@@ -279,20 +282,20 @@ scattr.o
 #=============================================================================
 #  Executable with FAST-J (default)
 #=============================================================================
-geos 	      : $(MODS) $(OBJS) $(OBJSc) $(FJ)    Makefile.ifc
-		$(F90)  $(MODS) $(OBJS)  $(OBJSc) $(FJ) -o geos
+geos          : $(MODS) $(OBJS) $(OBJSc) $(FJ) Makefile.linux
+                $(F90)  $(MODS) $(OBJS)  $(OBJSc) $(FJ) -o geos
 
 #=============================================================================
 #  Executable with SLOW-J 
 #=============================================================================
-geos_sj	      : $(MODS) $(OBJS) $(OBJSc) $(SJ) Makefile.ifc
-		$(F90)  $(MODS) $(OBJS)  $(OBJSc) $(SJ) -o geos_sj
+geos_sj       : $(MODS) $(OBJS) $(OBJSc) $(SJ) Makefile.linux
+                $(F90)  $(MODS) $(OBJS)  $(OBJSc) $(SJ) -o geos_sj
 
 #==============================================================================
 #  Executable for CO-OH simulation with SLOW-J
 #==============================================================================
-geosco        : $(MODS) $(OBJS) $(OBJSc) $(CO_OH) $(SJ) Makefile.ifc
-		$(F90)  $(MODS) $(OBJS) $(OBJSc) $(CO_OH) $(SJ) -o geosco
+geosco        : $(MODS) $(OBJS) $(OBJSc) $(CO_OH) $(SJ) Makefile.linux
+                $(F90)  $(MODS) $(OBJS)  $(OBJSc) $(CO_OH) $(SJ) -o geosco
 
 #==============================================================================
 #  Dependencies Listing
@@ -532,11 +535,11 @@ time_mod.o                 : time_mod.f                 define.h
 toms_mod.o                 : toms_mod.f                 CMN_SETUP CMN_SIZE define.h 
 tpcore_bc_mod.o            : tpcore_bc_mod.f            CMN CMN_SIZE define.h 
 tpcore_fvdas_mod.o         : tpcore_fvdas_mod.f90         
-	$(F90) -c -r8 $*.f90
+	$(FF) -c -Mextend -r8 $(Fopt) $*.f90
 tpcore_mod.o               : tpcore_mod.f               CMN CMN_CO CMN_CO_BUDGET CMN_DIAG CMN_GCTM CMN_SIZE define.h define.h 
-	$(F90) -c -r8 $*.f
+	$(FF) -c -Mextend -r8 $(Fopt) $*.f
 tpcore_window_mod.o        : tpcore_window_mod.f        CMN CMN_CO CMN_CO_BUDGET CMN_DIAG CMN_GCTM CMN_SIZE define.h define.h 
-	$(F90) -c -r8 $*.f
+	$(FF) -c -Mextend -r8 $(Fopt) $*.f
 tracerid_mod.o             : tracerid_mod.f             CMN CMN_SIZE define.h comode.h 
 transfer_mod.o             : transfer_mod.f             CMN_SIZE define.h 
 transport_mod.o            : transport_mod.f            CMN CMN_GCTM CMN_SETUP CMN_SIZE define.h 
@@ -554,16 +557,16 @@ xltmmp.o                   : xltmmp.f                   CMN_SIZE define.h
 #  C-language routines
 #==============================================================================
 linux_err.o                : linux_err.c     
-	$(CC) -c linux_err.c
+        $(CC) -c linux_err.c
 
 #=============================================================================
 #  Other Makefile Commands
 #=============================================================================
 clean:
-	rm -f *.o *.mod ifc* geos geos_sj geosco
+        rm -f *.o *.mod geos geos_sj geosco
 
 .SUFFIXES: .f .F .f90 .F90
-.f.o:			; $(F90) -c $*.f
-.F.o:			; $(F90) -c $*.F
+.f.o:                   ; $(F90) -c $*.f
+.F.o:                   ; $(F90) -c $*.F
 .f90.o:                 ; $(F90) -c -Mfree $*.f90 
 .F90.o:                 ; $(F90) -c -Mfree $*.F90 

@@ -1,4 +1,4 @@
-! $Id: a6_read_mod.f,v 1.6 2004/03/24 20:52:28 bmy Exp $
+! $Id: a6_read_mod.f,v 1.7 2004/04/19 15:09:50 bmy Exp $
       MODULE A6_READ_MOD
 !
 !******************************************************************************
@@ -267,13 +267,6 @@
          GOTO 999
       ENDIF
 
-!-----------------------------------------------------------------
-! Prior to 3/22/04:
-! GEOS-4 "a_llk_04" fields have A-6 fields defined at the same
-! times as for GEOS-1, GEOS-S, GEOS-3.  Only GEOS-4 "a_llk_03"
-! fields need to be opened if it's 03 GMT. (bmy, 3/22/04) 
-!#if   defined( GEOS_4 ) 
-!-----------------------------------------------------------------
 #if   defined( GEOS_4 ) && defined( A_LLK_03 )
 
       ! Open file if it's 03 GMT or first call 

@@ -1,9 +1,9 @@
-! $Id: upbdflx_mod.f,v 1.6 2004/01/29 16:55:33 bmy Exp $
+! $Id: upbdflx_mod.f,v 1.7 2004/04/19 15:09:55 bmy Exp $
       MODULE UPBDFLX_MOD
 !
 !******************************************************************************
 !  Module UPBDFLX_MOD contains subroutines which impose stratospheric boundary
-!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 1/29/04)
+!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 4/15/04)
 !
 !  Module Routines:
 !  ============================================================================
@@ -39,6 +39,7 @@
 !  (12) Added printout of O3 in Tg/yr in UPBDFLX_O3 (mje, bmy, 8/15/03)
 !  (13) Change O3 flux for GEOS-3 to 500 Tg/yr in UPBDFLX_O3 (bmy, 9/15/03)
 !  (14) Now references "tagged_ox_mod.f" (bmy, 8/19/03)
+!  (15) Now activated parallel DO loops (bmy, 4/15/04)
 !******************************************************************************
 !      
       IMPLICIT NONE
@@ -106,7 +107,7 @@
 !******************************************************************************
 !  Subroutine UPBDFLX_O3 establishes the flux boundary condition for Ozone
 !  coming down from the stratosphere, using the Synoz algorithm of
-!  McLinden et al, 2000. (qli, bmy, 12/13/99, 8/15/03)
+!  McLinden et al, 2000. (qli, bmy, 12/13/99, 4/15/04)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -160,6 +161,8 @@
 !        pass stratospheric flux of Ox to the proper tagged tracer w/o
 !        resorting to hardwiring w/in this routine. (bmy, 8/18/03)
 !  (20) Add GEOS_4 to the #if defined block. (bmy, 1/29/04)
+!  (21) Activated parallel DO-loops.  Now made STFLUX a local array
+!        in order to facilitate parallelization. (bmy, 4/15/04)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -183,7 +186,8 @@
       INTEGER              :: I, J, L, L70mb
       INTEGER              :: NTRACER, NTRACE2
       REAL*8               :: P1, P2, P3, T1, T2, DZ, ZUP
-      REAL*8               :: DTDYN, H70mb, PO3, PO3_vmr, STFLUX
+      REAL*8               :: DTDYN, H70mb, PO3, PO3_vmr
+      REAL*8               :: STFLUX(IIPAR,JJPAR,LLPAR)
 
       ! Select the grid boxes at the edges of the O3 release region, 
       ! for the proper model resolution (qli, bmy, 12/5/00)
@@ -259,148 +263,118 @@
 
 #endif
 
-!------------------------------------------------------------------------------
-! Prior to 8/19/03:
-! Now remove special case for NSRCX == 6 (bmy, 8/18/03)
-!      !=================================================================
-!      ! Select the proper tracer number to store O3 into, depending on
-!      ! whether this is a full chemistry run or a single tracer Ox run
-!      !=================================================================
-!      SELECT CASE ( NSRCX )
-!
-!         ! Full chemistry
-!         CASE ( 3 )
-!            NTRACER = IDTOX
-!          
-!         ! Single or multi-tracer Ox
-!         CASE ( 6 )
-!            NTRACER = 1
-!
-!            ! For multi-tracer Ox: change to carry 12 tracers for O3
-!            ! tagged run of which strat O3 is tracer 11. (amf, 7/3/01)
-!            IF ( LSPLIT ) NTRACE2 = 11
-!
-!         ! All other simulations don't use O3...print error message
-!         CASE DEFAULT
-!            CALL ERROR_STOP( 'This simulation does not use O3!',
-!     &                       'UPBDFLX_O3 (upbdflx_mod.f)' )
-!
-!      END SELECT
-!------------------------------------------------------------------------------
-
       ! Store in the proper Ox tracer #
       NTRACER = IDTOX
 
-      !=================================================================
-      ! Loop over latitude/longtitude locations (I,J)
-      ! Define window offsets IREF = I + I0, JREF = J + J0
-      !=================================================================
+      ! Only initialize on first time step
+      IF ( FIRST ) STFLUX = 0d0
+
+      ! Loop over latitude (30S -> 30N) and longitude
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I,  J,  L,  P2,  L70mb, P1, P3 )
+!$OMP+PRIVATE( T2, T1, DZ, ZUP, H70mb, PO3    )
+!$OMP+SCHEDULE( DYNAMIC )
       DO J = J30S, J30N 
-         DO I = 1, IIPAR
+      DO I = 1,    IIPAR
 
-            !===========================================================
-            ! L70mb is the 1st layer where pressure is equal to
-            ! or smaller than 70 mb 
-            !
-            ! P1 = pressure [ mb ] at the sigma center     of level L70mb - 1
-            ! P3 = pressure [ mb ] at the lower sigma edge of level L70mb
-            ! P2 = pressure [ mb ] at the sigma center     of level L70mb
-            !===========================================================
-            DO L = 1, LLPAR
-               P2 = GET_PCENTER(I,J,L) 
+         !==============================================================
+         ! L70mb is the 1st layer where pressure is equal to
+         ! or smaller than 70 mb 
+         !==============================================================
+         DO L = 1, LLPAR
+
+            ! P2 = pressure [hPa] at the sigma center of level L70mb
+            P2 = GET_PCENTER(I,J,L) 
                
-               IF ( P2 < P70mb ) THEN
-                  L70mb = L
-                  EXIT
-               ENDIF
-            ENDDO
-            
-            P1 = GET_PCENTER(I,J,L70mb-1) 
-            P3 = GET_PEDGE(I,J,L70mb) 
- 
-            !===========================================================
-            ! T2 = temperature (K)  at the sigma center of level L70mb
-            ! T1 = temperature (K)  at the sigma center of level L70mb-1
-            !
-            ! DZ is the height from the sigma center of level L70mb-1 
-            ! to 70mb.  Therefore, DZ may be found in either the 
-            ! (L70mb)th sigma layer or the (L70mb-1)th sigma layer.  
-            !
-            ! ZUP is the height from the sigma center of the 
-            ! (L70mb-1)th layer
-            !=========================================================== 
-            T2   = T(I,J,L70mb  )
-            T1   = T(I,J,L70mb-1)        
-
-            DZ   = Rdg0 * ( (T1 + T2) / 2d0 ) * LOG( P1 / P70mb ) 
-            ZUP  = Rdg0 * T1 * LOG( P1 /P3 )
-
-            !===========================================================       
-            ! H70mb is height between 70mb and the upper edge of the 
-            ! level where DZ is.
-            !  
-            ! If DZ >= ZUP then DZ is already in level L70mb.
-            ! If DZ <  ZUP then DZ is in level L70mb-1.
-            !===========================================================       
-            IF ( DZ >= ZUP ) THEN
-               H70mb = BXHEIGHT(I,J,L70mb) - ( DZ - ZUP )
-            ELSE
-               L70mb = L70mb - 1
-               H70mb = ZUP - DZ
+            IF ( P2 < P70mb ) THEN
+               L70mb = L
+               EXIT
             ENDIF
-
-            !=========================================================== 
-            ! Distribute O3 into the region (30S-30N, 70mb-10mb)
-            !=========================================================== 
-            DO L = L70mb, LLPAR 
-
-               ! Convert O3 in grid box (I,J,L) from v/v/s to kg/box
-               PO3 = PO3_vmr * DTDYN 
-
-               ! For both 2 x 2.5 and 4 x 5 GEOS grids, 30S and 30 N are
-               ! grid box centers.  However, the O3 release region is 
-               ! edged by 30S and 30N.  Therefore, if we are at the 30S
-               ! or 30N grid boxes, divide the O3 flux by 2.
-               IF ( J == J30S .or. J == J30N ) THEN
-                  PO3 = PO3 / 2d0
-               ENDIF 
-
-               ! If we are in the lower level, compute the fraction
-               ! of this level that lies above 70 mb, and scale 
-               ! the O3 flux accordingly.
-               IF ( L == L70mb ) THEN
-                  PO3 = PO3 * H70mb / BXHEIGHT(I,J,L) 
-               ENDIF
-            
-               ! Store O3 flux in the proper tracer number
-               STT(I,J,L,NTRACER) = STT(I,J,L,NTRACER) + PO3 
-
-               !----------------------------------------------------------
-               ! Prior to 8/19/03:
-               ! Remove hardwiring for the Tagged Ox run (bmy, 8/19/03)
-               !! Store strat O3 flux into tracer #11 for
-               !! multi-tracer Ox run (amf, bmy, 7/3/01)
-               !IF ( LSPLIT .and. NSRCX == 6 ) THEN
-               !   STT(I,J,L,NTRACE2) = STT(I,J,L,NTRACE2) + PO3
-               !ENDIF
-               !----------------------------------------------------------
-               IF ( NSRCX == 6 ) CALL ADD_STRAT_POX( I, J, L, PO3 )
-
-               ! Archive stratospheric O3 for printout in [Tg/yr]
-               IF ( FIRST ) THEN
-                  STFLUX = STFLUX + 
-     &                     PO3 * AD(I,J,L) * 1000.d0 / 28.8d0 /
-     &                     DTDYN * 48.d0 * 365.25d0 * 86400d0 / 1e12
-               ENDIF
-            ENDDO   
          ENDDO
+         
+         ! P1 = pressure [hPa] at the sigma center of level L70mb - 1   
+         P1 = GET_PCENTER(I,J,L70mb-1) 
+
+         ! P3 = pressure [hPa] at the lower sigma edge of level L70mb
+         P3 = GET_PEDGE(I,J,L70mb) 
+ 
+         !==============================================================
+         ! T2 = temperature (K)  at the sigma center of level L70mb
+         ! T1 = temperature (K)  at the sigma center of level L70mb-1
+         !
+         ! DZ is the height from the sigma center of level L70mb-1 
+         ! to 70mb.  Therefore, DZ may be found in either the 
+         ! (L70mb)th sigma layer or the (L70mb-1)th sigma layer.  
+         !
+         ! ZUP is the height from the sigma center of the 
+         ! (L70mb-1)th layer
+         !============================================================== 
+         T2   = T(I,J,L70mb  )
+         T1   = T(I,J,L70mb-1)        
+
+         DZ   = Rdg0 * ( (T1 + T2) / 2d0 ) * LOG( P1 / P70mb ) 
+         ZUP  = Rdg0 * T1 * LOG( P1 /P3 )
+
+         !==============================================================       
+         ! H70mb is height between 70mb and the upper edge of the 
+         ! level where DZ is.
+         !  
+         ! If DZ >= ZUP then DZ is already in level L70mb.
+         ! If DZ <  ZUP then DZ is in level L70mb-1.
+         !==============================================================       
+         IF ( DZ >= ZUP ) THEN
+            H70mb = BXHEIGHT(I,J,L70mb) - ( DZ - ZUP )
+         ELSE
+            L70mb = L70mb - 1
+            H70mb = ZUP - DZ
+         ENDIF
+
+         !=========================================================== 
+         ! Distribute O3 into the region (30S-30N, 70mb-10mb)
+         !=========================================================== 
+         DO L = L70mb, LLPAR 
+
+            ! Convert O3 in grid box (I,J,L) from v/v/s to kg/box
+            PO3 = PO3_vmr * DTDYN 
+
+            ! For both 2 x 2.5 and 4 x 5 GEOS grids, 30S and 30 N are
+            ! grid box centers.  However, the O3 release region is 
+            ! edged by 30S and 30N.  Therefore, if we are at the 30S
+            ! or 30N grid boxes, divide the O3 flux by 2.
+            IF ( J == J30S .or. J == J30N ) THEN
+               PO3 = PO3 / 2d0
+            ENDIF 
+
+            ! If we are in the lower level, compute the fraction
+            ! of this level that lies above 70 mb, and scale 
+            ! the O3 flux accordingly.
+            IF ( L == L70mb ) THEN
+               PO3 = PO3 * H70mb / BXHEIGHT(I,J,L) 
+            ENDIF
+            
+            ! Store O3 flux in the proper tracer number
+            STT(I,J,L,NTRACER) = STT(I,J,L,NTRACER) + PO3 
+
+            ! Store O3 flux for strat Ox tracer (Tagged Ox only)
+            IF ( NSRCX == 6 ) CALL ADD_STRAT_POX( I, J, L, PO3 )
+
+            ! Archive stratospheric O3 for printout in [Tg/yr]
+            IF ( FIRST ) THEN
+               STFLUX(I,J,L) = STFLUX(I,J,L) + 
+     &              PO3 * AD(I,J,L) * 1000.d0 / 28.8d0 /
+     &              DTDYN * 48.d0 * 365.25d0 * 86400d0 / 1e12
+            ENDIF
+         ENDDO   
       ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
       !=================================================================
       ! Print amount of stratospheric O3 coming down
       !=================================================================
       IF ( FIRST ) THEN
-         WRITE( 6, 100 ) STFLUX
+         WRITE( 6, 100 ) SUM( STFLUX )
  100     FORMAT( '     - UPBDFLX_O3: Strat O3 production is', f9.3, 
      &           ' [Tg/yr]')
          FIRST = .FALSE.
@@ -417,7 +391,7 @@
 !  Subroutine UPBDFLX_NOY imposes NOy (NOx + HNO3) upper boundary condition
 !  in the stratosphere. The production rates for NOy are provided by Dylan
 !  Jones, along with NOx and HNO3 concentrations. 
-!  (qli, rvm, mje, bmy, 12/22/99, 4/14/03)
+!  (qli, rvm, mje, bmy, 12/22/99, 4/15/04)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -460,6 +434,8 @@
 !        GET_MONTH from "time_mod.f".  Now call READ_BPCH2 with QUIET=.TRUE.
 !        to suppress printing of extra info.  Cosmetic changes.  Now references
 !        AD from "dao_mod.f" for GEOS-1 (bmy, 4/14/03)
+!  (16) Activated parallel DO-loops.  Moved the computation of XRATIO into
+!        the IF block which only gets done once per month. (bmy, 4/15/04)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -479,7 +455,7 @@
       INTEGER, INTENT(IN)  :: IFLAG
 
       ! Local variables
-      INTEGER              :: I, J, L
+      INTEGER              :: I, J, L, LMIN
       INTEGER, SAVE        :: LASTMONTH
 
       REAL*4               :: DTDYN, AIRDENS, PNOY
@@ -620,6 +596,19 @@
 
 #endif
 
+            !===========================================================
+            ! XRATIO is the ratio ( [NO] + [NO2] ) / [NOy],
+            ! which is needed for the partitioning.
+            ! XRATIO will be the same for a given month
+            !===========================================================
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+               XRATIO(J,L) = ( STRATNO(J,L) + STRATNO2(J,L) ) /
+     &                       ( STRATNO(J,L) + STRATNO2(J,L) + 
+     &                         STRATHNO3(J,L) ) 
+            ENDDO
+            ENDDO
+
          ENDIF
 
          !==============================================================
@@ -663,63 +652,57 @@
          ! of [NOy] into account.  For now we proceed as outlined above.
          !==============================================================
 
-         !print*, 'In upbdflx_noy, before imposing NOx upbd flux '
+         ! Minimum value of LPAUSE
+         LMIN = MINVAL( LPAUSE  )
 
-!! Deactivate parallel processor DO-loops for now (bmy, 12/12/00)
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+SCHEDULE( DYNAMIC )
-!!$OMP+PRIVATE( I, J, L, PNOY )
-!#if   defined( GEOS_1 )
-!!$OMP+PRIVATE( AIRDENS )
-!#endif
-         DO L = MINVAL( LPAUSE ), LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, PNOY )
+#if   defined( GEOS_1 )
+!$OMP+PRIVATE( AIRDENS )
+#endif
+!$OMP+SCHEDULE( DYNAMIC )
+         DO L = LMIN, LLPAR
+         DO J = 1,    JJPAR
+         DO I = 1,    IIPAR
 
             ! Skip over tropospheric boxes
-            IF ( L < LPAUSE(I,J) ) CYCLE
-
-            ! PNOY = P(NOy) converted from [v/v/s] to [v/v] 
-            PNOY = STRATPNOY(J,L) * DTDYN 
+            IF ( L >= LPAUSE(I,J) ) THEN
+  
+               ! PNOY = P(NOy) converted from [v/v/s] to [v/v] 
+               PNOY = STRATPNOY(J,L) * DTDYN 
 
 #if   defined( GEOS_1 )
-            !===========================================================
-            ! Top level -- dump P(NOy) above 10 mb here
-            ! AIRDENS   has units of [molec/cm3  ]
-            ! SPNOY10mb has units of [molec/cm3/s]
-            ! Convert SPNOY10mb to [v/v] and add to PNOY
-            !
-            ! NOTE: We only have to do this for GEOS-1 grid, since 
-            ! GEOS-STRAT, GEOS-2 and GEOS-3 grids extend well above 
-            ! 10 mb. (qli, rvm, bmy, 12/6/00)
-            !===========================================================
-            IF ( L == LLPAR ) THEN 
-               AIRDENS = AD(I,J,L) * XNUMOLAIR / BOXVL(I,J,L)
-               PNOY    = PNOY + ( SPNOY10mb(J) * DTDYN / AIRDENS )
-            ENDIF
+               !========================================================
+               ! Top level -- dump P(NOy) above 10 mb here
+               ! AIRDENS   has units of [molec/cm3  ]
+               ! SPNOY10mb has units of [molec/cm3/s]
+               ! Convert SPNOY10mb to [v/v] and add to PNOY
+               !
+               ! NOTE: We only have to do this for GEOS-1 grid, since 
+               ! GEOS-STRAT, GEOS-2 and GEOS-3 grids extend well above 
+               ! 10 mb. (qli, rvm, bmy, 12/6/00)
+               !========================================================
+               IF ( L == LLPAR ) THEN 
+                  AIRDENS = AD(I,J,L) * XNUMOLAIR / BOXVL(I,J,L)
+                  PNOY    = PNOY + ( SPNOY10mb(J) * DTDYN / AIRDENS )
+               ENDIF
 #endif
 
-            ! Add [NOx] and [HNO3] to PNOY.
-            ! PNOY is now the total [NOy] concentration
-            PNOY = PNOY + STT(I,J,L,IDTNOX) + STT(I,J,L,IDTHNO3)
+               ! Add [NOx] and [HNO3] to PNOY.
+               ! PNOY is now the total [NOy] concentration
+               PNOY = PNOY + STT(I,J,L,IDTNOX) + STT(I,J,L,IDTHNO3)
 
-            ! XRATIO is the ratio ( [NO] + [NO2] ) / [NOy],
-            ! which is needed for the partitioning.
-            ! XRATIO will be the same for a given month
-            XRATIO(J,L) = ( STRATNO(J,L) + STRATNO2(J,L) ) /
-     &                    ( STRATNO(J,L) + STRATNO2(J,L) + 
-     &                      STRATHNO3(J,L) ) 
+               ! Partition total [NOy] to [NOx], units are [v/v]
+               STT(I,J,L,IDTNOX)  = PNOY * XRATIO(J,L) 
 
-            ! Partition total [NOy] to [NOx], units are [v/v]
-            STT(I,J,L,IDTNOX)  = PNOY * XRATIO(J,L) 
-
-            ! Partition total [NOy] to [HNO3], units are [v/v]
-            STT(I,J,L,IDTHNO3) = PNOY * ( 1d0 - XRATIO(J,L) ) 
+               ! Partition total [NOy] to [HNO3], units are [v/v]
+               STT(I,J,L,IDTHNO3) = PNOY * ( 1d0 - XRATIO(J,L) ) 
+            ENDIF
          ENDDO   
          ENDDO
          ENDDO
-!!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 
       !=================================================================
       ! IFLAG = 2: After transport
@@ -732,36 +715,36 @@
       ! The concentrations [NOx] and [HNO3] will have changed due to 
       ! transport, but the ratio used to partition them will be the 
       ! same.
-      !
-      ! Add parallel processor DO-loop (bmy, 12/6/00)
       !=================================================================
       ELSE IF ( IFLAG == 2 ) THEN
 
-! Deactivate parallel processor DO-loops for now (bmy, 12/12/00)
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, PNOY )
-!!$OMP+SCHEDULE( DYNAMIC )
-         DO L = MINVAL( LPAUSE ), LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         ! Minimum value of LPAUSE
+         LMIN = MINVAL( LPAUSE  )
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, PNOY )
+!$OMP+SCHEDULE( DYNAMIC )
+         DO L = LMIN, LLPAR
+         DO J = 1,    JJPAR
+         DO I = 1,    IIPAR
 
             ! Skip over tropospheric boxes
-            IF ( L < LPAUSE(I,J) ) CYCLE
-            
-            ! Compute the new total [NOy] by summing up [NOx] + [HNO3]
-            PNOY = STT(I,J,L,IDTNOX) + STT(I,J,L,IDTHNO3)
+            IF ( L >= LPAUSE(I,J) ) THEN
 
-            ! Partition total [NOy] to [NOx], units are [v/v]
-            STT(I,J,L,IDTNOX)  = PNOY * XRATIO(J,L) 
+               ! Compute the new total [NOy] by summing up [NOx] + [HNO3]
+               PNOY = STT(I,J,L,IDTNOX) + STT(I,J,L,IDTHNO3)
 
-            ! Partition total [NOy] to [HNO3], units are [v/v]
-            STT(I,J,L,IDTHNO3) = PNOY * ( 1d0 - XRATIO(J,L) ) 
+               ! Partition total [NOy] to [NOx], units are [v/v]
+               STT(I,J,L,IDTNOX)  = PNOY * XRATIO(J,L) 
+
+               ! Partition total [NOy] to [HNO3], units are [v/v]
+               STT(I,J,L,IDTHNO3) = PNOY * ( 1d0 - XRATIO(J,L) ) 
+            ENDIF
          ENDDO   
          ENDDO
          ENDDO   
-!!$OMP END PARALLEL DO      
-
+!$OMP END PARALLEL DO      
 
       ELSE 
 

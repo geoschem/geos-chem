@@ -1,170 +1,106 @@
-REVISIONS (v6-02-02)  
-bmy, 09 Apr 2004
+REVISIONS (v6-02-03)  
+bmy, 15 Apr 2004
 
 
 New in v6-02-02:
 -------------------------------------------------------------------------------
 
-aero_sfcrsi		-- Computes sfc resistance cf. Seinfeld et al 86
-("drydep_mod.f")           for dust aerosol tracers
+copy_i6_fields		-- Added routine to copy I-6 fields at the end of
+("dao_mod.f")              a 6-hr timestep using parallel DO-loops
 
-aero_sfcrsii		-- Computes sfc resistance cf. Zhang et al 2001
-("drydep_mod.f")           for dust aerosol tracers
-
-carbon_mod.f		-- Module containing emissions & chemistry
-			   routines for carbon aerosol tracers
-
-compute.f		-- Added slots for carbon aerosol & dust tracers
-("wetscav_mod.f")	-- Now modified internal routine GET_ISOL so it's 
-			   not hardwired anymore
-
-dust_mod.f		-- Module containing routines for dust settling,
-			   dry deposition.  Also contains routines to
-			   call either the Ginoux source function or
-			   the DEAD/Zender source function.
-
-dust_dead_mod.f		-- Module containing routines from the DEAD dust
-			   mobilization package (Zender et al)
-
-gwet_read_mod.f		-- Reads the extra GWET files from disk 
-			   (only needed for GEOS-3 data!)
-
-its_a_new_day		-- Tests if it's a new day
-("time_mod.f")
-
-its_a_new_month		-- Tests if it's a new month
-("time_mod.f")
-
-its_a_new_year		-- Tests if it's a new year
-("time_mod.f")
-
-rdust_online		-- Version of RDUST for online dust
-("dust_mod.f")
-
-rdust_offline		-- Version of RDUST for offline dust
-("dust_mod.f")
+lightning_nox_mod.f	-- Now contains previous standalone routines
+			   "lightning.f", "lightdist.f", "emlightning.f".
+			-- Also added parallel loops for better optimization
 
 
 
 Removed in v6-02-02:
 -------------------------------------------------------------------------------
 
-rdust.f			-- Now bundled into "dust_mod.f"
+emlightning.f		-- Now bundled into "lightning_nox_mod.f"
+
+lightning.f		-- Now bundled into "lightning_nox_mod.f"
+
+lightdist.f		-- Now bundled into "lightning_nox_mod.f"
 
 
 
-Changed from v6-02-01:
+Changed from v6-02-02:
 -------------------------------------------------------------------------------
 
-CMN_DIAG		-- Changed PD06 to NDSTBIN
-			-- Changed PD07 to 7
-			-- Add LD07 for carbon aerosols
+CMN_NOX			-- Only GEMISNOX, GEMISNOX2 are left here;
+			   everything else is merged into "lightning_mod.f"
 
-CMN_SETUP		-- Added extra flags for carbon tracers 
+chem_h2o2		-- Now use parallel DO-loop to zero ND44_TMP
+("sulfate_mod.f")  	-- Now uses ITS_A_NEW_MONTH from time_mod.f
 
-CMN_SIZE		-- Increase NNPAR from 31 to 39 for carbon & dust 
-			   tracers.  
-		 	-- Also declare NDSTBIN as # of dust bins. 
-
-arsl1k.f		-- Now return w/ default value if RADIUS is zero 
-			   (i.e. is smaller than the machine epsilon)
-
-chemdr.f		-- Added PIEC, POEC, PIOC, POOC, and SOILDUST arrays
-			-- Now pass SOILDUST to RDUST_ONLINE (in "dust_mod.f")
-			-- Now pass PIEC, POEC, PIOC, POOC to "rdaer.f".       
-			-- Now references "dust_mod.f"
-
-chem_h2o2		-- Now use diurnally-varying JO1D
-("sulfate_mod.f")	-- Now use new unit conversion for the ND44 diagnostic.
-
-cleanup.f		-- Now calls cleanup routines from "carbon_mod.f",
-		           "dust_mod.f", and "dust_dead_mod.f"
-
-cleanup_sulfate		-- Now also deallocates COSZM
+chem_msa		-- Now use parallel DO-loop to zero ND44_TMP
 ("sulfate_mod.f")
 
-comode.h		-- Now set MAXGL3 = NNPAR for new # of tracers
-
-depvel			-- Now call routines AERO_SFCRSI (cf Seinfeld et al 86)
-("drydep_mod.f")           or AERO_SFSCRSII (cf Zhang et al 2001) to compute
-			   the surface resistance for dust aerosol tracers.
-
-diag3.f			-- Added ND06 (dust aerosol) and ND07 
-	                   (carbon aerosol) diagnostics
-			-- Now scale online dust optical depths by 
-			   SCALECHEM in the ND21 diagnostic
-
-diag_mod.f		-- Added ND06 (dust emission) and ND07 (carbon 
-			   aerosol emission) diagnostic arrays
-
-do_chemistry		-- Now calls CHEMCARBON and CHEMDUST for carbon 
-("chemistry_mod.f")	   aerosol and dust aerosol chemistry
-
-do_emissions		-- Now calls CHEMCARBON and CHEMDUST for carbon 
-("emissions_mod.f")	   aerosol and dust aerosol chemistry
-
-drydep_mod.f		-- Set MAXDEP to 25 for extra carbon & dust tracers
-
-emisssulfate		-- Added informational message printed on the 1st call
+chem_nh3		-- Now use parallel DO-loop to zero ND44_TMP
 ("sulfate_mod.f")
 
-error_stop		-- Now do not FLUSH the buffer for LINUX_EFC
-("error_mod.f")
-
-get_wetdep_nmax		-- Modified to include carbon & dust aerosol tracers
-("wetscav_mod.f")
-
-init_dao		-- Now allocate RADLWG, SNOW for both GEOS-3
-("dao_mod.f")		   and GEOS-4
-
-init_sulfate		-- Now allocate COSZM for offline runs
+chem_nh4		-- Now use parallel DO-loop to zero ND44_TMP
 ("sulfate_mod.f")
 
-init_tracerid		-- Now zero extra flags for carbon & dust tracer
-("tracerid_mod.f")
+chem_nit		-- Now use parallel DO-loop to zero ND44_TMP
+("sulfate_mod.f")
 
-initialize.f		-- Now also zeroes AD06 and AD07* arrays
+chem_so2		-- Now use parallel DO-loop to zero ND44_TMP
+("sulfate_mod.f")
 
-main.f			-- Now references "gwet_read_mod.f"
-			-- Now reads, unzips, and deletes GWET fields
-			   if we are using the online dust simulation,
-		           only for GEOS-3.
+chem_so4		-- Now use parallel DO-loop to zero ND44_TMP
+("sulfate_mod.f")
 
-ndxx_setup.f		-- Now initialize AD06 and AD07* arrays
+cleanup.f		-- Now references cleanup routine CLEANUP_LIGHTNING
+	 		   from "lightning_mod.f"
 
-ohno3time		-- Now store the peak SUNCOS value for each surface 
-("sulfate_mod.f")	   grid box (I,J) in the COSZM array.
+diag49.f		-- Readjust tracer numbers for other fields to 
+			   accommodate 41 regular CTM tracers -- QUICK FIX 
 
-rainout			-- Updated for carbon aerosol & dust tracers
-("wetscav_mod.f")
+emissdr.f		-- Now references EMLIGHTNING from F90 module
+			   "lightning_nox_mod.f"
 
-rdaer.f			-- Add PIEC, POEC, PIOC, POOC to the arg list.  
-			-- Bug fix: for online sulfate & carbon aerosol 
-			   tracers, now make sure these get updated every 
-			   timestep
-			-- Now references "time_mod.f"
-		        -- Now echo info about online/offline aerosols	
-		           that we are using
-			-- Updated comments
+get_oro			-- Added parallel DO-loop
+("dust_dead_mod.f")
 
-setup.f			-- Added flags for carbon & dust aerosols
-			-- Also do not read extra lines from the top of 
-			   the file
+lightning.f		-- Added parallel DO-loops for better optimization
 
-tracerid		-- Added extra CASEs to the CASE statement for 
-("tracerid_mod.f")	   carbon & dust tracers
+main.f			-- Now call COPY_I6_FIELDS from "dao_mod.f"
+			   to copy I-6 fields at end of 6-hr timestep
+			   using parallel DO-loops
+			-- Now references LIGHTNING from "lightning_nox_mod.f"
 
-tracerid_mod.f		-- Added extra flags for carbon & dust tracers
-			-- increased NNNTRID from 32 to 40
+set_floating_pressure	-- Added parallel DO-loop
+("pressure_mod.f")
 
-washout			-- Updated for carbon aerosol & dust tracers
-("wetscav_mod.f")
+src_dust_dead		-- Bug fix: DSRC needs to be held PRIVATE
+("dust_mod.f")
 
-wetdepid		-- Updated for carbon aerosol & dust tracers
-("wetscav_mod.f")
+upbdflx_o3		-- Activated parallel DO-loops.  
+("upbdflx_mod.f")	-- Now made STFLUX a local array in order to 
+			   facilitate parallelization.
 
+upbdflx_noy		-- Activated parallel DO-loops.  
+("upbdflx_mod.f")	-- Moved the computation of XRATIO into the IF block 
+			   which only gets done once per month.
+
+write_diag51		-- 
 
 ---
-sulfate_mod.f		<-- Removed obsolete, commented-out code
-wetscav_mod.f    	    from the following routines
+a6_read_mod.f		<-- Removed obsolete, commented-out code
+arsl1k.f		    from the following routines
+chemdr.f
+convection_mod.f	
+diag3.f
+diag51_mod.f
+ndxx_setup.f
+setemis.f
+fvdas_convect_mod.f
+setup.f
+sulfate_mod.f
+time_mod.f		
+wetscav_mod.f   
+CMN_SIZE 
+CMN_DEP	
 

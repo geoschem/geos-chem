@@ -1,10 +1,10 @@
-! $Id: diag51_mod.f,v 1.6 2004/03/24 14:46:06 bmy Exp $
+! $Id: diag51_mod.f,v 1.7 2004/04/19 15:09:52 bmy Exp $
       MODULE DIAG51_MOD
 !
 !******************************************************************************
 !  Module DIAG51_MOD contains variables and routines to generate save 
 !  timeseries data over the United States where the local time is between 
-!  two user-defined limits. (amf, bey, bdf, pip, bmy, 11/30/00, 3/24/04)
+!  two user-defined limits. (amf, bey, bdf, pip, bmy, 11/30/00, 4/16/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -89,6 +89,7 @@
 !  (15) Bug fix for LINUX in calls to TIMESTAMP_STRING (bmy, 9/29/03)
 !  (16) Bug fix in WRITE_DIAG51.  Also multiply AIRDEN by 1d-6 to convert
 !        from m3 to cm3. (bmy, 3/24/04)
+!  (17) Update tracer #'s for 41 regular CTM tracers (bmy, 4/16/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -315,7 +316,7 @@
       SUBROUTINE WRITE_DIAG51
 !
 !******************************************************************************
-!  Subroutine WRITE_DIAG51 (bmy, 12/1/00, 3/23/04) does the following:
+!  Subroutine WRITE_DIAG51 (bmy, 12/1/00, 4/16/04) does the following:
 !  
 !  (1) Divides quantities by the number of times it was between
 !       HR1 and HR2 local time in each grid box  
@@ -347,6 +348,8 @@
 !        (bmy, 9/29/03)
 !  (13) Bug fix: GMNL should be NL for tracer #39, not 1.  Also multiply 
 !        AIRDEN by 1d-6 to convert from m3 to cm3. (bmy, 3/23/04)
+!  (14) Readjust tracer numbers for other fields to accomodate 41 regular CTM 
+!        tracers -- QUICK FIX (bmy, 4/16/04)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -478,89 +481,132 @@
          SELECT CASE ( XTRAC ) 
 
             ! CTM Tracers [v/v] (3-D field)
-            CASE ( 1:31 )
+            !-------------------
+            ! Prior to 4/16/04:
+            !CASE ( 1:31 )
+            !-------------------
+            CASE ( 1:41 )
                ZZ(1:NI, 1:NJ, 1:NL) = STT_TEMP51(1:NI, 1:NJ, 1:NL, N)
                CATEGORY             = 'IJ-AVG-$'
                GMNL                 = NL
                GMTRC                = XTRAC + TRCOFFSET
 
             ! Pure O3 (3-D field)
-            CASE ( 32 )
+            !-------------------
+            ! Prior to 4/16/04:
+            !CASE ( 32 )
+            !-------------------
+            CASE ( 71 )
                ZZ(1:NI, 1:NJ, 1:NL) = STT_TEMP51(1:NI, 1:NJ, 1:NL, N)
                CATEGORY             = 'IJ-AVG-$'
                GMNL                 = NL
                GMTRC                = XTRAC + TRCOFFSET
 
             ! Pure NO (3-D field)
-            CASE ( 33 )
+            !-------------------
+            ! Prior to 4/16/04:
+            !CASE ( 33 )
+            !-------------------
+            CASE ( 72 )
                ZZ(1:NI, 1:NJ, 1:NL) = STT_TEMP51(1:NI, 1:NJ, 1:NL, N)
                CATEGORY             = 'TIME-SER'
                GMNL                 = NL
                GMTRC                = 9
 
             ! NOy (3-D field)
-            CASE ( 34 )
+            !-------------------
+            ! Prior to 4/16/04:
+            !CASE ( 34 )
+            !-------------------
+            CASE ( 73 )
                ZZ(1:NI, 1:NJ, 1:NL) = STT_TEMP51(1:NI, 1:NJ, 1:NL, N)
                CATEGORY             = 'TIME-SER'
                GMNL                 = NL
                GMTRC                = 3
 
             ! OH (3-D field)
-            CASE ( 35 )
+            !-------------------
+            ! Prior to 4/16/04:
+            !CASE ( 35 )
+            !-------------------
+            CASE ( 74 )
                ZZ(1:NI, 1:NJ, 1:NL) = STT_TEMP51(1:NI, 1:NJ, 1:NL, N)
                CATEGORY             = 'TIME-SER'
                GMNL                 = NL
                GMTRC                = 2
 
             ! NO2 (3-D field)
-            CASE ( 36 )
+            !-------------------
+            ! Prior to 4/16/04:
+            !CASE ( 36 )
+            !-------------------
+            CASE ( 75 )
                ZZ(1:NI, 1:NJ, 1:NL) = STT_TEMP51(1:NI, 1:NJ, 1:NL, N)
                CATEGORY             = 'TIME-SER'
                GMNL                 = NL
                GMTRC                = 23
 
             ! PBL Height -- meters (1-D field)
-            CASE ( 37 )
+            !-------------------
+            ! Prior to 4/16/04:
+            !CASE ( 37 )
+            !-------------------
+            CASE ( 76 )
                ZZ(1:NI, 1:NJ, 1)    = BLARR(1:NI, 1:NJ)
                CATEGORY             = 'PBLDEPTH'
                GMNL                 = 1
                GMTRC                = 1
 
             ! PBL Height -- model layers (1-D field)
-            CASE ( 38 )
+            !-------------------
+            ! Prior to 4/16/04:
+            !CASE ( 38 )
+            !-------------------
+            CASE ( 77 )
                ZZ(1:NI, 1:NJ, 1)    = BLLEVS(1:NI, 1:NJ)
                CATEGORY             = 'PBLDEPTH'
                GMNL                 = 1
                GMTRC                = 2
 
             ! Air Density (3-D field)
-            CASE ( 39 )
+            !-------------------
+            ! Prior to 4/16/04:
+            !CASE ( 39 )
+            !-------------------
+            CASE ( 78 )
                ZZ(1:NI, 1:NJ, 1:NL) = STT_TEMP51(1:NI, 1:NJ, 1:NL, N)
                CATEGORY             = 'TIME-SER'
-               !-----------------------------------------
-               ! Prior to 3/23/04:
-               ! GMNL should be NL, not 1 (bmy, 3/23/04)
-               !GMNL                 = 1
-               !-----------------------------------------
                GMNL                 = NL
                GMTRC                = 22
 
             ! Cloud fractions (1-D field)
-            CASE ( 42 )
+            !-------------------
+            ! Prior to 4/16/04:
+            !CASE ( 42 )
+            !-------------------
+            CASE ( 79 )
                ZZ(1:NI, 1:NJ, 1)    = STT_TEMP51(1:NI, 1:NJ, 1, N)
                CATEGORY             = 'TIME-SER'
                GMNL                 = 1
                GMTRC                = 19
 
             ! Optical depths (1-D field)
-            CASE ( 43 ) 
+            !-------------------
+            ! Prior to 4/16/04:
+            !CASE ( 43 ) 
+            !-------------------
+            CASE ( 80 ) 
                ZZ(1:NI, 1:NJ, 1)    = STT_TEMP51(1:NI, 1:NJ, 1, N)
                CATEGORY             = 'TIME-SER'
                GMNL                 = 1
                GMTRC                = 20
                     
             ! Cloud top heights (1-D field)
-            CASE ( 44 ) 
+            !-------------------
+            ! Prior to 4/16/04:
+            !CASE ( 44 ) 
+            !-------------------
+            CASE ( 81 ) 
                ZZ(1:NI, 1:NJ, 1)    = STT_TEMP51(1:NI, 1:NJ, 1, N)
                CATEGORY             = 'TIME-SER'
                GMNL                 = 1
@@ -1010,11 +1056,6 @@
 
                      ! Archive the afternoon points into STT_TEMP51
                      STT_TEMP51(I,J,L,N) = STT_TEMP51(I,J,L,N) +
-!------------------------------------------------------------------------------
-! Prior to 3/24/04:
-! We need to multiply by the factor 1d-6 to convert to molec/cm3 (bmy, 3/24/04)
-!     &                    ( AIRDEN(LL,II,JJ) * XNUMOLAIR * GOOD(II) )
-!------------------------------------------------------------------------------
      &                    ( AIRDEN(LL,II,JJ) *XNUMOLAIR*1d-6*GOOD(II) )
                   ENDDO
                   ENDDO

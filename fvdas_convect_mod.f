@@ -1,4 +1,4 @@
-! $Id: fvdas_convect_mod.f,v 1.2 2004/01/27 21:25:07 bmy Exp $
+! $Id: fvdas_convect_mod.f,v 1.3 2004/04/19 15:09:53 bmy Exp $
       MODULE FVDAS_CONVECT_MOD
 !
 !******************************************************************************
@@ -1053,11 +1053,6 @@
 !******************************************************************************
 !
       ! Arguments
-      !----------------------------------------------
-      ! Prior to 1/20/04:
-      !INTEGER :: INDEX(*), NVAL, INC, N
-      !REAL*8  :: ARRAY(*), TARGET
-      !----------------------------------------------
       INTEGER, INTENT(IN)  :: N, INC
       REAL*8,  INTENT(IN)  :: ARRAY(N), TARGET
       INTEGER, INTENT(OUT) :: INDEX(N), NVAL
@@ -1073,13 +1068,6 @@
       INA      = 1
       NVAL     = 0
       INDEX(:) = 0
-
-      !-----------------------------------------------------------------
-      ! Prior to 1/20/04:
-      ! In the calling routines, INC is always 1 (bmy, 1/21/04)
-      !! INC cannot be negative
-      !IF ( INC < 0 ) INA = (-INC)*(N-1)+1
-      !-----------------------------------------------------------------
 
       ! Loop thru the array
       DO I = 1, N

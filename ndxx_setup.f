@@ -1,4 +1,4 @@
-! $Id: ndxx_setup.f,v 1.7 2004/04/13 14:52:31 bmy Exp $
+! $Id: ndxx_setup.f,v 1.8 2004/04/19 15:09:54 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
@@ -372,15 +372,6 @@
       IF ( ND17 > 0 ) THEN
          LD17 = MIN( ND17, LLPAR )
 
-         !----------------------------------------------------------------
-         ! Prior to 3/18/04:
-         ! Bug fix: Now call GET_WETDEP_NMAX to get # of soluble tracers
-         !! Rn-Pb-Be simulation has 2 soluble tracers
-         !! Full chemistry simulation has 4 soluble tracers 
-         !IF ( NSRCX == 1 ) NMAX = 2
-         !IF ( NSRCX == 3 ) NMAX = PD17
-         !----------------------------------------------------------------
-
          ! Get max # of soluble tracers for this simulation
          NMAX = GET_WETDEP_NMAX( NSRCX )
 
@@ -399,15 +390,6 @@
       !=================================================================
       IF ( ND18 > 0 ) THEN
          LD18 = MIN( ND18, LLPAR )
-
-         !--------------------------------------------------------------
-         ! Prior to 3/18/04:
-         ! Bug fix: Mow call GET_WETDEP_NMAX to get # of soluble tracers
-         !! Rn-Pb-Be simulation has 2 soluble tracers
-         !! Full chemistry simulation has 4 soluble tracers 
-         !IF ( NSRCX == 1 ) NMAX = 2
-         !IF ( NSRCX == 3 ) NMAX = PD40
-         !--------------------------------------------------------------
 
          ! Get max # of soluble tracers for this simulation
          NMAX = GET_WETDEP_NMAX( NSRCX )
@@ -668,15 +650,6 @@
       IF ( ND37 > 0 ) THEN
          LD37 = MIN( ND37, LLPAR )
          
-         !--------------------------------------------------------------
-         ! Prior to 1/20/04:
-         ! Now use GET_WETDEP_NMAX to get max # of soluble tracers
-         !! Rn-Pb-Be simulation has 2 soluble tracers
-         !! Full chemistry simulation has 4 soluble tracers
-         !IF ( NSRCX == 1 ) NMAX = 2
-         !IF ( NSRCX == 3 ) NMAX = 4
-         !--------------------------------------------------------------
-
          ! Get max # of soluble tracers for this simulation
          NMAX = GET_WETDEP_NMAX( NSRCX )
 
@@ -939,10 +912,6 @@
 
             ! Tagged CO: NTRACE+5 families
             CASE ( 7 )
-               !-------------------------------------
-               ! Prior to 2/26/04:
-               !NFAM = NTRACE + 4
-               !-------------------------------------
                NFAM = NTRACE + 5
 
             ! Other simulations: call SETNFAM

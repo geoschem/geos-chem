@@ -1,9 +1,9 @@
-! $Id: dust_mod.f,v 1.1 2004/04/13 14:52:58 bmy Exp $
+! $Id: dust_mod.f,v 1.2 2004/04/19 15:09:52 bmy Exp $
       MODULE DUST_MOD
 !
 !******************************************************************************
 !  Module DUST_MOD contains routines for computing dust aerosol emissions,
-!  chemistry, and optical depths. (rjp, tdf, bmy, 4/8/04)
+!  chemistry, and optical depths. (rjp, tdf, bmy, 4/14/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -30,6 +30,7 @@
 !  (10) CLEANUP_DUST       : Deallocates all module variables
 !
 !  NOTES:
+!  (1 ) Bug fix in SRC_DUST_DEAD (bmy, 4/14/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -508,7 +509,7 @@
 !******************************************************************************
 !  DEAD model dust emission scheme, alternative to Ginoux scheme
 !  Increments the TC array with emissions from the DEAD model.
-!  (tdf, bmy, 4/8/04)
+!  (tdf, bmy, 4/8/04, 4/14/04)
 !
 !  Input:
 !         SRCE_FUNK Source function                               (-)
@@ -535,6 +536,7 @@
 !
 !  NOTES:
 !  (1 ) Added OpenMP parallelization, added comments (bmy, 4/8/04)
+!  (2 ) Bug fix: DSRC needs to be held PRIVATE (bmy, 4/14/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -659,9 +661,9 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,     J,    P1,   P2,   PTHICK, PMID, TLON        )
-!$OMP+PRIVATE( THLON, ULON, VLON, BHT2, Q_H2O,  ORO,  SNW_HGT_LQD )
-!$OMP+PRIVATE( N,     YMID_R                                      )
+!$OMP+PRIVATE( I,     J,      P1,   P2,   PTHICK, PMID, TLON        )
+!$OMP+PRIVATE( THLON, ULON,   VLON, BHT2, Q_H2O,  ORO,  SNW_HGT_LQD )
+!$OMP+PRIVATE( N,     YMID_R, DSRC                                  )
 
       ! Loop over latitudes
       DO J = 1, JJPAR
@@ -1326,13 +1328,13 @@
          ! NOTES: 
          ! (1) Do the calculation at QAA(4,:) (i.e. 999 nm).          
          !==============================================================
-         MSDENS(1) = 2500.0
-         MSDENS(2) = 2500.0
-         MSDENS(3) = 2500.0
-         MSDENS(4) = 2500.0
-         MSDENS(5) = 2650.0
-         MSDENS(6) = 2650.0
-         MSDENS(7) = 2650.0
+         MSDENS(1) = 2500.0d0
+         MSDENS(2) = 2500.0d0
+         MSDENS(3) = 2500.0d0
+         MSDENS(4) = 2500.0d0
+         MSDENS(5) = 2650.0d0
+         MSDENS(6) = 2650.0d0
+         MSDENS(7) = 2650.0d0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1462,9 +1464,6 @@
       !=================================================================
       ! INIT_DUST begins here!
       !=================================================================
-
-      PRINT*, '### INIT_DUST: beginning'
-      call flush(6)
 
       ! Return if we have already allocated arrays
       IF ( IS_INIT ) RETURN

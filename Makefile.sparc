@@ -1,6 +1,6 @@
-# $Id: Makefile.sparc,v 1.11 2004/04/13 14:52:28 bmy Exp $
+# $Id: Makefile.sparc,v 1.12 2004/04/19 15:09:50 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for SUN/Sparc (bmy, Mon Apr 12 12:54:27 2004)
+# GEOS-CHEM Makefile for SUN/Sparc (bmy, Thu Apr 15 09:34:05 2004)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -51,7 +51,6 @@ emisop_grass.o            \
 emisop_mb.o               \
 emissdr.o                 \
 emisshcn.o                \
-emlightning.o             \
 emmonot.o                 \
 fertadd.o                 \
 findmon.o                 \
@@ -69,8 +68,6 @@ inptr.o                   \
 input.o                   \
 jsparse.o                 \
 ksparse.o                 \
-lightdist.o               \
-lightning.o               \
 lump.o                    \
 main.o                    \
 ndxx_setup.o              \
@@ -235,6 +232,7 @@ a6_read_mod.o             \
 i6_read_mod.o             \
 phis_read_mod.o           \
 diag51_mod.o              \
+lightning_nox_mod.o       \
 optdepth_mod.o            \
 planeflight_mod.o         \
 restart_mod.o             \
@@ -259,7 +257,6 @@ chemistry_mod.o           \
 emissions_mod.o
 
 SJ =                      \
-fast_j.o                  \
 findxsect.o               \
 funbas.o                  \
 funo1dham2.o              \
@@ -393,7 +390,6 @@ emissco.o                  : emissco.F                  CMN CMN_CO CMN_CO_BUDGET
 emissdr.o                  : emissdr.F                  CMN CMN_DIAG CMN_MONOT CMN_NOX CMN_O3 CMN_SETUP CMN_SIZE define.h comode.h 
 emisshcn.o                 : emisshcn.F                 CMN CMN_DIAG CMN_HCN CMN_MONOT CMN_SIZE define.h hcn.h 
 emissions_mod.o            : emissions_mod.F            CMN CMN_SETUP CMN_SIZE define.h 
-emlightning.o              : emlightning.F              CMN CMN_DIAG CMN_NOX CMN_SIZE define.h 
 emmonot.o                  : emmonot.F                  CMN_MONOT CMN_SIZE define.h CMN_VEL 
 error_mod.o                : error_mod.F                CMN CMN_SIZE define.h define.h 
 fast_j.o                   : fast_j.F                   CMN cmn_fj.h CMN_SIZE define.h jv_cmn.h 
@@ -441,8 +437,7 @@ jv_index.o                 : jv_index.F                 cmn_fj.h CMN_SIZE define
 jvaluein.o                 : jvaluein.F                 CMN_SETUP CMN_SIZE define.h comsol.h 
 jvalueinhcn.o              : jvalueinhcn.F              CMN_SIZE define.h comsol.h 
 ksparse.o                  : ksparse.F                  CMN_SIZE define.h comode.h 
-lightdist.o                : lightdist.F                CMN_NOX CMN_SETUP CMN_SIZE define.h 
-lightning.o                : lightning.F                CMN_GCTM CMN_NOX CMN_SIZE define.h 
+lightning_nox_mod.o        : lightning_nox_mod.F        CMN_DIAG CMN_GCTM CMN_NOX CMN_SETUP CMN_SIZE define.h 
 lump.o                     : lump.F                     CMN_SIZE define.h comode.h 
 main.o                     : main.F                     CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SETUP CMN_SIZE define.h CMN_TIMES comode.h 
 matinv.o                   : matinv.F                   
@@ -524,7 +519,6 @@ soiltype.o                 : soiltype.F                 CMN_SIZE define.h commso
 sol.o                      : sol.F                      CMN_SIZE define.h comode.h comsol.h 
 subfun.o                   : subfun.F                   CMN_SIZE define.h comode.h 
 sulfate_mod.o              : sulfate_mod.F              CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SETUP CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h 
-sulfate_mod.o              : sulfate_mod.F_bmy              CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SETUP CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h 
 sumup.o                    : sumup.F                    CMN CMN_CO_BUDGET CMN_SIZE define.h 
 sunparam.o                 : sunparam.F                 
 tagged_co_mod.o            : tagged_co_mod.F            CMN CMN_DIAG CMN_O3 CMN_SETUP CMN_SIZE define.h 

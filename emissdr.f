@@ -1,10 +1,10 @@
-! $Id: emissdr.f,v 1.3 2004/03/24 20:52:30 bmy Exp $
+! $Id: emissdr.f,v 1.4 2004/04/19 15:09:53 bmy Exp $
       SUBROUTINE EMISSDR
 !
 !******************************************************************************
 !  Subroutine EMISSDR computes emissions for the full chemistry simulation
 !  (NSRCX == 3).  Emissions are stored in GEMISNOX and EMISRR arrays, 
-!  which are then passed to the SMVGEAR subroutines (bmy, 10/8/98, 12/9/03)
+!  which are then passed to the SMVGEAR subroutines (bmy, 10/8/98, 4/14/04)
 !
 !  NOTES:
 !  (1 ) Now accounts for seasonal NOx emissions, and multi-level NOx 
@@ -48,20 +48,22 @@
 !        "time_mod.f".  Now use functions GET_XOFFSET and GET_YOFFSET from 
 !        "grid_mod.f". (bmy, 2/11/03)
 !  (20) Now pass I, J to EMISOP, EMISOP_GRASS, EMISOP_MB (bmy, 12/9/03)
+!  (21) Now references EMLIGHTNING from "lightning_nox_mod.f" (bmy, 4/14/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ACETONE_MOD
-      USE AIRCRAFT_NOX_MOD, ONLY : AIREMISS
-      USE BIOFUEL_MOD,      ONLY : BIOFUEL_BURN
-      USE BIOMASS_MOD,      ONLY : BIOBURN
-      USE DAO_MOD,          ONLY : SUNCOS
-      USE DIAG_MOD,         ONLY : AD29, AD46
-      USE GRID_MOD,         ONLY : GET_AREA_CM2, 
-     &                             GET_XOFFSET, GET_YOFFSET
-      USE TIME_MOD,         ONLY : GET_MONTH,   GET_TAU,
-     &                             GET_TS_EMIS, GET_LOCALTIME
-      USE TRACERID_MOD
+      USE AIRCRAFT_NOX_MOD,  ONLY : AIREMISS
+      USE BIOFUEL_MOD,       ONLY : BIOFUEL_BURN
+      USE BIOMASS_MOD,       ONLY : BIOBURN
+      USE DAO_MOD,           ONLY : SUNCOS
+      USE DIAG_MOD,          ONLY : AD29, AD46
+      USE GRID_MOD,          ONLY : GET_AREA_CM2, 
+     &                              GET_XOFFSET, GET_YOFFSET
+      USE LIGHTNING_NOX_MOD, ONLY : EMLIGHTNING
+      USE TIME_MOD,          ONLY : GET_MONTH,   GET_TAU,
+     &                              GET_TS_EMIS, GET_LOCALTIME
+      USE TRACERID_MOD 
 
       IMPLICIT NONE
 

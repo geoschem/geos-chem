@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.9 2004/04/13 14:52:32 bmy Exp $
+! $Id: sulfate_mod.f,v 1.10 2004/04/19 15:09:54 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 3/30/04)
+!  (rjp, bdf, bmy, 6/22/00, 4/14/04)
 !
 !  Module variables:
 !  ============================================================================
@@ -157,6 +157,7 @@
 !  (20) Fix ND44 diag so that we get same results for sp or mp (bmy, 3/24/04)
 !  (21) Added COSZM array.  Now use diurnal varying JH2O2 in CHEM_H2O2. 
 !        (rjp, bmy, 3/39/04)
+!  (22) Added more parallel DO-loops (bmy, 4/14/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -792,7 +793,7 @@
 !******************************************************************************
 !  Subroutine CHEM_H2O2 is the H2O2 chemistry subroutine for offline sulfate
 !  simulations.  For coupled runs, H2O2 chemistry is already computed by
-!  the SMVGEAR module. (rjp, bmy, 11/26/02, 3/30/04)
+!  the SMVGEAR module. (rjp, bmy, 11/26/02, 4/14/04)
 !                                                                           
 !  NOTES:
 !  (1 ) Bug fix: need to multiply DXYP by 1d4 for cm2 (bmy, 3/23/03)
@@ -806,6 +807,8 @@
 !        multiple processors. (bmy, 3/24/04)    
 !  (5 ) Now use diurnally-varying JO1D.  Now use new unit conversion for
 !        the ND44 diagnostic. (rjp, bmy, 3/30/04)
+!  (6 ) Now use parallel DO-loop to zero ND44_TMP.  Now uses ITS_A_NEW_MONTH
+!        from time_mod.f. (bmy, 4/14/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -814,7 +817,7 @@
       USE DIAG_MOD,     ONLY : AD44 
       USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
       USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE TIME_MOD,     ONLY : GET_MONTH, GET_TS_CHEM
+      USE TIME_MOD,     ONLY : GET_MONTH, GET_TS_CHEM, ITS_A_NEW_MONTH
       USE TRACERID_MOD, ONLY : IDTH2O2
       USE TRANSFER_MOD, ONLY : TRANSFER_3D_TROP
       USE UVALBEDO_MOD, ONLY : UVALBEDO
@@ -849,12 +852,29 @@
       F  = 1000.d0 / AIRMW * 6.022d23 * 1.d-6
       
       ! Zero ND44_TMP array
-      IF ( ND44 > 0 ) ND44_TMP = 0d0
+      IF ( ND44 > 0 ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+         DO L = 1, LLTROP
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            ND44_TMP(I,J,L) = 0d0
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+      ENDIF
 
       !=================================================================
       ! For offline run: read J(H2O2) from disk below
       !=================================================================
-      IF ( GET_MONTH() /= LASTMONTH ) THEN 
+      !------------------------------------------------------
+      ! Prior to 4/14/04:
+      ! Now use ITS_A_NEW_MONTH from TIME_MOD (bmy, 4/14/04)
+      !IF ( GET_MONTH() /= LASTMONTH ) THEN 
+      !------------------------------------------------------
+      IF ( ITS_A_NEW_MONTH() ) THEN
 
          ! File name to read data 
          FILENAME = TRIM( DATA_DIR )           // 
@@ -876,7 +896,7 @@
          CALL TRANSFER_3D_TROP( ARRAY, JH2O2 )
             
          ! Reset LASTMONTH
-         LASTMONTH = GET_MONTH()
+         !LASTMONTH = GET_MONTH()
       ENDIF
 
       !=================================================================
@@ -911,13 +931,6 @@
          ! of the grid box (I,J,L) that is located beneath the PBL top
          FREQ  = DEPSAV(I,J,DRYH2O2) * PBLFRAC(I,J,L)
 
-         !------------------------------------------------------------------
-         ! Prior to 3/30/04:
-         ! Now use diurnally varying OH (rjp, bmy, 3/30/04)
-         !! Compute loss fraction from OH, photolysis, drydep [unitless].  
-         !ALPHA = 1.D0 + ( KOH + JH2O2(I,J,L) + FREQ ) * DT 
-         !------------------------------------------------------------------
-
          ! 1-D grid box index for SUNCOS
          JLOOP = IJSURF(I,J)
  
@@ -948,17 +961,6 @@
          ! ND44 diagnostics: H2O2 drydep loss [molec/cm2/s]
          !==============================================================
          IF ( ND44 > 0 .AND. FREQ > 0d0 ) THEN
-
-            !-----------------------------------------------------------
-            ! Prior to 3/30/04:
-            ! Use new unit conversion (rjp, bmy, 3/30/04)
-            !! Convert H2O2 from [v/v] to H2O2 [molec/cm2]
-            !FLUX = ( H2O20 - H2O2 ) * AD(I,J,L) / TCVV(IDTH2O2)
-            !FLUX = FLUX * XNUMOL(IDTH2O2) / GET_AREA_CM2( J )
-            !
-            !! Multiply by drydep freq [s-1] to convert to [molec/cm2/s]
-            !FLUX = FLUX * FREQ
-            !-----------------------------------------------------------
 
             ! Convert H2O2 from [v/v] to H2O2 [molec/cm2/s]
             FLUX = H2O20 * FREQ * DT / ( 1.D0 + FREQ * DT )
@@ -1000,7 +1002,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_SO2 is the SO2 chemistry subroutine 
-!  (rjp, bmy, 11/26/02, 3/24/04) 
+!  (rjp, bmy, 11/26/02, 4/14/04) 
 !                                                                          
 !  Module variables used:
 !  ============================================================================
@@ -1041,6 +1043,7 @@
 !  (5 ) Now use ND44_TMP array to store vertical levels of drydep flux, then 
 !        sum into AD44 array.  This preents numerical differences when using
 !        multiple processors. (bmy, 3/24/04)
+!  (6 ) Now use parallel DO-loop to zero ND44_TMP (bmy, 4/14/04)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -1089,7 +1092,19 @@
       Ki     = 1.5d-12
 
       ! Zero ND44_TMP array
-      IF ( ND44 > 0 ) ND44_TMP = 0d0
+      IF ( ND44 > 0 ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+         DO L = 1, LLTROP
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            ND44_TMP(I,J,L) = 0d0
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+      ENDIF
 
       ! Loop over tropospheric grid boxes
 !$OMP PARALLEL DO
@@ -1575,7 +1590,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_SO4 is the SO4 chemistry subroutine from Mian Chin's GOCART
-!  model, modified for the GEOS-CHEM model. (rjp, bdf, bmy, 5/31/00, 3/24/04) 
+!  model, modified for the GEOS-CHEM model. (rjp, bdf, bmy, 5/31/00, 4/14/04) 
 !                                                                          
 !  Module Variables Used:
 !  ============================================================================
@@ -1599,6 +1614,7 @@
 !  (4 ) Now use ND44_TMP array to store vertical levels of drydep flux, then 
 !        sum into AD44 array.  This preents numerical differences when using
 !        multiple processors. (bmy, 3/24/04)
+!  (5 ) Now use parallel DO-loop to zero ND44_TMP (bmy, 4/14/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1628,7 +1644,19 @@
       DTCHEM = GET_TS_CHEM() * 60d0
 
       ! Zero ND44_TMP array
-      IF ( ND44 > 0 ) ND44_TMP = 0d0
+      IF ( ND44 > 0 ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+         DO L = 1, LLTROP 
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            ND44_TMP(I,J,L) = 0d0
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+      ENDIF
 
       ! Loop over tropospheric grid boxes
 !$OMP PARALLEL DO
@@ -1728,7 +1756,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_MSA is the SO4 chemistry subroutine from Mian Chin's GOCART
-!  model, modified for the GEOS-CHEM model. (rjp, bdf, bmy, 5/31/00, 3/24/04)
+!  model, modified for the GEOS-CHEM model. (rjp, bdf, bmy, 5/31/00, 4/14/04)
 !                                                                          
 !  Module Variables Used:
 !  ============================================================================
@@ -1751,7 +1779,8 @@
 !        to the entire PBL. (rjp, bmy, 8/1/03) 
 !  (4 ) Now use ND44_TMP array to store vertical levels of drydep flux, then 
 !        sum into AD44 array.  This preents numerical differences when using
-!        multiple processors. (bmy, 3/24/04)    
+!        multiple processors. (bmy, 3/24/04) 
+!  (5 ) Now use parallel DO-loop to zero ND44_TMP (bmy, 4/14/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1782,7 +1811,20 @@
       DTCHEM = GET_TS_CHEM() * 60d0 
 
       ! Zero ND44_TMP array
-      IF ( ND44 > 0 ) ND44_TMP = 0d0
+      IF ( ND44 > 0 ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+!$OMP+SCHEDULE( DYNAMIC )
+         DO L = 1, LLTROP 
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            ND44_TMP(I,J,L) = 0d0
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+      ENDIF
 
       ! Loop over tropospheric grid boxes
 !$OMP PARALLEL DO
@@ -1873,7 +1915,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_NH3 removes NH3 from the surface via dry deposition.
-!  (rjp, bdf, bmy, 1/2/02, 3/24/04)  
+!  (rjp, bdf, bmy, 1/2/02, 4/14/04)  
 !                                                                          
 !  Reaction List:
 !  ============================================================================
@@ -1890,6 +1932,7 @@
 !  (4 ) Now use ND44_TMP array to store vertical levels of drydep flux, then 
 !        sum into AD44 array.  This preents numerical differences when using
 !        multiple processors. (bmy, 3/24/04)    
+!  (5 ) Now use parallel DO-loop to zero ND44_TMP (bmy, 4/14/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1920,7 +1963,20 @@
       DTCHEM = GET_TS_CHEM() * 60d0
 
       ! Zero ND44_TMP array
-      IF ( ND44 > 0 ) ND44_TMP = 0d0
+      IF ( ND44 > 0 ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+!$OMP+SCHEDULE( DYNAMIC )
+         DO L = 1, LLTROP 
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            ND44_TMP(I,J,L) = 0d0
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+      ENDIF
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -2001,7 +2057,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_NH4 removes NH4 from the surface via dry deposition.
-!  (rjp, bdf, bmy, 1/2/02, 3/24/04)  
+!  (rjp, bdf, bmy, 1/2/02, 4/14/04)  
 !                                                                          
 !  Reaction List:
 !  ============================================================================
@@ -2018,6 +2074,7 @@
 !  (4 ) Now use ND44_TMP array to store vertical levels of drydep flux, then 
 !        sum into AD44 array.  This preents numerical differences when using
 !        multiple processors. (bmy, 3/24/04)    
+!  (5 ) Now use parallel DO-loop to zero ND44_TMP (bmy, 4/14/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2047,8 +2104,20 @@
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM = GET_TS_CHEM() * 60d0 
 
-      ! Zero ND44 array
-      IF ( ND44 > 0 ) ND44_TMP = 0d0
+      ! Zero ND44_TMP array
+      IF ( ND44 > 0 ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+         DO L = 1, LLTROP 
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            ND44_TMP(I,J,L) = 0d0
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+      ENDIF
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -2129,7 +2198,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_NIT removes SULFUR NITRATES (NIT) from the surface 
-!  via dry deposition. (rjp, bdf, bmy, 1/2/02, 3/24/04)  
+!  via dry deposition. (rjp, bdf, bmy, 1/2/02, 4/14/04)  
 !                                                                          
 !  Reaction List:
 !  ============================================================================
@@ -2146,6 +2215,7 @@
 !  (4 ) Now use ND44_TMP array to store vertical levels of drydep flux, then 
 !        sum into AD44 array.  This preents numerical differences when using
 !        multiple processors. (bmy, 3/24/04)    
+!  (5 ) Now use parallel DO-loop to zero ND44_TMP (bmy, 4/14/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2174,8 +2244,20 @@
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM = GET_TS_CHEM() * 60d0 
       
-      ! Zero ND44 array
-      IF ( ND44 > 0 ) ND44_TMP = 0d0
+      ! Zero ND44_TMP array
+      IF ( ND44 > 0 ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+         DO L = 1, LLTROP 
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            ND44_TMP(I,J,L) = 0d0
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+      ENDIF
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )

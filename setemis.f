@@ -1,4 +1,4 @@
-! $Id: setemis.f,v 1.2 2004/03/24 20:52:31 bmy Exp $
+! $Id: setemis.f,v 1.3 2004/04/19 15:09:54 bmy Exp $
       SUBROUTINE SETEMIS( EMISRR, EMISRRN )
 !
 !******************************************************************************
@@ -163,15 +163,6 @@
             ! entire boundary layer.  Define some variables here.
             ! (bdf, 6/15/01)
             !===========================================================
-
-            !-----------------------------------------------------------
-            ! Prior to 3/19/04:
-            ! 1-d index for the surface box
-            ! Direct substitution of JLOP(I,J,1) was made
-            ! whereever JLOOP1 was used for OpenMP to work 
-            ! over N loop (AOO, 3/18/2004)
-            ! JLOOP1 = JLOP(I,J,1)
-            !-----------------------------------------------------------
 
             ! Top level of the boundary layer
             ! guard for b.l. being in first level.

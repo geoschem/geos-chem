@@ -1,10 +1,10 @@
-! $Id: diag49.f,v 1.3 2003/12/05 21:13:59 bmy Exp $
+! $Id: diag49.f,v 1.4 2004/04/19 15:09:52 bmy Exp $
       SUBROUTINE DIAG49
 ! 
 !******************************************************************************
 !  Subroutine DIAG49 produces time series (instantaneous fields) for a 
 !  geographical domain from the information read in timeseries.dat. Output 
-!  will be in binary punch (BPCH) format. (bey, bmy, rvm, 4/9/99, 9/29/03)
+!  will be in binary punch (BPCH) format. (bey, bmy, rvm, 4/9/99, 4/16/04)
 !
 !  NOTES:
 !  (1 ) Now use F90 syntax for declarations (bmy, 3/26/99)
@@ -61,6 +61,8 @@
 !  (22) LINUX has a problem putting a function call w/in a WRITE statement.
 !        Now save output from TIMESTAMP_STRING to STAMP and print that.
 !        (bmy, 9/29/03)
+!  (23) Readjust tracer numbers for other fields to accommodate 41 regular 
+!        CTM tracers -- QUICK FIX (bmy, 4/16/04)        
 !******************************************************************************
 !
       ! References to F90 modules
@@ -201,9 +203,9 @@
             SELECT CASE ( XTRAC ) 
 
                !========================================================
-               ! Save pure O3 as tracer #32 
+               ! Save pure O3 as tracer #71 (bmy, 4/16/04)
                !========================================================
-               CASE ( 32 )
+               CASE ( 71 )
                   
                   ! Skip if not a full-chemistry simulation 
                   ! or a single-tracer Ox simulation 
@@ -211,8 +213,11 @@
 
                   CATEGORY = 'IJ-AVG-$'
                   UNIT     = ''
-                  GMTRC    = XTRAC + TRCOFFSET
                   NL2      = NL
+
+                  ! For GAMAP: save tracer # plus special chem offset
+                  GMTRC    = XTRAC + TRCOFFSET
+
 
                   IF ( IDTOX > 0 ) THEN
                      DO L = 1, LLPAR
@@ -231,18 +236,19 @@
                   ENDIF
 
                !========================================================
-               ! Save NO as tracer #33 (bmy, 3/23/03)
-               ! GAMAP thinks NO is tracer #9 for the ND48 diagnostic
+               ! Save NO as tracer #72 (bmy, 4/16/04)
                !========================================================
-               CASE ( 33 )
+               CASE ( 72 )
 
                   ! NO is only defined for full chemistry simulations
                   IF ( NSRCX /= 3 ) CYCLE
 
                   CATEGORY = 'TIME-SER'
                   UNIT     = ''
-                  GMTRC    = 9
                   NL2      = NL
+
+                  ! For GAMAP: NO is tracer #9 in the 'TIME-SER' category
+                  GMTRC    = 9
                
                   IF ( IDTNOX > 0 ) THEN
                      DO L = 1, LLPAR
@@ -261,16 +267,15 @@
                   ENDIF
 
                !========================================================
-               ! # 34 -- leave blank for now
+               ! Skip over NOy (tracer #73)  (bmy, 4/16/04)
                !========================================================
-               CASE ( 34 )
+               CASE ( 73 )
                   CYCLE
 
                !========================================================
-               ! Store OH as tracer #35 
-               ! GAMAP thinks NO2 is tracer #2 for ND48 diagnostic
+               ! Store OH as tracer #74 (bmy, 4/16/04)
                !========================================================
-               CASE ( 35 )
+               CASE ( 74 )
                   
                   ! Skip if not a full chemistry run (bmy, 1/7/02)
                   IF ( NSRCX /= 3 ) CYCLE
@@ -278,14 +283,15 @@
                   CATEGORY         = 'TIME-SER'
                   UNIT             = ''
                   STT_TEMPO(:,:,:) = SAVEOH(:,:,:)
-                  GMTRC            = 2
                   NL2              = NL
 
+                  ! For GAMAP: OH is tracer #2 for "TIME-SER" category
+                  GMTRC            = 2
+
                !========================================================
-               ! Store NO2 as tracer #36
-               ! GAMAP thinks NO2 is tracer #19 for ND48 diagnostic
+               ! Store NO2 as tracer #75 (bmy, 4/16/04)
                !========================================================
-               CASE ( 36 )
+               CASE ( 75 )
 
                   ! Skip if not a full chemistry run (bmy, 1/7/02)
                   IF ( NSRCX /= 3 ) CYCLE
@@ -293,19 +299,21 @@
                   CATEGORY         = 'TIME-SER'
                   UNIT             = ''
                   STT_TEMPO(:,:,:) = SAVENO2(:,:,:)
-                  GMTRC            = 19
                   NL2              = NL
 
+                  ! For GAMAP: NO2 is tracer #19 for "TIME-SER" category
+                  GMTRC            = 19
+
                !========================================================
-               ! Leave #37 - #44 blank for now
+               ! Leave #76 - #95 blank for now (bmy, 4/16/04)
                !========================================================
-               CASE ( 37:44 )
+               CASE ( 76:95 )
                   CYCLE
 
                !========================================================
-               ! Store UWND as tracer #71 (GAMAP tracer is #1)
+               ! Store UWND as tracer #96 (bmy, 4/16/04)
                !========================================================
-               CASE ( 71 )
+               CASE ( 96 )
                   CATEGORY         = 'DAO-3D-$'
                   UNIT             = 'm/s'
                   STT_TEMPO(:,:,:) = UWND(:,:,:)
@@ -313,9 +321,9 @@
                   NL2              = NL
 
                !========================================================
-               ! Store VWND as tracer #72 (GAMAP tracer is #2)
+               ! Store VWND as tracer #97 (bmy, 4/16/04)
                !========================================================
-               CASE ( 72 )
+               CASE ( 97 )
                   CATEGORY         = 'DAO-3D-$'
                   UNIT             = 'm/s'
                   STT_TEMPO(:,:,:) = VWND(:,:,:)
@@ -323,12 +331,13 @@
                   NL2              = NL
 
                !========================================================
-               ! Store Psurface - PTOP as tracer #98
-               ! GAMAP thinks pressure is tracer 1 for ND31 diagnostic
+               ! Store Psurface - PTOP as tracer #98 (bmy, 4/16/04)
                !========================================================
                CASE ( 98 )
                   CATEGORY         = 'PS-PTOP'
                   UNIT             = 'mb'
+                  NL2              = 1
+                  XL1              = 1 
                   
                   ! Need to loop over w/ I and J (yxw, bmy, 1/30/03)
                   DO J = 1, JJPAR
@@ -337,23 +346,23 @@
                   ENDDO
                   ENDDO
 
+                  ! For GAMAP: PS is tracer #1 for 'PS-PTOP' category
                   GMTRC            = 1
-                  NL2              = 1
-                  XL1              = 1 
 
                !========================================================
-               ! Store temperature as tracer #99
-               ! GAMAP thinks temp is tracer #3 for ND68 diagnostic
+               ! Store temperature as tracer #99 (bmy, 4/16/04)
                !========================================================
                CASE ( 99 )
                   CATEGORY         = 'DAO-3D-$'
                   UNIT             = 'K'
                   STT_TEMPO(:,:,:) = T(:,:,:)
-                  GMTRC            = 3
                   NL2              = NL
 
+                  ! For GAMAP: Temp is tracer #3 for 'DAO-3D-$' category
+                  GMTRC            = 3
+
                !========================================================
-               ! Store CTM Tracers [v/v] as tracers 1-24
+               ! Store CTM Tracers [v/v] as tracers 1-41
                !========================================================
                CASE DEFAULT
                   CATEGORY         = 'IJ-AVG-$'

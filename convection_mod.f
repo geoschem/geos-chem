@@ -1,4 +1,4 @@
-! $Id: convection_mod.f,v 1.4 2004/03/24 20:52:28 bmy Exp $
+! $Id: convection_mod.f,v 1.5 2004/04/19 15:09:51 bmy Exp $
       MODULE CONVECTION_MOD
 !
 !******************************************************************************
@@ -545,12 +545,6 @@
          ! used for diagnostic arrays AD37 and AD38.  ISOL = 0 for all 
          ! non-soluble tracers.   
          !==============================================================
-         !-----------------------------------------------------------------
-         ! Prior to 1/27/04:
-         ! Now make F a 4-D array, so we don't have to hold it PRIVATE.  
-         ! This prevents memory problems on the Altix (bmy, 1/27/04)
-         !CALL COMPUTE_F( IC, F, ISOL ) 
-         !-----------------------------------------------------------------
          CALL COMPUTE_F( IC, F(:,:,:,IC), ISOL ) 
 
          ! ND37 diagnostic -- store F only for soluble tracers

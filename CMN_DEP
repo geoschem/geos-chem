@@ -1,4 +1,4 @@
-! $Id: CMN_DEP,v 1.2 2003/12/11 21:54:07 bmy Exp $
+! $Id: CMN_DEP,v 1.3 2004/04/19 15:09:48 bmy Exp $
 !
 !-----COMMON BLOCKS FOR DRYDEP
 !
@@ -28,12 +28,3 @@
       ! XLAI2   - Leaf Area Index of land type for following MONTH
       REAL*8 XLAI2
       COMMON /DEPSV5/ XLAI2(IGLOB,JGLOB,NTYPE)
-
-      !-----------------------------------------------------------------------
-      ! Prior to 12/9/03:
-      ! Now define these as local variables in "drydep_mod.f" (bmy, 12/9/03)
-      !! CFRAC  - Fractional cloud cover
-      !! RADIAT - Solar radiation in W m-2
-      !REAL*8 CFRAC,RADIAT
-      !COMMON /RADI1/ CFRAC(MAXIJ),RADIAT(MAXIJ)
-      !-----------------------------------------------------------------------

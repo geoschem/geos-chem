@@ -1,4 +1,4 @@
-! $Id: wetscav_mod.f,v 1.6 2004/04/13 14:52:33 bmy Exp $
+! $Id: wetscav_mod.f,v 1.7 2004/04/19 15:09:55 bmy Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
@@ -120,11 +120,6 @@
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
-      !---------------------------------------------------------------------
-      ! Prior to 4/5/04:
-      ! Adjust NSOLMAX for carbon & dust aerosol tracers (rjp, bmy, 4/5/04)
-      !INTEGER, PARAMETER   :: NSOLMAX = 10
-      !---------------------------------------------------------------------
       INTEGER, PARAMETER   :: NSOLMAX = 18
       INTEGER              :: NSOL 
       INTEGER              :: IDWETD(NSOLMAX)
@@ -1151,35 +1146,7 @@
       ! Return to COMPUTE_F
       END SUBROUTINE F_AEROSOL 
 
-!----------------------------------------------------------------------------
-! Prior to 4/5/04:    
-! Now make GET_ISOL a module routine (bmy, 4/5/04)
-!      FUNCTION GET_ISOL( I3, I10 ) RESULT( I )
-!       
-!      !=================================================================
-!      ! Internal function GET_ISOL returns the value of ISOL (tracer
-!      ! index for ND38) for either coupled or offline sulfate runs.
-!      !=================================================================
-!       
-!      ! Arguments
-!      INTEGER, INTENT(IN) :: I3, I10
-!       
-!      ! Function value
-!      INTEGER             :: I
-!       
-!      !=================================================================
-!      ! GET_ISOL begins here!
-!      !=================================================================
-!      SELECT CASE ( NSRCX )
-!         CASE ( 3 ) 
-!            I = I3
-!         CASE ( 10 )
-!            I = I10 
-!      END SELECT
-!       
-!      ! Return to COMPUTE_F
-!      END FUNCTION GET_ISOL
-!------------------------------------------------------------------------------
+      !------------------------------------------------------------------------
 
       ! Return to calling program
       END SUBROUTINE COMPUTE_F
@@ -2337,12 +2304,6 @@
 
                   ! Negative tracer...call subroutine SAFETY
                   IF ( STT(I,J,L,N) < 0d0 ) THEN
-                     !------------------------------------------------------
-                     ! Prior to 3/18/04:
-                     ! SAFETY is now a MODULE routine, so we need to pass
-                     ! all of the variables for debug output (bmy, 3/18/04)
-                     !CALL SAFETY( I, J, L, N, 4 )
-                     !------------------------------------------------------
                      CALL SAFETY( I, J, L, N, 4, 
      &                            LS,         PDOWN(L,I,J), QQ(L,I,J),   
      &                            ALPHA,      ALPHA2,       RAINFRAC,    
@@ -2483,12 +2444,6 @@
 
                      ! Negative tracer...call subroutine SAFETY
                      IF ( STT(I,J,L,N) < 0d0 ) THEN
-                        !-----------------------------------------------------
-                        ! Prior to 3/18/04:
-                        ! SAFETY is now a MODULE routine, so we need to pass
-                        ! all of the variables for debug output (bmy, 3/18/04)
-                        !CALL SAFETY( I, J, L, N, 5 )
-                        !-----------------------------------------------------
                         CALL SAFETY( I, J, L, N, 5, 
      &                               LS,           PDOWN(L,I,J),  
      &                               QQ(L,I,J),    ALPHA,        
@@ -2702,12 +2657,6 @@
   
                      ! Negative tracer...call subroutine SAFETY
                      IF ( STT(I,J,L,N) < 0d0 ) THEN
-                        !-----------------------------------------------------
-                        ! Prior to 3/18/04:
-                        ! SAFETY is now a MODULE routine, so we need to pass
-                        ! all of the variables for debug output (bmy, 3/18/04)
-                        !CALL SAFETY( I, J, L, N, 6 )
-                        !-----------------------------------------------------
                         CALL SAFETY( I, J, L, N, 6, 
      &                               LS,           PDOWN(L,I,J), 
      &                               QQ(L,I,J),    ALPHA,        
@@ -2769,12 +2718,6 @@
                   ENDIF
 
                   ! Negative tracer...call subroutine SAFETY
-                  !--------------------------------------------------------
-                  ! Prior to 3/18/04:
-                  ! SAFETY is now a MODULE routine, so we need to pass
-                  ! all of the variables for debug output (bmy, 3/18/04)
-                  !IF ( STT(I,J,L,N) < 0d0 ) CALL SAFETY( I, J, L, N, 7 )
-                  !--------------------------------------------------------
                   IF ( STT(I,J,L,N) < 0d0 ) THEN
                      CALL SAFETY( I, J, L, N, 7, 
      &                            LS,         PDOWN(L,I,J), QQ(L,I,J),   
@@ -2896,12 +2839,6 @@
                   !-----------------------------------------------------
 
                   ! Negative tracer...call subroutine SAFETY
-                  !--------------------------------------------------------
-                  ! Prior to 3/18/04:
-                  ! SAFETY is now a MODULE routine, so we need to pass
-                  ! all of the variables for debug output (bmy, 3/18/04)
-                  !IF ( STT(I,J,L,N) < 0d0 ) CALL SAFETY( I, J, L, N, 8 )
-                  !--------------------------------------------------------
                   IF ( STT(I,J,L,N) < 0d0 ) THEN
                      CALL SAFETY( I, J, L, N, 8, 
      &                            LS,         PDOWN(L,I,J), QQ(L,I,J),   
@@ -3312,15 +3249,6 @@
 
          ! Fullchem simulation
          CASE ( 3 )
-            !--------------------------------------------------------------
-            ! Prior to 4/5/04:
-            ! Now account for carbon & dust aerosol tracers too
-            !IF ( LSULF ) THEN
-            !   NMAX = 10       ! Coupled simulation: 10 soluble tracers
-            !ELSE 
-            !   NMAX = 4        ! Regular simulation:  4 soluble tracers 
-            !ENDIF
-            !--------------------------------------------------------------
             NMAX = 4                            ! HNO3, H2O2
             IF ( LSULF ) NMAX = NMAX + 6        ! SO2, SO4, MSA, NH3, NH4, NIT
             IF ( LCARB ) NMAX = NMAX + 4        ! BCPI, BCPO, OCPI, OCPO
@@ -3328,11 +3256,6 @@
 
          ! Offline sulfate simulation: 7 soluble tracers
          CASE ( 10 ) 
-            !--------------------------------------------------------------
-            ! Prior to 4/5/04:
-            ! Now account for carbon & dust aerosol tracers too
-            !NMAX = 7
-            !--------------------------------------------------------------
             NMAX = 0
             IF ( LSULF ) NMAX = NMAX + 7        ! add 7 sulfur species
             IF ( LCARB ) NMAX = NMAX + 4        ! add carbonaceous aerosols

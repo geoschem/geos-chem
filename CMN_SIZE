@@ -1,4 +1,4 @@
-! $Id: CMN_SIZE,v 1.5 2004/04/13 14:52:27 bmy Exp $
+! $Id: CMN_SIZE,v 1.6 2004/04/19 15:09:49 bmy Exp $
       !=======================================================================
       ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 4/1/04)
       !
@@ -273,11 +273,6 @@
       INTEGER, PARAMETER :: NEMPARB = 1
 
 #elif defined( FULLCHEM  )
-      !-----------------------------------------------------------------
-      ! Prior to 4/1/04:
-      ! Add extra tracers for carbon + dust (rvm, tdf, bmy, 4/1/04)
-      !INTEGER, PARAMETER :: NNPAR   = 31
-      !-----------------------------------------------------------------
       INTEGER, PARAMETER :: NNPAR   = 39
       INTEGER, PARAMETER :: NEMPARA = 10
       INTEGER, PARAMETER :: NEMPARB = 1

@@ -1,4 +1,4 @@
-! $Id: time_mod.f,v 1.7 2004/04/13 14:52:32 bmy Exp $
+! $Id: time_mod.f,v 1.8 2004/04/19 15:09:55 bmy Exp $
       MODULE TIME_MOD
 !
 !******************************************************************************
@@ -1765,12 +1765,6 @@
       ! GET_FIRST_A6_TIME begins here!
       !=================================================================
 
-!-----------------------------------------------------------------------------
-! Prior to 3/22/04:
-! GEOS-4 "a_llk_04" fields behave like GEOS-1, GEOS-STRAT, GEOS-3.
-! Therefore, only treat GEOS-4 "a_llk_03" fields differently. (bmy, 3/22/04)
-!#if   defined( GEOS_4 )
-!-----------------------------------------------------------------------------
 #if   defined( GEOS_4 ) && defined( A_LLK_03 )
 
       ! For GEOS-4, call GET_A3_TIME to return date/time
