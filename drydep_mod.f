@@ -1,9 +1,9 @@
-! $Id: drydep_mod.f,v 1.10 2004/04/13 14:52:30 bmy Exp $
+! $Id: drydep_mod.f,v 1.11 2004/04/28 19:53:34 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
 !  Module DRYDEP_MOD contains variables and routines for the GEOS-CHEM dry
-!  deposition scheme. (bmy, 1/27/03, 4/1/04)
+!  deposition scheme. (bmy, 1/27/03, 4/20/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -37,7 +37,9 @@
 !  (28) HSTAR    (REAL*8 ) : Henry's law constant
 !  (29) F0       (REAL*8 ) : Reactivity factor for biological oxidation
 !  (30) XMW      (REAL*8 ) : Molecular weight of drydep species [kg]
-!  (31) DEPNAME  (CHAR*14) : Names of dry deposition species
+!  (32) A_RADI   (REAL*8 ) : Radius of aerosol for size-resolved drydep [um]
+!  (33) A_DEN    (REAL*8 ) : Density of aerosol for size-res'd drydep [kg/m3]
+!  (33) DEPNAME  (CHAR*14) : Names of dry deposition species
 !
 !  Module Routines:
 !  ============================================================================
@@ -120,6 +122,8 @@
 !  (8 ) Now handle extra carbon & dust tracers (rjp, tdf, bmy, 4/1/04)
 !  (9 ) Added routines AERO_SFCRS1, AERO_SFCRSII.  Increased MAXDEP to 25.
 !        Now handles extra carbon & dust tracers. (rjp, tdf, bmy, 4/1/04)
+!  (10) Increased MAXDEP to 27.  Added A_RADI and A_DEN module variables.
+!        Other modifications for size-resolved drydep. (rjp, bec, bmy, 4/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -135,7 +139,7 @@
       PRIVATE :: IWATER,   IRI,      IRLU,      IRAC      
       PRIVATE :: IRGSS,    IRGSO,    IRCLS,     IRCLO
       PRIVATE :: IVSMAX,   DRYCOEFF, HSTAR,     F0
-      PRIVATE :: XMW
+      PRIVATE :: XMW,      A_RADI,   A_DEN
 
       ! Module Routines
       PRIVATE :: DEPVEL,   METERO,   MODIN,     RDDRYCF
@@ -145,12 +149,12 @@
       !=================================================================
 
       ! Parameters
-      !--------------------------------------------------------
-      ! Prior to 4/1/04:
-      ! Increase for extra carbon & dust tracers (bmy, 4/1/04)
-      !INTEGER, PARAMETER   :: MAXDEP    = 16     
       !---------------------------------------------------------
-      INTEGER, PARAMETER   :: MAXDEP    = 25
+      ! Prior to 4/20/04:
+      ! Increase for seasalt tracers (bmy, 4/20/04)
+      !INTEGER, PARAMETER   :: MAXDEP    = 25
+      !---------------------------------------------------------
+      INTEGER, PARAMETER   :: MAXDEP    = 27
       INTEGER, PARAMETER   :: NNTYPE    = 15     ! NTYPE    from "CMN_SIZE"
       INTEGER, PARAMETER   :: NNPOLY    = 20     ! NPOLY    from "CMN_SIZE"
       INTEGER, PARAMETER   :: NNVEGTYPE = 74     ! NVEGTYPE from "CMN_SIZE"
@@ -181,7 +185,10 @@
       REAL*8               :: HSTAR(MAXDEP)
       REAL*8               :: F0(MAXDEP)
       REAL*8               :: XMW(MAXDEP)
+      REAL*8               :: A_RADI(MAXDEP)
+      REAL*8               :: A_DEN(MAXDEP)
       CHARACTER(LEN=14)    :: DEPNAME(MAXDEP)
+
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -912,6 +919,7 @@ C** Version 3.3:   5/8/00   -- bug fixes, cleanup, updated comments.
 C** Version 3.4:   1/22/03  -- remove hardwire for CANOPYNOX
 C** Version 3.5    7/21/03  -- Remove cap of surface resistance in RLUXX
 C** Version 3.6    4/01/04  -- Now do drydep of DUST aerosol tracers
+C** Version 3.7    4/20/04  -- Now also do drydep of SEASALT aerosol tracers
 C
 C***********************************************************************
 C   Changes from Version 3.2 to Version 3.3:                         ***
@@ -1309,15 +1317,15 @@ C** equations (15)-(17) of Walcek et al. [1986]
 !               RSURFC(K,LDT) = 1.D0/MIN(VDS, DBLE(IVSMAX(II))/1.D4)
 !------------------------------------------------------------------------------
 
-               ! Test for DUST aerosol tracers
+               ! Test for DUST or SEASALT aerosol tracers
                IF ( ( DEPNAME(K) == 'DST1' )  .OR. 
      &              ( DEPNAME(K) == 'DST2' )  .OR. 
      &              ( DEPNAME(K) == 'DST3' )  .OR. 
-     &              ( DEPNAME(K) == 'DST4' ) ) THEN 
+     &              ( DEPNAME(K) == 'DST4' ) ) THEN
 
                   !=====================================================
                   ! Use size-resolved dry deposition calculations for 
-                  ! Dust aerosols (rjp, tdf, bmy, 4/1/04)
+                  ! Dust & seasalt aerosols (rjp, tdf, bec, bmy, 4/20/04)
                   !=====================================================
 
 !                  ! [Seinfeld, 1986] 
@@ -1332,8 +1340,8 @@ C** equations (15)-(17) of Walcek et al. [1986]
 
                   !=====================================================
                   ! Replace original code to statement 160 here: only
-                  ! do this for non-dust tracers where AIROSOL(K)=T.
-                  ! (rjp, tdf, bmy, 4/1/04)
+                  ! do this for non-size-resolved tracers where 
+                  ! AIROSOL(K)=T. (rjp, tdf, bec, bmy, 4/20/04)
                   !=====================================================
                   VDS = 0.002D0*USTAR(IJLOOP)
                   IF (OBK(IJLOOP) .LT. 0.0D0) THEN
@@ -1907,14 +1915,19 @@ C** Load array DVEL
       REAL*8  :: DIAM, DEN
       REAL*8  :: EB, EIM, EIN, R1, AA, VTS
 
-      ! Dust size and density are hardwired now but we have to come up
-      ! with a better way to handle this
-
-      ! Dust Particle radii (m)
-      REAL*8  :: DUSTREFF( 4 ) = ( /0.73d-6, 1.4d-6, 2.4d-6, 4.5d-6/ )
-
-      ! Soil density (kg/m3)
-      REAL*8  :: DUSTDEN(  4 ) = ( /2500.d0, 2650.d0, 2650.d0, 2650.d0/)
+      !-----------------------------------------------------------------------
+      ! Prior to 4/20/04:
+      ! Now each drydep aerosol species carries its size and density 
+      ! (rjp, bec, bmy, 4/20/04)
+      !! Dust size and density are hardwired now but we have to come up
+      !! with a better way to handle this
+      !
+      !! Dust Particle radii (m)
+      !REAL*8  :: DUSTREFF( 4 ) = ( /0.73d-6, 1.4d-6, 2.4d-6, 4.5d-6/ )
+      !
+      !! Soil density (kg/m3)
+      !REAL*8  :: DUSTDEN(  4 ) = ( /2500.d0, 2650.d0, 2650.d0, 2650.d0/)
+      !-----------------------------------------------------------------------
 
       !=================================================================
       ! Ref. Zhang et al., AE 35(2001) 549-560 and Seinfeld(1986)
@@ -1963,8 +1976,18 @@ C** Load array DVEL
       !      R1 (Particle rebound)  = exp(-St^0.5)
       !=================================================================
 
-      DIAM  = DUSTREFF(K) * 2.d0
-      DEN   = DUSTDEN(K)
+      !----------------------------------------------------------------
+      ! Prior to 4/20/04:
+      ! Now use values from A_RADI and A_DEN (rjp, bec, bmy, 4/20/04)
+      !DIAM  = DUSTREFF(K) * 2.d0
+      !DEN   = DUSTDEN(K)
+      !----------------------------------------------------------------
+
+      ! Particle diameter [m]
+      DIAM  = A_RADI(K) * 2.d0 
+
+      ! Particle density [kg/m3]
+      DEN   = A_DEN(K)          
 
       ! Dp [um] = particle diameter
       DP    = DIAM * 1.d6 
@@ -2164,16 +2187,22 @@ C** Load array DVEL
      &            2.0d0,   2.0d0, -999.d0, -999.d0, 10.0d0, 
      &           10.0d0, -999.d0, -999.d0, -999.d0, 10.0d0  /
 
-      !=================================================================
-      ! Dust size and density are hardwired now but we have to come up
-      ! with a better way to handle this
-      !=================================================================
-
-      ! Dust Particle radii (m)
-      REAL*8  :: DUSTREFF( 4 ) = ( /0.73d-6, 1.4d-6, 2.4d-6, 4.5d-6/ )
-
-      ! Soil density (kg/m3)
-      REAL*8  :: DUSTDEN(  4 ) = ( /2500.d0, 2650.d0, 2650.d0, 2650.d0/)
+      !----------------------------------------------------------------------
+      ! Prior to 4/20/04:
+      ! Now each drydep aerosol species carries its size and density 
+      ! (rjp, bec, bmy, 04/20/04)
+      ! 
+      !!=================================================================
+      !! Dust size and density are hardwired now but we have to come up
+      !! with a better way to handle this
+      !!=================================================================
+      !
+      !! Dust Particle radii (m)
+      !REAL*8  :: DUSTREFF( 4 ) = ( /0.73d-6, 1.4d-6, 2.4d-6, 4.5d-6/ )
+      !
+      !! Soil density (kg/m3)
+      !REAL*8  :: DUSTDEN(  4 ) = ( /2500.d0, 2650.d0, 2650.d0, 2650.d0/)
+      !----------------------------------------------------------------------
 
       ! Annual average of A
       Aavg(:) = (A(:,1)+A(:,2)+A(:,3)+A(:,4)+A(:,5))/5.
@@ -2227,8 +2256,18 @@ C** Load array DVEL
       !      R1 (Particle rebound)  = exp(-St^0.5)
       !=================================================================
       
-      DIAM  = DUSTREFF(K) * 2.d0  
-      DEN   = DUSTDEN(K)
+      !----------------------------------------------------
+      ! Prior to 4/20/04:
+      ! Now use values from A_RADI and A_DEN (bmy, 4/20/04)
+      !DIAM  = DUSTREFF(K) * 2.d0  
+      !DEN   = DUSTDEN(K)
+      !----------------------------------------------------
+
+      ! Particle diameter [m]
+      DIAM  = A_RADI(K) * 2.d0  
+
+      ! Particle density [kg/m3]
+      DEN   = A_DEN(K)          
 
       ! Dp [um] = particle diameter
       DP    = DIAM * 1.d6 
@@ -2308,12 +2347,14 @@ C** Load array DVEL
 !
 !******************************************************************************
 !  Subroutine INIT_DRYDEP initializes certain variables for the GEOS-CHEM
-!  dry deposition subroutines. (bmy, 11/19/02, 4/1/04)
+!  dry deposition subroutines. (bmy, 11/19/02, 4/20/04)
 !
 !  NOTES:
 !  (1 ) Added N2O5 as a drydep tracer, w/ the same drydep velocity as
 !        HNO3.  Now initialize PBLFRAC array. (rjp, bmy, 7/21/03)
 !  (2 ) Added extra carbon & dust aerosol tracers (rjp, tdf, bmy, 4/1/04)
+!  (3 ) Added seasalt aerosol tracers.  Now use A_RADI and A_DEN to store
+!        radius & density of size-resolved tracers. (rjp, bec, bmy, 4/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2341,6 +2382,8 @@ C** Load array DVEL
       HSTAR(:)   = 0d0
       F0(:)      = 0d0
       XMW(:)     = 0d0
+      A_RADI(:)  = 0d0
+      A_DEN(:)   = 0d0
       AIROSOL(:) = .FALSE.
 
       !=================================================================
@@ -2614,6 +2657,8 @@ C** Load array DVEL
             HSTAR(NUMDEP)   = 0.0d0
             F0(NUMDEP)      = 0.0d0
             XMW(NUMDEP)     = 29d-3
+            A_RADI(NUMDEP)  = 0.73d-6
+            A_DEN(NUMDEP)   = 2500.d0
             AIROSOL(NUMDEP) = .TRUE.
 
          ! DUST2 (aerosol)
@@ -2625,6 +2670,8 @@ C** Load array DVEL
             HSTAR(NUMDEP)   = 0.0d0
             F0(NUMDEP)      = 0.0d0
             XMW(NUMDEP)     = 29d-3
+            A_RADI(NUMDEP)  = 1.4d-6
+            A_DEN(NUMDEP)   = 2650.d0   
             AIROSOL(NUMDEP) = .TRUE.
 
          ! DUST3 (aerosol)
@@ -2636,6 +2683,8 @@ C** Load array DVEL
             HSTAR(NUMDEP)   = 0.0d0
             F0(NUMDEP)      = 0.0d0
             XMW(NUMDEP)     = 29d-3
+            A_RADI(NUMDEP)  = 2.4d-6
+            A_DEN(NUMDEP)   = 2650.d0  
             AIROSOL(NUMDEP) = .TRUE.
 
          ! DUST4 (aerosol)
@@ -2647,11 +2696,13 @@ C** Load array DVEL
             HSTAR(NUMDEP)   = 0.0d0
             F0(NUMDEP)      = 0.0d0
             XMW(NUMDEP)     = 29d-3
+            A_RADI(NUMDEP)  = 4.5d-6
+            A_DEN(NUMDEP)   = 2650.d0   
             AIROSOL(NUMDEP) = .TRUE.
 
          ENDIF
       ENDDO
-
+      
       !=================================================================
       ! Allocate arrays
       !=================================================================
