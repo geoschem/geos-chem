@@ -1,4 +1,4 @@
-! $Id: tpcore_fvdas_mod.f90,v 1.5 2004/12/02 21:48:41 bmy Exp $
+! $Id: tpcore_fvdas_mod.f90,v 1.6 2005/02/10 19:53:28 bmy Exp $
 module tpcore_fvdas_mod
 !
 !******************************************************************************
@@ -1273,16 +1273,11 @@ CONTAINS
  !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
  !%%%  
  !%%% Implement ND25 diag: N/S flux of tracer [kg/s] (bdf, bmy, 9/28/04)
- !%%% Now multiply fluxes by latitude factor RGW_25 (bdf, bmy, 19/29/04)
+ !%%% Now multiply fluxes by latitude factor RGW_25 (bdf, bmy, 10/29/04)
  !%%%
    IF ( ND25 > 0 ) THEN
       DO J = JS2G0, JN2G0
       DO I = 1,     IM
-         !--------------------------------------------------------------
-         ! Prior to 10/29/04:
-         ! Now add 
-         !DTC        = FY(I,J)*AREA_M2(J)*100.d0 / (TCV*DT*9.8d0)
-         !--------------------------------------------------------------
          DTC        = FY(I,J)*RGW_25(J)*AREA_M2(J)*100./ (TCV*DT*9.8)
          MFLNS(I,J) = MFLNS(I,J) + DTC
       ENDDO
@@ -1291,10 +1286,6 @@ CONTAINS
       ! South Pole
       IF ( JFIRST == 1 ) THEN
          DO I = 1, IM
-            !------------------------------------------------------------
-            ! Prior to 10/29/04:
-            !DTC        = -FY(I,2)*AREA_M2(1)*100.d0 / (TCV*DT*9.8d0)
-            !------------------------------------------------------------
             DTC        = -FY(I,2)*RGW_25(1)*AREA_M2(1)*100./(TCV*DT*9.8)
             MFLNS(I,1) = MFLNS(I,1) + DTC
          ENDDO
@@ -1303,11 +1294,6 @@ CONTAINS
       ! North Pole
       IF ( JLAST == JM ) THEN
          DO I = 1, IM
-            !------------------------------------------------------------
-            ! Prior to 10/29/04:
-            !DTC         = FY(I,JM)*AREA_M2(JM)*100.d0 / (TCV*DT*9.8d0)
-            !-----------------------------------------------------------
-            ! Should it be RGW_25(JM) or RGW_25(J) asked bdf (bmy, 10/29/04)
             DTC     = FY(I,JM)*RGW_25(JM)*AREA_M2(JM)*100./(TCV*DT*9.8)
             MFLNS(I,JM) = MFLNS(I,JM) + DTC
          ENDDO

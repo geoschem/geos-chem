@@ -1,10 +1,10 @@
-! $Id: carbon_mod.f,v 1.8 2004/12/02 21:48:33 bmy Exp $
+ ! $Id: carbon_mod.f,v 1.9 2005/02/10 19:53:23 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
 !  Module CARBON_MOD contains arrays and routines for performing a 
 !  carbonaceous aerosol simulation.  Original code taken from Mian Chin's 
-!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 12/1/04)
+!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 1/18/05)
 !
 !  4 Aerosol species : Organic and Black carbon 
 !                    : hydrophilic (soluble) and hydrophobic of each
@@ -124,6 +124,8 @@
 !        default, but overwrite N. America with the monthly Cooke/RJP 
 !        emissions.  Added module variables I1_NA, I2_NA, J1_NA, J2_NA.
 !        (rjp, bmy, 12/1/04)
+!  (4 ) Now can read seasonal or interannual BCPO, OCPO biomass emissions.
+!        Also parallelize loop in OHNO3TIME. (rjp, bmy, 1/18/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -146,11 +148,6 @@
       !=================================================================
 
       ! Scalars
-      !---------------------------------------------------------
-      ! Prior to 12/1/04:
-      ! We don't need this flag anymore (bmy, 12/1/04)
-      !LOGICAL             :: USE_MONTHLY_ANTH = .FALSE.
-      !---------------------------------------------------------
       LOGICAL             :: USE_MONTHLY_BIOB = .TRUE.
 
       INTEGER, PARAMETER  :: MHC              = 5  
@@ -1406,11 +1403,6 @@
       !local variables
       real*8             :: MNEW
       real*8             :: a,b,c,d,e,eps,fa,fb,fc,tol1,xm,p,q,r,s
-      !---------------------------------------------------------------------
-      ! Prior to 12/2/04:
-      ! In F90 the dabs, dsign have been replaced w/ ABS & SIGN functions
-      !real*8             :: dabs,dsign
-      !---------------------------------------------------------------------
 c
 c  compute eps, the relative machine precision
 c
@@ -1432,10 +1424,7 @@ c
       fc = fa
       d = b - a
       e = d
-!-------------------------------------------------
-! Prior to 12/2/04:
-!   30 if (dabs(fc) .ge. dabs(fb)) go to 40
-!-------------------------------------------------
+
    30 if (ABS(fc) .ge. ABS(fb)) go to 40
       a = b
       b = c
@@ -1446,26 +1435,13 @@ c
 c
 c convergence test
 c
-!----------------------------------------------------------------
-! Prior to 12/2/04:
-!   40 tol1 = 2.0d0*eps*dabs(b) + 0.5d0*tol
-!----------------------------------------------------------------
    40 tol1 = 2.0d0*eps*ABS(b) + 0.5d0*tol
       xm = 0.5D0*(c - b)
-!----------------------------------------------------------------
-! Prior to 12/2/04:
-!      if (dabs(xm) .le. tol1) go to 90
-!----------------------------------------------------------------
       if (ABS(xm) .le. tol1) go to 90
       if (fb .eq. 0.0d0) go to 90
 c
 c is bisection necessary
 c
-!----------------------------------------------------------------
-! Prior to 12/2/04:
-!      if (dabs(e) .lt. tol1) go to 70
-!      if (dabs(fa) .le. dabs(fb)) go to 70
-!----------------------------------------------------------------
       if (ABS(e) .lt. tol1) go to 70
       if (ABS(fa) .le. ABS(fb)) go to 70
 c
@@ -1491,19 +1467,10 @@ c
 c adjust signs
 c
    60 if (p .gt. 0.0d0) q = -q
-!----------------------------------------------------------------
-! Prior to 12/2/04:
-!      p = dabs(p)
-!----------------------------------------------------------------
       p = ABS(p)
 c
 c is interpolation acceptable
 c
-!----------------------------------------------------------------
-! Prior to 12/2/04:
-!      if ((2.0d0*p) .ge. (3.0d0*xm*q - dabs(tol1*q))) go to 70
-!      if (p .ge. dabs(0.5d0*e*q)) go to 70
-!----------------------------------------------------------------
       if ((2.0d0*p) .ge. (3.0d0*xm*q - ABS(tol1*q))) go to 70
       if (p .ge. ABS(0.5d0*e*q)) go to 70
 
@@ -1520,19 +1487,10 @@ c complete step
 c
    80 a = b
       fa = fb
-!-----------------------------------------------------------------
-! Prior to 12/2/04:
-!      if (dabs(d) .gt. tol1) b = b + d
-!      if (dabs(d) .le. tol1) b = b + dsign(tol1, xm)
-!-----------------------------------------------------------------
       if (ABS(d) .gt. tol1) b = b + d
       if (ABS(d) .le. tol1) b = b + SIGN(tol1, xm)
 
       fb = SOA_equil( B, MPOC, Aerosol, GAS, Kom ) 
-!-----------------------------------------------------------------
-!  Prior to 12/2/04:
-!      if ((fb*(fc/dabs(fc))) .gt. 0.0d0) go to 20
-!-----------------------------------------------------------------
       if ((fb*(fc/ABS(fc))) .gt. 0.0d0) go to 20
       go to 30
 c
@@ -2426,36 +2384,6 @@ c
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          WRITE( 6, 100 )
 
-!------------------------------------------------------------------------------
-! Prior to 12/1/04:
-! Update informational output section below:
-!         ! Monthly or annual ANTHRO emissions?
-!         IF ( USE_MONTHLY_ANTH ) THEN
-!            WRITE( 6, 110 )
-!            WRITE( 6, 111 )
-!         ELSE
-!            WRITE( 6, 120 )
-!         ENDIF
-!
-!         ! Monthly or annual BIOMASS emissions?
-!         IF ( USE_MONTHLY_BIOB ) THEN
-!            WRITE( 6, 130 )
-!         ELSE
-!            WRITE( 6, 140 )
-!         ENDIF
-!         
-!         ! Write spacer
-!         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-!
-!         ! FORMAT strings
-! 100     FORMAT( 'C A R B O N   A E R O S O L   E M I S S I O N S'    )
-! 110     FORMAT( 'w/ ANTHROPOGENIC emissions from Cooke et al [1999]' )
-! 111     FORMAT( ' and seasonality following Park et al [2003]'       )
-! 120     FORMAT( 'w/ ANTHROPOGENIC emissions from Bond et al [2004]'  )
-! 130     FORMAT( 'w/ BIOMASS emissions from GEOS-CHEM inventory'      )
-! 140     FORMAT( 'w/ BIOMASS emissions from Bond et al [2004]'        )
-!------------------------------------------------------------------------------
-
          ! Echo info about ANTHRO emissionls
          WRITE( 6, 110 )
          WRITE( 6, 111 )
@@ -2485,16 +2413,6 @@ c
          ! Initialize arrays
          CALL INIT_CARBON       
          
-         !-------------------------------------------------------------------
-         ! Prior to 12/1/04:
-         ! We always read TBOND emissions now (bmy, 12/1/04)
-         !! Read annual mean anthro emissions
-         !IF ( .not. USE_MONTHLY_ANTH ) THEN
-         !   CALL ANTHRO_CARB_TBOND
-         !   IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_TBOND' )
-         !ENDIF
-         !-------------------------------------------------------------------
-
          ! Read annual mean anthro emissions from T. Bond [2004]
          CALL ANTHRO_CARB_TBOND
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_TBOND' )
@@ -2523,17 +2441,6 @@ c
       
          ! Current month
          MONTH = GET_MONTH()
-
-         !-------------------------------------------------------------------
-         ! Prior to 12/1/04:
-         ! We now always call ANTHRO_CARB_COOKE to get the North American
-         ! emissions from Cooke/RJP (bmy, 12/1/04)
-         !! Read monthly mean anthro emissions
-         !IF ( USE_MONTHLY_ANTH ) THEN
-         !   CALL ANTHRO_CARB_COOKE( MONTH )
-         !   IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_COOKE' )
-         !ENDIF
-         !-------------------------------------------------------------------
 
          ! Overwrite the T. Bond [2004] emissions over North America
          ! with monthly mean anthro emissions from Cooke et al [1999] 
@@ -2795,11 +2702,6 @@ c
 
             ! Filename for carbon aerosol from fossil fuel use
             FILENAME = TRIM( DATA_DIR ) //
-!-----------------------------------------------------------------------------
-! Prior to 11/15/04:
-! Now read data from carbon_200411 directory (bmy, 11/15/04)
-!     &                 'carbon_200404/NVOC.geos.' // GET_RES_EXT()
-!-----------------------------------------------------------------------------
      &                 'carbon_200411/NVOC.geos.' // GET_RES_EXT()
 
             ! Echo info
@@ -2967,10 +2869,6 @@ c
 
       ! Filename for carbon aerosol from fossil fuel use
       FILENAME = TRIM( DATA_DIR )                        // 
-!----------------------------------------------------------------------------
-! Prior to 11/15/04:
-!     &           'carbon_200404/BCOC_TBond_fossil.geos.' // 
-!----------------------------------------------------------------------------
      &           'carbon_200411/BCOC_TBond_fossil.geos.' // 
      &           GET_RES_EXT()
 
@@ -3038,10 +2936,6 @@ c
 
       ! Filename
       FILENAME = TRIM( DATA_DIR )                         // 
-!-----------------------------------------------------------------------------
-! Prior to 11/15/04:
-!     &           'carbon_200404/BCOC_TBond_biofuel.geos.' // 
-!-----------------------------------------------------------------------------
      &           'carbon_200411/BCOC_TBond_biofuel.geos.' // 
      &           GET_RES_EXT()
 
@@ -3177,10 +3071,6 @@ c
 
       ! Filename
       FILENAME = TRIM( DATA_DIR )                    //
-!------------------------------------------------------------------------------
-! Prior to 11/15/04:
-!     &           'carbon_200404/BCOC_anthsrce.geos.' // 
-!------------------------------------------------------------------------------
      &           'carbon_200411/BCOC_anthsrce.geos.' // 
      &            GET_RES_EXT()
        
@@ -3196,14 +3086,6 @@ c
       ! Cast to REAL*8 and resize
       CALL TRANSFER_2D( ARRAY(:,:,1), FD2D )
 
-!-----------------------------
-! Prior to 12/1/04:
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J )
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!-----------------------------
       DO J = J1_NA, J2_NA
       DO I = I1_NA, I2_NA
 
@@ -3214,10 +3096,6 @@ c
          ANTH_BLKC(I,J,2) = ( 1.d0 - FHB ) * FD2D(I,J) / STEPS_PER_MON
       ENDDO
       ENDDO
-!-----------------------------
-! Prior to 12/1/04:
-!!$OMP END PARALLEL DO
-!-----------------------------
 
       !=================================================================
       ! Read ORGANIC CARBON from anthropogenic sources as tracer #35
@@ -3235,14 +3113,6 @@ c
       ! Cast to REAL*8 and resize
       CALL TRANSFER_2D( ARRAY(:,:,1), FD2D )
 
-!-----------------------------
-! Prior to 12/1/04:
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J )
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!-----------------------------
       DO J = J1_NA, J2_NA
       DO I = I1_NA, I2_NA
          
@@ -3253,10 +3123,6 @@ c
          ANTH_ORGC(I,J,2) = ( 1.d0 - FHO ) * FD2D(I,J) / STEPS_PER_MON
       ENDDO
       ENDDO
-!-----------------------------
-! Prior to 12/1/04:
-!!$OMP END PARALLEL DO
-!-----------------------------
 
       !=================================================================
       ! Read BLACK CARBON (aka ELEMENTAL CARBON) emission from biofuel 
@@ -3273,10 +3139,6 @@ c
 
       ! Filename
       FILENAME = TRIM( DATA_DIR )                   //
-!-----------------------------------------------------------------------------
-! Prior to 11/15/04:
-!     &           'carbon_200404/BCOC_biofuel.geos.' // 
-!-----------------------------------------------------------------------------
      &           'carbon_200411/BCOC_biofuel.geos.' // 
      &           GET_RES_EXT()
 
@@ -3291,14 +3153,6 @@ c
       ! Cast to REAL*8 and resize
       CALL TRANSFER_2D( ARRAY(:,:,1), FD2D )
 
-!-----------------------------
-! Prior to 12/1/04:
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J )
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!-----------------------------
       DO J = J1_NA, J2_NA
       DO I = I1_NA, I2_NA
          
@@ -3310,10 +3164,6 @@ c
 
       ENDDO
       ENDDO
-!-----------------------------
-! Prior to 12/1/04:
-!!$OMP END PARALLEL DO
-!-----------------------------
 
       !=================================================================
       ! Read ORGANIC CARBON emission from biofuel combustion over 
@@ -3334,14 +3184,6 @@ c
       ! Cast to REAL*8 and resize
       CALL TRANSFER_2D( ARRAY(:,:,1), FD2D )
 
-!-----------------------------
-! Prior to 12/1/04:
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J )
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!-----------------------------
       DO J = J1_NA, J2_NA
       DO I = I1_NA, I2_NA
 
@@ -3353,10 +3195,6 @@ c
 
       ENDDO
       ENDDO
-!-----------------------------
-! Prior to 12/1/04:
-!!$OMP END PARALLEL DO
-!-----------------------------
 
       ! Return to calling program
       END SUBROUTINE ANTHRO_CARB_COOKE
@@ -3410,10 +3248,6 @@ c
 
       ! Filename containing biomass emissions
       FILENAME = TRIM( DATA_DIR )                         //
-!------------------------------------------------------------------------------
-! Prior to 11/15/04:
-!     &           'carbon_200404/BCOC_TBond_biomass.geos.' // 
-!------------------------------------------------------------------------------
      &           'carbon_200411/BCOC_TBond_biomass.geos.' // 
      &            GET_RES_EXT()
 
@@ -3484,17 +3318,213 @@ c
       END SUBROUTINE BIOMASS_CARB_TBOND
 
 !------------------------------------------------------------------------------
+! Prior to 1/11/05:
+! Now read biomass burning directly from files w/o applying emission factors
+! (rjp, bmy, 1/11/05)
+!      SUBROUTINE BIOMASS_CARB_GEOS( THISMONTH )
+!!
+!!******************************************************************************
+!!  Subroutine BIOMASS_CARB_TBOND computes annual mean biomass burning 
+!!  emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC CARBON.  
+!!  It also separates these into HYDROPHILIC and HYDROPHOBIC fractions. 
+!!  (rjp, bmy, 4/2/04, 7/20/04)
+!!
+!!  Emissions data comes from the Bond et al [2004] inventory and has units
+!!  of [kg C/yr].  This will be converted to [kg C/timestep] below.
+!!
+!!  We also assume that 20% of BC and 50% of OC from anthropogenic 
+!!  emissions are hydrophilic (soluble) and the rest are hydrophobic.
+!!
+!!  NOTES:
+!!  (1 ) Now references DATA_DIR from "directory_mod.f".  Also removed CMN,
+!!        it's obsolete. (bmy, 7/20/04)
+!!  (2 ) Now read data from "carbon_200411" subdir of DATA_DIR (bmy, 11/15/04)
+!!******************************************************************************
+!!
+!      ! References to F90 modules
+!      USE BPCH2_MOD
+!      USE DIRECTORY_MOD, ONLY : DATA_DIR
+!      USE GRID_MOD,      ONLY : GET_AREA_M2
+!      USE TIME_MOD,      ONLY : GET_TS_EMIS
+!      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+!
+!#     include "CMN_SIZE"     ! Size parameters
+!
+!      !-------------------
+!      ! Arguments
+!      !-------------------
+!      INTEGER, INTENT(IN) :: THISMONTH
+!
+!      !-------------------
+!      ! Local variables
+!      !-------------------
+!
+!      ! Hydrophilic fraction of BLACK CARBON
+!      REAL*8, PARAMETER   :: FHB = 0.2d0
+!
+!      ! Hydrophilic fraction of ORGANIC CARBON
+!      REAL*8, PARAMETER   :: FHO = 0.5d0 
+!
+!      ! Black Carbon aerosols emission factor 
+!      ! from biomass burning (0.002 kgC/kg)
+!      REAL*8, PARAMETER   :: FEC = 2.d-3
+!
+!      ! Organic Carbon aerosols emission factor 
+!      ! from biomass burning (0.014 kgC/kg)
+!      REAL*8, PARAMETER   :: FOC = 1.4d-2
+!
+!      INTEGER             :: I, J
+!      REAL*4              :: ARRAY(IGLOB,JGLOB,1)
+!      REAL*8              :: FD2D(IIPAR,JJPAR)
+!      REAL*8              :: XTAU, BIOCARB
+!      REAL*8              :: STEPS_PER_MON, AREA_M2
+!      CHARACTER(LEN=255)  :: FILENAME
+!      LOGICAL, SAVE       :: FIRSTEMIS = .TRUE.
+!      LOGICAL             :: EMFAC_VEG = .TRUE.
+!
+!      !=================================================================
+!      ! BIOMASS_CARB_GEOS begins here!
+!      !=================================================================
+!
+!      ! Number of emission timesteps per month
+!      STEPS_PER_MON = ( 1440 * NDAYS( THISMONTH ) ) / GET_TS_EMIS()
+!
+!      ! Only do the following on the first timestep
+!      IF ( FIRSTEMIS ) THEN
+!
+!         ! Read vegetation factors?
+!         IF ( EMFAC_VEG ) THEN
+!
+!            !===========================================================
+!            ! If EMFAC_VEG=T, then read carbon aerosol emission factor 
+!            ! [kg/kg] from biomass burning sources depedning on surface 
+!            ! vegetation type compiled by [rjp, 2003].  Emission factors 
+!            ! are from Andreae and Merlet [2001].
+!            !===========================================================
+!            FILENAME = TRIM( DATA_DIR )               //
+!!-----------------------------------------------------------------------------
+!! Prior to 11/15/04:
+!!     &                'carbon_200404/emis_fac.EC-OC.' // GET_RES_EXT()
+!!-----------------------------------------------------------------------------
+!     &                'carbon_200411/emis_fac.EC-OC.' // GET_RES_EXT()
+!
+!            ! TAU value for reading from the bpch files
+!            XTAU = GET_TAU0( 1, 1, 1985 )
+!
+!            ! Echo info
+!            WRITE( 6, 100 ) TRIM( FILENAME )
+! 100        FORMAT( '     - BIOMASS_CARB_GEOS: Reading ', a )
+!
+!            !------------------
+!            ! BLACK CARBON
+!            !------------------
+!            CALL READ_BPCH2( FILENAME, 'EMISFAC', 81,  
+!     &                       XTAU,      IGLOB,    JGLOB,
+!     &                       1,         ARRAY,    QUIET=.TRUE. ) 
+!
+!            ! Cast to REAL*8 and resize
+!            CALL TRANSFER_2D( ARRAY(:,:,1), EF_BLKC )
+!
+!            !------------------
+!            ! ORGANIC CARBON
+!            !------------------
+!            CALL READ_BPCH2( FILENAME, 'EMISFAC', 82,  
+!     &                       XTAU,      IGLOB,    JGLOB,     
+!     &                       1,         ARRAY,    QUIET=.TRUE. ) 
+!            
+!            ! Cast to REAL*8 and resize
+!            CALL TRANSFER_2D( ARRAY(:,:,1), EF_ORGC )
+!
+!         ELSE
+!
+!            !===========================================================
+!            ! If EMFAC_VEG=F, then use these emission factors:
+!            !   BLACK CARBON   : 0.002 [kg C/kg]
+!            !   ORGANIC CARBON : 0.014 [kg C/kg] 
+!            ! Thus OC/BC = 7. [Chin et al., 2000]
+!            !============================================================
+!            EF_BLKC(:,:) = FEC
+!            EF_ORGC(:,:) = FOC
+!           
+!         ENDIF
+!        
+!         ! Reset first-time flag
+!         FIRSTEMIS = .FALSE.          
+!      ENDIF
+!
+!      !=================================================================
+!      ! Read TOTAL biomass burning [g/cm2/month] as tracer #33
+!      ! Convert to [kg C/box/timestep] and store in BIOCARB.  
+!      ! 
+!      ! Then compute HYDROPHILIC and HYDROPHOBIC fractions of
+!      ! BLACK CARBON and ORGANIC CARBON.
+!      !=================================================================
+!
+!      ! Filename
+!      FILENAME = TRIM( DATA_DIR )                        //
+!     &           'biomass_200110/bioburn.seasonal.geos.' //
+!     &           GET_RES_EXT()
+!
+!      ! Get TAU value for reading the punch file
+!      XTAU = GET_TAU0( THISMONTH, 1, 1985 )
+!
+!      ! Echo info
+!      WRITE( 6, 100 ) TRIM( FILENAME )
+!
+!      ! Read data
+!      CALL READ_BPCH2( FILENAME, 'BIOBSRCE', 33, 
+!     &                 XTAU,      IGLOB,     JGLOB,     
+!     &                 1,         ARRAY,     QUIET=.TRUE. )
+!
+!      ! Cast to REAL*8 and resize
+!      CALL TRANSFER_2D ( ARRAY(:,:,1), FD2D )
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, AREA_M2, BIOCARB )
+!        DO J = 1, JJPAR
+!
+!           ! Surface area [m2]
+!           AREA_M2 = GET_AREA_M2( J )
+!
+!           DO I = 1, IIPAR
+!
+!              ! Convert total biomass burned from [g/cm2/month] to
+!              ! [kg C/box/timestep].  The factor 10 comes from 
+!              ! 1e4 cm2/m2 divided by 1000 g/kg.  
+!              BIOCARB = FD2D(I,J) * AREA_M2 * 10.d0 / STEPS_PER_MON
+!
+!              ! Hydrophilic BLACK CARBON from biomass [kg C/timestep]
+!              BIOB_BLKC(I,J,1) =          FHB   * EF_BLKC(I,J) * BIOCARB
+!
+!              ! Hydrophobic BLACK CARBON from biomass [kg C/timestep]
+!              BIOB_BLKC(I,J,2) = ( 1.D0 - FHB ) * EF_BLKC(I,J) * BIOCARB
+!
+!              ! Hydrophilic ORGANIC CARBON from biomass [kg C/timestep]
+!              BIOB_ORGC(I,J,1) =          FHO   * EF_ORGC(I,J) * BIOCARB
+!
+!              ! Hydrophobic ORGANIC CARBON from biomass [kg C/timestep]
+!              BIOB_ORGC(I,J,2) = ( 1.D0 - FHO ) * EF_ORGC(I,J) * BIOCARB
+!
+!           ENDDO
+!        ENDDO
+!!$OMP END PARALLEL DO  
+!
+!        ! Return to calling program
+!        END SUBROUTINE BIOMASS_CARB_GEOS
+!
+!------------------------------------------------------------------------------
 
       SUBROUTINE BIOMASS_CARB_GEOS( THISMONTH )
 !
 !******************************************************************************
-!  Subroutine BIOMASS_CARB_TBOND computes annual mean biomass burning 
+!  Subroutine BIOMASS_CARB_GEOS computes monthly mean biomass burning 
 !  emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC CARBON.  
 !  It also separates these into HYDROPHILIC and HYDROPHOBIC fractions. 
-!  (rjp, bmy, 4/2/04, 7/20/04)
+!  (rjp, bmy, 4/2/04, 7/20/04, 1/11/05)
 !
-!  Emissions data comes from the Bond et al [2004] inventory and has units
-!  of [kg C/yr].  This will be converted to [kg C/timestep] below.
+!  Emissions data comes from the Duncan et al. [2001] inventory and has units
+!  of [kg C/month].  This will be converted to [kg C/timestep] below.
 !
 !  We also assume that 20% of BC and 50% of OC from anthropogenic 
 !  emissions are hydrophilic (soluble) and the rest are hydrophobic.
@@ -3503,13 +3533,18 @@ c
 !  (1 ) Now references DATA_DIR from "directory_mod.f".  Also removed CMN,
 !        it's obsolete. (bmy, 7/20/04)
 !  (2 ) Now read data from "carbon_200411" subdir of DATA_DIR (bmy, 11/15/04)
+!  (3 ) Now read BCPO, OCPO biomass burning data directly from files instead
+!        of computing from emission factors. (rjp, bmy, 1/11/05)
 !******************************************************************************
 !
-      ! References to F90 modules
+!      ! References to F90 modules
       USE BPCH2_MOD
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE GRID_MOD,      ONLY : GET_AREA_M2
-      USE TIME_MOD,      ONLY : GET_TS_EMIS
+      USE LOGICAL_MOD,   ONLY : LBBSEA
+      USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR, GET_MONTH, 
+     &                          GET_TAU,        GET_YEAR, 
+     &                          GET_TS_EMIS
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"     ! Size parameters
@@ -3529,149 +3564,138 @@ c
       ! Hydrophilic fraction of ORGANIC CARBON
       REAL*8, PARAMETER   :: FHO = 0.5d0 
 
-      ! Black Carbon aerosols emission factor 
-      ! from biomass burning (0.002 kgC/kg)
-      REAL*8, PARAMETER   :: FEC = 2.d-3
-
-      ! Organic Carbon aerosols emission factor 
-      ! from biomass burning (0.014 kgC/kg)
-      REAL*8, PARAMETER   :: FOC = 1.4d-2
-
-      INTEGER             :: I, J
+      INTEGER             :: I, J, THISYEAR
       REAL*4              :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8              :: FD2D(IIPAR,JJPAR)
-      REAL*8              :: XTAU, BIOCARB
+      REAL*8              :: FD2D_BC(IIPAR,JJPAR)
+      REAL*8              :: FD2D_OC(IIPAR,JJPAR)
+      REAL*8              :: XTAU, BIOBC, BIOOC, TAU
       REAL*8              :: STEPS_PER_MON, AREA_M2
-      CHARACTER(LEN=255)  :: FILENAME
-      LOGICAL, SAVE       :: FIRSTEMIS = .TRUE.
-      LOGICAL             :: EMFAC_VEG = .TRUE.
+      CHARACTER(LEN=4  )  :: CYEAR
+      CHARACTER(LEN=255)  :: BC_FILE, OC_FILE
 
       !=================================================================
       ! BIOMASS_CARB_GEOS begins here!
       !=================================================================
 
       ! Number of emission timesteps per month
-      STEPS_PER_MON = ( 1440 * NDAYS( THISMONTH ) ) / GET_TS_EMIS()
+      STEPS_PER_MON = ( 1440 * NDAYS(THISMONTH) ) / GET_TS_EMIS()
 
-      ! Only do the following on the first timestep
-      IF ( FIRSTEMIS ) THEN
-
-         ! Read vegetation factors?
-         IF ( EMFAC_VEG ) THEN
-
-            !===========================================================
-            ! If EMFAC_VEG=T, then read carbon aerosol emission factor 
-            ! [kg/kg] from biomass burning sources depedning on surface 
-            ! vegetation type compiled by [rjp, 2003].  Emission factors 
-            ! are from Andreae and Merlet [2001].
-            !===========================================================
-            FILENAME = TRIM( DATA_DIR )               //
-!-----------------------------------------------------------------------------
-! Prior to 11/15/04:
-!     &                'carbon_200404/emis_fac.EC-OC.' // GET_RES_EXT()
-!-----------------------------------------------------------------------------
-     &                'carbon_200411/emis_fac.EC-OC.' // GET_RES_EXT()
-
-            ! TAU value for reading from the bpch files
-            XTAU = GET_TAU0( 1, 1, 1985 )
-
-            ! Echo info
-            WRITE( 6, 100 ) TRIM( FILENAME )
- 100        FORMAT( '     - BIOMASS_CARB_GEOS: Reading ', a )
-
-            !------------------
-            ! BLACK CARBON
-            !------------------
-            CALL READ_BPCH2( FILENAME, 'EMISFAC', 81,  
-     &                       XTAU,      IGLOB,    JGLOB,
-     &                       1,         ARRAY,    QUIET=.TRUE. ) 
-
-            ! Cast to REAL*8 and resize
-            CALL TRANSFER_2D( ARRAY(:,:,1), EF_BLKC )
-
-            !------------------
-            ! ORGANIC CARBON
-            !------------------
-            CALL READ_BPCH2( FILENAME, 'EMISFAC', 82,  
-     &                       XTAU,      IGLOB,    JGLOB,     
-     &                       1,         ARRAY,    QUIET=.TRUE. ) 
-            
-            ! Cast to REAL*8 and resize
-            CALL TRANSFER_2D( ARRAY(:,:,1), EF_ORGC )
-
-         ELSE
-
-            !===========================================================
-            ! If EMFAC_VEG=F, then use these emission factors:
-            !   BLACK CARBON   : 0.002 [kg C/kg]
-            !   ORGANIC CARBON : 0.014 [kg C/kg] 
-            ! Thus OC/BC = 7. [Chin et al., 2000]
-            !============================================================
-            EF_BLKC(:,:) = FEC
-            EF_ORGC(:,:) = FOC
-           
-         ENDIF
-        
-         ! Reset first-time flag
-         FIRSTEMIS = .FALSE.          
-      ENDIF
+      ! Create a string for the 4-digit year
+      THISYEAR = GET_YEAR()
+      WRITE( CYEAR, '(i4)' ) THISYEAR
 
       !=================================================================
-      ! Read TOTAL biomass burning [g/cm2/month] as tracer #33
-      ! Convert to [kg C/box/timestep] and store in BIOCARB.  
+      ! Read BC/OC biomass burning [kg C/box/month] as tracer #34, 35
+      ! Convert to [kg C/box/timestep] and store in BIO[BC]OC
       ! 
       ! Then compute HYDROPHILIC and HYDROPHOBIC fractions of
       ! BLACK CARBON and ORGANIC CARBON.
       !=================================================================
 
-      ! Filename
-      FILENAME = TRIM( DATA_DIR )                        //
-     &           'biomass_200110/bioburn.seasonal.geos.' //
-     &           GET_RES_EXT()
+      ! Use seasonal or interannual emisisons?
+      IF ( LBBSEA ) THEN
 
-      ! Get TAU value for reading the punch file
-      XTAU = GET_TAU0( THISMONTH, 1, 1985 )
+         !-----------------------------------------
+         ! Use seasonal biomass emissions
+         !-----------------------------------------
+
+         ! File name for seasonal BCPO biomass emissions
+         BC_FILE = TRIM( DATA_DIR )                             //
+     &             'biomass_200110/BCPO.bioburn.seasonal.geos.' //
+     &             GET_RES_EXT()
+
+         ! File name for seasonal OCPO biomass emissions
+         OC_FILE = TRIM( DATA_DIR )                             //
+     &             'biomass_200110/OCPO.bioburn.seasonal.geos.' //
+     &             GET_RES_EXT()
+
+         ! Get TAU0 value (use generic year 1985)
+         XTAU = GET_TAU0( THISMONTH, 1, 1985 )      
+
+      ELSE
+
+         !-----------------------------------------
+         ! Use interannual biomass emissions for
+         ! years between 1996 and 2002
+         !-----------------------------------------
+
+         ! File name for interannual BCPO biomass burning emissions
+         BC_FILE = TRIM( DATA_DIR )                                //
+     &             'biomass_200110/BCPO.bioburn.interannual.geos.' // 
+     &             GET_RES_EXT() // '.' // CYEAR
+
+         ! File name for interannual BCPO biomass burning emissions
+         OC_FILE = TRIM( DATA_DIR )                                //
+     &             'biomass_200110/OCPO.bioburn.interannual.geos.' // 
+     &             GET_RES_EXT() // '.' // CYEAR
+
+         ! Use TAU0 value on the 1st of this month to index bpch file
+         XTAU = GET_TAU0( THISMONTH, 1, THISYEAR )
+  
+      ENDIF
+
+!-----------------------------------------------------------------------
+! Prior to 1/11/05:
+!      ! Echo info
+!      !WRITE( 6, 100 ) TRIM( FILENAME )
+! 100  FORMAT( '     - BIOMASS_CARB_GEOS: Reading ', a )
+!-----------------------------------------------------------------------
+
+      !--------------
+      ! BCPO biomass
+      !--------------
 
       ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
+      WRITE( 6, 100 ) TRIM( BC_FILE )
+ 100  FORMAT( '     - BIOMASS_CARB_GEOS: Reading ', a )
 
-      ! Read data
-      CALL READ_BPCH2( FILENAME, 'BIOBSRCE', 33, 
-     &                 XTAU,      IGLOB,     JGLOB,     
-     &                 1,         ARRAY,     QUIET=.TRUE. )
+      ! Read BC emission data [kg/mon]
+      CALL READ_BPCH2( BC_FILE, 'BIOBSRCE', 34, 
+     &                 XTAU,     IGLOB,     JGLOB,     
+     &                 1,        ARRAY,     QUIET=.TRUE. )
 
       ! Cast to REAL*8 and resize
-      CALL TRANSFER_2D ( ARRAY(:,:,1), FD2D )
+      CALL TRANSFER_2D ( ARRAY(:,:,1), FD2D_BC )
+
+      !--------------
+      ! OCPO biomass
+      !--------------
+
+      ! Echo info
+      WRITE( 6, 100 ) TRIM( OC_FILE )
+
+      ! Read OC emission data [kg/mon]
+      CALL READ_BPCH2( OC_FILE, 'BIOBSRCE', 35, 
+     &                 XTAU,     IGLOB,     JGLOB,     
+     &                 1,        ARRAY,     QUIET=.TRUE. )
+
+      ! Cast to REAL*8 and resize
+      CALL TRANSFER_2D ( ARRAY(:,:,1), FD2D_OC )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, AREA_M2, BIOCARB )
-        DO J = 1, JJPAR
+!$OMP+PRIVATE( I, J, BIOBC, BIOOC )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-           ! Surface area [m2]
-           AREA_M2 = GET_AREA_M2( J )
+         ! kg/mon -> kg/timestep
+         BIOBC = FD2D_BC(I,J) / STEPS_PER_MON  
+         BIOOC = FD2D_OC(I,J) / STEPS_PER_MON
 
-           DO I = 1, IIPAR
+         ! Hydrophilic BLACK CARBON from biomass [kg C/timestep]
+         BIOB_BLKC(I,J,1) =          FHB   * BIOBC
 
-              ! Convert total biomass burned from [g/cm2/month] to
-              ! [kg C/box/timestep].  The factor 10 comes from 
-              ! 1e4 cm2/m2 divided by 1000 g/kg.  
-              BIOCARB = FD2D(I,J) * AREA_M2 * 10.d0 / STEPS_PER_MON
+         ! Hydrophobic BLACK CARBON from biomass [kg C/timestep]
+         BIOB_BLKC(I,J,2) = ( 1.D0 - FHB ) * BIOBC
 
-              ! Hydrophilic BLACK CARBON from biomass [kg C/timestep]
-              BIOB_BLKC(I,J,1) =          FHB   * EF_BLKC(I,J) * BIOCARB
+         ! Hydrophilic ORGANIC CARBON from biomass [kg C/timestep]
+         BIOB_ORGC(I,J,1) =          FHO   * BIOOC
 
-              ! Hydrophobic BLACK CARBON from biomass [kg C/timestep]
-              BIOB_BLKC(I,J,2) = ( 1.D0 - FHB ) * EF_BLKC(I,J) * BIOCARB
+         ! Hydrophobic ORGANIC CARBON from biomass [kg C/timestep]
+         BIOB_ORGC(I,J,2) = ( 1.D0 - FHO ) * BIOOC
 
-              ! Hydrophilic ORGANIC CARBON from biomass [kg C/timestep]
-              BIOB_ORGC(I,J,1) =          FHO   * EF_ORGC(I,J) * BIOCARB
-
-              ! Hydrophobic ORGANIC CARBON from biomass [kg C/timestep]
-              BIOB_ORGC(I,J,2) = ( 1.D0 - FHO ) * EF_ORGC(I,J) * BIOCARB
-
-           ENDDO
-        ENDDO
+      ENDDO
+      ENDDO
 !$OMP END PARALLEL DO  
 
         ! Return to calling program
@@ -3868,7 +3892,7 @@ c
 !  Subroutine OHNO3TIME computes the sum of cosine of the solar zenith
 !  angle over a 24 hour day, as well as the total length of daylight. 
 !  This is needed to scale the offline OH and NO3 concentrations.
-!  (rjp, bmy, 12/16/02, 3/30/04)
+!  (rjp, bmy, 12/16/02, 1/18/05)
 !
 !  NOTES:
 !  (1 ) Copy code from COSSZA directly for now, so that we don't get NaN
@@ -3880,6 +3904,7 @@ c
 !        "time_mod.f". (bmy, 3/27/03)
 !  (3 ) Now store the peak SUNCOS value for each surface grid box (I,J) in 
 !        the COSZM array. (rjp, bmy, 3/30/04)
+!  (4 ) Also added parallel loop over grid boxes (bmy, 1/18/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3935,10 +3960,16 @@ c
             ! Zero SUNTMP array
             SUNTMP(:) = 0d0
 
-            ! IJLOOP is the 1-D loop index for SUNCOS
-            IJLOOP = 0
+            !-------------------------------------------
+            ! Prior to 1/18/05:
+            !! IJLOOP is the 1-D loop index for SUNCOS
+            !IJLOOP = 0
+            !-------------------------------------------
 
             ! Loop over surface grid boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, YMID_R, IJLOOP, TIMLOC, AHR )
             DO J = 1, JJPAR
 
                ! Grid box latitude center [radians]
@@ -3947,7 +3978,12 @@ c
             DO I = 1, IIPAR
 
                ! Increment IJLOOP
-               IJLOOP = IJLOOP + 1
+               !---------------------------------------
+               ! Prior to 1/18/05:
+               ! Now use analytic function for IJLOOP
+               !IJLOOP = IJLOOP + 1
+               !---------------------------------------
+               IJLOOP = ( (J-1) * IIPAR ) + I
                TIMLOC = real(LHR0) + real(NT)/3600.0 + GET_XMID(I)/15.0
          
                DO WHILE (TIMLOC .lt. 0)
@@ -3983,6 +4019,7 @@ c
 
             ENDDO
             ENDDO
+!$OMP END PARALLEL DO
 
             ! Increment elapsed time [sec]
             NT = NT + ( GET_TS_CHEM() * 60 )             

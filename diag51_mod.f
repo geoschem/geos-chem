@@ -1,11 +1,11 @@
-! $Id: diag51_mod.f,v 1.12 2004/12/02 21:48:35 bmy Exp $
+! $Id: diag51_mod.f,v 1.13 2005/02/10 19:53:24 bmy Exp $
       MODULE DIAG51_MOD
 !
 !******************************************************************************
 !  Module DIAG51_MOD contains variables and routines to generate save 
 !  timeseries data where the local time is between two user-defined limits. 
 !  This facilitates comparisons with morning or afternoon-passing satellites
-!  such as GOME. (amf, bey, bdf, pip, bmy, 11/30/00, 11/9/04)
+!  such as GOME. (amf, bey, bdf, pip, bmy, 11/30/00, 1/14/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -98,6 +98,7 @@
 !  (2 ) Added extra counters for NO, NO2, OH, O3.  Also all diagnostic counter
 !        arrays are 1-D since they only depend on longitude. (bmy, 10/25/04)
 !  (3 ) Bug fix: Now get I0 and J0 properly for nested grids (bmy, 11/9/04)
+!  (4 ) Now only archive AOD's once per chemistry timestep (bmy, 1/14/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -272,7 +273,7 @@
 !
 !******************************************************************************
 !  Subroutine ACCUMULATE_DIAG51 accumulates tracers into the Q array. 
-!  (bmy, 8/20/02, 7/20/04)
+!  (bmy, 8/20/02, 1/14/05)
 !
 !  NOTES:
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
@@ -282,6 +283,7 @@
 !        Also now all diagnostic counters are 1-D since they only depend on 
 !        longitude. Now only archive NO, NO2, OH, O3 on every chemistry 
 !        timestep (i.e. only when fullchem is called). (bmy, 10/25/04)
+!  (3 ) Only archive AOD's when it is a chem timestep (bmy, 1/14/05)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -378,7 +380,7 @@
          DO Y = 1, ND51_NJ
             J = JOFF + Y
 
-         ! Loop over altitudes
+         ! Loop over longitudes
          DO X = 1, ND51_NI
             I = GET_I( X )
 
@@ -488,13 +490,13 @@
                !--------------------------------------
 #if   defined( GEOS_4 ) 
 
-               ! PBL is in meters, store in PBLM
+               ! PBL is in meters
                IF ( K == 1 ) THEN
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ( PBL(I,J) * GOOD(I) )
                ENDIF
 
 #else
-               ! Convert PBL from [hPa] to [m], store in PBLM
+               ! Convert PBL from [hPa] to [m]
                IF ( K == 1 ) THEN
                   
                   ! Surface pressure
@@ -572,10 +574,16 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ( TMP * GOOD(I) )
                ENDIF
 
-            ELSE IF ( N == 82 ) THEN
+            !--------------------------------------------------------
+            ! Prior to 1/14/05:
+            ! This is only updated each chem timestep (bmy, 1/14/05)
+            !ELSE IF ( N == 82 ) THEN
+            !--------------------------------------------------------
+            ELSE IF ( N == 82 .and. IS_CHEM ) THEN
 
                !--------------------------------------
                ! SULFATE AOD @ 400 nm [unitless]
+               ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO H = 1, NRH
                   
@@ -587,10 +595,16 @@
      &                         ( ODAER(I,J,L,H) * SCALE400nm * GOOD(I) )
                ENDDO
 
-            ELSE IF ( N == 83 ) THEN
+            !--------------------------------------------------------
+            ! Prior to 1/14/05:
+            ! This is only updated each chem timestep (bmy, 1/14/05)
+            !ELSE IF ( N == 83 ) THEN
+            !--------------------------------------------------------
+            ELSE IF ( N == 83 .and. IS_CHEM ) THEN
 
                !--------------------------------------
                ! BLACK CARBON AOD @ 400 nm [unitless]
+               ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NRH
 
@@ -605,10 +619,16 @@
      &                         ( ODAER(I,J,L,H) * SCALE400nm * GOOD(I) )
                ENDDO
 
-            ELSE IF ( N == 84 ) THEN
+            !--------------------------------------------------------
+            ! Prior to 1/14/05:
+            ! This is only updated each chem timestep (bmy, 1/14/05)
+            !ELSE IF ( N == 84 ) THEN
+            !--------------------------------------------------------
+            ELSE IF ( N == 84 .and. IS_CHEM ) THEN
 
                !--------------------------------------
                ! ORG CARBON AOD @ 400 nm [unitless]
+               ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NRH
 
@@ -623,10 +643,16 @@
      &                         ( ODAER(I,J,L,H) * SCALE400nm * GOOD(I) )
                ENDDO
 
-            ELSE IF ( N == 85 ) THEN
+            !--------------------------------------------------------
+            ! Prior to 1/14/05:
+            ! This is only updated each chem timestep (bmy, 1/14/05)
+            !ELSE IF ( N == 85 ) THEN
+            !--------------------------------------------------------
+            ELSE IF ( N == 85 .and. IS_CHEM ) THEN
 
                !--------------------------------------
                ! ACCUM SEASALT AOD @ 400 nm [unitless]
+               ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NRH
 
@@ -641,10 +667,16 @@
      &                         ( ODAER(I,J,L,H) * SCALE400nm * GOOD(I) ) 
                ENDDO
 
-            ELSE IF ( N == 86 ) THEN
+            !--------------------------------------------------------
+            ! Prior to 1/14/05:
+            ! This is only updated each chem timestep (bmy, 1/14/05)
+            !ELSE IF ( N == 86 ) THEN
+            !--------------------------------------------------------
+            ELSE IF ( N == 86 .and. IS_CHEM ) THEN
 
                !--------------------------------------
                ! COARSE SEASALT AOD 400 nm [unitless]
+               ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NRH
 
@@ -659,10 +691,16 @@
      &                         ( ODAER(I,J,L,H) * SCALE400nm * GOOD(I) )
                ENDDO
 
-            ELSE IF ( N == 87 ) THEN
-               
+            !--------------------------------------------------------
+            ! Prior to 1/14/05:
+            ! This is only updated each chem timestep (bmy, 1/14/05)
+            !ELSE IF ( N == 87 ) THEN
+            !--------------------------------------------------------
+            ELSE IF ( N == 87 .and. IS_CHEM ) THEN               
+
                !--------------------------------------
                ! TOTAL DUST OPTD @ 400 nm [unitless]
+               ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NDUST 
 
@@ -811,7 +849,7 @@
 !  Subroutine WRITE_DIAG51 computes the time-average of quantities between
 !  local time limits ND51_HR1 and ND51_HR2 and writes them to a bpch file.
 !  Arrays and counters are also zeroed for the next diagnostic interval.
-!  (bmy, 12/1/00, 10/25/04)  
+!  (bmy, 12/1/00, 1/14/05)  
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -825,6 +863,8 @@
 !        longitude.  Now only archive NO, NO2, OH, O3 on every chemistry
 !        timestep (i.e. only when fullchem is called).  Also remove reference
 !        to FIRST. (bmy, 10/25/04)
+!  (3 ) Now divide tracers 82-87 (i.e. various AOD's) by GOOD_CT_CHEM since
+!        these are only updated once per chemistry timestep (bmy, 1/14/05)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -885,10 +925,16 @@
          
          ! Set a flag to denote tracers which are only
          ! accumulated on every chemistry timestep
-         IS_CHEM = ( ND51_TRACERS(W) == 71 .or.
+         IS_CHEM = ( ND51_TRACERS(W) == 71 .or. 
      &               ND51_TRACERS(W) == 72 .or. 
      &               ND51_TRACERS(W) == 74 .or.
-     &               ND51_TRACERS(W) == 75 )
+     &               ND51_TRACERS(W) == 75 .or.
+     &               ND51_TRACERS(W) == 82 .or. 
+     &               ND51_TRACERS(W) == 83 .or.
+     &               ND51_TRACERS(W) == 84 .or.
+     &               ND51_TRACERS(W) == 85 .or.
+     &               ND51_TRACERS(W) == 86 .or.
+     &               ND51_TRACERS(W) == 87 )
 
          ! Loop over grid boxes
          DO K = 1, ND51_NL
@@ -1369,13 +1415,6 @@
       !=================================================================
       ! Error check longitude, latitude, altitude limits
       !=================================================================
-
-      !------------------------------------------
-      ! Prior to 11/9/04:
-      !! Get grid offsets
-      !I0 = GET_XOFFSET( GLOBAL=.TRUE. )
-      !J0 = GET_YOFFSET( GLOBAL=.TRUE. )
-      !------------------------------------------
 
       ! Get grid offsets
       IF ( ITS_A_NESTED_GRID() ) THEN

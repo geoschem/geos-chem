@@ -1,9 +1,9 @@
-! $Id: diag_mod.f,v 1.11 2004/12/16 16:52:44 bmy Exp $
+! $Id: diag_mod.f,v 1.12 2005/02/10 19:53:25 bmy Exp $
       MODULE DIAG_MOD 
 !
 !******************************************************************************
 !  Module DIAG_MOD contains declarations for allocatable arrays for use with 
-!  GEOS-CHEM diagnostics. (amf, bdf, bmy, 11/30/99, 12/7/04)
+!  GEOS-CHEM diagnostics. (amf, bdf, bmy, 11/30/99, 1/21/05)
 !
 !  Module Routines:
 !  ============================================================================
@@ -46,6 +46,8 @@
 !  (18) Moved AD65 & FAMPL to "diag65_mod.f" (bmy, 7/20/04)
 !  (19) Added array AD13_SO4_bf (bmy, 11/17/04)!
 !  (20) Added extra arrays for ND03 mercury diagnostics (eck, bmy, 12/7/04)
+!  (21) Added extra ND21 array for crystalline sulfur tracers.  Also remove
+!        ND03 and ND48 arrays; they are obsolete (bmy, 1/21/05)
 !******************************************************************************
 !     
       !=================================================================
@@ -63,16 +65,21 @@
       !REAL*4,  ALLOCATABLE :: AD03(:,:,:,:)
       !--------------------------------------------
 
-      ! ND03: Mercury simulation
-      REAL*4,  ALLOCATABLE :: AD03_Hg0_an(:,:)
-      REAL*4,  ALLOCATABLE :: AD03_Hg2_an(:,:)
-      REAL*4,  ALLOCATABLE :: AD03_HgP_an(:,:)
-      REAL*4,  ALLOCATABLE :: AD03_Hg0_oc(:,:)
-      REAL*4,  ALLOCATABLE :: AD03_Hg0_ln(:,:)
-      REAL*4,  ALLOCATABLE :: AD03_Hg0_nt(:,:)
-      REAL*4,  ALLOCATABLE :: AD03_Hg2_Hg0(:,:,:)
-      REAL*4,  ALLOCATABLE :: AD03_Hg2_OH(:,:,:)
-      REAL*4,  ALLOCATABLE :: AD03_Hg2_O3(:,:,:)
+      !--------------------------------------------
+      ! Prior to 1/21/05:
+      !! ND03: Mercury simulation
+      !REAL*4,  ALLOCATABLE :: AD03_Hg0_an(:,:)
+      !REAL*4,  ALLOCATABLE :: AD03_Hg0_aq(:,:)
+      !REAL*4,  ALLOCATABLE :: AD03_Hg2_an(:,:)
+      !REAL*4,  ALLOCATABLE :: AD03_Hg2_aq(:,:)
+      !REAL*4,  ALLOCATABLE :: AD03_HgP_an(:,:)
+      !REAL*4,  ALLOCATABLE :: AD03_Hg0_oc(:,:)
+      !REAL*4,  ALLOCATABLE :: AD03_Hg0_ln(:,:)
+      !REAL*4,  ALLOCATABLE :: AD03_Hg0_nt(:,:)
+      !REAL*4,  ALLOCATABLE :: AD03_Hg2_Hg0(:,:,:)
+      !REAL*4,  ALLOCATABLE :: AD03_Hg2_OH(:,:,:)
+      !REAL*4,  ALLOCATABLE :: AD03_Hg2_O3(:,:,:)
+      !--------------------------------------------
 
       ! For ND05 -- Sulfate prod/loss diagnostics
       REAL*4,  ALLOCATABLE :: AD05(:,:,:,:)
@@ -131,6 +138,7 @@
 
       ! For ND21 -- Optical Depth diagnostic
       REAL*4,  ALLOCATABLE :: AD21(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD21_cr(:,:,:)
 
       ! For ND22 -- J-value diagnostic
       REAL*4,  ALLOCATABLE :: AD22(:,:,:,:)      
@@ -220,8 +228,11 @@
       ! For ND47 -- 24-h tracer concentration diagnostic
       REAL*4,  ALLOCATABLE :: AD47(:,:,:,:)      
 
-      ! For ND48 -- station timeseries diagnostic
-      REAL*8,  ALLOCATABLE :: TCOBOX(:,:)
+      !-------------------------------------------------
+      ! Prior to 1/21/05:
+      !! For ND48 -- station timeseries diagnostic
+      !REAL*8,  ALLOCATABLE :: TCOBOX(:,:)
+      !-------------------------------------------------
 
       ! Dynamically allocatable array -- local only to DIAG50.F
       REAL*8,  ALLOCATABLE :: STT_TEMPO2(:,:,:,:)
@@ -252,7 +263,7 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_DIAG deallocates all module arrays.
-!  (bmy, 12/13/02, 12/7/04)
+!  (bmy, 12/13/02, 1/21/05)
 !
 !  NOTES:
 !  (1 ) Now also deallocate AD13_NH3_an, AD13_NH3_bb, AD13_NH3_bf arrays
@@ -266,6 +277,8 @@
 !  (7 ) Now also deallocates AD07_HC array (rjp, bmy, 7/13/04)
 !  (8 ) Now also deallocate AD13_SO4_bf array (bmy, 11/17/04)
 !  (9 ) Now deallocate extra arrays for ND03 diagnostics (eck, bmy, 12/7/04)
+!  (10) Now deallocates AD21_cr array.  Remove reference to arrays for ND03
+!        and ND48 diagnostics, they're obsolete. (cas, sas, bmy, 1/21/05)
 !******************************************************************************
 !
       !=================================================================
@@ -273,19 +286,20 @@
       !=================================================================
       IF ( ALLOCATED( AD01        ) ) DEALLOCATE( AD01        )
       IF ( ALLOCATED( AD02        ) ) DEALLOCATE( AD02        )
-      !---------------------------------------------------------------------
-      ! Prior to 12/7/04:
-      !IF ( ALLOCATED( AD03        ) ) DEALLOCATE( AD03        )
-      !---------------------------------------------------------------------
-      IF ( ALLOCATED( AD03_Hg0_an ) ) DEALLOCATE( AD03_Hg0_an )
-      IF ( ALLOCATED( AD03_Hg2_an ) ) DEALLOCATE( AD03_Hg2_an )
-      IF ( ALLOCATED( AD03_HgP_an ) ) DEALLOCATE( AD03_HgP_an )
-      IF ( ALLOCATED( AD03_Hg0_oc ) ) DEALLOCATE( AD03_Hg0_oc )
-      IF ( ALLOCATED( AD03_Hg0_ln ) ) DEALLOCATE( AD03_Hg0_ln )
-      IF ( ALLOCATED( AD03_Hg0_nt ) ) DEALLOCATE( AD03_Hg0_nt )
-      IF ( ALLOCATED( AD03_Hg2_Hg0) ) DEALLOCATE( AD03_Hg2_Hg0)
-      IF ( ALLOCATED( AD03_Hg2_OH ) ) DEALLOCATE( AD03_Hg2_OH )
-      IF ( ALLOCATED( AD03_Hg2_O3 ) ) DEALLOCATE( AD03_Hg2_O3 )
+      !-----------------------------------------------------------------
+      ! Prior to 1/21/05:
+      !IF ( ALLOCATED( AD03_Hg0_an ) ) DEALLOCATE( AD03_Hg0_an )
+      !IF ( ALLOCATED( AD03_Hg0_aq ) ) DEALLOCATE( AD03_Hg0_aq )
+      !IF ( ALLOCATED( AD03_Hg2_an ) ) DEALLOCATE( AD03_Hg2_an )
+      !IF ( ALLOCATED( AD03_Hg2_aq ) ) DEALLOCATE( AD03_Hg2_aq )
+      !IF ( ALLOCATED( AD03_HgP_an ) ) DEALLOCATE( AD03_HgP_an )
+      !IF ( ALLOCATED( AD03_Hg0_oc ) ) DEALLOCATE( AD03_Hg0_oc )
+      !IF ( ALLOCATED( AD03_Hg0_ln ) ) DEALLOCATE( AD03_Hg0_ln )
+      !IF ( ALLOCATED( AD03_Hg0_nt ) ) DEALLOCATE( AD03_Hg0_nt )
+      !IF ( ALLOCATED( AD03_Hg2_Hg0) ) DEALLOCATE( AD03_Hg2_Hg0)
+      !IF ( ALLOCATED( AD03_Hg2_OH ) ) DEALLOCATE( AD03_Hg2_OH )
+      !IF ( ALLOCATED( AD03_Hg2_O3 ) ) DEALLOCATE( AD03_Hg2_O3 )
+      !-----------------------------------------------------------------
       IF ( ALLOCATED( AD06        ) ) DEALLOCATE( AD06        )
       IF ( ALLOCATED( AD07        ) ) DEALLOCATE( AD07        )
       IF ( ALLOCATED( AD07_BC     ) ) DEALLOCATE( AD07_BC     )
@@ -312,6 +326,7 @@
       IF ( ALLOCATED( AD17        ) ) DEALLOCATE( AD17        )
       IF ( ALLOCATED( AD18        ) ) DEALLOCATE( AD18        )
       IF ( ALLOCATED( AD21        ) ) DEALLOCATE( AD21        )
+      IF ( ALLOCATED( AD21_cr     ) ) DEALLOCATE( AD21_cr     )
       IF ( ALLOCATED( AD22        ) ) DEALLOCATE( AD22        ) 
       IF ( ALLOCATED( AD28        ) ) DEALLOCATE( AD28        ) 
       IF ( ALLOCATED( AD29        ) ) DEALLOCATE( AD29        ) 
@@ -364,7 +379,10 @@
       IF ( ALLOCATED( MASSFLEW    ) ) DEALLOCATE( MASSFLEW    )
       IF ( ALLOCATED( MASSFLNS    ) ) DEALLOCATE( MASSFLNS    )
       IF ( ALLOCATED( MASSFLUP    ) ) DEALLOCATE( MASSFLUP    )
-      IF ( ALLOCATED( TCOBOX      ) ) DEALLOCATE( TCOBOX      )
+      !---------------------------------------------------------------------
+      ! Prior to 1/21/05:
+      !IF ( ALLOCATED( TCOBOX      ) ) DEALLOCATE( TCOBOX      )
+      !---------------------------------------------------------------------
       IF ( ALLOCATED( TURBFLUP    ) ) DEALLOCATE( TURBFLUP    )
       IF ( ALLOCATED( STT_TEMPO2  ) ) DEALLOCATE( STT_TEMPO2  ) 
 

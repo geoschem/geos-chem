@@ -1,4 +1,4 @@
-! $Id: readlai.f,v 1.5 2004/12/20 16:43:18 bmy Exp $
+! $Id: readlai.f,v 1.6 2005/02/10 19:53:27 bmy Exp $
       SUBROUTINE READLAI( MM )
 !
 !******************************************************************************
@@ -79,7 +79,6 @@
      &              CMONTH(MM)       // '.global'
       ENDIF
 
-
       ! Echo filename
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - READLAI: Reading ', a )
@@ -103,14 +102,21 @@
       ! Read following month's lai (XLAI2) at (I,J) and for landtype K 
       !=================================================================
 
-      ! File name
       !-----------------------------------------------------------------------
       ! Prior to 12/6/04:
-      ! Now use AVHRR LAI derived leaf-area index data (tmf, bmy, 12/6/04)
+      !! File name
       !FILENAME = TRIM( DATA_DIR ) // 'leaf_area_index_200202/lai' //
       !-----------------------------------------------------------------------
-      FILENAME = TRIM( DATA_DIR ) // 'leaf_area_index_200412/lai' //
-     &           CMONTH(MMM+1)    // '.global'
+
+      ! Pick proper filename for the old Yuhang Wang LAI, or
+      ! for AVHRR satellite-derived LAI (tmf, bmy, 12/20/04)
+      IF ( LAVHRRLAI ) THEN
+         FILENAME = TRIM( DATA_DIR ) // 'leaf_area_index_200412/lai' //
+     &              CMONTH(MMM+1)    // '.global'
+      ELSE
+         FILENAME = TRIM( DATA_DIR ) // 'leaf_area_index_200202/lai' //
+     &              CMONTH(MMM+1)    // '.global'
+      ENDIF
 
       ! Echo filename
       WRITE( 6, 100 ) TRIM( FILENAME )

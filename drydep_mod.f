@@ -1,9 +1,9 @@
-! $Id: drydep_mod.f,v 1.16 2004/12/16 16:52:44 bmy Exp $
+! $Id: drydep_mod.f,v 1.17 2005/02/10 19:53:25 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
 !  Module DRYDEP_MOD contains variables and routines for the GEOS-CHEM dry
-!  deposition scheme. (bmy, 1/27/03, 12/14/04)
+!  deposition scheme. (bmy, 1/27/03, 1/6/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -131,6 +131,7 @@
 !  (12) Now references "logical_mod.f", "directory_mod.f", and "tracer_mod.f"
 !        (bmy, 7/20/04)
 !  (13) Add Hg2, HgP as drydep tracers (eck, bmy, 12/8/04)
+!  (14) Updated for AS, AHS, LET, NH4aq, SO4aq (cas, bmy, 1/6/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -138,18 +139,40 @@
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS
       !=================================================================
-      
-      ! Module variables
-      PRIVATE :: NNTYPE,   NNPOLY,   NNVEGTYPE, XCKMAN
-      PRIVATE :: DRYDPAN,  DRYDHNO3, DRYDNO2,   NWATER
-      PRIVATE :: AIROSOL,  NDVZIND,  IDEP,      IZO       
-      PRIVATE :: IWATER,   IRI,      IRLU,      IRAC      
-      PRIVATE :: IRGSS,    IRGSO,    IRCLS,     IRCLO
-      PRIVATE :: IVSMAX,   DRYCOEFF, HSTAR,     F0
-      PRIVATE :: XMW,      A_RADI,   A_DEN
 
-      ! Module Routines
-      PRIVATE :: DEPVEL,   METERO,   MODIN,     RDDRYCF
+      ! Make everything PRIVATE ...
+      PRIVATE
+
+      ! ... except these variables ...
+      PUBLIC :: DEPNAME
+      PUBLIC :: DEPSAV
+      PUBLIC :: MAXDEP
+      PUBLIC :: NUMDEP
+      PUBLIC :: NTRAIND
+      PUBLIC :: PBLFRAC
+
+      ! ... and these routines
+      PUBLIC :: CLEANUP_DRYDEP     
+      PUBLIC :: DO_DRYDEP
+      PUBLIC :: DRYFLX             
+      PUBLIC :: DRYFLXRnPbBe       
+      PUBLIC :: DVZ_MINVAL         
+      PUBLIC :: INIT_DRYDEP        
+
+      !---------------------------------------------------------
+      ! Prior to 1/6/04:
+      !! Module variables
+      !PRIVATE :: NNTYPE,   NNPOLY,   NNVEGTYPE, XCKMAN
+      !PRIVATE :: DRYDPAN,  DRYDHNO3, DRYDNO2,   NWATER
+      !PRIVATE :: AIROSOL,  NDVZIND,  IDEP,      IZO       
+      !PRIVATE :: IWATER,   IRI,      IRLU,      IRAC      
+      !PRIVATE :: IRGSS,    IRGSO,    IRCLS,     IRCLO
+      !PRIVATE :: IVSMAX,   DRYCOEFF, HSTAR,     F0
+      !PRIVATE :: XMW,      A_RADI,   A_DEN
+      !
+      !! Module Routines
+      !PRIVATE :: DEPVEL,   METERO,   MODIN,     RDDRYCF
+      !---------------------------------------------------------
 
       !=================================================================
       ! MODULE VARIABLES 
@@ -2309,7 +2332,7 @@ C** Load array DVEL
 !
 !******************************************************************************
 !  Subroutine INIT_DRYDEP initializes certain variables for the GEOS-CHEM
-!  dry deposition subroutines. (bmy, 11/19/02, 12/14/04)
+!  dry deposition subroutines. (bmy, 11/19/02, 1/6/05)
 !
 !  NOTES:
 !  (1 ) Added N2O5 as a drydep tracer, w/ the same drydep velocity as
@@ -2322,6 +2345,7 @@ C** Load array DVEL
 !  (4 ) Now references LDRYD from "logical_mod.f" and N_TRACERS, 
 !        SALA_REDGE_um, and SALC_REDGE_um from "tracer_mod.f" (bmy, 7/20/04)
 !  (5 ) Included Hg2, HgP tracers (eck, bmy, 12/14/04)
+!  (6 ) Included AS, AHS, LET, NH4aq, SO4aq tracers (cas, bmy, 1/6/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2358,6 +2382,10 @@ C** Load array DVEL
       ! DEPNAME, NDVZIND, HSTAR, F0, XMW and AIROSOL accordingly
       !=================================================================
       DO N = 1, N_TRACERS
+
+         !----------------------------------
+         ! Regular full-chemistry tracers
+         !----------------------------------
 
          ! 210Pb (aerosol)
          IF ( N == IDTPB ) THEN
@@ -2505,6 +2533,10 @@ C** Load array DVEL
             XMW(NUMDEP)     = 0d0
             AIROSOL(NUMDEP) = .FALSE.   
 
+         !----------------------------------
+         ! Sulfur & Nitrate aerosol tracers
+         !----------------------------------
+
          ! SO2
          ELSE IF ( N == IDTSO2 ) THEN
             NUMDEP          = NUMDEP + 1
@@ -2571,6 +2603,69 @@ C** Load array DVEL
             XMW(NUMDEP)     = 62d-3
             AIROSOL(NUMDEP) = .TRUE. 
 
+         !----------------------------------
+         ! Crystalline & aqueous aerosols
+         !----------------------------------            
+
+         ! AS (crystalline ammonium sulfate)
+         ELSE IF ( N == IDTAS ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTAS
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'AS'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 132d-3
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! AHS (crystaline ammonium bisulfite) 
+         ELSE IF ( N == IDTAHS ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTAHS
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'AHS'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 115d-3
+            AIROSOL(NUMDEP) = .TRUE. 
+        
+         ! LET (crystaline LETOVOCITE)
+         ELSE IF ( N == IDTLET  ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTLET
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'LET'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 248.0d-3 
+            AIROSOL(NUMDEP) = .TRUE. 
+
+         ! SO4aq (aqueous sulfate aerosol) 
+         ELSE IF ( N == IDTSO4aq ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTSO4aq
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'SO4aq'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 96.0d-3
+            AIROSOL(NUMDEP) = .TRUE. 
+
+         ! NH4aq (aqueous NH4 aerosol)
+         ELSE IF ( N == IDTNH4aq ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNH4aq
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NH4aq'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 18d-3
+            AIROSOL(NUMDEP) = .TRUE. 
+
+         !----------------------------------
+         ! Carbon & SOA aerosol tracers
+         !----------------------------------
+
          ! Hydrophilic BC (aerosol)
          ELSE IF ( N == IDTBCPI ) THEN
             NUMDEP          = NUMDEP + 1
@@ -2615,87 +2710,7 @@ C** Load array DVEL
             XMW(NUMDEP)     = 12d-3
             AIROSOL(NUMDEP) = .TRUE.
 
-         ! DUST1 (aerosol)
-         ELSE IF ( N == IDTDST1 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTDST1
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'DST1'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 29d-3
-            A_RADI(NUMDEP)  = 0.73d-6
-            A_DEN(NUMDEP)   = 2500.d0
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! DUST2 (aerosol)
-         ELSE IF ( N == IDTDST2 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTDST2
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'DST2'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 29d-3
-            A_RADI(NUMDEP)  = 1.4d-6
-            A_DEN(NUMDEP)   = 2650.d0   
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! DUST3 (aerosol)
-         ELSE IF ( N == IDTDST3 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTDST3
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'DST3'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 29d-3
-            A_RADI(NUMDEP)  = 2.4d-6
-            A_DEN(NUMDEP)   = 2650.d0  
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! DUST4 (aerosol)
-         ELSE IF ( N == IDTDST4 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTDST4
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'DST4'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 29d-3
-            A_RADI(NUMDEP)  = 4.5d-6
-            A_DEN(NUMDEP)   = 2650.d0   
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! Accum mode seasalt (aerosol) 
-         ELSE IF ( N == IDTSALA ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTSALA
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'SALA'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 36d-3     
-            A_RADI(NUMDEP)  = ( SALA_REDGE_um(1) + 
-     &                          SALA_REDGE_um(2) ) * 0.5d-6
-            A_DEN(NUMDEP)   = 2200.d0         
-            AIROSOL(NUMDEP) = .TRUE. 
-
-         ! Coarse mode seasalt (aerosol) 
-         ELSE IF ( N == IDTSALC ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTSALC
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'SALC'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 36d-3 
-            A_RADI(NUMDEP)  = ( SALC_REDGE_um(1) + 
-     &                          SALC_REDGE_um(2) ) * 0.5d-6
-            A_DEN(NUMDEP)   = 2200.d0         
-            AIROSOL(NUMDEP) = .TRUE. 
-
-         ! ALPH
+         ! ALPH (Alpha-pinene)
          ELSE IF ( N == IDTALPH ) THEN
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTALPH
@@ -2706,7 +2721,7 @@ C** Load array DVEL
             XMW(NUMDEP)     = 136d-3
             AIROSOL(NUMDEP) = .FALSE.
 
-         ! LIMO
+         ! LIMO (Limonene)
          ELSE IF ( N == IDTLIMO ) THEN
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTLIMO
@@ -2717,7 +2732,7 @@ C** Load array DVEL
             XMW(NUMDEP)     = 136d-3
             AIROSOL(NUMDEP) = .FALSE.
 
-         ! ALCO
+         ! ALCO (Alcohols)
          ELSE IF ( N == IDTALCO ) THEN
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTALCO
@@ -2793,6 +2808,98 @@ C** Load array DVEL
             F0(NUMDEP)      = 0d0
             XMW(NUMDEP)     = 220d-3
             AIROSOL(NUMDEP) = .TRUE.
+
+         !----------------------------------
+         ! Dust aerosol tracers
+         !----------------------------------
+
+         ! DUST1 (aerosol)
+         ELSE IF ( N == IDTDST1 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTDST1
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'DST1'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 29d-3
+            A_RADI(NUMDEP)  = 0.73d-6
+            A_DEN(NUMDEP)   = 2500.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! DUST2 (aerosol)
+         ELSE IF ( N == IDTDST2 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTDST2
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'DST2'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 29d-3
+            A_RADI(NUMDEP)  = 1.4d-6
+            A_DEN(NUMDEP)   = 2650.d0   
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! DUST3 (aerosol)
+         ELSE IF ( N == IDTDST3 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTDST3
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'DST3'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 29d-3
+            A_RADI(NUMDEP)  = 2.4d-6
+            A_DEN(NUMDEP)   = 2650.d0  
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! DUST4 (aerosol)
+         ELSE IF ( N == IDTDST4 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTDST4
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'DST4'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 29d-3
+            A_RADI(NUMDEP)  = 4.5d-6
+            A_DEN(NUMDEP)   = 2650.d0   
+            AIROSOL(NUMDEP) = .TRUE.
+
+         !----------------------------------
+         ! Sea salt aerosol tracers
+         !----------------------------------
+
+         ! Accum mode seasalt (aerosol) 
+         ELSE IF ( N == IDTSALA ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTSALA
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'SALA'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 36d-3     
+            A_RADI(NUMDEP)  = ( SALA_REDGE_um(1) + 
+     &                          SALA_REDGE_um(2) ) * 0.5d-6
+            A_DEN(NUMDEP)   = 2200.d0         
+            AIROSOL(NUMDEP) = .TRUE. 
+
+         ! Coarse mode seasalt (aerosol) 
+         ELSE IF ( N == IDTSALC ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTSALC
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'SALC'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 36d-3 
+            A_RADI(NUMDEP)  = ( SALC_REDGE_um(1) + 
+     &                          SALC_REDGE_um(2) ) * 0.5d-6
+            A_DEN(NUMDEP)   = 2200.d0         
+            AIROSOL(NUMDEP) = .TRUE. 
+
+         !----------------------------------
+         ! Mercury tracers
+         !----------------------------------
 
          ! Hg2 -- Divalent Mercury
          ELSE IF ( N == IDTHG2 ) THEN

@@ -1,10 +1,10 @@
-! $Id: benchmark_mod.f,v 1.1 2004/09/24 14:03:55 bmy Exp $
+! $Id: benchmark_mod.f,v 1.2 2005/02/10 19:53:23 bmy Exp $
       MODULE BENCHMARK_MOD
 !
 !******************************************************************************
 !  Module BENCHMARK_MOD contains routines to save out initial and final
 !  tracer masses which are needed for GEOS-CHEM benchmark diagnostics.
-!  (bmy, 7/20/04)
+!  (bmy, 7/20/04, 1/31/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -25,6 +25,7 @@
 !  (6 ) tracerid_mod.f  : Module containing pointers to tracers & emissions
 !
 !  NOTES:
+!  (1 ) Now expand date & time tokens in filenames (bmy, 1/31/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -47,7 +48,7 @@
 !******************************************************************************
 !  Subroutine STDRUN dumps the mass of either Ox [kg] or 222Rn, 210Pb, and 7Be
 !  [kg] at the start & end of each run.  This is necessary for GEOS-CHEM
-!  benchmarking.  (bmy, 8/12/02, 7/20/04)
+!  benchmarking.  (bmy, 8/12/02, 1/31/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -60,12 +61,14 @@
 !        LBEGIN as an argument to determine if this is the start or end of the 
 !        run.  (bmy, 8/12/02)
 !  (2 ) Bundled into "benchmark_mod.f" (bmy, 7/20/04)
+!  (3 ) Now expand date tokens in the filename (bmy, 1/31/05)
 !******************************************************************************
-
+!
       ! References to F90 modules
       USE BPCH2_MOD
       USE FILE_MOD,     ONLY : IU_FILE,            IOERROR
-      USE TIME_MOD,     ONLY : GET_TAU
+      USE TIME_MOD,     ONLY : EXPAND_DATE,        GET_NYMD, 
+     &                         GET_NHMS,           GET_TAU
       USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM, ITS_A_RnPbBe_SIM,
      &                         STT,                N_TRACERS
       USE TRACERID_MOD, ONLY : IDTOX
@@ -77,7 +80,7 @@
       LOGICAL, INTENT(IN) :: LBEGIN 
 
       ! Local variables
-      INTEGER             :: N
+      INTEGER             :: N,        NYMD,     NHMS
       INTEGER, PARAMETER  :: IFIRST=1, JFIRST=1, LFIRST=1
       INTEGER, PARAMETER  :: HALFPOLAR=1, CENTER180=1
       REAL*4              :: ARRAY(IIPAR,JJPAR,LLPAR)
@@ -103,6 +106,8 @@
       RESERVED  = ''      
       LONRES    = DISIZE
       LATRES    = DJSIZE
+      NYMD      = GET_NYMD()
+      NHMS      = GET_NHMS()
       TAU       = GET_TAU()
 
       ! Define filename for beginning or end of benchmark run
@@ -114,6 +119,9 @@
          FILENAME = FINAL_FILE
       ENDIF
            
+      ! Expand any date tokens in the filename
+      CALL EXPAND_DATE( FILENAME, NYMD, NHMS )
+
       !=================================================================
       ! Save the mass of 222Rn, 210Pb, 7Be to a file
       !=================================================================
@@ -159,9 +167,6 @@
 
       ! Close file
       CLOSE( IU_FILE )
-
-      !### Debug
-      !IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a STDRUN' )
 
       ! Return to MAIN program
       END SUBROUTINE STDRUN

@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.13 2004/12/02 21:48:40 bmy Exp $
+! $Id: sulfate_mod.f,v 1.14 2005/02/10 19:53:28 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 11/16/04)
+!  (rjp, bdf, bmy, 6/22/00, 1/11/05)
 !
 !  Module variables:
 !  ============================================================================
@@ -24,7 +24,7 @@
 !  (13) ENH3_an    (REAL*8 ) : NH3 anthropogenic emissions      [kg NH3/box/s]
 !  (14) ENH3_bb    (REAL*8 ) : NH3 biomass emissions            [kg NH3/box/s]
 !  (15) ENH3_bf    (REAL*8 ) : NH3 biofuel emissions            [kg NH3/box/s]
-!  (16) ENH3_na    (REAL*8 ) : NH3 natural source emissions     [kg NH3/box/s]
+!  (16) ENH3_na    (REAL*8 ) : NH73 natural source emissions    [kg NH3/box/s]
 !  (17) ESO2_ac    (REAL*8 ) : SO2 aircraft emissions           [kg SO2/box/s]
 !  (18) ESO2_an    (REAL*8 ) : SO2 anthropogenic emissions      [kg SO2/box/s]
 !  (19) ESO2_ev    (REAL*8 ) : SO2 eruptive volcanic em.        [kg SO2/box/s]
@@ -68,35 +68,37 @@
 !  (6 ) CHEM_SO2          : Chemistry routine for SO2 tracer
 !  (7 ) AQCHEM_SO2        : Computes reaction rates for aqueous SO2 chemistry
 !  (8 ) CHEM_SO4          : Chemistry routine for SO4 tracer
-!  (9 ) CHEM_MSA          : Chemistry routine for MSA tracer
-!  (10) CHEM_NH3          : Chemistry routine for ammonia tracer
-!  (11) CHEM_NH4          : Chemistry routine for ammonium tracer
-!  (12) CHEM_NIT          : Chemistry routine for nitrates tracer
-!  (13) EMISSSULFATE      : Driver routine for sulfate/aerosol emissions
-!  (14) SRCDMS            : Emission routine for DMS tracer
-!  (15) SRCSO2            : Emission routine for SO2 tracer
-!  (16) SRCSO4            : Emission routine for SO4 tracer
-!  (17) SRCNH3            : Emission routine for NH3 tracer
-!  (18) GET_OH            : Returns OH for coupled or offline simulations
-!  (19) SET_OH            : Resets modified OH in SMVGEAR's CSPEC array
-!  (20) GET_NO3           : Returns NO3 for coupled or offline simulations
-!  (21) SET_NO3           : Resets modified OH in SMVGEAR's CSPEC array
-!  (22) GET_O3            : Returns O3 for coupled or offline simulations
-!  (23) READ_NONERUP_VOLC : Reads SO2 emissions from non-eruptive volcanoes
-!  (24) READ_ERUP_VOLC    : Reads SO2 emissions from eruptive volcanoes 
-!  (25) READ_ANTHRO_SOx   : Reads anthropogenic SO2 and SO4 emissions
-!  (26) READ_OCEAN_DMS    : Reads biogenic DMS emissions from oceans
-!  (27) READ_SST          : Reads monthly mean sea-surface temperatures
-!  (28) READ_BIOMASS_SO2  : Reads SO2 emissions from biomass burning
-!  (29) READ_AIRCRAFT_SO2 : Reads SO2 emissions from aircraft exhaust
-!  (30) READ_SHIP_SO2     : Reads SO2 emissions from ship exhaust
-!  (31) READ_ANTHRO_NH3   : Reads NH3 emissions from anthropogenic sources
-!  (32) READ_NATURAL_NH3  : Reads NH3 emissions from natural sources
-!  (33) READ_BIOMASS_NH3  : Reads NH3 biomass burning emissions
-!  (34) READ_OXIDANT      : Reads monthly mean O3 and H2O2 for offline run
-!  (35) OHNO3TIME         : Computes time arrays for scaling offline OH, NO3
-!  (36) INIT_SULFATE      : Allocates & zeroes module arrays
-!  (37) CLEANUP_SULFATE   : Deallocates module arrays
+!  (9 ) PHASE_SO4         : Computes phase transition for crystalline tracers 
+!  (10) PHASE_RADIATIVE   : Computes radiative forcing for crystalline tracers
+!  (11) CHEM_MSA          : Chemistry routine for MSA tracer
+!  (12) CHEM_NH3          : Chemistry routine for ammonia tracer
+!  (13) CHEM_NH4          : Chemistry routine for ammonium tracer
+!  (14) CHEM_NIT          : Chemistry routine for nitrates tracer
+!  (15) EMISSSULFATE      : Driver routine for sulfate/aerosol emissions
+!  (16) SRCDMS            : Emission routine for DMS tracer
+!  (17) SRCSO2            : Emission routine for SO2 tracer
+!  (18) SRCSO4            : Emission routine for SO4 tracer
+!  (19) SRCNH3            : Emission routine for NH3 tracer
+!  (20) GET_OH            : Returns OH for coupled or offline simulations
+!  (21) SET_OH            : Resets modified OH in SMVGEAR's CSPEC array
+!  (22) GET_NO3           : Returns NO3 for coupled or offline simulations
+!  (23) SET_NO3           : Resets modified OH in SMVGEAR's CSPEC array
+!  (24) GET_O3            : Returns O3 for coupled or offline simulations
+!  (25) READ_NONERUP_VOLC : Reads SO2 emissions from non-eruptive volcanoes
+!  (26) READ_ERUP_VOLC    : Reads SO2 emissions from eruptive volcanoes 
+!  (27) READ_ANTHRO_SOx   : Reads anthropogenic SO2 and SO4 emissions
+!  (28) READ_OCEAN_DMS    : Reads biogenic DMS emissions from oceans
+!  (29) READ_SST          : Reads monthly mean sea-surface temperatures
+!  (30) READ_BIOMASS_SO2  : Reads SO2 emissions from biomass burning
+!  (31) READ_AIRCRAFT_SO2 : Reads SO2 emissions from aircraft exhaust
+!  (32) READ_SHIP_SO2     : Reads SO2 emissions from ship exhaust
+!  (33) READ_ANTHRO_NH3   : Reads NH3 emissions from anthropogenic sources
+!  (34) READ_NATURAL_NH3  : Reads NH3 emissions from natural sources
+!  (35) READ_BIOMASS_NH3  : Reads NH3 biomass burning emissions
+!  (36) READ_OXIDANT      : Reads monthly mean O3 and H2O2 for offline run
+!  (37) OHNO3TIME         : Computes time arrays for scaling offline OH, NO3
+!  (38) INIT_SULFATE      : Allocates & zeroes module arrays
+!  (39) CLEANUP_SULFATE   : Deallocates module arrays
 !
 !  GEOS-CHEM modules referenced by sulfate_mod.f
 !  ============================================================================
@@ -167,6 +169,7 @@
 !  (24) Now references "directory_mod.f", "logical_mod.f" and "tracer_mod.f".
 !        Now removed IJSURF. (bmy, 7/20/04)
 !  (25) Can overwrite USA with EPA/NEI99 emissions (rjp, rch, bmy, 11/16/04)
+!  (26) Modified for AS, AHS, LET, SO4aq, NH4aq (cas, bmy, 1/11/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -176,33 +179,14 @@
       ! and routines from being seen outside "sulfate_mod.f"
       !=================================================================
 
-      ! PRIVATE module variables
-      PRIVATE :: SSTEMP,     DMSo,       ESO2_ac,    ESO2_an    
-      PRIVATE :: ENH3_an,    ENH3_bb,    ENH3_bf,    ENH3_na
-      PRIVATE :: ESO2_bb,    ESO2_ev,    ESO2_nv,    ESO4_an
-      PRIVATE :: PSO2_DMS,   PMSA_DMS,   PSO4_SO2,   LSO2_AQ
-      PRIVATE :: VCLDF,      NEV,        NEVOL,      IEV        
-      PRIVATE :: JEV,        IDAYs,      IDAYe,      IHGHT      
-      PRIVATE :: IELVe,      Eev,        NNV,        NNVOL      
-      PRIVATE :: INV,        JNV,        IELVn,      Env
-      PRIVATE :: XNUMOL_OH,  XNUMOL_O3,  XNUMOL_NO3, JH2O2
-      PRIVATE :: DRYSO2,     DRYSO4,     DRYMSA,     DRYNH3
-      PRIVATE :: DRYNH4,     DRYNIT,     DRYH2O2,    TCOSZ
-      PRIVATE :: TTDAY,      ESO2_bf,    SMALLNUM,   COSZM
-      PRIVATE :: ESO2_sh
+      ! Make everything PRIVATE ...
+      PRIVATE
 
-      ! PRIVATE module routines
-      PRIVATE :: GET_VCLDF,         GET_LWC,           CHEM_DMS 
-      PRIVATE :: CHEM_SO2,          CHEM_SO4,          CHEM_MSA    
-      PRIVATE :: CHEM_NH3,          CHEM_NH4,          CHEM_NIT    
-      PRIVATE :: SRCDMS,            SRCSO2,            SRCSO4
-      PRIVATE :: SRCNH3,            READ_NONERUP_VOLC, READ_ERUP_VOLC
-      PRIVATE :: READ_ANTHRO_SOx,   READ_OCEAN_DMS,    READ_SST
-      PRIVATE :: READ_AIRCRAFT_SO2, READ_ANTHRO_NH3,   READ_NATURAL_NH3
-      PRIVATE :: READ_BIOMASS_NH3,  AQCHEM_SO2,        GET_O3            
-      PRIVATE :: GET_OH,            SET_OH,            READ_OXIDANT
-      PRIVATE :: OHNO3TIME,         READ_SHIP_SO2
-
+      ! ... except these routines
+      PUBLIC :: CHEMSULFATE       
+      PUBLIC :: EMISSSULFATE      
+      PUBLIC :: CLEANUP_SULFATE   
+     
       !=================================================================
       ! MODULE VARIABLES (see descriptions listed above)
       !=================================================================
@@ -264,8 +248,9 @@
       REAL*8,  ALLOCATABLE :: ENV(:)
       
       ! Pointers to drydep species w/in DEPSAV
-      INTEGER              :: DRYSO2, DRYSO4, DRYMSA
-      INTEGER              :: DRYNH3, DRYNH4, DRYNIT, DRYH2O2
+      INTEGER              :: DRYSO2, DRYSO4,  DRYMSA,   DRYNH3  
+      INTEGER              :: DRYNH4, DRYNIT,  DRYH2O2,  DRYSO4aq 
+      INTEGER              :: DRYAS,  DRYAHS,  DRYLET,   DRYNH4aq
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -412,16 +397,19 @@
 !  (4 ) Now reference STT, TCVV, N_TRACERS, ITS_AN_AEROSOL_SIM from
 !        "tracer_mod.f".  Now reference ITS_A_NEW_MONTH from "time_mod.f".
 !        Now references LPRT from "logical_mod.f". (bmy, 7/20/04)
+!  (5 ) Updated for AS, AHS, LET, SO4aq, NH4aq.  Now references LCRYST from
+!        logical_mod.f.  Now locate species in the DEPSAV array w/in 
+!        INIT_SULFATE. (bmy, 12/21/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,        ONLY : AD,     AIRDEN,  CLDF, 
      &                           SUNCOS, MAKE_RH, CONVERT_UNITS
-      USE DRYDEP_MOD,     ONLY : DEPSAV, DEPNAME, NUMDEP
+      USE DRYDEP_MOD,     ONLY : DEPSAV
       USE ERROR_MOD,      ONLY : DEBUG_MSG
       USE GLOBAL_OH_MOD,  ONLY : GET_GLOBAL_OH
       USE GLOBAL_NO3_MOD, ONLY : GET_GLOBAL_NO3
-      USE LOGICAL_MOD,    ONLY : LPRT
+      USE LOGICAL_MOD,    ONLY : LCRYST,          LPRT
       USE TIME_MOD,       ONLY : GET_MONTH,       GET_TS_CHEM, 
      &                           GET_ELAPSED_SEC, ITS_A_NEW_MONTH
       USE TRACER_MOD,     ONLY : STT,             TCVV, 
@@ -452,28 +440,6 @@
          ! Initialize arrays (if not already done before)
          CALL INIT_SULFATE
 
-         ! Find drydep species in DEPSAV
-         DO N = 1, NUMDEP
-            SELECT CASE ( TRIM( DEPNAME(N) ) )
-               CASE ( 'H2O2' )
-                  DRYH2O2 = N
-               CASE ( 'SO2' )
-                  DRYSO2 = N
-               CASE ( 'SO4' )
-                  DRYSO4 = N
-               CASE ( 'MSA' )
-                  DRYMSA = N
-               CASE ( 'NH3' )
-                  DRYNH3 = N
-               CASE ( 'NH4' )
-                  DRYNH4 = N
-               CASE ( 'NIT' )
-                  DRYNIT = N
-               CASE DEFAULT
-                  ! Nothing
-            END SELECT        
-         ENDDO
-         
          ! Reset first-time flag
          FIRSTCHEM = .FALSE.
       ENDIF
@@ -515,38 +481,58 @@
          
          ! DMS (offline only)
          CALL CHEM_DMS
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: after CHEM_DMS' ) 
+         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_DMS' ) 
       
          ! H2O2 (offline only)
          CALL CHEM_H2O2
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: CHEM_H2O2' )
+         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_H2O2' )
 
       ENDIF
 
       ! SO2 
       CALL GET_VCLDF
       CALL CHEM_SO2
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: after CHEM_SO2' )
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO2' )
 
       ! SO4 
       CALL CHEM_SO4
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: after CHEM_SO4' )
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4' )
+
+      ! Only do the following if the crystalline sulfate & aqueous 
+      ! tracers (AS, AHS, LET, SO4aq, NH4aq) are defined
+      IF ( LCRYST ) THEN
+         
+         ! Phase change
+         CALL PHASE_SO4
+         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a PHASE_SO4' )
+
+         ! Radiative forcing
+         CALL PHASE_RADIATIVE
+         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a PHASE_RAD' )
+
+      ENDIF
 
       ! MSA 
       CALL CHEM_MSA
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: after CHEM_MSA' )
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_MSA' )
 
       ! NH3 
       CALL CHEM_NH3
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: after CHEM_NH3' )
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH3' )
 
-      ! NH4 
+      ! NH4 (gas-phase)
       CALL CHEM_NH4
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: after CHEM_NH4' )
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH4' )
 
-      ! SULFUR NITRATE 
+      ! NH4 (aqueous phase)
+      IF ( LCRYST ) THEN
+         CALL CHEM_NH4aq
+         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH4aq' )
+      ENDIF
+
+      ! Sulfur Nitrate 
       CALL CHEM_NIT
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: after CHEM_NIT' )
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NIT' )
  
       ! Convert STT from [v/v] -> [kg]
       CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT )
@@ -822,7 +808,7 @@
 !******************************************************************************
 !  Subroutine CHEM_H2O2 is the H2O2 chemistry subroutine for offline sulfate
 !  simulations.  For coupled runs, H2O2 chemistry is already computed by
-!  the SMVGEAR module. (rjp, bmy, 11/26/02, 7/20/04)
+!  the SMVGEAR module. (rjp, bmy, 11/26/02, 1/25/05)
 !                                                                           
 !  NOTES:
 !  (1 ) Bug fix: need to multiply DXYP by 1d4 for cm2 (bmy, 3/23/03)
@@ -841,6 +827,7 @@
 !  (7 ) Now reference STT & TCVV from "tracer_mod.f".  Also replace IJSURF
 !        with an analytic function.  Now references DATA_DIR from 
 !        "directory_mod.f". (bmy, 7/20/04)
+!  (8 ) Now suppress output from READ_BPCH with QUIET keyword (bmy, 1/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -917,8 +904,17 @@
          XTAU = GET_TAU0( GET_MONTH(), 1, 1998 )
 	
          ! Read J(H2O2) [s-1]  from disk (only up to tropopause)
-         CALL READ_BPCH2( FILENAME, 'JV-MAP-$', 3,      XTAU, 
-     &                    IGLOB,    JGLOB,      LLTROP, ARRAY )
+!------------------------------------------------------------------------
+! Prior to 1/25/05:
+! Now suppress output from READ_BPCH with QUIET keyword (bmy, 1/25/05)
+!         CALL READ_BPCH2( FILENAME, 'JV-MAP-$', 3,      XTAU, 
+!     &                    IGLOB,    JGLOB,      LLTROP, ARRAY )
+!------------------------------------------------------------------------
+         CALL READ_BPCH2( FILENAME, 'JV-MAP-$', 3,      
+     &                    XTAU,      IGLOB,     JGLOB,      
+     &                    LLTROP,    ARRAY,     QUIET=.TRUE. )
+
+
 
          ! Cast to REAL*8 and resize if necessary
          CALL TRANSFER_3D_TROP( ARRAY, JH2O2 )
@@ -1625,7 +1621,9 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_SO4 is the SO4 chemistry subroutine from Mian Chin's GOCART
-!  model, modified for the GEOS-CHEM model. (rjp, bdf, bmy, 5/31/00, 7/20/04) 
+!  model, modified for the GEOS-CHEM model.  Now also modified to account
+!  for production of crystalline & aqueous sulfur tracers. 
+!  (rjp, bdf, cas, bmy, 5/31/00, 12/21/04) 
 !                                                                          
 !  Module Variables Used:
 !  ============================================================================
@@ -1651,6 +1649,9 @@
 !        multiple processors. (bmy, 3/24/04)
 !  (5 ) Now use parallel DO-loop to zero ND44_TMP (bmy, 4/14/04)
 !  (6 ) Now reference STT & TCVV from "tracer_mod.f" (bmy, 7/20/04)
+!  (7 ) Now references LCRYST from "logical_mod.f".  Modified for crystalline
+!        and aqueous sulfate2 tracers: AS, AHS, LET, SO4aq.  Also changed name
+!        of ND44_TMP to T44 to save space. (cas, bmy, 12/21/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1658,9 +1659,11 @@
       USE DIAG_MOD,     ONLY : AD44
       USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
       USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,  ONLY : LCRYST
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, TCVV
-      USE TRACERID_MOD, ONLY : IDTSO4
+      USE TRACERID_MOD, ONLY : IDTSO4, IDTAS,    IDTAHS, 
+     &                         IDTLET, IDTSO4aq, IDTNH4aq
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN"          ! LPAUSE
@@ -1668,9 +1671,11 @@
 #     include "CMN_DIAG"     ! ND44
 
       ! Local variables
-      INTEGER :: I, J, L
-      REAL*8  :: SO4, SO40, RKT, DTCHEM, FLUX, AREA_CM2
-      REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLTROP)  
+      INTEGER               :: I,    J,     L,      N,        N_ND44
+      REAL*8                :: AS,   AS0,   AHS,    AHS0,     LET   
+      REAL*8                :: LET0, SO4,   SO40,   SO4aq,    SO4aq0
+      REAL*8                :: RKT,  E_RKT, DTCHEM, AREA_CM2, FLUX
+      REAL*8                :: T44(IIPAR,JJPAR,LLTROP,5)  
 
       !=================================================================
       ! CHEM_SO4 begins here!
@@ -1680,15 +1685,24 @@
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
 
-      ! Zero ND44_TMP array
+      ! Number of drydep tracers to save
+      IF ( LCRYST ) THEN 
+         N_ND44 = 5
+      ELSE
+         N_ND44 = 1
+      ENDIF
+
+      ! Zero T44 array
       IF ( ND44 > 0 ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
+!$OMP+PRIVATE( I, J, L, N )
+         DO N = 1, N_ND44
          DO L = 1, LLTROP 
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            ND44_TMP(I,J,L) = 0d0
+            T44(I,J,L,N) = 0d0
+         ENDDO
          ENDDO
          ENDDO
          ENDDO
@@ -1696,10 +1710,12 @@
       ENDIF
 
       ! Loop over tropospheric grid boxes
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, SO40, RKT, SO4, AREA_CM2, FLUX )
-!$OMP+SCHEDULE( DYNAMIC )
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I,    J,    L,   SO40,     SO4aq0, AS0   )
+!!$OMP+PRIVATE( AHS0, LET0, RKT, E_RKT,    SO4,    SO4aq ) 
+!!$OMP+PRIVATE( AS,   AHS,  LET, AREA_CM2, FLUX          )
+!!$OMP+SCHEDULE( DYNAMIC ) 
       DO L = 1, LLTROP 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -1707,17 +1723,39 @@
          ! Initialize for safety's sake
          AREA_CM2 = 0d0
          RKT      = 0d0
+         E_RKT    = 0d0
          FLUX     = 0d0
+         SO4      = 0d0
+         SO4aq    = 0d0
+         AS       = 0d0
+         AHS      = 0d0
+         LET      = 0d0
 
          ! Skip stratospheric boxes
          IF ( L >= LPAUSE(I,J) ) CYCLE
 
-         ! Initial SO4 [v/v]
-         SO40 = STT(I,J,L,IDTSO4)
-         
          !==============================================================
-         ! At surface, we have L(SO4) due to drydep and P(SO4) from SO2
-         ! At altitude, we only have P(SO4) from SO2
+         ! Initial concentrations before chemistry
+         !==============================================================
+
+         ! SO4 [v/v]
+         SO40 = STT(I,J,L,IDTSO4)
+
+         ! SO4aq, AS, LET, AHS (if necessary) [v/v]
+         IF ( LCRYST ) THEN
+            SO4aq0 = STT(I,J,L,IDTSO4aq)
+            AS0    = STT(I,J,L,IDTAS)
+            AHS0   = STT(I,J,L,IDTAHS)
+            LET0   = STT(I,J,L,IDTLET)          
+         ENDIF
+
+         !==============================================================
+         ! SO4 chemistry: 
+         !
+         ! (CASE 1) SO4 production from SO2 and loss by drydep
+         !          --> see equation in header notes above
+         !
+         ! (CASE 2) SO4 production from SO2 with no SO4 loss by drydep
          !==============================================================
 
          ! SO4 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
@@ -1727,48 +1765,150 @@
          ! RKT > 0 denotes that we have drydep occurring
          IF ( RKT > 0d0 ) THEN
             
+            !-----------------------------------------------------------
+            ! CASE 1: SO4 production from SO2 and SO4 loss by drydep
+            !-----------------------------------------------------------
+
             ! Fraction of SO4 lost to drydep [unitless]
             RKT = RKT * DTCHEM
+            
+            ! Pre-compute exponential term for use below
+            E_RKT = EXP( -RKT ) 
 
-            ! SO4 concentration [v/v]
-            SO4 = ( SO40 * EXP( -RKT )                           ) + 
-     &            ( PSO4_SO2(I,J,L)/RKT * ( 1.d0 - EXP( -RKT ) ) )
+            ! Updated SO4 (gas phase) [v/v]
+            SO4   = ( SO40                *          E_RKT ) + 
+     &              ( PSO4_SO2(I,J,L)/RKT * ( 1.d0 - E_RKT ) )
+
+            IF ( LCRYST ) THEN
+
+               ! Updated SO4 (aqueous phase) [v/v]
+               SO4aq = ( SO4aq0              *          E_RKT   ) + 
+     &                 ( PSO4_SO2(I,J,L)/RKT * ( 1.d0 - E_RKT ) ) 
+
+               ! Updated AS, AHS, LET [v/v] 
+               AS    = AS0  * E_RKT
+               AHS   = AHS0 * E_RKT
+               LET   = LET0 * E_RKT
+
+            ENDIF
 
          ELSE
 
-            ! SO4 production from SO2 [v/v/timestep]
-            SO4 = SO40 + PSO4_SO2(I,J,L)
+            !-----------------------------------------------------------
+            ! CASE 2: Production of SO4 from SO2; no SO4 drydep loss
+            !-----------------------------------------------------------
+
+            !------------------------------------------------------
+            ! Prior to 1/6/05:
+            ! Save original code here (cas, bmy, 1/6/05)
+            !! SO4 production from SO2 [v/v/timestep]
+            !SO4 = SO40 + PSO4_SO2(I,J,L)
+            !
+            !! SO4 production from SO2 [v/v/timestep]
+            !! *cas * updated [ASO4] -> underestimation by a factor of 2 
+            !! of sulfate  concentrations from atmospheric oxidations (bec)
+            !SO4 = SO40 + ( 2d0 * PSO4_SO2(I,J,L) )            
+            !------------------------------------------------------
+
+            IF ( LCRYST ) THEN
+
+               ! SO4 production from SO2 (both gas-phase & aqueous)
+               SO4   = SO40   + ( 2d0 * PSO4_SO2(I,J,L) )
+               SO4aq = SO4aq0 + ( 2d0 * PSO4_SO2(I,J,L) )
+
+               ! No production from AS, AHS, LET
+               AS    = AS0
+               AHS   = AHS0
+               LET   = LET0
+
+            ELSE
+
+               ! SO4 production from SO2 [v/v/timestep]
+               SO4 = SO40 + PSO4_SO2(I,J,L)
+
+            ENDIF
 
          ENDIF
 
-         ! Final SO4 [v/v]
+         !==============================================================
+         ! Final concentrations after chemistry
+         !==============================================================
+
+         ! Error check
          IF ( SO4 < SMALLNUM ) SO4 = 0d0
+
+         ! Final SO4 [v/v]
          STT(I,J,L,IDTSO4) = SO4
 
+         ! SO4aq, AS, AHS, LET (if necessary)
+         IF ( LCRYST ) THEN
+
+            ! Error check
+            IF ( SO4aq < SMALLNUM ) SO4aq = 0d0
+            IF ( AS    < SMALLNUM ) AS    = 0d0
+            IF ( AHS   < SMALLNUM ) AHS   = 0d0
+            IF ( LET   < SMALLNUM ) LET   = 0d0
+
+            ! Final SO4aq, AS, AHS, LET [v/v]
+            STT(I,J,L,IDTSO4aq) = SO4aq
+            STT(I,J,L,IDTAS)    = AS
+            STT(I,J,L,IDTAHS)   = AHS
+            STT(I,J,L,IDTLET)   = LET
+
+         ENDIF
+
          !==============================================================
-         ! ND44 Diagnostic: Drydep flux of SO4 [molec/cm2/s]
+         ! ND44 Diagnostic: Drydep flux of SO4 and the crystalline & 
+         ! aqueous tracers (AS, AHS, LET, SO4aq) in [molec/cm2/s]
          !==============================================================
          IF ( ND44 > 0 .AND. RKT > 0d0 ) THEN
 
             ! Surface area [cm2]
             AREA_CM2 = GET_AREA_CM2( J )
 
-            ! Convert from [v/v/timestep] to [molec/cm2/s]
-            FLUX = SO40 - SO4 + PSO4_SO2(I,J,L) 
-            FLUX = FLUX * AD(I,J,L)      / TCVV(IDTSO4)
-            FLUX = FLUX * XNUMOL(IDTSO4) / AREA_CM2 / DTCHEM
+            ! SO4 drydep flux [molec/cm2/s]
+            FLUX = SO40  - SO4 + PSO4_SO2(I,J,L) 
+            FLUX = FLUX  * AD(I,J,L)      / TCVV(IDTSO4)
+            FLUX = FLUX  * XNUMOL(IDTSO4) / AREA_CM2 / DTCHEM
+            T44(I,J,L,1) = T44(I,J,L,1) + FLUX
 
-            ! Store dryd flx in ND44_TMP as a placeholder
-            ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
+            ! SO4aq, AS, AHS, LET drydep fluxes (if necessary)
+            IF ( LCRYST ) THEN
+
+               ! SO4aq drydep flux [molec/cm2/s]
+               FLUX = SO4aq0 - SO4aq + PSO4_SO2(I,J,L)     
+               FLUX = FLUX  * AD(I,J,L)        / TCVV(IDTSO4aq)
+               FLUX = FLUX  * XNUMOL(IDTSO4aq) / AREA_CM2 / DTCHEM
+               T44(I,J,L,2) = T44(I,J,L,2) + FLUX
+
+               ! AS drydep flux [molec/cm2/s]
+               FLUX = AS0   - AS
+               FLUX = FLUX  * AD(I,J,L)     / TCVV(IDTAS)
+               FLUX = FLUX  * XNUMOL(IDTAS) / AREA_CM2 / DTCHEM
+               T44(I,J,L,3) = T44(I,J,L,3) + FLUX
+
+               ! AHS drydep flux [molec/cm2/s]
+               FLUX = AHS0  - AHS
+               FLUX = FLUX  * AD(I,J,L)      / TCVV(IDTAHS)
+               FLUX = FLUX  * XNUMOL(IDTAHS) / AREA_CM2 / DTCHEM
+               T44(I,J,L,4) = T44(I,J,L,4) + FLUX
+
+               ! LET drydep flux [molec/cm2/s]
+               FLUX = LET0  - LET
+               FLUX = FLUX  * AD(I,J,L)      / TCVV(IDTLET)
+               FLUX = FLUX  * XNUMOL(IDTLET) / AREA_CM2 / DTCHEM
+               T44(I,J,L,5) = T44(I,J,L,5) + FLUX
+
+            ENDIF
          ENDIF
       ENDDO
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
 
       !===============================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
+      ! order to ensure that we get the same results w/ sp or mp 
       !===============================================================
       IF ( ND44 > 0 ) THEN 
 !$OMP PARALLEL DO
@@ -1777,7 +1917,18 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
          DO L = 1, LLTROP
-            AD44(I,J,DRYSO4,1) = AD44(I,J,DRYSO4,1) + ND44_TMP(I,J,L)
+
+            ! Sum SO4 drydep flux 
+            AD44(I,J,DRYSO4,1) = AD44(I,J,DRYSO4,1) + T44(I,J,L,1)
+
+            ! Sum SO4aq, AS, AHS, LET drydep fluxes (if necessary)
+            IF ( LCRYST ) THEN
+               AD44(I,J,DRYSO4aq,1) = AD44(I,J,DRYSO4aq,1)+T44(I,J,L,2)
+               AD44(I,J,DRYAS,   1) = AD44(I,J,DRYAS,   1)+T44(I,J,L,3)
+               AD44(I,J,DRYAHS,  1) = AD44(I,J,DRYAHS,  1)+T44(I,J,L,4)
+               AD44(I,J,DRYLET,  1) = AD44(I,J,DRYLET,  1)+T44(I,J,L,5)
+            ENDIF
+               
          ENDDO
          ENDDO
          ENDDO
@@ -1787,7 +1938,774 @@
       ! Return to calling program
       END SUBROUTINE CHEM_SO4
 
+!------------------------------------------------------------------------------
+
+      SUBROUTINE PHASE_SO4
+!
+!******************************************************************************
+!  Subroutine PHASE_SO4 is the subroutine which computes the phase change of
+!  crystalline sulfur tracers. (cas, bmy, 1/5/05)
+! 
+!  NOTES:              
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE DAO_MOD,      ONLY : RH,     AIRDEN
+      USE LOGICAL_MOD,  ONLY : LCRYST, LSULF
+      USE TIME_MOD,     ONLY : GET_TS_CHEM
+      USE TRACER_MOD,   ONLY : STT
+      USE TRACERID_MOD, ONLY : IDTAS,  IDTAHS, IDTLET, 
+     &                         IDTNH3, IDTNH4, IDTNH4aq, IDTSO4aq
+           
+#     include "CMN_SIZE"     ! Size parameters
+#     include "CMN"          ! STT
+#     include "CMN_O3"       ! XNUMOL
+
+      ! Local variables
+      INTEGER                :: I, J, L
+      REAL*8                 :: SO4aq, SO4aq0, AS,      AS0  
+      REAL*8                 :: LET,   LET0,   AHS,     AHS0
+      REAL*8                 :: NH4aq, NH4aq0, NH3,     NH30, RHUM
+      REAL*8                 :: X,     X0,     VOL_CM3, SO4aqLIM
+      REAL*8                 :: CRH1,  CRH2,   CRH3,    TNH4
+
+      ! Deliquescence relative humidity for AS, AHS, LET [%]
+      REAL*8, PARAMETER      :: DRHAS  = 80.d0
+      REAL*8, PARAMETER      :: DRHAHS = 40.d0
+      REAL*8, PARAMETER      :: DRHLET = 69.d0
+
+      ! Avogadro's Number     
+      REAL*8, PARAMETER      :: AVO = 6.023d+23
+
+      ! Ratio of SO4/tracer 
+      REAL*8, PARAMETER      :: S_AS  =  96d0 / 132d0 
+      REAL*8, PARAMETER      :: S_AHS =  96d0 / 115d0 
+      REAL*8, PARAMETER      :: S_LET =  96d0 / 127d0 
+
+      ! Ratio of NH4/tracer 
+      REAL*8, PARAMETER      :: N_AS  =  18d0 / 132d0 
+      REAL*8, PARAMETER      :: N_AHS =  18d0 / 115d0 
+      REAL*8, PARAMETER      :: N_LET =  18d0 / 127d0 
+
+      ! Ratio of LET/tracer
+      REAL*8, PARAMETER      :: L_SO4 = 124d0 /  96d0
+      REAL*8, PARAMETER      :: L_AHS = 124d0 / 115d0 
+      REAL*8, PARAMETER      :: X_LET =  33d0 /  31d0
+
+      ! External functions
+      REAL*8, EXTERNAL       :: BOXVL
+
+      !=================================================================
+      ! PHASE_SO4 begins here!
+      !=================================================================
+
+      ! Return if LSULF and LCRYST are both false
+      IF ( .not. ( LSULF .and. LCRYST ) ) RETURN
+
+      ! Loop over tropospheric grid boxes
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I,    J,    L,    AS,    AS0,    AHS,      AHS0   )
+!!$OMP+PRIVATE( LET,  LET0, NH3,  NH4aq, NH4aq0, SO4aq,    SO4aq0 )
+!!$OMP+PRIVATE( RHUM, TNH4, CRH1, CRH2,  CRH3,   SO4aqLIM, X      )
+!!$OMP+SCHEDULE( DYNAMIC )
+      DO L = 1, LLTROP 
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Initialization
+         AS       = 0d0
+         AS0      = 0d0
+         AHS      = 0d0
+         AHS0     = 0d0
+         LET      = 0d0
+         LET0     = 0d0
+         NH3      = 0d0
+         NH4aq    = 0d0
+         NH4aq0   = 0d0
+         SO4aq    = 0d0
+         SO4aq0   = 0d0
+         VOL_CM3  = 0d0
+         RHUM     = 0d0
+         TNH4     = 0d0
+         CRH1     = 0d0
+         CRH2     = 0d0
+         CRH3     = 0d0
+         SO4aqLIM = 0d0
+         X        = 0d0
+
+         ! Skip stratospheric boxes - really!!!
+         IF ( L >= LPAUSE(I,J) ) CYCLE
+
+         !------------------------------
+         ! Define various quantities
+         !------------------------------
+
+         ! Relative Humidity [%]
+         RHUM     = RH(I,J,L)
+
+         !------------------------------
+         ! Initial concentrations [v/v]
+         !------------------------------
+         AS0      = STT(I,J,L,IDTAS)  
+         AHS0     = STT(I,J,L,IDTAHS)
+         LET0     = STT(I,J,L,IDTLET)
+         NH30     = STT(I,J,L,IDTNH3)
+         NH4aq0   = STT(I,J,L,IDTNH4aq)
+         SO4aq0   = STT(I,J,L,IDTSO4aq)
+
+         !==============================================================
+         ! Aerosol equilibrium / neutralization
+         ! Do a quick partition says Scot Martin :-)
+         ! Also need to disable RPMARES
+         !==============================================================
+
+         ! SO4 concentration [v/v]
+         SO4aq    = SO4aq0
+
+         ! Total of NH3 + NH4 (gas phase) [v/v]
+         TNH4     = STT(I,J,L,IDTNH3) + STT(I,J,L,IDTNH4aq)
+
+         ! Limiting aqueous SO4 concentration [v/v]
+         SO4aqLIM = 2d0 * SO4aq
+        
+         IF ( TNH4 > SO4aqLIM ) THEN
+            NH4aq = 2d0  * SO4aq
+            NH3   = TNH4 - NH4aq
+         ELSE
+            NH4aq = TNH4
+            NH3   = SMALLNUM
+         ENDIF
+         
+         ! Molar fraction of Ammonia to Sulfate [unitless]
+         IF ( SO4aq > SMALLNUM ) THEN
+            X = NH4aq / ( 2d0 * SO4aq ) 
+         ELSE
+            X = 0d0
+         ENDIF
+        
+         !==============================================================
+         ! CRYSTALLIZATION / DELIQUESCENCE (cf Martin et al 2003)
+         !
+         ! Determine crystallizing RH (CRH) using polynomial rules  
+         ! Use deliquescence RH (DRH) values from lab data
+         !==============================================================
+         IF  ( X < 0.5d0 ) THEN 
+
+            !-----------------------------------------------------------
+            ! CASE 1: X < 0.5
+            ! No crystallization & crystalline phase remains solid
+            !-----------------------------------------------------------
+
+            ! Crystallization Relative humidity
+            CRH1 = 0.0d0
+
+            IF ( ( RHUM > 0d0  .and. RHUM <= CRH1   )  .or.
+     &           ( RHUM > CRH1 .and. RHUM <  DRHAHS ) ) THEN
+
+               ! CASE 1.1 and CASE 1.4: Set equal to the initial values
+               AS    = AS0
+               LET   = LET0
+               AHS   = AHS0
+               NH4aq = NH4aq0
+               SO4aq = SO4aq0
+
+            ELSE IF ( RHUM <= DRHAS .and. RHUM > DRHLET ) THEN
+
+               ! CASE 1.2
+               SO4aq = SO4aq0 + S_LET*LET0 + S_AHS*AHS0 + S_AS*AS0
+               NH4aq = NH4aq0 + N_LET*LET0 + N_AHS*AHS0 + N_AS*AS0
+               AS    = SMALLNUM
+               LET   = SMALLNUM
+               AHS   = SMALLNUM
+
+            ELSE IF ( RHUM <= DRHLET .and. RHUM >= DRHAHS ) THEN
+
+               ! CASE 1.3
+               SO4aq = SO4aq0 + S_LET*LET0 + S_AHS*AHS0
+               NH4aq = NH4aq0 + N_LET*LET0 + N_AHS*AHS0
+               AS    = AS0
+               LET   = SMALLNUM
+               AHS   = SMALLNUM
+
+            ENDIF
+    
+         ELSE IF ( X >= 0.5d0 .and. X <= 0.75d0 ) THEN
+
+            !-----------------------------------------------------------
+            ! CASE 2: 0.5 <= X <= 0.75 
+            ! AHS and LET can be crystallized
+            !-----------------------------------------------------------
+
+            ! Crystallization relative humidity
+            CRH2 = 100.0d0 * ( -697.908d0      - 15.351d0*X 
+     &                         +  0.43d0*(X*X) - 22.11d0 
+     &                         + 33.882d0*X    - 1.818d0*(X*X)
+     &                         +  0.772d0      - 1.636d0*X 
+     &                         + ( 17707.6d0   / 
+     &                           ( 25.0d0 + (X - 0.7d0) * 0.5d0 ) ) )
+         
+            IF ( RHUM > 0.0d0 .and. RHUM <= CRH2 ) THEN 
+ 
+               ! CASE 2.1: Simplification for LET -> MW/2. 
+               ! So, to get the right [LET], we * by 2
+!------------------------------------------------------------------------------
+! Prior to 1/13/05:
+!               AHS   = AHS0 + ( 2d0 * 115d0) / ( VOL_CM3 * 18d0 ) * 
+!     &                 ( NH4aq0 - 1.5d0 * ( 18.0d0 / 96d0 ) * SO4aq0 )
+!------------------------------------------------------------------------------
+               AHS   = AHS0 + ( 2d0*115d0/18d0 ) * 
+     &                 ( NH4aq0 - 1.5d0*(18.0d0/96d0)*SO4aq0 )
 !-----------------------------------------------------------------------------
+! Prior to 1/13/05:
+!               LET   = LET0   + ( 124d0 / ( VOL_CM3 * 96d0 ) ) *
+!     &                 SO4aq0 - ( 124d0 / 115d0              ) * AHS
+!-----------------------------------------------------------------------------
+               LET   = LET0   + L_SO4*SO4aq0 - L_AHS*AHS
+               AS    = AS0
+               NH4aq = SMALLNUM
+               SO4aq = SMALLNUM
+
+            ELSE IF ( RHUM <= DRHAS .and. RHUM > DRHLET ) THEN
+
+               ! CASE 2.2
+               SO4aq = SO4aq0 + S_LET*LET0 + S_AHS*AHS0 + S_AS*AS0
+               NH4aq = NH4aq0 + N_LET*LET0 + N_AHS*AHS0 + N_AS*AS0
+               AS    = SMALLNUM
+               LET   = SMALLNUM
+               AHS   = SMALLNUM
+
+            ELSE IF ( RHUM <= DRHLET .and. RHUM >= DRHAHS ) THEN
+
+               ! CASE 2.3
+               SO4aq = SO4aq0 + S_LET*LET0 + S_AHS*AHS0
+               NH4aq = NH4aq0 + N_LET*LET0 + N_AHS*AHS0
+               AS    = AS0
+               LET   = SMALLNUM
+               AHS   = SMALLNUM
+           
+            ELSE IF ( RHUM < DRHAHS .and. RHUM > CRH2 ) THEN
+
+               ! CASE 2.4
+               SO4aq = SO4aq0 
+               NH4aq = NH4aq0  
+               AS    = AS0
+               LET   = LET0
+               AHS   = AHS0  
+
+            ENDIF
+
+         ELSE IF ( X >= 0.75 .and. X <= 1d0 ) THEN
+
+            !-----------------------------------------------------------
+            ! CASE 3: 0.75 <= X <= 1.0 
+            ! AS and LET can be crystallized
+            !-----------------------------------------------------------
+
+            ! Crystallization relative humidity
+            CRH3 = 100d0 * ( -697.908d0      - 15.351d0*X 
+     &                       +  0.43d0*(X*X) - 22.11d0 
+     &                       + 33.882d0*X    - 1.818d0*(X*X)
+     &                       +  0.772d0      - 1.636d0*X 
+     &                       + ( 17707.6d0   / 
+     &                        ( 25.0d0 + (X - 0.7d0) * 0.5d0 ) ) )
+ 
+            IF ( RHUM > 0d0 .and. RHUM <= CRH3 ) THEN   
+
+               ! CASE 3.1
+               LET   = LET0 + ( 124d0*4d0/18d0 ) *
+     &                        ( NH4aq0 - ( 2d0*18d0/96d0 ) * SO4aq )
+               !-----------------------------------------------------------
+               ! Prior to 11/15/04:
+               ! Remove VOL_CM3
+               !AS    = AS0  + (132d0/96d0*VOL_CM3)*SO4aq-(33d0/31d0)*LET
+               !-----------------------------------------------------------
+               AS    = AS0  + SO4aq/S_AS - X_LET*LET
+               AHS   = AHS0 
+               NH4aq = SMALLNUM
+               SO4aq = SMALLNUM
+               
+            ELSE IF ( RHUM <= DRHAS .and. RHUM > DRHLET ) THEN
+
+               ! CASE 3.2
+               SO4aq = SO4aq0 + S_LET*LET0 + S_AHS*AHS0 + S_AS*AS0
+               NH4aq = NH4aq0 + N_LET*LET0 + N_AHS*AHS0 + N_AS*AS0
+               AS    = SMALLNUM
+               LET   = SMALLNUM
+               AHS   = SMALLNUM
+
+            ELSE IF ( RHUM <= DRHLET .and. RHUM >= DRHAHS ) THEN
+
+               ! CASE 3.3
+               SO4aq = SO4aq + S_LET*LET + S_AHS*AHS 
+               NH4aq = NH4aq + N_LET*LET + N_AHS*AHS
+               AS    = AS0
+               AHS   = SMALLNUM
+               LET   = SMALLNUM
+
+            ELSE IF ( RHUM < DRHAHS .and. RHUM > CRH3 ) THEN
+               
+               ! CASE 3.4
+               AS    = AS0
+               AHS   = AHS0  
+               LET   = LET0
+               NH4aq = NH4aq0  
+               SO4aq = SO4aq0
+
+            ENDIF
+            
+         ELSE
+
+            !-----------------------------------------------------------
+            ! CASE 4: X > 1.0 
+            ! No crystallization; set everything to initial values
+            !-----------------------------------------------------------
+            AS    = AS0
+            AHS   = AHS0  
+            LET   = LET0
+            NH4aq = NH4aq0  
+            SO4aq = SO4aq0
+
+         ENDIF
+     
+         ! Prevent underflow condition
+         IF ( AS    < SMALLNUM ) AS    = 0d0
+         IF ( AHS   < SMALLNUM ) AHS   = 0d0
+         IF ( LET   < SMALLNUM ) LET   = 0d0
+         IF ( NH4aq < SMALLNUM ) NH4aq = 0d0
+         IF ( SO4aq < SMALLNUM ) SO4aq = 0d0
+
+         ! Save final concentrations back into STT tracer array [v/v]
+         STT(I,J,L,IDTAS)    = AS
+         STT(I,J,L,IDTAHS)   = AHS
+         STT(I,J,L,IDTLET)   = LET      
+         STT(I,J,L,IDTNH4aq) = NH4aq
+         STT(I,J,L,IDTSO4aq) = SO4aq
+       
+         IF ( I==23 .and. J==34 ) THEN
+            PRINT*, '###---PHASE SO4-------------------------'
+            PRINT*, '### I, J, L   : ', I, J, L
+            PRINT*, '### AS        : ', AS0,    AS
+            PRINT*, '### AHS       : ', AHS0,   AHS
+            PRINT*, '### LET       : ', LET0,   LET
+            PRINT*, '### NH4aq     : ', NH4aq0, NH4aq
+            PRINT*, '### SO4aq     : ', SO4aq0, SO4aq
+            PRINT*, '### VOL_CM3   : ', VOL_CM3
+            PRINT*, '### RHUM      : ', RHUM
+            PRINT*, '### TNH4      : ', TNH4
+            PRINT*, '### SO4aqLIM  : ', SO4aqLIM
+            PRINT*, '### X         : ', X
+            PRINT*, '### CRH1      : ', CRH1
+            PRINT*, '### CRH2      : ', CRH2
+            PRINT*, '### CRH3      : ', CRH3
+         ENDIF      
+      ENDDO
+      ENDDO
+      ENDDO    
+!!$OMP END PARALLEL DO
+
+      STOP
+      
+      ! Return to calling program
+      END SUBROUTINE PHASE_SO4
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE PHASE_RADIATIVE
+!
+!******************************************************************************
+!  Subroutine PHASE_RADIATIVE computes radiative forcing from crystalline
+!  and aqueous sulfur aerosol tracers. (cas, bmy, 1/5/05)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE COMODE_MOD,   ONLY : JLOP,   ERADIUS
+      USE DAO_MOD,      ONLY : RH,     AIRDEN, BXHEIGHT, 
+     &                         SUNCOS, ALBD,   CLDFRC
+      USE DIAG_MOD,     ONLY : AD21,   AD21_cr
+      USE LOGICAL_MOD,  ONLY : LSULF,  LCRYST
+      USE TRACER_MOD,   ONLY : STT
+      USE TRACERID_MOD, ONLY : IDTAS,    IDTAHS, IDTLET, 
+     &                         IDTNH4aq, IDTSO4aq
+     
+#     include "CMN_SIZE"     ! Size parameters
+#     include "CMN"          ! STT
+#     include "CMN_GCTM"     ! AIRMW
+#     include "CMN_DIAG"     ! ND21
+
+      ! Local variables
+      INTEGER               :: JLOOP,      IJLOOP
+      INTEGER               :: I,          J,          L
+      REAL*8                :: AS,         AHS,        LET
+      REAL*8                :: NH4,        NH4aq,      NH4aq0
+      REAL*8                :: SO4aq,      F_CONV,     TNH4
+      REAL*8                :: TROP_HT,    FRAC_HT,    MASS_S
+      REAL*8                :: MASS_L,     CONC_S,     CONC_L
+      REAL*8                :: F_L,        F_S,        F_H   
+      REAL*8                :: SIGMA_H,    SIGMA_S,    SIGMA_L
+      REAL*8                :: BETA_S,     BETA_L,     Ta 
+      REAL*8                :: Fo,         SCOS,       ALBEDO
+      REAL*8                :: OPTDEPTH_H, OPTDEPTH_S, OPTDEPTH_L 
+      REAL*8                :: SCOS,       RADIUS,     UPSCA_AE 
+      REAL*8                :: T_DW,       R_UP,       CLRO 
+      REAL*8                :: F_CONV,     VOL_CM3,    SSA
+      REAL*8                :: RHUM
+
+      ! Local Arrays
+      REAL*8                :: DELTA_S(IIPAR,JJPAR)
+      REAL*8                :: DELTA_L(IIPAR,JJPAR)
+      REAL*8                :: DELTA_F(IIPAR,JJPAR)
+      REAL*8                :: OPT_S(IIPAR,JJPAR)
+      REAL*8                :: OPT_H(IIPAR,JJPAR)
+      REAL*8                :: OPT_L(IIPAR,JJPAR)
+
+      ! External functions
+      REAL*8, EXTERNAL      :: BOXVL
+      
+      ! Avogadro's Number
+      REAL*8, PARAMETER     :: AVO = 6.023d+23
+
+      !=================================================================
+      ! PHASE_RADIATIVE begins here!
+      !=================================================================
+
+      ! Return if LSULF and LCRYST are both false
+      IF ( .not. ( LSULF .and. LCRYST ) ) RETURN
+
+      ! Loop over grid boxes
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I,          J,        L,       OPTDEPTH_H, OPTDEPTH_L )
+!!$OMP+PRIVATE( OPTDEPTH_S, TROP_HT,  F_CONV,  FRAC_HT,    CONC_S     )
+!!$OMP+PRIVATE( CONC_L,     F_S,      F_L,     F_H,        MASS_L     )
+!!$OMP+PRIVATE( MASS_S,     BETA_L,   BETA_S,  SIGMA_H,    SIGMA_L    )
+!!$OMP+PRIVATE( SIGMA_S,    UPSCA_AE, T_DW,    R_UP,       DELTA_F    )
+!!$OMP+PRIVATE( AS,         AHS,      LET,     NH4aq,      SO4aq      )
+!!$OMP+PRIVATE( IJLOOP,     SCOS,     ALBEDO,  SSA,        Fo         )
+!!$OMP+PRIVATE( TA,         JLOOP,    RADIUS                          )
+!!$OMP+SCHEDULE( DYNAMIC )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         !-------------------------------------
+         ! Define quantities for the column
+         !-------------------------------------
+
+         ! Initialize 
+         OPTDEPTH_H = 0d0
+         OPTDEPTH_L = 0d0
+         OPTDEPTH_S = 0d0
+         TROP_HT    = 0d0
+
+         ! Compute height of tropospheric column [m]
+         DO L = 1, LLTROP
+            IF ( L < LPAUSE(I,J) ) THEN
+               TROP_HT = TROP_HT + BXHEIGHT(I,J,L) 
+            ENDIF
+         ENDDO
+
+         ! Loop over all levels in this column
+         DO L = 1, LLTROP 
+
+            ! Initialize
+            CONC_L   = 0d0
+            CONC_S   = 0d0
+            F_S      = 0d0
+            F_L      = 0d0
+            F_H      = 0d0
+            MASS_L   = 0d0
+            MASS_S   = 0d0
+            BETA_L   = 0d0
+            BETA_S   = 0d0
+            SIGMA_H  = 0d0
+            SIGMA_L  = 0d0
+            SIGMA_S  = 0d0
+            UPSCA_AE = 0d0
+            T_DW     = 0d0
+            R_UP     = 0d0
+            DELTA_F  = 0d0
+
+            ! Only process for tropospheric boxes
+            IF ( L >= LPAUSE(I,J) ) CYCLE      
+
+            !----------------------------------
+            ! Define quantities for this level
+            !----------------------------------
+
+            ! Pre-compute conversion factor
+            F_CONV   = 1d6 * AIRDEN(L,I,J) / AIRMW
+
+            ! Fraction of trop column occupied by this level [unitless]
+            FRAC_HT  = BXHEIGHT(I,J,L) / TROP_HT
+
+            ! Grid box volume in [cm3]
+            VOL_CM3  = BOXVL(I,J,L)
+
+            ! Relative humidity [%]
+            RHUM     = RH(I,J,L)
+         
+            !----------------------------------
+            ! Initial concentrations [v/v]
+            !----------------------------------
+            AS       = STT(I,J,L,IDTAS)  
+            AHS      = STT(I,J,L,IDTAHS)
+            LET      = STT(I,J,L,IDTLET)
+            NH4aq    = STT(I,J,L,IDTNH4aq)
+            SO4aq    = STT(I,J,L,IDTSO4aq)
+
+            !===========================================================
+            ! OPTICAL DEPTHS OF SULFATE AEROSOLS (Chin et al., 2002)
+            !===========================================================
+
+            ! Concentration of solid = AS + LET + AHS [v/v]
+            CONC_S = AS + LET + AHS 
+
+            ! Concentration of liquid = SO4aq + NH4aq [v/v]
+            CONC_L = SO4aq + NH4aq
+             
+            ! Factors to convert solid, liquid, hyst phases to SIGMA [g/m3]
+            F_S    = CONC_S              * F_CONV
+            F_L    = CONC_L              * F_CONV
+            F_H    = ( CONC_L + CONC_S ) * F_CONV
+
+            ! Liquid mass = MASS NH4 + MASS SO4 = 14 + 96 = 100 [g/mol]
+            MASS_L = 100.d0
+
+            ! Solid mass = MASS AS + MASS AHS + MASS LET = 495 [g/mol]
+            MASS_S = 495.d0
+
+            ! BETA for solid values (cf Chin et al, 2002)
+            BETA_S = 3.849d0
+         
+            ! Compute optical depths as a function of RH
+            IF ( RHUM > 0.d0 .and. RHUM <= 80.0d0 ) THEN 
+               
+               !---------------------------
+               ! CASE 1: 0% < RH <= 80%
+               !---------------------------
+
+               ! BETA for liquid values (cf Chin et al, 2002)
+               BETA_L     = 3.849d0 + RHUM * ( 0.067241d0   
+     &                              + RHUM * ( 0.001077d00 ) )
+
+               ! CASE 1.1: Optical depth for HYSTERESIS CASE 
+               SIGMA_H    = ( BETA_L * MASS_L * F_L ) + 
+     &                      ( BETA_S * MASS_S * F_S )
+               OPTDEPTH_H = OPTDEPTH_H + ( SIGMA_H * FRAC_HT )
+
+               ! CASE 1.2: Optical depth for ALL SOLID CASE
+               SIGMA_S    = BETA_S     * ( MASS_L + MASS_S ) * F_S
+               OPTDEPTH_S = OPTDEPTH_S + ( SIGMA_S * FRAC_HT )
+
+               ! CASE 1.3: Optical depth for ALL LIQUID CASE
+               SIGMA_L    = BETA_L     * ( MASS_L + MASS_S ) * F_L
+               OPTDEPTH_L = OPTDEPTH_L + ( SIGMA_L * FRAC_HT )
+
+            ELSE IF ( RHUM > 80.d0 .and. RHUM <= 97.0d0 ) THEN 
+
+               !---------------------------
+               ! CASE 2: 80% < RH <= 97%
+               !---------------------------
+
+               ! BETA for liquid values (cf Chin et al, 2002)
+               BETA_L     = -1443.2d0 + RHUM * (  52.213d0   
+     &                                + RHUM * ( -0.62642d0 
+     &                                + RHUM * (  0.0025226d0 ) ) )
+
+               ! CASE 2.1: Optical depth for HYSTERESIS CASE
+               SIGMA_H    = ( BETA_L * MASS_L * F_L ) + 
+     &                      ( BETA_S * MASS_S * F_S )
+               OPTDEPTH_H = OPTDEPTH_H + ( SIGMA_H * FRAC_HT )
+
+               ! CASE 2.2: Optical depth for ALL SOLID CASE
+               SIGMA_S    = BETA_S     * ( MASS_L  + MASS_S  ) * F_S
+               OPTDEPTH_S = OPTDEPTH_S + ( SIGMA_S * FRAC_HT )
+
+               ! CASE 2.3: Optical depth for ALL LIQUID CASE
+               SIGMA_L    = BETA_L     * ( MASS_L  + MASS_S  ) * F_L
+               OPTDEPTH_L = OPTDEPTH_L + ( SIGMA_L * FRAC_HT )
+      
+            ELSE IF ( RHUM > 97.d0 .and. RHUM <= 100.0d0  ) THEN 
+
+               !---------------------------
+               ! CASE 3: 97% < RH <= 100%
+               !---------------------------
+
+               ! BETA for liquid values (cf Chin et al, 2002)
+               BETA_L     = -399.6d0 + 4.422 * RHUM
+
+               ! CASE 3.1 : Optical depth for HYSTERESIS CASE
+               SIGMA_H    = ( BETA_L * MASS_L * F_L ) + 
+     &                      ( BETA_S * MASS_S * F_S )
+               OPTDEPTH_H = OPTDEPTH_H + ( SIGMA_H * FRAC_HT )
+
+               ! CASE 3.2 : Optical depth for ALL SOLID CASE
+               SIGMA_S    = BETA_S     * ( MASS_L  + MASS_S  ) * F_S
+               OPTDEPTH_S = OPTDEPTH_S + ( SIGMA_S * FRAC_HT )
+
+               ! CASE 3.3: Optical depth for ALL LIQUID CASE
+               SIGMA_L    = BETA_L     * ( MASS_L  + MASS_S  ) * F_L 
+               OPTDEPTH_L = OPTDEPTH_L + ( SIGMA_L * FRAC_HT )
+
+            ENDIF 
+
+            !IF ( I==23 .and. J==34 ) THEN
+            !   PRINT*, '###---PHASE RADIATIVE--------------------'
+            !   PRINT*, '### I, J, L   : ', I, J, L
+            !   PRINT*, '### AS        : ', AS
+            !   PRINT*, '### AHS       :  ', AHS
+            !   PRINT*, '### LET       : ', LET
+            !   PRINT*, '### NH4aq     : ', NH4aq
+            !   PRINT*, '### SO4aq     : ', SO4aq
+            !   PRINT*, '### TROP_HT   : ', TROP_HT
+            !   PRINT*, '### FRAC_HT   : ', FRAC_HT
+            !   PRINT*, '### F_CONV    : ', F_CONV
+            !   PRINT*, '### RHUM      : ', RHUM
+            !   PRINT*, '### F_L       : ', F_L
+            !   PRINT*, '### CONC_L    : ', CONC_L
+            !   PRINT*, '### BETA_L    : ', BETA_L
+            !   PRINT*, '### SIGMA_L   : ', SIGMA_L
+            !   PRINT*, '### OPTDEPTH_L: ', OPTDEPTH_L
+            !   PRINT*, '### F_S       : ', F_S
+            !   PRINT*, '### CONC_S    : ', CONC_S
+            !   PRINT*, '### BETA_S    : ', BETA_S
+            !   PRINT*, '### SIGMA_S   : ', SIGMA_S
+            !   PRINT*, '### OPTDEPTH_S: ', OPTDEPTH_S
+            !   PRINT*, '### F_H       : ', F_H
+            !   PRINT*, '### SIGMA_H   : ', SIGMA_H
+            !   PRINT*, '### OPTDEPTH_H: ', OPTDEPTH_H
+            !ENDIF
+
+         ENDDO
+
+         !==============================================================
+         ! Archive column optical depth quantities
+         ! NOTE: at here we are at the surface outside of the L loop
+         !==============================================================
+
+         ! Save optical depths in 2-D arrays
+         OPT_S(I,J)   = OPTDEPTH_S
+         OPT_L(I,J)   = OPTDEPTH_L
+         OPT_H(I,J)   = OPTDEPTH_H
+
+         ! Save delta in 2-D arrays
+         DELTA_S(I,J) = OPTDEPTH_H - OPTDEPTH_S
+         DELTA_L(I,J) = OPTDEPTH_H - OPTDEPTH_L
+
+         !==============================================================
+         ! Radiative Forcing 
+         ! Equation #22.5.6 from Seinfeld and Pandis
+         !==============================================================
+  
+         ! IJLOOP is the 1-D grid box index for SUNCOS
+         IJLOOP = ( (J-1) * IIPAR ) + I
+
+         ! Cosine of solar zenith angle [unitless]
+         SCOS   = SUNCOS(IJLOOP)
+
+         ! Albedo at Earth's surface [unitless]
+         ALBEDO = ALBD(I,J)
+
+         ! Single scattering albedo [unitless]
+         SSA    = 1d0 
+
+         ! Incident solar flux [W/m2]
+         Fo     = MAX( 1348d0 * SCOS, 0d0 )
+
+         ! Fractional transmittance of the atmosphere [unitless]
+         ! (Central Estimate, Table 5.10a, IPCC 2001)
+         Ta     = 0.87d0
+       
+         ! Sulfate radius [um], loop over all levels
+         RADIUS = 0d0
+         DO L = 1, LLTROP
+            JLOOP = JLOP(I,J,L)
+            IF ( JLOOP > 0 ) THEN
+               RADIUS = RADIUS + ERADIUS(JLOOP,NDUST+1) * 1D-4 
+            ENDIF
+         ENDDO
+
+         ! UPSCA_AE = upscatter fraction of the aerosol, which depends
+         ! on the size of the aerosol (cf Fig 5, Nemesure et al, 1995)
+         IF ( RADIUS < 0.058d0 ) THEN 
+            UPSCA_AE = -0.344d0 * RADIUS * SCOS + 8.6206d0
+
+         ELSE IF ( RADIUS < 0.120d0 ) THEN
+            UPSCA_AE = -0.576d0 * RADIUS * SCOS + 4.1666d0 
+  
+         ELSE IF ( RADIUS < 0.178d0 ) THEN
+            UPSCA_AE = -0.842d0 * RADIUS * SCOS + 2.8089d0 
+ 
+         ELSE IF ( RADIUS < 0.242d0 ) THEN
+            UPSCA_AE = -1.239d0 * RADIUS * SCOS + 2.0661d0 
+ 
+         ELSE IF ( RADIUS < 0.308d0 ) THEN
+            UPSCA_AE = -1.038d0 * RADIUS * SCOS + 1.6233d0 
+ 
+         ENDIF    
+          
+         ! Total transmitted downwards fraction of incident radiation 
+         T_DW = 1d0-OPTDEPTH_H + SSA*(1d0-UPSCA_AE)*OPTDEPTH_H
+         
+         ! Fraction reflected upward
+         R_UP = OPTDEPTH_H * SSA * UPSCA_AE
+
+         ! Calculation of the radiative forcing 
+         DELTA_F(I,J) = Fo * ( ( 1d0 - CLDFRC(I,J) ) * (Ta**2) * 
+     &                         ( ( R_UP + ( T_DW**2*ALBEDO / 
+     &                         ( 1d0 - ALBEDO*R_UP) ) - ALBEDO ) ) ) 
+
+         !==============================================================
+         ! ND21 Diagnostic: Optical Depth Quantities
+         !
+         ! #1: Opt depth for HYSTERESIS CASE            [unitless]
+         ! #2: Opt depth for SOLID CASE                 [unitless]
+         ! #3: Opt depth for LIQUID CASE                [unitless]
+         ! #4: Opt depth HYSTERESIS - Opt depth SOLID   [unitless] 
+         ! #5: Opt depth HYSTERESIS - Opt depth LIQUID  [unitless]
+         ! #6: Radiative forcing                        [W/m2    ]
+         !==============================================================
+
+         ! Save to AD21 array only if ND21 is turned on
+         IF ( ND21 > 0 ) THEN
+            AD21_cr(I,J,1) = AD21_cr(I,J,1) + OPT_H(I,J)
+            AD21_cr(I,J,2) = AD21_cr(I,J,2) + OPT_S(I,J)
+            AD21_cr(I,J,3) = AD21_cr(I,J,3) + OPT_L(I,J)
+            AD21_cr(I,J,4) = AD21_cr(I,J,4) + DELTA_S(I,J)
+            AD21_cr(I,J,5) = AD21_cr(I,J,5) + DELTA_L(I,J)
+            AD21_cr(I,J,6) = AD21_cr(I,J,6) + DELTA_F(I,J)
+         ENDIF
+         
+         !IF ( I==23 .and. J==34 ) THEN
+         !   PRINT*, '###---'
+         !   PRINT*, '### OPT_S    : ', OPT_S(I,J)
+         !   PRINT*, '### OPT_L    : ', OPT_L(I,J)
+         !   PRINT*, '### OPT_H    : ', OPT_H(I,J)
+         !   PRINT*, '### DELTA_S  : ', DELTA_S(I,J)
+         !   PRINT*, '### DELTA_L  : ', DELTA_L(I,J)
+         !   PRINT*, '### IJLOOP   : ', IJLOOP
+         !   PRINT*, '### SCOS     : ', SCOS
+         !   PRINT*, '### ALBEDO   : ', ALBEDO
+         !   PRINT*, '### SSA      : ', SSA
+         !   PRINT*, '### Fo       : ', Fo
+         !   PRINT*, '### Ta       : ', Ta
+         !   PRINT*, '### RADIUS   : ', RADIUS
+         !   PRINT*, '### UPSCA_AE : ', UPSCA_AE
+         !   PRINT*, '### T_DW     : ', T_DW
+         !   PRINT*, '### R_UP     : ', R_UP
+         !   PRINT*, '### DELTA_F  : ', DELTA_F(I,J)
+         !ENDIF
+
+      ENDDO 
+      ENDDO    
+!!$OMP END PARALLEL DO
+
+      ! Return to calling program
+      END SUBROUTINE PHASE_RADIATIVE
+
+!------------------------------------------------------------------------------
 
       SUBROUTINE CHEM_MSA
 !
@@ -2234,6 +3152,136 @@
 
       ! Return to calling program
       END SUBROUTINE CHEM_NH4
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CHEM_NH4aq
+!
+!******************************************************************************
+!  Subroutine CHEM_NH4aq removes NH4aq from the surface via dry deposition.
+!  (cas, bmy, 1/6/05)  
+!                                                                          
+!  Reaction List:
+!  ============================================================================
+!  (1 ) NH4aq = NH4_0aq * EXP( -dt )  where d = dry deposition rate [s-1]
+!        
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE DAO_MOD,      ONLY : AD
+      USE DIAG_MOD,     ONLY : AD44
+      USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE TIME_MOD,     ONLY : GET_TS_CHEM
+      USE TRACER_MOD,   ONLY : STT, TCVV
+      USE TRACERID_MOD, ONLY : IDTNH4aq
+
+#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_O3"    ! XNUMOL
+#     include "CMN_DIAG"  ! ND44
+
+      ! Local variables
+      INTEGER :: I,      J,     L
+      REAL*8  :: DTCHEM, NH4aq, NH4aq0
+      REAL*8  :: FREQ,   FLUX,  AREA_CM2
+      REAL*8  :: T44(IIPAR,JJPAR,LLTROP)
+
+      !=================================================================
+      ! CHEM_NH4 begins here!
+      !=================================================================
+      IF ( IDTNH4aq == 0 .or. DRYNH4aq == 0 ) RETURN
+
+      ! DTCHEM is the chemistry interval in seconds
+      DTCHEM = GET_TS_CHEM() * 60d0 
+
+      ! Zero T44 array
+      IF ( ND44 > 0 ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+         DO L = 1, LLTROP 
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            T44(I,J,L) = 0d0
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+      ENDIF
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, FREQ, NH4aq0, NH4aq, AREA_CM2, FLUX )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO L = 1, LLTROP
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Only apply drydep to boxes w/in the PBL
+         IF ( PBLFRAC(I,J,L) > 0d0 ) THEN
+
+            ! NH4 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
+            ! of each grid box (I,J,L) that is located beneath the PBL top
+            FREQ = DEPSAV(I,J,DRYNH4aq) * PBLFRAC(I,J,L)
+
+            ! Only apply drydep loss if FREQ is nonzero
+            IF ( FREQ > 0d0 ) THEN
+
+               ! Initial NH4 [v/v]
+               NH4aq0 = STT(I,J,L,IDTNH4aq)
+         
+               ! Amount of NH4 lost to drydep [v/v]
+               NH4aq = NH4aq0 * ( 1d0 - EXP( -FREQ * DTCHEM ) )
+
+               ! Prevent underflow condition
+               IF ( NH4aq < SMALLNUM ) NH4aq = 0d0
+
+               ! Subtract NH4 lost to drydep from initial NH4 [v/v]
+               STT(I,J,L,IDTNH4aq) = NH4aq0 - NH4aq
+
+               !========================================================
+               ! ND44 diagnostic: Drydep flux of NH4 [molec/cm2/s]
+               !========================================================
+               IF ( ND44 > 0 .and. NH4aq > 0d0 ) THEN
+         
+                  ! Surface area [cm2]
+                  AREA_CM2 = GET_AREA_CM2( J )
+                  
+                  ! Convert drydep loss from [v/v/timestep] to [molec/cm2/s]
+                  FLUX = NH4aq * AD(I,J,L)        / TCVV(IDTNH4aq)
+                  FLUX = FLUX  * XNUMOL(IDTNH4aq) / AREA_CM2 / DTCHEM
+
+                  ! Store dryd flx in ND44_TMP as a placeholder
+                  T44(I,J,L) = T44(I,J,L) + FLUX
+               ENDIF
+            ENDIF
+         ENDIF
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      !===============================================================
+      ! ND44: Sum drydep fluxes by level into the AD44 array in
+      ! order to ensure that  we get the same results w/ sp or mp 
+      !===============================================================
+      IF ( ND44 > 0 ) THEN 
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+         DO L = 1, LLTROP
+            AD44(I,J,DRYNH4aq,1) = AD44(I,J,DRYNH4aq,1) + T44(I,J,L)
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE CHEM_NH4aq
 
 !------------------------------------------------------------------------------
 
@@ -3025,12 +4073,6 @@
          ENDDO
 
          ! Sum of anthro (surface + 100m), biomass, biofuel SO2 at (I,J)
-         !-----------------------------------------------------------------
-         ! Prior to 11/16/04:
-         ! Now use local arrays SO2an, SO2bf, which can contain emissions 
-         ! from the EPA/NEI99 inventory (bmy, 11/16/04) 
-         !TSO2  = SUM( ESO2_an(I,J,:) ) + ESO2_bb(I,J) + ESO2_bf(I,J)
-         !-----------------------------------------------------------------
          TSO2  = SUM( SO2an(I,J,:) ) + ESO2_bb(I,J) + SO2bf(I,J)
 
          ! Also add SO2 from ship exhaust if necessary (bec, bmy, 5/20/04)
@@ -3096,13 +4138,6 @@
          ! stack SO2 goes into level 2.
          !===============================================================
          ELSE
-            !-------------------------------------------------------------
-            ! Prior to 11/16/04:
-            ! Now use local arrays SO2an & SO2bf, which can contain 
-            ! EPA/NEI99 emissions over the USA (bmy, 11/16/04)
-            !SO2(1) = ESO2_an(I,J,1) + ESO2_bb(I,J) + ESO2_bf(I,J)
-            !SO2(2) = ESO2_an(I,J,2) 
-            !-------------------------------------------------------------
             SO2(1) = SO2an(I,J,1) + ESO2_bb(I,J) + SO2bf(I,J)
             SO2(2) = SO2an(I,J,2) 
 
@@ -3147,11 +4182,6 @@
             ! Anthropogenic SO2 -- Levels 1-2
             DO L = 1, 2
                AD13_SO2_an(I,J,L) = AD13_SO2_an(I,J,L) +
-!----------------------------------------------------------------------------
-! Prior to 11/16/04:
-! Now use local SO4an array, which can contain EPA/NEI99 emissions
-!     &                              ( ESO2_an(I,J,L) * S_SO2 * DTSRCE )
-!----------------------------------------------------------------------------
      &                              ( SO2an(I,J,L) * S_SO2 * DTSRCE )
             ENDDO
 
@@ -3161,11 +4191,6 @@
  
             ! SO2 from biofuel burning
             AD13_SO2_bf(I,J)      = AD13_SO2_bf(I,J) +
-!-----------------------------------------------------------------------------
-! Prior to 11/16/04:
-! Now use local SO4bf array, which can contain EPA/NEI99 emissions
-!     &                              ( ESO2_bf(I,J) * S_SO2 * DTSRCE )
-!-----------------------------------------------------------------------------
      &                              ( SO2bf(I,J)   * S_SO2 * DTSRCE )
 
             ! SO2 from ship emissions (bec, bmy, 5/20/04)
@@ -3349,11 +4374,6 @@
          ENDDO
 
          ! Compute total anthro SO4 (surface + 100m) plus biofuel SO4
-         !--------------------------------------------------------------------
-         ! Prior to 11/16/04:
-         ! Now us local arrays SO4an, SO4bb which can hold EPA/NEI emissions
-         !TSO4 = SUM( ESO4_an(I,J,:) )
-         !--------------------------------------------------------------------
          TSO4 = SUM( SO4an(I,J,:) ) + SO4bf(I,J)
 
          !==============================================================
@@ -3403,7 +4423,6 @@
 
                ENDIF
 
-
                ! Fraction of total SO4 in layer L
                SO4(L) = FEMIS * TSO4
             ENDDO
@@ -3416,13 +4435,6 @@
          !==============================================================
          ELSE
 
-            !-----------------------------------------------------------------
-            ! Prior to 11/16/04:
-            ! Now use local arrays SO4an, SO4bf, which can contain 
-            ! EPA/NEI99 emissions (bmy, 11/16/04)
-            !SO4(1) = ESO4_an(I,J,1)
-            !SO4(2) = ESO4_an(I,J,2) 
-            !-----------------------------------------------------------------
             SO4(1) = SO4an(I,J,1) + SO4bf(I,J)
             SO4(2) = SO4an(I,J,2) 
             
@@ -3455,11 +4467,6 @@
             ! Anthro SO4
             DO L = 1, 2      
                AD13_SO4_an(I,J,L) = AD13_SO4_an(I,J,L) + 
-!-----------------------------------------------------------------------------
-! Prior to 11/16/04:
-! Now use local SO4an array which can contain EPA/NEI99 emissions
-!     &                              ( ESO4_an(I,J,L) * S_SO4 * DTSRCE )
-!-----------------------------------------------------------------------------
      &                              ( SO4an(I,J,L) * S_SO4 * DTSRCE )
             ENDDO
 
@@ -3644,12 +4651,6 @@
          NH3SRC = 0.d0
 
          ! Sum all types of NH3 emission [kg/box/s]
-!-----------------------------------------------------------------------------
-! Prior to 11/16/04:
-! Now use local arrays NH3an and NH3bf, which can contain EPA/NEI99 emissions
-!         TNH3   = ENH3_an(I,J) + ENH3_bb(I,J) + 
-!     &            ENH3_bf(I,J) + ENH3_na(I,J)
-!-----------------------------------------------------------------------------
          TNH3   = NH3an(I,J) + ENH3_bb(I,J) + 
      &            NH3bf(I,J) + ENH3_na(I,J)
 
@@ -3714,18 +4715,8 @@
                PRINT*, '### ERROR in SRCNH3!'
                PRINT*, '### I, J         : ', I, J
                PRINT*, '### NH3SRC       : ', NH3SRC
-               !--------------------------------------------------------------
-               ! Prior to 11/16/04:
-               ! Now use local ENH3 array which can contain EPA/NEI emissions
-               !PRINT*, '### ENH3_an(I,J) : ', ENH3_an(I,J) 
-               !--------------------------------------------------------------
                PRINT*, '### ENH3_an(I,J) : ', NH3an(I,J) 
                PRINT*, '### ENH3_bb(I,J) : ', ENH3_bb(I,J)
-               !--------------------------------------------------------------
-               ! Prior to 11/16/04:
-               ! Now use local ENH3 array which can contain EPA/NEI emissions
-               !PRINT*, '### ENH3_bf(I,J) : ', ENH3_bf(I,J)
-               !--------------------------------------------------------------
                PRINT*, '### ENH3_bf(I,J) : ', NH3bf(I,J)
 !$OMP END CRITICAL
                CALL ERROR_STOP( 'Check NH3 redistribution', 
@@ -3747,11 +4738,6 @@
 
             ! Anthro NH3
             AD13_NH3_an(I,J) = AD13_NH3_an(I,J) + 
-!-----------------------------------------------------------------------------
-! Prior to 11/16/04:
-! Now use NH3an array which can contain EPA/NEI99 emissions
-!     &                         ( ENH3_an(I,J) * DTSRCE )
-!-----------------------------------------------------------------------------
      &                         ( NH3an(I,J)   * DTSRCE )            
 
             ! Biomass NH3
@@ -3760,11 +4746,6 @@
                   
             ! Biofuel NH3
             AD13_NH3_bf(I,J) = AD13_NH3_bf(I,J) +
-!-----------------------------------------------------------------------------
-! Prior to 11/16/04:
-! Now use NH3bf array which can contain EPA/NEI99 emissions
-!     &                         ( ENH3_bf(I,J) * DTSRCE )
-!-----------------------------------------------------------------------------
      &                         ( NH3bf(I,J)   * DTSRCE )   
 
             ! Natural source NH3
@@ -4646,9 +5627,9 @@
       SUBROUTINE READ_BIOMASS_SO2( THISMONTH )
 !
 !******************************************************************************
-!  Subroutine READ_BIOMASS_SOx reads monthly mean biomass burning 
+!  Subroutine READ_BIOMASS_SO2 reads monthly mean biomass burning 
 !  emissions for SO2.  SOx is read in, and converted to SO2. 
-!  (rjp, bdf, bmy, 1/16/03, 7/20/04)
+!  (rjp, bdf, bmy, 1/16/03, 1/11/05)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -4663,12 +5644,19 @@
 !        with QUIET=.TRUE. (bmy, 3/27/03)
 !  (4 ) Now references DATA_DIR from "directory_mod.f".  Also removed
 !        references to CMN and CMN_SETUP. (bmy, 7/20/04)
+!  (5 ) Now can read either seasonal or interannual biomass burning emissions.
+!        Now references routines from both "logical_mod.f" and "time_mod.f".
+!        Now reads SO2 biomass emissions directly rather than computing
+!        it by mole fraction from CO. (rjp, bmy, 1/11/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE GRID_MOD,      ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,   ONLY : LBBSEA
+      USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR, GET_MONTH,
+     &                          GET_TAU,        GET_YEAR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
       
 #     include "CMN_SIZE"  ! Size parameters
@@ -4677,49 +5665,128 @@
       INTEGER, INTENT(IN) :: THISMONTH
 
       ! Local variables
-      INTEGER             :: I, J
+      INTEGER             :: I, J, THISYEAR
       REAL*4              :: ARRAY(IGLOB,JGLOB,1)
       REAL*8              :: BIOCO(IIPAR,JJPAR)
-      REAL*8              :: XTAU, AREA_CM2
+      REAL*8              :: XTAU, AREA_CM2, TIME
+      CHARACTER(LEN=4  )  :: CYEAR
       CHARACTER(LEN=255)  :: FILENAME
+
+      ! Days per month
+      REAL*8              :: NMDAY(12) = (/ 31d0, 28d0, 31d0, 30d0,
+     &                                      31d0, 30d0, 31d0, 31d0, 
+     &                                      30d0, 31d0, 30d0, 31d0 /)
+
+!------------------------------------------------------------------------------
+! Prior to 1/11/05:
+! Now read biomass emissions from files instead of using molar ratios 
+! (rjp, bmy, 1/11/05)
+!      !=================================================================
+!      ! READ_BIOMASS_SO2 begins here!
+!      !
+!      ! Compute biomass SO2 from biomass CO.  Use a molar ratio 
+!      ! of 0.0026 moles SO2/mole CO. (rjp, bmy, 1/16/03)
+!      !=================================================================
+!      
+!      ! File name for climatological biomass burning
+!      FILENAME = TRIM( DATA_DIR )                       // 
+!     &           'biomass_200110/bioburn.seasonal.geos.'// GET_RES_EXT()
+!
+!      WRITE( 6, 100 ) TRIM( FILENAME )
+! 100  FORMAT( '     - READ_BIOMASS_SO2: Reading ', a )
+!
+!      ! Get TAU0 value (use generic year 1985)
+!      XTAU = GET_TAU0( THISMONTH, 1, 1985 )
+!
+!      ! Read Biomass burning of CO [molec/cm2/month]
+!      CALL READ_BPCH2( FILENAME, 'BIOBSRCE',    4, 
+!     &                 XTAU,      IGLOB,        JGLOB,     
+!     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. ) 
+!
+!      ! Cast from REAL*4 to REAL*8
+!      CALL TRANSFER_2D( ARRAY(:,:,1), BIOCO )
+!
+!      ! Convert from [molec CO/cm2/month] to [kg SO2/box/s]
+!      DO J = 1, JJPAR
+!
+!         ! Grid box surface area [cm2]
+!         AREA_CM2 = GET_AREA_CM2( J )
+!         
+!         DO I = 1, IIPAR
+!            ESO2_bb(I,J) = BIOCO(I,J) * AREA_CM2 * 
+!     &                     0.0026d0 * 64d-3 * 12.d0 /
+!     &                    ( 6.022d23 * 86400.d0 * 365.25d0 )
+!         ENDDO
+!      ENDDO
+!
+!------------------------------------------------------------------------------
 
       !=================================================================
       ! READ_BIOMASS_SO2 begins here!
-      !
-      ! Compute biomass SO2 from biomass CO.  Use a molar ratio 
-      ! of 0.0026 moles SO2/mole CO. (rjp, bmy, 1/16/03)
       !=================================================================
-      
-      ! File name for climatological biomass burning
-      FILENAME = TRIM( DATA_DIR )                       // 
-     &           'biomass_200110/bioburn.seasonal.geos.'// GET_RES_EXT()
+      IF ( THISMONTH == 2 ) THEN
+         IF( ITS_A_LEAPYEAR() ) THEN
+            NMDAY(2) = 29
+         ELSE
+            NMDAY(2) = 28
+         ENDIF
+      ENDIF
 
+      ! TIME = conversion from [molec/cm2/month] to [molec/cm2/s]
+      TIME = ( DBLE( NMDAY(THISMONTH) ) * 86400d0 )
+
+      ! Get current year
+      THISYEAR = GET_YEAR()
+
+      ! Create a string for the 4-digit year
+      WRITE( CYEAR, '(i4)' ) THISYEAR
+
+      ! Use seasonal or interannual emisisons?
+      IF ( LBBSEA ) THEN
+
+         !-----------------------------------------
+         ! Use seasonal biomass emissions
+         !-----------------------------------------
+
+         ! File name for seasonal BB emissions
+         FILENAME = TRIM( DATA_DIR )                            //
+     &              'biomass_200110/SO2.bioburn.seasonal.geos.' //
+     &              GET_RES_EXT()
+
+         ! Get TAU0 value (use generic year 1985)
+         XTAU = GET_TAU0( THISMONTH, 1, 1985 )      
+
+      ELSE
+
+         !-----------------------------------------
+         ! Use interannual biomass emissions for
+         ! years between 1996 and 2002
+         !-----------------------------------------
+
+         ! File name for interannual biomass burning emissions
+         FILENAME = TRIM( DATA_DIR )                               // 
+     &              'biomass_200110/SO2.bioburn.interannual.geos.' // 
+     &              GET_RES_EXT() // '.' // CYEAR
+
+         ! Use TAU0 value at start of this month to index punch file
+         XTAU = GET_TAU0( THISMONTH, 1, THISYEAR )
+    
+      ENDIF
+
+      ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - READ_BIOMASS_SO2: Reading ', a )
 
-      ! Get TAU0 value (use generic year 1985)
-      XTAU = GET_TAU0( THISMONTH, 1, 1985 )
+      ! Read SO2 emission data [kg/mon]
+      CALL READ_BPCH2( FILENAME, 'BIOBSRCE',     26, 
+     &                 XTAU,      IGLOB,         JGLOB,     
+     &                 1,         ARRAY(:,:,1),  QUIET=.TRUE. )
 
-      ! Read Biomass burning of CO [molec/cm2/month]
-      CALL READ_BPCH2( FILENAME, 'BIOBSRCE',    4, 
-     &                 XTAU,      IGLOB,        JGLOB,     
-     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. ) 
+      ! Cast to REAL*8 and resize
+      CALL TRANSFER_2D ( ARRAY(:,:,1), ESO2_bb )
 
-      ! Cast from REAL*4 to REAL*8
-      CALL TRANSFER_2D( ARRAY(:,:,1), BIOCO )
-
-      ! Convert from [molec CO/cm2/month] to [kg SO2/box/s]
-      DO J = 1, JJPAR
-
-         ! Grid box surface area [cm2]
-         AREA_CM2 = GET_AREA_CM2( J )
-         
-         DO I = 1, IIPAR
-            ESO2_bb(I,J) = BIOCO(I,J) * AREA_CM2 * 
-     &                     0.0026d0 * 64d-3 * 12.d0 /
-     &                    ( 6.022d23 * 86400.d0 * 365.25d0 )
-         ENDDO
-      ENDDO
+      ! Convert from [kg SO2/box/month] to [kg SO2/box/s]
+      ESO2_bb = ESO2_bb / TIME     
 
       !=================================================================
       ! Compute biofuel SO2 from biofuel CO.  Use a molar 
@@ -5120,7 +6187,7 @@
 !******************************************************************************
 !  Subroutine READ_BIOMASS_NH3 reads the monthly mean biomass NH3 
 !  and biofuel emissions from disk and converts to [kg NH3/box/s]. 
-!  (rjp, bdf, bmy, 9/20/02, 7/20/04)
+!  (rjp, bdf, bmy, 9/20/02, 1/11/05)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -5142,6 +6209,10 @@
 !  (6 ) Now references DATA_DIR from "directory_mod.f".  Now references LBBSEA
 !        from "logical_mod.f".  Removed references to CMN and CMN_SETUP.
 !        (bmy, 7/20/04)
+!  (7 ) Now can read either seasonal or interannual biomass burning emissions.
+!        Now references routines from both and "time_mod.f".  Now reads SO2 
+!        biomass emissions directly rather than computing it by mole fraction 
+!        from CO. (rjp, bmy, 1/11/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -5149,7 +6220,12 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE GRID_MOD,      ONLY : GET_AREA_M2
       USE LOGICAL_MOD,   ONLY : LBBSEA
-      USE TIME_MOD,      ONLY : GET_YEAR, GET_TAU
+      !---------------------------------------------------------
+      ! Prior to 1/11/05:
+      !USE TIME_MOD,      ONLY : GET_YEAR, GET_TAU      
+      !---------------------------------------------------------
+      USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR, GET_MONTH, 
+     &                          GET_TAU,        GET_YEAR    
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"  ! Size parameters
@@ -5158,9 +6234,9 @@
       INTEGER, INTENT(IN) :: THISMONTH
 
       ! Local variables
-      INTEGER             :: I, J, YEAR
+      INTEGER             :: I, J, THISYEAR
       REAL*4              :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8              :: XTAU, DMASS, AREA_M2, TAU
+      REAL*8              :: XTAU, DMASS, AREA_M2, TAU, TIME
       REAL*8              :: NMDAY(12) = (/ 31d0, 28d0, 31d0, 30d0,
      &                                      31d0, 30d0, 31d0, 31d0, 
      &                                      30d0, 31d0, 30d0, 31d0 /)
@@ -5170,6 +6246,121 @@
       !=================================================================
       ! READ_BIOMASS_NH3 begins here!
       !=================================================================
+
+!------------------------------------------------------------------------------
+! Prior to 1/11/05:
+! Now read biomass files directly instead of computing from molar ratios
+! (rjp, bmy, 1/11/05)
+!      ! Current TAU value
+!      TAU = GET_TAU()
+! 
+!      ! Use seasonal or interannual emisisons?
+!      IF ( LBBSEA ) THEN
+! 
+!         !-----------------------------------------
+!         ! Use seasonal biomass emissions
+!         !-----------------------------------------
+! 
+!         ! File name for seasonal BB emissions
+!         FILENAME = TRIM( DATA_DIR )                        //
+!     &              'biomass_200110/bioburn.seasonal.geos.' //
+!     &              GET_RES_EXT()
+! 
+!         ! Get TAU0 value (use generic year 1985)
+!         XTAU = GET_TAU0( THISMONTH, 1, 1985 )      
+!         
+!      ELSE IF ( ( .not. LBBSEA ) .AND. 
+!     &          ( TAU < 101520d0 .or. TAU > 140256d0 ) ) THEN
+! 
+!         !-----------------------------------------
+!         ! Use seasonal biomass emissions as a
+!         ! proxy for missing interannual emissions
+!         !-----------------------------------------
+! 
+!         ! File name for seasonal BB emissions
+!         FILENAME = TRIM( DATA_DIR )                        //
+!     &              'biomass_200110/bioburn.seasonal.geos.' //
+!     &              GET_RES_EXT()
+! 
+!         ! Get TAU0 value (use generic year 1985)
+!         XTAU = GET_TAU0( THISMONTH, 1, 1985 )   
+! 
+!      ELSE
+! 
+!         !-----------------------------------------
+!         ! Use interannual biomass emissions for
+!         ! years between 1996 and 2000 
+!         !-----------------------------------------
+! 
+!         ! Get year for interannual biomass emissions
+!         YEAR = MAX( MIN( GET_YEAR(), 2000 ), 1996 )
+! 
+!         ! Convert YEAR to a string
+!         ! Now use ENCODE to define CYEAR string for PGI/Linux (bmy, 9/29/03)
+!#if   defined ( LINUX_PGI ) 
+!         ENCODE( 4, '(i4)', CYEAR ) YEAR
+!#else
+!         WRITE( CYEAR, '(i4)' ) YEAR
+!#endif
+!    
+!         ! File name for interannual biomass burning emissions
+!         FILENAME = TRIM( DATA_DIR )                           //
+!     &              'biomass_200110/bioburn.interannual.geos.' //
+!     &               GET_RES_EXT() // '.' // CYEAR
+! 
+!         ! Get TAU0 value for the given year
+!         XTAU = GET_TAU0( THISMONTH, 1, YEAR ) 
+! 
+!      ENDIF
+! 
+!      ! Echo filename
+!      WRITE( 6, 100 ) TRIM( FILENAME )
+! 100  FORMAT( '     - READ_BIOMASS_NH3: Reading ', a )
+! 
+!      ! Read TOTAL Drymass burned [g/cm2] as tracer #33
+!      CALL READ_BPCH2( FILENAME, 'BIOBSRCE',    33, 
+!     &                 XTAU,      IGLOB,        JGLOB,      
+!     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
+! 
+!      ! Cast from REAL*4 to REAL*8 and resize if necessary
+!      CALL TRANSFER_2D( ARRAY(:,:,1), ENH3_bb )
+! 
+!      ! Loop over grid boxes
+!      DO J = 1, JJPAR
+!         
+!         ! Grid box surface area [m2]
+!         AREA_M2 = GET_AREA_M2( J )
+!         
+!         DO I = 1, IIPAR
+! 
+!            ! Convert [g/cm2/month] to [kg/box/s] dry biomass burned
+!            DMASS = ENH3_bb(I,J) * AREA_M2 * 10.d0 /
+!     &              ( NMDAY(THISMONTH) * 86400d0 )
+! 
+!            ! Convert [kg/box/s] dry biomass to [kg NH3/box/s]
+!            ! Using emission factor of 0.0013 from Andreae & Merlet 2001
+!            ENH3_bb(I,J) = DMASS * 0.0013d0          
+!         ENDDO
+!      ENDDO
+! 
+!------------------------------------------------------------------------------
+
+      IF ( THISMONTH == 2 ) THEN
+         IF( ITS_A_LEAPYEAR() ) THEN
+            NMDAY(2) = 29
+         ELSE
+            NMDAY(2) = 28
+         ENDIF
+      ENDIF
+
+      ! Conversion from [molec/cm2/month] to [molec/cm2/s]
+      TIME = NMDAY(THISMONTH) * 86400d0
+
+      ! Get current year
+      THISYEAR = GET_YEAR()
+
+      ! Create a string for the 4-digit year
+      WRITE( CYEAR, '(i4)' ) THISYEAR
 
       ! Current TAU value
       TAU = GET_TAU()
@@ -5182,87 +6373,45 @@
          !-----------------------------------------
 
          ! File name for seasonal BB emissions
-         FILENAME = TRIM( DATA_DIR )                        //
-     &              'biomass_200110/bioburn.seasonal.geos.' //
+         FILENAME = TRIM( DATA_DIR )                            // 
+     &              'biomass_200110/NH3.bioburn.seasonal.geos.' //
      &              GET_RES_EXT()
 
          ! Get TAU0 value (use generic year 1985)
          XTAU = GET_TAU0( THISMONTH, 1, 1985 )      
-         
-      ELSE IF ( ( .not. LBBSEA ) .AND. 
-     &          ( TAU < 101520d0 .or. TAU > 140256d0 ) ) THEN
-
-         !-----------------------------------------
-         ! Use seasonal biomass emissions as a
-         ! proxy for missing interannual emissions
-         !-----------------------------------------
-
-         ! File name for seasonal BB emissions
-         FILENAME = TRIM( DATA_DIR )                        //
-     &              'biomass_200110/bioburn.seasonal.geos.' //
-     &              GET_RES_EXT()
-
-         ! Get TAU0 value (use generic year 1985)
-         XTAU = GET_TAU0( THISMONTH, 1, 1985 )   
 
       ELSE
 
          !-----------------------------------------
          ! Use interannual biomass emissions for
-         ! years between 1996 and 2000 
+         ! years between 1996 and 2002 
          !-----------------------------------------
-
-         ! Get year for interannual biomass emissions
-         YEAR = MAX( MIN( GET_YEAR(), 2000 ), 1996 )
-
-         ! Convert YEAR to a string
-         ! Now use ENCODE to define CYEAR string for PGI/Linux (bmy, 9/29/03)
-#if   defined ( LINUX_PGI ) 
-         ENCODE( 4, '(i4)', CYEAR ) YEAR
-#else
-         WRITE( CYEAR, '(i4)' ) YEAR
-#endif
     
          ! File name for interannual biomass burning emissions
-         FILENAME = TRIM( DATA_DIR )                           //
-     &              'biomass_200110/bioburn.interannual.geos.' //
-     &               GET_RES_EXT() // '.' // CYEAR
+         FILENAME = TRIM( DATA_DIR )                               // 
+     &              'biomass_200110/NH3.bioburn.interannual.geos.' // 
+     &              GET_RES_EXT() // '.' // CYEAR
 
-         ! Get TAU0 value for the given year
-         XTAU = GET_TAU0( THISMONTH, 1, YEAR ) 
-
+         ! Use TAU0 value on 1st day of this month to index bpch file
+         XTAU = GET_TAU0( THISMONTH, 1, THISYEAR )
+   
       ENDIF
 
       ! Echo filename
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - READ_BIOMASS_NH3: Reading ', a )
 
-      ! Read TOTAL Drymass burned [g/cm2] as tracer #33
-      CALL READ_BPCH2( FILENAME, 'BIOBSRCE',    33, 
+      ! Read NH3 emission data [kg/mon] as tracer 29
+      CALL READ_BPCH2( FILENAME, 'BIOBSRCE',    29, 
      &                 XTAU,      IGLOB,        JGLOB,      
      &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
 
       ! Cast from REAL*4 to REAL*8 and resize if necessary
       CALL TRANSFER_2D( ARRAY(:,:,1), ENH3_bb )
 
-      ! Loop over grid boxes
-      DO J = 1, JJPAR
-         
-         ! Grid box surface area [m2]
-         AREA_M2 = GET_AREA_M2( J )
-         
-         DO I = 1, IIPAR
+      ! Convert from [kg NH3/box/month] to [kg NH3/box/s]
+      ENH3_bb = ENH3_bb / TIME     
 
-            ! Convert [g/cm2/month] to [kg/box/s] dry biomass burned
-            DMASS = ENH3_bb(I,J) * AREA_M2 * 10.d0 /
-     &              ( NMDAY(THISMONTH) * 86400d0 )
-
-            ! Convert [kg/box/s] dry biomass to [kg NH3/box/s]
-            ! Using emission factor of 0.0013 from Andreae & Merlet 2001
-            ENH3_bb(I,J) = DMASS * 0.0013d0          
-         ENDDO
-      ENDDO
- 
       !=================================================================
       ! Read NH3 biofuel emissions
       !=================================================================
@@ -5537,7 +6686,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_SULFATE initializes and zeros all allocatable arrays
-!  declared in "sulfate_mod.f" (bmy, 6/2/00, 7/20/04)
+!  declared in "sulfate_mod.f" (bmy, 6/2/00, 1/6/05)
 !
 !  NOTES:
 !  (1 ) Only allocate some arrays for the standalone simulation (NSRCX==10).
@@ -5551,17 +6700,22 @@
 !  (5 ) Now allocate ESO2_sh array (bec, bmy, 5/20/04)
 !  (6 ) Now allocates ITS_AN_AEROSOL_SIM from "tracer_mod.f".  Now remove 
 !        IJSURF (bmy, 7/20/04)
+!  (7 ) Now locate species in the DEPSAV array here instead of in CHEMSULFATE.
+!        Now reference LDRYD from "logical_mod.f".  Updated for AS, AHS, LET, 
+!        SO4aq, NH4aq. (bmy, 1/6/06)
 !******************************************************************************
 !
       ! References to F90 modules
+      USE DRYDEP_MOD,    ONLY : DEPNAME, NUMDEP
       USE ERROR_MOD,     ONLY : ALLOC_ERR
+      USE LOGICAL_MOD,   ONLY : LDRYD
       USE TRACER_MOD,    ONLY : ITS_AN_AEROSOL_SIM
 
 #     include "CMN_SIZE" ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE      :: IS_INIT = .FALSE.
-      INTEGER            :: AS, I, J, IJLOOP
+      INTEGER            :: AS, I, J, N, IJLOOP
 
       !=================================================================
       ! INIT_SULFATE begins here!
@@ -5692,7 +6846,7 @@
       VCLDF = 0d0
 
       !=================================================================
-      ! Only initialize the following for offline runs (NSRCX == 10)
+      ! Only initialize the following for offline aerosol simulations
       !=================================================================
       IF ( ITS_AN_AEROSOL_SIM() ) THEN
 
@@ -5721,7 +6875,60 @@
          COSZM = 0d0
       ENDIF
 
-      ! Set IS_INIT
+      !================================================================
+      ! Find drydep species in the DEPSAV array
+      !=================================================================
+      IF ( LDRYD ) THEN
+         
+         ! Initialize flags
+         DRYH2O2  = 0
+         DRYSO2   = 0
+         DRYSO4   = 0
+         DRYMSA   = 0
+         DRYNH3   = 0
+         DRYNH4   = 0
+         DRYNIT   = 0
+         DRYAS    = 0
+         DRYAHS   = 0
+         DRYLET   = 0
+         DRYSO4aq = 0
+         DRYNH4aq = 0         
+         
+         ! Locate position of each tracer in DEPSAV
+         DO N = 1, NUMDEP
+            SELECT CASE ( TRIM( DEPNAME(N) ) )
+               CASE ( 'H2O2'   )
+                  DRYH2O2  = N
+               CASE ( 'SO2'   )
+                  DRYSO2   = N
+               CASE ( 'SO4'   )
+                  DRYSO4   = N
+               CASE ( 'MSA'   )
+                  DRYMSA   = N
+               CASE ( 'NH3'   )
+                  DRYNH3   = N
+               CASE ( 'NH4'   )
+                  DRYNH4   = N
+               CASE ( 'NIT'   )
+                  DRYNIT   = N
+               CASE ( 'AS'    )
+                  DRYAS    = N
+               CASE ( 'AHS'   )
+                  DRYAHS   = N
+               CASE ( 'LET'   )
+                  DRYLET   = N
+               CASE ( 'SO4aq' )
+                  DRYSO4aq = N
+               CASE ( 'NH4aq' )
+                  DRYNH4aq = N
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT        
+         ENDDO
+
+      ENDIF
+
+      ! Reset IS_INIT so we do not allocate arrays again
       IS_INIT = .TRUE.
 
       ! Return to calling program

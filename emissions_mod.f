@@ -1,9 +1,9 @@
-! $Id: emissions_mod.f,v 1.8 2004/12/16 16:52:45 bmy Exp $
+! $Id: emissions_mod.f,v 1.9 2005/02/10 19:53:25 bmy Exp $
       MODULE EMISSIONS_MOD
 !
 !******************************************************************************
 !  Module EMISSIONS_MOD is used to call the proper emissions subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 2/11/03, 12/7/04)
+!  for the various GEOS-CHEM simulations. (bmy, 2/11/03, 1/11/05)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -36,6 +36,8 @@
 !  (5 ) Now references "logical_mod" & "tracer_mod.f" (bmy, 7/20/04)
 !  (6 ) Now references "epa_nei_mod.f" and "time_mod.f" (bmy, 11/5/04)
 !  (7 ) Now references "emissions_mod.f" (bmy, 12/7/04)
+!  (8 ) Now calls EMISSSULFATE if LCRYST=T.  Also read EPA/NEI emissions for 
+!        the offline aerosol simulation. (bmy, 1/11/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -52,7 +54,7 @@
 !******************************************************************************
 !  Subroutine DO_EMISSIONS is the driver routine which calls the appropriate
 !  emissions subroutine for the various GEOS-CHEM simulations. 
-!  (bmy, 2/11/03, 12/7/04)
+!  (bmy, 2/11/03, 1/10/05)
 !
 !  NOTES:
 !  (1 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
@@ -65,6 +67,8 @@
 !  (6 ) Now references ITS_A_NEW_MONTH from "time_mod.f".  Now references
 !        EMISS_EPA_NEI from "epa_nei_mod.f" (bmy, 11/5/04)
 !  (7 ) Now calls EMISSMERCURY from "mercury_mod.f" (eck, bmy, 12/7/04)
+!  (8 ) Now calls EMISSSULFATE if LCRYST=T.  Also read EPA/NEI emissions for
+!        the offline sulfate simulation. (cas, bmy, 1/10/05).
 !******************************************************************************
 !
       ! References to F90 modules
@@ -99,10 +103,21 @@
          CALL EMISSDR
 
          ! Emissions for various aerosol types
-         IF ( LSULF  ) CALL EMISSSULFATE
-         IF ( LCARB  ) CALL EMISSCARBON
-         IF ( LDUST  ) CALL EMISSDUST
-         IF ( LSSALT ) CALL EMISSSEASALT
+         IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE
+         IF ( LCARB             ) CALL EMISSCARBON
+         IF ( LDUST             ) CALL EMISSDUST
+         IF ( LSSALT            ) CALL EMISSSEASALT
+
+      ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+         
+         ! Read EPA/NEI99 emissions once per month
+         IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
+
+         ! Emissions for various aerosol types
+         IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE
+         IF ( LCARB             ) CALL EMISSCARBON
+         IF ( LDUST             ) CALL EMISSDUST
+         IF ( LSSALT            ) CALL EMISSSEASALT
 
       ELSE IF ( ITS_A_RnPbBe_SIM() ) THEN
          
@@ -138,14 +153,6 @@
 
          ! Mercury
          CALL EMISSMERCURY
-
-      ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
-
-         ! Offline Sulfate, carbon, & dust
-         IF ( LSULF  ) CALL EMISSSULFATE
-         IF ( LCARB  ) CALL EMISSCARBON
-         IF ( LDUST  ) CALL EMISSDUST
-         IF ( LSSALT ) CALL EMISSSEASALT
 
 !-----------------------------------------------------------------------------
 ! Prior to 2/11/03:

@@ -1,4 +1,4 @@
-! $Id: chemistry_mod.f,v 1.12 2004/12/16 16:52:44 bmy Exp $
+! $Id: chemistry_mod.f,v 1.13 2005/02/10 19:53:23 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
@@ -82,6 +82,8 @@
 !        AOD's to the ND21 diagnostic for offline runs. (bmy, 7/20/04)
 !  (8 ) Now call routine CHEMMERCURY from "mercury_mod.f" for an offline
 !        Hg0/Hg2/HgP simulation. (eck, bmy, 12/7/04)
+!  (9 ) Now do not call DO_RPMARES if we are doing an offline aerosol run
+!        with crystalline sulfur & aqueous tracers (cas, bmy, 1/7/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -188,6 +190,70 @@
             ENDIF
 
          !---------------------------------
+         ! Offline aerosol simulation
+         !---------------------------------
+         ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+            
+            ! Get relative humidity
+            CALL MAKE_RH
+
+            ! Define loop index and other SMVGEAR arrays
+            ! N_TROP, the # of trop boxes, is returned
+            CALL AEROSOL_RURALBOX( N_TROP )
+
+            ! Initialize FAST-J quantities for computing AOD's
+            IF ( FIRST ) THEN
+               CALL READER( FIRST )
+               CALL READCHEM
+               CALL INPHOT( LLTROP, NPHOT )
+
+               ! Reset NCS with NCSURBAN
+               NCS     = NCSURBAN
+
+               ! Reset NTLOOP and NTTLOOP after call to READER
+               ! with the actual # of boxes w/in the ann mean trop
+               NTLOOP  = N_TROP
+               NTTLOOP = N_TROP
+
+               ! Reset first-time flag
+               FIRST = .FALSE.
+            ENDIF
+
+            ! Compute aerosol & dust concentrations [kg/m3]
+            ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
+            CALL AEROSOL_CONC
+
+            ! Compute AOD's and surface areas
+            CALL RDAER
+
+            !*** SULFATE AEROSOLS ***
+            IF ( LSULF .or. LCRYST ) THEN
+
+               ! Do sulfate chemistry
+               CALL CHEMSULFATE
+
+               ! Do aerosol phase equilibrium
+               ! (skip for crystalline & aqueous offline run)
+               IF ( .not. LCRYST ) CALL DO_RPMARES
+            ENDIF
+               
+            !*** CARBON AND 2NDARY ORGANIC AEROSOLS ***
+            IF ( LCARB ) CALL CHEMCARBON
+
+            !*** MINERAL DUST AEROSOLS ***
+            IF ( LDUST ) THEN 
+
+               ! Do dust aerosol chemsitry
+               CALL CHEMDUST
+
+               ! Compute dust OD's & surface areas
+               CALL RDUST_ONLINE( SOILDUST )
+            ENDIF
+
+            !*** SEASALT AEROSOLS ***
+            IF ( LSSALT ) CALL CHEMSEASALT
+
+         !---------------------------------
          ! Rn-Pb-Be
          !---------------------------------                 
          ELSE IF ( ITS_A_RnPbBe_SIM() ) THEN
@@ -245,66 +311,6 @@
 
             ! Do Hg chemistry
             CALL CHEMMERCURY
-
-         !---------------------------------
-         ! Offline aerosol simulation
-         !---------------------------------
-         ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
-
-            ! Get relative humidity
-            CALL MAKE_RH
-
-            ! Define loop index and other SMVGEAR arrays
-            ! N_TROP, the # of trop boxes, is returned
-            CALL AEROSOL_RURALBOX( N_TROP )
-
-            ! Initialize FAST-J quantities for computing AOD's
-            IF ( FIRST ) THEN
-               CALL READER( FIRST )
-               CALL READCHEM
-               CALL INPHOT( LLTROP, NPHOT )
-
-               ! Reset NTLOOP and NTTLOOP after call to READER
-               ! with the actual # of boxes w/in the ann mean trop
-               NTLOOP  = N_TROP
-               NTTLOOP = N_TROP
-
-               ! Reset first-time flag
-               FIRST = .FALSE.
-            ENDIF
-
-            ! Compute aerosol & dust concentrations [kg/m3]
-            ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
-            CALL AEROSOL_CONC
-
-            ! Compute AOD's and surface areas
-            CALL RDAER
-
-            !*** SULFATE AEROSOLS ***
-            IF ( LSULF ) THEN
-
-               ! Do sulfate chemistry
-               CALL CHEMSULFATE
-
-               ! Do aerosol phase equilibrium
-               CALL DO_RPMARES
-            ENDIF
-               
-            !*** CARBON AND 2NDARY ORGANIC AEROSOLS ***
-            IF ( LCARB ) CALL CHEMCARBON
-
-            !*** MINERAL DUST AEROSOLS ***
-            IF ( LDUST ) THEN 
-
-               ! Do dust aerosol chemsitry
-               CALL CHEMDUST
-
-               ! Compute dust OD's & surface areas
-               CALL RDUST_ONLINE( SOILDUST )
-            ENDIF
-
-            !*** SEASALT AEROSOLS ***
-            IF ( LSSALT ) CALL CHEMSEASALT
                
 !-----------------------------------------------------------------------------
 ! Prior to 7/19/04:

@@ -1,11 +1,11 @@
-! $Id: seasalt_mod.f,v 1.3 2004/12/02 21:48:40 bmy Exp $
+! $Id: seasalt_mod.f,v 1.4 2005/02/10 19:53:27 bmy Exp $
       MODULE SEASALT_MOD
 !
 !******************************************************************************
 !  Module SEASALT_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline seasalt aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (bec, rjp, bmy, 6/22/00, 7/20/04)
+!  (bec, rjp, bmy, 6/22/00, 1/20/05)
 !
 !  Seasalt aerosol species: (1) Accumulation mode (0.1 -  2.5 um)  
 !                           (2) Coarse mode       (2.5 - 10.0 um)
@@ -58,6 +58,7 @@
 !  (1 ) Now references "logical_mod.f" and "tracer_mod.f".  Comment out 
 !        SS_SIZE, this has been replaced by SALA_REDGE_um and SALC_REDGE_um
 !        from "tracer_mod.f".  Increased NR_MAX to 200. (bmy, 7/20/04)
+!  (2 ) Added error check in EMISSSEASALT (bmy, 1/20/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -500,12 +501,14 @@
 !******************************************************************************
 !  Subroutine EMISSSEASALT is the interface between the GEOS-CHEM model
 !  and the SEASALT emissions routines in "seasalt_mod.f".
-!  (bec, rjp, bmy, 3/24/03, 4/20/04)
+!  (bec, rjp, bmy, 3/24/03, 1/26/05)
 !
 !  NOTES:
 !  (1 ) Now references LPRT from "logical_mod.f" and STT from "tracer_mod.f".
 !        (bmy, 7/20/04)
-!*****************************************************************************
+!  (2 ) Now make sure IDTSALA, IDTSALC are nonzero before calling SRCSALT.
+!        (bmy, 1/26/05)
+!******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,    ONLY : DEBUG_MSG
@@ -521,12 +524,16 @@
       !=================================================================
 
       ! Accumulation mode
-      CALL SRCSALT( STT(:,:,:,IDTSALA), 1 )
-      IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Accum' )
+      IF ( IDTSALA > 0 ) THEN
+         CALL SRCSALT( STT(:,:,:,IDTSALA), 1 )
+         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Accum' )
+      ENDIF
 
       ! Coarse mode
-      CALL SRCSALT( STT(:,:,:,IDTSALC), 2 )
-      IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Coarse' )
+      IF ( IDTSALC > 0 ) THEN
+         CALL SRCSALT( STT(:,:,:,IDTSALC), 2 )
+         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Coarse' )
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE EMISSSEASALT

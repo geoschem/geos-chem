@@ -1,11 +1,11 @@
-! $Id: planeflight_mod.f,v 1.10 2004/12/02 21:48:39 bmy Exp $
+! $Id: planeflight_mod.f,v 1.11 2005/02/10 19:53:27 bmy Exp $
       MODULE PLANEFLIGHT_MOD
 !
 !******************************************************************************
 !  Module PLANEFLIGHT_MOD contains variables and routines which are used to
 !  "fly" a plane through the GEOS-CHEM model simulation.  This is useful for
 !  comparing model results with aircraft observations. 
-!  (mje, bmy, 7/30/02, 7/20/04)
+!  (mje, bmy, 7/30/02, 1/7/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -18,7 +18,7 @@
 !  (7 ) PTIME       (REAL*4   ) : Array of times     at each flight point
 !  (8 ) PTAU        (REAL*4   ) : Array of TAU's     at each flight point
 !  (9 ) PLAT        (REAL*4   ) : Array of latitude  at each flight point
-!  (10) PLON        (REAL*4   ) : Array of longitude at each flight point
+!  (10) PLON        REAL*4   ) : Array of longitude at each flight point
 !  (11) PPRESS      (REAL*4   ) : Array of pressure  at each flight point
 !  (12) PTYPE       (CHARACTER) : Array of ID'#S     at each flight point
 !  (13) NPVAR       (INTEGER  ) : # of var's to be saved at each flight point
@@ -72,6 +72,7 @@
 !  (10) Changed "DAO" to "GMAO" for met field variable names.  Now can save 
 !        aerosol optical depths.  Bug fix in TEST_VALID. (bmy, 4/23/03)
 !  (11) Now references "tracer_mod.f" (bmy, 7/20/04)
+!  (12) Bug fix in READ_VARIABLES (1/7/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -239,7 +240,7 @@
 !  Subroutine READ_VARIABLES reads the list of variables (SMVGEAR species,
 !  SMVGEAR rxn rates, DAO met fields, or GEOS-CHEM tracers) to be printed
 !  out and sorts the information into the appropriate module variables.
-!  (mje, bmy, 7/30/02, 4/23/04)
+!  (mje, bmy, 7/30/02, 1/7/05)
 !
 !  NOTES:
 !  (1 ) Now references GEOS_CHEM_STOP from "error_mod.f", which frees all
@@ -252,6 +253,7 @@
 !        optical depths w/ tracer offset 2000. (bmy, 4/23/04)
 !  (7 ) Now references N_TRACERS & ITS_A_FULLCHEM_SIM from "tracer_mod.f"
 !        (bmy, 7/20/04)
+!  (8 ) Bug fix: extract tracer # when reading rxn rates (bmy, 1/7/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -368,6 +370,9 @@
                ! Skip if not SMVGEAR!
                IF ( IS_FULLCHEM ) THEN 
                
+                  ! Extract tracer # from the string
+                  READ( LINE(5:14), '(i10)' ) NUM
+
                   ! Increment rxn counter
                   R = R + 1
 
@@ -408,7 +413,7 @@
                         ENDIF
                      ENDDO
 
-                     ! Stop w/ error f 
+                     ! Stop w/ error 
                      IF ( PVAR(N) == -999 ) THEN 
                         WRITE (6,*) 'Cant match up reaction number'
                         WRITE (6,*) NUM

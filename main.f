@@ -1,5 +1,14 @@
-C $Id: main.f,v 1.20 2004/12/16 16:52:45 bmy Exp $
+C $Id: main.f,v 1.21 2005/02/10 19:53:26 bmy Exp $
 C $Log: main.f,v $
+C Revision 1.21  2005/02/10 19:53:26  bmy
+C GEOS-CHEM v7-02-03, includes the following modifications:
+C - Added online ocean fluxes of Hg0 in "ocean_mercury_mod.f"
+C - Updated "mercury_mod.f" with new drydep & reduction formulations
+C - Added phase transition of crystalline sulfur tracers
+C - Bug fix: offline AOD diagnostics give identical results as online AOD's
+C - Now can use interannual or seasonal biomass for SO2, NH4, BCPO, OCPO
+C - Fixed minor bugs and removed obsolete code
+C
 C Revision 1.20  2004/12/16 16:52:45  bmy
 C GEOS-CHEM v7-02-02, includes the following modifications:
 C - Now uses leaf area indices derived from AVHRR data (cf May Fu)
@@ -76,8 +85,12 @@ C
       USE A3_READ_MOD
       USE A6_READ_MOD
       USE BENCHMARK_MOD,     ONLY : STDRUN
-      USE BPCH2_MOD,         ONLY : BPCH2, GET_MODELNAME, 
-     &                              OPEN_BPCH2_FOR_WRITE
+!-----------------------------------------------------------------
+! Prior to 2/3/05:
+! We no longer write to bpch files in "main.f"
+!      USE BPCH2_MOD,         ONLY : BPCH2, GET_MODELNAME, 
+!     &                              OPEN_BPCH2_FOR_WRITE
+!-----------------------------------------------------------------
       USE CHEMISTRY_MOD,     ONLY : DO_CHEMISTRY
       USE CONVECTION_MOD,    ONLY : DO_CONVECTION
       USE COMODE_MOD,        ONLY : INIT_COMODE
@@ -144,8 +157,12 @@ C
       ! Read input file and call init routines from other modules
       CALL READ_INPUT_FILE 
 
-      ! Make sure last day of run has diagnostic output scheduled
-      CALL IS_LAST_DAY_GOOD
+      !-----------------------------------------------------------------
+      ! Prior to 1/11/05
+      ! Now move this into "input_mod.f" (bmy, 1/11/05)
+      !! Make sure last day of run has diagnostic output scheduled
+      !CALL IS_LAST_DAY_GOOD
+      !-----------------------------------------------------------------
 
       ! Initialize met field arrays from "dao_mod.f"
       CALL INIT_DAO
@@ -166,12 +183,16 @@ C
          IF ( ITS_A_FULLCHEM_SIM() ) CALL INIT_COMODE
          IF ( ITS_AN_AEROSOL_SIM() ) CALL INIT_COMODE
       ENDIF
-
+         
       ! Allocate arrays from "global_ch4_mod.f" for CH4 run 
       IF ( ITS_A_CH4_SIM() ) CALL INIT_GLOBAL_CH4
 
-      ! Open BPCH file for output
-      CALL OPEN_BPCH2_FOR_WRITE( IU_BPCH, 'ctm.bpch' )
+      !-----------------------------------------------------------
+      ! Prior to 2/2/05:
+      ! Now move this to w/in "input_mod.f"
+      !! Open BPCH file for output
+      !CALL OPEN_BPCH2_FOR_WRITE( IU_BPCH, 'ctm.bpch' )
+      !-----------------------------------------------------------
 
       !=================================================================
       !   ***** U N Z I P   M E T   F I E L D S  @ start of run *****
@@ -596,7 +617,7 @@ C
          IF ( ITS_TIME_FOR_DYN() ) THEN
 
             ! Call the appropritate version of TPCORE
-            IF ( LTRAN ) CALL DO_TRANSPORT
+            IF ( LTRAN ) CALL DO_TRANSPORT               
 
             ! Reset air mass quantities
             CALL AIRQNT
@@ -688,7 +709,7 @@ C
          !===========================================================    
 
          ! Setup fields for CO_OH parameterization
-         CALL SETUP_CO_OH_CHEM
+         IF ( ITS_A_COPARAM_SIM() ) CALL SETUP_CO_OH_CHEM
 
          ! Also need to compute avg P, T for CH4 chemistry (bmy, 1/16/01)
          IF ( ITS_A_CH4_SIM() ) CALL CH4_AVGTP
@@ -706,7 +727,6 @@ C
          !==============================================================
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
          !==============================================================
-         CALL CHECK_STT( 'before DO_WETDEP' )
          IF ( LWETD .and. ITS_TIME_FOR_DYN() ) CALL DO_WETDEP
 
          ! Activate this here someday (bmy, 7/20/04)
@@ -951,51 +971,6 @@ C
 
       ! Return to MAIN program
       END FUNCTION GET_NYMD_PHIS
-      
-!-----------------------------------------------------------------------------
-
-      SUBROUTINE IS_LAST_DAY_GOOD
-
-      !=================================================================
-      ! Internal function IS_LAST_DAY_GOOD tests to see if there is
-      ! output scheduled on the last day of the run.  (bmy, 9/25/03)
-      !=================================================================
-
-      ! References to F90 modules
-      USE JULDAY_MOD, ONLY : JULDAY
-
-      ! Local variables
-      INTEGER :: NYMDe, Y, M, D, LASTDAY
-      REAL*8  :: JD, JD0
-
-      !=================================================================
-      ! IS_LAST_DAY_GOOD begins here!
-      !=================================================================
-
-      ! Astronomical Julian Day corresponding to NYMDe
-      NYMDe = GET_NYMDe()
-      CALL YMD_EXTRACT( NYMDe, Y, M, D )
-      JD = JULDAY( Y, M, DBLE( D ) )
-
-      ! Astronomical Julian Day corresponding to the 1st of the year
-      JD0 = JULDAY( Y, 1, 0d0 )
-
-      ! LASTDAY is the day of year corresponding to NYMDe      
-      LASTDAY = JD - JD0
-
-      ! Skip past the element of NJDAY for Feb 29, if necessary
-      IF ( .not. ITS_A_LEAPYEAR( Y ) .and. LASTDAY > 59 ) THEN
-         LASTDAY = LASTDAY + 1
-      ENDIF
-
-      ! Stop w/ error if THIS_NJDAY = 0 
-      IF ( NJDAY(LASTDAY) == 0 ) THEN
-         CALL ERROR_STOP( 'No output scheduled on last day of run!',
-     &                    'IS_LAST_DAY_GOOD (main.f)' )
-      ENDIF
-     
-      ! Return to calling program
-      END SUBROUTINE IS_LAST_DAY_GOOD
       
 !-----------------------------------------------------------------------------
 

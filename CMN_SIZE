@@ -1,4 +1,4 @@
-! $Id: CMN_SIZE,v 1.10 2004/12/02 21:48:31 bmy Exp $
+! $Id: CMN_SIZE,v 1.11 2005/02/10 19:53:21 bmy Exp $
       !=======================================================================
       ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 12/1/04)
       !
@@ -312,16 +312,6 @@
       ! NOTE: Need to define these for LGEOSCO, even if FULLCHEM
       !       and SMALLCHEM switches are turned off (bmy, 10/2/00)
       !=================================================================
-!----------------------------------------------------
-! Prior to 12/1/04:
-! SMALLCHEM is now obsolete (bmy, 12/1/04)
-!#if   defined( SMALLCHEM )
-!      INTEGER, PARAMETER :: NNPAR   = 6
-!      INTEGER, PARAMETER :: NEMPARA = 10
-!      INTEGER, PARAMETER :: NEMPARB = 1
-!           
-!#elif   defined( FULLCHEM  )          
-!----------------------------------------------------
 #if   defined( FULLCHEM  )
       INTEGER, PARAMETER :: NNPAR   = 50
       INTEGER, PARAMETER :: NEMPARA = 10

@@ -1,9 +1,9 @@
-! $Id: mercury_mod.f,v 1.1 2004/12/16 16:52:45 bmy Exp $
+! $Id: mercury_mod.f,v 1.2 2005/02/10 19:53:26 bmy Exp $
       MODULE MERCURY_MOD
 !
 !******************************************************************************
 !  Module MERCURY_MOD contains variables and routines for the GEOS-CHEM 
-!  mercury simulation. (eck, bmy, 12/14/04)
+!  mercury simulation. (eck, bmy, 12/14/04, 1/21/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -59,21 +59,21 @@
 !
 !  GEOS-CHEM modules referenced by mercury_mod.f
 !  ============================================================================
-!  (1 ) bpch2_mod.f       : Module containing routines for binary pch file I/O
-!  (2 ) comode_mod.f      : Module containing SMVGEAR allocatable arrays
-!  (3 ) dao_mod.f         : Module containing arrays for DAO met fields
-!  (4 ) diag_mod.f        : Module containing GEOS-CHEM diagnostic arrays
-!  (5 ) drydep_mod.f      : Module containing GEOS-CHEM dry deposition routines
-!  (6 ) error_mod.f       : Module containing NaN, other error check routines
-!  (7 ) global_o3_mod.f   : Module containing routines to read 3-D O3 field
-!  (8 ) global_oh_mod.f   : Module containing routines to read 3-D OH field
-!  (9 ) grid_mod.f        : Module containing horizontal grid information
-!  (10) logical_mod.f     : Module containing GEOS-CHEM logical switches
-!  (11) pressure_mod.f    : Module containing routines to compute P(I,J,L)
-!  (12) time_mod.f        : Module containing routines to compute date & time
-!  (13) tracer_mod.f      : Module containing GEOS-CHEM tracer array STT etc.
-!  (14) tracerid_mod.f    : Module containing pointers to tracers & emissions
-!  (15) transfer_mod.f    : Module containing routines to cast & resize arrays
+!  (1 ) bpch2_mod.f       : Module w/ routines for binary pch file I/O
+!  (2 ) comode_mod.f      : Module w/ SMVGEAR allocatable arrays
+!  (3 ) dao_mod.f         : Module w/ arrays for DAO met fields
+!  (4 ) diag_mod.f        : Module w/ GEOS-CHEM diagnostic arrays
+!  (5 ) drydep_mod.f      : Module w/ GEOS-CHEM dry deposition routines
+!  (6 ) error_mod.f       : Module w/ NaN, other error check routines
+!  (7 ) global_o3_mod.f   : Module w/ routines to read 3-D O3 field
+!  (8 ) global_oh_mod.f   : Module w/ routines to read 3-D OH field
+!  (9 ) grid_mod.f        : Module w/ horizontal grid information
+!  (10) logical_mod.f     : Module w/ GEOS-CHEM logical switches
+!  (11) pressure_mod.f    : Module w/ routines to compute P(I,J,L)
+!  (12) time_mod.f        : Module w/ routines to compute date & time
+!  (13) tracer_mod.f      : Module w/ GEOS-CHEM tracer array STT etc.
+!  (14) tracerid_mod.f    : Module w/ pointers to tracers & emissions
+!  (15) transfer_mod.f    : Module w/ routines to cast & resize arrays
 !
 !  Nomenclature: 
 !  ============================================================================
@@ -105,16 +105,22 @@
 !  (19) HgP_an_eur        : HgP    - European anthropogenic
 !  (20) HgP_an_as         : HgP    - Asian anthropogenic
 !  (21) HgP_an_rw         : HgP    - Rest of world anthropogenic
+!  -----------------------+----------------------------------------------------
 !  (22) HgP_oc            : HgP    - Ocean emission        (FOR FUTURE USE)
 !  (23) HgP_ln            : HgP    - Land reemission       (FOR FUTURE USE)
 !  (24) HgP_nt            : HgP    - Land natural emission (FOR FUTURE USE)
 !
-!  References
+!  References:
 !  ============================================================================
-!  (1 ) Hall, 1995
-!  (2 ) Sommar et al. 2001
+!  (1 ) Hall, B. (1995). "The gas phase oxidation of elemental mercury by 
+!        ozone.", Water, Air, and Soil Pollution 80: 301-315.
+!  (2 ) Sommar, J., et al. (2001). "A kinetic study of the gas-phase 
+!        reaction between the hydroxyl radical and atomic mercury." 
+!        Atmospheric Environment 35: 3049-3054.
 !
 !  NOTES:
+!  (1 ) Updated for reduction rxn and online Hg0 ocean flux.  Now use 
+!        diagnostic arrays from "diag03_mod.f".  (eck, sas, bmy, 1/21/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -246,7 +252,8 @@
 !******************************************************************************
 !  Subroutine CHEM_Hg0_Hg2 is the chemistry subroutine for the oxidation/
 !  reduction of Hg0/Hg(II).  For tracers with dry deposition, the loss rate 
-!  of dry dep is combined in the chemistry loss term. (eck, bmy, 12/6/04)
+!  of dry dep is combined in the chemistry loss term. 
+!  (eck, bmy, 12/6/04, 1/21/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -268,10 +275,17 @@
 !  (3 ) Hg(II) is dry-deposited,        kd = Dvel/DELZ (sec-1)        
 !     
 !  NOTES:
+!  (1 ) Updated for reduction reaction.  Now use diagnostic arrays from
+!        "diag03_mod.f" (eck, bmy, 1/21/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD,     ONLY : AD03_Hg2_Hg0, AD03_Hg2_O3, AD03_Hg2_OH
+      !-------------------------------------------------------------------
+      ! Prior to 1/21/05:
+      !USE DIAG_MOD,     ONLY : AD03_Hg2_Hg0, AD03_Hg2_O3, AD03_Hg2_OH
+      !-------------------------------------------------------------------
+      USE DIAG03_MOD,   ONLY : AD03_Hg2_Hg0, AD03_Hg2_O3,
+     &                         AD03_Hg2_OH,  LD03,  ND03
       USE DAO_MOD,      ONLY : T, AD
       USE LOGICAL_MOD,  ONLY : LSPLIT
       USE TIME_MOD,     ONLY : GET_TS_CHEM
@@ -280,7 +294,6 @@
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_O3"       ! XNUMOL
-#     include "CMN_DIAG"     ! ND03, LD03
 
       ! Arguments
       REAL*8, INTENT(IN)     :: V_DEP_Hg2(IIPAR,JJPAR)
@@ -291,11 +304,11 @@
       REAL*8                 :: DRYDEP,      DTCHEM,      E_RKT
       REAL*8                 :: E_K1,        E_K2,        FA
       REAL*8                 :: FC,          K1,          K2          
-      REAL*8                 :: KD,          KO,          KR
-      REAL*8                 :: KT,          LOST_Hg0,    LOST_Hg0_an
-      REAL*8                 :: LOST_Hg0_oc, LOST_Hg0_ln, LOST_Hg0_nt
-      REAL*8                 :: LOST_Hg0_O3, LOST_Hg0_OH, LWC
-      REAL*8                 :: NK1,         NK2,         RKT
+      REAL*8                 :: Ko,          Kr,          Kt
+      REAL*8                 :: Kr_Kt,       NK1,         NK2
+      REAL*8                 :: LOST_Hg0,    LOST_Hg0_an, LOST_Hg0_oc
+      REAL*8                 :: LOST_Hg0_ln, LOST_Hg0_nt, LOST_Hg0_O3
+      REAL*8                 :: LOST_Hg0_OH, LWC,         RKT
 
       ! K for reaction Hg0 + O3 in cm3 molec-1 s-1 (Source: Hall '95)
       REAL*8, PARAMETER      :: K       = 3.0d-20
@@ -304,20 +317,14 @@
       REAL*8, PARAMETER      :: K_HG_OH = 8.7d-14
 
       ! Henry's Law constant for Hg2
-      REAL*8, PARAMETER      :: HL      = 1.4D6
+      REAL*8, PARAMETER      :: HL      = 1.4d6
 
-      ! R
-      REAL*8, PARAMETER      :: R       = 8.2D-2
+      ! Gas constant??
+      REAL*8, PARAMETER      :: R       = 8.2d-2
 
       ! K for reduction (scaled to budget and OH conc)
-      ! testing in progress
-      !-----------------------------------------------------------------
-      ! Prior to 12/10/04:
-      ! Set KRED to zero for testing.  We still need to pin down the
-      ! value of the reduction rate constant (eck, bmy, 12/10/04)
-      !REAL*8, PARAMETER      :: KRED    = 1.5D-17
-      !-----------------------------------------------------------------
-      REAL*8, PARAMETER      :: KRED    = 0d0
+      ! eck may change this later
+      REAL*8, PARAMETER      :: Kred    = 1.05d-10
      
       ! External functions
       REAL*8,  EXTERNAL      :: BOXVL
@@ -335,9 +342,9 @@
 !$OMP+PRIVATE( LOST_Hg0_an, LOST_Hg0_oc, LOST_Hg0_ln, LOST_Hg0_nt )
 !$OMP+PRIVATE( LOST_Hg0_O3, LOST_Hg0_OH, C_O3,        C_OH        )
 !$OMP+PRIVATE( FC,          LWC,         FA,          K1          )
-!$OMP+PRIVATE( K2,          KO,          KR,          KT          )
-!$OMP+PRIVATE( RKT,         E_RKT,       E_K1,        E_K2        )
-!$OMP+PRIVATE( NK1,         NK2                                   )
+!$OMP+PRIVATE( K2,          Ko,          Kr,          Kt          )
+!$OMP+PRIVATE( Kr_Kt,       RKT,         E_RKT,       E_K1        )
+!$OMP+PRIVATE( E_K2,        NK1,         NK2                      )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -368,16 +375,21 @@
          ! Define K's for the oxidation reactions
          K1          = K       * C_O3
          K2          = K_HG_OH * C_OH
-         KO          = K1      + K2
+         Ko          = K1      + K2
          
          ! Define K for the reduction reaction.  Include the fraction of 
          ! Hg(II) in air within the Kreduction & scale to OH concentration
-         KR          = KRED * FA * C_OH 
+         Kr          = Kred * FA * C_OH 
          
          ! Total rate constant: Oxidation + Reduction
-         KT          = KO + KR
-         RKT         = KT * DTCHEM
-            
+         Kt          = Ko + Kr
+
+         ! Ratio of Kr / Kt 
+         Kr_Kt       = Kr / Kt
+
+         ! Kt * timestep (i.e. the argument for EXP) [unitless]
+         RKT         = Kt * DTCHEM
+        
          ! Compute the exponential terms for use below
          E_RKT       = EXP( -RKT         )
          E_K1        = EXP( -K1 * DTCHEM )
@@ -391,10 +403,13 @@
          ! Aqueous chem occurs if Kr>0, it's cloudy, and T > -15 C.
          ! In this case we have the reaction:
          !
-         !    New Hg(0) =  ( Old Hg(0)     *   EXP( -KT )         ) + 
-         !                 ( Old Hg(II)/KT * ( 1d0 - EXP( -KT ) ) )
+         !    New Hg(0) = {  ( Old Hg(0) * EXP( -Kt * DT ) )          } +
+         !                {  ( Old Hg(0) + Old Hg(II)      ) * Kr/Kt * 
+         !                   (         1 - EXP( -Kt * DT ) )          }    
          !
-         ! where: KT         = K of the reduction rxn * Temperature
+         ! where: Kr         = K of the reduction rxn
+         !        Kt         = K of the total rxn (oxidation + reduction)
+         !        DT         = Chemistry timestep [s]
          !        Old Hg(0)  = Hg(0)  at start of this timestep
          !        Old Hg(II) = Hg(II) as start of this timestep
          !
@@ -407,21 +422,22 @@
          ! If aqueous chemistry does not happen, then Hg(0) is converted 
          ! to Hg(II) via the oxidation rxns with rate constants K1, K2:
          !
-         !    New Hg(0) = Old_Hg(0) * EXP( -K1 * T ) * EXP( -K2 * T )
+         !    New Hg(0) = Old_Hg(0) * EXP( -K1 * DT ) * EXP( -K2 * DT )
          !
          ! The amt of Hg(0) lost in these rxns rxn becomes Hg(II):
          !
          !    Hg(0) converted to Hg(II) = Old Hg(0) - New Hg(0)
          !==============================================================
-         IF ( KR > 0d0 .and. FC > 0d0 .and. T(I,J,L) > 258d0 ) THEN
+         IF ( Kr > 0d0 .and. FC > 0d0 .and. T(I,J,L) > 258d0 ) THEN
                      
             !--------------------------------------------
             ! CASE 1: Total Hg(II) tracer, aq chem
             !--------------------------------------------
 
             ! Conversion of total Hg(0) --> Hg(II) 
-            CALL RXN_Hg0_Hg2( I,      J,   L,     IDTHG0, 
-     &                        IDTHG2, RKT, E_RKT, LOST_Hg0 )
+            CALL RXN_Hg0_Hg2( I,      J,      L,     
+     &                        IDTHG0, IDTHG2, RKT, 
+     &                        E_RKT,  Kr_Kt,  LOST_Hg0 )
 
             !--------------------------------------------
             ! CASE 1: Tagged Hg(II) tracers, aq chem
@@ -429,20 +445,24 @@
             IF ( LSPLIT ) THEN
                
                ! Conversion of tagged anthro Hg(0) --> Hg(II) 
-               CALL RXN_Hg0_Hg2( I,           J,   L,     AN_Hg0(I,J),
-     &                           AN_Hg2(I,J), RKT, E_RKT, LOST_Hg0_an )
+               CALL RXN_Hg0_Hg2( I,           J,           L,     
+     &                           AN_Hg0(I,J), AN_Hg2(I,J), RKT, 
+     &                           E_RKT,       Kr_Kt,       LOST_Hg0_an )
 
                ! Conversion of tagged oceanic Hg(0) --> Hg(II) 
-               CALL RXN_Hg0_Hg2( I,           J,   L,     OC_Hg0, 
-     &                           OC_Hg2,      RKT, E_RKT, LOST_Hg0_oc )
+               CALL RXN_Hg0_Hg2( I,           J,           L,     
+     &                           OC_Hg0,      OC_Hg2,      RKT, 
+     &                           E_RKT,       Kr_Kt,       LOST_Hg0_oc )
 
                ! Conversion of tagged land re-emission Hg(0) --> Hg(II) 
-               CALL RXN_Hg0_Hg2( I,           J,   L,     LN_Hg0, 
-     &                           LN_Hg2,      RKT, E_RKT, LOST_Hg0_ln )
+               CALL RXN_Hg0_Hg2( I,           J,           L,     
+     &                           LN_Hg0,      LN_Hg2,      RKT, 
+     &                           E_RKT,       Kr_Kt,       LOST_Hg0_ln )
 
                ! Conversion of tagged natural source Hg(0) --> Hg(II)
-               CALL RXN_Hg0_Hg2( I,           J,   L,     NT_Hg0, 
-     &                           NT_Hg2,      RKT, E_RKT, LOST_Hg0_nt )
+               CALL RXN_Hg0_Hg2( I,           J,           L,     
+     &                           NT_Hg0,      NT_Hg2,      RKT, 
+     &                           E_RKT,       Kr_Kt,       LOST_Hg0_nt )
             ENDIF
 
          ELSE
@@ -506,22 +526,29 @@
          ! -------------------------------------------------------------
          ! At the surface we have both dry deposition of Hg(II) plus
          ! conversion of Hg(0) into Hg(II).  In this case we use the
-         ! following rxn:
+         ! following rxns:
          !
-         !     New Hg(II) = ( Old Hg(II)         *       EXP( -KT ) ) +
-         !                  ( Converted Hg(0)/KT * ( 1 - EXP( -KT ) )
+         !    CASE 1a: If Conv Hg(0) > 0:
+         !    ---------------------------
+         !    New Hg(II) = ( Old Hg(II)     *       EXP( -RKT ) ) +
+         !                 ( Conv Hg(0)/RKT * ( 1 - EXP( -RKT ) )
          !               
-         ! Where: KT               = DTCHEM * Drydep Vel of Hg(II)
-         !       "Converted Hg(0)" = Amt of Hg(0) that became Hg(II)
-         !                           archived from the Hg(0) rxns above
+         !
+         !    CASE 1b: If Conv Hg(0) <= 0:
+         !    ----------------------------
+         !    New Hg(II) = ( Old Hg(II) + Conv Hg(0) ) * EXP( -RKT )
+         !
+         ! Where: RKT         = DTCHEM * Drydep Vel of Hg(II)
+         !       "Conv Hg(0)" = Amt of Hg(0) that became Hg(II), which
+         !                      is archived from the Hg(0) rxns above
          !
          ! CASE 2: ALL OTHER LEVELS
-         ! --------------------------------------------------------------
+         ! -------------------------------------------------------------
          ! At levels higher than the surface, we do not have drydep.
          ! Therefore we only have conversion of Hg(0) into Hg(II), and
          ! we use this rxn:
          !
-         !     New Hg(II) = Old Hg(II) + Converted Hg(0)
+         !     New Hg(II) = Old Hg(II) + Conv Hg(0)
          !
          !
          ! NOTE: ND44 diagnostics are archived in RXN_Hg2_DRYD.
@@ -541,7 +568,7 @@
      &                         RKT, E_RKT, LOST_Hg0, DTCHEM )
           
             !--------------------------------------------
-            ! CASE 2: Tagged Hg(II ) tracers: surface
+            ! CASE 1: Tagged Hg(II) tracers: surface
             !--------------------------------------------
             IF ( LSPLIT ) THEN
 
@@ -607,13 +634,14 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE RXN_Hg0_Hg2( I,     J,   L,     N_Hg0, 
-     &                        N_Hg2, RKT, E_RKT, LOST_Hg0 )
+      SUBROUTINE RXN_Hg0_Hg2( I,     J,     L,     
+     &                        N_Hg0, N_Hg2, RKT, 
+     &                        E_RKT, Kr_Kt, LOST_Hg0 )
 !
 !******************************************************************************
 !  Subroutine RXN_Hg0_Hg2 computes the conversion of Hg(0) to Hg(II) via
 !  an aqueous chemistry reduction reaction.  The formula used below is a s
-!  solution of the 2-box model equation. (eck, bmy, 12/14/04)
+!  solution of the 2-box model equation. (eck, bmy, 12/14/04, 1/13/05)
 ! 
 !  Arguments as Input:
 !  ============================================================================
@@ -622,12 +650,14 @@
 !  (5  ) N_Hg2    (INTEGER) : Index for Hg(II) total or tagged tracers
 !  (6  ) RKT      (REAL*8 ) : Value of R * k * Temp for this rxn [unitless]
 !  (7  ) E_RKT    (REAL*8 ) : Value of EXP( - RKT ) [unitless]
+!  (8  ) Kr_Kt    (REAL*8 ) : Ratio of Kr / Kt (redux K / total K) [unitless]
 !
 !  Arguments as Output:
 !  ============================================================================
-!  (8  ) LOST_Hg0 (REAL*8 ) : Loss term: Hg(0) before - Hg(0) after [kg]
+!  (9  ) LOST_Hg0 (REAL*8 ) : Loss term: Hg(0) before - Hg(0) after [kg]
 !
 !  NOTES:
+!  (1  ) Changed equation to reflect reduction rxn (eck, bmy, 1/13/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -635,7 +665,7 @@
 
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J, L, N_Hg0, N_Hg2
-      REAL*8,  INTENT(IN)  :: RKT, E_RKT
+      REAL*8,  INTENT(IN)  :: RKT, E_RKT, Kr_Kt
       REAL*8,  INTENT(OUT) :: LOST_Hg0
 
       ! Local variables
@@ -653,8 +683,14 @@
       OLD_Hg2          = MAX( STT(I,J,L,N_Hg2), SMALLNUM )
 
       ! New concentration of Hg(0) [kg]
-      NEW_Hg0          = ( OLD_Hg0      *   E_RKT         ) + 
-     &                   ( OLD_Hg2/RKT  * ( 1d0 - E_RKT ) )
+!----------------------------------------------------------------------------
+! Prior to 1/13/05:
+! Updated rxn to account for reduction term (eck, bmy, 1/13/05)
+!      NEW_Hg0          = ( OLD_Hg0      *   E_RKT         ) + 
+!     &                   ( OLD_Hg2/RKT  * ( 1d0 - E_RKT ) )
+!----------------------------------------------------------------------------
+      NEW_Hg0 = (             OLD_Hg0   *                   E_RKT   ) + 
+     &          ((( OLD_Hg2 + OLD_Hg0 ) * Kr_Kt ) * ( 1d0 - E_RKT ) )
 
       ! Save back into STT array [kg]
       NEW_Hg0          = MAX( NEW_Hg0, SMALLNUM )
@@ -728,7 +764,7 @@
 !
 !******************************************************************************
 !  Subroutine RXN_Hg0_DRYD computes the new concentration of Hg(II) from the
-!  converted Hg(0) plus the drydep of Hg(II). (eck, bmy, 12/14/04)
+!  converted Hg(0) plus the drydep of Hg(II). (eck, bmy, 12/14/04, 1/19/05)
 ! 
 !  Arguments as Input:
 !  ============================================================================
@@ -740,13 +776,18 @@
 !  (8  ) DTCHEM   (INTEGER) : Chemistry timestep [s]
 !
 !  NOTES:
+!  (1  ) Now use 2 different solutions, depending on whether or not LOST_Hg0 
+!         (amt of converted Hg0 -> Hg2) is positive.  Also now archive the 
+!         amount of total Hg(II) tracer lost to drydep for the ocean flux 
+!         routines in "ocean_mercury_mod.f". (sas, bmy, 1/19/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD,     ONLY : AD44
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTHG2
+      USE DIAG_MOD,          ONLY : AD44
+      USE GRID_MOD,          ONLY : GET_AREA_CM2
+      USE OCEAN_MERCURY_MOD, ONLY : ADD_Hg2_DD
+      USE TRACER_MOD,        ONLY : STT
+      USE TRACERID_MOD,      ONLY : IDTHg2
 
 #     include "CMN_SIZE"    ! Size parameters
 #     include "CMN_DIAG"    ! ND44
@@ -767,16 +808,47 @@
       IF ( N < 1 ) RETURN
 
       ! Initial concentration of Hg(II) [kg]
-      OLD_Hg2      = MAX( STT(I,J,L,N), SMALLNUM )
+      OLD_Hg2 = MAX( STT(I,J,L,N), SMALLNUM )
 
-      ! Concentration of Hg(II) after drydep: also accounts for
-      ! the amount of Hg(0) which was converted to Hg(II) [kg]
-      NEW_Hg2      = ( OLD_Hg2  *       E_RKT         )  + 
-     &               ( LOST_Hg0/RKT * ( 1d0 - E_RKT ) )
+      IF ( LOST_Hg0 > 0d0 ) THEN
+
+         !--------------------------------------------------------------
+         ! CASE 1a: Amt of Hg(0) converted to Hg(II) is positive
+         !          Use Solution #1 of the differential equation
+         !--------------------------------------------------------------
+
+         ! Concentration of Hg(II) after drydep [kg]
+         ! Factor in drydep at this time
+         NEW_Hg2 = ( OLD_Hg2      *         E_RKT   )  + 
+     &             ( LOST_Hg0/RKT * ( 1d0 - E_RKT ) )
  
+      ELSE
+
+         !--------------------------------------------------------------
+         ! CASE 1b: Amt of Hg(0) converted to Hg(II) is negative or zero
+         !          Use Solution #2 of the differential equation
+         !--------------------------------------------------------------
+
+         ! New concentration of Hg(II) [kg]
+         ! Assume drydep takes place after chemistry 
+         NEW_Hg2 = ( OLD_Hg2 + LOST_Hg0 ) * E_RKT 
+
+      ENDIF
+
       ! Save back into STT array [kg]
       NEW_Hg2      = MAX( NEW_Hg2, SMALLNUM )
       STT(I,J,L,N) = NEW_Hg2
+
+      !=================================================================
+      ! Compute amount of Hg(II) lost to drydep
+      !=================================================================
+
+      ! Amount of Hg(II) lost to dry deposition [kg]
+      DRYDEP   = ( OLD_Hg2 - NEW_Hg2 ) + LOST_Hg0
+
+      ! Archive Hg(II) lost to drydep [kg] for the ocean mercury flux 
+      ! routines in "ocean_mercury_mod.f" if necessary (sas, bmy, 1/19/05)
+      IF ( N == IDTHg2 ) CALL ADD_Hg2_DD( I, J, DRYDEP )
 
       !=================================================================
       ! ND44 diagnostic: drydep flux of Hg(II) [molec/cm2/s]
@@ -787,7 +859,11 @@
          AREA_CM2 = GET_AREA_CM2( J )
       
          ! Amt of Hg(II) lost to drydep [molec/cm2/s]
-         DRYDEP   = ( OLD_Hg2 - NEW_Hg2 ) + LOST_Hg0
+         !--------------------------------------------------------------
+         ! Prior to 1/19/05:
+         ! Now compute this above (sas, bmy, 1/19/05)
+         !DRYDEP   = ( OLD_Hg2 - NEW_Hg2 ) + LOST_Hg0
+         !--------------------------------------------------------------
          DRYDEP   = DRYDEP * XNUMOL(IDTHG2) / ( AREA_CM2 * DTCHEM )
       
          ! Archive Hg(II) drydep flux in AD44 array [molec/cm2/s]
@@ -1004,21 +1080,27 @@
 !
 !******************************************************************************
 !  Subroutine EMISSMERCURY is the driver routine for mercury emissions.
-!  (eck, bmy, 12/7/04)
+!  (eck, bmy, 12/7/04, 1/20/05)
 ! 
 !  NOTES:
+!  (1 ) Now call OCEAN_MERCURY_FLUX from "ocean_mercury_mod.f" to compute 
+!        the emissions of Hg0 from the ocean instead of reading it from disk.
+!        (sas, bmy, 1/20/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,    ONLY : DEBUG_MSG
-      USE LOGICAL_MOD,  ONLY : LPRT
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTHg0, IDTHg2, IDTHgP
+      USE ERROR_MOD,         ONLY : DEBUG_MSG
+      USE LOGICAL_MOD,       ONLY : LPRT
+      USE OCEAN_MERCURY_MOD, ONLY : OCEAN_MERCURY_FLUX
+      USE TIME_MOD,          ONLY : GET_MONTH
+      USE TRACER_MOD,        ONLY : STT
+      USE TRACERID_MOD,      ONLY : IDTHg0, IDTHg2, IDTHgP
       
-#     include "CMN_SIZE"
+#     include "CMN_SIZE"          ! Size parameters
 
       ! Local variables
-      LOGICAL, SAVE      :: FIRST = .TRUE. 
+      LOGICAL, SAVE :: FIRST = .TRUE. 
+      INTEGER       :: THISMONTH
      
       !=================================================================
       ! EMISSMERCURY begins here!
@@ -1044,6 +1126,10 @@
       ! Compute fraction of each layer in the PBL
       CALL COMPUTE_FEMIS
 
+      ! Ocean flux of Hg(0)
+      CALL OCEAN_MERCURY_FLUX( EHg0_oc )
+      IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a OCEAN_FLUX' )
+
       ! Add Hg(0) source into STT [kg]
       CALL SRCHg0
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg0' )
@@ -1064,19 +1150,25 @@
       SUBROUTINE SRCHg0
 !
 !******************************************************************************
-!  Subroutine SRCHg0 is the subroutine for Hg(0) emissions.  Emissions of
-!  Hg(0) will be distributed throughout the boundary layer. (eck, bmy, 12/7/04)
+!  Subroutine SRCHg0 is the subroutine for Hg(0) emissions.  
+!  Emissions of Hg(0) will be distributed throughout the boundary layer. 
+!  (eck, bmy, 1/21/05)
 ! 
 !  Arguments as Input/Output:
 !  ============================================================================
 !  (1 ) TC (REAL*8) : Tracer concentration of Hg(0) [kg]
 !
 !  NOTES:
+!  (1 ) Now use diagnostic arrays from "diag03_mod.f" (bmy, 1/21/05)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
-      USE DIAG_MOD,     ONLY : AD03_Hg0_an, AD03_Hg0_oc, 
-     &                         AD03_Hg0_ln, AD03_Hg0_nt
+!------------------------------------------------------------
+! Prior to 1/20/05:
+!      USE DIAG_MOD,     ONLY : AD03_Hg0_an, AD03_Hg0_oc, 
+!     &                         AD03_Hg0_ln, AD03_Hg0_nt
+!------------------------------------------------------------
+      USE DIAG03_MOD,   ONLY : AD03, ND03
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE LOGICAL_MOD,  ONLY : LSPLIT
       USE TIME_MOD,     ONLY : GET_TS_EMIS
@@ -1084,7 +1176,6 @@
       USE TRACERID_MOD, ONLY : IDTHG0
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND03
 
       ! Local variables
       INTEGER               :: I,      J,    L,    N
@@ -1153,24 +1244,13 @@
         
          !==============================================================
          ! ND03 diagnostic: Total Hg(0) emissions [kg]
+         ! 1=anthro; 3=from ocean; 4=land re-emission; 5=natural src
          !==============================================================
          IF ( ND03 > 0 ) THEN
-
-            ! Anthro emissions
-            AD03_Hg0_an(I,J) = AD03_Hg0_an(I,J) 
-     &                       + ( T_Hg_An      * DTSRCE )
-
-            ! Ocean emissions
-            AD03_Hg0_oc(I,J) = AD03_Hg0_oc(I,J) 
-     &                       + ( EHg0_oc(I,J) * DTSRCE )
-
-            ! Re-emission from land
-            AD03_Hg0_ln(I,J) = AD03_Hg0_ln(I,J) 
-     &                       + ( EHg0_ln(I,J) * DTSRCE )
-
-            ! Natural land source emissions
-            AD03_Hg0_nt(I,J) = AD03_Hg0_nt(I,J) 
-     &                       + ( EHg0_nt(I,J) * DTSRCE )
+            AD03(I,J,1) = AD03(I,J,1) + ( T_Hg_An      * DTSRCE )
+            AD03(I,J,3) = AD03(I,J,3) + ( EHg0_oc(I,J) * DTSRCE )
+            AD03(I,J,4) = AD03(I,J,4) + ( EHg0_ln(I,J) * DTSRCE )
+            AD03(I,J,5) = AD03(I,J,5) + ( EHg0_nt(I,J) * DTSRCE )
          ENDIF
       ENDDO
       ENDDO
@@ -1186,29 +1266,33 @@
 !******************************************************************************
 !  Subroutine SRCHg2 is the subroutine for Hg(II) emissions.  
 !  Emissions of Hg(II) will be distributed throughout the boundary layer. 
-!  (eck, bmy, 12/7/04)
+!  (eck, bmy, 12/7/04, 1/21/05)
 ! 
 !  Arguments as Input/Output:
 !  ============================================================================
 !  (1 ) TC (REAL*8) : Tracer concentration of Hg(II) [kg]
 !
 !  NOTES:
+!  (1 ) Now use diagnostic arrays from "diag03_mod.f" (bmy, 1/21/05)
 !******************************************************************************
 !
       ! Reference to F90 modules
-      USE DIAG_MOD,     ONLY : AD03_HG2_AN
+      !--------------------------------------
+      ! Prior to 1/20/05:
+      !USE DIAG_MOD,     ONLY : AD03_HG2_AN
+      !--------------------------------------
+      USE DIAG03_MOD,   ONLY : AD03, ND03
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE LOGICAL_MOD,  ONLY : LSPLIT
       USE TIME_MOD,     ONLY : GET_TS_EMIS
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTHg2
 
-#     include "CMN_SIZE"      ! Size parameters
-#     include "CMN_DIAG"      ! ND03 (for now)
+#     include "CMN_SIZE"     ! Size parameters
 
       ! Local variables
-      INTEGER                :: I,      J,    L,   N
-      REAL*8                 :: DTSRCE, T_Hg, E_Hg
+      INTEGER               :: I,      J,    L,   N
+      REAL*8                :: DTSRCE, T_Hg, E_Hg
 
       !=================================================================
       ! SRCHg2 begins here!
@@ -1254,7 +1338,11 @@
          ! ND03 diagnostic: Total anthro Hg(II) emissions [kg]
          !==============================================================
          IF ( ND03 > 0 ) THEN
-            AD03_Hg2_an(I,J) = AD03_Hg2_an(I,J) + ( T_Hg * DTSRCE )
+            !---------------------------------------------------------
+            ! Prior to 1/21/05:
+            !AD03_Hg2_an(I,J) = AD03_Hg2_an(I,J) + ( T_Hg * DTSRCE )
+            !---------------------------------------------------------
+            AD03(I,J,6) = AD03(I,J,6) + ( T_Hg * DTSRCE )
          ENDIF
 
       ENDDO
@@ -1271,29 +1359,33 @@
 !******************************************************************************
 !  Subroutine SRCHgP is the subroutine for HgP emissions.  
 !  Emissions of HgP will be distributed throughout the boundary layer. 
-!  (eck, bmy, 12/7/04)
+!  (eck, bmy, 12/7/04, 1/21/05)
 ! 
 !  Arguments as Input/Output:
 !  ============================================================================
 !  (1 ) TC (REAL*8) : Tracer concentration of Hg(II) [kg]
 !
 !  NOTES:
+!  (1 ) Now use diagnostic arrays from "diag03_mod.f" (bmy, 1/21/05)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
-      USE DIAG_MOD,     ONLY : AD03_HGP_AN
+      !-----------------------------------------
+      ! Prior to 1/20/05:
+      !USE DIAG_MOD,     ONLY : AD03_HGP_AN
+      !-----------------------------------------
+      USE DIAG03_MOD,   ONLY : AD03, ND03
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE LOGICAL_MOD,  ONLY : LSPLIT
       USE TIME_MOD,     ONLY : GET_TS_EMIS 
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTHGP
 
-#     include "CMN_SIZE"      ! Size paramters
-#     include "CMN_DIAG"      ! ND03 (for now)
+#     include "CMN_SIZE"     ! Size paramters
 
       ! Local variables
-      INTEGER                :: I,      J,    L,   N
-      REAL*8                 :: DTSRCE, T_Hg, E_Hg 
+      INTEGER               :: I,      J,    L,   N
+      REAL*8                :: DTSRCE, T_Hg, E_Hg 
 
       !=================================================================
       ! SRCHgP begins here!
@@ -1339,7 +1431,11 @@
          ! ND03 diagnostic: Total anthro HgP emissions [kg]
          !==============================================================
          IF ( ND03 > 0 ) THEN
-            AD03_HgP_an(I,J) = AD03_HgP_an(I,J) + ( T_Hg * DTSRCE )
+            !---------------------------------------------------------
+            ! Prior to 1/20/05:
+            !AD03_HgP_an(I,J) = AD03_HgP_an(I,J) + ( T_Hg * DTSRCE )
+            !---------------------------------------------------------
+            AD03(I,J,9) = AD03(I,J,9) + ( T_Hg * DTSRCE )
          ENDIF
 
       ENDDO
@@ -1459,9 +1555,12 @@
 !
 !******************************************************************************
 !  Subroutine MERCURY_READYR reads the year-invariant emissions for Mercury
-!  from anthropogenic, ocean, and land sources. (eck, bmy, 12/6/04)
+!  from anthropogenic, ocean, and land sources. (eck, bmy, 12/6/04, 1/20/05)
 !  
 !  NOTES:
+!  (1 ) Now read data from mercury_200501 subdirectory.  Now compute oceanic 
+!        Hg(0) emissions w/ ocean flux module instead of reading them from 
+!        disk.  Now use 1985 TAU values. (sas, bmy, 1/20/05) 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1486,14 +1585,14 @@
 
       ! Filename for anthropogenic mercury source
       FILENAME = TRIM( DATA_DIR )                  // 
-     &           'mercury_200412/Hg_anthro.geos.'  // GET_RES_EXT()
+     &           'mercury_200501/Hg_anthro.geos.'  // GET_RES_EXT()
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( 'MERCURY_READYR: Reading ', a )
+ 100  FORMAT( '     - MERCURY_READYR: Reading ', a )
 
-      ! TAU value corresponding to the data
-      XTAU = GET_TAU0( 1, 1, 1995 )
+      ! Use "generic" year 1985 for TAU values
+      XTAU = GET_TAU0( 1, 1, 1985 )
 
       !---------------------------
       ! Hg(0) emissions [kg/s]
@@ -1515,7 +1614,7 @@
       !---------------------------
 
       ! Read data in [kg/yr]
-      CALL READ_BPCH2( FILENAME, 'HG-SRCE', 5, 
+      CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6, 
      &                 XTAU,      IGLOB,    JGLOB,    
      &                 3,         ARRAY,    QUIET=.TRUE. )
 
@@ -1530,7 +1629,7 @@
       !---------------------------
 
       ! Read data in [kg/yr]
-      CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6, 
+      CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9, 
      &                 XTAU,      IGLOB,    JGLOB,    
      &                 3,         ARRAY,    QUIET=.TRUE. )
 
@@ -1539,31 +1638,36 @@
          CALL TRANSFER_2D( ARRAY(:,:,L), EHgP_an(:,:,L) )
          EHgP_an(:,:,L) = EHgP_an(:,:,L) / SEC_PER_YR
       ENDDO
-  
-      !=================================================================
-      ! Read annual emissions of oceanic Hg(0) [kg/s]
-      !=================================================================
 
-      ! Filename for ocean source
-      FILENAME = TRIM( DATA_DIR )                // 
-     &           'mercury_200412/Hg_ocean.geos.' // GET_RES_EXT()    
-
-      ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
-
-      ! TAU value corresponding to the data 
-      XTAU  = GET_TAU0( 1, 1, 1990 )
-
-      ! Read data in [kg/yr]
-      CALL READ_BPCH2( FILENAME, 'HG-SRCE',     2,  
-     &                 XTAU,      IGLOB,        JGLOB,    
-     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
-
-      ! Cast to REAL*8 and resize
-      CALL TRANSFER_2D( ARRAY(:,:,1), EHg0_oc )
-
-      ! Convert from [kg/yr] to [kg/s]
-      EHg0_oc = EHg0_oc / SEC_PER_YR
+!------------------------------------------------------------------------------
+! Prior to 1/20/05:
+! Now compute oceanic Hg(0) emissions w/ ocean flux module 
+! instead of reading in the emissions from disk. (sas, bmy, 1/20/05)
+!      !=================================================================
+!      ! Read annual emissions of oceanic Hg(0) [kg/s]
+!      !=================================================================
+!
+!      ! Filename for ocean source
+!      FILENAME = TRIM( DATA_DIR )                // 
+!     &           'mercury_200412/Hg_ocean.geos.' // GET_RES_EXT()    
+!
+!      ! Echo info
+!      WRITE( 6, 100 ) TRIM( FILENAME )
+!
+!      ! TAU value corresponding to the data 
+!      XTAU  = GET_TAU0( 1, 1, 1985 )
+!
+!      ! Read data in [kg/yr]
+!      CALL READ_BPCH2( FILENAME, 'HG-SRCE',     3,  
+!     &                 XTAU,      IGLOB,        JGLOB,    
+!     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
+!
+!      ! Cast to REAL*8 and resize
+!      CALL TRANSFER_2D( ARRAY(:,:,1), EHg0_oc )
+!
+!      ! Convert from [kg/yr] to [kg/s]
+!      EHg0_oc = EHg0_oc / SEC_PER_YR
+!------------------------------------------------------------------------------
  
       !=================================================================
       ! Read annual emissions of anthropogenic Hg(0) which is
@@ -1572,16 +1676,13 @@
 
       ! Filename for re-emitted anthropogenic mercury
       FILENAME = TRIM( DATA_DIR )               // 
-     &           'mercury_200412/Hg_land.geos.' // GET_RES_EXT()   
+     &           'mercury_200501/Hg_land.geos.' // GET_RES_EXT()   
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
 
-      ! TAU value corresponding to the data 
-      XTAU  = GET_TAU0( 1, 1, 1990 )
-
       ! Read data in [kg/yr]
-      CALL READ_BPCH2( FILENAME, 'HG-SRCE',     3,  
+      CALL READ_BPCH2( FILENAME, 'HG-SRCE',     4,  
      &                 XTAU,      IGLOB,        JGLOB,    
      &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
 
@@ -1600,7 +1701,7 @@
 
       ! Filename for natural land-source mercury
       FILENAME = TRIM( DATA_DIR )                  // 
-     &           'mercury_200412/Hg_natural.geos.' // GET_RES_EXT() 
+     &           'mercury_200501/Hg_natural.geos.' // GET_RES_EXT() 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
 
@@ -1608,7 +1709,7 @@
       XTAU   = GET_TAU0( 1, 1, 1995 )
 
       ! Read data in [kg/yr]
-      CALL READ_BPCH2( FILENAME, 'HG-SRCE',     4, 
+      CALL READ_BPCH2( FILENAME, 'HG-SRCE',     5, 
      &                 XTAU,      IGLOB,        JGLOB,    
      &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
 
@@ -1625,7 +1726,11 @@
       WRITE( 6, 110   )
       WRITE( 6, '(a)' )
       WRITE( 6, 111   ) SUM( EHg0_an ) * SEC_PER_YR * 1d-6
-      WRITE( 6, 112   ) SUM( EHg0_oc ) * SEC_PER_YR * 1d-6
+      !-----------------------------------------------------------------
+      ! Prior to 1/20/05:
+      ! Now get Hg0 ocean emissions from flux module (sas, bmy, 1/20/05)
+      !WRITE( 6, 112   ) SUM( EHg0_oc ) * SEC_PER_YR * 1d-6
+      !-----------------------------------------------------------------
       WRITE( 6, 113   ) SUM( EHg0_ln ) * SEC_PER_YR * 1d-6
       WRITE( 6, 114   ) SUM( EHg0_nt ) * SEC_PER_YR * 1d-6
       WRITE( 6, 115   ) SUM( EHg2_an ) * SEC_PER_YR * 1d-6
@@ -1635,7 +1740,11 @@
       ! FORMAT strings
  110  FORMAT( 'M E R C U R Y   E M I S S I O N S' )
  111  FORMAT( 'Total Anthro     Hg(0)  : ', f7.3, ' [Gg/yr]' )
- 112  FORMAT( 'Total Oceanic    Hg(0)  : ', f7.3, ' [Gg/yr]' )
+!----------------------------------------------------------------------------
+! Prior to 1/20/05:
+! Now get Hg0 ocean emissions from flux module (sas, bmy, 1/20/05)
+! 112  FORMAT( 'Total Oceanic    Hg(0)  : ', f7.3, ' [Gg/yr]' )
+!----------------------------------------------------------------------------
  113  FORMAT( 'Total Re-Emitted Hg(0)  : ', f7.3, ' [Gg/yr]' )
  114  FORMAT( 'Total Natural    Hg(0)  : ', f7.3, ' [Gg/yr]' )
  115  FORMAT( 'Total Anthro     Hg(II) : ', f7.3, ' [Gg/yr]' )
@@ -2362,6 +2471,7 @@
 !  Subroutine CLEANUP_MERCURY deallocates all module arrays (eck, bmy, 12/6/04)
 !
 !  NOTES:
+!  (1 ) Now deallocate MLD, NPP, RAD (sas, bmy, 1/18/05)
 !******************************************************************************
 !
       !=================================================================

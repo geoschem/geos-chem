@@ -1,10 +1,10 @@
-! $Id: convection_mod.f,v 1.7 2004/12/02 21:48:34 bmy Exp $
+! $Id: convection_mod.f,v 1.8 2005/02/10 19:53:24 bmy Exp $
       MODULE CONVECTION_MOD
 !
 !******************************************************************************
 !  Module CONVECTION_MOD contains routines which select the proper convection
 !  code for GEOS-1, GEOS-STRAT, GEOS-3, or GEOS-4 met field data sets. 
-!  (bmy, 6/28/03, 7/20/04)
+!  (bmy, 6/28/03, 1/19/05)
 !
 !  Module Routines:
 !  ============================================================================
@@ -18,10 +18,12 @@
 !  (3 ) fvdas_convect_mod.f : Module w/ convection code for fvDAS met fields
 !  (4 ) grid_mod.f          : Module containing horizontal grid information
 !  (5 ) logical-mod.f       : Module containing GEOS-CHEM logical switches
-!  (5 ) pressure_mod.f      : Module containing routines to compute P(I,J,L)
-!  (6 ) time_mod.f          : Module containing routines for computing time
-!  (7 ) tracer_mod.f        : Module containing GEOS-CHEM tracer array STT etc
-!  (8 ) wetscav_mod.f       : Module containing routines for wetdep/scavenging
+!  (6 ) ocean_mercury_mod.f : Module containing routines for Hg(0) ocean flux
+!  (7 ) pressure_mod.f      : Module containing routines to compute P(I,J,L)
+!  (8 ) time_mod.f          : Module containing routines for computing time
+!  (9 ) tracer_mod.f        : Module containing GEOS-CHEM tracer array STT etc
+!  (10) tracerid_mod.f      : Module containing GEOS-CHEM tracer ID flags etc
+!  (11) wetscav_mod.f       : Module containing routines for wetdep/scavenging
 !
 !  NOTES:
 !  (1 ) Contains new updates for GEOS-4/fvDAS convection.  Also now references
@@ -29,7 +31,9 @@
 !        memory problems on the Altix. (bmy, 1/27/04)
 !  (2 ) Bug fix: Now pass NTRACE elements of TCVV to FVDAS_CONVECT in routine 
 !        DO_CONVECTION (bmy, 2/23/04)  
-!  (3 ) Now references "logical_mod.f" and "tracer_mod.f" (bmy, 7/20/04) 
+!  (3 ) Now references "logical_mod.f" and "tracer_mod.f" (bmy, 7/20/04)
+!  (4 ) Now also references "ocean_mercury_mod.f" and "tracerid_mod.f" 
+!        (sas, bmy, 1/19/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -105,7 +109,7 @@
       NSTEP  = MAX( NSTEP, 1 ) 
 
       ! TIMESTEP*2; will be divided by 2 before passing to CONVTRAN 
-      TDT    = DBLE( CONVDT ) *2.0D0 / DBLE( NSTEP )
+      TDT    = DBLE( CONVDT ) * 2.0D0 / DBLE( NSTEP )
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -244,7 +248,7 @@
 !  Subroutine NFCLDMX is S-J Lin's cumulus transport module for 3D GSFC-CTM,
 !  modified for the GEOS-CHEM model.  The "NF" stands for "no flipping", and
 !  denotes that you don't have to flip the tracer array Q in the main
-!  program before passing it to NFCLDMX. (bmy, 2/12/97, 1/26/04)
+!  program before passing it to NFCLDMX. (bmy, 2/12/97, 1/19/05)
 !
 !  NOTE: NFCLDMX can be used with GEOS-1, GEOS-STRAT, and GEOS-3 met fields.
 !  For GEOS-4/fVDAS, you must use the routines in "fvdas_convect_mod.f"
@@ -372,15 +376,21 @@
 !  (13) Make sure K does not go out of bounds in ND38 diagnostic.  Now make 
 !        F a 4-D array in order to avoid memory problems on the Altix.  
 !        (bmy, 1/27/04)
+!  (14) Now references both "ocean_mercury_mod.f" and "tracerid_mod.f".
+!        Now call ADD_Hg2_WD from "ocean_mercury_mod.f" to pass the amt of Hg2
+!        lost by wet scavenging (sas, bmy, 1/19/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : AD,   CLDMAS, DTRN=>DTRAIN
-      USE DIAG_MOD,     ONLY : AD37, AD38,   CONVFLUP
-      USE GRID_MOD,     ONLY : GET_AREA_M2
-      USE PRESSURE_MOD, ONLY : GET_BP
-      USE TIME_MOD,     ONLY : GET_TS_CONV
-      USE WETSCAV_MOD,  ONLY : COMPUTE_F
+      USE DAO_MOD,           ONLY : AD,   CLDMAS, DTRN=>DTRAIN
+      USE DIAG_MOD,          ONLY : AD37, AD38,   CONVFLUP
+      USE GRID_MOD,          ONLY : GET_AREA_M2
+      USE OCEAN_MERCURY_MOD, ONLY : ADD_Hg2_WD
+      USE PRESSURE_MOD,      ONLY : GET_BP
+      USE TIME_MOD,          ONLY : GET_TS_CONV
+      USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
+      USE TRACERID_MOD,      ONLY : IDTHg2
+      USE WETSCAV_MOD,       ONLY : COMPUTE_F
 
       IMPLICIT NONE
 
@@ -394,6 +404,7 @@
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
+      LOGICAL, SAVE          :: IS_Hg = .TRUE.
       INTEGER                :: I, J, K, KTOP, L, N, NDT
       INTEGER                :: IC, ISTEP, JUMP, JS, JN, NS
       INTEGER                :: IMR, JNP, NLAY
@@ -424,6 +435,9 @@
       ! DNS is the double precision value for NS
       REAL*8                 :: DNS
      
+      ! Amt of Hg2 scavenged out of the column (sas, bmy, 1/19/05)
+      REAL*8                 :: WET_Hg2
+
       !=================================================================
       ! NFCLDMX begins here!
       !=================================================================
@@ -444,6 +458,9 @@
             DSIG(L) = GET_BP(L) - GET_BP(L+1)
          ENDDO
 
+         ! Flag to denote if this is a mercury simulation (sas, bmy, 1/19/05)
+         IS_Hg = ITS_A_MERCURY_SIM()
+
          ! Reset first time flag
          FIRST = .FALSE.
       ENDIF
@@ -455,7 +472,7 @@
 
       ! Convection timestep [s]
       NDT  = GET_TS_CONV() * 60d0
-
+     
       !=================================================================
       ! Define active convective region, from J = JS(outh) to 
       ! J = JN(orth), and to level K = KTOP. 
@@ -533,6 +550,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( CMOUT, DELQ, ENTRN, I, IC, ISOL, ISTEP, J, AREA_M2, K  ) 
 !$OMP+PRIVATE( MB, QB, QC, QC_PRES, QC_SCAV, T0, T1, T2, T3, T4, TSUM )
+!$OMP+PRIVATE( WET_Hg2                                                )
 !$OMP+SCHEDULE( DYNAMIC )
       DO IC = 1, NC
 
@@ -785,10 +803,28 @@
      &                       ( T0 * AREA_M2 / ( TCVV(IC) * DNS ) )
                      ENDIF
   
-                  !==================================================
+                     !=================================================
+                     ! Pass the amount of Hg2 lost in wet scavenging
+                     ! [kg] to "ocean_mercury_mod.f" via ADD_Hg2_WET.
+                     ! We must also divide by DNS, the # of internal 
+                     ! timesteps. (sas, bmy, 1/19/05)
+                     !=================================================
+                     IF ( IS_Hg .and. IC == IDTHg2 ) THEN
+
+                        ! Wet scavenged Hg(II) in [kg/s]
+                        WET_Hg2 = ( T0 * AREA_M2 ) / ( TCVV(IC) * DNS )
+
+                        ! Convert [kg/s] to [kg]
+                        WET_Hg2 = WET_Hg2 * NDT 
+
+                        ! Pass to "ocean_mercury_mod.f"
+                        CALL ADD_Hg2_WD( I, J, WET_Hg2 )
+                     ENDIF
+
+                  !=====================================================
                   ! No cloud transport if cloud mass flux < TINY; 
                   ! Change Qc to q
-                  !==================================================
+                  !=====================================================
                   ELSE                     
                      QC(I,J) = Q(I,J,K,IC)
                   ENDIF

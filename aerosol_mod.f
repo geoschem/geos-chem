@@ -1,10 +1,10 @@
-! $Id: aerosol_mod.f,v 1.3 2004/10/15 20:16:39 bmy Exp $
+! $Id: aerosol_mod.f,v 1.4 2005/02/10 19:53:23 bmy Exp $
       MODULE AEROSOL_MOD
 !
 !******************************************************************************
 !  Module AEROSOL_MOD contains variables and routines for computing optical
 !  properties for aerosols which are needed for both the FAST-J photolysis
-!  and ND21 optical depth diagnostics.  (bmy, 7/20/04, 9/28/04)
+!  and ND21 optical depth diagnostics.  (bmy, 7/20/04, 1/27/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -41,6 +41,9 @@
 !
 !  NOTES:
 !  (1 ) Added AEROSOL_RURALBOX routine (bmy, 9/28/04)
+!  (2 ) Now convert ABSHUM from absolute humidity to relative humidity in
+!         AEROSOL_RURALBOX, using the same algorithm as in "gasconc.f".
+!         (bmy, 1/27/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -93,11 +96,14 @@
 !  (1 ) N_TROP (INTEGER) : Number of tropospheric boxes
 !
 !  NOTES:
+!  (1 ) Now convert ABSHUM from absolute humidity to relative humidity in
+!        AEROSOL_RURALBOX, using the same algorithm as in "gasconc.f".
+!        (bmy, 1/27/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE COMODE_MOD
-      USE DAO_MOD,   ONLY : AD, AVGW, MAKE_AVGW
+      USE DAO_MOD,   ONLY : AD, AVGW, MAKE_AVGW, T
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN"       ! LPAUSE
@@ -110,6 +116,7 @@
       LOGICAL, SAVE        :: FIRST = .TRUE.
       INTEGER, SAVE        :: N_TROP_BOXES
       INTEGER              :: I, J, L, JLOOP
+      REAL*8               :: CONSEXP, TK, VPRESH2O
       REAL*8,  EXTERNAL    :: BOXVL
       
       !=================================================================
@@ -180,15 +187,33 @@
       
       !=================================================================
       ! Compute AIRDENS and ABSHUM at every timestep
+      !
+      ! NOTE: In the full-chemistry simulation, SMVGEAR uses the ABSHUM 
+      ! array for both absolute humidity [molec H2O/cm3] and relative 
+      ! humidity [fraction].  This conversion is done within subroutine 
+      ! "gasconc.f", which is called from "chemdr.f".
+      !
+      ! The computation of aerosol optical depths is done in routine
+      ! RDAER of "aerosol_mod.f".  In the full-chemistry simulation,
+      ! RDAER is called after "gasconc.f".  At the time when routine
+      ! RDAER is called, ABSHUM has already been converted to relative 
+      ! humidity.
+      !
+      ! For the offline aerosol simulation, we must also convert ABSHUM
+      ! from absolute humidity to relative humidity using the same
+      ! algorithm from "gasconc.f" (see code below).  This will ensure 
+      ! that aerosol optical depths in the offline aerosol simulation 
+      ! will be  computed in the same way as in the full chemistry 
+      ! simulation. (bmy, 1/27/05)
       !=================================================================
 
       ! Initialize 1-D index
-      JLOOP  = 0
+      JLOOP = 0
 
       ! Loop over grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, JLOOP )
+!$OMP+PRIVATE( I, J, L, JLOOP, TK, CONSEXP, VPRESH2O )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, NVERT
       DO J = 1, NLAT
@@ -205,9 +230,16 @@
             ! Air density in [molec/cm3]
             AIRDENS(JLOOP) = AD(I,J,L)*1000.d0/BOXVL(I,J,L)*AVG/WTAIR
 
-            ! Get relative humidity (here is absolute #H2O/cc air)
-            ! AVGW is the mixing ratio of water vapor [v/v]
+            ! ABSHUM = absolute humidity [molec H2O/cm3 air]
             ABSHUM(JLOOP)  = AVGW(I,J,L) * AIRDENS(JLOOP)
+
+            ! Convert ABSHUM to relative humidity [fraction]
+            ! using the same algorithm as in "gasconc.f"
+            TK             = T(I,J,L)
+            CONSEXP        = 17.2693882d0      * 
+     &                       ( TK - 273.16d0 ) / ( TK - 35.86d0 )
+            VPRESH2O       = CONSVAP * EXP( CONSEXP ) / TK 
+            ABSHUM(JLOOP)  = ABSHUM(JLOOP) / VPRESH2O 
 
          ENDIF
       ENDDO

@@ -1,8 +1,8 @@
-! $Id: initialize.f,v 1.9 2004/12/16 16:52:45 bmy Exp $
+! $Id: initialize.f,v 1.10 2005/02/10 19:53:26 bmy Exp $
       SUBROUTINE INITIALIZE( IFLAG )
 !
 !******************************************************************************
-!  Subroutine INITIALIZE (bmy, 6/15/98, 12/8/04) does the following:
+!  Subroutine INITIALIZE (bmy, 6/15/98, 1/20/05) does the following:
 !     (1) Zeroes globally defined GEOS-CHEM variables.
 !     (2) Zeroes accumulating diagnostic arrays.
 !     (3) Resets certain year/month/day and counter variables used 
@@ -149,12 +149,17 @@
 !        reference to DIAGCHLORO, it's obsolete. (bmy, 7/20/04)
 !  (29) Now initialize extra arrays for ND03 mercury diag.  Also remove
 !        reference to obsolete TOFDY0 variable. (eck, bmy, 12/7/04)
+!  (30) Now initialize AD21_cr array for ND21 diag.  Also references 
+!        LCRYST from "logical_mod.f"  Now call ZERO_DIAG03 from "diag03_mod.f"
+!        to zero ND03 arrays (bmy, 1/21/05)
 !******************************************************************************
 ! 
       ! References to F90 modules
       USE DIAG_MOD
+      USE DIAG03_MOD,  ONLY : ND03, ZERO_DIAG03
       USE DIAG_PL_MOD, ONLY : AD65, FAM_PL
       USE ERROR_MOD,   ONLY : ERROR_STOP
+      USE LOGICAL_MOD, ONLY : LCRYST
       USE TIME_MOD
 
       IMPLICIT NONE
@@ -186,21 +191,11 @@
       ! If IFLAG=2 then zero the accumulating arrays
       !=================================================================
       IF ( IFLAG == 2 ) THEN
-         !-------------------------------------------------------
-         ! Prior to 12/8/04:
-         ! This is now obsolete (bmy, 12/8/04)
-         !TOFDY0 = 0e0
-         !-------------------------------------------------------
 
          ! Allocatable arrays are zeroed only if their
          ! respective diagnostics are turned on (bmy, 2/17/00)
          IF ( ND01 > 0 ) AD01     = 0e0
          IF ( ND02 > 0 ) AD02     = 0e0
-         !------------------------------------------
-         ! Prior to 12/8/04:
-         ! Need to renumber diagnostic for Kr85 run
-         !IF ( ND03 > 0 ) AD03     = 0e0
-         !------------------------------------------
          IF ( ND05 > 0 ) AD05     = 0e0
          IF ( ND06 > 0 ) AD06     = 0e0
          IF ( ND08 > 0 ) AD08     = 0e0
@@ -211,7 +206,10 @@
          IF ( ND16 > 0 ) AD16     = 0e0
          IF ( ND17 > 0 ) AD17     = 0e0
          IF ( ND18 > 0 ) AD18     = 0e0         
-         IF ( ND21 > 0 ) AD21     = 0e0
+         !----------------------------------
+         ! Prior to 1/5/04
+         !IF ( ND21 > 0 ) AD21     = 0e0
+         !----------------------------------
          IF ( ND22 > 0 ) AD22     = 0e0
          IF ( ND24 > 0 ) MASSFLEW = 0d0
          IF ( ND25 > 0 ) MASSFLNS = 0d0
@@ -232,24 +230,33 @@
          IF ( ND45 > 0 ) AD45     = 0e0
          IF ( ND46 > 0 ) AD46     = 0e0
          IF ( ND47 > 0 ) AD47     = 0e0
-         IF ( ND48 > 0 ) TCOBOX   = 0d0
+         !------------------------------------
+         ! Prior to 1/21/05:
+         !IF ( ND48 > 0 ) TCOBOX   = 0d0
+         !------------------------------------
          IF ( ND55 > 0 ) AD55     = 0e0
          IF ( ND66 > 0 ) AD66     = 0e0
          IF ( ND67 > 0 ) AD67     = 0e0
          IF ( ND68 > 0 ) AD68     = 0e0
          IF ( ND69 > 0 ) AD69     = 0e0
 
-         ! For ND03 - mercury simulations (eck, bmy, 12/7/04)
+         ! For ND03 - mercury simulations (eck, sas, bmy, 1/20/05)
          IF ( ND03 > 0 ) THEN
-            AD03_Hg0_an  = 0e0
-            AD03_Hg2_an  = 0e0
-            AD03_HgP_an  = 0e0
-            AD03_Hg0_oc  = 0e0
-            AD03_Hg0_ln  = 0e0
-            AD03_Hg0_nt  = 0e0
-            AD03_Hg2_Hg0 = 0e0
-            AD03_Hg2_OH  = 0e0
-            AD03_Hg2_O3  = 0e0
+            !------------------------
+            ! Prior to 1/21/05:
+            !AD03_Hg0_an  = 0e0
+            !AD03_Hg0_aq  = 0e0
+            !AD03_Hg0_oc  = 0e0
+            !AD03_Hg0_ln  = 0e0
+            !AD03_Hg0_nt  = 0e0
+            !AD03_Hg2_an  = 0e0
+            !AD03_Hg2_aq  = 0e0
+            !AD03_HgP_an  = 0e0
+            !AD03_Hg2_Hg0 = 0e0
+            !AD03_Hg2_OH  = 0e0
+            !AD03_Hg2_O3  = 0e0
+            !------------------------
+            CALL ZERO_DIAG03
          ENDIF
 
          ! ND07 -- carbon aerosol emissions (rjp, tdf, bmy, 4/5/04)
@@ -276,6 +283,12 @@
             AD13_NH3_na = 0e0
             AD13_NH3_bb = 0e0
             AD13_NH3_bf = 0e0
+         ENDIF
+
+         ! ND21 -- optical depths
+         IF ( ND21 > 0 ) THEN
+            AD21 = 0e0
+            IF ( LCRYST ) AD21_cr = 0e0
          ENDIF
 
          ! For ND32 -- NOx source diagnostics (bmy, 3/28/00)

@@ -1,10 +1,10 @@
-! $Id: epa_nei_mod.f,v 1.1 2004/12/02 21:48:36 bmy Exp $
+! $Id: epa_nei_mod.f,v 1.2 2005/02/10 19:53:25 bmy Exp $
       MODULE EPA_NEI_MOD
 !
 !******************************************************************************
 !  Module EPA_NEI_MOD contains variables and routines to read the
 !  weekday/weekend emissions from the EPA/NEI emissions inventory.
-!  (rch, bmy, 11/10/04)
+!  (rch, bmy, 11/10/04, 1/26/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -82,6 +82,8 @@
 !  (6 ) transfer_mod.f  : Module containing routines to cast & resize arrays
 !
 !  NOTES:
+!  (1 ) Prevent out of bounds errors in routines TOTAL_ANTHRO_TG and 
+!        TOTAL_BIOFUEL_TG (bmy, 1/26/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -575,7 +577,8 @@
 !
 !******************************************************************************
 !  Subroutine TOTAL_ANTHRO_TG prints the amount of EPA/NEI anthropogenic
-!  emissions that are emitted each month in Tg or Tg C. (rch, bmy, 11/10/04)
+!  emissions that are emitted each month in Tg or Tg C. 
+!  (rch, bmy, 11/10/04, 1/25/05)
 !  
 !  Arguments as Input:
 !  ============================================================================
@@ -590,6 +593,7 @@
 !      Bryan Duncan (bnd@io.harvard.edu), and Daniel Jacob (djj@io.harvard.edu)
 !  (2) Now replace DXYP(J)*1d4 with routine GET_AREA_CM2 from "grid_mod.f".
 !       (bmy, 2/4/03)
+!  (3) Prevent out of bounds error when tracers are undefined (bmy, 1/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -610,6 +614,9 @@
       REAL*8              :: WE_NOX,  WE_CO,   WE_ALK4, WE_ACET
       REAL*8              :: WE_MEK,  WE_PRPE, WE_C2H6, WE_C3H8
       REAL*8              :: WE_CH2O, WE_NH3,  WE_SO2,  WE_SO4
+      REAL*8              :: F_NOX,   F_CO,    F_ALK4,  F_ACET
+      REAL*8              :: F_MEK,   F_PRPE,  F_C2H6,  F_C3H8
+      REAL*8              :: F_CH2O,  F_SO2,   F_SO4,   F_NH3
       CHARACTER(LEN=6)    :: UNIT
 
       ! Days per month
@@ -648,6 +655,34 @@
       WE_SO2  = 0d0 
       WE_SO4  = 0d0 
 
+      ! Molecular weights
+      F_NOX   = 0d0   
+      F_CO    = 0d0 
+      F_ALK4  = 0d0 
+      F_ACET  = 0d0 
+      F_MEK   = 0d0 
+      F_PRPE  = 0d0 
+      F_C2H6  = 0d0 
+      F_C3H8  = 0d0 
+      F_CH2O  = 0d0 
+      F_SO2   = 0d0 
+      F_SO4   = 0d0 
+      F_NH3   = 0d0 
+
+      ! Prevent array out of bounds error for undefined tracers
+      IF ( IDTNOX  > 0 ) F_NOX  = FMOL(IDTNOX )
+      IF ( IDTCO   > 0 ) F_CO   = FMOL(IDTCO  )
+      IF ( IDTALK4 > 0 ) F_ALK4 = FMOL(IDTALK4)
+      IF ( IDTACET > 0 ) F_ACET = FMOL(IDTACET)
+      IF ( IDTMEK  > 0 ) F_MEK  = FMOL(IDTMEK )
+      IF ( IDTPRPE > 0 ) F_PRPE = FMOL(IDTPRPE)
+      IF ( IDTC2H6 > 0 ) F_C2H6 = FMOL(IDTC2H6)
+      IF ( IDTC3H8 > 0 ) F_C3H8 = FMOL(IDTC3H8)
+      IF ( IDTCH2O > 0 ) F_CH2O = FMOL(IDTCH2O)
+      IF ( IDTSO2  > 0 ) F_SO2  = FMOL(IDTSO2 )
+      IF ( IDTSO4  > 0 ) F_SO4  = FMOL(IDTSO4 )
+      IF ( IDTNH3  > 0 ) F_NH3  = FMOL(IDTNH3 )
+
       !=================================================================
       ! Sum anthropogenic emissions
       !=================================================================
@@ -663,32 +698,32 @@
          DO I = 1, IIPAR
 
             ! Weekday avg emissions
-            WD_NOX  = WD_NOX  + EPA_WD_AN_NOX (I,J) * A * FMOL(IDTNOX )
-            WD_CO   = WD_CO   + EPA_WD_AN_CO  (I,J) * A * FMOL(IDTCO  )
-            WD_ALK4 = WD_ALK4 + EPA_WD_AN_ALK4(I,J) * A * FMOL(IDTALK4)
-            WD_ACET = WD_ACET + EPA_WD_AN_ACET(I,J) * A * FMOL(IDTACET)
-            WD_MEK  = WD_MEK  + EPA_WD_AN_MEK (I,J) * A * FMOL(IDTMEK )
-            WD_PRPE = WD_PRPE + EPA_WD_AN_PRPE(I,J) * A * FMOL(IDTPRPE)     
-            WD_C2H6 = WD_C2H6 + EPA_WD_AN_C2H6(I,J) * A * FMOL(IDTC2H6)
-            WD_C3H8 = WD_C3H8 + EPA_WD_AN_C3H8(I,J) * A * FMOL(IDTC3H8)
-            WD_CH2O = WD_CH2O + EPA_WD_AN_CH2O(I,J) * A * FMOL(IDTCH2O)
-            WD_SO2  = WD_SO2  + EPA_WD_AN_SO2 (I,J) * A * FMOL(IDTSO2 )
-            WD_SO4  = WD_SO4  + EPA_WD_AN_SO4 (I,J) * A * FMOL(IDTSO4 )
-            WD_NH3  = WD_NH3  + EPA_WD_AN_NH3 (I,J) * A * FMOL(IDTNH3 )
+            WD_NOX  = WD_NOX  + EPA_WD_AN_NOX (I,J) * A * F_NOX 
+            WD_CO   = WD_CO   + EPA_WD_AN_CO  (I,J) * A * F_CO  
+            WD_ALK4 = WD_ALK4 + EPA_WD_AN_ALK4(I,J) * A * F_ALK4
+            WD_ACET = WD_ACET + EPA_WD_AN_ACET(I,J) * A * F_ACET
+            WD_MEK  = WD_MEK  + EPA_WD_AN_MEK (I,J) * A * F_MEK 
+            WD_PRPE = WD_PRPE + EPA_WD_AN_PRPE(I,J) * A * F_PRPE
+            WD_C2H6 = WD_C2H6 + EPA_WD_AN_C2H6(I,J) * A * F_C2H6
+            WD_C3H8 = WD_C3H8 + EPA_WD_AN_C3H8(I,J) * A * F_C3H8
+            WD_CH2O = WD_CH2O + EPA_WD_AN_CH2O(I,J) * A * F_CH2O
+            WD_SO2  = WD_SO2  + EPA_WD_AN_SO2 (I,J) * A * F_SO2 
+            WD_SO4  = WD_SO4  + EPA_WD_AN_SO4 (I,J) * A * F_SO4 
+            WD_NH3  = WD_NH3  + EPA_WD_AN_NH3 (I,J) * A * F_NH3 
 
             ! Weekend avg emissions
-            WE_NOX  = WE_NOX  + EPA_WE_AN_NOX (I,J) * A * FMOL(IDTNOX )
-            WE_CO   = WE_CO   + EPA_WE_AN_CO  (I,J) * A * FMOL(IDTCO  )
-            WE_ALK4 = WE_ALK4 + EPA_WE_AN_ALK4(I,J) * A * FMOL(IDTALK4)
-            WE_ACET = WE_ACET + EPA_WE_AN_ACET(I,J) * A * FMOL(IDTACET)
-            WE_MEK  = WE_MEK  + EPA_WE_AN_MEK (I,J) * A * FMOL(IDTMEK )
-            WE_PRPE = WE_PRPE + EPA_WE_AN_PRPE(I,J) * A * FMOL(IDTPRPE)     
-            WE_C2H6 = WE_C2H6 + EPA_WE_AN_C2H6(I,J) * A * FMOL(IDTC2H6)
-            WE_C3H8 = WE_C3H8 + EPA_WE_AN_C3H8(I,J) * A * FMOL(IDTC3H8)
-            WE_CH2O = WE_CH2O + EPA_WE_AN_CH2O(I,J) * A * FMOL(IDTCH2O)
-            WE_SO2  = WE_SO2  + EPA_WE_AN_SO2 (I,J) * A * FMOL(IDTSO2 )
-            WE_SO4  = WE_SO4  + EPA_WE_AN_SO4 (I,J) * A * FMOL(IDTSO4 )
-            WE_NH3  = WE_NH3  + EPA_WE_AN_NH3 (I,J) * A * FMOL(IDTNH3 )
+            WE_NOX  = WE_NOX  + EPA_WE_AN_NOX (I,J) * A * F_NOX 
+            WE_CO   = WE_CO   + EPA_WE_AN_CO  (I,J) * A * F_CO  
+            WE_ALK4 = WE_ALK4 + EPA_WE_AN_ALK4(I,J) * A * F_ALK4
+            WE_ACET = WE_ACET + EPA_WE_AN_ACET(I,J) * A * F_ACET
+            WE_MEK  = WE_MEK  + EPA_WE_AN_MEK (I,J) * A * F_MEK 
+            WE_PRPE = WE_PRPE + EPA_WE_AN_PRPE(I,J) * A * F_PRPE
+            WE_C2H6 = WE_C2H6 + EPA_WE_AN_C2H6(I,J) * A * F_C2H6
+            WE_C3H8 = WE_C3H8 + EPA_WE_AN_C3H8(I,J) * A * F_C3H8
+            WE_CH2O = WE_CH2O + EPA_WE_AN_CH2O(I,J) * A * F_CH2O
+            WE_SO2  = WE_SO2  + EPA_WE_AN_SO2 (I,J) * A * F_SO2 
+            WE_SO4  = WE_SO4  + EPA_WE_AN_SO4 (I,J) * A * F_SO4 
+            WE_NH3  = WE_NH3  + EPA_WE_AN_NH3 (I,J) * A * F_NH3 
 
          ENDDO
       ENDDO
@@ -740,13 +775,14 @@
 !
 !******************************************************************************
 !  Subroutine TOTAL_BIOFUEL_TG prints the amount of EPA/NEI biofuel emissions
-!  that are emitted each month in Tg or Tg C. (rch, bmy, 11/10/04)
+!  that are emitted each month in Tg or Tg C. (rch, bmy, 11/10/04, 1/26/05)
 !  
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) THISMONTH (INTEGER) : Current month number
 !
 !  NOTES:
+!  (1 ) Prevent out of bounds error when tracers are undefined (bmy, 1/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -767,6 +803,9 @@
       REAL*8              :: WE_NOX,  WE_CO,   WE_ALK4, WE_ACET
       REAL*8              :: WE_MEK,  WE_PRPE, WE_C2H6, WE_C3H8
       REAL*8              :: WE_CH2O, WE_NH3,  WE_SO2,  WE_SO4
+      REAL*8              :: F_NOX,   F_CO,    F_ALK4,  F_ACET
+      REAL*8              :: F_MEK,   F_PRPE,  F_C2H6,  F_C3H8
+      REAL*8              :: F_CH2O,  F_SO2,   F_SO4,   F_NH3
       CHARACTER(LEN=6)    :: UNIT
 
       ! Days per month
@@ -805,6 +844,34 @@
       WE_SO2  = 0d0 
       WE_SO4  = 0d0 
 
+      ! Molecular weights
+      F_NOX   = 0d0   
+      F_CO    = 0d0 
+      F_ALK4  = 0d0 
+      F_ACET  = 0d0 
+      F_MEK   = 0d0 
+      F_PRPE  = 0d0 
+      F_C2H6  = 0d0 
+      F_C3H8  = 0d0 
+      F_CH2O  = 0d0 
+      F_SO2   = 0d0 
+      F_SO4   = 0d0 
+      F_NH3   = 0d0 
+
+      ! Prevent array out of bounds error for undefined tracers
+      IF ( IDTNOX  > 0 ) F_NOX  = FMOL(IDTNOX )
+      IF ( IDTCO   > 0 ) F_CO   = FMOL(IDTCO  )
+      IF ( IDTALK4 > 0 ) F_ALK4 = FMOL(IDTALK4)
+      IF ( IDTACET > 0 ) F_ACET = FMOL(IDTACET)
+      IF ( IDTMEK  > 0 ) F_MEK  = FMOL(IDTMEK )
+      IF ( IDTPRPE > 0 ) F_PRPE = FMOL(IDTPRPE)
+      IF ( IDTC2H6 > 0 ) F_C2H6 = FMOL(IDTC2H6)
+      IF ( IDTC3H8 > 0 ) F_C3H8 = FMOL(IDTC3H8)
+      IF ( IDTCH2O > 0 ) F_CH2O = FMOL(IDTCH2O)
+      IF ( IDTSO2  > 0 ) F_SO2  = FMOL(IDTSO2 )
+      IF ( IDTSO4  > 0 ) F_SO4  = FMOL(IDTSO4 )
+      IF ( IDTNH3  > 0 ) F_NH3  = FMOL(IDTNH3 )
+
       !=================================================================
       ! Sum anthropogenic emissions
       !=================================================================
@@ -819,32 +886,32 @@
          DO I = 1, IIPAR
 
             ! Weekday avg emissions
-            WD_NOX  = WD_NOX  + EPA_WD_BF_NOX (I,J) * A * FMOL(IDTNOX )
-            WD_CO   = WD_CO   + EPA_WD_BF_CO  (I,J) * A * FMOL(IDTCO  )
-            WD_ALK4 = WD_ALK4 + EPA_WD_BF_ALK4(I,J) * A * FMOL(IDTALK4)
-            WD_ACET = WD_ACET + EPA_WD_BF_ACET(I,J) * A * FMOL(IDTACET)
-            WD_MEK  = WD_MEK  + EPA_WD_BF_MEK (I,J) * A * FMOL(IDTMEK )
-            WD_PRPE = WD_PRPE + EPA_WD_BF_PRPE(I,J) * A * FMOL(IDTPRPE)     
-            WD_C2H6 = WD_C2H6 + EPA_WD_BF_C2H6(I,J) * A * FMOL(IDTC2H6)
-            WD_C3H8 = WD_C3H8 + EPA_WD_BF_C3H8(I,J) * A * FMOL(IDTC3H8)
-            WD_CH2O = WD_CH2O + EPA_WD_BF_CH2O(I,J) * A * FMOL(IDTCH2O)
-            WD_SO2  = WD_SO2  + EPA_WD_BF_SO2 (I,J) * A * FMOL(IDTSO2 )
-            WD_SO4  = WD_SO4  + EPA_WD_BF_SO4 (I,J) * A * FMOL(IDTSO4 )
-            WD_NH3  = WD_NH3  + EPA_WD_BF_NH3 (I,J) * A * FMOL(IDTNH3 )
+            WD_NOX  = WD_NOX  + EPA_WD_BF_NOX (I,J) * A * F_NOX
+            WD_CO   = WD_CO   + EPA_WD_BF_CO  (I,J) * A * F_CO  
+            WD_ALK4 = WD_ALK4 + EPA_WD_BF_ALK4(I,J) * A * F_ALK4
+            WD_ACET = WD_ACET + EPA_WD_BF_ACET(I,J) * A * F_ACET
+            WD_MEK  = WD_MEK  + EPA_WD_BF_MEK (I,J) * A * F_MEK 
+            WD_PRPE = WD_PRPE + EPA_WD_BF_PRPE(I,J) * A * F_PRPE
+            WD_C2H6 = WD_C2H6 + EPA_WD_BF_C2H6(I,J) * A * F_C2H6
+            WD_C3H8 = WD_C3H8 + EPA_WD_BF_C3H8(I,J) * A * F_C3H8
+            WD_CH2O = WD_CH2O + EPA_WD_BF_CH2O(I,J) * A * F_CH2O
+            WD_SO2  = WD_SO2  + EPA_WD_BF_SO2 (I,J) * A * F_SO2 
+            WD_SO4  = WD_SO4  + EPA_WD_BF_SO4 (I,J) * A * F_SO4 
+            WD_NH3  = WD_NH3  + EPA_WD_BF_NH3 (I,J) * A * F_NH3 
             
             ! Weekend avg emissions
-            WE_NOX  = WE_NOX  + EPA_WE_BF_NOX (I,J) * A * FMOL(IDTNOX )
-            WE_CO   = WE_CO   + EPA_WE_BF_CO  (I,J) * A * FMOL(IDTCO  )
-            WE_ALK4 = WE_ALK4 + EPA_WE_BF_ALK4(I,J) * A * FMOL(IDTALK4)
-            WE_ACET = WE_ACET + EPA_WE_BF_ACET(I,J) * A * FMOL(IDTACET)
-            WE_MEK  = WE_MEK  + EPA_WE_BF_MEK (I,J) * A * FMOL(IDTMEK )
-            WE_PRPE = WE_PRPE + EPA_WE_BF_PRPE(I,J) * A * FMOL(IDTPRPE)     
-            WE_C2H6 = WE_C2H6 + EPA_WE_BF_C2H6(I,J) * A * FMOL(IDTC2H6)
-            WE_C3H8 = WE_C3H8 + EPA_WE_BF_C3H8(I,J) * A * FMOL(IDTC3H8)
-            WE_CH2O = WE_CH2O + EPA_WE_BF_CH2O(I,J) * A * FMOL(IDTCH2O)
-            WE_SO2  = WE_SO2  + EPA_WE_BF_SO2 (I,J) * A * FMOL(IDTSO2 )
-            WE_SO4  = WE_SO4  + EPA_WE_BF_SO4 (I,J) * A * FMOL(IDTSO4 )
-            WE_NH3  = WE_NH3  + EPA_WE_BF_NH3 (I,J) * A * FMOL(IDTNH3 )
+            WE_NOX  = WE_NOX  + EPA_WE_BF_NOX (I,J) * A * F_NOX 
+            WE_CO   = WE_CO   + EPA_WE_BF_CO  (I,J) * A * F_CO  
+            WE_ALK4 = WE_ALK4 + EPA_WE_BF_ALK4(I,J) * A * F_ALK4
+            WE_ACET = WE_ACET + EPA_WE_BF_ACET(I,J) * A * F_ACET
+            WE_MEK  = WE_MEK  + EPA_WE_BF_MEK (I,J) * A * F_MEK 
+            WE_PRPE = WE_PRPE + EPA_WE_BF_PRPE(I,J) * A * F_PRPE
+            WE_C2H6 = WE_C2H6 + EPA_WE_BF_C2H6(I,J) * A * F_C2H6
+            WE_C3H8 = WE_C3H8 + EPA_WE_BF_C3H8(I,J) * A * F_C3H8
+            WE_CH2O = WE_CH2O + EPA_WE_BF_CH2O(I,J) * A * F_CH2O
+            WE_SO2  = WE_SO2  + EPA_WE_BF_SO2 (I,J) * A * F_SO2 
+            WE_SO4  = WE_SO4  + EPA_WE_BF_SO4 (I,J) * A * F_SO4 
+            WE_NH3  = WE_NH3  + EPA_WE_BF_NH3 (I,J) * A * F_NH3 
             
          ENDDO
       ENDDO

@@ -1,102 +1,226 @@
-REVISIONS (v7-02-02)  
-bmy, 16 Dec 2004
+REVISIONS (v7-02-03)  
+bmy, 03 Feb 2005
 
 
-New in v7-02-02:
+New in v7-02-03:
 -------------------------------------------------------------------------------
 
-mercury_mod.f		-- Contains routines and variables for the GEOS-CHEM
-			   mercury simulation
+diag03_mod.f		-- Module for ND03 diagnostics (mercury quantities)
 
-
-
-Removed in v7-02-02:
--------------------------------------------------------------------------------
-
-
-
-
-Changed from v7-02-01:
--------------------------------------------------------------------------------
-
-cleanup.f		-- Now call CLEANUP_MERCURY from "mercury_mod.f"
-
-CMN_DIAG		-- Remove reference to obsolete TOFDY0 variable
-
-compute_f		-- Updated for mercury aerosol tracers
-("wetscav_mod.f")
-
-diag3.f		       	-- Now save ND03 mercury diagnostic arrays to bpch file
-			-- Also updated ND44 for tagged Hg tracers
-
-diag_mod.f		-- Added extra arrays for ND03 mercury diagnostics
-
-do_chemistry		-- Now call routine CHEMMERCURY from "mercury_mod.f" 
-("chemistry_mod.f")	   for an offline Hg0/Hg2/HgP simulation
-
-do_emissions		-- Now calls EMISSMERCURY from "mercury_mod.f"
-("emissions_mod.f")
-
-get_a3_time		-- Remove reference to FIRST variable
-("time_mod.f")
-
-get_wetdep_nmax		-- Updated for mercury aerosol tracers 
-("wetscav_mod.f")
-
-init_diag		-- Now deallocate extra arrays for ND03 diagnostics
-("diag_mod.f")
-
-init_drydep		-- Add Hg2, HgP tracers to the case statement
-("drydep_mod.f")
-
-
-init_input		-- Now initializes LAVHRRLAI flag 
+is_last_day_good        -- Moved here from "main.f"
 ("input_mod.f")
 
-initialize.f		-- Now initialize extra arrays for ND03 mercury diag
-			-- Also remove reference to obsolete TOFDY0 variable
+ocean_mercury_mod.f	-- Module for computing the ocean flux of Hg(0)
 
-init_tracerid		-- Now zero flags for total & tagged Hg tracers
-("tracerid_mod.f")
+phase_so4		-- Computes phase transition for crystalline
+("sulfate_mod.f")	   sulfur tracers (AS, AHS, LET, SO4aq)
+
+phase_radiative		-- Computes radiative forcing for crystalline 
+("sulfate_mod.f")	   sulfur tracers (AS, AHS, LET, SO4aq)
 
 
-logical_mod.f		-- Added LAVHRRLAI switch to toggle AVHRR-derived
-			   leaf area index data
 
-main.f			-- Simplify IF statement for daily data
+Removed in v7-02-03:
+-------------------------------------------------------------------------------
 
-ndxx_setup.f		-- Now allocate extra arrays for ND03 mercury diag
-			-- Also set up for mercury tracers in ND44 diagnostic
+is_last_day_good        -- Moved into "input_mod.f"
+("input_mod.f")
 
-ohno3time		-- Also added parallel loop over grid boxes
+read_tindex.f		-- Functionality is replaced in "input_mod.f"
+
+
+
+Changed from v7-02-02:
+-------------------------------------------------------------------------------
+
+accumulate_diag50	-- Only archive AOD's when it is a chem timestep 
+("diag50_mod.f")           (ND50 tracers 82-87)
+
+accumulate_diag51	-- Only archive AOD's when it is a chem timestep 
+("diag51_mod.f")           (ND51 tracers 82-87)
+
+aerosol_ruralbox	-- Now convert ABSHUM from absolute humidity to 
+("aerosol_mod.f")	   relative humidity in AEROSOL_RURALBOX, using the
+			   same algorithm as in "gasconc.f"
+
+biomass_carb_geos	-- Now read BCPO, OCPO biomass burning data directly 
+("carbon_mod.f")	   from files instead of computing from emission 
+			   factors
+
+chem_h2o2		-- Now suppress output from READ_BPCH with 
+("sulfate_mod.f")	   QUIET keyword
+
+chemmercury		-- Updated for reduction reaction
 ("mercury_mod.f")
 
-rainout			-- Updated for mercury aerosol tracers 
+chem_so4		-- Now references LCRYST from "logical_mod.f"
+("sulfate_mod.f")	-- Modified for crystalline and aqueous sulfate 
+			   tracers: AS, AHS, LET, SO4aq
+			-- Also changed name of ND44_TMP to T44 to save space
+
+chemsulfate		-- Updated for AS, AHS, LET, SO4aq, NH4aq
+("sulfate_mod.f")	-- Now locate species in the DEPSAV array w/in 
+			   INIT_SULFATE instead of here
+			-- Now references LCRYST from logical_mod.f
+
+cleanup.f		-- Now call CLEANUP_OCEAN_MERCURY from 
+			   "ocean_mercury_mod.f".  
+			-- Also reordered the calling sequence.
+
+cleanup_diag		-- Now deallocates AD21_cr, AD03 arrays
+("diag_mod.f") 	
+
+CMN_DIAG		-- Changed PD03 to 11
+
+compute_f		-- Updated for AS, AHS, LET, NH4aq, SO4aq  
+("wetscav_mod.f")	-- Also condensed the IF statement by combining 
+			   branches for aerosols
+
+convtran		-- Now pass Hg2 that is wet scavenged to 
+("fvdas_convect_mod.f")    "ocean_mercury_mod.f" for computation of mercury 
+			   ocean flux
+
+diag_mod.f		-- Added extra ND21 array for cryst sulfur tracers
+			-- Also remove ND03 and ND48 arrays; they're obsolete
+
+diag3.f			-- Now print out extra ND21 diagnostics for 
+			   crystalline sulfur tracers
+			-- Also now save total oceanic mass of Hg0 and Hg2
+
+do_chemistry		-- Now do not call DO_RPMARES if we are doing an 
+("chemistry_mod.f")	   offline aerosol run with crystalline sulfur & 
+			   aqueous tracers (AS, AHS, LET, NH4aq, SO4aq)
+
+do_emissions		-- Now calls EMISSSULFATE if LCRYST=T
+("emissions_mod.f")	-- Also read EPA/NEI emissions for the offline 
+			   sulfate simulation
+
+emissseasalt		-- Now make sure IDTSALA, IDTSALC are nonzero before 
+("sulfate_mod.f")	   calling SRCSALT.  
+
+get_global_hno3		-- Now suppress output from READ_BPCH2 with QUIET=T
+("global_hno3_mod.f")
+
+get_global_no3		-- Now suppress output from READ_BPCH2 with QUIET=T
+("global_hno3_mod.f")
+
+get_wetdep_nmax		-- Modified for AS, AHS, LET, NH4aq, SO4aq
 ("wetscav_mod.f")
 
-rdland.f		-- Now read the "vegtype.global" file from the 
-			   leaf_area_index_200412 subdirectory if the
-		           LAVHRRLAI flag is set to TRUE.  
-			-- Also updated comments and added standard GEOS-CHEM
-			   program documentation header.
+init_drydep		-- Included AS, AHS, LET, NH4aq, SO4aq tracers
+("drydep_mod.f")
 
-read_deposition_menu	-- Now print informational message for Tagged Hg
-("input_mod.f")
+initialize.f		-- Now initialize AD21_cr array for ND21 diag
+			-- Also references LCRYST from "logical_mod.f"
+			-- Now call ZERO_DIAG03 from "diag03_mod.f"
+			   to zero ND03 arrays
 
-read_emissions_menu	-- Now read LAVHRRLAI-switch for using AVHRR-derived 
-("input_mod.f")		   leaf-area-index fields 
+init_sulfate		-- Now locate species in the DEPSAV array w/in 
+("sulfate_mod.f")	   INIT_SULFATE instead of here 
+			-- Now reference LDRYD from "logical_mod.f"
+			-- Updated for AS, AHS, LET, SO4aq, NH4aq
 
-readlai.f 		-- Now use AVHRR LAI derived leaf-area index data 
-			   (stored in the leaf_area_index_200412 subdir of 
-			   DATA_DIR) if the logical switch LAVHRRLAI=T.  
-			   Otherwise use the old LAI data.
-
-
-tracerid		-- Added IDTHG0, IDTHG2, IDTHGP + tagged Hg's flags
+init_tracerid		-- Now zero IDTAS, IDTAHS, IDTNH4aq, IDTLET, IDTSO4aq
 ("tracerid_mod.f")
 
-washout			-- Updated for mercury aerosol tracers 
+logical_mod.f		-- Added LCRYST switch to turn on crystalline sulfate
+			   & aqueous tracers (AS, AHS, LET, SO4aq, NH4aq)
+
+main.f			-- Moved call to OPEN_BPCH2_FOR_WRITE to "input_mod.f"
+			-- Removed reference to "bpch2_mod.f"
+
+mercury_readyr		-- Now read data from mercury_200501 subdirectory.  
+("mercury_mod.f")	-- Now compute oceanic Hg(0) emissions w/ ocean 
+			   flux module instead of reading them from disk
+			-- Now use 1985 TAU values
+
+ndxx_setup.f		-- Added separate ND21 array for cryst sulfur tracers
+			-- Now move ND03 diagnostics into "diag03_mod.f"
+			-- Remove TCOBOX reference, it's obsolete
+
+nfcldmx			-- Now call ADD_Hg2_WD from "ocean_mercury_mod.f" 
+("convection_mod.f")	   to pass the amt of Hg2 lost by wet scavenging 
+			-- Now references both "ocean_mercury_mod.f" and 
+			   "tracerid_mod.f"
+
+ohno3time		-- Also added parallel loop over grid boxes
+("carbon_mod.f")
+
+rainout			-- Updated for AS, AHS, LET, NH4aq, SO4aq.  
+("wetscav_mod.f")	-- Also condensed the IF statement by grouping 
+			   blocks together
+
+read_diagnostic_menu	-- Now reference IU_BPCH from "file_mod.f" and 
+("input_mod.f")		   OPEN_BPCH2_FOR_WRITE from "bpch2_mod.f"
+			-- Now opens the bpch file for output here
+			   instead of w/in "main.f"
+
+rxn_hg2_dryd		-- Now use 2 different solutions, depending on whether
+("mercury_mod.f")	   or not LOST_Hg0 (amt of converted Hg0 -> Hg2) is 
+			   positive
+			-- Also now archive the amount of total Hg(II) tracer 
+			   lost to drydep for the ocean flux routines in 
+			   "ocean_mercury_mod.f"
+
+rxn_hg0_hg2		-- Changed equation to reflect reduction rxn
+("mercury_mod.f")
+
+read_aerosol_menu	-- Now reference LCRYST from "logical_mod.f"
+("input_mod.f")		-- Also now check to make prevent aerosol tracers 
+			   from being undefined if the corresponding
+		           logical switch is set
+
+read_biomass_nh3	-- Now can read either seasonal or interannual 
+("sulfate_mod.f")	   biomass burning emissions
+			-- Now references routines from "time_mod.f"
+			-- Now reads SO2 biomass emissions directly rather 
+			   than computing it by mole fraction from CO
+
+read_biomass_so2	-- Now can read either seasonal or interannual 
+("sulfate_mod.f")	   biomass burning emissions
+			-- Now references routines from both "logical_mod.f" 
+			   and "time_mod.f"
+			-- Now reads SO2 biomass emissions directly rather 
+			   than computing it by mole fraction from CO
+
+srcHg0			-- Now use diagnostic arrays from "diag03_mod.f"
+("mercury_mod.f")
+
+srcHg2			-- Now use diagnostic arrays from "diag03_mod.f"
+("mercury_mod.f")
+
+srcHgP			-- Now use diagnostic arrays from "diag03_mod.f"
+("mercury_mod.f")
+
+stdrun			-- Now expand date tokens in the filename
+("benchmark_mod.f")
+
+total_anthro_tg		-- Prevent out of bounds error when tracers are 
+("epa_nei_mod.f") 	   undefined
+
+total_biofuel_tg	-- Prevent out of bounds error when tracers are 
+("epa_nei_mod.f") 	   undefined
+
+tracerid		-- Added IDTAS, IDTAHS, IDTNH4aq, IDTLET, IDTSO4aq
+("tracerid_mod.f")	-- Now no longer need to declare IDTCO, IDBCO, 
+			   IDBFCO for offline aerosol simulations. 
+
+washout			-- Updated for AS, AHS, LET, NH4aq, SO4aq.  
+("wetscav_mod.f")	-- Also condensed the IF statement by grouping 
+			   blocks together
+
+wetdep			-- Now references IDTHg2 from "tracerid_mod.f".  
+("wetscav_mod.f")	-- Now pass the amt of Hg2 wet scavenged out of the 
+			   column to "ocean_mercury_mod.f" via routine 
+			   ADD_Hg2_WET
+
+wetdepid		-- Updated for AS, AHS, LET, NH4aq, SO4aq
 ("wetscav_mod.f")
 
-wetdepid	       	-- Updated for mercury aerosol tracers 
-("wetscav_mod.f")
+write_diag50		-- Now divide tracers 82-87 (i.e. various AOD's) by 
+("diag50_mod.f")	   GOOD_CT_CHEM since these are only updated once per
+			   chemistry timestep
+
+write_diag51		-- Now divide tracers 82-87 (i.e. various AOD's) by 
+("diag51_mod.f")	   GOOD_CT_CHEM since these are only updated once per
+			   chemistry timestep

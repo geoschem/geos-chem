@@ -1,9 +1,9 @@
-! $Id: ndxx_setup.f,v 1.15 2004/12/16 16:52:45 bmy Exp $
+! $Id: ndxx_setup.f,v 1.16 2005/02/10 19:53:27 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
 !  NDXX_SETUP dynamically allocates memory for certain diagnostic arrays that 
-!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 12/14/04)
+!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 1/21/05)
 !
 !  This allows us to reduce the amount of memory that needs to be declared 
 !  globally.  We only allocate memory for arrays if the corresponding 
@@ -107,6 +107,10 @@
 !  (50) Now allocate AD13_SO4_bf array (bmy, 11/17/04)
 !  (51) Now allocate extra arrays for ND03 mercury diag.  Also set up for
 !        mercury tracers in ND44 diagnostic. (bmy, 12/14/04)
+!  (52) Added separate ND21 array for cryst sulfur tracers.  Now reinstated
+!        AD03 array for mercury simulation.  Now move ND03 diagnostics into
+!        a separate module.  Remove TCOBOX reference, it's obsolete.
+!        (cas, sas, bmy, 1/21/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -137,7 +141,10 @@
       !=================================================================
       LD01 = 1
       LD02 = 1
-      LD03 = 1
+      !--------------------
+      ! Prior to 1/21/05:
+      !LD03 = 1
+      !--------------------
       LD05 = 1
       LD07 = 1
       LD12 = 1
@@ -250,50 +257,60 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD02' )
       ENDIF
 
-      !=================================================================
-      ! ND03: Kr85 prod/loss
-      !=================================================================
-      IF ( ND03 > 0 ) THEN 
-         LD03 = MIN( ND03, LLPAR )
-         
-         !--------------------------------------------------------------
-         ! Prior to 12/7/04:
-         ! Kr85 was never really implemented.  Comment out for now
-         ! (eck, bmy, 12/7/04)
-         !ALLOCATE( AD03( IIPAR, JJPAR, LD03, PD03 ), STAT=AS )
-         !IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03' )
-         !
-         !! Also need to turn on ND25 N/S flux diagnostic
-         !ND25 = LLPAR
-         !--------------------------------------------------------------
-
-         ALLOCATE( AD03_Hg0_an( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg0_an' )
-
-         ALLOCATE( AD03_Hg2_an( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_an' )
-
-         ALLOCATE( AD03_HgP_an( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_HgP_an' )
-
-         ALLOCATE( AD03_Hg0_oc( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg0_oc' )
-
-         ALLOCATE( AD03_Hg0_ln( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg0_ln' )
-
-         ALLOCATE( AD03_Hg0_nt( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg0_nt' ) 
-
-         ALLOCATE( AD03_Hg2_Hg0( IIPAR, JJPAR, LD03 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_Hg0')
-
-         ALLOCATE( AD03_Hg2_OH( IIPAR, JJPAR, LD03 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_OH')
-
-         ALLOCATE( AD03_Hg2_O3( IIPAR, JJPAR, LD03 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_O3')
-      ENDIF
+      !-----------------------------------------------------------------------
+      ! Prior to 1/21/05:
+      ! This is now obsolete (bmy, 1/21/05)
+      !!=================================================================
+      !! ND03: Kr85 prod/loss
+      !!=================================================================
+      !IF ( ND03 > 0 ) THEN 
+      !   !LD03 = MIN( ND03, LLPAR )
+      !   
+      !   !--------------------------------------------------------------
+      !   ! Prior to 12/7/04:
+      !   ! Kr85 was never really implemented.  Comment out for now
+      !   ! (eck, bmy, 12/7/04)
+      !   !ALLOCATE( AD03( IIPAR, JJPAR, LD03, PD03 ), STAT=AS )
+      !   !IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03' )
+      !   !
+      !   !! Also need to turn on ND25 N/S flux diagnostic
+      !   !ND25 = LLPAR
+      !   !--------------------------------------------------------------
+      !
+      !   ALLOCATE( AD03_Hg0_an( IIPAR, JJPAR ), STAT=AS )
+      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg0_an' )
+      !   
+      !   ALLOCATE( AD03_Hg0_aq( IIPAR, JJPAR ), STAT=AS )
+      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg0_aq' )
+      !   
+      !   ALLOCATE( AD03_Hg0_oc( IIPAR, JJPAR ), STAT=AS )
+      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg0_oc' )
+      !   
+      !   ALLOCATE( AD03_Hg0_ln( IIPAR, JJPAR ), STAT=AS )
+      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg0_ln' )
+      !   
+      !   ALLOCATE( AD03_Hg0_nt( IIPAR, JJPAR ), STAT=AS )
+      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg0_nt' ) 
+      !   
+      !   ALLOCATE( AD03_Hg2_an( IIPAR, JJPAR ), STAT=AS )
+      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_an' )
+      !   
+      !   ALLOCATE( AD03_Hg2_aq( IIPAR, JJPAR ), STAT=AS )
+      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_aq' )
+      !   
+      !   ALLOCATE( AD03_HgP_an( IIPAR, JJPAR ), STAT=AS )
+      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_HgP_an' )
+      !
+      !   ALLOCATE( AD03_Hg2_Hg0( IIPAR, JJPAR, LD03 ), STAT=AS )
+      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_Hg0' )
+      !
+      !   ALLOCATE( AD03_Hg2_OH( IIPAR, JJPAR, LD03 ), STAT=AS )
+      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_OH' )
+      !
+      !   ALLOCATE( AD03_Hg2_O3( IIPAR, JJPAR, LD03 ), STAT=AS )
+      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_O3' )
+      !ENDIF
+      !-----------------------------------------------------------------------
 
       !=================================================================
       ! ND04: Free diagnostic
@@ -509,8 +526,16 @@
       IF ( ND21 > 0 ) THEN
          LD21 = MIN( ND21, LLTROP )
 
+         ! For regular 
          ALLOCATE( AD21( IIPAR, JJPAR, LD21, PD21 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD21' )
+
+         ! Separate for crystalline sulfate tracers (bmy, 1/5/05)
+         IF ( LCRYST ) THEN
+            ALLOCATE( AD21_cr( IIPAR, JJPAR, 6 ), STAT=AS )
+            IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD21' )      
+         ENDIF
+
       ENDIF
 
       !=================================================================
@@ -907,14 +932,18 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD47' )
       ENDIF
 
-      !=================================================================
-      ! ND48: Station timeseries diagnostics (also see diag48.f)
-      !       --> uses TCOBOX array (allocatable)
-      !=================================================================
-      IF ( ND48 > 0 ) THEN
-         ALLOCATE( TCOBOX( MAXACC, NNSTA ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOBOX' )
-      ENDIF        
+      !-----------------------------------------------------------------------
+      ! Prior to 1/21/05:
+      ! This is now obsolete (bmy, 1/21/05)
+      !!=================================================================
+      !! ND48: Station timeseries diagnostics (also see diag48.f)
+      !!       --> uses TCOBOX array (allocatable)
+      !!=================================================================
+      !IF ( ND48 > 0 ) THEN
+      !   ALLOCATE( TCOBOX( MAXACC, NNSTA ), STAT=AS )
+      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOBOX' )
+      !ENDIF        
+      !-----------------------------------------------------------------------
 
       !=================================================================
       ! ND52 - ND54: Free diagnostics

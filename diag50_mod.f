@@ -1,10 +1,10 @@
-! $Id: diag50_mod.f,v 1.4 2004/12/02 21:48:35 bmy Exp $
+! $Id: diag50_mod.f,v 1.5 2005/02/10 19:53:24 bmy Exp $
       MODULE DIAG50_MOD
 !
 !******************************************************************************
 !  Module DIAG50_MOD contains variables and routines to generate save 
 !  timeseries data over the United States where the local time is between 
-!  two user-defined limits. (amf, bey, bdf, pip, bmy, 11/30/00, 11/9/04)
+!  two user-defined limits. (amf, bey, bdf, pip, bmy, 11/30/00, 1/14/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -94,6 +94,7 @@
 !  (2 ) Added COUNT_CHEM to count the chemistry timesteps per day, since some
 !        quantities are only archived after a fullchem call (bmy, 10/25/04)
 !  (3 ) Bug fix: Now get I0 and J0 properly for nested grids (bmy, 11/9/04)
+!  (4 ) Now only archive AOD's once per chemistry timestep (bmy, 1/14/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -176,7 +177,7 @@
 !
 !******************************************************************************
 !  Subroutine ACCUMULATE_DIAG50 accumulates tracers into the Q array. 
-!  (bmy, 8/20/02, 7/20/04)
+!  (bmy, 8/20/02, 1/14/05)
 !
 !  NOTES:
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
@@ -186,6 +187,7 @@
 !        Also now use extra counter COUNT_CHEM to count the number of
 !        chemistry timesteps since NO, NO2, OH, O3 only when a full-chemistry
 !        timestep happens. (bmy, 10/25/04)
+!  (3 ) Only archive AOD's when it is a chem timestep (bmy, 1/14/05)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -274,7 +276,7 @@
          DO Y = 1, ND50_NJ
             J = JOFF + Y
 
-         ! Loop over altitudes
+         ! Loop over longitudes
          DO X = 1, ND50_NI
             I = GET_I( X )
 
@@ -459,10 +461,16 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + GET_PEDGE(I,J,CLDTOPS(I,J))
                ENDIF
 
-            ELSE IF ( N == 82 ) THEN
+            !--------------------------------------------------------
+            ! Prior to 1/14/05:
+            ! This is only updated each chem timestep (bmy, 1/14/05)
+            !ELSE IF ( N == 82 ) THEN
+            !--------------------------------------------------------
+            ELSE IF ( N == 82 .and. IS_CHEM ) THEN
 
                !--------------------------------------
                ! SULFATE AOD @ 400 nm [unitless]
+               ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NRH
                   
@@ -473,10 +481,16 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,R) * SCALE400nm
                ENDDO
 
-            ELSE IF ( N == 83 ) THEN
+            !--------------------------------------------------------
+            ! Prior to 1/14/05:
+            ! This is only updated each chem timestep (bmy, 1/14/05)
+            !ELSE IF ( N == 83 ) THEN
+            !--------------------------------------------------------
+            ELSE IF ( N == 83 .and. IS_CHEM ) THEN
 
                !--------------------------------------
                ! BLACK CARBON AOD @ 400 nm [unitless]
+               ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NRH
 
@@ -490,10 +504,16 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE400nm
                ENDDO
 
-            ELSE IF ( N == 84 ) THEN
+            !--------------------------------------------------------
+            ! Prior to 1/14/05:
+            ! This is only updated each chem timestep (bmy, 1/14/05)
+            !ELSE IF ( N == 84 ) THEN
+            !--------------------------------------------------------
+            ELSE IF ( N == 84 .and. IS_CHEM ) THEN
 
                !--------------------------------------
                ! ORG CARBON AOD @ 400 nm [unitless]
+               ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NRH
 
@@ -507,10 +527,16 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE400nm
                ENDDO
 
-            ELSE IF ( N == 85 ) THEN
+            !--------------------------------------------------------
+            ! Prior to 1/14/05:
+            ! This is only updated each chem timestep (bmy, 1/14/05)
+            !ELSE IF ( N == 85 ) THEN
+            !--------------------------------------------------------
+            ELSE IF ( N == 85 .and. IS_CHEM ) THEN
 
                !--------------------------------------
                ! ACCUM SEASALT AOD @ 400 nm [unitless]
+               ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NRH
 
@@ -524,10 +550,16 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE400nm
                ENDDO
 
-            ELSE IF ( N == 86 ) THEN
+            !--------------------------------------------------------
+            ! Prior to 1/14/05:
+            ! This is only updated each chem timestep (bmy, 1/14/05)
+            !ELSE IF ( N == 86 ) THEN
+            !--------------------------------------------------------
+            ELSE IF ( N == 86 .and. IS_CHEM ) THEN
 
                !--------------------------------------
                ! COARSE SEASALT AOD 400 nm [unitless]
+               ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NRH
 
@@ -541,10 +573,16 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE400nm
                ENDDO
 
-            ELSE IF ( N == 87 ) THEN
+            !--------------------------------------------------------
+            ! Prior to 1/14/05:
+            ! This is only updated each chem timestep (bmy, 1/14/05)
+            !ELSE IF ( N == 87 ) THEN
+            !--------------------------------------------------------
+            ELSE IF ( N == 87 .and. IS_CHEM ) THEN
                
                !--------------------------------------
                ! TOTAL DUST OPTD @ 400 nm [unitless]
+               ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NDUST
 
@@ -663,7 +701,7 @@
 !
 !******************************************************************************
 !  Subroutine WRITE_DIAG50 computes the 24-hr time-average of quantities
-!  and saves to bpch file format. (bmy, 12/1/00, 10/25/04)  
+!  and saves to bpch file format. (bmy, 12/1/00, 1/14/05)  
 !
 !  NOTES:
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
@@ -671,6 +709,8 @@
 !  (2 ) Now only archive NO, NO2, OH, O3 on every chemistry timestep (i.e. 
 !        only when fullchem is called).  Also remove reference to FIRST. 
 !        (bmy, 10/25/04)
+!  (3 ) Now divide tracers 82-87 (i.e. various AOD's) by GOOD_CT_CHEM since
+!        these are only updated once per chemistry timestep (bmy, 1/14/05)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -728,8 +768,17 @@
 
          ! Pick the proper divisor, depending on whether or not the
          ! species in question is archived only each chem timestep
+!-----------------------------------------------------------------------------
+! Prior to 1/14/05:
+! Now divide AOD's by the number of chemistry timesteps (bmy, 1/14/05)
+!         IF ( ND50_TRACERS(W) == 71 .or. ND50_TRACERS(W) == 72  .or. 
+!     &        ND50_TRACERS(W) == 74 .or. ND50_TRACERS(W) == 75 ) THEN 
+!-----------------------------------------------------------------------------
          IF ( ND50_TRACERS(W) == 71 .or. ND50_TRACERS(W) == 72  .or. 
-     &        ND50_TRACERS(W) == 74 .or. ND50_TRACERS(W) == 75 ) THEN 
+     &        ND50_TRACERS(W) == 74 .or. ND50_TRACERS(W) == 75  .or.
+     &        ND50_TRACERS(W) == 82 .or. ND50_TRACERS(W) == 83  .or.
+     &        ND50_TRACERS(W) == 84 .or. ND50_TRACERS(W) == 85  .or.
+     &        ND50_TRACERS(W) == 86 .or. ND50_TRACERS(W) == 87 ) THEN
             DIVISOR = COUNT_CHEM
          ELSE
             DIVISOR = COUNT
@@ -1180,13 +1229,6 @@
       !=================================================================
       ! Error check longitude, latitude, altitude limits
       !=================================================================
-
-      !-----------------------------------------------------
-      ! Prior to 11/9/04:
-      !! Get grid offsets between global & nested grid
-      !I0 = GET_XOFFSET( GLOBAL=.TRUE. )
-      !J0 = GET_YOFFSET( GLOBAL=.TRUE. )
-      !-----------------------------------------------------
 
       ! Get grid offsets
       IF ( ITS_A_NESTED_GRID() ) THEN

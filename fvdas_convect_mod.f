@@ -1,11 +1,11 @@
-! $Id: fvdas_convect_mod.f,v 1.5 2004/09/22 15:45:26 bmy Exp $
+! $Id: fvdas_convect_mod.f,v 1.6 2005/02/10 19:53:25 bmy Exp $
       MODULE FVDAS_CONVECT_MOD
 !
 !******************************************************************************
 !  Module FVDAS_CONVECT_MOD contains routines (originally from NCAR) which 
 !  perform shallow and deep convection for the GEOS-4/fvDAS met fields.  
 !  These routines account for shallow and deep convection, plus updrafts 
-!  and downdrafts.  (pjr, dsa, bmy, 6/26/03, 7/20/04)
+!  and downdrafts.  (pjr, dsa, bmy, 6/26/03, 1/21/05)
 !  
 !  Module Variables:
 !  ============================================================================
@@ -36,6 +36,7 @@
 !        parallel loop over latitudes in FVDAS_CONVECT. (swu, bmy, 1/21/04)
 !  (2 ) Now prevent FTMP, QTMP arrays from being held PRIVATE w/in the
 !        parallel loop in routine DO_CONVECTION (bmy, 7/20/04)
+!  (3 ) Now pass wet-scavenged Hg2 to "ocean_mercury_mod.f" (sas, bmy, 1/21/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -736,7 +737,7 @@
 !******************************************************************************
 !  Subroutine CONVTRAN applies the convective transport of trace species
 !  (assuming moist mixing ratio) using the ZHANG/MCFARLANE convection scheme. 
-!  (pjr, dsa, bmy, 6/26/03, 1/21/04)
+!  (pjr, dsa, bmy, 6/26/03, 1/21/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -783,14 +784,18 @@
 !        Also added TCVV and INDEXSOL as arguments.  Now only save LD38
 !        levels of the ND38 diagnostic.  Now place NTRACE before Q in the
 !        arg list. (swu, bmy, 1/21/04)
+!  (2 ) Now pass Hg2 that is wet scavenged to "ocean_mercury_mod.f" for
+!        computation of mercury fluxes (sas, bmy, 1/21/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD, ONLY : AD38 
-      USE GRID_MOD, ONLY : GET_AREA_M2
+      USE DIAG_MOD,          ONLY : AD38 
+      USE GRID_MOD,          ONLY : GET_AREA_M2
+      USE OCEAN_MERCURY_MOD, ONLY : ADD_Hg2_WD
+      USE TRACERID_MOD,      ONLY : IDTHg2
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND38, LD38
+#     include "CMN_DIAG"     ! ND38 LD38
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NTRACE             
@@ -827,7 +832,7 @@
       REAL*8                 :: FISG(IIPAR,LLPAR)     
       REAL*8                 :: CONU(IIPAR,LLPAR)     
       REAL*8                 :: DCONDT(IIPAR,LLPAR)   
-      REAL*8                 :: AREA_M2
+      REAL*8                 :: AREA_M2, WET_Hg2
 
       !=================================================================
       ! CONVTRAN begins here!
@@ -1016,6 +1021,8 @@
                ! Only save to ND38 if it's turned on, if there are soluble 
                ! tracers, and if we are below the LD38 level limit
                IF ( ND38 > 0 .and. NN > 0 ) THEN
+
+                  ! GEOS-CHEM lon, lat, alt indices
                   II = IDEEP(I)
                   JJ = LATI_INDEX
                   LL = LLPAR - K + 1
@@ -1028,10 +1035,36 @@
 
                      ! Save loss in [kg/s]
                      AD38(II,JJ,LL,NN) = AD38(II,JJ,LL,NN) +
-     &                    MU(I,KP1)   * AREA_M2       * 100d0   / GRAV * 
-     &                    CONU(I,KP1) * (1-FISG(I,K)) / TCVV(M) / 
-     &                    FLOAT(NSTEP)
+     &                    MU(I,KP1)   * AREA_M2     * 100d0         / 
+     &                    GRAV        * CONU(I,KP1) * (1-FISG(I,K)) / 
+     &                    TCVV(M)     / FLOAT(NSTEP)
                   ENDIF
+               ENDIF
+
+               !========================================================
+               ! Pass the amount of Hg2 lost in wet scavenging [kg] 
+               ! to "ocean_mercury_mod.f" w/ ADD_Hg2_WET.  
+               !
+               ! NOTE: DELT is already divided by NSTEP (as passed from
+               ! the calling program) so we don't have to divide by
+               ! it here, as is done above for ND38. (sas, bmy, 1/21/05)
+               !========================================================
+               IF ( NN > 0 .and. NN == IDTHg2 ) THEN
+
+                  ! GEOS-CHEM lon & lat indices
+                  II      = IDEEP(I)
+                  JJ      = LATI_INDEX
+
+                  ! Grid box surface area [m2] 
+                  AREA_M2 = GET_AREA_M2( JJ )
+
+                  ! Hg2 wet-scavenged out of the column [kg]
+                  WET_Hg2 = MU(I,KP1) * AREA_M2      * 100d0         / 
+     &                      GRAV      * CONU(I,KP1)  * (1-FISG(I,K)) /
+     &                      TCVV(M)   * DELT 
+
+                  ! Pass to "ocean_mercury_mod.f"
+                  CALL ADD_Hg2_WD( II, JJ, WET_Hg2 )
                ENDIF
 
                NETFLUX = FLUXIN - FLUXOUT

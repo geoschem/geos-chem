@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.10 2004/12/20 16:47:23 bmy Exp $
+! $Id: input_mod.f,v 1.11 2005/02/10 19:53:26 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS_CHEM input file at the start of the run
 !  and passes the information to several other GEOS-CHEM F90 modules.
-!  (bmy, 7/20/04, 12/20/04)
+!  (bmy, 7/20/04, 2/3/05)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -47,43 +47,49 @@
 !  (24) VALIDATE_DIRECTORIES  : Makes sure all given directories are valid
 !  (25) CHECK_DIRECTORY       : Checks a single directory for errors
 !  (26) CHECK_TIME_STEPS      : Sets the GEOS_CHEM timesteps
-!  (27) INIT_INPUT            : Initializes directory & logical variables
+!  (27) IS_LAST_DAY_GOOD      : Makes sure we have output on last day of run
+!  (28) INIT_INPUT            : Initializes directory & logical variables
 !
 !  GEOS-CHEM modules referenced by "input_mod.f"
 !  ============================================================================
-!  (1 ) biofuel_mod.f    : Module containing routines to read biofuel emissions
-!  (2 ) biomass_mod.f    : Module containing routines to read biomass emissions
-!  (3 ) bpch2_mod.f      : Module containing routines for binary punch file I/O
-!  (4 ) charpak_mod.f    : Module containing string handling routines
-!  (5 ) dao_mod.f        : Module containing arrays for DAO met fields
-!  (6 ) diag_mod.f       : Module containing GEOS-CHEM diagnostic arrays
-!  (7 ) diag49_mod.f     : Module containing routines for inst timeseries
-!  (8 ) diag50_mod.f     : Module containing routines for 24hr avg timeseries
-!  (9 ) diag51_mod.f     : Module containing routines for morning/aft t-series
-!  (10) diag_oh_mod.f    : Module containing arrays & routines for mean OH diag
-!  (11) diag_pl_mod.f    : Module containing routines for prod & loss diag's
-!  (12) directory_mod.f  : Module containing GEOS-CHEM data & met field dirs
-!  (13) drydep_mod.f     : Module containing GEOS-CHEM drydep routines
-!  (14) error_mod.f      : Module containing I/O error and NaN check routines
-!  (15) file_mod.f       : Module containing file unit numbers and error checks
-!  (13) grid_mod.f       : Module containing horizontal grid information
-!  (14) logical_mod.f    : Module containing GEOS-CHEM logical switches
-!  (15) planeflight_mod.f: Module containing routines for flight track diag
-!  (16) pressure_mod.f   : Module containing routines to compute P(I,J,L)
-!  (17) restart_mod.f    : Module containing routines for restart file I/O
-!  (18) time_mod.f       : Module containing routines for computing time & date
-!  (19) tpcore_bc_mod.f  : Module containing routines to read/write TPCORE BC's
-!  (19) tracer_mod.f     : Module containing GEOS-CHEM tracer array STT etc.
-!  (20) tracerid_mod.f   : Module containing pointers to tracers & emissions  
-!  (21) transport_mod.f  : Module containing driver routine for TPCORE 
-!  (22) unix_cmds_mod.f  : Module containing Unix commands for unzipping etc
-!  (23) upbdflx_mod.f    : Module containing routines for strat O3, NOy BC's
-!  (24) wetscav_mod.f    : Module containing routines for wetdep/scavenging
+!  (1 ) biofuel_mod.f         : Module w/ routines to read biofuel emissions
+!  (2 ) biomass_mod.f         : Module w/ routines to read biomass emissions
+!  (3 ) bpch2_mod.f           : Module w/ routines for binary punch file I/O
+!  (4 ) charpak_mod.f         : Module w/ string handling routines
+!  (5 ) dao_mod.f             : Module w/ arrays for DAO met fields
+!  (6 ) diag_mod.f            : Module w/ GEOS-CHEM diagnostic arrays
+!  (7 ) diag49_mod.f          : Module w/ routines for inst timeseries
+!  (8 ) diag50_mod.f          : Module w/ routines for 24hr avg timeseries
+!  (9 ) diag51_mod.f          : Module w/ routines for morning/aft t-series
+!  (10) diag_oh_mod.f         : Module w/ arrays & routines for mean OH diag
+!  (11) diag_pl_mod.f         : Module w/ routines for prod & loss diag's
+!  (12) directory_mod.f       : Module w/ GEOS-CHEM data & met field dirs
+!  (13) drydep_mod.f          : Module w/ GEOS-CHEM drydep routines
+!  (14) error_mod.f           : Module w/ I/O error and NaN check routines
+!  (15) file_mod.f            : Module w/ file unit numbers and error checks
+!  (13) grid_mod.f            : Module w/ horizontal grid information
+!  (14) logical_mod.f         : Module w/ GEOS-CHEM logical switches
+!  (15) ocean_mercury_mod.f   : Module w/ routines for ocean flux of Hg0
+!  (16) planeflight_mod.f     : Module w/ routines for flight track diag
+!  (17) pressure_mod.f        : Module w/ routines to compute P(I,J,L)
+!  (18) restart_mod.f         : Module w/ routines for restart file I/O
+!  (19) time_mod.f            : Module w/ routines for computing time & date
+!  (20) tpcore_bc_mod.f       : Module w/ routines to read/write TPCORE BC's
+!  (21) tracer_mod.f          : Module w/ GEOS-CHEM tracer array STT etc.
+!  (22) tracerid_mod.f        : Module w/ pointers to tracers & emissions  
+!  (23) transport_mod.f       : Module w/ driver routine for TPCORE 
+!  (24) unix_cmds_mod.f       : Module w/ Unix commands for unzipping etc
+!  (25) upbdflx_mod.f         : Module w/ routines for strat O3, NOy BC's
+!  (26) wetscav_mod.f         : Module w/ routines for wetdep/scavenging
 !
 !  NOTES:
 !  (1 ) Now references LSOA in READ_AEROSOL_MENU (bmy, 9/28/04)
 !  (2 ) Fixed error checks and assign LSPLIT for tagged Hg.  Also now 
 !        refernces LAVHRRLAI from "logical_mod.f" (eck, bmy, 12/20/04)
+!  (3 ) Updated for crystalline/aqueous aerosol tracers.  Also moved routine
+!        IS_LAST_DAY_GOOD here from "main.f".  Also now references 
+!        "ocean_mercury_mod.f".  Also now open the bpch file for output in
+!        READ_DIAGNOSTIC_MENU instead of in "main.f".  (cas, sas, bmy, 2/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -607,20 +613,22 @@
 !
 !******************************************************************************
 !  Subroutine READ_TRACER_MENU reads the TRACER MENU section of the 
-!  GEOS-CHEM input file (bmy, 7/20/04, 12/13/04)
+!  GEOS-CHEM input file (bmy, 7/20/04, 1/20/05)
 !
 !  NOTES:
 !  (1 ) Now set LSPLIT correctly for Tagged Hg simulation (eck, bmy, 12/13/04)
+!  (2 ) Now initialize ocean mercury module (sas, bmy, 1/20/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE CHARPAK_MOD,  ONLY : ISDIGIT
-      USE BIOMASS_MOD,  ONLY : SET_BIOTRCE
-      USE BIOFUEL_MOD,  ONLY : SET_BFTRACE
-      USE ERROR_MOD,    ONLY : ALLOC_ERR, ERROR_STOP
-      USE LOGICAL_MOD,  ONLY : LSPLIT
+      USE CHARPAK_MOD,       ONLY : ISDIGIT
+      USE BIOMASS_MOD,       ONLY : SET_BIOTRCE
+      USE BIOFUEL_MOD,       ONLY : SET_BFTRACE
+      USE ERROR_MOD,         ONLY : ALLOC_ERR, ERROR_STOP
+      USE LOGICAL_MOD,       ONLY : LSPLIT
+      USE OCEAN_MERCURY_MOD, ONLY : INIT_OCEAN_MERCURY
       USE TRACER_MOD
-      USE TRACERID_MOD, ONLY : TRACERID
+      USE TRACERID_MOD,      ONLY : TRACERID
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN_O3"    ! XNUMOL, XNUMOLAIR
@@ -825,12 +833,22 @@
       !=================================================================
 
       ! Split into tagged tracers (turn off for full-chemistry)
-      IF ( SIM_TYPE == 3 ) THEN
+      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+
+         ! There are no tagged tracers for fullchem
          LSPLIT = .FALSE.
-      ELSE IF ( SIM_TYPE == 11 ) THEN
+
+      ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
+
+         ! Need Hg0, Hg2, HgP for tagged Mercury
          LSPLIT = ( N_TRACERS > 3 )
+
+         ! Also initialize ocean flux module
+         CALL INIT_OCEAN_MERCURY
+
       ELSE
          LSPLIT = ( N_TRACERS > 1 )
+
       ENDIF
 
       ! Set up tracer flags
@@ -854,25 +872,27 @@
 !
 !******************************************************************************
 !  Subroutine READ_AEROSOL_MENU reads the AEROSOL MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 11/19/04)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 1/14/05)
 !
 !  NOTES:
 !  (1 ) Now reference LSOA (bmy, 9/28/04)
 !  (2 ) Now stop run if LSOA=T and SOA tracers are undefined (bmy, 11/19/04)
+!  (3 ) Now reference LCRYST from "logical_mod.f".  Also now check to make
+!        prevent aerosol tracers from being undefined if the corresponding
+!        logical switch is set. (cas, bmy, 1/14/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE LOGICAL_MOD,  ONLY : LSULF, LCARB, LSOA, LDUST, LDEAD, LSSALT
+      USE LOGICAL_MOD,  ONLY : LSULF, LCARB, LSOA, 
+     &                         LDUST, LDEAD, LSSALT, LCRYST
       USE TRACER_MOD,   ONLY : N_TRACERS, 
      &                         SALA_REDGE_um,      SALC_REDGE_um,
      &                         ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
-      USE TRACERID_MOD, ONLY : IDTALPH, IDTLIMO, IDTALCO,
-     &                         IDTSOG1, IDTSOG2, IDTSOG3,
-     &                         IDTSOA1, IDTSOA2, IDTSOA3
+      USE TRACERID_MOD
 
       ! Local variables
-      INTEGER            :: N, T
+      INTEGER            :: N, T, I
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOCATION
 
       !=================================================================
@@ -892,40 +912,44 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:1' )
       READ( SUBSTRS(1:N), * ) LSULF
 
-      ! Use online carbon aerosols 
+      ! Use crystalline sulfate aerosols  
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:2' )
+      READ( SUBSTRS(1:N), * ) LCRYST
+
+      ! Use online carbon aerosols 
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:3' )
       READ( SUBSTRS(1:N), * ) LCARB
 
       ! Use secondary organic aerosols?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:3' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:4' )
       READ( SUBSTRS(1:N), * ) LSOA
 
       ! Use online dust aerosols 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:4' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:5' )
       READ( SUBSTRS(1:N), * ) LDUST
 
       ! Use DEAD dust mobilization (=T) or GINOUX (=F)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:5' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:6' )
       READ( SUBSTRS(1:N), * ) LDEAD      
 
       ! Use online sea-salt aerosols?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:6' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:7' )
       READ( SUBSTRS(1:N), * ) LSSALT      
 
       ! Accum mode seasalt radii bin edges [um]
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:7' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:8' )
       DO T = 1, N
          READ( SUBSTRS(T), * ) SALA_REDGE_um(T)
       ENDDO
 
       ! Coarse mode seasalt radii bin edges [um]
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:8' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:9' )
       DO T = 1, N
          READ( SUBSTRS(T), * ) SALC_REDGE_um(T)
       ENDDO
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:9' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:10' )
 
       !=================================================================
       ! Error checks
@@ -941,6 +965,7 @@
       IF ( ( .not. ITS_A_FULLCHEM_SIM() )  .and. 
      &     ( .not. ITS_AN_AEROSOL_SIM() ) ) THEN
          LSULF  = .FALSE.
+         LCRYST = .FALSE.
          LCARB  = .FALSE.
          LSOA   = .FALSE.
          LDUST  = .FALSE.
@@ -948,22 +973,116 @@
          LSSALT = .FALSE.
       ENDIF
 
-      ! Make sure that SOA tracers are defined if LSOA=T
-      IF ( LSOA ) THEN
-         IF ( IDTALPH + IDTLIMO + IDTALCO + 
-     &        IDTSOG1 + IDTSOG2 + IDTSOG3 + 
-     &        IDTSOA1 + IDTSOA2 + IDTSOA3 == 0 ) THEN
-            MSG = 'SOA tracers must be defined if LSOA=T!'
+      !---------------------------------
+      ! Error check SULFUR AEROSOLS
+      !---------------------------------
+      I = IDTDMS + IDTSO2 + IDTSO4 + IDTMSA + IDTNH3 + IDTNH4 + IDTNIT
+
+      IF ( LSULF ) THEN
+         IF ( I == 0 ) THEN
+            MSG = 'LSULF=T but ONLINE SULFUR AEROSOLS are undefined!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ELSE
+         IF ( I > 0 ) THEN
+            MSG = 'Cannot use ONLINE SULFUR AEROSOLS if LSULF=F!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
       ENDIF
- 
+
+      !---------------------------------
+      ! Error check CRYST /AQ AEROSOLS
+      !---------------------------------
+      I = IDTAS + IDTAHS + IDTLET + IDTNH4aq + IDTSO4aq
+
+      IF ( LCRYST ) THEN
+         IF ( I == 0 ) THEN
+            MSG = 'LCRYST=T but ONLINE CRYST/AQ AEROSOLS are undefined!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ELSE
+         IF ( I > 0 ) THEN
+            MSG = 'Cannot use ONLINE CRYST/AQ AEROSOLS if LCRYST=F!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
+      !---------------------------------
+      ! Error check CARBON AEROSOLS
+      !---------------------------------
+      I = IDTBCPO + IDTBCPI + IDTOCPO + IDTOCPI
+
+      IF ( LCARB ) THEN
+         IF ( I == 0 ) THEN
+            MSG = 'LCARB=T but ONLINE CARBON AEROSOLS are undefined!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ELSE
+         IF ( I > 0 ) THEN
+            MSG = 'Cannot use ONLINE CARBON AEROSOLS if LCARB=F!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
+      !---------------------------------
+      ! Error check 2dy ORG AEROSOLS
+      !---------------------------------
+      I = IDTALPH + IDTLIMO + IDTALCO + IDTSOG1 + 
+     &    IDTSOG2 + IDTSOG3 + IDTSOA1 + IDTSOA2 + IDTSOA3
+
+      IF ( LSOA ) THEN
+         IF ( I == 0 ) THEN
+            MSG = 'LSOA=T but ONLINE 2dy ORG AEROSOLS are undefined!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ELSE
+         IF ( I > 0 ) THEN
+            MSG = 'Cannot use ONLINE 2dy ORG AEROSOLS if LSOA=F!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
+      !---------------------------------
+      ! Error check DUST AEROSOLS
+      !---------------------------------
+      I = IDTDST1 + IDTDST2 + IDTDST3 + IDTDST4
+
+      IF ( LDUST ) THEN
+         IF ( I == 0 ) THEN
+            MSG = 'LDUST=T but ONLINE DUST AEROSOLS are undefined!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ELSE
+         IF ( I > 0 ) THEN
+            MSG = 'Cannot use ONLINE DUST AEROSOLS if LDUST=F!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
+      !---------------------------------
+      ! Error check SEASALT AEROSOLS
+      !---------------------------------
+      I = IDTSALA + IDTSALC
+
+      IF ( LSSALT ) THEN
+         IF ( I == 0 ) THEN
+            MSG = 'LSSALT=T but ONLINE SEASALT AEROSOLS are undefined!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ELSE
+         IF ( I > 0 ) THEN
+            MSG = 'Cannot use ONLINE SEASALT AEROSOLS if LSSALT=F!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
       !=================================================================
       ! Print to screen
       !=================================================================
       WRITE( 6, '(/,a)' ) 'AEROSOL MENU'
       WRITE( 6, '(  a)' ) '------------'
       WRITE( 6, 100     ) 'Online SULFATE AEROSOLS?    : ', LSULF
+      WRITE( 6, 100     ) 'Online CRYST & AQ AEROSOLS? : ', LCRYST
       WRITE( 6, 100     ) 'Online CARBON AEROSOLS?     : ', LCARB
       WRITE( 6, 100     ) 'Online 2dy ORGANIC AEROSOLS?: ', LSOA
       WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ', LDUST
@@ -1458,10 +1577,6 @@
       !=================================================================
 
       ! Initialize dry deposition arrays
-      !---------------------------------------------
-      ! Prior to 12/15/04:
-      !IF ( LDRYD ) CALL INIT_DRYDEP
-      !---------------------------------------------
       IF ( LDRYD ) THEN
 
          ! Setup for dry deposition
@@ -1537,6 +1652,9 @@
      &        'JUL--', 31i1, /, 'AUG--', 31i1, /, 'SEP--', 30i1, /,
      &        'OCT--', 31i1, /, 'NOV--', 30i1, /, 'DEC--', 31i1 )
 
+      ! Make sure we have output at end of run
+      CALL IS_LAST_DAY_GOOD
+
       ! Return to calling program
       END SUBROUTINE READ_OUTPUT_MENU
 
@@ -1546,18 +1664,24 @@
 !
 !******************************************************************************
 !  Subroutine READ_DIAGNOSTIC_MENU reads the DIAGNOSTIC MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 2/3/05)
 !
 !  NOTES:
+!  (1 ) Now reference IU_BPCH from "file_mod.f" and OPEN_BPCH2_FOR_WRITE
+!        from "bpch2_mod.f".  Now opens the bpch file for output here
+!        instead of w/in "main.f" (bmy, 2/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BIOMASS_MOD,  ONLY : NBIOTRCE
       USE BIOFUEL_MOD,  ONLY : NBFTRACE
+      USE BPCH2_MOD,    ONLY : OPEN_BPCH2_FOR_WRITE
       USE DIAG_MOD
+      USE DIAG03_MOD,   ONLY : ND03, PD03, INIT_DIAG03
       USE DIAG_OH_MOD,  ONLY : INIT_DIAG_OH
       USE DRYDEP_MOD,   ONLY : NUMDEP
       USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE FILE_MOD,     ONLY : IU_BPCH
       USE LOGICAL_MOD
       USE TRACER_MOD
       USE TRACERID_MOD, ONLY : NEMANTHRO
@@ -1610,10 +1734,11 @@
       CALL SET_TINDEX( 02, ND02, SUBSTRS(2:N), N-1, N_MAX )
 
       !--------------------------
-      ! ND03: Kr85 prod/loss
+      ! ND03: Hg diagnostics
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:5' )
       READ( SUBSTRS(1), * ) ND03
+      IF ( .not. ITS_A_MERCURY_SIM() ) ND03 = 0
       CALL SET_TINDEX( 03, ND03, SUBSTRS(2:N), N-1, PD03 )
 
       !--------------------------
@@ -2085,10 +2210,14 @@
       !================================================================
 
       ! Allocate diagnostic arrays
+      CALL INIT_DIAG03
       CALL NDXX_SETUP
 
       ! Enable Mean OH (or CH3CCl3) diag for runs which need it
       CALL INIT_DIAG_OH 
+
+      ! Open the binary punch file for output 
+      CALL OPEN_BPCH2_FOR_WRITE( IU_BPCH, BPCH_FILE )
 
       ! Return to calling program
       END SUBROUTINE READ_DIAGNOSTIC_MENU
@@ -2161,11 +2290,6 @@
 
          ! Otherwise, set TMAX, TINDEX to the # of tracers
          ! listed in "input.ctm" -- need some error checks too
-         !-----------------------------------------------------------------
-         ! Prior to 11/15/04:
-         ! Prevent dropping the last tracer number (tmf, bmy, 11/15/04)
-         !TMAX(N_DIAG) = N-1
-         !-----------------------------------------------------------------
          TMAX(N_DIAG) = N
 
          ! Use explicit DO-loop
@@ -3039,7 +3163,7 @@
       WRITE( 6, 100     ) 'Save TPCORE BC''s at 4x5     : ',LWINDO
       WRITE( 6, 110     ) 'Dir w/ archived OH files    : ', 
      &                     TRIM( TPBC_DIR )
-      WRITE( 6, 120     ) 'Timestep for 4x5 BC''s [min]: ', TS
+      WRITE( 6, 120     ) 'Timestep for 4x5 BC''s [min] : ', TS
       WRITE( 6, 120     ) 'Bot left  box of 4x5 BC area: ', I1,  J1
       WRITE( 6, 120     ) 'Top right box of 4x5 BC area: ', I2,  J2
       WRITE( 6, 120     ) '1 x 1 window offsets        : ', I0W, J0W
@@ -3425,7 +3549,7 @@
       ! Get the smallest of all of the above
       TS_SMALLEST = MIN( I, J, K, L )
 
-       ! If all of the operators above are turned off, 
+      ! If all of the operators above are turned off, 
       ! then set NSMALLEST to NDYN.
       IF ( TS_SMALLEST == 999999 ) THEN 
          TS_SMALLEST = TS_DYN
@@ -3446,6 +3570,59 @@
       
       ! Return to MAIN program
       END SUBROUTINE CHECK_TIME_STEPS
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE IS_LAST_DAY_GOOD
+!
+!******************************************************************************
+!  Suborutine IS_LAST_DAY_GOOD tests to see if there is output scheduled on 
+!  the last day of the run.  (bmy, 1/11/05)
+!
+!  NOTES:
+!  (1 ) Moved to "input_mod.f" from "main.f" (bmy, 1/11/05)
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE ERROR_MOD,  ONLY : ERROR_STOP
+      USE JULDAY_MOD, ONLY : JULDAY
+      USE TIME_MOD,   ONLY : GET_NYMDe, ITS_A_LEAPYEAR, YMD_EXTRACT
+
+#     include "CMN_SIZE"   ! Size parameters
+#     include "CMN_DIAG"   ! NJDAY
+
+      ! Local variables
+      INTEGER             :: NYMDe, Y, M, D, LASTDAY
+      REAL*8              :: JD, JD0
+
+      !=================================================================
+      ! IS_LAST_DAY_GOOD begins here!
+      !=================================================================
+
+      ! Astronomical Julian Day corresponding to NYMDe
+      NYMDe = GET_NYMDe()
+      CALL YMD_EXTRACT( NYMDe, Y, M, D )
+      JD = JULDAY( Y, M, DBLE( D ) )
+
+      ! Astronomical Julian Day corresponding to the 1st of the year
+      JD0 = JULDAY( Y, 1, 0d0 )
+
+      ! LASTDAY is the day of year corresponding to NYMDe      
+      LASTDAY = JD - JD0
+
+      ! Skip past the element of NJDAY for Feb 29, if necessary
+      IF ( .not. ITS_A_LEAPYEAR( Y ) .and. LASTDAY > 59 ) THEN
+         LASTDAY = LASTDAY + 1
+      ENDIF
+
+      ! Stop w/ error if THIS_NJDAY = 0 
+      IF ( NJDAY(LASTDAY) == 0 ) THEN
+         CALL ERROR_STOP( 'No output scheduled on last day of run!',
+     &                    'IS_LAST_DAY_GOOD ("input_mod.f")' )
+      ENDIF
+     
+      ! Return to calling program
+      END SUBROUTINE IS_LAST_DAY_GOOD
 
 !------------------------------------------------------------------------------
 

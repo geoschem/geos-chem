@@ -1,9 +1,9 @@
-! $Id: cleanup.f,v 1.8 2004/12/16 16:52:44 bmy Exp $
+! $Id: cleanup.f,v 1.9 2005/02/10 19:53:24 bmy Exp $
       SUBROUTINE CLEANUP
 !
 !******************************************************************************
 !  Subroutine CLEANUP deallocates the memory assigned to dynamic allocatable 
-!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 12/7/04)
+!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 1/21/05)
 !
 !  NOTES:
 !  (1 ) CLEANUP is written in Fixed-Format F90.
@@ -56,6 +56,8 @@
 !  (25) Now references cleanup routines from new modules (bmy, 7/20/04)
 !  (26) Now calls cleanup routine from "epa_nei_mod.f" (bmy, 11/5/04)
 !  (27) Now call CLEANUP_MERCURY from "mercury_mod.f" (eck, bmy, 12/7/04)
+!  (28) Now call CLEANUP_OCEAN_MERCURY from "ocean_mercury_mod.f".  Also
+!        reordered the calling sequence. (sas, bmy, 1/21/05)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -69,6 +71,7 @@
       USE COMODE_MOD,        ONLY : CLEANUP_COMODE
       USE DAO_MOD,           ONLY : CLEANUP_DAO
       USE DIAG_MOD,          ONLY : CLEANUP_DIAG
+      USE DIAG03_MOD,        ONLY : CLEANUP_DIAG03
       USE DIAG50_MOD,        ONLY : CLEANUP_DIAG50
       USE DIAG51_MOD,        ONLY : CLEANUP_DIAG51
       USE DIAG_OH_MOD,       ONLY : CLEANUP_DIAG_OH
@@ -85,6 +88,7 @@
       USE GLOBAL_OH_MOD,     ONLY : CLEANUP_GLOBAL_OH
       USE LIGHTNING_NOX_MOD, ONLY : CLEANUP_LIGHTNING_NOX
       USE MERCURY_MOD,       ONLY : CLEANUP_MERCURY
+      USE OCEAN_MERCURY_MOD, ONLY : CLEANUP_OCEAN_MERCURY
       USE PJC_PFIX_MOD,      ONLY : CLEANUP_PJC_PFIX
       USE PLANEFLIGHT_MOD,   ONLY : CLEANUP_PLANEFLIGHT
       USE PRESSURE_MOD,      ONLY : CLEANUP_PRESSURE
@@ -93,6 +97,7 @@
       USE TAGGED_CO_MOD,     ONLY : CLEANUP_TAGGED_CO
       USE TOMS_MOD,          ONLY : CLEANUP_TOMS
       USE TPCORE_FVDAS_MOD,  ONLY : EXIT_TPCORE
+      USE TRACER_MOD,        ONLY : CLEANUP_TRACER
       USE TRANSPORT_MOD,     ONLY : CLEANUP_TRANSPORT
       USE UVALBEDO_MOD,      ONLY : CLEANUP_UVALBEDO
       USE WETSCAV_MOD,       ONLY : CLEANUP_WETSCAV
@@ -104,46 +109,47 @@
       !=================================================================
       WRITE( 6, '(a)' ) '     - CLEANUP: deallocating arrays now...'
 
-      !=================================================================
-      ! Deallocate arrays in other modules (the order may be important)
-      !=================================================================
-      CALL EXIT_TPCORE
-      CALL CLEANUP_PLANEFLIGHT
-      CALL CLEANUP_PJC_PFIX
-      CALL CLEANUP_TAGGED_CO
-      CALL CLEANUP_TRANSPORT
-      CALL CLEANUP_SULFATE
+      ! Call cleanup routines from individual F90 modules
+      CALL CLEANUP_ACETONE
+      CALL CLEANUP_AEROSOL
+      CALL CLEANUP_AIRCRAFT_NOX
+      CALL CLEANUP_BIOMASS
+      CALL CLEANUP_BIOFUEL
+      CALL CLEANUP_C2H6
+      CALL CLEANUP_CARBON
+      CALL CLEANUP_COMODE
+      CALL CLEANUP_DAO
+      CALL CLEANUP_DIAG
+      CALL CLEANUP_DIAG03
       CALL CLEANUP_DIAG50
       CALL CLEANUP_DIAG51
       CALL CLEANUP_DIAG_OH
       CALL CLEANUP_DIAG_PL
-      CALL CLEANUP_TOMS
+      CALL CLEANUP_DRYDEP
+      CALL CLEANUP_DUST_DEAD
+      CALL CLEANUP_DUST
+      CALL CLEANUP_EPA_NEI
       CALL CLEANUP_GLOBAL_CH4
       CALL CLEANUP_GLOBAL_HNO3
       CALL CLEANUP_GLOBAL_NO3
       CALL CLEANUP_GLOBAL_NOX
       CALL CLEANUP_GLOBAL_NO3
       CALL CLEANUP_GLOBAL_OH
-      CALL CLEANUP_DRYDEP
-      CALL CLEANUP_EPA_NEI
-      CALL CLEANUP_BIOMASS
-      CALL CLEANUP_BIOFUEL
-      CALL CLEANUP_AEROSOL
-      CALL CLEANUP_ACETONE
-      CALL CLEANUP_AIRCRAFT_NOX
-      CALL CLEANUP_C2H6
-      CALL CLEANUP_CARBON
-      CALL CLEANUP_COMODE
-      CALL CLEANUP_DUST_DEAD
-      CALL CLEANUP_DUST
       CALL CLEANUP_LIGHTNING_NOX
       CALL CLEANUP_MERCURY
+      CALL CLEANUP_OCEAN_MERCURY
+      CALL CLEANUP_PJC_PFIX
+      CALL CLEANUP_PLANEFLIGHT
+      CALL CLEANUP_PRESSURE
       CALL CLEANUP_SEASALT
+      CALL CLEANUP_SULFATE
+      CALL CLEANUP_TAGGED_CO
+      CALL CLEANUP_TRANSPORT
+      CALL CLEANUP_TOMS
+      CALL CLEANUP_TRACER
       CALL CLEANUP_UVALBEDO
       CALL CLEANUP_WETSCAV
-      CALL CLEANUP_PRESSURE
-      CALL CLEANUP_DIAG
-      CALL CLEANUP_DAO
+      CALL EXIT_TPCORE
 
       ! Return to calling program
       END SUBROUTINE CLEANUP

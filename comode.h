@@ -1,4 +1,4 @@
-! $Id: comode.h,v 1.10 2004/12/02 21:48:34 bmy Exp $
+! $Id: comode.h,v 1.11 2005/02/10 19:53:24 bmy Exp $
 !
 !******************************************************************************
 !  Header file COMODE contains common blocks and variables for SMVGEAR II.
@@ -501,10 +501,6 @@ C
 
       ! /DKBLOOP2/ needs to be declared THREADPRIVATE
       REAL*8 CNEW,CEST,GLOSS,CHOLD,VDIAG,CBLK,DTLOS,EXPLIC,CONC
-      !-------------------------------------------------------------
-      ! Prior to 11/8/04:
-      !REAL*8 RRATE,URATE,TRATE,PRATK1,PRATKD,CORIG
-      !-------------------------------------------------------------
       REAL*8 RRATE,URATE,TRATE,CORIG
       COMMON /DKBLOOP2/
      2  CNEW(   KBLOOP,  MXGSAER),  

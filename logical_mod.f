@@ -1,4 +1,4 @@
-! $Id: logical_mod.f,v 1.3 2004/12/20 16:43:18 bmy Exp $
+! $Id: logical_mod.f,v 1.4 2005/02/10 19:53:26 bmy Exp $
       MODULE LOGICAL_MOD
 !
 !******************************************************************************
@@ -63,6 +63,7 @@
       ! Aerosols
       LOGICAL :: LATEQ
       LOGICAL :: LCARB
+      LOGICAL :: LCRYST
       LOGICAL :: LDEAD
       LOGICAL :: LDUST
       LOGICAL :: LSULF

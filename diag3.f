@@ -1,103 +1,11 @@
-! $Id: diag3.f,v 1.18 2004/12/16 16:52:44 bmy Exp $
+! $Id: diag3.f,v 1.19 2005/02/10 19:53:24 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
-!  Subroutine DIAG3 prints out I-J (Long-Lat) diagnostics to the BINARY
-!  format punch file (bmy, bey, mgs, rvm, 5/27/99, 12/14/04)
-!
-!  The preferred file format is binary punch file format v. 2.0.  This
-!  file format is very GAMAP-friendly.  GAMAP also supports the ASCII
-!  style punch file, for backwards compatibility.
-!
-!  If LBPNCH = 1 call BPCH2 to print to the BINARY punch file 'ctm.bpch'
-!
-!  Also, in the "diag.dat" input file, one can specify which tracers will
-!  be printed out for a given diagnostic.
-!
-!  At some point we will improve the diagnostic output, as much of this
-!  is historical baggage. (bmy, 1/10/03)
+!  Subroutine DIAG3 prints out diagnostics to the BINARY format punch file 
+!  (bmy, bey, mgs, rvm, 5/27/99, 1/21/05)
 !
 !  NOTES: 
-!  (1 ) Move the binary punch file code ahead of the ASCII punch file code
-!        so that the multi-level diagnostics will not rewrite the title
-!        strings for the binary punch file (bmy, 4/12/99)
-!  (2 ) Rename "TITLE" to "CATEGORY" for consistency w/ binary punch
-!        file format naming, and make it CHAR*40 (bmy, 5/27/99)
-!  (3 ) Fixed bug for ND29.  Now test N against PD29. (bmy, 10/1/99)
-!  (4 ) Cosmetic changes and some bug fixes (bmy, 10/15/99)
-!  (5 ) Added ND14, ND15 diagnostics for mass flux, and updated
-!        some comments.  Also freed up ND41 and ND42 diagnostics
-!        since these were not being used.  (bey, bmy, 11/15/99)
-!  (6 ) Fixed more bugs for ND32 binary punch file output (bmy, 11/18/99)
-!  (7 ) Restrict adding TRCOFFSET to N for certain diagnostics
-!        and/or simulations that don't require it.  Also updated 
-!        some comments. (bmy, 11/23/99)
-!  (8 ) Certain arrays for mass flux diagnostics and some NDxx diagnostics
-!        are now declared allocatable in "diag_mod.f". (bmy, 11/30/99)
-!  (9 ) Add ND55 diagnostics for tropopause (bmy, 11/30/99)
-!  (10) Now make ND41 use allocatable array AD41 (bmy, 12/6/99)
-!  (11) Bug fix for ND27 diagnostic (bmy, 2/7/00)
-!  (12) ND31, ND33, ND35, ND67, and ND69 now use dynamically 
-!        allocatable arrays declared in "diag_mod.f". (bmy, 2/17/00)
-!  (13) Add air density to ND68 diagnostic (bmy, 3/10/00)
-!  (14) As of 3/16/00, all diagnostics now use dynamically allocatable
-!        arrays.  AIJ is no longer used (bmy, 3/16/00)
-!  (15) Bug fix for ND47 diagnostic (bmy, 3/31/00)
-!  (16) Fixes to ND43, ND46 diagnostics for CO run with parameterized OH 
-!        (bmy, bnd, 4/18/00)
-!  (17) For ND36 diagnostic for CH3I simulation, cycle when N > NEMANTHRO
-!        instead of when N > NTRACE (mgs, hsu, bmy, 5/17/00)
-!  (18) For DMS/SO2/SO4/MSA simulation, add TRCOFFSET to ND44 diagnostic
-!        for dry deposition velocities & fluxes.  Also update the ND44 
-!        error checking to avoid array-out-of-bounds errors. (bmy, 5/31/00)
-!  (19) Now reference "bpch2_mod.f" which contains routines BPCH2 and 
-!        GET_MODELNAME, which are used to write data to binary punch file 
-!        format. (bmy, 6/22/00)
-!  (20) Now reference LWI from "dao_mod.f" instead of from common block
-!        header file "CMN_LWI". (bmy, 6/26/00)
-!  (21) Added CLEVEL declaration for GEOS-3 data.  Also eliminated
-!        obsolete code from 2/00 and 5/00. (bmy, 8/29/00)
-!  (22) Added reference to BIOTRCE in "biomass_mod.f" and removed reference
-!        to "bioburn.h".  Also added biofuel burning to ND32. (bmy, 9/12/00)
-!  (23) Add TROPP and SLP to ND67 diagnostic.  Also changed the scale factor
-!        for ND15 from SCALEDYN to SCALECONV (as it should be). 
-!        (bmy, 10/18/00)
-!  (24) Write out the proper number of levels to the punch file for ND14,
-!        ND24, ND25, ND26, ND31, ND38, ND39. Also remove obsolete code from 
-!        9/00. (bmy, 12/7/00)
-!  (25) Don't scale the monthly mean AOD's by SCALECHEM (rvm, bmy, 12/8/00)
-!  (26) Remove obsolete ASCII punch file format (bmy, 12/12/00)
-!  (27) Added monoterpenes to ND46 diagnostic (bmy, 1/2/01)
-!  (28) Added CO-sources from both isoprene and monoterpenes to ND29 
-!        diagnostic (bmy, 1/2/01)
-!  (29) Now archive biofuel emissions in ND34 diagnostic,  Also removed
-!        obsolete code from 1/2/01. (bmy, 3/19/01)
-!  (30) Now write biomass and biofuel tracers to the binary punch file
-!        in the same order as they are listed in "diag.dat".  Also made
-!        a few cosmetic changes. (bmy, 4/17/01)
-!  (31) Use proper scale factor for ND21, depending on which met field
-!        is being used.  Now use proper SCALEDYN for ND21 for CO simulation
-!        with OH parameterization.  Also updated comments.(bmy, 4/23/01)
-!  (32) Added code updates for multi-tracer Ox run (amf, bmy, 7/3/01)
-!  (33) GEOS-2, GEOS-3 now use SCALECHEM for ND21 (bmy, 8/13/01)
-!  (33) Now write acetone source/sink diagnostic to disk as ND11 (bmy, 9/4/01)
-!  (34) Now add error check for N > NTRACE in ND27 diagnostic (bmy, 10/22/01)
-!  (35) Deleted obsolete, commented-out code from 7/01 (bmy, 11/26/01)
-!  (36) Replace LAIREMS w/ LLTROP since they are both equal (bmy, 2/14/02)
-!  (37) Eliminated obsolete code from 1/02.  Monthly mean optical depths for 
-!        ND21 diagnostic are now N=4, N=5; don't divide these by SCALEX.
-!        Also added HO2, NO2 to ND43 chemical diagnostic.  Updated comments
-!        for ND21 diagnostic w/ new aerosol tracers.  Now select correct
-!        unit string for ND21 tracers. (rvm, bmy, 3/1/02)
-!  (38) Now use category "COLUMN-T" instead of "TROPO-AV" for ND33, since
-!        that is a column sum of tracer over the whole atmosphere, not just
-!        the tropopshere. (bmy, 4/3/02)
-!  (39) Now replace the file unit number "12" with a parameter IU_BPCH from
-!        file mod (IU_BPCH is currently set to 12 for backwards compatibility)
-!        Now merged "diag7.f" into "diag3.f" as the ND62 diagnostic.
-!        Also added ND01 and ND02 diagnostics for Rn-Pb_Be simulation.
-!        Also convert scale factors to REAL*8 precision.  Bug fix: set units
-!        of ND44 drydep flux to kg/s for Rn-Pb-Be simulation. (bmy, 8/7/02)
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
 !        categories "SO2-AC-$" and "SO2-EV-$".  Now reference F90 module
 !        "tracerid_mod.f".  Now reference NUMDEP from "drydep_mod.f".
@@ -140,6 +48,9 @@
 !        with LD68 in call to BPCH2 (auvray, bmy, 11/17/04)
 !  (56) Now save ND03 mercury diagnostic arrays to bpch file.  Also updated
 !        ND44 for tagged Hg tracers (eck, bmy, 12/14/04)
+!  (57) Now print out extra ND21 diagnostics for crystalline sulfur tracers.  
+!        Also now save total oceanic mass of Hg0 and Hg2.  Now call 
+!        WRITE_DIAG03 from "diag03_mod.f" (bmy, 1/21/05)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -148,8 +59,9 @@
       USE BIOFUEL_MOD, ONLY : NBFTRACE, BFTRACE
       USE DAO_MOD,     ONLY : LWI
       USE DIAG_MOD
+      USE DIAG03_MOD,  ONLY : ND03, WRITE_DIAG03
       USE DIAG_PL_MOD, ONLY : AD65
-      USE DRYDEP_MOD,  ONLY : NUMDEP,   NTRAIND
+      USE DRYDEP_MOD,  ONLY : NUMDEP, NTRAIND
       USE FILE_MOD,    ONLY : IU_BPCH
       USE GRID_MOD,    ONLY : GET_AREA_M2, GET_XOFFSET, GET_YOFFSET
       USE LOGICAL_MOD
@@ -167,7 +79,7 @@
 #     include "comode.h"   ! IDEMS
 
       ! Local variables
-      INTEGER            :: I, IREF, J, JREF, L, M, MM
+      INTEGER            :: I, IREF, J, JREF, L, M, MM, LMAX
       INTEGER            :: N, NN, NMAX, NTEST
       INTEGER            :: IE, IN, IS, IW, ITEMP(3)
       REAL*8             :: SCALE_TMP(IIPAR,JJPAR)
@@ -232,6 +144,14 @@
 !  (1)  Rn222  : Emissions of 222Rn             : kg/s       : SCALESRCE
 !  (2)  Pb210  : Emissions of 210Pb             : kg/s       : SCALECHEM
 !  (3)  Be7    : Emissions of 7Be               : kg/s       : SCALESRCE
+!
+!  and  Rn, Pb, Be lost to radioactive decay (Category: "RN-DECAY")
+!
+!   # : Field  : Description                    : Units      : Scale factor
+!  ----------------------------------------------------------------------------
+!  (1)  Rn222  : Loss of 222Rn                  : kg/s       : SCALECHEM
+!  (2)  Pb210  : Loss of 210Pb                  : kg/s       : SCALECHEM
+!  (3)  Be7    : Loss of 7Be                    : kg/s       : SCALECHEM
 !******************************************************************************
 !
       IF ( ND01 > 0 ) THEN
@@ -267,11 +187,11 @@
 !******************************************************************************
 !  ND02: Rn, Pb, Be lost to radioactive decay (Category: "RN-DECAY")
 !
-!   # : Field  : Description                   : Units      : Scale factor
+!   # : Field  : Description                    : Units      : Scale factor
 !  ----------------------------------------------------------------------------
-!  (1)  Rn222  : Loss of 222Rn                 : kg/s       : SCALECHEM
-!  (2)  Pb210  : Loss of 210Pb                 : kg/s       : SCALECHEM
-!  (3)  Be7    : Loss of 7Be                   : kg/s       : SCALECHEM
+!  (1)  Rn222  : Loss of 222Rn                  : kg/s       : SCALECHEM
+!  (2)  Pb210  : Loss of 210Pb                  : kg/s       : SCALECHEM
+!  (3)  Be7    : Loss of 7Be                    : kg/s       : SCALECHEM
 !******************************************************************************
 !
       IF ( ND02 > 0 ) THEN
@@ -295,199 +215,12 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD02) )
          ENDDO
       ENDIF
-!------------------------------------------------------------------------------
-! Prior to 12/7/04:
-! Now use ND03 for mercury diagnostics (eck, bmy, 12/7/04)
-!!
-!!******************************************************************************
-!!  ND03: Rn, Pb, Be emissions (Category: "RN--SRCE")
-!!
-!!   # : Field  : Description                    : Units      : Scale factor
-!!  ----------------------------------------------------------------------------
-!!  (1)  P(Kr)  : Emissions of Kr85              : kg         : SCALESRCE
-!!  (2)  L(Kr)  : Decay of Kr85                  : kg         : SCALECHEM
-!!******************************************************************************
-!!
-!      IF ( ND03 > 0 ) THEN
-!         CATEGORY = 'KRBUDGET'
-!         UNIT     = 'kg'
-!
-!         DO M = 1, TMAX(3)
-!            N  = TINDEX(3,M)
-!            IF ( N > PD03 ) CYCLE
-!            NN = N
-!               
-!            ! Pick proper scale factor
-!            IF ( N == 1 ) THEN
-!               SCALEX = SCALESRCE
-!            ELSE
-!               SCALEX = SCALECHEM
-!            ENDIF
-!
-!            ! Divide by # of emission timesteps
-!            DO L = 1, LD03
-!               ARRAY(:,:,L) = AD03(:,:,L,N) / SCALEX
-!            ENDDO
-!
-!            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-!     &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
-!     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-!     &                  IIPAR,     JJPAR,     LD03,     IFIRST,     
-!     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD03) )
-!         ENDDO
-!      ENDIF
-!------------------------------------------------------------------------------
 !
 !******************************************************************************
-!  ND03: Diagnostics from Hg0/Hg2/HgP offline simulation (eck, bmy, 12/7/04)
-!
-!   # : Field    : Description                     : Units    : Scale factor
-!  --------------------------------------------------------------------------
-!  (1 ) HG-SRCE  : Anthropogenic HG0 emission      : kg       : 1
-!  (2 ) HG-SRCE  : Oceanic HgO emission            : kg       : 1
-!  (3 ) HG-SRCE  : Land reemission                 : kg       : 1
-!  (4 ) HG-SRCE  : Land natural emission           : kg       : 1
-!  (5 ) HG-SRCE  : Anthropogenic Hg2 emission      : kg       : 1
-!  (6 ) HG-SRCE  : Anthropogenic HgP emission      : kg       : 1
-!  (1 ) PL-HG2-$ : Production of Hg2 from Hg0      : kg       : 1
-!  (2 ) PL-HG2-$ : Production of Hg2 from rxn w/OH : kg       : 1
-!  (3 ) PL-HG2-$ : Production of Hg2 from rxn w/O3 : kg       : 1
-!
-!  NOTES:
+!  ND03: Diagnostics from Hg0/Hg2/HgP offline simulation (eck, bmy, 1/20/05)
 !******************************************************************************
 !
-      IF ( ND03 > 0 .and. ITS_A_MERCURY_SIM() ) THEN
-
-         ! Unit string
-         UNIT = 'kg'
-         
-         !------------------------------
-         ! Hg(0) anthro emissions
-         !------------------------------
-         CATEGORY     = 'HG-SRCE'
-         N            = 1
-         ARRAY(:,:,1) = AD03_Hg0_an(:,:)
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
-
-         !------------------------------
-         ! Hg(0) ocean emissions
-         !------------------------------
-         CATEGORY     = 'HG-SRCE'
-         N            = 2
-         ARRAY(:,:,1) = AD03_Hg0_oc(:,:)
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
-
-         !------------------------------
-         ! Hg(0) re-emission from land
-         !------------------------------
-         CATEGORY     = 'HG-SRCE'
-         N            = 3
-         ARRAY(:,:,1) = AD03_Hg0_ln(:,:)
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
-
-         !------------------------------
-         ! Hg(0) natural land emissions
-         !------------------------------
-         CATEGORY     = 'HG-SRCE'
-         N            = 4
-         ARRAY(:,:,1) = AD03_Hg0_nt(:,:)
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
-
-         !------------------------------
-         ! Hg(II) anthro emissions
-         !------------------------------
-         CATEGORY     = 'HG-SRCE'
-         N            = 5
-         ARRAY(:,:,1) = AD03_Hg2_an(:,:)
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
-
-         !------------------------------
-         ! HgP anthro emissions
-         !------------------------------
-         CATEGORY     = 'HG-SRCE'
-         N            = 6
-         ARRAY(:,:,1) = AD03_HgP_an(:,:)
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
-
-         !------------------------------
-         ! Prod of Hg(II) from Hg(0)
-         !------------------------------
-         CATEGORY     = 'PL-HG2-$'
-         N            = 1
-         
-         DO L = 1, LD03
-            ARRAY(:,:,L) = AD03_Hg2_Hg0(:,:,L)
-         ENDDO
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LD03,     IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD03) )
-
-         !------------------------------
-         ! Prod of Hg(II) from OH rxn
-         !------------------------------
-         CATEGORY     = 'PL-HG2-$'
-         N            = 2
-
-         DO L = 1, LD03
-            ARRAY(:,:,L) = AD03_Hg2_OH(:,:,L)
-         ENDDO
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LD03,     IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD03) )
-
-         !------------------------------
-         ! Prod of Hg(II) from O3 rxn
-         !------------------------------
-         CATEGORY     = 'PL-HG2-$'
-         N            = 3
-
-         DO L = 1, LD03
-            ARRAY(:,:,L) = AD03_Hg2_O3(:,:,L)
-         ENDDO
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LD03,     IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD03) )
-
-      ENDIF    
+      IF ( ND03 > 0 ) CALL WRITE_DIAG03
 !
 !******************************************************************************
 !  ND05: Production/Loss for coupled fullchem/aerosol runs (NSRCX==3) or
@@ -1349,6 +1082,7 @@
 !  (4 ) Now GEOS-2, GEOS-3 use SCALECHEM for ND21 (bmy, 8/13/01)
 !  (5 ) Updated tracers for new aerosols from Mian Chin (rvm, bmy, 3/1/02)
 !  (6 ) Now scale online dust fields by SCALECHEM (bmy, 4/9/04)
+!  (7 ) Also save out extra diagnostics for cryst sulfur tracers (bmy, 1/5/05)
 !******************************************************************************
 !
       IF ( ND21 > 0 ) THEN
@@ -1407,6 +1141,44 @@
      &                  IIPAR,     JJPAR,     LD21,     IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD21) )
          ENDDO    
+
+         !==============================================================
+         ! If we are using the crystalline sulfate tracers (LCRYST=T),
+         ! then also save out the extra ND21 diagnostics:
+         !
+         ! #21: Opt depth for HYSTERESIS CASE            [unitless]
+         ! #22: Opt depth for SOLID CASE                 [unitless]
+         ! #23: Opt depth for LIQUID CASE                [unitless]
+         ! #24: Opt depth HYSTERESIS - Opt depth SOLID   [unitless] 
+         ! #25: Opt depth HYSTERESIS - Opt depth LIQUID  [unitless]
+         ! #26: Radiative forcing                        [W/m2    ]    
+         !==============================================================
+         IF ( LCRYST ) THEN
+            
+            ! Category
+            CATEGORY = 'OD-MAP-$'
+
+            ! Loop over extra 
+            DO N = 1, 6               
+
+               ! Define unit string
+               IF ( N == 6 ) THEN
+                  UNIT = 'W/m2'
+               ELSE
+                  UNIT = 'unitless'
+               ENDIF
+
+               ! Scale by chemistry timestep
+               ARRAY(:,:,1) = AD21_cr(:,:,N) / SCALECHEM
+
+               ! Save to BPCH file
+               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                     HALFPOLAR, CENTER180, CATEGORY, N+PD21,
+     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                     IIPAR,     JJPAR,     1,        IFIRST,     
+     &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
+            ENDDO
+         ENDIF
       ENDIF
 !
 !******************************************************************************

@@ -1,6 +1,6 @@
-# $Id: Makefile.ifc,v 1.13 2004/12/16 16:52:42 bmy Exp $
+# $Id: Makefile.ifc,v 1.14 2005/02/10 19:53:22 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for LINUX/IFC compiler (bmy, Tue Dec  7 15:08:14 2004)
+# GEOS-CHEM Makefile for LINUX/IFC compiler (bmy, Fri Jan 21 12:42:34 2005)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -77,7 +77,6 @@ rdlight.o                 \
 rdmonot.o                 \
 rdsoil.o                  \
 read_correction.o         \
-read_tindex.o             \
 read_tropopause.o         \
 readchem.o                \
 reader.o                  \
@@ -198,15 +197,17 @@ benchmark_mod.o           \
 comode_mod.o              \
 diag_mod.o                \
 dao_mod.o                 \
-drydep_mod.o              \
-epa_nei_mod.o             \
-geia_mod.o                \
+diag03_mod.o              \
 diag_oh_mod.o             \
 diag48_mod.o              \
 diag49_mod.o              \
 diag50_mod.o              \
 diag51_mod.o              \
 diag_pl_mod.o             \
+ocean_mercury_mod.o       \
+drydep_mod.o              \
+epa_nei_mod.o             \
+geia_mod.o                \
 global_ch4_mod.o          \
 global_hno3_mod.o         \
 global_no3_mod.o          \
@@ -363,6 +364,7 @@ convection_mod.o           : convection_mod.f           CMN_DIAG CMN_SIZE define
 correctOH.o                : correctOH.f                CMN_OH 
 dao_mod.o                  : dao_mod.f                  CMN_GCTM CMN_SIZE define.h 
 decomp.o                   : decomp.f                   CMN_SIZE define.h comode.h 
+diag03_mod.o               : diag03_mod.f               CMN_DIAG CMN_SIZE define.h 
 diag1.o                    : diag1.f                    CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h 
 diag3.o                    : diag3.f                    CMN CMN_DIAG CMN_O3 CMN_SIZE define.h comode.h 
 diag41.o                   : diag41.f                   CMN CMN_DIAG CMN_GCTM CMN_SIZE define.h 
@@ -447,6 +449,7 @@ ndxx_setup.o               : ndxx_setup.f               CMN_DIAG CMN_SIZE define
 numair.o                   : numair.f                   
 numo3.o                    : numo3.f                    
 o3above.o                  : o3above.f                  CMN CMN_CO CMN_SETUP CMN_SIZE define.h 
+ocean_mercury_mod.o        : ocean_mercury_mod.f        CMN_DEP CMN_SIZE define.h 
 ohsave.o                   : ohsave.f                   CMN_SIZE define.h comode.h 
 optdepth_mod.o             : optdepth_mod.f             CMN_DIAG CMN_SIZE define.h 
 paramA.o                   : paramA.f                   

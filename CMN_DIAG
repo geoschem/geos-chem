@@ -1,4 +1,4 @@
-! $Id: CMN_DIAG,v 1.8 2004/12/16 16:52:41 bmy Exp $
+! $Id: CMN_DIAG,v 1.9 2005/02/10 19:53:21 bmy Exp $
 ! 
 ! NOTES:
 ! (1 ) Changed RCS ID tag comment character from "C" to "!" to allow freeform
@@ -11,6 +11,7 @@
 !        KDKZZFLDS (bmy, 2/11/03)
 ! (4 ) Fix for LINUX - remove & from column 73 (bmy, 6/27/03)
 ! (5 ) Added LD03 for Kr85 Prod/loss diagnostic (bmy, 8/20/03)
+! (6 ) Removed obsolete arrays (bmy, 1/21/05)
 !----------------------------------------------------------------------------
 ! Parameters for the diagnostic arrays (for ease of use)
 !
@@ -31,12 +32,13 @@
       ! Changed PD03 to 5  (bmy, 8/20/03)
       ! Changed PD37 to 10 (bmy, 1/21/04)
       ! Changed PD06 to NDSTBIN (bmy, 4/5/04)
-      ! Changed PD07 to 7 (bmy, 4/5/04)
-      ! Changed PD08 to 2 (bmy, 4/20/04)
+      ! Changed PD07 to 7  (bmy, 4/5/04)
+      ! Changed PD08 to 2  (bmy, 4/20/04)
       ! Changed PD07 to 12 (bmy, 7/15/04)
+      ! Changed PD21 to 26 (bmy, 1/5/05)
+      ! Removed PD03 -- now in "diag03_mod.f" (bmy, 1/21/05)
       INTEGER, PARAMETER :: PD01=3            
-      INTEGER, PARAMETER :: PD02=3           
-      INTEGER, PARAMETER :: PD03=2
+      INTEGER, PARAMETER :: PD02=3
       INTEGER, PARAMETER :: PD04=0
       INTEGER, PARAMETER :: PD05=10         
       INTEGER, PARAMETER :: PD06=NDSTBIN
@@ -53,8 +55,8 @@
       INTEGER, PARAMETER :: PD17=4           
       INTEGER, PARAMETER :: PD18=4
       INTEGER, PARAMETER :: PD19=0            
-      INTEGER, PARAMETER :: PD20=0  
-      INTEGER, PARAMETER :: PD21=20           
+      INTEGER, PARAMETER :: PD20=0 
+      INTEGER, PARAMETER :: PD21=20
       INTEGER, PARAMETER :: PD22=6           
       INTEGER, PARAMETER :: PD23=0           
       INTEGER, PARAMETER :: PD24=NNPAR        
@@ -106,38 +108,27 @@
       INTEGER, PARAMETER :: PD70=0
 
 !----------------------------------------------------------------------------
-! Prior to 12/7/04: 
-! This is obsolete, comment out
-!! TOFDY0 is used in diag0.f -- preserve for now (bmy, 4/18/00)
-!      REAL*4 ::     TOFDY0
-!      COMMON /CCA2/ TOFDY0
-!----------------------------------------------------------------------------
 ! Diagnostic counters & time variables
 ! NJDAY is now 366 for leap years (bmy, 3/17/99)
       INTEGER ::      KDA48, NJDAY(366)
       COMMON /CDIAG0/ KDA48, NJDAY
 !----------------------------------------------------------------------------
 ! Variables for the number of levels in multi-level diagnostics  
-! Add LD38, LD39 for wetdep diagnostics (bey, 11/9/99)
-! Remove LD41, LD42...these are not needed (bmy, 11/15/99)
-! Add LD13 for DMS/SO2/SO4 emissions (bmy, 6/6/00)
-! Add LD12 for boundary layer emissions (bdf, bmy, 6/15/01)
-! Add LD05 for sulfate prod/loss (bmy, 9/20/02)
-! Add LD07 for carbon aerosols (bmy, 4/5/04)
+! Removed LD03 -- this is now in diag03_mod.f (bmy, 1/21/05)
       INTEGER                                                           
      &   LD12, LD13, LD14, LD15, LD16, LD17, LD18, LD21, LD22, LD24,    
      &   LD25, LD26, LD37, LD38, LD39, LD43, LD45, LD47, LD64, LD65,    
-     &   LD66, LD68, LD01, LD02, LD05, LD03, LD07
+     &   LD66, LD68, LD01, LD02, LD05, LD07
 
       COMMON /CDIAG1/                                                   
      &   LD12, LD13, LD14, LD15, LD16, LD17, LD18, LD21, LD22, LD24,    
      &   LD25, LD26, LD37, LD38, LD39, LD43, LD45, LD47, LD64, LD65,    
-     &   LD66, LD68, LD01, LD02, LD05, LD03, LD07
+     &   LD66, LD68, LD01, LD02, LD05, LD07
 !----------------------------------------------------------------------------
 ! NDxx diagnostic flags
       INTEGER                                                           
-     &   ND01, ND02, ND03, ND04, ND05, ND06, ND07, ND08, ND09, ND10,    
-     &   ND11, ND12, ND13, ND14, ND15, ND16, ND17, ND18, ND19, ND20,     
+     &   ND01, ND02,       ND04, ND05, ND06, ND07, ND08, ND09, ND10,
+     &   ND11, ND12, ND13, ND14, ND15, ND16, ND17, ND18, ND19, ND20,        
      &   ND21, ND22, ND23, ND24, ND25, ND26, ND27, ND28, ND29, ND30,     
      &   ND31, ND32, ND33, ND34, ND35, ND36, ND37, ND38, ND39, ND40,     
      &   ND41, ND42, ND43, ND44, ND45, ND46, ND47, ND48, ND49, ND50,    
@@ -146,7 +137,7 @@
      &   ND71, ND72, ND73, ND74, ND75
 
       COMMON /CDIAG2/                                                   
-     &   ND01, ND02, ND03, ND04, ND05, ND06, ND07, ND08, ND09, ND10,    
+     &   ND01, ND02,       ND04, ND05, ND06, ND07, ND08, ND09, ND10,    
      &   ND11, ND12, ND13, ND14, ND15, ND16, ND17, ND18, ND19, ND20,      
      &   ND21, ND22, ND23, ND24, ND25, ND26, ND27, ND28, ND29, ND30,     
      &   ND31, ND32, ND33, ND34, ND35, ND36, ND37, ND38, ND39, ND40,     
@@ -154,22 +145,6 @@
      &   ND51, ND52, ND53, ND54, ND55, ND56, ND57, ND58, ND59, ND60,     
      &   ND61, ND62, ND63, ND64, ND65, ND66, ND67, ND68, ND69, ND70,     
      &   ND71, ND72, ND73, ND74, ND75
-!----------------------------------------------------------------------------
-! Station Time Series Arrays
-      REAL*8          XISSAV,        YISSAV,        ZISSAV
-      COMMON /CDIAG3/ XISSAV(NNSTA), YISSAV(NNSTA), ZISSAV(NNSTA)
-
-      INTEGER ISAVTC, JSAVTC, LSAVTC, MSAVTC, NSAVTC
-      COMMON /CCP2/                                                     
-     &   ISAVTC(NNSTA), JSAVTC(NNSTA), LSAVTC(NNSTA),                   
-     &   MSAVTC(NNSTA), NSAVTC(NNSTA)
-!----------------------------------------------------------------------------
-! Flags for zeroing diagnostic arrays and printing out map and punch files
-      INTEGER        JDO, LZER0, LPRNT, LPNCH, LBPNCH
-      COMMON /CCCCC/ JDO, LZER0, LPRNT, LPNCH, LBPNCH
-!----------------------------------------------------------------------------
-! Data Initialization
-      INTEGER, PARAMETER :: MAXSTA = NNSTA
 !----------------------------------------------------------------------------
 ! Tracer offset for "alternate chemistries" (bmy, 3/15/99)
       INTEGER ::      TRCOFFSET
@@ -182,17 +157,13 @@
 
       COMMON /TR_INDEX/                                                 
      &   TINDEX(MAXDIAG,MAXTRACER), TCOUNT(MAXDIAG), TMAX(MAXDIAG)
-!-----------------------------------------------------------------------------
-! MAXACC is the maximum number of accumulating timesteps 
-! for the ND48 -- station timeseries diagnostic (bmy, 11/29/99)
-      INTEGER, PARAMETER :: MAXACC = 1200
 
-! Move this here for now (bmy, 7/20/04)
       !=================================================================
       ! NO, J-Value, and 2-PM diagnostic arrays (bmy, 9/25/98)
+      ! Move this here for now (bmy, 7/20/04)
       !=================================================================
-      REAL*8           HR1_NO, HR2_NO, HR1_JV,  HR2_JV,                 &
+      REAL*8           HR1_NO, HR2_NO, HR1_JV,  HR2_JV,                 
      &                 HR1_OH, HR2_OH, HR1_OTH, HR2_OTH
 
-      COMMON /JVNO2OH/ HR1_NO, HR2_NO, HR1_JV,  HR2_JV,                 &
+      COMMON /JVNO2OH/ HR1_NO, HR2_NO, HR1_JV,  HR2_JV,                 
      &                 HR1_OH, HR2_OH, HR1_OTH, HR2_OTH

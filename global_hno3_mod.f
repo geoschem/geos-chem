@@ -1,9 +1,9 @@
-! $Id: global_hno3_mod.f,v 1.3 2004/12/02 21:48:37 bmy Exp $
+! $Id: global_hno3_mod.f,v 1.4 2005/02/10 19:53:26 bmy Exp $
       MODULE GLOBAL_HNO3_MOD
 !
 !******************************************************************************
 !  Module GLOBAL_HNO3_MOD contains variables and routines for reading the
-!  global monthly mean HNO3 fields from disk. (bmy, 10/15/02, 7/20/04)
+!  global monthly mean HNO3 fields from disk. (bmy, 10/15/02, 1/14/05)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -29,6 +29,7 @@
 !  (1 ) Minor bug fix in FORMAT statement (bmy, 3/23/03)
 !  (2 ) Cosmetic changes (bmy, 3/27/03)
 !  (3 ) Now references "directory_mod.f" & "tracer_mod.f" (bmy, 7/20/04)
+!  (4 ) Now suppress output from READ_BPCH2 with QUIET=T (bmy, 1/14/05)
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -106,7 +107,7 @@
 !******************************************************************************
 !  Subroutine GET_GLOBAL_HNO3 reads global OH from binary punch files stored
 !  in the data directory.  This is needed for the offline sulfate simulation.
-!  (bmy, 10/3/02, 7/20/04)
+!  (bmy, 10/3/02, 1/14/05)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -116,6 +117,7 @@
 !  (1 ) Bug fix in FORMAT statement: Replace missing commas (bmy, 3/23/03)
 !  (2 ) Cosmetic changes (bmy, 3/27/03)
 !  (3 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  (4 ) Now suppress output from READ_BPCH2 with QUIET=T (bmy, 1/14/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -162,8 +164,9 @@
       XTAU = GET_TAU0( THISMONTH, 1, 1985 )
 
       ! Read HNO3 data from the binary punch file
-      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 7,     XTAU,  
-     &                 IGLOB,    JGLOB,      LGLOB, ARRAY )
+      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 7,     
+     &                 XTAU,      IGLOB,     JGLOB,      
+     &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
 
       ! Assign data from ARRAY to the module variable HNO3
       CALL TRANSFER_3D( ARRAY, HNO3 )

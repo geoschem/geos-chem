@@ -1,10 +1,10 @@
-! $Id: tracerid_mod.f,v 1.9 2004/12/16 16:52:46 bmy Exp $
+! $Id: tracerid_mod.f,v 1.10 2005/02/10 19:53:28 bmy Exp $
       MODULE TRACERID_MOD
 !
 !******************************************************************************
 !  Module TRACERID_MOD contains variables which point to SMVGEAR species,
 !  CTM Tracers, Biomass species, and biofuel species located within various
-!  GEOS-CHEM arrays. (bmy, 11/12/02, 12/7/04)
+!  GEOS-CHEM arrays. (bmy, 11/12/02, 12/20/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -171,6 +171,7 @@
 !  (6 ) Increase NNNTRID & add extra flags for SOA tracers. (rjp, bmy, 7/13/04)
 !  (7 ) Bug fix: reverse IDECH2O and IDEISOP (bmy, 11/15/04)
 !  (8 ) Added IDTHG0, IDTHG2, IDTHGP + tagged Hg's (eck, bmy, 12/7/04)
+!  (9 ) Added IDTAS, IDTAHS, IDTLET, IDTNH4aq, IDTSO4aq (cas, bmy, 12/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -206,16 +207,17 @@
       INTEGER            :: IDTDST2, IDTDST3,  IDTDST4, IDTSALA, IDTSALC
       INTEGER            :: IDTALPH, IDTLIMO,  IDTALCO, IDTSOG1, IDTSOG2  
       INTEGER            :: IDTSOG3, IDTSOA1,  IDTSOA2, IDTSOA3, IDTHG0
-      INTEGER            :: IDTHG2,  IDTHGP
+      INTEGER            :: IDTHg2,  IDTHgP,   IDTAS,   IDTAHS,  IDTLET
+      INTEGER            :: IDTNH4aq,IDTSO4aq
 
       ! Extra tracer ID's for tagged mercury simulation
       ! (we need these or else the wetdep code won't work)
-      INTEGER            :: IDTHG0_NA, IDTHG0_EU, IDTHG0_AS, IDTHG0_RW
-      INTEGER            :: IDTHG0_OC, IDTHG0_LN, IDTHG0_NT
-      INTEGER            :: IDTHG2_NA, IDTHG2_EU, IDTHG2_AS, IDTHG2_RW
-      INTEGER            :: IDTHG2_OC, IDTHG2_LN, IDTHG2_NT
-      INTEGER            :: IDTHGP_NA, IDTHGP_EU, IDTHGP_AS, IDTHGP_RW
-      INTEGER            :: IDTHGP_OC, IDTHGP_LN, IDTHGP_NT
+      INTEGER            :: IDTHg0_NA, IDTHg0_EU, IDTHg0_AS, IDTHg0_RW
+      INTEGER            :: IDTHg0_OC, IDTHg0_LN, IDTHg0_NT
+      INTEGER            :: IDTHg2_NA, IDTHg2_EU, IDTHg2_AS, IDTHg2_RW
+      INTEGER            :: IDTHg2_OC, IDTHg2_LN, IDTHg2_NT
+      INTEGER            :: IDTHgP_NA, IDTHgP_EU, IDTHgP_AS, IDTHgP_RW
+      INTEGER            :: IDTHgP_OC, IDTHgP_LN, IDTHgP_NT
 
       ! GEOS-CHEM emission ID's
       INTEGER            :: IDENOX,  IDEOX,    IDECO,   IDEPRPE, IDEC3H8
@@ -240,7 +242,7 @@
 !******************************************************************************
 !  Subroutine TRACERID reads the "tracer.dat" file and determines which
 !  tracers, emission species, biomass burning species, and biofuel burning
-!  species are turned on/off. (bmy, 3/16/01, 12/7/04)
+!  species are turned on/off. (bmy, 3/16/01, 1/26/05)
 !
 !  NOTES:
 !  (1 ) Original code from Loretta's version of the GISS-II model.  Now we
@@ -255,6 +257,9 @@
 !  (6 ) Reverse the position of IDEISOP and IDECH2O so as to keep all of the
 !        anthropogenic tracers together in IDEMS (bmy, 11/15/04)
 !  (7 ) Added IDTHG0, IDTHG2, IDTHGP flags (eck, bmy, 12/7/04)
+!  (8 ) Added IDTAS, IDTAHS, IDTLET, IDTNH4aq, IDTSO4aq.  Now no longer need 
+!        to declare IDTCO, IDBCO, IDBFCO for offline aerosol simulations. 
+!        (cas, bmy, 1/26/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -294,6 +299,9 @@
          ! Find each tracer
          SELECT CASE ( TRIM( NAME ) )
         
+            !------------------------
+            ! Full chem tracers
+            !------------------------
             CASE ( 'NOX' )
                COUNT    = COUNT + 1
                IDTNOX   = N
@@ -413,6 +421,9 @@
             CASE ( 'MP' )
                IDTMP    = N
 
+            !--------------------------------
+            ! Sulfur & nitrate aerosols
+            !--------------------------------
             CASE ( 'DMS' )
                IDTDMS   = N
 
@@ -433,7 +444,28 @@
 
             CASE ( 'NIT' )
                IDTNIT   = N
+
+            !--------------------------------
+            ! Crystalline & aqueous aerosols
+            !--------------------------------
+            CASE ( 'AS' ) 
+               IDTAS    = N
+
+            CASE ( 'AHS' ) 
+               IDTAHS   = N
+
+            CASE ( 'LET' )
+               IDTLET   = N
+
+            CASE ( 'NH4AQ' )
+               IDTNH4aq = N
+              
+            CASE ( 'SO4AQ' )
+               IDTSO4aq = N
              
+            !--------------------------------
+            ! Carbon & 2dy organic aerosols
+            !--------------------------------
             CASE ( 'BCPI' )
                IDTBCPI  = N
 
@@ -473,6 +505,9 @@
             CASE ( 'SOA3' )
                IDTSOA3  = N
 
+            !--------------------------------
+            ! Mineral dust aerosols
+            !--------------------------------
             CASE ( 'DST1' )
                IDTDST1  = N
 
@@ -485,12 +520,18 @@
             CASE ( 'DST4' )
                IDTDST4  = N
 
+            !--------------------------------
+            ! Seasalt aerosols
+            !--------------------------------
             CASE ( 'SALA' )
                IDTSALA  = N
 
             CASE ( 'SALC' )
                IDTSALC  = N
 
+            !--------------------------------
+            ! Rn-Pb-Be tracers
+            !--------------------------------
             CASE ( 'RN' )
                IDTRN    = N
  
@@ -499,6 +540,10 @@
 
             CASE ( 'BE7' )
                IDTBE7   = N
+
+            !--------------------------------
+            ! CH3I and HCN tracers
+            !--------------------------------
 
             ! Special case: CH3I needs CO biomass/biofuel
             CASE ( 'CH3I' )
@@ -516,10 +561,10 @@
                IDBFCO   = COUNT
                EXIT
 
-            !----------------------------------
-            ! Total and tagged mercury tracers 
+            !--------------------------------
+            ! Total & tagged mercury tracers 
             ! (eck, bmy, 12/14/04)
-            !----------------------------------
+            !--------------------------------
             CASE ( 'HG0' )
                IDTHG0   = N
  
@@ -601,8 +646,8 @@
       !=================================================================
       ! SPECIAL CASE: we need to hardwire the emission flags so that
       ! they are in the same order as the old emissions code.  The 
-      ! order should be: 1 4 18 19 5 21 9 10 11 6 20.  Think of a 
-      ! better way to implement this later on. (bmy, 11/12/02)
+      ! order should be: 1 4 18 19 5 21 9 10 11 20 6.  Think of a 
+      ! better way to implement this later on. (bmy, 12/20/04)
       !=================================================================
       IF ( ITS_A_FULLCHEM_SIM() ) THEN
          NEMANTHRO = 10
@@ -620,15 +665,18 @@
          IDEISOP   = 11
       ENDIF
       
-      !=================================================================
-      ! SPECIAL CASE: For the offline sulfate simulation, we also need
-      ! to turn on the biofuel and biomass CO flags (bmy, 11/12/02)
-      !=================================================================
-      IF ( ITS_AN_AEROSOL_SIM() ) THEN
-         IDTCO     = 1
-         IDBCO     = 1
-         IDBFCO    = 1
-      ENDIF
+      !----------------------------------------------------------------------
+      ! Prior to 1/25/05:
+      !!=================================================================
+      !! SPECIAL CASE: For the offline sulfate simulation, we also need
+      !! to turn on the biofuel and biomass CO flags (bmy, 11/12/02)
+      !!=================================================================
+      !IF ( ITS_AN_AEROSOL_SIM() ) THEN
+      !   IDTCO     = 1
+      !   IDBCO     = 1
+      !   IDBFCO    = 1
+      !ENDIF
+      !----------------------------------------------------------------------
 
       !=================================================================
       ! Fill IDEMS with appropriate tracer ID #'s
@@ -826,7 +874,7 @@
       SUBROUTINE INIT_TRACERID
 !
 !******************************************************************************
-!  Subroutine INIT_TRACERID zeroes module variables. (bmy, 11/12/02, 12/7/04)
+!  Subroutine INIT_TRACERID zeroes module variables. (bmy, 11/12/02, 12/20/04)
 !
 !  NOTES:
 !  (1 ) Now also zero IDDMS, IDSO2, IDSO4, IDMSA (rjp, bmy, 3/23/03)
@@ -834,6 +882,7 @@
 !  (3 ) Now zero extra flags for seasalt tracers (rjp, bec, bmy, 4/1/04)
 !  (4 ) Now zero extra flags for SOA tracers (rjp, bmy, 7/13/04)
 !  (5 ) Now zero IDTHG0, IDTHG2, IDTHGP + tagged Hg's (eck, bmy, 12/7/04)
+!  (6 ) Now zero IDTAS, IDTAHS, IDTLET, IDTNH4aq, IDTSO4aq (cas, bmy, 12/20/04)
 !******************************************************************************
 !
       ! SMVGEAR species ID #'s
@@ -913,6 +962,11 @@
       IDTNH3    = 0 
       IDTNH4    = 0 
       IDTNIT    = 0 
+      IDTAS     = 0
+      IDTAHS    = 0
+      IDTNH4aq  = 0
+      IDTLET    = 0
+      IDTSO4aq  = 0
       IDTBCPI   = 0
       IDTOCPI   = 0
       IDTBCPO   = 0

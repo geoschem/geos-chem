@@ -1,9 +1,9 @@
-! $Id: wetscav_mod.f,v 1.13 2004/12/16 16:52:46 bmy Exp $
+! $Id: wetscav_mod.f,v 1.14 2005/02/10 19:53:29 bmy Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
 !  Module WETSCAV_MOD contains arrays for used in the wet scavenging of
-!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 12/9/04)
+!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 1/20/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -107,6 +107,8 @@
 !        internal routines to the module and pass arguments explicitly in
 !        order to facilitate parallelization on the Altix. (bmy, 7/20/04)
 !  (16) Updated for mercury aerosol tracers (eck, bmy, 12/9/04)
+!  (17) Updated for AS, AHS, LET, NH4aq, SO4aq.  Also now pass Hg2 wetdep loss
+!        to "ocean_mercury_mod.f". (cas, sas, bmy, 1/20/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -181,7 +183,7 @@
       CALL WETDEP(  .TRUE. )
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
 
-      ! Wetdep by  precip
+      ! Wetdep by convective precip
       CALL MAKE_QQ( .FALSE. )
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before conv wetdep' )
       CALL WETDEP(  .FALSE. )
@@ -627,7 +629,7 @@
 !
 !******************************************************************************
 !  Subroutine COMPUTE_F computes F, the fraction of soluble tracer lost by 
-!  scavenging in convective cloud updrafts. (hyl, bmy, djj, 2/23/00, 12/9/04)
+!  scavenging in convective cloud updrafts. (hyl, bmy, djj, 2/23/00, 12/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -681,6 +683,8 @@
 !        COMPUTE_F in order to facilitate parallelization on the Altix.  Also
 !        now pass all arguments explicitly to F_AEROSOL. (bmy, 7/20/04)
 !  (15) Now wet scavenge mercury aerosol tracers (eck, bmy, 12/9/04)
+!  (16) Updated for AS, AHS, LET, NH4aq, SO4aq.  Also condensed the IF
+!        statement by combining branches for aerosols. (cas, bmy, 12/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -711,30 +715,23 @@
       ! ISOL = tracer index for the ND38 diagnostic.
       !=================================================================
 
-      !----------------------------
-      ! 210Pb (aerosol)
-      !----------------------------
-      IF ( N == IDTPB ) THEN
+      !-------------------------------
+      ! 210Pb and 7Be (aerosols)
+      !-------------------------------
+      IF ( N == IDTPb .or. N == IDTBe7 ) THEN
          CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
 
-      !----------------------------        
-      ! 7Be (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTBE7 ) THEN
-         CALL F_AEROSOL( KC, F )
-         ISOL = GET_ISOL( N )
-
-      !----------------------------
+      !-------------------------------
       ! HNO3 (aerosol)
-      !----------------------------
+      !-------------------------------
       ELSE IF ( N == IDTHNO3 ) THEN
          CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N ) 
 
-      !----------------------------
+      !-------------------------------
       ! H2O2 (liquid & ice phases)
-      !----------------------------
+      !-------------------------------
       ELSE IF ( N == IDTH2O2 ) THEN
 
          ! No scavenging at the surface
@@ -793,9 +790,9 @@
          ! ND38 index
          ISOL = GET_ISOL( N )
 
-      !----------------------------
+      !-------------------------------
       ! CH2O (liquid phase only)
-      !----------------------------
+      !-------------------------------
       ELSE IF ( N == IDTCH2O ) THEN 
 
          ! No scavenging at the surface
@@ -846,9 +843,9 @@
          ! ND38 index
          ISOL = GET_ISOL( N ) 
   
-      !----------------------------
+      !-------------------------------
       ! CH3OOH (liquid phase only)
-      !----------------------------
+      !-------------------------------
       ELSE IF ( N == IDTMP ) THEN
 
          ! No scavenging at the surface
@@ -899,9 +896,9 @@
          ! ND38 index
          ISOL = GET_ISOL( N )
 
-      !---------------------------
+      !------------------------------
       ! SO2 (aerosol)
-      !---------------------------
+      !------------------------------
       ELSE IF ( N == IDTSO2 ) THEN
 
          ! Compute fraction of SO2 scavenged
@@ -943,23 +940,24 @@
          ENDDO
          ENDDO
 
-      !----------------------------
-      ! SO4 (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTSO4 ) THEN
+      !-------------------------------
+      ! SO4   (gaseous aerosol) or
+      ! SO4aq (aqueous aerosol)
+      !-------------------------------
+      ELSE IF ( N == IDTSO4 .or. N == IDTSO4aq ) THEN
          CALL F_AEROSOL( KC, F ) 
          ISOL = GET_ISOL( N ) 
 
-      !---------------------------
+      !-------------------------------
       ! MSA (aerosol)
-      !---------------------------
+      !-------------------------------
       ELSE IF ( N == IDTMSA ) THEN
          CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
 
-      !----------------------------
+      !-------------------------------
       ! NH3 (liquid & ice phases)
-      !----------------------------
+      !-------------------------------
       ELSE IF ( N == IDTNH3 ) THEN
          
          ! No scavenging at surface
@@ -1012,100 +1010,61 @@
          ENDDO
        
          ! ND38 index
-         !ISOL = GET_ISOL( 8, 4 )
          ISOL = GET_ISOL( N )
 
-      !----------------------------
-      ! NH4 (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTNH4 ) THEN
+      !-------------------------------
+      ! NH4   (gaseous aerosol) or
+      ! NH4aq (aqueous aerosol)
+      !-------------------------------
+      ELSE IF ( N == IDTNH4 .or. N == IDTNH4aq ) THEN
          CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
          
-      !----------------------------
-      ! NIT (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTNIT ) THEN
+      !-------------------------------
+      ! NIT / LET / AS / AHS (aerosol)
+      !-------------------------------
+      ELSE IF ( N == IDTNIT .or. N == IDTAS   .or. 
+     &          N == IDTAHS .or. N == IDTLET ) THEN 
          CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
 
-      !----------------------------
-      ! BC HYDROPHILIC (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTBCPI ) THEN
-         CALL F_AEROSOL( KC, F )
-         ISOL = GET_ISOL( N )
-
-      !----------------------------
+      !-------------------------------
+      ! BC HYDROPHILIC (aerosol) or
       ! OC HYDROPHILIC (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTOCPI ) THEN
+      !-------------------------------
+      ELSE IF ( N == IDTBCPI .or. N == IDTOCPI ) THEN
          CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
 
-      !----------------------------
-      ! BC HYDROPHOBIC (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTBCPO ) THEN
-
-         ! Force not to be lost in convective updraft for now
-         F    = 0d0
-         ISOL = GET_ISOL( N )
-
-      !----------------------------
+      !-------------------------------
+      ! BC HYDROPHOBIC (aerosol) or
       ! OC HYDROPHOBIC (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTOCPO ) THEN
+      !-------------------------------
+      ELSE IF ( N == IDTBCPO .or. N == IDTOCPO ) THEN
 
          ! Force not to be lost in convective updraft for now
          F    = 0d0
          ISOL = GET_ISOL( N )
 
-      !----------------------------
-      ! DUST1 (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTDST1 ) THEN
-         CALL F_AEROSOL( KC, F )
-         ISOL = GET_ISOL( N )
-         
-      !----------------------------
-      ! DUST2 (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTDST2 ) THEN
-         CALL F_AEROSOL( KC, F )
-         ISOL = GET_ISOL( N )
-         
-      !----------------------------
-      ! DUST3 (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTDST3 ) THEN
-         CALL F_AEROSOL( KC, F )
-         ISOL = GET_ISOL( N )
-         
-      !----------------------------
-      ! DUST4 (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTDST4 ) THEN
+      !-------------------------------
+      ! DST1/DST2/DST3/DST4 (aerosol)
+      !-------------------------------
+      ELSE IF ( N == IDTDST1 .or. N == IDTDST2 .or.
+     &          N == IDTDST3 .or. N == IDTDST4 ) THEN
          CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
 
-      !----------------------------
-      ! Accum mode seasalt aerosol
-      !----------------------------
-      ELSE IF ( N == IDTSALA ) THEN
+      !-------------------------------
+      ! Accum  mode seasalt (aerosol)
+      ! Coarse mode seasalt (aerosol)
+      !-------------------------------
+      ELSE IF ( N == IDTSALA .or. N == IDTSALC ) THEN
          CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
 
-      !----------------------------
-      ! Coarse mode seasalt aerosol
-      !----------------------------
-      ELSE IF ( N == IDTSALC ) THEN
-         CALL F_AEROSOL( KC, F )
-         ISOL = GET_ISOL( N )
-
-      !----------------------------
+      !-------------------------------
       ! ALPH (liquid phase only)
-      !----------------------------
+      !-------------------------------
       ELSE IF ( N == IDTALPH ) THEN
 
          ! No scavenging at the surface
@@ -1154,9 +1113,9 @@
 
          ISOL = GET_ISOL( N )
 
-      !----------------------------
+      !-------------------------------
       ! LIMO (liquid phase only)
-      !----------------------------
+      !-------------------------------
       ELSE IF ( N == IDTLIMO ) THEN
 
          ! No scavenging at the surface
@@ -1206,9 +1165,9 @@
          ! ND38 index
          ISOL = GET_ISOL( N )
 
-      !----------------------------
+      !-------------------------------
       ! ALCO (liquid phase only)
-      !----------------------------
+      !-------------------------------
       ELSE IF ( N == IDTALCO ) THEN
 
          ! No scavenging at the surface
@@ -1258,10 +1217,10 @@
          ! ND38 index
          ISOL = GET_ISOL( N )
 
-      !--------------------------------
+      !-----------------------------------
       ! SOG[1,2,3] (liquid phase only)
-      !--------------------------------
-      ELSE IF ( N == IDTSOG1 .OR. N == IDTSOG2 .OR. N == IDTSOG3 ) THEN
+      !-----------------------------------
+      ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2 .or. N == IDTSOG3 ) THEN
 
          ! No scavenging at the surface
          F(:,:,1) = 0d0
@@ -1310,11 +1269,11 @@
          ! ND38 index
          ISOL = GET_ISOL( N )
 
-      !---------------------------------------
+      !------------------------------------------
       ! SOA[1,2,3] (aerosol)
       ! Scavenging efficiency for SOA is 0.8
-      !---------------------------------------
-      ELSE IF ( N == IDTSOA1 .OR. N == IDTSOA2 .OR. N == IDTSOA3 ) THEN
+      !------------------------------------------
+      ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2 .or. N == IDTSOA3 ) THEN
          CALL F_AEROSOL( KC, F )
 
          DO L = 2, LLPAR
@@ -1328,9 +1287,9 @@
          ! ND38 index
          ISOL = GET_ISOL( N )
 
-      !----------------------------
+      !-------------------------------
       ! Hg2 (liquid phase only)
-      !----------------------------
+      !-------------------------------
       ELSE IF ( N == IDTHg2    .or. N == IDTHg2_NA  .or. 
      &          N == IDTHg2_EU .or. N == IDTHg2_AS  .or.
      &          N == IDTHg2_RW .or. N == IDTHg2_OC  .or.
@@ -1382,9 +1341,9 @@
          ! ND38 index
          ISOL = GET_ISOL( N )
 
-      !----------------------------
+      !-------------------------------
       ! HgP (treat like aerosol)
-      !----------------------------
+      !-------------------------------
       ELSE IF ( N == IDTHgP    .or. N == IDTHgP_NA  .or. 
      &          N == IDTHgP_EU .or. N == IDTHgP_AS  .or.
      &          N == IDTHgP_RW .or. N == IDTHgP_OC  .or.
@@ -1543,7 +1502,7 @@
 !
 !******************************************************************************
 !  Subroutine RAINOUT computes RAINFRAC, the fraction of soluble tracer
-!  lost to rainout events in precipitation. (djj, bmy, 2/28/00, 12/9/04)
+!  lost to rainout events in precipitation. (djj, bmy, 2/28/00, 12/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1582,6 +1541,8 @@
 !  (8 ) Now updated for seasalt aerosol tracers (rjp, bec, bmy, 4/20/04)
 !  (9 ) Now updated for secondary aerosol tracers (rjp, bmy, 7/13/04)
 !  (10) Now treat rainout of mercury aerosol tracers (eck, bmy, 12/9/04)
+!  (11) Updated for AS, AHS, LET, NH4aq, SO4aq.  Also condensed the IF
+!        statement by grouping blocks together. (cas, bmy, 12/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1614,27 +1575,21 @@
       ! Save the local temperature in TK for convenience
       TK = T(I,J,L)
 
-      !----------------------------
-      ! 210Pb (aerosol)
-      !----------------------------
-      IF ( N == IDTPB ) THEN 
+      !------------------------------
+      ! 210Pb and 7Be (aerosol)
+      !------------------------------
+      IF ( N == IDTPb .or. N == IDTBe7 ) THEN 
          RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
          
-      !----------------------------
-      ! 7Be (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTBE7 ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-         
-      !----------------------------
+      !------------------------------
       ! HNO3 (aerosol)
-      !----------------------------
+      !------------------------------
       ELSE IF ( N == IDTHNO3 ) THEN
          RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
-      !----------------------------
+      !------------------------------
       ! H2O2 (liquid & ice phases)
-      !----------------------------
+      !------------------------------
       ELSE IF ( N == IDTH2O2 ) THEN
 
          ! Compute ice to gas ratio for H2O2 by co-condensation
@@ -1674,9 +1629,9 @@
          ! (Eq. 10, Jacob et al, 2000)
          RAINFRAC = GET_RAINFRAC( K, F, DT )
 
-      !----------------------------
+      !------------------------------
       ! CH2O (liquid phase only)
-      !----------------------------      
+      !------------------------------     
       ELSE IF ( N == IDTCH2O ) THEN 
                   
          ! Compute liquid to gas ratio for CH2O, using
@@ -1708,9 +1663,9 @@
          ! (Eq. 10, Jacob et al, 2000)
          RAINFRAC = GET_RAINFRAC( K, F, DT )
   
-      !----------------------------
+      !------------------------------
       ! CH3OOH (liquid phase only)
-      !----------------------------
+      !------------------------------
       ELSE IF ( N == IDTMP ) THEN
 
          ! Compute liquid to gas ratio for CH3OOH, using
@@ -1742,9 +1697,9 @@
          ! (Eq. 10, Jacob et al, 2000)
          RAINFRAC = GET_RAINFRAC( K, F, DT ) 
 
-      !----------------------------
+      !------------------------------
       ! SO2
-      !----------------------------
+      !------------------------------
       ELSE IF ( N == IDTSO2 ) THEN
 
          !==============================================================
@@ -1780,20 +1735,20 @@
          SO2s(I,J,L) = MAX( SO2s(I,J,L), EPSILON )         
 
       !----------------------------
-      ! SO4 (aerosol)
+      ! SO4 and SO4aq (aerosol)
       !----------------------------
-      ELSE IF ( N == IDTSO4 ) THEN
+      ELSE IF ( N == IDTSO4 .or. N == IDTSO4aq ) THEN
          RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
-      !----------------------------
+      !------------------------------
       ! MSA (aerosol)
-      !----------------------------
+      !------------------------------
       ELSE IF ( N == IDTMSA ) THEN
          RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
-      !----------------------------
+      !------------------------------
       ! NH3 (liquid & ice phases)
-      !----------------------------
+      !------------------------------
       ELSE IF ( N == IDTNH3 ) THEN
 
          ! Compute ice to gas ratio for NH3 by co-condensation
@@ -1835,85 +1790,55 @@
          ! (Eq. 10, Jacob et al, 2000)
          RAINFRAC = GET_RAINFRAC( K, F, DT )
 
-      !----------------------------
-      ! NH4 (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTNH4 ) THEN
+      !------------------------------
+      ! NH4 and NH4aq (aerosol)
+      !------------------------------
+      ELSE IF ( N == IDTNH4 .or. N == IDTNH4aq ) THEN
+
+         ! NOTE: NH4aq may have a henry's law constant; 
+         !       Carine will investigate (cas, bmy, 12/20/04)
          RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
-      !----------------------------
-      ! NIT (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTNIT ) THEN
+      !------------------------------
+      ! NIT/AS/AHS/LET (aerosol)
+      !------------------------------
+      ELSE IF ( N == IDTNIT .or. N == IDTAS   .or. 
+     &          N == IDTAHS .or. N == IDTLET ) THEN
          RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
-      !----------------------------
-      ! BC HYDROPHILIC (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTBCPI ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
-      !----------------------------
+      !------------------------------
+      ! BC HYDROPHILIC (aerosol) or
       ! OC HYDROPHILIC (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTOCPI ) THEN
+      !------------------------------
+      ELSE IF ( N == IDTBCPI .or. N == IDTOCPI) THEN
          RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
-      !-----------------------------
-      ! BC HYDROPHOBIC (aerosol) 
-      !-----------------------------
-      ELSE IF ( N == IDTBCPO ) THEN
+      !-------------------------------
+      ! BC HYDROPHOBIC (aerosol) or
+      ! OC HYDROPHOBIC (aerosol)
+      !-------------------------------
+      ELSE IF ( N == IDTBCPO .or. N == IDTOCPO ) THEN
 
          ! No rainout 
          RAINFRAC = 0.0D0                  
 
-      !-----------------------------
-      ! OC HYDROPHOBIC (aerosol) 
-      !-----------------------------
-      ELSE IF ( N == IDTOCPO ) THEN
-
-         ! No rainout
-         RAINFRAC = 0.0D0 
-
-      !----------------------------
-      ! DUST1 (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTDST1 ) THEN
+      !-------------------------------
+      ! DUST all size bins (aerosol)
+      !-------------------------------
+      ELSE IF ( N == IDTDST1 .or. N == IDTDST2 .or.
+     &          N == IDTDST3 .or. N == IDTDST4 ) THEN
          RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
-      !----------------------------
-      ! DUST2 (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTDST2 ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
-      !----------------------------
-      ! DUST3 (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTDST3 ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
-      !----------------------------
-      ! DUST4 (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTDST4 ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )      
-
-      !----------------------------
-      ! Accum. seasalt (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTSALA ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )      
-
-      !----------------------------
+      !------------------------------
+      ! Accum  seasalt (aerosol) or
       ! Coarse seasalt (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTSALC ) THEN
+      !------------------------------
+      ELSE IF ( N == IDTSALA .or. N == IDTSALC ) THEN
          RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )      
 
-      !----------------------------
+      !------------------------------
       ! ALPH (liquid phase only)
-      !----------------------------
+      !------------------------------
       ELSE IF ( N == IDTALPH ) THEN
 
          ! Compute liquid to gas ratio for ALPH, using
@@ -1944,9 +1869,9 @@
          ! (Eq. 10, Jacob et al, 2000)
          RAINFRAC = GET_RAINFRAC( K, F, DT )
 
-      !----------------------------
+      !------------------------------
       ! LIMO (liquid phase only)
-      !----------------------------
+      !------------------------------
       ELSE IF ( N == IDTLIMO ) THEN
 
          ! Compute liquid to gas ratio for LIMO, using
@@ -1977,9 +1902,9 @@
          ! (Eq. 10, Jacob et al, 2000)
          RAINFRAC = GET_RAINFRAC( K, F, DT )
 
-      !----------------------------
+      !------------------------------
       ! ALCO (liquid phase only)
-      !----------------------------
+      !------------------------------
       ELSE IF ( N == IDTALCO ) THEN
 
          ! Compute liquid to gas ratio for ALCO, using
@@ -2010,9 +1935,9 @@
          ! (Eq. 10, Jacob et al, 2000)   
          RAINFRAC = GET_RAINFRAC( K, F, DT )
 
-      !--------------------------------
+      !----------------------------------
       ! SOG[1,2,3] (liquid phase only)
-      !--------------------------------
+      !----------------------------------
       ELSE IF ( N == IDTSOG1 .OR. N == IDTSOG2 .OR. N == IDTSOG3 ) THEN
 
          ! Compute liquid to gas ratio for GAS1, using
@@ -2052,9 +1977,9 @@
          RAINFRAC = RAINFRAC * 0.8d0
 
 
-      !----------------------------
+      !------------------------------
       ! Hg2 (liquid phase only)
-      !----------------------------
+      !------------------------------
       ELSE IF ( N == IDTHg2    .or. N == IDTHg2_NA  .or. 
      &          N == IDTHg2_EU .or. N == IDTHg2_AS  .or.
      &          N == IDTHg2_RW .or. N == IDTHg2_OC  .or.
@@ -2085,18 +2010,18 @@
          ! (Eq. 10, Jacob et al, 2000)
          RAINFRAC = GET_RAINFRAC( K, F, DT ) 
 
-      !----------------------------
+      !------------------------------
       ! HgP (treat like aerosol)
-      !----------------------------
+      !------------------------------
       ELSE IF ( N == IDTHgP    .or. N == IDTHgP_NA  .or. 
      &          N == IDTHgP_EU .or. N == IDTHgP_AS  .or.
      &          N == IDTHgP_RW .or. N == IDTHgP_OC  .or.
      &          N == IDTHgP_LN .or. N == IDTHgP_NT ) THEN
          RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
-      !----------------------------
+      !------------------------------
       ! ERROR: insoluble tracer!
-      !----------------------------  
+      !------------------------------
       ELSE
          CALL ERROR_STOP( 'Invalid tracer!', 'RAINOUT (wetscav_mod.f)' )
 
@@ -2147,7 +2072,7 @@
 !
 !******************************************************************************
 !  Subroutine WASHOUT computes WASHFRAC, the fraction of soluble tracer
-!  lost to washout events in precipitation. (djj, bmy, 2/28/00, 12/9/04)
+!  lost to washout events in precipitation. (djj, bmy, 2/28/00, 12/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -2192,6 +2117,8 @@
 !        to the module and pass all arguments explicitly.  This facilitates
 !        parallelization on the Altix platform (bmy, 7/20/04)
 !  (11) Now handle washout of mercury aerosol tracers (eck, bmy, 12/9/04)
+!  (13) Updated for AS, AHS, LET, NH4aq, SO4aq.  Also condensed the IF
+!        statement by grouping blocks together (cas, bmy, 12/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2226,54 +2153,47 @@
       ! DZ is the height of the grid box in cm
       DZ = BXHEIGHT(I,J,L) * 1d2
 
-      !----------------------------
-      ! 210Pb (aerosol)
-      !----------------------------
-      IF ( N == IDTPB ) THEN
+      !------------------------------
+      ! 210Pb or 7Be (aerosol)
+      !------------------------------
+      IF ( N == IDTPb .or. N == IDTBe7 ) THEN
          AER      = .TRUE.
          WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
-      !----------------------------
-      ! 7Be (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTBE7 ) THEN
-         AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
-
-      !----------------------------
+      !------------------------------
       ! HNO3 (aerosol)
-      !----------------------------
+      !------------------------------
       ELSE IF ( N == IDTHNO3 ) THEN
          AER      = .TRUE.
          WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
-      !----------------------------
+      !------------------------------
       ! H2O2 (liquid & gas phases)
-      !----------------------------
+      !------------------------------
       ELSE IF ( N == IDTH2O2 ) THEN
          AER      = .FALSE.
          WASHFRAC = WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP, DT, 
      &                                F,      DZ,    TK, K_WASH )
 
-      !----------------------------
+      !------------------------------
       ! CH2O (liquid & gas phases)
-      !----------------------------
+      !------------------------------
       ELSE IF ( N == IDTCH2O ) THEN 
          AER      = .FALSE.
          WASHFRAC = WASHFRAC_LIQ_GAS( 3.0d3, -7.2d3, PP, DT, 
      &                                F,      DZ,    TK, K_WASH )
 
-      !----------------------------
+      !------------------------------
       ! MP (liquid & gas phases)
-      !----------------------------
+      !------------------------------
       ELSE IF ( N == IDTMP ) THEN
          AER      = .FALSE.
          WASHFRAC = WASHFRAC_LIQ_GAS( 3.1d2, -5.2d3, PP, DT, 
      &                                F,      DZ,    TK, K_WASH )
 
-      !----------------------------
+      !------------------------------
       ! SO2 (aerosol treatment)
-      !----------------------------
+      !------------------------------
       ELSE IF ( N == IDTSO2 ) THEN
 
          !==============================================================
@@ -2313,154 +2233,112 @@
          SO2s(I,J,L) = SO2s(I,J,L) * ( 1d0 - WASHFRAC )
          SO2s(I,J,L) = MAX( SO2s(I,J,L), EPSILON )
            
-      !----------------------------
-      ! SO4 (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTSO4 ) THEN
+      !------------------------------
+      ! SO4 and SO4aq (aerosol)
+      !------------------------------
+      ELSE IF ( N == IDTSO4 .or. N == IDTSO4aq ) THEN
          AER      = .TRUE.
          WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
-      !----------------------------
+      !------------------------------
       ! MSA (aerosol)
-      !----------------------------
+      !------------------------------
       ELSE IF ( N == IDTMSA ) THEN
          AER      = .TRUE.
          WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
-      !----------------------------
+      !------------------------------
       ! NH3 (liquid & gas phases)
-      !----------------------------
+      !------------------------------
       ELSE IF ( N == IDTNH3 ) THEN
          AER      = .FALSE.
          WASHFRAC = WASHFRAC_LIQ_GAS( 3.3d6, -4.1d3, PP, DT, 
      &                                F,      DZ,    TK, K_WASH )
 
-      !----------------------------
-      ! NH4 (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTNH4 ) THEN
+      !------------------------------
+      ! NH4 and NH4aq (aerosol)
+      !------------------------------
+      ELSE IF ( N == IDTNH4 .or. N == IDTNH4aq ) THEN
          AER      = .TRUE.
          WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
-      !----------------------------
-      ! NIT (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTNIT ) THEN
+      !------------------------------
+      ! NIT/AS/AHS/LET (aerosol)
+      !------------------------------
+      ELSE IF ( N == IDTNIT .or. N == IDTAS   .or.
+     &          N == IDTAHS .or. N == IDTLET ) THEN
          AER      = .TRUE.
          WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
-      !----------------------------
-      ! BC HYDROPHILIC (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTBCPI ) THEN
+      !------------------------------
+      ! BC HYDROPHILIC (aerosol) or
+      ! OC HYDROPHILIC (aerosol) or
+      ! BC HYDROPHOBIC (aerosol) or
+      ! OC HYDROPHOBIC (aerosol) 
+      !------------------------------
+      ELSE IF ( N == IDTBCPI .or. N == IDTOCPI  .or.
+     &          N == IDTBCPO .or. N == IDTOCPO ) THEN
          AER      = .TRUE.
          WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
-      !----------------------------
-      ! OC HYDROPHILIC (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTOCPI ) THEN
+      !------------------------------
+      ! DUST all size bins (aerosol)
+      !------------------------------
+      ELSE IF ( N == IDTDST1 .or. N == IDTDST2  .or.
+     &          N == IDTDST3 .or. N == IDTDST4 ) THEN
          AER      = .TRUE.
          WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
-      !----------------------------
-      ! BC HYDROPHOBIC (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTBCPO ) THEN
-         AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK ) 
-
-      !----------------------------
-      ! OC HYDROPHOBIC (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTOCPO ) THEN
-         AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
-
-      !----------------------------
-      ! DUST1 (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTDST1 ) THEN
-         AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
-
-      !----------------------------
-      ! DUST2 (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTDST2 ) THEN
-         AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
-
-      !----------------------------
-      ! DUST3 (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTDST3 ) THEN
-         AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
-
-      !----------------------------
-      ! DUST4 (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTDST4 ) THEN
-         AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
-
-      !----------------------------
-      ! Accum. seasalt (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTSALA ) THEN
-         AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
-
-      !----------------------------
+      !------------------------------
+      ! Accum  seasalt (aerosol) or
       ! Coarse seasalt (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTSALC ) THEN
+      !------------------------------
+      ELSE IF ( N == IDTSALA .or. N == IDTSALC ) THEN
          AER      = .TRUE.
          WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
-      !----------------------------
+      !------------------------------
       ! ALPH (liquid & gas phases)
-      !----------------------------
+      !------------------------------
       ELSE IF ( N == IDTALPH ) THEN
          AER      = .FALSE.
          WASHFRAC = WASHFRAC_LIQ_GAS( 0.023d0, 0.d0, PP, DT, 
      &                                F,       DZ,   TK, K_WASH )
 
-      !----------------------------
+      !------------------------------
       ! LIMO (liquid & gas phases)
-      !----------------------------
+      !------------------------------
       ELSE IF ( N == IDTLIMO ) THEN
          AER      = .FALSE.
          WASHFRAC = WASHFRAC_LIQ_GAS( 0.07d0, 0.d0, PP, DT, 
      &                                F,      DZ,   TK, K_WASH )
 
-      !----------------------------
+      !------------------------------
       ! ALCO (liquid & gas phases)
-      !----------------------------
+      !------------------------------
       ELSE IF ( N == IDTALCO ) THEN
          AER      = .FALSE.
          WASHFRAC = WASHFRAC_LIQ_GAS( 54.d0, 0.d0, PP, DT, 
      &                                F,     DZ,   TK, K_WASH )
 
-      !----------------------------
+      !---------------------------------
       ! SOG[1,2,3] (liquid & gas phases)
-      !----------------------------
-      ELSE IF ( N == IDTSOG1 .OR. N == IDTSOG2 .OR. N == IDTSOG3 ) THEN
+      !---------------------------------
+      ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2 .or. N == IDTSOG3 ) THEN
          AER      = .FALSE.
          WASHFRAC = WASHFRAC_LIQ_GAS( 1.0d5, -6.039d3, PP, DT, 
      &                                F,      DZ,      TK, K_WASH )
 
-      !----------------------------
+      !------------------------------
       ! SOA[1,2,3] (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTSOA1 .OR. N == IDTSOA2 .OR. N == IDTSOA3 ) THEN
+      !------------------------------
+      ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2 .or. N == IDTSOA3 ) THEN
          AER      = .TRUE.
          WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
-      !----------------------------
+      !------------------------------
       ! Hg2 (liquid & gas phases)
-      !----------------------------
+      !------------------------------
       ELSE IF ( N == IDTHG2    .or. N == IDTHG2_NA  .or. 
      &          N == IDTHG2_EU .or. N == IDTHG2_AS  .or.
      &          N == IDTHG2_RW .or. N == IDTHG2_OC  .or.
@@ -2469,9 +2347,9 @@
          WASHFRAC = WASHFRAC_LIQ_GAS( 1.4d6, -8.4d3, PP, DT, 
      &                                F,      DZ,    TK, K_WASH )
 
-      !----------------------------
+      !------------------------------
       ! HgP (treat like aerosol) 
-      !----------------------------
+      !------------------------------
       ELSE IF ( N == IDTHgP    .or. N == IDTHgP_NA  .or. 
      &          N == IDTHgP_EU .or. N == IDTHgP_AS  .or.
      &          N == IDTHgP_RW .or. N == IDTHgP_OC  .or.
@@ -2479,9 +2357,9 @@
          AER      = .TRUE.
          WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
-      !----------------------------
+      !------------------------------
       ! ERROR: Insoluble tracer
-      !----------------------------
+      !------------------------------
       ELSE 
          CALL ERROR_STOP( 'Invalid tracer!', 'WASHOUT (wetscav_mod.f)' )
 
@@ -2609,7 +2487,7 @@
 !******************************************************************************
 !  Subroutine WETDEP computes the downward mass flux of tracer due to washout 
 !  and rainout of aerosols and soluble tracers in a column.  The timestep is 
-!  the dynamic timestep. (hyl, bey, bmy, djj, 4/2/99, 7/20/04)
+!  the dynamic timestep. (hyl, bey, bmy, djj, 4/2/99, 1/19/05)
 !
 !  The precip fields through the bottom of each level are indexed as follows:
 !
@@ -2700,15 +2578,20 @@
 !  (16) Now references STT & N_TRACERS from "tracer_mod.f".  Also now make
 !        DSTT a 4-d internal array so as to facilitate -C checking on the
 !        SGI platform. (bmy, 7/20/04)
+!  (17) Now references IDTHg2 from "tracerid_mod.f".  Now pass the amt of
+!        Hg2 wet scavenged out of the column to "ocean_mercury_mod.f" via
+!        routine ADD_Hg2_WD. (sas, bmy, 1/19/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : BXHEIGHT
-      USE DIAG_MOD,     ONLY : AD16, AD17, AD18, CT16, CT17, CT18, AD39 
-      USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP, IT_IS_NAN
-      USE TIME_MOD,     ONLY : GET_TS_DYN
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTSO2, IDTSO4
+      USE DAO_MOD,           ONLY : BXHEIGHT
+      USE DIAG_MOD,          ONLY : AD16, AD17, AD18, 
+     &                              CT16, CT17, CT18, AD39 
+      USE ERROR_MOD,         ONLY : GEOS_CHEM_STOP, IT_IS_NAN
+      USE OCEAN_MERCURY_MOD, ONLY : ADD_Hg2_WD
+      USE TIME_MOD,          ONLY : GET_TS_DYN
+      USE TRACER_MOD,        ONLY : STT
+      USE TRACERID_MOD,      ONLY : IDTSO2, IDTSO4, IDTHg2
       
       IMPLICIT NONE
 
@@ -3054,6 +2937,13 @@
                      ! (I,J,L) that is lost to rainout.
                      WETLOSS = STT(I,J,L,N) * RAINFRAC
 
+                     ! For the mercury simulation, we need to archive the
+                     ! amt of Hg2 [kg] that is scavenged out of the column
+                     ! (sas, bmy, 1/19/05)
+                     IF ( N == IDTHg2 ) THEN
+                        CALL ADD_Hg2_WD( I, J, WETLOSS )
+                     ENDIF
+
                      ! Subtract the rainout loss in grid box (I,J,L) from STT
                      STT(I,J,L,N) = STT(I,J,L,N) - WETLOSS
 
@@ -3277,6 +3167,13 @@
                         ! Add washout losses in grid box (I,J,L) to DSTT 
                         DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
 
+                        ! For the mercury simulation, we need to archive the
+                        ! amt of Hg2 [kg] that is scavenged out of the column
+                        ! (sas, bmy, 1/19/05)
+                        IF ( N == IDTHg2 ) THEN
+                           CALL ADD_Hg2_WD( I, J, WETLOSS )
+                        ENDIF
+
                         ! ND18 diagnostic...we don't have to divide the
                         ! washout fraction by F since this is accounted for.
                         IF ( ND18 > 0 .and. L <= LD18 ) THEN
@@ -3333,6 +3230,13 @@
                   ! WETLOSS is the amount of tracer in grid box (I,J,L) 
                   ! that is lost to rainout. (qli, bmy, 10/29/02)
                   WETLOSS = -DSTT(NN,L+1,I,J)
+
+                  ! For the mercury simulation, we need to archive the
+                  ! amt of Hg2 [kg] that is scavenged out of the column
+                  ! (sas, bmy, 1/19/05)
+                  IF ( N == IDTHg2 ) THEN
+                     CALL ADD_Hg2_WD( I, J, WETLOSS )
+                  ENDIF
 
                   ! All of the rained-out tracer coming from grid box
                   ! (I,J,L+1) goes back into the gas phase at (I,J,L)
@@ -3443,6 +3347,13 @@
                   ! Subtract WETLOSS from STT
                   STT(I,J,L,N) = STT(I,J,L,N) - WETLOSS     
               
+                  ! For the mercury simulation, we need to archive the
+                  ! amt of Hg2 [kg] that is scavenged out of the column
+                  ! (sas, bmy, 1/19/05)
+                  IF ( N == IDTHg2 ) THEN
+                     CALL ADD_Hg2_WD( I, J, WETLOSS )
+                  ENDIF
+
                   ! ND18 diagnostic...LS and conv washout fractions [unitless]
                   IF ( ND18 > 0 .and. L <= LD18 ) THEN
 
@@ -3708,7 +3619,7 @@
 !
 !******************************************************************************
 !  Subroutine WETDEPID sets up the index array of soluble tracers used in
-!  the WETDEP routine above (bmy, 11/8/02, 12/9/04)
+!  the WETDEP routine above (bmy, 11/8/02, 12/20/04)
 ! 
 !  NOTES:
 !  (1 ) Now references "tracerid_mod.f".  Also references "CMN" in order to
@@ -3720,6 +3631,7 @@
 !  (5 ) Now references N_TRACERS, TRACER_NAME, TRACER_MW_KG from
 !        "tracer_mod.f".  Removed reference to NSRCX.  (bmy, 7/20/04)
 !  (6 ) Updated for mercury aerosol tracers (eck, bmy, 12/9/04)
+!  (7 ) Updated for AS, AHS, LET, NH4aq, SO4aq (cas, bmy, 12/20/04)
 !******************************************************************************
 !
       ! References To F90 modules
@@ -3800,7 +3712,30 @@
             IDWETD(NSOL) = IDTNIT
             
          !-----------------------------
-         ! Carbon aerosol tracers
+         ! Crystal & Aqueous aerosols
+         !-----------------------------
+         ELSE IF ( N == IDTAS ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTAS
+
+         ELSE IF ( N == IDTAHS ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTAHS
+
+         ELSE IF ( N == IDTLET ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTLET
+
+         ELSE IF ( N == IDTNH4aq ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTNH4aq
+
+         ELSE IF ( N == IDTSO4aq ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTSO4aq
+
+         !-----------------------------
+         ! Carbon & SOA aerosol tracers
          !-----------------------------
          ELSE IF ( N == IDTBCPI ) THEN
             NSOL         = NSOL + 1
@@ -3818,39 +3753,6 @@
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTOCPO
 
-         !-----------------------------
-         ! Dust aerosol tracers
-         !-----------------------------
-         ELSE IF ( N == IDTDST1 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTDST1
-
-         ELSE IF ( N == IDTDST2 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTDST2
-
-         ELSE IF ( N == IDTDST3 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTDST3
-
-         ELSE IF ( N == IDTDST4 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTDST4
-
-         !-----------------------------
-         ! Seasalt aerosol tracers
-         !-----------------------------
-         ELSE IF ( N == IDTSALA ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTSALA
-
-         ELSE IF ( N == IDTSALC ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTSALC
-
-         !-----------------------------
-         ! SOA tracers
-         !-----------------------------
          ELSE IF ( N == IDTALPH ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTALPH
@@ -3886,6 +3788,36 @@
          ELSE IF ( N == IDTSOA3 ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTSOA3
+
+         !-----------------------------
+         ! Dust aerosol tracers
+         !-----------------------------
+         ELSE IF ( N == IDTDST1 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTDST1
+
+         ELSE IF ( N == IDTDST2 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTDST2
+
+         ELSE IF ( N == IDTDST3 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTDST3
+
+         ELSE IF ( N == IDTDST4 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTDST4
+
+         !-----------------------------
+         ! Seasalt aerosol tracers
+         !-----------------------------
+         ELSE IF ( N == IDTSALA ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTSALA
+
+         ELSE IF ( N == IDTSALC ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTSALC
 
          !-----------------------------
          ! Total and tagged Hg tracers 
@@ -3992,7 +3924,7 @@
 !******************************************************************************
 !  Function GET_WETDEP_NMAX returns the maximum number of soluble tracers
 !  for a given type of simulation.  Primarily used for allocation of 
-!  diagnostic arrays. (bmy, 12/2/02, 12/14/04)
+!  diagnostic arrays. (bmy, 12/2/02, 12/20/04)
 !
 !  NOTES:
 !  (1 ) Modified to include carbon & dust aerosol tracers (rjp, bmy, 4/5/04)
@@ -4002,10 +3934,12 @@
 !        ITS_A_RnPbBe_SIM from "tracer_mod.f".  Now references LCARB, LDUST,
 !        LSOA, LSSALT, LSULF from "logical_mod.f". (bmy, 7/20/04)
 !  (5 ) Modified to include mercury aerosol tracers (eck, bmy, 12/14/04)
+!  (6 ) Modified for AS, AHS, LET, NH4aq, SO4aq (cas, bmy, 12/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE LOGICAL_MOD, ONLY : LCARB, LDUST, LSOA, LSSALT, LSULF, LSPLIT
+      USE LOGICAL_MOD, ONLY : LCARB,  LDUST, LSOA, 
+     &                        LSSALT, LSULF, LSPLIT, LCRYST
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM,
      &                        ITS_A_RnPbBe_SIM,   ITS_A_MERCURY_SIM
 
@@ -4044,6 +3978,7 @@
          NMAX = 0
 
          IF ( LSULF  )   NMAX = NMAX + 7        ! add 7 sulfur species
+         IF ( LCRYST )   NMAX = NMAX + 5        ! add 5 cryst & aq species
          IF ( LDUST  )   NMAX = NMAX + NDSTBIN  ! Add number of dust bins
          IF ( LSSALT )   NMAX = NMAX + 2        ! plus 2 seasalts
 

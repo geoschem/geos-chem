@@ -1,10 +1,10 @@
-! $Id: global_no3_mod.f,v 1.3 2004/12/02 21:48:37 bmy Exp $
+! $Id: global_no3_mod.f,v 1.4 2005/02/10 19:53:26 bmy Exp $
       MODULE GLOBAL_NO3_MOD
 !
 !******************************************************************************
 !  Module GLOBAL_NO3_MOD contains variables and routines for reading the
 !  global monthly mean NO3 concentration from disk.  These are needed for the 
-!  offline sulfate/aerosol simulation. (bmy, 10/15/02, 7/20/04)
+!  offline sulfate/aerosol simulation. (bmy, 10/15/02, 1/15/05)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -28,6 +28,7 @@
 !  (2 ) Minor bug fix in FORMAT statements (bmy, 3/23/03)
 !  (3 ) Cosmetic changes (bmy, 3/27/03)
 !  (4 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  (5 ) Now suppress output from READ_BPCH2 with QUIET=T (bmy, 1/14/05)
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -59,7 +60,7 @@
 !******************************************************************************
 !  Subroutine GET_GLOBAL_NO3 reads monthly mean NO3 data fields.  These 
 !  are needed for simulations such as offline sulfate/aerosol. 
-!  (bmy, 10/15/02, 7/20/04)
+!  (bmy, 10/15/02, 1/13/05)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -69,6 +70,7 @@
 !  (1 ) Minor bug fix in FORMAT statements (bmy, 3/23/03)
 !  (2 ) Cosmetic changes (bmy, 3/27/03)
 !  (3 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  (4 ) Now suppress output from READ_BPCH2 with QUIET=T (bmy, 1/14/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -115,8 +117,9 @@
       XTAU = GET_TAU0( THISMONTH, 1, 1985 )
  
       ! Read NO3 data from the binary punch file (tracer #5)
-      CALL READ_BPCH2( FILENAME, 'CHEM-L=$', 5,     XTAU,  
-     &                 IGLOB,    JGLOB,      LGLOB, ARRAY )
+      CALL READ_BPCH2( FILENAME, 'CHEM-L=$', 5,     
+     &                 XTAU,      IGLOB,     JGLOB,      
+     &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
 
       ! Assign data from ARRAY to the module variable H2O2
       CALL TRANSFER_3D( ARRAY, NO3 )
