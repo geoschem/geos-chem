@@ -1,10 +1,10 @@
-! $Id: fast_j.f,v 1.3 2003/08/06 15:30:42 bmy Exp $
+! $Id: fast_j.f,v 1.4 2004/02/06 16:38:29 bmy Exp $
       SUBROUTINE FAST_J( SUNCOS, OD, ALBD )  
 !
 !******************************************************************************
 !  Subroutine FAST_J loops over longitude and latitude, and calls PHOTOJ 
 !  to compute J-Values for each column at every chemistry time-step.  
-!  (ppm, 4/98; bmy, rvm, 9/99, 7/17/03)
+!  (ppm, 4/98; bmy, rvm, 9/99, 2/6/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -46,6 +46,8 @@
 !        routine GET_DAY from "time_mod.f".  Rename IDAY to DAY_OF_YR. Pass 
 !        day of month to PHOTOJ.  Updated comments, cosmetic changes.
 !        (bmy, 7/17/03)
+!  (15) Bug fix: PRES needs to be the true surface pressure for GEOS-4, but
+!        PS-PTOP for all prior GEOS models.  (bmy, 2/6/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -115,8 +117,16 @@
             ! Cosine of solar zenith angle [unitless] at (NLON,NLAT)
             CSZA         = SUNCOS( (NLAT-1)*IIPAR + NLON ) 
 
-            ! Surface pressure - PTOP [hPa] at (NLON,NLAT)
+#if   defined( GEOS_4 )
+
+            ! GEOS-4 needs true sfc pressure [hPa] at (NLON,NLAT)
+            PRES         = GET_PEDGE(NLON,NLAT,1)
+
+#else
+            ! Sigma grids need ( sfc Pressure - PTOP ) [hPa] at (NLON,NLAT)
             PRES         = GET_PEDGE(NLON,NLAT,1) - PTOP
+
+#endif
 
             ! Temperature profile [K] at (NLON,NLAT)
             TEMP         = T(NLON,NLAT,1:LLPAR)

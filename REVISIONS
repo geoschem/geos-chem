@@ -1,5 +1,5 @@
 REVISIONS (v6-01-05)  
-bmy, 27 Jan 2004
+bmy, 06 Feb 2004
 
 
 New in v6-01-05:
@@ -38,6 +38,9 @@ do_chemistry		-- Bug fix: added GEOS-4 to the #if block in the
 do_convection		-- Added changes for GEOS-4/fvDAS convection
 ("convection_mod.f")	-- Also placed calls to DEBUG_MSG for debugging 
 			   msg output.
+
+fast_j.f		-- Bug fix: PRES needs to be the true surface pressure
+			   for GEOS-4, but PS-PTOP for all prior GEOS models. 
 
 fvdas_convect		-- Added TCVV and INDEXSOL to the arg list and in the 
 ("fvdas_convect_mod.f")	   call to CONVTRAN.  
