@@ -78,6 +78,9 @@ drydep_mod.f		-- Increased MAXDEP to 26
 
 file_mod.f		-- Added IU_ND52=20 for ICARTT output
 
+get_global_oh		-- Add Mat's OH (v5-07-08) as an option
+("global_oh_mod.f")	-- Now reads bpch file quietly 
+
 get_wetdep_nmax		-- Modified to include seasalt aerosol tracers
 ("wetscav_mod.f")
 
@@ -85,6 +88,9 @@ init_drydep		-- Added seasalt aerosol tracers.
 ("drydep_mod.f")	-- Now use A_RADI and A_DEN to store radius & density 
 			   of size-resolved tracers.  
 			-- Also added fancy output
+
+init_global_oh		-- OH should be (IIPAR,JJPAR,LLPAR) in order to
+("global_oh_mod.f")	   avoid subscript errors
 
 init_tracerid		-- Now zero extra flags for seasalt tracers 
 ("tracerid_mod.f")
