@@ -1,9 +1,9 @@
-! $Id: chemistry_mod.f,v 1.5 2003/10/21 16:05:27 bmy Exp $
+! $Id: chemistry_mod.f,v 1.6 2004/01/29 15:50:04 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
 !  Module CHEMISTRY_MOD is used to call the proper chemistry subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 8/20/03)
+!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 1/27/04)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -25,6 +25,7 @@
 !  (2 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
 !  (3 ) Now references "tagged_ox_mod.f"(bmy, 8/18/03)
 !  (4 ) Now references "Kr85_mod.f" (jsw, bmy, 8/20/03)
+!  (5 ) Bug fix: Now also call OPTDEPTH for GEOS-4 (bmy, 1/27/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -41,7 +42,7 @@
 !******************************************************************************
 !  Subroutine DO_CHEMISTRY is the driver routine which calls the appropriate
 !  chemistry subroutine for the various GEOS-CHEM simulations. 
-!  (bmy, 2/11/03, 8/20/03)
+!  (bmy, 2/11/03, 1/27/04)
 !
 !  NOTES:
 !  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this
@@ -50,6 +51,8 @@
 !  (3 ) Removed call to CHEMO3, it's obsolete.  Now calls CHEM_TAGGED_OX !
 !        from "tagged_ox_mod.f" when NSRCX==6.  Now calls Kr85 chemistry if 
 !        NSRCX == 12 (jsw, bmy, 8/20/03)
+!  (4 ) Bug fix: added GEOS-4 to the #if block in the call to OPTDEPTH.
+!        (bmy, 1/27/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -89,7 +92,7 @@
          CALL OPTDEPTH( LM, CLMOSW, CLROSW, DELP, T, OPTD )
       ENDIF
 
-#elif defined( GEOS_2 ) || defined( GEOS_3 ) 
+#elif defined( GEOS_3 ) || defined( GEOS_4 ) 
 
       ! Compute optical depths (except for CO-OH run)
       ! GEOS-2/GEOS-3: Copy OPTDEP to OPTD, also archive diagnostics

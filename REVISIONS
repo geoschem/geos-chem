@@ -31,6 +31,10 @@ convtran		-- Added references to "diag_mod.f" and "grid_mod.f"
 
 diag3.f			-- Now use actual tracer number for ND37 diagnostic
 
+do_chemistry		-- Bug fix: added GEOS-4 to the #if block in the 
+("chemistry_mod.f")	   call to OPTDEPTH.
+
+
 do_convection		-- Added changes for GEOS-4/fvDAS convection
 ("convection_mod.f")	-- Also placed calls to DEBUG_MSG for debugging 
 			   msg output.
@@ -73,6 +77,9 @@ open_i6_fields		-- Now skips past the GEOS-4 ident string
 
 open_phis_fields	-- Now skips past the GEOS-4 ident string
 ("a3_read_mod.f")
+
+setup_co_oh_chem	-- Bug fix: added GEOS-4 to the #if block in the 
+("main.f")		   call to OPTDEPTH.
 
 srcdms			-- For GEOS-4, convert PBL from [m] to [hPa]
 ("sulfate_mod.f")	   w/ the barometric law.
