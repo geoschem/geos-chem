@@ -1,9 +1,9 @@
-! $Id: plsave.f,v 1.1 2003/06/30 20:26:01 bmy Exp $
+! $Id: plsave.f,v 1.2 2003/08/06 15:30:52 bmy Exp $
       SUBROUTINE PLSAVE  
 !
 !*****************************************************************************
 !  Subroutine PLSAVE saves info on production and loss of families 
-!  specified in prodloss.dat (bey, bmy, 3/16/00, 5/13/03)
+!  specified in prodloss.dat (bey, bmy, 3/16/00, 8/1/03)
 !
 !  NOTES:
 !  (1 ) Original code is from Loretta Mickley and Isabelle Bey
@@ -15,6 +15,7 @@
 !  (4 ) Also reference JLOP from "comode_mod.f" (bmy, 10/19/00)
 !  (5 ) Removed obsolete code from 10/19/00 (bmy, 12/21/00)
 !  (6 ) Updated comments, Cosmetic changes (bmy, 5/13/03)
+!  (7 ) Added OpenMP parallelization commands (bmy, 8/1/03)
 !*****************************************************************************
 !
       ! References to F90 modules
@@ -41,6 +42,10 @@
       IF ( ALLOCATED( FAMPL ) .and. 
      &     ALLOCATED( CSPEC ) .and. 
      &     ALLOCATED( JLOP  ) ) THEN 
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N, JLOOP )
+!$OMP+SCHEDULE( DYNAMIC ) 
          DO N = 1, NFAMILIES
          DO L = 1, NVERT
          DO J = 1, NLAT
@@ -60,6 +65,7 @@
          ENDDO
          ENDDO
          ENDDO
+!$OMP END PARALLEL DO
       ENDIF
 
       ! Return to calling program

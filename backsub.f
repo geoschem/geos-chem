@@ -1,4 +1,4 @@
-! $Id: backsub.f,v 1.2 2003/07/11 13:41:37 bmy Exp $
+! $Id: backsub.f,v 1.3 2003/08/06 15:30:31 bmy Exp $
       SUBROUTINE BACKSUB
 !
 !******************************************************************************
@@ -80,15 +80,6 @@ C GLOSS    = ARRAY INITIALLY HOLDING RIGHT SIDE OF EQUATION. THESE
 C            VALUES ARE CONVERTED TO THE SOLUTION DURING BACK-SUBSTITUTION.
 C KZEROA,..= ARRAYS IDENTIFYING TERMS IN GLOSS ARRAY 
 C
-
-      !-----------------------------------------------------------------
-      ! Prior to 7/9/03:
-      ! Comment out counter variable NUM_BACKSUB, you can get the same 
-      ! info w/ a profiling run. (bmy, 7/9/03)
-      !! bdf timing calculations.
-      !NUM_BACKSUB = NUM_BACKSUB + 1
-      !-----------------------------------------------------------------
-
       IJ            = 1 
       DO 310 KZT    = KZTLO(NCSP), KZTHI(NCSP)
          I            = IKZTOT(KZT)

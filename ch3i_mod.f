@@ -1,4 +1,4 @@
-! $Id: ch3i_mod.f,v 1.1 2003/06/30 20:26:02 bmy Exp $
+! $Id: ch3i_mod.f,v 1.2 2003/08/06 15:30:33 bmy Exp $
       MODULE CH3I_MOD
 !
 !******************************************************************************
@@ -1022,11 +1022,6 @@
             NK       = NRATES(NCS) + NR
             IFNC     = DEFPRAT(NK,NCS) + 0.01D0
             IBRCH    = 10.D0*(DEFPRAT(NK,NCS)-IFNC) + 0.5D0   
-            !-----------------------------------------------------------
-            ! Prior to 4/1/03:
-            ! NAMESPEC is now NAMEGAS. (bdf, bmy, 4/1/03)
-            !SPECNAME = NAMESPEC(IRM(1,NK,NCS),NCS)
-            !-----------------------------------------------------------
             SPECNAME = NAMEGAS(IRM(1,NK,NCS))            
 
             ! Maybe later can replace this w/ the ann mean tropopause...

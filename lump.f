@@ -1,9 +1,9 @@
-! $Id: lump.f,v 1.1 2003/06/30 20:26:04 bmy Exp $
+! $Id: lump.f,v 1.2 2003/08/06 15:30:43 bmy Exp $
       SUBROUTINE LUMP( NTRACER, XNUMOL, STT )
 !
 !******************************************************************************
 !  Subroutine LUMP takes individual chemistry species and "lumps" them back 
-!  into tracers after each SMVGEAR chemistry timestep. (bmy, 4/1/03)
+!  into tracers after each SMVGEAR chemistry timestep. (bmy, 4/1/03, 8/1/03)
 ! 
 !  Arguments as Input:
 !  ============================================================================
@@ -17,6 +17,7 @@
 !
 !  NOTES:
 !  (1 ) Updated comments, cosmetic changes (bmy, 4/1/03)
+!  (2 ) Added OpenMP parallelization commands (bmy, 8/1/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -40,6 +41,10 @@
       !=================================================================
       ! LUMP begins here!
       !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N, JLOOP, CONCTMP, KK, JJ )
+!$OMP+SCHEDULE( DYNAMIC )
       DO N = 1, NTRACER
          
          ! Skip if not a valid tracer
@@ -58,7 +63,7 @@
             ! looping over all species belonging to this tracer
             CONCTMP = 0.d0
             DO KK = 1, NMEMBER(N)
-               JJ =IDTRMB(N, KK)
+               JJ = IDTRMB(N, KK)
                CONCTMP = CONCTMP + ( 1d0+CTRMB(N,KK) ) * CSPEC(JLOOP,JJ)
             ENDDO
 
@@ -71,6 +76,7 @@
          ENDDO
          ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
       ! Return to calling program
       END SUBROUTINE LUMP

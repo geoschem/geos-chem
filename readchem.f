@@ -1,4 +1,4 @@
-! $Id: readchem.f,v 1.4 2003/07/21 15:09:27 bmy Exp $
+! $Id: readchem.f,v 1.5 2003/08/06 15:30:52 bmy Exp $
       SUBROUTINE READCHEM 
 !
 !******************************************************************************
@@ -404,15 +404,6 @@ C *********************************************************************
 C *  SEARCH FOR SPECIFIC SPECIES NUMBERS USED IN OTHER SUBROUTINES    * 
 C *********************************************************************
 C
-!--------------------------------------------------------------------
-! Prior to 7/7/03:
-!      DO 38 I        = 1, NTSPECGAS
-!        JST          = NAMEGAS(I)
-!        IF (JST.EQ.'O2')     IOXYGEN  = I
-!        IF (JST.EQ.'H2O')    IH2O     = I
-! 38   CONTINUE
-!--------------------------------------------------------------------
-
       ! Initialize for safety's sake (bmy, 7/7/03)
       IOXYGEN = 0
       IH2O    = 0
@@ -610,12 +601,6 @@ C
        ! record photalysis numbers for harvard-geos code (bdf, 4/18/03)
        NPHOT = NPHOTALL
        !DEFPRAT(NPHOTALL)    = ARRT(1)
-       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-       ! Prior to 7/16/03:
-       ! IPORD is not used in GEOS-CHEM implementation of SMVGEAR II
-       ! so remove it from "comode.h" (bmy, 7/16/03)
-       !IPORD(  NPHOTALL)    = IORD
-       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
        DO 640 NCS           = 1, NCSGAS
         IF (NOUSE(NCS).EQ.0) THEN

@@ -1,71 +1,72 @@
-! $Id: chemdr.f,v 1.3 2003/07/21 15:09:25 bmy Exp $
+! $Id: chemdr.f,v 1.4 2003/08/06 15:30:35 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
 !  Subroutine CHEMDR is the driver subroutine for full chemistry w/ SMVGEAR.
-!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 7/16/03)
+!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 7/30/03)
 !
 !  Important input variables from "dao_mod.f" and "uvalbedo_mod.f":
 !  ============================================================================
-!  ALBD       : DAO visible albedo                         [unitless]
-!  AVGW       : Mixing ratio of water vapor                [v/v] 
-!  BXHEIGHT   : Grid box heights                           [m]
-!  OPTD       : DAO grid-box optical depths (for FAST-J)   [unitless]
-!  SUNCOS     : Cosine of solar zenith angle               [unitless]
-!  UVALBEDO   : TOMS UV albedo 340-380 nm (for FAST-J)     [unitless]
+!  ALBD        : DAO visible albedo                         [unitless]
+!  AVGW        : Mixing ratio of water vapor                [v/v] 
+!  BXHEIGHT    : Grid box heights                           [m]
+!  OPTD        : DAO grid-box optical depths (for FAST-J)   [unitless]
+!  SUNCOS      : Cosine of solar zenith angle               [unitless]
+!  SUNCOSB     : Cosine of solar zenith angle 1 hr from now [unitless]
+!  UVALBEDO    : TOMS UV albedo 340-380 nm (for FAST-J)     [unitless]
 !
 !  Important input variables from "comode.h" or "comode_mod.f":
 !  ============================================================================
-!  NPTS       : Number of points (grid-boxes) to calculate
-!  REMIS      : Emission rates                             [molec/cm3/s-1]
-!  RAERSOL    : Frequency of gas-aerosol collisions        [s-1]
-!  PRESS      : Pressure                                   [Pa]
-!  TMPK       : Temperature                                [K]
-!  ABSHUM     : Absolute humidity                          [molec/cm3]
-!  ALT        : Altitude                                   [cm]
-!  SURFALT    : Surface altitude                           [m]
-!  TOTO3      : Total ozone column                         [molec/cm3]
-!  CLOUDS     : Albedos at 2-km intervals from 0 to 20-km  
-!  IDXAIR     : Index for standard temperature profile
-!  IDXO3      : Index for standard ozone profile
-!  CSPEC      : Initial species concentrations             [molec/cm3]
+!  NPTS        : Number of points (grid-boxes) to calculate
+!  REMIS       : Emission rates                             [molec/cm3/s-1]
+!  RAERSOL     : Frequency of gas-aerosol collisions        [s-1]
+!  PRESS       : Pressure                                   [Pa]
+!  TMPK        : Temperature                                [K]
+!  ABSHUM      : Absolute humidity                          [molec/cm3]
+!  ALT         : Altitude                                   [cm]
+!  SURFALT     : Surface altitude                           [m]
+!  TOTO3       : Total ozone column                         [molec/cm3]
+!  CLOUDS      : Albedos at 2-km intervals from 0 to 20-km  
+!  IDXAIR      : Index for standard temperature profile
+!  IDXO3       : Index for standard ozone profile
+!  CSPEC       : Initial species concentrations             [molec/cm3]
 !
 !  Important output variables in "comode.h" etc.
 !  ============================================================================
-!  NAMESPEC   : Character array of species names
-!  NNSPEC     : # of ACTIVE + INACTIVE (not DEAD) species
-!  CSPEC      : Final species concentrations               [molec/cm3]
+!  NAMESPEC    : Character array of species names
+!  NNSPEC      : # of ACTIVE + INACTIVE (not DEAD) species
+!  CSPEC       : Final species concentrations               [molec/cm3]
 !
 !  Other Important Variables
 !  ============================================================================
-!  MAXPTS     : Maximum number of points or grid-boxes (in "comsol.h")
-!               (NPTS must be <= MAXPTS, for SLOW-J only)
-!  MAXDEP     : Maximum number of deposition species (note # of
-!               depositing species listed in tracer.dat must be <= MAXDEP)
-!  IGAS       : Maximum number of gases, ACTIVE + INACTIVE
-!  IO93       : I/O unit for output for "ctm.chem" file
+!  MAXPTS      : Maximum number of points or grid-boxes (in "comsol.h")
+!                (NPTS must be <= MAXPTS, for SLOW-J only)
+!  MAXDEP      : Maximum number of deposition species (note # of
+!                depositing species listed in tracer.dat must be <= MAXDEP)
+!  IGAS        : Maximum number of gases, ACTIVE + INACTIVE
+!  IO93        : I/O unit for output for "ctm.chem" file
 !
-!  Input files for SMVGEAR:
+!  Input files for SMVGEAR II:
 !  ============================================================================
-!       m.dat : control switches                       (read in "reader.f")
-!  tracer.dat : list of tracers, emitting species      (read in "reader.f")
+!   mglob.dat  : control switches                       (read in "reader.f")
+!  tracer.dat  : list of tracers, emitting species      (read in "reader.f")
 !                and depositing species
-!    chem.dat : species list, reaction list,           (read in "chemset.f")
-!               photolysis reaction list
+! globchem.dat : species list, reaction list,           (read in "chemset.f")
+!                photolysis reaction list
 !
 !  Input files for FAST-J photolysis:
 !  ============================================================================
-!     ratj.d  : Lists photo species, branching ratios  (read in "rd_js.f")
-! jv_atms.dat : Climatology of T and O3                (read in "rd_prof.f")
-! jv_spec.dat : Cross-sections for each species        (read in "RD_TJPL.f")
+!     ratj.d   : Lists photo species, branching ratios  (read in "rd_js.f")
+! jv_atms.dat  : Climatology of T and O3                (read in "rd_prof.f")
+! jv_spec.dat  : Cross-sections for each species        (read in "RD_TJPL.f")
 !
 !  Input files for SLOW-J photolysis:
 !  ============================================================================
-!  jvalue.dat : Solar flux data, standard T and O3     (read in "jvaluein.f")
+!  jvalue.dat  : Solar flux data, standard T and O3     (read in "jvaluein.f")
 !                profiles, aerosol optical depths 
-!    8col.dat : SLOW-J cross-section data              (read in "jvaluein.f")
-!  chemga.dat : Aerosol data
-!    o3du.dat : O3 in Dobson units, cloud data         (read in "jvaluein.f")
+!    8col.dat  : SLOW-J cross-section data              (read in "jvaluein.f")
+!  chemga.dat  : Aerosol data
+!    o3du.dat  : O3 in Dobson units, cloud data         (read in "jvaluein.f")
 !
 !  NOTES:
 !  (1 ) Cleaned up a lot of stuff.  SUNCOS, OPTD, ALBD, and AVGW are now 
@@ -119,12 +120,16 @@
 !        added CH4_YEAR as a SAVEd variable. (bnd, bmy, 7/1/03)
 !  (16) Remove references to MONTHP, IMIN, ISEC; they are obsolete and not 
 !        defined anywhere. (bmy, 7/16/03)
+!  (17) Now reference SUNCOSB from "dao_mod.f".  Now pass SUNCOSB to "chem.f". 
+!        Also remove LSAMERAD from call to CHEM, since it's obsolete. 
+!        (gcc, bmy, 7/30/03)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE COMODE_MOD,      ONLY : ABSHUM,    CSPEC, ERADIUS, TAREA
-      USE DAO_MOD,         ONLY : AD,        ALBD,  AVGW,    BXHEIGHT, 
-     &                            MAKE_AVGW, OPTD,  SUNCOS,  T, AIRVOL
+      USE COMODE_MOD,      ONLY : ABSHUM,   CSPEC,     ERADIUS, TAREA
+      USE DAO_MOD,         ONLY : AD,       AIRVOL,    ALBD,    AVGW,    
+     &                            BXHEIGHT, MAKE_AVGW, OPTD,    SUNCOS,  
+     &                            SUNCOSB,  T
       USE ERROR_MOD,       ONLY : DEBUG_MSG
       USE GLOBAL_CH4_MOD,  ONLY : GET_GLOBAL_CH4
       USE PLANEFLIGHT_MOD, ONLY : SETUP_PLANEFLIGHT
@@ -166,17 +171,6 @@
       NVERT  = IVERT 
       NPVERT = NVERT
       NPVERT = NVERT + IPLUME
-
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! Prior to 7/16/03:
-      ! These are now obsolete and have been removed from "comode.h"
-      ! (bmy, 7/16/03)
-      !MONTHP = GET_MONTH()
-      !
-      !! clean first
-      !IMIN   = 0
-      !ISEC   = 0
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       !=================================================================
       ! Compute AVGW, the mixing ratio of water vapor
@@ -406,8 +400,15 @@
       !=================================================================
       ! Call CHEM which PERFORMS GAS-PHASE CHEMISTRY. 
       !=================================================================
-      CALL CHEM( FIRSTCHEM, .FALSE., NPTS,   SUNCOS, CLOUDS, ALT,
-     &           SURFALT,   TOTO3,   IDXAIR, IDXO3,  OPTD,   UVALBEDO )
+!----------------------------------------------------------------------------
+! Prior to 7/30/03:
+! Now pass SUNCOSB to CHEM.  Also remove LSAMERAD, it's obsolete.
+! (gcc, bmy, 7/30/03)
+!      CALL CHEM( FIRSTCHEM, .FALSE., NPTS,   SUNCOS, CLOUDS, ALT,
+!     &           SURFALT,   TOTO3,   IDXAIR, IDXO3,  OPTD,   UVALBEDO )
+!----------------------------------------------------------------------------
+      CALL CHEM( FIRSTCHEM, NPTS,  SUNCOS, SUNCOSB, CLOUDS, ALT,
+     &           SURFALT,   TOTO3, IDXAIR, IDXO3,   OPTD,   UVALBEDO )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after CHEM' )

@@ -1,11 +1,11 @@
-! $Id: ohsave.f,v 1.1 2003/06/30 20:26:01 bmy Exp $
+! $Id: ohsave.f,v 1.2 2003/08/06 15:30:44 bmy Exp $
       SUBROUTINE OHSAVE( XNUMOL, STT,     FRACO3, FRACNO,  FRACNO2, 
      &                   SAVEOH, SAVEHO2, SAVENO, SAVENO2, SAVENO3 )
 !
 !******************************************************************************
 !  Subroutine OHSAVE stores the concentrations of OH, HO2, NO, NO2, and NO3
 !  for the ND43 diagnostic.  Also the O3/Ox, NO/NOx and NO2/NOx fractions
-!  are computed and returned to the calling program. (bmy, 2/27/02, 1/13/03) 
+!  are computed and returned to the calling program. (bmy, 2/27/02, 8/1/03) 
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -33,6 +33,7 @@
 !  (4 ) Bug fix: swap the order of the lines where TMPNOX is computed.
 !        Also deleted obsolete code from 2/02. (bmy, 7/31/02)
 !  (5 ) Now reference IDTOX, IDTNOX, etc from "tracerid_mod.f". (1/13/03)
+!  (6 ) Added OpenMP parallelization commands (bmy, 8/1/03)
 !******************************************************************************
 !
 
@@ -70,6 +71,10 @@
       ! for consistency with the old method of doing O3, we'll archive
       ! the fraction O3/Ox, and the fraction NO/NOx
       !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, JLOOP, TEMPOX, TEMPNOX, KCLO, XLOSS, XOHMASS )
+!$OMP+SCHEDULE( DYNAMIC )
       DO 370 L = 1, NPVERT
       DO 360 J = 1, NLAT
       DO 350 I = 1, NLONG
@@ -139,6 +144,7 @@
  350  CONTINUE
  360  CONTINUE
  370  CONTINUE
+!$OMP END PARALLEL DO
 
       ! Return to calling program
       END SUBROUTINE OHSAVE

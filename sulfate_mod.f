@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.2 2003/07/21 15:09:28 bmy Exp $
+! $Id: sulfate_mod.f,v 1.3 2003/08/06 15:30:56 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 3/27/03)
+!  (rjp, bdf, bmy, 6/22/00, 8/1/03)
 !
 !  Module variables:
 !  ============================================================================
@@ -55,6 +55,7 @@
 !  (44) Env        (INTEGER) : SO2 em. from non-erup volcanoes  [kg SO2/box/s]
 !  (45) TCOSZ      (REAL*8 ) : Sum of cos(SZA) for offline run  [unitless] 
 !  (46) TTDAY      (REAL*8 ) : Total daylight length at (I,J)   [minutes]
+!  (47) SMALLNUM   (REAL*8 ) : Small number - prevent underflow [unitless]
 !  
 !  Module Routines:
 !  ===========================================================================
@@ -149,6 +150,8 @@
 !        simulations.  Added subroutine READ_NATURAL_NH3. (rjp, bmy, 3/23/03)
 !  (17) Now references "grid_mod.f" and "time_mod.f".  Also made other minor
 !        cosmetic changes. (bmy, 3/27/03)
+!  (18) Updated chemistry routines to apply drydep losses throughout the
+!        entire PBL. (rjp, bmy, 8/1/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -170,7 +173,7 @@
       PRIVATE :: XNUMOL_OH,  XNUMOL_O3,  XNUMOL_NO3, JH2O2
       PRIVATE :: DRYSO2,     DRYSO4,     DRYMSA,     DRYNH3
       PRIVATE :: DRYNH4,     DRYNIT,     DRYH2O2,    TCOSZ
-      PRIVATE :: TTDAY,      ESO2_bf
+      PRIVATE :: TTDAY,      ESO2_bf,    SMALLNUM
 
       ! PRIVATE module routines
       PRIVATE :: GET_VCLDF,         GET_LWC,           CHEM_DMS 
@@ -200,6 +203,7 @@
       REAL*8,  PARAMETER   :: XNUMOL_O3  = 6.022d23 / 48d-3
       REAL*8,  PARAMETER   :: XNUMOL_NO3 = 6.022d23 / 62d-3
       REAL*8,  PARAMETER   :: TCVV_S     = 28.97d0  / 32d0
+      REAL*8,  PARAMETER   :: SMALLNUM   = 1d-20
 
       ! Allocatable arrays
       REAL*8,  ALLOCATABLE :: DMSo(:,:) 
@@ -681,7 +685,8 @@
          !==============================================================
          DMS_OH = DMS0   * EXP( -( RK1 + RK2 ) * Fx * DTCHEM )
          DMS    = DMS_OH * EXP( -( RK3       ) * Fx * DTCHEM ) 
-         DMS    = MAX( DMS, 1d-32 )
+         !###DMS    = MAX( DMS, 1d-32 )
+         IF ( DMS < SMALLNUM ) DMS = 0d0
 
          ! Archive initial OH and NO3 for diagnostics
          OH0    = OH
@@ -691,11 +696,13 @@
 
             ! Update OH after rxn w/ DMS (coupled runs only)
             OH    = OH0 - ( ( DMS0 - DMS_OH ) * AIRDEN(L,I,J) * f )
-            OH    = MAX( OH, 1D-32 )
+            !###OH    = MAX( OH, 1D-32 )
+            IF ( OH < SMALLNUM ) OH = 0d0
 
             ! Update NO3 after rxn w/ DMS (coupled runs only)
             XNO3  = XNO30 - ( ( DMS_OH - DMS ) * AIRDEN(L,I,J) * f )
-            XNO3  = MAX( XNO3, 1D-32 )
+            !###XNO3  = MAX( XNO3, 1D-32 )
+            IF ( XNO3 < SMALLNUM ) XNO3 = 0d0
 
          ENDIF 
 
@@ -783,20 +790,22 @@
 !******************************************************************************
 !  Subroutine CHEM_H2O2 is the H2O2 chemistry subroutine for offline sulfate
 !  simulations.  For coupled runs, H2O2 chemistry is already computed by
-!  the SMVGEAR module. (rjp, bmy, 11/26/02, 3/27/03)
+!  the SMVGEAR module. (rjp, bmy, 11/26/02, 8/1/03)
 !                                                                           
 !  NOTES:
 !  (1 ) Bug fix: need to multiply DXYP by 1d4 for cm2 (bmy, 3/23/03)
 !  (2 ) Now replace DXYP(JREF)*1d4 with routine GET_AREA_CM2 of "grid_mod.f"
 !        Now use functions GET_MONTH and GET_TS_CHEM from "time_mod.f".
 !        (bmy, 3/27/03)
+!  (3 ) Now references PBLFRAC from "drydep_mod.f".  Now apply dry deposition 
+!        throughout the entire PBL.  Added FREQ variable. (bmy, 8/1/03)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
       USE DAO_MOD,      ONLY : AD, AIRDEN, OPTD, SUNCOS, T
       USE DIAG_MOD,     ONLY : AD44 
-      USE DRYDEP_MOD,   ONLY : DEPSAV
+      USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TIME_MOD,     ONLY : GET_MONTH, GET_TS_CHEM
       USE TRACERID_MOD, ONLY : IDTH2O2
@@ -815,8 +824,8 @@
       INTEGER, SAVE          :: LASTMONTH = -99
       INTEGER                :: I, J, L
       REAL*4                 :: ARRAY(IGLOB,JGLOB,LLTROP)
-      REAL*8                 :: DT,   Koh,   DH2O2, M,     F
-      REAL*8                 :: XTAU, H2O20, H2O2,  ALPHA, FLUX
+      REAL*8                 :: DT,   Koh,   DH2O2, M,     F   
+      REAL*8                 :: XTAU, H2O20, H2O2,  ALPHA, FLUX, FREQ
       REAL*8,  PARAMETER     :: A = 2.9d-12
       CHARACTER(LEN=255)     :: FILENAME
 
@@ -864,11 +873,15 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, M, H2O20, KOH, ALPHA, DH2O2, H2O2, FLUX )
+!$OMP+PRIVATE( I, J, L, M, H2O20, KOH, FREQ, ALPHA, DH2O2, H2O2, FLUX )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L  = 1, LLTROP
       DO J  = 1, JJPAR
       DO I  = 1, IIPAR
+
+         ! Initialize for safety's sake 
+         FLUX = 0d0
+         FREQ = 0d0
 
          ! Skip stratospheric boxes
          IF ( L >= LPAUSE(I,J) ) CYCLE
@@ -881,21 +894,36 @@
 
          ! Loss frequenty due to OH oxidation [s-1]
          KOH   = A * EXP( -160.d0 / T(I,J,L) ) * GET_OH(I,J,L)  
- 
-         ! Compute loss fraction [unitless].  
-         ! At surface, also include the loss by dry deposition.
-         IF ( L == 1 ) THEN 
-            ALPHA = 1.D0 + ( KOH + JH2O2(I,J,L) + 
-     &                       DEPSAV(I,J,DRYH2O2) ) * DT 
-         ELSE 
-            ALPHA = 1.D0 + ( KOH + JH2O2(I,J,L) ) * DT               
-         ENDIF
+
+         ! H2O2 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
+         ! of the grid box (I,J,L) that is located beneath the PBL top
+         FREQ  = DEPSAV(I,J,DRYH2O2) * PBLFRAC(I,J,L)
+
+!------------------------------------------------------------------------------
+! Prior to 8/1/03:
+! Now multiply DEPSAV by PBLFRAC, in order to do dry deposition below the 
+! PBLTOP.  PBLFRAC is the fraction of each level below the PBL top.
+! (rjp, bmy, 8/1/03)
+!         ! Compute loss fraction [unitless].  
+!         ! At surface, also include the loss by dry deposition.
+!         IF ( L == 1 ) THEN 
+!            ALPHA = 1.D0 + ( KOH + JH2O2(I,J,L) + 
+!     &                       DEPSAV(I,J,DRYH2O2) ) * DT 
+!         ELSE 
+!            ALPHA = 1.D0 + ( KOH + JH2O2(I,J,L) ) * DT               
+!         ENDIF
+!------------------------------------------------------------------------------
+
+         ! Compute loss fraction from OH, photolysis, drydep [unitless].  
+         ALPHA = 1.D0 + ( KOH + JH2O2(I,J,L) + FREQ ) * DT 
 
          ! Delta H2O2 [v/v]
          DH2O2 = PH2O2m(I,J,L) * DT / ( ALPHA * M )
          
          ! Final H2O2 [v/v]
-         H2O2  = MAX( ( H2O20 / ALPHA + DH2O2 ), 1.D-32 )
+         !###H2O2  = MAX( ( H2O20 / ALPHA + DH2O2 ), 1.D-32 )
+         H2O2  = ( H2O20 / ALPHA + DH2O2 )
+         IF ( H2O2 < SMALLNUM ) H2O2 = 0d0
 
          ! Store final H2O2 in STT
          STT(I,J,L,IDTH2O2) = H2O2
@@ -903,17 +931,32 @@
          !==============================================================
          ! ND44 diagnostics (make sure this is correct!)
          !==============================================================
-         IF ( ND44 > 0 .and. L == 1 ) THEN
+         !--------------------------------------------------------------
+         ! Prior to 8/1/03:
+         ! Now apply drydep to entire PBL (bmy, 8/1/03)
+         !IF ( ND44 > 0 .and. L == 1 ) THEN
+         !--------------------------------------------------------------
+         IF ( ND44 > 0 .AND. FREQ > 0d0 ) THEN
 
             ! Convert H2O2 from [v/v] to H2O2 [molec/cm2]
-            FLUX = ( H2O20 - H2O2 ) * AD(I,J,1) / TCVV(IDTH2O2)
+            !-----------------------------------------------------------
+            ! Prior to 8/1/03:
+            ! AD(I,J,1) needs to be AD(I,J,L) (bmy, 8/1/03)
+            !FLUX = ( H2O20 - H2O2 ) * AD(I,J,1) / TCVV(IDTH2O2)
+            !-----------------------------------------------------------
+            FLUX = ( H2O20 - H2O2 ) * AD(I,J,L) / TCVV(IDTH2O2)
             FLUX = FLUX * XNUMOL(IDTH2O2) / GET_AREA_CM2( J )
 
             ! Multiply by drydep freq [s-1] to convert to [molec/cm2/s]
-            FLUX = FLUX * DEPSAV(I,J,DRYH2O2) 
+            !------------------------------------------------------------
+            ! Prior to 8/1/03:
+            ! Need to multiply DEPSAV by PBLFRAC (bmy, 8/1/03)
+            !FLUX = FLUX * DEPSAV(I,J,DRYH2O2) 
+            !------------------------------------------------------------
+            FLUX = FLUX * FREQ
 
-            ! Apply drydep loss to H2O2
-            AD44(I,J,DRYH2O2,1) = AD44(I,J,DRYH2O2,1) + FLUX
+            ! Save drydep loss in AD44 [molec/cm2/s]
+            AD44(I,J,DRYH2O2,1) = AD44(I,J,DRYH2O2,1) + FLUX 
          ENDIF
       ENDDO
       ENDDO
@@ -929,7 +972,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_SO2 is the SO2 chemistry subroutine 
-!  (rjp, bmy, 11/26/02, 3/27/03) 
+!  (rjp, bmy, 11/26/02, 8/1/03) 
 !                                                                          
 !  Module variables used:
 !  ============================================================================
@@ -964,13 +1007,15 @@
 !  (2 ) Eliminate duplicate HPLUS definition.  Make adjustments to facilitate 
 !        SMVGEAR chemistry for fullchem runs (rjp, bmy, 3/23/03)
 !  (3 ) Now replace DXYP(J+J0)*1d4 with routine GET_AREA_CM2 of "grid_mod.f"
-!        Now use function GET_TS_CHEM from "time_mod.f".  
+!        Now use function GET_TS_CHEM from "time_mod.f".
+!  (4 ) Now apply dry deposition to entire PBL.  Now references PBLFRAC array
+!        from "drydep_mod.f". (bmy, 8/1/03)  
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
       USE DAO_MOD,      ONLY : AD,      AIRDEN, T
       USE DIAG_MOD,     ONLY : AD05,    AD44
-      USE DRYDEP_MOD,   ONLY : DEPSAV
+      USE DRYDEP_MOD,   ONLY : DEPSAV,  PBLFRAC
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE PRESSURE_MOD, ONLY : GET_PCENTER
       USE TIME_MOD,     ONLY : GET_TS_CHEM
@@ -1022,6 +1067,11 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
+         ! Initialize for safety's sake 
+         AREA_CM2 = 0d0
+         FLUX     = 0d0
+         Ld       = 0d0
+
          ! Skip stratospheric boxes
          IF ( L >= LPAUSE(I,J) ) CYCLE
 
@@ -1059,13 +1109,22 @@
          ENDIF
 
          ! SO2 drydep frequency [s-1]  
-         IF ( L == 1 ) THEN
-            RK2 = DEPSAV(I,J,DRYSO2)
-         ELSE
-            RK2 = 0.D0
-         ENDIF
+         !-------------------------------------------------------------
+         ! Prior to 8/1/03:
+         ! Multiply DEPSAV by PBLFRAC to account for the fraction of
+         ! each grid box (I,J,L) beneath the PBL top. (bmy, 8/1/03)
+         !IF ( L == 1 ) THEN
+         !   RK2 = DEPSAV(I,J,DRYSO2)
+         !ELSE
+         !   RK2 = 0.D0
+         !ENDIF
+         !-------------------------------------------------------------
 
-         ! RK: total reaction rate [s-1]
+         ! SO2 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
+         ! of grid box (I,J,L) that is located beneath the PBL top
+         RK2    = DEPSAV(I,J,DRYSO2) * PBLFRAC(I,J,L)
+
+         ! RK: total reaction rate [1/s]
          RK     = ( RK1 + RK2 )
        
          ! RKT: RK * DTCHEM [unitless] (bmy, 6/1/00)
@@ -1079,12 +1138,19 @@
      &               ( PSO2_DMS(I,J,L) * ( 1.d0 - EXP( -RKT ) ) / RKT )
 
             L1     = ( SO20 - SO2_cd + PSO2_DMS(I,J,L) ) * RK1/RK
-                     
-            IF ( L == 1 ) THEN
-               Ld  = ( SO20 - SO2_cd + PSO2_DMS(I,J,L) ) * RK2/RK
-            ELSE
-               Ld  = 0.d0
-            ENDIF
+             
+            !-----------------------------------------------------------
+            ! Prior to 8/1/03:
+            ! We no longer need to restrict drydep to the first level
+            ! (rjp, bmy, 8/1/03)
+            !IF ( L == 1 ) THEN
+            !   Ld  = ( SO20 - SO2_cd + PSO2_DMS(I,J,L) ) * RK2/RK
+            !ELSE
+            !   Ld  = 0.d0
+            !ENDIF
+            !-----------------------------------------------------------
+            Ld  = ( SO20 - SO2_cd + PSO2_DMS(I,J,L) ) * RK2/RK
+            
          ELSE
             SO2_cd = SO20
             L1     = 0.d0
@@ -1248,13 +1314,24 @@
          !=================================================================
          ! ND44 Diagnostic: Drydep flux of SO2 [molec/cm2/s]
          !=================================================================
-         IF ( ND44 > 0 .AND. L == 1 ) THEN
+         !------------------------------------------------------------
+         ! Prior to 8/1/03:
+         ! We no longer need to restrict drydep to the first layer
+         ! (rjp, bmy, 8/1/03)
+         !IF ( ND44 > 0 .AND. L == 1 ) THEN
+         !------------------------------------------------------------
+         IF ( ND44 > 0 .AND. Ld > 0d0 ) THEN
 
             ! Surface area [cm2]
             AREA_CM2 = GET_AREA_CM2( J )
 
             ! Convert [v/v/timestep] to [molec/cm2/s]
-            FLUX = Ld   * AD(I,J,1)      / TCVV(IDTSO2)
+            !--------------------------------------------------------
+            ! Prior to 8/1/03:
+            ! AD(I,J,1) is now AD(I,J,L) (bmy, 8/1/03)
+            !FLUX = Ld   * AD(I,J,1)      / TCVV(IDTSO2)
+            !--------------------------------------------------------
+            FLUX = Ld   * AD(I,J,L)      / TCVV(IDTSO2)
             FLUX = FLUX * XNUMOL(IDTSO2) / AREA_CM2 / DTCHEM
 
             ! Store in AD44
@@ -1478,7 +1555,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_SO4 is the SO4 chemistry subroutine from Mian Chin's GOCART
-!  model, modified for the GEOS-CHEM model. (rjp, bdf, bmy, 5/31/00, 3/27/03) 
+!  model, modified for the GEOS-CHEM model. (rjp, bdf, bmy, 5/31/00, 8/1/03) 
 !                                                                          
 !  Module Variables Used:
 !  ============================================================================
@@ -1497,12 +1574,14 @@
 !        Updated comments, cosmetic changes. (rjp, bdf, bmy, 9/16/02)
 !  (2 ) Now replace DXYP(JREF)*1d4 with routine GET_AREA_CM2 of "grid_mod.f"
 !        Now use function GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
+!  (3 ) Now reference PBLFRAC from "drydep_mod.f".  Now apply dry deposition
+!        to the entire PBL. (rjp, bmy, 8/1/03)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44
-      USE DRYDEP_MOD,   ONLY : DEPSAV
+      USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACERID_MOD, ONLY : IDTSO4
@@ -1533,6 +1612,11 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
+         ! Initialize for safety's sake
+         AREA_CM2 = 0d0
+         RKT      = 0d0
+         FLUX     = 0d0
+
          ! Skip stratospheric boxes
          IF ( L >= LPAUSE(I,J) ) CYCLE
 
@@ -1543,11 +1627,35 @@
          ! At surface, we have L(SO4) due to drydep and P(SO4) from SO2
          ! At altitude, we only have P(SO4) from SO2
          !==============================================================
-         IF ( L == 1 ) THEN
+!-----------------------------------------------------------------------------
+! Prior to 8/1/03:
+! Now apply drydep throughout the entire PBL (bmy, 8/1/03)
+!         IF ( L == 1 ) THEN
+!
+!            ! RKT: Fraction of SO4 lost to drydep [unitless]
+!            RKT = DEPSAV(I,J,DRYSO4) * DTCHEM
+!            
+!            ! SO4 concentration [v/v]
+!            SO4 = ( SO40 * EXP( -RKT )                           ) + 
+!     &            ( PSO4_SO2(I,J,L)/RKT * ( 1.d0 - EXP( -RKT ) ) )
+!         ELSE
+!
+!            ! SO4 production from SO2 [v/v/timestep]
+!            SO4 = SO40 + PSO4_SO2(I,J,L)
+!
+!         ENDIF
+!-----------------------------------------------------------------------------
 
-            ! RKT: Fraction of SO4 lost to drydep [unitless]
-            RKT = DEPSAV(I,J,DRYSO4) * DTCHEM
+         ! SO4 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
+         ! of each vertical level that is located below the PBL top
+         RKT = DEPSAV(I,J,DRYSO4) * PBLFRAC(I,J,L)
+
+         ! RKT > 0 denotes that we have drydep occurring
+         IF ( RKT > 0d0 ) THEN
             
+            ! Fraction of SO4 lost to drydep [unitless]
+            RKT = RKT * DTCHEM
+
             ! SO4 concentration [v/v]
             SO4 = ( SO40 * EXP( -RKT )                           ) + 
      &            ( PSO4_SO2(I,J,L)/RKT * ( 1.d0 - EXP( -RKT ) ) )
@@ -1557,15 +1665,22 @@
             SO4 = SO40 + PSO4_SO2(I,J,L)
 
          ENDIF
-         
+
          ! Final SO4 [v/v]
-         SO4               = MAX( SO4, 1.0d-32 )
+         !###SO4               = MAX( SO4, 1.0d-32 )
+         IF ( SO4 < SMALLNUM ) SO4 = 0d0
          STT(I,J,L,IDTSO4) = SO4
 
          !==============================================================
          ! ND44 Diagnostic: Drydep flux of SO4 [molec/cm2/s]
          !==============================================================
-         IF ( ND44 > 0 .and. L == 1 ) THEN
+         !--------------------------------------------------------------
+         ! Prior to 8/1/03:
+         ! We no longer need to restrict drydep to the first layer
+         ! (rjp, bmy, 8/1/03)
+         !IF ( ND44 > 0 .and. L == 1 ) THEN
+         !--------------------------------------------------------------
+         IF ( ND44 > 0 .AND. RKT > 0d0 ) THEN
 
             ! Surface area [cm2]
             AREA_CM2 = GET_AREA_CM2( J )
@@ -1592,7 +1707,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_MSA is the SO4 chemistry subroutine from Mian Chin's GOCART
-!  model, modified for the GEOS-CHEM model. (rjp, bdf, bmy, 5/31/00, 3/27/03)
+!  model, modified for the GEOS-CHEM model. (rjp, bdf, bmy, 5/31/00, 8/1/03)
 !                                                                          
 !  Module Variables Used:
 !  ============================================================================
@@ -1611,12 +1726,14 @@
 !        Updated comments, cosmetic changes. (rjp, bmy, bdf, 9/16/02)
 !  (2 ) Now replace DXYP(JREF)*1d4 with routine GET_AREA_CM2 of "grid_mod.f"
 !        Now use function GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
+!  (3 ) Now reference PBLFRAC from "drydep_mod.f".  Now apply dry deposition
+!        to the entire PBL. (rjp, bmy, 8/1/03) 
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44
-      USE DRYDEP_MOD,   ONLY : DEPSAV
+      USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACERID_MOD, ONLY : IDTMSA
@@ -1648,51 +1765,86 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Skip stratospheric boxes
-         IF ( L >= LPAUSE(I,J) ) CYCLE
+         ! Only apply drydep loss to boxes w/in the PBL
+         IF ( PBLFRAC(I,J,L) > 0 ) THEN
+         
+            ! Initial MSA [v/v]
+            MSA0 = STT(I,J,L,IDTMSA) 
 
-         ! Initial MSA [v/v]
-         MSA0 = STT(I,J,L,IDTMSA) 
+!------------------------------------------------------------------------------
+! Prior to 8/1/03:
+! Now apply drydep throughout the entire PBL (bmy, 8/1/03)
+!         !==============================================================
+!         ! At surface, we have L(MSA) due to drydep and P(MSA) from DMS
+!         ! At altitude, we only have P(MSA) from DMS
+!         !==============================================================
+!         IF ( L == 1 ) THEN
+!
+!            ! RKT: Fraction of MSA lost to drydep [unitless]
+!            RKT = DEPSAV(I,J,DRYMSA) * DTCHEM
+!
+!            ! Modified MSA concentration 
+!            MSA = ( MSA0 * EXP( -RKT )                        ) +
+!     &            ( PMSA_DMS(I,J,L)/RKT * ( 1d0 - EXP( -RKT ) ) )
+!
+!         ELSE
+!
+!            ! MSA production from DMS [v/v/timestep]
+!            MSA = MSA0 + PMSA_DMS(I,J,L)
+!
+!         ENDIF
+!------------------------------------------------------------------------------
 
-         !==============================================================
-         ! At surface, we have L(MSA) due to drydep and P(MSA) from DMS
-         ! At altitude, we only have P(MSA) from DMS
-         !==============================================================
-         IF ( L == 1 ) THEN
 
-            ! RKT: Fraction of MSA lost to drydep [unitless]
-            RKT = DEPSAV(I,J,DRYMSA) * DTCHEM
 
-            ! Modified MSA concentration 
-            MSA = ( MSA0 * EXP( -RKT )                        ) +
-     &            ( PMSA_DMS(I,J,L)/RKT * ( 1d0 - EXP( -RKT ) ) )
+            ! MSA drydep frequency [1/s] -- PBLFRAC accounts for the fraction
+            ! of each grid box (I,J,L) that is located beneath the PBL top
+            RKT = DEPSAV(I,J,DRYMSA) * PBLFRAC(I,J,L)
 
-         ELSE
+            ! RKT > 0 denotes that we have drydep occurring
+            IF ( RKT > 0.d0 ) THEN
 
-            ! MSA production from DMS [v/v/timestep]
-            MSA = MSA0 + PMSA_DMS(I,J,L)
+               ! Fraction of MSA lost to drydep [unitless]
+               RKT = RKT * DTCHEM
 
-         ENDIF
+               ! Modified MSA concentration 
+               MSA = ( MSA0 * EXP( -RKT )                        ) +
+     &               ( PMSA_DMS(I,J,L)/RKT * ( 1d0 - EXP( -RKT ) ) )
 
-         ! Final MSA [v/v]
-         MSA               = MAX( MSA, 1.0d-32 )
-         STT(I,J,L,IDTMSA) = MSA
+            ELSE
 
-         !==============================================================
-         ! ND44 Diagnostic: Drydep flux of MSA [molec/cm2/s]
-         !==============================================================
-         IF ( ND44 > 0 .and. L == 1 ) THEN
+               ! MSA production from DMS [v/v/timestep]
+               MSA = MSA0 + PMSA_DMS(I,J,L)
 
-            ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( J )
+            ENDIF
 
-            ! Convert [v/v/timestep] to [molec/cm2/s]
-            FLUX = MSA0 - MSA + PMSA_DMS(I,J,L)                    
-            FLUX = FLUX * AD(I,J,L)      / TCVV(IDTMSA)            
-            FLUX = FLUX * XNUMOL(IDTMSA) / AREA_CM2 / DTCHEM    
+            ! Final MSA [v/v]
+            !###MSA               = MAX( MSA, 1.0d-32 )
+            IF ( MSA < SMALLNUM ) MSA = 0d0
+            STT(I,J,L,IDTMSA) = MSA
 
-            ! Store in AD44
-            AD44(I,J,DRYMSA,1) = AD44(I,J,DRYMSA,1) + FLUX
+            !===========================================================
+            ! ND44 Diagnostic: Drydep flux of MSA [molec/cm2/s]
+            !===========================================================
+            !-----------------------------------------------------------
+            ! Prior to 8/1/03:
+            ! We are no longer restricted to doing drydep in the first 
+            ! level. (rjp, bmy, 8/1/03)
+            !IF ( ND44 > 0 .and. L == 1 ) THEN
+            !-----------------------------------------------------------
+            IF ( ND44 > 0 ) THEN
+
+               ! Surface area [cm2]
+               AREA_CM2 = GET_AREA_CM2( J )
+
+               ! Convert [v/v/timestep] to [molec/cm2/s]
+               FLUX = MSA0 - MSA + PMSA_DMS(I,J,L)                    
+               FLUX = FLUX * AD(I,J,L)      / TCVV(IDTMSA)            
+               FLUX = FLUX * XNUMOL(IDTMSA) / AREA_CM2 / DTCHEM    
+               
+               ! Store in AD44
+               AD44(I,J,DRYMSA,1) = AD44(I,J,DRYMSA,1) + FLUX
+            ENDIF
          ENDIF
       ENDDO
       ENDDO
@@ -1708,7 +1860,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_NH3 removes NH3 from the surface via dry deposition.
-!  (rjp, bdf, bmy, 1/2/02, 3/27/03)  
+!  (rjp, bdf, bmy, 1/2/02, 8/1/03)  
 !                                                                          
 !  Reaction List:
 !  ============================================================================
@@ -1719,24 +1871,28 @@
 !        Updated comments, cosmetic changes. (rjp, bmy, bdf, 9/16/02)
 !  (2 ) Now replace DXYP(J+J0)*1d4 with routine GET_AREA_CM2 from "grid_mod.f"
 !        Now use function GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
+!  (3 ) Now reference PBLFRAC from "drydep_mod.f".  Now apply dry deposition
+!        to the entire PBL.  Added L and FREQ variables.  Recode to avoid 
+!        underflow from the EXP() function. (rjp, bmy, 8/1/03) 
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44
-      USE DRYDEP_MOD,   ONLY : DEPSAV
+      USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACERID_MOD, ONLY : IDTNH3
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! TCVV
+#     include "CMN"          ! TCVV, LPAUSE
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44
 
       ! Local variables
-      INTEGER :: I,      J
-      REAL*8  :: DTCHEM, NH3, NH30, FLUX, AREA_CM2
+      INTEGER :: I,      J,        L
+      REAL*8  :: DTCHEM, NH3,      NH30
+      REAL*8  :: FREQ,   AREA_CM2, FLUX
 
       !=================================================================
       ! CHEM_NH3 begins here!
@@ -1746,38 +1902,90 @@
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
 
-      ! Loop over surface grid boxes
+!-----------------------------------------------------------------------------
+! Prior to 8/1/03:
+! We now need to apply drydep losses throughout the PBL (rjp, bmy, 8/1/03)
+!      ! Loop over surface grid boxes
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, NH30, NH3, AREA_CM2, FLUX )
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!
+!         ! Initial NH3 [v/v]
+!         NH30 = STT(I,J,1,IDTNH3)
+!         
+!         NH3  = NH30 * EXP( -DEPSAV(I,J,DRYNH3) * DTCHEM )
+!         NH3  = MAX( NH3, 1d-32 )
+!
+!         !==============================================================
+!         ! ND44 diagnostic: Drydep flux of NH3 [molec/cm2/s]
+!         !==============================================================
+!         IF ( ND44 > 0 ) THEN
+!
+!            ! Surface area [cm2]
+!            AREA_CM2 = GET_AREA_CM2( J )
+!
+!            ! Convert [v/v/timestep] to [molec/cm2/s]
+!            FLUX = ( NH30 - NH3 ) * AD(I,J,1) / TCVV(IDTNH3)
+!            FLUX = FLUX * XNUMOL(IDTNH3) / AREA_CM2 / DTCHEM
+!
+!            ! Store in AD44
+!            AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + FLUX
+!         ENDIF
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!-----------------------------------------------------------------------------
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, NH30, NH3, AREA_CM2, FLUX )
+!$OMP+PRIVATE( I, J, L, FREQ, NH30, NH3, AREA_CM2, FLUX )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO L = 1, LLTROP
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Initial NH3 [v/v]
-         NH30 = STT(I,J,1,IDTNH3)
+         ! Only apply drydep to boxes w/in the PBL
+         IF ( PBLFRAC(I,J,L) > 0d0 ) THEN
 
-         ! Amount of NH3 left after drydep
-         NH3  = NH30 * EXP( -DEPSAV(I,J,DRYNH3) * DTCHEM )
-         NH3  = MAX( NH3, 1d-32 )
+            ! NH3 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
+            ! of each grid box (I,J,L) that is located beneath the PBL top
+            FREQ = DEPSAV(I,J,DRYNH3) * PBLFRAC(I,J,L)
+
+            ! Only compute drydep loss if FREQ is nonzero
+            IF ( FREQ > 0d0 ) THEN
+
+               ! Initial NH3 [v/v]
+               NH30 = STT(I,J,L,IDTNH3)
             
-         ! Final NH3 [v/v]
-         STT(I,J,1,IDTNH3) = NH3
+               ! Amount of NH3 lost to drydep [v/v]
+               NH3 = NH30 * ( 1d0 - EXP( -FREQ * DTCHEM ) )
 
-         !==============================================================
-         ! ND44 diagnostic: Drydep flux of NH3 [molec/cm2/s]
-         !==============================================================
-         IF ( ND44 > 0 ) THEN
+               ! Prevent underflow condition
+               IF ( NH3 < SMALLNUM ) NH3 = 0d0
 
-            ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( J )
+               ! Subtract NH3 lost to drydep from initial NH3 [v/v]
+               STT(I,J,L,IDTNH3) = NH30 - NH3
 
-            ! Convert [v/v/timestep] to [molec/cm2/s]
-            FLUX = ( NH30 - NH3 ) * AD(I,J,1) / TCVV(IDTNH3)
-            FLUX = FLUX * XNUMOL(IDTNH3) / AREA_CM2 / DTCHEM
+               !========================================================
+               ! ND44 diagnostic: Drydep flux of NH3 [molec/cm2/s]
+               !========================================================
+               IF ( ND44 > 0 ) THEN
 
-            ! Store in AD44
-            AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + FLUX
+                  ! Surface area [cm2]
+                  AREA_CM2 = GET_AREA_CM2( J )
+
+                  ! Convert drydep loss from [v/v/timestep] to [molec/cm2/s]
+                  FLUX = NH3  * AD(I,J,L)      / TCVV(IDTNH3)
+                  FLUX = FLUX * XNUMOL(IDTNH3) / AREA_CM2 / DTCHEM
+
+                  ! Store in AD44
+                  AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + FLUX
+               ENDIF
+            ENDIF
          ENDIF
+      ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -1791,7 +1999,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_NH4 removes NH4 from the surface via dry deposition.
-!  (rjp, bdf, bmy, 1/2/02, 3/27/03)  
+!  (rjp, bdf, bmy, 1/2/02, 8/1/03)  
 !                                                                          
 !  Reaction List:
 !  ============================================================================
@@ -1802,24 +2010,28 @@
 !        Updated comments, cosmetic changes. (rjp, bmy, bdf, 9/16/02)
 !  (2 ) Now replace DXYP(JREF)*1d4 with routine GET_AREA_CM2 of "grid_mod.f".
 !        Now use function GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
+!  (3 ) Now reference PBLFRAC from "drydep_mod.f".  Now apply dry deposition
+!        to the entire PBL.  Added L and FREQ variables.  Recode to avoid 
+!        underflow from EXP(). (rjp, bmy, 8/1/03) 
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44
-      USE DRYDEP_MOD,   ONLY : DEPSAV
+      USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACERID_MOD, ONLY : IDTNH4
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! STT 
+#     include "CMN"          ! STT, LPAUSE
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44
 
       ! Local variables
-      INTEGER                :: I,      J
-      REAL*8                 :: DTCHEM, NH4, NH40, FLUX, AREA_CM2
+      INTEGER                :: I,      J,    L
+      REAL*8                 :: DTCHEM, NH4,  NH40
+      REAL*8                 :: FREQ,   FLUX, AREA_CM2
 
       !=================================================================
       ! CHEM_NH4 begins here!
@@ -1829,38 +2041,94 @@
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM = GET_TS_CHEM() * 60d0 
 
-      ! Loop over surface grid boxes
+!------------------------------------------------------------------------------
+! Prior to 8/1/03:
+! We now need to apply drydep losses throughout the PBL (rjp, bmy, 8/1/03)
+!      ! Loop over surface grid boxes
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, NH40, NH4, AREA_CM2, FLUX )
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!
+!         ! Initial NH4 [v/v]
+!         NH40 = STT(I,J,1,IDTNH4)
+!         
+!         ! Amount of NH4 left after drydep [v/v]
+!         NH4 = NH40 * EXP( -DEPSAV(I,J,DRYNH4) * DTCHEM )
+!         NH4 = MAX( NH4, 1.0d-32 )
+!
+!         ! Final NH4 [v/v]
+!         STT(I,J,1,IDTNH4) = NH4
+!
+!         !==============================================================
+!         ! ND44 diagnostic: Drydep flux of NH4 [molec/cm2/s]
+!         !==============================================================
+!         IF ( ND44 > 0 ) THEN
+!         
+!            ! Surface area [cm2]
+!            AREA_CM2 = GET_AREA_CM2( J )
+!
+!            ! Convert from [v/v/timestep] to [molec/cm2/s]
+!            FLUX = ( NH40 - NH4 ) * AD(I,J,1) / TCVV(IDTNH4)
+!            FLUX = FLUX * XNUMOL(IDTNH4) / AREA_CM2 / DTCHEM
+!
+!            ! Store in AD44
+!            AD44(I,J,DRYNH4,1) = AD44(I,J,DRYNH4,1) + FLUX
+!         ENDIF
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!------------------------------------------------------------------------------
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, NH40, NH4, AREA_CM2, FLUX )
+!$OMP+PRIVATE( I, J, L, FREQ, NH40, NH4, AREA_CM2, FLUX )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO L = 1, LLTROP
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Initial NH4 [v/v]
-         NH40 = STT(I,J,1,IDTNH4)
+         ! Only apply drydep to boxes w/in the PBL
+         IF ( PBLFRAC(I,J,L) > 0d0 ) THEN
+
+            ! NH4 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
+            ! of each grid box (I,J,L) that is located beneath the PBL top
+            FREQ = DEPSAV(I,J,DRYNH4) * PBLFRAC(I,J,L)
+
+            ! Only apply drydep loss if FREQ is nonzero
+            IF ( FREQ > 0d0 ) THEN
+
+               ! Initial NH4 [v/v]
+               NH40 = STT(I,J,L,IDTNH4)
          
-         ! Amount of NH4 left after drydep [v/v]
-         NH4 = NH40 * EXP( -DEPSAV(I,J,DRYNH4) * DTCHEM )
-         NH4 = MAX( NH4, 1.0d-32 )
+               ! Amount of NH4 lost to drydep [v/v]
+               NH4 = NH40 * ( 1d0 - EXP( -FREQ * DTCHEM ) )
+
+               ! Prevent underflow condition
+               IF ( NH4 < SMALLNUM ) NH4 = 0d0
+
+               ! Subtract NH4 lost to drydep from initial NH4 [v/v]
+               STT(I,J,L,IDTNH4) = NH40 - NH4
+
+               !========================================================
+               ! ND44 diagnostic: Drydep flux of NH4 [molec/cm2/s]
+               !========================================================
+               IF ( ND44 > 0 ) THEN
          
-         ! Final NH4 [v/v]
-         STT(I,J,1,IDTNH4) = NH4
+                  ! Surface area [cm2]
+                  AREA_CM2 = GET_AREA_CM2( J )
 
-         !==============================================================
-         ! ND44 diagnostic: Drydep flux of NH4 [molec/cm2/s]
-         !==============================================================
-         IF ( ND44 > 0 ) THEN
-            
-            ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( J )
+                  ! Convert drydep loss from [v/v/timestep] to [molec/cm2/s]
+                  FLUX = NH4  * AD(I,J,L)      / TCVV(IDTNH4)
+                  FLUX = FLUX * XNUMOL(IDTNH4) / AREA_CM2 / DTCHEM
 
-            ! Convert from [v/v/timestep] to [molec/cm2/s]
-            FLUX = ( NH40 - NH4 ) * AD(I,J,1) / TCVV(IDTNH4)
-            FLUX = FLUX * XNUMOL(IDTNH4) / AREA_CM2 / DTCHEM
-
-            ! Store in AD44
-            AD44(I,J,DRYNH4,1) = AD44(I,J,DRYNH4,1) + FLUX
+                  ! Store in AD44
+                  AD44(I,J,DRYNH4,1) = AD44(I,J,DRYNH4,1) + FLUX
+               ENDIF
+            ENDIF
          ENDIF
+      ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -1874,7 +2142,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_NIT removes SULFUR NITRATES (NIT) from the surface 
-!  via dry deposition. (rjp, bdf, bmy, 1/2/02, 3/27/03)  
+!  via dry deposition. (rjp, bdf, bmy, 1/2/02, 8/1/03)  
 !                                                                          
 !  Reaction List:
 !  ============================================================================
@@ -1885,25 +2153,28 @@
 !        Updated comments, cosmetic changes. (rjp, bmy, bdf, 9/20/02)
 !  (2 ) Now replace DXYP(J+J0)*1d4 with routine GET_AREA_CM2 from "grid_mod.f".
 !        Now use function GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
+!  (3 ) Now reference PBLFRAC from "drydep_mod.f".  Now apply dry deposition
+!        to the entire PBL.  Added L and FREQ variables.  Recode to avoid
+!        underflow from EXP(). (rjp, bmy, 8/1/03) 
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44
-      USE DRYDEP_MOD,   ONLY : DEPSAV
+      USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACERID_MOD, ONLY : IDTNIT
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! STT
+#     include "CMN"          ! STT, LPAUSE
 #     include "CMN_GCTM"     ! AIRMW
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44
 
       ! Local variables
-      INTEGER :: I,      J
-      REAL*8  :: DTCHEM, NIT, NIT0, AREA_CM2, FLUX
+      INTEGER :: I,      J,   L
+      REAL*8  :: DTCHEM, NIT, NIT0, FREQ, AREA_CM2, FLUX
 
       !=================================================================
       ! CHEM_NIT begins here!
@@ -1913,38 +2184,93 @@
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM = GET_TS_CHEM() * 60d0 
 
-      ! Loop over surface grid boxes
+!------------------------------------------------------------------------------
+! Prior to 8/1/03:
+! We now have to apply drydep throughout the PBL (rjp, bmy, 8/1/03)
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, NIT0, NIT, AREA_CM2, FLUX )
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!
+!         ! Initial NITRATE [v/v]
+!         NIT0 = STT(I,J,1,IDTNIT)
+!         
+!         ! Amount of NITRATE left after dry drydep [v/v]
+!         NIT  = NIT0 * EXP( -DEPSAV(I,J,DRYNIT) * DTCHEM )
+!         NIT  = MAX( NIT, 1.0d-32 )
+!         
+!         ! Final NITRATE [v/v]
+!         STT(I,J,1,IDTNIT) = NIT
+!
+!         !==============================================================
+!         ! ND44 Diagnostic: Drydep flux of NIT [molec/cm2/s]
+!         !==============================================================
+!         IF ( ND44 > 0 ) THEN
+!         
+!            ! Surface area [cm2]
+!            AREA_CM2 = GET_AREA_CM2( J )
+!            
+!            ! Convert from [v/v/timestep] to [molec/cm2/s]
+!            FLUX = ( NIT0 - NIT ) * AD(I,J,1) / TCVV(IDTNIT)
+!            FLUX = FLUX * XNUMOL(IDTNIT) / AREA_CM2 / DTCHEM
+!         
+!            ! Store in ND44
+!            AD44(I,J,DRYNIT,1) = AD44(I,J,DRYNIT,1) + FLUX
+!         ENDIF
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!------------------------------------------------------------------------------
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, NIT0, NIT, AREA_CM2, FLUX )
+!$OMP+PRIVATE( I, J, L, FREQ, NIT0, NIT, AREA_CM2, FLUX )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO L = 1, LLTROP
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Initial NITRATE [v/v]
-         NIT0 = STT(I,J,1,IDTNIT)
+         ! Only apply drydep to boxes w/in the PBL
+         IF ( PBLFRAC(I,J,L) > 0d0 ) THEN 
 
-         ! Amount of NITRATE left after dry drydep [v/v]
-         NIT  = NIT0 * EXP( -DEPSAV(I,J,DRYNIT) * DTCHEM )
-         NIT  = MAX( NIT, 1.0d-32 )
-   
-         ! Final NITRATE [v/v]
-         STT(I,J,1,IDTNIT) = NIT
+            ! NIT drydep frequency [1/s] -- PBLFRAC accounts for the fraction
+            ! of each vertical level that is located below the PBL top
+            FREQ = DEPSAV(I,J,DRYNIT) * PBLFRAC(I,J,L)
 
-         !==============================================================
-         ! ND44 Diagnostic: Drydep flux of NIT [molec/cm2/s]
-         !==============================================================
-         IF ( ND44 > 0 ) THEN
+            ! Only apply drydep loss if FREQ is nonzero
+            IF ( FREQ > 0d0 ) THEN
 
-            ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( J )
+               ! Initial NITRATE [v/v]
+               NIT0 = STT(I,J,L,IDTNIT)
+
+               ! Amount of NITRATE lost to drydep [v/v]
+               NIT = NIT0 * ( 1d0 - EXP( -FREQ * DTCHEM ) )
+
+               ! Prevent underflow condition
+               IF ( NIT < SMALLNUM ) NIT = 0d0
+
+               ! Subtract NITRATE lost to drydep from initial NITRATE [v/v]
+               STT(I,J,L,IDTNIT) = NIT0 - NIT
+
+               !========================================================
+               ! ND44 Diagnostic: Drydep flux of NIT [molec/cm2/s]
+               !========================================================
+               IF ( ND44 > 0 ) THEN
+         
+                  ! Surface area [cm2]
+                  AREA_CM2 = GET_AREA_CM2( J )
             
-            ! Convert from [v/v/timestep] to [molec/cm2/s]
-            FLUX = ( NIT0 - NIT ) * AD(I,J,1) / TCVV(IDTNIT)
-            FLUX = FLUX * XNUMOL(IDTNIT) / AREA_CM2 / DTCHEM
-
-            ! Store in ND44
-            AD44(I,J,DRYNIT,1) = AD44(I,J,DRYNIT,1) + FLUX
+                  ! Convert from [v/v/timestep] to [molec/cm2/s]
+                  FLUX = NIT  * AD(I,J,L)      / TCVV(IDTNIT)
+                  FLUX = FLUX * XNUMOL(IDTNIT) / AREA_CM2 / DTCHEM
+         
+                  ! Store flux for ND44
+                  AD44(I,J,DRYNIT,1) = AD44(I,J,DRYNIT,1) + FLUX
+               ENDIF
+            ENDIF
          ENDIF
+      ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO

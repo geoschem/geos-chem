@@ -1,4 +1,4 @@
-! $Id: photoj.f,v 1.2 2003/07/21 15:09:26 bmy Exp $
+! $Id: photoj.f,v 1.3 2003/08/06 15:30:45 bmy Exp $
       SUBROUTINE PHOTOJ( NLON, NLAT, YLAT, DAY_OF_YR, MONTH,   DAY,  
      &                   CSZA, P,    T,    SA,  OD,   OPTDUST, OPTAER )
 !
@@ -85,11 +85,6 @@
       IF ( SZA > SZAMAX ) RETURN
 
       ! Set up Air, O3, BC profiles on GEOS-CHEM vertical levels
-      !--------------------------------------------------------------------
-      ! Prior to 7/15/03:
-      ! Reorder arguments in SET_PROF.  Also now pass NSLON, NSLAT, DAY.
-      !CALL SET_PROF( P, T, OD, SA, MONTH, YLAT, OPTDUST, OPTAER )
-      !--------------------------------------------------------------------
       CALL SET_PROF( NLON, NLAT, YLAT, MONTH, DAY, 
      &               P,    T,    SA,   OD,    OPTDUST, OPTAER )
 
@@ -97,11 +92,6 @@
       CALL JVALUE( SA )
       
       ! Calculate J-values for all species
-      !---------------------------------------------
-      ! Prior to 7/17/03:
-      ! IDAY is now called DAY_OF_YR (bmy, 7/17/03)
-      !CALL JRATET( T, IDAY )
-      !---------------------------------------------
       CALL JRATET( T, DAY_OF_YR )
 
       ! ZJ is the J-value array for this column only

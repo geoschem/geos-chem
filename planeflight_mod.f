@@ -1,11 +1,11 @@
-! $Id: planeflight_mod.f,v 1.3 2003/07/21 15:09:26 bmy Exp $
+! $Id: planeflight_mod.f,v 1.4 2003/08/06 15:30:48 bmy Exp $
       MODULE PLANEFLIGHT_MOD
 !
 !******************************************************************************
 !  Module PLANEFLIGHT_MOD contains variables and routines which are used to
 !  "fly" a plane through the GEOS-CHEM model simulation.  This is useful for
 !  comparing model results with aircraft observations. 
-!  (mje, bmy, 7/30/02, 7/18/03)
+!  (mje, bmy, 7/30/02, 8/1/03)
 !
 !  Module Variables:
 !  ============================================================================
@@ -62,6 +62,9 @@
 !  (5 ) Renamed PRATE to PRRATE to avoid conflict w/ SMVGEAR II (bmy, 4/1/03)
 !  (6 ) Bug fix: use NAMEGAS instead of NAMESPEC (lyj, bmy, 7/9/03)
 !  (7 ) Bug fix: avoid referencing JLOP for non-SMVGEAR runs (bmy, 7/18/03)
+!  (8 ) Bug fix: Use T instead of T3 for GMAO temperature.  Also replace
+!        NAMESPEC w/ NAMEGAS in RO2_SETUP.  Now locate reordered rxn 
+!        numbers for SMVGEAR II.(tdf, mje, bmy, 8/1/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -218,13 +221,14 @@
 !  Subroutine READ_VARIABLES reads the list of variables (SMVGEAR species,
 !  SMVGEAR rxn rates, DAO met fields, or GEOS-CHEM tracers) to be printed
 !  out and sorts the information into the appropriate module variables.
-!  (mje, bmy, 7/30/02, 7/9/03)
+!  (mje, bmy, 7/30/02, 8/1/03)
 !
 !  NOTES:
 !  (1 ) Now references GEOS_CHEM_STOP from "error_mod.f", which frees all
 !        allocated memory before stopping the run. (bmy, 10/15/02)
 !  (2 ) Bug fix: replace missing commas in FORMAT statement (bmy, 3/23/03)
 !  (3 ) Bug fix: replace NAMESPEC w/ NAMEGAS for SMVGEAR II (lyj, bmy, 7/9/09)
+!  (4 ) Now locate reordered rxn numbers for SMVGEAR II. (mje, bmy, 8/1/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -236,7 +240,7 @@
 #     include "comode.h"  ! NAMEGAS, NSPEC
 
       ! Local variables
-      INTEGER             :: M, N, NUM, R, IOS
+      INTEGER             :: M, N, NUM, R, IK, IOS
       CHARACTER(LEN=255)  :: LINE
 
       !=================================================================
@@ -331,9 +335,43 @@
                      PVAR(N)  = 20000
                      PREAC(R) = 20000
                   ELSE
-                     READ( LINE(5:14), '(i10)' ) NUM
-                     PVAR(N)  = 10000 + NUM
-                     PREAC(R) = 10000 + NUM
+                     !----------------------------------------------------
+                     ! Prior to 8/1/03:
+                     ! Need to use reordered rxn #'s for SMVGEAR II
+                     !READ( LINE(5:14), '(i10)' ) NUM
+                     !PVAR(N)  = 10000 + NUM
+                     !PREAC(R) = 10000 + NUM
+                     !----------------------------------------------------
+                     !==================================================
+                     ! NOTE: the reaction numbers listed in smv2.log 
+                     ! aren't really used to index SMVGEAR II rxns.  The 
+                     ! rxns get reordered.  Find the right rxn number, 
+                     ! which is stored in NOLDFNEW.  We assume only one 
+                     ! chemistry scheme. (mje, bmy, 8/1/03)
+                     !==================================================
+
+                     ! Initialize
+                     PVAR(N)  = -999
+                     PREAC(R) = -999
+
+                     ! Search for proper rxn number
+                     DO IK = 1, NMTRATE 
+                        IF ( NOLDFNEW(IK,1) == NUM ) THEN 
+                           PVAR(N)  = 10000 + IK
+                           PREAC(R) = 10000 + IK
+                           EXIT
+                        ENDIF
+                     ENDDO
+
+                     ! Stop w/ error f 
+                     IF ( PVAR(N) == -999 ) THEN 
+                        WRITE (6,*) 'Cant match up reaction number'
+                        WRITE (6,*) NUM
+                        WRITE (6,*) 'Is it the second line of the'
+                        WRITE (6,*) 'Three body reaction'
+                        WRITE (6,*) 'Stopping'
+                        CALL GEOS_CHEM_STOP
+                     ENDIF
                   ENDIF
                ENDIF
                
@@ -349,12 +387,6 @@
                   ! Loop over all SMVGEAR species -- 
                   ! match w/ species as read from disk
                   DO M = 1, NSPEC(NCS)
-                     !----------------------------------------------------
-                     ! Prior to 7/9/09:
-                     ! Replace NAMESPEC w/ NAMEGAS for SMVGEAR II
-                     ! (lyj, bmy, 7/9/09)
-                     !IF ( NAMESPEC(M,NCS) == TRIM( LINE ) ) THEN
-                     !----------------------------------------------------
                      IF ( NAMEGAS(M) == TRIM( LINE ) ) THEN
                         PVAR(N) = M
                         EXIT
@@ -534,11 +566,12 @@
 !
 !******************************************************************************
 !  Subroutine RO2_SETUP saves the SMVGEAR species indices of RO2 constituents
-!  in the PRO2 array.  Also computes the count NPRO2. (mje, bmy, 7/8/02)
+!  in the PRO2 array.  Also computes the count NPRO2. (mje, bmy, 8/1/03)
 !
 !  NOTES:
 !  (1 ) Now references GEOS_CHEM_STOP from "error_mod.f", which frees all
 !        allocated memory before stopping the run. (bmy, 10/15/02)
+!  (2 ) Now replace NAMESPEC w/ NAMEGAS for SMVGEAR II (bmy, 8/1/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -546,7 +579,7 @@
 
 #     include "CMN_SIZE" ! Size parameters
 #     include "CMN"      ! NSRCX
-#     include "comode.h" ! NSPEC, NAMESPEC, NCS
+#     include "comode.h" ! NSPEC, NAMEGAS, NCS
 
       ! Local variables
       INTEGER            :: M
@@ -568,7 +601,12 @@
 
          ! If we have found an RO2 compoent, add its species # to
          ! the PRO2 global array, and increment counter
-         SELECT CASE( TRIM( NAMESPEC(M,NCS) ) )
+         !--------------------------------------------------------------
+         ! Prior to 8/1/03:
+         ! Replace NAMESPEC w/ NAMEGAS for SMVGEAR II (bmy, 8/1/03)
+         !SELECT CASE( TRIM( NAMESPEC(M,NCS) ) )
+         !--------------------------------------------------------------
+         SELECT CASE( TRIM( NAMEGAS(M) ) )
 
             CASE ( 'HO2',  'MO2',  'A3O2', 'ATO2', 'B3O2', 
      &             'ETO2', 'GCO3', 'IAO2', 'KO2',  'MAO3', 
@@ -614,12 +652,14 @@
 !  (2 ) Now uses functions GET_TAU, GET_TS_CHEM from "time_mod.f".
 !        (bmy, 3/27/03)
 !  (3 ) Updated comments, cosmetic changes (bmy, 7/18/03)
+!  (4 ) Now references T from "dao_mod.f", so that we can save out temperature
+!        for non-SMVGEAR runs. (bmy, 8/1/03)
 !******************************************************************************
 !
       ! Reference to F90 modules 
       USE COMODE_MOD, ONLY : AIRDENS, CSPEC,  JLOP, T3,
      &                       VOLUME,  ABSHUM, TAREA
-      USE DAO_MOD,    ONLY : AD
+      USE DAO_MOD,    ONLY : AD, T
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
       USE TIME_MOD,   ONLY : GET_TAU, GET_TS_CHEM
 
@@ -727,8 +767,14 @@
                   !===================================================== 
                   CASE ( 1001 )
 
-                     ! Only archive where SMVGEAR chem is done
-                     IF ( PCHEM ) VARI(V) = T3(JLOOP)
+                     !--------------------------------------------------
+                     ! Prior to 8/1/03:
+                     ! Use T instead of T3 -- this will be valid for
+                     ! non-SMVGEAR runs (bmy, 8/1/03)
+                     !! Only archive where SMVGEAR chem is done
+                     !IF ( PCHEM ) VARI(V) = T3(JLOOP)
+                     !--------------------------------------------------
+                     VARI(V) = T(I,J,L)
 
                   !=====================================================
                   ! PVAR(V) = 1002: DAO absolute humidity
@@ -881,11 +927,7 @@
       ! L >= LPAUSE(I,J) is a STRATOSPHERIC box -- no chem is done
       !=================================================================
       IF ( L < LPAUSE(I,J) ) THEN 
-         !------------------------
-         ! Prior to 7/18/03:
-         !PCHEM = .TRUE.
-         !JLOOP = JLOP(I,J,L)
-         !------------------------
+
          IF ( NSRCX == 3 ) THEN
             
             ! This is a tropospheric box where SMVGEAR chemistry is done

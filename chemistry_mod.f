@@ -1,4 +1,4 @@
-! $Id: chemistry_mod.f,v 1.2 2003/07/08 15:28:41 bmy Exp $
+! $Id: chemistry_mod.f,v 1.3 2003/08/06 15:30:35 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
@@ -108,7 +108,7 @@
             !---------------------------------
             ! NOx-Ox-HC (w/ or w/o aerosols) 
             !---------------------------------
-            CASE ( 3  )
+            CASE ( 3 )
 
                ! Call SMVGEAR routines
                CALL CHEMDR

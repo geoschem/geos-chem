@@ -1,9 +1,9 @@
-! $Id: drydep_mod.f,v 1.1 2003/06/30 20:26:02 bmy Exp $
+! $Id: drydep_mod.f,v 1.2 2003/08/06 15:30:39 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
 !  Module DRYDEP_MOD contains variables and routines for the GEOS-CHEM dry
-!  deposition scheme. (bmy, 1/27/03, 4/28/03)
+!  deposition scheme. (bmy, 1/27/03, 7/21/03)
 !
 !  Module Variables:
 !  ============================================================================
@@ -32,11 +32,12 @@
 !  (23) NDVZIND  (INTEGER) : Index array for ordering drydep species in DEPVEL
 !  (24) NTRAIND  (INTEGER) : Stores tracer numbers of drydep species
 !  (25) DEPSAV   (REAL*8 ) : Array containing dry deposition frequencies [s-1]
-!  (26) DRYCOEFF (REAL*8 ) : Polynomial coefficients for dry deposition
-!  (27) HSTAR    (REAL*8 ) : Henry's law constant
-!  (28) F0       (REAL*8 ) : Reactivity factor for biological oxidation
-!  (29) XMW      (REAL*8 ) : Molecular weight of drydep species [kg]
-!  (30) DEPNAME  (CHAR*14) : Names of dry deposition species
+!  (26) PBLFRAC  (REAL*8 ) : Array for multiplicative factor for drydep freq
+!  (27) DRYCOEFF (REAL*8 ) : Polynomial coefficients for dry deposition
+!  (28) HSTAR    (REAL*8 ) : Henry's law constant
+!  (29) F0       (REAL*8 ) : Reactivity factor for biological oxidation
+!  (30) XMW      (REAL*8 ) : Molecular weight of drydep species [kg]
+!  (31) DEPNAME  (CHAR*14) : Names of dry deposition species
 !
 !  Module Routines:
 !  ============================================================================
@@ -106,6 +107,11 @@
 !        routine to DO_DRYDEP for consistency w/ other drivers called from
 !        the MAIN program. (bmy, 2/11/03)
 !  (3 ) Added error check in DRYFLX for SMVGEAR II (bmy, 4/28/03)
+!  (4 ) Added drydep of N2O5.  Now added PBLFRAC array, which is the fraction
+!        of each level below the PBL top.  Also now compute drydep throughout 
+!        the entire PBL, in order to prevent short-lived species such as HNO3 
+!        from being depleted in the shallow GEOS-3 surface layer.  
+!        (rjp, bmy, 7/21/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -131,7 +137,12 @@
       !=================================================================
 
       ! Parameters
-      INTEGER, PARAMETER   :: MAXDEP    = 15     
+      !-----------------------------------------------------------------
+      ! Prior to 7/21/03:
+      ! Set MAXDEP=16 since we have now added N2O5 (rjp, bmy, 7/21/03)
+      !INTEGER, PARAMETER   :: MAXDEP    = 15     
+      !-----------------------------------------------------------------
+      INTEGER, PARAMETER   :: MAXDEP    = 16     
       INTEGER, PARAMETER   :: NNTYPE    = 15     ! NTYPE    from "CMN_SIZE"
       INTEGER, PARAMETER   :: NNPOLY    = 20     ! NPOLY    from "CMN_SIZE"
       INTEGER, PARAMETER   :: NNVEGTYPE = 74     ! NVEGTYPE from "CMN_SIZE"
@@ -157,6 +168,7 @@
       INTEGER              :: NDVZIND(MAXDEP)
       INTEGER              :: NTRAIND(MAXDEP)
       REAL*8,  ALLOCATABLE :: DEPSAV(:,:,:)
+      REAL*8,  ALLOCATABLE :: PBLFRAC(:,:,:)
       REAL*8               :: DRYCOEFF(NNPOLY)
       REAL*8               :: HSTAR(MAXDEP)
       REAL*8               :: F0(MAXDEP)
@@ -176,7 +188,7 @@
 !  Subroutine DO_DRYDEP is the driver for the GEOS-CHEM dry deposition scheme.
 !  DO_DRYDEP calls DEPVEL to compute deposition velocities [m/s], which are 
 !  then converted to [cm/s].  Drydep frequencies are also computed.  
-!  (lwh, gmg, djj, 1989, 1994; bmy, 2/11/03)
+!  (lwh, gmg, djj, 1989, 1994; bmy, 2/11/03, 7/21/03)
 !
 !  DAO met fields passed via "dao_mod.f":
 !  ============================================================================
@@ -208,6 +220,9 @@
 !        call.  Now force double-precision with "D" exponents.  Now also 
 !        reference IDTNOX, IDTOX, etc. from "tracerid_mod.f".  Bundled into
 !        "drydep_mod.f" (bmy, 11/19/02) 
+!  (2 ) Now make sure that the PBL depth (THIK) is greater than or equal to 
+!        the thickness of the first layer.  Now initialize PBLFRAC array on
+!        each call. (rjp, bmy, 7/21/03)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -227,6 +242,7 @@
       LOGICAL           :: LSNOW(MAXIJ)
       INTEGER           :: I, J, L, N, M, IJLOOP, LAYBOT, NN, NDVZ
       REAL*8            :: PS, X25, RESIDU, P1, P2, THIK, DVZ, PL1, PL2 
+      REAL*8            :: PS, X25, P1, P2, THIK, DVZ, PL1, PL2 
       REAL*8            :: HEIGHT(LLPAR),      CZ1(MAXIJ), TC0(MAXIJ)  
       REAL*8            :: DVEL(MAXIJ,MAXDEP), ZH(MAXIJ),  OBK(MAXIJ)
 
@@ -283,6 +299,33 @@
          ! fractional height of that level w/in the mixed layer [m]
          RESIDU        = X25 - LAYBOT
          ZH(IJLOOP)    = ZH(IJLOOP) + RESIDU * HEIGHT(LAYBOT+1)
+
+         ! If the PBL top occurs in the first level, then set 
+         ! RESIDU=1 to apply drydep throughout the surface layer
+         IF ( LAYBOT == 0 ) RESIDU = 1d0
+
+         ! Loop up to tropopause
+         DO L = 1, LLTROP
+
+            ! Test for level ...
+            IF ( L <= LAYBOT ) THEN
+
+               ! Below PBL top: apply drydep frequency to entire level
+               PBLFRAC(I,J,L) = 1d0
+
+            ELSE IF ( L == LAYBOT+1 ) THEN
+
+               ! Layer LAYBOT+1 is where PBL top occurs.  Only apply drydep
+               ! frequency to the fraction of this level below PBL top.
+               PBLFRAC(I,J,L) = RESIDU
+
+            ELSE
+
+               ! Above PBL top: there is no drydep
+               PBLFRAC(I,J,L) = 0d0
+
+            ENDIF
+         ENDDO
       ENDDO
       ENDDO
 
@@ -310,6 +353,11 @@
          P2      = GET_PEDGE(I,J,2)
          THIK    = 2.9271d+01 * T(I,J,1) * LOG( P1 / P2 )    
 
+         ! Now we calculate drydep throughout the entire PBL.  
+         ! Make sure that the PBL depth is greater than or equal 
+         ! to the thickness of the 1st layer (rjp, bmy, 7/21/03)
+         THIK    = MAX( ZH(IJLOOP), THIK )
+
          ! Loop over drydep species
          DO N = 1, NUMDEP
 
@@ -328,7 +376,7 @@
 
             ! Dry deposition frequency [1/s]
             DEPSAV(I,J,N) = ( DVZ / 100.d0 ) / THIK
-               
+
             ! ND44 diagnostic: drydep velocity [cm/s]
             IF ( ND44 > 0 ) THEN 
                AD44(I,J,N,2) = AD44(I,J,N,2) + DVZ
@@ -523,7 +571,7 @@
 !
 !******************************************************************************
 !  Subroutine DRYFLX sets up the dry deposition flux diagnostic for tracers
-!  which are part of the SMVGEAR mechanism. (bmy, bdf, 4/20/99, 4/28/03)
+!  which are part of the SMVGEAR mechanism. (bmy, bdf, 4/20/99, 7/21/03)
 !
 !  NOTES:
 !  (1 ) Bug fix -- now skip tracers for which NTDEP(N) is zero, in order
@@ -541,6 +589,9 @@
 !        Also removed references to JREF and FLUXRUL.  Now use function
 !        GET_TS_CHEM from "time_mod.f". (bmy, 2/11/03)
 !  (8 ) Now references ERROR_STOP from "error_mod.f" (bmy, 4/28/03)
+!  (9 ) Now sum drydep fluxes throughout the entire PBL.  Added L variable.
+!        AREA_CM2 has now been made into a lookup table. Now implement a 
+!        parallel DO loop for efficiency. (rjp, bmy, 7/21/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -556,8 +607,13 @@
 #     include "comode.h"   ! CSPEC
 
       ! Local variables
-      INTEGER :: I, J, JJ, JLOOP, N, NK, NN
-      REAL*8  :: DTCHEM, TDRYFX, AREA_CM2
+      INTEGER :: I, J, JJ, JLOOP, L, L_PBLTOP, N, NK, NN
+      !--------------------------------------------------------------
+      ! Prior to 7/21/03:
+      ! AREA_CM2 has now been made into a lookup table. 
+      !REAL*8  :: DTCHEM, TDRYFX, AREA_CM2
+      !--------------------------------------------------------------
+      REAL*8  :: DTCHEM, TDRYFX, AREA_CM2(JJPAR)
 
       !=================================================================
       ! DRYFLX begins here!
@@ -581,7 +637,16 @@
       ! will be updated in "sulfate_mod.f". (bmy, 11/19/02)
       !=================================================================
 
+      ! Save grid box surface area [cm2] in a lookup table (bmy, 7/23/03)
+      DO J = 1, JJPAR
+         AREA_CM2(J) = GET_AREA_CM2(J)
+      ENDDO
+
       ! Loop over dry deposition species
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N, NK, JJ, JLOOP, TDRYFX )
+!$OMP+SCHEDULE( DYNAMIC )
       DO N = 1, NUMDEP
 
          ! Index for drydep species #N, from SMVGEAR
@@ -597,33 +662,64 @@
          ! Error check JJ -- can't be zero
          IF ( JJ <= 0 ) THEN 
             CALL ERROR_STOP( 'Drydep species mis-indexing!', 
-     &                       'dryflx ("error_mod.f")' )
+     &                       'DRYFLX ("error_mod.f")' )
          ENDIF
 
-         ! Loop over surface grid boxes
+         !--------------------------------------------------------------------
+         ! Prior to 7/21/03:
+         ! Now sum drydep fluxes over all levels (bmy, 7/10/03)
+         !! Loop over surface grid boxes
+         !DO J = 1, JJPAR
+         !
+         !   ! Grid box surface area [cm2]
+         !   AREA_CM2 = GET_AREA_CM2( J )
+         !
+         !   DO I = 1, IIPAR
+         !
+         !      ! Surface grid box index for CSPEC & VOLUME
+         !      JLOOP = JLOP(I,J,1)
+         !
+         !      ! Dry dep flux [molec] for species N = 
+         !      !  CSPEC(JLOOP,JJ) * VOLUME(JLOOP)
+         !      !  [molec/cm3]     * [cm3]  
+         !      TDRYFX = CSPEC(JLOOP,JJ) * VOLUME(JLOOP)
+         !
+         !      ! Convert TDRYFX from [molec] to [molec/cm2/s]
+         !      TDRYFX = TDRYFX / ( AREA_CM2 * DTCHEM ) 
+         !                 
+         !      ! Save into AD44 diagnostic array
+         !      AD44(I,J,N,1) = AD44(I,J,N,1) + TDRYFX
+         !   ENDDO
+         !ENDDO
+         !--------------------------------------------------------------------
+
+         ! Loop over grid boxes
+         DO L = 1, LLTROP
          DO J = 1, JJPAR
+         DO I = 1, IIPAR
+         
+            ! Only deal w/ boxes w/in the boundary layer
+            IF ( PBLFRAC(I,J,L) > 0d0 ) THEN
 
-            ! Grid box surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( J )
+               ! 1-D grid box index for CSPEC & VOLUME
+               JLOOP = JLOP(I,J,L)
 
-            DO I = 1, IIPAR
-
-               ! Surface grid box index for CSPEC & VOLUME
-               JLOOP = JLOP(I,J,1)
- 
                ! Dry dep flux [molec] for species N = 
                !  CSPEC(JLOOP,JJ) * VOLUME(JLOOP)
                !  [molec/cm3]     * [cm3]  
                TDRYFX = CSPEC(JLOOP,JJ) * VOLUME(JLOOP)
-
-               ! Convert TDRYFX from [molec] to [molec/cm2/s]
-               TDRYFX = TDRYFX / ( AREA_CM2 * DTCHEM ) 
-                          
+                    
+               ! Convert TDRYFX from [molec] to [molec/cm2/s]        
+               TDRYFX = TDRYFX / ( AREA_CM2(J) * DTCHEM ) 
+                    
                ! Save into AD44 diagnostic array
                AD44(I,J,N,1) = AD44(I,J,N,1) + TDRYFX
-            ENDDO
-         ENDDO
-      ENDDO
+            ENDIF
+         ENDDO           
+         ENDDO               
+         ENDDO  
+      ENDDO                     
+!$OMP END PARALLEL DO
 
       ! Return to calling program
       END SUBROUTINE DRYFLX
@@ -655,6 +751,8 @@
 !        stopping the run w/ an error condition. (bmy, 10/15/02)
 !  (9 ) Now moved from "RnPbBe_mod.f" to "drydep_mod.f".  (bmy, 1/27/03)
 !  (10) Now use function GET_TS_CHEM from "time_mod.f" (bmy, 2/11/03)
+!  (11) Now compute drydep fluxes throughout the entire PBL.  Now references
+!        PBLFRAC.  Added L_PBLTOP variable. (bmy, 7/21/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -669,8 +767,8 @@
 #     include "CMN_SETUP" ! LDRYD
 
       ! Local variables
-      INTEGER             :: I, J, L, N, NN
-      REAL*8              :: DTCHEM, FRACLOST, AMT_LOST
+      INTEGER             :: I, J, L, L_PBLTOP, N, NN
+      REAL*8              :: DTCHEM, FRACLOST, AMT_LOST, RESIDU
 
       !=================================================================
       ! DRYFLXRnPbBe begins here!!
@@ -694,73 +792,151 @@
             DO J = 1, JJPAR
             DO I = 1, IIPAR
 
-               ! DEPSAV   = Dry deposition frequency [s^-1]
-               ! FRACLOST = Fraction of species lost to drydep [unitless]
-               FRACLOST = DEPSAV(I,J,N) * DTCHEM
+!------------------------------------------------------------------------------
+! Prior to 7/21/03:
+! Now compute drydep fluxes throughout the entire PBL (bmy, 7/21/03)
+!               ! DEPSAV   = Dry deposition frequency [s^-1]
+!               ! FRACLOST = Fraction of species lost to drydep [unitless]
+!               FRACLOST = DEPSAV(I,J,N) * DTCHEM
+!
+!#if defined( GEOS_1 ) || defined( GEOS_STRAT )
+!               !========================================================
+!               ! GEOS-1 or GEOS-STRAT:
+!               ! ---------------------
+!               ! (a) If FRACLOST >= 1 or FRACLOST < 0, stop the run.
+!               ! (b) If not, then subtract deposition losses from STT.
+!               !========================================================
+!                  IF ( FRACLOST >= 1 .or. FRACLOST < 0 ) THEN
+!                  WRITE(6,*) 'DEPSAV*DTCHEM >=1 or <0 : '
+!                  WRITE(6,*) 'DEPSAV*DTCHEM   = ', FRACLOST
+!                  WRITE(6,*) 'DEPSAV(I,J,1,N) = ', DEPSAV(I,J,N)
+!                  WRITE(6,*) 'DTCHEM (s)      = ', DTCHEM
+!                  WRITE(6,*) 'I,J             = ', I, J
+!                  WRITE(6,*) 'STOP in dryflxRnPbBe.f'
+!                  CALL GEOS_CHEM_STOP
+!               ENDIF
+!
+!               ! AMT_LOST = amount of species lost to drydep [kg]
+!               AMT_LOST = STT(I,J,1,NN) * FRACLOST
+!
+!               ! ND44 diagnostic: drydep flux [kg/s]
+!               IF ( ND44 > 0 ) THEN
+!                  AD44(I,J,N,1) = AD44(I,J,N,1) + ( AMT_LOST / DTCHEM )
+!               ENDIF
+!
+!               ! Subtract AMT_LOST from the STT array [kg]
+!               STT(I,J,1,NN) = STT(I,J,1,NN) - AMT_LOST
+!
+!#elif defined( GEOS_3 )
+!               !========================================================
+!               ! GEOS-3:
+!               ! -------
+!               ! (a) If FRACLOST < 0, then stop the run.
+!               !
+!               ! (b) If FRACLOST > 1, use an exponential loss to 
+!               !     avoid negative tracer
+!               !
+!               ! (c) If FRACLOST is in the range (0-1), then use the 
+!               !     regular formula (STT * FRACLOST) to compute
+!               !     the loss from dry deposition.
+!               !========================================================
+!
+!               ! Stop the run on negative FRACLOST!
+!               IF ( FRACLOST < 0 ) THEN
+!                  CALL ERROR_STOP( 'FRACLOST < 0', 'dryflxRnPbBe' )
+!               ENDIF
+!
+!               ! AMT_LOST = amount of tracer lost to drydep [kg]
+!               IF ( FRACLOST > 1 ) THEN
+!                  AMT_LOST = STT(I,J,1,NN) * ( 1d0 - EXP( -FRACLOST ) )
+!               ELSE
+!                  AMT_LOST = STT(I,J,1,NN) * FRACLOST
+!               ENDIF
+!
+!               ! ND44 diagnostic: drydep flux [kg/s]
+!               IF ( ND44 > 0 ) THEN
+!                  AD44(I,J,N,1) = AD44(I,J,N,1) + ( AMT_LOST / DTCHEM ) 
+!               ENDIF
+!
+!               ! Subtract AMT_LOST from the STT array [kg]
+!               STT(I,J,1,NN)  = STT(I,J,1,NN) - AMT_LOST
+!
+!#endif
+!------------------------------------------------------------------------------
+
+               ! L_PBLTOP is the level where the PBL top occurs
+               L_PBLTOP = INT( XTRA2(I,J) ) + 1
+
+               ! Loop up to the PBL top
+               DO L = 1, L_PBLTOP
+
+                  ! FRACLOST is the fraction of tracer lost.  PBLFRAC is 
+                  ! the fraction of layer L located totally w/in the PBL.
+                  FRACLOST = DEPSAV(I,J,N) * PBLFRAC(I,J,L) * DTCHEM
 
 #if defined( GEOS_1 ) || defined( GEOS_STRAT )
-               !========================================================
-               ! GEOS-1 or GEOS-STRAT:
-               ! ---------------------
-               ! (a) If FRACLOST >= 1 or FRACLOST < 0, stop the run.
-               ! (b) If not, then subtract deposition losses from STT.
-               !========================================================
-               IF ( FRACLOST >= 1 .or. FRACLOST < 0 ) THEN
-                  WRITE(6,*) 'DEPSAV*DTCHEM >=1 or <0 : '
-                  WRITE(6,*) 'DEPSAV*DTCHEM   = ', FRACLOST
-                  WRITE(6,*) 'DEPSAV(I,J,1,N) = ', DEPSAV(I,J,N)
-                  WRITE(6,*) 'DTCHEM (s)      = ', DTCHEM
-                  WRITE(6,*) 'I,J             = ', I, J
-                  WRITE(6,*) 'STOP in dryflxRnPbBe.f'
-                  CALL GEOS_CHEM_STOP
-               ENDIF
+                  !=====================================================
+                  ! GEOS-1 or GEOS-STRAT:
+                  ! ---------------------
+                  ! (a) If FRACLOST >= 1 or FRACLOST < 0, stop the run
+                  ! (b) If not, then subtract drydep losses from STT
+                  !=====================================================
+                  IF ( FRACLOST >= 1 .or. FRACLOST < 0 ) THEN
+                     WRITE(6,*) 'DEPSAV*DTCHEM >=1 or <0 : '
+                     WRITE(6,*) 'DEPSAV*DTCHEM   = ', FRACLOST
+                     WRITE(6,*) 'DEPSAV(I,J,1,N) = ', DEPSAV(I,J,N)
+                     WRITE(6,*) 'DTCHEM (s)      = ', DTCHEM
+                     WRITE(6,*) 'I,J             = ', I, J
+                     WRITE(6,*) 'STOP in dryflxRnPbBe.f'
+                     CALL GEOS_CHEM_STOP
+                  ENDIF
 
-               ! AMT_LOST = amount of species lost to drydep [kg]
-               AMT_LOST = STT(I,J,1,NN) * FRACLOST
+                  ! AMT_LOST = amount of species lost to drydep [kg]
+                  AMT_LOST = STT(I,J,L,NN) * FRACLOST
 
-               ! ND44 diagnostic: drydep flux [kg/s]
-               IF ( ND44 > 0 ) THEN
-                  AD44(I,J,N,1) = AD44(I,J,N,1) + ( AMT_LOST / DTCHEM )
-               ENDIF
+                  ! ND44 diagnostic: drydep flux [kg/s]
+                  IF ( ND44 > 0 ) THEN
+                     AD44(I,J,N,1) = AD44(I,J,N,1) + ( AMT_LOST/DTCHEM )
+                  ENDIF
 
-               ! Subtract AMT_LOST from the STT array [kg]
-               STT(I,J,1,NN) = STT(I,J,1,NN) - AMT_LOST
+                  ! Subtract AMT_LOST from the STT array [kg]
+                  STT(I,J,L,NN) = STT(I,J,L,NN) - AMT_LOST
 
 #elif defined( GEOS_3 )
-               !========================================================
-               ! GEOS-3:
-               ! -------
-               ! (a) If FRACLOST < 0, then stop the run.
-               !
-               ! (b) If FRACLOST > 1, use an exponential loss to 
-               !     avoid negative tracer
-               !
-               ! (c) If FRACLOST is in the range (0-1), then use the 
-               !     regular formula (STT * FRACLOST) to compute
-               !     the loss from dry deposition.
-               !========================================================
+                  !=====================================================
+                  ! GEOS-3:
+                  ! -------
+                  ! (a) If FRACLOST < 0, then stop the run.
+                  !
+                  ! (b) If FRACLOST > 1, use an exponential loss to 
+                  !     avoid negative tracer
+                  !
+                  ! (c) If FRACLOST is in the range (0-1), then use the
+                  !     the regular formula (STT * FRACLOST) to compute
+                  !     loss from dry deposition.
+                  !=====================================================
 
-               ! Stop the run on negative FRACLOST!
-               IF ( FRACLOST < 0 ) THEN
-                  CALL ERROR_STOP( 'FRACLOST < 0', 'dryflxRnPbBe' )
-               ENDIF
+                  ! Stop the run on negative FRACLOST!
+                  IF ( FRACLOST < 0 ) THEN
+                     CALL ERROR_STOP( 'FRACLOST < 0', 'dryflxRnPbBe' )
+                  ENDIF
 
-               ! AMT_LOST = amount of tracer lost to drydep [kg]
-               IF ( FRACLOST > 1 ) THEN
-                  AMT_LOST = STT(I,J,1,NN) * ( 1d0 - EXP( -FRACLOST ) )
-               ELSE
-                  AMT_LOST = STT(I,J,1,NN) * FRACLOST
-               ENDIF
+                  ! AMT_LOST = amount of tracer lost to drydep [kg]
+                  IF ( FRACLOST > 1 ) THEN
+                     AMT_LOST = STT(I,J,L,NN) * ( 1d0 - EXP(-FRACLOST) )
+                  ELSE
+                     AMT_LOST = STT(I,J,L,NN) * FRACLOST
+                  ENDIF
 
-               ! ND44 diagnostic: drydep flux [kg/s]
-               IF ( ND44 > 0 ) THEN
-                  AD44(I,J,N,1) = AD44(I,J,N,1) + ( AMT_LOST / DTCHEM ) 
-               ENDIF
+                  ! ND44 diagnostic: drydep flux [kg/s]
+                  IF ( ND44 > 0 ) THEN
+                     AD44(I,J,N,1) = AD44(I,J,N,1) + ( AMT_LOST/DTCHEM ) 
+                  ENDIF
 
-               ! Subtract AMT_LOST from the STT array [kg]
-               STT(I,J,1,NN)  = STT(I,J,1,NN) - AMT_LOST
-
+                  ! Subtract AMT_LOST from the STT array [kg]
+                  STT(I,J,L,NN)  = STT(I,J,L,NN) - AMT_LOST
 #endif
+               ENDDO
             ENDDO
             ENDDO
          ENDDO
@@ -774,7 +950,7 @@
       SUBROUTINE DEPVEL(NPTS,RADIAT,TEMP,SUNCOS,F0,HSTAR,XMW,
      1                  AIROSOL,USTAR,CZ1,OBK,CFRAC,ZH,
      2                  LSNOW,DVEL,ZO)
-           
+
       ! References to F90 modules (bmy, 3/8/01)
       USE ERROR_MOD, ONLY : IT_IS_NAN
                         
@@ -790,6 +966,7 @@ C** Version 3.2.3: 11/12/99 -- change Reynolds # criterion from 10 to 1
 C                           -- force double precision w/ "D" exponents
 C** Version 3.3:   5/8/00   -- bug fixes, cleanup, updated comments.
 C** Version 3.4:   1/22/03  -- remove hardwire for CANOPYNOX
+C** Version 3.5    7/21/03  -- Remove cap of surface resistance in RLUXX
 C
 C***********************************************************************
 C   Changes from Version 3.2 to Version 3.3:                         ***
@@ -1137,7 +1314,11 @@ C* Vd(HNO3) never exceeds 2 cm s-1 in observations. The
 C* corresponding minimum resistance is 50 s m-1.  This correction
 C* was introduced by J.Y. Liang on 7/9/95.
 C*
-               IF(RLUXX.LT. 50.D0) RLUXX= 50.D0
+               !-----------------------------------------------------------
+               ! Prior to 7/21/03:
+               ! Remove the cap of surface resistance (rjp, bmy, 7/21/03)
+               !IF(RLUXX.LT. 50.D0) RLUXX= 50.D0
+               !-----------------------------------------------------------
 C     
                RGSX = 1.D0/(HSTAR(K)/1.0D+05/RGSS(LDT) + 
      1              F0(K)/RGSO(LDT))
@@ -1683,9 +1864,11 @@ C** Load array DVEL
 !
 !******************************************************************************
 !  Subroutine INIT_DRYDEP initializes certain variables for the GEOS-CHEM
-!  dry deposition subroutines. (bmy, 11/19/02)
+!  dry deposition subroutines. (bmy, 11/19/02, 7/21/03)
 !
 !  NOTES:
+!  (1 ) Added N2O5 as a drydep tracer, w/ the same drydep velocity as
+!        HNO3.  Now initialize PBLFRAC array. (rjp, bmy, 7/21/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1856,6 +2039,17 @@ C** Load array DVEL
             XMW(NUMDEP)     = 30d-3
             AIROSOL(NUMDEP) = .FALSE.
 
+         ! N2O5  (uses same dep vel as HNO3) 
+         ELSE IF ( N == IDTN2O5 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTN2O5
+            NDVZIND(NUMDEP) = DRYDHNO3
+            DEPNAME(NUMDEP) = 'N2O5'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 0d0
+            AIROSOL(NUMDEP) = .FALSE.   
+
          ! SO2
          ELSE IF ( N == IDTSO2 ) THEN
             NUMDEP          = NUMDEP + 1
@@ -1932,6 +2126,10 @@ C** Load array DVEL
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DEPSAV' )
       DEPSAV = 0d0
 
+      ALLOCATE( PBLFRAC( IIPAR, JJPAR, LLTROP ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBLFRAC' )
+      PBLFRAC = 0d0
+
       !=================================================================
       ! Echo information to stdout
       !=================================================================
@@ -1961,7 +2159,8 @@ C** Load array DVEL
       !=================================================================
       ! CLEANUP_DRYDEP begins here!
       !=================================================================
-      IF ( ALLOCATED( DEPSAV ) ) DEALLOCATE( DEPSAV )
+      IF ( ALLOCATED( DEPSAV  ) ) DEALLOCATE( DEPSAV  )
+      IF ( ALLOCATED( PBLFRAC ) ) DEALLOCATE( PBLFRAC )
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_DRYDEP

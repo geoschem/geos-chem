@@ -1,4 +1,4 @@
-! $Id: gasconc.f,v 1.2 2003/07/21 15:09:26 bmy Exp $
+! $Id: gasconc.f,v 1.3 2003/08/06 15:30:42 bmy Exp $
       SUBROUTINE GASCONC( FIRSTCHEM, STT,    NTRACER,
      &                    XNUMOL,    LPAUSE, FRCLND )
 !
@@ -305,12 +305,6 @@ C
       NCS         =  1
 C
       IF (ITESTGEAR.EQ.2) THEN
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! Prior to 7/16/03:
-! Remove IRUN -- it's obsolete (bmy, 7/16/03) 
-!       WRITE(KCPD,810) 0.,0.,IRUN,(NAMENCS(INEWOLD(I,NCS),NCS),
-!     1        CSPEC(LLOOP,INEWOLD(I,NCS)), I = 1, ISCHANG(NCS))
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        WRITE(KCPD,810) 0.,0.,(NAMENCS(INEWOLD(I,NCS),NCS),
      1        CSPEC(LLOOP,INEWOLD(I,NCS)), I = 1, ISCHANG(NCS))
        WRITE(KCPD,820)

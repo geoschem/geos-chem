@@ -1,9 +1,9 @@
-! $Id: smvgear.f,v 1.3 2003/07/21 15:09:27 bmy Exp $ 
+! $Id: smvgear.f,v 1.4 2003/08/06 15:30:53 bmy Exp $ 
       SUBROUTINE SMVGEAR
 !
 !******************************************************************************
 !  Subroutine SMVGEAR solves ODE's for chemical reactions using a GEAR-type
-!  method.  (M. Jacobson 1997; bdf, bmy, 5/12/03, 7/18/03)
+!  method.  (M. Jacobson 1997; bdf, bmy, 5/12/03, 7/28/03)
 !
 !  NOTES:
 !  (1 ) For GEOS-CHEM we had to remove IXSAVE, IYSAVE, and IZSAVE from 
@@ -19,8 +19,10 @@
 !        NUM_TIMESTEPS, you can get the same info w/ a profiling run. 
 !        Cosmetic changes. (bmy, 7/9/03)
 !  (3 ) Declare NSTEPS, KLOOP, IABOVK as local variables since they are only 
-!        ever used w/in "smvgear.f"  Also reference ERRMX2 from "comode_mod.f"
-!        (bmy, 7/18/03)
+!        ever used w/in "smvgear.f"  Also reference ERRMX2 from "comode_mod.f" 
+!  (4 ) Now declare DELY, ERRHOLD, YABST, as local variables, since these are
+!        used only w/in this routine and nowhere else --- also removed these
+!        from /DKBLOOP/ and /DKBLOOP5/ in "comode.h". (bmy, 7/28/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -279,10 +281,11 @@ C
 
       ! Variables from "comode.h" which are only ever used in "smvgear.f"
       ! Remove them from "comode.h" and the THREADPRIVATE declarations
-      ! (bmy, 7/15/03)
+      ! (bmy, 7/28/03)
       INTEGER            :: NSTEPS
-      INTEGER            :: KGRP(KBLOOP,5)
-      INTEGER            :: IABOVK(KBLOOP)    
+      INTEGER            :: KGRP(KBLOOP,5), IABOVK(KBLOOP)   
+      REAL*8             :: DELY(KBLOOP),   ERRHOLD(KBLOOP)
+      REAL*8             :: YABST(KBLOOP)
 
       !=================================================================
       ! SMVGEAR begins here!
@@ -1178,14 +1181,6 @@ C * ATIVES, RESET TOLD, SET IFSUCCESS = 1, INCREMENT NSTEPS, AND      *
 C * RESET JFAIL = 0.                                                  *
 C *********************************************************************
 C
-       !-----------------------------------------------------------------
-       ! Prior to 7/9/03:
-       ! Comment out counter variable NUM_TIMESTEPS, you can get the same 
-       ! info w/ a profiling run. (bmy, 7/9/03)         
-       !! timing calculations (bdf, 4/18/03)
-       !num_timesteps=num_timesteps+1
-       !-----------------------------------------------------------------
-
        JFAIL            = 0
        IFSUCCESS        = 1
        NSTEPS           = NSTEPS + 1

@@ -1,4 +1,4 @@
-! $Id: decomp.f,v 1.2 2003/07/11 13:43:06 bmy Exp $
+! $Id: decomp.f,v 1.3 2003/08/06 15:30:37 bmy Exp $
       SUBROUTINE DECOMP
 !
 !******************************************************************************
@@ -77,14 +77,6 @@ C
       INTEGER J,IJT,IJ,IL5,IH5,IL4,IH4,IL3,IH3,IL2,IH2,IL1,IH1
       INTEGER IC,IK0,IK1,IK2,IK3,IK4,KJ0,KJ1,KJ2,KJ3,KJ4,K,IAR
       INTEGER JL,JH,JC,IJA
-
-      !-----------------------------------------------------------------
-      ! Prior to 7/9/03:
-      ! Comment out counter variable NUM_DECOMP, you can get the same 
-      ! info w/ a profiling run. (bmy, 7/9/03)
-      !! bdf timing calculations
-      !NUM_DECOMP = NUM_DECOMP + 1
-      !-----------------------------------------------------------------
 
       DO 510 J       = 1, ISCHAN
          DO 310 IJT    = IJTLO(J,NCSP), IJTHI(J,NCSP)

@@ -1,4 +1,4 @@
-! $Id: reader.f,v 1.3 2003/07/21 15:09:27 bmy Exp $
+! $Id: reader.f,v 1.4 2003/08/06 15:30:53 bmy Exp $
       SUBROUTINE READER( FIRSTCHEM )
 !
 !******************************************************************************
@@ -69,15 +69,6 @@ C    0        2       2      SOLVE T/S   CHEMISTRY EVERYWHERE
 C    2        2       2      SOLVE U/T/S CHEMISTRY EVERYWHERE   
 C
       LOGICAL, INTENT(IN) :: FIRSTCHEM
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! Prior to 7/16/03:
-      ! Remove REARTHC -- also use F90-style declarations
-      !INTEGER K,REARTHC,M2,M1,MLOOP,KLOOP,JLOOP,IAVBLOK,IAVGSIZE
-      !INTEGER IREMAIN,JADD,IFCHEM,I,NALLREAC,NMPROD,I1,J,NK
-      !
-      !REAL*8 ERRMAXU,YLOWU,YHIU,HMAXDAYU,ERRMAXR,YLOWR,YHIR,HMAXDAYR
-      !REAL*8 ERRMAXS,YLOWS,YHIS,HMAXDAYS,ABHI,ABLO
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       INTEGER             :: K,      M2,      M1,       MLOOP,   KLOOP 
       INTEGER             :: JLOOP,  IAVBLOK, IAVGSIZE, IREMAIN, JADD
       INTEGER             :: IFCHEM, I,       NALLREAC, NMPROD,  I1
@@ -298,54 +289,14 @@ C           1 ATM = 1.013 BAR = 10**5 PA. 1PA = 1 N M-2 = 10 DYNES CM-2.
 C SCDAY   = SECONDS PER DAY
 C
       ! Now force double-precision values with the "D" exponent (bmy, 4/1/03)
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! Prior to 7/16/03:
-      ! This is obsolete (bmy, 7/16/03)
-      !REARTH      = Re
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ONEPI       = PI
       RSTARG      = 8.31450d+07
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! Prior to 7/16/03:
-      ! These are obsolete and have been removed from "comode.h"
-      !RPRIMB      = 2870.4d0
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       BOLTG       = 1.38054d-16
       AVG         = 6.02252d+23
       WTAIR       = AIRMW
       SCDAY       = 86400.0d0
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! Prior to 7/16/03:
-      ! These are obsolete and have been removed from "comode.h"
-      !GRAVC       = g0 * 100d0 
-C     !
-      !! Now force double-precision with the "D" exponent (bmy, 4/1/03)
-      !TWOPI       = 2.d0    * ONEPI 
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
       RGAS        = BOLTG   * AVG
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! Prior to 7/16/03:
-      ! These are obsolete and have been removed from "comode.h"
-      !FOURPI      = 4.d0    * ONEPI 
-      !PID2        = ONEPI   / 2.d0
-      !PID180      = ONEPI   / 180.d0
-      !THRPI2      = ONEPI   + PID2
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       EIGHTDPI    = 8.d0    / ONEPI
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! Prior to 7/16/03:
-      ! These are obsolete and have been removed from "comode.h"
-      !HALF        = 0.5d0
-      !HALFDAY     = HALF    * SCDAY
-      !THIRD       = 1.d0    / 3.d0
-      !CONPSUR     = 1000.d0 
-      !AVOG1       = 1.d0 / AVG
-      !TWPISC      = TWOPI / SCDAY
-      !SCTWOPI     = SCDAY / TWOPI
-      !AMRGAS      = WTAIR / RGAS 
-      !DENCONS     = AVG   / WTAIR 
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       CONSVAP     = 6.1078D+03 / BOLTG
 C
       NMASBAL     = 9 
@@ -418,13 +369,6 @@ C
 
          ! JLOP set differently in ruralbox (bdf, 4/1/03)
          JLOP_SMV(M1,M2,K) = JLOOP
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         ! Prior to 7/11/03:
-         ! This is the only instance of MLOPJ.  MLOPJ is a 3-D array, so 
-         ! we can comment this out to get some memory savings.  Leave this
-         ! section commented out for future reference. (bmy, 7/11/03)
-         !IF (K.LE.NVERT) MLOPJ(JLOOP)  = MLOOP
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  220  CONTINUE
 C
       LLOOP            = JLOP_SMV(LYOUT,LXOUT,LZOUT)
@@ -645,14 +589,6 @@ C
       TOTIT          = 0.d0
       TELAPS         = 0.d0
       RMSERR         = 0.d0
-C
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! Prior to 7/11/03:
-! Comment out AERSURF to save memory (bmy, 7/11/03)
-!      DO 650 JLOOP    = 1, NTLOOP
-!       AERSURF(JLOOP) = 0.d0
-! 650  CONTINUE 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 C
       MB1            = 1 
       MB2            = 2 

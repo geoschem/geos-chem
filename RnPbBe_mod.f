@@ -1,4 +1,4 @@
-! $Id: RnPbBe_mod.f,v 1.1 2003/06/30 20:26:07 bmy Exp $
+! $Id: RnPbBe_mod.f,v 1.2 2003/08/06 15:30:29 bmy Exp $
       MODULE RnPbBe_MOD
 !
 !******************************************************************************
@@ -329,11 +329,6 @@
 
             ! Get absolute value of latitude, since we will assume that 
             ! the 7Be distribution is symmetric about the equator
-            !---------------------------------------------------------------
-            ! Prior to 6/10/03:
-            ! Bug fix: take the abs value of latitude (bmy, 6/10/03)
-            !LAT_TMP = GET_YMID( J )
-            !---------------------------------------------------------------
             LAT_TMP = ABS( GET_YMID( J ) )
 
             ! Pressure at (I,J,L) -- need to change for fvDAS!

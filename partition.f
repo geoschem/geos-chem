@@ -1,10 +1,10 @@
-! $Id: partition.f,v 1.2 2003/07/08 15:31:56 bmy Exp $
+! $Id: partition.f,v 1.3 2003/08/06 15:30:45 bmy Exp $
       SUBROUTINE PARTITION( STT, NTRACER, XNUMOL ) 
 !
 !******************************************************************************
 !  Subroutine PARTITION separates GEOS-CHEM tracers into its individual
 !  constituent chemistry species before each SMVGEAR chemistry timestep.
-!  (bdf, bmy, 4/1/03)
+!  (bdf, bmy, 4/1/03, 8/1/03)
 ! 
 !  Arguments as Input:
 !  ============================================================================
@@ -19,6 +19,7 @@
 !  NOTES:
 !  (1 ) Now make CSAVE a local dynamic array.  Updated comments, cosmetic 
 !        changes (bmy, 4/24/03)
+!  (2 ) Add OpenMP parallelization commands (bmy, 8/1/03)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -76,6 +77,10 @@
       ENDDO
 
       ! Loop over tracer members and boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N, JLOOP )
+!$OMP+SCHEDULE( DYNAMIC )
       DO N = 1, IDNUM
       DO L = 1, NPVERT
       DO J = 1, NLAT
@@ -91,6 +96,7 @@
       ENDDO
       ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
       !=================================================================
       ! Split each tracer up into its components (if any)
@@ -98,7 +104,7 @@
       ! initial ratios. In tracer sequence, OX must be after NOX, 
       ! otherwise, adjust the code
       !=================================================================
-      DO N=1, NTRACER
+      DO N = 1, NTRACER
 
          ! Skip if it's not a valid tracer
          IF ( IDTRMB(N,1) == 0 ) CYCLE
@@ -107,6 +113,10 @@
          !WRITE(6,*) 'IN PARTITION N= ', N
 
          ! Loop over grid boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, JLOOP, CONCTMP, SUM, KK, JJ, SUM1, CONCNOX )
+!$OMP+SCHEDULE( DYNAMIC )
          DO L = 1, NPVERT
          DO J = 1, NLAT
          DO I = 1, NLONG
@@ -118,7 +128,8 @@
             ! Convert tracer concentration from [kg/box] to [molec/cm3/box]
             STT(I,J,L,N) = STT(I,J,L,N) / VOLUME(JLOOP) * XNUMOL(N)
 
-            CONCTMP = STT(I, J, L, N)
+            ! Store concentration in CONCTMP 
+            CONCTMP = STT(I,J,L,N)
 
             !===========================================================
             ! First, find sum of starting concentrations
@@ -135,7 +146,7 @@
 
                   ! Error check
                   IF ( JJ == 0 ) THEN
-                     PRINT *,JJ,JLOOP,N,KK,IDTRMb(N, KK)
+                     PRINT *,JJ,JLOOP,N,KK,IDTRMB(N, KK)
                   ENDIF
 
                   SUM = SUM + CSAVE(JLOOP,CSAVEID(JJ)) * (CTRMB(N,KK)+1)
@@ -239,6 +250,7 @@
          ENDDO
          ENDDO
          ENDDO
+!$OMP END PARALLEL DO
       ENDDO
 
       ! Return to calling program

@@ -1,4 +1,4 @@
-! $Id: fast_j.f,v 1.2 2003/07/21 15:09:26 bmy Exp $
+! $Id: fast_j.f,v 1.3 2003/08/06 15:30:42 bmy Exp $
       SUBROUTINE FAST_J( SUNCOS, OD, ALBD )  
 !
 !******************************************************************************
@@ -142,13 +142,6 @@
             !-----------------------------------------------------------
 
             ! Call FAST-J routines to compute J-values
-!-----------------------------------------------------------------------
-! Prior to 7/16/03:
-! Now pass DAY_OF_YR and DAY to PHOTOJ.  Also swap order of
-! CZSA and SFCA arguments in the call. (bmy, 7/16/03)
-!            CALL PHOTOJ( NLON, NLAT, YLAT, IDAY, MONTH,   CSZA, 
-!     &                   PRES, TEMP, OPTD, SFCA, OPTDUST, OPTAER )
-!-----------------------------------------------------------------------
             CALL PHOTOJ( NLON, NLAT, YLAT, DAY_OF_YR,  MONTH,   DAY,
      &                   CSZA, PRES, TEMP, SFCA, OPTD, OPTDUST, OPTAER )
 
