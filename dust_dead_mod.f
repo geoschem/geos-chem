@@ -1,4 +1,4 @@
-! $Id: dust_dead_mod.f,v 1.2 2004/04/19 15:09:52 bmy Exp $
+! $Id: dust_dead_mod.f,v 1.3 2004/04/21 19:47:21 bmy Exp $
       MODULE DUST_DEAD_MOD
 !
 !******************************************************************************
@@ -1204,25 +1204,53 @@ ctdf        print *,' no mobilisation candidates'
          ! Take value from GEOS-CHEM
          OROGRAPHY(I,J) = LWI(I,J)
 
+#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+
+         !-----------------
+         ! GEOS-1 or GEOSS
+         !-----------------
          SELECT CASE ( OROGRAPHY(I,J) )
 
             ! GEOS-1/GEOSS land ice
             CASE ( 3, 4 ) 
                OROGRAPHY(I,J) = 2
+               
+            CASE DEFAULT
+               ! Nothing
 
-            ! Land ice
-            CASE ( 9  )
-               OROGRAPHY(I,J) = 2
+         END SELECT
+
+#elif defined( GEOS_3 )
+
+         !-----------------
+         ! GEOS-3 
+         !-----------------
+         SELECT CASE ( OROGRAPHY(I,J) )
+
+            ! Land types
+            CASE ( 0:50 )
+               OROGRAPHY(I,J) = 1
+             
+            !----------------------------
+            !! Land ice
+            !CASE ( 9  )
+            !   OROGRAPHY(I,J) = 2
+            !----------------------------
 
             ! GEOS-3 ocean
-            CASE ( 100 )
+            CASE ( 51:100 )
                OROGRAPHY(I,J) = 0
                
             ! GEOS-3 sea ice
             CASE ( 101 )
                OROGRAPHY(I,J) = 2
 
+            CASE DEFAULT
+               ! Nothing
+
          END SELECT
+
+#endif
 
       ENDDO
       ENDDO

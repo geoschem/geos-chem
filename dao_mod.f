@@ -1,4 +1,4 @@
-! $Id: dao_mod.f,v 1.6 2004/04/19 15:09:51 bmy Exp $
+! $Id: dao_mod.f,v 1.7 2004/04/21 19:47:33 bmy Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
@@ -1456,7 +1456,12 @@
 
 #endif
 
-#if   defined( GEOS_4 )
+!-----------------------------------------------------
+! Prior to 4/20/04:
+! Need to allocate GWETTOP for GEOS-3 & GEOS-4
+!#if   defined( GEOS_4 )
+!-----------------------------------------------------
+#if   defined( GEOS_3 ) || defined( GEOS_4 )
 
       ! GWETTOP is only defined for GEOS-4
       ALLOCATE( GWETTOP( IIPAR, JJPAR ), STAT=AS )
