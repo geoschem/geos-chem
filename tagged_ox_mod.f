@@ -1,10 +1,10 @@
-! $Id: tagged_ox_mod.f,v 1.4 2004/03/24 20:52:33 bmy Exp $
+! $Id: tagged_ox_mod.f,v 1.5 2004/07/19 17:57:20 bmy Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
 !  Module TAGGED_OX_MOD contains variables and routines to perform a tagged Ox
 !  simulation.  P(Ox) and L(Ox) rates need to be archived from a full chemistry
-!  simulation before you can run w/ Tagged Ox. (amf, rch, bmy, 8/20/03,3/24/04)
+!  simulation before you can run w/ Tagged Ox. (amf, rch, bmy, 8/20/03,5/27/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -40,6 +40,7 @@
 !  (1 ) Now accounts for GEOS-4 PBL being in meters (bmy, 1/15/04)
 !  (2 ) Bug fix: don't put function call in WRITE statement (bmy, 2/20/04)
 !  (3 ) Now bracket AD44 with an !$OMP CRITICAL block (bmy, 3/24/04)
+!  (4 ) Now define regions w/ levels in GET_REGIONAL_POX (amf,rch,bmy,5/27/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -178,7 +179,7 @@
 !******************************************************************************
 !  Subroutine GET_REGIONAL_POX returns the P(Ox) for each of the tagged Ox 
 !  tracers. Tagged Ox tracers are defined by both geographic location and 
-!  altitude. (amf, rch, bmy, 8/19/03, 1/15/04)
+!  altitude. (amf, rch, bmy, 8/19/03, 5/27/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -192,12 +193,18 @@
 !  (1 ) Updated from the old routine "chemo3_split.f" (rch, bmy, 8/20/03)
 !  (2 ) For GEOS-4, convert PBL from [m] to [hPa] w/ the hydrostatic law.
 !        Now references SCALE_HEIGHT from "CMN_GCTM". (bmy, 1/15/04)
+!  (3 ) Now uses model levels instead of pressure in order to delineate
+!        between PBL, MT, and UT regions (amf, rch, bmy, 5/27/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : PBL
       USE GRID_MOD,     ONLY : GET_XMID,  GET_YMID
-      USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
+      !----------------------------------------------------------------------
+      ! Prior to 5/27/04:
+      ! Now define regions w/ model levels (amf, rch, bmy, 5/27/04)
+      !USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
+      !----------------------------------------------------------------------
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
 #     include "CMN_SIZE"  ! Size parameters
@@ -213,8 +220,13 @@
       LOGICAL              :: ITS_IN_UT,   ITS_IN_NH,  ITS_IN_ATL
       LOGICAL              :: ITS_IN_PAC,  ITS_IN_AS,  ITS_IN_EUR
       LOGICAL              :: ITS_IN_NAM,  ITS_IN_NAF, ITS_IN_USA
-      REAL*8               :: P,           PBLTOP,     PPROD
-      REAL*8               :: X,           Y
+      INTEGER              :: PBLTOP,      MTTOP
+      !----------------------------------------------------------------
+      ! Prior to 5/27/04:
+      ! Now define regions w/ model levels (amf, rch, bmy, 5/27/04)
+      !REAL*8               :: P,           PBLTOP,     PPROD
+      !----------------------------------------------------------------
+      REAL*8               :: PPROD,       X,          Y
       
       ! External functions
       REAL*8, EXTERNAL     :: BOXVL
@@ -241,26 +253,55 @@
       X          = GET_XMID( I )   
       Y          = GET_YMID( J )
 
-#if   defined( GEOS_4 )
+!-------------------------------------------------------------------------
+! Prior to 5/27/04:
+! Now use model levels to define regions (amf, rch, bmy, 5/27/04) 
+!#if   defined( GEOS_4 )
+!
+!      ! BLTOP = pressure at PBL top [hPa]
+!      ! Use barometric law since PBL is in [m]
+!      PBLTOP     = GET_PEDGE( I, J, 1 ) * EXP( -PBL(I,J)/SCALE_HEIGHT )
+!
+!#else
+!
+!      ! BLTOP = pressure of PBL top [hPa]
+!      PBLTOP     = GET_PEDGE( I, J, 1 ) - PBL(I,J)
+!
+!#endif
+!-------------------------------------------------------------------------
 
-      ! BLTOP = pressure at PBL top [hPa]
-      ! Use barometric law since PBL is in [m]
-      PBLTOP     = GET_PEDGE( I, J, 1 ) * EXP( -PBL(I,J)/SCALE_HEIGHT )
-
-#else
-
-      ! BLTOP = pressure of PBL top [hPa]
-      PBLTOP     = GET_PEDGE( I, J, 1 ) - PBL(I,J)
-
+      ! PBLTOP is the model level at ~ 750 hPa
+      ! MTTOP  is the model level at ~ 350 hPa
+#if   defined( GEOS_1 )
+      PBLTOP = 6
+      MTTOP  = 11
+#elif defined( GEOS_STRAT ) 
+      PBLTOP = 6
+      MTTOP  = 12
+#elif defined( GEOS_3 ) 
+      PBLTOP = 10
+      MTTOP  = 16
+#elif defined( GEOS_4 )
+      PBLTOP = 5
+      MTTOP  = 10
 #endif
 
-      ! Pressure at level bottom [hPa]
-      P          = GET_PEDGE( I, J, L ) 
+      !-------------------------------------------------------------------
+      !! Pressure at level bottom [hPa]
+      !P          = GET_PEDGE( I, J, L ) 
+      !-------------------------------------------------------------------
 
       ! Define flags for various geographic & altitude regions
-      ITS_IN_PBL = ( P >= PBLTOP                                       )
-      ITS_IN_MT  = ( P <  PBLTOP .and. P > 350.0                       )
-      ITS_IN_UT  = ( P <= 350.0  .and. ITS_IN_TROP                     )
+      !--------------------------------------------------------------------
+      ! Prior to 5/27/04:
+      ! Now use levels instead of pressures 
+      !ITS_IN_PBL = ( P >= PBLTOP                                       )
+      !ITS_IN_MT  = ( P <  PBLTOP .and. P > 350.0                       )
+      !ITS_IN_UT  = ( P <= 350.0  .and. ITS_IN_TROP                     )
+      !--------------------------------------------------------------------
+      ITS_IN_PBL = ( L <= PBLTOP                                       )
+      ITS_IN_MT  = ( L >  PBLTOP .and. L <= MTTOP                      )
+      ITS_IN_UT  = ( L >  MTTOP  .and. ITS_IN_TROP                     )
 
       ITS_IN_NH  = ( Y >=   0.0                                        )
       ITS_IN_EUR = ( Y >=  36.0 .and. ( X >  -15.0 .and. X >=   55.0 ) )

@@ -1,9 +1,9 @@
-! $Id: calcrate.f,v 1.6 2003/10/30 16:17:16 bmy Exp $
+! $Id: calcrate.f,v 1.7 2004/07/19 17:57:19 bmy Exp $
       SUBROUTINE CALCRATE( SUNCOS )
 !
 !******************************************************************************
 !  Subroutine CALCRATE computes reaction rates before passing them to the
-!  SMVGEAR solver.  (M. Jacobson 1997; gcc, bdf, bmy, 4/1/03, 8/8/03)
+!  SMVGEAR solver.  (M. Jacobson 1997; gcc, bdf, bmy, 4/1/03, 5/26/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -39,6 +39,8 @@
 !        function N2O5 to compute the GAMMA "stickiness" parameter for N2O5
 !        hydrolysis, which is a function of aerosol type.  Now also pass N2O5
 !        reaction rate to ARCHIVE_RXNS_FOR_PF. (bmy, 8/8/03)
+!  (6 ) Updated loss rate for O(1D) with H2O according to new rate measurement
+!        from JPL (mje, bmy, 5/26/04)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -810,10 +812,28 @@ C
                ! same, so the constant changes from 1.8e-11 to 2.14e-11
                ! according to Heard, pers. comm.,2002. (amf, bmy, 1/7/02)
                !========================================================
-               RRATE(KLOOP,NKN) = RRATE(KLOOP,NKN) * 2.2D-10 *
-     $            CBLK(KLOOP,IH2O) / ( 2.2D-10*CBLK(KLOOP,IH2O) +
-     $            2.14D-11 * EXP(110.D0 * T3I(KLOOP)) * CONCN2(KLOOP) +
-     $            3.2D-11*EXP( 70.D0*T3I(KLOOP))*CONCO2(KLOOP) )
+               ! Change the rate of O(1D)+H2O from 2.2e-10 to 1.45e-10*
+               ! exp(89/temp) on the basis of Dunlea and Ravishankara
+               ! 'Measurement of the Rate coefficient for the reaction 
+               ! of O(1D) with H2O and re-evaluation of the atmospheric
+               ! OH Production Rate'.  One of the RSC Journals
+               ! (mje 4/5/04)
+               !========================================================
+!-----------------------------------------------------------------------------
+! Prior to 5/26/04:
+! Update rxn coefficient for JO1D (mje, bmy, 5/26/04)
+!               RRATE(KLOOP,NKN) = RRATE(KLOOP,NKN) * 2.2D-10 *
+!     $            CBLK(KLOOP,IH2O) / ( 2.2D-10*CBLK(KLOOP,IH2O) +
+!     $            2.14D-11 * EXP(110.D0 * T3I(KLOOP)) * CONCN2(KLOOP) +
+!     $            3.2D-11*EXP( 70.D0*T3I(KLOOP))*CONCO2(KLOOP) )
+!-----------------------------------------------------------------------------
+               RRATE(KLOOP,NKN) = RRATE(KLOOP,NKN) *
+     $            1.45d-10 * EXP( 89.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) /
+     $          ( 1.45d-10 * EXP( 89.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) +
+     $            2.14d-11 * EXP(110.d0*T3I(KLOOP)) * CONCN2(KLOOP)    +
+     $            3.20d-11 * EXP( 70.d0*T3I(KLOOP)) * CONCO2(KLOOP)    )
+
+
             ENDDO
          ENDIF
       ELSEIF(IFSUN.EQ.2) THEN

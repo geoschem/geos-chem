@@ -1,46 +1,13 @@
-REVISIONS (v6-03-01)  
-bmy, 15 Jul 2004
+REVISIONS (v6-02-06)  
+bmy, 27 May 2004
 
 
-New in v6-03-01:
+New in v6-02-06:
 -------------------------------------------------------------------------------
 
-chem_nvoc               -- New routine added for 2ndary organic aerosols (SOA)
-("carbon_mod.f")
-
-get_o3			-- New routine added for 2ndary organic aerosols (SOA)
-("carbon_mod.f")        
-
-get_oh			-- New routine added for 2ndary organic aerosols (SOA)
-("carbon_mod.f")
-
-get_no3			-- New routine added for 2ndary organic aerosols (SOA)
-("carbon_mod.f")
-
-soa_chemistry		-- New routine added for 2ndary organic aerosols (SOA)
-("carbon_mod.f")
-
-soa_depo		-- New routine added for 2ndary organic aerosols (SOA)
-("carbon_mod.f")
-
-soa_equil		-- New routine added for 2ndary organic aerosols (SOA)
-("carbon_mod.f")
-
-soa_lump		-- New routine added for 2ndary organic aerosols (SOA)
-("carbon_mod.f")
-
-soa_para		-- New routine added for 2ndary organic aerosols (SOA)
-("carbon_mod.f")
-
-soa_partition		-- New routine added for 2ndary organic aerosols (SOA)
-("carbon_mod.f")
-
-zeroin			-- New routine added for 2ndary organic aerosols (SOA)
-("carbon_mod.f")
 
 
-
-Removed in v6-03-01:
+Removed in v6-02-06:
 -------------------------------------------------------------------------------
 
 
@@ -48,69 +15,8 @@ Removed in v6-03-01:
 Changed from v6-02-05:
 -------------------------------------------------------------------------------
 
-cleanup_diag		-- Now also deallocates AD07_HC array
-("diag_mod.f")
+calcrate.f		-- Updated loss rate for O(1D) with H2O according 
+		           to new rate measurement from JPL
 
-CMN_DIAG		-- Changed PD07 to 12
-
-CMN_SETUP		-- Renamed LATEQ to LSOA 
-
-CMN_SIZE		-- Increase NNPAR to 50 for SOA tracers
-
-chemdr.f 		-- Added OCF parameter to account for the other 
-			   chemical components that are attached to OC
-			-- Also now handle hydrophobic OC differently for
-			   online & offline SOA
-
-chemcarbon		-- Now only call OHNO3TIME if it hasn't already
-("carbon_mod.f")	   been called in EMISSCARBON
-			-- Now reference LSOA from "CMN_SETUP"
-
-compute_f		-- Added slots for secondary organic aerosol tracers
-("wetscav_mod.f")
-
-diag_mod.f		-- Added AD07_HC diagnostic array for ND07  
-
-diag3.f			-- Added NVOC source diagnostics to ND07
-
-drydep_mod.f		-- Increased MAXDEP to 35
-			-- Now handles extra SOA tracers
-
-emisscarbon		-- Now references LSOA from "CMN_SETUP"
-("carbon_mod.f")	-- Also now call OHNO3TIME since biogenic emissions 
-			   also have a diurnal variation
-
-get_wetdep_nmax		-- Modified to include SOA tracers 
-("wetscav_mod.f")
-
-init_drydep		-- Now handles extra SOA tracers
-("drydep_mod.f")
-
-init_tracerid		-- Now zero extra flags for SOA tracers
-("tracerid_mod.f")
-
-initialize.f		-- Now also initialize AD07_HC array
-
-ndxx_setup.f		-- Now allocate AD07_HC array for ND07
-			-- Minor bug fixes
-
-rainout			-- Now updated for secondary aerosol tracers
-("wetscav_mod.f")
-
-read49.f		-- Now can read more than a 100 char string for 
-			   tracer numbers
-
-setup.f			-- Now read LSOA instead of LATEQ in "input.geos"
-
-tracerid_mod.f		-- Increase NNNTRID & add extra flags for SOA tracers
-
-tracerid		-- Added extra CASEs to the CASE statement for 
-("tracerid_mod.f")	   SOA tracers.
-
-washout			-- Now updated for secondary aerosol tracers
-("wetscav_mod.f")
-
-wetdepid		-- Now updated for secondary aerosol tracers
-("wetscav_mod.f")
-
-wetscav_mod.f		-- Increased NSOLMAX to 29 for SOA tracers
+get_regional_pox	-- Now uses model levels instead of pressure in 
+("tagged_ox_mod.f")	   order to delineate between PBL, MT, and UT regions
