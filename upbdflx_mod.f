@@ -1,9 +1,9 @@
-! $Id: upbdflx_mod.f,v 1.2 2003/07/08 15:30:13 bmy Exp $
+! $Id: upbdflx_mod.f,v 1.3 2003/08/15 20:13:39 bmy Exp $
       MODULE UPBDFLX_MOD
 !
 !******************************************************************************
 !  Module UPBDFLX_MOD contains subroutines which impose stratospheric boundary
-!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 4/14/03)
+!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 8/15/03)
 !
 !  Module Routines:
 !  ============================================================================
@@ -36,6 +36,7 @@
 !  (10) Added driver routine DO_UPBDFLX.  Also added lat limits for 1x1 in
 !        UPBDFLX_O3. (bmy, 3/14/03)
 !  (11) Now references AD from "dao_mod.f" in UPBDFLX_NOY (bnd, bmy, 4/14/03)
+!  (12) Added printout of O3 in Tg/yr in UPBDFLX_O3 (mje, bmy, 8/15/03)
 !******************************************************************************
 !      
       IMPLICIT NONE
@@ -103,7 +104,7 @@
 !******************************************************************************
 !  Subroutine UPBDFLX_O3 establishes the flux boundary condition for Ozone
 !  coming down from the stratosphere, using the Synoz algorithm of
-!  McLinden et al, 2000. (qli, bmy, 12/13/99, 4/14/03)
+!  McLinden et al, 2000. (qli, bmy, 12/13/99, 8/15/03)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -150,6 +151,8 @@
 !        "tracerid_mod.f" instead of from "comtrid.h". (bmy, 11/6/02)
 !  (15) Now define J30S and J30N for 1x1 nested grid (bmy, 3/11/03)
 !  (16) Make sure to pass AD via "dao_mod.f" for GEOS-1 (bnd, bmy, 4/14/03)
+!  (17) On the first timestep, print how much O3 flux is coming down from the 
+!        stratosphere in Tg/yr. (mje, bmy, 8/15/03)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -168,10 +171,11 @@
       INTEGER, INTENT(IN)  :: IORD, JORD, KORD
 
       ! Local variables
+      LOGICAL, SAVE        :: FIRST = .TRUE.
       INTEGER              :: I, J, L, L70mb
       INTEGER              :: NTRACER, NTRACE2
       REAL*8               :: P1, P2, P3, T1, T2, DZ, ZUP
-      REAL*8               :: DTDYN, H70mb, PO3, PO3_vmr
+      REAL*8               :: DTDYN, H70mb, PO3, PO3_vmr, STFLUX
 
       ! Select the grid boxes at the edges of the O3 release region, 
       ! for the proper model resolution (qli, bmy, 12/5/00)
@@ -195,6 +199,9 @@
 
       ! Dynamic timestep [s]
       DTDYN = GET_TS_DYN() * 60d0
+
+      ! For O3 flux printout
+      STFLUX = 0d0
 
       !=================================================================
       ! Compute the proper release rate of O3 coming down from the 
@@ -351,9 +358,25 @@
                   STT(I,J,L,NTRACE2) = STT(I,J,L,NTRACE2) + PO3
                ENDIF
                
+               ! Archive stratospheric O3 for printout in [Tg/yr]
+               IF ( FIRST ) THEN
+                  STFLUX = STFLUX + 
+     &                     PO3 * AD(I,J,L) * 1000.d0 / 28.8d0 /
+     &                     DTDYN * 48.d0 * 365.25d0 * 86400d0 / 1e12
+               ENDIF
             ENDDO   
          ENDDO
       ENDDO
+
+      !=================================================================
+      ! Print amount of stratospheric O3 coming down
+      !=================================================================
+      IF ( FIRST ) THEN
+         WRITE( 6, 100 ) STFLUX
+ 100     FORMAT( '     - UPBDFLX_O3: Strat O3 production is', f9.3, 
+     &           ' [Tg/yr]')
+         FIRST = .FALSE.
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE UPBDFLX_O3 
