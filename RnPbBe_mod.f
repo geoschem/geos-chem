@@ -1,9 +1,9 @@
-! $Id: RnPbBe_mod.f,v 1.3 2003/10/30 16:17:15 bmy Exp $
+! $Id: RnPbBe_mod.f,v 1.4 2004/09/21 18:04:07 bmy Exp $
       MODULE RnPbBe_MOD
 !
 !******************************************************************************
 !  Module RnPbBe_MOD contains variables and routines used for the 
-!  222Rn-210Pb-7Be simulation. (hyl, swu, bmy, 6/14/01, 10/28/03)
+!  222Rn-210Pb-7Be simulation. (hyl, swu, bmy, 6/14/01, 7/20/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -24,9 +24,12 @@
 !
 !  GEOS-CHEM modules referenced by RnPbBe_mod.f
 !  ============================================================================
-!  (1 ) dao_mod.f    : Module containing arrays for DAO met fields
-!  (2 ) diag_mod.f   : Module containing GEOS-CHEM diagnostic arrays
-!  (3 ) file_mod.f   : Module containing file unit numbers and error checks
+!  (1 ) dao_mod.f       : Module containing arrays for DAO met fields
+!  (2 ) diag_mod.f      : Module containing GEOS-CHEM diagnostic arrays
+!  (3 ) directory_mod.f : Module containing GEOS-CHEM data & met field dires
+!  (4 ) file_mod.f      : Module containing file unit numbers and error checks
+!  (5 ) logical_mod.f   : Module containing GEOS-CHEM logical switches
+!  (6 ) tracer_mod.f    : Module containing GEOS-CHEM tracer array STT etc.
 !
 !  References:
 !  ============================================================================
@@ -62,6 +65,8 @@
 !  (11) Bug fix in EMISSRnPbBe -- take abs( lat) for 7Be emiss. (bmy, 6/10/03)
 !  (12) Bug fix in EMISSRnPbBe -- shut off 222Rn emissions in polar regions
 !        (swu, bmy, 10/28/03)
+!  (13) Now references "directory_mod.f", "logical_mod.f", and "tracer_mod.f"
+!        (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -97,17 +102,22 @@
 !******************************************************************************
 !  Subroutine READ_7BE reads the 7Be emissions from Lal & Peters on 33 
 !  pressure levels.  This only needs to be done on the very first timestep.  
-!  (hyl, bmy, 8/7/02)
+!  (hyl, bmy, 8/7/02, 7/19/04)
 !
 !  NOTES:
 !  (1 ) This code was split off from routine EMISSRnPbBe below. (bmy, 8/7/02)
+!  (2 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/19/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE FILE_MOD, ONLY : IU_FILE, IOERROR
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_SETUP" ! DATA_DIR 
+!----------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! DATA_DIR 
+!----------------------------------------------
 
       ! Local variables
       INTEGER            :: IOS, J, L
@@ -256,17 +266,21 @@
 !        lead to enormously hight Rn concentrations there, esp. after boundary
 !        layer mixing.  Now apply different emissions over land and water,
 !        and also shut off emissions poleward of 70 deg. (swu, bmy, 10/28/03)
+!  (17) Now reference LEMIS from "logical_mod.f".  Now reference STT and
+!        N_TRACERS from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD, TS
       USE DIAG_MOD,     ONLY : AD01 
       USE GRID_MOD,     ONLY : GET_AREA_CM2, GET_YMID, GET_YEDGE 
+      USE LOGICAL_MOD,  ONLY : LEMIS
       USE TIME_MOD,     ONLY : GET_TS_EMIS
+      USE TRACER_MOD,   ONLY : STT, N_TRACERS
       USE PRESSURE_MOD, ONLY : GET_PCENTER
 
 #     include "CMN_SIZE" ! Size parameters
-#     include "CMN"      ! STT, LSRCE, etc.
+#     include "CMN"      ! LPAUSE
 #     include "CMN_DIAG" ! ND02 
 #     include "CMN_DEP"  ! FRCLND
 
@@ -284,7 +298,11 @@
       !=================================================================
 
       ! Return if we are not doing emissions!
-      IF ( .not. LSRCE ) RETURN   
+      !----------------------------
+      ! Prior to 7/20/04:
+      !IF ( .not. LSRCE ) RETURN   
+      !----------------------------
+      IF ( .not. LEMIS ) RETURN   
 
       ! Emission timestep [s]
       DTSRCE = GET_TS_EMIS() * 60d0
@@ -432,7 +450,11 @@
       ! Original units of 7Be emissions are [stars/g air/sec],
       ! where "stars" = # of nuclear disintegrations of cosmic rays
       !=================================================================
-      IF ( NTRACE >= 3 ) THEN
+      !----------------------------
+      ! Prior to 7/20/04:
+      !IF ( NTRACE >= 3 ) THEN
+      !----------------------------
+      IF ( N_TRACERS >= 3 ) THEN
 
          ! Read 7Be emissions on the first timestep only
          IF ( FIRSTEMISS ) CALL READ_7BE
@@ -493,7 +515,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEMRnPbBe performs loss chemistry on 222Rn, 210Pb, and 7Be.
-!  (hyl, amf, bey, bmy, 10/13/99, 2/11/03)
+!  (hyl, amf, bey, bmy, 10/13/99, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Now use F90 syntax (bmy, hyl, 3/22/99)
@@ -509,18 +531,17 @@
 !        and added parallel DO-loops.  Updated comments. (hyl, 8/6/02)
 !  (8 ) Now make FIRSTCHEM a local SAVEd variable.  (bmy, 1/27/03)
 !  (9 ) Now use function GET_TS_CHEM from "time_mod.f" (bmy, 2/11/03)
+!  (10) Now references STT and N_TRACERS from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD, ONLY : AD01, AD02
-      USE TIME_MOD, ONLY : GET_TS_CHEM
+      USE DIAG_MOD,   ONLY : AD01, AD02
+      USE TIME_MOD,   ONLY : GET_TS_CHEM
+      USE TRACER_MOD, ONLY : STT, N_TRACERS
 
 #     include "CMN_SIZE" ! Size parameters
-#     include "CMN"      ! STT, LPAUSE
+#     include "CMN"      ! LPAUSE
 #     include "CMN_DIAG" ! ND01, ND02
-
-      !! Arguments 
-      !LOGICAL, INTENT(INOUT) :: FIRSTCHEM
 
       ! Local variables
       LOGICAL, SAVE     :: FIRSTCHEM = .TRUE.
@@ -581,7 +602,11 @@
       !=================================================================
       ! Radioactive decay of 210Pb (tracer #2)
       !=================================================================
-      IF ( NTRACE >= 2 ) THEN
+      !------------------------
+      ! Prior to 7/20/04:
+      !IF ( NTRACE >= 2 ) THEN
+      !------------------------
+      IF ( N_TRACERS >= 2 ) THEN
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -624,7 +649,11 @@
       !=================================================================
       ! Radioactive decay of 7Be (tracer #3)
       !=================================================================
-      IF ( NTRACE >= 3 ) THEN 
+      !---------------------------
+      ! Prior to 7/20/04:
+      !IF ( NTRACE >= 3 ) THEN 
+      !---------------------------
+      IF ( N_TRACERS >= 3 ) THEN 
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED ) 

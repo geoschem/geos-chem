@@ -1,9 +1,9 @@
-! $Id: chemdr.f,v 1.9 2004/07/15 18:17:44 bmy Exp $
+! $Id: chemdr.f,v 1.10 2004/09/21 18:04:09 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
 !  Subroutine CHEMDR is the driver subroutine for full chemistry w/ SMVGEAR.
-!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 7/15/04)
+!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 7/20/04)
 !
 !  Important input variables from "dao_mod.f" and "uvalbedo_mod.f":
 !  ============================================================================
@@ -131,31 +131,39 @@
 !  (20) Added OCF parameter to account for the other chemical components that
 !        are attached to OC.  Also now handle hydrophilic OC differently for
 !        online & offline SOA. (rjp, bmy, 7/15/04)
+!  (21) Now reference "logical_mod.f".  Now reference STT and N_TRACERS from
+!        "tracer_mod.f".  Now references DO_DIAG_PL from "diag_pl_mod.f".
+!        Now references DO_DIAG_OH from "diag_oh_mod.f".  Now references
+!        AEROSOL_CONC, RDAER, & SOILDUST from "aerosol_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
+      USE AEROSOL_MOD,     ONLY : AEROSOL_CONC, RDAER, SOILDUST
       USE COMODE_MOD,      ONLY : ABSHUM,   CSPEC,     ERADIUS, TAREA
       USE DAO_MOD,         ONLY : AD,       AIRVOL,    ALBD,    AVGW,    
      &                            BXHEIGHT, MAKE_AVGW, OPTD,    SUNCOS,  
      &                            SUNCOSB,  T
+      USE DIAG_OH_MOD,     ONLY : DO_DIAG_OH
+      USE DIAG_PL_MOD,     ONLY : DO_DIAG_PL
       USE DUST_MOD,        ONLY : RDUST_ONLINE, RDUST_OFFLINE
       USE ERROR_MOD,       ONLY : DEBUG_MSG
       USE GLOBAL_CH4_MOD,  ONLY : GET_GLOBAL_CH4
+      USE LOGICAL_MOD
       USE PLANEFLIGHT_MOD, ONLY : SETUP_PLANEFLIGHT
       USE TIME_MOD,        ONLY : GET_MONTH, GET_YEAR
+      USE TRACER_MOD,      ONLY : STT, N_TRACERS
       USE TRACERID_MOD 
       USE UVALBEDO_MOD,    ONLY : UVALBEDO
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! STT, P, T, NSRCX, MONTH, JYEAR, etc.
+#     include "CMN"       ! IEBD1, IEBD2, etc.
 #     include "CMN_O3"    ! EMISRRN, EMISRR
 #     include "CMN_NOX"   ! SLBASE
 #     include "comode.h"  ! SMVGEAR variables
 #     include "CMN_DEP"   ! FRCLND
 #     include "CMN_DIAG"  ! ND40
-#     include "CMN_SETUP" ! LSULF, LCARB, LSOA, LDUST, LSSALT
 
       ! Local variables
       LOGICAL, SAVE       :: FIRSTCHEM = .TRUE.
@@ -168,19 +176,15 @@
       REAL*8              :: SURFALT(MAXIJ)
       REAL*8              :: TOTO3(JJPAR)
       REAL*8              :: CLOUDS(MAXIJ,11)
-      REAL*8              :: SO4_NH4_NIT(IIPAR,JJPAR,LLPAR)
-      REAL*8              :: BCPI(IIPAR,JJPAR,LLPAR)
-      REAL*8              :: BCPO(IIPAR,JJPAR,LLPAR)
-      REAL*8              :: OCPI(IIPAR,JJPAR,LLPAR)
-      REAL*8              :: OCPO(IIPAR,JJPAR,LLPAR)
-      REAL*8              :: SALA(IIPAR,JJPAR,LLPAR)
-      REAL*8              :: SALC(IIPAR,JJPAR,LLPAR)
-      REAL*8              :: SOILDUST(IIPAR,JJPAR,LLPAR,NDUST)
-
-      ! We carry carbon mass only in OC and here need to multiply by
-      ! 1.4 to account for the mass of the other chemical components
-      ! (rjp, bmy, 7/15/04)
-      REAL*8, PARAMETER   :: OCF = 1.4d0
+      ! Prior to 7/20/04:
+      !REAL*8              :: SO4_NH4_NIT(IIPAR,JJPAR,LLPAR)
+      !REAL*8              :: BCPI(IIPAR,JJPAR,LLPAR)
+      !REAL*8              :: BCPO(IIPAR,JJPAR,LLPAR)
+      !REAL*8              :: OCPI(IIPAR,JJPAR,LLPAR)
+      !REAL*8              :: OCPO(IIPAR,JJPAR,LLPAR)
+      !REAL*8              :: SALA(IIPAR,JJPAR,LLPAR)
+      !REAL*8              :: SALC(IIPAR,JJPAR,LLPAR)
+      !REAL*8              :: SOILDUST(IIPAR,JJPAR,LLPAR,NDUST)
 
       !=================================================================
       ! CHEMDR begins here!
@@ -275,31 +279,20 @@
       ! Do the following only on the first call ...
       IF ( FIRSTCHEM ) THEN
 
-         ! Zero SO4_NH4_NIT on the first call only
-         SO4_NH4_NIT = 0d0
-
-         ! Zero EC/OC on the first call only
-         BCPI        = 0d0
-         BCPO        = 0d0
-         OCPI        = 0d0
-         OCPO        = 0d0
-         SALA        = 0d0
-         SALC        = 0d0
-
-         ! Zero dust on the first call only
-         SOILDUST    = 0d0
-
-         !==============================================================
-         ! Set up stuff for chemical prod/loss diagnostic (bey-02/99)
-         !==============================================================
-         IF ( NFAM > 0 ) THEN
-            LFAMILY = .TRUE.
-         ELSE
-            LFAMILY = .FALSE.
-         ENDIF
-
-         NFAMILIES = NFAM
-         write(6,*) 'NFAMILIES = NFAM = :', NFAMILIES, NFAM
+        ! Prior to 7/20/04:
+        ! ! Zero SO4_NH4_NIT on the first call only
+        ! SO4_NH4_NIT = 0d0
+        ! 
+        ! ! Zero EC/OC on the first call only
+        ! BCPI        = 0d0
+        ! BCPO        = 0d0
+        ! OCPI        = 0d0
+        ! OCPO        = 0d0
+        ! SALA        = 0d0
+        ! SALC        = 0d0
+        ! 
+        ! ! Zero dust on the first call only
+        ! SOILDUST    = 0d0
 
          !==============================================================
          ! Call READCHEM -- the setup routine for gas-phase chemistry
@@ -311,7 +304,7 @@
          NCS = NCSURBAN
 
          !### Debug
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after CHEMSET' )
+         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after READCHEM' )
 
          ! Set up plane flight diagnostic here -- test 
          IF ( ND40 > 0 ) CALL SETUP_PLANEFLIGHT
@@ -347,7 +340,7 @@
          !==============================================================
          ! Call SETTRACE which flags certain chemical species
          !==============================================================
-         CALL SETTRACE( NTRACE )
+         CALL SETTRACE
 
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SETTRACE' )
@@ -356,7 +349,7 @@
          ! Call SETEMDEP which flags emission and dry deposition 
          ! reactions (read from chem.dat)
          !==============================================================
-         CALL SETEMDEP( NTRACE )
+         CALL SETEMDEP( N_TRACERS )
 
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SETEMDEP' )
@@ -366,153 +359,138 @@
       ! Skip this section if all these are turned off
       IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-!$OMP+SCHEDULE( DYNAMIC )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+!----------------------------------------------------------------------------
+! Prior to 7/20/04:
+! Moved this code to AEROSOL_CONC
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, N )
+!!$OMP+SCHEDULE( DYNAMIC )
+!         DO L = 1, LLPAR
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!
+!            !===========================================================
+!            ! Dump hydrophilic aerosols into one array that will be 
+!            ! passed to RDAER and then used for heterogeneous chemistry 
+!            ! as well as photolysis rate calculations interatively. 
+!            !
+!            ! If LSULF=F, then we read these aerosol data from Mian's 
+!            ! simulation.  If LSULF=T then we use the online tracers.
+!            !
+!            ! Now assume that all sulfate, ammonium, and nitrate are 
+!            ! hydrophilic but sooner or later we can pass only 
+!            ! hydrophilic aerosols from the thermodynamic calculations 
+!            ! for this purpose.  This dumping should be done before 
+!            ! calling INITGAS, which converts the unit of STT array 
+!            ! from kg/box to molec/cm3.
+!            !
+!            ! Units of SO4_NH4_NIT are [kg/m3].  (rjp, bmy, 3/23/03)
+!            !===========================================================
+!            IF ( LSULF ) THEN
+!               SO4_NH4_NIT(I,J,L) = ( STT(I,J,L,IDTSO4) + 
+!     &                                STT(I,J,L,IDTNH4) +
+!     &                                STT(I,J,L,IDTNIT) ) / 
+!     &                              AIRVOL(I,J,L)
+!            ENDIF
+!
+!            !===========================================================
+!            ! Compute hydrophilic and hydrophobic BC and OC in [kg/m3]
+!            ! for passing to "rdaer.f" 
+!            !===========================================================
+!            IF ( LCARB ) THEN
+!
+!               ! Hydrophilic BC [kg/m3]
+!               BCPI(I,J,L) = STT(I,J,L,IDTBCPI) / AIRVOL(I,J,L)
+!
+!               ! Hydrophobic BC [kg/m3]
+!               BCPO(I,J,L) = STT(I,J,L,IDTBCPO) / AIRVOL(I,J,L)
+!
+!               ! Hydrophobic OC [kg/m3] 
+!               OCPO(I,J,L) = STT(I,J,L,IDTOCPO) * OCF / AIRVOL(I,J,L)
+!
+!               IF ( LSOA ) THEN
+!
+!                  ! Hydrophilic primary OC plus SOA [kg/m3A.  We need
+!                  ! to multiply by OCF to account for the mass of other 
+!                  ! components which are attached to the OC aerosol.
+!                  ! (rjp, bmy, 7/15/04)
+!                  OCPI(I,J,L) = ( STT(I,J,L,IDTOCPI) * OCF 
+!     &                        +   STT(I,J,L,IDTSOA1)
+!     &                        +   STT(I,J,L,IDTSOA2)
+!     &                        +   STT(I,J,L,IDTSOA3)  ) / AIRVOL(I,J,L)
+! 
+!               ELSE
+!
+!                  ! Hydrophilic primary and SOA OC [kg/m3].   We need
+!                  ! to multiply by OCF to account for the mass of other 
+!                  ! components which are attached to the OC aerosol.
+!                  ! (rjp, bmy, 7/15/04)
+!                  OCPI(I,J,L) = STT(I,J,L,IDTOCPI) * OCF / AIRVOL(I,J,L)
+!                  
+!               ENDIF
+!
+!               ! Now avoid division by zero (bmy, 4/20/04)
+!               BCPI(I,J,L) = MAX( BCPI(I,J,L), 1d-35 )
+!               OCPI(I,J,L) = MAX( OCPI(I,J,L), 1d-35 )
+!               BCPO(I,J,L) = MAX( BCPO(I,J,L), 1d-35 )
+!               OCPO(I,J,L) = MAX( OCPO(I,J,L), 1d-35 )
+!            ENDIF
+!
+!            !===========================================================
+!            ! Full chemistry with dust aerosol turned on.
+!            !
+!            ! Note, we can do better than this! Currently we carry 4 
+!            ! dust tracers...but het. chem and fast-j use 7 dust bins 
+!            ! hardwired from Ginoux.
+!            !
+!            ! Now, I apportion the first dust tracer into four smallest 
+!            ! dust bins equally in mass for het. chem and fast-j. 
+!            ! 
+!            ! Maybe we need to think about chaning our fast-j and het. 
+!            ! chem to use just four dust bins or more flexible 
+!            ! calculations depending on the number of dust bins. 
+!            ! (rjp, 03/27/04)
+!            !===========================================================
+!            IF ( LDUST ) THEN
+!
+!               ! Lump 1st dust tracer for het chem
+!               DO N = 1, 4
+!                  SOILDUST(I,J,L,N) = 
+!     &                 0.25d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+!               ENDDO
+!
+!               ! Other hetchem bins
+!               SOILDUST(I,J,L,5) = STT(I,J,L,IDTDST2) / AIRVOL(I,J,L)
+!               SOILDUST(I,J,L,6) = STT(I,J,L,IDTDST3) / AIRVOL(I,J,L)
+!               SOILDUST(I,J,L,7) = STT(I,J,L,IDTDST4) / AIRVOL(I,J,L)
+!            ENDIF
+!
+!            !===========================================================
+!            ! Sea salt tracers
+!            !===========================================================
+!            IF ( LSSALT ) THEN
+!
+!               ! Accumulation mode seasalt aerosol [kg/m3]
+!               SALA(I,J,L) = STT(I,J,L,IDTSALA) / AIRVOL(I,J,L)
+!            
+!               ! Coarse mode seasalt aerosol [kg/m3]
+!               SALC(I,J,L) = STT(I,J,L,IDTSALC) / AIRVOL(I,J,L)
+!
+!               ! Avoid division by zero
+!               SALA(I,J,L) = MAX( SALA(I,J,L), 1d-35 )
+!               SALC(I,J,L) = MAX( SALC(I,J,L), 1d-35 )
+!            ENDIF
+!
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!!$OMP END PARALLEL DO
+!----------------------------------------------------------------------------
 
-            !===========================================================
-            ! Dump hydrophilic aerosols into one array that will be 
-            ! passed to RDAER and then used for heterogeneous chemistry 
-            ! as well as photolysis rate calculations interatively. 
-            !
-            ! If LSULF=F, then we read these aerosol data from Mian's 
-            ! simulation.  If LSULF=T then we use the online tracers.
-            !
-            ! Now assume that all sulfate, ammonium, and nitrate are 
-            ! hydrophilic but sooner or later we can pass only 
-            ! hydrophilic aerosols from the thermodynamic calculations 
-            ! for this purpose.  This dumping should be done before 
-            ! calling INITGAS, which converts the unit of STT array 
-            ! from kg/box to molec/cm3.
-            !
-            ! Units of SO4_NH4_NIT are [kg/m3].  (rjp, bmy, 3/23/03)
-            !===========================================================
-            IF ( LSULF ) THEN
-               SO4_NH4_NIT(I,J,L) = ( STT(I,J,L,IDTSO4) + 
-     &                                STT(I,J,L,IDTNH4) +
-     &                                STT(I,J,L,IDTNIT) ) / 
-     &                              AIRVOL(I,J,L)
-            ENDIF
-
-            !===========================================================
-            ! Compute hydrophilic and hydrophobic BC and OC in [kg/m3]
-            ! for passing to "rdaer.f" 
-            !===========================================================
-            !----------------------------------------------------------------
-            ! Prior to 7/15/04:
-            !IF ( LCARB ) THEN
-            !
-            !   ! Hydrophilic BC [kg/m3]
-            !   BCPI(I,J,L) = STT(I,J,L,IDTBCPI) / AIRVOL(I,J,L)
-            !
-            !   ! Hydrophilic OC [kg/m3]
-            !   OCPI(I,J,L) = STT(I,J,L,IDTOCPI) / AIRVOL(I,J,L)
-            !
-            !   ! Hydrophobic BC [kg/m3]
-            !   BCPO(I,J,L) = STT(I,J,L,IDTBCPO) / AIRVOL(I,J,L)
-            !
-            !   ! Hydrophobic OC [kg/m3]                
-            !   OCPO(I,J,L) = STT(I,J,L,IDTOCPO) / AIRVOL(I,J,L)
-            !
-            !   ! Now avoid division by zero (bmy, 4/20/04)
-            !   BCPI(I,J,L) = MAX( BCPI(I,J,L), 1d-35 )
-            !   OCPI(I,J,L) = MAX( OCPI(I,J,L), 1d-35 )
-            !   BCPO(I,J,L) = MAX( BCPO(I,J,L), 1d-35 )
-            !   OCPO(I,J,L) = MAX( OCPO(I,J,L), 1d-35 )
-            !ENDIF
-            !----------------------------------------------------------------
-            IF ( LCARB ) THEN
-
-               ! Hydrophilic BC [kg/m3]
-               BCPI(I,J,L) = STT(I,J,L,IDTBCPI) / AIRVOL(I,J,L)
-
-               ! Hydrophobic BC [kg/m3]
-               BCPO(I,J,L) = STT(I,J,L,IDTBCPO) / AIRVOL(I,J,L)
-
-               ! Hydrophobic OC [kg/m3] 
-               OCPO(I,J,L) = STT(I,J,L,IDTOCPO) * OCF / AIRVOL(I,J,L)
-
-               IF ( LSOA ) THEN
-
-                  ! Hydrophilic primary OC plus SOA [kg/m3A.  We need
-                  ! to multiply by OCF to account for the mass of other 
-                  ! components which are attached to the OC aerosol.
-                  ! (rjp, bmy, 7/15/04)
-                  OCPI(I,J,L) = ( STT(I,J,L,IDTOCPI) * OCF 
-     &                        +   STT(I,J,L,IDTSOA1)
-     &                        +   STT(I,J,L,IDTSOA2)
-     &                        +   STT(I,J,L,IDTSOA3)  ) / AIRVOL(I,J,L)
- 
-               ELSE
-
-                  ! Hydrophilic primary and SOA OC [kg/m3].   We need
-                  ! to multiply by OCF to account for the mass of other 
-                  ! components which are attached to the OC aerosol.
-                  ! (rjp, bmy, 7/15/04)
-                  OCPI(I,J,L) = STT(I,J,L,IDTOCPI) * OCF / AIRVOL(I,J,L)
-                  
-               ENDIF
-
-               ! Now avoid division by zero (bmy, 4/20/04)
-               BCPI(I,J,L) = MAX( BCPI(I,J,L), 1d-35 )
-               OCPI(I,J,L) = MAX( OCPI(I,J,L), 1d-35 )
-               BCPO(I,J,L) = MAX( BCPO(I,J,L), 1d-35 )
-               OCPO(I,J,L) = MAX( OCPO(I,J,L), 1d-35 )
-            ENDIF
-
-            !===========================================================
-            ! Full chemistry with dust aerosol turned on.
-            !
-            ! Note, we can do better than this! Currently we carry 4 
-            ! dust tracers...but het. chem and fast-j use 7 dust bins 
-            ! hardwired from Ginoux.
-            !
-            ! Now, I apportion the first dust tracer into four smallest 
-            ! dust bins equally in mass for het. chem and fast-j. 
-            ! 
-            ! Maybe we need to think about chaning our fast-j and het. 
-            ! chem to use just four dust bins or more flexible 
-            ! calculations depending on the number of dust bins. 
-            ! (rjp, 03/27/04)
-            !===========================================================
-            IF ( LDUST ) THEN
-
-               ! Lump 1st dust tracer for het chem
-               DO N = 1, 4
-                  SOILDUST(I,J,L,N) = 
-     &                 0.25d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
-               ENDDO
-
-               ! Other hetchem bins
-               SOILDUST(I,J,L,5) = STT(I,J,L,IDTDST2) / AIRVOL(I,J,L)
-               SOILDUST(I,J,L,6) = STT(I,J,L,IDTDST3) / AIRVOL(I,J,L)
-               SOILDUST(I,J,L,7) = STT(I,J,L,IDTDST4) / AIRVOL(I,J,L)
-            ENDIF
-
-            !===========================================================
-            ! Sea salt tracers
-            !===========================================================
-            IF ( LSSALT ) THEN
-
-               ! Accumulation mode seasalt aerosol [kg/m3]
-               SALA(I,J,L) = STT(I,J,L,IDTSALA) / AIRVOL(I,J,L)
-            
-               ! Coarse mode seasalt aerosol [kg/m3]
-               SALC(I,J,L) = STT(I,J,L,IDTSALC) / AIRVOL(I,J,L)
-
-               ! Avoid division by zero
-               SALA(I,J,L) = MAX( SALA(I,J,L), 1d-35 )
-               SALC(I,J,L) = MAX( SALC(I,J,L), 1d-35 )
-            ENDIF
-
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
+         ! Get concentrations of aerosols in [kg/m3] 
+         ! for FAST-J and optical depth diagnostics
+         CALL AEROSOL_CONC
 
       ENDIF
 
@@ -522,7 +500,7 @@
       ! splits up family tracers like NOx and Ox into individual
       ! chemical species for SMVGEAR.
       !=================================================================
-      CALL GASCONC( FIRSTCHEM, STT, NTRACE, XNUMOL, LPAUSE, FRCLND )
+      CALL GASCONC( FIRSTCHEM, N_TRACERS, STT, XNUMOL, LPAUSE, FRCLND )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after GASCONC' )
@@ -540,13 +518,13 @@
       !=================================================================
       ! Call RDAER -- computes aerosol optical depths
       !=================================================================
-      !-----------------------------------------------------------------
-      ! Prior to 4/20/04:
-      !CALL RDAER( MONTH, YEAR, SO4_NH4_NIT, BCPI, BCPO, OCPI, OCPO )
-      !-----------------------------------------------------------------
-      CALL RDAER( MONTH, YEAR, SO4_NH4_NIT, 
-     &            BCPI,  BCPO, OCPI, 
-     &            OCPO,  SALA, SALC )
+!------------------------------------------------
+! Prior to 7/20/04:
+!      CALL RDAER( MONTH, YEAR, SO4_NH4_NIT, 
+!     &            BCPI,  BCPO, OCPI, 
+!     &            OCPO,  SALA, SALC )
+!------------------------------------------------
+      CALL RDAER( MONTH, YEAR )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after RDAER' )
@@ -581,9 +559,9 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after CHEM' )
 
       !=================================================================
-      ! Call LUMP which LUMPS THE SPECIES TOGETHER.
+      ! Call LUMP which lumps the species together
       !=================================================================
-      CALL LUMP( NTRACE, XNUMOL, STT )
+      CALL LUMP( N_TRACERS, XNUMOL, STT )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after LUMP' )
@@ -592,21 +570,27 @@
       ! Call OHSAVE which saves info on OZONE, OH, AND NO concentrations 
       !=================================================================
       IF ( IDTNOX /= 0 .AND. IDTOX /= 0 ) THEN
-         CALL OHSAVE( XNUMOL, STT,     FRACO3, FRACNO,  FRACNO2, 
-     &                SAVEOH, SAVEHO2, SAVENO, SAVENO2, SAVENO3 )
-
+         CALL OHSAVE( N_TRACERS, XNUMOL,  STT,    FRACO3, 
+     &                FRACNO,    FRACNO2, SAVEOH, SAVEHO2, 
+     &                SAVENO,    SAVENO2, SAVENO3 )
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after OHSAVE' )
       ENDIF
 
       !=================================================================
-      ! Call PLSAVE:  Chemical prod-loss diagnostic (bey-02/99)
+      ! Save quantities for computing mean OH lifetime
       !=================================================================
-      IF ( NFAM > 0 ) THEN
-         CALL PLSAVE 
+      CALL DO_DIAG_OH
+      
+      !=================================================================
+      ! Save production and loss for chemical families.  Also save
+      ! P(Ox) and L(Ox) for a future tagged Ox run (if necessary).
+      !=================================================================
+      IF ( LFAMILY ) THEN
+         CALL DO_DIAG_PL
 
          !### Debug
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after PLSAVE' )
+         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after DO_DIAG_PL' )
       ENDIF
       
       !=================================================================

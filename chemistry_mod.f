@@ -1,9 +1,9 @@
-! $Id: chemistry_mod.f,v 1.8 2004/05/03 14:46:15 bmy Exp $
+! $Id: chemistry_mod.f,v 1.9 2004/09/21 18:04:09 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
 !  Module CHEMISTRY_MOD is used to call the proper chemistry subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 4/20/04)
+!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 7/20/04)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -16,19 +16,23 @@
 !  (3 ) carbon_mod.f       : Module containing routines for carbon arsl chem.
 !  (4 ) ch3i_mod.f         : Module containing routines for CH3I chemistry
 !  (5 ) dao_mod.f          : Module containing arrays for DAO met fields
-!  (6 ) drydep_mod.f       : Module containing GEOS-CHEM drydep routines
-!  (7 ) dust_mod.f         : Module containing routines for dust arsl chem.
-!  (8 ) error_mod.f        : Module containing NaN and error checks
-!  (9 ) global_ch4_mod.f   : Module containing routines for CH4 chemistry
-!  (10) Kr85_mod.f         : Module containing routines for Kr85 chemistry
-!  (11) RnPbBe_mod.f       : Module containing routines for Rn-Pb-Be chemistry
-!  (12) rpmares_mod.f      : Module containing routines for arsl phase equilib.
-!  (13) seasalt_mod.f      : Module containing routines for seasalt chemistry
-!  (13) sulfate_mod.f      : Module containing routines for sulfate chemistry
-!  (14) tagged_co_mod.f    : Module containing routines for Tagged CO chemistry
-!  (15) tagged_ox_mod.f    : Module containing routines for Tagged Ox chemistry
-!  (16) time_mod.f         : Module containing routines to compute time & date
-!  (17) tracerid_mod.f     : Module containing pointers to tracers & emissions
+!  (6 ) diag20_mod.f       : Module containing routines to save P(Ox), L(Ox)
+!  (7 ) diag65_mod.f       : Module containing routines for prod/loss diag's
+!  (8 ) drydep_mod.f       : Module containing GEOS-CHEM drydep routines
+!  (9 ) dust_mod.f         : Module containing routines for dust arsl chem.
+!  (10) error_mod.f        : Module containing NaN and error checks
+!  (11) global_ch4_mod.f   : Module containing routines for CH4 chemistry
+!  (12) Kr85_mod.f         : Module containing routines for Kr85 chemistry
+!  (13) logical_mod.f      : Module containing GEOS-CHEM logical switches
+!  (14) RnPbBe_mod.f       : Module containing routines for Rn-Pb-Be chemistry
+!  (15) rpmares_mod.f      : Module containing routines for arsl phase equilib.
+!  (16) seasalt_mod.f      : Module containing routines for seasalt chemistry
+!  (17) sulfate_mod.f      : Module containing routines for sulfate chemistry
+!  (18) tagged_co_mod.f    : Module containing routines for Tagged CO chemistry
+!  (19) tagged_ox_mod.f    : Module containing routines for Tagged Ox chemistry
+!  (20) time_mod.f         : Module containing routines to compute time & date
+!  (21) tracer_mod.f       : Module containing GEOS-CHEM tracer array STT etc. 
+!  (22) tracerid_mod.f     : Module containing pointers to tracers & emissions
 !
 !  NOTES:
 !  (1 ) Bug fix in DO_CHEMISTRY (bnd, bmy, 4/14/03)
@@ -38,6 +42,8 @@
 !  (5 ) Bug fix: Now also call OPTDEPTH for GEOS-4 (bmy, 1/27/04)
 !  (6 ) Now references "carbon_mod.f" and "dust_mod.f" (rjp, tdf, bmy, 4/5/04)
 !  (7 ) Now references "seasalt_mod.f" (rjp, bec, bmy, 4/20/04)
+!  (8 ) Now references "logical_mod.f", "tracer_mod.f", "diag20_mod.f", and
+!        "diag65_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -54,7 +60,7 @@
 !******************************************************************************
 !  Subroutine DO_CHEMISTRY is the driver routine which calls the appropriate
 !  chemistry subroutine for the various GEOS-CHEM simulations. 
-!  (bmy, 2/11/03, 4/20/04)
+!  (bmy, 2/11/03, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this
@@ -67,12 +73,18 @@
 !        (bmy, 1/27/04)
 !  (5 ) Now calls CHEMCARBON and CHEMDUST to do carbon aerosol & dust 
 !        aerosol chemistry (rjp, tdf, bmy, 4/2/04)
-!  (5 ) Now calls CHEMSEASALT to do seasalt aerosol chemistry 
+!  (6 ) Now calls CHEMSEASALT to do seasalt aerosol chemistry 
 !        (rjp, bec, bmy, 4/20/04)
+!  (7 ) Now references "logical_mod.f" & "tracer_mod.f".  Now references
+!        AEROSOL_CONC and RDAER from "aerosol_mod.f".  Now includes
+!        "CMN_DIAG" and "comode.h".  Also call READER, READCHEM, and INPHOT 
+!        to initialize the FAST-J arrays so that we can save out AOD's to the 
+!        ND21 diagnostic for offline runs. (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ACETONE_MOD,     ONLY : OCEAN_SINK_ACET
+      USE AEROSOL_MOD,     ONLY : AEROSOL_CONC, RDAER
       USE C2H6_MOD,        ONLY : CHEMC2H6
       USE CARBON_MOD,      ONLY : CHEMCARBON
       USE CH3I_MOD,        ONLY : CHEMCH3I
@@ -83,8 +95,8 @@
       USE ERROR_MOD,       ONLY : DEBUG_MSG
       USE GLOBAL_CH4_MOD,  ONLY : CHEMCH4
       USE Kr85_MOD,        ONLY : CHEMKr85
+      USE LOGICAL_MOD
       USE OPTDEPTH_MOD,    ONLY : OPTDEPTH
-      !USE PLANEFLIGHT_MOD, ONLY : PLANEFLIGHT
       USE RnPbBe_MOD,      ONLY : CHEMRnPbBe
       USE RPMARES_MOD,     ONLY : DO_RPMARES
       USE SEASALT_MOD,     ONLY : CHEMSEASALT
@@ -92,12 +104,15 @@
       USE TAGGED_CO_MOD,   ONLY : CHEM_TAGGED_CO
       USE TAGGED_OX_MOD,   ONLY : CHEM_TAGGED_OX
       USE TIME_MOD,        ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
+      USE TRACER_MOD  
       USE TRACERID_MOD,    ONLY : IDTACET
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! NSRCX
-#     include "CMN_SETUP" ! LSULF, LCHEM
 #     include "CMN_DIAG"  ! NDxx flags
+#     include "comode.h"  ! NPHOT
+
+      ! Local variables
+      LOGICAL, SAVE :: FIRST = .TRUE.
 
       !=================================================================
       ! DO_CHEMISTRY begins here!
@@ -107,185 +122,193 @@
 
       ! Compute optical depths (except for CO-OH run)
       ! GEOS-1/GEOS-STRAT: compute from T, CLMO, CLRO, DELP
-      IF ( NSRCX /= 5 .and. NSRCX /= 9 ) THEN
-         CALL OPTDEPTH( LM, CLMOSW, CLROSW, DELP, T, OPTD )
+      IF ( ITS_NOT_COPARAM_OR_CH4() ) THEN
+         CALL OPTDEPTH( LLPAR, CLMOSW, CLROSW, DELP, T, OPTD )
       ENDIF
 
 #elif defined( GEOS_3 ) || defined( GEOS_4 ) 
 
       ! Compute optical depths (except for CO-OH run)
       ! GEOS-2/GEOS-3: Copy OPTDEP to OPTD, also archive diagnostics
-      IF ( NSRCX /= 5 .and. NSRCX /= 9 ) THEN
-         CALL OPTDEPTH( LM, OPTDEP, OPTD )
+      IF ( ITS_NOT_COPARAM_OR_CH4() ) THEN
+         CALL OPTDEPTH( LLPAR, OPTDEP, OPTD )
       ENDIF
 #endif 
+
 
       !=================================================================
       ! If LCHEM=T then call the chemistry subroutines
       !=================================================================
       IF ( LCHEM ) THEN 
+
+         !---------------------------------
+         ! NOx-Ox-HC (w/ or w/o aerosols) 
+         !---------------------------------
+         IF ( ITS_A_FULLCHEM_SIM() ) THEN 
+
+            ! Call SMVGEAR routines
+            CALL CHEMDR
+
+            ! Also do sulfate chemistry
+            IF ( LSULF ) THEN
+
+               ! Get relative humidity
+               CALL MAKE_RH
+
+               ! Do sulfate chemistry
+               CALL CHEMSULFATE
+
+               ! Do aerosol phase equilibrium
+               CALL DO_RPMARES
+            ENDIF
+
+            ! Do carbonaceous aerosol chemistry
+            IF ( LCARB ) CALL CHEMCARBON
+
+            ! Do dust aerosol chemistry
+            IF ( LDUST ) CALL CHEMDUST
+
+            ! Do seasalt aerosol chemistry
+            IF ( LSSALT ) CALL CHEMSEASALT
+
+            ! ND44 drydep fluxes
+            CALL DRYFLX     
+
+            ! ND43 chemical production
+            CALL DIAGOH
+
+            ! Remove acetone ocean sink
+            IF ( IDTACET /= 0 ) THEN
+               CALL OCEAN_SINK_ACET( STT(:,:,1,IDTACET) ) 
+            ENDIF
+
+         !---------------------------------
+         ! Rn-Pb-Be
+         !---------------------------------                 
+         ELSE IF ( ITS_A_RnPbBe_SIM() ) THEN
+
+            CALL CHEMRnPbBe 
+            CALL DRYFLXRnPbBe
                   
-         ! Chemistry breakpoint
-         SELECT CASE ( NSRCX )
+         !---------------------------------
+         ! CH3I
+         !---------------------------------
+         ELSE IF ( ITS_A_CH3I_SIM() ) THEN
+            CALL CHEMCH3I
 
-            !---------------------------------
-            ! Rn-Pb-Be
-            !---------------------------------
-            CASE ( 1  )
-               CALL CHEMRnPbBe 
-               CALL DRYFLXRnPbBe
-                  
-            !---------------------------------
-            ! CH3I
-            !---------------------------------
-            CASE ( 2  ) 
-               CALL CHEMCH3I
+         !---------------------------------            
+         ! HCN
+         !---------------------------------
+         ELSE IF ( ITS_A_HCN_SIM() ) THEN
+            CALL CHEMHCN
 
-            !---------------------------------
-            ! NOx-Ox-HC (w/ or w/o aerosols) 
-            !---------------------------------
-            CASE ( 3 )
+         !---------------------------------
+         ! Tagged O3
+         !---------------------------------
+         ELSE IF ( ITS_A_TAGOX_SIM() ) THEN 
+            CALL CHEM_TAGGED_OX
 
-               ! Call SMVGEAR routines
-               CALL CHEMDR
+         !---------------------------------
+         ! Tagged CO
+         !---------------------------------
+         ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
+            CALL CHEM_TAGGED_CO
 
-               ! Also do sulfate chemistry
-               IF ( LSULF ) THEN
+         !---------------------------------
+         ! C2H6
+         !---------------------------------
+         ELSE IF ( ITS_A_C2H6_SIM() ) THEN
+            CALL CHEMC2H6
 
-                  ! Get relative humidity
-                  CALL MAKE_RH
+         !---------------------------------
+         ! CH4
+         !---------------------------------
+         ELSE IF ( ITS_A_CH4_SIM() ) THEN
 
-                  ! Do sulfate chemistry
-                  CALL CHEMSULFATE
+            ! Only call after the first 24 hours
+            IF ( GET_ELAPSED_MIN() >= GET_TS_CHEM() ) THEN
+               CALL CHEMCH4
+            ENDIF
 
-                  ! Do aerosol phase equilibrium
-                  CALL DO_RPMARES
+         !---------------------------------
+         ! Offline sulfate simulation
+         !---------------------------------
+         ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+
+            ! Get relative humidity for sulfate & diagnostics
+            CALL MAKE_RH
+
+            ! Aerosol optical depth diagnostic
+            IF ( ND21 > 0 ) THEN
+
+               ! Initialize FAST-J quantities for ND21
+               IF ( FIRST ) THEN
+                  CALL READER( FIRST )
+                  CALL READCHEM
+                  CALL INPHOT( LLTROP, NPHOT )
+                  FIRST = .FALSE.
                ENDIF
 
-               ! Do carbonaceous aerosol chemistry
-               IF ( LCARB ) CALL CHEMCARBON
+               ! Compute aerosol concentrations [kg/m3]
+               CALL AEROSOL_CONC
 
-               ! Do dust aerosol chemistry
-               IF ( LDUST ) CALL CHEMDUST
+               ! Compute optical properties & save diagnostic
+               CALL RDAER
+            ENDIF
 
-               ! Do seasalt aerosol chemistry
-               IF ( LSSALT ) CALL CHEMSEASALT
+            ! Do sulfate aerosol chemistry
+            IF ( LSULF ) THEN
 
-               ! ND44 drydep fluxes
-               CALL DRYFLX     
+               !---------------------------
+               ! Prior to 7/20/04:
+               ! Now call this above
+               !! Get relative humidity
+               !CALL MAKE_RH
+               !---------------------------
 
-               ! ND43 chemical production
-               CALL DIAGOH
+               ! Do sulfate chemistry
+               CALL CHEMSULFATE
 
-               ! Remove acetone ocean sink
-               IF ( IDTACET /= 0 ) THEN
-                  CALL OCEAN_SINK_ACET( STT(:,:,1,IDTACET) ) 
-               ENDIF
+               ! Do aerosol phase equilibrium
+               CALL DO_RPMARES
+            ENDIF
+               
+            ! Do carbonaceous aerosol chemistry
+            IF ( LCARB ) CALL CHEMCARBON
 
-               ! ND65 P-L diagnostics
-               IF ( ND65 > 0 ) CALL DIAGPL
+            ! Do dust aerosol chemistry
+            IF ( LDUST ) CALL CHEMDUST
 
-               ! Save P(Ox) and L(Ox) for offline run
-               IF ( ND20 > 0 ) CALL DIAG20
-
-            !---------------------------------            
-            ! HCN
-            !---------------------------------
-            CASE ( 4  ) 
-               CALL CHEMHCN
-
-            !---------------------------------
-            ! Tagged O3
-            !---------------------------------
-            CASE ( 6  ) 
-               CALL CHEM_TAGGED_OX
-
-            !---------------------------------
-            ! Tagged CO
-            !---------------------------------
-            CASE ( 7  )
-               CALL CHEM_TAGGED_CO
-
-            !---------------------------------
-            ! C2H6
-            !---------------------------------
-            CASE ( 8  )
-               CALL CHEMC2H6
-
-            !---------------------------------
-            ! CH4
-            !---------------------------------
-            CASE ( 9  )
-               ! Only call after the first 24 hours
-               IF ( GET_ELAPSED_MIN() >= GET_TS_CHEM() ) THEN
-                  CALL CHEMCH4
-               ENDIF
-
-            !---------------------------------
-            ! Offline sulfate simulation
-            !---------------------------------
-            CASE ( 10 )
-
-               IF ( LSULF ) THEN
-
-                  ! Get relative humidity
-                  CALL MAKE_RH
-
-                  ! Do sulfate chemistry
-                  CALL CHEMSULFATE
-
-                  ! Do aerosol phase equilibrium
-                  CALL DO_RPMARES
-               ENDIF
-
-               ! Do carbonaceous aerosol chemistry
-               IF ( LCARB ) CALL CHEMCARBON
-
-               ! Do dust aerosol chemistry
-               IF ( LDUST ) CALL CHEMDUST
-
-               ! Do seasalt aerosol chemistry
-               IF ( LSSALT ) CALL CHEMSEASALT
-
+            ! Do seasalt aerosol chemistry
+            IF ( LSSALT ) CALL CHEMSEASALT
+               
 !-----------------------------------------------------------------------------
-! Prior 
+! Prior to 7/19/04:
+!
+!        ELSE IF ( ITS_A_COPARAM_SIM() ) THEN    
+!
 !#if   defined( LGEOSCO )
-!                  ! Parameterized OH
-!                  ! Call after 24 hours have passed
-!                  CASE ( 5 )
-!                     IF ( NMIN >= NCHEM ) THEN 
-!                        CALL CHEMCO( FIRSTCHEM, LMN, 
-!     &                       NSEASON,   NYMDb, NYMDe )
+!               ! Parameterized OH
+!               ! Call after 24 hours have passed
+!               IF ( NMIN >= NCHEM ) THEN 
+!                     CALL CHEMCO( FIRSTCHEM, LMN, 
+!     &                            NSEASON,   NYMDb, NYMDe )
 !                     ENDIF 
 !#endif
 !-----------------------------------------------------------------------------
+! Prior to 7/19/04:
+! Fully install Kr85 run later (bmy, 7/19/04)
+!            !---------------------------------
+!            ! Kr85   
+!            !---------------------------------
+!            CASE ( 12 )
+!               CALL CHEMKr85
+!-----------------------------------------------------------------------------
+         ENDIF
 
-            !---------------------------------
-            ! Kr85   
-            !---------------------------------
-            CASE ( 12 )
-               CALL CHEMKr85
-
-         END SELECT
-                  
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CHEMISTRY' )
       ENDIF
-
-      !-----------------------------------------------------------------------
-      ! Prior to 4/22/04:
-      ! Now call this from "main.f", after wetdep, since we need to save
-      ! out soluble tracers for ICARTT (bmy, 4/22/04)
-      !!=================================================================
-      !! Call the planeflight diagnostic
-      !!=================================================================
-      !IF ( ND40 > 0 ) THEN
-      !   CALL PLANEFLIGHT
-      !
-      !   !### Debug
-      !   IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a PLANEFLIGHT' )
-      !ENDIF
-      !-----------------------------------------------------------------------
          
       ! Return to calling program
       END SUBROUTINE DO_CHEMISTRY

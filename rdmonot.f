@@ -1,10 +1,10 @@
-! $Id: rdmonot.f,v 1.1 2003/06/30 20:26:06 bmy Exp $
+! $Id: rdmonot.f,v 1.2 2004/09/21 18:04:17 bmy Exp $
       SUBROUTINE RDMONOT( GMONOT )
 !
 !******************************************************************************
 !  Subroutine RDMONOT reads baseline monoterpene emission values from 
 !  Guenther et al. (1995), as a function of Olson landtype area.
-!  (bdf, bmy, 7/6/01, 6/27/02) 
+!  (bdf, bmy, 7/6/01, 7/20/04) 
 !
 !  Arguments as Output:
 !  ============================================================================
@@ -20,15 +20,20 @@
 !  (6 ) Removed obsolete code from March 2002.  Now reference IU_FILE and 
 !        IOERROR from "file_mod.f".  Now use IU_FILE as the file unit number
 !        instead of IUNIT. (bmy, 6/27/02)
+!  (7 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE FILE_MOD, ONLY : IU_FILE, IOERROR
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_SETUP" ! DATA_DIR 
+!----------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! DATA_DIR 
+!----------------------------------------------
 
       ! Arguments
       REAL*8, INTENT(OUT) :: GMONOT(NVEGTYPE)

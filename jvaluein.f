@@ -1,10 +1,11 @@
-! $Id: jvaluein.f,v 1.1 2003/06/30 20:26:02 bmy Exp $
+! $Id: jvaluein.f,v 1.2 2004/09/21 18:04:15 bmy Exp $
       SUBROUTINE JVALUEIN
 C
 C     reads in parameters for jvalue calculation 
 C
-      USE ERROR_MOD, ONLY : ERROR_STOP
-
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      
       IMPLICIT NONE
 
 C**********************************************************************
@@ -16,7 +17,11 @@ C**********************************************************************
 
 #     include "CMN_SIZE"
 #     include "comsol.h"
-#     include "CMN_SETUP" ! (bmy, 4/3/02)
+!----------------------------------------------------
+! Prior to 7/20/04:
+! DATA_DIR is now in directory_mod.f (bmy, 7/20/04)
+!#     include "CMN_SETUP" ! (bmy, 4/3/02)
+!----------------------------------------------------
       CHARACTER*8 TITLE
 
 C Standard atmosphere for air density 0-15-30-45-60N, summer.

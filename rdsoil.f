@@ -1,9 +1,9 @@
-! $Id: rdsoil.f,v 1.1 2003/06/30 20:26:10 bmy Exp $
+! $Id: rdsoil.f,v 1.2 2004/09/21 18:04:17 bmy Exp $
       SUBROUTINE RDSOIL
 !
 !******************************************************************************
 !  Subroutine RDSOIL reads in soiltype data, fertilizer data, and monthly
-!  soil precipitation data. (yhw, gmg, djj, bmy, 1994, 2/11/03)
+!  soil precipitation data. (yhw, gmg, djj, bmy, 1994, 7/20/04)
 !
 !  RDSOIL is one of the original GEOS-CHEM subroutines, and has its origins
 !  from the GISS-II model that was used at Harvard in the early 90's.  This
@@ -40,19 +40,24 @@
 !        ALPHA platform. (gcc, bmy, 11/6/02)
 !  (5 ) Now use function GET_MONTH from "time_mod.f".  Now make MONTH a local
 !        variable. (bmy, 2/11/03)
+!  (6 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD, ONLY : GET_RES_EXT
-      USE FILE_MOD,  ONLY : IU_FILE, IOERROR
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-      USE TIME_MOD,  ONLY : GET_MONTH
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
+      USE TIME_MOD,      ONLY : GET_MONTH
       
       IMPLICIT NONE
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN"        ! MONTH
-#     include "CMN_SETUP"  ! for DATA_DIR (bmy, 7/6/01)
+!------------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"        ! MONTH
+!#     include "CMN_SETUP"  ! for DATA_DIR (bmy, 7/6/01)
+!------------------------------------------------------------
 #     include "commsoil.h" ! Soil variables
 
       ! Local variables

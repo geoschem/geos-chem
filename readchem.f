@@ -1,10 +1,10 @@
-! $Id: readchem.f,v 1.7 2003/10/01 20:32:22 bmy Exp $
+! $Id: readchem.f,v 1.8 2004/09/21 18:04:17 bmy Exp $
       SUBROUTINE READCHEM 
 !
 !******************************************************************************
 !  Subroutine READCHEM reads species names, chemical rxns, and photolysis 
 !  reactions from the "globchem.dat" chemistry mechanism file for SMVGEAR II.  
-!  (M. Jacobson 1997; bdf, bmy, 5/9/03, 8/7/03)
+!  (M. Jacobson 1997; bdf, bmy, 5/9/03, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Added space in FORMAT strings for more products.  Also now references
@@ -21,11 +21,13 @@
 !  (3 ) Now declare ININT as a local variable instead of being declared w/in 
 !        "comode.h".  Remove reference to IPORD. (bmy, 7/16/03)
 !  (4 ) Now flag the N2O5 hydrolysis rxn for later use. (mje, bmy, 8/7/03)
+!  (5 ) Now references SETJFAM & SETPL from "diag_pl_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DRYDEP_MOD, ONLY : MAXDEP
-      USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
+      USE DRYDEP_MOD,  ONLY : MAXDEP
+      USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
+      USE DIAG_PL_MOD, ONLY : SETJFAM, SETPL
 
       IMPLICIT NONE
 

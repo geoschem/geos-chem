@@ -1,9 +1,9 @@
-! $Id: rdisopt.f,v 1.1 2003/06/30 20:26:05 bmy Exp $
+! $Id: rdisopt.f,v 1.2 2004/09/21 18:04:16 bmy Exp $
       SUBROUTINE RDISOPT( CONVERT )
 !
 !******************************************************************************
 !  Subroutine RDISOPT reads in the baseline emissions for Isoprene, as
-!  a function of Olson land type. (yhw, bmy, 7/6/01, 6/27/02)
+!  a function of Olson land type. (yhw, bmy, 7/6/01, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -20,15 +20,20 @@
 !  (4 ) Deleted obsolete code from March 2002.  Now reference IU_FILE and
 !        IOERROR from "file_mod.f".  Now use IU_FILE instead of IUNIT as
 !        the file unit number. (bmy, 6/27/02)
+!  (5 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE FILE_MOD, ONLY : IU_FILE, IOERROR
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_SETUP" ! DATA_DIR
+!-----------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! DATA_DIR
+!-----------------------------------------------
 
       ! Arguments
       REAL*8, INTENT(OUT) :: CONVERT(NVEGTYPE)

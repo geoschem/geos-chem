@@ -1,28 +1,27 @@
-! $Id: tagged_co_mod.f,v 1.5 2004/03/24 20:52:32 bmy Exp $
+! $Id: tagged_co_mod.f,v 1.6 2004/09/21 18:04:19 bmy Exp $
       MODULE TAGGED_CO_MOD
 !
 !******************************************************************************
 !  Module TAGGED_CO_MOD contains variables and routines used for the 
-!  geographically tagged CO simulation. (bmy, 7/28/00, 12/9/03)
+!  geographically tagged CO simulation. (bmy, 7/28/00, 7/20/04)
 !
 !  Module Variables:
 !  ============================================================================
 !  (1 ) BB_REGION   : Array for geographic regions for biomass burning CO
 !  (2 ) FF_REGION   : Array for geographic regions for fossil fuel CO
-!  (3 ) IJLOOP_CO   : Array for translating between 2-D and 1-D array indices
-!  (4 ) SUMISOPCO   : Array for production of CO from Isoprene
-!  (5 ) SUMMONOCO   : Array for production of CO from Monoterpenes
-!  (6 ) SUMCH3OHCO  : Array for production of CO from CH3OH (methanol)
-!  (7 ) SUMACETCO   : Array for production of CO from Acetone
-!  (8 ) EMACET      : Array for hold monthly mean acetone emissions
-!  (9 ) CO_PRODS    : Array for P(CO) from CH4      in the stratosphere
-!  (10) CO_LOSSS    : Array for L(CO) from CO  + OH in the stratosphere
-!  (11) FMOL_CO     : molecular weight of CO
-!  (12) XNUMOL_CO   : molec CO / kg CO
-!  (13) FMOL_CO     : molecular weight of ISOP
-!  (14) XNUMOL_CO   : molec ISOP / kg ISOP
-!  (15) FMOL_MONO   : molecular weight of MONOTERPENES
-!  (16) XNUMOL_MONO : molec MONOTERPENES / kg MONOTERPENES
+!  (3 ) SUMISOPCO   : Array for production of CO from Isoprene
+!  (4 ) SUMMONOCO   : Array for production of CO from Monoterpenes
+!  (5 ) SUMCH3OHCO  : Array for production of CO from CH3OH (methanol)
+!  (6 ) SUMACETCO   : Array for production of CO from Acetone
+!  (7 ) EMACET      : Array for hold monthly mean acetone emissions
+!  (8 ) CO_PRODS    : Array for P(CO) from CH4      in the stratosphere
+!  (9 ) CO_LOSSS    : Array for L(CO) from CO  + OH in the stratosphere
+!  (10) FMOL_CO     : molecular weight of CO
+!  (11) XNUMOL_CO   : molec CO / kg CO
+!  (12) FMOL_CO     : molecular weight of ISOP
+!  (13) XNUMOL_CO   : molec ISOP / kg ISOP
+!  (14) FMOL_MONO   : molecular weight of MONOTERPENES
+!  (15) XNUMOL_MONO : molec MONOTERPENES / kg MONOTERPENES
 !
 !  Module Routines:
 !  ============================================================================
@@ -39,19 +38,23 @@
 !
 !  GEOS-CHEM modules referenced by tagged_co_mod.f
 !  ============================================================================
-!  (1 ) bpch2_mod.f      : Module containing routines for binary punch file I/O
-!  (2 ) diag_mod.f       : Module containing GEOS-CHEM diagnostic arrays
-!  (3 ) dao_mod.f        : Module containing arrays for DAO met fields
-!  (4 ) error_mod.f      : Module containing I/O error and NaN check routines
-!  (5 ) grid_mod.f       : Module containing horizontal grid information
-!  (6 ) time_mod.f       : Module containing routines for computing time & date
-!  (7 ) biofuel_mod.f    : Module containing routines to read biofuel emissions
-!  (8 ) biomass_mod.f    : Module containing routines to read biomass emissions
+!  (1 ) biofuel_mod.f    : Module containing routines to read biofuel emissions
+!  (2 ) biomass_mod.f    : Module containing routines to read biomass emissions
+!  (3 ) bpch2_mod.f      : Module containing routines for binary punch file I/O
+!  (4 ) dao_mod.f        : Module containing arrays for DAO met fields
+!  (5 ) diag_mod.f       : Module containing GEOS-CHEM diagnostic arrays
+!  (6 ) diag_pl_mod.f    : Module containing routines for prod & loss diag's
+!  (7 ) directory_mod.f  : Module containing GEOS-CHEM data & met field dirs
+!  (8 ) error_mod.f      : Module containing I/O error and NaN check routines
 !  (9 ) geia_mod         : Module containing routines to read anthro emissions
 !  (10) global_oh_mod.f  : Module containing routines to read 3-D OH field
 !  (11) global_nox_mod.f : Module containing routines to read 3-D NOx field
 !  (12) global_ch4_mod.f : Module containing routines to read 3-D CH4 field
-!  (13) pressure_mod.f   : Module containing routines to compute P(I,J,L)
+!  (13) grid_mod.f       : Module containing horizontal grid information
+!  (14) logical_mod.f    : Module containing GEOS-CHEM logical switches
+!  (15) pressure_mod.f   : Module containing routines to compute P(I,J,L)
+!  (16) time_mod.f       : Module containing routines for computing time & date
+!  (17) tracer_mod.f     : Module containing GEOS-CHEM tracer array STT etc.
 ! 
 !  Tagged CO Tracers (you can modify these as needs be!)
 !  ============================================================================
@@ -110,6 +113,8 @@
 !  (22) Bug fix for NTAU in EMISS_TAGGED_CO.  Bug fix for FILENAME in routine
 !        READ_PCO_LCO_STRAT. (ave, bnd, bmy, 6/3/03)
 !  (23) Updated arg list in call to EMISOP in EMISS_TAGGED_CO (bmy, 12/9/03)
+!  (24) Now references "directory_mod.f", "logical_mod.f", "tracer_mod.f".
+!        Now remove IJLOOP_CO. (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -120,7 +125,12 @@
       !=================================================================
 
       ! PRIVATE module variables
-      PRIVATE BB_REGION, FF_REGION,   IJLOOP_CO, SUMCH3OHCO
+      !-------------------------------------------------------
+      ! Prior to 7/20/04:
+      ! Now remove IJLOOP_CO (bmy, 7/20/04)
+      !PRIVATE BB_REGION, FF_REGION,   IJLOOP_CO, SUMCH3OHCO
+      !-------------------------------------------------------
+      PRIVATE BB_REGION, FF_REGION,   SUMCH3OHCO
       PRIVATE SUMISOPCO, SUMMONOCO,   SUMACETCO, EMACET
       PRIVATE CO_PRODS,  CO_LOSSS,    FMOL_CO,   XNUMOL_CO
       PRIVATE FMOL_ISOP, XNUMOL_ISOP, FMOL_MONO, XNUMOL_MONO      
@@ -136,7 +146,10 @@
       !=================================================================
       INTEGER, ALLOCATABLE :: BB_REGION(:,:)
       INTEGER, ALLOCATABLE :: FF_REGION(:,:)
-      INTEGER, ALLOCATABLE :: IJLOOP_CO(:,:)
+      !-------------------------------------------
+      ! Prior to 7/20/04:
+      !INTEGER, ALLOCATABLE :: IJLOOP_CO(:,:)
+      !-------------------------------------------
       REAL*8,  ALLOCATABLE :: SUMCH3OHCO(:,:)
       REAL*8,  ALLOCATABLE :: SUMISOPCO(:,:)
       REAL*8,  ALLOCATABLE :: SUMMONOCO(:,:)
@@ -222,17 +235,17 @@
             
             ! Region #3 -- European FF CO (1st sub-box)
             ELSE IF ( ( X >= -17.5 .and. X < 72.5 )  .and. 
-     &              ( Y >=  36.0 .and. Y < 45.0 ) ) THEN
+     &                ( Y >=  36.0 .and. Y < 45.0 ) ) THEN
                REGION(I,J) = 3
 
             ! Region #3 -- European FF CO (2nd sub-box)
             ELSE IF ( ( X >= -17.5 .and. X < 172.5 )  .and. 
-     &              ( Y >=  45.0 .and. Y <  88.0 ) ) THEN
+     &                ( Y >=  45.0 .and. Y <  88.0 ) ) THEN
                REGION(I,J) = 3
 
             ! Region #4 -- Asian FF CO (1st sub-box) 
             ELSE IF ( ( X >= 70.0 .and. X < 152.5 )  .and.
-     &              ( Y >=  8.0 .and. Y <  45.0 ) ) THEN
+     &                ( Y >=  8.0 .and. Y <  45.0 ) ) THEN
                REGION(I,J) = 4
    
             ! Region #5 -- FF CO from everywhere else
@@ -345,7 +358,7 @@
 !
 !******************************************************************************
 !  Subroutine EMISS_TAGGED_CO reads in CO emissions for the Tagged CO run
-!  (bey, bdf, bnd, bmy, 7/21/00, 12/9/03)
+!  (bey, bdf, bnd, bmy, 7/21/00, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Adapted from "emiss_co.f" (bmy, 7/2100)
@@ -386,6 +399,9 @@
 !        "grid_mod.f".  I0 and J0 are now local variables. (bmy, 2/11/03)
 !  (15) Bug fix: NTAU should be the integer value of TAU (bmy, 6/10/03)
 !  (16) Now pass I, J to EMISOP (bmy, 12/9/03)
+!  (17) Now reference LSPLIT, LANTHRO, LBIOMASS, & LBIOFUEL from 
+!        "logical_mod.f".  Now reference STT from "tracer_mod.f".  Now replace
+!        IJLOOP_CO w/ an analytic function. (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -395,17 +411,29 @@
       USE DIAG_MOD,     ONLY : AD29,        AD46
       USE GEIA_MOD
       USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET, GET_AREA_CM2
+      !------------------------------------------------------------------
+      ! Prior to 7/20/04:
+      !USE LOGICAL_MOD,  ONLY : LSPLIT, LFOSSIL, LBIONOX, LWOODCO
+      !------------------------------------------------------------------
+      USE LOGICAL_MOD,  ONLY : LSPLIT, LANTHRO, LBIOMASS, LBIOFUEL
       USE TIME_MOD,     ONLY : GET_MONTH,   GET_TAU, 
      &                         GET_YEAR,    GET_TS_EMIS  
+      USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDBCO,       IDBFCO
       
       IMPLICIT NONE
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! STT, NSRCE, MONTH, etc.
+!--------------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"          ! STT, NSRCE, MONTH, etc.
+!--------------------------------------------------------------
 #     include "CMN_O3"       ! FSCALYR, SCNR89, TODH, EMISTCO
 #     include "CMN_DIAG"     ! Diagnostic arrays & switches
-#     include "CMN_SETUP"    ! LSPLIT
+!--------------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"    ! LSPLIT
+!--------------------------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE          :: FIRSTEMISS = .TRUE.
@@ -517,7 +545,11 @@
       !     (bmy, 1/2/01)
       ! (2) Need to save ND29 diagnostics here (bmy, 1/2/01)
       !=================================================================
-      IF ( LFOSSIL ) THEN
+      !-----------------------
+      ! Prior to 7/20/04:
+      !IF ( LFOSSIL ) THEN
+      !-----------------------
+      IF ( LANTHRO ) THEN
 
          ! NTAU is just the integral value of TAU (ave, bmy, 6/10/03)
          NTAU = GET_TAU()
@@ -593,7 +625,11 @@
       ! (2) ND29 diagnostics are saved within routine BIOBURN.
       !      (bmy, 1/3/01)
       !=================================================================
-      IF ( LBIONOX ) THEN 
+      !---------------------
+      ! Prior to 7/20/04:
+      !IF ( LBIONOX ) THEN 
+      !---------------------
+      IF ( LBIOMASS ) THEN
          CALL BIOBURN
 
 !$OMP PARALLEL DO
@@ -637,7 +673,11 @@
       !       biofuel burning array (bmy, 6/8/01).
       ! (3 ) Now add biofuel burning to tagged tracer #13 (bmy, 6/14/01)
       !=================================================================
-      IF ( LWOODCO ) THEN
+      !---------------------
+      ! Prior to 7/20/04:
+      !IF ( LWOODCO ) THEN
+      !---------------------
+      IF ( LBIOFUEL ) THEN
          CALL BIOFUEL_BURN
 
 !$OMP PARALLEL DO
@@ -677,7 +717,11 @@
          DO I = 1, IIPAR
 
             ! 1-D array index 
-            IJLOOP = IJLOOP_CO(I,J)
+            !---------------------------
+            ! Prior to 7/20/04:
+            !IJLOOP = IJLOOP_CO(I,J)
+            !---------------------------
+            IJLOOP = ( (J-1) * IIPAR ) + I
 
             !===========================================================
             ! The CO yields from ISOP, MONOTERPENES, and CH3OH will be
@@ -736,7 +780,7 @@
 !******************************************************************************
 !  Subroutine CHEM_TAGGED_CO performs CO chemistry on geographically
 !  "tagged" CO tracers.  Loss is via reaction with OH. 
-!  (qli, bnd, bdf, bmy, 10/19/99, 2/10/03)
+!  (qli, bnd, bdf, bmy, 10/19/99, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Now do chemistry all the way to the model top. 
@@ -773,29 +817,36 @@
 !  (15) Now replace YLMID(J) with routine GET_YMID of "grid_mod.f".  Now
 !        uses functions GET_TS_CHEM, GET_MONTH, GET_YEAR from the new
 !        "time_mod.f".  (bmy, 2/10/03) 
+!  (16) Now reference STT & N_TRACERS from "tracer_mod.f".  Now references
+!        LSPLIT from "logical_mod.f".  Now references AD65 from 
+!        "diag_pl_mod.f".  Updated comments. (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,        ONLY : AD, AIRVOL, T
-      USE DIAG_MOD,       ONLY : AD65
+      USE DAO_MOD,        ONLY : AD, AIRVOL, T, DELP
+      USE DIAG_PL_MOD,    ONLY : AD65
       USE ERROR_MOD,      ONLY : CHECK_VALUE
-      USE GLOBAL_OH_MOD,  ONLY : GET_GLOBAL_OH, OH
+      USE GLOBAL_OH_MOD,  ONLY : GET_GLOBAL_OH,   OH
       USE GLOBAL_CH4_MOD, ONLY : GET_GLOBAL_CH4
-      USE GLOBAL_NOX_MOD, ONLY : GET_GLOBAL_NOX, BNOX
+      USE GLOBAL_NOX_MOD, ONLY : GET_GLOBAL_NOX,  BNOX
       USE GRID_MOD,       ONLY : GET_YMID
+      USE LOGICAL_MOD,    ONLY : LSPLIT
       USE PRESSURE_MOD,   ONLY : GET_PCENTER
-      USE TIME_MOD,       ONLY : GET_TS_CHEM, GET_MONTH, GET_YEAR
+      USE TIME_MOD,       ONLY : GET_TS_CHEM,     GET_MONTH, GET_YEAR,
+     &                           ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
+      USE TRACER_MOD,     ONLY : N_TRACERS,       STT
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! STT, MONTH, JYEAR
-#     include "CMN_SETUP"    ! LSPLIT
+#     include "CMN"          ! LPAUSE
+!------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"    ! LSPLIT
+!------------------------------------------------------
 #     include "CMN_DIAG"     ! ND65
 
       ! Local variables
       LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
-      INTEGER, SAVE          :: LASTMONTH = -1
-      INTEGER, SAVE          :: LASTYEAR  = -1
-      INTEGER                :: I, J, L, N
+      INTEGER                :: I, J, L, N, MONTH
       REAL*8                 :: ALPHA_CH4, ALPHA_ISOP, ALPHA_MONO
       REAL*8                 :: DTCHEM,    GCO,        PCO   
       REAL*8                 :: STTCO,     KRATE,      CH4
@@ -831,31 +882,29 @@
       !=================================================================
       ! Read in OH, NOx, P(CO), and L(CO) fields for the current month
       !=================================================================
-      IF ( GET_MONTH() /= LASTMONTH ) THEN
+      IF ( ITS_A_NEW_MONTH() ) THEN
+         
+         ! Get current month
+         MONTH = GET_MONTH()
 
          ! Global OH 
-         CALL GET_GLOBAL_OH( GET_MONTH() )
+         CALL GET_GLOBAL_OH( MONTH )
 
          ! Global NOx -- need this to determine 
          ! ALPHA_ISOP which is a function of NOx
-         IF ( ALPHA_ISOP_FROM_NOX ) CALL GET_GLOBAL_NOX( GET_MONTH() )
+         IF ( ALPHA_ISOP_FROM_NOX ) CALL GET_GLOBAL_NOX( MONTH )
             
          ! Read in the loss/production of CO in the stratosphere.
-         CALL READ_PCO_LCO_STRAT( GET_MONTH() )
-
-         ! Save the current month number
-         LASTMONTH = GET_MONTH()
-      
+         CALL READ_PCO_LCO_STRAT( MONTH )
       ENDIF
 
       !=================================================================
       ! Get the yearly and latitudinal gradients for CH4
       ! This only needs to be called once per year
       !=================================================================
-      IF ( GET_YEAR() /= LASTYEAR ) THEN 
+      IF ( ITS_A_NEW_YEAR() ) THEN 
          CALL GET_GLOBAL_CH4( GET_YEAR(), .TRUE., 
      &                        A3090S, A0030S, A0030N, A3090N )
-         LASTYEAR = GET_YEAR()
       ENDIF
 
       !=================================================================
@@ -875,7 +924,7 @@
          YMID = GET_YMID( J )
 
       DO I = 1, IIPAR
-         
+
          !==============================================================
          ! (0) Define useful quantities
          !==============================================================
@@ -894,6 +943,9 @@
          ! (1a) Production of CO by reaction with CH4
          !==============================================================
 
+         ! Initialize
+         CO_CH4 = 0d0
+
          ! Test level for stratosphere or troposphere
          IF ( L >= LPAUSE(I,J) ) THEN 
 
@@ -906,8 +958,6 @@
             
             ! Convert units of CH4RATE from [v/v/s] to [molec CO/cm3]
             CO_CH4 = CH4RATE * DTCHEM * DENS
-            
-         ELSE
 
             !===========================================================
             ! (1a-2) Production of CO from CH4 in the troposphere 
@@ -937,7 +987,7 @@
 
          ! Check CO_CH4 for NaN or Infinity
          CALL CHECK_VALUE( CO_CH4,  (/ I, J, L, 0 /),         
-     *                    'CO_CH4', 'STOP at tagged_co_mod:1' )
+     &                    'CO_CH4', 'STOP at tagged_co_mod:1' )
 
          !==============================================================
          ! (1b) Production of CO from ISOPRENE and METHANOL (CH3OH)
@@ -954,8 +1004,6 @@
             ! Yield of CO from ISOP: 30%, from Miyoshi et al., 1994.
             ! They estimate globally 105 Tg C/yr of CO is produced 
             ! from isoprene oxidation. 
-            !
-            ! Increased this factor from 30% to 50% (bnd, bmy, 1/3/01)
             !-----------------------------------------------------------
             ! We need to scale the Isoprene flux to get the CH3OH 
             ! (methanol) flux.  Currently, the annual isoprene flux in 
@@ -986,7 +1034,13 @@
 
             ! P(CO) from Isoprene Flux = ALPHA_ISOP * Flux(ISOP)
             ! Convert from [molec ISOP/box] to [molec CO/cm3]
-            ! Also account for the fact that ISOP has 5 carbons
+            !
+            ! Units of SUMISOPCO are [atoms C/box/time step]. 
+            ! Division by 5 is necessary to convert to 
+            ! [molec ISOP/box/timestep].
+            !
+            ! Units of ALPHA_ISOP are [molec CO/molec ISOP]
+            ! Units of CO_ISOP are [molec CO/cm3]
             CO_ISOP = SUMISOPCO(I,J) / BOXVL(I,J,L) / 5.d0 * ALPHA_ISOP
 
             ! P(CO) from CH3OH is scaled to Isoprene Flux (see above)
@@ -1148,7 +1202,11 @@
             IF ( LSPLIT ) THEN
 
                ! Loop over regional CO tracers
-               DO N = 2, NTRACE
+               !--------------------
+               ! Prior to 7/20/04:
+               !DO N = 2, NTRACE
+               !--------------------
+               DO N = 2, N_TRACERS
 
                   ! Loss
                   STT(I,J,L,N) = STT(I,J,L,N) * ( 1d0 - CO_OH )
@@ -1203,7 +1261,11 @@
             IF ( LSPLIT ) THEN
 
                ! Loop over regional CO tracers
-               DO N = 2, NTRACE
+               !-------------------
+               ! Prior to 7/20/04:
+               !DO N = 2, NTRACE
+               !-------------------
+               DO N = 2, N_TRACERS
 
                   ! Use tropospheric rate constant 
                   STT(I,J,L,N) = STT(I,J,L,N) *
@@ -1247,23 +1309,23 @@
             AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_OH / DTCHEM )
 
             ! Production of CO from Isoprene [molec CO/cm3/s]
-            N             = NTRACE + 1
+            N             = N_TRACERS + 1
             AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_ISOP / DTCHEM )
 
             ! Production of CO from CH4 [molec CO/cm3/s]
-            N             = NTRACE + 2
+            N             = N_TRACERS + 2
             AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_CH4 / DTCHEM )
 
             ! Production of CO from CH3OH [molec CO/cm3/s]            
-            N             = NTRACE + 3
+            N             = N_TRACERS + 3
             AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_CH3OH / DTCHEM )
 
             ! Production of CO from MONO [molec CO/cm3/s]
-            N             = NTRACE + 4
+            N             = N_TRACERS + 4
             AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_MONO / DTCHEM )    
 
             ! Production of CO from ACET [molec CO/cm3/s]
-            N             = NTRACE + 5 
+            N             = N_TRACERS + 5 
             AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_ACET / DTCHEM )
          ENDIF
       ENDDO
@@ -1280,7 +1342,7 @@
 !
 !******************************************************************************
 !  Function GET_ALPHA_ISOP returns the CO yield from Isoprene (ALPHA_ISOP) 
-!  either as a function of NOx or as a constant. (bnd, bmy, 6/13/01)
+!  either as a function of NOx or as a constant. (bnd, bmy, 6/13/01. 7/20/04)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -1291,6 +1353,7 @@
 !  NOTES:
 !  (1 ) Now make NOx an optional argument (bmy, 8/28/01)
 !  (2 ) Now reference ERROR_STOP from "error_mod.f" (bmy, 10/15/02)
+!  (3 ) Updated comments (bmy, 7/20/04)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -1334,9 +1397,10 @@
    
       ELSE
 
-         ! Otherwise, use a 50% yield from Miyoshi et al., 1994.
-         ! They estimate globally 105 Tg C/yr of CO is produced 
+         ! Otherwise, use a 30% yield from Miyoshi et al., 1994.
+         ! They estimate globally 105 Tg C/yr of CO is produced
          ! from isoprene oxidation.
+         ! ALPHA_ISOP = (0.3 molec CO/atoms C) x (5 atoms C/molec ISOP)
          ALPHA_ISOP = 1.5d0
 
       ENDIF
@@ -1350,7 +1414,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_PCO_LCO_STRAT reads production and destruction
-!  rates for CO in the stratosphere. (bnd, bmy, 9/13/00, 6/30/03)
+!  rates for CO in the stratosphere. (bnd, bmy, 9/13/00, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Now use IOS /= 0 to trap both I/O errors and EOF. (bmy, 9/13/00)
@@ -1364,14 +1428,19 @@
 !  (5 ) Updated comments (bmy, 2/15/02)
 !  (6 ) Update FILENAME so that it looks in the "pco_lco_200203" subdirectory
 !        of DATA_DIR. (bnd, bmy, 6/30/03)
+!  (7 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE TRANSFER_MOD, ONLY : TRANSFER_ZONAL
+      USE DIRECTORY_MOD, ONLY : DATA_DIR 
+      USE TRANSFER_MOD,  ONLY : TRANSFER_ZONAL
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_SETUP"  ! DATA_DIR
+!---------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"  ! DATA_DIR
+!---------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -1438,7 +1507,7 @@
 !  stratosphere; in these layers only transport is simulated (i.e., no 
 !  chemistry).  For a long simulation, a buildup of high concentrations 
 !  could occur causing the stratosphere to become a significant source of CO. 
-!  (bnd, bmy, 6/13/01, 2/15/02)
+!  (bnd, bmy, 6/13/01, 7/20/04)
 !
 !  Arguments as Input: 
 !  ============================================================================
@@ -1462,10 +1531,14 @@
 !        lowest stratospheric level!
 !  (4 ) Added to module "tagged_co_mod.f" (bmy, 6/18/01)
 !  (5 ) Updated comments (bmy, 2/19/02)
+!  (6 ) Removed reference to CMN, it's not needed (bmy, 7/20/04)
 !******************************************************************************
 !
 #     include "CMN_SIZE"       ! Size parameters
-#     include "CMN"            ! STT, LPAUSE
+!--------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"            ! STT, LPAUSE
+!--------------------------------------------------
 
       ! Arguments
       LOGICAL, INTENT(IN)  :: IS_PROD
@@ -1511,15 +1584,20 @@
 !        in call to GET_TAU0.  Use IGLOB,JGLOB in call to READ_BPCH2.
 !        Added array TEMP(IIPAR,JJPAR).  Updated comments. (bmy, 9/28/01)
 !  (5 ) Removed obsolete code from 9/28/01 (bmy, 10/22/01)
+!  (6 ) Now references DATA_DIR from "directory_mod.f"
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! STT 
-#     include "CMN_SETUP" ! DATA_DIR
+!-----------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"       ! STT 
+!#     include "CMN_SETUP" ! DATA_DIR
+!-----------------------------------------------
 
       ! Arguments 
       INTEGER, INTENT(IN) :: THISMONTH
@@ -1579,7 +1657,6 @@
       ! Add acetone from grasslands to direct biogenic emissions
       EMACET(:,:) = EMACET(:,:) + TEMP(:,:)
 
-
       ! Return to calling program
       END SUBROUTINE READ_ACETONE
 
@@ -1589,7 +1666,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_TAGGED_CO allocates memory to module arrays.
-!  (bmy, 7/19/00, 10/15/02)
+!  (bmy, 7/19/00, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Added ISOP96, MONO96, CH3OH96 for GEOS-3 (bnd, bmy, 6/14/01)
@@ -1598,6 +1675,7 @@
 !  (3 ) Now allocate BB_REGION, FF_REGION as (IIPAR,JJPAR) (bmy, 9/28/01)
 !  (4 ) Removed obsolete code from 9/28/01 (bmy, 10/22/01)
 !  (5 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
+!  (6 ) Now remove IJLOOP_CO (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1622,17 +1700,21 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'FF_REGION' )
       FF_REGION = 0
       
-      ! Allocate and initialize IJLOOP_CO -- 1-D array index
-      ALLOCATE( IJLOOP_CO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IJLOOPCO' )         
-     
-      IJLOOP = 0
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         IJLOOP         = IJLOOP + 1
-         IJLOOP_CO(I,J) = IJLOOP
-      ENDDO
-      ENDDO
+      !------------------------------------------------------------
+      ! Prior to 7/20/04:
+      ! Replace IJLOOP_CO w/ an analytical function (bmy, 7/20/04)
+      !! Allocate and initialize IJLOOP_CO -- 1-D array index
+      !ALLOCATE( IJLOOP_CO( IIPAR, JJPAR ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'IJLOOPCO' )         
+      !
+      !IJLOOP = 0
+      !DO J = 1, JJPAR
+      !DO I = 1, IIPAR
+      !   IJLOOP         = IJLOOP + 1
+      !   IJLOOP_CO(I,J) = IJLOOP
+      !ENDDO
+      !ENDDO
+      !------------------------------------------------------------
 
       ! Allocate SUMISOPCO -- array for CO from isoprene
       ALLOCATE( SUMISOPCO( IIPAR, JJPAR ), STAT=AS )
@@ -1684,11 +1766,15 @@
 !  (1 ) Added ISOP96, MONO96, CH3OH96 for GEOS-3 (bnd, bmy, 6/14/01)
 !  (2 ) Removed ISOP96, MONO96, CH3OH96 for GEOS-3, since the new GEOS-3
 !        fields make these no longer necessary (bmy, 8/21/09)
+!  (3 ) Now remove IJLOOP_CO (bmy, 7/20/04)
 !******************************************************************************
 !
       IF ( ALLOCATED( BB_REGION  ) ) DEALLOCATE( BB_REGION  )
       IF ( ALLOCATED( FF_REGION  ) ) DEALLOCATE( FF_REGION  )
-      IF ( ALLOCATED( IJLOOP_CO  ) ) DEALLOCATE( IJLOOP_CO  )
+      !----------------------------------------------------------
+      ! Prior to 7/20/04:
+      !IF ( ALLOCATED( IJLOOP_CO  ) ) DEALLOCATE( IJLOOP_CO  )
+      !----------------------------------------------------------
       IF ( ALLOCATED( SUMISOPCO  ) ) DEALLOCATE( SUMISOPCO  )
       IF ( ALLOCATED( SUMMONOCO  ) ) DEALLOCATE( SUMMONOCO  )
       IF ( ALLOCATED( SUMCH3OHCO ) ) DEALLOCATE( SUMCH3OHCO )

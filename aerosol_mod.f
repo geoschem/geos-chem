@@ -1,32 +1,281 @@
-! $Id: rdaer.f,v 1.3 2004/05/03 14:46:18 bmy Exp $
+! $Id: aerosol_mod.f,v 1.1 2004/09/21 18:04:08 bmy Exp $
+      MODULE AEROSOL_MOD
+!
+!******************************************************************************
+!  Module AEROSOL_MOD contains variables and routines for computing optical
+!  properties for aerosols which are needed for both the FAST-J photolysis
+!  and ND21 optical depth diagnostics.  (bmy, 7/20/04)
+!
+!  Module Variables:
+!  ============================================================================
+!  (1 ) BCPI        (REAL*8) : Hydrophilic black carbon aerosol   [kg/m3]
+!  (2 ) BCPO        (REAL*8) : Hydrophobic black carbon aerosol   [kg/m3]
+!  (3 ) OCPI        (REAL*8) : Hydrophilic organic carbon aerosol [kg/m3]
+!  (4 ) OCPO        (REAL*8) : Hydrophilic organic carbon aerosol [kg/m3]
+!  (5 ) SALA        (REAL*8) : Accumulation mode seasalt aerosol  [kg/m3] 
+!  (6 ) SALC        (REAL*8) : Coarse mode seasalt aerosol        [kg/m3]
+!  (7 ) SO4_NH4_NIT (REAL*8) : Lumped SO4-NH4-NIT aerosol         [kg/m3]
+!  (8 ) SOILDUST    (REAL*8) : Mineral dust aerosol from soils    [kg/m3]
+!
+!  Module Routines:
+!  ============================================================================
+!  (1 ) AEROSOL_CONC    : Computes aerosol conc in [kg/m3] for FAST-J & diags
+!  (2 ) RDAER           : Computes optical properties for aerosls for FAST-J
+!  (3 ) INIT_AEROSOL    : Allocates and zeroes all module arrays
+!  (4 ) CLEANUP_AEROSOL : Deallocates all module arrays
+!
+!  GEOS-CHEM modules referenced by "aerosol_mod.f"
+!  ============================================================================
+!  (1 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
+!  (2 ) comode_mod.f    : Module containing SMVGEAR allocatable arrays
+!  (3 ) dao_mod.f       : Module containing arrays for DAO met fields
+!  (4 ) diag_mod.f      : Module containing GEOS-CHEM diagnostic arrays
+!  (5 ) directory_mod.f : Module containing GEOS-CHEM data & met field dirs
+!  (6 ) error_mod.f     : Module containing I/O error and NaN check routines
+!  (7 ) logical_mod.f   : Module containing GEOS-CHEM logical switches
+!  (8 ) time_mod.f      : Module containing routines for computing time & date
+!  (9 ) tracer_mod.f    : Module containing GEOS-CHEM tracer array STT etc.
+!  (10) tracerid_mod.f  : Module containing pointers to tracers & emissions
+!  (11) transfer_mod.f  : Module containing routines to cast & resize arrays
+!
+!  NOTES:
+!******************************************************************************
+!
+      IMPLICIT NONE
+
+      !=================================================================
+      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
+      ! and routines from being seen outside "aerosol_mod.f"
+      !=================================================================
+
+      ! Make everything PRIVATE ...
+      PRIVATE
+
+      ! ... except these variables ...
+      PUBLIC :: SOILDUST
+
+      ! ... except these routines
+      PUBLIC :: AEROSOL_CONC
+      PUBLIC :: RDAER
+      PUBLIC :: CLEANUP_AEROSOL
+
+      !=================================================================
+      ! MODULE VARIABLES
+      !=================================================================
+      REAL*8, ALLOCATABLE :: BCPI(:,:,:)
+      REAL*8, ALLOCATABLE :: BCPO(:,:,:)
+      REAL*8, ALLOCATABLE :: OCPI(:,:,:)
+      REAL*8, ALLOCATABLE :: OCPO(:,:,:)
+      REAL*8, ALLOCATABLE :: SALA(:,:,:)
+      REAL*8, ALLOCATABLE :: SALC(:,:,:)
+      REAL*8, ALLOCATABLE :: SO4_NH4_NIT(:,:,:)
+      REAL*8, ALLOCATABLE :: SOILDUST(:,:,:,:)
+
+      !=================================================================
+      ! MODULE ROUTINES -- follow below the "CONTAINS" statement
+      !=================================================================
+      CONTAINS
+
 !------------------------------------------------------------------------------
-! Prior to 4/20/04:
-!      SUBROUTINE RDAER( THISMONTH, THISYEAR, SO4_NH4_NIT, 
-!     &                  BCPI,      BCPO,     OCPI,    OCPO )
+      
+      SUBROUTINE AEROSOL_CONC
+!
+!******************************************************************************
+!  Subroutine AEROSOL_CONC computes aerosol concentrations in kg/m3 from
+!  the tracer mass in kg in the STT array.  These are needed to compute
+!  optical properties for photolysis and for the optical depth diagnostics.
+!  (bmy, 7/20/04)
+!  
+!  This code was originally included in "chemdr.f", but the same computation 
+!  also needs to be done for offline aerosol simulations.  Therefore, we have 
+!  split this code off into a separate subroutine which can be called by both 
+!  fullchem and offline aerosol simulations.
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE DAO_MOD,     ONLY : AIRVOL
+      USE LOGICAL_MOD, ONLY : LCARB, LDUST, LSOA, LSSALT, LSULF
+      USE TRACER_MOD,  ONLY : STT
+      USE TRACERID_MOD 
+
+#     include "CMN_SIZE"  ! Size parameters
+
+      ! Local variables
+      LOGICAL, SAVE      :: FIRST = .TRUE. 
+      INTEGER            :: I, J, L, N
+
+      ! We carry carbon mass only in OC and here need to multiply by
+      ! 1.4 to account for the mass of the other chemical components
+      ! (rjp, bmy, 7/15/04)
+      REAL*8,  PARAMETER :: OCF = 1.4d0
+
+      !=================================================================
+      ! AEROSOL_CONC begins here!
+      !=================================================================
+
+      ! First-time initialization
+      IF ( FIRST ) THEN
+         CALL INIT_AEROSOL
+         FIRST = .FALSE.
+      ENDIF
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+      
+         !==============================================================
+         ! S U L F A T E   A E R O S O L S
+         !
+         ! Dump hydrophilic aerosols into one array that will be passed 
+         ! to RDAER and then used for heterogeneous chemistry as well 
+         ! as photolysis rate calculations interatively. 
+         !
+         ! For the full-chemistry run, If LSULF=F, then we read these 
+         ! aerosol data from Mian's simulation.  If LSULF=T then we use 
+         ! the online tracers.
+         !
+         ! Now assume that all sulfate, ammonium, and nitrate are 
+         ! hydrophilic but sooner or later we can pass only hydrophilic 
+         ! aerosols from the thermodynamic calculations for this 
+         ! purpose.  This dumping should be done before calling INITGAS, 
+         ! which converts the unit of STT from kg/box to molec/cm3.
+         !
+         ! Units of SO4_NH4_NIT are [kg/m3].  (rjp, bmy, 3/23/03)
+         !==============================================================
+         IF ( LSULF ) THEN
+
+            ! Compute SO4 aerosol concentration [kg/m3]
+            SO4_NH4_NIT(I,J,L) = ( STT(I,J,L,IDTSO4) + 
+     &                             STT(I,J,L,IDTNH4) +
+     &                             STT(I,J,L,IDTNIT) ) / AIRVOL(I,J,L)
+
+         ENDIF
+
+         !==============================================================
+         ! C A R B O N  &  2 n d A R Y   O R G A N I C   A E R O S O L S
+         !
+         ! Compute hydrophilic and hydrophobic BC and OC in [kg/m3]
+         ! Also add online 2ndary organics if necessary
+         !==============================================================
+         IF ( LCARB ) THEN
+
+            ! Hydrophilic BC [kg/m3]
+            BCPI(I,J,L) = STT(I,J,L,IDTBCPI) / AIRVOL(I,J,L)
+
+            ! Hydrophobic BC [kg/m3]
+            BCPO(I,J,L) = STT(I,J,L,IDTBCPO) / AIRVOL(I,J,L)
+
+            ! Hydrophobic OC [kg/m3] 
+            OCPO(I,J,L) = STT(I,J,L,IDTOCPO) * OCF / AIRVOL(I,J,L)
+
+            IF ( LSOA ) THEN
+
+               ! Hydrophilic primary OC plus SOA [kg/m3A.  We need
+               ! to multiply by OCF to account for the mass of other 
+               ! components which are attached to the OC aerosol.
+               ! (rjp, bmy, 7/15/04)
+               OCPI(I,J,L) = ( STT(I,J,L,IDTOCPI) * OCF 
+     &                     +   STT(I,J,L,IDTSOA1)
+     &                     +   STT(I,J,L,IDTSOA2)
+     &                     +   STT(I,J,L,IDTSOA3)  ) / AIRVOL(I,J,L)
+ 
+            ELSE
+
+               ! Hydrophilic primary and SOA OC [kg/m3].   We need
+               ! to multiply by OCF to account for the mass of other 
+               ! components which are attached to the OC aerosol.
+               ! (rjp, bmy, 7/15/04)
+               OCPI(I,J,L) = STT(I,J,L,IDTOCPI) * OCF / AIRVOL(I,J,L)
+                  
+            ENDIF
+
+            ! Now avoid division by zero (bmy, 4/20/04)
+            BCPI(I,J,L) = MAX( BCPI(I,J,L), 1d-35 )
+            OCPI(I,J,L) = MAX( OCPI(I,J,L), 1d-35 )
+            BCPO(I,J,L) = MAX( BCPO(I,J,L), 1d-35 )
+            OCPO(I,J,L) = MAX( OCPO(I,J,L), 1d-35 )
+         
+         ENDIF
+            
+         !===========================================================
+         ! M I N E R A L   D U S T   A E R O S O L S
+         !
+         ! NOTE: We can do better than this! Currently we carry 4 
+         ! dust tracers...but het. chem and fast-j use 7 dust bins 
+         ! hardwired from Ginoux.
+         !
+         ! Now, I apportion the first dust tracer into four smallest 
+         ! dust bins equally in mass for het. chem and fast-j. 
+         ! 
+         ! Maybe we need to think about chaning our fast-j and het. 
+         ! chem to use just four dust bins or more flexible 
+         ! calculations depending on the number of dust bins. 
+         ! (rjp, 03/27/04)
+         !===========================================================
+         IF ( LDUST ) THEN
+
+            ! Lump 1st dust tracer for het chem
+            DO N = 1, 4
+               SOILDUST(I,J,L,N) = 
+     &              0.25d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+            ENDDO
+
+            ! Other hetchem bins
+            SOILDUST(I,J,L,5) = STT(I,J,L,IDTDST2) / AIRVOL(I,J,L)
+            SOILDUST(I,J,L,6) = STT(I,J,L,IDTDST3) / AIRVOL(I,J,L)
+            SOILDUST(I,J,L,7) = STT(I,J,L,IDTDST4) / AIRVOL(I,J,L)
+            
+         ENDIF
+
+         !===========================================================
+         ! S E A S A L T   A E R O S O L S
+         !
+         ! Compute accumulation & coarse mode concentration [kg/m3]
+         !===========================================================
+         IF ( LSSALT ) THEN
+
+            ! Accumulation mode seasalt aerosol [kg/m3]
+            SALA(I,J,L) = STT(I,J,L,IDTSALA) / AIRVOL(I,J,L)
+            
+            ! Coarse mode seasalt aerosol [kg/m3]
+            SALC(I,J,L) = STT(I,J,L,IDTSALC) / AIRVOL(I,J,L)
+
+            ! Avoid division by zero
+            SALA(I,J,L) = MAX( SALA(I,J,L), 1d-35 )
+            SALC(I,J,L) = MAX( SALC(I,J,L), 1d-35 )
+
+         ENDIF
+
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Return to calling program
+      END SUBROUTINE AEROSOL_CONC
+
 !------------------------------------------------------------------------------
-      SUBROUTINE RDAER( THISMONTH, THISYEAR, SO4_NH4_NIT, 
-     &                  BCPI,      BCPO,     OCPI,    
-     &                  OCPO,      SALA,     SALC )
+
+      SUBROUTINE RDAER( MONTH, YEAR )
 !
 !******************************************************************************
 !  Subroutine RDAER reads global aerosol concentrations as determined by
 !  Mian Chin.  Calculates optical depth at each level for "set_prof.f".
 !  Also calculates surface area for heterogeneous chemistry.  It uses aerosol
 !  parameters in FAST-J input file "jv_spec.dat" for these calculations.
-!  (rvm, rjp, tdf, bmy, 11/04/01, 4/20/04)
+!  (rvm, rjp, tdf, bmy, 11/04/01, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) THISMONTH   (INTEGER) : Number of the current month (1-12)
 !  (2 ) THISYEAR    (INTEGER) : 4-digit year value (e.g. 1997, 2002)
-!  (3 ) SO4_NH4_NIT (REAL*8 ) : Online lumped SO4, NH4, NIT aerosol [kg/m3]
-!  (4 ) BCPI        (REAL*8 ) : Online Hydrophilic BC aerosol       [kg/m3]
-!  (5 ) BCPO        (REAL*8 ) : Online Hydrophobic BC aerosol       [kg/m3]
-!  (6 ) OCPI        (REAL*8 ) : Online Hydrophilic OC aerosol       [kg/m3]
-!  (7 ) OCPO        (REAL*8 ) : Online Hydrophobic OC aerosol       [kg/m3]
-!  (8 ) SALA        (REAL*8 ) : Online accum  mode seasalt aerosol  [kg/m3]
-!  (9 ) SALC        (REAL*8 ) : Online coarse mode seasalt aerosol  [kg/m3]
-!
+
 !  NOTES:
 !  (1 ) At the point in which "rdaer.f" is called, ABSHUM is actually
 !        absolute humidity and not relative humidity (rvm, bmy, 2/28/02)
@@ -51,39 +300,54 @@
 !        which online/offline aerosols we are using.  Updated comments.
 !        (bmy, 4/9/04)
 !  (9 ) Add SALA, SALC to the arg list (rjp, bec, bmy, 4/20/04)
+!  (10) Now references DATA_DIR from "directory_mod.f".  Now references LSULF,
+!        LCARB, LSSALT from "logical_mod.f".  Added minor bug fix for 
+!        conducting the appropriate scaling for optical depth for ND21
+!        diagnostic.  Now make MONTH and YEAR optional arguments.  Now bundled
+!        into "aerosol_mod.f".  (rvm, aad, clh, bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE COMODE_MOD,   ONLY : ABSHUM, ERADIUS, IXSAVE, 
-     &                         IYSAVE, IZSAVE,  TAREA 
-      USE DAO_MOD,      ONLY : BXHEIGHT
-      USE DIAG_MOD,     ONLY : AD21
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE TIME_MOD,     ONLY : ITS_A_NEW_MONTH
-      USE TRANSFER_MOD, ONLY : TRANSFER_3D
+      USE COMODE_MOD,    ONLY : ABSHUM, ERADIUS, IXSAVE, 
+     &                          IYSAVE, IZSAVE,  TAREA 
+      USE DAO_MOD,       ONLY : BXHEIGHT
+      USE DIAG_MOD,      ONLY : AD21
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE LOGICAL_MOD,   ONLY : LSULF, LCARB, LSSALT
+      USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH
+      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
+      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
 
       IMPLICIT NONE
 
 #     include "cmn_fj.h"   ! LPAR, CMN_SIZE
 #     include "jv_cmn.h"   ! ODAER, QAA, RAA
 #     include "CMN_DIAG"   ! ND21, LD21
-#     include "CMN_SETUP"  ! DATA_DIR, LCARB, etc.
 #     include "comode.h"   ! NTLOOP
 
       ! Arguments
-      INTEGER, INTENT(IN) :: THISMONTH, THISYEAR
-      REAL*8,  INTENT(IN) :: SO4_NH4_NIT(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN) :: BCPI(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN) :: BCPO(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN) :: OCPI(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN) :: OCPO(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN) :: SALA(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN) :: SALC(IIPAR,JJPAR,LLPAR)
+      !----------------------------------------------------------
+      ! Prior to 7/20/04:
+      !INTEGER, INTENT(IN) :: THISMONTH, THISYEAR
+      !REAL*8,  INTENT(IN) :: SO4_NH4_NIT(IIPAR,JJPAR,LLPAR)
+      !REAL*8,  INTENT(IN) :: BCPI(IIPAR,JJPAR,LLPAR)
+      !REAL*8,  INTENT(IN) :: BCPO(IIPAR,JJPAR,LLPAR)
+      !REAL*8,  INTENT(IN) :: OCPI(IIPAR,JJPAR,LLPAR)
+      !REAL*8,  INTENT(IN) :: OCPO(IIPAR,JJPAR,LLPAR)
+      !REAL*8,  INTENT(IN) :: SALA(IIPAR,JJPAR,LLPAR)
+      !REAL*8,  INTENT(IN) :: SALC(IIPAR,JJPAR,LLPAR)
+      !----------------------------------------------------------
+
+      ! Arguments
+      INTEGER, INTENT(IN), OPTIONAL :: MONTH, YEAR
 
       ! Local variables
       LOGICAL             :: FIRST = .TRUE.
+      LOGICAL             :: DO_READ_DATA
       CHARACTER(LEN=255)  :: FILENAME
+      INTEGER             :: THISMONTH, THISYEAR
       INTEGER             :: I, J, L, N, R, JLOOP, IRH, IRHN
       INTEGER, SAVE       :: MONTH_LAST = -999
       REAL*4              :: TEMP(IGLOB,JGLOB,LGLOB)
@@ -134,8 +398,28 @@
       ! RDAER begins here!
       !=================================================================
 
-      ! If it's a new month, then define filename (bmy, 4/1/04)
-      IF ( ITS_A_NEW_MONTH() ) THEN
+      ! Copy MONTH argument to local variable THISMONTH
+      IF ( PRESENT( MONTH ) ) THEN
+         THISMONTH = MONTH
+      ELSE
+         THISMONTH = 0
+      ENDIF
+
+      ! Copy YEAR argument to local variable THISYEAR
+      IF ( PRESENT( YEAR ) ) THEN
+         THISYEAR = YEAR
+      ELSE
+         THISYEAR = 0
+      ENDIF
+
+      ! Set a logical flag if we have to read data from disk
+      ! (once per month, for full-chemistry simulations)
+      DO_READ_DATA = ( ITS_A_FULLCHEM_SIM() .and. ITS_A_NEW_MONTH() )
+
+      !=================================================================
+      ! For full-chemistry runs w/ offline fields, define filename
+      !=================================================================
+      IF ( DO_READ_DATA ) THEN
       
 #if   defined( GEOS_STRAT )
 
@@ -191,19 +475,22 @@
       ENDIF
 
       !=================================================================
-      ! If LSULF = TRUE, then take the lumped SO4, NH4, NIT
-      ! concentrations [kg/m3] passed from "chemdr.f", and save into 
-      ! WAERSL(:,:,:,1) for use w/ FAST-J and hetchem.  This is updated
-      ! every timestep.
+      ! S U L F A T E   A E R O S O L S
+      !
+      ! If LSULF = TRUE, then take the lumped SO4, NH4, NIT 
+      ! concentrations [kg/m3] computed by AEROSOL_CONC, and save 
+      ! into WAERSL(:,:,:,1) for use w/ FAST-J and hetchem.  This is 
+      ! updated every timestep.  (For fullchem and offline runs)
       !
       ! If LSULF = FALSE, then read monthly mean offline sulfate aerosol   
       ! concentrations [kg/m3] from disk at the start of each month.
+      ! (For fullchem simulations only)
       !=================================================================
       IF ( LSULF ) THEN 
 
-         !----------
-         ! Online
-         !----------
+         !-----------------------------------
+         ! Use online aerosol concentrations
+         !-----------------------------------
          IF ( FIRST ) THEN
             WRITE( 6, 100 ) 
  100        FORMAT( '     - RDAER: Using online SO4 NH4 NIT!' )
@@ -221,13 +508,13 @@
          ENDDO
 !$OMP END PARALLEL DO
 
-      ELSE
-            
-         !----------
-         ! Offline
-         !----------
-         IF ( ITS_A_NEW_MONTH() ) THEN
+      ELSE 
 
+         !-----------------------------------
+         ! Read from disk -- fullchem only
+         !-----------------------------------
+         IF ( DO_READ_DATA ) THEN
+            
             ! Print filename
             WRITE( 6, 105 ) TRIM( FILENAME )
  105        FORMAT( '     - RDAER: Reading SULFATE from ', a )
@@ -243,20 +530,24 @@
       ENDIF
 
       !=================================================================
+      ! C A R B O N  &  2 n d A R Y   O R G A N I C   A E R O S O L S
+      !
       ! If LCARB = TRUE, then take Hydrophilic OC, Hydrophobic OC,
-      ! Hydropilic BC, and Hydrophobic BC concentrations [kg/m3] that
-      ! are passed from "chemdr.f".  Save these into DAERSL and WAERSL
-      ! for use w/ FAST-J and hetchem.  These fields are updated every
-      ! chemistry timestep.
+      ! Hydropilic BC, and Hydrophobic BC, and 2ndary organic aerosol
+      ! concentrations [kg/m3] that have been computed by AEROSOL_CONC.   
+      ! Save these into DAERSL and WAERSL for use w/ FAST-J and hetchem.  
+      ! These fields are updated every chemistry timestep.
+      ! (For both fullchem and offline simulations)
       !
       ! If LCARB = FALSE, then read monthly mean carbon aerosol
       ! concentrations [kg/m3] from disk at the start of each month.
+      ! (For full chemistry simulations only)
       !=================================================================
       IF ( LCARB ) THEN
 
-         !----------
-         ! Online 
-         !----------
+         !-----------------------------------
+         ! Use online aerosol concentrations
+         !-----------------------------------
          IF ( FIRST ) THEN
             WRITE( 6, 110 ) 
  110        FORMAT( '     - RDAER: Using online BCPI OCPI BCPO OCPO!' )
@@ -286,19 +577,19 @@
          ENDDO
 !$OMP END PARALLEL DO
 
-      ELSE
+      ELSE 
 
-         !----------
-         ! Offline 
-         !----------
-         IF ( ITS_A_NEW_MONTH() ) THEN
+         !-----------------------------------
+         ! Read from disk -- fullchem only
+         !-----------------------------------
+         IF ( DO_READ_DATA ) THEN
 
             ! Print filename
             WRITE( 6, 115 ) TRIM( FILENAME )
  115        FORMAT( '     - RDAER: Reading BC and OC from ', a )
 
             !--------------------------------
-            ! Offline -- read Hydrophobic BC
+            ! Read Hydrophobic BC
             !--------------------------------
             CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 2,     
      &                       XTAU,      IGLOB,     JGLOB,     
@@ -307,7 +598,7 @@
             CALL TRANSFER_3D( TEMP, DAERSL(:,:,:,1) )
 
             !---------------------------------
-            ! Offline -- read Hydrophilic BC
+            ! Read Hydrophilic BC
             !---------------------------------
             CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 3,     
      &                       XTAU,      IGLOB,     JGLOB,     
@@ -316,7 +607,7 @@
             CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,2) )
 
             !---------------------------------
-            ! Offline -- read Hydrophobic OC
+            ! Read Hydrophobic OC
             !---------------------------------
             CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 4,     
      &                       XTAU,      IGLOB,     JGLOB,     
@@ -325,7 +616,7 @@
             CALL TRANSFER_3D( TEMP, DAERSL(:,:,:,2) )
 
             !---------------------------------
-            ! Offline -- read Hydrophilic OC
+            ! Read Hydrophilic OC
             !---------------------------------
             CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 5,     
      &                       XTAU,      IGLOB,     JGLOB,     
@@ -336,21 +627,25 @@
       ENDIF
 
       !=================================================================
+      ! S E A S A L T   A E R O S O L S
+      !
       ! If LSSALT = TRUE, then take accumulation and coarse mode
       ! seasalt aerosol concentrations [kg/m3] that are passed from
       ! "chemdr.f".  Save these into WAERSL for use w/ FAST-J and
       ! hetchem.  These fields are updated every chemistry timestep.
+      ! (For both fullchem and offline simulations)
       !
       ! If LSSALT = FALSE, then read monthly-mean coarse sea-salt 
       ! aerosol concentrations [kg/m3] from the binary punch file.  
       ! Also merge the coarse sea salt aerosols into a combined bin 
       ! rather than carrying them separately.
+      ! (For fullchem simulations only)
       !=================================================================
       IF ( LSSALT ) THEN
 
-         !----------
-         ! Online 
-         !----------
+         !-----------------------------------
+         ! Use online aerosol concentrations
+         !-----------------------------------
          IF ( FIRST ) THEN
             WRITE( 6, 120 ) 
  120        FORMAT( '     - RDAER: Using online SALA SALC' )
@@ -376,10 +671,10 @@
 
       ELSE
             
-         !----------
-         ! Offline
-         !----------            
-         IF ( ITS_A_NEW_MONTH() ) THEN
+         !-----------------------------------
+         ! Read from disk -- fullchem only
+         !-----------------------------------
+         IF ( DO_READ_DATA ) THEN
 
             ! Print filename
             WRITE( 6, 125 ) TRIM( FILENAME )
@@ -754,7 +1049,7 @@
          DO N = 1, NAER
 
             !------------------------------------
-            ! Optical Depths 
+            ! Aerosol Optical Depths [uhitless]
             ! Scale of optical depths w/ RH 
             !------------------------------------
             DO R = 1, NRH
@@ -765,18 +1060,17 @@
                ! Index for type of aerosol and RH value
                IRHN = ( (N-1) * NRH ) + R
 
-               ! Optical Depths
+               ! Optical Depths (scaled to 400nm)
                AD21(I,J,L,3+3*N) = AD21(I,J,L,3+3*N) + 
      &                             ODAER(I,J,L,IRHN) * 
-     &                             QAA(2,IND(N)) /QAA(4,IND(N))
-
+     &                             QAA(2,IND(N)-R+1) / QAA(4,IND(N)-R+1)
             ENDDO
             ENDDO
             ENDDO
             ENDDO
 
             !------------------------------------
-            ! Surface areas
+            ! Aerosol Surface Areas [cm2/cm3]
             !------------------------------------
             DO JLOOP = 1, NTLOOP
 
@@ -824,3 +1118,90 @@
 
       ! Return to calling program
       END SUBROUTINE RDAER
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE INIT_AEROSOL
+!
+!******************************************************************************
+!  Subroutine INIT_AEROSOL allocates and zeroes module arrays (bmy, 7/20/04)
+! 
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE ERROR_MOD, ONLY : ALLOC_ERR
+
+#     include "CMN_SIZE" 
+
+      ! Local variables
+      INTEGER :: AS
+
+      !=================================================================
+      ! INIT_AEROSOL begins here!
+      !=================================================================
+
+      ALLOCATE( BCPI( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPI' )
+      BCPI = 0d0
+
+      ALLOCATE( BCPO( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPO' )
+      BCPO = 0d0
+
+      ALLOCATE( OCPI( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPI' )
+      OCPI = 0d0
+
+      ALLOCATE( OCPO( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPO' )
+      OCPO = 0d0
+
+      ALLOCATE( SALA( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SALA' )
+      SALA = 0d0
+
+      ALLOCATE( SALC( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SALC' )
+      SALC = 0d0
+
+      ALLOCATE( SO4_NH4_NIT( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_NH4_NIT' )
+      SO4_NH4_NIT = 0d0
+
+      ALLOCATE( SOILDUST( IIPAR, JJPAR, LLPAR, NDUST ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOILDUST' )
+      SOILDUST = 0d0
+
+      ! Return to calling program
+      END SUBROUTINE INIT_AEROSOL
+
+!------------------------------------------------------------------------------
+      
+      SUBROUTINE CLEANUP_AEROSOL
+!
+!******************************************************************************
+!  Subroutine CLEANUP_AEROSOL deallocates all module arrays (bmy, 7/20/04)
+!
+!  NOTES:
+!******************************************************************************
+!
+      !=================================================================
+      ! CLEANUP_AEROSOL begins here!
+      !=================================================================
+      IF ( ALLOCATED( BCPI        ) ) DEALLOCATE( BCPI        )
+      IF ( ALLOCATED( BCPO        ) ) DEALLOCATE( BCPO        )
+      IF ( ALLOCATED( OCPI        ) ) DEALLOCATE( OCPI        )
+      IF ( ALLOCATED( OCPO        ) ) DEALLOCATE( OCPO        )
+      IF ( ALLOCATED( SALA        ) ) DEALLOCATE( SALA        )
+      IF ( ALLOCATED( SALC        ) ) DEALLOCATE( SALC        )
+      IF ( ALLOCATED( SO4_NH4_NIT ) ) DEALLOCATE( SO4_NH4_NIT )
+      IF ( ALLOCATED( SOILDUST    ) ) DEALLOCATE( SOILDUST    )
+
+      ! Return to calling program
+      END SUBROUTINE CLEANUP_AEROSOL
+
+!------------------------------------------------------------------------------
+
+      ! End of module
+      END MODULE AEROSOL_MOD

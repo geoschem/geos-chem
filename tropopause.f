@@ -1,4 +1,4 @@
-! $Id: tropopause.f,v 1.1 2003/06/30 20:26:06 bmy Exp $
+! $Id: tropopause.f,v 1.2 2004/09/21 18:04:20 bmy Exp $
       SUBROUTINE TROPOPAUSE
 !
 !******************************************************************************
@@ -38,14 +38,12 @@
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! T
+#     include "CMN"       ! LPAUSE
 #     include "CMN_DIAG"  ! Diagnostic switches
       
       ! Local variables
       INTEGER :: I, J, L, K
-
       INTEGER :: LTPAUSE(IIPAR,JJPAR)
-
       REAL*8  :: HTPLIMIT, Y
       REAL*8  :: H(IIPAR,JJPAR,LLPAR)
       REAL*8  :: HTPAUSE(IIPAR,JJPAR)
@@ -164,7 +162,11 @@
 
                   ! If none of the above conditions were met, then
                   ! test here to make sure we don't violate array bounds
-                  IF ( ( L + K ) <= LM ) THEN
+                  !---------------------------------------
+                  ! Prior to 7/20/04:
+                  !IF ( ( L + K ) <= LM ) THEN
+                  !---------------------------------------
+                  IF ( ( L + K ) <= LLPAR ) THEN
 
                      ! If Level L+K is within 2 km of level K, 
                      ! go back and compute the lapse rate

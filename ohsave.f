@@ -1,27 +1,34 @@
-! $Id: ohsave.f,v 1.2 2003/08/06 15:30:44 bmy Exp $
-      SUBROUTINE OHSAVE( XNUMOL, STT,     FRACO3, FRACNO,  FRACNO2, 
-     &                   SAVEOH, SAVEHO2, SAVENO, SAVENO2, SAVENO3 )
+! $Id: ohsave.f,v 1.3 2004/09/21 18:04:16 bmy Exp $
+!-----------------------------------------------------------------------
+! Prior to 7/20/04:
+!      SUBROUTINE OHSAVE( XNUMOL, STT,     FRACO3, FRACNO,  FRACNO2, 
+!     &                   SAVEOH, SAVEHO2, SAVENO, SAVENO2, SAVENO3 )
+!-----------------------------------------------------------------------
+      SUBROUTINE OHSAVE( N_TRACERS, XNUMOL,  STT,    FRACO3,  
+     &                   FRACNO,    FRACNO2, SAVEOH, SAVEHO2, 
+     &                   SAVENO,    SAVENO2, SAVENO3 )
 !
 !******************************************************************************
 !  Subroutine OHSAVE stores the concentrations of OH, HO2, NO, NO2, and NO3
 !  for the ND43 diagnostic.  Also the O3/Ox, NO/NOx and NO2/NOx fractions
-!  are computed and returned to the calling program. (bmy, 2/27/02, 8/1/03) 
+!  are computed and returned to the calling program. (bmy, 2/27/02, 7/20/04) 
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) XNUMOL  (REAL*8) : Array of molec/kg for each tracer
-!  (2 ) STT     (REAL*8) : Array containing CTM tracers
+!  (1 ) N_TRACERS (INTEGER) : Number of tracers in XNUMOL and STT
+!  (2 ) XNUMOL    (REAL*8 ) : Array of molec/kg for each tracer
+!  (3 ) STT       (REAL*8 ) : Array containing CTM tracers
 !
 !  Arguments as Output:
 !  ============================================================================
-!  (3 ) FRACO3  (REAL*8) : Array of O3/Ox   fractions 
-!  (4 ) FRACNO  (REAL*8) : Array of NO/NOx  fractions 
-!  (5 ) FRACNO2 (REAL*8) : Array of NO2/NOx fractions
-!  (6 ) SAVEOH  (REAL*8) : Array of OH  concentrations [molec/cm3]
-!  (7 ) SAVEHO2 (REAL*8) : Array of HO2 concentrations [v/v]
-!  (8 ) SAVENO  (REAL*8) : Array of NO  concentrations [v/v]
-!  (9 ) SAVENO2 (REAL*8) : Array of NO2 concentrations [v/v]
-!  (10) SAVENO3 (REAL*8) : Array of NO3 concentrations [v/v]
+!  (4 ) FRACO3    (REAL*8 ) : Array of O3/Ox   fractions 
+!  (5 ) FRACNO    (REAL*8 ) : Array of NO/NOx  fractions 
+!  (6 ) FRACNO2   (REAL*8 ) : Array of NO2/NOx fractions
+!  (7 ) SAVEOH    (REAL*8 ) : Array of OH  concentrations [molec/cm3]
+!  (8 ) SAVEHO2   (REAL*8 ) : Array of HO2 concentrations [v/v]
+!  (9 ) SAVENO    (REAL*8 ) : Array of NO  concentrations [v/v]
+!  (10) SAVENO2   (REAL*8 ) : Array of NO2 concentrations [v/v]
+!  (11) SAVENO3   (REAL*8 ) : Array of NO3 concentrations [v/v]
 !
 !  NOTES:
 !  (1 ) Original code from lwh, gmg, djj, jyl, etc, 1990's.  Modified for
@@ -34,10 +41,13 @@
 !        Also deleted obsolete code from 2/02. (bmy, 7/31/02)
 !  (5 ) Now reference IDTOX, IDTNOX, etc from "tracerid_mod.f". (1/13/03)
 !  (6 ) Added OpenMP parallelization commands (bmy, 8/1/03)
+!  (7 ) Now compute quantities for mean OH in "diag_oh_mod.f".  Now also
+!        references STT from "tracer_mod.f".  Added N_TRACERS to the arg list.
+!        Now dimension args XNUMOL, STT w/ N_TRACERS and not NNPAR. 
+!        (bmy, 7/20/04)
 !******************************************************************************
 !
-
-      ! Reference to F90 modules (bmy, 10/19/00)
+      ! References to F90 modules
       USE COMODE_MOD, ONLY : AIRDENS, CSPEC, JLOP, T3, VOLUME
       USE DIAG_MOD,   ONLY : DIAGCHLORO
       USE TRACERID_MOD
@@ -46,11 +56,20 @@
 
 #     include "CMN_SIZE"   ! Size parameters
 #     include "comode.h"   ! VOLUME, CSPEC, NPVERT, NLAT, NLONG
-#     include "CMN_DIAG"   ! ND23
+!----------------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_DIAG"   ! ND23
+!----------------------------------------------------------------
 
       ! Arguments
-      REAL*8, INTENT(IN)  :: XNUMOL(NNPAR)
-      REAL*8, INTENT(IN)  :: STT(IIPAR,JJPAR,LLPAR,NNPAR) 
+      INTEGER, INTENT(IN) :: N_TRACERS
+      !----------------------------------------------------------
+      ! Prior to 7/20/04:
+      !REAL*8, INTENT(IN)  :: XNUMOL(NNPAR)
+      !REAL*8, INTENT(IN)  :: STT(IIPAR,JJPAR,LLPAR,NNPAR) 
+      !----------------------------------------------------------
+      REAL*8, INTENT(IN)  :: XNUMOL(N_TRACERS)
+      REAL*8, INTENT(IN)  :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS) 
       REAL*8, INTENT(OUT) :: FRACO3(IIPAR,JJPAR,LLPAR)
       REAL*8, INTENT(OUT) :: FRACNO(IIPAR,JJPAR,LLPAR)
       REAL*8, INTENT(OUT) :: FRACNO2(IIPAR,JJPAR,LLPAR)
@@ -61,8 +80,8 @@
       REAL*8, INTENT(OUT) :: SAVENO3(IIPAR,JJPAR,LLPAR)
 
       ! Local variables
-      INTEGER             :: I, J, L, JLOOP
-      REAL*8              :: TEMPOX, TEMPNOX, KCLO, XLOSS, XOHMASS
+      INTEGER             :: I, J, L, JLOOP   ! (bmy, 7/20/04)
+      REAL*8              :: TEMPOX, TEMPNOX  !, KCLO, XLOSS, XOHMASS
 
       !=================================================================
       ! DIAGOH begins here!
@@ -73,7 +92,11 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, JLOOP, TEMPOX, TEMPNOX, KCLO, XLOSS, XOHMASS )
+!------------------------------------------------------------------------
+! Prior to 7/20/04:
+!!$OMP+PRIVATE( I, J, L, JLOOP, TEMPOX, TEMPNOX, KCLO, XLOSS, XOHMASS )
+!------------------------------------------------------------------------
+!$OMP+PRIVATE( I, J, L, JLOOP, TEMPOX, TEMPNOX )
 !$OMP+SCHEDULE( DYNAMIC )
       DO 370 L = 1, NPVERT
       DO 360 J = 1, NLAT
@@ -117,29 +140,33 @@
          ! NO3 concentration [v/v]
          SAVENO3(I,J,L) = CSPEC(JLOOP,IDNO3) / AIRDENS(JLOOP)
 
-         !==============================================================
-         ! ND23 diagnostic: archive for CH3CCl3 lifetime 
-         !==============================================================
-         IF ( ND23 > 0 ) THEN
-
-            ! Now force double precision w/ "D" exponents (bmy, 4/25/00)
-            KCLO    = 1.8d-12 * EXP( -1550.d0 / T3(JLOOP) )
-
-            XLOSS   = KCLO           * CSPEC(JLOOP,IDOH) * 
-     &                AIRDENS(JLOOP) * VOLUME(JLOOP)
-
-            XOHMASS = CSPEC(JLOOP,IDOH) * AIRDENS(JLOOP) * VOLUME(JLOOP)
-
-            ! Store loss term in DIAGCHLORO(:,:,:,1)
-            DIAGCHLORO(I,J,L,1) = DIAGCHLORO(I,J,L,1) + XLOSS
-
-            ! Store OH mass in DIAGCHLORO(:,:,:,2)
-            DIAGCHLORO(I,J,L,2) = DIAGCHLORO(I,J,L,2) + XOHMASS
-
-            ! Store total mass in DIAGCHLORO(:,:,:,3)
-            DIAGCHLORO(I,J,L,3) = DIAGCHLORO(I,J,L,3) + 
-     &                            ( AIRDENS(JLOOP) * VOLUME(JLOOP) )
-        ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 7/20/04:
+! This is now computed in "diag_oh_mod.f" (bmy, 7/20/04)
+!         !==============================================================
+!         ! ND23 diagnostic: archive for CH3CCl3 lifetime 
+!         !==============================================================
+!         IF ( ND23 > 0 ) THEN
+!
+!            ! Now force double precision w/ "D" exponents (bmy, 4/25/00)
+!            KCLO    = 1.8d-12 * EXP( -1550.d0 / T3(JLOOP) )
+!
+!            XLOSS   = KCLO           * CSPEC(JLOOP,IDOH) * 
+!     &                AIRDENS(JLOOP) * VOLUME(JLOOP)
+!
+!            XOHMASS = CSPEC(JLOOP,IDOH) * AIRDENS(JLOOP) * VOLUME(JLOOP)
+!
+!            ! Store loss term in DIAGCHLORO(:,:,:,1)
+!            DIAGCHLORO(I,J,L,1) = DIAGCHLORO(I,J,L,1) + XLOSS
+!
+!            ! Store OH mass in DIAGCHLORO(:,:,:,2)
+!            DIAGCHLORO(I,J,L,2) = DIAGCHLORO(I,J,L,2) + XOHMASS
+!
+!            ! Store total mass in DIAGCHLORO(:,:,:,3)
+!            DIAGCHLORO(I,J,L,3) = DIAGCHLORO(I,J,L,3) + 
+!     &                            ( AIRDENS(JLOOP) * VOLUME(JLOOP) )
+!        ENDIF
+!-----------------------------------------------------------------------------
 
  350  CONTINUE
  360  CONTINUE

@@ -1,9 +1,9 @@
-! $Id: chemhcn.f,v 1.2 2003/07/08 15:28:50 bmy Exp $
+! $Id: chemhcn.f,v 1.3 2004/09/21 18:04:09 bmy Exp $
       SUBROUTINE CHEMHCN
 !
 !******************************************************************************
 !  Subroutine CHEMHCN performs HCN chemistry. Loss is via reaction with OH, 
-!  O(1D), photolysis and ocean uptake. (qli, bmy, 12/15/98, 4/1/03)
+!  O(1D), photolysis and ocean uptake. (qli, bmy, 12/15/98, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Now use F90 syntax (bmy, 3/24/99)
@@ -47,6 +47,7 @@
 !        Now use functions GET_MONTH, GET_TS_CHEM from "time_mod.f".
 !        (bmy, 2/11/03)
 !  (27) TWO_PI is now obsolete for SMVGEAR II (bdf, bmy, 4/1/03)
+!  (28) Now references N_TRACERS and STT from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -58,11 +59,15 @@
       USE GLOBAL_OH_MOD, ONLY : OH,      GET_GLOBAL_OH
       USE GRID_MOD,      ONLY : GET_AREA_M2
       USE TIME_MOD,      ONLY : GET_MONTH, GET_TS_CHEM
+      USE TRACER_MOD,    ONLY : N_TRACERS, STT
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"
-#     include "CMN"       
+!------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"       
+!------------------------------
 #     include "CMN_DEP" 
 #     include "CMN_HCN" 
 #     include "CMN_DIAG"  ! For J-Value diagnostic
@@ -134,14 +139,6 @@
       !=================================================================
       ! CHEMHCN begins here!
       !=================================================================
-
-      !--------------------------------------------------
-      !! Set LMN = MONTH from "CMN" (bmy, 11/15/02)
-      !LMN    = MONTH
-      !
-      !! DTCHEM = chem timestep in [s]
-      !DTCHEM = NCHEM * 60.d0 
-      !--------------------------------------------------
 
       ! Month
       LMN = GET_MONTH()

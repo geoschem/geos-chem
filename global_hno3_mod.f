@@ -1,9 +1,9 @@
-! $Id: global_hno3_mod.f,v 1.1 2003/06/30 20:26:06 bmy Exp $
+! $Id: global_hno3_mod.f,v 1.2 2004/09/21 18:04:14 bmy Exp $
       MODULE GLOBAL_HNO3_MOD
 !
 !******************************************************************************
 !  Module GLOBAL_HNO3_MOD contains variables and routines for reading the
-!  global monthly mean HNO3 fields from disk. (bmy, 10/15/02, 3/27/03)
+!  global monthly mean HNO3 fields from disk. (bmy, 10/15/02, 7/20/04)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -18,14 +18,17 @@
 !
 !  GEOS-CHEM modules referenced by global_nox_mod.f
 !  ============================================================================
-!  (1 ) bpch2_mod.f    : Module containing routines for binary punch file I/O
-!  (2 ) dao_mod.f      : Module containing arrays for DAO met fields
-!  (2 ) error_mod.f    : Module containing NaN and other error check routines
-!  (3 ) transfer_mod.f : Module containing routines to cast & resize arrays!
+!  (1 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
+!  (2 ) dao_mod.f       : Module containing arrays for DAO met fields
+!  (3 ) directory_mod.f : Module containing GEOS-CHEM data & met field dirs
+!  (4 ) error_mod.f     : Module containing NaN and other error check routines
+!  (5 ) tracer_mod.f    : Module containing GEOS-CHEM tracer array STT etc.
+!  (6 ) transfer_mod.f  : Module containing routines to cast & resize arrays!
 !
 !  NOTES:
 !  (1 ) Minor bug fix in FORMAT statement (bmy, 3/23/03)
 !  (2 ) Cosmetic changes (bmy, 3/27/03)
+!  (3 ) Now references "directory_mod.f" & "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -58,23 +61,28 @@
       FUNCTION GET_HNO3_UGM3( I, J, L ) RESULT( HNO3_UGM3 )
 !
 !******************************************************************************
-!  Subroutine GET_HNO3 converts monthly mean HNO3 mixing ratio from [v/v] 
+!  Subroutine GET_HNO3_UGM3 converts monthly mean HNO3 mixing ratio from [v/v] 
 !  to [ug/m3].  This is necessary for the RPMARES code.  We allow HNO3
 !  concentrations to evolve but relax back to the monthly mean value
-!  every 3 hours. (bmy, 10/15/02, 12/16/02)
+!  every 3 hours. (bmy, 10/15/02, 7/20/04)
 !
 !  Arguments as Input:
 !  ===========================================================================
 !  (1-3) I, J, L   (INTEGER) : Grid box indices for lon, lat, vertical level
 !
 !  NOTES:
+!  (1 ) Now references TCVV from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD, ONLY : AD, AIRVOL
+      USE DAO_MOD,    ONLY : AD, AIRVOL
+      USE TRACER_MOD, ONLY : TCVV
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! TCVV
+!-------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"       ! TCVV
+!-------------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -83,7 +91,7 @@
       REAL*8              :: HNO3_UGM3
       
       !=================================================================
-      ! GET_HNO3 begins here!
+      ! GET_HNO3_UGM3 begins here!
       !=================================================================
 
       ! First convert HNO3 from [v/v] to [kg]
@@ -102,7 +110,7 @@
 !******************************************************************************
 !  Subroutine GET_GLOBAL_HNO3 reads global OH from binary punch files stored
 !  in the data directory.  This is needed for the offline sulfate simulation.
-!  (bmy, 10/3/02, 3/23/03)
+!  (bmy, 10/3/02, 7/20/04)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -111,16 +119,21 @@
 !  NOTES:
 !  (1 ) Bug fix in FORMAT statement: Replace missing commas (bmy, 3/23/03)
 !  (2 ) Cosmetic changes (bmy, 3/27/03)
+!  (3 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE TRANSFER_MOD, ONLY : TRANSFER_3D
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_SETUP" ! DATA_DIR
+!--------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! DATA_DIR
+!--------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH

@@ -1,4 +1,4 @@
-! $Id: dao_mod.f,v 1.7 2004/04/21 19:47:33 bmy Exp $
+! $Id: dao_mod.f,v 1.8 2004/09/21 18:04:10 bmy Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
@@ -535,7 +535,7 @@
 #if   defined( GEOS_4 ) 
 
       !=================================================================
-      ! GEOS-4: intepolate PSC2 (pressure at end of dyn timestep)
+      ! GEOS-4: interpolate PSC2 (pressure at end of dyn timestep)
       !=================================================================
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -1011,7 +1011,6 @@
 #     include "CMN_SIZE"
 #     include "CMN_GCTM"
 
-
       ! Arguments
       INTEGER, INTENT(IN)  :: JDAY, NHMSb, NSEC
       REAL*8,  INTENT(OUT) :: SUNCOS(MAXIJ)
@@ -1117,7 +1116,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CONVERT_UNITS( IFLAG, NTRACE, TCVV, AD, STT ) 
+      SUBROUTINE CONVERT_UNITS( IFLAG, N_TRACERS, TCVV, AD, STT ) 
 !
 !******************************************************************************
 !  Subroutine CONVERT_UNITS converts the units of STT from [kg] to [v/v]
@@ -1147,19 +1146,20 @@
 !        REPEAT to write a line of "="'s to the screen. (bmy, 6/25/02)
 !  (6 ) Updated comments.  Now reference ERROR_STOP from "error_mod.f" 
 !        (bmy, 10/15/02)
+!  (7 ) Renamed NTRACE to N_TRACERS for consistency (bmy, 7/19/04)
 !******************************************************************************
 ! 
       ! References to F90 modules
-      USE ERROR_MOD, ONLY : ERROR_STOP
+      USE ERROR_MOD,  ONLY : ERROR_STOP
 
 #     include "CMN_SIZE"     ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: IFLAG
-      INTEGER, INTENT(IN)    :: NTRACE 
-      REAL*8,  INTENT(IN)    :: TCVV(NTRACE)
+      INTEGER, INTENT(IN)    :: N_TRACERS 
+      REAL*8,  INTENT(IN)    :: TCVV(N_TRACERS)
       REAL*8,  INTENT(IN)    :: AD(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NTRACE)
+      REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
 
       ! Local Variables
       INTEGER                :: I, J, L, N
@@ -1211,7 +1211,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I, J, L, N ) 
-            DO N = 1, NTRACE
+            DO N = 1, N_TRACERS
             DO L = 1, LLPAR
             DO J = 1, JJPAR
             DO I = 1, IIPAR
@@ -1235,7 +1235,7 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I, J, L, N )
-            DO N = 1, NTRACE
+            DO N = 1, N_TRACERS
             DO L = 1, LLPAR
             DO J = 1, JJPAR
             DO I = 1, IIPAR
@@ -1328,7 +1328,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_DAO allocates memory for all allocatable module arrays. 
-!  (bmy, 6/26/00, 4/2/04)
+!  (bmy, 6/26/00, 7/19/04)
 !
 !  NOTES:
 !  (1 ) Now allocate AVGW for either NSRCX == 3 or NSRCX == 5 (bmy, 9/24/01)
@@ -1350,14 +1350,23 @@
 !  (9 ) Now allocate CLDFRC, RADLWG, RADSWG, SNOW arrays.  USTAR, CLDFRC,
 !        and Z0 and RADSWG are now 2-D arrays. (bmy, 12/9/03)
 !  (10) Allocate RADLWG and SNOW for both GEOS-3 & GEOS-4 (bmy, 4/2/04)
+!  (11) Now reference inquiry functions from "tracer_mod.f".  Now reference
+!        LWETD, LDRYD, LCHEM from "logical_mod.f".  Now allocate RH regardless
+!        of simulation. (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD, ONLY : ALLOC_ERR
+      USE ERROR_MOD,   ONLY : ALLOC_ERR
+      USE LOGICAL_MOD, ONLY : LWETD, LDRYD, LCHEM
+      USE TRACER_MOD,  ONLY : ITS_AN_AEROSOL_SIM, ITS_A_COPARAM_SIM,
+     &                        ITS_A_FULLCHEM_SIM, ITS_A_HCN_SIM
 
 #     include "CMN_SIZE"   ! IIPAR, JJPAR, LLPAR
-#     include "CMN"        ! NSRCX
-#     include "CMN_SETUP"  ! LWETD, LDRYD
+!-------------------------------------------------------
+! Prior to 7/19/04:
+!#     include "CMN"        ! NSRCX
+!#     include "CMN_SETUP"  ! LWETD, LDRYD
+!-------------------------------------------------------
 
       ! Local variables
       INTEGER :: AS
@@ -1397,7 +1406,13 @@
       ALBD = 0d0
 
       ! AVGW is only used for NOx-Ox-HC, HCN, or CO-OH chem
-      IF ( NSRCX == 3 .or. NSRCX == 4 .or. NSRCX == 5 ) THEN
+      !--------------------------------------------------------
+      ! Prior to 7/19/04:
+      !IF ( NSRCX == 3 .or. NSRCX == 4 .or. NSRCX == 5 ) THEN
+      !--------------------------------------------------------
+      IF ( ITS_A_FULLCHEM_SIM() .or.
+     &     ITS_A_HCN_SIM()      .or.
+     &     ITS_A_COPARAM_SIM() ) THEN 
          ALLOCATE( AVGW( IIPAR, JJPAR, LLPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AVGW' )
          AVGW = 0d0
@@ -1456,14 +1471,9 @@
 
 #endif
 
-!-----------------------------------------------------
-! Prior to 4/20/04:
-! Need to allocate GWETTOP for GEOS-3 & GEOS-4
-!#if   defined( GEOS_4 )
-!-----------------------------------------------------
 #if   defined( GEOS_3 ) || defined( GEOS_4 )
 
-      ! GWETTOP is only defined for GEOS-4
+      ! GWETTOP is defined for GEOS-3 or GEOS-4 
       ALLOCATE( GWETTOP( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETTOP' )
       GWETTOP = 0d0
@@ -1551,13 +1561,21 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC2' )
       PSC2 = 0d0
 
-      ! Only allocate RH for coupled sulfate-aerosol or 
-      ! standalone sulfate chemistry (bmy, 9/23/02)
-      IF ( LCHEM .and. ( NSRCX == 3 .or. NSRCX == 10 )  ) THEN 
-         ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
-         RH = 0d0
-      ENDIF
+      !------------------------------------------------------------------
+      ! Prior to 7/20/04:
+      ! Now allocate RH regardless of simulation for timeseries
+      !! Only allocate RH for coupled sulfate-aerosol or 
+      !! standalone sulfate chemistry (bmy, 9/23/02)
+      ! Prior to 7/19/04:
+      !IF ( LCHEM .and. ( NSRCX == 3 .or. NSRCX == 10 )  ) THEN 
+      !   ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
+      !   RH = 0d0
+      !ENDIF
+      !------------------------------------------------------------------
+      ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
+      RH = 0d0
 
       ! Added RADSWG (bmy, 12/9/03)
       ALLOCATE( RADSWG( IIPAR, JJPAR ), STAT=AS )
@@ -1608,7 +1626,11 @@
       SUNCOS = 0d0
 
       ! Only allocate SUNCOSB for a full-chemistry run (bdf, bmy, 4/1/03)
-      IF ( LCHEM .and. NSRCX == 3 ) THEN
+      !------------------------------------------------
+      ! Prior to 7/19/04:
+      !IF ( LCHEM .and. NSRCX == 3 ) THEN
+      !------------------------------------------------
+      IF ( LCHEM .and. ITS_A_FULLCHEM_SIM() ) THEN
          ALLOCATE( SUNCOSB( MAXIJ ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUNCOSB' )
          SUNCOSB = 0d0

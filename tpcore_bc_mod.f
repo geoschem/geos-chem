@@ -1,10 +1,10 @@
-! $Id: tpcore_bc_mod.f,v 1.3 2003/12/05 21:14:07 bmy Exp $
+! $Id: tpcore_bc_mod.f,v 1.4 2004/09/21 18:04:19 bmy Exp $
       MODULE TPCORE_BC_MOD
 !
 !******************************************************************************
 !  Module TPCORE_BC_MOD contains modules and variables which are needed to
 !  save and read TPCORE nested-grid boundary conditions to/from disk.
-!  (yxw, bmy, 3/4/03, 9/29/03)
+!  (yxw, bmy, 3/4/03, 7/20/04)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -27,9 +27,8 @@
 !  (16) J1_BC    (INTEGER )    : Lower left-hand  lat index of 4x5 WINDOW 
 !  (17) I2_BC    (INTEGER )    : Upper right-hand lon index of 4x5 WINDOW 
 !  (18) J2_BC    (INTEGER )    : Upper right-hand lat index of 4x5 WINDOW 
-!  (19) BC_DIR   (CHAR*255)    : Directory where BC's will be read/written
-!  (20) BC       (REAL*4  )    : Array containing tracers on coarse grid
-!  (21) MAP1x1   (INTEGER )    : Mapping array from 1x1 -> 4x5 grid
+!  (19) BC       (REAL*4  )    : Array containing tracers on coarse grid
+!  (20) MAP1x1   (INTEGER )    : Mapping array from 1x1 -> 4x5 grid
 !
 !  Module Routines:
 !  ============================================================================
@@ -47,10 +46,13 @@
 !  GEOS-CHEM modules referenced by tpcore_call_mod.f
 !  ============================================================================
 !  (1 ) bpch2_mod.f            : Module containing routines for bpch file I/O
-!  (2 ) error_mod.f            : Module containing I/O error/NaN check routines
-!  (3 ) file_mod.f             : Contains file unit numbers and error checks
-!  (4 ) grid_mod.f             : Module containing horizontal grid information
-!  (5 ) time_mod.f             : Module containing routines for date & time
+!  (2 ) directory_mod.f        : Module containing GEOS-CHEM data & metfld dirs
+!  (3 ) error_mod.f            : Module containing I/O error/NaN check routines
+!  (4 ) file_mod.f             : Contains file unit numbers and error checks
+!  (5 ) grid_mod.f             : Module containing horizontal grid information
+!  (6 ) logical_mod.f          : Module containing GEOS-CHEM logical switches
+!  (7 ) time_mod.f             : Module containing routines for date & time
+!  (8 ) tracer_mod.f           : Module containing GEOS-CHEM tracer array STT
 !
 !  Reference Diagram: 
 !  ============================================================================
@@ -124,24 +126,32 @@
 !
 !  NOTES:
 !  (1 ) Bug fix for LINUX w/ TIMESTAMP_STRING (bmy, 9/29/03)
+!  (2 ) Now references "tracer_mod.f", "directory_mod.f", and
+!        "logical_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "transport_mod.f"
+      ! and routines from being seen outside "tpcore_bc_mod.f"
       !=================================================================
       
-      ! PRIVATE module variables
-      PRIVATE :: BC, BC_DIR, CLEAN_BC, MAP1x1, TS_BC
+      ! Make everything PRIVATE ...
+      PRIVATE
+      
+      ! ... except these variables ...
+      PUBLIC :: I0_W, J0_W 
+      PUBLIC :: I1_W, J1_W
+      PUBLIC :: I2_W, J2_W
+      PUBLIC :: IM_W, JM_W
+      PUBLIC :: IGZD
 
-      ! PRIVATE module routines
-      PRIVATE :: CLEAN_WINDOW_TPCORE_BC
-      PRIVATE :: INIT_TPCORE_BC
-      PRIVATE :: ITS_TIME_FOR_BC 
-      PRIVATE :: GET_4x5_BC
-      PRIVATE :: READ_WINDOW_TPCORE_BC
+      ! ... and these routines
+      PUBLIC :: INIT_TPCORE_BC
+      PUBLIC :: DO_WINDOW_TPCORE_BC
+      PUBLIC :: SET_CLEAN_BC
+      PUBLIC :: SAVE_GLOBAL_TPCORE_BC
 
       !=================================================================
       ! MODULE VARIABLES
@@ -154,7 +164,6 @@
       INTEGER              :: IGZD,  TS_BC
       INTEGER, ALLOCATABLE :: MAP1x1(:,:,:)
       REAL*4,  ALLOCATABLE :: BC(:,:,:,:)
-      CHARACTER(LEN=255)   :: BC_DIR
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -195,7 +204,7 @@
 !******************************************************************************
 !  Subroutine OPEN_BC_FILE opens the file which contains boundary conditions
 !  saved from the coarse-grid WINDOW REGION for either reading or writing.
-!  (bmy, 3/7/03)
+!  (bmy, 3/7/03, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -203,21 +212,20 @@
 !  (2 ) FOR_WRITE (LOGICAL) : If passed, opens binary punch file for writing  
 !
 !  NOTES:
+!  (1 ) Now use ITS_A_NEW_DAY from "time_mod.f".  Now references TPBC_DIR
+!        from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE FILE_MOD, ONLY : IU_BC
-      USE TIME_MOD, ONLY : DATE_STRING, GET_DAY_OF_YEAR
-
-#     include "CMN_SIZE"
-#     include "CMN"
+      USE DIRECTORY_MOD, ONLY : TPBC_DIR
+      USE FILE_MOD,      ONLY : IU_BC
+      USE TIME_MOD,      ONLY : DATE_STRING, ITS_A_NEW_DAY
 
       ! Arguments
       LOGICAL, INTENT(IN), OPTIONAL :: FOR_READ, FOR_WRITE
 
       ! Local variables
-      INTEGER, SAVE                 :: LASTDAY   = -1
       CHARACTER(LEN=255)            :: FILENAME
 
       !=================================================================
@@ -225,10 +233,10 @@
       !=================================================================
 
       ! Only open file if it's a new day
-      IF ( GET_DAY_OF_YEAR() /= LASTDAY ) THEN 
+      IF ( ITS_A_NEW_DAY() ) THEN
          
          ! File name for BC's
-         FILENAME = TRIM( BC_DIR ) // 'BC.' // DATE_STRING()
+         FILENAME = TRIM( TPBC_DIR ) // 'BC.' // DATE_STRING()
          
          ! Echo file name to stdout
          WRITE( 6, 100 ) TRIM( FILENAME )
@@ -242,9 +250,6 @@
             CALL OPEN_BPCH2_FOR_READ( IU_BC, FILENAME )
 
          ENDIF
-
-         ! Reset LASTDAY for next iteration
-         LASTDAY = GET_DAY_OF_YEAR()
       ENDIF
 
       ! Return to calling program
@@ -257,18 +262,22 @@
 !******************************************************************************
 !  Subroutine SAVE_GLOBAL_TPCORE_BC saves concentrations from the WINDOW
 !  REGION of a coarse-resolution model run (e.g. 4x5) to a bpch file.  
-!  A new boundary conditions file is created for each day. (yxw, bmy, 3/4/03)
+!  A new boundary conditions file is created for each day. 
+!  (yxw, bmy, 3/4/03, 7/20/04)
 !
 !  NOTES:
+!  (1 ) Now references N_TRACERS and STT from "tracer_mod.f".  Also now 
+!        references TIMESTAMP_STRING from "time_mod.f".  (bmy, 7/20/04) 
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE FILE_MOD, ONLY : IU_BC
-      USE TIME_MOD, ONLY : GET_NYMD, GET_NHMS, GET_TAU
+      USE FILE_MOD,   ONLY : IU_BC
+      USE TIME_MOD,   ONLY : GET_NYMD,  GET_NHMS, 
+     &                       GET_TAU,   TIMESTAMP_STRING
+      USE TRACER_MOD, ONLY : N_TRACERS, STT
 
 #     include "CMN_SIZE" ! Size parameters
-#     include "CMN"      ! NTRACE, LPRT
 
       ! Local variables
       LOGICAL, SAVE      :: FIRST     = .TRUE.
@@ -278,6 +287,7 @@
       REAL*4             :: LONRES, LATRES
       REAL*4             :: ARRAY(IIPAR,JJPAR,LLPAR)
       REAL*8             :: TAU
+      CHARACTER(LEN=16)  :: STAMP
       CHARACTER(LEN=20)  :: MODELNAME 
       CHARACTER(LEN=40)  :: CATEGORY  = 'IJ-AVG-$'
       CHARACTER(LEN=40)  :: UNIT      = 'v/v'
@@ -287,12 +297,6 @@
       ! SAVE_GLOBAL_TPCORE_BC begins here!
       !=================================================================
 
-      ! First-time initialization
-      IF ( FIRST ) THEN 
-         CALL INIT_TPCORE_BC
-         FIRST = .FALSE.
-      ENDIF
-      
       ! Return if it's not time to write data to disk
       IF ( .not. ITS_TIME_FOR_BC() ) RETURN
 
@@ -310,7 +314,7 @@
       TAU       = GET_TAU()
 
       ! Loop over each tracer
-      DO N = 1, NTRACE
+      DO N = 1, N_TRACERS
 
          ! Save concentrations in WINDOW REGION to disk
          DO L = 1, LLPAR
@@ -326,10 +330,10 @@
 
       ENDDO
 
-      ! Echo file name to stdout
-      WRITE( 6, 110 ) GET_NYMD(), GET_NHMS()
- 110  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote BC''s at ', 
-     &                i8.8, 1x, i6.6 ) 
+      ! Echo info
+      STAMP = TIMESTAMP_STRING()
+      WRITE( 6, 110 ) STAMP
+ 110  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote BC''s at ', a )
 
       ! Return to calling program  
       END SUBROUTINE SAVE_GLOBAL_TPCORE_BC
@@ -340,15 +344,18 @@
 !
 !******************************************************************************
 !  Subroutine DO_WINDOW_TPCORE_BC is a driver routine for assigning TPCORE
-!  boundary conditions to the tracer array STT.  (bmy, 3/7/03)
+!  boundary conditions to the tracer array STT.  (bmy, 3/7/03, 7/20/04)
 !
 !  At present, assume that we have saved 
 !
 !  NOTES:
+!  (1 ) Now references N_TRACERS and STT from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
+      ! References to F90 modules
+      USE TRACER_MOD, ONLY : N_TRACERS, STT
+
 #     include "CMN_SIZE" ! Size parameters
-#     include "CMN"      ! STT, NTRACE
 
       ! Local variables
       LOGICAL, SAVE :: FIRST = .TRUE.
@@ -357,12 +364,13 @@
       !=================================================================
       ! DO_WINDOW_TPCORE_BC begins here!
       !=================================================================
- 
-      ! First-time initialization
-      IF ( FIRST ) THEN 
-         CALL INIT_TPCORE_BC
-         FIRST = .FALSE.
-      ENDIF
+
+      ! Prior to 7/20/04:
+      !! First-time initialization
+      !IF ( FIRST ) THEN 
+      !   CALL INIT_TPCORE_BC
+      !   FIRST = .FALSE.
+      !ENDIF
 
       ! Either zero BC's or read them from disk
       IF ( CLEAN_BC ) THEN
@@ -381,7 +389,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-      DO N = 1, NTRACE
+      DO N = 1, N_TRACERS
          DO L = 1, LLPAR
 
            ! First loop over all latitudes (WINDOW REGION)
@@ -424,13 +432,16 @@
 !
 !******************************************************************************
 !  Subroutine CLEAN_WINDOW_TPCORE_BC zeroes the boundary conditions array
-!  BC at each timestep.  (bmy, 3/7/03) 
+!  BC at each timestep.  (bmy, 3/7/03, 7/20/04) 
 !
 !  NOTES:
+!  (1 ) Now references N_TRACERS from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
+      ! References to F90 modules
+      USE TRACER_MOD, ONLY : N_TRACERS
+
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! NTRACE, STT
 
       ! Local variables
       INTEGER :: I, J, L, N
@@ -441,7 +452,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-      DO N = 1, NTRACE
+      DO N = 1, N_TRACERS
       DO L = 1, LLPAR
       DO J = 1, JM_BC
       DO I = 1, IM_BC
@@ -468,14 +479,15 @@
 !  (1 ) LINUX has a problem putting a function call w/in a WRITE statement.  
 !        Now save output from TIMESTAMP_STRING to STAMP and print that.
 !        (bmy, 9/29/03)
+!  (2 ) Now references N_TRACERS from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE FILE_MOD,  ONLY : IOERROR, IU_BC
-      USE TIME_MOD,  ONLY : GET_TAU, TIMESTAMP_STRING
+      USE FILE_MOD,   ONLY : IOERROR, IU_BC
+      USE TIME_MOD,   ONLY : GET_TAU, TIMESTAMP_STRING
+      USE TRACER_MOD, ONLY : N_TRACERS
 
 #     include "CMN_SIZE" ! Size parameters
-#     include "CMN"      ! NTRACE
 
       ! Local variables
       INTEGER           :: I,      IOS,     J,         L      
@@ -552,11 +564,11 @@
             !===========================================================
             ! Exit if we've found all tracers for this TAU value
             !===========================================================
-            IF ( NFOUND == NTRACE ) THEN
+            IF ( NFOUND == N_TRACERS ) THEN
 
                ! Echo output
                STAMP = TIMESTAMP_STRING()
-               WRITE( 6, 100 ) NTRACE, STAMP
+               WRITE( 6, 100 ) N_TRACERS, STAMP
  100           FORMAT( '     - READ_WINDOW_TPCORE_BC: Found all ',
      &                       i3, ' BC''s at ', a )
                EXIT
@@ -746,46 +758,49 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE INIT_TPCORE_BC
+      SUBROUTINE INIT_TPCORE_BC( TS, I0W, J0W, I1, J1, I2, J2 )
 !
 !******************************************************************************
 !  Subroutine INIT_TPCORE_BC initializes module variables and arrays 
-!  (bmy, 2/10/03)
+!  (bmy, 2/10/03, 7/20/04)
 !
 !  NOTES:
+!  (1 ) Now references N_TRACERS from "tracer_mod.f".  Now references LWINDO
+!        from "logical_mod.f".  Now references TPBC_DIR from "directory_mod.f".
+!        Now references ITS_A_NESTED_GRID from "grid_mod.f".  Also added 
+!        arguments to take values from "input_mod.f". (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-      USE GRID_MOD,  ONLY : GET_XOFFSET, GET_YOFFSET
+      USE DIRECTORY_MOD, ONLY : TPBC_DIR
+      USE ERROR_MOD,     ONLY : ALLOC_ERR
+      USE GRID_MOD,      ONLY : GET_XOFFSET, GET_YOFFSET, 
+     &                          ITS_A_NESTED_GRID
+      USE LOGICAL_MOD,   ONLY : LWINDO
+      USE TRACER_MOD,    ONLY : N_TRACERS
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! NTRACE
+#     include "CMN_SIZE"   ! Size parameters
+
+      ! Arguments
+      INTEGER, INTENT(IN) :: TS, I0W, J0W, I1, J1, I2, J2
 
       ! Local variables
-      INTEGER :: AS, I, J
+      INTEGER             :: AS, I, J
 
       !=================================================================
       ! INIT_TPCORE_BC begins here!
       !=================================================================
 
       ! Timestep for BC's [min]
-      TS_BC = 180
+      TS_BC = TS
 
-      ! Directory for boundary conditions (hardwire for now)
-      BC_DIR = './'
-         
-      ! *** NOTE, for now we hardwire these, but when we ***
-      ! *** implement the new input file, then we will   ***
-      ! *** read these from disk (bmy, 3/6/03)           ***
-
-      !---------------------------
+      !---------------------
       ! *** NESTED GRID ***
-      !---------------------------
+      !---------------------
 
       ! TPCORE transport region offsets
-      I0_W = 3
-      J0_W = 3
+      I0_W = I0W
+      J0_W = J0W
 
       ! Extent of TPCORE transport region
       IM_W = IIPAR - ( 2 * I0_W )
@@ -802,17 +817,17 @@
       ! IGZD = ?
       IGZD = I0_W - 1
 
-      !--------------------------- 
+      !---------------------
       ! *** GLOBAL GRID ***
-      !---------------------------
+      !---------------------
 
       ! Lower-left corner of coarse-grid BC WINDOW region 
-      I1_BC = 51
-      J1_BC = 21
-         
+      I1_BC = I1
+      J1_BC = J1
+  
       ! Upper-right corner of coarse-grid BC WINDOW region 
-      I2_BC = 67
-      J2_BC = 37
+      I2_BC = I2
+      J2_BC = J2
 
       ! Extent of coarse-grid BC REGION
       IM_BC = I2_BC - I1_BC + 1
@@ -822,17 +837,22 @@
       I0_BC = I1_BC - 1
       J0_BC = J1_BC - 1
 
+      ! Return if we are not saving 4x5 BC's
+      ! or if it's not a nested grid simulation
+      IF ( .not. ITS_A_NESTED_GRID() ) THEN
+         IF ( .not. LWINDO ) RETURN
+      ENDIF
+      
       !=================================================================
       ! Allocate and initialize arrays 
       !=================================================================
-      ALLOCATE( BC( IM_BC, JM_BC, LLPAR, NTRACE ), STAT=AS )
+      ALLOCATE( BC( IM_BC, JM_BC, LLPAR, N_TRACERS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC' )
       BC = 0e0
 
       ALLOCATE( MAP1x1( IIPAR, JJPAR, 3 ) , STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'MAP1x1' )
       MAP1x1 = 0
-
 
       ! Return to calling program
       END SUBROUTINE INIT_TPCORE_BC
@@ -843,6 +863,8 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_TPCORE_BC deallocates all module arrays. (3/4/03)
+!
+!  NOTES:
 !******************************************************************************
 !
       !=================================================================

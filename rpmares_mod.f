@@ -1,9 +1,9 @@
-! $Id: rpmares_mod.f,v 1.1 2003/06/30 20:26:02 bmy Exp $
+! $Id: rpmares_mod.f,v 1.2 2004/09/21 18:04:17 bmy Exp $
       MODULE RPMARES_MOD
 !
 !******************************************************************************
 !  Module RPMARES_MOD contains the RPMARES routines, which compute the aerosol
-!  thermodynamical equilibrium. (rjp, bdf, bmy, 11/6/02, 3/24/03)
+!  thermodynamical equilibrium. (rjp, bdf, bmy, 11/6/02, 7/20/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -28,7 +28,8 @@
 !  (1 ) dao_mod.f       : Module containing arrays for DAO met fields
 !  (2 ) error_mod.f     : Module containing NaN and other error check routines
 !  (3 ) time_mod.f      : Module containing routines to compute date & time
-!  (4 ) tracerid_mod.f  : Module containing pointers to tracers & emissions
+!  (4 ) tracer_mod.f    : Module containing GEOS-CHEM tracer array STT etc.
+!  (5 ) tracerid_mod.f  : Module containing pointers to tracers & emissions
 !
 !  NOTES:
 !  (1 ) Added module variables ELAPSED_SEC and HNO3_sav.  Added module routines
@@ -37,6 +38,7 @@
 !        COMPAQ/Alpha platform. (bmy, 3/23/03)
 !  (3 ) Now references "time_mod.f".  Now removed ELAPSED_SEC module variable
 !        since we can get this info from "time_mod.f".  (bmy, 3/24/03)
+!  (4 ) Now references "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -71,7 +73,7 @@
 !******************************************************************************
 !  Subroutine DO_RPMARES is the interface between the GEOS-CHEM model
 !  and the aerosol thermodynamical equilibrium routine in "rpmares.f"
-!  (rjp, bdf, bmy, 12/17/01, 3/24/03)
+!  (rjp, bdf, bmy, 12/17/01, 7/20/04)
 !
 !  NOTES
 !  (1 ) Bundled into "rpmares_mod.f" (bmy, 11/15/02)
@@ -80,17 +82,26 @@
 !  (3 ) Now removed NSEC from the arg list -- use GET_ELAPSED_SEC() function
 !        from the new "time_mod.f".  Also use GET_MONTH from "time_mod.f".
 !        (bmy, 3/24/03)
+!  (4 ) Now reference STT, ITS_A_FULLCHEM_SIM, and ITS_AN_AEROSOL_SIM
+!        from "tracer_mod.f".  Now references ITS_A_NEW_MONTH from
+!        "time_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,         ONLY : AIRVOL, RH, T
       USE GLOBAL_HNO3_MOD, ONLY : GET_GLOBAL_HNO3
       USE ERROR_MOD,       ONLY : ERROR_STOP
-      USE TIME_MOD,        ONLY : GET_ELAPSED_SEC, GET_MONTH
+      USE TIME_MOD,        ONLY : GET_ELAPSED_SEC, GET_MONTH,
+     &                            ITS_A_NEW_MONTH
+      USE TRACER_MOD,      ONLY : ITS_A_FULLCHEM_SIM, 
+     &                            ITS_AN_AEROSOL_SIM, STT
       USE TRACERID_MOD
       
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! STT, NSRCX, MONTH
+!----------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"          ! STT, NSRCX, MONTH
+!----------------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST     = .TRUE.
@@ -123,26 +134,46 @@
       ! Check to see if we have to read in monthly mean HNO3
       IF ( IDTHNO3 == 0 ) THEN
 
-         ! Test for simulation type
-         SELECT CASE ( NSRCX )
+         !---------------------------------------------------------------
+         ! Prior to 7/20/04:
+         !! Test for simulation type
+         !SELECT CASE ( NSRCX )
+         !
+         !   ! Coupled simulation: stop w/ error since we need HNO3
+         !   CASE ( 3 )
+         !      CALL ERROR_STOP( 'IDTHNO3 is not defined!', X )
+         !
+         !   ! Offline simulation: read monthly mean HNO3
+         !   CASE ( 10 )
+         !      IF ( GET_MONTH() /= LASTMONTH ) THEN
+         !         CALL GET_GLOBAL_HNO3( GET_MONTH() )
+         !         LASTMONTH = GET_MONTH() 
+         !      ENDIF
+         !
+         !   ! Otherwise stop w/ error
+         !   CASE DEFAULT
+         !      CALL ERROR_STOP( 'Invalid simulation type!', X )
+         !
+         !END SELECT
+         !---------------------------------------------------------------
+         IF ( ITS_A_FULLCHEM_SIM() ) THEN
 
             ! Coupled simulation: stop w/ error since we need HNO3
-            CASE ( 3 )
-               CALL ERROR_STOP( 'IDTHNO3 is not defined!', X )
+            CALL ERROR_STOP( 'IDTHNO3 is not defined!', X )
+
+         ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
 
             ! Offline simulation: read monthly mean HNO3
-            CASE ( 10 )
-               IF ( GET_MONTH() /= LASTMONTH ) THEN
-                  CALL GET_GLOBAL_HNO3( GET_MONTH() )
-                  LASTMONTH = GET_MONTH() 
-               ENDIF
+            IF ( ITS_A_NEW_MONTH() ) THEN
+               CALL GET_GLOBAL_HNO3( GET_MONTH() )
+            ENDIF
+
+         ELSE
 
             ! Otherwise stop w/ error
-            CASE DEFAULT
-               CALL ERROR_STOP( 'Invalid simulation type!', X )
+            CALL ERROR_STOP( 'Invalid simulation type!', X )
 
-         END SELECT
-
+         ENDIF
       ENDIF
 
       !=================================================================

@@ -1,25 +1,26 @@
-C $Id: charpak_mod.f,v 1.1 2003/06/30 20:26:06 bmy Exp $
+! $Id: charpak_mod.f,v 1.2 2004/09/21 18:04:09 bmy Exp $
       MODULE CHARPAK_MOD
 !
 !******************************************************************************
 !  Module CHARPAK_MOD contains routines from the CHARPAK string and character
-!  manipulation package used by GEOS-CHEM (bmy, 10/15/01, 7/31/02)
+!  manipulation package used by GEOS-CHEM (bmy, 10/15/01, 7/20/04)
 !
-!  CHARPAK routines by Robert D. Stewart, 1992.  Subsequent 
-!  modifications made for GEOS-CHEM by Bob Yantosca (1998, 2002).
+!  CHARPAK routines by Robert D. Stewart, 1992.  Subsequent modifications 
+!  made for GEOS-CHEM by Bob Yantosca (1998, 2002, 2004).
 !
 !  Module Routines:
 !  ============================================================================
 !  (1 ) CNTMAT     : Counts # of chars in STR1 that match a char in STR2
 !  (2 ) COPYTXT    : Writes chars from STR1 into STR2
-!  (3 ) CSTRIP     : Strip blanks and null characters from a string            
-!  (4 ) STRREPL    : Replaces characters w/in a string with replacement text
-!  (5 ) STRSPLIT   : Convenience wrapper for TXTEXT
-!  (6 ) STRSQUEEZE : Squeezes text by removing white space from both ends
-!  (7 ) TRANLC     : Translates text to LOWERCASE
-!  (8 ) TRANUC     : Translates text to UPPERCASE
-!  (9 ) TXT2INUM   : Converts a string of characters into an integer number
-!  (10) TXTEXT     : Extracts a sequence of characters from a string
+!  (3 ) CSTRIP     : Strip blanks and null characters from a string 
+!  (4 ) ISDIGIT    : Returns TRUE if a character is a numeric digit           
+!  (5 ) STRREPL    : Replaces characters w/in a string with replacement text
+!  (6 ) STRSPLIT   : Convenience wrapper for TXTEXT
+!  (7 ) STRSQUEEZE : Squeezes text by removing white space from both ends
+!  (8 ) TRANLC     : Translates text to LOWERCASE
+!  (9 ) TRANUC     : Translates text to UPPERCASE
+!  (10) TXT2INUM   : Converts a string of characters into an integer number
+!  (11) TXTEXT     : Extracts a sequence of characters from a string
 !
 !  GEOS-CHEM modules referenced by charpak_mod.f
 !  ============================================================================
@@ -39,6 +40,8 @@ C $Id: charpak_mod.f,v 1.1 2003/06/30 20:26:06 bmy Exp $
 !        replaced it w/ F90 intrinsic REPEAT. (bmy, 6/25/02)
 !  (5 ) Added routine STRSPLIT as a wrapper for TXTEXT.  Also added
 !        routines STRREPL and STRSQUEEZE. (bmy, 7/30/02)
+!  (6 ) Added function ISDIGIT.  Also replace LEN_TRIM with LEN in routine
+!        STRREPL, to allow us to replace tabs w/ spaces. (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -172,11 +175,41 @@ C       Fill remainder of text with blanks
 
 !------------------------------------------------------------------------------
 
+      FUNCTION ISDIGIT( ch ) RESULT( LNUM )
+C
+C     Returned as true if ch is a numeric character (i.e., one of
+C     the numbers from 0 to 9).
+C
+C     CODE DEPENDENCIES:
+C      Routine Name                  File
+C        N/A
+C
+C     DATE:   NOV. 11, 1993
+C     AUTHOR: R.D. STEWART
+C
+C     NOTE: Changed name from ISNUM to ISDIGIT (bmy, 7/15/04)
+C  
+      CHARACTER*1 ch
+      INTEGER iasc
+      LOGICAL lnum
+
+      iasc = ICHAR(ch)
+      lnum = .FALSE.
+      IF ((iasc.GE.48).AND.(iasc.LE.57)) THEN
+        lnum = .TRUE.
+      ENDIF
+
+      ! Return to calling program
+      END FUNCTION ISDIGIT
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE StrRepl( STR, PATTERN, REPLTXT )
 
       !=================================================================
       ! Subroutine STRREPL replaces all instances of PATTERN within
-      ! a string STR with replacement text REPLTXT. (bmy, 6/25/02)
+      ! a string STR with replacement text REPLTXT. 
+      ! (bmy, 6/25/02, 7/20/04)
       !
       ! Arguments as Input:
       ! ----------------------------------------------------------------
@@ -190,6 +223,7 @@ C       Fill remainder of text with blanks
       !
       ! NOTES
       ! (1 ) REPLTXT must have the same # of characters as PATTERN.
+      ! (2 ) Replace LEN_TRIM with LEN (bmy, 7/20/04)
       !=================================================================
 
       ! Arguments
@@ -204,7 +238,11 @@ C       Fill remainder of text with blanks
       !=================================================================
 
       ! Error check: make sure PATTERN and REPLTXT have the same # of chars
-      IF ( LEN_TRIM( PATTERN ) /= LEN_TRIM( REPLTXT ) ) THEN 
+      !---------------------------------------------------------
+      ! Prior to 7/20/04:
+      !IF ( LEN_TRIM( PATTERN ) /= LEN_TRIM( REPLTXT ) ) THEN 
+      !---------------------------------------------------------
+      IF ( LEN( PATTERN ) /= LEN( REPLTXT ) ) THEN 
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          WRITE( 6, '(a)' ) 
      &    'STRREPL: PATTERN and REPLTXT must have same # of characters!'

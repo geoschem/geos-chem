@@ -1,8 +1,9 @@
-! $Id: readcs.f,v 1.2 2004/03/24 20:52:31 bmy Exp $
+! $Id: readcs.f,v 1.3 2004/09/21 18:04:17 bmy Exp $
       SUBROUTINE READCS(LDEBUG)
       
       ! References to F90 modules (bmy, 10/15/02)
-      USE ERROR_MOD, ONLY : ERROR_STOP
+      USE DIRECTORY_MOD, ONLY : DATA_DIR 
+      USE ERROR_MOD,     ONLY : ERROR_STOP
 
       IMPLICIT NONE
 
@@ -22,7 +23,10 @@ C**************************************************************
 
 #     include "CMN_SIZE"
 #     include "comsol.h"
-#     include "CMN_SETUP" ! (bmy, 4/3/02)
+!--------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! (bmy, 4/3/02)
+!--------------------------------------------
       LOGICAL LDEBUG
 
       CHARACTER*8 CHARSPEC, TITLE, BLANK

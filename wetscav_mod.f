@@ -1,9 +1,9 @@
-! $Id: wetscav_mod.f,v 1.10 2004/07/15 18:17:47 bmy Exp $
+! $Id: wetscav_mod.f,v 1.11 2004/09/21 18:04:20 bmy Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
 !  Module WETSCAV_MOD contains arrays for used in the wet scavenging of
-!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 7/13/04)
+!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 7/20/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -27,33 +27,34 @@
 !  (2 ) E_ICE             : Computes saturation vapor pressure for ice 
 !  (3 ) COMPUTE_L2G       : Computes the ratio [v/v liquid] / [v/v gas] 
 !  (4 ) COMPUTE_F         : Computes fraction of tracer lost in cloud updrafts
-!  (5 ) GET_ISOL          : Returns correct index for ND38 diagnostic
-!  (6 ) F_AEROSOL         : Internal routine to COMPUTE_F
-!  (7 ) GET_ISOL          : Internal routine to COMPUTE_F
-!  (8 ) RAINOUT           : Computes fraction of soluble tracer lost to rainout
-!  (9 ) GET_RAINFRAC      : Internal routine to RAINOUT
-!  (10) WASHOUT           : Computes fraction of soluble tracer lost to washout
-!  (11) WASHFRAC_AEROSOL  : Internal routine to WASHOUT
-!  (12) WASHFRAC_LIQ_GAS  : Internal routine to WASHOUT
-!  (13) WETDEP            : Driver routine for computing wet deposition losses
-!  (14) LS_K_RAIN         : Computes K_RAIN (for LS precipitation)
-!  (15) LS_F_PRIME        : Computes F_PRIME (for LS precipitation)
-!  (16) CONV_F_PRIME      : Computes F_PRIME (for convective precipitation)
-!  (17) SAFETY            : Stops WETDEP w/ error msg if negative tracer found
-!  (18) WETDEPID          : Initalizes the IDWETD array for routine WETDEP
-!  (20) GET_WETDEP_NMAX   : Returns max # of soluble tracers per simulation
-!  (21) GET_WETDEP_NSOL   : Returns actual # of soluble tracers per simulation
-!  (21) GET_WETDEP_IDWETD : Returns CTM tracer # of for a given wetdep species 
-!  (22) INIT_WETSCAV      : Initializes fields used for computing wetdep losses
-!  (23) CLEANUP_WETSCAV   : Deallocates all allocatable module arrays
+!  (5 ) F_AEROSOL         : Computes fraction of tracer scavenged in updrafts
+!  (6 ) GET_ISOL          : Returns correct index for ND38 diagnostic
+!  (7 ) RAINOUT           : Computes fraction of soluble tracer lost to rainout
+!  (8 ) GET_RAINFRAC      : Computes rainout fraction -- called by RAINOUT
+!  (9 ) WASHOUT           : Computes fraction of soluble tracer lost to washout
+!  (10) WASHFRAC_AEROSOL  : Computes fraction of aerosol lost to washout
+!  (11) WASHFRAC_LIQ_GAS  : Computes fraction of soluble gases lost to washout
+!  (12) WETDEP            : Driver routine for computing wet deposition losses
+!  (13) LS_K_RAIN         : Computes K_RAIN (for LS precipitation)
+!  (14) LS_F_PRIME        : Computes F_PRIME (for LS precipitation)
+!  (15) CONV_F_PRIME      : Computes F_PRIME (for convective precipitation)
+!  (16) SAFETY            : Stops WETDEP w/ error msg if negative tracer found
+!  (17) WETDEPID          : Initalizes the IDWETD array for routine WETDEP
+!  (18) GET_WETDEP_NMAX   : Returns max # of soluble tracers per simulation
+!  (19) GET_WETDEP_NSOL   : Returns actual # of soluble tracers per simulation
+!  (20) GET_WETDEP_IDWETD : Returns CTM tracer # of for a given wetdep species 
+!  (21) INIT_WETSCAV      : Initializes fields used for computing wetdep losses
+!  (22) CLEANUP_WETSCAV   : Deallocates all allocatable module arrays
 !
 !  GEOS-CHEM modules referenced by wetscav_mod.f
 !  ============================================================================
 !  (1 ) dao_mod.f      : Module containing arrays for DAO met fields
 !  (2 ) diag_mod.f     : Module containing GEOS-CHEM diagnostic arrays
 !  (3 ) error_mod.f    : Module containing NaN and other error check routines
-!  (4 ) pressure_mod.f : Module containing routines to compute P(I,J,L)
-!  (5 ) tracerid_mod.f : Module containing pointers to tracers and emissions
+!  (4 ) logical_mod.f  : Module containing GEOS-CHEM logical switches
+!  (5 ) pressure_mod.f : Module containing routines to compute P(I,J,L)
+!  (6 ) tracer_mod.f   : Module containing GEOS-CHEM tracer array STT etc.
+!  (7 ) tracerid_mod.f : Module containing pointers to tracers and emissions
 !
 !  References:
 !  ============================================================================
@@ -102,6 +103,9 @@
 !  (12) Added carbon and dust aerosol tracers (rjp, tdf, bmy, 4/5/04)
 !  (13) Added seasalt aerosol tracers (rjp, bec, bmy, 4/20/04)
 !  (14) Added secondary organic aerosol tracers (rjp, bmy, 7/13/04)
+!  (15) Now references "logical_mod.f" and "tracer_mod.f".  Now move all 
+!        internal routines to the module and pass arguments explicitly in
+!        order to facilitate parallelization on the Altix. (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -110,23 +114,26 @@
       ! MODULE PRIVATE DECLARATIONS
       !=================================================================
 
-      ! PRIVATE routines
-      PRIVATE :: COMPUTE_L2G, E_ICE,    RAINOUT
-      PRIVATE :: WASHOUT,     WETDEPID, MAKE_QQ
-      PRIVATE :: WETDEP,      GET_ISOL
+      ! Make everything PRIVATE ...
+      PRIVATE
 
-      ! PRIVATE variables
-      PRIVATE :: IDWETD, NSOLMAX, NSOL,  Vud, C_H2O
-      PRIVATE :: CLDLIQ, CLDICE,  PDOWN, QQ,  EPSILON
+      ! ... except these variables ...
+      PUBLIC :: H2O2s
+      PUBLIC :: SO2s
+
+      ! ... and these routines 
+      PUBLIC :: CLEANUP_WETSCAV
+      PUBLIC :: COMPUTE_F
+      PUBLIC :: DO_WETDEP
+      PUBLIC :: GET_WETDEP_IDWETD
+      PUBLIC :: GET_WETDEP_NMAX
+      PUBLIC :: GET_WETDEP_NSOL
+      PUBLIC :: INIT_WETSCAV
+      PUBLIC :: WETDEPID
 
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
-      !--------------------------------------------------------------
-      ! Prior to 7/13/04:
-      ! Increase NSOLMAX to 29 for SOA tracers (rjp, bmy, 4/20/04)
-      !INTEGER, PARAMETER   :: NSOLMAX = 20
-      !--------------------------------------------------------------
       INTEGER, PARAMETER   :: NSOLMAX = 29
       INTEGER              :: NSOL 
       INTEGER              :: IDWETD(NSOLMAX)
@@ -151,16 +158,17 @@
 !
 !******************************************************************************
 !  Subroutine DO_WETDEP is a driver for the wet deposition code, called
-!  from the MAIN program. (bmy, 3/27/03)
+!  from the MAIN program. (bmy, 3/27/03, 7/20/04)
 !
 !  NOTES:
+!  (1 ) Now references LPRT from "logical_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD, ONLY : DEBUG_MSG
+      USE ERROR_MOD,   ONLY : DEBUG_MSG
+      USE LOGICAL_MOD, ONLY : LPRT
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! LPRT for debug
 
       !=================================================================
       ! DO_WETDEP begins here!
@@ -168,11 +176,13 @@
 
       ! Wetdep by large-scale (stratiform) precip
       CALL MAKE_QQ( .TRUE. )
+      IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
       CALL WETDEP(  .TRUE. )
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
 
-      ! Wetdep by convective precip
+      ! Wetdep by  precip
       CALL MAKE_QQ( .FALSE. )
+      IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before conv wetdep' )
       CALL WETDEP(  .FALSE. )
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after conv wetdep' )
 
@@ -264,6 +274,10 @@
       !=================================================================
       ! Loop over surface grid boxes
       !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, FRAC, L, PTEMP )
+!$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -381,6 +395,7 @@
          ENDIF
       ENDDO  ! J
       ENDDO  ! I
+!$OMP END PARALLEL DO
 
       ! Return to calling program
       END SUBROUTINE MAKE_QQ
@@ -611,7 +626,7 @@
 !
 !******************************************************************************
 !  Subroutine COMPUTE_F computes F, the fraction of soluble tracer lost by 
-!  scavenging in convective cloud updrafts. (hyl, bmy, djj, 2/23/00, 7/13/04)
+!  scavenging in convective cloud updrafts. (hyl, bmy, djj, 2/23/00, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -660,6 +675,10 @@
 !        routine GET_ISOL so it's not hardwired anymore. (rjp, bmy, 4/5/04)
 !  (12) Added slots for sea salt aerosol tracers (rjp, bec, bmy, 4/20/04)
 !  (13) Added slots for secondary organic aerosol tracers (rjp, bmy, 7/13/04)
+!  (14) Remove reference to CMN, it's not needed.  Made internal routine
+!        F_AEROSOL a module procedure rather than an internal routine to
+!        COMPUTE_F in order to facilitate parallelization on the Altix.  Also
+!        now pass all arguments explicitly to F_AEROSOL. (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -667,7 +686,6 @@
       USE TRACERID_MOD
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN"        ! NSRCX
 
       ! Arguments
       INTEGER, INTENT(IN)  :: N
@@ -711,21 +729,33 @@
       ! 210Pb (aerosol)
       !----------------------------
       IF ( N == IDTPB ) THEN
-         CALL F_AEROSOL( F )
+         !-------------------------
+         ! Prior to 7/20/04:
+         !CALL F_AEROSOL( F )
+         !-------------------------
+         CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
 
       !----------------------------        
       ! 7Be (aerosol)
       !----------------------------
       ELSE IF ( N == IDTBE7 ) THEN
-         CALL F_AEROSOL( F )
+         !-------------------------
+         ! Prior to 7/20/04:
+         !CALL F_AEROSOL( F )
+         !-------------------------
+         CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
 
       !----------------------------
       ! HNO3 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTHNO3 ) THEN
-         CALL F_AEROSOL( F )
+         !-------------------------
+         ! Prior to 7/20/04:
+         !CALL F_AEROSOL( F )
+         !-------------------------
+         CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N ) 
 
       !----------------------------
@@ -901,8 +931,11 @@
       ELSE IF ( N == IDTSO2 ) THEN
 
          ! Compute fraction of SO2 scavenged
-         CALL F_AEROSOL( F )
-         !ISOL = GET_ISOL( 5, 1 )
+         !------------------------
+         ! Prior to 7/20/04:
+         !CALL F_AEROSOL( F )
+         !------------------------
+         CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
 
          !==============================================================
@@ -944,14 +977,22 @@
       ! SO4 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTSO4 ) THEN
-         CALL F_AEROSOL( F ) 
+         !------------------------
+         ! Prior to 7/20/04:
+         !CALL F_AEROSOL( F )
+         !------------------------
+         CALL F_AEROSOL( KC, F ) 
          ISOL = GET_ISOL( N ) 
 
       !---------------------------
       ! MSA (aerosol)
       !---------------------------
       ELSE IF ( N == IDTMSA ) THEN
-         CALL F_AEROSOL( F )
+         !------------------------
+         ! Prior to 7/20/04:
+         !CALL F_AEROSOL( F )
+         !------------------------
+         CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
 
       !----------------------------
@@ -1016,28 +1057,44 @@
       ! NH4 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTNH4 ) THEN
-         CALL F_AEROSOL( F )
+         !------------------------
+         ! Prior to 7/20/04:
+         !CALL F_AEROSOL( F )
+         !------------------------
+         CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
          
       !----------------------------
       ! NIT (aerosol)
       !----------------------------
       ELSE IF ( N == IDTNIT ) THEN
-         CALL F_AEROSOL( F )
+         !------------------------
+         ! Prior to 7/20/04:
+         !CALL F_AEROSOL( F )
+         !------------------------
+         CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
 
       !----------------------------
       ! BC HYDROPHILIC (aerosol)
       !----------------------------
       ELSE IF ( N == IDTBCPI ) THEN
-         CALL F_AEROSOL( F )
+         !------------------------
+         ! Prior to 7/20/04:
+         !CALL F_AEROSOL( F )
+         !------------------------
+         CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
 
       !----------------------------
       ! OC HYDROPHILIC (aerosol)
       !----------------------------
       ELSE IF ( N == IDTOCPI ) THEN
-         CALL F_AEROSOL( F )
+         !------------------------
+         ! Prior to 7/20/04:
+         !CALL F_AEROSOL( F )
+         !------------------------
+         CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
 
       !----------------------------
@@ -1062,44 +1119,67 @@
       ! DUST1 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTDST1 ) THEN
-         CALL F_AEROSOL( F )
+         !-------------------------
+         ! Prior to 7/20/04:
+         !CALL F_AEROSOL( F )
+         !-------------------------
+         CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
          
       !----------------------------
       ! DUST2 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTDST2 ) THEN
-         CALL F_AEROSOL( F )
+         !-------------------------
+         ! Prior to 7/20/04:
+         !CALL F_AEROSOL( F )
+         !-------------------------
+         CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
          
       !----------------------------
       ! DUST3 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTDST3 ) THEN
-         CALL F_AEROSOL( F )
+         !-------------------------
+         ! Prior to 7/20/04:
+         !CALL F_AEROSOL( F )
+         !-------------------------
+         CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
          
       !----------------------------
       ! DUST4 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTDST4 ) THEN
-         CALL F_AEROSOL( F )
+         !-------------------------
+         ! Prior to 7/20/04:
+         !CALL F_AEROSOL( F )
+         !-------------------------
+         CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
 
       !----------------------------
       ! Accum mode seasalt aerosol
       !----------------------------
       ELSE IF ( N == IDTSALA ) THEN
-         CALL F_AEROSOL( F )
+         !-------------------------
+         ! Prior to 7/20/04:
+         !CALL F_AEROSOL( F )
+         !-------------------------
+         CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
 
       !----------------------------
       ! Coarse mode seasalt aerosol
       !----------------------------
       ELSE IF ( N == IDTSALC ) THEN
-         CALL F_AEROSOL( F )
+         !-------------------------
+         ! Prior to 7/20/04:
+         !CALL F_AEROSOL( F )
+         !-------------------------
+         CALL F_AEROSOL( KC, F )
          ISOL = GET_ISOL( N )
-
 
       !----------------------------
       ! ALPH (liquid phase only)
@@ -1313,7 +1393,11 @@
       ! Scavenging efficiency for SOA is 0.8
       !---------------------------------------
       ELSE IF ( N == IDTSOA1 .OR. N == IDTSOA2 .OR. N == IDTSOA3 ) THEN
-         CALL F_AEROSOL( F )
+         !-------------------------
+         ! Prior to 7/20/04:
+         !CALL F_AEROSOL( F )
+         !-------------------------
+         CALL F_AEROSOL( KC, F )
 
          DO L = 2, LLPAR
          DO J = 1, JJPAR
@@ -1333,23 +1417,96 @@
          ISOL     = 0
 
       ENDIF
-         
-      !=================================================================
-      ! Internal subroutines -- they can "see" all variables 
-      ! that have been declared in COMPUTE_F
-      !=================================================================
-      CONTAINS
 
-      !-----------------------------------------------------------------------
+!------------------------------------------------------------------------------
+! Prior to 7/20/04:
+! Now made into a module routine, in order to facilitate parallelization on
+! the Altix platform (bmy, 7/20/04)
+!
+!         
+!      !=================================================================
+!      ! Internal subroutines -- they can "see" all variables 
+!      ! that have been declared in COMPUTE_F
+!      !=================================================================
+!      CONTAINS
+!
+!      !-----------------------------------------------------------------------
+!
+!      SUBROUTINE F_AEROSOL( F ) 
+!
+!      !=================================================================
+!      ! Internal routine F_AEROSOL returns the fraction of aerosol
+!      ! scavenged in updrafts (bmy, 11/7/02)
+!      !=================================================================
+!
+!      ! Arguments
+!      REAL*8, INTENT(OUT) :: F(IIPAR,JJPAR,LLPAR)
+!
+!      ! Local variables
+!      INTEGER             :: I, J, L
+!      REAL*8              :: TMP
+!     
+!      !=================================================================
+!      ! GET_F_AEROSOL begins here!
+!      !
+!      ! Aerosol tracers are 100% in the cloud condensate phase, so 
+!      ! we set K = Kc, and compute F accordingly (cf Jacob et al 2000 )    
+!      !=================================================================
+!      
+!      ! Turn off scavenging in the first level by setting F = 0
+!      F(:,:,1) = 0d0
+!  
+!      ! Apply scavenging in levels 2 and higher
+!      DO L = 2, LLPAR
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!                
+!         ! Distance between grid box centers [m]
+!         TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+!       
+!         ! (Eq. 2, Jacob et al, 2000, with K = Kc)
+!         F(I,J,L) = 1d0 - EXP( -KC * TMP / Vud(I,J) )
+!            
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!
+!      ! Return to COMPUTE_F
+!      END SUBROUTINE F_AEROSOL 
+!
+!      !-----------------------------------------------------------------------
+!------------------------------------------------------------------------------
 
-      SUBROUTINE F_AEROSOL( F ) 
+      ! Return to calling program
+      END SUBROUTINE COMPUTE_F
 
-      !=================================================================
-      ! Internal routine F_AEROSOL returns the fraction of aerosol
-      ! scavenged in updrafts (bmy, 11/7/02)
-      !=================================================================
+!------------------------------------------------------------------------------
+
+      SUBROUTINE F_AEROSOL( KC, F ) 
+!
+!******************************************************************************
+!  Subroutine F_AEROSOL returns the fraction of aerosol scavenged in updrafts
+!  (bmy, 11/7/02, 7/20/04)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) KC (REAL*8) : Conversion rate from cloud condensate to precip [s^-1]
+!
+!  Arguments as Output:
+!  ============================================================================
+!  (2 ) F  (REAL*8) : Fraction of aerosol scavenged in updrafts [unitless]
+!
+!  NOTES:
+!  (1 ) Split off 
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE DAO_MOD, ONLY : BXHEIGHT
+
+#     include "CMN_SIZE"   ! Size parameters
 
       ! Arguments
+      REAL*8, INTENT(IN)  :: KC
       REAL*8, INTENT(OUT) :: F(IIPAR,JJPAR,LLPAR)
 
       ! Local variables
@@ -1357,7 +1514,7 @@
       REAL*8              :: TMP
      
       !=================================================================
-      ! GET_F_AEROSOL begins here!
+      ! F_AEROSOL begins here!
       !
       ! Aerosol tracers are 100% in the cloud condensate phase, so 
       ! we set K = Kc, and compute F accordingly (cf Jacob et al 2000 )    
@@ -1365,7 +1522,7 @@
       
       ! Turn off scavenging in the first level by setting F = 0
       F(:,:,1) = 0d0
-  
+ 
       ! Apply scavenging in levels 2 and higher
       DO L = 2, LLPAR
       DO J = 1, JJPAR
@@ -1381,13 +1538,8 @@
       ENDDO
       ENDDO
 
-      ! Return to COMPUTE_F
-      END SUBROUTINE F_AEROSOL 
-
-      !------------------------------------------------------------------------
-
       ! Return to calling program
-      END SUBROUTINE COMPUTE_F
+      END SUBROUTINE F_AEROSOL 
 
 !------------------------------------------------------------------------------
 
@@ -1395,16 +1547,19 @@
 !
 !******************************************************************************
 !  Function GET_ISOL returns the value of ISOL (tracer index for ND38) for 
-!  all simulation types.  (bmy, 4/5/04)
+!  all simulation types.  (bmy, 4/5/04, 7/20/04)
 !
 !
 ! NOTES:
 ! (1 ) Now initializes a lookup table for faster execution.  Now made into
 !        an EXTERNAL function. (rjp, bmy, 4/5/04)
+! (2 ) Now references N_TRACERS from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
+      ! References to F90 modules
+      USE TRACER_MOD, ONLY : N_TRACERS
+
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN"        ! NTRACE
 
       ! Arguments
       INTEGER, INTENT(IN) :: N_TEST
@@ -1428,7 +1583,7 @@
          NSOL_INDEX(:) = 0
    
          ! Loop over tracers
-         DO N = 1, NTRACE
+         DO N = 1, N_TRACERS
             
             ! Loop over soluble tracers
             DO L = 1, NSOL
@@ -1501,6 +1656,7 @@
 !  (7 ) Now updated for carbon & dust aerosol tracers (rjp, bmy, 4/5/04)
 !  (8 ) Now updated for seasalt aerosol tracers (rjp, bec, bmy, 4/20/04)
 !  (9 ) Now updated for secondary aerosol tracers (rjp, bmy, 7/13/04)
+!  (10) Now
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1537,19 +1693,19 @@
       ! 210Pb (aerosol)
       !----------------------------
       IF ( N == IDTPB ) THEN 
-         RAINFRAC = GET_RAINFRAC( K_RAIN )
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
          
       !----------------------------
       ! 7Be (aerosol)
       !----------------------------
       ELSE IF ( N == IDTBE7 ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN )
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
          
       !----------------------------
       ! HNO3 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTHNO3 ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN )
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
       !----------------------------
       ! H2O2 (liquid & ice phases)
@@ -1591,7 +1747,7 @@
 
          ! Compute RAINFRAC, the fraction of rained-out H2O2
          ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K )
+         RAINFRAC = GET_RAINFRAC( K, F, DT )
 
       !----------------------------
       ! CH2O (liquid phase only)
@@ -1625,7 +1781,7 @@
 
          ! Compute RAINFRAC, the fraction of rained-out CH2O
          ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K )
+         RAINFRAC = GET_RAINFRAC( K, F, DT )
   
       !----------------------------
       ! CH3OOH (liquid phase only)
@@ -1659,8 +1815,7 @@
   
          ! Compute RAINFRAC, the fraction of rained-out CH3OOH
          ! (Eq. 10, Jacob et al, 2000)
-         !RAINFRAC = F * ( 1 - EXP( -K * DT ) )
-         RAINFRAC = GET_RAINFRAC( K ) 
+         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
 
       !----------------------------
       ! SO2
@@ -1676,7 +1831,7 @@
          !==============================================================
 
          ! Treat SO2 as an aerosol
-         RAINFRAC = GET_RAINFRAC( K_RAIN )
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
          ! Update SO2 and H2O2
          IF ( SO2s(I,J,L) > EPSILON ) THEN 
@@ -1703,13 +1858,13 @@
       ! SO4 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTSO4 ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN )
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
       !----------------------------
       ! MSA (aerosol)
       !----------------------------
       ELSE IF ( N == IDTMSA ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN )
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
       !----------------------------
       ! NH3 (liquid & ice phases)
@@ -1753,31 +1908,31 @@
 
          ! Compute RAINFRAC, the fraction of rained-out NH3
          ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K )
+         RAINFRAC = GET_RAINFRAC( K, F, DT )
 
       !----------------------------
       ! NH4 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTNH4 ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN )
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
       !----------------------------
       ! NIT (aerosol)
       !----------------------------
       ELSE IF ( N == IDTNIT ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN )
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
       !----------------------------
       ! BC HYDROPHILIC (aerosol)
       !----------------------------
       ELSE IF ( N == IDTBCPI ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN )
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
       !----------------------------
       ! OC HYDROPHILIC (aerosol)
       !----------------------------
       ELSE IF ( N == IDTOCPI ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN )
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
       !-----------------------------
       ! BC HYDROPHOBIC (aerosol) 
@@ -1799,37 +1954,37 @@
       ! DUST1 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTDST1 ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN )
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
       !----------------------------
       ! DUST2 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTDST2 ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN )
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
       !----------------------------
       ! DUST3 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTDST3 ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN )
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
       !----------------------------
       ! DUST4 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTDST4 ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN )      
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )      
 
       !----------------------------
       ! Accum. seasalt (aerosol)
       !----------------------------
       ELSE IF ( N == IDTSALA ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN )      
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )      
 
       !----------------------------
       ! Coarse seasalt (aerosol)
       !----------------------------
       ELSE IF ( N == IDTSALC ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN )      
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )      
 
       !----------------------------
       ! ALPH (liquid phase only)
@@ -1860,7 +2015,9 @@
 
          ENDIF
  
-         RAINFRAC = GET_RAINFRAC( K )
+         ! Compute RAINFRAC, the fraction of rained-out ALPH
+         ! (Eq. 10, Jacob et al, 2000)
+         RAINFRAC = GET_RAINFRAC( K, F, DT )
 
       !----------------------------
       ! LIMO (liquid phase only)
@@ -1890,8 +2047,10 @@
             K = 0d0
 
          ENDIF
- 
-         RAINFRAC = GET_RAINFRAC( K )
+
+         ! Compute RAINFRAC, the fraction of rained-out LIMO
+         ! (Eq. 10, Jacob et al, 2000)
+         RAINFRAC = GET_RAINFRAC( K, F, DT )
 
       !----------------------------
       ! ALCO (liquid phase only)
@@ -1921,8 +2080,10 @@
             K = 0d0
 
          ENDIF
- 
-         RAINFRAC = GET_RAINFRAC( K )
+
+         ! Compute RAINFRAC, the fraction of rained-out ALCO
+         ! (Eq. 10, Jacob et al, 2000)   
+         RAINFRAC = GET_RAINFRAC( K, F, DT )
 
       !--------------------------------
       ! SOG[1,2,3] (liquid phase only)
@@ -1953,14 +2114,16 @@
 
          ENDIF
  
-         RAINFRAC = GET_RAINFRAC( K )
+         ! Compute RAINFRAC, the fraction of rained-out SOG{1,2,3}
+         ! (Eq. 10, Jacob et al, 2000)
+         RAINFRAC = GET_RAINFRAC( K, F, DT )
 
       !--------------------------------------
       ! SOA[1,2,3] (aerosol)
       ! Scavenging efficiency for SOA is 0.8
       !--------------------------------------
       ELSE IF ( N == IDTSOA1 .OR. N == IDTSOA2 .OR. N == IDTSOA3 ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN )
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
          RAINFRAC = RAINFRAC * 0.8d0
 
       !----------------------------
@@ -1971,23 +2134,31 @@
 
       ENDIF
       
-      !=================================================================
-      ! Internal subroutines -- they can "see" all 
-      ! variables that have been declared in RAINOUT
-      !================================================================= 
-      CONTAINS
+      ! Return to calling program
+      END SUBROUTINE RAINOUT
 
-      !------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 
-      FUNCTION GET_RAINFRAC( K ) RESULT( RAINFRAC )
-
-      !=================================================================
-      ! Internal function GET_RAINFRAC computes the fraction of tracer
-      ! lost to rainout according to Jacob et al 2000. (bmy, 11/8/02)
-      !=================================================================
-
+      FUNCTION GET_RAINFRAC( K, F, DT ) RESULT( RAINFRAC )
+!
+!******************************************************************************
+!  Function GET_RAINFRAC computes the fraction of tracer lost to rainout 
+!  according to Jacob et al 2000. (bmy, 11/8/02, 7/20/04)
+!
+!  Arguments as Input:
+!  =========================================================================== 
+!  (1 ) K  (REAL*8) : Rainout rate constant              [1/s]
+!  (2 ) DT (REAL*8) : Timestep for rainout event         [s]
+!  (3 ) F  (REAL*8) : Fraction of grid box precipitating [unitless]
+!
+!  NOTES:
+!  (1 ) Now move internal routines GET_RAINFRAC to the module and pass all 
+!        arguments explicitly.  This facilitates parallelization on the 
+!        Altix platform (bmy, 7/20/04) 
+!******************************************************************************
+!
       ! Arguments
-      REAL*8, INTENT(IN) :: K
+      REAL*8, INTENT(IN) :: K, F, DT
       
       ! Local variables
       REAL*8             :: RAINFRAC
@@ -2002,18 +2173,13 @@
       ! Return to RAINOUT
       END FUNCTION GET_RAINFRAC
 
-      !------------------------------------------------------------------------
-
-      ! Return to calling program
-      END SUBROUTINE RAINOUT
-
 !------------------------------------------------------------------------------
 
       SUBROUTINE WASHOUT( I, J, L, N, PP, DT, F, WASHFRAC, AER )
 !
 !******************************************************************************
 !  Subroutine WASHOUT computes WASHFRAC, the fraction of soluble tracer
-!  lost to washout events in precipitation. (djj, bmy, 2/28/00, 7/13/04)
+!  lost to washout events in precipitation. (djj, bmy, 2/28/00, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -2054,6 +2220,9 @@
 !  (7 ) Updated for carbon aerosol and dust tracers (rjp, bmy, 4/5/04)
 !  (8 ) Updated for seasalt aerosol tracers (rjp, bec, bmy, 4/20/04)
 !  (9 ) Updated for secondary organic aerosol tracers (rjp, bmy, 7/13/04)
+!  (10) Now move internal routines WASHFRAC_AEROSOL and WASHFRAC_LIQ_GAS
+!        to the module and pass all arguments explicitly.  This facilitates
+!        parallelization on the Altix platform (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2070,7 +2239,7 @@
       LOGICAL, INTENT(OUT) :: AER
 
       ! Local variables 
-      REAL*8               :: L2G,  LP, DZ, TK, WASHFRAC_F_14, SO2LOSS
+      REAL*8               :: L2G, DZ, TK, SO2LOSS
 
       ! First order washout rate constant for HNO3, aerosols = 1 cm^-1
       REAL*8, PARAMETER    :: K_WASH = 1d0
@@ -2087,53 +2256,51 @@
 
       ! DZ is the height of the grid box in cm
       DZ = BXHEIGHT(I,J,L) * 1d2
-      
-      ! Initialize some variables
-      L2G           = 0d0
-      LP            = 0d0
-      WASHFRAC_F_14 = 0d0
 
       !----------------------------
       ! 210Pb (aerosol)
       !----------------------------
       IF ( N == IDTPB ) THEN
          AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL()
+         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
       !----------------------------
       ! 7Be (aerosol)
       !----------------------------
       ELSE IF ( N == IDTBE7 ) THEN
          AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL()
+         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
       !----------------------------
       ! HNO3 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTHNO3 ) THEN
          AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL()
+         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
       !----------------------------
       ! H2O2 (liquid & gas phases)
       !----------------------------
       ELSE IF ( N == IDTH2O2 ) THEN
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3 )
+         WASHFRAC = WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP, DT, 
+     &                                F,      DZ,    TK, K_WASH )
 
       !----------------------------
       ! CH2O (liquid & gas phases)
       !----------------------------
       ELSE IF ( N == IDTCH2O ) THEN 
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 3.0d3, -7.2d3 )
+         WASHFRAC = WASHFRAC_LIQ_GAS( 3.0d3, -7.2d3, PP, DT, 
+     &                                F,      DZ,    TK, K_WASH )
 
       !----------------------------
       ! MP (liquid & gas phases)
       !----------------------------
       ELSE IF ( N == IDTMP ) THEN
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 3.1d2, -5.2d3 )
+         WASHFRAC = WASHFRAC_LIQ_GAS( 3.1d2, -5.2d3, PP, DT, 
+     &                                F,      DZ,    TK, K_WASH )
 
       !----------------------------
       ! SO2 (aerosol treatment)
@@ -2145,7 +2312,7 @@
          ! wet scavenging.  When evaporation occurs, it returns to SO4.
          !==============================================================
          AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL()
+         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
          !==============================================================
          ! Use the wet-scavenging following [Chin et al, 1996] such 
@@ -2182,140 +2349,145 @@
       !----------------------------
       ELSE IF ( N == IDTSO4 ) THEN
          AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL()
+         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
       !----------------------------
       ! MSA (aerosol)
       !----------------------------
       ELSE IF ( N == IDTMSA ) THEN
          AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL()
+         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
       !----------------------------
       ! NH3 (liquid & gas phases)
       !----------------------------
       ELSE IF ( N == IDTNH3 ) THEN
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 3.3d6, -4.1d3 )
+         WASHFRAC = WASHFRAC_LIQ_GAS( 3.3d6, -4.1d3, PP, DT, 
+     &                                F,      DZ,    TK, K_WASH )
 
       !----------------------------
       ! NH4 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTNH4 ) THEN
          AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL()
+         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
       !----------------------------
       ! NIT (aerosol)
       !----------------------------
       ELSE IF ( N == IDTNIT ) THEN
          AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL()
+         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
       !----------------------------
       ! BC HYDROPHILIC (aerosol)
       !----------------------------
       ELSE IF ( N == IDTBCPI ) THEN
          AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL()
+         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
       !----------------------------
       ! OC HYDROPHILIC (aerosol)
       !----------------------------
       ELSE IF ( N == IDTOCPI ) THEN
          AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL()
+         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
       !----------------------------
       ! BC HYDROPHOBIC (aerosol)
       !----------------------------
       ELSE IF ( N == IDTBCPO ) THEN
          AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL() 
+         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK ) 
 
       !----------------------------
       ! OC HYDROPHOBIC (aerosol)
       !----------------------------
       ELSE IF ( N == IDTOCPO ) THEN
          AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL()
+         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
       !----------------------------
       ! DUST1 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTDST1 ) THEN
          AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL()
+         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
       !----------------------------
       ! DUST2 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTDST2 ) THEN
          AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL()
+         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
       !----------------------------
       ! DUST3 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTDST3 ) THEN
          AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL()
+         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
       !----------------------------
       ! DUST4 (aerosol)
       !----------------------------
       ELSE IF ( N == IDTDST4 ) THEN
          AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL()
+         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
       !----------------------------
       ! Accum. seasalt (aerosol)
       !----------------------------
       ELSE IF ( N == IDTSALA ) THEN
          AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL()
+         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
       !----------------------------
       ! Coarse seasalt (aerosol)
       !----------------------------
       ELSE IF ( N == IDTSALC ) THEN
          AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL()
+         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
       !----------------------------
       ! ALPH (liquid & gas phases)
       !----------------------------
       ELSE IF ( N == IDTALPH ) THEN
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 0.023d0, 0.d0 )
+         WASHFRAC = WASHFRAC_LIQ_GAS( 0.023d0, 0.d0, PP, DT, 
+     &                                F,       DZ,   TK, K_WASH )
 
       !----------------------------
       ! LIMO (liquid & gas phases)
       !----------------------------
       ELSE IF ( N == IDTLIMO ) THEN
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 0.07d0, 0.d0 )
+         WASHFRAC = WASHFRAC_LIQ_GAS( 0.07d0, 0.d0, PP, DT, 
+     &                                F,      DZ,   TK, K_WASH )
 
       !----------------------------
       ! ALCO (liquid & gas phases)
       !----------------------------
       ELSE IF ( N == IDTALCO ) THEN
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 54.d0, 0.d0 )
+         WASHFRAC = WASHFRAC_LIQ_GAS( 54.d0, 0.d0, PP, DT, 
+     &                                F,     DZ,   TK, K_WASH )
 
       !----------------------------
       ! SOG[1,2,3] (liquid & gas phases)
       !----------------------------
       ELSE IF ( N == IDTSOG1 .OR. N == IDTSOG2 .OR. N == IDTSOG3 ) THEN
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 1.0d5, -6.039d3 )
+         WASHFRAC = WASHFRAC_LIQ_GAS( 1.0d5, -6.039d3, PP, DT, 
+     &                                F,      DZ,      TK, K_WASH )
 
       !----------------------------
       ! SOA[1,2,3] (aerosol)
       !----------------------------
       ELSE IF ( N == IDTSOA1 .OR. N == IDTSOA2 .OR. N == IDTSOA3 ) THEN
          AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL()
+         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
       !----------------------------
       ! ERROR: Insoluble tracer
@@ -2325,23 +2497,42 @@
 
       ENDIF
 
-      !=================================================================
-      ! Internal subroutines -- they can "see" all 
-      ! variables that have been declared in RAINOUT
-      !================================================================= 
-      CONTAINS
+      ! Return to calling program
+      END SUBROUTINE WASHOUT
 
-      !------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 
-      FUNCTION WASHFRAC_AEROSOL() RESULT( WASHFRAC )
-
-      !=================================================================
-      ! Internal function WASHFRAC_AEROSOL returns the fraction of
-      ! soluble aerosol tracer lost to washout (bmy, 11/8/02)
-      !=================================================================
+      FUNCTION WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK ) 
+     &         RESULT( WASHFRAC )
+!
+!******************************************************************************
+!  Function WASHFRAC_AEROSOL returns the fraction of soluble aerosol tracer 
+!  lost to washout.  (bmy, 11/8/02, 7/20/04)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) TK       (REAL*8 ) : Temperature in grid box            [K]
+!  (2 ) F        (REAL*8 ) : Fraction of grid box 
+!                             that is precipitating             [unitless]
+!  (3 ) K_WASH   (REAL*8 ) : 1st order washout rate constant    [1/cm]
+!  (3 ) PP       (REAL*8 ) : Precip rate thru at bottom    
+!                             of grid box (I,J,L)           [cm3 H2O/cm2 air/s]
+!
+!  NOTES:
+!  (1 ) WASHFRAC_AEROSOL used to be an internal function to subroutine WASHOUT.
+!        This caused NaN's in the parallel loop on Altix, so we moved it to
+!        the module and now pass all arguments explicitly (bmy, 7/20/04)
+!******************************************************************************
+!   
+      ! Arguments
+      REAL*8, INTENT(IN) :: DT, F, K_WASH, PP, TK
 
       ! Function value
-      REAL*8 :: WASHFRAC
+      REAL*8             :: WASHFRAC
+
+      !=================================================================
+      ! WASHFRAC_AEROSOL begins here!
+      !=================================================================
 
       ! Washout only happens at or above 268 K
       IF ( TK >= 268d0 ) THEN
@@ -2350,28 +2541,43 @@
          WASHFRAC = 0d0
       ENDIF
 
-      ! Return to WASHFRAC
+      ! Return to calling program
       END FUNCTION WASHFRAC_AEROSOL
 
-      !------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 
-      FUNCTION WASHFRAC_LIQ_GAS( Kstar298, H298_R ) RESULT( WASHFRAC )
-
-      !=================================================================
-      ! Internal function WASHFRAC_LIQ_GAS returns the fraction of
-      ! soluble liquid/gas phase tracer lost to washout (bmy, 11/8/02)
-      !
-      ! Arguments as Input:
-      ! ----------------------------------------------------------------
-      ! (1 ) Kstar298 : Eff. Henry's law constant @ 298 K [moles/atm]
-      ! (2 ) H298_R   : Henry's law coefficient           [K]
-      !=================================================================
-
+      FUNCTION WASHFRAC_LIQ_GAS( Kstar298, H298_R, PP, DT, 
+     &                           F,        DZ,     TK, K_WASH ) 
+     &         RESULT( WASHFRAC )
+!
+!******************************************************************************
+!  Function WASHFRAC_LIQ_GAS returns the fraction of soluble liquid/gas phase 
+!  tracer lost to washout. (bmy, 11/8/02, 7/20/04)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) Kstar298 (REAL*8 ) : Eff. Henry's law constant @ 298 K  [moles/atm]
+!  (2 ) H298_R   (REAL*8 ) : Henry's law coefficient            [K]
+!  (3 ) PP       (REAL*8 ) : Precip rate thru at bottom    
+!                             of grid box (I,J,L)           [cm3 H2O/cm2 air/s]
+!  (4 ) DT       (REAL*8 ) : Dynamic timestep                   [s]
+!  (5 ) F        (REAL*8 ) : Fraction of grid box 
+!                             that is precipitating             [unitless]
+!  (6 ) DZ       (REAL*8 ) : Height of grid box                 [cm]
+!  (7 ) TK       (REAL*8 ) : Temperature in grid box            [K]
+!  (8 ) K_WASH   (REAL*8 ) : 1st order washout rate constant    [1/cm]
+!
+!  NOTES:
+!  (1 ) WASHFRAC_LIQ_GAS used to be an internal function to subroutine WASHOUT.
+!        This caused NaN's in the parallel loop on Altix, so we moved it to
+!        the module and now pass all arguments explicitly (bmy, 7/20/04)
+!******************************************************************************
+!
       ! Arguments
-      REAL*8, INTENT(IN) :: Kstar298, H298_R
+      REAL*8, INTENT(IN) :: Kstar298, H298_R, PP, DT, F, DZ, TK, K_WASH
 
       ! Local variables
-      REAL*8             :: LP, WASHFRAC, WASHFRAC_F_14
+      REAL*8             :: L2G, LP, WASHFRAC, WASHFRAC_F_14
 
       !=================================================================
       ! WASHFRAC_LIQ_GAS begins here!
@@ -2403,13 +2609,8 @@
             
       ENDIF
 
-      ! Return to WASHOUT
-      END FUNCTION WASHFRAC_LIQ_GAS
-
-      !------------------------------------------------------------------------
-
       ! Return to calling program
-      END SUBROUTINE WASHOUT
+      END FUNCTION WASHFRAC_LIQ_GAS
 
 !------------------------------------------------------------------------------
 
@@ -2418,7 +2619,7 @@
 !******************************************************************************
 !  Subroutine WETDEP computes the downward mass flux of tracer due to washout 
 !  and rainout of aerosols and soluble tracers in a column.  The timestep is 
-!  the dynamic timestep. (hyl, bey, bmy, djj, 4/2/99, 3/17/04)
+!  the dynamic timestep. (hyl, bey, bmy, djj, 4/2/99, 7/20/04)
 !
 !  The precip fields through the bottom of each level are indexed as follows:
 !
@@ -2506,19 +2707,22 @@
 !        LS_K_RAIN, LS_F_PRIME, CONV_F_PRIME, and SAFETY to the module, since
 !        we cannot call internal routines from w/in a parallel loop. 
 !        (bmy, 3/18/04)
+!  (16) Now references STT & N_TRACERS from "tracer_mod.f".  Also now make
+!        DSTT a 4-d internal array so as to facilitate -C checking on the
+!        SGI platform. (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : BXHEIGHT
       USE DIAG_MOD,     ONLY : AD16, AD17, AD18, CT16, CT17, CT18, AD39 
-      USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
+      USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP, IT_IS_NAN
       USE TIME_MOD,     ONLY : GET_TS_DYN
+      USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTSO2, IDTSO4
       
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! STT
 #     include "CMN_DIAG"  ! Diagnostic arrays and switches 
 
       ! Arguments
@@ -2539,8 +2743,8 @@
 
       ! DSTT is the accumulator array of rained-out 
       ! soluble tracer for a given (I,J) column
-      REAL*8              :: DSTT(NSOLMAX,LLPAR)
-
+      REAL*8              :: DSTT(NSOLMAX,LLPAR,IIPAR,JJPAR)
+ 
       !=================================================================
       ! WETDEP begins here!
       !
@@ -2563,23 +2767,27 @@
       !
       ! Process rainout / washout by columns.
       !=================================================================
-
-#if   !defined( LINUX_EFC ) 
+      
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,       J,           FTOP,      DSTT,     ALPHA    )
+!$OMP+PRIVATE( I,       J,           FTOP,      ALPHA              )
 !$OMP+PRIVATE( ALPHA2,  F,           F_PRIME,   GAINED,   K_RAIN   )
 !$OMP+PRIVATE( LOST,    MASS_NOWASH, MASS_WASH, RAINFRAC, WASHFRAC )
 !$OMP+PRIVATE( WETLOSS, L,           Q,         NN,       N        )
 !$OMP+PRIVATE( XDSTT,   QDOWN,       AER,       TMP                )
 !$OMP+SCHEDULE( DYNAMIC )
-#endif
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Zero arrays for this column
-         FTOP      = 0d0
-         DSTT(:,:) = 0d0
+         ! Zero FTOP
+         FTOP = 0d0
+
+         ! Zero accumulator array
+         DO L  = 1, LLPAR
+         DO NN = 1, NSOLMAX
+            DSTT(NN,L,I,J) = 0d0
+         ENDDO
+         ENDDO
 
          !==============================================================
          ! (3)  R a i n o u t   F r o m   T o p   L a y e r  (L = LLPAR) 
@@ -2723,7 +2931,7 @@
                   ! The tracers in DSTT are in the liquid phase and will 
                   ! precipitate to the levels below until a washout occurs.
                   ! Initialize DSTT at (I,J,L=LLPAR) with WETLOSS.
-                  DSTT(NN,L) = WETLOSS
+                  DSTT(NN,L,I,J) = WETLOSS
 
                   ! ND17 diagnostic...LS and conv rainout fractions [unitless]
                   IF ( ND17 > 0 .and. L <= LD17 ) THEN
@@ -2739,12 +2947,14 @@
 
                   ! Negative tracer...call subroutine SAFETY
                   IF ( STT(I,J,L,N) < 0d0 ) THEN
-                     CALL SAFETY( I, J, L, N, 4, 
-     &                            LS,         PDOWN(L,I,J), QQ(L,I,J),   
-     &                            ALPHA,      ALPHA2,       RAINFRAC,    
-     &                            WASHFRAC,   MASS_WASH,    MASS_NOWASH, 
-     &                            WETLOSS,    GAINED,       LOST,        
-     &                            DSTT(NN,:), STT(I,J,:,N) )
+                     CALL SAFETY( I, J, L, N, 3, 
+     &                            LS,             PDOWN(L,I,J), 
+     &                            QQ(L,I,J),      ALPHA,      
+     &                            ALPHA2,         RAINFRAC,    
+     &                            WASHFRAC,       MASS_WASH,    
+     &                            MASS_NOWASH,    WETLOSS,    
+     &                            GAINED,         LOST,        
+     &                            DSTT(NN,:,I,J), STT(I,J,:,N) )
                   ENDIF
                ENDDO
             ENDIF
@@ -2863,7 +3073,7 @@
                      ! grid box (I,J,L).  DSTT will continue to accumulate 
                      ! rained out tracer in this manner until a washout 
                      ! event occurs.
-                     DSTT(NN,L) = DSTT(NN,L+1) + WETLOSS
+                     DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
 
                      ! ND17 diagnostic...rainout fractions [unitless]
                      IF ( ND17 > 0 .and. L <= LD17 ) THEN
@@ -2878,15 +3088,16 @@
                      ENDIF
 
                      ! Negative tracer...call subroutine SAFETY
-                     IF ( STT(I,J,L,N) < 0d0 ) THEN
-                        CALL SAFETY( I, J, L, N, 5, 
-     &                               LS,           PDOWN(L,I,J),  
-     &                               QQ(L,I,J),    ALPHA,        
-     &                               ALPHA2,       RAINFRAC,     
-     &                               WASHFRAC,     MASS_WASH,    
-     &                               MASS_NOWASH,  WETLOSS,      
-     &                               GAINED,       LOST,         
-     &                               DSTT(NN,:),   STT(I,J,:,N) )
+                     IF ( STT(I,J,L,N) < 0d0 .or.
+     &                    IT_IS_NAN( STT(I,J,L,N) ) ) THEN
+                        CALL SAFETY( I, J, L, N, 4, 
+     &                               LS,             PDOWN(L,I,J),  
+     &                               QQ(L,I,J),      ALPHA,        
+     &                               ALPHA2,         RAINFRAC,     
+     &                               WASHFRAC,       MASS_WASH,    
+     &                               MASS_NOWASH,    WETLOSS,      
+     &                               GAINED,         LOST,         
+     &                               DSTT(NN,:,I,J), STT(I,J,:,N) )
                      ENDIF
                   ENDDO
                ENDIF
@@ -3007,7 +3218,7 @@
                         ! GAINED is the rained out aerosol coming down from 
                         ! grid box (I,J,L+1) that will evaporate and re-enter 
                         ! the atmosphere in the gas phase in grid box (I,J,L).
-                        GAINED = DSTT(NN,L+1) * ALPHA2
+                        GAINED = DSTT(NN,L+1,I,J) * ALPHA2
 
                         ! Amount of aerosol lost to washout in grid box
                         ! (qli, bmy, 10/29/02)
@@ -3032,12 +3243,12 @@
                         ! LOST is the rained out aerosol coming down from
                         ! grid box (I,J,L+1) that will remain in the liquid
                         ! phase in grid box (I,J,L) and will NOT re-evaporate.
-                        LOST = DSTT(NN,L+1) - GAINED
+                        LOST = DSTT(NN,L+1,I,J) - GAINED
 
                         ! Add the washed out tracer from grid box (I,J,L) to 
                         ! DSTT.  Also add the amount of tracer coming down
                         ! from grid box (I,J,L+1) that does NOT re-evaporate.
-                        DSTT(NN,L) = DSTT(NN,L+1) + WETLOSS
+                        DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
 
                         ! ND18 diagnostic...divide washout fraction by F
                         IF ( ND18 > 0 .and. L <= LD18 ) THEN
@@ -3061,12 +3272,12 @@
                         ! part of box (I,J,L), plus the previously rained-out
                         ! tracer coming down from grid box (I,J,L+1).
                         ! (Eq. 15, Jacob et al, 2000).
-                        MASS_WASH = ( F * STT(I,J,L,N) ) + DSTT(NN,L+1)
+                        MASS_WASH = ( F*STT(I,J,L,N) ) +DSTT(NN,L+1,I,J)
 
                         ! WETLOSS is the amount of tracer mass in 
                         ! grid box (I,J,L) that is lost to washout.
                         ! (Eq. 16, Jacob et al, 2000)
-                        WETLOSS = MASS_WASH * WASHFRAC - DSTT(NN,L+1)
+                        WETLOSS = MASS_WASH * WASHFRAC -DSTT(NN,L+1,I,J)
 
                         ! The tracer left in grid box (I,J,L) is what was
                         ! in originally in the non-precipitating fraction 
@@ -3074,7 +3285,7 @@
                         STT(I,J,L,N) = STT(I,J,L,N) - WETLOSS  
                   
                         ! Add washout losses in grid box (I,J,L) to DSTT 
-                        DSTT(NN,L) = DSTT(NN,L+1) + WETLOSS
+                        DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
 
                         ! ND18 diagnostic...we don't have to divide the
                         ! washout fraction by F since this is accounted for.
@@ -3091,15 +3302,16 @@
                      ENDIF
   
                      ! Negative tracer...call subroutine SAFETY
-                     IF ( STT(I,J,L,N) < 0d0 ) THEN
-                        CALL SAFETY( I, J, L, N, 6, 
-     &                               LS,           PDOWN(L,I,J), 
-     &                               QQ(L,I,J),    ALPHA,        
-     &                               ALPHA2,       RAINFRAC,     
-     &                               WASHFRAC,     MASS_WASH,    
-     &                               MASS_NOWASH,  WETLOSS,      
-     &                               GAINED,       LOST,         
-     &                               DSTT(NN,:),   STT(I,J,:,N) )
+                     IF ( STT(I,J,L,N) < 0d0 .or. 
+     &                    IT_IS_NAN( STT(I,J,L,N) ) ) THEN
+                        CALL SAFETY( I, J, L, N, 5, 
+     &                               LS,             PDOWN(L,I,J), 
+     &                               QQ(L,I,J),      ALPHA,        
+     &                               ALPHA2,         RAINFRAC,     
+     &                               WASHFRAC,       MASS_WASH,    
+     &                               MASS_NOWASH,    WETLOSS,      
+     &                               GAINED,         LOST,         
+     &                               DSTT(NN,:,I,J), STT(I,J,:,N) )
                      ENDIF
                   ENDDO  
                ENDIF
@@ -3130,7 +3342,7 @@
 
                   ! WETLOSS is the amount of tracer in grid box (I,J,L) 
                   ! that is lost to rainout. (qli, bmy, 10/29/02)
-                  WETLOSS = -DSTT(NN,L+1)
+                  WETLOSS = -DSTT(NN,L+1,I,J)
 
                   ! All of the rained-out tracer coming from grid box
                   ! (I,J,L+1) goes back into the gas phase at (I,J,L)
@@ -3144,7 +3356,7 @@
 
                   ! There is nothing rained out/washed out in grid box
                   ! (I,J,L), so set DSTT at grid box (I,J,L) to zero.
-		  DSTT(NN,L) = 0d0
+		  DSTT(NN,L,I,J) = 0d0
                   
                   ! ND39 diag -- save rainout losses in [kg/s]
                   IF ( ND39 > 0 .and. L <= LD39 ) THEN
@@ -3154,22 +3366,24 @@
 
                   ! Negative tracer...call subroutine SAFETY
                   IF ( STT(I,J,L,N) < 0d0 ) THEN
-                     CALL SAFETY( I, J, L, N, 7, 
-     &                            LS,         PDOWN(L,I,J), QQ(L,I,J),   
-     &                            ALPHA,      ALPHA2,       RAINFRAC,    
-     &                            WASHFRAC,   MASS_WASH,    MASS_NOWASH, 
-     &                            WETLOSS,    GAINED,       LOST,        
-     &                            DSTT(NN,:), STT(I,J,:,N) )
+                     CALL SAFETY( I, J, L, N, 6, 
+     &                            LS,             PDOWN(L,I,J), 
+     &                            QQ(L,I,J),      ALPHA,      
+     &                            ALPHA2,         RAINFRAC,    
+     &                            WASHFRAC,       MASS_WASH,    
+     &                            MASS_NOWASH,    WETLOSS,        
+     &                            GAINED,         LOST,        
+     &                            DSTT(NN,:,I,J), STT(I,J,:,N) )
                   ENDIF
                ENDDO
 
                ! Save FTOP for next level
                FTOP = F
             ENDIF 
-         ENDDO                  ! L
+         ENDDO                 
 
          !==============================================================
-         ! (8)  W a s h o u t   i n   L e v e l   1
+         ! (7)  W a s h o u t   i n   L e v e l   1
          !
          ! Assume all of the tracer precipitating down from grid box 
          ! (I,J,L=2) to grid box (I,J,L=1) gets washed out in grid box 
@@ -3275,21 +3489,21 @@
 
                   ! Negative tracer...call subroutine SAFETY
                   IF ( STT(I,J,L,N) < 0d0 ) THEN
-                     CALL SAFETY( I, J, L, N, 8, 
-     &                            LS,         PDOWN(L,I,J), QQ(L,I,J),   
-     &                            ALPHA,      ALPHA2,       RAINFRAC,    
-     &                            WASHFRAC,   MASS_WASH,    MASS_NOWASH, 
-     &                            WETLOSS,    GAINED,       LOST,        
-     &                            DSTT(NN,:), STT(I,J,:,N) )
+                     CALL SAFETY( I, J, L, N, 7, 
+     &                            LS,             PDOWN(L,I,J), 
+     &                            QQ(L,I,J),      ALPHA,           
+     &                            ALPHA2,         RAINFRAC,    
+     &                            WASHFRAC,       MASS_WASH,    
+     &                            MASS_NOWASH,    WETLOSS,    
+     &                            GAINED,         LOST,        
+     &                            DSTT(NN,:,I,J), STT(I,J,:,N) )
                   ENDIF
                ENDDO
             ENDIF    
          ENDIF
       ENDDO	
       ENDDO	
-#if   !defined( LINUX_EFC )
 !$OMP END PARALLEL DO
-#endif
 
       ! Return to calling program
       END SUBROUTINE WETDEP
@@ -3504,7 +3718,7 @@
 !
 !******************************************************************************
 !  Subroutine WETDEPID sets up the index array of soluble tracers used in
-!  the WETDEP routine above (bmy, 11/8/02, 7/13/04)
+!  the WETDEP routine above (bmy, 11/8/02, 7/20/04)
 ! 
 !  NOTES:
 !  (1 ) Now references "tracerid_mod.f".  Also references "CMN" in order to
@@ -3513,17 +3727,19 @@
 !  (3 ) Updated for seasalt aerosol tracers.  Also added fancy output.
 !        (rjp, bec, bmy, 4/20/04)
 !  (4 ) Updated for secondary organic aerosol tracers (bmy, 7/13/04)
+!  (5 ) Now references N_TRACERS, TRACER_NAME, TRACER_MW_KG from
+!        "tracer_mod.f".  Removed reference to NSRCX.  (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References To F90 modules
       USE ERROR_MOD,  ONLY : ERROR_STOP
+      USE TRACER_MOD, ONLY : N_TRACERS, TRACER_NAME, TRACER_MW_G
       USE TRACERID_MOD
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! NSRCX, NTRACE, TCNAME
 
       ! Local variables
-      INTEGER            :: N, NN
+      INTEGER :: N, NN
 
       !=================================================================
       ! WETDEPID begins here!
@@ -3533,7 +3749,7 @@
       NSOL = 0
 
       ! Sort soluble tracers into IDWETD
-      DO N = 1, NTRACE
+      DO N = 1, N_TRACERS
          IF ( N == IDTPB ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTPB
@@ -3668,103 +3884,118 @@
       
       ! Also check to see if NSOL is larger than the maximum
       ! number of soluble tracers for a particular simulation
-      IF ( NSOL > GET_WETDEP_NMAX( NSRCX ) ) THEN
+      !-----------------------------------------------
+      ! Prior to 7/20/04:
+      !IF ( NSOL > GET_WETDEP_NMAX( NSRCX ) ) THEN
+      !-----------------------------------------------
+      IF ( NSOL > GET_WETDEP_NMAX() ) THEN
          CALL ERROR_STOP( 'NSOL > NMAX', 'WETDEPID (wetscav_mod.f)')
       ENDIF
 
       !=================================================================
       ! Echo list of soluble tracers to the screen
       !=================================================================
-      WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
-      WRITE( 6, '(a,/)' ) 'W E T   D E P O S I T I O N   S E T U P'
-      WRITE( 6, '(a,/)' ) 'WETDEPID: List of soluble tracers: '
-      WRITE( 6, '(a)'   ) '  #   Name  Tracer Molec.'
-      WRITE( 6, '(a)'   ) '            Number Weight'
-      WRITE( 6, '(a)'   ) REPEAT( '-', 26 )
+      !WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+      !WRITE( 6, '(a,/)' ) 'W E T   D E P O S I T I O N   S E T U P'
+      WRITE( 6, '(/,a,/)' ) 'WETDEPID: List of soluble tracers: '
+      WRITE( 6, '(a)  '   ) '  #   Name  Tracer Mol Wt'
+      WRITE( 6, '(a)'     ) '            Number g/mole'
+      WRITE( 6, '(a)'     ) REPEAT( '-', 26 )
 
       DO NN = 1, NSOL
          N = IDWETD(NN)
-         WRITE( 6, '(i3,3x,a4,3x,i3,3x,f6.3)' )
-     &        NN, TRIM( TCNAME(N) ), N, TCMASS(N)*1d-3
+         WRITE( 6, '(i3,3x,a4,3x,i3,3x,f6.1)' )
+     &        NN, TRIM( TRACER_NAME(N) ), N, TRACER_MW_G(N)
       ENDDO
 
-      WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+      !WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
 
       ! Return to calling program
       END SUBROUTINE WETDEPID
 
 !------------------------------------------------------------------------------
 
-      FUNCTION GET_WETDEP_NMAX( NSRCX ) RESULT ( NMAX )
+      FUNCTION GET_WETDEP_NMAX() RESULT ( NMAX )
 !
 !******************************************************************************
 !  Function GET_WETDEP_NMAX returns the maximum number of soluble tracers
 !  for a given type of simulation.  Primarily used for allocation of 
-!  diagnostic arrays. (bmy, 12/2/02, 7/13/04)
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NSRCX (INTEGER) : GEOS-CHEM simulation type flag
+!  diagnostic arrays. (bmy, 12/2/02, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Modified to include carbon & dust aerosol tracers (rjp, bmy, 4/5/04)
 !  (2 ) Modified to include seasalt aerosol tracers (rjp, bec, bmy, 4/20/04)
 !  (3 ) Modified to include 2ndary organic aerosol tracers (rjp, bmy, 7/13/04)
+!  (4 ) Now references ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM, and 
+!        ITS_A_RnPbBe_SIM from "tracer_mod.f".  Now references LCARB, LDUST,
+!        LSOA, LSSALT, LSULF from "logical_mod.f". (bmy, 7/20/04)
 !******************************************************************************
 !
-#     include "CMN_SIZE"   ! Size Parameters
-#     include "CMN_SETUP"  ! LSULF, LSOA
+      ! References to F90 modules
+      USE LOGICAL_MOD, ONLY : LCARB, LDUST, LSOA, LSSALT, LSULF
+      USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM, 
+     &                        ITS_AN_AEROSOL_SIM,
+     &                        ITS_A_RnPbBe_SIM
 
-      ! Arguments
-      INTEGER, INTENT(IN) :: NSRCX 
-      
+#     include "CMN_SIZE"   ! Size Parameters
+
       ! Function value
-      INTEGER             :: NMAX
+      INTEGER :: NMAX
 
       !=================================================================
       ! GET_WETDEP_NMAX begins here!
       !
       ! NOTE: If you add tracers to a simulation, update as necessary
       !=================================================================
-      SELECT CASE ( NSRCX )
-
-         ! Rn-Pb-Be: 2 soluble tracers
-         CASE ( 1 )
-            NMAX = 2
-
+      IF ( ITS_A_FULLCHEM_SIM() ) THEN 
+      
+         !-----------------------
          ! Fullchem simulation
-         CASE ( 3 )
-            NMAX = 4                             ! HNO3, H2O2
-            IF ( LSULF  ) NMAX = NMAX + 6        ! SO2, SO4, MSA, NH3, NH4, NIT
+         !-----------------------
+         NMAX = 4                               ! HNO3, H2O2, CH2O, MP
 
-            IF ( LSOA ) THEN
-               IF ( LCARB ) NMAX = NMAX + 13     ! carbon + SOA aerosols
-            ELSE                                 
-               IF ( LCARB ) NMAX = NMAX + 4      ! just carbon aerosols
-            ENDIF
+         IF ( LSULF )    NMAX = NMAX + 6        ! SO2, SO4, MSA, NH3, NH4, NIT
+         IF ( LDUST  )   NMAX = NMAX + NDSTBIN  ! plus # of dust bins
+         IF ( LSSALT )   NMAX = NMAX + 2        ! plus 2 seasalts
 
-            IF ( LDUST  ) NMAX = NMAX + NDSTBIN  ! plus # of dust bins
-            IF ( LSSALT ) NMAX = NMAX + 2        ! plus 2 seasalts
+         IF ( LSOA ) THEN
+            IF ( LCARB ) NMAX = NMAX + 13       ! carbon + SOA aerosols
+         ELSE                                 
+            IF ( LCARB ) NMAX = NMAX + 4        ! just carbon aerosols
+         ENDIF
 
-         ! Offline sulfate simulation: 7 soluble tracers
-         CASE ( 10 ) 
-            NMAX = 0
-            IF ( LSULF  ) NMAX = NMAX + 7        ! add 7 sulfur species
+      ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
 
-            IF ( LSOA ) THEN
-               IF ( LCARB ) NMAX = NMAX + 13     ! carbon + SOA aerosols
-            ELSE
-               IF ( LCARB ) NMAX = NMAX + 4      ! just carbon aerosols
-            ENDIF
+         !-----------------------
+         ! Offline simulation
+         !-----------------------
+         NMAX = 0
+
+         IF ( LSULF  )   NMAX = NMAX + 7        ! add 7 sulfur species
+         IF ( LDUST  )   NMAX = NMAX + NDSTBIN  ! Add number of dust bins
+         IF ( LSSALT )   NMAX = NMAX + 2        ! plus 2 seasalts
+
+         IF ( LSOA ) THEN
+            IF ( LCARB ) NMAX = NMAX + 13       ! carbon + SOA aerosols
+         ELSE
+            IF ( LCARB ) NMAX = NMAX + 4        ! just carbon aerosols
+         ENDIF
                
-            IF ( LDUST  ) NMAX = NMAX + NDSTBIN  ! Add number of dust bins
-            IF ( LSSALT ) NMAX = NMAX + 2        ! plus 2 seasalts
+      ELSE IF ( ITS_A_RnPbBe_SIM() ) THEN
 
-         ! Default: No soluble tracers
-         CASE DEFAULT
-            NMAX = 0
+         !-----------------------
+         ! Rn-Pb-Be simulation
+         !-----------------------
+         NMAX = 2                               ! 210Pb, 7Be
 
-      END SELECT
+      ELSE 
+
+         !-----------------------
+         ! Everything else
+         !-----------------------
+         NMAX = 0
+
+      ENDIF
 
       ! Return to calling program
       END FUNCTION GET_WETDEP_NMAX
@@ -3865,16 +4096,18 @@
 !        ALLOC_ERR from "error_mod.f".  Now set H2O2s and SO2s to the initial
 !        values from for the first call to COMPUTE_F .  Now call WETDEPID
 !        on the first call to initialize the wetdep index array. (bmy, 1/27/03)
+!  (8 ) Now references STT from "tracer_mod.f".  Also now we call WETDEPID
+!        from "input_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : T, IS_WATER
       USE ERROR_MOD,    ONLY : ALLOC_ERR
       USE PRESSURE_MOD, ONLY : GET_PCENTER
+      USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTH2O2, IDTSO2
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! STT
 
       ! Local variables
       INTEGER             :: I, J, L, AS
@@ -3929,9 +4162,6 @@
          ELSE
             SO2s = 0d0
          ENDIF
-
-         ! Index soluble tracers for cloud scavenging and wetdep
-         CALL WETDEPID
 
          ! Reset flag
          FIRST = .FALSE. 

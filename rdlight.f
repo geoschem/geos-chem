@@ -1,9 +1,9 @@
-! $Id: rdlight.f,v 1.1 2003/06/30 20:26:01 bmy Exp $
+! $Id: rdlight.f,v 1.2 2004/09/21 18:04:17 bmy Exp $
       SUBROUTINE RDLIGHT
 !
 !******************************************************************************
 !  Subroutine RDLIGHT reads the polynomial coefficients for isoprene
-!  emissions from disk. (yhw, bmy, 7/6/01, 6/27/02)
+!  emissions from disk. (yhw, bmy, 7/6/01, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Now use F90 syntax.  Now reads the file "light.table" directly
@@ -17,16 +17,21 @@
 !  (4 ) Deleted obsolete code from March 2002.  Now reference IU_FILE and
 !        IOERROR from "file_mod.f".  Now use IU_FILE instead of IUNIT as
 !        the file unit number. (bmy, 6/27/02)
+!  (5 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE FILE_MOD, ONLY : IU_FILE, IOERROR
+      USE DIRECTORY_MOD, ONLY : DATA_DIR 
+      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN_ISOP"  ! SOPCOEFF
-#     include "CMN_SETUP" ! DATA_DIR 
+!--------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! DATA_DIR 
+!--------------------------------------------
 
       INTEGER            :: I, IOS
       CHARACTER(LEN=80)  :: DUM

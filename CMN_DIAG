@@ -1,4 +1,4 @@
-! $Id: CMN_DIAG,v 1.6 2004/07/15 18:17:42 bmy Exp $
+! $Id: CMN_DIAG,v 1.7 2004/09/21 18:04:06 bmy Exp $
 ! 
 ! NOTES:
 ! (1 ) Changed RCS ID tag comment character from "C" to "!" to allow freeform
@@ -46,7 +46,7 @@
       INTEGER, PARAMETER :: PD10=5            
       INTEGER, PARAMETER :: PD11=7           
       INTEGER, PARAMETER :: PD12=0     
-      INTEGER, PARAMETER :: PD13=0            
+      INTEGER, PARAMETER :: PD13=1            
       INTEGER, PARAMETER :: PD14=NNPAR       
       INTEGER, PARAMETER :: PD15=NNPAR      
       INTEGER, PARAMETER :: PD16=2            
@@ -65,7 +65,7 @@
       INTEGER, PARAMETER :: PD29=5
       INTEGER, PARAMETER :: PD30=0            
       INTEGER, PARAMETER :: PD31=1           
-      INTEGER, PARAMETER :: PD32=0
+      INTEGER, PARAMETER :: PD32=1
       INTEGER, PARAMETER :: PD33=NNPAR        
       INTEGER, PARAMETER :: PD34=2           
       INTEGER, PARAMETER :: PD35=NNPAR 
@@ -185,5 +185,12 @@
 ! for the ND48 -- station timeseries diagnostic (bmy, 11/29/99)
       INTEGER, PARAMETER :: MAXACC = 1200
 
- 
+! Move this here for now (bmy, 7/20/04)
+      !=================================================================
+      ! NO, J-Value, and 2-PM diagnostic arrays (bmy, 9/25/98)
+      !=================================================================
+      REAL*8           HR1_NO, HR2_NO, HR1_JV,  HR2_JV,                 &
+     &                 HR1_OH, HR2_OH, HR1_OTH, HR2_OTH
 
+      COMMON /JVNO2OH/ HR1_NO, HR2_NO, HR1_JV,  HR2_JV,                 &
+     &                 HR1_OH, HR2_OH, HR1_OTH, HR2_OTH

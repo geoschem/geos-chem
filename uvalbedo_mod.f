@@ -1,10 +1,10 @@
-! $Id: uvalbedo_mod.f,v 1.1 2003/06/30 20:26:01 bmy Exp $
+! $Id: uvalbedo_mod.f,v 1.2 2004/09/21 18:04:20 bmy Exp $
       MODULE UVALBEDO_MOD
 !
 !******************************************************************************
 !  Module UVALBEDO_MOD contains variables and routines for reading the UV
 !  Albedo data from disk (for use w/ the FAST-J photolysis routines).
-!  (bmy, 4/19/02, 3/14/03)
+!  (bmy, 4/19/02, 7/20/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -17,9 +17,10 @@
 !
 !  GEOS-CHEM modules referenced by biomass_mod.f
 !  ============================================================================
-!  (1 ) bpch2_mod.f    : Module containing routines for binary punch file I/O
-!  (2 ) error_mod.f    : Module containing NaN and other error check routines
-!  (2 ) transfer_mod.f : Module containing routines to cast & resize arrays
+!  (1 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
+!  (2 ) directory_mod.f : Module containing GEOS-CHEM data & met field dirs
+!  (3 ) error_mod.f     : Module containing NaN and other error check routines
+!  (4 ) transfer_mod.f  : Module containing routines to cast & resize arrays
 !
 !  NOTES:
 !  (1 ) Now read uvalbedo file directly from DATA_DIR/uvalbedo_200111
@@ -28,6 +29,7 @@
 !        MODULE ROUTINES sections. (bmy, 5/28/02)
 !  (3 ) Now references "error_mod.f" (bmy, 10/15/02)
 !  (4 ) Minor modification in READ_UVALBEDO (bmy, 3/14/03)
+!  (5 ) Now references "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -84,15 +86,20 @@
 !        code from 4/02.  Updated comments, cosmetic changes. (bmy, 10/15/02)
 !  (11) Now call READ_BPCH2 with QUIET=.TRUE. to suppress printing of extra 
 !        info to stdout.  Also made cosmetic changes. (bmy, 3/14/03)
+!  (12) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE ERROR_MOD,     ONLY : ALLOC_ERR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_SETUP"  ! DATA_DIR
+!------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"  ! DATA_DIR
+!------------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)  :: MONTH

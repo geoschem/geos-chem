@@ -1,4 +1,4 @@
-! $Id: file_mod.f,v 1.5 2004/05/03 14:46:17 bmy Exp $
+! $Id: file_mod.f,v 1.6 2004/09/21 18:04:13 bmy Exp $
       MODULE FILE_MOD
 !
 !******************************************************************************
@@ -9,10 +9,8 @@
 !  Module Variables:
 !  ============================================================================
 !  (1 ) IU_RST      : Unit # for file "gctm.trc.YYYYMMDD"
-!  (2 ) IU_INPUT    : Unit # for file "input.ctm"       
 !  (3 ) IU_CHEMDAT  : Unit # for file "chem.dat"        
 !  (4 ) IU_FASTJ    : Unit # for file "ratj.d", "jv_atms.dat", "jv_spec.dat"
-!  (5 ) IU_INPTR    : Unit # for file "inptr.ctm"       
 !  (6 ) IU_GEOS     : Unit # for file "input.geos"      
 !  (7 ) IU_TS       : Unit # for file "ctm.ts"          
 !  (8 ) IU_BPCH     : Unit # for file "ctm.bpch"        
@@ -50,6 +48,8 @@
 !  (5 ) Renamed IU_CTMCHEM to IU_SMV2LOG (bmy, 4/21/03)
 !  (6 ) Now print out I/O errors for IBM and INTEL_FC compilers (bmy, 11/6/03)
 !  (7 ) Changed the name of some cpp switches in "define.h" (bmy, 12/2/03)
+!  (8 ) Renumbered the order of the files.  Also removed IU_INPTR and 
+!        IU_INPUT since they are now obsolete. (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -58,20 +58,18 @@
       ! MODULE VARIABLES
       !=================================================================    
       INTEGER, PARAMETER :: IU_RST     = 1
-      INTEGER, PARAMETER :: IU_INPUT   = 5
       INTEGER, PARAMETER :: IU_CHEMDAT = 7
       INTEGER, PARAMETER :: IU_FASTJ   = 8
-      INTEGER, PARAMETER :: IU_INPTR   = 9
       INTEGER, PARAMETER :: IU_GEOS    = 10
-      INTEGER, PARAMETER :: IU_TS      = 11      
-      INTEGER, PARAMETER :: IU_BPCH    = 12
-      INTEGER, PARAMETER :: IU_ND20    = 13
+      INTEGER, PARAMETER :: IU_BPCH    = 11
+      INTEGER, PARAMETER :: IU_ND20    = 12
+      INTEGER, PARAMETER :: IU_ND48    = 13      
       INTEGER, PARAMETER :: IU_ND49    = 14
       INTEGER, PARAMETER :: IU_ND50    = 15
       INTEGER, PARAMETER :: IU_ND51    = 16
-      INTEGER, PARAMETER :: IU_ND52    = 20  ! For ICARTT (bmy, 4/21/04)
-      INTEGER, PARAMETER :: IU_PLANE   = 17
-      INTEGER, PARAMETER :: IU_BC      = 18
+      INTEGER, PARAMETER :: IU_ND52    = 17
+      INTEGER, PARAMETER :: IU_PLANE   = 18
+      INTEGER, PARAMETER :: IU_BC      = 19
       INTEGER, PARAMETER :: IU_FILE    = 65
       INTEGER, PARAMETER :: IU_PH      = 70
       INTEGER, PARAMETER :: IU_I6      = 71
@@ -275,33 +273,31 @@
 
       SUBROUTINE CLOSE_FILES
 !
-!*****************************************************************************
+!******************************************************************************
 !  Subroutine CLOSE_FILES closes files used by GEOS-CHEM.  This should be
-!  called only from the end of the "main.f" program. (bmy, 3/4/98, 3/27/03)
+!  called only from the end of the "main.f" program. (bmy, 3/4/98, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Moved into "file_mod.f" (bmy, 6/27/02)
 !  (2 ) Also close IU_BC (bmy, 3/27/03)
-!*****************************************************************************
+!  (3 ) Removed IU_INPUT and IU_INPTR, these are obsolete.  Also renamed
+!        IU_TS to IU_ND48 (bmy, 7/20/04)
+!******************************************************************************
 !     
       !=================================================================
       ! CLOSE_FILES begins here!
       !=================================================================
-     
-      ! Close all file units, regardless of whether they were
-      ! ever opened or not.  This is for safety's sake. 
       CLOSE( IU_RST     )
-      CLOSE( IU_INPUT   )
       CLOSE( IU_CHEMDAT )
       CLOSE( IU_FASTJ   )
-      CLOSE( IU_INPTR   )
       CLOSE( IU_GEOS    )
-      CLOSE( IU_TS      )     
       CLOSE( IU_BPCH    )
       CLOSE( IU_ND20    )
+      CLOSE( IU_ND48    )
       CLOSE( IU_ND49    )
       CLOSE( IU_ND50    )
       CLOSE( IU_ND51    )
+      CLOSE( IU_ND52    )
       CLOSE( IU_PLANE   )
       CLOSE( IU_BC      )
       CLOSE( IU_FILE    )
@@ -313,9 +309,6 @@
       CLOSE( IU_GWET    )
       CLOSE( IU_SMV2LOG )
       CLOSE( IU_DEBUG   )
-
-      ! For ICARTT (bmy, 4/21/04)
-      CLOSE( IU_ND52    )
 
       ! Return to calling program
       END SUBROUTINE CLOSE_FILES

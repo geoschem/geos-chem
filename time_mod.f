@@ -1,9 +1,9 @@
-! $Id: time_mod.f,v 1.8 2004/04/19 15:09:55 bmy Exp $
+! $Id: time_mod.f,v 1.9 2004/09/21 18:04:19 bmy Exp $
       MODULE TIME_MOD
 !
 !******************************************************************************
 !  TIME_MOD contains GEOS-CHEM date and time variables and timesteps, and 
-!  routines for accessing them. (bmy, 6/21/00, 4/1/04) 
+!  routines for accessing them. (bmy, 6/21/00, 7/20/04) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -39,90 +39,94 @@
 !  (30) CT_DYN      (INTEGER) : Number of dynamic timesteps executed so far
 !  (31) CT_EMIS     (INTEGER) : Number of emission timesteps executed so far
 !  (32) JD85        (REAL*8 ) : Astronomical Julian Day at 0 GMT 1/1/1985 
+!  (33) NDIAGTIME   (INTEGER) : Time of day (HHMMSS) to write bpch file
 !
 !  Module Routines:
 !  ============================================================================
 !  (1 ) SET_CURRENT_TIME  : Updates time variables for current timestep
 !  (2 ) SET_BEGIN_TIME    : Initializes NYMDb, NHMSb, TAUb variables
 !  (3 ) SET_END_TIME      : Initializes NYMDe, NHMSe, TAUe variables
-!  (4 ) SET_DIAGb         : Updates DIAGb and DIAGe diagnostic interval times
-!  (5 ) SET_DIAGe         : Updates DIAGb and DIAGe diagnostic interval times
-!  (6 ) SET_TIMESTEPS     : Updates the elapsed minutes since the start of run
-!  (7 ) SET_CT_CHEM       : Increments/resets the chemistry timestep counter
-!  (8 ) SET_CT_CONV       : Increments/resets the convection timestep counter
-!  (9 ) SET_CT_DYN        : Increments/resets the dynamic timestep counter
-!  (10) SET_CT_EMIS       : Increments/resets the emissions timestep counter
-!  (11) SET_CT_A3         : Increments/resets the A-3 fields timestep counter
-!  (12) SET_CT_A6         : Increments/resets the A-6 fields timestep counter
-!  (13) SET_CT_I6         : Increments/resets the I-6 fields timestep counter
-!  (14) SET_ELAPSED_MIN   : Updates the elapsed minutes since the start of run
-!  (15) GET_JD            : Returns Astronomical Julian Date for NYMD, NHMS
-!  (16) GET_ELAPSED_MIN   : Returns the elapsed minutes since the start of run
-!  (17) GET_ELAPSED_SEC   : Returns the elapsed seconds since the start of run 
-!  (18) GET_NYMDb         : Returns the YYYYMMDD at the beginning of the run
-!  (19) GET_NHMSb         : Returns the HHMMSS   at the beginning of the run
-!  (20) GET_NYMDe         : Returns the YYYYMMDD at the end of the run
-!  (21) GET_NHMSe         : Returns the HHMMSS   at the end of the run
-!  (22) GET_NYMD          : Returns the YYYYMMDD at the current time
-!  (23) GET_NHMS          : Returns the HHMMSS   at the current time
-!  (24) GET_TIME_AHEAD    : Returns the YYYYMMDD, HHMMSS for N_MINS from now
-!  (25) GET_MONTH         : Returns the current month (1-12)
-!  (26) GET_DAY           : Returns the current day of month (1-31)
-!  (27) GET_YEAR          : Returns the current year (YYYY)
-!  (28) GET_HOUR          : Returns the current hour (0-23)
-!  (29) GET_MINUTE        : Returns the current minute (0-59)
-!  (30) GET_SECOND        : Returns the current second (0-59)
-!  (31) GET_DAY_OF_YEAR   : Returns the current day of the year (0-366)
-!  (32) GET_GMT           : Returns the current GMT (0.0 - 23.999)
-!  (33) GET_TAU           : Returns the current TAU value (hrs since 1/1/1985)
-!  (34) GET_TAUb          : Returns TAU value at beginning of GEOS-CHEM run
-!  (35) GET_TAUe          : Returns TAU value at end of GEOS-CHEM run
-!  (36) GET_DIAGb         : Returns TAU value at start of diagnostic interval
-!  (37) GET_DIAGe         : Returns TAU value at end of diagnostic interval
-!  (38) GET_LOCALTIME     : Returns local time for a grid box (0.0 - 23.999)
-!  (39) GET_SEASON        : Returns season flag (1=DJF, 2=MAM, 3=JJA, 4=SON)
-!  (40) GET_TS_CHEM       : Returns chemistry timestep in minutes
-!  (41) GET_TS_CONV       : Returns convection timestep in minutes
-!  (42) GET_TS_DIAG       : Returns diagnostic timestep in minutes
-!  (43) GET_TS_DYN        : Returns dynamic timestep in minutes
-!  (44) GET_TS_EMIS       : Returns emissions timestep in minutes
-!  (45) GET_TS_UNIT       : Returns unit conversion timestep in minutes
-!  (46) GET_CT_CHEM       : Returns # of chemistry timesteps already executed
-!  (47) GET_CT_CONV       : Returns # of convection timesteps already executed
-!  (48) GET_CT_DYN        : Returns # of dynamic timesteps already executed
-!  (49) GET_CT_EMIS       : Returns # of emission timesteps already executed
-!  (50) GET_CT_A3         : Returns # of times A-3 fields have been read in
-!  (51) GET_CT_A6         : Returns # of times A-6 fields have been read in
-!  (52) GET_CT_I6         : Returns # of times I-6 fields have been read in
-!  (53) GET_A3_TIME       : Returns YYYYMMDD and HHMMSS for the A-3 fields
-!  (54) GET_A6_TIME       : Returns YYYYMMDD and HHMMSS for the A-6 fields
-!  (55) GET_I6_TIME       : Returns YYYYMMDD and HHMMSS for the I-6 fields
-!  (56) GET_FIRST_A3_TIME : Returns YYYYMMDD and HHMMSS for the first A-3 read
-!  (57) GET_FIRST_A3_TIME : Returns YYYYMMDD and HHMMSS for the first A-6 read
-!  (58) ITS_TIME_FOR_CHEM : Returns TRUE if it is time to do chemistry
-!  (59) ITS_TIME_FOR_CONV : Returns TRUE if it is time to do convection
-!  (60) ITS_TIME_FOR_DYN  : Returns TRUE if it is time to do dynamics
-!  (61) ITS_TIME_FOR_EMIS : Returns TRUE if it is time to do emissions
-!  (62) ITS_TIME_FOR_UNIT : Returns TRUE if it is time to do unit conversions
-!  (63) ITS_TIME_FOR_DIAG : Returns TRUE if it is time to write diagnostics
-!  (64) ITS_TIME_FOR_A3   : Returns TRUE if it is time to read in A-3 fields
-!  (65) ITS_TIME_FOR_A6   : Returns TRUE if it is time to read in A-6 fields
-!  (66) ITS_TIME_FOR_I6   : Returns TRUE if it is time to read in I-6 fields
-!  (67) ITS_TIME_FOR_UNZIP: Returns TRUE if it is the end of the run
-!  (68) ITS_TIME_FOR_DEL  : Returns TRUE if it is time to delete temp files
-!  (69) ITS_TIME_FOR_EXIT : Returns TRUE if it is the end of the run
-!  (70) ITS_A_LEAPYEAR    : Returns TRUE if the current year is a leapyear
-!  (71) ITS_A_NEW_YEAR    : Returns TRUE if it's a new year
-!  (72) ITS_A_NEW_MONTH   : Returns TRUE if it's a new month
-!  (73) ITS_A_NEW_DAY     : Returns TRUE if it's a new day
-!  (74) NYMD_Y2K          : Returns YYMMDD or YYYYMMDD for the proper data set
-!  (75) NYMD6_2_NYMD8     : Converts a 6-digit YYMMDD number into YYYYMMDD
-!  (76) NYMD_STRING       : ** deprecated, kept for backwards compatibility **
-!  (77) DATE_STRING       : Returns a date string in YYMMDD or YYYYMMDD format
-!  (78) TIMESTAMP_STRING  : Returns a string "YYYY/MM/DD HH:MM:SS"
-!  (79) PRINT_CURRENT_TIME: Prints date time in YYYY/MM/DD, HH:MM:SS format
-!  (80) YMD_EXTRACT       : Extracts YYYY, MM, DD from a YYYYMMDD format number
-!  (81) EXPAND_DATE       : Replaces date/time tokens w/ actual values
+!  (4 ) SET_NDIAGTIME     : Initializes NDIAGTIME (time to write bpch file)
+!  (5 ) SET_DIAGb         : Updates DIAGb and DIAGe diagnostic interval times
+!  (6 ) SET_DIAGe         : Updates DIAGb and DIAGe diagnostic interval times
+!  (7 ) SET_TIMESTEPS     : Updates the elapsed minutes since the start of run
+!  (8 ) SET_CT_CHEM       : Increments/resets the chemistry timestep counter
+!  (9 ) SET_CT_CONV       : Increments/resets the convection timestep counter
+!  (10) SET_CT_DYN        : Increments/resets the dynamic timestep counter
+!  (11) SET_CT_EMIS       : Increments/resets the emissions timestep counter
+!  (12) SET_CT_A3         : Increments/resets the A-3 fields timestep counter
+!  (13) SET_CT_A6         : Increments/resets the A-6 fields timestep counter
+!  (14) SET_CT_I6         : Increments/resets the I-6 fields timestep counter
+!  (15) SET_ELAPSED_MIN   : Updates the elapsed minutes since the start of run
+!  (16) GET_JD            : Returns Astronomical Julian Date for NYMD, NHMS
+!  (17) GET_ELAPSED_MIN   : Returns the elapsed minutes since the start of run
+!  (18) GET_ELAPSED_SEC   : Returns the elapsed seconds since the start of run 
+!  (19) GET_NYMDb         : Returns the YYYYMMDD at the beginning of the run
+!  (20) GET_NHMSb         : Returns the HHMMSS   at the beginning of the run
+!  (21) GET_NYMDe         : Returns the YYYYMMDD at the end of the run
+!  (22) GET_NHMSe         : Returns the HHMMSS   at the end of the run
+!  (23) GET_NYMD          : Returns the YYYYMMDD at the current time
+!  (24) GET_NHMS          : Returns the HHMMSS   at the current time
+!  (25) GET_NDIAGTIME     : Returns NDIAGTIME (time of day to write bpch file)
+!  (26) GET_TIME_AHEAD    : Returns the YYYYMMDD, HHMMSS for N_MINS from now
+!  (27) GET_MONTH         : Returns the current month (1-12)
+!  (28) GET_DAY           : Returns the current day of month (1-31)
+!  (29) GET_YEAR          : Returns the current year (YYYY)
+!  (30) GET_HOUR          : Returns the current hour (0-23)
+!  (31) GET_MINUTE        : Returns the current minute (0-59)
+!  (32) GET_SECOND        : Returns the current second (0-59)
+!  (33) GET_DAY_OF_YEAR   : Returns the current day of the year (0-366)
+!  (34) GET_GMT           : Returns the current GMT (0.0 - 23.999)
+!  (35) GET_TAU           : Returns the current TAU value (hrs since 1/1/1985)
+!  (36) GET_TAUb          : Returns TAU value at beginning of GEOS-CHEM run
+!  (37) GET_TAUe          : Returns TAU value at end of GEOS-CHEM run
+!  (38) GET_DIAGb         : Returns TAU value at start of diagnostic interval
+!  (39) GET_DIAGe         : Returns TAU value at end of diagnostic interval
+!  (40) GET_LOCALTIME     : Returns local time for a grid box (0.0 - 23.999)
+!  (41) GET_SEASON        : Returns season flag (1=DJF, 2=MAM, 3=JJA, 4=SON)
+!  (42) GET_TS_CHEM       : Returns chemistry timestep in minutes
+!  (43) GET_TS_CONV       : Returns convection timestep in minutes
+!  (44) GET_TS_DIAG       : Returns diagnostic timestep in minutes
+!  (45) GET_TS_DYN        : Returns dynamic timestep in minutes
+!  (46) GET_TS_EMIS       : Returns emissions timestep in minutes
+!  (47) GET_TS_UNIT       : Returns unit conversion timestep in minutes
+!  (48) GET_CT_CHEM       : Returns # of chemistry timesteps already executed
+!  (49) GET_CT_CONV       : Returns # of convection timesteps already executed
+!  (50) GET_CT_DYN        : Returns # of dynamic timesteps already executed
+!  (51) GET_CT_EMIS       : Returns # of emission timesteps already executed
+!  (52) GET_CT_A3         : Returns # of times A-3 fields have been read in
+!  (53) GET_CT_A6         : Returns # of times A-6 fields have been read in
+!  (54) GET_CT_I6         : Returns # of times I-6 fields have been read in
+!  (55) GET_A3_TIME       : Returns YYYYMMDD and HHMMSS for the A-3 fields
+!  (56) GET_A6_TIME       : Returns YYYYMMDD and HHMMSS for the A-6 fields
+!  (57) GET_I6_TIME       : Returns YYYYMMDD and HHMMSS for the I-6 fields
+!  (58) GET_FIRST_A3_TIME : Returns YYYYMMDD and HHMMSS for the first A-3 read
+!  (59) GET_FIRST_A3_TIME : Returns YYYYMMDD and HHMMSS for the first A-6 read
+!  (60) ITS_TIME_FOR_CHEM : Returns TRUE if it is time to do chemistry
+!  (61) ITS_TIME_FOR_CONV : Returns TRUE if it is time to do convection
+!  (62) ITS_TIME_FOR_DYN  : Returns TRUE if it is time to do dynamics
+!  (63) ITS_TIME_FOR_EMIS : Returns TRUE if it is time to do emissions
+!  (64) ITS_TIME_FOR_UNIT : Returns TRUE if it is time to do unit conversions
+!  (65) ITS_TIME_FOR_DIAG : Returns TRUE if it is time to write diagnostics
+!  (66) ITS_TIME_FOR_A3   : Returns TRUE if it is time to read in A-3 fields
+!  (67) ITS_TIME_FOR_A6   : Returns TRUE if it is time to read in A-6 fields
+!  (68) ITS_TIME_FOR_I6   : Returns TRUE if it is time to read in I-6 fields
+!  (69) ITS_TIME_FOR_UNZIP: Returns TRUE if it is the end of the run
+!  (70) ITS_TIME_FOR_DEL  : Returns TRUE if it is time to delete temp files
+!  (71) ITS_TIME_FOR_EXIT : Returns TRUE if it is the end of the run
+!  (72) ITS_A_LEAPYEAR    : Returns TRUE if the current year is a leapyear
+!  (73) ITS_A_NEW_YEAR    : Returns TRUE if it's a new year
+!  (74) ITS_A_NEW_MONTH   : Returns TRUE if it's a new month
+!  (75) ITS_A_NEW_DAY     : Returns TRUE if it's a new day
+!  (76) ITS_A_NEW_SEASON  : Returns TRUE if it's a new season
+!  (77) NYMD_Y2K          : Returns YYMMDD or YYYYMMDD for the proper data set
+!  (78) NYMD6_2_NYMD8     : Converts a 6-digit YYMMDD number into YYYYMMDD
+!  (79) NYMD_STRING       : ** deprecated, kept for backwards compatibility **
+!  (80) DATE_STRING       : Returns a date string in YYMMDD or YYYYMMDD format
+!  (81) TIMESTAMP_STRING  : Returns a string "YYYY/MM/DD HH:MM:SS"
+!  (82) PRINT_CURRENT_TIME: Prints date time in YYYY/MM/DD, HH:MM:SS format
+!  (83) YMD_EXTRACT       : Extracts YYYY, MM, DD from a YYYYMMDD format number
+!  (84) EXPAND_DATE       : Replaces date/time tokens w/ actual values
 !
 !  GEOS-CHEM modules referenced by time_mod.f
 !  ============================================================================
@@ -155,6 +159,8 @@
 !        "a_llk_03" and "a_llk_04" data versions. (bmy, 3/22/04)
 !  (14) Added routines ITS_A_NEW_MONTH, ITS_A_NEW_YEAR, ITS_A_NEW_DAY.
 !        (bmy, 4/1/04)
+!  (15) Added routines ITS_A_NEW_SEASON, GET_NDIAGTIME, SET_NDIAGTIME, and
+!        variable NDIAGTIME. (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -174,7 +180,7 @@
       PRIVATE           :: TS_DYN,     TS_EMIS,     TS_UNIT
       PRIVATE           :: CT_CHEM,    CT_CONV,     CT_DYN
       PRIVATE           :: CT_EMIS,    CT_A3,       CT_A6
-      PRIVATE           :: CT_I6,      JD85
+      PRIVATE           :: CT_I6,      JD85,        NDIAGTIME
 
       !=================================================================
       ! MODULE VARIABLES
@@ -186,6 +192,7 @@
       INTEGER           :: MONTH,      DAY,         YEAR
       INTEGER           :: HOUR,       MINUTE,      SECOND
       INTEGER           :: NSEASON,    DAY_OF_YEAR, ELAPSED_MIN
+      INTEGER           :: NDIAGTIME
       REAL*8            :: TAU,        TAUb,        TAUe  
       REAL*8            :: GMT,        DIAGb,       DIAGe
 
@@ -285,7 +292,7 @@
 !******************************************************************************
 !  Subroutine SET_BEGIN_TIME initializes NYMDb, NHMSb, and TAUb, which are the
 !  YYYYMMDD, HHMMSS, and hours since 1/1/1985 corresponding to the beginning 
-!  date and time of a GEOS-CHEM run. (bmy, 2/5/03)
+!  date and time of a GEOS-CHEM run. (bmy, 2/5/03, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -293,6 +300,7 @@
 !  (2 ) THISNHMSb (INTEGER) : HHMMSS   at beginning of GEOS-CHEM run
 !
 !  NOTES:
+!  (1 ) Added error check for THISNHMSb (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -307,6 +315,12 @@
       !=================================================================
       ! SET_BEGIN_TIME begins here!
       !=================================================================
+
+      ! Make sure NHMSb is valid
+      IF ( THISNHMSb > 235959 ) THEN
+         CALL ERROR_STOP( 'NHMSb cannot be greater than 23:59:59!',
+     &                    'SET_BEGIN_TIME (time_mod.f)' )
+      ENDIF
 
       ! Make sure THISNYMDb uses 4 digits for the year
       ! and is not less than 1985/01/01
@@ -337,7 +351,7 @@
 !******************************************************************************
 !  Subroutine SET_END_TIME initializes NYMDe, NHMSe, and TAUe, which are the
 !  YYYYMMDD, HHMMSS, and hours since 1/1/1985 corresponding to the ending 
-!  date and time of a GEOS-CHEM run. (bmy, 2/5/03)
+!  date and time of a GEOS-CHEM run. (bmy, 2/5/03, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -345,8 +359,12 @@
 !  (2 ) THISNHMSe (INTEGER) : HHMMSS   at end of GEOS-CHEM run
 !
 !  NOTES:
+!  (1 ) Added error check for THISNHMSb (bmy, 7/20/04)
 !******************************************************************************
 !
+      ! References to F90 modules
+      USE ERROR_MOD,  ONLY : ERROR_STOP
+
       ! Arguments
       INTEGER, INTENT(IN) :: THISNYMDe, THISNHMSe
       
@@ -356,6 +374,20 @@
       !=================================================================
       ! SET_END_TIME begins here!
       !=================================================================
+
+      ! Error check to make sure 
+      IF ( THISNHMSe > 235959 ) THEN
+         CALL ERROR_STOP( 'NHMSe cannot be greater than 23:59:59!',
+     &                    'SET_END_TIME (time_mod.f)' )
+      ENDIF
+
+      ! Make sure THISNYMDb uses 4 digits for the year
+      ! and is not less than 1985/01/01
+      IF ( THISNYMDe < 19850101 ) THEN
+         CALL ERROR_STOP( 'NYMDe must be in the format YYYYMMDD!',
+     &                    'SET_END_TIME (time_mod.f)' )
+
+      ENDIF
 
       ! Initialize NYMDe, NHMSe
       NYMDe = THISNYMDe
@@ -367,6 +399,28 @@
 
       ! Return to calling program
       END SUBROUTINE SET_END_TIME
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE SET_NDIAGTIME( THIS_NDIAGTIME )
+!
+!******************************************************************************
+!  Subroutine SET_NDIAGTIME initializes NDIAGTIME, the time of day at which
+!  the binary punch file will be written out to disk. (bmy, 7/20/04)
+! 
+!  NOTES:
+!******************************************************************************
+!
+      ! Arguments
+      INTEGER, INTENT(IN) :: THIS_NDIAGTIME
+
+      !=================================================================
+      ! SET_NDIAGTIME begins here!
+      !=================================================================
+      NDIAGTIME = THIS_NDIAGTIME
+      
+      ! Return to calling program
+      END SUBROUTINE SET_NDIAGTIME
 
 !------------------------------------------------------------------------------
 
@@ -427,7 +481,7 @@
 !
 !******************************************************************************
 !  Subroutine SET_TIMESTEPS initializes the timesteps for dynamics, convection,
-!  chemistry, and emissions.  Counters are also zeroed. (bmy, 3/21/03)
+!  chemistry, and emissions.  Counters are also zeroed. (bmy, 3/21/03, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -438,9 +492,9 @@
 !  (4 ) UNIT_CONV  (INTEGER) : Unit conversion timestep  [minutes]
 !
 !  NOTES:
+!  (1 ) Suppress some output lines (bmy, 7/20/04)
 !******************************************************************************
 !
-
       ! Arguments
       INTEGER, INTENT(IN) :: CHEMISTRY, CONVECTION, DYNAMICS
       INTEGER, INTENT(IN) :: EMISSION,  UNIT_CONV
@@ -466,15 +520,25 @@
       CT_I6   = 0
 
       ! Echo to stdout
-      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-      WRITE( 6, '(a)' ) 'SET_TIMESTEPS: setting GEOS-CHEM timesteps!'
-      WRITE( 6, '(a)' )
+      !--------------------------------------
+      ! Prior to 7/20/04:
+      !WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+      !--------------------------------------
+      WRITE( 6, '(/,a)' ) 'SET_TIMESTEPS: setting GEOS-CHEM timesteps!'
+      WRITE( 6, '(  a)' ) '-------------------------------------------'
+      !--------------------
+      ! Prior to 7/20/04:
+      !WRITE( 6, '(a)' )
+      !--------------------
       WRITE( 6, '(''Chemistry  Timestep [min] : '', i4 )' ) TS_CHEM
       WRITE( 6, '(''Convection Timestep [min] : '', i4 )' ) TS_CONV
       WRITE( 6, '(''Dynamics   Timestep [min] : '', i4 )' ) TS_DYN
       WRITE( 6, '(''Emission   Timestep [min] : '', i4 )' ) TS_EMIS
       WRITE( 6, '(''Unit Conv  Timestep [min] : '', i4 )' ) TS_UNIT
-      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+      !---------------------------------------
+      ! Prior to 7/20/04:
+      !WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+      !---------------------------------------
 
       ! Return to calling program
       END SUBROUTINE SET_TIMESTEPS
@@ -939,6 +1003,29 @@
 
       ! Return to calling program
       END FUNCTION GET_NHMS
+
+!------------------------------------------------------------------------------
+
+      FUNCTION GET_NDIAGTIME() RESULT( THIS_NDIAGTIME )
+!
+!******************************************************************************
+!  Subroutine GET_NDIAGTIME returns to the calling program NDIAGTIME, the 
+!  time of day at which the binary punch file will be written out to disk. 
+!  (bmy, 7/20/04)
+! 
+!  NOTES:
+!******************************************************************************
+!
+      ! Local variables
+      INTEGER :: THIS_NDIAGTIME
+
+      !=================================================================
+      ! GET_NDIAGTIME begins here!
+      !=================================================================
+      THIS_NDIAGTIME = NDIAGTIME
+      
+      ! Return to calling program
+      END FUNCTION GET_NDIAGTIME
 
 !------------------------------------------------------------------------------
 
@@ -2273,6 +2360,37 @@
 
 !------------------------------------------------------------------------------
 
+      FUNCTION ITS_A_NEW_SEASON( ) RESULT( IS_NEW_SEASON )
+!
+!******************************************************************************
+!  Function ITS_A_NEW_SEASON returns TRUE if it's a new season or FALSE
+!  if it's not a new season.  Seasons are (1=DJF, 2=MAM, 3=JJA, 4=SON).
+!  (bmy, 7/20/04)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Function value
+      LOGICAL       :: IS_NEW_SEASON
+      
+      ! Local variables
+      INTEGER, SAVE :: LAST_SEASON = -1
+      
+      !=================================================================
+      ! ITS_A_NEW_SEASON begins here!
+      !=================================================================
+      IF ( NSEASON /= LAST_SEASON ) THEN
+         IS_NEW_SEASON = .TRUE.
+         LAST_SEASON   = NSEASON
+      ELSE
+         IS_NEW_SEASON = .FALSE.
+      ENDIF
+
+      ! Return to calling program
+      END FUNCTION ITS_A_NEW_SEASON
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE PRINT_CURRENT_TIME
 !
 !******************************************************************************
@@ -2644,7 +2762,7 @@
 !
 !******************************************************************************
 !  Subroutine EXPAND_DATE replaces "YYYYMMDD" and "hhmmss" tokens within
-!  a filename string with the actual values. (bmy, 6/27/02, 12/2/03)
+!  a filename string with the actual values. (bmy, 6/27/02, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -2662,6 +2780,8 @@
 !        instead of F90 internal read. (bmy, 9/29/03)
 !  (2 ) Now replace 2 and 4 digit year strings for all models (bmy, 10/23/03)
 !  (3 ) Renamed LINUX to LINUX_PGI (bmy, 12/2/03)
+!  (4 ) Now do not replace "ss" with seconds, as the smallest GEOS-CHEM
+!        timestep is in minutes. (bmy, 7/20/04)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -2704,7 +2824,11 @@
       ENCODE( 2, '(i2.2)', DD_STR   ) DD
       ENCODE( 2, '(i2.2)', HH_STR   ) HH
       ENCODE( 2, '(i2.2)', II_STR   ) II
-      ENCODE( 2, '(i2.2)', SS_STR   ) SS
+      !--------------------------------------------
+      ! Prior to 7/20/04:
+      ! GEOS-CHEM timesteps are in minutes
+      !ENCODE( 2, '(i2.2)', SS_STR   ) SS
+      !--------------------------------------------
 
 #else
 
@@ -2715,7 +2839,11 @@
       WRITE( DD_STR,   '(i2.2)' ) DD
       WRITE( HH_STR,   '(i2.2)' ) HH
       WRITE( II_STR,   '(i2.2)' ) II
-      WRITE( SS_STR,   '(i2.2)' ) SS
+      !----------------------------------------------
+      ! Prior to 7/20/04:
+      ! GEOS-CHEM timesteps are in minutes
+      !WRITE( SS_STR,   '(i2.2)' ) SS
+      !----------------------------------------------
 
 #endif
 
@@ -2726,7 +2854,11 @@
       CALL STRREPL( FILENAME, 'DD',   DD_STR   )
       CALL STRREPL( FILENAME, 'hh',   HH_STR   )
       CALL STRREPL( FILENAME, 'mm',   II_STR   )
-      CALL STRREPL( FILENAME, 'ss',   SS_STR   )
+      !-----------------------------------------------
+      ! Prior to 7/20/04:
+      ! GEOS-CHEM timesteps are in minutes
+      !CALL STRREPL( FILENAME, 'ss',   SS_STR   )
+      !-----------------------------------------------
 
       ! Return to calling program
       END SUBROUTINE EXPAND_DATE

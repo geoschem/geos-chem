@@ -1,10 +1,10 @@
-! $Id: setemdep.f,v 1.1 2003/06/30 20:26:06 bmy Exp $
+! $Id: setemdep.f,v 1.2 2004/09/21 18:04:18 bmy Exp $
       SUBROUTINE SETEMDEP( NTRACER )
 !
 !******************************************************************************
 !  Subroutine SETEMDEP stores SMVGEAR reaction numbers (listed in "chem.dat")
 !  corresponding to GEOS-CHEM tracers which emit and dry deposit into the
-!  NTEMIS and NTDEP index arrays.  (lwh, jyl, gmg, djj, 1994; bmy, 4/21/03)
+!  NTEMIS and NTDEP index arrays.  (lwh, jyl, gmg, djj, 1994; bmy, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -15,11 +15,14 @@
 !        and made cosmetic changes. (bmy, 12/5/02)
 !  (2 ) Cosmetic changes (bmy, 3/14/03)
 !  (3 ) Updated for SMVGEAR II (gcc, bdf, bmy, 4/21/03)
+!  (4 ) Now flag to "smv2.log" the emitted & dry-deposited tracers instead 
+!        of flagging the tracers which aren't. (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DRYDEP_MOD,   ONLY : DEPNAME, NUMDEP
-      USE TRACERID_MOD, ONLY : IDEMIS,  IDTRMB, NEMANTHRO, NEMBIOG
+      USE TRACER_MOD,   ONLY : TRACER_NAME
+      USE TRACERID_MOD, ONLY : IDEMIS, IDTRMB, NEMANTHRO, NEMBIOG
 
       IMPLICIT NONE
 
@@ -71,11 +74,22 @@
                ENDIF
             ENDDO
 
-            ! Write warning to "smv2.log" if no emission rxn was found
-            IF ( NTEMIS(I,NCS) == 0 ) THEN
-               WRITE( IO93, 100 ) I
- 100           FORMAT( 'WARNING: no emission reaction for tracer ', i3 )
+!------------------------------------------------------------------------------
+! Prior to 7/20/04:
+!            ! Write warning to "smv2.log" if no emission rxn was found
+!            IF ( NTEMIS(I,NCS) == 0 ) THEN
+!               WRITE( IO93, 100 ) I
+! 100           FORMAT( 'WARNING: no emission reaction for tracer ', i3 )
+!            ENDIF
+!------------------------------------------------------------------------------
+
+            ! Flag emitted tracer
+            IF ( NTEMIS(I,NCS) > 0 ) THEN
+               WRITE( IO93, 100 ) I, TRACER_NAME(I)
+ 100           FORMAT( 'Tracer # ', i3, ' (', a4, ' ) has an ',
+     &                 'emission rxn defined in "globchem.dat"' )
             ENDIF
+
          ENDDO
 
          ! The total # of emission species will be NEMANTHRO [anthro] + 
@@ -117,11 +131,22 @@
             ENDIF
          ENDDO
 
-         ! Write warning to "smv2.log" if no drydep rxn was found
-         IF ( NTDEP(I) == 0 ) THEN
-            WRITE( IO93, 120 ) DEPNAME(I)
- 120        FORMAT( 'WARNING: no deposition reaction for ', a )
+!-----------------------------------------------------------------------------
+! Prior to 7/20/04
+!         ! Write warning to "smv2.log" if no drydep rxn was found
+!         IF ( NTDEP(I) == 0 ) THEN
+!            WRITE( IO93, 120 ) DEPNAME(I)
+! 120        FORMAT( 'WARNING: no deposition reaction for ', a )
+!         ENDIF
+!-----------------------------------------------------------------------------
+
+         ! Flag drydep tracers
+         IF ( NTDEP(I) > 0 ) THEN 
+            WRITE( IO93, 120 ) I, DEPNAME(I)
+ 120        FORMAT( 'Drydep species # ', i3, ' (', a4, 
+     &              ') has a drydep rxn defined in "globchem.dat"' )
          ENDIF
+
       ENDDO
 
       ! Echo output to stdout

@@ -1,11 +1,11 @@
-! $Id: seasalt_mod.f,v 1.1 2004/05/03 15:23:57 bmy Exp $
+! $Id: seasalt_mod.f,v 1.2 2004/09/21 18:04:18 bmy Exp $
       MODULE SEASALT_MOD
 !
 !******************************************************************************
 !  Module SEASALT_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline seasalt aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (bec, rjp, bmy, 6/22/00, 4/26/04)
+!  (bec, rjp, bmy, 6/22/00, 7/20/04)
 !
 !  Seasalt aerosol species: (1) Accumulation mode (0.1 -  2.5 um)  
 !                           (2) Coarse mode       (2.5 - 10.0 um)
@@ -19,8 +19,7 @@
 !  (5 ) REDGE    (REAL*8 ) : Array for edges of seasalt radius bins
 !  (6 ) RMID     (REAL*8 ) : Array for centers of seasalt radius bins
 !  (7 ) SRC      (REAL*8 ) : Array for baseline seasalt emission per bin
-!  (8 ) SS_SIZE  (REAL*8 ) : Sea salt size classes 0.1-2.5, 2.5-10 [um]
-!  (9 ) SS_DEN   (REAL*8 ) : Sea salt density [kg/m3]
+!  (8 ) SS_DEN   (REAL*8 ) : Sea salt density [kg/m3]
 !
 !  Module Routines:
 !  ============================================================================
@@ -39,9 +38,11 @@
 !  (3 ) drydep_mod.f       : Module containing GEOS-CHEM drydep routines
 !  (4 ) error_mod.f        : Module containing I/O error and NaN check routines
 !  (5 ) grid_mod.f         : Module containing horizontal grid information
-!  (6 ) pressure_mod.f     : Module containing routines to compute P(I,J,L)
-!  (7 ) time_mod.f         : Module containing routines to compute date & time
-!  (8 ) tracerid_mod.f     : Module containing pointers to tracers & emissions 
+!  (6 ) logical_mod.f      : Module containing GEOS-CHEM logical switches
+!  (7 ) pressure_mod.f     : Module containing routines to compute P(I,J,L)
+!  (8 ) time_mod.f         : Module containing routines to compute date & time
+!  (9 ) tracer_mod.f       : Module containing GEOS-CHEM tracer array STT etc.
+!  (10) tracerid_mod.f     : Module containing pointers to tracers & emissions 
 !
 !  References:
 !  ============================================================================
@@ -54,6 +55,9 @@
 !        v. 102, 3805-3818, 1997.
 !
 !  NOTES:  
+!  (1 ) Now references "logical_mod.f" and "tracer_mod.f".  Comment out 
+!        SS_SIZE, this has been replaced by SALA_REDGE_um and SALC_REDGE_um
+!        from "tracer_mod.f".  Increased NR_MAX to 200. (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -63,16 +67,27 @@
       ! and routines from being seen outside "seasalt_mod.f"
       !=================================================================
 
-      ! PRIVATE module variables
-      PRIVATE            :: DRYSALA, DRYSALC, NSALT 
-      PRIVATE            :: IDDEP,   REDGE,   RMID
-      PRIVATE            :: SRC,     SS_SIZE, SS_DEN
+      ! Make everyting PRIVATE ...
+      PRIVATE
 
-      ! PRIVATE module routines
-      PRIVATE            :: INIT_SEASALT
-      PRIVATE            :: WET_SETTLING
-      PRIVATE            :: DRY_DEPOSITION
-      PRIVATE            :: SRCSALT
+      ! ... except these routines
+      PUBLIC :: CHEMSEASALT
+      PUBLIC :: EMISSSEASALT
+      PUBLIC :: CLEANUP_SEASALT
+
+      !---------------------------------------------------
+      ! Prior to 7/20/04:
+      !! PRIVATE module variables
+      !PRIVATE            :: DRYSALA, DRYSALC, NSALT 
+      !PRIVATE            :: IDDEP,   REDGE,   RMID
+      !PRIVATE            :: SRC,     SS_SIZE, SS_DEN
+      !
+      !! PRIVATE module routines
+      !PRIVATE            :: INIT_SEASALT
+      !PRIVATE            :: WET_SETTLING
+      !PRIVATE            :: DRY_DEPOSITION
+      !PRIVATE            :: SRCSALT
+      !---------------------------------------------------
 
       !=================================================================
       ! MODULE VARIABLES
@@ -80,7 +95,11 @@
 
       ! Scalars
       INTEGER, PARAMETER   :: NSALT = 2
-      INTEGER, PARAMETER   :: NR_MAX = 150
+      !------------------------------------------
+      ! Prior to 7/20/04:
+      !INTEGER, PARAMETER   :: NR_MAX = 150
+      !------------------------------------------
+      INTEGER, PARAMETER   :: NR_MAX = 200
       INTEGER              :: DRYSALA, DRYSALC
 
       ! Arrays
@@ -88,7 +107,10 @@
       REAL*8,  ALLOCATABLE :: REDGE(:,:)   
       REAL*8,  ALLOCATABLE :: RMID(:,:)
       REAL*8,  ALLOCATABLE :: SRC(:,:)     
-      REAL*8               :: SS_SIZE(NSALT+1) = (/0.1d0, 2.5d0, 10d0/)
+      !------------------------------------------------------------------
+      ! Prior to 7/20/04:
+      !REAL*8               :: SS_SIZE(NSALT+1) = (/0.1d0, 2.5d0, 10d0/)
+      !------------------------------------------------------------------
       REAL*8               :: SS_DEN(NSALT)    = (/2200.d0, 2200.d0  /)
 
       !=================================================================
@@ -103,18 +125,25 @@
 !******************************************************************************
 !  Subroutine CHEMSEASALT is the interface between the GEOS-CHEM main program 
 !  and the seasalt chemistry routines that mostly calculates seasalt dry 
-!  deposition (rjp, bmy, 1/24/02, 4/20/04)
+!  deposition (rjp, bmy, 1/24/02, 7/20/04)
 !
 !  NOTES:
+!  (1 ) Now reference STT from "tracer_mod.f".  Now references LPRT from
+!        "logical_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DRYDEP_MOD,   ONLY : DEPNAME, NUMDEP
-      USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
       USE ERROR_MOD,    ONLY : DEBUG_MSG
+      USE LOGICAL_MOD,  ONLY : LPRT
+      USE TRACER_MOD,   ONLY : STT
+      USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
 
 #     include "CMN_SIZE"     ! Size parameters 
-#     include "CMN"          ! AD, STT, TCVV, NCHEM, NSRCX, MONTH
+!-----------------------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"          ! AD, STT, TCVV, NCHEM, NSRCX, MONTH
+!-----------------------------------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.
@@ -179,7 +208,7 @@
 !
 !******************************************************************************
 !  Subroutine WET_SETTLING performs wet settling of sea salt.
-!  (bec, rjp, bmy, 4/20/04)
+!  (bec, rjp, bmy, 4/20/04, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -191,6 +220,8 @@
 !  (1 ) TC (REAL*8 ) : Contains modified tracer
 !
 !  NOTES:
+!  (1 ) Now references SALA_REDGE_um and SALC_REDGE_um from "tracer_mod.f"
+!        (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -198,7 +229,8 @@
       USE DIAG_MOD,      ONLY : AD44
       USE DRYDEP_MOD,    ONLY : DEPSAV
       USE PRESSURE_MOD,  ONLY : GET_PCENTER
-      USE TRACERID_MOD,  ONLY : IDTSALA, IDTSALC
+      USE TRACER_MOD,    ONLY : SALA_REDGE_um, SALC_REDGE_um
+      USE TRACERID_MOD,  ONLY : IDTSALA,       IDTSALC
       USE TIME_MOD,      ONLY : GET_TS_CHEM
       USE GRID_MOD,      ONLY : GET_AREA_CM2
 
@@ -238,8 +270,23 @@
       ! Sea salt density [kg/m3]
       DEN  = SS_DEN( N )
 
+      !-------------------------------------------------------
       ! Sea salt radius [m]
-      REFF = 0.5d-6 * ( SS_SIZE( N ) + SS_SIZE( N+1 ) )
+      !REFF = 0.5d-6 * ( SS_SIZE( N ) + SS_SIZE( N+1 ) )
+      !-------------------------------------------------------
+
+      ! Seasalt effective radius (i.e. midpt of radius bin) [m]
+      SELECT CASE ( N )
+
+         ! Accum mode
+         CASE( 1 )
+            REFF = 0.5d-6 * ( SALA_REDGE_um(1) + SALA_REDGE_um(2) )
+
+         ! Coarse mode
+         CASE( 2 ) 
+            REFF = 0.5d-6 * ( SALC_REDGE_um(1) + SALC_REDGE_um(2) )
+            
+      END SELECT
 
       ! Sea salt radius [cm]
       RCM  = REFF * 100d0  
@@ -489,11 +536,15 @@
 !  (bec, rjp, bmy, 3/24/03, 4/20/04)
 !
 !  NOTES:
+!  (1 ) Now references LPRT from "logical_mod.f" and STT from "tracer_mod.f".
+!        (bmy, 7/20/04)
 !*****************************************************************************
 !
       ! References to F90 modules
-      USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
       USE ERROR_MOD,    ONLY : DEBUG_MSG
+      USE LOGICAL_MOD,  ONLY : LPRT
+      USE TRACER_MOD,   ONLY : STT
+      USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
 
 #     include "CMN_SIZE" ! Size parameters
 #     include "CMN"      ! STT, LPRT
@@ -546,18 +597,21 @@
 !        v. 102, 3805-3818, 1997.
 ! 
 !  NOTES:
+!  (1 ) Now references SALA_REDGE_um and SALC_REDGE_um from "tracer_mod.f"
+!        (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,       ONLY : PBL, AD, IS_WATER 
       USE DIAG_MOD,      ONLY : AD08
-      USE GRID_MOD,      ONLY : GET_AREA_M2
-      USE TIME_MOD,      ONLY : GET_TS_EMIS
-      USE PRESSURE_MOD,  ONLY : GET_PEDGE
       USE ERROR_MOD,     ONLY : DEBUG_MSG, ERROR_STOP
+      USE GRID_MOD,      ONLY : GET_AREA_M2
+      USE PRESSURE_MOD,  ONLY : GET_PEDGE
+      USE TIME_MOD,      ONLY : GET_TS_EMIS
+      USE TRACER_MOD,    ONLY : SALA_REDGE_um, SALC_REDGE_um
 
 #     include "CMN_SIZE"      ! Size parameters
-#     include "CMN"           ! STT, XTRA2
+#     include "CMN"           ! XTRA2
 #     include "CMN_O3"        ! XNUMOL
 #     include "CMN_DIAG"      ! ND44, ND08
 #     include "CMN_GCTM"      ! PI, SCALE_HEIGHT
@@ -601,11 +655,28 @@
       CONST = 4d0/3d0 * PI * DR * DTEMIS * 1.d-18 * 1.373d0
 
       ! Lower and upper limit of size bin N [um]
-      R0    = SS_SIZE( N )
-      R1    = SS_SIZE( N+1 )
+      !--------------------------------------------
+      ! Prior to 7/20/04:
+      !R0    = SS_SIZE( N )
+      !R1    = SS_SIZE( N+1 )
+      !--------------------------------------------
+      SELECT CASE( N ) 
+       
+         ! Accum mode
+         CASE( 1 )
+            R0 = SALA_REDGE_um(1)
+            R1 = SALA_REDGE_um(2)
+          
+         ! Coarse mode
+         CASE( 2 )
+            R0 = SALC_REDGE_um(1)
+            R1 = SALC_REDGE_um(2)
+            
+      END SELECT
+
 
       ! Number of radius size bins
-      NR    = INT( ( ( R1 - R0 ) / DR ) + 0.5d0 ) 
+      NR = INT( ( ( R1 - R0 ) / DR ) + 0.5d0 ) 
 
       ! Error check
       IF ( NR > NR_MAX ) THEN

@@ -1,10 +1,10 @@
-! $Id: convection_mod.f,v 1.5 2004/04/19 15:09:51 bmy Exp $
+! $Id: convection_mod.f,v 1.6 2004/09/21 18:04:09 bmy Exp $
       MODULE CONVECTION_MOD
 !
 !******************************************************************************
 !  Module CONVECTION_MOD contains routines which select the proper convection
 !  code for GEOS-1, GEOS-STRAT, GEOS-3, or GEOS-4 met field data sets. 
-!  (bmy, 6/28/03, 2/23/04)
+!  (bmy, 6/28/03, 7/20/04)
 !
 !  Module Routines:
 !  ============================================================================
@@ -17,16 +17,19 @@
 !  (2 ) diag_mod.f          : Module containing GEOS-CHEM diagnostic arrays
 !  (3 ) fvdas_convect_mod.f : Module w/ convection code for fvDAS met fields
 !  (4 ) grid_mod.f          : Module containing horizontal grid information
+!  (5 ) logical-mod.f       : Module containing GEOS-CHEM logical switches
 !  (5 ) pressure_mod.f      : Module containing routines to compute P(I,J,L)
 !  (6 ) time_mod.f          : Module containing routines for computing time
-!  (7 ) wetscav_mod.f       : Module containing routines for wetdep/scavenging
+!  (7 ) tracer_mod.f        : Module containing GEOS-CHEM tracer array STT etc
+!  (8 ) wetscav_mod.f       : Module containing routines for wetdep/scavenging
 !
 !  NOTES:
 !  (1 ) Contains new updates for GEOS-4/fvDAS convection.  Also now references
 !        "error_mod.f".  Now make F in routine NFCLDMX a 4-D array to avoid
 !        memory problems on the Altix. (bmy, 1/27/04)
 !  (2 ) Bug fix: Now pass NTRACE elements of TCVV to FVDAS_CONVECT in routine 
-!        DO_CONVECTION (bmy, 2/23/04)   
+!        DO_CONVECTION (bmy, 2/23/04)  
+!  (3 ) Now references "logical_mod.f" and "tracer_mod.f" (bmy, 7/20/04) 
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -43,13 +46,15 @@
 !******************************************************************************
 !  Subroutine DO_CONVECTION is a wrapper for the GEOS-CHEM convection code.
 !  It calls the proper convection routine for GEOS-1, GEOS-S, GEOS-3, or 
-!  GEOS-4 met field types. (bmy, 6/26/03, 2/23/04)
+!  GEOS-4 met field types. (bmy, 6/26/03, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Now updated for GEOS-4/fvDAS convection.  Also placed calls to 
 !         DEBUG_MSG for debugging msg output. (swu, bmy, 1/27/04)
 !  (2 ) Only pass NTRACE elements of TCVV to FVDAS_CONVECT to prevent array
 !        out-of-bounds error for less than NTRACE tracers (bmy, 2/23/04)
+!  (3 ) Now references LPRT from "logical_mod.f".  Now references N_TRACERS,
+!        STT, and TCVV from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !     
       ! References to F90 modules
@@ -57,12 +62,17 @@
       USE DIAG_MOD,          ONLY : AD37
       USE ERROR_MOD,         ONLY : DEBUG_MSG
       USE FVDAS_CONVECT_MOD, ONLY : INIT_FVDAS_CONVECT, FVDAS_CONVECT
-      USE WETSCAV_MOD,       ONLY : COMPUTE_F
+      USE LOGICAL_MOD,       ONLY : LPRT
       USE TIME_MOD,          ONLY : GET_TS_CONV
+      USE TRACER_MOD,        ONLY : N_TRACERS, STT, TCVV
       USE PRESSURE_MOD              
+      USE WETSCAV_MOD,       ONLY : COMPUTE_F
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! STT, TCVV, NTRACE, LPRT
+!------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"       ! STT, TCVV, NTRACE, LPRT
+!------------------------------------------------------
 #     include "CMN_DIAG"  ! ND37, LD37 
 
 #if   defined( GEOS_4 )
@@ -70,9 +80,19 @@
       ! More local variables 
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: I, ISOL, J, L, L2, N, NSTEP  
-      INTEGER       :: INDEXSOL(NTRACE) 
+      !--------------------------------------------------------
+      ! Prior to 7/20/04:
+      ! Replace NTRACE with N_TRACERS
+      !INTEGER       :: INDEXSOL(NTRACE) 
+      INTEGER       :: INDEXSOL(N_TRACERS) 
+      !--------------------------------------------------------
       INTEGER       :: CONVDT    
-      REAL*8        :: F(IIPAR,JJPAR,LLPAR,NTRACE)
+      !--------------------------------------------------------
+      ! Prior to 7/20/04:
+      ! Replace NTRACE with N_TRACERS
+      !REAL*8        :: F(IIPAR,JJPAR,LLPAR,NTRACE)
+      !--------------------------------------------------------
+      REAL*8        :: F(IIPAR,JJPAR,LLPAR,N_TRACERS)
       REAL*8        :: RPDEL(IIPAR,JJPAR,LLPAR)
       REAL*8        :: DP(IIPAR,JJPAR,LLPAR)
       REAL*8        :: TEMP_DIAG
@@ -119,7 +139,11 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, ISOL )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO N = 1, NTRACE
+      !-------------------------
+      ! Prior to 7/20/04:
+      !DO N = 1, NTRACE
+      !-------------------------
+      DO N = 1, N_TRACERS
 
          ! Get fraction of tracer scavenged and the soluble tracer 
          ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
@@ -188,8 +212,13 @@
       !=================================================================
 
       ! Flip 4-D arrays for FVDAS_CONVECT
-      STT(:,:,1:LLPAR,1:NTRACE) = STT(:,:,LLPAR:1:-1,1:NTRACE)
-      F  (:,:,1:LLPAR,1:NTRACE) = F  (:,:,LLPAR:1:-1,1:NTRACE)
+      !-----------------------------------------------------------------
+      ! Prior to 7/20/04:
+      !STT(:,:,1:LLPAR,1:NTRACE) = STT(:,:,LLPAR:1:-1,1:NTRACE)
+      !F  (:,:,1:LLPAR,1:NTRACE) = F  (:,:,LLPAR:1:-1,1:NTRACE)
+      !-----------------------------------------------------------------
+      STT(:,:,1:LLPAR,1:N_TRACERS) = STT(:,:,LLPAR:1:-1,1:N_TRACERS)
+      F  (:,:,1:LLPAR,1:N_TRACERS) = F  (:,:,LLPAR:1:-1,1:N_TRACERS)
 
       ! Flip met fields for FVDAS_CONVECT.  Store them in temporary
       ! local arrays so that we don't have to reflip them,  This
@@ -200,17 +229,30 @@
       ZMMD_F  (:,:,1:LLPAR) = ZMMD  (:,:,LLPAR:1:-1)
       ZMMU_F  (:,:,1:LLPAR) = ZMMU  (:,:,LLPAR:1:-1)
 
+      IF ( LPRT ) CALL DEBUG_MSG( '### DO_CONVECTION: a flip' )
+
+!----------------------------------------------------------------------------
+! Prior to 7/20/04:
+!      ! Call the fvDAS convection routines (originally from NCAR!)
+!      CALL FVDAS_CONVECT( TDT,    NTRACE,  STT(:,:,:,1:NTRACE),    
+!     &                    RPDEL,  HKETA_F, HKBETA_F, 
+!     &                    ZMMU_F, ZMMD_F,  ZMEU_F,  
+!     &                    DP,     NSTEP,   F,      
+!     &                    TCVV(1:NTRACE),  INDEXSOL )
+!
+!      ! Reflip STT array after FVDAS_CONVECT
+!      STT(:,:,1:LLPAR,1:NTRACE) = STT(:,:,LLPAR:1:-1,1:NTRACE)
+!----------------------------------------------------------------------------
+
       ! Call the fvDAS convection routines (originally from NCAR!)
-      CALL FVDAS_CONVECT( TDT,    NTRACE,  STT(:,:,:,1:NTRACE),    
-     &                    RPDEL,  HKETA_F, HKBETA_F, 
-     &                    ZMMU_F, ZMMD_F,  ZMEU_F,  
-     &                    DP,     NSTEP,   F,      
-     &                    TCVV(1:NTRACE),  INDEXSOL )
+      CALL FVDAS_CONVECT( TDT,      N_TRACERS, STT,    RPDEL,  HKETA_F, 
+     &                    HKBETA_F, ZMMU_F,    ZMMD_F, ZMEU_F, DP,     
+     &                    NSTEP,    F,         TCVV,   INDEXSOL )
 
       ! Reflip STT array after FVDAS_CONVECT
-      STT(:,:,1:LLPAR,1:NTRACE) = STT(:,:,LLPAR:1:-1,1:NTRACE)
+      STT(:,:,1:LLPAR,1:N_TRACERS) = STT(:,:,LLPAR:1:-1,1:N_TRACERS)
 
-      !### Debug
+      !### Debug! Call the fvDAS convection routines (originally from NCAR!)
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_CONVECTION: a FVDAS_CONVECT' )
 
 #else
@@ -220,7 +262,11 @@
       !==================================================================
 
       ! Call the S-J Lin convection routine for GEOS-1, GEOS-S, GEOS-3
-      CALL NFCLDMX( NTRACE, TCVV(1:NTRACE), STT(:,:,:,1:NTRACE) )
+      !-------------------------------------------------------------------
+      ! Prior to 7/20/04:
+      !CALL NFCLDMX( NTRACE, TCVV(1:NTRACE), STT(:,:,:,1:NTRACE) )
+      !-------------------------------------------------------------------
+      CALL NFCLDMX( N_TRACERS, TCVV, STT )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_CONVECTION: a NFCLDMX' )

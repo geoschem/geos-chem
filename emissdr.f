@@ -1,10 +1,10 @@
-! $Id: emissdr.f,v 1.5 2004/05/03 14:46:16 bmy Exp $
+! $Id: emissdr.f,v 1.6 2004/09/21 18:04:13 bmy Exp $
       SUBROUTINE EMISSDR
 !
 !******************************************************************************
 !  Subroutine EMISSDR computes emissions for the full chemistry simulation
 !  (NSRCX == 3).  Emissions are stored in GEMISNOX and EMISRR arrays, 
-!  which are then passed to the SMVGEAR subroutines (bmy, 10/8/98, 4/14/04)
+!  which are then passed to the SMVGEAR subroutines (bmy, 10/8/98, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Now accounts for seasonal NOx emissions, and multi-level NOx 
@@ -49,6 +49,8 @@
 !        "grid_mod.f". (bmy, 2/11/03)
 !  (20) Now pass I, J to EMISOP, EMISOP_GRASS, EMISOP_MB (bmy, 12/9/03)
 !  (21) Now references EMLIGHTNING from "lightning_nox_mod.f" (bmy, 4/14/04)
+!  (22) Now references "logical_mod.f".  Now replaced LFOSSIL with LANTHRO.
+!        (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -61,6 +63,7 @@
       USE GRID_MOD,          ONLY : GET_AREA_CM2, 
      &                              GET_XOFFSET, GET_YOFFSET
       USE LIGHTNING_NOX_MOD, ONLY : EMLIGHTNING
+      USE LOGICAL_MOD
       USE TIME_MOD,          ONLY : GET_MONTH,   GET_TAU,
      &                              GET_TS_EMIS, GET_LOCALTIME
       USE TRACERID_MOD 
@@ -73,7 +76,10 @@
 #     include "CMN_O3"       ! Emissions arrays, XNUMOL
 #     include "CMN_NOX"      ! GEMISNOX, GEMISNOX2
 #     include "CMN_MONOT"    ! Monoterpenes
-#     include "CMN_SETUP"    ! LMONOT (bmy, 11/4/99)
+!--------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"    ! LMONOT (bmy, 11/4/99)
+!--------------------------------------------------------
 #     include "comode.h"     ! IVERT?
 
       ! Local variables
@@ -186,7 +192,11 @@
 
             ! Fossil Fuel emissions (kg / Grid-Box / Time-Step)
             ! NN = tracer number corresponding to emission species N
-            IF ( LFOSSIL ) THEN
+            !------------------------
+            ! Prior to 7/20/04:
+            !IF ( LFOSSIL ) THEN
+            !------------------------
+            IF ( LANTHRO ) THEN 
                DO N = 1, NEMANTHRO
                   NN = IDEMS(N)
 

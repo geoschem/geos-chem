@@ -1,4 +1,4 @@
-! $Id: tpcore_window_mod.f,v 1.3 2004/01/27 21:25:09 bmy Exp $
+! $Id: tpcore_window_mod.f,v 1.4 2004/09/21 18:04:20 bmy Exp $
       MODULE TPCORE_WINDOW_MOD
 !
 !******************************************************************************
@@ -3927,7 +3927,7 @@ C
 !******************************************************************************
 !  Subroutine DYN0 is the pressure fixer for TPCORE.  DYN0 readjusts the
 !  mass fluxes ALFA, BETA, GAMA, so that they are consistent with the
-!  met fields. (bdf, bmy, 3/10/03)
+!  met fields. (bdf, bmy, 3/10/03, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -3951,6 +3951,7 @@ C
 !
 !  NOTES:
 !  (1 ) Differences from "tpcore_mod.f" denoted by !%%% (bmy, 3/10/03)
+!  (2 ) Removed reference to CMN (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3961,7 +3962,10 @@ C
       IMPLICIT NONE
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! lots of stuff
+!------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"          ! lots of stuff
+!------------------------------------------------
 
       ! Arguments
 !%%%
@@ -4979,7 +4983,7 @@ C
 !
 !******************************************************************************
 !  Subroutine DIAG_FLUX archives the mass fluxes in TPCORE version 7.1.
-!  (bey, bmy, 9/20/00, 7/16/01)
+!  (bey, bmy, 9/20/00, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -5004,17 +5008,22 @@ C
 !
 !  NOTES:
 !  (1 ) Differences from "tpcore_mod.f" denoted by !%%% (bmy, 3/10/03)
+!  (2 ) Now references TCVV & ITS_A_CH4_SIM from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD,       ONLY : MASSFLEW,   MASSFLNS, MASSFLUP
+      USE DIAG_MOD,       ONLY : MASSFLEW, MASSFLNS, MASSFLUP
       USE GLOBAL_CH4_MOD, ONLY : XNUMOL_CH4, TCH4
       USE GRID_MOD,       ONLY : GET_AREA_M2
+      USE TRACER_MOD,     ONLY : TCVV, ITS_A_CH4_SIM
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"      ! Size parameters
-#     include "CMN"           ! TCVV, DSIG, NSRCX
+!-----------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"           ! TCVV, DSIG, NSRCX
+!-----------------------------------------------------
 #     include "CMN_DIAG"      ! Diagnostic switches
 #     include "CMN_GCTM"      ! g0_100
 #     include "CMN_CO"        ! CO arrays
@@ -5142,7 +5151,11 @@ C
 #endif
 
                   ! Contribution for CH4 run (bmy, 1/17/01)
-                  IF ( NSRCX == 9 ) THEN
+                  !------------------------
+                  ! Prior to 7/20/04:
+                  !IF ( NSRCX == 9 ) THEN
+                  !------------------------
+                  IF ( ITS_A_CH4_SIM() ) THEN
                   TCH4(I+I0_W,J+J0_W,K,10)=TCH4(I+I0_W,J+J0_W,K,10)+ 
      &                                ( DTC * DTDYN * XNUMOL_CH4 )
                   ENDIF

@@ -1,11 +1,11 @@
-! $Id: fvdas_convect_mod.f,v 1.3 2004/04/19 15:09:53 bmy Exp $
+! $Id: fvdas_convect_mod.f,v 1.4 2004/09/21 18:04:13 bmy Exp $
       MODULE FVDAS_CONVECT_MOD
 !
 !******************************************************************************
 !  Module FVDAS_CONVECT_MOD contains routines (originally from NCAR) which 
 !  perform shallow and deep convection for the GEOS-4/fvDAS met fields.  
 !  These routines account for shallow and deep convection, plus updrafts 
-!  and downdrafts.  (pjr, dsa, bmy, 6/26/03, 1/21/04)
+!  and downdrafts.  (pjr, dsa, bmy, 6/26/03, 7/20/04)
 !  
 !  Module Variables:
 !  ============================================================================
@@ -34,6 +34,8 @@
 !  NOTES: 
 !  (1 ) Contains new updates for GEOS-4/fvDAS convection.  Also added OpenMP
 !        parallel loop over latitudes in FVDAS_CONVECT. (swu, bmy, 1/21/04)
+!  (2 ) Now prevent FTMP, QTMP arrays from being held PRIVATE w/in the
+!        parallel loop in routine DO_CONVECTION (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -46,8 +48,9 @@
       ! Declare everything PRIVATE ...
       PRIVATE
       
-      ! ... except routines INIT_FVDAS_CONVECT and FVDAS_CONVECT
-      PUBLIC :: INIT_FVDAS_CONVECT, FVDAS_CONVECT
+      ! ... except these routines
+      PUBLIC :: INIT_FVDAS_CONVECT
+      PUBLIC :: FVDAS_CONVECT
 
       !=================================================================
       ! MODULE VARIABLES
@@ -146,7 +149,7 @@
 !******************************************************************************
 !  Subroutine FVDAS_CONVECT is the convection driver routine for GEOS-4/fvDAS
 !  met fields.  It calls both HACK and ZHANG/MCFARLANE convection schemes.
-!  (pjr, dsa, bmy, 6/26/03, 1/21/04)
+!  (pjr, dsa, bmy, 6/26/03, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -189,6 +192,9 @@
 !        an OpenMP parallel loop over latitude.   Removed IL1G and IL2G,
 !        since these are no longer needed in this routine.  Now put NTRACE 
 !        before Q on the arg list. (bmy, 1/21/04)
+!  (2 ) Rewrote so as to eliminate holding FTMP and QTMP PRIVATE w/in the 
+!        parallel loop.  This causes parallelization problems on Altix 350.
+!        (bmy, 7/20/04)
 !******************************************************************************
 
 #     include "CMN_SIZE"     ! Size parameters
@@ -221,8 +227,6 @@
       REAL*8                 :: EUG(IIPAR,LLPAR)
       REAL*8                 :: MDG(IIPAR,LLPAR)
       REAL*8                 :: MUG(IIPAR,LLPAR)
-      REAL*8                 :: QTMP(IIPAR,LLPAR,NTRACE)
-      REAL*8                 :: FTMP(IIPAR,LLPAR,NTRACE)
 
       !=================================================================
       ! FVDAS_CONVECT begins here!
@@ -230,22 +234,12 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,   J,   L,   N,   ISTEP,   QTMP, FTMP, MUG,   MDG     )
-!$OMP+PRIVATE( DUG, EUG, EDG, DPG, DSUBCLD, JT,   MX,   IDEEP, LENGATH )
+!$OMP+PRIVATE( I,   J,   L,   N,       ISTEP, MUG, MDG,   DUG     )
+!$OMP+PRIVATE( EUG, EDG, DPG, DSUBCLD, JT,    MX,  IDEEP, LENGATH )
 !$OMP+SCHEDULE( DYNAMIC )
 
       ! Loop over latitudes
       DO J = 1, JJPAR
-
-         ! Save lat slices of Q & FRACIS into QTMP & FTMP
-         DO N = 1, NTRACE
-         DO L = 1, LLPAR
-         DO I = 1, IIPAR
-            QTMP(I,L,N) = Q(I,J,L,N)
-            FTMP(I,L,N) = FRACIS(I,J,L,N)
-         ENDDO
-         ENDDO
-         ENDDO
 
          ! Gather mass flux arrays, compute mass fluxes, and determine top
          ! and bottom of Z&M convection.  LENGATH = # of longitudes in the
@@ -266,32 +260,27 @@
 
                ! Only call CONVTRAN where convection happens
                ! (i.e. at latitudes where LENGATH > 0)
-               CALL CONVTRAN( NTRACE,  QTMP,    MUG,      MDG,         
-     &                        DUG,     EUG,     EDG,      DPG,            
-     &                        DSUBCLD, JT,      MX,       IDEEP,    
-     &                        1,       LENGATH, NSTEP,    0.5D0*TDT,   
-     &                        FTMP,    TCVV,    INDEXSOL, J )
+               CALL CONVTRAN( NTRACE,     Q(:,J,:,:),      MUG,      
+     &                        MDG,        DUG,             EUG,     
+     &                        EDG,        DPG,             DSUBCLD, 
+     &                        JT,         MX,              IDEEP,    
+     &                        1,          LENGATH,         NSTEP,    
+     &                        0.5D0*TDT,  FRACIS(:,J,:,:), TCVV,    
+     &                        INDEXSOL,   J )
+
             ENDIF
 
             !-----------------------------------
             ! HACK (shallow) convection                   
             !-----------------------------------
             CALL HACK_CONV( TDT,         RPDEL(:,J,:), ETA(:,J,:),  
-     &                      BETA(:,J,:), NTRACE,       QTMP )
+     &                      BETA(:,J,:), NTRACE,       Q(:,J,:,:) )            
 
          ENDDO 
 
-         ! Save latitude slice QTMP back into global Q array
-         DO N = 1, NTRACE
-         DO L = 1, LLPAR
-         DO I = 1, IIPAR
-            Q(I,J,L,N) = QTMP(I,L,N)
-         ENDDO
-         ENDDO
-         ENDDO
-
       ENDDO
 !$OMP END PARALLEL DO
+
 
       ! Return to calling program
       END SUBROUTINE FVDAS_CONVECT

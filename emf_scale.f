@@ -1,16 +1,14 @@
-! $Id: emf_scale.f,v 1.1 2003/06/30 20:26:09 bmy Exp $
+! $Id: emf_scale.f,v 1.2 2004/09/21 18:04:13 bmy Exp $
       SUBROUTINE EMF_SCALE( I,    J,    N,     NN, 
      &                      IREF, JREF, JSCEN, XEMISR, XEMISRN )       
 !
-!*****************************************************************************
-!  Subroutine EMF_SCALE (bmy, 4/2/98, 11/6/02) does the following:
+!******************************************************************************
+!  Subroutine EMF_SCALE (bmy, 4/2/98, 7/20/04) does the following:
 ! 
 !  (1) Saves original values of EMISR, EMISRN, EMISPN
 !      so that they can be restored later (after scaling)
 !
-!  (2) If LFFNOX=F then set anthro emissions of NOx and Ox = 0
-!
-!  (3) Scales emissions to weekend or weekday usage (using scale factors
+!  (2) Scales emissions to weekend or weekday usage (using scale factors
 !      stored in the SCNR89 array)
 !
 !  NOTES:
@@ -23,7 +21,8 @@
 !        changes and updated comments. (bmy, 1/2/01)
 !  (4 ) Remove old obsolete commented-out code (bmy, 4/20/01)
 !  (5 ) Now references "tracerid_mod.f" (bmy, 11/6/02)
-!*****************************************************************************
+!  (6 ) Now references LFFNOX from "logical_mod.f" (bmy, 7/20/04)
+!******************************************************************************
 !
       ! References to F90 modules
       USE TRACERID_MOD
@@ -31,11 +30,11 @@
       IMPLICIT NONE
 
 #     include "CMN_SIZE"
-#     include "CMN"
+!-------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"
+!-------------------------------
 #     include "CMN_O3"
-!-------------------------------
-!#     include "comtrid.h"
-!-------------------------------
 #     include "comode.h"
       
       ! Arguments
@@ -64,18 +63,21 @@
       ELSE
          XEMISR = EMISR(IREF,JREF,N)
       ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 7/20/04:
 !
 !*****************************************************************************
 !  If LFFNOX=F then set fossil fuel NOx, Ox emissions = 0
 !*****************************************************************************
 !
-      IF ( .not. LFFNOX ) THEN
-         IF ( N == IDENOX ) THEN
-            EMISRN(IREF,JREF,1:NOXLEVELS) = 0d0
-         ELSE IF ( N == IDTOX ) THEN
-            EMISR(IREF,JREF,N) = 0d0
-         ENDIF
-      ENDIF
+!      IF ( .not. LFFNOX ) THEN
+!         IF ( N == IDENOX ) THEN
+!            EMISRN(IREF,JREF,1:NOXLEVELS) = 0d0
+!         ELSE IF ( N == IDTOX ) THEN
+!            EMISR(IREF,JREF,N) = 0d0
+!         ENDIF
+!      ENDIF
+!-----------------------------------------------------------------------------
 !
 !*****************************************************************************
 !  Scale emissions by weekend/weekday:

@@ -1,9 +1,9 @@
-! $Id: c2h6_mod.f,v 1.1 2003/06/30 20:26:04 bmy Exp $
+! $Id: c2h6_mod.f,v 1.2 2004/09/21 18:04:08 bmy Exp $
       MODULE C2H6_MOD
 !
 !******************************************************************************
 !  Module C2H6_MOD contains variables and routines used for the tagged 
-!  C2H6 (ethane) simulation. (xyp, qli, bmy, 7/28/01, 2/11/03)
+!  C2H6 (ethane) simulation. (xyp, qli, bmy, 7/28/01, 7/20/04)
 !
 !  Setting LSPLIT = T in "input.geos" will run with the following tracers:
 !     (1) Total C2H6
@@ -49,6 +49,8 @@
 !        "error_mod.f".  Removed obsolete code.  Now references F90 module
 !         tracerid_mod.f". (bmy, 11/15/02)
 !  (4 ) Now references "grid_mod.f" and the new "time_mod.f" (bmy, 2/11/03)
+!  (5 ) Now references "directory_mod.f", "logical_mod.f", and "tracer_mod.f".
+!        (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -87,7 +89,7 @@
 !
 !******************************************************************************
 !  Subroutine EMISSC2H6 reads in C2H6 emissions for the Tagged C2H6 run.
-!  (xyp, qli, bmy, 7/21/00, 2/11/03)
+!  (xyp, qli, bmy, 7/21/00, 7/20/04)
 !
 !  NOTES:
 !  (1 ) BURNEMIS and BIOFUEL are now dimensioned with IIPAR,JJPAR instead of
@@ -102,24 +104,33 @@
 !        area in cm2.  Remove references to DXYP.  Use routines GET_MONTH
 !        and GET_TS_EMIS from "time_mod.f".  Remove MONTH from call to
 !        BIOBURN. (bmy, 2/11/03)
+!  (5 ) Now replace CMN_SETUP w/ references from "logical_mod.f" and
+!        "directory_mod.f".  Now references STT from "tracer_mod.f".
+!        Replace LFOSSIL with LANTHRO (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE BIOMASS_MOD,  ONLY : BURNEMIS, BIOBURN
-      USE BIOFUEL_MOD,  ONLY : BIOFUEL, BIOFUEL_BURN
-      USE DIAG_MOD,     ONLY : AD36
-      USE GEIA_MOD,     ONLY : READ_C3H8_C2H6_NGAS, TOTAL_FOSSIL_TG
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE TIME_MOD,     ONLY : GET_MONTH, GET_TS_EMIS
+      USE BIOMASS_MOD,   ONLY : BURNEMIS, BIOBURN
+      USE BIOFUEL_MOD,   ONLY : BIOFUEL, BIOFUEL_BURN
+      USE DIAG_MOD,      ONLY : AD36
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE GEIA_MOD,      ONLY : READ_C3H8_C2H6_NGAS, TOTAL_FOSSIL_TG
+      USE GRID_MOD,      ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,   ONLY : LSPLIT, LBIOMASS, LBIOFUEL, LANTHRO
+      USE TIME_MOD,      ONLY : GET_MONTH, GET_TS_EMIS
+      USE TRACER_MOD,    ONLY : STT
       USE TRACERID_MOD
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN"          ! STT, etc.
 #     include "CMN_O3"       ! EMISTC2H6
 #     include "CMN_DIAG"     ! Diagnostic arrays & switches
-#     include "CMN_SETUP"    ! LSPLIT, DATA_DIR
+!-----------------------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"    ! LSPLIT, DATA_DIR
+!-----------------------------------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE          :: FIRSTEMISS = .TRUE.
@@ -153,7 +164,11 @@
       ! Process biomass C2H6 emissions ored in BURNEMIS(IDBC2H6,:,:) 
       ! in [molec C/cm3/s].  Convert to [kg C2H6] and store in STT.
       !=================================================================
-      IF ( LBIONOX ) THEN
+      !---------------------
+      ! Prior to 7/20/04:
+      !IF ( LBIONOX ) THEN
+      !---------------------
+      IF ( LBIOMASS ) THEN
 
          ! Get biomass burning emissions (and update ND28 diagnostic)
          CALL BIOBURN
@@ -184,8 +199,12 @@
       ! Process biofuel C2H6 emissions stored in BIOFUEL(IDBFC2H6,:,:) 
       ! in [molec C/cm3/s.  Convert to [kg C2H6] and store in STT. 
       !=================================================================
-      IF ( LWOODCO ) THEN
-      
+      !----------------------
+      ! Prior to 7/20/04:
+      !IF ( LWOODCO ) THEN
+      !----------------------
+      IF ( LBIOFUEL ) THEN
+
          ! Read biofuel burning emissions (and update ND34 diagnostic)
          CALL BIOFUEL_BURN
 
@@ -217,7 +236,11 @@
       ! The distribution follows natural gas venting/leakage of CH4.
       ! Contact: Yaping Xiao (xyp@io.harvard.edu)
       !=================================================================
-      IF ( LFOSSIL ) THEN 
+      !-----------------------
+      ! Prior to 7/20/04:
+      !IF ( LFOSSIL ) THEN 
+      !-----------------------
+      IF ( LANTHRO ) THEN 
 
          ! Read C2H6 emissions only if it's a new month
          IF ( GET_MONTH() /= LASTMONTH ) THEN
@@ -285,7 +308,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_C2H6 performs C2H6 chemistry. Loss of C2H6 is via reaction 
-!  with OH. (xyp, qli, bmy, 10/19/99, 2/11/03)
+!  with OH. (xyp, qli, bmy, 10/19/99, 7/20/04)
 !
 !  Arguments as input:
 !  ==========================================================================
@@ -299,16 +322,23 @@
 !  (3 ) Now reference T from "dao_mod.f".  Also make FIRSTCHEM a local SAVEd
 !        variable. (bmy, 11/15/02)
 !  (4 ) Now use functions GET_MONTH and GET_TS_CHEM from "time_mod.f".
+!  (5 ) Now reference STT & N_TRACERS from "tracer_mod.f".  Now reference 
+!        LSPLIT from "logical_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,       ONLY : AIRVOL,    T
       USE GLOBAL_OH_MOD, ONLY : OH,        GET_GLOBAL_OH
+      USE LOGICAL_MOD,   ONLY : LSPLIT 
       USE TIME_MOD,      ONLY : GET_MONTH, GET_TS_CHEM
+      USE TRACER_MOD,    ONLY : N_TRACERS, STT
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! STT
-#     include "CMN_SETUP"    ! LSPLIT
+!---------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"          ! STT
+!#     include "CMN_SETUP"    ! LSPLIT
+!---------------------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
@@ -320,7 +350,7 @@
       REAL*8, EXTERNAL       :: BOXVL
 
       !=================================================================
-      ! CHEM_C2H6 begins here! 
+      ! CHEMC2H6 begins here! 
       !=================================================================
       IF ( FIRSTCHEM ) THEN
          FIRSTCHEM = .FALSE.  ! save for future use?
@@ -365,7 +395,11 @@
          ! If we are running w/ tagged tracers,
          ! then also apply the loss to each of these
          IF ( LSPLIT ) THEN 
-            DO N = 2, NTRACE
+            !--------------------
+            ! Prior to 7/20/04:
+            !DO N = 2, NTRACE
+            !--------------------
+            DO N = 2, N_TRACERS
             
                ! Subtract loss of C2H6 by OH and store in STT [kg C2H6]
                ! Loss = k * [C2H6] * [OH] * dt

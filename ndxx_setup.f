@@ -1,9 +1,9 @@
-! $Id: ndxx_setup.f,v 1.11 2004/07/15 18:17:46 bmy Exp $
+! $Id: ndxx_setup.f,v 1.12 2004/09/21 18:04:16 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
 !  NDXX_SETUP dynamically allocates memory for certain diagnostic arrays that 
-!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 7/13/04)
+!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 7/20/04)
 !
 !  This allows us to reduce the amount of memory that needs to be declared 
 !  globally.  We only allocate memory for arrays if the corresponding 
@@ -100,24 +100,36 @@
 !        (rjp, bec, stu, cas, bmy, 4/20/04)
 !  (46) Now allocate AD13_SO2_sh array for ND13 (bec, bmy, 5/20/04)
 !  (47) Now allocate AD07_HC array for ND07 (rjp, bmy, 7/13/04)
+!  (48) Now references "tracer_mod.f" and "logical_mod.f" instead of "CMN"
+!        and "CMN_SETUP".  Now references INIT_DIAG_OH from "diag_oh_mod.f"
+!        Adjust TRCOFFSET for various aerosol simulations. (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BIOMASS_MOD,     ONLY : NBIOTRCE
       USE BIOFUEL_MOD,     ONLY : NBFTRACE
       USE DIAG_MOD
+      USE DIAG_OH_MOD,     ONLY : INIT_DIAG_OH
       USE DRYDEP_MOD,      ONLY : NUMDEP
       USE ERROR_MOD,       ONLY : ALLOC_ERR, ERROR_STOP
+      USE LOGICAL_MOD      
       USE PLANEFLIGHT_MOD, ONLY : SETUP_PLANEFLIGHT
+      USE TRACER_MOD 
       USE TRACERID_MOD,    ONLY : NEMANTHRO
       USE WETSCAV_MOD,     ONLY : GET_WETDEP_NMAX
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN"        ! NSRCX
+!---------------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"        ! NSRCX
+!---------------------------------------------------------------
 #     include "CMN_DIAG"   ! Diagnostic switches & arrays
-#     include "CMN_SETUP"  ! LSPLIT
+!--------------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"  ! LSPLIT
+!--------------------------------------------------------------
 
       ! Local variables
       INTEGER :: NMAX, AS
@@ -159,45 +171,65 @@
       ! Define TRCOFFSET for "alternate chemistry" runs
       ! TRCOFFSET will be used to offset punch file tracer indices
       !=================================================================
-      SELECT CASE ( NSRCX ) 
-         CASE ( 1 )
-            TRCOFFSET = 60      ! Radon
 
-         CASE ( 2 )
-            TRCOFFSET = 70      ! CH3I
+      IF ( ITS_A_RnPbBe_SIM() ) THEN
+         TRCOFFSET = 60         
+            
+      ELSE IF ( ITS_A_CH3I_SIM() ) THEN
+         TRCOFFSET = 70         
 
-         CASE ( 4 ) 
-            TRCOFFSET = 80      ! HCN
+      ELSE IF ( ITS_A_HCN_SIM() ) THEN
+         TRCOFFSET = 80         
 
-         CASE ( 5 )
-            TRCOFFSET = 3       ! CO w/ parameterized OH
+      ELSE IF ( ITS_A_COPARAM_SIM() ) THEN
+         TRCOFFSET = 3          
 
-         CASE ( 6 )
-            TRCOFFSET = 40      ! Tagged Ox
+      ELSE IF ( ITS_A_TAGOX_SIM() ) THEN
+         TRCOFFSET = 40         
 
-         CASE ( 7 )
-            !----------------------------------------------------------
-            ! Prior to 4/20/04:
-            !TRCOFFSET = 84      ! 5-tracer  or 10-tracer Tagged CO
-            !----------------------------------------------------------
-            TRCOFFSET = 80      ! 5-tracer  or 10-tracer Tagged CO
+      ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
+         TRCOFFSET = 80         
 
-         CASE ( 8 )
-            TRCOFFSET = 64      ! C2H6
+      ELSE IF ( ITS_A_C2H6_SIM() ) THEN
+         TRCOFFSET = 64         
 
-         CASE ( 9 ) 
-            TRCOFFSET = 54      ! Methane 
+      ELSE IF ( ITS_A_CH4_SIM() ) THEN
+         TRCOFFSET = 54         
 
-         CASE ( 10 )
-            TRCOFFSET = 50      ! DMS/SO2/SO4/MSA 
+      ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+         TRCOFFSET = 50         
 
-         CASE ( 12 ) 
-            TRCOFFSET = 75      ! Kr85
+         IF ( LCARB ) THEN
+
+            ! Tracer offset for carbon-aerosol-only simulation
+            IF ( .not. ( LSULF .and. LDUST .and. LSSALT ) ) THEN
+               TRCOFFSET = 58
+            ENDIF
+          
+         ELSE IF ( LDUST ) THEN
+
+            ! Tracer offset dust-aerosol-only simulation
+            IF ( .not. ( LSULF .and. LCARB .and. LSSALT ) ) THEN
+               TRCOFFSET = 62
+            ENDIF            
+
+         ELSE IF ( LSSALT ) THEN
+         
+            ! Tracer offset seasalt-aerosol-only simulation
+            IF ( .not. ( LSULF .and. LCARB .and. LSSALT ) ) THEN
+               TRCOFFSET = 66
+            ENDIF    
+
+         ENDIF
+
+      ! Implement this more fully later...
+      !ELSE IF ( ITS_A_Kr85_SIM() ) THEN
+      !   TRCOFFSET = 75        
              
-         CASE DEFAULT
-            TRCOFFSET = 0
+      ELSE
+         TRCOFFSET = 0
 
-      END SELECT
+      ENDIF
 
       !=================================================================
       ! ND01: Rn, Pb, Be emissions
@@ -205,7 +237,7 @@
       IF ( ND01 > 0 ) THEN 
          LD01 = MIN( ND01, LLPAR )
 
-         ALLOCATE( AD01( IIPAR, JJPAR, LD01, NTRACE ), STAT=AS )
+         ALLOCATE( AD01( IIPAR, JJPAR, LD01, N_TRACERS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD01' )
       ENDIF
 
@@ -215,7 +247,7 @@
       IF ( ND02 > 0 ) THEN 
          LD02 = MIN( ND02, LLPAR )
 
-         ALLOCATE( AD02( IIPAR, JJPAR, LD02, NTRACE ), STAT=AS )
+         ALLOCATE( AD02( IIPAR, JJPAR, LD02, N_TRACERS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD02' )
       ENDIF
 
@@ -352,10 +384,18 @@
       !       --> uses CONVFLUP array (allocatable)
       !=================================================================
       IF ( ND14 > 0 ) THEN
-         LD14 = MIN( ND14,   LCONVM )
-         NMAX = MIN( NTRACE, NNPAR  )
+         !--------------------------------------
+         ! Prior to 7/20/04:
+         !LD14 = MIN( ND14,      LCONVM )
+         !--------------------------------------
+         LD14 = MIN( ND14,      LLCONVM )
+         NMAX = MIN( N_TRACERS, NNPAR   )
 
-         ALLOCATE( CONVFLUP( IIPAR, JJPAR, LCONVM, NMAX ), STAT=AS )
+         !-------------------------------------------------------------
+         ! Prior to 7/20/04:
+         !ALLOCATE( CONVFLUP( IIPAR, JJPAR, LCONVM, NMAX ), STAT=AS )
+         !-------------------------------------------------------------
+         ALLOCATE( CONVFLUP( IIPAR, JJPAR, LLCONVM, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CONVFLUP' )
       ENDIF
 
@@ -364,8 +404,8 @@
       !       --> uses TURBFLUP array (allocatable)
       !=================================================================
       IF ( ND15 > 0 ) THEN
-         LD15 = MIN( ND15,   LLPAR )
-         NMAX = MIN( NTRACE, NNPAR )
+         LD15 = MIN( ND15,      LLPAR )
+         NMAX = MIN( N_TRACERS, NNPAR )
 
          ALLOCATE( TURBFLUP( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'TURBFLUP' )
@@ -395,7 +435,7 @@
          LD17 = MIN( ND17, LLPAR )
 
          ! Get max # of soluble tracers for this simulation
-         NMAX = GET_WETDEP_NMAX( NSRCX )
+         NMAX = GET_WETDEP_NMAX()
 
          ! Store both LS and convective rainout fractions
          ALLOCATE( AD17( IIPAR, JJPAR, LD17, NMAX, 2 ), STAT=AS ) 
@@ -414,7 +454,7 @@
          LD18 = MIN( ND18, LLPAR )
 
          ! Get max # of soluble tracers for this simulation
-         NMAX = GET_WETDEP_NMAX( NSRCX )
+         NMAX = GET_WETDEP_NMAX()
 
          ! Store both LS and convective rainout fractions         
          ALLOCATE( AD18( IIPAR, JJPAR, LD18, NMAX, 2 ), STAT=AS) 
@@ -435,8 +475,11 @@
       IF ( ND20 > 0 ) THEN 
          IF ( ND65 == 0 ) ND65 = LLTROP
 
-         ALLOCATE( PL24H( IIPAR, JJPAR, LLTROP, 2 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PL24H' )
+         !----------------------------------------------------------------
+         ! Prior to 7/20/04:
+         !ALLOCATE( PL24H( IIPAR, JJPAR, LLTROP, 2 ), STAT=AS )
+         !IF ( AS /= 0 ) CALL ALLOC_ERR( 'PL24H' )
+         !----------------------------------------------------------------
       ENDIF
 
       !=================================================================
@@ -458,7 +501,7 @@
 
          ! For full chemistry, we only consider boxes below the
          ! tropopause.  Cap LD22 at LLTROP (bmy, 4/2/01)
-         IF ( NSRCX == 3 ) THEN
+         IF ( ITS_A_FULLCHEM_SIM() ) THEN
             LD22 = MIN( ND22, LLTROP )
          ELSE
             LD22 = MIN( ND22, LLPAR  )
@@ -477,34 +520,38 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTJV' )         
       ENDIF
 
-      !=================================================================
-      ! ND23: Lifetime of methyl chloroform (CH3CCl3) in years
-      !       --> uses DIAGCHLORO array (allocatable) 
-      !=================================================================
-      IF ( ND23 > 0 ) THEN
-
-         SELECT CASE ( NSRCX ) 
-
-            ! Full chemistry -- dimension using LLTROP 
-            CASE ( 3 )
-               ALLOCATE( DIAGCHLORO( IIPAR, JJPAR, LLTROP, 3 ),STAT=AS )
-               IF ( AS /= 0 ) CALL ALLOC_ERR( 'DIAGCHLORO' )
- 
-            ! CO-OH or CH4 -- dimension using LLPAR
-            CASE ( 5, 9 ) 
-               ALLOCATE( DIAGCHLORO( IIPAR, JJPAR, LLPAR, 3 ), STAT=AS )
-               IF ( AS /= 0 ) CALL ALLOC_ERR( 'DIAGCHLORO' )
-
-            ! Otherwise, turn off ND23 so that we don't 
-            ! attempt to use an unallocated DIAGCHLORO Array
-            CASE DEFAULT
-               WRITE( 6, '(a)' ) 'NDXX_SETUP: Setting ND23 = 0!'
-               WRITE( 6, '(a)' ) 'This simulation doesn''t use ND23!'
-               ND23 = 0
-
-         END SELECT
-
-      ENDIF 
+      !-----------------------------------------------------------------------
+      ! Prior to 7/20/04:
+      !!=================================================================
+      !! ND23: Lifetime of methyl chloroform (CH3CCl3) in years
+      !!       --> uses DIAGCHLORO array (allocatable) 
+      !!=================================================================
+      !IF ( ND23 > 0 ) THEN
+      !
+      !   IF ( ITS_A_FULLCHEM_SIM() ) THEN
+      !
+      !      ! Full chemistry -- dimension using LLTROP 
+      !      ALLOCATE( DIAGCHLORO( IIPAR, JJPAR, LLTROP, 3 ),STAT=AS )
+      !      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DIAGCHLORO' )
+      !
+      !   ELSE IF ( ITS_A_COPARAM_SIM() .or. ITS_A_CH4_SIM() ) THEN
+      !
+      !      ! CO-OH or CH4 -- dimension using LLPAR
+      !      ALLOCATE( DIAGCHLORO( IIPAR, JJPAR, LLPAR, 3 ), STAT=AS )
+      !      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DIAGCHLORO' )
+      !
+      !   ELSE
+      !
+      !      ! Otherwise, turn off ND23 so that we don't 
+      !      ! attempt to use an unallocated DIAGCHLORO Array
+      !      WRITE( 6, '(a)' ) 'NDXX_SETUP: Setting ND23 = 0!'
+      !      WRITE( 6, '(a)' ) 'This simulation doesn''t use ND23!'
+      !      ND23 = 0
+      !
+      !   ENDIF
+      !
+      !ENDIF 
+      !-----------------------------------------------------------------------
 
       !=================================================================
       ! ND27: Flux of Ox across the annual mean tropopause [kg/s]
@@ -521,8 +568,8 @@
       !       --> uses MASSFLEW array (allocatable)
       !=================================================================
       IF ( ND24 > 0 ) THEN
-         LD24 = MIN( ND24,   LLPAR )
-         NMAX = MIN( NTRACE, NNPAR )
+         LD24 = MIN( ND24,      LLPAR )
+         NMAX = MIN( N_TRACERS, NNPAR )
 
          ALLOCATE( MASSFLEW( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLEW' )
@@ -533,8 +580,8 @@
       !       --> uses MASSFLNS array (allocatable)
       !=================================================================
       IF ( ND25 > 0 ) THEN
-         LD25 = MIN( ND25,   LLPAR )
-         NMAX = MIN( NTRACE, NNPAR )
+         LD25 = MIN( ND25,      LLPAR )
+         NMAX = MIN( N_TRACERS, NNPAR )
 
          ALLOCATE( MASSFLNS( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLNS' ) 
@@ -545,8 +592,8 @@
       !       --> uses MASSFLUP array (allocatable)
       !=================================================================
       IF ( ND26 > 0 ) THEN
-         LD26 = MIN( ND26,   LLPAR )
-         NMAX = MIN( NTRACE, NNPAR )
+         LD26 = MIN( ND26,      LLPAR )
+         NMAX = MIN( N_TRACERS, NNPAR )
 
          ALLOCATE( MASSFLUP( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLUP' )
@@ -611,7 +658,11 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_fe' ) 
 
          ! For Lightning NOx
-         ALLOCATE( AD32_li( IIPAR, JJPAR, LCONVM ), STAT=AS )
+         !------------------------------------------------------
+         ! Prior to 7/20/04:
+         !ALLOCATE( AD32_li( IIPAR, JJPAR, LCONVM ), STAT=AS )
+         !------------------------------------------------------
+         ALLOCATE( AD32_li( IIPAR, JJPAR, LLCONVM ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_li' )
 
          ! For soil NOx
@@ -647,7 +698,7 @@
       !       --> uses AD35 array (allocatable)
       !=================================================================
       IF ( ND35 > 0 ) THEN
-         ALLOCATE( AD35( IIPAR, JJPAR, NTRACE ), STAT=AS )
+         ALLOCATE( AD35( IIPAR, JJPAR, N_TRACERS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD35' ) 
       ENDIF
 
@@ -658,7 +709,7 @@
       !  
       ! NOTE: For a CH3I run, use ND36 for CH3I emission diagnostics....
       !=================================================================
-      IF ( NSRCX == 2 ) NEMANTHRO = 8   ! for CH3I
+      IF ( ITS_A_CH3I_SIM() ) NEMANTHRO = 8   ! for CH3I
 
       IF ( ND36 > 0 ) THEN
          ALLOCATE( AD36( IIPAR, JJPAR, NEMANTHRO ), STAT=AS )
@@ -673,10 +724,13 @@
          LD37 = MIN( ND37, LLPAR )
          
          ! Get max # of soluble tracers for this simulation
-         NMAX = GET_WETDEP_NMAX( NSRCX )
+         NMAX = GET_WETDEP_NMAX()
 
-         ALLOCATE( AD37( IIPAR, JJPAR, LD37, NMAX ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD37' )
+         ! Allocate array accordingly
+         IF ( NMAX > 0 ) THEN
+            ALLOCATE( AD37( IIPAR, JJPAR, LD37, NMAX ), STAT=AS )
+            IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD37' )
+         ENDIF
       ENDIF
 
       !=================================================================
@@ -687,7 +741,7 @@
          LD38 = MIN( ND38, LLPAR )
          
          ! Get max # of soluble tracers for this simulation
-         NMAX = GET_WETDEP_NMAX( NSRCX )
+         NMAX = GET_WETDEP_NMAX()
 
          ! Allocate AD38 array accordingly
          IF ( NMAX > 0 ) THEN
@@ -704,7 +758,7 @@
          LD39 = MIN( ND39, LLPAR )
 
          ! Get max # of soluble tracers for this simulation
-         NMAX = GET_WETDEP_NMAX( NSRCX )
+         NMAX = GET_WETDEP_NMAX()
          
          ! Allocate AD39 array accordingly
          IF ( NMAX > 0 ) THEN
@@ -720,7 +774,7 @@
       !       before initializing the plane flight diagnostic.  Call
       !       routine SETUP_PLANEFLIGHT from "chemdr.f" in that case.
       !=================================================================
-      IF ( ND40 > 0 .and. NSRCX /= 3 ) THEN
+      IF ( ND40 > 0 .and. ( .not. ITS_A_FULLCHEM_SIM() ) ) THEN
          CALL SETUP_PLANEFLIGHT
       ENDIF
 
@@ -753,7 +807,7 @@
          
          ! For full chemistry, only save OH up to the tropopause.  
          ! For tagged CO or CO-OH, save OH everywhere (bmy, 2/12/01)
-         IF ( NSRCX == 3 ) THEN
+         IF ( ITS_A_FULLCHEM_SIM() ) THEN
             LD43 = MIN( ND43, LLTROP )
          ELSE
             LD43 = MIN( ND43, LLPAR  )
@@ -810,17 +864,16 @@
       !=================================================================
       IF ( ND44 > 0 ) THEN
 
-         SELECT CASE ( NSRCX )
-            CASE ( 6  )
-               ALLOCATE( AD44( IIPAR, JJPAR, NTRACE, 2 ), STAT=AS )
-               IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD44' )
-         
-            CASE DEFAULT
-               ALLOCATE( AD44( IIPAR, JJPAR, NUMDEP, 2 ), STAT=AS )
-               IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD44' )
-         
-         END SELECT
+         ! Get number of tracers for ND44
+         IF ( ITS_A_TAGOX_SIM() ) THEN
+            NMAX = N_TRACERS
+         ELSE
+            NMAX = NUMDEP
+         ENDIF
 
+         ! Allocate AD44 array
+         ALLOCATE( AD44( IIPAR, JJPAR, NMAX, 2 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD44' )
       ENDIF
 
       !=================================================================
@@ -828,8 +881,8 @@
       !       --> uses AD45 array (allocatable)
       !=================================================================
       IF ( ND45 > 0 ) THEN
-         LD45 = MIN( ND45,       LLPAR )
-         NMAX = MIN( NTRACE + 1, NNPAR + 1 )
+         LD45 = MIN( ND45,        LLPAR   )
+         NMAX = MIN( N_TRACERS+1, NNPAR+1 )
 
          ! Accumulating diagnostic array
          ! Resize to NMAX to save memory (bmy, 10/18/00)
@@ -863,8 +916,8 @@
       !       can be averaged over any arbitrary time period.
       !=================================================================
       IF ( ND47 > 0 ) THEN
-         LD47 = MIN( ND47,       LLPAR     )
-         NMAX = MIN( NTRACE + 1, NNPAR + 1 )
+         LD47 = MIN( ND47,        LLPAR   )
+         NMAX = MIN( N_TRACERS+1, NNPAR+1 )
 
          ! Resize to NMAX to save memory (bmy, 10/18/00)
          ALLOCATE( AD47( IIPAR, JJPAR, LD47, NMAX ), STAT=AS )
@@ -880,30 +933,33 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOBOX' )
       ENDIF        
 
-      !=================================================================
-      ! ND49: Geographic domain -- inst. time series of tracers
-      ! ND50: Geographic domain -- 24h average time series of tracers
-      ! ND51: Geographic domain -- 1-4pm time series for tracers
-      !
-      ! Call READ49 to read "timeseries.dat" for ND49, ND50, ND51
-      !=================================================================
-      !--------------------------------------------------------
-      ! Prior to 4/22/04: 
-      ! Now activate for ND52 diagnostic (bmy, 4/22/04)
-      !IF ( ND49 > 0 .or. ND50 .gt. 0 .or. ND51 > 0 ) THEN
-      !--------------------------------------------------------
-      IF ( ND49 > 0 .or. ND50 > 0 .or. ND51 > 0 .or. ND52 > 0 ) THEN
-         CALL READ49
-
-         ! For ND50 -- allocate space for the STT_TEMPO2 array. 
-         ! Use NTRACE tracers, and pure O3 and NO if necessary (bmy, 10/13/00)
-         IF ( ND50 > 0 ) THEN
-            ALLOCATE( STT_TEMPO2( IIPAR, JJPAR, LLPAR, NTRACE+2 ), 
-     &                            STAT=AS )
-
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'STT_TEMPO2' )
-         ENDIF
-      ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 7/20/04:
+!      !=================================================================
+!      ! ND49: Geographic domain -- inst. time series of tracers
+!      ! ND50: Geographic domain -- 24h average time series of tracers
+!      ! ND51: Geographic domain -- 1-4pm time series for tracers
+!      !
+!      ! Call READ49 to read "timeseries.dat" for ND49, ND50, ND51
+!      !=================================================================
+!      !--------------------------------------------------------
+!      ! Prior to 4/22/04: 
+!      ! Now activate for ND52 diagnostic (bmy, 4/22/04)
+!      !IF ( ND49 > 0 .or. ND50 .gt. 0 .or. ND51 > 0 ) THEN
+!      !--------------------------------------------------------
+!      IF ( ND49 > 0 .or. ND50 > 0 .or. ND51 > 0 .or. ND52 > 0 ) THEN
+!         CALL READ49
+!
+!         ! For ND50 -- allocate space for the STT_TEMPO2 array. 
+!         ! Use NTRACE tracers, and pure O3 and NO if necessary (bmy, 10/13/00)
+!         IF ( ND50 > 0 ) THEN
+!            ALLOCATE( STT_TEMPO2( IIPAR, JJPAR, LLPAR, NTRACE+2 ), 
+!     &                            STAT=AS )
+!
+!            IF ( AS /= 0 ) CALL ALLOC_ERR( 'STT_TEMPO2' )
+!         ENDIF
+!      ENDIF
+!-----------------------------------------------------------------------------
 
       !=================================================================
       ! ND52 - ND54: Free diagnostics
@@ -919,73 +975,78 @@
       !=================================================================
       ! ND56 - ND64: Free diagnostics
       !
-      ! ND65: Chemical family production and loss [molec/cm3/s]
-      !       Call setnfam to get # of families to keep track of (nfam)
-      !=================================================================
-      NFAM = 0
-
-      IF ( ND65 > 0 ) THEN
-
-         ! Select NFAM by simulation
-         SELECT CASE ( NSRCX )
-
-            ! CH3I: NTRACE families 
-            CASE ( 2 )
-               NFAM = NTRACE
-
-            ! Tagged Ox: NTRACE*2 families
-            CASE ( 6 )
-               NFAM = NTRACE * 2
-
-            ! Tagged CO: NTRACE+5 families
-            CASE ( 7 )
-               NFAM = NTRACE + 5
-
-            ! Other simulations: call SETNFAM
-            CASE DEFAULT
-               CALL SETNFAM
-
-         END SELECT
-
-         ! Error check: NFAM must be > 0! (bmy, 1/15/02)
-         IF ( NFAM == 0 ) THEN 
-            CALL ERROR_STOP( 'NFAM must be >0 for ND65', 'ndxx_setup.f')
-         ENDIF
-
-         ! Select by simulation
-         SELECT CASE ( NSRCX )
-
-            !----------------------------------------------
-            ! For full chem w/ SMVGEAR: save up to LLTROP
-            !----------------------------------------------
-            CASE ( 3 )
-
-               ! Number of vertical levels to print out
-               LD65 = MIN( ND65, LLTROP )
-
-               ! Allocate AD65
-               ALLOCATE( AD65( IIPAR, JJPAR, LD65, NFAM ), STAT=AS )
-               IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD65' )
-
-               ! Allocate FAMPL for "plsave.f", "diag20.f", etc.
-               ALLOCATE( FAMPL( IIPAR, JJPAR, LLTROP, NFAM ), STAT=AS )
-               IF ( AS /= 0 ) CALL ALLOC_ERR( 'FAMPL' )
-
-            !----------------------------------------------
-            ! All other simulations: save up to LLPAR
-            !----------------------------------------------
-            CASE DEFAULT
-
-               ! Number of vertical levels to print out
-               LD65 = MIN( ND65, LLPAR )
-
-               ! Allocate AD65
-               ALLOCATE( AD65( IIPAR, JJPAR, LD65, NFAM ), STAT=AS )
-               IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD65' )
-
-          END SELECT
-
-      ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 7/20/04:
+! We now do this in "diag_pl_mod.f"
+!      ! ND65: Chemical family production and loss [molec/cm3/s]
+!      !       Call setnfam to get # of families to keep track of (nfam)
+!      !=================================================================
+!      NFAM = 0
+!
+!
+!      IF ( ND65 > 0 ) THEN
+!
+!         ! Select NFAM by simulation
+!         SELECT CASE ( NSRCX )
+!
+!            ! CH3I: NTRACE families 
+!            CASE ( 2 )
+!               NFAM = NTRACE
+!
+!            ! Tagged Ox: NTRACE*2 families
+!            CASE ( 6 )
+!               NFAM = NTRACE * 2
+!
+!            ! Tagged CO: NTRACE+5 families
+!            CASE ( 7 )
+!               NFAM = NTRACE + 5
+!
+!            ! Other simulations: call SETNFAM
+!            CASE DEFAULT
+!               CALL SETNFAM
+!
+!         END SELECT
+!
+!         ! Error check: NFAM must be > 0! (bmy, 1/15/02)
+!         IF ( NFAM == 0 ) THEN 
+!            CALL ERROR_STOP( 'NFAM must be >0 for ND65', 'ndxx_setup.f')
+!         ENDIF
+!
+!         ! Select by simulation
+!         SELECT CASE ( NSRCX )
+!
+!            !----------------------------------------------
+!            ! For full chem w/ SMVGEAR: save up to LLTROP
+!            !----------------------------------------------
+!            CASE ( 3 )
+!
+!               ! Number of vertical levels to print out
+!               LD65 = MIN( ND65, LLTROP )
+!
+!               ! Allocate AD65
+!               ALLOCATE( AD65( IIPAR, JJPAR, LD65, NFAM ), STAT=AS )
+!               IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD65' )
+!
+!               ! Allocate FAMPL for "plsave.f", "diag20.f", etc.
+!               ALLOCATE( FAMPL( IIPAR, JJPAR, LLTROP, NFAM ), STAT=AS )
+!               IF ( AS /= 0 ) CALL ALLOC_ERR( 'FAMPL' )
+!
+!            !----------------------------------------------
+!            ! All other simulations: save up to LLPAR
+!            !----------------------------------------------
+!            CASE DEFAULT
+!
+!               ! Number of vertical levels to print out
+!               LD65 = MIN( ND65, LLPAR )
+!
+!               ! Allocate AD65
+!               ALLOCATE( AD65( IIPAR, JJPAR, LD65, NFAM ), STAT=AS )
+!               IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD65' )
+!
+!          END SELECT
+!
+!      ENDIF
+!-----------------------------------------------------------------------------
 
       !=================================================================
       ! ND66: DAO 3-D fields (UWND, VWND, SPHU, TMPU, RH) 
@@ -1027,17 +1088,20 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD69' )
       ENDIF
 
-      !=================================================================
-      ! Write NDxx's to standard output
-      !=================================================================
- 975  FORMAT(' ND', I1, '-', 10I4)
-      WRITE(6,975) 0,ND01,ND02,ND03,ND04,ND05,ND06,ND07,ND08,ND09,ND10
-      WRITE(6,975) 1,ND11,ND12,ND13,ND14,ND15,ND16,ND17,ND18,ND19,ND20
-      WRITE(6,975) 2,ND21,ND22,ND23,ND24,ND25,ND26,ND27,ND28,ND29,ND30
-      WRITE(6,975) 3,ND31,ND32,ND33,ND34,ND35,ND36,ND37,ND38,ND39,ND40
-      WRITE(6,975) 4,ND41,ND42,ND43,ND44,ND45,ND46,ND47,ND48,ND49,ND50
-      WRITE(6,975) 5,ND51,ND52,ND53,ND54,ND55,ND56,ND57,ND58,ND59,ND60
-      WRITE(6,975) 6,ND61,ND62,ND63,ND64,ND65,ND66,ND67,ND68,ND69,ND70
+!------------------------------------------------------------------------------
+! Prior to 7/20/04:
+!      !=================================================================
+!      ! Write NDxx's to standard output
+!      !=================================================================
+! 975  FORMAT(' ND', I1, '-', 10I4)
+!      WRITE(6,975) 0,ND01,ND02,ND03,ND04,ND05,ND06,ND07,ND08,ND09,ND10
+!      WRITE(6,975) 1,ND11,ND12,ND13,ND14,ND15,ND16,ND17,ND18,ND19,ND20
+!      WRITE(6,975) 2,ND21,ND22,ND23,ND24,ND25,ND26,ND27,ND28,ND29,ND30
+!      WRITE(6,975) 3,ND31,ND32,ND33,ND34,ND35,ND36,ND37,ND38,ND39,ND40
+!      WRITE(6,975) 4,ND41,ND42,ND43,ND44,ND45,ND46,ND47,ND48,ND49,ND50
+!      WRITE(6,975) 5,ND51,ND52,ND53,ND54,ND55,ND56,ND57,ND58,ND59,ND60
+!      WRITE(6,975) 6,ND61,ND62,ND63,ND64,ND65,ND66,ND67,ND68,ND69,ND70
+!------------------------------------------------------------------------------
 
       ! Return to calling program
       END SUBROUTINE NDXX_SETUP

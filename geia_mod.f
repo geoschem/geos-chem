@@ -1,9 +1,9 @@
-! $Id: geia_mod.f,v 1.2 2003/10/01 20:32:21 bmy Exp $
+! $Id: geia_mod.f,v 1.3 2004/09/21 18:04:14 bmy Exp $
       MODULE GEIA_MOD
 !
 !******************************************************************************
 !  Module GEIA_MOD contains routines used to read and scale the GEIA fossil 
-!  fuel emissions for NOx, CO, and hydrocarbons (bmy, 7/28/00, 2/10/03)
+!  fuel emissions for NOx, CO, and hydrocarbons (bmy, 7/28/00, 7/20/04)
 !
 !  Module Routines:
 !  ============================================================================
@@ -19,9 +19,10 @@
 !
 !  GEOS-CHEM modules referenced by geia_mod.f
 !  ============================================================================
-!  (1 ) bpch2_mod.f  : Module containing routines for binary punch file I/O
-!  (2 ) file_mod.f   : Module containing file unit numbers and error checks
-!  (3 ) grid_mod.f   : Module containing horizontal grid information
+!  (1 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
+!  (2 ) directory_mod.f : Module containing GEOS-CHEM data & met field dirs  
+!  (3 ) file_mod.f      : Module containing file unit numbers and error checks
+!  (4 ) grid_mod.f      : Module containing horizontal grid information
 !
 !  NOTES:
 !  (1 ) Renamed original READ_GEIA to READ_GEIA_ASCII.  The new READ_GEIA
@@ -42,6 +43,7 @@
 !  (9 ) Updated comments (bmy, 5/28/02)
 !  (10) Now references "file_mod.f" (bmy, 6/27/02)
 !  (11) Now references "grid_mod.f" and the new "time_mod.f" (bmy, 2/10/03)
+!  (12) Now references "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -58,7 +60,7 @@
 !******************************************************************************
 !  Subroutine READ_TOTCO2 reads in the scale factors (SCALEYEAR/1985) based 
 !  on total CO2 emissions.  These are used to scale anthropogenic NOx 
-!  emissions from 1985 to the present. (bmy, 9/13/00, 9/29/03)
+!  emissions from 1985 to the present. (bmy, 9/13/00, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Now use IOS /= 0 to trap both I/O errors and EOF. (bmy, 9/13/00)
@@ -71,14 +73,19 @@
 !  (6 ) Now use IU_FILE instead of IUNIT.  Also reference IU_FILE and IOERROR
 !        from "file_mod.f" (bmy, 6/27/02)
 !  (7 ) Now use ENCODE to define CYEAR string for PGI/Linux (bmy, 9/29/03)
+!  (8 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD, ONLY : GET_RES_EXT
-      USE FILE_MOD,  ONLY : IU_FILE, IOERROR
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_SETUP"  ! DATA_DIR
+!----------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"  ! DATA_DIR
+!----------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)  :: SCALEYEAR
@@ -145,7 +152,7 @@
 !******************************************************************************
 !  Subroutine READ_LIQCO2 reads in the scale factors (SCALEYEAR/1985) based 
 !  on liquid CO2 emissions.  These are used to scale anthropogenic CO and
-!  hydrocarbon emissions from 1985 to the present. (bmy, 9/13/00, 9/29/03)
+!  hydrocarbon emissions from 1985 to the present. (bmy, 9/13/00, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Now use IOS /= 0 to trap both I/O errors and EOF. (bmy, 9/13/00)
@@ -158,14 +165,19 @@
 !  (6 ) Now use IU_FILE instead of IUNIT.  Also reference IU_FILE and IOERROR
 !        from "file_mod.f" (bmy, 6/27/02)
 !  (7 ) Now use ENCODE to define CYEAR string for PGI/Linux (bmy, 9/29/03)
+!  (8 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD, ONLY : GET_RES_EXT
-      USE FILE_MOD,  ONLY : IU_FILE, IOERROR
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_SETUP"  ! DATA_DIR
+!--------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"  ! DATA_DIR
+!--------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)  :: SCALEYEAR
@@ -229,7 +241,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_TODX reads the time-of-day emission scale factors and 
-!  weekday/weekend scale factors for GEIA emissions. (bmy, 7/18/00, 6/27/02)
+!  weekday/weekend scale factors for GEIA emissions. (bmy, 7/18/00, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -247,13 +259,18 @@
 !        the "CMN_SETUP" header file. (bmy, 4/3/02)
 !  (5 ) Now reference IU_FILE and IOERROR from "file_mod.f".  Also deleted
 !        obsolete code from April 2002 (bmy, 6/27/02)
+!  (6 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE FILE_MOD, ONLY : IU_FILE, IOERROR
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_SETUP" ! DATA_DIR
+!--------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! DATA_DIR
+!--------------------------------------------
 
       ! Arguments
       REAL*8, INTENT(OUT) :: TODH(6), TODN(6), TODB(6), SCNR89(3,3)
@@ -367,7 +384,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_GEIA_ASCII reads the anthropogenic GEIA emissions from 
-!  from the old-style ASCII "merge file". (bmy, 7/18/00, 6/27/02)
+!  from the old-style ASCII "merge file". (bmy, 7/18/00, 7/20/04)
 !
 !  Arguments as Output:
 !  ============================================================================
@@ -393,14 +410,19 @@
 !        the "CMN_SETUP" header file. (bmy, 4/3/02)
 !  (6 ) Now reference IU_FILE and IOERROR from "file_mod.f".  Also deleted
 !        obsolete code from April 2002 (bmy, 6/27/02)
+!  (7 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD, ONLY : GET_RES_EXT
-      USE FILE_MOD,  ONLY : IU_FILE, IOERROR
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
 #     include "CMN_SIZE"            ! Size parameters
-#     include "CMN_SETUP"           ! DATA_DIR
+!------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"           ! DATA_DIR
+!------------------------------------------------------
 
       ! Arguments
       REAL*4, INTENT(OUT), OPTIONAL :: E_NOX (IGLOB,JGLOB,4,2)
@@ -487,7 +509,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_GEIA reads the anthropogenic GEIA emissions 
-!  from a binary punch file. (bmy, 4/23/01, 3/14/03)
+!  from a binary punch file. (bmy, 4/23/01, 7/20/04)
 !
 !  Arguments as Output:
 !  ============================================================================
@@ -512,13 +534,18 @@
 !        (bmy, 9/6/01)
 !  (4 ) Now write file name to stdout (bmy, 4/3/02)
 !  (5 ) Now call READ_BPCH2 with QUIET=.TRUE. (bmy, 3/14/03)
+!  (6 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
 
 #     include "CMN_SIZE"            ! Size parameters
-#     include "CMN_SETUP"           ! DATA_DIR
+!-------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"           ! DATA_DIR
+!-------------------------------------------------------
 
       ! Arguments
       REAL*4, INTENT(OUT), OPTIONAL :: E_NOX (IGLOB,JGLOB,4,2)
@@ -731,7 +758,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_C3H8_C2H6_NGAS reads the anthropogenic C3H8 and C2H6
-!  emissions, which are scaled from Natural Gas (CH4) (bmy, 9/6/01, 3/14/03)
+!  emissions, which are scaled from Natural Gas (CH4) (bmy, 9/6/01, 7/20/04)
 !
 !  Emissions files are from Yaping Xiao (9/01)  Their path names are:
 !     /data/ctm/GEOS_2x2.5/C3H8_C2H6_200109/C3H8_C2H6_ngas.geos.2x25
@@ -746,13 +773,18 @@
 !  (1 ) Adapted from READ_GEIA (bmy, 9/6/01)
 !  (2 ) Now echo filename to standard output (bmy, 1/25/02)
 !  (3 ) Now call READ_BPCH2 with QUIET=.TRUE. (bmy, 3/11/03)
+!  (4 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
 
 #     include "CMN_SIZE"            ! Size parameters
-#     include "CMN_SETUP"           ! DATA_DIR
+!------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"           ! DATA_DIR
+!------------------------------------------------------
 
       ! Arguments
       REAL*4, INTENT(OUT), OPTIONAL :: E_C3H8(IGLOB,JGLOB) 

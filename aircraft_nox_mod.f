@@ -1,9 +1,9 @@
-! $Id: aircraft_nox_mod.f,v 1.1 2003/06/30 20:26:05 bmy Exp $
+! $Id: aircraft_nox_mod.f,v 1.2 2004/09/21 18:04:08 bmy Exp $
       MODULE AIRCRAFT_NOX_MOD
 !
 !******************************************************************************
 !  Module AIRCRAFT_NOX_MOD contains variables and routines for emission
-!  of aircraft NOx fields into arrays for SMVGEAR. (bmy, 2/15/02, 2/11/03)
+!  of aircraft NOx fields into arrays for SMVGEAR. (bmy, 2/15/02, 7/19/04)
 !
 !  The aircraft NOx fields are stored on grid with 1-km vertical resolution.
 !  These fields will be interpolated onto the GEOS-CHEM vertical grid.
@@ -49,6 +49,7 @@
 !  (7 ) Now references BXHEIGHT from "dao_mod.f". Now references "error_mod.f".
 !        Also deleted obsolete code from various routines (bmy, 10/15/02)
 !  (8 ) Now references "grid_mod.f" and "time_mod.f" (bmy, 2/11/03)
+!  (9 ) Now references "directory_mod.f" (bmy, 7/19/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -122,16 +123,22 @@
 !  (10) Deleted obsolete code from 6/02. (bmy, 8/20/02)
 !  (11) Now use function GET_MONTH from "time_mod.f".  Renamed INIT to
 !        FIRST and MONTHSAVE to LASTMONTH. (bmy, 2/11/03)
+!  (12) Removed reference to "CMN", it's obsolete.  Now references DATA_DIR 
+!        from "directory_mod.f" (bmy, 7/19/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD, ONLY : GET_RES_EXT
-      USE FILE_MOD,  ONLY : IU_FILE, IOERROR
-      USE TIME_MOD,  ONLY : GET_MONTH
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE TIME_MOD,      ONLY : GET_MONTH
 
 #     include "CMN_SIZE"    ! Size parameters
-#     include "CMN"         ! STT
-#     include "CMN_SETUP"   ! DATA_DIR
+!-------------------------------------------------------
+! Prior to 7/19/04:
+!#     include "CMN"         ! STT
+!#     include "CMN_SETUP"   ! DATA_DIR
+!-------------------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE      :: FIRST     = .TRUE.

@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.14 2004/07/16 17:57:32 bmy Exp $
+! $Id: diag3.f,v 1.15 2004/09/21 18:04:10 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out I-J (Long-Lat) diagnostics to the BINARY
-!  format punch file (bmy, bey, mgs, rvm, 5/27/99, 7/13/04)
+!  format punch file (bmy, bey, mgs, rvm, 5/27/99, 7/20/04)
 !
 !  The preferred file format is binary punch file format v. 2.0.  This
 !  file format is very GAMAP-friendly.  GAMAP also supports the ASCII
@@ -132,6 +132,8 @@
 !  (50) Added ND08 (seasalt aerosol) diagnostic (rjp, bec, bmy, 4/20/04)
 !  (51) Now save out SO2 from ships (if LSHIPSO2=T) (bec, bmy, 5/20/04)
 !  (52) Added NVOC source diagnostics for ND07 (rjp, bmy, 7/13/04)
+!  (53) Now reference "logical_mod.f", "tracer_mod.f", and "diag_pl_mod.f".
+!        Bug fix in write to DMS_BIOG. (bmy, 7/20/04)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -140,20 +142,26 @@
       USE BIOFUEL_MOD, ONLY : NBFTRACE, BFTRACE
       USE DAO_MOD,     ONLY : LWI
       USE DIAG_MOD
+      USE DIAG_PL_MOD, ONLY : AD65
       USE DRYDEP_MOD,  ONLY : NUMDEP,   NTRAIND
       USE FILE_MOD,    ONLY : IU_BPCH
       USE GRID_MOD,    ONLY : GET_AREA_M2, GET_XOFFSET, GET_YOFFSET
+      USE LOGICAL_MOD
       USE TIME_MOD
+      USE TRACER_MOD
       USE TRACERID_MOD
       USE WETSCAV_MOD, ONLY : GET_WETDEP_NSOL, GET_WETDEP_IDWETD  
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN"        ! STT, P, T, NSRCX, etc...
+#     include "CMN"        ! IFLX, LPAUSE
 #     include "CMN_DIAG"   ! Diagnostic switches & arrays
 #     include "CMN_O3"     ! FMOL, XNUMOL
-#     include "CMN_SETUP"  ! LSPLIT, etc.
+!--------------------------------------------------------------
+! Prior to 7/19/04:
+!#     include "CMN_SETUP"  ! LSPLIT, etc.
+!--------------------------------------------------------------
 #     include "comode.h"   ! IDEMS
 
       ! Local variables
@@ -230,7 +238,11 @@
 
          DO M = 1, TMAX(1)
             N  = TINDEX(1,M)
-            IF ( N > NTRACE ) CYCLE
+            !---------------------------
+            ! Prior to 7/20/04:
+            !IF ( N > NTRACE ) CYCLE
+            !---------------------------
+            IF ( N > N_TRACERS ) CYCLE
             NN = N + TRCOFFSET
                
             ! Pb "emission" comes from chemical decay of Rn, which happens 
@@ -270,7 +282,11 @@
 
          DO M = 1, TMAX(2)
             N  = TINDEX(2,M)
-            IF ( N > NTRACE ) CYCLE
+            !-----------------------------
+            ! Prior to 7/20/04:
+            !IF ( N > NTRACE ) CYCLE
+            !-----------------------------
+            IF ( N > N_TRACERS ) CYCLE
             NN = N + TRCOFFSET
 
             ! Divide by # of chemistry timesteps
@@ -733,7 +749,12 @@
 !  (12) NH3-BIOF : Biofuel burning NH3 emission    : kg NH3   : 1
 !******************************************************************************
 !
-      IF ( ND13 > 0 .and. ( NSRCX == 3 .or. NSRCX == 10 ) ) THEN
+      !---------------------------------------------------------------
+      ! Prior to 7/20/04:
+      !IF ( ND13 > 0 .and. ( NSRCX == 3 .or. NSRCX == 10 ) ) THEN
+      !---------------------------------------------------------------
+      IF ( ND13 > 0 .and. 
+     &   ( ITS_A_FULLCHEM_SIM() .or. ITS_AN_AEROSOL_SIM() ) ) THEN
          UNIT = 'kg S'
 
          !==============================================================
@@ -743,7 +764,7 @@
          ARRAY(:,:,1) = AD13_DMS(:,:)
          N            = IDTDMS + TRCOFFSET
          
-         CALL BPCH2( 12,        MODELNAME, LONRES,   LATRES,
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &               IIPAR,     JJPAR,     1,        IFIRST,     
@@ -943,7 +964,11 @@
 
          DO M = 1, TMAX(14)
             N  = TINDEX(14,M)
-            IF ( N > NTRACE ) CYCLE
+            !----------------------------
+            ! Prior to 7/20/04:
+            !IF ( N > NTRACE ) CYCLE
+            !----------------------------
+            IF ( N > N_TRACERS ) CYCLE
             NN = N + TRCOFFSET
                
             ARRAY(:,:,1:LD14) = CONVFLUP(:,:,1:LD14,N) / SCALECONV
@@ -973,7 +998,11 @@
 
          DO M = 1, TMAX(15)
             N  = TINDEX(15,M)
-            IF ( N > NTRACE ) CYCLE
+            !---------------------------
+            ! Prior to 7/20/04:
+            !IF ( N > NTRACE ) CYCLE
+            !---------------------------
+            IF ( N > N_TRACERS ) CYCLE
             NN = N + TRCOFFSET
 
             ARRAY(:,:,1:LD15) = TURBFLUP(:,:,1:LD15,N) / SCALECONV
@@ -1176,7 +1205,11 @@
 
          ! For CO-OH param run,   ND21 is updated every dynamic   timestep
          ! For other simulations, ND21 is updated every chemistry timestep
-         IF ( NSRCX == 5 ) THEN
+         !------------------------------------------------------------------
+         ! Prior to 7/20/04:
+         !IF ( NSRCX == 5 ) THEN
+         !------------------------------------------------------------------
+         IF ( ITS_A_COPARAM_SIM() ) THEN
             SCALEX = SCALEDYN
          ELSE
             SCALEX = SCALECHEM
@@ -1259,7 +1292,13 @@
             IF ( N > PD22 ) CYCLE
             
             ! Add TRCOFFSET to CH3I and HCN tracer numbers
-            IF ( NSRCX == 2 .or. NSRCX == 4 ) THEN
+            !-----------------------------------------------
+            ! Prior to 7/20/04:
+            !IF ( NSRCX == 2 .or. NSRCX == 4 ) THEN
+            !-----------------------------------------------
+            IF ( ITS_A_CH3I_SIM() ) THEN
+               NN = N + TRCOFFSET
+            ELSE IF ( ITS_A_HCN_SIM() ) THEN
                NN = N + TRCOFFSET
             ELSE
                NN = N
@@ -1296,7 +1335,11 @@
 
          DO M = 1, TMAX(24)
             N  = TINDEX(24,M)
-            IF ( N > NTRACE ) CYCLE
+            !--------------------------
+            ! Prior to 7/20/04:
+            !IF ( N > NTRACE ) CYCLE
+            !--------------------------
+            IF ( N > N_TRACERS ) CYCLE
             NN = N + TRCOFFSET
             
             ARRAY(:,:,1:LD24) = MASSFLEW(:,:,1:LD24,N) / SCALEDYN
@@ -1328,7 +1371,11 @@
 
          DO M = 1, TMAX(25)
             N  = TINDEX(25,M)
-            IF ( N > NTRACE ) CYCLE
+            !---------------------------
+            ! Prior to 7/20/04:
+            !IF ( N > NTRACE ) CYCLE
+            !---------------------------
+            IF ( N > N_TRACERS ) CYCLE
             NN = N + TRCOFFSET
 
             ARRAY(:,:,1:LD25) = MASSFLNS(:,:,1:LD25,N) / SCALEDYN
@@ -1360,7 +1407,11 @@
 
          DO M = 1, TMAX(26)
             N  = TINDEX(26,M)
-            IF ( N > NTRACE ) CYCLE
+            !----------------------------------
+            ! Prior to 7/20/04:
+            !IF ( N > NTRACE ) CYCLE
+            !----------------------------------
+            IF ( N > N_TRACERS ) CYCLE
             NN = N + TRCOFFSET
             
             ARRAY(:,:,1:LD26) = MASSFLUP(:,:,1:LD26,N) / SCALEDYN
@@ -1390,14 +1441,22 @@
 !******************************************************************************
 !
       IF ( ND27 > 0 .and. IDTOX > 0 ) then
-         IF ( NSRCX == 3 .or. NSRCX == 6 ) THEN
+         !-------------------------------------------
+         ! Prior to 7/20/04:
+         !IF ( NSRCX == 3 .or. NSRCX == 6 ) THEN
+         !-------------------------------------------
+         IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_TAGOX_SIM() ) THEN
             CATEGORY = 'STRT-FLX'
             UNIT     = 'kg/s'
 
             ! Full chemistry   -- compute NOx, Ox, HNO3 fluxes
             ! Single tracer Ox -- compute Ox flux only, hardwire
             !                     to tracer = 1 (bmy, 2/7/00)
-            IF ( NSRCX == 3 ) THEN
+            !---------------------------------
+            ! Prior to 7/20/04:
+            !IF ( NSRCX == 3 ) THEN
+            !---------------------------------
+            IF ( ITS_A_FULLCHEM_SIM() ) THEN
                ITEMP = (/ IDTNOX, IDTOX, IDTHNO3 /)
             ELSE
                ITEMP = (/ 1, 0, 0 /)
@@ -1407,7 +1466,11 @@
             DO M = 1, 3
                N = ITEMP(M)
                IF ( N == 0     ) CYCLE
-               IF ( N > NTRACE ) CYCLE
+               !----------------------------
+               ! Prior to 7/20/04:
+               !IF ( N > NTRACE ) CYCLE
+               !----------------------------
+               IF ( N > N_TRACERS ) CYCLE
 
                ! Loop over grid boxes
                DO J = 1, JJPAR
@@ -1625,7 +1688,11 @@
 !  (3) Added biofuel burning to ND32 diagnostic (bmy, 9/12/00)
 !******************************************************************************
 !
-      IF ( ND32 > 0 .and. IDTNOX > 0 .and. NSRCX == 3 ) THEN
+      !-------------------------------------------------------------------
+      ! Prior to 7/19/04:
+      !IF ( ND32 > 0 .and. IDTNOX > 0 .and. NSRCX == 3 ) THEN
+      !-------------------------------------------------------------------
+      IF ( ND32 > 0 .and. IDTNOX > 0 .and. ITS_A_FULLCHEM_SIM() ) THEN
 
          ! All categories of NOx are in molec/cm2/s
          UNIT = 'molec/cm2/s'
@@ -1756,7 +1823,11 @@
 
          DO M = 1, TMAX(33)
             N  = TINDEX(33,M)
-            IF ( N > NTRACE ) CYCLE
+            !----------------------------
+            ! Prior to 7/20/04:
+            !IF ( N > NTRACE ) CYCLE
+            !----------------------------
+            IF ( N > N_TRACERS ) CYCLE
             NN = N + TRCOFFSET 
             
             ARRAY(:,:,1) = AD33(:,:,N) / SCALEDYN
@@ -1829,7 +1900,11 @@
 
          DO M = 1, TMAX(35)
             N  = TINDEX(35,M)
-            IF ( N > NTRACE ) CYCLE
+            !--------------------------
+            ! Prior to 7/20/04:
+            !IF ( N > NTRACE ) CYCLE
+            !--------------------------
+            IF ( N > N_TRACERS ) CYCLE
             NN = N + TRCOFFSET
                
             ARRAY(:,:,1) = AD35(:,:,N) / SCALEDYN
@@ -1876,27 +1951,50 @@
 !******************************************************************************
 !                     
       IF ( ND36 > 0 ) THEN
-         SELECT CASE ( NSRCX )
-            CASE ( 2 ) 
-               CATEGORY = 'CH3ISRCE'
-               UNIT     = 'ng/m2/s'
-            CASE DEFAULT
-               CATEGORY = 'ANTHSRCE'
-               UNIT     = ''
-         END SELECT
+         !---------------------------------
+         ! Prior to 7/20/04:
+         !SELECT CASE ( NSRCX )
+         !   CASE ( 2 ) 
+         !      CATEGORY = 'CH3ISRCE'
+         !      UNIT     = 'ng/m2/s'
+         !   CASE DEFAULT
+         !      CATEGORY = 'ANTHSRCE'
+         !      UNIT     = ''
+         !END SELECT
+         !---------------------------------
+
+         IF ( ITS_A_CH3I_SIM() ) THEN
+            CATEGORY = 'CH3ISRCE'
+            UNIT     = 'ng/m2/s'
+         ELSE 
+            CATEGORY = 'ANTHSRCE'
+            UNIT     = '' 
+         ENDIF
 
          DO M = 1, TMAX(36)
             N  = TINDEX(36,M)
                
-            SELECT CASE ( NSRCX )
-               CASE ( 2 ) 
-                  MM = N
-                  IF ( N > NEMANTHRO ) CYCLE 
-               CASE DEFAULT
-                  MM = M
-                  IF ( .not. ANY( IDEMS == N ) ) CYCLE               
-                  N  = IDEMS(M)
-            END SELECT
+            !----------------------------------------------
+            ! Prior to 7/19/04:
+            !SELECT CASE ( NSRCX )
+            !   CASE ( 2 ) 
+            !      MM = N
+            !      IF ( N > NEMANTHRO ) CYCLE 
+            !   CASE DEFAULT
+            !      MM = M
+            !      IF ( .not. ANY( IDEMS == N ) ) CYCLE               
+            !      N  = IDEMS(M)
+            !END SELECT
+            !----------------------------------------------
+
+            IF ( ITS_A_CH3I_SIM() ) THEN
+               MM = N
+               IF ( N > NEMANTHRO ) CYCLE 
+            ELSE 
+               MM = M
+               IF ( .not. ANY( IDEMS == N ) ) CYCLE               
+               N  = IDEMS(M)
+            ENDIF
 
             NN = N + TRCOFFSET
 
@@ -2072,14 +2170,20 @@
 !
 !  NOTES:
 !  (1) Print output for either a NOx-Ox-HC run (NSRCX == 3), or a CO run
-!       with parameterized OH (NSRCX == 5).  (bmy, 4/17/00)
+!       with parameterized OH (NSRCX== 5).  (bmy, 4/17/00)
 !  (2) Add parentheses in IF test since .AND. has higher precedence
 !       than .OR. (jsw, bmy, 12/5/00)
 !  (3) Added HO2, NO2 to ND43 (rvm, bmy, 2/27/02)
 !  (4) Added NO3 to ND43 (bmy, 1/16/03)
 !******************************************************************************
 !
-      IF ( ND43 > 0 .and. ( NSRCX == 3 .or. NSRCX == 5 ) ) THEN 
+      !------------------------------------------------------------
+      ! Prior to 7/19/04:
+      !IF ( ND43 > 0 .and. ( NSRCX == 3 .or. NSRCX == 5 ) ) THEN 
+      !------------------------------------------------------------
+      IF ( ND43 > 0 .and. 
+     &     ( ITS_A_FULLCHEM_SIM() .or. ITS_A_COPARAM_SIM() ) ) THEN 
+
          CATEGORY = 'CHEM-L=$' 
 
          DO M = 1, TMAX(43)
@@ -2099,7 +2203,11 @@
                   ! the last day's OH is not calculated, so adjust 
                   ! SCALE_TMP accordingly. (bnd, bmy, 4/18/00)
                   !================================================
-                  IF ( NSRCX == 5 ) THEN
+                  !---------------------------
+                  ! Prior to 7/20/04:
+                  !IF ( NSRCX == 5 ) THEN
+                  !---------------------------
+                  IF ( ITS_A_COPARAM_SIM() ) THEN
                      SCALE_TMP(:,:) = SCALE_TMP(:,:) - 1
                   ENDIF
 
@@ -2170,9 +2278,23 @@
          ! Category name
          CATEGORY = 'DRYD-FLX'
 
+         !------------------------------
+         ! Prior to 7/20/04:
+         !! # of drydep flux tracers
+         !IF ( NSRCX == 6 ) THEN
+         !   M = NTRACE
+         !ELSE
+         !   M = NUMDEP
+         !ENDIF
+         !------------------------------
+
          ! # of drydep flux tracers
-         IF ( NSRCX == 6 ) THEN
-            M = NTRACE
+         IF ( ITS_A_TAGOX_SIM() ) THEN
+            !-------------------
+            ! Prior to 7/20/04:
+            !M = NTRACE
+            !-------------------
+            M = N_TRACERS
          ELSE
             M = NUMDEP
          ENDIF
@@ -2181,10 +2303,18 @@
          DO N = 1, M
 
             ! Tracer number plus GAMAP offset
-            IF ( NSRCX == 1 ) THEN
+            !-------------------------
+            ! Prior to 7/19/04:
+            !IF ( NSRCX == 1 ) THEN
+            !-------------------------
+            IF ( ITS_A_RnPbBe_SIM()  ) THEN
                UNIT = 'kg/s'       
                NN   = NTRAIND(N) + TRCOFFSET
-            ELSE IF ( NSRCX == 6 ) THEN
+            !---------------------------------
+            ! Prior to 7/19/04:
+            !ELSE IF ( NSRCX == 6 ) THEN
+            !---------------------------------
+            ELSE IF ( ITS_A_TAGOX_SIM() ) THEN
                UNIT = 'molec/cm2/s'
                NN   = N + TRCOFFSET
             ELSE 
@@ -2213,7 +2343,11 @@
          UNIT      = 'cm/s'
 
          ! # of drydep velocity tracers
-         IF ( NSRCX == 6 ) THEN
+         !-----------------------------------
+         ! Prior to 7/19/04:
+         !IF ( NSRCX == 6 ) THEN
+         !-----------------------------------
+         IF ( ITS_A_TAGOX_SIM() ) THEN
             M = 1
          ELSE
             M = NUMDEP
@@ -2256,7 +2390,11 @@
 
          DO M = 1, TMAX(45)
             N  = TINDEX(45,M)
-            IF ( N > NTRACE ) CYCLE
+            !-----------------------------
+            ! Prior to 7/20/04:
+            !IF ( N > NTRACE ) CYCLE
+            !-----------------------------
+            IF ( N > N_TRACERS ) CYCLE
             NN = N + TRCOFFSET
 
             DO L = 1, LD45
@@ -2270,13 +2408,26 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD45) )
 
             ! Store pure O3 as NNPAR+1 (bmy, 1/10/03)
-            IF ( NSRCX == 3 .and. NN == IDTOX ) THEN 
+            !-------------------------------------------------------
+            ! Prior to 7/20/04:
+            !IF ( NSRCX == 3 .and. NN == IDTOX ) THEN 
+            !-------------------------------------------------------
+            IF ( ITS_A_FULLCHEM_SIM() .and. NN == IDTOX ) THEN 
                DO L = 1, LD45
+!------------------------------------------------------------------------
+! Prior to 7/20/04:
+!                  ARRAY(:,:,L) =
+!     &                 AD45(:,:,L,NTRACE+1) / SCALE_TMP(:,:)
+!------------------------------------------------------------------------
                   ARRAY(:,:,L) =
-     &                 AD45(:,:,L,NTRACE+1) / SCALE_TMP(:,:)
+     &                 AD45(:,:,L,N_TRACERS+1) / SCALE_TMP(:,:)
                ENDDO
                   
-               NN = NNPAR + 1 + TRCOFFSET   
+               !----------------------------------
+               ! Prior to 7/20/04:
+               !NN = NNPAR + 1 + TRCOFFSET   
+               !----------------------------------
+               NN = N_TRACERS + 1 + TRCOFFSET   
 
                CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                     HALFPOLAR, CENTER180, CATEGORY, NN,    
@@ -2350,7 +2501,11 @@
 
          DO M = 1, TMAX(47)
             N  = TINDEX(47,M)
-            IF ( N > NTRACE ) CYCLE
+            !----------------------------
+            ! Prior to 7/20/04:
+            !IF ( N > NTRACE ) CYCLE
+            !----------------------------
+            IF ( N > N_TRACERS ) CYCLE
             NN = N + TRCOFFSET
             
             DO L = 1, LD47
@@ -2364,12 +2519,24 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD47) )
 
             ! Store pure O3 as NNPAR+1 (bmy, 1/10/03)
-            IF ( NSRCX == 3 .and. NN == IDTOX ) THEN 
+            !-----------------------------------------------------
+            ! Prior to 7/20/04:
+            !IF ( NSRCX == 3 .and. NN == IDTOX ) THEN 
+            !-----------------------------------------------------
+            IF ( ITS_A_FULLCHEM_SIM() .and. NN == IDTOX ) THEN 
                DO L = 1, LD47
-                  ARRAY(:,:,L) = AD47(:,:,L,NTRACE+1) / SCALEDYN
+                  !----------------------------------------------------
+                  ! Prior to 7/20/04:
+                  !ARRAY(:,:,L) = AD47(:,:,L,NTRACE+1) / SCALEDYN
+                  !----------------------------------------------------
+                  ARRAY(:,:,L) = AD47(:,:,L,N_TRACERS+1) / SCALEDYN
                ENDDO
-                     
-               NN = NNPAR + 1 + TRCOFFSET   
+               
+               !----------------------------------
+               ! Prior to 7/20/04:
+               !NN = NNPAR + 1 + TRCOFFSET   
+               !----------------------------------
+               NN = N_TRACERS + 1 + TRCOFFSET   
 
                CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                     HALFPOLAR, CENTER180, CATEGORY, NN,    
@@ -2425,12 +2592,12 @@
 !
 !    STT (kg) | 6.022e23 molec |   mole   | 1000 g |    1        |   m^2
 !    ---------+----------------+----------+--------+-------------+----------
-!             |     mole       | TCMASS g |  kg    | AREA_M2 m^2 | 10^4 cm^2
+!             |     mole       |  MOLWT g |  kg    | AREA_M2 m^2 | 10^4 cm^2
 !
 !
 !  which is equivalent to
 !
-!   ( STT * 6.022e22 ) / ( TCMASS * AREA_M2 )
+!   ( STT * 6.022e22 ) / ( MOLWT * AREA_M2 )
 !*****************************************************************************
 !
       IF ( ND62 > 0 ) THEN
@@ -2438,7 +2605,11 @@
 
          DO M = 1, TMAX(62)
             N  = TINDEX(62,M)
-            IF ( N > NTRACE ) CYCLE
+            !----------------------------
+            ! Prior to 7/20/04:
+            !IF ( N > NTRACE ) CYCLE
+            !----------------------------
+            IF ( N > N_TRACERS ) CYCLE
             NN = N + TRCOFFSET
 
             DO J = 1, JJPAR
@@ -2448,12 +2619,20 @@
 
                DO I = 1, IIPAR
                   ARRAY(I,J,1) = ( SUM( STT(I,J,:,N) ) * 6.022d22 )
-     &                         / ( TCMASS(N)           * AREA_M2  )
+!-----------------------------------------------------------------------
+! Prior to 7/20/04:
+!     &                         / ( TCMASS(N)           * AREA_M2  )
+!-----------------------------------------------------------------------
+     &                         / ( TRACER_MW_G(N)       * AREA_M2  )
                ENDDO
             ENDDO
 
             ! Write the proper unit string
-            IF ( TCMASS(N) > 12d0 ) THEN
+            !--------------------------------------
+            ! Prior to 7/20/04:
+            !IF ( TCMASS(N) > 12d0 ) THEN
+            !--------------------------------------
+            IF ( TRACER_MW_G(N) > 12d0 ) THEN
                UNIT = 'molec/cm2'
             ELSE
                UNIT = 'atoms C/cm2'
@@ -2487,36 +2666,70 @@
       IF ( ND65 > 0 ) THEN     
          CATEGORY = 'PORL-L=$'
 
-         DO M = 1, TMAX(65)
-            N  = TINDEX(65,M)
+         !-----------------------------------------------------------------
+         ! Prior to 7/20/04:
+         !DO M = 1, TMAX(65)
+         !   N  = TINDEX(65,M)
+         !
+         !   ! Cycle if we exceed the number of families
+         !   IF ( N > NFAM ) CYCLE
+         !
+         !!-----------------------------------------------------------------
 
-            ! Cycle if we exceed the number of families
-            IF ( N > NFAM ) CYCLE
+         ! Loop over ND65 families
+         DO N = 1, NFAMILIES
+
+            !-----------------------------------------------------
+            ! Prior to 7/20/04:
+            !! Don't add TRCOFFSET for single tracer Ox
+            !! Also select proper unit string
+            !SELECT CASE ( NSRCX )
+            !   CASE ( 2 )
+            !      NN     = N + TRCOFFSET
+            !      UNIT   = 'kg/s'
+            !      SCALEX = 1d0
+            !
+            !   CASE ( 6 )
+            !      NN     = N + TRCOFFSET
+            !      UNIT   = 'kg/s'
+            !      SCALEX = SCALECHEM
+            !      
+            !   CASE ( 10 )
+            !      NN     = N + TRCOFFSET
+            !      UNIT   = 'mol/cm3/s'
+            !      SCALEX = SCALECHEM
+            !      
+            !   CASE DEFAULT 
+            !      NN     = N + TRCOFFSET
+            !      UNIT   = 'mol/cm3/s'
+            !      SCALEX = SCALECHEM
+            !      
+            !END SELECT
+            !-----------------------------------------------------
 
             ! Don't add TRCOFFSET for single tracer Ox
             ! Also select proper unit string
-            SELECT CASE ( NSRCX )
-               CASE ( 2 )
-                  NN     = N + TRCOFFSET
-                  UNIT   = 'kg/s'
-                  SCALEX = 1d0
+            IF ( ITS_A_CH3I_SIM() ) THEN
+               NN     = N + TRCOFFSET
+               UNIT   = 'kg/s'
+               SCALEX = 1d0
 
-               CASE ( 6 )
-                  NN     = N + TRCOFFSET
-                  UNIT   = 'kg/s'
-                  SCALEX = SCALECHEM
-                  
-               CASE ( 10 )
-                  NN     = N + TRCOFFSET
-                  UNIT   = 'mol/cm3/s'
-                  SCALEX = SCALECHEM
-                  
-               CASE DEFAULT 
-                  NN     = N + TRCOFFSET
-                  UNIT   = 'mol/cm3/s'
-                  SCALEX = SCALECHEM
-                  
-            END SELECT
+            ELSE IF ( ITS_A_TAGOX_SIM() ) THEN
+               NN     = N + TRCOFFSET
+               UNIT   = 'kg/s'
+               SCALEX = SCALECHEM
+               
+            ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+               NN     = N + TRCOFFSET
+               UNIT   = 'mol/cm3/s'
+               SCALEX = SCALECHEM
+               
+            ELSE
+               NN     = N + TRCOFFSET
+               UNIT   = 'mol/cm3/s'
+               SCALEX = SCALECHEM
+               
+            ENDIF
 
             DO L = 1, LD65
                ARRAY(:,:,L) = AD65(:,:,L,N) / SCALEX

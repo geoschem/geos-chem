@@ -1,9 +1,9 @@
-! $Id: a3_read_mod.f,v 1.4 2004/01/27 21:25:05 bmy Exp $
+! $Id: a3_read_mod.f,v 1.5 2004/09/21 18:04:08 bmy Exp $
       MODULE A3_READ_MOD
 !
 !******************************************************************************
 !  Module A3_READ_MOD contains routines that unzip, open, and read the
-!  GEOS-CHEM A-3 (avg 3-hour) met fields from disk. (bmy, 6/23/03, 12/12/03)
+!  GEOS-CHEM A-3 (avg 3-hour) met fields from disk. (bmy, 6/23/03, 7/20/04)
 ! 
 !  Module Routines:
 !  =========================================================================
@@ -22,15 +22,20 @@
 !  (1 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
 !  (2 ) dao_mod.f       : Module containing arrays for DAO met fields
 !  (3 ) diag_mod.f      : Module containing GEOS-CHEM diagnostic arrays
-!  (4 ) error_mod.f     : Module containing NaN and other error check routines
-!  (5 ) file_mod.f      : Module containing file unit #'s and error checks
-!  (6 ) time_mod.f      : Module containing routines for computing time & date
-!  (7 ) transfer_mod.f  : Module containing routines to cast & resize arrays
+!  (4 ) directory_mod.f : Module containing GEOS-CHEM data & met field dirs
+!  (5 ) error_mod.f     : Module containing NaN and other error check routines
+!  (6 ) logical_mod.f   : Module containing GEOS-CHEM logical switches 
+!  (7 ) file_mod.f      : Module containing file unit #'s and error checks
+!  (8 ) time_mod.f      : Module containing routines for computing time & date
+!  (9 ) transfer_mod.f  : Module containing routines to cast & resize arrays
+!  (10) unix_cmds_mod.f : Module containing Unix commands for unzipping etc.
 !
 !  NOTES:
 !  (1 ) Adapted from "dao_read_mod.f" (bmy, 6/23/03)
 !  (2 ) Now can read from either zipped or unzipped files. (bmy, 12/11/03)
 !  (3 ) Now skips past the GEOS-4 met field ident string (bmy, 12/12/03)
+!  (4 ) Now references "unix_cmds_mod.f", "directory_mod.f", and 
+!        "logical_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -56,7 +61,7 @@
 !  Subroutine UNZIP_A3_FIELDS invokes a FORTRAN system call to uncompress
 !  GEOS-CHEM A-3 met field files and store the uncompressed data in a 
 !  temporary directory, where GEOS-CHEM can read them.  The original data 
-!  files are not disturbed.  (bmy, bdf, 6/15/98, 12/11/03)
+!  files are not disturbed.  (bmy, bdf, 6/15/98, 7/20/04)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -67,21 +72,30 @@
 !  (1 ) Adapted from UNZIP_MET_FIELDS of "dao_read_mod.f" (bmy, 6/23/03)
 !  (2 ) Directory information YYYY/MM or YYYYMM is now contained w/in 
 !        GEOS_1_DIR, GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR (bmy, 12/11/03)
+!  (3 ) Now reference "directory_mod.f" and "unix_cmds_mod.f". Now prevent 
+!        EXPAND_DATE from overwriting directory paths with Y/M/D tokens in 
+!        them (bmy, 7/20/04)
 !*****************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD, ONLY : GET_RES_EXT
-      USE ERROR_MOD, ONLY : ERROR_STOP
-      USE TIME_MOD,  ONLY : EXPAND_DATE
+      USE BPCH2_MOD,    ONLY : GET_RES_EXT
+      USE DIRECTORY_MOD
+      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE TIME_MOD,     ONLY : EXPAND_DATE
+      USE UNIX_CMDS_MOD
 
 #     include "CMN_SIZE"
-#     include "CMN_SETUP"
+!-------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"
+!-------------------------------
 
       ! Arguments
       CHARACTER(LEN=*),  INTENT(IN) :: OPTION
       INTEGER, OPTIONAL, INTENT(IN) :: NYMD
 
       ! Local variables
+      CHARACTER(LEN=255)            :: A3_STR,     GEOS_DIR
       CHARACTER(LEN=255)            :: A3_FILE_GZ, A3_FILE
       CHARACTER(LEN=255)            :: UNZIP_BG,   UNZIP_FG
       CHARACTER(LEN=255)            :: REMOVE_ALL, REMOVE_DATE
@@ -93,76 +107,44 @@
       
 #if   defined( GEOS_1 )
 
-         ! Location of zipped A-3 file in data dir (GEOS-1)
-         A3_FILE_GZ  = TRIM( DATA_DIR )      // TRIM( GEOS_1_DIR ) // 
-     &                 'YYMMDD.a3.'          // GET_RES_EXT()      // 
-     &                 TRIM( ZIP_SUFFIX )
-
-         ! Location of unzipped A-3 file in temp dir (GEOS-1)
-         A3_FILE     = TRIM( TEMP_DIR )      // 'YYMMDD.a3.'       // 
-     &                 GET_RES_EXT()
-         
-         ! Remove A-3 files for this date from temp dir (GEOS-1)
-         REMOVE_DATE = TRIM( REMOVE_CMD )    // ' '                // 
-     &                 TRIM( TEMP_DIR   )    // 'YYMMDD.a3.'       // 
-     &                 GET_RES_EXT()  
+         ! Strings for directory & filename
+         GEOS_DIR = TRIM( GEOS_1_DIR )
+         A3_STR   = 'YYMMDD.a3.'   // GET_RES_EXT() 
 
 #elif defined( GEOS_STRAT )
 
-         ! Location of zipped A-3 file in data dir (GEOS-STRAT)
-         A3_FILE_GZ  = TRIM( DATA_DIR )      // TRIM( GEOS_S_DIR ) // 
-     &                 'YYMMDD.a3.'          // GET_RES_EXT()      // 
-     &                 TRIM( ZIP_SUFFIX )
-
-         ! Location of unzipped A-3 file in temp dir (GEOS-STRAT)
-         A3_FILE     = TRIM( TEMP_DIR )      // 'YYMMDD.a3.'       // 
-     &                 GET_RES_EXT()
-
-         ! Remove A-3 files for this date from temp dir (GEOS-STRAT)
-         REMOVE_DATE = TRIM( REMOVE_CMD )    // ' '                // 
-     &                 TRIM( TEMP_DIR   )    // 'YYMMDD.a3.'       // 
-     &                 GET_RES_EXT()  
+         ! Strings for directory & filename
+         GEOS_DIR = TRIM( GEOS_S_DIR )
+         A3_STR   = 'YYMMDD.a3.'   // GET_RES_EXT()     
 
 #elif defined( GEOS_3 )
 
-         ! Location of zipped A-3 file in data dir (GEOS-3)
-         A3_FILE_GZ  = TRIM( DATA_DIR )      // TRIM( GEOS_3_DIR ) // 
-     &                 'YYYYMMDD.a3.'       // GET_RES_EXT()       // 
-     &                 TRIM( ZIP_SUFFIX )
-
-         ! Location of unzipped A-3 file in temp dir (GEOS-3)
-         A3_FILE     = TRIM( TEMP_DIR )      // 'YYYYMMDD.a3.'     // 
-     &                 GET_RES_EXT() 
-
-         ! Remove A-3 files for this date from temp dir (GEOS-3)
-         REMOVE_DATE = TRIM( REMOVE_CMD )    // ' '                // 
-     &                 TRIM( TEMP_DIR   )    // 'YYYYMMDD.a3.'     // 
-     &                 GET_RES_EXT()  
+         ! Strings for directory & filename
+         GEOS_DIR = TRIM( GEOS_3_DIR )
+         A3_STR   = 'YYYYMMDD.a3.' // GET_RES_EXT()
 
 #elif defined( GEOS_4 )
 
-         ! Location of zipped A-3 file in data dir (GEOS-4)
-         A3_FILE_GZ  = TRIM( DATA_DIR )      // TRIM( GEOS_4_DIR ) // 
-     &                 'YYYYMMDD.a3.'        // GET_RES_EXT()      // 
-     &                 TRIM( ZIP_SUFFIX )
-
-         ! Location of unzipped A-3 file in temp dir (GEOS-4)
-         A3_FILE     = TRIM( TEMP_DIR )      // 'YYYYMMDD.a3.'     // 
-     &                 GET_RES_EXT()
-
-         ! Remove A-3 files for this date from temp dir (GEOS-4)
-         REMOVE_DATE = TRIM( REMOVE_CMD )    // ' '                // 
-     &                 TRIM( TEMP_DIR   )    // 'YYYYMMDD.a3.'     // 
-     &                 GET_RES_EXT()  
+         ! Strings for directory & filename
+         GEOS_DIR = TRIM( GEOS_4_DIR )
+         A3_STR   = 'YYYYMMDD.a3.' // GET_RES_EXT()
 
 #endif
 
-         !==============================================================
-         ! Replace tokens in character variables w/ year & month values
-         !==============================================================
-         CALL EXPAND_DATE( A3_FILE_GZ,  NYMD, 000000 )
-         CALL EXPAND_DATE( A3_FILE,     NYMD, 000000 )
-         CALL EXPAND_DATE( REMOVE_DATE, NYMD, 000000 )
+         ! Replace date tokens
+         CALL EXPAND_DATE( GEOS_DIR, NYMD, 000000 )
+         CALL EXPAND_DATE( A3_STR,   NYMD, 000000 )
+
+         ! Location of zipped A-3 file in data dir 
+         A3_FILE_GZ  = TRIM( DATA_DIR   ) // TRIM( GEOS_DIR   ) // 
+     &                 TRIM( A3_STR     ) // TRIM( ZIP_SUFFIX )
+
+         ! Location of unzipped A-3 file in temp dir 
+         A3_FILE     = TRIM( TEMP_DIR   ) // TRIM( A3_STR     )     
+         
+         ! Remove A-3 files for this date from temp dir
+         REMOVE_DATE = TRIM( REMOVE_CMD ) // ' '                // 
+     &                 TRIM( TEMP_DIR   ) // TRIM( A3_STR     )   
 
          !==============================================================
          ! Define the foreground and background UNZIP commands
@@ -296,7 +278,7 @@
 !
 !******************************************************************************
 !  Subroutine OPEN_A3_FIELDS opens the A-3 met fields file for date NYMD and 
-!  time NHMS. (bmy, bdf, 6/15/98, 12/12/03)
+!  time NHMS. (bmy, bdf, 6/15/98, 7/20/04)
 !  
 !  Arguments as input:
 !  ===========================================================================
@@ -307,16 +289,24 @@
 !  (1 ) Adapted from OPEN_MET_FIELDS of "dao_read_mod.f" (bmy, 6/13/03)
 !  (2 ) Now opens either zipped or unzipped files (bmy, 12/11/03)
 !  (3 ) Now skips past the GEOS-4 ident string (bmy, 12/12/03)
+!  (4 ) Now references "directory_mod.f" instead of CMN_SETUP.  Also now
+!        references LUNZIP from "logical_mod.f".  Also now prevents EXPAND_DATE
+!        from overwriting Y/M/D tokens in directory paths. (bmy, 7/20/04)
 !******************************************************************************
 !      
       ! References to F90 modules
-      USE BPCH2_MOD, ONLY : GET_RES_EXT
-      USE ERROR_MOD, ONLY : ERROR_STOP
-      USE FILE_MOD,  ONLY : IU_A3, IOERROR
-      USE TIME_MOD,  ONLY : EXPAND_DATE
+      USE BPCH2_MOD,    ONLY : GET_RES_EXT
+      USE DIRECTORY_MOD
+      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE LOGICAL_MOD,  ONLY : LUNZIP
+      USE FILE_MOD,     ONLY : IU_A3, IOERROR
+      USE TIME_MOD,     ONLY : EXPAND_DATE
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_SETUP" ! GEOS directories
+!---------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! GEOS directories
+!---------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS
@@ -326,6 +316,8 @@
       LOGICAL             :: IT_EXISTS
       INTEGER             :: IOS
       CHARACTER(LEN=8)    :: IDENT
+      CHARACTER(LEN=255)  :: A3_FILE
+      CHARACTER(LEN=255)  :: GEOS_DIR
       CHARACTER(LEN=255)  :: PATH
 
       !=================================================================
@@ -337,52 +329,42 @@
 
 #if   defined( GEOS_1 ) 
 
-         ! If unzipping, open GEOS-1 file in TEMP dir
-         ! If not unzipping, open GEOS-1 file in DATA dir
-         IF ( LUNZIP ) THEN
-            PATH = TRIM( TEMP_DIR ) // 'YYMMDD.a3.' // GET_RES_EXT()
-         ELSE
-            PATH = TRIM( DATA_DIR ) // TRIM( GEOS_1_DIR ) // 
-     &             'YYMMDD.a3.'     // GET_RES_EXT() 
-         ENDIF
+         ! Strings for directory & filename
+         GEOS_DIR = TRIM( GEOS_1_DIR )
+         A3_FILE  = 'YYMMDD.a3.' // GET_RES_EXT()
 
 #elif defined( GEOS_STRAT )
 
-         ! If unzipping, open GEOS-STRAT file in TEMP dir
-         ! If not unzipping, open GEOS-STRAT file in DATA dir
-         IF ( LUNZIP ) THEN
-            PATH = TRIM( TEMP_DIR ) // 'YYMMDD.a3.' // GET_RES_EXT()
-         ELSE
-            PATH = TRIM( DATA_DIR ) // TRIM( GEOS_S_DIR ) // 
-     &             'YYMMDD.a3.'     // GET_RES_EXT() 
-         ENDIF
+         ! Strings for directory & filename
+         GEOS_DIR = TRIM( GEOS_S_DIR )
+         A3_FILE  = 'YYMMDD.a3.' // GET_RES_EXT()
 
 #elif defined( GEOS_3 )
 
-         ! If unzipping, open GEOS-3 file in TEMP dir
-         ! If not unzipping, open GEOS-3 file in DATA dir
-         IF ( LUNZIP ) THEN
-            PATH = TRIM( TEMP_DIR ) // 'YYYYMMDD.a3.' // GET_RES_EXT()
-         ELSE
-            PATH = TRIM( DATA_DIR ) // TRIM( GEOS_3_DIR ) // 
-     &             'YYYYMMDD.a3.'   // GET_RES_EXT() 
-         ENDIF
+         ! Strings for directory & filename
+         GEOS_DIR = TRIM( GEOS_3_DIR )
+         A3_FILE  = 'YYYYMMDD.a3.' // GET_RES_EXT()
 
 #elif defined( GEOS_4 )
+
+         ! Strings for directory & filename
+         GEOS_DIR = TRIM( GEOS_4_DIR )
+         A3_FILE  = 'YYYYMMDD.a3.' // GET_RES_EXT()
+
+#endif
+
+         ! Replace date tokens
+         CALL EXPAND_DATE( A3_FILE,  NYMD, NHMS )
+         CALL EXPAND_DATE( GEOS_DIR, NYMD, NHMS )
 
          ! If unzipping, open GEOS-4 file in TEMP dir
          ! If not unzipping, open GEOS-4 file in DATA dir
          IF ( LUNZIP ) THEN
-            PATH = TRIM( TEMP_DIR ) // 'YYYYMMDD.a3.' // GET_RES_EXT()
+            PATH = TRIM( TEMP_DIR ) // TRIM( A3_FILE )
          ELSE
-            PATH = TRIM( DATA_DIR ) // TRIM( GEOS_4_DIR ) // 
-     &             'YYYYMMDD.a3.'   // GET_RES_EXT() 
+            PATH = TRIM( DATA_DIR ) // 
+     &             TRIM( GEOS_DIR ) // TRIM( A3_FILE )
          ENDIF
-
-#endif
-
-         ! Replace YYYYMMDD in PATH w/ actual date
-         CALL EXPAND_DATE( PATH, NYMD, 000000 )
 
          ! Close previously opened A-3 file
          CLOSE( IU_A3 )
@@ -390,7 +372,7 @@
          ! Make sure the file exists before we open it!
          ! Maybe make this a function in ERROR_MOD (bmy, 6/23/03)
          INQUIRE( IU_A3, EXIST=IT_EXISTS )
-            
+
          IF ( .not. IT_EXISTS ) THEN
             CALL ERROR_STOP( 'Could not find file!', 
      &                       'OPEN_A3_FIELDS (a3_read_mod.f)' )

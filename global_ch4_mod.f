@@ -1,9 +1,9 @@
-! $Id: global_ch4_mod.f,v 1.3 2003/08/06 15:30:43 bmy Exp $
+! $Id: global_ch4_mod.f,v 1.4 2004/09/21 18:04:14 bmy Exp $
       MODULE GLOBAL_CH4_MOD
 !
 !******************************************************************************
 !  Module GLOBAL_CH4_MOD contains variables and routines for simulating
-!  CH4 chemistry in the troposphere (jsw, bnd, bmy, 1/17/01, 7/7/03)
+!  CH4 chemistry in the troposphere (jsw, bnd, bmy, 1/17/01, 7/20/04)
 !
 !  Module Variables:
 !  =========================================================================== 
@@ -43,6 +43,7 @@
 !  (1 ) bpch2_mod.f    : Module containing routines for binary punch file I/O
 !  (2 ) diag_mod.f     : Module containing GEOS-CHEM diagnostic arrays
 !  (3 ) dao_mod.f      : Module containing arrays for DAO met fields
+!  (4 ) diag_oh_mod.f  : Module containing arrays for mean OH & CH3CCl3 life
 !  (4 ) error_mod.f    : Module containing NaN and other error check routines
 !  (5 ) grid_mod.f     : Module containing horizontal grid information
 !  (6 ) pressure_mod.f : Module containing routines to compute P(I,J,L) 
@@ -75,6 +76,8 @@
 !  (17) Minor bug fix in FORMAT statements (bmy, 3/23/03)
 !  (18) Now references "grid_mod.f" and "time_mod.f" (bmy, 3/27/03)
 !  (19) Updates to GET_GLOBAL_CH4 (bmy, 7/1/03)
+!  (20) Now references "directory_mod.f", "tracer_mod.f", and "diag_oh_mod.f"
+!        (bmy, 7/20/04)
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -363,7 +366,7 @@
 !
 !******************************************************************************
 !  Subroutine CH4_AVGTP gets the 24-h average surface pressure and temperature
-!  needed for the CH4 simulation (jsw, bnd, bmy, 1/16/01, 3/27/03).
+!  needed for the CH4 simulation. (jsw, bnd, bmy, 1/16/01, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry and
@@ -382,6 +385,7 @@
 !        "error_mod.f" (bmy, 10/15/02)
 !  (8 ) Removed NTDT, NMIN from the arg list.  Now uses functions GET_TS_DYN,
 !        GET_TS_CHEM, and GET_ELAPSED_MIN from "time_mod.f" (bmy, 3/27/03)
+!  (9 ) Remove reference to CMN, it's not needed (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -391,7 +395,10 @@
       USE TIME_MOD,     ONLY : GET_TS_DYN, GET_TS_CHEM, GET_ELAPSED_MIN
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! T
+!---------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"       ! T
+!---------------------------------------------
 
       ! Local variables
       INTEGER             :: NTDT, NMIN
@@ -506,7 +513,7 @@
 !
 !******************************************************************************
 !  Subroutine EMISSCH4 places emissions of CH4 [kg] into the STT array.
-!  (jsw, bnd, bey, bmy, 1/16/01, 3/27/03)
+!  (jsw, bnd, bey, bmy, 1/16/01, 7/20/04)
 !
 !  I might want to eventually adjust my swamps (WS) source upward
 !  because it is currently 39.1 Tg/yr whereas in Fung et al. [1991] it is
@@ -537,19 +544,29 @@
 !        Now use function GET_MONTH and GET_TS_EMIS from "time_mod.f". 
 !        Now use functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f".
 !        I0 and J0 are now local variables. (bmy, 3/27/03)
+!  (11) Now reference STT from "tracer_mod.f".  Now reference DATA_DIR from
+!        "directory_mod.f". (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE DAO_MOD,  ONLY : BXHEIGHT,     SUNCOS
-      USE FILE_MOD, ONLY : IU_FILE,      IOERROR
-      USE GRID_MOD, ONLY : GET_AREA_CM2, GET_XOFFSET, GET_YOFFSET 
-      USE TIME_MOD, ONLY : GET_MONTH,    GET_TS_EMIS
+      USE DAO_MOD,       ONLY : BXHEIGHT,     SUNCOS
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE FILE_MOD,      ONLY : IU_FILE,      IOERROR
+      USE GRID_MOD,      ONLY : GET_AREA_CM2, GET_XOFFSET, GET_YOFFSET 
+      USE TIME_MOD,      ONLY : GET_MONTH,    GET_TS_EMIS
+      USE TRACER_MOD,    ONLY : STT
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! STT
+!-----------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"          ! STT
+!-----------------------------------------------------
 #     include "CMN_DIAG"     ! Diagnostic switches
-#     include "CMN_SETUP"    ! DATA_DIR
+!-----------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"    ! DATA_DIR
+!-----------------------------------------------------
 
       ! Local Variables
       LOGICAL, SAVE          :: FIRSTEMISS = .TRUE. 
@@ -831,7 +848,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEMCH4 computes the chemical loss of CH4 (sources - sinks).
-!  (jsw, bnd, bmy, 6/8/00, 3/27/03)
+!  (jsw, bnd, bmy, 6/8/00, 7/20/04)
 !
 !  CH4 SOURCES
 !  ============================================================================
@@ -867,19 +884,24 @@
 !  (7 ) Remove NYMDb, NYMDe from the arg list.  Now use functions GET_MONTH,
 !        GET_NYMDb, GET_NYMDe, GET_MONTH, GET_DAY from the new "time_mod.f"
 !        (bmy, 3/27/03) 
+!  (8 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE DAO_MOD,   ONLY : AD, ALBD
-      USE DIAG_MOD,  ONLY : AD43
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-      USE TIME_MOD,  ONLY : GET_DAY, GET_MONTH, GET_NYMDb, GET_NYMDe
+      USE DAO_MOD,       ONLY : AD, ALBD
+      USE DIAG_MOD,      ONLY : AD43
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
+      USE TIME_MOD,      ONLY : GET_DAY, GET_MONTH, GET_NYMDb, GET_NYMDe
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN"          ! LPAUSE
 #     include "CMN_DIAG"     ! ND43, AD43
-#     include "CMN_SETUP"    ! DATA_DIR
+!--------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"    ! DATA_DIR
+!--------------------------------------------
 
       ! Local variables
       LOGICAL                :: FIRSTCHEM = .TRUE.
@@ -1111,7 +1133,7 @@
 !
 !*****************************************************************************
 !  Subroutine READ_COPROD reads production and destruction rates for CO in 
-!  the stratosphere. (bnd, bmy, 1/17/01, 10/24/01)
+!  the stratosphere. (bnd, bmy, 1/17/01, 7/20/04)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -1125,16 +1147,21 @@
 !        (bmy, 1/16/01)
 !  (3 ) ARRAY needs to be dimensioned (1,JGLOB,LGLOB) (bmy, 9/26/01)
 !  (4 ) Remove obsolete code from 9/01 (bmy, 10/24/01)
+!  (5 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !*****************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE TRANSFER_MOD, ONLY : TRANSFER_ZONAL
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_ZONAL
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_SETUP" ! DATA_DIR
+!----------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! DATA_DIR
+!----------------------------------------------
 
       ! Local variables
       INTEGER            :: J, L, M
@@ -1174,7 +1201,7 @@
 !
 !******************************************************************************
 !  Subroutine CLIMATOL_OH gets climatological OH fields for use in 
-!  calculating CH4 loss. (jsw, bnd, bmy, 1/16/00, 2/3/03)
+!  calculating CH4 loss. (jsw, bnd, bmy, 1/16/00, 7/20/04)
 !
 !  OH from Clarissa Spivakovsky et al's paper accepted in 1999.
 !  Written by James Wang, 7/24/00, based on OHparam.f written by Bryan Duncan.
@@ -1195,15 +1222,22 @@
 !        instead of IUNIT as the file unit #. (bmy, 6/27/02) 
 !  (4 ) Now use function GET_YMID of "grid_mod.f" to compute grid box
 !        latitude (bmy, 2/3/03)
+!  (5 ) Now references DATA_DIR from "directory_mod.f".  Also call routine
+!        GET_SEASON from "time_mod.f". (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE GRID_MOD, ONLY : GET_YMID
-      USE FILE_MOD, ONLY : IU_FILE, IOERROR
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE GRID_MOD,      ONLY : GET_YMID
+      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE TIME_MOD,      ONLY : GET_SEASON
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! STT, LPAUSE
-#     include "CMN_SETUP" ! DATA_DIR   
+#     include "CMN"       ! LPAUSE
+!-------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! DATA_DIR   
+!-------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: LMN, LDY
@@ -1241,16 +1275,20 @@
       !=================================================================
 
       ! Compute the proper season for indexing the OH file
-      SELECT CASE ( LMN )
-         CASE ( 12, 1:2 )
-            SEASON = 1
-         CASE ( 3:5 )
-            SEASON = 2
-         CASE ( 6:8 ) 
-            SEASON = 3
-         CASE ( 9:11 )
-            SEASON = 4
-      END SELECT
+      !------------------------------------------------------
+      ! Prior to 7/20/04:
+      !SELECT CASE ( LMN )
+      !   CASE ( 12, 1:2 )
+      !      SEASON = 1
+      !   CASE ( 3:5 )
+      !      SEASON = 2
+      !   CASE ( 6:8 ) 
+      !      SEASON = 3
+      !   CASE ( 9:11 )
+      !      SEASON = 4
+      !END SELECT
+      !------------------------------------------------------
+      SEASON = GET_SEASON()
 
       ! Initialize BOH array
       BOH(:,:,:) = 0d0
@@ -1411,7 +1449,7 @@
 !
 !******************************************************************************
 !  Subroutine CH4_DECAY calculates the decay rate of CH4 by OH.  OH is the 
-!  only sink for CH4 considered here. (jsw, bnd, bmy, 1/16/01, 3/27/03)
+!  only sink for CH4 considered here. (jsw, bnd, bmy, 1/16/01, 7/20/04)
 !
 !  The annual mean tropopause is stored in the LPAUSE array 
 !  (from header file "CMN").  LPAUSE is defined such that: 
@@ -1437,11 +1475,13 @@
 !  (2 ) CH4_DECAY is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
 !        (bmy, 1/16/01)
 !  (3 ) Now use function GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
+!  (4 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,  ONLY : AIRVOL
-      USE TIME_MOD, ONLY : GET_TS_CHEM
+      USE DAO_MOD,    ONLY : AIRVOL
+      USE TIME_MOD,   ONLY : GET_TS_CHEM
+      USE TRACER_MOD, ONLY : STT
 
 #     include "CMN_SIZE"       ! Size parameters
 #     include "CMN"            ! STT, LPAUSE
@@ -1518,7 +1558,7 @@
 ! 
 !*****************************************************************************
 !  Subroutine CH4_OHSAVE archives the CH3CCl3 lifetime from the OH
-!  used in the CH4 simulation. (bnd, jsw, bmy, 1/16/01)
+!  used in the CH4 simulation. (bnd, jsw, bmy, 1/16/01, 7/20/04)
 !
 !  The annual mean tropopause is stored in the LPAUSE array 
 !  (from header file "CMN").  LPAUSE is defined such that: 
@@ -1536,10 +1576,13 @@
 !        by Bob Yantosca. (bmy, 1/16/01)
 !  (2 ) CH4_OHSAVE is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
 !        (bmy, 1/16/01)
+!  (3 ) Now call DO_DIAG_OH_CH4 to pass OH diagnostic info to the
+!        "diag_oh_mod.f" (bmy, 7/20/04)
 !*****************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD, ONLY : DIAGCHLORO
+      USE DIAG_MOD,    ONLY : DIAGCHLORO
+      USE DIAG_OH_MOD, ONLY : DO_DIAG_OH_CH4
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN"       ! LPAUSE
@@ -1564,23 +1607,33 @@
             
             ! Only process tropospheric boxes (bmy, 4/17/00)
             IF ( L < LPAUSE(I,J) ) THEN
-               KCLO   = 1.8D-12 * EXP( -1550.D0 / Tavg(I,J,L) )
-              
-               LOSS   = KCLO            * BOH(I,J,L)  *
-     &                  BAIRDENS(I,J,L) * BOXVL(I,J,L)
+!-------------------------------------------------------------------------
+! Prior to 7/20/04:
+! Now just print mean OH
+!               KCLO   = 1.8D-12 * EXP( -1550.D0 / Tavg(I,J,L) )
+!              
+!               LOSS   = KCLO            * BOH(I,J,L)  *
+!     &                  BAIRDENS(I,J,L) * BOXVL(I,J,L)
+!-------------------------------------------------------------------------
                 
                OHMASS = BOH(I,J,L) * BAIRDENS(I,J,L) * BOXVL(I,J,L)
                
                MASST  = BAIRDENS(I,J,L) * BOXVL(I,J,L)
 
-               ! Store loss in DIAGCHLORO(I,J,L,1)
-               DIAGCHLORO(I,J,L,1) = DIAGCHLORO(I,J,L,1) + LOSS
-               
-               ! Store OH mass in DIAGCHLORO(I,J,L,2)
-               DIAGCHLORO(I,J,L,2) = DIAGCHLORO(I,J,L,2) + OHMASS
+               !--------------------------------------------------------
+               ! Prior to 7/20/04:
+               !! Store loss in DIAGCHLORO(I,J,L,1)
+               !DIAGCHLORO(I,J,L,1) = DIAGCHLORO(I,J,L,1) + LOSS
+               !
+               !! Store OH mass in DIAGCHLORO(I,J,L,2)
+               !DIAGCHLORO(I,J,L,2) = DIAGCHLORO(I,J,L,2) + OHMASS
+               !
+               !! Store total mass in DIAGCHLORO(I,J,L,3)
+               !DIAGCHLORO(I,J,L,3) = DIAGCHLORO(I,J,L,3) + MASST
+               !--------------------------------------------------------
 
-               ! Store total mass in DIAGCHLORO(I,J,L,3)
-               DIAGCHLORO(I,J,L,3) = DIAGCHLORO(I,J,L,3) + MASST
+               ! Pass OH mass & total mass to "diag_oh_mod.f"
+               CALL DO_DIAG_OH_CH4( I, J, L, OHMASS, MASST )
             ENDIF
          ENDDO
          ENDDO
@@ -1596,7 +1649,8 @@
 !
 !*****************************************************************************
 !  Subroutine CH4_STRAT calculates uses production rates for CH4 to 
-!  calculate loss of CH4 in above the tropopause. (jsw, bnd, bmy, 1/16/01)
+!  calculate loss of CH4 in above the tropopause. 
+!  (jsw, bnd, bmy, 1/16/01, 7/20/04)
 !
 !  Production (mixing ratio/sec) rate provided by Dylan Jones.  
 !  Only production by CH4 + OH is considered.
@@ -1615,11 +1669,13 @@
 !        (bmy, 1/16/01)
 !  (3 ) Removed LMN from the arg list and made it a local variable.  Now use 
 !        functions GET_MONTH and GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
+!  (4 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !*****************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,  ONLY : AIRVOL
-      USE TIME_MOD, ONLY : GET_MONTH, GET_TS_CHEM
+      USE DAO_MOD,    ONLY : AIRVOL
+      USE TIME_MOD,   ONLY : GET_MONTH, GET_TS_CHEM
+      USE TRACER_MOD, ONLY : STT
 
 #     include "CMN_SIZE"       ! Size parameters
 #     include "CMN"            ! STT, LPAUSE
@@ -1683,7 +1739,7 @@
 !******************************************************************************
 !  Subroutine CH4_BUDGET calculates the budget of CH4.  This SR only works 
 !  for monthly averages, so be sure to start on the first of the month 
-!  and run to another first of the month!!!  (jsw, bnd, bmy, 1/16/01, 3/27/03)
+!  and run to another first of the month!!!  (jsw, bnd, bmy, 1/16/01, 7/20/04)
 !
 !  Store the sources/sinks of CH4 in TCH4 in total molecules
 !           ( 1) = Initial burden
@@ -1721,12 +1777,14 @@
 !        "time_mod.f".  Removed LMN from the arg list and made it a local 
 !        variable.  Use functions GET_XOFFSET and GET_YOFFSET from 
 !        "grid_mod.f".  (bmy, 3/27/03)
+!  (6 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE GRID_MOD, ONLY : GET_XOFFSET, GET_YOFFSET
-      USE TIME_MOD, ONLY : GET_MONTH,   GET_YEAR,  GET_DIAGb, GET_CT_DYN
+      USE GRID_MOD,   ONLY : GET_XOFFSET, GET_YOFFSET
+      USE TIME_MOD,   ONLY : GET_MONTH, GET_YEAR, GET_DIAGb, GET_CT_DYN
+      USE TRACER_MOD, ONLY : STT
 
 #     include "CMN_SIZE"       ! Size parameters
 #     include "CMN"            ! STT, LPAUSE

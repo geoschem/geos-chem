@@ -1,10 +1,10 @@
-! $Id: restart_mod.f,v 1.5 2004/05/03 14:46:19 bmy Exp $
+! $Id: restart_mod.f,v 1.6 2004/09/21 18:04:17 bmy Exp $
       MODULE RESTART_MOD
 !
 !******************************************************************************
 !  Module RESTART_MOD contains variables and routines which are used to read
 !  and write GEOS-CHEM restart files, which contain tracer concentrations
-!  in [v/v] mixing ratio. (bmy, 6/25/02, 4/26/04)
+!  in [v/v] mixing ratio. (bmy, 6/25/02, 7/20/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -21,14 +21,17 @@
 !  (6 ) COPY_STT             : Converts [v/v] to [kg] and stores in STT
 !  (7 ) COPY_STT_FOR_CO_OH   : Converts [v/v] to [kg] for CO w/ param. OH run
 !  (8 ) CHECK_DATA_BLOCKS    : Makes sure we have read in data for each tracer
+!  (9 ) SET_RESTART          : Gets restart filenames from "input_mod.f"
 !
 !  GEOS-CHEM modules referenced by restart_mod.f
 !  ============================================================================
-!  (1 ) bpch2_mod.f : Module containing routines for binary punch file I/O
-!  (2 ) error_mod.f : Module containing NaN and other error check routines
-!  (3 ) file_mod.f  : Module containing file unit numbers and error checks
-!  (4 ) grid_mod.f  : Module containing horizontal grid information
-!  (5 ) time_mod.f  : Module containing routines for computing time & date
+!  (1 ) bpch2_mod.f   : Module containing routines for binary punch file I/O
+!  (2 ) error_mod.f   : Module containing NaN and other error check routines
+!  (3 ) file_mod.f    : Module containing file unit numbers and error checks
+!  (4 ) grid_mod.f    : Module containing horizontal grid information
+!  (5 ) logical_mod.f : Module containing GEOS-CHEM logical switches
+!  (6 ) time_mod.f    : Module containing routines for computing time & date
+!  (7 ) tracer_mod.f  : Module containing GEOS-CHEM tracer array STT etc.
 !
 !  NOTES:
 !  (1 ) Moved routines "make_restart_file.f"" and "read_restart_file.f" into
@@ -41,6 +44,8 @@
 !  (4 ) Added error-check and cosmetic changes (bmy, 4/29/03)
 !  (5 ) Removed call to COPY_STT_FOR_OX, it's obsolete (bmy, 8/18/03)
 !  (6 ) Add fancy output (bmy, 4/26/04)
+!  (7 ) Added routine SET_RESTART.  Now reference "logical_mod.f" and
+!        "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -75,26 +80,12 @@
 !
 !******************************************************************************
 !  Subroutine MAKE_RESTART_FILE creates GEOS-CHEM restart files of tracer 
-!  mixing ratios (v/v), in binary punch file format. (bmy, 5/27/99, 4/29/03)
+!  mixing ratios (v/v), in binary punch file format. (bmy, 5/27/99, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) YYYYMMDD : Year-Month-Date 
 !  (2 ) HHMMSS   :  and Hour-Min-Sec for which to create a restart file       
-!
-!  Passed via F90 module dao_mod.f:
-!  ============================================================================
-!  (1 ) AD     : Air mass array (kg)       dim=(IIPAR,JJPAR,NNPAR) 
-!
-!  Passed via CMN:
-!  ============================================================================
-!  (1 ) TAU    : TAU value (elapsed hours) at start of diagnostic interval
-!  (2 ) STT    : Tracer array (kg)         dim=(IIPAR,JJPAR,LLPAR,NNPAR)
-!  (3 ) TCVV   : Air MW / Tracer MW array, dim=(NNPAR)
-!
-!  Passed via CMN_DIAG:
-!  ============================================================================
-!  (1 ) TRCOFFSET : Offset for special tracers (like Rn, HCN, etc)
 !
 !  NOTES:
 !  (1 ) Now use function NYMD_STRING from "time_mod.f" to generate a
@@ -113,18 +104,26 @@
 !        Now references function GET_TAU from "time_mod.f".  Now added a call 
 !        to DEBUG_MSG from "error_mod.f" (bmy, 2/11/03)
 !  (8 ) Cosmetic changes (bmy, 4/29/03)
+!  (9 ) Now reference STT, N_TRACERS, TCVV from "tracer_mod.f".  Also now
+!        remove hardwired output restart filename.   Now references LPRT
+!        from "logical_mod.f". (bmy, 7/20/04)
 !******************************************************************************
 !     
       ! References to F90 modules
       USE BPCH2_MOD
-      USE DAO_MOD,   ONLY : AD
-      USE ERROR_MOD, ONLY : DEBUG_MSG
-      USE FILE_MOD,  ONLY : IU_RST,      IOERROR
-      USE GRID_MOD,  ONLY : GET_XOFFSET, GET_YOFFSET
-      USE TIME_MOD,  ONLY : EXPAND_DATE, GET_TAU
+      USE DAO_MOD,     ONLY : AD
+      USE ERROR_MOD,   ONLY : DEBUG_MSG
+      USE FILE_MOD,    ONLY : IU_RST,      IOERROR
+      USE GRID_MOD,    ONLY : GET_XOFFSET, GET_YOFFSET
+      USE LOGICAL_MOD, ONLY : LPRT
+      USE TIME_MOD,    ONLY : EXPAND_DATE, GET_TAU
+      USE TRACER_MOD,  ONLY : STT, N_TRACERS, TCVV
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN"        ! STT, TCVV, LPRT
+!---------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"        ! STT, TCVV, LPRT
+!---------------------------------------------------
 #     include "CMN_DIAG"   ! TRCOFFSET
 
       ! Arguments
@@ -151,12 +150,16 @@
       ! MAKE_RESTART_FILE begins here!
       !=================================================================
 
-      ! Hardwire output file for now
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-      OUTPUT_RESTART_FILE = 'gctm.trc.YYMMDD'
-#else
-      OUTPUT_RESTART_FILE = 'gctm.trc.YYYYMMDD'
-#endif
+!------------------------------------------------------------
+! Prior to 7/20/04:
+! Now get filenames passed from "input_mod.f" (bmy, 7/20/04)
+!      ! Hardwire output file for now
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!      OUTPUT_RESTART_FILE = 'gctm.trc.YYMMDD'
+!#else
+!      OUTPUT_RESTART_FILE = 'gctm.trc.YYYYMMDD'
+!#endif
+!------------------------------------------------------------
 
       ! Define variables for BINARY PUNCH FILE OUTPUT
       TITLE    = 'GEOS-CHEM Restart File: ' // 
@@ -193,7 +196,11 @@
       !=================================================================
       ! Write each tracer to the restart file
       !=================================================================
-      DO N = 1, NTRACE
+      !-------------------
+      ! Prior to 7/20/04:
+      !DO N = 1, NTRACE
+      !-------------------
+      DO N = 1, N_TRACERS
          
          ! Convert from [kg] to [v/v] and store in the TRACER array
 !$OMP PARALLEL DO
@@ -232,7 +239,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_RESTART_FILE initializes GEOS-CHEM tracer concentrations 
-!  from a restart file (binary punch file format) (bmy, 5/27/99, 4/26/04)
+!  from a restart file (binary punch file format) (bmy, 5/27/99, 7/20/04)
 !
 !  Arguments as input:
 !  ============================================================================
@@ -277,19 +284,29 @@
 !  (15) Now added a call to DEBUG_MSG from "error_mod.f" (bmy, 2/11/03)
 !  (16) Remove call to COPY_STT_FOR_OX, it's obsolete. (bmy, 8/18/03)
 !  (17) Add fancy output string (bmy, 4/26/04)
+!  (18) No longer use hardwired filename.  Also now reference "logical_mod.f"
+!        and "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD, ONLY : OPEN_BPCH2_FOR_READ
-      USE DAO_MOD,   ONLY : AD
-      USE ERROR_MOD, ONLY : DEBUG_MSG
-      USE FILE_MOD,  ONLY : IU_RST, IOERROR
-      USE TIME_MOD,  ONLY : EXPAND_DATE
+      USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_READ
+      USE DAO_MOD,     ONLY : AD
+      USE ERROR_MOD,   ONLY : DEBUG_MSG
+      USE FILE_MOD,    ONLY : IU_RST, IOERROR
+      USE LOGICAL_MOD, ONLY : LSPLIT, LPRT
+      USE TIME_MOD,    ONLY : EXPAND_DATE
+      USE TRACER_MOD
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN"        ! STT, NSRCX, TCVV, NTRACE, TCMASS, etc..
+!-----------------------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"        ! STT, NSRCX, TCVV, NTRACE, TCMASS, etc..
+!-----------------------------------------------------------------------
 #     include "CMN_DIAG"   ! TRCOFFSET
-#     include "CMN_SETUP"  ! LSPLIT
+!--------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"  ! LSPLIT
+!--------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: YYYYMMDD, HHMMSS
@@ -317,12 +334,16 @@
       ! READ_RESTART_FILE begins here!
       !=================================================================
 
-      ! Hardwire output file for now
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-      INPUT_RESTART_FILE = 'gctm.trc.YYMMDD'
-#else
-      INPUT_RESTART_FILE = 'gctm.trc.YYYYMMDD'
-#endif
+!------------------------------------------------------
+! Prior to 7/20/04:
+! No longer use hardwired filename (bmy, 7/20/04)
+!      ! Hardwire output file for now
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!      INPUT_RESTART_FILE = 'gctm.trc.YYMMDD'
+!#else
+!      INPUT_RESTART_FILE = 'gctm.trc.YYYYMMDD'
+!#endif
+!------------------------------------------------------
 
       ! Initialize some variables
       NCOUNT(:)     = 0
@@ -391,18 +412,29 @@
             ! Convert TRACER from its native units to [v/v] mixing ratio
             CALL CONVERT_TRACER_TO_VV( NTRACER, TRACER, UNIT )
 
+            !----------------------------------------------------------------
+            ! Prior to 7/20/04:
+            !! Convert TRACER from [v/v] to [kg] and copy into STT array
+            !SELECT CASE ( NSRCX )
+            !
+            !   ! For CO-OH 
+            !   CASE ( 5 )
+            !      CALL COPY_STT_FOR_CO_OH( NTRACER, TRACER, NCOUNT )
+            !
+            !   ! All other simulations
+            !   CASE DEFAULT    
+            !      CALL COPY_STT( NTRACER, TRACER, NCOUNT )
+            !
+            !END SELECT
+            !----------------------------------------------------------------
+
             ! Convert TRACER from [v/v] to [kg] and copy into STT array
-            SELECT CASE ( NSRCX )
+            IF ( ITS_A_COPARAM_SIM() ) THEN
+               CALL COPY_STT_FOR_CO_OH( NTRACER, TRACER, NCOUNT )            
+            ELSE
+               CALL COPY_STT( NTRACER, TRACER, NCOUNT )
+            ENDIF
 
-               ! For CO-OH 
-               CASE ( 5 )
-                  CALL COPY_STT_FOR_CO_OH( NTRACER, TRACER, NCOUNT )
-
-               ! All other simulations
-               CASE DEFAULT    
-                  CALL COPY_STT( NTRACER, TRACER, NCOUNT )
-
-            END SELECT
          ENDIF
       ENDDO
 
@@ -411,7 +443,11 @@
       !=================================================================
 
       ! Check for missing or duplicate data blocks
-      CALL CHECK_DATA_BLOCKS( NTRACE, NCOUNT )
+      !-----------------------------------------------
+      ! Prior to 7/20/04:
+      !CALL CHECK_DATA_BLOCKS( NTRACE, NCOUNT )
+      !-----------------------------------------------
+      CALL CHECK_DATA_BLOCKS( N_TRACERS, NCOUNT )
 
       ! Close file
       CLOSE( IU_RST )      
@@ -420,17 +456,30 @@
       WRITE( 6, 120 )
  120  FORMAT( /, 'Total atmospheric masses for each tracer: ' ) 
 
-      DO N = 1, NTRACE
+      !-------------------
+      ! Prior to 7/20/04:
+      !DO N = 1, NTRACE
+      !-------------------
+      DO N = 1, N_TRACERS
 
          ! For tracers in kg C, be sure to use correct unit string
-         IF ( INT( TCMASS(N) + 0.5 ) == 12 ) THEN
+         !-----------------------------------------------------
+         ! Prior to 7/20/04:
+         !IF ( INT( TCMASS(N) + 0.5 ) == 12 ) THEN
+         !-----------------------------------------------------
+         IF ( INT( TRACER_MW_G(N) + 0.5 ) == 12 ) THEN
             UNIT = 'kg C'
          ELSE
             UNIT = 'kg  '
          ENDIF
 
          ! Print totals
-         WRITE( 6, 130 ) N, TCNAME(N), SUM(STT(:,:,:,N)), ADJUSTL(UNIT)
+         !----------------------------------------------------------------
+         ! Prior to 7/20/04:
+         !WRITE( 6, 130 ) N, TCNAME(N), SUM(STT(:,:,:,N)), ADJUSTL(UNIT)
+         !----------------------------------------------------------------
+         WRITE( 6, 130 ) N,                   TRACER_NAME(N), 
+     &                   SUM( STT(:,:,:,N) ), ADJUSTL( UNIT )
  130     FORMAT( 'Tracer ', i3, ' (', a4, ') ', es12.5, 1x, a4)
       ENDDO
 
@@ -631,7 +680,7 @@
 !
 !******************************************************************************
 !  Subroutine COPY_STT converts tracer concetrations from [v/v] to [kg] and 
-!  then copies the results into the STT tracer array. (bmy, 6/25/02, 4/29/03)
+!  then copies the results into the STT tracer array. (bmy, 6/25/02, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -643,13 +692,18 @@
 !  (1 ) Added to "restart_mod.f".  Also added parallel loops. (bmy, 6/25/02)
 !  (2 ) Now reference AD from "dao_mod.f" (bmy, 9/18/02)
 !  (3 ) Now exit if N is out of range (bmy, 4/29/03)
+!  (4 ) Now references N_TRACERS, STT & TCVV from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD, ONLY : AD
-
+      USE DAO_MOD,    ONLY : AD
+      USE TRACER_MOD, ONLY : N_TRACERS, STT, TCVV
+      
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! TCVV, STT
+!---------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"       ! TCVV, STT
+!---------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NTRACER
@@ -667,7 +721,11 @@
       N = TRUE_TRACER_INDEX( NTRACER )
 
       ! Exit if N is out of range
-      IF ( N < 1 .or. N > NTRACE ) RETURN
+      !------------------------------------------
+      ! Prior to 7/20/04:
+      !IF ( N < 1 .or. N > NTRACE ) RETURN
+      !------------------------------------------
+      IF ( N < 1 .or. N > N_TRACERS ) RETURN
 
       ! Convert from [v/v] to [kg] and store in STT
 !$OMP PARALLEL DO
@@ -825,4 +883,34 @@
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE SET_RESTART( INFILE, OUTFILE )
+!
+!******************************************************************************
+!  Subroutine SET_RESTART initializes the variables INPUT_RESTART_FILE and
+!  OUTPUT_RESTART_FILE with the values read from the "input.geos" file.
+!  (bmy, 7/9/04)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) INFILE  (CHAR*255) : Input restart file name from "input.geos"
+!  (2 ) OUTFILE (CHAR*255) : Output restart file name from "input.geos"
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Arguments
+      CHARACTER(LEN=255) :: INFILE, OUTFILE
+      
+      !=================================================================
+      ! SET_RESTART begins here
+      !=================================================================
+      INPUT_RESTART_FILE  = INFILE
+      OUTPUT_RESTART_FILE = OUTFILE
+     
+      ! Return to calling program
+      END SUBROUTINE SET_RESTART
+
+!------------------------------------------------------------------------------
+
+      ! End of module
       END MODULE RESTART_MOD

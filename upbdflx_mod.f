@@ -1,22 +1,31 @@
-! $Id: upbdflx_mod.f,v 1.7 2004/04/19 15:09:55 bmy Exp $
+! $Id: upbdflx_mod.f,v 1.8 2004/09/21 18:04:20 bmy Exp $
       MODULE UPBDFLX_MOD
 !
 !******************************************************************************
 !  Module UPBDFLX_MOD contains subroutines which impose stratospheric boundary
-!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 4/15/04)
+!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 7/20/04)
+!
+!  Module Variables:
+!  ===========================================================================
+!  (1 ) IORD (INTEGER) : TPCORE E/W      transport option flag 
+!  (2 ) JORD (INTEGER) : TPCORE N/S      transport option flag
+!  (3 ) KORD (INTEGER) : TPCORE vertical transport option flag
 !
 !  Module Routines:
 !  ============================================================================
 !  (1 ) DO_UPBDFLX     : Driver for stratospheric flux boundary conditions
 !  (2 ) UPBDFLX_O3     : Computes flux of O3 from stratosphere, using Synoz
 !  (3 ) UPBDFLX_NOY    : Computes flux of NOy from stratosphere
+!  (4 ) INIT_UPBDFLX   : Gets IORD, JORD, KORD values from "input_mod.f"
 !
 !  GEOS-CHEM modules referenced by upbdflx_mod.f
 !  ============================================================================
 !  (1 ) bpch2_mod.f    : Module containing routines for binary punch file I/O
 !  (2 ) error_mod.f    : Module containing NaN and other error check routines
-!  (3 ) tracerid_mod.f : Module containing pointers to tracers & emissions
-!  (4 ) upbdflx_mod.f  : Module containing routines to compute P(I,J,L)
+!  (3 ) logical_mod.f  : Module containing GEOS-CHEM logical switches
+!  (4 ) tracer_mod.f   : Module containing GEOS-CHEM tracer array STT etc.
+!  (5 ) tracerid_mod.f : Module containing pointers to tracers & emissions
+!  (6 ) pressure_mod.f : Module containing routines to compute P(I,J,L)
 !
 !  NOTES: 
 !  (1 ) Routine "upbdflx_noy" now correctly reprocessed P(NOy) files from
@@ -40,9 +49,30 @@
 !  (13) Change O3 flux for GEOS-3 to 500 Tg/yr in UPBDFLX_O3 (bmy, 9/15/03)
 !  (14) Now references "tagged_ox_mod.f" (bmy, 8/19/03)
 !  (15) Now activated parallel DO loops (bmy, 4/15/04)
+!  (16) Now made IORD, JORD, KORD module variables.  Now added routine
+!        SET_UPBDFLX.  Now added routine SET_TRANSPORT (bmy, 7/20/04)
 !******************************************************************************
 !      
       IMPLICIT NONE
+
+      !=================================================================
+      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
+      ! and routines from being seen outside "upbdflx_mod.f"
+      !=================================================================
+      
+      ! Make everything PRIVATE ...
+      PRIVATE
+
+      ! ... except these routines
+      PUBLIC  :: DO_UPBDFLX
+      PUBLIC  :: UPBDFLX_O3
+      PUBLIC  :: UPBDFLX_NOY
+      PUBLIC  :: INIT_UPBDFLX
+
+      !=================================================================
+      ! MODULE VARIABLES
+      !=================================================================
+      INTEGER :: IORD, JORD, KORD
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -51,48 +81,55 @@
 
 !------------------------------------------------------------------------------
       
-      SUBROUTINE DO_UPBDFLX( IORD, JORD, KORD )
+      !-------------------------------------------------
+      ! Prior to 7/20/04:
+      !SUBROUTINE DO_UPBDFLX( IORD, JORD, KORD )
+      !-------------------------------------------------
+      SUBROUTINE DO_UPBDFLX
 !
 !******************************************************************************
 !  Subroutine DO_UPBDFLX is the driver routine for the stratospheric (upper-
-!  boundary) routines for Ox and NOy. (bmy, 3/11/03)
-!
-!  Arguments as Input:
-!  ===========================================================================
-!  (1 ) IORD (INTEGER) : TPCORE E/W      transport option flag 
-!  (2 ) JORD (INTEGER) : TPCORE N/S      transport option flag
-!  (3 ) KORD (INTEGER) : TPCORE vertical transport option flag
+!  boundary) routines for Ox and NOy. (bmy, 3/11/03, 7/20/04)
 !  
 !  NOTES:
+!  (1 ) Removed IORD, JORD, KORD from the arg list.  Now references LPRT
+!        from "logical_mod.f".  Now references ITS_A_FULLCHEM_SIM and
+!        ITS_A_TAGOX_SIM from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD, ONLY : DEBUG_MSG
+      USE ERROR_MOD,   ONLY : DEBUG_MSG
+      USE LOGICAL_MOD, ONLY : LPRT
+      USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGOX_SIM
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! NSRCX, LPRT
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: IORD, JORD, KORD
 
       !=================================================================
       ! DO_UPBDFLX begins here!
       !=================================================================
-      SELECT CASE ( NSRCX )
 
-         ! Full chem w/ SMVGEAR: set O3 and NOY fluxes
-         CASE ( 3 )
-            CALL UPBDFLX_O3( IORD, JORD, KORD )
-            CALL UPBDFLX_NOY( 1 )
+      IF ( ITS_A_FULLCHEM_SIM() ) THEN
 
-         ! Tagged Ox: set O3 fluxes
-         CASE ( 6 )
-            CALL UPBDFLX_O3( IORD, JORD, KORD )
+         !---------------
+         ! Fullchem run
+         !---------------
 
-         CASE DEFAULT
-            ! Nothing
-                  
-      END SELECT
+         ! Ox from strat 
+         CALL UPBDFLX_O3
+
+         ! NOy from strat
+         CALL UPBDFLX_NOY( 1 )
+
+      ELSE IF ( ITS_A_TAGOX_SIM() ) THEN
+
+         !---------------
+         ! Tagged Ox run
+         !---------------
+
+         ! Ox from strat
+         CALL UPBDFLX_O3
+
+      ENDIF
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_UPBDFLX: after strat fluxes' )
@@ -102,18 +139,12 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE UPBDFLX_O3( IORD, JORD, KORD )      
+      SUBROUTINE UPBDFLX_O3      
 !
 !******************************************************************************
 !  Subroutine UPBDFLX_O3 establishes the flux boundary condition for Ozone
 !  coming down from the stratosphere, using the Synoz algorithm of
 !  McLinden et al, 2000. (qli, bmy, 12/13/99, 4/15/04)
-!
-!  Arguments as Input:
-!  ===========================================================================
-!  (1 ) IORD (INTEGER) : TPCORE flag for longitude transport options 
-!  (2 ) JORD (INTEGER) : TPCORE flag for latitude  transport options 
-!  (3 ) KORD (INTEGER) : TPCORE flag for vertical  transport options 
 !
 !  Reference:
 !  ===========================================================================
@@ -163,6 +194,8 @@
 !  (20) Add GEOS_4 to the #if defined block. (bmy, 1/29/04)
 !  (21) Activated parallel DO-loops.  Now made STFLUX a local array
 !        in order to facilitate parallelization. (bmy, 4/15/04)
+!  (22) Removed IORD, JORD, KORD from the arg list.  Now reference STT and
+!        ITS_A_TAGOX_SIM from "tracer_mod.f".  
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -171,15 +204,11 @@
       USE PRESSURE_MOD,  ONLY : GET_PEDGE, GET_PCENTER
       USE TAGGED_OX_MOD, ONLY : ADD_STRAT_POX
       USE TIME_MOD,      ONLY : GET_TS_DYN
+      USE TRACER_MOD,    ONLY : STT, ITS_A_TAGOX_SIM
       USE TRACERID_MOD,  ONLY : IDTOX
       
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN"        ! STT, NSRCX
 #     include "CMN_GCTM"   ! Rdg0
-#     include "CMN_SETUP"  ! LSPLIT 
-
-      ! Arguments
-      INTEGER, INTENT(IN)  :: IORD, JORD, KORD
 
       ! Local variables
       LOGICAL, SAVE        :: FIRST = .TRUE.
@@ -357,7 +386,7 @@
             STT(I,J,L,NTRACER) = STT(I,J,L,NTRACER) + PO3 
 
             ! Store O3 flux for strat Ox tracer (Tagged Ox only)
-            IF ( NSRCX == 6 ) CALL ADD_STRAT_POX( I, J, L, PO3 )
+            IF ( ITS_A_TAGOX_SIM() ) CALL ADD_STRAT_POX( I, J, L, PO3 )
 
             ! Archive stratospheric O3 for printout in [Tg/yr]
             IF ( FIRST ) THEN
@@ -436,27 +465,30 @@
 !        AD from "dao_mod.f" for GEOS-1 (bmy, 4/14/03)
 !  (16) Activated parallel DO-loops.  Moved the computation of XRATIO into
 !        the IF block which only gets done once per month. (bmy, 4/15/04)
+!  (17) Now references STT from "tracer_mod.f".  Now references DATA_DIR 
+!        from "directory_mod.f". (bmy, 7/20/04)
 !******************************************************************************
 !      
       ! References to F90 modules
       USE BPCH2_MOD
-      USE DAO_MOD,      ONLY : AD
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE TRACERID_MOD, ONLY : IDTNOX,     IDTHNO3
-      USE TIME_MOD,     ONLY : GET_TS_DYN, GET_MONTH
-      USE TRANSFER_MOD, ONLY : TRANSFER_ZONAL
+      USE DAO_MOD,       ONLY : AD
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE TRACERID_MOD,  ONLY : IDTNOX,     IDTHNO3
+      USE TIME_MOD,      ONLY : GET_TS_DYN, GET_MONTH
+      USE TRACER_MOD,    ONLY : STT
+      USE TRANSFER_MOD,  ONLY : TRANSFER_ZONAL
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN"        ! STT 
+#     include "CMN"        ! LPAUSE
 #     include "CMN_O3"     ! XNUMOLAIR
-#     include "CMN_SETUP"  ! DATA_DIR
 
       ! Arguments
       INTEGER, INTENT(IN)  :: IFLAG
 
       ! Local variables
       INTEGER              :: I, J, L, LMIN
-      INTEGER, SAVE        :: LASTMONTH
+      INTEGER, SAVE        :: LASTMONTH = -99
 
       REAL*4               :: DTDYN, AIRDENS, PNOY
       REAL*4               :: ARRAY(1,JGLOB,LGLOB)
@@ -759,4 +791,29 @@
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE INIT_UPBDFLX( I_ORD, J_ORD, K_ORD )
+!
+!******************************************************************************
+!  Subroutine INIT_UPBDFLX passes IORD, JORD, and KORD values from 
+!  "input_mod.f" to "upbdflx_mod.f" (bmy, 7/20/04)
+! 
+!  NOTES:
+!******************************************************************************
+!
+      ! Arguments
+      INTEGER, INTENT(IN) :: I_ORD, J_ORD, K_ORD
+ 
+      !=================================================================
+      ! SET_UPBDFLX begins here!
+      !=================================================================
+      IORD = I_ORD
+      JORD = J_ORD
+      KORD = K_ORD 
+
+      ! Return to calling program
+      END SUBROUTINE INIT_UPBDFLX
+
+!------------------------------------------------------------------------------
+
+      ! End of module
       END MODULE UPBDFLX_MOD

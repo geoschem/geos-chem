@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.11 2004/05/24 17:28:59 bmy Exp $
+! $Id: sulfate_mod.f,v 1.12 2004/09/21 18:04:18 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 5/20/04)
+!  (rjp, bdf, bmy, 6/22/00, 7/20/04)
 !
 !  Module variables:
 !  ============================================================================
@@ -33,31 +33,30 @@
 !  (22) ESO2_bf    (REAL*8 ) : SO2 biofuel burning emissions    [kg SO2/box/s]
 !  (23) ESO2_sh    (REAL*8 ) : SO2 ship emissions               [kg SO2/box/s]
 !  (24) ESO4_an    (REAL*8 ) : SO4 anthropogenic emissions      [kg SO2/box/s]
-!  (25) IJSURF     (INTEGER) : 1-D grid box indices             [unitless]
-!  (26) JH2O2      (REAL*8 ) : Monthly mean J(H2O2) values      [s-1]
-!  (27) O3m        (REAL*8 ) : Monthly mean O3 concentration    [v/v]
-!  (28) PH2O2m     (REAL*8 ) : Monthly mean P(H2O2)             [molec/cm3/s]
-!  (29) PMSA_DMS   (REAL*8 ) : P(MSA) from DMS                  [v/v/timestep]
-!  (30) PSO2_DMS   (REAL*8 ) : P(SO2) from DMS                  [v/v/timestep]
-!  (31) PSO4_SO2   (REAL*8 ) : P(SO4) from SO2                  [v/v/timestep]
-!  (32) SSTEMP     (REAL*8 ) : Sea surface temperatures         [K]
-!  (33) VCLDF      (REAL*8 ) : Volume cloud frac. for SO2 aq.   [unitless]
-!  (34) NEV        (INTEGER) : Max # of eruptive volcanoes      [unitless]
-!  (35) IEV        (INTEGER) : Longitudes of eruptive volcanoes [degrees]  
-!  (36) JEV        (INTEGER) : Latitudes of eruptive volcanoes  [degrees ]
-!  (37) IHGHT      (INTEGER) : Height of eruptive volcano plume [m]
-!  (38) IELVe      (INTEGER) : Elevation of eruptive volcanoes  [m]
-!  (39) Eev        (REAL*8 ) : SO2 em. from eruptive volcanoes  [kg SO2/box/s]
-!  (40) NNV        (INTEGER) : Max # of non-eruptive volcanoes  [unitless]
-!  (41) NNVOL      (INTEGER) : Number of non-eruptive volcanoes [unitless]
-!  (42) INV        (INTEGER) : Longitude of non-erup volcanoes  [degrees]
-!  (43) JNV        (INTEGER) : Latitude of non-erup volcanoes   [degrees]
-!  (44) IELVn      (INTEGER) : Elevation of non-erup volcanoes  [m]
-!  (45) Env        (INTEGER) : SO2 em. from non-erup volcanoes  [kg SO2/box/s]
-!  (46) TCOSZ      (REAL*8 ) : Sum of cos(SZA) for offline run  [unitless] 
-!  (47) TTDAY      (REAL*8 ) : Total daylight length at (I,J)   [minutes]
-!  (48) SMALLNUM   (REAL*8 ) : Small number - prevent underflow [unitless]
-!  (49) COSZM      (REAL*8 ) : Array for MAX(cos(SZA)) at (I,J) [unitless]
+!  (25) JH2O2      (REAL*8 ) : Monthly mean J(H2O2) values      [s-1]
+!  (26) O3m        (REAL*8 ) : Monthly mean O3 concentration    [v/v]
+!  (27) PH2O2m     (REAL*8 ) : Monthly mean P(H2O2)             [molec/cm3/s]
+!  (28) PMSA_DMS   (REAL*8 ) : P(MSA) from DMS                  [v/v/timestep]
+!  (29) PSO2_DMS   (REAL*8 ) : P(SO2) from DMS                  [v/v/timestep]
+!  (30) PSO4_SO2   (REAL*8 ) : P(SO4) from SO2                  [v/v/timestep]
+!  (31) SSTEMP     (REAL*8 ) : Sea surface temperatures         [K]
+!  (32) VCLDF      (REAL*8 ) : Volume cloud frac. for SO2 aq.   [unitless]
+!  (33) NEV        (INTEGER) : Max # of eruptive volcanoes      [unitless]
+!  (34) IEV        (INTEGER) : Longitudes of eruptive volcanoes [degrees]  
+!  (35) JEV        (INTEGER) : Latitudes of eruptive volcanoes  [degrees ]
+!  (36) IHGHT      (INTEGER) : Height of eruptive volcano plume [m]
+!  (37) IELVe      (INTEGER) : Elevation of eruptive volcanoes  [m]
+!  (38) Eev        (REAL*8 ) : SO2 em. from eruptive volcanoes  [kg SO2/box/s]
+!  (39) NNV        (INTEGER) : Max # of non-eruptive volcanoes  [unitless]
+!  (40) NNVOL      (INTEGER) : Number of non-eruptive volcanoes [unitless]
+!  (41) INV        (INTEGER) : Longitude of non-erup volcanoes  [degrees]
+!  (42) JNV        (INTEGER) : Latitude of non-erup volcanoes   [degrees]
+!  (43) IELVn      (INTEGER) : Elevation of non-erup volcanoes  [m]
+!  (44) Env        (INTEGER) : SO2 em. from non-erup volcanoes  [kg SO2/box/s]
+!  (45) TCOSZ      (REAL*8 ) : Sum of cos(SZA) for offline run  [unitless] 
+!  (46) TTDAY      (REAL*8 ) : Total daylight length at (I,J)   [minutes]
+!  (47) SMALLNUM   (REAL*8 ) : Small number - prevent underflow [unitless]
+!  (48) COSZM      (REAL*8 ) : Array for MAX(cos(SZA)) at (I,J) [unitless]
 !  
 !  Module Routines:
 !  ===========================================================================
@@ -105,18 +104,21 @@
 !  (2 ) comode_mod.f      : Module containing SMVGEAR allocatable arrays
 !  (3 ) dao_mod.f         : Module containing DAO met field arrays
 !  (4 ) diag_mod.f        : Module containing GEOS-CHEM diagnostic arrays
-!  (5 ) drydep_mod.f      : Module containing GEOS-CHEM dry deposition routines
-!  (6 ) error_mod.f       : Module containing NaN, other error check routines
-!  (7 ) file_mod.f        : Module containing file unit numbers & error checks
-!  (8 ) grid_mod.f        : Module containing horizontal grid information
-!  (9 ) global_no3_mod.f  : Module containing routines to read 3-D NO3 field
-!  (10) global_oh_mod.f   : Module containing routines to read 3-D OH field
-!  (11) pressure_mod.f    : Module containing routines to compute P(I,J,L)
-!  (12) tracerid_mod.f    : Module containing pointers to tracers & emissions
-!  (13) transfer_mod.f    : Module containing routines to cast & resize arrays
-!  (14) time_mod.f        : Module containing routines to compute time & date
-!  (15) uvalbedo_mod.f    : Module containing UV albedo array and reader
-!  (16) wetscav_mod.f     : Module containing routines for wetdep & scavenging
+!  (5 ) directory_mod.f   : Module containing GEOS-CHEM data & met field dirs
+!  (6 ) drydep_mod.f      : Module containing GEOS-CHEM dry deposition routines
+!  (7 ) error_mod.f       : Module containing NaN, other error check routines
+!  (8 ) file_mod.f        : Module containing file unit numbers & error checks
+!  (9 ) grid_mod.f        : Module containing horizontal grid information
+!  (10) global_no3_mod.f  : Module containing routines to read 3-D NO3 field
+!  (11) global_oh_mod.f   : Module containing routines to read 3-D OH field
+!  (12) logical_mod.f     : Module containing GEOS-CHEM logical switches
+!  (13) pressure_mod.f    : Module containing routines to compute P(I,J,L)
+!  (14) tracer_mod.f      : Module containing GEOS-CHEM tracer array STT etc.
+!  (15) tracerid_mod.f    : Module containing pointers to tracers & emissions
+!  (16) transfer_mod.f    : Module containing routines to cast & resize arrays
+!  (17) time_mod.f        : Module containing routines to compute time & date
+!  (18) uvalbedo_mod.f    : Module containing UV albedo array and reader
+!  (19) wetscav_mod.f     : Module containing routines for wetdep & scavenging
 !
 !  References
 !  ============================================================================
@@ -161,6 +163,8 @@
 !        (rjp, bmy, 3/39/04)
 !  (22) Added more parallel DO-loops (bmy, 4/14/04)
 !  (23) Now add SO2 from ships (bec, bmy, 5/20/04)
+!  (24) Now references "directory_mod.f", "logical_mod.f" and "tracer_mod.f".
+!        Now removed IJSURF. (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -229,7 +233,10 @@
       REAL*8,  ALLOCATABLE :: ESO2_nv(:,:,:)
       REAL*8,  ALLOCATABLE :: ESO2_sh(:,:) 
       REAL*8,  ALLOCATABLE :: ESO4_an(:,:,:) 
-      REAL*8,  ALLOCATABLE :: IJSURF(:,:)
+      !------------------------------------------
+      ! Prior to 7/20/04:
+      !REAL*8,  ALLOCATABLE :: IJSURF(:,:)
+      !------------------------------------------
       REAL*8,  ALLOCATABLE :: JH2O2(:,:,:)
       REAL*8,  ALLOCATABLE :: LSO2_AQ(:,:,:)
       REAL*8,  ALLOCATABLE :: O3m(:,:,:)
@@ -404,25 +411,35 @@
 !  (3 ) Now remove NTIME, NHMSb from the arg list and call to OHNO3TIME.
 !        Now references functions GET_MONTH, GET_TS_CHEM, and GET_ELAPSED_SEC
 !        from the new "time_mod.f". (bmy, 3/27/03)
+!  (4 ) Now reference STT, TCVV, N_TRACERS, ITS_AN_AEROSOL_SIM from
+!        "tracer_mod.f".  Now reference ITS_A_NEW_MONTH from "time_mod.f".
+!        Now references LPRT from "logical_mod.f". (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,        ONLY : AD,     AIRDEN,  CLDF, 
      &                           SUNCOS, MAKE_RH, CONVERT_UNITS
       USE DRYDEP_MOD,     ONLY : DEPSAV, DEPNAME, NUMDEP
-      USE ERROR_MOD,      ONLY : DEBUG_MSG, CHECK_STT
+      USE ERROR_MOD,      ONLY : DEBUG_MSG
       USE GLOBAL_OH_MOD,  ONLY : GET_GLOBAL_OH
       USE GLOBAL_NO3_MOD, ONLY : GET_GLOBAL_NO3
-      USE TIME_MOD,       ONLY : GET_MONTH, GET_TS_CHEM, GET_ELAPSED_SEC
+      USE LOGICAL_MOD,    ONLY : LPRT
+      USE TIME_MOD,       ONLY : GET_MONTH,       GET_TS_CHEM, 
+     &                           GET_ELAPSED_SEC, ITS_A_NEW_MONTH
+      USE TRACER_MOD,     ONLY : STT,             TCVV, 
+     &                           N_TRACERS,       ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD
  
 #     include "CMN_SIZE"     ! Size parameters 
-#     include "CMN"          ! STT, TCVV, NSRCX
+!--------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"          ! STT, TCVV, NSRCX
+!--------------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE       :: FIRSTCHEM = .TRUE.
       INTEGER, SAVE       :: LASTMONTH = -99
-      INTEGER             :: I, J, L, N
+      INTEGER             :: I, J, L, N, MONTH
       REAL*8              :: DTCHEM
 
       ! External functions   
@@ -431,6 +448,9 @@
       !=================================================================
       ! CHEMSULFATE begins here!
       !=================================================================
+
+      ! Get current month
+      MONTH = GET_MONTH()
 
       ! Establish indices w/in DEPSAV array
       IF ( FIRSTCHEM ) THEN
@@ -464,15 +484,32 @@
          FIRSTCHEM = .FALSE.
       ENDIF
 
-      ! Read monthly mean fields for offline runs 
-      IF ( NSRCX == 10 .and. GET_MONTH() /= LASTMONTH ) THEN
-         CALL GET_GLOBAL_OH( GET_MONTH() )
-         CALL GET_GLOBAL_NO3( GET_MONTH() )
-         LASTMONTH = GET_MONTH()
-      ENDIF
+      !------------------------------------------------------------
+      ! Prior to 7/20/04:
+      !! Read monthly mean fields for offline runs 
+      !IF ( NSRCX == 10 .and. GET_MONTH() /= LASTMONTH ) THEN
+      !   CALL GET_GLOBAL_OH( GET_MONTH() )
+      !   CALL GET_GLOBAL_NO3( GET_MONTH() )
+      !   LASTMONTH = GET_MONTH()
+      !ENDIF
+      !
+      !! Compute time scaling arrays for offline OH, NO3
+      !IF ( NSRCX == 10 ) CALL OHNO3TIME
+      !------------------------------------------------------------
 
-      ! Compute time scaling arrays for offline OH, NO3
-      IF ( NSRCX == 10 ) CALL OHNO3TIME
+      ! If it's an offline simulation ...
+      IF ( ITS_AN_AEROSOL_SIM() ) THEN
+
+         ! Then read monthly data files ...
+         IF ( ITS_A_NEW_MONTH() ) THEN 
+            CALL GET_GLOBAL_OH( MONTH )
+            CALL GET_GLOBAL_NO3( MONTH )
+         ENDIF
+
+         ! And compute time scaling arrays for offline OH, NO3
+         CALL OHNO3TIME
+         
+      ENDIF
 
       ! Store NTIME in a shadow variable
       ELAPSED_SEC = GET_ELAPSED_SEC()
@@ -490,19 +527,39 @@
       !=================================================================
 
       ! Convert STT from [kg] -> [v/v] 
-      CALL CONVERT_UNITS( 1, NTRACE, TCVV(1:NTRACE), 
-     &                    AD,  STT(:,:,:,1:NTRACE) )
+!-----------------------------------------------------------
+! Prior to 7/20/04:
+!      CALL CONVERT_UNITS( 1, NTRACE, TCVV(1:NTRACE), 
+!     &                    AD,  STT(:,:,:,1:NTRACE) )
+!-----------------------------------------------------------
+      CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT )
 
-      ! DMS (offline only)
-      IF ( NSRCX == 10 ) THEN
+      !---------------------------------------------------------------------
+      ! Prior to 7/20/04:
+      !! DMS (offline only)
+      !IF ( NSRCX == 10 ) THEN
+      !   CALL CHEM_DMS
+      !   IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: after CHEM_DMS' ) 
+      !ENDIF
+      ! 
+      !! H2O2 (offline only)
+      !IF ( NSRCX == 10 ) THEN
+      !   CALL CHEM_H2O2
+      !   IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: CHEM_H2O2' )
+      !ENDIF
+      !---------------------------------------------------------------------
+
+      ! For offline runs only ...
+      IF ( ITS_AN_AEROSOL_SIM() ) THEN
+         
+         ! DMS (offline only)
          CALL CHEM_DMS
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: after CHEM_DMS' ) 
-      ENDIF
-
-      ! H2O2 (offline only)
-      IF ( NSRCX == 10 ) THEN
+      
+         ! H2O2 (offline only)
          CALL CHEM_H2O2
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: CHEM_H2O2' )
+
       ENDIF
 
       ! SO2 
@@ -529,10 +586,14 @@
       ! SULFUR NITRATE 
       CALL CHEM_NIT
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: after CHEM_NIT' )
-      
-      ! Convert STT from [v/v] -> [kg]
-      CALL CONVERT_UNITS( 2, NTRACE, TCVV(1:NTRACE), 
-     &                    AD, STT(:,:,:,1:NTRACE) )
+ 
+!-------------------------------------------------------------------------     
+! Prior to 7/20/04:
+!      ! Convert STT from [v/v] -> [kg]
+!      CALL CONVERT_UNITS( 2, NTRACE, TCVV(1:NTRACE), 
+!     &                    AD, STT(:,:,:,1:NTRACE) )
+!-------------------------------------------------------------------------     
+      CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT )
 
       ! We have already gone thru one chemistry iteration
       FIRSTCHEM = .FALSE. 
@@ -547,7 +608,7 @@
 !******************************************************************************
 !  Subroutine CHEM_DMS is the DMS chemistry subroutine from Mian Chin's    
 !  GOCART model, modified for use with the GEOS-CHEM model.
-!  (rjp, bdf, bmy, 5/31/00, 3/27/03)  
+!  (rjp, bdf, bmy, 5/31/00, 7/20/04)  
 !                                                                           
 !  Module Variables used:                                                     
 !  ============================================================================
@@ -587,6 +648,8 @@
 !        for coupled chemistry-aerosol runs. (rjp, bdf, bmy, 9/16/02)
 !  (2 ) Bug fix: remove duplicate definition of RK3 (bmy, 3/23/03)
 !  (3 ) Now use function GET_TS_CHEM from "time_mod.f".  (bmy, 3/27/03)
+!  (4 ) Now reference STT and ITS_A_FULLCHEM_SIM from "tracer_mod.f"
+!        Now replace IJSURF w/ an analytic function. (bmy, 7/20/04)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -594,15 +657,17 @@
       USE DIAG_MOD,     ONLY : AD05
       USE DRYDEP_MOD,   ONLY : DEPSAV
       USE TIME_MOD,     ONLY : GET_TS_CHEM
+      USE TRACER_MOD,   ONLY : STT, ITS_A_FULLCHEM_SIM
       USE TRACERID_MOD, ONLY : IDTDMS
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! NSRCX, LPAUSE
+#     include "CMN"          ! LPAUSE
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_GCTM"     ! AIRMW
 #     include "CMN_DIAG"     ! ND05, LD05
 
       ! Local variables
+      LOGICAL                :: IS_FULLCHEM
       INTEGER                :: I,   J,    L,      IJLOOP
       REAL*8                 :: TK,  O2,   RK1,    RK2,    RK3,   F  
       REAL*8                 :: DMS, DMS0, DMS_OH, DTCHEM, XOH,   XN3 
@@ -627,6 +692,9 @@
       !=================================================================
       IF ( IDTDMS == 0 ) RETURN
 
+      ! Flag for fullchem simulation
+      IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
+
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
 
@@ -649,7 +717,12 @@
          IF ( L >= LPAUSE(I,J) ) CYCLE
 
          ! IJLOOP is the 1-D grid box index for SUNCOS
-         IJLOOP = IJSURF(I,J)
+         !----------------------------------------------
+         ! Prior to 7/20/04:
+         ! Replace IJSURF w/ analytic function
+         !IJLOOP = IJSURF(I,J)
+         !----------------------------------------------
+         IJLOOP = ( (J-1) * IIPAR ) + I
 
          ! Temperature [K]
          TK     = T(I,J,L)
@@ -702,8 +775,12 @@
          OH0    = OH
          XNO30  = XNO3
 
-         IF ( NSRCX == 3 ) THEN
-
+         !------------------------
+         ! Prior to 7/20/04:
+         !IF ( NSRCX == 3 ) THEN
+         !------------------------
+         IF ( IS_FULLCHEM ) THEN
+         
             ! Update OH after rxn w/ DMS (coupled runs only)
             OH    = OH0 - ( ( DMS0 - DMS_OH ) * AIRDEN(L,I,J) * f )
             IF ( OH < SMALLNUM ) OH = 0d0
@@ -779,7 +856,11 @@
          ! For a coupled fullchem/aerosol run, save OH [molec/cm3] 
          ! and NO3 [molec/cm3] back into the CSPEC array of SMVGEAR
          !==============================================================
-         IF ( NSRCX == 3 ) THEN
+         !------------------------
+         ! Prior to 7/20/04:
+         !IF ( NSRCX == 3 ) THEN
+         !------------------------
+         IF ( IS_FULLCHEM ) THEN
             CALL SET_OH( I, J, L, OH )
             CALL SET_NO3( I, J, L, XNO3 )
          ENDIF
@@ -798,7 +879,7 @@
 !******************************************************************************
 !  Subroutine CHEM_H2O2 is the H2O2 chemistry subroutine for offline sulfate
 !  simulations.  For coupled runs, H2O2 chemistry is already computed by
-!  the SMVGEAR module. (rjp, bmy, 11/26/02, 4/14/04)
+!  the SMVGEAR module. (rjp, bmy, 11/26/02, 7/20/04)
 !                                                                           
 !  NOTES:
 !  (1 ) Bug fix: need to multiply DXYP by 1d4 for cm2 (bmy, 3/23/03)
@@ -814,24 +895,32 @@
 !        the ND44 diagnostic. (rjp, bmy, 3/30/04)
 !  (6 ) Now use parallel DO-loop to zero ND44_TMP.  Now uses ITS_A_NEW_MONTH
 !        from time_mod.f. (bmy, 4/14/04)
+!  (7 ) Now reference STT & TCVV from "tracer_mod.f".  Also replace IJSURF
+!        with an analytic function.  Now references DATA_DIR from 
+!        "directory_mod.f". (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE DAO_MOD,      ONLY : AD, AIRDEN, OPTD, SUNCOS, T
-      USE DIAG_MOD,     ONLY : AD44 
-      USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE TIME_MOD,     ONLY : GET_MONTH, GET_TS_CHEM, ITS_A_NEW_MONTH
-      USE TRACERID_MOD, ONLY : IDTH2O2
-      USE TRANSFER_MOD, ONLY : TRANSFER_3D_TROP
-      USE UVALBEDO_MOD, ONLY : UVALBEDO
+      USE DAO_MOD,       ONLY : AD, AIRDEN, OPTD, SUNCOS, T
+      USE DIAG_MOD,      ONLY : AD44 
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE DRYDEP_MOD,    ONLY : DEPSAV, PBLFRAC
+      USE GRID_MOD,      ONLY : GET_AREA_CM2
+      USE TIME_MOD,      ONLY : GET_MONTH, GET_TS_CHEM, ITS_A_NEW_MONTH
+      USE TRACER_MOD,    ONLY : STT, TCVV
+      USE TRACERID_MOD,  ONLY : IDTH2O2
+      USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
+      USE UVALBEDO_MOD,  ONLY : UVALBEDO
  
 #     include "cmn_fj.h"     ! IPAR, JPAR, LPAR, CMN_SIZE
-#     include "CMN"          ! TCVV, LPAUSE
+#     include "CMN"          ! LPAUSE
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_GCTM"     ! AIRMW
-#     include "CMN_SETUP"    ! DATA_DIR
+!------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"    ! DATA_DIR
+!------------------------------------------
 #     include "CMN_DIAG"     ! ND44
       
       ! Local variables
@@ -874,11 +963,6 @@
       !=================================================================
       ! For offline run: read J(H2O2) from disk below
       !=================================================================
-      !------------------------------------------------------
-      ! Prior to 4/14/04:
-      ! Now use ITS_A_NEW_MONTH from TIME_MOD (bmy, 4/14/04)
-      !IF ( GET_MONTH() /= LASTMONTH ) THEN 
-      !------------------------------------------------------
       IF ( ITS_A_NEW_MONTH() ) THEN
 
          ! File name to read data 
@@ -937,8 +1021,12 @@
          FREQ  = DEPSAV(I,J,DRYH2O2) * PBLFRAC(I,J,L)
 
          ! 1-D grid box index for SUNCOS
-         JLOOP = IJSURF(I,J)
- 
+         !--------------------------------
+         ! Prior to 7/20/04:
+         !JLOOP = IJSURF(I,J)
+         !--------------------------------
+         JLOOP = ( (J-1) * IIPAR ) + I
+
          ! Impose a diurnal variation of jH2O2 by multiplying COS of 
          ! solar zenith angle normalized by maximum solar zenith angle 
          ! because the archived JH2O2 is for local noon time
@@ -1007,7 +1095,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_SO2 is the SO2 chemistry subroutine 
-!  (rjp, bmy, 11/26/02, 4/14/04) 
+!  (rjp, bmy, 11/26/02, 7/20/04) 
 !                                                                          
 !  Module variables used:
 !  ============================================================================
@@ -1049,26 +1137,33 @@
 !        sum into AD44 array.  This preents numerical differences when using
 !        multiple processors. (bmy, 3/24/04)
 !  (6 ) Now use parallel DO-loop to zero ND44_TMP (bmy, 4/14/04)
+!  (7 ) Now reference STT, TCVV, & ITS_AN_AEROSOL_SIM from "tracer_mod.f".
+!        Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
-      USE DAO_MOD,      ONLY : AD,      AIRDEN, T
-      USE DIAG_MOD,     ONLY : AD05,    AD44
-      USE DRYDEP_MOD,   ONLY : DEPSAV,  PBLFRAC
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE PRESSURE_MOD, ONLY : GET_PCENTER
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE TRACERID_MOD, ONLY : IDTH2O2, IDTSO2
-      USE WETSCAV_MOD,  ONLY : H2O2s,   SO2s
+      USE DAO_MOD,       ONLY : AD,      AIRDEN, T
+      USE DIAG_MOD,      ONLY : AD05,    AD44
+      USE DRYDEP_MOD,    ONLY : DEPSAV,  PBLFRAC
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE GRID_MOD,      ONLY : GET_AREA_CM2
+      USE PRESSURE_MOD,  ONLY : GET_PCENTER
+      USE TIME_MOD,      ONLY : GET_TS_CHEM
+      USE TRACER_MOD,    ONLY : STT,     TCVV,  ITS_AN_AEROSOL_SIM
+      USE TRACERID_MOD,  ONLY : IDTH2O2, IDTSO2
+      USE WETSCAV_MOD,   ONLY : H2O2s,   SO2s
 
 #     include "CMN_SIZE"    ! Size parameters
-#     include "CMN"         ! NCHEM, STT, LPAUSE
+#     include "CMN"         ! LPAUSE
 #     include "CMN_GCTM"    ! AIRMW
 #     include "CMN_O3"      ! XNUMOL
 #     include "CMN_DIAG"    ! LD05, ND05, ND44
-#     include "CMN_SETUP"   ! DATA_DIR
+!-------------------------------------------------
+!#     include "CMN_SETUP"   ! DATA_DIR
+!-------------------------------------------------
 
       ! Local variables
+      LOGICAL               :: IS_OFFLINE
       INTEGER               :: I,      J,       L,      I1,   I2
       INTEGER               :: II,     NSTEP
       REAL*8                :: K0,     Ki,      KK,     M,    L1
@@ -1088,6 +1183,9 @@
       ! CHEM_SO2 begins here!
       !=================================================================
       IF ( IDTH2O2 == 0 .or. IDTSO2 == 0 .or. DRYSO2 == 0 ) RETURN
+
+      ! Is it an offline simulation?
+      IS_OFFLINE = ITS_AN_AEROSOL_SIM()
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
@@ -1141,7 +1239,11 @@
          ! TK : Temperature [K]
          TK     = T(I,J,L)
 
-         IF ( NSRCX == 10 ) THEN
+         !---------------------------
+         ! Prior to 7/20/04:
+         !IF ( NSRCX == 10 ) THEN
+         !---------------------------
+         IF ( IS_OFFLINE ) THEN
 
             ! Gas phase SO4 production is done here in offline run only 
             ! RK1: SO2 + OH(g) [s-1]  (rjp, bmy, 3/23/03)
@@ -1595,7 +1697,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_SO4 is the SO4 chemistry subroutine from Mian Chin's GOCART
-!  model, modified for the GEOS-CHEM model. (rjp, bdf, bmy, 5/31/00, 4/14/04) 
+!  model, modified for the GEOS-CHEM model. (rjp, bdf, bmy, 5/31/00, 7/20/04) 
 !                                                                          
 !  Module Variables Used:
 !  ============================================================================
@@ -1620,6 +1722,7 @@
 !        sum into AD44 array.  This preents numerical differences when using
 !        multiple processors. (bmy, 3/24/04)
 !  (5 ) Now use parallel DO-loop to zero ND44_TMP (bmy, 4/14/04)
+!  (6 ) Now reference STT & TCVV from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1628,10 +1731,11 @@
       USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TIME_MOD,     ONLY : GET_TS_CHEM
+      USE TRACER_MOD,   ONLY : STT, TCVV
       USE TRACERID_MOD, ONLY : IDTSO4
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! STT
+#     include "CMN"          ! LPAUSE
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44
 
@@ -1761,7 +1865,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_MSA is the SO4 chemistry subroutine from Mian Chin's GOCART
-!  model, modified for the GEOS-CHEM model. (rjp, bdf, bmy, 5/31/00, 4/14/04)
+!  model, modified for the GEOS-CHEM model. (rjp, bdf, bmy, 5/31/00, 7/20/04)
 !                                                                          
 !  Module Variables Used:
 !  ============================================================================
@@ -1786,6 +1890,7 @@
 !        sum into AD44 array.  This preents numerical differences when using
 !        multiple processors. (bmy, 3/24/04) 
 !  (5 ) Now use parallel DO-loop to zero ND44_TMP (bmy, 4/14/04)
+!  (6 ) Now references STT & TCVV from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1794,10 +1899,11 @@
       USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TIME_MOD,     ONLY : GET_TS_CHEM
+      USE TRACER_MOD,   ONLY : STT, TCVV
       USE TRACERID_MOD, ONLY : IDTMSA
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! NCHEM
+#     include "CMN"          ! LPAUSE
 #     include "CMN_GCTM"     ! AIRMW
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44
@@ -1920,7 +2026,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_NH3 removes NH3 from the surface via dry deposition.
-!  (rjp, bdf, bmy, 1/2/02, 4/14/04)  
+!  (rjp, bdf, bmy, 1/2/02, 7/20/04)  
 !                                                                          
 !  Reaction List:
 !  ============================================================================
@@ -1938,6 +2044,8 @@
 !        sum into AD44 array.  This preents numerical differences when using
 !        multiple processors. (bmy, 3/24/04)    
 !  (5 ) Now use parallel DO-loop to zero ND44_TMP (bmy, 4/14/04)
+!  (6 ) Now references STT & TCVV from "tracer_mod.f" Also remove reference to
+!        CMN, it's not needed(bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1946,10 +2054,14 @@
       USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TIME_MOD,     ONLY : GET_TS_CHEM
+      USE TRACER_MOD,   ONLY : STT, TCVV
       USE TRACERID_MOD, ONLY : IDTNH3
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! TCVV, LPAUSE
+!-----------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"          ! LPAUSE
+!-----------------------------------------------
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44
 
@@ -2062,7 +2174,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_NH4 removes NH4 from the surface via dry deposition.
-!  (rjp, bdf, bmy, 1/2/02, 4/14/04)  
+!  (rjp, bdf, bmy, 1/2/02, 7/20/04)  
 !                                                                          
 !  Reaction List:
 !  ============================================================================
@@ -2080,6 +2192,8 @@
 !        sum into AD44 array.  This preents numerical differences when using
 !        multiple processors. (bmy, 3/24/04)    
 !  (5 ) Now use parallel DO-loop to zero ND44_TMP (bmy, 4/14/04)
+!  (6 ) Now reference STT & TCVV from "tracer_mod.f".   Also remove reference 
+!        to CMN, it's not needed (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2088,10 +2202,14 @@
       USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TIME_MOD,     ONLY : GET_TS_CHEM
+      USE TRACER_MOD,   ONLY : STT, TCVV
       USE TRACERID_MOD, ONLY : IDTNH4
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! STT, LPAUSE
+!--------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"       ! LPAUSE
+!--------------------------------------------
 #     include "CMN_O3"    ! XNUMOL
 #     include "CMN_DIAG"  ! ND44
 
@@ -2203,7 +2321,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_NIT removes SULFUR NITRATES (NIT) from the surface 
-!  via dry deposition. (rjp, bdf, bmy, 1/2/02, 4/14/04)  
+!  via dry deposition. (rjp, bdf, bmy, 1/2/02, 7/20/04)  
 !                                                                          
 !  Reaction List:
 !  ============================================================================
@@ -2221,6 +2339,8 @@
 !        sum into AD44 array.  This preents numerical differences when using
 !        multiple processors. (bmy, 3/24/04)    
 !  (5 ) Now use parallel DO-loop to zero ND44_TMP (bmy, 4/14/04)
+!  (6 ) Now reference STT & TCVV from "tracer_mod.f".  Also remove reference
+!        to CMN, it's not needed anymore. (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2229,10 +2349,14 @@
       USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TIME_MOD,     ONLY : GET_TS_CHEM
+      USE TRACER_MOD,   ONLY : STT, TCVV
       USE TRACERID_MOD, ONLY : IDTNIT
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! STT
+!------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"          ! LPAUSE
+!------------------------------------------
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44
 
@@ -2343,7 +2467,7 @@
 !
 !******************************************************************************
 !  Subroutine EMISSSULFATE is the interface between the GEOS-CHEM model and
-!  the sulfate emissions routines in "sulfate_mod.f" (bmy, 6/7/00, 5/20/04)
+!  the sulfate emissions routines in "sulfate_mod.f" (bmy, 6/7/00, 7/20/04)
 ! 
 !  NOTES:
 !  (1 ) BXHEIGHT is now dimensioned IIPAR,JJPAR,LLPAR (bmy, 9/26/01)
@@ -2364,20 +2488,29 @@
 !  (6 ) Added first-time printout message (bmy, 4/6/04)
 !  (7 ) Now references CMN_SETUP.  Now read ship SO2 if LSHIPSO2=T.  Also
 !        references ITS_A_NEW_MONTH from "time_mod.f". (bec, bmy, 5/20/04)
+!  (8 ) Now references STT and ITS_AN_AEROSOL_SIM from "tracer_mod.f".  
+!        Now references LSHIPSO2 from "logical_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,   ONLY : CHECK_STT
+      USE LOGICAL_MOD, ONLY : LSHIPSO2
       USE TIME_MOD,    ONLY : GET_SEASON, GET_MONTH, ITS_A_NEW_MONTH
+      USE TRACER_MOD,  ONLY : STT, ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! STT, NSRCX
-#     include "CMN_SETUP" ! LSHIPSO2
+!----------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"       ! STT, NSRCX
+!#     include "CMN_SETUP" ! LSHIPSO2
+!----------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE      :: FIRSTEMISS = .TRUE. 
-      INTEGER, SAVE      :: LASTMONTH  = -99
+      !--------------------------------------------
+      ! Prior to 7/20/04:
+      !INTEGER, SAVE      :: LASTMONTH  = -99
+      !--------------------------------------------
       INTEGER            :: NSEASON, MONTH   
 
       !=================================================================
@@ -2419,10 +2552,6 @@
       !=================================================================
       ! If this is a new month, read in the monthly mean quantities
       !=================================================================
-      !-------------------------------------
-      ! Prior to 5/20/04:
-      !IF ( MONTH /= LASTMONTH ) THEN 
-      !-------------------------------------
       IF ( ITS_A_NEW_MONTH() ) THEN 
 
          ! Read monthly mean data
@@ -2439,13 +2568,12 @@
          IF ( LSHIPSO2 ) CALL READ_SHIP_SO2( MONTH )
 
          ! Read oxidants for the offline simulation only
-         IF ( NSRCX == 10 ) CALL READ_OXIDANT( MONTH )
-      
-         !--------------------------------------------
-         ! Prior to 5/20/04:
-         !! Save for next month
-         !LASTMONTH = MONTH
-         !--------------------------------------------
+         !---------------------------------------------------------
+         ! Prior to 7/20/04:
+         !IF ( NSRCX == 10 ) CALL READ_OXIDANT( MONTH )
+         !---------------------------------------------------------
+         IF ( ITS_AN_AEROSOL_SIM() ) CALL READ_OXIDANT( MONTH )
+
       ENDIF
 
       !=================================================================
@@ -2491,7 +2619,7 @@
       USE TIME_MOD,     ONLY : GET_TS_EMIS
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! STT, XTRA2
+#     include "CMN"          ! XTRA2
 #     include "CMN_DIAG"     ! ND13 (for now)
 #     include "CMN_GCTM"     ! SCALE_HEIGHT
 
@@ -2694,7 +2822,7 @@
 !
 !******************************************************************************
 !  Subroutine SRCSO2 (originally from Mian Chin) computes SO2 emissons from 
-!  aircraft, biomass, and anthro sources. (rjp, bdf, bmy, 6/2/00, 5/20/04)
+!  aircraft, biomass, and anthro sources. (rjp, bdf, bmy, 6/2/00, 7/20/04)
 !
 !  Arguments as Input/Output:
 !  ===========================================================================
@@ -2712,6 +2840,7 @@
 !        to hold PBL thickness in [hPa]. (bmy, 1/15/04)
 !  (4 ) Now references AD13_SO2_sh array from "diag_mod.f".  Also references
 !        LSHIPSO2 from "CMN_SETUP" (bec, bmy, 5/20/04) 
+!  (5 ) Now references LSHIPSO2 from "logical_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -2720,6 +2849,7 @@
      &                         AD13_SO2_sh
       USE DAO_MOD,      ONLY : BXHEIGHT, PBL
       USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE LOGICAL_MOD,  ONLY : LSHIPSO2
       USE PRESSURE_MOD, ONLY : GET_PEDGE
       USE TIME_MOD,     ONLY : GET_TS_EMIS, GET_DAY_OF_YEAR
 
@@ -2727,7 +2857,10 @@
 #     include "CMN"          ! XTRA2
 #     include "CMN_DIAG"     ! ND13, LD13 (for now)
 #     include "CMN_GCTM"     ! SCALE_HEIGHT
-#     include "CMN_SETUP"    ! LSHIPSO2
+!-----------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"    ! LSHIPSO2
+!-----------------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NSEASON
@@ -3269,7 +3402,7 @@
       USE TIME_MOD,     ONLY : GET_TS_EMIS
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! STT, XTRA2
+#     include "CMN"          ! XTRA2
 #     include "CMN_DIAG"     ! ND13
 #     include "CMN_GCTM"     ! SCALE_HEIGHT
       
@@ -3420,7 +3553,7 @@
 !******************************************************************************
 !  Function GET_OH returns OH from SMVGEAR's CSPEC array (for coupled runs)
 !  or monthly mean OH (for offline runs).  Imposes a diurnal variation on
-!  OH for offline simulations. (bmy, 12/16/02)
+!  OH for offline simulations. (bmy, 12/16/02, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -3429,6 +3562,9 @@
 !  NOTES:
 !  (1 ) We assume SETTRACE has been called to define IDOH (bmy, 11/1/02)
 !  (2 ) Now use function GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
+!  (3 ) Now reference ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM from 
+!        "tracer_mod.f".  Also replace IJSURF w/ an analytic function. 
+!        (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3437,10 +3573,14 @@
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE GLOBAL_OH_MOD, ONLY : OH
       USE TIME_MOD,      ONLY : GET_TS_CHEM
+      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,  ONLY : IDOH
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! NSRCX
+!-----------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"       ! NSRCX
+!-----------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -3452,55 +3592,116 @@
       !=================================================================
       ! GET_OH begins here!
       !=================================================================
-      SELECT CASE ( NSRCX ) 
-      
+!--------------------------------------------------------------------------- 
+! Prior to 7/20/04:
+! Now use inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
+!      SELECT CASE ( NSRCX ) 
+!      
+!         !---------------------
+!         ! Coupled simulation
+!         !---------------------
+!         CASE ( 3 )
+!
+!            ! JLOOP = SMVGEAR 1-D grid box index
+!            JLOOP = JLOP(I,J,L)
+!
+!            ! Take OH from the SMVGEAR array CSPEC
+!            ! OH is defined only in the troposphere
+!            IF ( JLOOP > 0 ) THEN
+!               OH_MOLEC_CM3 = CSPEC(JLOOP,IDOH)
+!            ELSE
+!               OH_MOLEC_CM3 = 0d0
+!            ENDIF
+!
+!         !---------------------
+!         ! Offline simulation
+!         !---------------------
+!         CASE ( 10 )
+!
+!            ! 1-D grid box index for SUNCOS
+!            JLOOP = IJSURF(I,J)
+!
+!            ! Test for sunlight...
+!            IF ( SUNCOS(JLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+!
+!               ! Impose a diurnal variation on OH during the day
+!               OH_MOLEC_CM3 = OH(I,J,L)                      *           
+!     &                        ( SUNCOS(JLOOP) / TCOSZ(I,J) ) *
+!     &                        ( 1440d0        / GET_TS_CHEM() )
+!
+!               ! Make sure OH is not negative
+!               OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0d0 )
+!               
+!            ELSE
+!
+!               ! At night, OH goes to zero
+!               OH_MOLEC_CM3 = 0d0
+!
+!            ENDIF
+!
+!         ! Error check
+!         CASE DEFAULT
+!            CALL ERROR_STOP( 'Invalid NSRCX!', 'GET_OH (sulfate_mod.f)')
+!
+!      END SELECT
+!--------------------------------------------------------------------------- 
+
+      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+
          !---------------------
          ! Coupled simulation
          !---------------------
-         CASE ( 3 )
 
-            ! JLOOP = SMVGEAR 1-D grid box index
-            JLOOP = JLOP(I,J,L)
+         ! JLOOP = SMVGEAR 1-D grid box index
+         JLOOP = JLOP(I,J,L)
 
-            ! Take OH from the SMVGEAR array CSPEC
-            ! OH is defined only in the troposphere
-            IF ( JLOOP > 0 ) THEN
-               OH_MOLEC_CM3 = CSPEC(JLOOP,IDOH)
-            ELSE
-               OH_MOLEC_CM3 = 0d0
-            ENDIF
+         ! Take OH from the SMVGEAR array CSPEC
+         ! OH is defined only in the troposphere
+         IF ( JLOOP > 0 ) THEN
+            OH_MOLEC_CM3 = CSPEC(JLOOP,IDOH)
+         ELSE
+            OH_MOLEC_CM3 = 0d0
+         ENDIF
+
+      ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
 
          !---------------------
          ! Offline simulation
          !---------------------
-         CASE ( 10 )
 
-            ! 1-D grid box index for SUNCOS
-            JLOOP = IJSURF(I,J)
+         ! 1-D grid box index for SUNCOS
+         !--------------------------------
+         ! Prior to 7/20/04:
+         !JLOOP = IJSURF(I,J)
+         !--------------------------------
+         JLOOP = ( (J-1) * IIPAR ) + I
 
-            ! Test for sunlight...
-            IF ( SUNCOS(JLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+         ! Test for sunlight...
+         IF ( SUNCOS(JLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
 
-               ! Impose a diurnal variation on OH during the day
-               OH_MOLEC_CM3 = OH(I,J,L)                      *           
-     &                        ( SUNCOS(JLOOP) / TCOSZ(I,J) ) *
-     &                        ( 1440d0        / GET_TS_CHEM() )
+            ! Impose a diurnal variation on OH during the day
+            OH_MOLEC_CM3 = OH(I,J,L)                      *           
+     &                     ( SUNCOS(JLOOP) / TCOSZ(I,J) ) *
+     &                     ( 1440d0        / GET_TS_CHEM() )
 
-               ! Make sure OH is not negative
-               OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0d0 )
+            ! Make sure OH is not negative
+            OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0d0 )
                
-            ELSE
+         ELSE
 
-               ! At night, OH goes to zero
-               OH_MOLEC_CM3 = 0d0
+            ! At night, OH goes to zero
+            OH_MOLEC_CM3 = 0d0
 
-            ENDIF
+         ENDIF
 
-         ! Error check
-         CASE DEFAULT
-            CALL ERROR_STOP( 'Invalid NSRCX!', 'GET_OH (sulfate_mod.f)')
+      ELSE
 
-      END SELECT
+         !---------------------
+         ! Invalid simulation
+         !---------------------         
+         CALL ERROR_STOP( 'Invalid NSRCX!', 'GET_OH (sulfate_mod.f)')
+
+      ENDIF
 
       ! Return to calling program
       END FUNCTION GET_OH
@@ -3567,6 +3768,9 @@
 !  (1 ) Now references ERROR_STOP from "error_mod.f".  We also assume that
 !        SETTRACE has been called to define IDNO3.  Now also set NO3 to 
 !        zero during the day. (rjp, bmy, 12/16/02)
+!  (2 ) Now reference ITS_A_FULLCHEM_SIM and ITS_AN_AEROSOL_SIM from 
+!        "tracer_mod.f".  Also remove reference to CMN.   Also replace
+!        IJSURF with an analytic function. (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3574,10 +3778,14 @@
       USE DAO_MOD,        ONLY : AD,    SUNCOS
       USE ERROR_MOD,      ONLY : ERROR_STOP
       USE GLOBAL_NO3_MOD, ONLY : NO3
+      USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,   ONLY : IDNO3
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! NSRCX
+!---------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"       ! NSRCX
+!---------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -3592,21 +3800,96 @@
       !=================================================================
       ! GET_NO3 begins here!
       !=================================================================
-      SELECT CASE ( NSRCX )
+!------------------------------------------------------------------------------
+! Prior to 7/20/04:
+!      SELECT CASE ( NSRCX )
+!
+!         ! Coupled chemistry/aerosol simulation
+!         CASE ( 3 )
+!            
+!            ! 1-D SMVGEAR grid box index
+!            JLOOP = JLOP(I,J,L)
+!
+!            ! Take NO3 from the SMVGEAR array CSPEC
+!            ! NO3 is defined only in the troposphere
+!            IF ( JLOOP > 0 ) THEN
+!               NO3_MOLEC_CM3 = CSPEC(JLOOP,IDNO3)
+!            ELSE
+!               NO3_MOLEC_CM3 = 0d0
+!            ENDIF
+!
+!         !==============================================================  
+!         ! Offline simulation: Read monthly mean GEOS-CHEM NO3 fields
+!         ! in [v/v].  Convert these to [molec/cm3] as follows:
+!         !
+!         !  vol NO3   moles NO3    kg air     kg NO3/mole NO3
+!         !  ------- = --------- * -------- * ---------------- =  kg NO3 
+!         !  vol air   moles air      1        kg air/mole air
+!         !
+!         ! And then we convert [kg NO3] to [molec NO3/cm3] by:
+!         !  
+!         !  kg NO3   molec NO3   mole NO3     1     molec NO3
+!         !  ------ * --------- * -------- * ----- = --------- 
+!         !     1     mole NO3     kg NO3     cm3       cm3
+!         !          ^                    ^
+!         !          |____________________|  
+!         !            this is XNUMOL_NO3
+!         !
+!         ! If at nighttime, use the monthly mean NO3 concentration from
+!         ! the NO3 array of "global_no3_mod.f".  If during the daytime,
+!         ! set the NO3 concentration to zero.  We don't have to relax to 
+!         ! the monthly mean concentration every 3 hours (as for HNO3) 
+!         ! since NO3 has a very short lifetime. (rjp, bmy, 12/16/02) 
+!         !==============================================================
+!         CASE ( 10 )
+!
+!            ! 1-D grid box index for SUNCOS
+!            JLOOP = IJSURF(I,J)
+!
+!            ! Test if daylight
+!            IF ( SUNCOS(JLOOP) > 0d0 ) THEN
+!
+!               ! NO3 goes to zero during the day
+!               NO3_MOLEC_CM3 = 0d0
+!              
+!            ELSE
+!
+!               ! At night: Get NO3 [v/v] and convert it to [kg]
+!               NO3_MOLEC_CM3 = NO3(I,J,L) * AD(I,J,L) * ( 62d0/28.97d0 ) 
+!               
+!               ! Convert NO3 from [kg] to [molec/cm3]
+!               NO3_MOLEC_CM3 = NO3_MOLEC_CM3 * XNUMOL_NO3 / BOXVL(I,J,L)
+!                  
+!            ENDIF
+!            
+!            ! Make sure NO3 is not negative
+!            NO3_MOLEC_CM3  = MAX( NO3_MOLEC_CM3, 0d0 )
+!
+!         ! Error check
+!         CASE DEFAULT
+!            CALL ERROR_STOP( 'Invalid NSRCX!','GET_NO3 (sulfate_mod.f)')
+!
+!      END SELECT
+!------------------------------------------------------------------------------
 
-         ! Coupled chemistry/aerosol simulation
-         CASE ( 3 )
+      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+
+         !--------------------
+         ! Coupled simulation
+         !--------------------
             
-            ! 1-D SMVGEAR grid box index
-            JLOOP = JLOP(I,J,L)
+         ! 1-D SMVGEAR grid box index
+         JLOOP = JLOP(I,J,L)
 
-            ! Take NO3 from the SMVGEAR array CSPEC
-            ! NO3 is defined only in the troposphere
-            IF ( JLOOP > 0 ) THEN
-               NO3_MOLEC_CM3 = CSPEC(JLOOP,IDNO3)
-            ELSE
-               NO3_MOLEC_CM3 = 0d0
-            ENDIF
+         ! Take NO3 from the SMVGEAR array CSPEC
+         ! NO3 is defined only in the troposphere
+         IF ( JLOOP > 0 ) THEN
+            NO3_MOLEC_CM3 = CSPEC(JLOOP,IDNO3)
+         ELSE
+            NO3_MOLEC_CM3 = 0d0
+         ENDIF
+
+      ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
 
          !==============================================================  
          ! Offline simulation: Read monthly mean GEOS-CHEM NO3 fields
@@ -3631,35 +3914,42 @@
          ! the monthly mean concentration every 3 hours (as for HNO3) 
          ! since NO3 has a very short lifetime. (rjp, bmy, 12/16/02) 
          !==============================================================
-         CASE ( 10 )
 
-            ! 1-D grid box index for SUNCOS
-            JLOOP = IJSURF(I,J)
 
-            ! Test if daylight
-            IF ( SUNCOS(JLOOP) > 0d0 ) THEN
+         ! 1-D grid box index for SUNCOS
+         !--------------------------------
+         ! Prior to 7/20/04:
+         !JLOOP = IJSURF(I,J)
+         !--------------------------------
+         JLOOP = ( (J-1) * IIPAR ) + I
 
-               ! NO3 goes to zero during the day
-               NO3_MOLEC_CM3 = 0d0
+         ! Test if daylight
+         IF ( SUNCOS(JLOOP) > 0d0 ) THEN
+
+            ! NO3 goes to zero during the day
+            NO3_MOLEC_CM3 = 0d0
               
-            ELSE
+         ELSE
 
-               ! At night: Get NO3 [v/v] and convert it to [kg]
-               NO3_MOLEC_CM3 = NO3(I,J,L) * AD(I,J,L) * ( 62d0/28.97d0 ) 
+            ! At night: Get NO3 [v/v] and convert it to [kg]
+            NO3_MOLEC_CM3 = NO3(I,J,L) * AD(I,J,L) * ( 62d0/28.97d0 ) 
                
-               ! Convert NO3 from [kg] to [molec/cm3]
-               NO3_MOLEC_CM3 = NO3_MOLEC_CM3 * XNUMOL_NO3 / BOXVL(I,J,L)
+            ! Convert NO3 from [kg] to [molec/cm3]
+            NO3_MOLEC_CM3 = NO3_MOLEC_CM3 * XNUMOL_NO3 / BOXVL(I,J,L)
                   
-            ENDIF
+         ENDIF
             
-            ! Make sure NO3 is not negative
-            NO3_MOLEC_CM3  = MAX( NO3_MOLEC_CM3, 0d0 )
+         ! Make sure NO3 is not negative
+         NO3_MOLEC_CM3  = MAX( NO3_MOLEC_CM3, 0d0 )
 
-         ! Error check
-         CASE DEFAULT
-            CALL ERROR_STOP( 'Invalid NSRCX!','GET_NO3 (sulfate_mod.f)')
+      ELSE
 
-      END SELECT
+         !--------------------
+         ! Invalid simulation
+         !--------------------
+         CALL ERROR_STOP( 'Invalid NSRCX!','GET_NO3 (sulfate_mod.f)')
+
+      ENDIF
 
       ! Return to calling program
       END FUNCTION GET_NO3
@@ -3670,7 +3960,7 @@
 !
 !******************************************************************************
 !  Function SET_NO3 saves the modified NO3 value back to SMVGEAR's CSPEC array
-!  for coupled lfate/aerosol simulations. (rjp, bmy, 12/16/02)
+!  for coupled lfate/aerosol simulations. (rjp, bmy, 12/16/02, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -3679,15 +3969,22 @@
 !
 !  NOTES:
 !  (1 ) We assume SETTRACE has been called to define IDNO3. (bmy, 12/16/02)
+!  (2 ) Remove references to "error_mod.f" and CMN (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE COMODE_MOD,   ONLY : CSPEC, JLOP
-      USE ERROR_MOD,    ONLY : ERROR_STOP
+      !----------------------------------------
+      ! Prior to 7/20/04:
+      !USE ERROR_MOD,    ONLY : ERROR_STOP
+      !----------------------------------------
       USE TRACERID_MOD, ONLY : IDNO3
       
 #     include "CMN_SIZE"  ! Size parameters 
-#     include "CMN"       ! NSRCX
+!---------------------------------------------
+! Prior 7/20/04:
+!#     include "CMN"       ! NSRCX
+!---------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -3699,27 +3996,39 @@
       !=================================================================
       ! SET_NO3 begins here!
       !=================================================================
+!------------------------------------------------------------------------------
+! Prior to 7/20/04:
+! We don't have to test here, because the call to SET_NO3 only called
+! for a fullchem simulation (bmy, 7/20/04)
+!      SELECT CASE ( NSRCX )
+!
+!         !--------------------
+!         ! Coupled simulation
+!         !--------------------
+!         CASE ( 3 ) 
+!
+!            ! 1-D grid box index for CSPEC
+!            JLOOP = JLOP(I,J,L) 
+!
+!            ! Replace OH into CSPEC (troposphere only)
+!            IF ( JLOOP > 0 ) THEN
+!               CSPEC(JLOOP,IDNO3) = NO3
+!            ENDIF
+!
+!         ! Error check
+!         CASE DEFAULT
+!            CALL ERROR_STOP( 'Invalid NSRCX!','SET_NO3 (sulfate_mod.f)')
+!
+!      END SELECT
+!-----------------------------------------------------------------------------
 
-      SELECT CASE ( NSRCX )
+      ! 1-D grid box index for CSPEC
+      JLOOP = JLOP(I,J,L) 
 
-         !--------------------
-         ! Coupled simulation
-         !--------------------
-         CASE ( 3 ) 
-
-            ! 1-D grid box index for CSPEC
-            JLOOP = JLOP(I,J,L) 
-
-            ! Replace OH into CSPEC (troposphere only)
-            IF ( JLOOP > 0 ) THEN
-               CSPEC(JLOOP,IDNO3) = NO3
-            ENDIF
-
-         ! Error check
-         CASE DEFAULT
-            CALL ERROR_STOP( 'Invalid NSRCX!','SET_NO3 (sulfate_mod.f)')
-
-      END SELECT
+      ! Replace OH into CSPEC (troposphere only)
+      IF ( JLOOP > 0 ) THEN
+         CSPEC(JLOOP,IDNO3) = NO3
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE SET_NO3
@@ -3738,16 +4047,18 @@
 !
 !  NOTES:
 !  (1 ) We assume SETTRACE has been called to define IDO3. (bmy, 12/16/02)
+!  (2 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE COMODE_MOD,   ONLY : CSPEC, JLOP, VOLUME
       USE DAO_MOD,      ONLY : AIRDEN
       USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM      
       USE TRACERID_MOD, ONLY : IDO3
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! NSRCX, LPAUSE
+#     include "CMN"       ! LPAUSE
 #     include "CMN_O3"    ! XNUMOLAIR
 
       ! Arguments
@@ -3760,43 +4071,87 @@
       !=================================================================
       ! GET_O3 begins here!
       !=================================================================
-      SELECT CASE ( NSRCX ) 
+!------------------------------------------------------------------------------
+! Prior to 7/20/04:
+!      SELECT CASE ( NSRCX ) 
+!
+!         !--------------------
+!         ! Coupled simulation
+!         !--------------------
+!         CASE ( 3 )
+!
+!            ! JLOOP = SMVGEAR 1-D grid box index
+!            JLOOP = JLOP(I,J,L)
+!
+!            ! Get O3 from CSPEC [molec/cm3] and convert it to [v/v]
+!            ! O3 data will only be defined below the tropopause
+!            IF ( JLOOP  > 0 ) THEN
+!               O3_VV = ( CSPEC(JLOOP,IDO3) * 1d6       ) / 
+!     &                 ( AIRDEN(L,I,J)     * XNUMOLAIR )
+!            ELSE
+!               O3_VV = 0d0
+!            ENDIF
+!         
+!         !--------------------
+!         ! Offline simulation
+!         !--------------------
+!         CASE ( 10 )
+!
+!            ! Get O3 [v/v] for this gridbox & month
+!            ! O3 data will only be defined below the tropopause
+!            IF ( L <= LLTROP ) THEN
+!               O3_VV = O3m(I,J,L)
+!            ELSE
+!               O3_VV = 0d0
+!            ENDIF
+!
+!         ! Error check
+!         CASE DEFAULT
+!            CALL ERROR_STOP( 'Invalid NSRCX!', 'GET_OH (sulfate_mod.f)')
+!
+!      END SELECT
+!------------------------------------------------------------------------------
+
+      IF ( ITS_A_FULLCHEM_SIM() ) THEN
 
          !--------------------
          ! Coupled simulation
          !--------------------
-         CASE ( 3 )
 
-            ! JLOOP = SMVGEAR 1-D grid box index
-            JLOOP = JLOP(I,J,L)
+         ! JLOOP = SMVGEAR 1-D grid box index
+         JLOOP = JLOP(I,J,L)
 
-            ! Get O3 from CSPEC [molec/cm3] and convert it to [v/v]
-            ! O3 data will only be defined below the tropopause
-            IF ( JLOOP  > 0 ) THEN
-               O3_VV = ( CSPEC(JLOOP,IDO3) * 1d6       ) / 
-     &                 ( AIRDEN(L,I,J)     * XNUMOLAIR )
-            ELSE
-               O3_VV = 0d0
-            ENDIF
+         ! Get O3 from CSPEC [molec/cm3] and convert it to [v/v]
+         ! O3 data will only be defined below the tropopause
+         IF ( JLOOP  > 0 ) THEN
+            O3_VV = ( CSPEC(JLOOP,IDO3) * 1d6       ) / 
+     &              ( AIRDEN(L,I,J)     * XNUMOLAIR )
+         ELSE
+            O3_VV = 0d0
+         ENDIF
+
+      ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
          
          !--------------------
          ! Offline simulation
          !--------------------
-         CASE ( 10 )
 
-            ! Get O3 [v/v] for this gridbox & month
-            ! O3 data will only be defined below the tropopause
-            IF ( L <= LLTROP ) THEN
-               O3_VV = O3m(I,J,L)
-            ELSE
-               O3_VV = 0d0
-            ENDIF
+         ! Get O3 [v/v] for this gridbox & month
+         ! O3 data will only be defined below the tropopause
+         IF ( L <= LLTROP ) THEN
+            O3_VV = O3m(I,J,L)
+         ELSE
+            O3_VV = 0d0
+         ENDIF
 
-         ! Error check
-         CASE DEFAULT
-            CALL ERROR_STOP( 'Invalid NSRCX!', 'GET_OH (sulfate_mod.f)')
+      ELSE
 
-      END SELECT
+         !--------------------
+         ! Invalid simulation
+         !--------------------         
+         CALL ERROR_STOP( 'Invalid NSRCX!', 'GET_OH (sulfate_mod.f)')
+
+      ENDIF
 
       ! Return to calling program
       END FUNCTION GET_O3
@@ -3807,18 +4162,23 @@
 !
 !******************************************************************************
 !  Subroutine READ_NONERUP_VOLC reads SO2 emissions from non-eruptive
-!  volcanoes. (rjp, bdf, bmy, 9/19/02)
+!  volcanoes. (rjp, bdf, bmy, 9/19/02, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Split off from old module routine "sulfate_readyr" (bmy, 9/19/02)
+!  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 ! 
       ! References to F90 modules
       USE BPCH2_MOD
-      USE FILE_MOD, ONLY : IU_FILE, IOERROR
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_SETUP" ! DATA_DIR
+!---------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! DATA_DIR
+!---------------------------------------------
 
       ! Local variables
       INTEGER              :: I, IOS, J, K, L
@@ -3891,18 +4251,23 @@
 !
 !***************************************************************************** 
 !  Subroutine READ_ERUP_VOLC reads SO2 emissions from eruptive
-!  volcanoes. (rjp, bdf, bmy, 9/19/02)
+!  volcanoes. (rjp, bdf, bmy, 9/19/02, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Split off from old module routine "sulfate_readyr" (bmy, 9/19/02)
+!  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !*****************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE FILE_MOD, ONLY : IU_FILE, IOERROR
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
       
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_SETUP"  ! DATA_DIR
+!----------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"  ! DATA_DIR
+!----------------------------------------------
  
       ! Local variables
       INTEGER              :: I, IOS, IUNIT, J, K, L, M
@@ -3984,7 +4349,7 @@
 !******************************************************************************
 !  Suborutine READ_ANTHRO_SOx reads the anthropogenic SOx from disk, 
 !  and partitions it into anthropogenic SO2 and SO4. 
-!  (rjp, bdf, bmy, 9/20/02, 3/27/03)
+!  (rjp, bdf, bmy, 9/20/02, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -3996,19 +4361,28 @@
 !        GET_AREA_CM2 of "grid_mod.f".  Now use functions GET_MONTH and
 !        GET_YEAR of time_mod.f".  Now call READ_BPCH2 with QUIET=.TRUE. 
 !        (bmy, 3/27/03)
+!  (2 ) Now references DATA_DIR from "directory_mod.f".  Also removed
+!        reference to CMN, it's not needed. (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE GRID_MOD,     ONLY : GET_XMID, GET_YMID, GET_AREA_CM2
-      USE TIME_MOD,     ONLY : GET_YEAR
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
-      USE TRACERID_MOD, ONLY : IDTSO2, IDTSO4
+      USE GRID_MOD,      ONLY : GET_XMID, GET_YMID, GET_AREA_CM2
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TIME_MOD,      ONLY : GET_YEAR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+      USE TRACERID_MOD,  ONLY : IDTSO2, IDTSO4
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! NSEASON, FSCALYR
-#     include "CMN_O3"    ! XNUMOL
-#     include "CMN_SETUP" ! DATA_DIR
+!----------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"       ! FSCALYR
+!----------------------------------------------
+#     include "CMN_O3"    ! XNUMOL, FSCALYR
+!----------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! DATA_DIR
+!----------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH, NSEASON
@@ -4155,7 +4529,7 @@
 !
 !***************************************************************************** 
 !  Subroutine READ_OCEAN_DMS reads seawater concentrations of DMS (nmol/L).
-!  (rjp, bdf, bmy, 9/20/02, 3/27/03)
+!  (rjp, bdf, bmy, 9/20/02, 7/20/04)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -4164,14 +4538,19 @@
 !  NOTES:
 !  (1 ) Extracted from old module routine SULFATE_READMON (bmy, 9/18/02)
 !  (2 ) Now call READ_BPCH2 with QUIET=.TRUE. (bmy, 3/27/03)
+!  (3 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !*****************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"  ! Size parameters 
-#     include "CMN_SETUP" ! DATA_DIR
+!---------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! DATA_DIR
+!---------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -4214,7 +4593,7 @@
 !
 !***************************************************************************** 
 !  Subroutine READ_SST reads monthly mean sea surface temperatures.
-!  (rjp, bdf, bmy, 9/18/02, 3/27/03)
+!  (rjp, bdf, bmy, 9/18/02, 7/20/04)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -4223,14 +4602,19 @@
 !  NOTES:
 !  (1 ) Extracted from old module routine SULFATE_READMON (bmy, 9/18/02)
 !  (2 ) Now call READ_BPCH2 with QUIET=.TRUE. (bmy, 3/27/03)
+!  (3 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !*****************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"  ! Size parameters 
-#     include "CMN_SETUP" ! DATA_DIR
+#     include "CMN_SIZE"  ! Size parameters
+!--------------------------------------------- 
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! DATA_DIR
+!--------------------------------------------- 
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -4273,7 +4657,7 @@
 !******************************************************************************
 !  Subroutine READ_BIOMASS_SOx reads monthly mean biomass burning 
 !  emissions for SO2.  SOx is read in, and converted to SO2. 
-!  (rjp, bdf, bmy, 1/16/03, 3/27/03)
+!  (rjp, bdf, bmy, 1/16/03, 7/20/04)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -4286,16 +4670,22 @@
 !  (3 ) Now replace DXYP(J+J0)*1d4 with routine GET_AREA_CM2 of "grid_mod.f"
 !        Now replace MONTH with the argument THISMONTH.  Now call READ_BPCH2
 !        with QUIET=.TRUE. (bmy, 3/27/03)
+!  (4 ) Now references DATA_DIR from "directory_mod.f".  Also removed
+!        references to CMN and CMN_SETUP. (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE GRID_MOD,      ONLY : GET_AREA_CM2
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
       
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! MONTH
-#     include "CMN_SETUP" ! DATA_DIR
+!----------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"       ! MONTH
+!#     include "CMN_SETUP" ! DATA_DIR
+!----------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -4385,7 +4775,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_AIRCRAFT_SO2 reads monthly mean aircraft fuel emissions 
-!  and converts them to SO2 emissions. (rjp, bdf, bmy, 9/18/02)
+!  and converts them to SO2 emissions. (rjp, bdf, bmy, 9/18/02, 7/20/04)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -4393,15 +4783,20 @@
 !
 !  NOTES:
 !  (1 ) Extracted from old module routine SULFATE_READMON (bmy, 9/18/02)
+!  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! Reference to F90 modules
       USE BPCH2_MOD
-      USE DAO_MOD,  ONLY : BXHEIGHT
-      USE FILE_MOD, ONLY : IU_FILE, IOERROR
+      USE DAO_MOD,       ONLY : BXHEIGHT
+      USE DIRECTORY_MOD, ONLY : DATA_DIR 
+      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_SETUP" ! DATA_DIR
+!---------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! DATA_DIR
+!---------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -4518,23 +4913,29 @@
       SUBROUTINE READ_SHIP_SO2( THISMONTH )
 !
 !******************************************************************************
-!  Subroutine READ_SHIP_SO2 reads in ship SO2 emissions. (bec, qli, 10/01/03)
+!  Subroutine READ_SHIP_SO2 reads in ship SO2 emissions. 
+!  (bec, qli, 10/01/03, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) THISMONTH (INTEGER) : Current month (1-12)
 !
 !  NOTES:
+!  (1 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE TRACERID_MOD, ONLY : IDTSO2
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE DIRECTORY_MOD, ONLY : DATA_DIR 
+      USE GRID_MOD,      ONLY : GET_AREA_CM2
+      USE TRACERID_MOD,  ONLY : IDTSO2
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"     ! Size parameters 
-#     include "CMN_SETUP"    ! DATA_DIR
+!------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"    ! DATA_DIR
+!------------------------------------------------
 #     include "CMN_O3"       ! XNUMOL
 
       ! Arguments
@@ -4603,7 +5004,7 @@
 !******************************************************************************
 !  Subroutine READ_ANTHRO_NH3 reads the monthly mean anthropogenic 
 !  NH3 emissions from disk and converts to [kg NH3/box/s]. 
-!  (rjp, bdf, bmy, 9/20/02, 3/27/03)
+!  (rjp, bdf, bmy, 9/20/02, 7/20/04)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -4616,14 +5017,19 @@
 !        category name "NH3-ANTH". (rjp, bmy, 3/23/03)
 !  (3 ) Now reads from NH3emis.monthly.geos.* files.  Now call READ_BPCH2
 !        with QUIET=.TRUE. (bmy, 3/27/03)
+!  (4 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_SETUP" ! DATA_DIR
+!---------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! DATA_DIR
+!---------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -4674,7 +5080,7 @@
 !******************************************************************************
 !  Subroutine READ_NATURAL_NH3 reads the monthly mean natural 
 !  NH3 emissions from disk and converts to [kg NH3/box/s]. 
-!  (rjp, bdf, bmy, 9/20/02, 4/8/03)
+!  (rjp, bdf, bmy, 9/20/02, 7/20/04)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -4683,14 +5089,19 @@
 !  NOTES:
 !  (1 ) Updated FORMAT string.  Now also call READ_BPCH2 with QUIET=.TRUE.
 !        (bmy, 4/8/03)
+!  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_SETUP" ! DATA_DIR
+!-------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! DATA_DIR
+!-------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -4741,7 +5152,7 @@
 !******************************************************************************
 !  Subroutine READ_BIOMASS_NH3 reads the monthly mean biomass NH3 
 !  and biofuel emissions from disk and converts to [kg NH3/box/s]. 
-!  (rjp, bdf, bmy, 9/20/02, 12/2/03)
+!  (rjp, bdf, bmy, 9/20/02, 7/20/04)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -4760,17 +5171,25 @@
 !        reference GET_TAU from "time_mod.f" (bmy, 5/15/03)
 !  (4 ) Now use ENCODE statement for PGI/F90 on Linux (bmy, 9/29/03)
 !  (5 ) Changed cpp switch name from LINUX to LINUX_PGI (bmy, 12/2/03)
+!  (6 ) Now references DATA_DIR from "directory_mod.f".  Now references LBBSEA
+!        from "logical_mod.f".  Removed references to CMN and CMN_SETUP.
+!        (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE GRID_MOD,     ONLY : GET_AREA_M2
-      USE TIME_MOD,     ONLY : GET_YEAR, GET_TAU
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE GRID_MOD,      ONLY : GET_AREA_M2
+      USE LOGICAL_MOD,   ONLY : LBBSEA
+      USE TIME_MOD,      ONLY : GET_YEAR, GET_TAU
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! JYEAR
-#     include "CMN_SETUP" ! DATA_DIR, LBBSEA
+!------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"       ! JYEAR
+!#     include "CMN_SETUP" ! DATA_DIR, LBBSEA
+!------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -4915,7 +5334,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_OXIDANT reads in monthly mean H2O2 and O3 fields for the
-!  offline sulfate simulation. (rjp, bdf, bmy, 11/1/02, 3/27/03)
+!  offline sulfate simulation. (rjp, bdf, bmy, 11/1/02, 7/20/04)
 !
 !  Arguments as input:
 !  ============================================================================
@@ -4923,14 +5342,19 @@
 !
 !  NOTES:
 !  (1 ) Now call READ_BPCH2 with QUIET=.TRUE. (bmy, 3/27/03)
+!  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !  
       ! References to F90 modules
       USE BPCH2_MOD
-      USE TRANSFER_MOD, ONLY : TRANSFER_3D_TROP
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_SETUP" ! DATA_DIR
+!--------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! DATA_DIR
+!--------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: MONTH
@@ -5154,7 +5578,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_SULFATE initializes and zeros all allocatable arrays
-!  declared in "sulfate_mod.f" (bmy, 6/2/00, 5/20/04)
+!  declared in "sulfate_mod.f" (bmy, 6/2/00, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Only allocate some arrays for the standalone simulation (NSRCX==10).
@@ -5166,13 +5590,19 @@
 !  (3 ) Now allocate ENH3_na array (rjp, bmy, 3/23/03)
 !  (4 ) Now allocate COSZM for offline runs (bmy, 3/30/04)
 !  (5 ) Now allocate ESO2_sh array (bec, bmy, 5/20/04)
+!  (6 ) Now allocates ITS_AN_AEROSOL_SIM from "tracer_mod.f".  Now remove 
+!        IJSURF (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD, ONLY : ALLOC_ERR
+      USE ERROR_MOD,     ONLY : ALLOC_ERR
+      USE TRACER_MOD,    ONLY : ITS_AN_AEROSOL_SIM
 
 #     include "CMN_SIZE" ! Size parameters
-#     include "CMN"      ! NSRCX
+!---------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"      ! NSRCX
+!---------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE      :: IS_INIT = .FALSE.
@@ -5309,7 +5739,12 @@
       !=================================================================
       ! Only initialize the following for offline runs (NSRCX == 10)
       !=================================================================
-      IF ( NSRCX == 10 ) THEN
+      !-----------------------------
+      ! Prior to 7/20/04:
+      !IF ( NSRCX == 10 ) THEN
+      !-----------------------------
+      IF ( ITS_AN_AEROSOL_SIM() ) THEN
+
          ALLOCATE( PH2O2m( IIPAR, JJPAR, LLTROP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PH2O2m' )
          PH2O2m = 0d0
@@ -5335,19 +5770,23 @@
          COSZM = 0d0
       ENDIF
 
-      !=================================================================
-      ! Initialize IJSURF, which indexes the 1-D SUNCOS array
-      !=================================================================
-      ALLOCATE( IJSURF( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IJSURF' )
-
-      IJLOOP = 0
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         IJLOOP      = IJLOOP +1 
-         IJSURF(I,J) = IJLOOP
-      ENDDO
-      ENDDO
+      !---------------------------------------------------------------------
+      ! Prior to 7/20/04:
+      ! Replace IJSURF with an analytic function (bmy, 7/20/04)
+      !!=================================================================
+      !! Initialize IJSURF, which indexes the 1-D SUNCOS array
+      !!=================================================================
+      !ALLOCATE( IJSURF( IIPAR, JJPAR ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'IJSURF' )
+      !
+      !IJLOOP = 0
+      !DO J = 1, JJPAR
+      !DO I = 1, IIPAR
+      !   IJLOOP      = IJLOOP +1 
+      !   IJSURF(I,J) = IJLOOP
+      !ENDDO
+      !ENDDO
+      !---------------------------------------------------------------------
 
       ! Set IS_INIT
       IS_INIT = .TRUE.
@@ -5361,13 +5800,14 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_SULFATE deallocates all previously allocated arrays 
-!  for sulfate emissions -- call at the end of the run (bmy, 6/1/00, 5/20/04)
+!  for sulfate emissions -- call at the end of the run (bmy, 6/1/00, 7/20/04)
 ! 
 !  NOTES:
 !  (1 ) Now also deallocates IJSURF. (bmy, 11/12/02)
 !  (2 ) Now also deallocates ENH3_na (rjp, bmy, 3/23/03)
 !  (3 ) Now also deallocates COSZM (rjp, bmy, 3/30/04)
 !  (4 ) Now also deallocates ESO4_sh (bec, bmy, 5/20/04)
+!  (5 ) Now remove IJSURF (bmy, 7/20/04)
 !******************************************************************************
 ! 
       !=================================================================
@@ -5394,7 +5834,10 @@
       IF ( ALLOCATED( IELVn     ) ) DEALLOCATE( IELVn     )
       IF ( ALLOCATED( IEV       ) ) DEALLOCATE( IEV       )
       IF ( ALLOCATED( IHGHT     ) ) DEALLOCATE( IHGHT     )
-      IF ( ALLOCATED( IJSURF    ) ) DEALLOCATE( IJSURF    )
+      !---------------------------------------------------------------
+      ! Prior to 7/20/04:
+      !IF ( ALLOCATED( IJSURF    ) ) DEALLOCATE( IJSURF    )
+      !---------------------------------------------------------------
       IF ( ALLOCATED( INV       ) ) DEALLOCATE( INV       )
       IF ( ALLOCATED( JEV       ) ) DEALLOCATE( JEV       )
       IF ( ALLOCATED( JH2O2     ) ) DEALLOCATE( JH2O2     )

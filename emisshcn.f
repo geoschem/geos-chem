@@ -1,9 +1,9 @@
-! $Id: emisshcn.f,v 1.3 2004/03/24 20:52:30 bmy Exp $
+! $Id: emisshcn.f,v 1.4 2004/09/21 18:04:13 bmy Exp $
       SUBROUTINE EMISSHCN
 !
 !******************************************************************************
 !  Subroutine EMISSHCN specifies hydrogen cyanide (HCN) emissions 
-!  (qli, bmy, 1/10/99, 12/9/03)
+!  (qli, bmy, 1/10/99, 7/20/04)
 !
 !  NOTES:
 !  (1 ) The following sources of HCN are now used:
@@ -39,6 +39,8 @@
 !        Now use function GET_TS_EMIS from "time_mod.f".  Removed MONTH from
 !        call to BIOBURN. (bmy, 2/11/03)
 !  (17) Now pass I, J to EMISOP (bmy, 12/9/03)
+!  (18) Now references STT from "tracer_mod.f".  Now references LEMIS from
+!        "logical_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -47,13 +49,18 @@
       USE DIAG_MOD,     ONLY : AD28,     AD46
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,  ONLY : LEMIS
       USE TIME_MOD,     ONLY : GET_TS_EMIS
+      USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDBCO
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! Many other variables
+!------------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"          ! Many other variables
+!------------------------------------------------------------
 #     include "CMN_DIAG"     ! DIAGNOSTIC
 #     include "CMN_MONOT"    ! Monoterpine variables
 #     include "CMN_HCN"      ! HCN variables
@@ -99,8 +106,12 @@
 !
 
       ! Return if we are not doing emissions ( if LSRCE = .FALSE. )
-      IF ( .not. LSRCE ) RETURN   
-      
+      !----------------------------
+      ! Prior to 7/20/04:
+      !IF ( .not. LSRCE ) RETURN   
+      !----------------------------
+      IF ( .not. LEMIS ) RETURN
+
       ! Emission timestep [s]
       DTSRCE = GET_TS_EMIS() * 60d0
       

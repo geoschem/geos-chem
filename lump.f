@@ -1,9 +1,9 @@
-! $Id: lump.f,v 1.2 2003/08/06 15:30:43 bmy Exp $
+! $Id: lump.f,v 1.3 2004/09/21 18:04:15 bmy Exp $
       SUBROUTINE LUMP( NTRACER, XNUMOL, STT )
 !
 !******************************************************************************
 !  Subroutine LUMP takes individual chemistry species and "lumps" them back 
-!  into tracers after each SMVGEAR chemistry timestep. (bmy, 4/1/03, 8/1/03)
+!  into tracers after each SMVGEAR chemistry timestep. (bmy, 4/1/03, 7/20/04)
 ! 
 !  Arguments as Input:
 !  ============================================================================
@@ -18,6 +18,7 @@
 !  NOTES:
 !  (1 ) Updated comments, cosmetic changes (bmy, 4/1/03)
 !  (2 ) Added OpenMP parallelization commands (bmy, 8/1/03)
+!  (3 ) Now dimension args XNUMOL, STT w/ NTRACER and not NNPAR (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -31,8 +32,12 @@
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NTRACER
-      REAL*8,  INTENT(IN)    :: XNUMOL(NNPAR)
-      REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NNPAR)        
+      !------------------------------------------------------------
+      !REAL*8,  INTENT(IN)    :: XNUMOL(NNPAR)
+      !REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NNPAR)      
+      !------------------------------------------------------------
+      REAL*8,  INTENT(IN)    :: XNUMOL(NTRACER)
+      REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NTRACER)   
 
       ! Local variables
       INTEGER                :: I, J, L, N, JLOOP, KK, JJ

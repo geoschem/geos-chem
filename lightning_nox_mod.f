@@ -1,11 +1,11 @@
-! $Id: lightning_nox_mod.f,v 1.1 2004/04/19 15:49:02 bmy Exp $
+! $Id: lightning_nox_mod.f,v 1.2 2004/09/21 18:04:15 bmy Exp $
       MODULE LIGHTNING_NOX_MOD
 !
 !******************************************************************************
 !  Module LIGHTNING_NOX_MOD contains variables and routines for emitting NOx
 !  from lightning into the atmosphere.  Original code comes from the old 
 !  GISS-II CTM's of Yuhang Wang, Gerry Gardner, & Larry Horowitz.  Cleaned 
-!  up for inclusion into GEOS-CHEM. (bmy, 4/14/04)
+!  up for inclusion into GEOS-CHEM. (bmy, 4/14/04, 7/20/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -22,69 +22,73 @@
 !  ============================================================================
 !  (1 ) LIGHTNING             : Driver routine for lightning emissions
 !  (2 ) LIGHTDIST             : Partitions NOx vertically w/ Pickering CDF's
-!  (3 ) EMLIGHTNING           : Saves lightning NOx into GEMISNOX array
-!  (4 ) INIT_LIGHTNING_NOX    : Zeroes module arrays and reads CDF data
-!  (5 ) CLEANUP_LIGHTNING_NOX : Deallocates all module arrays
+!  (3 ) FLASHES               : Computes flash rate and IC/CG ratio 
+!  (4 ) EMLIGHTNING           : Saves lightning NOx into GEMISNOX array
+!  (5 ) INIT_LIGHTNING_NOX    : Zeroes module arrays and reads CDF data
+!  (6 ) CLEANUP_LIGHTNING_NOX : Deallocates all module arrays
 !
 !  GEOS-CHEM modules referenced by carbon_mod.f
 !  ============================================================================
 !  (1 ) dao_mod.f             : Module containing arrays for DAO met fields
 !  (2 ) diag_mod.f            : Module containing GEOS-CHEM diagnostic arrays
-!  (3 ) error_mod.f           : Module w/ I/O error and NaN check routines
-!  (4 ) file_mod.f            : Contains file unit numbers and error checks
-!  (5 ) grid_mod.f            : Module containing horizontal grid information
-!  (6 ) pressure_mod.f        : Module containing routines to compute P(I,J,L)
+!  (3 ) directory_mod.f       : Module containing GEOS-CHEM data & metfld dirs
+!  (4 ) error_mod.f           : Module w/ I/O error and NaN check routines
+!  (5 ) file_mod.f            : Contains file unit numbers and error checks
+!  (6 ) grid_mod.f            : Module containing horizontal grid information
+!  (7 ) pressure_mod.f        : Module containing routines to compute P(I,J,L)
+!
+!  References:
+!  ============================================================================
+!  (1  ) Price & Rind (1992), JGR, vol. 97, 9919-9933.
+!  (2  ) Price & Rind (1994), M. Weather Rev, vol. 122, 1930-1939.
 !
 !  NOTES:
+!  (1 ) Now references "directory_mod.f".  Now also bundle "flashes.f" into 
+!        this module (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
  
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "lightning_mod.f"
+      ! and routines from being seen outside "lightning_nox_mod.f"
       !=================================================================
 
-      ! PRIVATE module variables
-      PRIVATE              :: NNLIGHT,  NLTYPE,     RFLASH,  CICG
-      PRIVATE              :: TNCHARGE, FLASHSCALE, PROFILE, SLBASE
+      ! Make everything PRIVATE ...
+      PRIVATE
 
-      ! PRIVATE module routines
-      PRIVATE              :: LIGHTDIST
-      PRIVATE              :: INIT_LIGHTNING_NOX
+      ! ... except these routines
+      PUBLIC :: EMLIGHTNING
+      PUBLIC :: LIGHTNING
+      PUBLIC :: CLEANUP_LIGHTNING_NOX
 
       !=================================================================
       ! MODULE VARIABLES
+      !
+      ! Preserve original notes from the old "CMN_NOX" header file here:
+      ! ----------------------------------------------------------------
+      ! We should have FLASHSCALE = 0.75 (since RFLASH must be 
+      ! multiplied by 0.75 to change from 4 Tg/yr to 3 Tg/yr) but 
+      ! for some reason this produces only 0.33 Tg NOx/yr.  The cheap 
+      ! solution is to just set FLASHSCALE = 7.5 (thus including the
+      ! factor of 10) and not ask too many more questions 
+      ! (bmy, bey, mgs, 3/5/98)
+      !
+      ! Also, if you want 6 Tg N/yr from lightning, just double
+      ! FLASHSCALE From 7.5 to 15.0. (rvm, bmy, 4/14/04)
       !=================================================================
 
       ! Scalars
       INTEGER              :: NNLIGHT
       INTEGER, PARAMETER   :: NLTYPE     = 3
-      REAL*8,  PARAMETER   :: RFLASH     = 2.073D22
-      REAL*8,  PARAMETER   :: CICG       = 0.33333333
-      REAL*8,  PARAMETER   :: TNCHARGE   = 263.0
-      REAL*8,  PARAMETER   :: FLASHSCALE = 15d0
+      REAL*8,  PARAMETER   :: RFLASH     = 2.073d22
+      REAL*8,  PARAMETER   :: CICG       = 1d0 / 3d0
+      REAL*8,  PARAMETER   :: TNCHARGE   = 263.0d0
+      REAL*8,  PARAMETER   :: FLASHSCALE = 15d0 
 
       ! Allocatable arrays
       REAL*8,  ALLOCATABLE :: PROFILE(:,:)
       REAL*8,  ALLOCATABLE :: SLBASE(:,:,:)
-
-      !-----------------------------------------------------------------------
-      ! Preserve original comments from "CMN_NOX here! (bmy, 4/14/04)
-      !
-      !! We should have FLASHSCALE = 0.75 (since RFLASH must be multiplied by
-      !! 0.75 to change from 4 Tg/yr to 3 Tg/yr) but for some reason this 
-      !! produces only 0.33 Tg NOx/yr.  The cheap solution is to just set
-      !! FLASHSCALE = 7.5 (thus including the factor of 10) and not ask too 
-      !! many more questions (bmy, bey, mgs, 3/5/98)
-      !!-----------------------------------------------------------------
-      !! Uncomment this line if you want 3 Tg N/yr from lightning
-      !!REAL*8, PARAMETER :: FLASHSCALE = 7.5d0
-      !!-----------------------------------------------------------------
-      !! Uncomment this line if you want 6 Tg N/yr from lightning
-      !!REAL*8,  PARAMETER   :: FLASHSCALE = 15d0
-      !!-----------------------------------------------------------------
-      !-----------------------------------------------------------------------
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -151,15 +155,13 @@
 !        lightning NOx total from the 4x5 simulation. (yxw, bmy, 5/16/03)
 !  (13) Scale GEOS-4 lightning NOx to 6 Tg N/yr (bmy, 3/8/04)
 !  (14) Added parallel DO-loops for better optimization.  Now bundled into
-!        "lightning_mod.f" (bmy, 4/14/04)
+!        "lightning_nox_mod.f" (bmy, 4/14/04)
 !******************************************************************************
 !      
       ! References to F90 modules
       USE DAO_MOD,      ONLY : BXHEIGHT
       USE GRID_MOD,     ONLY : GET_YMID
       USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
-
-      IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN_GCTM"  ! Physical constants
@@ -512,7 +514,7 @@
 !******************************************************************************
 !  Subroutine LIGHTDIST reads in the CDF used to partition the 
 !  column lightning NOx into the GEOS-CHEM vertical layers. 
-!  (yhw, 1997; mje, bmy, 9/18/02, 4/14/04)
+!  (yhw, 1997; mje, bmy, 9/18/02, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -546,14 +548,19 @@
 !  (5 ) Bug fix: add GEOS_4 to the #if block (bmy, 3/4/04)
 !  (6 ) Now bundled into "lightning_mod.f".  CDF's are now read w/in
 !        routine INIT_LIGHTNING to allow parallelization (bmy, 4/14/04)
+!  (7 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,  ONLY : IS_LAND, IS_WATER, BXHEIGHT
-      USE FILE_MOD, ONLY : IU_FILE, IOERROR
+      USE DAO_MOD,       ONLY : IS_LAND, IS_WATER, BXHEIGHT
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_SETUP"  ! DATA_DIR
+!------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"  ! DATA_DIR
+!------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)  :: I,  J,    LTOP
@@ -662,6 +669,83 @@
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE FLASHES( I, J, HEIGHT, FLASHRATE, IC_CG_RATIO )
+!
+!******************************************************************************
+!  Subroutine FLASHES determines the rate of lightning flashes per minute,
+!  based on the height of convective cloud tops, and the inter-cloud
+!  to cloud-ground strike ratio.  FLASHES has been optimized for GEOS-CHEM
+!  (bmy, 10/9/97, 7/20/04)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1-2) I, J        : GEOS-CHEM longitude & latitude indices
+!  (3  ) HEIGHT      : Height of convective cloud tops [m]
+!
+!  Arguments as Output:
+!  ============================================================================
+!  (4  ) FLASHRATE   : Lightning flash rate [flashes/minute]
+!  (5  ) IC_CG_RATIO : Intercloud (IC) flashes / Cloud-Ground (CG) flashes
+!
+!  References:
+!  ============================================================================
+!  (1  ) Price & Rind (1992), JGR, vol. 97, 9919-9933.
+!  (2  ) Price & Rind (1994), M. Weather Rev, vol. 122, 1930-1939.
+!
+!  NOTES:
+!  (1  ) FLASHES is written in Fixed-Form Fortran 90.  Also use F90 
+!         declaration syntax. (bmy, 6/26/00)
+!  (2  ) Eliminate obsolete code from 6/26/00 (bmy, 8/31/00)
+!  (3  ) Bundled into "lightning_nox_mod.f".  Cleaned up stuff. (bmy, 7/20/04)
+!******************************************************************************
+!    
+      ! References to F90 modules
+      USE DAO_MOD, ONLY : IS_LAND, IS_WATER
+
+      ! Arguments
+      INTEGER, INTENT(IN)  :: I, J
+      REAL*8,  INTENT(IN)  :: HEIGHT
+      REAL*8,  INTENT(OUT) :: FLASHRATE, IC_CG_RATIO
+     
+      !=================================================================
+      ! FLASHES begins here!
+      !
+      ! Price & Rind (1992) give the following parameterizations 
+      ! for lightning flash rates as a function of convective cloud
+      ! top height [km]:
+      !
+      !    FLAND  = 3.44e-5 * ( CLDTOP HEIGHT [km] ^ 4.9  )
+      !    FOCEAN = 6.4e-4  * ( CLDTOP HEIGHT [km] ^ 1.73 )
+      !
+      ! Lightning will therefore occur much more often on land.  It goes
+      ! as approx. the 5th power of height, as opposed to approx. the
+      ! 2nd power of height over oceans.
+      !
+      ! Price & Rind (1992) also compute the ratio between Inter-Cloud 
+      ! and Cloud-Ground flashes by the parameterization:
+      !
+      !    IC/CG  = 2.7d0 * SQRT( lightning flashes per minute )
+      !=================================================================
+      IF ( IS_LAND(I,J) ) THEN
+
+         ! Flashes/minute over land (cf. Price & Rind 1992)
+         FLASHRATE = 3.44d-5 * ( ( HEIGHT * 1d-3 )**4.9d0  )  
+
+      ELSE IF ( IS_WATER(I,J) ) THEN 
+
+         ! Flashes/minute over water (cf. Price & Rind 1992)
+         FLASHRATE = 6.4d-4 *  ( ( HEIGHT * 1d-3 )**1.73d0 )   
+
+      ENDIF
+
+      ! Compute the IC/CG ratio (cf. Price & Rind 1992)
+      IC_CG_RATIO = 2.7d0 * SQRT( FLASHRATE ) 
+
+      ! Return to calling program
+      END SUBROUTINE FLASHES
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE EMLIGHTNING( I, J )
 !
 !******************************************************************************
@@ -686,11 +770,6 @@
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
-!-----------------------------------------------------------------------------
-! Prior to 4/14/04:
-! This reference looks obsolete (bmy, 4/14/04)
-!#     include "CMN"       ! 
-!-----------------------------------------------------------------------------
 #     include "CMN_DIAG"  ! ND32
 #     include "CMN_NOX"   ! GEMISNOX
 
@@ -734,14 +813,19 @@
 !  (bmy, 4/14/04)
 !
 !  NOTES:
+!  (1 ) Now reference DATA_DIR from "directory_mod.f"
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD, ONLY : ALLOC_ERR
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE FILE_MOD
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_SETUP" ! DATA_DIR
+!---------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! DATA_DIR
+!---------------------------------------------
   
       ! Local variables
       INTEGER            :: AS, III, IOS, JJJ

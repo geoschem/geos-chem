@@ -1,9 +1,10 @@
-! $Id: gwet_read_mod.f,v 1.2 2004/05/03 14:46:17 bmy Exp $
+! $Id: gwet_read_mod.f,v 1.3 2004/09/21 18:04:14 bmy Exp $
       MODULE GWET_READ_MOD
 !
 !******************************************************************************
-!  Module GWET_READ_MOD contains routines that unzip, open, and read the
-!  GEOS-CHEM GWET (avg 3-hour) met fields from disk. (tdf, bmy, 3/30/04)
+!  Module GWET_READ_MOD contains routines that unzip, open, and 
+!  read the GEOS-CHEM GWET (avg 3-hour) met fields from disk. 
+!  (tdf, bmy, 3/30/04, 7/20/04)
 !
 !  NOTE: GWET fields are included in GEOS-4 met data, so we only need this
 !        module to read GWET data from other GMAO data sets. (bmy, 3/30/04)
@@ -23,13 +24,18 @@
 !  (1 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
 !  (2 ) dao_mod.f       : Module containing arrays for DAO met fields
 !  (3 ) diag_mod.f      : Module containing GEOS-CHEM diagnostic arrays
-!  (4 ) error_mod.f     : Module containing NaN and other error check routines
-!  (5 ) file_mod.f      : Module containing file unit #'s and error checks
-!  (6 ) time_mod.f      : Module containing routines for computing time & date
-!  (7 ) transfer_mod.f  : Module containing routines to cast & resize arrays
+!  (4 ) directory_mod.f : Module containing GEOS-CHEM data & met field dirs
+!  (5 ) error_mod.f     : Module containing NaN and other error check routines
+!  (6 ) logical_mod.f   : Module containing GEOS-CHEM logical switches 
+!  (7 ) file_mod.f      : Module containing file unit #'s and error checks
+!  (8 ) time_mod.f      : Module containing routines for computing time & date
+!  (9 ) transfer_mod.f  : Module containing routines to cast & resize arrays
+!  (10) unix_cmds_mod.f : Module containing Unix commands for unzipping files
 !
 !  NOTES:
 !  (1 ) Adapted from "a3_read_mod.f" (tdf, rjp, 6/30/04)
+!  (2 ) Now references "directory_mod.f", "logical_mod.f", and 
+!        "unix_cmds_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -51,34 +57,45 @@
 
       SUBROUTINE UNZIP_GWET_FIELDS( OPTION, NYMD )
 !
-!*****************************************************************************
+!******************************************************************************
 !  Subroutine UNZIP_GWET_FIELDS invokes a FORTRAN system call to uncompress
 !  GEOS-CHEM A-3 met field files and store the uncompressed data in a 
 !  temporary directory, where GEOS-CHEM can read them.  The original data 
-!  files are not disturbed.  (tdf, bmy, 3/30/04)
+!  files are not disturbed.  (tdf, bmy, 3/30/04, 7/20/04)
 !
 !  Arguments as input:
-!  ===========================================================================
+!  ============================================================================
 !  (1 ) OPTION (CHAR*(*)) : Option
 !  (2 ) NYMD   (INTEGER ) : YYYYMMDD of A-3 file to be unzipped (optional)
 !
 !  NOTES:
 !  (1 ) Adapted from "a3_read_mod.f" (tdf, bmy, 3/30/04)
-!*****************************************************************************
+!  (2 ) Now reference "directory_mod.f" and "unix_cmds_mod.f".  Also remove 
+!        reference to CMN_SETUP. (bmy, 7/20/04)
+!  (3 ) Now reference "directory_mod.f" and "unix_cmds_mod.f". Now prevent 
+!        EXPAND_DATE from overwriting directory paths with Y/M/D tokens in 
+!        them (bmy, 7/20/04)
+!******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD, ONLY : GET_RES_EXT
-      USE ERROR_MOD, ONLY : ERROR_STOP
-      USE TIME_MOD,  ONLY : EXPAND_DATE
+      USE BPCH2_MOD,    ONLY : GET_RES_EXT
+      USE DIRECTORY_MOD
+      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE TIME_MOD,     ONLY : EXPAND_DATE
+      USE UNIX_CMDS_MOD
 
 #     include "CMN_SIZE"            ! Size parameters
-#     include "CMN_SETUP"           ! GEOS_1_DIR, etc.
+!---------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"           ! GEOS_1_DIR, etc.
+!---------------------------------------------------------
 
       ! Arguments
       CHARACTER(LEN=*),  INTENT(IN) :: OPTION
       INTEGER, OPTIONAL, INTENT(IN) :: NYMD
 
       ! Local variables
+      CHARACTER(LEN=255)            :: GEOS_DIR,     GWET_STR
       CHARACTER(LEN=255)            :: GWET_FILE_GZ, GWET_FILE
       CHARACTER(LEN=255)            :: UNZIP_BG,     UNZIP_FG
       CHARACTER(LEN=255)            :: REMOVE_ALL,   REMOVE_DATE
@@ -90,60 +107,38 @@
      
 #if   defined( GEOS_1 )
 
-         ! Location of zipped A-3 file in data dir (GEOS-1)
-         GWET_FILE_GZ = TRIM( DATA_DIR )    // TRIM( GEOS_1_DIR ) // 
-     &                  'YYMMDD.gwet.'      // GET_RES_EXT()      // 
-     &                  TRIM( ZIP_SUFFIX )
-
-         ! Location of unzipped A-3 file in temp dir (GEOS-1)
-         GWET_FILE     = TRIM( TEMP_DIR )   // 'YYMMDD.gwet.'     // 
-     &                   GET_RES_EXT()
-         
-         ! Remove A-3 files for this date from temp dir (GEOS-1)
-         REMOVE_DATE   = TRIM( REMOVE_CMD ) // ' '                // 
-     &                   TRIM( TEMP_DIR   ) // 'YYMMDD.gwet.'     // 
-     &                   GET_RES_EXT()  
+         ! String w/ date & resolution
+         GEOS_DIR = TRIM( GEOS_1_DIR )
+         GWET_STR = 'YYMMDD.gwet.' // GET_RES_EXT() 
 
 #elif defined( GEOS_STRAT )
 
-         ! Location of zipped A-3 file in data dir (GEOS-STRAT)
-         GWET_FILE_GZ  = TRIM( DATA_DIR )   // TRIM( GEOS_S_DIR ) // 
-     &                   'YYMMDD.gwet.'     // GET_RES_EXT()      // 
-     &                   TRIM( ZIP_SUFFIX )
-
-         ! Location of unzipped A-3 file in temp dir (GEOS-STRAT)
-         GWET_FILE     = TRIM( TEMP_DIR )   // 'YYMMDD.gwet.'     // 
-     &                   GET_RES_EXT()
-
-         ! Remove A-3 files for this date from temp dir (GEOS-STRAT)
-         REMOVE_DATE   = TRIM( REMOVE_CMD ) // ' '                // 
-     &                   TRIM( TEMP_DIR   ) // 'YYMMDD.gwet.'     // 
-     &                   GET_RES_EXT()  
+         ! String w/ date & resolution
+         GEOS_DIR = TRIM( GEOS_S_DIR )
+         GWET_STR = 'YYMMDD.gwet.' // GET_RES_EXT() 
 
 #elif defined( GEOS_3 )
 
-         ! Location of zipped A-3 file in data dir (GEOS-3)
-         GWET_FILE_GZ  = TRIM( DATA_DIR )   // TRIM( GEOS_3_DIR ) // 
-     &                   'YYYYMMDD.gwet.'   // GET_RES_EXT()      // 
-     &                   TRIM( ZIP_SUFFIX )
-
-         ! Location of unzipped A-3 file in temp dir (GEOS-3)
-         GWET_FILE     = TRIM( TEMP_DIR )   // 'YYYYMMDD.gwet.'   // 
-     &                   GET_RES_EXT() 
-
-         ! Remove A-3 files for this date from temp dir (GEOS-3)
-         REMOVE_DATE   = TRIM( REMOVE_CMD ) // ' '                // 
-     &                   TRIM( TEMP_DIR   ) // 'YYYYMMDD.gwet.'   // 
-     &                   GET_RES_EXT()  
+         ! String w/ date & resolution
+         GEOS_DIR = TRIM( GEOS_3_DIR )
+         GWET_STR = 'YYYYMMDD.gwet.' // GET_RES_EXT() 
 
 #endif
 
-         !==============================================================
-         ! Replace tokens in character variables w/ year & month values
-         !==============================================================
-         CALL EXPAND_DATE( GWET_FILE_GZ,  NYMD, 000000 )
-         CALL EXPAND_DATE( GWET_FILE,     NYMD, 000000 )
-         CALL EXPAND_DATE( REMOVE_DATE,   NYMD, 000000 )
+         ! Replace date tokens
+         CALL EXPAND_DATE( GEOS_DIR, NYMD, 000000 )
+         CALL EXPAND_DATE( GWET_STR, NYMD, 000000 )
+
+         ! Location of zipped A-3 file in data dir
+         GWET_FILE_GZ = TRIM( DATA_DIR   ) // TRIM( GEOS_DIR   ) // 
+     &                  TRIM( GWET_STR   ) // TRIM( ZIP_SUFFIX )
+
+         ! Location of unzipped A-3 file in temp dir
+         GWET_FILE    = TRIM( TEMP_DIR   ) // TRIM( GWET_STR   )
+         
+         ! Remove A-3 files for this date from temp dir
+         REMOVE_DATE  = TRIM( REMOVE_CMD ) // ' '                // 
+     &                  TRIM( TEMP_DIR   ) // TRIM( GWET_STR   )
 
          !==============================================================
          ! Define the foreground and background UNZIP commands
@@ -265,7 +260,7 @@
 !
 !******************************************************************************
 !  Subroutine OPEN_gwet_FIELDS opens the A-3 met fields file for date NYMD 
-!  and time NHMS. (tdf, bmy, 3/30/04)
+!  and time NHMS. (tdf, bmy, 3/30/04, 7/20/04)
 !  
 !  Arguments as Input:
 !  ===========================================================================
@@ -274,16 +269,24 @@
 !
 !  NOTES:
 !  (1 ) Adapted from "a3_read_mod.f" (tdf, bmy, 3/30/04)
+!  (2 ) Now references "directory_mod.f" instead of CMN_SETUP.  Also now
+!        references LUNZIP from "logical_mod.f".  Also now prevents EXPAND_DATE
+!        from overwriting Y/M/D tokens in directory paths. (bmy, 7/20/04)
 !******************************************************************************
 !      
       ! References to F90 modules
-      USE BPCH2_MOD, ONLY : GET_RES_EXT
-      USE ERROR_MOD, ONLY : ERROR_STOP
-      USE FILE_MOD,  ONLY : IU_GWET, IOERROR
-      USE TIME_MOD,  ONLY : EXPAND_DATE
+      USE BPCH2_MOD,    ONLY : GET_RES_EXT
+      USE DIRECTORY_MOD
+      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE LOGICAL_MOD,  ONLY : LUNZIP
+      USE FILE_MOD,     ONLY : IU_GWET, IOERROR
+      USE TIME_MOD,     ONLY : EXPAND_DATE
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_SETUP" ! GEOS directories
+!------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! GEOS directories
+!------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS
@@ -293,6 +296,8 @@
       LOGICAL             :: IT_EXISTS
       INTEGER             :: IOS
       CHARACTER(LEN=8)    :: IDENT
+      CHARACTER(LEN=255)  :: GEOS_DIR
+      CHARACTER(LEN=255)  :: GWET_FILE
       CHARACTER(LEN=255)  :: PATH
 
       !=================================================================
@@ -304,45 +309,40 @@
 
 #if   defined( GEOS_1 ) 
 
-         ! If unzipping, open GEOS-1 file in TEMP dir
-         ! If not unzipping, open GEOS-1 file in DATA dir
-         IF ( LUNZIP ) THEN
-            PATH = TRIM( TEMP_DIR ) // 'YYMMDD.gwet.' // GET_RES_EXT()
-         ELSE
-            PATH = TRIM( DATA_DIR ) // TRIM( GEOS_1_DIR ) // 
-     &             'YYMMDD.gwet.'     // GET_RES_EXT() 
-         ENDIF
+         ! Strings for directory & filename
+         GEOS_DIR  = TRIM( GEOS_1_DIR )
+         GWET_FILE = 'YYMMDD.gwet.'   // GET_RES_EXT()
 
 #elif defined( GEOS_STRAT )
 
-         ! If unzipping, open GEOS-STRAT file in TEMP dir
-         ! If not unzipping, open GEOS-STRAT file in DATA dir
-         IF ( LUNZIP ) THEN
-            PATH = TRIM( TEMP_DIR ) // 'YYMMDD.gwet.' // GET_RES_EXT()
-         ELSE
-            PATH = TRIM( DATA_DIR ) // TRIM( GEOS_S_DIR ) // 
-     &             'YYMMDD.gwet.'     // GET_RES_EXT() 
-         ENDIF
+         ! Strings for directory & filename
+         GEOS_DIR  = TRIM( GEOS_S_DIR )
+         GWET_FILE = 'YYMMDD.gwet.'   // GET_RES_EXT()
 
 #elif defined( GEOS_3 )
 
-         ! If unzipping, open GEOS-3 file in TEMP dir
-         ! If not unzipping, open GEOS-3 file in DATA dir
-         IF ( LUNZIP ) THEN
-            PATH = TRIM( TEMP_DIR ) // 'YYYYMMDD.gwet.' // GET_RES_EXT()
-         ELSE
-            PATH = TRIM( DATA_DIR ) // TRIM( GEOS_3_DIR ) // 
-     &             'YYYYMMDD.gwet.'   // GET_RES_EXT() 
-         ENDIF
+         ! String w/ date and resolution
+         GEOS_DIR  = TRIM( GEOS_3_DIR )
+         GWET_FILE = 'YYYYMMDD.gwet.' // GET_RES_EXT()
 
 #endif
 
-         ! Replace YYYYMMDD in PATH w/ actual date
-         CALL EXPAND_DATE( PATH, NYMD, 000000 )
+         ! Replace date tokens
+         CALL EXPAND_DATE( GEOS_DIR,  NYMD, NHMS )
+         CALL EXPAND_DATE( GWET_FILE, NYMD, NHMS )
+
+         ! If unzipping, open GEOS-1 file in TEMP dir
+         ! If not unzipping, open GEOS-1 file in DATA dir
+         IF ( LUNZIP ) THEN
+            PATH = TRIM( TEMP_DIR ) // TRIM( GWET_FILE )
+         ELSE
+            PATH = TRIM( DATA_DIR ) // 
+     &             TRIM( GEOS_DIR ) // TRIM( GWET_FILE )
+         ENDIF
 
          ! Close previously opened A-3 file
          CLOSE( IU_GWET )
-
+         
          ! Make sure the file exists before we open it!
          ! Maybe make this a function in ERROR_MOD (bmy, 6/23/03)
          INQUIRE( IU_GWET, EXIST=IT_EXISTS )

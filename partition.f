@@ -1,15 +1,19 @@
-! $Id: partition.f,v 1.3 2003/08/06 15:30:45 bmy Exp $
-      SUBROUTINE PARTITION( STT, NTRACER, XNUMOL ) 
+! $Id: partition.f,v 1.4 2004/09/21 18:04:16 bmy Exp $
+      !-----------------------------------------------
+      ! Prior to 7/20/04:
+      !SUBROUTINE PARTITION( STT, NTRACER, XNUMOL ) 
+      !-----------------------------------------------
+      SUBROUTINE PARTITION( NTRACER, STT, XNUMOL ) 
 !
 !******************************************************************************
 !  Subroutine PARTITION separates GEOS-CHEM tracers into its individual
 !  constituent chemistry species before each SMVGEAR chemistry timestep.
-!  (bdf, bmy, 4/1/03, 8/1/03)
+!  (bdf, bmy, 4/1/03, 7/20/04)
 ! 
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) STT     (REAL*8 ) : Tracer concentrations [kg/box]
-!  (2 ) NTRACER (INTEGER) : Number of tracers
+!  (1 ) NTRACER (INTEGER) : Number of tracers
+!  (2 ) STT     (REAL*8 ) : Tracer concentrations [kg/box]
 !  (3 ) XNUMOL  (REAL*8 ) : Array of molecules tracer / kg tracer 
 !
 !  Arguments as Output:
@@ -20,6 +24,7 @@
 !  (1 ) Now make CSAVE a local dynamic array.  Updated comments, cosmetic 
 !        changes (bmy, 4/24/03)
 !  (2 ) Add OpenMP parallelization commands (bmy, 8/1/03)
+!  (3 ) Now dimension args XNUMOL, STT w/ NTRACER and not NNPAR (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -34,8 +39,13 @@
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NTRACER
-      REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NNPAR)
-      REAL*8,  INTENT(IN)    :: XNUMOL(NNPAR)
+      !-----------------------------------------------------------
+      ! Prior to 7/20/04:
+      !REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NNPAR)
+      !REAL*8,  INTENT(IN)    :: XNUMOL(NNPAR)
+      !-----------------------------------------------------------
+      REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NTRACER)
+      REAL*8,  INTENT(IN)    :: XNUMOL(NTRACER)
 
       ! Local variables
       INTEGER                :: I, J, L, N, JLOOP, IPL, JJ, KK
@@ -50,8 +60,13 @@
       !
       ! Copy values of CSPEC that need to be saved  (bdf, 3/30/99)
       !=================================================================
-      IDNUM = 0
 
+      ! Initialize
+      IDNUM         = 0
+      CSAVEID(:)    = 0
+      CSAVEID_JJ(:) = 0
+
+      ! Loop over tracers
       DO N = 1, NTRACER
 
          ! Skip if this is not a valid tracer
@@ -72,7 +87,6 @@
             IDNUM             = IDNUM + 1
             CSAVEID(JJ)       = IDNUM
             CSAVEID_JJ(IDNUM) = JJ
-
          ENDIF
       ENDDO
 

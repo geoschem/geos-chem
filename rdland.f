@@ -1,9 +1,10 @@
-! $Id: rdland.f,v 1.1 2003/06/30 20:26:01 bmy Exp $
+! $Id: rdland.f,v 1.2 2004/09/21 18:04:16 bmy Exp $
       SUBROUTINE RDLAND
 
       ! References to F90 modules
-      USE ERROR_MOD, ONLY : ERROR_STOP
-      USE GRID_MOD,  ONLY : GET_XOFFSET, GET_YOFFSET
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE GRID_MOD,      ONLY : GET_XOFFSET, GET_YOFFSET
 
       IMPLICIT NONE
 
@@ -37,7 +38,10 @@ C
 #     include "CMN_SIZE"
 #     include "CMN_DEP"
 #     include "CMN_VEL"
-#     include "CMN_SETUP"  ! for DATA_DIR (bmy, 7/6/01)
+!-------------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"  ! for DATA_DIR (bmy, 7/6/01)
+!-------------------------------------------------------------
 
       INTEGER I,J,K,IJLOOP,IREF,JREF
       

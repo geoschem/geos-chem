@@ -1,9 +1,9 @@
-! $Id: ch3i_mod.f,v 1.2 2003/08/06 15:30:33 bmy Exp $
+! $Id: ch3i_mod.f,v 1.3 2004/09/21 18:04:09 bmy Exp $
       MODULE CH3I_MOD
 !
 !******************************************************************************
 !  Module CH3I_MOD contains emissions and chemistry routines for the CH3I
-!  (Methyl Iodide) simulation. (bmy, 1/23/02, 4/21/03)
+!  (Methyl Iodide) simulation. (bmy, 1/23/02, 7/20/04)
 !
 !  Module Routines:
 !  ============================================================================
@@ -18,11 +18,12 @@
 !  (3 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
 !  (4 ) dao_mod.f       : Module containing arrays for DAO met fields  
 !  (5 ) diag_mod.f      : Module containing GEOS-CHEM diagnostic arrays
-!  (6 ) error_mod.f     : Module containing NaN and other error check routines
-!  (7 ) file_mod.f      : Module containing file unit numbers and error checks
-!  (8 ) tracerid_mod.f  : Module containing pointers to tracers & emissions
-!  (9 ) transfer_mod.f  : Module containing routines to cast & resize arrays
-!  (10) uvalbedo_mod.f  : Module containing routines to read UV albedo data
+!  (6 ) diag_pl_mod.f   : Module containing routines for prod & logs diag's
+!  (7 ) error_mod.f     : Module containing NaN and other error check routines
+!  (8 ) file_mod.f      : Module containing file unit numbers and error checks
+!  (9 ) tracerid_mod.f  : Module containing pointers to tracers & emissions
+!  (10) transfer_mod.f  : Module containing routines to cast & resize arrays
+!  (11) uvalbedo_mod.f  : Module containing routines to read UV albedo data
 !
 !  NOTES:
 !  (1 ) Removed obsolete code from 1/15/02 (bmy, 4/15/02)
@@ -37,6 +38,8 @@
 !  (7 ) Now references "grid_mod.f" and the new "time_mod.f" (bmy, 2/10/03)
 !  (8 ) Added modifications for SMVGEAR II.  Removed reference to "file_mod.f".
 !        (bdf, bmy, 4/21/03)
+!  (9 ) Now references "directory_mod.f".  Now references "diag_pl_mod.f".
+!        (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -52,7 +55,7 @@
 !
 !******************************************************************************
 !  Subroutine OPEN_CH3I_FILES loads surface emission fields for CH3I
-!  (mgs, 3/15/99; bmy, hsu, 3/24/00,. bmy, 6/19/01, 1/23/02)
+!  (mgs, 3/15/99; bmy, hsu, 3/24/00,. bmy, 6/19/01, 7/20/04)
 !
 !  As of 16 June 1999, scale factors are applied in emissch3i.f (mgs)
 !  and we use monthly RADSWG fields instead of NPP.
@@ -94,14 +97,19 @@
 !  (11) Removed obsolete code from 9/01 (bmy, 10/24/01)
 !  (12) Now bundled into "ch3i_mod.f" Updated comments, cosmetic changes.
 !        (bmy, 1/23/02)
+!  (13) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE DIRECTORY_MOD, ONLY : DATA_DIR 
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_SETUP" ! DATA_DIR
+!----------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! DATA_DIR
+!----------------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) ::  THISMONTH    ! month of the year (1, 2, .., 12)
@@ -205,7 +213,7 @@
       SUBROUTINE EMISSCH3I
 !
 !******************************************************************************
-!  Subroutine EMISSCH3I (mgs, bmy, 11/23/98, 11/15/02) specifies methyl 
+!  Subroutine EMISSCH3I (mgs, bmy, 11/23/98, 7/20/04) specifies methyl 
 !  iodide (CH3I) emissions from the following sources:
 !
 !    Ocean: use correlation of surface water CH3I with net ocean
@@ -293,6 +301,8 @@
 !  (30) Now use GET_AREA_M2 from "grid_mod.f" to compute grid box surface
 !        areas.  Removed references to DXYP.  Now use functions GET_DAY,
 !        GET_GMT, GET_TS_EMIS from the new "time_mod.f". (bmy, 2/10/03)
+!  (31) Now reference STT & N_TRACERS from "tracer_mod.f".  Now reference
+!        LEMIS from "logical_mod.f". (bmy, 7/20/04)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -302,12 +312,17 @@
       USE DIAG_MOD,     ONLY : AD29,      AD36
       USE GRID_MOD,     ONLY : GET_AREA_M2
       USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE LOGICAL_MOD,  ONLY : LEMIS
       USE TIME_MOD,     ONLY : GET_DAY,   GET_GMT,
      &                         GET_MONTH, GET_TS_EMIS
+      USE TRACER_MOD,   ONLY : STT,       N_TRACERS
       USE TRACERID_MOD, ONLY : IDBCO,     IDBFCO
 
 #     include "CMN_SIZE"    ! Size parameters
-#     include "CMN"         ! Many other variables
+!------------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"         ! Many other variables
+!------------------------------------------------------------
 #     include "CMN_DEP"     ! RADIAT, FRCLND
 #     include "CMN_DIAG"    ! Diagnostic switches
 
@@ -409,15 +424,24 @@
       IF ( FIRSTEMISS ) THEN 
 
          ! Make sure that NTRACE = 5 since we have 5 CH3I tracers.
-         IF ( NTRACE /= 5 ) NTRACE = 5
+         !IF ( NTRACE /= 5 ) NTRACE = 5
+         IF ( N_TRACERS /= 5 ) N_TRACERS = 5
+         
 
          ! Make sure that emissions are turned on. 
          ! CH3I simulation doesn't make sense w/o emissions
-         IF ( .not. LSRCE ) THEN
-            PRINT*,'**** LSRCE=.FALSE.! I turn emissions on now!'
-            LSRCE = .TRUE.
+         !--------------------------------------------------------------
+         ! Prior to 7/20/04:
+         !IF ( .not. LSRCE ) THEN
+         !   PRINT*,'**** LSRCE=.FALSE.! I turn emissions on now!'
+         !   LSRCE = .TRUE.
+         !ENDIF
+         !--------------------------------------------------------------
+         IF ( .not. LEMIS ) THEN
+            PRINT*,'**** LEMIS=.FALSE.! I turn emissions on now!'
+            LEMIS = .TRUE.
          ENDIF
-         
+
          ! Output of accumulated emissions
          WRITE(97,*) ' CH3I emission log'
          WRITE(97,*) ' Total emissions in kg'
@@ -865,7 +889,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEMCH3I performs loss chemistry for methyl iodide (CH3I).  
-!  (mgs, bey, bmy, 11/20/98, 4/21/03)
+!  (mgs, bey, bmy, 11/20/98, 7/20/04)
 !
 !  If the LFASTJ C-preprocessor switch is set, then CHEMCH3I will invokes 
 !  the FAST-J subroutines to compute local photolysis rates, which in 
@@ -910,16 +934,24 @@
 !  (21) Replace call to CHEMSET with call to READCHEM for SMVGEAR II.  Replace
 !        NAMESPEC array with NAMEGAS array.   Removed reference to "file_mod.f"
 !        since now the "smv2.log" file is opened in READER. (bdf, bmy, 4/21/03)
+!  (22) Now reference STT and N_TRACERS from "ch3i_mod.f".  Also replace
+!        NSKIPL-1 with LLTROP for now.  Now references AD65 from 
+!        "diag_pl_mod.f". (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : OPTD, SUNCOS
-      USE DIAG_MOD,     ONLY : AD22, LTJV, AD65
+      USE DIAG_MOD,     ONLY : AD22, LTJV
+      USE DIAG_PL_MOD,  ONLY : AD65
       USE UVALBEDO_MOD, ONLY : UVALBEDO
       USE TIME_MOD,     ONLY : GET_TS_CHEM
+      USE TRACER_MOD,   ONLY : STT, N_TRACERS
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! STT
+!--------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"          ! STT
+!--------------------------------------------------
 #     include "CMN_DIAG"     ! ND36
 #     include "comode.h"     ! SPECNAME
 
@@ -976,7 +1008,11 @@
             CALL READCHEM
             
             ! Call INPHOT to initialize the fast-J variables. 
-            CALL INPHOT( NSKIPL-1, NPHOT )
+            !--------------------------------
+            ! Prior to 7/20/04:
+            !CALL INPHOT( NSKIPL-1, NPHOT )
+            !--------------------------------
+            CALL INPHOT( LLTROP, NPHOT )
             
             ! Echo output
             WRITE( 6,'(a)' ) 'Using U.C.I Fast-J Photolysis'
@@ -1025,7 +1061,11 @@
             SPECNAME = NAMEGAS(IRM(1,NK,NCS))            
 
             ! Maybe later can replace this w/ the ann mean tropopause...
-            DO L = 1, NSKIPL-1
+            !---------------------
+            ! Prior to 7/20/04:
+            !DO L = 1, NSKIPL-1
+            !---------------------
+            DO L = 1, LLTROP
             DO J = 1, JJPAR
             DO I = 1, IIPAR
 
@@ -1037,7 +1077,11 @@
 
                   ! Loop over all individual CH3I tracers
                   ! (which have the same loss rate)
-                  DO N = 1, NTRACE
+                  !-----------------------
+                  ! Prior to 7/20/04:
+                  !DO N = 1, NTRACE
+                  !-----------------------
+                  DO N = 1, N_TRACERS
                      STT(I,J,L,N) = STT(I,J,L,N) * RDLOSS
                   ENDDO
 
@@ -1051,7 +1095,11 @@
                   ! ND65: Loss rates for each tracer 
                   IF ( ND65 > 0 ) THEN
                      IF ( L <= LD65 ) THEN
-                        DO N = 1, NTRACE
+                        !-------------------
+                        ! Prior to 7/20/04:
+                        !DO N = 1, NTRACE
+                        !-------------------
+                        DO N = 1, N_TRACERS
                            AD65(I,J,L,N) = AD65(I,J,L,N) + 
      &                          ( STT(I,J,L,N) * JVALUE * DTCHEM )
                         ENDDO
@@ -1089,8 +1137,13 @@
          RLRAD    = DTCHEM * TCHEMA
          RDLOSS   = EXP( -RLRAD )
 
-         DO N = 1, NTRACE
-         DO L = 1, NSKIPL-1
+         !----------------------
+         ! Prior to 7/20/04:
+         !DO N = 1, NTRACE
+         !DO L = 1, NSKIPL-1
+         !----------------------
+         DO N = 1, N_TRACERS
+         DO L = 1, LLTROP
          DO J = 1, JJPAR
          DO I = 1, IIPAR
             STT(I,J,L,N) = STT(I,J,L,N) * RDLOSS

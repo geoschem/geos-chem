@@ -1,4 +1,4 @@
-! $Id: grid_mod.f,v 1.2 2004/05/03 14:46:17 bmy Exp $
+! $Id: grid_mod.f,v 1.3 2004/09/21 18:04:14 bmy Exp $
       MODULE GRID_MOD
 !
 !******************************************************************************
@@ -95,10 +95,11 @@
 !
 !******************************************************************************
 !  Subroutine COMPUTE_GRID initializes the longitude, latitude and surface 
-!  area arrays. (bmy, 3/11/03, 4/26/04)
+!  area arrays. (bmy, 3/11/03, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Added fancy output (bmy, 4/26/04)
+!  (2 ) Suppress some output lines (bmy, 7/20/04)
 !******************************************************************************
 !
 #     include "CMN_SIZE"  ! Size parameters
@@ -222,24 +223,30 @@
       !=================================================================
       ! Echo info to stdout
       !=================================================================
-      WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
-      WRITE( 6, '(a,/)' ) 'H O R I Z O N T A L   G R I D   S E T U P' 
-      WRITE( 6, '(a,/)' ) 'COMPUTE_GRID: Horizontal Grid Information!'
-      WRITE( 6, '(''Nested-Grid X-offset (boxes) :'', i4 )' ) I0
-      WRITE( 6, '(''Nested-Grid Y-offset (boxes) :'', i4 )' ) J0
+      !--------------------------------------------------------------------
+      ! Prior to 7/20/04:
+      !WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+      !WRITE( 6, '(/,a)' ) 'H O R I Z O N T A L   G R I D   S E T U P' 
+      !WRITE( 6, '(a,/)' ) 'COMPUTE_GRID: Horizontal Grid Information!'
+      !--------------------------------------------------------------------
+      WRITE( 6, '(''Nested-Grid X-offset [boxes]:'', i4 )' ) I0
+      WRITE( 6, '(''Nested-Grid Y-offset [boxes]:'', i4 )' ) J0
       WRITE( 6, '(a)' )
-      WRITE( 6, '(''Grid box longitude centers (degrees): '')' )
+      WRITE( 6, '(''Grid box longitude centers [degrees]: '')' )
       WRITE( 6, '(8(f8.3,1x))' ) ( XMID(I),  I=1,IIPAR )
       WRITE( 6, '(a)' )
-      WRITE( 6, '(''Grid box longitude edges (degrees): '')' )
+      WRITE( 6, '(''Grid box longitude edges [degrees]: '')' )
       WRITE( 6, '(8(f8.3,1x))' ) ( XEDGE(I), I=1,IIPAR+1 )
       WRITE( 6, '(a)' )
-      WRITE( 6, '(''Grid box latitude centers (degrees): '')' )
+      WRITE( 6, '(''Grid box latitude centers [degrees]: '')' )
       WRITE( 6, '(8(f8.3,1x))' ) ( YMID(J),  J=1,JJPAR )
       WRITE( 6, '(a)' )
-      WRITE( 6, '(''Grid box latitude edges (degrees): '')' )
+      WRITE( 6, '(''Grid box latitude edges [degrees]: '')' )
       WRITE( 6, '(8(f8.3,1x))' ) ( YEDGE(J), J=1,JJPAR+1 )
-      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+      !-------------------------------------
+      ! Prior to 7/20/04:
+      !WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+      !-------------------------------------
 
       !=================================================================
       ! Deallocate global arrays -- we don't need these anymore

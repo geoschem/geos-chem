@@ -1,4 +1,4 @@
-! $Id: carbon_mod.f,v 1.5 2004/07/19 14:36:38 bmy Exp $
+! $Id: carbon_mod.f,v 1.6 2004/09/21 18:04:09 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
@@ -97,19 +97,24 @@
 !  (1 ) bpch2_mod.f      : Module containing routines for binary punch file I/O
 !  (2 ) dao_mod.f        : Module containing arrays for DAO met fields
 !  (3 ) diag_mod.f       : Module containing GEOS-CHEM diagnostic arrays
-!  (4 ) drydep_mod.f     : Module containing routines for dry deposition
-!  (5 ) error_mod.f      : Module containing I/O error and NaN check routines
-!  (6 ) global_no3_mod.f : Module containing routines to read 3-D NO3 field
-!  (7 ) global_oh_mod.f  : Module containing routines to read 3-D OH  field
-!  (8 ) global_o3_mod.f  : Module containing routines to read 3-D O3  field
-!  (9 ) grid_mod.f       : Module containing horizontal grid information
-!  (10) pressure_mod.f   : Module containing routines to compute P(I,J,L)
-!  (11) time_mod.f       : Module containing routines for computing time & date
-!  (12) tracerid_mod.f   : Module containing pointers to tracers & emissions
-!  (13) transfer_mod.f   : Module containing routines to cast & resize arrays
+!  (4 ) directory_mod.f  : Module containing GEOS-CHEM data & met field dirs
+!  (5 ) drydep_mod.f     : Module containing routines for dry deposition
+!  (6 ) error_mod.f      : Module containing I/O error and NaN check routines
+!  (7 ) global_no3_mod.f : Module containing routines to read 3-D NO3 field
+!  (8 ) global_oh_mod.f  : Module containing routines to read 3-D OH  field
+!  (9 ) global_o3_mod.f  : Module containing routines to read 3-D O3  field
+!  (10) grid_mod.f       : Module containing horizontal grid informatio
+!  (11) logical_mod.f    : Module containing GEOS-CHEM logical switches
+!  (12) pressure_mod.f   : Module containing routines to compute P(I,J,L)
+!  (13) time_mod.f       : Module containing routines for computing time & date
+!  (14) tracer_mod.f     : Module containing GEOS-CHEM tracer array STT etc. 
+!  (15) tracerid_mod.f   : Module containing pointers to tracers & emissions
+!  (16) transfer_mod.f   : Module containing routines to cast & resize arrays
 !
 !  NOTES:
 !  (1 ) Added code from the Caltech group for SOA chemistry (rjp, bmy, 7/15/04)
+!  (2 ) Now references "directory_mod.f", "logical_mod.f", "tracer_mod.f".
+!        (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -185,7 +190,7 @@
 !  Subroutine CHEMCARBON is the interface between the GEOS-CHEM main 
 !  program and the carbon aerosol chemistry routines that calculates
 !  dry deposition, chemical conversion between hydrophilic and 
-!  hydrophobic, and SOA production. (rjp, bmy, 4/1/04, 7/15/04)
+!  hydrophobic, and SOA production. (rjp, bmy, 4/1/04, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Added code from the Caltech group for SOA chemistry.  Also now 
@@ -193,6 +198,8 @@
 !        (rjp, bmy, 7/8/04)
 !  (2 ) Now reference LSOA and LEMIS from CMN_SETUP.  Now only call OHNO3TIME
 !        if it hasn't been done before w/in EMISSCARBON. (rjp, bmy, 7/15/04)
+!  (3 ) Now reference LSOA, LEMIS, LPRT from "logical_mod.f".  Now reference
+!        STT and ITS_AN_AEROSOL_SIM from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -201,12 +208,17 @@
       USE GLOBAL_OH_MOD,  ONLY : GET_GLOBAL_OH
       USE GLOBAL_NO3_MOD, ONLY : GET_GLOBAL_NO3
       USE GLOBAL_O3_MOD,  ONLY : GET_GLOBAL_O3
+      USE LOGICAL_MOD,    ONLY : LSOA, LEMIS, LPRT
       USE TIME_MOD,       ONLY : GET_MONTH, ITS_A_NEW_MONTH
+      USE TRACER_MOD,     ONLY : STT, ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! STT, etc
-#     include "CMN_SETUP" ! LSOA, LEMIS
+!--------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"       ! STT, etc
+!#     include "CMN_SETUP" ! LSOA, LEMIS
+!--------------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE :: FIRSTCHEM = .TRUE.
@@ -294,7 +306,11 @@
       IF ( LSOA ) THEN
 
          ! Read offline OH, NO3, O3 fields from disk
-         IF ( NSRCX == 10 ) THEN 
+         !--------------------------------------------
+         ! Prior to 7/20/04:
+         !IF ( NSRCX == 10 ) THEN 
+         !--------------------------------------------
+         IF ( ITS_AN_AEROSOL_SIM() ) THEN
 
             ! Current month
             THISMONTH = GET_MONTH()
@@ -328,13 +344,14 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_BCPO converts hydrophobic BC to hydrophilic BC and
-!  calculates the dry deposition of hydrophobic BC. (rjp, bmy, 4/1/04)
+!  calculates the dry deposition of hydrophobic BC. (rjp, bmy, 4/1/04, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) TC (REAL*8) : Array of hydrophobic BC tracer 
 !
 !  NOTES:
+!  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -346,7 +363,10 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! NCHEM, DXYP
+!---------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"          ! NCHEM, DXYP
+!---------------------------------------------------------
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44, ND07, LD07
 
@@ -499,13 +519,14 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_BCPI calculates dry deposition of hydrophilic BC.
-!  (rjp, bmy, 4/1/04)
+!  (rjp, bmy, 4/1/04, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) TC (REAL*8) : Array of hydrophilic BC tracer 
 ! 
 !  NOTES:
+!  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -517,7 +538,10 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! NCHEM, DXYP
+!---------------------------------------------------------
+! Prior to 7/20/40:
+!#     include "CMN"          ! NCHEM, DXYP
+!---------------------------------------------------------
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44
 
@@ -674,13 +698,14 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_OCPO converts hydrophobic OC to hydrophilic OC and
-!  calculates the dry deposition of hydrophobic OC. (rjp, bmy, 4/1/04)
+!  calculates the dry deposition of hydrophobic OC. (rjp, bmy, 4/1/04, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) TC (REAL*8) : Array of hydrophobic OC tracer [kg]
 !
 !  NOTES:
+!  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -692,7 +717,10 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! NCHEM, DXYP
+!--------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"          ! NCHEM, DXYP
+!--------------------------------------------------------
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44, ND07, LD07
 
@@ -844,13 +872,14 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_BCPI calculates dry deposition of hydrophilic OC.
-!  (rjp, bmy, 4/1/04)
+!  (rjp, bmy, 4/1/04, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) TC (REAL*8) : Array of hydrophilic BC tracer 
 ! 
 !  NOTES:
+!  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -862,7 +891,10 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! NCHEM, DXYP
+!-----------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"          ! NCHEM, DXYP
+!-----------------------------------------------------------
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44
 
@@ -1012,14 +1044,14 @@
       ! Return to calling program
       END SUBROUTINE CHEM_OCPI
 
-!-----------------------------------------------------------------------
+!------------------------------------------------------------------------------
 
       SUBROUTINE SOA_CHEMISTRY
 !
 !******************************************************************************
 !  Subroutine SOA_CHEMISTRY performs SOA formation.  This code is from the
 !  Caltech group (Hong Liao, Serena Chung, et al) and was modified for 
-!  GEOS-CHEM. (rjp, bmy, 7/8/04)
+!  GEOS-CHEM. (rjp, bmy, 7/8/04, 7/20/04)
 !
 !  Procedure:
 !  ============================================================================
@@ -1060,17 +1092,22 @@
 !     SOA3 = aerosol product of SESQ oxidation 
 !
 !  NOTES:
+!  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,    ONLY : DEBUG_MSG
       USE DAO_MOD,      ONLY : T, AD, AIRVOL, SUNCOS
       USE DIAG_MOD,     ONLY : AD07_HC 
+      USE TRACER_MOD,   ONLY : STT 
       USE TRACERID_MOD
       USE TIME_MOD,     ONLY : GET_TS_CHEM, GET_MONTH
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! NCHEM, DXYP, STT, MONTH
+!-----------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"          ! NCHEM, DXYP, STT, MONTH
+!-----------------------------------------------------------
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44
 
@@ -1794,7 +1831,7 @@ c
 !******************************************************************************
 !  Subroutine CHEM_NVOC computes the oxidation of Hydrocarbon by O3, OH, and 
 !  NO3.  This comes from the Caltech group (Hong Liao, Serena Chung, et al)
-!  and was incorporated into GEOS-CHEM. (rjp, bmy, 7/6/04)
+!  and was incorporated into GEOS-CHEM. (rjp, bmy, 7/6/04, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1811,14 +1848,19 @@ c
 !  (8 ) GM0   (REAL*8 ) : Gas mass for each HC and its oxidation product [kg]
 !  
 !  NOTES:
+!  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 kmodules
+      USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD
       USE TIME_MOD,     ONLY : GET_TS_CHEM, GET_MONTH
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! STT
+!------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"          ! STT
+!------------------------------------------
 
       INTEGER, INTENT(IN)    :: I, J, L
       REAL*8,  INTENT(IN)    :: KO3(MHC), KOH(MHC), KNO3(MHC)
@@ -1908,8 +1950,9 @@ c
       SUBROUTINE SOA_PARTITION( I, J, L, GM0, AM0 )
 !
 !******************************************************************************
-!  Subroutine SOA_PARTITION partitions the mass of gas and aerosol tracers 
-!  according to five Hydrocarbon species and three oxidants (rjp, bmy, 7/7/04).
+!  Subroutine SOA_PARTITION partitions the mass of gas and aerosol 
+!  tracers according to five Hydrocarbon species and three oxidants.
+!  (rjp, bmy, 7/7/04, 7/20/04)
 !
 !  NOTE: GPROD and APROD are mass ratios of individual oxidation 
 !        products of gas/aerosol to the sum of all. 
@@ -1926,14 +1969,19 @@ c
 !  (5 ) AM0 (REAL*8 ) : Aerosol mass for each HC and its oxidation product [kg]
 !
 !  NOTES:
+!  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! Refrences to F90 modules
-      USE TRACERID_MOD,  ONLY : IDTSOG1, IDTSOG2, IDTSOG3, 
-     &                          IDTSOA1, IDTSOA2, IDTSOA3
+      USE TRACER_MOD,   ONLY : STT
+      USE TRACERID_MOD, ONLY : IDTSOG1, IDTSOG2, IDTSOG3, 
+     &                         IDTSOA1, IDTSOA2, IDTSOA3
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! NCHEM, DXYP, STT, MONTH
+!---------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"          ! NCHEM, DXYP, STT, MONTH
+!---------------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J, L
@@ -1987,7 +2035,7 @@ c
 !
 !******************************************************************************
 !  Subroutine SOA_LUMP returns the organic gas and aerosol back to the
-!  STT array (rjp, bmy, 7/7/04).
+!  STT array.  (rjp, bmy, 7/7/04, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1998,14 +2046,19 @@ c
 !  (5 ) AM0 (REAL*8 ) : Aerosol mass for each HC and its oxidation product [kg]
 ! 
 !  NOTES:
+!  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIAG_MOD,     ONLY : AD07_HC 
+      USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! NCHEM, DXYP, STT, MONTH
+!----------------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"          ! NCHEM, DXYP, STT, MONTH
+!----------------------------------------------------------------
 #     include "CMN_DIAG"     ! ND44
       
       ! Arguments
@@ -2172,7 +2225,7 @@ c
 !
 !******************************************************************************
 !  Subroutine SOA_DEPO computes dry-deposition of a particular SOA species.
-!  (rjp, bmy, 7/8/04)
+!  (rjp, bmy, 7/8/04, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -2181,6 +2234,7 @@ c
 !  (3 ) TRID  (INTEGER) : GEOS-CHEM tracer number 
 ! 
 !  NOTES:
+!  (1 ) Remove reference to CMN, it's obsolete (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2191,7 +2245,10 @@ c
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! NCHEM, DXYP
+!-----------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"          ! NCHEM, DXYP
+!-----------------------------------------------------
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44
 
@@ -2319,24 +2376,34 @@ c
 !
 !******************************************************************************
 !  Subroutine EMISSCARBON is the interface between the GEOS-CHEM model
-!  and the CARBONACEOUS AERxfOSOL emissions (rjp, bmy, 1/24/02, 7/8/04)
+!  and the CARBONACEOUS AEROSOL emissions (rjp, bmy, 1/24/02, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Now references LSOA from "CMN_SETUP".  Also now call OHNO3TIME since
 !        biogenic emissions also have a diurnal variation. (rjp, bmy, 7/15/04)
+!  (2 ) Now references LSOA and LPRT from "logical_mod.f".  Now references
+!        STT from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIAG_MOD,    ONLY : AD07
       USE DAO_MOD,     ONLY : PBL
       USE ERROR_MOD,   ONLY : DEBUG_MSG
+      USE LOGICAL_MOD, ONLY : LSOA,      LPRT
       USE TIME_MOD,    ONLY : GET_MONTH, ITS_A_NEW_MONTH
+      USE TRACER_MOD,  ONLY : STT
       USE TRACERID_MOD
 
-#     include "CMN_SIZE"    ! Size paramters
-#     include "CMN"         ! STT
+#     include "CMN_SIZE"    ! Size parameters
+!---------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"         ! STT
+!---------------------------------------------------
 #     include "CMN_DIAG"    ! ND07
-#     include "CMN_SETUP"   ! LSOA
+!----------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"   ! LSOA
+!----------------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE        :: FIRST = .TRUE.
@@ -2472,7 +2539,7 @@ c
             OCSRC(I,J,1) = ANTH_ORGC(I,J,1) + 
      &                     BIOF_ORGC(I,J,1) + 
      &                     BIOB_ORGC(I,J,1) + 
-     &                     TERP_ORGCI,J)
+     &                     TERP_ORGC(I,J)
 
          ENDIF
 
@@ -2560,24 +2627,31 @@ c
 !
 !******************************************************************************
 !  Subroutine BIOGENIC_OC emits secondary organic carbon aerosols.
-!  Also modified for SOA tracers. (rjp, bmy, 4/1/04, 7/8/04)
+!  Also modified for SOA tracers. (rjp, bmy, 4/1/04, 7/20/04)
 !
 !  Terpene emissions as a source of OC:  TERP.GEIA90.a1.2x2.5.*
 !  Assuming 10% yield of OC(hydrophilic) from terpene emission.
 !
 !  NOTES:
 !  (1 ) Now separate computation for FULLCHEM and OFFLINE runs (bmy, 7/8/04)
+!  (2 ) Now references DATA_DIR from "directory_mod.f".  Now references LSOA
+!        from "logical_mod.f". (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE DAO_MOD,      ONLY : SUNCOS
-      USE TIME_MOD,     ONLY : GET_MONTH,   GET_TS_CHEM, 
-     &                         GET_TS_EMIS, ITS_A_NEW_MONTH
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE DAO_MOD,       ONLY : SUNCOS
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE LOGICAL_MOD,   ONLY : LSOA
+      USE TIME_MOD,      ONLY : GET_MONTH,   GET_TS_CHEM, 
+     &                          GET_TS_EMIS, ITS_A_NEW_MONTH
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_SETUP"    ! DATA_DIR
+!-------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"    ! DATA_DIR
+!-------------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.
@@ -2779,7 +2853,7 @@ c
 !  Subroutine ANTHRO_CARB_TBOND computes annual mean anthropogenic and 
 !  biofuel emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC 
 !  CARBON.  It also separates these into HYDROPHILIC and HYDROPHOBIC 
-!  fractions. (rjp, bmy, 4/2/04)
+!  fractions. (rjp, bmy, 4/2/04, 7/20/04)
 !
 !  Emissions data comes from the Bond et al [2004] inventory and has units
 !  of [kg C/yr].  This will be converted to [kg C/timestep] below.
@@ -2788,15 +2862,20 @@ c
 !  emissions are hydrophilic (soluble) and the rest are hydrophobic.
 !
 !  NOTES:
+!  (1 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE TIME_MOD,     ONLY : GET_TS_EMIS
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TIME_MOD,      ONLY : GET_TS_EMIS
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_SETUP"  ! DATA_DIR
+!---------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"  ! DATA_DIR
+!---------------------------------------------------
 
       ! Local variables
       INTEGER             :: I, J
@@ -2965,7 +3044,7 @@ c
 !  Subroutine ANTHRO_CARB_COOKE computes monthly mean anthropogenic and 
 !  biofuel emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC 
 !  CARBON.  It also separates these into HYDROPHILIC and HYDROPHOBIC 
-!  fractions. (rjp, bmy, 4/2/04)
+!  fractions. (rjp, bmy, 4/2/04, 7/20/04)
 !
 !  Emissions data comes from the Cooke et al. [1999] inventory and 
 !  seasonality imposed by Park et al. [2003].  The data has units of 
@@ -2975,15 +3054,20 @@ c
 !  emissions are hydrophilic (soluble) and the rest are hydrophobic.
 !
 !  NOTES:
+!  (1 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE TIME_MOD,     ONLY : GET_TS_EMIS
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TIME_MOD,      ONLY : GET_TS_EMIS
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"
-#     include "CMN_SETUP"  ! DATA_DIR
+!-------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"  ! DATA_DIR
+!-------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -3159,7 +3243,7 @@ c
 !  Subroutine BIOMASS_CARB_TBOND computes annual mean biomass burning 
 !  emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC CARBON.  
 !  It also separates these into HYDROPHILIC and HYDROPHOBIC fractions. 
-!  (rjp, bmy, 4/2/04)
+!  (rjp, bmy, 4/2/04, 7/20/04)
 !
 !  Emissions data comes from the Bond et al [2004] inventory and has units
 !  of [kg C/yr].  This will be converted to [kg C/timestep] below.
@@ -3168,15 +3252,20 @@ c
 !  emissions are hydrophilic (soluble) and the rest are hydrophobic.
 !
 !  NOTES:
+!  (1 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE TIME_MOD,     ONLY : GET_TS_EMIS
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TIME_MOD,      ONLY : GET_TS_EMIS
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"   ! Size parameters 
-#     include "CMN_SETUP"  ! DATA_DIR
+!---------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"  ! DATA_DIR
+!---------------------------------------------
 
       ! Local variables
       INTEGER             :: I, J
@@ -3275,7 +3364,7 @@ c
 !  Subroutine BIOMASS_CARB_TBOND computes annual mean biomass burning 
 !  emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC CARBON.  
 !  It also separates these into HYDROPHILIC and HYDROPHOBIC fractions. 
-!  (rjp, bmy, 4/2/04)
+!  (rjp, bmy, 4/2/04, 7/20/04)
 !
 !  Emissions data comes from the Bond et al [2004] inventory and has units
 !  of [kg C/yr].  This will be converted to [kg C/timestep] below.
@@ -3284,17 +3373,23 @@ c
 !  emissions are hydrophilic (soluble) and the rest are hydrophobic.
 !
 !  NOTES:
+!  (1 ) Now references DATA_DIR from "directory_mod.f".  Also removed CMN,
+!        it's obsolete. (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE GRID_MOD,     ONLY : GET_AREA_M2
-      USE TIME_MOD,     ONLY : GET_TS_EMIS
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE GRID_MOD,      ONLY : GET_AREA_M2
+      USE TIME_MOD,      ONLY : GET_TS_EMIS
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! NSRCE, DXYP
-#     include "CMN_SETUP"    ! DATA_DIR
+!-----------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"          ! NSRCE, DXYP
+!#     include "CMN_SETUP"    ! DATA_DIR
+!-----------------------------------------------------
 
       !-------------------
       ! Arguments
@@ -3470,17 +3565,22 @@ c
 !
 !  NOTES:
 !  (1 ) Now also mix ALPH, LIMO, ALCO tracers (rjp, bmy, 7/8/04)
+!  (2 ) Now reference STT from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : PBL
       USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO, 
      &                         IDTALPH, IDTLIMO, IDTALCO
       USE PRESSURE_MOD, ONLY : GET_PEDGE
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! STT
+!----------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"       ! STT
+!----------------------------------------------
 #     include "CMN_GCTM"  ! SCALE_HEIGHT
 
       ! Arguments
@@ -3536,7 +3636,11 @@ c
          BLTOP  = GET_PEDGE(I,J,1) - MAX( PBL(I,J), 1.D0 )
 
          ! BLTHIK is PBL thickness [hPa]
-         BLTHIK = PBL(I,J)
+         !---------------------------------
+         ! Prior to 7/20/04:
+         !BLTHIK = PBL(I,J)
+         !---------------------------------
+         BLTHIK = MAX( PBL(I,J), 1.D0 )
 
 #endif
 
@@ -3788,6 +3892,7 @@ c
 !  NOTES:
 !  (1 ) We assume SETTRACE has been called to define IDOH (bmy, 11/1/02)
 !  (2 ) Now use function GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
+!  (3 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3796,10 +3901,14 @@ c
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE GLOBAL_OH_MOD, ONLY : OH
       USE TIME_MOD,      ONLY : GET_TS_CHEM
+      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,  ONLY : IDOH
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! NSRCX
+!------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"       ! NSRCX
+!------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -3811,55 +3920,112 @@ c
       !=================================================================
       ! GET_OH begins here!
       !=================================================================
-      SELECT CASE ( NSRCX ) 
-      
+!----------------------------------------------------------------------------
+! Prior to 7/20/04:
+! Now use inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
+!      SELECT CASE ( NSRCX ) 
+!      
+!         !---------------------
+!         ! Coupled simulation
+!         !---------------------
+!         CASE ( 3 )
+!
+!            ! JLOOP = SMVGEAR 1-D grid box index
+!            JLOOP = JLOP(I,J,L)
+!
+!            ! Take OH from the SMVGEAR array CSPEC
+!            ! OH is defined only in the troposphere
+!            IF ( JLOOP > 0 ) THEN
+!               OH_MOLEC_CM3 = CSPEC(JLOOP,IDOH)
+!            ELSE
+!               OH_MOLEC_CM3 = 0d0
+!            ENDIF
+!
+!         !---------------------
+!         ! Offline simulation
+!         !---------------------
+!         CASE ( 10 )
+!
+!            ! 1-D grid box index for SUNCOS
+!            JLOOP = ( (J-1) * IIPAR ) + I
+!
+!            ! Test for sunlight...
+!            IF ( SUNCOS(JLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+!
+!               ! Impose a diurnal variation on OH during the day
+!               OH_MOLEC_CM3 = OH(I,J,L)                      *           
+!     &                        ( SUNCOS(JLOOP) / TCOSZ(I,J) ) *
+!     &                        ( 1440d0        / GET_TS_CHEM() )
+!
+!               ! Make sure OH is not negative
+!               OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0d0 )
+!               
+!            ELSE
+!
+!               ! At night, OH goes to zero
+!               OH_MOLEC_CM3 = 0d0
+!
+!            ENDIF
+!
+!         ! Error check
+!         CASE DEFAULT
+!            CALL ERROR_STOP( 'Invalid NSRCX!', 'GET_OH (sulfate_mod.f)')
+!
+!      END SELECT
+!----------------------------------------------------------------------------
+
+      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+
          !---------------------
          ! Coupled simulation
          !---------------------
-         CASE ( 3 )
 
-            ! JLOOP = SMVGEAR 1-D grid box index
-            JLOOP = JLOP(I,J,L)
+         ! JLOOP = SMVGEAR 1-D grid box index
+         JLOOP = JLOP(I,J,L)
 
-            ! Take OH from the SMVGEAR array CSPEC
-            ! OH is defined only in the troposphere
-            IF ( JLOOP > 0 ) THEN
-               OH_MOLEC_CM3 = CSPEC(JLOOP,IDOH)
-            ELSE
-               OH_MOLEC_CM3 = 0d0
-            ENDIF
+         ! Take OH from the SMVGEAR array CSPEC
+         ! OH is defined only in the troposphere
+         IF ( JLOOP > 0 ) THEN
+            OH_MOLEC_CM3 = CSPEC(JLOOP,IDOH)
+         ELSE
+            OH_MOLEC_CM3 = 0d0
+         ENDIF
+
+      ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
 
          !---------------------
          ! Offline simulation
          !---------------------
-         CASE ( 10 )
 
-            ! 1-D grid box index for SUNCOS
-            JLOOP = ( (J-1) * IIPAR ) + I
+         ! 1-D grid box index for SUNCOS
+         JLOOP = ( (J-1) * IIPAR ) + I
 
-            ! Test for sunlight...
-            IF ( SUNCOS(JLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+         ! Test for sunlight...
+         IF ( SUNCOS(JLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
 
-               ! Impose a diurnal variation on OH during the day
-               OH_MOLEC_CM3 = OH(I,J,L)                      *           
-     &                        ( SUNCOS(JLOOP) / TCOSZ(I,J) ) *
-     &                        ( 1440d0        / GET_TS_CHEM() )
+            ! Impose a diurnal variation on OH during the day
+            OH_MOLEC_CM3 = OH(I,J,L)                      *           
+     &                     ( SUNCOS(JLOOP) / TCOSZ(I,J) ) *
+     &                     ( 1440d0        / GET_TS_CHEM() )
 
-               ! Make sure OH is not negative
-               OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0d0 )
+            ! Make sure OH is not negative
+            OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0d0 )
                
-            ELSE
+         ELSE
 
-               ! At night, OH goes to zero
-               OH_MOLEC_CM3 = 0d0
+            ! At night, OH goes to zero
+            OH_MOLEC_CM3 = 0d0
 
-            ENDIF
+         ENDIF
 
-         ! Error check
-         CASE DEFAULT
-            CALL ERROR_STOP( 'Invalid NSRCX!', 'GET_OH (sulfate_mod.f)')
+      ELSE
 
-      END SELECT
+         !---------------------
+         ! Invalid sim type!
+         !---------------------        
+         CALL ERROR_STOP( 'Invalid NSRCX!', 'GET_OH (sulfate_mod.f)')
+
+      ENDIF
 
       ! Return to calling program
       END FUNCTION GET_OH
@@ -3871,7 +4037,7 @@ c
 !******************************************************************************
 !  Function GET_NO3 returns NO3 from SMVGEAR's CSPEC array (for coupled runs)
 !  or monthly mean OH (for offline runs).  For offline runs, the concentration
-!  of NO3 is set to zero during the day. (rjp, bmy, 12/16/02)
+!  of NO3 is set to zero during the day. (rjp, bmy, 12/16/02, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -3881,6 +4047,7 @@ c
 !  (1 ) Now references ERROR_STOP from "error_mod.f".  We also assume that
 !        SETTRACE has been called to define IDNO3.  Now also set NO3 to 
 !        zero during the day. (rjp, bmy, 12/16/02)
+!  (2 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3888,6 +4055,7 @@ c
       USE DAO_MOD,        ONLY : AD,    SUNCOS
       USE ERROR_MOD,      ONLY : ERROR_STOP
       USE GLOBAL_NO3_MOD, ONLY : NO3
+      USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,   ONLY : IDNO3
 
 #     include "CMN_SIZE"  ! Size parameters
@@ -3907,21 +4075,95 @@ c
       !=================================================================
       ! GET_NO3 begins here!
       !=================================================================
-      SELECT CASE ( NSRCX )
+!-----------------------------------------------------------------------------
+!      SELECT CASE ( NSRCX )
+!
+!         ! Coupled chemistry/aerosol simulation
+!         CASE ( 3 )
+!            
+!            ! 1-D SMVGEAR grid box index
+!            JLOOP = JLOP(I,J,L)
+!
+!            ! Take NO3 from the SMVGEAR array CSPEC
+!            ! NO3 is defined only in the troposphere
+!            IF ( JLOOP > 0 ) THEN
+!               NO3_MOLEC_CM3 = CSPEC(JLOOP,IDNO3)
+!            ELSE
+!               NO3_MOLEC_CM3 = 0d0
+!            ENDIF
+!
+!         !==============================================================  
+!         ! Offline simulation: Read monthly mean GEOS-CHEM NO3 fields
+!         ! in [v/v].  Convert these to [molec/cm3] as follows:
+!         !
+!         !  vol NO3   moles NO3    kg air     kg NO3/mole NO3
+!         !  ------- = --------- * -------- * ---------------- =  kg NO3 
+!         !  vol air   moles air      1        kg air/mole air
+!         !
+!         ! And then we convert [kg NO3] to [molec NO3/cm3] by:
+!         !  
+!         !  kg NO3   molec NO3   mole NO3     1     molec NO3
+!         !  ------ * --------- * -------- * ----- = --------- 
+!         !     1     mole NO3     kg NO3     cm3       cm3
+!         !          ^                    ^
+!         !          |____________________|  
+!         !            this is XNUMOL_NO3
+!         !
+!         ! If at nighttime, use the monthly mean NO3 concentration from
+!         ! the NO3 array of "global_no3_mod.f".  If during the daytime,
+!         ! set the NO3 concentration to zero.  We don't have to relax to 
+!         ! the monthly mean concentration every 3 hours (as for HNO3) 
+!         ! since NO3 has a very short lifetime. (rjp, bmy, 12/16/02) 
+!         !==============================================================
+!         CASE ( 10 )
+!
+!            ! 1-D grid box index for SUNCOS
+!            JLOOP = ( (J-1) * IIPAR ) + I
+!
+!            ! Test if daylight
+!            IF ( SUNCOS(JLOOP) > 0d0 ) THEN
+!
+!               ! NO3 goes to zero during the day
+!               NO3_MOLEC_CM3 = 0d0
+!              
+!            ELSE
+!
+!               ! At night: Get NO3 [v/v] and convert it to [kg]
+!               NO3_MOLEC_CM3 = NO3(I,J,L) * AD(I,J,L) * ( 62d0/28.97d0 ) 
+!               
+!               ! Convert NO3 from [kg] to [molec/cm3]
+!               NO3_MOLEC_CM3 = NO3_MOLEC_CM3 * XNUMOL_NO3 / BOXVL(I,J,L)
+!                  
+!            ENDIF
+!            
+!            ! Make sure NO3 is not negative
+!            NO3_MOLEC_CM3  = MAX( NO3_MOLEC_CM3, 0d0 )
+!
+!         ! Error check
+!         CASE DEFAULT
+!            CALL ERROR_STOP( 'Invalid NSRCX!','GET_NO3 (sulfate_mod.f)')
+!
+!      END SELECT
+!-----------------------------------------------------------------------------
 
-         ! Coupled chemistry/aerosol simulation
-         CASE ( 3 )
-            
-            ! 1-D SMVGEAR grid box index
-            JLOOP = JLOP(I,J,L)
+      IF ( ITS_A_FULLCHEM_SIM() ) THEN
 
-            ! Take NO3 from the SMVGEAR array CSPEC
-            ! NO3 is defined only in the troposphere
-            IF ( JLOOP > 0 ) THEN
-               NO3_MOLEC_CM3 = CSPEC(JLOOP,IDNO3)
-            ELSE
-               NO3_MOLEC_CM3 = 0d0
-            ENDIF
+         !----------------------
+         ! Fullchem simulation
+         !----------------------
+
+         ! 1-D SMVGEAR grid box index
+         JLOOP = JLOP(I,J,L)
+
+         ! Take NO3 from the SMVGEAR array CSPEC
+         ! NO3 is defined only in the troposphere
+         IF ( JLOOP > 0 ) THEN
+            NO3_MOLEC_CM3 = CSPEC(JLOOP,IDNO3)
+         ELSE
+            NO3_MOLEC_CM3 = 0d0
+         ENDIF
+
+      ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
 
          !==============================================================  
          ! Offline simulation: Read monthly mean GEOS-CHEM NO3 fields
@@ -3946,35 +4188,37 @@ c
          ! the monthly mean concentration every 3 hours (as for HNO3) 
          ! since NO3 has a very short lifetime. (rjp, bmy, 12/16/02) 
          !==============================================================
-         CASE ( 10 )
 
-            ! 1-D grid box index for SUNCOS
-            JLOOP = ( (J-1) * IIPAR ) + I
+         ! 1-D grid box index for SUNCOS
+         JLOOP = ( (J-1) * IIPAR ) + I
 
-            ! Test if daylight
-            IF ( SUNCOS(JLOOP) > 0d0 ) THEN
+         ! Test if daylight
+         IF ( SUNCOS(JLOOP) > 0d0 ) THEN
 
-               ! NO3 goes to zero during the day
-               NO3_MOLEC_CM3 = 0d0
+            ! NO3 goes to zero during the day
+            NO3_MOLEC_CM3 = 0d0
               
-            ELSE
+         ELSE
 
-               ! At night: Get NO3 [v/v] and convert it to [kg]
-               NO3_MOLEC_CM3 = NO3(I,J,L) * AD(I,J,L) * ( 62d0/28.97d0 ) 
+            ! At night: Get NO3 [v/v] and convert it to [kg]
+            NO3_MOLEC_CM3 = NO3(I,J,L) * AD(I,J,L) * ( 62d0/28.97d0 ) 
                
-               ! Convert NO3 from [kg] to [molec/cm3]
-               NO3_MOLEC_CM3 = NO3_MOLEC_CM3 * XNUMOL_NO3 / BOXVL(I,J,L)
+            ! Convert NO3 from [kg] to [molec/cm3]
+            NO3_MOLEC_CM3 = NO3_MOLEC_CM3 * XNUMOL_NO3 / BOXVL(I,J,L)
                   
-            ENDIF
+         ENDIF
             
-            ! Make sure NO3 is not negative
-            NO3_MOLEC_CM3  = MAX( NO3_MOLEC_CM3, 0d0 )
+         ! Make sure NO3 is not negative
+         NO3_MOLEC_CM3  = MAX( NO3_MOLEC_CM3, 0d0 )
 
-         ! Error check
-         CASE DEFAULT
-            CALL ERROR_STOP( 'Invalid NSRCX!','GET_NO3 (sulfate_mod.f)')
+      ELSE
 
-      END SELECT
+         !----------------------
+         ! Invalid sim type!
+         !----------------------       
+         CALL ERROR_STOP( 'Invalid NSRCX!','GET_NO3 (sulfate_mod.f)')
+
+      ENDIF
 
       ! Return to calling program
       END FUNCTION GET_NO3
@@ -3985,7 +4229,7 @@ c
 !
 !******************************************************************************
 !  Function GET_O3 returns monthly mean O3 for offline sulfate aerosol
-!  simulations. (bmy, 12/16/02)
+!  simulations. (bmy, 12/16/02, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -3993,6 +4237,7 @@ c
 !
 !  NOTES:
 !  (1 ) We assume SETTRACE has been called to define IDO3. (bmy, 12/16/02)
+!  (2 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4001,10 +4246,14 @@ c
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE GLOBAL_O3_MOD, ONLY : O3
       USE TIME_MOD,      ONLY : GET_TS_CHEM
+      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,  ONLY : IDO3
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! NSRCX, LPAUSE
+!-----------------------------------------------------
+! Prior to 7/20/04
+!#     include "CMN"       ! NSRCX, LPAUSE
+!-----------------------------------------------------
 #     include "CMN_O3"    ! XNUMOLAIR
 
       ! Arguments
@@ -4021,65 +4270,131 @@ c
       !=================================================================
       ! GET_O3 begins here!
       !=================================================================
-      SELECT CASE ( NSRCX ) 
+!----------------------------------------------------------------------------
+! Prior to 7/20/04:
+!      SELECT CASE ( NSRCX ) 
+!
+!         !--------------------
+!         ! Coupled simulation
+!         !--------------------
+!         CASE ( 3 )
+!
+!            ! JLOOP = SMVGEAR 1-D grid box index
+!            JLOOP = JLOP(I,J,L)
+!
+!            ! Get O3 from CSPEC [molec/cm3]
+!            ! O3 data will only be defined below the tropopause
+!            IF ( JLOOP  > 0 ) THEN
+!               O3_MOLEC_CM3 = CSPEC(JLOOP,IDO3)
+!            ELSE
+!               O3_MOLEC_CM3 = 0d0
+!            ENDIF
+!         
+!         !--------------------
+!         ! Offline simulation
+!         !--------------------
+!         CASE ( 10 )
+!
+!            ! Get O3 [v/v] for this gridbox & month
+!            ! O3 data will only be defined below the tropopause
+!            IF ( L <= LLTROP ) THEN
+!
+!               ! Get O3 [v/v] and convert it to [kg]
+!               O3_MOLEC_CM3 = O3(I,J,L) * AD(I,J,L) * ( 48d0/28.97d0 )
+!               
+!               ! Convert O3 from [kg] to [molec/cm3]
+!               O3_MOLEC_CM3 = O3_MOLEC_CM3 * XNUMOL_O3 / BOXVL(I,J,L)
+!            ELSE
+!               O3_MOLEC_CM3 = 0d0
+!            ENDIF
+!
+!            ! 1-D grid box index for SUNCOS
+!            JLOOP = ( (J-1) * IIPAR ) + I
+!
+!            ! Test for sunlight...
+!            IF ( SUNCOS(JLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+!
+!               ! Impose a diurnal variation on OH during the day
+!               O3_MOLEC_CM3 = O3_MOLEC_CM3                     *        
+!     &                        ( SUNCOS(JLOOP) / TCOSZ(I,J) )   *
+!     &                        ( 1440d0        / GET_TS_CHEM() )
+!
+!               ! Make sure OH is not negative
+!               O3_MOLEC_CM3 = MAX( O3_MOLEC_CM3, 0d0 )
+!
+!            ELSE
+!               O3_MOLEC_CM3 = 0d0
+!            ENDIF
+!
+!         ! Error check
+!         CASE DEFAULT
+!            CALL ERROR_STOP( 'Invalid NSRCX!', 'GET_O3 (sulfate_mod.f)')
+!
+!      END SELECT
+!----------------------------------------------------------------------------
+
+      IF ( ITS_A_FULLCHEM_SIM() ) THEN
 
          !--------------------
          ! Coupled simulation
          !--------------------
-         CASE ( 3 )
 
-            ! JLOOP = SMVGEAR 1-D grid box index
-            JLOOP = JLOP(I,J,L)
+         ! JLOOP = SMVGEAR 1-D grid box index
+         JLOOP = JLOP(I,J,L)
 
-            ! Get O3 from CSPEC [molec/cm3]
-            ! O3 data will only be defined below the tropopause
-            IF ( JLOOP  > 0 ) THEN
-               O3_MOLEC_CM3 = CSPEC(JLOOP,IDO3)
-            ELSE
-               O3_MOLEC_CM3 = 0d0
-            ENDIF
+         ! Get O3 from CSPEC [molec/cm3]
+         ! O3 data will only be defined below the tropopause
+         IF ( JLOOP  > 0 ) THEN
+            O3_MOLEC_CM3 = CSPEC(JLOOP,IDO3)
+         ELSE
+            O3_MOLEC_CM3 = 0d0
+         ENDIF
          
+      ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+
          !--------------------
          ! Offline simulation
          !--------------------
-         CASE ( 10 )
 
-            ! Get O3 [v/v] for this gridbox & month
-            ! O3 data will only be defined below the tropopause
-            IF ( L <= LLTROP ) THEN
+         ! Get O3 [v/v] for this gridbox & month
+         ! O3 data will only be defined below the tropopause
+         IF ( L <= LLTROP ) THEN
 
-               ! Get O3 [v/v] and convert it to [kg]
-               O3_MOLEC_CM3 = O3(I,J,L) * AD(I,J,L) * ( 48d0/28.97d0 )
+            ! Get O3 [v/v] and convert it to [kg]
+            O3_MOLEC_CM3 = O3(I,J,L) * AD(I,J,L) * ( 48d0/28.97d0 )
                
-               ! Convert O3 from [kg] to [molec/cm3]
-               O3_MOLEC_CM3 = O3_MOLEC_CM3 * XNUMOL_O3 / BOXVL(I,J,L)
-            ELSE
-               O3_MOLEC_CM3 = 0d0
-            ENDIF
+            ! Convert O3 from [kg] to [molec/cm3]
+            O3_MOLEC_CM3 = O3_MOLEC_CM3 * XNUMOL_O3 / BOXVL(I,J,L)
+         ELSE
+            O3_MOLEC_CM3 = 0d0
+         ENDIF
 
-            ! 1-D grid box index for SUNCOS
-            JLOOP = ( (J-1) * IIPAR ) + I
+         ! 1-D grid box index for SUNCOS
+         JLOOP = ( (J-1) * IIPAR ) + I
 
-            ! Test for sunlight...
-            IF ( SUNCOS(JLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+         ! Test for sunlight...
+         IF ( SUNCOS(JLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
 
-               ! Impose a diurnal variation on OH during the day
-               O3_MOLEC_CM3 = O3_MOLEC_CM3                     *        
-     &                        ( SUNCOS(JLOOP) / TCOSZ(I,J) )   *
-     &                        ( 1440d0        / GET_TS_CHEM() )
+            ! Impose a diurnal variation on OH during the day
+            O3_MOLEC_CM3 = O3_MOLEC_CM3                     *        
+     &                     ( SUNCOS(JLOOP) / TCOSZ(I,J) )   *
+     &                     ( 1440d0        / GET_TS_CHEM() )
 
-               ! Make sure OH is not negative
-               O3_MOLEC_CM3 = MAX( O3_MOLEC_CM3, 0d0 )
+            ! Make sure OH is not negative
+            O3_MOLEC_CM3 = MAX( O3_MOLEC_CM3, 0d0 )
 
-            ELSE
-               O3_MOLEC_CM3 = 0d0
-            ENDIF
+         ELSE
+            O3_MOLEC_CM3 = 0d0
+         ENDIF
 
-         ! Error check
-         CASE DEFAULT
-            CALL ERROR_STOP( 'Invalid NSRCX!', 'GET_O3 (sulfate_mod.f)')
+      ELSE
 
-      END SELECT
+         !--------------------
+         ! Invalid sim type!
+         !--------------------
+         CALL ERROR_STOP( 'Invalid NSRCX!', 'GET_O3 (sulfate_mod.f)')
+
+      ENDIF
 
       ! Return to calling program
       END FUNCTION GET_O3
@@ -4090,17 +4405,22 @@ c
 !
 !******************************************************************************
 !  Subroutine INIT_CARBON initializes all module arrays. 
-!  (rjp, bmy, 4/1/04, 7/8/04)
+!  (rjp, bmy, 4/1/04, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Also added arrays for secondary organic aerosols (rjp, bmy, 7/8/04)
+!  (2 ) Remove reference to CMN, it's obsolete (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD, ONLY : ALLOC_ERR
+      USE ERROR_MOD,  ONLY : ALLOC_ERR
+      USE TRACER_MOD, ONLY : 
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! NSRCX
+!-------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"       ! NSRCX
+!-------------------------------------------------
 #     include "CMN_SETUP" ! LSOA
 
       ! Local variables

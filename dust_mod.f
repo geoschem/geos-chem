@@ -1,9 +1,9 @@
-! $Id: dust_mod.f,v 1.3 2004/05/03 14:46:16 bmy Exp $
+! $Id: dust_mod.f,v 1.4 2004/09/21 18:04:12 bmy Exp $
       MODULE DUST_MOD
 !
 !******************************************************************************
 !  Module DUST_MOD contains routines for computing dust aerosol emissions,
-!  chemistry, and optical depths. (rjp, tdf, bmy, 4/14/04)
+!  chemistry, and optical depths. (rjp, tdf, bmy, 4/14/04, 7/20/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -29,8 +29,26 @@
 !  (9 ) INIT_DUST          : Allocates & initializes all module variables
 !  (10) CLEANUP_DUST       : Deallocates all module variables
 !
+!  GEOS-CHEM modules referenced by "dust_mod.f"
+!  ============================================================================
+!  (1 ) dao_mod.f          : Module containing arrays for DAO met fields
+!  (2 ) diag_mod.f         : Module containing GEOS-CHEM diagnostic arrays
+!  (3 ) directory_mod.f    : Module containing GEOS-CHEM data & met field dirs
+!  (4 ) drydep_mod.f       : Module containing GEOS-CHEM drydep routines
+!  (5 ) dust_dead_mod.f    : Module containing Zender's DEAD dust routines
+!  (6 ) error_mod.f        : Module containing I/O error and NaN check routines
+!  (7 ) file_mod.f         : Contains file unit numbers and error checks
+!  (8 ) grid_mod.f         : Module containing horizontal grid information
+!  (9 ) logical_mod.f      : Module containing GEOS-CHEM logical switches
+!  (10) pressure_mod.f     : Module containing routines to compute P(I,J,L)
+!  (11) time_mod.f         : Module containing routines for computing time/date
+!  (12) tracer_mod.f       : Module containing GEOS-CHEM tracer array STT etc.
+!  (13) tracerid_mod.f     : Module containing pointers to tracers & emissions
+!  
 !  NOTES:
 !  (1 ) Bug fix in SRC_DUST_DEAD (bmy, 4/14/04)
+!  (2 ) Now references "logical_mod.f", "directory_mod.f", and "tracer_mod.f"
+!        Added comments. (bmy, 7/2/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -74,16 +92,23 @@
 !  (tdf, bmy, 3/30/04)
 !
 !  NOTES:
+!  (1 ) Now references STT from "tracer_mod.f" and LDUST from "logical_mod.f"
+!        (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,  ONLY : ERROR_STOP
-      USE DRYDEP_MOD, ONLY : DEPNAME, NUMDEP
+      USE ERROR_MOD,   ONLY : ERROR_STOP
+      USE LOGICAL_MOD, ONLY : LDUST
+      USE DRYDEP_MOD,  ONLY : DEPNAME, NUMDEP
+      USE TRACER_MOD,  ONLY : STT
       USE TRACERID_MOD   
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN"        ! AD, STT, TCVV, NSRCX
-#     include "CMN_SETUP"  ! LDUST
+!-----------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"        ! AD, STT, TCVV, NSRCX
+!#     include "CMN_SETUP"  ! LDUST
+!-----------------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE       :: FIRST = .TRUE.
@@ -153,7 +178,7 @@
 !
 !******************************************************************************
 !  Subroutine DRY_SETTLING computes the dry settling of dust tracers.
-!  (tdf, bmy, 3/30/04)
+!  (tdf, bmy, 3/30/04, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -161,6 +186,7 @@
 !
 !  NOTES
 !  (1 ) Updated comments, cosmetic changes (bmy, 3/30/04)
+!  (2 ) Remove reference to CMN, it's not needed (bmy, 7/20/04)
 !******************************************************************************
 ! 
       USE DAO_MOD,      ONLY : T, BXHEIGHT
@@ -171,7 +197,10 @@
       USE TRACERID_MOD, ONLY : IDTDST1
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! NCHEM
+!-------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"          ! NCHEM
+!-------------------------------------------------
 #     include "CMN_GCTM"     ! g0
 #     include "CMN_DIAG"     ! ND44
 #     include "CMN_O3"       ! XNUMOL
@@ -358,7 +387,7 @@
 !
 !  NOTES: 
 !******************************************************************************
-
+!
       ! References to F90 modules
       USE DIAG_MOD,     ONLY : AD44
       USE DRYDEP_MOD,   ONLY : DEPSAV 
@@ -438,18 +467,25 @@
 !******************************************************************************
 !  Subroutine EMISSDUST is the driver routine for the dust emission
 !  module.  You may call either the GINOUX or the DEAD dust source 
-!  function. (tdf, bmy, 3/30/04)
+!  function. (tdf, bmy, 3/30/04, 7/20/04)
 !
 !  NOTES:
+!  (1 ) Now reference LDEAD, LDUST, LPRT from "logical_mod.f".  Now reference!
+!        STT from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F(0 modules
-      USE ERROR_MOD, ONLY : ERROR_STOP, DEBUG_MSG
+      USE ERROR_MOD,   ONLY : ERROR_STOP, DEBUG_MSG
+      USE LOGICAL_MOD, ONLY : LDEAD, LDUST, LPRT
+      USE TRACER_MOD,  ONLY : STT
       USE TRACERID_MOD
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! STT
-#     include "CMN_SETUP" ! LDEAD, LDUST
+!------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"       ! STT
+!#     include "CMN_SETUP" ! LDEAD, LDUST
+!------------------------------------------------
       
       ! Local variables
       LOGICAL, SAVE      :: FIRST = .TRUE.
@@ -508,7 +544,7 @@
 !******************************************************************************
 !  Subroutine SRC_DUST_DEAD is the DEAD model dust emission scheme, 
 !  alternative to Ginoux scheme.  Increments the TC array with emissions 
-!  from the DEAD model.  (tdf, bmy, 4/8/04, 4/14/04)
+!  from the DEAD model.  (tdf, bmy, 4/8/04, 7/20/04)
 !
 !  Input:
 !         SRCE_FUNK Source function                               (-)
@@ -536,6 +572,7 @@
 !  NOTES:
 !  (1 ) Added OpenMP parallelization, added comments (bmy, 4/8/04)
 !  (2 ) Bug fix: DSRC needs to be held PRIVATE (bmy, 4/14/04)
+!  (3 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -547,6 +584,7 @@
      &                          GET_MONTHLY_DATA,  
      &                          GET_ORO,  DST_MBL
       USE DIAG_MOD,      ONLY : AD06
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IOERROR
       USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
       USE GRID_MOD,      ONLY : GET_YMID_R
@@ -558,7 +596,10 @@
 #     include "CMN_SIZE"      ! Size parameters
 #     include "CMN_DIAG"      ! ND06
 #     include "CMN_GCTM"      ! g0
-#     include "CMN_SETUP"     ! DATA_DIR 
+!-------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"     ! DATA_DIR
+!-------------------------------------------
 
       !----------------
       ! Arguments
@@ -747,7 +788,8 @@
       SUBROUTINE SRC_DUST_GINOUX( TC )
 !
 !******************************************************************************
-!  Paul GINOUX dust source function (Added to GEOS-CHEM, tdf, bmy, 4/8/04)
+!  Paul GINOUX dust source function 
+!  (Added to GEOS-CHEM, tdf, bmy, 4/8/04, 7/20/04)
 !
 !  This subroutine updates the surface mixing ratio of dust aerosols for
 !  NDSTBIN size bins. The uplifting of dust depends in space on the source 
@@ -800,20 +842,25 @@
 !
 !  NOTES:
 !  (1 ) Added OpenMP parallelization (bmy, 4/8/04)
+!  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !     
       ! References to F90 modules
-      USE BPCH2_MOD, ONLY : GET_RES_EXT
-      USE DAO_MOD,   ONLY : GWETTOP   
-      USE DIAG_MOD,  ONLY : AD06
-      USE FILE_MOD,  ONLY : IOERROR
-      USE TIME_MOD,  ONLY : GET_TS_EMIS
-      USE GRID_MOD,  ONLY : GET_AREA_M2
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE DAO_MOD,       ONLY : GWETTOP   
+      USE DIAG_MOD,      ONLY : AD06
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE FILE_MOD,      ONLY : IOERROR
+      USE TIME_MOD,      ONLY : GET_TS_EMIS
+      USE GRID_MOD,      ONLY : GET_AREA_M2
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN_DIAG"  ! ND19, LD13 (for now)
 #     include "CMN_GCTM"  ! g0
-#     include "CMN_SETUP" ! DATA_DIR 
+!---------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! DATA_DIR 
+!---------------------------------------
 
       ! Arguments
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)
@@ -988,7 +1035,7 @@
 !******************************************************************************
 !  Subroutine RDUST reads global mineral dust concentrations as determined 
 !  by P. Ginoux.  Calculates dust optical depth at each level for the
-!  FAST-J routine "set_prof.f". (rvm, rjp, tdf, bmy, 4/1/04)
+!  FAST-J routine "set_prof.f". (rvm, rjp, tdf, bmy, 4/1/04, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -996,22 +1043,28 @@
 !
 !  NOTES:
 !  (1 ) Bundled into "dust_mod.f" (bmy, 4/1/04)
+!  (2 ) Now references DATA_DIR from "directory_mod.f".  Now parallelize over
+!        the L-dimension for ND21 diagnostics. (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE COMODE_MOD,   ONLY : ERADIUS, IXSAVE, IYSAVE, 
-     &                         IZSAVE,  JLOP,   TAREA
-      USE DAO_MOD,      ONLY : BXHEIGHT
-      USE DIAG_MOD,     ONLY : AD21
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE TRANSFER_MOD, ONLY : TRANSFER_3D
+      USE COMODE_MOD,    ONLY : ERADIUS, IXSAVE, IYSAVE, 
+     &                          IZSAVE,  JLOP,   TAREA
+      USE DAO_MOD,       ONLY : BXHEIGHT
+      USE DIAG_MOD,      ONLY : AD21
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
 
       IMPLICIT NONE
 
 #     include "cmn_fj.h"   ! LPAR, CMN_SIZE
 #     include "jv_cmn.h"   ! ODMDUST, QAA, RAA
 #     include "CMN_DIAG"   ! ND21, LD21
-#     include "CMN_SETUP"  ! DATA_DIR
+!------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"  ! DATA_DIR
+!------------------------------------------------------
 #     include "comode.h"   ! NTTLOOP
 
       ! Arguments
@@ -1067,14 +1120,6 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-!------------------------------------------------------------------------
-! Prior to 4/22/04:
-! Suppress printing out on each timestep (bmy, 4/22/04)
-!      ! Echo information
-!      WRITE( 6, 110 ) 
-! 110  FORMAT( '     - RDUST: Finished computing optical depths' )
-!------------------------------------------------------------------------
-
       !==============================================================
       ! Calculate Dust Surface Area
       !
@@ -1120,39 +1165,50 @@
       !==============================================================
       IF ( ND21 > 0 ) THEN
 
+!---------------------------------------
+! Prior to 7/20/04:
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, JLOOP, L, N ) 
+!---------------------------------------
+         DO N = 1, NDUST
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, JLOOP, L, N ) 
-         DO N = 1, NDUST
-         DO L = 1, LD21
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+!$OMP+PRIVATE( I, J, JLOOP, L )
+            DO L = 1, LD21
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
 
-            !--------------------------------------
-            ! ND21 tracer #4: Dust optical depths
-            !--------------------------------------
-            AD21(I,J,L,4) = AD21(I,J,L,4) + 
-     &           ( ODMDUST(I,J,L,N) * QAA(2,14+N) / QAA(4,14+N) )
+               !--------------------------------------
+               ! ND21 tracer #4: Dust optical depths
+               !--------------------------------------
+               AD21(I,J,L,4) = AD21(I,J,L,4) + 
+     &              ( ODMDUST(I,J,L,N) * QAA(2,14+N) / QAA(4,14+N) )
 
-            !--------------------------------------
-            ! ND21 tracer #5: Dust surface areas
-            !--------------------------------------
-            IF ( L <= LLTROP ) THEN
-
-               ! Convert 3-D indices to 1-D index
-               ! JLOP is only defined in the tropopause
-               JLOOP = JLOP(I,J,L)
+               !--------------------------------------
+               ! ND21 tracer #5: Dust surface areas
+               !--------------------------------------
+               IF ( L <= LLTROP ) THEN
+               
+                  ! Convert 3-D indices to 1-D index
+                  ! JLOP is only defined in the tropopause
+                  JLOOP = JLOP(I,J,L)
              
                   ! Add to AD21
-               IF ( JLOOP > 0 ) THEN
-                  AD21(I,J,L,5) = AD21(I,J,L,5) + TAREA(JLOOP,N)
+                  IF ( JLOOP > 0 ) THEN
+                     AD21(I,J,L,5) = AD21(I,J,L,5) + TAREA(JLOOP,N)
+                  ENDIF
                ENDIF
-            ENDIF
-         ENDDO
-         ENDDO
-         ENDDO
-         ENDDO
+            ENDDO
+            ENDDO
+            ENDDO
 !$OMP END PARALLEL DO
+         ENDDO
+!----------------------------
+! Prior to 7/20/04:
+!!$OMP END PARALLEL DO
+!----------------------------
 
       ENDIF 
 
@@ -1166,7 +1222,7 @@
 !******************************************************************************
 !  Subroutine RDUST_OFFLINE reads global mineral dust concentrations as 
 !  determined by P. Ginoux.  Calculates dust optical depth at each level for 
-!  the FAST-J routine "set_prof.f". (rvm, bmy, 9/30/00, 4/1/04)
+!  the FAST-J routine "set_prof.f". (rvm, bmy, 9/30/00, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1216,23 +1272,29 @@
 !  (17) Since December 1997 dust data does not exist, use November 1997 dust
 !        data as a proxy. (bnd, bmy, 6/30/03)
 !  (18) Bundled into "dust_mod.f" and renamed to RDUST_OFFLINE. (bmy, 4/1/04)
+!  (19) Now references DATA_DIR from "directory_mod.f".  Now parallelize over 
+!        the L-dimension for ND21 diagnostic. (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE COMODE_MOD,   ONLY : ERADIUS, IXSAVE, IYSAVE, 
-     &                         IZSAVE,  JLOP,   TAREA
-      USE DAO_MOD,      ONLY : BXHEIGHT
-      USE DIAG_MOD,     ONLY : AD21
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE TRANSFER_MOD, ONLY : TRANSFER_3D
+      USE COMODE_MOD,    ONLY : ERADIUS, IXSAVE, IYSAVE, 
+     &                          IZSAVE,  JLOP,   TAREA
+      USE DAO_MOD,       ONLY : BXHEIGHT
+      USE DIAG_MOD,      ONLY : AD21
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
 
       IMPLICIT NONE
 
 #     include "cmn_fj.h"   ! LPAR, CMN_SIZE
 #     include "jv_cmn.h"   ! ODMDUST, QAA, RAA
 #     include "CMN_DIAG"   ! ND21, LD21
-#     include "CMN_SETUP"  ! DATA_DIR
+!-------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"  ! DATA_DIR
+!-------------------------------------------
 #     include "comode.h"   ! NTTLOOP
 
       ! Arguments
@@ -1404,39 +1466,50 @@
          !==============================================================
          IF ( ND21 > 0 ) THEN
 
+!--------------------------------------------
+! Prior to 7/20/04:
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, JLOOP, L, N ) 
+!--------------------------------------------
+            DO N = 1, NDUST
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, JLOOP, L, N ) 
-            DO N = 1, NDUST
-            DO L = 1, LD21
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
+!$OMP+PRIVATE( I, J, JLOOP, L ) 
+               DO L = 1, LD21
+               DO J = 1, JJPAR
+               DO I = 1, IIPAR
 
-               !--------------------------------------
-               ! ND21 tracer #4: Dust optical depths
-               !--------------------------------------
-               AD21(I,J,L,4) = AD21(I,J,L,4) + 
-     &            ( ODMDUST(I,J,L,N) * QAA(2,14+N) / QAA(4,14+N) )
+                  !--------------------------------------
+                  ! ND21 tracer #4: Dust optical depths
+                  !--------------------------------------
+                  AD21(I,J,L,4) = AD21(I,J,L,4) + 
+     &               ( ODMDUST(I,J,L,N) * QAA(2,14+N) / QAA(4,14+N) )
 
-               !--------------------------------------
-               ! ND21 tracer #5: Dust surface areas
-               !--------------------------------------
-               IF ( L <= LLTROP ) THEN
+                  !--------------------------------------
+                  ! ND21 tracer #5: Dust surface areas
+                  !--------------------------------------
+                  IF ( L <= LLTROP ) THEN
 
-                  ! Convert 3-D indices to 1-D index
-                  ! JLOP is only defined in the tropopause
-                  JLOOP = JLOP(I,J,L)
+                     ! Convert 3-D indices to 1-D index
+                     ! JLOP is only defined in the tropopause
+                     JLOOP = JLOP(I,J,L)
              
-                  ! Add to AD21
-                  IF ( JLOOP > 0 ) THEN
-                     AD21(I,J,L,5) = AD21(I,J,L,5) + TAREA(JLOOP,N)
+                     ! Add to AD21
+                     IF ( JLOOP > 0 ) THEN
+                        AD21(I,J,L,5) = AD21(I,J,L,5) + TAREA(JLOOP,N)
+                     ENDIF
                   ENDIF
-               ENDIF
-            ENDDO
-            ENDDO
-            ENDDO
-            ENDDO
+               ENDDO
+               ENDDO
+               ENDDO
 !$OMP END PARALLEL DO
+            ENDDO
+!------------------------------
+! Prior to 7/20/04:
+!!$OMP END PARALLEL DO
+!------------------------------
 
          ENDIF 
       ENDIF
@@ -1452,13 +1525,18 @@
 !  Subroutine INIT_DUST allocates all module arrays (bmy, 3/30/04)
 ! 
 !  NOTES:
+!  (1 ) Now references LDEAD from "logical_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD, ONLY : ALLOC_ERR
+      USE LOGICAL_MOD, ONLY : LDEAD
+      USE ERROR_MOD,   ONLY : ALLOC_ERR
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_SETUP" ! LDEAD
+!----------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! LDEAD
+!----------------------------------------------
       
       ! Local variables
       LOGICAL, SAVE :: IS_INIT = .FALSE.

@@ -1,10 +1,10 @@
-! $Id: biofuel_mod.f,v 1.2 2004/05/03 14:46:14 bmy Exp $
+! $Id: biofuel_mod.f,v 1.3 2004/09/21 18:04:08 bmy Exp $
       MODULE BIOFUEL_MOD
 !
 !******************************************************************************
 !  Module BIOFUEL_MOD contains arrays and routines to compute yearly
 !  biofuel emissions for NOx, CO, ALK4, ACET, MEK, ALD2, PRPE, C3H8, 
-!  CH2O, and C2H6 (bmy, 9/12/00, 4/26/04)
+!  CH2O, and C2H6 (bmy, 9/12/00, 7/19/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -24,12 +24,15 @@
 !
 !  GEOS-CHEM modules referenced by biofuel_mod.f
 !  ============================================================================
-!  (1 ) bpch2_mod.f    : Module containing routines for binary punch file I/O
-!  (2 ) dao_mod.f      : Module containing DAO met field arrays
-!  (3 ) diag_mod.f     : Module containing GEOS-CHEM diagnostic arrays
-!  (4 ) error_mod.f    : Module containing NaN and other error check routines
-!  (5 ) tracerid_mod.f : Module containing pointers to tracers & emissions 
-!  (6 ) transfer_mod.f : Module containing routines to cast & resize arrays
+!  (1 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
+!  (2 ) dao_mod.f       : Module containing DAO met field arrays
+!  (3 ) diag_mod.f      : Module containing GEOS-CHEM diagnostic arrays
+!  (4 ) directory_mod.f : Module containing GEOS-CHEM data & met field dirs
+!  (5 ) error_mod.f     : Module containing NaN and other error check routines
+!  (6 ) logical_mod.f   : Module containing GEOS-CHEM logical switches
+!  (7 ) tracer_mod.f    : Module containing GEOS-CHEM tracer array etc.
+!  (8 ) tracerid_mod.f  : Module containing pointers to tracers & emissions 
+!  (9 ) transfer_mod.f  : Module containing routines to cast & resize arrays
 !
 !  NOTES:
 !  (1 ) Now account for extra production of CO from VOC's for Tagged CO
@@ -59,6 +62,7 @@
 !        Also deleted obsolete code from various routines.  Also references
 !        "tracerid_mod.f"  Added routine SET_NBFTRACE. (bmy, 11/6/02)
 !  (12) Now call READ_BPCH2 with QUIET=.TRUE. to suppress output (bmy, 3/14/03)
+!  (13) Now references "directory_mod.f" (bmy, 7/19/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -140,21 +144,30 @@
 !  (14) Now call READ_BPCH2 with QUIET=.TRUE. flag to suppress extra info 
 !        from being printed (bmy, 3/14/03)
 !  (15) Added fancy output (bmy, 4/26/04)
+!  (16) Now references "tracer_mod.f" and "directory_mod.f" (bmy, 7/19/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE DAO_MOD,      ONLY : BXHEIGHT
-      USE DIAG_MOD,     ONLY : AD29, AD32_bf, AD34
+      USE DAO_MOD,       ONLY : BXHEIGHT
+      USE DIAG_MOD,      ONLY : AD29, AD32_bf, AD34
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TRACER_MOD
       USE TRACERID_MOD 
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
       IMPLICIT NONE
       
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! NSRCX, TCNAME
+!---------------------------------------------------
+! Prior to 7/19/04:
+!#     include "CMN"       ! NSRCX, TCNAME
+!---------------------------------------------------
 #     include "CMN_DIAG"  ! ND29, ND32, ND34
-#     include "CMN_SETUP" ! DATA_DIR
+!---------------------------------------------------
+! Prior to 7/19/04:
+!#     include "CMN_SETUP" ! DATA_DIR
+!---------------------------------------------------
       
       ! Local variables
       LOGICAL, SAVE      :: FIRST = .TRUE.
@@ -489,7 +502,7 @@
 !******************************************************************************
 !  Subroutine SCALE_BIOFUEL_CO multiplies the CO biofuel emissions by scale
 !  factors to account for CO production from VOC's that are not explicitly 
-!  carried in the chemistry mechanisms. (bnd, bmy, 3/19/01, 11/15/01)
+!  carried in the chemistry mechanisms. (bnd, bmy, 3/19/01, 7/19/04)
 !  
 !  Arguments as Input:
 !  ============================================================================
@@ -500,10 +513,17 @@
 !       Bryan Duncan (bnd@io.harvard.edu) and Daniel Jacob (djj@io.harvard.edu)
 !  (2 ) BFARRAY is now of size (IIPAR,JJPAR) (bmy, 9/28/01)
 !  (3 ) Deleted obsolete code from 9/01 (bmy, 11/15/01)
+!  (4 ) Now use inquiry functions in "tracer_mod.f" instead of the variable
+!        NSRCX (bmy, 7/19/04)
 !******************************************************************************
 !
+      ! References to F90 modules
+      USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGCO_SIM
+
 #     include "CMN_SIZE"    ! Size parameters
-#     include "CMN"         ! NSRCX 
+!----------------------------------------
+!#     include "CMN"         ! NSRCX 
+!----------------------------------------
       
       ! Arguments
       REAL*8, INTENT(INOUT) :: BFARRAY(IIPAR,JJPAR) 
@@ -511,24 +531,39 @@
       !=================================================================
       ! SCALE_BIOFUEL_CO begins here!
       !=================================================================
-      SELECT CASE ( NSRCX )
+      !---------------------------------------------------------------------
+      ! Prior to 7/19/04:
+      !SELECT CASE ( NSRCX )
+      !
+      !   ! Full chemistry w/ SMVGEAR  -- enhance by 8.6%
+      !   CASE ( 3 ) 
+      !      BFARRAY = BFARRAY * 1.086d0
+      !   
+      !   !CASE ( 5 )
+      !   !   BFARRAY = BFARRAY * 
+      !
+      !   ! Tagged CO -- enhance by 18.9%
+      !   CASE ( 7 )
+      !      BFARRAY = BFARRAY * 1.189d0
+      !   
+      !   CASE DEFAULT
+      !      ! Nothing
+      !
+      !END SELECT 
+      !---------------------------------------------------------------------
+      
+      IF ( ITS_A_FULLCHEM_SIM() ) THEN 
 
          ! Full chemistry w/ SMVGEAR  -- enhance by 8.6%
-         CASE ( 3 ) 
-            BFARRAY = BFARRAY * 1.086d0
-         
-         !CASE ( 5 )
-         !   BFARRAY = BFARRAY * 
-   
-         ! Tagged CO -- enhance by 18.9%
-         CASE ( 7 )
-            BFARRAY = BFARRAY * 1.189d0
-         
-         CASE DEFAULT
-            ! Nothing
+         BFARRAY = BFARRAY * 1.086d0
 
-      END SELECT 
-        
+      ELSE IF ( ITS_A_TAGCO_SIM() ) THEN 
+
+         ! Tagged CO -- enhance by 18.9%
+         BFARRAY = BFARRAY * 1.189d0
+
+      ENDIF
+
       ! Return to calling program  
       END SUBROUTINE SCALE_BIOFUEL_CO
 
@@ -640,14 +675,19 @@
 !  (4 ) Deleted obsolete code from 9/01 (bmy, 11/15/01)
 !  (5 ) Now references ALLOC_ERR from "error_mod.f".  Also references IDBFNOX,
 !        IDBFCO, etc from "tracerid_mod.f" (bmy, 11/6/02)
+!  (6 ) Replace LWOODCO w/ LBIOFUEL from "logical_mod.f" (bmy, 7/19/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,  ONLY : ALLOC_ERR
+      USE ERROR_MOD,   ONLY : ALLOC_ERR
+      USE LOGICAL_MOD, ONLY : LBIOFUEL
       USE TRACERID_MOD
 
 #     include "CMN_SIZE"  ! Size parameters, etc
-#     include "CMN"       ! LWOODCO
+!---------------------------------------
+! Prior to 7/19/04:
+!#     include "CMN"       ! LWOODCO
+!---------------------------------------
 
       ! Local variables
       INTEGER :: AS
@@ -655,7 +695,11 @@
       !=================================================================
       ! INIT_BIOFUEL begins here!
       !=================================================================
-      IF ( LWOODCO .and. NBFTRACE > 0 ) THEN
+      !-----------------------------------------------
+      ! Prior to 7/19/04:
+      !IF ( LWOODCO .and. NBFTRACE > 0 ) THEN
+      !-----------------------------------------------
+      IF ( LBIOFUEL .and. NBFTRACE > 0 ) THEN
          ALLOCATE( BIOFUEL( NBFTRACE, IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOFUEL' )
          BIOFUEL = 0d0

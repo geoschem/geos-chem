@@ -1,10 +1,10 @@
-! $Id: tracerid_mod.f,v 1.6 2004/07/15 18:17:47 bmy Exp $
+! $Id: tracerid_mod.f,v 1.7 2004/09/21 18:04:20 bmy Exp $
       MODULE TRACERID_MOD
 !
 !******************************************************************************
 !  Module TRACERID_MOD contains variables which point to SMVGEAR species,
 !  CTM Tracers, Biomass species, and biofuel species located within various
-!  GEOS-CHEM arrays. (bmy, 11/12/02, 7/13/04)
+!  GEOS-CHEM arrays. (bmy, 11/12/02, 7/20/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -170,11 +170,6 @@
       IMPLICIT NONE
 
       ! for CTM tracers
-      !-----------------------------------------------------------------------
-      ! Prior to 7/13/04:
-      ! Increase for 2ndary organic aerosol (SOA) tracers (rjp, bmy, 7/13/04)
-      !INTEGER, PARAMETER :: NNNTRID  = 50
-      !-----------------------------------------------------------------------
       INTEGER, PARAMETER :: NNNTRID  = 59
       INTEGER, PARAMETER :: MMMEMBER = 10
       INTEGER            :: NMEMBER(NNNTRID) 
@@ -240,18 +235,27 @@
 !        (rjp, bec, bmy, 4/20/04)
 !  (4 ) Added extra CASEs to the CASE statement for SOA tracers.
 !        (rjp, bmy, 7/13/04)
+!  (5 ) Now references "tracer_mod.f".  NAME is now CHAR*14. (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE CHARPAK_MOD, ONLY : TRANUC
+      USE TRACER_MOD
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! NSRCX, TCNAME, NTRACE
+!-------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"       ! NSRCX, TCNAME, NTRACE
+!-------------------------------------------------------
 #     include "comode.h"  ! IDEMS
 
       ! Local variables
       INTEGER             :: N, COUNT
-      CHARACTER(LEN=4)    :: NAME
+      !---------------------------------------
+      ! Prior to 7/20/04:
+      !CHARACTER(LEN=4)    :: NAME
+      !---------------------------------------
+      CHARACTER(LEN=14)    :: NAME
       
       !=================================================================
       ! TRACERID begins here!
@@ -269,11 +273,19 @@
       !=================================================================
       ! Assign tracer, biomass, biofuel, and anthro emission ID's
       !=================================================================
-      DO N = 1, NTRACE
+      !--------------------
+      ! Prior to 7/20/04:
+      !DO N = 1, NTRACE
+      !--------------------
+      DO N = 1, N_TRACERS
 
          ! Convert tracer name to upper case.  TCNAME is in the "CMN" header
          ! file -- we might use something better later on (bmy, 11/12/02)
-         NAME = TCNAME(N)
+         !--------------------
+         ! Prior to 7/20/04:
+         !NAME = TCNAME(N)
+         !--------------------
+         NAME = TRACER_NAME(N)
          CALL TRANUC( NAME )
 
          ! Find each tracer
@@ -299,7 +311,11 @@
 
                ! Special case: Tagged CO
                ! Set some emission flags and then exit
-               IF ( NSRCX == 7 ) THEN 
+               !------------------------
+               ! Prior to 7/20/04
+               !IF ( NSRCX == 7 ) THEN 
+               !------------------------
+               IF ( ITS_A_TAGCO_SIM() ) THEN 
                   NEMANTHRO = 1
                   IDECO     = 2
                   IDTISOP   = 1
@@ -383,7 +399,11 @@
 
                ! Special case: tagged C2H6
                ! Set emission flags and then exit
-               IF ( NSRCX == 8 ) THEN
+               !------------------------
+               ! Prior to 7/20/04:
+               !IF ( NSRCX == 8 ) THEN
+               !------------------------
+               IF ( ITS_A_C2H6_SIM() ) THEN
                   NEMANTHRO = 1
                   IDEC2H6   = 1
                   EXIT
@@ -513,7 +533,11 @@
       ! order should be: 1 4 18 19 5 21 9 10 11 6 20.  Think of a 
       ! better way to implement this later on. (bmy, 11/12/02)
       !=================================================================
-      IF ( NSRCX == 3 ) THEN
+      !------------------------
+      ! Prior to 7/20/04:
+      !IF ( NSRCX == 3 ) THEN
+      !------------------------
+      IF ( ITS_A_FULLCHEM_SIM() ) THEN
          NEMANTHRO = 10
          NEMBIOG   = 1
          IDENOX    = 1
@@ -533,7 +557,11 @@
       ! SPECIAL CASE: For the offline sulfate simulation, we also need
       ! to turn on the biofuel and biomass CO flags (bmy, 11/12/02)
       !=================================================================
-      IF ( NSRCX == 10 ) THEN
+      !--------------------------
+      ! Prior to 7/20/04:
+      !IF ( NSRCX == 10 ) THEN
+      !--------------------------
+      IF ( ITS_AN_AEROSOL_SIM() ) THEN
          IDTCO     = 1
          IDBCO     = 1
          IDBFCO    = 1
@@ -557,16 +585,24 @@
       IF ( IDEALD2 /= 0 ) IDEMS(IDEALD2) = IDTALD2
       IF ( IDECH2O /= 0 ) IDEMS(IDECH2O) = IDTCH2O
 
+      ! Echo anthro & biogenic emitted tracers
+      WRITE( 6, 100 ) IDEMS ( 1:NEMANTHRO+NEMBIOG )
+ 100  FORMAT( /, 'TRACERID: Emitted tracers (anthro & bio) :', 20i3 )
+
       ! Return to calling program
       END SUBROUTINE TRACERID
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SETTRACE( NTRACER ) 
+      !----------------------------------
+      ! Prior to 7/20/04:
+      !SUBROUTINE SETTRACE( NTRACER ) 
+      !----------------------------------
+      SUBROUTINE SETTRACE
 !
 !******************************************************************************
 !  Subroutine SETTRACE flags certain chemical species w/in the SMVGEAR full
-!  chemistry mechanism. (lwh, jyl, gmg, djj, 1990's; bmy, 11/12/02, 4/26/04)
+!  chemistry mechanism. (lwh, jyl, gmg, djj, 1990's; bmy, 11/12/02, 7/20/04)
 !
 !  Arguments as Input: 
 !  ============================================================================
@@ -580,22 +616,26 @@
 !        set NCS = NCSURBAN.  Replace NAMESPEC w/ NAMEGAS for SMVGEAR II. 
 !        (bdf, bmy, 4/23/03)
 !  (4 ) Make sure IDEMIS etc doesn't go out of array bounds (bmy, 4/26/04)
+!  (5 ) Removed NTRACER from the arg list, we can use N_TRACERS from 
+!        "tracer_mod.f".  Now references "tracer_mod.f".  Now does not have 
+!        to read the "tracer.dat" file. (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,   ONLY : ERROR_STOP
+      USE ERROR_MOD, ONLY : ERROR_STOP
+      USE TRACER_MOD 
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "comode.h"  ! NAMESPEC
+#     include "comode.h"  ! NAMEGAS
 
-      ! Arguments
-      INTEGER, INTENT(IN) :: NTRACER
+      !-------------------------------------
+      ! Prior to 7/20/04:
+      !! Arguments
+      !INTEGER, INTENT(IN) :: NTRACER
+      !-------------------------------------
 
       ! Local variabales
-      INTEGER             :: I, INDEX, ICOUNT, J, NIDEMIS, NCS_TEMP
-      REAL*8              :: COEFTRC
-      CHARACTER(LEN=5)    :: MOLNAME
-      CHARACTER(LEN=7)    :: TNAME
+      INTEGER             :: I, J, NCS_TEMP, T, C
  
       !=================================================================
       ! SETTRACE begins here!
@@ -659,91 +699,151 @@
       ENDDO
 
       !=================================================================
-      ! save IDs for tracers( sequence in NAMESPEC.)
-      ! IDTRMB(I,J)  = species number for J'th component of tracer I
-      ! CTRMB(I,J)+1 = coefficient of tracer constituent (e.g., each NO3
+      ! Save IDs for tracers (sequence in NAMESPEC.)
+      !
+      ! IDTRMB(T,C)  = species number for J'th component of tracer I
+      ! CTRMB(T,C)+1 = coefficient of tracer constituent (e.g., each NO3
       !                molec. represents 2 units of Ox, so CTRMB=1)
-      ! NMEMBER(I)   = number of component species in tracer I
-      ! IDEMIS(I)    = which component of tracer I (in IDTRMB sense)
+      ! TRACER_N(T)   = number of component species in tracer I
+      ! IDEMIS(T)    = which component of tracer I (in IDTRMB sense)
       !                receives the emissions
       ! NIDEMIS      = 0,1 -- indicates which species is emitting species.
       !                If there is only one species in tracer family and
       !                it's emitted, you still need a "1" in the spot.
       ! ljm changes: now read input from data file, tracer.dat
       !=================================================================
-      OPEN(65,FILE='tracer.dat',STATUS='OLD',FORM='FORMATTED',ERR=700)
-      WRITE(6,105)
+!------------------------------------------------------------------------------
+! Prior to 7/20/04:
+! Don't need to read the tracer.dat file anymore (bmy, 7/20/04)
+!      OPEN(65,FILE='tracer.dat',STATUS='OLD',FORM='FORMATTED',ERR=700)
+!      WRITE(6,105)
+!
+!      ICOUNT = 1
+!
+! 99   READ(65,100, END = 999,ERR=800) TNAME
+!
+!      IF (TNAME .EQ. '*tracer') THEN
+!
+!         READ(65,101,ERR=800) NMEMBER(ICOUNT)
+!         INDEX = 1
+!
+!         DO 30 I = 1, NMEMBER(ICOUNT)
+!            READ(65,102,ERR=800) MOLNAME, NIDEMIS, COEFTRC
+!
+!            CTRMB(ICOUNT,INDEX) = COEFTRC - 1
+!
+!            WRITE(6,104,ERR=800) ICOUNT, MOLNAME
+!
+!            DO 25 J=1,NSPEC(NCS)
+!               IF ( NAMEGAS(J) == MOLNAME ) IDTRMB(ICOUNT,I) = J
+! 25         CONTINUE
+!
+!            IF (NIDEMIS .GT. 0) THEN
+!               IF(IDEMIS(ICOUNT) .GT. 0) GOTO 1000
+!               IDEMIS(ICOUNT) = INDEX
+!            ENDIF
+!
+!            INDEX = INDEX + 1
+! 30      CONTINUE
+!
+!         ICOUNT = ICOUNT + 1
+!      ENDIF
+!      GO TO 99
+!
+! 999  CONTINUE
+!
+!      CLOSE(65)
+!
+!      GOTO 1001
+!      
+!      ! Error stop
+! 1000 WRITE(6,107) ICOUNT
+!      CALL ERROR_STOP( 'STOP 107', 'settrace.f' )
+!------------------------------------------------------------------------------
 
-      ICOUNT = 1
+      ! Loop over tracers
+      DO T = 1, N_TRACERS
+         
+         ! Number of constituents that tracer T has
+         NMEMBER(T) = TRACER_N_CONST(T)
 
- 99   READ(65,100, END = 999,ERR=800) TNAME
+         ! Index of which tracer constituent
+         ! will receive the emissions
+         IF ( ID_EMITTED(T) > 0 ) THEN 
+            IDEMIS(T) = ID_EMITTED(T)
+         ENDIF
 
-      IF (TNAME .EQ. '*tracer') THEN
+         ! Loop over all the species which make up the tracer
+         DO C = 1, NMEMBER(T)
+            
+            ! Store tracer coefficient in CTRMB
+            CTRMB(T,C) = TRACER_COEFF(T,C) - 1
 
-         READ(65,101,ERR=800) NMEMBER(ICOUNT)
-         INDEX = 1
+            ! Loop over all species in "globchem.dat"
+            DO J = 1, NSPEC(NCS)
 
-         DO 30 I = 1, NMEMBER(ICOUNT)
-            READ(65,102,ERR=800) MOLNAME, NIDEMIS, COEFTRC
+               ! Special case: hydrocarbon tracers as atoms C 
+               IF ( TRACER_CONST(T,C) == 'C' ) THEN
 
-            CTRMB(ICOUNT,INDEX) = COEFTRC - 1
+                  ! Test SMVGEAR species name against TRACER_NAME
+                  IF ( NAMEGAS(J) == TRACER_NAME(T) ) THEN
+                     IDTRMB(T,C) = J 
+                  ENDIF
 
-            WRITE(6,104,ERR=800) ICOUNT, MOLNAME
+               ELSE 
 
-            DO 25 J=1,NSPEC(NCS)
-               IF ( NAMEGAS(J) == MOLNAME ) IDTRMB(ICOUNT,I) = J
- 25         CONTINUE
+                  ! Test SMVGEAR species name TRACER_CONST
+                  IF ( NAMEGAS(J) == TRACER_CONST(T,C) ) THEN
+                     IDTRMB(T,C) = J
+                  ENDIF
 
-            IF (NIDEMIS .GT. 0) THEN
-               IF(IDEMIS(ICOUNT) .GT. 0) GOTO 1000
-               IDEMIS(ICOUNT) = INDEX
-            ENDIF
+               ENDIF
+            ENDDO
 
-            INDEX = INDEX + 1
- 30      CONTINUE
+            !### Debug
+            !PRINT*, '###--------------------'
+            !PRINT*, '### T, C       : ', T, C
+            !PRINT*, '### NAME       : ', TRACER_NAME(T)
+            !PRINT*, '### NMEMBER    : ', NMEMBER(T)
+            !PRINT*, '### CONST(T,C) : ', TRACER_CONST(T,C)
+            !PRINT*, '### CTRMB(T,C) : ', CTRMB(T,C)
+            !PRINT*, '### IDEMIS(T)  : ', IDEMIS(T)
+            !PRINT*, '### IDTRMB(T,C): ', IDTRMB(T,C)
 
-         ICOUNT = ICOUNT + 1
-      ENDIF
-      GO TO 99
+         ENDDO
+      ENDDO
 
- 999  CONTINUE
-
-      CLOSE(65)
-
-      GOTO 1001
-      
-      ! Error stop
- 1000 WRITE(6,107) ICOUNT
-      CALL ERROR_STOP( 'STOP 107', 'settrace.f' )
-
-      !=================================================================
-      ! FORMAT statements
-      !=================================================================
-      !WRITE(6,*) IDTRMB(1,1), IDTRMB(1,2), IDTRMB(1,3) 
-      !WRITE(6,*) CTRMB(2,1), CTRMB(2,2), CTRMB(19,1)
-      !WRITE(6,*) IDEMIS(1), IDEMIS(2)
- 100  FORMAT(A7)
- 101  FORMAT(22X,I2,13X,I2,15X,I2)
- 102  FORMAT(22X,A5,i9,2x,f11.0)
- 103  FORMAT(22X,F4.1)
- 104  FORMAT(I2,3X,A8)
- 105  FORMAT('List of tracer members:')
- 106  FORMAT(A80)
- 107  FORMAT('Tracer',i3,' has more than one emitting species.')
-      
-      ! Exit
- 1001 CONTINUE
-
-      RETURN
-
-      !=================================================================
-      ! Trap I/O errors
-      !=================================================================
- 700  CONTINUE
-      CALL ERROR_STOP( 'Open error in "tracer.dat"!', 'settrace.f' )
-
- 800  CONTINUE
-      CALL ERROR_STOP( 'Read error in "tracer.dat"!', 'settrace.f' )
+!-----------------------------------------------------------------------------
+! Prior to 7/20/04:            
+!      !=================================================================
+!      ! FORMAT statements
+!      !=================================================================
+!      !WRITE(6,*) IDTRMB(1,1), IDTRMB(1,2), IDTRMB(1,3) 
+!      !WRITE(6,*) CTRMB(2,1), CTRMB(2,2), CTRMB(19,1)
+!      !WRITE(6,*) IDEMIS(1), IDEMIS(2)
+! 100  FORMAT(A7)
+! 101  FORMAT(22X,I2,13X,I2,15X,I2)
+! 102  FORMAT(22X,A5,i9,2x,f11.0)
+! 103  FORMAT(22X,F4.1)
+! 104  FORMAT(I2,3X,A8)
+! 105  FORMAT('List of tracer members:')
+! 106  FORMAT(A80)
+! 107  FORMAT('Tracer',i3,' has more than one emitting species.')
+!      
+!      ! Exit
+! 1001 CONTINUE
+!
+!      RETURN
+!
+!      !=================================================================
+!      ! Trap I/O errors
+!      !=================================================================
+! 700  CONTINUE
+!      CALL ERROR_STOP( 'Open error in "tracer.dat"!', 'settrace.f' )
+!
+! 800  CONTINUE
+!      CALL ERROR_STOP( 'Read error in "tracer.dat"!', 'settrace.f' )
+!------------------------------------------------------------------------------
 
       ! Return to calling program
       END SUBROUTINE SETTRACE

@@ -1,9 +1,9 @@
-! $Id: read_tropopause.f,v 1.1 2003/06/30 20:26:05 bmy Exp $
+! $Id: read_tropopause.f,v 1.2 2004/09/21 18:04:17 bmy Exp $
       SUBROUTINE READ_TROPOPAUSE
 !
 !******************************************************************************
 !  Subroutine READ_TROPOPAUSE reads in the annual mean tropopause. 
-!  (qli, bmy, 12/13/99, 3/14/03)
+!  (qli, bmy, 12/13/99, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Call READ_BPCH2 to read in the annual mean tropopause data
@@ -27,18 +27,23 @@
 !        allocated memory before stopping the run. (bmy, 10/15/02)
 !  (11) Now call READ_BPCH2 with QUIET=.TRUE. to suppress printing of extra
 !        info to stdout.  Also updated FORMAT strings. (bmy, 3/14/03)
+!  (12) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN"       ! LPAUSE, IFLX
-#     include "CMN_SETUP" ! DATA_DIR
+!---------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! DATA_DIR
+!---------------------------------------------
 
       ! Local Variables
       INTEGER             :: I, J, LMAX, LMIN, COUNT

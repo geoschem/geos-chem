@@ -1,9 +1,9 @@
-! $Id: readlai.f,v 1.1 2003/06/30 20:26:07 bmy Exp $
+! $Id: readlai.f,v 1.2 2004/09/21 18:04:17 bmy Exp $
       SUBROUTINE READLAI( MM )
 !
 !******************************************************************************
 !  Subroutine READLAI reads the leaf area indices from disk for two months.
-!  (yhw, gmg, djj, 1994; bmy, 11/13/02)
+!  (yhw, gmg, djj, 1994; bmy, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -19,17 +19,22 @@
 !  (5 ) Now reference IU_FILE from "file_mod.f" (bmy, 7/31/02)   
 !  (6 ) Now define FILENAME and echo FILENAME to stdout.  Now use F90 style
 !        declaration statements.  Cleaned up old code. (bmy, 11/13/02)
+!  (7 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !     
       ! References to F90 modules
-      USE FILE_MOD, ONLY : IU_FILE
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE FILE_MOD,      ONLY : IU_FILE
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"   ! Size parameters
 #     include "CMN_DEP"    ! IREG, ILAND, IUSE
 #     include "CMN_VEL"    ! XLAI, XLAI2
-#     include "CMN_SETUP"  ! DATA_DIR 
+!--------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"  ! DATA_DIR 
+!--------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: MM

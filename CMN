@@ -1,4 +1,4 @@
-! $Id: CMN,v 1.2 2003/10/01 20:32:19 bmy Exp $
+! $Id: CMN,v 1.3 2004/09/21 18:04:06 bmy Exp $
       !=================================================================
       ! NOTES:
       ! (1 ) Changed RCS ID tag comment character from "C" to "!" to
@@ -21,19 +21,24 @@
       !       NSRCE.  Most of these are now superseded by either
       !       "grid_mod.f" or "time_mod.f". (bmy, 3/11/03)
       ! (5 ) Fix for LINUX - remove & in column 73 (bmy, 6/27/03)
+      ! (6 ) Remove obsolete variables (bmy, 7/19/04)
       !================================================================= 
 
-      !=================================================================
-      ! Logical flags from "input.f" (read from file "input.ctm")
-      !=================================================================
-      LOGICAL     LCONT,LSAVE,LINIT,LWINDO,LSTRAT,LTROP,LSRCE,LZONE,    
-     & LPUFF,LPRT,LHEADR,LREWND,LPFILT,LSOM,LCONV4,LSRC4,LPLU,L2PM,     
-     & LYRRD,LBIONOX,LAIRNOX,LLIGHTNOX,LSOILNOX,LFFNOX,                 
-     & LFOSSIL,LWOODCO,LUPBD,LBLMX,LEMBED
-      COMMON/CCLGC/ LCONT,LSAVE,LINIT,LWINDO,LSTRAT,LTROP,LSRCE,LZONE,  
-     & LPUFF,LPRT,LHEADR,LREWND,LPFILT,LSOM,LCONV4,LPLU,L2PM,LYRRD,     
-     & LBIONOX,LAIRNOX,LLIGHTNOX,LSOILNOX,LFFNOX,                       
-     & LFOSSIL,LWOODCO,LUPBD,LBLMX,LEMBED
+!----------------------------------------------------------------------------
+! Prior to 7/19/04:
+! All logical flags are now located w/in "logical_mod.f" (bmy, 7/19/04)
+!      !=================================================================
+!      ! Logical flags from "input.f" (read from file "input.ctm")
+!      !=================================================================
+!      LOGICAL     LCONT,LSAVE,LINIT,LWINDO,LSTRAT,LTROP,LSRCE,LZONE,    
+!     & LPUFF,LPRT,LHEADR,LREWND,LPFILT,LSOM,LCONV4,LSRC4,LPLU,L2PM,     
+!     & LYRRD,LBIONOX,LAIRNOX,LLIGHTNOX,LSOILNOX,LFFNOX,                 
+!     & LFOSSIL,LWOODCO,LUPBD,LBLMX,LEMBED
+!      COMMON/CCLGC/ LCONT,LSAVE,LINIT,LWINDO,LSTRAT,LTROP,LSRCE,LZONE,  
+!     & LPUFF,LPRT,LHEADR,LREWND,LPFILT,LSOM,LCONV4,LPLU,L2PM,LYRRD,     
+!     & LBIONOX,LAIRNOX,LLIGHTNOX,LSOILNOX,LFFNOX,                       
+!     & LFOSSIL,LWOODCO,LUPBD,LBLMX,LEMBED
+!----------------------------------------------------------------------------
 
       !=================================================================
       ! IEBD1, JEBD1, IEBD2, JEBD2 define the embedded chemistry region
@@ -47,42 +52,57 @@
       REAL*8 ::    XTRA2(IIPAR,JJPAR)
       COMMON /ASC/ XTRA2
 
-      !=================================================================
-      ! IPRMIN, IPRMAX, etc are box indices for SMVGEAR debug output
-      !=================================================================
-      INTEGER ::      IPRMIN, IPRMAX, JPRMIN, JPRMAX
-      INTEGER ::      LPRMIN, LPRMAX, NPRMIN, NPRMAX
-
-      COMMON /CPRINT/ IPRMIN, IPRMAX, JPRMIN, JPRMAX,                   
-     &                LPRMIN, LPRMAX, NPRMIN, NPRMAX
-
-      !=================================================================
-      ! STT holds NNPAR tracer concentrations
-      !=================================================================
-      REAL*8 ::     STT(IIPAR,JJPAR,LLPAR,NNPAR)
-      COMMON /CCT1/ STT
-
-      !=================================================================
-      ! Character variables -- XLABEL is the punch file top title
-      !=================================================================
-      CHARACTER*4 TCNAME
-      COMMON/CCL/ TCNAME(NNPAR)
-
-      ! Make XLABEL a CHAR*80 for simplicity (bmy, 5/27/99)
-      CHARACTER*80  XLABEL
-      COMMON /CCL2/ XLABEL
-
-      !=================================================================
-      ! More variables for "input.f" (read from file "input.ctm")
-      !=================================================================
-      INTEGER ::    LM, NTRACE, LCONVM, NSRCX, NSKIPL, NFAM
-      COMMON /CCX2/ LM, NTRACE, LCONVM, NSRCX, NSKIPL, NFAM
-
-      !=================================================================
-      ! Tracer variables from "inptr.f" (read from file "inptr.ctm")
-      !=================================================================
-      REAL*8 ::     TCMASS(NNPAR), TCVV(NNPAR) 
-      COMMON /CCP1/ TCMASS,        TCVV
+!----------------------------------------------------------------------------
+! Prior to 7/19/04:
+! These are now obsolete, so remove them (bmy, 7/19/04)
+!      !=================================================================
+!      ! IPRMIN, IPRMAX, etc are box indices for SMVGEAR debug output
+!      !=================================================================
+!      INTEGER ::      IPRMIN, IPRMAX, JPRMIN, JPRMAX
+!      INTEGER ::      LPRMIN, LPRMAX, NPRMIN, NPRMAX
+!
+!      COMMON /CPRINT/ IPRMIN, IPRMAX, JPRMIN, JPRMAX,                   
+!     &                LPRMIN, LPRMAX, NPRMIN, NPRMAX
+!----------------------------------------------------------------------------
+! Prior to 7/19/04:
+! STT is now allocatable in "tracer_mod.f" (bmy, 7/19/04)
+!      !=================================================================
+!      ! STT holds NNPAR tracer concentrations
+!      !=================================================================
+!      REAL*8 ::     STT(IIPAR,JJPAR,LLPAR,NNPAR)
+!      COMMON /CCT1/ STT
+!
+!----------------------------------------------------------------------------
+! Prior to 7/19/04:
+! TCNAME is replaced by TRACER_NAME w/in "tracer_mod.f" (bmy, 7/19/04)
+!      !=================================================================
+!      ! Character variables -- XLABEL is the punch file top title
+!      !=================================================================
+!      CHARACTER*4 TCNAME
+!      COMMON/CCL/ TCNAME(NNPAR)
+!----------------------------------------------------------------------------
+! Prior to 7/19/04:
+! This is now obsolete (bmy, 7/19/04)
+!      ! Make XLABEL a CHAR*80 for simplicity (bmy, 5/27/99)
+!      CHARACTER*80  XLABEL
+!      COMMON /CCL2/ XLABEL
+!----------------------------------------------------------------------------
+! Prior to 7/19/04:
+! This is now obsolete (bmy, 7/19/04:
+!      !=================================================================
+!      ! More variables for "input.f" (read from file "input.ctm")
+!      !=================================================================
+!      INTEGER ::    LM, NTRACE, LCONVM, NSRCX, NSKIPL, NFAM
+!      COMMON /CCX2/ LM, NTRACE, LCONVM, NSRCX, NSKIPL, NFAM
+!----------------------------------------------------------------------------
+! Prior to 7/19/04:
+! These are now contained w/ in "tracer_mod.f" (bmy, 7/19/04)
+!      !=================================================================
+!      ! Tracer variables from "inptr.f" (read from file "inptr.ctm")
+!      !=================================================================
+!      REAL*8 ::     TCMASS(NNPAR), TCVV(NNPAR) 
+!      COMMON /CCP1/ TCMASS,        TCVV
+!----------------------------------------------------------------------------
 
       !=================================================================
       ! LPAUSE  stores the annual mean tropopause (bmy, 12/6/99)

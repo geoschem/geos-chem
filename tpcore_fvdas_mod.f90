@@ -1,4 +1,4 @@
-! $Id: tpcore_fvdas_mod.f90,v 1.1 2003/06/30 20:26:05 bmy Exp $
+! $Id: tpcore_fvdas_mod.f90,v 1.2 2004/09/21 18:04:19 bmy Exp $
 module tpcore_fvdas_mod
 !
 !******************************************************************************
@@ -267,10 +267,12 @@ contains
     dtdy5(j) = 0.5 * dt / (ae*dlat(j))
  enddo
 
- ! Now use REPEAT cmd (bmy, 4/29/03)
- PRT_PREFIX write( 6, '(a)' ) REPEAT( '=', 79 )
+ ! Prior to 7/20/04:
+ ! Comment out the === lines (bmy, 7/20/04)
+ !! Now use REPEAT cmd (bmy, 4/29/03)
+ !PRT_PREFIX write( 6, '(a)' ) REPEAT( '=', 79 )
  PRT_PREFIX write( 6, '(a)' ) 'NASA-GSFC Tracer Transport Module successfully initialized'
- PRT_PREFIX write( 6, '(a)' ) REPEAT( '=', 79 )
+ !!PRT_PREFIX write( 6, '(a)' ) REPEAT( '=', 79 )
 
  end subroutine init_tpcore
 

@@ -1,9 +1,9 @@
-! $Id: drydep_mod.f,v 1.13 2004/07/15 18:17:45 bmy Exp $
+! $Id: drydep_mod.f,v 1.14 2004/09/21 18:04:12 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
 !  Module DRYDEP_MOD contains variables and routines for the GEOS-CHEM dry
-!  deposition scheme. (bmy, 1/27/03, 7/13/04)
+!  deposition scheme. (bmy, 1/27/03, 7/20/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -61,10 +61,13 @@
 !  (1 ) comode_mod.f       : Module containing SMVGEAR allocatable arrays
 !  (2 ) dao_mod.f          : Module containing arrays for DAO met fields
 !  (3 ) diag_mod.f         : Module containing GEOS-CHEM diagnostic arrays
+!  (4 ) directory_mod.f    : Module containing GEOS-CHEM data & met field dirs
 !  (4 ) error_mod.f        : Module containing NaN, other error check routines
 !  (5 ) file_mod.f         : Module containing file unit #'s and error checks
-!  (6 ) pressure_mod.f     : Module containing routines to compute P(I,J,L)
-!  (7 ) tracerid_mod.f     : Module containing pointers to tracers & emissions
+!  (6 ) logical_mod.f      : Module containing GEOS-CHEM logical switches
+!  (7 ) pressure_mod.f     : Module containing routines to compute P(I,J,L)
+!  (8 ) tracer_mod.f       : Module containing GEOS-CHEM tracer array etc.
+!  (9 ) tracerid_mod.f     : Module containing pointers to tracers & emissions
 !
 !  References:
 !  ============================================================================
@@ -125,6 +128,8 @@
 !  (10) Increased MAXDEP to 26.  Added A_RADI and A_DEN module variables.
 !        Other modifications for size-resolved drydep. (rjp, bec, bmy, 4/20/04)
 !  (11) Increased MAXDEP to 35 and handle extra SOA tracers (rjp, bmy, 7/13/04)
+!  (12) Now references "logical_mod.f", "directory_mod.f", and "tracer_mod.f"
+!        (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -204,7 +209,7 @@
 !  Subroutine DO_DRYDEP is the driver for the GEOS-CHEM dry deposition scheme.
 !  DO_DRYDEP calls DEPVEL to compute deposition velocities [m/s], which are 
 !  then converted to [cm/s].  Drydep frequencies are also computed.  
-!  (lwh, gmg, djj, 1989, 1994; bmy, 2/11/03, 12/9/03)
+!  (lwh, gmg, djj, 1989, 1994; bmy, 2/11/03, 7/20/04)
 !
 !  DAO met fields passed via "dao_mod.f":
 !  ============================================================================
@@ -244,12 +249,15 @@
 !  (3 ) Now declare CFRAC, RADIAT, AZO, USTAR as local variables, which are 
 !        returned by METERO.  CFRAC and RADIAT have also been deleted from 
 !        "CMN_DEP". (bmy, 12/9/03)
+!  (4 ) Now use explicit formula for IJLOOP to allow parallelization.
+!        Also reference LPRT from "logical_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! Reference to F90 modules
       USE DIAG_MOD,     ONLY : AD44
       USE DAO_MOD,      ONLY : AD, ALBD, SUNCOS, T
       USE ERROR_MOD,    ONLY : DEBUG_MSG
+      USE LOGICAL_MOD,  ONLY : LPRT
       USE PRESSURE_MOD, ONLY : GET_PEDGE
       USE TRACERID_MOD
       
@@ -286,16 +294,23 @@
       !=================================================================
       ! Compute mixing heights
       !=================================================================
-
-      ! 1-D grid box index
-      IJLOOP = 0
+      
+      !----------------------
+      ! Prior to 7/20/04:
+      !! 1-D grid box index
+      !IJLOOP = 0
+      !----------------------
 
       ! Compute mixing heights
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Increment IJLOOP
-         IJLOOP        = IJLOOP + 1
+         !------------------------------
+         ! Prior to 7/20/04:
+         !IJLOOP        = IJLOOP + 1
+         !------------------------------
+         IJLOOP        = ( (J-1) * IIPAR ) + I
 
          ! Set logical LSNOW if snow and sea ice (ALBEDO > 0.4)
          LSNOW(IJLOOP) = ( ALBD(I,J) > 0.4 )
@@ -362,14 +377,23 @@
       ! Compute dry deposition frequencies; archive diagnostics
       !=================================================================
 
-      ! 1-D grid box index
-      IJLOOP = 0
+      !----------------------
+      ! Prior to 7/20/04:
+      !! 1-D grid box index
+      !IJLOOP = 0
+      !----------------------
 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         
+
+         !----------------------
+         ! Prior to 7/20/04:
          ! Increment IJLOOP
-         IJLOOP  = IJLOOP + 1
+         !IJLOOP  = IJLOOP + 1
+         !----------------------
+
+         ! 1-D grid box index
+         IJLOOP  = ( (J-1) * IIPAR ) + I
 
          ! THIK = thickness of surface layer [m]
          P1      = GET_PEDGE(I,J,1)
@@ -419,8 +443,9 @@
       FUNCTION DVZ_MINVAL( N, LSNOW, DVZ ) RESULT( NEWDVZ )
 !
 !******************************************************************************
-!  Function DVZ_MINVAL sets minimum values for drydep velocities for SULFATE
-!  TRACERS, according to Mian Chin's GOCART model (rjp, bmy, 11/21/02)
+!  Function DVZ_MINVAL sets minimum values for drydep velocities for 
+!  SULFATE TRACERS, according to Mian Chin's GOCART model. 
+!  (rjp, bmy, 11/21/02, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -430,13 +455,17 @@
 !
 !  NOTES:
 !  (1 ) Don't put a min drydep value on H2O2 for offline run (rjp, bmy,3/31/03)
+!  (2 ) Remove reference to CMN, it's obsolete (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE TRACERID_MOD
 
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN"        ! NSRCX
+#     include "CMN_SIZE"   ! Size parameters!
+!--------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"        ! NSRCX
+!--------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: N
@@ -489,7 +518,7 @@
 !
 !******************************************************************************
 !  Subroutine METERO calculates meteorological constants needed for the      
-!  dry deposition velocity module. (lwh, gmg, djj, 1989, 1994; bmy, 12/9/03)
+!  dry deposition velocity module. (lwh, gmg, djj, 1989, 1994; bmy, 7/20/04)
 !
 !  Arguments as Output:
 !  ============================================================================
@@ -515,6 +544,8 @@
 !  (2 ) Now reference CLDFRC, RADSWG, ZO, USTAR from "dao_mod.f".  Also now 
 !         pass CFRAC, RADIAT, AZO, USTR back to the calling routine 
 !         via the arg list. (bmy, 12/9/03)
+!  (3 ) Now use explicit formula for IJLOOP to allow parallelization
+!        (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -546,14 +577,21 @@
       !=================================================================
       ! METERO begins here!
       !=================================================================
-      IJLOOP = 0
+      !---------------------
+      ! Prior to 7/20/04:
+      !IJLOOP = 0
+      !---------------------
 
       ! Loop over surface grid boxes
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! 1-D grid box index
-         IJLOOP = IJLOOP + 1
+         !---------------------------
+         ! Prior to 7/20/04:
+         !IJLOOP = IJLOOP + 1
+         !---------------------------
+         IJLOOP = ( (J-1) * IIPAR ) + I
 
          ! THIK = thickness of layer 1 [m]
          P1     = GET_PEDGE(I,J,1)
@@ -578,7 +616,7 @@
          !
          !
          !  Also test the denominator in order to prevent div by zero.
-         !=================================================================
+         !==============================================================
 
          ! Numerator
          NUM = -AIRDEN(1,I,J) *  CP            * TS(I,J) *
@@ -594,9 +632,9 @@
             OBK(IJLOOP) = 1.0d5
          ENDIF
 
-         !=================================================================
+         !==============================================================
          ! Return meterological quantities as 1-D arrays for DEPVEL
-         !=================================================================
+         !==============================================================
 
          ! Roughness height [m]
          AZO(IJLOOP)    = Z0(I,J)
@@ -754,7 +792,7 @@
 !******************************************************************************
 !  Subroutine DRYFLXRnPbBe removes dry deposition losses from the STT tracer
 !  array and archives deposition fluxes to the ND44 diagnostic. 
-!  (hyl, bmy, bdf, 4/2/99, 3/23/04)
+!  (hyl, bmy, bdf, 4/2/99, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Now eliminate DEPFLUX from CMN_SAV, in order to save memory.
@@ -777,18 +815,25 @@
 !  (11) Now compute drydep fluxes throughout the entire PBL.  Now references
 !        PBLFRAC.  Added L_PBLTOP variable. (bmy, 7/21/03)
 !  (12) Now follow GEOS-3 algorithm for GEOS-4 model (bmy, 12/2/03)
+!  (13) Now reference STT from "tracer_mod.f" and LDRYD from "logical_mod.f"
+!        (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD,  ONLY : AD44
-      USE ERROR_MOD, ONLY : ERROR_STOP, GEOS_CHEM_STOP
-      USE TIME_MOD,  ONLY : GET_TS_CHEM
-      
+      USE DIAG_MOD,    ONLY : AD44
+      USE ERROR_MOD,   ONLY : ERROR_STOP, GEOS_CHEM_STOP
+      USE LOGICAL_MOD, ONLY : LDRYD
+      USE TIME_MOD,    ONLY : GET_TS_CHEM
+      USE TRACER_MOD,  ONLY : STT
+
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! STT
+#     include "CMN"       ! XTRA2
 #     include "CMN_DIAG"  ! Diagnostic switches & arrays
 #     include "CMN_DEP"   ! Dry deposition variables
-#     include "CMN_SETUP" ! LDRYD
+!--------------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! LDRYD
+!--------------------------------------------------------------
 
       ! Local variables
       INTEGER             :: I, J, L, L_PBLTOP, N, NN
@@ -1685,7 +1730,7 @@ C** Load array DVEL
 !
 !******************************************************************************
 !  Subroutine MODIN reads Olson's data from the file "drydep.table".
-!  (bmy, 4/1/02, 11/21/02)
+!  (bmy, 4/1/02, 7/20/04)
 !
 !  NOTE: The roughness heights (IZO) from "drydep.table" are supplanted by
 !  the Z0 field from the DAO met field archive.  The old GISS-II routines did
@@ -1709,15 +1754,20 @@ C** Load array DVEL
 !        number instead of IUNIT. (bmy, 6/27/02)
 !  (3 ) Now bundled into "drydep_mod.f".  Changed NVEGTYPE to NNVEGTYPE.
 !        (bmy, 11/21/02)
+!  (4 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE FILE_MOD, ONLY : IU_FILE, IOERROR
-
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_SETUP" ! for DATA_DIR (bmy, 7/6/01)
+!--------------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! for DATA_DIR (bmy, 7/6/01)
+!--------------------------------------------------------------
 
       ! Local variables
       INTEGER             :: L, IOLSON, I, IOS, IUNIT
@@ -1804,7 +1854,7 @@ C** Load array DVEL
 !
 !******************************************************************************
 !  Subroutine RDDRYCF read polynomial coefficients from the "drydep.coef"
-!  file in the data directory (bmy, 7/6/01, 11/21/02)
+!  file in the data directory (bmy, 7/6/01, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Use F90 syntax.  Now read "drydep.coef" directly from DATA_DIR.
@@ -1817,16 +1867,21 @@ C** Load array DVEL
 !  (4 ) Removed obsolete code from March 2002.  Now reference IU_FILE and
 !        IOERROR from "file_mod.f".  Now use IU_FILE as the logical unit
 !        number. (bmy, 6/27/02)
-!  (5 ) Bundled into "drydep_mod.f" (bmy, 11/21/02)
+!  (5 ) Bundled into "drydep_mod.f" (bmy, 11/21/02) 
+!  (6 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE FILE_MOD, ONLY : IU_FILE, IOERROR
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
       IMPLICIT NONE
       
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_SETUP" ! DATA_DIR
+!------------------------------------------------------
+! Prior to 7/20/04
+!#     include "CMN_SETUP" ! DATA_DIR
+!------------------------------------------------------
 
       ! Local variables
       INTEGER            :: I, IOS
@@ -2360,15 +2415,21 @@ C** Load array DVEL
 !        radius & density of size-resolved tracers.  Also added fancy
 !        output. (bec, rjp, bmy, 4/26/04)
 !  (3 ) Now handles extra SOA tracers (rjp, bmy, 7/13/04)
+!  (4 ) Now references LDRYD from "logical_mod.f" and N_TRACERS, 
+!        SALA_REDGE_um, and SALC_REDGE_um from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : ALLOC_ERR
+      USE LOGICAL_MOD, ONLY : LDRYD
+      USE TRACER_MOD,  ONLY : N_TRACERS, SALA_REDGE_um, SALC_REDGE_um
       USE TRACERID_MOD
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! NSRCX, NTRACE
-#     include "CMN_SETUP" ! LDRYD
+!-----------------------------------------------
+!#     include "CMN"       ! NSRCX, NTRACE
+!#     include "CMN_SETUP" ! LDRYD
+!-----------------------------------------------
 
       ! Local variables
       INTEGER :: AS, N
@@ -2395,7 +2456,11 @@ C** Load array DVEL
       ! First identify tracers that dry deposit and then initialize 
       ! DEPNAME, NDVZIND, HSTAR, F0, XMW and AIROSOL accordingly
       !=================================================================
-      DO N = 1, NTRACE
+      !--------------------
+      ! Prior to 7/20/04:
+      !DO N = 1, NTRACE
+      !--------------------
+      DO N = 1, N_TRACERS
 
          ! 210Pb (aerosol)
          IF ( N == IDTPB ) THEN
@@ -2714,7 +2779,12 @@ C** Load array DVEL
             HSTAR(NUMDEP)   = 0.0d0
             F0(NUMDEP)      = 0.0d0
             XMW(NUMDEP)     = 36d-3     
-            A_RADI(NUMDEP)  = 0.65d-6
+            !---------------------------------
+            ! Prior to 7/20/04:
+            !A_RADI(NUMDEP)  = 0.65d-6
+            !---------------------------------
+            A_RADI(NUMDEP)  = ( SALA_REDGE_um(1) + 
+     &                          SALA_REDGE_um(2) ) * 0.5d-6
             A_DEN(NUMDEP)   = 2200.d0         
             AIROSOL(NUMDEP) = .TRUE. 
 
@@ -2726,8 +2796,13 @@ C** Load array DVEL
             DEPNAME(NUMDEP) = 'SALC'
             HSTAR(NUMDEP)   = 0.0d0
             F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 36d-3     
-            A_RADI(NUMDEP)  = 3.125d-6
+            XMW(NUMDEP)     = 36d-3 
+            !-----------------------------------
+            ! Prior to 7/20/04:
+            !A_RADI(NUMDEP)  = 3.125d-6
+            !-----------------------------------
+            A_RADI(NUMDEP)  = ( SALC_REDGE_um(1) + 
+     &                          SALC_REDGE_um(2) ) * 0.5d-6
             A_DEN(NUMDEP)   = 2200.d0         
             AIROSOL(NUMDEP) = .TRUE. 
 
@@ -2847,9 +2922,15 @@ C** Load array DVEL
       !=================================================================
       ! Echo information to stdout
       !=================================================================
-      WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
-      WRITE( 6, '(a,/)' ) 'D R Y   D E P O S I T I O N   S E T U P'
-      WRITE( 6, '(a,/)' ) 'INIT_DRYDEP: List of dry deposition species:'
+      !----------------------------------------------------------------------
+      ! Prior to 7/20/04:
+      !WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+      !WRITE( 6, '(a,/)' ) 'D R Y   D E P O S I T I O N   S E T U P'
+      !WRITE( 6, '(a,/)' ) 'INIT_DRYDEP: List of dry deposition species:'
+      !WRITE( 6, '(a)'   )
+      !----------------------------------------------------------------------
+      WRITE( 6, '(/,a)' ) 'INIT_DRYDEP: List of dry deposition species:'
+      !WRITE( 6, '(a,/)' ) '--------------------------------------------'
       WRITE( 6, '(a)'   )
      & '  #   Name  Tracer DEPVEL Henry''s    React.   Molec.  Aerosol?'
       WRITE( 6, '(a)'   )
@@ -2862,7 +2943,10 @@ C** Load array DVEL
       ENDDO
  100  FORMAT( i3, 3x, a4, 2(3x,i3), 4x, es8.1, 2(3x,f6.3), 3x, L3 )
 
-      WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+      !----------------------------------------------------------------------
+      ! Prior to 7/20/04:
+      !WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+      !----------------------------------------------------------------------
 
       ! Return to calling program
       END SUBROUTINE INIT_DRYDEP

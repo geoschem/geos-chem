@@ -1,4 +1,4 @@
-! $Id: tagged_ox_mod.f,v 1.5 2004/07/19 17:57:20 bmy Exp $
+! $Id: tagged_ox_mod.f,v 1.6 2004/09/21 18:04:19 bmy Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
@@ -29,6 +29,7 @@
 !  (1 ) bpch2_mod.f    : Module containing routines for binary punch file I/O
 !  (2 ) dao_mod.f      : Module containing arrays for DAO met fields
 !  (3 ) diag_mod.f     : Module containing GEOS-CHEM diagnostic arrays
+!  (4 ) diag_pl_mod.f  : Module containing routines for ND65 & ND20 diagnostics
 !  (4 ) error_mod.f    : Module containing I/O error and NaN check routines
 !  (5 ) grid_mod.f     : Module containing horizontal grid information
 !  (6 ) pressure_mod.f : Module containing routines to compute P(I,J,L)
@@ -80,8 +81,9 @@
 !
 !******************************************************************************
 !  Subroutine ADD_STRAT_POX adds the stratospheric influx of Ox to the
-!  stratospheric Ox tracer.  This is called from routine UPBDFLX_O3, which
-!  is applied when the tracer array has units of [v/v].  (bmy, 8/19/03)
+!  stratospheric Ox tracer.  This is called from routine UPBDFLX_O3, 
+!  which is applied when the tracer array has units of [v/v].  
+!  (bmy, 8/19/03, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -89,10 +91,16 @@
 !  (4  ) POx   (REAL*8 ) : P(Ox) in the stratosphere [v/v]
 !
 !  NOTES:
+!  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
+      ! References to F90 modules
+      USE TRACER_MOD, ONLY : STT
+
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! STT
+!----------------------------------------------
+!#     include "CMN"       ! STT
+!----------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -112,16 +120,18 @@
 !
 !******************************************************************************
 !  Subroutine READ_POX_LOX reads previously-archived Ox production & loss 
-!  rates from binary punch file format. (bmy, 8/20/03)
+!  rates from binary punch file format. (bmy, 8/20/03, 7/20/04)
 ! 
 !  NOTES:
 !  (1 ) Updated from the old routine "chemo3_split.f" (rch, bmy, 8/20/03)
+!  (2 ) Now references O3PL_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE TIME_MOD,     ONLY : EXPAND_DATE, GET_NYMD, GET_TAU
-      USE TRANSFER_MOD, ONLY : TRANSFER_3D_TROP
+      USE DIRECTORY_MOD, ONLY : O3PL_DIR 
+      USE TIME_MOD,      ONLY : EXPAND_DATE, GET_NYMD, GET_TAU
+      USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
            
 #     include "CMN_SIZE" ! Size parameters
 
@@ -134,13 +144,23 @@
       ! READ_POX_LOX begins here!
       !=================================================================
 
-      ! Define filename (change if necessary!)
-      FILENAME = '/data/ctm/GEOS_MEAN/O3_PROD_LOSS/'
-      FILENAME = TRIM( FILENAME ) //  
-     & '2001v4.33/amf_4x5_geos4/rate.YYYYMMDD'
+!--------------------------------------------------------------------------
+! Prior to 7/20/04:
+!      ! Define filename (change if necessary!)
+!      FILENAME = '/data/ctm/GEOS_MEAN/O3_PROD_LOSS/'
+!      FILENAME = TRIM( FILENAME ) //  
+!     & '2001v4.33/amf_4x5_geos4/rate.YYYYMMDD'
+!
+!      ! Replace YYYYMMDD token in FILENAME w/ the actual date
+!      CALL EXPAND_DATE( FILENAME, GET_NYMD(), 000000 )
+!--------------------------------------------------------------------------
 
-      ! Replace YYYYMMDD token in FILENAME w/ the actual date
+      ! Filename string
+      FILENAME = 'rate.YYYYMMDD'
       CALL EXPAND_DATE( FILENAME, GET_NYMD(), 000000 )
+
+      ! Prefix FILENAME w/ the proper directory
+      FILENAME = TRIM( O3PL_DIR ) // FILENAME
 
       ! Echo information
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -286,19 +306,7 @@
       MTTOP  = 10
 #endif
 
-      !-------------------------------------------------------------------
-      !! Pressure at level bottom [hPa]
-      !P          = GET_PEDGE( I, J, L ) 
-      !-------------------------------------------------------------------
-
       ! Define flags for various geographic & altitude regions
-      !--------------------------------------------------------------------
-      ! Prior to 5/27/04:
-      ! Now use levels instead of pressures 
-      !ITS_IN_PBL = ( P >= PBLTOP                                       )
-      !ITS_IN_MT  = ( P <  PBLTOP .and. P > 350.0                       )
-      !ITS_IN_UT  = ( P <= 350.0  .and. ITS_IN_TROP                     )
-      !--------------------------------------------------------------------
       ITS_IN_PBL = ( L <= PBLTOP                                       )
       ITS_IN_MT  = ( L >  PBLTOP .and. L <= MTTOP                      )
       ITS_IN_UT  = ( L >  MTTOP  .and. ITS_IN_TROP                     )
@@ -400,7 +408,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_TAGGED_OX performs chemistry for several Ox tracers which
-!  are tagged by geographic and altitude regions. (rch, bmy, 8/20/03, 3/24/04)
+!  are tagged by geographic and altitude regions. (rch, bmy, 8/20/03, 7/20/04)
 ! 
 !  NOTES:
 !  (1 ) Updated from the old routine "chemo3_split.f" (rch, bmy, 8/20/03)
@@ -408,23 +416,41 @@
 !  (3 ) Now use ND44_TMP array to store vertical levels of drydep flux, then
 !        sum into AD44 array.  This prevents numerical differences when using
 !        multiple processors. (bmy, 3/24/04)
+!  (4 ) Now references LDRYD from "logical_mod.f".  Now references STT 
+!        and N_TRACERS from "tracer_mod.f".  Now references AD65 from 
+!        "diag_pl_mod.f".  Now uses ITS_A_NEW_DAY from "time_mod.f".
+!        (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD,     ONLY : AD44, AD65
+      USE DIAG_MOD,     ONLY : AD44
+      USE DIAG_PL_MOD,  ONLY : AD65
       USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
       USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
       USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE TIME_MOD,     ONLY : GET_TS_CHEM, GET_DAY, TIMESTAMP_STRING
+      USE LOGICAL_MOD,  ONLY : LDRYD
+      !-----------------------------------------------------------------
+      ! Prior to 7/20/04:
+      !USE TIME_MOD,     ONLY : GET_TS_CHEM, GET_DAY, TIMESTAMP_STRING
+      !-----------------------------------------------------------------
+      USE TIME_MOD,     ONLY : GET_TS_CHEM,     ITS_A_NEW_DAY, 
+     &                         TIMESTAMP_STRING
+      USE TRACER_MOD,   ONLY : STT,             N_TRACERS
       USE TRACERID_MOD, ONLY : IDTOX
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! STT
+!----------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"       ! STT
+!----------------------------------------------
 #     include "CMN_DIAG"  ! ND44, ND65
 #     include "CMN_O3"    ! XNUMOL
-#     include "CMN_SETUP" ! LDRYD
+!----------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! LDRYD
+!----------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE     :: FIRST   = .TRUE.
@@ -459,11 +485,16 @@
       ENDIF
       
       ! Read P(Ox) and L(Ox) if it's a new day
-      IF ( GET_DAY() /= LASTDAY ) THEN 
+      !------------------------------------------
+      !IF ( GET_DAY() /= LASTDAY ) THEN 
+      !   CALL READ_POX_LOX
+      !   LASTDAY = GET_DAY()
+      !ENDIF
+      !------------------------------------------
+      IF ( ITS_A_NEW_DAY() ) THEN
          CALL READ_POX_LOX
-         LASTDAY = GET_DAY()
       ENDIF
-        
+ 
       !=================================================================
       ! Tagged Ox chemistry contains the following terms:
       !
@@ -490,7 +521,11 @@
       ! (12) Ox initial conditions         (all levels             )        
       ! (13) Ox produced over the USA      (all levels             )
       !=================================================================
-      DO N = 1, NTRACE
+      !------------------------
+      ! Prior to 7/20/04:
+      !DO N = 1, NTRACE
+      !------------------------
+      DO N = 1, N_TRACERS
 
          ! Zero ND44_TMP array
          IF ( ND44 > 0 ) ND44_TMP = 0d0
@@ -528,7 +563,11 @@
 
                ! Archive loss for all tracers [kg/s]
                PL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL(I,J,L)
-               AD65(I,J,L,NTRACE+N) = AD65(I,J,L,NTRACE+N) + PL
+               !--------------------------------------------------------
+               ! Prior to 7/20/04:
+               !AD65(I,J,L,NTRACE+N) = AD65(I,J,L,NTRACE+N) + PL
+               !--------------------------------------------------------
+               AD65(I,J,L,N_TRACERS+N) = AD65(I,J,L,N_TRACERS+N) + PL
             ENDIF
 
             !========================================================
@@ -611,13 +650,18 @@
 !  (bmy, 8/20/03) 
 !
 !  NOTES:
+!  (1 ) Now reference N_TRACERS from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD, ONLY : ALLOC_ERR, ERROR_STOP
+      USE ERROR_MOD,  ONLY : ALLOC_ERR, ERROR_STOP
+      USE TRACER_MOD, ONLY : N_TRACERS
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! NTRACE
+!---------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"       ! NTRACE
+!---------------------------------------------
 
       ! Local variables
       INTEGER :: AS
@@ -627,7 +671,11 @@
       !=================================================================
 
       ! Safety valve
-      IF ( NTRACE > N_TAGGED ) THEN
+      !--------------------------------
+      ! Prior to 7/20/04:
+      !IF ( NTRACE > N_TAGGED ) THEN
+      !--------------------------------
+      IF ( N_TRACERS > N_TAGGED ) THEN
          CALL ERROR_STOP( 'NTRACE is too large for Tagged Ox!', 
      &                    'INIT_TAGGED_OX (tagged_ox_mod.f)' )
       ENDIF

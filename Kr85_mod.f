@@ -1,9 +1,9 @@
-! $Id: Kr85_mod.f,v 1.1 2003/10/20 20:35:01 bmy Exp $
+! $Id: Kr85_mod.f,v 1.2 2004/09/21 18:04:06 bmy Exp $
       MODULE Kr85_MOD
 !
 !******************************************************************************
 !  Module Kr85_MOD contains routines and variables for the Kr85 radionuclide
-!  simulation. (jsw, bmy, 8/21/03)
+!  simulation. (jsw, bmy, 8/21/03, 7/20/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -23,6 +23,7 @@
 !  (1 ) diag_mod.f     : Module containing GEOS-CHEM diagnostic arrays
 !  (2 ) error_mod.f    : Module containing I/O error and NaN check routines
 !  (3 ) time_mod.f     : Module containing routines for computing time & date
+!  (4 ) tracer_mod.f   : Module containing GEOS-CHEM tracer array STT etc.
 !
 !  References:
 !  ============================================================================
@@ -31,6 +32,7 @@
 !        JGR, 92(D6), pp. 6614-6626, June 20, 1987.
 !
 !  NOTES:
+!  (1 ) Now references "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -251,17 +253,22 @@
 !
 !******************************************************************************
 !  Subroutine EMISSKr85 places Kr85 emissions from point sources (e.g. nuclear
-!  reprocessing plants) into the tracer array. (jsw, bmy, 8/21/03)
+!  reprocessing plants) into the tracer array. (jsw, bmy, 8/21/03, 7/20/04)
 !
 !  NOTES:
+!  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD, ONLY : AD03
-      USE TIME_MOD, ONLY : GET_TS_EMIS, GET_YEAR
+      USE DIAG_MOD,   ONLY : AD03
+      USE TIME_MOD,   ONLY : GET_TS_EMIS, GET_YEAR
+      USE TRACER_MOD, ONLY : STT
 
 #     include "CMN_SIZE"      ! Size parameters
-#     include "CMN"           ! STT 
+!---------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"           ! STT 
+!---------------------------------------------------
 #     include "CMN_DIAG"      ! Diagnostics
 #     include "CMN_O3"        ! FSCALYR
 
@@ -326,17 +333,22 @@
 !
 !******************************************************************************
 !  Subroutine CHEMKr85 applies first-order loss to the Kr85 tracer.
-!  (jsw, bmy, 8/21/03)
+!  (jsw, bmy, 8/21/03, 7/20/04)
 !
 !  NOTES:
+!  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD, ONLY : AD03
-      USE TIME_MOD, ONLY : GET_TS_CHEM
+      USE DIAG_MOD,   ONLY : AD03
+      USE TIME_MOD,   ONLY : GET_TS_CHEM
+      USE TRACER_MOD, ONLY : STT
 
 #     include "CMN_SIZE" ! Size parameters
-#     include "CMN"      ! STT
+!-------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"      ! STT
+!-------------------------------------------
 #     include "CMN_DIAG" ! ND03
 
       ! Local variables

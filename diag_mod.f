@@ -1,9 +1,9 @@
-! $Id: diag_mod.f,v 1.8 2004/07/15 18:17:45 bmy Exp $
+! $Id: diag_mod.f,v 1.9 2004/09/21 18:04:11 bmy Exp $
       MODULE DIAG_MOD 
 !
 !******************************************************************************
 !  Module DIAG_MOD contains declarations for allocatable arrays for use with 
-!  GEOS-CHEM diagnostics. (amf, bdf, bmy, 11/30/99, 7/13/04)
+!  GEOS-CHEM diagnostics. (amf, bdf, bmy, 11/30/99, 7/20/04)
 !
 !  Module Routines:
 !  ============================================================================
@@ -43,6 +43,7 @@
 !        diagnostic arrays (rjp, tdf, bmy, 4/5/04)
 !  (16) Added AD13_SO2_sh diagnostic array for ND13 (bec, bmy, 5/20/04)
 !  (17) Added AD07_HC diagnostic array for ND07 (rjp, bmy, 7/13/04)
+!  (18) Moved AD65 & FAMPL to "diag65_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !     
       !=================================================================
@@ -112,8 +113,12 @@
       REAL*4,  ALLOCATABLE :: AD18(:,:,:,:,:)   
       INTEGER, ALLOCATABLE :: CT18(:,:,:,:)
 
-      ! For ND20 -- saves P,L rates for Ox
-      REAL*8,  ALLOCATABLE :: PL24H(:,:,:,:)
+      !----------------------------------------------------
+      ! Prior to 7/20/04:
+      ! Move this into "diag20_mod.f" (bmy, 7/20/04)
+      !! For ND20 -- saves P,L rates for Ox
+      !REAL*8,  ALLOCATABLE :: PL24H(:,:,:,:)
+      !----------------------------------------------------
 
       ! For ND21 -- Optical Depth diagnostic
       REAL*4,  ALLOCATABLE :: AD21(:,:,:,:)
@@ -214,10 +219,14 @@
 
       ! For ND55 -- tropopause diagnostics
       REAL*4,  ALLOCATABLE :: AD55(:,:,:)
-      
-      ! For ND65 -- Chemical family P-L diagnostic
-      REAL*4,  ALLOCATABLE :: AD65(:,:,:,:)
-      REAL*8,  ALLOCATABLE :: FAMPL(:,:,:,:)
+
+      !------------------------------------------------
+      ! Prior to 7/20/04:      
+      ! Now move this to "diag65_mod.f" (bmy, 7/20/04)
+      !! For ND65 -- Chemical family P-L diagnostic
+      !REAL*4,  ALLOCATABLE :: AD65(:,:,:,:)
+      !REAL*8,  ALLOCATABLE :: FAMPL(:,:,:,:)
+      !------------------------------------------------
 
       ! For ND66 -- I-6 fields diagnostic
       REAL*4,  ALLOCATABLE :: AD66(:,:,:,:)      
@@ -313,7 +322,10 @@
       IF ( ALLOCATED( AD46        ) ) DEALLOCATE( AD46        )
       IF ( ALLOCATED( AD47        ) ) DEALLOCATE( AD47        )
       IF ( ALLOCATED( AD55        ) ) DEALLOCATE( AD55        )
-      IF ( ALLOCATED( AD65        ) ) DEALLOCATE( AD65        )
+      !-----------------------------------------------------------------
+      ! Prior to 7/20/04:
+      !IF ( ALLOCATED( AD65        ) ) DEALLOCATE( AD65        )
+      !-----------------------------------------------------------------
       IF ( ALLOCATED( AD66        ) ) DEALLOCATE( AD66        )
       IF ( ALLOCATED( AD68        ) ) DEALLOCATE( AD68        )
       IF ( ALLOCATED( AD69        ) ) DEALLOCATE( AD69        )
@@ -330,7 +342,10 @@
       IF ( ALLOCATED( CTHO2       ) ) DEALLOCATE( CTHO2       )
       IF ( ALLOCATED( CTOTH       ) ) DEALLOCATE( CTOTH       )
       IF ( ALLOCATED( DIAGCHLORO  ) ) DEALLOCATE( DIAGCHLORO  )
-      IF ( ALLOCATED( FAMPL       ) ) DEALLOCATE( FAMPL       )
+      !-----------------------------------------------------------------
+      ! Prior to 7/20/04:
+      !IF ( ALLOCATED( FAMPL       ) ) DEALLOCATE( FAMPL       )
+      !-----------------------------------------------------------------
       IF ( ALLOCATED( LTJV        ) ) DEALLOCATE( LTJV        )
       IF ( ALLOCATED( LTNO        ) ) DEALLOCATE( LTNO        )
       IF ( ALLOCATED( LTOH        ) ) DEALLOCATE( LTOH        )
@@ -341,7 +356,10 @@
       IF ( ALLOCATED( MASSFLEW    ) ) DEALLOCATE( MASSFLEW    )
       IF ( ALLOCATED( MASSFLNS    ) ) DEALLOCATE( MASSFLNS    )
       IF ( ALLOCATED( MASSFLUP    ) ) DEALLOCATE( MASSFLUP    )
-      IF ( ALLOCATED( PL24H       ) ) DEALLOCATE( PL24H       )
+      !-----------------------------------------------------------------
+      ! Prior to 7/20/04:
+      !IF ( ALLOCATED( PL24H       ) ) DEALLOCATE( PL24H       )
+      !-----------------------------------------------------------------
       IF ( ALLOCATED( TCOBOX      ) ) DEALLOCATE( TCOBOX      )
       IF ( ALLOCATED( TURBFLUP    ) ) DEALLOCATE( TURBFLUP    )
       IF ( ALLOCATED( STT_TEMPO2  ) ) DEALLOCATE( STT_TEMPO2  ) 

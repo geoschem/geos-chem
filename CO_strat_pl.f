@@ -1,10 +1,10 @@
-! $Id: CO_strat_pl.f,v 1.1 2003/06/30 20:26:01 bmy Exp $
+! $Id: CO_strat_pl.f,v 1.2 2004/09/21 18:04:06 bmy Exp $
       SUBROUTINE CO_STRAT_PL( COPROD, COLOSS )
 !
 !******************************************************************************
 !  Subroutine CO_STRAT_PL computes net production of CO above the 
 !  annual mean tropopause using archived rates for P(CO) and L(CO).
-!  (bnd, qli, bmy, 12/9/99, 2/11/03)
+!  (bnd, qli, bmy, 12/9/99, 7/20/04)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -21,11 +21,13 @@
 !        from "tracerid_mod.f". (bmy, 11/6/02)
 !  (4 ) Now use function GET_TS_CHEM from "time_mod.f".  Updated comments.
 !        (bmy, 2/11/03)
+!  (5 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules 
       USE DAO_MOD,      ONLY : AD
       USE TIME_MOD,     ONLY : GET_TS_CHEM
+      USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTCO, IDTCH2O
 
       IMPLICIT NONE

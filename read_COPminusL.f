@@ -1,9 +1,9 @@
-C $Id: read_COPminusL.f,v 1.1 2003/06/30 20:26:05 bmy Exp $
+C $Id: read_COPminusL.f,v 1.2 2004/09/21 18:04:17 bmy Exp $
       SUBROUTINE READ_COPminusL( MCOSTRAT ) 
 !
 !******************************************************************************
 !  Subroutine READ_COPminusL reads production and destruction rates 
-!  for CO in the stratosphere. (bnd, bmy, 1999, 9/26/01, 4/2/02)
+!  for CO in the stratosphere. (bnd, bmy, 1999, 9/26/01, 7/20/04)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -18,16 +18,21 @@ C $Id: read_COPminusL.f,v 1.1 2003/06/30 20:26:05 bmy Exp $
 !  (3 ) Deleted obsolete, commented-out code from 9/01 (bmy, 11/26/01)
 !  (4 ) Now read COprod and COloss files directly from the
 !        DATA_DIR/pco_lco_200203/ subdirectory (bmy, 4/2/02)
+!  (5 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE TRANSFER_MOD, ONLY : TRANSFER_ZONAL
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_ZONAL
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_SETUP"  ! DATA_DIR
+!------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"  ! DATA_DIR
+!------------------------------------------------
 #     include "CMN_CO"     ! BAIRDENS, STT2GCO, CO arrays
 
       ! Arguments

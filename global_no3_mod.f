@@ -1,10 +1,10 @@
-! $Id: global_no3_mod.f,v 1.1 2003/06/30 20:26:03 bmy Exp $
+! $Id: global_no3_mod.f,v 1.2 2004/09/21 18:04:14 bmy Exp $
       MODULE GLOBAL_NO3_MOD
 !
 !******************************************************************************
 !  Module GLOBAL_NO3_MOD contains variables and routines for reading the
 !  global monthly mean NO3 concentration from disk.  These are needed for the 
-!  offline sulfate/aerosol simulation. (bmy, 10/15/02, 3/27/03)
+!  offline sulfate/aerosol simulation. (bmy, 10/15/02, 7/20/04)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -18,14 +18,16 @@
 !
 !  GEOS-CHEM modules referenced by global_no3_mod.f
 !  ============================================================================
-!  (1 ) bpch2_mod.f    : Module containing routines for binary punch file I/O
-!  (2 ) error_mod.f    : Module containing NaN and other error check routines
-!  (3 ) transfer_mod.f : Module containing routines to cast & resize arrays
+!  (1 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
+!  (2 ) directory_mod.f : Module containing GEOS-CHEM data and met field dirs
+!  (3 ) error_mod.f     : Module containing NaN and other error check routines
+!  (4 ) transfer_mod.f  : Module containing routines to cast & resize arrays
 !
 !  NOTES:
 !  (1 ) Adapted from "global_oh_mod.f" (bmy, 10/3/02)
 !  (2 ) Minor bug fix in FORMAT statements (bmy, 3/23/03)
 !  (3 ) Cosmetic changes (bmy, 3/27/03)
+!  (4 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -57,7 +59,7 @@
 !******************************************************************************
 !  Subroutine GET_GLOBAL_NO3 reads monthly mean NO3 data fields.  These 
 !  are needed for simulations such as offline sulfate/aerosol. 
-!  (bmy, 10/15/02, 3/27/03)
+!  (bmy, 10/15/02, 7/20/04)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -66,16 +68,21 @@
 !  NOTES:
 !  (1 ) Minor bug fix in FORMAT statements (bmy, 3/23/03)
 !  (2 ) Cosmetic changes (bmy, 3/27/03)
+!  (3 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE TRANSFER_MOD, ONLY : TRANSFER_3D
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_SETUP"  ! DATA_DIR
+!--------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"  ! DATA_DIR
+!--------------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)  :: THISMONTH

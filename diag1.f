@@ -1,9 +1,9 @@
-! $Id: diag1.f,v 1.4 2004/05/25 18:02:43 bmy Exp $
+! $Id: diag1.f,v 1.5 2004/09/21 18:04:10 bmy Exp $
       SUBROUTINE DIAG1 
 !
 !******************************************************************************
 !  Subroutine DIAG1 accumulates diagnostic quantities every NDIAG minutes
-!  (bmy, bey, 6/16/98, 8/8/03)
+!  (bmy, bey, 6/16/98, 7/20/04)
 !
 !  NOTES:
 !  (1 ) This subroutine was reconstructed from gmg's version of (10/10/97)
@@ -43,6 +43,8 @@
 !        (bmy, 2/4/03)
 !  (21) Now compute PBL top for ND67 for GEOS-4/fvDAS.  Also now include
 !        SCALE_HEIGHT from header file "CMN_GCTM". (bmy, 6/23/03)
+!  (22) Now references N_TRACERS, STT, and ITS_A_FULLCHEM_SIM from
+!        "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !  List of GEOS-CHEM Diagnostics (bmy, 5/25/04)
 !
@@ -316,32 +318,46 @@
      &                         AD47, AD67, AD68, AD69, LTOTH
       USE GRID_MOD,     ONLY : GET_AREA_M2
       USE PRESSURE_MOD, ONLY : GET_PEDGE
+      USE TRACER_MOD,   ONLY : N_TRACERS, STT, TCVV, ITS_A_FULLCHEM_SIM
       USE TRACERID_MOD, ONLY : IDTOX
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! STT, NSRCX, etc...
+!-----------------------------------------------------------
+!#     include "CMN"       ! STT, NSRCX, etc...
+!-----------------------------------------------------------
 #     include "CMN_DIAG"  ! Diagnostic arrays & parameters
 #     include "CMN_O3"    ! FMOL, XNUMOL
 #     include "CMN_GCTM"  ! Physical constants
 
       ! Local variables
-      LOGICAL            :: AVGW_ALLOCATED
+      LOGICAL            :: AVGW_ALLOCATED, IS_FULLCHEM
       INTEGER            :: I, J, K, L, N, NN, IREF, JREF, LN45
       REAL*8             :: FDTT, XLOCTM, AREA_M2
-      REAL*8             :: STT_VV(IIPAR,JJPAR,LLPAR,NTRACE)
+      !-----------------------------------------------------------------
+      ! Prior to 7/20/04:
+      !REAL*8             :: STT_VV(IIPAR,JJPAR,LLPAR,NTRACE)
+      !-----------------------------------------------------------------
+      REAL*8             :: STT_VV(IIPAR,JJPAR,LLPAR,N_TRACERS)
 
       !=================================================================
       ! DIAG1 begins here!
-      !
-      ! Compute conc. in mixing ratio for ND35, ND45, ND47 diagnostics 
       !=================================================================
+      
+      ! Is it a fullchem run?
+      IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
+      
+      ! Compute conc. in mixing ratio for ND35, ND45, ND47 diagnostics 
       IF ( ND35 > 0 .or. ND45 > 0 .or. ND47 > 0 ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, NTRACE
+         !------------------------
+         ! Prior to 7/20/04:
+         !DO N = 1, NTRACE
+         !------------------------
+         DO N = 1, N_TRACERS
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -360,7 +376,7 @@
       IF ( ND31 > 0 ) THEN
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            AD31(I,J,1) = AD31(I,J,1) + GET_PEDGE(I,J,1)
+            AD31(I,J,1) = AD31(I,J,1) + ( GET_PEDGE(I,J,1) - PTOP )
          ENDDO
          ENDDO
       ENDIF
@@ -372,7 +388,11 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, NTRACE
+         !---------------------
+         ! Prior to 7/20/04:
+         !DO N = 1, NTRACE
+         !---------------------
+         DO N = 1, N_TRACERS
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -396,7 +416,11 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I, J, N )
-         DO N = 1, NTRACE
+         !---------------------
+         ! Prior to 7/20/04:
+         !DO N = 1, NTRACE
+         !---------------------
+         DO N = 1, N_TRACERS
          DO J = 1, JJPAR
          DO I = 1, IIPAR
             AD35(I,J,N) = AD35(I,J,N) + STT_VV(I,J,L,N)
@@ -423,7 +447,11 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, NTRACE
+         !--------------------------
+         ! Prior to 7/20/04:
+         !DO N = 1, NTRACE
+         !--------------------------
+         DO N = 1, N_TRACERS
             DO L = 1, LD45  
             DO J = 1, JJPAR 
             DO I = 1, IIPAR
@@ -433,11 +461,20 @@
             ENDDO
             ENDDO
 
-            IF ( N == IDTOX .and. NSRCX == 3 ) THEN
+            !-------------------------------------------
+            ! Prior to 7/20/04:
+            !IF ( N == IDTOX .and. NSRCX == 3 ) THEN
+            !-------------------------------------------
+            IF ( N == IDTOX .and. IS_FULLCHEM ) THEN
                DO L = 1, LD45
                DO J = 1, JJPAR
                DO I = 1, IIPAR
-                  AD45(I,J,L,NTRACE+1) = AD45(I,J,L,NTRACE+1) +
+!-----------------------------------------------------------------------------
+! Prior to 7/20/04:
+!                  AD45(I,J,L,NTRACE+1) = AD45(I,J,L,NTRACE+1) +
+!     &                 ( STT_VV(I,J,L,N) * FRACO3(I,J,L) * LTOTH(I,J) )
+!-----------------------------------------------------------------------------
+                  AD45(I,J,L,N_TRACERS+1) = AD45(I,J,L,N_TRACERS+1) +
      &                 ( STT_VV(I,J,L,N) * FRACO3(I,J,L) * LTOTH(I,J) )
                ENDDO            
                ENDDO            
@@ -457,7 +494,11 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, NTRACE
+         !----------------------
+         ! Prior to 7/20/04:
+         !DO N = 1, NTRACE
+         !----------------------
+         DO N = 1, N_TRACERS
             DO L = 1, LD47
             DO J = 1, JJPAR
             DO I = 1, IIPAR
@@ -465,12 +506,21 @@
             ENDDO   
             ENDDO
             ENDDO
-
-            IF ( N == IDTOX .and. NSRCX == 3 ) THEN
+            
+            !-------------------------------------------
+            ! Prior to 7/20/04:
+            !IF ( N == IDTOX .and. NSRCX == 3 ) THEN
+            !-------------------------------------------
+            IF ( N == IDTOX .and. IS_FULLCHEM ) THEN
                DO L = 1, LD47
                DO J = 1, JJPAR
                DO I = 1, IIPAR
-                  AD47(I,J,L,NTRACE+1) = AD47(I,J,L,NTRACE+1) +
+!--------------------------------------------------------------------------
+! Prior to 7/20/04:
+!                  AD47(I,J,L,NTRACE+1) = AD47(I,J,L,NTRACE+1) +
+!     &                 ( STT_VV(I,J,L,N) * FRACO3(I,J,L) )
+!--------------------------------------------------------------------------
+                  AD47(I,J,L,N_TRACERS+1) = AD47(I,J,L,N_TRACERS+1) +
      &                 ( STT_VV(I,J,L,N) * FRACO3(I,J,L) )
                ENDDO
                ENDDO

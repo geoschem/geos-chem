@@ -1,9 +1,9 @@
-! $Id: acetone_mod.f,v 1.2 2004/03/17 15:39:27 bmy Exp $
+! $Id: acetone_mod.f,v 1.3 2004/09/21 18:04:08 bmy Exp $
       MODULE ACETONE_MOD
 !
 !******************************************************************************
 !  F90 module ACETONE_MOD contains subroutines to emit the biogenic flux of
-!  acetone into the full chemistry simulation (bdf, bmy, 9/18/01, 3/15/04)
+!  acetone into the full chemistry simulation (bdf, bmy, 9/18/01, 7/19/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -21,10 +21,11 @@
 !
 !  GEOS-CHEM modules referenced by acetone_mod.f
 !  ============================================================================
-!  (1 ) bpch2_mod.f  : Module containing routines for binary punch file I/O
-!  (2 ) diag_mod.f   : Module containing GEOS-CHEM diagnostic arrays
-!  (3 ) dao_mod.f    : Module containing arrays for DAO met fields
-!  (4 ) error_mod.f  : Module containing NaN and other error check routines
+!  (1 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
+!  (2 ) diag_mod.f      : Module containing GEOS-CHEM diagnostic arrays
+!  (3 ) directory_mod.f : Module containing GEOS-CHEM data & met field dirs
+!  (4 ) dao_mod.f       : Module containing arrays for DAO met fields
+!  (5 ) error_mod.f     : Module containing NaN and other error check routines
 !
 !  Reference:
 !  ============================================================================
@@ -55,6 +56,7 @@
 !        grids.  (yxw, bmy, 5/16/03)
 !  (14) Scale ACET ocean source to Jacob et al 2002 for GEOS-4, and now
 !        account for surface area ratio for all GEOS grids. (bmy, 3/15/04)
+!  (15) Now references "directory_mod.f" (bmy, 7/19/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -97,7 +99,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_JO1D reads in the J-Values for O1D from disk that
-!  are needed for the biogenic acetone fluxes, (bdf, bmy, 9/14/01, 3/14/03)
+!  are needed for the biogenic acetone fluxes, (bdf, bmy, 9/14/01, 7/19/04)
 !
 !  J-values for O1D are are stored in the JO1D module array in [s^-1].
 !
@@ -114,15 +116,19 @@
 !        (bmy, 10/15/02)
 !  (4 ) Now call READ_BPCH2 with QUIET=.TRUE. to suppress printing of extra
 !        info to stdout.  Also made cosmetic changes. (bmy, 3/14/03)
+!  (5 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/19/04)
 !******************************************************************************
 !      
       ! References to F90 modules
       USE BPCH2_MOD
-      USE ERROR_MOD,    ONLY : ALLOC_ERR, ERROR_STOP
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE ERROR_MOD,     ONLY : ALLOC_ERR, ERROR_STOP
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_SETUP"  ! DATA_DIR
+!-----------------------------------------
+!#     include "CMN_SETUP"  ! DATA_DIR
+!-----------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)  :: THISMONTH
@@ -184,7 +190,7 @@
 !******************************************************************************
 !  Subroutine READ_RESP reads in the monthly heterotrophic respiration 
 !  measured in g of plant matter/m^2 flowing out of the biosphere. This is 
-!  needed for the biogenic acetone fluxes. (bdf, bmy, 9/14/01, 3/14/03)
+!  needed for the biogenic acetone fluxes. (bdf, bmy, 9/14/01, 7/19/04)
 !
 !  Respiration values are stored in the RESP module array in [g C/m2/s].
 !
@@ -201,15 +207,20 @@
 !        GET_TAU0 w/ 3 arguments. (bmy, 10/15/02)
 !  (4 ) Now call READ_BPCH2 with QUIET=.TRUE. to suppress printing of extra
 !        info to stdout.  Also made cosmetic changes. (bmy, 3/14/03)
+!  (5 ) Now references DATA_DIR from "directory_mod.f"
 !******************************************************************************
 !      
       ! References to F90 modules
       USE BPCH2_MOD
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE ERROR_MOD,     ONLY : ALLOC_ERR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_SETUP"  ! DATA_DIR
+!--------------------------------------------------
+! Prior to 7/19/04:
+!#     include "CMN_SETUP" ! DATA_DIR
+!--------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)  :: THISMONTH

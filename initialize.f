@@ -1,4 +1,4 @@
-! $Id: initialize.f,v 1.6 2004/07/15 18:17:46 bmy Exp $
+! $Id: initialize.f,v 1.7 2004/09/21 18:04:14 bmy Exp $
       SUBROUTINE INITIALIZE( IFLAG )
 !
 !******************************************************************************
@@ -145,17 +145,20 @@
 !  (25) Now also zeroes AD08 array (rjp, bec, bmy, 4/20/04)
 !  (26) Now also initialize AD13_SO2_sh array (bec, bmy, 5/20/04)
 !  (27) Now also initialize AD07_HC array (rjp, bmy, 7/13/04)
+!  (28) Now references AD65 & FAM_PL from "diag_pl_mod.f".  Now remove
+!        reference to DIAGCHLORO, it's obsolete. (bmy, 7/20/04)
 !******************************************************************************
 ! 
       ! References to F90 modules
       USE DIAG_MOD
-      USE ERROR_MOD, ONLY : ERROR_STOP
+      USE DIAG_PL_MOD, ONLY : AD65, FAM_PL
+      USE ERROR_MOD,   ONLY : ERROR_STOP
       USE TIME_MOD
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! Many arrays...
+#     include "CMN"       ! XTRA2
 #     include "CMN_DIAG"  ! NDxx flags
 
       ! Arguments 
@@ -171,15 +174,17 @@
       ENDIF  
 
       !=================================================================
-      ! If IFLAG=1 then zero the following CTM variables:
-      !    T, XTRA2, SIG, SIGE, DSIG, DIAGCHLORO 
+      ! If IFLAG=1 then zero the following CTM variables: XTRA2
       !=================================================================
       IF ( IFLAG == 1 ) THEN
          XTRA2 = 0d0
 
-         ! Only zero DIAGCHLORO if ND23 is turned on.  DIAGCHLORO only 
-         ! needs to be zeroed at the start of the run. (bmy, 11/30/99)
-         IF ( ND23 > 0 ) DIAGCHLORO = 0d0
+         !-------------------------------------------------------------------
+         ! Prior to 7/20/04:
+         !! Only zero DIAGCHLORO if ND23 is turned on.  DIAGCHLORO only 
+         !! needs to be zeroed at the start of the run. (bmy, 11/30/99)
+         !IF ( ND23 > 0 ) DIAGCHLORO = 0d0
+         !-------------------------------------------------------------------
       ENDIF  
 
       !=================================================================
@@ -271,7 +276,11 @@
          ! For ND65 -- Chemical production & loss (bmy, 12/5/00)
          IF ( ND65 > 0 ) THEN
             AD65  = 0e0
-            IF ( ALLOCATED( FAMPL ) ) FAMPL = 0d0      
+            !----------------------------------------
+            ! Prior to 7/20/04:
+            !IF ( ALLOCATED( FAMPL ) ) FAMPL = 0d0      
+            !----------------------------------------
+            IF ( ALLOCATED( FAM_PL ) ) FAM_PL = 0d0      
          ENDIF
 
          ! Echo output

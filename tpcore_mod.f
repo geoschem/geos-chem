@@ -1,4 +1,4 @@
-! $Id: tpcore_mod.f,v 1.2 2003/12/05 21:14:07 bmy Exp $
+! $Id: tpcore_mod.f,v 1.3 2004/09/21 18:04:19 bmy Exp $
       MODULE TPCORE_MOD
 !
 !******************************************************************************
@@ -77,15 +77,11 @@
       ! and routines from being seen outside "tpcore_mod.f"
       !=================================================================
 
-      ! PRIVATE module routines
-      PRIVATE COSA,   COSC,      FCT3D     
-      PRIVATE FILEW,  FILNS,     FXPPM     
-      PRIVATE FYPPM,  FZPPM,     HILO      
-      PRIVATE HILO3D, LMTPPM,    QCKXYZ    
-      PRIVATE XADV,   XMIST,     XTP       
-      PRIVATE YMIST,  YTP,       PRESS_FIX 
-      PRIVATE DYN0,   PFILTR,    LOCFLT   
-      PRIVATE POLFLT, DIAG_FLUX, GET_GEOMETRY
+      ! Make everything PRIVATE ...
+      PRIVATE
+
+      ! ... except this routine
+      PUBLIC :: TPCORE
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -3077,7 +3073,7 @@ C
 !******************************************************************************
 !  Subroutine DYN0 is the pressure fixer for TPCORE.  DYN0 readjusts the
 !  mass fluxes ALFA, BETA, GAMA, so that they are consistent with the
-!  met fields. (bdf, bmy, 10/11/01, 2/11/03)
+!  met fields. (bdf, bmy, 10/11/01, 7/20/04)
 !  
 !  Arguments as Input:
 !  ============================================================================
@@ -3112,6 +3108,7 @@ C
 !  (7 ) Now declare DXYP as a local array, and initialize it with calls
 !        to routine GET_AREA_M2 and GET_YOFFSET of "grid_mod.f".  Now also
 !        references GET_BP from "pressure_mod.f" (bmy, 2/11/03)
+!  (8 ) Removed reference to CMN (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3122,7 +3119,10 @@ C
       IMPLICIT NONE
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! lots of stuff
+!-------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"          ! lots of stuff
+!-------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)    :: J1 
@@ -4027,7 +4027,7 @@ C
 !
 !******************************************************************************
 !  Subroutine DIAG_FLUX archives the mass fluxes in TPCORE version 7.1.
-!  (bey, bmy, 9/20/00, 2/11/03)
+!  (bey, bmy, 9/20/00, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -4060,17 +4060,23 @@ C
 !  (6 ) Added to "tpcore_mod.f" (bmy, 7/16/01)
 !  (7 ) Now replace DXYP(JREF) with routine GET_AREA_M2 of "grid_mod.f".  
 !        Also remove all references to JREF.  (bmy, 2/11/03)
+!  (8 ) Now references TCVV and ITS_A_CH4_SIM from "tracer_mod.f" 
+!        (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD,       ONLY : MASSFLEW,   MASSFLNS, MASSFLUP
+      USE DIAG_MOD,       ONLY : MASSFLEW, MASSFLNS, MASSFLUP
       USE GLOBAL_CH4_MOD, ONLY : XNUMOL_CH4, TCH4
       USE GRID_MOD,       ONLY : GET_AREA_M2
+      USE TRACER_MOD,     ONLY : ITS_A_CH4_SIM, TCVV
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"      ! Size parameters
-#     include "CMN"           ! TCVV, DSIG, NSRCX
+!--------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"           ! TCVV, DSIG, NSRCX
+!--------------------------------------------------------
 #     include "CMN_DIAG"      ! Diagnostic switches
 #     include "CMN_GCTM"      ! g0_100
 #     include "CMN_CO"        ! CO arrays
@@ -4179,7 +4185,11 @@ C
 #endif
 
                   ! Contribution for CH4 run (bmy, 1/17/01)
-                  IF ( NSRCX == 9 ) THEN
+                  !------------------------------------------
+                  ! Prior to 7/20/04:
+                  !IF ( NSRCX == 9 ) THEN
+                  !------------------------------------------
+                  IF ( ITS_A_CH4_SIM() ) THEN
                      TCH4(I,J,K,10) = TCH4(I,J,K,10) + 
      &                                ( DTC * DTDYN * XNUMOL_CH4 )
                   ENDIF

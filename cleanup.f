@@ -1,9 +1,9 @@
-! $Id: cleanup.f,v 1.5 2004/05/03 14:46:15 bmy Exp $
+! $Id: cleanup.f,v 1.6 2004/09/21 18:04:09 bmy Exp $
       SUBROUTINE CLEANUP
 !
 !******************************************************************************
 !  Subroutine CLEANUP deallocates the memory assigned to dynamic allocatable 
-!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 4/26/04)
+!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 7/20/04)
 !
 !  NOTES:
 !  (1 ) CLEANUP is written in Fixed-Format F90.
@@ -53,10 +53,12 @@
 !  (23) Now references cleanup routine from "lightning__nox_mod.f" 
 !        (bmy, 4/14/04)
 !  (24) Now references cleanup routine from "seasalt_mod.f" (bmy, 4/26/04)
+!  (25) Now references cleanup routines from new modules (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules 
       USE ACETONE_MOD,       ONLY : CLEANUP_ACETONE
+      USE AEROSOL_MOD,       ONLY : CLEANUP_AEROSOL
       USE AIRCRAFT_NOX_MOD,  ONLY : CLEANUP_AIRCRAFT_NOX
       USE BIOMASS_MOD,       ONLY : CLEANUP_BIOMASS
       USE BIOFUEL_MOD,       ONLY : CLEANUP_BIOFUEL
@@ -65,10 +67,14 @@
       USE COMODE_MOD,        ONLY : CLEANUP_COMODE
       USE DAO_MOD,           ONLY : CLEANUP_DAO
       USE DIAG_MOD,          ONLY : CLEANUP_DIAG
+      USE DIAG50_MOD,        ONLY : CLEANUP_DIAG50
       USE DIAG51_MOD,        ONLY : CLEANUP_DIAG51
+      USE DIAG_OH_MOD,       ONLY : CLEANUP_DIAG_OH
+      USE DIAG_PL_MOD,       ONLY : CLEANUP_DIAG_PL
       USE DRYDEP_MOD,        ONLY : CLEANUP_DRYDEP
       USE DUST_MOD,          ONLY : CLEANUP_DUST
       USE DUST_DEAD_MOD,     ONLY : CLEANUP_DUST_DEAD
+      USE ERROR_MOD,         ONLY : DEBUG_MSG
       USE GLOBAL_CH4_MOD,    ONLY : CLEANUP_GLOBAL_CH4
       USE GLOBAL_HNO3_MOD,   ONLY : CLEANUP_GLOBAL_HNO3
       USE GLOBAL_NO3_MOD,    ONLY : CLEANUP_GLOBAL_NO3
@@ -86,7 +92,6 @@
       USE TRANSPORT_MOD,     ONLY : CLEANUP_TRANSPORT
       USE UVALBEDO_MOD,      ONLY : CLEANUP_UVALBEDO
       USE WETSCAV_MOD,       ONLY : CLEANUP_WETSCAV
-      USE ERROR_MOD,         ONLY : DEBUG_MSG
 
       IMPLICIT NONE
 
@@ -104,7 +109,10 @@
       CALL CLEANUP_TAGGED_CO
       CALL CLEANUP_TRANSPORT
       CALL CLEANUP_SULFATE
+      CALL CLEANUP_DIAG50
       CALL CLEANUP_DIAG51
+      CALL CLEANUP_DIAG_OH
+      CALL CLEANUP_DIAG_PL
       CALL CLEANUP_TOMS
       CALL CLEANUP_GLOBAL_CH4
       CALL CLEANUP_GLOBAL_HNO3
@@ -115,6 +123,7 @@
       CALL CLEANUP_DRYDEP
       CALL CLEANUP_BIOMASS
       CALL CLEANUP_BIOFUEL
+      CALL CLEANUP_AEROSOL
       CALL CLEANUP_ACETONE
       CALL CLEANUP_AIRCRAFT_NOX
       CALL CLEANUP_C2H6

@@ -1,5 +1,20 @@
-C $Id: main.f,v 1.15 2004/05/03 14:46:17 bmy Exp $
+C $Id: main.f,v 1.16 2004/09/21 18:04:15 bmy Exp $
 C $Log: main.f,v $
+C Revision 1.16  2004/09/21 18:04:15  bmy
+C GEOS-CHEM v7-01-01, includes the following modifications:
+C - Brand new user GEOS-CHEM user interface with new "input.geos" file
+C - ND48, ND49, ND50, ND51 timeseries diagnostics rewritten for consistency
+C - Bundled code for Mean OH diagnostic into "diag_oh_mod.f"
+C - Bundled code for ND65, ND20 diagnostics into "diag_pl_mod.f"
+C - Aerosol Opt Depths for FAST-J, Hetchem are now computed in "aerosol_mod.f"
+C - Now use inquiry functions (in "tracer_mod.f") to test for simulation type
+C - Dust & Aerosol Opt Depths now scaled to 400 nm in ND21 diag & timeseries
+C - Rewrote parallel loops to facilitate parallelization on Altix and Altix-2
+C - All GEOS-CHEM logical switches are now contained w/in "logical_mod.f"
+C - All GEOS-CHEM directories are now contained w/in "directory_mod.f"
+C - All Unix zipping commands are now bundled into "tracer_mod.f"
+C - Deleted lots of obsolete code; updated comments
+C
 C Revision 1.15  2004/05/03 14:46:17  bmy
 C GEOS-CHEM v6-02-04, includes the following modifications:
 C - Added seasalt tracers SALA, SALC
@@ -42,43 +57,6 @@ C - Bug fix in routine NFCLDMX to allow 2x25 runs on Altix
 C - Updated code to read GEOS-4 met fields; now looks for ident strings
 C - Bug fix in sulfate emissions code: convert GEOS-4 PBL from [m] to [hPa]
 C - Updated comments, cosmetic changes
-C
-C Revision 1.7  2003/12/11 21:54:11  bmy
-C GEOS-CHEM v6-01-04, includes the following modifications:
-C - RADSWG, SNOW, USTAR, Z0 are now 2-D met field arrays in "dao_mod.f"
-C - Renamed LRERD to LUNZIP in "input.geos"
-C - Can now read either zipped or unzipped met field files
-C - Now specify year/month info in the GEOS_1_DIR etc variables ("setup.f")
-C
-C Revision 1.6  2003/12/05 21:14:03  bmy
-C GEOS-CHEM v6-01-03, includes the following modifications:
-C - Added LINUX_IFC, LINUX_EFC C-preprocessor switches
-C - Renamed SGI C-preprocessor switch to SGI_MIPS
-C - Now includes Makefile.ifc and Makefile.efc for INTEL compiler
-C - Updated "build" script to automatically select proper makefile2
-C
-C Revision 1.5  2003/11/06 21:07:18  bmy
-C GEOS-CHEM v6-01-02, includes the following modifications:
-C - Can now vertically regrid GEOS-4 55L to 30L on-the-fly
-C - Bug fix in diag41 afternoon PBL diagnostic
-C - Added File I/O error checks for IBM and INTEL_FC compilers
-C
-C Revision 1.4  2003/10/30 16:17:18  bmy
-C GEOS-CHEM v6-01-01, includes the following modifications:
-C - The fvDAS/TPCORE code conserves global airmass for GEOS-3/GEOS-4 winds
-C - Improved 222Rn emissions so that they now reflect
-C - Bug fix in "soilnoxems.f": now pass SUNCOS to "soilcrf.f"
-C - Updated code to support for the IFC fortran compiler
-C - Improved log file output formatting slightly
-C - Removed obsolete code from several routines
-C
-C Revision 1.3  2003/10/01 20:32:22  bmy
-C GEOS-CHEM v5.07.07, includes the following modifications:
-C - GAMMA coeff for N2O5 hydrolysis is now a function of T, RH, aerosol type
-C - Now apply drydep to entire PBL in single-tracer Ox routine chemo3.f
-C - Added OpenMP parallelization commands to ND65 routine diagpl.f
-C - Other minor bug fixes and updates
-C
 C
       PROGRAM GEOS_CHEM
 ! 
@@ -131,7 +109,11 @@ C
       USE CONVECTION_MOD,    ONLY : DO_CONVECTION
       USE COMODE_MOD,        ONLY : INIT_COMODE
       USE DIAG_MOD,          ONLY : DIAGCHLORO
-      USE DIAG51_MOD,        ONLY : DIAG51
+      USE DIAG48_MOD,        ONLY : DIAG48, ITS_TIME_FOR_DIAG48
+      USE DIAG49_MOD,        ONLY : DIAG49, ITS_TIME_FOR_DIAG49
+      USE DIAG50_MOD,        ONLY : DIAG50, DO_SAVE_DIAG50
+      USE DIAG51_MOD,        ONLY : DIAG51, DO_SAVE_DIAG51
+      USE DIAG_OH_MOD,       ONLY : PRINT_DIAG_OH
       USE DAO_MOD
       USE DRYDEP_MOD,        ONLY : DO_DRYDEP
       USE EMISSIONS_MOD,     ONLY : DO_EMISSIONS
@@ -140,21 +122,19 @@ C
       USE GLOBAL_CH4_MOD,    ONLY : INIT_GLOBAL_CH4, CH4_AVGTP
       USE GWET_READ_MOD
       USE I6_READ_MOD
+      USE INPUT_MOD,         ONLY : READ_INPUT_FILE
       USE LIGHTNING_NOX_MOD, ONLY : LIGHTNING
+      USE LOGICAL_MOD
       USE PHIS_READ_MOD
-      !------------------------------------------------------
-      ! Prior to 4/22/04:
-      !USE PLANEFLIGHT_MOD,   ONLY : SETUP_PLANEFLIGHT
-      !------------------------------------------------------
       USE PLANEFLIGHT_MOD,   ONLY : SETUP_PLANEFLIGHT, PLANEFLIGHT
       USE PRESSURE_MOD
       USE TIME_MOD
+      USE TRACER_MOD
+      USE TRACERID_MOD 
+      USE TRANSPORT_MOD,     ONLY : DO_TRANSPORT
       USE RESTART_MOD,       ONLY : READ_RESTART_FILE, MAKE_RESTART_FILE
       USE UPBDFLX_MOD,       ONLY : DO_UPBDFLX, UPBDFLX_NOY
       USE UVALBEDO_MOD,      ONLY : READ_UVALBEDO
-      USE TRACERID_MOD 
-      USE TRANSPORT_MOD,     ONLY : DO_TRANSPORT
-      USE TIME_MOD 
       USE WETSCAV_MOD,       ONLY : INIT_WETSCAV, DO_WETDEP
 
       ! Force all variables to be declared explicitly
@@ -162,26 +142,17 @@ C
       
       ! Header files 
 #     include "CMN_SIZE"        ! Size parameters
-#     include "CMN"             ! STT
-#     include "CMN_DIAG"        ! Diagnostic switches
+#     include "CMN"             ! XTRA2
+#     include "CMN_DIAG"        ! Diagnostic switches, NJDAY
 #     include "CMN_GCTM"        ! Physical constants
 #     include "CMN_O3"          ! TCOBOX, FMOL, SAVEOH
-#     include "CMN_SETUP"       ! GEOS-CTM logical flags and file I/O units
-#     include "CMN_TIMES"       ! areas time series archival (diag49)
-#     include "comode.h"        ! CSAVE, IDEMS
+#     include "comode.h"        ! CSAVE,  IDEMS
 
       ! Local variables
       LOGICAL :: FIRST = .TRUE.
-      INTEGER :: I, IOS, J, K, L, N
-      INTEGER :: JDAY, NSEASON_last, MONTH_last, NYMD_PHIS
-      INTEGER :: N_DYN_STEPS, NSECb, N_STEP,  DATE(2)
-
-      ! For setup.f (we will get rid of this soon!)
-      INTEGER :: THISNYMDb,  THISNYMDe
-      INTEGER :: THISNHMSb,  THISNHMSe
-      INTEGER :: NDT,        NTDT,  IGD, J1, NDIAGTIME
-      INTEGER :: IORD,       JORD,  KORD, KS
-      REAL*8  :: PSTP, UMax, ALPHA_d, ALPHA_n
+      INTEGER :: I,           IOS,   J,         K,         L
+      INTEGER :: N,           JDAY,  NYMD_PHIS, NDIAGTIME, N_DYN
+      INTEGER :: N_DYN_STEPS, NSECb, N_STEP,    DATE(2)
 
       !=================================================================
       ! GEOS-CHEM starts here!                                            
@@ -193,35 +164,20 @@ C
       ! Get the YYYYMMDD value for the PHIS met field 
       NYMD_PHIS = GET_NYMD_PHIS()
 
-      !=================================================================      
-      !           ***** R E A D   I N P U T   F I L E *****
-      !=================================================================
-      CALL SETUP( THISNYMDb, THISNYMDe,  THISNHMSb, THISNHMSe,  
-     &            NDT,       NTDT,       NDIAGTIME, ALPHA_d, 
-     &            ALPHA_n,   IORD,       JORD,      KORD,    
-     &            J1,        Umax,       IGD,       KS,  PSTP )
-
-      NSEASON_last = 0           ! Saves the previous value of SEASON
-      MONTH_last   = 0           ! Saves the previous value of MONTH
-
       !=================================================================
       !            ***** I N I T I A L I Z A T I O N *****
       !=================================================================
 
-      ! Initialize quantities from "time_mod.f"
-      CALL SET_BEGIN_TIME( THISNYMDb, THISNHMSb )
-      CALL SET_END_TIME(   THISNYMDe, THISNHMSe )
-      CALL SET_CURRENT_TIME
-      CALL SET_DIAGb( GET_TAU() )
-      
-      ! Read settings from "input.ctm" and "inptr.ctm" 
-      CALL INPUT
+      ! Read input file and call init routines from other modules
+      CALL READ_INPUT_FILE 
+
+      ! Make sure last day of run has diagnostic output scheduled
       CALL IS_LAST_DAY_GOOD
 
       ! Initialize met field arrays from "dao_mod.f"
       CALL INIT_DAO
 
-      ! Initialize diagnostic arrays and countesr
+      ! Initialize diagnostic arrays and counters
       CALL INITIALIZE( 1 )
       CALL INITIALIZE( 2 )
       CALL INITIALIZE( 3 )
@@ -231,32 +187,23 @@ C
 
       ! Read annual mean tropopause    
       CALL READ_TROPOPAUSE
- 
+
       ! Initialize allocatable SMVGEAR arrays
-      IF ( NSRCX == 3 ) THEN 
-         IF ( LEMIS .or. LCHEM ) CALL INIT_COMODE
+      IF ( ITS_A_FULLCHEM_SIM() .and. ( LEMIS .or. LCHEM ) ) THEN 
+         CALL INIT_COMODE
       ENDIF
-
+      
       ! Allocate arrays from "global_ch4_mod.f" for CH4 run 
-      IF ( NSRCX == 9 ) CALL INIT_GLOBAL_CH4
+      IF ( ITS_A_CH4_SIM() ) CALL INIT_GLOBAL_CH4
 
-      ! Define flag for debug output
-      LPRT = ( ND70 > 0 )
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INPUT' )
-
-      ! LSRCE is a synonym for LEMIS
-      LSRCE = LEMIS
-
-      !### Kludge: turn off wetdep for runs that don't require them
-      !### Find a better solution to this later (bmy, 11/8/02)
-      IF ( NSRCX /= 1 .AND. NSRCX /= 3 .AND. NSRCX /= 10 ) THEN
-         WRITE( 6, '(a)' ) 'Setting LWETD = F!'
-         LWETD = .FALSE.
-      ENDIF
-
-      ! Open station timeseries and binary punch files for output
-      IF ( ND48 > 0 ) OPEN( IU_TS, FILE='ctm.ts', STATUS='UNKNOWN' )
-      CALL OPEN_BPCH2_FOR_WRITE( IU_BPCH, 'ctm.bpch', XLABEL )
+      ! Prior to 7/20/04:
+      !! Open station timeseries and binary punch files for output
+      !IF ( ND48 > 0 ) OPEN( IU_TS, FILE='ctm.ts', STATUS='UNKNOWN' )
+      !----------------------------------------------------------------
+      ! Prior to 7/20/04:
+      !CALL OPEN_BPCH2_FOR_WRITE( IU_BPCH, 'ctm.bpch', XLABEL )
+      !----------------------------------------------------------------
+      CALL OPEN_BPCH2_FOR_WRITE( IU_BPCH, 'ctm.bpch' )
 
       !=================================================================
       !   ***** U N Z I P   M E T   F I E L D S  @ start of run *****
@@ -275,7 +222,7 @@ C
          CALL UNZIP_I6_FIELDS(  'unzip foreground', GET_NYMDb() )
 
          ! Only unzip PHIS file for fullchem run
-         IF ( NSRCX == 3 ) THEN
+         IF ( ITS_A_FULLCHEM_SIM() ) THEN
             CALL UNZIP_PHIS_FIELD( 'unzip foreground', NYMD_PHIS )
          ENDIF
 
@@ -297,7 +244,7 @@ C
       !=================================================================
 
       ! Only read PHIS for fullchem runs
-      IF ( NSRCX == 3 ) THEN
+      IF ( ITS_A_FULLCHEM_SIM() ) THEN
          CALL OPEN_PHIS_FIELD( NYMD_PHIS, 000000 )
          CALL GET_PHIS_FIELD(  NYMD_PHIS, 000000 ) 
 
@@ -341,21 +288,19 @@ C
       CALL AIRQNT
 
       ! Compute lightning NOx emissions [molec/box/6h]
-      IF ( LLIGHTNOX .and. NSRCX == 3 ) THEN
-         CALL LIGHTNING( T, CLDTOPS )
-      ENDIF
+      IF ( LLIGHTNOX ) CALL LIGHTNING( T, CLDTOPS )
 
       ! Read land types and fractions from "vegtype.global"
       CALL RDLAND   
 
       ! Initialize XTRA2 array (PBL heights, # of layers)
-      CALL TURBDAY( .FALSE.,  XTRA2,  NTRACE,          
-     &               STT(:,:,:,1:NTRACE), TCVV(1:NTRACE) )
+      CALL TURBDAY( .FALSE.,  XTRA2, N_TRACERS, STT, TCVV )
 
+      !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
 
       !=================================================================
-      !    ***** R E A D   I N I T I A L   C O N D I T I O N S *****
+      !       *****  I N I T I A L   C O N D I T I O N S *****
       !=================================================================
       CALL READ_RESTART_FILE( GET_NYMDb(), GET_NHMSb() )
 
@@ -363,7 +308,7 @@ C
       IF ( LSTDRUN ) CALL STDRUN( LBEGIN=.TRUE. )
 
       !=================================================================
-      !     ***** 6 - H O U R   T I M E S T E P   L O O P  *****
+      !      ***** 6 - H O U R   T I M E S T E P   L O O P  *****
       !=================================================================      
 
       ! Echo message before first timestep
@@ -385,6 +330,9 @@ C
       ! NSECb is # of seconds at the start of 6-h loop
       NSECb = GET_ELAPSED_SEC()
 
+      ! Get dynamic timestep in seconds
+      N_DYN = 60d0 * GET_TS_DYN()
+
       !=================================================================
       !     ***** D Y N A M I C   T I M E S T E P   L O O P *****
       !=================================================================
@@ -396,18 +344,22 @@ C
 
          !==============================================================
          !   ***** W R I T E   D I A G N O S T I C   F I L E S *****
-         !
-         ! NOTE: If this is the first timestep, don't write diagnostics
-         !       to the punch file since we haven't done anything yet.
          !==============================================================
-         IF ( ITS_TIME_FOR_BPCH() .and. ( .not. FIRST ) ) THEN
+         !-------------------------------------------------------------
+         ! Prior to 7/20/04:
+         !IF ( ITS_TIME_FOR_BPCH() .and. ( .not. FIRST ) ) THEN
+         !-------------------------------------------------------------
+         IF ( ITS_TIME_FOR_BPCH() ) THEN
 
             ! Set time at end of diagnostic timestep
             CALL SET_DIAGe( GET_TAU() )
 
             ! Write bpch and ND48 files
-            CALL DIAG3          
-            CALL DIAG5          
+            CALL DIAG3  
+            !-----------------------
+            ! Prior to 7/20/04:
+            !CALL DIAG5          
+            !-----------------------
 
             ! Flush file units
             CALL CTM_FLUSH
@@ -513,7 +465,8 @@ C
             CALL GET_A3_FIELDS(  DATE(1), DATE(2) )
 
 #if   defined( GEOS_3 )
-            ! 
+            ! We only need GWET for GEOS-3 dust simulation 
+            ! (GEOS-4 has GWET in the met field files already)
             IF ( LDUST ) THEN
                CALL OPEN_GWET_FIELDS( DATE(1), DATE(2) )
                CALL GET_GWET_FIELDS(  DATE(1), DATE(2) )           
@@ -536,9 +489,7 @@ C
 
             ! Since CLDTOPS is an A-6 field, update the
             ! lightning NOx emissions [molec/box/6h]
-            IF ( LLIGHTNOX .and. NSRCX == 3 ) THEN 
-               CALL LIGHTNING( T, CLDTOPS )
-            ENDIF 
+            IF ( LLIGHTNOX ) CALL LIGHTNING( T, CLDTOPS )
          ENDIF
 
          !==============================================================
@@ -562,16 +513,15 @@ C
          !==============================================================
 
          ! UV albedoes
-         IF ( GET_MONTH() /= MONTH_last .and. LCHEM ) THEN 
+         IF ( LCHEM .and. ITS_A_NEW_MONTH() ) THEN
             CALL READ_UVALBEDO( GET_MONTH() )
-            MONTH_last = GET_MONTH()
          ENDIF
 
          ! Fossil fuel emissions (SMVGEAR)
-         IF ( GET_SEASON() /= NSEASON_last .and. 
-     &        NSRCX == 3 .and. LEMIS ) THEN
-            CALL ANTHROEMS( GET_SEASON() )
-            NSEASON_last = GET_SEASON()
+         IF ( ITS_A_FULLCHEM_SIM() ) THEN
+            IF ( LEMIS .and. ITS_A_NEW_SEASON() ) THEN
+               CALL ANTHROEMS( GET_SEASON() )
+            ENDIF
          ENDIF
 
          !==============================================================
@@ -580,22 +530,28 @@ C
          ! RDLAI  returns today's leaf-area index
          ! RDSOIL returns today's soil type information
          !==============================================================
-         IF ( FIRST .or. GET_NHMS() == 000000 ) THEN
-            SELECT CASE ( NSRCX )
-               CASE ( 1, 5, 6, 7, 10 ) 
-                  CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
+         IF ( ITS_A_NEW_DAY() ) THEN 
 
-               CASE ( 3 )
-                  CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
-                  CALL RDSOIL
+            IF ( ITS_A_FULLCHEM_SIM() ) THEN
+               CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
+               CALL RDSOIL               
 
-               CASE DEFAULT
-                  ! Nothing
+            ELSE IF ( ITS_A_RnPbBe_SIM() ) THEN
+               CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
 
-            END SELECT
+            ELSE IF ( ITS_A_COPARAM_SIM() ) THEN
+               CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
 
-            ! Reset first-time flag
-            FIRST = .FALSE.
+            ELSE IF ( ITS_A_TAGOX_SIM() ) THEN
+               CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
+
+            ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
+               CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
+
+            ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+               CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
+
+            ENDIF
 
             !### Debug
             IF ( LPRT ) CALL DEBUG_MSG ( '### MAIN: a DAILY DATA' )
@@ -610,13 +566,13 @@ C
          !==============================================================
          
          ! Interpolate I-6 fields to current dynamic timestep, 
-         ! based on their values at NSEC and NSEC+NTDT
-         CALL INTERP( NSECb, GET_ELAPSED_SEC(), NTDT )         
+         ! based on their values at NSEC and NSEC+N_DYN
+         CALL INTERP( NSECb, GET_ELAPSED_SEC(), N_DYN )         
          
          ! If we are not doing transport, then make sure that
          ! the floating pressure is set to PSC2 (bdf, bmy, 8/22/02)
          IF ( .not. LTRAN ) CALL SET_FLOATING_PRESSURE( PSC2 )
-         
+
          ! Compute airmass quantities at each grid box 
          CALL AIRQNT
          
@@ -626,7 +582,7 @@ C
          
          ! For SMVGEAR II, we also need to compute SUNCOS at
          ! the end of this chemistry timestep (bdf, bmy, 4/1/03)
-         IF ( NSRCX == 3 .and. LCHEM ) THEN
+         IF ( LCHEM .and. ITS_A_FULLCHEM_SIM() ) THEN
             CALL COSSZA( GET_DAY_OF_YEAR(), GET_NHMSb(), 
      &                   GET_ELAPSED_SEC()+GET_TS_CHEM()*60, SUNCOSB )
          ENDIF
@@ -657,8 +613,7 @@ C
          !   ***** U N I T   C O N V E R S I O N  ( kg -> v/v ) *****
          !==============================================================
          IF ( ITS_TIME_FOR_UNIT() ) THEN
-            CALL CONVERT_UNITS( 1, NTRACE, TCVV(1:NTRACE), 
-     &                          AD,     STT(:,:,:,1:NTRACE) )
+            CALL CONVERT_UNITS( 1,  N_TRACERS, TCVV, AD, STT )
 
             !### Debug
             IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:1' )
@@ -667,9 +622,7 @@ C
          !==============================================================
          !     ***** S T R A T O S P H E R I C   F L U X E S *****
          !==============================================================
-         IF ( LUPBD ) THEN
-            CALL DO_UPBDFLX( IORD, JORD, KORD )
-         ENDIF
+         IF ( LUPBD ) CALL DO_UPBDFLX
 
          !==============================================================
          !              ***** T R A N S P O R T *****
@@ -677,20 +630,24 @@ C
          IF ( ITS_TIME_FOR_DYN() ) THEN
 
             ! Call the appropritate version of TPCORE
-            IF ( LTRAN ) CALL DO_TRANSPORT( IORD, JORD, KORD )
+            IF ( LTRAN ) CALL DO_TRANSPORT
 
             ! Reset air mass quantities
             CALL AIRQNT
 
             ! Repartition [NOy] species after transport
-            IF ( LUPBD .and. NSRCX == 3 ) CALL UPBDFLX_NOY( 2 )
+            IF ( LUPBD .and. ITS_A_FULLCHEM_SIM() ) THEN
+               CALL UPBDFLX_NOY( 2 )
+            ENDIF
 
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport
             IF ( LCONV .or. LWETD ) CALL INIT_WETSCAV
          ENDIF
 
+         !-------------------------------
          ! Test for convection timestep
+         !-------------------------------
          IF ( ITS_TIME_FOR_CONV() ) THEN
 
             ! Increment the convection timestep
@@ -699,8 +656,7 @@ C
             !===========================================================
             !      ***** M I X E D   L A Y E R   M I X I N G *****
             !===========================================================
-            CALL TURBDAY( LTURB, XTRA2, NTRACE,         
-     &                    STT(:,:,:,1:NTRACE), TCVV(1:NTRACE) )
+            CALL TURBDAY( LTURB, XTRA2, N_TRACERS, STT, TCVV )
 
             !### Debug
             IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:2' )
@@ -714,15 +670,15 @@ C
                !### Debug
                IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CONVECTION' )
             ENDIF 
-         ENDIF                  ! mod(NMIN,NCONV)
+         ENDIF                  
 
          !==============================================================
          !    ***** U N I T   C O N V E R S I O N  ( v/v -> kg ) *****
          !==============================================================
          IF ( ITS_TIME_FOR_UNIT() ) THEN 
-            CALL CONVERT_UNITS( 2, NTRACE, TCVV(1:NTRACE), 
-     &                          AD,     STT(:,:,:,1:NTRACE) )
+            CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT )
 
+            !### Debug
             IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:2' )
          ENDIF
 
@@ -738,46 +694,20 @@ C
             ! (for comparison w/ Holzworth, 1967
             IF ( ND41 > 0 ) CALL DIAG41
 
-!-----------------------------------------------------------------------------
-! Prior to 4/22/04:
-! Move this to after wet scavenging (bmy, 4/20/04)
-!            ! ND49: 3-D timeseries ("tsYYYYMMDD.bpch")
-!            IF ( ND49 > 0 ) THEN
-!               IF ( GET_TAU() >= DAT1_AREA .and. 
-!     &              GET_TAU() <= DAT2_AREA .and. 
-!     &              MOD( GET_ELAPSED_MIN(), FREQ_AREA ) == 0 ) THEN
-!                  CALL DIAG49
-!               ENDIF
-!            ENDIF
-!
-!            ! ND50: 24-h avg timeseries ("ts24h.bpch")
-!            IF ( ND50 > 0 ) THEN
-!               IF ( GET_TAU() >= DAT1_AREA  .and. 
-!     &              GET_TAU() <= DAT2_AREA ) THEN
-!                  CALL DIAG50
-!               ENDIF
-!            ENDIF
-!    
-!            ! ND51: 10-12 LT or 13-16 LT timeseries ("ts1_4pm.bpch")
-!            IF ( ND51 > 0 ) THEN
-!               IF ( GET_TAU() >= DAT1_AREA  .and. 
-!     &              GET_TAU() <= DAT2_AREA ) THEN
-!                  CALL DIAG51
-!               ENDIF
-!            ENDIF
-!-----------------------------------------------------------------------------
-            
             !### Debug
             IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a DIAGNOSTICS' )
          ENDIF
 
-         ! ND48: station timeseries data ("ctm.ts")
-         IF ( ND48 > 0 .and. ITS_TIME_FOR_DIAG() ) THEN
-            KDA48 = KDA48 + 1
-            CALL DIAG48
-         ENDIF
+         ! Move this below
+         !! ND48: station timeseries data ("ctm.ts")
+         !IF ( ND48 > 0 .and. ITS_TIME_FOR_DIAG() ) THEN
+         !   KDA48 = KDA48 + 1
+         !   CALL DIAG48
+         !ENDIF
 
+         !-------------------------------
          ! Test for emission timestep
+         !-------------------------------
          IF ( ITS_TIME_FOR_EMIS() ) THEN
                
             ! Increment emission counter
@@ -786,16 +716,12 @@ C
             !========================================================
             !         ***** D R Y   D E P O S I T I O N *****
             !========================================================
-            IF ( LDRYD ) THEN
-               CALL DO_DRYDEP
-            ENDIF
+            IF ( LDRYD ) CALL DO_DRYDEP
 
-            !===========================================================
+            !========================================================
             !             ***** E M I S S I O N S *****
-            !===========================================================
-            IF ( LEMIS ) THEN 
-               CALL DO_EMISSIONS
-            ENDIF
+            !========================================================
+            IF ( LEMIS ) CALL DO_EMISSIONS
          ENDIF    
 
          !===========================================================
@@ -806,7 +732,7 @@ C
          CALL SETUP_CO_OH_CHEM
 
          ! Also need to compute avg P, T for CH4 chemistry (bmy, 1/16/01)
-         IF ( NSRCX == 9 ) CALL CH4_AVGTP
+         IF ( ITS_A_CH4_SIM() ) CALL CH4_AVGTP
 
          ! Every chemistry timestep...
          IF ( ITS_TIME_FOR_CHEM() ) THEN
@@ -821,12 +747,28 @@ C
          !==============================================================
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
          !==============================================================
-         IF ( ITS_TIME_FOR_DYN() ) THEN
-            IF ( LWETD ) CALL DO_WETDEP
-         ENDIF
+         CALL CHECK_STT( 'before DO_WETDEP' )
+         IF ( LWETD .and. ITS_TIME_FOR_DYN() ) CALL DO_WETDEP
+
+         ! Activate this here someday (bmy, 7/20/04)
+         !!==============================================================
+         !!       ***** A R C H I V E   D I A G N O S T I C S *****
+         !!==============================================================
+         !IF ( ITS_TIME_FOR_DYN() ) THEN
+         !
+         !   ! Accumulate several diagnostic quantities
+         !   CALL DIAG1
+         !
+         !   ! ND41: save PBL height in 1200-1600 LT (amf)
+         !   ! (for comparison w/ Holzworth, 1967
+         !   IF ( ND41 > 0 ) CALL DIAG41
+         !
+         !   !### Debug
+         !   IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a DIAGNOSTICS' )
+         !ENDIF
 
          !==============================================================
-         !    ***** T I M E S E R I E S   F O R   I C A R T T  *****
+         !   ***** T I M E S E R I E S   D I A G N O S T I C S  *****
          !
          ! NOTE: Since we are saving soluble tracers, we must move
          !       the ND40, ND49, and ND52 timeseries diagnostics
@@ -834,32 +776,29 @@ C
          !============================================================== 
 
          ! Plane following diagnostic
-         IF ( ND40 > 0 ) THEN
-            CALL PLANEFLIGHT
-            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a PLANEFLIGHT' )
-         ENDIF
+         IF ( ND40 > 0 ) CALL PLANEFLIGHT
 
-         ! Timeseries diagnostics
-         IF ( ND49 + ND52 > 0 ) THEN
+         ! Station timeseries
+         IF ( ITS_TIME_FOR_DIAG48() ) CALL DIAG48
 
-            ! Check if it's time to write out diagnostics
-            IF ( GET_TAU() >= DAT1_AREA .and. 
-     &           GET_TAU() <= DAT2_AREA .and. 
-     &           MOD( GET_ELAPSED_MIN(), FREQ_AREA ) == 0 ) THEN
+         ! 3-D timeseries
+         IF ( ITS_TIME_FOR_DIAG49() ) CALL DIAG49
 
-               ! 3-D timeseries
-               IF ( ND49 > 0 ) THEN
-                  CALL DIAG49
-                  IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a ND49' )
-               ENDIF
+         ! 24-hr timeseries
+         IF ( DO_SAVE_DIAG50 ) CALL DIAG50
 
-               ! Column timeseries
-               IF ( ND52 > 0 ) THEN
-                  CALL DIAG52
-                  IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a ND52' )
-               ENDIF
-            ENDIF
-         ENDIF
+         ! Morning or afternoon timeseries
+         IF ( DO_SAVE_DIAG51 ) CALL DIAG51 
+
+         ! Comment out for now 
+         !! Column timeseries
+         !IF ( ND52 > 0 .and. ITS_TIME_FOR_ND52() ) THEN
+         !   CALL DIAG52
+         !   IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a ND52' )
+         !ENDIF
+
+         !### After diagnostics
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after TIMESERIES' )
 
          !==============================================================
          !  ***** E N D   O F   D Y N A M I C   T I M E S T E P *****
@@ -907,7 +846,7 @@ C
       ENDIF
 
       ! Print the mass-weighted mean OH concentration (if applicable)
-      CALL PRINT_MEAN_OH
+      CALL PRINT_DIAG_OH
 
       ! For model benchmarking, save final masses of 
       ! Rn,Pb,Be or Ox to a binary punch file 
@@ -943,9 +882,8 @@ C
 !  (4 ) GET_WIND10M            : Wrapper for MAKE_WIND10M (from "dao_mod.f")
 !  (5 ) CTM_FLUSH              : Flushes diagnostic files to disk
 !  (6 ) SETUP_CO_OH_CHEM       : Calls setup routines for CO-OH param run
-!  (7 ) CH3CCL3_LIFETIME       : Computes methyl chloroform lifetime
-!  (8 ) MET_FIELD_DEBUG        : Prints min and max of met fields for debug
-!  (9 ) STDRUN                 : Saves initial/final masses for benchmarks
+!  (7 ) MET_FIELD_DEBUG        : Prints min and max of met fields for debug
+!  (8 ) STDRUN                 : Saves initial/final masses for benchmarks
 !******************************************************************************
 !
       CONTAINS
@@ -1079,7 +1017,7 @@ C
       JD0 = JULDAY( Y, 1, 0d0 )
 
       ! LASTDAY is the day of year corresponding to NYMDe      
-      LASTDAY = JD - JD0 
+      LASTDAY = JD - JD0
 
       ! Skip past the element of NJDAY for Feb 29, if necessary
       IF ( .not. ITS_A_LEAPYEAR( Y ) .and. LASTDAY > 59 ) THEN
@@ -1105,17 +1043,29 @@ C
       !=================================================================
 
       ! Local variables
-      INTEGER :: TODAY, THIS_NJDAY
-
+      INTEGER :: TODAY, THIS_NJDAY, NHMS, NDIAGTIME
+      
       ! Function value
       LOGICAL :: DO_BPCH
 
       !=================================================================
       ! ITS_TIME_FOR_BPCH begins here!
-      !=================================================================
+      !================================================================= 
+      
+      ! Return FALSE if it's the first timestep
+      IF ( GET_TAU() == GET_TAUb() ) THEN
+         DO_BPCH = .FALSE.
+         RETURN
+      ENDIF
 
       ! Current day of year
-      TODAY = GET_DAY_OF_YEAR()
+      TODAY     = GET_DAY_OF_YEAR()
+
+      ! Current time of day
+      NHMS      = GET_NHMS()
+
+      ! Time of day to write bpch files to disk
+      NDIAGTIME = GET_NDIAGTIME()
 
       ! Look up appropriate value of NJDAY array.  We may need to add a
       ! day to skip past the Feb 29 element of NJDAY for non-leap-years.
@@ -1126,7 +1076,7 @@ C
       ENDIF
 
       ! Test if this is the day & time to write to the BPCH file!
-      IF ( ( THIS_NJDAY > 0 ) .and. GET_NHMS() == NDIAGTIME ) THEN
+      IF ( ( THIS_NJDAY > 0 ) .and. NHMS == NDIAGTIME ) THEN
          DO_BPCH = .TRUE.
       ELSE
          DO_BPCH = .FALSE.
@@ -1196,13 +1146,13 @@ C
 #endif
 
       ! Compute 24h average reflectivities
-      CALL AVGREFL( FIRSTCHEM, OPTD, NTDT, NHMSb, NSEC, XMID, NMIN )
+      CALL AVGREFL( FIRSTCHEM, OPTD, N_DYN, NHMSb, NSEC, XMID, NMIN )
 
       ! Compute 24h average temp & pressure
-      CALL AVGTP( NTDT, NMIN )
+      CALL AVGTP( N_DYN, NMIN )
 
       ! Compute 24h average water vapor
-      CALL AVGAVGW( NTDT, NMIN, NCHEM )
+      CALL AVGAVGW( N_DYN, NMIN, NCHEM )
 
 #endif
 
@@ -1224,78 +1174,15 @@ C
       ! FLUSH is an intrinsic FORTRAN subroutine and takes as input 
       ! the unit number of the file to be flushed to disk.
       !================================================================
-      CALL FLUSH( IU_TS      )  
+      ! Prior to 7/20/04:
+      !CALL FLUSH( IU_TS      )  
+      CALL FLUSH( IU_ND48      )  
       CALL FLUSH( IU_BPCH    )  
       CALL FLUSH( IU_SMV2LOG )  
       CALL FLUSH( IU_DEBUG   ) 
 
       ! Return to calling program
       END SUBROUTINE CTM_FLUSH
-
-!-----------------------------------------------------------------------------
-
-      SUBROUTINE PRINT_MEAN_OH
-
-      !=================================================================
-      ! Internal Subroutine PRINT_MEAN_OH prints the mass-weighted OH
-      ! concentration for selected simulation types. (bmy, 10/21/03)
-      !=================================================================
-
-      ! References to F90 modules
-      USE DIAG_MOD, ONLY : DIAGCHLORO
-
-      ! Local variables 
-      LOGICAL :: DO_PRINT
-      REAL*8  :: SUM_OHMASS, SUM_MASS, LIFETIME, OHCONC
-     
-      !=================================================================
-      ! PRINT_MEAN_OH begins here!
-      !=================================================================
-
-      ! First figure out if this type of simulation has OH
-      IF ( ( ND23 > 0   .and. LCHEM                      )  .and.
-     &     ( NSRCX == 3 .or.  NSRCX == 5 .or. NSRCX == 9 ) ) THEN
-         DO_PRINT = .TRUE.
-      ELSE
-         DO_PRINT = .FALSE.
-      ENDIF
-      
-      ! Print out Mean OH if it's the appropriate simulation type
-      IF ( DO_PRINT ) THEN
- 
-         ! Total Mass-weighted OH [molec OH/cm3] * [molec air]
-         SUM_OHMASS = SUM( DIAGCHLORO(:,:,:,2) )
-
-         ! Atmospheric air mass [molec air]
-         SUM_MASS   = SUM( DIAGCHLORO(:,:,:,3) ) 
-         
-         ! Avoid divide-by-zero errors 
-         IF ( SUM_MASS > 0d0 ) THEN 
-            
-            ! Divide OH by [molec air] and report as [1e5 molec/cm3]
-            OHCONC = ( SUM_OHMASS / SUM_MASS ) / 1d5
-         
-            ! Write value to log file
-            WRITE( 6, '(a)' ) 
-            WRITE( 6, '(a)' ) REPEAT( '=', 79 ) 
-            WRITE( 6, *     ) 'ND23: Mass-Weighted OH Concentration'
-            WRITE( 6, *     ) 'Mean OH = ', OHCONC, ' [1e5 molec/cm3]' 
-            WRITE( 6, '(a)' ) REPEAT( '=', 79 ) 
-
-         ELSE
-
-            ! Write error msg if SUM_MASS is zero
-            WRITE( 6, '(a)' ) 
-            WRITE( 6, '(a)' ) REPEAT( '=', 79 ) 
-            WRITE( 6, '(a)' ) 'Could not print mass-weighted OH!'
-            WRITE( 6, '(a)' ) 'Atmospheric air mass is zero!'
-            WRITE( 6, '(a)' ) REPEAT( '=', 79 ) 
-            
-         ENDIF
-      ENDIF
-
-      ! Return to MAIN program
-      END SUBROUTINE PRINT_MEAN_OH
 
 !-----------------------------------------------------------------------------
 
@@ -1431,7 +1318,8 @@ C
       !=================================================================
 
       ! Return if we are not doing either a radon or fullchem stdrun
-      IF ( NSRCX /= 1 .and. NSRCX /= 3 ) RETURN
+      IF ( ( .not. ITS_A_FULLCHEM_SIM() ) .and. 
+     &     ( .not. ITS_A_RnPbBe_SIM() ) ) RETURN
 
       ! Define variables for binary punch file
       MODELNAME = GET_MODELNAME()
@@ -1444,7 +1332,7 @@ C
       !=================================================================
       ! Save the mass of 222Rn, 210Pb, 7Be to a file
       !=================================================================
-      IF ( NSRCX == 1 ) THEN
+      IF ( ITS_A_FULLCHEM_SIM() ) THEN
 
          ! Define filename for beginning or end
          IF ( LBEGIN ) THEN
@@ -1459,7 +1347,7 @@ C
          CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME, TITLE )
 
          ! Loop over tracers
-         DO N = 1, NTRACE
+         DO N = 1, N_TRACERS
 
             ! Save Rn, Pb, Be as REAL*4
             ARRAY(:,:,:) = STT(:,:,:,N)
@@ -1476,7 +1364,7 @@ C
       !=================================================================
       ! Save the mass of Ox to a file
       !=================================================================
-      ELSE IF ( NSRCX == 3 .and. IDTOX > 0 ) THEN
+      ELSE IF ( ITS_A_FULLCHEM_SIM() .and. IDTOX > 0 ) THEN
 
          ! Define filename for beginning or end
          IF ( LBEGIN ) THEN
@@ -1513,5 +1401,6 @@ C
 
 !-----------------------------------------------------------------------------
 
+      ! End of program
       END PROGRAM GEOS_CHEM
 

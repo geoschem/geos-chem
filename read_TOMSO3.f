@@ -1,15 +1,19 @@
-C $Id: read_TOMSO3.f,v 1.1 2003/06/30 20:26:04 bmy Exp $
+C $Id: read_TOMSO3.f,v 1.2 2004/09/21 18:04:17 bmy Exp $
       SUBROUTINE read_TOMSO3(NSKIPTOMS)
 C**********************************************************************
       ! References to F90 modules
-      USE DAO_MOD, ONLY : AIRVOL
+      USE DAO_MOD,       ONLY : AIRVOL
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE BPCH2_MOD
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"
 #     include "CMN"
-#     include "CMN_SETUP"
+!--------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"
+!--------------------------------
 #     include "CMN_CO"
 #     include "CMN_OH"
 

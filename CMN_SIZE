@@ -1,6 +1,6 @@
-! $Id: CMN_SIZE,v 1.8 2004/07/15 18:17:42 bmy Exp $
+! $Id: CMN_SIZE,v 1.9 2004/09/21 18:04:06 bmy Exp $
       !=======================================================================
-      ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 7/15/04)
+      ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 7/20/04)
       !
       ! NOTES:
       ! (1 ) Now set LLTROP = 20 for GEOS-3 (bmy, 4/12/01)
@@ -318,7 +318,9 @@
       INTEGER, PARAMETER :: NOXEXTENT = 2 
 
       ! MAXFAM -- Max number of families for prod and loss output
-      INTEGER, PARAMETER :: MAXFAM = 12
+      ! Prior to 8/30/04:
+      !INTEGER, PARAMETER :: MAXFAM = 12
+      INTEGER, PARAMETER :: MAXFAM = 40
 
       ! NDUST -- Number of FAST-J aerosol size bins (rvm, bmy, 11/15/01)
       INTEGER, PARAMETER :: NDUST = 7

@@ -1,11 +1,11 @@
-! $Id: dust_dead_mod.f,v 1.3 2004/04/21 19:47:21 bmy Exp $
+! $Id: dust_dead_mod.f,v 1.4 2004/09/21 18:04:12 bmy Exp $
       MODULE DUST_DEAD_MOD
 !
 !******************************************************************************
 !  Module DUST_DEAD_MOD contains routines and variables from Charlie Zender's
 !  DEAD dust mobilization model.  Most routines are from Charlie Zender, but 
 !  have been modified and/or cleaned up for inclusion into GEOS-CHEM. 
-!  (tdf, rjp, bmy, 4/6/04, 4/14/04) 
+!  (tdf, rjp, bmy, 4/6/04, 7/20/04) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -109,17 +109,19 @@
 !  (46) INIT_DUST_DEAD                : Allocates & zeroes module arrays
 !  (47) CLEANUP_DUST_DEAD             : Deallocates
 !
-!  GEOS-CHEM modules referenced by biomass_mod.f 
+!  GEOS-CHEM modules referenced by dust_dead_mod.f 
 !  ============================================================================
-!  (1 ) bpch2_mod.f    : Module containing routines for binary punch file I/O
-!  (2 ) dao_mod.f      : Module containing arrays for GMAO met fields
-!  (3 ) error_mod.f    : Module containing I/O error and NaN check routines
-!  (4 ) grid_mod.f     : Module containing horizontal grid information
-!  (5 ) time_mod.f     : Module containing routines for computing time & date
-!  (6 ) transfer_mod.f : Module containing routines to cast & resize arrays
+!  (1 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
+!  (2 ) dao_mod.f       : Module containing arrays for GMAO met fields
+!  (3 ) directory_mod.f : Module containing GEOS-CHEM data & met field dirs 
+!  (4 ) error_mod.f     : Module containing I/O error and NaN check routines
+!  (5 ) grid_mod.f      : Module containing horizontal grid information
+!  (6 ) time_mod.f      : Module containing routines for computing time & date
+!  (7 ) transfer_mod.f  : Module containing routines to cast & resize arrays
 !
 !  NOTES:
 !  (1 ) Added parallel DO loop in GET_ORO (bmy, 4/14/04)
+!  (2 ) Now references "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -4440,14 +4442,19 @@ c Fix up for negative argument, erf, etc.
 !  "dust_mod.f" only on the first timestep. (bmy, 4/5/04)
 !
 !  NOTES:
+!  (1 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_SETUP"    ! DATA_DIR
+!-------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"    ! DATA_DIR
+!-------------------------------------------------
 
       ! Local variables
       REAL*4                :: ARRAY(IGLOB,JGLOB,1)
@@ -4633,15 +4640,20 @@ c Fix up for negative argument, erf, etc.
 !  (tdf, bmy, 4/5/04)
 !
 !  NOTES:
+!  (1 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE TIME_MOD,     ONLY : GET_MONTH, ITS_A_NEW_MONTH
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TIME_MOD,      ONLY : GET_MONTH, ITS_A_NEW_MONTH
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_SETUP"    ! DATA_DIR
+!--------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"    ! DATA_DIR
+!--------------------------------------------------------
 
       ! Local variables
       INTEGER               :: THISMONTH

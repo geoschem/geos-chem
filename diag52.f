@@ -1,13 +1,14 @@
-! $Id: diag52.f,v 1.1 2004/05/03 15:26:53 bmy Exp $
+! $Id: diag52.f,v 1.2 2004/09/21 18:04:11 bmy Exp $
       SUBROUTINE DIAG52
 ! 
 !******************************************************************************
 !  Subroutine DIAG52 produces column time series for a geographical domain
 !  from the information read in timeseries.dat. Output will be in binary 
 !  punch (BPCH) format.  This subroutine is hardwired for ICARTT. 
-!  (stu, cas, bmy, 4/22/04)
+!  (stu, cas, bmy, 7/20/04)
 !
 !  NOTES:
+!  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -17,6 +18,7 @@
       USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET, GET_AREA_CM2
       USE TIME_MOD,     ONLY : DATE_STRING, ITS_A_NEW_DAY, 
      &                         GET_TAU,     TIMESTAMP_STRING
+      USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD
 
       IMPLICIT NONE

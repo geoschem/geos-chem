@@ -1,10 +1,10 @@
-! $Id: toms_mod.f,v 1.1 2003/07/21 15:09:28 bmy Exp $
+! $Id: toms_mod.f,v 1.2 2004/09/21 18:04:19 bmy Exp $
       MODULE TOMS_MOD
 !
 !******************************************************************************
 !  Module TOMS_MOD contains variables and routines for reading the EP-TOMS
 !  O3 column data from disk (for use w/ the FAST-J photolysis routines).
-!  (mje, bmy, 7/14/03)
+!  (mje, bmy, 7/14/03, 7/20/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -21,11 +21,13 @@
 !  GEOS-CHEM modules referenced by toms_mod.f
 !  ============================================================================
 !  (1 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
-!  (2 ) error_mod.f     : Module containing I/O error and NaN check routines
-!  (3 ) time_mod.f      : Module containing routines to compute date & time
-!  (4 ) transfer_mod.f  : Module containing routines to cast & resize arrays
+!  (2 ) directory_mod.f : Module containing GEOS-CHEM data & met field dirs
+!  (3 ) error_mod.f     : Module containing I/O error and NaN check routines
+!  (4 ) time_mod.f      : Module containing routines to compute date & time
+!  (5 ) transfer_mod.f  : Module containing routines to cast & resize arrays
 !
 !  NOTES:
+!  (1 ) Now references "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -51,7 +53,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_TOMS reads in TOMS O3 column data from a binary punch
-!  file for the given grid, month and year. (mje, bmy 12/10/02, 7/14/03)
+!  file for the given grid, month and year. (mje, bmy 12/10/02, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -63,15 +65,19 @@
 !
 !  NOTES:
 !  (1 ) Bundled into "toms_mod.f" (bmy, 7/14/03)
+!  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE TIME_MOD,     ONLY : EXPAND_DATE
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TIME_MOD,      ONLY : EXPAND_DATE
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_SETUP" ! DATA_DIR
+!---------------------------------------------
+!#     include "CMN_SETUP" ! DATA_DIR
+!---------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH

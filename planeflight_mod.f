@@ -1,11 +1,11 @@
-! $Id: planeflight_mod.f,v 1.8 2004/05/03 14:46:18 bmy Exp $
+! $Id: planeflight_mod.f,v 1.9 2004/09/21 18:04:16 bmy Exp $
       MODULE PLANEFLIGHT_MOD
 !
 !******************************************************************************
 !  Module PLANEFLIGHT_MOD contains variables and routines which are used to
 !  "fly" a plane through the GEOS-CHEM model simulation.  This is useful for
 !  comparing model results with aircraft observations. 
-!  (mje, bmy, 7/30/02, 4/23/04)
+!  (mje, bmy, 7/30/02, 7/20/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -42,8 +42,9 @@
 !  (6 ) TEST_VALID              : Tests if we are in the SMVGEAR chem region
 !  (7 ) WRITE_VARS_TO_FILE      : Writes planetrack data to the output file
 !  (8 ) ARCHIVE_RXNS_FOR_PF     : Archives SMVGEAR rxns from "calcrate.f"
-!  (9 ) INIT_PLANEFLIGHT        : Gets # of species, points; allocates arrays
-!  (10) CLEANUP_PLANEFLIGHT     : Deallocates all allocated arrays
+!  (9 ) SET_PLANEFLIGHT         : Gets filename info from "input_mod.f"
+!  (10) INIT_PLANEFLIGHT        : Gets # of species, points; allocates arrays
+!  (11) CLEANUP_PLANEFLIGHT     : Deallocates all allocated arrays
 !
 !  GEOS-CHEM modules referenced by biomass_mod.f
 !  ============================================================================
@@ -52,6 +53,7 @@
 !  (3 ) file_mod.f     : Module containing file unit numbers and error checks
 !  (4 ) pressure_mod.f : Module containing routines to compute P(I,J,L)
 !  (5 ) time_mod.f     : Module containing routines to compute date & time
+!  (6 ) tracer_mod.f   : Module containing GEOS-CHEM tracer array STT etc.
 !
 !  NOTES:
 !  (1 ) Now references "pressure_mod.f" (dsa, bdf, bmy, 8/21/02)
@@ -69,6 +71,7 @@
 !        output file. (bmy, 8/8/03)
 !  (10) Changed "DAO" to "GMAO" for met field variable names.  Now can save 
 !        aerosol optical depths.  Bug fix in TEST_VALID. (bmy, 4/23/03)
+!  (11) Now references "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -78,28 +81,44 @@
       ! and routines from being seen outside "planeflight_mod.f"
       !=================================================================
 
-      ! PRIVATE module variables
-      PRIVATE :: MAXVARS, MAXRO2, MAXPOINTS, NPVAR,  PVAR
-      PRIVATE :: NPREAC,  PREAC,  NPOINTS,   PPOINT, NPRO2
-      PRIVATE :: PRRATE,  PTYPE,  PDATE,     PTIME,  PTAU
-      PRIVATE :: PLAT,    PLON,   PPRESS,    PNAME
+      ! Make everything PRIVATE ...
+      PRIVATE
 
-      ! PRIVATE module routines
-      PRIVATE :: READ_VARIABLES
-      PRIVATE :: READ_POINTS
-      PRIVATE :: RO2_SETUP
-      PRIVATE :: INIT_PLANEFLIGHT
-      PRIVATE :: TEST_VALID
-      PRIVATE :: WRITE_VARS_TO_FILE
+      ! ... except these routines
+      PUBLIC :: ARCHIVE_RXNS_FOR_PF
+      PUBLIC :: CLEANUP_PLANEFLIGHT
+      PUBLIC :: PLANEFLIGHT
+      PUBLIC :: SETUP_PLANEFLIGHT
+      PUBLIC :: SET_PLANEFLIGHT
+
+      !-----------------------------------------------------------------
+      ! Prior to 7/20/04:
+      !! PRIVATE module variables
+      !PRIVATE :: MAXVARS, MAXRO2, MAXPOINTS, NPVAR,  PVAR
+      !PRIVATE :: NPREAC,  PREAC,  NPOINTS,   PPOINT, NPRO2
+      !PRIVATE :: PRRATE,  PTYPE,  PDATE,     PTIME,  PTAU
+      !PRIVATE :: PLAT,    PLON,   PPRESS,    PNAME
+      !
+      !! PRIVATE module routines
+      !PRIVATE :: READ_VARIABLES
+      !PRIVATE :: READ_POINTS
+      !PRIVATE :: RO2_SETUP
+      !PRIVATE :: INIT_PLANEFLIGHT
+      !PRIVATE :: TEST_VALID
+      !PRIVATE :: WRITE_VARS_TO_FILE
+      !-----------------------------------------------------------------
 
       !=================================================================
       ! MODULE VARIABLES 
       !=================================================================
 
+      ! Logicals
+      LOGICAL                        :: DO_PF
+
       ! Parameters
-      INTEGER, PARAMETER             :: MAXVARS   = 95
-      INTEGER, PARAMETER             :: MAXPOINTS = 30000
-      INTEGER, PARAMETER             :: MAXRO2    = 20
+      INTEGER,           PARAMETER   :: MAXVARS   = 95
+      INTEGER,           PARAMETER   :: MAXPOINTS = 30000
+      INTEGER,           PARAMETER   :: MAXRO2    = 20
 
       ! For specifying flight track points
       INTEGER                        :: NPOINTS           
@@ -159,25 +178,40 @@
 !  (1 ) Rename from "plane.dat" to "plane.log", since "*.dat" implies an input
 !        file name. (bmy, 8/8/03)
 !  (2 ) Add fancy output string (bmy, 4/26/04)
+!  (3 ) Now references GET_NYMD, GET_NHMS, and EXPAND_DATE from "time_mod.f".
+!        Now also replaces date & time tokens in the filenames. (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE FILE_MOD, ONLY : IU_FILE, IOERROR
+      USE FILE_MOD, ONLY : IU_FILE,  IOERROR
+      USE TIME_MOD, ONLY : GET_NYMD, GET_NHMS, EXPAND_DATE
 
       ! Local variables
-      LOGICAL, SAVE     :: FIRST = .TRUE.
-      INTEGER           :: I, IP, N, TEMP, LENGTH, RN, COUNTER, IOS
-      CHARACTER(LEN=7)  :: NAMES
-      CHARACTER(LEN=20) :: LINE
-      CHARACTER(LEN=10) :: TYPE
+      LOGICAL, SAVE      :: FIRST = .TRUE.
+      INTEGER            :: I,  IP,      N,   TEMP, LENGTH
+      INTEGER            :: RN, COUNTER, IOS, NYMD, NHMS
+      CHARACTER(LEN=7)   :: NAMES
+      CHARACTER(LEN=20)  :: LINE
+      CHARACTER(LEN=10)  :: TYPE
       
       !=================================================================
       ! SETUP_PLANEFLIGHT begins here!
       !=================================================================
 
-      ! Hardwire filenames for now -- change later (bmy, 7/2/02)
-      INFILENAME  = 'Planeflight.dat'
-      OUTFILENAME = 'plane.log'
+      !-----------------------------------------------------------------
+      ! Prior to 7/20/04:
+      !! Hardwire filenames for now -- change later (bmy, 7/2/02)
+      !INFILENAME  = 'Planeflight.dat'
+      !OUTFILENAME = 'plane.log'
+      !-----------------------------------------------------------------
+
+      ! Get date & time
+      NYMD = GET_NYMD()
+      NHMS = GET_NHMS()
+
+      ! Replace any date & time tokens in the file names
+      CALL EXPAND_DATE( INFILENAME,  NYMD, NHMS )
+      CALL EXPAND_DATE( OUTFILENAME, NYMD, NHMS )
 
       ! Echo info
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -240,23 +274,33 @@
 !  (5 ) Now flag N2O5 hydrolysis rxn as a special case (bmy, 8/8/03)
 !  (6 ) Changed variable name prefix "DAO" to "GMAO".  Also added aerosol
 !        optical depths w/ tracer offset 2000. (bmy, 4/23/04)
+!  (7 ) Now references N_TRACERS & ITS_A_FULLCHEM_SIM from "tracer_mod.f"
+!        (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-      USE FILE_MOD,  ONLY : IU_FILE, IOERROR
+      USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
+      USE FILE_MOD,   ONLY : IU_FILE,   IOERROR
+      USE TRACER_MOD, ONLY : N_TRACERS, ITS_A_FULLCHEM_SIM
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! NTRACE, NSRCX
+!----------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"       ! NTRACE, NSRCX
+!----------------------------------------------
 #     include "comode.h"  ! NAMEGAS, NSPEC
 
       ! Local variables
+      LOGICAL             :: IS_FULLCHEM
       INTEGER             :: M, N, NUM, R, IK, IOS
       CHARACTER(LEN=255)  :: LINE
 
       !=================================================================
       ! READ_VARIABLES begins here!
       !=================================================================
+
+      ! Test if this is a fullchem run
+      IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
 
       ! Read four lines of header
       DO N = 1, 4 
@@ -307,7 +351,11 @@
                READ( LINE(5:14), '(i10)' ) NUM
 
                ! Make sure the tracer # is valid!
-               IF ( NUM < 0 .or. NUM > NTRACE ) THEN                   
+               !----------------------------------------------
+               ! Prior to 7/20/04:
+               !IF ( NUM < 0 .or. NUM > NTRACE ) THEN         
+               !----------------------------------------------          
+               IF ( NUM < 0 .or. NUM > N_TRACERS ) THEN                   
                   WRITE( 6, 100 ) TRIM( LINE )
  100              FORMAT( 'TRACER ', i4, ' is out of range!' )
                   WRITE( 6, '(a)' ) 'STOP in SETUP_PLANEFLIGHT!'
@@ -350,7 +398,11 @@
             CASE ( 'REA_' )
 
                ! Skip if not SMVGEAR!
-               IF ( NSRCX == 3 ) THEN 
+               !---------------------------
+               ! Prior to 7/20/04:
+               !IF ( NSRCX == 3 ) THEN 
+               !---------------------------
+               IF ( IS_FULLCHEM ) THEN 
                
                   ! Increment rxn counter
                   R = R + 1
@@ -411,7 +463,11 @@
             CASE DEFAULT
 
                ! Skip if not SMVGEAR!
-               IF ( NSRCX == 3 ) THEN
+               !-------------------------
+               ! Prior to 7/20/04:
+               !IF ( NSRCX == 3 ) THEN
+               !-------------------------
+               IF ( IS_FULLCHEM ) THEN
 
                   ! Loop over all SMVGEAR species -- 
                   ! match w/ species as read from disk
@@ -594,20 +650,26 @@
       SUBROUTINE RO2_SETUP
 !
 !******************************************************************************
-!  Subroutine RO2_SETUP saves the SMVGEAR species indices of RO2 constituents
-!  in the PRO2 array.  Also computes the count NPRO2. (mje, bmy, 8/1/03)
+!  Subroutine RO2_SETUP saves the SMVGEAR species indices of RO2 
+!  constituents in the PRO2 array.  Also computes the count NPRO2. 
+!  (mje, bmy, 8/1/03, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Now references GEOS_CHEM_STOP from "error_mod.f", which frees all
 !        allocated memory before stopping the run. (bmy, 10/15/02)
 !  (2 ) Now replace NAMESPEC w/ NAMEGAS for SMVGEAR II (bmy, 8/1/03)
+!  (3 ) Now references ITS_A_FULLCHEM_SIM from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
+      USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
+      USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
 
 #     include "CMN_SIZE" ! Size parameters
-#     include "CMN"      ! NSRCX
+!-----------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"      ! NSRCX
+!-----------------------------------------------
 #     include "comode.h" ! NSPEC, NAMEGAS, NCS
 
       ! Local variables
@@ -621,7 +683,7 @@
       NPRO2 = 0
 
       ! We only need to proceed for SMVGEAR chemistry       
-      IF ( NSRCX /= 3 ) RETURN
+      IF ( .not. ITS_A_FULLCHEM_SIM() ) RETURN
       
       !=================================================================
       ! Loop over all SMVGEAR species, test for RO2 components
@@ -668,7 +730,7 @@
 !
 !******************************************************************************
 !  Subroutine PLANEFLIGHT saves concentrations to disk at locations 
-!  corresponding to a flight track (mje, bmy, 7/8/02, 7/18/03)
+!  corresponding to a flight track (mje, bmy, 7/8/02, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Now reference AD from "dao_mod.f".  Now references GEOS_CHEM_STOP from
@@ -681,6 +743,7 @@
 !  (5 ) Now references UWND and VWND from "dao_mod.f".  Now references
 !        GET_PEDGE from "pressure_mod.f".  Added CASEs for surface pressure,
 !        UWND, VWND to the CASE statement (bmy, 4/23/04)
+!  (6 ) Now references STT & TCVV from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! Reference to F90 modules 
@@ -690,16 +753,16 @@
       USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
       USE PRESSURE_MOD, ONLY : GET_PEDGE
       USE TIME_MOD,     ONLY : GET_TAU, GET_TS_CHEM
+      USE TRACER_MOD,   ONLY : STT,     TCVV
       
       IMPLICIT NONE
       
-!-------------------------------------------------------------------------
-! Prior to 2/22/04:
-!#     include "CMN_SIZE"   ! Size parameters
-!-------------------------------------------------------------------------
 #     include "cmn_fj.h"   ! FAST-J parameters (includes CMN_SIZE)
 #     include "jv_cmn.h"   ! ODAER
-#     include "CMN"        ! STT, TCVV, etc
+!-----------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"        ! STT, TCVV, etc
+!-----------------------------------------------
 #     include "comode.h"   ! CSPEC, etc.
       
       ! Local variables
@@ -949,14 +1012,16 @@
 !  (3 ) Bug fix: add 0.5 in expression for I so that the rounding will
 !        be done correctly.  Also make sure that I is computed correctly
 !	 for points near the date line.  (bmy, 4/23/04)
+!  (4 ) Now references ITS_A_FULLCHEM_SIM from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE COMODE_MOD, ONLY   : JLOP
+      USE COMODE_MOD,   ONLY : JLOP
       USE PRESSURE_MOD, ONLY : GET_PEDGE
+      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN"        ! SIGE, P, LPAUSE, NSRCX
+#     include "CMN"        ! LPAUSE
 
       ! Arguments
       INTEGER, INTENT(IN)  :: IND
@@ -975,12 +1040,6 @@
       FOUND = .FALSE.
 
       ! Get I corresponding to PLON(IND)
-      !-----------------------------------------------------------------
-      ! Prior to 4/22/04:
-      ! Bug fix: We need to add 0.5 so that the rounding
-      ! is done correctly (bmy, 4/22/04)
-      !I = INT( ( PLON(IND) + 180d0 ) / DISIZE + 1.0d0 )
-      !-----------------------------------------------------------------
       I = INT( ( PLON(IND) + 180d0 ) / DISIZE + 1.5d0 )
 
       ! Handle date line correctly (bmy, 4/23/04)
@@ -1008,8 +1067,12 @@
       !=================================================================
       IF ( L < LPAUSE(I,J) ) THEN 
 
-         IF ( NSRCX == 3 ) THEN
-            
+         !-----------------------------------
+         ! Prior to 7/20/04:
+         !IF ( NSRCX == 3 ) THEN
+         !-----------------------------------
+         IF ( ITS_A_FULLCHEM_SIM() ) THEN
+  
             ! This is a tropospheric box where SMVGEAR chemistry is done
             PCHEM = .TRUE.
             JLOOP = JLOP(I,J,L)
@@ -1233,6 +1296,38 @@
 
       ! Return to calling program
       END SUBROUTINE ARCHIVE_RXNS_FOR_PF
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE SET_PLANEFLIGHT( PF, IN_FILE, OUT_FILE )
+!
+!******************************************************************************
+!  Subroutine SET_PLANEFLIGHT is used to pass values read in from the 
+!  GEOS-CHEM input file to "planeflight_mod.f" (bmy, 7/20/04)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) PF       (LOGICAL  ) : Flag for turning on planeflight diagnostic
+!  (2 ) IN_FILE  (CHARACTER) : Input file name (w/ plane flight track points)
+!  (3 ) OUT_FILE (CHARACTER) : Output file name
+! 
+!  NOTES:
+!******************************************************************************
+!
+      ! Arguments
+      LOGICAL,            INTENT(IN) :: PF
+      CHARACTER(LEN=255), INTENT(IN) :: IN_FILE
+      CHARACTER(LEN=255), INTENT(IN) :: OUT_FILE
+
+      !=================================================================
+      ! SET_PLANEFLIGHT begins here!
+      !=================================================================
+      DO_PF       = PF
+      INFILENAME  = TRIM( IN_FILE  )
+      OUTFILENAME = TRIM( OUT_FILE )
+
+      ! Return to calling program
+      END SUBROUTINE SET_PLANEFLIGHT
 
 !------------------------------------------------------------------------------
 

@@ -1,11 +1,11 @@
-! $Id: schem.f,v 1.3 2003/10/30 16:17:19 bmy Exp $
+! $Id: schem.f,v 1.4 2004/09/21 18:04:18 bmy Exp $
       SUBROUTINE SCHEM
 !
 !******************************************************************************
 !  Subroutine SCHEM performs simplified stratospheric chemistry, which means
 !  only reactions with OH and photolysis are considered. The production and
 !  loss of CO and NOy in the stratosphere are taken from Dylan Jones' 2-D 
-!  model. (qli, bmy, 11/20/1999, 9/29/03) 
+!  model. (qli, bmy, 11/20/1999, 7/20/04) 
 !
 !  We now use the annual mean tropopause, as read into the LPAUSE
 !  array by "read_tropopause.f".
@@ -54,23 +54,32 @@
 !  (17) LINUX has a problem putting a function call w/in a WRITE statement.  
 !        Now save output from TIMESTAMP_STRING to STAMP and print that.
 !        (bmy, 9/29/03)
+!  (18) Now reference STT and TRACER_MW_KG from "tracer_mod.f".  Now reference
+!        DATA_DIR from "directory_mod.f".  Bug fix: now loop over N_TRACERS
+!        and not NNPAR.  NNPAR is the max # of tracers but may not be the
+!        actual number of tracers. (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE DAO_MOD,      ONLY : AD, T
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
-      USE TIME_MOD,     ONLY : GET_MONTH,   GET_TAU, 
-     &                         GET_TS_CHEM, TIMESTAMP_STRING
+      USE DAO_MOD,       ONLY : AD, T
+      USE DIRECTORY_MOD, ONLY : DATA_DIR 
+      USE ERROR_MOD,     ONLY : ALLOC_ERR
+      USE TIME_MOD,      ONLY : GET_MONTH,   GET_TAU, 
+     &                          GET_TS_CHEM, TIMESTAMP_STRING
+      USE TRACER_MOD,    ONLY : N_TRACERS,   STT, TRACER_MW_KG
       USE TRACERID_MOD
-      USE TRANSFER_MOD, ONLY : TRANSFER_ZONAL
+      USE TRANSFER_MOD,  ONLY : TRANSFER_ZONAL
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"        ! Size parameters
-#     include "CMN"             ! LPAUSE, MONTH
-#     include "CMN_O3"          ! FMOL
-#     include "CMN_SETUP"       ! DATA_DIR
+#     include "CMN"             ! LPAUSE
+#     include "CMN_O3"          ! XNUMOLAIR
+!----------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP" ! DATA_DIR
+!----------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE             :: FIRST = .TRUE.
@@ -111,6 +120,7 @@
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
 
+      ! Echo info
       STAMP = TIMESTAMP_STRING()
       WRITE( 6, 100 ) STAMP
  100  FORMAT( '     - SCHEM: Strat chemistry at ', a )
@@ -279,7 +289,11 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, M, TK, RC, k0, k1, RDLOSS, T1L )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO N = 1, NNPAR
+      !-------------------------
+      ! Prior to 7/20/04:
+      !DO N = 1, NNPAR
+      !-------------------------
+      DO N = 1, N_TRACERS
       DO L = MINVAL( LPAUSE ), LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -368,7 +382,13 @@
          ! Oxidation of PRPE as source of ACET with 80% yield
          IF ( N == IDTPRPE ) THEN
             STT(I,J,L,IDTACET) = STT(I,J,L,IDTACET) +
-     &           0.8d0 * T1L * FMOL(IDTACET) / FMOL(IDTPRPE)
+!---------------------------------------------------------------
+! Prior to 7/20/04:
+! Replace FMOL w/ TRACER_MW_KG (bmy, 7/20/04)
+!     &           0.8d0 * T1L * FMOL(IDTACET) / FMOL(IDTPRPE)
+!---------------------------------------------------------------
+     &           0.8d0 * T1L * 
+     &           TRACER_MW_KG(IDTACET) / TRACER_MW_KG(IDTPRPE)
          ENDIF
       ENDDO
       ENDDO

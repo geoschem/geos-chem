@@ -1,8 +1,8 @@
-! $Id: diag_2pm.f,v 1.1 2003/06/30 20:26:03 bmy Exp $
+! $Id: diag_2pm.f,v 1.2 2004/09/21 18:04:11 bmy Exp $
       SUBROUTINE DIAG_2PM
 !
 !*****************************************************************************
-!  Subroutine DIAG_2PM (bmy, 3/26/99, 2/27/02) constructs the diagnostic 
+!  Subroutine DIAG_2PM (bmy, 3/26/99, 7/20/04) constructs the diagnostic 
 !  flag arrays : 
 !      LTJV  : J-values           (ND22)
 !      LTOH  : OH concentrations  (ND43)
@@ -17,16 +17,13 @@
 !  The arrays CTOTH, CTOH, CTNO, CTJV count the number of times the 
 !  diagnostics are accumulated for each grid box (i.e LTOTH is 1)
 !
-!  Arguments as input:
-!  ===========================================================================
-!  (1) NMIN : Number of minutes elapsed since the run began 
-!
 !  NOTES:
 !  (1 ) Now use F90 syntax (bmy, 3/26/99)
 !  (2 ) Now reference LTNO2, CTNO2, LTHO2, CTHO2 arrays from "diag_mod.f".  
 !        Updated comments, cosmetic changes.  (rvm, bmy, 2/27/02)
 !  (3 ) Now removed NMIN from the arg list.  Now use functions GET_LOCALTIME,
 !        ITS_TIME_FOR_CHEM, ITS_TIME_FOR_DYN from "time_mod.f" (bmy, 2/11/03)
+!  (4 ) Now rewritten using a parallel DO-loop (bmy, 7/20/04)
 !*****************************************************************************
 !     
       ! References to F90 modules
@@ -38,101 +35,99 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"
-#     include "CMN_DIAG"
-#     include "CMN_SETUP"
+#     include "CMN_SIZE"   ! Size parameters
+#     include "CMN_DIAG"   ! HR_OH1, HR_OH2, etc.
 
       ! Local variables
-      INTEGER             :: I, J, NMIN
-      REAL*8              :: XLOCTM(IIPAR,JJPAR) !, TMP(IIPAR) 
+      LOGICAL             :: IS_ND22, IS_ND43, IS_ND45
+      INTEGER             :: I,       J
+      REAL*8              :: LT(IIPAR)
 
       !=================================================================
       ! DIAG_2PM begins here!
       !=================================================================
 
-      ! Get local time
+      ! Set logical flags
+      IS_ND22 = ( ND22 > 0 .and. ITS_TIME_FOR_CHEM() )
+      IS_ND45 = ( ND45 > 0 .and. ITS_TIME_FOR_DYN()  )
+      IS_ND43 = ( ND43 > 0 .and. ITS_TIME_FOR_CHEM() )
+
+      ! Pre-compute local time 
+      DO I = 1, IIPAR
+         LT(I) = GET_LOCALTIME( I )
+      ENDDO
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         XLOCTM(I,J) = GET_LOCALTIME( I ) 
-      ENDDO
-      ENDDO
-         
-      !=================================================================
-      ! Diagnostics that are done every dynamic timestep
-      !=================================================================
-      IF ( ITS_TIME_FOR_DYN() ) THEN
 
          !-----------------------------
          ! ND45 -- mixing ratios
          !-----------------------------
-         IF ( ND45 > 0 ) THEN
+         IF ( IS_ND45 ) THEN
 
-            ! LTOTH denotes where LT is between HR1_OTH and HR2_OTH
-            ! CTOTH counts the times when LT was between HR1_OTH and HR2_OTH
-            WHERE( XLOCTM >= HR1_OTH .and. XLOCTM <= HR2_OTH ) 
-               LTOTH = 1
-               CTOTH = CTOTH + 1
-            ELSEWHERE
-               LTOTH = 0
-            ENDWHERE
+            ! Archive if we fall w/in the local time limits
+            IF ( LT(I) >= HR1_OTH .and. LT(I) <= HR2_OTH ) THEN
+               LTOTH(I,J) = 1
+               CTOTH(I,J) = CTOTH(I,J) + 1
+            ELSE
+               LTOTH(I,J) = 0
+            ENDIF
          ENDIF
-      ENDIF
 
-      !=================================================================
-      ! Diagnostics that are done every chemistry timestep
-      !=================================================================
-      IF ( ITS_TIME_FOR_CHEM() ) THEN 
-        
          !-----------------------------
          ! ND22 -- J-Value diagnostic
          !-----------------------------
-         IF ( ND22 > 0 ) THEN
+         IF ( IS_ND22 ) THEN
 
-            ! LTJV denotes where LT is between HR1_JV and HR2_JV
-            ! CTJV counts the times when LT was between HR1_JV and HR2_JV
-            WHERE( XLOCTM >= HR1_JV .and. XLOCTM <= HR2_JV )
-               LTJV = 1
-               CTJV = CTJV + 1               
-            ELSEWHERE
-               LTJV = 0 
-            ENDWHERE
+            ! Archive if we fall w/in the local time limits
+            IF ( LT(I) >= HR1_OTH .and. LT(I) <= HR2_OTH ) THEN
+               LTJV(I,J) = 1
+               CTJV(I,J) = CTJV(I,J) + 1
+            ELSE
+               LTJV(I,J) = 0
+            ENDIF
          ENDIF
-            
+
          !-----------------------------
          ! ND43 -- OH, NO, NO2, HO2
          !-----------------------------
-         IF ( ND43 > 0 ) THEN
+         IF ( IS_ND43 ) THEN
 
             ! LTNO denotes where LT is between HR1_NO and HR2_NO
             ! CTNO counts the times when LT was between HR1_NO and HR2_NO
             ! Now set LTNO2, CTNO2 based on the NO times (rvm, bmy, 2/27/02)
-            WHERE( XLOCTM >= HR1_NO .and. XLOCTM <= HR2_NO ) 
-               LTNO  = 1
-               CTNO  = CTNO + 1
-               LTNO2 = 1
-               CTNO2 = CTNO2 + 1
-            ELSEWHERE
-               LTNO  = 0
-               LTNO2 = 0
-            ENDWHERE
+            IF ( LT(I) >= HR1_NO .and. LT(I) <= HR2_NO ) THEN 
+               LTNO(I,J)  = 1
+               CTNO(I,J)  = CTNO(I,J) + 1
+               LTNO2(I,J) = 1
+               CTNO2(I,J) = CTNO2(I,J) + 1
+            ELSE
+               LTNO(I,J)  = 0
+               LTNO2(I,J) = 0
+            ENDIF
 
             ! LTNO denotes where LT is between HR1_OH and HR2_OH
             ! CTNO counts the times when LT was between HR1_OH and HR2_OH
             ! Now set LTHO2, CTHO2 based on the OH times (rvm, bmy, 2/27/02)
-            WHERE( XLOCTM >= HR1_OH .and. XLOCTM <= HR2_OH ) 
-               LTOH  = 1
-               CTOH  = CTOH + 1
-               LTHO2 = 1
-               CTHO2 = CTHO2 + 1
-               LTNO3 = 1
-               CTNO3 = CTNO3 + 1
-            ELSEWHERE
-               LTOH  = 0
-               LTHO2 = 0
-               LTNO3 = 0
-            ENDWHERE
+            IF ( LT(I) >= HR1_OH .and. LT(I) <= HR2_OH ) THEN  
+               LTOH(I,J)  = 1
+               CTOH(I,J)  = CTOH(I,J) + 1
+               LTHO2(I,J) = 1
+               CTHO2(I,J) = CTHO2(I,J) + 1
+               LTNO3(I,J) = 1
+               CTNO3(I,J) = CTNO3(I,J) + 1
+            ELSE
+               LTOH(I,J)  = 0
+               LTHO2(I,J) = 0
+               LTNO3(I,J) = 0
+            ENDIF
          ENDIF
-      ENDIF
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
       ! Return to calling program
       END SUBROUTINE DIAG_2PM

@@ -1,9 +1,9 @@
-! $Id: global_nox_mod.f,v 1.1 2003/06/30 20:26:03 bmy Exp $
+! $Id: global_nox_mod.f,v 1.2 2004/09/21 18:04:14 bmy Exp $
       MODULE GLOBAL_NOX_MOD
 !
 !******************************************************************************
 !  Module GLOBAL_NOX_MOD contains variables and routines for reading the
-!  global monthly mean NOX concentration from disk. (bmy, 7/28/00, 4/28/03)
+!  global monthly mean NOX concentration from disk. (bmy, 7/28/00, 7/20/04)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -17,8 +17,10 @@
 !
 !  GEOS-CHEM modules referenced by global_nox_mod.f
 !  ============================================================================
-!  (1 ) bpch2_mod.f  : Module containing routines for binary punch file I/O
-!  (2 ) error_mod.f  : Module containing NaN and other error check routines
+!  (1 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
+!  (2 ) directory_mod.f : Module containing GEOS-CHEM data & met field dirs
+!  (3 ) error_mod.f     : Module containing NaN and other error check routines
+!  (4 ) unix_cmds_mod.f : Module containing Unix commands for unzipping etc.
 !
 !  NOTES:
 !  (1 ) Updated comments, made cosmetic changes (bmy, 6/13/01)
@@ -31,6 +33,7 @@
 !  (6 ) Now references "error_mod.f" (bmy, 10/15/02)
 !  (7 ) Minor bug fix in FORMAT statements (bmy, 3/23/03)
 !  (8 ) Cosmetic changes to improve output (bmy, 3/27/03)
+!  (9 ) Now references "directory_mod.f" and "unix_cmds_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -54,7 +57,7 @@
 !******************************************************************************
 !  Subroutine GET_GLOBAL_NOX reads global NOX from binary punch files from a 
 !  a full chemistry run.  This NOx data is needed to calculate the CO yield
-!  from isoprene oxidation. (bmy, 7/28/00, 4/28/03)
+!  from isoprene oxidation. (bmy, 7/28/00, 7/20/04)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -68,14 +71,22 @@
 !  (2 ) Eliminated obsolete code from 1/02 (bmy, 2/27/02)
 !  (3 ) Bug fix in FORMAT statement: replace missing commas.  Also make sure
 !        to define FILENAME before printing it (bmy, 4/28/03)
+!  (4 ) Now references TEMP_DIR, DATA_DIR from "directory_mod.f".  Also
+!        references Unix unzipping commands from "unix_cmds_mod.f".
+!        (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE TRANSFER_MOD, ONLY : TRANSFER_3D
+      USE DIRECTORY_MOD, ONLY : DATA_DIR, TEMP_DIR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
+      USE UNIX_CMDS_MOD
 
 #     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_SETUP"   ! TEMP_DIR, DATA_DIR
+!---------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"   ! TEMP_DIR, DATA_DIR
+!---------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)  :: THISMONTH
@@ -120,7 +131,11 @@
      &         GET_NAME_EXT()      // TRIM( ZIP_SUFFIX )
 
       ! Construct the command to unzip the file & copy to TEMP_DIR
-      CHAROP = TRIM( 'gzcat' )   // SPACE(1:1)          //
+      !-------------------------------------------------------------
+      ! Prior to 7/20/04:
+      !CHAROP = TRIM( 'gzcat' )   // SPACE(1:1)          //
+      !-------------------------------------------------------------
+      CHAROP = TRIM( UNZIP_CMD ) // SPACE(1:1)          //
      &         TRIM( RGNAME  )   // TRIM( REDIRECT  )   //
      &         SPACE(1:1)        // TRIM( TEMP_DIR  )   //
      &         TRIM( TEMPO   )

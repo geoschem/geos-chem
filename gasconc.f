@@ -1,10 +1,15 @@
-! $Id: gasconc.f,v 1.3 2003/08/06 15:30:42 bmy Exp $
-      SUBROUTINE GASCONC( FIRSTCHEM, STT,    NTRACER,
-     &                    XNUMOL,    LPAUSE, FRCLND )
+! $Id: gasconc.f,v 1.4 2004/09/21 18:04:13 bmy Exp $
+!-------------------------------------------------------------
+! Prior to 7/20/04;
+!      SUBROUTINE GASCONC( FIRSTCHEM, STT,    NTRACER,
+!     &                    XNUMOL,    LPAUSE, FRCLND )
+!-------------------------------------------------------------
+      SUBROUTINE GASCONC( FIRSTCHEM, NTRACER, STT,
+     &                    XNUMOL,    LPAUSE,  FRCLND )
 !
 !******************************************************************************
 !  Subroutine GASCONC initializes gas concentrations for SMVGEAR II.
-!  (M. Jacobson 1997; bdf, bmy, 4/18/03, 7/16/03)
+!  (M. Jacobson 1997; bdf, bmy, 4/18/03, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Now reference ABSHUM, AIRDENS, CSPEC, IXSAVE, IYSAVE, IZSAVE,  
@@ -14,6 +19,7 @@
 !        (bdf, bmy, 4/18/03)
 !  (2 ) Remove IRUN -- it's obsolete.  Remove obsolete variables from
 !        documentation. (bmy, 7/16/03)
+!  (3 ) Now dimension args XNUMOL, STT w/ NTRACER and not NNPAR (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -30,8 +36,13 @@
       LOGICAL, INTENT(IN)    :: FIRSTCHEM
       INTEGER, INTENT(IN)    :: NTRACER
       INTEGER, INTENT(IN)    :: LPAUSE(IIPAR,JJPAR)
-      REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NNPAR)
-      REAL*8,  INTENT(IN)    :: XNUMOL(NNPAR)
+      !-----------------------------------------------------------------
+      ! Prior to 7/20/04:
+      !REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NNPAR)
+      !REAL*8,  INTENT(IN)    :: XNUMOL(NNPAR)
+      !-----------------------------------------------------------------
+      REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NTRACER)
+      REAL*8,  INTENT(IN)    :: XNUMOL(NTRACER)
       REAL*8,  INTENT(IN)    :: FRCLND(IIPAR,JJPAR)
 C
 C *********************************************************************
@@ -203,7 +214,12 @@ C
 !   should be added as needed to other chemistries.
 !      if (NCS .eq. 1) then
 !  maybe??
-      CALL PARTITION(STT, NTRACER, XNUMOL)
+      !----------------------------------------------------
+      ! Prior to 7/20/04:
+      ! Pass NTRACER first to "partition.f' (bmy, 7/20/04)
+      !CALL PARTITION(STT, NTRACER, XNUMOL)
+      !----------------------------------------------------
+      CALL PARTITION( NTRACER, STT, XNUMOL ) 
 !      endif
 C
 C *********************************************************************

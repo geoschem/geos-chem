@@ -1,10 +1,10 @@
-! $Id: biomass_mod.f,v 1.3 2004/05/03 14:46:14 bmy Exp $
+! $Id: biomass_mod.f,v 1.4 2004/09/21 18:04:08 bmy Exp $
       MODULE BIOMASS_MOD
 !
 !******************************************************************************
 !  Module BIOMASS_MOD contains arrays and routines to compute monthly
 !  biomass burning emissions for NOx, CO, ALK4, ACET, MEK, ALD2, PRPE, 
-!  C3H8, CH2O, C2H6, CH4, and CH3I. (bmy, 9/11/00, 4/26/04)
+!  C3H8, CH2O, C2H6, CH4, and CH3I. (bmy, 9/11/00, 7/20/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -30,14 +30,16 @@
 !
 !  GEOS-CHEM modules referenced by biomass_mod.f
 !  ============================================================================
-!  (1 ) bpch2_mod.f    : Module containing routines for binary punch file I/O
-!  (2 ) dao_mod.f      : Module containing arrays for DAO met fields
-!  (3 ) diag_mod.f     : Module containing GEOS-CHEM diagnostic arrays
-!  (4 ) error_mod.f    : Module containing I/O error and NaN check routines
-!  (5 ) grid_mod.f     : Module containing horizontal grid information
-!  (6 ) time_mod.f     : Module containing routines for computing time & date
-!  (7 ) tracerid_mod.f : Module containing pointers to tracers & emissions
-!  (8 ) transfer_mod.f : Module containing routines to cast & resize arrays
+!  (1 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
+!  (2 ) dao_mod.f       : Module containing arrays for DAO met fields
+!  (3 ) diag_mod.f      : Module containing GEOS-CHEM diagnostic arrays
+!  (4 ) directory_mod.f : Module containing GEOS-CHEM data & met field dirs
+!  (5 ) error_mod.f     : Module containing I/O error and NaN check routines
+!  (6 ) grid_mod.f      : Module containing horizontal grid information
+!  (7 ) logical_mod.f   : Module containing GEOS-CHEM logical switches
+!  (8 ) time_mod.f      : Module containing routines for computing time & date
+!  (9 ) tracerid_mod.f  : Module containing pointers to tracers & emissions
+!  (10) transfer_mod.f  : Module containing routines to cast & resize arrays
 !
 !  Decision Tree for Biomass Burning Emissions:
 !  ============================================================================
@@ -139,6 +141,7 @@
 !        printing when calling routine READ_BPCH2.  Bug fix in routine TOMSAI.
 !        Fixed bug in BIOBURN when passing arrays BIOMASS_SEA and BIOMASS_ANN
 !        to routine READ_BIOMASS. (bmy, 4/28/03)
+!  (26) Now references "directory_mod.f" & "logical_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -253,21 +256,32 @@
 !  (20) Bug fix: make sure only to pass BIOMASS_SEA(1:NBIOTRCE,:,:) and 
 !         BIOMASS_ANN(1:NBIOTRCE,:,:) to READ_BIOMASS. (bnd, bmy, 5/16/03)
 !  (21) Added fancy output (bmy, 4/26/04)
+!  (22) Removed reference to CMN, it's obsolete.  Now reference DATA_DIR from
+!        "directory_mod.f".  Now references LBBSEA and LTOMSAI from
+!        "logical_mod.f". (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE DAO_MOD,     ONLY : BXHEIGHT
-      USE DIAG_MOD,    ONLY : AD28, AD29, AD32_bb
-      USE ERROR_MOD,   ONLY : IT_IS_NAN, GEOS_CHEM_STOP
-      USE TIME_MOD,    ONLY : ITS_A_LEAPYEAR, GET_MONTH, 
-     &                        GET_TAU,        GET_YEAR       
+      USE DAO_MOD,       ONLY : BXHEIGHT
+      USE DIAG_MOD,      ONLY : AD28, AD29, AD32_bb
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE ERROR_MOD,     ONLY : IT_IS_NAN,      GEOS_CHEM_STOP
+      USE LOGICAL_MOD,   ONLY : LBBSEA,         LTOMSAI
+      USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR, GET_MONTH, 
+     &                          GET_TAU,        GET_YEAR       
       USE TRACERID_MOD
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN"        ! NSRCX
+!------------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"        ! NSRCX
+!------------------------------------------------------------
 #     include "CMN_DIAG"   ! Diagnostic arrays & switches
-#     include "CMN_SETUP"  ! DATA_DIR, LBBSEA, LTOMSAI
+!------------------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"  ! DATA_DIR, LBBSEA, LTOMSAI
+!------------------------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE       :: FIRST = .TRUE.
@@ -853,7 +867,7 @@
 !******************************************************************************
 !  Subroutine SCALE_BIOMASS_CO multiplies the CO biomass emissions by scale 
 !  factors to account for CO production from VOC's that are not explicitly 
-!  carried in the chemistry mechanisms. (bnd, bmy, 8/21/01, 10/23/01)
+!  carried in the chemistry mechanisms. (bnd, bmy, 8/21/01, 7/20/04)
 !  
 !  Arguments as Input:
 !  ============================================================================
@@ -865,10 +879,17 @@
 !  (2 ) Scale factors have been corrected to 5% and 11% (bnd, bmy, 8/21/01)
 !  (3 ) BBARRAY is now dimensioned (IIPAR,JJPAR) (bmy, 9/28/01)
 !  (4 ) Removed obsolete code from 9/01 (bmy, 10/23/01)
+!  (5 ) Now references ITS_A_FULLCHEM_SIM, ITS_A_TAGCO_SIM from "tracer_mod.f"
+!        (bmy, 7/20/04)
 !******************************************************************************
 !
+      ! References to F90 modules
+      USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGCO_SIM
+
 #     include "CMN_SIZE"    ! Size parameters
-#     include "CMN"         ! NSRCX 
+!------------------------------------------------
+!#     include "CMN"         ! NSRCX 
+!------------------------------------------------
       
       ! Arguments
       REAL*8, INTENT(INOUT) :: BBARRAY(IIPAR,JJPAR) 
@@ -876,25 +897,43 @@
       !=================================================================
       ! SCALE_BIOMASS_CO begins here!
       !=================================================================
-      SELECT CASE ( NSRCX )
+!------------------------------------------------------------------------------
+! Prior to 7/20/04:
+!      SELECT CASE ( NSRCX )
+!
+!         ! Full chemistry w/ SMVGEAR  -- enhance by 5%
+!         CASE ( 3 ) 
+!            BBARRAY = BBARRAY * 1.05d0
+!         
+!         ! CO-OH parameterization -- implement later
+!         !CASE ( 5 )
+!         !   BFARRAY = BFARRAY * 
+!
+!         ! Tagged CO -- enhance by 11%
+!         CASE ( 7 )
+!            BBARRAY = BBARRAY * 1.11d0
+!         
+!         CASE DEFAULT
+!            ! Nothing
+!
+!      END SELECT 
+!-----------------------------------------------------------------------------
+
+      IF ( ITS_A_FULLCHEM_SIM() ) THEN
 
          ! Full chemistry w/ SMVGEAR  -- enhance by 5%
-         CASE ( 3 ) 
-            BBARRAY = BBARRAY * 1.05d0
+         BBARRAY = BBARRAY * 1.05d0
          
-         ! CO-OH parameterization -- implement later
-         !CASE ( 5 )
-         !   BFARRAY = BFARRAY * 
+      ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
 
          ! Tagged CO -- enhance by 11%
-         CASE ( 7 )
-            BBARRAY = BBARRAY * 1.11d0
-         
-         CASE DEFAULT
-            ! Nothing
+         BBARRAY = BBARRAY * 1.11d0
 
-      END SELECT 
-        
+      !ELSE IF ( ITS_A_COPARAM_SIM()
+      !   BBARRAY = BBARRAY * 
+
+      ENDIF
+
       ! Return to calling program  
       END SUBROUTINE SCALE_BIOMASS_CO
 
@@ -906,7 +945,7 @@
 !  Subroutine SCALE_BIOMASS_ACET scales the seasonal acetone biomass
 !  burning emissions (Case 1 in the decision tree above) to a given 
 !  yearly value.  This is needed for the new biogenic emission fluxes.
-!  (bdf, bmy, 9/4/01, 10/23/01)
+!  (bdf, bmy, 9/4/01, 7/20/04)
 !  
 !  Arguments as Input:
 !  ============================================================================
@@ -923,10 +962,17 @@
 !        of the acetone paper: Jacob et al, 2001. (bdf, bmy, 9/4/01)
 !  (2 ) BBARRAY is now dimensioned (IIPAR,JJPAR) (bmy, 9/28/01)
 !  (3 ) Removed obsolete code from 9/01 (bmy, 10/23/01)
+!  (4 ) Now reference LBBSEA, LTOMSAI, from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
+      ! References to F90 modules
+      USE LOGICAL_MOD, ONLY : LBBSEA, LTOMSAI
+
 #     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_SETUP"   ! LBBSEA, LTOMSAI
+!----------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"   ! LBBSEA, LTOMSAI
+!----------------------------------------------------
 
       ! Arguments
       REAL*8, INTENT(INOUT) :: BBARRAY(IIPAR,JJPAR)
@@ -1080,7 +1126,7 @@
 !  and May 1993 - August 1996. 
 !
 !  Written by Bryan Duncan 8/2000.
-!  Inserted into F90 module "biomass_mod.f" (bmy, 9/25/00, 4/28/03)
+!  Inserted into F90 module "biomass_mod.f" (bmy, 9/25/00, 7/20/04)
 !
 !  Subroutine TOMSAI is called from routine BIOBURN of "biomass_mod.f".
 !
@@ -1110,14 +1156,19 @@
 !        Removed IMONTH from the arg list.  IMONTH, JYEAR, and TAU are now
 !        local variables. (bmy, 2/11/03)
 !  (5 ) Change VAL_ANN and VAL_SEAS to INTENT(IN). (bmy, 4/28/03)
+!  (6 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-      USE TIME_MOD,  ONLY : GET_MONTH, GET_TAU, GET_YEAR
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE ERROR_MOD,     ONLY : ALLOC_ERR
+      USE TIME_MOD,      ONLY : GET_MONTH, GET_TAU, GET_YEAR
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_SETUP"  ! DATA_DIR
+!------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN_SETUP"  ! DATA_DIR
+!------------------------------------------------
   
       ! Arguments
       INTEGER, INTENT(IN)    :: I, J
@@ -1405,7 +1456,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_BIOMASS allocates and zeroes the BURNEMIS array.
-!  (bmy, 9/11/00, 5/28/02)
+!  (bmy, 9/11/00, 7/20/04)
 !
 !  NOTES:
 !  (1 ) BURNEMIS does not need to be allocated if all of the elements of 
@@ -1420,14 +1471,19 @@
 !        (bmy, 5/28/02)
 !  (6 ) Now references ALLOC_ERR from "error_mod.f".  Now reference IDBNOX,
 !        IDBCO, etc from "tracerid_mod.f". (bmy, 11/6/02)
+!  (7 ) Now references LBIOMASS from "logical_mod.f" (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : ALLOC_ERR
+      USE LOGICAL_MOD, ONLY : LBIOMASS
       USE TRACERID_MOD
 
 #     include "CMN_SIZE"  ! Size parameters, etc
-#     include "CMN"       ! LBIONOX
+!----------------------------------------------------
+! Prior to 7/20/04:
+!#     include "CMN"       ! LBIONOX
+!----------------------------------------------------
 
       ! Local variables
       INTEGER :: AS
@@ -1435,7 +1491,11 @@
       !=================================================================
       ! INIT_BIOMASS begins here!
       !=================================================================
-      IF ( LBIONOX .and. NBIOTRCE > 0 ) THEN 
+      !------------------------------------------
+      ! Prior to 7/20/04:
+      !IF ( LBIONOX .and. NBIOTRCE > 0 ) THEN 
+      !------------------------------------------
+      IF ( LBIOMASS .and. NBIOTRCE > 0 ) THEN 
 
          ! Allocate and zero BURNEMIS array [molec/cm3/s]
          ALLOCATE( BIOMASS( NBIOTRCE, IIPAR, JJPAR ), STAT=AS )
