@@ -1,9 +1,9 @@
-! $Id: wetscav_mod.f,v 1.3 2004/01/27 21:25:10 bmy Exp $
+! $Id: wetscav_mod.f,v 1.4 2004/03/19 14:42:54 bmy Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
 !  Module WETSCAV_MOD contains arrays for used in the wet scavenging of
-!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 3/27/03)
+!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 3/18/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -35,10 +35,10 @@
 !  (10) WASHFRAC_AEROSOL  : Internal routine to WASHOUT
 !  (11) WASHFRAC_LIQ_GAS  : Internal routine to WASHOUT
 !  (12) WETDEP            : Driver routine for computing wet deposition losses
-!  (13) LS_K_RAIN         : Internal routine to WETDEP
-!  (14) LS_F_PRIME        : Internal routine to WETDEP
-!  (15) CONV_F_PRIME      : Internal routine to WETDEP
-!  (16) SAFETY            : Internal routine to WETDEP
+!  (13) LS_K_RAIN         : Computes K_RAIN (for LS precipitation)
+!  (14) LS_F_PRIME        : Computes F_PRIME (for LS precipitation)
+!  (15) CONV_F_PRIME      : Computes F_PRIME (for convective precipitation)
+!  (16) SAFETY            : Stops WETDEP w/ error msg if negative tracer found
 !  (17) WETDEPID          : Initalizes the IDWETD array for routine WETDEP
 !  (18) GET_WETDEP_NMAX   : Returns max # of soluble tracers per simulation
 !  (19) GET_WETDEP_NSOL   : Returns actual # of soluble tracers per simulation
@@ -97,6 +97,7 @@
 !  (11) Now references "time_mod.f".  Added driver routine DO_WETDEP to
 !        remove cumbersome calling sequence from MAIN program.  Also declared
 !        WETDEP and MAKE_QQ PRIVATE to this module. (bmy, 3/27/03)
+!  (11) Add parallelization to routine WETDEP (bmy, 3/17/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1756,7 +1757,7 @@
 !******************************************************************************
 !  Subroutine WETDEP computes the downward mass flux of tracer due to washout 
 !  and rainout of aerosols and soluble tracers in a column.  The timestep is 
-!  the dynamic timestep. (hyl, bey, bmy, djj, 4/2/99, 3/27/03)
+!  the dynamic timestep. (hyl, bey, bmy, djj, 4/2/99, 3/17/04)
 !
 !  The precip fields through the bottom of each level are indexed as follows:
 !
@@ -1840,6 +1841,10 @@
 !        aqueous chem. If evaporation occurs then SO2 comes back as SO4.
 !        (rjp, bmy, 3/23/03)  
 !  (14) Now use function GET_TS_DYN() from "time_mod.f" (bmy, 3/27/03)
+!  (15) Now parallelize over outermost J-loop.  Also move internal routines
+!        LS_K_RAIN, LS_F_PRIME, CONV_F_PRIME, and SAFETY to the module, since
+!        we cannot call internal routines from w/in a parallel loop. 
+!        (bmy, 3/18/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1897,6 +1902,15 @@
       !
       ! Process rainout / washout by columns.
       !=================================================================
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I,       J,           FTOP,      DSTT,     ALPHA    )
+!$OMP+PRIVATE( ALPHA2,  F,           F_PRIME,   GAINED,   K_RAIN   )
+!$OMP+PRIVATE( LOST,    MASS_NOWASH, MASS_WASH, RAINFRAC, WASHFRAC )
+!$OMP+PRIVATE( WETLOSS, L,           Q,         NN,       N        )
+!$OMP+PRIVATE( XDSTT,   QDOWN,       AER,       TMP                )
+!$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -2061,8 +2075,19 @@
                   ENDIF
 
                   ! Negative tracer...call subroutine SAFETY
-                  IF ( STT(I,J,L,N) < 0d0 ) THEN 
-                     CALL SAFETY( I, J, L, N, 4 )
+                  IF ( STT(I,J,L,N) < 0d0 ) THEN
+                     !------------------------------------------------------
+                     ! Prior to 3/18/04:
+                     ! SAFETY is now a MODULE routine, so we need to pass
+                     ! all of the variables for debug output (bmy, 3/18/04)
+                     !CALL SAFETY( I, J, L, N, 4 )
+                     !------------------------------------------------------
+                     CALL SAFETY( I, J, L, N, 4, 
+     &                            LS,         PDOWN(L,I,J), QQ(L,I,J),   
+     &                            ALPHA,      ALPHA2,       RAINFRAC,    
+     &                            WASHFRAC,   MASS_WASH,    MASS_NOWASH, 
+     &                            WETLOSS,    GAINED,       LOST,        
+     &                            DSTT(NN,:), STT(I,J,:,N) )
                   ENDIF
                ENDDO
             ENDIF
@@ -2197,7 +2222,20 @@
 
                      ! Negative tracer...call subroutine SAFETY
                      IF ( STT(I,J,L,N) < 0d0 ) THEN
-                        CALL SAFETY( I, J, L, N, 5 )
+                        !-----------------------------------------------------
+                        ! Prior to 3/18/04:
+                        ! SAFETY is now a MODULE routine, so we need to pass
+                        ! all of the variables for debug output (bmy, 3/18/04)
+                        !CALL SAFETY( I, J, L, N, 5 )
+                        !-----------------------------------------------------
+                        CALL SAFETY( I, J, L, N, 5, 
+     &                               LS,           PDOWN(L,I,J),  
+     &                               QQ(L,I,J),    ALPHA,        
+     &                               ALPHA2,       RAINFRAC,     
+     &                               WASHFRAC,     MASS_WASH,    
+     &                               MASS_NOWASH,  WETLOSS,      
+     &                               GAINED,       LOST,         
+     &                               DSTT(NN,:),   STT(I,J,:,N) )
                      ENDIF
                   ENDDO
                ENDIF
@@ -2334,7 +2372,7 @@
                             STT(I,J,L,IDTSO4) = STT(I,J,L,IDTSO4) 
      &                                        + GAINED * 96D0 / 64D0
 
-                            STT(I,J,L,N )     = STT(I,J,L,N) 
+                            STT(I,J,L,N)      = STT(I,J,L,N) 
      &                                        - ( WETLOSS + GAINED )
                         ELSE
                             STT(I,J,L,N)      = STT(I,J,L,N) - WETLOSS
@@ -2403,7 +2441,20 @@
   
                      ! Negative tracer...call subroutine SAFETY
                      IF ( STT(I,J,L,N) < 0d0 ) THEN
-                        CALL SAFETY( I, J, L, N, 6 )
+                        !-----------------------------------------------------
+                        ! Prior to 3/18/04:
+                        ! SAFETY is now a MODULE routine, so we need to pass
+                        ! all of the variables for debug output (bmy, 3/18/04)
+                        !CALL SAFETY( I, J, L, N, 6 )
+                        !-----------------------------------------------------
+                        CALL SAFETY( I, J, L, N, 6, 
+     &                               LS,           PDOWN(L,I,J), 
+     &                               QQ(L,I,J),    ALPHA,        
+     &                               ALPHA2,       RAINFRAC,     
+     &                               WASHFRAC,     MASS_WASH,    
+     &                               MASS_NOWASH,  WETLOSS,      
+     &                               GAINED,       LOST,         
+     &                               DSTT(NN,:),   STT(I,J,:,N) )
                      ENDIF
                   ENDDO  
                ENDIF
@@ -2457,7 +2508,20 @@
                   ENDIF
 
                   ! Negative tracer...call subroutine SAFETY
-                  IF ( STT(I,J,L,N) < 0d0 ) CALL SAFETY( I, J, L, N, 7 )
+                  !--------------------------------------------------------
+                  ! Prior to 3/18/04:
+                  ! SAFETY is now a MODULE routine, so we need to pass
+                  ! all of the variables for debug output (bmy, 3/18/04)
+                  !IF ( STT(I,J,L,N) < 0d0 ) CALL SAFETY( I, J, L, N, 7 )
+                  !--------------------------------------------------------
+                  IF ( STT(I,J,L,N) < 0d0 ) THEN
+                     CALL SAFETY( I, J, L, N, 7, 
+     &                            LS,         PDOWN(L,I,J), QQ(L,I,J),   
+     &                            ALPHA,      ALPHA2,       RAINFRAC,    
+     &                            WASHFRAC,   MASS_WASH,    MASS_NOWASH, 
+     &                            WETLOSS,    GAINED,       LOST,        
+     &                            DSTT(NN,:), STT(I,J,:,N) )
+                  ENDIF
                ENDDO
 
                ! Save FTOP for next level
@@ -2571,80 +2635,270 @@
                   !-----------------------------------------------------
 
                   ! Negative tracer...call subroutine SAFETY
-                  IF ( STT(I,J,L,N) < 0d0 ) CALL SAFETY( I, J, L, N, 8 )
+                  !--------------------------------------------------------
+                  ! Prior to 3/18/04:
+                  ! SAFETY is now a MODULE routine, so we need to pass
+                  ! all of the variables for debug output (bmy, 3/18/04)
+                  !IF ( STT(I,J,L,N) < 0d0 ) CALL SAFETY( I, J, L, N, 8 )
+                  !--------------------------------------------------------
+                  IF ( STT(I,J,L,N) < 0d0 ) THEN
+                     CALL SAFETY( I, J, L, N, 8, 
+     &                            LS,         PDOWN(L,I,J), QQ(L,I,J),   
+     &                            ALPHA,      ALPHA2,       RAINFRAC,    
+     &                            WASHFRAC,   MASS_WASH,    MASS_NOWASH, 
+     &                            WETLOSS,    GAINED,       LOST,        
+     &                            DSTT(NN,:), STT(I,J,:,N) )
+                  ENDIF
                ENDDO
             ENDIF    
          ENDIF
       ENDDO	
       ENDDO	
+!$OMP END PARALLEL DO
 
-      !=================================================================
-      ! Internal subroutines for WETDEP
-      !=================================================================
-      CONTAINS 
+!------------------------------------------------------------------------------
+! Prior to 3/18/04:
+! We cannot have internal routines called from w/in a parallel section
+! So make all these routines module routines below (bmy, 3/18/04)
+!      !=================================================================
+!      ! Internal subroutines for WETDEP
+!      !=================================================================
+!      CONTAINS 
+!
+!      !-----------------------------------------------------------------------
+!      
+!      FUNCTION LS_K_RAIN( Q ) RESULT( Y )
+!      
+!      !=================================================================
+!      ! Internal function LS_K_RAIN computes K_RAIN, the first order 
+!      ! rainout rate constant, for large-scale (a.k.a. stratiform) 
+!      ! precipitation
+!      !=================================================================
+!      
+!      ! Arguments
+!      REAL*8, INTENT(IN) :: Q
+!      
+!      ! Local variables
+!      REAL*8             :: Y
+!      
+!      ! Compute rainout rate constant K in s^-1 (Eq. 12, Jacob et al, 2000).
+!      ! 1.0d-4 = K_MIN, a minimum value for K_RAIN [
+!      ! 1.5d-6 = L + W, the condensed water content (liq + ice) in the cloud
+!      Y = 1.0d-4 + ( Q / 1.5d-6 ) 
+!      
+!      ! Return to WETDEP
+!      END FUNCTION LS_K_RAIN
+!      
+!      !-----------------------------------------------------------------------
+!      
+!      FUNCTION LS_F_PRIME( Q, K_RAIN ) RESULT( Y )
+!      
+!      !=================================================================
+!      ! Internal function LS_F_PRIME computes F', the fraction of the 
+!      ! grid box that is precipitating during large scale (a.k.a. 
+!      ! stratiform) precipitation.
+!      !=================================================================
+!      
+!      ! Arguments
+!      REAL*8, INTENT(IN) :: Q, K_RAIN
+!      
+!      ! Local variables
+!      REAL*8             :: Y
+!      
+!      ! Compute F', the area of the grid box undergoing precipitation
+!      ! 1.5d-6 = L + W, the condensed water content [cm3 H2O/cm3 air]
+!      Y = Q / ( K_RAIN * 1.5d-6 )
+!      
+!      ! Return to WETDEP
+!      END FUNCTION LS_F_PRIME
+!      
+!      !-----------------------------------------------------------------------
+!      
+!      FUNCTION CONV_F_PRIME( Q, K_RAIN, DT ) RESULT( Y )
+!      
+!      !=================================================================
+!      ! Internal function CONV_F_PRIME computes F', the fraction of the 
+!      ! grid box that is precipitating during convective precipitation
+!      !=================================================================
+!      
+!      ! Arguments
+!      REAL*8, INTENT(IN) :: Q, K_RAIN, DT
+!      
+!      ! Local variables
+!      REAL*8             :: TIME, Y
+!      
+!      ! Assume the rainout event happens in 30 minutes (1800 s)
+!      ! Compute the minimum of DT / 1800s and 1.0
+!      TIME = MIN( DT / 1800d0, 1d0 )
+!      
+!      ! Compute F' for convective precipitation (Eq. 13, Jacob et al, 2000)
+!      ! 0.3  = FMAX, the maximum value of F' for convective precip
+!      ! 2d-6 = L + W, the condensed water content [cm3 H2O/cm3 air]
+!      Y = ( 0.3d0 * Q * TIME ) / 
+!     &    ( ( Q * TIME ) + ( 0.3d0 * K_RAIN * 2d-6 ) )
+!      
+!      ! Return to WETDEP
+!      END FUNCTION CONV_F_PRIME
+!      
+!      !------------------------------------------------------------------------
+!      SUBROUTINE SAFETY( I, J, L, N, A )
+!
+!      !=================================================================
+!      ! Internal subroutine SAFETY stops the run with debug output and
+!      ! an error message if negative tracers are found.
+!      !=================================================================
+!      
+!      ! Arguments
+!      INTEGER, INTENT(IN) :: I, J, L, N, A
+!
+!      ! Write error message and stop the run
+!      WRITE ( 6, 100 ) I, J, L, N, A
+! 100  FORMAT( 'WETDEP - STT < 0 at ', 3i4, ' for tracer ', i4, 
+!     &        'in area ', i4 )
+!
+!      PRINT*, 'LS          : ', LS
+!      PRINT*, 'PDOWN       : ', PDOWN(L,I,J)
+!      PRINT*, 'QQ          : ', QQ(L,I,J)
+!      PRINT*, 'ALPHA       : ', ALPHA
+!      PRINT*, 'ALPHA2      : ', ALPHA2
+!      PRINT*, 'RAINFRAC    : ', RAINFRAC
+!      PRINT*, 'WASHFRAC    : ', WASHFRAC
+!      PRINT*, 'MASS_WASH   : ', MASS_WASH
+!      PRINT*, 'MASS_NOWASH : ', MASS_NOWASH
+!      PRINT*, 'WETLOSS     : ', WETLOSS
+!      PRINT*, 'GAINED      : ', GAINED
+!      PRINT*, 'LOST        : ', LOST
+!      PRINT*, 'DSTT        : ', DSTT(NN,:)
+!      PRINT*, 'STT         : ', STT(I,J,:,N)
+!
+!      ! Deallocate memory and stop
+!      CALL GEOS_CHEM_STOP
+!
+!      ! Return to WETDEP
+!      END SUBROUTINE SAFETY
+!
+!      !------------------------------------------------------------------------
+!
+!------------------------------------------------------------------------------
 
-      !-----------------------------------------------------------------------
+      ! Return to calling program
+      END SUBROUTINE WETDEP
 
-      FUNCTION LS_K_RAIN( Q ) RESULT( Y )
+!------------------------------------------------------------------------------
 
-      !=================================================================
-      ! Internal function LS_K_RAIN computes K_RAIN, the first order 
-      ! rainout rate constant, for large-scale (a.k.a. stratiform) 
-      ! precipitation
-      !=================================================================
-
+      FUNCTION LS_K_RAIN( Q ) RESULT( K_RAIN )
+!
+!******************************************************************************
+!  Function LS_K_RAIN computes K_RAIN, the first order rainout rate constant 
+!  for large-scale (a.k.a. stratiform) precipitation (bmy, 3/18/04)
+! 
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) Q      (REAL*8) : Rate of precip formation [cm3 H2O/cm3 air/s]
+!
+!  Function value:
+!  ============================================================================
+!  (2 ) K_RAIN (REAL*8) : 1st order rainout rate constant [s-1]
+!
+!  NOTES:
+!  (1 ) Now made into a MODULE routine since we cannot call internal routines
+!        from w/in a parallel loop.  Updated comments. (bmy, 3/18/04)
+!******************************************************************************
+!
       ! Arguments
       REAL*8, INTENT(IN) :: Q
       
-      ! Local variables
-      REAL*8             :: Y
+      ! Function value
+      REAL*8             :: K_RAIN
+
+      !==================================================================
+      ! LS_K_RAIN begins here!
+      !==================================================================
 
       ! Compute rainout rate constant K in s^-1 (Eq. 12, Jacob et al, 2000).
-      ! 1.0d-4 = K_MIN, a minimum value for K_RAIN [
+      ! 1.0d-4 = K_MIN, a minimum value for K_RAIN 
       ! 1.5d-6 = L + W, the condensed water content (liq + ice) in the cloud
-      Y = 1.0d-4 + ( Q / 1.5d-6 ) 
+      K_RAIN = 1.0d-4 + ( Q / 1.5d-6 ) 
       
       ! Return to WETDEP
       END FUNCTION LS_K_RAIN
 
-      !-----------------------------------------------------------------------
+!------------------------------------------------------------------------------
 
-      FUNCTION LS_F_PRIME( Q, K_RAIN ) RESULT( Y )
-
-      !=================================================================
-      ! Internal function LS_F_PRIME computes F', the fraction of the 
-      ! grid box that is precipitating during large scale (a.k.a. 
-      ! stratiform) precipitation.
-      !=================================================================
-
+      FUNCTION LS_F_PRIME( Q, K_RAIN ) RESULT( F_PRIME )
+!
+!******************************************************************************
+!  Function LS_F_PRIME computes F', the fraction of the grid box that is 
+!  precipitating during large scale (a.k.a. stratiform) precipitation.
+!  (bmy, 3/18/04)
+! 
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) Q       (REAL*8) : Rate of precip formation [cm3 H2O/cm3 air/s]
+!  (2 ) K_RAIN  (REAL*8) : 1st order rainout rate constant [s-1]
+!
+!  Function value:
+!  ============================================================================
+!  (3 ) F_PRIME (REAL*8) : Fraction of grid box undergoing LS precip [unitless]
+!
+!  NOTES:
+!  (1 ) Now made into a MODULE routine since we cannot call internal routines
+!        from w/in a parallel loop.  Updated comments. (bmy, 3/18/04)
+!******************************************************************************
+!
       ! Arguments
       REAL*8, INTENT(IN) :: Q, K_RAIN
 
-      ! Local variables
-      REAL*8             :: Y
+      ! Function value
+      REAL*8             :: F_PRIME
+
+      !=================================================================
+      ! LS_F_PRIME begins here!
+      !=================================================================
 
       ! Compute F', the area of the grid box undergoing precipitation
       ! 1.5d-6 = L + W, the condensed water content [cm3 H2O/cm3 air]
-      Y = Q / ( K_RAIN * 1.5d-6 )
+      F_PRIME = Q / ( K_RAIN * 1.5d-6 )
 
       ! Return to WETDEP
       END FUNCTION LS_F_PRIME
 
-      !-----------------------------------------------------------------------
+!------------------------------------------------------------------------------
 
-      FUNCTION CONV_F_PRIME( Q, K_RAIN, DT ) RESULT( Y )
-
-      !=================================================================
-      ! Internal function CONV_F_PRIME computes F', the fraction of the 
-      ! grid box that is precipitating during convective precipitation
-      !=================================================================
-      
+      FUNCTION CONV_F_PRIME( Q, K_RAIN, DT ) RESULT( F_PRIME )
+!
+!******************************************************************************
+!  Function CONV_F_PRIME computes F', the fraction of the grid box that is 
+!  precipitating during convective precipitation. (bmy, 3/18/04)
+! 
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) Q       (REAL*8) : Rate of precip formation        [cm3 H2O/cm3 air/s]
+!  (2 ) K_RAIN  (REAL*8) : 1st order rainout rate constant [s-1]
+!  (3 ) DT      (REAL*8) : Wet deposition timestep         [s]
+!
+!  Function value:
+!  ============================================================================
+!  (4 ) F_PRIME (REAL*8) : Frac. of grid box undergoing CONV precip [unitless]
+!
+!  NOTES:
+!  (1 ) Now made into a MODULE routine since we cannot call internal routines
+!        from w/in a parallel loop.  Updated comments. (bmy, 3/18/04)
+!******************************************************************************
+!
       ! Arguments
       REAL*8, INTENT(IN) :: Q, K_RAIN, DT
       
       ! Local variables
-      REAL*8             :: TIME, Y
+      REAL*8             :: TIME
 
+      ! Function value
+      REAL*8             :: F_PRIME
+
+      !=================================================================
+      ! CONV_F_PRIME begins here!
+      !=================================================================
+      
       ! Assume the rainout event happens in 30 minutes (1800 s)
       ! Compute the minimum of DT / 1800s and 1.0
       TIME = MIN( DT / 1800d0, 1d0 )
@@ -2652,32 +2906,72 @@
       ! Compute F' for convective precipitation (Eq. 13, Jacob et al, 2000)
       ! 0.3  = FMAX, the maximum value of F' for convective precip
       ! 2d-6 = L + W, the condensed water content [cm3 H2O/cm3 air]
-      Y = ( 0.3d0 * Q * TIME ) / 
-     &    ( ( Q * TIME ) + ( 0.3d0 * K_RAIN * 2d-6 ) )
+      F_PRIME = ( 0.3d0 * Q * TIME ) / 
+     &          ( ( Q * TIME ) + ( 0.3d0 * K_RAIN * 2d-6 ) )
 
       ! Return to WETDEP
       END FUNCTION CONV_F_PRIME
 
-      !------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 
-      SUBROUTINE SAFETY( I, J, L, N, A )
+      SUBROUTINE SAFETY( I,         J,           L,        N,     
+     &                   A,         LS,          PDOWN,    QQ,       
+     &                   ALPHA,     ALPHA2,      RAINFRAC, WASHFRAC, 
+     &                   MASS_WASH, MASS_NOWASH, WETLOSS,  GAINED,   
+     &                   LOST,      DSTT,        STT )
+!
+!******************************************************************************
+!  Subroutine SAFETY stops the run with debug output and an error message 
+!  if negative tracers are found. (bmy, 3/18/04)
+! 
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) Q       (REAL*8) : Rate of precip formation        [cm3 H2O/cm3 air/s]
+!  (2 ) K_RAIN  (REAL*8) : 1st order rainout rate constant [s-1]
+!  (3 ) DT      (REAL*8) : Wet deposition timestep         [s]
+!
+!  Function value:
+!  ============================================================================
+!  (4 ) F_PRIME (REAL*8) : Frac. of grid box undergoing CONV precip [unitless]
+!
+!  NOTES:
+!  (1 ) Now made into a MODULE routine since we cannot call internal routines
+!        from w/in a parallel loop.  Updated comments. (bmy, 3/18/04)
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
+
+#     include "CMN_SIZE"
+
+      ! Arguments
+      LOGICAL, INTENT(IN) :: LS
+      INTEGER, INTENT(IN) :: I, J, L, N, A
+      REAL*8,  INTENT(IN) :: PDOWN,    QQ,       ALPHA,     ALPHA2
+      REAL*8,  INTENT(IN) :: RAINFRAC, WASHFRAC, MASS_WASH, MASS_NOWASH
+      REAL*8,  INTENT(IN) :: WETLOSS,  GAINED,   LOST,      DSTT(LLPAR)
+      REAL*8,  INTENT(IN) :: STT(LLPAR)
 
       !=================================================================
-      ! Internal subroutine SAFETY stops the run with debug output and
-      ! an error message if negative tracers are found.
+      ! SAFETY begins here!
       !=================================================================
       
-      ! Arguments
-      INTEGER, INTENT(IN) :: I, J, L, N, A
+      ! Print line
+      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
       ! Write error message and stop the run
       WRITE ( 6, 100 ) I, J, L, N, A
  100  FORMAT( 'WETDEP - STT < 0 at ', 3i4, ' for tracer ', i4, 
-     &        'in area ', i4 )
+     &        ' in area ', i4 )
 
       PRINT*, 'LS          : ', LS
-      PRINT*, 'PDOWN       : ', PDOWN(L,I,J)
-      PRINT*, 'QQ          : ', QQ(L,I,J)
+      !-----------------------------------------------
+      ! Prior to 3/18/04:
+      !PRINT*, 'PDOWN       : ', PDOWN(L,I,J)
+      !PRINT*, 'QQ          : ', QQ(L,I,J)
+      !-----------------------------------------------
+      PRINT*, 'PDOWN       : ', PDOWN
+      PRINT*, 'QQ          : ', QQ
       PRINT*, 'ALPHA       : ', ALPHA
       PRINT*, 'ALPHA2      : ', ALPHA2
       PRINT*, 'RAINFRAC    : ', RAINFRAC
@@ -2687,19 +2981,22 @@
       PRINT*, 'WETLOSS     : ', WETLOSS
       PRINT*, 'GAINED      : ', GAINED
       PRINT*, 'LOST        : ', LOST
-      PRINT*, 'DSTT        : ', DSTT(NN,:)
-      PRINT*, 'STT         : ', STT(I,J,:,N)
+      !-----------------------------------------------
+      ! Prior to 3/18/04:
+      !PRINT*, 'DSTT        : ', DSTT(NN,:)
+      !PRINT*, 'STT         : ', STT(I,J,:,N)
+      !-----------------------------------------------
+      PRINT*, 'DSTT(NN,:)  : ', DSTT(:)
+      PRINT*, 'STT(I,J,:N) : ', STT(:)
+
+      ! Print line
+      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
       ! Deallocate memory and stop
       CALL GEOS_CHEM_STOP
 
       ! Return to WETDEP
       END SUBROUTINE SAFETY
-
-      !------------------------------------------------------------------------
-
-      ! Return to calling program
-      END SUBROUTINE WETDEP
 
 !------------------------------------------------------------------------------
 
