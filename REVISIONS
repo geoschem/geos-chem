@@ -66,9 +66,10 @@ ohno3time		-- Also added parallel loop over grid boxes
 rainout			-- Updated for mercury aerosol tracers 
 ("wetscav_mod.f")
 
-rdland.f		-- Now use AVHRR LAI derived land-type data which 
-			   is stored in the leaf_area_index_200412 
-			   subdirectory of DATA_DIR
+rdland.f		-- Now read the "vegtype.global" file from the 
+			   leaf_area_index_200412 subdirectory of DATA_DIR.  
+			   This is the same Olson land map as was used 
+			   previously. 
 			-- Also updated comments and added standard GEOS-CHEM
 			   program documentation header.
 
