@@ -1,9 +1,9 @@
-! $Id: upbdflx_mod.f,v 1.5 2003/10/21 16:05:29 bmy Exp $
+! $Id: upbdflx_mod.f,v 1.6 2004/01/29 16:55:33 bmy Exp $
       MODULE UPBDFLX_MOD
 !
 !******************************************************************************
 !  Module UPBDFLX_MOD contains subroutines which impose stratospheric boundary
-!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 10/2/03)
+!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 1/29/04)
 !
 !  Module Routines:
 !  ============================================================================
@@ -159,6 +159,7 @@
 !  (19) Now calls routine ADD_STRAT_POX from "tagged_ox_mod.f" in order to
 !        pass stratospheric flux of Ox to the proper tagged tracer w/o
 !        resorting to hardwiring w/in this routine. (bmy, 8/18/03)
+!  (20) Add GEOS_4 to the #if defined block. (bmy, 1/29/04)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -251,6 +252,10 @@
       !--------------------------------------------------------------------
       PO3_vmr = 5.14d-14                                 ! 3,3,7
       IF ( IORD + JORD + KORD == 17 ) PO3_vmr = 4.07d-14 ! 5,5,7
+
+#elif defined( GEOS_4 )
+
+      PO3_vmr = 5.14d-14                                 ! 3,3,7
 
 #endif
 

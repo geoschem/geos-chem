@@ -1,6 +1,6 @@
-C $Id: main.f,v 1.9 2004/01/29 15:50:05 bmy Exp $
+C $Id: main.f,v 1.11 2004/01/29 16:55:32 bmy Exp $
 C $Log: main.f,v $
-C Revision 1.9  2004/01/29 15:50:05  bmy
+C Revision 1.11  2004/01/29 16:55:32  bmy
 C GEOS-CHEM v6-01-05, includes the following modifications:
 C - Updated deep & shallow convection code for GEOS-4 met fields
 C - Bug fix in routine NFCLDMX to allow 2x25 runs on Altix
@@ -8,7 +8,7 @@ C - Updated code to read GEOS-4 met fields; now looks for ident strings
 C - Bug fix in sulfate emissions code: convert GEOS-4 PBL from [m] to [hPa]
 C - Updated comments, cosmetic changes
 C
-C Revision 1.8  2004/01/27 21:25:08  bmy
+C Revision 1.10  2004/01/29 15:51:20  bmy
 C GEOS-CHEM v6-01-05, includes the following modifications:
 C - Updated deep & shallow convection code for GEOS-4 met fields
 C - Bug fix in routine NFCLDMX to allow 2x25 runs on Altix
@@ -52,68 +52,6 @@ C - Now apply drydep to entire PBL in single-tracer Ox routine chemo3.f
 C - Added OpenMP parallelization commands to ND65 routine diagpl.f
 C - Other minor bug fixes and updates
 C
-C Revision 1.2  2003/07/08 15:27:48  bmy
-C GEOS-CHEM v5.07.01, now contains:
-C - interannually varying latitudinal CH4 gradient full chemistry
-C - removal of obsolete code; updates to documentation
-C
-C Revision 1.1.2.3  2003/06/30 18:32:06  bmy
-C GEOS-CHEM v5.06, now contains:
-C - Code for reading in fvDAS met fields
-C - new (and yet untested) fvDAS convection code
-C - Compilation patches for LINUX/PGI platform
-C - Minor bug fixes in "rdust.f" and "tagged_co_mod.f"
-C - Removed obsolete code; updated comments
-C
-C Revision 1.1.2.2  2003/06/24 15:28:23  bmy
-C Synch up of NCCS code plus fvDAS met field modifications (bmy, 6/24/03)
-C
-C Revision 1.1.1.1  2003/06/13 16:35:02  bmy
-C GEOS-CHEM v5.05.03, now contains:
-C - new SMVGEAR II solver package for full chemistry
-C - new TPCORE for GEOS-4/fvDAS wind fields
-C - Phil Cameron-Smith P-Fixer to ensure new TPCORE conserves mass
-C - lightning NOx for 1x1 China nested grid scaled to account for 1x1 gri
-C - minor bug fixes in Rn-Pb-Be and Tagged CO
-C - removed obsolete code, updated comments, cosmetic changes
-C
-C Revision 5.4  2003/04/08 20:27:32  bmy
-C GEOS-CHEM v5.04, now contains:
-C - new module for grid box lat, lon, surface area (grid_mod.f)
-C - new module for date and time information (time_mod.f)
-C - local time now computed consistently everywhere (time_mod.f)
-C - new drivers for emission/chem (emission_mod.f, chemistry_mod.f)
-C - new module for nested grid transport (tpcore_window_mod.f)
-C - new module for nested grid boundary conditions (tpcore_bc_mod.f)
-C - bug fix in FAST-J in solar constant computation
-C - removed LOTS of historical baggage
-C - updated look & feel of GEOS-CHEM output
-C
-C Revision 5.3  2003/02/03 15:04:12  bmy
-C GEOS-CHEM v5.03, now contains:
-C - new coupled fullchem/sulfate aerosol simulation
-C - new offline sulfate simulation
-C - drydep code now packaged into "drydep_mod.f"
-C - wetdep code now packaged into "wetscav_mod.f"
-C - new module "tracerid_mod.f" for tracer ID flags
-C - new module "rpmares_mod.f" for aerosol thermodyn. equilib.
-C - improved documentation and removed historical baggage
-C
-C Revision 5.2  2002/09/18 14:00:06  bmy
-C GEOS-CHEM v5.02, now contains:
-C - floating surface pressure (cf. Phil Cameron-Smith)
-C - grid box pressure center/edges now computed for hybrid grid
-C - ocean production of acetone for GEOS-3 now scaled by 0.83
-C - removed lots of obsolete code and routines
-C
-C Revision 5.1  2002/08/20 13:52:09  bmy
-C GEOS-CHEM version 5.01
-C - coding changes to facilitate new TPCORE for fvDAS
-C - added Mat Evans' plane flight diagnostic
-C - consolidated all file unit numbers into "file_mod.f"
-C - updated Rn-Pb-Be simulation w/ Hongyu Liu's most recent code
-C - changes to facilitate benchmark runs w/ GEOS-3 winds
-C - deleted a lot of obsolete code
 C
       PROGRAM GEOS_CHEM
 ! 

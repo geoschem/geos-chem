@@ -104,6 +104,9 @@ srcso4			-- For GEOS-4, convert PBL from [m] to [hPa] w/
 tpcore_window		-- Commented out call to FLUSH(6)
 ("tpcore_window_mod.f")
      
+upbdflx_o3		-- Added GEOS-4 to the #if block where the 
+("upbdflx_mod.f")	   mixing ratio of Ozone is defined
+
 whenfgt			-- Updated comments
 ("fvdas_convect_mod.f") -- Now use F90-style declarations.
 
