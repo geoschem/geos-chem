@@ -1,4 +1,4 @@
-! $Id: diag49.f,v 1.4 2004/04/19 15:09:52 bmy Exp $
+! $Id: diag49.f,v 1.5 2004/04/19 17:23:44 bmy Exp $
       SUBROUTINE DIAG49
 ! 
 !******************************************************************************
@@ -216,7 +216,7 @@
                   NL2      = NL
 
                   ! For GAMAP: save tracer # plus special chem offset
-                  GMTRC    = XTRAC + TRCOFFSET
+                  GMTRC    = NNPAR + 1 + TRCOFFSET
 
 
                   IF ( IDTOX > 0 ) THEN
