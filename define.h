@@ -1,9 +1,9 @@
-! $Id: define.h,v 1.4 2003/11/06 21:07:18 bmy Exp $
+! $Id: define.h,v 1.6 2003/12/05 21:13:58 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
 !  used to include or exclude certain sections of code.  
-!  (bmy, bdf, 1/30/98, 10/31/03)
+!  (bmy, bdf, 1/30/98, 12/2/03)
 !
 !  List of "Switches"
 !  ===========================================================================
@@ -16,16 +16,16 @@
 !  (7 ) GRID2x25   : Enables code for 2 x 2.5 grid 
 !  (8 ) GRID4x5    : Enables code for 4 x 5   grid 
 !  (9 ) FULLCHEM   : Enables code for "Full" Chemistry (ISOP and NMHC)
-!  (10) SMALLCHEM  : Enables code for "Small" chemistry (No ISOP, no NMHC)
-!  (11) LGEOSCO    : Enables code for CO run w/ parameterized OH
-!  (12) LFASTJ     : Enables code for FAST-J photolysis
-!  (13) LSLOWJ     : Enables code for SLOW-J photolysis
-!  (14) SGI        : Enables SGI specific code
-!  (15) COMPAQ     : Enables COMPAQ Alpha specific code
-!  (16) LINUX      : Enables Linux specific code
-!  (17) SPARC      : Enables Sun/Sparc specific code
-!  (18) IBM_AIX    : Enables IBM/AIX specific code
-!  (19) INTEL_FC   : Enables INTEL FORTRAN COMPILER code
+!  (10) LGEOSCO    : Enables code for CO run w/ parameterized OH
+!  (11) LFASTJ     : Enables code for FAST-J photolysis
+!  (12) LSLOWJ     : Enables code for SLOW-J photolysis
+!  (13) COMPAQ     : Enables code for Alpha w/ COMPAQ/HP Alpha compiler
+!  (14) IBM_AIX    : Enables code for IBM/AIX compiler
+!  (15) LINUX_PGI  : Enables code for Linux w/ PGI compiler
+!  (16) LINUX_IFC  : Enables code for Linux w/ 32-bit Intel Fortran compiler
+!  (17) LINUX_EFC  : Enables code for Linux w/ 64-bit Intel Fortran compiler
+!  (18) SGI_MIPS   : Enables code for SGI Origin w/ MIPS compiler
+!  (19) SPARC      : Enables code for Sun w/ SPARC compiler
 ! 
 !  NOTES:
 !  (1 ) "define.h" is #include'd at the top of CMN_SIZE.  All subroutines
@@ -53,6 +53,10 @@
 !  (14) Added IBM_AIX switch (bmy, 6/27/03)
 !  (15) Added INTEL_FC switch (bmy, 10/21/03)
 !  (16) Added GRID30LEV switch for 30L GEOS-3 or GEOS-4 grid (bmy, 10/31/03)
+!  (17) Renamed cpp switch "LINUX" to "LINUX_PGI".  Renamed cpp switch 
+!        "INTEL_FC" to "LINUX_IFC".  Renamed cpp switch "SGI" to "SGI_MIPS".
+!        Added cpp switch "LINUX_EFC".  Removed cpp switch SMALLCHEM.
+!        (bmy, 12/2/03)
 !******************************************************************************
 !
 !==============================================================================
@@ -67,49 +71,54 @@
 #undef GRID4x5
 #undef GRID1x1   
 #undef FULLCHEM  
-#undef SMALLCHEM 
 #undef LGEOSCO
 #undef LFASTJ
 #undef LSLOWJ
-#undef SGI
 #undef COMPAQ
-#undef LINUX
-#undef SPARC
 #undef IBM_AIX
-#undef INTEL_FC
+#undef LINUX_PGI
+#undef LINUX_IFC
+#undef LINUX_EFC
+#undef SGI_MIPS
+#undef SPARC
 
 !==============================================================================
 ! Define the necessary "switches" for GEOS-CHEM. 
 ! Give each switch its own name as a value, since this will prevent
 ! the C-preprocessor overwriting the name everywhere in the code.
 !==============================================================================
+
+!----- Model types -----
 !#define GEOS_1      'GEOS_1'       
 !#define GEOS_STRAT  'GEOS_STRAT'
 #define GEOS_3      'GEOS_3'
 !#define GEOS_4      'GEOS_4'
 
+!----- Grid sizes -----
 !#define GRID1x1     'GRID1x1'
 !#define GRID2x25    'GRID2x25'
 #define GRID4x5     'GRID4x5'
 #define GRID30LEV   'GRID30LEV'
 
-!#define SMALLCHEM   'SMALLCHEM'
+!----- Chemistry -----
 #define FULLCHEM    'FULLCHEM'
 !#define LGEOSCO     'LGEOSCO'
 
+!----- Photolysis -----
 #define LFASTJ      'LFASTJ'
 !#define LSLOWJ      'LSLOWJ'
 
-!#define SGI         'SGI'
+!----- Compilers -----
 !#define COMPAQ      'COMPAQ'
-!#define LINUX       'LINUX'
-!#define SPARC       'SPARC'
 !#define IBM_AIX     'IBM_AIX'
-#define INTEL_FC    'INTEL_FC'
+!#define LINUX_PGI   'LINUX_PGI'
+!#define LINUX_IFC   'LINUX_IFC'
+#define LINUX_EFC   'LINUX_EFC'
+!#define SGI_MIPS     'SGI_MIPS'
+!#define SPARC       'SPARC'
 
 !==============================================================================
-! Force a compile-time error if switches GEOS_1, GEOS_STRAT, 
-! and GEOS_2, and GEOS_3 are all undefined. 
+! Force a compile error if GEOS_1, GEOS_STRAT, GEOS_3, GEOS_4 are undefined 
 !==============================================================================
 #if !defined( GEOS_1 ) && !defined( GEOS_STRAT ) && !defined( GEOS_3 ) && !defined( GEOS_4 )
 #error "ERROR: GEOS_1, GEOS_STRAT, GEOS_3, and GEOS_4"
@@ -117,8 +126,7 @@
 #endif
 
 !==============================================================================
-! Force a compile-time error if switches GRID1x1, GRID2x25,
-! and GRID4x5 are all undefined. 
+! Force a compile error if GRID1x1, GRID2x25, and GRID4x5 are all undefined 
 !==============================================================================
 #if !defined( GRID2x25 ) && !defined( GRID4x5 ) && !defined( GRID1x1 )
 #error "ERROR: GRID2x25, GRID4x5, and GRID1x1"
@@ -126,19 +134,18 @@
 #endif
 
 !==============================================================================
-! Force a compile-time error if switches FULLCHEM, 
-! SMALLCHEM, and LGEOSCO are all undefined
+! Force a compile error if switches FULLCHEM, LGEOSCO are undefined
 !==============================================================================
-#if !defined( FULLCHEM ) && !defined( SMALLCHEM ) && !defined( LGEOSCO )
-#error "ERROR: One of FULLCHEM, SMALLCHEM, LGEOSCO" 
+#if !defined( FULLCHEM ) && !defined( LGEOSCO )
+#error "ERROR: One of FULLCHEM, LGEOSCO" 
 #error "needs to be defined in header file define.h"
 #endif
 
 !==============================================================================
-! Force a compile-time error if switches SGI, 
-! DEC_COMPAQ, and LINUX are ALL undefined
+! Force a compile  error if all compiler switches are undefined
 !==============================================================================
-#if !defined( SGI ) && !defined( COMPAQ ) && !defined( LINUX ) && !defined( SPARC ) && !defined( IBM_AIX ) && !defined( INTEL_FC )
-#error "ERROR: One of SGI, DEC_COMPAQ, LINUX, SPARC, IBM_AIX, INTEL_FC"
+#if !defined(COMPAQ) && !defined(IBM_AIX) && !defined(LINUX_PGI) && !defined(LINUX_IFC) && !defined(LINUX_EFC) && !defined(SGI_MIPS) && ! defined(SPARC)
+#error "ERROR: One of COMPAQ, IBM_AIX, LINUX_PGI,"
+#error "LINUX_IFC, LINUX_EFC, SGI_MIPS, SPARC"
 #error "needs to be defined in header file define.h"
 #endif

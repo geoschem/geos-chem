@@ -1,4 +1,4 @@
-! $Id: diag50.f,v 1.2 2003/10/01 20:32:21 bmy Exp $
+! $Id: diag50.f,v 1.3 2003/12/05 21:13:59 bmy Exp $
       SUBROUTINE DIAG50
 !
 !******************************************************************************
@@ -289,11 +289,7 @@
             COUNT_IN_DAY = COUNT_IN_DAY + 1
             IF ( COUNT_IN_DAY .EQ. 1 ) ZTAU1 = GET_TAU()
 
-            !-----------------------------------------------------------------
-            ! Prior to 9/29/03:
-            ! LINUX cannot write the result of a function call (bmy, 9/29/03)
-            !WRITE( 6, 110 ) TIMESTAMP_STRING()
-            !-----------------------------------------------------------------
+            ! Echo output
             STAMP = TIMESTAMP_STRING()
             WRITE( 6, 110 ) STAMP
  110        FORMAT( '     - DIAG50: Accumulation at ', a )
@@ -366,11 +362,6 @@
             COUNT_IN_DAY = COUNT_IN_DAY + 1
 
             ! Echo output
-            !----------------------------------------------------------------
-            ! Prior to 9/29/03:
-            ! LINUX cannot write the result of a function call (bmy, 9/29/03)
-            !WRITE( 6, 110 ) TIMESTAMP_STRING()
-            !----------------------------------------------------------------
             STAMP = TIMESTAMP_STRING()
             WRITE( 6, 110 ) STAMP
 

@@ -1,5 +1,12 @@
-C $Id: main.f,v 1.5 2003/11/06 21:07:18 bmy Exp $
+C $Id: main.f,v 1.6 2003/12/05 21:14:03 bmy Exp $
 C $Log: main.f,v $
+C Revision 1.6  2003/12/05 21:14:03  bmy
+C GEOS-CHEM v6-01-03, includes the following modifications:
+C - Added LINUX_IFC, LINUX_EFC C-preprocessor switches
+C - Renamed SGI C-preprocessor switch to SGI_MIPS
+C - Now includes Makefile.ifc and Makefile.efc for INTEL compiler
+C - Updated "build" script to automatically select proper makefile
+C
 C Revision 1.5  2003/11/06 21:07:18  bmy
 C GEOS-CHEM v6-01-02, includes the following modifications:
 C - Can now vertically regrid GEOS-4 55L to 30L on-the-fly
@@ -709,10 +716,6 @@ C
             CALL DIAG48
          ENDIF
 
-         !### Debug
-         WRITE( 700, 700 ) GET_TAU(), SUM( AD ), SUM( STT(:,:,:,2) )
- 700     FORMAT( f13.6, 2(1x,es14.7) )
-
          ! Test for emission timestep
          IF ( ITS_TIME_FOR_EMIS() ) THEN
                
@@ -803,17 +806,6 @@ C
       CALL UNZIP_I6_FIELDS(  'remove all' )
       CALL UNZIP_PHIS_FIELD( 'remove all' )
 
-      !---------------------------------------------------------------------
-      ! Prior to 10/22/03:
-      ! Now print mean mass-weighted OH concentration (bmy, 10/22/030
-      !! Compute methyl chloroform lifetime (certain runs only)
-      !IF ( ND23 > 0 .and. LCHEM ) THEN
-      !   IF ( NSRCX == 3 .or. NSRCX == 5 .or. NSRCX == 9 ) THEN
-      !      CALL CH3CCl3_LIFETIME
-      !   ENDIF
-      !ENDIF
-      !---------------------------------------------------------------------
-
       ! Print the mass-weighted mean OH concentration (if applicable)
       CALL PRINT_MEAN_OH
 
@@ -865,46 +857,65 @@ C
       !=================================================================
       ! Internal Subroutine DISPLAY_GRID_AND_MODEL displays the 
       ! appropriate messages for the given model grid (2 x 2.5, 4 x 5)
+      ! and machine type (bmy, 12/2/03)
       !=================================================================
 
-      ! Local variable
-      CHARACTER(LEN=255) :: STR
+      !-----------------------
+      ! Print resolution info
+      !-----------------------
+#if   defined( GRID4x5  )
+      WRITE( 6, '(a)' )                   
+     &    REPEAT( '*', 13 )                                    //
+     &    '   S T A R T I N G   4 x 5   G E O S--C H E M   '   //
+     &    REPEAT( '*', 13 )
 
-      ! Define message for resolution information
-#if   defined ( GRID4x5  )
-      STR = REPEAT( '*', 13 )                                    // 
-     &      '   S T A R T I N G   4 x 5   G E O S--C H E M   '   //
-     &      REPEAT( '*', 13 )
-
-#elif defined ( GRID2x25 )
-      STR = REPEAT( '*', 13 )                                    // 
-     &      '   S T A R T I N G   2 x 2.5   G E O S--C H E M   ' //
-     &      REPEAT( '*', 13 )
+#elif defined( GRID2x25 )
+      WRITE( 6, '(a)' ) 
+     &    REPEAT( '*', 13 )                                    // 
+     &    '   S T A R T I N G   2 x 2.5   G E O S--C H E M   ' //
+     &    REPEAT( '*', 13 )
 
 #elif defined( GRID1x1 )
-      STR = REPEAT( '*', 13 )                                    // 
-     &      '   S T A R T I N G   1 x 1   G E O S--C H E M   '   //
-     &      REPEAT( '*', 13 )
+      WRITE( 6, '(a)' ) 
+     &    REPEAT( '*', 13 )                                    // 
+     &    '   S T A R T I N G   1 x 1   G E O S--C H E M   '   //
+     &    REPEAT( '*', 13 )
 
 #endif
 
-      ! Write the message for the grid being used
-      WRITE ( 6, '(a)' ) TRIM( STR ) 
+      !-----------------------
+      ! Print machine info
+      !-----------------------
 
       ! Get the proper FORMAT statement for the model being used
-#if   defined( GEOS_1     )
-      STR = 'Using GEOS-1 met fields!' 
-#elif defined( GEOS_STRAT )
-      STR = 'Using GEOS-STRAT met fields!'
-#elif defined( GEOS_3     )
-      STR = 'Using GEOS-3 met fields!'
-#elif defined( GEOS_4     )
-      STR = 'Using GEOS-4/fvDAS met fields!'
+#if   defined( COMPAQ    )
+      WRITE( 6, '(a)' ) 'Created w/ HP/COMPAQ Alpha compiler'
+#elif defined( IBM_AIX   )
+      WRITE( 6, '(a)' ) 'Created w/ IBM-AIX compiler'
+#elif defined( LINUX_PGI )
+      WRITE( 6, '(a)' ) 'Created w/ LINUX/PGI compiler'
+#elif defined( LINUX_IFC )
+      WRITE( 6, '(a)' ) 'Created w/ LINUX/IFC (32-bit) compiler'
+#elif defined( LINUX_EFC )
+      WRITE( 6, '(a)' ) 'Created w/ LINUX/EFC (64-bit) compiler'
+#elif defined( SGI_MIPS  )
+      WRITE( 6, '(a)' ) 'Created w/ SGI MIPSpro compiler'
+#elif defined( SPARC     )
+      WRITE( 6, '(a)' ) 'Created w/ Sun/SPARC compiler'
 #endif
 
-      ! Write the message for the model being used
-      WRITE( 6, '(a)' ) TRIM( STR )
-      CALL FLUSH(6)
+      !-----------------------
+      ! Print met field info
+      !-----------------------
+#if   defined( GEOS_1     )
+      WRITE( 6, '(a)' ) 'Using GEOS-1 met fields' 
+#elif defined( GEOS_STRAT )
+      WRITE( 6, '(a)' ) 'Using GEOS-STRAT met fields'
+#elif defined( GEOS_3     )
+      WRITE( 6, '(a)' ) 'Using GEOS-3 met fields'
+#elif defined( GEOS_4     )
+      WRITE( 6, '(a)' ) 'Using GEOS-4/fvDAS met fields'
+#endif
 
       ! Return to MAIN program
       END SUBROUTINE DISPLAY_GRID_AND_MODEL

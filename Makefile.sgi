@@ -1,4 +1,4 @@
-# $Id: Makefile.sgi,v 1.9 2003/11/06 21:07:17 bmy Exp $
+# $Id: Makefile.sgi,v 1.10 2003/12/05 21:13:56 bmy Exp $
 #=============================================================================
 # GEOS-CHEM Makefile for SGI/Origin (bmy, Thu Nov  6 12:13:04 2003)
 #=============================================================================
@@ -550,7 +550,7 @@ xltmmp.o                   : xltmmp.f                   CMN_SIZE define.h
 #  Other Makefile Commands
 #=============================================================================
 clean:
-	rm -f *.o *.mod geos geos_sj geosco
+	rm -f *.o *.mod ifc* geos geos_sj geosco
 
 .SUFFIXES: .f .F .f90 .F90
 .f.o:			; $(F90) -c $*.f

@@ -1,4 +1,4 @@
-! $Id: tpcore_mod.f,v 1.1 2003/06/30 20:26:02 bmy Exp $
+! $Id: tpcore_mod.f,v 1.2 2003/12/05 21:14:07 bmy Exp $
       MODULE TPCORE_MOD
 !
 !******************************************************************************
@@ -442,12 +442,16 @@ C****6***0*********0*********0*********0*********0*********0**********72
       WRITE( 6, '(a)' ) 'TPCORE was compiled for multitasking'
 #if   defined( CRAY )
       WRITE( 6, '(a)' ) 'for CRAY'
-#elif defined( SGI  )
-      WRITE( 6, '(a)' ) 'for SGI R1000 multiple-CPU machines'
+#elif defined( SGI_MIPS  )
+      WRITE( 6, '(a)' ) 'for SGI Origin/Power Challenge machines'
 #elif defined( COMPAQ  )
-      WRITE( 6, '(a)' ) 'for DEC/COMPAQ RISC/Alpha machines'
-#elif defined( LINUX )
-      WRITE( 6, '(a)' ) 'for multiple-CPU Linux boxes'
+      WRITE( 6, '(a)' ) 'for COMPAQ/HP RISC Alpha machines'
+#elif defined( LINUX_PGI )
+      WRITE( 6, '(a)' ) 'for Linux environment w/ PGI compiler'
+#elif defined( LINUX_IFC )
+      WRITE( 6, '(a)' ) 'for Linux environment w/ IFC compiler'
+#elif defined( LINUX_EFC )
+      WRITE( 6, '(a)' ) 'for Linux environment w/ EFC compiler'
 #elif defined( SPARC )
       WRITE( 6, '(a)' ) 'for SUN/Sparc machines'
 #elif defined( IBM_AIX )

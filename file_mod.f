@@ -1,10 +1,10 @@
-! $Id: file_mod.f,v 1.2 2003/11/06 21:07:18 bmy Exp $
+! $Id: file_mod.f,v 1.3 2003/12/05 21:14:02 bmy Exp $
       MODULE FILE_MOD
 !
 !******************************************************************************
 !  Module FILE_MOD contains file unit numbers, as well as file I/O routines
 !  for GEOS-CHEM.  FILE_MOD keeps all of the I/O unit numbers in a single
-!  location for convenient access. (bmy, 7/1/02, 11/6/03)
+!  location for convenient access. (bmy, 7/1/02, 12/2/03)
 !
 !  Module Variables:
 !  ============================================================================
@@ -49,6 +49,7 @@
 !        (bmy, 3/27/03)
 !  (5 ) Renamed IU_CTMCHEM to IU_SMV2LOG (bmy, 4/21/03)
 !  (6 ) Now print out I/O errors for IBM and INTEL_FC compilers (bmy, 11/6/03)
+!  (7 ) Changed the name of some cpp switches in "define.h" (bmy, 12/2/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -92,7 +93,7 @@
 !******************************************************************************
 !  Subroutine IOERRROR prints out I/O error messages.  The error number, 
 !  file unit, location, and a brief description will be printed, and 
-!  program execution will be halted. (bmy, 5/28/99, 11/6/03)
+!  program execution will be halted. (bmy, 5/28/99, 12/2/03)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -114,6 +115,8 @@
 !  (4 ) Renamed cpp switch from DEC_COMPAQ to COMPAQ.  Also added code to 
 !        display I/O errors on SUN platform. (bmy, 3/23/03)
 !  (5 ) Now call GERROR for IBM and INTEL_FC compilers (bmy, 11/6/03)
+!  (6 ) Renamed SGI to SGI_MIPS, LINUX to LINUX_PGI, INTEL_FC to INTEL_IFC, 
+!        and added LINUX_EFC. (bmy, 12/2/03)
 !******************************************************************************
 !  
       ! References to F90 modules
@@ -147,7 +150,7 @@
  110  FORMAT( 'GEOS-CHEM I/O ERROR ', i5, ' in file unit ', i5, /, 
      &        'Encountered at routine:location ', a )
 
-#if   defined( SGI )
+#if   defined( SGI_MIPS )
       
       !=================================================================
       ! For SGI: print error msg and construct explain command string
@@ -199,7 +202,7 @@
       WRITE( 6, 120 ) TRIM( ERROR_MSG )
  120  FORMAT( /, 'Error: ', a )
 
-#elif defined( LINUX )
+#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC )
 
       !=================================================================
       ! For LINUX platform: call gerror() to get the I/O error msg
@@ -225,7 +228,7 @@
       WRITE( 6, 120 ) TRIM( ERROR_MSG )
  120  FORMAT( /, 'Error: ', a )
 
-#elif defined( IBM ) 
+#elif defined( IBM_AIX ) 
 
       !=================================================================
       ! For IBM/AIX platform: call gerror() to get the I/O error msg

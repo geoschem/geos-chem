@@ -1,4 +1,4 @@
-! $Id: diag49.f,v 1.2 2003/10/01 20:32:21 bmy Exp $
+! $Id: diag49.f,v 1.3 2003/12/05 21:13:59 bmy Exp $
       SUBROUTINE DIAG49
 ! 
 !******************************************************************************
@@ -165,11 +165,6 @@
          ! Increment counter
          COUNT_IN_DAY = COUNT_IN_DAY + 1
  
-!--------------------------------------------------------------------------
-! Prior to 9/29/03:
-! LINUX has a problem putting a function call w/in a WRITE statement
-!         WRITE( 6, 110 ) TIMESTAMP_STRING()
-!--------------------------------------------------------------------------
          STAMP = TIMESTAMP_STRING()
          WRITE( 6, 110 ) STAMP
  110     FORMAT( '     - DIAG49: Saving timeseries at ', a )

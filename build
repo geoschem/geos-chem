@@ -1,51 +1,142 @@
 #!/usr/bin/perl -w
 
-#==============================================================================
-# $Id: build,v 1.4 2003/11/06 21:07:17 bmy Exp $
-#
-# Perl script "build" compiles GEOS-CHEM with the correct makefile for 
-# the given operating system.  Calls the Unix "uname" function to return
-# the operating system name.  (bmy, 11/4/03)
-#
-# Arguments as Input:
-# -----------------------------------------------------------------------------
-# (1 ) $target : Name of the makefile target to build (default is "geos")
-#
-# NOTES:
-# (1 ) Special handling for ALTIX (bmy, 11/4/03)
-#==============================================================================
+# $Id: build,v 1.5 2003/12/05 21:13:57 bmy Exp $
 
-# Local variables
-my $target = "geos";
-my $OSName = "";
-my $nName  = "";
+=head1 NAME
 
-# If an argument has been passed, then redefine $target 
-if ( scalar( @ARGV ) > 0 ) { $target = $ARGV[0]; }
+BUILD
+           
+=head1 SYNOPSIS
 
-# Get the OS name via system call
-$OSName = qx( uname -s );
+BUILD is a Perl script which compiles the GEOS-CHEM code
+for a given combination of platform and compiler. 
 
-# Get the nodename via system call
-$nName  = qx( uname -n );
+=head1 REQUIRES
 
-# Error check the system call
-if ( $? != 0 ) { 
-   print "Error obtaining operating system name!\n";
-   exit(1);
+Perl 5.003
+
+=head1 EXPORTS
+
+none
+
+=head1 DESCRIPTION
+
+build
+Methods are provided for compiling the GEOS-CHEM model
+
+=head1 METHODS
+
+getMakeFile : Prints a separator line to stdout
+main        : Driver program 
+
+=head1 MODIFICATION HISTORY
+
+bmy, 04 December 2002
+     - INITIAL VERSION
+
+=head1 AUTHOR
+
+Bob Yantosca (bmy@io.harvard.edu)
+
+=head1 SEE ALSO
+
+trun, bmrun
+
+=head1 COPYRIGHT
+
+Copyright 2002, 2003, Bob Yantosca.  All rights reserved.
+
+=cut
+
+require 5.003;      # need this version of Perl or newer
+use English;        # English language module
+use Carp;           # detailed error msgs
+use strict;         # forces implicit variable declarations
+
+#------------------------------------------------------------------------------
+
+sub getMakeFile() {
+
+  #=========================================================================
+  # Subroutine getMakeFile examines the "define.h" file in order to 
+  # determine the name of the makefile which will be used to compile
+  # GEOS-CHEM for the given platform and compiler.  (bmy, 12/4/03)
+  #
+  # Calling Sequence:
+  # ------------------------------------------------------------------------  
+  # $makeFile = getMakeFile();
+  #
+  # Notes
+  #=========================================================================
+
+  # Local variables
+  my $line  = "";
+  my @lines = "";
+
+  # Read "define.h" into a string array
+  open( INPUT, "define.h" ) or croak "getDefaults: Can't open define.h";
+  chomp( @lines = <INPUT> );
+  close( INPUT );
+
+  # Process each line individually
+  foreach $line ( @lines ) {
+
+    # Determine makefile name from the defined C-preprocessor switch
+    if ( $line =~ "#define" and !( $line =~ "!#define" ) ) { 
+      if    ( $line =~ "COMPAQ"    ) { return( "Makefile.compaq" ); }
+      elsif ( $line =~ "IBM"       ) { return( "Makefile.ibm"    ); }
+      elsif ( $line =~ "LINUX_PGI" ) { return( "Makefile.pgi"    ); } 
+      elsif ( $line =~ "LINUX_IFC" ) { return( "Makefile.ifc"    ); } 
+      elsif ( $line =~ "LINUX_EFC" ) { return( "Makefile.efc"    ); } 
+      elsif ( $line =~ "LINUX"     ) { return( "Makefile.linux"  ); } 
+      elsif ( $line =~ 'SGI'       ) { return( "Makefile.sgi"    ); }
+      elsif ( $line =~ 'SPARC'     ) { return( "Makefile.sparc"  ); }
+    }
+  }
+
+  # Otherwise return failure
+  return( '' );
 }
 
-# Compile GEOS-CHEM w/ the right makefile
-if    ( $OSName =~ "IRIX"  ) { qx( make $target -f Makefile.sgi      ); }
-elsif ( $OSName =~ "OSF1"  ) { qx( make $target -f Makefile.compaq   ); } 
-elsif ( $OSName =~ "SunOS" ) { qx( make $target -f Makefile.sun      ); }
-elsif ( $OSName =~ "AIX"   ) { qx( make $target -f Makefile.ibm      ); }
+#------------------------------------------------------------------------------
 
-# If ALTIX, then use ifc compiler, Other Linuxes use PGI compiler
-elsif ( $OSName =~ "Linux" ) { 
-  if  ( $nName  =~ "altix" ) { qx( make $target -f Makefile.intel_fc ); }
-  else                       { qx( make $target -f Makefile.linux    ); }
-}
+sub main() {
+
+  #=========================================================================
+  # Perl script "build" compiles GEOS-CHEM with the correct makefile for   
+  # a given operating system and compiler.  Examines the "define.h" file
+  # in order to determine the makefile name. (bmy, 12/4/03)
+  #
+  # Arguments as Input:
+  # ------------------------------------------------------------------------
+  # (1 ) $target : Name of the makefile target to build (default is "geos")
+  #
+  # NOTES:
+  #==========================================================================
+
+  # Local variables
+  my $makeFile = "";
+  my $target   = "geos";
+
+   # If an argument has been passed, then redefine $target 
+  if ( scalar( @ARGV ) > 0 ) { $target = $ARGV[0]; }
+
+  # Get the makefile name by examining "define.h"
+  $makeFile = getMakeFile();
   
+  # Compile GEOS-CHEM w/ the right makefile
+  if ( length( $makeFile ) > 0 ) { 
+    print "Compiling $target in $makeFile\n";
+    qx( make $target -f $makeFile );      
+  } else { 
+    die "Could not find makefile name!\n" 
+  }
+}
+
+#------------------------------------------------------------------------------
+
+# Execute MAIN program
+main();
+
 # Exit normally
 exit(0);

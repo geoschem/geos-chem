@@ -1,4 +1,4 @@
-! $Id: bpch2_mod.f,v 1.2 2003/11/06 21:07:17 bmy Exp $
+! $Id: bpch2_mod.f,v 1.3 2003/12/05 21:13:57 bmy Exp $
       MODULE BPCH2_MOD
 !
 !******************************************************************************
@@ -463,9 +463,6 @@
      &        CATEGORY, NTRACER,  UNIT, ZTAU0,  ZTAU1,  RESERVED,
      &        NI,       NJ,       NL,   IFIRST, JFIRST, LFIRST,
      &        NSKIP
-
-         PRINT*, '### CATEGORY  : ', CATEGORY
-         PRINT*, '### NI, NJ, NL: ', NI, NJ, NL
 
          IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'read_bpch2:5' )
 

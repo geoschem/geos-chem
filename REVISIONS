@@ -1,92 +1,65 @@
-REVISIONS (v6-01-02)  
-bmy, 06 Nov 2003
+REVISIONS (v6-01-03)  
+bmy, 02 Dec 2003
 
 
-New in v6-01-02:
+New in v6-01-03:
 ----------------------------------------------------------------------------- 
 
 
 
-Removed from v6-01-02:
+Removed from v6-01-03:
 ----------------------------------------------------------------------------- 
 
 
 
-Changed from v6-01-01:
+Changed from v6-01-02:
 -------------------------------------------------------------------------------
 
-cleanup_transfer	-- Renamed SIGE_IN to EDGE_IN to denote that it is 
-("transfer_mod.f")	   not always a sigma coordinate (as for GEOS-4).
+comode.h		-- Eliminated SMALLCHEM cpp switch
 
-CMN_SIZE		-- Now defines both 55L and 30L GEOS-4 grids
-			-- Also define LLTROP=18 for GEOS-4 grids
-			-- Also remove obsolete GEOS-2 grid declarations
+date_string		-- Renamed LINUX to LINUX_PGI
+("time_mod.f")
 
-define.h		-- added GRID30LEV switch
+define.h		-- Renamed cpp switch "LINUX" to "LINUX_PGI"
+			-- Renamed cpp switch "INTEL_FC" to "LINUX_IFC"
+			-- Renamed cpp switch "SGI" to "SGI_MIPS"
+			-- Added cpp switch "LINUX_EFC"
+			-- Removed cpp switch SMALLCHEM
 
-diag41.f		-- For GEOS-4, PBL depth is already in meters, so 
-			   we only have to multiply that by the GOOD array
-			-- Also now references PBL array from "dao_mod.f"
-			-- Bug fix: now use barometric law to compute PBL 
-			   height in meters for GEOS-1, GEOS-STRAT, GEOS-3.  
-			   This eliminates an overprediction of the PBL height.
+dryflxRnPbBe		-- Now follow GEOS-3 algorithm for GEOS-4 model
+("drydep_mod.f")
 
-get_l_copy		-- Add LCOPY = 19 for GEOS-4 if regridding
-("transfer_mod.f")
+expand_date		-- Renamed LINUX to LINUX_PGI
+("time_mod.f")
 
-get_modelname		-- Also now use C-preprocessor switch "GRID30LEV" 
-("bpch2_mod.f")		   instead of IF statements
+finite_float		-- Renamed SGI to SGI_MIPS, LINUX to LINUX_PGI, 
+("error_mod.f")		   INTEL_FC to INTEL_IFC, and added LINUX_EFC. 
 
-get_name_ext		-- Remove obsolete "geos2" model name string
-("bpch2_mod.f")
+finite_dble		-- Renamed SGI to SGI_MIPS, LINUX to LINUX_PGI, 
+("error_mod.f")		   INTEL_FC to INTEL_IFC, and added LINUX_EFC. 
 
-init_pressure		-- Now print LLPAR+1 levels for Ap, Bp.  
-("pressure_mod.f")	-- Remove reference to SIGE, it's obsolete.  
-			-- Also now use C-preprocessor switch GRID30LEV 
-			   instead of IF statements to define vertical 
-			   coordinates.
+ioerror			-- Renamed SGI to SGI_MIPS, LINUX to LINUX_PGI, 
+("file_mod.f")		   INTEL_FC to INTEL_IFC, and added LINUX_EFC. 
+			-- Renamed IBM to IBM_AIX
 
-init_transfer		-- Renamed SIGE_IN to EDGE_IN to denote that it is 
-("transfer_mod.f")	   not always a sigma coordinate (as for GEOS-4)
-			-- Now assign original Ap coordinates from the GEOS-4 
-			   grid to the EDGE_IN array
+nan_float		-- Renamed SGI to SGI_MIPS, LINUX to LINUX_PGI, 
+("error_mod.f")		   INTEL_FC to INTEL_IFC, and added LINUX_EFC. 
 
-ioerror			-- Now call GERROR for IBM and INTEL_FC compilers
-("file_mod.f")
+nan_dble		-- Renamed SGI to SGI_MIPS, LINUX to LINUX_PGI, 
+("error_mod.f")		   INTEL_FC to INTEL_IFC, and added LINUX_EFC. 
 
-lump_2_r4		-- Renamed SIGE_IN to EDGE_IN to denote that it is 
-("transfer_mod.f")	   not always a sigma coordinate (as for GEOS-4)
-			-- Also updated comments
+read_biomass_nh3	-- Changed cpp switch name from LINUX to LINUX_PGI
+("sulfate_mod.f")
 
-lump_2_r8		-- Renamed SIGE_IN to EDGE_IN to denote that it is 
-("transfer_mod.f")	   not always a sigma coordinate (as for GEOS-4)
-			-- Also updated comments
+timestamp_string	-- Renamed LINUX to LINUX_PGI
+("time_mod.f")
 
-lump_4_r4		-- Renamed SIGE_IN to EDGE_IN to denote that it is 
-("transfer_mod.f")	   not always a sigma coordinate (as for GEOS-4)
-			-- Also updated comments
-
-lump_4_r8		-- Renamed SIGE_IN to EDGE_IN to denote that it is 
-("transfer_mod.f")	   not always a sigma coordinate (as for GEOS-4)
-			-- Also updated comments
-
-main.f			-- deleted obsolete code
-
-transfer_a6		-- Added code to regrid GEOS-4 from 55 --> 30 levels
-("transfer_mod.f")
-
-transfer_3d		-- Added code to regrid GEOS-4 from 55 --> 30 levels
-("transfer_mod.f")
-
-transfer_mod.f		-- Renamed module variable SIGE_IN to EDGE_IN.
-
-transfer_zonal_r4	-- Added code to regrid GEOS-4 from 55 --> 30 levels
-("transfer_mod.f")
-
-transfer_zonal_r8	-- Added code to regrid GEOS-4 from 55 --> 30 levels
-("transfer_mod.f")
-
+tpcore			-- Added diagnostic output for LINUX_PGI, 
+("tpcore_mod.f")	   LINUX_IFC, LINUX_EFC
+			-- Renamed SGI to SGI_MIPS
 
 ---
-CMN_SIZE		<-- Removed obsolete commented-out code
-pjc_pfix_mod.f
+diag49.f		<-- Removed obsolete, commented-out code
+diag50.f		    from the following routines
+main.f
+tpcore_bc_mod.f

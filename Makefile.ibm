@@ -1,4 +1,4 @@
-# $Id: Makefile.ibm,v 1.7 2003/11/06 21:07:16 bmy Exp $
+# $Id: Makefile.ibm,v 1.8 2003/12/05 21:13:55 bmy Exp $
 #=============================================================================
 # Makefile for GEOS-CHEM on IBM AIX: (gcc, Mon Feb 03 11:56:55 2003)
 #=============================================================================
@@ -559,7 +559,7 @@ xltmmp.o                   : xltmmp.f                   CMN_SIZE define.h
 #  Other Makefile Commands
 #=============================================================================
 clean:
-	rm -f *.o *.mod geos geos_sj geosco geoscof
+	rm -f *.o *.mod ifc* geos geos_sj geosco geoscof
 
 modclean:
 	rm -f *_mod.o *.MOD

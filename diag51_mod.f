@@ -1,4 +1,4 @@
-! $Id: diag51_mod.f,v 1.2 2003/10/01 20:32:21 bmy Exp $
+! $Id: diag51_mod.f,v 1.3 2003/12/05 21:14:00 bmy Exp $
       MODULE DIAG51_MOD
 !
 !******************************************************************************
@@ -610,11 +610,6 @@
       ! Zero diagnostic and counter arrays after writing to disk
       ! Use a parallel DO-loop for efficiency
       !=================================================================
-      !-----------------------------------------------------------------
-      ! Prior to 9/29/03:
-      ! LINUX can't write the result of a function call (bmy, 9/29/03)
-      !WRITE( 6, 130 ) TIMESTAMP_STRING()
-      !-----------------------------------------------------------------
       STAMP = TIMESTAMP_STRING()
       WRITE( 6, 130 ) STAMP
  130  FORMAT( '     - DIAG51: Zeroing arrays at ', a )
@@ -701,11 +696,6 @@
       !
       ! Echo time information to the screen
       !=================================================================
-      !-----------------------------------------------------------------
-      ! Prior to 9/29/03:
-      ! LINUX cannot write the result of a function call
-      !WRITE( 6, 100 ) TIMESTAMP_STRING()
-      !-----------------------------------------------------------------
       STAMP = TIMESTAMP_STRING()
       WRITE( 6, 100 ) STAMP
  100  FORMAT( '     - DIAG51: Accumulation at ', a )

@@ -1,9 +1,9 @@
-! $Id: drydep_mod.f,v 1.4 2003/10/30 16:17:17 bmy Exp $
+! $Id: drydep_mod.f,v 1.5 2003/12/05 21:14:00 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
 !  Module DRYDEP_MOD contains variables and routines for the GEOS-CHEM dry
-!  deposition scheme. (bmy, 1/27/03, 7/21/03)
+!  deposition scheme. (bmy, 1/27/03, 12/2/03)
 !
 !  Module Variables:
 !  ============================================================================
@@ -112,6 +112,7 @@
 !        the entire PBL, in order to prevent short-lived species such as HNO3 
 !        from being depleted in the shallow GEOS-3 surface layer.  
 !        (rjp, bmy, 7/21/03)
+!  (5 ) Bug fix for GEOS-4 in DRYFLXRnPbBe (bmy, 12/2/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -692,7 +693,7 @@
 !******************************************************************************
 !  Subroutine DRYFLXRnPbBe removes dry deposition losses from the STT tracer
 !  array and archives deposition fluxes to the ND44 diagnostic. 
-!  (hyl, bmy, bdf, 4/2/99, 2/11/03)
+!  (hyl, bmy, bdf, 4/2/99, 12/2/03)
 !
 !  NOTES:
 !  (1 ) Now eliminate DEPFLUX from CMN_SAV, in order to save memory.
@@ -714,6 +715,7 @@
 !  (10) Now use function GET_TS_CHEM from "time_mod.f" (bmy, 2/11/03)
 !  (11) Now compute drydep fluxes throughout the entire PBL.  Now references
 !        PBLFRAC.  Added L_PBLTOP variable. (bmy, 7/21/03)
+!  (12) Now follow GEOS-3 algorithm for GEOS-4 model (bmy, 12/2/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -791,10 +793,10 @@
                   ! Subtract AMT_LOST from the STT array [kg]
                   STT(I,J,L,NN) = STT(I,J,L,NN) - AMT_LOST
 
-#elif defined( GEOS_3 )
+#elif defined( GEOS_3 ) || defined( GEOS_4 )
                   !=====================================================
-                  ! GEOS-3:
-                  ! -------
+                  ! GEOS-3 or GEOS-4:
+                  ! -----------------
                   ! (a) If FRACLOST < 0, then stop the run.
                   !
                   ! (b) If FRACLOST > 1, use an exponential loss to 

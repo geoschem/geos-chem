@@ -1,20 +1,17 @@
-# $Id: Makefile.intel_fc,v 1.3 2003/11/06 21:07:16 bmy Exp $
+# $Id: Makefile.efc,v 1.1 2003/12/05 21:13:55 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for INTEL FC (bmy, Thu Nov  6 12:14:09 2003)
+# GEOS-CHEM Makefile for LINUX/EFC compiler (bmy, Thu Nov  6 12:14:09 2003)
 #=============================================================================
 SHELL = /bin/sh
 
-# 32-bit F90 compiler (PC Linux)
-#FC  = ifc
+# EFC compilation options
+FFLAGS = -cpp -w -O2 -Vaxlib -auto -noalign
 
-# 64-bit F90 compiler (SGI Itanium)
-FC  = efc
+# Compile command -- multiprocessor
+F90 = efc $(FFLAGS) -openmp
 
-# F90 options -- multiprocessor
-F90 = $(FC) -cpp -w -O2 -Vaxlib -openmp
-
-# F90 options -- single processor
-F90 = $(FC) -cpp -w -O2 -Vaxlib
+# Compile command -- single processor
+#F90 = efc $(FFLAGS)
 
 # C compiler
 CC  = gcc
@@ -281,19 +278,19 @@ sol.o
 #=============================================================================
 #  Executable with FAST-J (default)
 #=============================================================================
-geos 	      : $(MODS) $(OBJS) $(OBJSc) $(FJ)    Makefile.intel_fc
+geos 	      : $(MODS) $(OBJS) $(OBJSc) $(FJ)    Makefile.efc
 		$(F90)  $(MODS) $(OBJS)  $(OBJSc) $(FJ) -o geos
 
 #=============================================================================
 #  Executable with SLOW-J 
 #=============================================================================
-geos_sj	      : $(MODS) $(OBJS) $(OBJSc) $(SJ) Makefile.intel_fc
+geos_sj	      : $(MODS) $(OBJS) $(OBJSc) $(SJ) Makefile.efc
 		$(F90)  $(MODS) $(OBJS)  $(OBJSc) $(SJ) -o geos_sj
 
 #==============================================================================
 #  Executable for CO-OH simulation with SLOW-J
 #==============================================================================
-geosco        : $(MODS) $(OBJS) $(OBJSc) $(CO_OH) $(SJ) Makefile.intel_fc
+geosco        : $(MODS) $(OBJS) $(OBJSc) $(CO_OH) $(SJ) Makefile.efc
 		$(F90)  $(MODS) $(OBJS) $(OBJSc) $(CO_OH) $(SJ) -o geosco
 
 #==============================================================================
@@ -561,7 +558,7 @@ linux_err.o                : linux_err.c
 #  Other Makefile Commands
 #=============================================================================
 clean:
-	rm -f *.o *.mod geos geos_sj geosco
+	rm -f *.o *.mod ifc* geos geos_sj geosco
 
 .SUFFIXES: .f .F .f90 .F90
 .f.o:			; $(F90) -c $*.f

@@ -1,9 +1,9 @@
-! $Id: time_mod.f,v 1.4 2003/10/30 16:17:19 bmy Exp $
+! $Id: time_mod.f,v 1.5 2003/12/05 21:14:06 bmy Exp $
       MODULE TIME_MOD
 !
 !******************************************************************************
 !  TIME_MOD contains GEOS-CHEM date and time variables and timesteps, and 
-!  routines for accessing them. (bmy, 6/21/00, 10/28/03) 
+!  routines for accessing them. (bmy, 6/21/00, 12/2/03) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -147,6 +147,7 @@
 !        Linux: must use ENCODE to convert numbers to strings (bmy, 9/29/03)
 !  (11) Bug fix in EXPAND_DATE.  Also add optional arguments to function
 !        TIMESTAMP_STRNIG. (bmy, 10/28/03)
+!  (12) Changed the name of some cpp switches in "define.h" (bmy, 12/2/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -2380,7 +2381,7 @@
 !******************************************************************************
 !  DATE_STRING returns a string variable for the current date: YYMMDD 
 !  for GEOS-1 or GEOS-STRAT and YYYYMMDD for GEOS-3 or GEOS-4. 
-!  (bmy, 2/5/03, 9/29/03)
+!  (bmy, 2/5/03, 12/2/03)
 !                                                                          
 !  Arguments as Input:
 !  ============================================================================
@@ -2391,6 +2392,7 @@
 !  (2 ) Bug fix for GEOS-1/GEOS-S: print YEAR-1900 for 2 digits (bmy, 5/15/03)
 !  (3 ) Bug fix for Linux: use ENCODE statement to convert number to string 
 !        instead of a F90 internal read. (bmy, 9/29/03)
+!  (4 ) Renamed LINUX to LINUX_PGI (bmy, 12/2/03)
 !******************************************************************************
 !     
       ! Reference C-preprocessor switches
@@ -2408,7 +2410,7 @@
       
       ! Use ENCODE statement for PGI/F90 on Linux, or a regular 
       ! F90 internal read for other platforms (bmy, 9/29/03)
-#if   defined( LINUX ) 
+#if   defined( LINUX_PGI ) 
       ENCODE( 6, '(3i2.2)', DATE_STR ) YEAR-1900, MONTH, DAY
 #else
       WRITE( DATE_STR, '(3i2.2)' ) YEAR-1900, MONTH, DAY
@@ -2423,7 +2425,7 @@
 
       ! Use ENCODE statement for PGI/F90 on Linux, or a regular 
       ! F90 internal read for other platforms (bmy, 9/29/03)
-#if   defined( LINUX ) 
+#if   defined( LINUX_PGI ) 
       ENCODE( 8, '(i4.4,2i2.2)', DATE_STR ) YEAR, MONTH, DAY
 #else
       WRITE( DATE_STR, '(i4.4,2i2.2)' ) YEAR, MONTH, DAY
@@ -2442,11 +2444,12 @@
 !  TIMESTAMP_STRING returns a formatted string "YYYY/MM/DD HH:MM" for the a
 !  date and time specified by YYYYMMDD and HHMMSS.  If YYYYMMDD and HHMMSS are
 !  omitted, then TIMESTAMP_STRING will create a formatted string for the 
-!  current date and time. (bmy, 3/21/03, 10/28/03)
+!  current date and time. (bmy, 3/21/03, 12/2/03)
 !                                                                          
 !  NOTES:
 !  (1 ) Now use ENCODE statement for PGI/F90 on Linux (bmy, 9/29/03)
 !  (2 ) Now add optional arguments YYYYMMDD and HHMMSS (bmy, 10/27/03)
+!  (3 ) Renamed LINUX to LINUX_PGI (bmy, 12/2/03)
 !******************************************************************************
 !     
 #     include "define.h"
@@ -2484,7 +2487,7 @@
          THISMINUTE = MINUTE
       ENDIF
 
-#if   defined( LINUX ) 
+#if   defined( LINUX_PGI ) 
       
       ! For PGI/F90 Linux, we must use the ENCODE command
       ! to convert from numeric to string format (bmy, 9/29/03)
@@ -2558,7 +2561,7 @@
 !
 !******************************************************************************
 !  Subroutine EXPAND_DATE replaces "YYYYMMDD" and "hhmmss" tokens within
-!  a filename string with the actual values. (bmy, 6/27/02, 10/23/03)
+!  a filename string with the actual values. (bmy, 6/27/02, 12/2/03)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -2575,6 +2578,7 @@
 !  (1 ) Bug fix for Linux: use ENCODE statement to convert number to string 
 !        instead of F90 internal read. (bmy, 9/29/03)
 !  (2 ) Now replace 2 and 4 digit year strings for all models (bmy, 10/23/03)
+!  (3 ) Renamed LINUX to LINUX_PGI (bmy, 12/2/03)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -2608,7 +2612,7 @@
       YY = YYYY - 1900
       IF ( YY >= 100 ) YY = YY - 100
 
-#if   defined( LINUX )
+#if   defined( LINUX_PGI )
       
       ! Use ENCODE statement for PGI/Linux (bmy, 9/29/03)
       ENCODE( 4, '(i4.4)', YYYY_STR ) YYYY
@@ -2618,6 +2622,7 @@
       ENCODE( 2, '(i2.2)', HH_STR   ) HH
       ENCODE( 2, '(i2.2)', II_STR   ) II
       ENCODE( 2, '(i2.2)', SS_STR   ) SS
+
 #else
 
       ! For other platforms, use an F90 internal write (bmy, 9/29/03)

@@ -1,23 +1,20 @@
-# $Id: Makefile.linux,v 1.9 2003/11/06 21:07:16 bmy Exp $
+# $Id: Makefile.ifc,v 1.1 2003/12/05 21:13:55 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for LINUX/PGI (bmy, Thu Nov  6 12:13:31 2003)
-#
-# NOTE: If you want to run the 2 x 2.5 GEOS-CHEM model, then try adding
-#       -Bstatic to the F90 compilation line.  It appears that setting 
-#       -Bstatic causes the compiler to access more than 1GB of memory.
-#       However, you probably don't need -Bstatic for the 4x5 though.
-#       (hyl, bmy, 10/10/03)
+# GEOS-CHEM Makefile for LINUX/IFC compiler (bmy, Thu Nov  6 12:14:09 2003)
 #=============================================================================
 SHELL = /bin/sh
 
-# Multi-processor
-F90 = pgf90 -byteswapio -Mpreprocess -fast -mp -Mnosgimp -Dmultitask -Bstatic
+# IFC compilation options
+FFLAGS = -cpp -w -O2 -Vaxlib -auto -noalign
 
-# Single-processor
-#F90 = pgf90 -byteswapio -Mpreprocess -fast -Bstatic
+# Compile command -- multiprocessor
+F90 = ifc $(FFLAGS) -openmp 
 
-# C-compiler
-CC = gcc
+# Compile  command -- single processor
+#F90 = ifc $(FFLAGS)
+
+# C compiler
+CC  = gcc
 
 OBJSc =                   \
 linux_err.o
@@ -281,20 +278,20 @@ sol.o
 #=============================================================================
 #  Executable with FAST-J (default)
 #=============================================================================
-geos          : $(MODS) $(OBJS) $(OBJSc) $(FJ) Makefile.linux
-                $(F90)  $(MODS) $(OBJS)  $(OBJSc) $(FJ) -o geos
+geos 	      : $(MODS) $(OBJS) $(OBJSc) $(FJ)    Makefile.ifc
+		$(F90)  $(MODS) $(OBJS)  $(OBJSc) $(FJ) -o geos
 
 #=============================================================================
 #  Executable with SLOW-J 
 #=============================================================================
-geos_sj       : $(MODS) $(OBJS) $(OBJSc) $(SJ) Makefile.linux
-                $(F90)  $(MODS) $(OBJS)  $(OBJSc) $(SJ) -o geos_sj
+geos_sj	      : $(MODS) $(OBJS) $(OBJSc) $(SJ) Makefile.ifc
+		$(F90)  $(MODS) $(OBJS)  $(OBJSc) $(SJ) -o geos_sj
 
 #==============================================================================
 #  Executable for CO-OH simulation with SLOW-J
 #==============================================================================
-geosco        : $(MODS) $(OBJS) $(OBJSc) $(CO_OH) $(SJ) Makefile.linux
-                $(F90)  $(MODS) $(OBJS)  $(OBJSc) $(CO_OH) $(SJ) -o geosco
+geosco        : $(MODS) $(OBJS) $(OBJSc) $(CO_OH) $(SJ) Makefile.ifc
+		$(F90)  $(MODS) $(OBJS) $(OBJSc) $(CO_OH) $(SJ) -o geosco
 
 #==============================================================================
 #  Dependencies Listing
@@ -533,11 +530,11 @@ time_mod.o                 : time_mod.f                 define.h
 toms_mod.o                 : toms_mod.f                 CMN_SETUP CMN_SIZE define.h 
 tpcore_bc_mod.o            : tpcore_bc_mod.f            CMN CMN_SIZE define.h 
 tpcore_fvdas_mod.o         : tpcore_fvdas_mod.f90         
-	$(FF) -c -Mextend -r8 $(Fopt) $*.f90
+	$(F90) -c -r8 $*.f90
 tpcore_mod.o               : tpcore_mod.f               CMN CMN_CO CMN_CO_BUDGET CMN_DIAG CMN_GCTM CMN_SIZE define.h define.h 
-	$(FF) -c -Mextend -r8 $(Fopt) $*.f
+	$(F90) -c -r8 $*.f
 tpcore_window_mod.o        : tpcore_window_mod.f        CMN CMN_CO CMN_CO_BUDGET CMN_DIAG CMN_GCTM CMN_SIZE define.h define.h 
-	$(FF) -c -Mextend -r8 $(Fopt) $*.f
+	$(F90) -c -r8 $*.f
 tracerid_mod.o             : tracerid_mod.f             CMN CMN_SIZE define.h comode.h 
 transfer_mod.o             : transfer_mod.f             CMN_SIZE define.h 
 transport_mod.o            : transport_mod.f            CMN CMN_GCTM CMN_SETUP CMN_SIZE define.h 
@@ -555,16 +552,16 @@ xltmmp.o                   : xltmmp.f                   CMN_SIZE define.h
 #  C-language routines
 #==============================================================================
 linux_err.o                : linux_err.c     
-        $(CC) -c linux_err.c
+	$(CC) -c linux_err.c
 
 #=============================================================================
 #  Other Makefile Commands
 #=============================================================================
 clean:
-        rm -f *.o *.mod geos geos_sj geosco
+	rm -f *.o *.mod ifc* geos geos_sj geosco
 
 .SUFFIXES: .f .F .f90 .F90
-.f.o:                   ; $(F90) -c $*.f
-.F.o:                   ; $(F90) -c $*.F
+.f.o:			; $(F90) -c $*.f
+.F.o:			; $(F90) -c $*.F
 .f90.o:                 ; $(F90) -c -Mfree $*.f90 
 .F90.o:                 ; $(F90) -c -Mfree $*.F90 

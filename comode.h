@@ -1,4 +1,4 @@
-! $Id: comode.h,v 1.7 2003/10/30 16:17:16 bmy Exp $
+! $Id: comode.h,v 1.8 2003/12/05 21:13:57 bmy Exp $
 !
 !******************************************************************************
 !  Header file COMODE contains common blocks and variables for SMVGEAR II.
@@ -40,6 +40,7 @@
 !        "calcrate.f" or "smvgear.f".  Cosmetic changes. (bmy, 7/28/03)
 !  (6 ) Add NKN2O5 to /CHEM4/ common block to flag N2O5 hydrolysis rxn.
 !         (mje, bmy, 8/7/03)
+!  (7 ) Eliminated SMALLCHEM cpp switch (bmy, 12/2/03)
 !******************************************************************************
 !
 C         CCCCCCC  OOOOOOO  M     M  OOOOOOO  DDDDDD   EEEEEEE 
@@ -149,7 +150,12 @@ C
       PARAMETER ( IMASBAL = 9,                 IALTS   = 22          )
       PARAMETER ( MXCOF   = 5                                        )
 
-#elif defined ( SMALLCHEM ) || defined ( LGEOSCO )
+!-----------------------------------------------------------------------------
+! Prior to 12/2/03:
+! Eliminate SMALLCHEM flag (bmy, 12/2/03)
+!#elif defined ( SMALLCHEM ) || defined ( LGEOSCO )
+!-----------------------------------------------------------------------------
+#elif defined( LGEOSCO )
       ! New settings for small chemistry to save array space (bmy, 1/5/98)
       ! Need these to also be defined for LGEOSCO run (bmy, 10/3/00)
       PARAMETER ( IGAS    = 35,                IAERTY  = 1           )

@@ -1,4 +1,4 @@
-! $Id: tpcore_bc_mod.f,v 1.2 2003/10/01 20:32:23 bmy Exp $
+! $Id: tpcore_bc_mod.f,v 1.3 2003/12/05 21:14:07 bmy Exp $
       MODULE TPCORE_BC_MOD
 !
 !******************************************************************************
@@ -553,11 +553,8 @@
             ! Exit if we've found all tracers for this TAU value
             !===========================================================
             IF ( NFOUND == NTRACE ) THEN
-               !--------------------------------------------------------
-               ! Prior to 9/29/03:
-               ! LINUX can't write the output of a function call
-               !WRITE( 6, 100 ) NTRACE, TIMESTAMP_STRING()
-               !--------------------------------------------------------
+
+               ! Echo output
                STAMP = TIMESTAMP_STRING()
                WRITE( 6, 100 ) NTRACE, STAMP
  100           FORMAT( '     - READ_WINDOW_TPCORE_BC: Found all ',

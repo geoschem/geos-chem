@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.4 2003/10/01 20:32:23 bmy Exp $
+! $Id: sulfate_mod.f,v 1.5 2003/12/05 21:14:05 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -4466,7 +4466,7 @@
 !******************************************************************************
 !  Subroutine READ_BIOMASS_NH3 reads the monthly mean biomass NH3 
 !  and biofuel emissions from disk and converts to [kg NH3/box/s]. 
-!  (rjp, bdf, bmy, 9/20/02, 9/29/03)
+!  (rjp, bdf, bmy, 9/20/02, 12/2/03)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -4484,6 +4484,7 @@
 !        for years where internannual emissions do not exist.  Now also
 !        reference GET_TAU from "time_mod.f" (bmy, 5/15/03)
 !  (4 ) Now use ENCODE statement for PGI/F90 on Linux (bmy, 9/29/03)
+!  (5 ) Changed cpp switch name from LINUX to LINUX_PGI (bmy, 12/2/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4559,7 +4560,7 @@
 
          ! Convert YEAR to a string
          ! Now use ENCODE to define CYEAR string for PGI/Linux (bmy, 9/29/03)
-#if   defined ( LINUX ) 
+#if   defined ( LINUX_PGI ) 
          ENCODE( 4, '(i4)', CYEAR ) YEAR
 #else
          WRITE( CYEAR, '(i4)' ) YEAR

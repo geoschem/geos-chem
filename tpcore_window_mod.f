@@ -1,9 +1,9 @@
-! $Id: tpcore_window_mod.f,v 1.1 2003/06/30 20:26:06 bmy Exp $
+! $Id: tpcore_window_mod.f,v 1.2 2003/12/05 21:14:07 bmy Exp $
       MODULE TPCORE_WINDOW_MOD
 !
 !******************************************************************************
 !  Module TPCORE_MOD contains the TPCORE transport subroutine package by
-!  S-J Lin, version 7.1. (yxw, bmy, 3/10/03)
+!  S-J Lin, version 7.1. (yxw, bmy, 12/2/03)
 !  
 !  Module routines:
 !  ============================================================================
@@ -110,6 +110,8 @@
 !        window region does not include the polar caps.   Now assume all 
 !        platforms other than CRAY use OPENMP parallelization commands	
 !        (yxw, bmy, 3/10/03)
+!  (2 ) Updated information output depending on what type of machine it is.
+!        (bmy, 12/2/03)
 !******************************************************************************
 !
       !=================================================================
@@ -527,17 +529,23 @@ C****6***0*********0*********0*********0*********0*********0**********72
       WRITE( 6, '(a)' )
  
 #if   ( multitask )
-      write(6,*) 'tpcore was compiled for multitasking'
+      WRITE( 6, '(a)' ) 'TPCORE_WINDOW was compiled for multitasking'
 #if   defined( CRAY )
-      write(6,*) 'for CRAY'
-#elif defined( SGI  )
-      write(6,*) 'for SGI R1000 multiple-CPU machines'
-#elif defined( DEC_COMPAQ )
-      write(6,*) 'for DEC/COMPAQ RISC/Alpha machines'
-#elif defined( LINUX )
-      write(6,*) 'for multiple-CPU Linux boxes'
-#elif defined( SUN )
-      write(6,*) 'for SUN/Sparc machines'
+      WRITE( 6, '(a)' ) 'for CRAY'
+#elif defined( SGI_MIPS  )
+      WRITE( 6, '(a)' ) 'for SGI Origin/Power Challenge machines'
+#elif defined( COMPAQ  )
+      WRITE( 6, '(a)' ) 'for COMPAQ/HP RISC Alpha machines'
+#elif defined( LINUX_PGI )
+      WRITE( 6, '(a)' ) 'for Linux environment w/ PGI compiler'
+#elif defined( LINUX_IFC )
+      WRITE( 6, '(a)' ) 'for Linux environment w/ IFC compiler'
+#elif defined( LINUX_EFC )
+      WRITE( 6, '(a)' ) 'for Linux environment w/ EFC compiler'
+#elif defined( SPARC )
+      WRITE( 6, '(a)' ) 'for SUN/Sparc machines'
+#elif defined( IBM_AIX )
+      WRITE( 6, '(a)' ) 'for IBM/AIX machines'
 #endif
 #endif
 

@@ -1,8 +1,8 @@
-! $Id: error_mod.f,v 1.3 2003/10/30 16:17:17 bmy Exp $
+! $Id: error_mod.f,v 1.4 2003/12/05 21:14:02 bmy Exp $
       MODULE ERROR_MOD
 !
 !******************************************************************************
-!  Module ERROR_MOD contains error checking routines. (bmy, 3/8/01, 10/24/03)
+!  Module ERROR_MOD contains error checking routines. (bmy, 3/8/01, 12/2/03)
 !
 !  Module Routines:
 !  ===========================================================================
@@ -48,6 +48,7 @@
 !  (8 ) Added patches for IBM/AIX platform (gcc, bmy, 6/27/03)
 !  (9 ) Bug fixes for LINUX platform (bmy, 9/29/03)
 !  (10) Now supports INTEL_FC compiler (bmy, 10/24/03)
+!  (11) Changed the name of some cpp switches in "define.h" (bmy, 12/2/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -93,7 +94,7 @@
 !
 !*****************************************************************************
 !  Module NAN_FLOAT returns TRUE if a REAL*4 number is equal to the IEEE NaN 
-!  (Not-a-Number) flag.  Returns FALSE otherwise. (bmy, 3/8/01, 10/24/03)
+!  (Not-a-Number) flag.  Returns FALSE otherwise. (bmy, 3/8/01, 12/2/03)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -107,6 +108,8 @@
 !        COMPAQ. (bmy, 3/23/03)
 !  (4 ) Added patches for IBM/AIX platform (gcc, bmy, 6/27/03)
 !  (5 ) Use LINUX error-trapping for INTEL_FC (bmy, 10/24/03)
+!  (6 ) Renamed SGI to SGI_MIPS, LINUX to LINUX_PGI, INTEL_FC to INTEL_IFC,
+!        and added LINUX_EFC. (bmy, 12/2/03)
 !*****************************************************************************
 !
 #     include "define.h" ! C-preprocessor switches
@@ -124,13 +127,13 @@
       !=================================================================
       ! NAN_FLOAT begins here!
       !=================================================================
-#if   defined( SGI )
+#if   defined( SGI_MIPS )
       IT_IS_A_NAN = IEEE_IS_NAN( VALUE )   
 
 #elif defined( COMPAQ )
       IT_IS_A_NAN = ISNAN( VALUE )         
 
-#elif defined( LINUX ) || defined( INTEL_FC ) 
+#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC ) 
 
       ! Declare IS_NAN as an external function
       INTEGER, EXTERNAL  :: IS_NAN
@@ -166,7 +169,7 @@
 !
 !*****************************************************************************
 !  Module NAN_DBLE returns TRUE if a REAL*8 number is equal to the IEEE NaN 
-! (Not-a-Number) flag.  Returns FALSE otherwise. (bmy, 3/8/01, 10/24/03)
+! (Not-a-Number) flag.  Returns FALSE otherwise. (bmy, 3/8/01, 12/2/03)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -180,6 +183,8 @@
 !        COMPAQ. (bmy, 3/23/03)
 !  (4 ) Added patches for IBM/AIX (gcc, bmy, 6/27/03)
 !  (5 ) Use LINUX error-trapping for INTEL_FC (bmy, 10/24/03)
+!  (6 ) Renamed SGI to SGI_MIPS, LINUX to LINUX_PGI, INTEL_FC to INTEL_IFC,
+!        and added LINUX_EFC. (bmy, 12/2/03)
 !*****************************************************************************
 !
 #     include "define.h" ! C-preprocessor switches
@@ -197,13 +202,13 @@
       !=================================================================
       ! NAN_DBLE begins here!
       !=================================================================
-#if   defined( SGI )
+#if   defined( SGI_MIPS )
       IT_IS_A_NAN = IEEE_IS_NAN( VALUE )   
 
 #elif defined( COMPAQ )
       IT_IS_A_NAN = ISNAN( VALUE )         
 
-#elif defined( LINUX ) || defined( INTEL_FC )
+#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC )
 
       ! Declare IS_NAN as an external function
       INTEGER, EXTERNAL  :: IS_NAN
@@ -238,7 +243,7 @@
 !
 !*****************************************************************************
 !  Module FINITE_FLOAT returns TRUE if a REAL*4 number is equal to the 
-!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 10/24/03)
+!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 12/2/03)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -253,6 +258,8 @@
 !  (4 ) Added patches for IBM/AIX platform (gcc, bmy, 6/27/03)
 !  (5 ) Bug fix: now use external C IS_FINITE for PGI/Linux (bmy, 9/29/03)
 !  (6 ) Use LINUX error-trapping for INTEL_FC (bmy, 10/24/03)
+!  (7 ) Renamed SGI to SGI_MIPS, LINUX to LINUX_PGI, INTEL_FC to INTEL_IFC,
+!        and added LINUX_EFC. (bmy, 12/2/03)
 !*****************************************************************************
 !
 #     include "define.h" ! C-preprocessor switches
@@ -270,7 +277,7 @@
       !=================================================================
       ! FINITE_FLOAT begins here!
       !=================================================================       
-#if   defined( SGI )
+#if   defined( SGI_MIPS )
       IT_IS_A_FINITE = IEEE_FINITE( VALUE )  
  
 #elif defined( COMPAQ ) 
@@ -284,7 +291,7 @@
          IT_IS_A_FINITE = .TRUE.
       ENDIF
 
-#elif defined( LINUX ) || defined( INTEL_FC )
+#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC )
 
       ! Declare IS_FINITE as an external function
       INTEGER, EXTERNAL :: IS_FINITE
@@ -320,7 +327,7 @@
 !
 !*****************************************************************************
 !  Module FINITE_DBLE returns TRUE if a REAL*8 number is equal to the 
-!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 10/24/03)
+!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 12/2/03)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -335,6 +342,8 @@
 !  (4 ) Added patches for IBM/AIX platform (gcc, bmy, 6/27/03)
 !  (5 ) Bug fix: now use external C IS_FINITE for PGI/Linux (bmy, 9/29/03)
 !  (6 ) Use LINUX error-trapping for INTEL_FC (bmy, 10/24/03)
+!  (7 ) Renamed SGI to SGI_MIPS, LINUX to LINUX_PGI, INTEL_FC to INTEL_IFC,
+!        and added LINUX_EFC. (bmy, 12/2/03)
 !*****************************************************************************
 !
 #     include "define.h" ! C-preprocessor switches
@@ -352,7 +361,7 @@
       !=================================================================
       ! FINITE_DBLE begins here!
       !=================================================================
-#if   defined( SGI )
+#if   defined( SGI_MIPS )
       IT_IS_A_FINITE = IEEE_FINITE( VALUE )  
 
 #elif defined( COMPAQ ) 
@@ -365,7 +374,7 @@
          IT_IS_A_FINITE = .TRUE.
       ENDIF
 
-#elif defined( LINUX ) || defined( INTEL_FC )
+#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC )
 
       ! Declare IS_FINITE as an external function
       INTEGER, EXTERNAL :: IS_FINITE
