@@ -1,5 +1,5 @@
 REVISIONS (v5-07-08)  
-bmy, 29 Sep 2003
+bmy, 10 Oct 2003
 
 
 New in v5-07-08:
@@ -46,6 +46,12 @@ its_a_leapyear		-- Now add YEAR_IN as an optional argument.  If
 ("time_mod.f")		   YEAR_IN is not passed, then test if the current 
 			   year is a leapyear
 
+Makefile.compaq		-- need to compile "calcrate.f" with -O2 level
+		           optimization.  All other routines can be compiled
+			   with "-fast" level optimization.
+
+Makefile.linux		-- added -Bstatic flag for 2x2.5 compilation
+
 physproc.f		-- LINUX has a problem putting a function call w/in a 
 			   WRITE statement.  Now save output from 
 			   TIMESTAMP_STRING to STAMP and print that.
@@ -58,6 +64,10 @@ read_liqco2		-- Now use ENCODE to define CYEAR string for PGI/Linux
 
 read_totco2		-- Now use ENCODE to define CYEAR string for PGI/Linux
 ("geia_mod.f")
+
+schem.f			-- LINUX has a problem putting a function call w/in a 
+			   WRITE statement.  Now save output from 
+			   TIMESTAMP_STRING to STAMP and print that.
 
 smvgear.f		-- Increase max allowable iteration count to 99999
 
