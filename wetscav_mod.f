@@ -1,4 +1,4 @@
-! $Id: wetscav_mod.f,v 1.8 2004/05/03 14:46:19 bmy Exp $
+! $Id: wetscav_mod.f,v 1.9 2004/05/03 15:36:39 bmy Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
@@ -3228,17 +3228,11 @@
          ENDIF
       ENDDO
 
-      PRINT*, '### NSOL : ', NSOL
-      PRINT*, '### NSOLMAX: ', NSOLMAX
-
       ! Error check: Make sure that NSOL is less than NSOLMAX
       IF ( NSOL > NSOLMAX ) THEN
          CALL ERROR_STOP( 'NSOL > NSOLMAX!', 'WETDEPID (wetscav_mod.f)')
       ENDIF
       
-      PRINT*, '### NSOL : ', NSOL
-      PRINT*, '### NSOLMAX: ', GET_WETDEP_NMAX( NSRCX )
-
       ! Also check to see if NSOL is larger than the maximum
       ! number of soluble tracers for a particular simulation
       IF ( NSOL > GET_WETDEP_NMAX( NSRCX ) ) THEN
