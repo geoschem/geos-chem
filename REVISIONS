@@ -1,5 +1,5 @@
 REVISIONS (v7-01-01)  
-bmy, 21 Sep 2004
+bmy, 22 Sep 2004
 
 
 New in v7-01-01:
@@ -420,6 +420,11 @@ file_mod.f		-- Renumbered the order of the files.
 			-- Also removed IU_INPTR and IU_INPUT since they 
 			   are now obsolete.
 			-- Also renamed IU_TS to IU_ND48 
+
+fvdas_convect		-- Handle parallel loops differently for Intel Fortran
+("fvdas_convect_mod.f")	   Compilers, since for some reason the code dies if
+			   large arrays (QTMP, FTMP) are held PRIVATE in 
+			   parallel loops.
 
 gasconc.f		-- Now dimension args XNUMOL, STT w/ NTRACER 
 			   and not NNPAR

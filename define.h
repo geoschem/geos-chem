@@ -1,4 +1,4 @@
-! $Id: define.h,v 1.15 2004/09/21 18:04:10 bmy Exp $
+! $Id: define.h,v 1.16 2004/09/22 15:45:26 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
@@ -96,14 +96,14 @@
 !----- Model types -----
 !#define GEOS_1      'GEOS_1'       
 !#define GEOS_STRAT  'GEOS_STRAT'
-!#define GEOS_3      'GEOS_3'
-#define GEOS_4      'GEOS_4'
+#define GEOS_3      'GEOS_3'
+!#define GEOS_4      'GEOS_4'
 !#define A_LLK_03    'A_LLK_03'
 
 !----- Grid sizes -----
 !#define GRID1x1     'GRID1x1'
-!#define GRID2x25    'GRID2x25'
-#define GRID4x5     'GRID4x5'
+#define GRID2x25    'GRID2x25'
+!#define GRID4x5     'GRID4x5'
 #define GRID30LEV   'GRID30LEV'
 
 !----- Chemistry -----
@@ -119,8 +119,8 @@
 !#define IBM_AIX     'IBM_AIX'
 !#define LINUX_PGI   'LINUX_PGI'
 !#define LINUX_IFC   'LINUX_IFC'
-!#define LINUX_EFC   'LINUX_EFC'
-#define SGI_MIPS    'SGI_MIPS'
+#define LINUX_EFC   'LINUX_EFC'
+!#define SGI_MIPS    'SGI_MIPS'
 !#define SPARC       'SPARC'
 
 !==============================================================================
