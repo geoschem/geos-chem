@@ -1,74 +1,49 @@
-REVISIONS (v5-07-01)  
-bmy, 07 Jul 2003
+REVISIONS (v5-07-02)  
+bmy, 09 Jul 2003
 
 
-New in v5-07-01:
+New in v5-07-02:
 ----------------------------------------------------------------------------- 
 
 
 
 
-Removed from v5-07-01:
+Removed from v5-07-02:
 ----------------------------------------------------------------------------- 
 
 
 
 
-Changed from v5-06:
+Changed from v5-07-01:
 -------------------------------------------------------------------------------
 
-calcrate.f		-- Now implement interannually-varying CH4 field
-			-- Now reference GET_YMID from "grid_mod.f"
-			-- Now reference AIRDENS array from "comode_mod.f"
-			-- Added YLAT variable for grid box latitude
+comode.h		-- Added ITS_NOT_A_ND65_FAMILY to the /LPL/ 
+			   common block for the ND65 prod/loss diagnostic
+			-- Updated comments, cosmetic changes
+
+backsub.f		-- Comment out counter variable NUM_BACKSUB, you 
+	 		   can get the same info w/ a profiling run.
+
+decomp.f		-- Comment out counter variable NUM_DECOMP, you 
+	 		   can get the same info w/ a profiling run.
+
+diag1.f			-- Bug fix in DO-loop for calculating local time;
+			   replace JJPAR with IIPAR
+
+readchem.f		-- Now define lookup table ITS_NOT_A_ND65_FAMILY, 
+			   which is used to exclude ND65 prod/loss families 
+			   from modifying the SMVGEAR II convergence criteria 
+			-- Also, now test for ND65 prod/loss families correctly
+			   using the MAPPL index array.  
+
+read_variables		-- Bug fix: replace NAMESPEC w/ NAMEGAS for SMVGEAR II
+("planeflight_mod.f")
+
+smvgear.f		-- Removed ITS_NOT_A_ND65_FAMILY -- this has now been 
+			   converted from a function to a lookup-table in 
+			   "comode.h".  This should execute much faster, 
+			   particularly on Linux.  
+			-- Comment out counter variable NUM_TIMESTEPS, you 
+			   can get the same info w/ a profiling run.
 			-- Cosmetic changes
 
-chemdr.f		-- Reference GET_GLOBAL_CH4 from "global_ch4_mod.f"
-			-- Also added CH4_YEAR as a SAVEd variable
-
-comode.h		-- Added ICH4 to the /SPECIE2/ common block for 
-			   interannual-varying CH4 concentration.
-			-- Added variables for latitude distribution of
-			   CH4 to the /SPECIE3/ common block.
-
-get_global_ch4		-- Place WRITE statments w/in an !$OMP CRITICAL block,
-("global_ch4_mod.f")	   so as to make sure that only one processor at a 
-			   time writes them.  
-			-- Also now use F90 REPEAT intrinsic function.
-			-- Replaced old CH4 gradient values with updated 
-			   values for 1983-2001.  
-			-- Use data for 2001 as a proxy for years past 2001,
-			   since data for those years has not been reported yet
-
-readchem.f		-- Now initialize ICH4 -- the location of CH4 in 
-			   the CSPEC array
-
-----
-
-biomass_mod.f 	       <-- Removed commented-out, obsolete code
-chemhcn.f		   from the following source-code files
-chemistry_mod.f
-dao_mod.f               
-inphot.f               
-input.f
-jsparse.f
-jv_index.f
-ksparse.f
-main.f	
-partition.f
-physproc.f
-pjc_pfix_mod.f
-pressure_mod.f
-reader.f
-restart_mod.f
-setnfam.f
-setup.f
-tagged_co_mod.f
-tcorr.f
-time_mod.f
-transport_mod.f
-turbday.f
-upbdflx_mod.f
-wetscav_mod.f
-
-	      

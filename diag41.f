@@ -1,10 +1,10 @@
-! $Id: diag41.f,v 1.1 2003/06/30 20:26:04 bmy Exp $
+! $Id: diag41.f,v 1.2 2003/07/11 13:43:17 bmy Exp $
       SUBROUTINE DIAG41 
 !
 !*****************************************************************************
 !  Subroutine DIAG41 produces monthly mean boundary layer height in meters 
 !  between 1200-1600 local time for the U.S. geographical domain. 
-!  (amf, bmy, 11/18/99, 2/11/03)
+!  (amf, bmy, 11/18/99, 7/9/03)
 !
 !  DIAG41 writes timseries output to disk using the Harvard CTM binary
 !  punch file version 2.0.  This format is very GAMAP-friendly!
@@ -29,6 +29,7 @@
 !  (9 ) Now reference BXHEIGHT from "dao_mod.f".  Also removed obsolete
 !        code. (bmy, 9/18/02)
 !  (10) Now use function GET_LOCALTIME from "dao_mod.f" (bmy, 2/11/03)
+!  (11) Bug fix in DO-loop for calculating local time (bmy, 7/9/03)
 !*****************************************************************************
 !
       ! References to F90 modules
@@ -54,7 +55,12 @@
       !=================================================================
 
       ! XLOCTM: Local time at each longitude 
-      DO I = 1, JJPAR
+      !-------------------------------------------------------
+      ! Prior to 7/9/03:
+      ! Bug fix: JJPAR should be IIPAR (lyj, bmy, 7/9/03)
+      !DO I = 1, JJPAR
+      !-------------------------------------------------------
+      DO I = 1, IIPAR
          XLOCTM(I) = GET_LOCALTIME( I ) 
       ENDDO
 

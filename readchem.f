@@ -1,10 +1,10 @@
-! $Id: readchem.f,v 1.2 2003/07/08 15:27:34 bmy Exp $
+! $Id: readchem.f,v 1.3 2003/07/11 13:43:48 bmy Exp $
       SUBROUTINE READCHEM 
 !
 !******************************************************************************
 !  Subroutine READCHEM reads species names, chemical rxns, and photolysis 
 !  reactions from the "globchem.dat" chemistry mechanism file for SMVGEAR II.  
-!  (M. Jacobson 1997; bdf, bmy, 5/9/03, 7/1/03)
+!  (M. Jacobson 1997; bdf, bmy, 5/9/03, 7/9/03)
 !
 !  NOTES:
 !  (1 ) Added space in FORMAT strings for more products.  Also now references
@@ -14,8 +14,10 @@
 !        NKSPECG for DMS+OH+O2 rxn.  Now also force double precision with
 !        the "D" exponent.  Now call SETPL before JSPARSE so that the prod/loss
 !        families will be computed correctly. (bmy, 5/9/03)
-!  (2 ) Now initialize ICH4 -- the location of CH4 in the CSPEC array.
-!        (bnd, bmy, 7/1/03)
+!  (2 ) Now initialize ICH4 -- the location of CH4 in the CSPEC array.  Now 
+!        define lookup table ITS_NOT_A_ND65_FAMILY, which is used to exclude
+!        ND65 prod/loss families from modifying the SMVGEAR II convergence
+!        criteria.  (bnd, bmy, 7/9/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1077,14 +1079,44 @@ C
       ! SETPL must be called before JSPARSE (ljm, bmy, 5/9/03)
       IF ( LFAMILY ) CALL SETPL
 
-      IF (IFSOLVE.EQ.1) THEN
-C
-       DO 710 NCS = 1, NCSGAS
-          CALL JSPARSE
- 710   CONTINUE
-C
+      ! IFSOLVE = 1 means we are calling the chemistry solver
+      IF ( IFSOLVE .EQ. 1 ) THEN
+
+         ! Loop over chemistry regimes (for now NCSGAS=NCSURBAN=1)
+         DO NCS = 1, NCSGAS
+
+            ! Set up sparse matrix stuff
+            CALL JSPARSE
+
+            !===========================================================
+            ! Determine which species are ND65 families and which are 
+            ! not.  Do this once (after JSPARSE) & store in the lookup
+            ! table ITS_NOT_A_ND65_FAMILY. (bmy, 7/9/03)
+            !===========================================================
+
+            ! Loop over all species
+            DO J = 1, ISCHANG(NCS)
+               
+               ! Initialize lookup table
+               ITS_NOT_A_ND65_FAMILY(J) = .TRUE.
+
+               ! Test if species J is a ND65 prodloss family
+               ! MAPPL is the reordered species index after JSPARSE
+               DO N = 1, NFAMILIES
+                  IF ( J == MAPPL(IFAM(N),NCS) ) THEN
+                     ITS_NOT_A_ND65_FAMILY(J) = .FALSE.
+                     EXIT
+                  ENDIF
+               ENDDO  
+            ENDDO
+         ENDDO
+
       ELSE
-       NPHOTALL = 0
+
+         ! If we are not calling the chemistry solver, then
+         ! set number of active gas photoprocesses to zero
+         NPHOTALL = 0
+
       ENDIF
 C
 C *********************************************************************

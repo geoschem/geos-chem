@@ -1,4 +1,4 @@
-! $Id: decomp.f,v 1.1 2003/06/30 20:26:09 bmy Exp $
+! $Id: decomp.f,v 1.2 2003/07/11 13:43:06 bmy Exp $
       SUBROUTINE DECOMP
 !
 !******************************************************************************
@@ -8,6 +8,8 @@
 !  NOTES:
 !  (1 ) Now use & as F90 continuation character.  Now also force double
 !        precision with the "D" exponent. (bmy, 4/18/03)
+!  (2 ) Comment out counter variable NUM_BACKSUB, you can get the same info
+!        w/ a profiling run. (bmy, 7/9/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -76,8 +78,13 @@ C
       INTEGER IC,IK0,IK1,IK2,IK3,IK4,KJ0,KJ1,KJ2,KJ3,KJ4,K,IAR
       INTEGER JL,JH,JC,IJA
 
-      ! bdf timing calculations
-      NUM_DECOMP = NUM_DECOMP + 1
+      !-----------------------------------------------------------------
+      ! Prior to 7/9/03:
+      ! Comment out counter variable NUM_DECOMP, you can get the same 
+      ! info w/ a profiling run. (bmy, 7/9/03)
+      !! bdf timing calculations
+      !NUM_DECOMP = NUM_DECOMP + 1
+      !-----------------------------------------------------------------
 
       DO 510 J       = 1, ISCHAN
          DO 310 IJT    = IJTLO(J,NCSP), IJTHI(J,NCSP)

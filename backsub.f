@@ -1,11 +1,13 @@
-! $Id: backsub.f,v 1.1 2003/06/30 20:26:04 bmy Exp $
+! $Id: backsub.f,v 1.2 2003/07/11 13:41:37 bmy Exp $
       SUBROUTINE BACKSUB
 !
 !******************************************************************************
 !  Subroutine BACKSUB does the back-substitution on the decomposed matrix.
-!  (M. Jacobson 1997; bdf, bmy, 4/1/03)
+!  (M. Jacobson 1997; bdf, bmy, 4/1/03, 7/9/03)
 !
 !  NOTES:
+!  (1 ) Comment out counter variable NUM_BACKSUB, you can get the same info
+!        w/ a profiling run. (bmy, 7/9/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -79,8 +81,13 @@ C            VALUES ARE CONVERTED TO THE SOLUTION DURING BACK-SUBSTITUTION.
 C KZEROA,..= ARRAYS IDENTIFYING TERMS IN GLOSS ARRAY 
 C
 
-      ! bdf timing calculations.
-      NUM_BACKSUB = NUM_BACKSUB + 1
+      !-----------------------------------------------------------------
+      ! Prior to 7/9/03:
+      ! Comment out counter variable NUM_BACKSUB, you can get the same 
+      ! info w/ a profiling run. (bmy, 7/9/03)
+      !! bdf timing calculations.
+      !NUM_BACKSUB = NUM_BACKSUB + 1
+      !-----------------------------------------------------------------
 
       IJ            = 1 
       DO 310 KZT    = KZTLO(NCSP), KZTHI(NCSP)

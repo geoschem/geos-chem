@@ -1,9 +1,9 @@
-! $Id: smvgear.f,v 1.1 2003/06/30 20:26:02 bmy Exp $ 
+! $Id: smvgear.f,v 1.2 2003/07/11 13:45:31 bmy Exp $ 
       SUBROUTINE SMVGEAR
 !
 !******************************************************************************
 !  Subroutine SMVGEAR solves ODE's for chemical reactions using a GEAR-type
-!  method.  (M. Jacobson 1997; bdf, bmy, 5/12/03)
+!  method.  (M. Jacobson 1997; bdf, bmy, 5/12/03, 7/9/03)
 !
 !  NOTES:
 !  (1 ) For GEOS-CHEM we had to remove IXSAVE, IYSAVE, and IZSAVE from 
@@ -13,6 +13,11 @@
 !        Now force double-precision with "D" exponent.  Now prevent ND65
 !        "fake" prodloss families from being counted towards the SMVGEAR
 !        convergence criteria. (ljm, bdf, bmy, 4/18/03)
+!  (2 ) Removed ITS_NOT_A_ND65_FAMILY -- this has now been converted from
+!        a function to a lookup-table in "comode.h".  This should execute much
+!        faster, particularly on Linux.  Comment out counter variable 
+!        NUM_TIMESTEPS, you can get the same info w/ a profiling run. 
+!        Cosmetic changes. (bmy, 7/9/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -258,20 +263,19 @@ C
       
       !=================================================================
       ! Added for the ND65 prod/loss diagnostic (ljm, bmy, 5/9/03)
-      INTEGER :: NNOFAM
+      INTEGER       :: NNOFAM
       !=================================================================
 
-C     ljm stop 700 trouble
-      integer ijsave,jspcsave(ktloop),ix,iy,iz,jj,jjj,ksave,counter
-      real*8 specmax
+      ! ljm stop 700 trouble
+      INTEGER IJSAVE,JSPCSAVE(KTLOOP),IX,IY,IZ,JJ,JJJ,KSAVE,COUNTER
+      REAL*8 SPECMAX
 
       ! Maximum iteration count for SMVGEAR (bmy, 4/11/03)
       INTEGER, PARAMETER :: MAX_ITERATIONS = 9999
 
-! gcc
-!      print*, 'I am in block ', kblk
-!      call flush(6)
-
+      !=================================================================
+      ! SMVGEAR begins here!
+      !=================================================================
       COUNTER   = 0
       ICOUNT    = 0
       NSUBFUN   = 0
@@ -286,10 +290,6 @@ C     ljm stop 700 trouble
       ISCHAN    = ISCHANG( NCS)
       ISCHAN1   = ISCHAN - 1
 
-!--------------------------------
-! Prior to 5/9/03:
-!      ORDER     = FLOAT(ISCHAN)
-!--------------------------------
       !=================================================================
       ! Added for the ND65 prod/loss diagnostic, in order to prevent
       ! ND65 prod/loss families from being counted towards the 
@@ -391,7 +391,7 @@ C
         ! Added for the ND65 prod/loss diagnostic.  This prevents ND65
         ! prod/loss species from being counted towards the convergence
         ! criteria for the SMVGEAR solver (ljm, bmy, 5/9/03)         
-        IF ( ITS_NOT_A_ND65_FAMILY( JSPC )  ) THEN
+        IF ( ITS_NOT_A_ND65_FAMILY(JSPC) ) THEN
            DO 135 KLOOP         = 1, KTLOOP
               CNW                 = CNEW(KLOOP,JSPC)
               IF (CNW.GT.ABTOL(1,NCS)) THEN
@@ -437,7 +437,7 @@ C
          ! Added for the ND65 prod/loss diagnostic.  This prevents ND65
          ! prod/loss species from being counted towards the convergence
          ! criteria for the SMVGEAR solver (ljm, bmy, 5/9/03)
-         IF ( ITS_NOT_A_ND65_FAMILY( JSPC ) ) THEN 
+         IF ( ITS_NOT_A_ND65_FAMILY(JSPC) ) THEN 
             DO 138 KLOOP    = 1, KTLOOP
                CNEWYLOW       = CNEW(KLOOP,JSPC) + YABST(KLOOP) *RELTOL1
                ERRYMAX        = GLOSS(KLOOP,JSPC) / CNEWYLOW
@@ -461,7 +461,7 @@ C
          ! Added for the ND65 prod/loss diagnostic.  This prevents ND65
          ! prod/loss species from being counted towards the convergence
          ! criteria for the SMVGEAR solver (ljm, bmy, 5/9/03)
-         IF ( ITS_NOT_A_ND65_FAMILY( JSPC ) ) THEN
+         IF ( ITS_NOT_A_ND65_FAMILY(JSPC) ) THEN
             DO 143 KLOOP    = 1, KTLOOP 
                ERRYMAX        = GLOSS(KLOOP,JSPC)/
      &                          (CNEW(KLOOP,JSPC)+ABTOLER1)
@@ -646,7 +646,7 @@ C
          ! Added for the ND65 prod/loss diagnostic.  This prevents ND65
          ! prod/loss species from being counted towards the convergence
          ! criteria for the SMVGEAR solver (ljm, bmy, 5/9/03)
-         IF ( ITS_NOT_A_ND65_FAMILY( JSPC ) ) THEN 
+         IF ( ITS_NOT_A_ND65_FAMILY(JSPC) ) THEN 
             DO 205 KLOOP         = 1, KTLOOP
                CNW                 = CNEW(KLOOP,JSPC)
                IF (CNW.GT.ABTOL(1,NCS)) THEN
@@ -692,7 +692,7 @@ C
         ! Added for the ND65 prod/loss diagnostic.  This prevents ND65
         ! prod/loss species from being counted towards the convergence
         ! criteria for the SMVGEAR solver (ljm, bmy, 5/9/03)
-        IF ( ITS_NOT_A_ND65_FAMILY( JSPC ) ) THEN
+        IF ( ITS_NOT_A_ND65_FAMILY(JSPC) ) THEN
            DO 211 KLOOP         = 1, KTLOOP
              CHOLD(KLOOP,JSPC)  = RELTOL3 / (MAX(CNEW(KLOOP,JSPC),0.D0)
      1                          + YABST(KLOOP) * RELTOL2)
@@ -881,7 +881,7 @@ C
               ! Added for the ND65 prod/loss diagnostic.  This prevents 
               ! ND65 prod/loss species from being counted towards the 
               ! convergence criteria for SMVGEAR (ljm, bmy, 5/9/03)
-              IF ( ITS_NOT_A_ND65_FAMILY( I ) ) THEN
+              IF ( ITS_NOT_A_ND65_FAMILY(I) ) THEN
                  ERRYMAX        = GLOSS(KLOOP,I)  * CHOLD(KLOOP,I)
                  DELY(KLOOP)    = DELY(KLOOP)     + ERRYMAX * ERRYMAX
               ENDIF
@@ -897,7 +897,7 @@ C
               ! Added for the ND65 prod/loss diagnostic.  This prevents 
               ! ND65 prod/loss species from being counted towards the 
               ! convergence criteria for SMVGEAR (ljm, bmy, 5/9/03)
-              IF ( ITS_NOT_A_ND65_FAMILY( I ) ) THEN
+              IF ( ITS_NOT_A_ND65_FAMILY(I) ) THEN
                  ERRYMAX        = GLOSS(KLOOP,I)  * CHOLD(KLOOP,I)
                  DELY(KLOOP)    = DELY(KLOOP)     + ERRYMAX * ERRYMAX
               ENDIF
@@ -1079,7 +1079,7 @@ C
         ! Added for the ND65 prod/loss diagnostic.  This prevents ND65
         ! prod/loss species from being counted towards the convergence
         ! criteria for the SMVGEAR solver (ljm, bmy, 5/9/03)
-        IF ( ITS_NOT_A_ND65_FAMILY( JSPC ) ) THEN
+        IF ( ITS_NOT_A_ND65_FAMILY(JSPC) ) THEN
            DO 400 KLOOP = 1, KTLOOP 
               ERRYMAX     = DTLOS(KLOOP,JSPC) * CHOLD(KLOOP,JSPC)
               DELY(KLOOP) = DELY(KLOOP) + ERRYMAX * ERRYMAX
@@ -1167,8 +1167,13 @@ C * ATIVES, RESET TOLD, SET IFSUCCESS = 1, INCREMENT NSTEPS, AND      *
 C * RESET JFAIL = 0.                                                  *
 C *********************************************************************
 C
-       ! timing calculations (bdf, 4/18/03)
-       num_timesteps=num_timesteps+1
+       !-----------------------------------------------------------------
+       ! Prior to 7/9/03:
+       ! Comment out counter variable NUM_TIMESTEPS, you can get the same 
+       ! info w/ a profiling run. (bmy, 7/9/03)         
+       !! timing calculations (bdf, 4/18/03)
+       !num_timesteps=num_timesteps+1
+       !-----------------------------------------------------------------
 
        JFAIL            = 0
        IFSUCCESS        = 1
@@ -1315,7 +1320,7 @@ C
         ! Added for the ND65 prod/loss diagnostic.  This prevents ND65
         ! prod/loss species from being counted towards the convergence
         ! criteria for the SMVGEAR solver (ljm, bmy, 5/9/03)
-        IF ( ITS_NOT_A_ND65_FAMILY( JSPC ) ) THEN
+        IF ( ITS_NOT_A_ND65_FAMILY(JSPC) ) THEN
            DO 544 KLOOP = 1, KTLOOP 
               ERRYMAX     = (DTLOS(KLOOP,JSPC) - CEST(KLOOP,JSPC)) *
      1                       CHOLD(KLOOP,JSPC)
@@ -1363,7 +1368,7 @@ C
         ! Added for the ND65 prod/loss diagnostic.  This prevents ND65
         ! prod/loss species from being counted towards the convergence
         ! criteria for the SMVGEAR solver (ljm, bmy, 5/9/03)
-        IF ( ITS_NOT_A_ND65_FAMILY( JSPC ) ) THEN
+        IF ( ITS_NOT_A_ND65_FAMILY(JSPC) ) THEN
            I            = JSPC + KSTEPISC
            DO 554 KLOOP = 1, KTLOOP 
               ERRYMAX     = CONC(KLOOP,I) * CHOLD(KLOOP,JSPC)
@@ -1505,54 +1510,60 @@ C *********************************************************************
 C
       RETURN
 
-      !=================================================================
-      ! INTERNAL FUNCTIONS -- can "see" all variable 
-      ! declarations that are made w/in routine SMVGEAR
-      !=================================================================
-      CONTAINS
-
-!-----------------------------------------------------------------------------
-
-      FUNCTION ITS_NOT_A_ND65_FAMILY( JSPC ) RESULT( LCOUNT )
+!------------------------------------------------------------------------------
+! Prior to 7/8/03:
+! Now use a lookup table to test for ND65 families (bmy, 7/8/03)
+!      !=================================================================
+!      ! INTERNAL FUNCTIONS -- can "see" all variable 
+!      ! declarations that are made w/in routine SMVGEAR
+!      !=================================================================
+!      CONTAINS
 !
-!******************************************************************************
-!  Function ITS_NOT_A_ND65_FAMILY returns TRUE if a species is not a ND65
-!  prod.loss family, or FALSE otherwise.  This is needed to keep the "fake"
-!  ND65 prod/loss family names from being included in the convergence
-!  criteria for the SMVGEAR II solver. (ljm, bmy, 5/12/03)
+!!-----------------------------------------------------------------------------
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) JSPC (INTEGER) : SMVGEAR species index
+!      !FUNCTION ITS_NOT_A_ND65_FAMILY( JSPC ) RESULT( LCOUNT )
+!      FUNCTION ND65_FAMILY_TEST( JSPC ) RESULT( LCOUNT )
+!!
+!!******************************************************************************
+!!  Function ITS_NOT_A_ND65_FAMILY returns TRUE if a species is not a ND65
+!!  prod.loss family, or FALSE otherwise.  This is needed to keep the "fake"
+!!  ND65 prod/loss family names from being included in the convergence
+!!  criteria for the SMVGEAR II solver. (ljm, bmy, 5/12/03)
+!!
+!!  Arguments as Input:
+!!  ============================================================================
+!!  (1 ) JSPC (INTEGER) : SMVGEAR species index
+!!
+!!  NOTES:
+!!******************************************************************************
+!!
+!      ! Arguments
+!      INTEGER, INTENT(IN) :: JSPC
 !
-!  NOTES:
-!******************************************************************************
+!      ! Local variables
+!      INTEGER             :: N
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: JSPC
-
-      ! Local variables
-      INTEGER             :: N
-
-      ! Function value
-      LOGICAL             :: LCOUNT
-
-      !=================================================================
-      ! ITS_NOT_A_ND65_FAMILY begins here!
-      !=================================================================
-      LCOUNT = .TRUE.
-
-      ! Test if this species is a ND65 prod/loss family name
-      DO N = 1, NFAMILIES
-         IF ( JSPC == MAPPL(IFAM(N),NCS) ) THEN
-            LCOUNT = .FALSE.
-            EXIT
-         ENDIF
-      ENDDO  
-
-      ! Return to SMVGEAR
-      END FUNCTION ITS_NOT_A_ND65_FAMILY
-
+!      ! Function value
+!      LOGICAL             :: LCOUNT
+!
+!      !=================================================================
+!      ! ITS_NOT_A_ND65_FAMILY begins here!
+!      !=================================================================
+!      LCOUNT = .TRUE.
+!
+!      ! Test if this species is a ND65 prod/loss family name
+!      ! For now just assume urban chemistry
+!      DO N = 1, NFAMILIES
+!         IF ( JSPC == MAPPL(IFAM(N),NCSURBAN) ) THEN
+!            LCOUNT = .FALSE.
+!            EXIT
+!         ENDIF
+!      ENDDO  
+!
+!      ! Return to SMVGEAR
+!      !END FUNCTION ITS_NOT_A_ND65_FAMILY
+!      END FUNCTION ND65_FAMILY_TEST
+!
 !-----------------------------------------------------------------------------
 
       END SUBROUTINE SMVGEAR

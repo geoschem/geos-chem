@@ -1,8 +1,8 @@
-! $Id: comode.h,v 1.2 2003/07/08 15:34:04 bmy Exp $
+! $Id: comode.h,v 1.3 2003/07/11 13:42:33 bmy Exp $
 !
 !******************************************************************************
 !  Header file COMODE contains common blocks and variables for SMVGEAR II.
-!  (M. Jacobson 1997; bdf, bmy, 4/23/03, 7/1/03)
+!  (M. Jacobson 1997; bdf, bmy, 4/23/03, 7/9/03)
 !
 !  NOTES:
 !  (1 ) Removed many commented-out common blocks not needed for GEOS-CHEM.
@@ -12,6 +12,10 @@
 !  (2 ) Added ICH4 to the /SPECIE2/ common block for interannual-varying
 !        CH4 concentration.  Added variables for latitude distribution of
 !        CH4 to the /SPECIE3/ common block. (bmy, 7/1/03)
+!  (3 ) Added ITS_NOT_A_ND65_FAMILY to the /LPL/ common block for the ND65
+!        production/loss diagnostic.   Comment out counter variables, you can 
+!        get the same info w/ a profiling run.  Updated comments, cosmetic 
+!        changes. (bmy, 7/9/03)
 !******************************************************************************
 !
 C         CCCCCCC  OOOOOOO  M     M  OOOOOOO  DDDDDD   EEEEEEE 
@@ -822,18 +826,26 @@ C
       INTEGER IO93
       COMMON /IOUNIT/ IO93
 C
-      ! Prodloss
-      INTEGER IFAM, NFAMILIES
-      CHARACTER*4 PORL
-      LOGICAL LFAMILY
-
+      !=================================================================
+      ! Common blocks for ND65 diagnostic (ljm, bmy, 7/8/03)
+      !=================================================================
+      INTEGER     IFAM,         NFAMILIES
       COMMON/IPL/ IFAM(MAXFAM), NFAMILIES
+
+      CHARACTER*4 PORL
       COMMON/CPL/ PORL(MAXFAM)
-      COMMON/LPL/ LFAMILY
-C
-      ! bdf timing calculations for reordering.
-      INTEGER NUM_BACKSUB, NUM_DECOMP, NUM_TIMESTEPS
-      COMMON /TIMECALC/ NUM_BACKSUB,NUM_DECOMP,NUM_TIMESTEPS
+
+      LOGICAL     LFAMILY, ITS_NOT_A_ND65_FAMILY
+      COMMON/LPL/ LFAMILY, ITS_NOT_A_ND65_FAMILY(IGAS)
+
+      !-----------------------------------------------------------------
+      ! Prior to 7/9/03:
+      ! Comment out counter variables, you can get the same info 
+      ! w/ a profiling run (bmy, 7/9/03)
+      !! bdf timing calculations for reordering.
+      !INTEGER NUM_BACKSUB, NUM_DECOMP, NUM_TIMESTEPS
+      !COMMON /TIMECALC/ NUM_BACKSUB,NUM_DECOMP,NUM_TIMESTEPS
+      !-----------------------------------------------------------------
 
       !=================================================================
       ! Declare some common blocks THREADPRIVATE for the OpenMP
