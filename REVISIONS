@@ -1,5 +1,5 @@
 REVISIONS (v6-01-05)  
-bmy, 06 Feb 2004
+bmy, 18 Feb 2004
 
 
 New in v6-01-05:
@@ -21,6 +21,9 @@ arconvtran		-- Removed NSTEP from arg list; it's not used
 			   where no convection occurs at all.
 
 CMN_DIAG		-- Changed PD37 from 4 to 10
+
+CMN_SIZE		-- LLTROP should be 17 for GEOS-4...based on the ND55 
+			   diagnostic when computed for 2003 met fields
 
 convtran		-- Added references to "diag_mod.f" and "grid_mod.f"
 ("fvdas_convect_mod.f") -- Also added TCVV and INDEXSOL as arguments
