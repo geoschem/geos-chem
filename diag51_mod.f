@@ -1,11 +1,11 @@
-! $Id: diag51_mod.f,v 1.8 2004/09/21 18:04:11 bmy Exp $
+! $Id: diag51_mod.f,v 1.9 2004/10/15 20:16:41 bmy Exp $
       MODULE DIAG51_MOD
 !
 !******************************************************************************
 !  Module DIAG51_MOD contains variables and routines to generate save 
 !  timeseries data where the local time is between two user-defined limits. 
 !  This facilitates comparisons with morning or afternoon-passing satellites
-!  such as GOME. (amf, bey, bdf, pip, bmy, 11/30/00, 7/20/04)
+!  such as GOME. (amf, bey, bdf, pip, bmy, 11/30/00, 9/28/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -143,7 +143,11 @@
       INTEGER, ALLOCATABLE :: GOOD_CT(:,:)
       REAL*8,  ALLOCATABLE :: Q(:,:,:,:)
 
-      !!=================================================================
+      !=================================================================
+      ! Original code from old DIAG51_MOD.  Leave here as a guide to 
+      ! figure out when the averaging periods should be and when to
+      ! write to disk (bmy, 9/28/04)
+      !
       !! For timeseries between 1300 and 1700 LT, uncomment this code:
       !!
       !! Need to write to the bpch file at 12 GMT, since this covers
@@ -182,12 +186,16 @@
 !******************************************************************************
 !  Subroutine DIAG51 generates time series (averages from 10am - 12pm LT 
 !  or 1pm - 4pm LT) for the US grid area.  Output is to binary punch files.
-!  (amf, bey, bdf, pip, bmy, 11/15/99, 2/27/02)
+!  (amf, bey, bdf, pip, bmy, 11/15/99, 9/28/04)
 !
 !  NOTES:
 !  (1 ) Rewritten for clarity (bmy, 7/20/04)
+!  (2 ) Added TAU_W as a local variable (bmy, 9/28/04)
 !******************************************************************************
 !
+      ! Local variables
+      REAL*8 :: TAU_W
+
       !=================================================================
       ! DIAG51 begins here!
       !=================================================================
@@ -199,7 +207,9 @@
       CALL ACCUMULATE_DIAG51
 
       ! Write data to disk at the proper time
-      IF ( ITS_TIME_FOR_WRITE_DIAG51() ) CALL WRITE_DIAG51
+      IF ( ITS_TIME_FOR_WRITE_DIAG51( TAU_W ) ) THEN
+         CALL WRITE_DIAG51( TAU_W )
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE DIAG51
@@ -703,23 +713,31 @@
 
 !------------------------------------------------------------------------------
 
-      FUNCTION ITS_TIME_FOR_WRITE_DIAG51() RESULT( ITS_TIME )
+      FUNCTION ITS_TIME_FOR_WRITE_DIAG51( TAU_W ) RESULT( ITS_TIME )
 !
 !******************************************************************************
 !  Function ITS_TIME_FOR_WRITE_DIAG51 returns TRUE if it's time to write
 !  the ND51 bpch file to disk.  We test the time at the next dynamic
-!  timestep so that we can write to disk properly. (bmy, 7/20/04)
+!  timestep so that we can write to disk properly. (bmy, 7/20/04, 9/28/04)
+!
+!  Arguments as Output:
+!  ============================================================================
+!  (1 ) TAU_W (REAL*8) : TAU value at time of writing to disk
 !
 !  NOTES:
+!  (1 ) Added TAU_W so to make sure the timestamp is accurate. (bmy, 9/28/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE TIME_MOD, ONLY : GET_HOUR, GET_MINUTE, GET_TAU,  
      &                     GET_TAUb, GET_TAUe,   GET_TS_DYN
 
+      ! Arguments
+      REAL*8, INTENT(OUT) :: TAU_W
+
       ! Local variables
-      LOGICAL :: ITS_TIME
-      REAL*8  :: TAU, HOUR, DYN
+      LOGICAL             :: ITS_TIME
+      REAL*8              :: TAU, HOUR, DYN
 
       !=================================================================
       ! ITS_TIME_FOR_WRITE_DIAG51 begins here!
@@ -740,6 +758,7 @@
       ! when we have to save to disk, return TRUE
       IF ( MOD( HOUR+DYN, 24d0 ) == ND51_HR_WRITE ) THEN
          ITS_TIME = .TRUE.
+         TAU_W    = TAU + DYN
          RETURN
       ENDIF
 
@@ -747,6 +766,7 @@
       ! end of the run, return TRUE
       IF ( TAU + DYN == GET_TAUe() ) THEN
          ITS_TIME = .TRUE.
+         TAU_W    = TAU + DYN
          RETURN
       ENDIF
 
@@ -755,17 +775,23 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE WRITE_DIAG51
+      SUBROUTINE WRITE_DIAG51( TAU_W )
 !
 !******************************************************************************
 !  Subroutine WRITE_DIAG51 computes the time-average of quantities between
 !  local time limits ND51_HR1 and ND51_HR2 and writes them to a bpch file.
 !  Arrays and counters are also zeroed for the next diagnostic interval.
-!  (bmy, 12/1/00, 7/20/04)  
+!  (bmy, 12/1/00, 9/28/04)  
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) TAU_W (REAL*8) : TAU value at time of writing to disk 
 !
 !  NOTES:
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
 !        diagnostics and updated numbering scheme. (bmy, 7/20/04) 
+!  (2 ) Added TAU_W to the arg list.  Now use TAU_W to set TAU0 and TAU0.
+!        (bmy, 9/28/04)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -779,6 +805,9 @@
 
 #     include "CMN_SIZE"  ! Size Parameters
 #     include "CMN_DIAG"  ! TRCOFFSET
+
+      ! Arguments
+      REAL*8, INTENT(IN) :: TAU_W
 
       ! Local variables
       LOGICAL            :: FIRST = .TRUE.
@@ -805,8 +834,12 @@
       CALL OPEN_BPCH2_FOR_WRITE( IU_ND51, FILENAME, TITLE )
 
       ! Set ENDING TAU for this bpch write 
-      TAU1 = GET_TAU()
-
+      !------------------------
+      ! Prior to 9/28/04:
+      !TAU1 = GET_TAU()
+      !------------------------
+      TAU1 = TAU_W
+    
       !=================================================================
       ! Compute time-average of tracers between local time limits
       !=================================================================
@@ -1132,7 +1165,11 @@
  130  FORMAT( '     - DIAG51: Zeroing arrays at ', a )
 
       ! Set STARTING TAU for the next bpch write
-      TAU0 = GET_TAU() 
+      !-------------------
+      ! Prior to 9/28/04:
+      !TAU0 = GET_TAU() 
+      !-------------------
+      TAU0 = TAU_W
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 

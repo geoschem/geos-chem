@@ -1,10 +1,10 @@
-! $Id: tagged_ox_mod.f,v 1.6 2004/09/21 18:04:19 bmy Exp $
+! $Id: tagged_ox_mod.f,v 1.7 2004/10/15 20:16:43 bmy Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
 !  Module TAGGED_OX_MOD contains variables and routines to perform a tagged Ox
 !  simulation.  P(Ox) and L(Ox) rates need to be archived from a full chemistry
-!  simulation before you can run w/ Tagged Ox. (amf, rch, bmy, 8/20/03,5/27/04)
+!  simulation before you can run w/ Tagged Ox. (amf,rch,bmy, 8/20/03, 10/12/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -42,6 +42,7 @@
 !  (2 ) Bug fix: don't put function call in WRITE statement (bmy, 2/20/04)
 !  (3 ) Now bracket AD44 with an !$OMP CRITICAL block (bmy, 3/24/04)
 !  (4 ) Now define regions w/ levels in GET_REGIONAL_POX (amf,rch,bmy,5/27/04)
+!  (5 ) Bug fix-avoid seg fault if PBLFRAC isn't allocated (bdf, bmy, 10/12/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -98,9 +99,6 @@
       USE TRACER_MOD, ONLY : STT
 
 #     include "CMN_SIZE"  ! Size parameters
-!----------------------------------------------
-!#     include "CMN"       ! STT
-!----------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -143,17 +141,6 @@
       !=================================================================
       ! READ_POX_LOX begins here!
       !=================================================================
-
-!--------------------------------------------------------------------------
-! Prior to 7/20/04:
-!      ! Define filename (change if necessary!)
-!      FILENAME = '/data/ctm/GEOS_MEAN/O3_PROD_LOSS/'
-!      FILENAME = TRIM( FILENAME ) //  
-!     & '2001v4.33/amf_4x5_geos4/rate.YYYYMMDD'
-!
-!      ! Replace YYYYMMDD token in FILENAME w/ the actual date
-!      CALL EXPAND_DATE( FILENAME, GET_NYMD(), 000000 )
-!--------------------------------------------------------------------------
 
       ! Filename string
       FILENAME = 'rate.YYYYMMDD'
@@ -220,11 +207,6 @@
       ! References to F90 modules
       USE DAO_MOD,      ONLY : PBL
       USE GRID_MOD,     ONLY : GET_XMID,  GET_YMID
-      !----------------------------------------------------------------------
-      ! Prior to 5/27/04:
-      ! Now define regions w/ model levels (amf, rch, bmy, 5/27/04)
-      !USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
-      !----------------------------------------------------------------------
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
 #     include "CMN_SIZE"  ! Size parameters
@@ -241,11 +223,6 @@
       LOGICAL              :: ITS_IN_PAC,  ITS_IN_AS,  ITS_IN_EUR
       LOGICAL              :: ITS_IN_NAM,  ITS_IN_NAF, ITS_IN_USA
       INTEGER              :: PBLTOP,      MTTOP
-      !----------------------------------------------------------------
-      ! Prior to 5/27/04:
-      ! Now define regions w/ model levels (amf, rch, bmy, 5/27/04)
-      !REAL*8               :: P,           PBLTOP,     PPROD
-      !----------------------------------------------------------------
       REAL*8               :: PPROD,       X,          Y
       
       ! External functions
@@ -272,23 +249,6 @@
       ! Longitude [degrees]
       X          = GET_XMID( I )   
       Y          = GET_YMID( J )
-
-!-------------------------------------------------------------------------
-! Prior to 5/27/04:
-! Now use model levels to define regions (amf, rch, bmy, 5/27/04) 
-!#if   defined( GEOS_4 )
-!
-!      ! BLTOP = pressure at PBL top [hPa]
-!      ! Use barometric law since PBL is in [m]
-!      PBLTOP     = GET_PEDGE( I, J, 1 ) * EXP( -PBL(I,J)/SCALE_HEIGHT )
-!
-!#else
-!
-!      ! BLTOP = pressure of PBL top [hPa]
-!      PBLTOP     = GET_PEDGE( I, J, 1 ) - PBL(I,J)
-!
-!#endif
-!-------------------------------------------------------------------------
 
       ! PBLTOP is the model level at ~ 750 hPa
       ! MTTOP  is the model level at ~ 350 hPa
@@ -420,6 +380,8 @@
 !        and N_TRACERS from "tracer_mod.f".  Now references AD65 from 
 !        "diag_pl_mod.f".  Now uses ITS_A_NEW_DAY from "time_mod.f".
 !        (bmy, 7/20/04)
+!  (5 ) Bug fix: Now avoid a SEG FAULT error if PBLFRAC isn't allocated.
+!        (bdf, bmy, 10/12/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -429,10 +391,6 @@
       USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,  ONLY : LDRYD
-      !-----------------------------------------------------------------
-      ! Prior to 7/20/04:
-      !USE TIME_MOD,     ONLY : GET_TS_CHEM, GET_DAY, TIMESTAMP_STRING
-      !-----------------------------------------------------------------
       USE TIME_MOD,     ONLY : GET_TS_CHEM,     ITS_A_NEW_DAY, 
      &                         TIMESTAMP_STRING
       USE TRACER_MOD,   ONLY : STT,             N_TRACERS
@@ -441,16 +399,8 @@
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
-!----------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"       ! STT
-!----------------------------------------------
 #     include "CMN_DIAG"  ! ND44, ND65
 #     include "CMN_O3"    ! XNUMOL
-!----------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP" ! LDRYD
-!----------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE     :: FIRST   = .TRUE.
@@ -485,12 +435,6 @@
       ENDIF
       
       ! Read P(Ox) and L(Ox) if it's a new day
-      !------------------------------------------
-      !IF ( GET_DAY() /= LASTDAY ) THEN 
-      !   CALL READ_POX_LOX
-      !   LASTDAY = GET_DAY()
-      !ENDIF
-      !------------------------------------------
       IF ( ITS_A_NEW_DAY() ) THEN
          CALL READ_POX_LOX
       ENDIF
@@ -521,10 +465,6 @@
       ! (12) Ox initial conditions         (all levels             )        
       ! (13) Ox produced over the USA      (all levels             )
       !=================================================================
-      !------------------------
-      ! Prior to 7/20/04:
-      !DO N = 1, NTRACE
-      !------------------------
       DO N = 1, N_TRACERS
 
          ! Zero ND44_TMP array
@@ -563,10 +503,6 @@
 
                ! Archive loss for all tracers [kg/s]
                PL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL(I,J,L)
-               !--------------------------------------------------------
-               ! Prior to 7/20/04:
-               !AD65(I,J,L,NTRACE+N) = AD65(I,J,L,NTRACE+N) + PL
-               !--------------------------------------------------------
                AD65(I,J,L,N_TRACERS+N) = AD65(I,J,L,N_TRACERS+N) + PL
             ENDIF
 
@@ -574,37 +510,48 @@
             ! Apply drydep of Ox to each tagged tracer.  We need 
             ! to do this using before P(Ox) - L(Ox) is applied.
             !========================================================
-            IF ( LDRYD .and. PBLFRAC(I,J,L) > 0d0 ) THEN
+            !--------------------------------------------------------
+            ! Prior to 10/12/04:
+            ! Error...if PBLFRAC is not allocated (i.e. if LDRYD
+            ! is FALSE) we will get a seg fault error here)
+            !IF ( LDRYD .and. PBLFRAC(I,J,L) > 0d0 ) THEN
+            !--------------------------------------------------------
+            IF ( LDRYD ) THEN
+
+               ! PBLFRAC won't be allocated if LDRYD=F, so we should avoid
+               ! a seg fault error by moving this here (bdf, bmy, 10/12/04)
+               IF ( PBLFRAC(I,J,L) > 0d0 ) THEN
                      
-               ! Ox Drydep frequency [1/s]
-               FREQ = DEPSAV(I,J,1) * PBLFRAC(I,J,L)
+                  ! Ox Drydep frequency [1/s]
+                  FREQ = DEPSAV(I,J,1) * PBLFRAC(I,J,L)
 
-               ! Only proceed if drydep frequency is nonzero
-               IF ( FREQ > 0d0 ) THEN
+                  ! Only proceed if drydep frequency is nonzero
+                  IF ( FREQ > 0d0 ) THEN
 
-                  ! Initial Ox [kg]
-                  Ox_0    = STT(I,J,L,N)
+                     ! Initial Ox [kg]
+                     Ox_0    = STT(I,J,L,N)
 
-                  ! Amount of Ox LOST to drydep [kg]
-                  Ox_LOST = Ox_0 * ( 1d0 - EXP( -FREQ * DTCHEM ) )
+                     ! Amount of Ox LOST to drydep [kg]
+                     Ox_LOST = Ox_0 * ( 1d0 - EXP( -FREQ * DTCHEM ) )
                   
-                  ! Prevent underflow condition
-                  IF ( Ox_LOST < 1d-20 ) Ox_LOST = 0d0
+                     ! Prevent underflow condition
+                     IF ( Ox_LOST < 1d-20 ) Ox_LOST = 0d0
                        
-                  ! Subtract Ox lost [kg] 
-                  STT(I,J,L,N) = Ox_0 - Ox_LOST 
+                     ! Subtract Ox lost [kg] 
+                     STT(I,J,L,N) = Ox_0 - Ox_LOST 
                   
-                  !=====================================================
-                  ! ND44 diagnostic: Ox lost to drydep [molec/cm2/s]
-                  !=====================================================
-                  IF ( ND44 > 0 .and. Ox_LOST > 0d0 ) THEN
+                     !==================================================
+                     ! ND44 diagnostic: Ox lost to drydep [molec/cm2/s]
+                     !==================================================
+                     IF ( ND44 > 0 .and. Ox_LOST > 0d0 ) THEN
 
-                     ! Convert from [kg] to [molec/cm2/s]
-                     FLUX = Ox_LOST         * XNUMOL(IDTOX) / 
-     &                      GET_AREA_CM2(J) / DTCHEM 
+                        ! Convert from [kg] to [molec/cm2/s]
+                        FLUX = Ox_LOST         * XNUMOL(IDTOX) / 
+     &                         GET_AREA_CM2(J) / DTCHEM 
                      
-                     ! Store dryd flx in ND44_TMP as a placeholder
-                     ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
+                        ! Store dryd flx in ND44_TMP as a placeholder
+                        ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
+                     ENDIF
                   ENDIF
                ENDIF
             ENDIF
@@ -658,10 +605,6 @@
       USE TRACER_MOD, ONLY : N_TRACERS
 
 #     include "CMN_SIZE"  ! Size parameters
-!---------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"       ! NTRACE
-!---------------------------------------------
 
       ! Local variables
       INTEGER :: AS
@@ -671,10 +614,6 @@
       !=================================================================
 
       ! Safety valve
-      !--------------------------------
-      ! Prior to 7/20/04:
-      !IF ( NTRACE > N_TAGGED ) THEN
-      !--------------------------------
       IF ( N_TRACERS > N_TAGGED ) THEN
          CALL ERROR_STOP( 'NTRACE is too large for Tagged Ox!', 
      &                    'INIT_TAGGED_OX (tagged_ox_mod.f)' )

@@ -1,4 +1,4 @@
-! $Id: diag48_mod.f,v 1.1 2004/09/27 20:02:06 bmy Exp $
+! $Id: diag48_mod.f,v 1.2 2004/10/15 20:16:41 bmy Exp $
       MODULE DIAG48_MOD
 !
 !******************************************************************************
@@ -27,7 +27,7 @@
 !  (7 ) tracer_mod.f   : Module containing GEOS-CHEM tracer array STT etc.  
 !  (8 ) tracerid_mod.f : Module containing pointers to tracers & emissions
 !
-!  ND49 tracer numbers:
+!  ND48 tracer numbers:
 !  ============================================================================
 !  1 - N_TRACERS : GEOS-CHEM transported tracers            [v/v      ]
 !  71            : Pure O3 (not Ox) concentration           [v/v      ]

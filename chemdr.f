@@ -1,4 +1,4 @@
-! $Id: chemdr.f,v 1.10 2004/09/21 18:04:09 bmy Exp $
+! $Id: chemdr.f,v 1.11 2004/10/15 20:16:40 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
@@ -240,6 +240,8 @@
       ! Call RURALBOX, which defines tropospheric boxes to be sent to
       ! the SMVGEAR solver, as well as setting up some SMVGEAR arrays.
       !=================================================================      
+
+      ! Redefine NTLOOP since READER defines it initially (bmy, 9/28/04)
       NLOOP       = NLAT  * NLONG
       NTLOOP      = NLOOP * NVERT
 

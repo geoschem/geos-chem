@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.15 2004/09/21 18:04:10 bmy Exp $
+! $Id: diag3.f,v 1.16 2004/10/15 20:16:40 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out I-J (Long-Lat) diagnostics to the BINARY
-!  format punch file (bmy, bey, mgs, rvm, 5/27/99, 7/20/04)
+!  format punch file (bmy, bey, mgs, rvm, 5/27/99, 10/15/04)
 !
 !  The preferred file format is binary punch file format v. 2.0.  This
 !  file format is very GAMAP-friendly.  GAMAP also supports the ASCII
@@ -134,6 +134,8 @@
 !  (52) Added NVOC source diagnostics for ND07 (rjp, bmy, 7/13/04)
 !  (53) Now reference "logical_mod.f", "tracer_mod.f", and "diag_pl_mod.f".
 !        Bug fix in write to DMS_BIOG. (bmy, 7/20/04)
+!  (54) Comment out ND27 for GEOS-4.  It isn't working 100% right.  If you
+!        examine the flux at 200 hPa, you get the same info. (bmy, 10/15/04)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -158,10 +160,6 @@
 #     include "CMN"        ! IFLX, LPAUSE
 #     include "CMN_DIAG"   ! Diagnostic switches & arrays
 #     include "CMN_O3"     ! FMOL, XNUMOL
-!--------------------------------------------------------------
-! Prior to 7/19/04:
-!#     include "CMN_SETUP"  ! LSPLIT, etc.
-!--------------------------------------------------------------
 #     include "comode.h"   ! IDEMS
 
       ! Local variables
@@ -238,10 +236,6 @@
 
          DO M = 1, TMAX(1)
             N  = TINDEX(1,M)
-            !---------------------------
-            ! Prior to 7/20/04:
-            !IF ( N > NTRACE ) CYCLE
-            !---------------------------
             IF ( N > N_TRACERS ) CYCLE
             NN = N + TRCOFFSET
                
@@ -282,10 +276,6 @@
 
          DO M = 1, TMAX(2)
             N  = TINDEX(2,M)
-            !-----------------------------
-            ! Prior to 7/20/04:
-            !IF ( N > NTRACE ) CYCLE
-            !-----------------------------
             IF ( N > N_TRACERS ) CYCLE
             NN = N + TRCOFFSET
 
@@ -1205,10 +1195,6 @@
 
          ! For CO-OH param run,   ND21 is updated every dynamic   timestep
          ! For other simulations, ND21 is updated every chemistry timestep
-         !------------------------------------------------------------------
-         ! Prior to 7/20/04:
-         !IF ( NSRCX == 5 ) THEN
-         !------------------------------------------------------------------
          IF ( ITS_A_COPARAM_SIM() ) THEN
             SCALEX = SCALEDYN
          ELSE
@@ -1292,10 +1278,6 @@
             IF ( N > PD22 ) CYCLE
             
             ! Add TRCOFFSET to CH3I and HCN tracer numbers
-            !-----------------------------------------------
-            ! Prior to 7/20/04:
-            !IF ( NSRCX == 2 .or. NSRCX == 4 ) THEN
-            !-----------------------------------------------
             IF ( ITS_A_CH3I_SIM() ) THEN
                NN = N + TRCOFFSET
             ELSE IF ( ITS_A_HCN_SIM() ) THEN
@@ -1335,10 +1317,6 @@
 
          DO M = 1, TMAX(24)
             N  = TINDEX(24,M)
-            !--------------------------
-            ! Prior to 7/20/04:
-            !IF ( N > NTRACE ) CYCLE
-            !--------------------------
             IF ( N > N_TRACERS ) CYCLE
             NN = N + TRCOFFSET
             
@@ -1371,10 +1349,6 @@
 
          DO M = 1, TMAX(25)
             N  = TINDEX(25,M)
-            !---------------------------
-            ! Prior to 7/20/04:
-            !IF ( N > NTRACE ) CYCLE
-            !---------------------------
             IF ( N > N_TRACERS ) CYCLE
             NN = N + TRCOFFSET
 
@@ -1407,10 +1381,6 @@
 
          DO M = 1, TMAX(26)
             N  = TINDEX(26,M)
-            !----------------------------------
-            ! Prior to 7/20/04:
-            !IF ( N > NTRACE ) CYCLE
-            !----------------------------------
             IF ( N > N_TRACERS ) CYCLE
             NN = N + TRCOFFSET
             
@@ -1438,13 +1408,13 @@
 !       which, in some grid boxes, includes horizontal influxes as well as 
 !       up(down)ward flux. (qli, 1/5/2000) 
 !  (3) Now error check for N > NTRACE (bmy, 10/23/01)
+!  (4) NOTE: There is a problem with for ND27 with GEOS-4.  Djj says that 
+!       the downward flux at the 200 hPa level should be more or less the
+!       same as the ND27 diagnostic. (bmy, 10/15/04)
 !******************************************************************************
 !
+#if   !defined( GEOS_4 ) 
       IF ( ND27 > 0 .and. IDTOX > 0 ) then
-         !-------------------------------------------
-         ! Prior to 7/20/04:
-         !IF ( NSRCX == 3 .or. NSRCX == 6 ) THEN
-         !-------------------------------------------
          IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_TAGOX_SIM() ) THEN
             CATEGORY = 'STRT-FLX'
             UNIT     = 'kg/s'
@@ -1452,10 +1422,6 @@
             ! Full chemistry   -- compute NOx, Ox, HNO3 fluxes
             ! Single tracer Ox -- compute Ox flux only, hardwire
             !                     to tracer = 1 (bmy, 2/7/00)
-            !---------------------------------
-            ! Prior to 7/20/04:
-            !IF ( NSRCX == 3 ) THEN
-            !---------------------------------
             IF ( ITS_A_FULLCHEM_SIM() ) THEN
                ITEMP = (/ IDTNOX, IDTOX, IDTHNO3 /)
             ELSE
@@ -1465,11 +1431,7 @@
             ! Loop over tracers
             DO M = 1, 3
                N = ITEMP(M)
-               IF ( N == 0     ) CYCLE
-               !----------------------------
-               ! Prior to 7/20/04:
-               !IF ( N > NTRACE ) CYCLE
-               !----------------------------
+               IF ( N == 0        ) CYCLE
                IF ( N > N_TRACERS ) CYCLE
 
                ! Loop over grid boxes
@@ -1531,6 +1493,7 @@
             ENDDO
          ENDIF
       ENDIF
+#endif
 !
 !******************************************************************************
 !  ND28: Biomass burning diagnostic 

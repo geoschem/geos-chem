@@ -1,11 +1,11 @@
-# $Id: Makefile.sgi,v 1.23 2004/10/15 20:16:39 bmy Exp $
+# $Id: Makefile.sgi,v 1.24 2004/10/15 20:18:05 bmy Exp $
 #=============================================================================
 # GEOS-CHEM Makefile for SGI/Origin (bmy, Thu Sep 23 13:03:27 2004)
 #=============================================================================
 SHELL = /bin/sh
 
 # F90 compiler options
-FFLAGS = f90 -cpp -64 -O3 -OPT:reorg_common=off -C
+FFLAGS = f90 -cpp -64 -O3 -OPT:reorg_common=off
 
 # F90 Options -- multiprocessor 
 F90 = $(FFLAGS) -mp -Dmultitask

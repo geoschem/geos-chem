@@ -1,10 +1,10 @@
-! $Id: aerosol_mod.f,v 1.2 2004/09/27 19:07:06 bmy Exp $
+! $Id: aerosol_mod.f,v 1.3 2004/10/15 20:16:39 bmy Exp $
       MODULE AEROSOL_MOD
 !
 !******************************************************************************
 !  Module AEROSOL_MOD contains variables and routines for computing optical
 !  properties for aerosols which are needed for both the FAST-J photolysis
-!  and ND21 optical depth diagnostics.  (bmy, 7/20/04)
+!  and ND21 optical depth diagnostics.  (bmy, 7/20/04, 9/28/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -19,10 +19,11 @@
 !
 !  Module Routines:
 !  ============================================================================
-!  (1 ) AEROSOL_CONC    : Computes aerosol conc in [kg/m3] for FAST-J & diags
-!  (2 ) RDAER           : Computes optical properties for aerosls for FAST-J
-!  (3 ) INIT_AEROSOL    : Allocates and zeroes all module arrays
-!  (4 ) CLEANUP_AEROSOL : Deallocates all module arrays
+!  (1 ) AEROSOL_RURALBOX : Computes loop indices & other properties for RDAER
+!  (2 ) AEROSOL_CONC     : Computes aerosol conc in [kg/m3] for FAST-J & diags
+!  (3 ) RDAER            : Computes optical properties for aerosls for FAST-J
+!  (4 ) INIT_AEROSOL     : Allocates and zeroes all module arrays
+!  (5 ) CLEANUP_AEROSOL  : Deallocates all module arrays
 !
 !  GEOS-CHEM modules referenced by "aerosol_mod.f"
 !  ============================================================================
@@ -39,6 +40,7 @@
 !  (11) transfer_mod.f  : Module containing routines to cast & resize arrays
 !
 !  NOTES:
+!  (1 ) Added AEROSOL_RURALBOX routine (bmy, 9/28/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -54,8 +56,9 @@
       ! ... except these variables ...
       PUBLIC :: SOILDUST
 
-      ! ... except these routines
+      ! ... and these routines
       PUBLIC :: AEROSOL_CONC
+      PUBLIC :: AEROSOL_RURALBOX
       PUBLIC :: RDAER
       PUBLIC :: CLEANUP_AEROSOL
 
@@ -76,6 +79,145 @@
       !=================================================================
       CONTAINS
 
+!------------------------------------------------------------------------------
+
+      SUBROUTINE AEROSOL_RURALBOX( N_TROP )
+!
+!******************************************************************************
+!  Subroutine AEROSOL_RURALBOX computes quantities that are needed by RDAER.
+!  This mimics the call to RURALBOX, which is only done for fullchem runs.
+!  (bmy, 9/28/04)
+!
+!  Arguments as Output:
+!  ============================================================================
+!  (1 ) N_TROP (INTEGER) : Number of tropospheric boxes
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE COMODE_MOD
+      USE DAO_MOD,   ONLY : AD, AVGW, MAKE_AVGW
+
+#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN"       ! LPAUSE
+#     include "comode.h"  ! AD, WTAIR, other SMVGEAR variables
+
+      ! Argumetns
+      INTEGER, INTENT(OUT) :: N_TROP
+
+      ! Local variables
+      LOGICAL, SAVE        :: FIRST = .TRUE.
+      INTEGER, SAVE        :: N_TROP_BOXES
+      INTEGER              :: I, J, L, JLOOP
+      REAL*8,  EXTERNAL    :: BOXVL
+      
+      !=================================================================
+      ! AEROSOL_RURALBOX begins here!
+      !=================================================================
+
+      ! Initialize
+      NLONG  = IIPAR
+      NLAT   = JJPAR
+      NVERT  = IVERT
+      NPVERT = NVERT
+
+      ! Create AVGW field -- mixing ratio of water [v/v]
+      CALL MAKE_AVGW
+
+      !=================================================================
+      ! Pre-save SMVGEAR loop indices on the first call
+      !=================================================================
+      IF ( FIRST ) THEN
+
+         ! Initialize 1-D index
+         JLOOP  = 0
+
+         ! Loop over grid boxes
+         DO L = 1, NVERT
+         DO J = 1, NLAT
+         DO I = 1, NLONG
+
+            ! JLOP is the 1-D grid box loop index
+            JLOP(I,J,L) = 0
+
+            !----------------------------------
+            ! Boxes w/in ann mean tropopause
+            !----------------------------------
+            IF ( L < LPAUSE(I,J) ) THEN
+
+               ! Increment JLOOP for trop boxes
+               JLOOP          = JLOOP + 1
+
+               ! Save JLOOP in SMVGEAR array JLOP
+               JLOP(I,J,L)    = JLOOP
+
+               ! These translate JLOOP back to an (I,J,L) triplet
+               IXSAVE(JLOOP)  = I
+               IYSAVE(JLOOP)  = J
+               IZSAVE(JLOOP)  = L                                 
+
+            ENDIF
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ! JLOOP is now the number of boxes w/in GEOS-CHEM's annual mean 
+         ! tropopause.  Copy to SAVEd variable N_TROP_BOXES.
+         N_TROP_BOXES = JLOOP
+
+         ! Set NTLOOP, NTTLOOP here.  Howeve, we will have to reset these
+         ! after the call to READER, since READER redefines these. 
+         NTLOOP       = JLOOP
+         NTTLOOP      = JLOOP
+
+         ! Reset first-time flag
+         FIRST        = .FALSE.
+      ENDIF
+
+      ! Copy N_TROP_BOXES to NTROP for passing back to calling program
+      N_TROP = N_TROP_BOXES
+      
+      !=================================================================
+      ! Compute AIRDENS and ABSHUM at every timestep
+      !=================================================================
+
+      ! Initialize 1-D index
+      JLOOP  = 0
+
+      ! Loop over grid boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, JLOOP )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO L = 1, NVERT
+      DO J = 1, NLAT
+      DO I = 1, NLONG
+
+         ! Get 1-D loop index
+         JLOOP = JLOP(I,J,L)
+
+         !----------------------------------
+         ! Only process tropospheric boxes
+         !----------------------------------
+         IF ( JLOOP > 0 ) THEN
+
+            ! Air density in [molec/cm3]
+            AIRDENS(JLOOP) = AD(I,J,L)*1000.d0/BOXVL(I,J,L)*AVG/WTAIR
+
+            ! Get relative humidity (here is absolute #H2O/cc air)
+            ! AVGW is the mixing ratio of water vapor [v/v]
+            ABSHUM(JLOOP)  = AVGW(I,J,L) * AIRDENS(JLOOP)
+
+         ENDIF
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Return to calling program
+      END SUBROUTINE AEROSOL_RURALBOX
+      
 !------------------------------------------------------------------------------
       
       SUBROUTINE AEROSOL_CONC
@@ -326,19 +468,6 @@
 #     include "jv_cmn.h"   ! ODAER, QAA, RAA
 #     include "CMN_DIAG"   ! ND21, LD21
 #     include "comode.h"   ! NTLOOP
-
-      ! Arguments
-      !----------------------------------------------------------
-      ! Prior to 7/20/04:
-      !INTEGER, INTENT(IN) :: THISMONTH, THISYEAR
-      !REAL*8,  INTENT(IN) :: SO4_NH4_NIT(IIPAR,JJPAR,LLPAR)
-      !REAL*8,  INTENT(IN) :: BCPI(IIPAR,JJPAR,LLPAR)
-      !REAL*8,  INTENT(IN) :: BCPO(IIPAR,JJPAR,LLPAR)
-      !REAL*8,  INTENT(IN) :: OCPI(IIPAR,JJPAR,LLPAR)
-      !REAL*8,  INTENT(IN) :: OCPO(IIPAR,JJPAR,LLPAR)
-      !REAL*8,  INTENT(IN) :: SALA(IIPAR,JJPAR,LLPAR)
-      !REAL*8,  INTENT(IN) :: SALC(IIPAR,JJPAR,LLPAR)
-      !----------------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN), OPTIONAL :: MONTH, YEAR

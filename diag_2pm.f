@@ -1,4 +1,4 @@
-! $Id: diag_2pm.f,v 1.2 2004/09/21 18:04:11 bmy Exp $
+! $Id: diag_2pm.f,v 1.3 2004/10/15 20:16:41 bmy Exp $
       SUBROUTINE DIAG_2PM
 !
 !*****************************************************************************
@@ -83,7 +83,7 @@
          IF ( IS_ND22 ) THEN
 
             ! Archive if we fall w/in the local time limits
-            IF ( LT(I) >= HR1_OTH .and. LT(I) <= HR2_OTH ) THEN
+            IF ( LT(I) >= HR1_JV .and. LT(I) <= HR2_JV ) THEN
                LTJV(I,J) = 1
                CTJV(I,J) = CTJV(I,J) + 1
             ELSE

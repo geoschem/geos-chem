@@ -1,4 +1,4 @@
-! $Id: carbon_mod.f,v 1.6 2004/09/21 18:04:09 bmy Exp $
+! $Id: carbon_mod.f,v 1.7 2004/10/15 20:16:39 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
@@ -214,11 +214,6 @@
       USE TRACERID_MOD
 
 #     include "CMN_SIZE"  ! Size parameters
-!--------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"       ! STT, etc
-!#     include "CMN_SETUP" ! LSOA, LEMIS
-!--------------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE :: FIRSTCHEM = .TRUE.
@@ -306,10 +301,6 @@
       IF ( LSOA ) THEN
 
          ! Read offline OH, NO3, O3 fields from disk
-         !--------------------------------------------
-         ! Prior to 7/20/04:
-         !IF ( NSRCX == 10 ) THEN 
-         !--------------------------------------------
          IF ( ITS_AN_AEROSOL_SIM() ) THEN
 
             ! Current month
@@ -363,10 +354,6 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
 #     include "CMN_SIZE"     ! Size parameters
-!---------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"          ! NCHEM, DXYP
-!---------------------------------------------------------
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44, ND07, LD07
 
@@ -538,10 +525,6 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
 #     include "CMN_SIZE"     ! Size parameters
-!---------------------------------------------------------
-! Prior to 7/20/40:
-!#     include "CMN"          ! NCHEM, DXYP
-!---------------------------------------------------------
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44
 
@@ -717,10 +700,6 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
 #     include "CMN_SIZE"     ! Size parameters
-!--------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"          ! NCHEM, DXYP
-!--------------------------------------------------------
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44, ND07, LD07
 
@@ -891,10 +870,6 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
 #     include "CMN_SIZE"     ! Size parameters
-!-----------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"          ! NCHEM, DXYP
-!-----------------------------------------------------------
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44
 
@@ -1104,10 +1079,6 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM, GET_MONTH
 
 #     include "CMN_SIZE"     ! Size parameters
-!-----------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"          ! NCHEM, DXYP, STT, MONTH
-!-----------------------------------------------------------
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44
 
@@ -1857,10 +1828,6 @@ c
       USE TIME_MOD,     ONLY : GET_TS_CHEM, GET_MONTH
 
 #     include "CMN_SIZE"     ! Size parameters
-!------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"          ! STT
-!------------------------------------------
 
       INTEGER, INTENT(IN)    :: I, J, L
       REAL*8,  INTENT(IN)    :: KO3(MHC), KOH(MHC), KNO3(MHC)
@@ -1978,10 +1945,6 @@ c
      &                         IDTSOA1, IDTSOA2, IDTSOA3
 
 #     include "CMN_SIZE"     ! Size parameters
-!---------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"          ! NCHEM, DXYP, STT, MONTH
-!---------------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J, L
@@ -2055,10 +2018,6 @@ c
       USE TRACERID_MOD
 
 #     include "CMN_SIZE"     ! Size parameters
-!----------------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"          ! NCHEM, DXYP, STT, MONTH
-!----------------------------------------------------------------
 #     include "CMN_DIAG"     ! ND44
       
       ! Arguments
@@ -2245,10 +2204,6 @@ c
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
 #     include "CMN_SIZE"     ! Size parameters
-!-----------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"          ! NCHEM, DXYP
-!-----------------------------------------------------
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44
 
@@ -2395,15 +2350,7 @@ c
       USE TRACERID_MOD
 
 #     include "CMN_SIZE"    ! Size parameters
-!---------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"         ! STT
-!---------------------------------------------------
 #     include "CMN_DIAG"    ! ND07
-!----------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"   ! LSOA
-!----------------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE        :: FIRST = .TRUE.
@@ -2648,10 +2595,6 @@ c
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"     ! Size parameters
-!-------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"    ! DATA_DIR
-!-------------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.
@@ -2872,10 +2815,6 @@ c
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"   ! Size parameters
-!---------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"  ! DATA_DIR
-!---------------------------------------------------
 
       ! Local variables
       INTEGER             :: I, J
@@ -3064,10 +3003,6 @@ c
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"
-!-------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"  ! DATA_DIR
-!-------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -3262,10 +3197,6 @@ c
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"   ! Size parameters 
-!---------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"  ! DATA_DIR
-!---------------------------------------------
 
       ! Local variables
       INTEGER             :: I, J
@@ -3385,11 +3316,6 @@ c
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"     ! Size parameters
-!-----------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"          ! NSRCE, DXYP
-!#     include "CMN_SETUP"    ! DATA_DIR
-!-----------------------------------------------------
 
       !-------------------
       ! Arguments
@@ -3577,10 +3503,6 @@ c
       USE PRESSURE_MOD, ONLY : GET_PEDGE
 
 #     include "CMN_SIZE"  ! Size parameters
-!----------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"       ! STT
-!----------------------------------------------
 #     include "CMN_GCTM"  ! SCALE_HEIGHT
 
       ! Arguments
@@ -3636,10 +3558,6 @@ c
          BLTOP  = GET_PEDGE(I,J,1) - MAX( PBL(I,J), 1.D0 )
 
          ! BLTHIK is PBL thickness [hPa]
-         !---------------------------------
-         ! Prior to 7/20/04:
-         !BLTHIK = PBL(I,J)
-         !---------------------------------
          BLTHIK = MAX( PBL(I,J), 1.D0 )
 
 #endif

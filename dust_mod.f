@@ -1,4 +1,4 @@
-! $Id: dust_mod.f,v 1.4 2004/09/21 18:04:12 bmy Exp $
+! $Id: dust_mod.f,v 1.5 2004/10/15 20:16:41 bmy Exp $
       MODULE DUST_MOD
 !
 !******************************************************************************
@@ -104,11 +104,6 @@
       USE TRACERID_MOD   
 
 #     include "CMN_SIZE"   ! Size parameters
-!-----------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"        ! AD, STT, TCVV, NSRCX
-!#     include "CMN_SETUP"  ! LDUST
-!-----------------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE       :: FIRST = .TRUE.
@@ -197,10 +192,6 @@
       USE TRACERID_MOD, ONLY : IDTDST1
 
 #     include "CMN_SIZE"     ! Size parameters
-!-------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"          ! NCHEM
-!-------------------------------------------------
 #     include "CMN_GCTM"     ! g0
 #     include "CMN_DIAG"     ! ND44
 #     include "CMN_O3"       ! XNUMOL
@@ -481,11 +472,6 @@
       USE TRACERID_MOD
 
 #     include "CMN_SIZE"  ! Size parameters
-!------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"       ! STT
-!#     include "CMN_SETUP" ! LDEAD, LDUST
-!------------------------------------------------
       
       ! Local variables
       LOGICAL, SAVE      :: FIRST = .TRUE.
@@ -596,10 +582,6 @@
 #     include "CMN_SIZE"      ! Size parameters
 #     include "CMN_DIAG"      ! ND06
 #     include "CMN_GCTM"      ! g0
-!-------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"     ! DATA_DIR
-!-------------------------------------------
 
       !----------------
       ! Arguments
@@ -857,10 +839,6 @@
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN_DIAG"  ! ND19, LD13 (for now)
 #     include "CMN_GCTM"  ! g0
-!---------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP" ! DATA_DIR 
-!---------------------------------------
 
       ! Arguments
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)
@@ -1061,10 +1039,6 @@
 #     include "cmn_fj.h"   ! LPAR, CMN_SIZE
 #     include "jv_cmn.h"   ! ODMDUST, QAA, RAA
 #     include "CMN_DIAG"   ! ND21, LD21
-!------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"  ! DATA_DIR
-!------------------------------------------------------
 #     include "comode.h"   ! NTTLOOP
 
       ! Arguments
@@ -1165,12 +1139,6 @@
       !==============================================================
       IF ( ND21 > 0 ) THEN
 
-!---------------------------------------
-! Prior to 7/20/04:
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, JLOOP, L, N ) 
-!---------------------------------------
          DO N = 1, NDUST
 
 !$OMP PARALLEL DO
@@ -1205,11 +1173,6 @@
             ENDDO
 !$OMP END PARALLEL DO
          ENDDO
-!----------------------------
-! Prior to 7/20/04:
-!!$OMP END PARALLEL DO
-!----------------------------
-
       ENDIF 
 
       ! Return to calling program
@@ -1291,10 +1254,6 @@
 #     include "cmn_fj.h"   ! LPAR, CMN_SIZE
 #     include "jv_cmn.h"   ! ODMDUST, QAA, RAA
 #     include "CMN_DIAG"   ! ND21, LD21
-!-------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"  ! DATA_DIR
-!-------------------------------------------
 #     include "comode.h"   ! NTTLOOP
 
       ! Arguments
@@ -1465,13 +1424,6 @@
          ! Tracer #5: Dust surface areas (from all size bins)
          !==============================================================
          IF ( ND21 > 0 ) THEN
-
-!--------------------------------------------
-! Prior to 7/20/04:
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, JLOOP, L, N ) 
-!--------------------------------------------
             DO N = 1, NDUST
 
 !$OMP PARALLEL DO
@@ -1506,11 +1458,6 @@
                ENDDO
 !$OMP END PARALLEL DO
             ENDDO
-!------------------------------
-! Prior to 7/20/04:
-!!$OMP END PARALLEL DO
-!------------------------------
-
          ENDIF 
       ENDIF
 
@@ -1533,10 +1480,6 @@
       USE ERROR_MOD,   ONLY : ALLOC_ERR
 
 #     include "CMN_SIZE"  ! Size parameters
-!----------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP" ! LDEAD
-!----------------------------------------------
       
       ! Local variables
       LOGICAL, SAVE :: IS_INIT = .FALSE.

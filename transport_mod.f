@@ -1,10 +1,10 @@
-! $Id: transport_mod.f,v 1.6 2004/09/21 18:04:20 bmy Exp $
+! $Id: transport_mod.f,v 1.7 2004/10/15 20:16:43 bmy Exp $
       MODULE TRANSPORT_MOD
 !
 !******************************************************************************
 !  Module TRANSPORT_MOD is used to call the proper version of TPCORE for
 !  GEOS-1, GEOS-STRAT, GEOS-3 or GEOS-4 nested-grid or global simulations.
-!  (yxw, bmy, 3/10/03, 7/20/04)
+!  (yxw, bmy, 3/10/03, 9/28/04)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -36,17 +36,18 @@
 !  GEOS-CHEM modules referenced by transport_mod.f
 !  ============================================================================
 !  (1 ) dao_mod.f            : Module containing arrays for DAO met fields
-!  (2 ) error_mod.f          : Module containing I/O error/NaN check routines
-!  (3 ) grid_mod.f           : Module containing horizontal grid information
-!  (4 ) logical_mod.f        : Module containing GEOS-CHEM logical switches
-!  (5 ) pjc_pfix_mod.f       : Module containing Phil Cameron-Smith P-fixer
-!  (6 ) pressure_mod.f       : Module containing routines to compute P(I,J,L)
-!  (7 ) time_mod.f           : Module containing routines to compute date/time
-!  (8 ) tpcore_mod.f         : Module containing TPCORE for GEOS1,GEOSS,GEOS3
-!  (9 ) tpcore_bc_mod.f      : Module containing TPCORE boundary cond. routines
-!  (10) tpcore_window_mod.f  : Module containing TPCORE for nested-grid windows
-!  (11) tpcore_fvdas_mod.f90 : Module containing TPCORE for GEOS-4/fvDAS
-!  (12) tracer_mod.f         : Module containing GEOS-CHEM tracer array STT etc
+!  (2 ) diag_mod.f           : Module containing GEOS-CHEM diagnostic arrays
+!  (3 ) error_mod.f          : Module containing I/O error/NaN check routines
+!  (4 ) grid_mod.f           : Module containing horizontal grid information
+!  (5 ) logical_mod.f        : Module containing GEOS-CHEM logical switches
+!  (6 ) pjc_pfix_mod.f       : Module containing Phil Cameron-Smith P-fixer
+!  (7 ) pressure_mod.f       : Module containing routines to compute P(I,J,L)
+!  (8 ) time_mod.f           : Module containing routines to compute date/time
+!  (9 ) tpcore_mod.f         : Module containing TPCORE for GEOS1,GEOSS,GEOS3
+!  (10) tpcore_bc_mod.f      : Module containing TPCORE boundary cond. routines
+!  (11) tpcore_window_mod.f  : Module containing TPCORE for nested-grid windows
+!  (12) tpcore_fvdas_mod.f90 : Module containing TPCORE for GEOS-4/fvDAS
+!  (13) tracer_mod.f         : Module containing GEOS-CHEM tracer array STT etc
 !
 !  NOTES:
 !  (1 ) Now can select transport scheme for GEOS-3 winds.  Added code for PJC 
@@ -58,6 +59,8 @@
 !  (4 ) Bug fix in DO_GLOBAL_TRANSPORT (bmy, 10/21/03)
 !  (5 ) IORD, JORD, KORD are now module variables.  Now references 
 !        "logical_mod.f" and "tracer_mod.f" (bmy, 7/20/04)
+!  (6 ) Add mass-flux diagnostics to TPCORE_FVDAS (bdf, bmy, 9/28/04)
+!  (7 ) Now references "diag_mod.f" (bmy, 9/28/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -164,10 +167,13 @@
 !        "logical_mod.f".  Now references STT, N_TRACERS, TCVV from 
 !        "tracer_mod.f".  Now parallelized embedded chemistry BC's.  
 !        (bmy, 7/20/04) 
+!  (6 ) Now references MASSFLEW, MASSFLNS, MASSFLUP from "diag_mod.f".
+!        Also references ND24, ND25, ND26 from "CMN_DIAG". (bmy, 9/28/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,          ONLY : PSC2, UWND, VWND
+      USE DIAG_MOD,         ONLY : MASSFLEW, MASSFLNS, MASSFLUP
       USE ERROR_MOD,        ONLY : IT_IS_NAN, DEBUG_MSG
       USE LOGICAL_MOD,      ONLY : LEMBED, LFILL, LMFCT, LPRT, LWINDO
       USE PJC_PFIX_MOD,     ONLY : DO_PJC_PFIX
@@ -181,6 +187,7 @@
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN"       ! IEBD1, IEBD2, JEBD1, JEBD2
 #     include "CMN_GCTM"  ! Re, G0_100
+#     include "CMN_DIAG"  ! ND24, ND25, ND26
       
       ! Local variables
       INTEGER             :: I, J, L, N, N_DYN
@@ -218,25 +225,6 @@
       ! duration of the run.
       !=================================================================
       IF ( LEMBED ) THEN
-         !--------------------------------------------------------------
-         ! Prior to 7/20/04:
-         ! Now use parallel DO loops (bmy, 7/20/04)
-         !IF ( IEBD1 > 1 ) THEN
-         !   STT_I1(:,:,1:NTRACE) = STT((IEBD1-1),:,:,1:NTRACE)
-         !ENDIF
-         !
-         !IF ( IEBD2 < IIPAR ) THEN
-         !   !STT_I2(:,:,1:NTRACE) = STT((IEBD2+1),:,:,1:NTRACE)
-         !ENDIF
-         !
-         !IF ( JEBD1 > 1  ) THEN
-         !   STT_J1(:,:,1:NTRACE) = STT(:,(JEBD1-1),:,1:NTRACE)
-         ! ENDIF
-         !
-         !IF ( JEBD2 < JJPAR ) THEN
-         !   STT_J2(:,:,1:NTRACE) = STT(:,(JEBD2+1),:,1:NTRACE)
-         !ENDIF
-         !--------------------------------------------------------------
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -349,7 +337,7 @@
 #endif
       ENDDO
       ENDDO
-
+      
       ! Select proper version of TPCORE
       IF ( USE_GEOS_4_TRANSPORT ) THEN
 
@@ -378,6 +366,10 @@
 !$OMP END PARALLEL DO
          ENDDO
 
+         !----------------------------
+         ! Apply pressure fixer 
+         !----------------------------
+
 #if   defined( GEOS_4 )
 
          ! Call PJC P-fixer to get adjusted air masses (XMASS, YMASS)
@@ -395,6 +387,10 @@
 
 #endif
 
+         !----------------------------
+         ! Flip arrays in vertical
+         !----------------------------
+
          ! Flip arrays in vertical dimension for TPCORE
          ! Store winds in UTMP, VTMP to preserve UWND, VWND for diagnostics
          UTMP (:,:,1:LLPAR)   = UWND (:,:,LLPAR:1:-1)
@@ -403,16 +399,41 @@
          YMASS(:,:,1:LLPAR)   = YMASS(:,:,LLPAR:1:-1)
          STT  (:,:,1:LLPAR,:) = STT  (:,:,LLPAR:1:-1,:)
 
+         ! Also flip MASSFLEW (bdf, bmy, 9/28/04)         
+         IF ( ND24 > 0 ) THEN
+            MASSFLEW(:,:,1:LLPAR,:) = MASSFLEW(:,:,LLPAR:1:-1,:)
+         ENDIF
+
+         ! Also flip MASSFLNS (bdf, bmy, 9/28/04)
+         IF ( ND25 > 0 ) THEN
+            MASSFLNS(:,:,1:LLPAR,:) = MASSFLNS(:,:,LLPAR:1:-1,:)
+         ENDIF
+
+         ! Also flip MASSFLUP (bdf, bmy, 9/28/04)
+         IF ( ND26 > 0 ) THEN
+            MASSFLUP(:,:,1:LLPAR,:) = MASSFLUP(:,:,LLPAR:1:-1,:)
+         ENDIF
+
+         !----------------------------
+         ! Call transport code
+         !----------------------------
+
          ! GEOS-4/fvDAS transport (the output pressure is P_TEMP)
          ! NOTE: P_TP1 and P_TP2 must be consistent with the definition
          ! of Ap and Bp.  For GEOS-4, P_TP1 and P_TP2 must be the "true"
          ! surface pressure, but for GEOS-3, they must be ( Psurface -PTOP ).  
-         CALL TPCORE_FVDAS( D_DYN,  Re,        IIPAR,  JJPAR,
-     &                      LLPAR,  JFIRST,    JLAST,  NG,
-     &                      MG,     N_TRACERS, Ap,     Bp,
-     &                      UTMP,   VTMP,      P_TP1,  P_TP2,
-     &                      P_TEMP, STT,       IORD,   JORD,   
-     &                      KORD,   N_ADJ,     XMASS,  YMASS )
+         CALL TPCORE_FVDAS( D_DYN,    Re,        IIPAR,    JJPAR,
+     &                      LLPAR,    JFIRST,    JLAST,    NG,
+     &                      MG,       N_TRACERS, Ap,       Bp,
+     &                      UTMP,     VTMP,      P_TP1,    P_TP2,
+     &                      P_TEMP,   STT,       IORD,     JORD,   
+     &                      KORD,     N_ADJ,     XMASS,    YMASS,
+     &                      MASSFLEW, MASSFLNS,  MASSFLUP, A_M2,
+     &                      TCVV,     ND24,      ND25,     ND26 )
+
+         !----------------------------
+         ! Reset surface pressure
+         !----------------------------
 
 #if   defined( GEOS_4 )
 
@@ -429,8 +450,27 @@
 
 #endif
 
+         !----------------------------
+         ! Re-flip arrays in vertical
+         !----------------------------
+
          ! Re-Flip STT in the vertical dimension
          STT(:,:,1:LLPAR,:) = STT(:,:,LLPAR:1:-1,:)
+
+         ! Also re-flip MASSFLEW (bdf, bmy, 9/28/04)         
+         IF ( ND24 > 0 ) THEN
+            MASSFLEW(:,:,1:LLPAR,:) = MASSFLEW(:,:,LLPAR:1:-1,:)
+         ENDIF
+
+         ! Also re-flip MASSFLNS (bdf, bmy, 9/28/04)
+         IF ( ND25 > 0 ) THEN
+            MASSFLNS(:,:,1:LLPAR,:) = MASSFLNS(:,:,LLPAR:1:-1,:)
+         ENDIF
+
+         ! Also re-flip MASSFLUP (bdf, bmy, 9/28/04)
+         IF ( ND26 > 0 ) THEN
+            MASSFLUP(:,:,1:LLPAR,:) = MASSFLUP(:,:,LLPAR:1:-1,:)
+         ENDIF
 
          ! Adjust tracer to correct residual non-conservation of mass
          DO N = 1, N_TRACERS
@@ -513,24 +553,6 @@
       ! does not transport weird things into the northern hemisphere.
       !=================================================================
       IF ( LEMBED ) THEN
-         !-----------------------------------------------------------
-         ! Prior to 7/20/04:
-         !IF ( IEBD1 > 1  ) THEN
-         !   STT((IEBD1-1),:,:,1:NTRACE) = STT_I1(:,:,1:NTRACE)
-         !ENDIF
-         !
-         !IF ( IEBD2 < IIPAR ) THEN
-         !    STT((IEBD2+1),:,:,1:NTRACE) = STT_I2(:,:,1:NTRACE)
-         ! ENDIF
-         !
-         !IF ( JEBD1 > 1  ) THEN
-         !   STT(:,(JEBD1-1),:,1:NTRACE) = STT_J1(:,:,1:NTRACE)
-         !ENDIF
-         !
-         !IF ( JEBD2 < JJPAR ) THEN
-         !   STT(:,(JEBD2+1),:,1:NTRACE) = STT_J2(:,:,1:NTRACE)
-         !ENDIF
-         !-----------------------------------------------------------
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )

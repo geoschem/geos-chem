@@ -1,10 +1,10 @@
-! $Id: comode_mod.f,v 1.2 2003/07/21 15:09:25 bmy Exp $
+! $Id: comode_mod.f,v 1.3 2004/10/15 20:16:40 bmy Exp $
       MODULE COMODE_MOD
 !
 !******************************************************************************
 !  Module COMODE_MOD contains allocatable arrays for SMVGEAR that were
 !  previously contained in common blocks in header file "comode.h".
-!  (bmy, 8/31/00, 7/18/03)
+!  (bmy, 8/31/00, 9/28/04)
 !  
 !  In case you were wondering, "comode" stands for:
 !     "COMmon blocks: Ordinary Differential Equations"
@@ -49,6 +49,7 @@
 !        MODULE ROUTINES sections.  Updated comments (bmy, 5/28/02)
 !  (7 ) Now references "error_mod.f" (bmy, 10/15/02)
 !  (8 ) Now add CSUMA, CSUMC, ERRMX2 arrays for SMVGEAR II (bmy, 7/18/03)
+!  (9 ) Now also references "tracer_mod.f" (bmy, 9/28/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -84,22 +85,24 @@
 !
 !******************************************************************************
 !  Subroutine INIT_COMODE allocates memory for allocatable arrays that were 
-!  previously contained in common blocks in "comode.h". (bmy, 8/31/00, 7/18/03)
+!  previously contained in common blocks in "comode.h". (bmy, 8/31/00, 9/28/04)
 !
 !  NOTES:
 !  (1 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
 !  (2 ) Cosmetic chagnes (bmy, 2/27/03)
 !  (3 ) Now allocate CSUMA, CSUMC, ERRMX2; cosmetic changes (bmy, 7/18/03)
+!  (4 ) Now allocate certain arrays for offline aerosol sim (bmy, 9/28/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD, ONLY : ALLOC_ERR
+      USE ERROR_MOD,  ONLY : ALLOC_ERR
+      USE TRACER_MOD, ONLY : ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
 
 #     include "CMN_SIZE"
 #     include "comode.h" 
 
       ! Local variables
-      INTEGER :: AS 
+      INTEGER :: AS
 
       !=================================================================
       ! INIT_COMODE begins here!
@@ -107,69 +110,182 @@
       WRITE( 6, 100 )
  100  FORMAT( '     - INIT_COMODE: Allocating arrays for SMVGEAR...' )
 
-      ALLOCATE( ABSHUM( ITLOOP ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ABSHUM' )
-      ABSHUM = 0d0
+      !-----------------------------------------------------------------
+      ! Prior to 9/28/04:
+      !ALLOCATE( ABSHUM( ITLOOP ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'ABSHUM' )
+      !ABSHUM = 0d0
+      !
+      !ALLOCATE( AIRDENS( ITLOOP ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDENS' )
+      !AIRDENS = 0d0      
+      !
+      !ALLOCATE( CSPEC( ITLOOP, IGAS ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSPEC' )
+      !CSPEC = 0d0
+      !
+      !ALLOCATE( CSUMA( ITLOOP ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSUMA' )
+      !CSUMA = 0d0
+      !
+      !ALLOCATE( CSUMC( ITLOOP ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSUMC' )
+      !CSUMC = 0d0
+      !
+      !ALLOCATE( ERADIUS( ITLOOP, NDUST+NAER ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'ERADIUS' )
+      !ERADIUS = 0d0      
+      !
+      !ALLOCATE( ERRMX2( ITLOOP ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'ERRMX2' )
+      !ERRMX2 = 0d0
+      !
+      !ALLOCATE( IXSAVE( ITLOOP ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'IXSAVE' )
+      !IXSAVE = 0
+      !
+      !ALLOCATE( IYSAVE( ITLOOP ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'IYSAVE' )
+      !IYSAVE = 0
+      !
+      !ALLOCATE( IZSAVE( ITLOOP ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'IZSAVE' )
+      !IZSAVE = 0
+      !
+      !ALLOCATE( JLOP( ILONG, ILAT, IPVERT ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'JLOP' )
+      !JLOP = 0
+      !
+      !ALLOCATE( PRESS3( ITLOOP ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRESS3' )
+      !PRESS3 = 0d0
+      !
+      !ALLOCATE( REMIS( ITLOOP, MAXGL3 ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'REMIS' )
+      !REMIS = 0d0
+      !
+      !ALLOCATE( T3( ITLOOP ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'T3' )
+      !T3 = 0d0
+      !
+      !ALLOCATE( TAREA( ITLOOP, NDUST+NAER ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAREA' )
+      !TAREA = 0d0      
+      !
+      !ALLOCATE( VOLUME( ITLOOP ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'VOLUME' )
+      !VOLUME = 0d0
+      !-----------------------------------------------------------------
 
-      ALLOCATE( AIRDENS( ITLOOP ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDENS' )
-      AIRDENS = 0d0      
+      !----------------------------------
+      ! FULL CHEMISTRY SIMULATION
+      !----------------------------------
+      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+      
+         ALLOCATE( ABSHUM( ITLOOP ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ABSHUM' )
+         ABSHUM = 0d0
+      
+         ALLOCATE( AIRDENS( ITLOOP ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDENS' )
+         AIRDENS = 0d0      
 
-      ALLOCATE( CSPEC( ITLOOP, IGAS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSPEC' )
-      CSPEC = 0d0
+         ALLOCATE( CSPEC( ITLOOP, IGAS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSPEC' )
+         CSPEC = 0d0
+      
+         ALLOCATE( CSUMA( ITLOOP ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSUMA' )
+         CSUMA = 0d0
+      
+         ALLOCATE( CSUMC( ITLOOP ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSUMC' )
+         CSUMC = 0d0
 
-      ALLOCATE( CSUMA( ITLOOP ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSUMA' )
-      CSUMA = 0d0
+         ALLOCATE( ERADIUS( ITLOOP, NDUST+NAER ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ERADIUS' )
+         ERADIUS = 0d0      
 
-      ALLOCATE( CSUMC( ITLOOP ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSUMC' )
-      CSUMC = 0d0
+         ALLOCATE( ERRMX2( ITLOOP ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ERRMX2' )
+         ERRMX2 = 0d0
+           
+         ALLOCATE( IXSAVE( ITLOOP ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'IXSAVE' )
+         IXSAVE = 0
+      
+         ALLOCATE( IYSAVE( ITLOOP ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'IYSAVE' )
+         IYSAVE = 0
+      
+         ALLOCATE( IZSAVE( ITLOOP ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'IZSAVE' )
+         IZSAVE = 0
+      
+         ALLOCATE( JLOP( ILONG, ILAT, IPVERT ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'JLOP' )
+         JLOP = 0
+      
+         ALLOCATE( PRESS3( ITLOOP ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRESS3' )
+         PRESS3 = 0d0
+      
+         ALLOCATE( REMIS( ITLOOP, MAXGL3 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'REMIS' )
+         REMIS = 0d0
+      
+         ALLOCATE( T3( ITLOOP ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'T3' )
+         T3 = 0d0
 
-      ALLOCATE( ERADIUS( ITLOOP, NDUST+NAER ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ERADIUS' )
-      ERADIUS = 0d0      
+         ALLOCATE( TAREA( ITLOOP, NDUST+NAER ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAREA' )
+         TAREA = 0d0      
+      
+         ALLOCATE( VOLUME( ITLOOP ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'VOLUME' )
+         VOLUME = 0d0
 
-      ALLOCATE( ERRMX2( ITLOOP ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ERRMX2' )
-      ERRMX2 = 0d0
+      ENDIF
 
-      ALLOCATE( IXSAVE( ITLOOP ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IXSAVE' )
-      IXSAVE = 0
+      !----------------------------------
+      ! OFFLINE AEROSOL SIMULATION
+      !----------------------------------
+      IF ( ITS_AN_AEROSOL_SIM() ) THEN
 
-      ALLOCATE( IYSAVE( ITLOOP ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IYSAVE' )
-      IYSAVE = 0
+         ALLOCATE( ABSHUM( ITLOOP ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ABSHUM' )
+         ABSHUM = 0d0
+      
+         ALLOCATE( AIRDENS( ITLOOP ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDENS' )
+         AIRDENS = 0d0      
 
-      ALLOCATE( IZSAVE( ITLOOP ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IZSAVE' )
-      IZSAVE = 0
+         ALLOCATE( ERADIUS( ITLOOP, NDUST+NAER ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ERADIUS' )
+         ERADIUS = 0d0      
 
-      ALLOCATE( JLOP( ILONG, ILAT, IPVERT ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'JLOP' )
-      JLOP = 0
+         ALLOCATE( IXSAVE( ITLOOP ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'IXSAVE' )
+         IXSAVE = 0
+      
+         ALLOCATE( IYSAVE( ITLOOP ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'IYSAVE' )
+         IYSAVE = 0
+      
+         ALLOCATE( IZSAVE( ITLOOP ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'IZSAVE' )
+         IZSAVE = 0
+      
+         ALLOCATE( JLOP( ILONG, ILAT, IPVERT ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'JLOP' )
+         JLOP = 0
 
-      ALLOCATE( PRESS3( ITLOOP ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRESS3' )
-      PRESS3 = 0d0
-
-      ALLOCATE( REMIS( ITLOOP, MAXGL3 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'REMIS' )
-      REMIS = 0d0
-
-      ALLOCATE( T3( ITLOOP ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T3' )
-      T3 = 0d0
-
-      ALLOCATE( TAREA( ITLOOP, NDUST+NAER ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAREA' )
-      TAREA = 0d0      
-
-      ALLOCATE( VOLUME( ITLOOP ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VOLUME' )
-      VOLUME = 0d0
+         ALLOCATE( TAREA( ITLOOP, NDUST+NAER ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAREA' )
+         TAREA = 0d0      
+         
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE INIT_COMODE

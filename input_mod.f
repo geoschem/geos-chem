@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.4 2004/09/24 14:03:56 bmy Exp $
+! $Id: input_mod.f,v 1.5 2004/10/15 20:16:41 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS_CHEM input file at the start of the run
 !  and passes the information to several other GEOS-CHEM F90 modules.
-!  (bmy, 7/20/04)
+!  (bmy, 7/20/04, 9/28/04)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -81,6 +81,7 @@
 !  (24) wetscav_mod.f    : Module containing routines for wetdep/scavenging
 !
 !  NOTES:
+!  (1 ) Now references LSOA in READ_AEROSOL_MENU (bmy, 9/28/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -785,7 +786,7 @@
       !=================================================================
       WRITE( 6, '(/,a)' ) 'TRACER MENU (==> denotes emitted species)' 
       WRITE( 6, '(  a)' ) '-----------------------------------------'
-      WRITE( 6, '(  a)' ) '  #  Tracer         g/mole'
+      WRITE( 6, '(  a)' ) '  # Tracer          g/mole'
 
       ! Print info about each tracer
       DO T = 1, N_TRACERS
@@ -846,11 +847,12 @@
 !  the GEOS-CHEM input file. (bmy, 7/20/04)
 !
 !  NOTES:
+!  (1 ) Now reference LSOA (bmy, 9/28/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE LOGICAL_MOD, ONLY : LSULF, LCARB, LDUST, LDEAD, LSSALT
+      USE LOGICAL_MOD, ONLY : LSULF, LCARB, LSOA, LDUST, LDEAD, LSSALT
       USE TRACER_MOD,  ONLY : N_TRACERS, 
      &                        SALA_REDGE_um,      SALC_REDGE_um,
      &                        ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
@@ -880,32 +882,36 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:2' )
       READ( SUBSTRS(1:N), * ) LCARB
 
-      ! Use online dust aerosols 
+      ! Use secondary organic aerosols?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:3' )
+      READ( SUBSTRS(1:N), * ) LSOA
+
+      ! Use online dust aerosols 
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:4' )
       READ( SUBSTRS(1:N), * ) LDUST
 
       ! Use DEAD dust mobilization (=T) or GINOUX (=F)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:4' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:5' )
       READ( SUBSTRS(1:N), * ) LDEAD      
 
       ! Use online sea-salt aerosols?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:5' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:6' )
       READ( SUBSTRS(1:N), * ) LSSALT      
 
       ! Accum mode seasalt radii bin edges [um]
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:6' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:7' )
       DO T = 1, N
          READ( SUBSTRS(T), * ) SALA_REDGE_um(T)
       ENDDO
 
       ! Coarse mode seasalt radii bin edges [um]
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:7' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:8' )
       DO T = 1, N
          READ( SUBSTRS(T), * ) SALC_REDGE_um(T)
       ENDDO
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:8' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:9' )
 
       !=================================================================
       ! Error checks
@@ -922,6 +928,7 @@
      &     ( .not. ITS_AN_AEROSOL_SIM() ) ) THEN
          LSULF  = .FALSE.
          LCARB  = .FALSE.
+         LSOA   = .FALSE.
          LDUST  = .FALSE.
          LDEAD  = .FALSE.
          LSSALT = .FALSE.
@@ -934,6 +941,7 @@
       WRITE( 6, '(  a)' ) '------------'
       WRITE( 6, 100     ) 'Online SULFATE AEROSOLS?    : ', LSULF
       WRITE( 6, 100     ) 'Online CARBON AEROSOLS?     : ', LCARB
+      WRITE( 6, 100     ) 'Online 2dy ORGANIC AEROSOLS?: ', LSOA
       WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ', LDUST
       WRITE( 6, 100     ) 'Use DEAD dust emissions?    : ', LDEAD
       WRITE( 6, 100     ) 'Online SEA SALT AEROSOLS?   : ', LSSALT

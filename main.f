@@ -1,5 +1,20 @@
-C $Id: main.f,v 1.17 2004/09/24 14:03:56 bmy Exp $
+C $Id: main.f,v 1.18 2004/10/15 20:16:41 bmy Exp $
 C $Log: main.f,v $
+C Revision 1.18  2004/10/15 20:16:41  bmy
+C GEOS-CHEM v7-01-01, includes the following modifications:
+C - Brand new user GEOS-CHEM user interface with new "input.geos" file
+C - ND48, ND49, ND50, ND51 timeseries diagnostics rewritten for consistency
+C - Bundled code for Mean OH diagnostic into "diag_oh_mod.f"
+C - Bundled code for ND65, ND20 diagnostics into "diag_pl_mod.f"
+C - Aerosol Opt Depths for FAST-J, Hetchem are now computed in "aerosol_mod.f"
+C - Now use inquiry functions (in "tracer_mod.f") to test for simulation type
+C - Dust & Aerosol Opt Depths now scaled to 400 nm in ND21 diag & timeseries
+C - Rewrote parallel loops to facilitate parallelization on Altix and Altix-2
+C - All GEOS-CHEM logical switches are now contained w/in "logical_mod.f"
+C - All GEOS-CHEM directories are now contained w/in "directory_mod.f"
+C - All Unix zipping commands are now bundled into "tracer_mod.f"
+C - Deleted lots of obsolete code; updated comments
+C
 C Revision 1.17  2004/09/24 14:03:56  bmy
 C GEOS-CHEM v7-01-01, includes the following modifications:
 C - Brand new user GEOS-CHEM user interface with new "input.geos" file
@@ -14,64 +29,6 @@ C - All GEOS-CHEM logical switches are now contained w/in "logical_mod.f"
 C - All GEOS-CHEM directories are now contained w/in "directory_mod.f"
 C - All Unix zipping commands are now bundled into "tracer_mod.f"
 C - Deleted lots of obsolete code; updated comments
-C
-C Revision 1.16  2004/09/21 18:04:15  bmy
-C GEOS-CHEM v7-01-01, includes the following modifications:
-C - Brand new user GEOS-CHEM user interface with new "input.geos" file
-C - ND48, ND49, ND50, ND51 timeseries diagnostics rewritten for consistency
-C - Bundled code for Mean OH diagnostic into "diag_oh_mod.f"
-C - Bundled code for ND65, ND20 diagnostics into "diag_pl_mod.f"
-C - Aerosol Opt Depths for FAST-J, Hetchem are now computed in "aerosol_mod.f"
-C - Now use inquiry functions (in "tracer_mod.f") to test for simulation type
-C - Dust & Aerosol Opt Depths now scaled to 400 nm in ND21 diag & timeseries
-C - Rewrote parallel loops to facilitate parallelization on Altix and Altix-2
-C - All GEOS-CHEM logical switches are now contained w/in "logical_mod.f"
-C - All GEOS-CHEM directories are now contained w/in "directory_mod.f"
-C - All Unix zipping commands are now bundled into "tracer_mod.f"
-C - Deleted lots of obsolete code; updated comments
-C
-C Revision 1.15  2004/05/03 14:46:17  bmy
-C GEOS-CHEM v6-02-04, includes the following modifications:
-C - Added seasalt tracers SALA, SALC
-C - Added timeseries diagnostics for ICARTT
-C - Bug fix in "planeflight_mod.f": lon index is now correct
-C - Added fancy output to log file for better readability
-C - Updated comments, cosmetic changes
-C
-C Revision 1.14  2004/04/19 15:09:54  bmy
-C GEOS-CHEM v6-02-03, includes the following modifications:
-C - bundled lightning NOx routines into "lightning_nox_mod.f"
-C - parallelized routines in "lightning_nox_mod.f"
-C - parallelized routines in "upbdflx_mod.f"
-C - parallelized other sections of code for better optimization
-C - bug fix in parallel loop in routine SRC_DUST_DEAD ("dust_mod.f")
-C - Cosmetic changes, updated comments
-C
-C Revision 1.13  2004/04/13 14:52:31  bmy
-C GEOS-CHEM v6-02-02, includes the following modifications:
-C - Added carbon aerosol tracers BCPI, OCPI, BCPO, OCPO
-C - Added "carbon_mod.f" for carbon aerosol emissions & chemistry
-C - Added "dust_mod.f" and "dust_dead_mod.f" for dust em & chem (unvalidated)
-C - Added "gwet_read_mod.f" to read extra GEOS-3 GWET met field files
-C - Offline H2O2 chemistry now uses diurnally varying JO1D
-C - Updated diagnostics for extra tracers
-C - Bug fix: "rdaer.f" now updates online tracers every timestep
-C - Updated comments, cosmetic changes, removed obsolete code
-C
-C Revision 1.12  2004/03/24 20:52:30  bmy
-C GEOS-CHEM v6-02-01, includes the following modifications:
-C - Bug fix: eliminate roundoff error for ND44 diagnostic
-C - Now can read GEOS-3 "a_llk_03" or "a_llk_04" met fields
-C - Added parallel loop in "setemis.f"
-C - Removed obsolete, commented out code; Updated comments
-C
-C Revision 1.11  2004/01/29 16:55:32  bmy
-C GEOS-CHEM v6-01-05, includes the following modifications:
-C - Updated deep & shallow convection code for GEOS-4 met fields
-C - Bug fix in routine NFCLDMX to allow 2x25 runs on Altix
-C - Updated code to read GEOS-4 met fields; now looks for ident strings
-C - Bug fix in sulfate emissions code: convert GEOS-4 PBL from [m] to [hPa]
-C - Updated comments, cosmetic changes
 C
       PROGRAM GEOS_CHEM
 ! 
@@ -205,20 +162,21 @@ C
       CALL READ_TROPOPAUSE
 
       ! Initialize allocatable SMVGEAR arrays
-      IF ( ITS_A_FULLCHEM_SIM() .and. ( LEMIS .or. LCHEM ) ) THEN 
-         CALL INIT_COMODE
+      !--------------------------------------------------------------
+      ! Prior to 9/28/04:
+      !IF ( ITS_A_FULLCHEM_SIM() .and. ( LEMIS .or. LCHEM ) ) THEN 
+      !   CALL INIT_COMODE
+      !ENDIF
+      !--------------------------------------------------------------
+      IF ( LEMIS .or. LCHEM ) THEN
+         IF ( ITS_A_FULLCHEM_SIM() ) CALL INIT_COMODE
+         IF ( ITS_AN_AEROSOL_SIM() ) CALL INIT_COMODE
       ENDIF
-      
+
       ! Allocate arrays from "global_ch4_mod.f" for CH4 run 
       IF ( ITS_A_CH4_SIM() ) CALL INIT_GLOBAL_CH4
 
-      ! Prior to 7/20/04:
-      !! Open station timeseries and binary punch files for output
-      !IF ( ND48 > 0 ) OPEN( IU_TS, FILE='ctm.ts', STATUS='UNKNOWN' )
-      !----------------------------------------------------------------
-      ! Prior to 7/20/04:
-      !CALL OPEN_BPCH2_FOR_WRITE( IU_BPCH, 'ctm.bpch', XLABEL )
-      !----------------------------------------------------------------
+      ! Open BPCH file for output
       CALL OPEN_BPCH2_FOR_WRITE( IU_BPCH, 'ctm.bpch' )
 
       !=================================================================
@@ -361,21 +319,13 @@ C
          !==============================================================
          !   ***** W R I T E   D I A G N O S T I C   F I L E S *****
          !==============================================================
-         !-------------------------------------------------------------
-         ! Prior to 7/20/04:
-         !IF ( ITS_TIME_FOR_BPCH() .and. ( .not. FIRST ) ) THEN
-         !-------------------------------------------------------------
          IF ( ITS_TIME_FOR_BPCH() ) THEN
 
             ! Set time at end of diagnostic timestep
             CALL SET_DIAGe( GET_TAU() )
 
-            ! Write bpch and ND48 files
+            ! Write bpch file
             CALL DIAG3  
-            !-----------------------
-            ! Prior to 7/20/04:
-            !CALL DIAG5          
-            !-----------------------
 
             ! Flush file units
             CALL CTM_FLUSH
@@ -714,13 +664,6 @@ C
             IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a DIAGNOSTICS' )
          ENDIF
 
-         ! Move this below
-         !! ND48: station timeseries data ("ctm.ts")
-         !IF ( ND48 > 0 .and. ITS_TIME_FOR_DIAG() ) THEN
-         !   KDA48 = KDA48 + 1
-         !   CALL DIAG48
-         !ENDIF
-
          !-------------------------------
          ! Test for emission timestep
          !-------------------------------
@@ -899,7 +842,6 @@ C
 !  (5 ) CTM_FLUSH              : Flushes diagnostic files to disk
 !  (6 ) SETUP_CO_OH_CHEM       : Calls setup routines for CO-OH param run
 !  (7 ) MET_FIELD_DEBUG        : Prints min and max of met fields for debug
-!  (8 ) STDRUN                 : Saves initial/final masses for benchmarks
 !******************************************************************************
 !
       CONTAINS
@@ -1293,128 +1235,6 @@ C
       ! Return to MAIN program
       END SUBROUTINE MET_FIELD_DEBUG
 
-!-----------------------------------------------------------------------------
-!
-!      SUBROUTINE STDRUN( LBEGIN )
-!
-!      !=================================================================
-!      ! Internal subroutine STDRUN dumps the mass of either Ox [kg] 
-!      ! or 222Rn, 210Pb, and 7Be [kg] at the start & end of each run, 
-!      ! for model benchmarking. (bmy, 8/12/02)
-!      !
-!      ! Arguments as Input:
-!      ! ----------------------------------------------------------------
-!      ! (1 ) LBEGIN (LOGICAL) : TRUE  denotes beginning of the run;
-!      !                         FALSE denotes the end of the run
-!      !
-!      ! NOTES:
-!      ! (1 ) Changed name from STDRUN_Ox to STDRUN, since we now can
-!      !      also save out Rn/Pb/Be for NSRCX==1.  Also deleted
-!      !      obsolete code from 6/02.  Added LBEGIN as an argument to
-!      !      determine if this is the start or end of the run.
-!      !      (bmy, 8/12/02)
-!      !=================================================================
-!
-!      ! Arguments
-!      LOGICAL, INTENT(IN) :: LBEGIN 
-!
-!      ! Local variables
-!      INTEGER             :: N
-!      INTEGER, PARAMETER  :: IFIRST=1, JFIRST=1, LFIRST=1
-!      INTEGER, PARAMETER  :: HALFPOLAR=1, CENTER180=1
-!      REAL*4              :: ARRAY(IIPAR,JJPAR,LLPAR)
-!      REAL*4              :: LONRES, LATRES
-!      CHARACTER(LEN=20)   :: MODELNAME 
-!      CHARACTER(LEN=40)   :: CATEGORY, RESERVED, UNIT
-!      CHARACTER(LEN=80)   :: TITLE
-!      CHARACTER(LEN=255)  :: FILENAME
-!
-!      !=================================================================
-!      ! STDRUN begins here!
-!      !=================================================================
-!
-!      ! Return if we are not doing either a radon or fullchem stdrun
-!      IF ( ( .not. ITS_A_FULLCHEM_SIM() ) .and. 
-!     &     ( .not. ITS_A_RnPbBe_SIM() ) ) RETURN
-!
-!      ! Define variables for binary punch file
-!      MODELNAME = GET_MODELNAME()
-!      CATEGORY  = 'TCMASS-$'
-!      UNIT      = 'kg'
-!      RESERVED  = ''      
-!      LONRES    = DISIZE
-!      LATRES    = DJSIZE
-!    
-!      !=================================================================
-!      ! Save the mass of 222Rn, 210Pb, 7Be to a file
-!      !=================================================================
-!      IF ( ITS_A_FULLCHEM_SIM() ) THEN
-!
-!         ! Define filename for beginning or end
-!         IF ( LBEGIN ) THEN
-!            TITLE    = 'GEOS-CHEM Rn-Pb-Be benchmark: initial mass'
-!            FILENAME = 'Rn-Pb-Be.mass.initial'
-!         ELSE
-!            TITLE    = 'GEOS-CHEM Rn-Pb-Be benchmark: final mass'
-!            FILENAME = 'Rn-Pb-Be.mass.final'
-!         ENDIF
-!            
-!         ! Open binary punch file for writing
-!         CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME, TITLE )
-!
-!         ! Loop over tracers
-!         DO N = 1, N_TRACERS
-!
-!            ! Save Rn, Pb, Be as REAL*4
-!            ARRAY(:,:,:) = STT(:,:,:,N)
-!
-!            ! Write Rn, Pb, Be to binary punch file
-!            CALL BPCH2( IU_FILE,   MODELNAME, LONRES,    LATRES,
-!     &                  HALFPOLAR, CENTER180, CATEGORY,  N+TRCOFFSET,    
-!     &                  UNIT,      GET_TAU(), GET_TAU(), RESERVED,   
-!     &                  IIPAR,     JJPAR,     LLPAR,     IFIRST,     
-!     &                  JFIRST,    LFIRST,    ARRAY(:,:,:) )
-!
-!         ENDDO
-!
-!      !=================================================================
-!      ! Save the mass of Ox to a file
-!      !=================================================================
-!      ELSE IF ( ITS_A_FULLCHEM_SIM() .and. IDTOX > 0 ) THEN
-!
-!         ! Define filename for beginning or end
-!         IF ( LBEGIN ) THEN
-!            TITLE    = 'GEOS-CHEM fullchem benchmark: Ox initial mass'
-!            FILENAME = 'Ox.mass.initial'
-!         ELSE
-!            TITLE    = 'GEOS-CHEM fullchem benchmark: Ox final mass'
-!            FILENAME = 'Ox.mass.final'
-!         ENDIF
-!
-!         ! Open binary punch file for writing
-!         CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME, TITLE )
-!        
-!         ! Save Ox as REAL*4
-!         ARRAY(:,:,:) = STT(:,:,:,IDTOX)
-!
-!         ! Write Ox to binary punch file
-!         CALL BPCH2( IU_FILE,   MODELNAME, LONRES,    LATRES,
-!     &               HALFPOLAR, CENTER180, CATEGORY,  IDTOX,    
-!     &               UNIT,      GET_TAU(), GET_TAU(), RESERVED,   
-!     &               IIPAR,     JJPAR,     LLPAR,     IFIRST,     
-!     &               JFIRST,    LFIRST,    ARRAY(:,:,:) )
-!               
-!      ENDIF
-!
-!      ! Close file
-!      CLOSE( IU_FILE )
-!
-!      !### Debug
-!      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a STDRUN' )
-!
-!      ! Return to MAIN program
-!      END SUBROUTINE STDRUN
-!
 !-----------------------------------------------------------------------------
 
       ! End of program

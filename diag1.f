@@ -1,4 +1,4 @@
-! $Id: diag1.f,v 1.5 2004/09/21 18:04:10 bmy Exp $
+! $Id: diag1.f,v 1.6 2004/10/15 20:16:40 bmy Exp $
       SUBROUTINE DIAG1 
 !
 !******************************************************************************
@@ -324,9 +324,6 @@
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
-!-----------------------------------------------------------
-!#     include "CMN"       ! STT, NSRCX, etc...
-!-----------------------------------------------------------
 #     include "CMN_DIAG"  ! Diagnostic arrays & parameters
 #     include "CMN_O3"    ! FMOL, XNUMOL
 #     include "CMN_GCTM"  ! Physical constants
@@ -335,10 +332,6 @@
       LOGICAL            :: AVGW_ALLOCATED, IS_FULLCHEM
       INTEGER            :: I, J, K, L, N, NN, IREF, JREF, LN45
       REAL*8             :: FDTT, XLOCTM, AREA_M2
-      !-----------------------------------------------------------------
-      ! Prior to 7/20/04:
-      !REAL*8             :: STT_VV(IIPAR,JJPAR,LLPAR,NTRACE)
-      !-----------------------------------------------------------------
       REAL*8             :: STT_VV(IIPAR,JJPAR,LLPAR,N_TRACERS)
 
       !=================================================================
@@ -353,10 +346,6 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-         !------------------------
-         ! Prior to 7/20/04:
-         !DO N = 1, NTRACE
-         !------------------------
          DO N = 1, N_TRACERS
          DO L = 1, LLPAR
          DO J = 1, JJPAR
@@ -388,10 +377,6 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-         !---------------------
-         ! Prior to 7/20/04:
-         !DO N = 1, NTRACE
-         !---------------------
          DO N = 1, N_TRACERS
          DO L = 1, LLPAR
          DO J = 1, JJPAR
@@ -416,10 +401,6 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I, J, N )
-         !---------------------
-         ! Prior to 7/20/04:
-         !DO N = 1, NTRACE
-         !---------------------
          DO N = 1, N_TRACERS
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -447,10 +428,6 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-         !--------------------------
-         ! Prior to 7/20/04:
-         !DO N = 1, NTRACE
-         !--------------------------
          DO N = 1, N_TRACERS
             DO L = 1, LD45  
             DO J = 1, JJPAR 
@@ -461,19 +438,10 @@
             ENDDO
             ENDDO
 
-            !-------------------------------------------
-            ! Prior to 7/20/04:
-            !IF ( N == IDTOX .and. NSRCX == 3 ) THEN
-            !-------------------------------------------
             IF ( N == IDTOX .and. IS_FULLCHEM ) THEN
                DO L = 1, LD45
                DO J = 1, JJPAR
                DO I = 1, IIPAR
-!-----------------------------------------------------------------------------
-! Prior to 7/20/04:
-!                  AD45(I,J,L,NTRACE+1) = AD45(I,J,L,NTRACE+1) +
-!     &                 ( STT_VV(I,J,L,N) * FRACO3(I,J,L) * LTOTH(I,J) )
-!-----------------------------------------------------------------------------
                   AD45(I,J,L,N_TRACERS+1) = AD45(I,J,L,N_TRACERS+1) +
      &                 ( STT_VV(I,J,L,N) * FRACO3(I,J,L) * LTOTH(I,J) )
                ENDDO            
@@ -494,10 +462,6 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-         !----------------------
-         ! Prior to 7/20/04:
-         !DO N = 1, NTRACE
-         !----------------------
          DO N = 1, N_TRACERS
             DO L = 1, LD47
             DO J = 1, JJPAR
@@ -507,19 +471,10 @@
             ENDDO
             ENDDO
             
-            !-------------------------------------------
-            ! Prior to 7/20/04:
-            !IF ( N == IDTOX .and. NSRCX == 3 ) THEN
-            !-------------------------------------------
             IF ( N == IDTOX .and. IS_FULLCHEM ) THEN
                DO L = 1, LD47
                DO J = 1, JJPAR
                DO I = 1, IIPAR
-!--------------------------------------------------------------------------
-! Prior to 7/20/04:
-!                  AD47(I,J,L,NTRACE+1) = AD47(I,J,L,NTRACE+1) +
-!     &                 ( STT_VV(I,J,L,N) * FRACO3(I,J,L) )
-!--------------------------------------------------------------------------
                   AD47(I,J,L,N_TRACERS+1) = AD47(I,J,L,N_TRACERS+1) +
      &                 ( STT_VV(I,J,L,N) * FRACO3(I,J,L) )
                ENDDO

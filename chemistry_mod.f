@@ -1,4 +1,4 @@
-! $Id: chemistry_mod.f,v 1.9 2004/09/21 18:04:09 bmy Exp $
+! $Id: chemistry_mod.f,v 1.10 2004/10/15 20:16:40 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
@@ -43,7 +43,7 @@
 !  (6 ) Now references "carbon_mod.f" and "dust_mod.f" (rjp, tdf, bmy, 4/5/04)
 !  (7 ) Now references "seasalt_mod.f" (rjp, bec, bmy, 4/20/04)
 !  (8 ) Now references "logical_mod.f", "tracer_mod.f", "diag20_mod.f", and
-!        "diag65_mod.f" (bmy, 7/20/04)
+!        "diag65_mod.f", and "aerosol_mod." (bmy, 7/20/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -76,22 +76,23 @@
 !  (6 ) Now calls CHEMSEASALT to do seasalt aerosol chemistry 
 !        (rjp, bec, bmy, 4/20/04)
 !  (7 ) Now references "logical_mod.f" & "tracer_mod.f".  Now references
-!        AEROSOL_CONC and RDAER from "aerosol_mod.f".  Now includes
-!        "CMN_DIAG" and "comode.h".  Also call READER, READCHEM, and INPHOT 
-!        to initialize the FAST-J arrays so that we can save out AOD's to the 
-!        ND21 diagnostic for offline runs. (bmy, 7/20/04)
+!        AEROSOL_CONC, AEROSOL_RURALBOX, and RDAER from "aerosol_mod.f".  
+!        Now includes "CMN_DIAG" and "comode.h".  Also call READER, READCHEM, 
+!        and INPHOT to initialize the FAST-J arrays so that we can save out !
+!        AOD's to the ND21 diagnostic for offline runs. (bmy, 7/20/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ACETONE_MOD,     ONLY : OCEAN_SINK_ACET
-      USE AEROSOL_MOD,     ONLY : AEROSOL_CONC, RDAER
+      USE AEROSOL_MOD,     ONLY : AEROSOL_CONC, AEROSOL_RURALBOX, 
+     &                            RDAER,        SOILDUST
       USE C2H6_MOD,        ONLY : CHEMC2H6
       USE CARBON_MOD,      ONLY : CHEMCARBON
       USE CH3I_MOD,        ONLY : CHEMCH3I
       USE DAO_MOD,         ONLY : CLMOSW,  CLROSW, DELP, 
      &                            MAKE_RH, OPTDEP, OPTD, T
       USE DRYDEP_MOD,      ONLY : DRYFLX, DRYFLXRnPbBe
-      USE DUST_MOD,        ONLY : CHEMDUST
+      USE DUST_MOD,        ONLY : CHEMDUST, RDUST_ONLINE
       USE ERROR_MOD,       ONLY : DEBUG_MSG
       USE GLOBAL_CH4_MOD,  ONLY : CHEMCH4
       USE Kr85_MOD,        ONLY : CHEMKr85
@@ -113,6 +114,7 @@
 
       ! Local variables
       LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER       :: N_TROP
 
       !=================================================================
       ! DO_CHEMISTRY begins here!
@@ -162,7 +164,7 @@
                CALL DO_RPMARES
             ENDIF
 
-            ! Do carbonaceous aerosol chemistry
+             ! Do carbonaceous aerosol chemistry
             IF ( LCARB ) CALL CHEMCARBON
 
             ! Do dust aerosol chemistry
@@ -231,40 +233,41 @@
             ENDIF
 
          !---------------------------------
-         ! Offline sulfate simulation
+         ! Offline aerosol simulation
          !---------------------------------
          ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
 
-            ! Get relative humidity for sulfate & diagnostics
+            ! Get relative humidity
             CALL MAKE_RH
 
-            ! Aerosol optical depth diagnostic
-            IF ( ND21 > 0 ) THEN
+            ! Define loop index and other SMVGEAR arrays
+            ! N_TROP, the # of trop boxes, is returned
+            CALL AEROSOL_RURALBOX( N_TROP )
 
-               ! Initialize FAST-J quantities for ND21
-               IF ( FIRST ) THEN
-                  CALL READER( FIRST )
-                  CALL READCHEM
-                  CALL INPHOT( LLTROP, NPHOT )
-                  FIRST = .FALSE.
-               ENDIF
+            ! Initialize FAST-J quantities for computing AOD's
+            IF ( FIRST ) THEN
+               CALL READER( FIRST )
+               CALL READCHEM
+               CALL INPHOT( LLTROP, NPHOT )
 
-               ! Compute aerosol concentrations [kg/m3]
-               CALL AEROSOL_CONC
+               ! Reset NTLOOP and NTTLOOP after call to READER
+               ! with the actual # of boxes w/in the ann mean trop
+               NTLOOP  = N_TROP
+               NTTLOOP = N_TROP
 
-               ! Compute optical properties & save diagnostic
-               CALL RDAER
+               ! Reset first-time flag
+               FIRST = .FALSE.
             ENDIF
 
-            ! Do sulfate aerosol chemistry
-            IF ( LSULF ) THEN
+            ! Compute aerosol & dust concentrations [kg/m3]
+            ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
+            CALL AEROSOL_CONC
 
-               !---------------------------
-               ! Prior to 7/20/04:
-               ! Now call this above
-               !! Get relative humidity
-               !CALL MAKE_RH
-               !---------------------------
+            ! Compute AOD's and surface areas
+            CALL RDAER
+
+            !*** SULFATE AEROSOLS ***
+            IF ( LSULF ) THEN
 
                ! Do sulfate chemistry
                CALL CHEMSULFATE
@@ -273,13 +276,20 @@
                CALL DO_RPMARES
             ENDIF
                
-            ! Do carbonaceous aerosol chemistry
+            !*** CARBON AND 2NDARY ORGANIC AEROSOLS ***
             IF ( LCARB ) CALL CHEMCARBON
 
-            ! Do dust aerosol chemistry
-            IF ( LDUST ) CALL CHEMDUST
+            !*** MINERAL DUST AEROSOLS ***
+            IF ( LDUST ) THEN 
 
-            ! Do seasalt aerosol chemistry
+               ! Do dust aerosol chemsitry
+               CALL CHEMDUST
+
+               ! Compute dust OD's & surface areas
+               CALL RDUST_ONLINE( SOILDUST )
+            ENDIF
+
+            !*** SEASALT AEROSOLS ***
             IF ( LSSALT ) CALL CHEMSEASALT
                
 !-----------------------------------------------------------------------------

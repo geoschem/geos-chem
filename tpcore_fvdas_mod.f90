@@ -1,15 +1,16 @@
-! $Id: tpcore_fvdas_mod.f90,v 1.2 2004/09/21 18:04:19 bmy Exp $
+! $Id: tpcore_fvdas_mod.f90,v 1.3 2004/10/15 20:16:43 bmy Exp $
 module tpcore_fvdas_mod
 !
 !******************************************************************************
-!  Module TPCORE_FVDAS_MOD contains routines for the GEOS-4/fvDAS transport
-!  scheme.  Original code from S-J Lin and Kevin Yeh. (bdf, bmy, 5/7/03)
+!  Module TPCORE_FVDAS_MOD contains routines for the GEOS-4/fvDAS 
+!  transport scheme.  Original code from S-J Lin and Kevin Yeh. 
+!  (bdf, bmy, 5/7/03, 9/28/04)
 !
 !  The Harvard Atmospheric Chemistry Modeling Group has modified the original
 !  code in order to implement the Philip-Cameron Smith pressure fixer for mass 
-!  conservation.  These changes are denoted in the code by the comment tag
-!  line !%%%.  Also, all modifications to the original code are written in
-!  ALL CAPITALS.
+!  conservation, and also to save out mass fluxes.  These changes are denoted 
+!  in the code by comment tag lines !%%%%%%%.  Also, all modifications to the 
+!  original code are written in ALL CAPITALS.
 !
 !  Module Routines:
 !  ============================================================================
@@ -51,6 +52,9 @@ module tpcore_fvdas_mod
 !  (3 ) Added code for PJC pressure fixer.  Also now declare everything
 !        PRIVATE except for INIT_TPCORE, TPCORE_FVDAS, and EXIT_TPCORE.
 !        (bdf, bmy, 5/7/03)
+!  (4 ) Added modifications to save mass fluxes in ND24, ND25, ND26
+!        diagnostics.  Also now make places in the code which have been
+!        modified by Harvard more clear to discern. (bdf, bmy, 9/28/04)
 !
 !******************************************************************************
 !
@@ -98,13 +102,16 @@ module tpcore_fvdas_mod
 !******************************************************************************
 !
 
-  !=====================================================================
-  !%%% MODULE PRIVATE declarations -- for safety's sake, declare all
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+  !%%%
+  !%%% Add MODULE PRIVATE declarations.  For safety's sake, declare all
   !%%% routines and variables PRIVATE except for INIT_TPCORE and
   !%%% TPCORE_FVDAS, which need to be seen outside.  (bdf, bmy, 5/7/03)
-  !=====================================================================
+  !%%%
   PRIVATE
   PUBLIC :: TPCORE_FVDAS, INIT_TPCORE, EXIT_TPCORE
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
 #if defined(SPMD)
 #define PRT_PREFIX  if(gid.eq.0)
@@ -131,8 +138,14 @@ module tpcore_fvdas_mod
  real ,ALLOCATABLE, save ::  gw(:)
  real ,ALLOCATABLE, save :: rgw(:)
 
- !%%% Added for PJC pressure fixer
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Added DLAT as allocatable array for PJC pressure fixer 
+ !%%% (bdf, bmy, 5/7/03)
+ !%%%
  REAL ,ALLOCATABLE, SAVE :: DLAT(:)
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 contains
 
@@ -174,10 +187,16 @@ contains
 
  real elat(jm+1)    ! cell edge latitude in radian
  real sine(jm+1)
- !%%%-----------------------------------------------------------------------
- !%%% DLAT is now allocatable for use in TPCORE_FVDAS (bdf, bmy, 5/7/03) 
+ 
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Comment out this declaration of DLAT.  DLAT has now been declared
+ !%%% as ALLOCATABLE for use in TPCORE_FVDAS. (bdf, bmy, 5/7/03)
+ !%%%
  !%%%real dlat(jm)      ! delta-latitude in radian
- !%%%-----------------------------------------------------------------------
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
  real dlon
  real pi
  integer i, j
@@ -233,8 +252,13 @@ contains
  allocate ( dtdx5(jm) ) 
  allocate ( dtdy5(jm) ) 
 
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
  !%%% We must allocate DLAT here for PJC pressure fixer (bdf, bmy, 5/7/03)
+ !%%%
  ALLOCATE ( DLAT(JM) )
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
  pi = 4. * atan(1.)
 
@@ -272,7 +296,7 @@ contains
  !! Now use REPEAT cmd (bmy, 4/29/03)
  !PRT_PREFIX write( 6, '(a)' ) REPEAT( '=', 79 )
  PRT_PREFIX write( 6, '(a)' ) 'NASA-GSFC Tracer Transport Module successfully initialized'
- !!PRT_PREFIX write( 6, '(a)' ) REPEAT( '=', 79 )
+ !PRT_PREFIX write( 6, '(a)' ) REPEAT( '=', 79 )
 
  end subroutine init_tpcore
 
@@ -291,16 +315,25 @@ contains
  call ghostfree(ghost2dng)
  call decompfree(decomp2d)
 #endif
- 
- !%%% Prior to 5/9/03 -- Comment this section out
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%% 
+ !%%% Comment out original code below (bdf, bmy, 5/9/03)
+ !%%%
  !%%%deallocate ( cosp ) 
  !%%%deallocate ( cose ) 
  !%%%deallocate (   gw ) 
  !%%%deallocate (  rgw ) 
  !%%%deallocate ( dtdx5 ) 
  !%%%deallocate ( dtdy5 ) 
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
  !%%% Now deallocate arrays only if they have been allocated (bmy, 5/9/03)
+ !%%%
  IF ( ALLOCATED( COSP  ) ) DEALLOCATE( COSP  ) 
  IF ( ALLOCATED( COSE  ) ) DEALLOCATE( COSE  ) 
  IF ( ALLOCATED( GW    ) ) DEALLOCATE( GW    ) 
@@ -308,15 +341,33 @@ contains
  IF ( ALLOCATED( DTDX5 ) ) DEALLOCATE( DTDX5 ) 
  IF ( ALLOCATED( DTDY5 ) ) DEALLOCATE( DTDY5 ) 
  IF ( ALLOCATED( DLAT  ) ) DEALLOCATE( DLAT  )
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
  end subroutine exit_tpcore
 
 
 !----------------------------------------------------------------------------
-!%%% Added XMASS, YMASS arguments for PJC pressure fixer (bdf, bmy, 5/7/03)
  subroutine tpcore_fvdas(dt, ae, im, jm, km, jfirst, jlast, ng, mg, &
                          nq, ak, bk, u, v, ps1, ps2, ps,  q,        &   
-                         iord, jord, kord, n_adj, XMASS, YMASS )
+                         iord, jord, kord, n_adj,                   &
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Added XMASS, YMASS arguments to arg list of TPCORE_FVDAS for PJC/LLNL 
+ !%%% pressure fixer (bdf, bmy, 5/7/03) 
+ !%%%
+                         XMASS,    YMASS,                           &
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group         
+ !%%%
+ !%%% Added MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2, TCVV, ND24, ND25, and 
+ !%%% ND26 to arg list of TPCORE_FVDAS for GEOS-CHEM mass-flux diagnostics 
+ !%%% (bdf, bmy, 9/28/04)
+ !%%%
+                         MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2,     &
+                         TCVV,     ND24,     ND25,     ND26 )
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 !----------------------------------------------------------------------------
 
  implicit none
@@ -413,8 +464,29 @@ contains
  real  fx(im,jfirst:jlast,km)     ! E-W air mass flux
  real  va(im,jfirst:jlast,km)     ! N-S CFL at cell center (scalar points)
 
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
  !%%% Added XMASS, YMASS for the PJC pressure-fixer (bdf, bmy, 5/7/03)
- REAL, INTENT(IN) :: XMASS(IM,JM,KM), YMASS(IM,JM,KM)
+ !%%%
+ REAL,    INTENT(IN)    :: XMASS(IM,JM,KM), YMASS(IM,JM,KM)
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Added MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2, TCVV, ND24, ND25, ND26
+ !%%% for mass-flux diagnostics (bdf, bmy, 9/28/04)
+ !%%%
+ REAL,    INTENT(INOUT) :: MASSFLEW(IM,JM,KM,NQ) ! east/west mass flux
+ REAL,    INTENT(INOUT) :: MASSFLNS(IM,JM,KM,NQ) ! north/south mass flux
+ REAL,    INTENT(INOUT) :: MASSFLUP(IM,JM,KM,NQ) ! up/down vertical mass flux
+ REAL,    INTENT(IN)    :: AREA_M2(JM)           ! box area for mass flux diag
+ REAL,    INTENT(IN)    :: TCVV(NQ)              ! tracer masses for flux diag
+ INTEGER, INTENT(IN)    :: ND24                  ! E/W flux diag switch
+ INTEGER, INTENT(IN)    :: ND25                  ! N/S flux diag switch
+ INTEGER, INTENT(IN)    :: ND26                  ! up/down flux diag switch
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 !-----------------------
 ! Ghosted local arrays:
@@ -436,7 +508,18 @@ contains
  integer jn1gd                      ! Northern latitude border (JM on NP PE)
  integer nx                         ! Internal E-W OpenMP decomposition
  integer iv                         ! Monotonicity constraints for top and bottom
- parameter (nx = 1)                 ! Try 2 or 4 if large number of OMP threads 
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Define DTC, QTEMP, TRACE_DIFF for ND26 diagnostic (bdf, bmy, 9/28/04)
+ !%%%
+ REAL DTC(IM,JM,KM,NQ)              ! up/down flux temp array
+ REAL QTEMP(IM,JM,KM,NQ)            ! up/down flux array
+ REAL TRACE_DIFF                    ! up/down flux variable
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ parameter (nx = 1)                 ! Try 2 or 4 if large number of OMP threads
                                     ! is to be used
 
  js1gd = max(1,  jfirst-ng)         ! NG latitudes on S (starting at 1)
@@ -452,6 +535,7 @@ contains
 
   do j=jfirst,jlast
      do i=1,im
+
         psg(i,j,1) = ps1(i,j)
         psg(i,j,2) = ps2(i,j)
      enddo
@@ -509,13 +593,20 @@ contains
 ! Compute background air mass fluxes
 !----------------------------------------------
 
- !%%% Added XMASS, YMASS for the PJC pressure fixer (bdf, bmy, 5/7/03)
  call air_mass_flux(im, jm, km, jfirst, jlast,      &
                     iord_bg, jord_bg,   ak, bk,     &
-                    psg, ps,  u, v,            &
+                    psg, ps,  u, v,                 &
                     cx, cy, va, fx, fy, ng, mg,     &
                     ffsl, delp1, delp, pe,  dt,     &
-                    ae, n_adj, XMASS, YMASS )
+                    ae, n_adj,                      &
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Added XMASS, YMASS to the arg list of AIR_MASS_FLUX 
+ !%%% for the PJC/LLNL pressure-fixer (bdf, bmy, 5/7/03)
+ !%%%
+                    XMASS, YMASS )
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 !---------------------------------------------------
 ! Do tracer transport
@@ -573,7 +664,17 @@ contains
                im,  jm,  iv,   iord,     jord,              &
                ng,  mg,  fx(1,jfirst,k), fy(1,jfirst,k),    &
                ffsl(jfirst-ng,k),    jfirst,   jlast,       &
-               delp1(1,jfirst-mg,k),    delp(1,jfirst,k) )
+               delp1(1,jfirst-mg,k),    delp(1,jfirst,k),   &
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Now pass MASSFLEW, MASSFLNS, AREA_M2, TCVV, ND24, ND25, DT as 
+ !%%% arguments to routine TP2G for GEOS-CHEM mass flux diagnostics 
+ !%%% (bdf, bmy, 9/28/04)
+ !%%%
+               MASSFLEW(1,1,K,IQ), MASSFLNS(1,1,K,IQ),      &
+               AREA_M2, TCVV(IQ), ND24, ND25, DT )
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     do j=jfirst,jlast
        do i=1,im
@@ -590,17 +691,96 @@ contains
 ! Mass will be conserved if predicted ps2 == psn (data/model)
 !---------------------------------------------------------------
 
-    call qmap(pe, q, im, jm, km, nx, jfirst, jlast, ng, nq,         &
-             ps, ak, bk, kord, iv)
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Save tracer values before vertical transport (bdf, bmy, 9/28/04)
+ !%%%
+ QTEMP = Q
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
- end subroutine tpcore_fvdas
+ call qmap(pe, q, im, jm, km, nx, jfirst, jlast, ng, nq,         &
+           ps, ak, bk, kord, iv)
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%  
+ !%%% Implement ND26 diag: Up/down flux of tracer [kg/s] (bmy, bdf, 9/28/04)
+ !%%%
+ !%%% The vertical transport done in qmap.  We need to find the difference 
+ !%%% in order to to interpret transport.
+ !%%%
+ !%%% Break up diagnostic into up & down fluxes using the surface boundary 
+ !%%% conditions.  Start from top down (really surface up for flipped TPCORE)
+ !%%%
+ IF ( ND26 > 0 ) THEN
+
+    !-----------------
+    ! start with top
+    !-----------------
+    K = 1
+
+!$OMP PARALLEL DO           &
+!$OMP DEFAULT( SHARED )     &
+!$OMP PRIVATE( I, J, IQ )  
+    DO IQ = 1, NQ
+    DO I  = 1, IM
+    DO J  = 1, JM
+       DTC(I,J,K,IQ) = ( Q(I,J,K,IQ)     * DELP1(I,J,K)   -          &
+                         QTEMP(I,J,K,IQ) * DELP(I,J,K)  ) *          &
+                       (100d0) * AREA_M2(J) / ( 9.8d0 * TCVV(IQ) )
+
+       ! top layer should have no residual.  the small residual is from 
+       ! a non-pressure fixed flux diag.  The z direction may be off by 
+       ! a few percent.
+       !MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K,IQ)/dt
+    ENDDO
+    ENDDO
+    ENDDO
+!$OMP END PARALLEL DO
+
+    !----------------------------------------------------
+    ! get the other fluxes using a mass balance equation
+    !----------------------------------------------------
+    DO K  = 2, KM
+!$OMP PARALLEL DO                      &
+!$OMP DEFAULT( SHARED )                &
+!$OMP PRIVATE( I, J, IQ, TRACE_DIFF )
+    DO IQ = 1, NQ
+    DO I  = 1, IM
+    DO J  = 1, JM
+       TRACE_DIFF         = ( Q(I,J,K,IQ)     * DELP1(I,J,K)  -  &
+                              QTEMP(I,J,K,IQ) * DELP(I,J,K) ) *  &
+                            (100D0) * AREA_M2(J) / ( 9.8D0* TCVV(IQ) )
+
+       DTC(I,J,K,IQ)      = DTC(I,J,K-1,IQ) + TRACE_DIFF
+
+       MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K,IQ) / DT
+    ENDDO
+    ENDDO
+    ENDDO
+!$OMP END PARALLEL DO
+    ENDDO
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
+    ENDIF
+
+ END subroutine tpcore_fvdas
 
 
- !%%% Added XMASS, YMASS for PJC pressure fixer (bdf, bmy, 5/7/03)
  subroutine air_mass_flux(im, jm, km, jfirst, jlast, iord, jord,    &
-                          ak, bk, psg, ps, u, v, cx, cy, va,   &
+                          ak, bk, psg, ps, u, v, cx, cy, va,        &
                           fx, fy, ng,  mg,  ffsl, delp1,  delp,     &
-                          pe, dt, ae,  n_adj, XMASS, YMASS )
+                          pe, dt, ae,  n_adj,                       &   
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Added XMASS, YMASS to the arg list of AIR_MASS_FLUX 
+ !%%% for the PJC/LLNL pressure-fixer (bdf, bmy, 5/7/03)
+ !%%%
+                          XMASS, YMASS )
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 !------------------------------------------------------
 ! The hybrid ETA-coordinate:
 ! pressure at layer edges are defined as follows:
@@ -638,8 +818,13 @@ contains
  real, intent(in):: u(im,jfirst:jlast,km)
  real, intent(in):: v(im,jfirst-mg:jlast+mg,km)
 
- !%%% Added XMASS, YMASS for PJC pressure fixer (bdf, bmy, 5/7/03)
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Added XMASS, YMASS for PJC/LLNL pressure fixer (bdf, bmy, 5/7/03) 
+ !%%%
  REAL, INTENT(IN) :: XMASS(IM,JM,KM), YMASS(IM,JM,KM)
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 ! Output:
  logical,intent(out):: ffsl(jfirst-ng:jlast+ng,km)
@@ -670,8 +855,13 @@ contains
  integer jn1g1
  integer js2gd, jn2gd
 
- !%%% Extra variable declarations for PJC pressure fixer (bdf, bmy, 5/7/03)
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Declare extra variables PJC/LLNL pressure fixer (bdf, bmy, 5/7/03)
+ !%%%
  REAL :: DELPM(IM,JM,KM), FACTY, UT
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
  js2g0  = max(2,jfirst)        ! No ghosting
  jn2g0  = min(jm-1,jlast)      ! No ghosting
@@ -681,7 +871,11 @@ contains
 
  dtoa = .5*dt/ae 
 
- !%%% Added for PJC pressure fixer (bdf, bmy, 5/7/03)
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Define DELPM for PJC pressure fixer (bdf, bmy, 5/7/03)
+ !%%%
  DO K = 1, KM
  DO J = 1, JM
  DO I = 1, IM
@@ -691,11 +885,17 @@ contains
  ENDDO
  ENDDO
  ENDDO
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
- !%%% Added for PJC pressure-fixer (bdf, bmy, 5/7/03)
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Added for PJC/LLNL pressure-fixer (bdf, bmy, 5/7/03)
  !%%% Note that DTDY5 is the same everywhere except at the poles, so
  !%%% we can just pick a value roughly close to the equator
+ !%%%
  FACTY = DTDY5(JM/2)
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 !$omp parallel do private(i, j, k, vt, UT )
 
@@ -703,10 +903,15 @@ contains
 
      do j=js2g0, jn1g1
          do i=1,im
-            
-            !%%% Change calc of VT for PJC pressure fixer (bdf, bmy, 5/7/03)
+       
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%  
+ !%%% Change calculation of VT for PJC pressure fixer (bdf, bmy, 5/7/03)
+ !%%%
             VT = YMASS(I,J,K) / FACTY / COSE(J) / DELPM(I,J,K) +  &
                  V(I,J-1,K) * ( 1d0 - DELPM(I,J-1,K) / DELPM(I,J,K) )
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             if ( vt > 0. ) then
                cy(i,j,k) = dtdy5(j-1)*vt
@@ -731,15 +936,23 @@ contains
         enddo
      enddo
 
-     !%%% Removed this section for PJC pressure fixer (bdf, bmy, 5/7/03)
-     !%%%do j=js2g0,jn2g0
-     !%%%      cx(1,j,k) = dtdx5(j)*(u(1,j,k)+u(im,j,k))
-     !%%%   do i=2,im
-     !%%%      cx(i,j,k) = dtdx5(j)*(u(i,j,k)+u(i-1,j,k))
-     !%%%   enddo
-     !%%%enddo
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%  
+ !%%% Removed this section for PJC pressure fixer (bdf, bmy, 5/7/03)
+ !%%%    do j=js2g0,jn2g0
+ !%%%          cx(1,j,k) = dtdx5(j)*(u(1,j,k)+u(im,j,k))
+ !%%%       do i=2,im
+ !%%%          cx(i,j,k) = dtdx5(j)*(u(i,j,k)+u(i-1,j,k))
+ !%%%       enddo
+ !%%%    enddo
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-     !%%% Added this section for PJC pressure fixer (bdf, bmy, 5/7/03)
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Added this section for PJC pressure fixer (bdf, bmy, 5/7/03)
+ !%%%
      DO J = JS2G0, JN2G0
         UT        = XMASS(1,J,K) / DTDX5(J) / DELPM(1,J,K) + &
                     U(IM,J,K) * ( 1d0 - DELPM(IM,J,K) / DELPM(1,J,K) )
@@ -751,6 +964,7 @@ contains
            CX(I,J,K) = DTDX5(J) * UT
         ENDDO
      ENDDO
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
   enddo
 
@@ -802,12 +1016,16 @@ contains
                fx(1,jfirst,k), fy(1,jfirst,k),  ffsl(jfirst-mg,k),      &
                cx(1,jfirst,k), yms(1,jfirst,k), 0, jfirst, jlast)
 
-     !%%% Fix mass fluxes in regions not over the courant limit
-     !%%% (bdf, bmy, 5/7/03)
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Fix mass fluxes in regions not over the courant limit (bdf, bmy, 5/7/03)
+ !%%%
      DO J = 4, JM-4
         FX(:,J,K) = XMASS(:,J,K)
         FY(:,J,K) = YMASS(:,J,K) * DLAT(J)
      ENDDO
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       do j=js2g0,jn2g0
       do i=1,im-1
@@ -880,7 +1098,16 @@ contains
 
  subroutine tp2g(h,  va, crx, cry, im, jm, iv,         &
                 iord, jord, ng, mg, xfx, yfx, ffsl,    &
-                jfirst, jlast, dp, dpp)
+                jfirst, jlast, dp, dpp,                & 
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%% 
+ !%%% Add MFLEW, MFLNS, AREA_M2, TCV, ND24, ND25, DT as arguments
+ !%%% to subroutine TP2G for mass-flux diagnostics (bmy, 9/28/04)
+ !%%%
+                MFLEW, MFLNS, AREA_M2,                 & 
+                TCV,   ND24,  ND25,   DT )
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  implicit none
 
 ! !INPUT PARAMETERS:
@@ -901,14 +1128,29 @@ contains
    real, intent(in):: xfx(im,jfirst:jlast)       ! x-mass flux
    real, intent(in):: yfx(im,jfirst:jlast+mg)     ! y-mass flux
 
-   real, intent(inout):: h(im,jfirst-ng:jlast+ng)
+   real, intent(inout) :: h(im,jfirst-ng:jlast+ng)
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%  
+ !%%% Declare MFLEW, MFLNS, AREA_M2, TCV, ND24, ND25, DT for the
+ !%%% GEOS-CHEM mass-flux diagnostics (bdf, bmy, 9/28/04)
+ !%%% 
+   REAL,    INTENT(INOUT) :: MFLEW(IM,JM)  ! E/W mass flux array
+   REAL,    INTENT(INOUT) :: MFLNS(IM,JM)  ! N/S mass flux array
+   REAL,    INTENT(IN)    :: AREA_M2(JM)   ! Grid bos surface area [m2]
+   REAL,    INTENT(IN)    :: TCV           ! Mass ratio
+   INTEGER, INTENT(IN)    :: ND24          ! flux diag
+   INTEGER, INTENT(IN)    :: ND25          ! flux diag
+   REAL,    INTENT(IN)    :: DT            ! time step for flux diagnostic
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 ! Local
    real fx(im,jfirst:jlast)        ! tracer flux in x ( unghosted )
    real fy(im,jfirst:jlast+mg)     ! tracer flux in y ( N, see tp2c )
 
    integer i, j, js2g0, jn2g0
-   real sum1
+   real sum1, DTC
 
    js2g0  = max(2,jfirst)          !  No ghosting
    jn2g0  = min(jm-1,jlast)        !  No ghosting
@@ -941,6 +1183,61 @@ contains
         enddo
         call xpavg(h(1,jm), im)
    endif
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%  
+ !%%% Implement ND24 diag: E/W flux of tracer [kg/s] (bmy, bdf, 9/28/04)
+ !%%%
+ !%%% (1) H is in units of mixing ratio (input as Q)
+ !%%% (2) Unit conversion needs multiply from mixing 
+ !%%%      (airmass/tracer mass)/timestep to get into kg/s
+ !%%% (3) DP is current pressure thickness
+ !%%%
+   IF ( ND24 > 0 ) THEN
+      DO J = JS2G0, JN2G0
+
+         DO I = 1, IM-1
+            DTC        = FX(I,J)*AREA_M2(J)*100.d0 / (TCV*DT*9.8d0)
+            MFLEW(I,J) = MFLEW(I,J) + DTC
+         ENDDO
+
+         DTC         = FX(IM,J)*AREA_M2(J)*100.d0 / (TCV*DT*9.8d0)
+         MFLEW(IM,J) = MFLEW(I,J) + DTC
+      ENDDO
+   ENDIF
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%  
+ !%%% Implement ND25 diag: N/S flux of tracer [kg/s] (bmy, bdf, 9/28/04)
+ !%%%
+   IF ( ND25 > 0 ) THEN
+      DO J = JS2G0, JN2G0
+      DO I = 1,     IM
+         DTC        = FY(I,J)*AREA_M2(J)*100.d0 / (TCV*DT*9.8d0)
+         MFLNS(I,J) = MFLNS(I,J) + DTC
+      ENDDO
+      ENDDO
+
+      ! South Pole
+      IF ( JFIRST == 1 ) THEN
+         DO I = 1, IM
+            DTC        = -FY(I,2)*AREA_M2(1)*100.d0 / (TCV*DT*9.8d0)
+            MFLNS(I,1) = MFLNS(I,1) + DTC
+         ENDDO
+      ENDIF
+
+      ! North Pole
+      IF ( JLAST == JM ) THEN
+         DO I = 1, IM
+            DTC         = FY(I,JM)*AREA_M2(JM)*100.d0 / (TCV*DT*9.8d0)
+            MFLNS(I,JM) = MFLNS(I,JM) + DTC
+         ENDDO
+      ENDIF
+   ENDIF
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 !-------------------------------------------------------------------
 ! Apply a simple nearest neighbor flux correction to reduce negatives
@@ -1862,6 +2159,7 @@ contains
 ! Local arrays:
   real pe2(im,km+1)
 
+  real temp
   integer i, j, k, iq
   integer ixj, jp, it, i1, i2
   integer kord
@@ -1896,12 +2194,12 @@ contains
         pe2(i,km+1) = ps(i,j)
      enddo
 
+     temp = sum(q)
      do iq=1,nq
         call map1_ppm ( km,   pe(1,1,j),   q(1,jfirst-ng,1,iq),   &
                         km,   pe2,         q(1,jfirst-ng,1,iq),   &
                         im, i1, i2,  j, jfirst, jlast, ng, iv, kord)
      enddo
-
 2000  continue
 
  end subroutine qmap
@@ -1943,6 +2241,7 @@ contains
  integer i, k, l, ll, k0
  real  pl, pr, qsum, delp, esl
  real       r3, r23
+ real temp
  parameter (r3 = 1./3., r23 = 2./3.)
 
       do k=1,km
@@ -1952,9 +2251,11 @@ contains
          enddo
       enddo
 
+      temp = sum(q4)
 ! Compute vertical subgrid distribution
       call ppm2m( q4, dp1, km, i1, i2, iv, kord )
 
+      temp = sum(q2)
 ! Mapping
       do 1000 i=i1,i2
          k0 = 1

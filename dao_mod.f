@@ -1,10 +1,10 @@
-! $Id: dao_mod.f,v 1.8 2004/09/21 18:04:10 bmy Exp $
+! $Id: dao_mod.f,v 1.9 2004/10/15 20:16:40 bmy Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
 !  Module DAO_MOD contains both arrays that hold DAO met fields, as well as
 !  subroutines that compute, interpolate, or otherwise process DAO met field 
-!  data. (bmy, 6/27/00, 4/13/04)
+!  data. (bmy, 6/27/00, 9/28/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -150,6 +150,7 @@
 !        GEOS-4/fvDAS. (bmy, 6/25/03)
 !  (18) Added CLDFRC, RADSWG, RADLWG, SNOW arrays (bmy, 12/9/03)
 !  (19) Added routine COPY_I6_FIELDS w/ parallel DO-loops (bmy, 4/13/04)
+!  (20) Now also allocate AVGW for offline aerosol simulation (bmy, 9/28/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1353,6 +1354,7 @@
 !  (11) Now reference inquiry functions from "tracer_mod.f".  Now reference
 !        LWETD, LDRYD, LCHEM from "logical_mod.f".  Now allocate RH regardless
 !        of simulation. (bmy, 7/20/04)
+!  (12) Now also allocate AVGW for offline aerosol simulations (bmy, 9/27/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1361,12 +1363,7 @@
       USE TRACER_MOD,  ONLY : ITS_AN_AEROSOL_SIM, ITS_A_COPARAM_SIM,
      &                        ITS_A_FULLCHEM_SIM, ITS_A_HCN_SIM
 
-#     include "CMN_SIZE"   ! IIPAR, JJPAR, LLPAR
-!-------------------------------------------------------
-! Prior to 7/19/04:
-!#     include "CMN"        ! NSRCX
-!#     include "CMN_SETUP"  ! LWETD, LDRYD
-!-------------------------------------------------------
+#     include "CMN_SIZE"    ! Size parameters 
 
       ! Local variables
       INTEGER :: AS
@@ -1405,14 +1402,9 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD' )
       ALBD = 0d0
 
-      ! AVGW is only used for NOx-Ox-HC, HCN, or CO-OH chem
-      !--------------------------------------------------------
-      ! Prior to 7/19/04:
-      !IF ( NSRCX == 3 .or. NSRCX == 4 .or. NSRCX == 5 ) THEN
-      !--------------------------------------------------------
-      IF ( ITS_A_FULLCHEM_SIM() .or.
-     &     ITS_A_HCN_SIM()      .or.
-     &     ITS_A_COPARAM_SIM() ) THEN 
+      ! AVGW is only used for NOx-Ox-HC, aerosol, HCN, or CO-OH sims
+      IF ( ITS_A_FULLCHEM_SIM() .or. ITS_AN_AEROSOL_SIM() .or.
+     &     ITS_A_HCN_SIM()      .or. ITS_A_COPARAM_SIM() ) THEN 
          ALLOCATE( AVGW( IIPAR, JJPAR, LLPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AVGW' )
          AVGW = 0d0
@@ -1561,18 +1553,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC2' )
       PSC2 = 0d0
 
-      !------------------------------------------------------------------
-      ! Prior to 7/20/04:
-      ! Now allocate RH regardless of simulation for timeseries
-      !! Only allocate RH for coupled sulfate-aerosol or 
-      !! standalone sulfate chemistry (bmy, 9/23/02)
-      ! Prior to 7/19/04:
-      !IF ( LCHEM .and. ( NSRCX == 3 .or. NSRCX == 10 )  ) THEN 
-      !   ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
-      !   RH = 0d0
-      !ENDIF
-      !------------------------------------------------------------------
       ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
       RH = 0d0
@@ -1626,10 +1606,6 @@
       SUNCOS = 0d0
 
       ! Only allocate SUNCOSB for a full-chemistry run (bdf, bmy, 4/1/03)
-      !------------------------------------------------
-      ! Prior to 7/19/04:
-      !IF ( LCHEM .and. NSRCX == 3 ) THEN
-      !------------------------------------------------
       IF ( LCHEM .and. ITS_A_FULLCHEM_SIM() ) THEN
          ALLOCATE( SUNCOSB( MAXIJ ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUNCOSB' )

@@ -1,9 +1,9 @@
-! $Id: ndxx_setup.f,v 1.12 2004/09/21 18:04:16 bmy Exp $
+! $Id: ndxx_setup.f,v 1.13 2004/10/15 20:16:42 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
 !  NDXX_SETUP dynamically allocates memory for certain diagnostic arrays that 
-!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 7/20/04)
+!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 9/28/04)
 !
 !  This allows us to reduce the amount of memory that needs to be declared 
 !  globally.  We only allocate memory for arrays if the corresponding 
@@ -103,6 +103,7 @@
 !  (48) Now references "tracer_mod.f" and "logical_mod.f" instead of "CMN"
 !        and "CMN_SETUP".  Now references INIT_DIAG_OH from "diag_oh_mod.f"
 !        Adjust TRCOFFSET for various aerosol simulations. (bmy, 7/20/04)
+!  (49) Make sure ND21 only goes from 1-LLTROP (bmy, 9/28/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -121,15 +122,7 @@
       IMPLICIT NONE
 
 #     include "CMN_SIZE"   ! Size parameters
-!---------------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"        ! NSRCX
-!---------------------------------------------------------------
 #     include "CMN_DIAG"   ! Diagnostic switches & arrays
-!--------------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN_SETUP"  ! LSPLIT
-!--------------------------------------------------------------
 
       ! Local variables
       INTEGER :: NMAX, AS
@@ -384,17 +377,9 @@
       !       --> uses CONVFLUP array (allocatable)
       !=================================================================
       IF ( ND14 > 0 ) THEN
-         !--------------------------------------
-         ! Prior to 7/20/04:
-         !LD14 = MIN( ND14,      LCONVM )
-         !--------------------------------------
          LD14 = MIN( ND14,      LLCONVM )
          NMAX = MIN( N_TRACERS, NNPAR   )
 
-         !-------------------------------------------------------------
-         ! Prior to 7/20/04:
-         !ALLOCATE( CONVFLUP( IIPAR, JJPAR, LCONVM, NMAX ), STAT=AS )
-         !-------------------------------------------------------------
          ALLOCATE( CONVFLUP( IIPAR, JJPAR, LLCONVM, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CONVFLUP' )
       ENDIF
@@ -474,12 +459,6 @@
       !=================================================================
       IF ( ND20 > 0 ) THEN 
          IF ( ND65 == 0 ) ND65 = LLTROP
-
-         !----------------------------------------------------------------
-         ! Prior to 7/20/04:
-         !ALLOCATE( PL24H( IIPAR, JJPAR, LLTROP, 2 ), STAT=AS )
-         !IF ( AS /= 0 ) CALL ALLOC_ERR( 'PL24H' )
-         !----------------------------------------------------------------
       ENDIF
 
       !=================================================================
@@ -487,7 +466,11 @@
       !       --> uses AD21 array (allocatable) 
       !=================================================================
       IF ( ND21 > 0 ) THEN
-         LD21 = MIN( ND21, LLPAR )
+         !-----------------------------
+         ! Prior to 9/28/04:
+         !LD21 = MIN( ND21, LLPAR )
+         !-----------------------------
+         LD21 = MIN( ND21, LLTROP )
 
          ALLOCATE( AD21( IIPAR, JJPAR, LD21, PD21 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD21' )
@@ -519,39 +502,6 @@
          ALLOCATE( CTJV( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTJV' )         
       ENDIF
-
-      !-----------------------------------------------------------------------
-      ! Prior to 7/20/04:
-      !!=================================================================
-      !! ND23: Lifetime of methyl chloroform (CH3CCl3) in years
-      !!       --> uses DIAGCHLORO array (allocatable) 
-      !!=================================================================
-      !IF ( ND23 > 0 ) THEN
-      !
-      !   IF ( ITS_A_FULLCHEM_SIM() ) THEN
-      !
-      !      ! Full chemistry -- dimension using LLTROP 
-      !      ALLOCATE( DIAGCHLORO( IIPAR, JJPAR, LLTROP, 3 ),STAT=AS )
-      !      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DIAGCHLORO' )
-      !
-      !   ELSE IF ( ITS_A_COPARAM_SIM() .or. ITS_A_CH4_SIM() ) THEN
-      !
-      !      ! CO-OH or CH4 -- dimension using LLPAR
-      !      ALLOCATE( DIAGCHLORO( IIPAR, JJPAR, LLPAR, 3 ), STAT=AS )
-      !      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DIAGCHLORO' )
-      !
-      !   ELSE
-      !
-      !      ! Otherwise, turn off ND23 so that we don't 
-      !      ! attempt to use an unallocated DIAGCHLORO Array
-      !      WRITE( 6, '(a)' ) 'NDXX_SETUP: Setting ND23 = 0!'
-      !      WRITE( 6, '(a)' ) 'This simulation doesn''t use ND23!'
-      !      ND23 = 0
-      !
-      !   ENDIF
-      !
-      !ENDIF 
-      !-----------------------------------------------------------------------
 
       !=================================================================
       ! ND27: Flux of Ox across the annual mean tropopause [kg/s]
