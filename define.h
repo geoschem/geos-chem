@@ -1,4 +1,4 @@
-! $Id: define.h,v 1.5 2003/11/06 21:09:10 bmy Exp $
+! $Id: define.h,v 1.4 2003/11/06 21:07:18 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
@@ -100,12 +100,12 @@
 #define LFASTJ      'LFASTJ'
 !#define LSLOWJ      'LSLOWJ'
 
-#define SGI         'SGI'
+!#define SGI         'SGI'
 !#define COMPAQ      'COMPAQ'
 !#define LINUX       'LINUX'
 !#define SPARC       'SPARC'
 !#define IBM_AIX     'IBM_AIX'
-!#define INTEL_FC    'INTEL_FC'
+#define INTEL_FC    'INTEL_FC'
 
 !==============================================================================
 ! Force a compile-time error if switches GEOS_1, GEOS_STRAT, 
