@@ -1,6 +1,6 @@
-# $Id: Makefile.linux,v 1.6 2003/10/10 18:49:43 bmy Exp $
+# $Id: Makefile.linux,v 1.7 2003/10/21 16:05:26 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for LINUX/PGI (bmy, Fri Oct 10 14:45:00 2003)
+# GEOS-CHEM Makefile for LINUX/PGI (bmy, Tue Oct 14 15:38:48 2003)
 #
 # NOTE: If you want to run the 2 x 2.5 GEOS-CHEM model, then try adding
 #       -Bstatic to the F90 compilation line.  It appears that setting 
@@ -36,8 +36,6 @@ calcrate.o                \
 chem.o                    \
 chemdr.o                  \
 chemhcn.o                 \
-chemo3.o                  \
-chemo3_split.o            \
 cleanup.o                 \
 correctOH.o               \
 decomp.o                  \
@@ -231,6 +229,7 @@ global_nox_mod.o          \
 global_oh_mod.o           \
 uvalbedo_mod.o            \
 RnPbBe_mod.o              \
+Kr85_mod.o                \
 acetone_mod.o             \
 aircraft_nox_mod.o        \
 biofuel_mod.o             \
@@ -249,6 +248,7 @@ rpmares_mod.o             \
 wetscav_mod.o             \
 sulfate_mod.o             \
 tagged_co_mod.o           \
+tagged_ox_mod.o           \
 fvdas_convect_mod.o       \
 convection_mod.o          \
 pjc_pfix_mod.o            \
@@ -281,20 +281,20 @@ sol.o
 #=============================================================================
 #  Executable with FAST-J (default)
 #=============================================================================
-geos 	      : $(MODS) $(OBJS) $(OBJSc) $(FJ) Makefile.linux
-		$(F90)  $(MODS) $(OBJS)  $(OBJSc) $(FJ) -o geos
+geos          : $(MODS) $(OBJS) $(OBJSc) $(FJ) Makefile.linux
+                $(F90)  $(MODS) $(OBJS)  $(OBJSc) $(FJ) -o geos
 
 #=============================================================================
 #  Executable with SLOW-J 
 #=============================================================================
-geos_sj	      : $(MODS) $(OBJS) $(OBJSc) $(SJ) Makefile.linux
-		$(F90)  $(MODS) $(OBJS)  $(OBJSc) $(SJ) -o geos_sj
+geos_sj       : $(MODS) $(OBJS) $(OBJSc) $(SJ) Makefile.linux
+                $(F90)  $(MODS) $(OBJS)  $(OBJSc) $(SJ) -o geos_sj
 
 #==============================================================================
 #  Executable for CO-OH simulation with SLOW-J
 #==============================================================================
 geosco        : $(MODS) $(OBJS) $(OBJSc) $(CO_OH) $(SJ) Makefile.linux
-		$(F90)  $(MODS) $(OBJS)  $(OBJSc) $(CO_OH) $(SJ) -o geosco
+                $(F90)  $(MODS) $(OBJS)  $(OBJSc) $(CO_OH) $(SJ) -o geosco
 
 #==============================================================================
 #  Dependencies Listing
@@ -319,6 +319,7 @@ GAUSSP.o                   : GAUSSP.f
 GEN.o                      : GEN.f                      jv_mie.h 
 JRATET.o                   : JRATET.f                   cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 JVALUE.o                   : JVALUE.f                   cmn_fj.h CMN_SIZE define.h jv_cmn.h 
+Kr85_mod.o                 : Kr85_mod.f                 CMN CMN_DIAG CMN_O3 CMN_SIZE define.h define.h 
 LEGND0.o                   : LEGND0.f                   
 MATIN4.o                   : MATIN4.f                   
 MIESCT.o                   : MIESCT.f                   jv_mie.h 
@@ -359,8 +360,6 @@ chemco.o                   : chemco.f                   CMN CMN_CO CMN_DIAG CMN_
 chemdr.o                   : chemdr.f                   CMN CMN_DEP CMN_DIAG CMN_NOX CMN_O3 CMN_SETUP CMN_SIZE define.h comode.h 
 chemhcn.o                  : chemhcn.f                  CMN CMN_DEP CMN_DIAG CMN_HCN CMN_SIZE define.h comode.h comsol.h hcn.h 
 chemistry_mod.o            : chemistry_mod.f            CMN CMN_DIAG CMN_SETUP CMN_SIZE define.h 
-chemo3.o                   : chemo3.f                   CMN CMN_DIAG CMN_O3 CMN_SETUP CMN_SIZE define.h CMN_TIMES 
-chemo3_split.o             : chemo3_split.f             CMN CMN_DIAG CMN_O3 CMN_SETUP CMN_SIZE define.h CMN_TIMES 
 clean.o                    : clean.f                    CMN_OH 
 cleanisop.o                : cleanisop.f                CMN_OH 
 cleanup.o                  : cleanup.f                  
@@ -528,16 +527,17 @@ sulfate_mod.o              : sulfate_mod.f              CMN CMN_DIAG CMN_GCTM CM
 sumup.o                    : sumup.f                    CMN CMN_CO_BUDGET CMN_SIZE define.h 
 sunparam.o                 : sunparam.f                 
 tagged_co_mod.o            : tagged_co_mod.f            CMN CMN_DIAG CMN_O3 CMN_SETUP CMN_SIZE define.h 
+tagged_ox_mod.o            : tagged_ox_mod.f            CMN CMN_DIAG CMN_O3 CMN_SETUP CMN_SIZE define.h 
 tcorr.o                    : tcorr.f                    
 time_mod.o                 : time_mod.f                 define.h 
 toms_mod.o                 : toms_mod.f                 CMN_SETUP CMN_SIZE define.h 
 tpcore_bc_mod.o            : tpcore_bc_mod.f            CMN CMN_SIZE define.h 
 tpcore_fvdas_mod.o         : tpcore_fvdas_mod.f90         
-	$(F90) -c -Mextend -r8 $*.f90
+	$(FF) -c -Mextend -r8 $(Fopt) $*.f90
 tpcore_mod.o               : tpcore_mod.f               CMN CMN_CO CMN_CO_BUDGET CMN_DIAG CMN_GCTM CMN_SIZE define.h define.h 
-	$(F90) -c -Mextend -r8 $*.f
+	$(FF) -c -Mextend -r8 $(Fopt) $*.f
 tpcore_window_mod.o        : tpcore_window_mod.f        CMN CMN_CO CMN_CO_BUDGET CMN_DIAG CMN_GCTM CMN_SIZE define.h define.h 
-	$(F90) -c -Mextend -r8 $*.f
+	$(FF) -c -Mextend -r8 $(Fopt) $*.f
 tracerid_mod.o             : tracerid_mod.f             CMN CMN_SIZE define.h comode.h 
 transfer_mod.o             : transfer_mod.f             CMN_SIZE define.h 
 transport_mod.o            : transport_mod.f            CMN CMN_GCTM CMN_SETUP CMN_SIZE define.h 
@@ -555,16 +555,16 @@ xltmmp.o                   : xltmmp.f                   CMN_SIZE define.h
 #  C-language routines
 #==============================================================================
 linux_err.o                : linux_err.c     
-	$(CC) -c linux_err.c
+        $(CC) -c linux_err.c
 
 #=============================================================================
 #  Other Makefile Commands
 #=============================================================================
 clean:
-	rm -f *.o *.mod geos geos_sj geosco
+        rm -f *.o *.mod geos geos_sj geosco
 
 .SUFFIXES: .f .F .f90 .F90
-.f.o:			; $(F90) -c $*.f
-.F.o:			; $(F90) -c $*.F
+.f.o:                   ; $(F90) -c $*.f
+.F.o:                   ; $(F90) -c $*.F
 .f90.o:                 ; $(F90) -c -Mfree $*.f90 
 .F90.o:                 ; $(F90) -c -Mfree $*.F90 

@@ -1,4 +1,4 @@
-! $Id: define.h,v 1.1 2003/06/30 20:26:06 bmy Exp $
+! $Id: define.h,v 1.2 2003/10/21 16:05:27 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
@@ -80,8 +80,8 @@
 !==============================================================================
 !#define GEOS_1      'GEOS_1'       
 !#define GEOS_STRAT  'GEOS_STRAT'
-#define GEOS_3      'GEOS_3'
-!#define GEOS_4      'GEOS_4'
+!#define GEOS_3      'GEOS_3'
+#define GEOS_4      'GEOS_4'
 
 !#define GRID1x1     'GRID1x1'
 !#define GRID2x25    'GRID2x25'

@@ -1,9 +1,9 @@
-! $Id: ndxx_setup.f,v 1.1 2003/06/30 20:26:02 bmy Exp $
+! $Id: ndxx_setup.f,v 1.2 2003/10/21 16:05:28 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
 !  NDXX_SETUP dynamically allocates memory for certain diagnostic arrays that 
-!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 3/23/03)
+!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 8/20/03)
 !
 !  This allows us to reduce the amount of memory that needs to be declared 
 !  globally.  We only allocate memory for arrays if the corresponding 
@@ -89,6 +89,8 @@
 !        module "tracerid_mod.f" instead of "comtrid.h".  Also added array
 !        AD13_SO2_bf for biofuel SO2. (bmy, 1/16/03)
 !  (41) Now also allocate AD13_NH3_na array for ND13 (rjp, bmy, 3/23/03)
+!  (42) Added ND03 diagnostic for Kr85 prod/loss.  Also removed special case
+!        TRCOFFSET for single-tracer Ox. (jsw, bmy, 8/20/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -118,6 +120,7 @@
       !=================================================================
       LD01 = 1
       LD02 = 1
+      LD03 = 1
       LD05 = 1
       LD12 = 1
       LD13 = 1
@@ -160,11 +163,7 @@
             TRCOFFSET = 3       ! CO w/ parameterized OH
 
          CASE ( 6 )
-            IF ( LSPLIT ) THEN
-               TRCOFFSET = 40   ! Multi-tracer Ox
-            ELSE
-               TRCOFFSET = 1    ! Single tracer Ox
-            ENDIF
+            TRCOFFSET = 40      ! Tagged Ox
 
          CASE ( 7 )
             TRCOFFSET = 84      ! 5-tracer  or 10-tracer Tagged CO
@@ -178,6 +177,9 @@
          CASE ( 10 )
             TRCOFFSET = 50      ! DMS/SO2/SO4/MSA 
 
+         CASE ( 12 ) 
+            TRCOFFSET = 75      ! Kr85
+             
          CASE DEFAULT
             TRCOFFSET = 0
 
@@ -204,7 +206,20 @@
       ENDIF
 
       !=================================================================
-      ! ND03 - ND04: Free diagnostics
+      ! ND03: Kr85 prod/loss
+      !=================================================================
+      IF ( ND03 > 0 ) THEN 
+         LD03 = MIN( ND03, LLPAR )
+
+         ALLOCATE( AD03( IIPAR, JJPAR, LD03, PD03 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03' )
+
+         ! Also need to turn on ND25 N/S flux diagnostic
+         ND25 = LLPAR
+      ENDIF
+
+      !=================================================================
+      ! ND04: Free diagnostic
       ! 
       ! ND05: Sulfate Prod/loss
       !=================================================================

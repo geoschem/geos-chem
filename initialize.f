@@ -1,8 +1,8 @@
-! $Id: initialize.f,v 1.1 2003/06/30 20:26:04 bmy Exp $
+! $Id: initialize.f,v 1.2 2003/10/21 16:05:28 bmy Exp $
       SUBROUTINE INITIALIZE( IFLAG )
 !
 !******************************************************************************
-!  Subroutine INITIALIZE (bmy, 6/15/98, 3/27/03) does the following:
+!  Subroutine INITIALIZE (bmy, 6/15/98, 8/20/03) does the following:
 !     (1) Zeroes globally defined GEOS-CHEM variables.
 !     (2) Zeroes accumulating diagnostic arrays.
 !     (3) Resets certain year/month/day and counter variables used 
@@ -139,6 +139,7 @@
 !        AD13_NH3_bf. (bmy, 12/13/02)
 !  (21) Now also zero AD13_NH3_na array for ND13 (rjp, bmy, 3/23/03)
 !  (22) Now references "time_mod.f" (bmy, 3/27/03)
+!  (23) Now zeroes AD03 array for Kr85 prod/loss diag. (jsw, bmy, 8/20/03)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -186,6 +187,7 @@
          ! respective diagnostics are turned on (bmy, 2/17/00)
          IF ( ND01 > 0 ) AD01     = 0e0
          IF ( ND02 > 0 ) AD02     = 0e0
+         IF ( ND03 > 0 ) AD03     = 0e0
          IF ( ND05 > 0 ) AD05     = 0e0
          IF ( ND11 > 0 ) AD11     = 0e0
          IF ( ND12 > 0 ) AD12     = 0e0

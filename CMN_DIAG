@@ -1,4 +1,4 @@
-! $Id: CMN_DIAG,v 1.1 2003/06/30 20:26:09 bmy Exp $
+! $Id: CMN_DIAG,v 1.2 2003/10/21 16:05:25 bmy Exp $
 ! 
 ! NOTES:
 ! (1 ) Changed RCS ID tag comment character from "C" to "!" to allow freeform
@@ -10,6 +10,7 @@
 !        KDADYN, KDACONV, KDASRCE, KDACHEM, KDA3FLDS, KDA6FLDS, KDI6FLDS, 
 !        KDKZZFLDS (bmy, 2/11/03)
 ! (4 ) Fix for LINUX - remove & from column 73 (bmy, 6/27/03)
+! (5 ) Added LD03 for Kr85 Prod/loss diagnostic (bmy, 8/20/03)
 !----------------------------------------------------------------------------
 ! Parameters for the diagnostic arrays (for ease of use)
 !
@@ -27,9 +28,10 @@
       ! Changed PD43 to 5  
       ! Changed PD67 to 22 (bmy, 6/23/03)
       ! Changed PD66 to 5  (bmy, 6/23/03)
+      ! Changed PD03 to 5  (bmy, 8/20/03)
       INTEGER, PARAMETER :: PD01=3            
       INTEGER, PARAMETER :: PD02=3           
-      INTEGER, PARAMETER :: PD03=0 
+      INTEGER, PARAMETER :: PD03=2
       INTEGER, PARAMETER :: PD04=0
       INTEGER, PARAMETER :: PD05=10         
       INTEGER, PARAMETER :: PD06=0 
@@ -117,12 +119,12 @@
       INTEGER                                                           
      &   LD12, LD13, LD14, LD15, LD16, LD17, LD18, LD21, LD22, LD24,    
      &   LD25, LD26, LD37, LD38, LD39, LD43, LD45, LD47, LD64, LD65,    
-     &   LD66, LD68, LD01, LD02, LD05
+     &   LD66, LD68, LD01, LD02, LD05, LD03
 
       COMMON /CDIAG1/                                                   
      &   LD12, LD13, LD14, LD15, LD16, LD17, LD18, LD21, LD22, LD24,    
      &   LD25, LD26, LD37, LD38, LD39, LD43, LD45, LD47, LD64, LD65,    
-     &   LD66, LD68, LD01, LD02, LD05
+     &   LD66, LD68, LD01, LD02, LD05, LD03
 !----------------------------------------------------------------------------
 ! NDxx diagnostic flags
       INTEGER                                                           

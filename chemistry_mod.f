@@ -1,9 +1,9 @@
-! $Id: chemistry_mod.f,v 1.4 2003/08/12 17:08:11 bmy Exp $
+! $Id: chemistry_mod.f,v 1.5 2003/10/21 16:05:27 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
 !  Module CHEMISTRY_MOD is used to call the proper chemistry subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 8/7/03)
+!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 8/20/03)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -15,12 +15,16 @@
 !  (2 ) ch3i_mod.f         : Module containing routines for CH3I chemistry
 !  (3 ) error_mod.f        : Module containing NaN and error checks
 !  (4 ) global_ch4_mod.f   : Module containing routines for CH4 chemistry
-!  (5 ) RnPbBe_mod.f       : Module containing routines for Rn-Pb-Be chemistry
-!  (6 ) tagged_co_mod.f    : Module containing routines for Tagged CO chemistry
+!  (5 ) Kr85_mod.f         : Module containing routines for Kr85 chemistry
+!  (6 ) RnPbBe_mod.f       : Module containing routines for Rn-Pb-Be chemistry
+!  (7 ) tagged_co_mod.f    : Module containing routines for Tagged CO chemistry
+!  (8 ) tagged_ox_mod.f    : Module containing routines for Tagged Ox chemistry
 !
 !  NOTES:
 !  (1 ) Bug fix in DO_CHEMISTRY (bnd, bmy, 4/14/03)
-!  (2 ) Now references DEBUG_MSG from "error_mod.f"
+!  (2 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
+!  (3 ) Now references "tagged_ox_mod.f"(bmy, 8/18/03)
+!  (4 ) Now references "Kr85_mod.f" (jsw, bmy, 8/20/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -37,12 +41,15 @@
 !******************************************************************************
 !  Subroutine DO_CHEMISTRY is the driver routine which calls the appropriate
 !  chemistry subroutine for the various GEOS-CHEM simulations. 
-!  (bmy, 2/11/03, 8/7/03)
+!  (bmy, 2/11/03, 8/20/03)
 !
 !  NOTES:
 !  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this
 !        to OPTDEPTH for GEOS-1 or GEOS-STRAT met fields (bnd, bmy, 4/14/03)
 !  (2 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
+!  (3 ) Removed call to CHEMO3, it's obsolete.  Now calls CHEM_TAGGED_OX !
+!        from "tagged_ox_mod.f" when NSRCX==6.  Now calls Kr85 chemistry if 
+!        NSRCX == 12 (jsw, bmy, 8/20/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -54,11 +61,13 @@
       USE ERROR_MOD,       ONLY : DEBUG_MSG
       USE GLOBAL_CH4_MOD,  ONLY : CHEMCH4
       USE DRYDEP_MOD,      ONLY : DRYFLX, DRYFLXRnPbBe
+      USE Kr85_MOD,        ONLY : CHEMKr85
       USE OPTDEPTH_MOD,    ONLY : OPTDEPTH
       USE PLANEFLIGHT_MOD, ONLY : PLANEFLIGHT
       USE RnPbBe_MOD,      ONLY : CHEMRnPbBe
       USE RPMARES_MOD,     ONLY : DO_RPMARES
       USE TAGGED_CO_MOD,   ONLY : CHEM_TAGGED_CO
+      USE TAGGED_OX_MOD,   ONLY : CHEM_TAGGED_OX
       USE TIME_MOD,        ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
       USE TRACERID_MOD,    ONLY : IDTACET
       USE SULFATE_MOD,     ONLY : CHEMSULFATE
@@ -158,7 +167,11 @@
             ! Tagged O3
             !---------------------------------
             CASE ( 6  ) 
-               CALL CHEMO3
+               !-------------------
+               ! Prior to 8/18/03:
+               !CALL CHEMO3
+               !-------------------
+               CALL CHEM_TAGGED_OX
 
             !---------------------------------
             ! Tagged CO
@@ -207,6 +220,12 @@
 !                     ENDIF 
 !#endif
 !-----------------------------------------------------------------------------
+
+            !---------------------------------
+            ! Kr85   
+            !---------------------------------
+            CASE ( 12 )
+               CALL CHEMKr85
 
          END SELECT
                   

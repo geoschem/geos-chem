@@ -1,9 +1,9 @@
-! $Id: upbdflx_mod.f,v 1.4 2003/10/01 20:32:23 bmy Exp $
+! $Id: upbdflx_mod.f,v 1.5 2003/10/21 16:05:29 bmy Exp $
       MODULE UPBDFLX_MOD
 !
 !******************************************************************************
 !  Module UPBDFLX_MOD contains subroutines which impose stratospheric boundary
-!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 9/15/03)
+!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 10/2/03)
 !
 !  Module Routines:
 !  ============================================================================
@@ -38,6 +38,7 @@
 !  (11) Now references AD from "dao_mod.f" in UPBDFLX_NOY (bnd, bmy, 4/14/03)
 !  (12) Added printout of O3 in Tg/yr in UPBDFLX_O3 (mje, bmy, 8/15/03)
 !  (13) Change O3 flux for GEOS-3 to 500 Tg/yr in UPBDFLX_O3 (bmy, 9/15/03)
+!  (14) Now references "tagged_ox_mod.f" (bmy, 8/19/03)
 !******************************************************************************
 !      
       IMPLICIT NONE
@@ -155,14 +156,18 @@
 !  (17) On the first timestep, print how much O3 flux is coming down from the 
 !        stratosphere in Tg/yr. (mje, bmy, 8/15/03)
 !  (18) Change O3 flux to 500 Tg/yr for GEOS-3 (mje, bmy, 9/15/03)
+!  (19) Now calls routine ADD_STRAT_POX from "tagged_ox_mod.f" in order to
+!        pass stratospheric flux of Ox to the proper tagged tracer w/o
+!        resorting to hardwiring w/in this routine. (bmy, 8/18/03)
 !******************************************************************************
 !      
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : AD, BXHEIGHT, T
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
-      USE TIME_MOD,     ONLY : GET_TS_DYN
-      USE TRACERID_MOD, ONLY : IDTOX
+      USE DAO_MOD,       ONLY : AD, BXHEIGHT, T
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE PRESSURE_MOD,  ONLY : GET_PEDGE, GET_PCENTER
+      USE TAGGED_OX_MOD, ONLY : ADD_STRAT_POX
+      USE TIME_MOD,      ONLY : GET_TS_DYN
+      USE TRACERID_MOD,  ONLY : IDTOX
       
 #     include "CMN_SIZE"   ! Size parameters
 #     include "CMN"        ! STT, NSRCX
@@ -249,30 +254,37 @@
 
 #endif
 
-      !=================================================================
-      ! Select the proper tracer number to store O3 into, depending on
-      ! whether this is a full chemistry run or a single tracer Ox run
-      !=================================================================
-      SELECT CASE ( NSRCX )
+!------------------------------------------------------------------------------
+! Prior to 8/19/03:
+! Now remove special case for NSRCX == 6 (bmy, 8/18/03)
+!      !=================================================================
+!      ! Select the proper tracer number to store O3 into, depending on
+!      ! whether this is a full chemistry run or a single tracer Ox run
+!      !=================================================================
+!      SELECT CASE ( NSRCX )
+!
+!         ! Full chemistry
+!         CASE ( 3 )
+!            NTRACER = IDTOX
+!          
+!         ! Single or multi-tracer Ox
+!         CASE ( 6 )
+!            NTRACER = 1
+!
+!            ! For multi-tracer Ox: change to carry 12 tracers for O3
+!            ! tagged run of which strat O3 is tracer 11. (amf, 7/3/01)
+!            IF ( LSPLIT ) NTRACE2 = 11
+!
+!         ! All other simulations don't use O3...print error message
+!         CASE DEFAULT
+!            CALL ERROR_STOP( 'This simulation does not use O3!',
+!     &                       'UPBDFLX_O3 (upbdflx_mod.f)' )
+!
+!      END SELECT
+!------------------------------------------------------------------------------
 
-         ! Full chemistry
-         CASE ( 3 )
-            NTRACER = IDTOX
-          
-         ! Single or multi-tracer Ox
-         CASE ( 6 )
-            NTRACER = 1
-
-            ! For multi-tracer Ox: change to carry 12 tracers for O3
-            ! tagged run of which strat O3 is tracer 11. (amf, 7/3/01)
-            IF ( LSPLIT ) NTRACE2 = 11
-
-         ! All other simulations don't use O3...print error message
-         CASE DEFAULT
-            CALL ERROR_STOP( 'This simulation does not use O3!',
-     &                       'UPBDFLX_O3 (upbdflx_mod.f)' )
-
-      END SELECT
+      ! Store in the proper Ox tracer #
+      NTRACER = IDTOX
 
       !=================================================================
       ! Loop over latitude/longtitude locations (I,J)
@@ -358,12 +370,17 @@
                ! Store O3 flux in the proper tracer number
                STT(I,J,L,NTRACER) = STT(I,J,L,NTRACER) + PO3 
 
-               ! Store strat O3 flux into tracer #11 for
-               ! multi-tracer Ox run (amf, bmy, 7/3/01)
-               IF ( LSPLIT .and. NSRCX == 6 ) THEN
-                  STT(I,J,L,NTRACE2) = STT(I,J,L,NTRACE2) + PO3
-               ENDIF
-               
+               !----------------------------------------------------------
+               ! Prior to 8/19/03:
+               ! Remove hardwiring for the Tagged Ox run (bmy, 8/19/03)
+               !! Store strat O3 flux into tracer #11 for
+               !! multi-tracer Ox run (amf, bmy, 7/3/01)
+               !IF ( LSPLIT .and. NSRCX == 6 ) THEN
+               !   STT(I,J,L,NTRACE2) = STT(I,J,L,NTRACE2) + PO3
+               !ENDIF
+               !----------------------------------------------------------
+               IF ( NSRCX == 6 ) CALL ADD_STRAT_POX( I, J, L, PO3 )
+
                ! Archive stratospheric O3 for printout in [Tg/yr]
                IF ( FIRST ) THEN
                   STFLUX = STFLUX + 

@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.3 2003/08/06 15:30:38 bmy Exp $
+! $Id: diag3.f,v 1.4 2003/10/21 16:05:27 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out I-J (Long-Lat) diagnostics to the BINARY
-!  format punch file (bmy, bey, mgs, rvm, 5/27/99, 7/15/03)
+!  format punch file (bmy, bey, mgs, rvm, 5/27/99, 8/20/03)
 !
 !  The preferred file format is binary punch file format v. 2.0.  This
 !  file format is very GAMAP-friendly.  GAMAP also supports the ASCII
@@ -118,6 +118,9 @@
 !        accordingly.  Delete KZZ from ND66.  Updated comments. (bmy, 6/23/03)
 !  (44) Bug fix: use LD68 instead of ND68 in DO-loop to avoid out-of-bounds 
 !        error. (bec, bmy, 7/15/03)
+!  (45) Now print out NTRACE drydep fluxes for tagged Ox.  Also tagged Ox 
+!        now saves drydep in molec/cm2/s.  Now print out Kr85 prod/loss in 
+!        ND03. (bmy, 8/20/03)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -269,6 +272,44 @@
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
      &                  IIPAR,     JJPAR,     LD02,     IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD02) )
+         ENDDO
+      ENDIF
+!
+!******************************************************************************
+!  ND03: Rn, Pb, Be emissions (Category: "RN--SRCE")
+!
+!   # : Field  : Description                    : Units      : Scale factor
+!  ----------------------------------------------------------------------------
+!  (1)  P(Kr)  : Emissions of Kr85              : kg         : SCALESRCE
+!  (2)  L(Kr)  : Decay of Kr85                  : kg         : SCALECHEM
+!******************************************************************************
+!
+      IF ( ND03 > 0 ) THEN
+         CATEGORY = 'KRBUDGET'
+         UNIT     = 'kg'
+
+         DO M = 1, TMAX(3)
+            N  = TINDEX(3,M)
+            IF ( N > PD03 ) CYCLE
+            NN = N
+               
+            ! Pick proper scale factor
+            IF ( N == 1 ) THEN
+               SCALEX = SCALESRCE
+            ELSE
+               SCALEX = SCALECHEM
+            ENDIF
+
+            ! Divide by # of emission timesteps
+            DO L = 1, LD03
+               ARRAY(:,:,L) = AD03(:,:,L,N) / SCALEX
+            ENDDO
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                  IIPAR,     JJPAR,     LD03,     IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD03) )
          ENDDO
       ENDIF
 !
@@ -1780,23 +1821,46 @@
 !  (5 ) Add code from amf for multi-tracer Ox (bmy, 7/3/01)
 !  (6 ) Now divide by SCALECHEM since DRYFLX is only called after the
 !        chemistry routines for all relevant simulations (bmy, 1/27/03)
+!  (7 ) Now print out NTRACE drydep fluxes for tagged Ox.  Also tagged Ox 
+!        now saves drydep in molec/cm2/s. (bmy, 8/19/03)
 !******************************************************************************
 !
       IF ( ND44 > 0 ) THEN
-         DO N = 1, NUMDEP
+         
+         !==============================================================
+         ! Drydep fluxes
+         !==============================================================
+         !-------------------------------------------------------
+         ! Prior to 8/19/03:
+         ! Now print out NTRACE drydep tracers for tagged Ox
+         !DO N = 1, NUMDEP
+         !-------------------------------------------------------
+         IF ( NSRCX == 6 ) THEN
+            M = NTRACE
+         ELSE
+            M = NUMDEP
+         ENDIF
+
+         DO N = 1, M
 
             ! Tracer number plus GAMAP offset
-            NN = NTRAIND(N) + TRCOFFSET
-            
-            !===========================================================
-            ! Drydep fluxes
-            !===========================================================
+            IF ( NSRCX == 6 ) THEN
+               NN = N + TRCOFFSET
+            ELSE
+               NN = NTRAIND(N) + TRCOFFSET
+            ENDIF
+
             CATEGORY = 'DRYD-FLX'
 
             SELECT CASE ( NSRCX )
 
-               ! Rn-Pb-Be 
-               CASE ( 1, 6 )
+               ! Rn-Pb-Be
+               !------------------------------------------------------------
+               ! Prior to 8/19/03:
+               ! Tagged Ox now saves drydep in molec/cm2/s (bmy, 8/19/03)
+               !CASE ( 1, 6 )
+               !------------------------------------------------------------
+               CASE ( 1 )
                   UNIT         = 'kg/s'
                   ARRAY(:,:,1) = AD44(:,:,N,1) / SCALECHEM
 
@@ -1814,9 +1878,15 @@
      &                  IIPAR,     JJPAR,     1,        IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
-            !===========================================================
-            ! Drydep velocities
-            !===========================================================
+         ENDDO
+
+         !==============================================================
+         ! Drydep velocities
+         !==============================================================
+         DO N = 1, NUMDEP
+
+            ! Tracer number plus GAMAP offset
+            NN           = NTRAIND(N) + TRCOFFSET
             CATEGORY     = 'DRYD-VEL'
             UNIT         = 'cm/s'
             ARRAY(:,:,1) = AD44(:,:,N,2) / SCALESRCE
@@ -2097,12 +2167,7 @@
                   SCALEX = 1d0
 
                CASE ( 6 )
-                  IF ( LSPLIT ) THEN
-                     NN = N + TRCOFFSET
-                  ELSE
-                     NN = N
-                  ENDIF
-                        
+                  NN     = N + TRCOFFSET
                   UNIT   = 'kg/s'
                   SCALEX = SCALECHEM
                   

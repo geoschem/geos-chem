@@ -1,82 +1,71 @@
-REVISIONS (v5-07-08)  
-bmy, 10 Oct 2003
+REVISIONS (v5-08-01)  
+bmy, 14 Oct 2003
 
 
 New in v5-07-08:
 ----------------------------------------------------------------------------- 
 
+Kr85_mod.f		-- F90 module containing code to perform the Kr85
+			   radionuclide simulation
+
+tagged_ox_mod.f		-- F90 module containing updated Tagged Ox routines
+			   (originally written by Arlene Fiore, now updated
+	                    by Rynda Hudman and Bob Yantosca)
 
 
 Removed from v5-07-08:
 ----------------------------------------------------------------------------- 
 
+chemo3.f		-- Functionality now bundled into "tagged_ox_mod.f"
 
+chemo3_split.f		-- Functionality now bundled into "tagged_ox_mod.f"
+
+copy_stt_for_ox		-- This is obsolete now; you can now create a restart
+("restart_mod.f")          file w/ the same properties by using the IDL program
+			   "create_tagox_restart.pro"
 
 Changed from v5-07-07:
 -------------------------------------------------------------------------------
 
-accumulate_diag51	-- LINUX has a problem putting a function call w/in a 
-("diag51_mod.f")	   WRITE statement.  Now save output from 
-			   TIMESTAMP_STRING to STAMP and print that.
-
-date_string		-- Bug fix for Linux: use ENCODE statement to convert 
-("time_mod.f")		   number to string instead of F90 internal read.
-
-diag49.f		-- LINUX has a problem putting a function call w/in a 
-			   WRITE statement.  Now save output from 
-			   TIMESTAMP_STRING to STAMP and print that.
-
-diag50.f		-- LINUX has a problem putting a function call w/in a 
-			   WRITE statement.  Now save output from 
-			   TIMESTAMP_STRING to STAMP and print that.
-
+CMN_DIAG		-- Changed PD03 to 2 
+			-- Added LD03 for Kr85 Prod/loss diagnostic
 expand_date		-- Bug fix for Linux: use ENCODE statement to convert 
 ("time_mod.f")		   number to string instead of F90 internal read.
 
-finite_dble             -- Bug fix: now use external C IS_FINITE for PGI/Linux
-("error_mod.f")
+cleanup_diag		-- removed P24H and L24H, these are now defined
+("diag_mod.f")		   within "tagged_ox_mod.f"
+			-- Now also deallocate AD03 array for Kr85 prod/loss
 
-finite_float		-- Bug fix: now use external C IS_FINITE for PGI/Linux
-("error_mod.f")
+diag3.f			-- Now print out NTRACE drydep tracers for tagged Ox
+			-- Also tagged Ox now saves drydep in molec/cm2/s
+			-- Now print out Kr85 prod/loss in ND03.
 
-is_last_day_good	-- Now pass the year of the ending date of the run
-("main.f")                 to routine ITS_A_LEAPYEAR of "time_mod.f"
+diag_mod.f		-- removed P24H and L24H, these are now defined
+			   within "tagged_ox_mod.f"
+			-- Also added AD03 array for Kr85 prod/loss diag
 
-its_a_leapyear		-- Now add YEAR_IN as an optional argument.  If 
-("time_mod.f")		   YEAR_IN is not passed, then test if the current 
-			   year is a leapyear
+do_chemistry		-- Now calls Kr85 chemistry if NSRCX == 12
+("chemistry_mod.f") 	-- Removed call to CHEMO3, it's obsolete.  
+			-- Now calls CHEM_TAGGED_OX from "tagged_ox_mod.f" 
+			   when NSRCX==6.
 
-Makefile.compaq		-- need to compile "calcrate.f" with -O2 level
-		           optimization.  All other routines can be compiled
-			   with "-fast" level optimization.
+do_emissions		-- Now calls Kr85 emissions if NSRCX == 12
+("emissions_mod.f") 
 
-Makefile.linux		-- added -Bstatic flag for 2x2.5 compilation
+emissions_mod.f		-- Now references "Kr85_mod.f"
 
-physproc.f		-- LINUX has a problem putting a function call w/in a 
-			   WRITE statement.  Now save output from 
-			   TIMESTAMP_STRING to STAMP and print that.
+initialize.f		-- Now zeroes AD03 array for Kr85 prod/loss diag
 
-read_biomass_nh3	-- Now use ENCODE to define CYEAR string for PGI/Linux 
-("sulfate_mod.f")
+ndxx_setup.f		-- Added ND03 diagnostic for Kr85 prod/loss
+			-- Also removed special case TRCOFFSET for 
+			   single-tracer Ox
 
-read_liqco2		-- Now use ENCODE to define CYEAR string for PGI/Linux
-("geia_mod.f")
+restart_mod.f		-- removed call to COPY_STT_FOR_OX, it's obsolete
 
-read_totco2		-- Now use ENCODE to define CYEAR string for PGI/Linux
-("geia_mod.f")
+soilnoxems.f		-- Need to pass SUNCOS to SOILCRF when computing 
+			   FERTDIAG. 
 
-schem.f			-- LINUX has a problem putting a function call w/in a 
-			   WRITE statement.  Now save output from 
-			   TIMESTAMP_STRING to STAMP and print that.
-
-smvgear.f		-- Increase max allowable iteration count to 99999
-
-timestamp_string	-- Now use ENCODE statement for PGI/F90 on Linux 
-("time_mod.f")
-
-upbdflx_o3	       	-- Change O3 flux to 500 Tg/yr for GEOS-3
-("upbdflx_mod.f")
-
-write_diag51		-- LINUX has a problem putting a function call w/in a 
-("diag51_mod.f")	   WRITE statement.  Now save output from 
-			   TIMESTAMP_STRING to STAMP and print that.
+upbdflx_o3.f		-- Now calls routine ADD_STRAT_POX from 
+("upbdflx_mod.f")	   "tagged_ox_mod.f" in order to pass stratospheric 
+			   flux of Ox to the proper tagged tracer w/o
+			   resorting to hardwiring w/in this routine.

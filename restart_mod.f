@@ -1,10 +1,10 @@
-! $Id: restart_mod.f,v 1.2 2003/07/08 15:31:13 bmy Exp $
+! $Id: restart_mod.f,v 1.3 2003/10/21 16:05:29 bmy Exp $
       MODULE RESTART_MOD
 !
 !******************************************************************************
 !  Module RESTART_MOD contains variables and routines which are used to read
 !  and write GEOS-CHEM restart files, which contain tracer concentrations
-!  in [v/v] mixing ratio. (bmy, 6/25/02, 4/29/03)
+!  in [v/v] mixing ratio. (bmy, 6/25/02, 8/18/03)
 !
 !  Module Variables:
 !  ============================================================================
@@ -20,8 +20,7 @@
 !  (5 ) TRUE_TRACER_INDEX    : Removes GAMAP tracer offset from tracer number
 !  (6 ) COPY_STT             : Converts [v/v] to [kg] and stores in STT
 !  (7 ) COPY_STT_FOR_CO_OH   : Converts [v/v] to [kg] for CO w/ param. OH run
-!  (8 ) COPY_STT_FOR_OX      : Converts [v/v] to [kg] for Tagged Ox run
-!  (9 ) CHECK_DATA_BLOCKS    : Makes sure we have read in data for each tracer
+!  (8 ) CHECK_DATA_BLOCKS    : Makes sure we have read in data for each tracer
 !
 !  GEOS-CHEM modules referenced by restart_mod.f
 !  ============================================================================
@@ -40,6 +39,7 @@
 !        Also added minor bug fix for ALPHA platform. (bmy, 10/15/02)
 !  (3 ) Now references "grid_mod.f" and the new "time_mod.f" (bmy, 2/11/03)
 !  (4 ) Added error-check and cosmetic changes (bmy, 4/29/03)
+!  (5 ) Removed call to COPY_STT_FOR_OX, it's obsolete (bmy, 8/18/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -55,7 +55,11 @@
       PRIVATE :: TRUE_TRACER_INDEX
       PRIVATE :: COPY_STT
       PRIVATE :: COPY_STT_FOR_CO_OH
-      PRIVATE :: COPY_STT_FOR_OX
+      !-----------------------------------------------------------------
+      ! Prior to 8/18/03:
+      ! Remove COPY_STT_FOR_OX, it's obsolete (bmy, 8/18/03)
+      !PRIVATE :: COPY_STT_FOR_OX
+      !-----------------------------------------------------------------
       PRIVATE :: CHECK_DATA_BLOCKS
 
       !=================================================================
@@ -232,7 +236,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_RESTART_FILE initializes GEOS-CHEM tracer concentrations 
-!  from a restart file (binary punch file format) (bmy, 5/27/99, 9/18/02)
+!  from a restart file (binary punch file format) (bmy, 5/27/99, 8/18/03)
 !
 !  Arguments as input:
 !  ============================================================================
@@ -275,6 +279,7 @@
 !  (13) Updated comments (bmy, 1/25/02)
 !  (14) Now reference AD from "dao_mod.f" (bmy, 9/18/02)
 !  (15) Now added a call to DEBUG_MSG from "error_mod.f" (bmy, 2/11/03)
+!  (16) Remove call to COPY_STT_FOR_OX, it's obsolete. (bmy, 8/18/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -395,9 +400,14 @@
                CASE ( 5 )
                   CALL COPY_STT_FOR_CO_OH( NTRACER, TRACER, NCOUNT )
 
-               ! For Tagged OX
-               CASE ( 6 )
-                  CALL COPY_STT_FOR_OX( NTRACER, TRACER, NCOUNT )
+               !---------------------------------------------------------
+               ! Prior to 8/18/03:
+               ! Remove COPY_STT_FOR_OX, you can do the same thing with
+               ! IDL routine "create_tagox_restart.pro." (bmy, 8/18/03)
+               !! For Tagged OX
+               !CASE ( 6 )
+               !   CALL COPY_STT_FOR_OX( NTRACER, TRACER, NCOUNT )
+               !---------------------------------------------------------
 
                ! All other simulations
                CASE DEFAULT    
@@ -762,82 +772,84 @@
       END SUBROUTINE COPY_STT_FOR_CO_OH
 
 !------------------------------------------------------------------------------
-
-      SUBROUTINE COPY_STT_FOR_OX( NTRACER, TRACER, NCOUNT )
+! Prior to 8/18/03:
+! Remove COPY_STT_FOR_OX, it's obsolete (bmy, 8/18/03)
 !
-!******************************************************************************
-!  Subroutine COPY_STT_FOR_OX copies data from the TRACER array into the 
-!  STT array for the single-tracer or tagged Ox run, readjusting the
-!  tracer number accordingly. (bmy, 6/25/02, 9/18/02)
+!      SUBROUTINE COPY_STT_FOR_OX( NTRACER, TRACER, NCOUNT )
+!!
+!!******************************************************************************
+!!  Subroutine COPY_STT_FOR_OX copies data from the TRACER array into the 
+!!  STT array for the single-tracer or tagged Ox run, readjusting the
+!!  tracer number accordingly. (bmy, 6/25/02, 9/18/02)
+!!
+!!  Arguments as Input:
+!!  ============================================================================
+!!  (1 ) NTRACER (INTEGER) : Tracer number
+!!  (2 ) NCOUNT  (INTEGER) : Ctr array - # of data blocks read for each tracer
+!!  (3 ) TRACER  (REAL*4 ) : Tracer concentrations [v/v]
+!!
+!!  NOTES:
+!!  (1 ) Added to "restart_mod.f".  Also added parallel loops. (bmy, 6/25/02)
+!!  (2 ) Now reference AD from "dao_mod.f" (bmy, 9/18/02)
+!!******************************************************************************
+!!
+!      ! References to F90 modules
+!      USE DAO_MOD, ONLY : AD
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NTRACER (INTEGER) : Tracer number
-!  (2 ) NCOUNT  (INTEGER) : Ctr array - # of data blocks read for each tracer
-!  (3 ) TRACER  (REAL*4 ) : Tracer concentrations [v/v]
+!#     include "CMN_SIZE"     ! Size parameters
+!#     include "CMN"          ! TCVV, STT
+!#     include "CMN_SETUP"    ! LSPLIT 
 !
-!  NOTES:
-!  (1 ) Added to "restart_mod.f".  Also added parallel loops. (bmy, 6/25/02)
-!  (2 ) Now reference AD from "dao_mod.f" (bmy, 9/18/02)
-!******************************************************************************
+!      ! Arguments
+!      INTEGER, INTENT(IN)    :: NTRACER
+!      REAL*4,  INTENT(IN)    :: TRACER(IIPAR,JJPAR,LLPAR)
+!      INTEGER, INTENT(INOUT) :: NCOUNT(NNPAR)
 !
-      ! References to F90 modules
-      USE DAO_MOD, ONLY : AD
-
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! TCVV, STT
-#     include "CMN_SETUP"    ! LSPLIT 
-
-      ! Arguments
-      INTEGER, INTENT(IN)    :: NTRACER
-      REAL*4,  INTENT(IN)    :: TRACER(IIPAR,JJPAR,LLPAR)
-      INTEGER, INTENT(INOUT) :: NCOUNT(NNPAR)
-
-      ! Local variables
-      INTEGER                :: I, J, L
- 
-      !=================================================================
-      ! COPY_STT_FOR_OX begins here!
-      !
-      ! Here we are reading from a full-chemistry restart
-      ! file, where Ox is tracer #2
-      !=================================================================
-      IF ( NTRACER == 2 ) THEN
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            STT(I,J,L,1) = TRACER(I,J,L) * AD(I,J,L) / TCVV(1)
-
-            ! Also intialize tagged tracers
-            IF ( LSPLIT ) THEN
-               STT(I,J,L,12)   = STT(I,J,L,1)
-               STT(I,J,L,2:11) = 0d0
-               STT(I,J,L,13)   = 0d0
-            ENDIF
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-
-         ! Update count: tracer 1 only
-         NCOUNT(1) = NCOUNT(1) + 1
-      
-      !=================================================================
-      ! Here we are reading from a tagged Ox restart file
-      ! with tracer numbers starting at 41
-      !=================================================================
-      ELSE IF ( NTRACER > 40 .and. NTRACER < 60 ) THEN
-         CALL COPY_STT( NTRACER, TRACER, NCOUNT )
-         
-      ENDIF
-
-      ! Return to READ_RESTART_FILE
-      END SUBROUTINE COPY_STT_FOR_OX
-
+!      ! Local variables
+!      INTEGER                :: I, J, L
+! 
+!      !=================================================================
+!      ! COPY_STT_FOR_OX begins here!
+!      !
+!      ! Here we are reading from a full-chemistry restart
+!      ! file, where Ox is tracer #2
+!      !=================================================================
+!      IF ( NTRACER == 2 ) THEN
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!         DO L = 1, LLPAR
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!            STT(I,J,L,1) = TRACER(I,J,L) * AD(I,J,L) / TCVV(1)
+!
+!            ! Also intialize tagged tracers
+!            IF ( LSPLIT ) THEN
+!               STT(I,J,L,12)   = STT(I,J,L,1)
+!               STT(I,J,L,2:11) = 0d0
+!               STT(I,J,L,13)   = 0d0
+!            ENDIF
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!!$OMP END PARALLEL DO
+!
+!         ! Update count: tracer 1 only
+!         NCOUNT(1) = NCOUNT(1) + 1
+!      
+!      !=================================================================
+!      ! Here we are reading from a tagged Ox restart file
+!      ! with tracer numbers starting at 41
+!      !=================================================================
+!      ELSE IF ( NTRACER > 40 .and. NTRACER < 60 ) THEN
+!         CALL COPY_STT( NTRACER, TRACER, NCOUNT )
+!         
+!      ENDIF
+!
+!      ! Return to READ_RESTART_FILE
+!      END SUBROUTINE COPY_STT_FOR_OX
+!
 !------------------------------------------------------------------------------
 
       SUBROUTINE CHECK_DATA_BLOCKS( NTRACE, NCOUNT )

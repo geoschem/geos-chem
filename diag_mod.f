@@ -1,9 +1,9 @@
-! $Id: diag_mod.f,v 1.1 2003/06/30 20:26:07 bmy Exp $
+! $Id: diag_mod.f,v 1.2 2003/10/21 16:05:28 bmy Exp $
       MODULE DIAG_MOD 
 !
 !******************************************************************************
 !  Module DIAG_MOD contains declarations for allocatable arrays for use with 
-!  GEOS-CHEM diagnostics. (amf, bdf, bmy, 11/30/99, 3/23/03)
+!  GEOS-CHEM diagnostics. (amf, bdf, bmy, 11/30/99, 8/20/03)
 !
 !  Module Routines:
 !  ============================================================================
@@ -37,21 +37,29 @@
 !        and CTNO3 arrays for ND43 diagnostic.  Added AD13_SO2_bf array for
 !        SO2 biofuel. (bmy, 1/16/03)
 !  (13) Added array AD13_NH3_na for ND13 diagnostic (rjp, bmy, 3/23/03)
+!  (14) Removed P24H and L24H -- these are now defined w/in "tagged_ox_mod.f"
+!        Also added AD03 array for Kr85 prod/loss diag. (jsw, bmy, 8/20/03)
 !******************************************************************************
 !     
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
 
+      !-----------------------------------------------------------------
+      ! Prior to 8/18/03:
       ! For single tracer P(O3) and L(O3) rates in CHEMO3.F
-      REAL*8,  ALLOCATABLE :: P24H(:,:,:)
-      REAL*8,  ALLOCATABLE :: L24H(:,:,:)
+      !REAL*8,  ALLOCATABLE :: P24H(:,:,:)
+      !REAL*8,  ALLOCATABLE :: L24H(:,:,:)
+      !-----------------------------------------------------------------
 
       ! For ND01 -- Rn, Pb, Be emissions
       REAL*4,  ALLOCATABLE :: AD01(:,:,:,:)
 
       ! For ND02 -- Rn, Pb, Be decay
       REAL*4,  ALLOCATABLE :: AD02(:,:,:,:)
+
+      ! For ND03 -- Kr85 prod/loss
+      REAL*4,  ALLOCATABLE :: AD03(:,:,:,:)
 
       ! For ND05 -- Sulfate prod/loss diagnostics
       REAL*4,  ALLOCATABLE :: AD05(:,:,:,:)
@@ -224,12 +232,14 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_DIAG deallocates all module arrays.
-!  (bmy, 12/13/02, 3/23/03)
+!  (bmy, 12/13/02, 8/18/03)
 !
 !  NOTES:
 !  (1 ) Now also deallocate AD13_NH3_an, AD13_NH3_bb, AD13_NH3_bf arrays
 !        for the ND13 diagnostic.  (bmy, 12/13/02)
 !  (2 ) Now also deallocate AD13_NH3_na array for ND13 (rjp, bmy, 3/23/03)
+!  (3 ) Removed P24H and L24H, these are now defined within "tagged_ox_mod.f".
+!       Now also deallocate AD03 array for Kr85 prod/loss (jsw, bmy, 8/20/03)
 !******************************************************************************
 !
       !=================================================================
@@ -237,6 +247,7 @@
       !=================================================================
       IF ( ALLOCATED( AD01        ) ) DEALLOCATE( AD01        )
       IF ( ALLOCATED( AD02        ) ) DEALLOCATE( AD02        )
+      IF ( ALLOCATED( AD03        ) ) DEALLOCATE( AD03        )
       IF ( ALLOCATED( AD11        ) ) DEALLOCATE( AD11        )
       IF ( ALLOCATED( AD12        ) ) DEALLOCATE( AD12        )
       IF ( ALLOCATED( AD13_DMS    ) ) DEALLOCATE( AD13_DMS    )
@@ -309,8 +320,12 @@
       IF ( ALLOCATED( MASSFLEW    ) ) DEALLOCATE( MASSFLEW    )
       IF ( ALLOCATED( MASSFLNS    ) ) DEALLOCATE( MASSFLNS    )
       IF ( ALLOCATED( MASSFLUP    ) ) DEALLOCATE( MASSFLUP    )
-      IF ( ALLOCATED( P24H        ) ) DEALLOCATE( P24H        )
-      IF ( ALLOCATED( L24H        ) ) DEALLOCATE( L24H        )
+      !-----------------------------------------------------------------------
+      ! Prior to 8/18/03:
+      ! Moved these to "tagged_ox_mod.f" (bmy, 8/18/03)
+      !IF ( ALLOCATED( P24H        ) ) DEALLOCATE( P24H        )
+      !IF ( ALLOCATED( L24H        ) ) DEALLOCATE( L24H        )
+      !-----------------------------------------------------------------------
       IF ( ALLOCATED( PL24H       ) ) DEALLOCATE( PL24H       )
       IF ( ALLOCATED( TCOBOX      ) ) DEALLOCATE( TCOBOX      )
       IF ( ALLOCATED( TURBFLUP    ) ) DEALLOCATE( TURBFLUP    )

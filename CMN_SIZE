@@ -1,4 +1,4 @@
-! $Id: CMN_SIZE,v 1.1 2003/06/30 20:26:09 bmy Exp $
+! $Id: CMN_SIZE,v 1.2 2003/10/21 16:05:26 bmy Exp $
       !=======================================================================
       ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 6/18/03)
       !
@@ -218,7 +218,7 @@
 
       REAL*8,  PARAMETER :: PTOP   = 0.01d0
 
-#elif defined( GEOS_4 ) && defined( GRID_2x25 )
+#elif defined( GEOS_4 ) && defined( GRID2x25 )
       INTEGER, PARAMETER :: IGLOB  = 144
       INTEGER, PARAMETER :: JGLOB  = 91
       INTEGER, PARAMETER :: LGLOB  = 55
