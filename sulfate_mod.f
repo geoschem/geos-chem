@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.7 2004/03/24 20:52:32 bmy Exp $
+! $Id: sulfate_mod.f,v 1.8 2004/03/25 21:36:20 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -880,10 +880,10 @@
       !=================================================================
       ! Loop over tropopsheric grid boxes and do chemistry
       !=================================================================
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, M, H2O20, KOH, FREQ, ALPHA, DH2O2, H2O2, FLUX )
-!!$OMP+SCHEDULE( DYNAMIC )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, M, H2O20, KOH, FREQ, ALPHA, DH2O2, H2O2, FLUX )
+!$OMP+SCHEDULE( DYNAMIC )
       DO L  = 1, LLTROP
       DO J  = 1, JJPAR
       DO I  = 1, IIPAR
@@ -945,16 +945,16 @@
       ENDDO
       ENDDO
       ENDDO
-!!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
       
       !===============================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
       !===============================================================
       IF ( ND44 > 0 ) THEN 
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
          DO L = 1, LLTROP
@@ -962,7 +962,7 @@
          ENDDO
          ENDDO
          ENDDO
-!!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
       ENDIF
 
       ! Return to calling program
@@ -1066,12 +1066,12 @@
       IF ( ND44 > 0 ) ND44_TMP = 0d0
 
       ! Loop over tropospheric grid boxes
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, SO20, H2O20, O3, PATM, TK, K0, M, KK, F1, RK1  )
-!!$OMP+PRIVATE( RK2, RK, RKT, SO2_cd, L1, Ld, L2, L2S, L3, L3S, FC, LWC )
-!!$OMP+PRIVATE( KaqH2O2, KaqO3, AREA_CM2, FLUX )
-!!$OMP+SCHEDULE( DYNAMIC )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, SO20, H2O20, O3, PATM, TK, K0, M, KK, F1, RK1  )
+!$OMP+PRIVATE( RK2, RK, RKT, SO2_cd, L1, Ld, L2, L2S, L3, L3S, FC, LWC )
+!$OMP+PRIVATE( KaqH2O2, KaqO3, AREA_CM2, FLUX )
+!$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLTROP  
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -1329,9 +1329,9 @@
       ! order to ensure that  we get the same results w/ sp or mp 
       !===============================================================
       IF ( ND44 > 0 ) THEN 
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
          DO L = 1, LLTROP
@@ -1339,7 +1339,7 @@
          ENDDO
          ENDDO
          ENDDO
-!!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
       ENDIF
 
       ! Return to calling program
@@ -1611,10 +1611,10 @@
       IF ( ND44 > 0 ) ND44_TMP = 0d0
 
       ! Loop over tropospheric grid boxes
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, SO40, RKT, SO4, AREA_CM2, FLUX )
-!!$OMP+SCHEDULE( DYNAMIC )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, SO40, RKT, SO4, AREA_CM2, FLUX )
+!$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLTROP 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -1685,16 +1685,16 @@
       ENDDO
       ENDDO
       ENDDO
-!!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 
       !===============================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
       !===============================================================
       IF ( ND44 > 0 ) THEN 
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
          DO L = 1, LLTROP
@@ -1702,7 +1702,7 @@
          ENDDO
          ENDDO
          ENDDO
-!!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
       ENDIF
 
       ! Return to calling program
@@ -1771,10 +1771,10 @@
       IF ( ND44 > 0 ) ND44_TMP = 0d0
 
       ! Loop over tropospheric grid boxes
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, MSA0, RKT, MSA, AREA_CM2, FLUX )
-!!$OMP+SCHEDULE( DYNAMIC )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, MSA0, RKT, MSA, AREA_CM2, FLUX )
+!$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLTROP 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -1836,16 +1836,16 @@
       ENDDO
       ENDDO
       ENDDO
-!!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 
       !===============================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
       !===============================================================
       IF ( ND44 > 0 ) THEN 
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
          DO L = 1, LLTROP
@@ -1853,7 +1853,7 @@
          ENDDO
          ENDDO
          ENDDO
-!!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
       ENDIF
 
       ! Return to calling program
@@ -1914,10 +1914,10 @@
       ! Zero ND44_TMP array
       IF ( ND44 > 0 ) ND44_TMP = 0d0
 
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, FREQ, NH30, NH3, AREA_CM2, FLUX )
-!!$OMP+SCHEDULE( DYNAMIC )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, FREQ, NH30, NH3, AREA_CM2, FLUX )
+!$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLTROP
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -1970,16 +1970,16 @@
       ENDDO
       ENDDO
       ENDDO
-!!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 
       !===============================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
       !===============================================================
       IF ( ND44 > 0 ) THEN 
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
          DO L = 1, LLTROP
@@ -1987,7 +1987,7 @@
          ENDDO
          ENDDO
          ENDDO
-!!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
       ENDIF
 
       ! Return to calling program
@@ -2048,10 +2048,10 @@
       ! Zero ND44 array
       IF ( ND44 > 0 ) ND44_TMP = 0d0
 
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, FREQ, NH40, NH4, AREA_CM2, FLUX )
-!!$OMP+SCHEDULE( DYNAMIC )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, FREQ, NH40, NH4, AREA_CM2, FLUX )
+!$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLTROP
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -2104,16 +2104,16 @@
       ENDDO
       ENDDO
       ENDDO
-!!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 
       !===============================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
       !===============================================================
       IF ( ND44 > 0 ) THEN 
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
          DO L = 1, LLTROP
@@ -2121,7 +2121,7 @@
          ENDDO
          ENDDO
          ENDDO
-!!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
       ENDIF
 
       ! Return to calling program
@@ -2185,10 +2185,10 @@
       ! Zero ND44 array
       IF ( ND44 > 0 ) ND44_TMP = 0d0
 
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, FREQ, NIT0, NIT, AREA_CM2, FLUX )
-!!$OMP+SCHEDULE( DYNAMIC )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, FREQ, NIT0, NIT, AREA_CM2, FLUX )
+!$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLTROP
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -2241,16 +2241,16 @@
       ENDDO
       ENDDO
       ENDDO
-!!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 
       !===============================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
       !===============================================================
       IF ( ND44 > 0 ) THEN 
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
          DO L = 1, LLTROP
@@ -2258,7 +2258,7 @@
          ENDDO
          ENDDO
          ENDDO
-!!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
       ENDIF
 
       ! Return to calling program
