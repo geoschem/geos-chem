@@ -1,9 +1,9 @@
-! $Id: chemdr.f,v 1.1 2003/06/30 20:26:08 bmy Exp $
+! $Id: chemdr.f,v 1.2 2003/07/08 15:28:00 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
 !  Subroutine CHEMDR is the driver subroutine for full chemistry w/ SMVGEAR.
-!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 5/8/03)
+!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 7/1/03)
 !
 !  Important input variables from "dao_mod.f" and "uvalbedo_mod.f":
 !  ============================================================================
@@ -115,6 +115,8 @@
 !        Removed reference to "file_mod.f".  Remove call to SETPL, we now must
 !        call this in "readchem.f" before the call to JSPARSE. 
 !        (bdf, ljm, bmy, 5/8/03)
+!  (15) Now reference routine GET_GLOBAL_CH4 from "global_ch4_mod.f".  Also
+!        added CH4_YEAR as a SAVEd variable. (bnd, bmy, 7/1/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -122,6 +124,7 @@
       USE DAO_MOD,         ONLY : AD,        ALBD,  AVGW,    BXHEIGHT, 
      &                            MAKE_AVGW, OPTD,  SUNCOS,  T, AIRVOL
       USE ERROR_MOD,       ONLY : DEBUG_MSG
+      USE GLOBAL_CH4_MOD,  ONLY : GET_GLOBAL_CH4
       USE PLANEFLIGHT_MOD, ONLY : SETUP_PLANEFLIGHT
       USE TIME_MOD,        ONLY : GET_MONTH, GET_YEAR
       USE TRACERID_MOD 
@@ -140,6 +143,7 @@
 
       ! Local variables
       LOGICAL, SAVE       :: FIRSTCHEM = .TRUE.
+      INTEGER, SAVE       :: CH4_YEAR  = -1
       INTEGER             :: I, J, JLOOP, L, NPTS
       INTEGER             :: IDXAIR(JJPAR)
       INTEGER             :: IDXO3(JJPAR)
@@ -277,6 +281,22 @@
          IF ( ND40 > 0 ) CALL SETUP_PLANEFLIGHT
 
          !==============================================================
+         ! If CH4 is a SMVGEAR II species, then call GET_GLOBAL_CH4
+         ! to return the globally-varying CH4 conc. as a function of
+         ! year and latitude bin.  (ICH4 is defined in READCHEM.)
+         ! (bnd, bmy, 7/1/03)
+         !==============================================================
+         IF ( ICH4 > 0 .and. ( CH4_YEAR /= GET_YEAR() ) ) THEN
+
+            ! Get CH4 [ppbv] in 4 latitude bins for each year
+            CALL GET_GLOBAL_CH4( GET_YEAR(), .TRUE., C3090S, 
+     &                           C0030S,     C0030N, C3090N )
+            
+            ! Save year for CH4 emissions
+            CH4_YEAR = GET_YEAR()
+         ENDIF
+
+         !==============================================================
          ! If using Fast-J initialize it - must be after chemset 
          ! Pass ALL variables via argument list, except PTOP, which
          ! is declared as a parameter in "CMN_SIZE" (bmy, 2/10/00)
@@ -287,22 +307,6 @@
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after INPHOT' )        
 #endif
-
-         !------------------------------------------------------------------
-         ! Prior to 5/1/03:
-         ! We must now call SETPL from "readchem.f" before the call to
-         ! JSPARSE -- so that the prod/loss families will be set up
-         ! correctly. (ljm, bmy, 5/1/03)
-         !!==============================================================
-         !! Call SETPL -- for chemical prod/loss diagnostic
-         !!==============================================================
-         !IF ( NFAM > 0 ) THEN
-         !   CALL SETPL
-         !
-         !   !### Debug
-         !   IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SETPL' )
-         !ENDIF
-         !------------------------------------------------------------------
 
          !==============================================================
          ! Call SETTRACE which flags certain chemical species

@@ -1,4 +1,4 @@
-! $Id: jsparse.f,v 1.1 2003/06/30 20:26:03 bmy Exp $
+! $Id: jsparse.f,v 1.2 2003/07/08 15:32:25 bmy Exp $
       SUBROUTINE JSPARSE
 !
 !******************************************************************************
@@ -306,11 +306,6 @@ C
             IF (ISPC1.GT.0) ISPC1 = INEWOLD(ISPC1,NCS)
             IF (ISPC2.GT.0) ISPC2 = INEWOLD(ISPC2,NCS)
             IF (ISPC3.GT.0) ISPC3 = INEWOLD(ISPC3,NCS)
-            !------------------------------------------------------------
-            ! Prior to 4/7/03:
-            ! Write list of repeat reactants to "smv2.log" (bmy, 4/7/03)
-            !WRITE(6,155) NREPT, NK,NAMENCS(ISPC1,NCS), 
-            !------------------------------------------------------------
             WRITE(IO93,155) NREPT, NK,NAMENCS(ISPC1,NCS), 
      1                   NAMENCS(ISPC2,NCS), NAMENCS(ISPC3,NCS)
  155        FORMAT('REPEAT REACTANTS: ',I5,I5,3(1X,A14))
@@ -492,11 +487,6 @@ C
 C
        IF (IC.NE.NALLRAT(NCS)) THEN
         WRITE(6,245) IC, NALLRAT(NCS)
-        !------------------------------------------------------
-        ! Prior to 4/7/03:
-        ! Now deallocate arrays and then stop (bmy, 4/7/03)
-        !STOP
-        !------------------------------------------------------
         CALL GEOS_CHEM_STOP
        ENDIF
 C
@@ -579,42 +569,20 @@ C
         IF (NUMGAINT(K,NCS)   .GT.   MAXGL .OR.
      1      NUMLOST( K,NCS)   .GT.   MAXGL) THEN 
          WRITE(6,280) NAMENCS(J,NCS), NUMGAINT(K,NCS), NUMLOST(K,NCS)
-         !----------------------------------------------------------
-         ! Prior to 4/7/03:
-         ! Now deallocate arrays and then stop (bmy, 4/7/03)
-         !STOP
-         !----------------------------------------------------------
          CALL GEOS_CHEM_STOP
         ENDIF
  260   CONTINUE
 C
        IF (IOREAC.EQ.1) THEN
-        !--------------------------------------------------------------------
-        ! Prior to 4/7/03:
-        ! Now write this to "smv2.log" (bmy, 4/7/03)
-        !WRITE(6,*)
-        !WRITE(6,240)
-        !--------------------------------------------------------------------
         WRITE(IO93,*)
         WRITE(IO93,240)
         DO 270 K = 1, NTSPEC(NCS) 
          J       = INEWOLD(K,NCS) 
-         !-------------------------------------------------------------------
-         ! Prior to 4/7/03:
-         ! Now write this to "smv2.log"
-         ! WRITE(6,250) NAMENCS( J,NCS),NUMGAINT(K,NCS),NUMGAIN( K,NCS),
-         !-------------------------------------------------------------------
          WRITE(IO93,250)NAMENCS( J,NCS),NUMGAINT(K,NCS),NUMGAIN( K,NCS),
      1                NUMLOST( K,NCS),NUMLOSS( K,NCS),NUMGAINT(K,NCS) 
      2               -NUMLOST( K,NCS)-NUMGAIN( K,NCS)+NUMLOSS( K,NCS),
      3                FRACGAIN(K,NCS),NUMGFRT( K,NCS)
  270    CONTINUE
-!---------------------------------------------------------------------------
-! Prior to 4/7/03:
-! Now write this to "smv2.log" (bmy, 4/7/03)
-!        WRITE(6,250) 'OVERALL       ',NGTSUM, NGSUM, NLTSUM, NLSUM,
-!     1               NGTSUM - NLTSUM - NGSUM + NLSUM, 0., NGFSUM
-!---------------------------------------------------------------------------
         WRITE(IO93,250) 'OVERALL       ',NGTSUM, NGSUM, NLTSUM, NLSUM,
      1               NGTSUM - NLTSUM - NGSUM + NLSUM, 0., NGFSUM
        ENDIF
@@ -623,11 +591,6 @@ C
      1     NGNFRAC(NCS).GT.MAXGL) THEN
         WRITE(6,275) MAXGL2, NMOTH(  NCS), MAXGL3, NOLOSP(NCS),
      1               MAXGL,  NGNFRAC(NCS)
-        !------------------------------------------------------
-        ! Prior to 4/7/03:
-        ! Now deallocate arrays and then stop (bmy, 4/7/03)
-        !STOP
-        !-------------------------------------------------------
         CALL GEOS_CHEM_STOP
        ENDIF
 C
@@ -639,11 +602,6 @@ C MBCOMP  = COUNTS THE NUMBER OF MASS BALANCE SPECIES IN EACH M.B GROUP
 C NMASBAL = NUMBER OF MASS BALANCE GROUPS (E.G. S, N, C ARE GROUPS)
 C WTMB(1) = NUMBER OF ATOMS OF A GIVEN MASS BALANCE SPECIES PER MOLECULE 
 C
-       !-----------------------------------------------
-       ! Prior to 4/7/03:
-       ! Write this to "smv2.log" (bmy, 4/7/03)
-       !WRITE(6,360) CHEMTYP(NCS)
-       !-----------------------------------------------
        WRITE(IO93,360) CHEMTYP(NCS)
 C
        IF (NCS.LE.NCSGAS) THEN
@@ -654,11 +612,6 @@ C
          IF (MBCOMP(N,MB1).GT.0) THEN 
           TNUMGN     = 0
           TNUMLS     = 0
-          !--------------------------------------------------------
-          ! Prior to 4/7/03:
-          ! Now write this to "smv2.log" (bmy, 4/7/03)
-          !WRITE(6,325) NAMEMB(N)
-          !--------------------------------------------------------
           WRITE(IO93,325) NAMEMB(N)
           DO 380 J   = 1, MBCOMP(N,MB1) 
            JGAS      = JMBCOMP(N,J,MB1)
@@ -668,29 +621,13 @@ C
            TNUMLSA   = NUMLOSS(JNEW,NCS) * WTMB(N,JGAS,MB1) 
            TNUMGN    = TNUMGN + TNUMGNA
            TNUMLS    = TNUMLS + TNUMLSA
-           !--------------------------------------------------------
-           ! Prior to 4/7/03:
-           ! Now write this to "smv2.log" (bmy, 4/7/03)
-           !WRITE(6,320) NAMEGAS(JGAS), TNUMGNA, TNUMLSA, 0 
-           !--------------------------------------------------------
            WRITE(IO93,320) NAMEGAS(JGAS), TNUMGNA, TNUMLSA, 0 
  380      CONTINUE
-          !---------------------------------------------------------
-          ! Prior to 4/7/03:
-          ! Now write this to "smv2.log" (bmy, 4/7/03)
-          !WRITE(6,370) TNUMGN, TNUMLS, TNUMGN - TNUMLS 
-          !---------------------------------------------------------
           WRITE(IO93,370) TNUMGN, TNUMLS, TNUMGN - TNUMLS 
          ENDIF 
  385    CONTINUE
        ENDIF
 C
-!--------------------------------------------------------------------------
-! Prior to 4/7/03:
-! Now write this to "smv2.log" (bmy, 4/7/03)
-!       WRITE(6,375) NALLRAT(NCSP), NALLRAT(NCS) - NALLRAT(NCSP),
-!     1              NALLRAT(NCS) 
-!--------------------------------------------------------------------------
        WRITE(IO93,375) NALLRAT(NCSP), NALLRAT(NCS) - NALLRAT(NCSP),
      1                 NALLRAT(NCS) 
 C
@@ -908,11 +845,6 @@ C
      3     NFRCOUN  .GT. MXCOUNT4 .OR.  NPDCOUN  .GT. MXCOUNT2) THEN
         WRITE(6,645) MXCOUNT4, NPLTOT,    MXCOUNT4, NPLFUN,
      2               MXCOUNT4, NFRCOUN,   MXCOUNT2, NPDCOUN
-        !-----------------------------------------------------------
-        ! Prior to 4/7/03:
-        ! Now deallocate arrays and then stop (bmy, 4/7/03)
-        !STOP
-        !-----------------------------------------------------------
         CALL GEOS_CHEM_STOP
        ENDIF
 C

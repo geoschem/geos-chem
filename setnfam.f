@@ -1,4 +1,4 @@
-! $Id: setnfam.f,v 1.1 2003/06/30 20:26:02 bmy Exp $
+! $Id: setnfam.f,v 1.2 2003/07/08 15:31:06 bmy Exp $
       SUBROUTINE SETNFAM 
 !
 !*****************************************************************************
@@ -37,12 +37,6 @@
       ! families for which to archive production/loss diagnostics.
       !=================================================================
 
-      !-----------------------------------
-      ! Prior to 4/15/03:
-      ! Improve output...
-      !WRITE(6,*) 'NFAM =', NFAM
-      !-----------------------------------
-
       ! Initialize counter
       ICOUNT = 0
 
@@ -56,10 +50,6 @@
       ! If the string is "*family", then increment ICOUNT
       IF ( JUNK == '*family' ) THEN
          ICOUNT = ICOUNT + 1
-         !------------------------------------
-         ! Prior to 4/21/03:
-         !WRITE( 6, * ) 'icount =', icount
-         !------------------------------------
       ENDIF
 
       ! Read next line

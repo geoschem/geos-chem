@@ -1,4 +1,4 @@
-! $Id: jv_index.f,v 1.1 2003/06/30 20:26:02 bmy Exp $
+! $Id: jv_index.f,v 1.2 2003/07/08 15:32:16 bmy Exp $
       SUBROUTINE JV_INDEX
 !
 !******************************************************************************
@@ -17,11 +17,6 @@
       IMPLICIT NONE
 
 #     include "cmn_fj.h"  ! CMN_SIZE  
-!-------------------------------------------------------------------
-! Prior to 4/8/03:
-! We don't need to reference CMN anymore (bmy, 4/8/03)
-!#     include "CMN"       ! 
-!-------------------------------------------------------------------
 #     include "comode.h"  ! SMVGEAR II arrays
 
       ! Local variables

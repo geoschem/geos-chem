@@ -1,4 +1,4 @@
-! $Id: chemhcn.f,v 1.1 2003/06/30 20:26:09 bmy Exp $
+! $Id: chemhcn.f,v 1.2 2003/07/08 15:28:50 bmy Exp $
       SUBROUTINE CHEMHCN
 !
 !******************************************************************************
@@ -342,11 +342,6 @@
       CALL GETALT  ( ALT, SURFALT, ROVMG  )
 
       ! Set up rural boxes
-      !-----------------------------------------------------------
-      ! Prior to 4/1/03
-      ! TWO_PI is now obsolete for SMVGEAR II (bdf, bmy, 4/1/03)
-      !TWO_PI      = 2.  * 3.1415926535897932
-      !-----------------------------------------------------------
       NLOOP       = NLAT  * NLONG
       NTLOOP      = NLOOP * NVERT
  
@@ -555,11 +550,6 @@
            ! DXYP(J) is the Delta-X * Delta-Y surface area of grid 
            ! boxes (I,J,L=1),in (m^2); FRCLND(I,J) contains land fraction 
            ! of surface grid boxes (I,J,L=1)
-           !-----------------------------------------------------------------
-           ! Prior to 2/4/03:
-           ! Now replace DXYP(J) with GET_AREA_M2(J) (bmy, 2/4/03)
-           !T1L   = F * DXYP(J) * (1.d0 - FRCLND(I,J)) * DTCHEM 
-           !-----------------------------------------------------------------
            T1L   = F * GET_AREA_M2( J ) * (1.d0 - FRCLND(I,J)) * DTCHEM 
 
            STT(I,J,L,N) = STT(I,J,L,N) - T1L 

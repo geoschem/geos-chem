@@ -1,7 +1,9 @@
-C $Id: main.f,v 1.1 2003/06/30 20:26:01 bmy Exp $
+C $Id: main.f,v 1.2 2003/07/08 15:27:48 bmy Exp $
 C $Log: main.f,v $
-C Revision 1.1  2003/06/30 20:26:01  bmy
-C Initial revision
+C Revision 1.2  2003/07/08 15:27:48  bmy
+C GEOS-CHEM v5.07.01, now contains:
+C - interannually varying latitudinal CH4 gradient full chemistry
+C - removal of obsolete code; updates to documentation
 C
 C Revision 1.1.2.3  2003/06/30 18:32:06  bmy
 C GEOS-CHEM v5.06, now contains:
@@ -114,10 +116,6 @@ C
       USE DIAG_MOD,          ONLY : DIAGCHLORO
       USE DIAG51_MOD,        ONLY : DIAG51
       USE DAO_MOD
-      !--------------------------------------------------------------------
-      ! Prior to 6/16/03:
-      !USE DAO_READ_MOD
-      !--------------------------------------------------------------------
       USE DRYDEP_MOD,        ONLY : DO_DRYDEP
       USE EMISSIONS_MOD,     ONLY : DO_EMISSIONS
       USE ERROR_MOD
@@ -242,16 +240,6 @@ C
       !   ***** U N Z I P   M E T   F I E L D S  @ start of run *****
       !=================================================================
 
-      !-----------------------------------------------------------------
-      ! Prior to 6/16/03:
-      !! Remove all files and unzip I-6, A-6, A-3
-      !CALL UNZIP_MET_FIELDS( -1, GET_NYMDb() )  
-      !CALL UNZIP_MET_FIELDS(  1, GET_NYMDb() ) 
-      !
-      !! Only unzip PHIS for fullchem run
-      !IF ( NSRCX == 3 ) CALL UNZIP_MET_FIELDS( 4, NYMD_PHIS ) 
-      !-----------------------------------------------------------------
-
       ! Remove any leftover A-3, A-6, I-6, and PHIS files in temp dir
       CALL UNZIP_A3_FIELDS(  'remove all' )
       CALL UNZIP_A6_FIELDS(  'remove all' )
@@ -272,62 +260,12 @@ C
       !    ***** R E A D   M E T   F I E L D S  @ start of run *****
       !=================================================================
 
-      !--------------------------------------------------------------
-      ! Prior to 6/16/03:
-      ! Update w/ new met field routines (bmy, 6/16/03)
-      !
-      !! Only read PHIS for fullchem runs
-      !IF ( NSRCX == 3 ) THEN
-      !   CALL OPEN_MET_FIELDS( NYMD_PHIS, 000000, TYPE='PHIS' )
-      !   CALL GET_PHIS_FIELD(  NYMD_PHIS, 000000              ) 
-      !   CLOSE( IU_PH )
-      !
-      !   ! Remove previous PHIS files from the temp directory
-      !   CALL UNZIP_MET_FIELDS( 3, NYMD_PHIS )
-      !ENDIF
-      !
-      !! Get date & time from "time_mod.f"
-      !DATE(1) = GET_NYMD()
-      !DATE(2) = GET_NHMS()
-      !
-      !! Open & read I-6 fields
-      !CALL OPEN_MET_FIELDS( DATE(1), 000000, TYPE='I-6' )
-      !CALL GET_I6_FIELDS_1( DATE(1), DATE(2)            )
-      !
-      !! Open & read A-6 fields
-      !CALL OPEN_MET_FIELDS( DATE(1), 000000, TYPE='A-6' ) 
-      !CALL GET_A6_FIELDS(   DATE(1), DATE(2)            )
-      !
-      !! Open and read A-3 fields
-      !CALL OPEN_MET_FIELDS( DATE(1), 000000, TYPE='A-3' )
-      !--------------------------------------------------------------
-
       ! Only read PHIS for fullchem runs
       IF ( NSRCX == 3 ) THEN
          CALL OPEN_PHIS_FIELD( NYMD_PHIS, 000000 )
          CALL GET_PHIS_FIELD(  NYMD_PHIS, 000000 ) 
          CALL UNZIP_PHIS_FIELD( 'remove date', NYMD_PHIS )
       ENDIF
-
-!------------------------------------------------------------------------------
-! Prior to 6/19/03:
-! This was the original code for GEOS-1, GEOS-STRAT, GEOS-3 (bmy, 6/19/03)
-!      ! Get date & time from "time_mod.f"
-!      DATE(1) = GET_NYMD()
-!      DATE(2) = GET_NHMS()
-!      
-!      ! Open and read A-3 fields
-!      CALL OPEN_A3_FIELDS( DATE(1), 000000  )
-!      CALL GET_A3_FIELDS(  DATE(1), DATE(2) ) 
-!
-!      ! Open & read A-6 fields
-!      CALL OPEN_A6_FIELDS( DATE(1), 000000  ) 
-!      CALL GET_A6_FIELDS(  DATE(1), DATE(2) )      
-!
-!      ! Open & read I-6 fields
-!      CALL OPEN_I6_FIELDS(  DATE(1), 000000  )
-!      CALL GET_I6_FIELDS_1( DATE(1), DATE(2) )
-!------------------------------------------------------------------------------
 
       ! Open and read A-3 fields
       DATE = GET_FIRST_A3_TIME()
@@ -344,13 +282,6 @@ C
       CALL OPEN_I6_FIELDS(  DATE(1), DATE(2) )
       CALL GET_I6_FIELDS_1( DATE(1), DATE(2) )
       
-      !----------------------------------------------------
-      ! Prior to 6/19/03:
-      ! Now do this routine GET_I6_FIELDS_1 (bmy, 6/19/03)
-      !! Initialize temperature
-      !T = TMPU1
-      !----------------------------------------------------
-
       ! Compute avg surface pressure near polar caps
       CALL AVGPOLE( PS1 )
 
@@ -468,20 +399,10 @@ C
             ! If LWAIT=T then wait for the met fields to be
             ! fully unzipped before proceeding w/ the run
             IF ( LWAIT ) THEN
-               !-------------------------------------------------------------
-               ! Prior to 6/16/03:
-               ! Replace w/ new met field routines (bmy, 6/16/03)
-               !CALL UNZIP_MET_FIELDS( 1, DATE(1) )
-               !-------------------------------------------------------------
                CALL UNZIP_A3_FIELDS( 'unzip foreground', DATE(1) )
                CALL UNZIP_A6_FIELDS( 'unzip foreground', DATE(1) )
                CALL UNZIP_I6_FIELDS( 'unzip foreground', DATE(1) )
             ELSE
-               !-------------------------------------------------------------
-               ! Prior to 6/16/03:
-               ! Replace w/ new met field routines (bmy, 6/16/03)
-               !CALL UNZIP_MET_FIELDS( 2, DATE(1) )
-               !-------------------------------------------------------------
                CALL UNZIP_A3_FIELDS( 'unzip background', DATE(1) )
                CALL UNZIP_A6_FIELDS( 'unzip background', DATE(1) )
                CALL UNZIP_I6_FIELDS( 'unzip background', DATE(1) )
@@ -497,10 +418,6 @@ C
             DATE(1) = GET_NYMD()
 
             ! Remove A-3, A-6, and I-6 files only for the current date
-            !------------------------------------------------------------
-            ! Prior to 6/16/03:
-            !CALL UNZIP_MET_FIELDS( 0, DATE(1) )
-            !------------------------------------------------------------
             CALL UNZIP_A3_FIELDS( 'remove date', DATE(1) )
             CALL UNZIP_A6_FIELDS( 'remove date', DATE(1) )
             CALL UNZIP_I6_FIELDS( 'remove date', DATE(1) )
@@ -515,12 +432,6 @@ C
             DATE = GET_A3_TIME()
 
             ! Open & read A-3 fields
-            !-----------------------------------------------------------
-            ! Prior to 6/16/03:
-            ! Now use routines from "a3_read_mod.f" (bmy, 6/16/03)
-            !CALL OPEN_MET_FIELDS( DATE(1), DATE(2), TYPE='A-3' )
-            !CALL GET_A3_FIELDS(   DATE(1), DATE(2)             )
-            !-----------------------------------------------------------
             CALL OPEN_A3_FIELDS( DATE(1), DATE(2) )
             CALL GET_A3_FIELDS(  DATE(1), DATE(2) )
          ENDIF
@@ -534,12 +445,6 @@ C
             DATE = GET_A6_TIME()
 
             ! Open and read A-6 fields
-            !-----------------------------------------------------------
-            ! Prior to 6/16/03:
-            ! Now use routines from "a6_read_mod.f" (bmy, 6/16/03)
-            !CALL OPEN_MET_FIELDS( DATE(1), DATE(2), TYPE='A-6' )
-            !CALL GET_A6_FIELDS(   DATE(1), DATE(2)             )
-            !-----------------------------------------------------------
             CALL OPEN_A6_FIELDS( DATE(1), DATE(2) )
             CALL GET_A6_FIELDS(  DATE(1), DATE(2) )
 
@@ -559,12 +464,6 @@ C
             DATE = GET_I6_TIME()
 
             ! Open and read files
-            !------------------------------------------------------------
-            ! Prior to 6/16/03:
-            ! Now use routines from "i6_read_mod.f"
-            !CALL OPEN_MET_FIELDS( DATE(1), DATE(2), TYPE='I-6' )
-            !CALL GET_I6_FIELDS_2( DATE(1), DATE(2)             )
-            !------------------------------------------------------------
             CALL OPEN_I6_FIELDS(  DATE(1), DATE(2) )
             CALL GET_I6_FIELDS_2( DATE(1), DATE(2) )
 
@@ -626,11 +525,6 @@ C
          
          ! Interpolate I-6 fields to current dynamic timestep, 
          ! based on their values at NSEC and NSEC+NTDT
-         !------------------------------------------------------
-         ! Prior to 6/19/03:
-         ! Remove NDT from call to INTERP -- it's always 21600
-         !CALL INTERP( NSECb, GET_ELAPSED_SEC(), NDT, NTDT )
-         !------------------------------------------------------
          CALL INTERP( NSECb, GET_ELAPSED_SEC(), NTDT )         
          
          ! If we are not doing transport, then make sure that
@@ -729,11 +623,6 @@ C
             !        ***** C L O U D   C O N V E C T I O N *****
             !===========================================================
             IF ( LCONV ) THEN
-               !----------------------------------------------------------
-               ! Prior to 6/28/03:
-               ! NFCLDMX is now called from w/in routine DO_CONVECTION
-               !CALL NFCLDMX( NTRACE,TCVV(1:NTRACE),STT(:,:,:,1:NTRACE) )
-               !----------------------------------------------------------
                CALL DO_CONVECTION
 
                !### Debug
@@ -884,10 +773,6 @@ C
  9999 CONTINUE
 
       ! Remove all files from temporary directory 
-      !-----------------------------------------------------------------
-      ! Prior to 6/16/03:
-      !CALL UNZIP_MET_FIELDS( -1, GET_NYMDe() )
-      !-----------------------------------------------------------------
       CALL UNZIP_A3_FIELDS(  'remove all' )
       CALL UNZIP_A6_FIELDS(  'remove all' )
       CALL UNZIP_I6_FIELDS(  'remove all' )
@@ -1107,231 +992,7 @@ C
       ! Return to calling program
       END FUNCTION ITS_TIME_FOR_BPCH
 
-!-----------------------------------------------------------------------------
-! Prior to 6/16/03:
-! GET_I6_FIELDS_1 has been moved into "i6_read_mod.f" (bmy, 6/16/03)
-!
-!      SUBROUTINE GET_I6_FIELDS_1( NYMD, NHMS )
-!
-!      !=================================================================
-!      ! Internal Subroutine GET_I6_FIELDS_1 is a wrapper for the 
-!      ! routine READ_I6 (from "dao_read_mod.f").  GET_I6_FIELDS_1 is 
-!      ! called to read the I-6 fields at the START of the model run.
-!      !
-!      ! NOTES:
-!      ! (1) Add SLP field to argument list for GEOS-3 (bmy, 10/10/00)
-!      !=================================================================
-!      
-!      ! Arguments
-!      INTEGER, INTENT(IN) :: NYMD, NHMS 
-!
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-!
-!      ! For GEOS-1 or GEOS-STRAT, obtain the following fields: 
-!      !    PS1, ALBD1, LWI, UWND1, VWND1, TMPU1, SPHU1    
-!      CALL READ_I6( IUNIT=IU_I6,  NYMD=NYMD,    NHMS=NHMS,   
-!     &              PS=PS1,       ALBD=ALBD1,   LWI=LWI,    
-!     &              UWND=UWND1,   VWND=VWND1,   TMPU=TMPU1,   
-!     &              SPHU=SPHU1 ) 
-!
-!#elif defined( GEOS_2 )
-!
-!      ! For GEOS-2, obtain the following fields:
-!      !    PS1, ALBD1, LWI, TROPP, UWND1, VWND1, TMPU1, SPHU1     
-!      CALL READ_I6( IUNIT=IU_I6,  NYMD=NYMD,    NHMS=NHMS,   
-!     &              PS=PS1,       ALBD=ALBD1,   LWI=LWI,    
-!     &              TROPP=TROPP,  UWND=UWND1,   VWND=VWND1,  
-!     &              TMPU=TMPU1,   SPHU=SPHU1 ) 
-!
-!#elif defined( GEOS_3 )
-!
-!      ! For GEOS-3, obtain the following fields:
-!      !    PS1, ALBD1, LWI, SLP, TROPP, UWND1, VWND1, TMPU1, SPHU1     
-!      CALL READ_I6( IUNIT=IU_I6,  NYMD=NYMD,    NHMS=NHMS,   
-!     &              PS=PS1,       ALBD=ALBD1,   LWI=LWI,    
-!     &              SLP=SLP,      TROPP=TROPP,  UWND=UWND1,  
-!     &              VWND=VWND1,   TMPU=TMPU1,   SPHU=SPHU1 ) 
-!
-!#endif
-!      
-!      ! Return to MAIN program
-!      END SUBROUTINE GET_I6_FIELDS_1
-!
-!-----------------------------------------------------------------------------
-! Prior to 6/16/03:
-! GET_I6_FIELDS_2 has been moved into "i6_read_mod.f" (bmy, 6/16/03)
-!
-!      SUBROUTINE GET_I6_FIELDS_2( NYMD, NHMS )
-!
-!      !=================================================================
-!      ! Internal Subroutine GET_I6_FIELDS_2 is a wrapper for the 
-!      ! routine READ_I6 (from "dao_read_mod.f").  GET_I6_FIELDS_2 is
-!      ! called to read the I-6 fields every 6 hours.
-!      !
-!      ! NOTES:
-!      ! (1) Add SLP field to argument list for GEOS-3 (bmy, 10/10/00)
-!      !=================================================================
-!      
-!      ! Arguments
-!      INTEGER, INTENT(IN) :: NYMD, NHMS 
-!
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-!
-!      ! For GEOS-1 or GEOS-STRAT, obtain the following fields: 
-!      !    PS2, ALBD2, LWI, UWND2, VWND2, TMPU2, SPHU2    
-!      CALL READ_I6( IUNIT=IU_I6,  NYMD=NYMD,    NHMS=NHMS,   
-!     &              PS=PS2,       ALBD=ALBD2,   LWI=LWI,    
-!     &              UWND=UWND2,   VWND=VWND2,   TMPU=TMPU2,   
-!     &              SPHU=SPHU2 ) 
-!
-!#elif defined( GEOS_2 )
-!
-!      ! For GEOS-2 or GEOS-3, obtain the following fields:
-!      !    PS2, ALBD2, LWI2, TROPP, UWND2, VWND2, TMPU2, SPHU2     
-!      CALL READ_I6( IUNIT=IU_I6,  NYMD=NYMD,    NHMS=NHMS,   
-!     &              PS=PS2,       ALBD=ALBD2,   LWI=LWI,    
-!     &              TROPP=TROPP,  UWND=UWND2,   VWND=VWND2,  
-!     &              TMPU=TMPU2,   SPHU=SPHU2 ) 
-!
-!#elif defined( GEOS_3 )
-!
-!      ! For GEOS-2 or GEOS-3, obtain the following fields:
-!      !    PS2, ALBD2, LWI2, SLP, TROPP, UWND2, VWND2, TMPU2, SPHU2     
-!      CALL READ_I6( IUNIT=IU_I6,  NYMD=NYMD,    NHMS=NHMS,   
-!     &              PS=PS2,       ALBD=ALBD2,   LWI=LWI,    
-!     &              SLP=SLP,      TROPP=TROPP,  UWND=UWND2,  
-!     &              VWND=VWND2,   TMPU=TMPU2,   SPHU=SPHU2 ) 
-!
-!#endif
-!      
-!      ! Return to MAIN program
-!      END SUBROUTINE GET_I6_FIELDS_2
-!
-!-----------------------------------------------------------------------------
-! Prior to 6/16/03:
-! GET_A6_FIELDS has been moved into "a6_read_mod.f" (bmy, 6/16/03)
-!
-!      SUBROUTINE GET_A6_FIELDS( NYMD, NHMS )
-!
-!      !=================================================================
-!      ! Internal Subroutine GET_A6_FIELDS is a wrapper for the routine
-!      ! READ_A6 from "dao_read_mod.f", which reads the A-6 met fields
-!      ! from disk.  Handle differences between DAO data sets here.
-!      !=================================================================
-!
-!      ! Arguments
-!      INTEGER, INTENT(IN) :: NYMD, NHMS 
-!
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-!
-!      ! For GEOS-1 or GEOS-STRAT, obtain the following fields:
-!      !    MOISTQ, CLMOSW, CLROSW, CLDMAS, DTRAIN, CLDTOPS, CLDF
-!      CALL READ_A6( IUNIT=IU_A6,   NYMD=NYMD,     NHMS=NHMS,   
-!     &              MOISTQ=MOISTQ, CLMOLW=CLMOSW, CLROLW=CLROSW,  
-!     &              CLDMAS=CLDMAS, DTRAIN=DTRAIN, CLDTOPS=CLDTOPS, 
-!     &              CLDF=CLDF )
-!
-!#elif defined( GEOS_2 ) || defined( GEOS_3 )
-!
-!      ! For GEOS-2 or GEOS-3, obtain the following fields:
-!      !    MOISTQ, CLDMAS, DTRAIN, CLDTOPS, CLDF, OPTDEP
-!      CALL READ_A6( IUNIT=IU_A6,     NYMD=NYMD,     NHMS=NHMS,   
-!     &              MOISTQ=MOISTQ,   CLDMAS=CLDMAS, DTRAIN=DTRAIN,  
-!     &              CLDTOPS=CLDTOPS, CLDF=CLDF,     OPTDEPTH=OPTDEP ) 
-!
-!#endif
-!
-!#if   defined( GEOS_STRAT ) 
-!
-!      ! The CLDFRC field is not archived in GEOS-STRAT.  Call routine
-!      ! MAKE_CLDFRC (from "dao_mod.f") to compute CLDFRC from the
-!      ! existing fields CLMOSW and CLROSW.  Store in the CFRAC array.
-!      CALL MAKE_CLDFRC( CLMOSW, CLROSW, CFRAC )   
-!#endif
-!
-!      ! Return to MAIN program
-!      END SUBROUTINE GET_A6_FIELDS
-!
-!-----------------------------------------------------------------------------
-! Prior to 6/16/03:
-! GET_A3_FIELDS has now been moved to "a3_read_mod.f" (bmy, 6/16/03)
-!
-!      SUBROUTINE GET_A3_FIELDS( NYMD, NHMS )
-!
-!      !=================================================================
-!      ! Internal Subroutine GET_A3_FIELDS is a wrapper for the routine
-!      ! READ_A3 (from "dao_read_mod.f").  GET_A3_FIELDS is called to 
-!      ! read the A-3 fields from disk every 3 hours.
-!      !=================================================================
-!
-!      ! Arguments
-!      INTEGER, INTENT(IN) :: NYMD, NHMS 
-!
-!#if   defined( GEOS_1 ) || defined( GEOS_2 ) || defined( GEOS_3 ) 
-!
-!      !================================================================
-!      ! For GEOS-1, GEOS-2, or GEOS-3, read the following fields:
-!      !    HFLUX, RADSWG, PREACC, PRECON, USTAR, 
-!      !    Z0,    PBL,    CLDFRC, U10M,   V10M
-!      !================================================================
-!      CALL READ_A3( IUNIT=IU_A3,   NYMD=NYMD,     NHMS=NHMS,
-!     &              HFLUX=HFLUX,   RADSWG=RADIAT, PREACC=PREACC, 
-!     &              PRECON=PRECON, TS=TS,         USTAR=USTAR,   
-!     &              Z0=Z0,         PBL=PBL,       CLDFRC=CFRAC,  
-!     &              U10M=U10M,     V10M=V10M )
-!
-!#elif defined( GEOS_STRAT )
-!
-!      !================================================================
-!      ! For GEOS-STRAT, always read the following fields:
-!      !    HFLUX, RADSWG, PREACC, PRECON, USTAR, Z0, PBL   
-!      !
-!      ! Prior to 13 Feb 1997, U10M and V10M were not archived in the 
-!      ! GEOS-STRAT data.  If U10M and V10M are available, read them. 
-!      !================================================================
-!      IF ( NYMD < 19970213 ) THEN
-!
-!         ! Prior to 13 Feb 1997, read 7 A-3 fields
-!         CALL READ_A3( IUNIT=IU_A3,   NYMD=NYMD,     NHMS=NHMS,
-!     &                 HFLUX=HFLUX,   RADSWG=RADIAT, PREACC=PREACC, 
-!     &                 PRECON=PRECON, TS=TS,         USTAR=USTAR,   
-!     &                 Z0=Z0,         PBL=PBL )
-!      ELSE
-!         
-!         ! On or after 13 Feb 1997, read 9 A-3 fields
-!         CALL READ_A3( IUNIT=IU_A3,   NYMD=NYMD,     NHMS=NHMS,
-!     &                 HFLUX=HFLUX,   RADSWG=RADIAT, PREACC=PREACC, 
-!     &                 PRECON=PRECON, TS=TS,         USTAR=USTAR,   
-!     &                 Z0=Z0,         PBL=PBL,       U10=U10M,
-!     &                 V10M=V10M )
-!      ENDIF
-!#endif
-!
-!      ! Return to MAIN program
-!      END SUBROUTINE GET_A3_FIELDS
-!
-!-----------------------------------------------------------------------------
-! Prior to 6/16/03:
-! GET_PHIS_FIELD has been moved into phis_read_mod.f (bmy, 6/16/03)
-!
-!      SUBROUTINE GET_PHIS_FIELD( NYMD, NHMS )
-!
-!      !=================================================================
-!      ! Internal Subroutine GET_PHIS_FIELD is a wrapper for the routine
-!      ! READ_PHIS (from "dao_read_mod.f").  GET_PHIS_FIELD is called to
-!      ! read the PHIS field from disk at the start of a model run.
-!      !=================================================================
-!
-!      ! Arguments
-!      INTEGER, INTENT(IN) :: NYMD, NHMS 
-!
-!      ! Read the PHIS field from disk
-!      CALL READ_PHIS( IUNIT=IU_PH, NYMD=NYMD, NHMS=NHMS, PHIS=PHIS )
-!
-!      ! Return to MAIN program
-!      END SUBROUTINE GET_PHIS_FIELD
-!
-!-----------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 
       SUBROUTINE GET_WIND10M( NYMD )
 

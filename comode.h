@@ -1,14 +1,17 @@
-! $Id: comode.h,v 1.1 2003/06/30 20:26:09 bmy Exp $
+! $Id: comode.h,v 1.2 2003/07/08 15:34:04 bmy Exp $
 !
 !******************************************************************************
 !  Header file COMODE contains common blocks and variables for SMVGEAR II.
-!  (M. Jacobson 1997; bdf, bmy, 4/23/03)
+!  (M. Jacobson 1997; bdf, bmy, 4/23/03, 7/1/03)
 !
 !  NOTES:
 !  (1 ) Removed many commented-out common blocks not needed for GEOS-CHEM.
 !        Also updated comments.  Also make sure that MAXGL3 is dimensioned
 !        for at least NNPAR tracers.  Add NNADDG and NKSPECG for DMS+OH+O2
 !        rxn.  COEF12 and QRM2 are now obsolete for SMVGEAR II. (bmy, 4/23/03)
+!  (2 ) Added ICH4 to the /SPECIE2/ common block for interannual-varying
+!        CH4 concentration.  Added variables for latitude distribution of
+!        CH4 to the /SPECIE3/ common block. (bmy, 7/1/03)
 !******************************************************************************
 !
 C         CCCCCCC  OOOOOOO  M     M  OOOOOOO  DDDDDD   EEEEEEE 
@@ -72,12 +75,6 @@ C
       PARAMETER (MAXDAYS = 1000                    )
 C Debug
 C     PARAMETER (KBLOOP  = 1                       )
-      !------------------------------------------------------------
-      ! Prior to 4/7/03:
-      ! Need to increase mxblock size (bdf, 4/7/03)
-      !PARAMETER (MXBLOCK = 1 + ITLOOP/KBLOOP       )
-      !PARAMETER (MXBLOCK = 1550 + ITLOOP/KBLOOP       )
-      !------------------------------------------------------------
       PARAMETER (MXBLOCK = 16 + ITLOOP/KBLOOP      )
 C
 C ************************* TRACER PARAMETERS ****************************
@@ -116,11 +113,6 @@ C
       PARAMETER ( NMRATE  = 360,               IPHOT   = 60          )
       PARAMETER ( NMTRATE = NMRATE + IPHOT,    NMQRATE = 1           ) 
       PARAMETER ( NMRPROD = 25,                NMDEAD  = 100         )
-      !---------------------------------------------------------------------
-      ! Prior to 4/7/03:
-      ! Needed to increase MAXGL to 430 (bmy, 4/7/03)
-      !PARAMETER ( MAXGL   = 370,               MAXGL2  = 50          )
-      !---------------------------------------------------------------------
       PARAMETER ( MAXGL   = 430,               MAXGL2  = 50          )
       PARAMETER ( MAXGL3  = 32,                MAXGL4  = 10          )
       PARAMETER ( ICS     = 3,                 ICP     = 2*ICS       ) 
@@ -348,6 +340,14 @@ C
       INTEGER IH2O,IOXYGEN,MB1,MB2
       COMMON /SPECIES/
      1  IH2O,      IOXYGEN,   MB1,       MB2
+
+      ! Added for interannually-varying Methane (bnd, bmy, 7/1/03)
+      INTEGER ::        ICH4
+      COMMON  /SPECIE2/ ICH4
+
+      ! Added for interannually-varying Methane (bnd, bmy, 7/1/03)
+      REAL*8  ::        C3090S, C0030S, C0030N, C3090N
+      COMMON  /SPECIE3/ C3090S, C0030S, C0030N, C3090N
 C
       INTEGER IOUT,KGLC,  KPHT,  KRDD,  KMIX,  KCPD,
      2     KINS,KGCO
@@ -810,16 +810,6 @@ C     6  JHIZ2(   MXGSAER,      ICP)
       COMMON /IMXCOUN2/
      &  QPRODA(MXCOUNT4),    QPRODB(MXCOUNT4),    QPRODC(MXCOUNT4   ),  
      &  QPRODD(MXCOUNT4),    QPROD(MXGSAER,MAXGL,ICS)
-C
-!------------------------------------------------------------------------------
-! Prior to 4/23/03:
-! These are now obsolete in SMVGEAR II (bmy, 4/23/03)
-!      ! Split these off from common block /INMRPROD3/ to avoid mixing
-!      ! INTEGER and REAL*8 types in the same common block (bmy, 4/20/99)
-!      REAL*8 COEF12,QRM2
-!      COMMON /INMRPROD3/
-!     &  COEF12( NMRPROD, MXRATE, ICS), QRM2(NMRPROD,MXRATE,ICS) 
-!------------------------------------------------------------------------------
 C
       ! Split this off from common block /IMISC/ to avoid mixing
       ! INTEGER and REAL*8 types in the same common block (bmy, 4/20/99)

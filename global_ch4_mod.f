@@ -1,9 +1,9 @@
-! $Id: global_ch4_mod.f,v 1.1 2003/06/30 20:26:03 bmy Exp $
+! $Id: global_ch4_mod.f,v 1.2 2003/07/08 15:27:08 bmy Exp $
       MODULE GLOBAL_CH4_MOD
 !
 !******************************************************************************
 !  Module GLOBAL_CH4_MOD contains variables and routines for simulating
-!  CH4 chemistry in the troposphere (jsw, bnd, bmy, 1/17/01, 3/27/03)
+!  CH4 chemistry in the troposphere (jsw, bnd, bmy, 1/17/01, 7/7/03)
 !
 !  Module Variables:
 !  =========================================================================== 
@@ -74,6 +74,7 @@
 !        header file "comtrid.h" -- it's not used. (bmy, 11/6/02)
 !  (17) Minor bug fix in FORMAT statements (bmy, 3/23/03)
 !  (18) Now references "grid_mod.f" and "time_mod.f" (bmy, 3/27/03)
+!  (19) Updates to GET_GLOBAL_CH4 (bmy, 7/1/03)
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -137,7 +138,7 @@
 !
 !******************************************************************************
 !  Subroutine GET_GLOBAL_CH4 computes the latitudinal gradient in CH4
-!  corresponding to year (jsw, bnd, bmy, 1/3/01, 3/23/03)
+!  corresponding to year (jsw, bnd, bmy, 1/3/01, 7/1/03)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -146,10 +147,10 @@
 !
 !  Arguments as Output:
 !  ===========================================================================
-!  (1) A3090S       (REAL*8 ) : CH4 concentration [ppbv], 90S - 30S lat
-!  (2) A0030S       (REAL*8 ) : CH4 concentration [ppbv], 30S - 00  lat
-!  (3) A0030N       (REAL*8 ) : CH4 concentration [ppbv], 00  - 30N lat
-!  (4) A3090N       (REAL*8 ) : CH4 concentration [ppbv], 30N - 90N lat
+!  (3 ) A3090S      (REAL*8 ) : CH4 concentration [ppbv], 90S - 30S lat
+!  (4 ) A0030S      (REAL*8 ) : CH4 concentration [ppbv], 30S - 00  lat
+!  (5 ) A0030N      (REAL*8 ) : CH4 concentration [ppbv], 00  - 30N lat
+!  (6 ) A3090N      (REAL*8 ) : CH4 concentration [ppbv], 30N - 90N lat
 !
 !  NOTES:
 !  (1 ) GET_GLOBAL_CH4 only has to be called at the start of the new year,
@@ -158,6 +159,12 @@
 !  (2 ) Also need to compute yearly gradients for CH4 beyond 1997 --
 !        will do this later (bmy, 1/3/01)
 !  (3 ) Bug fix: add missing comma to FORMAT statement (bmy, 3/23/03)
+!  (4 ) Place WRITE statments w/in an !$OMP CRITICAL block, so as to make
+!        sure that only one processor at a time writes them.  Also now use
+!        F90 REPEAT intrinsic function.  Also replaced old CH4 gradient values
+!        with updated values for 1983-2001.  Use data for 2001 as a proxy for
+!        years past 2001, since data for those years has not been reported
+!        yet. (mje, bmy, 7/7/03)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -167,145 +174,293 @@
       LOGICAL, INTENT(IN)  :: VARIABLE_CH4
       REAL*8,  INTENT(OUT) :: A3090S, A0030S, A0030N, A3090N
 
+!------------------------------------------------------------------------------
+! Prior to 7/7/03:
+! Use updated numbers from Mat Evans (bmy, 7/7/03)
+!      !=================================================================
+!      ! GET_GLOBAL_CH4 begins here!
+!      !
+!      ! Methane concentrations specified (bnd, 1/2/01):
+!      !
+!      ! (1) After Dlugokencky et al. [1994,1995]: 
+!      !     semihemispheres from S to N: 1645, 1655, 1715, 1770 ppmv
+!      !
+!      ! (2) Global Annual Mean [CH4] calculated by James Wang from 
+!      !     marine boundary layer.  Distribution produced by CMDL 
+!      !     Carbon Cycle Group.
+!      !
+!      !        YEAR   GLOB.ANN.MEAN      YEAR    GLOB.ANN.MEAN  
+!      !        1984     1625.497 ppbv    1991      1704.239 ppbv
+!      !        1985     1638.549         1992      1714.810
+!      !        1986     1650.846         1993      1716.071
+!      !        1987     1663.136         1994      1721.590
+!      !        1988     1673.388         1995      1728.326
+!      !        1989     1684.353         1996      1730.379
+!      !        1990     1693.718         1997      1733.844 
+!      !
+!      ! (3) Semihemisphere Annual Means [ppbv] calculated by James Wang  
+!      !     from marine boundary layer distribution produced by CMDL 
+!      !     Carbon Cycle Group.
+!      !
+!      !     30S-90S = 1/4 Earth's surface area
+!      !      0 -30S = 1/4 Earth's surface area
+!      !      0 -30N = 1/4 Earth's surface area
+!      !     30N-90N = 1/4 Earth's surface area
+!      !
+!      !                1984      1985      1986      1987      1988     
+!      !      90-30S  1577.444  1588.229  1600.259  1611.734  1621.533 
+!      !      30-00S  1586.337  1599.234  1610.554  1620.777  1631.498 
+!      !      00-30N  1636.834  1652.357  1664.577  1679.115  1687.696 
+!      !      30-90N  1699.517  1712.120  1725.824  1738.989  1750.554 
+!      !
+!      !                1989      1990      1991      1992      1993 
+!      !      90-30S  1635.240  1643.411  1652.959  1667.683  1668.338 
+!      !      30-00S  1645.322  1651.636  1662.891  1673.549  1676.068 
+!      !      00-30N  1696.344  1708.618  1719.462  1729.867  1730.538 
+!      !      30-90N  1758.423  1769.029  1779.541  1786.294  1787.556 
+!      !
+!      !                1994      1995      1996      1997
+!      !      90-30S  1672.130  1680.011  1681.629  1687.510
+!      !      30-00S  1681.328  1689.218  1691.162  1694.978
+!      !      00-30N  1736.657  1743.177  1745.321  1749.205
+!      !      30-30N  1794.262  1799.168  1801.625  1801.918
+!      !=================================================================
+!      IF ( VARIABLE_CH4 ) THEN 
+!
+!         ! Select latitudinal CH4 gradient by year...
+!         SELECT CASE ( THISYEAR ) 
+!         
+!            CASE ( 1985 )
+!               A3090S = 1588.2d0
+!               A0030S = 1599.2d0
+!               A0030N = 1652.4d0
+!               A3090N = 1712.1d0
+!
+!            CASE ( 1986 )
+!               A3090S = 1600.3d0
+!               A0030S = 1610.5d0
+!               A0030N = 1664.6d0
+!               A3090N = 1725.8d0
+!            
+!            CASE ( 1987 )
+!               A3090S = 1611.7d0
+!               A0030S = 1620.8d0
+!               A0030N = 1679.1d0
+!               A3090N = 1739.0d0
+!
+!            CASE ( 1988 ) 
+!               A3090S = 1621.5d0
+!               A0030S = 1631.5d0
+!               A0030N = 1687.7d0
+!               A3090N = 1750.6d0
+!
+!            CASE ( 1989 )
+!               A3090S = 1635.2d0
+!               A0030S = 1645.3d0
+!               A0030N = 1696.3d0
+!               A3090N = 1758.4d0
+!
+!            CASE ( 1990 )
+!               A3090S = 1643.4d0
+!               A0030S = 1651.6d0
+!               A0030N = 1708.6d0
+!               A3090N = 1769.0d0
+!
+!            CASE ( 1991 )
+!               A3090S = 1653.0d0
+!               A0030S = 1662.9d0
+!               A0030N = 1719.5d0
+!               A3090N = 1779.5d0
+!               
+!            CASE ( 1992 )
+!               A3090S = 1667.7d0
+!               A0030S = 1673.5d0
+!               A0030N = 1729.9d0
+!               A3090N = 1786.3d0
+!
+!            CASE ( 1993 )
+!               A3090S = 1668.3d0
+!               A0030S = 1676.1d0
+!               A0030N = 1730.5d0
+!               A3090N = 1787.6d0
+!               
+!            CASE ( 1994 )
+!               A3090S = 1672.1d0
+!               A0030S = 1681.3d0
+!               A0030N = 1736.7d0
+!               A3090N = 1794.3d0
+!
+!            CASE ( 1995 )
+!               A3090S = 1680.0d0
+!               A0030S = 1689.2d0
+!               A0030N = 1743.2d0
+!               A3090N = 1799.2d0
+!           
+!            CASE ( 1996 )
+!               A3090S = 1681.6d0
+!               A0030S = 1691.2d0
+!               A0030N = 1745.3d0
+!               A3090N = 1801.6d0
+!
+!            CASE ( 1997 )
+!               A3090S = 1687.5d0
+!               A0030S = 1695.0d0
+!               A0030N = 1749.2d0
+!               A3090N = 1801.9d0
+!         
+!            CASE DEFAULT
+!
+!               ! Need to fill in years past 1997 with data,
+!               ! for now, just assume constant global CH4
+!               A3090S = 1700.0d0
+!               A0030S = 1700.0d0
+!               A0030N = 1700.0d0
+!               A3090N = 1700.0d0
+!
+!         END SELECT
+!------------------------------------------------------------------------------
       !=================================================================
-      ! GET_GLOBAL_CH4 begins here!
+      ! New methane data from 1983-2001 (mje, bmy, 7/7/03)
       !
-      ! Methane concentrations specified (bnd, 1/2/01):
+      ! Methane measurements are from CMDL website:
+      ! ftp://140.172.192.211/ccg/ch4/flask/month
+      ! 
+      ! Measurements includes all sites other than:
+      ! BAL BSC HUN MHD OXK TAP SEY IZO KUM MID ASK
       !
-      ! (1) After Dlugokencky et al. [1994,1995]: 
-      !     semihemispheres from S to N: 1645, 1655, 1715, 1770 ppmv
-      !
-      ! (2) Global Annual Mean [CH4] calculated by James Wang from 
-      !     marine boundary layer.  Distribution produced by CMDL 
-      !     Carbon Cycle Group.
-      !
-      !        YEAR   GLOB.ANN.MEAN      YEAR    GLOB.ANN.MEAN  
-      !        1984     1625.497 ppbv    1991      1704.239 ppbv
-      !        1985     1638.549         1992      1714.810
-      !        1986     1650.846         1993      1716.071
-      !        1987     1663.136         1994      1721.590
-      !        1988     1673.388         1995      1728.326
-      !        1989     1684.353         1996      1730.379
-      !        1990     1693.718         1997      1733.844 
-      !
-      ! (3) Semihemisphere Annual Means [ppbv] calculated by James Wang  
-      !     from marine boundary layer distribution produced by CMDL 
-      !     Carbon Cycle Group.
-      !
-      !     30S-90S = 1/4 Earth's surface area
-      !      0 -30S = 1/4 Earth's surface area
-      !      0 -30N = 1/4 Earth's surface area
-      !     30N-90N = 1/4 Earth's surface area
-      !
-      !                1984      1985      1986      1987      1988     
-      !      90-30S  1577.444  1588.229  1600.259  1611.734  1621.533 
-      !      30-00S  1586.337  1599.234  1610.554  1620.777  1631.498 
-      !      00-30N  1636.834  1652.357  1664.577  1679.115  1687.696 
-      !      30-90N  1699.517  1712.120  1725.824  1738.989  1750.554 
-      !
-      !                1989      1990      1991      1992      1993 
-      !      90-30S  1635.240  1643.411  1652.959  1667.683  1668.338 
-      !      30-00S  1645.322  1651.636  1662.891  1673.549  1676.068 
-      !      00-30N  1696.344  1708.618  1719.462  1729.867  1730.538 
-      !      30-90N  1758.423  1769.029  1779.541  1786.294  1787.556 
-      !
-      !                1994      1995      1996      1997
-      !      90-30S  1672.130  1680.011  1681.629  1687.510
-      !      30-00S  1681.328  1689.218  1691.162  1694.978
-      !      00-30N  1736.657  1743.177  1745.321  1749.205
-      !      30-30N  1794.262  1799.168  1801.625  1801.918
+      ! Sites are separated into 4 latitude bands:
+      !    (1) 90S - 30S;  (2) 30S - 00S;  
+      !    (3) 00N - 30N;  (4) 30N - 90N
+      ! 
+      ! Bob Yantosca (bmy@io.harvard.edu) maintains the archive 
+      ! of the IDL code needed to process the methane data.
       !=================================================================
-      IF ( VARIABLE_CH4 ) THEN 
+      IF ( VARIABLE_CH4 ) THEN
 
          ! Select latitudinal CH4 gradient by year...
-         SELECT CASE ( THISYEAR ) 
-         
-            CASE ( 1985 )
-               A3090S = 1588.2d0
-               A0030S = 1599.2d0
-               A0030N = 1652.4d0
-               A3090N = 1712.1d0
+         SELECT CASE ( THISYEAR )
 
-            CASE ( 1986 )
-               A3090S = 1600.3d0
-               A0030S = 1610.5d0
-               A0030N = 1664.6d0
-               A3090N = 1725.8d0
+            CASE( 1983 )
+               A3090S = 1559.89d0
+               A0030S = 1575.68d0
+               A0030N = 1627.04d0
+               A3090N = 1682.40d0
+
+            CASE( 1984 )
+               A3090S = 1578.59d0
+               A0030S = 1587.03d0
+               A0030N = 1635.20d0
+               A3090N = 1702.69d0
+
+            CASE( 1985 )
+               A3090S = 1588.78d0
+               A0030S = 1600.98d0
+               A0030N = 1648.02d0
+               A3090N = 1716.23d0
+               
+            CASE( 1986 )
+               A3090S = 1598.28d0  
+               A0030S = 1612.76d0  
+               A0030N = 1664.98d0  
+               A3090N = 1731.23d0
+
+            CASE( 1987 )
+               A3090S = 1611.65d0  
+               A0030S = 1622.34d0  
+               A0030N = 1681.88d0  
+               A3090N = 1741.44d0
+
+            CASE( 1988 )
+               A3090S = 1620.31d0  
+               A0030S = 1634.43d0  
+               A0030N = 1691.88d0  
+               A3090N = 1753.92d0
+
+            CASE( 1989 )
+               A3090S = 1634.89d0  
+               A0030S = 1647.15d0  
+               A0030N = 1699.20d0  
+               A3090N = 1759.64d0
+
+            CASE( 1990 )
+               A3090S = 1643.58d0  
+               A0030S = 1653.97d0  
+               A0030N = 1712.33d0  
+               A3090N = 1769.97d0
+
+            CASE( 1991 )
+               A3090S = 1654.38d0  
+               A0030S = 1665.13d0  
+               A0030N = 1722.64d0  
+               A3090N = 1779.76d0
+
+            CASE( 1992 )
+               A3090S = 1668.22d0  
+               A0030S = 1673.40d0  
+               A0030N = 1732.30d0  
+               A3090N = 1786.76d0
+
+            CASE( 1993 )
+               A3090S = 1667.04d0  
+               A0030S = 1677.26d0  
+               A0030N = 1733.96d0  
+               A3090N = 1790.82d0
+
+            CASE( 1994 )
+               A3090S = 1670.85d0  
+               A0030S = 1681.07d0  
+               A0030N = 1740.88d0  
+               A3090N = 1797.05d0
+
+            CASE( 1995 )
+               A3090S = 1681.00d0  
+               A0030S = 1689.19d0  
+               A0030N = 1751.25d0  
+               A3090N = 1802.51d0
+
+            CASE( 1996 )
+               A3090S = 1682.23d0  
+               A0030S = 1690.72d0  
+               A0030N = 1751.64d0  
+               A3090N = 1805.18d0
             
-            CASE ( 1987 )
-               A3090S = 1611.7d0
-               A0030S = 1620.8d0
-               A0030N = 1679.1d0
-               A3090N = 1739.0d0
+            CASE( 1997 )
+               A3090S = 1687.94d0  
+               A0030S = 1693.35d0  
+               A0030N = 1755.41d0  
+               A3090N = 1805.92d0
 
-            CASE ( 1988 ) 
-               A3090S = 1621.5d0
-               A0030S = 1631.5d0
-               A0030N = 1687.7d0
-               A3090N = 1750.6d0
+            CASE( 1998 )
+               A3090S = 1696.98d0  
+               A0030S = 1703.54d0  
+               A0030N = 1764.94d0  
+               A3090N = 1820.58d0
 
-            CASE ( 1989 )
-               A3090S = 1635.2d0
-               A0030S = 1645.3d0
-               A0030N = 1696.3d0
-               A3090N = 1758.4d0
+            CASE( 1999 )
+               A3090S = 1705.64d0  
+               A0030S = 1714.18d0  
+               A0030N = 1769.83d0  
+               A3090N = 1823.48d0
 
-            CASE ( 1990 )
-               A3090S = 1643.4d0
-               A0030S = 1651.6d0
-               A0030N = 1708.6d0
-               A3090N = 1769.0d0
+            CASE( 2000 )
+               A3090S = 1707.14d0  
+               A0030S = 1715.63d0  
+               A0030N = 1769.11d0  
+               A3090N = 1822.85d0
 
-            CASE ( 1991 )
-               A3090S = 1653.0d0
-               A0030S = 1662.9d0
-               A0030N = 1719.5d0
-               A3090N = 1779.5d0
-               
-            CASE ( 1992 )
-               A3090S = 1667.7d0
-               A0030S = 1673.5d0
-               A0030N = 1729.9d0
-               A3090N = 1786.3d0
+            CASE( 2001 )
+               A3090S = 1705.68d0  
+               A0030S = 1709.52d0  
+               A0030N = 1767.51d0  
+               A3090N = 1822.53d0
 
-            CASE ( 1993 )
-               A3090S = 1668.3d0
-               A0030S = 1676.1d0
-               A0030N = 1730.5d0
-               A3090N = 1787.6d0
-               
-            CASE ( 1994 )
-               A3090S = 1672.1d0
-               A0030S = 1681.3d0
-               A0030N = 1736.7d0
-               A3090N = 1794.3d0
-
-            CASE ( 1995 )
-               A3090S = 1680.0d0
-               A0030S = 1689.2d0
-               A0030N = 1743.2d0
-               A3090N = 1799.2d0
-           
-            CASE ( 1996 )
-               A3090S = 1681.6d0
-               A0030S = 1691.2d0
-               A0030N = 1745.3d0
-               A3090N = 1801.6d0
-
-            CASE ( 1997 )
-               A3090S = 1687.5d0
-               A0030S = 1695.0d0
-               A0030N = 1749.2d0
-               A3090N = 1801.9d0
-         
+            ! Use 2001 data as the default for years past 2001, until we 
+            ! can get actual data for these years (bmy, 7/3/03)
             CASE DEFAULT
-
-               ! Need to fill in years past 1997 with data,
-               ! for now, just assume constant global CH4
-               A3090S = 1700.0d0
-               A0030S = 1700.0d0
-               A0030N = 1700.0d0
-               A3090N = 1700.0d0
+               A3090S = 1705.68d0  
+               A0030S = 1709.52d0  
+               A0030N = 1767.51d0  
+               A3090N = 1822.53d0
 
          END SELECT
 
@@ -322,11 +477,9 @@
       !=================================================================
       ! Print the latitudinal CH4 gradient for this year to stdout
       !=================================================================
-      WRITE( 6, 100 ) 
- 100  FORMAT( '=======================================', 
-     &           '=======================================' )
-
-      WRITE( 6, 105 ) THISYEAR
+!$OMP CRITICAL
+      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+      WRITE( 6, 105   ) THISYEAR
  105  FORMAT( 'GET_GLOBAL_CH4: YEAR = ', i4 )
 
       WRITE( 6, 110 ) A3090N, A0030N, A0030S, A3090S 
@@ -335,7 +488,16 @@
      &        'CH4 (00  - 30S) : ', f7.1, ' [ppbv]', /,
      &        'CH4 (30S - 90S) : ', f7.1, ' [ppbv]' )
 
-      WRITE( 6, 100 )
+      ! Indicate to the log file if we are using CH4 gradient data
+      ! from 2001 as a proxy for years past 2001 (mje, bmy, 7/7/03)
+      IF ( THISYEAR > 2001 ) THEN
+         WRITE( 6, 115 ) 
+ 115     FORMAT( /, 'Using CH4 gradient data from 2001 as a proxy',
+     &           /, 'since 2001 is the last year with reported data!' )
+      ENDIF
+
+      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+!$OMP END CRITICAL
 
       ! Return to calling program
       END SUBROUTINE GET_GLOBAL_CH4

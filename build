@@ -1,0 +1,39 @@
+#!/bin/perl -w
+
+#==============================================================================
+# Perl script "build" compiles GEOS-CHEM with the correct makefile for 
+# the given operating system.  Calls the Unix "uname" function to return
+# the operating system name.  (bmy, 7/2/03)
+#
+# Arguments as Input:
+# -----------------------------------------------------------------------------
+# (1 ) $target : Name of the makefile target to build (default is "geos")
+#
+# NOTES:
+#==============================================================================
+
+# Local variables
+my $target = "geos";
+my $OSName = "";
+
+# If an argument has been passed, then redefine $target 
+if ( scalar( @ARGV ) > 0 ) { $target = $ARGV[0]; }
+
+# Get the OS name via system call
+$OSName = qx( uname -s );
+
+# Error check the system call
+if ( $? != 0 ) { 
+   print "Error obtaining operating system name!\n";
+   exit(1);
+}
+
+# Compile GEOS-CHEM w/ the right makefile
+if    ( $OSName =~ "IRIX"  ) { qx( make $target -f Makefile.sgi   ); }
+elsif ( $OSName =~ "OSF1"  ) { qx( make $target -f Makefile.alpha ); } 
+elsif ( $OSName =~ "LINUX" ) { qx( make $target -f Makefile.ibm   ); }
+elsif ( $OSName =~ "SunOS" ) { qx( make $target -f Makefile.sun   ); }
+elsif ( $OSName =~ "AIX"   ) { qx( make $target -f Makefile.ibm   ); }
+  
+# Exit normally
+exit(0);

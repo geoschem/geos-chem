@@ -1,4 +1,4 @@
-! $Id: time_mod.f,v 1.1 2003/06/30 20:26:06 bmy Exp $
+! $Id: time_mod.f,v 1.2 2003/07/08 15:29:52 bmy Exp $
       MODULE TIME_MOD
 !
 !******************************************************************************
@@ -2044,15 +2044,6 @@
       ! ITS_TIME_FOR_DEL begins here!
       !=================================================================
 
-      !-----------------------------------------------------------------
-      ! Prior to 6/19/03:
-      !! Get YYYYMMDD and HHMMSS 1 hour (60 mins) from now
-      !!DATE = GET_TIME_AHEAD( 60 )
-      !
-      !! If HHMMSS = 0 then it's time to delete temporary files!
-      !!FLAG = ( DATE(2) == 000000 )
-      !-----------------------------------------------------------------
-
       ! Delete files when it's 23 GMT
       FLAG = ( NHMS == 230000 )
 
@@ -2341,12 +2332,6 @@
 
       ! Write YYMMDD format
       CHARACTER(LEN=6) :: DATE_STR
-      !-----------------------------------------------------------------
-      ! Prior to 5/15/03:
-      ! Print YEAR-1900 for 2 digits -- this is OK since GEOS-1 and
-      ! GEOS-STRAT do not go beyond the year 2000 (bmy, 5/15/03)
-      !WRITE( DATE_STR, '(3i2.2)' ) YEAR, MONTH, DAY
-      !-----------------------------------------------------------------
       WRITE( DATE_STR, '(3i2.2)' ) YEAR-1900, MONTH, DAY
 
 #else

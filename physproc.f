@@ -1,4 +1,4 @@
-! $Id: physproc.f,v 1.1 2003/06/30 20:26:03 bmy Exp $
+! $Id: physproc.f,v 1.2 2003/07/08 15:31:49 bmy Exp $
       SUBROUTINE PHYSPROC( SUNCOS, SUNCOSB )
 !
 !******************************************************************************
@@ -284,14 +284,6 @@ C
 
           !Write(6,*) 'about to start chemistry with NCS= ',ncs
           !write(6,*) '    val of nblockuse = ',nblockuse
-!-----------------------------------------------------------------------------
-! Prior to 4/1/03:
-! Replace with OpenMP statements
-!C$DOACROSS  SHARE(NBLOCKUSE,JLOWVAR,KTLPVAR,ISREORD,SUNCOS,
-!C$&               ISCHANG,INEWOLD,JREORDER,CSPEC,MAPPL,AIRDENS),
-!C$&         LOCAL(JLOOP,KLOOP,KBLK2,JNEW,JOLD),
-!C$&         MP_SCHEDTYPE=DYNAMIC
-!-----------------------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( JLOOP,KLOOP,KBLK2,JNEW,JOLD )

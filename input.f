@@ -1,4 +1,4 @@
-! $Id: input.f,v 1.1 2003/06/30 20:26:01 bmy Exp $
+! $Id: input.f,v 1.2 2003/07/08 15:32:39 bmy Exp $
       SUBROUTINE INPUT
 !
 ! NOTE: INPUT is mostly historical baggage, but it works for now.
@@ -42,11 +42,6 @@
  
       !### Kludge: need to declare these as local variables temporarily
       INTEGER I0, J0, NTAU0, JMSIZE, IYEAR, I00, J00
-      !-------------------------------------
-      ! Prior to 4/29/30:
-      ! These are obsolete now
-      !REAL*8  TAUI, TAUE
-      !-------------------------------------
 
       !=================================================================
       ! INPUT begins here!
@@ -171,11 +166,6 @@ C-------INPUT BASIC GRID DATA + SPECIFIC CTM DATA
       J00    = 0
 
 C---------------------------LIST INPUT----------------------------------
-      !------------------------------------------
-      ! Prior to 4/29/03:
-      ! These are obsolete now (bmy, 4/29/03)
-      !WRITE(6,963) TAUI,TAUE
-      !------------------------------------------
       WRITE(6,964) LCONT,LSAVE,LINIT,LWINDO,LYRRD,
      1             LSTRAT,LTROP,LSRCE,LZONE,LPUFF,
      2             LSOM,LPFILT,LCONV4,LPLU,L2PM,
@@ -341,11 +331,7 @@ C-----------------------------------------------------------------------
 
       ! NUNIT is time step in minutes for unit conversion
       NUNIT = -1
-      !-----------------------------------------------------------------
-      ! Prior to 4/28/03:
-      ! Remove reference to LKZZ (bmy, 4/28/03)
-      !IF ( LTRAN .or. LCONV .or. LTURB .or. LKZZ ) THEN
-      !-----------------------------------------------------------------
+
       IF ( LTRAN .or. LCONV .or. LTURB ) THEN
          NUNIT = MAX( NDYN, NCONV )
       ENDIF

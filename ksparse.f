@@ -1,4 +1,4 @@
-! $Id: ksparse.f,v 1.1 2003/06/30 20:26:03 bmy Exp $
+! $Id: ksparse.f,v 1.2 2003/07/08 15:32:04 bmy Exp $
       SUBROUTINE KSPARSE
 !
 !******************************************************************************
@@ -531,11 +531,6 @@ C
      6  MXCOUNT4, KZTOT,       MXCOUNT4, KBSUB,
      7  MXCOUNT4, MZTOT,       MXCOUNT4, MBSUB,
      8  MXARRAY,  IARRAY2     
-        !---------------------------------------------------------------
-        ! Prior to 4/7/03:
-        ! Now deallocate arrays and stop the run safely (bmy, 4/7/03)
-        !STOP
-        !---------------------------------------------------------------
         CALL GEOS_CHEM_STOP
        ENDIF
 C
@@ -556,12 +551,6 @@ C
      5        'DIMENSION: MXCOUNT4 = ',I5,' VARIABLE: MBSUB    = ',I5,/, 
      6        'DIMENSION: MXARRAY  = ',I5,' VARIABLE: IARRAY2  = ',I5)
 C
-!----------------------------------------------------------------------------
-! Prior to 4/7/03:
-! Now write this to "smv2.log" (bmy, 4/7/03)
-!        WRITE(6,655) NCSP,KOUNT0A,KOUNT0,KNTARRAY,IARRAY2,ICNTA,ICNTB,
-!     1               JCNTA,JCNTB,KCNTA,KCNTB,MCNTA,MCNTB 
-!----------------------------------------------------------------------------
         WRITE(IO93,655)NCSP,KOUNT0A,KOUNT0,KNTARRAY,IARRAY2,ICNTA,ICNTB,
      1               JCNTA,JCNTB,KCNTA,KCNTB,MCNTA,MCNTB 
 C

@@ -1,4 +1,4 @@
-! $Id: tagged_co_mod.f,v 1.1 2003/06/30 20:26:05 bmy Exp $
+! $Id: tagged_co_mod.f,v 1.2 2003/07/08 15:30:43 bmy Exp $
       MODULE TAGGED_CO_MOD
 !
 !******************************************************************************
@@ -393,12 +393,6 @@
       USE DIAG_MOD,     ONLY : AD29,        AD46
       USE GEIA_MOD
       USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET, GET_AREA_CM2
-!-------------------------------------------------------------------------
-! Prior to 6/10/03:
-! Bug fix for NTAU -- we need routine GET_TAU() (bmy, 6/10/03)
-!      USE TIME_MOD,     ONLY : GET_MONTH,   GET_ELAPSED_MIN,
-!     &                         GET_YEAR,    GET_TS_EMIS  
-!-------------------------------------------------------------------------
       USE TIME_MOD,     ONLY : GET_MONTH,   GET_TAU, 
      &                         GET_YEAR,    GET_TS_EMIS  
       USE TRACERID_MOD, ONLY : IDBCO,       IDBFCO
@@ -522,12 +516,6 @@
       ! (2) Need to save ND29 diagnostics here (bmy, 1/2/01)
       !=================================================================
       IF ( LFOSSIL ) THEN
-
-         !---------------------------------------------------------------
-         ! Prior to 6/10/03
-         ! Number of elapsed days
-         !NTAU = GET_ELAPSED_MIN() / 1440
-         !---------------------------------------------------------------
 
          ! NTAU is just the integral value of TAU (ave, bmy, 6/10/03)
          NTAU = GET_TAU()
@@ -1409,11 +1397,6 @@
       !=================================================================
 
       ! Construct filename
-!-----------------------------------------------------------------------
-! Prior to 6/30/03:
-! Data is located in "pco_lco_200203" directory (bnd, bmy, 6/30/03)
-!      FILENAME = TRIM( DATA_DIR ) // 'COprod.'  //
-!-----------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR ) // 'pco_lco_200203/COprod' //
      &           GET_NAME_EXT()   // '.' // GET_RES_EXT()
       
@@ -1429,11 +1412,6 @@
       !=================================================================
 
       ! Construct filename
-!-----------------------------------------------------------------------
-! Prior to 6/30/03:
-! Data is located in "pco_lco_200203" directory (bnd, bmy, 6/30/03)
-!      FILENAME = TRIM( DATA_DIR ) // 'COloss.'  //
-!-----------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR ) // 'pco_lco_200203/COloss.' //
      &           GET_NAME_EXT()   // '.' // GET_RES_EXT()
 

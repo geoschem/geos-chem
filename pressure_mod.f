@@ -1,4 +1,4 @@
-! $Id: pressure_mod.f,v 1.1 2003/06/30 20:26:06 bmy Exp $
+! $Id: pressure_mod.f,v 1.2 2003/07/08 15:31:28 bmy Exp $
       MODULE PRESSURE_MOD
 !
 !******************************************************************************
@@ -412,13 +412,6 @@
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       WRITE( 6, '(a)' ) 'INIT_PRESSURE: Vertical coordinates!'
       WRITE( 6, '(a)' )
-      !-----------------------------------------------------------------------
-      ! Prior to 6/19/03:
-      ! Change format to allow fvDAS Ap to be printed out (bmy, 6/19/03)
-      !WRITE( 6, '( ''Ap '', /, 7(f9.6,1x) )' ) AP(1:LLPAR)
-      !WRITE( 6, '(a)' )
-      !WRITE( 6, '( ''Bp '', /, 7(f9.6,1x) )' ) BP(1:LLPAR)
-      !-----------------------------------------------------------------------
       WRITE( 6, '( ''Ap '', /, 6(f11.6,1x) )' ) AP(1:LLPAR)
       WRITE( 6, '(a)' )
       WRITE( 6, '( ''Bp '', /, 6(f11.6,1x) )' ) BP(1:LLPAR)

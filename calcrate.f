@@ -1,8 +1,9 @@
+! $Id: calcrate.f,v 1.2 2003/07/08 15:27:23 bmy Exp $
       SUBROUTINE CALCRATE( SUNCOS )
 !
 !******************************************************************************
 !  Subroutine CALCRATE computes reaction rates before passing them to the
-!  SMVGEAR solver.  (M. Jacobson 1997; gcc, bdf, bmy, 4/1/03)
+!  SMVGEAR solver.  (M. Jacobson 1997; gcc, bdf, bmy, 4/1/03, 7/7/03)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -17,15 +18,20 @@
 !        Also modified ND22 FAST-J diagnostics accordingly for SMVGEAR II. 
 !        Now added special rxn for DMS+OH+O2.  Force double precision with
 !        "D" exponents. (gcc, bdf, bmy, 4/1/03)
+!  (2 ) Now implement interannually-varying CH4 field.  Now reference GET_YMID
+!        from "grid_mod.f".  Now reference AIRDENS array from "comode_mod.f". 
+!        Added YLAT variable for grid-box latitude.  Cosmetic changes.
+!        (bnd, bmy, 7/1/03)
 !******************************************************************************
 !
       ! References to F90 modules 
-      USE COMODE_MOD,      ONLY : ABSHUM, ERADIUS, IXSAVE, IYSAVE,
-     &                            IZSAVE, JLOP,    PRESS3, REMIS,
-     &                            T3,     TAREA
+      USE COMODE_MOD,      ONLY : ABSHUM, AIRDENS, ERADIUS, IXSAVE, 
+     &                            IYSAVE, IZSAVE,  JLOP,    PRESS3,  
+     &                            REMIS,  T3,      TAREA
       USE DIAG_MOD,        ONLY : AD22,   LTJV
       USE DRYDEP_MOD,      ONLY : DEPSAV
       USE ERROR_MOD,       ONLY : ERROR_STOP
+      USE GRID_MOD,        ONLY : GET_YMID
       USE PLANEFLIGHT_MOD, ONLY : ARCHIVE_RXNS_FOR_PF
 
       IMPLICIT NONE
@@ -36,25 +42,28 @@
 #     include "CMN_DIAG"  ! ND22, LD22
       
       ! Local variables
-      INTEGER KLOOP,JLOOP,I,NK,JOLD2,JOLD,NK1,NKN,NH,MLOOP,J
-      INTEGER NP,K,IFNC,IBRCH,IX,IY,IZ,IJWINDOW,INDEX,NN,ii,jj
-      INTEGER PHOTVAL,KSUN
+      INTEGER :: KLOOP,JLOOP,I,NK,JOLD2,JOLD,NK1,NKN,NH,MLOOP,J
+      INTEGER :: NP,K,IFNC,IBRCH,IX,IY,IZ,IJWINDOW,INDEX,NN,ii,jj
+      INTEGER :: PHOTVAL,KSUN
 
-      REAL*8 ARRNK,FCVNK,FCT1,FCT2,FCT,XYRAT,BLOG,FEXP,RATE3M
-      REAL*8 CONSTC,RATE2AIR,RATE3H2O,RIS,RST,TBEGIN,TFINISH
-      REAL*8 PBEG,PFIN,PBEGNEW,PFINNEW,TOFDAYB,TOFDAYE,HOURANGB
-      REAL*8 HOURANGE,SINFUNCB,SINFUNCE,XAREA,XRADIUS,XSQM,RRATE2
-      REAL*8 XSTKCF,GMU,SUNCOS(MAXIJ),DUMMY(KBLOOP),XDENA,XSTK
+      REAL*8  :: ARRNK,FCVNK,FCT1,FCT2,FCT,XYRAT,BLOG,FEXP,RATE3M
+      REAL*8  :: CONSTC,RATE2AIR,RATE3H2O,RIS,RST,TBEGIN,TFINISH
+      REAL*8  :: PBEG,PFIN,PBEGNEW,PFINNEW,TOFDAYB,TOFDAYE,HOURANGB
+      REAL*8  :: HOURANGE,SINFUNCB,SINFUNCE,XAREA,XRADIUS,XSQM,RRATE2
+      REAL*8  :: XSTKCF,GMU,SUNCOS(MAXIJ),DUMMY(KBLOOP),XDENA,XSTK
+      REAL*8  :: TK,     CONSEXP, VPRESH2O
 
-      REAL*8 RTFUNC,FYRNO3,ARSL1K,TK,CONSEXP,VPRESH2O
-      EXTERNAL RTFUNC,FYRNO3,ARSL1K
-      REAL*8 FJFUNC
+      ! External functions
+      REAL*8, EXTERNAL :: RTFUNC, FYRNO3,  ARSL1K,  FJFUNC
 
-      CHARACTER*4 SPECNAME
+      CHARACTER*4      :: SPECNAME
 
       ! Added for heterogeneous chemistry (bmy, 11/15/01)
-      LOGICAL HETCHEM
-      INTEGER N
+      LOGICAL          :: HETCHEM
+      INTEGER          :: N
+
+      ! For grid-box latitude (bnd, bmy, 7/1/03)
+      REAL*8           :: YLAT
 
 #if   defined( LSLOWJ )
       ! Include SLOW-J header file if FAST-J is turned off (bmy, 9/30/99)
@@ -141,7 +150,6 @@ C
             IF(GMU .GT. 0.D0) KSUN = 1
  20      CONTINUE
          IFSUN = 2-KSUN
-
 C
 C ---------------------------     H2O     -----------------------------
 C
@@ -160,6 +168,39 @@ C
       IF (IOXYGEN.GT.NGAS) THEN
          DO KLOOP          = 1, KTLOOP
             CBLK(KLOOP,IOXYGEN) = CONCO2(KLOOP)
+         ENDDO
+      ENDIF
+C
+C *********************************************************************
+C *     INTERANNUALLY-VARYING CH4 CONCENTRATION (bnd, bmy, 7/1/03)    *
+C *********************************************************************
+C
+      ! Test if CH4 is defined as an inert SMVGEAR II species
+      IF ( ICH4 > NGAS ) THEN
+
+         ! Loop over boxes per grid block
+         DO KLOOP = 1, KTLOOP 
+
+            ! 1-D grid box index
+            JLOOP = KLOOP + JLOOPLO
+
+            ! Grid-box latitude index
+            YLAT  = GET_YMID( IYSAVE(JLOOP) )
+            
+            ! Pick the CH4 concentration [ppbv] for the proper lat bin
+            ! CH4 values are read in "chemdr.f" (outside the parallel loop)
+            IF ( YLAT < -30d0 ) THEN
+               CBLK(KLOOP,ICH4) = C3090S
+            ELSE IF ( YLAT >= -30d0 .and. YLAT < 0d0  ) THEN
+               CBLK(KLOOP,ICH4) = C0030S
+            ELSE IF ( YLAT >=   0d0 .and. YLAT < 30d0 ) THEN
+               CBLK(KLOOP,ICH4) = C0030N
+            ELSE
+               CBLK(KLOOP,ICH4) = C3090N
+            ENDIF
+
+            ! Convert from [ppbv CH4] to [molec CH4/cm3]
+            CBLK(KLOOP,ICH4) = CBLK(KLOOP,ICH4) *1d-9 * AIRDENS(JLOOP)
          ENDDO
       ENDIF
 C
@@ -263,12 +304,6 @@ C   (S-1)                (CM S-1)      ---         (CM2 CM-3)
 C JOLD2       = SPECIES COATING THE SURFACE 
 C
          DO 62 I           = 1, NSURFACE(NCS) 
-            !-----------------------------------------------------------
-            ! Prior to 4/1/03: 
-            !write(6,*) 'code not equipt to do surface reactions'
-            !write(6,*) 'stop in calcrate'
-            !stop
-            !-----------------------------------------------------------
 
             ! Stop run safely if NSURFACE > 1 (bdf, bmy, 4/1/03)
             CALL ERROR_STOP( 'Cannot do surface rxns!', 'calcrate.f' )
@@ -340,12 +375,6 @@ C           MULTIPLY BY OTHER INACTIVE CONCENTRATIONS LATER
 C *********************************************************************
 C
          DO 102 I          = 1, NM3BOD(NCS)
-            !------------------------------------------------------------
-            ! Prior to 4/1/03:
-            !write(6,*) 'code not equipt to do 3-body reactions'
-            !write(6,*) 'stop in calcrate'
-            !stop
-            !------------------------------------------------------------
 
             ! Stop run safely if NM3BOD > 0 (bmy, 4/1/03)
             CALL ERROR_STOP( 'Cannot do 3-body rxns!', 'calcrate.f' )
@@ -818,13 +847,7 @@ C
             ENDDO
          ENDDO
       ELSE
-* ERROR IN IFSUN
-         !-----------------------------------------------------------
-         ! Prior to 4/1/03:
-         ! Now use ERROR_STOP to stop the run safely (bmy, 4/1/03)
-         !WRITE(*,*) 'ERROR IN IFSUN: check physproc.f'
-         !STOP 0345
-         !-----------------------------------------------------------
+         ! ERROR IN IFSUN
          CALL ERROR_STOP( 'ERROR in IFSUN -- STOP 0345', 'calcrate.f' )
       ENDIF
 

@@ -1,4 +1,4 @@
-! $Id: restart_mod.f,v 1.1 2003/06/30 20:26:07 bmy Exp $
+! $Id: restart_mod.f,v 1.2 2003/07/08 15:31:13 bmy Exp $
       MODULE RESTART_MOD
 !
 !******************************************************************************
@@ -184,11 +184,6 @@
       ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
 
-      !-----------------------------------------------------------------
-      ! Prior to 4/28/03:
-      !! Echo some input to the screen
-      !WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-      !-----------------------------------------------------------------
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - MAKE_RESTART_FILE: Writing ', a )
 
@@ -224,12 +219,6 @@
 
       ! Close file
       CLOSE( IU_RST )
-
-      !---------------------------------------------
-      ! Prior to 4/29/03:
-      !! Fancy output
-      !WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-      !---------------------------------------------
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### MAKE_RESTART_FILE: wrote file' )

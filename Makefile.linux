@@ -1,4 +1,4 @@
-# $Id: Makefile.linux,v 1.1 2003/06/30 20:26:08 bmy Exp $
+# $Id: Makefile.linux,v 1.2 2003/07/08 15:33:35 bmy Exp $
 #=============================================================================
 # GEOS-CHEM Makefile for LINUX/PGI (bmy, Mon Jun 30 13:23:30 2003)
 #=============================================================================
@@ -278,19 +278,19 @@ sol.o
 #=============================================================================
 #  Executable with FAST-J (default)
 #=============================================================================
-geos 	      : $(MODS) $(OBJS) $(OBJSc) $(FJ) Makefile
+geos 	      : $(MODS) $(OBJS) $(OBJSc) $(FJ) Makefile.linux
 		pgf90 $(MODS) $(OBJS) $(OBJSc) $(FJ) -o geos
 
 #=============================================================================
 #  Executable with SLOW-J 
 #=============================================================================
-geos_sj	      : $(MODS) $(OBJS) $(OBJSc) $(SJ) Makefile
+geos_sj	      : $(MODS) $(OBJS) $(OBJSc) $(SJ) Makefile.linux
 		pgf90 $(MODS) $(OBJS) $(OBJSc) $(SJ) -o geos_sj
 
 #==============================================================================
 #  Executable for CO-OH simulation with SLOW-J
 #==============================================================================
-geosco        : $(MODS) $(OBJS) $(OBJSc) $(CO_OH) $(SJ) Makefile
+geosco        : $(MODS) $(OBJS) $(OBJSc) $(CO_OH) $(SJ) Makefile.linux
 		pgf90 $(MODS) $(OBJS) $(OBJSc) $(CO_OH) $(SJ) -o geosco
 
 #==============================================================================

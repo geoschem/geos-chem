@@ -1,10 +1,10 @@
-! $Id: readchem.f,v 1.1 2003/06/30 20:26:08 bmy Exp $
+! $Id: readchem.f,v 1.2 2003/07/08 15:27:34 bmy Exp $
       SUBROUTINE READCHEM 
 !
 !******************************************************************************
 !  Subroutine READCHEM reads species names, chemical rxns, and photolysis 
 !  reactions from the "globchem.dat" chemistry mechanism file for SMVGEAR II.  
-!  (M. Jacobson 1997; bdf, bmy, 5/9/03)
+!  (M. Jacobson 1997; bdf, bmy, 5/9/03, 7/1/03)
 !
 !  NOTES:
 !  (1 ) Added space in FORMAT strings for more products.  Also now references
@@ -14,6 +14,8 @@
 !        NKSPECG for DMS+OH+O2 rxn.  Now also force double precision with
 !        the "D" exponent.  Now call SETPL before JSPARSE so that the prod/loss
 !        families will be computed correctly. (bmy, 5/9/03)
+!  (2 ) Now initialize ICH4 -- the location of CH4 in the CSPEC array.
+!        (bnd, bmy, 7/1/03)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -175,11 +177,6 @@ C
          ENDIF 
  34     CONTINUE 
         WRITE(6,33) RINP(I) 
-        !-------------------------------------------------------------------
-        ! Prior to 4/7/03:
-        ! Now stop the run safely and deallocate all arrays (bmy, 4/7/03)
-        !STOP 
-        !-------------------------------------------------------------------
         CALL GEOS_CHEM_STOP
        ENDIF 
 C
@@ -285,11 +282,6 @@ C
  41    CONTINUE
       ELSE
        WRITE(6,19) XINP(2), XINP(1)
-       !---------------------------------------------------------------------
-       ! Prior to 4/7/03:
-       ! Now stop the run safely and deallocate all arrays (bmy, 4/7/03)
-       !STOP
-       !---------------------------------------------------------------------
        CALL GEOS_CHEM_STOP
       ENDIF
 C
@@ -334,11 +326,6 @@ C
 C
       IF (NTSPECGAS.GT.IGAS   .OR.  NSDEAD.GT. NMDEAD) THEN
         WRITE(6,18) IGAS,   NTSPECGAS,  NMDEAD,   NSDEAD   
-        !--------------------------------------------------------------------
-        ! Prior to 4/7/03:
-        ! Now stop the run safely and deallocate all arrays (bmy, 4/7/03)
-        !STOP
-        !--------------------------------------------------------------------
         CALL GEOS_CHEM_STOP
       ENDIF
 C
@@ -406,11 +393,33 @@ C *********************************************************************
 C *  SEARCH FOR SPECIFIC SPECIES NUMBERS USED IN OTHER SUBROUTINES    * 
 C *********************************************************************
 C
-      DO 38 I        = 1, NTSPECGAS
-        JST          = NAMEGAS(I)
-        IF (JST.EQ.'O2')     IOXYGEN  = I
-        IF (JST.EQ.'H2O')    IH2O     = I
- 38   CONTINUE
+!--------------------------------------------------------------------
+! Prior to 7/7/03:
+!      DO 38 I        = 1, NTSPECGAS
+!        JST          = NAMEGAS(I)
+!        IF (JST.EQ.'O2')     IOXYGEN  = I
+!        IF (JST.EQ.'H2O')    IH2O     = I
+! 38   CONTINUE
+!--------------------------------------------------------------------
+
+      ! Initialize for safety's sake (bmy, 7/7/03)
+      IOXYGEN = 0
+      IH2O    = 0
+      ICH4    = 0
+
+      ! Locate positions of O2, H2O, CH4 in CSPEC array (bmy, 7/7/03)
+      DO I = 1, NTSPECGAS
+         SELECT CASE ( TRIM( NAMEGAS(I) ) )
+            CASE( 'O2'  )
+               IOXYGEN = I
+            CASE( 'H2O' )
+               IH2O    = I
+            CASE( 'CH4' )
+               ICH4    = I
+            CASE DEFAULT
+               ! Nothing
+         END SELECT
+      ENDDO
 C
 C *********************************************************************
 C *****************    READ IN REACTION RATES   *********************** 
@@ -492,11 +501,6 @@ C
 
       IF (NCOF+1.GT.MXCOF) THEN
        WRITE(6,155) NCOF+1, MXCOF, IORD
-       !----------------------------------------------------------------------
-       ! Prior to 4/7/03:
-       ! Now stop the run safely and deallocate all arrays (bmy, 4/7/03)
-       !STOP
-       !----------------------------------------------------------------------
        CALL GEOS_CHEM_STOP
       ENDIF
 C
@@ -509,12 +513,6 @@ C
       READ(KGLC,332) (RINP(I),PINP(I),XINP(I),I=1,20)
 C
  155  FORMAT('READCHEM: NCOF + 1 > MXCOF IN GLOBCHEM.DAT',3I4)
-!----------------------------------------------------------------------------
-! Prior to 4/7/03:
-! Now use F90 ES format instead of 1PE, etc. (bmy, 4/7/03)
-! 330  FORMAT(A1,1X,I4,1X,1PE8.2,1X,0PE8.1,1X,I6,1X,I1,1X,A2,0PF6.2,1X,
-!     1       2(0PF6.0,1X),A20) 
-!----------------------------------------------------------------------------
  330  FORMAT(A1,1X,I4,1X,ES8.2,1X,ES8.1,1X,I6,1X,I1,1X,A2,F6.2,1X,
      1       2(F6.0,1X),A20) 
 
@@ -627,11 +625,6 @@ C
 C
         IF (I.LE.NMREAC.AND.PINP(I).NE.0.) THEN
          WRITE(6,450) IORD
-         !------------------------------------------------------------------
-         ! Prior to 4/7/03:
-         ! Now stop the run safely and deallocate all arrays (bmy, 4/7/03)
-         !STOP
-         !------------------------------------------------------------------
          CALL GEOS_CHEM_STOP
         ENDIF
 C
@@ -661,11 +654,6 @@ C
         ENDIF
 C
         WRITE(6,400) IORD, XINP(I)
-        !---------------------------------------------------------------------
-        ! Prior to 4/7/03:
-        ! Now stop the run safely and deallocate all arrays (bmy, 4/7/03)
-        !STOP
-        !---------------------------------------------------------------------
         CALL GEOS_CHEM_STOP
 C
  380    DO 410 NCS        = 1, NCSGAS
@@ -691,11 +679,6 @@ C
         IF (IRM(1,NK,NCS).EQ.0.OR.(IRM(3,NK,NCS).GT.0.AND.
      1      IRM(2,NK,NCS).EQ.0)) THEN
          WRITE(6,430) IORD
-         !-------------------------------------------------------------------
-         ! Prior to 4/7/03:
-         ! Now stop the run safely and deallocate all arrays (bmy, 4/7/03)
-         !STOP
-         !-------------------------------------------------------------------
          CALL GEOS_CHEM_STOP
         ENDIF
        ENDIF
@@ -731,11 +714,6 @@ C
                IF (NEMIS(NCS)   .GT. MAXGL3) THEN
                   WRITE(*,*) 'ERROR NEMIS   Greater then MAXGL3',
      x                 ' NEMIS(NCS)   = ',NEMIS(NCS), 'MAXGL3 = ',MAXGL3
-                  !-----------------------------------------------------------
-                  ! Prior to 4/7/03:
-                  ! Now stop the run safely and deallocate all arrays
-                  !STOP 124
-                  !-----------------------------------------------------------
                   WRITE( 6, '(a)' ) 'STOP 124'
                   CALL GEOS_CHEM_STOP
                ENDIF
@@ -752,11 +730,6 @@ C  NKDRY    = reaction numbers of dry deposition reactions
                IF (NDRYDEP(NCS) .GT. MAXDEP) THEN
                   WRITE(*,*) 'ERROR NDRYDEP Greater then MAXDEP',
      x                 ' NDRYDEP(NCS)=',NDRYDEP(NCS),'MAXDEP=',MAXDEP
-                  !-----------------------------------------------------------
-                  ! Prior to 4/7/03:
-                  ! Now stop the run safely and deallocate all arrays
-                  !STOP 125
-                  !-----------------------------------------------------------
                   WRITE( 6, '(a)' ) 'STOP 125'
                   CALL GEOS_CHEM_STOP
                ENDIF
@@ -782,11 +755,6 @@ C  NKDRY    = reaction numbers of dry deposition reactions
      6        (SPECL(1).EQ.'E'.AND.NCOF.NE.0).OR.
      7        (SPECL(1).EQ.'S'.AND.NCOF.NE.0)) THEN
             WRITE(6,440) IORD, SPECL(1), NCOF
-            !-----------------------------------------------------------------
-            ! Prior to 4/7/03:
-            ! Now stop the run safely and deallocate all arrays (bmy, 4/7/03)
-            !STOP
-            !-----------------------------------------------------------------
             CALL GEOS_CHEM_STOP
          ENDIF 
 C
@@ -910,11 +878,6 @@ C
 C
                   IF (JGAS3.NE.0) THEN
                      WRITE(6,470) NK 
-                     !---------------------------------------------------------
-                     ! Prior to 4/7/03:
-                     ! Now stop the run safely (bmy, 4/7/03)
-                     !STOP 
-                     !---------------------------------------------------------
                      CALL GEOS_CHEM_STOP
                   ENDIF  
                ENDIF 
@@ -997,10 +960,6 @@ C
         WRITE( IO93, 521     )
 
         DO 500 NK    = 1, NTRATES(NCS) 
-         !------------------------------------------------------------
-         ! Prior to 4/21/03:
-         !IF (NK.EQ.NRATES(NCS)+1) WRITE(IO93,525) CHEMTYP(NCS)  
-         !------------------------------------------------------------
 
          ! Write photo rxn header
          IF ( NK .EQ. NRATES(NCS)+1 ) THEN
@@ -1048,11 +1007,6 @@ C
      2  NMDEAD ,NSDEAD,       NMRPROD, NPRODHI,
      3  MAXGL3 ,NMAIR(NCS),   MAXGL3 , NMO2(NCS),    MAXGL2,NMN2(NCS),
      4  MAXGL2 ,NPRESM(NCS),  MAXGL4 , NSURFACE(NCS),MAXGL3,NM3BOD(NCS)  
-        !---------------------------------------------------------------------
-        ! Prior to 4/7/03:
-        ! Now stop the run safely and deallocate all arrays (bmy, 4/7/03)
-        !STOP
-        !---------------------------------------------------------------------
         CALL GEOS_CHEM_STOP
        ENDIF
  670  CONTINUE 

@@ -1,4 +1,4 @@
-! $Id: wetscav_mod.f,v 1.1 2003/06/30 20:26:02 bmy Exp $
+! $Id: wetscav_mod.f,v 1.2 2003/07/08 15:30:02 bmy Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
@@ -1882,10 +1882,6 @@
       !=================================================================
 
       ! Dynamic timestep [s]
-      !--------------------------
-      ! Prior to 3/27/03:
-      !DT = NDYN * 60d0
-      !--------------------------
       DT = GET_TS_DYN() * 60d0
       
       ! Select index for diagnostic arrays -- will archive either

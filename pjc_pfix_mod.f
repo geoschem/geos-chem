@@ -1,4 +1,4 @@
-! $Id: pjc_pfix_mod.f,v 1.1 2003/06/30 20:26:03 bmy Exp $
+! $Id: pjc_pfix_mod.f,v 1.2 2003/07/08 15:31:39 bmy Exp $
       MODULE PJC_PFIX_MOD
 !
 !******************************************************************************
@@ -509,11 +509,6 @@
       !Argument declarations.
       !----------------------
 
-      !-----------------------------------------------------------------
-      ! Prior to 6/25/03:
-      ! Now declare METDATA_NAME_ORG as CHARACTER(LEN=*) (bmy, 6/25/03)
-      !character*16 :: metdata_name_org
-      !-----------------------------------------------------------------
       CHARACTER(LEN=*) :: metdata_name_org
       logical :: do_timinterp_winds
       logical :: new_met_rec
@@ -744,10 +739,6 @@
       !Argument declarations.
       !----------------------
 
-      !-------------------------------------------------------------------
-      ! Prior to 6/25/03:
-      !character*16 :: metdata_name_org
-      !-------------------------------------------------------------------
       CHARACTER(LEN=*) :: metdata_name_org
       integer :: met_grid_type
       real*8  :: geofac_pc

@@ -1,4 +1,4 @@
-# $Id: Makefile.compaq,v 1.1 2003/06/30 20:26:02 bmy Exp $
+# $Id: Makefile.compaq,v 1.2 2003/07/08 15:33:46 bmy Exp $
 #=============================================================================
 # GEOS-CHEM Makefile for COMPAQ/Alpha (bmy, Mon Jun 30 13:23:18 2003)
 #=============================================================================
@@ -276,25 +276,25 @@ sol.o
 #=============================================================================
 #  Executable with FAST-J (default)
 #=============================================================================
-geos          : $(MODS) $(OBJS) $(FJ)     Makefile
+geos          : $(MODS) $(OBJS) $(FJ)   Makefile.compaq
                 $(F90)  $(MODS) $(OBJS) $(FJ) $(ZLIB) -o geos
 
 #=============================================================================
 #  Executable with SLOW-J 
 #=============================================================================
-geos_sj       : $(MODS) $(OBJS) $(SJ)   Makefile
+geos_sj       : $(MODS) $(OBJS) $(SJ)   Makefile.compaq
                 $(F90)  $(MODS) $(OBJS) $(SJ) -o geos_sj
 
 #==============================================================================
 #  Executable for CO-OH simulation with SLOW-J
 #==============================================================================
-geosco        : $(MODS) $(OBJS) $(CO_OH) $(SJ) Makefile
+geosco        : $(MODS) $(OBJS) $(CO_OH) $(SJ) Makefile.compaq
                 $(F90)  $(MODS) $(OBJS) $(CO_OH) $(SJ) $(ZLIB) -o geosco
 
 #==============================================================================
 #  Executable for CO-OH simulation with FAST-J
 #==============================================================================
-geoscof       : $(MODS) $(OBJS) $(CO_OH) $(FJ) Makefile
+geoscof       : $(MODS) $(OBJS) $(CO_OH) $(FJ) Makefile.compaq
                 $(F90)  $(MODS) $(OBJS) $(CO_OH) $(FJ) $(ZLIB) -o geoscof
 
 

@@ -1,4 +1,4 @@
-! $Id: reader.f,v 1.1 2003/06/30 20:26:03 bmy Exp $
+! $Id: reader.f,v 1.2 2003/07/08 15:31:20 bmy Exp $
       SUBROUTINE READER( FIRSTCHEM )
 !
 !******************************************************************************
@@ -322,21 +322,6 @@ C           1 ERG = 1 DYNE-CM = 10**-7 J
 C           1 ATM = 1.013 BAR = 10**5 PA. 1PA = 1 N M-2 = 10 DYNES CM-2.
 C SCDAY   = SECONDS PER DAY
 C
-      !-----------------------------------------------------
-      ! Prior to 4/1/03:
-      ! Use the same values as for GEOS-CHEM (bmy, 4/1/03)
-      !REARTH      = 6.370949d+08
-      !ONEPI       = 3.1415926536d0
-      !RSTARG      = 8.31450d+07
-      !RPRIMB      = 2870.4d0
-      !BOLTG       = 1.38054d-16
-      !AVG         = 6.02252d+23
-      !WTAIR       = 28.966d0
-      !WTAIR       = AIRMW
-      !SCDAY       = 86400.0d0
-      !GRAVC       = 980.6d0
-      !-----------------------------------------------------
-
       ! Now force double-precision values with the "D" exponent (bmy, 4/1/03)
       REARTH      = Re
       ONEPI       = PI
@@ -417,10 +402,6 @@ C *********************************************************************
 C
       IF (NLAT.GT.ILAT.OR.NLONG.GT.ILONG.OR.NVERT.GT.IVERT) THEN
        WRITE(6,*)'READER: NLAT, NLONG, OR NVERT TOO BIG'
-       !---------------------------
-       ! Prior to 4/8/03:
-       !STOP
-       !---------------------------
        CALL GEOS_CHEM_STOP
       END IF
 C
@@ -527,10 +508,6 @@ C
         IFSOLVE              = 0
        ELSE 
         WRITE(6,265)  
-        !-----------------------------------------
-        ! Prior to 4/8/03:
-        !STOP 
-        !-----------------------------------------
         CALL GEOS_CHEM_STOP
        ENDIF 
       ENDIF 
@@ -645,10 +622,6 @@ C
         WRITE(6,*)'READER: ABHI < ABLO - INCREASE UPPER BOUND OF', 
      1            'ABSOLUTE ERROR TOLERANCE FOR NCS = ',NCS, 
      2             ABTOL(1,NCS),ABTOL(6,NCS) 
-        !---------------------------------
-        ! Prior to 4/8/03:
-        !STOP
-        !---------------------------------
         CALL GEOS_CHEM_STOP
        ENDIF
 C

@@ -1,4 +1,4 @@
-! $Id: transport_mod.f,v 1.1 2003/06/30 20:26:02 bmy Exp $
+! $Id: transport_mod.f,v 1.2 2003/07/08 15:30:32 bmy Exp $
       MODULE TRANSPORT_MOD
 !
 !******************************************************************************
@@ -56,10 +56,6 @@
       ! PRIVATE module variables
       PRIVATE :: Ap, Bp, STT_I1, STT_I2, STT_J1, STT_J2
       PRIVATE :: JFIRST, JLAST,  NG,     MG,     N_ADJ
-      !-----------------------------------------------------------------
-      ! Prior to 6/24/03:
-      !PRIVATE :: A_M2,   DSIG,   USE_GEOS_4_TRANSPORT
-      !-----------------------------------------------------------------
       PRIVATE :: A_M2,   USE_GEOS_4_TRANSPORT
 
       ! PRIVATE module routines
@@ -270,11 +266,6 @@
 
             ! Airmass [kg] before transport
             IF ( N == 1 ) THEN
-               !-------------------------------------------------------------
-               ! Prior to 6/24/03:
-               ! Call GET_AIR_MASS to get air mass based on P_TP1
-               !AD_B(I,J,L) = P_TP1(I,J) * DSIG(L) * G0_100 * A_M2(J)
-               !-------------------------------------------------------------
                AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J) )
             ENDIF
 
@@ -326,11 +317,6 @@
 
                ! Air mass [kg] after transport
                IF ( N == 1 ) THEN
-                  !----------------------------------------------------------
-                  ! Prior to 6/24/03:
-                  ! Call GET_AIR_MASS to get air mass from P_TP2
-                  !AD_A(I,J,L) = P_TP2(I,J) * DSIG(L) * G0_100 * A_M2(J)
-                  !----------------------------------------------------------
                   AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J) )
                ENDIF
          
@@ -674,24 +660,10 @@
       ALLOCATE( A_M2( JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'A_M2' )
 
-      !-----------------------------------------------------------------
-      ! Prior to 6/24/03:
-      !ALLOCATE( DSIG( LLPAR ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'DSIG' )
-      !-----------------------------------------------------------------
-
       ! Surface area [m2]
       DO J = 1, JJPAR
          A_M2(J) = GET_AREA_M2( J )
       ENDDO
-
-      !-----------------------------------------------------------------
-      ! Prior to 6/24/03:
-      !! Layer thickness [unitless]
-      !DO L = 1, LLPAR
-      !   DSIG(L) = GET_BP( L ) - GET_BP( L+1 )
-      !ENDDO
-      !-----------------------------------------------------------------
 
       !=================================================================
       ! Additional setup for the GEOS-4/fvDAS version of TPCORE
@@ -736,10 +708,6 @@
       IF ( ALLOCATED( Ap     ) ) DEALLOCATE( Ap     )
       IF ( ALLOCATED( A_M2   ) ) DEALLOCATE( A_M2   )
       IF ( ALLOCATED( Bp     ) ) DEALLOCATE( Bp     )
-      !-----------------------------------------------------------------
-      ! Prior to 6/24/03:
-      !IF ( ALLOCATED( DSIG   ) ) DEALLOCATE( DSIG   )
-      !-----------------------------------------------------------------
       IF ( ALLOCATED( STT_I1 ) ) DEALLOCATE( STT_I1 )
       IF ( ALLOCATED( STT_I2 ) ) DEALLOCATE( STT_I2 )
       IF ( ALLOCATED( STT_J1 ) ) DEALLOCATE( STT_J1 )

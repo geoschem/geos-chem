@@ -1,4 +1,4 @@
-! $Id: turbday.f,v 1.1 2003/06/30 20:26:02 bmy Exp $
+! $Id: turbday.f,v 1.2 2003/07/08 15:30:23 bmy Exp $
       SUBROUTINE TURBDAY( LTURB, XTRA2, NTRC, TC, TCVV )              
 !
 !******************************************************************************
@@ -157,17 +157,6 @@
          IF ( PBL(I,J) < 1d-5 ) BLTOP = PS - 2d0
 
 #endif
-
-         !-----------------------------------------------------------------
-         ! Prior to 6/23/03:
-         !P(0)  = PS
-         !LTOP  = 0
-         !
-         !! If the PBL depth is very small (or zero), then assume
-         !! a PBL depth of 2 mb.  This will prevent NaN's from
-         !! propagating throughout the code. (bmy, 3/7/01)
-         !IF ( PBL(I,J) < 1d-5 ) BLTOP = PS - 2d0
-         !-----------------------------------------------------------------
 
          ! LTOP is the GEOS-CHEM level where the PBL top occurs
          LTOP = 0

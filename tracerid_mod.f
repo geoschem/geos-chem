@@ -1,4 +1,4 @@
-! $Id: tracerid_mod.f,v 1.1 2003/06/30 20:26:05 bmy Exp $
+! $Id: tracerid_mod.f,v 1.2 2003/07/08 15:33:21 bmy Exp $
       MODULE TRACERID_MOD
 !
 !******************************************************************************
@@ -509,52 +509,6 @@
       ! mechanism in the urban slot of SMVGEAR II (bmy, 4/21/03)
       NCS = NCSURBAN
 
-!-----------------------------------------------------------------------------
-! Prior to 4/1/03:
-! Replace NAMESPEC with NAMEGAS (bdf, bmy, 4/1/03)
-!      ! Loop over SMVGEAR species and test names in NAMESPEC
-!      DO I = 1, NSPEC(NCS)
-!         IF ( NAMESPEC(I,NCS) == 'O3'     ) IDO3     = I
-!         IF ( NAMESPEC(I,NCS) == 'NO2'    ) IDNO2    = I
-!         IF ( NAMESPEC(I,NCS) == 'NO3'    ) IDNO3    = I
-!         IF ( NAMESPEC(I,NCS) == 'N2O5'   ) IDN2O5   = I
-!         IF ( NAMESPEC(I,NCS) == 'HNO4'   ) IDHNO4   = I
-!         IF ( NAMESPEC(I,NCS) == 'HNO2'   ) IDHNO2   = I
-!         IF ( NAMESPEC(I,NCS) == 'NO'     ) IDNO     = I
-!         IF ( NAMESPEC(I,NCS) == 'CO'     ) IDCO     = I
-!         IF ( NAMESPEC(I,NCS) == 'PRPE'   ) IDPRPE   = I
-!         IF ( NAMESPEC(I,NCS) == 'C3H8'   ) IDC3H8   = I
-!         IF ( NAMESPEC(I,NCS) == 'ISOP'   ) IDISOP   = I
-!         IF ( NAMESPEC(I,NCS) == 'ALK4'   ) IDALK4   = I
-!         IF ( NAMESPEC(I,NCS) == 'PAN'    ) IDPAN    = I
-!         IF ( NAMESPEC(I,NCS) == 'GLPAN'  ) IDGLPAN  = I
-!         IF ( NAMESPEC(I,NCS) == 'GPAN'   ) IDGPAN   = I
-!         IF ( NAMESPEC(I,NCS) == 'PMN'    ) IDPMN    = I
-!         IF ( NAMESPEC(I,NCS) == 'PPN'    ) IDPPN    = I
-!         IF ( NAMESPEC(I,NCS) == 'HNO3'   ) IDHNO3   = I
-!         IF ( NAMESPEC(I,NCS) == 'OH'     ) IDOH     = I
-!         IF ( NAMESPEC(I,NCS) == 'HO2'    ) IDHO2    = I !(rvm, bmy, 2/27/02)
-!         IF ( NAMESPEC(I,NCS) == 'H2O2'   ) IDH2O2   = I
-!         IF ( NAMESPEC(I,NCS) == 'ACET'   ) IDACET   = I
-!         IF ( NAMESPEC(I,NCS) == 'MEK'    ) IDMEK    = I
-!         IF ( NAMESPEC(I,NCS) == 'ALD2'   ) IDALD2   = I
-!         IF ( NAMESPEC(I,NCS) == 'RCHO'   ) IDRCHO   = I
-!         IF ( NAMESPEC(I,NCS) == 'MVK'    ) IDMVK    = I
-!         IF ( NAMESPEC(I,NCS) == 'MACR'   ) IDMACR   = I
-!         IF ( NAMESPEC(I,NCS) == 'ISN2'   ) IDISN2   = I
-!         IF ( NAMESPEC(I,NCS) == 'R4N2'   ) IDR4N2   = I
-!         IF ( NAMESPEC(I,NCS) == 'CH2O'   ) IDCH2O   = I
-!         IF ( NAMESPEC(I,NCS) == 'C2H6'   ) IDC2H6   = I
-!         IF ( NAMESPEC(I,NCS) == 'DMS'    ) IDDMS    = I !(rjp, bmy, 3/23/03)
-!         IF ( NAMESPEC(I,NCS) == 'SO2'    ) IDSO2    = I !(rjp, bmy, 3/23/03)
-!         IF ( NAMESPEC(I,NCS) == 'SO4'    ) IDSO4    = I !(rjp, bmy, 3/23/03)
-!         IF ( NAMESPEC(I,NCS) == 'MSA'    ) IDMSA    = I !(rjp, bmy, 3/23/03)
-!         IF ( NAMESPEC(I,NCS) == 'DRYNO2' ) IDDRYNO2 = I
-!         IF ( NAMESPEC(I,NCS) == 'DRYPAN' ) IDDRYPAN = I
-!         IF ( NAMESPEC(I,NCS) == 'DRYO3 ' ) IDDRYO3  = I
-!      ENDDO
-!-----------------------------------------------------------------------------
-
       DO I = 1, NSPEC(NCS)
          IF ( NAMEGAS(I) == 'O3'     ) IDO3     = I
          IF ( NAMEGAS(I) == 'NO2'    ) IDNO2    = I
@@ -641,11 +595,6 @@
             WRITE(6,104,ERR=800) ICOUNT, MOLNAME
 
             DO 25 J=1,NSPEC(NCS)
-               !-------------------------------------------------------------
-               ! Prior to 4/1/03:
-               ! Replace NAMESPEC w/ NAMEGAS (bdf, bmy, 4/1/03)
-               !IF(NAMESPEC(J,1).EQ.MOLNAME) IDTRMB(ICOUNT,I) = J
-               !-------------------------------------------------------------
                IF ( NAMEGAS(J) == MOLNAME ) IDTRMB(ICOUNT,I) = J
  25         CONTINUE
 

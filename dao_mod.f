@@ -1,4 +1,4 @@
-! $Id: dao_mod.f,v 1.1 2003/06/30 20:26:07 bmy Exp $
+! $Id: dao_mod.f,v 1.2 2003/07/08 15:33:58 bmy Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
@@ -369,75 +369,12 @@
 #     include "CMN_GCTM"  ! Physical constants
 
       ! Local variables
-      !-----------------------------------------------------------------
-      ! Prior to 6/19/03:
-      !INTEGER             :: I, J, JREF, L
-      !-----------------------------------------------------------------
       INTEGER             :: I,  J,  L
       REAL*8              :: P1, P2, AREA_M2
-      !-----------------------------------------------------------------
-      ! Prior to 6/19/03:
-      ! Remove obsolete variables (bmy, 6/19/03)
-      !REAL*8              :: P(IIPAR,JJPAR)
-      !REAL*8              :: LOGP(IIPAR,JJPAR,LLPAR) 
-      !REAL*8              :: DSIG(LLPAR)
-      !-----------------------------------------------------------------
 
       !=================================================================
       ! AIRQNT begins here! 
       !=================================================================
-!-----------------------------------------------------------------------------
-! Prior to 6/19/03:
-! For a pure sigma grid P(I,J) * DSIG(L) is identical to DELP(L,I,J)
-! So move everything into the one loop (bmy, 6/19/03)
-!
-!      ! Compute the difference in the sigma layers
-!      !=================================================================
-!      DO L = 1, LLPAR
-!         DSIG(L) = GET_BP(L) - GET_BP(L+1)
-!      ENDDO  
-!      !=================================================================
-!      ! Loop over grid boxes in the following order: J - I - L.  
-!      ! This maximizes loop efficiency since we have to go up an 
-!      ! (I,J) column layer by layer.
-!      !
-!      ! P has only (I,J) dependence, so compute them here.
-!      !=================================================================
-!!$OMP PARALLEL DO 
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, P1, P2 )
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!
-!         ! Compute PS - PTOP and store in P
-!         P(I,J) = GET_PEDGE(I,J,1) - PTOP
-!
-!         !==============================================================
-!         ! DELP is the pressure difference between grid box 
-!         ! top/bottom in mb.  LOGP is the natural log of ( P1 / P2 ). 
-!         ! 
-!         ! P1 and P2 are the pressures at the bottom and top of grid
-!         ! box (I,J,L). Recall from the definition of a sigma level:
-!         ! 
-!         !    sigma(L) = [ P(I,J,L) - PTOP ] / [ Psurface(I,J) - PTOP ]
-!         ! 
-!         ! thus,
-!         ! 
-!         !    P(I,J,L) = [ Psurface(I,J) - PTOP ] * sigma(L)  + PINT 
-!         ! 
-!         ! PS(I,J) - PTOP is stored in P(I,J), as described above.
-!         !==============================================================
-!         DO L = 1, LLPAR
-!            P1          = GET_PEDGE(I,J,L)
-!            P2          = GET_PEDGE(I,J,L+1)
-!            LOGP(I,J,L) = LOG( P1 / P2 )
-!            DELP(L,I,J) = P1 - P2
-!         ENDDO    
-!         ENDDO
-!      ENDDO
-!!$OMP END PARALLEL DO   
-!------------------------------------------------------------------------------
-      
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, AREA_M2, P1, P2 )
@@ -467,11 +404,6 @@
             ! R for air (M.W = 0.02897 kg/mol),  or 
             ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
             !===========================================================
-            !-----------------------------------------------------------
-            ! Prior to 6/19/03:
-            ! Replace LOGP array with LOG(P1/P2) (bmy, 6/19/03)
-            !BXHEIGHT(I,J,L) = Rdg0 * T(I,J,L) * LOGP(I,J,L)
-            !-----------------------------------------------------------
             BXHEIGHT(I,J,L) = Rdg0 * T(I,J,L) * LOG( P1 / P2 )
 
             !===========================================================
@@ -505,12 +437,6 @@
             !  ----  =    ----      * ----  * -----  *      -----
             !    1          1          mb       m             1
             !===========================================================
-            !-----------------------------------------------------------
-            ! Prior to 6/19/03:
-            ! PS(I,J) * DSIG(L) is identical to DELP(L,I,J) for
-            ! pure-sigma grids, so replace for fvDAS (bmy, 6/19/03)
-            !AD(I,J,L) = P(I,J) * DSIG(L) * G0_100 * AREA_M2
-            !-----------------------------------------------------------
             AD(I,J,L) = DELP(L,I,J) * G0_100 * AREA_M2
 
             !===========================================================
@@ -527,10 +453,6 @@
 
 !------------------------------------------------------------------------------
 
-      !---------------------------------------------------------
-      ! Prior to 6/19/03:
-      !SUBROUTINE INTERP( NTIME1, NTIME, NDT, NTDT )   
-      !---------------------------------------------------------
       SUBROUTINE INTERP( NTIME0, NTIME1, NTDT )
 !
 !******************************************************************************
@@ -578,34 +500,15 @@
 #     include "CMN_SIZE"   ! Size parameters
 
       ! Arguments
-      !--------------------------------------------------
-      ! Prior to 6/19/03:
-      !INTEGER, INTENT(IN)  :: NTIME, NTIME1, NDT, NTDT  
-      !--------------------------------------------------
       INTEGER, INTENT(IN)  :: NTIME0, NTIME1, NTDT  
 
       ! Local variables
       INTEGER              :: I,  J,  L
-      !-------------------------------------------------
-      ! Prior to 6/19/03:
-      ! Remove TC -- it's obsolete (bmy, 6/19/03)
-      !REAL*8               :: TC, TM, TC2
-      !-------------------------------------------------
       REAL*8               :: D_NTIME0, D_NTIME1, D_NDT, D_NTDT, TM, TC2
 
       !=================================================================
       ! INTERP begins here!                                      
       !=================================================================
-
-      !-----------------------------------------------------------------------
-      ! Prior to 6/19/03:
-      ! Change from FLOAT to DBLE precision (bmy, 6/19/03)
-      !! Fraction of 6h timestep elapsed at mid point of this dyn timestep
-      !TM  = (FLOAT(NTIME)+FLOAT(NTDT)/2. - FLOAT(NTIME1) ) / FLOAT(NDT)
-      !
-      !! Fraction of 6h timestep elapsed at the end of this dyn timestep
-      !TC2 = ( FLOAT(NTIME) + FLOAT(NTDT) - FLOAT(NTIME1) ) / FLOAT(NDT) 
-      !-----------------------------------------------------------------------
 
       ! Convert time variables from FLOAT to DBLE
       D_NTIME0 = DBLE( NTIME0 )
@@ -890,122 +793,6 @@
       ! Return to calling program
       END SUBROUTINE MAKE_AVGW
 
-!------------------------------------------------------------------------------
-! Prior to 6/16/03:
-! Now moved MAKE_CLDFRC into "a6_read_mod.f" (bmy, 6/16/03)
-!
-!      SUBROUTINE MAKE_CLDFRC( CLMOSW, CLROSW, CLDFRC )
-!!
-!!******************************************************************************
-!!  Subroutine MAKE_CLDFRC constructs the DAO CLDFRC field from the 
-!!  GEOS_STRAT CLMOSW and CLROSW fields. (bmy, 3/17/99, 8/21/02) 
-!!
-!!  Arguments as Input:
-!!  ===========================================================================
-!!  (1) CLMOSW (REAL*8) : DAO Maximum Overlap Cloud Fraction Field
-!!  (2) CLROSW (REAL*8) : DAO Random  Overlap Cloud Fraction Field
-!!
-!!  Arguments as Output:
-!!  ===========================================================================
-!!  (3) CLDFRC (REAL*8) : DAO Column Cloud Fraction
-!!
-!!  NOTES:
-!!  (1 ) CLDFRC is not archived for GEOS-STRAT data, so we must compute it
-!!        from the CLMO and CLRO cloud fraction fields. (bmy, 6/26/00)
-!!  (2 ) CLDFRC is dimensioned (MAXIJ = IIPAR*JJPAR) for compatibility with
-!!        the Harvard dry deposition subroutines (bmy, 6/26/00)
-!!  (3 ) Save CLDFRC to ND67 diagnostic (bmy, 6/28/00)
-!!  (4 ) Updated comments (bmy, 4/4/01)
-!!  (5 ) Replaced all instances of IM with IIPAR and JM with JJPAR, in order
-!!        to prevent namespace confusion for the new TPCORE (bmy, 6/25/02)
-!!******************************************************************************
-!!
-!      ! Reference to F90 modules
-!      USE DIAG_MOD, ONLY : AD67
-!
-!#     include "CMN_SIZE"
-!#     include "CMN_DIAG"
-!
-!      ! Arguments
-!      REAL*8, INTENT(IN)  :: CLMOSW(LLPAR,IIPAR,JJPAR)
-!      REAL*8, INTENT(IN)  :: CLROSW(LLPAR,IIPAR,JJPAR)
-!      REAL*8, INTENT(OUT) :: CLDFRC(MAXIJ)
-!
-!      ! Local variables
-!      INTEGER             :: I, IJLOOP, J, L
-!      REAL*8              :: C1, C2
-!
-!      !=================================================================
-!      ! MAKE_CLDFRC begins here!!!
-!      !
-!      ! Compute CLDFRC value for each location (I,J)
-!      !
-!      ! NOTES:
-!      ! (1) CLDFRC = the fractional cloud cover as seen from the 
-!      !     surface looking up, that is, along a vertical line of sight
-!      !     extending from the surface through the top of the atmosphere. 
-!      !
-!      !     The maximum overlap clear sky probability computed along 
-!      !     a line of sight from a grid box (I,J,L=1) at the surface to
-!      !     a grid box (I,J,L=LLPAR) at the top of the atmosphere is:
-!      ! 
-!      !         C1 = 1 - (maximum of CLRO(L,I,J)), L = 1, LLPAR
-!      !
-!      !     The random overlap clear sky probability computed along 
-!      !     a line of sight from a grid box (I,J,L=1) at the surface to 
-!      !     a grid box (I,J,L=LLPAR) at the top of the atmosphere is:
-!      !         
-!      !         C2 = product of (1 - CLRO(L,I,J)), L = 1, LLPAR
-!      !
-!      !     Thus the fractional cloud cover as seen from grid box (I,J,L=1)
-!      !     at the surface looking up is:
-!      !
-!      !         CLDFRC( @ L, I, J ) = 1.0 - (C1 * C2)
-!      !
-!      !     CLDFRC is used by the Harvard CTM dry deposition routines.
-!      !
-!      ! (2) CLDFRC is of dimension MAXIJ = IIPAR * JJPAR, to conform with
-!      !     the Harvard dry deposition subroutines.
-!      !
-!      ! (3) In GEOS-1 and GEOS-STRAT, CLMOLW=CLMOSW and CLROLW=CLROSW.
-!      !=================================================================
-!      IJLOOP = 0
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!         IJLOOP = IJLOOP + 1
-!
-!         C1 = CLMOSW(1,I,J)       
-!         C2 = 1.0d0 - CLROSW(1,I,J) 
-!
-!         DO L = 2, LLPAR
-!            IF ( CLMOSW(L,I,J) > CLMOSW(L-1,I,J) ) THEN
-!               C1 = CLMOSW(L,I,J)
-!            ENDIF
-!
-!            C2 = C2 * ( 1.0d0 - CLROSW(L,I,J) )
-!         ENDDO
-!
-!         C1             = 1.0d0 - C1
-!         CLDFRC(IJLOOP) = 1.0d0 - (C1 * C2)
-!      ENDDO
-!      ENDDO
-!      
-!      !=================================================================
-!      ! ND67 diagnostic -- save CLDFRC as tracer #10
-!      !=================================================================
-!      IF ( ND67 > 0 ) THEN
-!         IJLOOP = 0
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!            IJLOOP       = IJLOOP + 1
-!            AD67(I,J,10) = AD67(I,J,10) + CLDFRC(IJLOOP)
-!         ENDDO
-!         ENDDO
-!      ENDIF
-!
-!      ! Return to calling program
-!      END SUBROUTINE MAKE_CLDFRC
-!
 !------------------------------------------------------------------------------
 
       SUBROUTINE MAKE_RH

@@ -1,200 +1,74 @@
-REVISIONS (v5-06)  
-bmy, 30 Jun 2003
+REVISIONS (v5-07-01)  
+bmy, 07 Jul 2003
 
 
-New in v5-06:
+New in v5-07-01:
 ----------------------------------------------------------------------------- 
 
-a3_read_mod.f		-- New module to read in A-3 fields
-		 	   (also updated for GEOS-4/fvDAS!)
-
-a6_read_mod.f		-- New module to read in A-6 fields
-		 	   (also updated for GEOS-4/fvDAS!)
-
-convection_mod.f	-- New module containing routine which chooses
-		 	   the proper convection code for GEOS-1, GEOS-S,
-			   GEOS-3, or GEOS-4 met field data type
-
-fvdas_convect_mod.f	-- New module containing cloud convection routines
-			   for GEOS-4/fvDAS met fields
-
-get_air_mass		-- New routine to compute air masses from the 
-("transport_mod.f")	   input/output pressures to the GEOS-4 TPCORE
-
-get_first_a3_time	-- New routine to compute the first time to read
-("time_mod.f")		   A-3 fields for GEOS-1, GEOS-S, GEOS-3, GEOS-4
-
-get_first_a6_time	-- New routine to compute the first time to read
-("time_mod.f")		   A-3 fields for GEOS-1, GEOS-S, GEOS-3, GEOS-4
-
-i6_read_mod.f		-- New module to read in I-6 fields
-		 	   (also updated for GEOS-4/fvDAS!)
-
-its_time_for_a6		-- Now compute when it's time to read in GEOS-4 
-("time_mod.f")		   A-6 fields
-
-phis_read_mod.f		-- New module to read in PHIS fields
-		 	   (also updated for GEOS-4/fvDAS!)	
 
 
-Removed from v5-06:
+
+Removed from v5-07-01:
 ----------------------------------------------------------------------------- 
 
-dao_read_mod.f		-- Its functionality has been moved into
-			   a3_read_mod.f, a6_read_mod.f, i6_read_mod.f
-			   and phis_read_mod.f
 
 
 
-Changed from v5-05-03:
+Changed from v5-06:
 -------------------------------------------------------------------------------
 
-CMN			-- Fix for LINUX - remove & from column 73
+calcrate.f		-- Now implement interannually-varying CH4 field
+			-- Now reference GET_YMID from "grid_mod.f"
+			-- Now reference AIRDENS array from "comode_mod.f"
+			-- Added YLAT variable for grid box latitude
+			-- Cosmetic changes
 
-CMN_CO			-- Fix for LINUX - remove & from column 73
+chemdr.f		-- Reference GET_GLOBAL_CH4 from "global_ch4_mod.f"
+			-- Also added CH4_YEAR as a SAVEd variable
 
-CMN_DIAG		-- changed PD67 from 18 to 22
-			-- changed PD66 from 6  to 5
-			-- Fix for LINUX - remove & from column 73
+comode.h		-- Added ICH4 to the /SPECIE2/ common block for 
+			   interannual-varying CH4 concentration.
+			-- Added variables for latitude distribution of
+			   CH4 to the /SPECIE3/ common block.
 
-CMN_SETUP		-- Deleted GEOS_2_DIR variable
-			-- Added GEOS_4_DIR variable
+get_global_ch4		-- Place WRITE statments w/in an !$OMP CRITICAL block,
+("global_ch4_mod.f")	   so as to make sure that only one processor at a 
+			   time writes them.  
+			-- Also now use F90 REPEAT intrinsic function.
+			-- Replaced old CH4 gradient values with updated 
+			   values for 1983-2001.  
+			-- Use data for 2001 as a proxy for years past 2001,
+			   since data for those years has not been reported yet
 
-CMN_SIZE		-- added parameter sizes for GEOS-4 grids
+readchem.f		-- Now initialize ICH4 -- the location of CH4 in 
+			   the CSPEC array
 
-adjust_press		-- Now declare METDATA_NAME_ORG as CHARACTER(LEN=*)
-("pjc_pfix_mod.f")
+----
 
-airqnt			-- Now move computation of DELP into main loop
-("dao_mod.f")		-- Also remove P, LOGP, JREF, & DSIG variables -- 
-			   these are obsolete for fvDAS.
+biomass_mod.f 	       <-- Removed commented-out, obsolete code
+chemhcn.f		   from the following source-code files
+chemistry_mod.f
+dao_mod.f               
+inphot.f               
+input.f
+jsparse.f
+jv_index.f
+ksparse.f
+main.f	
+partition.f
+physproc.f
+pjc_pfix_mod.f
+pressure_mod.f
+reader.f
+restart_mod.f
+setnfam.f
+setup.f
+tagged_co_mod.f
+tcorr.f
+time_mod.f
+transport_mod.f
+turbday.f
+upbdflx_mod.f
+wetscav_mod.f
 
-cleanup_dao		-- Now list all arrays in order
-("dao_mod.f")		-- Now also deallocate new arrays for GEOS-4/fvDAS
-
-cleanup_transport	-- Remove reference to DSIG, it's obsolete
-("transport_mod.f")
-
-dao_mod.f		-- added HKBETA, HKETA, TSKIN, ZMEU, ZMMD, ZMMU,
-			   GWETTOP, PARDF, PARDRfields for GEOS-4 / fvDAS
-			-- now contains routines GET_I6_FIELDS_1, 
-			   GET_I6_FIELDS_2, GET_A3_FIELDS, GET_A6_FIELDS, 
-			   GET_PHIS_FIELD, which were formerly in "main.f"
-			-- Now moved MAKE_CLDFRC into "a6_read_mod.f"
-			-- removed KZZ field
-			-- Now set T = TMPU1 in GET_I6_FIELDS_1 (i6_read_mod.f)
-
-define.h		-- added new C-preprocessor switch "IBM_AIX" 
-			   for IBM platform
-
-do_global_transport 	-- Now call GET_AIR_MASS to compute air masses based 
-("transport_mod.f)"        on the input/output pressures of the GEOS-4 
-			   version of TPCORE
-
-diag1.f			-- Now compute PBL top for ND67 for GEOS-4/fvDAS 
-			-- Also now include SCALE_HEIGHT from "CMN_GCTM"
-
-diag3.f			-- Added TSKIN, PARDF, PARDR, GWET to ND67 for GEOS-4
-			-- For GEOS-4/fvDAS, UWND, VWND, TMPU, SPHU are 
-			   A-6 fields.  Adjust the scale factors accordingly.
-			   Also delete KZZ.
-
-error_mod.f		-- Added patches for IBM/AIX platform
-
-fyrno3.f		-- Updated comment description of XCARBN
-
-get_a3_time		-- Now return proper time for GEOS-4/fvDAS fields
-("time_mod.f")
-
-get_a6_time		-- Updated comments
-("time_mod.f")
-
-get_l_copy		-- Add value of L_COPY for GEOS-4/fvDAS
-("transfer_mod.f")
-
-init_dao		-- Now order all arrays in alphabetical order.  
-("dao_mod.f")		-- Also added new fields for GEOS-4/fvDAS: 
-			   HKBETA, HKETA, ZMEU, ZMMD, ZMMU, TSKIN, GWETTOP,
-			   PARDF, PARDR
-
-init_press_fix		-- Now declare METDATA_NAME_ORG as CHARACTER(LEN=*)
-("pjc_pfix_mod.f")
-
-init_pressure		-- Updated format string for fvDAS
-("pressure_mod.f")
-
-init_transport		-- Remove reference to DSIG, it's obsolete
-("transport_mod.f")	
-
-interp			-- Removed NDT from the arg list since that is 
-("dao_mod.f")   	   always equal to 21600.  
-			-- For GEOS-4 met fields, only interpolate PSC2; 
-			   the other fields are 6-h averages.
-			-- Eliminate TC variable, it's obsolete.  
-			-- Now use double precision to compute TM and TC2 
-			-- Renamed NTIME to NTIME1 and NTIME1 to NTIME0
-			-- Updated comments
-
-is_land			-- Added code to determine land boxes for GEOS-4
-("dao_mod.f")
-
-is_water		-- Added code to determine water boxes for GEOS-4
-("dao_mod.f")
-
-its_time_for_del	-- Now delete files at 23 GMT each day, since the last
-("time_mod.f")             fvDAS A-3 field is 22:30 GMT and the last fvDAS A-6
-			   field is 21 GMT
-
-main.f			-- Now references new met-field reading modules
-                           "a3_read_mod.f", "a6_read_mod.f", "i6_read_mod.f",
-			   and "phis_read_mod.f" instead of "dao_read_mod.f"
-			-- Now calls UNZIP_A3_FIELDS   from "a3_read_mod.f"
-			-- Now calls OPEN_A3_FIELDS    from "a3_read_mod.f"
-			-- Now calls GET_A3_FIELDS     from "a3_read_mod.f"
-			-- Now calls UNZIP_A6_FIELDS   from "a6_read_mod.f"
-			-- Now calls OPEN_A6_FIELDS    from "a6_read_mod.f"
-			-- Now calls GET_A6_FIELDS     from "a6_read_mod.f"
-			-- Now calls UNZIP_I6_FIELDS   from "i6_read_mod.f"
-			-- Now calls OPEN_I6_FIELDS    from "i6_read_mod.f"
-			-- Now calls GET_I6_FIELDS_1   from "i6_read_mod.f"
-			-- Now calls GET_I6_FIELDS_2   from "i6_read_mod.f"
-			-- Now calls UNZIP_PHIS_FIELDS from "phis_read_mod.f"
-			-- Now calls OPEN_PHIS_FIELDS  from "phis_read_mod.f"
-			-- Now calls GET_PHIS_FIELDS   from "phis_read_mod.f"
-			-- Updated MET_FIELD_DEBUG routine
-			-- Now remove NDT from call to INTERP
-			-- Comment out call to NFCLDMX, this is now a routine
-			   w/in "convection_mod.f"
-			-- now call routine DO_CONVECTION from module
-			   "convection_mod.f", which calls NFCLDMX
-
-make_cldfrc		-- moved from "dao_mod.f" to "a3_read_mod.f"
-("dao_mod.f")
-
-open_met_fields		-- Now open A-3 fields in OPEN_A3_FIELDS in
-("dao_read_mod.f") 	   F90 module "a3_read_mod.f"
-
-rdust.f			-- Since December 1997 dust data does not exist, 
-			   use November 1997 dust data as a proxy
-
-read_pco_lco_strat     	-- Update FILENAME so that it looks in the 
-("tagged_co_mod.f")	   "pco_lco_200203" subdirectory of DATA_DIR
-
-setup.f			-- Removed GEOS_2_DIR	
-			-- Added GEOS_4_DIR
-
-tpcore			-- Now also print info for IBM/AIX platform
-("tpcore_mod.f")
-
-transport_mod.f		-- Now delete DSIG array, it's obsolete.       
-			-- Also added new PRIVATE function GET_AIR_MASS to 
-			   compute air masses from the input/output pressures
-			   from the new GEOS-4/fvDAS TPCORE.
-
-tropopause.f		-- add proper polar tropopause level for GEOS-4
-
-turbday.f 		-- Now can handle PBL field in meters for GEOS-4/fvDAS
-			-- Also the atmospheric scale height from CMN_GCTM
-
-unzip_met_fields	-- Now unzip A-3 fields in OPEN_A3_FIELDS in
-("dao_read_mod.f")	   F90 module "a3_read_mod.f"
+	      

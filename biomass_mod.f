@@ -1,4 +1,4 @@
-! $Id: biomass_mod.f,v 1.1 2003/06/30 20:26:03 bmy Exp $
+! $Id: biomass_mod.f,v 1.2 2003/07/08 15:29:04 bmy Exp $
       MODULE BIOMASS_MOD
 !
 !******************************************************************************
@@ -415,11 +415,6 @@
      &                 'bioburn.seasonal.geos.' // GET_RES_EXT()
 
             ! Read the seasonal biomass burning emissions into BIOMASS_SEA
-            !------------------------------------------------------------------
-            ! Prior to 5/16/03:
-            ! Pass BIOMASS_SEA(1:NBIOTRCE) to READ_BIOMASS(bnd, bdf, 5/16/03)
-            !CALL READ_BIOMASS( FILENAME, XTAU, BIOMASS_SEA )
-            !------------------------------------------------------------------
             CALL READ_BIOMASS( FILENAME, XTAU, 
      &                         BIOMASS_SEA(1:NBIOTRCE,:,:) )
 
@@ -431,11 +426,6 @@
      &                 'bioburn.annual.geos.' // GET_RES_EXT()
 
             ! Read the annual biomass burning emissions into BIOMASS_ANN
-            !-----------------------------------------------------------------
-            ! Prior to 5/16/03:
-            ! Pass BIOMASS_SEA(1:NBIOTRCE) to READ_BIOMASS(bnd, bdf, 5/16/03)
-            !CALL READ_BIOMASS( FILENAME, XTAU, BIOMASS_ANN )
-            !-----------------------------------------------------------------
             CALL READ_BIOMASS( FILENAME, XTAU, 
      &                         BIOMASS_ANN(1:NBIOTRCE,:,:) )
 
@@ -469,11 +459,6 @@
      &                    'bioburn.seasonal.geos.' // GET_RES_EXT()
 
                ! Read the seasonal biomass burning emissions into BIOMASS_SEA
-               !-----------------------------------------------------------
-               ! Prior to 5/16/03:
-               ! Pass BIOMASS_SEA(1:NBIOTRCE) to READ_BIOMASS 
-               !CALL READ_BIOMASS( FILENAME, XTAU, BIOMASS_SEA )
-               !-----------------------------------------------------------
                CALL READ_BIOMASS( FILENAME, XTAU, 
      &                            BIOMASS_SEA(1:NBIOTRCE,:,:) )
 
@@ -486,11 +471,6 @@
      &                    'bioburn.annual.geos.' // GET_RES_EXT()
 
                ! Read the annual biomass burning emissions from disk
-               !-----------------------------------------------------------
-               ! Prior to 5/16/03:
-               ! Pass BIOMASS_ANN(1:NBIOTRCE) to READ_BIOMASS 
-               !CALL READ_BIOMASS( FILENAME, XTAU, BIOMASS_ANN )
-               !-----------------------------------------------------------
                CALL READ_BIOMASS( FILENAME, XTAU, 
      &                            BIOMASS_ANN(1:NBIOTRCE,:,:) )
 

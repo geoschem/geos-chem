@@ -1,4 +1,4 @@
-! $Id: partition.f,v 1.1 2003/06/30 20:26:04 bmy Exp $
+! $Id: partition.f,v 1.2 2003/07/08 15:31:56 bmy Exp $
       SUBROUTINE PARTITION( STT, NTRACER, XNUMOL ) 
 !
 !******************************************************************************
@@ -42,11 +42,6 @@
       INTEGER                :: CSAVEID_JJ(IGAS)
       INTEGER                :: CS, IDNUM, AS  
       REAL*8                 :: CONCTMP, CONCNOX, SUM, SUM1
-      !-----------------------------------------------------------------------
-      ! Prior to 4/24/03:
-      ! Make CSAVE a local dynamic array to avoid memory leaks (bmy, 4/24/03)
-      !REAL*8, ALLOCATABLE    :: CSAVE(:,:)
-      !-----------------------------------------------------------------------
       REAL*8                 :: CSAVE( ITLOOP, IGAS )
       
       !=================================================================
@@ -79,14 +74,6 @@
 
          ENDIF
       ENDDO
-
-      !----------------------------------------------------------------------
-      ! Prior to 4/24/03:
-      ! Make CSAVE a local dynamic array to avoid memory leaks (bmy, 4/24/03)
-      !! Allocate CSAVE for to IIPAR*JJPAR*LLTROP boxes (mje, bmy, 7/2/01)
-      !ALLOCATE( CSAVE( ITLOOP, IDNUM ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSAVE' )
-      !----------------------------------------------------------------------
 
       ! Loop over tracer members and boxes
       DO N = 1, IDNUM
@@ -253,13 +240,6 @@
          ENDDO
          ENDDO
       ENDDO
-
-      !------------------------------------------------------------
-      ! Prior to 4/24/03:
-      ! Now make CSAVE a local dynamic array (bmy 4/24/03)
-      !! Deallocate CSAVE, to free the memory (bmy, 4/2/99)
-      !DEALLOCATE( CSAVE )
-      !------------------------------------------------------------
 
       ! Return to calling program
       END SUBROUTINE PARTITION

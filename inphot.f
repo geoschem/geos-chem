@@ -1,4 +1,4 @@
-! $Id: inphot.f,v 1.1 2003/06/30 20:26:05 bmy Exp $
+! $Id: inphot.f,v 1.2 2003/07/08 15:32:46 bmy Exp $
       SUBROUTINE INPHOT( NLAYER, NREACS )
 !
 !******************************************************************************
@@ -49,11 +49,6 @@
       INTEGER, INTENT(IN) :: NLAYER, NREACS
       
       ! Local variables
-      !-----------------------------------------------
-      ! Prior to 4/8/03:
-      ! Remove IPH (bmy, 4/8/03)
-      !INTEGER             :: IPH, L
-      !-----------------------------------------------
       INTEGER             :: L
 
       !=================================================================
@@ -76,14 +71,6 @@
       IF ( JPPJ > JPMAX ) THEN
          CALL ERROR_STOP( 'JPPJ > JPMAX!', 'inphot.f' )
       ENDIF
-
-      !---------------------------------------------------------------------
-      ! Prior to 4/8/03:
-      ! Now use IU_FASTJ directly (bmy, 4/8/03)
-      !! Use channel 8 to read files at the moment
-      !! Use file unit IU_FASTJ (which =8) to read files (bmy, 6/27/02)
-      !IPH = IU_FASTJ
-      !---------------------------------------------------------------------
 
       ! Read in labels of photolysis rates required
       CALL RD_JS( IU_FASTJ, 'ratj.d' )

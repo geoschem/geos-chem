@@ -1,4 +1,4 @@
-! $Id: chemistry_mod.f,v 1.1 2003/06/30 20:26:04 bmy Exp $
+! $Id: chemistry_mod.f,v 1.2 2003/07/08 15:28:41 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
@@ -45,11 +45,6 @@
       USE ACETONE_MOD,     ONLY : OCEAN_SINK_ACET
       USE C2H6_MOD,        ONLY : CHEMC2H6
       USE CH3I_MOD,        ONLY : CHEMCH3I
-      !-----------------------------------------------------------------------
-      ! Prior to 4/14/03 -- supplemental fix
-      ! Need to pass DELP, T via "dao_mod.f" (bnd, bmy, 4/14/03)
-      !USE DAO_MOD,         ONLY : CLMOSW, CLROSW, MAKE_RH, OPTDEP, OPTD
-      !-----------------------------------------------------------------------
       USE DAO_MOD,         ONLY : CLMOSW,  CLROSW, DELP, 
      &                            MAKE_RH, OPTDEP, OPTD, T
       USE GLOBAL_CH4_MOD,  ONLY : CHEMCH4

@@ -1,4 +1,4 @@
-! $Id: setup.f,v 1.1 2003/06/30 20:26:03 bmy Exp $
+! $Id: setup.f,v 1.2 2003/07/08 15:30:57 bmy Exp $
       SUBROUTINE SETUP( NYMDb, NYMDe,     NHMSb,   NHMSe,   NDT,      
      &                  NTDT,  NDIAGTIME, ALPHA_d, ALPHA_n, IORD,     
      &                  JORD,  KORD,      J1,      Umax,    IGD,      
@@ -160,11 +160,6 @@
       IF ( IOS /= 0 ) CALL IOERROR( IOS, 99, 'setup:8' )
 
       READ ( 99, 25, IOSTAT=IOS ) 
-!------------------------------------------------------------------------
-! Prior to 4/28/03:
-! LKZZ is now LTPFV (bmy, 4/28/03)
-!     &     LEMIS,  LDRYD,  LCHEM,   LTRAN,  LKZZ,   STR1
-!------------------------------------------------------------------------
      &     LEMIS,  LDRYD,  LCHEM,   LTRAN,  LTPFV,  STR1
       IF ( IOS /= 0 ) CALL IOERROR( IOS, 99, 'setup:9' )
  
@@ -181,11 +176,6 @@
       IF ( IOS /= 0 ) CALL IOERROR( IOS, 99, 'setup:12' )
 
       WRITE ( 6, 10 ) TITLE
-      !--------------------------------------------------------------------
-      ! Prior to 4/28/03:
-      ! LKZZ is now LTPFV (bmy, 4/28/03)
-      !WRITE ( 6, 25 ) LEMIS,  LDRYD,  LCHEM,   LTRAN,  LKZZ,    STR1 
-      !--------------------------------------------------------------------
       WRITE ( 6, 25 ) LEMIS,  LDRYD,  LCHEM,   LTRAN,  LTPFV,   STR1 
       WRITE ( 6, 25 ) LTURB,  LCONV,  LWETD,   LDBUG,  LMONOT,  STR2 
       WRITE ( 6, 25 ) LWAIT,  LBBSEA, LRERD,   LSVGLB, LTOMSAI, STR3 
@@ -326,10 +316,6 @@
       DATA_DIR   = ASSIGN_STRING( 'DATA_DIR'   )
       GEOS_1_DIR = ASSIGN_STRING( 'GEOS_1_DIR' )
       GEOS_S_DIR = ASSIGN_STRING( 'GEOS_S_DIR' )
-      !---------------------------------------------------------------
-      ! Prior to 6/18/03:
-      !GEOS_2_DIR = ASSIGN_STRING( 'GEOS_2_DIR' )
-      !---------------------------------------------------------------
       GEOS_3_DIR = ASSIGN_STRING( 'GEOS_3_DIR' )
       GEOS_4_DIR = ASSIGN_STRING( 'GEOS_4_DIR' )
       TEMP_DIR   = ASSIGN_STRING( 'TEMP_DIR'   )
