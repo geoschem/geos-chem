@@ -1,8 +1,8 @@
-! $Id: comode.h,v 1.8 2003/12/05 21:13:57 bmy Exp $
+! $Id: comode.h,v 1.9 2004/04/13 14:52:29 bmy Exp $
 !
 !******************************************************************************
 !  Header file COMODE contains common blocks and variables for SMVGEAR II.
-!  (M. Jacobson 1997; bdf, bmy, 4/23/03, 8/7/03)
+!  (M. Jacobson 1997; bdf, bmy, 4/23/03, 4/6/04)
 !
 !  NOTES:
 !  (1 ) Removed many commented-out common blocks not needed for GEOS-CHEM.
@@ -41,6 +41,7 @@
 !  (6 ) Add NKN2O5 to /CHEM4/ common block to flag N2O5 hydrolysis rxn.
 !         (mje, bmy, 8/7/03)
 !  (7 ) Eliminated SMALLCHEM cpp switch (bmy, 12/2/03)
+!  (8 ) Now set MAXGL3 = NNPAR for new # of tracers (bmy, 4/6/04)
 !******************************************************************************
 !
 C         CCCCCCC  OOOOOOO  M     M  OOOOOOO  DDDDDD   EEEEEEE 
@@ -143,18 +144,18 @@ C
       PARAMETER ( NMTRATE = NMRATE + IPHOT,    NMQRATE = 1           ) 
       PARAMETER ( NMRPROD = 25,                NMDEAD  = 100         )
       PARAMETER ( MAXGL   = 430,               MAXGL2  = 50          )
-      PARAMETER ( MAXGL3  = 32,                MAXGL4  = 10          )
+      !-----------------------------------------------------------------------
+      ! Prior to 4/7/04:
+      ! Now set MAXGL3 to NNPAR for new # of tracers (bmy, 4/6/04)
+      !PARAMETER ( MAXGL3  = 32,                MAXGL4  = 10          )
+      !-----------------------------------------------------------------------
+      PARAMETER ( MAXGL3  = NNPAR,             MAXGL4  = 10          )
       PARAMETER ( ICS     = 3,                 ICP     = 2*ICS       ) 
       PARAMETER ( MORDER  = 7                                        ) 
       PARAMETER ( IPHOT8  = IPHOT + 8,         IMISC   = 100         )
       PARAMETER ( IMASBAL = 9,                 IALTS   = 22          )
       PARAMETER ( MXCOF   = 5                                        )
 
-!-----------------------------------------------------------------------------
-! Prior to 12/2/03:
-! Eliminate SMALLCHEM flag (bmy, 12/2/03)
-!#elif defined ( SMALLCHEM ) || defined ( LGEOSCO )
-!-----------------------------------------------------------------------------
 #elif defined( LGEOSCO )
       ! New settings for small chemistry to save array space (bmy, 1/5/98)
       ! Need these to also be defined for LGEOSCO run (bmy, 10/3/00)

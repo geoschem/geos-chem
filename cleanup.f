@@ -1,9 +1,9 @@
-! $Id: cleanup.f,v 1.2 2003/07/21 15:09:25 bmy Exp $
+! $Id: cleanup.f,v 1.3 2004/04/13 14:52:29 bmy Exp $
       SUBROUTINE CLEANUP
 !
 !******************************************************************************
 !  Subroutine CLEANUP deallocates the memory assigned to dynamic allocatable 
-!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 7/14/03)
+!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 4/5/04)
 !
 !  NOTES:
 !  (1 ) CLEANUP is written in Fixed-Format F90.
@@ -48,6 +48,8 @@
 !  (21) Now reference cleanup routine from "pjc_pfix_mod.f" and 
 !        "tpcore_fvdas_mod.f90". (bmy, 5/9/03)
 !  (22) Now reference cleanup routine from "toms_mod.f" (bmy, 7/14/03)
+!  (23) Now reference cleanup routine from "carbon_mod.f", "dust_mod.f", and
+!        "dust_dead_mod.f". (bmy, 7/14/03)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -56,11 +58,14 @@
       USE BIOMASS_MOD,      ONLY : CLEANUP_BIOMASS
       USE BIOFUEL_MOD,      ONLY : CLEANUP_BIOFUEL
       USE C2H6_MOD,         ONLY : CLEANUP_C2H6
+      USE CARBON_MOD,       ONLY : CLEANUP_CARBON
       USE COMODE_MOD,       ONLY : CLEANUP_COMODE
       USE DAO_MOD,          ONLY : CLEANUP_DAO
       USE DIAG_MOD,         ONLY : CLEANUP_DIAG
       USE DIAG51_MOD,       ONLY : CLEANUP_DIAG51
       USE DRYDEP_MOD,       ONLY : CLEANUP_DRYDEP
+      USE DUST_MOD,         ONLY : CLEANUP_DUST
+      USE DUST_DEAD_MOD,    ONLY : CLEANUP_DUST_DEAD
       USE GLOBAL_CH4_MOD,   ONLY : CLEANUP_GLOBAL_CH4
       USE GLOBAL_HNO3_MOD,  ONLY : CLEANUP_GLOBAL_HNO3
       USE GLOBAL_NO3_MOD,   ONLY : CLEANUP_GLOBAL_NO3
@@ -108,7 +113,10 @@
       CALL CLEANUP_ACETONE
       CALL CLEANUP_AIRCRAFT_NOX
       CALL CLEANUP_C2H6
+      CALL CLEANUP_CARBON
       CALL CLEANUP_COMODE
+      CALL CLEANUP_DUST_DEAD
+      CALL CLEANUP_DUST
       CALL CLEANUP_UVALBEDO
       CALL CLEANUP_WETSCAV
       CALL CLEANUP_PRESSURE

@@ -1,101 +1,170 @@
-REVISIONS (v6-02-01)  
-bmy, 24 Mar 2004
+REVISIONS (v6-02-02)  
+bmy, 09 Apr 2004
 
 
-New in v6-02-01:
+New in v6-02-02:
 -------------------------------------------------------------------------------
 
+aero_sfcrsi		-- Computes sfc resistance cf. Seinfeld et al 86
+("drydep_mod.f")           for dust aerosol tracers
 
-Removed in v6-02-01:
+aero_sfcrsii		-- Computes sfc resistance cf. Zhang et al 2001
+("drydep_mod.f")           for dust aerosol tracers
+
+carbon_mod.f		-- Module containing emissions & chemistry
+			   routines for carbon aerosol tracers
+
+compute.f		-- Added slots for carbon aerosol & dust tracers
+("wetscav_mod.f")	-- Now modified internal routine GET_ISOL so it's 
+			   not hardwired anymore
+
+dust_mod.f		-- Module containing routines for dust settling,
+			   dry deposition.  Also contains routines to
+			   call either the Ginoux source function or
+			   the DEAD/Zender source function.
+
+dust_dead_mod.f		-- Module containing routines from the DEAD dust
+			   mobilization package (Zender et al)
+
+gwet_read_mod.f		-- Reads the extra GWET files from disk 
+			   (only needed for GEOS-3 data!)
+
+its_a_new_day		-- Tests if it's a new day
+("time_mod.f")
+
+its_a_new_month		-- Tests if it's a new month
+("time_mod.f")
+
+its_a_new_year		-- Tests if it's a new year
+("time_mod.f")
+
+rdust_online		-- Version of RDUST for online dust
+("dust_mod.f")
+
+rdust_offline		-- Version of RDUST for offline dust
+("dust_mod.f")
+
+
+
+Removed in v6-02-02:
 -------------------------------------------------------------------------------
 
+rdust.f			-- Now bundled into "dust_mod.f"
 
-Changed from v6-01-05:
+
+
+Changed from v6-02-01:
 -------------------------------------------------------------------------------
 
-chem_h2o2		-- Now use ND44_TMP array to store vertical levels of 
-("sulfate_mod.f")	   drydep flux, then sum into AD44 array.  This 
-			   prevents numerical differences when using multiple 
-			   processors. 
+CMN_DIAG		-- Changed PD06 to NDSTBIN
+			-- Changed PD07 to 7
+			-- Add LD07 for carbon aerosols
 
-chem_msa		-- Now use ND44_TMP array to store vertical levels of 
-("sulfate_mod.f")	   drydep flux, then sum into AD44 array.  This 
-			   prevents numerical differences when using multiple 
-			   processors. 
+CMN_SETUP		-- Added extra flags for carbon tracers 
 
-chem_nh3		-- Now use ND44_TMP array to store vertical levels of 
-("sulfate_mod.f")	   drydep flux, then sum into AD44 array.  This 
-			   prevents numerical differences when using multiple 
-			   processors. 
+CMN_SIZE		-- Increase NNPAR from 31 to 39 for carbon & dust 
+			   tracers.  
+		 	-- Also declare NDSTBIN as # of dust bins. 
 
-chem_nh4		-- Now use ND44_TMP array to store vertical levels of 
-("sulfate_mod.f")	   drydep flux, then sum into AD44 array.  This 
-			   prevents numerical differences when using multiple 
-			   processors. 
+arsl1k.f		-- Now return w/ default value if RADIUS is zero 
+			   (i.e. is smaller than the machine epsilon)
 
-chem_nit		-- Now use ND44_TMP array to store vertical levels of 
-("sulfate_mod.f")	   drydep flux, then sum into AD44 array.  This 
-			   prevents numerical differences when using multiple 
-			   processors. 
+chemdr.f		-- Added PIEC, POEC, PIOC, POOC, and SOILDUST arrays
+			-- Now pass SOILDUST to RDUST_ONLINE (in "dust_mod.f")
+			-- Now pass PIEC, POEC, PIOC, POOC to "rdaer.f".       
+			-- Now references "dust_mod.f"
 
-chem_so2		-- Now use ND44_TMP array to store vertical levels of 
-("sulfate_mod.f")	   drydep flux, then sum into AD44 array.  This 
-			   prevents numerical differences when using multiple 
-			   processors. 
+chem_h2o2		-- Now use diurnally-varying JO1D
+("sulfate_mod.f")	-- Now use new unit conversion for the ND44 diagnostic.
 
-chem_s04		-- Now use ND44_TMP array to store vertical levels of 
-("sulfate_mod.f")	   drydep flux, then sum into AD44 array.  This 
-			   prevents numerical differences when using multiple 
-			   processors. 
+cleanup.f		-- Now calls cleanup routines from "carbon_mod.f",
+		           "dust_mod.f", and "dust_dead_mod.f"
 
-chem_tagged_ox		-- Now use ND44_TMP array to store vertical levels of 
-("tagged_ox_mod.f")	   drydep flux, then sum into AD44 array.  This 
-			   prevents numerical differences when using
-			   multiple processors. 	   
-			   
-define.h		-- Added "A_LLK_03" switch to denote GEOS-4 "a_llk_03"
-			   met fields.  This will be temporary since the
-		           "a_llk_03" met fields will be replaced by a newer 
-			   product in 2004.
+cleanup_sulfate		-- Now also deallocates COSZM
+("sulfate_mod.f")
 
-diag3.f			-- Now use the actual tracer # for ND17 and 
-			   ND18 diagnostics.
-			-- Rearrange ND44 code for clarity
+comode.h		-- Now set MAXGL3 = NNPAR for new # of tracers
 
-do_open_a6		-- Now modified for GEOS-4 "a_llk_03" or "a_llk_04" 
-("a6_read_mod.f")	   data fields
+depvel			-- Now call routines AERO_SFCRSI (cf Seinfeld et al 86)
+("drydep_mod.f")           or AERO_SFSCRSII (cf Zhang et al 2001) to compute
+			   the surface resistance for dust aerosol tracers.
 
-dryflx			-- Now bracket AD44 with a !$OMP CRITICAL block in 
-("drydep_mod.f")	   order to avoid multiple threads writing to the 
-			   same element
+diag3.f			-- Added ND06 (dust aerosol) and ND07 
+	                   (carbon aerosol) diagnostics
+			-- Now scale online dust optical depths by 
+			   SCALECHEM in the ND21 diagnostic
 
-get_first_a6_time	-- Now modified for GEOS-4 "a_llk_03" or "a_llk_04" 
-("a6_read_mod.f")	   data fields
+diag_mod.f		-- Added ND06 (dust emission) and ND07 (carbon 
+			   aerosol emission) diagnostic arrays
 
-its_time_for_a6		-- Now modified for GEOS-4 "a_llk_03" and "a_llk_04" 
-("time_mod.f")		   data fields
-			-- Now references "define.h"
+do_chemistry		-- Now calls CHEMCARBON and CHEMDUST for carbon 
+("chemistry_mod.f")	   aerosol and dust aerosol chemistry
 
-setemis.f		-- Added parallel loop over N.  
-			-- Also directly substituted JLOP(I,J,1) for all 
-			   instances of JLOOP1.  
-			-- Updated comments.
+do_emissions		-- Now calls CHEMCARBON and CHEMDUST for carbon 
+("emissions_mod.f")	   aerosol and dust aerosol chemistry
 
-write_diag51		-- Bug fix: GMNL should be NL for tracer #39, not 1
-("diag51_mod.f")	-- Also multiply AIRDEN by 1d-6 to convert from 
-			   m3 to cm3.
+drydep_mod.f		-- Set MAXDEP to 25 for extra carbon & dust tracers
+
+emisssulfate		-- Added informational message printed on the 1st call
+("sulfate_mod.f")
+
+error_stop		-- Now do not FLUSH the buffer for LINUX_EFC
+("error_mod.f")
+
+get_wetdep_nmax		-- Modified to include carbon & dust aerosol tracers
+("wetscav_mod.f")
+
+init_dao		-- Now allocate RADLWG, SNOW for both GEOS-3
+("dao_mod.f")		   and GEOS-4
+
+init_sulfate		-- Now allocate COSZM for offline runs
+("sulfate_mod.f")
+
+init_tracerid		-- Now zero extra flags for carbon & dust tracer
+("tracerid_mod.f")
+
+initialize.f		-- Now also zeroes AD06 and AD07* arrays
+
+main.f			-- Now references "gwet_read_mod.f"
+			-- Now reads, unzips, and deletes GWET fields
+			   if we are using the online dust simulation,
+		           only for GEOS-3.
+
+ndxx_setup.f		-- Now initialize AD06 and AD07* arrays
+
+ohno3time		-- Now store the peak SUNCOS value for each surface 
+("sulfate_mod.f")	   grid box (I,J) in the COSZM array.
+
+rainout			-- Updated for carbon aerosol & dust tracers
+("wetscav_mod.f")
+
+rdaer.f			-- Add PIEC, POEC, PIOC, POOC to the arg list.  
+			-- Bug fix: for online sulfate & carbon aerosol 
+			   tracers, now make sure these get updated every 
+			   timestep
+			-- Now references "time_mod.f"
+		        -- Now echo info about online/offline aerosols	
+		           that we are using
+			-- Updated comments
+
+setup.f			-- Added flags for carbon & dust aerosols
+			-- Also do not read extra lines from the top of 
+			   the file
+
+tracerid		-- Added extra CASEs to the CASE statement for 
+("tracerid_mod.f")	   carbon & dust tracers
+
+tracerid_mod.f		-- Added extra flags for carbon & dust tracers
+			-- increased NNNTRID from 32 to 40
+
+washout			-- Updated for carbon aerosol & dust tracers
+("wetscav_mod.f")
+
+wetdepid		-- Updated for carbon aerosol & dust tracers
+("wetscav_mod.f")
+
 
 ---
-bpch2_mod.f		<-- Removed obsolete, commented-out code
-convection_mod.f	    from the following routines
-dao_mod.f
-diag41.f
-emissdr.f		    
-emisshcn.f
-pjc_pfix_mod.f	
-pressure_mod.f
-readcs.f
-setup.f
-soilnoxems.f
-sulfate_mod.f
-transport_mod.f
+sulfate_mod.f		<-- Removed obsolete, commented-out code
+wetscav_mod.f    	    from the following routines
+

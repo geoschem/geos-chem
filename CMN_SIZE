@@ -1,6 +1,6 @@
-! $Id: CMN_SIZE,v 1.4 2004/02/20 21:31:30 bmy Exp $
+! $Id: CMN_SIZE,v 1.5 2004/04/13 14:52:27 bmy Exp $
       !=======================================================================
-      ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 2/18/04)
+      ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 4/1/04)
       !
       ! NOTES:
       ! (1 ) Now set LLTROP = 20 for GEOS-3 (bmy, 4/12/01)
@@ -29,6 +29,8 @@
       !       GEOS-2 grid declarations. (bmy, 10/31/03)
       ! (15) LLTROP should be 17 for GEOS-4...based on the ND55 diagnostic
       !       when computed for 2003 met fields (bmy, 2/18/04)
+      ! (16) Increase NNPAR from 31 to 39 for carbon & dust tracers.  Also
+      !       declare NDSTBIN as # of dust bins. (rvm, tdf, bmy, 4/1/04)
       !=======================================================================
 
       ! C Preprocessor #define statements for conditional compilation
@@ -227,11 +229,6 @@
       INTEGER, PARAMETER :: LLPAR  = LGLOB  ! 55 levels
 #endif
 
-      !------------------------------------------------------------
-      ! Prior to 2/18/04:
-      ! There are 17 tropospheric levels in GEOS-4 (bmy, 2/18/04)
-      !INTEGER, PARAMETER :: LLTROP = 18   
-      !------------------------------------------------------------
       INTEGER, PARAMETER :: LLTROP = 17
 
       REAL*8,  PARAMETER :: PTOP   = 0.01d0
@@ -254,11 +251,6 @@
       INTEGER, PARAMETER :: LLPAR  = LGLOB  ! 55 levels
 #endif
 
-      !------------------------------------------------------------
-      ! Prior to 2/18/04:
-      ! There are 17 tropospheric levels in GEOS-4 (bmy, 2/18/04)
-      !INTEGER, PARAMETER :: LLTROP = 18
-      !------------------------------------------------------------
       INTEGER, PARAMETER :: LLTROP = 17
 
       REAL*8,  PARAMETER :: PTOP   = 0.01d0
@@ -281,7 +273,12 @@
       INTEGER, PARAMETER :: NEMPARB = 1
 
 #elif defined( FULLCHEM  )
-      INTEGER, PARAMETER :: NNPAR   = 31
+      !-----------------------------------------------------------------
+      ! Prior to 4/1/04:
+      ! Add extra tracers for carbon + dust (rvm, tdf, bmy, 4/1/04)
+      !INTEGER, PARAMETER :: NNPAR   = 31
+      !-----------------------------------------------------------------
+      INTEGER, PARAMETER :: NNPAR   = 39
       INTEGER, PARAMETER :: NEMPARA = 10
       INTEGER, PARAMETER :: NEMPARB = 1
 
@@ -330,3 +327,5 @@
       ! NRH -- number of relative humidity bins (rvm, bmy, 2/27/02)
       INTEGER, PARAMETER :: NRH = 5
 
+      ! NDSTBIN -- number of dust size bins for transport (tdf, bmy, 3/31/04)
+      INTEGER, PARAMETER :: NDSTBIN = 4

@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.8 2004/03/24 20:52:29 bmy Exp $
+! $Id: diag3.f,v 1.9 2004/04/13 14:52:29 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out I-J (Long-Lat) diagnostics to the BINARY
-!  format punch file (bmy, bey, mgs, rvm, 5/27/99, 3/19/04)
+!  format punch file (bmy, bey, mgs, rvm, 5/27/99, 4/9/04)
 !
 !  The preferred file format is binary punch file format v. 2.0.  This
 !  file format is very GAMAP-friendly.  GAMAP also supports the ASCII
@@ -126,6 +126,9 @@
 !        (bmy, 3/19/04)
 !  (48) Now use the actual tracer # for ND17 and ND18 diagnostics. 
 !        Rearrange ND44 code for clarity. (bmy, 3/23/04)
+!  (49) Added ND06 (dust aerosol) and ND07 (carbon aerosol) diagnostics.
+!        Now scale online dust optical depths by SCALECHEM in ND21 diagnostic.
+!        (rjp, tdf, bmy, 4/5/04)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -366,6 +369,179 @@
       ENDIF
 !
 !******************************************************************************
+!  ND06: Dust aerosol emissions
+!
+!   # : Field    : Description                     : Units      : Scale factor
+!  --------------------------------------------------------------------------
+!  (1)  DUST     : Soil dust (4 different classes) : kg         : 1
+!******************************************************************************
+!
+      IF ( ND06 > 0 .and. LDUST ) THEN
+
+         ! Category & unit string
+         UNIT     = 'kg'
+         CATEGORY = 'DUSTSRCE'
+
+         ! Loop over # of dust bins
+         DO N = 1, NDSTBIN 
+
+            ! At present we have 4 dust bins
+            IF ( N == 1 ) NN = IDTDST1 + TRCOFFSET
+            IF ( N == 2 ) NN = IDTDST2 + TRCOFFSET
+            IF ( N == 3 ) NN = IDTDST3 + TRCOFFSET
+            IF ( N == 4 ) NN = IDTDST4 + TRCOFFSET
+
+            ! Save dust into ARRAY
+            ARRAY(:,:,1) = AD06(:,:,N) 
+
+            ! Write to BPCH file
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         ENDDO
+      ENDIF     
+!
+!******************************************************************************
+!  ND07: Emissions of BC and OC aerosols
+!
+!   # : Field    : Description                  : Units        : Scale factor
+!  --------------------------------------------------------------------------
+!  (1)  Carbon   : Carbonaceous aerosols        : kg           : 1
+!******************************************************************************
+!
+      IF ( ND07 > 0 .and. LCARB ) THEN
+
+         ! Unit
+         UNIT = 'kg'
+         
+         !-------------------
+         ! BC ANTHRO source
+         !-------------------
+         CATEGORY     = 'BC-ANTH'
+         N            = IDTBCPI + TRCOFFSET
+         ARRAY(:,:,1) = AD07(:,:,1) 
+
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &               IIPAR,     JJPAR,     1,        IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+         !-------------------
+         ! BC BIOMASS source
+         !-------------------
+         CATEGORY     = 'BC-BIOB'
+         N            = IDTBCPI + TRCOFFSET     
+         ARRAY(:,:,1) = AD07(:,:,2) 
+            
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &               IIPAR,     JJPAR,     1,        IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+         !------------------- 
+         ! BC BIOFUEL source
+         !------------------- 
+         CATEGORY     = 'BC-BIOF'
+         N            = IDTBCPI + TRCOFFSET     
+         ARRAY(:,:,1) = AD07(:,:,3) 
+            
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &               IIPAR,     JJPAR,     1,        IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+         !------------------------------ 
+         ! H-philic BC from H-phobic BC
+         !------------------------------ 
+         CATEGORY     = 'PL-BC=$'
+         N            = IDTBCPI + TRCOFFSET     
+
+         DO L = 1, LD07
+            ARRAY(:,:,L) = AD07_BC(:,:,L) 
+         ENDDO
+            
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &               IIPAR,     JJPAR,     LD07,     IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
+
+         !------------------------------ 
+         ! OC ANTHRO source
+         !------------------------------ 
+         CATEGORY     = 'OC-ANTH'
+         N            = IDTOCPI + TRCOFFSET             
+         ARRAY(:,:,1) = AD07(:,:,4) 
+            
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &               IIPAR,     JJPAR,     1,        IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+         !------------------------------ 
+         ! OC BIOMASS source
+         !------------------------------
+         CATEGORY     = 'OC-BIOB'
+         N            = IDTOCPI + TRCOFFSET             
+         ARRAY(:,:,1) = AD07(:,:,5) 
+            
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &               IIPAR,     JJPAR,     1,        IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+         !------------------------------ 
+         ! OC BIOFUEL source
+         !------------------------------
+         CATEGORY     = 'OC-BIOF'
+         N            = IDTOCPI + TRCOFFSET             
+         ARRAY(:,:,1) = AD07(:,:,6) 
+            
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &               IIPAR,     JJPAR,     1,        IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+         !------------------------------ 
+         ! OC BIOGENIC source
+         !------------------------------
+         CATEGORY     = 'OC-BIOG'
+         N            = IDTOCPI + TRCOFFSET             
+         ARRAY(:,:,1) = AD07(:,:,7) 
+            
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &               IIPAR,     JJPAR,     1,        IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+         !------------------------------ 
+         ! H-philic OC from H-phobic OC
+         !------------------------------
+         CATEGORY     = 'PL-OC=$'
+         N            = IDTOCPI + TRCOFFSET     
+
+         DO L = 1, LD07
+            ARRAY(:,:,L) = AD07_OC(:,:,L) 
+         ENDDO
+         
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &               IIPAR,     JJPAR,     LD07,     IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
+
+      ENDIF   
+!
+!******************************************************************************
 !  ND11: Acetone source & sink diagnostic (Category: "ACETSRCE")
 !
 !   # : Field  : Description                        : Units      : Scale factor
@@ -381,7 +557,7 @@
 !
       IF ( ND11 > 0 ) THEN
          CATEGORY = 'ACETSRCE'
-         UNIT     = 'molC/cm2/s'
+         UNIT     = 'atoms C/cm2/s'
 
          DO M = 1, TMAX(11)
             N  = TINDEX(11,M)
@@ -867,6 +1043,7 @@
 !        Use SCALEDYN for CO-OH parameterization simulation. (bmy, 4/23/01)
 !  (4 ) Now GEOS-2, GEOS-3 use SCALECHEM for ND21 (bmy, 8/13/01)
 !  (5 ) Updated tracers for new aerosols from Mian Chin (rvm, bmy, 3/1/02)
+!  (6 ) Now scale online dust fields by SCALECHEM (bmy, 4/9/04)
 !******************************************************************************
 !
       IF ( ND21 > 0 ) THEN
@@ -893,12 +1070,30 @@
                   UNIT = 'unitless'
             END SELECT
                
-            ! The monthly mean dust optical depths (N > 3)
-            ! don't need to be scaled by SCALECHEM (rvm, bmy, 12/8/00)
             IF ( N > 3 .AND. N < 6 ) THEN
-               ARRAY(:,:,1:LD21) = AD21(:,:,1:LD21,N)
+
+               ! Online or offline dust fields?
+               IF ( LDUST ) THEN
+
+                  ! If LDUST=T, then we are using online dust fields,
+                  ! so we must scale by the chemistry timestep. (4/9/04)
+                  ARRAY(:,:,1:LD21) = AD21(:,:,1:LD21,N) / SCALEX
+      
+               ELSE
+                  
+                  ! If LDUST=F, then we are using offline monthly-mean
+                  ! dust fields.  These don't have to be scaled by
+                  ! the chemistry timestep. (bmy, 4/9/04)
+                  ARRAY(:,:,1:LD21) = AD21(:,:,1:LD21,N)
+
+               ENDIF
+
             ELSE
+
+               ! For all other types of optical depths, we need 
+               ! to scale by the chemistry timestep (bmy, 4/9/04)
                ARRAY(:,:,1:LD21) = AD21(:,:,1:LD21,N) / SCALEX
+
             ENDIF
             
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -1784,7 +1979,7 @@
                ! OH
                CASE ( 1 )
                   SCALE_TMP(:,:) = FLOAT( CTOH ) + 1d-20
-                  UNIT           = 'mol/cm3'
+                  UNIT           = 'molec/cm3'
                      
                   !================================================
                   ! For the CO-OH parameterization option, 24-hr 

@@ -1,9 +1,9 @@
-! $Id: time_mod.f,v 1.6 2004/03/24 20:52:33 bmy Exp $
+! $Id: time_mod.f,v 1.7 2004/04/13 14:52:32 bmy Exp $
       MODULE TIME_MOD
 !
 !******************************************************************************
 !  TIME_MOD contains GEOS-CHEM date and time variables and timesteps, and 
-!  routines for accessing them. (bmy, 6/21/00, 3/22/04) 
+!  routines for accessing them. (bmy, 6/21/00, 4/1/04) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -112,14 +112,17 @@
 !  (68) ITS_TIME_FOR_DEL  : Returns TRUE if it is time to delete temp files
 !  (69) ITS_TIME_FOR_EXIT : Returns TRUE if it is the end of the run
 !  (70) ITS_A_LEAPYEAR    : Returns TRUE if the current year is a leapyear
-!  (71) NYMD_Y2K          : Returns YYMMDD or YYYYMMDD for the proper data set
-!  (72) NYMD6_2_NYMD8     : Converts a 6-digit YYMMDD number into YYYYMMDD
-!  (73) NYMD_STRING       : ** deprecated, kept for backwards compatibility **
-!  (74) DATE_STRING       : Returns a date string in YYMMDD or YYYYMMDD format
-!  (75) TIMESTAMP_STRING  : Returns a string "YYYY/MM/DD HH:MM:SS"
-!  (76) PRINT_CURRENT_TIME: Prints date time in YYYY/MM/DD, HH:MM:SS format
-!  (77) YMD_EXTRACT       : Extracts YYYY, MM, DD from a YYYYMMDD format number
-!  (78) EXPAND_DATE       : Replaces date/time tokens w/ actual values
+!  (71) ITS_A_NEW_YEAR    : Returns TRUE if it's a new year
+!  (72) ITS_A_NEW_MONTH   : Returns TRUE if it's a new month
+!  (73) ITS_A_NEW_DAY     : Returns TRUE if it's a new day
+!  (74) NYMD_Y2K          : Returns YYMMDD or YYYYMMDD for the proper data set
+!  (75) NYMD6_2_NYMD8     : Converts a 6-digit YYMMDD number into YYYYMMDD
+!  (76) NYMD_STRING       : ** deprecated, kept for backwards compatibility **
+!  (77) DATE_STRING       : Returns a date string in YYMMDD or YYYYMMDD format
+!  (78) TIMESTAMP_STRING  : Returns a string "YYYY/MM/DD HH:MM:SS"
+!  (79) PRINT_CURRENT_TIME: Prints date time in YYYY/MM/DD, HH:MM:SS format
+!  (80) YMD_EXTRACT       : Extracts YYYY, MM, DD from a YYYYMMDD format number
+!  (81) EXPAND_DATE       : Replaces date/time tokens w/ actual values
 !
 !  GEOS-CHEM modules referenced by time_mod.f
 !  ============================================================================
@@ -150,6 +153,8 @@
 !  (12) Changed the name of some cpp switches in "define.h" (bmy, 12/2/03)
 !  (13) Modified ITS_TIME_FOR_A6 and GET_FIRST_A6_TIME for both GEOS-4 
 !        "a_llk_03" and "a_llk_04" data versions. (bmy, 3/22/04)
+!  (14) Added routines ITS_A_NEW_MONTH, ITS_A_NEW_YEAR, ITS_A_NEW_DAY.
+!        (bmy, 4/1/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -2154,6 +2159,123 @@
 
       ! Return to calling program
       END FUNCTION ITS_A_LEAPYEAR
+
+!------------------------------------------------------------------------------
+
+      FUNCTION ITS_A_NEW_YEAR() RESULT( IS_NEW_YEAR )
+!
+!******************************************************************************
+!  Function ITS_A_NEW_YEAR returns TRUE if it's the first of a new month
+!  (it also returns TRUE on the first timestep of the run).  This is useful
+!  for setting flags for reading in data. (bmy, 4/1/04)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Function value
+      LOGICAL :: IS_NEW_YEAR
+      
+      !=================================================================
+      ! ITS_A_NEW_YEAR begins here!
+      !=================================================================
+      IF ( MONTH == 1 .and. NHMS == 000000 ) THEN
+
+         ! A new year is Jan 1 at 0 GMT
+         IS_NEW_YEAR = .TRUE.
+
+      ELSE IF ( NYMD == NYMDb .and. NHMS == NHMSb ) THEN
+
+         ! Also return TRUE if it's the start of the run
+         ! (since files will need to be read in from disk)
+         IS_NEW_YEAR = .TRUE.
+
+      ELSE
+
+         ! Otherwise, it's not a new year
+         IS_NEW_YEAR = .FALSE.
+         
+      ENDIF
+
+      ! Return to calling program
+      END FUNCTION ITS_A_NEW_YEAR
+
+!------------------------------------------------------------------------------
+
+      FUNCTION ITS_A_NEW_MONTH() RESULT( IS_NEW_MONTH )
+!
+!******************************************************************************
+!  Function ITS_A_NEW_MONTH returns TRUE if it's the first of a new month
+!  (it also returns TRUE on the first timestep of the run).  This is useful
+!  for setting flags for reading in data. (bmy, 4/1/04)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Function value
+      LOGICAL :: IS_NEW_MONTH
+      
+      !=================================================================
+      ! ITS_A_NEW_MONTH begins here!
+      !=================================================================
+      IF ( DAY == 1 .and. NHMS == 000000 ) THEN
+
+         ! Test for the 1st of the month at 0 GMT
+         IS_NEW_MONTH = .TRUE.
+
+      ELSE IF ( NYMD == NYMDb .and. NHMS == NHMSb ) THEN
+
+         ! Also return TRUE if it's the start of the run
+         ! (since files will need to be read in from disk)
+         IS_NEW_MONTH = .TRUE.
+
+      ELSE
+
+         ! Otherwise, it's not a new year
+         IS_NEW_MONTH = .FALSE.
+         
+      ENDIF
+
+      ! Return to calling program
+      END FUNCTION ITS_A_NEW_MONTH
+
+!------------------------------------------------------------------------------
+
+      FUNCTION ITS_A_NEW_DAY( ) RESULT( IS_NEW_DAY )
+!
+!******************************************************************************
+!  Function ITS_A_NEW_DAY returns TRUE if it's the first timestep of a new
+!  day (it also returns TRUE on the first timestep of the run).  This is 
+!  useful for setting flags for reading in data. (bmy, 4/1/04)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Arguments
+      LOGICAL :: IS_NEW_DAY
+      
+      !=================================================================
+      ! ITS_A_NEW_DAY begins here!
+      !=================================================================
+      IF ( NHMS == 000000 ) THEN
+
+         ! Test if it's 0 GMT
+         IS_NEW_DAY = .TRUE.
+
+      ELSE IF ( NYMD == NYMDb .and. NHMS == NHMSb ) THEN
+
+         ! Also return TRUE if it's the start of the run
+         ! (since files will need to be read in from disk)
+         IS_NEW_DAY = .TRUE.
+
+      ELSE
+
+         ! Otherwise, it's not a new year
+         IS_NEW_DAY = .FALSE.
+         
+      ENDIF
+
+      ! Return to calling program
+      END FUNCTION ITS_A_NEW_DAY
 
 !------------------------------------------------------------------------------
 

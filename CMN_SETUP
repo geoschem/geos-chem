@@ -1,8 +1,8 @@
-! $Id: CMN_SETUP,v 1.2 2003/12/11 21:54:07 bmy Exp $
+! $Id: CMN_SETUP,v 1.3 2004/04/13 14:52:27 bmy Exp $
 !
 !******************************************************************************
 !  CMN_SETUP contains logical switches and I/O units for SETUP.F and MAIN.F.
-!  (bmy, bey, bdf, 3/3/98, 12/10/03)
+!  (bmy, bey, bdf, 3/3/98, 4/1/04)
 !
 !  NOTES:
 !  (1 ) The 'ts.out' file capability has been eliminated since the same
@@ -40,6 +40,7 @@
 !        TPCORE 7.1m for GEOS-3 winds (bmy, 4/28/03)
 !  (17) Deleted GEOS_2_DIR.  Added GEOS_4_DIR (bmy, 6/18/03)
 !  (18) Renamed LRERD to LUNZIP (bmy, 12/10/03)
+!  (19) Added extra flags for carbon tracers (rjp, bmy, 4/1/04)
 !******************************************************************************
 !
       !=================================================================
@@ -69,12 +70,14 @@
       LOGICAL                                                           
      &   LEMIS,  LDRYD,   LCHEM,  LTRAN,   LTPFV,  LTURB,  LCONV,       
      &   LWETD,  LDBUG,   LDIAG,  LUNZIP,  LSVGLB, LMFCT,  LFILL,       
-     &   LWAIT,  LTOMSAI, LBBSEA, LSTDRUN, LSULF,  LSPLIT, LMONOT
+     &   LWAIT,  LTOMSAI, LBBSEA, LSTDRUN, LSULF,  LSPLIT, LMONOT,
+     &   LCARB,  LSSALT,  LDUST,  LATEQ,   LDEAD
 
       COMMON /LFLAGS/                                                   
      &   LEMIS,  LDRYD,   LCHEM,  LTRAN,   LTPFV,  LTURB,  LCONV,       
      &   LWETD,  LDBUG,   LDIAG,  LUNZIP,  LSVGLB, LMFCT,  LFILL,       
-     &   LWAIT,  LTOMSAI, LBBSEA, LSTDRUN, LSULF,  LSPLIT, LMONOT
+     &   LWAIT,  LTOMSAI, LBBSEA, LSTDRUN, LSULF,  LSPLIT, LMONOT,
+     &   LCARB,  LSSALT,  LDUST,  LATEQ,   LDEAD
 
       !=================================================================
       ! Directory and character string variables, from 'input.geos'

@@ -1,24 +1,33 @@
-! $Id: chemistry_mod.f,v 1.6 2004/01/29 15:50:04 bmy Exp $
+! $Id: chemistry_mod.f,v 1.7 2004/04/13 14:52:28 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
 !  Module CHEMISTRY_MOD is used to call the proper chemistry subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 1/27/04)
+!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 4/5/04)
 ! 
 !  Module Routines:
 !  ============================================================================
 !  (1 ) DO_CHEMISTRY       : Driver which calls various chemistry routines
 !
-!  GEOS-CHEM modules referenced by tpcore_call_mod.f
+!  GEOS-CHEM modules referenced by chemistry_mod.f
 !  ============================================================================
-!  (1 ) c2h6_mod.f         : Module containing routines for C2H6 chemistry
-!  (2 ) ch3i_mod.f         : Module containing routines for CH3I chemistry
-!  (3 ) error_mod.f        : Module containing NaN and error checks
-!  (4 ) global_ch4_mod.f   : Module containing routines for CH4 chemistry
-!  (5 ) Kr85_mod.f         : Module containing routines for Kr85 chemistry
-!  (6 ) RnPbBe_mod.f       : Module containing routines for Rn-Pb-Be chemistry
-!  (7 ) tagged_co_mod.f    : Module containing routines for Tagged CO chemistry
-!  (8 ) tagged_ox_mod.f    : Module containing routines for Tagged Ox chemistry
+!  (1 ) acetone_mod.f      : Module containing routines for ACET chemistry
+!  (2 ) c2h6_mod.f         : Module containing routines for C2H6 chemistry
+!  (3 ) carbon_mod.f       : Module containing routines for carbon arsl chem.
+!  (4 ) ch3i_mod.f         : Module containing routines for CH3I chemistry
+!  (5 ) dao_mod.f          : Module containing arrays for DAO met fields
+!  (6 ) drydep_mod.f       : Module containing GEOS-CHEM drydep routines
+!  (7 ) dust_mod.f         : Module containing routines for dust arsl chem.
+!  (8 ) error_mod.f        : Module containing NaN and error checks
+!  (9 ) global_ch4_mod.f   : Module containing routines for CH4 chemistry
+!  (10) Kr85_mod.f         : Module containing routines for Kr85 chemistry
+!  (11) RnPbBe_mod.f       : Module containing routines for Rn-Pb-Be chemistry
+!  (12) rpmares_mod.f      : Module containing routines for arsl phase equilib.
+!  (13) sulfate_mod.f      : Module containing routines for sulfate chemistry
+!  (14) tagged_co_mod.f    : Module containing routines for Tagged CO chemistry
+!  (15) tagged_ox_mod.f    : Module containing routines for Tagged Ox chemistry
+!  (16) time_mod.f         : Module containing routines to compute time & date
+!  (17) tracerid_mod.f     : Module containing pointers to tracers & emissions
 !
 !  NOTES:
 !  (1 ) Bug fix in DO_CHEMISTRY (bnd, bmy, 4/14/03)
@@ -26,6 +35,7 @@
 !  (3 ) Now references "tagged_ox_mod.f"(bmy, 8/18/03)
 !  (4 ) Now references "Kr85_mod.f" (jsw, bmy, 8/20/03)
 !  (5 ) Bug fix: Now also call OPTDEPTH for GEOS-4 (bmy, 1/27/04)
+!  (6 ) Now references "carbon_mod.f" and "dust_mod.f" (rjp, tdf, bmy, 4/5/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -42,7 +52,7 @@
 !******************************************************************************
 !  Subroutine DO_CHEMISTRY is the driver routine which calls the appropriate
 !  chemistry subroutine for the various GEOS-CHEM simulations. 
-!  (bmy, 2/11/03, 1/27/04)
+!  (bmy, 2/11/03, 4/2/04)
 !
 !  NOTES:
 !  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this
@@ -53,27 +63,31 @@
 !        NSRCX == 12 (jsw, bmy, 8/20/03)
 !  (4 ) Bug fix: added GEOS-4 to the #if block in the call to OPTDEPTH.
 !        (bmy, 1/27/04)
+!  (5 ) Now calls CHEMCARBON and CHEMDUST to do carbon aerosol & dust 
+!        aerosol chemistry (rjp, tdf, bmy, 4/2/04)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ACETONE_MOD,     ONLY : OCEAN_SINK_ACET
       USE C2H6_MOD,        ONLY : CHEMC2H6
+      USE CARBON_MOD,      ONLY : CHEMCARBON
       USE CH3I_MOD,        ONLY : CHEMCH3I
       USE DAO_MOD,         ONLY : CLMOSW,  CLROSW, DELP, 
      &                            MAKE_RH, OPTDEP, OPTD, T
+      USE DRYDEP_MOD,      ONLY : DRYFLX, DRYFLXRnPbBe
+      USE DUST_MOD,        ONLY : CHEMDUST
       USE ERROR_MOD,       ONLY : DEBUG_MSG
       USE GLOBAL_CH4_MOD,  ONLY : CHEMCH4
-      USE DRYDEP_MOD,      ONLY : DRYFLX, DRYFLXRnPbBe
       USE Kr85_MOD,        ONLY : CHEMKr85
       USE OPTDEPTH_MOD,    ONLY : OPTDEPTH
       USE PLANEFLIGHT_MOD, ONLY : PLANEFLIGHT
       USE RnPbBe_MOD,      ONLY : CHEMRnPbBe
       USE RPMARES_MOD,     ONLY : DO_RPMARES
+      USE SULFATE_MOD,     ONLY : CHEMSULFATE
       USE TAGGED_CO_MOD,   ONLY : CHEM_TAGGED_CO
       USE TAGGED_OX_MOD,   ONLY : CHEM_TAGGED_OX
       USE TIME_MOD,        ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
       USE TRACERID_MOD,    ONLY : IDTACET
-      USE SULFATE_MOD,     ONLY : CHEMSULFATE
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN"       ! NSRCX
@@ -143,6 +157,12 @@
                   CALL DO_RPMARES
                ENDIF
 
+               ! Do carbonaceous aerosol chemistry
+               IF ( LCARB ) CALL CHEMCARBON
+
+               ! Do dust aerosol chemistry
+               IF ( LDUST ) CALL CHEMDUST
+
                ! ND44 drydep fluxes
                CALL DRYFLX     
 
@@ -170,10 +190,6 @@
             ! Tagged O3
             !---------------------------------
             CASE ( 6  ) 
-               !-------------------
-               ! Prior to 8/18/03:
-               !CALL CHEMO3
-               !-------------------
                CALL CHEM_TAGGED_OX
 
             !---------------------------------
@@ -202,14 +218,24 @@
             !---------------------------------
             CASE ( 10 )
 
-               ! Get relative humidity
-               CALL MAKE_RH
+               IF ( LSULF ) THEN
 
-               ! Do sulfate chemistry
-               CALL CHEMSULFATE
+                  ! Get relative humidity
+                  CALL MAKE_RH
 
-               ! Do aerosol phase equilibrium
-               CALL DO_RPMARES
+                  ! Do sulfate chemistry
+                  CALL CHEMSULFATE
+
+                  ! Do aerosol phase equilibrium
+                  CALL DO_RPMARES
+               ENDIF
+
+               ! Do carbonaceous aerosol chemistry
+               IF ( LCARB ) CALL CHEMCARBON
+
+               ! Do dust aerosol chemistry
+               IF ( LDUST ) CALL CHEMDUST
+
 
 !-----------------------------------------------------------------------------
 ! Prior 

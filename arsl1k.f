@@ -1,9 +1,9 @@
-! $Id: arsl1k.f,v 1.1 2003/06/30 20:26:07 bmy Exp $
+! $Id: arsl1k.f,v 1.2 2004/04/13 14:52:28 bmy Exp $
       REAL*8 FUNCTION ARSL1K( AREA, RADIUS, DENAIR, STKCF, STK, SQM )
 !
 !******************************************************************************
 !  Subroutine ARSL1K calculates the 1st-order loss rate of species on 
-!  wet aerosol surface. (lwh, jyl, gmg, djj, 7/1/94; bmy, 4/1/03)
+!  wet aerosol surface. (lwh, jyl, gmg, djj, 7/1/94; bmy, 4/1/03, 4/7/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -27,6 +27,8 @@
 ! 
 !  NOTES:
 !  (1 ) Updated comments, cosmetic changes (bmy, 4/4/03)
+!  (2 ) Now return w/ default value if RADIUS is zero (i.e. is smaller than
+!        a very small number) (bmy, 4/7/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -40,9 +42,14 @@
       !=================================================================
       ! ARSL1K begins here!
       !=================================================================
-      IF ( AREA < 0.0 .OR. RADIUS < 0.0 ) THEN
+      !-----------------------------------------------------------------
+      ! Prior to 4/7/04
+      !IF ( AREA < 0.0 .OR. RADIUS < 0.0 ) THEN
+      !-----------------------------------------------------------------
+      IF ( AREA < 0d0 .or. RADIUS < 1d-30 ) THEN
 
-         ! Use default value if AREA or RADIUS is negative
+         ! Use default value if AREA is negative
+         ! or if RADIUS is either zero or negative
          ARSL1K = 1.D-3
 
       ELSE

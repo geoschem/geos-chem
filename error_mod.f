@@ -1,8 +1,8 @@
-! $Id: error_mod.f,v 1.5 2004/01/27 21:25:06 bmy Exp $
+! $Id: error_mod.f,v 1.6 2004/04/13 14:52:30 bmy Exp $
       MODULE ERROR_MOD
 !
 !******************************************************************************
-!  Module ERROR_MOD contains error checking routines. (bmy, 3/8/01, 1/21/04)
+!  Module ERROR_MOD contains error checking routines. (bmy, 3/8/01, 4/6/04)
 !
 !  Module Routines:
 !  ===========================================================================
@@ -50,6 +50,7 @@
 !  (10) Now supports INTEL_FC compiler (bmy, 10/24/03)
 !  (11) Changed the name of some cpp switches in "define.h" (bmy, 12/2/03)
 !  (12) Minor fix for LINUX_IFC and LINUX_EFC (bmy, 1/24/04)
+!  (13) Do not flush buffer for LINUX_EFC in ERROR_STOP (bmy, 4/6/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -741,7 +742,7 @@
 !******************************************************************************
 !  Subroutine DEBUG_MSG prints a message to the stdout buffer and flushes.
 !  This is useful for determining the exact location where errors occur.
-!  (bmy, 1/7/02, 1/26/04)
+!  (bmy, 1/7/02, 4/6/04)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -751,9 +752,12 @@
 !  (1 ) Now just write the message and flush the buffer (bmy, 7/5/01)
 !  (2 ) Renamed from "paftop.f" to "debug_msg.f" (bmy, 1/7/02)
 !  (3 ) Bundled into "error_mod.f" (bmy, 11/22/02)
+!  (4 ) Now do not FLUSH the buffer for EFC compiler (bmy, 4/6/04)
 !******************************************************************************
 !
       IMPLICIT NONE
+
+#     include "define.h"
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN) :: MESSAGE
@@ -761,11 +765,12 @@
       !=================================================================
       ! DEBUG_MSG begins here!
       !================================================================= 
-      !WRITE( 6, '(a)' ) TRIM( MESSAGE )
       WRITE( 6, '(a)' ) MESSAGE
  
       ! Call FLUSH routine to flush the output buffer
+#if   !defined( LINUX_EFC )
       CALL FLUSH( 6 )
+#endif
 
       ! Return to calling program
       END SUBROUTINE DEBUG_MSG

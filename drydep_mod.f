@@ -1,9 +1,9 @@
-! $Id: drydep_mod.f,v 1.9 2004/03/24 20:52:30 bmy Exp $
+! $Id: drydep_mod.f,v 1.10 2004/04/13 14:52:30 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
 !  Module DRYDEP_MOD contains variables and routines for the GEOS-CHEM dry
-!  deposition scheme. (bmy, 1/27/03, 3/24/04)
+!  deposition scheme. (bmy, 1/27/03, 4/1/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -49,8 +49,10 @@
 !  (6 ) DEPVEL             : Computes dry deposition velocities (by D. Jacob)
 !  (7 ) MODIN              : Reads inputs for DEPVEL from "drydep.table"
 !  (8 ) RDDRYCF            : Reads drydep polynomial coeffs from "drydep.coef"
-!  (9 ) INIT_DRYDEP        : Initializes and allocates module arrays
-!  (10) CLEANUP_DRYDEP     : Deallocates module arrays
+!  (9 ) AERO_SFCRSI        : Computes dust sfc resistance ff Seinfeld et al 86
+!  (10) AERO_SFCRSII       : Conputes dust sfc resistance ff Zhang et al 2001
+!  (11) INIT_DRYDEP        : Initializes and allocates module arrays
+!  (12) CLEANUP_DRYDEP     : Deallocates module arrays
 !
 !  GEOS-CHEM modules referenced by "drydep_mod.f":
 !  ============================================================================
@@ -115,6 +117,9 @@
 !  (5 ) Bug fix for GEOS-4 in DRYFLXRnPbBe (bmy, 12/2/03)
 !  (6 ) Now made CFRAC, RADIAT local variables in DO_DRYDEP (bmy, 12/9/03)
 !  (7 ) Now enclose AD44 in !$OMP CRITICAL block for drydep flux (bmy, 3/24/04)
+!  (8 ) Now handle extra carbon & dust tracers (rjp, tdf, bmy, 4/1/04)
+!  (9 ) Added routines AERO_SFCRS1, AERO_SFCRSII.  Increased MAXDEP to 25.
+!        Now handles extra carbon & dust tracers. (rjp, tdf, bmy, 4/1/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -140,7 +145,12 @@
       !=================================================================
 
       ! Parameters
-      INTEGER, PARAMETER   :: MAXDEP    = 16     
+      !--------------------------------------------------------
+      ! Prior to 4/1/04:
+      ! Increase for extra carbon & dust tracers (bmy, 4/1/04)
+      !INTEGER, PARAMETER   :: MAXDEP    = 16     
+      !---------------------------------------------------------
+      INTEGER, PARAMETER   :: MAXDEP    = 25
       INTEGER, PARAMETER   :: NNTYPE    = 15     ! NTYPE    from "CMN_SIZE"
       INTEGER, PARAMETER   :: NNPOLY    = 20     ! NPOLY    from "CMN_SIZE"
       INTEGER, PARAMETER   :: NNVEGTYPE = 74     ! NVEGTYPE from "CMN_SIZE"
@@ -901,6 +911,7 @@ C                           -- force double precision w/ "D" exponents
 C** Version 3.3:   5/8/00   -- bug fixes, cleanup, updated comments.
 C** Version 3.4:   1/22/03  -- remove hardwire for CANOPYNOX
 C** Version 3.5    7/21/03  -- Remove cap of surface resistance in RLUXX
+C** Version 3.6    4/01/04  -- Now do drydep of DUST aerosol tracers
 C
 C***********************************************************************
 C   Changes from Version 3.2 to Version 3.3:                         ***
@@ -1275,25 +1286,74 @@ C  canopy reduction factor for soil emissions.
 C** get surface deposition velocity for aerosols if needed;
 C** equations (15)-(17) of Walcek et al. [1986]
  155           IF (.NOT. AIROSOL(K)) GOTO 160
+!------------------------------------------------------------------------------
+! Prior to 4/1/04:
+! Only do this section for non-dust tracers (rjp, tdf, bmy, 4/1/04)
+!               VDS = 0.002D0*USTAR(IJLOOP)
+!               IF (OBK(IJLOOP) .LT. 0.0D0) THEN
+!                  VDS = VDS*(1.D0+(-300.D0/OBK(IJLOOP))**0.6667D0)
+!               ENDIF
+!C***                               
+!               IF ( OBK(IJLOOP) .EQ. 0.0D0 )
+!     c              WRITE(6,156) OBK(IJLOOP),IJLOOP,LDT
+! 156           FORMAT(1X,'OBK(IJLOOP)=',E11.2,1X,' IJLOOP =',I4,
+!     c              1X,'LDT=',I3/) 
+!               CZH  = ZH(IJLOOP)/OBK(IJLOOP)
+!               IF (CZH.LT.-30.0D0) VDS = 0.0009D0*USTAR(IJLOOP)*
+!     x                             (-CZH)**0.6667D0
+!C*                                 
+!C*    Set VDS to be less than VDSMAX (entry in input file divided by 1.D4)
+!C*    VDSMAX is taken from Table 2 of Walcek et al. [1986].
+!C*    Invert to get corresponding R
+!
+!               RSURFC(K,LDT) = 1.D0/MIN(VDS, DBLE(IVSMAX(II))/1.D4)
+!------------------------------------------------------------------------------
 
-               VDS = 0.002D0*USTAR(IJLOOP)
-               IF (OBK(IJLOOP) .LT. 0.0D0) THEN
-                  VDS = VDS*(1.D0+(-300.D0/OBK(IJLOOP))**0.6667D0)
-               ENDIF
+               ! Test for DUST aerosol tracers
+               IF ( ( DEPNAME(K) == 'DST1' )  .OR. 
+     &              ( DEPNAME(K) == 'DST2' )  .OR. 
+     &              ( DEPNAME(K) == 'DST3' )  .OR. 
+     &              ( DEPNAME(K) == 'DST4' ) ) THEN 
+
+                  !=====================================================
+                  ! Use size-resolved dry deposition calculations for 
+                  ! Dust aerosols (rjp, tdf, bmy, 4/1/04)
+                  !=====================================================
+
+!                  ! [Seinfeld, 1986] 
+!                  RSURFC(K,LDT) = 
+!     &             AERO_sfcRsI(K, II, PRESS*1D-3, TEMPK, USTAR(IJLOOP))
+
+                  ! [Zhang et al., 2001]
+                  RSURFC(K,LDT) = 
+     &             AERO_SFCRSII(K, II, PRESS*1D-3, TEMPK, USTAR(IJLOOP))
+
+               ELSE 
+
+                  !=====================================================
+                  ! Replace original code to statement 160 here: only
+                  ! do this for non-dust tracers where AIROSOL(K)=T.
+                  ! (rjp, tdf, bmy, 4/1/04)
+                  !=====================================================
+                  VDS = 0.002D0*USTAR(IJLOOP)
+                  IF (OBK(IJLOOP) .LT. 0.0D0) THEN
+                     VDS = VDS*(1.D0+(-300.D0/OBK(IJLOOP))**0.6667D0)
+                  ENDIF
 C***                               
-               IF ( OBK(IJLOOP) .EQ. 0.0D0 )
-     c              WRITE(6,156) OBK(IJLOOP),IJLOOP,LDT
- 156           FORMAT(1X,'OBK(IJLOOP)=',E11.2,1X,' IJLOOP =',I4,
-     c              1X,'LDT=',I3/) 
-               CZH  = ZH(IJLOOP)/OBK(IJLOOP)
-               IF (CZH.LT.-30.0D0) VDS = 0.0009D0*USTAR(IJLOOP)*
-     x                             (-CZH)**0.6667D0
+                  IF ( OBK(IJLOOP) .EQ. 0.0D0 )
+     c                 WRITE(6,156) OBK(IJLOOP),IJLOOP,LDT
+ 156              FORMAT(1X,'OBK(IJLOOP)=',E11.2,1X,' IJLOOP =',I4,
+     c                   1X,'LDT=',I3/) 
+                  CZH  = ZH(IJLOOP)/OBK(IJLOOP)
+                  IF (CZH.LT.-30.0D0) VDS = 0.0009D0*USTAR(IJLOOP)*
+     x                                 (-CZH)**0.6667D0
 C*                                 
 C*    Set VDS to be less than VDSMAX (entry in input file divided by 1.D4)
 C*    VDSMAX is taken from Table 2 of Walcek et al. [1986].
 C*    Invert to get corresponding R
 
-               RSURFC(K,LDT) = 1.D0/MIN(VDS, DBLE(IVSMAX(II))/1.D4)
+                  RSURFC(K,LDT) = 1.D0/MIN(VDS, DBLE(IVSMAX(II))/1.D4)
+               ENDIF
  160        CONTINUE
 C*
  170     CONTINUE
@@ -1794,15 +1854,466 @@ C** Load array DVEL
 
 !------------------------------------------------------------------------------
 
+      FUNCTION AERO_SFCRSI( K, II, PRESS, TEMP, USTAR ) RESULT( RS )
+!
+!******************************************************************************
+!  Function AERO_SFCRSI computes the aerodynamic resistance of dust aerosol
+!  tracers according to Seinfeld et al 96.  (rjp, tdf, bmy, 4/1/04)
+!
+!  Arguments as Input: 
+!  ============================================================================
+!  (1 ) K     (INTEGER) : Dry deposition tracer index (range: 1-NUMDEP)
+!  (2 ) II    (INTEGER) : GEOS-CHEM surface type index
+!  (3 ) PRESS (REAL*8 ) : Pressure [kPa] (where 1 Kpa = 0.1 mb)
+!  (4 ) TEMP  (REAL*8 ) : Temperature [K]
+!  (5 ) USTAR (REAL*8 ) : Friction Velocity [m/s]
+!
+!  Function Value
+!  ============================================================================
+!  (6 ) Rs    (REAL*8 ) : Surface resistance for dust particles [s/m]
+!
+!  NOTES
+!  (1 ) Updated comments.  Also now force double precision w/ "D" exponents.
+!        (bmy, 4/1/04)
+!******************************************************************************
+!    
+      INTEGER, INTENT(IN) :: K     ! INDEX OF NUMDEP
+      INTEGER, INTENT(IN) :: II    ! Surface type index of GEOS-CHEM
+      REAL*8, INTENT(IN)  :: PRESS ! Pressure in Kpa 1 mb = 100 pa = 0.1 kPa
+      REAL*8, INTENT(IN)  :: TEMP  ! Temperature (K)    
+      REAL*8, INTENT(IN)  :: USTAR ! Friction velocity (m/s)
+
+      ! Function value
+      REAL*8              :: RS    ! Surface resistance for particles [s/m]
+
+      ! Local variables
+      INTEGER             :: N
+      REAL*8, PARAMETER   :: C1 = 0.7674d0,  C2 = 3.079d0, 
+     &                       C3 = 2.573d-11, C4 = -1.424d0
+
+      REAL*8, PARAMETER   :: G0 = 9.8d0
+      REAL*8, PARAMETER   :: BETA  = 2.d0
+      REAL*8, PARAMETER   :: BOLTZ = 1.381D-23  ! Baltzmann constant (J/K)
+      rEAL*8, PARAMETER   :: E0 = 1.d0
+      REAL*8  :: AIRVS       ! kinematic viscosity of Air (m^2/s)
+      REAL*8  :: DP          ! Diameter of aerosol [um]
+      REAL*8  :: PDP         ! Press * Dp      
+      REAL*8  :: CONST       ! Constant for settling velocity calculations
+      REAL*8  :: SLIP        ! Slip correction factor
+      REAL*8  :: VISC        ! Viscosity of air (Pa s)
+      REAL*8  :: DIFF        ! Brownian Diffusion constant for particles (m2/s)
+      REAL*8  :: SC, ST      ! Schmidt and Stokes number (nondim)
+
+      REAL*8  :: DIAM, DEN
+      REAL*8  :: EB, EIM, EIN, R1, AA, VTS
+
+      ! Dust size and density are hardwired now but we have to come up
+      ! with a better way to handle this
+
+      ! Dust Particle radii (m)
+      REAL*8  :: DUSTREFF( 4 ) = ( /0.73d-6, 1.4d-6, 2.4d-6, 4.5d-6/ )
+
+      ! Soil density (kg/m3)
+      REAL*8  :: DUSTDEN(  4 ) = ( /2500.d0, 2650.d0, 2650.d0, 2650.d0/)
+
+      !=================================================================
+      ! Ref. Zhang et al., AE 35(2001) 549-560 and Seinfeld(1986)
+      ! 
+      ! Model theory
+      !    Vd = Vs + 1./(Ra+Rs)
+      !      where Vs is the gravitational settling velocity, 
+      !      Ra is the aerodynamic resistance above the canopy
+      !      Rs  is the surface resistance
+      !    Here we calculate Rs only..
+      !    Rs = 1 / (Eo*Ustar*(Eb+Eim+Ein)*R1)
+      !      where Eo is an empirical constant ( = 3.)
+      !      Ustar is the friction velocity
+      !      Collection efficiency from 
+      !        Eb,  [Brownian diffusion]
+      !        Eim, [Impaction]
+      !        Ein, [Interception]
+      !      R1 is the correction factor representing the fraction 
+      !         of particles that stick to the surface.
+      !=================================================================
+      !      Eb is a funciont of Schmidt number, Eb = Sc^(-gamma)
+      !         Sc = v/D, v (the kinematic viscosity of air) 
+      !                   D (particle brownian diffusivity)
+      !         r usually lies between 1/2 and 2/3
+      !      Eim is a function of Stokes number, St
+      !          St = Vs * Ustar / (g0 * A)   for vegetated surfaces
+      !          St = Vs * Ustar * Ustar / v  for smooth surface
+      !          A is the characteristic radius of collectors.
+      !        
+      !       1) Slinn (1982)
+      !           Eim = 10^(-3/St)          for smooth surface      
+      !           Eim = St^2 / ( 1 + St^2 ) for vegetative canopies
+      !       2) Peters and Eiden (1992)
+      !           Eim = ( St / ( alpha + St ) )^(beta)
+      !                alpha(=0.8) and beta(=2) are constants
+      !       3) Giorgi (1986)
+      !           Eim = St^2 / ( 400 + St^2 )     for smooth surface
+      !           Eim = ( St / (0.6 + St) )^(3.2) for vegetative surface
+      !       4) Davidson et al.(1982)
+      !           Eim = St^3 / (St^3+0.753*St^2+2.796St-0.202) for grassland
+      !       5) Zhang et al.(2001) used 2) method with alpha varying with
+      !          vegetation type and beta equal to 2
+      !
+      !      Ein = 0.5 * ( Dp / A )^2
+      !
+      !      R1 (Particle rebound)  = exp(-St^0.5)
+      !=================================================================
+
+      DIAM  = DUSTREFF(K) * 2.d0
+      DEN   = DUSTDEN(K)
+
+      ! Dp [um] = particle diameter
+      DP    = DIAM * 1.d6 
+ 
+      ! Constant for settling velocity calculation       
+      CONST = DEN * DIAM**2 * G0 / 18.d0
+       
+      !=================================================================
+      !   # air molecule number density
+      !   num = P * 1d3 * 6.023d23 / (8.314 * Temp) 
+      !   # gas mean free path
+      !   lamda = 1.d6/( 1.41421 * num * 3.141592 * (3.7d-10)**2 ) 
+      !   # Slip correction
+      !   Slip = 1. + 2. * lamda * (1.257 + 0.4 * exp( -1.1 * Dp     
+      ! &     / (2. * lamda))) / Dp
+      !================================================================
+      ! Note, Slip correction factor calculations following Seinfeld, 
+      ! pp464 which is thought to be more accurate but more computation 
+      ! required.
+      !=================================================================
+
+      ! Slip correction factor as function of (P*dp)
+      PDP  = PRESS * DP
+      SLIP = 1d0 + ( 15.60d0 + 7.0d0 * EXP( -0.059d0 * PDP ) ) / PDP
+
+      !=================================================================
+      ! Note, Eq) 3.22 pp 50 in Hinds (Aerosol Technology)
+      ! which produce slip correction factore with small error
+      ! compared to the above with less computation.
+      !=================================================================
+
+      ! Viscosity [Pa s] of air as a function of temp (K)
+      VISC = 1.458d-6 * (TEMP)**(1.5d0) / (TEMP + 110.4d0)
+
+      ! Kinematic viscosity (Dynamic viscosity/Density)
+      AIRVS= VISC / 1.2928d0  
+
+      ! Settling velocity [m/s]
+      VTS  = CONST * SLIP / VISC
+
+      ! Brownian diffusion constant for particle (m2/s)
+      DIFF = BOLTZ * TEMP * SLIP 
+     &     / (3.d0 * 3.141592d0 * VISC * DIAM)  
+
+      ! Schmidt number and Diffusion term
+      SC   = AIRVS / DIFF                            
+      EB   = SC**(-0.666667d0)
+
+      ! Stokes number and impaction term
+      ST   = VTS * USTAR * USTAR / ( AIRVS * G0 )
+      EIM  = 10.d0**(-3.d0 / ST) 
+
+      ! surface resistance for particle
+      RS   = 1.D0 / ( E0 * USTAR * (EB + EIM) )
+      
+      ! Return to calling program
+      END FUNCTION AERO_SFCRSI
+
+!------------------------------------------------------------------------------
+
+      FUNCTION AERO_SFCRSII( K, II, PRESS, TEMP, USTAR ) RESULT( RS )
+!
+!******************************************************************************
+!  Function AERO_SFCRSII computes the aerodynamic resistance of dust aerosol
+!  tracers according to Zhang et al 2001.  (rjp, tdf, bmy, 4/1/04)
+!
+!  Arguments as Input: 
+!  ============================================================================
+!  (1 ) K     (INTEGER) : Dry deposition tracer index (range: 1-NUMDEP)
+!  (2 ) II    (INTEGER) : GEOS-CHEM surface type index
+!  (3 ) PRESS (REAL*8 ) : Pressure [kPa] (where 1 Kpa = 0.1 mb)
+!  (4 ) TEMP  (REAL*8 ) : Temperature [K]
+!  (5 ) USTAR (REAL*8 ) : Friction Velocity [m/s]
+!
+!  Function Value
+!  ============================================================================
+!  (6 ) Rs    (REAL*8 ) : Surface resistance for dust particles [s/m]
+!
+!  NOTES
+!  (1 ) Updated comments.  Also now force double precision w/ "D" exponents.
+!        (bmy, 4/1/04)
+!******************************************************************************
+!
+      ! Arguments
+      INTEGER, INTENT(IN) :: K     ! INDEX OF NUMDEP
+      INTEGER, INTENT(IN) :: II    ! Surface type index of GEOS-CHEM
+      REAL*8,  INTENT(IN) :: PRESS ! Pressure in Kpa 1 mb = 100 pa = 0.1 kPa
+      REAL*8,  INTENT(IN) :: TEMP  ! Temperature (K)    
+      REAL*8,  INTENT(IN) :: USTAR ! Friction velocity (m/s)
+
+      ! Function value
+      REAL*8              :: RS    ! Surface resistance for particles [s/m]
+
+      ! Local variables
+      INTEGER             :: N
+      REAL*8, PARAMETER   :: C1 = 0.7674d0,  C2 = 3.079d0, 
+     &                       C3 = 2.573d-11, C4 = -1.424d0
+
+      REAL*8, PARAMETER   :: G0 = 9.8D0
+      REAL*8, PARAMETER   :: BETA  = 2.d0
+      REAL*8, PARAMETER   :: BOLTZ = 1.381d-23  ! Boltzmann constant (J/K)
+      REAL*8, PARAMETER   :: E0 = 3.d0
+      REAL*8  :: AIRVS       ! kinematic viscosity of Air (m^2/s)
+      REAL*8  :: DP          ! Diameter of aerosol [um]
+      REAL*8  :: PDP         ! Press * Dp      
+      REAL*8  :: CONST       ! Constant for settling velocity calculations
+      REAL*8  :: SLIP        ! Slip correction factor
+      REAL*8  :: VISC        ! Viscosity of air (Pa s)
+      REAL*8  :: DIFF        ! Brownian Diffusion constant for particles (m2/s)
+      REAL*8  :: SC, ST      ! Schmidt and Stokes number (nondim)
+
+      REAL*8  :: DIAM, DEN
+      REAL*8  :: EB, EIM, EIN, R1, AA, VTS
+
+!=======================================================================
+!   #  LUC [Zhang et al., 2001]                GEOS-CHEM LUC (Corr. #)
+!-----------------------------------------------------------------------
+!   1 - Evergreen needleleaf trees             Snow/Ice          (12)
+!   2 - Evergreen broadleaf trees              Deciduous forest  ( 4)
+!   3 - Deciduous needleleaf trees             Coniferous forest ( 1)  
+!   4 - Deciduous broadleaf trees              Agricultural land ( 7)    
+!   5 - Mixed broadleaf and needleleaf trees   Shrub/grassland   (10)
+!   6 - Grass                                  Amazon forest     ( 2)
+!   7 - Crops and mixed farming                Tundra            ( 9)
+!   8 - Desert                                 Desert            ( 8)
+!   9 - Tundra                                 Wetland           (11)
+!  10 - Shrubs and interrupted woodlands       Urban             (15)
+!  11 - Wet land with plants                   Water             (14)
+!  12 - Ice cap and glacier                    
+!  13 - Inland water                           
+!  14 - Ocean                                  
+!  15 - Urban                                  
+!=======================================================================      
+!     GEOS-CHEM LUC                1, 2, 3, 4, 5, 6, 7  8, 9,10,11
+      INTEGER :: LUCINDEX(11) = (/12, 4, 1, 7,10, 2, 9, 8,11,15,14/)
+      INTEGER :: LUC
+
+!=======================================================================
+!   LUC       1,    2,    3,    4,    5,    6,    7,    8,    
+!   alpha   1.0,  0.6,  1.1,  0.8,  0.8,  1.2,  1.2, 50.0, 
+!   gamma  0.56, 0.58, 0.56, 0.56, 0.56, 0.54, 0.54, 0.54
+
+!   LUC       9,   10,   11,   12,   13,   14,   15
+!   alpha  50.0,  1,3,  2.0, 50.0,100.0,100.0,  1.5
+!   gamma  0.54, 0.54, 0.54, 0.54, 0.50, 0.50, 0.56
+!=======================================================================
+
+      ! Now force to double precision (bmy, 4/1/04)
+      REAL*8  :: 
+     & ALPHA(15) = (/ 1.0d0,  0.6d0,   1.1d0,   0.8d0, 0.8d0,  
+     &                1.2d0,  1.2d0,  50.0d0,  50.0d0, 1.3d0, 
+     &                2.0d0, 50.0d0, 100.0d0, 100.0d0, 1.5d0  /)
+
+      ! Now force to double precision (bmy, 4/1/04)
+      REAL*8  ::
+     & GAMMA(15) = (/ 0.56d0, 0.58d0, 0.56d0, 0.56d0, 0.56d0, 
+     &                0.54d0, 0.54d0, 0.54d0, 0.54d0, 0.54d0, 
+     &                0.54d0, 0.54d0, 0.50d0, 0.50d0, 0.56d0 /)
+
+!...A unit is (mm) so multiply by 1.D-3 to (m)
+!   LUC       1,    2,    3,    4,    5,    6,    7,    8,     
+!   SC1     2.0,  5.0,  2.0,  5.0,  5.0,  2.0,  2.0,-999.,
+!   SC2     2.0,  5.0,  2.0,  5.0,  5.0,  2.0,  2.0,-999.,
+! A SC3     2.0,  5.0,  5.0, 10.0,  5.0,  5.0,  5.0,-999.,
+!   SC4     2.0,  5.0,  5.0, 10.0,  5.0,  5.0,  5.0,-999.,
+!   SC5     2.0,  5.0,  2.0,  5.0,  5.0,  2.0,  2.0,-999.,
+
+!   LUC       9,   10,   11,   12,   13,   14,   15
+!   SC1   -999., 10.0, 10.0,-999.,-999.,-999., 10.0
+!   SC2   -999., 10.0, 10.0,-999.,-999.,-999., 10.0
+! A SC3   -999., 10.0, 10.0,-999.,-999.,-999., 10.0
+!   SC4   -999., 10.0, 10.0,-999.,-999.,-999., 10.0
+!   SC5   -999., 10.0, 10.0,-999.,-999.,-999., 10.0
+
+      REAL*8  :: A(15,5)
+
+      REAL*8  :: Aavg(15)
+
+      ! Now force to double precision (bmy, 4/1/04)
+      DATA   A /  2.0d0,   5.0d0,   2.0d0,   5.0d0,  5.0d0,  
+     &            2.0d0,   2.0d0, -999.d0, -999.d0, 10.0d0, 
+     &           10.0d0, -999.d0, -999.d0, -999.d0, 10.0d0,
+     &
+     &            2.0d0,   5.0d0,   2.0d0,   5.0d0,  5.0d0,  
+     &            2.0d0,   2.0d0, -999.d0, -999.d0, 10.0d0, 
+     &           10.0d0, -999.d0, -999.d0, -999.d0, 10.0d0,
+     &
+     &            2.0d0,   5.0d0,   5.0d0,  10.0d0,  5.0d0,
+     &            5.0d0,   5.0d0, -999.d0, -999.d0, 10.0d0, 
+     &           10.0d0, -999.d0, -999.d0, -999.d0, 10.0d0,
+     &
+     &            2.0d0,   5.0d0,   5.0d0,  10.0d0,  5.0d0,  
+     &            5.0d0,   5.0d0, -999.d0, -999.d0, 10.0d0, 
+     &           10.0d0, -999.d0, -999.d0, -999.d0, 10.0d0,
+     &
+     &            2.0d0,   5.0d0,   2.0d0,   5.0d0,  5.0d0,  
+     &            2.0d0,   2.0d0, -999.d0, -999.d0, 10.0d0, 
+     &           10.0d0, -999.d0, -999.d0, -999.d0, 10.0d0  /
+
+      !=================================================================
+      ! Dust size and density are hardwired now but we have to come up
+      ! with a better way to handle this
+      !=================================================================
+
+      ! Dust Particle radii (m)
+      REAL*8  :: DUSTREFF( 4 ) = ( /0.73d-6, 1.4d-6, 2.4d-6, 4.5d-6/ )
+
+      ! Soil density (kg/m3)
+      REAL*8  :: DUSTDEN(  4 ) = ( /2500.d0, 2650.d0, 2650.d0, 2650.d0/)
+
+      ! Annual average of A
+      Aavg(:) = (A(:,1)+A(:,2)+A(:,3)+A(:,4)+A(:,5))/5.
+      LUC     = LUCINDEX(II)
+      AA      = Aavg(LUC) * 1.D-3
+
+      !=================================================================
+      !...Ref. Zhang et al., AE 35(2001) 549-560
+      !. 
+      !...Model theroy
+      !    Vd = Vs + 1./(Ra+Rs)
+      !      where Vs is the gravitational settling velocity, 
+      !      Ra is the aerodynamic resistance above the canopy
+      !      Rs  is the surface resistance
+      !    Here we calculate Rs only..
+      !    Rs = 1 / (Eo*Ustar*(Eb+Eim+Ein)*R1)
+      !      where Eo is an empirical constant ( = 3.)
+      !      Ustar is the friction velocity
+      !      Collection efficiency from 
+      !        Eb,  [Brownian diffusion]
+      !        Eim, [Impaction]
+      !        Ein, [Interception]
+      !      R1 is the correction factor representing the fraction 
+      !         of particles that stick to the surface.
+      !=======================================================================
+      !      Eb is a funciont of Schmidt number, Eb = Sc^(-gamma)
+      !         Sc = v/D, v (the kinematic viscosity of air) 
+      !                   D (particle brownian diffusivity)
+      !         r usually lies between 1/2 and 2/3
+      !      Eim is a function of Stokes number, St
+      !          St = Vs * Ustar / (g0 * A)   for vegetated surfaces
+      !          St = Vs * Ustar * Ustar / v  for smooth surface
+      !          A is the characteristic radius of collectors.
+      !        
+      !       1) Slinn (1982)
+      !           Eim = 10^(-3/St)          for smooth surface      
+      !           Eim = St^2 / ( 1 + St^2 ) for vegetative canopies
+      !       2) Peters and Eiden (1992)
+      !           Eim = ( St / ( alpha + St ) )^(beta)
+      !                alpha(=0.8) and beta(=2) are constants
+      !       3) Giorgi (1986)
+      !           Eim = St^2 / ( 400 + St^2 )     for smooth surface
+      !           Eim = ( St / (0.6 + St) )^(3.2) for vegetative surface
+      !       4) Davidson et al.(1982)
+      !           Eim = St^3 / (St^3+0.753*St^2+2.796St-0.202) for grassland
+      !       5) Zhang et al.(2001) used 2) method with alpha varying with
+      !          vegetation type and beta equal to 2
+      !
+      !      Ein = 0.5 * ( Dp / A )^2
+      !
+      !      R1 (Particle rebound)  = exp(-St^0.5)
+      !=================================================================
+      
+      DIAM  = DUSTREFF(K) * 2.d0  
+      DEN   = DUSTDEN(K)
+
+      ! Dp [um] = particle diameter
+      DP    = DIAM * 1.d6 
+ 
+      ! Constant for settling velocity calculation       
+      CONST = DEN * DIAM**2 * G0 / 18.d0
+       
+      !=================================================================
+      !   # air molecule number density
+      !   num = P * 1d3 * 6.023d23 / (8.314 * Temp) 
+      !   # gas mean free path
+      !   lamda = 1.d6/( 1.41421 * num * 3.141592 * (3.7d-10)**2 ) 
+      !   # Slip correction
+      !   Slip = 1. + 2. * lamda * (1.257 + 0.4 * exp( -1.1 * Dp     
+      ! &     / (2. * lamda))) / Dp
+      !=================================================================
+      ! Note, Slip correction factor calculations following Seinfeld, 
+      ! pp464 which is thought to be more accurate but more computation 
+      ! required.
+      !=================================================================
+
+      ! Slip correction factor as function of (P*dp)
+      PDP  = PRESS * DP
+      SLIP = 1d0 + ( 15.60d0 + 7.0d0 * EXP( -0.059d0 * PDP) ) / PDP
+
+      !=================================================================
+      ! Note, Eq) 3.22 pp 50 in Hinds (Aerosol Technology)
+      ! which produce slip correction factore with small error
+      ! compared to the above with less computation.
+      !=================================================================
+
+      ! Viscosity [Pa s] of air as a function of temp (K)
+      VISC = 1.458d-6 * (TEMP)**(1.5d0) / (TEMP + 110.4d0)
+
+      ! Kinematic viscosity (Dynamic viscosity/Density)
+      AIRVS= VISC / 1.2928d0  
+
+      ! Settling velocity [m/s]
+      VTS  = CONST * SLIP / VISC
+
+      ! Brownian diffusion constant for particle (m2/s)
+      DIFF = BOLTZ * TEMP * SLIP 
+     &      / (3.d0 * 3.141592d0 * VISC * DIAM)  
+
+      ! Schmidt number 
+      SC   = AIRVS / DIFF                            
+      EB   = 1.D0/SC**(gamma(LUC))
+
+       ! Stokes number  
+      IF ( AA < 0d0 ) then
+         ST   = VTS * USTAR * USTAR / ( AIRVS * G0 ) ! for smooth surface 
+         EIN  = 0D0
+      ELSE
+         ST   = VTS   * USTAR / ( G0 * AA )          ! for vegetated surfaces
+         EIN  = 0.5d0 * ( DIAM / AA )**2
+      ENDIF
+
+      EIM  = ( ST / ( ALPHA(LUC) + ST ) )**(BETA)
+
+      EIM  = MIN( EIM, 0.6D0 )
+
+      IF (LUC == 11 .OR. LUC == 13 .OR. LUC == 14) THEN
+         R1 = 1.D0
+      ELSE
+         R1 = EXP( -1D0 * SQRT( ST ) )
+      ENDIF
+
+      ! surface resistance for particle
+      RS   = 1.D0 / (E0 * USTAR * (EB + EIM + EIN) * R1 )
+
+      ! Return to calling program
+      END FUNCTION AERO_SFCRSII
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE INIT_DRYDEP
 !
 !******************************************************************************
 !  Subroutine INIT_DRYDEP initializes certain variables for the GEOS-CHEM
-!  dry deposition subroutines. (bmy, 11/19/02, 7/21/03)
+!  dry deposition subroutines. (bmy, 11/19/02, 4/1/04)
 !
 !  NOTES:
 !  (1 ) Added N2O5 as a drydep tracer, w/ the same drydep velocity as
 !        HNO3.  Now initialize PBLFRAC array. (rjp, bmy, 7/21/03)
+!  (2 ) Added extra carbon & dust aerosol tracers (rjp, tdf, bmy, 4/1/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2049,6 +2560,94 @@ C** Load array DVEL
             F0(NUMDEP)      = 0.0d0
             XMW(NUMDEP)     = 62d-3
             AIROSOL(NUMDEP) = .TRUE. 
+
+         ! Hydrophilic BC (aerosol)
+         ELSE IF ( N == IDTBCPI ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTBCPI
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'BCPI'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 12d-3
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! Hydrophilic OC (aerosol)
+         ELSE IF ( N == IDTOCPI ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTOCPI
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'OCPI'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 12d-3
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! Hydrophobic BC (aerosol)
+         ELSE IF ( N == IDTBCPO ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTBCPO
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'BCPO'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 12d-3
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! Hydrophobic OC (aerosol)
+         ELSE IF ( N == IDTOCPO ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTOCPO
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'OCPO'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 12d-3
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! DUST1 (aerosol)
+         ELSE IF ( N == IDTDST1 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTDST1
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'DST1'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 29d-3
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! DUST2 (aerosol)
+         ELSE IF ( N == IDTDST2 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTDST2
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'DST2'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 29d-3
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! DUST3 (aerosol)
+         ELSE IF ( N == IDTDST3 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTDST3
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'DST3'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 29d-3
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! DUST4 (aerosol)
+         ELSE IF ( N == IDTDST4 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTDST4
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'DST4'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 29d-3
+            AIROSOL(NUMDEP) = .TRUE.
 
          ENDIF
       ENDDO

@@ -1,9 +1,9 @@
-! $Id: diag_mod.f,v 1.4 2004/03/24 20:52:29 bmy Exp $
+! $Id: diag_mod.f,v 1.5 2004/04/13 14:52:30 bmy Exp $
       MODULE DIAG_MOD 
 !
 !******************************************************************************
 !  Module DIAG_MOD contains declarations for allocatable arrays for use with 
-!  GEOS-CHEM diagnostics. (amf, bdf, bmy, 11/30/99, 8/20/03)
+!  GEOS-CHEM diagnostics. (amf, bdf, bmy, 11/30/99, 4/5/04)
 !
 !  Module Routines:
 !  ============================================================================
@@ -39,6 +39,8 @@
 !  (13) Added array AD13_NH3_na for ND13 diagnostic (rjp, bmy, 3/23/03)
 !  (14) Removed P24H and L24H -- these are now defined w/in "tagged_ox_mod.f"
 !        Also added AD03 array for Kr85 prod/loss diag. (jsw, bmy, 8/20/03)
+!  (15) Added ND06 (dust emission) and ND07 (carbon aerosol emission) 
+!        diagnostic arrays (rjp, tdf, bmy, 4/5/04)
 !******************************************************************************
 !     
       !=================================================================
@@ -56,6 +58,14 @@
 
       ! For ND05 -- Sulfate prod/loss diagnostics
       REAL*4,  ALLOCATABLE :: AD05(:,:,:,:)
+
+      ! For ND06 -- Dust aerosol emission
+      REAL*4,  ALLOCATABLE :: AD06(:,:,:)
+
+      ! For ND07 -- Carbon aerosol emission
+      REAL*4,  ALLOCATABLE :: AD07(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD07_BC(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD07_OC(:,:,:)
 
       ! For ND12 -- boundary layer multiplication factor
       REAL*4,  ALLOCATABLE :: AD11(:,:,:)
@@ -225,7 +235,7 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_DIAG deallocates all module arrays.
-!  (bmy, 12/13/02, 8/20/03)
+!  (bmy, 12/13/02, 4/5/04)
 !
 !  NOTES:
 !  (1 ) Now also deallocate AD13_NH3_an, AD13_NH3_bb, AD13_NH3_bf arrays
@@ -233,6 +243,7 @@
 !  (2 ) Now also deallocate AD13_NH3_na array for ND13 (rjp, bmy, 3/23/03)
 !  (3 ) Removed P24H and L24H, these are now defined within "tagged_ox_mod.f".
 !       Now also deallocate AD03 array for Kr85 prod/loss (jsw, bmy, 8/20/03)
+!  (4 ) Now also deallocate AD06 and AD07* arrays (rjp, bdf, bmy, 4/5/04)
 !******************************************************************************
 !
       !=================================================================
@@ -241,6 +252,10 @@
       IF ( ALLOCATED( AD01        ) ) DEALLOCATE( AD01        )
       IF ( ALLOCATED( AD02        ) ) DEALLOCATE( AD02        )
       IF ( ALLOCATED( AD03        ) ) DEALLOCATE( AD03        )
+      IF ( ALLOCATED( AD06        ) ) DEALLOCATE( AD06        )
+      IF ( ALLOCATED( AD07        ) ) DEALLOCATE( AD07        )
+      IF ( ALLOCATED( AD07_BC     ) ) DEALLOCATE( AD07_BC     )
+      IF ( ALLOCATED( AD07_OC     ) ) DEALLOCATE( AD07_OC     )
       IF ( ALLOCATED( AD11        ) ) DEALLOCATE( AD11        )
       IF ( ALLOCATED( AD12        ) ) DEALLOCATE( AD12        )
       IF ( ALLOCATED( AD13_DMS    ) ) DEALLOCATE( AD13_DMS    )

@@ -1,4 +1,4 @@
-! $Id: define.h,v 1.12 2004/03/24 20:52:29 bmy Exp $
+! $Id: define.h,v 1.14 2004/04/13 14:52:29 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
@@ -11,21 +11,22 @@
 !  (2 ) GEOS_STRAT : Enables code for GEOS-STRAT met fields & chemistry
 !  (3 ) GEOS_3     : Enables code for GEOS-3 met fields & chemistry
 !  (4 ) GEOS_4     : Enables code for GEOS-4 met fields & chemistry
-!  (5 ) GRID30LEV  : Enables code for 30-level GEOS-3 or GEOS-4 grid
-!  (6 ) GRID1x1    : Enables code for 1 x 1   grid
-!  (7 ) GRID2x25   : Enables code for 2 x 2.5 grid 
-!  (8 ) GRID4x5    : Enables code for 4 x 5   grid 
-!  (9 ) FULLCHEM   : Enables code for "Full" Chemistry (ISOP and NMHC)
-!  (10) LGEOSCO    : Enables code for CO run w/ parameterized OH
-!  (11) LFASTJ     : Enables code for FAST-J photolysis
-!  (12) LSLOWJ     : Enables code for SLOW-J photolysis
-!  (13) COMPAQ     : Enables code for Alpha w/ COMPAQ/HP Alpha compiler
-!  (14) IBM_AIX    : Enables code for IBM/AIX compiler
-!  (15) LINUX_PGI  : Enables code for Linux w/ PGI compiler
-!  (16) LINUX_IFC  : Enables code for Linux w/ 32-bit Intel Fortran compiler
-!  (17) LINUX_EFC  : Enables code for Linux w/ 64-bit Intel Fortran compiler
-!  (18) SGI_MIPS   : Enables code for SGI Origin w/ MIPS compiler
-!  (19) SPARC      : Enables code for Sun w/ SPARC compiler
+!  (5 ) A_LLK_03   : Enables code for GEOS-4 Version 3 data ("a_llk_03")
+!  (6 ) GRID30LEV  : Enables code for 30-level GEOS-3 or GEOS-4 grid
+!  (7 ) GRID1x1    : Enables code for 1 x 1   grid
+!  (8 ) GRID2x25   : Enables code for 2 x 2.5 grid 
+!  (9 ) GRID4x5    : Enables code for 4 x 5   grid 
+!  (10) FULLCHEM   : Enables code for "Full" Chemistry (ISOP and NMHC)
+!  (11) LGEOSCO    : Enables code for CO run w/ parameterized OH
+!  (12) LFASTJ     : Enables code for FAST-J photolysis
+!  (13) LSLOWJ     : Enables code for SLOW-J photolysis
+!  (14) COMPAQ     : Enables code for Alpha w/ COMPAQ/HP Alpha compiler
+!  (15) IBM_AIX    : Enables code for IBM/AIX compiler
+!  (16) LINUX_PGI  : Enables code for Linux w/ PGI compiler
+!  (17) LINUX_IFC  : Enables code for Linux w/ 32-bit Intel Fortran compiler
+!  (18) LINUX_EFC  : Enables code for Linux w/ 64-bit Intel Fortran compiler
+!  (19) SGI_MIPS   : Enables code for SGI Origin w/ MIPS compiler
+!  (20) SPARC      : Enables code for Sun w/ SPARC compiler
 ! 
 !  NOTES:
 !  (1 ) "define.h" is #include'd at the top of CMN_SIZE.  All subroutines
@@ -95,9 +96,9 @@
 !----- Model types -----
 !#define GEOS_1      'GEOS_1'       
 !#define GEOS_STRAT  'GEOS_STRAT'
-!#define GEOS_3      'GEOS_3'
-#define GEOS_4      'GEOS_4'
-#define A_LLK_03    'A_LLK_03'
+#define GEOS_3      'GEOS_3'
+!#define GEOS_4      'GEOS_4'
+!#define A_LLK_03    'A_LLK_03'
 
 !----- Grid sizes -----
 !#define GRID1x1     'GRID1x1'
@@ -118,8 +119,8 @@
 !#define IBM_AIX     'IBM_AIX'
 !#define LINUX_PGI   'LINUX_PGI'
 !#define LINUX_IFC   'LINUX_IFC'
-#define LINUX_EFC   'LINUX_EFC'
-!#define SGI_MIPS    'SGI_MIPS'
+!#define LINUX_EFC   'LINUX_EFC'
+#define SGI_MIPS    'SGI_MIPS'
 !#define SPARC       'SPARC'
 
 !==============================================================================

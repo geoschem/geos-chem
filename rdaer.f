@@ -1,17 +1,28 @@
-! $Id: rdaer.f,v 1.1 2003/06/30 20:26:01 bmy Exp $
-      SUBROUTINE RDAER( THISMONTH, THISYEAR, SO4_NH4_NIT )
+! $Id: rdaer.f,v 1.2 2004/04/13 14:52:31 bmy Exp $
+!------------------------------------------------------------------------------
+! Prior to 4/1/04:
+! Add arguments for extra carbon aerosol tracers (rjp, tdf, bmy, 4/1/04)
+!      SUBROUTINE RDAER( THISMONTH, THISYEAR, SO4_NH4_NIT )
+!------------------------------------------------------------------------------
+      SUBROUTINE RDAER( THISMONTH, THISYEAR, SO4_NH4_NIT, 
+     &                  BCPI,      BCPO,     OCPI,    OCPO )
 !
 !******************************************************************************
 !  Subroutine RDAER reads global aerosol concentrations as determined by
 !  Mian Chin.  Calculates optical depth at each level for "set_prof.f".
 !  Also calculates surface area for heterogeneous chemistry.  It uses aerosol
 !  parameters in FAST-J input file "jv_spec.dat" for these calculations.
-!  (rvm, bmy, 11/04/01, 3/27/03)
+!  (rvm, rjp, tdf, bmy, 11/04/01, 4/9/04)
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) THISMONTH (INTEGER) : Number of the current month (1-12)
-!  (2 ) THISYEAR  (INTEGER) : 4-digit year value (e.g. 1997, 2002)
+!  (1 ) THISMONTH   (INTEGER) : Number of the current month (1-12)
+!  (2 ) THISYEAR    (INTEGER) : 4-digit year value (e.g. 1997, 2002)
+!  (3 ) SO4_NH4_NIT (REAL*8 ) : Online lumped SO4, NH4, NIT aerosol [kg/m3]
+!  (4 ) BCPI        (REAL*8 ) : Online Hydrophilic BC aerosol       [kg/m3]
+!  (5 ) BCPO        (REAL*8 ) : Online Hydrophobic BC aerosol       [kg/m3]
+!  (6 ) OCPI        (REAL*8 ) : Online Hydrophilic OC aerosol       [kg/m3]
+!  (7 ) OCPO        (REAL*8 ) : Online Hydrophobic OC aerosol       [kg/m3]
 !
 !  NOTES:
 !  (1 ) At the point in which "rdaer.f" is called, ABSHUM is actually
@@ -31,6 +42,11 @@
 !        Otherwise, read monthly mean sulfate from disk.  (rjp, bmy, 3/23/03)
 !  (7 ) Now call READ_BPCH2 with QUIET=.TRUE., which prevents info from being
 !        printed to stdout.  Also made cosmetic changes. (bmy, 3/27/03)
+!  (8 ) Add BCPI, BCPO, OCPI, OCPO to the arg list.  Bug fix: for online
+!        sulfate & carbon aerosol tracers, now make sure these get updated
+!        every timestep.  Now references "time_mod.f".  Now echo info about
+!        which online/offline aerosols we are using.  Updated comments.
+!        (bmy, 4/9/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -40,6 +56,7 @@
       USE DAO_MOD,      ONLY : BXHEIGHT
       USE DIAG_MOD,     ONLY : AD21
       USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE TIME_MOD,     ONLY : ITS_A_NEW_MONTH
       USE TRANSFER_MOD, ONLY : TRANSFER_3D
 
       IMPLICIT NONE
@@ -47,14 +64,19 @@
 #     include "cmn_fj.h"   ! LPAR, CMN_SIZE
 #     include "jv_cmn.h"   ! ODAER, QAA, RAA
 #     include "CMN_DIAG"   ! ND21, LD21
-#     include "CMN_SETUP"  ! DATA_DIR
+#     include "CMN_SETUP"  ! DATA_DIR, LCARB, etc.
 #     include "comode.h"   ! NTLOOP
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH, THISYEAR
       REAL*8,  INTENT(IN) :: SO4_NH4_NIT(IIPAR,JJPAR,LLPAR)
+      REAL*8,  INTENT(IN) :: BCPI(IIPAR,JJPAR,LLPAR)
+      REAL*8,  INTENT(IN) :: BCPO(IIPAR,JJPAR,LLPAR)
+      REAL*8,  INTENT(IN) :: OCPI(IIPAR,JJPAR,LLPAR)
+      REAL*8,  INTENT(IN) :: OCPO(IIPAR,JJPAR,LLPAR)
 
       ! Local variables
+      LOGICAL             :: FIRST = .TRUE.
       CHARACTER(LEN=255)  :: FILENAME
       INTEGER             :: I, J, L, N, R, JLOOP, IRH, IRHN
       INTEGER, SAVE       :: MONTH_LAST = -999
@@ -104,15 +126,11 @@
 
       !=================================================================
       ! RDAER begins here!
-      !
-      ! Read aerosol data from the binary punch file during the first 
-      ! chemistry timestep and, after that, at the start of each month.
       !=================================================================
-      IF ( THISMONTH /= MONTH_LAST ) THEN   
-         
-         ! Save the current month
-         MONTH_LAST = THISMONTH
 
+      ! If it's a new month, then define filename (bmy, 4/1/04)
+      IF ( ITS_A_NEW_MONTH() ) THEN
+      
 #if   defined( GEOS_STRAT )
 
          ! Select proper dust file name
@@ -164,71 +182,167 @@
 
 #endif
 
-         ! Print filename
-         WRITE( 6, 110 ) TRIM( FILENAME )
- 110     FORMAT( '     - RDAER: Reading ', a )
+      ENDIF
 
-         !==============================================================
-         ! Read aerosol concentrations [kg/m3] for each type from the 
-         ! binary punch file.  Also merge the coarse sea salt aerosols 
-         ! into a combined bin rather than carrying them separately.
-         !==============================================================
+      !=================================================================
+      ! If LSULF is turned ON, then take the lumped SO4, NH4, NIT
+      ! concentrations [kg/m3] passed from "chemdr.f", and save into 
+      ! WAERSL(:,:,:,1) for use w/ FAST-J and hetchem.  This is updated
+      ! every timestep.
+      !
+      ! If LSULF is turned OFF, then read monthly mean offline sulfate
+      ! aerosol concentrations [kg/m3] from disk at the start of each
+      ! month.
+      !=================================================================
+      IF ( LSULF ) THEN 
 
-         !-------------------
-         ! Sulfate
-         !-------------------
-         IF ( LSULF ) THEN 
-
-            ! For sulfate chemistry, save lumped SO4, NH4, NIT into
-            ! WAERSL for both FAST-J and hetchem (rjp, bmy, 3/23/03)
-            WAERSL(:,:,:,1) = SO4_NH4_NIT
-
-         ELSE
-            
-            ! For sulfate chemistry turned off, then read monthly
-            ! mean sulfate aerosol from disk (rjp, bmy, 3/23/03)
-            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 1,     XTAU,
-     &                       IGLOB,     JGLOB,     LGLOB, TEMP )
-
-            CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,1) )
-            
+         !----------
+         ! Online
+         !----------
+         IF ( FIRST ) THEN
+            WRITE( 6, 100 ) 
+ 100        FORMAT( '     - RDAER: Using online SO4 NH4 NIT!' )
          ENDIF
 
-         !-------------------
-         ! Hydrophobic BC
-         !-------------------
-         CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 2,     
-     &                    XTAU,      IGLOB,     JGLOB,     
-     &                    LGLOB,     TEMP,      QUIET=.TRUE. )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            WAERSL(I,J,L,1) = SO4_NH4_NIT(I,J,L)
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
 
-         CALL TRANSFER_3D( TEMP, DAERSL(:,:,:,1) )
+      ELSE
+            
+         !----------
+         ! Offline
+         !----------
+         IF ( ITS_A_NEW_MONTH() ) THEN
 
-         !-------------------
-         ! Hydrophilic BC
-         !-------------------
-         CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 3,     
-     &                    XTAU,      IGLOB,     JGLOB,     
-     &                    LGLOB,     TEMP,      QUIET=.TRUE. )
+            ! Print filename
+            WRITE( 6, 105 ) TRIM( FILENAME )
+ 105        FORMAT( '     - RDAER: Reading SULFATE from ', a )
 
-         CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,2) )
+            ! Read data
+            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 1,     
+     &                       XTAU,      IGLOB,     JGLOB,     
+     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
 
-         !-------------------
-         ! Hydrophobic OC
-         !-------------------
-         CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 4,     
-     &                    XTAU,      IGLOB,     JGLOB,     
-     &                    LGLOB,     TEMP,      QUIET=.TRUE. )
+            ! Cast to REAL*8 and resize
+            CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,1) )
+         ENDIF
+      ENDIF
 
-         CALL TRANSFER_3D( TEMP, DAERSL(:,:,:,2) )
+      !=================================================================
+      ! If LCARB is turned ON, then take Hydrophilic OC, Hydrophobic OC,
+      ! Hydropilic BC, and Hydrophobic BC concentrations [kg/m3] that
+      ! are passed from "chemdr.f".  Save these into DAERSL and WAERSL
+      ! for use w/ FAST-J and hetchem.  These fields are updated every
+      ! chemistry timestep.
+      !
+      ! If LCARB is turned OFF, then read monthly mean carbon aerosol
+      ! concentrations [kg/m3] from disk at the start of each month.
+      !=================================================================
+      IF ( LCARB ) THEN
 
-         !-------------------
-         ! Hydrophilic OC
-         !-------------------
-         CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 5,     
-     &                    XTAU,      IGLOB,     JGLOB,     
-     &                    LGLOB,     TEMP,      QUIET=.TRUE. )
+         !----------
+         ! Online 
+         !----------
+         IF ( FIRST ) THEN
+            WRITE( 6, 110 ) 
+ 110        FORMAT( '     - RDAER: Using online BCPI OCPI BCPO OCPO!' )
+         ENDIF
 
-         CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,3) )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Hydrophilic BC (a.k.a EC) [kg/m3]
+            WAERSL(I,J,L,2) = BCPI(I,J,L)
+
+            ! Hydrophilic OC [kg/m3]
+            WAERSL(I,J,L,3) = OCPI(I,J,L)
+
+            ! Hydrophobic BC (a.k.a EC) [kg/m3]
+            DAERSL(I,J,L,1) = BCPO(I,J,L)
+
+            ! Hydrophobic OC [kg/m3]
+            DAERSL(I,J,L,2) = OCPO(I,J,L)
+
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+
+      ELSE
+
+         !----------
+         ! Offline 
+         !----------
+         IF ( ITS_A_NEW_MONTH() ) THEN
+
+            ! Print filename
+            WRITE( 6, 115 ) TRIM( FILENAME )
+ 115        FORMAT( '     - RDAER: Reading BC and OC from ', a )
+
+            !--------------------------------
+            ! Offline -- read Hydrophobic BC
+            !--------------------------------
+            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 2,     
+     &                       XTAU,      IGLOB,     JGLOB,     
+     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
+
+            CALL TRANSFER_3D( TEMP, DAERSL(:,:,:,1) )
+
+            !---------------------------------
+            ! Offline -- read Hydrophilic BC
+            !---------------------------------
+            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 3,     
+     &                       XTAU,      IGLOB,     JGLOB,     
+     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
+
+            CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,2) )
+
+            !---------------------------------
+            ! Offline -- read Hydrophobic OC
+            !---------------------------------
+            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 4,     
+     &                       XTAU,      IGLOB,     JGLOB,     
+     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
+
+            CALL TRANSFER_3D( TEMP, DAERSL(:,:,:,2) )
+
+            !---------------------------------
+            ! Offline -- read Hydrophilic OC
+            !---------------------------------
+            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 5,     
+     &                       XTAU,      IGLOB,     JGLOB,     
+     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
+
+            CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,3) )
+         ENDIF
+      ENDIF
+
+      !=================================================================
+      ! Read monthly-mean coarse sea-salt aerosol concentrations 
+      ! [kg/m3] from the binary punch file.  Also merge the coarse sea 
+      ! salt aerosols into a combined bin rather than carrying them 
+      ! separately.
+      !
+      ! At some point, add Becky's seasalt tracers here (bmy, 4/1/04)
+      !=================================================================
+      IF ( ITS_A_NEW_MONTH() ) THEN
+
+         ! Print filename
+         WRITE( 6, 120 ) TRIM( FILENAME )
+ 120     FORMAT( '     - RDAER: Reading SEASALT from ', a )
 
          !-------------------
          ! Sea Salt (accum)
@@ -271,7 +385,6 @@
 
          ! Accumulate into one size bin
          WAERSL(:,:,:,5) = WAERSL(:,:,:,5) + TEMP2 
-
       ENDIF 
 
       !=================================================================
@@ -285,11 +398,11 @@
       !
       ! Scaling is sufficient for the surface area calculation
       !=================================================================
-      MSDENS(1) = 1700.0    !SO4
-      MSDENS(2) = 1000.0    !BC 
-      MSDENS(3) = 1800.0    !OC 
-      MSDENS(4) = 2200.0    !SS (accum)
-      MSDENS(5) = 2200.0    !SS (coarse)
+      MSDENS(1) = 1700.0d0    !SO4
+      MSDENS(2) = 1000.0d0    !BC 
+      MSDENS(3) = 1800.0d0    !OC 
+      MSDENS(4) = 2200.0d0    !SS (accum)
+      MSDENS(5) = 2200.0d0    !SS (coarse)
 
       ! Loop over types of aerosol
       DO N = 1, NAER
@@ -484,18 +597,15 @@
           
             ! Store aerosol surface areas in TAREA, and be sure
             ! to list them following the dust surface areas
-            TAREA(JLOOP,N+NDUST) = 3.D0                    * 
-     &                             WAERSL(I,J,L,N)         *  
-     &                             SCALEVOL(I,J,L)         / 
-     &                            ( ERADIUS(JLOOP,NDUST+N) * 
-     &                              MSDENS(N) )  
+            TAREA(JLOOP,N+NDUST) = 3.D0                     * 
+     &                             WAERSL(I,J,L,N)          *  
+     &                             SCALEVOL(I,J,L)          / 
+     &                             ( ERADIUS(JLOOP,NDUST+N) * 
+     &                               MSDENS(N) )  
          ENDDO
 !$OMP END PARALLEL DO
 
       ENDDO  !Loop over NAER
-
-      !### Debug
-      !CALL DEBUG_MSG( '### RDAER: after loop over NAER' )
 
       !==============================================================
       ! Account for hydrophobic aerosols (BC and OC), N=2 and N=3
@@ -665,6 +775,9 @@
       !TAREA(:,NDUST+3) = 0.d0	!OC 
       !TAREA(:,NDUST+4) = 0.d0	!SS (accum)
       !TAREA(:,NDUST+5) = 0.d0	!SS (coarse)
+
+      ! Reset first-time flag
+      FIRST = .FALSE.
 
       ! Return to calling program
       END SUBROUTINE RDAER

@@ -1,8 +1,8 @@
-! $Id: initialize.f,v 1.2 2003/10/21 16:05:28 bmy Exp $
+! $Id: initialize.f,v 1.3 2004/04/13 14:52:30 bmy Exp $
       SUBROUTINE INITIALIZE( IFLAG )
 !
 !******************************************************************************
-!  Subroutine INITIALIZE (bmy, 6/15/98, 8/20/03) does the following:
+!  Subroutine INITIALIZE (bmy, 6/15/98, 4/5/04) does the following:
 !     (1) Zeroes globally defined GEOS-CHEM variables.
 !     (2) Zeroes accumulating diagnostic arrays.
 !     (3) Resets certain year/month/day and counter variables used 
@@ -140,6 +140,7 @@
 !  (21) Now also zero AD13_NH3_na array for ND13 (rjp, bmy, 3/23/03)
 !  (22) Now references "time_mod.f" (bmy, 3/27/03)
 !  (23) Now zeroes AD03 array for Kr85 prod/loss diag. (jsw, bmy, 8/20/03)
+!  (24) Now also zeroes AD06 and AD07* arrays (rjp, tdf, bmy, 4/5/04)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -189,6 +190,7 @@
          IF ( ND02 > 0 ) AD02     = 0e0
          IF ( ND03 > 0 ) AD03     = 0e0
          IF ( ND05 > 0 ) AD05     = 0e0
+         IF ( ND06 > 0 ) AD06     = 0e0
          IF ( ND11 > 0 ) AD11     = 0e0
          IF ( ND12 > 0 ) AD12     = 0e0
          IF ( ND14 > 0 ) CONVFLUP = 0d0
@@ -223,6 +225,13 @@
          IF ( ND67 > 0 ) AD67     = 0e0
          IF ( ND68 > 0 ) AD68     = 0e0
          IF ( ND69 > 0 ) AD69     = 0e0
+
+         ! ND07 -- carbon aerosol emissions (rjp, tdf, bmy, 4/5/04)
+         IF ( ND07 > 0 ) THEN
+            AD07     = 0e0
+            AD07_BC  = 0e0
+            AD07_OC  = 0e0
+         ENDIF
          
          ! For ND13 - sulfur emissions (bmy, 6/6/00, 3/23/03)
          IF ( ND13 > 0 ) THEN

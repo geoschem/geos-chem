@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.8 2004/03/25 21:36:20 bmy Exp $
+! $Id: sulfate_mod.f,v 1.9 2004/04/13 14:52:32 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 3/24/04)
+!  (rjp, bdf, bmy, 6/22/00, 3/30/04)
 !
 !  Module variables:
 !  ============================================================================
@@ -56,6 +56,7 @@
 !  (45) TCOSZ      (REAL*8 ) : Sum of cos(SZA) for offline run  [unitless] 
 !  (46) TTDAY      (REAL*8 ) : Total daylight length at (I,J)   [minutes]
 !  (47) SMALLNUM   (REAL*8 ) : Small number - prevent underflow [unitless]
+!  (48) COSZM      (REAL*8 ) : Array for MAX(cos(SZA)) at (I,J) [unitless]
 !  
 !  Module Routines:
 !  ===========================================================================
@@ -154,6 +155,8 @@
 !        entire PBL. (rjp, bmy, 8/1/03)
 !  (19) Now accounts for GEOS-4 PBL being in meters (bmy, 1/15/04)
 !  (20) Fix ND44 diag so that we get same results for sp or mp (bmy, 3/24/04)
+!  (21) Added COSZM array.  Now use diurnal varying JH2O2 in CHEM_H2O2. 
+!        (rjp, bmy, 3/39/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -175,7 +178,7 @@
       PRIVATE :: XNUMOL_OH,  XNUMOL_O3,  XNUMOL_NO3, JH2O2
       PRIVATE :: DRYSO2,     DRYSO4,     DRYMSA,     DRYNH3
       PRIVATE :: DRYNH4,     DRYNIT,     DRYH2O2,    TCOSZ
-      PRIVATE :: TTDAY,      ESO2_bf,    SMALLNUM
+      PRIVATE :: TTDAY,      ESO2_bf,    SMALLNUM,   COSZM
 
       ! PRIVATE module routines
       PRIVATE :: GET_VCLDF,         GET_LWC,           CHEM_DMS 
@@ -233,7 +236,7 @@
       REAL*8,  ALLOCATABLE :: TCOSZ(:,:)
       REAL*8,  ALLOCATABLE :: TTDAY(:,:)
       REAL*8,  ALLOCATABLE :: VCLDF(:,:,:)
-
+      REAL*8,  ALLOCATABLE :: COSZM(:,:)
 
       ! Eruptive volcanoes
       INTEGER, PARAMETER   :: NEV=50
@@ -687,7 +690,6 @@
          !==============================================================
          DMS_OH = DMS0   * EXP( -( RK1 + RK2 ) * Fx * DTCHEM )
          DMS    = DMS_OH * EXP( -( RK3       ) * Fx * DTCHEM ) 
-         !###DMS    = MAX( DMS, 1d-32 )
          IF ( DMS < SMALLNUM ) DMS = 0d0
 
          ! Archive initial OH and NO3 for diagnostics
@@ -698,12 +700,10 @@
 
             ! Update OH after rxn w/ DMS (coupled runs only)
             OH    = OH0 - ( ( DMS0 - DMS_OH ) * AIRDEN(L,I,J) * f )
-            !###OH    = MAX( OH, 1D-32 )
             IF ( OH < SMALLNUM ) OH = 0d0
 
             ! Update NO3 after rxn w/ DMS (coupled runs only)
             XNO3  = XNO30 - ( ( DMS_OH - DMS ) * AIRDEN(L,I,J) * f )
-            !###XNO3  = MAX( XNO3, 1D-32 )
             IF ( XNO3 < SMALLNUM ) XNO3 = 0d0
 
          ENDIF 
@@ -792,7 +792,7 @@
 !******************************************************************************
 !  Subroutine CHEM_H2O2 is the H2O2 chemistry subroutine for offline sulfate
 !  simulations.  For coupled runs, H2O2 chemistry is already computed by
-!  the SMVGEAR module. (rjp, bmy, 11/26/02, 3/24/04)
+!  the SMVGEAR module. (rjp, bmy, 11/26/02, 3/30/04)
 !                                                                           
 !  NOTES:
 !  (1 ) Bug fix: need to multiply DXYP by 1d4 for cm2 (bmy, 3/23/03)
@@ -804,6 +804,8 @@
 !  (4 ) Now use ND44_TMP array to store vertical levels of drydep flux, then 
 !        sum into AD44 array.  This preents numerical differences when using
 !        multiple processors. (bmy, 3/24/04)    
+!  (5 ) Now use diurnally-varying JO1D.  Now use new unit conversion for
+!        the ND44 diagnostic. (rjp, bmy, 3/30/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -827,11 +829,11 @@
       ! Local variables
       LOGICAL                :: FIRST     = .TRUE.
       INTEGER, SAVE          :: LASTMONTH = -99
-      INTEGER                :: I, J, L
+      INTEGER                :: I, J, L, JLOOP
       REAL*4                 :: ARRAY(IGLOB,JGLOB,LLTROP)
       REAL*8                 :: ND44_TMP(IIPAR,JJPAR,LLTROP)
-      REAL*8                 :: DT,   Koh,   DH2O2, M,     F   
-      REAL*8                 :: XTAU, H2O20, H2O2,  ALPHA, FLUX, FREQ
+      REAL*8                 :: DT,    Koh,  DH2O2, M,    F ,   XTAU   
+      REAL*8                 :: H2O20, H2O2, ALPHA, FLUX, FREQ, PHOTJ
       REAL*8,  PARAMETER     :: A = 2.9d-12
       CHARACTER(LEN=255)     :: FILENAME
 
@@ -883,6 +885,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, M, H2O20, KOH, FREQ, ALPHA, DH2O2, H2O2, FLUX )
+!$OMP+PRIVATE( JLOOP, PHOTJ )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L  = 1, LLTROP
       DO J  = 1, JJPAR
@@ -908,8 +911,28 @@
          ! of the grid box (I,J,L) that is located beneath the PBL top
          FREQ  = DEPSAV(I,J,DRYH2O2) * PBLFRAC(I,J,L)
 
+         !------------------------------------------------------------------
+         ! Prior to 3/30/04:
+         ! Now use diurnally varying OH (rjp, bmy, 3/30/04)
+         !! Compute loss fraction from OH, photolysis, drydep [unitless].  
+         !ALPHA = 1.D0 + ( KOH + JH2O2(I,J,L) + FREQ ) * DT 
+         !------------------------------------------------------------------
+
+         ! 1-D grid box index for SUNCOS
+         JLOOP = IJSURF(I,J)
+ 
+         ! Impose a diurnal variation of jH2O2 by multiplying COS of 
+         ! solar zenith angle normalized by maximum solar zenith angle 
+         ! because the archived JH2O2 is for local noon time
+         IF ( COSZM(I,J) > 0.d0 ) THEN
+            PHOTJ = JH2O2(I,J,L) * SUNCOS(JLOOP) / COSZM(I,J)
+            PHOTJ = MAX( PHOTJ, 0d0 )
+         ELSE
+            PHOTJ = 0d0
+         ENDIF
+
          ! Compute loss fraction from OH, photolysis, drydep [unitless].  
-         ALPHA = 1.D0 + ( KOH + JH2O2(I,J,L) + FREQ ) * DT 
+         ALPHA = 1.D0 + ( KOH + PHOTJ + FREQ ) * DT 
 
          ! Delta H2O2 [v/v]
          DH2O2 = PH2O2m(I,J,L) * DT / ( ALPHA * M )
@@ -922,22 +945,25 @@
          STT(I,J,L,IDTH2O2) = H2O2
 
          !==============================================================
-         ! ND44 diagnostics (make sure this is correct!)
+         ! ND44 diagnostics: H2O2 drydep loss [molec/cm2/s]
          !==============================================================
          IF ( ND44 > 0 .AND. FREQ > 0d0 ) THEN
 
-            ! Convert H2O2 from [v/v] to H2O2 [molec/cm2]
-            FLUX = ( H2O20 - H2O2 ) * AD(I,J,L) / TCVV(IDTH2O2)
-            FLUX = FLUX * XNUMOL(IDTH2O2) / GET_AREA_CM2( J )
+            !-----------------------------------------------------------
+            ! Prior to 3/30/04:
+            ! Use new unit conversion (rjp, bmy, 3/30/04)
+            !! Convert H2O2 from [v/v] to H2O2 [molec/cm2]
+            !FLUX = ( H2O20 - H2O2 ) * AD(I,J,L) / TCVV(IDTH2O2)
+            !FLUX = FLUX * XNUMOL(IDTH2O2) / GET_AREA_CM2( J )
+            !
+            !! Multiply by drydep freq [s-1] to convert to [molec/cm2/s]
+            !FLUX = FLUX * FREQ
+            !-----------------------------------------------------------
 
-            ! Multiply by drydep freq [s-1] to convert to [molec/cm2/s]
-            FLUX = FLUX * FREQ
-
-            !---------------------------------------------------------
-            ! Prior to 3/24/04:
-            !! Save drydep loss in AD44 [molec/cm2/s]
-            !AD44(I,J,DRYH2O2,1) = AD44(I,J,DRYH2O2,1) + FLUX
-            !--------------------------------------------------------- 
+            ! Convert H2O2 from [v/v] to H2O2 [molec/cm2/s]
+            FLUX = H2O20 * FREQ * DT / ( 1.D0 + FREQ * DT )
+            FLUX = FLUX * AD(I,J,L) / TCVV(IDTH2O2)
+            FLUX = FLUX * XNUMOL(IDTH2O2) / ( GET_AREA_CM2( J ) * DT )
 
             ! Save dryd flx in ND44_TMP as a placeholder
             ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
@@ -1309,12 +1335,6 @@
             ! Convert [v/v/timestep] to [molec/cm2/s]
             FLUX = Ld   * AD(I,J,L)      / TCVV(IDTSO2)
             FLUX = FLUX * XNUMOL(IDTSO2) / AREA_CM2 / DTCHEM
-
-            !--------------------------------------------------------------
-            ! Prior to 3/24/04:
-            !! Store in AD44
-            !AD44(I,J,DRYSO2,1) = AD44(I,J,DRYSO2,1) + FLUX
-            !--------------------------------------------------------------
             
             ! Store dryd flx in ND44_TMP as a placeholder
             ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
@@ -1322,7 +1342,7 @@
       ENDDO
       ENDDO
       ENDDO
-!!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 
       !===============================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
@@ -1673,12 +1693,6 @@
             FLUX = FLUX * AD(I,J,L)      / TCVV(IDTSO4)
             FLUX = FLUX * XNUMOL(IDTSO4) / AREA_CM2 / DTCHEM
 
-            !----------------------------------------------------------
-            ! Prior to 3/24/04:
-            !! Store in AD44
-            !AD44(I,J,DRYSO4,1) = AD44(I,J,DRYSO4,1) + FLUX
-            !----------------------------------------------------------
-
             ! Store dryd flx in ND44_TMP as a placeholder
             ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
          ENDIF
@@ -1823,12 +1837,6 @@
                FLUX = FLUX * AD(I,J,L)      / TCVV(IDTMSA)            
                FLUX = FLUX * XNUMOL(IDTMSA) / AREA_CM2 / DTCHEM    
                
-               !--------------------------------------------------------
-               ! Prior to 3/24/04:
-               !! Store in AD44
-               !AD44(I,J,DRYMSA,1) = AD44(I,J,DRYMSA,1) + FLUX
-               !--------------------------------------------------------
-
                ! Store dryd flux in ND44_TMP as a placeholder
                ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
             ENDIF
@@ -1955,12 +1963,6 @@
                   ! Convert drydep loss from [v/v/timestep] to [molec/cm2/s]
                   FLUX = NH3  * AD(I,J,L)      / TCVV(IDTNH3)
                   FLUX = FLUX * XNUMOL(IDTNH3) / AREA_CM2 / DTCHEM
-
-                  !-------------------------------------------------------
-                  ! Prior to 3/24/04:
-                  !! Store in AD44
-                  !AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + FLUX
-                  !-------------------------------------------------------
 
                   ! Store dryd flx in ND44_TMP as a placeholder
                   ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
@@ -2090,12 +2092,6 @@
                   FLUX = NH4  * AD(I,J,L)      / TCVV(IDTNH4)
                   FLUX = FLUX * XNUMOL(IDTNH4) / AREA_CM2 / DTCHEM
 
-                  !-------------------------------------------------------
-                  ! Prior to 3/24/04:
-                  !! Store in AD44
-                  !AD44(I,J,DRYNH4,1) = AD44(I,J,DRYNH4,1) + FLUX
-                  !-------------------------------------------------------
-
                   ! Store dryd flx in ND44_TMP as a placeholder
                   ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
                ENDIF
@@ -2162,10 +2158,6 @@
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN"          ! STT
-!----------------------------------------------------------------------
-! Prior to 3/24/04:
-!#     include "CMN_GCTM"     ! AIRMW
-!----------------------------------------------------------------------
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44
 
@@ -2227,12 +2219,6 @@
                   FLUX = NIT  * AD(I,J,L)      / TCVV(IDTNIT)
                   FLUX = FLUX * XNUMOL(IDTNIT) / AREA_CM2 / DTCHEM
 
-                  !----------------------------------------------------
-                  ! Prior to 3/23/04:
-                  !! Store in AD44
-                  !AD44(I,J,DRYNIT,1) = AD44(I,J,DRYNIT,1) + FLUX
-                  !----------------------------------------------------
-
                   ! Store dryd flx in ND44_TMP as a placeholder
                   ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
                ENDIF
@@ -2270,7 +2256,7 @@
 !
 !******************************************************************************
 !  Subroutine EMISSSULFATE is the interface between the GEOS-CHEM model and
-!  the sulfate emissions routines in "sulfate_mod.f" (bmy, 6/7/00, 11/6/02)
+!  the sulfate emissions routines in "sulfate_mod.f" (bmy, 6/7/00, 4/6/04)
 ! 
 !  NOTES:
 !  (1 ) BXHEIGHT is now dimensioned IIPAR,JJPAR,LLPAR (bmy, 9/26/01)
@@ -2288,6 +2274,7 @@
 !        emissions. (rjp, bmy, 3/23/03)
 !  (5 ) Now use functions GET_SEASON and GET_MONTH from the new "time_mod.f"
 !        (bmy, 3/27/03)
+!  (6 ) Added first-time printout message (bmy, 4/6/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2309,6 +2296,20 @@
 
       ! Do only on the first timestep
       IF ( FIRSTEMISS ) THEN
+
+         ! Echo info
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+         WRITE( 6, 100   )
+         WRITE( 6, 110   )
+         WRITE( 6, 120   )
+         WRITE( 6, 130   ) 
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+       
+         ! FORMAT strings
+ 100     FORMAT( 'S U L F A T E   A E R O S O L   E M I S S I O N S'   )
+ 110     FORMAT( 'Routines originally by Mian Chin''s GOCART model'    )
+ 120     FORMAT( 'Modified for GEOS-CHEM by R. Park and R. Yantosca'   ) 
+ 130     FORMAT( 'Last Modification Date: 4/6/04'                      )
 
          ! Initialize arrays
          CALL INIT_SULFATE
@@ -4798,7 +4799,7 @@
 !  Subroutine OHNO3TIME computes the sum of cosine of the solar zenith
 !  angle over a 24 hour day, as well as the total length of daylight. 
 !  This is needed to scale the offline OH and NO3 concentrations.
-!  (rjp, bmy, 12/16/02, 3/27/03)
+!  (rjp, bmy, 12/16/02, 3/30/04)
 !
 !  NOTES:
 !  (1 ) Copy code from COSSZA directly for now, so that we don't get NaN
@@ -4808,6 +4809,8 @@
 !        Removed NTIME, NHMSb from the arg list.  Now use GET_NHMSb,
 !        GET_ELAPSED_SEC, GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT from 
 !        "time_mod.f". (bmy, 3/27/03)
+!  (3 ) Now store the peak SUNCOS value for each surface grid box (I,J) in 
+!        the COSZM array. (rjp, bmy, 3/30/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4851,7 +4854,8 @@
          ! Zero arrays
          TTDAY(:,:) = 0d0
          TCOSZ(:,:) = 0d0
- 
+         COSZM(:,:) = 0d0
+
          ! NDYSTEP is # of chemistry time steps in this day
          NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 60 / GET_TS_CHEM()         
 
@@ -4910,6 +4914,10 @@
                ! Do not include negative values of SUNTMP
                TCOSZ(I,J) = TCOSZ(I,J) + MAX( SUNTMP(IJLOOP), 0d0 )
 
+               ! COSZM is the peak value of SUMTMP during a day at (I,J)
+               ! (rjp, bmy, 3/30/04)
+               COSZM(I,J) = MAX( COSZM(I,J), SUNTMP(IJLOOP) )
+
                ! TTDAY is the total daylight time at location (I,J)
                IF ( SUNTMP(IJLOOP) > 0d0 ) THEN
                   TTDAY(I,J) = TTDAY(I,J) + DBLE( GET_TS_CHEM() )
@@ -4946,7 +4954,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_SULFATE initializes and zeros all allocatable arrays
-!  declared in "sulfate_mod.f" (bmy, 6/2/00, 3/23/03)
+!  declared in "sulfate_mod.f" (bmy, 6/2/00, 3/30/04)
 !
 !  NOTES:
 !  (1 ) Only allocate some arrays for the standalone simulation (NSRCX==10).
@@ -4956,6 +4964,7 @@
 !        for SUNCOS (for both coupled & offline runs).  Now allocate PH2O2m 
 !        and O3m for offline runs.  Also allocate ESO2_bf (bmy, 1/16/03)
 !  (3 ) Now allocate ENH3_na array (rjp, bmy, 3/23/03)
+!  (4 ) Now allocate COSZM for offline runs (bmy, 3/30/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -5115,6 +5124,10 @@
          ALLOCATE( TTDAY( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'TTDAY' )
          TTDAY = 0d0
+ 
+         ALLOCATE( COSZM( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'COSZM' )
+         COSZM = 0d0
       ENDIF
 
       !=================================================================
@@ -5143,11 +5156,12 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_SULFATE deallocates all previously allocated arrays 
-!  for sulfate emissions -- call at the end of the run (bmy, 6/1/00, 3/23/03)
+!  for sulfate emissions -- call at the end of the run (bmy, 6/1/00, 3/30/04)
 ! 
 !  NOTES:
 !  (1 ) Now also deallocates IJSURF. (bmy, 11/12/02)
 !  (2 ) Now also deallocates ENH3_na (rjp, bmy, 3/23/03)
+!  (3 ) Now also deallocates COSZM (rjp, bmy, 3/30/04)
 !******************************************************************************
 ! 
       !=================================================================
@@ -5188,6 +5202,7 @@
       IF ( ALLOCATED( TCOSZ     ) ) DEALLOCATE( TCOSZ     )
       IF ( ALLOCATED( TTDAY     ) ) DEALLOCATE( TTDAY     )          
       IF ( ALLOCATED( VCLDF     ) ) DEALLOCATE( VCLDF     )
+      IF ( ALLOCATED( COSZM     ) ) DEALLOCATE( COSZM     )
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_SULFATE

@@ -1,4 +1,4 @@
-! $Id: setup.f,v 1.5 2004/03/24 20:52:32 bmy Exp $
+! $Id: setup.f,v 1.6 2004/04/13 14:52:31 bmy Exp $
       SUBROUTINE SETUP( NYMDb, NYMDe,     NHMSb,   NHMSe,   NDT,      
      &                  NTDT,  NDIAGTIME, ALPHA_d, ALPHA_n, IORD,     
      &                  JORD,  KORD,      J1,      Umax,    IGD,      
@@ -6,7 +6,7 @@
 !
 !******************************************************************************
 !  Subroutine SETUP reads in parameters specific to the GEOS-CHEM model.
-!  (bmy, bey, bdf, 5/27/99, 12/9/03)
+!  (bmy, bey, bdf, 5/27/99, 4/2/04)
 !                                                                           
 !  NOTES:
 !  (1 ) SETUP is written in Fixed-Form Fortran 90.
@@ -77,6 +77,8 @@
 !  (35) Removed GEOS_2_DIR.  Added GEOS_4_DIR (bmy, 6/18/03)
 !  (36) Renamed LRERD to LUNZIP, this toggles met field unzipping on/off.
 !        Disable checking of GEOS_1_DIR etc directory paths. (bmy, 12/9/03)
+!  (37) Added flags for carbon & dust aerosols. Also do not read extra
+!        lines from the top of the file. (rjp, tdf, bmy, 4/6/04) 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -101,7 +103,7 @@
 
       ! Local variables
       CHARACTER(LEN=79)    :: TITLE 
-      CHARACTER(LEN=46)    :: STR1, STR2, STR3, STR4
+      CHARACTER(LEN=46)    :: STR1, STR2, STR3, STR4, STR5
       CHARACTER(LEN=30)    :: TMPSTR
 
       INTEGER              :: I, I1, I2, IS, J, JS, K ! Loop and 
@@ -140,20 +142,24 @@
       ! Change NYMDb, NYMDe to YYYYMMDD format
       NYMDb = NYMD6_2_NYMD8( NYMDb )
       NYMDe = NYMD6_2_NYMD8( NYMDe )
-!
-!******************************************************************************
-!  Read FORTRAN file I/O units from INPUT.GEOS 
-!  PH_FLDS is the number of met fields in the file with unit IU_PH, etc..
-!******************************************************************************
-!
-      READ( 99, '(a)', IOSTAT=IOS )
-      IF ( IOS /= 0 ) CALL IOERROR( IOS, 99, 'setup:4' )
-
-      READ( 99, '(a)', IOSTAT=IOS )
-      IF ( IOS /= 0 ) CALL IOERROR( IOS, 99, 'setup:5' )
-
-      READ( 99, '(a)', IOSTAT=IOS )
-      IF ( IOS /= 0 ) CALL IOERROR( IOS, 99, 'setup:6' )
+!------------------------------------------------------------------------------
+! Prior to 4/6/04:
+! Comment these lines out (bmy, 4/5/04)
+!!
+!!******************************************************************************
+!!  Read FORTRAN file I/O units from INPUT.GEOS 
+!!  PH_FLDS is the number of met fields in the file with unit IU_PH, etc..
+!!******************************************************************************
+!!
+!      READ( 99, '(a)', IOSTAT=IOS )
+!      IF ( IOS /= 0 ) CALL IOERROR( IOS, 99, 'setup:4' )
+!       
+!      READ( 99, '(a)', IOSTAT=IOS )
+!      IF ( IOS /= 0 ) CALL IOERROR( IOS, 99, 'setup:5' )
+!       
+!      READ( 99, '(a)', IOSTAT=IOS )
+!      IF ( IOS /= 0 ) CALL IOERROR( IOS, 99, 'setup:6' )
+!------------------------------------------------------------------------------
 !
 !******************************************************************************
 !  Read in GEOS-CTM logical flags from INPUT.GEOS                            
@@ -175,14 +181,26 @@
       IF ( IOS /= 0 ) CALL IOERROR( IOS, 99, 'setup:11' )
 
       READ ( 99, 25, IOSTAT=IOS ) 
-     &     LMFCT,  LFILL,  LSTDRUN, LSULF,  LSPLIT,  STR4   
+!--------------------------------------------------------------------
+! Prior to 4/2/04:
+! Move LSULF down one line (rjp, tdf, bmy, 4/2/04)
+! Now use LDEAD to toggle Ginoux or Zender dust schemes
+!     &     LMFCT,  LFILL,  LSTDRUN, LSULF,  LSPLIT,  STR4   
+!--------------------------------------------------------------------
+     &     LMFCT,  LFILL,  LSTDRUN, LDEAD,  LSPLIT,  STR4   
       IF ( IOS /= 0 ) CALL IOERROR( IOS, 99, 'setup:12' )
+
+      ! Added for various aerosol chemistry (rjp, tdf, bmy, 4/2/04)
+      READ ( 99, 25, IOSTAT=IOS ) 
+     &     LSULF,  LCARB,  LDUST,   LSSALT,  LATEQ,  STR5   
+      IF ( IOS /= 0 ) CALL IOERROR( IOS, 99, 'setup:12a' )
 
       WRITE ( 6, 10 ) TITLE
       WRITE ( 6, 25 ) LEMIS,  LDRYD,  LCHEM,   LTRAN,  LTPFV,   STR1 
       WRITE ( 6, 25 ) LTURB,  LCONV,  LWETD,   LDBUG,  LMONOT,  STR2 
-      WRITE ( 6, 25 ) LWAIT,  LBBSEA, LUNZIP,   LSVGLB, LTOMSAI, STR3 
-      WRITE ( 6, 25 ) LMFCT,  LFILL,  LSTDRUN, LSULF,  LSPLIT,  STR4
+      WRITE ( 6, 25 ) LWAIT,  LBBSEA, LUNZIP,  LSVGLB, LTOMSAI, STR3 
+      WRITE ( 6, 25 ) LMFCT,  LFILL,  LSTDRUN, LDEAD,  LSPLIT,  STR4
+      WRITE ( 6, 25 ) LSULF,  LCARB,  LDUST,   LSSALT, LATEQ,   STR5   
 !
 !******************************************************************************
 !  Read in other GEOS-CTM parameters                                        

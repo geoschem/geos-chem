@@ -1,10 +1,10 @@
-! $Id: dao_mod.f,v 1.4 2004/03/24 20:52:29 bmy Exp $
+! $Id: dao_mod.f,v 1.5 2004/04/13 14:52:29 bmy Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
 !  Module DAO_MOD contains both arrays that hold DAO met fields, as well as
 !  subroutines that compute, interpolate, or otherwise process DAO met field 
-!  data. (bmy, 6/27/00, 12/9/03)
+!  data. (bmy, 6/27/00, 4/2/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -1261,7 +1261,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_DAO allocates memory for all allocatable module arrays. 
-!  (bmy, 6/26/00, 12/9/03)
+!  (bmy, 6/26/00, 4/2/04)
 !
 !  NOTES:
 !  (1 ) Now allocate AVGW for either NSRCX == 3 or NSRCX == 5 (bmy, 9/24/01)
@@ -1282,6 +1282,7 @@
 !        and PARDR. (bmy, 6/25/03)
 !  (9 ) Now allocate CLDFRC, RADLWG, RADSWG, SNOW arrays.  USTAR, CLDFRC,
 !        and Z0 and RADSWG are now 2-D arrays. (bmy, 12/9/03)
+!  (10) Allocate RADLWG and SNOW for both GEOS-3 & GEOS-4 (bmy, 4/2/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1500,14 +1501,18 @@
 
 #endif
 
-#if   defined( GEOS_4 ) 
+!----------------------------------------------------------
+! Prior to 4/2/04:
+! Allocate these for both GEOS-3 and GEOS-4 (bmy, 4/2/04)
+!#if   defined( GEOS_4 ) 
+!-----------------------------------------------------------
 
-      ! RADLWG is only defined for GEOS-4 (bmy, 12/9/03)
+#if   defined( GEOS_3 ) || defined( GEOS_4 )
+
       ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
       RADLWG = 0d0
 
-      ! SNOW is only defined for GEOS-4 (bmy, 12/9/03)
       ALLOCATE( SNOW( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOW' )
       SNOW = 0d0

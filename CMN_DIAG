@@ -1,4 +1,4 @@
-! $Id: CMN_DIAG,v 1.3 2004/01/27 21:25:03 bmy Exp $
+! $Id: CMN_DIAG,v 1.4 2004/04/13 14:52:26 bmy Exp $
 ! 
 ! NOTES:
 ! (1 ) Changed RCS ID tag comment character from "C" to "!" to allow freeform
@@ -30,13 +30,15 @@
       ! Changed PD66 to 5  (bmy, 6/23/03)
       ! Changed PD03 to 5  (bmy, 8/20/03)
       ! Changed PD37 to 10 (bmy, 1/21/04)
+      ! Changed PD06 to NDSTBIN (bmy, 4/5/04)
+      ! Chagned PD07 to 7 (bmy, 4/5/04)
       INTEGER, PARAMETER :: PD01=3            
       INTEGER, PARAMETER :: PD02=3           
       INTEGER, PARAMETER :: PD03=2
       INTEGER, PARAMETER :: PD04=0
       INTEGER, PARAMETER :: PD05=10         
-      INTEGER, PARAMETER :: PD06=0 
-      INTEGER, PARAMETER :: PD07=0    
+      INTEGER, PARAMETER :: PD06=NDSTBIN
+      INTEGER, PARAMETER :: PD07=7
       INTEGER, PARAMETER :: PD08=0
       INTEGER, PARAMETER :: PD09=0 
       INTEGER, PARAMETER :: PD10=5            
@@ -117,15 +119,16 @@
 ! Add LD13 for DMS/SO2/SO4 emissions (bmy, 6/6/00)
 ! Add LD12 for boundary layer emissions (bdf, bmy, 6/15/01)
 ! Add LD05 for sulfate prod/loss (bmy, 9/20/02)
+! Add LD07 for carbon aerosols (bmy, 4/5/04)
       INTEGER                                                           
      &   LD12, LD13, LD14, LD15, LD16, LD17, LD18, LD21, LD22, LD24,    
      &   LD25, LD26, LD37, LD38, LD39, LD43, LD45, LD47, LD64, LD65,    
-     &   LD66, LD68, LD01, LD02, LD05, LD03
+     &   LD66, LD68, LD01, LD02, LD05, LD03, LD07
 
       COMMON /CDIAG1/                                                   
      &   LD12, LD13, LD14, LD15, LD16, LD17, LD18, LD21, LD22, LD24,    
      &   LD25, LD26, LD37, LD38, LD39, LD43, LD45, LD47, LD64, LD65,    
-     &   LD66, LD68, LD01, LD02, LD05, LD03
+     &   LD66, LD68, LD01, LD02, LD05, LD03, LD07
 !----------------------------------------------------------------------------
 ! NDxx diagnostic flags
       INTEGER                                                           

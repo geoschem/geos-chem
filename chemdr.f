@@ -1,9 +1,9 @@
-! $Id: chemdr.f,v 1.5 2003/10/30 16:17:16 bmy Exp $
+! $Id: chemdr.f,v 1.6 2004/04/13 14:52:28 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
 !  Subroutine CHEMDR is the driver subroutine for full chemistry w/ SMVGEAR.
-!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 7/30/03)
+!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 4/1/04)
 !
 !  Important input variables from "dao_mod.f" and "uvalbedo_mod.f":
 !  ============================================================================
@@ -123,6 +123,9 @@
 !  (17) Now reference SUNCOSB from "dao_mod.f".  Now pass SUNCOSB to "chem.f". 
 !        Also remove LSAMERAD from call to CHEM, since it's obsolete. 
 !        (gcc, bmy, 7/30/03)
+!  (18) Added PIEC, POEC, PIOC, POOC, and SOILDUST arrays.  Now pass SOILDUST
+!       to RDUST_ONLINE (in "dust_mod.f").  Now pass PIEC, POEC, PIOC, POOC to
+!       "rdaer.f".  Now references "dust_mod.f". (rjp, tdf, bmy, 4/1/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -130,6 +133,7 @@
       USE DAO_MOD,         ONLY : AD,       AIRVOL,    ALBD,    AVGW,    
      &                            BXHEIGHT, MAKE_AVGW, OPTD,    SUNCOS,  
      &                            SUNCOSB,  T
+      USE DUST_MOD,        ONLY : RDUST_ONLINE, RDUST_OFFLINE
       USE ERROR_MOD,       ONLY : DEBUG_MSG
       USE GLOBAL_CH4_MOD,  ONLY : GET_GLOBAL_CH4
       USE PLANEFLIGHT_MOD, ONLY : SETUP_PLANEFLIGHT
@@ -151,7 +155,7 @@
       ! Local variables
       LOGICAL, SAVE       :: FIRSTCHEM = .TRUE.
       INTEGER, SAVE       :: CH4_YEAR  = -1
-      INTEGER             :: I, J, JLOOP, L, NPTS
+      INTEGER             :: I, J, JLOOP, L, NPTS, N, MONTH, YEAR
       INTEGER             :: IDXAIR(JJPAR)
       INTEGER             :: IDXO3(JJPAR)
       REAL*8              :: XWETRAT, HUMEFF, ROVMG
@@ -160,6 +164,11 @@
       REAL*8              :: TOTO3(JJPAR)
       REAL*8              :: CLOUDS(MAXIJ,11)
       REAL*8              :: SO4_NH4_NIT(IIPAR,JJPAR,LLPAR)
+      REAL*8              :: BCPI(IIPAR,JJPAR,LLPAR)
+      REAL*8              :: BCPO(IIPAR,JJPAR,LLPAR)
+      REAL*8              :: OCPI(IIPAR,JJPAR,LLPAR)
+      REAL*8              :: OCPO(IIPAR,JJPAR,LLPAR)
+      REAL*8              :: SOILDUST(IIPAR,JJPAR,LLPAR,NDUST)
 
       !=================================================================
       ! CHEMDR begins here!
@@ -171,6 +180,10 @@
       NVERT  = IVERT 
       NPVERT = NVERT
       NPVERT = NVERT + IPLUME
+
+      ! Get month and year
+      MONTH = GET_MONTH()
+      YEAR  = GET_YEAR()
 
       !=================================================================
       ! Compute AVGW, the mixing ratio of water vapor
@@ -252,6 +265,15 @@
 
          ! Zero SO4_NH4_NIT on the first call only
          SO4_NH4_NIT = 0d0
+
+         ! Zero EC/OC on the first call only
+         BCPI        = 0d0
+         BCPO        = 0d0
+         OCPI        = 0d0
+         OCPO        = 0d0
+
+         ! Zero dust on the first call only
+         SOILDUST    = 0d0
 
          !==============================================================
          ! Set up stuff for chemical prod/loss diagnostic (bey-02/99)
@@ -358,6 +380,80 @@
       ENDIF
 
       !=================================================================
+      ! Compute hydrophilic and hydrophobit BC and OC in [kg/m3]
+      ! for passing to RDUST
+      !=================================================================
+      IF ( LCARB ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Hydrophilic BC [kg/m3]
+            BCPI(I,J,L) = STT(I,J,L,IDTBCPI) / AIRVOL(I,J,L)
+
+            ! Hydrophilic OC [kg/m3]
+            OCPI(I,J,L) = STT(I,J,L,IDTOCPI) / AIRVOL(I,J,L)
+
+            ! Hydrophobic BC [kg/m3]
+            BCPO(I,J,L) = STT(I,J,L,IDTBCPO) / AIRVOL(I,J,L)
+
+            ! Hydrophobic OC [kg/m3] 
+            OCPO(I,J,L) = STT(I,J,L,IDTOCPO) / AIRVOL(I,J,L)
+
+            ! Now avoid division by zero (bmy, 4/7/04)
+            BCPI(I,J,L) = MAX( BCPI(I,J,L), 1d-35 )
+            OCPI(I,J,L) = MAX( OCPI(I,J,L), 1d-35 )
+            BCPO(I,J,L) = MAX( BCPO(I,J,L), 1d-35 )
+            OCPO(I,J,L) = MAX( OCPO(I,J,L), 1d-35 )
+
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+      ENDIF    
+
+      !=================================================================
+      ! Full chemistry with dust aerosol turned on.
+      !
+      ! Note, we can do better than this! Currently we carry 4 dust 
+      ! tracers...but het. chem and fast-j use 7 dust bins hardwired
+      ! from Ginoux.
+      !
+      ! Now, I apportion the first dust tracer into four smallest dust 
+      ! bins equally in mass for het. chem and fast-j. 
+      ! 
+      ! Maybe we need to think about chaning our fast-j and het. chem 
+      ! to use just four dust bins or more flexible calculations 
+      ! depending on the number of dust bins. (rjp, 03/27/04)
+      !=================================================================
+      IF ( LDUST ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N )
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Lump 1st dust tracer for het chem
+            DO N = 1, 4
+               SOILDUST(I,J,L,N) = 
+     &              0.25d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+            ENDDO
+
+            ! Other hetchem bins
+            SOILDUST(I,J,L,5) = STT(I,J,L,IDTDST2) / AIRVOL(I,J,L)
+            SOILDUST(I,J,L,6) = STT(I,J,L,IDTDST3) / AIRVOL(I,J,L)
+            SOILDUST(I,J,L,7) = STT(I,J,L,IDTDST4) / AIRVOL(I,J,L)
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+      ENDIF
+
+      !=================================================================
       ! Call GASCONC which initializes gas concentrations and sets 
       ! miscellaneous parameters.  GASCONC also calls PARTITION, which
       ! splits up family tracers like NOx and Ox into individual
@@ -381,16 +477,35 @@
       !=================================================================
       ! Call RDAER -- Reads aerosol fields from disk
       !=================================================================
-      CALL RDAER( GET_MONTH(), GET_YEAR(), SO4_NH4_NIT )
+      !-----------------------------------------------------------------
+      ! Prior to 4/1/04:
+      ! Now pass BCPI, BCPO, OCPI, OCPO to RDAER (rjp, tdf, bmy, 4/1/04)
+      !CALL RDAER( GET_MONTH(), GET_YEAR(), SO4_NH4_NIT )
+      !-----------------------------------------------------------------
+      CALL RDAER( MONTH, YEAR, SO4_NH4_NIT, BCPI, BCPO, OCPI, OCPO )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after RDAER' )
 
       !=================================================================
-      ! Read mineral dust types for FAST-J (rvm, bmy, 9/30/00)
-      ! Now also pass JYEAR to RDUST.F (bmy, 11/29/00)
+      ! If LDUST is turned on, then we have online dust aerosol in
+      ! GEOS-CHEM...so just pass SOILDUST to RDUST_ONLINE in order to
+      ! compute aerosol optical depth for FAST-J, etc.
+      !
+      ! If LDUST is turned off, then we do not have online dust aerosol
+      ! in GEOS-CHEM...so read monthly-mean dust files from disk.
+      ! (rjp, tdf, bmy, 4/1/04)
       !=================================================================
-      CALL RDUST( GET_MONTH(), GET_YEAR() )
+      !-----------------------------------------------------------------
+      ! Prior to 4/1/04:
+      ! Now pass SOILDUST to RDUST (rjp, tdf, bmy, 4/1/04)
+      !CALL RDUST( GET_MONTH(), GET_YEAR() )
+      !-----------------------------------------------------------------
+      IF ( LDUST ) THEN
+         CALL RDUST_ONLINE( SOILDUST )
+      ELSE
+         CALL RDUST_OFFLINE( MONTH, YEAR )
+      ENDIF
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after RDUST' )

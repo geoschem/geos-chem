@@ -1,5 +1,16 @@
-C $Id: main.f,v 1.12 2004/03/24 20:52:30 bmy Exp $
+C $Id: main.f,v 1.13 2004/04/13 14:52:31 bmy Exp $
 C $Log: main.f,v $
+C Revision 1.13  2004/04/13 14:52:31  bmy
+C GEOS-CHEM v6-02-02, includes the following modifications:
+C - Added carbon aerosol tracers BCPI, OCPI, BCPO, OCPO
+C - Added "carbon_mod.f" for carbon aerosol emissions & chemistry
+C - Added "dust_mod.f" and "dust_dead_mod.f" for dust em & chem (unvalidated)
+C - Added "gwet_read_mod.f" to read extra GEOS-3 GWET met field files
+C - Offline H2O2 chemistry now uses diurnally varying JO1D
+C - Updated diagnostics for extra tracers
+C - Bug fix: "rdaer.f" now updates online tracers every timestep
+C - Updated comments, cosmetic changes, removed obsolete code
+C
 C Revision 1.12  2004/03/24 20:52:30  bmy
 C GEOS-CHEM v6-02-01, includes the following modifications:
 C - Bug fix: eliminate roundoff error for ND44 diagnostic
@@ -110,6 +121,7 @@ C
       USE ERROR_MOD
       USE FILE_MOD       
       USE GLOBAL_CH4_MOD,    ONLY : INIT_GLOBAL_CH4, CH4_AVGTP
+      USE GWET_READ_MOD
       USE I6_READ_MOD
       USE PHIS_READ_MOD
       USE PLANEFLIGHT_MOD,   ONLY : SETUP_PLANEFLIGHT
@@ -239,11 +251,23 @@ C
          CALL UNZIP_A3_FIELDS(  'unzip foreground', GET_NYMDb() )
          CALL UNZIP_A6_FIELDS(  'unzip foreground', GET_NYMDb() )
          CALL UNZIP_I6_FIELDS(  'unzip foreground', GET_NYMDb() )
-         
+
          ! Only unzip PHIS file for fullchem run
          IF ( NSRCX == 3 ) THEN
             CALL UNZIP_PHIS_FIELD( 'unzip foreground', NYMD_PHIS )
          ENDIF
+
+#if   defined( GEOS_3 )
+         ! NOTE: GEOS-3 met field files didn't contain GWET, so we
+         ! went back and saved them separately.  Unzip and read 
+         ! the GWET fields if we are using the online dust simulation.
+         ! (tdf, bmy, 4/4/03)
+         IF ( LDUST ) THEN
+            CALL UNZIP_GWET_FIELDS( 'remove all' )
+            CALL UNZIP_GWET_FIELDS( 'unzip foreground', GET_NYMDb() )
+         ENDIF
+#endif
+
       ENDIF
       
       !=================================================================
@@ -276,6 +300,17 @@ C
       CALL OPEN_I6_FIELDS(  DATE(1), DATE(2) )
       CALL GET_I6_FIELDS_1( DATE(1), DATE(2) )
       
+#if   defined( GEOS_3 )
+      ! NOTE: GEOS-3 A-3 fields didn't contain GWET, so we went
+      ! back and saved these into separate files.  Open read the GWET
+      ! fields if we are using the online dust simulation (bmy, 4/1/04)
+      IF ( LDUST ) THEN
+         DATE = GET_FIRST_A3_TIME()
+         CALL OPEN_GWET_FIELDS( DATE(1), DATE(2) )
+         CALL GET_GWET_FIELDS(  DATE(1), DATE(2) ) 
+      ENDIF
+#endif
+
       ! Compute avg surface pressure near polar caps
       CALL AVGPOLE( PS1 )
 
@@ -396,10 +431,27 @@ C
                CALL UNZIP_A3_FIELDS( 'unzip foreground', DATE(1) )
                CALL UNZIP_A6_FIELDS( 'unzip foreground', DATE(1) )
                CALL UNZIP_I6_FIELDS( 'unzip foreground', DATE(1) )
+
+#if   defined( GEOS_3 )
+               ! We only really have to unzip GWET if we are
+               ! running w/ dust turned on (tdf, bmy, 4/1/04)
+               IF ( LDUST ) THEN
+                  CALL UNZIP_GWET_FIELDS( 'unzip foreground', DATE(1) )
+               ENDIF
+#endif
+
             ELSE
                CALL UNZIP_A3_FIELDS( 'unzip background', DATE(1) )
                CALL UNZIP_A6_FIELDS( 'unzip background', DATE(1) )
                CALL UNZIP_I6_FIELDS( 'unzip background', DATE(1) )
+
+#if   defined( GEOS_3 )
+               ! We only really have to unzip GWET if we are
+               ! running w/ dust turned on (tdf, bmy, 4/1/04)
+               IF ( LDUST ) THEN
+                  CALL UNZIP_GWET_FIELDS( 'unzip background', DATE(1) )
+               ENDIF
+#endif
             ENDIF
          ENDIF     
 
@@ -415,6 +467,15 @@ C
             CALL UNZIP_A3_FIELDS( 'remove date', DATE(1) )
             CALL UNZIP_A6_FIELDS( 'remove date', DATE(1) )
             CALL UNZIP_I6_FIELDS( 'remove date', DATE(1) )
+
+#if   defined( GEOS_3 )
+            ! We only have to remove GWET fields if we are running
+            ! w/ the online dust simulation (tdf, bmy, 4/1/04)
+            IF ( LDUST ) THEN
+               CALL UNZIP_GWET_FIELDS( 'remove date', DATE(1) )
+            ENDIF
+#endif
+
          ENDIF   
 
          !==============================================================
@@ -428,6 +489,15 @@ C
             ! Open & read A-3 fields
             CALL OPEN_A3_FIELDS( DATE(1), DATE(2) )
             CALL GET_A3_FIELDS(  DATE(1), DATE(2) )
+
+#if   defined( GEOS_3 )
+            ! 
+            IF ( LDUST ) THEN
+               CALL OPEN_GWET_FIELDS( DATE(1), DATE(2) )
+               CALL GET_GWET_FIELDS(  DATE(1), DATE(2) )           
+            ENDIF
+#endif
+
          ENDIF
 
          !==============================================================
@@ -771,6 +841,15 @@ C
          CALL UNZIP_A6_FIELDS(  'remove all' )
          CALL UNZIP_I6_FIELDS(  'remove all' )
          CALL UNZIP_PHIS_FIELD( 'remove all' )
+
+#if   defined( GEOS_3 )
+         ! We only need to remove the GWET fields if we are
+         ! using the online dust simulation (bmy, 4/1/04)
+         IF ( LDUST ) THEN
+            CALL UNZIP_GWET_FIELDS( 'remove all' )
+         ENDIF
+#endif
+
       ENDIF
 
       ! Print the mass-weighted mean OH concentration (if applicable)

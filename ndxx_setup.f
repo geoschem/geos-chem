@@ -1,9 +1,9 @@
-! $Id: ndxx_setup.f,v 1.6 2004/03/24 20:52:31 bmy Exp $
+! $Id: ndxx_setup.f,v 1.7 2004/04/13 14:52:31 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
 !  NDXX_SETUP dynamically allocates memory for certain diagnostic arrays that 
-!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 3/18/04)
+!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 4/5/04)
 !
 !  This allows us to reduce the amount of memory that needs to be declared 
 !  globally.  We only allocate memory for arrays if the corresponding 
@@ -94,6 +94,7 @@
 !  (43) Now use GET_WETDEP_NMAX to get max # of soluble tracers for ND37,
 !        ND18, and ND19.  Also set NFAM=NTRACE+5 for Tagged CO simulation. 
 !        (3/18/04)
+!  (44) Now initialize AD06 and AD07* arrays (rjp, tdf, bmy, 4/5/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -125,6 +126,7 @@
       LD02 = 1
       LD03 = 1
       LD05 = 1
+      LD07 = 1
       LD12 = 1
       LD13 = 1
       LD14 = 1
@@ -233,8 +235,32 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD05' )
       ENDIF
 
+      !================================================================
+      ! ND06: Dust emissions
+      !================================================================
+      IF ( ND06 > 0 .and. LDUST ) THEN 
+         ALLOCATE( AD06( IIPAR, JJPAR, NDSTBIN ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD06' )
+      ENDIF
+
       !=================================================================
-      ! ND06 - ND10: Free diagnostics
+      ! ND07: Carbonaceous aerosols emissions and chemical conversion
+      !=================================================================
+      IF ( ND07 > 0 .and. LCARB ) THEN 
+         LD07 = MIN( ND07, LLPAR )
+
+         ALLOCATE( AD07( IIPAR, JJPAR, PD07 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07' )
+
+         ALLOCATE( AD07_BC( IIPAR, JJPAR, LD07 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD19_BC' )
+
+         ALLOCATE( AD07_OC( IIPAR, JJPAR, LD07 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD19_OC' )
+      ENDIF  
+
+      !=================================================================
+      ! ND08 - ND10: Free diagnostics
       !
       ! ND11: Acetone source diagnostics [atoms C/cm2/s]
       !       --> uses AD11 array (allocatable)
