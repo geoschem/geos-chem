@@ -1,9 +1,9 @@
-! $Id: a6_read_mod.f,v 1.5 2004/03/05 21:15:38 bmy Exp $
+! $Id: a6_read_mod.f,v 1.6 2004/03/24 20:52:28 bmy Exp $
       MODULE A6_READ_MOD
 !
 !******************************************************************************
 !  Module A6_READ_MOD contains subroutines that unzip, open, and read
-!  GEOS-CHEM A-3 (avg 3-hour) met fields from disk. (bmy, 6/19/03, 3/4/04)
+!  GEOS-CHEM A-3 (avg 3-hour) met fields from disk. (bmy, 6/19/03, 3/22/04)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -33,7 +33,8 @@
 !  (3 ) CLDFRC is now a 2-D array in MAKE_CLDFRC< GET_A6_FIELDS.  Also now
 !        read from either zipped or unzipped files. (bmy, 12/9/03)
 !  (4 ) Now skips past the GEOS-4 ident string (bmy, 12/12/03)
-!  (5 ) Bug fix: need to determine CLDTOPS for GEOS-4 (bmy, 3/4/04)
+!  (5 ) Bug fix: need to determine CLDTOPS for GEOS-4.  (bmy, 3/4/04)
+!  (6 ) Now modified for GEOS-4 "a_llk_03" and "a_llk_04" data (bmy, 3/4/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -241,6 +242,7 @@
 !  (2 ) NHMS (INTEGER) :  and HHMMSS to be tested for A-3 file open
 !
 !  NOTES:
+!  (1 ) Now modified for GEOS-4 "a_llk_03" or "a_llk_04" data (bmy, 3/22/04)
 !******************************************************************************
 !
       ! Arguments
@@ -265,9 +267,17 @@
          GOTO 999
       ENDIF
 
-#if   defined( GEOS_4 )
+!-----------------------------------------------------------------
+! Prior to 3/22/04:
+! GEOS-4 "a_llk_04" fields have A-6 fields defined at the same
+! times as for GEOS-1, GEOS-S, GEOS-3.  Only GEOS-4 "a_llk_03"
+! fields need to be opened if it's 03 GMT. (bmy, 3/22/04) 
+!#if   defined( GEOS_4 ) 
+!-----------------------------------------------------------------
+#if   defined( GEOS_4 ) && defined( A_LLK_03 )
 
-      ! Open file if it's 01:30 GMT or first call (GEOS-4 only)
+      ! Open file if it's 03 GMT or first call 
+      ! (GEOS-4 "a_llk_03" only)
       IF ( NHMS == 030000 .or. FIRST ) THEN
          DO_OPEN = .TRUE. 
          GOTO 999
@@ -275,7 +285,8 @@
 
 #else
 
-      ! Open file if it's 00:00 GMT or first call (GEOS-1, GEOS-S, GEOS-3)
+      ! Open file if it's 00:00 GMT or first call 
+      ! (GEOS-1, GEOS-S, GEOS-3, GEOS-4 "a_llk_04")
       IF ( NHMS == 000000 .or. FIRST ) THEN
          DO_OPEN = .TRUE. 
          GOTO 999

@@ -1,4 +1,4 @@
-! $Id: transport_mod.f,v 1.4 2003/10/30 16:17:19 bmy Exp $
+! $Id: transport_mod.f,v 1.5 2004/03/24 20:52:33 bmy Exp $
       MODULE TRANSPORT_MOD
 !
 !******************************************************************************
@@ -341,13 +341,6 @@
             ENDDO
 !$OMP END PARALLEL DO
          ENDDO
-
-!----------------------------------------------------------------------------
-! Prior to 10/27/03:
-! Now always pass "true" surface pressure to DO_PJC_PFIX (bmy, 10/27/03)
-!         CALL DO_PJC_PFIX( D_DYN, P_TP1, P_TP2, 
-!     &                     UWND,  VWND,  XMASS, YMASS )
-!----------------------------------------------------------------------------
 
 #if   defined( GEOS_4 )
 

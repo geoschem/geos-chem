@@ -1,14 +1,13 @@
-C $Id: main.f,v 1.11 2004/01/29 16:55:32 bmy Exp $
+C $Id: main.f,v 1.12 2004/03/24 20:52:30 bmy Exp $
 C $Log: main.f,v $
-C Revision 1.11  2004/01/29 16:55:32  bmy
-C GEOS-CHEM v6-01-05, includes the following modifications:
-C - Updated deep & shallow convection code for GEOS-4 met fields
-C - Bug fix in routine NFCLDMX to allow 2x25 runs on Altix
-C - Updated code to read GEOS-4 met fields; now looks for ident strings
-C - Bug fix in sulfate emissions code: convert GEOS-4 PBL from [m] to [hPa]
-C - Updated comments, cosmetic changes
+C Revision 1.12  2004/03/24 20:52:30  bmy
+C GEOS-CHEM v6-02-01, includes the following modifications:
+C - Bug fix: eliminate roundoff error for ND44 diagnostic
+C - Now can read GEOS-3 "a_llk_03" or "a_llk_04" met fields
+C - Added parallel loop in "setemis.f"
+C - Removed obsolete, commented out code; Updated comments
 C
-C Revision 1.10  2004/01/29 15:51:20  bmy
+C Revision 1.11  2004/01/29 16:55:32  bmy
 C GEOS-CHEM v6-01-05, includes the following modifications:
 C - Updated deep & shallow convection code for GEOS-4 met fields
 C - Bug fix in routine NFCLDMX to allow 2x25 runs on Altix

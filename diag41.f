@@ -1,4 +1,4 @@
-! $Id: diag41.f,v 1.4 2003/11/06 21:07:18 bmy Exp $
+! $Id: diag41.f,v 1.5 2004/03/24 20:52:29 bmy Exp $
       SUBROUTINE DIAG41 
 !
 !******************************************************************************
@@ -49,17 +49,9 @@
 
       ! Local variables
       INTEGER             :: GOOD(IIPAR)
-      !-----------------------------------------------------------------
-      ! Prior to 11/6/03:
-      !INTEGER             :: I, IREF, J, JREF, L, M, PBLINT
-      !-----------------------------------------------------------------
       INTEGER             :: I, J, L, M
 
       REAL*8              :: XLOCTM(IIPAR)
-      !-----------------------------------------------------------------
-      ! Prior to 11/6/03:
-      !REAL*8              :: TEMPBL, PBLDEC
-      !-----------------------------------------------------------------
       REAL*8              :: TEMPBL, P_SURF, P_BLTOP
 
       !=================================================================
@@ -87,27 +79,6 @@
          TEMPBL = PBL(I,J) * GOOD(I)
 
 #else
-
-!----------------------------------------------------------------------------
-! Prior to 11/6/03:
-! Old code caused an overestimate of PBL height (swu, bmy, 11/6/03)
-!         TEMPBL = 0d0
-!
-!         ! Integer and fractional parts of XTRA2
-!         PBLINT = FLOOR( XTRA2(I,J) )
-!         PBLDEC = XTRA2(I,J) - PBLINT
-!
-!         ! "Full" grid boxes
-!         IF ( PBLINT > 0 ) THEN
-!            DO M = 1, PBLINT 
-!               TEMPBL = TEMPBL + ( BXHEIGHT(I,J,M) * GOOD(I) )
-!            ENDDO
-!         ENDIF
-!
-!         ! "Fraction" of the highest grid box
-!         TEMPBL = TEMPBL + 
-!     &            ( PBLDEC * BXHEIGHT(I,J,PBLINT+1) * GOOD(I) )
-!----------------------------------------------------------------------------
 
          !==============================================================
          ! GEOS-1, GEOS-STRAT, GEOS-3; PBL is in [hPa]

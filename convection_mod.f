@@ -1,4 +1,4 @@
-! $Id: convection_mod.f,v 1.3 2004/02/24 16:27:15 bmy Exp $
+! $Id: convection_mod.f,v 1.4 2004/03/24 20:52:28 bmy Exp $
       MODULE CONVECTION_MOD
 !
 !******************************************************************************
@@ -201,15 +201,6 @@
       ZMMU_F  (:,:,1:LLPAR) = ZMMU  (:,:,LLPAR:1:-1)
 
       ! Call the fvDAS convection routines (originally from NCAR!)
-!----------------------------------------------------------------------------
-! Prior to 2/23/04:
-! Only pass NTRACE elements of TCVV to FVDAS_CONVECT to prevent array
-! out-of-bounds error for less than NTRACE tracers (bmy, 2/23/04)
-!      CALL FVDAS_CONVECT( TDT,    NTRACE,  STT(:,:,:,1:NTRACE),    
-!     &                    RPDEL,  HKETA_F, HKBETA_F, ZMMU_F, 
-!     &                    ZMMD_F, ZMEU_F,  DP,       NSTEP,  
-!     &                    F,      TCVV,    INDEXSOL )
-!----------------------------------------------------------------------------
       CALL FVDAS_CONVECT( TDT,    NTRACE,  STT(:,:,:,1:NTRACE),    
      &                    RPDEL,  HKETA_F, HKBETA_F, 
      &                    ZMMU_F, ZMMD_F,  ZMEU_F,  
@@ -406,12 +397,6 @@
       REAL*8                 :: DTCSUM(IIPAR,JJPAR,LLPAR,NNPAR)
 
       ! F is the fraction of tracer lost to wet scavenging in updrafts
-      !-------------------------------------------------------------------
-      ! Prior to 1/27/04:
-      ! Now make F a 4-D array, so we don't have to hold it PRIVATE.  
-      ! This prevents memory problems on the Altix (bmy, 1/27/04)
-      !REAL*8                 :: F(IIPAR,JJPAR,LLPAR)
-      !-------------------------------------------------------------------
       REAL*8                 :: F(IIPAR,JJPAR,LLPAR,NC)
 
       ! Local Work arrays
@@ -538,16 +523,6 @@
       !     ( CMOUT, DELQ, ENTRN, ISOL, QC_PRES, etc. )
       ! (3) Arrays independent of tracer ( F, MB, QB, QC )
       !=================================================================
-!-----------------------------------------------------------------------------
-! Prior to 1/27/04:
-! Now make F a 4-D array, so we don't have to hold it PRIVATE.  
-! This prevents memory problems on the Altix (bmy, 1/27/04)
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( CMOUT, DELQ, ENTRN, F, I, IC, ISOL, ISTEP, J, AREA_M2 ) 
-!!$OMP+PRIVATE( K, MB, QB, QC, QC_PRES, QC_SCAV, T0, T1, T2, T3, T4   )
-!!$OMP+PRIVATE( TSUM                                                  ) 
-!-----------------------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( CMOUT, DELQ, ENTRN, I, IC, ISOL, ISTEP, J, AREA_M2, K  ) 
@@ -580,12 +555,6 @@
 
          ! ND37 diagnostic -- store F only for soluble tracers
          IF ( ND37 > 0 .and. ISOL > 0 ) THEN
-!-----------------------------------------------------------------------
-! Prior to 1/27/04:
-! Now use parallel do loop instead of array masks (bmy, 1/27/04)
-!            AD37(:,:,1:LD37,ISOL) = 
-!     &           AD37(:,:,1:LD37,ISOL) + F(:,:,1:LD37)
-!-----------------------------------------------------------------------
             DO K = 1, LD37
             DO J = 1, JJPAR
             DO I = 1, IIPAR
@@ -722,14 +691,6 @@
                   IF ( CLDMAS(I,J,K-1) .gt. TINY ) THEN
                      CMOUT    = CLDMAS(I,J,K) + DTRN(I,J,K)
                      ENTRN    = CMOUT         - CLDMAS(I,J,K-1)
-                     !--------------------------------------------------------
-                     ! Prior to 1/27/04:
-                     ! Now make F a 4-D array, so we don't have to hold it 
-                     ! PRIVATE.  This prevents memory problems on the Altix 
-                     ! (bmy, 1/27/04)
-                     !QC_PRES  = QC(I,J) * ( 1d0 - F(I,J,K) )
-                     !QC_SCAV  = QC(I,J) * F(I,J,K)
-                     !--------------------------------------------------------
                      QC_PRES  = QC(I,J) * ( 1d0 - F(I,J,K,IC) )
                      QC_SCAV  = QC(I,J) * F(I,J,K,IC)
 
@@ -819,11 +780,6 @@
                      ! scavenging in cloud updrafts [kg/s].  We must 
                      ! divide by DNS, the # of internal timesteps.
                      !==================================================
-                     !--------------------------------------------------------
-                     ! Prior to 1/27/04:
-                     ! Make sure AD38 doesn't go out of bounds (bmy, 1/27/04)
-                     !IF ( ND38 > 0 .and. ISOL > 0 ) THEN
-                     !--------------------------------------------------------
                      IF ( ND38 > 0 .and. ISOL > 0 .and. K <= LD38 ) THEN
                         AD38(I,J,K,ISOL) = AD38(I,J,K,ISOL) +
      &                       ( T0 * AREA_M2 / ( TCVV(IC) * DNS ) )

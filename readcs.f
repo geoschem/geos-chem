@@ -1,4 +1,4 @@
-! $Id: readcs.f,v 1.1 2003/06/30 20:26:03 bmy Exp $
+! $Id: readcs.f,v 1.2 2004/03/24 20:52:31 bmy Exp $
       SUBROUTINE READCS(LDEBUG)
       
       ! References to F90 modules (bmy, 10/15/02)
@@ -165,10 +165,6 @@ C Continue reading.
  240  CONTINUE
 ***** ERROR in tarray
 C     WRITE(MCS,1004 ) (ispec,ibrch,(TARRAY(ISPEC,IBRCH,J), J=1,I))
-      !--------------------------
-      ! Prior to 10/15/02:
-      !STOP 300 
-      !--------------------------
       CALL ERROR_STOP( 'STOP_300', 'readcs.f' )
  250  CONTINUE
       CLOSE (LCS)
@@ -187,9 +183,6 @@ C     WRITE(MCS,1004 ) (ispec,ibrch,(TARRAY(ISPEC,IBRCH,J), J=1,I))
 C Err in format or code
       WRITE (MCS, 1001) CHARSPEC, IBRCH, MTEMP
       WRITE(*,'("XSECT FORMAT ERR")')
-      !--------------------------
-      !STOP 1001 
-      !--------------------------
       CALL ERROR_STOP( 'STOP 1001', 'readcs.f' )
 
       ! Return to calling program

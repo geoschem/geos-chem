@@ -1,4 +1,4 @@
-! $Id: emissdr.f,v 1.2 2003/12/11 21:54:10 bmy Exp $
+! $Id: emissdr.f,v 1.3 2004/03/24 20:52:30 bmy Exp $
       SUBROUTINE EMISSDR
 !
 !******************************************************************************
@@ -226,24 +226,12 @@
             EMMO  = EMMONOT( IJLOOP, TMMP, XNUMOL_C )
 
             ! Isoprene
-            !--------------------------------------------------------------
-            ! Prior to 12/9/03:
-            !EMIS  = EMISOP( IJLOOP, SUNCOS, TMMP, XNUMOL_C )
-            !--------------------------------------------------------------
             EMIS  = EMISOP( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C )
  
             ! Methyl Butenol (MBO)
-            !--------------------------------------------------------------
-            ! Prior to 12/9/03:
-            !EMMB  = EMISOP_MB( IJLOOP, SUNCOS, TMMP, XNUMOL_C )
-            !--------------------------------------------------------------
             EMMB  = EMISOP_MB( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C )
 
             ! Isoprene emissions from grasslands
-            !--------------------------------------------------------------
-            ! Prior to 12/9/03:
-            !GRASS = EMISOP_GRASS( IJLOOP, SUNCOS, TMMP, XNUMOL_C )
-            !--------------------------------------------------------------
             GRASS = EMISOP_GRASS( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C) 
 !-----------------------------------------------------------------------------
 ! BIOGENIC ACETONE EMISSIONS

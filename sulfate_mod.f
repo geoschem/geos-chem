@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.6 2004/01/27 21:25:09 bmy Exp $
+! $Id: sulfate_mod.f,v 1.7 2004/03/24 20:52:32 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 1/15/04)
+!  (rjp, bdf, bmy, 6/22/00, 3/24/04)
 !
 !  Module variables:
 !  ============================================================================
@@ -153,6 +153,7 @@
 !  (18) Updated chemistry routines to apply drydep losses throughout the
 !        entire PBL. (rjp, bmy, 8/1/03)
 !  (19) Now accounts for GEOS-4 PBL being in meters (bmy, 1/15/04)
+!  (20) Fix ND44 diag so that we get same results for sp or mp (bmy, 3/24/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -791,7 +792,7 @@
 !******************************************************************************
 !  Subroutine CHEM_H2O2 is the H2O2 chemistry subroutine for offline sulfate
 !  simulations.  For coupled runs, H2O2 chemistry is already computed by
-!  the SMVGEAR module. (rjp, bmy, 11/26/02, 8/1/03)
+!  the SMVGEAR module. (rjp, bmy, 11/26/02, 3/24/04)
 !                                                                           
 !  NOTES:
 !  (1 ) Bug fix: need to multiply DXYP by 1d4 for cm2 (bmy, 3/23/03)
@@ -800,6 +801,9 @@
 !        (bmy, 3/27/03)
 !  (3 ) Now references PBLFRAC from "drydep_mod.f".  Now apply dry deposition 
 !        throughout the entire PBL.  Added FREQ variable. (bmy, 8/1/03)
+!  (4 ) Now use ND44_TMP array to store vertical levels of drydep flux, then 
+!        sum into AD44 array.  This preents numerical differences when using
+!        multiple processors. (bmy, 3/24/04)    
 !******************************************************************************
 !
       ! References to F90 modules
@@ -825,6 +829,7 @@
       INTEGER, SAVE          :: LASTMONTH = -99
       INTEGER                :: I, J, L
       REAL*4                 :: ARRAY(IGLOB,JGLOB,LLTROP)
+      REAL*8                 :: ND44_TMP(IIPAR,JJPAR,LLTROP)
       REAL*8                 :: DT,   Koh,   DH2O2, M,     F   
       REAL*8                 :: XTAU, H2O20, H2O2,  ALPHA, FLUX, FREQ
       REAL*8,  PARAMETER     :: A = 2.9d-12
@@ -840,6 +845,9 @@
 
       ! Factor to convert AIRDEN from kgair/m3 to molecules/cm3:
       F  = 1000.d0 / AIRMW * 6.022d23 * 1.d-6
+      
+      ! Zero ND44_TMP array
+      IF ( ND44 > 0 ) ND44_TMP = 0d0
 
       !=================================================================
       ! For offline run: read J(H2O2) from disk below
@@ -872,10 +880,10 @@
       !=================================================================
       ! Loop over tropopsheric grid boxes and do chemistry
       !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, M, H2O20, KOH, FREQ, ALPHA, DH2O2, H2O2, FLUX )
-!$OMP+SCHEDULE( DYNAMIC )
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, M, H2O20, KOH, FREQ, ALPHA, DH2O2, H2O2, FLUX )
+!!$OMP+SCHEDULE( DYNAMIC )
       DO L  = 1, LLTROP
       DO J  = 1, JJPAR
       DO I  = 1, IIPAR
@@ -900,21 +908,6 @@
          ! of the grid box (I,J,L) that is located beneath the PBL top
          FREQ  = DEPSAV(I,J,DRYH2O2) * PBLFRAC(I,J,L)
 
-!------------------------------------------------------------------------------
-! Prior to 8/1/03:
-! Now multiply DEPSAV by PBLFRAC, in order to do dry deposition below the 
-! PBLTOP.  PBLFRAC is the fraction of each level below the PBL top.
-! (rjp, bmy, 8/1/03)
-!         ! Compute loss fraction [unitless].  
-!         ! At surface, also include the loss by dry deposition.
-!         IF ( L == 1 ) THEN 
-!            ALPHA = 1.D0 + ( KOH + JH2O2(I,J,L) + 
-!     &                       DEPSAV(I,J,DRYH2O2) ) * DT 
-!         ELSE 
-!            ALPHA = 1.D0 + ( KOH + JH2O2(I,J,L) ) * DT               
-!         ENDIF
-!------------------------------------------------------------------------------
-
          ! Compute loss fraction from OH, photolysis, drydep [unitless].  
          ALPHA = 1.D0 + ( KOH + JH2O2(I,J,L) + FREQ ) * DT 
 
@@ -922,7 +915,6 @@
          DH2O2 = PH2O2m(I,J,L) * DT / ( ALPHA * M )
          
          ! Final H2O2 [v/v]
-         !###H2O2  = MAX( ( H2O20 / ALPHA + DH2O2 ), 1.D-32 )
          H2O2  = ( H2O20 / ALPHA + DH2O2 )
          IF ( H2O2 < SMALLNUM ) H2O2 = 0d0
 
@@ -932,38 +924,47 @@
          !==============================================================
          ! ND44 diagnostics (make sure this is correct!)
          !==============================================================
-         !--------------------------------------------------------------
-         ! Prior to 8/1/03:
-         ! Now apply drydep to entire PBL (bmy, 8/1/03)
-         !IF ( ND44 > 0 .and. L == 1 ) THEN
-         !--------------------------------------------------------------
          IF ( ND44 > 0 .AND. FREQ > 0d0 ) THEN
 
             ! Convert H2O2 from [v/v] to H2O2 [molec/cm2]
-            !-----------------------------------------------------------
-            ! Prior to 8/1/03:
-            ! AD(I,J,1) needs to be AD(I,J,L) (bmy, 8/1/03)
-            !FLUX = ( H2O20 - H2O2 ) * AD(I,J,1) / TCVV(IDTH2O2)
-            !-----------------------------------------------------------
             FLUX = ( H2O20 - H2O2 ) * AD(I,J,L) / TCVV(IDTH2O2)
             FLUX = FLUX * XNUMOL(IDTH2O2) / GET_AREA_CM2( J )
 
             ! Multiply by drydep freq [s-1] to convert to [molec/cm2/s]
-            !------------------------------------------------------------
-            ! Prior to 8/1/03:
-            ! Need to multiply DEPSAV by PBLFRAC (bmy, 8/1/03)
-            !FLUX = FLUX * DEPSAV(I,J,DRYH2O2) 
-            !------------------------------------------------------------
             FLUX = FLUX * FREQ
 
-            ! Save drydep loss in AD44 [molec/cm2/s]
-            AD44(I,J,DRYH2O2,1) = AD44(I,J,DRYH2O2,1) + FLUX 
+            !---------------------------------------------------------
+            ! Prior to 3/24/04:
+            !! Save drydep loss in AD44 [molec/cm2/s]
+            !AD44(I,J,DRYH2O2,1) = AD44(I,J,DRYH2O2,1) + FLUX
+            !--------------------------------------------------------- 
+
+            ! Save dryd flx in ND44_TMP as a placeholder
+            ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
          ENDIF
       ENDDO
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
       
+      !===============================================================
+      ! ND44: Sum drydep fluxes by level into the AD44 array in
+      ! order to ensure that  we get the same results w/ sp or mp 
+      !===============================================================
+      IF ( ND44 > 0 ) THEN 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+         DO L = 1, LLTROP
+            AD44(I,J,DRYH2O2,1) = AD44(I,J,DRYH2O2,1) + ND44_TMP(I,J,L)
+         ENDDO
+         ENDDO
+         ENDDO
+!!$OMP END PARALLEL DO
+      ENDIF
+
       ! Return to calling program
       END SUBROUTINE CHEM_H2O2
 
@@ -973,7 +974,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_SO2 is the SO2 chemistry subroutine 
-!  (rjp, bmy, 11/26/02, 8/1/03) 
+!  (rjp, bmy, 11/26/02, 3/24/04) 
 !                                                                          
 !  Module variables used:
 !  ============================================================================
@@ -1011,6 +1012,9 @@
 !        Now use function GET_TS_CHEM from "time_mod.f".
 !  (4 ) Now apply dry deposition to entire PBL.  Now references PBLFRAC array
 !        from "drydep_mod.f". (bmy, 8/1/03)  
+!  (5 ) Now use ND44_TMP array to store vertical levels of drydep flux, then 
+!        sum into AD44 array.  This preents numerical differences when using
+!        multiple processors. (bmy, 3/24/04)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -1040,6 +1044,7 @@
       REAL*8                :: SO2_cd, H2O20,   O3,     L2S,  L3S
       REAL*8                :: LWC,    KaqH2O2, KaqO3,  PATM, FLUX
       REAL*8                :: AREA_CM2
+      REAL*8                :: ND44_TMP(IIPAR,JJPAR,LLTROP)
 
       ! Parameters
       REAL*8,  PARAMETER    :: HPLUS  = 3.16227766016837953d-5  !pH = 4.5
@@ -1057,13 +1062,16 @@
       F      = 1000.d0 / AIRMW * 6.022d23 * 1.d-6
       Ki     = 1.5d-12
 
+      ! Zero ND44_TMP array
+      IF ( ND44 > 0 ) ND44_TMP = 0d0
+
       ! Loop over tropospheric grid boxes
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, SO20, H2O20, O3, PATM, TK, K0, M, KK, F1, RK1  )
-!$OMP+PRIVATE( RK2, RK, RKT, SO2_cd, L1, Ld, L2, L2S, L3, L3S, FC, LWC )
-!$OMP+PRIVATE( KaqH2O2, KaqO3, AREA_CM2, FLUX )
-!$OMP+SCHEDULE( DYNAMIC )
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, SO20, H2O20, O3, PATM, TK, K0, M, KK, F1, RK1  )
+!!$OMP+PRIVATE( RK2, RK, RKT, SO2_cd, L1, Ld, L2, L2S, L3, L3S, FC, LWC )
+!!$OMP+PRIVATE( KaqH2O2, KaqO3, AREA_CM2, FLUX )
+!!$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLTROP  
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -1109,18 +1117,6 @@
 
          ENDIF
 
-         ! SO2 drydep frequency [s-1]  
-         !-------------------------------------------------------------
-         ! Prior to 8/1/03:
-         ! Multiply DEPSAV by PBLFRAC to account for the fraction of
-         ! each grid box (I,J,L) beneath the PBL top. (bmy, 8/1/03)
-         !IF ( L == 1 ) THEN
-         !   RK2 = DEPSAV(I,J,DRYSO2)
-         !ELSE
-         !   RK2 = 0.D0
-         !ENDIF
-         !-------------------------------------------------------------
-
          ! SO2 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
          ! of grid box (I,J,L) that is located beneath the PBL top
          RK2    = DEPSAV(I,J,DRYSO2) * PBLFRAC(I,J,L)
@@ -1140,17 +1136,7 @@
 
             L1     = ( SO20 - SO2_cd + PSO2_DMS(I,J,L) ) * RK1/RK
              
-            !-----------------------------------------------------------
-            ! Prior to 8/1/03:
-            ! We no longer need to restrict drydep to the first level
-            ! (rjp, bmy, 8/1/03)
-            !IF ( L == 1 ) THEN
-            !   Ld  = ( SO20 - SO2_cd + PSO2_DMS(I,J,L) ) * RK2/RK
-            !ELSE
-            !   Ld  = 0.d0
-            !ENDIF
-            !-----------------------------------------------------------
-            Ld  = ( SO20 - SO2_cd + PSO2_DMS(I,J,L) ) * RK2/RK
+            Ld     = ( SO20 - SO2_cd + PSO2_DMS(I,J,L) ) * RK2/RK
             
          ELSE
             SO2_cd = SO20
@@ -1315,33 +1301,46 @@
          !=================================================================
          ! ND44 Diagnostic: Drydep flux of SO2 [molec/cm2/s]
          !=================================================================
-         !------------------------------------------------------------
-         ! Prior to 8/1/03:
-         ! We no longer need to restrict drydep to the first layer
-         ! (rjp, bmy, 8/1/03)
-         !IF ( ND44 > 0 .AND. L == 1 ) THEN
-         !------------------------------------------------------------
          IF ( ND44 > 0 .AND. Ld > 0d0 ) THEN
 
             ! Surface area [cm2]
             AREA_CM2 = GET_AREA_CM2( J )
 
             ! Convert [v/v/timestep] to [molec/cm2/s]
-            !--------------------------------------------------------
-            ! Prior to 8/1/03:
-            ! AD(I,J,1) is now AD(I,J,L) (bmy, 8/1/03)
-            !FLUX = Ld   * AD(I,J,1)      / TCVV(IDTSO2)
-            !--------------------------------------------------------
             FLUX = Ld   * AD(I,J,L)      / TCVV(IDTSO2)
             FLUX = FLUX * XNUMOL(IDTSO2) / AREA_CM2 / DTCHEM
 
-            ! Store in AD44
-            AD44(I,J,DRYSO2,1) = AD44(I,J,DRYSO2,1) + FLUX
+            !--------------------------------------------------------------
+            ! Prior to 3/24/04:
+            !! Store in AD44
+            !AD44(I,J,DRYSO2,1) = AD44(I,J,DRYSO2,1) + FLUX
+            !--------------------------------------------------------------
+            
+            ! Store dryd flx in ND44_TMP as a placeholder
+            ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
          ENDIF
       ENDDO
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
+
+      !===============================================================
+      ! ND44: Sum drydep fluxes by level into the AD44 array in
+      ! order to ensure that  we get the same results w/ sp or mp 
+      !===============================================================
+      IF ( ND44 > 0 ) THEN 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+         DO L = 1, LLTROP
+            AD44(I,J,DRYSO2,1) = AD44(I,J,DRYSO2,1) + ND44_TMP(I,J,L)
+         ENDDO
+         ENDDO
+         ENDDO
+!!$OMP END PARALLEL DO
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE CHEM_SO2
@@ -1556,7 +1555,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_SO4 is the SO4 chemistry subroutine from Mian Chin's GOCART
-!  model, modified for the GEOS-CHEM model. (rjp, bdf, bmy, 5/31/00, 8/1/03) 
+!  model, modified for the GEOS-CHEM model. (rjp, bdf, bmy, 5/31/00, 3/24/04) 
 !                                                                          
 !  Module Variables Used:
 !  ============================================================================
@@ -1577,6 +1576,9 @@
 !        Now use function GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
 !  (3 ) Now reference PBLFRAC from "drydep_mod.f".  Now apply dry deposition
 !        to the entire PBL. (rjp, bmy, 8/1/03)
+!  (4 ) Now use ND44_TMP array to store vertical levels of drydep flux, then 
+!        sum into AD44 array.  This preents numerical differences when using
+!        multiple processors. (bmy, 3/24/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1593,8 +1595,9 @@
 #     include "CMN_DIAG"     ! ND44
 
       ! Local variables
-      INTEGER                :: I, J, L
-      REAL*8                 :: SO4, SO40, RKT, DTCHEM, FLUX, AREA_CM2
+      INTEGER :: I, J, L
+      REAL*8  :: SO4, SO40, RKT, DTCHEM, FLUX, AREA_CM2
+      REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLTROP)  
 
       !=================================================================
       ! CHEM_SO4 begins here!
@@ -1604,11 +1607,14 @@
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
 
+      ! Zero ND44_TMP array
+      IF ( ND44 > 0 ) ND44_TMP = 0d0
+
       ! Loop over tropospheric grid boxes
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, SO40, RKT, SO4, AREA_CM2, FLUX )
-!$OMP+SCHEDULE( DYNAMIC )
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, SO40, RKT, SO4, AREA_CM2, FLUX )
+!!$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLTROP 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -1628,24 +1634,6 @@
          ! At surface, we have L(SO4) due to drydep and P(SO4) from SO2
          ! At altitude, we only have P(SO4) from SO2
          !==============================================================
-!-----------------------------------------------------------------------------
-! Prior to 8/1/03:
-! Now apply drydep throughout the entire PBL (bmy, 8/1/03)
-!         IF ( L == 1 ) THEN
-!
-!            ! RKT: Fraction of SO4 lost to drydep [unitless]
-!            RKT = DEPSAV(I,J,DRYSO4) * DTCHEM
-!            
-!            ! SO4 concentration [v/v]
-!            SO4 = ( SO40 * EXP( -RKT )                           ) + 
-!     &            ( PSO4_SO2(I,J,L)/RKT * ( 1.d0 - EXP( -RKT ) ) )
-!         ELSE
-!
-!            ! SO4 production from SO2 [v/v/timestep]
-!            SO4 = SO40 + PSO4_SO2(I,J,L)
-!
-!         ENDIF
-!-----------------------------------------------------------------------------
 
          ! SO4 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
          ! of each vertical level that is located below the PBL top
@@ -1660,6 +1648,7 @@
             ! SO4 concentration [v/v]
             SO4 = ( SO40 * EXP( -RKT )                           ) + 
      &            ( PSO4_SO2(I,J,L)/RKT * ( 1.d0 - EXP( -RKT ) ) )
+
          ELSE
 
             ! SO4 production from SO2 [v/v/timestep]
@@ -1668,19 +1657,12 @@
          ENDIF
 
          ! Final SO4 [v/v]
-         !###SO4               = MAX( SO4, 1.0d-32 )
          IF ( SO4 < SMALLNUM ) SO4 = 0d0
          STT(I,J,L,IDTSO4) = SO4
 
          !==============================================================
          ! ND44 Diagnostic: Drydep flux of SO4 [molec/cm2/s]
          !==============================================================
-         !--------------------------------------------------------------
-         ! Prior to 8/1/03:
-         ! We no longer need to restrict drydep to the first layer
-         ! (rjp, bmy, 8/1/03)
-         !IF ( ND44 > 0 .and. L == 1 ) THEN
-         !--------------------------------------------------------------
          IF ( ND44 > 0 .AND. RKT > 0d0 ) THEN
 
             ! Surface area [cm2]
@@ -1691,13 +1673,37 @@
             FLUX = FLUX * AD(I,J,L)      / TCVV(IDTSO4)
             FLUX = FLUX * XNUMOL(IDTSO4) / AREA_CM2 / DTCHEM
 
-            ! Store in AD44
-            AD44(I,J,DRYSO4,1) = AD44(I,J,DRYSO4,1) + FLUX
+            !----------------------------------------------------------
+            ! Prior to 3/24/04:
+            !! Store in AD44
+            !AD44(I,J,DRYSO4,1) = AD44(I,J,DRYSO4,1) + FLUX
+            !----------------------------------------------------------
+
+            ! Store dryd flx in ND44_TMP as a placeholder
+            ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
          ENDIF
       ENDDO
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
+
+      !===============================================================
+      ! ND44: Sum drydep fluxes by level into the AD44 array in
+      ! order to ensure that  we get the same results w/ sp or mp 
+      !===============================================================
+      IF ( ND44 > 0 ) THEN 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+         DO L = 1, LLTROP
+            AD44(I,J,DRYSO4,1) = AD44(I,J,DRYSO4,1) + ND44_TMP(I,J,L)
+         ENDDO
+         ENDDO
+         ENDDO
+!!$OMP END PARALLEL DO
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE CHEM_SO4
@@ -1708,7 +1714,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_MSA is the SO4 chemistry subroutine from Mian Chin's GOCART
-!  model, modified for the GEOS-CHEM model. (rjp, bdf, bmy, 5/31/00, 8/1/03)
+!  model, modified for the GEOS-CHEM model. (rjp, bdf, bmy, 5/31/00, 3/24/04)
 !                                                                          
 !  Module Variables Used:
 !  ============================================================================
@@ -1729,6 +1735,9 @@
 !        Now use function GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
 !  (3 ) Now reference PBLFRAC from "drydep_mod.f".  Now apply dry deposition
 !        to the entire PBL. (rjp, bmy, 8/1/03) 
+!  (4 ) Now use ND44_TMP array to store vertical levels of drydep flux, then 
+!        sum into AD44 array.  This preents numerical differences when using
+!        multiple processors. (bmy, 3/24/04)    
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1748,6 +1757,7 @@
       ! Local variables
       INTEGER  :: I,      J,    L
       REAL*8   :: DTCHEM, MSA0, MSA, RK, RKT, FLUX, AREA_CM2
+      REAL*8   :: ND44_TMP(IIPAR,JJPAR,LLTROP)
 
       !=================================================================
       ! CHEM_MSA begins here!
@@ -1757,11 +1767,14 @@
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM = GET_TS_CHEM() * 60d0 
 
+      ! Zero ND44_TMP array
+      IF ( ND44 > 0 ) ND44_TMP = 0d0
+
       ! Loop over tropospheric grid boxes
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, MSA0, RKT, MSA, AREA_CM2, FLUX )
-!$OMP+SCHEDULE( DYNAMIC )
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, MSA0, RKT, MSA, AREA_CM2, FLUX )
+!!$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLTROP 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -1771,32 +1784,6 @@
          
             ! Initial MSA [v/v]
             MSA0 = STT(I,J,L,IDTMSA) 
-
-!------------------------------------------------------------------------------
-! Prior to 8/1/03:
-! Now apply drydep throughout the entire PBL (bmy, 8/1/03)
-!         !==============================================================
-!         ! At surface, we have L(MSA) due to drydep and P(MSA) from DMS
-!         ! At altitude, we only have P(MSA) from DMS
-!         !==============================================================
-!         IF ( L == 1 ) THEN
-!
-!            ! RKT: Fraction of MSA lost to drydep [unitless]
-!            RKT = DEPSAV(I,J,DRYMSA) * DTCHEM
-!
-!            ! Modified MSA concentration 
-!            MSA = ( MSA0 * EXP( -RKT )                        ) +
-!     &            ( PMSA_DMS(I,J,L)/RKT * ( 1d0 - EXP( -RKT ) ) )
-!
-!         ELSE
-!
-!            ! MSA production from DMS [v/v/timestep]
-!            MSA = MSA0 + PMSA_DMS(I,J,L)
-!
-!         ENDIF
-!------------------------------------------------------------------------------
-
-
 
             ! MSA drydep frequency [1/s] -- PBLFRAC accounts for the fraction
             ! of each grid box (I,J,L) that is located beneath the PBL top
@@ -1820,20 +1807,13 @@
             ENDIF
 
             ! Final MSA [v/v]
-            !###MSA               = MAX( MSA, 1.0d-32 )
             IF ( MSA < SMALLNUM ) MSA = 0d0
             STT(I,J,L,IDTMSA) = MSA
 
             !===========================================================
             ! ND44 Diagnostic: Drydep flux of MSA [molec/cm2/s]
             !===========================================================
-            !-----------------------------------------------------------
-            ! Prior to 8/1/03:
-            ! We are no longer restricted to doing drydep in the first 
-            ! level. (rjp, bmy, 8/1/03)
-            !IF ( ND44 > 0 .and. L == 1 ) THEN
-            !-----------------------------------------------------------
-            IF ( ND44 > 0 ) THEN
+            IF ( ND44 > 0 .and. RKT > 0d0 ) THEN
 
                ! Surface area [cm2]
                AREA_CM2 = GET_AREA_CM2( J )
@@ -1843,14 +1823,38 @@
                FLUX = FLUX * AD(I,J,L)      / TCVV(IDTMSA)            
                FLUX = FLUX * XNUMOL(IDTMSA) / AREA_CM2 / DTCHEM    
                
-               ! Store in AD44
-               AD44(I,J,DRYMSA,1) = AD44(I,J,DRYMSA,1) + FLUX
+               !--------------------------------------------------------
+               ! Prior to 3/24/04:
+               !! Store in AD44
+               !AD44(I,J,DRYMSA,1) = AD44(I,J,DRYMSA,1) + FLUX
+               !--------------------------------------------------------
+
+               ! Store dryd flux in ND44_TMP as a placeholder
+               ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
             ENDIF
          ENDIF
       ENDDO
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
+
+      !===============================================================
+      ! ND44: Sum drydep fluxes by level into the AD44 array in
+      ! order to ensure that  we get the same results w/ sp or mp 
+      !===============================================================
+      IF ( ND44 > 0 ) THEN 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+         DO L = 1, LLTROP
+            AD44(I,J,DRYMSA,1) = AD44(I,J,DRYMSA,1) + ND44_TMP(I,J,L)
+         ENDDO
+         ENDDO
+         ENDDO
+!!$OMP END PARALLEL DO
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE CHEM_MSA
@@ -1861,7 +1865,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_NH3 removes NH3 from the surface via dry deposition.
-!  (rjp, bdf, bmy, 1/2/02, 8/1/03)  
+!  (rjp, bdf, bmy, 1/2/02, 3/24/04)  
 !                                                                          
 !  Reaction List:
 !  ============================================================================
@@ -1875,6 +1879,9 @@
 !  (3 ) Now reference PBLFRAC from "drydep_mod.f".  Now apply dry deposition
 !        to the entire PBL.  Added L and FREQ variables.  Recode to avoid 
 !        underflow from the EXP() function. (rjp, bmy, 8/1/03) 
+!  (4 ) Now use ND44_TMP array to store vertical levels of drydep flux, then 
+!        sum into AD44 array.  This preents numerical differences when using
+!        multiple processors. (bmy, 3/24/04)    
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1892,8 +1899,9 @@
 
       ! Local variables
       INTEGER :: I,      J,        L
-      REAL*8  :: DTCHEM, NH3,      NH30
+      REAL*8  :: DTCHEM, NH30,     NH3
       REAL*8  :: FREQ,   AREA_CM2, FLUX
+      REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLTROP)
 
       !=================================================================
       ! CHEM_NH3 begins here!
@@ -1903,46 +1911,13 @@
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
 
-!-----------------------------------------------------------------------------
-! Prior to 8/1/03:
-! We now need to apply drydep losses throughout the PBL (rjp, bmy, 8/1/03)
-!      ! Loop over surface grid boxes
+      ! Zero ND44_TMP array
+      IF ( ND44 > 0 ) ND44_TMP = 0d0
+
 !!$OMP PARALLEL DO
 !!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, NH30, NH3, AREA_CM2, FLUX )
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!
-!         ! Initial NH3 [v/v]
-!         NH30 = STT(I,J,1,IDTNH3)
-!         
-!         NH3  = NH30 * EXP( -DEPSAV(I,J,DRYNH3) * DTCHEM )
-!         NH3  = MAX( NH3, 1d-32 )
-!
-!         !==============================================================
-!         ! ND44 diagnostic: Drydep flux of NH3 [molec/cm2/s]
-!         !==============================================================
-!         IF ( ND44 > 0 ) THEN
-!
-!            ! Surface area [cm2]
-!            AREA_CM2 = GET_AREA_CM2( J )
-!
-!            ! Convert [v/v/timestep] to [molec/cm2/s]
-!            FLUX = ( NH30 - NH3 ) * AD(I,J,1) / TCVV(IDTNH3)
-!            FLUX = FLUX * XNUMOL(IDTNH3) / AREA_CM2 / DTCHEM
-!
-!            ! Store in AD44
-!            AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + FLUX
-!         ENDIF
-!      ENDDO
-!      ENDDO
-!!$OMP END PARALLEL DO
-!-----------------------------------------------------------------------------
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, FREQ, NH30, NH3, AREA_CM2, FLUX )
-!$OMP+SCHEDULE( DYNAMIC )
+!!$OMP+PRIVATE( I, J, L, FREQ, NH30, NH3, AREA_CM2, FLUX )
+!!$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLTROP
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -1972,24 +1947,48 @@
                !========================================================
                ! ND44 diagnostic: Drydep flux of NH3 [molec/cm2/s]
                !========================================================
-               IF ( ND44 > 0 ) THEN
+               IF ( ND44 > 0 .and. NH3 > 0d0 ) THEN
 
                   ! Surface area [cm2]
                   AREA_CM2 = GET_AREA_CM2( J )
-
+                  
                   ! Convert drydep loss from [v/v/timestep] to [molec/cm2/s]
                   FLUX = NH3  * AD(I,J,L)      / TCVV(IDTNH3)
                   FLUX = FLUX * XNUMOL(IDTNH3) / AREA_CM2 / DTCHEM
 
-                  ! Store in AD44
-                  AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + FLUX
+                  !-------------------------------------------------------
+                  ! Prior to 3/24/04:
+                  !! Store in AD44
+                  !AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + FLUX
+                  !-------------------------------------------------------
+
+                  ! Store dryd flx in ND44_TMP as a placeholder
+                  ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
                ENDIF
             ENDIF
          ENDIF
       ENDDO
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
+
+      !===============================================================
+      ! ND44: Sum drydep fluxes by level into the AD44 array in
+      ! order to ensure that  we get the same results w/ sp or mp 
+      !===============================================================
+      IF ( ND44 > 0 ) THEN 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+         DO L = 1, LLTROP
+            AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + ND44_TMP(I,J,L)
+         ENDDO
+         ENDDO
+         ENDDO
+!!$OMP END PARALLEL DO
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE CHEM_NH3
@@ -2000,7 +1999,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_NH4 removes NH4 from the surface via dry deposition.
-!  (rjp, bdf, bmy, 1/2/02, 8/1/03)  
+!  (rjp, bdf, bmy, 1/2/02, 3/24/04)  
 !                                                                          
 !  Reaction List:
 !  ============================================================================
@@ -2014,6 +2013,9 @@
 !  (3 ) Now reference PBLFRAC from "drydep_mod.f".  Now apply dry deposition
 !        to the entire PBL.  Added L and FREQ variables.  Recode to avoid 
 !        underflow from EXP(). (rjp, bmy, 8/1/03) 
+!  (4 ) Now use ND44_TMP array to store vertical levels of drydep flux, then 
+!        sum into AD44 array.  This preents numerical differences when using
+!        multiple processors. (bmy, 3/24/04)    
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2024,15 +2026,16 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACERID_MOD, ONLY : IDTNH4
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! STT, LPAUSE
-#     include "CMN_O3"       ! XNUMOL
-#     include "CMN_DIAG"     ! ND44
+#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN"       ! STT, LPAUSE
+#     include "CMN_O3"    ! XNUMOL
+#     include "CMN_DIAG"  ! ND44
 
       ! Local variables
-      INTEGER                :: I,      J,    L
-      REAL*8                 :: DTCHEM, NH4,  NH40
-      REAL*8                 :: FREQ,   FLUX, AREA_CM2
+      INTEGER :: I,      J,    L
+      REAL*8  :: DTCHEM, NH4,  NH40
+      REAL*8  :: FREQ,   FLUX, AREA_CM2
+      REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLTROP)
 
       !=================================================================
       ! CHEM_NH4 begins here!
@@ -2042,50 +2045,13 @@
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM = GET_TS_CHEM() * 60d0 
 
-!------------------------------------------------------------------------------
-! Prior to 8/1/03:
-! We now need to apply drydep losses throughout the PBL (rjp, bmy, 8/1/03)
-!      ! Loop over surface grid boxes
+      ! Zero ND44 array
+      IF ( ND44 > 0 ) ND44_TMP = 0d0
+
 !!$OMP PARALLEL DO
 !!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, NH40, NH4, AREA_CM2, FLUX )
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!
-!         ! Initial NH4 [v/v]
-!         NH40 = STT(I,J,1,IDTNH4)
-!         
-!         ! Amount of NH4 left after drydep [v/v]
-!         NH4 = NH40 * EXP( -DEPSAV(I,J,DRYNH4) * DTCHEM )
-!         NH4 = MAX( NH4, 1.0d-32 )
-!
-!         ! Final NH4 [v/v]
-!         STT(I,J,1,IDTNH4) = NH4
-!
-!         !==============================================================
-!         ! ND44 diagnostic: Drydep flux of NH4 [molec/cm2/s]
-!         !==============================================================
-!         IF ( ND44 > 0 ) THEN
-!         
-!            ! Surface area [cm2]
-!            AREA_CM2 = GET_AREA_CM2( J )
-!
-!            ! Convert from [v/v/timestep] to [molec/cm2/s]
-!            FLUX = ( NH40 - NH4 ) * AD(I,J,1) / TCVV(IDTNH4)
-!            FLUX = FLUX * XNUMOL(IDTNH4) / AREA_CM2 / DTCHEM
-!
-!            ! Store in AD44
-!            AD44(I,J,DRYNH4,1) = AD44(I,J,DRYNH4,1) + FLUX
-!         ENDIF
-!      ENDDO
-!      ENDDO
-!!$OMP END PARALLEL DO
-!------------------------------------------------------------------------------
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, FREQ, NH40, NH4, AREA_CM2, FLUX )
-!$OMP+SCHEDULE( DYNAMIC )
+!!$OMP+PRIVATE( I, J, L, FREQ, NH40, NH4, AREA_CM2, FLUX )
+!!$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLTROP
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -2115,24 +2081,48 @@
                !========================================================
                ! ND44 diagnostic: Drydep flux of NH4 [molec/cm2/s]
                !========================================================
-               IF ( ND44 > 0 ) THEN
+               IF ( ND44 > 0 .and. NH4 > 0d0 ) THEN
          
                   ! Surface area [cm2]
                   AREA_CM2 = GET_AREA_CM2( J )
-
+                  
                   ! Convert drydep loss from [v/v/timestep] to [molec/cm2/s]
                   FLUX = NH4  * AD(I,J,L)      / TCVV(IDTNH4)
                   FLUX = FLUX * XNUMOL(IDTNH4) / AREA_CM2 / DTCHEM
 
-                  ! Store in AD44
-                  AD44(I,J,DRYNH4,1) = AD44(I,J,DRYNH4,1) + FLUX
+                  !-------------------------------------------------------
+                  ! Prior to 3/24/04:
+                  !! Store in AD44
+                  !AD44(I,J,DRYNH4,1) = AD44(I,J,DRYNH4,1) + FLUX
+                  !-------------------------------------------------------
+
+                  ! Store dryd flx in ND44_TMP as a placeholder
+                  ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
                ENDIF
             ENDIF
          ENDIF
       ENDDO
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
+
+      !===============================================================
+      ! ND44: Sum drydep fluxes by level into the AD44 array in
+      ! order to ensure that  we get the same results w/ sp or mp 
+      !===============================================================
+      IF ( ND44 > 0 ) THEN 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+         DO L = 1, LLTROP
+            AD44(I,J,DRYNH4,1) = AD44(I,J,DRYNH4,1) + ND44_TMP(I,J,L)
+         ENDDO
+         ENDDO
+         ENDDO
+!!$OMP END PARALLEL DO
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE CHEM_NH4
@@ -2143,7 +2133,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_NIT removes SULFUR NITRATES (NIT) from the surface 
-!  via dry deposition. (rjp, bdf, bmy, 1/2/02, 8/1/03)  
+!  via dry deposition. (rjp, bdf, bmy, 1/2/02, 3/24/04)  
 !                                                                          
 !  Reaction List:
 !  ============================================================================
@@ -2157,6 +2147,9 @@
 !  (3 ) Now reference PBLFRAC from "drydep_mod.f".  Now apply dry deposition
 !        to the entire PBL.  Added L and FREQ variables.  Recode to avoid
 !        underflow from EXP(). (rjp, bmy, 8/1/03) 
+!  (4 ) Now use ND44_TMP array to store vertical levels of drydep flux, then 
+!        sum into AD44 array.  This preents numerical differences when using
+!        multiple processors. (bmy, 3/24/04)    
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2168,14 +2161,18 @@
       USE TRACERID_MOD, ONLY : IDTNIT
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! STT, LPAUSE
-#     include "CMN_GCTM"     ! AIRMW
+#     include "CMN"          ! STT
+!----------------------------------------------------------------------
+! Prior to 3/24/04:
+!#     include "CMN_GCTM"     ! AIRMW
+!----------------------------------------------------------------------
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44
 
       ! Local variables
       INTEGER :: I,      J,   L
       REAL*8  :: DTCHEM, NIT, NIT0, FREQ, AREA_CM2, FLUX
+      REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLTROP)
 
       !=================================================================
       ! CHEM_NIT begins here!
@@ -2184,50 +2181,14 @@
 
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM = GET_TS_CHEM() * 60d0 
+      
+      ! Zero ND44 array
+      IF ( ND44 > 0 ) ND44_TMP = 0d0
 
-!------------------------------------------------------------------------------
-! Prior to 8/1/03:
-! We now have to apply drydep throughout the PBL (rjp, bmy, 8/1/03)
 !!$OMP PARALLEL DO
 !!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, NIT0, NIT, AREA_CM2, FLUX )
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!
-!         ! Initial NITRATE [v/v]
-!         NIT0 = STT(I,J,1,IDTNIT)
-!         
-!         ! Amount of NITRATE left after dry drydep [v/v]
-!         NIT  = NIT0 * EXP( -DEPSAV(I,J,DRYNIT) * DTCHEM )
-!         NIT  = MAX( NIT, 1.0d-32 )
-!         
-!         ! Final NITRATE [v/v]
-!         STT(I,J,1,IDTNIT) = NIT
-!
-!         !==============================================================
-!         ! ND44 Diagnostic: Drydep flux of NIT [molec/cm2/s]
-!         !==============================================================
-!         IF ( ND44 > 0 ) THEN
-!         
-!            ! Surface area [cm2]
-!            AREA_CM2 = GET_AREA_CM2( J )
-!            
-!            ! Convert from [v/v/timestep] to [molec/cm2/s]
-!            FLUX = ( NIT0 - NIT ) * AD(I,J,1) / TCVV(IDTNIT)
-!            FLUX = FLUX * XNUMOL(IDTNIT) / AREA_CM2 / DTCHEM
-!         
-!            ! Store in ND44
-!            AD44(I,J,DRYNIT,1) = AD44(I,J,DRYNIT,1) + FLUX
-!         ENDIF
-!      ENDDO
-!      ENDDO
-!!$OMP END PARALLEL DO
-!------------------------------------------------------------------------------
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, FREQ, NIT0, NIT, AREA_CM2, FLUX )
-!$OMP+SCHEDULE( DYNAMIC )
+!!$OMP+PRIVATE( I, J, L, FREQ, NIT0, NIT, AREA_CM2, FLUX )
+!!$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLTROP
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -2257,24 +2218,48 @@
                !========================================================
                ! ND44 Diagnostic: Drydep flux of NIT [molec/cm2/s]
                !========================================================
-               IF ( ND44 > 0 ) THEN
+               IF ( ND44 > 0 .and. NIT > 0d0 ) THEN
          
                   ! Surface area [cm2]
                   AREA_CM2 = GET_AREA_CM2( J )
-            
+                  
                   ! Convert from [v/v/timestep] to [molec/cm2/s]
                   FLUX = NIT  * AD(I,J,L)      / TCVV(IDTNIT)
                   FLUX = FLUX * XNUMOL(IDTNIT) / AREA_CM2 / DTCHEM
-         
-                  ! Store flux for ND44
-                  AD44(I,J,DRYNIT,1) = AD44(I,J,DRYNIT,1) + FLUX
+
+                  !----------------------------------------------------
+                  ! Prior to 3/23/04:
+                  !! Store in AD44
+                  !AD44(I,J,DRYNIT,1) = AD44(I,J,DRYNIT,1) + FLUX
+                  !----------------------------------------------------
+
+                  ! Store dryd flx in ND44_TMP as a placeholder
+                  ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
                ENDIF
             ENDIF
          ENDIF
       ENDDO
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
+
+      !===============================================================
+      ! ND44: Sum drydep fluxes by level into the AD44 array in
+      ! order to ensure that  we get the same results w/ sp or mp 
+      !===============================================================
+      IF ( ND44 > 0 ) THEN 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+         DO L = 1, LLTROP
+            AD44(I,J,DRYNIT,1) = AD44(I,J,DRYNIT,1) + ND44_TMP(I,J,L)
+         ENDDO
+         ENDDO
+         ENDDO
+!!$OMP END PARALLEL DO
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE CHEM_NIT
@@ -2555,25 +2540,6 @@
                   P1   = GET_PEDGE(I,J,L) 
                   P2   = GET_PEDGE(I,J,L+1)
                   DELP = P1 - P2
-
-                  !-----------------------------------------------------
-                  ! Prior to 1/15/04:
-                  ! Need to use BLTHIK in order to accommodate both 
-                  ! GEOS-4 and GEOS-3 units for PBL (bmy, 1/15/04)
-                  !! PBL top occurs at level L
-                  !IF ( BLTOP <= P2 )  THEN
-                  !   FEMIS = DELP / PBL(I,J)
-                  !
-                  !! Level L lies completely w/in the PBL
-                  !ELSE IF ( BLTOP > P2 .AND. BLTOP < P1 ) THEN
-                  !   FEMIS = ( P1 - BLTOP ) / PBL(I,J)               
-                  !
-                  !! Level L lies completely out of the PBL
-                  !ELSE IF ( BLTOP > P1 ) THEN
-                  !   CYCLE       
-                  !
-                  !ENDIF
-                  !-----------------------------------------------------
 
                   ! PBL top occurs at level L
                   IF ( BLTOP <= P2 ) THEN
@@ -2881,25 +2847,6 @@
                P2   = GET_PEDGE(I,J,L+1)
                DELP = P1 - P2
 
-               !-------------------------------------------------------
-               ! Prior to 1/15/04:
-               ! Need to use BLTHIK in order to accommodate both 
-               ! GEOS-4 and GEOS-3 units for PBL (bmy, 1/15/04)
-               !! PBL top occurs w/in level L
-               !IF ( BLTOP <= P2 )  THEN
-               !   FEMIS = DELP / PBL(I,J)
-               !
-               !! Level L lies completely w/in the PBL
-               !ELSE IF ( BLTOP >  P2 .AND. BLTOP < P1 ) THEN
-               !   FEMIS = ( P1 - BLTOP ) / PBL(I,J)
-               !
-               !! Level L lies completely out of the PBL
-               !ELSE IF ( BLTOP > P1 ) THEN
-               !   CYCLE
-               !
-               !ENDIF
-               !-------------------------------------------------------
-
                ! PBL top occurs w/in level L
                IF ( BLTOP <= P2 )  THEN
                   FEMIS = DELP / BLTHIK
@@ -3105,25 +3052,6 @@
                P2   = GET_PEDGE(I,J,L+1)
                DELP = P1 - P2
 
-               !-------------------------------------------------------
-               ! Prior to 1/15/04:
-               ! Need to use BLTHIK in order to accommodate both 
-               ! GEOS-4 and GEOS-3 units for PBL (bmy, 1/15/04)
-               !! PBL top occurs w/in level L
-               !IF ( BLTOP <= P2 )  THEN
-               !   FEMIS = DELP / PBL(I,J)
-               !
-               !! Level L lies completely w/in the PBL
-               !ELSE IF ( BLTOP >  P2 .AND. BLTOP < P1 ) THEN
-               !   FEMIS = ( P1 - BLTOP ) / PBL(I,J)               
-               !
-               !! Level L lies completely out of the PBL
-               !ELSE IF ( BLTOP > P1 ) THEN
-               !   CYCLE 
-               !
-               !ENDIF
-               !-------------------------------------------------------
-
                ! PBL top occurs w/in level L
                IF ( BLTOP <= P2 )  THEN
                   FEMIS = DELP / BLTHIK
@@ -3294,22 +3222,6 @@
                P1   = GET_PEDGE(I,J,L)
                P2   = GET_PEDGE(I,J,L+1)
                DELP = P1 - P2
-
-               !-------------------------------------------------------
-               ! Prior to 1/15/04:
-               ! Need to use BLTHIK in order to accommodate both 
-               ! GEOS-4 and GEOS-3 units for PBL (bmy, 1/15/04)
-               !! Case of model grid is lower than PBL
-               !IF ( BLTOP <= P2 )  THEN
-               !   FEMIS = DELP / PBL(I,J)
-               ! 
-               !ELSE IF ( BLTOP >  P2 .AND. BLTOP < P1 ) THEN
-               !   FEMIS = ( P1 - BLTOP ) / PBL(I,J)               
-               ! 
-               !ELSE IF ( BLTOP > P1 ) THEN
-               !   CYCLE       
-               !ENDIF
-               !-------------------------------------------------------
 
                ! Case of model grid is lower than PBL
                IF ( BLTOP <= P2 )  THEN

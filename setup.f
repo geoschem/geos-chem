@@ -1,4 +1,4 @@
-! $Id: setup.f,v 1.4 2004/01/27 21:25:09 bmy Exp $
+! $Id: setup.f,v 1.5 2004/03/24 20:52:32 bmy Exp $
       SUBROUTINE SETUP( NYMDb, NYMDe,     NHMSb,   NHMSe,   NDT,      
      &                  NTDT,  NDIAGTIME, ALPHA_d, ALPHA_n, IORD,     
      &                  JORD,  KORD,      J1,      Umax,    IGD,      
@@ -337,24 +337,6 @@
       IF ( LUNZIP ) THEN
          CALL CHECK_DIRECTORY( TRIM( TEMP_DIR ) ) 
       ENDIF
-
-!-----------------------------------------------------------------------------
-! Prior to 12/11/03:
-! Disable these directory checks (bmy, 12/11/03)
-!#if   defined( GEOS_1 )
-!      CALL CHECK_DIRECTORY( TRIM( DATA_DIR ) // TRIM( GEOS_1_DIR ) )
-!
-!#elif defined( GEOS_STRAT )
-!      CALL CHECK_DIRECTORY( TRIM( DATA_DIR ) // TRIM( GEOS_S_DIR ) )
-!
-!#elif defined( GEOS_2 )
-!      CALL CHECK_DIRECTORY( TRIM( DATA_DIR ) // TRIM( GEOS_2_DIR ) )      
-!
-!#elif defined( GEOS_3 )
-!      CALL CHECK_DIRECTORY( TRIM( DATA_DIR ) // TRIM( GEOS_3_DIR ) )      
-!
-!#endif
-!----------------------------------------------------------------------------
 !
 !******************************************************************************
 !  If LMFCT = T, then set LFILL = F (bmy, 4/24/00)

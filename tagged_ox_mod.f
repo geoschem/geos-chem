@@ -1,10 +1,10 @@
-! $Id: tagged_ox_mod.f,v 1.3 2004/02/24 16:27:16 bmy Exp $
+! $Id: tagged_ox_mod.f,v 1.4 2004/03/24 20:52:33 bmy Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
 !  Module TAGGED_OX_MOD contains variables and routines to perform a tagged Ox
 !  simulation.  P(Ox) and L(Ox) rates need to be archived from a full chemistry
-!  simulation before you can run w/ Tagged Ox. (amf, rch, bmy, 8/20/03,2/20/04)
+!  simulation before you can run w/ Tagged Ox. (amf, rch, bmy, 8/20/03,3/24/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -39,6 +39,7 @@
 !  NOTES:
 !  (1 ) Now accounts for GEOS-4 PBL being in meters (bmy, 1/15/04)
 !  (2 ) Bug fix: don't put function call in WRITE statement (bmy, 2/20/04)
+!  (3 ) Now bracket AD44 with an !$OMP CRITICAL block (bmy, 3/24/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -134,7 +135,8 @@
 
       ! Define filename (change if necessary!)
       FILENAME = '/data/ctm/GEOS_MEAN/O3_PROD_LOSS/'
-      FILENAME = TRIM( FILENAME ) // '2001v4.33/amf_4x5/rate.YYYYMMDD'
+      FILENAME = TRIM( FILENAME ) //  
+     & '2001v4.33/amf_4x5_geos4/rate.YYYYMMDD'
 
       ! Replace YYYYMMDD token in FILENAME w/ the actual date
       CALL EXPAND_DATE( FILENAME, GET_NYMD(), 000000 )
@@ -357,11 +359,14 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_TAGGED_OX performs chemistry for several Ox tracers which
-!  are tagged by geographic and altitude regions. (rch, bmy, 8/20/03, 2/20/04)
+!  are tagged by geographic and altitude regions. (rch, bmy, 8/20/03, 3/24/04)
 ! 
 !  NOTES:
 !  (1 ) Updated from the old routine "chemo3_split.f" (rch, bmy, 8/20/03)
 !  (2 ) Bug fix: don't put function call in WRITE statement (bmy, 2/20/04)
+!  (3 ) Now use ND44_TMP array to store vertical levels of drydep flux, then
+!        sum into AD44 array.  This prevents numerical differences when using
+!        multiple processors. (bmy, 3/24/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -381,14 +386,15 @@
 #     include "CMN_SETUP" ! LDRYD
 
       ! Local variables
-      LOGICAL, SAVE    :: FIRST   = .TRUE.
-      INTEGER, SAVE    :: LASTDAY = -1
-      INTEGER          :: I, J, L, N
-      REAL*8           :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
-      REAL*8           :: DTCHEM,  FREQ, FLUX
-      REAL*8           :: LL,      PL,   Ox_0
-      REAL*8           :: Ox_LOST, X,    Y
-      CHARACTER(LEN=16):: STAMP
+      LOGICAL, SAVE     :: FIRST   = .TRUE.
+      INTEGER, SAVE     :: LASTDAY = -1
+      INTEGER           :: I, J, L, N
+      REAL*8            :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
+      REAL*8            :: ND44_TMP(IIPAR,JJPAR,LLTROP)
+      REAL*8            :: DTCHEM,  FREQ, FLUX
+      REAL*8            :: LL,      PL,   Ox_0
+      REAL*8            :: Ox_LOST
+      CHARACTER(LEN=16) :: STAMP
 
       ! External routines
       REAL*8, EXTERNAL :: BOXVL
@@ -396,14 +402,6 @@
       !=================================================================
       ! CHEM_TAGGED_OX begins here!
       !=================================================================
-
-!-----------------------------------------------------------------------------
-! Prior to 2/23/04:
-! LINUX has problems w/ a function call in a WRITE statement (bmy, 2/23/04)
-!      ! Echo date
-!      WRITE( 6, 100 ) TIMESTAMP_STRING()
-! 100  FORMAT( '     - CHEM_TAGGED_OX: Tagged Ox chem at: ', a )
-!-----------------------------------------------------------------------------
 
       ! Echo date
       STAMP = TIMESTAMP_STRING()
@@ -453,14 +451,13 @@
       !=================================================================
       DO N = 1, NTRACE
 
-         ! NOTE: As of 8/20/03, the drydep diagnostic yields different
-         ! results on single-processor than on multi-processor.  The code
-         ! below is correct for single-processor, so use this for now and
-         ! try to track down the problem later. (bmy, 8/20/03)
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, LL, PL, FREQ, Ox_0, Ox_LOST, FLUX )  
-!!$OMP+SCHEDULE( DYNAMIC )
+         ! Zero ND44_TMP array
+         IF ( ND44 > 0 ) ND44_TMP = 0d0
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, LL, PL, FREQ, Ox_0, Ox_LOST, FLUX )  
+!$OMP+SCHEDULE( DYNAMIC )
          DO L = 1, LLTROP
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -507,27 +504,27 @@
 
                   ! Initial Ox [kg]
                   Ox_0    = STT(I,J,L,N)
-                     
+
                   ! Amount of Ox LOST to drydep [kg]
                   Ox_LOST = Ox_0 * ( 1d0 - EXP( -FREQ * DTCHEM ) )
-
+                  
                   ! Prevent underflow condition
                   IF ( Ox_LOST < 1d-20 ) Ox_LOST = 0d0
-                        
+                       
                   ! Subtract Ox lost [kg] 
                   STT(I,J,L,N) = Ox_0 - Ox_LOST 
-
+                  
                   !=====================================================
                   ! ND44 diagnostic: Ox lost to drydep [molec/cm2/s]
                   !=====================================================
-                  IF ( ND44 > 0 ) THEN
+                  IF ( ND44 > 0 .and. Ox_LOST > 0d0 ) THEN
 
                      ! Convert from [kg] to [molec/cm2/s]
                      FLUX = Ox_LOST         * XNUMOL(IDTOX) / 
      &                      GET_AREA_CM2(J) / DTCHEM 
-
-                     ! Store as [molec/cm2/s] in AD44
-                     AD44(I,J,N,1) = AD44(I,J,N,1) + FLUX
+                     
+                     ! Store dryd flx in ND44_TMP as a placeholder
+                     ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
                   ENDIF
                ENDIF
             ENDIF
@@ -540,16 +537,26 @@
          ENDDO
          ENDDO
          ENDDO
-!!$OMP END PARALLEL DO
-      ENDDO
+!$OMP END PARALLEL DO
 
-!### Debug 
-!###      WRITE( 6, '(a)' ) 'SUMS of Ox prod'
-!###      DO N = 1, NTRACE
-!###         WRITE( 6, 110 ) N, TCNAME(N), SUM( PP(:,:,:,N) )
-!###      ENDDO
-!###      WRITE( 6, 110 ) 100, '2-12',  SUM( PP(:,:,:,2:12) )
-!### 110  FORMAT( i4, 1x, 'P(', a4, ')',  1x, es13.6 )
+         !============================================================
+         ! ND44: Sum drydep fluxes by level into the AD44 array in
+         ! order to ensure that  we get the same results w/ sp or mp 
+         !============================================================
+         IF ( ND44 > 0 ) THEN 
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+            DO L = 1, LLTROP
+               AD44(I,J,N,1) = AD44(I,J,N,1) + ND44_TMP(I,J,L)
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+         ENDIF
+      ENDDO
 
       ! Return to calling program
       END SUBROUTINE CHEM_TAGGED_OX

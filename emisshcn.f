@@ -1,4 +1,4 @@
-! $Id: emisshcn.f,v 1.2 2003/12/11 21:54:10 bmy Exp $
+! $Id: emisshcn.f,v 1.3 2004/03/24 20:52:30 bmy Exp $
       SUBROUTINE EMISSHCN
 !
 !******************************************************************************
@@ -178,10 +178,6 @@
       DO I = 1, IIPAR
          IJLOOP = IJLOOP + 1
          TMMP = XLTMMP(I,J, IJLOOP) 
-         !------------------------------------------------------
-         ! Prior to 12/9/03:
-         !EMXX = EMISOP(IJLOOP,SUNCOS,TMMP,XNUMOL_ISOP) 
-         !------------------------------------------------------
          EMXX = EMISOP(I,J,IJLOOP,SUNCOS,TMMP,XNUMOL_ISOP) 
   
          EMX          = EMXX

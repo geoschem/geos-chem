@@ -1,4 +1,4 @@
-! $Id: soilnoxems.f,v 1.2 2003/10/21 16:05:29 bmy Exp $
+! $Id: soilnoxems.f,v 1.3 2004/03/24 20:52:32 bmy Exp $
       SUBROUTINE SOILNOXEMS( SUNCOS )
 !
 !******************************************************************************
@@ -135,16 +135,6 @@
      *              *(1.D0-SOILCRF(I,J,IREF,JREF,IJLOOP,M,NN,K,
      *              WINDSQR,SUNCOS))*DBLE(IUSE(IREF,JREF,K))/1000.D0
 
-!-----------------------------------------------------------------------------
-! Prior to 10/14/30:
-! Need to pass SUNCOS to SOILCRF.  This bug was not picked up by any compiler
-! except the SGI/Altix IFC compiler.  This bug is more than 5 yrs old.
-! (bmy, 10/14/03) 
-!               ! Archive fertilizer for ND32 diagnostic (bey)
-!               FERTDIAG(I,J) = FERTDIAG(I,J) + FERTADD(J,M,NN)
-!     *              *(1.D0-SOILCRF(I,J,IREF,JREF,IJLOOP,M,NN,K,
-!     *              WINDSQR))*DBLE(IUSE(IREF,JREF,K))/1000.D0
-!-----------------------------------------------------------------------------
                ! Archive fertilizer for ND32 diagnostic (bey)
                FERTDIAG(I,J) = FERTDIAG(I,J) + FERTADD(J,M,NN)
      &              *(1.D0-SOILCRF(I,J,IREF,JREF,IJLOOP,M,NN,K,

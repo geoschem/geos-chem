@@ -1,4 +1,4 @@
-! $Id: pjc_pfix_mod.f,v 1.3 2003/10/30 16:17:18 bmy Exp $
+! $Id: pjc_pfix_mod.f,v 1.4 2004/03/24 20:52:31 bmy Exp $
       MODULE PJC_PFIX_MOD
 !
 !******************************************************************************
@@ -209,12 +209,6 @@
       ! Local variables
       LOGICAL, SAVE        :: FIRST = .TRUE.
       INTEGER              :: I, J
-      !---------------------------------------------------------------
-      ! Prior to 10/27/03:
-      ! P1_TEMP, P2_TEMP are no longer needed (bmy, 10/27/03)
-      !REAL*8               :: P1_TEMP(IIPAR,JJPAR)
-      !REAL*8               :: P2_TEMP(IIPAR,JJPAR)
-      !---------------------------------------------------------------
 
       ! Parameters
       LOGICAL, PARAMETER   :: INTERP_WINDS     = .TRUE.  ! winds are interp'd 
@@ -240,30 +234,6 @@
          FIRST = .FALSE.
       ENDIF
 
-!------------------------------------------------------------------------------
-! Prior to 10/27/03:
-!      ! P1 and P2 are really PS-PTOP, so we have to add PTOP
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!         P1_TEMP(I,J) = P1(I,J) + PTOP
-!         P2_TEMP(I,J) = P2(I,J) + PTOP
-!      ENDDO
-!      ENDDO
-!
-!      ! Call PJC pressure fixer w/ the proper arguments
-!      CALL ADJUST_PRESS( 'GEOS-CHEM',        INTERP_WINDS,  
-!     &                   .TRUE.,             MET_GRID_TYPE, 
-!     &                   ADVEC_CONSRV_OPT,   PMET2_OPT, 
-!     &                   PRESS_FIX_OPT,      D_DYN, 
-!     &                   GEOFAC_PC,          GEOFAC, 
-!     &                   COSE_FV,            COSP_FV, 
-!     &                   REL_AREA,           DAP, 
-!     &                   DBK,                P1_TEMP, 
-!     &                   P2_TEMP,            P2_TEMP,            
-!     &                   UWND,               VWND, 
-!     &                   XMASS,              YMASS )
-!------------------------------------------------------------------------------
-      
       ! Call PJC pressure fixer w/ the proper arguments
       ! NOTE: P1 and P2 are now "true" surface pressure, not PS-PTOP!!!
       CALL ADJUST_PRESS( 'GEOS-CHEM',        INTERP_WINDS,  

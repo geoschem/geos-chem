@@ -1,4 +1,4 @@
-! $Id: diag3.f,v 1.7 2004/03/19 18:41:54 bmy Exp $
+! $Id: diag3.f,v 1.8 2004/03/24 20:52:29 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
@@ -124,6 +124,8 @@
 !  (46) Now use actual tracer number for ND37 diagnostic. (bmy, 1/21/04)
 !  (47) Now loop over the actual # of soluble tracers for ND17, ND18.  
 !        (bmy, 3/19/04)
+!  (48) Now use the actual tracer # for ND17 and ND18 diagnostics. 
+!        Rearrange ND44 code for clarity. (bmy, 3/23/04)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -726,6 +728,7 @@
 !
 !  NOTES:
 !  (1) Now loop over all soluble tracers (bmy, 3/19/04)
+!  (2) Now use actual tracer number (bmy, 3/23/04)
 !******************************************************************************
 !
       IF ( ND17 > 0 ) THEN
@@ -734,25 +737,12 @@
          ! Get max # of soluble tracers for this simulation
          NMAX = GET_WETDEP_NSOL()
 
-         !---------------------------------------------------
-         ! Prior to 3/19/04:
-         ! Now loop over all soluble tracers (bmy, 3/19/04)
-         !DO M = 1, TMAX(17)
-         !   N = TINDEX(17,M)
-         !---------------------------------------------------
+         ! Loop over soluble tracers
          DO N = 1, NMAX
 
-            !----------------------------------------------------
-            ! Prior to 3/19/04:
-            !! Rn-Pb-Be run has 2 soluble tracers
-            !! Full chemistry run has 4 soluble tracers
-            !IF ( NSRCX == 1 .and. N > 2    ) CYCLE
-            !IF ( NSRCX == 3 .and. N > PD17 ) CYCLE
-            !----------------------------------------------------
-
-            ! Add GAMAP tracer offset
-            NN = N + TRCOFFSET
-
+            ! Tracer number plus GAMAP offset
+            NN = GET_WETDEP_IDWETD(N) + TRCOFFSET
+ 
             ! Large-scale rainout/washout fractions
             CATEGORY = 'WD-LSR-$'
                
@@ -794,6 +784,7 @@
 !
 !  NOTES:
 !  (1) Now loop over all soluble tracers (bmy, 3/19/04)
+!  (2) Now use actual tracer number (bmy, 3/23/04)
 !******************************************************************************
 !
       IF ( ND18 > 0 ) THEN
@@ -802,23 +793,13 @@
          ! Get max # of soluble tracers for this simulation
          NMAX = GET_WETDEP_NSOL()
 
-         !--------------------------------------------------
-         ! Prior to 3/19/04:
-         !DO M = 1, TMAX(18)
-         !   N = TINDEX(18,M)
-         !--------------------------------------------------
          DO N = 1, NMAX
-
-            !-----------------------------------------------
-            ! Prior to 3/19/04:
-            !! Rn-Pb-Be run has 2 soluble tracers
-            !! Full chemistry run has 4 soluble tracers
-            !IF ( NSRCX == 1 .and. N > 2    ) CYCLE
-            !IF ( NSRCX == 3 .and. N > PD18 ) CYCLE
-            !-----------------------------------------------
 
             ! Add GAMAP tracer offset
             NN = N + TRCOFFSET
+
+            ! Tracer number plus GAMAP offset
+            NN = GET_WETDEP_IDWETD(N) + TRCOFFSET
 
             ! Large-scale rainout/washout fractions
             CATEGORY = 'WD-LSW-$'
@@ -1870,6 +1851,7 @@
 !        chemistry routines for all relevant simulations (bmy, 1/27/03)
 !  (7 ) Now print out NTRACE drydep fluxes for tagged Ox.  Also tagged Ox 
 !        now saves drydep in molec/cm2/s. (bmy, 8/19/03)
+!  (8 ) Rearrange ND44 code for clarity (bmy, 3/24/04)
 !******************************************************************************
 !
       IF ( ND44 > 0 ) THEN
@@ -1877,36 +1859,34 @@
          !==============================================================
          ! Drydep fluxes
          !==============================================================
+
+         ! Category name
+         CATEGORY = 'DRYD-FLX'
+
+         ! # of drydep flux tracers
          IF ( NSRCX == 6 ) THEN
             M = NTRACE
          ELSE
             M = NUMDEP
          ENDIF
 
+         ! Loop over drydep tracers
          DO N = 1, M
 
             ! Tracer number plus GAMAP offset
-            IF ( NSRCX == 6 ) THEN
-               NN = N + TRCOFFSET
-            ELSE
-               NN = NTRAIND(N) + TRCOFFSET
+            IF ( NSRCX == 1 ) THEN
+               UNIT = 'kg/s'       
+               NN   = NTRAIND(N) + TRCOFFSET
+            ELSE IF ( NSRCX == 6 ) THEN
+               UNIT = 'molec/cm2/s'
+               NN   = N + TRCOFFSET
+            ELSE 
+               UNIT = 'molec/cm2/s'
+               NN   = NTRAIND(N) + TRCOFFSET
             ENDIF
 
-            CATEGORY = 'DRYD-FLX'
-
-            SELECT CASE ( NSRCX )
-
-               ! Rn-Pb-Be
-               CASE ( 1 )
-                  UNIT         = 'kg/s'
-                  ARRAY(:,:,1) = AD44(:,:,N,1) / SCALECHEM
-
-               ! Default (fullchem)
-               CASE DEFAULT
-                  UNIT         = 'molec/cm2/s'
-                  ARRAY(:,:,1) = AD44(:,:,N,1) / SCALECHEM 
-                     
-            END SELECT
+            ! Save into ARRAY
+            ARRAY(:,:,1) = ( AD44(:,:,N,1) / SCALECHEM )
 
             ! Write to file
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -1920,12 +1900,23 @@
          !==============================================================
          ! Drydep velocities
          !==============================================================
-         DO N = 1, NUMDEP
+
+         ! Category and Unit 
+         CATEGORY  = 'DRYD-VEL'
+         UNIT      = 'cm/s'
+
+         ! # of drydep velocity tracers
+         IF ( NSRCX == 6 ) THEN
+            M = 1
+         ELSE
+            M = NUMDEP
+         ENDIF
+
+         ! Loop over drydep tracers
+         DO N = 1, M
 
             ! Tracer number plus GAMAP offset
             NN           = NTRAIND(N) + TRCOFFSET
-            CATEGORY     = 'DRYD-VEL'
-            UNIT         = 'cm/s'
             ARRAY(:,:,1) = AD44(:,:,N,2) / SCALESRCE
 
             ! Write to file

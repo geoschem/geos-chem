@@ -1,9 +1,9 @@
-! $Id: drydep_mod.f,v 1.8 2004/02/24 16:27:15 bmy Exp $
+! $Id: drydep_mod.f,v 1.9 2004/03/24 20:52:30 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
 !  Module DRYDEP_MOD contains variables and routines for the GEOS-CHEM dry
-!  deposition scheme. (bmy, 1/27/03, 12/9/03)
+!  deposition scheme. (bmy, 1/27/03, 3/24/04)
 !
 !  Module Variables:
 !  ============================================================================
@@ -114,6 +114,7 @@
 !        (rjp, bmy, 7/21/03)
 !  (5 ) Bug fix for GEOS-4 in DRYFLXRnPbBe (bmy, 12/2/03)
 !  (6 ) Now made CFRAC, RADIAT local variables in DO_DRYDEP (bmy, 12/9/03)
+!  (7 ) Now enclose AD44 in !$OMP CRITICAL block for drydep flux (bmy, 3/24/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -603,7 +604,7 @@
 !
 !******************************************************************************
 !  Subroutine DRYFLX sets up the dry deposition flux diagnostic for tracers
-!  which are part of the SMVGEAR mechanism. (bmy, bdf, 4/20/99, 7/21/03)
+!  which are part of the SMVGEAR mechanism. (bmy, bdf, 4/20/99, 3/24/04)
 !
 !  NOTES:
 !  (1 ) Bug fix -- now skip tracers for which NTDEP(N) is zero, in order
@@ -624,6 +625,8 @@
 !  (9 ) Now sum drydep fluxes throughout the entire PBL.  Added L variable.
 !        AREA_CM2 has now been made into a lookup table. Now implement a 
 !        parallel DO loop for efficiency. (rjp, bmy, 7/21/03)
+!  (10) Now bracket AD44 with a !$OMP CRITICAL block in order to avoid
+!        multiple threads writing to the same element (bmy, 3/24/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -711,8 +714,11 @@
                ! Convert TDRYFX from [molec] to [molec/cm2/s]        
                TDRYFX = TDRYFX / ( AREA_CM2(J) * DTCHEM ) 
                     
+!$OMP CRITICAL
                ! Save into AD44 diagnostic array
                AD44(I,J,N,1) = AD44(I,J,N,1) + TDRYFX
+!$OMP END CRITICAL
+
             ENDIF
          ENDDO           
          ENDDO               
@@ -730,7 +736,7 @@
 !******************************************************************************
 !  Subroutine DRYFLXRnPbBe removes dry deposition losses from the STT tracer
 !  array and archives deposition fluxes to the ND44 diagnostic. 
-!  (hyl, bmy, bdf, 4/2/99, 12/2/03)
+!  (hyl, bmy, bdf, 4/2/99, 3/23/04)
 !
 !  NOTES:
 !  (1 ) Now eliminate DEPFLUX from CMN_SAV, in order to save memory.

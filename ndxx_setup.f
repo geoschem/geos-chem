@@ -1,4 +1,4 @@
-! $Id: ndxx_setup.f,v 1.5 2004/03/18 21:22:04 bmy Exp $
+! $Id: ndxx_setup.f,v 1.6 2004/03/24 20:52:31 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
@@ -93,7 +93,7 @@
 !        TRCOFFSET for single-tracer Ox. (jsw, bmy, 8/20/03)
 !  (43) Now use GET_WETDEP_NMAX to get max # of soluble tracers for ND37,
 !        ND18, and ND19.  Also set NFAM=NTRACE+5 for Tagged CO simulation. 
-!        (bmy, 3/18/04)
+!        (3/18/04)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -785,7 +785,7 @@
 
       !=================================================================
       ! ND44: Drydep fluxes [s-1] and drydep velocities [cm/s]
-      !       --> uses AD44 array (allocatable)
+      !       --> uses AD44 arrays (allocatable)
       !=================================================================
       IF ( ND44 > 0 ) THEN
 
@@ -793,11 +793,11 @@
             CASE ( 6  )
                ALLOCATE( AD44( IIPAR, JJPAR, NTRACE, 2 ), STAT=AS )
                IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD44' )
-
+         
             CASE DEFAULT
                ALLOCATE( AD44( IIPAR, JJPAR, NUMDEP, 2 ), STAT=AS )
                IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD44' )
-
+         
          END SELECT
 
       ENDIF

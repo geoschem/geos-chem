@@ -1,9 +1,9 @@
-! $Id: time_mod.f,v 1.5 2003/12/05 21:14:06 bmy Exp $
+! $Id: time_mod.f,v 1.6 2004/03/24 20:52:33 bmy Exp $
       MODULE TIME_MOD
 !
 !******************************************************************************
 !  TIME_MOD contains GEOS-CHEM date and time variables and timesteps, and 
-!  routines for accessing them. (bmy, 6/21/00, 12/2/03) 
+!  routines for accessing them. (bmy, 6/21/00, 3/22/04) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -148,6 +148,8 @@
 !  (11) Bug fix in EXPAND_DATE.  Also add optional arguments to function
 !        TIMESTAMP_STRNIG. (bmy, 10/28/03)
 !  (12) Changed the name of some cpp switches in "define.h" (bmy, 12/2/03)
+!  (13) Modified ITS_TIME_FOR_A6 and GET_FIRST_A6_TIME for both GEOS-4 
+!        "a_llk_03" and "a_llk_04" data versions. (bmy, 3/22/04)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1742,10 +1744,11 @@
       FUNCTION GET_FIRST_A6_TIME() RESULT( DATE )
 !
 !******************************************************************************
-!  Function GET_FIRST_A6_TIME returns the correct YYYYMMDD and HHMMSS values
-!  the first time that A-6 fields are read in from disk. (bmy, 6/26/03)
+!  Function GET_FIRST_A6_TIME returns the correct YYYYMMDD & HHMMSS values the
+!  first time that A-6 fields are read in from disk. (bmy, 6/26/03, 3/22/04)
 !
 !  NOTES:
+!  (1 ) Now modified for GEOS-4 "a_llk_03" and "a_llk_04" fields (bmy, 3/22/04)
 !******************************************************************************
 !
 #     include "define.h"
@@ -1757,7 +1760,13 @@
       ! GET_FIRST_A6_TIME begins here!
       !=================================================================
 
-#if   defined( GEOS_4 )
+!-----------------------------------------------------------------------------
+! Prior to 3/22/04:
+! GEOS-4 "a_llk_04" fields behave like GEOS-1, GEOS-STRAT, GEOS-3.
+! Therefore, only treat GEOS-4 "a_llk_03" fields differently. (bmy, 3/22/04)
+!#if   defined( GEOS_4 )
+!-----------------------------------------------------------------------------
+#if   defined( GEOS_4 ) && defined( A_LLK_03 )
 
       ! For GEOS-4, call GET_A3_TIME to return date/time
       ! under which the A-3 fields are timestamped
@@ -1935,12 +1944,15 @@
 !
 !******************************************************************************
 !  Function ITS_TIME_FOR_A6 returns TRUE if it is time to read in A-6
-!  (average 6-h fields) and FALSE otherwise. (bmy, 3/21/03, 6/26/03)
+!  (average 6-h fields) and FALSE otherwise. (bmy, 3/21/03, 3/22/04)
 !
 !  NOTES:
 !  (1 ) Now compute when it's time to read in GEOS-4 A-6 fields. (bmy, 6/26/03)
+!  (2 ) Now modified for GEOS-4 "a_llk_03" and "a_llk_04" fields (bmy, 3/22/04)
 !******************************************************************************
 !
+#     include "define.h"
+
       ! Local variables
       INTEGER :: DATE(2)
 
@@ -1951,22 +1963,23 @@
       ! ITS_TIME_FOR_A6 begins here!
       !=================================================================
       
-#if   defined( GEOS_4 )
+#if   defined( GEOS_4 ) && defined( A_LLK_03 )
 
-      ! For GEOS-4, we need to read A-6 fields at 00, 06, 12, 18 GMT
+      ! For GEOS-4 "a_llk_03" data, we need to read A-6 fields when it 
+      ! is 00, 06, 12, 18 GMT.  DATE is the current time -- test below.
       DATE = GET_TIME_AHEAD( 0 )
 
 #else
 
-      ! For GEOS-1, GEOS-S, GEOS-3, we need to read A-6 fields at
-      ! 03, 09, 15, 21 GMT.  There is a 3 hour difference between
-      ! the actual time and the A-3 met field timestamp time.  
+      ! For GEOS-1, GEOS-S, GEOS-3, and GEOS-4 "a_llk_04" data, 
+      ! we need to read A-6 fields when it is 03, 09, 15, 21 GMT.  
+      ! DATE is the time 3 hours from now -- test below.
       DATE = GET_TIME_AHEAD( 180 )
      
 #endif
  
-      ! If the time now (GEOS-4) or 3 hours from now (GEOS-1, GEOS-S, 
-      ! GEOS-3) is 0, 6, 12, 18 GMT, then read A-6 fields 
+      ! Test if DATE corresponds to 00, 06, 12, 18 GMT.  
+      ! If so, then it is time to read A-6 fields from disk.
       FLAG = ( MOD( DATE(2), 060000 ) == 0 ) 
 
       ! Return to calling program
@@ -1990,7 +2003,7 @@
       ! ITS_TIME_FOR_I6 begins here!
       !=================================================================
 
-      ! We read in I-6 fields every 6 hours
+      ! We read in I-6 fields at 00, 06, 12, 18 GMT
       FLAG = ( MOD( NHMS, 060000 ) == 0 )
 
       ! Return to calling program
@@ -2078,52 +2091,6 @@
       END FUNCTION ITS_TIME_FOR_EXIT
 
 !------------------------------------------------------------------------------
-! Prior to 9/25/03:
-! Now allow an argument to be passed to ITS_A_LEAPYEAR (bmy, 9/25/03)
-!      FUNCTION ITS_A_LEAPYEAR() RESULT( IS_LEAPYEAR )
-!!
-!!******************************************************************************
-!!  Function ITS_A_LEAPYEAR returns TRUE if YEAR is a leapyear, 
-!!  and FALSE otherwise. (bmy, 3/17/99, 3/21/03)
-!!
-!!  NOTES: 
-!!  (1 ) Now remove YEAR from ARG list; use the module variable (bmy, 3/21/03)
-!!******************************************************************************
-!!
-!      ! Function value
-!      LOGICAL :: IS_LEAPYEAR
-!
-!      !=================================================================
-!      ! LEAPYEAR begins here!
-!      !
-!      ! A leap year is:
-!      ! (1) evenly divisible by 4 (if not a century year)
-!      ! (2) evenly divisible by 4, 100, and 400 (if a century year)
-!      !
-!      ! EXAMPLES:
-!      ! (a) 1992 is a leap year since it is evenly divisible by 4, and 
-!      !     is not a century year (i.e. it doesn't end in '00').
-!      !
-!      ! (b) 1900 is NOT a leap year, since while being evenly divisible 
-!      !     by 4 and 100, it is NOT divisible by 400.
-!      !
-!      ! (c) 2000 is a leap year, since it is divisible by 4, 100, and 
-!      !     400.
-!      !=================================================================
-!      IS_LEAPYEAR = .FALSE.
-!
-!      IF ( MOD( YEAR, 4 ) == 0 ) THEN
-!         IF ( MOD( YEAR, 100 ) == 0 ) THEN
-!            IF ( MOD( YEAR, 400 ) == 0 ) THEN
-!               IS_LEAPYEAR = .TRUE.
-!            ENDIF
-!         ELSE
-!            IS_LEAPYEAR = .TRUE.
-!         ENDIF
-!      ENDIF        
-!
-!      ! Return to calling program
-!      END FUNCTION ITS_A_LEAPYEAR
 
       FUNCTION ITS_A_LEAPYEAR( YEAR_IN ) RESULT( IS_LEAPYEAR )
 !
@@ -2164,14 +2131,14 @@
       ! (2) evenly divisible by 4, 100, and 400 (if a century year)
       !
       ! EXAMPLES:
-      ! (a) 1992 is a leap year since it is evenly divisible by 4, and 
-      !     is not a century year (i.e. it doesn't end in '00').
+      ! (a) 1992 is a leap year since it is evenly divisible by 4, 
+      !     and is not a century year (i.e. it doesn't end in '00').
       !
       ! (b) 1900 is NOT a leap year, since while being evenly divisible 
       !     by 4 and 100, it is NOT divisible by 400.
       !
-      ! (c) 2000 is a leap year, since it is divisible by 4, 100, and 
-      !     400.
+      ! (c) 2000 is a leap year, since it is divisible by 
+      !     4, 100, and 400.
       !=================================================================
       IS_LEAPYEAR = .FALSE.
 

@@ -1,4 +1,4 @@
-! $Id: bpch2_mod.f,v 1.3 2003/12/05 21:13:57 bmy Exp $
+! $Id: bpch2_mod.f,v 1.4 2004/03/24 20:52:28 bmy Exp $
       MODULE BPCH2_MOD
 !
 !******************************************************************************
@@ -559,40 +559,16 @@
 #elif defined( GEOS_STRAT ) 
       MODELNAME = 'GEOS_STRAT'
 
-!------------------------------------------------------------
-! Prior to 11/3/03:
-! Remove GEOS_2 model name -- it's obsolete! (bmy, 11/3/03)
-!#elif defined( GEOS_2 ) 
-!      MODELNAME = 'GEOS2'
-!------------------------------------------------------------
-
 #elif defined( GEOS_3 )
       
-      !----------------------------------------------------------------------
-      ! Prior to 11/3/03:
-      !! Write a special model name to the punch file for GAMAP
-      !! if we are using regridded vertical resolution (bmy, 10/9/01)
-      ! Now use GRID30LEV Cpp switch -- eliminate IF statement (bmy, 11/3/03)
-      !IF ( LLPAR == 30 ) THEN 
-      !   MODELNAME = 'GEOS3_30L'
-      !ELSE
-      !   MODELNAME = 'GEOS3'
-      !ENDIF
-      !-----------------------------------------------------------------------
 #if   defined( GRID30LEV )
       MODELNAME = 'GEOS3_30L'   ! Special modelname for GAMAP (GEOS-3 30L)
 #else
       MODELNAME = 'GEOS3'       ! Normal modelname (GEOS-3 48L)
 #endif
 
-
 #elif defined( GEOS_4 )
-      !--------------------------------------------------------------
-      ! Prior to 11/3/03:
-      ! Need to save the bpch file under the name "GEOS4_30L" for
-      ! the reduced 30-level grid (bmy, 11/3/03)
-      !MODELNAME = 'GEOS4'
-      !--------------------------------------------------------------
+
 #if   defined( GRID30LEV )
       MODELNAME = 'GEOS4_30L'   ! Special modelname for GAMAP (GEOS-4 30L)
 #else 
@@ -628,13 +604,6 @@
      
 #elif defined( GEOS_STRAT ) 
       NAME_EXT = 'geoss'
-
-!-----------------------------------------------------------------
-! Prior to 11/3/03:
-! Remove obsolete "geos2" model name strning (bmy, 11/3/03)
-!#elif defined( GEOS_2 ) 
-!      NAME_EXT = 'geos2'
-!-----------------------------------------------------------------
 
 #elif defined( GEOS_3 )
       NAME_EXT = 'geos3'

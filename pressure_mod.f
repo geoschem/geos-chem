@@ -1,4 +1,4 @@
-! $Id: pressure_mod.f,v 1.4 2003/11/06 21:07:19 bmy Exp $
+! $Id: pressure_mod.f,v 1.5 2004/03/24 20:52:31 bmy Exp $
       MODULE PRESSURE_MOD
 !
 !******************************************************************************
@@ -290,11 +290,6 @@
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
 #     include "CMN_SIZE"  ! LLPAR, PTOP
-!-----------------------------------------------------------------------
-! Prior to 11/3/03:
-! This reference is now obsolete (bmy, 11/3/03)
-!#     include "CMN"       ! SIGE
-!-----------------------------------------------------------------------
 
       ! Local Variables
       INTEGER :: AS

@@ -1,9 +1,9 @@
-! $Id: define.h,v 1.11 2004/03/18 21:25:14 bmy Exp $
+! $Id: define.h,v 1.13 2004/03/24 20:55:02 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
 !  used to include or exclude certain sections of code.  
-!  (bmy, bdf, 1/30/98, 12/2/03)
+!  (bmy, bdf, 1/30/98, 3/22/04)
 !
 !  List of "Switches"
 !  ===========================================================================
@@ -57,6 +57,9 @@
 !        "INTEL_FC" to "LINUX_IFC".  Renamed cpp switch "SGI" to "SGI_MIPS".
 !        Added cpp switch "LINUX_EFC".  Removed cpp switch SMALLCHEM.
 !        (bmy, 12/2/03)
+!  (18) Added "A_LLK_03" switch to denote GEOS-4 "a_llk_03" met fields.  This
+!        will be temporary since "a_llk_03" met fields will be replaced by
+!        a newer product.  (bmy, 3/22/04) 
 !******************************************************************************
 !
 !==============================================================================
@@ -66,6 +69,7 @@
 #undef GEOS_STRAT
 #undef GEOS_3
 #undef GEOS_4
+#undef A_LLK_03
 #undef GRID30LEV
 #undef GRID2x25  
 #undef GRID4x5
@@ -93,6 +97,7 @@
 !#define GEOS_STRAT  'GEOS_STRAT'
 #define GEOS_3      'GEOS_3'
 !#define GEOS_4      'GEOS_4'
+!#define A_LLK_03    'A_LLK_03'
 
 !----- Grid sizes -----
 !#define GRID1x1     'GRID1x1'

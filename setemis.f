@@ -1,10 +1,10 @@
-! $Id: setemis.f,v 1.1 2003/06/30 20:26:06 bmy Exp $
+! $Id: setemis.f,v 1.2 2004/03/24 20:52:31 bmy Exp $
       SUBROUTINE SETEMIS( EMISRR, EMISRRN )
 !
 !******************************************************************************
-!  Subroutine SETEMIS places emissions computed from GEOS-CHEM subroutines 
-!  into arrays for SMVGEAR chemistry. 
-!  (lwh, jyl, gmg, djj, bdf, bmy, 6/8/98, 4/1/03)
+!  Subroutine SETEMIS places emissions computed from GEOS-CHEM 
+!  subroutines into arrays for SMVGEAR II chemistry. 
+!  (lwh, jyl, gmg, djj, bdf, bmy, 6/8/98, 3/19/04)
 !
 !  SETEMIS converts from units of [molec tracer/box/s] to units of
 !  [molec chemical species/cm3/s], and stores in the REMIS array.  For
@@ -76,6 +76,8 @@
 !  (19) Now reference IDTNOX, IDENOX, etc from "tracerid_mod.f" (bmy, 11/6/02)
 !  (20) Remove references to IREF, JREF (bmy, 2/11/03)
 !  (21) NEMIS is now NEMIS(NCS) for SMVGEAR II (gcc, bdf, bmy, 4/1/03)
+!  (22) Added parallel loop over N.  Also directly substituted JLOP(I,J,1) 
+!        for all instances of JLOOP1.  Updated comments. (hamid, bmy, 3/19/04)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -109,6 +111,11 @@
       !
       ! Loop over emission species
       !=================================================================
+!$OMP PARALLEL DO 
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( N,     NN,  NBB,     NBF,    I,        J,     L, JLOOP )
+!$OMP+PRIVATE( COEF1, TOP, TOTPRES, NOXTOT, DELTPRES, EMIS_BL         )
+!$OMP+SCHEDULE( DYNAMIC )
       DO N = 1, NEMIS(NCS)
 
          ! Get CTM tracer number NN corresponding to emission species N
@@ -157,8 +164,14 @@
             ! (bdf, 6/15/01)
             !===========================================================
 
+            !-----------------------------------------------------------
+            ! Prior to 3/19/04:
             ! 1-d index for the surface box
-            JLOOP1 = JLOP(I,J,1)
+            ! Direct substitution of JLOP(I,J,1) was made
+            ! whereever JLOOP1 was used for OpenMP to work 
+            ! over N loop (AOO, 3/18/2004)
+            ! JLOOP1 = JLOP(I,J,1)
+            !-----------------------------------------------------------
 
             ! Top level of the boundary layer
             ! guard for b.l. being in first level.
@@ -228,9 +241,9 @@
                      ! Of the total soil NOx, the fraction DELTPRES/TOTPRES 
                      ! goes into level L, since that is the fraction of the 
                      ! boundary layer occupied by level L.  Store in EMIS_BL.
-                     EMIS_BL        = ( GEMISNOX2(I,J)             *
-     &                                  VOLUME(JLOOP1) / COEF1   ) * 
-     &                                ( DELTPRES       / TOTPRES )
+                     EMIS_BL    = ( GEMISNOX2(I,J)                    *
+     &                              VOLUME( JLOP(I,J,1) ) / COEF1   ) * 
+     &                              ( DELTPRES            / TOTPRES )
 
                      ! Since EMIS_BL is in [molec NO/box/s], we have to
                      ! divide by VOLUME(JLOOP), which is the volume of the
@@ -317,9 +330,9 @@
                      ! DELTPRES/TOTPRES goes into level L, since that is the 
                      ! fraction of the boundary layer occupied by level L.  
                      ! Store in EMIS_BL.
-                     EMIS_BL        = ( BURNEMIS(NBB,I,J)  *
-     &                                  VOLUME(JLOOP1) / COEF1 ) *
-     &                                ( DELTPRES / TOTPRES   )
+                     EMIS_BL  = ( BURNEMIS(NBB,I,J)  *
+     &                            VOLUME( JLOP(I,J,1) ) / COEF1  ) *
+     &                            ( DELTPRES / TOTPRES )
 
                      ! Since EMIS_BL is in [molec species/box/s], we 
                      ! have to divide by VOLUME(JLOOP), which is the 
@@ -355,9 +368,9 @@
                      ! DELTPRES/TOTPRES goes into level L, since that is the 
                      ! fraction of the boundary layer occupied by level L.  
                      ! Store in EMIS_BL.
-                     EMIS_BL        = ( BIOFUEL(NBF,I,J) *
-     &                                  VOLUME(JLOOP1) / COEF1 ) *
-     &                                ( DELTPRES / TOTPRES )
+                     EMIS_BL  = ( BIOFUEL(NBF,I,J) *
+     &                            VOLUME( JLOP(I,J,1) ) / COEF1 ) *
+     &                            ( DELTPRES / TOTPRES )
 
                      ! Since EMIS_BL is in [molec species/box/s], we 
                      ! have to divide by VOLUME(JLOOP), which is the 
@@ -387,6 +400,7 @@
          ENDDO  ! I
          ENDDO  ! J
       ENDDO     ! N
+!$OMP END PARALLEL DO
 
       ! Return to calling program
       END SUBROUTINE SETEMIS

@@ -1,4 +1,4 @@
-! $Id: dao_mod.f,v 1.3 2003/12/11 21:54:08 bmy Exp $
+! $Id: dao_mod.f,v 1.4 2004/03/24 20:52:29 bmy Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
@@ -212,19 +212,9 @@
       REAL*8,  ALLOCATABLE :: TS(:,:)
       REAL*8,  ALLOCATABLE :: TSKIN(:,:)
       REAL*8,  ALLOCATABLE :: U10M(:,:)
-      !----------------------------------------------------
-      ! Prior to 12/9/03:
-      ! Now make USTAR a 2-D array (bmy, 12/9/03)
-      !REAL*8,  ALLOCATABLE :: USTAR(:)  
-      !----------------------------------------------------
       REAL*8,  ALLOCATABLE :: USTAR(:,:)  
       REAL*8,  ALLOCATABLE :: V10M(:,:)
       REAL*8,  ALLOCATABLE :: WIND_10M(:,:)
-      !----------------------------------------------------
-      ! Prior to 12/9/03:
-      ! Now make Z0 a 2-D array (bmy, 12/9/03)
-      !REAL*8,  ALLOCATABLE :: Z0(:)
-      !----------------------------------------------------
       REAL*8,  ALLOCATABLE :: Z0(:,:)
 
       ! Computed quantities
@@ -824,7 +814,7 @@
 !  (1 ) SPHU (REAL*8) : Array containing 3-D specific humidity [g H2O/kg air]
 !  (2 ) TMPU (REAL*8) : Array containing 3-D temperature field [K]
 !  (3 ) RH   (REAL*8) : Output array for relative humidity     [%]
-
+!
 !  NOTES:
 !  (1 ) Use F90 syntax for declarations, etc. 
 !  (2 ) Cosmetic changes (bmy, 10/12/99)
@@ -928,11 +918,6 @@
       REAL*8, INTENT(IN) :: UWND(IIPAR,JJPAR)
       REAL*8, INTENT(IN) :: VWND(IIPAR,JJPAR)
       REAL*8, INTENT(IN) :: BXHEIGHT(IIPAR,JJPAR)
-      !-------------------------------------------------
-      ! Prior to 12/9/03:
-      ! Now make Z0 a 2-D array (bmy, 12/9/03)
-      !REAL*8, INTENT(IN) :: Z0(MAXIJ)
-      !-------------------------------------------------
       REAL*8, INTENT(IN) :: Z0(IIPAR,JJPAR)
 
       ! Local variables
@@ -959,22 +944,11 @@
       IJLOOP = 0
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-
-         !-------------------------------------------------
-         ! Prior to 12/9/03:
-         !! Loop Index for Z0
-         !IJLOOP        = IJLOOP + 1
-         !-------------------------------------------------
           
          ! Wind speed at ~50 meters
          WIND_50M      = SQRT( UWND(I,J)**2 + VWND(I,J)**2 )
 
          ! Numerator and denominator of the log law expressions
-         !----------------------------------------------------------------
-         ! Prior to 12/9/03:
-         !NUMER         = LOG( 10d0 / Z0(IJLOOP) ) 
-         !DENOM         = LOG( ( BXHEIGHT(I,J) / 2.0d0 ) / Z0(IJLOOP) ) 
-         !----------------------------------------------------------------
          NUMER         = LOG( 10d0 / Z0(I,J) )  
          DENOM         = LOG( ( BXHEIGHT(I,J) / 2.0d0 ) / Z0(I,J) ) 
 
@@ -1613,11 +1587,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'U10M' )
       U10M = 0d0
 
-      !--------------------------------------------------
-      ! Prior to 12/9/03:
-      ! USTAR is now a 2-D array (bmy, 12/9/03)
-      !ALLOCATE( USTAR( MAXIJ ), STAT=AS )
-      !--------------------------------------------------
       ALLOCATE( USTAR( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'USTAR' )
       USTAR = 0d0
@@ -1671,11 +1640,6 @@
 
 #endif
 
-      !---------------------------------------
-      ! Prior to 12/9/03:
-      ! Z0 is now a 2-D array (bmy, 12/9/03)
-      !ALLOCATE( Z0( MAXIJ ), STAT=AS )
-      !--------------------------------------
       ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
       Z0 = 0d0

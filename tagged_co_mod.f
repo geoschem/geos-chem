@@ -1,4 +1,4 @@
-! $Id: tagged_co_mod.f,v 1.4 2003/12/11 21:54:12 bmy Exp $
+! $Id: tagged_co_mod.f,v 1.5 2004/03/24 20:52:32 bmy Exp $
       MODULE TAGGED_CO_MOD
 !
 !******************************************************************************
@@ -691,10 +691,6 @@
       
             ! ISOP and MONOTERPENE emissions in [atoms C/box/time step] 
             ! SUNCOS is COSINE( solar zenith angle ) 
-            !----------------------------------------------------------------
-            ! Prior to 12/9/03:
-            !EMXX = EMISOP( IJLOOP, SUNCOS, TMMP, XNUMOL_ISOP ) 
-            !----------------------------------------------------------------
             EMXX = EMISOP( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_ISOP ) 
             EMMO = EMMONOT( IJLOOP, TMMP, XNUMOL_MONO )
 
