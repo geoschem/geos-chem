@@ -70,6 +70,7 @@ chem_h2o2		-- Replace PBLFRAC from "drydep_mod.f" with
 chem_hg0_hg2		-- Now references GET_FRAC_UNDER_PBLTOP in 
 ("mercury_mod.f")	   "pbl_mix_mod.f"
 			-- Now performs drydep for all levels in the PBL
+			-- Changed Kred to 2.1e-10 on advice of N. E. Selin.
 
 chem_hgp		-- Removed references to AD44 and "CMN_DIAG"
 ("mercury_mod.f")	-- Now compute drydep for all levels within the PBL
