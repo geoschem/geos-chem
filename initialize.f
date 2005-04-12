@@ -1,4 +1,4 @@
-! $Id: initialize.f,v 1.11 2005/03/29 15:52:42 bmy Exp $
+! $Id: initialize.f,v 1.12 2005/04/12 15:33:03 bmy Exp $
       SUBROUTINE INITIALIZE( IFLAG )
 !
 !******************************************************************************
@@ -296,7 +296,7 @@
          IF ( ND65 > 0 ) THEN
             AD65  = 0e0
             IF ( ALLOCATED( FAM_PL ) ) FAM_PL = 0d0      
-         ENDIF
+        ENDIF
 
          ! Echo output
          WRITE( 6, '(a)' ) '     - INITIALIZE: Diag arrays zeroed!'

@@ -1,4 +1,4 @@
-! $Id: mercury_mod.f,v 1.3 2005/03/29 15:52:43 bmy Exp $
+! $Id: mercury_mod.f,v 1.4 2005/04/12 15:33:03 bmy Exp $
       MODULE MERCURY_MOD
 !
 !******************************************************************************
@@ -326,7 +326,8 @@
 !  (1 ) Updated for reduction reaction.  Now use diagnostic arrays from
 !        "diag03_mod.f" (eck, bmy, 1/21/05)
 !  (2 ) Now references GET_FRAC_UNDER_PBLTOP from "pbl_mix_mod.f".  Now
-!        performs drydep for all levels in the PBL. (bmy, 2/24/05)
+!        performs drydep for all levels in the PBL.  Changed Kred to 2.1e-10
+!        on advice of Noelle Eckley Selin. (bmy, 2/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -372,7 +373,7 @@
 
       ! K for reduction (scaled to budget and OH conc)
       ! eck may change this later
-      REAL*8, PARAMETER     :: Kred    = 1.05d-10
+      REAL*8, PARAMETER     :: Kred    = 2.1d-10
      
       ! External functions
       REAL*8,  EXTERNAL     :: BOXVL
