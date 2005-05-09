@@ -1,4 +1,4 @@
-! $Id: diag_mod.f,v 1.13 2005/03/29 15:52:41 bmy Exp $
+! $Id: diag_mod.f,v 1.14 2005/05/09 14:33:57 bmy Exp $
       MODULE DIAG_MOD 
 !
 !******************************************************************************
@@ -64,22 +64,6 @@
       !--------------------------------------------
       !! For ND03 -- Kr85 prod/loss
       !REAL*4,  ALLOCATABLE :: AD03(:,:,:,:)
-      !--------------------------------------------
-
-      !--------------------------------------------
-      ! Prior to 1/21/05:
-      !! ND03: Mercury simulation
-      !REAL*4,  ALLOCATABLE :: AD03_Hg0_an(:,:)
-      !REAL*4,  ALLOCATABLE :: AD03_Hg0_aq(:,:)
-      !REAL*4,  ALLOCATABLE :: AD03_Hg2_an(:,:)
-      !REAL*4,  ALLOCATABLE :: AD03_Hg2_aq(:,:)
-      !REAL*4,  ALLOCATABLE :: AD03_HgP_an(:,:)
-      !REAL*4,  ALLOCATABLE :: AD03_Hg0_oc(:,:)
-      !REAL*4,  ALLOCATABLE :: AD03_Hg0_ln(:,:)
-      !REAL*4,  ALLOCATABLE :: AD03_Hg0_nt(:,:)
-      !REAL*4,  ALLOCATABLE :: AD03_Hg2_Hg0(:,:,:)
-      !REAL*4,  ALLOCATABLE :: AD03_Hg2_OH(:,:,:)
-      !REAL*4,  ALLOCATABLE :: AD03_Hg2_O3(:,:,:)
       !--------------------------------------------
 
       ! For ND05 -- Sulfate prod/loss diagnostics
@@ -198,13 +182,6 @@
       ! For ND39 -- Washout in aerosol wet deposition diagnostic
       REAL*4,  ALLOCATABLE :: AD39(:,:,:,:)      
 
-      !----------------------------------------------------
-      ! Prior to 2/17/05:
-      !! For ND41 -- afternoon PBL depths
-      !REAL*4,  ALLOCATABLE :: AD41(:,:,:)
-      !INTEGER, ALLOCATABLE :: AFTTOT(:,:)
-      !----------------------------------------------------
-
       ! For ND43 -- OH, NO, NO2, HO2 chemical diagnostics
       REAL*4,  ALLOCATABLE :: AD43(:,:,:,:)      
       INTEGER, ALLOCATABLE :: LTNO(:,:)
@@ -231,12 +208,6 @@
 
       ! For ND47 -- 24-h tracer concentration diagnostic
       REAL*4,  ALLOCATABLE :: AD47(:,:,:,:)      
-
-      !-------------------------------------------------
-      ! Prior to 1/21/05:
-      !! For ND48 -- station timeseries diagnostic
-      !REAL*8,  ALLOCATABLE :: TCOBOX(:,:)
-      !-------------------------------------------------
 
       ! Dynamically allocatable array -- local only to DIAG50.F
       REAL*8,  ALLOCATABLE :: STT_TEMPO2(:,:,:,:)
@@ -291,20 +262,6 @@
       !=================================================================
       IF ( ALLOCATED( AD01        ) ) DEALLOCATE( AD01        )
       IF ( ALLOCATED( AD02        ) ) DEALLOCATE( AD02        )
-      !-----------------------------------------------------------------
-      ! Prior to 1/21/05:
-      !IF ( ALLOCATED( AD03_Hg0_an ) ) DEALLOCATE( AD03_Hg0_an )
-      !IF ( ALLOCATED( AD03_Hg0_aq ) ) DEALLOCATE( AD03_Hg0_aq )
-      !IF ( ALLOCATED( AD03_Hg2_an ) ) DEALLOCATE( AD03_Hg2_an )
-      !IF ( ALLOCATED( AD03_Hg2_aq ) ) DEALLOCATE( AD03_Hg2_aq )
-      !IF ( ALLOCATED( AD03_HgP_an ) ) DEALLOCATE( AD03_HgP_an )
-      !IF ( ALLOCATED( AD03_Hg0_oc ) ) DEALLOCATE( AD03_Hg0_oc )
-      !IF ( ALLOCATED( AD03_Hg0_ln ) ) DEALLOCATE( AD03_Hg0_ln )
-      !IF ( ALLOCATED( AD03_Hg0_nt ) ) DEALLOCATE( AD03_Hg0_nt )
-      !IF ( ALLOCATED( AD03_Hg2_Hg0) ) DEALLOCATE( AD03_Hg2_Hg0)
-      !IF ( ALLOCATED( AD03_Hg2_OH ) ) DEALLOCATE( AD03_Hg2_OH )
-      !IF ( ALLOCATED( AD03_Hg2_O3 ) ) DEALLOCATE( AD03_Hg2_O3 )
-      !-----------------------------------------------------------------
       IF ( ALLOCATED( AD06        ) ) DEALLOCATE( AD06        )
       IF ( ALLOCATED( AD07        ) ) DEALLOCATE( AD07        )
       IF ( ALLOCATED( AD07_BC     ) ) DEALLOCATE( AD07_BC     )
@@ -351,10 +308,6 @@
       IF ( ALLOCATED( AD37        ) ) DEALLOCATE( AD37        )
       IF ( ALLOCATED( AD38        ) ) DEALLOCATE( AD38        )  
       IF ( ALLOCATED( AD39        ) ) DEALLOCATE( AD39        )
-      !---------------------------------------------------------------
-      ! Prior to 2/17/05:
-      !IF ( ALLOCATED( AD41        ) ) DEALLOCATE( AD41        )
-      !---------------------------------------------------------------
       IF ( ALLOCATED( AD43        ) ) DEALLOCATE( AD43        )
       IF ( ALLOCATED( AD44        ) ) DEALLOCATE( AD44        )
       IF ( ALLOCATED( AD45        ) ) DEALLOCATE( AD45        )
@@ -364,10 +317,6 @@
       IF ( ALLOCATED( AD66        ) ) DEALLOCATE( AD66        )
       IF ( ALLOCATED( AD68        ) ) DEALLOCATE( AD68        )
       IF ( ALLOCATED( AD69        ) ) DEALLOCATE( AD69        )
-      !---------------------------------------------------------------
-      ! Prior to 2/17/05:
-      !IF ( ALLOCATED( AFTTOT      ) ) DEALLOCATE( AFTTOT      )
-      !---------------------------------------------------------------
       IF ( ALLOCATED( CONVFLUP    ) ) DEALLOCATE( CONVFLUP    )
       IF ( ALLOCATED( CT16        ) ) DEALLOCATE( CT16        )
       IF ( ALLOCATED( CT17        ) ) DEALLOCATE( CT17        )
@@ -390,10 +339,6 @@
       IF ( ALLOCATED( MASSFLEW    ) ) DEALLOCATE( MASSFLEW    )
       IF ( ALLOCATED( MASSFLNS    ) ) DEALLOCATE( MASSFLNS    )
       IF ( ALLOCATED( MASSFLUP    ) ) DEALLOCATE( MASSFLUP    )
-      !---------------------------------------------------------------------
-      ! Prior to 1/21/05:
-      !IF ( ALLOCATED( TCOBOX      ) ) DEALLOCATE( TCOBOX      )
-      !---------------------------------------------------------------------
       IF ( ALLOCATED( TURBFLUP    ) ) DEALLOCATE( TURBFLUP    )
       IF ( ALLOCATED( STT_TEMPO2  ) ) DEALLOCATE( STT_TEMPO2  ) 
 

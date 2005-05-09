@@ -1,4 +1,4 @@
-! $Id: lightning_nox_mod.f,v 1.4 2005/03/29 15:52:43 bmy Exp $
+! $Id: lightning_nox_mod.f,v 1.5 2005/05/09 14:33:59 bmy Exp $
       MODULE LIGHTNING_NOX_MOD
 !
 !******************************************************************************
@@ -417,79 +417,6 @@
       !================================================================= 
       ! Scaling: For GEOS-4 met fields only
       !=================================================================
-
-!------------------------------------------------------------------------------
-! Prior to 3/16/05:
-! Make the coding much simpler (bmy, 3/16/05)
-!#if   defined( GRID4x5 )
-!
-!      !----------------------------
-!      ! GEOS-4 4 x 5
-!      !----------------------------
-!
-!      !-----------------------------------------------------------------------
-!      ! Prior to
-!      !! For a GEOS-4 4x5 1-year run with 2003 met fields, 4.1749 Tg N/yr 
-!      !! from lightning is produced.  We need to scale this up to 6 Tg N/yr 
-!      !! as per Randall Martin's research.  Thus we multiply SLBASE by the 
-!      !! scale factor 6 / 4.1749 = 1.43716.  (rvm, djj, bmy, 3/9/04)
-!      !-----------------------------------------------------------------------
-!      
-!      ! Make GEOS-4 4x5 LNOx come out to the same total as GEOS-3 4x5
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
-!      DO L = 1, LLPAR
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!         !---------------------------------------------
-!         ! Prior to 3/15/05:
-!         !SLBASE(I,J,L) = SLBASE(I,J,L) * 1.43716d0
-!         !---------------------------------------------
-!         SLBASE(I,J,L) = SLBASE(I,J,L) * G4_4x5
-!      ENDDO
-!      ENDDO
-!      ENDDO
-!!$OMP END PARALLEL DO
-!
-!#elif defined( GRID2x25 )
-!
-!      !----------------------------
-!      ! GEOS-4 2 x 2.5
-!      !----------------------------
-!      
-!      !-----------------------------------------------------------------------
-!      !! For a GEOS-4 2x25 1-year run with 2003 met fields, 12.355 Tg N/yr 
-!      !! from lightning is produced.  We need to scale this down to 6 Tg N/yr 
-!      !! as per Randall Martin's research.  Thus we multiply SLBASE by the 
-!      !! scale factor 6 / 12.355 = 0.48562  (rvm, djj, bmy, 3/9/04)
-!      !-----------------------------------------------------------------------
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
-!      DO L = 1, LLPAR
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!         !--------------------------------------------
-!         ! Prior to 3/15/05:
-!         !SLBASE(I,J,L) = SLBASE(I,J,L) * 0.48562d0
-!         !--------------------------------------------
-!         SLBASE(I,J,L) = SLBASE(I,J,L) * G4_2x25
-!      ENDDO
-!      ENDDO
-!      ENDDO
-!!$OMP END PARALLEL DO
-!
-!#else defined( GRID1x125 )
-!      
-!      !----------------------------
-!      ! GEOS-4 1 x 1.25
-!      !----------------------------
-!
-!      !NOTE: NEED TO DEFINE THIS!!!
-!
-!#endif
-!------------------------------------------------------------------------------
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )

@@ -1,4 +1,4 @@
-! $Id: readlai.f,v 1.6 2005/02/10 19:53:27 bmy Exp $
+! $Id: readlai.f,v 1.7 2005/05/09 14:34:00 bmy Exp $
       SUBROUTINE READLAI( MM )
 !
 !******************************************************************************
@@ -64,11 +64,6 @@
       ! Read current month's lai (XLAI) at (I,J) and for landtype K
       !=================================================================
 
-      !-----------------------------------------------------------------------
-      ! Prior to 12/6/04:
-      !FILENAME = TRIM( DATA_DIR ) // 'leaf_area_index_200202/lai' //
-      !-----------------------------------------------------------------------
-
       ! Pick proper filename for the old Yuhang Wang LAI, or
       ! for AVHRR satellite-derived LAI (tmf, bmy, 12/20/04)
       IF ( LAVHRRLAI ) THEN
@@ -101,12 +96,6 @@
       !=================================================================
       ! Read following month's lai (XLAI2) at (I,J) and for landtype K 
       !=================================================================
-
-      !-----------------------------------------------------------------------
-      ! Prior to 12/6/04:
-      !! File name
-      !FILENAME = TRIM( DATA_DIR ) // 'leaf_area_index_200202/lai' //
-      !-----------------------------------------------------------------------
 
       ! Pick proper filename for the old Yuhang Wang LAI, or
       ! for AVHRR satellite-derived LAI (tmf, bmy, 12/20/04)

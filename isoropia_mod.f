@@ -1,130 +1,253 @@
-! $Id: isoropia_mod.f,v 1.1 2003/06/30 20:26:04 bmy Exp $
+! $Id: isoropia_mod.f,v 1.2 2005/05/09 14:33:59 bmy Exp $
       MODULE ISOROPIA_MOD
 !
 !******************************************************************************
+!  Module ISOROPIA_MOD contains the routines from the ISORROPIA package, 
+!  which performs aerosol thermodynamical equilibrium (bec, bmy, 4/12/05)
 !
-!  *** ISORROPIA CODE
-!  *** INCLUDE FILE 'ISRPIA.INC'
-!  *** THIS FILE CONTAINS THE DECLARATIONS OF THE GLOBAL CONSTANTS
-!      AND VARIABLES. 
-! 
+!  NOTE: ISORROPIA is Greek for "equilibrium", in case you were wondering. :-)
+!
+!  Original Author: 
 !  *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
 !  *** WRITTEN BY ATHANASIOS NENES
+!
+!  Module Variables (NOTE: also see header file "isoropia.h"):
+!  ============================================================================
+!  (1  ) IACALC           : ?     
+!  (2  ) IMAX             : Longitude dimension for BNC* arrays
+!  (3  ) IPROB            : IPROB=0 calls the forward solver
+!  (4  ) JMAX             : Latitude dimension for BNC* arrays
+!  (5  ) MAXIT            : Max # of internal iterations 
+!  (6  ) METSTBL          : METSTBL=1 no liquid phase (solid+gas only)
+!  (7  ) NCOMP            : ?
+!  (8  ) NDIV             : Number of  
+!  (9  ) NERRMX           : ? 
+!  (10 ) NGASAQ           : ?
+!  (11 ) NIONS            : Number of ions 
+!  (12 ) NOTHER           : ?
+!  (13 ) NPAIR            : ?
+!  (14 ) NRHS             : ? 
+!  (15 ) NSLDS            : Number of solids 
+!  (16 ) NSWEEP           : ?
+!  (17 ) NSO4S            : ? 
+!  (18 ) NASRD            : ? 
+!  (19 ) NZSR             : ? 
+!  (20 ) WFTYP            : ?
+!  (21 ) EPS              : Tolerance value (1e-3)
+!  (22 ) EPSACT           : Another tolerance  (5e-2)
+!  (23 ) GREAT            : A very large number (1e10) 
+!  (24 ) ONE              : Constant set to value of 1.0
+!  (25 ) R                : Gas constant (82.0567d-6
+!  (26 ) TINY             : A very small number (1e-20)
+!  (27 ) TINY2            : Another very small number (1e-11)
+!  (28 ) ZERO             : Constant set to value of 0.0
+!  (29 ) BNC198           : Array to hold values for initializaton
+!  (30 ) BNC223           : Array to hold values for initializaton
+!  (31 ) BNC248           : Array to hold values for initializaton
+!  (32 ) BNC273           : Array to hold values for initializaton  
+!  (33 ) BNC298           : Array to hold values for initializaton   
+!  (34 ) BNC323           : Array to hold values for initializaton   
+!  (35 ) ASRAT            : ? 
+!  (36 ) ASSO4            : ?
+!  (37 ) HNO3_sav         : Array for offline HNO3 (for relaxation to M.M.)
+!
+!  Module Routines:
+!  ============================================================================
+!  (1  ) DO_ISOROPIA      : Interface between GEOS-CHEM and ISORROPIA     
+!  (2  ) GET_GNO3         : Passes gas-phase HNO3 to "sulfate_mod.f"
+!  (3  ) GET_HNO3         : Gets offline HNO3 conc. (relaxed to M.M. ev. 3 hrs)
+!  (4  ) SET_HNO3         : Stores offline HNO3 conc. for next timestep
+!  (5  ) ISOROPIA         : Calls other ISORROPIA routines
+!  (6  ) INIT2            : Initialization routine
+!  (7  ) INIT3            : Initialization routine
+!  (8  ) GETASR           : Internal ISORROPIA routine
+!  (9  ) CALCNA           : Internal ISORROPIA routine
+!  (10 ) CALCNH3          : Internal ISORROPIA routine
+!  (11 ) CALCNIAQ         : Internal ISORROPIA routine
+!  (12 ) CALCNIAQ2        : Internal ISORROPIA routine
+!  (13 ) CALCMR           : Internal ISORROPIA routine
+!  (14 ) CALCMDRH         : Internal ISORROPIA routine
+!  (15 ) CALCMDRP         : Internal ISORROPIA routine
+!  (16 ) CALCHS4          : Internal ISORROPIA routine
+!  (17 ) CALCPH           : Internal ISORROPIA routine
+!  (18 ) CALCACT          : Internal ISORROPIA routine
+!  (19 ) G                : Internal ISORROPIA routine
+!  (20 ) RSTGAM           : Internal ISORROPIA routine
+!  (21 ) KMFUL            : Internal ISORROPIA routine
+!  (22 ) MKBI             : Internal ISORROPIA routine
+!  (23 ) KMTAB            : Internal ISORROPIA routine
+!  (24 ) READ_KMC         : Internal ISORROPIA routine
+!  (25 ) READ_BINARY      : Internal ISORROPIA routine
+!  (26 ) KM198            : Internal ISORROPIA routine
+!  (27 ) KM223            : Internal ISORROPIA routine
+!  (28 ) KM248            : Internal ISORROPIA routine
+!  (29 ) KM273            : Internal ISORROPIA routine
+!  (30 ) KM298            : Internal ISORROPIA routine
+!  (31 ) KM323            : Internal ISORROPIA routine
+!  (32 ) INIT_KMC         : Internal ISORROPIA routine
+!  (33 ) CHRBLN           : Internal ISORROPIA routine
+!  (34 ) SHFTRGHT         : Internal ISORROPIA routine
+!  (35 ) RPLSTR           : Internal ISORROPIA routine
+!  (36 ) PUSHEND          : Internal ISORROPIA routine
+!  (37 ) APPENDEXT        : Internal ISORROPIA routine
+!  (38 ) POLY3            : Internal ISORROPIA routine
+!  (39 ) POLY3B           : Internal ISORROPIA routine
+!  (40 ) FUNC             : Internal ISORROPIA routine
+!  (41 ) EX10             : Internal ISORROPIA routine
+!  (42 ) PUSHERR          : Internal ISORROPIA routine
+!  (43 ) ISERRINF         : Internal ISORROPIA routine
+!  (44 ) ERRSTAT          : Internal ISORROPIA routine
+!  (45 ) ISRP2F           : Internal ISORROPIA routine
+!  (46 ) ISRP3F           : Internal ISORROPIA routine
+!  (47 ) CALCB4           : Internal ISORROPIA routine
+!  (48 ) CALCB3           : Internal ISORROPIA routine
+!  (49 ) CALCB3A          : Internal ISORROPIA routine
+!  (50 ) FUNCB3A          : Internal ISORROPIA routine
+!  (51 ) CALCB3B          : Internal ISORROPIA routine
+!  (52 ) CALCB2           : Internal ISORROPIA routine
+!  (53 ) CALCB2A          : Internal ISORROPIA routine
+!  (54 ) CALCB2A2         : Internal ISORROPIA routine
+!  (55 ) CALCB2B          : Internal ISORROPIA routine
+!  (56 ) FUNCB2B          : Internal ISORROPIA routine
+!  (57 ) CALCB1           : Internal ISORROPIA routine
+!  (58 ) CALCB1A          : Internal ISORROPIA routine
+!  (59 ) CALCB1B          : Internal ISORROPIA routine
+!  (60 ) CALCC2           : Internal ISORROPIA routine
+!  (61 ) CALCC1           : Internal ISORROPIA routine
+!  (62 ) FUNCC1           : Internal ISORROPIA routine
+!  (63 ) CALCD3           : Internal ISORROPIA routine
+!  (64 ) FUNCD3           : Internal ISORROPIA routine
+!  (65 ) CALCD2           : Internal ISORROPIA routine
+!  (66 ) FUNCD2           : Internal ISORROPIA routine
+!  (67 ) CALCD1           : Internal ISORROPIA routine
+!  (68 ) CALCD1A          : Internal ISORROPIA routine
+!  (69 ) CALCG1           : Internal ISORROPIA routine
+!  (70 ) CALCG1A          : Internal ISORROPIA routine
+!  (71 ) CALCG2           : Internal ISORROPIA routine
+!  (72 ) CALCG2A          : Internal ISORROPIA routine
+!  (73 ) FUNCG2A          : Internal ISORROPIA routine
+!  (74 ) CALCG3           : Internal ISORROPIA routine
+!  (75 ) CALCG3A          : Internal ISORROPIA routine
+!  (76 ) FUNCG3A          : Internal ISORROPIA routine
+!  (77 ) CALCG4           : Internal ISORROPIA routine
+!  (78 ) FUNCG4A          : Internal ISORROPIA routine
+!  (79 ) CALCG5           : Internal ISORROPIA routine
+!  (80 ) FUNCG5A          : Internal ISORROPIA routine
+!  (81 ) CALCH1           : Internal ISORROPIA routine
+!  (82 ) CALCH1A          : Internal ISORROPIA routine
+!  (83 ) CALCH2           : Internal ISORROPIA routine
+!  (84 ) CALCH2A          : Internal ISORROPIA routine
+!  (85 ) FUNCH2A          : Internal ISORROPIA routine
+!  (86 ) CALCH3           : Internal ISORROPIA routine
+!  (87 ) FUNCH3A          : Internal ISORROPIA routine
+!  (88 ) CALCH4           : Internal ISORROPIA routine
+!  (89 ) FUNCH4A          : Internal ISORROPIA routine
+!  (90 ) CALCH5           : Internal ISORROPIA routine
+!  (91 ) FUNCH5A          : Internal ISORROPIA routine
+!  (92 ) CALCH6           : Internal ISORROPIA routine
+!  (93 ) FUNCH6A          : Internal ISORROPIA routine
+!  (94 ) CALCI1           : Internal ISORROPIA routine
+!  (95 ) CALCI1A          : Internal ISORROPIA routine
+!  (96 ) CALCI2           : Internal ISORROPIA routine
+!  (97 ) CALCI2A          : Internal ISORROPIA routine
+!  (98 ) FUNCI2A          : Internal ISORROPIA routine
+!  (99 ) CALCI3           : Internal ISORROPIA routine
+!  (100) CALCI3A          : Internal ISORROPIA routine
+!  (101) FUNCI3A          : Internal ISORROPIA routine
+!  (102) FUNCI3B          : Internal ISORROPIA routine
+!  (103) CALCI4           : Internal ISORROPIA routine
+!  (104) FUNCI4A          : Internal ISORROPIA routine
+!  (105) CALCI5           : Internal ISORROPIA routine
+!  (106) FUNCI5A          : Internal ISORROPIA routine
+!  (107) CALCI6           : Internal ISORROPIA routine
+!  (108) CALCJ1           : Internal ISORROPIA routine
+!  (109) FUNCJ1           : Internal ISORROPIA routine
+!  (110) CALCJ2           : Internal ISORROPIA routine
+!  (111) FUNCJ2           : Internal ISORROPIA routine
+!  (112) CALCJ3           : Internal ISORROPIA routine
+!  (113) CALCNHA          : Internal ISORROPIA routine
+!  (114) CALCHA           : Internal ISORROPIA routine
+!  (115) INIT_ISOROPIA    : Allocates and zeroes all module arrays
+!  (116) CLEANUP_ISOROPIA : Deallocates all module arrays
+!
+!  GEOS-CHEM modules referenced by isoropia_mod.f
+!  ============================================================================
+!  (1  ) bpch2_mod.f      : Module w/ routines for binary punch file I/O
+!  (2  ) dao_mod.f        : Module w/ arrays for DAO met fields
+!  (3  ) diag_mod.f       : Module w/ GEOS-CHEM diagnostic arrays
+!  (4  ) directory_mod.f  : Module w/ GEOS-CHEM data & met field dirs
+!  (5  ) error_mod.f      : Module w/ I/O error and NaN check routines
+!  (6  ) grid_mod.f       : Module w/ horizontal grid information
+!  (7  ) logical_mod.f    : Module w/ GEOS-CHEM logical switches
+!  (8  ) time_mod.f       : Module w/ routines for computing time & date
+!  (9  ) tracerid_mod.f   : Module w/ pointers to tracers & emissions
+!  (10 ) transfer_mod.f   : Module w/ routines to cast & resize arrays
+!  
+!  NOTES:
 !******************************************************************************
 !
       IMPLICIT NONE
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "sulfate_mod.f"
+      ! and routines from being seen outside "isoropia_mod.f"
       !=================================================================
 
-      ! Make everything private!
+      ! Make everything PRIVATE ...
       PRIVATE
 
-      ! Make the following routines public
-      PUBLIC :: AERO_THERMO, ISOROPIA
+      ! ... except these routines
+      PUBLIC :: CLEANUP_ISOROPIA
+      PUBLIC :: DO_ISOROPIA
+      PUBLIC :: GET_GNO3
 
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
 
-      ! Parameters
-      INTEGER,           PARAMETER   :: IMAX   = 741
-      INTEGER,           PARAMETER   :: JMAX   = 13
-      INTEGER,           PARAMETER   :: NCOMP  = 5
-      INTEGER,           PARAMETER   :: NIONS  = 7
-      INTEGER,           PARAMETER   :: NGASAQ = 3
-      INTEGER,           PARAMETER   :: NSLDS  = 9  
-      INTEGER,           PARAMETER   :: NPAIR  = 13
-      INTEGER,           PARAMETER   :: NZSR   = 100
-      INTEGER,           PARAMETER   :: NERRMX = 25
-      INTEGER,           PARAMETER   :: NSO4S  = 14
-      INTEGER,           PARAMETER   :: NRHS   = 20
-      INTEGER,           PARAMETER   :: NASRD  = NSO4S * NRHS
+      ! INTEGER parameters
+      INTEGER, PARAMETER   :: IACALC  = 1          
+      INTEGER, PARAMETER   :: IMAX   = 741
+      INTEGER, PARAMETER   :: IPROB   = 0
+      INTEGER, PARAMETER   :: JMAX    = 13
+      INTEGER, PARAMETER   :: MAXIT   = 100
+      INTEGER, PARAMETER   :: METSTBL = 1
+      INTEGER, PARAMETER   :: NCOMP   = 5
+      INTEGER, PARAMETER   :: NDIV    = 5
+      INTEGER, PARAMETER   :: NERRMX  = 25
+      INTEGER, PARAMETER   :: NGASAQ  = 3
+      INTEGER, PARAMETER   :: NIONS   = 7
+      INTEGER, PARAMETER   :: NOTHER  = 6
+      INTEGER, PARAMETER   :: NPAIR   = 13
+      INTEGER, PARAMETER   :: NRHS    = 20
+      INTEGER, PARAMETER   :: NSLDS   = 9
+      INTEGER, PARAMETER   :: NSWEEP  = 4
+      INTEGER, PARAMETER   :: NSO4S   = 14
+      INTEGER, PARAMETER   :: NASRD   = NSO4S * NRHS
+      INTEGER, PARAMETER   :: NZSR    = 100
+      INTEGER, PARAMETER   :: WFTYP   = 2 
+
+      ! REAL*8 parameters
+      REAL*8,  PARAMETER   :: EPS     = 1.d-3
+      REAL*8,  PARAMETER   :: EPSACT  = 5.d-2        
+      REAL*8,  PARAMETER   :: GREAT   = 1.d10
+      REAL*8,  PARAMETER   :: ONE     = 1.0d0
+      REAL*8,  PARAMETER   :: R       = 82.0567d-6
+      REAL*8,  PARAMETER   :: TINY    = 1d-20
+      REAL*8,  PARAMETER   :: TINY2   = 1.d-11
+      REAL*8,  PARAMETER   :: ZERO    = 0.0d0
 
       ! Allocatable arrays
-      REAL*8,            ALLOCATABLE :: ASRAT(:)
-      REAL*8,            ALLOCATABLE :: ASSO4(:)
-      REAL*8,            ALLOCATABLE :: AWAB(:)
-      REAL*8,            ALLOCATABLE :: AWAC(:) 
-      REAL*8,            ALLOCATABLE :: AWAN(:) 
-      REAL*8,            ALLOCATABLE :: AWAS(:)
-      REAL*8,            ALLOCATABLE :: AWLC(:)
-      REAL*8,            ALLOCATABLE :: AWSA(:)
-      REAL*8,            ALLOCATABLE :: AWSB(:)
-      REAL*8,            ALLOCATABLE :: AWSC(:)
-      REAL*8,            ALLOCATABLE :: AWSS(:)
-      REAL*8,            ALLOCATABLE :: AWSN(:)
-      REAL*4,            ALLOCATABLE :: BNC198(:,:)
-      REAL*4,            ALLOCATABLE :: BNC223(:,:)
-      REAL*4,            ALLOCATABLE :: BNC248(:,:)      
-      REAL*4,            ALLOCATABLE :: BNC273(:,:)
-      REAL*4,            ALLOCATABLE :: BNC298(:,:)
-      REAL*4,            ALLOCATABLE :: BNC323(:,:)
-      INTEGER,           ALLOCATABLE :: ERRSTK(:)
-      CHARACTER(LEN=40), ALLOCATABLE :: ERRMSG(:)
-      REAL*8,            ALLOCATABLE :: GAMA(:)
-      REAL*8,            ALLOCATABLE :: GAMIN(:)
-      REAL*8,            ALLOCATABLE :: GAMOU(:)
-      REAL*8,            ALLOCATABLE :: GASAQ(:)
-      REAL*8,            ALLOCATABLE :: IMW(:)
-      REAL*8,            ALLOCATABLE :: M0(:)
-      REAL*8,            ALLOCATABLE :: MOLAL(:)
-      REAL*8,            ALLOCATABLE :: MOLALR(:)
-      REAL*8,            ALLOCATABLE :: SMW(:)
-      REAL*8,            ALLOCATABLE :: W(:)
-      REAL*8,            ALLOCATABLE :: WMW(:)
-      REAL*8,            ALLOCATABLE :: WAER(:)
-      REAL*8,            ALLOCATABLE :: Z(:)
-      REAL*8,            ALLOCATABLE :: ZZ(:)
-
-      ! Scalar variables
-      LOGICAL                        :: CALAIN,   CALAOU
-      LOGICAL                        :: DRYF,     FRST,     STKOFL   
-      INTEGER                        :: IACALC,   ICLACT,   IPROB 
-      INTEGER                        :: MAXIT,    METSTBL,  NDIV
-      INTEGER                        :: NSWEEP,   WFTYP,    NOFER
-      REAL*4                         :: IONIC
-      REAL*8                         :: A1,       A2,       A3
-      REAL*8                         :: A4,       A5,       A6
-      REAL*8                         :: A7,       A8,       ONE
-      REAL*8                         :: CHI1,     CHI2,     CHI3
-      REAL*8                         :: CHI4,     CHI5,     CHI6
-      REAL*8                         :: CHI7,     CHI8,     GREAT
-      REAL*8                         :: CH2SO4,   CNH42S4,  CNH4HS4 
-      REAL*8                         :: CNACL,    CNA2SO4,  CNANO3 
-      REAL*8                         :: CNH4NO3,  CNH4CL,   CNAHSO4 
-      REAL*8                         :: CLC,      CHCL,     CHNO3    
-      REAL*8                         :: COH,      EPS,      EPSACT
-      REAL*8                         :: GNH3,     GHNO3,    GHCL 
-      REAL*8                         :: DRH2SO4,  DRNH42S4, DRNAHSO4
-      REAL*8                         :: DRNACL,   DRNANO3,  DRNA2SO4 
-      REAL*8                         :: DRNH4HS4, DRLC,     DRNH4NO3
-      REAL*8                         :: DRNH4CL,  DRMLCAB,  DRMLCAS
-      REAL*8                         :: DRMASAN,  DRMG1,    DRMG2
-      REAL*8                         :: DRMG3,    DRMH1,    DRMH2
-      REAL*8                         :: DRMI1,    DRMI2     DRMI3
-      REAL*8                         :: DRMQ1,    DRMR1,    DRMR2
-      REAL*8                         :: DRMR3,    DRMR4,    DRMR5
-      REAL*8                         :: DRMR6,    DRMR7,    DRMR8
-      REAL*8                         :: DRMR9,    DRMR10,   DRMR11
-      REAL*8                         :: DRMR12,   DRMR13  
-      REAL*8                         :: PSI1,     PSI2,     PSI3
-      REAL*8                         :: PSI4,     PSI5,     PSI6
-      REAL*8                         :: PSI7,     PSI8,     R
-      REAL*8                         :: RH,       SULRATW,  SULRAT
-      REAL*8                         :: SODRAT,   TEMP,     TINY
-      REAL*8                         :: TINY2,    WATER,    ZERO
-      REAL*8                         :: XK1,      XK2,      XK3
-      REAL*8                         :: XK4,      XK5,      XK6
-      REAL*8                         :: XK7,      XK8,      XK9
-      REAL*8                         :: XK10,     XK11,     XK12
-      REAL*8                         :: XK13,     XK14,     XKW
-      REAL*8                         :: XK21,     XK22,     XK31
-      REAL*8                         :: XK32,     XK41,     XK42
-      CHARACTER(LEN=14)              :: VERSION
-      CHARACTER(LEN=15)              :: SCASE
+      REAL*4,  ALLOCATABLE :: BNC198(:,:)
+      REAL*4,  ALLOCATABLE :: BNC223(:,:)
+      REAL*4,  ALLOCATABLE :: BNC248(:,:)      
+      REAL*4,  ALLOCATABLE :: BNC273(:,:)
+      REAL*4,  ALLOCATABLE :: BNC298(:,:)
+      REAL*4,  ALLOCATABLE :: BNC323(:,:)
+      REAL*8,  ALLOCATABLE :: ASRAT(:)
+      REAL*8,  ALLOCATABLE :: ASSO4(:)
+      REAL*8,  ALLOCATABLE :: HNO3_sav(:,:,:)
+      REAL*8,  ALLOCATABLE :: GAS_HNO3(:,:,:)
 
       !=================================================================
       ! MODULE ROUTINES -- follow after the CONTAINS statement
@@ -133,131 +256,400 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE AERO_THERMO( HNO3, STT )
+      SUBROUTINE DO_ISOROPIA
 !
-!***********************************************************************
-!  Subroutine AERO_THERMO is the interface between the GEOS-CHEM model
+!******************************************************************************
+!  Subroutine DO_ISOROPIA is the interface between the GEOS-CHEM model
 !  and the aerosol thermodynamical equilibrium routine in "rpmares.f"
-!  [rjp, 12/17/01]
+!  (rjp, bec, bmy, 12/17/01, 3/10/05)
 ! 
-!  Arguments as Input:
-!  =====================================================================
-!  (2 ) TEMP    (REAL*8  ) : Air temperature                  [K]
-!  (4 ) RH      (REAL*8  ) : Fractional relative humidity
-!  (8 ) VOL     (REAL*8  ) : Volume  of air  in a grid box    [m^3]
-!  (  ) HNO3    (REAL*8  ) : HNO3 contains monthly HNO3 conc. [kg]
-!  (13) STT     (REAL*8  ) : Array for tracer concentrations  [kg]  
-!
-!  Arguments as Output:
-!  =====================================================================
-!
-!  (13) STT     (REAL*8 ) : STT contains updated concentrations
-!
 !  NOTES: Aerosol concentrations are all in ug/m^3
-!***********************************************************************
+!******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD, ONLY : AIRVOL, RH, T
+      USE DAO_MOD,         ONLY : AIRVOL, RH, T
+      USE ERROR_MOD,       ONLY : DEBUG_MSG,       ERROR_STOP 
+      USE GLOBAL_HNO3_MOD, ONLY : GET_GLOBAL_HNO3, GET_HNO3_UGM3
+      USE LOGICAL_MOD,     ONLY : LPRT
+      USE TIME_MOD,        ONLY : GET_MONTH,       ITS_A_NEW_MONTH
+      USE TRACER_MOD
+      USE TRACERID_MOD
 
-      IMPLICIT NONE
+#     include "CMN_SIZE"        ! Size aprameters
+#     include "CMN"             ! LPAUSE
+#     include "isoropia.h"      ! ISOROPIA common blocks
 
-#     include "CMN_SIZE"
+      ! Local variables
+      LOGICAL, SAVE            :: FIRST = .TRUE.
+      INTEGER                  :: I,    J,    L,    N
+      REAL*8                   :: ANO3, GNO3, RHI,  TEMPI
+      REAL*8                   :: TNa,  TCl,  TNH3, TNH4
+      REAL*8                   :: TNIT, TNO3, TSO4, VOL
+      REAL*8                   :: AERLIQ(NIONS+NGASAQ+2)
+      REAL*8                   :: AERSLD(NSLDS) 
+      REAL*8                   :: GAS(NGASAQ) 
+      REAL*8                   :: OTHER(NOTHER)
+      REAL*8                   :: WI(NCOMP)    
+      REAL*8                   :: WT(NCOMP)
+      CHARACTER(LEN=255)       :: X 
 
-      ! Kg/box
-      REAL*8,  INTENT(INOUT) :: HNO3(IIPAR,JJPAR,LLPAR)     
-      REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NNPAR)
-
-      ! Local variables for RPMARES
-      LOGICAL, SAVE      :: FIRST = .TRUE.
-      INTEGER            :: I, J, L
-      REAL*8             :: SO4     ! total sulfate aerosol for input ( ug/m^3)
-      REAL*8             :: ASO4    ! sulfate aerosol(SO4--)
-      REAL*8             :: ANO3    ! nitrate aerosol
-      REAL*8             :: AH2O    ! water content in sulfate aerosol
-      REAL*8             :: ANH4    ! ammonium in aerosol
-      REAL*8             :: GNH3    ! ammonia (GAS)
-      REAL*8             :: GNO3    ! nitric acid (gas)
-      REAL*8             :: AHSO4   ! bisulfate (AEROSOL)
-      REAL*8             :: WI(5),  CNTRL(2),   RHI
-      REAL*8             :: TEMPI,  VOL,        WT(5)
-      REAL*8             :: GAS(3), AERLIQ(12), AERSLD(9), OTHER(6)
-      REAL*8             :: TSO4, TNH3, TNO3
-      CHARACTER(LEN=15)  :: SCASE
-
-      ! concentration lower limit [ ug/m**3 ]
-      REAL*8,  PARAMETER :: CONMIN = 1.0D-30
+      ! Concentration lower limit [mole/m3]
+      REAL*8,  PARAMETER       :: CONMIN = 1.0d-30
                   
       !=================================================================
-      ! AERO_THERMO begins here!
+      ! DO_ISOROPIA begins here!
       !=================================================================
 
-      ! Initialize module arrays and variables
+      ! Location string
+      X = 'DO_ISOROPIA (isoropia_mod.f)'
+
+      ! First-time initialization
       IF ( FIRST ) THEN
+
+         ! Make sure certain tracers are defined
+         IF ( IDTSO4  == 0 ) CALL ERROR_STOP( 'IDTSO4 is undefined!', X)
+         IF ( IDTNH3  == 0 ) CALL ERROR_STOP( 'IDTNH3 is undefined!', X)
+         IF ( IDTNH4  == 0 ) CALL ERROR_STOP( 'IDTNH4 is undefined!', X)
+         IF ( IDTNIT  == 0 ) CALL ERROR_STOP( 'IDTNIT is undefined!', X)
+         IF ( IDTSALA == 0 ) CALL ERROR_STOP( 'IDTSALA is undefined!',X)
+
+         ! Initialize arrays
          CALL INIT_ISOROPIA
-         FIRST = .FALSE.
+
+         ! Reset first-time flag
+         FIRST = .FALSE. 
       ENDIF
-       
-      ! 0 = (SOLID+LIQUID), 1 = METASTABLE(ONLY LIQUID)
-      CNTRL(1) = 0D0 
-      CNTRL(2) = 1D0         
+
+      !=================================================================
+      ! Check to see if we have to read in monthly mean HNO3
+      !=================================================================
+      IF ( IDTHNO3 == 0 ) THEN
+
+         IF ( ITS_A_FULLCHEM_SIM() ) THEN
+
+            ! Coupled simulation: stop w/ error since we need HNO3
+            CALL ERROR_STOP( 'IDTHNO3 is not defined!', X )
+ 
+         ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+
+            ! Offline simulation: read monthly mean HNO3
+            IF ( ITS_A_NEW_MONTH() ) THEN
+               CALL GET_GLOBAL_HNO3( GET_MONTH() )
+            ENDIF
+
+            ! Initialize for each timestep (bec, bmy, 4/15/05)
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+            DO L = 1, LLTROP
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               GAS_HNO3(I,J,L) = 0d0
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+         ELSE
+
+            ! Otherwise stop w/ error
+            CALL ERROR_STOP( 'Invalid simulation type!', X )
+
+         ENDIF
+      ENDIF
 
       !=================================================================
       ! Loop over grid boxes and call ISOROPIA (see comments in the 
       ! ISOROPIA routine below which describe the input/output args)
       !=================================================================
+       
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, TEMPI, RHI, VOL, OTHER, SCASE )
-!$OMP+PRIVATE( WI, TSO4, TNH3, TNO3, WT, GAS, AERSLD, AERLIQ )
-      DO L = 1, LLPAR
+!$OMP+PRIVATE( I,    J,      L,      N,     WI,   WT,  GAS,  TEMPI )
+!$OMP+PRIVATE( RHI,  VOL,    TSO4,   TNH3,  TNa,  TCl, ANO3, GNO3  )
+!$OMP+PRIVATE( TNO3, AERLIQ, AERSLD, OTHER, TNH4, TNIT             )
+!$OMP+SCHEDULE( DYNAMIC )  
+      DO L = 1, LLTROP
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
+         ! Skip strat boxes 
+         IF ( L >= LPAUSE(I,J) ) CYCLE
+
+         ! coordinates
+         I_SAV = I
+         J_SAV = J
+         L_SAV = L
+
+         ! Initialize WI, WT
+         DO N = 1, NCOMP
+            WI(N) = 0d0
+            WT(N) = 0d0
+         ENDDO
+
+         ! Initialize GAS
+         DO N = 1, NGASAQ
+            GAS(N) = 0d0
+         ENDDO
+
          ! Temperature [K]
-         TEMPI  = T(I,J,L)
+         TEMPI    = T(I,J,L)
 
          ! Relative humidity [unitless]
-         RHI    = RH(I,J,L) * 1.d-2
+         RHI      = RH(I,J,L) * 1.d-2
+
+         ! Force RH in the range 0.01 - 0.95
+	 RHI      = MAX( 0.01d0, RHI )
+	 RHI      = MIN( 0.95d0, RHI )
 
          ! Volume of grid box [m3] 
-         VOL    = AIRVOL(I,J,L)
+         VOL      = AIRVOL(I,J,L)
 
-         ! Convert tracers from [kg] to [mole/m3]
-         TSO4   = STT(I,J,L,3) * 1.d3 / ( 96.D0 * VOL )
-         TNH3   = STT(I,J,L,6) * 1.D3 / ( 18.D0 * VOL )  +
-     &            STT(I,J,L,5) * 1.D3 / ( 17.D0 * VOL )
-         TNO3   = HNO3(I,J,L)  * 1.D3 / ( 63.D0 * VOL )
+         !---------------------------------
+         ! Compute quantities for ISOROPIA
+         !---------------------------------
+                                
+         ! Total SO4 [mole/m3]
+         TSO4     = STT(I,J,L,IDTSO4) * 1.d3 / ( 96.d0 * VOL )
 
-         ! Insert into WI array
-         WI     = 0D0
-         WI(2)  = MAX( TSO4, CONMIN )
-         WI(3)  = MAX( TNH3, CONMIN )
-         WI(4)  = MAX( TNO3, CONMIN )
+         ! Total NH3 [mole/m3] 
+         TNH3     = STT(I,J,L,IDTNH4) * 1.d3 / ( 18.d0 * VOL )  +
+     &              STT(I,J,L,IDTNH3) * 1.d3 / ( 17.d0 * VOL )
 
-         ! Unit for isoropia input is mole/m^3
-         CALL ISOROPIA( WI, RHI, TEMPI,  CNTRL,
-     &                  WT, GAS, AERLIQ, AERSLD, SCASE, OTHER )
+         IF ( IDTSALA > 0 ) THEN
+            
+            ! Total Na+ (30.61% by weight of seasalt) [mole/m3]
+            TNa      = STT(I,J,L,IDTSALA) * 0.3061d0 * 1.d3 /
+     &                                 ( 22.99d0  * VOL  )
+	    ! Total Cl- (55.04% by weight of seasalt) [mole/m3]
+            TCl      = STT(I,J,L,IDTSALA) * 0.5504d0 * 1.d3 /
+     &                                 ( 35.45d0  * VOL  )
+	 ELSE
 
-         ! Convert output from ISOROPIA back to [kg/box] and store in STT
-         STT(I,J,L,3) = MAX( 96.D-3 * VOL * WT(2),              CONMIN )
-         STT(I,J,L,5) = MAX( 17.D-3 * VOL * GAS(1),             CONMIN )
-         STT(I,J,L,6) = MAX( 18.D-3 * VOL * ( WT(3) - GAS(1) ), CONMIN )
-         STT(I,J,L,7) = MAX( 62.D-3 * VOL * ( WT(4) - GAS(2) ), CONMIN )
-         !HNO3(I,J,L ) = MAX(63.D-3*AIRVOL* GAS(2), CONMIN)
-         !WH2O(I,J,L ) = 18.D-3 * AIRVOL *   AERLIQ(8)
- 
+	    ! no seasalt, set to zero
+            TNa = ZERO
+            TCl = ZERO
+
+         ENDIF
+
+         ! Compute gas-phase NO3
+         IF ( IDTHNO3 > 0 ) THEN
+            
+            !---------------------
+            ! COUPLED SIMULATION
+            !---------------------
+
+            ! Compute gas-phase HNO3 [mole/m3] from HNO3 tracer
+            GNO3  = STT(I,J,L,IDTHNO3)
+            GNO3  = MAX( GNO3 * 1.d3 / ( 63.d0 * VOL ), CONMIN )
+
+            ! Aerosol-phase NO3 [mole/m3]
+            ANO3     = STT(I,J,L,IDTNIT) * 1.d3 / ( 62.d0 * VOL )
+
+            ! Total NO3 [mole/m3]
+            TNO3    = GNO3 + ANO3
+
+         ELSE
+
+            !---------------------
+            ! OFFLINE SIMULATION
+            !---------------------
+
+	    ! Convert total inorganic NO3 from [ug/m3] to [mole/m3].
+            ! GET_HNO3, lets HNO3 conc's evolve, but relaxes to 
+            ! monthly mean values every 3h.
+            TNO3  = GET_HNO3( I,J,L ) * 1.d-6 / 63.d0
+
+         ENDIF
+
+         !---------------------------------
+         ! Call ISOROPIA
+         !---------------------------------
+
+         ! Insert concentrations [mole/m3] into WI & prevent underflow
+         WI(1)    = MAX( TNA,  CONMIN )
+         WI(2)    = MAX( TSO4, CONMIN )
+         WI(3)    = MAX( TNH3, CONMIN )
+         WI(4)    = MAX( TNO3, CONMIN )
+	 WI(5)    = MAX( TCL,  CONMIN )
+
+         ! Perform aerosol thermodynamic equilibrium 
+         CALL ISOROPIA( WI,  RHI,    TEMPI,  WT, 
+     &                  GAS, AERLIQ, AERSLD, OTHER )
+
+         !---------------------------------
+         ! Save back into tracer array
+         !---------------------------------
+         
+         ! Convert ISOROPIA output from [mole/m3] to [kg]
+         TSO4 = MAX( 96.d-3 * VOL *   WT(2),            CONMIN )
+         TNH3 = MAX( 17.d-3 * VOL *   GAS(1),           CONMIN )
+         TNH4 = MAX( 18.d-3 * VOL * ( WT(3) - GAS(1) ), CONMIN )
+         TNIT = MAX( 62.d-3 * VOL * ( WT(4) - GAS(2) ), CONMIN )
+
+         ! Save tracers back into STT array [kg]
+         STT(I,J,L,IDTSO4) = TSO4
+         STT(I,J,L,IDTNH3) = TNH3
+         STT(I,J,L,IDTNH4) = TNH4
+         STT(I,J,L,IDTNIT) = TNIT
+
+         ! Special handling for HNO3 [kg]
+         IF ( IDTHNO3 > 0 ) THEN
+            
+            !---------------------
+            ! COUPLED SIMULATION
+            !---------------------
+
+            ! HNO3 [mole/m3] is in GAS(2); convert & store in STT [kg]
+            STT(I,J,L,IDTHNO3) = MAX( 63.d-3 * VOL * GAS(2), CONMIN )
+
+         ELSE
+
+            !---------------------
+            ! OFFLINE SIMULATION:
+            !---------------------
+
+            ! Convert total inorganic nitrate from [mole/m3] to [ug/m3] 
+            ! and save for next time
+            ! WT(4) is in [mole/m3] -- unit conv is necessary!
+            CALL SET_HNO3( I, J, L, 63.d6 * WT(4) )
+
+	    ! Save for use in sulfate_mod (SEASALT_CHEM) for offline
+  	    ! aerosol simulations (bec, 4/15/05)
+	    GAS_HNO3(I,J,L) = GAS(2)
+
+	 ENDIF
+          
       ENDDO
       ENDDO
-      ENDDO
+      ENDDO 
 !$OMP END PARALLEL DO 
 
+      !### Debug
+      IF ( LPRT ) CALL DEBUG_MSG( '### ISOROPIA: a AERO_THERMO' )
+
       ! Return to calling program
-      END SUBROUTINE AERO_THERMO
+      END SUBROUTINE DO_ISOROPIA
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE ISOROPIA( WI, RHI, TEMPI,  CNTRL, 
-     &                     WT, GAS, AERLIQ, AERSLD, SCASI, OTHER )
+      FUNCTION GET_HNO3( I, J, L ) RESULT ( HNO3_UGM3 )
+!
+!******************************************************************************
+!  Subroutine GET_HNO3 allows the HNO3 concentrations to evolve with time,
+!  but relaxes back to the monthly mean concentrations every 3 hours.
+!  (bmy, 12/16/02, 3/24/03)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1-3) I, J, L   (INTEGER) : Grid box lon, lat, alt indices
+!
+!  Function Value: 
+!  ============================================================================
+!  (1  ) HNO3_UGM3 (REAL*8 ) : HNO3 concentration in ug/m3
+!
+!  NOTES:
+!  (1 ) Now use function GET_ELAPSED_MIN() from the new "time_mod.f" to
+!        get the elapsed minutes since the start of run. (bmy, 3/24/03)
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE GLOBAL_HNO3_MOD, ONLY : GET_HNO3_UGM3
+      USE TIME_MOD,        ONLY : GET_ELAPSED_MIN
+
+      ! Arguments
+      INTEGER, INTENT(IN) :: I, J, L
+
+      ! Local variables
+      REAL*8              :: HNO3_UGM3
+
+      !=================================================================
+      ! GET_HNO3 begins here!
+      !=================================================================
+
+      ! Relax to monthly mean HNO3 concentrations every 3 hours
+      ! Otherwise just return the concentration in HNO3_sav
+      IF ( MOD( GET_ELAPSED_MIN(), 180 ) == 0 ) THEN
+         HNO3_UGM3 = GET_HNO3_UGM3( I, J, L )
+      ELSE
+         HNO3_UGM3 = HNO3_sav(I,J,L)
+      ENDIF
+
+      ! Return to calling program
+      END FUNCTION GET_HNO3
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE SET_HNO3( I, J, L, HNO3_UGM3 )
+!
+!******************************************************************************
+!  Subroutine SET_HNO3 stores the modified HNO3 value back into the HNO3_sav
+!  array for the next timestep. (bmy, 12/16/02)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1-3) I, J, L   (INTEGER) : Grid box lon, lat, alt indices
+!  (4  ) HNO3_UGM3 (REAL*8 ) : HNO3 concentration in ug/m3
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Arguments
+      INTEGER, INTENT(IN) :: I, J, L
+      REAL*8,  INTENT(IN) :: HNO3_UGM3
+      
+      !=================================================================
+      ! SET_HNO3 begins here!
+      !=================================================================
+      HNO3_sav(I,J,L) = HNO3_UGM3
+
+      ! Return to calling program
+      END SUBROUTINE SET_HNO3
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE GET_GNO3( I, J, L, HNO3_kg )
+!
+!******************************************************************************
+!  Function GET_GNO3 returns the gas-phase HNO3 [v/v] for calculation of 
+!  sea-salt chemistry in sulfate_mod (SEASALT_CHEM) (bec, bmy, 4/15/05)
+! 
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) I, J, L
+!
+!  Arguments as Output:
+!  ============================================================================
+!  (2 ) HNO3_kg [kg]
+!
+!  NOTES:
+!******************************************************************************
+!
+      USE DAO_MOD,      ONLY : AIRVOL, AD
+
+      ! Arguments
+      INTEGER, INTENT(IN)  :: I, J, L 
+      
+      ! Return value
+      REAL*8, INTENT(OUT)  :: HNO3_kg ! [kg]
+ 
+      !=================================================================
+      ! GET_GNO3 begins here!
+      !=================================================================
+
+      ! Zero variables
+      HNO3_kg  = 0.D0
+
+      ! convert from [mole/m3] to [kg]
+      HNO3_kg = GAS_HNO3(I,J,L) * 63.d-3 * AIRVOL(I,J,L) 
+
+      ! Return to calling program
+      END SUBROUTINE GET_GNO3
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE ISOROPIA( WI, RHI, TEMPI,  
+     &                     WT, GAS, AERLIQ, AERSLD, OTHER )
 !
 !******************************************************************************
 !
@@ -382,43 +774,37 @@
 !
 !******************************************************************************
 !
-      ! Parameters
-      INTEGER, PARAMETER    :: NCTRL=2, NOTHER=6
+#     include "CMN_SIZE"    ! Size parameters
+#     include "isoropia.h"  ! ISOROPIA common blocks
 
       ! Arguments
-      REAL*8, INTENT(IN)    :: RHI, TEMPI
-      REAL*8, INTENT(IN)    :: WI(NCOMP)
-      REAL*8, INTENT(IN)    :: CNTRL(NCTRL)
-      REAL*8, INTENT(OUT)   :: WT(NCOMP)
-      REAL*8, INTENT(OUT)   :: GAS(NGASAQ)
-      REAL*8, INTENT(OUT)   :: AERSLD(NSLDS) 
-      REAL*8, INTENT(OUT)   :: AERLIQ(NIONS+NGASAQ+2)
-      REAL*8, INTENT(OUT)   :: OTHER(NOTHER)
+      REAL*8,  INTENT(IN)  :: RHI, TEMPI
+      REAL*8,  INTENT(IN)  :: WI(NCOMP)
+      REAL*8,  INTENT(OUT) :: WT(NCOMP)
+      REAL*8,  INTENT(OUT) :: GAS(NGASAQ)
+      REAL*8,  INTENT(OUT) :: AERSLD(NSLDS) 
+      REAL*8,  INTENT(OUT) :: AERLIQ(NIONS+NGASAQ+2)
+      REAL*8,  INTENT(OUT) :: OTHER(NOTHER)
 
       ! Local variables
-      INTEGER               :: I
-      CHARACTER(LEN=15)     :: SCASI
+      INTEGER              :: K
 
       !=================================================================
       ! ISOROPIA begins here!
       !=================================================================
+	
+      ! We always solve the FORWARD PROBLEM
+      IF ( WI(1) < TINY .AND. WI(5) < TINY ) THEN 
 
-      ! PROBLEM TYPE (0=FOREWARD, 1=REVERSE)
-      IPROB   = NINT(CNTRL(1))
+         ! Call ISRP2F if Na+, Cl- are both zero
+         CALL ISRP2F( WI, RHI, TEMPI )
 
-      ! AEROSOL STATE (0=SOLID+LIQUID, 1=METASTABLE
-      METSTBL = NINT(CNTRL(2))
+      ELSE
 
-      !=================================================================
-      ! SOLVE FORWARD PROBLEM
-      !=================================================================
-      CALL ISRP2F( WI, RHI, TEMPI )
+         ! Otherwise call ISRP3F for nonzero Na+, Cl-
+         CALL ISRP3F (WI, RHI, TEMPI)
 
-      ! IF METASTABLE AND NO WATER - RESOLVE AS NORMAL
-      !IF (WATER.LE.TINY .AND. METSTBL.EQ.1) THEN
-      !   METSTBL = 0
-      !   GOTO 50
-      !ENDIF
+      ENDIF
 
       !=================================================================
       ! Save results to arrays (units = mole/m3)
@@ -430,30 +816,36 @@
       GAS(3) = GHCL
 
       ! Liquid aerosol species
-      DO I = 1, NIONS              
-         AERLIQ(I) = MOLAL(I)
+      ! This gives AERLIQ(1,3,5-7) H, NH4, SO4, HSO4, NO3
+      DO K = 1, NIONS              
+         AERLIQ(K) = MOLAL(K)
       ENDDO
 
-      DO I = 1, NGASAQ
-         AERLIQ(NIONS+1+I) = GASAQ(I)
+      ! This gives AERLIQ(9-11) NH3, HNCl, HNO3 aqeuous
+      ! but GASAQ(1-3) is NH3, HNO3, HCl these are always zero
+      DO K = 1, NGASAQ
+         AERLIQ(NIONS+1+K)   = GASAQ(K)
       ENDDO
 
+      ! This gives AERLIQ(8) H2O
       AERLIQ(NIONS+1)        = WATER*1.0D3/18.0D0
+
+      ! This gives AERLIQ(12) OH-  this is always zero
       AERLIQ(NIONS+NGASAQ+2) = COH
 
-      ! Solid aerosol species
-      AERSLD(1) = CNANO3           
+      ! Solid aerosol species 
+      AERSLD(1) = CNaNO3           
       AERSLD(2) = CNH4NO3
-      AERSLD(3) = CNACL
+      AERSLD(3) = CNaCL
       AERSLD(4) = CNH4CL
-      AERSLD(5) = CNA2SO4
+      AERSLD(5) = CNa2SO4
       AERSLD(6) = CNH42S4
-      AERSLD(7) = CNAHSO4
+      AERSLD(7) = CNaHSO4
       AERSLD(8) = CNH4HS4
       AERSLD(9) = CLC
 
       ! Dry flag
-      IF(WATER.LE.TINY) THEN    
+      IF( WATER <= TINY ) THEN    
          OTHER(1) = 1.d0
       ELSE
          OTHER(1) = 0.d0
@@ -461,13 +853,11 @@
 
       ! Other stuff
       OTHER(2) = SULRAT         
-      OTHER(3) = SULRATW
-      OTHER(4) = SODRAT
-      OTHER(5) = IONIC
-      OTHER(6) = ICLACT
-
-      SCASI = SCASE
-
+      OTHER(3) = SULRATW ! always 2 
+      OTHER(4) = SODRAT  ! always zero
+      OTHER(5) = IONIC   ! always zero
+      OTHER(6) = ICLACT  ! activity counter
+	
       ! Total gas+aerosol phase
       WT(1) = WI(1)             
       WT(2) = WI(2)
@@ -475,7 +865,8 @@
       WT(4) = WI(4)
       WT(5) = WI(5)
 
-      IF (IPROB.GT.0 .AND. WATER.GT.TINY) THEN 
+      ! For reverse problem
+      IF ( IPROB > 0 .AND. WATER > TINY ) THEN 
          WT(3) = WT(3) + GNH3 
          WT(4) = WT(4) + GHNO3
          WT(5) = WT(5) + GHCL
@@ -500,14 +891,18 @@
 !
 !******************************************************************************
 !
-      ! Arguments
-      REAL*8          :: WI(NCOMP), RHI, TEMPI
+#     include "CMN_SIZE"    ! Size parameters
+#     include "isoropia.h"  ! ISOROPIA common blocks
 
-      ! Local variables ??
-      INTEGER         :: I,  IRH
-      REAL            :: IC, GII, GI0, XX
-      REAL, PARAMETER :: LN10=2.3025851
-      REAL*8          :: T0, T0T, COEF, TCF, G130, G13I
+      ! Arguments
+      REAL*8, INTENT(IN)   :: WI(NCOMP)
+      REAL*8, INTENT(IN)   :: RHI, TEMPI
+
+      ! Local variables
+      INTEGER              :: K,  IRH
+      REAL*8               :: IC, GII, GI0, XX 
+      REAL*8 , PARAMETER   :: LN10=2.3025851d0
+      REAL*8               :: T0, T0T, COEF, TCF, G130, G13I
 
       !=================================================================
       ! INIT2 begins here!
@@ -517,55 +912,55 @@
       IF (IPROB.EQ.0) THEN                 
 
          ! Forward calculation
-         DO I=1,NCOMP
-            W(I) = MAX(WI(I), TINY)
+         DO K=1,NCOMP
+            W(K) = MAX(WI(K), TINY)
          ENDDO
 
       ELSE
          
          ! Reverse calculation
-         DO 15 I=1,NCOMP                   
-            WAER(I) = MAX(WI(I), TINY)
-            W(I)    = ZERO
+         DO 15 K=1,NCOMP                   
+            WAER(K) = MAX(WI(K), TINY)
+            W(K)    = ZERO
 15       CONTINUE
       ENDIF
 
-      RH      = RHI
+      RHB     = RHI
       TEMP    = TEMPI
 
       !=================================================================
       ! Calculate equilibrium constants
       !=================================================================
 
-      XK1  = 1.015e-2  ! HSO4(aq)         <==> H(aq)     + SO4(aq)
-      XK21 = 57.639    ! NH3(g)           <==> NH3(aq)
-      XK22 = 1.805e-5  ! NH3(aq)          <==> NH4(aq)   + OH(aq)
-      XK4  = 2.511e6   ! HNO3(g)          <==> H(aq)     + NO3(aq) ! ISORR
-      !XK4  = 3.638e6   ! HNO3(g)          <==> H(aq)     + NO3(aq) ! SEQUIL
-      XK41 = 2.100e5   ! HNO3(g)          <==> HNO3(aq)
-      XK7  = 1.817     ! (NH4)2SO4(s)     <==> 2*NH4(aq) + SO4(aq)
-      XK10 = 5.746e-17 ! NH4NO3(s)        <==> NH3(g)    + HNO3(g) ! ISORR
-      !XK10 = 2.985e-17 ! NH4NO3(s)        <==> NH3(g)    + HNO3(g) ! SEQUIL
-      XK12 = 1.382e2   ! NH4HSO4(s)       <==> NH4(aq)   + HSO4(aq)
-      XK13 = 29.268    ! (NH4)3H(SO4)2(s) <==> 3*NH4(aq) + HSO4(aq) + SO4(aq)
-      XKW  = 1.010e-14 ! H2O              <==> H(aq)     + OH(aq)
+      XK1  = 1.015d-2   ! HSO4(aq)         <==> H(aq)     + SO4(aq)
+      XK21 = 57.639d0   ! NH3(g)           <==> NH3(aq)
+      XK22 = 1.805d-5   ! NH3(aq)          <==> NH4(aq)   + OH(aq)
+      XK4  = 2.511d6    ! HNO3(g)          <==> H(aq)     + NO3(aq) ! ISORR
+      !XK4  = 3.638e6    ! HNO3(g)          <==> H(aq)     + NO3(aq) ! SEQUIL
+      XK41 = 2.100d5    ! HNO3(g)          <==> HNO3(aq)
+      XK7  = 1.817d0    ! (NH4)2SO4(s)     <==> 2*NH4(aq) + SO4(aq)
+      XK10 = 5.746d-17  ! NH4NO3(s)        <==> NH3(g)    + HNO3(g) ! ISORR
+      !XK10 = 2.985e-17  ! NH4NO3(s)        <==> NH3(g)    + HNO3(g) ! SEQUIL
+      XK12 = 1.382d2    ! NH4HSO4(s)       <==> NH4(aq)   + HSO4(aq)
+      XK13 = 29.268d0   ! (NH4)3H(SO4)2(s) <==> 3*NH4(aq) + HSO4(aq) + SO4(aq)
+      XKW  = 1.010d-14  ! H2O              <==> H(aq)     + OH(aq)
 
       IF (INT(TEMP) .NE. 298) THEN   ! FOR T != 298K or 298.15K
-         T0  = 298.15D0
-         T0T = T0/TEMP
-         COEF= 1.0+LOG(T0T)-T0T
-         XK1 = XK1 *EXP(  8.85*(T0T-1.0) + 25.140*COEF)
-         XK21= XK21*EXP( 13.79*(T0T-1.0) -  5.393*COEF)
-         XK22= XK22*EXP( -1.50*(T0T-1.0) + 26.920*COEF)
-         XK4 = XK4 *EXP( 29.17*(T0T-1.0) + 16.830*COEF) !ISORR
-         !XK4 = XK4 *EXP( 29.47*(T0T-1.0) + 16.840*COEF) ! SEQUIL
-         XK41= XK41*EXP( 29.17*(T0T-1.0) + 16.830*COEF)
-         XK7 = XK7 *EXP( -2.65*(T0T-1.0) + 38.570*COEF)
-         XK10= XK10*EXP(-74.38*(T0T-1.0) +  6.120*COEF) ! ISORR
-         !XK10= XK10*EXP(-75.11*(T0T-1.0) + 13.460*COEF) ! SEQUIL
-         XK12= XK12*EXP( -2.87*(T0T-1.0) + 15.830*COEF)
-         XK13= XK13*EXP( -5.19*(T0T-1.0) + 54.400*COEF)
-         XKW = XKW *EXP(-22.52*(T0T-1.0) + 26.920*COEF)
+         T0   = 298.15D0
+         T0T  = T0/TEMP
+         COEF = 1.0+LOG(T0T)-T0T
+         XK1  = XK1 *EXP(  8.85d0*(T0T-1.0d0) + 25.14d0*COEF)
+         XK21 = XK21*EXP( 13.79d0*(T0T-1.0d0) -  5.393d0*COEF)
+         XK22 = XK22*EXP( -1.5d0*(T0T-1.0d0) + 26.92d0*COEF)
+         XK4  = XK4 *EXP( 29.17d0*(T0T-1.0d0) + 16.830d0*COEF) !ISORR
+         !XK4  = XK4 *EXP( 29.47*(T0T-1.0) + 16.840*COEF) ! SEQUIL
+         XK41 = XK41*EXP( 29.17d0*(T0T-1.0d0) + 16.83d0*COEF)
+         XK7  = XK7 *EXP( -2.65d0*(T0T-1.0) + 38.570*COEF)
+         XK10 = XK10*EXP(-74.38*(T0T-1.0d0) +  6.12d0*COEF) ! ISORR
+         !XK10 = XK10*EXP(-75.11*(T0T-1.0) + 13.460*COEF) ! SEQUIL
+         XK12 = XK12*EXP( -2.87d0*(T0T-1.0d0) + 15.83d0*COEF)
+         XK13 = XK13*EXP( -5.19d0*(T0T-1.0d0) + 54.4d0*COEF)
+         XKW  = XKW *EXP(-22.52d0*(T0T-1.0d0) + 26.92d0*COEF)
       ENDIF
 
       XK2  = XK21*XK22       
@@ -583,10 +978,10 @@
       IF (INT(TEMP) .NE. 298) THEN
          T0       = 298.15D0
          TCF      = 1.0/TEMP - 1.0/T0
-         DRNH4NO3 = DRNH4NO3*EXP(852.*TCF)
-         DRNH42S4 = DRNH42S4*EXP( 80.*TCF)
-         DRNH4HS4 = DRNH4HS4*EXP(384.*TCF) 
-         DRLC     = DRLC    *EXP(186.*TCF) 
+         DRNH4NO3 = DRNH4NO3*EXP(852.d0*TCF)
+         DRNH42S4 = DRNH42S4*EXP( 80.d0*TCF)
+         DRNH4HS4 = DRNH4HS4*EXP(384.d0*TCF) 
+         DRLC     = DRLC    *EXP(186.d0*TCF) 
       ENDIF
 
       !=================================================================
@@ -614,25 +1009,25 @@
       COH    = ZERO
       WATER  = TINY
 
-      DO I = 1, NPAIR
-         MOLALR(I) = ZERO
-         GAMA(I)   = 0.1
-         GAMIN(I)  = GREAT
-         GAMOU(I)  = GREAT
-         M0(I)     = 1d5
+      DO K = 1, NPAIR
+         MOLALR(K) = ZERO
+         GAMA(K)   = 0.1d0
+         GAMIN(K)  = GREAT
+         GAMOU(K)  = GREAT
+         M0(K)     = 1d5
       ENDDO
 
-      DO I = 1, NPAIR
-         GAMA(I) = 0.1d0
+      DO K = 1, NPAIR
+         GAMA(K) = 0.1d0
       ENDDO
 
-      DO I = 1, NIONS
-         MOLAL(I) = ZERO
+      DO K = 1, NIONS
+         MOLAL(K) = ZERO
       ENDDO
       COH = ZERO
 
-      DO I = 1, NGASAQ
-         GASAQ(I) = ZERO
+      DO K = 1, NGASAQ
+         GASAQ(K) = ZERO
       ENDDO
 
       !=================================================================
@@ -640,12 +1035,12 @@
       !=================================================================
       CNH42S4 = ZERO
       CNH4HS4 = ZERO
-      CNACL   = ZERO
-      CNA2SO4 = ZERO
-      CNANO3  = ZERO
+      CNaCL   = ZERO
+      CNa2SO4 = ZERO
+      CNaNO3  = ZERO
       CNH4NO3 = ZERO
       CNH4CL  = ZERO
-      CNAHSO4 = ZERO
+      CNaHSO4 = ZERO
       CLC     = ZERO
 
       !=================================================================
@@ -658,69 +1053,76 @@
       !=================================================================
       ! Calculate ZSR parameters
       !=================================================================
-      IRH     = MIN (INT(RH*NZSR+0.5),NZSR)  ! Position in ZSR arrays
+      IRH     = MIN (INT(RHB*NZSR+0.5d0),NZSR)  ! Position in ZSR arrays
       IRH     = MAX (IRH, 1)
 
       ! NACl
       M0(01) = AWSC(IRH)      
-      IF (M0(01) .LT. 100.0) THEN
+      IF (M0(01) .LT. 100.0d0) THEN
          IC = M0(01)
-         CALL KMTAB(IC,298.0,     GI0,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX)
-         CALL KMTAB(IC,REAL(TEMP),GII,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX)
+         CALL KMTAB(IC,298.0d0,GI0,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX)
+!         CALL KMTAB(IC,REAL(TEMP),GII,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX)
+         CALL KMTAB(IC,TEMP,   GII,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX)
          M0(01) = M0(01)*EXP(LN10*(GI0-GII))
       ENDIF
 
       ! (NA)2SO4
       M0(02) = AWSS(IRH)      
-      IF (M0(02) .LT. 100.0) THEN
-         IC = 3.0*M0(02)
-         CALL KMTAB(IC,298.0,     XX,GI0,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX)
-         CALL KMTAB(IC,REAL(TEMP),XX,GII,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX)
+      IF (M0(02) .LT. 100.0d0) THEN
+         IC = 3.0d0*M0(02)
+         CALL KMTAB(IC,298.0d0,XX,GI0,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX)
+!         CALL KMTAB(IC,REAL(TEMP),XX,GII,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX)
+         CALL KMTAB(IC,TEMP,   XX,GII,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX)
          M0(02) = M0(02)*EXP(LN10*(GI0-GII))
       ENDIF
 
       ! NANO3
       M0(03) = AWSN(IRH)      
-      IF (M0(03) .LT. 100.0) THEN
+      IF (M0(03) .LT. 100.0d0) THEN
          IC = M0(03)
-         CALL KMTAB(IC,298.0,     XX,XX,GI0,XX,XX,XX,XX,XX,XX,XX,XX,XX)
-         CALL KMTAB(IC,REAL(TEMP),XX,XX,GII,XX,XX,XX,XX,XX,XX,XX,XX,XX)
+         CALL KMTAB(IC,298.0d0,XX,XX,GI0,XX,XX,XX,XX,XX,XX,XX,XX,XX)
+!         CALL KMTAB(IC,REAL(TEMP),XX,XX,GII,XX,XX,XX,XX,XX,XX,XX,XX,XX)
+         CALL KMTAB(IC,TEMP,   XX,XX,GII,XX,XX,XX,XX,XX,XX,XX,XX,XX)
          M0(03) = M0(03)*EXP(LN10*(GI0-GII))
       ENDIF
 
       ! (NH4)2SO4
       M0(04) = AWAS(IRH)      
-      IF (M0(04) .LT. 100.0) THEN
-         IC = 3.0*M0(04)
-         CALL KMTAB(IC,298.0,     XX,XX,XX,GI0,XX,XX,XX,XX,XX,XX,XX,XX)
-         CALL KMTAB(IC,REAL(TEMP),XX,XX,XX,GII,XX,XX,XX,XX,XX,XX,XX,XX)
+      IF (M0(04) .LT. 100.0d0) THEN
+         IC = 3.0d0*M0(04)
+         CALL KMTAB(IC,298.0d0,XX,XX,XX,GI0,XX,XX,XX,XX,XX,XX,XX,XX)
+!         CALL KMTAB(IC,REAL(TEMP),XX,XX,XX,GII,XX,XX,XX,XX,XX,XX,XX,XX)
+         CALL KMTAB(IC,TEMP,   XX,XX,XX,GII,XX,XX,XX,XX,XX,XX,XX,XX)
          M0(04) = M0(04)*EXP(LN10*(GI0-GII))
       ENDIF
 
       ! NH4NO3
       M0(05) = AWAN(IRH)      
-      IF (M0(05) .LT. 100.0) THEN
+      IF (M0(05) .LT. 100.0d0) THEN
          IC     = M0(05)
-         CALL KMTAB(IC,298.0,     XX,XX,XX,XX,GI0,XX,XX,XX,XX,XX,XX,XX)
-         CALL KMTAB(IC,REAL(TEMP),XX,XX,XX,XX,GII,XX,XX,XX,XX,XX,XX,XX)
+         CALL KMTAB(IC,298.0d0,XX,XX,XX,XX,GI0,XX,XX,XX,XX,XX,XX,XX)
+!         CALL KMTAB(IC,REAL(TEMP),XX,XX,XX,XX,GII,XX,XX,XX,XX,XX,XX,XX)
+         CALL KMTAB(IC,TEMP,   XX,XX,XX,XX,GII,XX,XX,XX,XX,XX,XX,XX)
          M0(05) = M0(05)*EXP(LN10*(GI0-GII))
       ENDIF
 
       ! NH4CL
       M0(06) = AWAC(IRH)      
-      IF (M0(06) .LT. 100.0) THEN
+      IF (M0(06) .LT. 100.0d0) THEN
          IC = M0(06)
-         CALL KMTAB(IC,298.0,     XX,XX,XX,XX,XX,GI0,XX,XX,XX,XX,XX,XX)
-         CALL KMTAB(IC,REAL(TEMP),XX,XX,XX,XX,XX,GII,XX,XX,XX,XX,XX,XX)
+         CALL KMTAB(IC,298.0d0,XX,XX,XX,XX,XX,GI0,XX,XX,XX,XX,XX,XX)
+!         CALL KMTAB(IC,REAL(TEMP),XX,XX,XX,XX,XX,GII,XX,XX,XX,XX,XX,XX)
+         CALL KMTAB(IC,TEMP,  XX,XX,XX,XX,XX,GII,XX,XX,XX,XX,XX,XX)
          M0(06) = M0(06)*EXP(LN10*(GI0-GII))
       ENDIF
 
       ! 2H-SO4
       M0(07) = AWSA(IRH)      
-      IF (M0(07) .LT. 100.0) THEN
-         IC = 3.0*M0(07)
-         CALL KMTAB(IC,298.0,     XX,XX,XX,XX,XX,XX,GI0,XX,XX,XX,XX,XX)
-         CALL KMTAB(IC,REAL(TEMP),XX,XX,XX,XX,XX,XX,GII,XX,XX,XX,XX,XX)
+      IF (M0(07) .LT. 100.0d0) THEN
+         IC = 3.0d0*M0(07)
+         CALL KMTAB(IC,298.0d0,XX,XX,XX,XX,XX,XX,GI0,XX,XX,XX,XX,XX)
+!         CALL KMTAB(IC,REAL(TEMP),XX,XX,XX,XX,XX,XX,GII,XX,XX,XX,XX,XX)
+         CALL KMTAB(IC,TEMP,   XX,XX,XX,XX,XX,XX,GII,XX,XX,XX,XX,XX)
          M0(07) = M0(07)*EXP(LN10*(GI0-GII))
       ENDIF
 
@@ -737,31 +1139,420 @@
 
       ! NH4HSO4
       M0(09) = AWAB(IRH)      
-      IF (M0(09) .LT. 100.0) THEN
+      IF (M0(09) .LT. 100.0d0) THEN
          IC = M0(09)
-         CALL KMTAB(IC,298.0,     XX,XX,XX,XX,XX,XX,XX,XX,GI0,XX,XX,XX)
-         CALL KMTAB(IC,REAL(TEMP),XX,XX,XX,XX,XX,XX,XX,XX,GII,XX,XX,XX)
+         CALL KMTAB(IC,298.0d0,XX,XX,XX,XX,XX,XX,XX,XX,GI0,XX,XX,XX)
+!         CALL KMTAB(IC,REAL(TEMP),XX,XX,XX,XX,XX,XX,XX,XX,GII,XX,XX,XX)
+         CALL KMTAB(IC,TEMP,   XX,XX,XX,XX,XX,XX,XX,XX,GII,XX,XX,XX)
          M0(09) = M0(09)*EXP(LN10*(GI0-GII))
       ENDIF
 
       ! NAHSO4
       M0(12) = AWSB(IRH)      
-      IF (M0(12) .LT. 100.0) THEN
+      IF (M0(12) .LT. 100.0d0) THEN
          IC = M0(12)
-         CALL KMTAB(IC,298.0,     XX,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX,GI0)
-         CALL KMTAB(IC,REAL(TEMP),XX,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX,GII)
+         CALL KMTAB(IC,298.0d0,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX,GI0)
+!         CALL KMTAB(IC,REAL(TEMP),XX,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX,GII)
+         CALL KMTAB(IC,TEMP,  XX,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX,GII)
          M0(12) = M0(12)*EXP(LN10*(GI0-GII))
       ENDIF
 
       ! (NH4)3H(SO4)2
       M0(13) = AWLC(IRH)      
-      IF (M0(13) .LT. 100.0) THEN
-         IC     = 4.0*M0(13)
-         CALL KMTAB(IC,298.0,     XX,XX,XX,GI0,XX,XX,XX,XX,GII,XX,XX,XX)
-         G130   = 0.2*(3.0*GI0+2.0*GII)
-         CALL KMTAB(IC,REAL(TEMP),XX,XX,XX,GI0,XX,XX,XX,XX,GII,XX,XX,XX)
-         G13I   = 0.2*(3.0*GI0+2.0*GII)
-         M0(13) = M0(13)*EXP(LN10*SNGL(G130-G13I))
+      IF (M0(13) .LT. 100.0d0) THEN
+         IC     = 4.0d0*M0(13)
+         CALL KMTAB(IC,298.0d0,XX,XX,XX,GI0,XX,XX,XX,XX,GII,XX,XX,XX)
+         G130   = 0.2d0*(3.0d0*GI0+2.0d0*GII)
+!         CALL KMTAB(IC,REAL(TEMP),XX,XX,XX,GI0,XX,XX,XX,XX,GII,XX,XX,XX)
+         CALL KMTAB(IC,TEMP,   XX,XX,XX,GI0,XX,XX,XX,XX,GII,XX,XX,XX)
+         G13I   = 0.2d0*(3.0d0*GI0+2.0d0*GII)
+!         M0(13) = M0(13)*EXP(LN10*SNGL(G130-G13I))
+         M0(13) = M0(13)*EXP(LN10*(G130-G13I))
+      ENDIF
+
+      !=================================================================
+      ! OTHER INITIALIZATIONS
+      !=================================================================
+      ICLACT  =  0
+      CALAOU  = .TRUE.
+      CALAIN  = .TRUE.
+      FRST    = .TRUE.
+      SCASE   =  '??'
+      SULRATW =  2.D0
+      SODRAT  =  ZERO
+      NOFER   =  0
+      STKOFL  = .FALSE.
+
+      DO K = 1, NERRMX
+         ERRSTK(K) = -999
+         ERRMSG(K) = 'MESSAGE N/A'
+      ENDDO
+
+      ! Return to calling program
+      END SUBROUTINE INIT2
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE INIT3( WI, RHI, TEMPI )
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE INIT3
+! *** THIS SUBROUTINE INITIALIZES ALL GLOBAL VARIABLES FOR AMMONIUM,
+!     SODIUM, CHLORIDE, NITRATE, SULFATE AEROSOL SYSTEMS (SUBROUTINE 
+!     ISRP3)
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!=======================================================================
+
+#     include "CMN_SIZE" ! IIPAR, JPAR, LLTROP
+#     include "isoropia.h" 
+
+      ! Arguments
+      REAL*8,  INTENT(IN)    :: WI(NCOMP) 
+      REAL*8,  INTENT(IN)    :: RHI, TEMPI
+
+      ! Local variables ??
+      INTEGER           :: K,  IRH
+      REAL*8            :: IC, GII, GI0, XX, T0T
+!      REAL*8            :: TEMP, RH
+      REAL*8            :: TCF, DRMI2, DRMI3, G130, G13I, COEF
+      REAL*8, PARAMETER :: LN10 = 2.3025851D0
+      REAL*8, PARAMETER :: T0   = 298.15D0
+
+      !=================================================================
+      ! INIT3 begins here!
+      !=================================================================
+
+      ! Save input variables in common block
+      IF (IPROB.EQ.0) THEN   
+              
+         ! Forward calculation
+         DO K=1,NCOMP
+            W(K) = MAX(WI(K), TINY)
+         ENDDO
+
+      ELSE
+
+         ! Reverse calculation
+         DO K=1,NCOMP                   
+            WAER(K) = MAX(WI(K), TINY)
+            W(K)    = ZERO
+         ENDDO
+      ENDIF
+
+      RHB     = RHI
+      TEMP    = TEMPI
+
+      !=================================================================
+      ! Calculate equilibrium constants
+      !=================================================================
+
+      XK1  = 1.015D-2  ! HSO4(aq)         <==> H(aq)     + SO4(aq)
+      XK21 = 57.639D0  ! NH3(g)           <==> NH3(aq)
+      XK22 = 1.805D-5  ! NH3(aq)          <==> NH4(aq)   + OH(aq)
+      XK3  = 1.971D6   ! HCL(g)           <==> H(aq)     + CL(aq)
+      XK31 = 2.500d3   ! HCL(g)           <==> HCL(aq)
+      XK4  = 2.511d6   ! HNO3(g)          <==> H(aq)     + NO3(aq) ! ISORR
+      !XK4  = 3.638e6   ! HNO3(g)          <==> H(aq)     + NO3(aq) ! SEQUIL
+      XK41 = 2.100d5   ! HNO3(g)          <==> HNO3(aq)
+      XK5  = 0.4799D0  ! NA2SO4(s)        <==> 2*NA(aq)  + SO4(aq)
+      XK6  = 1.086D-16 ! NH4CL(s)         <==> NH3(g)    + HCL(g)
+      XK7  = 1.817D0   ! (NH4)2SO4(s)     <==> 2*NH4(aq) + SO4(aq)
+      XK8  = 37.661D0  ! NACL(s)          <==> NA(aq)    + CL(aq)
+      XK10 = 5.746D-17 ! NH4NO3(s)        <==> NH3(g)    + HNO3(g) ! ISORR
+      !XK10 = 2.985e-17 ! NH4NO3(s)        <==> NH3(g)    + HNO3(g) ! SEQUIL
+      XK11 = 2.413D4   ! NAHSO4(s)        <==> NA(aq)    + HSO4(aq)
+      XK12 = 1.382D2   ! NH4HSO4(s)       <==> NH4(aq)   + HSO4(aq)
+      XK13 = 29.268D0  ! (NH4)3H(SO4)2(s) <==> 3*NH4(aq) + HSO4(aq) + SO4(aq)
+      XK14 = 22.05D0   ! NH4CL(s)         <==> NH4(aq)   + CL(aq)
+      XKW  = 1.010D-14 ! H2O              <==> H(aq)     + OH(aq)
+      XK9  = 11.977D0  ! NANO3(s)         <==> NA(aq)    + NO3(aq)
+
+      IF (INT(TEMP) .NE. 298) THEN   ! FOR T != 298K or 298.15K
+         T0T = T0/TEMP
+         COEF= 1.0d0+LOG(T0T)-T0T
+         XK1 = XK1 *EXP(  8.85d0*(T0T-1.0d0) + 25.14d0*COEF)
+         XK21= XK21*EXP( 13.79d0*(T0T-1.0d0) -  5.393d0*COEF)
+         XK22= XK22*EXP( -1.5d0*(T0T-1.0d0) + 26.92d0*COEF)
+         XK3 = XK3 *EXP( 30.2d0*(T0T-1.0d0) + 19.91d0*COEF)
+         XK31= XK31*EXP( 30.2d0*(T0T-1.0d0) + 19.91d0*COEF)
+         XK4 = XK4 *EXP( 29.17d0*(T0T-1.0d0) + 16.83d0*COEF) !ISORR
+         !XK4 = XK4 *EXP( 29.47*(T0T-1.0) + 16.840*COEF) ! SEQUIL
+         XK41= XK41*EXP( 29.17d0*(T0T-1.0d0) + 16.83d0*COEF)
+         XK5 = XK5 *EXP(  0.98d0*(T0T-1.0d0) + 39.5d0*COEF)
+         XK6 = XK6 *EXP(-71.0d0*(T0T-1.0d0) +  2.4d0*COEF)
+         XK7 = XK7 *EXP( -2.65d0*(T0T-1.0d0) + 38.57d0*COEF)
+         XK8 = XK8 *EXP( -1.56d0*(T0T-1.0d0) + 16.9d0*COEF)
+         XK9 = XK9 *EXP( -8.22d0*(T0T-1.0d0) + 16.01d0*COEF)
+         XK10= XK10*EXP(-74.38d0*(T0T-1.0d0) +  6.12d0*COEF) ! ISORR
+         !XK10= XK10*EXP(-75.11*(T0T-1.0) + 13.460*COEF) ! SEQUIL
+         XK11= XK11*EXP(  0.79d0*(T0T-1.0d0) + 14.746d0*COEF)
+         XK12= XK12*EXP( -2.87d0*(T0T-1.0d0) + 15.83d0*COEF)
+         XK13= XK13*EXP( -5.19d0*(T0T-1.0d0) + 54.4d0*COEF)
+         XK14= XK14*EXP( 24.55d0*(T0T-1.0d0) + 16.9d0*COEF)
+         XKW = XKW *EXP(-22.52d0*(T0T-1.0d0) + 26.92d0*COEF)
+      ENDIF
+      XK2  = XK21*XK22       
+      XK42 = XK4/XK41
+      XK32 = XK3/XK31
+
+      !=================================================================
+      ! Calculate deliquescence relative humidities (unicomponent)
+      !=================================================================
+      DRH2SO4  = ZERO
+      DRNH42S4 = 0.7997D0
+      DRNH4HS4 = 0.4000D0
+      DRLC     = 0.6900D0
+      DRNACL   = 0.7528D0
+      DRNANO3  = 0.7379D0
+      DRNH4CL  = 0.7710D0
+      DRNH4NO3 = 0.6183D0
+      DRNA2SO4 = 0.9300D0
+      DRNAHSO4 = 0.5200D0
+
+      IF (INT(TEMP) .NE. 298) THEN
+         TCF      = 1.0d0/TEMP - 1.0d0/T0
+         DRNACL   = DRNACL  *EXP( 25.d0*TCF)
+         DRNANO3  = DRNANO3 *EXP(304.d0*TCF)
+         DRNA2SO4 = DRNA2SO4*EXP( 80.d0*TCF)
+         DRNH4NO3 = DRNH4NO3*EXP(852.d0*TCF)
+         DRNH42S4 = DRNH42S4*EXP( 80.d0*TCF)
+         DRNH4HS4 = DRNH4HS4*EXP(384.d0*TCF) 
+         DRLC     = DRLC    *EXP(186.d0*TCF)
+         DRNH4CL  = DRNH4Cl *EXP(239.d0*TCF)
+         DRNAHSO4 = DRNAHSO4*EXP(-45.d0*TCF) 
+      ENDIF
+
+      !=================================================================
+      ! Calculate mutual deliquescence relative humidities
+      !=================================================================
+
+      DRMLCAB = 0.378D0    ! (NH4)3H(SO4)2 & NH4HSO4 
+      DRMLCAS = 0.690D0    ! (NH4)3H(SO4)2 & (NH4)2SO4 
+      DRMASAN = 0.600D0    ! (NH4)2SO4     & NH4NO3
+      DRMG1   = 0.460D0    ! (NH4)2SO4, NH4NO3, NA2SO4, NH4CL
+      DRMG2   = 0.691D0    ! (NH4)2SO4, NA2SO4, NH4CL
+      DRMG3   = 0.697D0    ! (NH4)2SO4, NA2SO4
+      DRMH1   = 0.240D0    ! NA2SO4, NANO3, NACL, NH4NO3, NH4CL
+      DRMH2   = 0.596D0    ! NA2SO4, NANO3, NACL, NH4CL
+      DRMI1   = 0.240D0    ! LC, NAHSO4, NH4HSO4, NA2SO4, (NH4)2SO4
+      DRMI2   = 0.363D0    ! LC, NAHSO4, NA2SO4, (NH4)2SO4  - NO DATA -
+      DRMI3   = 0.610D0    ! LC, NA2SO4, (NH4)2SO4 
+      DRMQ1   = 0.494D0    ! (NH4)2SO4, NH4NO3, NA2SO4
+      DRMR1   = 0.663D0    ! NA2SO4, NANO3, NACL
+      DRMR2   = 0.735D0    ! NA2SO4, NACL
+      DRMR3   = 0.673D0    ! NANO3, NACL
+      DRMR4   = 0.694D0    ! NA2SO4, NACL, NH4CL
+      DRMR5   = 0.731D0    ! NA2SO4, NH4CL
+      DRMR6   = 0.596D0    ! NA2SO4, NANO3, NH4CL
+      DRMR7   = 0.380D0    ! NA2SO4, NANO3, NACL, NH4NO3
+      DRMR8   = 0.380D0    ! NA2SO4, NACL, NH4NO3
+      DRMR9   = 0.494D0    ! NA2SO4, NH4NO3
+      DRMR10  = 0.476D0    ! NA2SO4, NANO3, NH4NO3
+      DRMR11  = 0.340D0    ! NA2SO4, NACL, NH4NO3, NH4CL
+      DRMR12  = 0.460D0    ! NA2SO4, NH4NO3, NH4CL
+      DRMR13  = 0.438D0    ! NA2SO4, NANO3, NH4NO3, NH4CL
+CCC      IF (INT(TEMP) .NE. 298) THEN
+CCC         T0       = 298.15d0
+CCC         TCF      = 1.0/TEMP - 1.0/T0
+CCC         DRMLCAB  = DRMLCAB*EXP( 507.506*TCF) 
+CCC         DRMLCAS  = DRMLCAS*EXP( 133.865*TCF) 
+CCC         DRMASAN  = DRMASAN*EXP(1269.068*TCF)
+CCC         DRMG1    = DRMG1  *EXP( 572.207*TCF)
+CCC         DRMG2    = DRMG2  *EXP(  58.166*TCF)
+CCC         DRMG3    = DRMG3  *EXP(  22.253*TCF)
+CCC         DRMH1    = DRMH1  *EXP(2116.542*TCF)
+CCC         DRMH2    = DRMH2  *EXP( 650.549*TCF)
+CCC         DRMI1    = DRMI1  *EXP( 565.743*TCF)
+CCC         DRMI2    = DRMI2  *EXP(  91.745*TCF)
+CCC         DRMI3    = DRMI3  *EXP( 161.272*TCF)
+CCC         DRMQ1    = DRMQ1  *EXP(1616.621*TCF)
+CCC         DRMR1    = DRMR1  *EXP( 292.564*TCF)
+CCC         DRMR2    = DRMR2  *EXP(  14.587*TCF)
+CCC         DRMR3    = DRMR3  *EXP( 307.907*TCF)
+CCC         DRMR4    = DRMR4  *EXP(  97.605*TCF)
+CCC         DRMR5    = DRMR5  *EXP(  98.523*TCF)
+CCC         DRMR6    = DRMR6  *EXP( 465.500*TCF)
+CCC         DRMR7    = DRMR7  *EXP( 324.425*TCF)
+CCC         DRMR8    = DRMR8  *EXP(2660.184*TCF)
+CCC         DRMR9    = DRMR9  *EXP(1617.178*TCF)
+CCC         DRMR10   = DRMR10 *EXP(1745.226*TCF)
+CCC         DRMR11   = DRMR11 *EXP(3691.328*TCF)
+CCC         DRMR12   = DRMR12 *EXP(1836.842*TCF)
+CCC         DRMR13   = DRMR13 *EXP(1967.938*TCF)
+CCC      ENDIF
+
+      !=================================================================
+      ! Liquid phase initialization
+      !=================================================================
+      CHNO3  = ZERO
+      CHCL   = ZERO
+      CH2SO4 = ZERO
+      COH    = ZERO
+      WATER  = TINY
+
+      DO K=1,NPAIR
+         MOLALR(K)=ZERO
+         GAMA(K)  =0.1d0
+         GAMIN(K) =GREAT
+         GAMOU(K) =GREAT
+         M0(K)    =1d5
+       ENDDO
+
+      DO K=1,NPAIR
+         GAMA(K) = 0.1d0
+      ENDDO
+
+      DO K=1,NIONS
+         MOLAL(K)=ZERO
+      ENDDO
+      COH = ZERO
+
+      DO K=1,NGASAQ
+         GASAQ(K)=ZERO
+      ENDDO
+
+      !=================================================================
+      ! Solid phase initialization
+      !=================================================================
+      CNH42S4= ZERO
+      CNH4HS4= ZERO
+      CNACL  = ZERO
+      CNA2SO4= ZERO
+      CNANO3 = ZERO
+      CNH4NO3= ZERO
+      CNH4CL = ZERO
+      CNAHSO4= ZERO
+      CLC    = ZERO
+
+      !=================================================================
+      ! Gas phase
+      !=================================================================
+      GNH3   = ZERO
+      GHNO3  = ZERO
+      GHCL   = ZERO
+
+      !=================================================================
+      ! Calculate ZSR parameters
+      !=================================================================
+      IRH    = MIN (INT(RHB*NZSR+0.5d0),NZSR)  ! Position in ZSR arrays
+      IRH    = MAX (IRH, 1)
+
+      ! NACl
+      IF (M0(01) .LT. 100.0d0) THEN
+      M0(01) = AWSC(IRH)
+         IC = M0(01)
+         CALL KMTAB(IC,298.d0,    GI0,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX)
+!         CALL KMTAB(IC,SNGL(TEMP),GII,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX)
+         CALL KMTAB(IC,TEMP,GII,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX)
+         M0(01) = M0(01)*EXP(LN10*(GI0-GII))
+      ENDIF
+
+      ! (NA)2SO4
+      M0(02) = AWSS(IRH)
+      IF (M0(02) .LT. 100.0d0) THEN
+         IC = 3.0d0*M0(02)
+         CALL KMTAB(IC,298.d0,    XX,GI0,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX)
+!         CALL KMTAB(IC,SNGL(TEMP),XX,GII,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX)
+         CALL KMTAB(IC,TEMP,      XX,GII,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX)
+         M0(02) = M0(02)*EXP(LN10*(GI0-GII))
+      ENDIF
+
+      ! NANO3 
+      M0(03) = AWSN(IRH) 
+      IF (M0(03) .LT. 100.0d0) THEN
+         IC = M0(03)
+         CALL KMTAB(IC,298.d0,    XX,XX,GI0,XX,XX,XX,XX,XX,XX,XX,XX,XX)
+!         CALL KMTAB(IC,SNGL(TEMP),XX,XX,GII,XX,XX,XX,XX,XX,XX,XX,XX,XX)
+         CALL KMTAB(IC,TEMP,      XX,XX,GII,XX,XX,XX,XX,XX,XX,XX,XX,XX)
+         M0(03) = M0(03)*EXP(LN10*(GI0-GII))
+      ENDIF
+
+      ! (NH4)2SO4
+      M0(04) = AWAS(IRH)
+      IF (M0(04) .LT. 100.0d0) THEN
+         IC = 3.0d0*M0(04)
+         CALL KMTAB(IC,298.d0,    XX,XX,XX,GI0,XX,XX,XX,XX,XX,XX,XX,XX)
+!         CALL KMTAB(IC,SNGL(TEMP),XX,XX,XX,GII,XX,XX,XX,XX,XX,XX,XX,XX)
+         CALL KMTAB(IC,TEMP,      XX,XX,XX,GII,XX,XX,XX,XX,XX,XX,XX,XX)
+         M0(04) = M0(04)*EXP(LN10*(GI0-GII))
+      ENDIF
+
+      ! NH4NO3
+      M0(05) = AWAN(IRH)
+      IF (M0(05) .LT. 100.0d0) THEN
+         IC     = M0(05)
+         CALL KMTAB(IC,298.d0,    XX,XX,XX,XX,GI0,XX,XX,XX,XX,XX,XX,XX)
+!         CALL KMTAB(IC,SNGL(TEMP),XX,XX,XX,XX,GII,XX,XX,XX,XX,XX,XX,XX)
+         CALL KMTAB(IC,TEMP,      XX,XX,XX,XX,GII,XX,XX,XX,XX,XX,XX,XX)
+         M0(05) = M0(05)*EXP(LN10*(GI0-GII))
+      ENDIF
+
+      ! NH4CL
+      M0(06) = AWAC(IRH)
+      IF (M0(06) .LT. 100.0d0) THEN
+         IC = M0(06)
+         CALL KMTAB(IC,298.d0,    XX,XX,XX,XX,XX,GI0,XX,XX,XX,XX,XX,XX)
+!         CALL KMTAB(IC,SNGL(TEMP),XX,XX,XX,XX,XX,GII,XX,XX,XX,XX,XX,XX)
+         CALL KMTAB(IC,TEMP,      XX,XX,XX,XX,XX,GII,XX,XX,XX,XX,XX,XX)
+         M0(06) = M0(06)*EXP(LN10*(GI0-GII))
+      ENDIF
+
+      ! 2H-SO4
+      M0(07) = AWSA(IRH)
+      IF (M0(07) .LT. 100.0d0) THEN
+         IC = 3.0d0*M0(07)
+         CALL KMTAB(IC,298.d0,    XX,XX,XX,XX,XX,XX,GI0,XX,XX,XX,XX,XX)
+!         CALL KMTAB(IC,SNGL(TEMP),XX,XX,XX,XX,XX,XX,GII,XX,XX,XX,XX,XX)
+         CALL KMTAB(IC,TEMP,      XX,XX,XX,XX,XX,XX,GII,XX,XX,XX,XX,XX)
+         M0(07) = M0(07)*EXP(LN10*(GI0-GII))
+      ENDIF
+
+      ! H-HSO4
+      M0(08) = AWSA(IRH)
+CCC      IF (M0(08) .LT. 100.0) THEN     ! These are redundant, because M0(8) is not used
+CCC         IC = M0(08)
+CCC         CALL KMTAB(IC,298.0,     XX,XX,XX,XX,XX,XX,XX,GI0,XX,XX,XX,XX)
+CCC         CALL KMTAB(IC,SNGL(TEMP),XX,XX,XX,XX,XX,XX,XX,GI0,XX,XX,XX,XX)
+CCCCCC         CALL KMTAB(IC,SNGL(TEMP),XX,XX,XX,XX,XX,XX,XX,GII,XX,XX,XX,XX)
+CCC         M0(08) = M0(08)*EXP(LN10*(GI0-GII))
+CCC      ENDIF
+
+      ! NH4HSO4
+      M0(09) = AWAB(IRH)
+      IF (M0(09) .LT. 100.0d0) THEN
+         IC = M0(09)
+         CALL KMTAB(IC,298.d0,    XX,XX,XX,XX,XX,XX,XX,XX,GI0,XX,XX,XX)
+!         CALL KMTAB(IC,SNGL(TEMP),XX,XX,XX,XX,XX,XX,XX,XX,GII,XX,XX,XX)
+         CALL KMTAB(IC,TEMP,      XX,XX,XX,XX,XX,XX,XX,XX,GII,XX,XX,XX)
+         M0(09) = M0(09)*EXP(LN10*(GI0-GII))
+      ENDIF
+
+      ! NAHSO4
+      M0(12) = AWSB(IRH)
+      IF (M0(12) .LT. 100.0d0) THEN
+         IC = M0(12)
+         CALL KMTAB(IC,298.d0,    XX,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX,GI0)
+!         CALL KMTAB(IC,SNGL(TEMP),XX,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX,GII)
+         CALL KMTAB(IC,TEMP,      XX,XX,XX,XX,XX,XX,XX,XX,XX,XX,XX,GII)
+         M0(12) = M0(12)*EXP(LN10*(GI0-GII))
+      ENDIF
+
+      ! (NH4)3H(SO4)2
+      M0(13) = AWLC(IRH)
+      IF (M0(13) .LT. 100.0d0) THEN
+         IC     = 4.0d0*M0(13)
+         CALL KMTAB(IC,298.d0,    XX,XX,XX,GI0,XX,XX,XX,XX,GII,XX,XX,XX)
+         G130   = 0.2d0*(3.0d0*GI0+2.0d0*GII)
+!         CALL KMTAB(IC,SNGL(TEMP),XX,XX,XX,GI0,XX,XX,XX,XX,GII,XX,XX,XX)
+         CALL KMTAB(IC,TEMP,      XX,XX,XX,GI0,XX,XX,XX,XX,GII,XX,XX,XX)
+         G13I   = 0.2d0*(3.0d0*GI0+2.0d0*GII)
+!         M0(13) = M0(13)*EXP(LN10*SNGL(G130-G13I))
+         M0(13) = M0(13)*EXP(LN10*(G130-G13I))
       ENDIF
 
       !=================================================================
@@ -773,17 +1564,16 @@
       FRST    = .TRUE.
       SCASE   = '??'
       SULRATW = 2.D0
-      SODRAT  = ZERO
       NOFER   = 0
       STKOFL  =.FALSE.
 
-      DO I = 1, NERRMX
-         ERRSTK(I) =-999
-         ERRMSG(I) = 'MESSAGE N/A'
+      DO K=1,NERRMX
+         ERRSTK(K) =-999
+         ERRMSG(K) = 'MESSAGE N/A'
       ENDDO
 
       ! Return to calling program
-      END SUBROUTINE INIT2
+      END SUBROUTINE INIT3
 
 !-----------------------------------------------------------------------------
 
@@ -802,12 +1592,13 @@
 !******************************************************************************
 !
       ! Arguments
-      REAL*8, INTENT(IN) :: SO4I, RHI
+      REAL*8, INTENT(IN)  :: SO4I, RHI
 
       ! Local variables
       INTEGER            :: IA1,   INDS,  INDR, INDSL
-      INTEGER            :: INDSH, IPOSL, IPOSH  
+      INTEGER            :: INDSH, IPOSL, IPOSH
       REAL*8             :: GETASR, RAT,  A1, WF
+
             
       !=================================================================
       ! GETASR begins here!
@@ -821,14 +1612,14 @@
       !CALL INIT1 (WI, RHI, TEMPI) ! Re-initialize COMMON BLOCK
 
       ! CALCULATE INDICES
-      RAT    = SO4I/1.E-9    
-      A1     = INT(ALOG10(RAT))                   ! Magnitude of RAT
-      IA1    = INT(RAT/2.5/10.0**A1)
+      RAT    = SO4I/1.d-9    
+      A1     = INT(LOG(RAT))                   ! Magnitude of RAT
+      IA1    = INT(RAT/2.5d0/10.0d0**A1)
 
-      INDS   = 4.0*A1 + MIN(IA1,4)
+      INDS   = 4.0d0*A1 + MIN(IA1,4)
       INDS   = MIN(MAX(0, INDS), NSO4S-1) + 1     ! SO4 component of IPOS
 
-      INDR   = INT(99.0-RHI*100.0) + 1
+      INDR   = INT(99.0d0-RHI*100.0d0) + 1
       INDR   = MIN(MAX(1, INDR), NRHS)            ! RH component of IPOS
 
       ! GET VALUE AND RETURN
@@ -837,10 +1628,10 @@
       IPOSL  = (INDSL-1)*NRHS + INDR              ! Low position in array
       IPOSH  = (INDSH-1)*NRHS + INDR              ! High position in array
 
-      WF     = (SO4I-ASSO4(INDSL))/(ASSO4(INDSH)-ASSO4(INDSL) + 1e-7)
-      WF     = MIN(MAX(WF, 0.0), 1.0)
+      WF     = (SO4I-ASSO4(INDSL))/(ASSO4(INDSH)-ASSO4(INDSL) + 1d-7)
+      WF     = MIN(MAX(WF, 0.0d0), 1.0d0)
 
-      GETASR = WF*ASRAT(IPOSH) + (1.0-WF)*ASRAT(IPOSL)
+      GETASR = WF*ASRAT(IPOSH) + (1.0d0-WF)*ASRAT(IPOSL)
 
       ! Return to calling program
       END FUNCTION GETASR
@@ -865,6 +1656,8 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
       ! Local variables
       REAL*8 :: KAPA, X, DELT, ALFA, DIAK
 
@@ -880,9 +1673,9 @@
       DELT = 0.0d0
       IF (WATER.GT.TINY) THEN
          KAPA = MOLAL(1)
-         ALFA = XK4*R*TEMP*(WATER/GAMA(10))**2.0
-         DIAK = SQRT( (KAPA+ALFA)**2.0 + 4.0*ALFA*X)
-         DELT = 0.5*(-(KAPA+ALFA) + DIAK)
+         ALFA = XK4*R*TEMP*(WATER/GAMA(10))**2.0d0
+         DIAK = SQRT( (KAPA+ALFA)**2.0d0 + 4.0d0*ALFA*X)
+         DELT = 0.5d0*(-(KAPA+ALFA) + DIAK)
 
          !### Comment out for now
          !IF (DELT/KAPA.GT.0.1d0) THEN
@@ -923,6 +1716,8 @@
 !
 !=======================================================================
 !
+#     include "isoropia.h" 
+
       ! Local variables
       REAL*8 :: A1, CHI1, CHI2, BB, CC, DIAK, PSI, XK42
 
@@ -934,14 +1729,14 @@
       IF ( WATER .LE. TINY ) RETURN
 
       ! Calculate NH3 sublimation
-      A1   =  (XK2/XKW)*R*TEMP*(GAMA(10)/GAMA(5))**2.0
+      A1   =  (XK2/XKW)*R*TEMP*(GAMA(10)/GAMA(5))**2.0d0
       CHI1 =  MOLAL(3)
       CHI2 =  MOLAL(1)
 
       BB   = (CHI2 + ONE/A1)          ! a=1; b!=1; c!=1 
       CC   = -CHI1/A1             
       DIAK =  SQRT(BB*BB - 4.D0*CC)   ! Always > 0
-      PSI  =  0.5*(-BB + DIAK)        ! One positive root
+      PSI  =  0.5d0*(-BB + DIAK)        ! One positive root
       PSI  =  MAX(TINY, MIN(PSI,CHI1))! Constrict in acceptible range
 
       ! Calculate NH3 speciation in the gas phase
@@ -970,6 +1765,8 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
       ! Arguments
       REAL*8 :: NO3I, HI, DELT
 
@@ -1026,6 +1823,8 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
       ! Arguments
       REAL*8 :: NO3I, NO3AQ, GGNO3, HI 
 
@@ -1037,8 +1836,8 @@
       !=================================================================
 
       ! Equilibrium constants
-      A42  = XK42*WATER/(GAMA(10))**2. ! GAMA(HNO3) assumed 1
-      AKW  = XKW *RH*WATER*WATER
+      A42  = XK42*WATER/(GAMA(10))**2.d0 ! GAMA(HNO3) assumed 1
+      AKW  = XKW *RHB*WATER*WATER
 
       ! Find root
       ALF1  = NO3I - GGNO3
@@ -1047,7 +1846,7 @@
 
       BB    = ALF3 + ALF1 + A42
       CC    = ALF3*ALF1 - A42*ALF2
-      DEL1  = 0.5*(-BB + SQRT(BB*BB-4.D0*CC))
+      DEL1  = 0.5d0*(-BB + SQRT(BB*BB-4.D0*CC))
 
       ! Correct concentrations
       NO3I  = ALF1 + DEL1
@@ -1075,10 +1874,19 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
       ! Local variables
       REAL*8           :: SO4I, HSO4I, AML5, TOTS4, FRNH4, FRNO3, FRCL
-      INTEGER          :: I
+      INTEGER          :: K
       CHARACTER(LEN=1) :: SC
+      REAL*8      :: CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+      COMMON /SOLUT/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+!$OMP THREADPRIVATE( /SOLUT/ )
 
       !=================================================================
       ! CALCMR begins here!
@@ -1091,13 +1899,15 @@
       ! NH4-SO4 SYSTEM ; SULFATE POOR CASE
       !=================================================================
       IF (SC.EQ.'A') THEN      
-         MOLALR(4) = MOLAL(5)+MOLAL(6) ! (NH4)2SO4 - CORRECT FOR SO4 TO HSO4
+         ! (NH4)2SO4 - CORRECT FOR SO4 TO HSO4
+         MOLALR(4) = MOLAL(5)+MOLAL(6) 
 
       !=================================================================
       ! NH4-SO4 SYSTEM ; SULFATE RICH CASE ; NO FREE ACID
       !=================================================================
       ELSE IF (SC.EQ.'B') THEN
-         SO4I  = MOLAL(5)-MOLAL(1)     ! CORRECT FOR HSO4 DISSOCIATION 
+	 ! CORRECT FOR HSO4 DISSOCIATION 
+         SO4I  = MOLAL(5)-MOLAL(1)     
          HSO4I = MOLAL(6)+MOLAL(1)              
          IF (SO4I.LT.HSO4I) THEN                
             MOLALR(13) = SO4I                   ! [LC] = [SO4]       
@@ -1112,21 +1922,23 @@
       !=================================================================
       ELSE IF (SC.EQ.'C') THEN
          MOLALR(4) = MOLAL(3)                     ! NH4HSO4
-         MOLALR(7) = MAX(W(2)-W(3), ZERO)         ! H2SO4
+         MOLALR(7) = MAX(W(2)-W(3), ZERO)  ! H2SO4
 
       !=================================================================
       ! NH4-SO4 SYSTEM ; SULFATE RICH CASE ; FREE ACID
       !=================================================================
       ELSE IF (SC.EQ.'D') THEN      
-         MOLALR(4) = MOLAL(5) + MOLAL(6)          ! (NH4)2SO4
-         AML5      = MOLAL(3)-2.D0*MOLALR(4)      ! "free" NH4
-         MOLALR(5) = MAX(MIN(AML5,MOLAL(7)), ZERO)! NH4NO3 = MIN("free", NO3)
+         MOLALR(4) = MOLAL(5) + MOLAL(6)  ! (NH4)2SO4
+         AML5      = MOLAL(3)-2.D0*MOLALR(4)     ! "free" NH4
+         MOLALR(5) = MAX(MIN(AML5,MOLAL(7)), ZERO)
+						! NH4NO3 = MIN("free", NO3)
 
       !=================================================================
       ! NH4-SO4-NO3 SYSTEM ; SULFATE RICH CASE ; NO FREE ACID
       !=================================================================
       ELSE IF (SC.EQ.'E') THEN      
-         SO4I  = MAX(MOLAL(5)-MOLAL(1),ZERO)      ! FROM HSO4 DISSOCIATION 
+         SO4I  = MAX(MOLAL(5)-MOLAL(1),ZERO)
+						! FROM HSO4 DISSOCIATION 
          HSO4I = MOLAL(6)+MOLAL(1)              
          IF (SO4I.LT.HSO4I) THEN                
             MOLALR(13) = SO4I                     ! [LC] = [SO4] 
@@ -1140,20 +1952,21 @@
       ! NH4-SO4-NO3 SYSTEM ; SULFATE RICH CASE ; FREE ACID
       !=================================================================
       ELSE IF (SC.EQ.'F') THEN      
-         MOLALR(4) = MOLAL(3)                              ! NH4HSO4
-         MOLALR(7) = MAX(MOLAL(5)+MOLAL(6)-MOLAL(3),ZERO)  ! H2SO4
+         MOLALR(4) = MOLAL(3)                   ! NH4HSO4
+         MOLALR(7) = MAX(MOLAL(5)+MOLAL(6)-
+     &                                 MOLAL(3),ZERO)  ! H2SO4
 
       !=================================================================
       ! NA-NH4-SO4-NO3-CL SYSTEM ; SULFATE POOR ; SODIUM POOR CASE
       !=================================================================
       ELSE IF (SC.EQ.'G') THEN      
-         MOLALR(2) = 0.5*MOLAL(2)                          ! NA2SO4
-         TOTS4     = MOLAL(5)+MOLAL(6)                     ! Total SO4
-         MOLALR(4) = MAX(TOTS4 - MOLALR(2), ZERO)          ! (NH4)2SO4
+         MOLALR(2) = 0.5d0*MOLAL(2)            ! NA2SO4
+         TOTS4     = MOLAL(5)+MOLAL(6)         ! Total SO4
+         MOLALR(4) = MAX(TOTS4 - MOLALR(2), ZERO) ! (NH4)2SO4
          FRNH4     = MAX(MOLAL(3) - 2.D0*MOLALR(4), ZERO)
-         MOLALR(5) = MIN(MOLAL(7),FRNH4)                   ! NH4NO3
+         MOLALR(5) = MIN(MOLAL(7),FRNH4)       ! NH4NO3
          FRNH4     = MAX(FRNH4 - MOLALR(5), ZERO)
-         MOLALR(6) = MIN(MOLAL(4), FRNH4)                  ! NH4CL
+         MOLALR(6) = MIN(MOLAL(4), FRNH4)        ! NH4CL
 
       !=================================================================
       ! NA-NH4-SO4-NO3-CL SYSTEM ; SULFATE POOR ; SODIUM RICH CASE
@@ -1164,10 +1977,10 @@
          MOLALR(2) = PSI1                                  ! NA2SO4
          MOLALR(3) = PSI8                                  ! NANO3
          MOLALR(4) = ZERO                                  ! (NH4)2SO4
-         FRNO3     = MAX(MOLAL(7) - MOLALR(3), ZERO)       ! "FREE" NO3
-         FRCL      = MAX(MOLAL(4) - MOLALR(1), ZERO)       ! "FREE" CL
-         MOLALR(5) = MIN(MOLAL(3),FRNO3)                   ! NH4NO3
-         FRNH4     = MAX(MOLAL(3) - MOLALR(5), ZERO)       ! "FREE" NH3
+         FRNO3     = MAX(MOLAL(7) - MOLALR(3), ZERO) ! "FREE" NO3
+         FRCL      = MAX(MOLAL(4) - MOLALR(1), ZERO) ! "FREE" CL
+         MOLALR(5) = MIN(MOLAL(3),FRNO3)             ! NH4NO3
+         FRNH4     = MAX(MOLAL(3) - MOLALR(5), ZERO)  ! "FREE" NH3
          MOLALR(6) = MIN(FRCL, FRNH4)                      ! NH4CL
 
       !=================================================================
@@ -1187,7 +2000,8 @@
       ELSE IF (SC.EQ.'J') THEN      
          MOLALR(09) = MOLAL(3)                             ! NH4HSO4
          MOLALR(12) = MOLAL(2)                             ! NAHSO4
-         MOLALR(07) = MOLAL(5)+MOLAL(6)-MOLAL(3)-MOLAL(2)  ! H2SO4
+         MOLALR(07) = MOLAL(5)+MOLAL(6)-
+     &                      MOLAL(3)-MOLAL(2)  ! H2SO4
          MOLALR(07) = MAX(MOLALR(07),ZERO)
 
       !=================================================================
@@ -1196,8 +2010,8 @@
       ! NH4-SO4-NO3 SYSTEM ; SULFATE POOR CASE
       !=================================================================
       ELSE IF (SC.EQ.'N') THEN      
-         MOLALR(4) = MOLAL(5) + MOLAL(6)          ! (NH4)2SO4
-         AML5      = WAER(3)-2.D0*MOLALR(4)       ! "free" NH4
+         MOLALR(4) = MOLAL(5) + MOLAL(6) ! (NH4)2SO4
+         AML5      = WAER(3)-2.D0*MOLALR(4)    ! "free" NH4
          MOLALR(5) = MAX(MIN(AML5,WAER(4)), ZERO) ! NH4NO3 = MIN("free", NO3)
 
       !=================================================================
@@ -1231,8 +2045,8 @@
       ! CALCULATE WATER CONTENT ; ZSR CORRELATION
       !=================================================================
       WATER = ZERO
-      DO I = 1, NPAIR
-         WATER = WATER + MOLALR(I)/M0(I)
+      DO K = 1, NPAIR
+         WATER = WATER + MOLALR(K)/M0(K)
       ENDDO
       WATER = MAX(WATER, TINY)
 
@@ -1241,7 +2055,9 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CALCMDRH( RHI, RHDRY, RHLIQ, DRYCASE, LIQCASE )
+      SUBROUTINE CALCMDRH( RHI, RHDRY, RHLIQ, 
+     &                     DRYCASE, LIQCASE )
+
 !
 !******************************************************************************
 !
@@ -1258,6 +2074,8 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
       ! Arguments
       REAL*8  :: RHI, RHDRY, RHLIQ
       EXTERNAL   DRYCASE, LIQCASE
@@ -1268,7 +2086,7 @@
       REAL*8  :: CNAHSO, CNANO, CNACLO, GNH3O, GHNO3O, GHCLO   
       REAL*8  :: DAMSUL, DSOSUL, DAMBIS, DSOBIS, DLC, DAMNIT
       REAL*8  :: DAMCHL, DSONIT, DSOCHL, DAMG, DHAG, DNAG
-      INTEGER :: I
+      INTEGER :: K
 
       !=================================================================
       ! CALCMDRH begins here!
@@ -1329,8 +2147,8 @@
       IF ( WATER .LE. TINY ) THEN
 
          ! Aqueous phase
-         DO I = 1, NIONS
-            MOLAL(I)= ZERO           
+         DO K = 1, NIONS
+            MOLAL(K)= ZERO           
          ENDDO
 
          WATER   = ZERO
@@ -1383,9 +2201,9 @@
       MOLAL(2)= ONEMWF*(2.D0*DSOSUL + DSOBIS + DSONIT + DSOCHL) ! NA+
       MOLAL(3)= ONEMWF*(2.D0*DAMSUL + DAMG   + DAMBIS + DAMCHL +
      &                  3.D0*DLC    + DAMNIT )                  ! NH4+
-      MOLAL(4)= ONEMWF*(     DAMCHL + DSOCHL + DHAG)            ! CL-
-      MOLAL(5)= ONEMWF*(     DAMSUL + DSOSUL + DLC)             ! SO4--
-      MOLAL(6)= ONEMWF*(   MOLAL(6) + DSOBIS + DAMBIS + DLC)    ! HSO4-
+      MOLAL(4)= ONEMWF*( DAMCHL + DSOCHL + DHAG)            ! CL-
+      MOLAL(5)= ONEMWF*( DAMSUL + DSOSUL + DLC)             ! SO4--
+      MOLAL(6)= ONEMWF*( MOLAL(6) + DSOBIS + DAMBIS + DLC) ! HSO4-
       MOLAL(7)= ONEMWF*(     DAMNIT + DSONIT + DNAG)            ! NO3-
       WATER   = ONEMWF*WATER
 
@@ -1411,7 +2229,8 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CALCMDRP( RHI, RHDRY, RHLIQ, DRYCASE, LIQCASE )
+      SUBROUTINE CALCMDRP( RHI, RHDRY, RHLIQ, 
+     &                     DRYCASE, LIQCASE )
 !
 !******************************************************************************
 !
@@ -1428,6 +2247,8 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
       ! Arguments
       REAL*8  :: RHI, RHDRY, RHLIQ
       EXTERNAL   DRYCASE, LIQCASE
@@ -1438,7 +2259,7 @@
       REAL*8  :: CNAHSO, CNANO, CNACLO
       REAL*8  :: DAMBIS, DSOBIS, DLC, A8
       REAL*8  :: HIEQ, HIEN, A2, A3, A4
-      INTEGER :: I
+      INTEGER :: K
 
       !=================================================================
       ! CALCMDRP begins here!
@@ -1494,8 +2315,8 @@
       IF ( WATER .LE. TINY ) THEN
          WATER = ZERO
 
-         DO I = 1, NIONS
-            MOLAL(I)= ZERO
+         DO K = 1, NIONS
+            MOLAL(K)= ZERO
          ENDDO
 
          CALL DRYCASE
@@ -1531,20 +2352,22 @@
      &                         CNACL                            ! NA+
       MOLAL(3)= WAER(3) - 2.D0*CNH42S4 - CNH4HS4 - CNH4CL - 
      &                    3.D0*CLC     - CNH4NO3                ! NH4+
-      MOLAL(4)= WAER(5) - CNACL - CNH4CL                        ! CL-
-      MOLAL(7)= WAER(4) - CNANO3 - CNH4NO3                      ! NO3-
-      MOLAL(6)= ONEMWF*(MOLAL(6) + DSOBIS + DAMBIS + DLC)       ! HSO4-
-      MOLAL(5)= WAER(2) - MOLAL(6) - CLC - CNH42S4 - CNA2SO4    ! SO4--
+      MOLAL(4)= WAER(5) - CNACL - CNH4CL            ! CL-
+      MOLAL(7)= WAER(4) - CNANO3 - CNH4NO3          ! NO3-
+      MOLAL(6)= ONEMWF*(MOLAL(6) + DSOBIS + DAMBIS + DLC) ! HSO4-
+      MOLAL(5)= WAER(2) - MOLAL(6) - CLC - 
+     &                    CNH42S4 - CNA2SO4    ! SO4--
 
-      A8      = XK1*WATER/GAMA(7)*(GAMA(8)/GAMA(7))**2.
+      A8      = XK1*WATER/GAMA(7)*(GAMA(8)/GAMA(7))**2.d0
       IF (MOLAL(5).LE.TINY) THEN
-         HIEQ = SQRT(XKW *RH*WATER*WATER)  ! Neutral solution
+         HIEQ = SQRT(XKW *RHB*WATER*WATER)  ! Neutral solution
       ELSE
          HIEQ = A8*MOLAL(6)/MOLAL(5)          
       ENDIF
-      HIEN    = MOLAL(4) + MOLAL(7) + MOLAL(6) + 2.D0*MOLAL(5) -
+      HIEN    = MOLAL(4) + MOLAL(7) + 
+     &          MOLAL(6) + 2.D0*MOLAL(5) -
      &          MOLAL(2) - MOLAL(3)
-      MOLAL(1)= MAX (HIEQ, HIEN)                                ! H+
+      MOLAL(1)= MAX (HIEQ, HIEN)                  ! H+
 
       ! GAS (ACTIVITY COEFS FROM LIQUID SOLUTION)
       A2      = (XK2/XKW)*R*TEMP*(GAMA(10)/GAMA(5))**2. ! NH3  <==> NH4+
@@ -1574,6 +2397,8 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
       ! Arguments
       REAL*8 :: HI, SO4I, HSO4I, DELTA
 
@@ -1594,7 +2419,7 @@
       !=================================================================
       ! CALCULATE HSO4 SPECIATION
       !=================================================================
-      A8 = XK1*WATER/GAMA(7)*(GAMA(8)/GAMA(7))**2.
+      A8 = XK1*WATER/GAMA(7)*(GAMA(8)/GAMA(7))**2.d0
 
       BB =-(HI + SO4I + A8)
       CC = HI*SO4I - HSO4I*A8
@@ -1602,8 +2427,8 @@
 
       IF ( DD .GE. ZERO ) THEN
          SQDD   = SQRT(DD)
-         DELTA1 = 0.5*(-BB + SQDD)
-         DELTA2 = 0.5*(-BB - SQDD)
+         DELTA1 = 0.5d0*(-BB + SQDD)
+         DELTA2 = 0.5d0*(-BB - SQDD)
          IF (HSO4I.LE.TINY) THEN
             DELTA = DELTA2
          ELSEIF( HI*SO4I .GE. A8*HSO4I ) THEN
@@ -1649,13 +2474,15 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
       ! Arguments
       REAL*8 :: GG, HI, OHI
 
       ! Local variables
       REAL*8 :: AKW, CN, BB, DD, CC
 
-      AKW  = XKW *RH*WATER*WATER
+      AKW  = XKW *RHB*WATER*WATER
       CN   = SQRT(AKW)
 
       !=================================================================
@@ -1700,18 +2527,24 @@
 ! *** WRITTEN BY ATHANASIOS NENES
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
       ! Local variables
-      REAL, PARAMETER :: URF=0.5
-      REAL            :: EX10
-      REAL            :: G0(3,4),ZPL,ZMI,AGAMA,SION,H,CH,F1(3),F2(4)
-      REAL            :: G
-      INTEGER         :: I, J
-      REAL*8          :: MPL, XIJ, YJI, ERROU, ERRIN
+      REAL*8 , PARAMETER :: URF=0.5d0
+!      REAL*8             :: EX10
+      REAL*8             :: G0(3,4),ZPL,ZMI,AGAMA,SION,H,CH,F1(3),F2(4)
+!      REAL*8             :: TEMP
+!      INTEGER            :: I, J
+      INTEGER            :: K, M
+      REAL*8             :: MPL, XIJ, YJI, ERROU, ERRIN, IONIC
 
       !=================================================================
       ! CALCACT begins here!
       !=================================================================
-      G(I,J)= (F1(I)/Z(I) + F2(J)/Z(J+3)) / (Z(I)+Z(J+3)) - H
+      ! This is an F77-style statement function, which is obsolete
+      ! under F90.  We moved this into FUNCTION G below.
+      ! (bec, bmy, 3/3/05)
+      !G(I,J)= (F1(I)/Z(I) + F2(J)/Z(J+3)) / (Z(I)+Z(J+3)) - H
 
       !=================================================================
       ! SAVE ACTIVITIES IN OLD ARRAY
@@ -1719,26 +2552,26 @@
       IF ( FRST ) THEN               
 
          ! Outer loop
-         DO I = 1, NPAIR
-            GAMOU(I) = GAMA(I)
+         DO K = 1, NPAIR
+            GAMOU(K) = GAMA(K)
          ENDDO
       ENDIF
 
       ! Inner loop
-      DO I = 1, NPAIR              
-         GAMIN(I) = GAMA(I)
+      DO K = 1, NPAIR              
+         GAMIN(K) = GAMA(K)
       ENDDO
 
       !=================================================================
       ! CALCULATE IONIC ACTIVITY OF SOLUTION
       !=================================================================
-      IONIC = 0.0
+      IONIC = 0.0d0
 
-      DO I = 1, NIONS
-         IONIC = IONIC + MOLAL(I)*Z(I)*Z(I)
+      DO K = 1, NIONS
+         IONIC = IONIC + MOLAL(K)*Z(K)*Z(K)
       ENDDO
 
-      IONIC = MAX(MIN(0.5*IONIC/WATER,20.d0), TINY)
+      IONIC = MAX(MIN(0.5d0*IONIC/WATER,20.d0), TINY)
 
       !=================================================================
       ! CALCULATE BINARY ACTIVITY COEFFICIENTS
@@ -1749,12 +2582,18 @@
       !=================================================================
       IF ( IACALC .EQ. 0 ) THEN              
          ! K.M.; FULL
-         CALL KMFUL (IONIC, REAL(TEMP),G0(2,1),G0(2,2),G0(2,4),
+!         CALL KMFUL (IONIC, REAL(TEMP),G0(2,1),G0(2,2),G0(2,4),
+!     &               G0(3,2),G0(3,4),G0(3,1),G0(1,2),G0(1,3),G0(3,3),
+!     &               G0(1,4),G0(1,1),G0(2,3))
+         CALL KMFUL (IONIC, TEMP,G0(2,1),G0(2,2),G0(2,4),
      &               G0(3,2),G0(3,4),G0(3,1),G0(1,2),G0(1,3),G0(3,3),
      &               G0(1,4),G0(1,1),G0(2,3))
       ELSE                               
          ! K.M.; TABULATED
-         CALL KMTAB (IONIC, REAL(TEMP),G0(2,1),G0(2,2),G0(2,4),
+!         CALL KMTAB (IONIC, REAL(TEMP),G0(2,1),G0(2,2),G0(2,4),
+!     &               G0(3,2),G0(3,4),G0(3,1),G0(1,2),G0(1,3),G0(3,3),
+!     &               G0(1,4),G0(1,1),G0(2,3))
+         CALL KMTAB (IONIC, TEMP,G0(2,1),G0(2,2),G0(2,4),
      &               G0(3,2),G0(3,4),G0(3,1),G0(1,2),G0(1,3),G0(3,3),
      &               G0(1,4),G0(1,1),G0(2,3))
       ENDIF
@@ -1762,57 +2601,60 @@
       !=================================================================
       ! CALCULATE MULTICOMPONENT ACTIVITY COEFFICIENTS
       !=================================================================
-      AGAMA = 0.511*(298.0/TEMP)**1.5    ! Debye Huckel const. at T
+      AGAMA = 0.511d0*(298.0d0/TEMP)**1.5d0    ! Debye Huckel const. at T
       SION  = SQRT(IONIC)
       H     = AGAMA*SION/(1+SION)
 
-      DO I = 1,3
-         F1(I)=0.0
-         F2(I)=0.0
+      DO K = 1,3
+         F1(K)=0.0d0
+         F2(K)=0.0d0
       ENDDO
          
-      F2(4)=0.0
+      F2(4)=0.0d0
 
-      DO I = 1,3
-         ZPL = Z(I)
-         MPL = MOLAL(I)/WATER
-         DO J = 1,4
-            ZMI   = Z(J+3)
-            CH    = 0.25*(ZPL+ZMI)*(ZPL+ZMI)/IONIC
+      DO K = 1,3
+         ZPL = Z(K)
+         MPL = MOLAL(K)/WATER
+         DO M = 1,4
+            ZMI   = Z(M+3)
+            CH    = 0.25d0*(ZPL+ZMI)*(ZPL+ZMI)/IONIC
             XIJ   = CH*MPL
-            YJI   = CH*MOLAL(J+3)/WATER
-            F1(I) = F1(I) + SNGL(YJI*(G0(I,J) + ZPL*ZMI*H))
-            F2(J) = F2(J) + SNGL(XIJ*(G0(I,J) + ZPL*ZMI*H))
+            YJI   = CH*MOLAL(M+3)/WATER
+!            F1(I) = F1(I) + SNGL(YJI*(G0(I,J) + ZPL*ZMI*H))
+            F1(K) = F1(K) + (YJI*(G0(K,M) + ZPL*ZMI*H))
+!            F2(J) = F2(J) + SNGL(XIJ*(G0(I,J) + ZPL*ZMI*H))
+            F2(M) = F2(M) + (XIJ*(G0(K,M) + ZPL*ZMI*H))
          ENDDO
       ENDDO
 
       !=================================================================
       ! LOG10 OF ACTIVITY COEFFICIENTS
       !=================================================================
-      GAMA(01) = G(2,1)*ZZ(01)                     ! NACL
-      GAMA(02) = G(2,2)*ZZ(02)                     ! NA2SO4
-      GAMA(03) = G(2,4)*ZZ(03)                     ! NANO3
-      GAMA(04) = G(3,2)*ZZ(04)                     ! (NH4)2SO4
-      GAMA(05) = G(3,4)*ZZ(05)                     ! NH4NO3
-      GAMA(06) = G(3,1)*ZZ(06)                     ! NH4CL
-      GAMA(07) = G(1,2)*ZZ(07)                     ! 2H-SO4
-      GAMA(08) = G(1,3)*ZZ(08)                     ! H-HSO4
-      GAMA(09) = G(3,3)*ZZ(09)                     ! NH4HSO4
-      GAMA(10) = G(1,4)*ZZ(10)                     ! HNO3
-      GAMA(11) = G(1,1)*ZZ(11)                     ! HCL
-      GAMA(12) = G(2,3)*ZZ(12)                     ! NAHSO4
-      GAMA(13) = 0.20*(3.0*GAMA(04)+2.0*GAMA(09))  ! LC ; SCAPE
+      GAMA(01) = G(H,2,1,F1(2),F2(1))*ZZ(01)                     ! NACL
+      GAMA(02) = G(H,2,2,F1(2),F2(2))*ZZ(02)                     ! NA2SO4
+      GAMA(03) = G(H,2,4,F1(2),F2(4))*ZZ(03)                     ! NANO3
+      GAMA(04) = G(H,3,2,F1(3),F2(2))*ZZ(04)                     ! (NH4)2SO4
+      GAMA(05) = G(H,3,4,F1(3),F2(4))*ZZ(05)                     ! NH4NO3
+      GAMA(06) = G(H,3,1,F1(3),F2(1))*ZZ(06)                     ! NH4CL
+      GAMA(07) = G(H,1,2,F1(1),F2(2))*ZZ(07)                     ! 2H-SO4
+      GAMA(08) = G(H,1,3,F1(1),F2(3))*ZZ(08)                     ! H-HSO4
+      GAMA(09) = G(H,3,3,F1(3),F2(3))*ZZ(09)                     ! NH4HSO4
+      GAMA(10) = G(H,1,4,F1(1),F2(4))*ZZ(10)                     ! HNO3
+      GAMA(11) = G(H,1,1,F1(1),F2(1))*ZZ(11)                     ! HCL
+      GAMA(12) = G(H,2,3,F1(2),F2(3))*ZZ(12)                     ! NAHSO4
+      GAMA(13) = 0.2d0*(3.d0*GAMA(04)+2.d0*GAMA(09))  ! LC ; SCAPE
       !GAMA(13) = 0.50*(GAMA(04)+GAMA(09))          ! LC ; SEQUILIB
       !GAMA(13) = 0.25*(3.0*GAMA(04)+GAMA(07))      ! LC ; AIM
 
       !=================================================================
       ! CONVERT LOG (GAMA) COEFFICIENTS TO GAMA
       !=================================================================
-      DO I = 1, NPAIR
+      DO K = 1, NPAIR
          !GAMA(I)=MAX(-5.0d0, MIN(GAMA(I),5.0d0) )   ! F77 LIBRARY ROUTINE
          !GAMA(I)=10.0**GAMA(I)
-         GAMA(I) = EX10(SNGL(GAMA(I)), 5.0)          ! CUTOFF SET TO [-5,5]
-         GAMA(I) = GAMIN(I)*(1.0-URF) + URF*GAMA(I)  ! Under-relax GAMA's
+!         GAMA(I) = EX10(SNGL(GAMA(I)), 5.d0)          ! CUTOFF SET TO [-5,5]
+         GAMA(K) = EX10(GAMA(K), 5.d0)          ! CUTOFF SET TO [-5,5]
+         GAMA(K) = GAMIN(K)*(1.d0-URF) + URF*GAMA(K)  ! Under-relax GAMA's
       ENDDO
 
       !=================================================================
@@ -1825,8 +2667,8 @@
          ! Convergence criterion
          ERROU = ZERO                    
 
-         DO I = 1,NPAIR
-            ERROU = MAX(ERROU, ABS((GAMOU(I)-GAMA(I))/GAMOU(I)))
+         DO K = 1,NPAIR
+            ERROU = MAX(ERROU, ABS((GAMOU(K)-GAMA(K))/GAMOU(K)))
          ENDDO
 
          ! Setup flags
@@ -1838,8 +2680,8 @@
       ! Convergence criterion
       ERRIN = ZERO                       
 
-      DO I = 1, NPAIR
-         ERRIN = MAX (ERRIN, ABS((GAMIN(I)-GAMA(I))/GAMIN(I)))
+      DO K = 1, NPAIR
+         ERRIN = MAX (ERRIN, ABS((GAMIN(K)-GAMA(K))/GAMIN(K)))
       ENDDO
 
       CALAIN = ERRIN .GE. EPSACT
@@ -1849,6 +2691,24 @@
 
       ! Return to calling program
       END SUBROUTINE CALCACT
+
+!------------------------------------------------------------------------------
+
+      FUNCTION G( H, I, J, F1, F2 ) RESULT( VALUE )
+
+#     include "isoropia.h" 
+
+      INTEGER, INTENT(IN) :: I, J
+      REAL*8,  INTENT(IN) :: H, F1, F2
+      REAL*8              :: VALUE
+
+      !=================================================================
+      ! CALCACT begins here!
+      !=================================================================
+      VALUE = (F1/Z(I) + F2/Z(J+3)) / (Z(I)+Z(J+3)) - H 
+
+      ! Return to calling program
+      END FUNCTION G
 
 !------------------------------------------------------------------------------
 
@@ -1865,11 +2725,13 @@
 !
 !******************************************************************************
 !
-      ! Local variables
-      INTEGER :: I
+#     include "isoropia.h" 
 
-      DO I = 1, NPAIR
-         GAMA(I) = 0.1
+      ! Local variables
+      INTEGER :: K
+
+      DO K = 1, NPAIR
+         GAMA(K) = 0.1
       ENDDO
 
       ! Return to calling program
@@ -1892,53 +2754,54 @@
 !******************************************************************************
 !
       ! Arguments 
-      REAL*4 :: IONIC, TEMP
-      REAL*4 :: G01, G02, G03, G04, G05, G06
-      REAL*4 :: G07, G08, G09, G10, G11, G12
+      REAL*8 :: IONIC, TEMP
+      REAL*8 :: G01, G02, G03, G04, G05, G06
+      REAL*8 :: G07, G08, G09, G10, G11, G12
 
       ! Local variables
-      REAL*4 :: Z01, Z02, Z03, Z04, Z05, Z06
-      REAL*4 :: Z07, Z08, Z09, Z10, Z11, SION
-      REAL*4 :: TI,  CF1, CF2
+      REAL*8 :: Z01, Z02, Z03, Z04, Z05, Z06
+      REAL*8 :: Z07, Z08, Z09, Z10, Z11, SION
+      REAL*8 :: TI,  CF1, CF2
 
       !=================================================================
       ! KMFUL begins here!
       !=================================================================
       
       ! Initialize
-      Z01  = 1
-      Z02  = 2
-      Z03  = 1
-      Z04  = 2
-      Z05  = 1
-      Z06  = 1
-      Z07  = 2
-      Z08  = 1
-      Z10  = 1
-      Z11  = 1
+      Z01  = 1.d0
+      Z02  = 2.d0
+      Z03  = 1.d0
+      Z04  = 2.d0
+      Z05  = 1.d0
+      Z06  = 1.d0
+      Z07  = 2.d0
+      Z08  = 1.d0
+      Z10  = 1.d0
+      Z11  = 1.d0
       SION = SQRT(IONIC)
 
       !=================================================================
       ! Coefficients at 25 oC
       !=================================================================
-      CALL MKBI( 2.230, IONIC, SION, Z01, G01 )
-      CALL MKBI( -0.19, IONIC, SION, Z02, G02 )
-      CALL MKBI( -0.39, IONIC, SION, Z03, G03 )
-      CALL MKBI( -0.25, IONIC, SION, Z04, G04 )
-      CALL MKBI( -1.15, IONIC, SION, Z05, G05 )
-      CALL MKBI( 0.820, IONIC, SION, Z06, G06 )
-      CALL MKBI( -.100, IONIC, SION, Z07, G07 )
-      CALL MKBI( 8.000, IONIC, SION, Z08, G08 )
-      CALL MKBI( 2.600, IONIC, SION, Z10, G10 )
-      CALL MKBI( 6.000, IONIC, SION, Z11, G11 )
+      CALL MKBI( 2.230d0, IONIC, SION, Z01, G01 )
+      CALL MKBI( -0.19d0, IONIC, SION, Z02, G02 )
+      CALL MKBI( -0.39d0, IONIC, SION, Z03, G03 )
+      CALL MKBI( -0.25d0, IONIC, SION, Z04, G04 )
+      CALL MKBI( -1.15d0, IONIC, SION, Z05, G05 )
+      CALL MKBI( 0.820d0, IONIC, SION, Z06, G06 )
+      CALL MKBI( -.100d0, IONIC, SION, Z07, G07 )
+      CALL MKBI( 8.000d0, IONIC, SION, Z08, G08 )
+      CALL MKBI( 2.600d0, IONIC, SION, Z10, G10 )
+      CALL MKBI( 6.000d0, IONIC, SION, Z11, G11 )
 
       !=================================================================
       ! Correct for T other than 298 K
       !=================================================================
-      TI  = TEMP-273.0
-      IF (ABS(TI) .GT. 1.0) THEN
-         CF1 = 1.125-0.005*TI
-         CF2 = (0.125-0.005*TI)*(0.039*IONIC**0.92-0.41*SION/(1.+SION))
+      TI  = TEMP-273.0d0
+      IF (ABS(TI) .GT. 1.d0) THEN
+         CF1 = 1.125d0-0.005d0*TI
+         CF2 = (0.125d0-0.005d0*TI)*(0.039d0*IONIC**0.92d0-0.41d0*SION/
+     &         (1.d0+SION))
          G01 = CF1*G01 - CF2*Z01
          G02 = CF1*G02 - CF2*Z02
          G03 = CF1*G03 - CF2*Z03
@@ -1974,22 +2837,22 @@
 !******************************************************************************
 ! 
       ! Arguments
-      REAL*4 :: IONIC, Q, SION, ZIP, BI
+      REAL*8 :: IONIC, Q, SION, ZIP, BI
 
       ! Local variables
-      REAL*4 :: B, C, XX, BI
+      REAL*8 :: B, C, XX, BI
 
       !=================================================================
       ! MKBI begins here!
       !=================================================================
-      B = .75-.065*Q
-      C = 1.0
+      B = .75d0-.065d0*Q
+      C = 1.d0
 
-      IF (IONIC.LT.6.0) C=1.+.055*Q*EXP(-.023*IONIC*IONIC*IONIC)
+      IF (IONIC.LT.6.d0) C=1.d0+.055d0*Q*EXP(-.023d0*IONIC*IONIC*IONIC)
 
-      XX = -0.5107*SION/(1.+C*SION)
-      BI = (1.+B*(1.+.1*IONIC)**Q-B)
-      BI = ZIP*ALOG10(BI) + ZIP*XX
+      XX = -0.5107d0*SION/(1.d0+C*SION)
+      BI = (1.d0+B*(1.d0+.1d0*IONIC)**Q-B)
+      BI = ZIP*LOG(BI) + ZIP*XX
 
       ! Return to calling program
       END SUBROUTINE MKBI
@@ -2014,9 +2877,9 @@
 !******************************************************************************
 !
       ! Arguments
-      REAL*4, INTENT(IN)  :: IN, Temp
-      REAL*4, INTENT(OUT) :: G01, G02, G03, G04, G05, G06
-      REAL*4, INTENT(OUT) :: G07, G08, G09, G10, G11, G12
+      REAL*8, INTENT(IN)  :: IN, Temp
+      REAL*8, INTENT(OUT) :: G01, G02, G03, G04, G05, G06
+      REAL*8, INTENT(OUT) :: G07, G08, G09, G10, G11, G12
 
       ! Local variables
       INTEGER             :: IND
@@ -2026,7 +2889,7 @@
       !=================================================================
 
       ! Find temperature range
-      IND = NINT((TEMP-198.0)/25.0) + 1
+      IND = NINT((TEMP-198.d0)/25.d0) + 1
       IND = MIN(MAX(IND,1),6)
 
       !=================================================================
@@ -2180,9 +3043,9 @@
 !*****************************************************************************
 !
       ! Arguments
-      REAL*4, INTENT(IN)  :: IN
-      REAL*4, INTENT(OUT) :: G01, G02, G03, G04, G05, G06
-      REAL*4, INTENT(OUT) :: G07, G08, G09, G10, G11, G12
+      REAL*8, INTENT(IN)  :: IN
+      REAL*8, INTENT(OUT) :: G01, G02, G03, G04, G05, G06
+      REAL*8, INTENT(OUT) :: G07, G08, G09, G10, G11, G12
 
       ! Local variables
       INTEGER             :: IPOS
@@ -2192,10 +3055,10 @@
       !=================================================================
 
       ! Find position in arrays for bincoef
-      IF (IN.LE. 0.300000E+02) THEN
-         IPOS = NINT( 0.200000E+02*IN) + 1
+      IF (IN.LE. 0.3d2) THEN
+         IPOS = NINT( 0.2d2*IN) + 1
       ELSE
-         IPOS = 600+NINT( 0.200000E+01*IN- 0.300000E+02)
+         IPOS = 600+NINT( 0.2d1*IN- 0.3d2)
       ENDIF
 
       IPOS = MIN( IPOS, IMAX )
@@ -2240,9 +3103,9 @@
 !******************************************************************************
 !
       ! Arguments
-      REAL*4, INTENT(IN)  :: IN
-      REAL*4, INTENT(OUT) :: G01, G02, G03, G04, G05, G06
-      REAL*4, INTENT(OUT) :: G07, G08, G09, G10, G11, G12
+      REAL*8, INTENT(IN)  :: IN
+      REAL*8, INTENT(OUT) :: G01, G02, G03, G04, G05, G06
+      REAL*8, INTENT(OUT) :: G07, G08, G09, G10, G11, G12
 
       ! Local variable
       INTEGER             :: IPOS
@@ -2252,10 +3115,10 @@
       !=================================================================
 
       ! Find position in arrays for bincoef
-      IF (IN.LE. 0.300000E+02) THEN
-         IPOS = NINT( 0.200000E+02*IN) + 1
+      IF (IN.LE. 0.3d2) THEN
+         IPOS = NINT( 0.2d2*IN) + 1
       ELSE
-         IPOS = 600+NINT( 0.200000E+01*IN- 0.300000E+02)
+         IPOS = 600+NINT( 0.2d1*IN- 0.3d2)
       ENDIF
 
       IPOS = MIN( IPOS, IMAX )
@@ -2299,9 +3162,9 @@
 !  (1 ) Adapted for GEOS-CHEM (rjp, bdf, bmy, 9/28/02)
 !******************************************************************************
 !
-      REAL*4, INTENT(IN)  :: IN
-      REAL*4, INTENT(OUT) :: G01, G02, G03, G04, G05, G06 
-      REAL*4, INTENT(OUT) :: G07, G08, G09, G10, G11, G12
+      REAL*8, INTENT(IN)  :: IN
+      REAL*8, INTENT(OUT) :: G01, G02, G03, G04, G05, G06 
+      REAL*8, INTENT(OUT) :: G07, G08, G09, G10, G11, G12
 
       ! Local variables
       INTEGER :: IPOS
@@ -2311,10 +3174,10 @@
       !=================================================================
 
       ! Find position in arrays for bincoef
-      IF (IN.LE. 0.300000E+02) THEN
-         IPOS = NINT( 0.200000E+02*IN) + 1
+      IF (IN.LE. 0.3d2) THEN
+         IPOS = NINT( 0.2d2*IN) + 1
       ELSE
-         IPOS = 600+NINT( 0.200000E+01*IN- 0.300000E+02)
+         IPOS = 600+NINT( 0.2d1*IN- 0.3d2)
       ENDIF
 
       IPOS = MIN( IPOS, IMAX )
@@ -2359,9 +3222,9 @@
 !*****************************************************************************
 !
       ! Arguments
-      REAL*4, INTENT(IN)  :: IN
-      REAL*4, INTENT(OUT) :: G01, G02, G03, G04, G05, G06
-      REAL*4, INTENT(OUT) :: G07, G08, G09, G10, G11, G12
+      REAL*8, INTENT(IN)  :: IN
+      REAL*8, INTENT(OUT) :: G01, G02, G03, G04, G05, G06
+      REAL*8, INTENT(OUT) :: G07, G08, G09, G10, G11, G12
 
       ! Local variables
       INTEGER             :: IPOS
@@ -2371,10 +3234,10 @@
       !=================================================================
 
       ! Find position in arrays for bincoef
-      IF (IN.LE. 0.300000E+02) THEN
-         IPOS = NINT( 0.200000E+02*IN) + 1
+      IF (IN.LE. 0.3d2) THEN
+         IPOS = NINT( 0.2d2*IN) + 1
       ELSE
-         IPOS = 600+NINT( 0.200000E+01*IN- 0.300000E+02)
+         IPOS = 600+NINT( 0.2d1*IN- 0.3d2)
       ENDIF
 
       IPOS = MIN( IPOS, IMAX )
@@ -2419,9 +3282,9 @@
 !******************************************************************************
 !
       ! Arguments
-      REAL*4, INTENT(IN)  :: IN
-      REAL*4, INTENT(OUT) :: G01, G02, G03, G04, G05, G06 
-      REAL*4, INTENT(OUT) :: G07, G08, G09, G10, G11, G12
+      REAL*8, INTENT(IN)  :: IN
+      REAL*8, INTENT(OUT) :: G01, G02, G03, G04, G05, G06 
+      REAL*8, INTENT(OUT) :: G07, G08, G09, G10, G11, G12
 
       ! Local variables
       INTEGER             :: IPOS
@@ -2431,10 +3294,10 @@
       !=================================================================
 
       ! Find position in arrays for bincoef
-      IF (IN.LE. 0.300000E+02) THEN
-         IPOS = NINT( 0.200000E+02*IN) + 1
+      IF (IN.LE. 0.3d02) THEN
+         IPOS = NINT( 0.2d2*IN) + 1
       ELSE
-         IPOS = 600+NINT( 0.200000E+01*IN- 0.300000E+02)
+         IPOS = 600+NINT( 0.2d1*IN- 0.3d2)
       ENDIF
 
       IPOS = MIN( IPOS, IMAX )
@@ -2478,9 +3341,9 @@
 !  (1 ) Adapted for GEOS-CHEM (rjp, bdf, bmy, 9/28/02)
 !******************************************************************************
 !
-      REAL*4, INTENT(IN)  :: IN
-      REAL*4, INTENT(OUT) :: G01, G02, G03, G04, G05, G06
-      REAL*4, INTENT(OUT) :: G07, G08, G09, G10, G11, G12
+      REAL*8, INTENT(IN)  :: IN
+      REAL*8, INTENT(OUT) :: G01, G02, G03, G04, G05, G06
+      REAL*8, INTENT(OUT) :: G07, G08, G09, G10, G11, G12
 
       ! Local variables
       INTEGER             :: IPOS
@@ -2490,10 +3353,10 @@
       !=================================================================
 
       ! Find position in arrays for bincoef
-      IF (IN.LE. 0.300000E+02) THEN
-         ipos = NINT( 0.200000E+02*IN) + 1
+      IF (IN.LE. 0.3d2) THEN
+         ipos = NINT( 0.2d2*IN) + 1
       ELSE
-         IPOS = 600+NINT( 0.200000E+01*IN- 0.300000E+02)
+         IPOS = 600+NINT( 0.2d1*IN- 0.3d2)
       ENDIF
 
       IPOS = MIN( IPOS, IMAX )
@@ -2562,16 +3425,16 @@
       INTEGER          :: IBLK
 
       ! Local variables
-      INTEGER          :: I, ILEN
+      INTEGER          :: K, ILEN
       
       !=================================================================
       ! CHRBLN begins here!
       !=================================================================
       IBLK = 1                       ! Substring pointer (default=1)
       ILEN = LEN(STR)                ! Length of string 
-      DO I = ILEN, 1, -1              
-         IF (STR(i:i).NE.' ' .AND. STR(i:i).NE.CHAR(0)) THEN
-            IBLK = i
+      DO K = ILEN, 1, -1              
+         IF (STR(K:K).NE.' ' .AND. STR(K:K).NE.CHAR(0)) THEN
+            IBLK = K
             RETURN
          ENDIF
       ENDDO
@@ -2608,7 +3471,7 @@
       CHARACTER(LEN=*) :: CHR
 
       ! Local variables
-      INTEGER          :: I, I1, I2
+      INTEGER          :: K, I1, I2
       
       !=================================================================
       ! SHFTRGHT begins here!
@@ -2617,9 +3480,9 @@
       CALL CHRBLN(CHR,I2)        ! Position of last non-blank character
       IF (I2.EQ.I1) RETURN
 
-      DO I = I2, 1, -1            ! Shift characters
-         CHR(I1+I-I2:I1+I-I2) = CHR(I:I)
-         CHR(I:I) = ' '
+      DO K = I2, 1, -1            ! Shift characters
+         CHR(I1+K-I2:I1+K-I2) = CHR(K:K)
+         CHR(K:K) = ' '
       ENDDO
 
       ! Return to calling program
@@ -2905,6 +3768,8 @@
 !
 !******************************************************************************
 !
+!#     include "isoropia.h" 
+
       ! Arguments
       REAL*8            :: A1, A2, A3, ROOT
       INTEGER           :: ISLV
@@ -2916,6 +3781,7 @@
       REAL*8, PARAMETER :: THET2 = 240.D0 / 180.D0
       REAL*8, PARAMETER :: PI    = 3.14159265358932d0
       REAL*8, PARAMETER :: EPS   = 1D-50
+      REAL*8            :: R
       REAL*8            :: X(3), D, Q, THET, COEF, SSIG, S, TSIG, T, SQD
       INTEGER           :: I, IX
       
@@ -2933,8 +3799,8 @@
          IF (D.GE.ZERO) THEN
             IX   = 3
             SQD  = SQRT(D)
-            X(2) = 0.5*(-A1+SQD)
-            X(3) = 0.5*(-A1-SQD)
+            X(2) = 0.5d0*(-A1+SQD)
+            X(3) = 0.5d0*(-A1-SQD)
          ENDIF
       ELSE
 
@@ -3014,22 +3880,24 @@
 !
 !     RTLW, RTHI DEFINE THE INTERVAL WHICH THE ROOT IS LOOKED FOR.
 !
+!  NOTES:
+!  (1 ) Split off internal function FUNC and made it a module routine
+!        since it is not possible to call internal routines from w/in
+!        a parallelized region.  Now we must call FUNC(A1,A2,A3,X) 
+!        instead of FUNC(X). (bmy, 3/10/05)
 !******************************************************************************
 !
       ! Arguments
       INTEGER            :: ISLV
       REAL*8             :: A1, A2, A3, RTLW, RTHI, ROOT
-
+ 
       ! Local variables
       INTEGER, PARAMETER :: MAXIT=100
       INTEGER, PARAMETER :: NDIV=5
       INTEGER            :: ISLV, I, K1, K2
-      REAL*8,  PARAMETER :: ZERO=0.D0
-      REAL*8,  PARAMETER :: EPS=1D-15
-      REAL*8             :: EX10, X1, Y1, DX, X2, Y2, Y3, X3
-
-      ! Statement function
-      !FUNC(X) = X**3.d0 + A1*X**2.0 + A2*X + A3
+      REAL*8,  PARAMETER :: ZERO=0.0D0
+      REAL*8,  PARAMETER :: EPS=1.0D-15
+      REAL*8             :: X1, Y1, DX, X2, Y2, Y3, X3
 
       !=================================================================
       ! POLY3B begins here!
@@ -3037,7 +3905,7 @@
        
       ! Initial values for bisection
       X1   = RTLW
-      Y1   = FUNC(X1)
+      Y1   = FUNC( A1, A2, A3, X1 )
 
       ! Is low a root?
       IF ( ABS(Y1) .LE. EPS ) THEN     
@@ -3052,7 +3920,7 @@
 
       DO I = 1, NDIV
          X2 = X1+DX
-         Y2 = FUNC (X2)
+         Y2 = FUNC( A1, A2, A3, X2 )
 
          ! (Y1*Y2.LT.ZERO)
          IF ( SIGN(1.d0,Y1) * SIGN(1.d0,Y2) .LT. ZERO ) GOTO 20 
@@ -3074,11 +3942,11 @@
       !=================================================================
       ! BISECTION
       !=================================================================
-20    CONTINUE
+ 20   CONTINUE
 
       DO I = 1, MAXIT
-         X3 = 0.5*(X1+X2)
-         Y3 = FUNC (X3)
+         X3 = 0.5d0*(X1+X2)
+         Y3 = FUNC( A1, A2, A3, X3 )
 
          ! (Y1*Y3 .LE. ZERO)
          IF ( SIGN(1.d0,Y1) * SIGN(1.d0,Y3) .LE. ZERO ) THEN  
@@ -3094,37 +3962,44 @@
       !=================================================================
       ! Converged ; RETURN
       !=================================================================
-40    CONTINUE
-      X3   = 0.5*(X1+X2)
-      Y3   = FUNC (X3)
+ 40   CONTINUE
+      X3   = 0.5d0*(X1+X2)
+      Y3   = FUNC( A1, A2, A3, X3 )
       ROOT = X3
       ISLV = 0
 
       ! Return to calling program
-50    CONTINUE
-
-      CONTAINS
-
-      !-----------------------------------------------------------------------
-
-      FUNCTION FUNC( X ) RESULT ( VALUE )
-
-      REAL*8 :: X, VALUE
-
-      ! This replaces the old statement function
-      VALUE = X**3.d0 + A1*X**2.0 + A2*X + A3
-
-      ! Return to POLY3B
-      END FUNCTION FUNC
-
-      !-----------------------------------------------------------------------
+ 50   CONTINUE
 
       ! Return to calling program
       END SUBROUTINE POLY3B
       
 !------------------------------------------------------------------------------
 
-      FUNCTION EX10( X, K )
+      FUNCTION FUNC( A1, A2, A3, X ) RESULT ( VALUE )
+!
+!******************************************************************************
+!  This was split off from POLY3B (bmy, 3/10/05)
+!******************************************************************************
+!
+      ! Arguments
+      REAL*8, INTENT(IN) :: A1, A2, A3, X
+
+      ! Function value
+      REAL*8             :: VALUE
+
+      ! This replaces the old statement function
+      VALUE = X**3.d0 + A1*X**2.d0 + A2*X + A3
+
+      ! Eventually replace the polynomial w/ this function below
+      !VALUE = A3 + ( X * ( A2 + X * ( A1 + X )))
+
+      ! Return to POLY3B
+      END FUNCTION FUNC
+
+!------------------------------------------------------------------------------
+
+      FUNCTION EX10( X, K ) RESULT( VALUE )
 ! 
 !******************************************************************************
 !
@@ -3150,61 +4025,65 @@
 !******************************************************************************
 !
       ! Arguments
-      REAL*4, INTENT(IN) :: X, K
+      REAL*8, INTENT(IN) :: X, K
+
+      ! Return value
+      REAL*8             :: VALUE
 
       ! Local variables
-      REAL*4             :: EX10, Y
+!      REAL*4             :: EX10, Y
+      REAL*8             :: Y 
       INTEGER            :: K1, K2
 
       ! For integer part
       REAL*4, SAVE       :: AINT10(20) = (/
-     & 0.1000E-08, 0.1000E-07, 0.1000E-06, 0.1000E-05, 0.1000E-04,
-     & 0.1000E-03, 0.1000E-02, 0.1000E-01, 0.1000E+00, 0.1000E+01,
-     & 0.1000E+02, 0.1000E+03, 0.1000E+04, 0.1000E+05, 0.1000E+06,
-     & 0.1000E+07, 0.1000E+08, 0.1000E+09, 0.1000E+10, 0.1000E+11/)
+     & 0.1000d-08, 0.1000d-07, 0.1000d-06, 0.1000d-05, 0.1000d-04,
+     & 0.1000d-03, 0.1000d-02, 0.1000d-01, 0.1000d+00, 0.1000d+01,
+     & 0.1000d+02, 0.1000d+03, 0.1000d+04, 0.1000d+05, 0.1000d+06,
+     & 0.1000d+07, 0.1000d+08, 0.1000d+09, 0.1000d+10, 0.1000d+11/)
 
       ! For decimal part
       REAL*4, SAVE       :: ADEC10(200) = (/
-     & 0.1023E+00, 0.1047E+00, 0.1072E+00, 0.1096E+00, 0.1122E+00,
-     & 0.1148E+00, 0.1175E+00, 0.1202E+00, 0.1230E+00, 0.1259E+00,
-     & 0.1288E+00, 0.1318E+00, 0.1349E+00, 0.1380E+00, 0.1413E+00,
-     & 0.1445E+00, 0.1479E+00, 0.1514E+00, 0.1549E+00, 0.1585E+00,
-     & 0.1622E+00, 0.1660E+00, 0.1698E+00, 0.1738E+00, 0.1778E+00,
-     & 0.1820E+00, 0.1862E+00, 0.1905E+00, 0.1950E+00, 0.1995E+00,
-     & 0.2042E+00, 0.2089E+00, 0.2138E+00, 0.2188E+00, 0.2239E+00,
-     & 0.2291E+00, 0.2344E+00, 0.2399E+00, 0.2455E+00, 0.2512E+00,
-     & 0.2570E+00, 0.2630E+00, 0.2692E+00, 0.2754E+00, 0.2818E+00,
-     & 0.2884E+00, 0.2951E+00, 0.3020E+00, 0.3090E+00, 0.3162E+00,
-     & 0.3236E+00, 0.3311E+00, 0.3388E+00, 0.3467E+00, 0.3548E+00,
-     & 0.3631E+00, 0.3715E+00, 0.3802E+00, 0.3890E+00, 0.3981E+00,
-     & 0.4074E+00, 0.4169E+00, 0.4266E+00, 0.4365E+00, 0.4467E+00,
-     & 0.4571E+00, 0.4677E+00, 0.4786E+00, 0.4898E+00, 0.5012E+00,
-     & 0.5129E+00, 0.5248E+00, 0.5370E+00, 0.5495E+00, 0.5623E+00,
-     & 0.5754E+00, 0.5888E+00, 0.6026E+00, 0.6166E+00, 0.6310E+00,
-     & 0.6457E+00, 0.6607E+00, 0.6761E+00, 0.6918E+00, 0.7079E+00,
-     & 0.7244E+00, 0.7413E+00, 0.7586E+00, 0.7762E+00, 0.7943E+00,
-     & 0.8128E+00, 0.8318E+00, 0.8511E+00, 0.8710E+00, 0.8913E+00,
-     & 0.9120E+00, 0.9333E+00, 0.9550E+00, 0.9772E+00, 0.1000E+01,
-     & 0.1023E+01, 0.1047E+01, 0.1072E+01, 0.1096E+01, 0.1122E+01,
-     & 0.1148E+01, 0.1175E+01, 0.1202E+01, 0.1230E+01, 0.1259E+01,
-     & 0.1288E+01, 0.1318E+01, 0.1349E+01, 0.1380E+01, 0.1413E+01,
-     & 0.1445E+01, 0.1479E+01, 0.1514E+01, 0.1549E+01, 0.1585E+01,
-     & 0.1622E+01, 0.1660E+01, 0.1698E+01, 0.1738E+01, 0.1778E+01,
-     & 0.1820E+01, 0.1862E+01, 0.1905E+01, 0.1950E+01, 0.1995E+01,
-     & 0.2042E+01, 0.2089E+01, 0.2138E+01, 0.2188E+01, 0.2239E+01,
-     & 0.2291E+01, 0.2344E+01, 0.2399E+01, 0.2455E+01, 0.2512E+01,
-     & 0.2570E+01, 0.2630E+01, 0.2692E+01, 0.2754E+01, 0.2818E+01,
-     & 0.2884E+01, 0.2951E+01, 0.3020E+01, 0.3090E+01, 0.3162E+01,
-     & 0.3236E+01, 0.3311E+01, 0.3388E+01, 0.3467E+01, 0.3548E+01,
-     & 0.3631E+01, 0.3715E+01, 0.3802E+01, 0.3890E+01, 0.3981E+01,
-     & 0.4074E+01, 0.4169E+01, 0.4266E+01, 0.4365E+01, 0.4467E+01,
-     & 0.4571E+01, 0.4677E+01, 0.4786E+01, 0.4898E+01, 0.5012E+01,
-     & 0.5129E+01, 0.5248E+01, 0.5370E+01, 0.5495E+01, 0.5623E+01,
-     & 0.5754E+01, 0.5888E+01, 0.6026E+01, 0.6166E+01, 0.6310E+01,
-     & 0.6457E+01, 0.6607E+01, 0.6761E+01, 0.6918E+01, 0.7079E+01,
-     & 0.7244E+01, 0.7413E+01, 0.7586E+01, 0.7762E+01, 0.7943E+01,
-     & 0.8128E+01, 0.8318E+01, 0.8511E+01, 0.8710E+01, 0.8913E+01,
-     & 0.9120E+01, 0.9333E+01, 0.9550E+01, 0.9772E+01, 0.1000E+02
+     & 0.1023d+00, 0.1047d+00, 0.1072d+00, 0.1096d+00, 0.1122d+00,
+     & 0.1148d+00, 0.1175d+00, 0.1202d+00, 0.1230d+00, 0.1259d+00,
+     & 0.1288d+00, 0.1318d+00, 0.1349d+00, 0.1380d+00, 0.1413d+00,
+     & 0.1445d+00, 0.1479d+00, 0.1514d+00, 0.1549d+00, 0.1585d+00,
+     & 0.1622d+00, 0.1660d+00, 0.1698d+00, 0.1738d+00, 0.1778d+00,
+     & 0.1820d+00, 0.1862d+00, 0.1905d+00, 0.1950d+00, 0.1995d+00,
+     & 0.2042d+00, 0.2089d+00, 0.2138d+00, 0.2188d+00, 0.2239d+00,
+     & 0.2291d+00, 0.2344d+00, 0.2399d+00, 0.2455d+00, 0.2512d+00,
+     & 0.2570d+00, 0.2630d+00, 0.2692d+00, 0.2754d+00, 0.2818d+00,
+     & 0.2884d+00, 0.2951d+00, 0.3020d+00, 0.3090d+00, 0.3162d+00,
+     & 0.3236d+00, 0.3311d+00, 0.3388d+00, 0.3467d+00, 0.3548d+00,
+     & 0.3631d+00, 0.3715d+00, 0.3802d+00, 0.3890d+00, 0.3981d+00,
+     & 0.4074d+00, 0.4169d+00, 0.4266d+00, 0.4365d+00, 0.4467d+00,
+     & 0.4571d+00, 0.4677d+00, 0.4786d+00, 0.4898d+00, 0.5012d+00,
+     & 0.5129d+00, 0.5248d+00, 0.5370d+00, 0.5495d+00, 0.5623d+00,
+     & 0.5754d+00, 0.5888d+00, 0.6026d+00, 0.6166d+00, 0.6310d+00,
+     & 0.6457d+00, 0.6607d+00, 0.6761d+00, 0.6918d+00, 0.7079d+00,
+     & 0.7244d+00, 0.7413d+00, 0.7586d+00, 0.7762d+00, 0.7943d+00,
+     & 0.8128d+00, 0.8318d+00, 0.8511d+00, 0.8710d+00, 0.8913d+00,
+     & 0.9120d+00, 0.9333d+00, 0.9550d+00, 0.9772d+00, 0.1000d+01,
+     & 0.1023d+01, 0.1047d+01, 0.1072d+01, 0.1096d+01, 0.1122d+01,
+     & 0.1148d+01, 0.1175d+01, 0.1202d+01, 0.1230d+01, 0.1259d+01,
+     & 0.1288d+01, 0.1318d+01, 0.1349d+01, 0.1380d+01, 0.1413d+01,
+     & 0.1445d+01, 0.1479d+01, 0.1514d+01, 0.1549d+01, 0.1585d+01,
+     & 0.1622d+01, 0.1660d+01, 0.1698d+01, 0.1738d+01, 0.1778d+01,
+     & 0.1820d+01, 0.1862d+01, 0.1905d+01, 0.1950d+01, 0.1995d+01,
+     & 0.2042d+01, 0.2089d+01, 0.2138d+01, 0.2188d+01, 0.2239d+01,
+     & 0.2291d+01, 0.2344d+01, 0.2399d+01, 0.2455d+01, 0.2512d+01,
+     & 0.2570d+01, 0.2630d+01, 0.2692d+01, 0.2754d+01, 0.2818d+01,
+     & 0.2884d+01, 0.2951d+01, 0.3020d+01, 0.3090d+01, 0.3162d+01,
+     & 0.3236d+01, 0.3311d+01, 0.3388d+01, 0.3467d+01, 0.3548d+01,
+     & 0.3631d+01, 0.3715d+01, 0.3802d+01, 0.3890d+01, 0.3981d+01,
+     & 0.4074d+01, 0.4169d+01, 0.4266d+01, 0.4365d+01, 0.4467d+01,
+     & 0.4571d+01, 0.4677d+01, 0.4786d+01, 0.4898d+01, 0.5012d+01,
+     & 0.5129d+01, 0.5248d+01, 0.5370d+01, 0.5495d+01, 0.5623d+01,
+     & 0.5754d+01, 0.5888d+01, 0.6026d+01, 0.6166d+01, 0.6310d+01,
+     & 0.6457d+01, 0.6607d+01, 0.6761d+01, 0.6918d+01, 0.7079d+01,
+     & 0.7244d+01, 0.7413d+01, 0.7586d+01, 0.7762d+01, 0.7943d+01,
+     & 0.8128d+01, 0.8318d+01, 0.8511d+01, 0.8710d+01, 0.8913d+01,
+     & 0.9120d+01, 0.9333d+01, 0.9550d+01, 0.9772d+01, 0.1000d+02
      & /)
 
       !=================================================================
@@ -3219,7 +4098,7 @@
       K2   = INT(100*(Y-K1))
 
       ! Calculate EXP function
-      EX10 = AINT10(K1+10) * ADEC10(K2+100)
+      VALUE = AINT10(K1+10) * ADEC10(K2+100)
 
       ! Return to calling program
       END FUNCTION EX10
@@ -3239,6 +4118,8 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
       ! Arguments
       INTEGER,          INTENT(IN) :: IERR
       CHARACTER(LEN=*), INTENT(IN) :: ERRINF
@@ -3280,6 +4161,8 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
       ! Arguments
       CHARACTER(LEN=40), INTENT(OUT) :: ERRMSGI(NERRMX)
       INTEGER,           INTENT(OUT) :: ERRSTKI(NERRMX)
@@ -3320,6 +4203,8 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
       ! Arguments
       INTEGER           :: IO, IERR
       CHARACTER(LEN=*)  :: ERRINF
@@ -3455,8 +4340,10 @@
 !
 !******************************************************************************
 !
-      ! Arguments
-      REAL*8  :: WI(NCOMP), RHI, TEMPI
+#     include "CMN_SIZE" ! IIPAR, JPAR, LLTROP
+#     include "isoropia.h" 
+
+      REAL*8,  INTENT(IN) :: WI(NCOMP), RHI, TEMPI
 
       !=================================================================
       ! ISRP2F begins here!
@@ -3478,21 +4365,21 @@
          ! Only liquid (metastable)
          IF ( METSTBL .EQ. 1 ) THEN
             SCASE = 'D3'
-            CALL CALCD3         
+            CALL CALCD3     
          ELSE
 
             ! NH42SO4,NH4NO3       ; case D1
-            IF ( RH .LT. DRNH4NO3 ) THEN    
+            IF ( RHB .LT. DRNH4NO3 ) THEN    
                SCASE = 'D1'
                CALL CALCD1      
      
             ! NH42S4               ; case D2
-            ELSE IF ( DRNH4NO3 .LE. RH .AND. RH .LT. DRNH42S4 ) THEN         
+            ELSE IF ( DRNH4NO3 .LE. RHB .AND. RHB .LT. DRNH42S4 ) THEN         
                SCASE = 'D2'
                CALL CALCD2      
      
             ! Only liquid          ; case D3
-            ELSE IF ( DRNH42S4 .LE. RH ) THEN
+            ELSE IF ( DRNH42S4 .LE. RHB ) THEN
                SCASE = 'D3'
                CALL CALCD3      
             ENDIF
@@ -3515,25 +4402,25 @@
          ELSE
             
             ! NH4HSO4,LC,NH42SO4   ; case E1
-            IF ( RH .LT. DRNH4HS4 ) THEN         
+            IF ( RHB .LT. DRNH4HS4 ) THEN         
                SCASE = 'B1'
-               CALL CALCB1      
+               CALL CALCB1   
                SCASE = 'E1'
 
             ! LC,NH42S4            ; case E2
-            ELSE IF ( DRNH4HS4 .LE. RH .AND. RH .LT. DRLC ) THEN         
+            ELSE IF ( DRNH4HS4 .LE. RHB .AND. RHB .LT. DRLC ) THEN         
                SCASE = 'B2'
                CALL CALCB2      
                SCASE = 'E2'
                
             ! NH42S4               ; case E3
-            ELSE IF ( DRLC .LE. RH .AND. RH .LT. DRNH42S4 ) THEN         
+            ELSE IF ( DRLC .LE. RHB .AND. RHB .LT. DRNH42S4 ) THEN         
                SCASE = 'B3'
                CALL CALCB3      
                SCASE = 'E3'
                
             ! Only liquid          ; case E4
-            ELSE IF ( DRNH42S4 .LE. RH ) THEN         
+            ELSE IF ( DRNH42S4 .LE. RHB ) THEN         
                SCASE = 'B4'
                CALL CALCB4      
                SCASE = 'E4'
@@ -3558,17 +4445,16 @@
             SCASE = 'C2'
             CALL CALCC2            
             SCASE = 'F2'
-
          ELSE
 
             ! NH4HSO4              ; case F1
-            IF ( RH .LT. DRNH4HS4 ) THEN         
+            IF ( RHB .LT. DRNH4HS4 ) THEN         
                SCASE = 'C1'
                CALL CALCC1         
                SCASE = 'F1'
 
             ! Only liquid          ; case F2
-            ELSE IF ( DRNH4HS4 .LE. RH ) THEN         
+            ELSE IF ( DRNH4HS4 .LE. RHB ) THEN         
                SCASE = 'C2'
                CALL CALCC2              
                SCASE = 'F2'
@@ -3576,11 +4462,199 @@
          ENDIF
 
          ! HNO3(g) DISSOLUTION
-         CALL CALCNA            
+         CALL CALCNA 
+       
       ENDIF
 
       ! Return to calling program 
       END SUBROUTINE ISRP2F
+
+!-----------------------------------------------------------------------------
+
+      SUBROUTINE ISRP3F( WI, RHI, TEMPI )
+
+!*****************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE ISRP3F
+! *** THIS SUBROUTINE IS THE DRIVER ROUTINE FOR THE FORWARD PROBLEM OF
+!     AN AMMONIUM-SULFATE-NITRATE-CHLORIDE-SODIUM AEROSOL SYSTEM. 
+!     THE COMPOSITION REGIME IS DETERMINED BY THE SULFATE & SODIUM 
+!     RATIOS AND BY THE AMBIENT RELATIVE HUMIDITY.
+!
+! *** COPYRIGHT 1996-2000 UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!*****************************************************************************
+
+#     include "CMN_SIZE" ! IIPAR, JPAR, LLTROP
+#     include "isoropia.h" 
+
+      REAL*8 , INTENT(IN) :: WI(NCOMP), RHI, TEMPI
+      REAL*8              :: REST, WIN(NCOMP)
+      INTEGER             :: K
+
+      !=================================================================
+      ! ISRP3F begins here!
+      !=================================================================
+
+      DO K = 1, NCOMP
+ 	WIN(K) = WI(K)
+      ENDDO
+
+      ! Adjust for too little ammonium and chloride 
+      WIN(3) = MAX (WI(3), 1.D-10)  ! NH4+ : 1e-4 umoles/m3
+      WIN(5) = MAX (WI(5), 1.D-10)  ! Cl-  : 1e-4 umoles/m3
+
+      ! Adjust for too little sodium, sulfate, and nitrate combined
+      IF (WI(1)+WI(2)+WI(4) .LE. 1d-10) THEN
+         WIN(1) = 1.D-10  ! Na+  : 1e-4 umoles/m3
+         WIN(2) = 1.D-10  ! SO4- : 1e-4 umoles/m3
+      ENDIF
+
+      ! Allocate all module arrays and some common blocks
+      CALL INIT3 (WIN, RHI, TEMPI)
+
+      ! Check if too much sodium, adjust and issue an error message
+      REST = 2.D0*W(2) + W(4) + W(5) 
+      IF (W(1).GT.REST) THEN            ! NA > 2*SO4+CL+NO3 ?
+         W(1) = (ONE-1D-6)*REST         ! Adjust Na amount
+         CALL PUSHERR (0050, 'ISRP3F')  ! Warning error: Na adjusted
+      ENDIF
+
+      ! Calculate sulfate and sodium ratios
+      SULRAT = (W(1)+W(3))/W(2)
+      SODRAT = W(1)/W(2)
+
+      ! Find calculation regime from SULRAT, RH
+      ! Sulfate poor; sodium poor
+      IF ( 2.0 .LE. SULRAT .AND. SODRAT .LT. 2.0 ) THEN                
+      IF( METSTBL .EQ. 1 ) THEN
+         SCASE = 'G5'
+         CALL CALCG5                 ! Only liquid (metastable)
+      ELSE
+
+         IF ( RHB .LT. DRNH4NO3 ) THEN    
+            SCASE = 'G1'
+            CALL CALCG1              ! NH42SO4,NH4NO3,NH4CL,NA2SO4
+
+         ELSEIF ( DRNH4NO3 .LE. RHB .AND. RHB .LT. DRNH4CL ) THEN         
+            SCASE = 'G2'
+            CALL CALCG2              ! NH42SO4,NH4CL,NA2SO4
+
+         ELSEIF ( DRNH4CL .LE. RHB  .AND. RHB .LT. DRNH42S4 ) THEN         
+            SCASE = 'G3'
+            CALL CALCG3              ! NH42SO4,NA2SO4
+ 
+        ELSEIF ( DRNH42S4 .LE. RHB  .AND. RHB .LT. DRNA2SO4 ) THEN         
+            SCASE = 'G4'
+            CALL CALCG4              ! NA2SO4
+
+         ELSEIF ( DRNA2SO4 .LE. RHB ) THEN         
+            SCASE = 'G5'
+            CALL CALCG5             ! Only liquid
+         ENDIF
+      ENDIF
+
+      ! Sulfate poor, sodium rich
+      ELSE IF ( SULRAT .GE. 2.0 .AND. SODRAT .GE. 2.0 ) THEN                
+
+      IF( METSTBL .EQ. 1 ) THEN
+         SCASE = 'H6'
+         CALL CALCH6                 ! Only liquid (metastable)
+      ELSE
+
+         IF ( RHB .LT. DRNH4NO3 ) THEN    
+            SCASE = 'H1'
+            CALL CALCH1              ! NH4NO3,NH4CL,NA2SO4,NACL,NANO3
+
+         ELSEIF ( DRNH4NO3 .LE. RHB .AND. RHB .LT. DRNANO3 ) THEN         
+            SCASE = 'H2'
+            CALL CALCH2             ! NH4CL,NA2SO4,NACL,NANO3
+
+         ELSEIF ( DRNANO3 .LE. RHB  .AND. RHB .LT. DRNACL ) THEN         
+            SCASE = 'H3'
+            CALL CALCH3             ! NH4CL,NA2SO4,NACL
+
+         ELSEIF ( DRNACL .LE. RHB   .AND. RHB .LT. DRNH4Cl ) THEN         
+            SCASE = 'H4'
+            CALL CALCH4             ! NH4CL,NA2SO4
+
+         ELSEIF ( DRNH4Cl .LE. RHB .AND. RHB .LT. DRNA2SO4 ) THEN         
+            SCASE = 'H5'
+            CALL CALCH5              ! NA2SO4
+
+         ELSEIF ( DRNA2SO4 .LE. RHB ) THEN         
+            SCASE = 'H6'
+            CALL CALCH6              ! NO SOLID
+         ENDIF
+      ENDIF
+
+      ! Sulfate rich (no acid)
+      ELSEIF ( 1.0 .LE. SULRAT .AND. SULRAT .LT. 2.0 ) THEN 
+
+      IF( METSTBL .EQ. 1 ) THEN
+         SCASE = 'I6'
+         CALL CALCI6                 ! Only liquid (metastable)
+      ELSE
+
+         IF ( RHB .LT. DRNH4HS4 ) THEN         
+            SCASE = 'I1'
+            CALL CALCI1              ! NA2SO4,(NH4)2SO4,NAHSO4,NH4HSO4,LC
+
+         ELSEIF ( DRNH4HS4 .LE. RHB .AND. RHB .LT. DRNAHSO4 ) THEN         
+            SCASE = 'I2'
+            CALL CALCI2              ! NA2SO4,(NH4)2SO4,NAHSO4,LC
+
+         ELSEIF ( DRNAHSO4 .LE. RHB .AND. RHB .LT. DRLC ) THEN         
+            SCASE = 'I3'
+            CALL CALCI3              ! NA2SO4,(NH4)2SO4,LC
+
+         ELSEIF ( DRLC .LE. RHB     .AND. RHB .LT. DRNH42S4 ) THEN         
+            SCASE = 'I4'
+            CALL CALCI4              ! NA2SO4,(NH4)2SO4
+
+         ELSEIF ( DRNH42S4 .LE. RHB .AND. RHB .LT. DRNA2SO4 ) THEN         
+            SCASE = 'I5'
+            CALL CALCI5              ! NA2SO4
+
+         ELSEIF ( DRNA2SO4 .LE. RHB ) THEN         
+            SCASE = 'I6'
+            CALL CALCI6              ! NO SOLIDS
+         ENDIF
+      ENDIF
+                                    
+      CALL CALCNHA                ! MINOR SPECIES: HNO3, HCl       
+      CALL CALCNH3                !                NH3 
+
+      ! Sulfate rich (free acid)
+      ELSEIF ( SULRAT .LT. 1.0 ) THEN             
+
+      IF( METSTBL .EQ. 1 ) THEN
+         SCASE = 'J3'
+         CALL CALCJ3                 ! Only liquid (metastable)
+      ELSE
+
+         IF ( RHB .LT. DRNH4HS4 ) THEN         
+            SCASE = 'J1'
+            CALL CALCJ1              ! NH4HSO4,NAHSO4
+
+         ELSEIF ( DRNH4HS4 .LE. RHB .AND. RHB .LT. DRNAHSO4 ) THEN         
+            SCASE = 'J2'
+            CALL CALCJ2              ! NAHSO4
+
+         ELSEIF ( DRNAHSO4 .LE. RHB ) THEN         
+            SCASE = 'J3'
+            CALL CALCJ3              
+         ENDIF
+      ENDIF
+                                    
+      CALL CALCNHA                ! MINOR SPECIES: HNO3, HCl       
+      CALL CALCNH3                !                NH3 
+      ENDIF
+
+      ! Return to calling program 
+      END SUBROUTINE ISRP3F
 
 !------------------------------------------------------------------------------
 
@@ -3605,8 +4679,10 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
       ! Local variables
-      INTEGER :: I
+      INTEGER :: K
       REAL*8  :: AK1, BET, GAM, BB, CC, DD
 
       !=================================================================
@@ -3623,7 +4699,7 @@
       !=================================================================
 
       ! Get dry salt content, and use for water.
-      CALL CALCB1A         
+      CALL CALCB1A       
 
       MOLALR(13) = CLC       
       MOLALR(9)  = CNH4HS4   
@@ -3631,13 +4707,14 @@
       CLC        = ZERO
       CNH4HS4    = ZERO
       CNH42S4    = ZERO
-      WATER      = MOLALR(13)/M0(13)+MOLALR(9)/M0(9)+MOLALR(4)/M0(4)
+      WATER      = MOLALR(13)/M0(13)+MOLALR(9)/
+     &             M0(9)+MOLALR(4)/M0(4)
 
       ! NH4I
       MOLAL(3)   = W(3)   
 
-      DO I = 1, NSWEEP
-         AK1   = XK1*((GAMA(8)/GAMA(7))**2.)*(WATER/GAMA(7))
+      DO K = 1, NSWEEP
+         AK1   = XK1*((GAMA(8)/GAMA(7))**2.d0)*(WATER/GAMA(7))
          BET   = W(2)
          GAM   = MOLAL(3)
          BB    = BET + AK1 - GAM
@@ -3645,14 +4722,17 @@
          DD    = BB*BB - 4.D0*CC
 
          ! Speciation & water content
-         MOLAL (5) = MIN(0.5*(-BB + SQRT(DD)), W(2))           ! SO4I
-         MOLAL (6) = MAX(TINY,MIN(W(2)-MOLAL(5),W(2)))         ! HSO4I
-         MOLAL (1) = MAX(TINY,MIN(AK1*MOLAL(6)/MOLAL(5),W(2))) ! HI
-         CALL CALCMR                                           ! Water content
+         MOLAL (5) = MIN(0.5d0*(-BB + SQRT(DD)), W(2)) ! SO4I
+         MOLAL (6) = MAX(TINY,MIN(W(2)-MOLAL(5),
+     &                     W(2)))         ! HSO4I
+         MOLAL (1) = MAX(TINY,MIN(AK1*MOLAL(6)/
+     &                     MOLAL(5),W(2))) ! HI
+         CALL CALCMR              ! Water content
 
          ! Calculate activities or terminate internal loop 
          IF ( .NOT. CALAIN ) GOTO 30
          CALL CALCACT
+
       ENDDO
 
       ! Return to calling program
@@ -3679,6 +4759,8 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
       ! Arguments
       REAL*8 :: X, Y, TLC, TNH42S4, TNH4HS4
 
@@ -3733,12 +4815,15 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
+
       ! Arguments
       REAL*8  :: TLC, TNH42S4
 
       ! Local variables
-      INTEGER :: I
-      REAL*8  :: FUNCB3A
+      INTEGER :: K
+!      REAL*8  :: FUNCB3A
       REAL*8  :: ZLO, ZHI, Z1, Z2, Z3, Y1, Y2, Y3, YLO, YHI, DZ, ZK
 
       !=================================================================
@@ -3760,7 +4845,7 @@
       ! ROOT TRACKING ; FOR THE RANGE OF HI AND LO
       !=================================================================
       DZ = (ZHI-ZLO)/FLOAT(NDIV)
-      DO I = 1, NDIV
+      DO K = 1, NDIV
          Z2 = Z1+DZ
          Y2 = FUNCB3A (Z2, TLC, TNH42S4)
          IF (SIGN(1.d0,Y1)*SIGN(1.d0,Y2).LT.ZERO) GOTO 20  ! (Y1*Y2.LT.ZERO)
@@ -3799,8 +4884,8 @@
       !=================================================================
  20   CONTINUE
 
-      DO I = 1, MAXIT
-         Z3 = 0.5*(Z1+Z2)
+      DO K = 1, MAXIT
+         Z3 = 0.5d0*(Z1+Z2)
          Y3 = FUNCB3A (Z3, TLC, TNH42S4)
 
          ! (Y1*Y3 .LE. ZERO)
@@ -3821,7 +4906,7 @@
       ! CONVERGED ; RETURN
       !=================================================================
 40    CONTINUE
-      ZK = 0.5*(Z1+Z2)
+      ZK = 0.5d0*(Z1+Z2)
       Y3 = FUNCB3A (ZK, TLC, TNH42S4)
 
       ! Return to calling program
@@ -3829,7 +4914,8 @@
 
 !------------------------------------------------------------------------------
 
-      FUNCTION FUNCB3A( ZK, Y, X )
+!      FUNCTION FUNCB3A( ZK, Y, X ) 
+      FUNCTION FUNCB3A( ZK, Y, X ) RESULT( VALUE )
 !
 !******************************************************************************
 !
@@ -3841,12 +4927,17 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
       ! Arguments
-      REAL*8  :: ZK, Y, X
+      REAL*8, INTENT(IN)  :: ZK, Y, X
+
+      ! Return value
+      REAL*8  :: VALUE
 
       ! Local variables
-      INTEGER :: I
-      REAL*8  :: KK, GRAT1, DD, FUNCB3A
+      INTEGER :: K
+      REAL*8  :: KK, GRAT1, DD!, FUNCB3A
       
       !=================================================================
       ! FUNCB3A begins here!
@@ -3855,16 +4946,16 @@
       CALAIN = .TRUE.
 
       ! Solve equations ; with iterations for activity coef.
-      DO I = 1, NSWEEP
-         GRAT1 = XK1*WATER/GAMA(7)*(GAMA(8)/GAMA(7))**2.
-         DD    = SQRT( (ZK+GRAT1+Y)**2. + 4.0*Y*GRAT1)
-         KK    = 0.5*(-(ZK+GRAT1+Y) + DD )
+      DO K = 1, NSWEEP
+         GRAT1 = XK1*WATER/GAMA(7)*(GAMA(8)/GAMA(7))**2.d0
+         DD    = SQRT( (ZK+GRAT1+Y)**2.d0 + 4.d0*Y*GRAT1)
+         KK    = 0.5d0*(-(ZK+GRAT1+Y) + DD )
 
          ! Speciation & water content
          MOLAL (1) = KK                ! HI
          MOLAL (5) = KK+ZK+Y           ! SO4I
          MOLAL (6) = MAX (Y-KK, TINY)  ! HSO4I
-         MOLAL (3) = 3.0*Y+2*ZK        ! NH4I
+         MOLAL (3) = 3.d0*Y+2*ZK        ! NH4I
          CNH42S4   = X-ZK              ! Solid (NH4)2SO4
          CALL CALCMR                   ! Water content
 
@@ -3881,8 +4972,10 @@
       !=================================================================
 30    CONTINUE
       !FUNCB3A= ( SO4I*NH4I**2.0 )/( XK7*(WATER/GAMA(4))**3.0 )      
-      FUNCB3A= MOLAL(5)*MOLAL(3)**2.0
-      FUNCB3A= FUNCB3A/(XK7*(WATER/GAMA(4))**3.0) - ONE
+!      FUNCB3A= MOLAL(5)*MOLAL(3)**2.0
+!      FUNCB3A= FUNCB3A/(XK7*(WATER/GAMA(4))**3.0) - ONE
+      VALUE= MOLAL(5)*MOLAL(3)**2.d0
+      VALUE= VALUE/(XK7*(WATER/GAMA(4))**3.d0) - ONE
   
       ! Return to calling program
       END FUNCTION FUNCB3A
@@ -3907,11 +5000,13 @@
 ! *** WRITTEN BY ATHANASIOS NENES
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
       ! Arguments
-      REAL*8, INTENT(IN) :: Y, X
+      REAL*8, INTENT(IN)  :: Y, X
 
       ! Local variables
-      INTEGER            :: I
+      INTEGER            :: K
       REAL*8             :: KK, GRAT1, DD
 
       !=================================================================
@@ -3924,16 +5019,16 @@
       CALAIN = .TRUE.
 
       ! Solve equations ; with iterations for activity coef.
-      DO I = 1, NSWEEP
-         GRAT1 = XK1*WATER/GAMA(7)*(GAMA(8)/GAMA(7))**2.
-         DD    = SQRT( (GRAT1+Y)**2. + 4.0*(X+Y)*GRAT1)
-         KK    = 0.5*(-(GRAT1+Y) + DD )
+      DO K = 1, NSWEEP
+         GRAT1 = XK1*WATER/GAMA(7)*(GAMA(8)/GAMA(7))**2.d0
+         DD    = SQRT( (GRAT1+Y)**2.d0 + 4.d0*(X+Y)*GRAT1)
+         KK    = 0.5d0*(-(GRAT1+Y) + DD )
 
          ! Speciation & water content
          MOLAL (1) = KK                   ! HI
          MOLAL (5) = Y+KK                 ! SO4I
          MOLAL (6) = MAX (X+Y-KK, TINY)   ! HSO4I
-         MOLAL (3) = 3.0*Y+X              ! NH4I
+         MOLAL (3) = 3.d0*Y+X              ! NH4I
          CALL CALCMR                      ! Water content
 
          ! Calculate activities or terminate internal loop
@@ -3969,6 +5064,8 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
       ! Local variables
       REAL*8 :: X, Y
 
@@ -4020,15 +5117,18 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
       ! Arguments
-      REAL*8, INTENT(IN)  :: TLC, TNH42S4
+      REAL*8,  INTENT(IN)  :: TLC, TNH42S4
+
 
       !=================================================================
       ! CALCB2A begins here!
       !=================================================================
 
       ! Regime depends upon the ambient relative humidity
-      IF ( RH .LT. DRMLCAS ) THEN    
+      IF ( RHB .LT. DRMLCAS ) THEN    
 
          ! Solids possible only
          SCASE   = 'B2 ; SUBCASE A1'    
@@ -4048,7 +5148,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CALCB2A2 (TLC, TNH42S4)
+      SUBROUTINE CALCB2A2 ( TLC, TNH42S4)
 ! 
 !******************************************************************************
 !
@@ -4071,8 +5171,10 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
       ! Arguments
-      REAL*8, INTENT(IN) :: TLC, TNH42S4
+      REAL*8, INTENT(IN)  :: TLC, TNH42S4 
 
       ! Local variables
       REAL*8  :: WF, ONEMWF, CLCO, CNH42SO
@@ -4087,7 +5189,7 @@
       ELSE IF ( WFTYP .EQ. 1 ) THEN
          WF = 0.5D0
       ELSE
-         WF = ( DRLC - RH ) / ( DRLC - DRMLCAS )
+         WF = ( DRLC - RHB ) / ( DRLC - DRMLCAS )
       ENDIF
 
       ONEMWF  = ONE - WF
@@ -4103,12 +5205,12 @@
       !=================================================================
       CLC     = ZERO
       CNH42S4 = ZERO
-      CALL CALCB3                        ! SECOND (LIQUID) SOLUTION
+      CALL CALCB3                      ! SECOND (LIQUID) SOLUTION
 
       !=================================================================
       ! FIND SOLUTION AT MDRH BY WEIGHTING DRY & LIQUID SOLUTIONS
       !=================================================================
-      MOLAL(1)= ONEMWF*MOLAL(1)                                   ! H+
+      MOLAL(1)= ONEMWF*MOLAL(1)                             ! H+
       MOLAL(3)= ONEMWF*(2.D0*(CNH42SO-CNH42S4) + 3.D0*(CLCO-CLC)) ! NH4+
       MOLAL(5)= ONEMWF*(CNH42SO-CNH42S4 + CLCO-CLC)               ! SO4--
       MOLAL(6)= ONEMWF*(CLCO-CLC)                                 ! HSO4-
@@ -4148,13 +5250,15 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
 
       ! Arguments
       REAL*8  :: TLC, TNH4HS4
 
       ! 
-      INTEGER :: I
-      REAL*8  :: FUNCB2B
+      INTEGER :: K
+!      REAL*8  :: FUNCB2B
       REAL*8  :: ZLO, ZHI, X1, X2, X3, Y1, Y2, Y3, YLO, YHI, DX
 
       !=================================================================
@@ -4176,7 +5280,7 @@
       ! ROOT TRACKING ; FOR THE RANGE OF HI AND LO 
       !=================================================================
       DX = (ZHI-ZLO)/NDIV
-      DO I = 1, NDIV
+      DO K = 1, NDIV
          X2 = X1-DX
          Y2 = FUNCB2B (X2,TNH4HS4,TLC)
 
@@ -4222,8 +5326,8 @@
       !=================================================================
 20    CONTINUE
 
-      DO I = 1, MAXIT
-         X3 = 0.5*(X1+X2)
+      DO K = 1, MAXIT
+         X3 = 0.5d0*(X1+X2)
          Y3 = FUNCB2B (X3,TNH4HS4,TLC)
          IF (SIGN(1.d0,Y1)*SIGN(1.d0,Y3) .LE. ZERO) THEN  ! (Y1*Y3 .LE. ZERO)
             Y2    = Y3
@@ -4242,7 +5346,7 @@
       ! CONVERGED ; RETURN
       !=================================================================
 40    CONTINUE
-      X3 = 0.5*(X1+X2)
+      X3 = 0.5d0*(X1+X2)
       Y3 = FUNCB2B (X3,TNH4HS4,TLC)
 
       ! Return to calling program
@@ -4250,7 +5354,7 @@
 
 !------------------------------------------------------------------------------
 
-      FUNCTION FUNCB2B( X, TNH4HS4, TLC )
+      FUNCTION FUNCB2B( X, TNH4HS4, TLC ) RESULT( VALUE )
 !
 !******************************************************************************
 !
@@ -4262,12 +5366,17 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
       ! Arguments
-      REAL*8  :: X, TNH4HS4, TLC
+      REAL*8, INTENT(IN)  :: X, TNH4HS4, TLC
+
+      ! Return value
+      REAL*8             :: VALUE
 
       ! Local variables
-      INTEGER :: I
-      REAL*8  :: GRAT2, PARM, DELTA, OMEGA, FUNCB2B
+      INTEGER :: K
+      REAL*8  :: GRAT2, PARM, DELTA, OMEGA!, FUNCB2B
 
       !=================================================================
       ! FUNCB2B begins here!
@@ -4276,15 +5385,15 @@
       CALAIN = .TRUE.
 
       ! Solve equation
-      DO I = 1, NSWEEP
-         GRAT2 = XK1*WATER*(GAMA(8)/GAMA(7))**2./GAMA(7)
+      DO K = 1, NSWEEP
+         GRAT2 = XK1*WATER*(GAMA(8)/GAMA(7))**2.d0/GAMA(7)
          PARM  = X+GRAT2
-         DELTA = PARM*PARM + 4.0*(X+TNH4HS4)*GRAT2 ! Diakrinousa
-         OMEGA = 0.5*(-PARM + SQRT(DELTA))         ! Thetiki riza (ie:H+>0)
+         DELTA = PARM*PARM + 4.d0*(X+TNH4HS4)*GRAT2 ! Diakrinousa
+         OMEGA = 0.5d0*(-PARM + SQRT(DELTA))         ! Thetiki riza (ie:H+>0)
 
          ! Speciation & water content
          MOLAL (1) = OMEGA                         ! HI
-         MOLAL (3) = 3.0*X+TNH4HS4                 ! NH4I
+         MOLAL (3) = 3.d0*X+TNH4HS4                 ! NH4I
          MOLAL (5) = X+OMEGA                       ! SO4I
          MOLAL (6) = MAX (X+TNH4HS4-OMEGA, TINY)   ! HSO4I
          CLC       = MAX(TLC-X,ZERO)               ! Solid LC
@@ -4303,8 +5412,10 @@
       !=================================================================
 30    CONTINUE
       !FUNCB2B= ( NH4I**3.*SO4I*HSO4I )/( XK13*(WATER/GAMA(13))**5. )
-      FUNCB2B= (MOLAL(3)**3.)*MOLAL(5)*MOLAL(6)
-      FUNCB2B= FUNCB2B/(XK13*(WATER/GAMA(13))**5.) - ONE
+!      FUNCB2B= (MOLAL(3)**3.)*MOLAL(5)*MOLAL(6)
+!      FUNCB2B= FUNCB2B/(XK13*(WATER/GAMA(13))**5.) - ONE
+      VALUE= (MOLAL(3)**3.d0)*MOLAL(5)*MOLAL(6)
+      VALUE= VALUE/(XK13*(WATER/GAMA(13))**5.d0) - ONE
 
       ! Return to calling program
       END FUNCTION FUNCB2B
@@ -4333,12 +5444,14 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
       !=================================================================
       ! CALCB1 begins here!
       !=================================================================
 
       ! Regime depends upon the ambient relative humidity
-      IF ( RH .LT. DRMLCAB ) THEN  
+      IF ( RHB .LT. DRMLCAB ) THEN  
 
          ! Solid phase only possible
          SCASE = 'B1 ; SUBCASE 1'  
@@ -4383,13 +5496,16 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
+
       ! Local variables
       REAL*8 :: X, Y, CLC
 
       !=================================================================
       ! CALCB1 begins here! 
       !=================================================================
-      X = 2*W(2)-W(3)       ! Equivalent NH4HSO4
+      X = 2.d0*W(2)-W(3)       ! Equivalent NH4HSO4
       Y = W(3)-W(2)         ! Equivalent (NH4)2SO4
 
       ! Calculate composition
@@ -4432,6 +5548,8 @@
 !
 !******************************************************************************
 
+#     include "isoropia.h" 
+
       ! Local variables
       REAL*8 :: WF, ONEMWF, CLCO, CNH42SO, CNH4HSO
 
@@ -4445,7 +5563,7 @@
       ELSEIF (WFTYP.EQ.1) THEN
          WF = 0.5D0
       ELSE
-         WF = (DRNH4HS4-RH)/(DRNH4HS4-DRMLCAB)
+         WF = (DRNH4HS4-RHB)/(DRNH4HS4-DRMLCAB)
       ENDIF
       ONEMWF  = ONE - WF
 
@@ -4468,7 +5586,7 @@
       !=================================================================
       ! FIND SOLUTION AT MDRH BY WEIGHTING DRY & LIQUID SOLUTIONS.
       !=================================================================
-      MOLAL(1)= ONEMWF*MOLAL(1)                                   ! H+
+      MOLAL(1)= ONEMWF*MOLAL(1)                        ! H+
       MOLAL(3)= ONEMWF*(2.D0*(CNH42SO-CNH42S4) + (CNH4HSO-CNH4HS4)  
      &                + 3.D0*(CLCO-CLC))                          ! NH4+
       MOLAL(5)= ONEMWF*(CNH42SO-CNH42S4 + CLCO-CLC)               ! SO4--
@@ -4502,8 +5620,10 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
       ! Local variables
-      INTEGER :: I
+      INTEGER :: K
       REAL*8  :: LAMDA, KAPA, PSI, PARM, BB, CC
 
       !=================================================================
@@ -4516,23 +5636,25 @@
       PSI    = W(2)-W(3)      ! H2SO4 IN SOLUTION
 
       ! Solve equations
-      DO I = 1, NSWEEP
-         PARM  = WATER*XK1/GAMA(7)*(GAMA(8)/GAMA(7))**2.
+      DO K = 1, NSWEEP
+         PARM  = WATER*XK1/GAMA(7)*(GAMA(8)/GAMA(7))**2.d0
          BB    = PSI+PARM
          CC    =-PARM*(LAMDA+PSI)
-         KAPA  = 0.5*(-BB+SQRT(BB*BB-4.0*CC))
+         KAPA  = 0.5d0*(-BB+SQRT(BB*BB-4.d0*CC))
 
          ! Speciation & water content
          MOLAL(1) = PSI+KAPA                               ! HI
          MOLAL(3) = LAMDA                                  ! NH4I
          MOLAL(5) = KAPA                                   ! SO4I
          MOLAL(6) = MAX(LAMDA+PSI-KAPA, TINY)              ! HSO4I
-         CH2SO4   = MAX(MOLAL(5)+MOLAL(6)-MOLAL(3), ZERO)  ! Free H2SO4
-         CALL CALCMR                                       ! Water content
+         CH2SO4   = MAX(MOLAL(5)+MOLAL(6)-
+     &                  MOLAL(3), ZERO)  ! Free H2SO4
+         CALL CALCMR                                ! Water content
 
          ! Calculate activities or terminate internal loop
          IF (.NOT.CALAIN) GOTO 30
-         CALL CALCACT     
+         CALL CALCACT   
+
       ENDDO
 
       ! Return to calling program
@@ -4558,10 +5680,14 @@
 ! *** WRITTEN BY ATHANASIOS NENES
 !
 !******************************************************************************!
-      ! Local variables
+
+#     include "isoropia.h"     
+
+! Local variables
       REAL*8  :: KLO, KHI, X1, X2, X3, Y1, Y2, Y3
-      REAL*8  :: FUNCC1, YLO, YHI, DX
-      INTEGER :: I
+!      REAL*8  :: FUNCC1, YLO, YHI, DX
+      REAL*8  :: YLO, YHI, DX
+      INTEGER :: K
 
       !=================================================================
       ! CALCC1 begins here!
@@ -4583,7 +5709,7 @@
       !=================================================================
       DX = ( KHI - KLO )/ FLOAT( NDIV )
 
-      DO I = 1, NDIV
+      DO K = 1, NDIV
          X2 = X1+DX
          Y2 = FUNCC1 (X2)
 
@@ -4628,8 +5754,8 @@
       !=================================================================
 20    CONTINUE
 
-      DO I = 1, MAXIT
-         X3 = 0.5*(X1+X2)
+      DO K = 1, MAXIT
+         X3 = 0.5d0*(X1+X2)
          Y3 = FUNCC1 (X3)
          IF (SIGN(1.d0,Y1)*SIGN(1.d0,Y3) .LE. ZERO) THEN  ! (Y1*Y3 .LE. ZERO)
             Y2    = Y3
@@ -4648,7 +5774,7 @@
       ! CONVERGED ; RETURN
       !=================================================================
  40   CONTINUE
-      X3 = 0.5*(X1+X2)
+      X3 = 0.5d0*(X1+X2)
       Y3 = FUNCC1 (X3)
 
       ! Return to calling program
@@ -4657,7 +5783,7 @@
 
 !------------------------------------------------------------------------------
 
-      FUNCTION FUNCC1( KAPA )
+      FUNCTION FUNCC1( KAPA ) RESULT( VALUE )
 !
 !******************************************************************************
 !
@@ -4672,12 +5798,17 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
       ! Arguments
-      REAL*8, INTENT(IN) :: KAPA
+      REAL*8, INTENT(IN)  :: KAPA
+
+      ! Return value
+      REAL*8             :: VALUE
 
       ! Local variables
-      INTEGER            :: I
-      REAL*8             :: LAMDA, PSI, PAR1, PAR2, BB, CC, FUNCC1
+      INTEGER            :: K
+      REAL*8             :: LAMDA, PSI, PAR1, PAR2, BB, CC!, FUNCC1
 
       !=================================================================
       ! FUNCC1 begins here!
@@ -4689,19 +5820,19 @@
       ! Solve equations
       !==================================================================
       PSI = W(2)-W(3)
-      DO I = 1, NSWEEP
-         PAR1  = XK1*WATER/GAMA(7)*(GAMA(8)/GAMA(7))**2.0
-         PAR2  = XK12*(WATER/GAMA(9))**2.0
+      DO K = 1, NSWEEP
+         PAR1  = XK1*WATER/GAMA(7)*(GAMA(8)/GAMA(7))**2.d0
+         PAR2  = XK12*(WATER/GAMA(9))**2.d0
          BB    = PSI + PAR1
          CC    =-PAR1*(PSI+KAPA)
-         LAMDA = 0.5*(-BB+SQRT(BB*BB-4*CC))
+         LAMDA = 0.5d0*(-BB+SQRT(BB*BB-4*CC))
 
          ! Save concentrations in molal array
          MOLAL(1) = PSI+LAMDA                    ! HI
          MOLAL(3) = KAPA                         ! NH4I
          MOLAL(5) = LAMDA                        ! SO4I
          MOLAL(6) = MAX (ZERO, PSI+KAPA-LAMDA)   ! HSO4I
-         CNH4HS4  = MAX(W(3)-MOLAL(3), ZERO)     ! Solid NH4HSO4
+         CNH4HS4  = MAX(W(3)-MOLAL(3), ZERO)  ! Solid NH4HSO4
          CH2SO4   = MAX(PSI, ZERO)               ! Free H2SO4
          CALL CALCMR                             ! Water content
 
@@ -4718,7 +5849,8 @@
       !==================================================================
  30   CONTINUE
       !###FUNCC1= (NH4I*HSO4I/PAR2) - ONE
-      FUNCC1= (MOLAL(3)*MOLAL(6)/PAR2) - ONE
+!      FUNCC1= (MOLAL(3)*MOLAL(6)/PAR2) - ONE
+      VALUE= (MOLAL(3)*MOLAL(6)/PAR2) - ONE
 
       ! Return to calling program
       END FUNCTION FUNCC1
@@ -4742,11 +5874,20 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
       ! Local variables
-      INTEGER :: I
+      INTEGER :: K
       REAL*8  :: PSI4LO, PSI4HI, X1, X2, X3, Y1, Y2, Y3, YLO, YHI, DX
       REAL*8  :: P4, YY, DELTA
-      REAL*8  :: FUNCD3
+!      REAL*8  :: FUNCD3
+      REAL*8      :: CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+      COMMON /SOLUT/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+!$OMP THREADPRIVATE( /SOLUT/ )
  
       !=================================================================
       ! CALCD3 begins here!
@@ -4773,7 +5914,7 @@
       MOLAL(7) = PSI1
 
       ! Initial water
-      CALL CALCMR                  
+      CALL CALCMR              
 
       CALAOU = .TRUE.              ! Outer loop activity calculation flag
       PSI4LO = TINY                ! Low  limit
@@ -4782,7 +5923,7 @@
       !=================================================================
       ! INITIAL VALUES FOR BISECTION
       !=================================================================
-60    CONTINUE
+ 60   CONTINUE
       X1 = PSI4LO
       Y1 = FUNCD3( X1 )
       IF ( ABS(Y1) .LE. EPS ) RETURN
@@ -4793,7 +5934,7 @@
       !=================================================================
       DX = ( PSI4HI - PSI4LO ) / FLOAT( NDIV )
 
-      DO I = 1, NDIV
+      DO K = 1, NDIV
          X2 = X1+DX
          Y2 = FUNCD3 (X2)
 
@@ -4835,7 +5976,7 @@
          PSI4HI = PSI4LO
 
          ! No solution; some NH3 evaporates
-         PSI4LO = PSI4LO - 0.1*(PSI1+PSI2) 
+         PSI4LO = PSI4LO - 0.1d0*(PSI1+PSI2) 
 
          IF ( PSI4LO .LT. -( PSI1 + PSI2 ) ) THEN
 
@@ -4858,8 +5999,8 @@
       !=================================================================
 20    CONTINUE
 
-      DO I = 1, MAXIT
-         X3 = 0.5*(X1+X2)
+      DO K = 1, MAXIT
+         X3 = 0.5d0*(X1+X2)
          Y3 = FUNCD3 (X3)
 
          ! (Y1*Y3 .LE. ZERO)
@@ -4879,20 +6020,21 @@
       !=================================================================
       ! CONVERGED ; RETURN
       !=================================================================    
-40    CONTINUE
-      X3 = 0.5*(X1+X2)
+ 40   CONTINUE
+      X3 = 0.5d0*(X1+X2)
       Y3 = FUNCD3( X3 )
 
       !=================================================================
       ! CALCULATE HSO4 SPECIATION AND RETURN
       !================================================================= 
-50    CONTINUE
+ 50   CONTINUE
 
       IF ( MOLAL(1) .GT. TINY ) THEN
-         CALL CALCHS4( MOLAL(1), MOLAL(5), ZERO, DELTA )
-         MOLAL(1) = MOLAL(1) - DELTA                     ! H+   EFFECT
-         MOLAL(5) = MOLAL(5) - DELTA                     ! SO4  EFFECT
-         MOLAL(6) = DELTA                                ! HSO4 EFFECT
+         CALL CALCHS4( MOLAL(1), MOLAL(5), 
+     &                 ZERO, DELTA )
+         MOLAL(1) = MOLAL(1) - DELTA            ! H+   EFFECT
+         MOLAL(5) = MOLAL(5) - DELTA            ! SO4  EFFECT
+         MOLAL(6) = DELTA                       ! HSO4 EFFECT
       ENDIF
 
       ! Return to calling program
@@ -4900,7 +6042,7 @@
 
 !------------------------------------------------------------------------------
 
-      FUNCTION FUNCD3( P4 )
+      FUNCTION FUNCD3( P4 ) RESULT( VALUE )
 !
 !******************************************************************************
 !
@@ -4912,12 +6054,24 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
       ! Arguments
-      REAL*8, INTENT(IN) :: P4
+      REAL*8, INTENT(IN)  :: P4
+
+      ! Return value
+      REAL*8             :: VALUE
 
       ! Local variables
-      INTEGER :: I
-      REAL*8  :: BB, DENM, ABB, AHI, FUNCD3
+      INTEGER :: K
+      REAL*8  :: BB, DENM, ABB, AHI!, FUNCD3
+      REAL*8      :: CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+      COMMON /SOLUT/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+!$OMP THREADPRIVATE( /SOLUT/ )
 
       !=================================================================
       ! FUNCD3 begins here!
@@ -4929,11 +6083,11 @@
       !=================================================================
       ! SOLVE EQUATIONS ; WITH ITERATIONS FOR ACTIVITY COEF
       !=================================================================
-      DO I = 1, NSWEEP
-         A2   = XK7*(WATER/GAMA(4))**3.0
-         A3   = XK4*R*TEMP*(WATER/GAMA(10))**2.0
-         A4   = (XK2/XKW)*R*TEMP*(GAMA(10)/GAMA(5))**2.0
-         A7   = XKW *RH*WATER*WATER
+      DO K = 1, NSWEEP
+         A2   = XK7*(WATER/GAMA(4))**3.d0
+         A3   = XK4*R*TEMP*(WATER/GAMA(10))**2.d0
+         A4   = (XK2/XKW)*R*TEMP*(GAMA(10)/GAMA(5))**2.d0
+         A7   = XKW *RHB*WATER*WATER
 
          PSI3 = A3*A4*CHI3*(CHI4-PSI4) - PSI1*(2.D0*PSI2+PSI1+PSI4)
          PSI3 = PSI3/(A3*A4*(CHI4-PSI4) + 2.D0*PSI2+PSI1+PSI4) 
@@ -4946,9 +6100,9 @@
          DENM = BB+SQRT(BB*BB + 4.d0*A7)
          IF (DENM.LE.TINY) THEN       ! Avoid overflow when HI->0
             ABB  = ABS(BB)
-            DENM = (BB+ABB) + 2.0*A7/ABB ! Taylor expansion of SQRT
+            DENM = (BB+ABB) + 2.d0*A7/ABB ! Taylor expansion of SQRT
          ENDIF
-         AHI = 2.0*A7/DENM
+         AHI = 2.d0*A7/DENM
 
          ! SPECIATION & WATER CONTENT
          MOLAL (1) = AHI                             ! HI
@@ -4974,9 +6128,7 @@
       ! Calculate objective function
       !=================================================================
 20    CONTINUE
-      !### FUNCD3= NH4I/HI/MAX(GNH3,TINY)/A4 - ONE 
-      FUNCD3= MOLAL(3)/MOLAL(1)/MAX(GNH3,TINY)/A4 - ONE 
-      RETURN
+      VALUE= MOLAL(3)/MOLAL(1)/MAX(GNH3,TINY)/A4 - ONE 
 
       ! Return to calling program
       END FUNCTION FUNCD3
@@ -5001,10 +6153,20 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
       ! Local variables
-      INTEGER :: I
+      INTEGER :: K
       REAL*8  :: PSI4LO, PSI4HI, X1, X2, X3, Y1, Y2, Y3, YLO, YHI, DX
-      REAL*8  :: FUNCD2, P4, YY, DELTA
+!      REAL*8  :: FUNCD2, P4, YY, DELTA
+      REAL*8  :: P4, YY, DELTA
+      REAL*8      :: CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+      COMMON /SOLUT/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+!$OMP THREADPRIVATE( /SOLUT/ )
 
       !=================================================================
       ! CALCD2 begins here!
@@ -5050,7 +6212,7 @@
       !=================================================================
       DX   = (PSI4HI-PSI4LO)/FLOAT(NDIV)
 
-      DO I = 1, NDIV
+      DO K = 1, NDIV
          X2 = X1+DX
          Y2 = FUNCD2 (X2)
          IF (SIGN(1.d0,Y1)*SIGN(1.d0,Y2).LT.ZERO) THEN
@@ -5093,7 +6255,7 @@
          PSI4HI = PSI4LO
 
          ! No solution; some NH3 evaporates
-         PSI4LO = PSI4LO - 0.1*(PSI1+PSI2) 
+         PSI4LO = PSI4LO - 0.1d0*(PSI1+PSI2) 
 
          IF ( PSI4LO .LT. -( PSI1 + PSI2 ) ) THEN
 
@@ -5115,8 +6277,8 @@
       !=================================================================
  20   CONTINUE
 
-      DO I = 1, MAXIT
-         X3 = 0.5*(X1+X2)
+      DO K = 1, MAXIT
+         X3 = 0.5d0*(X1+X2)
          Y3 = FUNCD2 (X3)
 
          ! (Y1*Y3 .LE. ZERO)
@@ -5148,10 +6310,11 @@
  50   CONTINUE
       
       IF ( MOLAL(1) .GT. TINY ) THEN
-         CALL CALCHS4( MOLAL(1), MOLAL(5), ZERO, DELTA )
-         MOLAL(1) = MOLAL(1) - DELTA                     ! H+   EFFECT
-         MOLAL(5) = MOLAL(5) - DELTA                     ! SO4  EFFECT
-         MOLAL(6) = DELTA                                ! HSO4 EFFECT
+         CALL CALCHS4( MOLAL(1), MOLAL(5), 
+     &                 ZERO, DELTA )
+         MOLAL(1) = MOLAL(1) - DELTA          ! H+   EFFECT
+         MOLAL(5) = MOLAL(5) - DELTA         ! SO4  EFFECT
+         MOLAL(6) = DELTA                          ! HSO4 EFFECT
       ENDIF
 
       ! Return to calling program
@@ -5159,7 +6322,7 @@
 
 !------------------------------------------------------------------------------
       
-      FUNCTION FUNCD2( P4 )
+      FUNCTION FUNCD2( P4 ) RESULT( VALUE )
 ! 
 !******************************************************************************
 !
@@ -5171,11 +6334,23 @@
 !
 !******************************************************************************
 !
-      REAL*8, INTENT(IN) :: P4
+#     include "isoropia.h" 
+
+      REAL*8, INTENT(IN)  :: P4
+
+      ! Return value
+      REAL*8             :: VALUE
 
       ! Local variables
-      INTEGER            :: I, ISLV
-      REAL*8             :: PSI14, BB, DENM, ABB, AHI, FUNCD2
+      INTEGER            :: K, ISLV
+      REAL*8             :: PSI14, BB, DENM, ABB, AHI!, FUNCD2
+      REAL*8      :: CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+      COMMON /SOLUT/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+!$OMP THREADPRIVATE( /SOLUT/ )
 
       !=================================================================
       ! FUNCD2 begins here!
@@ -5191,11 +6366,11 @@
       !=================================================================       
       ! Solve equations ; with iterations for activity coef.
       !=================================================================
-      DO I = 1, NSWEEP
-         A2  = XK7*(WATER/GAMA(4))**3.0
-         A3  = XK4*R*TEMP*(WATER/GAMA(10))**2.0
-         A4  = (XK2/XKW)*R*TEMP*(GAMA(10)/GAMA(5))**2.0
-         A7  = XKW *RH*WATER*WATER
+      DO K = 1, NSWEEP
+         A2  = XK7*(WATER/GAMA(4))**3.d0
+         A3  = XK4*R*TEMP*(WATER/GAMA(10))**2.d0
+         A4  = (XK2/XKW)*R*TEMP*(GAMA(10)/GAMA(5))**2.d0
+         A7  = XKW *RHB*WATER*WATER
 
          IF ( CHI2 .GT. TINY .AND. WATER .GT. TINY ) THEN
             PSI14 = PSI1+PSI4
@@ -5252,9 +6427,7 @@
       ! Calculate objective function
       !=================================================================
  20   CONTINUE
-
-      !### FUNCD2= NH4I/HI/MAX(GNH3,TINY)/A4 - ONE 
-      FUNCD2= MOLAL(3)/MOLAL(1)/MAX(GNH3,TINY)/A4 - ONE 
+      VALUE= MOLAL(3)/MOLAL(1)/MAX(GNH3,TINY)/A4 - ONE 
 
       ! Return to calling program
       END FUNCTION FUNCD2
@@ -5283,10 +6456,14 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" 
+
+
+
       !=================================================================
       ! CALCD1 begins here!
       !=================================================================
-      IF ( RH .LT. DRMASAN ) THEN    
+      IF ( RHB .LT. DRMASAN ) THEN    
 
          ! Solid phase only possible
          SCASE = 'D1 ; SUBCASE 1'   
@@ -5297,7 +6474,8 @@
 
          ! Liquid & solid phase possible
          SCASE = 'D1 ; SUBCASE 2'   
-         CALL CALCMDRH (RH, DRMASAN, DRNH4NO3, CALCD1A, CALCD2)
+         CALL CALCMDRH (RHB, DRMASAN, DRNH4NO3, 
+     &                  CALCD1A, CALCD2)
          SCASE = 'D1 ; SUBCASE 2'
 
       ENDIF
@@ -5330,6 +6508,8 @@
 !
 !******************************************************************************
 !
+#     include "isoropia.h" ! CNH42S4, CNH4NO3, GNH3, GHNO3
+
       ! Local variables
       REAL*8  :: PARM, X, PS, OM, OMPS, DIAK, ZE
 
@@ -5340,13 +6520,13 @@
 
       ! Calculate NH4NO3 that volatizes
       CNH42S4 = W(2)                                    
-      X       = MAX(ZERO, MIN(W(3)-2.0*CNH42S4, W(4)))  ! MAX NH4NO3
-      PS      = MAX(W(3) - X - 2.0*CNH42S4, ZERO)
+      X       = MAX(ZERO, MIN(W(3)-2.d0*CNH42S4, W(4))) ! MAX NH4NO3
+      PS      = MAX(W(3) - X - 2.d0*CNH42S4, ZERO)
       OM      = MAX(W(4) - X, ZERO)
 
       OMPS    = OM+PS
-      DIAK    = SQRT(OMPS*OMPS + 4.0*PARM)              ! DIAKRINOUSA
-      ZE      = MIN(X, 0.5*(-OMPS + DIAK))              ! THETIKI RIZA
+      DIAK    = SQRT(OMPS*OMPS + 4.d0*PARM)              ! DIAKRINOUSA
+      ZE      = MIN(X, 0.5d0*(-OMPS + DIAK))              ! THETIKI RIZA
 
       ! Speciation
       CNH4NO3 = X  - ZE    ! Solid NH4NO3
@@ -5355,6 +6535,5009 @@
 
       ! Return to calling program
       END SUBROUTINE CALCD1A
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALCG1
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCG1
+! *** CASE G1
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE POOR (SULRAT > 2.0) ; SODIUM POOR (SODRAT < 2.0)
+!     2. SOLID AEROSOL ONLY
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NH4NO3, NH4CL, NA2SO4
+!
+!     THERE ARE TWO POSSIBLE REGIMES HERE, DEPENDING ON RELATIVE HUMIDITY:
+!     1. WHEN RH >= MDRH ; LIQUID PHASE POSSIBLE (MDRH REGION)
+!     2. WHEN RH < MDRH  ; ONLY SOLID PHASE POSSIBLE (SUBROUTINE CALCG1A)
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+
+      !=================================================================
+      ! CALCG1 begins here!
+      !=================================================================
+
+      ! Regime depends upon the ambient relative humidity
+      IF (RHB.LT.DRMG1) THEN    
+         SCASE = 'G1 ; SUBCASE 1'  
+         CALL CALCG1A              ! SOLID PHASE ONLY POSSIBLE
+         SCASE = 'G1 ; SUBCASE 1'
+      ELSE
+         SCASE = 'G1 ; SUBCASE 2'  ! LIQUID & SOLID PHASE POSSIBLE
+         CALL CALCMDRH (RHB, DRMG1, DRNH4NO3, CALCG1A, 
+     &                  CALCG2A)
+         SCASE = 'G1 ; SUBCASE 2'
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE CALCG1
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALCG1A
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCG1A
+! *** CASE G1 ; SUBCASE 1
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE POOR (SULRAT > 2.0)
+!     2. SOLID AEROSOL ONLY
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NH4NO3
+!
+!     SOLID (NH4)2SO4 IS CALCULATED FROM THE SULFATES, WHILE NH4NO3
+!     IS CALCULATED FROM NH3-HNO3 EQUILIBRIUM. 'ZE' IS THE AMOUNT OF
+!     NH4NO3 THAT VOLATIZES WHEN ALL POSSILBE NH4NO3 IS INITIALLY IN
+!     THE SOLID PHASE.
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      ! Local variables
+      REAL*8  :: LAMDA, LAMDA1, LAMDA2, KAPA, KAPA1, KAPA2
+      REAL*8  :: ALF, BET, GAM, RTSQ, THETA1, THETA2, BB, CC
+      REAL*8  :: DD, DQDD, DD1, DD2, SQDD1, SQDD2, SQDD
+      REAL*8  :: A1, A2
+
+      !=================================================================
+      ! CALCG1A begins here!
+      !=================================================================
+
+      ! Calculate non-volatile solids
+      CNA2SO4 = 0.5d0*W(1)
+      CNH42S4 = W(2) - CNA2SO4
+
+      ! Calculate volatile species
+      ALF     = W(3) - 2.d0*CNH42S4
+      BET     = W(5)
+      GAM     = W(4)
+
+      RTSQ    = R*TEMP*R*TEMP
+      A1      = XK6/RTSQ
+      A2      = XK10/RTSQ
+
+      THETA1  = GAM - BET*(A2/A1)
+      THETA2  = A2/A1
+
+      ! Quadratic equation solution
+      BB      = (THETA1-ALF-BET*(ONE+THETA2))/(ONE+THETA2)
+      CC      = (ALF*BET-A1-BET*THETA1)/(ONE+THETA2)
+      DD      = BB*BB - 4.0D0*CC
+      IF (DD.LT.ZERO) GOTO 100   ! Solve each reaction seperately
+
+      ! Two roots for KAPA, check and see if any valid
+      SQDD    = SQRT(DD)
+      KAPA1   = 0.5D0*(-BB+SQDD)
+      KAPA2   = 0.5D0*(-BB-SQDD)
+      LAMDA1  = THETA1 + THETA2*KAPA1
+      LAMDA2  = THETA1 + THETA2*KAPA2
+
+      IF (KAPA1.GE.ZERO .AND. LAMDA1.GE.ZERO) THEN
+         IF (ALF-KAPA1-LAMDA1.GE.ZERO .AND.
+     &       BET-KAPA1.GE.ZERO .AND. GAM-LAMDA1.GE.ZERO) THEN
+             KAPA = KAPA1
+             LAMDA= LAMDA1
+             GOTO 200
+         ENDIF
+      ENDIF
+
+      IF (KAPA2.GE.ZERO .AND. LAMDA2.GE.ZERO) THEN
+         IF (ALF-KAPA2-LAMDA2.GE.ZERO .AND. 
+     &       BET-KAPA2.GE.ZERO .AND. GAM-LAMDA2.GE.ZERO) THEN
+             KAPA = KAPA2
+             LAMDA= LAMDA2
+             GOTO 200
+         ENDIF
+      ENDIF
+
+      ! Separate solution of NH4Cl and NH4NO3 equilibria
+100   KAPA  = ZERO
+      LAMDA = ZERO
+      DD1   = (ALF+BET)*(ALF+BET) - 4.0D0*(ALF*BET-A1)
+      DD2   = (ALF+GAM)*(ALF+GAM) - 4.0D0*(ALF*GAM-A2)
+
+      ! NH4Cl equilibrium
+      IF (DD1.GE.ZERO) THEN
+         SQDD1 = SQRT(DD1)
+         KAPA1 = 0.5D0*(ALF+BET + SQDD1)
+         KAPA2 = 0.5D0*(ALF+BET - SQDD1)
+
+         IF (KAPA1.GE.ZERO .AND. KAPA1.LE.MIN(ALF,BET)) THEN
+            KAPA = KAPA1 
+         ELSE IF (KAPA2.GE.ZERO .AND. KAPA2.LE.MIN(ALF,BET)) THEN
+            KAPA = KAPA2
+         ELSE
+            KAPA = ZERO
+         ENDIF
+      ENDIF
+
+      ! NH4NO3 equilibrium
+      IF (DD2.GE.ZERO) THEN
+         SQDD2 = SQRT(DD2)
+         LAMDA1= 0.5D0*(ALF+GAM + SQDD2)
+         LAMDA2= 0.5D0*(ALF+GAM - SQDD2)
+
+         IF (LAMDA1.GE.ZERO .AND. LAMDA1.LE.MIN(ALF,GAM)) THEN
+            LAMDA = LAMDA1 
+         ELSE IF (LAMDA2.GE.ZERO .AND. LAMDA2.LE.MIN(ALF,GAM)) THEN
+            LAMDA = LAMDA2
+         ELSE
+            LAMDA = ZERO
+         ENDIF
+      ENDIF
+
+      ! If both KAPA and LAMDA are > 0, then apply the existance criterion
+      IF (KAPA.GT.ZERO .AND. LAMDA.GT.ZERO) THEN
+         IF (BET .LT. LAMDA/THETA1) THEN
+            KAPA = ZERO
+         ELSE
+            LAMDA= ZERO
+         ENDIF
+      ENDIF
+
+      ! Calculate composition of volatile species
+200   CONTINUE
+      CNH4NO3 = LAMDA
+      CNH4CL  = KAPA
+
+      GNH3    = MAX(ALF - KAPA - LAMDA, ZERO)
+      GHNO3   = MAX(GAM - LAMDA, ZERO)
+      GHCL    = MAX(BET - KAPA, ZERO)
+
+      ! Return to calling program
+      END SUBROUTINE CALCG1A
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALCG2
+!
+!******************************************************************************
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCG2
+! *** CASE G2
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE POOR (SULRAT > 2.0) ; SODIUM POOR (SODRAT < 2.0)
+!     2. LIQUID & SOLID PHASE ARE BOTH POSSIBLE
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NH4CL, NA2SO4
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      INTEGER  :: K
+
+      !=================================================================
+      ! CALCG2 begins here!
+      !=================================================================
+
+      ! Regime depends on the existance of nitrates 
+      IF (W(4).GT.TINY) THEN        ! NO3 EXISTS, WATER POSSIBLE
+         SCASE = 'G2 ; SUBCASE 1'  
+         CALL CALCG2A
+         SCASE = 'G2 ; SUBCASE 1' 
+      ELSE                          ! NO3 NON EXISTANT, WATER NOT POSSIBLE
+         SCASE = 'G1 ; SUBCASE 1'  
+         CALL CALCG1A
+         SCASE = 'G1 ; SUBCASE 1'  
+      ENDIF
+
+      ! Regime depends on the existance of water and of the RH 
+      IF (WATER.LE.TINY) THEN
+         IF (RHB.LT.DRMG2) THEN             ! ONLY SOLIDS 
+            WATER = TINY
+            DO 10 K=1,NIONS
+               MOLAL(K) = ZERO
+10          CONTINUE
+            CALL CALCG1A
+            SCASE = 'G2 ; SUBCASE 2'  
+         ELSE
+            IF (W(5).GT. TINY) THEN
+               SCASE = 'G2 ; SUBCASE 3'    ! MDRH (NH4CL, NA2SO4, NH42S4)  
+               CALL CALCMDRH (RHB, DRMG2, DRNH4CL, CALCG1A, 
+     &                        CALCG3A)
+               SCASE = 'G2 ; SUBCASE 3'  
+            ENDIF
+            IF (WATER.LE.TINY .AND. RHB.GE.DRMG3) THEN
+               SCASE = 'G2 ; SUBCASE 4'    ! MDRH (NA2SO4, NH42S4)
+               CALL CALCMDRH (RHB, DRMG3, DRNH42S4, 
+     &                        CALCG1A, CALCG4)
+               SCASE = 'G2 ; SUBCASE 4'  
+            ELSE
+               WATER = TINY
+               DO 20 K=1,NIONS
+                  MOLAL(K) = ZERO
+20             CONTINUE
+               CALL CALCG1A
+               SCASE = 'G2 ; SUBCASE 2'  
+            ENDIF
+         ENDIF
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE CALCG2
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALCG2A
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCG2A
+! *** CASE G2 ; SUBCASE 1
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE POOR (SULRAT > 2.0) ; SODIUM POOR (SODRAT < 2.0)
+!     2. THERE IS BOTH A LIQUID & SOLID PHASE
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NH4CL, NA2SO4
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" ! ISOROPIA common blocks
+
+      ! Local variables
+      INTEGER ::     ISLV, K
+      REAL*8  ::     PSI6LO, PSI6HI, X1, Y1, DX, X2, Y2
+      REAL*8  ::     X3, Y3, DELTA
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, LAMDA,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7
+      COMMON /CASEG/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, LAMDA,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7
+!$OMP THREADPRIVATE( /CASEG/ )
+
+      !=================================================================
+      ! CALCG2A begins here!
+      !=================================================================
+
+      CALAOU = .TRUE.   
+      CHI1   = 0.5d0*W(1)
+      CHI2   = MAX (W(2)-CHI1, ZERO)
+      CHI3   = ZERO
+      CHI4   = MAX (W(3)-2.D0*CHI2, ZERO)
+      CHI5   = W(4)
+      CHI6   = W(5)
+
+      PSI6LO = TINY                  
+      PSI6HI = CHI6-TINY
+
+      WATER  = TINY
+
+      ! Initial values for bisection
+      X1 = PSI6LO
+      Y1 = FUNCG2A (X1)
+      IF (CHI6.LE.TINY) GOTO 50  
+      ! Comment out
+      !IF (ABS(Y1).LE.EPS .OR. CHI6.LE.TINY) GOTO 50  
+      !IF (WATER .LE. TINY) GOTO 50               ! No water
+
+      !=================================================================
+      ! Root tracking ; for the range of HI and LO
+      !=================================================================
+      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DO 10 K=1,NDIV
+         X2 = X1+DX 
+         Y2 = FUNCG2A (X2)
+         IF (SIGN(1.d0,Y1)*SIGN(1.d0,Y2).LT.ZERO) GOTO 20  ! (Y1*Y2.LT.ZERO)
+         X1 = X2
+         Y1 = Y2
+ 10   CONTINUE
+
+      !=================================================================
+      ! No subdivision with solution; If ABS(Y2)<EPS solution is assumed
+      !=================================================================
+      IF (ABS(Y2) .GT. EPS) WATER = TINY
+      GOTO 50
+
+      !=================================================================
+      ! Perform bisection
+      !=================================================================
+ 20   CONTINUE
+      DO 30 K=1,MAXIT
+         X3 = 0.5d0*(X1+X2)
+         Y3 = FUNCG2A (X3)
+         IF (SIGN(1.d0,Y1)*SIGN(1.d0,Y3) .LE. ZERO) THEN ! (Y1*Y3 .LE. ZERO)
+            Y2    = Y3
+            X2    = X3
+         ELSE
+            Y1    = Y3
+            X1    = X3
+         ENDIF
+         IF (ABS(X2-X1) .LE. EPS*X1) GOTO 40
+ 30   CONTINUE
+      CALL PUSHERR (0002, 'CALCG2A') ! WARNING ERROR: NO CONVERGENCE
+
+      !=================================================================
+      ! Converged ; Return 
+      !=================================================================
+ 40   CONTINUE
+      X3 = 0.5d0*(X1+X2)
+      IF (X3.LE.TINY2) THEN   ! PRACTICALLY NO NITRATES, SO DRY SOLUTION
+         WATER = TINY
+      ELSE
+         Y3 = FUNCG2A (X3)
+      ENDIF
+
+      !=================================================================
+      ! CALCULATE HSO4 SPECIATION AND RETURN 
+      !=================================================================
+ 50   CONTINUE
+
+      ! Na2SO4 dissolution
+      IF (CHI1.GT.TINY .AND. WATER.GT.TINY) THEN        ! PSI1
+         CALL POLY3 (PSI2, ZERO, -A1/4.D0, PSI1, ISLV)
+         IF (ISLV.EQ.0) THEN
+             PSI1 = MIN (PSI1, CHI1)
+         ELSE
+             PSI1 = ZERO
+         ENDIF
+      ELSE
+         PSI1 = ZERO
+      ENDIF
+      MOLAL(2) = 2.0D0*PSI1               ! Na+  EFFECT
+      MOLAL(5) = MOLAL(5) + PSI1          ! SO4  EFFECT
+      CNA2SO4  = MAX(CHI1 - PSI1, ZERO)   ! NA2SO4(s) depletion
+
+      ! HSO4 equilibrium
+      IF (MOLAL(1).GT.TINY .AND. MOLAL(5).GT.TINY) THEN
+         CALL CALCHS4 (MOLAL(1), MOLAL(5), 
+     &                 ZERO, DELTA)
+         MOLAL(1) = MOLAL(1) - DELTA     ! H+   AFFECT
+         MOLAL(5) = MOLAL(5) - DELTA     ! SO4  AFFECT
+         MOLAL(6) = DELTA                ! HSO4 AFFECT
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE CALCG2A
+
+!------------------------------------------------------------------------------
+
+      FUNCTION FUNCG2A( X ) RESULT( VALUE )
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE FUNCG2A
+! *** CASE G2
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE POOR (SULRAT > 2.0) ; SODIUM POOR (SODRAT < 2.0)
+!     2. THERE IS BOTH A LIQUID & SOLID PHASE
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NH4CL, NA2SO4
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" ! ISOROPIA common blocks
+
+      ! Arguments
+      REAL*8, INTENT(IN)  :: X
+
+      ! Local variables
+      INTEGER ::     K, ISLV
+      REAL*8  ::     VALUE
+      REAL*8  ::     DENO, PSI20, SMIN, HI, OHI, DELT
+      REAL*8  ::     BB, CC, DD, PSI31, PSI32
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, LAMDA,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7
+      COMMON /CASEG/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, LAMDA,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7
+!$OMP THREADPRIVATE( /CASEG/ )
+
+      !=================================================================
+      ! FUNCG2A begins here!
+      !=================================================================
+      PSI6   = X
+      PSI2   = CHI2
+      PSI3   = ZERO
+      FRST   = .TRUE.
+      CALAIN = .TRUE. 
+
+      !=================================================================
+      ! SOLVE EQUATIONS ; WITH ITERATIONS FOR ACTIVITY COEF.
+      !=================================================================
+      DO 10 K=1,NSWEEP
+
+         A1  = XK5 *(WATER/GAMA(2))**3.d0
+         A2  = XK7 *(WATER/GAMA(4))**3.d0
+         A4  = (XK2/XKW)*R*TEMP*(GAMA(10)/GAMA(5))**2.d0
+         A5  = XK4 *R*TEMP*(WATER/GAMA(10))**2.d0
+         A6  = XK3 *R*TEMP*(WATER/GAMA(11))**2.d0
+     
+         DENO = MAX(CHI6-PSI6-PSI3, ZERO)
+         PSI5 = CHI5/((A6/A5)*(DENO/PSI6) + ONE)
+
+         PSI4 = MIN(PSI5+PSI6,CHI4)
+
+         IF (CHI2.GT.TINY .AND. WATER.GT.TINY) THEN     
+            CALL POLY3 (PSI4, PSI4*PSI4/4.D0, -A2/4.D0, PSI20, ISLV)
+            IF (ISLV.EQ.0) PSI2 = MIN (PSI20, CHI2)
+         ENDIF
+
+         !==============================================================
+         ! Save concentrations in MOLAL array
+         !==============================================================
+         MOLAL (2) = ZERO              ! NA
+         MOLAL (3) = 2.d0*PSI2 + PSI4  ! NH4I
+         MOLAL (4) = PSI6              ! CLI
+         MOLAL (5) = PSI2              ! SO4I
+         MOLAL (6) = ZERO              ! HSO4
+         MOLAL (7) = PSI5              ! NO3I
+         ! Comment out
+         !MOLAL (1) = MAX(CHI5 - PSI5, TINY)*A5/PSI5   ! HI
+         SMIN      = 2.d0*MOLAL(5)+MOLAL(7)+
+     &               MOLAL(4)-MOLAL(2)-MOLAL(3)
+         CALL CALCPH (SMIN, HI, OHI)
+         MOLAL (1) = HI
+
+         !==============================================================
+         ! Calculate gas / solid species (liquid in MOLAL already)
+         !==============================================================
+         GNH3      = MAX(CHI4 - PSI4, TINY)
+         GHNO3     = MAX(CHI5 - PSI5, TINY)
+         GHCL      = MAX(CHI6 - PSI6, TINY)
+
+         CNH42S4   = MAX(CHI2 - PSI2, ZERO)
+         CNH4NO3   = ZERO
+
+         !==============================================================
+         ! NH4Cl(s) calculations
+         !==============================================================
+         A3   = XK6 /(R*TEMP*R*TEMP)
+         IF (GNH3*GHCL.GT.A3) THEN
+            DELT = MIN(GNH3, GHCL)
+            BB = -(GNH3+GHCL)
+            CC = GNH3*GHCL-A3
+            DD = BB*BB - 4.D0*CC
+            PSI31 = 0.5D0*(-BB + SQRT(DD))
+            PSI32 = 0.5D0*(-BB - SQRT(DD))
+            IF (DELT-PSI31.GT.ZERO .AND. PSI31.GT.ZERO) THEN
+               PSI3 = PSI31
+            ELSEIF (DELT-PSI32.GT.ZERO .AND. PSI32.GT.ZERO) THEN
+               PSI3 = PSI32
+            ELSE
+               PSI3 = ZERO
+            ENDIF
+         ELSE
+            PSI3 = ZERO
+         ENDIF
+
+         !=============================================================
+         ! Calculate gas / solid species (liquid in MOLAL already)
+         !=============================================================
+         GNH3    = MAX(GNH3 - PSI3, TINY)
+         GHCL    = MAX(GHCL - PSI3, TINY)
+         CNH4CL  = PSI3
+
+         !==============================================================
+         ! Calculate MOLALR array, water and activities
+         !==============================================================
+         CALL CALCMR
+
+         !==============================================================
+         ! Calculate activities or terminate internal loop 
+         !==============================================================
+         IF (FRST.AND.CALAOU .OR. .NOT.FRST.AND.CALAIN) THEN
+            CALL CALCACT     
+         ELSE
+            GOTO 20
+         ENDIF
+ 10   CONTINUE
+
+      !=================================================================
+      ! Calculate function value for outer loop 
+      !=================================================================
+ 20   CONTINUE
+      IF (CHI4.LE.TINY) THEN
+         VALUE = MOLAL(1)*MOLAL(4)/GHCL/A6 - ONE
+      ELSE
+         VALUE = MOLAL(3)*MOLAL(4)/GHCL/GNH3/A6/A4 - ONE
+      ENDIF
+
+      ! Return to calling program
+      END FUNCTION FUNCG2A
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALCG3
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCG3
+! *** CASE G3
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE POOR (SULRAT > 2.0) ; SODIUM POOR (SODRAT < 2.0)
+!     2. LIQUID & SOLID PHASE ARE BOTH POSSIBLE
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NH4CL, NA2SO4
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h"  ! ISOROPIA common blocks
+
+      ! Local variables
+      INTEGER  :: K
+
+      !=================================================================
+      ! CALCG3 begins here!
+      !=================================================================
+
+      ! Regime depends on the existance of water and of the RH
+      IF (W(4).GT.TINY .AND. W(5).GT.TINY) THEN 
+
+         ! NO3,CL EXIST, WATER POSSIBLE
+         SCASE = 'G3 ; SUBCASE 1'  
+         CALL CALCG3A
+         SCASE = 'G3 ; SUBCASE 1' 
+
+      ELSE                               
+
+         ! NO3, CL NON EXISTANT
+         SCASE = 'G1 ; SUBCASE 1'  
+         CALL CALCG1A
+         SCASE = 'G1 ; SUBCASE 1'  
+
+      ENDIF
+
+      IF (WATER.LE.TINY) THEN
+
+         IF (RHB.LT.DRMG3) THEN          
+
+            ! ONLY SOLIDS 
+            WATER = TINY
+            DO 10 K=1,NIONS
+               MOLAL(K) = ZERO
+ 10         CONTINUE
+            CALL CALCG1A
+            SCASE = 'G3 ; SUBCASE 2'  
+            RETURN
+
+         ELSE
+
+            ! MDRH REGION (NA2SO4, NH42S4)  
+            SCASE = 'G3 ; SUBCASE 3' 
+            CALL CALCMDRH (RHB, DRMG3, DRNH42S4, CALCG1A, CALCG4)
+            SCASE = 'G3 ; SUBCASE 3'  
+ 
+         ENDIF
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE CALCG3
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALCG3A
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCG3A
+! *** CASE G3 ; SUBCASE 1
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE POOR (SULRAT > 2.0) ; SODIUM POOR (SODRAT < 2.0)
+!     2. THERE IS BOTH A LIQUID & SOLID PHASE
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NH4CL, NA2SO4
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      ! Local variables
+      INTEGER ::     K, ISLV
+      REAL*8  ::     PSI6LO, PSI6HI, X1, Y1, DX
+      REAL*8  ::     X2, Y2, X3, Y3, DELTA
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, LAMDA,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7
+      COMMON /CASEG/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, LAMDA,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7
+!$OMP THREADPRIVATE( /CASEG/ )
+
+      !=================================================================
+      ! CALCG3A begins here!
+      !=================================================================
+
+      CALAOU = .TRUE.   
+      CHI1   = 0.5d0*W(1)
+      CHI2   = MAX (W(2)-CHI1, ZERO)
+      CHI3   = ZERO
+      CHI4   = MAX (W(3)-2.D0*CHI2, ZERO)
+      CHI5   = W(4)
+      CHI6   = W(5)
+ 
+      PSI6LO = TINY                  
+      PSI6HI = CHI6-TINY    ! MIN(CHI6-TINY, CHI4)
+
+      WATER  = TINY
+
+      !=================================================================
+      ! INITIAL VALUES FOR BISECTION
+      !=================================================================
+      X1 = PSI6LO
+      Y1 = FUNCG3A (X1)
+      IF (CHI6.LE.TINY) GOTO 50  
+      ! comment out
+      !IF (ABS(Y1).LE.EPS .OR. CHI6.LE.TINY .OR. WATER .LE. TINY) GOTO 50
+      !IF (WATER .LE. TINY) RETURN                    ! No water
+
+      !=================================================================
+      ! ROOT TRACKING ; FOR THE RANGE OF HI AND LO
+      !=================================================================
+      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DO 10 K=1,NDIV
+         X2  = X1+DX 
+         Y2  = FUNCG3A (X2)
+         IF (SIGN(1.d0,Y1)*SIGN(1.d0,Y2).LT.ZERO) GOTO 20  ! (Y1*Y2.LT.ZERO)
+         X1  = X2
+         Y1  = Y2
+ 10   CONTINUE
+
+      !=================================================================
+      ! NO SUBDIVISION WITH SOLUTION; IF ABS(Y2)<EPS SOLUTION IS ASSUMED
+      !=================================================================
+      IF (ABS(Y2) .GT. EPS) Y2 = FUNCG3A (PSI6LO)
+      GOTO 50
+
+      !=================================================================
+      ! PERFORM BISECTION 
+      !=================================================================
+ 20   CONTINUE
+      DO 30 K=1,MAXIT
+         X3 = 0.5d0*(X1+X2)
+         Y3 = FUNCG3A (X3)
+         IF (SIGN(1.d0,Y1)*SIGN(1.d0,Y3) .LE. ZERO) THEN ! (Y1*Y3 .LE. ZERO)
+            Y2    = Y3
+            X2    = X3
+         ELSE
+            Y1    = Y3
+            X1    = X3
+         ENDIF
+         IF (ABS(X2-X1) .LE. EPS*X1) GOTO 40
+ 30   CONTINUE
+      CALL PUSHERR (0002, 'CALCG3A') ! WARNING ERROR: NO CONVERGENCE
+
+      !=================================================================
+      ! CONVERGED ; RETURN
+      !=================================================================
+ 40   CONTINUE
+      X3 = 0.5d0*(X1+X2)
+      Y3 = FUNCG3A (X3)
+      
+      !=================================================================
+      ! FINAL CALCULATIONS
+      !=================================================================
+ 50   CONTINUE
+
+      ! Na2SO4 DISSOLUTION
+      IF (CHI1.GT.TINY .AND. WATER.GT.TINY) THEN ! PSI1
+         CALL POLY3 (PSI2, ZERO, -A1/4.D0, PSI1, ISLV)
+         IF (ISLV.EQ.0) THEN
+            PSI1 = MIN (PSI1, CHI1)
+         ELSE
+            PSI1 = ZERO
+         ENDIF
+      ELSE
+         PSI1 = ZERO
+      ENDIF
+      MOLAL(2) = 2.0D0*PSI1     ! Na+  EFFECT
+      MOLAL(5) = MOLAL(5) + PSI1 ! SO4  EFFECT
+      CNA2SO4  = MAX(CHI1 - PSI1, ZERO) ! NA2SO4(s) depletion
+
+      ! HSO4 equilibrium
+      IF (MOLAL(1).GT.TINY .AND. MOLAL(5).GT.TINY) THEN
+         CALL CALCHS4 (MOLAL(1), MOLAL(5), ZERO, DELTA)
+         MOLAL(1) = MOLAL(1) - DELTA         ! H+   EFFECT
+         MOLAL(5) = MOLAL(5) - DELTA         ! SO4  EFFECT
+         MOLAL(6) = DELTA                    ! HSO4 EFFECT
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE CALCG3A
+
+!------------------------------------------------------------------------------
+
+      FUNCTION FUNCG3A( X ) RESULT( VALUE )
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE FUNCG3A
+! *** CASE G3 ; SUBCASE 1
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE POOR (SULRAT > 2.0) ; SODIUM POOR (SODRAT < 2.0)
+!     2. THERE IS BOTH A LIQUID & SOLID PHASE
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NH4CL, NA2SO4
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h"  ! ISOROPIA common blocks
+
+      ! Arguments
+      REAL*8, INTENT(IN) :: X
+
+      ! Local variables
+      INTEGER ::     K, ISLV
+      REAL*8  ::     BB, CC, DD, PSI20, SMIN, HI, OHI
+      REAL*8  ::     VALUE
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, LAMDA,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7
+      COMMON /CASEG/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, LAMDA,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7
+!$OMP THREADPRIVATE( /CASEG/ )
+
+      !=================================================================
+      ! FUNCG3A begins here!
+      !=================================================================
+      PSI6   = X
+      PSI2   = CHI2
+      FRST   = .TRUE.
+      CALAIN = .TRUE. 
+
+      !=================================================================       
+      ! Solve equations ; with iterations for activity coef.
+      !=================================================================
+      DO 10 K=1,NSWEEP
+
+      A1  = XK5 *(WATER/GAMA(2))**3.d0
+      A2  = XK7 *(WATER/GAMA(4))**3.d0
+      A4  = (XK2/XKW)*R*TEMP*(GAMA(10)/GAMA(5))**2.d0
+      A5  = XK4 *R*TEMP*(WATER/GAMA(10))**2.d0
+      A6  = XK3 *R*TEMP*(WATER/GAMA(11))**2.d0
+
+      !=================================================================       
+      ! Calculate dissociation quantities
+      !=================================================================
+      IF (CHI5.GE.TINY) THEN
+         PSI5 = PSI6*CHI5/(A6/A5*(CHI6-PSI6) + PSI6)
+      ELSE
+         PSI5 = TINY
+      ENDIF
+
+      !IF(CHI4.GT.TINY) THEN
+      IF(W(2).GT.TINY) THEN       
+     
+         ! Accounts for NH3 evaporation
+         BB   =-(CHI4 + PSI6 + PSI5 + 1.d0/A4)
+         CC   = CHI4*(PSI5+PSI6) - 2.d0*PSI2/A4
+         DD   = MAX(BB*BB-4.d0*CC,ZERO)  
+
+         ! Patch proposed by Uma Shankar, 19/11/01
+         PSI4 =0.5d0*(-BB - SQRT(DD))
+      ELSE
+         PSI4 = TINY
+      ENDIF
+
+      IF (CHI2.GT.TINY .AND. WATER.GT.TINY) THEN     
+         CALL POLY3 (PSI4, PSI4*PSI4/4.D0, -A2/4.D0, PSI20, ISLV)
+         IF (ISLV.EQ.0) PSI2 = MIN (PSI20, CHI2)
+      ENDIF
+
+      !=================================================================
+      ! CALCULATE GAS / SOLID SPECIES (LIQUID IN MOLAL ALREADY)
+      !=================================================================
+      MOLAL (2) = ZERO                                ! Na
+      MOLAL (3) = 2.d0*PSI2 + PSI4                    ! NH4I
+      MOLAL (4) = PSI6                                ! CLI
+      MOLAL (5) = PSI2                                ! SO4I
+      MOLAL (6) = ZERO                                ! HSO4
+      MOLAL (7) = PSI5                                ! NO3I
+
+      SMIN      = 2.d0*MOLAL(5)+MOLAL(7)+
+     &            MOLAL(4)-MOLAL(2)-MOLAL(3)
+      CALL CALCPH (SMIN, HI, OHI)
+      MOLAL (1) = HI
+
+      GNH3      = MAX(CHI4 - PSI4, TINY)              ! Gas NH3
+      GHNO3     = MAX(CHI5 - PSI5, TINY)              ! Gas HNO3
+      GHCL      = MAX(CHI6 - PSI6, TINY)              ! Gas HCl
+
+      CNH42S4   = CHI2 - PSI2                         ! Solid (NH4)2SO4
+      CNH4NO3   = ZERO                                ! Solid NH4NO3
+      CNH4CL    = ZERO                                ! Solid NH4Cl
+
+      CALL CALCMR                                     ! Water content
+
+      !=================================================================
+      ! Calculate activities or terminate internal loop
+      !=================================================================
+      IF (FRST.AND.CALAOU .OR. .NOT.FRST.AND.CALAIN) THEN
+         CALL CALCACT     
+      ELSE
+         GOTO 20
+      ENDIF
+ 10   CONTINUE
+
+      !=================================================================
+      ! Calculate function value for outer loop
+      !=================================================================
+ 20   CONTINUE
+      VALUE = MOLAL(1)*MOLAL(4)/GHCL/A6 - ONE
+
+      ! Return to calling program
+      END FUNCTION FUNCG3A
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALCG4
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCG4
+! *** CASE G4
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE POOR (SULRAT > 2.0) ; SODIUM POOR (SODRAT < 2.0)
+!     2. THERE IS BOTH A LIQUID & SOLID PHASE
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NH4CL, NA2SO4
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h"  ! ISOROPIA common blocks
+
+      ! Local variables
+      INTEGER ::     K
+      REAL*8  ::     PSI6LO, PSI6HI, X1, Y1, DX
+      REAL*8  ::     X2, Y2, X3, Y3, DELTA
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, LAMDA,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7
+      COMMON /CASEG/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, LAMDA,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7
+!$OMP THREADPRIVATE( /CASEG/ )
+
+      !=================================================================
+      ! CALCG4 begins here!
+      !=================================================================
+
+      CALAOU = .TRUE.   
+      CHI1   = 0.5d0*W(1)
+      CHI2   = MAX (W(2)-CHI1, ZERO)
+      CHI3   = ZERO
+      CHI4   = MAX (W(3)-2.D0*CHI2, ZERO)
+      CHI5   = W(4)
+      CHI6   = W(5)
+
+      PSI2   = CHI2
+      PSI6LO = TINY                  
+      PSI6HI = CHI6-TINY    ! MIN(CHI6-TINY, CHI4)
+
+      WATER  = CHI2/M0(4) + CHI1/M0(2)
+
+      !=================================================================
+      ! Initial values for bisection 
+      !=================================================================
+      X1 = PSI6LO
+      Y1 = FUNCG4A (X1)
+      IF (CHI6.LE.TINY) GOTO 50  
+      ! Comment out
+      !IF (ABS(Y1).LE.EPS .OR. CHI6.LE.TINY .OR. WATER .LE. TINY) GOTO 50
+      !IF (WATER .LE. TINY) RETURN                    ! No water
+
+      !=================================================================
+      ! Root tracking ; for the range of HI and LO
+      !=================================================================
+      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DO 10 K=1,NDIV
+         X2  = X1+DX
+         Y2  = FUNCG4A (X2)
+         IF (SIGN(1.d0,Y1)*SIGN(1.d0,Y2).LT.ZERO) GOTO 20  ! (Y1*Y2.LT.ZERO)
+         X1  = X2
+         Y1  = Y2
+ 10   CONTINUE
+
+      !=================================================================  
+      ! No subdivision with solution; IF ABS(Y2)<EPS solution is assumed
+      !=================================================================  
+      IF (ABS(Y2) .GT. EPS) Y2 = FUNCG4A (PSI6LO)
+      GOTO 50
+
+      !=================================================================  
+      ! Perform bisection 
+      !=================================================================  
+ 20   CONTINUE
+      DO 30 K=1,MAXIT
+         X3 = 0.5d0*(X1+X2)
+         Y3 = FUNCG4A (X3)
+         IF (SIGN(1.d0,Y1)*SIGN(1.d0,Y3) .LE. ZERO) THEN ! (Y1*Y3 .LE. ZERO)
+            Y2    = Y3
+            X2    = X3
+         ELSE
+            Y1    = Y3
+            X1    = X3
+         ENDIF
+         IF (ABS(X2-X1) .LE. EPS*X1) GOTO 40
+ 30   CONTINUE
+      CALL PUSHERR (0002, 'CALCG4') ! WARNING ERROR: NO CONVERGENCE
+
+      !================================================================= 
+      ! Converged ; return 
+      !================================================================= 
+40    CONTINUE
+      X3 = 0.5d0*(X1+X2)
+      Y3 = FUNCG4A (X3)
+
+      !================================================================= 
+      ! CALCULATE HSO4 SPECIATION AND RETURN
+      !================================================================= 
+ 50   CONTINUE
+      IF (MOLAL(1).GT.TINY .AND. MOLAL(5).GT.TINY) THEN
+         CALL CALCHS4 (MOLAL(1), MOLAL(5), ZERO, DELTA)
+         MOLAL(1) = MOLAL(1) - DELTA         ! H+   EFFECT
+         MOLAL(5) = MOLAL(5) - DELTA         ! SO4  EFFECT
+         MOLAL(6) = DELTA                    ! HSO4 EFFECT
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE CALCG4
+
+!------------------------------------------------------------------------------
+
+      FUNCTION FUNCG4A( X ) RESULT( VALUE )
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE FUNCG4A
+! *** CASE G4
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE POOR (SULRAT > 2.0) ; SODIUM POOR (SODRAT < 2.0)
+!     2. THERE IS BOTH A LIQUID & SOLID PHASE
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NH4CL, NA2SO4
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h"  ! ISOROPIA common blocks
+
+      ! Arguments
+      REAL*8, INTENT(IN) :: X
+
+      ! Local variables
+      INTEGER ::     K, ISLV
+      REAL*8  ::     BB, CC, DD, CLI, SO4I, HI, OHI
+      REAL*8  ::     NAI, NH4I, NO3I, VALUE
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, LAMDA,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7
+      COMMON /CASEG/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, LAMDA,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7
+!$OMP THREADPRIVATE( /CASEG/ )
+
+      !=================================================================
+      ! FUNCG4A begins here!
+      !=================================================================
+      PSI6   = X
+      PSI1   = CHI1
+      FRST   = .TRUE.
+      CALAIN = .TRUE. 
+
+      !=================================================================
+      ! SOLVE EQUATIONS ; WITH ITERATIONS FOR ACTIVITY COEF.
+      !=================================================================
+      DO 10 K=1,NSWEEP
+
+         A1  = XK5 *(WATER/GAMA(2))**3.d0
+         A2  = XK7 *(WATER/GAMA(4))**3.d0
+         A4  = (XK2/XKW)*R*TEMP*(GAMA(10)/GAMA(5))**2.d0
+         A5  = XK4 *R*TEMP*(WATER/GAMA(10))**2.d0
+         A6  = XK3 *R*TEMP*(WATER/GAMA(11))**2.d0
+
+         ! CALCULATE DISSOCIATION QUANTITIES
+         IF (CHI5.GE.TINY) THEN
+            PSI5 = PSI6*CHI5/(A6/A5*(CHI6-PSI6) + PSI6)
+         ELSE
+            PSI5 = TINY
+         ENDIF
+
+         ! comment out
+         !IF(CHI4.GT.TINY) THEN
+         IF(W(2).GT.TINY) THEN       
+
+            ! Accounts for NH3 evaporation
+            BB   =-(CHI4 + PSI6 + PSI5 + 1.d0/A4)
+            CC   = CHI4*(PSI5+PSI6) - 2.d0*PSI2/A4
+            DD   = MAX(BB*BB-4.d0*CC,ZERO) 
+
+            ! Patch proposed by Uma shankar, 19/11/2001
+            PSI4 =0.5d0*(-BB - SQRT(DD))
+         ELSE
+            PSI4 = TINY
+         ENDIF
+
+         !==============================================================
+         ! CALCULATE CONCENTRATIONS
+         !==============================================================
+         NH4I = 2.d0*PSI2 + PSI4
+         CLI  = PSI6
+         SO4I = PSI2 + PSI1
+         NO3I = PSI5
+         NAI  = 2.0D0*PSI1  
+
+         CALL CALCPH(2.d0*SO4I+NO3I+CLI-NAI-NH4I, HI, OHI)
+
+         ! Na2SO4 DISSOLUTION
+         IF (CHI1.GT.TINY .AND. WATER.GT.TINY) THEN ! PSI1
+            CALL POLY3 (PSI2, ZERO, -A1/4.D0, PSI1, ISLV)
+            IF (ISLV.EQ.0) THEN
+               PSI1 = MIN (PSI1, CHI1)
+            ELSE
+               PSI1 = ZERO
+            ENDIF
+         ELSE
+            PSI1 = ZERO
+         ENDIF
+
+         ! SAVE CONCENTRATIONS IN MOLAL ARRAY 
+         MOLAL (1) = HI
+         MOLAL (2) = NAI
+         MOLAL (3) = NH4I
+         MOLAL (4) = CLI
+         MOLAL (5) = SO4I
+         MOLAL (6) = ZERO
+         MOLAL (7) = NO3I
+
+         !==============================================================
+         ! CALCULATE GAS / SOLID SPECIES (LIQUID IN MOLAL ALREADY)
+         !==============================================================
+         GNH3      = MAX(CHI4 - PSI4, TINY)
+         GHNO3     = MAX(CHI5 - PSI5, TINY)
+         GHCL      = MAX(CHI6 - PSI6, TINY)
+         
+         CNH42S4   = ZERO
+         CNH4NO3   = ZERO
+         CNH4CL    = ZERO
+
+         !==============================================================
+         ! CALCULATE MOLALR ARRAY, WATER AND ACTIVITIES
+         !==============================================================
+         CALL CALCMR
+
+         !==============================================================
+         ! CALCULATE ACTIVITIES OR TERMINATE INTERNAL LOOP
+         !==============================================================
+         IF (FRST.AND.CALAOU .OR. .NOT.FRST.AND.CALAIN) THEN
+            CALL CALCACT     
+         ELSE
+            GOTO 20
+         ENDIF
+ 10   CONTINUE
+
+      !=================================================================
+      ! CALCULATE FUNCTION VALUE FOR OUTER LOOP 
+      !=================================================================
+ 20   CONTINUE
+      VALUE = MOLAL(1)*MOLAL(4)/GHCL/A6 - ONE
+
+      ! Return to calling program
+      END FUNCTION FUNCG4A
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALCG5
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCG5
+! *** CASE G5
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE POOR (SULRAT > 2.0) ; SODIUM POOR (SODRAT < 2.0)
+!     2. THERE IS BOTH A LIQUID & SOLID PHASE
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NH4CL, NA2SO4
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      ! Local variables
+      INTEGER  :: K
+      REAL*8  ::     PSI6LO, PSI6HI, X1, Y1, DX
+      REAL*8  ::     X2, Y2, X3, Y3, DELTA
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, LAMDA,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7
+      COMMON /CASEG/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, LAMDA,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7
+!$OMP THREADPRIVATE( /CASEG/ )
+
+      !=================================================================
+      ! CALCG5 begins here!
+      !=================================================================
+
+      CALAOU = .TRUE.   
+      CHI1   = 0.5d0*W(1)
+      CHI2   = MAX (W(2)-CHI1, ZERO)
+      CHI3   = ZERO
+      CHI4   = MAX (W(3)-2.D0*CHI2, ZERO)
+      CHI5   = W(4)
+      CHI6   = W(5)
+ 
+      PSI1   = CHI1
+      PSI2   = CHI2
+      PSI6LO = TINY                  
+      PSI6HI = CHI6-TINY    ! MIN(CHI6-TINY, CHI4)
+
+      WATER  = CHI2/M0(4) + CHI1/M0(2)
+
+      ! Initial values for bisection
+      X1 = PSI6LO
+      Y1 = FUNCG5A (X1)
+      IF (CHI6.LE.TINY) GOTO 50  
+      ! comment out
+      !IF (ABS(Y1).LE.EPS .OR. CHI6.LE.TINY) GOTO 50  
+      !IF (WATER .LE. TINY) RETURN                    ! No water
+
+      !=================================================================
+      ! Root tracking ; for the range of HI and LO
+      !=================================================================
+      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DO 10 K=1,NDIV
+         X2 = X1+DX 
+         Y2 = FUNCG5A (X2)
+         IF (SIGN(1.d0,Y1)*SIGN(1.d0,Y2).LT.ZERO) GOTO 20  ! (Y1*Y2.LT.ZERO)
+         X1 = X2
+         Y1 = Y2
+10    CONTINUE
+
+      !=================================================================
+      ! No subdivision with solution; IF ABS(Y2)<EPS solution is assumed
+      !=================================================================
+      IF (ABS(Y2) .GT. EPS) Y2 = FUNCG5A (PSI6HI)
+      GOTO 50
+
+      !=================================================================
+      ! Perform bisection
+      !=================================================================
+ 20   CONTINUE
+      DO 30 K=1,MAXIT
+         X3 = 0.5d0*(X1+X2)
+         Y3 = FUNCG5A (X3)
+         IF (SIGN(1.d0,Y1)*SIGN(1.d0,Y3) .LE. ZERO) THEN  ! (Y1*Y3 .LE. ZERO)
+            Y2    = Y3
+            X2    = X3
+         ELSE
+            Y1    = Y3
+            X1    = X3
+         ENDIF
+         IF (ABS(X2-X1) .LE. EPS*X1) GOTO 40
+ 30   CONTINUE
+      CALL PUSHERR (0002, 'CALCG5')    ! WARNING ERROR: NO CONVERGENCE
+
+      !=================================================================
+      ! Converged ; return 
+      !=================================================================
+ 40   CONTINUE
+      X3 = 0.5d0*(X1+X2)
+      Y3 = FUNCG5A (X3)
+
+      !=================================================================
+      ! Calculate HSO4 speciation and return
+      !=================================================================
+ 50   CONTINUE
+      IF (MOLAL(1).GT.TINY .AND. MOLAL(5).GT.TINY) THEN  ! If quadrat.called
+         CALL CALCHS4 (MOLAL(1), MOLAL(5), ZERO, DELTA)
+         MOLAL(1) = MOLAL(1) - DELTA              ! H+   EFFECT
+         MOLAL(5) = MOLAL(5) - DELTA              ! SO4  EFFECT
+         MOLAL(6) = DELTA                         ! HSO4 EFFECT
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE CALCG5
+
+!------------------------------------------------------------------------------
+
+      FUNCTION FUNCG5A( X ) RESULT( VALUE )
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** FUNCTION FUNCG5A
+! *** CASE G5
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE POOR (SULRAT > 2.0) ; SODIUM POOR (SODRAT < 2.0)
+!     2. THERE IS BOTH A LIQUID & SOLID PHASE
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NH4CL, NA2SO4
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h"  
+
+      ! Arguments
+      REAL*8, INTENT(IN)  :: X
+
+      ! Local variables
+      INTEGER ::     K
+      REAL*8  ::     AKK, BB, CC, DD, SMIN, HI, OHI
+      REAL*8  ::     VALUE
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, LAMDA,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7
+      COMMON /CASEG/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, LAMDA,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7
+!$OMP THREADPRIVATE( /CASEG/ )
+
+      !=================================================================
+      ! FUNCG5A begins here!
+      !=================================================================
+      PSI6   = X
+      FRST   = .TRUE.
+      CALAIN = .TRUE. 
+
+      !=================================================================       
+      ! Solve equations ; with iterations for activity coef.
+      !=================================================================
+      DO 10 K=1,NSWEEP
+         A1  = XK5 *(WATER/GAMA(2))**3.d0
+         A2  = XK7 *(WATER/GAMA(4))**3.d0
+         A4  = (XK2/XKW)*R*TEMP*(GAMA(10)/GAMA(5))**2.d0
+         A5  = XK4 *R*TEMP*(WATER/GAMA(10))**2.d0
+         A6  = XK3 *R*TEMP*(WATER/GAMA(11))**2.d0
+         AKK = A4*A6
+
+         !==============================================================       
+         ! Calculate dissociation quantities
+         !==============================================================
+         IF (CHI5.GE.TINY) THEN
+            PSI5 = PSI6*CHI5/(A6/A5*(CHI6-PSI6) + PSI6)
+         ELSE
+            PSI5 = TINY
+         ENDIF
+
+         ! Comment out
+         !IF(CHI4.GT.TINY) THEN
+         IF(W(2).GT.TINY) THEN  
+            ! Accounts for NH3 evaporation
+            BB   =-(CHI4 + PSI6 + PSI5 + 1.d0/A4)
+            CC   = CHI4*(PSI5+PSI6) - 2.d0*PSI2/A4
+            DD   = MAX(BB*BB-4.d0*CC,ZERO) 
+
+            ! Patch proposed by Uma Shankar, 19/11/01
+            PSI4 =0.5d0*(-BB - SQRT(DD))
+         ELSE
+            PSI4 = TINY
+         ENDIF
+
+         ! Speciation & water content
+         MOLAL (2) = 2.0D0*PSI1                 ! NAI
+         MOLAL (3) = 2.d0*PSI2 + PSI4           ! NH4I
+         MOLAL (4) = PSI6                       ! CLI
+         MOLAL (5) = PSI2 + PSI1                ! SO4I
+         MOLAL (6) = ZERO
+         MOLAL (7) = PSI5                       ! NO3I
+
+         SMIN      = 2.d0*MOLAL(5)+MOLAL(7)+
+     &               MOLAL(4)-MOLAL(2)-MOLAL(3)
+         CALL CALCPH (SMIN, HI, OHI)
+         MOLAL (1) = HI
+ 
+         GNH3      = MAX(CHI4 - PSI4, TINY)     ! Gas NH3
+         GHNO3     = MAX(CHI5 - PSI5, TINY)     ! Gas HNO3
+         GHCL      = MAX(CHI6 - PSI6, TINY)     ! Gas HCl
+
+         CNH42S4   = ZERO                       ! Solid (NH4)2SO4
+         CNH4NO3   = ZERO                       ! Solid NH4NO3
+         CNH4CL    = ZERO                       ! Solid NH4Cl
+
+         CALL CALCMR                            ! Water content
+
+         ! Calculate activities or terminate internal loop
+         IF (FRST.AND.CALAOU .OR. .NOT.FRST.AND.CALAIN) THEN
+            CALL CALCACT     
+         ELSE
+            GOTO 20
+         ENDIF
+ 10   CONTINUE
+
+      !=================================================================
+      ! Calculate objective function
+      !=================================================================
+20    CONTINUE
+      VALUE = MOLAL(1)*MOLAL(4)/GHCL/A6 - ONE
+
+      ! Return to calling program
+      END FUNCTION FUNCG5A
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALCH1
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCH1
+! *** CASE H1
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE POOR (SULRAT > 2.0) ; SODIUM RICH (SODRAT >= 2.0)
+!     2. SOLID AEROSOL ONLY
+!     3. SOLIDS POSSIBLE : NH4NO3, NH4CL, NA2SO4
+!
+!     THERE ARE TWO POSSIBLE REGIMES HERE, DEPENDING ON RELATIVE HUMIDITY:
+!     1. WHEN RH >= MDRH ; LIQUID PHASE POSSIBLE (MDRH REGION)
+!     2. WHEN RH < MDRH  ; ONLY SOLID PHASE POSSIBLE (SUBROUTINE CALCH1A)
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!==============================================================================
+!
+#     include "isoropia.h" 
+
+
+
+      !=================================================================
+      ! CALCH1 begins here!
+      !=================================================================
+
+      IF ( RHB .LT. DRMH1 ) THEN    
+         SCASE = 'H1 ; SUBCASE 1'  
+         CALL CALCH1A            ! SOLID PHASE ONLY POSSIBLE
+         SCASE = 'H1 ; SUBCASE 1'
+      ELSE
+         SCASE = 'H1 ; SUBCASE 2'  ! LIQUID & SOLID PHASE POSSIBLE
+         CALL CALCMDRH (RHB, DRMH1, DRNH4NO3, 
+     &                  CALCH1A, CALCH2A)
+         SCASE = 'H1 ; SUBCASE 2'
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE CALCH1 
+
+!-----------------------------------------------------------------------------
+
+      SUBROUTINE CALCH1A
+!
+!*****************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCH1A
+! *** CASE H1 ; SUBCASE 1
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE POOR (SULRAT > 2.0) ; SODIUM RICH (SODRAT >= 2.0)
+!     2. SOLID AEROSOL ONLY
+!     3. SOLIDS POSSIBLE : NH4NO3, NH4CL, NANO3, NA2SO4
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!*****************************************************************************
+!
+#     include "isoropia.h" 
+
+      ! Local variables
+      REAL*8  :: LAMDA, LAMDA1, LAMDA2, KAPA, KAPA1, KAPA2, NAFR, NO3FR
+      REAL*8  :: CLFR, ALF, BET, GAM, RTSQ, THETA1, THETA2
+      REAL*8  :: BB, CC, DD, SQDD, DD1, DD2, SQDD1, SQDD2
+      REAL*8  :: A1, A2
+
+      !=================================================================
+      ! CALCH1A begins here!
+      !=================================================================
+
+      ! CALCULATE NON VOLATILE SOLIDS 
+      CNA2SO4 = W(2)
+      CNH42S4 = ZERO
+      NAFR    = MAX (W(1)-2*CNA2SO4, ZERO)
+      CNANO3  = MIN (NAFR, W(4))
+      NO3FR   = MAX (W(4)-CNANO3, ZERO)
+      CNACL   = MIN (MAX(NAFR-CNANO3, ZERO), W(5))
+      CLFR    = MAX (W(5)-CNACL, ZERO)
+
+      ! CALCULATE VOLATILE SPECIES 
+      ALF     = W(3)                     ! FREE NH3
+      BET     = CLFR                     ! FREE CL
+      GAM     = NO3FR                    ! FREE NO3
+
+      RTSQ    = R*TEMP*R*TEMP
+      A1      = XK6/RTSQ
+      A2      = XK10/RTSQ
+
+      THETA1  = GAM - BET*(A2/A1)
+      THETA2  = A2/A1
+
+      ! QUADRATIC EQUATION SOLUTION
+      BB      = (THETA1-ALF-BET*(ONE+THETA2))/(ONE+THETA2)
+      CC      = (ALF*BET-A1-BET*THETA1)/(ONE+THETA2)
+      DD      = BB*BB - 4.0D0*CC
+      IF (DD.LT.ZERO) GOTO 100   ! Solve each reaction seperately
+
+      ! TWO ROOTS FOR KAPA, CHECK AND SEE IF ANY VALID
+      SQDD    = SQRT(DD)
+      KAPA1   = 0.5D0*(-BB+SQDD)
+      KAPA2   = 0.5D0*(-BB-SQDD)
+      LAMDA1  = THETA1 + THETA2*KAPA1
+      LAMDA2  = THETA1 + THETA2*KAPA2
+
+      IF (KAPA1.GE.ZERO .AND. LAMDA1.GE.ZERO) THEN
+         IF (ALF-KAPA1-LAMDA1.GE.ZERO .AND.
+     &       BET-KAPA1.GE.ZERO .AND. GAM-LAMDA1.GE.ZERO) THEN
+             KAPA = KAPA1
+             LAMDA= LAMDA1
+             GOTO 200
+         ENDIF
+      ENDIF
+
+      IF (KAPA2.GE.ZERO .AND. LAMDA2.GE.ZERO) THEN
+         IF (ALF-KAPA2-LAMDA2.GE.ZERO .AND. 
+     &       BET-KAPA2.GE.ZERO .AND. GAM-LAMDA2.GE.ZERO) THEN
+             KAPA = KAPA2
+             LAMDA= LAMDA2
+             GOTO 200
+         ENDIF
+      ENDIF
+
+      ! SEPARATE SOLUTION OF NH4CL & NH4NO3 EQUILIBRIA 
+100   CONTINUE
+      KAPA  = ZERO
+      LAMDA = ZERO
+      DD1   = (ALF+BET)*(ALF+BET) - 4.0D0*(ALF*BET-A1)
+      DD2   = (ALF+GAM)*(ALF+GAM) - 4.0D0*(ALF*GAM-A2)
+
+      ! NH4CL EQUILIBRIUM
+      IF (DD1.GE.ZERO) THEN
+         SQDD1 = SQRT(DD1)
+         KAPA1 = 0.5D0*(ALF+BET + SQDD1)
+         KAPA2 = 0.5D0*(ALF+BET - SQDD1)
+
+         IF (KAPA1.GE.ZERO .AND. KAPA1.LE.MIN(ALF,BET)) THEN
+            KAPA = KAPA1 
+         ELSE IF (KAPA2.GE.ZERO .AND. KAPA2.LE.MIN(ALF,BET)) THEN
+            KAPA = KAPA2
+         ELSE
+            KAPA = ZERO
+         ENDIF
+      ENDIF
+
+      ! NH4NO3 EQUILIBRIUM
+      IF (DD2.GE.ZERO) THEN
+         SQDD2 = SQRT(DD2)
+         LAMDA1= 0.5D0*(ALF+GAM + SQDD2)
+         LAMDA2= 0.5D0*(ALF+GAM - SQDD2)
+
+         IF (LAMDA1.GE.ZERO .AND. LAMDA1.LE.MIN(ALF,GAM)) THEN
+            LAMDA = LAMDA1 
+         ELSE IF (LAMDA2.GE.ZERO .AND. LAMDA2.LE.MIN(ALF,GAM)) THEN
+            LAMDA = LAMDA2
+         ELSE
+            LAMDA = ZERO
+         ENDIF
+      ENDIF
+
+      ! IF BOTH KAPA, LAMDA ARE > 0, THEN APPLY EXISTANCE CRITERION
+      IF (KAPA.GT.ZERO .AND. LAMDA.GT.ZERO) THEN
+         IF (BET .LT. LAMDA/THETA1) THEN
+            KAPA = ZERO
+         ELSE
+            LAMDA= ZERO
+         ENDIF
+      ENDIF
+
+      ! CALCULATE COMPOSITION OF VOLATILE SPECIES
+ 200  CONTINUE
+      CNH4NO3 = LAMDA
+      CNH4CL  = KAPA
+
+      GNH3    = ALF - KAPA - LAMDA
+      GHNO3   = GAM - LAMDA
+      GHCL    = BET - KAPA
+
+      ! Return to calling program
+      END SUBROUTINE CALCH1A 
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALCH2
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCH2
+! *** CASE H2
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE POOR (SULRAT > 2.0) ; SODIUM RICH (SODRAT >= 2.0)
+!     2. SOLID & LIQUID AEROSOL POSSIBLE
+!     3. SOLIDS POSSIBLE : NH4Cl, NA2SO4, NANO3, NACL
+!
+!     THERE ARE THREE REGIMES IN THIS CASE:
+!     1. NH4NO3(s) POSSIBLE. LIQUID & SOLID AEROSOL (SUBROUTINE CALCH2A)
+!     2. NH4NO3(s) NOT POSSIBLE, AND RH < MDRH. SOLID AEROSOL ONLY 
+!     3. NH4NO3(s) NOT POSSIBLE, AND RH >= MDRH. (MDRH REGION)
+!
+!     REGIMES 2. AND 3. ARE CONSIDERED TO BE THE SAME AS CASES H1A, H2B
+!     RESPECTIVELY (BECAUSE MDRH POINTS COINCIDE).
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      !=================================================================
+      ! CALCH2 begins here!
+      !=================================================================
+
+      ! REGIME DEPENDS ON THE EXISTANCE OF NITRATES
+      IF ( W(4) .GT. TINY ) THEN        
+ 
+         ! NO3 EXISTS, WATER POSSIBLE
+         SCASE = 'H2 ; SUBCASE 1'  
+         CALL CALCH2A                                 
+         SCASE = 'H2 ; SUBCASE 1'  
+
+      ELSE                          
+
+         ! NO3 NON EXISTANT, WATER NOT POSSIBLE
+         SCASE = 'H2 ; SUBCASE 1'  
+         CALL CALCH1A
+         SCASE = 'H2 ; SUBCASE 1'  
+
+      ENDIF
+
+      IF ( WATER .LE. TINY .AND. RHB .LT. DRMH2 ) THEN      
+
+         ! DRY AEROSOL
+         SCASE = 'H2 ; SUBCASE 2'  
+
+      ELSE IF ( WATER .LE. TINY .AND. RHB .GE. DRMH2 ) THEN  
+
+         ! MDRH OF H2
+         SCASE = 'H2 ; SUBCASE 3'
+         CALL CALCMDRH (RHB, DRMH2, DRNANO3, 
+     &                  CALCH1A, CALCH3)
+         SCASE = 'H2 ; SUBCASE 3'
+
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE CALCH2 
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALCH2A
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCH2A
+! *** CASE H2 ; SUBCASE 1
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE POOR (SULRAT > 2.0) ; SODIUM RICH (SODRAT >= 2.0)
+!     2. THERE IS BOTH A LIQUID & SOLID PHASE
+!     3. SOLIDS POSSIBLE : NH4CL, NA2SO4
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      ! Local variables
+      INTEGER ::      K
+      REAL*8  ::     FRNA, PSI6LO, PSI6HI, X1, Y1, DX
+      REAL*8  ::     X2, Y2, X3, Y3, DELTA
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+      COMMON /SOLUT/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+!$OMP THREADPRIVATE( /SOLUT/ )
+
+      !=================================================================
+      ! CALCH2A begins here!
+      !=================================================================
+
+      ! SETUP PARAMETERS 
+      CALAOU = .TRUE.   
+      CHI1   = W(2)                                ! CNA2SO4
+      CHI2   = ZERO                                ! CNH42S4
+      CHI3   = ZERO                                ! CNH4CL
+      FRNA   = MAX (W(1)-2.D0*CHI1, ZERO)       
+      CHI8   = MIN (FRNA, W(4))                    ! CNANO3
+      CHI4   = W(3)                                ! NH3(g)
+      CHI5   = MAX (W(4)-CHI8, ZERO)               ! HNO3(g)
+      CHI7   = MIN (MAX(FRNA-CHI8, ZERO), W(5))    ! CNACL
+      CHI6   = MAX (W(5)-CHI7, ZERO)               ! HCL(g)
+
+      PSI6LO = TINY                  
+      PSI6HI = CHI6-TINY    ! MIN(CHI6-TINY, CHI4)
+
+      !=================================================================
+      ! INITIAL VALUES FOR BISECTION 
+      !=================================================================
+      X1 = PSI6LO
+      Y1 = FUNCH2A (X1)
+      IF (ABS(Y1).LE.EPS .OR. CHI6.LE.TINY) GOTO 50  
+
+      !=================================================================
+      ! ROOT TRACKING ; FOR THE RANGE OF HI AND LO 
+      !=================================================================
+      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DO 10 K=1,NDIV
+         X2 = X1+DX 
+         Y2 = FUNCH2A (X2)
+         IF (SIGN(1.d0,Y1)*SIGN(1.d0,Y2).LT.ZERO) GOTO 20  ! (Y1*Y2.LT.ZERO)
+         X1 = X2
+         Y1 = Y2
+ 10   CONTINUE
+
+      !=================================================================
+      ! NO SUBDIVISION WITH SOLUTION; IF ABS(Y2)<EPS SOLUTION IS ASSUMED
+      !=================================================================
+      IF (Y2 .GT. EPS) Y2 = FUNCH2A (PSI6LO)
+      GOTO 50
+
+      !=================================================================
+      ! PERFORM BISECTION 
+      !=================================================================
+ 20   CONTINUE
+      DO 30 K=1,MAXIT
+         X3 = 0.5d0*(X1+X2)
+         Y3 = FUNCH2A (X3)
+         IF (SIGN(1.d0,Y1)*SIGN(1.d0,Y3) .LE. ZERO) THEN  ! (Y1*Y3 .LE. ZERO)
+            Y2    = Y3
+            X2    = X3
+         ELSE
+            Y1    = Y3
+            X1    = X3
+         ENDIF
+         IF (ABS(X2-X1) .LE. EPS*X1) GOTO 40
+ 30   CONTINUE
+      CALL PUSHERR (0002, 'CALCH2A')    ! WARNING ERROR: NO CONVERGENCE
+
+      !=================================================================
+      ! CONVERGED ; RETURN 
+      !=================================================================
+ 40   CONTINUE
+      X3 = 0.5d0*(X1+X2)
+      Y3 = FUNCH2A (X3)
+
+      !=================================================================
+      ! CALCULATE HSO4 SPECIATION AND RETURN 
+      !=================================================================
+ 50   CONTINUE
+      IF (MOLAL(1).GT.TINY .AND. MOLAL(5).GT.TINY) THEN
+         CALL CALCHS4 (MOLAL(1), MOLAL(5), ZERO, DELTA)
+         MOLAL(1) = MOLAL(1) - DELTA           ! H+   EFFECT
+         MOLAL(5) = MOLAL(5) - DELTA           ! SO4  EFFECT
+         MOLAL(6) = DELTA                      ! HSO4 EFFECT
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE CALCH2A 
+
+!------------------------------------------------------------------------------
+
+      FUNCTION FUNCH2A( X ) RESULT( VALUE )
+!
+!******************************************************************************
+! 
+!  *** ISORROPIA CODE
+!  *** SUBROUTINE FUNCH2A
+!  *** CASE H2 ; SUBCASE 1
+! 
+!      THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!      1. SULFATE POOR (SULRAT > 2.0) ; SODIUM RICH (SODRAT >= 2.0)
+!      2. THERE IS BOTH A LIQUID & SOLID PHASE
+!      3. SOLIDS POSSIBLE : (NH4)2SO4, NH4CL, NA2SO4
+! 
+!  *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+!  *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+! 
+#     include "isoropia.h" 
+ 
+      ! Arguments
+      REAL*8, INTENT(IN)  :: X
+
+      ! Local variables
+      INTEGER ::     K, ISLV
+      REAL*8  ::     VALUE
+      REAL*8  ::     A64, A9, BB, CC, DD, DIAK, AA
+      REAL*8  ::     SMIN, HI, OHI, DELT, PSI31, PSI32
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+      COMMON /SOLUT/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+!$OMP THREADPRIVATE( /SOLUT/ )
+
+      !=================================================================
+      ! FUNCH2A begins here!
+      !=================================================================
+
+      ! SETUP PARAMETERS
+      PSI6   = X
+      PSI1   = CHI1
+      PSI2   = ZERO
+      PSI3   = ZERO
+      PSI7   = CHI7
+      PSI8   = CHI8 
+      FRST   = .TRUE.
+      CALAIN = .TRUE. 
+
+      ! SOLVE EQUATIONS ; WITH ITERATIONS FOR ACTIVITY COEF.
+      DO 10 K=1,NSWEEP
+
+         A1  = XK5 *(WATER/GAMA(2))**3.d0
+         A4  = (XK2/XKW)*R*TEMP*(GAMA(10)/GAMA(5))**2.d0
+         A5  = XK4 *R*TEMP*(WATER/GAMA(10))**2.d0
+         A6  = XK3 *R*TEMP*(WATER/GAMA(11))**2.d0
+         A7  = XK8 *(WATER/GAMA(1))**2.d0
+         A8  = XK9 *(WATER/GAMA(3))**2.d0
+         A64 = (XK3*XK2/XKW)*(GAMA(10)/GAMA(5)/GAMA(11))**2.d0
+         A64 = A64*(R*TEMP*WATER)**2.d0
+         A9  = XK1*WATER/GAMA(7)*(GAMA(8)/GAMA(7))**2.d0
+
+         ! CALCULATE DISSOCIATION QUANTITIES
+         PSI5 = CHI5*(PSI6+PSI7) - A6/A5*PSI8*(CHI6-PSI6-PSI3)
+         PSI5 = PSI5/(A6/A5*(CHI6-PSI6-PSI3) + PSI6 + PSI7)
+         PSI5 = MAX(PSI5, TINY)
+
+         IF (CHI1.GT.TINY .AND. WATER.GT.TINY) THEN 
+            ! First try 3rd order soln
+            BB   =-(CHI4 + PSI6 + PSI5 + 1.d0/A4)
+            CC   = CHI4*(PSI5+PSI6)
+            DD   = BB*BB-4.d0*CC
+            PSI4 =0.5d0*(-BB - SQRT(DD))
+            PSI4 = MIN(PSI4,CHI4)
+         ELSE
+            PSI4 = TINY
+         ENDIF
+
+         IF (CHI7.GT.TINY .AND. WATER.GT.TINY) THEN 
+            ! NACL DISSOLUTION
+            DIAK = (PSI8-PSI6)**2.D0 + 4.D0*A7
+            PSI7 = 0.5D0*( -(PSI8+PSI6) + SQRT(DIAK) )
+            PSI7 = MAX(MIN(PSI7, CHI7), ZERO)
+         ENDIF
+
+         IF (CHI8.GT.TINY .AND. WATER.GT.TINY) THEN     
+            ! NANO3 DISSOLUTION
+            DIAK = (PSI7-PSI5)**2.D0 + 4.D0*A8
+            PSI8 = 0.5D0*( -(PSI7+PSI5) + SQRT(DIAK) )
+            PSI8 = MAX(MIN(PSI8, CHI8), ZERO)
+         ENDIF
+
+         IF (CHI1.GT.TINY .AND. WATER.GT.TINY) THEN     
+            ! NA2SO4 DISSOLUTION
+            AA = PSI7+PSI8
+            BB = AA*AA
+            CC =-A1/4.D0
+            CALL POLY3 (AA, BB, CC, PSI1, ISLV)
+            IF (ISLV.EQ.0) THEN
+               PSI1 = MIN (PSI1, CHI1)
+            ELSE
+               PSI1 = ZERO
+            ENDIF
+         ENDIF
+
+         ! CALCULATE SPECIATION 
+         MOLAL (2) = PSI8 + PSI7 + 2.D0*PSI1                 ! NAI
+         MOLAL (3) = PSI4                                    ! NH4I
+         MOLAL (4) = PSI6 + PSI7                             ! CLI
+         MOLAL (5) = PSI2 + PSI1                             ! SO4I
+         MOLAL (6) = ZERO                                    ! HSO4I
+         MOLAL (7) = PSI5 + PSI8                             ! NO3I
+
+         SMIN      = 2.d0*MOLAL(5)+MOLAL(7)+
+     &               MOLAL(4)-MOLAL(2)-MOLAL(3)
+         CALL CALCPH (SMIN, HI, OHI)
+         MOLAL (1) = HI
+
+         GNH3      = MAX(CHI4 - PSI4, TINY)
+         GHNO3     = MAX(CHI5 - PSI5, TINY)
+         GHCL      = MAX(CHI6 - PSI6, TINY)
+
+         CNH42S4   = ZERO
+         CNH4NO3   = ZERO
+         CNACL     = MAX(CHI7 - PSI7, ZERO)
+         CNANO3    = MAX(CHI8 - PSI8, ZERO)
+         CNA2SO4   = MAX(CHI1 - PSI1, ZERO) 
+
+         ! NH4Cl(s) calculations
+         A3   = XK6 /(R*TEMP*R*TEMP)
+         DELT = MIN(GNH3, GHCL)
+         BB = -(GNH3+GHCL)
+         CC = GNH3*GHCL-A3
+         DD = BB*BB - 4.D0*CC
+         PSI31 = 0.5D0*(-BB + SQRT(DD))
+         PSI32 = 0.5D0*(-BB - SQRT(DD))
+         IF (DELT-PSI31.GT.ZERO .AND. PSI31.GT.ZERO) THEN
+            PSI3 = PSI31
+         ELSEIF (DELT-PSI32.GT.ZERO .AND. PSI32.GT.ZERO) THEN
+            PSI3 = PSI32
+         ELSE
+            PSI3 = ZERO
+         ENDIF
+
+         ! CALCULATE GAS / SOLID SPECIES (LIQUID IN MOLAL ALREADY)
+         GNH3    = MAX(GNH3 - PSI3, TINY)
+         GHCL    = MAX(GHCL - PSI3, TINY)
+         CNH4CL  = PSI3
+
+         ! Water content
+         CALL CALCMR 
+
+         ! CALCULATE ACTIVITIES OR TERMINATE INTERNAL LOOP
+         IF (FRST.AND.CALAOU .OR. .NOT.FRST.AND.CALAIN) THEN
+            CALL CALCACT     
+         ELSE
+            GOTO 20
+         ENDIF
+ 10   CONTINUE
+
+      ! CALCULATE FUNCTION VALUE FOR OUTER LOOP
+ 20   CONTINUE
+      VALUE = MOLAL(3)*MOLAL(4)/GHCL/GNH3/A64 - ONE
+
+      ! Return to calling program
+      END FUNCTION FUNCH2A
+
+!-----------------------------------------------------------------------
+
+      SUBROUTINE CALCH3
+
+!***********************************************************************
+C
+C *** ISORROPIA CODE
+C *** SUBROUTINE CALCH3
+C *** CASE H3
+C
+C     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+C     1. SULFATE POOR (SULRAT > 2.0) ; SODIUM RICH (SODRAT >= 2.0)
+C     2. THERE IS BOTH A LIQUID & SOLID PHASE
+C     3. SOLIDS POSSIBLE : NH4CL, NA2SO4
+C
+C *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+C *** WRITTEN BY ATHANASIOS NENES
+C
+C=======================================================================
+C
+#     include "isoropia.h" 
+
+      ! Local variables
+      INTEGER ::     K
+      REAL*8  ::     FRNA, PSI6LO, PSI6HI, X1, Y1, DX
+      REAL*8  ::     X2, Y2, X3, Y3, DELTA
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+      COMMON /SOLUT/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+!$OMP THREADPRIVATE( /SOLUT/ )
+
+      !=================================================================
+      ! CALCH3 begins here!
+      !=================================================================
+
+      ! REGIME DEPENDS ON THE EXISTANCE OF NITRATES 
+      IF ( W(4) .LE. TINY ) THEN    ! NO3 NOT EXIST, WATER NOT POSSIBLE
+         SCASE = 'H3'  
+         CALL CALCH1A
+         SCASE = 'H3'  
+         RETURN
+      ENDIF
+C
+      ! SETUP PARAMETERS
+      CALAOU = .TRUE.   
+      CHI1   = W(2)                                ! CNA2SO4
+      CHI2   = ZERO                                ! CNH42S4
+      CHI3   = ZERO                                ! CNH4CL
+      FRNA   = MAX (W(1)-2.D0*CHI1, ZERO)       
+      CHI8   = MIN (FRNA, W(4))                    ! CNANO3
+      CHI4   = W(3)                                ! NH3(g)
+      CHI5   = MAX (W(4)-CHI8, ZERO)               ! HNO3(g)
+      CHI7   = MIN (MAX(FRNA-CHI8, ZERO), W(5))    ! CNACL
+      CHI6   = MAX (W(5)-CHI7, ZERO)               ! HCL(g)
+
+      PSI6LO = TINY                  
+      PSI6HI = CHI6-TINY    ! MIN(CHI6-TINY, CHI4)
+
+      !=================================================================
+      ! INITIAL VALUES FOR BISECTION
+      !=================================================================
+      X1 = PSI6LO
+      Y1 = FUNCH3A (X1)
+      IF (ABS(Y1).LE.EPS .OR. CHI6.LE.TINY) GOTO 50  
+
+      !=================================================================
+      ! ROOT TRACKING ; FOR THE RANGE OF HI AND LO
+      !=================================================================
+      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DO 10 K=1,NDIV
+         X2 = X1+DX 
+         Y2 = FUNCH3A (X2)
+         IF (SIGN(1.d0,Y1)*SIGN(1.d0,Y2).LT.ZERO) GOTO 20 ! (Y1*Y2.LT.ZERO)
+         X1 = X2
+         Y1 = Y2
+ 10   CONTINUE
+
+      !=================================================================
+      ! NO SUBDIVISION WITH SOLUTION; IF ABS(Y2)<EPS SOLUTION IS ASSUMED
+      !=================================================================
+      IF (ABS(Y2) .GT. EPS) Y2 = FUNCH3A (PSI6LO)
+      GOTO 50
+
+      !=================================================================
+      ! PERFORM BISECTION
+      !=================================================================
+ 20   CONTINUE
+      DO 30 K=1,MAXIT
+         X3 = 0.5d0*(X1+X2)
+         Y3 = FUNCH3A (X3)
+         IF (SIGN(1.d0,Y1)*SIGN(1.d0,Y3) .LE. ZERO) THEN  ! (Y1*Y3 .LE. ZERO)
+            Y2    = Y3
+            X2    = X3
+         ELSE
+            Y1    = Y3
+            X1    = X3
+         ENDIF
+         IF (ABS(X2-X1) .LE. EPS*X1) GOTO 40
+ 30   CONTINUE
+      CALL PUSHERR (0002, 'CALCH3')    ! WARNING ERROR: NO CONVERGENCE
+
+      !=================================================================
+      ! CONVERGED ; RETURN
+      !=================================================================
+ 40   CONTINUE
+      X3 = 0.5d0*(X1+X2)
+      Y3 = FUNCH3A (X3)
+
+      !=================================================================
+      ! CALCULATE HSO4 SPECIATION AND RETURN
+      !=================================================================
+ 50   CONTINUE
+      IF (MOLAL(1).GT.TINY .AND. MOLAL(5).GT.TINY) THEN
+         CALL CALCHS4 (MOLAL(1), MOLAL(5), ZERO, DELTA)
+         MOLAL(1) = MOLAL(1) - DELTA         ! H+   EFFECT
+         MOLAL(5) = MOLAL(5) - DELTA         ! SO4  EFFECT
+         MOLAL(6) = DELTA                    ! HSO4 EFFECT
+      ENDIF
+      
+      ! Return to calling program
+      END SUBROUTINE CALCH3 
+
+!------------------------------------------------------------------------------
+
+      FUNCTION FUNCH3A( X ) RESULT( VALUE )
+!
+!******************************************************************************
+!
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE FUNCH3A
+! *** CASE H3
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE POOR (SULRAT > 2.0) ; SODIUM RICH (SODRAT >= 2.0)
+!     2. THERE IS BOTH A LIQUID & SOLID PHASE
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NH4CL, NA2SO4
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      ! Arguments
+      REAL*8, INTENT(IN) :: X
+
+      ! Local variables
+      INTEGER ::     K, ISLV
+      REAL*8  ::     VALUE
+      REAL*8  ::     A9, BB, CC, DD, DIAK, AA, SMIN, HI, OHI
+      REAL*8  ::     DELT, PSI31, PSI32
+ 
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+      COMMON /SOLUT/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+!$OMP THREADPRIVATE( /SOLUT/ )
+
+      !=================================================================
+      ! FUNCH3A begins here!
+      !=================================================================
+
+      ! SETUP PARAMETERS
+      PSI6   = X
+      PSI1   = CHI1
+      PSI2   = ZERO
+      PSI3   = ZERO
+      PSI7   = CHI7
+      PSI8   = CHI8 
+      FRST   = .TRUE.
+      CALAIN = .TRUE. 
+
+      !=================================================================
+      ! SOLVE EQUATIONS ; WITH ITERATIONS FOR ACTIVITY COEF.
+      !=================================================================
+      DO 10 K=1,NSWEEP
+
+         A1  = XK5 *(WATER/GAMA(2))**3.d0
+         A4  = (XK2/XKW)*R*TEMP*(GAMA(10)/GAMA(5))**2.d0
+         A5  = XK4 *R*TEMP*(WATER/GAMA(10))**2.d0
+         A6  = XK3 *R*TEMP*(WATER/GAMA(11))**2.d0
+         A7  = XK8 *(WATER/GAMA(1))**2.d0
+         A8  = XK9 *(WATER/GAMA(3))**2.d0
+         A9  = XK1*WATER/GAMA(7)*(GAMA(8)/GAMA(7))**2.d0
+
+         ! CALCULATE DISSOCIATION QUANTITIES
+         PSI5 = CHI5*(PSI6+PSI7) - A6/A5*PSI8*(CHI6-PSI6-PSI3)
+         PSI5 = PSI5/(A6/A5*(CHI6-PSI6-PSI3) + PSI6 + PSI7)
+         PSI5 = MAX(PSI5, TINY)
+
+         IF (CHI1.GT.TINY .AND. WATER.GT.TINY) THEN  
+            ! First try 3rd order soln
+            BB   =-(CHI4 + PSI6 + PSI5 + 1.d0/A4)
+            CC   = CHI4*(PSI5+PSI6)
+            DD   = BB*BB-4.d0*CC
+            PSI4 =0.5d0*(-BB - SQRT(DD))
+            PSI4 = MIN(PSI4,CHI4)
+         ELSE
+            PSI4 = TINY
+         ENDIF
+
+         IF (CHI7.GT.TINY .AND. WATER.GT.TINY) THEN 
+            ! NACL DISSOLUTION
+            DIAK = (PSI8-PSI6)**2.D0 + 4.D0*A7
+            PSI7 = 0.5D0*( -(PSI8+PSI6) + SQRT(DIAK) )
+            PSI7 = MAX(MIN(PSI7, CHI7), ZERO)
+         ENDIF
+
+         IF (CHI1.GT.TINY .AND. WATER.GT.TINY) THEN 
+            ! NA2SO4 DISSOLUTION
+            AA = PSI7+PSI8
+            BB = AA*AA
+            CC =-A1/4.D0
+            CALL POLY3 (AA, BB, CC, PSI1, ISLV)
+            IF (ISLV.EQ.0) THEN
+               PSI1 = MIN (PSI1, CHI1)
+            ELSE
+               PSI1 = ZERO
+            ENDIF
+         ENDIF
+
+         !==============================================================
+         ! CALCULATE SPECIATION
+         !==============================================================
+         MOLAL (2) = PSI8 + PSI7 + 2.D0*PSI1             ! NAI
+         MOLAL (3) = PSI4                                ! NH4I
+         MOLAL (4) = PSI6 + PSI7                         ! CLI
+         MOLAL (5) = PSI2 + PSI1                         ! SO4I
+         MOLAL (6) = ZERO
+         MOLAL (7) = PSI5 + PSI8                         ! NO3I
+         SMIN      = 2.d0*MOLAL(5)+MOLAL(7)
+     &             + MOLAL(4)-MOLAL(2)-MOLAL(3)
+         CALL CALCPH (SMIN, HI, OHI)
+         MOLAL (1) = HI
+
+         !==============================================================
+         ! CALCULATE GAS / SOLID SPECIES (LIQUID IN MOLAL ALREADY)
+         !==============================================================
+         GNH3      = MAX(CHI4 - PSI4, TINY)
+         GHNO3     = MAX(CHI5 - PSI5, TINY)
+         GHCL      = MAX(CHI6 - PSI6, TINY)
+
+         CNH42S4   = ZERO
+         CNH4NO3   = ZERO
+         CNACL     = MAX(CHI7 - PSI7, ZERO)
+         CNANO3    = MAX(CHI8 - PSI8, ZERO)
+         CNA2SO4   = MAX(CHI1 - PSI1, ZERO) 
+
+         ! NH4Cl(s) calculations
+         A3   = XK6 /(R*TEMP*R*TEMP)
+         DELT = MIN(GNH3, GHCL)
+         BB = -(GNH3+GHCL)
+         CC = GNH3*GHCL-A3
+         DD = BB*BB - 4.D0*CC
+         PSI31 = 0.5D0*(-BB + SQRT(DD))
+         PSI32 = 0.5D0*(-BB - SQRT(DD))
+         IF (DELT-PSI31.GT.ZERO .AND. PSI31.GT.ZERO) THEN
+            PSI3 = PSI31
+         ELSEIF ( DELT-PSI32 .GT. ZERO .AND. PSI32 .GT. ZERO ) THEN
+            PSI3 = PSI32
+         ELSE
+            PSI3 = ZERO
+         ENDIF
+
+         !==============================================================
+         ! CALCULATE GAS / SOLID SPECIES (LIQUID IN MOLAL ALREADY)
+         !==============================================================
+         GNH3    = MAX( GNH3 - PSI3, TINY )
+         GHCL    = MAX( GHCL - PSI3, TINY )
+         CNH4CL  = PSI3
+     
+         ! Water content
+         CALL CALCMR                                 
+
+         !==============================================================
+         ! CALCULATE ACTIVITIES OR TERMINATE INTERNAL LOOP
+         !==============================================================
+         IF ( FRST .AND. CALAOU .OR. .NOT. FRST .AND. CALAIN ) THEN
+            CALL CALCACT     
+         ELSE
+            GOTO 20
+         ENDIF
+ 10   CONTINUE
+
+      !=================================================================
+      ! CALCULATE FUNCTION VALUE FOR OUTER LOOP 
+      !=================================================================
+20    CONTINUE
+      VALUE = MOLAL(3)*MOLAL(4)/GHCL/GNH3/A6/A4 - ONE
+
+      ! Return to calling program
+      END FUNCTION FUNCH3A 
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALCH4
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCH4
+! *** CASE H4
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE POOR (SULRAT > 2.0) ; SODIUM RICH (SODRAT >= 2.0)
+!     2. THERE IS BOTH A LIQUID & SOLID PHASE
+!     3. SOLIDS POSSIBLE : NA2SO4
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      ! Local variables
+      INTEGER ::     K
+      REAL*8  ::     FRNA, PSI6LO, PSI6HI, X1, Y1, DX
+      REAL*8  ::     X2, Y2, X3, Y3, DELTA
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+      COMMON /SOLUT/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+!$OMP THREADPRIVATE( /SOLUT/ )
+
+
+      !=================================================================
+      ! CALCH4 begins here!
+      !=================================================================
+
+      ! REGIME DEPENDS ON THE EXISTANCE OF NITRATES 
+      IF ( W(4) .LE. TINY .AND. 
+     &     W(5) .LE. TINY ) THEN  
+         SCASE = 'H4'  
+         CALL CALCH1A
+         SCASE = 'H4'  
+         RETURN
+      ENDIF
+
+      ! SETUP PARAMETERS
+      CALAOU = .TRUE.   
+      CHI1   = W(2)                                ! CNA2SO4
+      CHI2   = ZERO                                ! CNH42S4
+      CHI3   = ZERO                                ! CNH4CL
+      FRNA   = MAX (W(1)-2.D0*CHI1, ZERO)       
+      CHI8   = MIN (FRNA, W(4))                    ! CNANO3
+      CHI4   = W(3)                                ! NH3(g)
+      CHI5   = MAX (W(4)-CHI8, ZERO)               ! HNO3(g)
+      CHI7   = MIN (MAX(FRNA-CHI8, ZERO), W(5))    ! CNACL
+      CHI6   = MAX (W(5)-CHI7, ZERO)               ! HCL(g)
+C
+      PSI6LO = TINY                  
+      PSI6HI = CHI6-TINY    ! MIN(CHI6-TINY, CHI4)
+
+      !=================================================================
+      ! INITIAL VALUES FOR BISECTION
+      !=================================================================
+      X1 = PSI6LO
+      Y1 = FUNCH4A (X1)
+      IF ( ABS(Y1) .LE. EPS .OR. CHI6 .LE. TINY ) GOTO 50  
+
+      !=================================================================
+      ! ROOT TRACKING ; FOR THE RANGE OF HI AND LO
+      !=================================================================
+      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DO 10 K=1,NDIV
+         X2 = X1+DX 
+         Y2 = FUNCH4A (X2)
+         IF (SIGN(1.d0,Y1)*SIGN(1.d0,Y2).LT.ZERO) GOTO 20  ! (Y1*Y2.LT.ZERO)
+         X1 = X2
+         Y1 = Y2
+ 10   CONTINUE
+      
+      !=================================================================
+      ! NO SUBDIVISION WITH SOLUTION; IF ABS(Y2)<EPS SOLUTION IS ASSUMED
+      !=================================================================
+      IF (ABS(Y2) .GT. EPS) Y2 = FUNCH4A (PSI6LO)
+      GOTO 50
+
+      !=================================================================
+      ! PERFORM BISECTION 
+      !=================================================================
+ 20   CONTINUE
+      DO 30 K=1,MAXIT
+         X3 = 0.5d0*(X1+X2)
+         Y3 = FUNCH4A (X3)
+         IF (SIGN(1.d0,Y1)*SIGN(1.d0,Y3) .LE. ZERO) THEN ! (Y1*Y3 .LE. ZERO)
+            Y2    = Y3
+            X2    = X3
+         ELSE
+            Y1    = Y3
+            X1    = X3
+         ENDIF
+         IF (ABS(X2-X1) .LE. EPS*X1) GOTO 40
+ 30   CONTINUE
+      CALL PUSHERR (0002, 'CALCH4') ! WARNING ERROR: NO CONVERGENCE
+
+      !=================================================================
+      ! CONVERGED ; RETURN
+      !=================================================================
+ 40   CONTINUE
+      X3 = 0.5d0*(X1+X2)
+      Y3 = FUNCH4A (X3)
+
+      !=================================================================
+      ! CALCULATE HSO4 SPECIATION AND RETURN 
+      !=================================================================
+ 50   CONTINUE
+      IF ( MOLAL(1) .GT. TINY .AND. 
+     &     MOLAL(5) .GT. TINY ) THEN
+         CALL CALCHS4 (MOLAL(1), MOLAL(5), ZERO, DELTA)
+         MOLAL(1) = MOLAL(1) - DELTA          ! H+   EFFECT
+         MOLAL(5) = MOLAL(5) - DELTA          ! SO4  EFFECT
+         MOLAL(6) = DELTA                     ! HSO4 EFFECT
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE CALCH4 
+
+!------------------------------------------------------------------------------
+
+      FUNCTION FUNCH4A( X ) RESULT( VALUE )
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE FUNCH4A
+! *** CASE H4
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE POOR (SULRAT > 2.0) ; SODIUM RICH (SODRAT >= 2.0)
+!     2. THERE IS BOTH A LIQUID & SOLID PHASE
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NH4CL, NA2SO4
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      ! Arguments
+      REAL*8, INTENT(IN)  :: X
+
+      ! Local variables
+      INTEGER ::     K, ISLV
+      REAL*8  ::     VALUE
+      REAL*8  ::     A9, BB, CC, DD, AA, SMIN, HI, OHI, DELT
+      REAL*8  ::     PSI31, PSI32
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+      COMMON /SOLUT/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+!$OMP THREADPRIVATE( /SOLUT/ )
+
+
+      !=================================================================
+      ! FUNCH4A begins here!
+      !=================================================================
+
+      ! SETUP PARAMETERS
+      PSI6   = X
+      PSI1   = CHI1
+      PSI2   = ZERO
+      PSI3   = ZERO
+      PSI7   = CHI7
+      PSI8   = CHI8 
+      FRST   = .TRUE.
+      CALAIN = .TRUE. 
+
+      ! SOLVE EQUATIONS ; WITH ITERATIONS FOR ACTIVITY COEF.
+      DO 10 K=1,NSWEEP
+
+         A1  = XK5 *(WATER/GAMA(2))**3.d0
+         A4  = (XK2/XKW)*R*TEMP*(GAMA(10)/GAMA(5))**2.d0
+         A5  = XK4 *R*TEMP*(WATER/GAMA(10))**2.d0
+         A6  = XK3 *R*TEMP*(WATER/GAMA(11))**2.d0
+         A7  = XK8 *(WATER/GAMA(1))**2.d0
+         A8  = XK9 *(WATER/GAMA(3))**2.d0
+         A9  = XK1*WATER/GAMA(7)*(GAMA(8)/GAMA(7))**2.d0
+      
+         ! CALCULATE DISSOCIATION QUANTITIES       
+         PSI5 = CHI5*(PSI6+PSI7) - A6/A5*PSI8*(CHI6-PSI6-PSI3)
+         PSI5 = PSI5/(A6/A5*(CHI6-PSI6-PSI3) + PSI6 + PSI7)
+         PSI5 = MAX(PSI5, TINY)
+
+         IF (CHI1.GT.TINY .AND. WATER.GT.TINY) THEN  
+            ! First try 3rd order soln
+            BB   =-(CHI4 + PSI6 + PSI5 + 1.d0/A4)
+            CC   = CHI4*(PSI5+PSI6)
+            DD   = BB*BB-4.d0*CC
+            PSI4 =0.5d0*(-BB - SQRT(DD))
+            PSI4 = MIN(PSI4,CHI4)
+         ELSE
+            PSI4 = TINY
+         ENDIF
+
+         IF (CHI1.GT.TINY .AND. WATER.GT.TINY) THEN 
+            ! NA2SO4 DISSOLUTION
+            AA = PSI7+PSI8
+            BB = AA*AA
+            CC =-A1/4.D0
+            CALL POLY3 (AA, BB, CC, PSI1, ISLV)
+            IF (ISLV.EQ.0) THEN
+               PSI1 = MIN (PSI1, CHI1)
+            ELSE
+               PSI1 = ZERO
+            ENDIF
+         ENDIF
+
+         ! CALCULATE SPECIATION 
+         MOLAL(2) = PSI8 + PSI7 + 2.D0*PSI1                ! NAI
+         MOLAL(3) = PSI4                                   ! NH4I
+         MOLAL(4) = PSI6 + PSI7                            ! CLI
+         MOLAL(5) = PSI2 + PSI1                            ! SO4I
+         MOLAL(6) = ZERO
+         MOLAL(7) = PSI5 + PSI8                            ! NO3I
+
+         SMIN      = 2.d0*MOLAL(5)+MOLAL(7)+
+     &               MOLAL(4)-MOLAL(2)-MOLAL(3)
+         CALL CALCPH (SMIN, HI, OHI)
+         MOLAL(1) = HI
+
+         ! CALCULATE GAS / SOLID SPECIES (LIQUID IN MOLAL ALREADY)
+         GNH3      = MAX(CHI4 - PSI4, TINY)
+         GHNO3     = MAX(CHI5 - PSI5, TINY)
+         GHCL      = MAX(CHI6 - PSI6, TINY)
+
+         CNH42S4   = ZERO
+         CNH4NO3   = ZERO
+         CNACL     = MAX(CHI7 - PSI7, ZERO)
+         CNANO3    = MAX(CHI8 - PSI8, ZERO)
+         CNA2SO4   = MAX(CHI1 - PSI1, ZERO) 
+
+         ! NH4Cl(s) calculations
+         A3   = XK6 /(R*TEMP*R*TEMP)
+         DELT = MIN(GNH3, GHCL)
+         BB = -(GNH3+GHCL)
+         CC = GNH3*GHCL-A3
+         DD = BB*BB - 4.D0*CC
+         PSI31 = 0.5D0*(-BB + SQRT(DD))
+         PSI32 = 0.5D0*(-BB - SQRT(DD))
+         IF (DELT-PSI31.GT.ZERO .AND. PSI31.GT.ZERO) THEN
+            PSI3 = PSI31
+         ELSEIF (DELT-PSI32.GT.ZERO .AND. PSI32.GT.ZERO) THEN
+            PSI3 = PSI32
+         ELSE
+            PSI3 = ZERO
+         ENDIF
+
+         ! CALCULATE GAS / SOLID SPECIES (LIQUID IN MOLAL ALREADY)
+         GNH3    = MAX(GNH3 - PSI3, TINY)
+         GHCL    = MAX(GHCL - PSI3, TINY)
+         CNH4CL  = PSI3
+
+         ! Water content
+         CALL CALCMR                           
+         
+         ! CALCULATE ACTIVITIES OR TERMINATE INTERNAL LOOP
+         IF (FRST.AND.CALAOU .OR. .NOT.FRST.AND.CALAIN) THEN
+            CALL CALCACT     
+         ELSE
+            GOTO 20
+         ENDIF
+ 10   CONTINUE
+
+      ! CALCULATE FUNCTION VALUE FOR OUTER LOOP
+ 20   CONTINUE
+      VALUE = MOLAL(3)*MOLAL(4)/GHCL/GNH3/A6/A4 - ONE
+
+      ! Return to calling program
+      END FUNCTION FUNCH4A 
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALCH5
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCH5
+! *** CASE H5
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE POOR (SULRAT > 2.0) ; SODIUM RICH (SODRAT >= 2.0)
+!     2. THERE IS BOTH A LIQUID & SOLID PHASE
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NH4CL, NA2SO4
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      ! Local variables
+      INTEGER ::      K
+      REAL*8  ::     FRNA, PSI6LO, PSI6HI, X1, Y1, DX
+      REAL*8  ::     X2, Y2, X3, Y3, DELTA
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+      COMMON /SOLUT/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+!$OMP THREADPRIVATE( /SOLUT/ )
+
+      !=================================================================
+      ! CALCH5 begins here!
+      !=================================================================
+
+      ! REGIME DEPENDS ON THE EXISTANCE OF NITRATES 
+      IF ( W(4) .LE. TINY .AND. 
+     &     W(5) .LE. TINY ) THEN  
+         SCASE = 'H5'  
+         CALL CALCH1A
+         SCASE = 'H5'  
+         RETURN
+      ENDIF
+
+      ! SETUP PARAMETERS
+      CALAOU = .TRUE.   
+      CHI1   = W(2)                                ! CNA2SO4
+      CHI2   = ZERO                                ! CNH42S4
+      CHI3   = ZERO                                ! CNH4CL
+      FRNA   = MAX (W(1)-2.D0*CHI1, ZERO)       
+      CHI8   = MIN (FRNA, W(4))                    ! CNANO3
+      CHI4   = W(3)                                ! NH3(g)
+      CHI5   = MAX (W(4)-CHI8, ZERO)               ! HNO3(g)
+      CHI7   = MIN (MAX(FRNA-CHI8, ZERO), W(5))    ! CNACL
+      CHI6   = MAX (W(5)-CHI7, ZERO)               ! HCL(g)
+
+      PSI6LO = TINY                  
+      PSI6HI = CHI6-TINY    ! MIN(CHI6-TINY, CHI4)
+
+      !=================================================================
+      ! INITIAL VALUES FOR BISECTION
+      !=================================================================
+      X1 = PSI6LO
+      Y1 = FUNCH5A (X1)
+      IF ( ABS(Y1) .LE. EPS .OR. CHI6 .LE. TINY ) GOTO 50  
+
+      !=================================================================
+      ! ROOT TRACKING ; FOR THE RANGE OF HI AND LO
+      !=================================================================
+      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DO 10 K=1,NDIV
+         X2 = X1+DX 
+         Y2 = FUNCH5A (X2)
+         IF ( SIGN(1.d0,Y1)*SIGN(1.d0,Y2) .LT. ZERO ) GOTO 20 ! (Y1*Y2.LT.ZERO)
+         X1 = X2
+         Y1 = Y2
+ 10   CONTINUE
+
+      !=================================================================
+      ! NO SUBDIVISION WITH SOLUTION; IF ABS(Y2)<EPS SOLUTION IS ASSUMED
+      !=================================================================
+      IF ( ABS(Y2) .GT. EPS) Y2 = FUNCH5A (PSI6LO)
+      GOTO 50
+
+      !=================================================================
+      ! PERFORM BISECTION 
+      !=================================================================
+ 20   CONTINUE
+      DO 30 K=1,MAXIT
+         X3 = 0.5d0*(X1+X2)
+         Y3 = FUNCH5A (X3)
+         IF (SIGN(1.d0,Y1)*SIGN(1.d0,Y3) .LE. ZERO) THEN ! (Y1*Y3 .LE. ZERO)
+            Y2    = Y3
+            X2    = X3
+         ELSE
+            Y1    = Y3
+            X1    = X3
+         ENDIF
+         IF ( ABS(X2-X1) .LE. EPS*X1 ) GOTO 40
+ 30   CONTINUE
+      CALL PUSHERR (0002, 'CALCH5') ! WARNING ERROR: NO CONVERGENCE
+
+      !=================================================================
+      ! CONVERGED ; RETURN 
+      !=================================================================
+ 40   CONTINUE
+      X3 = 0.5d0*(X1+X2)
+      Y3 = FUNCH5A (X3)
+
+      !=================================================================
+      ! CALCULATE HSO4 SPECIATION AND RETURN
+      !=================================================================
+ 50   CONTINUE
+      IF ( MOLAL(1) .GT. TINY .AND. 
+     &     MOLAL(5) .GT. TINY ) THEN
+         CALL CALCHS4 (MOLAL(1), MOLAL(5), ZERO, DELTA)
+         MOLAL(1) = MOLAL(1) - DELTA               ! H+   EFECT
+         MOLAL(5) = MOLAL(5) - DELTA               ! SO4  EFFECT
+         MOLAL(6) = DELTA                          ! HSO4 EFFECT
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE CALCH5 
+
+!------------------------------------------------------------------------------
+
+      FUNCTION FUNCH5A( X ) RESULT( VALUE )
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE FUNCH5A
+! *** CASE H5
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE POOR (SULRAT > 2.0) ; SODIUM RICH (SODRAT >= 2.0)
+!     2. THERE IS BOTH A LIQUID & SOLID PHASE
+!     3. SOLIDS POSSIBLE : NONE
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      ! Arguments
+      REAL*8, INTENT(IN) :: X
+
+      ! Local variables
+      REAL*8  ::     VALUE
+      INTEGER ::     K, ISLV
+      REAL*8  ::     A9, BB, CC, DD, AA, SMIN, HI, OHI
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+      COMMON /SOLUT/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+!$OMP THREADPRIVATE( /SOLUT/ )
+
+      !=================================================================
+      ! FUNCH5A begins here!
+      !=================================================================
+
+      ! SETUP PARAMETERS 
+      PSI6   = X
+      PSI1   = CHI1
+      PSI2   = ZERO
+      PSI3   = ZERO
+      PSI7   = CHI7
+      PSI8   = CHI8 
+      FRST   = .TRUE.
+      CALAIN = .TRUE. 
+
+      ! SOLVE EQUATIONS ; WITH ITERATIONS FOR ACTIVITY COEF.
+      DO 10 K=1,NSWEEP
+
+         A1  = XK5 *(WATER/GAMA(2))**3.d0
+         A4  = (XK2/XKW)*R*TEMP*(GAMA(10)/GAMA(5))**2.d0
+         A5  = XK4 *R*TEMP*(WATER/GAMA(10))**2.d0
+         A6  = XK3 *R*TEMP*(WATER/GAMA(11))**2.d0
+         A7  = XK8 *(WATER/GAMA(1))**2.d0
+         A8  = XK9 *(WATER/GAMA(3))**2.d0
+         A9  = XK1*WATER/GAMA(7)*(GAMA(8)/GAMA(7))**2.d0
+
+         ! CALCULATE DISSOCIATION QUANTITIES
+         PSI5 = CHI5*(PSI6+PSI7) - A6/A5*PSI8*(CHI6-PSI6-PSI3)
+         PSI5 = PSI5/(A6/A5*(CHI6-PSI6-PSI3) + PSI6 + PSI7)
+         PSI5 = MAX(PSI5, TINY)
+
+         ! First try 3rd order soln
+         IF ( CHI1 .GT. TINY .AND. WATER .GT. TINY ) THEN  
+            BB   =-(CHI4 + PSI6 + PSI5 + 1.d0/A4)
+            CC   = CHI4*(PSI5+PSI6)
+            DD   = BB*BB-4.d0*CC
+            PSI4 =0.5d0*(-BB - SQRT(DD))
+            PSI4 = MIN(PSI4,CHI4)
+         ELSE
+            PSI4 = TINY
+         ENDIF
+
+         IF ( CHI1 .GT. TINY .AND. WATER .GT. TINY ) THEN     
+            ! NA2SO4 DISSOLUTION
+            AA = PSI7+PSI8
+            BB = AA*AA
+            CC =-A1/4.D0
+            CALL POLY3 (AA, BB, CC, PSI1, ISLV)
+            IF (ISLV.EQ.0) THEN
+               PSI1 = MIN (PSI1, CHI1)
+            ELSE
+               PSI1 = ZERO
+            ENDIF
+         ENDIF
+
+         ! CALCULATE SPECIATION 
+         MOLAL(2) = PSI8 + PSI7 + 2.D0*PSI1                ! NAI
+         MOLAL(3) = PSI4                                   ! NH4I
+         MOLAL(4) = PSI6 + PSI7                            ! CLI
+         MOLAL(5) = PSI2 + PSI1                            ! SO4I
+         MOLAL(6) = ZERO
+         MOLAL(7) = PSI5 + PSI8                            ! NO3I
+
+         SMIN      = 2.d0*MOLAL(5)+MOLAL(7)+
+     &               MOLAL(4)-MOLAL(2)-MOLAL(3)
+         CALL CALCPH (SMIN, HI, OHI)
+         MOLAL(1) = HI
+
+         GNH3      = MAX(CHI4 - PSI4, TINY)
+         GHNO3     = MAX(CHI5 - PSI5, TINY)
+         GHCL      = MAX(CHI6 - PSI6, TINY)
+
+         CNH42S4   = ZERO
+         CNH4NO3   = ZERO
+         CNACL     = MAX(CHI7 - PSI7, ZERO)
+         CNANO3    = MAX(CHI8 - PSI8, ZERO)
+         CNA2SO4   = MAX(CHI1 - PSI1, ZERO) 
+
+         ! Water content
+         CALL CALCMR                               
+
+         ! CALCULATE ACTIVITIES OR TERMINATE INTERNAL LOOP
+         IF (FRST.AND.CALAOU .OR. .NOT.FRST.AND.CALAIN) THEN
+            CALL CALCACT     
+         ELSE
+            GOTO 20
+         ENDIF
+ 10   CONTINUE
+
+      ! CALCULATE FUNCTION VALUE FOR OUTER LOOP
+ 20   CONTINUE
+      VALUE = MOLAL(3)*MOLAL(4)/GHCL/GNH3/A6/A4 - ONE
+
+      ! Return to calling program
+      END FUNCTION FUNCH5A 
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALCH6
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCH6
+! *** CASE H6
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE POOR (SULRAT > 2.0) ; SODIUM RICH (SODRAT >= 2.0)
+!     2. THERE IS BOTH A LIQUID & SOLID PHASE
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NH4CL, NA2SO4
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      ! Local variables
+      INTEGER ::     K
+      REAL*8  ::     FRNA, PSI6LO, PSI6HI, X1, Y1, DX
+      REAL*8  ::     X2, Y2, X3, Y3, DELTA
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+      COMMON /SOLUT/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+!$OMP THREADPRIVATE( /SOLUT/ )
+
+      !=================================================================
+      ! CALCH6 begins here!
+      !=================================================================
+
+      ! SETUP PARAMETERS 
+      CALAOU = .TRUE.   
+      CHI1   = W(2)                                ! CNA2SO4
+      CHI2   = ZERO                                ! CNH42S4
+      CHI3   = ZERO                                ! CNH4CL
+      FRNA   = MAX (W(1)-2.D0*CHI1, ZERO)       
+      CHI8   = MIN (FRNA, W(4))                    ! CNANO3
+      CHI4   = W(3)                                ! NH3(g)
+      CHI5   = MAX (W(4)-CHI8, ZERO)               ! HNO3(g)
+      CHI7   = MIN (MAX(FRNA-CHI8, ZERO), W(5))    ! CNACL
+      CHI6   = MAX (W(5)-CHI7, ZERO)               ! HCL(g)
+
+      PSI6LO = TINY                  
+      PSI6HI = CHI6-TINY    ! MIN(CHI6-TINY, CHI4)
+
+      !=================================================================
+      ! INITIAL VALUES FOR BISECTION
+      !=================================================================
+      X1 = PSI6LO
+      Y1 = FUNCH6A (X1)
+      IF ( ABS(Y1) .LE. EPS .OR. CHI6 .LE. TINY ) GOTO 50  
+
+      !=================================================================
+      ! ROOT TRACKING ; FOR THE RANGE OF HI AND LO 
+      !=================================================================
+      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DO 10 K=1,NDIV
+         X2 = X1+DX 
+         Y2 = FUNCH6A (X2)
+         IF ( SIGN(1.d0,Y1)*SIGN(1.d0,Y2) .LT. ZERO ) GOTO 20 ! (Y1*Y2.LT.ZERO)
+         X1 = X2
+         Y1 = Y2
+ 10   CONTINUE
+
+      !=================================================================
+      ! NO SUBDIVISION WITH SOLUTION; IF ABS(Y2)<EPS SOLUTION IS ASSUMED
+      !=================================================================
+      IF ( ABS(Y2) .GT. EPS ) Y2 = FUNCH6A (PSI6LO)
+      GOTO 50
+
+      !=================================================================
+      ! PERFORM BISECTION
+      !=================================================================
+ 20   CONTINUE
+      DO 30 K=1,MAXIT
+         X3 = 0.5d0*(X1+X2)
+         Y3 = FUNCH6A (X3)
+         IF ( SIGN(1.d0,Y1)*SIGN(1.d0,Y3) .LE. ZERO ) THEN ! (Y1*Y3 .LE. ZERO)
+            Y2    = Y3
+            X2    = X3
+         ELSE
+            Y1    = Y3
+            X1    = X3
+         ENDIF
+         IF ( ABS(X2-X1) .LE. EPS*X1 ) GOTO 40
+ 30   CONTINUE
+      CALL PUSHERR (0002, 'CALCH6') ! WARNING ERROR: NO CONVERGENCE
+
+      !=================================================================
+      ! CONVERGED ; RETURN 
+      !=================================================================
+ 40   CONTINUE
+      X3 = 0.5d0*(X1+X2)
+      Y3 = FUNCH6A (X3)
+
+      !=================================================================
+      ! CALCULATE HSO4 SPECIATION AND RETURN
+      !=================================================================
+ 50   CONTINUE
+      IF ( MOLAL(1) .GT. TINY .AND. 
+     &     MOLAL(5) .GT. TINY ) THEN
+         CALL CALCHS4 (MOLAL(1), MOLAL(5),  ZERO, DELTA)
+         MOLAL(1) = MOLAL(1) - DELTA              ! H+   EFFECT
+         MOLAL(5) = MOLAL(5) - DELTA              ! SO4  EFFECT
+         MOLAL(6) = DELTA                         ! HSO4 EFFECT
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE CALCH6 
+
+!------------------------------------------------------------------------------
+
+      FUNCTION FUNCH6A( X ) RESULT( VALUE )
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE FUNCH6A
+! *** CASE H6
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE POOR (SULRAT > 2.0) ; SODIUM RICH (SODRAT >= 2.0)
+!     2. THERE IS BOTH A LIQUID & SOLID PHASE
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NH4CL, NA2SO4
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      ! Arguments
+      REAL*8, INTENT(IN)  :: X
+
+      ! Local variables
+      INTEGER ::     K
+      REAL*8  ::     VALUE
+      REAL*8  ::     A9, BB, CC, DD, SMIN, HI, OHI
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+      COMMON /SOLUT/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+!$OMP THREADPRIVATE( /SOLUT/ )
+
+      !=================================================================
+      ! FUNCH6A begins here!
+      !=================================================================
+
+      ! SETUP PARAMETERS 
+      PSI6   = X
+      PSI1   = CHI1
+      PSI2   = ZERO
+      PSI3   = ZERO
+      PSI7   = CHI7
+      PSI8   = CHI8 
+      FRST   = .TRUE.
+      CALAIN = .TRUE. 
+
+      ! SOLVE EQUATIONS ; WITH ITERATIONS FOR ACTIVITY COEF.
+      DO 10 K=1,NSWEEP
+
+         A1  = XK5 *(WATER/GAMA(2))**3.d0
+         A4  = (XK2/XKW)*R*TEMP*(GAMA(10)/GAMA(5))**2.d0
+         A5  = XK4 *R*TEMP*(WATER/GAMA(10))**2.d0
+         A6  = XK3 *R*TEMP*(WATER/GAMA(11))**2.d0
+         A7  = XK8 *(WATER/GAMA(1))**2.d0
+         A8  = XK9 *(WATER/GAMA(3))**2.d0
+         A9  = XK1*WATER/GAMA(7)*(GAMA(8)/GAMA(7))**2.d0
+
+         ! CALCULATE DISSOCIATION QUANTITIES
+         PSI5 = CHI5*(PSI6+PSI7) - A6/A5*PSI8*(CHI6-PSI6-PSI3)
+         PSI5 = PSI5/(A6/A5*(CHI6-PSI6-PSI3) + PSI6 + PSI7)
+         PSI5 = MAX(PSI5, TINY)
+
+	 ! First try 3rd order soln
+         IF ( CHI1 .GT. TINY .AND. WATER .GT. TINY ) THEN  
+            BB   =-(CHI4 + PSI6 + PSI5 + 1.d0/A4)
+            CC   = CHI4*(PSI5+PSI6)
+            DD   = BB*BB-4.d0*CC
+            PSI4 =0.5d0*(-BB - SQRT(DD))
+            PSI4 = MIN(PSI4,CHI4)
+         ELSE
+            PSI4 = TINY
+         ENDIF
+
+         ! CALCULATE SPECIATION
+         MOLAL(2) = PSI8 + PSI7 + 2.D0*PSI1               ! NAI
+         MOLAL(3) = PSI4                                  ! NH4I
+         MOLAL(4) = PSI6 + PSI7                           ! CLI
+         MOLAL(5) = PSI2 + PSI1                           ! SO4I
+         MOLAL(6) = ZERO                                  ! HSO4I
+         MOLAL(7) = PSI5 + PSI8                           ! NO3I
+
+         SMIN      = 2.d0*MOLAL(5)+MOLAL(7)+
+     &               MOLAL(4)-MOLAL(2)-MOLAL(3)
+         CALL CALCPH (SMIN, HI, OHI)
+         MOLAL(1) = HI
+
+         GNH3      = MAX(CHI4 - PSI4, TINY)
+         GHNO3     = MAX(CHI5 - PSI5, TINY)
+         GHCL      = MAX(CHI6 - PSI6, TINY)
+         
+         CNH42S4   = ZERO
+         CNH4NO3   = ZERO
+         CNACL     = MAX(CHI7 - PSI7, ZERO)
+         CNANO3    = MAX(CHI8 - PSI8, ZERO)
+         CNA2SO4   = MAX(CHI1 - PSI1, ZERO) 
+         
+         ! Water content
+         CALL CALCMR            
+
+         ! CALCULATE ACTIVITIES OR TERMINATE INTERNAL LOOP 
+         IF ( FRST .AND. CALAOU .OR. .NOT. FRST .AND. CALAIN ) THEN
+            CALL CALCACT     
+         ELSE
+            GOTO 20
+         ENDIF
+ 10   CONTINUE
+
+      ! CALCULATE FUNCTION VALUE FOR OUTER LOOP
+ 20   CONTINUE
+      VALUE = MOLAL(3)*MOLAL(4)/GHCL/GNH3/A6/A4 - ONE
+
+      ! Return to calling program
+      END FUNCTION FUNCH6A 
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALCI1
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCI1
+! *** CASE I1
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE RICH, NO FREE ACID (1.0 <= SULRAT < 2.0)
+!     2. SOLID AEROSOL ONLY
+!     3. SOLIDS POSSIBLE : NH4NO3, NH4CL, NA2SO4
+!
+!     THERE ARE TWO POSSIBLE REGIMES HERE, DEPENDING ON RELATIVE HUMIDITY:
+!     1. WHEN RH >= MDRH ; LIQUID PHASE POSSIBLE (MDRH REGION)
+!     2. WHEN RH < MDRH  ; ONLY SOLID PHASE POSSIBLE (SUBROUTINE CALCI1A)
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!**************************************************************************
+!
+#     include "isoropia.h" 
+
+      !=================================================================
+      ! CALCI1 begins here!
+      !=================================================================
+
+      ! REGIME DEPENDS UPON THE AMBIENT RELATIVE HUMIDITY 
+      IF (RHB.LT.DRMI1) THEN    
+
+         ! SOLID PHASE ONLY POSSIBLE
+         SCASE = 'I1 ; SUBCASE 1'  
+         CALL CALCI1A              ! SOLID PHASE ONLY POSSIBLE
+         SCASE = 'I1 ; SUBCASE 1'
+
+      ELSE
+
+         ! LIQUID & SOLID PHASE POSSIBLE
+         SCASE = 'I1 ; SUBCASE 2'  ! LIQUID & SOLID PHASE POSSIBLE
+         CALL CALCMDRH (RHB, DRMI1, DRNH4HS4, 
+     &                  CALCI1A, CALCI2A)
+         SCASE = 'I1 ; SUBCASE 2'
+
+      ENDIF
+
+      ! AMMONIA IN GAS PHASE
+      CALL CALCNH3
+
+      ! Return to calling program
+      END SUBROUTINE CALCI1 
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALCI1A
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCI1A
+! *** CASE I1 ; SUBCASE 1
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE RICH, NO FREE ACID (1.0 <= SULRAT < 2.0)
+!     2. SOLID AEROSOL ONLY
+!     3. SOLIDS POSSIBLE : NH4HSO4, NAHSO4, (NH4)2SO4, NA2SO4, LC
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      REAL*8  :: FRSO4, FRNH4
+
+      !=================================================================
+      ! CALCI1A begins here!
+      !=================================================================
+
+      ! CALCULATE NON VOLATILE SOLIDS
+      CNA2SO4 = 0.5D0*W(1)
+      CNH4HS4 = ZERO
+      CNAHSO4 = ZERO
+      CNH42S4 = ZERO
+      FRSO4   = MAX(W(2)-CNA2SO4, ZERO)
+
+      CLC     = MIN(W(3)/3.D0, FRSO4/2.D0)
+      FRSO4   = MAX(FRSO4-2.D0*CLC, ZERO)
+      FRNH4   = MAX(W(3)-3.D0*CLC,  ZERO)
+
+      IF ( FRSO4 .LE. TINY ) THEN
+         CLC     = MAX(CLC - FRNH4, ZERO)
+         CNH42S4 = 2.D0*FRNH4
+
+      ELSEIF ( FRNH4 .LE. TINY ) THEN
+         CNH4HS4 = 3.D0*MIN(FRSO4, CLC)
+         CLC     = MAX(CLC-FRSO4, ZERO)
+         IF (CNA2SO4.GT.TINY) THEN
+            FRSO4   = MAX(FRSO4-CNH4HS4/3.D0, ZERO)
+            CNAHSO4 = 2.D0*FRSO4
+            CNA2SO4 = MAX(CNA2SO4-FRSO4, ZERO)
+         ENDIF
+      ENDIF
+
+      ! CALCULATE GAS SPECIES
+      GHNO3 = W(4)
+      GHCL  = W(5)
+      GNH3  = ZERO
+
+       ! Return to calling program
+      END SUBROUTINE CALCI1A 
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALCI2
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCI2
+! *** CASE I2
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE RICH, NO FREE ACID (1.0 <= SULRAT < 2.0)
+!     2. SOLID & LIQUID AEROSOL POSSIBLE
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NA2SO4, NAHSO4, LC
+!
+!     THERE ARE THREE REGIMES IN THIS CASE:
+!     1. NH4HSO4(s) POSSIBLE. LIQUID & SOLID AEROSOL (SUBROUTINE CALCI2A)
+!     2. NH4HSO4(s) NOT POSSIBLE, AND RH < MDRH. SOLID AEROSOL ONLY 
+!     3. NH4HSO4(s) NOT POSSIBLE, AND RH >= MDRH. SOLID & LIQUID AEROSOL 
+!
+!     REGIMES 2. AND 3. ARE CONSIDERED TO BE THE SAME AS CASES I1A, I2B
+!     RESPECTIVELY
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      ! Local varaibles
+      INTEGER :: K
+      REAL*8  :: DRMI2
+
+      !=================================================================
+      ! CALCI2 begins here!
+      !=================================================================
+
+      ! FIND DRY COMPOSITION 
+      CALL CALCI1A
+
+      ! REGIME DEPENDS UPON THE POSSIBLE SOLIDS & RH
+      IF ( CNH4HS4 .GT. TINY ) THEN
+         SCASE = 'I2 ; SUBCASE 1'  
+         CALL CALCI2A                       
+         SCASE = 'I2 ; SUBCASE 1'  
+      ENDIF
+
+      IF ( WATER .LE. TINY ) THEN
+         IF ( RHB .LT. DRMI2 ) THEN         
+
+            ! SOLID SOLUTION ONLY
+            WATER = TINY
+            DO 10 K=1,NIONS
+               MOLAL(K) = ZERO
+ 10         CONTINUE
+            CALL CALCI1A
+            SCASE = 'I2 ; SUBCASE 2'  
+
+         ELSE IF ( RHB .GE. DRMI2 ) THEN 
+
+            ! MDRH OF I2
+            SCASE = 'I2 ; SUBCASE 3'
+            CALL CALCMDRH (RHB, DRMI2, DRNAHSO4, CALCI1A, CALCI3A)
+            SCASE = 'I2 ; SUBCASE 3'
+         ENDIF
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE CALCI2 
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALCI2A
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCI2A
+! *** CASE I2 ; SUBCASE A
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE RICH, NO FREE ACID (1.0 <= SULRAT < 2.0)
+!     2. SOLID & LIQUID AEROSOL POSSIBLE
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NA2SO4, NAHSO4, LC
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      ! Local variables
+      INTEGER ::     K
+      REAL*8  ::     PSI2LO, PSI2HI, X1, Y1, YHI, DX
+      REAL*8  ::     X2, Y2, X3, Y3
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+      COMMON /SOLUT/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+!$OMP THREADPRIVATE( /SOLUT/ )
+
+      !=================================================================
+      ! CALCI2A begins here!
+      !=================================================================
+
+      ! FIND DRY COMPOSITION
+      ! Needed when called from CALCMDRH 
+      CALL CALCI1A    
+
+      ! SETUP PARAMETERS
+      CHI1 = CNH4HS4               ! Save from CALCI1 run
+      CHI2 = CLC    
+      CHI3 = CNAHSO4
+      CHI4 = CNA2SO4
+      CHI5 = CNH42S4
+
+      PSI1 = CNH4HS4               ! ASSIGN INITIAL PSI's
+      PSI2 = ZERO   
+      PSI3 = ZERO   
+      PSI4 = ZERO  
+      PSI5 = ZERO
+
+      CALAOU = .TRUE.              ! Outer loop activity calculation flag
+      PSI2LO = ZERO                ! Low  limit
+      PSI2HI = CHI2                ! High limit
+
+      ! INITIAL VALUES FOR BISECTION
+      X1 = PSI2HI
+      Y1 = FUNCI2A (X1)
+      YHI= Y1                      ! Save Y-value at HI position
+
+      ! YHI < 0.0 THE SOLUTION IS ALWAYS UNDERSATURATED WITH LC
+      IF ( YHI .LT. EPS ) GOTO 50
+
+      ! ROOT TRACKING ; FOR THE RANGE OF HI AND LO
+      DX = (PSI2HI-PSI2LO)/FLOAT(NDIV)
+      DO 10 K=1,NDIV
+         X2 = MAX(X1-DX, PSI2LO)
+         Y2 = FUNCI2A (X2)
+         IF (SIGN(1.d0,Y1)*SIGN(1.d0,Y2).LT.ZERO) GOTO 20 ! (Y1*Y2.LT.ZERO)
+         X1 = X2
+         Y1 = Y2
+ 10   CONTINUE
+
+      ! { YLO, YHI } > 0.0 THE SOLUTION IS ALWAYS SUPERSATURATED WITH LC  
+      IF (Y2.GT.EPS) Y2 = FUNCI3A (ZERO)
+      GOTO 50
+
+      ! PERFORM BISECTION 
+ 20   CONTINUE
+      DO 30 K=1,MAXIT
+         X3 = 0.5d0*(X1+X2)
+         Y3 = FUNCI2A (X3)
+         IF (SIGN(1.d0,Y1)*SIGN(1.d0,Y3) .LE. ZERO) THEN ! (Y1*Y3 .LE. ZERO)
+            Y2    = Y3
+            X2    = X3
+         ELSE
+            Y1    = Y3
+            X1    = X3
+         ENDIF
+         IF (ABS(X2-X1) .LE. EPS*X1) GOTO 40
+ 30   CONTINUE
+      CALL PUSHERR (0002, 'CALCI2A') ! WARNING ERROR: NO CONVERGENCE
+
+      ! CONVERGED ; RETURN 
+ 40   CONTINUE
+      X3 = 0.5d0*(X1+X2)
+      Y3 = FUNCI2A (X3)
+
+ 50   CONTINUE
+      RETURN
+      
+      ! Return to calling program
+      END SUBROUTINE CALCI2A 
+
+!------------------------------------------------------------------------------
+
+      FUNCTION FUNCI2A( P2 )  RESULT( VALUE )
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE FUNCI2A
+! *** CASE I2 ; SUBCASE 1
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE RICH, NO FREE ACID (1.0 <= SULRAT < 2.0)
+!     2. SOLID & LIQUID AEROSOL POSSIBLE
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NA2SO4, NAHSO4, LC
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      ! Arguments
+      REAL*8, INTENT(IN) :: P2
+
+      ! Local variables
+      INTEGER ::     K, ISLV
+      REAL*8  ::     VALUE
+      REAL*8  ::     AA, BB, CC, DD
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+      COMMON /SOLUT/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+!$OMP THREADPRIVATE( /SOLUT/ )
+
+      !=================================================================
+      ! FUNCI2A begins here!
+      !=================================================================
+
+      ! SETUP PARAMETERS
+      FRST   = .TRUE.
+      CALAIN = .TRUE.
+      PSI2   = P2                  ! Save PSI2 in COMMON BLOCK
+      PSI3   = CHI3
+      PSI4   = CHI4
+      PSI5   = CHI5
+      PSI6   = ZERO
+
+      ! SOLVE EQUATIONS ; WITH ITERATIONS FOR ACTIVITY COEF.C
+      DO 10 K=1,NSWEEP
+
+         A3 = XK11*(WATER/GAMA(9))**2.d0
+         A4 = XK5 *(WATER/GAMA(2))**3.d0
+         A5 = XK7 *(WATER/GAMA(4))**3.d0
+         A6 = XK1 *WATER/GAMA(7)*(GAMA(8)/GAMA(7))**2.d0
+         A7 = SQRT(A4/A5)
+
+         ! CALCULATE DISSOCIATION QUANTITIES
+         IF ( CHI5 .GT. TINY .AND. WATER .GT. TINY ) THEN     
+            PSI5 = (PSI3 + 2.D0*PSI4 - A7*(3.D0*PSI2 + PSI1))/2.D0/A7 
+            PSI5 = MAX(MIN (PSI5, CHI5), TINY)
+         ENDIF
+
+         IF ( CHI4 .GT. TINY .AND. WATER .GT. TINY ) THEN     
+            AA   = PSI2+PSI5+PSI6+PSI3
+            BB   = PSI3*AA
+            CC   = 0.25D0*(PSI3*PSI3*(PSI2+PSI5+PSI6)-A4)
+            CALL POLY3 (AA, BB, CC, PSI4, ISLV)
+            IF (ISLV.EQ.0) THEN
+               PSI4 = MIN (PSI4, CHI4)
+            ELSE
+               PSI4 = ZERO
+            ENDIF
+         ENDIF
+
+         IF (CHI3.GT.TINY .AND. WATER.GT.TINY) THEN     
+            AA   = 2.D0*PSI4 + PSI2 + PSI1 - PSI6
+            BB   = 2.D0*PSI4*(PSI2 + PSI1 - PSI6) - A3
+            CC   = ZERO
+            CALL POLY3 (AA, BB, CC, PSI3, ISLV)
+            IF (ISLV.EQ.0) THEN
+               PSI3 = MIN (PSI3, CHI3)
+            ELSE
+               PSI3 = ZERO
+            ENDIF
+         ENDIF
+         
+         BB   = PSI2 + PSI4 + PSI5 + A6 ! PSI6
+         CC   =-A6*(PSI2 + PSI3 + PSI1)
+         DD   = BB*BB - 4.D0*CC
+         PSI6 = 0.5D0*(-BB + SQRT(DD))
+
+         ! CALCULATE SPECIATION
+         MOLAL(1) = PSI6                           ! HI
+         MOLAL(2) = 2.D0*PSI4 + PSI3               ! NAI
+         MOLAL(3) = 3.D0*PSI2 + 2.D0*PSI5 + PSI1   ! NH4I
+         MOLAL(5) = PSI2 + PSI4 + PSI5 + PSI6      ! SO4I
+         MOLAL(6) = PSI2 + PSI3 + PSI1 - PSI6      ! HSO4I
+         CLC       = CHI2 - PSI2
+         CNAHSO4   = CHI3 - PSI3
+         CNA2SO4   = CHI4 - PSI4
+         CNH42S4   = CHI5 - PSI5
+         CNH4HS4   = ZERO
+         CALL CALCMR                               ! Water content
+
+         ! CALCULATE ACTIVITIES OR TERMINATE INTERNAL LOOP
+         IF ( FRST .AND. CALAOU .OR. .NOT. FRST .AND. CALAIN ) THEN
+            CALL CALCACT     
+         ELSE
+            GOTO 20
+         ENDIF
+ 10   CONTINUE
+
+      ! CALCULATE FUNCTION VALUE FOR OUTER LOOP
+ 20   CONTINUE
+      A2    = XK13*(WATER/GAMA(13))**5.d0
+      VALUE = MOLAL(5)*MOLAL(6)*
+     &        MOLAL(3)**3.D0/A2 - ONE
+
+      ! Return to calling program
+      END FUNCTION FUNCI2A 
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALCI3
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCI3
+! *** CASE I3
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE RICH, NO FREE ACID (1.0 <= SULRAT < 2.0)
+!     2. SOLID & LIQUID AEROSOL POSSIBLE
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NA2SO4, NAHSO4, LC
+!
+!     THERE ARE THREE REGIMES IN THIS CASE:
+!     1.(NA,NH4)HSO4(s) POSSIBLE. LIQUID & SOLID AEROSOL (SUBROUTINE CALCI3A)
+!     2.(NA,NH4)HSO4(s) NOT POSSIBLE, AND RH < MDRH. SOLID AEROSOL ONLY 
+!     3.(NA,NH4)HSO4(s) NOT POSSIBLE, AND RH >= MDRH. SOLID & LIQUID AEROSOL 
+!
+!     REGIMES 2. AND 3. ARE CONSIDERED TO BE THE SAME AS CASES I1A, I2B
+!     RESPECTIVELY
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      ! Local variables
+      INTEGER :: K
+      REAL*8  :: DRMI3
+
+      !=================================================================
+      ! CALCI3 begins here!
+      !=================================================================
+
+      ! FIND DRY COMPOSITION
+      CALL CALCI1A
+
+      ! REGIME DEPENDS UPON THE POSSIBLE SOLIDS & RHC
+      IF ( CNH4HS4 .GT. TINY .OR. CNAHSO4 .GT. TINY ) THEN
+         ! FULL SOLUTION
+         SCASE = 'I3 ; SUBCASE 1'  
+         CALL CALCI3A                     
+         SCASE = 'I3 ; SUBCASE 1'  
+      ENDIF
+
+      IF ( WATER .LE. TINY ) THEN
+
+         IF ( RHB .LT. DRMI3 ) THEN         
+
+            ! SOLID SOLUTION
+            WATER = TINY
+            DO 10 K=1,NIONS
+               MOLAL(K) = ZERO
+ 10         CONTINUE
+            CALL CALCI1A
+            SCASE = 'I3 ; SUBCASE 2'  
+            
+         ELSE IF ( RHB .GE. DRMI3 ) THEN     
+
+            ! MDRH OF I3
+            SCASE = 'I3 ; SUBCASE 3'
+            CALL CALCMDRH (RHB, DRMI3, DRLC, CALCI1A, CALCI4)
+            SCASE = 'I3 ; SUBCASE 3'
+         ENDIF
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE CALCI3 
+
+!--------------------------------------------------------------------------
+
+      SUBROUTINE CALCI3A
+
+!***************************************************************************
+C
+C *** ISORROPIA CODE
+C *** SUBROUTINE CALCI3A
+C *** CASE I3 ; SUBCASE 1
+C
+C     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+C     1. SULFATE RICH, NO FREE ACID (1.0 <= SULRAT < 2.0)
+C     2. SOLID & LIQUID AEROSOL POSSIBLE
+C     3. SOLIDS POSSIBLE : (NH4)2SO4, NA2SO4, LC
+C
+C *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+C *** WRITTEN BY ATHANASIOS NENES
+C
+C=======================================================================
+C
+#     include "isoropia.h" 
+
+
+      INTEGER  :: K
+      REAL*8  :: PSI2LO, PSI2HI, X1, Y1, YHI, DX
+      REAL*8  :: X2, Y2, X3, Y3
+      REAL*8  :: CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+      COMMON /SOLUT/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+!$OMP THREADPRIVATE( /SOLUT/ )
+
+      !=================================================================
+      ! CALCI3A begins here!
+      !=================================================================
+
+      ! FIND DRY COMPOSITION 
+      ! Needed when called from CALCMDRH
+      CALL CALCI1A         
+
+      ! SETUP PARAMETERS
+      CHI1 = CNH4HS4               ! Save from CALCI1 run
+      CHI2 = CLC    
+      CHI3 = CNAHSO4
+      CHI4 = CNA2SO4
+      CHI5 = CNH42S4
+
+      PSI1 = CNH4HS4               ! ASSIGN INITIAL PSI's
+      PSI2 = ZERO   
+      PSI3 = CNAHSO4
+      PSI4 = ZERO  
+      PSI5 = ZERO
+
+      CALAOU = .TRUE.              ! Outer loop activity calculation flag
+      PSI2LO = ZERO                ! Low  limit
+      PSI2HI = CHI2                ! High limit
+
+      ! INITIAL VALUES FOR BISECTION
+      X1 = PSI2HI
+      Y1 = FUNCI3A (X1)
+      YHI= Y1                      ! Save Y-value at HI position
+
+      ! YHI < 0.0 THE SOLUTION IS ALWAYS UNDERSATURATED WITH LC
+      IF (YHI.LT.EPS) GOTO 50
+      
+      ! ROOT TRACKING ; FOR THE RANGE OF HI AND LO
+      DX = (PSI2HI-PSI2LO)/FLOAT(NDIV)
+      DO 10 K=1,NDIV
+         X2 = MAX(X1-DX, PSI2LO)
+         Y2 = FUNCI3A (X2)
+         IF (SIGN(1.d0,Y1)*SIGN(1.d0,Y2).LT.ZERO) GOTO 20  ! (Y1*Y2.LT.ZERO)
+         X1 = X2
+         Y1 = Y2
+ 10   CONTINUE
+
+      ! { YLO, YHI } > 0.0 THE SOLUTION IS ALWAYS SUPERSATURATED WITH LC  
+      IF (Y2.GT.EPS) Y2 = FUNCI3A (ZERO)
+      GOTO 50
+
+      ! PERFORM BISECTION
+ 20   CONTINUE
+      DO 30 K=1,MAXIT
+         X3 = 0.5d0*(X1+X2)
+         Y3 = FUNCI3A (X3)
+         IF ( SIGN(1.d0,Y1)*SIGN(1.d0,Y3) .LE. ZERO ) THEN ! (Y1*Y3 .LE. ZERO)
+            Y2    = Y3
+            X2    = X3
+         ELSE
+            Y1    = Y3
+            X1    = X3
+         ENDIF
+         IF ( ABS(X2-X1) .LE. EPS*X1 ) GOTO 40
+ 30   CONTINUE
+      CALL PUSHERR (0002, 'CALCI3A') ! WARNING ERROR: NO CONVERGENCE
+
+      ! CONVERGED ; RETURN 
+40    CONTINUE
+      X3 = 0.5d0*(X1+X2)
+      Y3 = FUNCI3A (X3)
+
+50    CONTINUE
+      RETURN
+
+      ! Return to calling program
+      END SUBROUTINE CALCI3A 
+
+!------------------------------------------------------------------------------
+
+      FUNCTION FUNCI3A( P2 ) RESULT( VALUE )
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE FUNCI3A
+! *** CASE I3 ; SUBCASE 1
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE RICH, NO FREE ACID (1.0 <= SULRAT < 2.0)
+!     2. SOLID & LIQUID AEROSOL POSSIBLE
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NA2SO4, LC
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      ! Arguments
+      REAL*8, INTENT(IN)  :: P2 
+
+      ! Local variables
+      INTEGER ::     K
+      REAL*8  ::     VALUE
+      REAL*8  ::     PSI4LO, PSI4HI, X1, Y1, YHI, DX
+      REAL*8  ::     BB, CC, DD, X2, Y2, X3, Y3
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+      COMMON /SOLUT/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+!$OMP THREADPRIVATE( /SOLUT/ )
+
+      !=================================================================
+      ! FUNCI3A begins here!
+      !=================================================================
+
+      ! SETUP PARAMETERS
+      PSI2   = P2                  ! Save PSI2 in COMMON BLOCK
+      PSI4LO = ZERO                ! Low  limit for PSI4
+      PSI4HI = CHI4                ! High limit for PSI4
+
+      ! IF NH3 =0, CALL FUNCI3B FOR Y4=0 
+      IF ( CHI4 .LE. TINY ) THEN
+         VALUE = FUNCI3B (ZERO)
+         GOTO 50
+      ENDIF
+
+      ! INITIAL VALUES FOR BISECTION
+      X1 = PSI4HI
+      Y1 = FUNCI3B (X1)
+      IF ( ABS(Y1) .LE. EPS ) GOTO 50
+      YHI= Y1                         ! Save Y-value at HI position
+
+      ! YHI < 0.0 THE SOLUTION IS ALWAYS UNDERSATURATED WITH NA2SO4
+      IF ( YHI .LT. ZERO ) GOTO 50
+
+      ! ROOT TRACKING ; FOR THE RANGE OF HI AND LO
+      DX = (PSI4HI-PSI4LO)/FLOAT(NDIV)
+      DO 10 K=1,NDIV
+         X2 = MAX(X1-DX, PSI4LO)
+         Y2 = FUNCI3B (X2)
+         IF ( SIGN(1.d0,Y1)*SIGN(1.d0,Y2) .LT. ZERO ) GOTO 20 ! (Y1*Y2.LT.ZERO)
+         X1 = X2
+         Y1 = Y2
+ 10   CONTINUE
+
+      ! { YLO, YHI } > 0.0 THE SOLUTION IS ALWAYS SUPERSATURATED WITH NA2SO4
+      IF ( Y2 .GT. EPS ) Y2 = FUNCI3B (PSI4LO)
+      GOTO 50
+
+      ! PERFORM BISECTION
+ 20   CONTINUE
+      DO 30 K=1,MAXIT
+         X3 = 0.5d0*(X1+X2)
+         Y3 = FUNCI3B (X3)
+         IF ( SIGN(1.d0,Y1)*SIGN(1.d0,Y3) .LE. ZERO ) THEN ! (Y1*Y3 .LE. ZERO)
+            Y2    = Y3
+            X2    = X3
+         ELSE
+            Y1    = Y3
+            X1    = X3
+         ENDIF
+         IF ( ABS(X2-X1) .LE. EPS*X1 ) GOTO 40
+ 30   CONTINUE
+      CALL PUSHERR (0004, 'FUNCI3A') ! WARNING ERROR: NO CONVERGENCE
+
+      ! INNER LOOP CONVERGED
+ 40   CONTINUE
+      X3 = 0.5d0*(X1+X2)
+      Y3 = FUNCI3B (X3)
+
+      ! CALCULATE FUNCTION VALUE FOR OUTER LOOP
+ 50   CONTINUE
+      A2    = XK13*(WATER/GAMA(13))**5.d0
+      VALUE = MOLAL(5)*MOLAL(6)*
+     &        MOLAL(3)**3.D0/A2 - ONE
+
+      ! Return to calling program
+      END FUNCTION FUNCI3A 
+
+!------------------------------------------------------------------------------
+
+      FUNCTION FUNCI3B( P4 ) RESULT( VALUE )
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** FUNCTION FUNCI3B
+! *** CASE I3 ; SUBCASE 2
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE RICH, NO FREE ACID (1.0 <= SULRAT < 2.0)
+!     2. SOLID & LIQUID AEROSOL POSSIBLE
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NA2SO4, LC
+!
+!     SOLUTION IS SAVED IN COMMON BLOCK /CASE/
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      ! Arguments
+      REAL*8, INTENT(IN)  :: P4
+
+      ! Function value
+      INTEGER ::     K
+      REAL*8  ::     VALUE
+      REAL*8  ::     BB, CC, DD
+      
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+      COMMON /SOLUT/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+!$OMP THREADPRIVATE( /SOLUT/ )
+
+      !=================================================================
+      ! FUNCI3B begins here!
+      !=================================================================
+
+      ! SETUP PARAMETERS
+      PSI4   = P4   
+      FRST   = .TRUE.
+      CALAIN = .TRUE.
+
+      ! SOLVE EQUATIONS ; WITH ITERATIONS FOR ACTIVITY COEF. 
+      DO 10 K=1,NSWEEP
+
+         A4 = XK5*(WATER/GAMA(2))**3.d0
+         A5 = XK7*(WATER/GAMA(4))**3.d0
+         A6 = XK1*WATER/GAMA(7)*(GAMA(8)/GAMA(7))**2.d0
+         A7 = SQRT(A4/A5)
+
+         !CALCULATE DISSOCIATION QUANTITIES
+         BB   = PSI2 + PSI4 + PSI5 + A6 ! PSI6
+         CC   =-A6*(PSI2 + PSI3 + PSI1)
+         DD   = BB*BB - 4.D0*CC
+         PSI6 = 0.5D0*(-BB + SQRT(DD))
+
+         PSI5 = (PSI3 + 2.D0*PSI4 - A7*(3.D0*PSI2 + PSI1))/2.D0/A7 
+         PSI5 = MIN (PSI5, CHI5)
+
+         ! CALCULATE SPECIATION
+         MOLAL(1) = PSI6                                  ! HI
+         MOLAL(2) = 2.D0*PSI4 + PSI3                      ! NAI
+         MOLAL(3) = 3.D0*PSI2 + 2.D0*PSI5 + PSI1          ! NH4I
+         MOLAL(5) = PSI2 + PSI4 + PSI5 + PSI6             ! SO4I
+         MOLAL(6) = MAX(PSI2 + PSI3 + PSI1 - PSI6, TINY)  ! HSO4I
+         CLC      = MAX(CHI2 - PSI2, ZERO)
+         CNAHSO4  = ZERO
+         CNA2SO4  = MAX(CHI4 - PSI4, ZERO)
+         CNH42S4  = MAX(CHI5 - PSI5, ZERO)
+         CNH4HS4  = ZERO
+         CALL CALCMR                                      ! Water content
+
+         ! CALCULATE ACTIVITIES OR TERMINATE INTERNAL LOOP
+         IF ( FRST. AND. CALAOU .OR. .NOT. FRST .AND. CALAIN ) THEN
+            CALL CALCACT     
+         ELSE
+            GOTO 20
+         ENDIF
+ 10   CONTINUE
+
+      ! CALCULATE OBJECTIVE FUNCTION
+ 20   CONTINUE
+      A4    = XK5 *(WATER/GAMA(2))**3.d0    
+      VALUE = MOLAL(5)*MOLAL(2)*MOLAL(2)/A4 - ONE
+
+      ! Return to calling program
+      END FUNCTION FUNCI3B 
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALCI4
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCI4
+! *** CASE I4
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE RICH, NO FREE ACID (1.0 <= SULRAT < 2.0)
+!     2. SOLID & LIQUID AEROSOL POSSIBLE
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NA2SO4
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      ! Local variables
+      INTEGER ::     K
+      REAL*8  ::     PSI4LO, PSI4HI, Y1, X1, YHI, DX
+      REAL*8  ::     X2, Y2, YLO, Y3, X3
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+      COMMON /SOLUT/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+!$OMP THREADPRIVATE( /SOLUT/ )
+
+      !=================================================================
+      ! CALCI4 begins here!
+      !=================================================================
+
+      ! FIND DRY COMPOSITION
+      CALL CALCI1A
+
+      ! SETUP PARAMETERS
+      CHI1 = CNH4HS4               ! Save from CALCI1 run
+      CHI2 = CLC    
+      CHI3 = CNAHSO4
+      CHI4 = CNA2SO4
+      CHI5 = CNH42S4
+
+      PSI1 = CNH4HS4               ! ASSIGN INITIAL PSI's
+      PSI2 = CLC   
+      PSI3 = CNAHSO4
+      PSI4 = ZERO  
+      PSI5 = ZERO
+
+      CALAOU = .TRUE.              ! Outer loop activity calculation flag
+      PSI4LO = ZERO                ! Low  limit
+      PSI4HI = CHI4                ! High limit
+
+      ! IF NA2SO4(S) =0, CALL FUNCI4B FOR Y4=0
+      IF ( CHI4 .LE. TINY ) THEN
+         Y1 = FUNCI4A (ZERO)
+         GOTO 50
+      ENDIF
+
+      ! INITIAL VALUES FOR BISECTION
+      X1 = PSI4HI
+      Y1 = FUNCI4A (X1)
+      YHI= Y1                      ! Save Y-value at HI position
+
+      ! YHI < 0.0 THE SOLUTION IS ALWAYS UNDERSATURATED WITH NA2SO4
+      IF ( ABS(Y1) .LE. EPS .OR. YHI .LT. ZERO ) GOTO 50
+
+      ! ROOT TRACKING ; FOR THE RANGE OF HI AND LOC
+      DX = (PSI4HI-PSI4LO)/FLOAT(NDIV)
+      DO 10 K=1,NDIV
+         X2 = X1-DX
+         Y2 = FUNCI4A (X2)
+         IF ( SIGN(1.d0,Y1)*SIGN(1.d0,Y2) .LT. ZERO ) GOTO 20 ! (Y1*Y2.LT.ZERO)
+         X1 = X2
+         Y1 = Y2
+ 10   CONTINUE
+
+      ! { YLO, YHI } > 0.0 THE SOLUTION IS ALWAYS SUPERSATURATED WITH NH4CL  
+      YLO= Y1                   ! Save Y-value at Hi position
+      IF ( YLO .GT. ZERO .AND. YHI .GT. ZERO ) THEN
+         Y3 = FUNCI4A (ZERO)
+         GOTO 50
+      ELSE IF (ABS(Y2) .LT. EPS) THEN ! X2 IS A SOLUTION 
+         GOTO 50
+      ELSE
+         CALL PUSHERR (0001, 'CALCI4') ! WARNING ERROR: NO SOLUTION
+         GOTO 50
+      ENDIF
+
+      ! PERFORM BISECTION
+ 20   CONTINUE
+      DO 30 K=1,MAXIT
+         X3 = 0.5d0*(X1+X2)
+         Y3 = FUNCI4A (X3)
+         IF ( SIGN(1.d0,Y1)*SIGN(1.d0,Y3) .LE. ZERO ) THEN ! (Y1*Y3 .LE. ZERO)
+            Y2    = Y3
+            X2    = X3
+         ELSE
+            Y1    = Y3
+            X1    = X3
+         ENDIF
+         IF ( ABS(X2-X1) .LE. EPS*X1 ) GOTO 40
+ 30   CONTINUE
+      CALL PUSHERR (0002, 'CALCI4') ! WARNING ERROR: NO CONVERGENCE
+
+      ! CONVERGED ; RETURN
+ 40   CONTINUE
+      X3 = 0.5d0*(X1+X2)
+      Y3 = FUNCI4A (X3)
+
+ 50   CONTINUE
+      RETURN
+      
+      ! Return to calling program
+      END SUBROUTINE CALCI4 
+         
+!------------------------------------------------------------------------------
+
+      FUNCTION FUNCI4A( P4 ) RESULT( VALUE )
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE FUNCI4A
+! *** CASE I4
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE RICH, NO FREE ACID (1.0 <= SULRAT < 2.0)
+!     2. SOLID & LIQUID AEROSOL POSSIBLE
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NA2SO4
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      ! Arguments
+      REAL*8, INTENT(IN)  :: P4
+
+      ! Local variables
+      INTEGER ::     K
+      REAL*8  ::     VALUE
+      REAL*8  ::     BB, CC, DD
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+      COMMON /SOLUT/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+!$OMP THREADPRIVATE( /SOLUT/ )
+
+      !=================================================================
+      ! FUNCI4A begins here!
+      !=================================================================
+
+      ! SETUP PARAMETERS
+      PSI4   = P4     ! PSI3 already assigned in FUNCI4A
+      FRST   = .TRUE.
+      CALAIN = .TRUE.
+
+      ! SOLVE EQUATIONS ; WITH ITERATIONS FOR ACTIVITY COEF.
+      DO 10 K=1,NSWEEP
+
+         A4 = XK5 *(WATER/GAMA(2))**3.d0
+         A5 = XK7 *(WATER/GAMA(4))**3.d0
+         A6 = XK1 *WATER/GAMA(7)*(GAMA(8)/GAMA(7))**2.d0
+         A7 = SQRT(A4/A5)
+
+         ! CALCULATE DISSOCIATION QUANTITIES
+         BB   = PSI2 + PSI4 + PSI5 + A6 ! PSI6
+         CC   =-A6*(PSI2 + PSI3 + PSI1)
+         DD   = BB*BB - 4.D0*CC
+         PSI6 = 0.5D0*(-BB + SQRT(DD))
+     
+         PSI5 = (PSI3 + 2.D0*PSI4 - A7*(3.D0*PSI2 + PSI1))/2.D0/A7 
+         PSI5 = MIN (PSI5, CHI5)
+
+         ! CALCULATE SPECIATION
+         MOLAL(1) = PSI6                            ! HI
+         MOLAL(2) = 2.D0*PSI4 + PSI3                ! NAI
+         MOLAL(3) = 3.D0*PSI2 + 2.D0*PSI5 + PSI1    ! NH4I
+         MOLAL(5) = PSI2 + PSI4 + PSI5 + PSI6       ! SO4I
+         MOLAL(6) = PSI2 + PSI3 + PSI1 - PSI6       ! HSO4I
+         CLC       = ZERO
+         CNAHSO4   = ZERO
+         CNA2SO4   = CHI4 - PSI4
+         CNH42S4   = CHI5 - PSI5
+         CNH4HS4   = ZERO
+         CALL CALCMR                                ! Water content
+
+         ! CALCULATE ACTIVITIES OR TERMINATE INTERNAL LOOP
+         IF (FRST.AND.CALAOU .OR. .NOT.FRST.AND.CALAIN) THEN
+            CALL CALCACT     
+         ELSE
+            GOTO 20
+         ENDIF
+ 10   CONTINUE
+
+      ! CALCULATE OBJECTIVE FUNCTION
+ 20   CONTINUE
+      A4    = XK5 *(WATER/GAMA(2))**3.d0    
+      VALUE = MOLAL(5)*MOLAL(2)*MOLAL(2)/A4 - ONE
+
+      ! Return to calling program
+      END FUNCTION FUNCI4A 
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALCI5
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCI5
+! *** CASE I5
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE RICH, NO FREE ACID (1.0 <= SULRAT < 2.0)
+!     2. SOLID & LIQUID AEROSOL POSSIBLE
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NA2SO4
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      ! Local variables
+      INTEGER ::     K
+      REAL*8  ::     PSI4LO, PSI4HI, Y1, X1, YHI, DX
+      REAL*8  ::     X2, Y2, YLO, Y3, X3
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+      COMMON /SOLUT/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+!$OMP THREADPRIVATE( /SOLUT/ )
+
+      !=================================================================
+      ! CALCI5 begins here!
+      !=================================================================
+
+      ! FIND DRY COMPOSITION
+      CALL CALCI1A
+      
+      ! SETUP PARAMETERS
+      CHI1 = CNH4HS4               ! Save from CALCI1 run
+      CHI2 = CLC    
+      CHI3 = CNAHSO4
+      CHI4 = CNA2SO4
+      CHI5 = CNH42S4
+
+      PSI1 = CNH4HS4               ! ASSIGN INITIAL PSI's
+      PSI2 = CLC   
+      PSI3 = CNAHSO4
+      PSI4 = ZERO
+      PSI5 = CNH42S4
+
+      CALAOU =.TRUE.               ! Outer loop activity calculation flag
+      PSI4LO = ZERO                ! Low  limit
+      PSI4HI = CHI4                ! High limit
+
+      ! IF NA2SO4(S) =0, CALL FUNCI5B FOR Y4=0
+      IF ( CHI4 .LE. TINY ) THEN
+         Y1 = FUNCI5A (ZERO)
+         GOTO 50
+      ENDIF
+
+      ! INITIAL VALUES FOR BISECTION
+      X1 = PSI4HI
+      Y1 = FUNCI5A (X1)
+      YHI= Y1                      ! Save Y-value at HI position
+
+      ! YHI < 0.0 THE SOLUTION IS ALWAYS UNDERSATURATED WITH NA2SO4
+      IF ( ABS(Y1) .LE. EPS .OR. YHI .LT. ZERO ) GOTO 50
+
+      ! ROOT TRACKING ; FOR THE RANGE OF HI AND LO
+      DX = (PSI4HI-PSI4LO)/FLOAT(NDIV)
+      DO 10 K=1,NDIV
+         X2 = X1-DX
+         Y2 = FUNCI5A (X2)
+         IF (SIGN(1.d0,Y1)*SIGN(1.d0,Y2).LT.ZERO) GOTO 20  ! (Y1*Y2.LT.ZERO)
+         X1 = X2
+         Y1 = Y2
+ 10   CONTINUE
+
+      ! { YLO, YHI } > 0.0 THE SOLUTION IS ALWAYS SUPERSATURATED WITH NH4CL  
+      YLO= Y1                      ! Save Y-value at Hi position
+      IF ( YLO .GT. ZERO .AND. YHI .GT. ZERO ) THEN
+         Y3 = FUNCI5A (ZERO)
+         GOTO 50
+      ELSE IF ( ABS(Y2) .LT. EPS ) THEN ! X2 IS A SOLUTION 
+         GOTO 50
+      ELSE
+         CALL PUSHERR (0001, 'CALCI5') ! WARNING ERROR: NO SOLUTION
+         GOTO 50
+      ENDIF
+
+      ! PERFORM BISECTION
+ 20   CONTINUE
+      DO 30 K=1,MAXIT
+         X3 = 0.5d0*(X1+X2)
+         Y3 = FUNCI5A (X3)
+         IF ( SIGN(1.d0,Y1)*SIGN(1.d0,Y3) .LE. ZERO ) THEN ! (Y1*Y3 .LE. ZERO)
+            Y2    = Y3
+            X2    = X3
+         ELSE
+            Y1    = Y3
+            X1    = X3
+         ENDIF
+         IF ( ABS(X2-X1) .LE. EPS*X1 ) GOTO 40
+ 30   CONTINUE
+      CALL PUSHERR (0002, 'CALCI5') ! WARNING ERROR: NO CONVERGENCE
+
+      ! CONVERGED ; RETURN
+ 40   CONTINUE
+      X3 = 0.5d0*(X1+X2)
+      Y3 = FUNCI5A (X3)
+      
+ 50   CONTINUE
+      RETURN
+
+      ! Return to calling program
+      END SUBROUTINE CALCI5 
+
+!------------------------------------------------------------------------------
+
+      FUNCTION FUNCI5A( P4 ) RESULT( VALUE )
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE FUNCI5A
+! *** CASE I5
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE RICH, NO FREE ACID (1.0 <= SULRAT < 2.0)
+!     2. SOLID & LIQUID AEROSOL POSSIBLE
+!     3. SOLIDS POSSIBLE : NA2SO4
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      ! Arguments
+      REAL*8, INTENT(IN)  :: P4
+
+      ! Local variables
+      INTEGER ::     K
+      REAL*8  ::     VALUE
+      REAL*8  ::     BB, CC, DD
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+      COMMON /SOLUT/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+!$OMP THREADPRIVATE( /SOLUT/ )
+
+      !=================================================================
+      ! FUNCI5A begins here!
+      !=================================================================
+
+      ! SETUP PARAMETERS
+      PSI4   = P4     ! PSI3 already assigned in FUNCI5A
+      FRST   = .TRUE.
+      CALAIN = .TRUE.
+
+      ! SOLVE EQUATIONS ; WITH ITERATIONS FOR ACTIVITY COEF.
+      DO 10 K=1,NSWEEP
+
+         A4 = XK5 *(WATER/GAMA(2))**3.d0
+         A5 = XK7 *(WATER/GAMA(4))**3.d0
+         A6 = XK1 *WATER/GAMA(7)*(GAMA(8)/GAMA(7))**2.d0
+
+         ! CALCULATE DISSOCIATION QUANTITIES
+         BB   = PSI2 + PSI4 + PSI5 + A6                    ! PSI6
+         CC   =-A6*(PSI2 + PSI3 + PSI1)
+         DD   = BB*BB - 4.D0*CC
+         PSI6 = 0.5D0*(-BB + SQRT(DD))
+
+         ! CALCULATE SPECIATION
+         MOLAL(1) = PSI6                            ! HI
+         MOLAL(2) = 2.D0*PSI4 + PSI3                ! NAI
+         MOLAL(3) = 3.D0*PSI2 + 2.D0*PSI5 + PSI1    ! NH4I
+         MOLAL(5) = PSI2 + PSI4 + PSI5 + PSI6       ! SO4I
+         MOLAL(6) = PSI2 + PSI3 + PSI1 - PSI6       ! HSO4I
+         CLC       = ZERO
+         CNAHSO4   = ZERO
+         CNA2SO4   = CHI4 - PSI4
+         CNH42S4   = ZERO
+         CNH4HS4   = ZERO
+         CALL CALCMR                                ! Water content
+
+         ! CALCULATE ACTIVITIES OR TERMINATE INTERNAL LOOP
+         IF ( FRST .AND. CALAOU .OR. .NOT. FRST .AND. CALAIN ) THEN
+            CALL CALCACT     
+         ELSE
+            GOTO 20
+         ENDIF
+ 10   CONTINUE
+
+      ! CALCULATE OBJECTIVE FUNCTION
+ 20   CONTINUE
+      A4     = XK5 *(WATER/GAMA(2))**3.d0    
+      VALUE = MOLAL(5)*MOLAL(2)*MOLAL(2)/A4 - ONE
+
+      ! Return to calling program
+      END FUNCTION FUNCI5A 
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALCI6
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCI6
+! *** CASE I6
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE RICH, NO FREE ACID (1.0 <= SULRAT < 2.0)
+!     2. SOLID & LIQUID AEROSOL POSSIBLE
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NA2SO4
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      ! Local variables
+      INTEGER ::     K
+      REAL*8  ::     BB, CC, DD
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+      COMMON /SOLUT/ CHI1, CHI2, CHI3, CHI4, CHI5, CHI6, CHI7, CHI8,
+     &               PSI1, PSI2, PSI3, PSI4, PSI5, PSI6, PSI7, PSI8,
+     &               A1,   A2,   A3,   A4,   A5,   A6,   A7,   A8
+!$OMP THREADPRIVATE( /SOLUT/ )
+
+      !=================================================================
+      ! CALCI6 begins here!
+      !=================================================================
+      
+      ! FIND DRY COMPOSITION
+      CALL CALCI1A
+
+      ! SETUP PARAMETERS
+      CHI1 = CNH4HS4               ! Save from CALCI1 run
+      CHI2 = CLC    
+      CHI3 = CNAHSO4
+      CHI4 = CNA2SO4
+      CHI5 = CNH42S4
+
+      PSI1 = CNH4HS4               ! ASSIGN INITIAL PSI's
+      PSI2 = CLC   
+      PSI3 = CNAHSO4
+      PSI4 = CNA2SO4
+      PSI5 = CNH42S4
+
+      CALAOU = .TRUE.              ! Outer loop activity calculation flag
+      FRST   = .TRUE.
+      CALAIN = .TRUE.
+
+      ! SOLVE EQUATIONS ; WITH ITERATIONS FOR ACTIVITY COEF.
+      DO 10 K=1,NSWEEP
+
+         A6 = XK1 *WATER/GAMA(7)*(GAMA(8)/GAMA(7))**2.d0
+
+         ! CALCULATE DISSOCIATION QUANTITIES
+         BB   = PSI2 + PSI4 + PSI5 + A6                    ! PSI6
+         CC   =-A6*(PSI2 + PSI3 + PSI1)
+         DD   = BB*BB - 4.D0*CC
+         PSI6 = 0.5D0*(-BB + SQRT(DD))
+
+         ! CALCULATE SPECIATION
+         MOLAL(1) = PSI6                                    ! HI
+         MOLAL(2) = 2.D0*PSI4 + PSI3                        ! NAI
+         MOLAL(3) = 3.D0*PSI2 + 2.D0*PSI5 + PSI1            ! NH4I
+         MOLAL(5) = PSI2 + PSI4 + PSI5 + PSI6               ! SO4I
+         MOLAL(6) = PSI2 + PSI3 + PSI1 - PSI6               ! HSO4I
+         CLC       = ZERO
+         CNAHSO4   = ZERO
+         CNA2SO4   = CHI4 - PSI4
+         CNH42S4   = ZERO
+         CNH4HS4   = ZERO
+         CALL CALCMR                                        ! Water content
+
+         ! CALCULATE ACTIVITIES OR TERMINATE INTERNAL LOOP
+         IF ( FRST .AND. CALAOU .OR. .NOT. FRST .AND. CALAIN ) THEN
+            CALL CALCACT     
+         ELSE
+            GOTO 20
+         ENDIF
+ 10   CONTINUE
+
+      ! Exit
+20    CONTINUE
+      RETURN
+
+      ! Return to calling program
+      END SUBROUTINE CALCI6 
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALCJ1
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCJ1
+! *** CASE J1
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE RICH, FREE ACID (SULRAT < 1.0)
+!     2. THERE IS BOTH A LIQUID & SOLID PHASE
+!     3. SOLIDS POSSIBLE : NH4HSO4, NAHSO4
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      ! Local variables
+      INTEGER ::     K
+      REAL*8  ::     PSI1LO, PSI1HI, X1,  Y1, YHI, DX
+      REAL*8  ::     X2,     Y2,     YLO, Y3, X3
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, LAMDA, KAPA, PSI1, PSI2, PSI3, 
+     &               A1,   A2,   A3
+      COMMON /CASEJ/ CHI1, CHI2, CHI3, LAMDA, KAPA, PSI1, PSI2, PSI3, 
+     &               A1,   A2,   A3
+!$OMP THREADPRIVATE( /CASEJ/ )
+
+      !=================================================================
+      ! CALCJ1 begins here!
+      !=================================================================
+
+      ! SETUP PARAMETERS
+      CALAOU =.TRUE.               ! Outer loop activity calculation flag
+      CHI1   = W(1)                ! Total NA initially as NaHSO4
+      CHI2   = W(3)                ! Total NH4 initially as NH4HSO4
+
+      PSI1LO = TINY                ! Low  limit
+      PSI1HI = CHI1                ! High limit
+
+      ! INITIAL VALUES FOR BISECTION 
+      X1 = PSI1HI
+      Y1 = FUNCJ1 (X1)
+      YHI= Y1                      ! Save Y-value at HI position
+
+      ! YHI < 0.0 THE SOLUTION IS ALWAYS UNDERSATURATED WITH NH42SO4 ****
+      IF ( ABS(Y1) .LE. EPS .OR. YHI .LT. ZERO ) GOTO 50
+
+      ! ROOT TRACKING ; FOR THE RANGE OF HI AND LO
+      DX = (PSI1HI-PSI1LO)/FLOAT(NDIV)
+      DO 10 K=1,NDIV
+         X2 = X1-DX
+         Y2 = FUNCJ1 (X2)
+         IF ( SIGN(1.d0,Y1)*SIGN(1.d0,Y2) .LT. ZERO ) GOTO 20 ! (Y1*Y2.LT.ZERO)
+         X1 = X2
+         Y1 = Y2
+ 10   CONTINUE
+
+      ! { YLO, YHI } > 0.0 THE SOLUTION IS ALWAYS SUPERSATURATED WITH NH42SO4
+      YLO= Y1                      ! Save Y-value at Hi position
+      IF ( YLO .GT. ZERO .AND. YHI .GT. ZERO ) THEN
+         Y3 = FUNCJ1 (ZERO)
+         GOTO 50
+      ELSE IF ( ABS(Y2) .LT. EPS ) THEN   ! X2 IS A SOLUTION 
+         GOTO 50
+      ELSE
+         CALL PUSHERR (0001, 'CALCJ1')    ! WARNING ERROR: NO SOLUTION
+         GOTO 50
+      ENDIF
+
+      ! PERFORM BISECTION 
+ 20   CONTINUE
+      DO 30 K=1,MAXIT
+         X3 = 0.5d0*(X1+X2)
+         Y3 = FUNCJ1 (X3)
+         IF ( SIGN(1.d0,Y1)*SIGN(1.d0,Y3) .LE. ZERO ) THEN  ! (Y1*Y3 .LE. ZERO)
+            Y2    = Y3
+            X2    = X3
+         ELSE
+            Y1    = Y3
+            X1    = X3
+         ENDIF
+         IF ( ABS(X2-X1) .LE. EPS*X1 ) GOTO 40
+ 30   CONTINUE
+      CALL PUSHERR (0002, 'CALCJ1') ! WARNING ERROR: NO CONVERGENCE
+
+      ! CONVERGED ; RETURN
+ 40   CONTINUE
+      X3 = 0.5d0*(X1+X2)
+      Y3 = FUNCJ1 (X3)
+ 
+ 50   CONTINUE
+      RETURN
+
+      ! Return to calling program
+      END SUBROUTINE CALCJ1 
+
+!------------------------------------------------------------------------------
+
+      FUNCTION FUNCJ1( P1 ) RESULT( VALUE )
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE FUNCJ1
+! *** CASE J1
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE RICH, FREE ACID (SULRAT < 1.0)
+!     2. THERE IS BOTH A LIQUID & SOLID PHASE
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NH4CL, NA2SO4
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h"
+
+      ! Arguments
+      REAL*8, INTENT(IN)  :: P1
+
+      ! Local variables
+      INTEGER ::     K
+      REAL*8  ::     VALUE
+      REAL*8  ::     BB, CC, DD
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, LAMDA, KAPA, PSI1, PSI2, PSI3, 
+     &               A1,   A2,   A3
+      COMMON /CASEJ/ CHI1, CHI2, CHI3, LAMDA, KAPA, PSI1, PSI2, PSI3, 
+     &               A1,   A2,   A3
+!$OMP THREADPRIVATE( /CASEJ/ )
+
+      !=================================================================
+      ! FUNCJ1 begins here!
+      !=================================================================
+
+      ! SETUP PARAMETERS      
+      FRST   = .TRUE.
+      CALAIN = .TRUE.
+
+      LAMDA  = MAX(W(2) - W(3) - W(1), TINY)  ! FREE H2SO4
+      PSI1   = P1
+
+      ! SOLVE EQUATIONS ; WITH ITERATIONS FOR ACTIVITY COEF.
+      DO 10 K=1,NSWEEP
+
+         A1 = XK11 *(WATER/GAMA(12))**2.d0
+         A2 = XK12 *(WATER/GAMA(09))**2.d0
+         A3 = XK1  *WATER/GAMA(7)*(GAMA(8)/GAMA(7))**2.d0
+
+         PSI2 = 0.5d0*(-(LAMDA+PSI1) + SQRT((LAMDA+PSI1)**2.D0+4.D0*A2)) ! PSI2
+         PSI2 = MIN (PSI2, CHI2)
+
+         BB   = A3+LAMDA                      ! KAPA
+         CC   =-A3*(LAMDA + PSI2 + PSI1)
+         DD   = BB*BB-4.D0*CC
+         KAPA = 0.5D0*(-BB+SQRT(DD))    
+
+         ! SAVE CONCENTRATIONS IN MOLAL ARRAY
+         MOLAL(1) = LAMDA + KAPA                  ! HI
+         MOLAL(2) = PSI1                          ! NAI
+         MOLAL(3) = PSI2                          ! NH4I
+         MOLAL(4) = ZERO
+         MOLAL(5) = KAPA                          ! SO4I
+         MOLAL(6) = LAMDA + PSI1 + PSI2 - KAPA    ! HSO4I
+         MOLAL(7) = ZERO
+         CALL CALCMR                              ! Water content
+
+         ! CALCULATE ACTIVITIES OR TERMINATE INTERNAL LOOP
+         IF ( FRST .AND. CALAOU .OR. .NOT. FRST .AND. CALAIN ) THEN
+            CALL CALCACT     
+         ELSE
+            GOTO 20
+         ENDIF
+ 10   CONTINUE
+
+      ! CALCULATE OBJECTIVE FUNCTION
+ 20   CONTINUE
+      VALUE = MOLAL(2)*MOLAL(6)/A1 - ONE
+
+      ! Return to calling program
+      END FUNCTION FUNCJ1 
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALCJ2
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCJ2
+! *** CASE J2
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE RICH, FREE ACID (SULRAT < 1.0)
+!     2. THERE IS BOTH A LIQUID & SOLID PHASE
+!     3. SOLIDS POSSIBLE : NAHSO4
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      ! Local variables
+      INTEGER ::     K
+      REAL*8  ::     PSI1LO, PSI1HI, X1, Y1, DX
+      REAL*8  ::     X2, Y2, YL0, Y3, X3, YHI, YLO
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, LAMDA, KAPA, PSI1, PSI2, PSI3, 
+     &               A1,   A2,   A3
+      COMMON /CASEJ/ CHI1, CHI2, CHI3, LAMDA, KAPA, PSI1, PSI2, PSI3, 
+     &               A1,   A2,   A3
+!$OMP THREADPRIVATE( /CASEJ/ )
+
+      !=================================================================
+      ! CALCJ2 begins here!
+      !=================================================================
+
+      ! SETUP PARAMETERS
+      CALAOU = .TRUE.              ! Outer loop activity calculation flag
+      CHI1   = W(1)                ! NA TOTAL
+      CHI2   = W(3)                ! NH4 TOTAL
+      PSI1LO = TINY                ! Low  limit
+      PSI1HI = CHI1                ! High limit
+
+      ! INITIAL VALUES FOR BISECTION
+      X1 = PSI1HI
+      Y1 = FUNCJ2 (X1)
+      YHI= Y1                      ! Save Y-value at HI position
+
+      ! YHI < 0.0 THE SOLUTION IS ALWAYS UNDERSATURATED WITH NH42SO4
+      IF ( ABS(Y1) .LE. EPS .OR. YHI .LT. ZERO ) GOTO 50
+
+      ! ROOT TRACKING ; FOR THE RANGE OF HI AND LO
+      DX = (PSI1HI-PSI1LO)/FLOAT(NDIV)
+      DO 10 K=1,NDIV
+         X2 = X1-DX
+         Y2 = FUNCJ2 (X2)
+         IF (SIGN(1.d0,Y1)*SIGN(1.d0,Y2).LT.ZERO) GOTO 20  ! (Y1*Y2.LT.ZERO)
+         X1 = X2
+         Y1 = Y2
+ 10   CONTINUE
+
+      ! { YLO, YHI } > 0.0 THE SOLUTION IS ALWAYS SUPERSATURATED WITH NH42SO4
+      YLO= Y1                      ! Save Y-value at Hi position
+      IF ( YLO .GT. ZERO .AND. YHI .GT. ZERO ) THEN
+         Y3 = FUNCJ2 (ZERO)
+         GOTO 50
+      ELSE IF ( ABS(Y2) .LT. EPS ) THEN ! X2 IS A SOLUTION 
+         GOTO 50
+      ELSE
+         CALL PUSHERR (0001, 'CALCJ2') ! WARNING ERROR: NO SOLUTION
+         GOTO 50
+      ENDIF
+
+      ! PERFORM BISECTION
+ 20   CONTINUE
+      DO 30 K=1,MAXIT
+         X3 = 0.5d0*(X1+X2)
+         Y3 = FUNCJ2 (X3)
+         IF ( SIGN(1.d0,Y1)*SIGN(1.d0,Y3) .LE. ZERO ) THEN ! (Y1*Y3 .LE. ZERO)
+            Y2    = Y3
+            X2    = X3
+         ELSE
+            Y1    = Y3
+            X1    = X3
+         ENDIF
+         IF ( ABS(X2-X1) .LE. EPS*X1 ) GOTO 40
+ 30   CONTINUE
+      CALL PUSHERR (0002, 'CALCJ2') ! WARNING ERROR: NO CONVERGENCE
+
+      ! CONVERGED ; RETURN
+ 40   CONTINUE
+      X3 = 0.5d0*(X1+X2)
+      Y3 = FUNCJ2 (X3)
+      
+ 50   CONTINUE
+      RETURN
+
+      ! Return to calling program
+      END SUBROUTINE CALCJ2 
+
+!------------------------------------------------------------------------------
+
+      FUNCTION FUNCJ2( P1 ) RESULT( VALUE )
+! 
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE FUNCJ2
+! *** CASE J2
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE RICH, FREE ACID (SULRAT < 1.0)
+!     2. THERE IS BOTH A LIQUID & SOLID PHASE
+!     3. SOLIDS POSSIBLE : (NH4)2SO4, NH4CL, NA2SO4
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      ! Arguments
+      REAL*8, INTENT(IN)  :: P1
+
+      ! Local variables
+      INTEGER ::     K
+      REAL*8  ::     VALUE
+      REAL*8  ::     BB, CC, DD
+
+      ! Local common blocks
+      REAL*8  ::     CHI1, CHI2, CHI3, LAMDA, KAPA, PSI1, PSI2, PSI3, 
+     &               A1,   A2,   A3
+      COMMON /CASEJ/ CHI1, CHI2, CHI3, LAMDA, KAPA, PSI1, PSI2, PSI3, 
+     &               A1,   A2,   A3
+!$OMP THREADPRIVATE( /CASEJ/ )
+
+      !=================================================================
+      ! FUNCJ2 begins here!
+      !=================================================================
+
+      ! SETUP PARAMETERS
+      FRST   = .TRUE.
+      CALAIN = .TRUE.
+
+      LAMDA  = MAX(W(2) - W(3) - W(1), TINY)  ! FREE H2SO4
+      PSI1   = P1
+      PSI2   = CHI2                           ! ALL NH4HSO4 DELIQUESCED
+
+      ! SOLVE EQUATIONS ; WITH ITERATIONS FOR ACTIVITY COEF.
+      DO 10 K=1,NSWEEP
+
+         A1 = XK11 *(WATER/GAMA(12))**2.d0
+         A3 = XK1  *WATER/GAMA(7)*(GAMA(8)/GAMA(7))**2.d0
+
+         ! CALCULATE DISSOCIATION QUANTITIES
+         BB   = A3+LAMDA                          ! KAPA
+         CC   =-A3*(LAMDA + PSI1 + PSI2)
+         DD   = BB*BB-4.D0*CC
+         KAPA = 0.5D0*(-BB+SQRT(DD))
+
+         ! CALCULATE SPECIATION
+         MOLAL(1) = LAMDA + KAPA                  ! HI
+         MOLAL(2) = PSI1                          ! NAI
+         MOLAL(3) = PSI2                          ! NH4I
+         MOLAL(4) = ZERO                          ! CLI
+         MOLAL(5) = KAPA                          ! SO4I
+         MOLAL(6) = LAMDA + PSI1 + PSI2 - KAPA    ! HSO4I
+         MOLAL(7) = ZERO                          ! NO3I
+         CALL CALCMR                              ! Water content
+
+         ! CALCULATE ACTIVITIES OR TERMINATE INTERNAL LOOP
+         IF (FRST.AND.CALAOU .OR. .NOT.FRST.AND.CALAIN) THEN
+            CALL CALCACT     
+         ELSE
+            GOTO 20
+         ENDIF
+ 10   CONTINUE
+
+      ! CALCULATE OBJECTIVE FUNCTION
+ 20   CONTINUE
+      VALUE = MOLAL(2)*MOLAL(6)/A1 - ONE
+
+      ! Return to calling program
+      END FUNCTION FUNCJ2 
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALCJ3
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCJ3
+! *** CASE J3
+!
+!     THE MAIN CHARACTERISTICS OF THIS REGIME ARE:
+!     1. SULFATE RICH, FREE ACID (SULRAT < 1.0)
+!     2. THERE IS ONLY A LIQUID PHASE
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      ! Local variables
+      INTEGER :: K
+      REAL*8  :: LAMDA, KAPA
+      REAL*8  :: BB, CC, DD
+      REAL*8  :: CHI1, CHI2, PSI1, PSI2, A3
+
+      !=================================================================
+      ! CALCJ3 begins here!
+      !=================================================================
+
+      ! SETUP PARAMETERS 
+      CALAOU = .TRUE.              ! Outer loop activity calculation flag
+      FRST   = .TRUE.
+      CALAIN = .TRUE.
+
+      LAMDA  = MAX(W(2) - W(3) - W(1), TINY)  ! FREE H2SO4
+      CHI1   = W(1)                           ! NA TOTAL as NaHSO4
+      CHI2   = W(3)                           ! NH4 TOTAL as NH4HSO4
+      PSI1   = CHI1
+      PSI2   = CHI2                           ! ALL NH4HSO4 DELIQUESCED
+
+      ! SOLVE EQUATIONS ; WITH ITERATIONS FOR ACTIVITY COEF.
+      DO 10 K=1,NSWEEP
+
+         A3 = XK1  *WATER/GAMA(7)*(GAMA(8)/GAMA(7))**2.d0
+
+         ! CALCULATE DISSOCIATION QUANTITIES
+         BB   = A3+LAMDA                        ! KAPA
+         CC   =-A3*(LAMDA + PSI1 + PSI2)
+         DD   = BB*BB-4.D0*CC
+         KAPA = 0.5D0*(-BB+SQRT(DD))
+
+         ! CALCULATE SPECIATION
+         MOLAL(1) = LAMDA + KAPA                 ! HI
+         MOLAL(2) = PSI1                         ! NAI
+         MOLAL(3) = PSI2                         ! NH4I
+         MOLAL(4) = ZERO                         ! CLI
+         MOLAL(5) = KAPA                         ! SO4I
+         MOLAL(6) = LAMDA + PSI1 + PSI2 - KAPA   ! HSO4I
+         MOLAL(7) = ZERO                         ! NO3I
+         CALL CALCMR                             ! Water content
+
+         ! CALCULATE ACTIVITIES OR TERMINATE INTERNAL LOOPC
+         IF ( FRST .AND. CALAOU .OR. .NOT. FRST .AND. CALAIN ) THEN
+            CALL CALCACT     
+         ELSE
+            GOTO 50
+         ENDIF
+ 10   CONTINUE
+
+      ! Exit
+ 50   CONTINUE
+      RETURN
+
+      ! Return to calling program
+      END SUBROUTINE CALCJ3 
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALCNHA
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCNHA
+!
+!     THIS SUBROUTINE CALCULATES THE DISSOLUTION OF HCL, HNO3 AT
+!     THE PRESENCE OF (H,SO4). HCL, HNO3 ARE CONSIDERED MINOR SPECIES,
+!     THAT DO NOT SIGNIFICANTLY AFFECT THE EQUILIBRIUM POINT.
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+
+      INTEGER  :: ISLV
+      REAL*8   :: DELCL, DELNO, OMEGA, C1, C2, C3
+      REAL*8   :: M1, M2, M3
+      REAL*8   :: A3, A4, CHI3, CHI4
+      CHARACTER ERRINF*40 
+
+      !=================================================================
+      ! CALCNHA begins here!
+      !=================================================================    
+
+      ! SPECIAL CASE; WATER=ZERO 
+      IF ( WATER .LE. TINY ) THEN
+         GOTO 55
+
+      ! SPECIAL CASE; HCL=HNO3=ZERO
+      ELSE IF ( W(5) .LE. TINY .AND. W(4) .LE. TINY ) THEN
+         GOTO 60
+
+      ! SPECIAL CASE; HCL=ZERO
+      ELSE IF ( W(5) .LE. TINY ) THEN
+         CALL CALCNA              ! CALL HNO3 DISSOLUTION ROUTINE
+         GOTO 60
+
+      ! SPECIAL CASE; HNO3=ZERO 
+      ELSE IF ( W(4) .LE. TINY ) THEN
+         CALL CALCHA               ! CALL HCL DISSOLUTION ROUTINE
+         GOTO 60
+      ENDIF
+
+      ! CALCULATE EQUILIBRIUM CONSTANTSC
+      A3 = XK4*R*TEMP*(WATER/GAMA(10))**2.d0   ! HNO3
+      A4 = XK3*R*TEMP*(WATER/GAMA(11))**2.d0   ! HCL
+
+      ! CALCULATE CUBIC EQUATION COEFFICIENTS
+      DELCL = ZERO
+      DELNO = ZERO
+
+      OMEGA = MOLAL(1)       ! H+
+      CHI3  = W(4)           ! HNO3
+      CHI4  = W(5)           ! HCL
+
+      C1    = A3*CHI3
+      C2    = A4*CHI4
+      C3    = A3 - A4
+
+      M1    = (C1 + C2 + (OMEGA+A4)*C3)/C3
+      M2    = ((OMEGA+A4)*C2 - A4*C3*CHI4)/C3
+      M3    =-A4*C2*CHI4/C3
+
+      ! CALCULATE ROOTS
+      CALL POLY3 (M1, M2, M3, DELCL, ISLV) ! HCL DISSOLUTION
+      IF ( ISLV .NE. 0 ) THEN
+         DELCL = TINY           ! TINY AMOUNTS OF HCL ASSUMED WHEN NO ROOT 
+         WRITE (ERRINF,'(1PE7.1)') TINY
+         CALL PUSHERR (0022, ERRINF) ! WARNING ERROR: NO SOLUTION
+      ENDIF
+      DELCL = MIN(DELCL, CHI4)
+
+      DELNO = C1*DELCL/(C2 + C3*DELCL)  
+      DELNO = MIN(DELNO, CHI3)
+
+      IF ( DELCL .LT. ZERO .OR. DELNO .LT. ZERO .OR.
+     &   DELCL .GT. CHI4 .OR. DELNO .GT. CHI3       ) THEN
+         DELCL = TINY  ! TINY AMOUNTS OF HCL ASSUMED WHEN NO ROOT 
+         DELNO = TINY
+         WRITE (ERRINF,'(1PE7.1)') TINY
+         CALL PUSHERR (0022, ERRINF)    ! WARNING ERROR: NO SOLUTION
+      ENDIF
+
+! Comment out
+!C
+!C *** COMPARE DELTA TO TOTAL H+ ; ESTIMATE EFFECT TO HSO4 ***************
+!C
+!      IF ((DELCL+DELNO)/MOLAL(1).GT.0.1d0) THEN
+!         WRITE (ERRINF,'(1PE10.3)') (DELCL+DELNO)/MOLAL(1)*100.0
+!         CALL PUSHERR (0021, ERRINF)   
+!      ENDIF
+
+      ! EFFECT ON LIQUID PHASE
+ 50   CONTINUE
+      MOLAL(1) = MOLAL(1) + (DELNO+DELCL) ! H+   CHANGE
+      MOLAL(4) = MOLAL(4) + DELCL          ! CL-  CHANGE
+      MOLAL(7) = MOLAL(7) + DELNO          ! NO3- CHANGE
+
+      ! EFFECT ON GAS PHASE
+ 55   CONTINUE
+      GHCL     = MAX(W(5) - MOLAL(4), TINY)
+      GHNO3    = MAX(W(4) - MOLAL(7), TINY)
+      
+      ! Exit
+ 60   CONTINUE
+      RETURN
+
+      ! Return to calling program
+      END SUBROUTINE CALCNHA 
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CALCHA
+!
+!******************************************************************************
+!
+! *** ISORROPIA CODE
+! *** SUBROUTINE CALCHA
+! *** CALCULATES CHLORIDES SPECIATION
+!
+!     HYDROCHLORIC ACID IN THE LIQUID PHASE IS ASSUMED A MINOR SPECIES,  
+!     AND DOES NOT SIGNIFICANTLY PERTURB THE HSO4-SO4 EQUILIBRIUM. THE 
+!     HYDROCHLORIC ACID DISSOLVED IS CALCULATED FROM THE 
+!     HCL(G) <-> (H+) + (CL-) 
+!     EQUILIBRIUM, USING THE (H+) FROM THE SULFATES.
+!
+! *** COPYRIGHT 1996-2000, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY
+! *** WRITTEN BY ATHANASIOS NENES
+!
+!******************************************************************************
+!
+#     include "isoropia.h" 
+
+      REAL*8 :: X, DELT, ALFA, DIAK
+      REAL*8 :: KAPA
+
+      !=================================================================
+      ! CALCHA begins here!
+      !=================================================================
+
+      ! CALCULATE HCL DISSOLUTION
+      X    = W(5) 
+      DELT = 0.0d0
+      IF ( WATER .GT. TINY ) THEN
+         KAPA = MOLAL(1)
+         ALFA = XK3*R*TEMP*(WATER/GAMA(11))**2.d0
+         DIAK = SQRT( (KAPA+ALFA)**2.d0 + 4.0*ALFA*X)
+         DELT = 0.5d0*(-(KAPA+ALFA) + DIAK)
+         ! Comment out
+         !IF (DELT/KAPA.GT.0.1d0) THEN
+         !   WRITE (ERRINF,'(1PE10.3)') DELT/KAPA*100.0
+         !   CALL PUSHERR (0033, ERRINF)    
+         !ENDIF
+      ENDIF
+
+      ! CALCULATE HCL SPECIATION IN THE GAS PHASE
+      GHCL     = MAX(X-DELT, 0.0d0)  ! GAS HCL
+
+      ! CALCULATE HCL SPECIATION IN THE LIQUID PHASE
+      MOLAL(4) = DELT                ! CL-
+      MOLAL(1) = MOLAL(1) + DELT     ! H+ 
+
+      ! Return to calling program
+      END SUBROUTINE CALCHA 
 
 !------------------------------------------------------------------------------
 
@@ -5426,6 +11609,9 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
+#     include "CMN_SIZE"
+#     include "isoropia.h" 
+
       ! Local variables
       INTEGER :: AS 
 
@@ -5439,46 +11625,6 @@
       ALLOCATE( ASSO4( NSO4S ), STAT=AS )
       IF ( AS /=0 ) CALL ALLOC_ERR( 'ASSO4' )
       ASSO4 = 0d0
-
-      ALLOCATE( AWAB( NZSR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AWAB' ) 
-      AWAB = 0d0
-
-      ALLOCATE( AWAC( NZSR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AWAC' ) 
-      AWAC = 0d0
-
-      ALLOCATE( AWAN( NZSR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AWAN' ) 
-      AWAN = 0d0
-
-      ALLOCATE( AWAS( NZSR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AWAS' ) 
-      AWAS = 0d0
-
-      ALLOCATE( AWLC( NZSR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AWLC' ) 
-      AWLC = 0d0
-
-      ALLOCATE( AWSA( NZSR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AWSA' ) 
-      AWSA = 0d0
-       
-      ALLOCATE( AWSB( NZSR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AWSB' ) 
-      AWSB = 0d0  
-
-      ALLOCATE( AWSC( NZSR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AWSC' ) 
-      AWSC = 0d0
-
-      ALLOCATE( AWSS( NZSR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AWSS' ) 
-      AWSS = 0d0
-
-      ALLOCATE( AWSN( NZSR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AWSN' ) 
-      AWSN = 0d0
 
       ALLOCATE( BNC198( IMAX, JMAX ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BNC198' )
@@ -5504,110 +11650,15 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BNC323' )
       BNC323 = 0e0
 
-      ALLOCATE( ERRMSG( NERRMX ), STAT=AS )
-      IF ( AS /=0 ) CALL ALLOC_ERR( 'ERRSTK' )
-      ERRMSG = ''
+      ALLOCATE( HNO3_sav( IIPAR, JJPAR, LLTROP ) , STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HNO3_sav' )
+      HNO3_sav = 0d0
 
-      ALLOCATE( ERRSTK( NERRMX ), STAT=AS )
-      IF ( AS /=0 ) CALL ALLOC_ERR( 'ERRSTK' )
-      ERRSTK = 0d0
+      ALLOCATE( GAS_HNO3( IIPAR, JJPAR, LLTROP ) , STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GAS_HNO3' )
+      GAS_HNO3 = 0d0
 
-      ALLOCATE( GAMA( NPAIR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GAMA' ) 
-      GAMA = 0d0
-
-      ALLOCATE( GAMIN( NPAIR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GAMIN' ) 
-      GAMIN = 0d0
-
-      ALLOCATE( GAMOU( NPAIR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GAMOU' ) 
-      GAMOU = 0d0
-
-      ALLOCATE( GASAQ( NGASAQ ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GASAQ' ) 
-      GASAQ = 0d0
-
-      ALLOCATE( M0( NPAIR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'M0' ) 
-      M0 = 0d0
-
-      ALLOCATE( MOLAL( NIONS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOLAL' ) 
-      MOLAL = 0d0
-
-      ALLOCATE( MOLALR( NPAIR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOLALR' ) 
-      MOLALR = 0d0
-
-      ALLOCATE( IMW( NIONS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IMW' ) 
-      IMW = 0d0
-
-      ALLOCATE( SMW( NPAIR ), STAT=AS )
-      IF ( AS /=0 ) CALL ALLOC_ERR( 'WMW' )
-      SMW = 0d0
-
-      ALLOCATE( W( NCOMP ), STAT=AS )
-      IF ( AS /=0 ) CALL ALLOC_ERR( 'W' )
-      W = 0d0
-
-      ALLOCATE( WAER( NCOMP ), STAT=AS )
-      IF ( AS /=0 ) CALL ALLOC_ERR( 'W' )
-      WAER = 0d0      
-
-      ALLOCATE( WMW( NCOMP ), STAT=AS )
-      IF ( AS /=0 ) CALL ALLOC_ERR( 'WMW' )
-      WMW = 0d0  
-
-      ALLOCATE( Z( NIONS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z' ) 
-      Z = 0d0
-
-      ALLOCATE( ZZ( NPAIR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ZZ' ) 
-      ZZ = 0d0
-
-      !=================================================================
-      ! Initialize module variables
-      !=================================================================
-      TEMP    = 298.0d0
-      R       = 82.0567d-6
-      RH      = 0.9d0
-      EPS     = 1d-3
-      MAXIT   = 100
-      TINY    = 1d-20
-      GREAT   = 1d10
-      ZERO    = 0.0d0
-      ONE     = 1.0d0
-      NSWEEP  = 4
-      TINY2   = 1d-11
-      NDIV    = 5
-      MOLAL   = 0.0d0 
-      MOLALR  = 0.0d0 
-      GAMA    = 0.1d0
-      GAMOU   = 1d10
-      GAMIN   = 1d10   
-      CALAIN  = .TRUE.
-      CALAOU  = .TRUE.
-      EPSACT  = 5D-2        
-      ICLACT  = 0
-      IACALC  = 1          
-      WFTYP   = 2 
-      ERRSTK  = 0   
-      ERRMSG  = ' '   
-      NOFER   = 0 
-      STKOFL  = .FALSE. 
-      IPROB   = 0
-      METSTBL = 0 
-      VERSION = '1.5 (12/12/01)'
-
-
-      SMW     = (/ 58.5,142.,85.0,132.,80.0,53.5,98.0,98.0,115.,63.0,
-     &             36.5,120.,247./)
-
-      IMW     = (/ 1.0,23.0,18.0,35.5,96.0,97.0,63.0/)
-      WMW     = (/ 23.0,98.0,17.0,63.0,36.5/)
+      ! 
       ZZ      = (/1,2,1,2,1,1,2,1,1,1,1,1,2/)
       Z       = (/1,1,1,1,2,1,1/)
 
@@ -5617,186 +11668,316 @@
 
       ! AWAS = ammonium sulfate
       AWAS = (/
-     & 100.,100.,100.,100.,100.,100.,100.,100.,100.,100.,100.,
-     & 100.,100.,100.,100.,100.,100.,100.,100.,100.,100.,100.,
-     & 100.,100.,100.,100.,100.,100.,100.,100.,100.,100.,100.,
-     & 30.,30.,30.,29.,54.,28.25,27.06,25.94,
-     & 24.89,23.90,22.97,22.10,21.27,20.48,19.73,19.02,18.34,17.69,
-     & 17.07,16.48,15.91,15.37,14.85,14.34,13.86,13.39,12.94,12.50,
-     & 12.08,11.67,11.27,10.88,10.51,10.14, 9.79, 9.44, 9.10, 8.78,
-     &  8.45, 8.14, 7.83, 7.53, 7.23, 6.94, 6.65, 6.36, 6.08, 5.81,
-     &  5.53, 5.26, 4.99, 4.72, 4.46, 4.19, 3.92, 3.65, 3.38, 3.11,
-     &  2.83, 2.54, 2.25, 1.95, 1.63, 1.31, 0.97, 0.63, 0.30, 0.001/)
+     & 100.d0,100.d0,100.d0,100.d0,100.d0,100.d0,
+     $ 100.d0,100.d0,100.d0,100.d0,100.d0,
+     & 100.d0,100.d0,100.d0,100.d0,100.d0,100.d0,
+     & 100.d0,100.d0,100.d0,100.d0,100.d0,
+     & 100.d0,100.d0,100.d0,100.d0,100.d0,100.d0,
+     & 100.d0,100.d0,100.d0,100.d0,100.d0,
+     & 30.d0, 30.d0, 30.d0, 29.54d0, 
+     & 28.25d0, 27.06d0, 25.94d0,
+     & 24.89d0, 23.9d0, 22.97d0, 22.1d0, 21.27d0, 20.48d0,
+     & 19.73d0, 19.02d0, 18.34d0, 17.69d0,
+     & 17.07d0, 16.48d0, 15.91d0, 15.37d0, 14.85d0,
+     & 14.34d0, 13.86d0, 13.39d0, 12.94d0, 12.5d0,
+     & 12.08d0, 11.67d0, 11.27d0, 10.88d0, 10.51d0, 10.14d0,
+     &  9.79d0, 9.44d0, 9.1d0, 8.78d0,
+     &  8.45d0, 8.14d0, 7.83d0, 7.53d0, 7.23d0,
+     &  6.94d0, 6.65d0, 6.36d0, 6.08d0, 5.81d0,
+     &  5.53d0, 5.26d0, 4.99d0, 4.72d0, 4.46d0, 
+     &  4.19d0, 3.92d0, 3.65d0, 3.38d0, 3.11d0,
+     &  2.83d0, 2.54d0, 2.25d0, 1.95d0, 1.63d0,
+     &  1.31d0, 0.97d0, 0.63d0, 0.3d0, 0.001d0/)
 
       ! AWSN= sodium nitrate
       AWSN = (/
-     & 1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,685.59,
-     & 451.00,336.46,268.48,223.41,191.28,
-     & 167.20,148.46,133.44,121.12,110.83,
-     & 102.09,94.57,88.03,82.29,77.20,72.65,68.56,64.87,61.51,58.44,
-     & 55.62,53.03,50.63,48.40,46.32,44.39,42.57,40.87,39.27,37.76,
-     & 36.33,34.98,33.70,32.48,31.32,30.21,29.16,28.14,27.18,26.25,
-     & 25.35,24.50,23.67,22.87,22.11,21.36,20.65,19.95,19.28,18.62,
-     & 17.99,17.37,16.77,16.18,15.61,15.05,14.51,13.98,13.45,12.94,
-     & 12.44,11.94,11.46,10.98,10.51,10.04, 9.58, 9.12, 8.67, 8.22,
-     &  7.77, 7.32, 6.88, 6.43, 5.98, 5.53, 5.07, 4.61, 4.15, 3.69,
-     &  3.22, 2.76, 2.31, 1.87, 1.47, 1.10, 0.77, 0.48, 0.23, 0.001/)
+     & 1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,685.59d0,
+     & 451.d0,336.46d0,268.48d0,223.41d0,191.28d0,
+     & 167.2d0,148.46d0,133.44d0,121.12d0,110.83d0,
+     & 102.09d0,94.57d0,88.03d0,82.29d0,77.2d0,
+     & 72.65d0,68.56d0,64.87d0,61.51d0,58.44d0,
+     & 55.62d0,53.03d0,50.63d0,48.4d0,46.32d0,44.39d0,
+     & 42.57d0,40.87d0,39.27d0,37.76d0,
+     & 36.33d0,34.98d0,33.7d0,32.48d0,31.32d0,
+     & 30.21d0,29.16d0,28.14d0,27.18d0,26.25d0,
+     & 25.35d0,24.5d0,23.67d0,22.87d0,22.11d0,21.36d0,
+     & 20.65d0,19.95d0,19.28d0,18.62d0,
+     & 17.99d0,17.37d0,16.77d0,16.18d0,15.61d0,15.05d0,
+     & 14.51d0,13.98d0,13.45d0,12.94d0,
+     & 12.44d0,11.94d0,11.46d0,10.98d0,10.51d0,10.04d0,
+     &  9.58d0, 9.12d0, 8.67d0, 8.22d0,
+     &  7.77d0, 7.32d0, 6.88d0, 6.43d0, 5.98d0, 5.53d0,
+     &  5.07d0, 4.61d0, 4.15d0, 3.69d0,
+     &  3.22d0, 2.76d0, 2.31d0, 1.87d0, 1.47d0, 1.1d0,
+     &  0.77d0, 0.48d0, 0.23d0, 0.001d0/)
 
       ! AWSC = sodium chloride
       AWSC =(/
-     &  100., 100., 100., 100., 100., 100., 100., 100., 100., 100.,
-     &  100., 100., 100., 100., 100., 100., 100., 100., 100.,16.34,
-     & 16.28,16.22,16.15,16.09,16.02,15.95,15.88,15.80,15.72,15.64,
-     & 15.55,15.45,15.36,15.25,15.14,15.02,14.89,14.75,14.60,14.43,
-     & 14.25,14.04,13.81,13.55,13.25,12.92,12.56,12.19,11.82,11.47,
-     & 11.13,10.82,10.53,10.26,10.00, 9.76, 9.53, 9.30, 9.09, 8.88,
-     &  8.67, 8.48, 8.28, 8.09, 7.90, 7.72, 7.54, 7.36, 7.17, 6.99,
-     &  6.81, 6.63, 6.45, 6.27, 6.09, 5.91, 5.72, 5.53, 5.34, 5.14,
-     &  4.94, 4.74, 4.53, 4.31, 4.09, 3.86, 3.62, 3.37, 3.12, 2.85,
-     &  2.58, 2.30, 2.01, 1.72, 1.44, 1.16, 0.89, 0.64, 0.40, 0.18/)
+     &  100.d0, 100.d0, 100.d0, 100.d0, 100.d0,
+     &  100.d0, 100.d0, 100.d0, 100.d0, 100.d0,
+     &  100.d0, 100.d0, 100.d0, 100.d0, 100.d0,
+     &  100.d0, 100.d0, 100.d0, 100.d0,16.34d0,
+     & 16.28d0,16.22d0,16.15d0,16.09d0,16.02d0,
+     & 15.95d0,15.88d0,15.8d0,15.72d0,15.64d0,
+     & 15.55d0,15.45d0,15.36d0,15.25d0,15.14d0,
+     & 15.02d0,14.89d0,14.75d0,14.6d0,14.43d0,
+     & 14.25d0,14.04d0,13.81d0,13.55d0,13.25d0,
+     & 12.92d0,12.56d0,12.19d0,11.82d0,11.47d0,
+     & 11.13d0,10.82d0,10.53d0,10.26d0,10.d0, 
+     &  9.76d0, 9.53d0, 9.3d0, 9.09d0, 8.88d0,
+     &  8.67d0, 8.48d0, 8.28d0, 8.09d0, 7.9d0, 
+     &  7.72d0, 7.54d0, 7.36d0, 7.17d0, 6.99d0,
+     &  6.81d0, 6.63d0, 6.45d0, 6.27d0, 6.09d0,
+     &  5.91d0, 5.72d0, 5.53d0, 5.34d0, 5.14d0,
+     &  4.94d0, 4.74d0, 4.53d0, 4.31d0, 4.09d0,
+     &  3.86d0, 3.62d0, 3.37d0, 3.12d0, 2.85d0,
+     &  2.58d0, 2.3d0, 2.01d0, 1.72d0, 1.44d0,
+     &  1.16d0, 0.89d0, 0.64d0, 0.4d0, 0.18d0/)
 
       ! AWAC = ammonium chloride
       AWAC = (/
-     &  100., 100., 100., 100., 100., 100., 100., 100., 100., 100.,
-     &  100., 100., 100., 100., 100., 100., 100., 100., 100.,31.45,
-     & 31.30,31.14,30.98,30.82,30.65,30.48,30.30,30.11,29.92,29.71,
-     & 29.50,29.29,29.06,28.82,28.57,28.30,28.03,27.78,27.78,27.77,
-     & 27.77,27.43,27.07,26.67,26.21,25.73,25.18,24.56,23.84,23.01,
-     & 22.05,20.97,19.85,18.77,17.78,16.89,16.10,15.39,14.74,14.14,
-     & 13.59,13.06,12.56,12.09,11.65,11.22,10.81,10.42,10.03, 9.66,
-     &  9.30, 8.94, 8.59, 8.25, 7.92, 7.59, 7.27, 6.95, 6.63, 6.32,
-     &  6.01, 5.70, 5.39, 5.08, 4.78, 4.47, 4.17, 3.86, 3.56, 3.25,
-     &  2.94, 2.62, 2.30, 1.98, 1.65, 1.32, 0.97, 0.62, 0.26, 0.13/)
+     &  100.d0, 100.d0, 100.d0, 100.d0, 100.d0,
+     &  100.d0, 100.d0, 100.d0, 100.d0, 100.d0,
+     &  100.d0, 100.d0, 100.d0, 100.d0, 100.d0,
+     &  100.d0, 100.d0, 100.d0, 100.d0,31.45d0,
+     & 31.3d0,31.14d0,30.98d0,30.82d0,30.65d0,
+     & 30.48d0,30.3d0,30.11d0,29.92d0,29.71d0,
+     & 29.5d0,29.29d0,29.0d06,28.82d0,28.57d0,
+     & 28.3d0,28.03d0,27.78d0,27.78d0,27.77d0,
+     & 27.77d0,27.43d0,27.07d0,26.67d0,26.21d0,
+     & 25.73d0,25.18d0,24.56d0,23.84d0,23.01d0,
+     & 22.05d0,20.97d0,19.85d0,18.77d0,17.78d0,
+     & 16.89d0,16.1d0,15.39d0,14.74d0,14.14d0,
+     & 13.59d0,13.06d0,12.56d0,12.09d0,11.65d0,
+     & 11.22d0,10.81d0,10.42d0,10.03d0, 9.66d0,
+     &  9.3d0, 8.94d0, 8.59d0, 8.25d0, 7.92d0,
+     &  7.59d0, 7.27d0, 6.95d0, 6.63d0, 6.32d0,
+     &  6.01d0, 5.7d0, 5.39d0, 5.08d0, 4.78d0,
+     &  4.47d0, 4.17d0, 3.86d0, 3.56d0, 3.25d0,
+     &  2.94d0, 2.62d0, 2.3d0, 1.98d0, 1.65d0,
+     &  1.32d0, 0.97d0, 0.62d0, 0.26d0, 0.13d0/)
 
       ! AWSS = sodium sulfate
       AWSS = (/
-     & 1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,
-     & 1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,
-     & 1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,
-     & 14.30,14.30,14.30,14.30,14.30,14.30,14.30,14.30,14.30,14.30,
-     & 14.30,14.30,14.30,14.30,14.30,14.30,14.30,14.30,14.30,14.30,
-     & 14.30,14.30,14.30,14.21,12.53,11.47,
-     & 10.66,10.01, 9.46, 8.99, 8.57, 8.19, 7.85, 7.54, 7.25, 6.98,
-     &  6.74, 6.50, 6.29, 6.08, 5.88, 5.70, 5.52, 5.36, 5.20, 5.04,
-     &  4.90, 4.75, 4.54, 4.34, 4.14, 3.93, 3.71, 3.49, 3.26, 3.02,
-     &  2.76, 2.49, 2.20, 1.89, 1.55, 1.18, 0.82, 0.49, 0.22, 0.001/)
-
+     & 1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,
+     & 1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,
+     & 1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,
+     & 14.3d0,14.3d0,14.3d0,14.3d0,14.3d0,14.3d0,
+     & 14.3d0,14.3d0,14.3d0,14.3d0,
+     & 14.3d0,14.3d0,14.3d0,14.3d0,14.3d0,
+     & 14.3d0,14.3d0,14.3d0,14.3d0,14.3d0,
+     & 14.3d0,14.3d0,14.3d0,14.21d0,12.53d0,11.47d0,
+     & 10.66d0,10.01d0, 9.46d0, 8.99d0, 8.57d0,
+     &  8.19d0, 7.85d0, 7.54d0, 7.25d0, 6.98d0,
+     &  6.74d0, 6.5d0, 6.29d0, 6.08d0, 5.88d0, 5.7d0,
+     &  5.52d0, 5.36d0, 5.2d0, 5.04d0,
+     &  4.9d0, 4.75d0, 4.54d0, 4.34d0, 4.14d0, 3.93d0,
+     &  3.71d0, 3.49d0, 3.26d0, 3.02d0,
+     &  2.76d0, 2.49d0, 2.2d0, 1.89d0, 1.55d0, 1.18d0,
+     &  0.82d0, 0.49d0, 0.22d0, 0.001d0/)
+ 
       ! AWAB = ammonium bisulfate
-      AWAB = (/356.45,296.51,253.21,220.47,194.85,
-     & 174.24,157.31,143.16,131.15,120.82,
-     & 111.86,103.99,97.04,90.86,85.31,80.31,75.78,71.66,67.90,64.44,
-     &  61.25,58.31,55.58,53.04,50.68,48.47,46.40,44.46,42.63,40.91,
-     &  39.29,37.75,36.30,34.92,33.61,32.36,31.18,30.04,28.96,27.93,
-     &  26.94,25.99,25.08,24.21,23.37,22.57,21.79,21.05,20.32,19.63,
-     &  18.96,18.31,17.68,17.07,16.49,15.92,15.36,14.83,14.31,13.80,
-     &  13.31,12.83,12.36,11.91,11.46,11.03,10.61,10.20, 9.80, 9.41,
-     &   9.02, 8.64, 8.28, 7.91, 7.56, 7.21, 6.87, 6.54, 6.21, 5.88,
-     &   5.56, 5.25, 4.94, 4.63, 4.33, 4.03, 3.73, 3.44, 3.14, 2.85,
-     &   2.57, 2.28, 1.99, 1.71, 1.42, 1.14, 0.86, 0.57, 0.29, 0.001/)
+      AWAB = (/356.45d0,296.51d0,253.21d0,220.47d0,194.85d0,
+     & 174.24d0,157.31d0,143.16d0,131.15d0,120.82d0,
+     & 111.86d0,103.99d0,97.04d0,90.86d0,85.31d0,
+     & 80.31d0,75.78d0,71.66d0,67.9d0,64.44d0,
+     &  61.25d0,58.31d0,55.58d0,53.04d0,50.68d0,
+     &  48.47d0,46.4d0,44.46d0,42.63d0,40.91d0,
+     &  39.29d0,37.75d0,36.3d0,34.92d0,33.61d0,
+     &  32.36d0,31.18d0,30.04d0,28.96d0,27.93d0,
+     &  26.94d0,25.99d0,25.08d0,24.21d0,23.37d0,
+     &  22.57d0,21.79d0,21.05d0,20.32d0,19.63d0,
+     &  18.96d0,18.31d0,17.68d0,17.07d0,16.49d0,
+     &  15.92d0,15.36d0,14.83d0,14.31d0,13.8d0,
+     &  13.31d0,12.83d0,12.36d0,11.91d0,11.46d0,
+     &  11.03d0,10.61d0,10.2d0, 9.8d0, 9.41d0,
+     &   9.02d0, 8.64d0, 8.28d0, 7.91d0, 7.56d0,
+     &   7.21d0, 6.87d0, 6.54d0, 6.21d0, 5.88d0,
+     &   5.56d0, 5.25d0, 4.94d0, 4.63d0, 4.33d0,
+     &   4.03d0, 3.73d0, 3.44d0, 3.14d0, 2.85d0,
+     &   2.57d0, 2.28d0, 1.99d0, 1.71d0, 1.42d0,
+     &   1.14d0, 0.86d0, 0.57d0, 0.29d0, 0.001d0/)
 
       ! AWSA = sulfuric acid
       AWSA = (/
-     & 34.0,33.56,29.22,26.55,24.61,23.11,21.89,20.87,19.99,
-     & 19.21,18.51,17.87,17.29,16.76,16.26,15.8,15.37,14.95,14.56,
-     & 14.20,13.85,13.53,13.22,12.93,12.66,12.40,12.14,11.90,11.67,
-     & 11.44,11.22,11.01,10.8,10.60,10.4,10.2,10.01,9.83,9.65,9.47,
-     & 9.3,9.13,8.96,8.81,8.64,8.48,8.33,8.17,8.02,7.87,7.72,7.58,
-     & 7.44,7.30,7.16,7.02,6.88,6.75,6.61,6.48,6.35,6.21,6.08,5.95,
-     & 5.82,5.69,5.56,5.44,5.31,5.18,5.05,4.92,4.79,4.66,4.53,4.40,
-     & 4.27,4.14,4.,3.87,3.73,3.6,3.46,3.31,3.17,3.02,2.87,2.72,
-     & 2.56,2.4,2.23,2.05,1.87,1.68,1.48,1.27,1.05,0.807,0.552,0.281/)
+     & 34.d0,33.56d0,29.22d0,26.55d0,24.61d0,
+     & 23.11d0,21.89d0,20.87d0,19.99d0,
+     & 19.21d0,18.51d0,17.87d0,17.29d0,
+     & 16.76d0,16.26d0,15.8d0,15.37d0,14.95d0,14.56d0,
+     & 14.2d0,13.85d0,13.53d0,13.22d0,12.93d0,
+     & 12.66d0,12.4d0,12.14d0,11.9d0,11.67d0,
+     & 11.44d0,11.22d0,11.01d0,10.8d0,10.6d0,
+     & 10.4d0,10.2d0,10.01d0,9.83d0,9.65d0,9.47d0,
+     & 9.3d0,9.13d0,8.96d0,8.81d0,8.64d0,8.48d0,
+     & 8.33d0,8.17d0,8.02d0,7.87d0,7.72d0,7.58d0,
+     & 7.44d0,7.3d0,7.16d0,7.02d0,6.88d0,6.75d0,
+     & 6.61d0,6.48d0,6.35d0,6.21d0,6.08d0,5.95d0,
+     & 5.82d0,5.69d0,5.56d0,5.44d0,5.31d0,5.18d0,
+     & 5.05d0,4.92d0,4.79d0,4.66d0,4.53d0,4.4d0,
+     & 4.27d0,4.14d0,4.d0,3.87d0,3.73d0,3.6d0,
+     & 3.46d0,3.31d0,3.17d0,3.02d0,2.87d0,2.72d0,
+     & 2.56d0,2.4d0,2.23d0,2.05d0,1.87d0,1.68d0,
+     & 1.48d0,1.27d0,1.05d0,0.807d0,0.552d0,0.281d0/)
 
       ! AWLC = (NH4)3H(SO4)2
       AWLC = (/
-     & 1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,
-     & 1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,
-     & 1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,
-     & 17.0,16.5,15.94,15.31,14.71,14.14,
-     & 13.60,13.08,12.59,12.12,11.68,11.25,10.84,10.44,10.07, 9.71,
-     &  9.36, 9.02, 8.70, 8.39, 8.09, 7.80, 7.52, 7.25, 6.99, 6.73,
-     &  6.49, 6.25, 6.02, 5.79, 5.57, 5.36, 5.15, 4.95, 4.76, 4.56,
-     &  4.38, 4.20, 4.02, 3.84, 3.67, 3.51, 3.34, 3.18, 3.02, 2.87,
-     &  2.72, 2.57, 2.42, 2.28, 2.13, 1.99, 1.85, 1.71, 1.57, 1.43,
-     &  1.30, 1.16, 1.02, 0.89, 0.75, 0.61, 0.46, 0.32, 0.16, 0.001/)
+     & 1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,
+     & 1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,
+     & 1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,
+     & 17.d0,16.5d0,15.94d0,15.31d0,14.71d0,14.14d0,
+     & 13.6d0,13.08d0,12.59d0,12.12d0,11.68d0,
+     & 11.25d0,10.84d0,10.44d0,10.07d0, 9.71d0,
+     &  9.36d0, 9.02d0, 8.7d0, 8.39d0, 8.09d0, 7.8d0,
+     &  7.52d0, 7.25d0, 6.99d0, 6.73d0,
+     &  6.49d0, 6.25d0, 6.02d0, 5.79d0, 5.57d0,
+     &  5.36d0, 5.15d0, 4.95d0, 4.76d0, 4.56d0,
+     &  4.38d0, 4.2d0, 4.02d0, 3.84d0, 3.67d0,
+     &  3.51d0, 3.34d0, 3.18d0, 3.02d0, 2.87d0,
+     &  2.72d0, 2.57d0, 2.42d0, 2.28d0, 2.13d0,
+     &  1.99d0, 1.85d0, 1.71d0, 1.57d0, 1.43d0,
+     &  1.3d0, 1.16d0, 1.02d0, 0.89d0, 0.75d0,
+     &  0.61d0, 0.46d0, 0.32d0, 0.16d0, 0.001d0/)
 
       ! AWAN = ammonium nitrate
       AWAN = (/
-     & 1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,
-     & 1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,
-     & 1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,1.e5,
-     &       97.17,92.28,87.66,83.15,78.87,74.84,70.98,67.46,64.11,
-     & 60.98,58.07,55.37,52.85,50.43,48.24,46.19,44.26,42.40,40.70,
-     & 39.10,37.54,36.10,34.69,33.35,32.11,30.89,29.71,28.58,27.46,
-     & 26.42,25.37,24.33,23.89,22.42,21.48,20.56,19.65,18.76,17.91,
-     & 17.05,16.23,15.40,14.61,13.82,13.03,12.30,11.55,10.83,10.14,
-     &  9.44, 8.79, 8.13, 7.51, 6.91, 6.32, 5.75, 5.18, 4.65, 4.14,
-     &  3.65, 3.16, 2.71, 2.26, 1.83, 1.42, 1.03, 0.66, 0.30, 0.001/)
+     & 1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,
+     & 1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,
+     & 1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,1.d5,
+     &       97.17d0,92.28d0,87.66d0,83.15d0,
+     & 78.87d0,74.84d0,70.98d0,67.46d0,64.11d0,
+     & 60.98d0,58.07d0,55.37d0,52.85d0,50.43d0,
+     & 48.24d0,46.19d0,44.26d0,42.4d0,40.7d0,
+     & 39.1d0,37.54d0,36.1d0,34.69d0,33.35d0,
+     & 32.11d0,30.89d0,29.71d0,28.58d0,27.46d0,
+     & 26.42d0,25.37d0,24.33d0,23.89d0,22.42d0,
+     & 21.48d0,20.56d0,19.65d0,18.76d0,17.91d0,
+     & 17.05d0,16.23d0,15.4d0,14.61d0,13.82d0,
+     & 13.03d0,12.3d0,11.55d0,10.83d0,10.14d0,
+     &  9.44d0, 8.79d0, 8.13d0, 7.51d0, 6.91d0,
+     &  6.32d0, 5.75d0, 5.18d0, 4.65d0, 4.14d0,
+     &  3.65d0, 3.16d0, 2.71d0, 2.26d0, 1.83d0,
+     &  1.42d0, 1.03d0, 0.66d0, 0.3d0, 0.001d0/)
 
       ! AWSB = sodium bisulfate
-      AWSB = (/ 173.72,156.88,142.80,130.85,120.57,
-     &          111.64,103.80,96.88,90.71,85.18,
-     & 80.20,75.69,71.58,67.82,64.37,61.19,58.26,55.53,53.00,50.64,
-     & 48.44,46.37,44.44,42.61,40.90,39.27,37.74,36.29,34.91,33.61,
-     & 32.36,31.18,30.05,28.97,27.94,26.95,26.00,25.10,24.23,23.39,
-     & 22.59,21.81,21.07,20.35,19.65,18.98,18.34,17.71,17.11,16.52,
-     & 15.95,15.40,14.87,14.35,13.85,13.36,12.88,12.42,11.97,11.53,
-     & 11.10,10.69,10.28, 9.88, 9.49, 9.12, 8.75, 8.38, 8.03, 7.68,
-     &  7.34, 7.01, 6.69, 6.37, 6.06, 5.75, 5.45, 5.15, 4.86, 4.58,
-     &  4.30, 4.02, 3.76, 3.49, 3.23, 2.98, 2.73, 2.48, 2.24, 2.01,
-     &  1.78, 1.56, 1.34, 1.13, 0.92, 0.73, 0.53, 0.35, 0.17, 0.001/)
+      AWSB = (/ 173.72d0,156.88d0,142.8d0,130.85d0,120.57d0,
+     &          111.64d0,103.8d0,96.88d0,90.71d0,85.18d0,
+     & 80.2d0,75.69d0,71.58d0,67.82d0,64.37d0,61.19d0,
+     & 58.26d0,55.53d0,53.d0,50.64d0,
+     & 48.44d0,46.37d0,44.44d0,42.61d0,40.9d0,39.27d0,
+     & 37.74d0,36.29d0,34.91d0,33.61d0,
+     & 32.36d0,31.18d0,30.05d0,28.97d0,27.94d0,
+     & 26.95d0,26.d0,25.1d0,24.23d0,23.39d0,
+     & 22.59d0,21.81d0,21.07d0,20.35d0,19.65d0,
+     & 18.98d0,18.34d0,17.71d0,17.11d0,16.52d0,
+     & 15.95d0,15.4d0,14.87d0,14.35d0,13.85d0,13.36d0,
+     & 12.88d0,12.42d0,11.97d0,11.53d0,
+     & 11.1d0,10.69d0,10.28d0, 9.88d0, 9.49d0,
+     &  9.12d0, 8.75d0, 8.38d0, 8.03d0, 7.68d0,
+     &  7.34d0, 7.01d0, 6.69d0, 6.37d0, 6.06d0,
+     &  5.75d0, 5.45d0, 5.15d0, 4.86d0, 4.58d0,
+     &  4.3d0, 4.02d0, 3.76d0, 3.49d0, 3.23d0,
+     &  2.98d0, 2.73d0, 2.48d0, 2.24d0, 2.01d0,
+     &  1.78d0, 1.56d0, 1.34d0, 1.13d0, 0.92d0,
+     &  0.73d0, 0.53d0, 0.35d0, 0.17d0, 0.001d0/)
 
-      ASSO4 = (/ 1.0E-9, 2.5E-9, 5.0E-9, 7.5E-9, 1.0E-8,
-     &           2.5E-8, 5.0E-8, 7.5E-8, 1.0E-7, 2.5E-7, 
-     &           5.0E-7, 7.5E-7, 1.0E-6, 5.0E-6 /)
+      ASSO4 = (/ 1.0d-9, 2.5d-9, 5.0d-9, 7.5d-9, 1.0d-8,
+     &           2.5d-8, 5.0d-8, 7.5d-8, 1.0d-7, 2.5d-7, 
+     &           5.0d-7, 7.5d-7, 1.0d-6, 5.0d-6 /)
 
       ASRAT = (/
-     & 1.020464, 0.9998130, 0.9960167, 0.9984423, 1.004004, 1.010885,  
-     & 1.018356, 1.026726,  1.034268,  1.043846,  1.052933, 1.062230,  
-     & 1.062213, 1.080050,  1.088350,  1.096603,  1.104289, 1.111745,  
-     & 1.094662, 1.121594,  1.268909,  1.242444,  1.233815, 1.232088,
-     & 1.234020, 1.238068,  1.243455,  1.250636,  1.258734, 1.267543,
-     & 1.276948, 1.286642,  1.293337,  1.305592,  1.314726, 1.323463,  
-     & 1.333258, 1.343604,  1.344793,  1.355571,  1.431463, 1.405204,
-     & 1.395791, 1.393190,  1.394403,  1.398107,  1.403811, 1.411744,  
-     & 1.420560, 1.429990,  1.439742,  1.449507,  1.458986, 1.468403, 
-     & 1.477394, 1.487373,  1.495385,  1.503854,  1.512281, 1.520394,
-     & 1.514464, 1.489699,  1.480686,  1.478187,  1.479446, 1.483310, 
-     & 1.489316, 1.497517,  1.506501,  1.515816,  1.524724, 1.533950,
-     & 1.542758, 1.551730,  1.559587,  1.568343,  1.575610, 1.583140,  
-     & 1.590440, 1.596481,  1.567743,  1.544426,  1.535928, 1.533645, 
-     & 1.535016, 1.539003,  1.545124,  1.553283,  1.561886, 1.570530,
-     & 1.579234, 1.587813,  1.595956,  1.603901,  1.611349, 1.618833, 
-     & 1.625819, 1.632543,  1.639032,  1.645276,  1.707390, 1.689553,  
-     & 1.683198, 1.681810,  1.683490,  1.687477,  1.693148, 1.700084,  
-     & 1.706917, 1.713507,  1.719952,  1.726190,  1.731985, 1.737544, 
-     & 1.742673, 1.747756,  1.752431,  1.756890,  1.761141, 1.765190,
-     & 1.785657, 1.771851,  1.767063,  1.766229,  1.767901, 1.771455, 
-     & 1.776223, 1.781769,  1.787065,  1.792081,  1.796922, 1.801561,  
-     & 1.805832, 1.809896,  1.813622,  1.817292,  1.820651, 1.823841,  
-     & 1.826871, 1.829745,  1.822215,  1.810497,  1.806496, 1.805898, 
-     & 1.807480, 1.810684,  1.814860,  1.819613,  1.824093, 1.828306,
-     & 1.832352, 1.836209,  1.839748,  1.843105,  1.846175, 1.849192, 
-     & 1.851948, 1.854574,  1.857038,  1.859387,  1.844588, 1.834208,  
-     & 1.830701, 1.830233,  1.831727,  1.834665,  1.838429, 1.842658,
-     & 1.846615, 1.850321,  1.853869,  1.857243,  1.860332, 1.863257, 
-     & 1.865928, 1.868550,  1.870942,  1.873208,  1.875355, 1.877389,
-     & 1.899556, 1.892637,  1.890367,  1.890165,  1.891317, 1.893436, 
-     & 1.896036, 1.898872,  1.901485,  1.903908,  1.906212, 1.908391,  
-     & 1.910375, 1.912248,  1.913952,  1.915621,  1.917140, 1.918576,  
-     & 1.919934, 1.921220,  1.928264,  1.923245,  1.921625, 1.921523, 
-     & 1.922421, 1.924016,  1.925931,  1.927991,  1.929875, 1.931614,
-     & 1.933262, 1.934816,  1.936229,  1.937560,  1.938769, 1.939951, 
-     & 1.941026, 1.942042,  1.943003,  1.943911,  1.941205, 1.937060,  
-     & 1.935734, 1.935666,  1.936430,  1.937769,  1.939359, 1.941061,
-     & 1.942612, 1.944041,  1.945393,  1.946666,  1.947823, 1.948911, 
-     & 1.949900, 1.950866,  1.951744,  1.952574,  1.953358, 1.954099,
-     & 1.948985, 1.945372,  1.944221,  1.944171,  1.944850, 1.946027, 
-     & 1.947419, 1.948902,  1.950251,  1.951494,  1.952668, 1.953773,  
-     & 1.954776, 1.955719,  1.956576,  1.957413,  1.958174, 1.958892,  
-     & 1.959571, 1.960213,  1.977193,  1.975540,  1.975023, 1.975015, 
-     & 1.975346, 1.975903,  1.976547,  1.977225,  1.977838, 1.978401,
-     & 1.978930, 1.979428,  1.979879,  1.980302,  1.980686, 1.981060, 
-     & 1.981401, 1.981722,  1.982025,  1.982312 /)
+     & 1.020464d0,  0.9998130d0, 0.9960167d0, 
+     & 0.9984423d0, 1.004004d0,  1.010885d0,  
+     & 1.018356d0,  1.026726d0,  1.034268d0,
+     & 1.043846d0,  1.052933d0,  1.062230d0,  
+     & 1.062213d0,  1.080050d0,  1.088350d0,
+     & 1.096603d0,  1.104289d0,  1.111745d0,  
+     & 1.094662d0,  1.121594d0,  1.268909d0,
+     & 1.242444d0,  1.233815d0,  1.232088d0,
+     & 1.234020d0,  1.238068d0,  1.243455d0,
+     & 1.250636d0,  1.258734d0,  1.267543d0,
+     & 1.276948d0,  1.286642d0,  1.293337d0, 
+     & 1.305592d0,  1.314726d0,  1.323463d0,  
+     & 1.333258d0,  1.343604d0,  1.344793d0, 
+     & 1.355571d0,  1.431463d0,  1.405204d0,
+     & 1.395791d0,  1.393190d0,  1.394403d0, 
+     & 1.398107d0,  1.403811d0,  1.411744d0,  
+     & 1.420560d0,  1.429990d0,  1.439742d0, 
+     & 1.449507d0,  1.458986d0,  1.468403d0, 
+     & 1.477394d0,  1.487373d0,  1.495385d0,
+     & 1.503854d0,  1.512281d0,  1.520394d0,
+     & 1.514464d0,  1.489699d0,  1.480686d0, 
+     & 1.478187d0,  1.479446d0,  1.483310d0, 
+     & 1.489316d0,  1.497517d0,  1.506501d0, 
+     & 1.515816d0,  1.524724d0,  1.533950d0,
+     & 1.542758d0,  1.551730d0,  1.559587d0, 
+     & 1.568343d0,  1.575610d0,  1.583140d0,  
+     & 1.590440d0,  1.596481d0,  1.567743d0, 
+     & 1.544426d0,  1.535928d0,  1.533645d0, 
+     & 1.535016d0,  1.539003d0,  1.545124d0, 
+     & 1.553283d0,  1.561886d0,  1.570530d0,
+     & 1.579234d0,  1.587813d0,  1.595956d0, 
+     & 1.603901d0,  1.611349d0,  1.618833d0, 
+     & 1.625819d0,  1.632543d0,  1.639032d0, 
+     & 1.645276d0,  1.707390d0,  1.689553d0,  
+     & 1.683198d0,  1.681810d0,  1.683490d0, 
+     & 1.687477d0,  1.693148d0,  1.700084d0,  
+     & 1.706917d0,  1.713507d0,  1.719952d0, 
+     & 1.726190d0,  1.731985d0,  1.737544d0, 
+     & 1.742673d0,  1.747756d0,  1.752431d0, 
+     & 1.756890d0,  1.761141d0,  1.765190d0,
+     & 1.785657d0,  1.771851d0,  1.767063d0, 
+     & 1.766229d0,  1.767901d0,  1.771455d0, 
+     & 1.776223d0,  1.781769d0,  1.787065d0, 
+     & 1.792081d0,  1.796922d0,  1.801561d0,  
+     & 1.805832d0,  1.809896d0,  1.813622d0, 
+     & 1.817292d0,  1.820651d0,  1.823841d0,  
+     & 1.826871d0,  1.829745d0,  1.822215d0, 
+     & 1.810497d0,  1.806496d0,  1.805898d0, 
+     & 1.807480d0,  1.810684d0,  1.814860d0, 
+     & 1.819613d0,  1.824093d0,  1.828306d0,
+     & 1.832352d0,  1.836209d0,  1.839748d0, 
+     & 1.843105d0,  1.846175d0,  1.849192d0, 
+     & 1.851948d0,  1.854574d0,  1.857038d0, 
+     & 1.859387d0,  1.844588d0,  1.834208d0,  
+     & 1.830701d0,  1.830233d0,  1.831727d0, 
+     & 1.834665d0,  1.838429d0,  1.842658d0,
+     & 1.846615d0,  1.850321d0,  1.853869d0, 
+     & 1.857243d0,  1.860332d0,  1.863257d0, 
+     & 1.865928d0,  1.868550d0,  1.870942d0, 
+     & 1.873208d0,  1.875355d0,  1.877389d0,
+     & 1.899556d0,  1.892637d0,  1.890367d0,
+     & 1.890165d0,  1.891317d0,  1.893436d0, 
+     & 1.896036d0,  1.898872d0,  1.901485d0, 
+     & 1.903908d0,  1.906212d0,  1.908391d0,  
+     & 1.910375d0,  1.912248d0,  1.913952d0, 
+     & 1.915621d0,  1.917140d0,  1.918576d0,  
+     & 1.919934d0,  1.921220d0,  1.928264d0, 
+     & 1.923245d0,  1.921625d0,  1.921523d0, 
+     & 1.922421d0,  1.924016d0,  1.925931d0, 
+     & 1.927991d0,  1.929875d0,  1.931614d0,
+     & 1.933262d0,  1.934816d0,  1.936229d0, 
+     & 1.937560d0,  1.938769d0,  1.939951d0, 
+     & 1.941026d0,  1.942042d0,  1.943003d0, 
+     & 1.943911d0,  1.941205d0,  1.937060d0,  
+     & 1.935734d0,  1.935666d0,  1.936430d0, 
+     & 1.937769d0,  1.939359d0,  1.941061d0,
+     & 1.942612d0,  1.944041d0,  1.945393d0, 
+     & 1.946666d0,  1.947823d0,  1.948911d0, 
+     & 1.949900d0,  1.950866d0,  1.951744d0, 
+     & 1.952574d0,  1.953358d0,  1.954099d0,
+     & 1.948985d0,  1.945372d0,  1.944221d0, 
+     & 1.944171d0,  1.944850d0,  1.946027d0, 
+     & 1.947419d0,  1.948902d0,  1.950251d0, 
+     & 1.951494d0,  1.952668d0,  1.953773d0,  
+     & 1.954776d0,  1.955719d0,  1.956576d0, 
+     & 1.957413d0,  1.958174d0,  1.958892d0,  
+     & 1.959571d0,  1.960213d0,  1.977193d0, 
+     & 1.975540d0,  1.975023d0,  1.975015d0, 
+     & 1.975346d0,  1.975903d0,  1.976547d0, 
+     & 1.977225d0,  1.977838d0,  1.978401d0,
+     & 1.978930d0,  1.979428d0,  1.979879d0, 
+     & 1.980302d0,  1.980686d0,  1.981060d0, 
+     & 1.981401d0,  1.981722d0,  1.982025d0,  1.982312d0 /)
 
       ! Return to calling program
       END SUBROUTINE INIT_ISOROPIA 
@@ -5809,12 +11990,14 @@
 !  Subroutine CLEANUP_KMC deallocates all module arrays. (rjp, bmy, 9/23/02)
 !******************************************************************************
 !
-      IF ( ALLOCATED( BNC198 ) ) DEALLOCATE( BNC198 )
-      IF ( ALLOCATED( BNC223 ) ) DEALLOCATE( BNC223 )
-      IF ( ALLOCATED( BNC248 ) ) DEALLOCATE( BNC248 )
-      IF ( ALLOCATED( BNC273 ) ) DEALLOCATE( BNC273 )
-      IF ( ALLOCATED( BNC298 ) ) DEALLOCATE( BNC298 )
-      IF ( ALLOCATED( BNC323 ) ) DEALLOCATE( BNC323 )
+      IF ( ALLOCATED( BNC198   ) ) DEALLOCATE( BNC198   )
+      IF ( ALLOCATED( BNC223   ) ) DEALLOCATE( BNC223   )
+      IF ( ALLOCATED( BNC248   ) ) DEALLOCATE( BNC248   )
+      IF ( ALLOCATED( BNC273   ) ) DEALLOCATE( BNC273   )
+      IF ( ALLOCATED( BNC298   ) ) DEALLOCATE( BNC298   )
+      IF ( ALLOCATED( BNC323   ) ) DEALLOCATE( BNC323   )
+      IF ( ALLOCATED( HNO3_sav ) ) DEALLOCATE( HNO3_sav )
+      IF ( ALLOCATED( GAS_HNO3 ) ) DEALLOCATE( GAS_HNO3 )
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_ISOROPIA

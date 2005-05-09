@@ -1,14 +1,17 @@
-! $Id: seasalt_mod.f,v 1.5 2005/03/29 15:52:44 bmy Exp $
+! $Id: seasalt_mod.f,v 1.6 2005/05/09 14:34:00 bmy Exp $
       MODULE SEASALT_MOD
 !
 !******************************************************************************
 !  Module SEASALT_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline seasalt aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (bec, rjp, bmy, 6/22/00, 2/22/05)
+!  (bec, rjp, bmy, 6/22/00, 4/13/05)
 !
-!  Seasalt aerosol species: (1) Accumulation mode (0.1 -  2.5 um)  
-!                           (2) Coarse mode       (2.5 - 10.0 um)
+!  Seasalt aerosol species: (1) Accumulation mode (usually 0.1 -  0.5 um)
+!                           (2) Coarse mode       (usually 0.5 - 10.0 um)
+!
+!  NOTE: You can change the bin sizes for accumulation mode and coarse
+!        mode seasalt in the "input.geos" file in v7-yy-zz and higher.
 !
 !  Module Variables:
 !  ============================================================================
@@ -18,8 +21,11 @@
 !  (4 ) IDDEP    (INTEGER) : Drydep index array for sea salt tracers
 !  (5 ) REDGE    (REAL*8 ) : Array for edges of seasalt radius bins
 !  (6 ) RMID     (REAL*8 ) : Array for centers of seasalt radius bins
-!  (7 ) SRC      (REAL*8 ) : Array for baseline seasalt emission per bin
+!  (7 ) SRC      (REAL*8 ) : Array for baseline seasalt emission/bin [kg/m2]
+!  (7 ) SRC_N    (REAL*8 ) : Array for baseline seasalt emission/bin [#/m2]
 !  (8 ) SS_DEN   (REAL*8 ) : Sea salt density [kg/m3]
+!  (9 ) ALK_EMIS (REAL*8 ) : Array for alkalinity [kg]
+!  (10) N_DENS   (REAL*8 ) : Number density of seasalt emissions [#/m3]
 !
 !  Module Routines:
 !  ============================================================================
@@ -28,6 +34,7 @@
 !  (3 ) DRY_DEPOSITION     : Routine which performs dry deposition of sea salt
 !  (4 ) EMISSSEASALT       : Driver routine for sea salt emissions
 !  (5 ) SRCSALT            : Updates surface mixing ratio for sea salt
+!  (6 ) GET_ALK            : Gets the alkalinity of seasalt emissions
 !  (6 ) INIT_SEASALT       : Allocates all module arrays
 !  (7 ) CLEANUP_SEASALT    : Deallocates all module arrays
 !
@@ -61,6 +68,7 @@
 !        from "tracer_mod.f".  Increased NR_MAX to 200. (bmy, 7/20/04)
 !  (2 ) Added error check in EMISSSEASALT (bmy, 1/20/05)
 !  (3 ) Now references "pbl_mix_mod.f" (bmy, 2/22/05)
+!  (4 ) Added routine GET_ALK to account for alkalinity. (bec, bmy, 4/13/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -77,6 +85,7 @@
       PUBLIC :: CHEMSEASALT
       PUBLIC :: EMISSSEASALT
       PUBLIC :: CLEANUP_SEASALT
+      PUBLIC :: GET_ALK
 
       !=================================================================
       ! MODULE VARIABLES
@@ -91,7 +100,10 @@
       INTEGER              :: IDDEP(NSALT)
       REAL*8,  ALLOCATABLE :: REDGE(:,:)   
       REAL*8,  ALLOCATABLE :: RMID(:,:)
-      REAL*8,  ALLOCATABLE :: SRC(:,:)     
+      REAL*8,  ALLOCATABLE :: SRC(:,:)   
+      REAL*8,  ALLOCATABLE :: SRC_N(:,:)   
+      REAL*8,  ALLOCATABLE :: ALK_EMIS(:,:,:,:)
+      REAL*8,  ALLOCATABLE :: N_DENS(:,:,:,:)    
       REAL*8               :: SS_DEN(NSALT)    = (/2200.d0, 2200.d0  /)
 
       !=================================================================
@@ -506,6 +518,8 @@
 !  (2 ) Now make sure IDTSALA, IDTSALC are nonzero before calling SRCSALT.
 !        (bmy, 1/26/05)
 !  (3 ) Remove reference to header file "CMN" (bmy, 2/22/05)
+!  (4 ) Now call INIT_SEASALT on the first timestep.  Also initialize ALK_EMIS
+!        and N_DENS on each timestep. (bec, bmy, 4/13/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -515,22 +529,47 @@
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
 
 #     include "CMN_SIZE"     ! Size parameters
-!----------------------------------------------
-! Prior to 2/22/05:
-!#     include "CMN"      ! STT, LPRT
-!----------------------------------------------
+
+      ! Local variables
+      LOGICAL, SAVE         :: FIRST = .TRUE.
+      INTEGER               :: I, J, L, N
 
       !=================================================================
       ! EMISSSEASALT begins here! 
       !=================================================================
 
-      ! Accumulation mode
+      !### Debug
+      IF ( LPRT ) CALL DEBUG_MSG( '### in EMISSEASALT' )
+
+      ! Allocate all module arrays (bec, bmy, 4/13/05)
+      IF ( FIRST ) THEN  
+         CALL INIT_SEASALT
+         FIRST = .FALSE.
+      ENDIF
+
+      ! Initialize for each timestep (bec, bmy, 4/13/05)
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N )
+      DO N = 1, NSALT
+      DO L = 1, LLTROP
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         ALK_EMIS(I,J,L,N) = 0d0
+         N_DENS(I,J,L,N)   = 0d0
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Accumulation mode emissions
       IF ( IDTSALA > 0 ) THEN
          CALL SRCSALT( STT(:,:,:,IDTSALA), 1 )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Accum' )
       ENDIF
 
-      ! Coarse mode
+      ! Coarse mode emissions
       IF ( IDTSALC > 0 ) THEN
          CALL SRCSALT( STT(:,:,:,IDTSALC), 2 )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Coarse' )
@@ -577,29 +616,23 @@
 !  (2 ) Now references GET_FRAC_OF_PBL and GET_PBL_TOP_L from "pbl_mix_mod.f".
 !        Removed reference to header file CMN.  Removed reference to 
 !        "pressure_mod.f".  (bmy, 2/22/05)
+!  (3 ) Now also compute alkalinity and number density of seasalt emissions.
+!        (bec, bmy, 4/13/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,       ONLY : PBL, AD, IS_WATER 
+      USE DAO_MOD,       ONLY : PBL, AD, IS_WATER, AIRVOL
       USE DIAG_MOD,      ONLY : AD08
       USE ERROR_MOD,     ONLY : DEBUG_MSG, ERROR_STOP
       USE GRID_MOD,      ONLY : GET_AREA_M2
       USE PBL_MIX_MOD,   ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
-      !----------------------------------------------------------------
-      ! Prior to 2/22/05:
-      !USE PRESSURE_MOD,  ONLY : GET_PEDGE
-      !----------------------------------------------------------------
       USE TIME_MOD,      ONLY : GET_TS_EMIS
       USE TRACER_MOD,    ONLY : SALA_REDGE_um, SALC_REDGE_um
 
 #     include "CMN_SIZE"      ! Size parameters
-!------------------------------------------------------------
-! Prior to 2/22/05:
-!#     include "CMN"           ! XTRA2
-!------------------------------------------------------------
 #     include "CMN_O3"        ! XNUMOL
 #     include "CMN_DIAG"      ! ND44, ND08
-#     include "CMN_GCTM"      ! PI, SCALE_HEIGHT
+#     include "CMN_GCTM"      ! PI
 
       ! Arguments
       INTEGER, INTENT(IN)    :: N
@@ -607,19 +640,17 @@
 
       ! Local variables 
       LOGICAL, SAVE          :: FIRST = .TRUE.
-      LOGICAL, SAVE          :: FLAG  = .TRUE.
-      INTEGER                :: I,    J,      L
-      INTEGER                :: R,    NR,     NTOP
-      !--------------------------------------------------------------
-      ! Prior to 2/22/05:
-      !REAL*8                 :: W10M, BLTOP, DTEMIS,  R0
-      !REAL*8                 :: R1,   CONST, P1,      P2
-      !REAL*8                 :: DELP, FEMIS, SALTSRC, BLTHIK
-      !--------------------------------------------------------------
-      REAL*8                 :: W10M, DTEMIS, R0
-      REAL*8                 :: R1,   CONST,  FEMIS
-      REAL*8                 :: A_M2
+      !-----------------------------------------------
+      ! Prior to 4/13/05:
+      !LOGICAL, SAVE          :: FLAG  = .TRUE.
+      !-----------------------------------------------
+      INTEGER                :: I,     J,      L
+      INTEGER                :: R,     NR,     NTOP
+      REAL*8                 :: W10M,  DTEMIS, R0
+      REAL*8                 :: R1,    CONST,  CONST_N
+      REAL*8                 :: FEMIS, A_M2
       REAL*8                 :: SALT(IIPAR,JJPAR)
+      REAL*8                 :: SALT_N(IIPAR,JJPAR)
 
       ! Increment of radius for Emission integration (um)
       REAL*8, PARAMETER      :: DR    = 5.d-2
@@ -632,17 +663,23 @@
       ! SRCSALT begins here!
       !=================================================================
       
-      ! Alllocate arrays
-      IF ( FIRST ) THEN
-         CALL INIT_SEASALT
-         FIRST = .FALSE.
-      ENDIF
+      !---------------------------
+      ! Prior to 4/13/05:
+      !! Alllocate arrays
+      !IF ( FIRST ) THEN
+      !   CALL INIT_SEASALT
+      !   FIRST = .FALSE.
+      !ENDIF
+      !---------------------------
 
       ! Emission timestep [s]
       DTEMIS = GET_TS_EMIS() * 60d0
 
       ! Constant [volume * time * other stuff??] 
-      CONST = 4d0/3d0 * PI * DR * DTEMIS * 1.d-18 * 1.373d0
+      CONST   = 4d0/3d0 * PI * DR * DTEMIS * 1.d-18 * 1.373d0
+
+      ! Constant for converting to [#/m2] (bec, bmy, 4/13/05)
+      CONST_N = DTEMIS * DR * 1.373d0
 
       ! Lower and upper limit of size bin N [um]
       SELECT CASE( N ) 
@@ -659,7 +696,6 @@
             
       END SELECT
 
-
       ! Number of radius size bins
       NR = INT( ( ( R1 - R0 ) / DR ) + 0.5d0 ) 
 
@@ -674,7 +710,8 @@
 !$OMP+PRIVATE( I, J )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         SALT(I,J) = 0d0
+         SALT(I,J)   = 0d0
+         SALT_N(I,J) = 0d0
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -683,7 +720,7 @@
       ! Define edges and midpoints of each incrmental radius bin
       ! This only has to be done once per sea salt type
       !=================================================================
-      IF ( FLAG ) THEN 
+      IF ( FIRST ) THEN 
 
          ! Lower edge of 0th bin
          REDGE(0,N) = R0
@@ -697,12 +734,18 @@
             ! Upper edge of IRth bin
             REDGE(R,N) = REDGE(R-1,N) + DR 
 
-            ! Sea salt base source [kg/m2] ??
+            ! Sea salt base source [kg/m2]
             SRC(R,N)  = CONST * SS_DEN( N ) 
      &           * ( 1.d0 + 0.057d0*( BETHA * RMID(R,N) )**1.05d0 )
      &           * 10d0**( 1.19d0*
      &                  EXP(-((0.38d0-LOG(BETHA*RMID(R,N)))/0.65d0)**2))
      &           / BETHA**2         
+
+            ! Sea salt base source [#/m2] (bec, bmy, 4/13/05)
+            SRC_N(R,N) = CONST_N * (1.d0/RMID(R,N)**3)
+     &           * (1.d0+0.057d0*(BETHA*RMID(R,N))**1.05d0)
+     &           * 10d0**(1.19d0*EXP(-((0.38d0-LOG(BETHA*RMID(R,N)))
+     &           /0.65d0)**2))/ BETHA**2  
 
 !### Debug
 !###           WRITE( 6, 100 ) R,REDGE(R-1,N),RMID(R,N),REDGE(R,N),SRC(R,N)
@@ -710,7 +753,7 @@
          ENDDO
       
          ! Reset only after N=NSALT
-         IF ( FLAG .and.  N == NSALT ) FLAG = .FALSE.
+         IF ( FIRST .and.  N == NSALT ) FIRST = .FALSE.
       ENDIF
     
       !=================================================================
@@ -740,8 +783,13 @@
                DO R = 1, NR
 
                   ! Update seasalt source into SALT [kg]
-                  SALT(I,J) = SALT(I,J) + 
-     &                        ( SRC(R,N) * A_M2 * W10M**3.41d0 )
+                  SALT(I,J)   = SALT(I,J) + 
+     &                          ( SRC(R,N)   * A_M2 * W10M**3.41d0 )
+
+                  ! Update seasalt source into SALT_N [#] 
+                  ! (bec, bmy, 4/13/05)
+                  SALT_N(I,J) = SALT_N(I,J) +
+     &                          ( SRC_N(R,N) * A_M2 * W10M**3.41d0 )
 
                ENDDO
             ENDIF
@@ -752,95 +800,6 @@
       !=================================================================
       ! Now partition seasalt emissions through boundary layer
       !=================================================================
-!-----------------------------------------------------------------------------
-! Prior to 2/22/05:
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J,  NTOP, SALTSRC, BLTOP, BLTHIK )
-!!$OMP+PRIVATE( L, P1, P2,   DELP,    FEMIS         )
-!!$OMP+SCHEDULE( DYNAMIC ) 
-!
-!         ! Layer where the PBL top happens
-!         NTOP = CEILING( XTRA2(I,J) )
-!         
-!         ! Initialize
-!         SALTSRC = 0.d0
-!
-!         !==============================================================
-!         ! PBL height is in the 3rd model layer or higher
-!         !==============================================================
-!         IF ( NTOP >= 2 ) THEN
-!
-!#if   defined( GEOS_4 )
-!
-!            ! BLTOP = pressure at PBL top [hPa]
-!            ! Use barometric law since PBL is in [m]
-!            BLTOP  = GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT )
-!
-!            ! BLTHIK is PBL thickness [hPa]
-!            BLTHIK = GET_PEDGE(I,J,1) - BLTOP
-!
-!#else
-!
-!            ! BLTOP = pressure of PBL top [hPa]
-!            BLTOP  = GET_PEDGE(I,J,1) - PBL(I,J)
-!
-!            ! BLTHIK is PBL thickness [hPa]
-!            BLTHIK = PBL(I,J)
-!
-!#endif
-!
-!            ! Loop thru the boundary layer
-!            DO L = 1, NTOP
-!
-!               ! DELP is the pressure thickness of level L [hPa]
-!               P1   = GET_PEDGE(I,J,L) 
-!               P2   = GET_PEDGE(I,J,L+1)
-!               DELP = P1 - P2
-!
-!               ! Case of model grid is lower than PBL
-!               IF ( BLTOP <= P2 )  THEN
-!                  FEMIS = DELP / BLTHIK
-!   
-!               ! Level L lies completely w/in the PBL
-!               ELSE IF ( BLTOP > P2 .AND. BLTOP < P1 ) THEN
-!                  FEMIS = ( P1 - BLTOP ) / BLTHIK
-!
-!               ! Level L lies completely out of the PBL
-!               ELSE IF ( BLTOP > P1 ) THEN
-!                  CYCLE
-!
-!               ENDIF
-!
-!               ! Partition total seasalt into level K [kg/ts]
-!               ! This is just for error checking
-!               SALTSRC   = SALTSRC   + ( FEMIS * SALT(I,J) )
-!
-!               ! Fraction of total seasalt in level L
-!               TC(I,J,L) = TC(I,J,L) + ( FEMIS * SALT(I,J) )
-!            ENDDO
-!
-!            ! Error check
-!            IF ( ABS( SALTSRC - SALT(I,J) ) > 1.D-5 ) THEN
-!!$OMP CRITICAL
-!               PRINT*, '### ERROR in SRCSALT!'
-!               PRINT*, '### I, J           : ', I, J
-!               PRINT*, '### SALTSRC        : ', SALTSRC
-!               PRINT*, '### SRCE_SEAS(I,J) : ', SALT(I,J)
-!!$OMP END CRITICAL
-!               CALL ERROR_STOP( 'Check SEASALT redistribution', 
-!     &                          'SRCSALT (seasalt_mod.f)' )
-!            ENDIF
-!
-!         !==============================================================
-!         ! If PBL height and lower or similar to the second model layer
-!         ! then surface emission is emitted to the first model layer	
-!         !==============================================================
-!         ELSE         
-!            TC(I,J,1) = TC(I,J,1) + SALT(I,J)
-!         ENDIF 
-!-----------------------------------------------------------------------------
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, NTOP, L, FEMIS )
@@ -855,10 +814,16 @@
          DO L = 1, NTOP
 
             ! Fraction of the PBL spanned by box (I,J,L) [unitless]
-            FEMIS     = GET_FRAC_OF_PBL( I, J, L )
+            FEMIS             = GET_FRAC_OF_PBL( I, J, L )
 
             ! Add seasalt emissions into box (I,J,L) [kg]
-            TC(I,J,L) = TC(I,J,L) + ( FEMIS * SALT(I,J) )
+            TC(I,J,L)         = TC(I,J,L) + ( FEMIS * SALT(I,J) )
+
+	    ! Alkalinity [kg] (bec, bmy, 4/13/05)
+            ALK_EMIS(I,J,L,N) = SALT(I,J)
+
+	    ! Number density [#/m3] (bec, bmy, 4/13/05)
+	    N_DENS(I,J,L,N)   = SALT_N(I,J) / AIRVOL(I,J,L)              
 
          ENDDO
 
@@ -875,23 +840,223 @@
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE GET_ALK( I, J, L, ALK1, ALK2, Kt1, Kt2, Kt1N, Kt2N )
+!
+!******************************************************************************
+!  Function GET_ALK returns the seasalt alkalinity emitted at each timestep to
+!  sulfate_mod.f for chemistry on seasalt aerosols.
+!  (bec, 12/7/04)
+! 
+!  Arguments as Input:
+!  ============================================================================
+!
+!  NOTES:
+!******************************************************************************
+!
+      USE DAO_MOD,      ONLY : AD, RH
+      USE ERROR_MOD,    ONLY : IT_IS_NAN
+      USE TRACER_MOD,   ONLY : SALA_REDGE_um, SALC_REDGE_um
+
+      ! Arguments
+      INTEGER, INTENT(IN)  :: I, J, L 
+      
+      ! Return value
+      REAL*8, INTENT(OUT)  :: ALK1, ALK2 ! [kg]
+      REAL*8, INTENT(OUT)  :: Kt1, Kt2, Kt1N, Kt2N ! [s-1]
+ 
+      REAL*8,  PARAMETER :: PI = 3.14159265
+      REAL*8             :: N1, N2, Kt
+      REAL*8             :: AREA1, AREA2, HGF, ALK
+      REAL*8             :: RAD1, RAD2, RAD3
+      REAL*8             :: term1a, term2a, term3a
+      REAL*8             :: term1b, term2b, term3b
+      REAL*8             :: term1aN, term2aN, term3aN
+      REAL*8             :: term1bN, term2bN, term3bN
+      REAL*8             :: const1, const2, const1N, const2N
+      REAL*8             :: a1, a2, b1, b2, a1N, a2N, b1N, b2N
+      REAL*8,  PARAMETER :: MINDAT = 1.d-20
+      INTEGER            :: IRH
+      REAL*8,  PARAMETER   :: gamma_SO2 = 0.11d0 !from Worsnop et al. (1989)
+      REAL*8,  PARAMETER   :: gamma_HNO3 = 0.2d0 !from JPL [2001] 
+      REAL*8,  PARAMETER   :: Dg = 0.2d0 !gas phase diffusion coeff. [cm2/s]
+      REAL*8,  PARAMETER   :: v = 3.0d4 !cm/s
+
+      LOGICAL, SAVE :: FIRST = .TRUE.
+ 
+      !=================================================================
+      ! GET_ALK begins here!
+      !=================================================================
+
+      ! Zero variables
+      ALK1  = 0.D0
+      ALK2  = 0.D0
+      KT1   = 0.D0
+      KT2   = 0.D0
+      KT1N  = 0.D0
+      KT2N  = 0.D0
+      AREA1 = 0.D0
+      AREA2 = 0.D0
+      N1    = 0.D0
+      N2    = 0.D0
+
+      ! [kg] use this when not transporting alk
+      ALK1  = ALK_EMIS(I,J,L,1)
+      ALK2  = ALK_EMIS(I,J,L,2)
+
+      !-----------------------------------------------------------------------
+      ! NOTE: If you want to transport alkalinity then uncomment this section
+      ! (bec, bmy, 4/13/05)
+      ! 
+      !! alkalinity [v/v] to [kg] use this when transporting alk
+      !! or using Liao et al [2004] assumption of a continuous supply of
+      ! alkalinity based on Laskin et al. [2003]
+      !ALK1 = STT(I,J,L,IDTSALA) * AD(I,J,L)/TCVV(IDTSALA)
+      !ALK2 = STT(I,J,L,IDTSALC) * AD(I,J,L)/TCVV(IDTSALC)
+      !-----------------------------------------------------------------------
+
+      ! Conversion from [m-3] --> [cm-3]
+      N1 = N_DENS(I,J,L,1) * 1.d-6
+      N2 = N_DENS(I,J,L,2) * 1.d-6
+
+      ALK = ALK1 + ALK2
+
+      ! If there is any alkalinity ...
+      IF ( ALK > MINDAT ) THEN
+
+         ! set humidity index IRH as a percent
+         IRH = RH(I,J,L)
+         IRH = MAX(  1, IRH )
+         IRH = MIN( 99, IRH )
+
+         ! hygroscopic growth factor for sea-salt from Chin et al. (2002)
+         IF ( IRH < 100 ) HGF = 2.2d0
+         IF ( IRH < 99  ) HGF = 1.9d0
+         IF ( IRH < 95  ) HGF = 1.8d0
+         IF ( IRH < 90  ) HGF = 1.6d0
+         IF ( IRH < 80  ) HGF = 1.5d0
+         IF ( IRH < 70  ) HGF = 1.4d0
+         IF ( IRH < 50  ) HGF = 1.0d0
+	
+         ! radius of sea-salt aerosol size bins [cm] accounting for 
+         ! hygroscopic growth
+         RAD1 = SALA_REDGE_um(1) * HGF * 1.d-4 
+         RAD2 = SALA_REDGE_um(2) * HGF * 1.d-4 
+         RAD3 = SALC_REDGE_um(2) * HGF * 1.d-4 
+
+         !----------------------------------
+         ! SO2 uptake onto fine particles 
+         !----------------------------------
+
+         ! surface area of fine sea-salt aerosols [cm2 cm-3]
+         AREA1 = 4.d0*PI*N1*(((RAD2**3)/3.d0)-((RAD1**3)/3.d0))
+
+	 ! calculate gas-to-particle rate constant for uptake of 
+	 ! SO2 onto fine sea-salt aerosols [Jacob, 2000] analytical solution
+         CONST1 = 4.D0/(V*GAMMA_SO2)
+         A1     = (RAD1/DG)+CONST1
+         B1     = (RAD2/DG)+CONST1
+         TERM1A = (((B1/DG)**2)+(2.0D0*CONST1*B1/DG)+(CONST1**2)) -
+     &            (((A1/DG)**2)+(2.0D0*CONST1*A1/DG)+(CONST1**2))
+         TERM2A = 2.D0*CONST1*(((B1/DG)+CONST1)-((A1/DG)+CONST1))
+         TERM3A = (CONST1**2)*(LOG((B1/DG)+CONST1) -
+     &            LOG((A1/DG)+CONST1))
+         KT1    = 4.D0*PI*N1*(DG**2)*(TERM1A - TERM2A + TERM3A)
+
+         !----------------------------------
+         ! SO2 uptake onto coarse particles 
+         !----------------------------------
+         
+         ! surface area of coarse sea-salt aerosols
+         AREA2  = 4.d0*PI*N2*(((RAD3**3)/3.d0)-((RAD2**3)/3.d0))
+
+	 ! calculate gas-to-particle rate constant for uptake of 
+	 ! SO2 onto coarse sea-salt aerosols [Jacob, 2000] analytical solution
+         CONST2 = 4.D0/(V*GAMMA_SO2)
+         A2     = (RAD2/DG)+CONST2
+         B2     = (RAD3/DG)+CONST2
+         TERM1B = (((B2/DG)**2)+(2.0D0*CONST2*B2/DG)+(CONST2**2)) -
+     &            (((A2/DG)**2)+(2.0D0*CONST2*A2/DG)+(CONST2**2))
+         TERM2B = 2.D0*CONST2*(((B2/DG)+CONST2)-((A2/DG)+CONST2))
+         TERM3B = (CONST2**2)*(LOG((B2/DG)+CONST2) -
+     &             LOG((A2/DG)+CONST2))
+         KT2    = 4.D0*PI*N2*(DG**2)*(TERM1B - TERM2B + TERM3B)
+         KT     = KT1 + KT2
+
+         !----------------------------------
+         ! HNO3 uptake onto fine particles 
+         !----------------------------------
+
+         ! calculate gas-to-particle rate constant for uptake of 
+         ! HNO3 onto fine sea-salt aerosols [Jacob, 2000] analytical solution
+         CONST1N = 4.D0/(V*GAMMA_HNO3)
+         A1N     = (RAD1/DG)+CONST1N
+         B1N     = (RAD2/DG)+CONST1N
+         TERM1AN = (((B1N/DG)**2)+(2.0D0*CONST1N*B1N/DG)+(CONST1N**2)) -
+     &             (((A1N/DG)**2)+(2.0D0*CONST1N*A1N/DG)+(CONST1N**2))
+         TERM2AN = 2.D0*CONST1N*(((B1N/DG)+CONST1N)-((A1N/DG)+CONST1N))
+         TERM3AN = (CONST1N**2)*(LOG((B1N/DG)+CONST1N) -
+     &             LOG((A1N/DG)+CONST1N))
+         KT1N    = 4.D0*PI*N1*(DG**2)*(TERM1AN - TERM2AN + TERM3AN)
+
+         !----------------------------------
+         ! HNO3 uptake onto coarse particles 
+         !----------------------------------
+
+	 ! calculate gas-to-particle rate constant for uptake of 
+	 ! HNO3 onto coarse sea-salt aerosols [Jacob, 2000] analytical solution
+         CONST2N = 4.D0/(V*GAMMA_HNO3)
+         A2N     = (RAD2/DG)+CONST2N
+         B2N     = (RAD3/DG)+CONST2N
+         TERM1BN = (((B2N/DG)**2)+(2.0D0*CONST2N*B2N/DG)+(CONST2N**2)) -
+     &             (((A2N/DG)**2)+(2.0D0*CONST2N*A2N/DG)+(CONST2N**2))
+         TERM2BN = 2.D0*CONST2N*(((B2N/DG)+CONST2N)-((A2N/DG)+CONST2N))
+         TERM3BN = (CONST2N**2)*(LOG((B2N/DG)+CONST2N) -
+     &             LOG((A2N/DG)+CONST2N))
+         KT2N    = 4.D0*PI*N2*(DG**2)*(TERM1BN - TERM2BN + TERM3BN)
+         
+      ELSE
+
+         ! If no alkalinity, set everything to zero
+         KT1  = 0.D0
+         KT1N = 0.D0
+         KT2  = 0.D0
+         KT2N = 0.D0
+
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE GET_ALK
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE INIT_SEASALT
 !
 !******************************************************************************
-!  Subroutine INIT_SEASALT initializes all module arrays (bmy, 4/26/04)
+!  Subroutine INIT_SEASALT initializes and zeroes all module arrays 
+!  (bmy, 4/26/04, 4/13/05)
 !
 !  NOTES:
+!  (1 ) Now exit if we have allocated arrays before.  Now also allocate 
+!        ALK_EMIS & N_DENS.  Now reference CMN_SIZE. (bec, bmy, 4/13/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
+#     include "CMN_SIZE"
+
       ! Local variables
-      INTEGER :: AS
+      LOGICAL, SAVE :: IS_INIT = .FALSE.
+      INTEGER       :: AS
 
       !=================================================================
       ! INIT_SEASALT begins here!
       !=================================================================
+
+      ! Return if we have already allocated arrays
+      IF ( IS_INIT ) RETURN
+
+      ! Allocate arrays
       ALLOCATE( REDGE( 0:NR_MAX, NSALT ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'REDGE' )
       REDGE = 0d0
@@ -904,6 +1069,21 @@
       IF ( AS /=0 ) CALL ALLOC_ERR( 'SRC' )
       SRC = 0d0
 
+      ALLOCATE( SRC_N( NR_MAX, NSALT ), STAT=AS )
+      IF ( AS /=0 ) CALL ALLOC_ERR( 'SRC_N' )
+      SRC_N = 0d0
+
+      ALLOCATE( ALK_EMIS( IIPAR, JJPAR, LLTROP, NSALT ), STAT=AS )
+      IF ( AS /=0 ) CALL ALLOC_ERR( 'ALK_EMIS' )
+      ALK_EMIS = 0d0
+
+      ALLOCATE( N_DENS( IIPAR, JJPAR, LLTROP, NSALT ), STAT=AS )
+      IF ( AS /=0 ) CALL ALLOC_ERR( 'N_DENS' )
+      N_DENS = 0d0
+
+      ! Reset IS_INIT
+      IS_INIT = .TRUE.
+
       ! Return to calling program
       END SUBROUTINE INIT_SEASALT
 
@@ -912,18 +1092,23 @@
       SUBROUTINE CLEANUP_SEASALT
 !
 !******************************************************************************
-!  Subroutine INIT_SEASALT deallocates all module arrays (bmy, 4/26/04)
+!  Subroutine INIT_SEASALT deallocates all module arrays 
+!  (bmy, 4/26/04, 4/13/05)
 !
 !  NOTES:
+!  (1 ) Now deallocates ALK_EMIS, N_DENS, SRC_N (bec, bmy, 4/13/05)
 !******************************************************************************
 !
       !=================================================================
       ! CLEANUP_SEASALT begins here!
       !=================================================================
-      IF ( ALLOCATED( REDGE ) ) DEALLOCATE( REDGE )
-      IF ( ALLOCATED( RMID  ) ) DEALLOCATE( RMID  )
-      IF ( ALLOCATED( SRC   ) ) DEALLOCATE( SRC   )
-      
+      IF ( ALLOCATED( REDGE    ) ) DEALLOCATE( REDGE    )
+      IF ( ALLOCATED( RMID     ) ) DEALLOCATE( RMID     )
+      IF ( ALLOCATED( SRC      ) ) DEALLOCATE( SRC      )
+      IF ( ALLOCATED( SRC_N    ) ) DEALLOCATE( SRC_N    )
+      IF ( ALLOCATED( ALK_EMIS ) ) DEALLOCATE( ALK_EMIS )
+      IF ( ALLOCATED( N_DENS   ) ) DEALLOCATE( N_DENS   )      
+
       ! Return to calling program
       END SUBROUTINE CLEANUP_SEASALT
 

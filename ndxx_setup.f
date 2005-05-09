@@ -1,9 +1,9 @@
-! $Id: ndxx_setup.f,v 1.17 2005/03/29 15:52:43 bmy Exp $
+! $Id: ndxx_setup.f,v 1.18 2005/05/09 14:34:00 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
 !  NDXX_SETUP dynamically allocates memory for certain diagnostic arrays that 
-!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 3/24/05)
+!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 4/13/05)
 !
 !  This allows us to reduce the amount of memory that needs to be declared 
 !  globally.  We only allocate memory for arrays if the corresponding 
@@ -114,6 +114,7 @@
 !  (53) Now remove references to AD41 & AFTTOT.  Now call SETUP_PLANEFLIGHT 
 !        for non-full-chemistry runs in main.f -- this will allow it to look 
 !        for flight files for each day (bmy, 3/24/05)
+!  (54) Now use PD05=10 to dimension AD05 array (bmy, 4/13/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -174,67 +175,74 @@
       ! TRCOFFSET will be used to offset punch file tracer indices
       !=================================================================
 
-      IF ( ITS_A_RnPbBe_SIM() ) THEN
-         TRCOFFSET = 60         
-            
-      ELSE IF ( ITS_A_CH3I_SIM() ) THEN
-         TRCOFFSET = 70         
+      !-----------------------------------------------------------------------
+      !IF ( ITS_A_RnPbBe_SIM() ) THEN
+      !   TRCOFFSET = 60         
+      !      
+      !ELSE IF ( ITS_A_CH3I_SIM() ) THEN
+      !   TRCOFFSET = 70         
+      !
+      !ELSE IF ( ITS_A_HCN_SIM() ) THEN
+      !   TRCOFFSET = 80         
+      !
+      !ELSE IF ( ITS_A_COPARAM_SIM() ) THEN
+      !   TRCOFFSET = 3          
+      !
+      !ELSE IF ( ITS_A_TAGOX_SIM() ) THEN
+      !   TRCOFFSET = 40         
+      !
+      !ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
+      !   TRCOFFSET = 80         
+      !
+      !ELSE IF ( ITS_A_C2H6_SIM() ) THEN
+      !   TRCOFFSET = 64         
+      !
+      !ELSE IF ( ITS_A_CH4_SIM() ) THEN
+      !   TRCOFFSET = 54         
+      !
+      !ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
+      !   TRCOFFSET = 70
+      !
+      !ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+      !   TRCOFFSET = 50         
+      !
+      !   IF ( LCARB ) THEN
+      !
+      !      ! Tracer offset for carbon-aerosol-only simulation
+      !      IF ( .not. ( LSULF .and. LDUST .and. LSSALT ) ) THEN
+      !         TRCOFFSET = 58
+      !      ENDIF
+      !    
+      !   ELSE IF ( LDUST ) THEN
+      !
+      !      ! Tracer offset dust-aerosol-only simulation
+      !      IF ( .not. ( LSULF .and. LCARB .and. LSSALT ) ) THEN
+      !         TRCOFFSET = 62
+      !      ENDIF            
+      !
+      !   ELSE IF ( LSSALT ) THEN
+      !   
+      !      !! Tracer offset seasalt-aerosol-only simulation
+      !      !IF ( .not. ( LSULF .and. LCARB .and. LSSALT ) ) THEN
+      !      !   TRCOFFSET = 66
+      !      !ENDIF    
+      !      TRCOFFSET = 50
+      !
+      !   ENDIF
+      !
+      !! Implement this more fully later...
+      !!ELSE IF ( ITS_A_Kr85_SIM() ) THEN
+      !!   TRCOFFSET = 75        
+      !       
+      !ELSE
+      !   TRCOFFSET = 0
+      !
+      !ENDIF
+      !-----------------------------------------------------------------------
 
-      ELSE IF ( ITS_A_HCN_SIM() ) THEN
-         TRCOFFSET = 80         
-
-      ELSE IF ( ITS_A_COPARAM_SIM() ) THEN
-         TRCOFFSET = 3          
-
-      ELSE IF ( ITS_A_TAGOX_SIM() ) THEN
-         TRCOFFSET = 40         
-
-      ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
-         TRCOFFSET = 80         
-
-      ELSE IF ( ITS_A_C2H6_SIM() ) THEN
-         TRCOFFSET = 64         
-
-      ELSE IF ( ITS_A_CH4_SIM() ) THEN
-         TRCOFFSET = 54         
-
-      ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
-         TRCOFFSET = 70
-
-      ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
-         TRCOFFSET = 50         
-
-         IF ( LCARB ) THEN
-
-            ! Tracer offset for carbon-aerosol-only simulation
-            IF ( .not. ( LSULF .and. LDUST .and. LSSALT ) ) THEN
-               TRCOFFSET = 58
-            ENDIF
-          
-         ELSE IF ( LDUST ) THEN
-
-            ! Tracer offset dust-aerosol-only simulation
-            IF ( .not. ( LSULF .and. LCARB .and. LSSALT ) ) THEN
-               TRCOFFSET = 62
-            ENDIF            
-
-         ELSE IF ( LSSALT ) THEN
-         
-            ! Tracer offset seasalt-aerosol-only simulation
-            IF ( .not. ( LSULF .and. LCARB .and. LSSALT ) ) THEN
-               TRCOFFSET = 66
-            ENDIF    
-
-         ENDIF
-
-      ! Implement this more fully later...
-      !ELSE IF ( ITS_A_Kr85_SIM() ) THEN
-      !   TRCOFFSET = 75        
-             
-      ELSE
-         TRCOFFSET = 0
-
-      ENDIF
+      ! Make TRCOFFSET = 0 since we now write out both "diaginfo.dat" 
+      ! and "tracerinfo.dat" files for GAMAP (bmy, 4/20/05)
+      TRCOFFSET = 0
 
       !=================================================================
       ! ND01: Rn, Pb, Be emissions
@@ -264,7 +272,7 @@
       IF ( ND05 > 0 ) THEN
          LD05 = MIN( ND05, LLTROP )
 
-         ALLOCATE( AD05( IIPAR, JJPAR, LD05, 10 ), STAT=AS )
+         ALLOCATE( AD05( IIPAR, JJPAR, LD05, PD05 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD05' )
       ENDIF
 
@@ -718,46 +726,6 @@
             IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD39' )
          ENDIF
       ENDIF
-
-      !----------------------------------------------------------------------
-      ! Prior to 3/23/05:
-      ! Now call SETUP_PLANEFLIGHT for non-full-chemistry runs in
-      ! main.f -- this will allow it to look for flight files for
-      ! each day (bmy, 3/24/05)
-      !!=================================================================
-      !! ND40: Plane flight track diagnostic
-      !!
-      !! NOTE: For SMVGEAR chemistry, we first have to read "chem.dat"
-      !!       before initializing the plane flight diagnostic.  Call
-      !!       routine SETUP_PLANEFLIGHT from "chemdr.f" in that case.
-      !!=================================================================
-      !IF ( ND40 > 0 .and. ( .not. ITS_A_FULLCHEM_SIM() ) ) THEN
-      !   CALL SETUP_PLANEFLIGHT
-      !ENDIF
-      !----------------------------------------------------------------------
-
-      !------------------------------------------------------------------------
-      ! Prior to 2/17/05:
-      ! ND41 diagnostics are now bundled into "diag41_mod.f" (bmy, 2/17/05)
-      !!=================================================================
-      !! ND41: PM (1200-1600 LT) boundary layer height [layers]
-      !!       --> uses AD41 array (allocatable)
-      !!=================================================================
-      !IF ( ND41 > 0 ) THEN
-      !
-      !   ! Accumulating diagnostic array
-      !   ALLOCATE( AD41( IIPAR, JJPAR, PD41 ), STAT=AS )
-      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD41' )
-      !
-      !   ! Locations where local time is between 1 and 4 PM 
-      !   ALLOCATE( AFTTOT( IIPAR, JJPAR ), STAT=AS )
-      !   IF ( AS /= 0 ) CALL ALLOC_ERR( 'AFTTOT' )
-      !
-      !   ! SAVENO2 is not used for now...
-      !   !ALLOCATE( SAVENO2( IIPAR, JJPAR, PD41 ), STAT=AS )
-      !   !IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD41' )
-      !ENDIF
-      !------------------------------------------------------------------------
 
       !=================================================================
       ! ND42: Free diagnostic

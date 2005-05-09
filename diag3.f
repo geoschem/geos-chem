@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.20 2005/03/29 15:52:40 bmy Exp $
+! $Id: diag3.f,v 1.21 2005/05/09 14:33:57 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out diagnostics to the BINARY format punch file 
-!  (bmy, bey, mgs, rvm, 5/27/99, 2/17/05)
+!  (bmy, bey, mgs, rvm, 5/27/99, 4/13/05)
 !
 !  NOTES: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
@@ -52,6 +52,10 @@
 !        Also now save total oceanic mass of Hg0 and Hg2.  Now call 
 !        WRITE_DIAG03 from "diag03_mod.f" (bmy, 1/21/05)
 !  (58) Now call WRITE_DIAG41 from "diag41_mod.f" (bmy, 2/17/05)
+!  (59) Add P(SO4s) to row 8 of ND05 diagnostic.  Also remove special tracer
+!        numbers for the ND67 diagnostic.  Now do not save CLDMAS for ND67
+!        for GEOS-4, since GEOS-4 convection uses different met fields.
+!        (bec, bmy, 5/3/05)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -237,9 +241,9 @@
 !  (5 ) SO4gas : P(SO4) gas phase              : kg S         : SCALEX
 !  (6 ) SO4aq  : P(SO4) aqueous phase          : kg S         : SCALEX
 !  (7 ) PSO4   : Total P(SO4)                  : kg S         : SCALEX
-!  (8 ) LOH    : L(OH) by DMS                  : kg OH        : SCALEX
-!  (9 ) LNO3   : L(NO3) by DMS                 : kg NO3       : SCALEX
-!  (10) LH2O2  : L(H2O2)                       : kg H2O2      : SCALEX
+!  (8 ) PSO4s  : Total P(SO4 from seasalt)     : kg S         : SCALEX
+!  (9 ) LOH    : L(OH) by DMS                  : kg OH        : SCALEX
+!  (10) LNO3   : L(NO3) by DMS                 : kg NO3       : SCALEX
 !******************************************************************************
 !
       IF ( ND05 > 0 ) THEN
@@ -248,9 +252,13 @@
          DO M = 1, TMAX(5)
             N = TINDEX(5,M)
 
-            ! Tracers 8, 9, 10 are OH, NO3, H2O2,
+            ! Tracers 9, 10 are OH, NO3
             ! and are in [kg] instead of [kg S]
-            IF ( N < 8 ) THEN 
+            !-----------------------
+            ! Prior to 4/13/05:
+            !IF ( N < 8 ) THEN 
+            !-----------------------
+            IF ( N < 9 ) THEN 
                UNIT = 'kg S'
             ELSE
                UNIT = 'kg'
@@ -1054,7 +1062,8 @@
 !   # : Field : Description                        : Units    : Scale factor
 !  --------------------------------------------------------------------------
 !  (1 ) OPTD   Cloud Optical Depth                 : unitless : SCALECHEM
-!  (2 ) CLMO   Maximum Overlap Cloud Fraction      : unitless : SCALECHEM
+!  (2 ) CLMO   Max Overlap Cloud Fraction (GEOS1,S): unitless : SCALECHEM
+!   or  CLDF   3-D Total Cloud fraction   (GEOS3,4): unitless : SCALECHEM
 !  (3 ) CLRO   Random  Overlap Cloud Fraction      : unitless : SCALECHEM
 !  (4 ) OPD    Mineral Dust Optical Depth (400 nm) : unitless : none
 !  (5 ) SD     Mineral Dust Surface Area           : cm2/cm3  : none
@@ -1976,49 +1985,6 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD39) )
          ENDDO
       ENDIF
-!------------------------------------------------------------------------------
-! Prior to 2/15/04
-!!
-!!******************************************************************************
-!!  ND40: Free diagnostic
-!!
-!!  ND41: Afternoon PBL depth (between 1200 and 1600 Local Time)
-!!
-!!   #  Field    : Description                 : Units     : Scale factor
-!!  --------------------------------------------------------------------------
-!!  (1) PBLDEPTH : Afternoon PBL heights       : m         : AFTTOT
-!!
-!!  NOTES:
-!!  (1) Bug fix: write one level to binary punch file (bmy, 12/12/00)
-!!******************************************************************************
-!!
-!      IF ( ND41 > 0 ) THEN 
-!         CATEGORY  = 'PBLDEPTH'
-!         SCALE_TMP = FLOAT( AFTTOT ) + 1d-20 
-!
-!         DO M = 1, TMAX(41)
-!            N = TINDEX(41,M)
-!            IF ( N > PD41 ) CYCLE
-!            NN = N
-!               
-!            ! Select the proper unit string
-!            SELECT CASE ( N ) 
-!               CASE ( 1 )
-!                  UNIT = 'm'
-!               CASE ( 2 )
-!                  UNIT = 'level'
-!            END SELECT
-!                     
-!            ARRAY(:,:,1) = AD41(:,:,N) / SCALE_TMP
-!
-!            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-!     &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
-!     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-!     &                  IIPAR,     JJPAR,     1,        IFIRST,     
-!     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
-!         ENDDO
-!      ENDIF   
-!------------------------------------------------------------------------------
 !
 !******************************************************************************
 !  ND41: Afternoon boundary layer heights
@@ -2563,11 +2529,16 @@
 #endif
                   UNIT   = 'g/kg'
 
+#if   !defined( GEOS_4 ) 
                ! CLDMAS
                CASE( 5 )
-                  NN     = 7
+                  !----------------------------
+                  ! Prior to 5/3/05
+                  !NN     = 7
+                  !----------------------------
                   SCALEX = SCALE_A6
                   UNIT   = 'kg/m2/s'
+#endif
 
                CASE DEFAULT
                   CYCLE
@@ -2664,27 +2635,45 @@
                CASE ( 17 ) 
                   SCALEX = SCALE_I6
                   UNIT   = 'hPa'
-                  NN     = 19   ! for GAMAP
+                  !---------------------------
+                  ! Prior to 5/3/05:
+                  !NN     = 19   ! for GAMAP
+                  !---------------------------
                CASE ( 18 ) 
                   SCALEX = SCALE_I6
                   UNIT   = 'hPa'
-                  NN     = 21   ! for GAMAP
+                  !---------------------------
+                  ! Prior to 5/3/05:
+                  !NN     = 21   ! for GAMAP
+                  !---------------------------
                CASE ( 19 ) 
                   SCALEX = SCALE_A3
                   UNIT   = 'K'
-                  NN     = 29   ! for GAMAP
+                  !---------------------------
+                  ! Prior to 5/3/05:
+                  !NN     = 29   ! for GAMAP
+                  !---------------------------
                CASE ( 20 ) 
                   SCALEX = SCALE_A3
                   UNIT   = 'W/m2'
-                  NN     = 32   ! for GAMAP
+                  !---------------------------
+                  ! Prior to 5/3/05:
+                  !NN     = 32   ! for GAMAP
+                  !---------------------------
                CASE ( 21 ) 
                   SCALEX = SCALE_A3
                   UNIT   = 'W/m2'
-                  NN     = 33   ! for GAMAP
+                  !---------------------------
+                  ! Prior to 5/3/05:
+                  !NN     = 33   ! for GAMAP
+                  !---------------------------
                CASE ( 22 ) 
                   SCALEX = SCALE_A3
                   UNIT   = 'unitless'
-                  NN     = 27   ! for GAMAP
+                  !---------------------------
+                  ! Prior to 5/3/05
+                  !NN     = 27   ! for GAMAP
+                  !---------------------------
                CASE DEFAULT
                   CYCLE
             END SELECT

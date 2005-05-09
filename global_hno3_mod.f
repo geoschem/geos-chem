@@ -1,9 +1,9 @@
-! $Id: global_hno3_mod.f,v 1.4 2005/02/10 19:53:26 bmy Exp $
+! $Id: global_hno3_mod.f,v 1.5 2005/05/09 14:33:58 bmy Exp $
       MODULE GLOBAL_HNO3_MOD
 !
 !******************************************************************************
 !  Module GLOBAL_HNO3_MOD contains variables and routines for reading the
-!  global monthly mean HNO3 fields from disk. (bmy, 10/15/02, 1/14/05)
+!  global monthly mean HNO3 fields from disk. (bmy, 10/15/02, 4/13/05)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -30,6 +30,7 @@
 !  (2 ) Cosmetic changes (bmy, 3/27/03)
 !  (3 ) Now references "directory_mod.f" & "tracer_mod.f" (bmy, 7/20/04)
 !  (4 ) Now suppress output from READ_BPCH2 with QUIET=T (bmy, 1/14/05)
+!  (5 ) Now read total gas + aerosol HNO3 data (bec, bmy, 4/13/05)
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -107,7 +108,7 @@
 !******************************************************************************
 !  Subroutine GET_GLOBAL_HNO3 reads global OH from binary punch files stored
 !  in the data directory.  This is needed for the offline sulfate simulation.
-!  (bmy, 10/3/02, 1/14/05)
+!  (bmy, 10/3/02, 4/13/05)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -118,6 +119,7 @@
 !  (2 ) Cosmetic changes (bmy, 3/27/03)
 !  (3 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (4 ) Now suppress output from READ_BPCH2 with QUIET=T (bmy, 1/14/05)
+!  (5 ) Now read total gas + aerosol HNO3 data (bec, bmy, 4/13/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -151,9 +153,19 @@
          FIRST = .FALSE.
       ENDIF
 
-      ! File name
-      FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/HNO3.' //
-     &           GET_NAME_EXT()  // '.' // GET_RES_EXT()
+!----------------------------------------------------------------------------
+! Prior to 4/13/05:
+! Now use total gas + aerosol nitrate file
+!      ! File name
+!      FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/HNO3.' //
+!     &           GET_NAME_EXT()  // '.' // GET_RES_EXT()
+!----------------------------------------------------------------------------
+
+      ! File name for modified HNO3 (total gas + aerosol nitrate)
+      ! after sea-salt chemistry (bec, bmy, 4/13/05)
+      FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/THNO3.' //
+     &           GET_NAME_EXT()   // '.'                         // 
+     &           GET_RES_EXT()
 
       ! Echo some information to the standard output
       WRITE( 6, 110 ) TRIM( FILENAME )
@@ -161,7 +173,7 @@
 
       ! Get the TAU0 value for the start of the given month
       ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
-      XTAU = GET_TAU0( THISMONTH, 1, 1985 )
+      XTAU = GET_TAU0( THISMONTH, 1, 2001 )
 
       ! Read HNO3 data from the binary punch file
       CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 7,     

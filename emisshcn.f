@@ -1,4 +1,4 @@
-! $Id: emisshcn.f,v 1.4 2004/09/21 18:04:13 bmy Exp $
+! $Id: emisshcn.f,v 1.5 2005/05/09 14:33:58 bmy Exp $
       SUBROUTINE EMISSHCN
 !
 !******************************************************************************
@@ -57,10 +57,6 @@
       IMPLICIT NONE
 
 #     include "CMN_SIZE"     ! Size parameters
-!------------------------------------------------------------
-! Prior to 7/20/04:
-!#     include "CMN"          ! Many other variables
-!------------------------------------------------------------
 #     include "CMN_DIAG"     ! DIAGNOSTIC
 #     include "CMN_MONOT"    ! Monoterpine variables
 #     include "CMN_HCN"      ! HCN variables
@@ -106,10 +102,6 @@
 !
 
       ! Return if we are not doing emissions ( if LSRCE = .FALSE. )
-      !----------------------------
-      ! Prior to 7/20/04:
-      !IF ( .not. LSRCE ) RETURN   
-      !----------------------------
       IF ( .not. LEMIS ) RETURN
 
       ! Emission timestep [s]

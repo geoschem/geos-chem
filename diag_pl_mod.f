@@ -1,10 +1,10 @@
-! $Id: diag_pl_mod.f,v 1.3 2005/03/29 15:52:41 bmy Exp $
+! $Id: diag_pl_mod.f,v 1.4 2005/05/09 14:33:58 bmy Exp $
       MODULE DIAG_PL_MOD
 !
 !******************************************************************************
 !  Module DIAG_PL_MOD contains variables and routines which are used to 
 !  compute the production and loss of chemical families in SMVGEAR chemistry.
-!  (bmy, 7/20/04, 3/3/05)
+!  (bmy, 7/20/04, 5/2/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -37,8 +37,11 @@
 !  (4 ) DIAG20                : Driver routine for saving O3 P/L (a.k.a. ND20)
 !  (5 ) WRITE20               : Writes P(Ox) and L(Ox) to bpch file format
 !  (6 ) ITS_TIME_FOR_WRITE20  : Returns T if it's time to save files to disk
-!  (7 ) INIT_DIAG_PL          : Allocates & zeroes all module arrays
-!  (8 ) CLEANUP_DIAG_PL       : Deallocates all module arrays
+!  (7 ) GET_NFAM              : Returns number of defined P/L families
+!  (8 ) GET_FAM_NAME          : Returns name of each P/L family
+!  (9 ) GET_FAM_MWT           : Returns molecular weight for each P/L family
+!  (10) INIT_DIAG_PL          : Allocates & zeroes all module arrays
+!  (11) CLEANUP_DIAG_PL       : Deallocates all module arrays
 !
 !  GEOS-CHEM modules referenced by "diag_pl_mod.f":
 !  ============================================================================
@@ -57,6 +60,7 @@
 !        global FILENAME, and also write to disk on the last timestep before
 !        the end of the simulation. (bmy, 11/15/04)
 !  (2 ) Added routine ITS_TIME_FOR_WRITE20 (bmy, 3/3/05)
+!  (3 ) Added functions GET_NFAM, GET_FAM_MWT, GET_FAM_NAME (bmy, 5/2/05)
 !******************************************************************************
 !      
       IMPLICIT NONE
@@ -71,10 +75,14 @@
 
       ! ... except these variables ...
       PUBLIC :: AD65
+      PUBLIC :: DO_SAVE_PL
       PUBLIC :: FAM_PL
       
       ! ... and these routines
       PUBLIC :: DO_DIAG_PL
+      PUBLIC :: GET_FAM_MWT
+      PUBLIC :: GET_FAM_NAME
+      PUBLIC :: GET_NFAM
       PUBLIC :: SETJFAM
       PUBLIC :: SETPL
       PUBLIC :: INIT_DIAG_PL
@@ -631,13 +639,6 @@
       ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : O3PL_DIR
       USE ERROR_MOD,     ONLY : ERROR_STOP
-!------------------------------------------------------------------------
-! Prior to 3/3/05:
-!      USE TIME_MOD,      ONLY : EXPAND_DATE,   GET_NYMD, 
-!     &                          GET_TAU,       GET_TAUb, 
-!     &                          GET_TAUE,      GET_TS_CHEM,
-!     &                          ITS_A_NEW_DAY, TIMESTAMP_STRING
-!------------------------------------------------------------------------
       USE TIME_MOD,      ONLY : EXPAND_DATE,   GET_NYMD, 
      &                          GET_TAU,       GET_TAUb, 
      &                          ITS_A_NEW_DAY, TIMESTAMP_STRING
@@ -651,11 +652,6 @@
       LOGICAL, SAVE     :: FIRST = .TRUE.
       LOGICAL           :: DO_WRITE
       INTEGER           :: I, J, L, N
-      !-----------------------------------------------------------------
-      ! Prior to 3/3/05:
-      !REAL*8            :: P_Ox, L_Ox, TAU0, TAU1
-      !REAL*8,  SAVE     :: CHEM_HRS
-      !-----------------------------------------------------------------
       REAL*8            :: P_Ox, L_Ox
       CHARACTER(LEN=16) :: STAMP 
 
@@ -789,10 +785,6 @@
 !$OMP END PARALLEL DO        
 
          ! Reset for the next day
-         !-------------------------------
-         ! Prior to 3/3/05:
-         !TAU0 = GET_TAU()
-         !-------------------------------
          TAU0 = TAU1
       ENDIF
 
@@ -973,6 +965,141 @@
 
       ! Return to calling program
       END FUNCTION ITS_TIME_FOR_WRITE20
+
+!------------------------------------------------------------------------------
+
+      FUNCTION GET_NFAM() RESULT( N_FAM )
+!
+!******************************************************************************
+!  Function GET_NFAM returns the number of defined  P/L families. (bmy, 5/2/05)
+! 
+!  NOTES:
+!******************************************************************************
+!
+      ! Local variables
+      INTEGER :: N_FAM
+
+      !=================================================================
+      ! GET_N_FAM begins here!
+      !=================================================================
+      N_FAM = NFAM
+    
+      ! Return to calling program
+      END FUNCTION GET_NFAM
+
+!------------------------------------------------------------------------------
+
+      FUNCTION GET_FAM_NAME( N ) RESULT( NAME )
+!
+!******************************************************************************
+!  Function GET_FAM_NAME returns the name of the Nth P/L family. (bmy, 5/2/05)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) N (INTEGER) : Number of the P/L family for which to return the name
+! 
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE ERROR_MOD, ONLY : ERROR_STOP
+
+      ! Arguments
+      INTEGER, INTENT(IN) :: N
+
+      ! Local variables
+      CHARACTER(LEN=255)  :: MSG, NAME
+
+      !=================================================================
+      ! GET_FAM_NAME begins here!
+      !=================================================================
+
+      ! Error check
+      IF ( N < 1 .or. N > NFAM ) THEN
+         MSG = 'Invalid ND65 family number!'
+         CALL ERROR_STOP( MSG, 'GET_FAM_NAME ("diag_pl_mod.f")' ) 
+      ENDIF
+
+      ! Get name
+      NAME = TRIM( FAM_NAME( N ) )
+      
+      ! Return to calling program
+      END FUNCTION GET_FAM_NAME
+
+!------------------------------------------------------------------------------
+
+      FUNCTION GET_FAM_MWT( N ) RESULT( MWT )
+!
+!******************************************************************************
+!  Function GET_FAM_NAME returns the name of the Nth P/L family. (bmy, 5/2/05)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) N (INTEGER) : Number of the P/L family for which to return the name
+! 
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE CHARPAK_MOD, ONLY : TRANUC
+      USE ERROR_MOD,   ONLY : ERROR_STOP
+      USE TRACER_MOD,  ONLY : N_TRACERS, TRACER_MW_KG, TRACER_NAME
+
+      ! Arguments
+      INTEGER, INTENT(IN)  :: N
+
+      ! Local variables
+      INTEGER              :: T
+      REAL*8               :: MWT
+      CHARACTER(LEN=255)   :: MSG, PL_NAME, T_NAME 
+
+      !=================================================================
+      ! GET_FAM_NAME begins here!
+      !=================================================================
+
+      ! Error check
+      IF ( N < 1 .or. N > NFAM ) THEN
+         MSG = 'Invalid ND65 family number!'
+         CALL ERROR_STOP( MSG, 'GET_FAM_MWT ("diag_pl_mod.f")' ) 
+      ENDIF
+
+      ! Initialize the MWT
+      MWT     = 0d0
+
+      ! Get name of this P/L family
+      PL_NAME = TRIM( FAM_NAME( N ) )
+      
+      ! Convert to uppercase
+      CALL TRANUC( PL_NAME )
+
+      ! Skip the 1st character, which is always P or l
+      PL_NAME = PL_NAME( 2:LEN_TRIM( PL_NAME ) )
+
+      !=================================================================
+      ! Match the name of the P/L family with the GEOS-CHEM tracer name
+      ! so that we can find the molecular weight.  This scheme assumes
+      ! that each P/L family is a transported tracer.  This may not
+      ! always be true but this is a quick & dirty assumption.
+      !=================================================================
+
+      ! Loop over all CTM tracers
+      DO T = 1, N_TRACERS
+
+         ! Tracer name
+         T_NAME = TRACER_NAME( T )
+
+         ! Convert to uppercase
+         CALL TRANUC( T_NAME )
+         
+         ! If we have a name match, return the molecular wt
+         IF ( TRIM( PL_NAME ) == TRIM( T_NAME ) ) THEN
+            MWT = TRACER_MW_KG( T )
+            EXIT
+         ENDIF
+      ENDDO
+
+      ! Return to calling program
+      END FUNCTION GET_FAM_MWT
 
 !------------------------------------------------------------------------------
       

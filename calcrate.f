@@ -1,4 +1,4 @@
-! $Id: calcrate.f,v 1.9 2005/03/29 15:52:39 bmy Exp $
+! $Id: calcrate.f,v 1.10 2005/05/09 14:33:56 bmy Exp $
       SUBROUTINE CALCRATE( SUNCOS )
 !
 !******************************************************************************
@@ -50,10 +50,6 @@
      &                            IYSAVE, IZSAVE,  JLOP,    PRESS3,  
      &                            REMIS,  T3,      TAREA
       USE DIAG_MOD,        ONLY : AD22,   LTJV
-      !-------------------------------------------------------------
-      ! Prior to 2/17/05
-      !USE DRYDEP_MOD,      ONLY : DEPSAV, PBLFRAC
-      !-------------------------------------------------------------
       USE DRYDEP_MOD,      ONLY : DEPSAV
       USE ERROR_MOD,       ONLY : ERROR_STOP, GEOS_CHEM_STOP
       USE GRID_MOD,        ONLY : GET_YMID
@@ -329,11 +325,6 @@ C
                IZ    = IZSAVE(JLOOP)
                
                ! Now compute drydep throughout the entire PBL
-               !---------------------------------------------------------------
-               ! Prior to 2/17/05:
-               !! PBLFRAC is the fraction of grid box (I,J,L) below the PBL top
-               !RRATE(KLOOP,NK) = DEPSAV(IX,IY,I) * PBLFRAC(IX,IY,IZ)
-               !---------------------------------------------------------------
                ! GET_FRAC_UNDER_PBLTOP returns the fraction of layer
                ! (IX, IY, IZ) that is beneath the PBL top
                RRATE(KLOOP,NK) = DEPSAV(IX,IY,I) * 

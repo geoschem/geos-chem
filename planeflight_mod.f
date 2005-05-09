@@ -1,4 +1,4 @@
-! $Id: planeflight_mod.f,v 1.12 2005/03/29 15:52:43 bmy Exp $
+! $Id: planeflight_mod.f,v 1.13 2005/05/09 14:34:00 bmy Exp $
       MODULE PLANEFLIGHT_MOD
 !
 !******************************************************************************
@@ -200,13 +200,6 @@
       ! Copy file names to local variables
       INF   = INFILENAME
       OUTF  = OUTFILENAME
-
-      !-----------------------------------------------------------------
-      ! Prior to 3/24/05:
-      !! Replace any date & time tokens in the file names
-      !CALL EXPAND_DATE( INFILENAME,  NYMD, NHMS )
-      !CALL EXPAND_DATE( OUTFILENAME, NYMD, NHMS )
-      !-----------------------------------------------------------------
       
       ! Replace any date & time tokens in the file names
       CALL EXPAND_DATE( INF,  NYMD, NHMS )
@@ -221,22 +214,9 @@
       ! Echo info
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       WRITE( 6, '(a)' ) 'P L A N E   F L I G H T   D I A G N O S T I C'
-      !---------------------------------------------------------------------
-      ! Prior to 3/24/05:
-      !WRITE( 6, 100   ) TRIM( INFILENAME )
-      !---------------------------------------------------------------------
       WRITE( 6, 100   ) TRIM( INF )
  100  FORMAT( /, 'SETUP_PLANEFLIGHT: Reading ',a )
       WRITE( 6, '(a)' )  
-
-      !---------------------------------------------------------------------
-      ! Prior to 3/24/05:
-      !! Compute # of species and # of points, allocate arrays accordingly
-      !IF ( FIRST ) THEN
-      !   CALL INIT_PLANEFLIGHT
-      !   FIRST = .FALSE.
-      !ENDIF
-      !----------------------------------------------------------------------
 
       ! Compute # of species and # of points & allocate arrays
       CALL INIT_PLANEFLIGHT
@@ -251,10 +231,6 @@
       !=================================================================
       ! Open file and read info
       !=================================================================
-      !-----------------------------------------------------------------
-      ! Prior to 3/24/05:
-      !OPEN( IU_FILE, FILE=TRIM( INFILENAME ), IOSTAT=IOS )
-      !-----------------------------------------------------------------
       OPEN( IU_FILE, FILE=TRIM( INF ), IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'setup_planeflight:1')
 
@@ -441,13 +417,6 @@
                ! Skip if not SMVGEAR!
                IF ( IS_FULLCHEM ) THEN 
                
-                  !--------------------------------------------
-                  ! Prior to 3/24/05:
-                  ! This is a problem if the string is _O1D
-                  !! Extract tracer # from the string
-                  !READ( LINE(5:14), '(i10)' ) NUM
-                  !--------------------------------------------
-
                   ! Increment rxn counter
                   R = R + 1
 
@@ -1166,41 +1135,6 @@
       !=================================================================
       ! WRITE_VARS_TO_FILE begins here!
       !=================================================================
-!-----------------------------------------------------------------------------
-! Prior to 3/24/05:
-! Header is written in SETUP_PLANEFLIGHT, when file is opened (bmy, 3/24/05
-!      ! Open the file on the first call and write header line
-!      !=================================================================
-!      IF ( FIRST ) THEN
-!
-!         ! Open file
-!         OPEN( IU_PLANE,         FILE=TRIM( OUTFILENAME ), 
-!     &         STATUS='UNKNOWN', IOSTAT=IOS )
-!
-!         ! Error check
-!         IF ( IOS /= 0 ) THEN
-!            CALL IOERROR( IOS, IU_PLANE, 'write_vars_to_file:1' )
-!         ENDIF
-!
-!         ! Write header
-!         WRITE( IU_PLANE, 100 ) 'POINT', 'TYPE', 'YYYYMMDD', 'HHMM',
-!     &        'LAT', 'LON', 'PRESS', ( PNAME(I), I=1,NPVAR )
-!
-! 100     FORMAT( A5,X,A5,X,A8,X,A4,X,A7,X,A7,X,A7,X,95(a10,x) )
-!         
-!         ! Error check
-!         IF ( IOS /= 0 ) THEN
-!            CALL IOERROR( IOS, IU_PLANE, 'write_vars_to_file:2' )
-!         ENDIF
-!
-!         ! Reset FIRST flag
-!         FIRST = .FALSE.
-!      ENDIF
-!
-!      !=================================================================
-!      ! Write data to file
-!      !=================================================================
-!-----------------------------------------------------------------------------
 
       ! Write data to file
       WRITE( IU_PLANE, 110, IOSTAT=IOS ) 
@@ -1409,10 +1343,6 @@
       !=================================================================
 
       ! Open file 
-      !-----------------------------------------------------------------
-      ! Prior to 3/25/05:
-      !OPEN( IU_FILE, FILE=TRIM( INFILENAME ), IOSTAT=IOS )
-      !-----------------------------------------------------------------
       OPEN( IU_FILE, FILE=TRIM( INF ), IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'init_planeflight:1' )
 
@@ -1491,17 +1421,6 @@
       ! Close file
       CLOSE( IU_FILE )
  
-      !---------------------------------------------------------------------
-      ! Prior to 3/25/05
-      !! Make sure NPOINTS is at least 1
-      !IF ( NPOINTS < 1 ) THEN
-      !   WRITE( 6, '(a)') 'NPOINTS=0!  No valid plane flight pts found!'
-      !   WRITE( 6, '(a)') 'STOP in INIT_PLANEFLIGHT (planeflight_mod.f)'
-      !   WRITE( 6, '(a)') REPEAT( '=', 79 )
-      !   CALL GEOS_CHEM_STOP
-      !ENDIF
-      !---------------------------------------------------------------------
-
       ! If there are no flight-track points then just return
       IF ( NPOINTS < 1 ) THEN
          DO_PF = .FALSE.
@@ -1516,69 +1435,6 @@
          CALL GEOS_CHEM_STOP
       ENDIF
          
-      !----------------------------------------------------------------------
-      ! Prior to 3/25/05:
-      ! We now need to dimension the arrays with their maximum sizes
-      ! since we don't know a-priori how many points each day will have
-      ! (bmy, 3/24/05)
-      !!=================================================================
-      !! Allocate and zero module arrays of size NPREAC
-      !!
-      !! If NPREAC=0, then allocate these arrays w/ 1 element in order 
-      !! to avoid allocation errors.  NPREAC can be zero if we did not
-      !! list any SMVGEAR rxns, or are doing another kind of simulation.
-      !!=================================================================
-      !ALLOCATE( PREAC( MAX( NPREAC, 1 ) ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREAC' )
-      !PREAC = 0
-      !
-      !ALLOCATE( PRRATE( ITLOOP, MAX( NPREAC, 1 ) ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRRATE' )
-      !PRRATE = 0e0
-      !
-      !!=================================================================
-      !! Allocate and zero module arrays of size NPVAR
-      !!=================================================================
-      !ALLOCATE( PVAR( NPVAR ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'PVAR' )
-      !PVAR = 0
-      !
-      !ALLOCATE( PNAME( NPVAR ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'PNAMES' )
-      !PNAME = ''
-      !
-      !!=================================================================
-      !! Allocate and zero module arrays of size NPOINTS
-      !!=================================================================
-      !ALLOCATE( PTYPE( NPOINTS ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'PTYPE' )
-      !PTYPE = ''
-      !
-      !ALLOCATE( PDATE( NPOINTS ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'PDATE' )
-      !PDATE = 0e0
-      !
-      !ALLOCATE( PTIME( NPOINTS ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'PTIME' )
-      !PTIME = 0e0
-      !
-      !ALLOCATE( PTAU( NPOINTS ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'PTAU' )
-      !PTAU = 0e0
-      !
-      !ALLOCATE( PLAT( NPOINTS ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'PLAT' )
-      !PLAT = 0e0
-      !
-      !ALLOCATE( PLON( NPOINTS ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'PLON' )
-      !PLON = 0e0
-      !
-      !ALLOCATE( PPRESS( NPOINTS ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'PPRESS' )
-      !PPRESS = 0e0
-      !----------------------------------------------------------------------
-
       !=================================================================
       ! Allocate arrays to maximum sizes
       !

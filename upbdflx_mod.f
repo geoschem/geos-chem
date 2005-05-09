@@ -1,4 +1,4 @@
-! $Id: upbdflx_mod.f,v 1.9 2004/12/02 21:48:42 bmy Exp $
+! $Id: upbdflx_mod.f,v 1.10 2005/05/09 14:34:01 bmy Exp $
       MODULE UPBDFLX_MOD
 !
 !******************************************************************************
@@ -325,15 +325,6 @@
                
             IF ( P2 < P70mb ) THEN
                L70mb = L
-               !--------------------------------------------------------
-               ! Prior to 11/15/04:
-               ! COMPAQ compiler seems to have problems with an EXIT
-               ! statement from an inner loop from w/in an OPENMP 
-               ! parallel loop block.  Therefore do not apply this
-               ! if we are compiling under the COMPAQ platform.
-               ! (auvray, bmy, 11/15/04)
-               !EXIT
-               !--------------------------------------------------------
 #if   defined( COMPAQ )
                ! Nothing
 #else

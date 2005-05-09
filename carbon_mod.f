@@ -1,4 +1,4 @@
- ! $Id: carbon_mod.f,v 1.10 2005/03/29 15:52:39 bmy Exp $
+ ! $Id: carbon_mod.f,v 1.11 2005/05/09 14:33:56 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
@@ -365,10 +365,6 @@
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44, AD07_BC 
-      !-----------------------------------------------
-      ! Prior to 2/17/05:
-      !USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
-      !-----------------------------------------------
       USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
@@ -441,17 +437,6 @@
 
          ! Zero drydep freq
          FREQ = 0d0
-
-         !------------------------------------------------------------------
-         ! Prior to 2/17/05:
-         !! PBLFRAC is only defined up to the tropopause, but we need to 
-         !! do the conversion from H-philic to H-phobic at all levels
-         !IF ( L > LLTROP ) THEN
-         !   BL_FRAC = 0d0
-         !ELSE
-         !   BL_FRAC = PBLFRAC(I,J,L)
-         !ENDIF
-         !------------------------------------------------------------------
 
          ! Fraction of grid box underneath PBL top [unitless]
          BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
@@ -548,10 +533,6 @@
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44 
-      !---------------------------------------------
-      ! Prior to 2/17/05:
-      !USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
-      !---------------------------------------------
       USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
@@ -610,17 +591,6 @@
          ! H-philic BC that used to be H-phobic BC [kg]
          CCV = BCCONV(I,J,L)
          
-         !-------------------------------------------------------------------
-         ! Prior to 2/17/05:
-         !! PBLFRAC is only defined up to the tropopause, but we need to 
-         !! do the conversion from H-philic to H-phobic everywhere
-         !IF ( L > LLTROP ) THEN
-         !   BL_FRAC = 0d0
-         !ELSE
-         !   BL_FRAC = PBLFRAC(I,J,L)
-         !ENDIF
-         !-------------------------------------------------------------------
-
          ! Fraction of grid box under the PBL top [unitless]
          BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L ) 
 
@@ -736,10 +706,6 @@
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44, AD07_OC 
-      !----------------------------------------------
-      ! Prior to 2/17/05:
-      !USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
-      !----------------------------------------------
       USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
@@ -811,17 +777,6 @@
 
          ! Zero drydep freq 
          FREQ = 0d0
-
-         !------------------------------------------------------------------
-         ! Prior to 2/17/05:
-         !! PBLFRAC is only defined up to the tropopause, but we need to 
-         !! do the conversion from H-philic to H-phobic everywhere
-         !IF ( L > LLTROP ) THEN
-         !   BL_FRAC = 0d0
-         !ELSE
-         !   BL_FRAC = PBLFRAC(I,J,L)
-         !ENDIF
-         !------------------------------------------------------------------
 
          ! Fraction of grid box under the PBL top [unitless]
          BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
@@ -919,10 +874,6 @@
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44 
-      !----------------------------------------------
-      ! Prior to 2/17/05
-      !USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
-      !----------------------------------------------
       USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
@@ -978,17 +929,6 @@
 
          ! H-philic OC that used to be H-phobic OC [kg]
          CCV = OCCONV(I,J,L)
-
-         !------------------------------------------------------------------
-         ! Prior to 2/17/05:
-         !! PBLFRAC is only defined up to the tropopause, but we need to 
-         !! do the conversion from H-philic to H-phobic everywhere
-         !IF ( L > LLTROP ) THEN
-         !   BL_FRAC = 0d0
-         !ELSE
-         !   BL_FRAC = PBLFRAC(I,J,L)
-         !ENDIF
-         !------------------------------------------------------------------
 
          ! Fraction of box under the PBL top [unitless]
          BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
@@ -2106,10 +2046,6 @@ c
       !----------------------------
       ! SOA1 net Production (kg)
       !----------------------------
-      !-----------------------
-      ! Prior to 3/4/05:
-      !IF ( ND07 > 0 ) THEN
-      !-----------------------
       IF ( ND07 > 0 .and. L <= LD07 ) THEN
          AD07_HC(I,J,L,1) = AD07_HC(I,J,L,1)
      &                    + ( AERMASS - STT(I,J,L,IDTSOA1) )
@@ -2162,10 +2098,6 @@ c
       !---------------------------
       ! SOA2 net Production (kg)
       !---------------------------
-      !------------------------
-      ! Prior to 3/4/05:
-      !IF ( ND07 > 0 ) THEN
-      !------------------------
       IF ( ND07 > 0 .and. L <= LD07 ) THEN
          AD07_HC(I,J,L,2) = AD07_HC(I,J,L,2)
      &                    + ( AERMASS - STT(I,J,L,IDTSOA2) )
@@ -2209,10 +2141,6 @@ c
       !---------------------------
       ! SOA3 net Production (kg)
       !---------------------------
-      !-----------------------
-      ! Prior to 3/4/05:
-      !IF ( ND07 > 0 ) THEN
-      !-----------------------
       IF ( ND07 > 0 .and. L <= LD07 ) THEN
          AD07_HC(I,J,L,3) = AD07_HC(I,J,L,3)
      &                    + ( AERMASS - STT(I,J,L,IDTSOA3) )
@@ -2272,10 +2200,6 @@ c
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44 
-      !-----------------------------------------------
-      ! Prior to 2/17/05:
-      !USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
-      !-----------------------------------------------
       USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
@@ -3398,202 +3322,6 @@ c
       END SUBROUTINE BIOMASS_CARB_TBOND
 
 !------------------------------------------------------------------------------
-! Prior to 1/11/05:
-! Now read biomass burning directly from files w/o applying emission factors
-! (rjp, bmy, 1/11/05)
-!      SUBROUTINE BIOMASS_CARB_GEOS( THISMONTH )
-!!
-!!******************************************************************************
-!!  Subroutine BIOMASS_CARB_TBOND computes annual mean biomass burning 
-!!  emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC CARBON.  
-!!  It also separates these into HYDROPHILIC and HYDROPHOBIC fractions. 
-!!  (rjp, bmy, 4/2/04, 7/20/04)
-!!
-!!  Emissions data comes from the Bond et al [2004] inventory and has units
-!!  of [kg C/yr].  This will be converted to [kg C/timestep] below.
-!!
-!!  We also assume that 20% of BC and 50% of OC from anthropogenic 
-!!  emissions are hydrophilic (soluble) and the rest are hydrophobic.
-!!
-!!  NOTES:
-!!  (1 ) Now references DATA_DIR from "directory_mod.f".  Also removed CMN,
-!!        it's obsolete. (bmy, 7/20/04)
-!!  (2 ) Now read data from "carbon_200411" subdir of DATA_DIR (bmy, 11/15/04)
-!!******************************************************************************
-!!
-!      ! References to F90 modules
-!      USE BPCH2_MOD
-!      USE DIRECTORY_MOD, ONLY : DATA_DIR
-!      USE GRID_MOD,      ONLY : GET_AREA_M2
-!      USE TIME_MOD,      ONLY : GET_TS_EMIS
-!      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-!
-!#     include "CMN_SIZE"     ! Size parameters
-!
-!      !-------------------
-!      ! Arguments
-!      !-------------------
-!      INTEGER, INTENT(IN) :: THISMONTH
-!
-!      !-------------------
-!      ! Local variables
-!      !-------------------
-!
-!      ! Hydrophilic fraction of BLACK CARBON
-!      REAL*8, PARAMETER   :: FHB = 0.2d0
-!
-!      ! Hydrophilic fraction of ORGANIC CARBON
-!      REAL*8, PARAMETER   :: FHO = 0.5d0 
-!
-!      ! Black Carbon aerosols emission factor 
-!      ! from biomass burning (0.002 kgC/kg)
-!      REAL*8, PARAMETER   :: FEC = 2.d-3
-!
-!      ! Organic Carbon aerosols emission factor 
-!      ! from biomass burning (0.014 kgC/kg)
-!      REAL*8, PARAMETER   :: FOC = 1.4d-2
-!
-!      INTEGER             :: I, J
-!      REAL*4              :: ARRAY(IGLOB,JGLOB,1)
-!      REAL*8              :: FD2D(IIPAR,JJPAR)
-!      REAL*8              :: XTAU, BIOCARB
-!      REAL*8              :: STEPS_PER_MON, AREA_M2
-!      CHARACTER(LEN=255)  :: FILENAME
-!      LOGICAL, SAVE       :: FIRSTEMIS = .TRUE.
-!      LOGICAL             :: EMFAC_VEG = .TRUE.
-!
-!      !=================================================================
-!      ! BIOMASS_CARB_GEOS begins here!
-!      !=================================================================
-!
-!      ! Number of emission timesteps per month
-!      STEPS_PER_MON = ( 1440 * NDAYS( THISMONTH ) ) / GET_TS_EMIS()
-!
-!      ! Only do the following on the first timestep
-!      IF ( FIRSTEMIS ) THEN
-!
-!         ! Read vegetation factors?
-!         IF ( EMFAC_VEG ) THEN
-!
-!            !===========================================================
-!            ! If EMFAC_VEG=T, then read carbon aerosol emission factor 
-!            ! [kg/kg] from biomass burning sources depedning on surface 
-!            ! vegetation type compiled by [rjp, 2003].  Emission factors 
-!            ! are from Andreae and Merlet [2001].
-!            !===========================================================
-!            FILENAME = TRIM( DATA_DIR )               //
-!!-----------------------------------------------------------------------------
-!! Prior to 11/15/04:
-!!     &                'carbon_200404/emis_fac.EC-OC.' // GET_RES_EXT()
-!!-----------------------------------------------------------------------------
-!     &                'carbon_200411/emis_fac.EC-OC.' // GET_RES_EXT()
-!
-!            ! TAU value for reading from the bpch files
-!            XTAU = GET_TAU0( 1, 1, 1985 )
-!
-!            ! Echo info
-!            WRITE( 6, 100 ) TRIM( FILENAME )
-! 100        FORMAT( '     - BIOMASS_CARB_GEOS: Reading ', a )
-!
-!            !------------------
-!            ! BLACK CARBON
-!            !------------------
-!            CALL READ_BPCH2( FILENAME, 'EMISFAC', 81,  
-!     &                       XTAU,      IGLOB,    JGLOB,
-!     &                       1,         ARRAY,    QUIET=.TRUE. ) 
-!
-!            ! Cast to REAL*8 and resize
-!            CALL TRANSFER_2D( ARRAY(:,:,1), EF_BLKC )
-!
-!            !------------------
-!            ! ORGANIC CARBON
-!            !------------------
-!            CALL READ_BPCH2( FILENAME, 'EMISFAC', 82,  
-!     &                       XTAU,      IGLOB,    JGLOB,     
-!     &                       1,         ARRAY,    QUIET=.TRUE. ) 
-!            
-!            ! Cast to REAL*8 and resize
-!            CALL TRANSFER_2D( ARRAY(:,:,1), EF_ORGC )
-!
-!         ELSE
-!
-!            !===========================================================
-!            ! If EMFAC_VEG=F, then use these emission factors:
-!            !   BLACK CARBON   : 0.002 [kg C/kg]
-!            !   ORGANIC CARBON : 0.014 [kg C/kg] 
-!            ! Thus OC/BC = 7. [Chin et al., 2000]
-!            !============================================================
-!            EF_BLKC(:,:) = FEC
-!            EF_ORGC(:,:) = FOC
-!           
-!         ENDIF
-!        
-!         ! Reset first-time flag
-!         FIRSTEMIS = .FALSE.          
-!      ENDIF
-!
-!      !=================================================================
-!      ! Read TOTAL biomass burning [g/cm2/month] as tracer #33
-!      ! Convert to [kg C/box/timestep] and store in BIOCARB.  
-!      ! 
-!      ! Then compute HYDROPHILIC and HYDROPHOBIC fractions of
-!      ! BLACK CARBON and ORGANIC CARBON.
-!      !=================================================================
-!
-!      ! Filename
-!      FILENAME = TRIM( DATA_DIR )                        //
-!     &           'biomass_200110/bioburn.seasonal.geos.' //
-!     &           GET_RES_EXT()
-!
-!      ! Get TAU value for reading the punch file
-!      XTAU = GET_TAU0( THISMONTH, 1, 1985 )
-!
-!      ! Echo info
-!      WRITE( 6, 100 ) TRIM( FILENAME )
-!
-!      ! Read data
-!      CALL READ_BPCH2( FILENAME, 'BIOBSRCE', 33, 
-!     &                 XTAU,      IGLOB,     JGLOB,     
-!     &                 1,         ARRAY,     QUIET=.TRUE. )
-!
-!      ! Cast to REAL*8 and resize
-!      CALL TRANSFER_2D ( ARRAY(:,:,1), FD2D )
-!
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, AREA_M2, BIOCARB )
-!        DO J = 1, JJPAR
-!
-!           ! Surface area [m2]
-!           AREA_M2 = GET_AREA_M2( J )
-!
-!           DO I = 1, IIPAR
-!
-!              ! Convert total biomass burned from [g/cm2/month] to
-!              ! [kg C/box/timestep].  The factor 10 comes from 
-!              ! 1e4 cm2/m2 divided by 1000 g/kg.  
-!              BIOCARB = FD2D(I,J) * AREA_M2 * 10.d0 / STEPS_PER_MON
-!
-!              ! Hydrophilic BLACK CARBON from biomass [kg C/timestep]
-!              BIOB_BLKC(I,J,1) =          FHB   * EF_BLKC(I,J) * BIOCARB
-!
-!              ! Hydrophobic BLACK CARBON from biomass [kg C/timestep]
-!              BIOB_BLKC(I,J,2) = ( 1.D0 - FHB ) * EF_BLKC(I,J) * BIOCARB
-!
-!              ! Hydrophilic ORGANIC CARBON from biomass [kg C/timestep]
-!              BIOB_ORGC(I,J,1) =          FHO   * EF_ORGC(I,J) * BIOCARB
-!
-!              ! Hydrophobic ORGANIC CARBON from biomass [kg C/timestep]
-!              BIOB_ORGC(I,J,2) = ( 1.D0 - FHO ) * EF_ORGC(I,J) * BIOCARB
-!
-!           ENDDO
-!        ENDDO
-!!$OMP END PARALLEL DO  
-!
-!        ! Return to calling program
-!        END SUBROUTINE BIOMASS_CARB_GEOS
-!
-!------------------------------------------------------------------------------
 
       SUBROUTINE BIOMASS_CARB_GEOS( THISMONTH )
 !
@@ -3714,13 +3442,6 @@ c
   
       ENDIF
 
-!-----------------------------------------------------------------------
-! Prior to 1/11/05:
-!      ! Echo info
-!      !WRITE( 6, 100 ) TRIM( FILENAME )
-! 100  FORMAT( '     - BIOMASS_CARB_GEOS: Reading ', a )
-!-----------------------------------------------------------------------
-
       !--------------
       ! BCPO biomass
       !--------------
@@ -3803,25 +3524,12 @@ c
 !******************************************************************************
 !
       ! References to F90 modules
-      !-------------------------------------------
-      ! Prior to 2/17/05:
-      !USE DAO_MOD,      ONLY : PBL
-      !USE ERROR_MOD,    ONLY : ERROR_STOP
-      !-------------------------------------------
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO, 
      &                         IDTALPH, IDTLIMO, IDTALCO
-      !------------------------------------------
-      ! Prior to 2/17/05:
-      !USE PRESSURE_MOD, ONLY : GET_PEDGE
-      !------------------------------------------
 
 #     include "CMN_SIZE"  ! Size parameters
-!-----------------------------------------------
-! Prior to 2/17/05;
-!#     include "CMN_GCTM"  ! SCALE_HEIGHT
-!-----------------------------------------------
 
       ! Arguments
       REAL*8, INTENT(IN) :: BCSRC(IIPAR,JJPAR,2)
@@ -3831,11 +3539,6 @@ c
       LOGICAL            :: IS_BCPO, IS_OCPO, IS_BCPI, IS_OCPI
       LOGICAL            :: IS_ALPH, IS_LIMO, IS_ALCO
       INTEGER            :: I,       J,       L,       PBL_MAX
-      !------------------------------------------------------------
-      ! Prior to 2/17/05:
-      !REAL*8             :: BLTOP,   BLTHIK,  FTOT,    PB
-      !REAL*8             :: PT,      DELP,    FEMIS
-      !------------------------------------------------------------
       REAL*8             :: F_OF_PBL
 
       !=================================================================
@@ -3853,137 +3556,6 @@ c
 
       ! Maximum extent of PBL [model levels]
       PBL_MAX = GET_PBL_MAX_L()
-
-!------------------------------------------------------------------------------
-! Prior to 2/17/05:
-! Rewrite using routines from "pbl_mix_mod.f" for expediency
-!      !=================================================================
-!      ! Compute FEMIS -- fraction of box (I,J,L) w/in the PBL
-!      !=================================================================
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, FTOT, BLTOP, BLTHIK, L, PB, PT, DELP, FEMIS )
-!!$OMP+SCHEDULE( DYNAMIC )
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!
-!         ! Initialize
-!         FTOT  = 0d0
-!         FEMIS = 0d0
-!
-!#if   defined( GEOS_4 )
-!
-!         ! BLTOP = pressure at PBL top [hPa]
-!         ! Use barometric law since PBL is in [m]
-!         BLTOP  = GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT )
-!
-!         ! BLTHIK is PBL thickness [hPa]
-!         BLTHIK = GET_PEDGE(I,J,1) - BLTOP
-!
-!#else
-!
-!         ! BLTOP = pressure of PBL top [hPa]
-!         BLTOP  = GET_PEDGE(I,J,1) - MAX( PBL(I,J), 1.D0 )
-!
-!         ! BLTHIK is PBL thickness [hPa]
-!         BLTHIK = MAX( PBL(I,J), 1.D0 )
-!
-!#endif
-!
-!         !==============================================================
-!         ! Loop thru tropospheric levels
-!         !==============================================================
-!         DO L = 1, LLTROP
-!
-!            ! Pressure at edges of grid box(I,J,L) [hPa]
-!            PB   = GET_PEDGE(I,J,L)
-!            PT   = GET_PEDGE(I,J,L+1)
-!
-!            ! Thickness of grid box (I,J,L) [hPa]
-!            DELP = PB - PT
-!
-!            ! FEMIS is the fraction of the PBL 
-!            ! which is occupied by this level L
-!            IF ( BLTOP <= PT )  THEN
-!               FEMIS = DELP / BLTHIK
-!
-!            ELSEIF ( BLTOP > PT .AND. BLTOP <= PB ) THEN
-!               FEMIS = ( PB - BLTOP ) / BLTHIK
-!
-!            ELSEIF ( BLTOP > PB ) THEN
-!               CYCLE      
-! 
-!            ENDIF
-!            
-!            ! Fraction of data partitioned into 
-!            ! each level should sum to 1.0
-!            FTOT = FTOT + FEMIS
-!
-!            !===========================================================
-!            ! Partition organic tracers equally throughout the 
-!            ! boundary layer -- store back into STT array
-!            !===========================================================
-!
-!            ! Hydrophilic BLACK CARBON
-!            IF ( IS_BCPI ) THEN
-!               STT(I,J,L,IDTBCPI) = STT(I,J,L,IDTBCPI) + 
-!     &                              ( FEMIS * BCSRC(I,J,1) )
-!            ENDIF
-!
-!            ! Hydrophilic ORGANIC CARBON
-!            IF ( IS_OCPI ) THEN
-!               STT(I,J,L,IDTOCPI) = STT(I,J,L,IDTOCPI) + 
-!     &                              ( FEMIS * OCSRC(I,J,1) )
-!            ENDIF
-!            
-!            ! Hydrophobic BLACK CARBON
-!            IF ( IS_BCPO ) THEN
-!               STT(I,J,L,IDTBCPO) = STT(I,J,L,IDTBCPO) + 
-!     &                              ( FEMIS * BCSRC(I,J,2) )
-!            ENDIF
-!
-!            ! Hydrophobic ORGANIC CARBON
-!            IF ( IS_OCPO ) THEN
-!               STT(I,J,L,IDTOCPO) = STT(I,J,L,IDTOCPO) + 
-!     &                              ( FEMIS * OCSRC(I,J,2) )
-!            ENDIF
-!
-!            ! ALPHA-PINENE
-!            IF ( IS_ALPH ) THEN
-!               STT(I,J,L,IDTALPH) = STT(I,J,L,IDTALPH) + 
-!     &                              ( FEMIS * BIOG_ALPH(I,J) )
-!            ENDIF
-!
-!            ! LIMONENE
-!            IF ( IS_LIMO ) THEN
-!               STT(I,J,L,IDTLIMO) = STT(I,J,L,IDTLIMO) + 
-!     &                              ( FEMIS * BIOG_LIMO(I,J) )
-!
-!               ORVC_TERP(I,J,L)   = ORVC_TERP(I,J,L) + 
-!     &                              ( FEMIS * BIOG_TERP(I,J) )
-!            ENDIF
-!
-!            ! ALCOHOL and SESQTERPENE (not a tracer)
-!            IF ( IS_ALCO ) THEN
-!               STT(I,J,L,IDTALCO) = STT(I,J,L,IDTALCO) + 
-!     &                              ( FEMIS * BIOG_ALCO(I,J) )
-!               
-!               ORVC_SESQ(I,J,L)   = ORVC_SESQ(I,J,L) + 
-!     &                              ( FEMIS * BIOG_SESQ(I,J) )
-!            ENDIF
-!
-!         ENDDO
-!
-!         ! Error check
-!         IF ( ABS( FTOT - 1.d0 ) > 1.d-3 ) THEN
-!            CALL ERROR_STOP( 'Check vertical. distribution!',
-!     &                       'EMITHIGH ("carbon_mod.f")' )
-!         ENDIF
-!
-!      ENDDO
-!      ENDDO
-!!$OMP END PARALLEL DO
-!------------------------------------------------------------------------------
 
       !=================================================================
       ! Partition emissions throughout the boundary layer

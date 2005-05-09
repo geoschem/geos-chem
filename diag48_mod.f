@@ -1,9 +1,9 @@
-! $Id: diag48_mod.f,v 1.4 2005/03/29 15:52:40 bmy Exp $
+! $Id: diag48_mod.f,v 1.5 2005/05/09 14:33:57 bmy Exp $
       MODULE DIAG48_MOD
 !
 !******************************************************************************
 !  Module DIAG48_MOD contains variables and routines to save out 3-D 
-!  timeseries output to disk (bmy, 7/20/04, 2/16/05)
+!  timeseries output to disk (bmy, 7/20/04, 4/20/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -39,7 +39,7 @@
 !  76            : PBL heights                              [m        ]
 !  77            : PBL heights                              [levels   ]
 !  78            : Air density                              [molec/cm3]
-!  79            : Cloud fractions                          [unitless ]
+!  79            : 3-D Cloud fractions                      [unitless ]
 !  80            : Column optical depths                    [unitless ]
 !  81            : Cloud top heights                        [hPa      ]
 !  82            : Sulfate aerosol optical depth            [unitless ]
@@ -50,6 +50,7 @@
 !  87            : Total dust optical depth                 [unitless ]
 !  88            : Total seasalt tracer concentration       [unitless ]
 !  89 - 93       : RESERVED FOR FUTURE USE
+!  93            : Grid box heights                         [m        ]
 !  94            : Relative humidity                        [%        ]
 !  95            : Sea level pressure                       [hPa      ]
 !  96            : Zonal wind (a.k.a. U-wind)               [m/s      ]
@@ -58,6 +59,7 @@
 !  99            : Temperature                              [K        ]
 !  
 !  NOTES:
+!  (1 ) Now save out cld frac and grid box heights (bmy, 4/20/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -71,6 +73,7 @@
       PRIVATE
  
       ! ... except these variables ...
+      PUBLIC :: DO_SAVE_DIAG48
       PUBLIC :: ND48_MAX_STATIONS
 
       ! ... and these routines
@@ -114,18 +117,27 @@
 !
 !******************************************************************************
 !  Subroutine DIAG48 saves station time series diagnostics to disk.
-!  (bmy, bey, amf, 6/1/99, 7/20/04)
+!  (bmy, bey, amf, 6/1/99, 4/20/05)
 !
 !  NOTES:
 !  (1 ) Remove reference to "CMN".  Also now get PBL heights in meters and
 !        model layers from GET_PBL_TOP_m and GET_PBL_TOP_L of "pbl_mix_mod.f".
 !        (bmy, 2/16/05)
+!  (4 ) Now reference CLDF and BXHEIGHT from "dao_mod.f".  Now save 3-D cloud 
+!        fraction as tracer #79 and box height as tracer #93.  Now remove
+!        reference to PBL from "dao_mod.f" (bmy, 4/20/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE DAO_MOD,      ONLY : AD, AIRDEN, CLDTOPS, OPTD, PBL,    
-     &                         RH, SLP,    T,       UWND, VWND 
+!-------------------------------------------------------------------
+! Prior to 4/20/05:
+!      USE DAO_MOD,      ONLY : AD, AIRDEN, CLDTOPS, OPTD, PBL,    
+!     &                         RH, SLP,    T,       UWND, VWND 
+!-------------------------------------------------------------------
+      USE DAO_MOD,      ONLY : AD,      AIRDEN, BXHEIGHT, CLDF, 
+     &                         CLDTOPS, OPTD,   RH,       SLP,    
+     &                         T,       UWND,   VWND 
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE FILE_MOD,     ONLY : IU_ND48
       USE GRID_MOD,     ONLY : GET_XOFFSET,        GET_YOFFSET
@@ -140,10 +152,6 @@
 
 #     include "cmn_fj.h"    ! Size parameters + FAST-J stuff
 #     include "jv_cmn.h"    ! ODAER, ODMDUST
-!--------------------------------------------------------------
-! Prior to 2/16/05:
-!#     include "CMN"         ! XTRA2
-!--------------------------------------------------------------
 #     include "CMN_DIAG"    ! TRCOFFSET
 #     include "CMN_O3"      ! XNUMOLAIR
 #     include "CMN_GCTM"    ! SCALE_HEIGHT
@@ -343,26 +351,7 @@
             GMTRC    = 1
 
             IF ( K == 1 ) THEN
-
-!----------------------------------------------------------------------
-! Prior to 2/16/05:
-! Now call GET_PBL_TOP_m to get PBL depth in meters (bmy, 2/16/05)
-!#if   defined( GEOS_4 ) 
-!
-!               ! PBL is in meters already
-!               Q(1) = PBL(I,J)
-!
-!#else
-!               ! Surface pressure
-!               TMP = GET_PEDGE(I,J,1)
-!
-!               ! Convert [hPa] to [m]
-!               Q(1) = ( -SCALE_HEIGHT * 
-!     &                   LOG( ( TMP - PBL(I,J) ) / TMP ) )
-!#endif
-!----------------------------------------------------------------------
                Q(1) = GET_PBL_TOP_m( I, J )
-
             ENDIF
                
          ELSE IF ( N == 77 ) THEN
@@ -375,11 +364,6 @@
             GMTRC    = 2
 
             IF ( K == 1 ) THEN
-               !---------------------------------------------------------------
-               ! Prior to 2/16/05:
-               ! Now get PBL depth in layers from GET_PBL_TOP_L (bmy, 2/16/05)
-               !Q(1) = XTRA2(I,J)
-               !---------------------------------------------------------------
                Q(1) = GET_PBL_TOP_L( I, J )
             ENDIF
 
@@ -403,10 +387,11 @@
             !------------------------------------- 
             CATEGORY = 'TIME-SER'
             UNIT     = 'unitless'
-            GMTRC    = 22
+            GMTRC    = 19
 
-            ! Skip for now
-            CYCLE
+            DO L = 1, K
+               Q(L) = CLDF(L,I,J)
+            ENDDO
 
          ELSE IF ( N == 80 .and. IS_OPTD ) THEN
             
@@ -417,9 +402,13 @@
             UNIT     = 'unitless'
             GMTRC    = 20
 
-            DO L = 1, K
-               Q(1) = OPTD(L,I,J)
-            ENDDO
+            !----------------------------------
+            ! Prior to 4/20/05:
+            !DO L = 1, K
+            !   Q(1) = OPTD(L,I,J)
+            !ENDDO
+            !----------------------------------
+            Q(1) = SUM( OPTD(:,I,J) )
 
          ELSE IF ( N == 81 .and. IS_CLDTOPS ) THEN
 
@@ -560,6 +549,19 @@
             DO L = 1, K
                Q(L) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
      &                  TCVV(IDTSALA)      / AD(I,J,L) 
+            ENDDO
+
+         ELSE IF ( N == 93 ) THEN 
+
+            !-----------------------------------
+            ! GRID BOX HEIGHTS [m]
+            !----------------------------------- 
+            CATEGORY = 'BXHGHT-$'
+            UNIT     = 'm'
+            GMTRC    = 1
+
+            DO L = 1, K
+               Q(L) = BXHEIGHT(I,J,L)
             ENDDO
 
          ELSE IF ( N == 94 ) THEN 

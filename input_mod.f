@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.12 2005/03/29 15:52:42 bmy Exp $
+! $Id: input_mod.f,v 1.13 2005/05/09 14:33:59 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -125,7 +125,9 @@
       CHARACTER(LEN=255) :: FILENAME = 'input.geos'
       CHARACTER(LEN=255) :: TOPTITLE
       CHARACTER(LEN=255) :: BPCH_FILE
-            
+      CHARACTER(LEN=255) :: DIAGINFO  
+      CHARACTER(LEN=255) :: TRACERINFO
+
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
       !=================================================================
@@ -140,11 +142,15 @@
 !  input file "input.geos" from disk. (bmy, 7/20/04)
 !
 !  NOTES:
+!  (1 ) Now call DO_GAMAP from "gamap_mod.f" to create "diaginfo.dat" and
+!        "tracerinfo.dat" files after all diagnostic menus have been read in
+!        
 !******************************************************************************
 !
       ! References to F90 modules
       USE CHARPAK_MOD, ONLY : STRREPL
       USE FILE_MOD,    ONLY : IU_GEOS, IOERROR
+      USE GAMAP_MOD,   ONLY : DO_GAMAP
       
       ! Local variables
       LOGICAL            :: EOF
@@ -225,6 +231,9 @@
                                                   
          ELSE IF ( INDEX( LINE, 'DEPOSITION MENU'  ) > 0 ) THEN
             CALL READ_DEPOSITION_MENU             
+
+         ELSE IF ( INDEX( LINE, 'GAMAP MENU'      ) > 0 ) THEN
+            CALL READ_GAMAP_MENU                 
                                                   
          ELSE IF ( INDEX( LINE, 'OUTPUT MENU'      ) > 0 ) THEN
             CALL READ_OUTPUT_MENU                 
@@ -283,6 +292,9 @@
 
       ! Check GEOS-CHEM timesteps
       CALL CHECK_TIME_STEPS
+
+      ! Create "diaginfo.dat" and "tracerinfo.dat" files for GAMAP
+      CALL DO_GAMAP( DIAGINFO, TRACERINFO )
 
       ! Echo output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -496,11 +508,6 @@
 
       ! Make new restart file?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:5' )
-      !-----------------------------------------------------------------
-      ! Prior to 2/23/05:
-      ! Bug fix: LSVGLB is not a character variable (bmy, 2/23/05)
-      !READ( SUBSTRS(1:N), '(a)' ) LSVGLB
-      !-----------------------------------------------------------------
       READ( SUBSTRS(1:N), * ) LSVGLB
 
       ! Output restart file(s)
@@ -891,6 +898,8 @@
 !  (3 ) Now reference LCRYST from "logical_mod.f".  Also now check to make
 !        prevent aerosol tracers from being undefined if the corresponding
 !        logical switch is set. (cas, bmy, 1/14/05)
+!  (4 ) Now also require LSSALT=T when LSULF=T, since we now compute the 
+!        production of SO4 and NIT w/in the seasalt aerosol (bec, bmy, 4/13/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -990,20 +999,56 @@
       LCRYST = .FALSE.
 
       !---------------------------------
-      ! Error check SULFUR AEROSOLS
+      ! Error check SEASALT AEROSOLS
       !---------------------------------
-      I = IDTDMS + IDTSO2 + IDTSO4 + IDTMSA + IDTNH3 + IDTNH4 + IDTNIT
+      I = IDTSALA + IDTSALC
 
-      IF ( LSULF ) THEN
+      IF ( LSSALT ) THEN
          IF ( I == 0 ) THEN
-            MSG = 'LSULF=T but ONLINE SULFUR AEROSOLS are undefined!'
+            MSG = 'LSSALT=T but ONLINE SEASALT AEROSOLS are undefined!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
       ELSE
          IF ( I > 0 ) THEN
+            MSG = 'Cannot use ONLINE SEASALT AEROSOLS if LSSALT=F!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
+      !---------------------------------
+      ! Error check SULFUR AEROSOLS
+      !---------------------------------
+      !-----------------------------------------------------------------
+      ! Prior to 4/13/05:
+      ! Also add SO4s and NITs
+      !I = IDTDMS + IDTSO2 + IDTSO4 + IDTMSA + IDTNH3 + IDTNH4 + IDTNIT
+      !-----------------------------------------------------------------
+      I = IDTDMS + IDTSO2 + IDTSO4 + IDTSO4s + 
+     &    IDTMSA + IDTNH3 + IDTNH4 + IDTNITs
+
+      IF ( LSULF ) THEN
+
+         ! We now compute the production of SO4s and NITs, so when 
+         ! LSULF=T, then we must also have LSSALT=T (bec, bmy, 4/13/05)
+         IF ( .not. LSSALT ) THEN 
+            MSG = 'LSULF=T now also requires LSSALT=T!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+
+         ! Stop w/ error if everything is undefined
+         IF ( I == 0 ) THEN
+            MSG = 'LSULF=T but ONLINE SULFUR AEROSOLS are undefined!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+
+      ELSE
+
+         ! If LSULF=F but we have defined tracers, stop w/ error
+         IF ( I > 0 ) THEN
             MSG = 'Cannot use ONLINE SULFUR AEROSOLS if LSULF=F!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
+
       ENDIF
 
       !---------------------------------
@@ -1613,12 +1658,6 @@
       ENDIF
 
       ! Initialize wet deposition tracers
-      !-----------------------------------------------------------------
-      ! Prior to 3/1/05:
-      ! We need to call WETDEPID for both wetdep and cloud convection
-      ! since this sets up the list of soluble tracers (bmy, 3/1/05)
-      !IF ( LWETD ) CALL WETDEPID
-      !-----------------------------------------------------------------
       IF ( LWETD .or. LCONV ) CALL WETDEPID
 
       ! FORMAT strings
@@ -1629,6 +1668,50 @@
 
       ! Return to calling program
       END SUBROUTINE READ_DEPOSITION_MENU
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE READ_GAMAP_MENU
+!
+!******************************************************************************
+!  Subroutine READ_GAMAP_MENU reads the GAMAP MENU section of the 
+!  GEOS-CHEM input file. (bmy, 4/25/05)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Local variables
+      LOGICAL            :: EOF
+      INTEGER            :: N
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+
+      !=================================================================
+      ! READ_UNIX_CMDS_MENU begins here!
+      !=================================================================
+
+      ! Background
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_gamap_menu:1' )
+      READ( SUBSTRS(1:N), '(a)' ) DIAGINFO
+
+      ! Redirect
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_gamap_menu:2' )
+      READ( SUBSTRS(1:N), '(a)' ) TRACERINFO
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_gamap_menu:3' )
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+      WRITE( 6, '(/,a)' ) 'GAMAP MENU'
+      WRITE( 6, '(  a)' ) '---------------'            
+      WRITE( 6, '(a,a)' ) 'GAMAP "diaginfo.dat"   file : ', 
+     &                    TRIM( DIAGINFO   )
+      WRITE( 6, '(a,a)' ) 'GAMAP "tracerinfo.dat" file : ',
+     &                    TRIM( TRACERINFO )
+
+      ! Return to calling program
+      END SUBROUTINE READ_GAMAP_MENU
 
 !------------------------------------------------------------------------------
 
@@ -2892,6 +2975,7 @@
 
       ! Local variables
       LOGICAL            :: EOF, DO_SAVE_PL, DO_SAVE_O3
+      LOGICAL            :: EOF
       INTEGER, PARAMETER :: MAXMEM=10
       INTEGER            :: F, M, N, NFAM
       INTEGER            :: FAM_NMEM(MAXFAM)
@@ -3504,18 +3588,8 @@
       CHARACTER(LEN=*), INTENT(INOUT) :: DIR
       
       ! Local variables
-!-----------------------------------------------------------------
-! Prior to 3/23/05:
-!      LOGICAL                         :: IT_EXISTS
-!-----------------------------------------------------------------
       INTEGER                         :: C
       CHARACTER(LEN=255)              :: MSG
-!------------------------------------------------------------------
-! Prior to 3/23/05:
-!#if   defined( COMPAQ )
-!      INTEGER*4, EXTERNAL             :: ACCESS
-!#endif
-!------------------------------------------------------------------
       
       !=================================================================
       ! CHECK_DIRECTORY begins here!
@@ -3532,25 +3606,6 @@
       !=================================================================
       ! Test if the directory actually exists
       !=================================================================
-
-!---------------------------------------------------------------------------
-! Prior to 3/23/05:
-!#if   defined( COMPAQ )
-!
-!      ! Test whether directory exists for COMPAQ
-!      IT_EXISTS = ( ACCESS( TRIM( DIR ), ' ' ) == 0 )
-!
-!#else
-!
-!      ! Test whether directory exists w/ F90 INQUIRE function
-!      INQUIRE( FILE=TRIM( DIR ), EXIST=IT_EXISTS )
-!
-!#endif     
-! 
-!      ! If the directory doesn't exist, write an error
-!      ! message, flush the std output buffer, and stop
-!      IF ( .not. IT_EXISTS ) THEN
-!---------------------------------------------------------------------------
 
       ! If the directory does not exist then stop w/ an error message
       IF ( .not. FILE_EXISTS( DIR ) ) THEN 

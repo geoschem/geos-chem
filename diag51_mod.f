@@ -1,11 +1,11 @@
-! $Id: diag51_mod.f,v 1.14 2005/03/29 15:52:41 bmy Exp $
+! $Id: diag51_mod.f,v 1.15 2005/05/09 14:33:57 bmy Exp $
       MODULE DIAG51_MOD
 !
 !******************************************************************************
 !  Module DIAG51_MOD contains variables and routines to generate save 
 !  timeseries data where the local time is between two user-defined limits. 
 !  This facilitates comparisons with morning or afternoon-passing satellites
-!  such as GOME. (amf, bey, bdf, pip, bmy, 11/30/00, 2/16/05)
+!  such as GOME. (amf, bey, bdf, pip, bmy, 11/30/00, 4/20/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -76,7 +76,7 @@
 !  76            : PBL heights                              [m        ]
 !  77            : PBL heights                              [levels   ]
 !  78            : Air density                              [molec/cm3]
-!  79            : Cloud fractions                          [unitless ]
+!  79            : 3-D Cloud fractions                      [unitless ]
 !  80            : Column optical depths                    [unitless ]
 !  81            : Cloud top heights                        [hPa      ]
 !  82            : Sulfate aerosol optical depth            [unitless ]
@@ -86,7 +86,8 @@
 !  86            : Coarse mode seasalt optical depth        [unitless ]
 !  87            : Total dust optical depth                 [unitless ]
 !  88            : Total seasalt tracer concentration       [unitless ]
-!  89 - 93       : RESERVED FOR FUTURE USE
+!  89 - 92       : RESERVED FOR FUTURE USE
+!  93            : Grid box heights                         [m        ]
 !  94            : Relative Humidity                        [%        ]
 !  95            : Sea level pressure                       [hPa      ]
 !  96            : Zonal wind (a.k.a. U-wind)               [m/s      ]
@@ -101,6 +102,7 @@
 !  (3 ) Bug fix: Now get I0 and J0 properly for nested grids (bmy, 11/9/04)
 !  (4 ) Now only archive AOD's once per chemistry timestep (bmy, 1/14/05)
 !  (5 ) Now references "pbl_mix_mod.f" (bmy, 2/16/05)
+!  (6 ) Now save cld frac and grid box heights (bmy, 4/20/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -275,7 +277,7 @@
 !
 !******************************************************************************
 !  Subroutine ACCUMULATE_DIAG51 accumulates tracers into the Q array. 
-!  (bmy, 8/20/02, 2/16/05)
+!  (bmy, 8/20/02, 4/20/05
 !
 !  NOTES:
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
@@ -289,12 +291,22 @@
 !  (4 ) Remove reference to "CMN".  Also now get PBL heights in meters and 
 !        model layers from GET_PBL_TOP_m and GET_PBL_TOP_L of "pbl_mix_mod.f".
 !        (bmy, 2/16/05)
+!  (5 ) Now reference CLDF and BXHEIGHT from "dao_mod.f".  Now save 3-D cloud 
+!        fraction as tracer #79 and box height as tracer #93.  Now remove 
+!        references to CLMOSW, CLROSW, and PBL from "dao_mod.f". (bmy, 4/20/05)
 !******************************************************************************
 !
-      ! Reference to F90 modules
-      USE DAO_MOD,      ONLY : AD,     AIRDEN, BXHEIGHT, CLDTOPS, 
-     &                         CLMOSW, CLROSW, OPTD,     RH,  T, 
-     &                         PBL,    UWND,   VWND,     SLP
+      ! References to F90 modules
+!----------------------------------------------------------------------------
+! Prior to 4/20/05:
+!      USE DAO_MOD,      ONLY : AD,     AIRDEN, BXHEIGHT, CLDTOPS, 
+!     &                         CLMOSW, CLROSW, OPTD,     RH,  T, 
+!     &                         PBL,    UWND,   VWND,     SLP
+!----------------------------------------------------------------------------
+      USE DAO_MOD,      ONLY : AD,      AIRDEN, BXHEIGHT, CLDF, 
+     &                         CLDTOPS, OPTD,   RH,       T, 
+     &                         UWND,    VWND,   SLP
+
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L,   GET_PBL_TOP_m
       USE PRESSURE_MOD, ONLY : GET_PEDGE
       USE TIME_MOD,     ONLY : GET_ELAPSED_MIN, GET_TS_CHEM, 
@@ -304,10 +316,6 @@
 
 #     include "cmn_fj.h"  ! includes CMN_SIZE
 #     include "jv_cmn.h"  ! ODAER
-!-------------------------------------------------------
-! Prior to 2/16/05:
-!#     include "CMN"       ! XTRA2
-!-------------------------------------------------------
 #     include "CMN_O3"    ! FRACO3, FRACNO, SAVEO3, SAVENO2, SAVEHO2, FRACNO2
 #     include "CMN_DIAG"  ! TRCOFFSET
 #     include "CMN_GCTM"  ! SCALE_HEIGHT
@@ -497,30 +505,6 @@
                !--------------------------------------
                ! PBL HEIGHTS [m] 
                !--------------------------------------
-!-----------------------------------------------------------------------------
-! Prior to 2/16/05)
-!#if   defined( GEOS_4 ) 
-!
-!               ! PBL is in meters
-!               IF ( K == 1 ) THEN
-!                  Q(X,Y,K,W) = Q(X,Y,K,W) + ( PBL(I,J) * GOOD(I) )
-!               ENDIF
-!
-!#else
-!               ! Convert PBL from [hPa] to [m]
-!               IF ( K == 1 ) THEN
-!                  
-!                  ! Surface pressure
-!                  TMP = GET_PEDGE(I,J,1)
-!
-!                  ! Convert [hPa] to [m]
-!                  Q(X,Y,K,W) = Q(X,Y,K,W) +
-!     &                         ( -SCALE_HEIGHT  * GOOD(I) *
-!     &                            LOG( ( TMP - PBL(I,J) ) / TMP ) )
-!               ENDIF
-!
-!#endif
-!-----------------------------------------------------------------------------
                IF ( K == 1 ) THEN
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                         ( GET_PBL_TOP_m( I, J ) * GOOD(I) )  
@@ -532,10 +516,6 @@
                ! PBL HEIGHTS [layers] 
                !--------------------------------------
                IF ( K == 1 ) THEN
-                  !--------------------------------------------------------
-                  ! Prior to 2/16/05:
-                  !Q(X,Y,K,W) = Q(X,Y,K,W) + ( XTRA2(I,J) * GOOD(I) )
-                  !--------------------------------------------------------
                   Q(X,Y,K,W) = Q(X,Y,K,W) +
      &                         ( GET_PBL_TOP_L( I, J ) * GOOD(I) )
                ENDIF
@@ -551,32 +531,9 @@
             ELSE IF ( N == 79 ) THEN
 
                !--------------------------------------
-               ! COLUMN CLOUD FRACTION [unitless]
+               ! 3-D CLOUD FRACTION [unitless]
                !--------------------------------------
-! Prior to 7/20/04:
-! Comment out for now -- we need to make this work for all GEOS models
-!               IF ( ALLOCATED( CLMOSW ) .and. ALLOCATED( CLROSW ) ) THEN
-!
-!                  C1 = CLMOSW(1,I,J)       
-!                  C2 = 1.0d0 - CLROSW(1,I,J) 
-!
-!                  ! Sum over levels
-!                  DO Z = 2, ND51_NL
-!                     L = LOFF + Z
-!                        
-!                     IF ( CLMOSW(L,I,J) > CLMOSW(L-1,I,J) ) THEN
-!                        C1 = CLMOSW(L,I,J)
-!                     ENDIF
-!                     
-!                     C2 = C2 * ( 1.0d0 - CLROSW(L,I,J) )
-!                  ENDDO
-!
-!                  C1 = 1.0d0 - C1
-!                  
-!                  ! Save afternoon pionts
-!                  Q(X,Y,1,W) = Q(X,Y,1,W) + 
-!     &                         ( 1.0d0 - ( C1 * C2 ) ) * GOOD(I)
-!               ENDIF
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ( CLDF(L,I,J) * GOOD(I) )
 
             ELSE IF ( N == 80 .and. IS_OPTD ) THEN
 
@@ -595,11 +552,6 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ( TMP * GOOD(I) )
                ENDIF
 
-            !--------------------------------------------------------
-            ! Prior to 1/14/05:
-            ! This is only updated each chem timestep (bmy, 1/14/05)
-            !ELSE IF ( N == 82 ) THEN
-            !--------------------------------------------------------
             ELSE IF ( N == 82 .and. IS_CHEM ) THEN
 
                !--------------------------------------
@@ -616,11 +568,6 @@
      &                         ( ODAER(I,J,L,H) * SCALE400nm * GOOD(I) )
                ENDDO
 
-            !--------------------------------------------------------
-            ! Prior to 1/14/05:
-            ! This is only updated each chem timestep (bmy, 1/14/05)
-            !ELSE IF ( N == 83 ) THEN
-            !--------------------------------------------------------
             ELSE IF ( N == 83 .and. IS_CHEM ) THEN
 
                !--------------------------------------
@@ -640,11 +587,6 @@
      &                         ( ODAER(I,J,L,H) * SCALE400nm * GOOD(I) )
                ENDDO
 
-            !--------------------------------------------------------
-            ! Prior to 1/14/05:
-            ! This is only updated each chem timestep (bmy, 1/14/05)
-            !ELSE IF ( N == 84 ) THEN
-            !--------------------------------------------------------
             ELSE IF ( N == 84 .and. IS_CHEM ) THEN
 
                !--------------------------------------
@@ -664,11 +606,6 @@
      &                         ( ODAER(I,J,L,H) * SCALE400nm * GOOD(I) )
                ENDDO
 
-            !--------------------------------------------------------
-            ! Prior to 1/14/05:
-            ! This is only updated each chem timestep (bmy, 1/14/05)
-            !ELSE IF ( N == 85 ) THEN
-            !--------------------------------------------------------
             ELSE IF ( N == 85 .and. IS_CHEM ) THEN
 
                !--------------------------------------
@@ -688,11 +625,6 @@
      &                         ( ODAER(I,J,L,H) * SCALE400nm * GOOD(I) ) 
                ENDDO
 
-            !--------------------------------------------------------
-            ! Prior to 1/14/05:
-            ! This is only updated each chem timestep (bmy, 1/14/05)
-            !ELSE IF ( N == 86 ) THEN
-            !--------------------------------------------------------
             ELSE IF ( N == 86 .and. IS_CHEM ) THEN
 
                !--------------------------------------
@@ -712,11 +644,6 @@
      &                         ( ODAER(I,J,L,H) * SCALE400nm * GOOD(I) )
                ENDDO
 
-            !--------------------------------------------------------
-            ! Prior to 1/14/05:
-            ! This is only updated each chem timestep (bmy, 1/14/05)
-            !ELSE IF ( N == 87 ) THEN
-            !--------------------------------------------------------
             ELSE IF ( N == 87 .and. IS_CHEM ) THEN               
 
                !--------------------------------------
@@ -742,6 +669,13 @@
      &                      ( STT(I,J,L,IDTSALA) + 
      &                        STT(I,J,L,IDTSALC) ) *
      &                        TCVV(IDTSALA)  / AD(I,J,L) * GOOD(I)
+
+            ELSE IF ( N == 93 ) THEN
+
+               !-----------------------------------
+               ! GRID BOX HEIGHTS [m]
+               !-----------------------------------               
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ( BXHEIGHT(I,J,L) * GOOD(I) )
 
             ELSE IF ( N == 94 ) THEN
 
@@ -870,7 +804,7 @@
 !  Subroutine WRITE_DIAG51 computes the time-average of quantities between
 !  local time limits ND51_HR1 and ND51_HR2 and writes them to a bpch file.
 !  Arrays and counters are also zeroed for the next diagnostic interval.
-!  (bmy, 12/1/00, 1/14/05)  
+!  (bmy, 12/1/00, 4/20/05)  
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -886,6 +820,8 @@
 !        to FIRST. (bmy, 10/25/04)
 !  (3 ) Now divide tracers 82-87 (i.e. various AOD's) by GOOD_CT_CHEM since
 !        these are only updated once per chemistry timestep (bmy, 1/14/05)
+!  (4 ) Now save grid box heights as tracer #93.  Now save 3-D cloud fraction 
+!        as tracer #79 (bmy, 4/20/05)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -1091,17 +1027,22 @@
          ELSE IF ( N == 79 ) THEN
 
             !---------------------
-            ! Cloud fractions
+            ! 3-D Cloud fractions
             !---------------------
             CATEGORY = 'TIME-SER'
             UNIT     = 'unitless'
-            GMNL     = 1
+            !---------------------------------------
+            ! Prior to 4/20/05:
+            ! Now save 3-D cld frac (bmy, 4/20/05)
+            !GMNL     = 1
+            !---------------------------------------
+            GMNL     = ND51_NL
             GMTRC    = 19
 
          ELSE IF ( N == 80 ) THEN
 
             !---------------------
-            ! Optical depths 
+            ! Column opt depths 
             !---------------------
             CATEGORY = 'TIME-SER'
             UNIT     = 'unitless'
@@ -1187,6 +1128,16 @@
             UNIT     = ''              ! Let GAMAP pick unit
             GMNL     = ND51_NL
             GMTRC    = 24
+
+         ELSE IF ( N == 93 ) THEN
+
+            !---------------------
+            ! Grid box heights
+            !---------------------            
+            CATEGORY = 'BXHGHT-$'
+            UNIT     = 'm'
+            GMNL     = ND51_NL
+            GMTRC    = 1
 
          ELSE IF ( N == 94 ) THEN
 

@@ -1,11 +1,11 @@
-! $Id: tracer_mod.f,v 1.2 2004/12/16 16:52:46 bmy Exp $
+! $Id: tracer_mod.f,v 1.3 2005/05/09 14:34:01 bmy Exp $
       MODULE TRACER_MOD
 !
 !******************************************************************************
 !  Module TRACER_MOD contains the GEOS-CHEM tracer array STT plus various
 !  other related quantities.  TRACER_MOD also contains inquiry functions that
 !  can be used to determine the type of GEOS-CHEM simulation.
-!  (bmy, 7/20/04)
+!  (bmy, 7/20/04, 5/3/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -39,6 +39,7 @@
 !  (10) ITS_AN_AEROSOL_SIM     : Returns TRUE if it's an aerosol   simulation
 !  (11) ITS_A_MERCURY_SIM      : Returns TRUE if it's a  mercury   simulation
 !  (12) ITS_NOT_COPARAM_OR_CH4 : Returns TRUE if it's not CO param or CH4 
+!  (13) GET_SIM_NAME           : Returns the name of the current simulation
 !  (13) CHECK_STT              : Checks STT array for NaN, Inf, or negatives
 !  (14) INIT_TRACER            : Allocates and zeroes all module arrays
 !  (15) CLEANUP_TRACER         : Deallocates all module arrays
@@ -48,6 +49,7 @@
 !  (1 ) error_mod.f : Module containing I/O error and NaN check routines 
 !
 !  NOTES:
+!  (1 ) Added function GET_SIM_NAME (bmy, 5/3/05)
 !******************************************************************************
 !
       !=================================================================
@@ -340,6 +342,55 @@
 
       ! Return to calling program
       END FUNCTION ITS_NOT_COPARAM_OR_CH4
+
+!------------------------------------------------------------------------------
+
+      FUNCTION GET_SIM_NAME() RESULT( NAME )
+!
+!******************************************************************************
+!  Function GET_SIM_NAME returns the name (e.g. "NOx-Ox-Hydrocarbon-Aerosol", 
+!  "Tagged CO", etc.) of the GEOS-CHEM simulation. (bmy, 5/3/05)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Function value
+      CHARACTER(LEN=40) :: NAME
+      
+      !=================================================================
+      ! GET_SIM_NAME begins here!
+      !=================================================================
+
+      ! Pick proper name for each simulation type
+      SELECT CASE( SIM_TYPE )
+         CASE( 1 ) 
+            NAME = 'Rn-Pb-Be'
+         CASE( 2 ) 
+            NAME = 'CH3I'
+         CASE( 3 ) 
+            NAME = 'NOx-Ox-Hydrocarbon-Aerosol'
+         CASE( 4 )
+            NAME = 'HCN'
+         CASE( 5 )
+            NAME = 'CO w/ parameterized OH'
+         CASE( 6 )
+            NAME = 'Tagged Ox'
+         CASE( 7 )
+            NAME = 'Tagged CO'
+         CASE( 8 ) 
+            NAME = 'Tagged C2H6'
+         CASE( 9 )
+            NAME = 'CH4'
+         CASE( 10 ) 
+            NAME = 'Offline Aerosol'
+         CASE( 11 ) 
+            NAME = 'Mercury'
+         CASE DEFAULT
+            NAME = 'UNKNOWN'
+       END SELECT
+
+      ! Return to calling program
+      END FUNCTION GET_SIM_NAME
 
 !------------------------------------------------------------------------------
 

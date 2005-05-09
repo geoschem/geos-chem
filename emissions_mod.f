@@ -1,4 +1,4 @@
-! $Id: emissions_mod.f,v 1.10 2005/02/15 17:48:19 bmy Exp $
+! $Id: emissions_mod.f,v 1.11 2005/05/09 14:33:58 bmy Exp $
       MODULE EMISSIONS_MOD
 !
 !******************************************************************************
@@ -54,7 +54,7 @@
 !******************************************************************************
 !  Subroutine DO_EMISSIONS is the driver routine which calls the appropriate
 !  emissions subroutine for the various GEOS-CHEM simulations. 
-!  (bmy, 2/11/03, 1/10/05)
+!  (bmy, 2/11/03, 4/13/05)
 !
 !  NOTES:
 !  (1 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
@@ -70,6 +70,7 @@
 !  (8 ) Now calls EMISSSULFATE if LCRYST=T.  Also read EPA/NEI emissions for
 !        the offline sulfate simulation.  Also call EMISS_EPA_NEI for the
 !        tagged CO simulation. (cas, bmy, stu, 1/10/05).
+!  (9 ) Now call EMISSSEASALT before EMISSSULFATE (bec, bmy, 4/13/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -104,10 +105,14 @@
          CALL EMISSDR
 
          ! Emissions for various aerosol types
+         IF ( LSSALT            ) CALL EMISSSEASALT
          IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE
          IF ( LCARB             ) CALL EMISSCARBON
          IF ( LDUST             ) CALL EMISSDUST
-         IF ( LSSALT            ) CALL EMISSSEASALT
+         !-----------------------------------------------
+         ! Prior to 4/13/05:
+         !IF ( LSSALT            ) CALL EMISSSEASALT
+         !-----------------------------------------------
 
       ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
          
@@ -115,10 +120,14 @@
          IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
 
          ! Emissions for various aerosol types
+         IF ( LSSALT            ) CALL EMISSSEASALT
          IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE
          IF ( LCARB             ) CALL EMISSCARBON
          IF ( LDUST             ) CALL EMISSDUST
-         IF ( LSSALT            ) CALL EMISSSEASALT
+         !-------------------------------------------------
+         ! Prior to 4/13/05:
+         !IF ( LSSALT            ) CALL EMISSSEASALT
+         !-------------------------------------------------
 
       ELSE IF ( ITS_A_RnPbBe_SIM() ) THEN
          

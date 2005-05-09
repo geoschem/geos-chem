@@ -1,9 +1,9 @@
-! $Id: define.h,v 1.27 2005/04/12 15:33:02 bmy Exp $
+! $Id: define.h,v 1.28 2005/05/09 14:33:57 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
 !  used to include or exclude certain sections of code.  
-!  (bmy, bdf, 1/30/98, 12/1/04)
+!  (bmy, bdf, 1/30/98, 4/20/05)
 !
 !  List of "Switches"
 !  ===========================================================================
@@ -65,6 +65,7 @@
 !        a newer product.  (bmy, 3/22/04) 
 !  (19) Added NESTED_NA and NESTED_CH cpp switches.  Also add GRID1x125
 !        cpp switch. (bmy, 12/1/04)
+!  (20) Removed obsolete A_LLK_03 switch (bmy, 4/20/05)
 !******************************************************************************
 !
 !==============================================================================
@@ -103,9 +104,8 @@
 !----- Model types -----
 !#define GEOS_1      'GEOS_1'       
 !#define GEOS_STRAT  'GEOS_STRAT'
-!#define GEOS_3      'GEOS_3'
-#define GEOS_4      'GEOS_4'
-!#define A_LLK_03    'A_LLK_03'
+#define GEOS_3      'GEOS_3'
+!#define GEOS_4      'GEOS_4'
 
 !----- Grid sizes -----
 !#define GRID1x1     'GRID1x1'

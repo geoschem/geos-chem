@@ -1,9 +1,9 @@
-! $Id: diag49_mod.f,v 1.5 2005/03/29 15:52:40 bmy Exp $
+! $Id: diag49_mod.f,v 1.6 2005/05/09 14:33:57 bmy Exp $
       MODULE DIAG49_MOD
 !
 !******************************************************************************
 !  Module DIAG49_MOD contains variables and routines to save out 3-D 
-!  timeseries output to disk (bmy, 7/20/04, 2/16/05)
+!  timeseries output to disk (bmy, 7/20/04, 4/20/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -41,15 +41,15 @@
 !
 !  GEOS-CHEM modules referenced by "diag49_mod.f" 
 !  ============================================================================
-!  (1 ) bpch2_mod.f    : Module w/ routines for binary punch file I/O
-!  (2 ) dao_mod.f      : Module w/ arrays for DAO met fields
-!  (3 ) file_mod.f     : Module w/ file unit numbers & error checks
-!  (4 ) grid_mod.f     : Module w/ horizontal grid information   
-!  (5 ) pbl_mix_mod.f  : Module w/ routines for PBL height & mixing
-!  (6 ) pressure_mod.f : Module w/ routines to compute P(I,J,L)
-!  (7 ) time_mod.f     : Module w/ routines for computing time & date 
-!  (8 ) tracer_mod.f   : Module w/ GEOS-CHEM tracer array STT etc.  
-!  (9 ) tracerid_mod.f : Module w/ pointers to tracers & emissions
+!  (1 ) bpch2_mod.f            : Module w/ routines for binary punch file I/O
+!  (2 ) dao_mod.f              : Module w/ arrays for DAO met fields
+!  (3 ) file_mod.f             : Module w/ file unit numbers & error checks
+!  (4 ) grid_mod.f             : Module w/ horizontal grid information   
+!  (5 ) pbl_mix_mod.f          : Module w/ routines for PBL height & mixing
+!  (6 ) pressure_mod.f         : Module w/ routines to compute P(I,J,L)
+!  (7 ) time_mod.f             : Module w/ routines for computing time & date 
+!  (8 ) tracer_mod.f           : Module w/ GEOS-CHEM tracer array STT etc.  
+!  (9 ) tracerid_mod.f         : Module w/ pointers to tracers & emissions
 !
 !  ND49 tracer numbers:
 !  ============================================================================
@@ -62,7 +62,7 @@
 !  76            : PBL heights                              [m        ]
 !  77            : PBL heights                              [levels   ]
 !  78            : Air density                              [molec/cm3]
-!  79            : Cloud fractions                          [unitless ]
+!  79            : 3-D cloud fractions                      [unitless ]
 !  80            : Column optical depths                    [unitless ]
 !  81            : Cloud top heights                        [hPa      ]
 !  82            : Sulfate aerosol optical depth            [unitless ]
@@ -72,7 +72,8 @@
 !  86            : Coarse mode seasalt optical depth        [unitless ]
 !  87            : Total dust optical depth                 [unitless ]
 !  88            : Total seasalt tracer concentration       [unitless ]
-!  89 - 93       : RESERVED FOR FUTURE USE
+!  89 - 92       : RESERVED FOR FUTURE USE
+!  93            : Grid box height                          [m        ]
 !  94            : Relative humidity                        [%        ]
 !  95            : Sea level pressure                       [hPa      ]
 !  96            : Zonal wind (a.k.a. U-wind)               [m/s      ]
@@ -83,6 +84,7 @@
 !  NOTES:
 !  (1 ) Bug fix: get I0, J0 properly for nested grids (bmy, 11/9/04)
 !  (2 ) Now references "pbl_mix_mod.f" (bmy, 2/16/05)
+!  (3 ) Now saves 3-D cld frac & grid box height (bmy, 4/20/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -94,6 +96,9 @@
 
       ! Make everything PRIVATE ...
       PRIVATE 
+
+      ! ... except these variables ...
+      PUBLIC :: DO_SAVE_DIAG49 
 
       ! ... except these routines 
       PUBLIC :: DIAG49
@@ -131,7 +136,7 @@
 !******************************************************************************
 !  Subroutine DIAG49 produces time series (instantaneous fields) for a 
 !  geographical domain from the information read in timeseries.dat.  Output 
-!  will be in binary punch (BPCH) format. (bey, bmy, rvm, 4/9/99, 2/16/05)
+!  will be in binary punch (BPCH) format. (bey, bmy, rvm, 4/9/99, 4/20/05)
 !
 !  NOTES:
 !  (1 ) Now bundled into "diag49_mod.f".  Now reference STT from 
@@ -141,12 +146,16 @@
 !  (3 ) Remove reference to "CMN".  Also now get PBL heights in meters and 
 !        model layers from GET_PBL_TOP_m and GET_PBL_TOP_L of "pbl_mix_mod.f".
 !        (bmy, 2/16/05)
+!  (4 ) Now reference CLDF and BXHEIGHT from "dao_mod.f".  Now save 3-D cloud 
+!        fraction as tracer #79 and box height as tracer #93.  Now remove 
+!        reference to PBL from "dao_mod.f"(bmy, 4/20/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE DAO_MOD,      ONLY : AD, AIRDEN, CLDTOPS, OPTD, PBL,    
-     &                         RH, SLP,    T,       UWND, VWND
+      USE DAO_MOD,      ONLY : AD,      AIRDEN, BXHEIGHT, CLDF, 
+     &                         CLDTOPS, OPTD,   RH,       SLP,     
+     &                         T,       UWND,   VWND
       USE FILE_MOD,     ONLY : IU_ND49
       USE GRID_MOD,     ONLY : GET_XOFFSET,        GET_YOFFSET
       USE TIME_MOD,     ONLY : DATE_STRING,        EXPAND_DATE,
@@ -161,10 +170,6 @@
 
 #     include "cmn_fj.h"        ! FAST-J stuff, includes CMN_SIZE
 #     include "jv_cmn.h"        ! ODAER
-!---------------------------------------------------------------
-! Prior to 2/16/05:
-!#     include "CMN"             ! XTRA2
-!---------------------------------------------------------------
 #     include "CMN_O3"		! Pure O3, SAVENO2
 #     include "CMN_DIAG"        ! TRCOFFSET
 #     include "CMN_GCTM"        ! XTRA2
@@ -446,24 +451,6 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-
-!-------------------------------------------------------------------------
-! Prior to 2/16/05:
-! Now get PBL depth in meters from GET_PBL_TOP_m (bmy, 2/16/05)
-!#if   defined( GEOS_4 ) 
-!
-!               ! PBL is in meters already
-!               Q(X,Y,1) = PBL(I,J)
-!
-!#else
-!               ! Surface pressure
-!               TMP = GET_PEDGE(I,J,1)
-!
-!               ! Convert [hPa] to [m]
-!               Q(X,Y,1) = ( -SCALE_HEIGHT * 
-!     &                       LOG( ( TMP - PBL(I,J) ) / TMP ) )
-!#endif
-!-------------------------------------------------------------------------
                Q(X,Y,1) = GET_PBL_TOP_m( I, J )
             ENDDO
             ENDDO
@@ -486,11 +473,6 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               !------------------------------------------------------
-               ! Prior to 2/16/05:
-               ! Now get PBL depth from GET_PBL_TOP_L (bmy, 2/16/05)
-               !Q(X,Y,1) = XTRA2(I,J)
-               !------------------------------------------------------
                Q(X,Y,1) = GET_PBL_TOP_L( I, J )
             ENDDO
             ENDDO
@@ -524,15 +506,27 @@
          ELSE IF ( N == 79 ) THEN 
 
             !--------------------------------------
-            ! CLOUD FRACTIONS [unitless]
+            ! 3-D CLOUD FRACTIONS [unitless]
             !--------------------------------------
             CATEGORY = 'TIME-SER'
             UNIT     = 'unitless'
             GMNL     = ND49_NL
-            GMTRC    = 22
+            GMTRC    = 19
 
-            !### Debug
-            CYCLE
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+            DO K = 1, ND49_NL
+               L = LOFF + K
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               Q(X,Y,K) = CLDF(K,I,J)
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
 
          ELSE IF ( N == 80 .and. IS_OPTD ) THEN 
 
@@ -544,17 +538,32 @@
             GMNL     = 1
             GMTRC    = 20
 
+!--------------------------------------------------------------
+! Prior to 4/21/05:
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, X, Y, K )
+!            DO Y = 1, ND49_NJ
+!               J = JOFF + Y
+!            DO X = 1, ND49_NI
+!               I = GET_I( X )
+!            DO K = 1, ND49_NL
+!               L = LOFF + K
+!               Q(X,Y,1) = Q(X,Y,1) + OPTD(L,I,J)
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
+!--------------------------------------------------------------
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, X, Y, K )
+!$OMP+PRIVATE( I, J, X, Y )
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-            DO K = 1, ND49_NL
-               L = LOFF + K
-               Q(X,Y,1) = Q(X,Y,1) + OPTD(L,I,J)
-            ENDDO
+               Q(X,Y,1) = SUM( OPTD(:,I,J) )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -808,6 +817,31 @@
             ENDDO
 !$OMP END PARALLEL DO
                
+         ELSE IF ( N == 93 ) THEN
+
+            !-----------------------------------
+            ! GRID BOX HEIGHT [m]
+            !----------------------------------- 
+            CATEGORY = 'BXHGHT-$'
+            UNIT     = 'm'
+            GMNL     = ND49_NL
+            GMTRC    = 1
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+            DO K = 1, ND49_NL
+               L = LOFF + K
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               Q(X,Y,K) = BXHEIGHT(I,J,L)
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
          ELSE IF ( N == 94 ) THEN
 
             !-----------------------------------

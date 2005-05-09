@@ -1,9 +1,9 @@
-! $Id: time_mod.f,v 1.11 2004/12/16 16:52:46 bmy Exp $
+! $Id: time_mod.f,v 1.12 2005/05/09 14:34:01 bmy Exp $
       MODULE TIME_MOD
 !
 !******************************************************************************
 !  TIME_MOD contains GEOS-CHEM date and time variables and timesteps, and 
-!  routines for accessing them. (bmy, 6/21/00, 12/10/04) 
+!  routines for accessing them. (bmy, 6/21/00, 5/3/05) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -128,6 +128,8 @@
 !  (83) PRINT_CURRENT_TIME: Prints date time in YYYY/MM/DD, HH:MM:SS format
 !  (84) YMD_EXTRACT       : Extracts YYYY, MM, DD from a YYYYMMDD format number
 !  (85) EXPAND_DATE       : Replaces date/time tokens w/ actual values
+!  (86) SYSTEM_DATE_TIME  : Returns the system date and time
+!  (87) SYSTEM_TIMESTAMP  : Returns a string with the system date and time
 !
 !  GEOS-CHEM modules referenced by time_mod.f
 !  ============================================================================
@@ -164,6 +166,7 @@
 !        variable NDIAGTIME. (bmy, 7/20/04)
 !  (17) Added routine GET_DAY_OF_WEEK (bmy, 11/5/04)
 !  (18) Removed obsolete FIRST variable in GET_A3_TIME (bmy, 12/10/04)
+!  (19) Added routines SYSTEM_DATE_TIME and SYSTEM_TIMESTAMP (bmy, 5/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -172,6 +175,11 @@
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
       ! and routines from being seen outside "time_mod.f"
       !=================================================================
+
+      ! Make everything PUBLIC ...
+      PUBLIC
+
+      ! ... except these variables
       PRIVATE           :: NYMDb,      NHMSb,       NYMDe   
       PRIVATE           :: NHMSe,      NYMD,        NHMS
       PRIVATE           :: MONTH,      DAY,         YEAR
@@ -1754,13 +1762,6 @@
 !
 #     include "define.h"
 
-      !-------------------------------------------
-      ! Prior to 12/10/04;:
-      ! This is no longer needed (bmy, 12/10/04)
-      !! Local variables
-      !LOGICAL, SAVE :: FIRST
-      !-------------------------------------------
-
       ! Function value
       INTEGER :: DATE(2)
 
@@ -2891,6 +2892,78 @@
 
       ! Return to calling program
       END SUBROUTINE EXPAND_DATE
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE SYSTEM_DATE_TIME( SYS_NYMD, SYS_NHMS )
+!
+!******************************************************************************
+!  Subroutine SYSTEM_DATE_TIME returns the actual local date and time 
+!  (as opposed to the model date and time).  (bmy, 5/2/05)
+!
+!  Arguments as Output:
+!  ============================================================================
+!  (1 ) SYS_NYMD (INTEGER) : System date (local time) in YYYYMMDD format
+!  (2 ) SYS_NHMS (INTEGER) : System time (local time) in HHMMSS   format
+!
+!  NOTES: 
+!******************************************************************************
+!
+      ! Arguments
+      INTEGER, INTENT(OUT) :: SYS_NYMD
+      INTEGER, INTENT(OUT) :: SYS_NHMS
+
+      ! Local variables
+      INTEGER              :: V(8)
+      CHARACTER(LEN=8)     :: D
+      CHARACTER(LEN=10)    :: T
+
+      !=================================================================
+      ! SYSTEM_DATE_TIME begins here!
+      !=================================================================
+
+      ! Initialize
+      D = 'ccyymmdd'
+      T = 'hhmmss.sss'
+
+      ! Call the F90 intrinsic routine DATE_AND_TIME
+      ! Return values are (/YYYY, MM, DD, GMT_MIN, HH, MM, SS, MSEC/)
+      CALL DATE_AND_TIME( DATE=D, TIME=T, VALUES=V )
+
+      ! Save to YYYYMMDD and HHMMSS format
+      SYS_NYMD = ( V(1) * 10000 ) + ( V(2) * 100 ) + V(3) 
+      SYS_NHMS = ( V(5) * 10000 ) + ( V(6) * 100 ) + V(7)
+
+      ! Return to calling program
+      END SUBROUTINE SYSTEM_DATE_TIME
+
+!------------------------------------------------------------------------------
+
+      FUNCTION SYSTEM_TIMESTAMP() RESULT( STAMP )
+!
+!******************************************************************************
+!  Function SYSTEM_TIMESTAMP returns a 16 character string with the system
+!  date and time in YYYY/MM/DD HH:MM format. (bmy, 5/3/05)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Local variables
+      INTEGER           :: SYS_NYMD, SYS_NHMS
+      CHARACTER(LEN=16) :: STAMP
+
+      !=================================================================
+      ! SYSTEM_TIMESTAMP begins here!
+      !=================================================================
+
+      ! Get system date and time
+      CALL SYSTEM_DATE_TIME( SYS_NYMD, SYS_NHMS )
+
+      ! Create a string w/ system date & time
+      STAMP = TIMESTAMP_STRING( SYS_NYMD, SYS_NHMS )
+
+      ! Return to calling program 
+      END FUNCTION SYSTEM_TIMESTAMP
 
 !------------------------------------------------------------------------------
 

@@ -1,6 +1,6 @@
-# $Id: Makefile.compaq,v 1.24 2005/03/29 15:52:38 bmy Exp $
+# $Id: Makefile.compaq,v 1.25 2005/05/09 14:33:55 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for COMPAQ/Alpha (bmy, Mon Mar 28 13:59:05 2005)
+# GEOS-CHEM Makefile for COMPAQ/Alpha (bmy, Fri Apr 29 13:40:52 2005)
 #
 # NOTE: For GEOS-CHEM v5-07-08, we must compile everything -fast except 
 #       "calcrate.f", which must be compiled -O2.  (hamid, bmy, 10/10/03)
@@ -237,7 +237,9 @@ optdepth_mod.o            \
 planeflight_mod.o         \
 restart_mod.o             \
 rpmares_mod.o             \
+isoropia_mod.o            \
 wetscav_mod.o             \
+seasalt_mod.o             \
 sulfate_mod.o             \
 tagged_co_mod.o           \
 tagged_ox_mod.o           \
@@ -247,7 +249,6 @@ pjc_pfix_mod.o            \
 dust_dead_mod.o           \
 dust_mod.o                \
 mercury_mod.o             \
-seasalt_mod.o             \
 toms_mod.o                \
 tpcore_bc_mod.o           \
 tpcore_fvdas_mod.o        \
@@ -257,6 +258,7 @@ transport_mod.o           \
 upbdflx_mod.o             \
 chemistry_mod.o           \
 emissions_mod.o           \
+gamap_mod.o               \
 input_mod.o
 
 SJ =                      \
@@ -439,7 +441,7 @@ initialize.o               : initialize.f               CMN CMN_DIAG CMN_SIZE de
 inphot.o                   : inphot.f                   cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 input_mod.o                : input_mod.f                CMN CMN_DIAG CMN_O3 CMN_SIZE define.h define.h 
 interpOH.o                 : interpOH.f                 CMN_OH 
-isoropia_mod.o             : isoropia_mod.f             CMN_SETUP CMN_SIZE define.h 
+isoropia_mod.o             : isoropia_mod.f             CMN CMN_SETUP CMN_SIZE define.h isoropia.h 
 jsparse.o                  : jsparse.f                  CMN_SIZE define.h comode.h 
 julday_mod.o               : julday_mod.f               
 jv_index.o                 : jv_index.f                 cmn_fj.h CMN_SIZE define.h comode.h 
@@ -543,7 +545,6 @@ tracerid_mod.o             : tracerid_mod.f             CMN_SIZE define.h comode
 transfer_mod.o             : transfer_mod.f             CMN_SIZE define.h 
 transport_mod.o            : transport_mod.f            CMN CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 tropopause.o               : tropopause.f               CMN CMN_DIAG CMN_SIZE define.h 
-tropopause_mod.o           : tropopause_mod.f           CMN_SIZE define.h 
 unix_cmds_mod.o            : unix_cmds_mod.f            
 upbdflx_mod.o              : upbdflx_mod.f              CMN CMN_GCTM CMN_O3 CMN_SIZE define.h 
 update.o                   : update.f                   CMN_SIZE define.h comode.h 

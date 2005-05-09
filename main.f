@@ -1,5 +1,14 @@
-C $Id: main.f,v 1.22 2005/03/29 15:52:43 bmy Exp $
+C $Id: main.f,v 1.23 2005/05/09 14:33:59 bmy Exp $
 C $Log: main.f,v $
+C Revision 1.23  2005/05/09 14:33:59  bmy
+C GEOS-CHEM v7-03-01, includes the following modifications:
+C - Now contains ISORROPIA code for aerosol thermodynamic equilibrium
+C - Now added two extra tracers (SO4 and NIT in sea-salt aerosols)
+C - Now allows for hygroscopic growth of aerosols (not dust) in dry deposition
+C - Now writes customized "diaginfo.dat" and "tracerinfo.dat" for GAMAP
+C - ND48, ND49, ND50, ND51 timeseries diagnostics now save grid box height
+C - GEOS-3/GEOS-4 3-D cloud fraction has been added to ND21 diagnostic
+C
 C Revision 1.22  2005/03/29 15:52:43  bmy
 C GEOS-CHEM v7-02-04, includes the following modifications:
 C - Centralized PBL mixing routines into "pbl_mix_mod.f"
@@ -275,12 +284,6 @@ C
 
       ! Read land types and fractions from "vegtype.global"
       CALL RDLAND   
-
-      !------------------------------------------------------------
-      ! Prior to 3/24/05:
-      !! Initialize XTRA2 array (PBL heights, # of layers)
-      !CALL TURBDAY( .FALSE.,  XTRA2, N_TRACERS, STT, TCVV )
-      !------------------------------------------------------------
 
       ! Initialize PBL quantities but do not do mixing
       CALL DO_PBL_MIX( .FALSE. )
@@ -619,10 +622,6 @@ C
             !===========================================================
             !      ***** M I X E D   L A Y E R   M I X I N G *****
             !===========================================================
-            !-----------------------------------------------------
-            ! Prior to 3/24/05:
-            !CALL TURBDAY( LTURB, XTRA2, N_TRACERS, STT, TCVV )
-            !-----------------------------------------------------
             CALL DO_PBL_MIX( LTURB )
 
             !### Debug
@@ -735,10 +734,6 @@ C
          !============================================================== 
 
          ! Plane following diagnostic
-         !-------------------------------------
-         ! Prior to 3/24/05:
-         !IF ( ND40 > 0 ) CALL PLANEFLIGHT
-         !-------------------------------------
          IF ( ND40 > 0 ) THEN 
          
             ! Call SETUP_PLANEFLIGHT routine if necessary
@@ -839,11 +834,17 @@ C
       CALL CLEANUP
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CLEANUP' )
 
-      ! Echo info
-      WRITE ( 6, 3000 ) 
- 3000 FORMAT
-     &   ( /, /, '**************   E N D   O F   G E O S   C H E M   ',
-     &    '***************')
+      ! Print ending time of simulation
+      CALL DISPLAY_END_TIME
+
+!------------------------------------------------------------------------------
+! Prior to 5/3/05:
+!      ! Echo info
+!      WRITE ( 6, 3000 ) 
+! 3000 FORMAT
+!     &   ( /, /, '**************   E N D   O F   G E O S -- C H E M   ',
+!     &    '***************')
+!------------------------------------------------------------------------------
 !
 !******************************************************************************
 !  Internal procedures -- Use the F90 CONTAINS command to inline 
@@ -855,12 +856,13 @@ C
 !
 !  List of Internal Procedures:
 !  ============================================================================
-!  (1 ) DISPLAY_GRID_AND_MODEL : Displays resolution & data set
+!  (1 ) DISPLAY_GRID_AND_MODEL : Displays resolution, data set, & start time
 !  (2 ) GET_NYMD_PHIS          : Gets YYYYMMDD for the PHIS data field
 !  (3 ) DISPLAY_SIGMA_LAT_LON  : Displays sigma, lat, and lon information
 !  (4 ) GET_WIND10M            : Wrapper for MAKE_WIND10M (from "dao_mod.f")
 !  (5 ) CTM_FLUSH              : Flushes diagnostic files to disk
 !  (6 ) SETUP_CO_OH_CHEM       : Calls setup routines for CO-OH param run
+!  (7 ) DISPLAY_END_TIME       : Displays ending time of simulation
 !  (7 ) MET_FIELD_DEBUG        : Prints min and max of met fields for debug
 !******************************************************************************
 !
@@ -872,9 +874,13 @@ C
 
       !=================================================================
       ! Internal Subroutine DISPLAY_GRID_AND_MODEL displays the 
-      ! appropriate messages for the given model grid and machine type 
-      ! (bmy, 12/2/03, 12/1/04)
+      ! appropriate messages for the given model grid and machine type.
+      ! It also prints the starting time and date (local time) of the
+      ! GEOS-CHEM simulation. (bmy, 12/2/03, 5/3/05)
       !=================================================================
+
+      ! For system time stamp
+      CHARACTER(LEN=16) :: STAMP
 
       !-----------------------
       ! Print resolution info
@@ -900,7 +906,7 @@ C
 #elif defined( GRID1x1 )
       WRITE( 6, '(a)' ) 
      &    REPEAT( '*', 13 )                                      // 
-     &    '   S T A R T I N G   1 x 1   G E O S--C H E M   '     //
+     &    '   S T A R T I N G   1 x 1   G E O S -- C H E M   '     //
      &    REPEAT( '*', 13 )
 
 #endif
@@ -938,6 +944,13 @@ C
 #elif defined( GEOS_4     )
       WRITE( 6, '(a)' ) 'Using GEOS-4/fvDAS met fields'
 #endif
+
+      !-----------------------
+      ! System time stamp
+      !-----------------------
+      STAMP = SYSTEM_TIMESTAMP()
+      WRITE( 6, 100 ) STAMP
+ 100  FORMAT( /, '===> SIMULATION START TIME: ', a, ' <===', / )
 
       ! Return to MAIN program
       END SUBROUTINE DISPLAY_GRID_AND_MODEL
@@ -1080,7 +1093,7 @@ C
 #elif defined( GEOS_3 ) || defined( GEOS_4 )
 
       ! GEOS-3/GEOS-4: Copy OPTDEP to OPTD, also save diagnostics
-      CALL OPTDEPTH( LM, OPTDEP, OPTD )
+      CALL OPTDEPTH( LM, CLDF, OPTDEP, OPTD )
 
 #endif
 
@@ -1118,10 +1131,36 @@ C
       CALL FLUSH( IU_SMV2LOG )  
       CALL FLUSH( IU_DEBUG   ) 
 
-      ! Return to calling program
+      ! Return to MAIN program
       END SUBROUTINE CTM_FLUSH
 
-!-----------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+
+      SUBROUTINE DISPLAY_END_TIME
+
+      !=================================================================
+      ! Internal subroutine DISPLAY_END_TIME prints the ending time of
+      ! the GEOS-CHEM simulation (bmy, 5/3/05)
+      !=================================================================
+
+      ! Local variables
+      CHARACTER(LEN=16) :: STAMP
+
+      ! Print system time stamp
+      STAMP = SYSTEM_TIMESTAMP()
+      WRITE( 6, 100 ) STAMP
+ 100  FORMAT( /, '===> SIMULATION END TIME: ', a, ' <===', / )
+
+      ! Echo info
+      WRITE ( 6, 3000 ) 
+ 3000 FORMAT
+     &   ( /, '**************   E N D   O F   G E O S -- C H E M   ',
+     &        '**************' )
+
+      ! Return to MAIN program
+      END SUBROUTINE DISPLAY_END_TIME
+
+!------------------------------------------------------------------------------
 
       SUBROUTINE MET_FIELD_DEBUG
 

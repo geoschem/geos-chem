@@ -1,4 +1,4 @@
-! $Id: tagged_ox_mod.f,v 1.9 2005/03/29 15:52:45 bmy Exp $
+! $Id: tagged_ox_mod.f,v 1.10 2005/05/09 14:34:01 bmy Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
@@ -393,10 +393,6 @@
       USE DIAG_MOD,     ONLY : AD44
       USE DIAG_PL_MOD,  ONLY : AD65
       USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
-      !------------------------------------------------------
-      ! Prior to 2/17/05:
-      !USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
-      !------------------------------------------------------
       USE DRYDEP_MOD,   ONLY : DEPSAV      
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,  ONLY : LDRYD
@@ -528,17 +524,6 @@
                ! Fraction of box underneath the PBL top [unitless]
                F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
 
-               !---------------------------------------------------------------
-               ! Prior to 2/17/05:
-               ! Now replace PBLFRAC from "drydep_mod.f" with function
-               ! GET_FRAC_UNDER_PBLTOP from "pbl_mix_mod.f" (bmy, 2/17/05)
-               !! PBLFRAC won't be allocated if LDRYD=F, so we should avoid
-               !! a seg fault error by moving this here (bdf, bmy, 10/12/04)
-               !IF ( PBLFRAC(I,J,L) > 0d0 ) THEN
-               !      
-               !   ! Ox Drydep frequency [1/s]
-               !   FREQ = DEPSAV(I,J,1) * PBLFRAC(I,J,L)
-               !---------------------------------------------------------------
                IF ( F_UNDER_TOP > 0d0 ) THEN
                
                   ! Ox Drydep frequency [1/s]
@@ -595,10 +580,6 @@
 !$OMP+PRIVATE( I, J, L )
             DO J = 1, JJPAR
             DO I = 1, IIPAR
-            !------------------------
-            ! Prior to 2/17/05
-            !DO L = 1, LLTROP
-            !------------------------
             DO L = 1, PBL_MAX
                AD44(I,J,N,1) = AD44(I,J,N,1) + ND44_TMP(I,J,L)
             ENDDO

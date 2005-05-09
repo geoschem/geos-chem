@@ -1,9 +1,9 @@
-! $Id: chemistry_mod.f,v 1.13 2005/02/10 19:53:23 bmy Exp $
+! $Id: chemistry_mod.f,v 1.14 2005/05/09 14:33:56 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
 !  Module CHEMISTRY_MOD is used to call the proper chemistry subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 12/7/04)
+!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 4/13/05)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -44,6 +44,7 @@
 !  (8 ) Now references "logical_mod.f", "tracer_mod.f", "diag20_mod.f", and
 !        "diag65_mod.f", and "aerosol_mod." (bmy, 7/20/04)
 !  (9 ) Now references "mercury_mod.f" (bmy, 12/7/04)
+!  (10) Updated for SO4s, NITs chemistry (bec, bmy, 4/13/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -84,6 +85,11 @@
 !        Hg0/Hg2/HgP simulation. (eck, bmy, 12/7/04)
 !  (9 ) Now do not call DO_RPMARES if we are doing an offline aerosol run
 !        with crystalline sulfur & aqueous tracers (cas, bmy, 1/7/05)
+!  (10) Now use ISOROPIA for aer thermodyn equilibrium if we have seasalt 
+!        tracers defined, or RPMARES if not.  Now call CHEMSEASALT before
+!        CHEMSULFATE.  Now do aerosol thermodynamic equilibrium before
+!        aerosol chemistry for offline aerosol runs.  Now also reference 
+!        CLDF from "dao_mod.f" (bec, bmy, 4/20/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -93,12 +99,19 @@
       USE C2H6_MOD,        ONLY : CHEMC2H6
       USE CARBON_MOD,      ONLY : CHEMCARBON
       USE CH3I_MOD,        ONLY : CHEMCH3I
-      USE DAO_MOD,         ONLY : CLMOSW,  CLROSW, DELP, 
-     &                            MAKE_RH, OPTDEP, OPTD, T
+!--------------------------------------------------------------------------
+! Prior to 4/20/05:
+! Now also reference CLDF from "dao_mod.f" (bmy, 4/20/05)
+!      USE DAO_MOD,         ONLY : CLMOSW,  CLROSW, DELP, 
+!     &                            MAKE_RH, OPTDEP, OPTD, T
+!--------------------------------------------------------------------------
+      USE DAO_MOD,         ONLY : CLDF,    CLMOSW, CLROSW, DELP, 
+     &                            MAKE_RH, OPTDEP, OPTD,   T
       USE DRYDEP_MOD,      ONLY : DRYFLX, DRYFLXRnPbBe
       USE DUST_MOD,        ONLY : CHEMDUST, RDUST_ONLINE
       USE ERROR_MOD,       ONLY : DEBUG_MSG
       USE GLOBAL_CH4_MOD,  ONLY : CHEMCH4
+      USE ISOROPIA_MOD,    ONLY : DO_ISOROPIA
       USE Kr85_MOD,        ONLY : CHEMKr85
       USE LOGICAL_MOD
       USE MERCURY_MOD,     ONLY : CHEMMERCURY
@@ -138,7 +151,12 @@
       ! Compute optical depths (except for CO-OH run)
       ! GEOS-2/GEOS-3: Copy OPTDEP to OPTD, also archive diagnostics
       IF ( ITS_NOT_COPARAM_OR_CH4() ) THEN
-         CALL OPTDEPTH( LLPAR, OPTDEP, OPTD )
+         !-------------------------------------------------------------
+         ! Prior to 4/20/05:
+         ! Now pass CLDTOT to OPTDEPTH for diagnostics (bmy, 4/20/05)
+         !CALL OPTDEPTH( LLPAR, OPTDEP, OPTD )
+         !-------------------------------------------------------------
+         CALL OPTDEPTH( LLPAR, CLDF, OPTDEP, OPTD )
       ENDIF
 #endif 
 
@@ -156,6 +174,9 @@
             ! Call SMVGEAR routines
             CALL CHEMDR
 
+            ! Do seasalt aerosol chemistry
+            IF ( LSSALT ) CALL CHEMSEASALT
+
             ! Also do sulfate chemistry
             IF ( LSULF ) THEN
 
@@ -165,8 +186,25 @@
                ! Do sulfate chemistry
                CALL CHEMSULFATE
 
-               ! Do aerosol phase equilibrium
-               CALL DO_RPMARES
+               !--------------------------------------------------
+               ! Prior to 4/13/05:
+               !! Do aerosol phase equilibrium
+               !CALL DO_RPMARES
+               !--------------------------------------------------
+
+               ! Do aerosol thermodynamic equilibrium
+               IF ( LSSALT ) THEN
+
+                  ! ISOROPIA takes Na+, Cl- into account
+                  CALL DO_ISOROPIA
+
+               ELSE
+
+                  ! RPMARES does not take Na+, Cl- into account
+                  CALL DO_RPMARES
+
+               ENDIF
+               
             ENDIF
 
              ! Do carbonaceous aerosol chemistry
@@ -175,8 +213,11 @@
             ! Do dust aerosol chemistry
             IF ( LDUST ) CALL CHEMDUST
 
-            ! Do seasalt aerosol chemistry
-            IF ( LSSALT ) CALL CHEMSEASALT
+            !--------------------------------------
+            ! Prior to 4/13/05:
+            !! Do seasalt aerosol chemistry
+            !IF ( LSSALT ) CALL CHEMSEASALT
+            !--------------------------------------
 
             ! ND44 drydep fluxes
             CALL DRYFLX     
@@ -226,15 +267,38 @@
             ! Compute AOD's and surface areas
             CALL RDAER
 
+            !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
+            IF ( LSSALT ) THEN
+
+               ! ISOROPIA takes Na+, Cl- into account
+               CALL DO_ISOROPIA
+
+            ELSE
+
+               ! RPMARES does not take Na+, Cl- into account
+               ! (skip for crystalline & aqueous offline run)
+               IF ( .not. LCRYST ) CALL DO_RPMARES
+
+            ENDIF
+
+            !*** SEASALT AEROSOLS ***
+            IF ( LSSALT ) CALL CHEMSEASALT
+
             !*** SULFATE AEROSOLS ***
             IF ( LSULF .or. LCRYST ) THEN
 
                ! Do sulfate chemistry
                CALL CHEMSULFATE
 
-               ! Do aerosol phase equilibrium
-               ! (skip for crystalline & aqueous offline run)
-               IF ( .not. LCRYST ) CALL DO_RPMARES
+               !-----------------------------------------------------------
+               ! Prior to 4/13/05:
+               ! For offline runs we now do aerosol thermodyn
+               ! equilibrium before sulfate chemistry (bec, bmy, 4/13/05)
+               !! Do aerosol phase equilibrium
+               !! (skip for crystalline & aqueous offline run)
+               !IF ( .not. LCRYST ) CALL DO_RPMARES
+               !----------------------------------------------------------
+
             ENDIF
                
             !*** CARBON AND 2NDARY ORGANIC AEROSOLS ***
@@ -250,8 +314,12 @@
                CALL RDUST_ONLINE( SOILDUST )
             ENDIF
 
-            !*** SEASALT AEROSOLS ***
-            IF ( LSSALT ) CALL CHEMSEASALT
+            !-----------------------------------------------------------------
+            ! Prior to 4/13/05
+            ! Move seasalt chemistry before sulfate chem (bec, bmy, 4/13/05)
+            !!*** SEASALT AEROSOLS ***
+            !IF ( LSSALT ) CALL CHEMSEASALT
+            !-----------------------------------------------------------------
 
          !---------------------------------
          ! Rn-Pb-Be

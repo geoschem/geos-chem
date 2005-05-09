@@ -1,104 +1,113 @@
-! $Id: sulfate_mod.f,v 1.15 2005/03/29 15:52:44 bmy Exp $
+! $Id: sulfate_mod.f,v 1.16 2005/05/09 14:34:00 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 3/15/05)
+!  (rjp, bdf, bmy, 6/22/00, 4/13/05)
 !
-!  Module variables:
+!  Module Variables:
 !  ============================================================================
 !  (1 ) XNUMOL_OH  (REAL*8 ) : Molecules OH  per kg OH          [molec/kg]
 !  (2 ) XNUMOL_O3  (REAL*8 ) : Molecules O3  per kg O3          [molec/kg]
 !  (3 ) XNUMOL_NO3 (REAL*8 ) : Molecules NO3 per kg NO3         [molec/kg]
 !  (4 ) TCVV_S     (REAL*8 ) : Ratio: Molwt air / Molwt S       [unitless]
 !  (5 ) DMSo       (REAL*8 ) : DMS oceanic emissions            [v/v/timestep]
-!  (6 ) DRYH2O2    (INTEGER) : Pointer to H2O2 in DEPVEL array  [unitless] 
-!  (7 ) DRYSO2     (INTEGER) : Pointer to SO2  in DEPVEL array  [unitless]
-!  (8 ) DRYSO4     (INTEGER) : Pointer to SO4  in DEPVEL array  [unitless]
-!  (9 ) DRYMSA     (INTEGER) : Pointer to MSA  in DEPVEL array  [unitless]
-!  (10) DRYNH3     (INTEGER) : Pointer to NH3  in DEPVEL array  [unitless]
-!  (11) DRYNH4     (INTEGER) : Pointer to NH4  in DEPVEL array  [unitless]
-!  (12) DRYNIT     (INTEGER) : Pointer to NIT  in DEPVEL array  [unitless]
-!  (13) ENH3_an    (REAL*8 ) : NH3 anthropogenic emissions      [kg NH3/box/s]
-!  (14) ENH3_bb    (REAL*8 ) : NH3 biomass emissions            [kg NH3/box/s]
-!  (15) ENH3_bf    (REAL*8 ) : NH3 biofuel emissions            [kg NH3/box/s]
-!  (16) ENH3_na    (REAL*8 ) : NH73 natural source emissions    [kg NH3/box/s]
-!  (17) ESO2_ac    (REAL*8 ) : SO2 aircraft emissions           [kg SO2/box/s]
-!  (18) ESO2_an    (REAL*8 ) : SO2 anthropogenic emissions      [kg SO2/box/s]
-!  (19) ESO2_ev    (REAL*8 ) : SO2 eruptive volcanic em.        [kg SO2/box/s]
-!  (20) ESO2_nv    (REAL*8 ) : SO2 non-eruptive volcanic em.    [kg SO2/box/s]
-!  (21) ESO2_bb    (REAL*8 ) : SO2 biomass burning emissions    [kg SO2/box/s]
-!  (22) ESO2_bf    (REAL*8 ) : SO2 biofuel burning emissions    [kg SO2/box/s]
-!  (23) ESO2_sh    (REAL*8 ) : SO2 ship emissions               [kg SO2/box/s]
-!  (24) ESO4_an    (REAL*8 ) : SO4 anthropogenic emissions      [kg SO2/box/s]
-!  (25) JH2O2      (REAL*8 ) : Monthly mean J(H2O2) values      [s-1]
-!  (26) O3m        (REAL*8 ) : Monthly mean O3 concentration    [v/v]
-!  (27) PH2O2m     (REAL*8 ) : Monthly mean P(H2O2)             [molec/cm3/s]
-!  (28) PMSA_DMS   (REAL*8 ) : P(MSA) from DMS                  [v/v/timestep]
-!  (29) PSO2_DMS   (REAL*8 ) : P(SO2) from DMS                  [v/v/timestep]
-!  (30) PSO4_SO2   (REAL*8 ) : P(SO4) from SO2                  [v/v/timestep]
-!  (31) SSTEMP     (REAL*8 ) : Sea surface temperatures         [K]
-!  (32) VCLDF      (REAL*8 ) : Volume cloud frac. for SO2 aq.   [unitless]
-!  (33) NEV        (INTEGER) : Max # of eruptive volcanoes      [unitless]
-!  (34) IEV        (INTEGER) : Longitudes of eruptive volcanoes [degrees]  
-!  (35) JEV        (INTEGER) : Latitudes of eruptive volcanoes  [degrees ]
-!  (36) IHGHT      (INTEGER) : Height of eruptive volcano plume [m]
-!  (37) IELVe      (INTEGER) : Elevation of eruptive volcanoes  [m]
-!  (38) Eev        (REAL*8 ) : SO2 em. from eruptive volcanoes  [kg SO2/box/s]
-!  (39) NNV        (INTEGER) : Max # of non-eruptive volcanoes  [unitless]
-!  (40) NNVOL      (INTEGER) : Number of non-eruptive volcanoes [unitless]
-!  (41) INV        (INTEGER) : Longitude of non-erup volcanoes  [degrees]
-!  (42) JNV        (INTEGER) : Latitude of non-erup volcanoes   [degrees]
-!  (43) IELVn      (INTEGER) : Elevation of non-erup volcanoes  [m]
-!  (44) Env        (INTEGER) : SO2 em. from non-erup volcanoes  [kg SO2/box/s]
-!  (45) TCOSZ      (REAL*8 ) : Sum of cos(SZA) for offline run  [unitless] 
-!  (46) TTDAY      (REAL*8 ) : Total daylight length at (I,J)   [minutes]
-!  (47) SMALLNUM   (REAL*8 ) : Small number - prevent underflow [unitless]
-!  (48) COSZM      (REAL*8 ) : Array for MAX(cos(SZA)) at (I,J) [unitless]
+!  (6 ) DRYH2O2    (INTEGER) : Pointer to H2O2  in DEPVEL array [unitless] 
+!  (7 ) DRYSO2     (INTEGER) : Pointer to SO2   in DEPVEL array [unitless]
+!  (8 ) DRYSO4     (INTEGER) : Pointer to SO4   in DEPVEL array [unitless]
+!  (9 ) DRYSO4s    (INTEGER) : Pointer to SO4s  in DEPVEL array [unitless]
+!  (10) DRYMSA     (INTEGER) : Pointer to MSA   in DEPVEL array [unitless]
+!  (11) DRYNH3     (INTEGER) : Pointer to NH3   in DEPVEL array [unitless]
+!  (12) DRYNH4     (INTEGER) : Pointer to NH4   in DEPVEL array [unitless]
+!  (13) DRYNIT     (INTEGER) : Pointer to NIT   in DEPVEL array [unitless]
+!  (14) DRYNITs    (INTEGER) : Pointer to NITs  in DEPVEL array [unitless]
+!  (15) DRYSO4aq   (INTEGER) : Pointer to SO4aq in DEPVEL array [unitless]
+!  (16) DRYAS      (INTEGER) : Pointer to AS    in DEPVEL array [unitless]  
+!  (17) DRYAHS     (INTEGER) : Pointer to AHS   in DEPVEL array [unitless]
+!  (18) DRYLET     (INTEGER) : Pointer to LET   in DEPVEL array [unitless]
+!  (19) DRYNH4aq   (INTEGER) : Pointer to NH4aq in DEPVEL array [unitless]
+!  (20) ENH3_an    (REAL*8 ) : NH3 anthropogenic emissions      [kg NH3/box/s]
+!  (21) ENH3_bb    (REAL*8 ) : NH3 biomass emissions            [kg NH3/box/s]
+!  (22) ENH3_bf    (REAL*8 ) : NH3 biofuel emissions            [kg NH3/box/s]
+!  (23) ENH3_na    (REAL*8 ) : NH73 natural source emissions    [kg NH3/box/s]
+!  (24) ESO2_ac    (REAL*8 ) : SO2 aircraft emissions           [kg SO2/box/s]
+!  (25) ESO2_an    (REAL*8 ) : SO2 anthropogenic emissions      [kg SO2/box/s]
+!  (26) ESO2_ev    (REAL*8 ) : SO2 eruptive volcanic em.        [kg SO2/box/s]
+!  (27) ESO2_nv    (REAL*8 ) : SO2 non-eruptive volcanic em.    [kg SO2/box/s]
+!  (28) ESO2_bb    (REAL*8 ) : SO2 biomass burning emissions    [kg SO2/box/s]
+!  (29) ESO2_bf    (REAL*8 ) : SO2 biofuel burning emissions    [kg SO2/box/s]
+!  (30) ESO2_sh    (REAL*8 ) : SO2 ship emissions               [kg SO2/box/s]
+!  (31) ESO4_an    (REAL*8 ) : SO4 anthropogenic emissions      [kg SO2/box/s]
+!  (32) JH2O2      (REAL*8 ) : Monthly mean J(H2O2) values      [s-1]
+!  (33) O3m        (REAL*8 ) : Monthly mean O3 concentration    [v/v]
+!  (34) PH2O2m     (REAL*8 ) : Monthly mean P(H2O2)             [molec/cm3/s]
+!  (35) PMSA_DMS   (REAL*8 ) : P(MSA) from DMS                  [v/v/timestep]
+!  (36) PSO2_DMS   (REAL*8 ) : P(SO2) from DMS                  [v/v/timestep]
+!  (37) PSO4_SO2   (REAL*8 ) : P(SO4) from SO2                  [v/v/timestep]
+!  (38) SSTEMP     (REAL*8 ) : Sea surface temperatures         [K]
+!  (39) VCLDF      (REAL*8 ) : Volume cloud frac. for SO2 aq.   [unitless]
+!  (40) NEV        (INTEGER) : Max # of eruptive volcanoes      [unitless]
+!  (41) IEV        (INTEGER) : Longitudes of eruptive volcanoes [degrees]  
+!  (42) JEV        (INTEGER) : Latitudes of eruptive volcanoes  [degrees ]
+!  (43) IHGHT      (INTEGER) : Height of eruptive volcano plume [m]
+!  (44) IELVe      (INTEGER) : Elevation of eruptive volcanoes  [m]
+!  (45) Eev        (REAL*8 ) : SO2 em. from eruptive volcanoes  [kg SO2/box/s]
+!  (46) NNV        (INTEGER) : Max # of non-eruptive volcanoes  [unitless]
+!  (47) NNVOL      (INTEGER) : Number of non-eruptive volcanoes [unitless]
+!  (48) INV        (INTEGER) : Longitude of non-erup volcanoes  [degrees]
+!  (49) JNV        (INTEGER) : Latitude of non-erup volcanoes   [degrees]
+!  (50) IELVn      (INTEGER) : Elevation of non-erup volcanoes  [m]
+!  (51) Env        (INTEGER) : SO2 em. from non-erup volcanoes  [kg SO2/box/s]
+!  (52) TCOSZ      (REAL*8 ) : Sum of cos(SZA) for offline run  [unitless] 
+!  (53) TTDAY      (REAL*8 ) : Total daylight length at (I,J)   [minutes]
+!  (54) SMALLNUM   (REAL*8 ) : Small number - prevent underflow [unitless]
+!  (55) COSZM      (REAL*8 ) : Array for MAX(cos(SZA)) at (I,J) [unitless]
 !  
 !  Module Routines:
 !  ===========================================================================
 !  (1 ) GET_VCLDF         : Computes volume cloud fraction for SO2 chemistry 
 !  (2 ) GET_LWC           : Computes liquid water content as a function of T
 !  (3 ) CHEMSULFATE       : Driver routine for sulfate/aerosol chemistry
-!  (4 ) CHEM_DMS          : Chemistry routine for DMS tracer
-!  (5 ) CHEM_H2O2         : Chemistry routine for H2O2 tracer
-!  (6 ) CHEM_SO2          : Chemistry routine for SO2 tracer
-!  (7 ) AQCHEM_SO2        : Computes reaction rates for aqueous SO2 chemistry
-!  (8 ) CHEM_SO4          : Chemistry routine for SO4 tracer
-!  (9 ) PHASE_SO4         : Computes phase transition for crystalline tracers 
-!  (10) PHASE_RADIATIVE   : Computes radiative forcing for crystalline tracers
-!  (11) CHEM_MSA          : Chemistry routine for MSA tracer
-!  (12) CHEM_NH3          : Chemistry routine for ammonia tracer
-!  (13) CHEM_NH4          : Chemistry routine for ammonium tracer
-!  (14) CHEM_NIT          : Chemistry routine for nitrates tracer
-!  (15) EMISSSULFATE      : Driver routine for sulfate/aerosol emissions
-!  (16) SRCDMS            : Emission routine for DMS tracer
-!  (17) SRCSO2            : Emission routine for SO2 tracer
-!  (18) SRCSO4            : Emission routine for SO4 tracer
-!  (19) SRCNH3            : Emission routine for NH3 tracer
-!  (20) GET_OH            : Returns OH for coupled or offline simulations
-!  (21) SET_OH            : Resets modified OH in SMVGEAR's CSPEC array
-!  (22) GET_NO3           : Returns NO3 for coupled or offline simulations
-!  (23) SET_NO3           : Resets modified OH in SMVGEAR's CSPEC array
-!  (24) GET_O3            : Returns O3 for coupled or offline simulations
-!  (25) READ_NONERUP_VOLC : Reads SO2 emissions from non-eruptive volcanoes
-!  (26) READ_ERUP_VOLC    : Reads SO2 emissions from eruptive volcanoes 
-!  (27) READ_ANTHRO_SOx   : Reads anthropogenic SO2 and SO4 emissions
-!  (28) READ_OCEAN_DMS    : Reads biogenic DMS emissions from oceans
-!  (29) READ_SST          : Reads monthly mean sea-surface temperatures
-!  (30) READ_BIOMASS_SO2  : Reads SO2 emissions from biomass burning
-!  (31) READ_AIRCRAFT_SO2 : Reads SO2 emissions from aircraft exhaust
-!  (32) READ_SHIP_SO2     : Reads SO2 emissions from ship exhaust
-!  (33) READ_ANTHRO_NH3   : Reads NH3 emissions from anthropogenic sources
-!  (34) READ_NATURAL_NH3  : Reads NH3 emissions from natural sources
-!  (35) READ_BIOMASS_NH3  : Reads NH3 biomass burning emissions
-!  (36) READ_OXIDANT      : Reads monthly mean O3 and H2O2 for offline run
-!  (37) OHNO3TIME         : Computes time arrays for scaling offline OH, NO3
-!  (38) INIT_SULFATE      : Allocates & zeroes module arrays
-!  (39) CLEANUP_SULFATE   : Deallocates module arrays
+!  (4 ) GRAV_SETTLING     : Routine to compute settling of SO4s and NITs
+!  (5 ) CHEM_DMS          : Chemistry routine for DMS tracer
+!  (6 ) CHEM_H2O2         : Chemistry routine for H2O2 tracer
+!  (7 ) CHEM_SO2          : Chemistry routine for SO2 tracer
+!  (8 ) SEASALT_CHEM      : Computes SO2->SO4 and HNO3->nitrate w/in seasalt
+!  (9 ) AQCHEM_SO2        : Computes reaction rates for aqueous SO2 chemistry
+!  (10) CHEM_SO4          : Chemistry routine for SO4 tracer
+!  (11) PHASE_SO4         : Computes phase transition for crystalline tracers 
+!  (12) PHASE_RADIATIVE   : Computes radiative forcing for crystalline tracers
+!  (13) CHEM_MSA          : Chemistry routine for MSA tracer
+!  (14) CHEM_NH3          : Chemistry routine for ammonia tracer
+!  (15) CHEM_NH4          : Chemistry routine for ammonium tracer
+!  (16) CHEM_NIT          : Chemistry routine for nitrates tracer
+!  (17) EMISSSULFATE      : Driver routine for sulfate/aerosol emissions
+!  (18) SRCDMS            : Emission routine for DMS tracer
+!  (19) SRCSO2            : Emission routine for SO2 tracer
+!  (20) SRCSO4            : Emission routine for SO4 tracer
+!  (21) SRCNH3            : Emission routine for NH3 tracer
+!  (22) GET_OH            : Returns OH for coupled or offline simulations
+!  (23) SET_OH            : Resets modified OH in SMVGEAR's CSPEC array
+!  (24) GET_NO3           : Returns NO3 for coupled or offline simulations
+!  (25) SET_NO3           : Resets modified OH in SMVGEAR's CSPEC array
+!  (26) GET_O3            : Returns O3 for coupled or offline simulations
+!  (27) READ_NONERUP_VOLC : Reads SO2 emissions from non-eruptive volcanoes
+!  (28) READ_ERUP_VOLC    : Reads SO2 emissions from eruptive volcanoes 
+!  (29) READ_ANTHRO_SOx   : Reads anthropogenic SO2 and SO4 emissions
+!  (30) READ_OCEAN_DMS    : Reads biogenic DMS emissions from oceans
+!  (31) READ_SST          : Reads monthly mean sea-surface temperatures
+!  (32) READ_BIOMASS_SO2  : Reads SO2 emissions from biomass burning
+!  (33) READ_AIRCRAFT_SO2 : Reads SO2 emissions from aircraft exhaust
+!  (34) READ_SHIP_SO2     : Reads SO2 emissions from ship exhaust
+!  (35) READ_ANTHRO_NH3   : Reads NH3 emissions from anthropogenic sources
+!  (36) READ_NATURAL_NH3  : Reads NH3 emissions from natural sources
+!  (37) READ_BIOMASS_NH3  : Reads NH3 biomass burning emissions
+!  (38) READ_OXIDANT      : Reads monthly mean O3 and H2O2 for offline run
+!  (39) OHNO3TIME         : Computes time arrays for scaling offline OH, NO3
+!  (40) INIT_SULFATE      : Allocates & zeroes module arrays
+!  (41) CLEANUP_SULFATE   : Deallocates module arrays
 !
 !  GEOS-CHEM modules referenced by sulfate_mod.f
 !  ============================================================================
@@ -114,15 +123,17 @@
 !  (10) grid_mod.f        : Module w/ horizontal grid information
 !  (11) global_no3_mod.f  : Module w/ routines to read 3-D NO3 field
 !  (12) global_oh_mod.f   : Module w/ routines to read 3-D OH field
-!  (13) logical_mod.f     : Module w/ GEOS-CHEM logical switches
-!  (14) pbl_mix_mod.f     : Module w/ routines for PBL height & mixing
-!  (15) pressure_mod.f    : Module w/ routines to compute P(I,J,L)
-!  (16) tracer_mod.f      : Module w/ GEOS-CHEM tracer array STT etc.
-!  (17) tracerid_mod.f    : Module w/ pointers to tracers & emissions
-!  (18) transfer_mod.f    : Module w/ routines to cast & resize arrays
-!  (19) time_mod.f        : Module w/ routines to compute time & date
-!  (20) uvalbedo_mod.f    : Module w/ UV albedo array and reader
-!  (21) wetscav_mod.f     : Module w/ routines for wetdep & scavenging
+!  (13) isoropia_mod.f    : Module w/ ISORROPIA routines for aer thermodyn eq
+!  (14) logical_mod.f     : Module w/ GEOS-CHEM logical switches
+!  (15) pbl_mix_mod.f     : Module w/ routines for PBL height & mixing
+!  (16) pressure_mod.f    : Module w/ routines to compute P(I,J,L)
+!  (17) seasalt_mod.f     : Module w/ routines for seasalt chemistry
+!  (18) tracer_mod.f      : Module w/ GEOS-CHEM tracer array STT etc.
+!  (19) tracerid_mod.f    : Module w/ pointers to tracers & emissions
+!  (20) transfer_mod.f    : Module w/ routines to cast & resize arrays
+!  (21) time_mod.f        : Module w/ routines to compute time & date
+!  (22) uvalbedo_mod.f    : Module w/ UV albedo array and reader
+!  (23) wetscav_mod.f     : Module w/ routines for wetdep & scavenging
 !
 !  References
 !  ============================================================================
@@ -174,6 +185,7 @@
 !  (27) Now also references "pbl_mix_mod.f".  NOTE: Comment out phase 
 !        transition  code for now since it is still under development and
 !        will take a while to be rewritten. (bmy, 3/15/05)
+!  (28) Modified for SO4s, NITs chemistry (bec, 4/13/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -230,6 +242,8 @@
       REAL*8,  ALLOCATABLE :: PMSA_DMS(:,:,:)
       REAL*8,  ALLOCATABLE :: PSO2_DMS(:,:,:)
       REAL*8,  ALLOCATABLE :: PSO4_SO2(:,:,:)
+      REAL*8,  ALLOCATABLE :: PSO4_SS(:,:,:)
+      REAL*8,  ALLOCATABLE :: PNITs(:,:,:)
       REAL*8,  ALLOCATABLE :: SOx_SCALE(:,:)
       REAL*8,  ALLOCATABLE :: SSTEMP(:,:)
       REAL*8,  ALLOCATABLE :: TCOSZ(:,:)
@@ -252,9 +266,10 @@
       REAL*8,  ALLOCATABLE :: ENV(:)
       
       ! Pointers to drydep species w/in DEPSAV
-      INTEGER              :: DRYSO2, DRYSO4,  DRYMSA,   DRYNH3  
-      INTEGER              :: DRYNH4, DRYNIT,  DRYH2O2,  DRYSO4aq 
-      INTEGER              :: DRYAS,  DRYAHS,  DRYLET,   DRYNH4aq
+      INTEGER              :: DRYSO2,  DRYSO4,   DRYMSA,  DRYNH3  
+      INTEGER              :: DRYNH4,  DRYNIT,   DRYSO4s, DRYNITs
+      INTEGER              :: DRYH2O2, DRYSO4aq, DRYAS,   DRYAHS
+      INTEGER              :: DRYLET,  DRYNH4aq
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -382,7 +397,7 @@
 !  Subroutine CHEMSULFATE is the interface between the GEOS-CHEM main program
 !  and the sulfate chemistry routines.  The user has the option of running
 !  a coupled chemistry-aerosols simulation or an offline aerosol simulation.
-!  (rjp, bdf, bmy, 5/31/00, 3/27/03)
+!  (rjp, bdf, bmy, 5/31/00, 4/13/05)
 !
 !  NOTES:
 !  (1 ) Now reference all arguments except FIRSTCHEM and RH from either F90 
@@ -404,6 +419,7 @@
 !  (5 ) Updated for AS, AHS, LET, SO4aq, NH4aq.  Now references LCRYST from
 !        logical_mod.f.  Now locate species in the DEPSAV array w/in 
 !        INIT_SULFATE. (bmy, 12/21/04)
+!  (6 ) Now handle gravitational settling of SO4s, NITs (bec, bmy, 4/13/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -472,12 +488,22 @@
       PSO2_DMS = 0d0
       PMSA_DMS = 0d0
       PSO4_SO2 = 0d0
+      PSO4_SS  = 0d0
+      PNITs    = 0d0
                   
       !================================================================= 
       ! Call individual chemistry routines for sulfate/aerosol tracers
       !=================================================================
 
-      ! Convert STT from [kg] -> [v/v] 
+      ! SO4s [kg] gravitational settling 
+      CALL GRAV_SETTLING( STT(:,:,:,IDTSO4s), 1 )
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4S' )
+
+      ! NITs [kg] gravitational settling 
+      CALL GRAV_SETTLING( STT(:,:,:,IDTNITs), 2 )
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITS' )
+
+      ! Convert all tracers in STT from [kg] -> [v/v] 
       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT )
 
       ! For offline runs only ...
@@ -555,12 +581,236 @@
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE GRAV_SETTLING( TC, N )
+!
+!******************************************************************************
+!  Subroutine GRAV_SETTLING performs gravitational settling of sulfate
+!  and nitrate in coarse sea salt (SO4S and NITS).
+!  (bec, rjp, bmy, 4/20/04, 7/20/04, 12/7/04)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) TC (REAL*8 ) : Tracer [kg]
+!  (2 ) N  (INTEGER) : N=1 is SO4S; N=2 is NITS
+!
+!  Arguments as Output:
+!  ============================================================================
+!  (1 ) TC (REAL*8 ) : Contains modified tracer
+!
+!  NOTES:
+!  (1 ) Now references SALA_REDGE_um and SALC_REDGE_um from "tracer_mod.f"
+!        (bmy, 7/20/04)
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE DAO_MOD,       ONLY : T, BXHEIGHT, RH
+      USE DIAG_MOD,      ONLY : AD44
+      USE DRYDEP_MOD,    ONLY : DEPSAV
+      USE PRESSURE_MOD,  ONLY : GET_PCENTER
+      USE TRACER_MOD,    ONLY : SALA_REDGE_um,   SALC_REDGE_um
+      USE TRACERID_MOD,  ONLY : IDTSO4S,         IDTNITS
+      USE TIME_MOD,      ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
+      USE GRID_MOD,      ONLY : GET_AREA_CM2
+
+#     include "CMN_SIZE"      ! Size parameters
+#     include "CMN_GCTM"      ! g0
+#     include "CMN_DIAG"      ! ND44
+#     include "CMN_O3"        ! XNUMOL
+
+      ! Argumetns
+      INTEGER, INTENT(IN)    :: N
+      REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
+
+      ! Local variables
+      INTEGER                :: I,      J,     L,        DTCHEM
+      REAL*8                 :: DELZ,   DELZ1, REFF
+      REAL*8                 :: P,      DP,    PDP,      TEMP        
+      REAL*8                 :: CONST,  SLIP,  VISC,     FAC1
+      REAL*8                 :: FAC2,   FLUX,  AREA_CM2, RHB
+      REAL*8                 :: RCM,    RWET,  RATIO_R,  RHO
+      REAL*8                 :: TOT1,   TOT2
+      REAL*8                 :: VTS(LLPAR)  
+      REAL*8                 :: TC0(LLPAR)
+      
+      ! Parameters
+      REAL*8,  PARAMETER     :: C1 =  0.7674d0 
+      REAL*8,  PARAMETER     :: C2 =  3.079d0 
+      REAL*8,  PARAMETER     :: C3 =  2.573d-11
+      REAL*8,  PARAMETER     :: C4 = -1.424d0
+      REAL*8,  PARAMETER     :: DEN = 2200.0d0 ! [kg/m3] sea-salt density
+
+      ! Arrays
+      INTEGER              :: IDDEP(2)
+      INTEGER              :: IDTRC(2)	
+
+      !=================================================================
+      ! GRAV_SETTLING begins here!
+      !=================================================================
+
+      ! Return if tracers are undefined
+      IF ( IDTSO4s == 0 .and. IDTNITs == 0 ) RETURN
+
+      ! Return if it's the start of the run
+      IF ( GET_ELAPSED_SEC() == 0 ) RETURN
+
+      ! Chemistry timestep [s]
+      DTCHEM = GET_TS_CHEM() * 60d0
+
+      ! Store in IDDEP array
+      IDDEP(1) = DRYSO4s
+      IDDEP(2) = DRYNITs
+
+      ! Tracer array
+      IDTRC(1) = IDTSO4s
+      IDTRC(2) = IDTNITs
+
+      ! Coarse mode
+      REFF = 0.5d-6 * ( SALC_REDGE_um(1) + SALC_REDGE_um(2) )
+            
+      ! Sea salt radius [cm]
+      RCM  = REFF * 100d0  
+
+      ! Exponential factors
+      FAC1 = C1 * ( RCM**C2 )
+      FAC2 = C3 * ( RCM**C4 )
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I,       J,     L,    VTS,  P,        TEMP, RHB,  RWET ) 
+!$OMP+PRIVATE( RATIO_R, RHO,   DP,   PDP,  CONST,    SLIP, VISC, TC0  )
+!$OMP+PRIVATE( DELZ,    DELZ1, TOT1, TOT2, AREA_CM2, FLUX             )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR       
+
+         ! Initialize 
+         DO L = 1, LLPAR
+            VTS(L) = 0d0
+         ENDDO
+
+         ! Loop over levels
+         DO L = 1, LLPAR
+
+            ! Pressure at center of the level [kPa]
+            P       = GET_PCENTER(I,J,L) * 0.1d0
+
+            ! Temperature [K]
+            TEMP    = T(I,J,L)
+
+            ! Cap RH at 0.99 
+            RHB     = MIN( 0.99d0, RH(I,J,L) * 1d-2 )
+
+            ! Aerosol growth with relative humidity in radius [m] 
+            ! (Gerber, 1985)
+            RWET    = 0.01d0*(FAC1/(FAC2-DLOG(RHB))+RCM**3.d0)**0.33d0
+
+            ! Ratio dry over wet radii at the cubic power
+            RATIO_R = ( REFF / RWET )**3.d0
+
+            ! Density of the wet aerosol (kg/m3)
+            RHO     = RATIO_R * DEN + ( 1.d0 - RATIO_R ) * 1000.d0
+
+            ! Dp = particle diameter [um]
+            DP      = 2.d0 * RWET * 1.d6        
+
+            ! PdP = P * dP [hPa * um]
+            PDp     = P * Dp
+
+            ! Constant
+            CONST   = 2.d0 * RHO * RWET**2 * g0 / 9.d0
+
+            !===========================================================
+            ! NOTE: Slip correction factor calculations following 
+            ! Seinfeld, pp464 which is thought to be more accurate 
+            ! but more computation required. (rjp, 1/24/02)
+            !
+            ! # air molecule number density
+            ! num = P * 1d3 * 6.023d23 / (8.314 * Temp) 
+            !
+            ! # gas mean free path
+            ! lamda = 1.d6/( 1.41421 * num * 3.141592 * (3.7d-10)**2 ) 
+            !
+            ! # Slip correction
+            ! Slip = 1. + 2. * lamda * (1.257 + 0.4 * exp( -1.1 * Dp     
+            !     &     / (2. * lamda))) / Dp
+            !
+            ! NOTE: Eq) 3.22 pp 50 in Hinds (Aerosol Technology)
+            ! which produces slip correction factore with small error
+            ! compared to the above with less computation.
+            !===========================================================  
+          
+            ! Slip correction factor (as function of P*dp)
+            Slip = 1.d0+(15.60d0 + 7.0d0 * EXP(-0.059d0 * PDp)) / PDp
+
+            ! Viscosity [Pa*s] of air as a function of temperature 
+            VISC = 1.458d-6 * (Temp)**(1.5d0) / ( Temp + 110.4d0 )
+
+            ! Settling velocity [m/s]
+            VTS(L) = CONST * Slip / VISC
+         ENDDO
+
+         ! Method is to solve bidiagonal matrix which is
+         ! implicit and first order accurate in z (rjp, 1/24/02)
+
+         ! Save initial tracer concentration in column
+         DO L = 1, LLPAR
+            TC0(L) = TC(I,J,L)
+         ENDDO
+
+         ! We know the boundary condition at the model top
+         L    = LLTROP
+         DELZ = BXHEIGHT(I,J,L)
+
+         TC(I,J,L) = TC(I,J,L) / ( 1.d0 + DTCHEM * VTS(L) / DELZ )
+
+         DO L = LLTROP-1, 1, -1
+            DELZ  = BXHEIGHT(I,J,L)
+            DELZ1 = BXHEIGHT(I,J,L+1)
+            TC(I,J,L) = 1.d0 / ( 1.d0 + DTCHEM * VTS(L) / DELZ )
+     &                * ( TC(I,J,L) + DTCHEM * VTS(L+1) / DELZ1
+     &                *  TC(I,J,L+1) )
+         ENDDO
+         
+         !==============================================================
+         ! ND44 diagnostic: sea salt loss [molec/cm2/s]
+         !==============================================================
+         IF ( ND44 > 0 ) THEN
+
+            ! Initialize
+            TOT1 = 0d0
+            TOT2 = 0d0
+            
+            ! Compute column totals of TCO(:) and TC(I,J,:,N)
+            DO L = 1, LLPAR
+               TOT1 = TOT1 + TC0(L)
+               TOT2 = TOT2 + TC(I,J,L)
+            ENDDO
+
+            ! Surface area [cm2]
+            AREA_CM2 = GET_AREA_CM2( J )
+
+            ! Convert sea salt flux from [kg/s] to [molec/cm2/s]
+            FLUX     = ( TOT1 - TOT2 ) / DTCHEM
+            FLUX     = FLUX * XNUMOL(IDTRC(N)) / AREA_CM2 
+   
+            ! Store in AD44 array
+            AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX
+         ENDIF
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Return to calling program
+      END SUBROUTINE GRAV_SETTLING
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE CHEM_DMS
 !
 !******************************************************************************
 !  Subroutine CHEM_DMS is the DMS chemistry subroutine from Mian Chin's    
 !  GOCART model, modified for use with the GEOS-CHEM model.
-!  (rjp, bdf, bmy, 5/31/00, 7/20/04)  
+!  (rjp, bdf, bmy, 5/31/00, 4/13/05)  
 !                                                                           
 !  Module Variables used:                                                     
 !  ============================================================================
@@ -602,6 +852,8 @@
 !  (3 ) Now use function GET_TS_CHEM from "time_mod.f".  (bmy, 3/27/03)
 !  (4 ) Now reference STT and ITS_A_FULLCHEM_SIM from "tracer_mod.f"
 !        Now replace IJSURF w/ an analytic function. (bmy, 7/20/04)
+!  (5 ) Shift rows 8,9 in AD05 to 9,10 in to make room for P(SO4) from O3 
+!        oxidation in sea-salt aerosols (bec, bmy, 4/13/05)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -787,11 +1039,22 @@
             AD05(I,J,L,4) = AD05(I,J,L,4) + 
      &                      ( PMSA_DMS(I,J,L) * AD(I,J,L) / TCVV_S )
 
-            ! Store L(OH) by DMS [kg OH/timestep]
-            AD05(I,J,L,8) = AD05(I,J,L,8) + LOH
+            !---------------------------------------------------------
+            ! Prior to 4/13/05:
+            ! Shift 8,9 to 9,10 to make room for P(SO4) from O3 
+            ! oxidation in sea-salt aerosols (bec, bmy, 4/13/05)
+            !! Store L(OH) by DMS [kg OH/timestep]
+            !AD05(I,J,L,8) = AD05(I,J,L,8) + LOH
+            !
+            !! Store L(NO3) by DMS [kg NO3/timestep]
+            !AD05(I,J,L,9) = AD05(I,J,L,9) + LNO3
+            !---------------------------------------------------------
 
+            ! Store L(OH) by DMS [kg OH/timestep]
+            AD05(I,J,L,9) = AD05(I,J,L,9) + LOH
+            
             ! Store L(NO3) by DMS [kg NO3/timestep]
-            AD05(I,J,L,9) = AD05(I,J,L,9) + LNO3
+            AD05(I,J,L,10) = AD05(I,J,L,10) + LNO3
 
          ENDIF
 
@@ -847,10 +1110,6 @@
       USE DAO_MOD,       ONLY : AD, AIRDEN, OPTD, SUNCOS, T
       USE DIAG_MOD,      ONLY : AD44 
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      !---------------------------------------------
-      ! Prior to 2/22/05:
-      !USE DRYDEP_MOD,    ONLY : DEPSAV, PBLFRAC
-      !---------------------------------------------
       USE DRYDEP_MOD,    ONLY : DEPSAV
       USE GRID_MOD,      ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,   ONLY : GET_FRAC_UNDER_PBLTOP
@@ -921,12 +1180,6 @@
          XTAU = GET_TAU0( GET_MONTH(), 1, 1998 )
 	
          ! Read J(H2O2) [s-1]  from disk (only up to tropopause)
-!------------------------------------------------------------------------
-! Prior to 1/25/05:
-! Now suppress output from READ_BPCH with QUIET keyword (bmy, 1/25/05)
-!         CALL READ_BPCH2( FILENAME, 'JV-MAP-$', 3,      XTAU, 
-!     &                    IGLOB,    JGLOB,      LLTROP, ARRAY )
-!------------------------------------------------------------------------
          CALL READ_BPCH2( FILENAME, 'JV-MAP-$', 3,      
      &                    XTAU,      IGLOB,     JGLOB,      
      &                    LLTROP,    ARRAY,     QUIET=.TRUE. )
@@ -967,13 +1220,6 @@
 
          ! Loss frequenty due to OH oxidation [s-1]
          KOH   = A * EXP( -160.d0 / T(I,J,L) ) * GET_OH(I,J,L)  
-
-         !--------------------------------------------------------------------
-         ! Prior to 2/22/05:
-         !! H2O2 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
-         !! of the grid box (I,J,L) that is located beneath the PBL top
-         !FREQ  = DEPSAV(I,J,DRYH2O2) * PBLFRAC(I,J,L)
-         !--------------------------------------------------------------------
 
          ! H2O2 drydep frequency [1/s].  Account for the fraction
          ! of grid box (I,J,L) that is located beneath the PBL top.
@@ -1050,7 +1296,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_SO2 is the SO2 chemistry subroutine 
-!  (rjp, bmy, 11/26/02, 2/22/05) 
+!  (rjp, bmy, 11/26/02, 4/13/05) 
 !                                                                          
 !  Module variables used:
 !  ============================================================================
@@ -1096,24 +1342,25 @@
 !        Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (8 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f" (bmy, 2/22/05)
+!  (9 ) Modified for SO4s, NITs.  Also modified for alkalinity w/in the
+!        seasalt chemistry. (bec, bmy, 4/13/05)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
-      USE DAO_MOD,       ONLY : AD,      AIRDEN, T
-      USE DIAG_MOD,      ONLY : AD05,    AD44
-      !-----------------------------------------------
-      ! Prior to 2/22/05:
-      !USE DRYDEP_MOD,    ONLY : DEPSAV,  PBLFRAC
-      !-----------------------------------------------
-      USE DRYDEP_MOD,    ONLY : DEPSAV
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE GRID_MOD,      ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,   ONLY : GET_FRAC_UNDER_PBLTOP
-      USE PRESSURE_MOD,  ONLY : GET_PCENTER
-      USE TIME_MOD,      ONLY : GET_TS_CHEM
-      USE TRACER_MOD,    ONLY : STT,     TCVV,  ITS_AN_AEROSOL_SIM
-      USE TRACERID_MOD,  ONLY : IDTH2O2, IDTSO2
-      USE WETSCAV_MOD,   ONLY : H2O2s,   SO2s
+      USE DAO_MOD,         ONLY : AD,      AIRDEN, T
+      USE DIAG_MOD,        ONLY : AD05,    AD44
+      USE DRYDEP_MOD,      ONLY : DEPSAV
+      USE DIRECTORY_MOD,   ONLY : DATA_DIR
+      USE GLOBAL_HNO3_MOD, ONLY : GET_GLOBAL_HNO3
+      USE GRID_MOD,        ONLY : GET_AREA_CM2
+      USE PBL_MIX_MOD,     ONLY : GET_FRAC_UNDER_PBLTOP
+      USE PRESSURE_MOD,    ONLY : GET_PCENTER
+      USE TIME_MOD,        ONLY : GET_TS_CHEM, GET_MONTH, 
+     &                            ITS_A_NEW_MONTH
+      USE TRACER_MOD,      ONLY : STT,     TCVV,  ITS_AN_AEROSOL_SIM
+      USE TRACERID_MOD,    ONLY : IDTH2O2, IDTSO2
+      USE SEASALT_MOD,     ONLY : GET_ALK
+      USE WETSCAV_MOD,     ONLY : H2O2s,   SO2s
 
 #     include "CMN_SIZE"    ! Size parameters
 #     include "CMN"         ! LPAUSE
@@ -1131,6 +1378,9 @@
       REAL*8                :: F1,     RK1,     RK2,    RK3,  SO20
       REAL*8                :: SO2_cd, H2O20,   O3,     L2S,  L3S
       REAL*8                :: LWC,    KaqH2O2, KaqO3,  PATM, FLUX
+      REAL*8                :: ALK,    ALK1,    ALK2,    SO2_ss
+      REAL*8                :: Kt1,    Kt2,     AREASS1, AREASS2
+      REAL*8                :: PSO4E,  PSO4F,   Kt1N,    Kt2N
       REAL*8                :: AREA_CM2
       REAL*8                :: ND44_TMP(IIPAR,JJPAR,LLTROP)
 
@@ -1145,6 +1395,13 @@
 
       ! Is it an offline simulation?
       IS_OFFLINE = ITS_AN_AEROSOL_SIM()
+
+      ! Read HNO3 for offline simulation
+      IF ( IS_OFFLINE ) THEN
+         IF ( ITS_A_NEW_MONTH() ) THEN
+            CALL GET_GLOBAL_HNO3( GET_MONTH() )
+         ENDIF
+      ENDIF
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
@@ -1169,11 +1426,23 @@
       ENDIF
 
       ! Loop over tropospheric grid boxes
+!-----------------------------------------------------------------------------
+! Prior to 4/13/05:
+! Updated parallel loop (bec, bmy, 4/13/05)
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, SO20, H2O20, O3, PATM, TK, K0, M, KK, F1, RK1  )
+!!$OMP+PRIVATE( RK2, RK, RKT, SO2_cd, L1, Ld, L2, L2S, L3, L3S, FC, LWC )
+!!$OMP+PRIVATE( KaqH2O2, KaqO3, AREA_CM2, FLUX )
+!!$OMP+SCHEDULE( DYNAMIC )
+!-----------------------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, SO20, H2O20, O3, PATM, TK, K0, M, KK, F1, RK1  )
 !$OMP+PRIVATE( RK2, RK, RKT, SO2_cd, L1, Ld, L2, L2S, L3, L3S, FC, LWC )
-!$OMP+PRIVATE( KaqH2O2, KaqO3, AREA_CM2, FLUX )
+!$OMP+PRIVATE( KaqH2O2, KaqO3, AREA_CM2, FLUX, ALK, ALK1, ALK2         )
+!$OMP+PRIVATE( Kt1, Kt2, AREASS1, AREASS2, SO2_ss, Kt1N, Kt2N          )
+!$OMP+PRIVATE( PSO4E, PSO4F                                            )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLTROP  
       DO J = 1, JJPAR
@@ -1220,13 +1489,6 @@
 
          ENDIF
 
-         !--------------------------------------------------------------------
-         ! Prior to 2/22/05;
-         !! SO2 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
-         !! of grid box (I,J,L) that is located beneath the PBL top
-         !RK2    = DEPSAV(I,J,DRYSO2) * PBLFRAC(I,J,L)
-         !--------------------------------------------------------------------
-
          ! SO2 drydep frequency [1/s].  Also accounts for the fraction
          ! of grid box (I,J,L) that is located beneath the PBL top.
          RK2    = DEPSAV(I,J,DRYSO2) * GET_FRAC_UNDER_PBLTOP( I, J, L )
@@ -1254,6 +1516,38 @@
          ENDIF
 
          !==============================================================
+         ! Update SO2 conc. after seasalt chemistry (bec, 12/7/04)
+         !==============================================================
+
+         ! Get alkalinity of accum (ALK1) and coarse (ALK2) [kg]
+	 CALL GET_ALK( I, J, L, ALK1, ALK2, Kt1, Kt2, Kt1N, Kt2N )
+
+         ! Total alkalinity [kg]
+         ALK = ALK1 + ALK2
+
+         ! If (1) there is alkalinity, (2) there is SO2 present, and 
+         ! (3) O3 is in excess, then compute seasalt SO2 chemistry
+         IF  ( ( ALK    > MINDAT )  .AND.
+     &         ( SO2_cd > MINDAT )  .AND. 
+     &         ( SO2_cd < O3     ) ) THEN
+
+            ! Compute oxidation of SO2 -> SO4 and condensation of
+            ! HNO3 -> nitrate within the seasalt aerosol 
+            CALL SEASALT_CHEM( I,      J,     L,   ALK1, ALK2,
+     &                         SO2_cd, Kt1,   Kt2, Kt1N, Kt2N,
+     &                         SO2_ss, PSO4E, PSO4F ) 
+
+	 ELSE
+
+            ! Otherwise set equal to zero
+            SO2_ss       = SO2_cd
+            PSO4E        = 0.d0
+            PSO4F        = 0.d0
+            PNITS(I,J,L) = 0.d0
+
+	 ENDIF
+
+         !==============================================================
          ! Update SO2 concentration after cloud chemistry          
          ! SO2 chemical loss rate = SO4 production rate [v/v/timestep]
          !==============================================================
@@ -1274,8 +1568,15 @@
          
          ! If (1) there is cloud, (2) there is SO2 present, and 
          ! (3) the T > -15 C, then compute aqueous SO2 chemistry
+!--------------------------------------------------------------------------
+! Prior to 4/13/05:
+! Replace SO2_cd with SO2_ss in IF statement (bec, bmy, 4/13/05)
+!         IF ( ( FC     > 0.d0   )  .AND. 
+!     &        ( SO2_cd > MINDAT )  .AND. 
+!     &        ( TK     > 258.0  ) ) THEN
+!--------------------------------------------------------------------------
          IF ( ( FC     > 0.d0   )  .AND. 
-     &        ( SO2_cd > MINDAT )  .AND. 
+     &        ( SO2_ss > MINDAT )  .AND. 
      &        ( TK     > 258.0  ) ) THEN
 
             !===========================================================
@@ -1351,25 +1652,62 @@
             ! in aqueous phase with different rate constants. 
             !===========================================================
 
+!------------------------------------------------------------------------------
+! Prior to 4/13/05:
+! Replace SO2_cd with SO2_ss (bec, bmy, 4/13/05)
+!
+!            ! Compute aqueous rxn rates for SO2
+!            CALL AQCHEM_SO2( LWC, TK,    PATM,    SO2_cd, H2O20, 
+!     &                       O3,  HPLUS, KaqH2O2, KaqO3 ) 
+!
+!            ! Aqueous phase SO2 loss rate (v/v/timestep): 
+!            L2  = EXP( ( SO2_cd - H2O20 ) * KaqH2O2 * DTCHEM )  
+!            L3  = EXP( ( SO2_cd - O3    ) * KaqO3   * DTCHEM )       
+!
+!            ! Loss by H2O2
+!            L2S = SO2_cd * H2O20 * (L2 - 1.D0) / ((SO2_cd * L2) - H2O20)  
+!
+!            ! Loss by O3
+!            L3S = SO2_cd * O3    * (L3 - 1.D0) / ((SO2_cd * L3) - O3)     
+!          
+!            SO2_cd = MAX( SO2_cd - ( L2S + L3S ), MINDAT )
+!            H2O20  = MAX( H2O20  - L2S,           MINDAT )
+!
+!            ! Update SO2 level, save SO2[ppv], H2O2[ppv] for WETDEP
+!            SO2s( I,J,L) = SO2_cd
+!            H2O2s(I,J,L) = H2O20
+!
+!         ELSE
+!
+!            ! Otherwise, don't do aqueous chemistry, and
+!            ! save the original concentrations into SO2 and H2O2
+!            H2O2s(I,J,L) = MAX( H2O20,  1.0d-32 )
+!            SO2s(I,J,L ) = MAX( SO2_cd, 1.0d-32 )
+!            L2S          = 0.d0
+!            L3S          = 0.d0
+!
+!         ENDIF
+!-----------------------------------------------------------------------------
+
             ! Compute aqueous rxn rates for SO2
-            CALL AQCHEM_SO2( LWC, TK,    PATM,    SO2_cd, H2O20, 
+            CALL AQCHEM_SO2( LWC, TK,    PATM,    SO2_ss, H2O20, 
      &                       O3,  HPLUS, KaqH2O2, KaqO3 ) 
 
             ! Aqueous phase SO2 loss rate (v/v/timestep): 
-            L2  = EXP( ( SO2_cd - H2O20 ) * KaqH2O2 * DTCHEM )  
-            L3  = EXP( ( SO2_cd - O3    ) * KaqO3   * DTCHEM )       
+            L2  = EXP( ( SO2_ss - H2O20 ) * KaqH2O2 * DTCHEM )  
+            L3  = EXP( ( SO2_ss - O3    ) * KaqO3   * DTCHEM )       
 
             ! Loss by H2O2
-            L2S = SO2_cd * H2O20 * (L2 - 1.D0) / ((SO2_cd * L2) - H2O20)  
+            L2S = SO2_ss * H2O20 * (L2 - 1.D0) / ((SO2_ss * L2) - H2O20)  
 
             ! Loss by O3
-            L3S = SO2_cd * O3    * (L3 - 1.D0) / ((SO2_cd * L3) - O3)     
+            L3S = SO2_ss * O3    * (L3 - 1.D0) / ((SO2_ss * L3) - O3)     
           
-            SO2_cd = MAX( SO2_cd - ( L2S + L3S ), MINDAT )
+            SO2_ss = MAX( SO2_ss - ( L2S + L3S ), MINDAT )
             H2O20  = MAX( H2O20  - L2S,           MINDAT )
 
             ! Update SO2 level, save SO2[ppv], H2O2[ppv] for WETDEP
-            SO2s( I,J,L) = SO2_cd
+            SO2s( I,J,L) = SO2_ss
             H2O2s(I,J,L) = H2O20
 
          ELSE
@@ -1377,7 +1715,7 @@
             ! Otherwise, don't do aqueous chemistry, and
             ! save the original concentrations into SO2 and H2O2
             H2O2s(I,J,L) = MAX( H2O20,  1.0d-32 )
-            SO2s(I,J,L ) = MAX( SO2_cd, 1.0d-32 )
+            SO2s(I,J,L ) = MAX( SO2_ss, 1.0d-32 )
             L2S          = 0.d0
             L3S          = 0.d0
 
@@ -1388,7 +1726,12 @@
          STT(I,J,L,IDTH2O2) = H2O2s(I,J,L)
 
          ! SO2 chemical loss rate  = SO4 production rate [v/v/timestep]
-         PSO4_SO2(I,J,L) = L1 + L2S + L3S
+         !------------------------------------------------------------------
+         ! Prior to 4/13/05:
+         !PSO4_SO2(I,J,L) = L1 + L2S + L3S
+         !------------------------------------------------------------------
+         PSO4_SO2(I,J,L) = L1 + L2S + L3S + PSO4E
+         PSO4_ss (I,J,L) = PSO4F
 
          !=================================================================
          ! ND05 Diagnostics [kg S/timestep]
@@ -1406,6 +1749,11 @@
             ! P(SO4) from aqueous-phase oxidation with O3 [kg S/timestep]
             AD05(I,J,L,7) = AD05(I,J,L,7) +
      &                      ( L3S * AD(I,J,L) / TCVV_S )
+
+            ! P(SO4) from O3 oxidation in sea-salt aerosols [kg S/timestep]
+            AD05(I,J,L,8) = AD05(I,J,L,8) +
+     &                      ( (PSO4E + PSO4F) * AD(I,J,L) / TCVV_S )
+
          ENDIF
 
          !=================================================================
@@ -1448,6 +1796,363 @@
 
       ! Return to calling program
       END SUBROUTINE CHEM_SO2
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE SEASALT_CHEM ( I,      J,     L,   ALK1, ALK2,
+     &                          SO2_cd, Kt1,   Kt2, Kt1N, Kt2N,
+     &                          SO2_ss, PSO4E, PSO4F )
+!
+!******************************************************************************
+!  Function SEASALT_CHEM computes SO4 formed from S(IV) + O3 on seasalt 
+!  aerosols as a function of seasalt alkalinity. (bec, bmy, 4/13/05)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) I      (INTEGER) :
+!  (2 ) J      (INTEGER) :
+!  (3 ) L      (INTEGER) :
+!  (4 ) O30    (REAL*8)  : Initial O3 mixing ratio (v/v]
+!  (5 ) ALK    (REAL*8)  : Alkalinity [kg] from seasalt from seasalt_mod
+!  (6 ) SO2_cd (REAL*8)  : SO2 mixing ratio [v/v] after gas phase chemistry
+!                           and dry deposition
+!  (7 ) Kt1    (REAL*8)  : Rate constant [s-1] for sulfate formation on 
+!                           fine sea-salt aerosols from GET_ALK
+!  (8 ) Kt2    (REAL*8)  : Rate constant [s-1] for sulfate formation on 
+!                           coarse sea-salt aerosols from GET_ALK
+!
+!  Arguments as Output:
+!  ============================================================================
+!  (9 ) SO2_ss 	(REAL*8) : SO2 mixing ratio [v/v] updated after SS chemistry
+!  (10) SO4E    (REAL*8) : SO4E (sulfate produced by S(IV)+O3 on fine seasalt)
+!                          mixing ratio [v/v]
+!  (11) SO4F    (REAL*8) : SO4F(sulfate produced by S(IV)+O3 on coarse seasalt)
+!                          mixing ratio [v/v]
+!  (12) O3      (REAL*8) : Updated O3 mixing ratio [v/v] for fullchem runs 
+!                           only. Otherwise O30=O3.
+!
+!  Chemical reactions:
+!  ============================================================================
+!  (R1) SO2 + O3 + ALK => SO4 + O2
+!       Modeled after Chamedies and Stelson, 1992?
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE COMODE_MOD,      ONLY : CSPEC, JLOP, VOLUME
+      USE DAO_MOD,         ONLY : AD, AIRDEN, AIRVOL
+      USE TRACERID_MOD
+      !----------------------------------------------------------------
+      ! DIAGNOSTIC -- leave commented out for now (bec, bmy, 4/13/05)
+      !USE DIAG_MOD,        ONLY : AD09
+      !----------------------------------------------------------------
+      USE ERROR_MOD,       ONLY : GEOS_CHEM_STOP
+      USE TIME_MOD,        ONLY : GET_TS_CHEM, GET_ELAPSED_SEC
+      USE ERROR_MOD,       ONLY : IT_IS_NAN
+      USE TRACER_MOD
+      USE GLOBAL_HNO3_MOD, ONLY : GET_HNO3_UGM3
+      USE TIME_MOD,        ONLY : GET_ELAPSED_SEC, GET_MONTH, 
+     &                            ITS_A_NEW_MONTH
+      USE ISOROPIA_MOD,    ONLY : GET_GNO3
+
+#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_O3"    ! XNUMOLAIR
+!---------------------------------------------------------------
+! DIAGNOSTIC -- leave commented out for now (bec, bmy, 4/13/05)
+!#     include "CMN_DIAG"  ! ND19
+!---------------------------------------------------------------
+#     include "CMN_GCTM"  ! AIRMW
+
+      ! Arguments
+      INTEGER, INTENT(IN)  :: I, J, L 
+      REAL*8,  INTENT(IN)  :: SO2_cd, Kt1, Kt2, Kt1N, Kt2N
+      REAL*8,  INTENT(IN)  :: ALK1, ALK2
+      REAL*8,  INTENT(OUT) :: SO2_ss, PSO4E, PSO4F
+
+      ! Local variables
+      INTEGER              :: JLOOP
+      REAL*8               :: SO2_chem,    DTCHEM
+      REAL*8               :: O3_cspec,    O3_lost
+      REAL*8               :: EQ_1_C,      EQ_2_C
+      REAL*8               :: SO4E,        SO2_new,    SO4F
+      REAL*8               :: SO2_eq,      N_FLUX_A,   N_FLUX_C
+      REAL*8               :: END_ALK,     L5A,        L5C
+      REAL*8               :: EQ1,         EQ2,        TITR_SO2
+      REAL*8               :: TITR_HNO3,   NIT_vv,     NITs_vv
+      REAL*8               :: NIT0,        NITS0
+      REAL*8               :: F_SO2,       FALK_A_SO2, FALK_C_SO2
+      REAL*8               :: EQ_BEG,      F_SO2_A,    F_SO2_C
+      REAL*8               :: ALKA,        ALKC,       TOTAL_ACID_FLUX
+      REAL*8               :: HNO3_EQ,     TOT_FLUX_A, TOT_FLUX_C
+      REAL*8               :: FALK_A_HNO3, HNO3_vv
+      REAL*8               :: FALK_C_HNO3, F_HNO3_A,   F_HNO3_C
+      REAL*8               :: EQ_1_N,      EQ_2_N,     F_HNO3
+      REAL*8               :: HNO3_SSA,    HNO3_SSC,   N_FLUX
+      REAL*8               :: HNO3_EQ_C,   L6A,        L6C   
+      REAL*8               :: C_FLUX_A,    C_FLUX_C,   C_FLUX
+      REAL*8               :: HNO3_ss,     HNO3_kg
+      REAL*8,  PARAMETER   :: MINDAT = 1.0d-20 
+
+      !=================================================================
+      ! SEASALT_CHEM begins here!
+      !=================================================================
+
+      ! DTCHEM is the chemistry timestep in seconds
+      DTCHEM = GET_TS_CHEM() * 60d0
+
+      ! Convert SO2 [v/v] to  [eq/gridbox]
+      SO2_eq = ( 2.d0 * SO2_cd * AD(I,J,L) ) / ( TCVV(IDTSO2) * 0.064d0)
+      SO2_eq = MAX( SO2_eq, MINDAT )
+
+      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+
+ 	 ! Convert HNO3 [v/v] to [equivalents]
+         HNO3_vv = STT(I,J,L,IDTHNO3)
+         HNO3_eq = HNO3_vv * AD(I,J,L) / ( 28.97d0 / 63d0 ) / 63.d-3
+
+      ELSE
+
+         ! Get gas-phase HNO3 from ISORROPIA code
+         CALL GET_GNO3( I, J, L, HNO3_kg )
+         
+	 ! Convert HNO3 [kg] first to [v/v] 
+         HNO3_vv = HNO3_kg * ( 28.97d0 / 63d0 )   / AD(I,J,L)
+ 
+         ! Then convert HNO3 [kg] to [equivalents]
+         HNO3_eq = HNO3_kg / 63d-3
+
+      ENDIF
+
+      !-----------
+      ! SO2
+      !-----------
+
+      ! Available flux of SO2 to accum sea salt aerosols [v/v/timestep]
+      L5A      = EXP( -Kt1 * DTCHEM )
+      F_SO2_A  = SO2_cd * ( 1.d0 - L5A )
+      F_SO2_A  = MAX( F_SO2_A, 1.d-32 )
+
+      ! Convert to [eq/timestep] 
+      C_FLUX_A = 2.d0 * F_SO2_A * AD(I,J,L) / TCVV(IDTSO2) / 0.064d0
+
+      ! Available flux of SO2 to coarse sea salt aerosols [v/v/timestep]
+      L5C      = EXP( - Kt2 * DTCHEM )
+      F_SO2_C  = SO2_cd * ( 1.d0 - L5C )
+      F_SO2_C  = MAX( F_SO2_C, 1.0d-32 )
+
+      ! Convert to [eq/timestep] 
+      C_FLUX_C = 2.d0 * F_SO2_C * AD(I,J,L) / TCVV(IDTSO2) / 0.064d0
+
+      ! Total flux of SO2 [v/v/timestep]
+      F_SO2    = F_SO2_A + F_SO2_C 
+
+      ! Total flux of SO2 [eq/timestep]
+      C_FLUX   = C_FLUX_A + C_FLUX_C 
+
+      !-----------
+      ! HNO3
+      !-----------
+
+      ! Available flux of HNO3 to accum sea salt aerosols [v/v/timestep]
+      L6A = EXP( - Kt1N * DTCHEM )
+      F_HNO3_A = HNO3_vv * ( 1.D0 - L6A )
+      F_HNO3_A = MAX( F_HNO3_A, 1.0D-32 )
+
+      ! Convert to [eq/timestep] 
+      N_FLUX_A = F_HNO3_A * AD(I,J,L)/( 28.97d0 / 63d0 )/0.063d0
+
+      ! Available flux of HNO3 to coarse sea salt aerosols [v/v/timestep]
+      L6C = EXP( - Kt2N * DTCHEM )
+      F_HNO3_C = HNO3_vv * ( 1.D0 - L6C )
+      F_HNO3_C = MAX( F_HNO3_C, 1.0D-32 )
+
+      ! convert to [eq/timestep] 
+      N_FLUX_C = F_HNO3_C * AD(I,J,L)/( 28.97d0 / 63d0 )/0.063d0
+
+      ! Total flux of HNO3
+      F_HNO3 = F_HNO3_A + F_HNO3_C ![v/v/timestep]
+      N_FLUX = N_FLUX_A + N_FLUX_C ![eq/timestep]
+
+      !-----------
+      ! Acid
+      !-----------
+
+      ! Total acid flux to accum sea-salt aerosols [eq/box/timestep]
+      TOT_FLUX_A = C_FLUX_A + N_FLUX_A 
+      TOT_FLUX_A = MAX( TOT_FLUX_A, MINDAT )
+
+      ! Total acid flux to coarse sea-salt aerosols [eq/box/timestep]
+      TOT_FLUX_C = C_FLUX_C + N_FLUX_C 
+      TOT_FLUX_C = MAX( TOT_FLUX_C, MINDAT )
+
+      ! Total  acid flux to sea salt aerosols
+      TOTAL_ACID_FLUX = TOT_FLUX_A + TOT_FLUX_C
+
+      ! Total available alkalinity [eq]
+      EQ1 = ALK1 * 0.07d0
+      EQ2 = ALK2 * 0.07d0
+
+      !----------------------------------------------------------------------
+      ! NOTE: This was a sensitivity simulation, keep for future reference
+      !       cf Alexander et al 2005 (bec, bmy, 4/13/05)
+      !! Total available alkalinity [eq] doubled for Sievering run
+      !EQ1 = ALK1 * 0.14d0
+      !EQ2 = ALK2 * 0.14d0
+      !----------------------------------------------------------------------
+
+      !----------------------------------------------------------------------
+      ! DIAGNOSTIC -- leave uncommented for now (bec, bmy, 4/13/05)
+      !! Write out beginning alkalinity [eq SO4]
+      !EQ_BEG = EQ1 + EQ2
+      !IF ( ND09 > 0 ) AD09(I,J,L,1) = AD09(I,J,L,1) + EQ_BEG
+      !----------------------------------------------------------------------
+
+      IF ( TOT_FLUX_A > EQ1 ) THEN
+
+	 ! Fraction of alkalinity available for each acid
+	 FALK_A_SO2  = C_FLUX_C / TOT_FLUX_A
+	 FALK_A_HNO3 = N_FLUX_A / TOT_FLUX_A
+         FALK_A_SO2  = MAX( FALK_A_SO2, MINDAT )
+	 FALK_A_HNO3 = MAX( FALK_A_HNO3, MINDAT )
+
+      ELSE
+
+	 FALK_A_SO2  = 1.0d0
+	 FALK_A_HNO3 = 1.0d0
+
+      ENDIF
+      
+      IF ( TOT_FLUX_C > EQ2 ) THEN
+
+         ! Fraction of flkalinity available for each acid
+	 FALK_C_SO2  = C_FLUX_C/TOT_FLUX_C
+	 FALK_C_HNO3 = N_FLUX_C/TOT_FLUX_C
+         FALK_C_SO2  = MAX( FALK_C_SO2, MINDAT )
+	 FALK_C_HNO3 = MAX( FALK_C_HNO3, MINDAT )
+
+      ELSE
+
+	 FALK_C_SO2  = 1.0d0
+	 FALK_C_HNO3 = 1.0d0
+
+      ENDIF
+
+      ! Alkalinity available for S(IV) --> S(VI)
+      EQ_1_C       = EQ1 * FALK_A_SO2
+      EQ_1_C       = MAX( EQ_1_C, MINDAT )
+      EQ_1_N       = EQ1 * FALK_A_HNO3
+      EQ_1_N       = MAX( EQ_1_N, MINDAT )
+                  
+      EQ_2_C       = EQ2 * FALK_C_SO2
+      EQ_2_C       = MAX( EQ_2_C, MINDAT )
+      EQ_2_N       = EQ2 * FALK_C_HNO3
+      EQ_2_N       = MAX( EQ_2_N, MINDAT )
+
+      !-----------------
+      ! Fine Seasalt
+      !-----------------
+
+      ! don't produce more SO4 than available ALK or SO2
+      SO4E         = MIN( C_FLUX_A, EQ_1_C, SO2_eq ) 
+      SO4E         = MAX( SO4E, MINDAT )
+
+      ! Update SO2 concentration [eq/box] 
+      SO2_new      = SO2_eq - SO4E
+      SO2_new      = MAX( SO2_new, MINDAT )
+
+      !-----------------
+      ! Coarse Seasalt
+      !-----------------     
+      IF ( SO2_new > MINDAT ) THEN
+
+ 	 ! don't produce more SO4 than available ALK or SO2
+	 SO4F      = MIN( C_FLUX_C, SO2_new, EQ_2_C ) 
+	 SO4F      = MAX( SO4F, MINDAT )
+
+	 !Update SO2 concentration [eq] 
+	 SO2_chem  = SO2_new - SO4F
+	 SO2_chem  = MAX( SO2_chem, MINDAT )
+      ELSE
+	 SO4F      = MINDAT
+	 SO2_chem  = MINDAT
+      ENDIF
+
+      ! Alkalinity titrated by S(IV) --> S(VI) [eq]
+      TITR_SO2     = SO4E + SO4F
+
+      !-------------------------------------------------------------------
+      ! DIAGNOSTIC -- leave uncommented for now
+      !! write out in diagnostic
+      !IF ( ND09 > 0 ) AD09(I,J,L,2) = AD09(I,J,L,2) + TITR_SO2
+      !-------------------------------------------------------------------
+
+      !Modified SO2 [eq] converted back to [v/v]
+      SO2_ss       = SO2_chem * 0.064 * TCVV(IDTSO2)/AD(I,J,L)/2.0d0
+      SO2_ss       = MAX( SO2_ss, MINDAT )
+
+      !SO4E produced converted from [eq/timestep] to [v/v/timestep] 
+      PSO4E        = SO4E * 0.096 * TCVV(IDTSO4)/AD(I,J,L)/2.0d0
+
+      !SO4F produced converted from [eq/timestep] to [v/v/timestep] 
+      PSO4F        = SO4F * 0.096 * TCVV(IDTSO4S)/AD(I,J,L)/2.0d0
+
+      ! Alkalinity titrated by HNO3
+      HNO3_SSA     = MIN(N_FLUX_A, HNO3_EQ, EQ_1_N)
+      HNO3_SSA     = MAX(HNO3_SSA, MINDAT)
+      HNO3_EQ_C    = HNO3_EQ - HNO3_SSA
+      HNO3_EQ_C    = MAX(HNO3_EQ_C, MINDAT)
+      HNO3_SSC     = MIN(N_FLUX_C, HNO3_EQ_C, EQ_2_N)
+      HNO3_SSC     = MAX(HNO3_SSC, MINDAT)
+      TITR_HNO3    = HNO3_SSA + HNO3_SSC
+
+      !----------------------------------------------------------------------
+      ! DIAGNOSTIC -- leave commented out for now
+      ! !write out alkalinity titrated by HNO3(g)
+      !IF ( ND09 > 0 ) AD09(I,J,L,3) = AD09(I,J,L,3) + TITR_HNO3
+      !----------------------------------------------------------------------
+
+      !HNO3 lost [eq/timestep] converted back to [v/v/timestep]
+      HNO3_ss      = TITR_HNO3 * 0.063 * TCVV(IDTHNO3)/AD(I,J,L)
+
+      IF ( IDTHNO3 > 0 ) THEN
+         STT(I,J,L,IDTHNO3) = MAX( HNO3_vv - HNO3_ss, MINDAT )
+      ENDIF
+
+      ! NITS produced converted from [eq/timestep] to [v/v/timestep] 
+      PNITs(I,J,L) = HNO3_SSC * 0.063 * TCVV(IDTNITS)/AD(I,J,L)
+	 
+      ! Modified accum alkalinity 
+      ALKA         = EQ1 - (SO4E + HNO3_SSA)
+      ALKA         = MAX( ALKA, MINDAT )
+
+      !------------------------------------------------------------------------
+      ! Uncomment this if you want to transport alkalinity (bec, bmy, 4/13/05)
+      ![eq] --> [kg] --> [v/v] use this only if transporting alkalinity
+      !ALKAvv = (ALKA * TCVV(IDTSAL1))/(7.0d-2 * AD(I,J,L))
+      !ALKAvv = MAX( ALKAvv, MINDAT )
+      !------------------------------------------------------------------------
+
+      ! Modified accum alkalinity 
+      ALKC         = EQ2 - (SO4F + HNO3_SSC)
+      ALKC         = MAX( ALKC, MINDAT )
+      
+      !------------------------------------------------------------------------
+      ! Uncomment this if you want to transport alkalinity (bec, bmy, 4/13/05)
+      !! [eq] --> [kg] --> [v/v] use this only if transporting alkalinity
+      !ALKCvv = (ALKC * TCVV(IDTSAL2))/(7.0d-2 * AD(I,J,L))
+      !ALKCvv = MAX(ALKCvv, MINDAT)
+      !------------------------------------------------------------------------
+
+      !------------------------------------------------------------------------
+      ! DIAGNOSTIC -- leave commented out for now (bec, bmy, 4/13/05)
+      !! write out ending alkalinity
+      !END_ALK = ALKA + ALKC
+      !IF ( ND09 > 0 ) AD09(I,J,L,4) = AD09(I,J,L,4) + END_ALK
+      !------------------------------------------------------------------------
+
+      ! Return to calling program
+      END SUBROUTINE SEASALT_CHEM
 
 !------------------------------------------------------------------------------
 
@@ -1666,6 +2371,8 @@
 !  Module Variables Used:
 !  ============================================================================
 !  (1 ) PSO4_SO2 (REAL*8 ) : Array for P(SO4) from SO2 [v/v/timestep]
+!  (2 ) PSO4_ss  (REAL*8 ) : Array for P(SO4) from SO2 
+!                            (coarse sea-salt aerosols) [v/v/timestep]
 !                                                                           
 !  Reaction List (by Mian Chin, chin@rondo.gsfc.nasa.gov)                  
 !  ============================================================================
@@ -1697,17 +2404,13 @@
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44
-      !---------------------------------------------
-      ! Prior to 2/22/05:
-      !USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
-      !---------------------------------------------
       USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,  ONLY : LCRYST
+      USE LOGICAL_MOD,  ONLY : LCRYST, LSSALT
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, TCVV
-      USE TRACERID_MOD, ONLY : IDTSO4, IDTAS,    IDTAHS, 
+      USE TRACERID_MOD, ONLY : IDTSO4, IDTSO4s,  IDTAS,   IDTAHS, 
      &                         IDTLET, IDTSO4aq, IDTNH4aq
 
 #     include "CMN_SIZE"     ! Size parameters
@@ -1716,32 +2419,40 @@
 #     include "CMN_DIAG"     ! ND44
 
       ! Local variables
-      INTEGER               :: I,    J,     L,      N,        N_ND44
-      REAL*8                :: AS,   AS0,   AHS,    AHS0,     LET   
-      REAL*8                :: LET0, SO4,   SO40,   SO4aq,    SO4aq0
-      REAL*8                :: RKT,  E_RKT, DTCHEM, AREA_CM2, FLUX
-      REAL*8                :: T44(IIPAR,JJPAR,LLTROP,5)  
+      INTEGER               :: I,      J,      L,        N,     N_ND44
+      REAL*8                :: AS,     AS0,    AHS,      AHS0,  LET   
+      REAL*8                :: LET0,   SO4,    SO40,     SO4aq, SO4aq0
+      REAL*8                :: SO4s,   SO40s,  RKT,      RKTs,  E_RKT
+      REAL*8                :: E_RKTs, DTCHEM, AREA_CM2, FLUX
+      REAL*8                :: T44(IIPAR,JJPAR,LLTROP,6) 
 
       !=================================================================
       ! CHEM_SO4 begins here!
       !=================================================================
-      IF ( IDTSO4 == 0 .or. DRYSO4 == 0 ) RETURN
+
+      !----------------------------------------------
+      ! Prior to 4/13/05:
+      !IF ( IDTSO4 == 0 .or. DRYSO4 == 0 ) RETURN
+      !----------------------------------------------
+
+      ! Return if tracers are not defined
+      IF ( IDTSO4 + DRYSO4 + IDTSO4s + DRYSO4s == 0 ) RETURN
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
 
+      ! Number of drydep tracers to save
+      N_ND44 = 2
+
 !------------------------------------------------------------------------------
-!%%% Currently under development (rjp, bmy, 3/15/05)
+!%%% Currently under development (rjp, bmy, 4/13/05)
 !%%%       ! Number of drydep tracers to save
 !%%%       IF ( LCRYST ) THEN 
-!%%%          N_ND44 = 5
+!%%%          N_ND44 = 6
 !%%%       ELSE
-!%%%          N_ND44 = 1
+!%%%          N_ND44 = 2
 !%%%       ENDIF
 !------------------------------------------------------------------------------
-
-      ! Number of drydep tracers to save
-      N_ND44 = 1
 
       ! Zero T44 array
       IF ( ND44 > 0 ) THEN
@@ -1763,16 +2474,18 @@
       ! Loop over tropospheric grid boxes
 !------------------------------------------------------------------------------
 !%%% Currently under development (rjp, bmy, 3/15/05)
-!%%% !$OMP PARALLEL DO
-!%%% !$OMP+DEFAULT( SHARED )
-!%%% !$OMP+PRIVATE( I,    J,    L,   SO40,     SO4aq0, AS0   )
-!%%% !$OMP+PRIVATE( AHS0, LET0, RKT, E_RKT,    SO4,    SO4aq ) 
-!%%% !$OMP+PRIVATE( AS,   AHS,  LET, AREA_CM2, FLUX          )
-!%%% !$OMP+SCHEDULE( DYNAMIC ) 
+!%%% $OMP PARALLEL DO
+!%%% $OMP+DEFAULT( SHARED )
+!%%% $OMP+PRIVATE( I,     J,      L,    AREA_CM2, RKT,   RKTs   )
+!%%% $OMP+PRIVATE( E_RKT, E_RKTs, FLUX, SO4,      SO4s,  SO4aq  )
+!%%% $OMP+PRIVATE( AS,    AHS,    LET,  SO40,     SO40s, SO4aq0 )
+!%%% $OMP+PRIVATE( AS0,   AHS0,   LET0                          )
+!%%% $OMP+SCHEDULE( DYNAMIC ) 
 !------------------------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, AREA_CM2, RKT, E_RKT, FLUX, SO4, SO40 )
+!$OMP+PRIVATE( I,      J,    L,   AREA_CM2, RKT,   RKTs, E_RKT )
+!$OMP+PRIVATE( E_RKTs, FLUX, SO4, SO4s,     SO40,  SO40s       )
 !$OMP+SCHEDULE( DYNAMIC ) 
       DO L = 1, LLTROP 
       DO J = 1, JJPAR
@@ -1781,9 +2494,12 @@
          ! Initialize for safety's sake
          AREA_CM2 = 0d0
          RKT      = 0d0
+         RKTs     = 0d0
          E_RKT    = 0d0
+         E_RKTs   = 0d0
          FLUX     = 0d0
          SO4      = 0d0
+         SO4s     = 0d0
 !------------------------------------------------------------------------------
 !%%% Currently under development (rjp, bmy, 3/15/05)
 !%%%         SO4aq    = 0d0
@@ -1800,7 +2516,10 @@
          !==============================================================
 
          ! SO4 [v/v]
-         SO40 = STT(I,J,L,IDTSO4)
+         SO40  = STT(I,J,L,IDTSO4)
+         
+         ! SO4 within coarse seasalt aerosol [v/v]
+         SO40s = STT(I,J,L,IDTSO4s)
 
 !------------------------------------------------------------------------------
 !%%% Currently under development (rjp, bmy, 3/15/05)
@@ -1822,18 +2541,11 @@
          ! (CASE 2) SO4 production from SO2 with no SO4 loss by drydep
          !==============================================================
 
-         !--------------------------------------------------------------------
-         ! Prior to 2/22/05:
-         !! SO4 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
-         !! of each vertical level that is located below the PBL top
-         !RKT = DEPSAV(I,J,DRYSO4) * PBLFRAC(I,J,L)
-         !--------------------------------------------------------------------
-
          ! SO4 drydep frequency [1/s].  Also accounts for the fraction
          ! of each vertical level that is located below the PBL top
-         RKT = DEPSAV(I,J,DRYSO4) * GET_FRAC_UNDER_PBLTOP( I, J, L )
+         RKT  = DEPSAV(I,J,DRYSO4)  * GET_FRAC_UNDER_PBLTOP( I, J, L )
 
-         ! RKT > 0 denotes that we have drydep occurring
+         ! RKT > 0 denotes that we have SO4 drydep occurring
          IF ( RKT > 0d0 ) THEN
             
             !-----------------------------------------------------------
@@ -1841,7 +2553,7 @@
             !-----------------------------------------------------------
 
             ! Fraction of SO4 lost to drydep [unitless]
-            RKT = RKT * DTCHEM
+            RKT   = RKT * DTCHEM
             
             ! Pre-compute exponential term for use below
             E_RKT = EXP( -RKT ) 
@@ -1849,7 +2561,6 @@
             ! Updated SO4 (gas phase) [v/v]
             SO4   = ( SO40                *          E_RKT ) + 
      &              ( PSO4_SO2(I,J,L)/RKT * ( 1.d0 - E_RKT ) )
-
 
 !------------------------------------------------------------------------------
 !%%% Currently under development (rjp, bmy, 3/15/05)
@@ -1900,14 +2611,57 @@
          ENDIF
 
          !==============================================================
+         ! SO4s (SO4 w/in seasalt aerosol) chemistry: 
+         !
+         ! (CASE 3) SO4s production from seasalt and loss by drydep
+         !          --> see equation in header notes above
+         !
+         ! (CASE 4) SO4s prod from seasalt w/ no SO4s loss by drydep
+         !==============================================================
+
+         ! SO4s drydep frequency [1/s].   Also accounts for the fraction
+         ! of each vertical level that is located below the PBL top
+         RKTs = DEPSAV(I,J,DRYSO4s) * GET_FRAC_UNDER_PBLTOP( I, J, L )
+        
+         ! RKTs > 0 indicates that SO4s drydep occurs
+         IF ( RKTs > 0d0 ) THEN
+            
+            !-----------------------------------------------------------
+            ! CASE 3: SO4s prod from seasalt SO4s loss by drydep
+            !-----------------------------------------------------------
+
+            ! Fraction of SO4s lost to drydep [unitless]
+            RKTs   = RKTs * DTCHEM
+            
+            ! Pre-compute exponential term for use below
+            E_RKTs = EXP( -RKTs ) 
+               
+            ! Updated SO4 (gas phase) [v/v]
+            SO4s   = ( SO40s               *          E_RKTs ) + 
+     &               ( PSO4_ss(I,J,L)/RKTs * ( 1.d0 - E_RKTs ) )
+
+         ELSE
+
+            !--------------------------------------------------------
+            ! CASE 4: Prod of SO4s from seasalt; no SO4s drydep loss
+            !--------------------------------------------------------
+
+            ! SO4 production from SO2 [v/v/timestep]
+            SO4s = SO40s + PSO4_ss(I,J,L)
+
+         ENDIF
+
+         !==============================================================
          ! Final concentrations after chemistry
          !==============================================================
 
          ! Error check
-         IF ( SO4 < SMALLNUM ) SO4 = 0d0
+         IF ( SO4  < SMALLNUM ) SO4  = 0d0
+         IF ( SO4s < SMALLNUM ) SO4s = 0d0
 
-         ! Final SO4 [v/v]
-         STT(I,J,L,IDTSO4) = SO4
+         ! Final concentrations [v/v]
+         STT(I,J,L,IDTSO4)  = SO4
+         STT(I,J,L,IDTSO4s) = SO4s
 
 !-----------------------------------------------------------------------------
 !%%% Currently under development (bmy, 3/15/05)
@@ -1933,16 +2687,26 @@
          ! ND44 Diagnostic: Drydep flux of SO4 and the crystalline & 
          ! aqueous tracers (AS, AHS, LET, SO4aq) in [molec/cm2/s]
          !==============================================================
-         IF ( ND44 > 0 .AND. RKT > 0d0 ) THEN
+         !----------------------------------------
+         ! Prior to 4/13/05:
+         !IF ( ND44 > 0 .AND. RKT > 0d0 ) THEN
+         !----------------------------------------
+         IF ( ND44 > 0 ) THEN
 
             ! Surface area [cm2]
             AREA_CM2 = GET_AREA_CM2( J )
 
             ! SO4 drydep flux [molec/cm2/s]
             FLUX = SO40  - SO4 + PSO4_SO2(I,J,L) 
-            FLUX = FLUX  * AD(I,J,L)      / TCVV(IDTSO4)
-            FLUX = FLUX  * XNUMOL(IDTSO4) / AREA_CM2 / DTCHEM
+            FLUX = FLUX  * AD(I,J,L)       / TCVV(IDTSO4)
+            FLUX = FLUX  * XNUMOL(IDTSO4)  / AREA_CM2 / DTCHEM
             T44(I,J,L,1) = T44(I,J,L,1) + FLUX
+
+            ! SO4s drydep flux [molec/cm2/s]
+            FLUX = SO40s - SO4s + PSO4_ss(I,J,L) 
+            FLUX = FLUX  * AD(I,J,L)       / TCVV(IDTSO4s)
+            FLUX = FLUX  * XNUMOL(IDTSO4s) / AREA_CM2 / DTCHEM
+            T44(I,J,L,2) = T44(I,J,L,2) + FLUX
 
 !------------------------------------------------------------------------------
 !%%% Currently under development (rjp, bmy, 3/15/05)
@@ -1953,25 +2717,25 @@
 !%%%                FLUX = SO4aq0 - SO4aq + PSO4_SO2(I,J,L)     
 !%%%                FLUX = FLUX  * AD(I,J,L)        / TCVV(IDTSO4aq)
 !%%%                FLUX = FLUX  * XNUMOL(IDTSO4aq) / AREA_CM2 / DTCHEM
-!%%%                T44(I,J,L,2) = T44(I,J,L,2) + FLUX
+!%%%                T44(I,J,L,3) = T44(I,J,L,3) + FLUX
 !%%% 
 !%%%                ! AS drydep flux [molec/cm2/s]
 !%%%                FLUX = AS0   - AS
 !%%%                FLUX = FLUX  * AD(I,J,L)     / TCVV(IDTAS)
 !%%%                FLUX = FLUX  * XNUMOL(IDTAS) / AREA_CM2 / DTCHEM
-!%%%                T44(I,J,L,3) = T44(I,J,L,3) + FLUX
+!%%%                T44(I,J,L,4) = T44(I,J,L,4) + FLUX
 !%%% 
 !%%%                ! AHS drydep flux [molec/cm2/s]
 !%%%                FLUX = AHS0  - AHS
 !%%%                FLUX = FLUX  * AD(I,J,L)      / TCVV(IDTAHS)
 !%%%                FLUX = FLUX  * XNUMOL(IDTAHS) / AREA_CM2 / DTCHEM
-!%%%                T44(I,J,L,4) = T44(I,J,L,4) + FLUX
+!%%%                T44(I,J,L,5) = T44(I,J,L,5) + FLUX
 !%%% 
 !%%%                ! LET drydep flux [molec/cm2/s]
 !%%%                FLUX = LET0  - LET
 !%%%                FLUX = FLUX  * AD(I,J,L)      / TCVV(IDTLET)
 !%%%                FLUX = FLUX  * XNUMOL(IDTLET) / AREA_CM2 / DTCHEM
-!%%%                T44(I,J,L,5) = T44(I,J,L,5) + FLUX
+!%%%                T44(I,J,L,6) = T44(I,J,L,6) + FLUX
 !%%% 
 !%%%             ENDIF
 !------------------------------------------------------------------------------
@@ -1993,17 +2757,18 @@
          DO I = 1, IIPAR
          DO L = 1, LLTROP
 
-            ! Sum SO4 drydep flux 
-            AD44(I,J,DRYSO4,1) = AD44(I,J,DRYSO4,1) + T44(I,J,L,1)
+            ! Sum SO4, SO4s drydep fluxes in the vertical [molec/cm2/s]
+            AD44(I,J,DRYSO4, 1) = AD44(I,J,DRYSO4, 1) + T44(I,J,L,1)
+            AD44(I,J,DRYSO4s,1) = AD44(I,J,DRYSO4s,1) + T44(I,J,L,2)
 
 !------------------------------------------------------------------------------
 !%%% Currently under development (rjp, bmy, 3/15/05)
 !%%%             ! Sum SO4aq, AS, AHS, LET drydep fluxes (if necessary)
 !%%%             IF ( LCRYST ) THEN
-!%%%                AD44(I,J,DRYSO4aq,1) = AD44(I,J,DRYSO4aq,1)+T44(I,J,L,2)
-!%%%                AD44(I,J,DRYAS,   1) = AD44(I,J,DRYAS,   1)+T44(I,J,L,3)
-!%%%                AD44(I,J,DRYAHS,  1) = AD44(I,J,DRYAHS,  1)+T44(I,J,L,4)
-!%%%                AD44(I,J,DRYLET,  1) = AD44(I,J,DRYLET,  1)+T44(I,J,L,5)
+!%%%                AD44(I,J,DRYSO4aq,1) = AD44(I,J,DRYSO4aq,1)+T44(I,J,L,3)
+!%%%                AD44(I,J,DRYAS,   1) = AD44(I,J,DRYAS,   1)+T44(I,J,L,4)
+!%%%                AD44(I,J,DRYAHS,  1) = AD44(I,J,DRYAHS,  1)+T44(I,J,L,5)
+!%%%                AD44(I,J,DRYLET,  1) = AD44(I,J,DRYLET,  1)+T44(I,J,L,6)
 !%%%             ENDIF
 !------------------------------------------------------------------------------
 
@@ -2073,10 +2838,6 @@
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44
-      !----------------------------------------------
-      ! Prior to 2/22/05:
-      !USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
-      !----------------------------------------------
       USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
@@ -2085,10 +2846,6 @@
       USE TRACERID_MOD, ONLY : IDTMSA
 
 #     include "CMN_SIZE"     ! Size parameters
-!-----------------------------------------------------
-! Prior to 2/22/05:
-!#     include "CMN"          ! LPAUSE
-!-----------------------------------------------------
 #     include "CMN_GCTM"     ! AIRMW
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44
@@ -2131,11 +2888,6 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, F_UNDER_TOP, MSA0, RKT, MSA, AREA_CM2, FLUX )
 !$OMP+SCHEDULE( DYNAMIC )
-      !----------------------------------------------------------
-      ! Prior to 2/22/05:
-      ! We only have to loop up to the PBL_MAX (bmy, 2/22/05)
-      !DO L = 1, LLTROP 
-      !----------------------------------------------------------
       DO L = 1, PBL_MAX 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -2144,21 +2896,10 @@
          F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
 
          ! Only apply drydep loss to boxes w/in the PBL
-         !-----------------------------------------------
-         ! Prior to 2/22/05:
-         !IF ( PBLFRAC(I,J,L) > 0 ) THEN
-         !-----------------------------------------------
          IF ( F_UNDER_TOP > 0 ) THEN
          
             ! Initial MSA [v/v]
             MSA0 = STT(I,J,L,IDTMSA) 
-
-            !------------------------------------------------------------------
-            ! Prior to 2/22/05:
-            !! MSA drydep frequency [1/s] -- PBLFRAC accounts for the fraction
-            !! of each grid box (I,J,L) that is located beneath the PBL top
-            !RKT = DEPSAV(I,J,DRYMSA) * PBLFRAC(I,J,L)
-            !------------------------------------------------------------------
 
             ! MSA drydep frequency [1/s].  Also accounts for the fraction
             ! of each grid box (I,J,L) that is located beneath the PBL top
@@ -2217,11 +2958,6 @@
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-         !----------------------------------------------------
-         ! Prior to 2/22/05:
-         ! We only have to loop up to PBL_MAX (bmy, 2/22/05)
-         !DO L = 1, LLTROP
-         !----------------------------------------------------
          DO L = 1, PBL_MAX
             AD44(I,J,DRYMSA,1) = AD44(I,J,DRYMSA,1) + ND44_TMP(I,J,L)
          ENDDO
@@ -2267,10 +3003,6 @@
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44
-      !-------------------------------------------
-      ! Prior to 2/22/05:
-      !USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
-      !-------------------------------------------
       USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
@@ -2319,11 +3051,6 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, F_UNDER_TOP, FREQ, NH30, NH3, AREA_CM2, FLUX )
 !$OMP+SCHEDULE( DYNAMIC )
-      !--------------------------------------------------------------------
-      ! Prior to 2/22/05:
-      ! We only need to loop up to PBL_MAX and not LLTROP (bmy, 2/22/05)
-      !DO L = 1, LLTROP
-      !--------------------------------------------------------------------
       DO L = 1, PBL_MAX
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -2332,18 +3059,7 @@
          F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
 
          ! Only apply drydep to boxes w/in the PBL
-         !------------------------------------------------
-         ! Prior to 2/22/05:
-         !IF ( PBLFRAC(I,J,L) > 0d0 ) THEN
-         !------------------------------------------------
          IF ( F_UNDER_TOP > 0d0 ) THEN
-
-            !-----------------------------------------------------------------
-            ! Prior to 2/22/05:
-            !! NH3 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
-            !! of each grid box (I,J,L) that is located beneath the PBL top
-            !FREQ = DEPSAV(I,J,DRYNH3) * PBLFRAC(I,J,L)
-            !-----------------------------------------------------------------
 
             ! NH3 drydep frequency [1/s].  Also accounts for the fraction
             ! of each grid box (I,J,L) that is located beneath the PBL top
@@ -2396,11 +3112,6 @@
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-         !---------------------------------------------------------------------
-         ! Prior to 2/22/05:
-         ! We only need to loop up to PBL_MAX instead of LLTROP (bmy, 2/22/05)
-         !DO L = 1, LLTROP
-         !---------------------------------------------------------------------
          DO L = 1, PBL_MAX
             AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + ND44_TMP(I,J,L)
          ENDDO
@@ -2446,10 +3157,6 @@
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44
-      !-----------------------------------------------------------
-      ! Prior to 2/22/05:
-      !USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
-      !-----------------------------------------------------------
       USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
@@ -2497,10 +3204,6 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, F_UNDER_TOP, FREQ, NH40, NH4, AREA_CM2, FLUX )
 !$OMP+SCHEDULE( DYNAMIC )
-      !-----------------------------------------------
-      ! Prior to 2/22/05:
-      !DO L = 1, LLTROP
-      !-----------------------------------------------
       DO L = 1, PBL_MAX
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -2509,18 +3212,7 @@
          F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )       
 
          ! Only apply drydep to boxes w/in the PBL
-         !-------------------------------------------------------
-         ! Prior to 2/22/05:
-         !IF ( PBLFRAC(I,J,L) > 0d0 ) THEN
-         !-------------------------------------------------------
          IF ( F_UNDER_TOP > 0d0 ) THEN
-
-            !------------------------------------------------------------------
-            ! Prior to 2/22/05:
-            !! NH4 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
-            !! of each grid box (I,J,L) that is located beneath the PBL top
-            !FREQ = DEPSAV(I,J,DRYNH4) * PBLFRAC(I,J,L)
-            !------------------------------------------------------------------
 
             ! NH4 drydep frequency [1/s].  Also accounts for the fraction
             ! of each grid box (I,J,L) that is located beneath the PBL top
@@ -2573,11 +3265,6 @@
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-         !------------------------------------------------------------------
-         ! Prior to 2/22/05:
-         ! We only need to loop up to PBL_MAX and not LLTROP (bmy, 2/22/05)
-         !DO L = 1, LLTROP
-         !------------------------------------------------------------------
          DO L = 1, PBL_MAX
             AD44(I,J,DRYNH4,1) = AD44(I,J,DRYNH4,1) + ND44_TMP(I,J,L)
          ENDDO
@@ -2610,10 +3297,6 @@
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44
-      !----------------------------------------------------------------
-      ! Prior to 2/22/05:
-      !USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
-      !----------------------------------------------------------------
       USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
@@ -2662,11 +3345,6 @@
 !$OMP+PRIVATE( I,      J,     L,        F_UNDER_TOP, FREQ  )
 !$OMP+PRIVATE( NH4aq0, NH4aq, AREA_CM2, FLUX               )
 !$OMP+SCHEDULE( DYNAMIC )
-      !--------------------------------------------------
-      ! Prior to 2/22/05:
-      ! We only need to loop up to PBL_MAX (bmy, 2/22/05)
-      !DO L = 1, LLTROP
-      !--------------------------------------------------
       DO L = 1, PBL_MAX
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -2675,18 +3353,7 @@
          F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )     
 
          ! Only apply drydep to boxes w/in the PBL
-         !-------------------------------------------------------------
-         ! Prior to 2/22/05:
-         !IF ( PBLFRAC(I,J,L) > 0d0 ) THEN
-         !-------------------------------------------------------------
          IF ( F_UNDER_TOP > 0d0 ) THEN
-
-            !------------------------------------------------------------------
-            ! Prior to 2/22/05:
-            !! NH4 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
-            !! of each grid box (I,J,L) that is located beneath the PBL top
-            !FREQ = DEPSAV(I,J,DRYNH4aq) * PBLFRAC(I,J,L)
-            !------------------------------------------------------------------
 
             ! NH4 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
             ! of each grid box (I,J,L) that is located beneath the PBL top
@@ -2739,11 +3406,6 @@
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-         !---------------------------------------------------------------
-         ! Prior to 2/22/05:
-         ! We really only need to loop up to PBL_MAX (bmy, 2/22/05)
-         !DO L = 1, LLTROP
-         !---------------------------------------------------------------
          DO L = 1, PBL_MAX
             AD44(I,J,DRYNH4aq,1) = AD44(I,J,DRYNH4aq,1) + T44(I,J,L)
          ENDDO
@@ -2761,7 +3423,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_NIT removes SULFUR NITRATES (NIT) from the surface 
-!  via dry deposition. (rjp, bdf, bmy, 1/2/02, 2/22/05)  
+!  via dry deposition. (rjp, bdf, bmy, 1/2/02, 4/13/05)  
 !                                                                          
 !  Reaction List:
 !  ============================================================================
@@ -2789,31 +3451,31 @@
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44
-      !-------------------------------------------------------------
-      ! Prior to 2/22/05:
-      !USE DRYDEP_MOD,   ONLY : DEPSAV, PBLFRAC
-      !-------------------------------------------------------------
       USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,  ONLY : LSSALT
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, TCVV
-      USE TRACERID_MOD, ONLY : IDTNIT
+      USE TRACERID_MOD, ONLY : IDTNIT, IDTNITs
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44
 
       ! Local variables
-      INTEGER :: I,        J,    L,    PBL_MAX
-      REAL*8  :: DTCHEM,   NIT,  NIT0, FREQ
-      REAL*8  :: AREA_CM2, FLUX, F_UNDER_TOP
-      REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLTROP)
+      INTEGER :: I,        J,     L,    N,     N_ND44, PBL_MAX
+      REAL*8  :: DTCHEM,   NIT,   NITs, NIT0,  NIT0s,  E_RKT
+      REAL*8  :: E_RKTs,   FLUX,  FREQ, FREQs, RKT,    RKTs   
+      REAL*8  :: AREA_CM2, F_UNDER_TOP
+      REAL*8  :: T44(IIPAR,JJPAR,LLTROP,2)
 
       !=================================================================
       ! CHEM_NIT begins here!
       !=================================================================
-      IF ( IDTNIT == 0 .or. DRYNIT == 0 ) RETURN
+
+      ! Return if tracers are not defined
+      IF ( IDTNIT + DRYNIT + IDTNITs + DRYNITs == 0 ) RETURN
 
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM = GET_TS_CHEM() * 60d0 
@@ -2821,15 +3483,20 @@
       ! Model level where maximum PBL height occurs 
       PBL_MAX = GET_PBL_MAX_L()      
       
-      ! Zero ND44_TMP array
+      ! Number of tracers for ND44
+      N_ND44 = 2 
+
+      ! Zero ND44 array
       IF ( ND44 > 0 ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
+!$OMP+PRIVATE( I, J, L, N )
+         DO N = 1, N_ND44
          DO L = 1, LLTROP 
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            ND44_TMP(I,J,L) = 0d0
+            T44(I,J,L,N) = 0d0
+         ENDDO
          ENDDO
          ENDDO
          ENDDO
@@ -2838,46 +3505,51 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, F_UNDER_TOP, FREQ, NIT0, NIT, AREA_CM2, FLUX )
+!$OMP+PRIVATE( I,    J,      L,        NIT0,        NIT0s, NIT   )
+!$OMP+PRIVATE( NITs, FREQ,   FREQs,    F_UNDER_TOP, RKT,   E_RKT ) 
+!$OMP+PRIVATE( RKTs, E_RKTs, AREA_CM2, FLUX                      )
 !$OMP+SCHEDULE( DYNAMIC )
-      !----------------------------------------------------------------
-      ! Prior to 2/22/05:
-      ! We really only have to loop up to PBL_MAX (bmy, 2/22/05)
-      !DO L = 1, LLTROP
-      !----------------------------------------------------------------
       DO L = 1, PBL_MAX
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+
+         ! Initial NITRATE [v/v]
+         NIT0  = STT(I,J,L,IDTNIT)
+
+         ! Initial NITRATE w/in seasalt [v/v]
+         NIT0s = STT(I,J,L,IDTNITs)
+
+         ! Initialize variables
+         NIT   = 0d0
+         NITs  = 0d0
+         FREQ  = 0d0
+         FREQs = 0d0
 
          ! Fraction of box (I,J,L) underneath the PBL top [unitless]
          F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )     
 
          ! Only apply drydep to boxes w/in the PBL
-         !-------------------------------------------------------
-         ! Prior to 2/22/05:
-         !IF ( PBLFRAC(I,J,L) > 0d0 ) THEN 
-         !-------------------------------------------------------
          IF ( F_UNDER_TOP > 0d0 ) THEN 
 
-            !------------------------------------------------------------------
-            ! Prior to 2/22/05:
-            !! NIT drydep frequency [1/s] -- PBLFRAC accounts for the fraction
-            !! of each vertical level that is located below the PBL top
-            !FREQ = DEPSAV(I,J,DRYNIT) * PBLFRAC(I,J,L)
-            !------------------------------------------------------------------
+            !===========================================================
+            ! NIT chemistry
+            !===========================================================
 
             ! NIT drydep frequency [1/s].  Also accounts for the fraction
             ! of each vertical level that is located below the PBL top
-            FREQ = DEPSAV(I,J,DRYNIT) * F_UNDER_TOP
+            FREQ  = DEPSAV(I,J,DRYNIT)  * F_UNDER_TOP
 
-            ! Only apply drydep loss if FREQ is nonzero
+            ! If there is drydep ...
             IF ( FREQ > 0d0 ) THEN
 
-               ! Initial NITRATE [v/v]
-               NIT0 = STT(I,J,L,IDTNIT)
+               ! Fraction of NIT lost to drydep [unitless] (bec, 12/15/04)
+               RKT  = FREQ  * DTCHEM
+
+               ! Pre-compute the exponential term
+               E_RKT = EXP( -RKT )
 
                ! Amount of NITRATE lost to drydep [v/v]
-               NIT = NIT0 * ( 1d0 - EXP( -FREQ * DTCHEM ) )
+               NIT = NIT0 * ( 1d0 - E_RKT )
 
                ! Prevent underflow condition
                IF ( NIT < SMALLNUM ) NIT = 0d0
@@ -2885,21 +3557,84 @@
                ! Subtract NITRATE lost to drydep from initial NITRATE [v/v]
                STT(I,J,L,IDTNIT) = NIT0 - NIT
 
-               !========================================================
-               ! ND44 Diagnostic: Drydep flux of NIT [molec/cm2/s]
-               !========================================================
-               IF ( ND44 > 0 .and. NIT > 0d0 ) THEN
-         
-                  ! Surface area [cm2]
-                  AREA_CM2 = GET_AREA_CM2( J )
-                  
-                  ! Convert from [v/v/timestep] to [molec/cm2/s]
-                  FLUX = NIT  * AD(I,J,L)      / TCVV(IDTNIT)
-                  FLUX = FLUX * XNUMOL(IDTNIT) / AREA_CM2 / DTCHEM
+            ELSE
+	
+               ! No deposition occurs
+               NIT = 0d0
 
+            ENDIF
+
+            !===========================================================
+            ! NITs chemistry
+            !===========================================================
+
+            ! NITs drydep frequency [1/s].  Also accounts for the fraction
+            ! of each vertical level that is located below the PBL top
+            FREQs = DEPSAV(I,J,DRYNITs) * F_UNDER_TOP
+
+            ! If there is drydep ...
+            IF ( FREQs > 0d0 ) THEN
+
+               ! Fraction of NIT lost to drydep [unitless] (bec, 12/15/04)
+               RKTs   = FREQs * DTCHEM
+
+               ! Pre-compute the exponential term
+               E_RKTs = EXP( -RKTs )
+
+               ! Compute new NIT concentration [v/v],
+               ! updated for seasalt chemistry
+               NITs   = ( NIT0s             *          E_RKTs ) + 
+     &                  ( PNITs(I,J,L)/RKTs * ( 1.d0 - E_RKTs ) )
+
+            ELSE
+
+               ! NIT prod from HNO3 uptake on fine sea-salt [v/v/timestep]
+               NITs = NIT0s + PNITs(I,J,L)
+
+            ENDIF
+            
+            ! Store final concentration in STT [v/v]
+            STT(I,J,L,IDTNITs) = NITs
+            
+            !========================================================
+            ! ND44 Diagnostic: Drydep flux of NIT [molec/cm2/s]
+            !========================================================
+            IF ( ND44 > 0 ) THEN
+         
+               ! Surface area [cm2]
+               AREA_CM2 = GET_AREA_CM2( J )
+                  
+               !-------------
+               ! NIT drydep
+               !-------------
+               
+               ! If NIT drydep occurs ...
+               IF ( FREQ > 0d0 ) THEN
+
+                  ! Convert from [v/v/timestep] to [molec/cm2/s]
+                  FLUX = NIT * AD(I,J,L)      / TCVV(IDTNIT)
+                  FLUX = FLUX * XNUMOL(IDTNIT) / AREA_CM2 / DTCHEM
+ 
                   ! Store dryd flx in ND44_TMP as a placeholder
-                  ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
+                  T44(I,J,L,1) = T44(I,J,L,1) + FLUX
+
                ENDIF
+                  
+               !-------------
+               ! NITs drydep
+               !-------------
+
+               ! NOTE: if drydep doesn't occur then we still have
+               ! production from seasalt (bec, bmy, 4/13/05)
+
+               ! Convert from [v/v/timestep] to [molec/cm2/s]
+               FLUX = NIT0s - NITs + PNITs(I,J,L) 
+               FLUX = FLUX * AD(I,J,L)       / TCVV(IDTNITs)
+               FLUX = FLUX * XNUMOL(IDTNITs) / AREA_CM2 / DTCHEM
+
+               ! Store dryd flx in ND44_TMP as a placeholder
+               T44(I,J,L,2) = T44(I,J,L,2) + FLUX
+
             ENDIF
          ENDIF
       ENDDO
@@ -2917,13 +3652,9 @@
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-         !----------------------------------------------------------
-         ! Prior to 2/22/05:
-         ! We really only need to loop up to PBL_MAX (bmy, 2/22/05)
-         !DO L = 1, LLTROP
-         !----------------------------------------------------------
          DO L = 1, PBL_MAX
-            AD44(I,J,DRYNIT,1) = AD44(I,J,DRYNIT,1) + ND44_TMP(I,J,L)
+            AD44(I,J,DRYNIT, 1) = AD44(I,J,DRYNIT, 1) + T44(I,J,L,1)
+            AD44(I,J,DRYNITs,1) = AD44(I,J,DRYNITs,1) + T44(I,J,L,2)
          ENDDO
          ENDDO
          ENDDO
@@ -3077,17 +3808,9 @@
       USE DAO_MOD,      ONLY : IS_WATER, LWI, PBL
       USE GRID_MOD,     ONLY : GET_AREA_M2
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
-      !---------------------------------------------------
-      ! Prior to 2/22/05:
-      !USE PRESSURE_MOD, ONLY : GET_PEDGE
-      !---------------------------------------------------
       USE TIME_MOD,     ONLY : GET_TS_EMIS
 
 #     include "CMN_SIZE"     ! Size parameters
-!----------------------------------------------------
-! Prior to 2/22/05:
-!#     include "CMN"          ! XTRA2
-!----------------------------------------------------
 #     include "CMN_DIAG"     ! ND13 (for now)
 #     include "CMN_GCTM"     ! SCALE_HEIGHT
 
@@ -3097,11 +3820,6 @@
       ! Local variables
       INTEGER                :: I,      J,    L,     NTOP
       REAL*8                 :: DTSRCE, SST,  Sc,    CONC,   W10 
-      !------------------------------------------------------------------
-      ! Prior to 2/22/05:
-      !REAL*8                 :: ScCO2,  AKw,  ERATE, DMSSRC, BLTOP
-      !REAL*8                 :: P1,     P2,   DELP,  FEMIS,  BLTHIK
-      !------------------------------------------------------------------
       REAL*8                 :: ScCO2,  AKw,  ERATE, DMSSRC, FEMIS
 
       ! Molecular weight of DMS, kg/mole
@@ -3123,14 +3841,6 @@
       !=================================================================      
       ! Compute DMS emissions = seawater DMS * transfer velocity
       !=================================================================
-!--------------------------------------------------------------------------
-! Prior to 2/22/05:
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J,   SST,  Sc,    CONC,   W10, ScCO2, AKw, ERATE )
-!!$OMP+PRIVATE( DMSSRC, NTOP, BLTOP, BLTHIK, L, P1, P2, DELP, FEMIS )
-!!$OMP+SCHEDULE( DYNAMIC )
-!--------------------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,   J,     SST,    Sc,   CONC, W10,  ScCO2 )
@@ -3217,68 +3927,6 @@
             ! Add DMS emissions [kg DMS/box] into the tracer array
             !===========================================================
 
-!------------------------------------------------------------------------------
-! Prior to 2/22/05:
-!            ! Top layer of the PBL
-!            NTOP = CEILING( XTRA2(I,J) )
-!            
-!            ! PBL height is in the 3rd model layer or higher
-!            IF ( NTOP >= 2 ) THEN
-!
-!#if   defined( GEOS_4 )
-!
-!               ! BLTOP = pressure at PBL top [hPa]
-!               ! Use barometric law since PBL is in [m]
-!               BLTOP  = GET_PEDGE(I,J,1) * EXP(-PBL(I,J)/SCALE_HEIGHT)
-!
-!               ! BLTHIK is PBL thickness [hPa]
-!               BLTHIK = GET_PEDGE(I,J,1) - BLTOP
-!
-!#else
-!
-!               ! BLTOP = pressure of PBL top [hPa]
-!               BLTOP  = GET_PEDGE(I,J,1) - PBL(I,J)
-!
-!               ! BLTHIK is PBL thickness [hPa]
-!               BLTHIK = PBL(I,J)
-!
-!#endif
-!
-!               ! Loop thru the boundary layer
-!               DO L = 1, NTOP
-!
-!                  ! DELP is the pressure thickness of level L [hPa]
-!                  P1   = GET_PEDGE(I,J,L) 
-!                  P2   = GET_PEDGE(I,J,L+1)
-!                  DELP = P1 - P2
-!
-!                  ! PBL top occurs at level L
-!                  IF ( BLTOP <= P2 ) THEN
-!                     FEMIS = DELP / BLTHIK
-!   
-!                  ! Level L lies completely w/in the PBL
-!                  ELSE IF ( BLTOP > P2 .AND. BLTOP < P1 ) THEN
-!                     FEMIS = ( P1 - BLTOP ) / BLTHIK           
-!
-!                  ! Level L lies completely out of the PBL
-!                  ELSE IF ( BLTOP > P1 ) THEN
-!                     CYCLE       
-!
-!                  ENDIF
-!
-!                  ! Fraction of total DMS in level L
-!                  TC(I,J,L) = TC(I,J,L) + ( FEMIS * DMSSRC )
-!               ENDDO
-!
-!            ELSE
-!
-!               ! If PBL height and lower or similar to the second model layer
-!               ! then surface emission is emitted to the first model layer.
-!               TC(I,J,1) = TC(I,J,1) + DMSSRC 
-!
-!            ENDIF 
-!------------------------------------------------------------------------------
-
             ! Top layer of the PBL
             NTOP = CEILING( GET_PBL_TOP_L( I, J ) )
             
@@ -3360,19 +4008,11 @@
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,  ONLY : LNEI99, LSHIPSO2
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
-      !-----------------------------------------------------------------
-      ! Prior to 2/22/05:
-      !USE PRESSURE_MOD, ONLY : GET_PEDGE
-      !-----------------------------------------------------------------      
       USE TIME_MOD,     ONLY : GET_TS_EMIS, GET_DAY_OF_YEAR, 
      &                         GET_DAY_OF_WEEK
       USE TRACERID_MOD, ONLY : IDTSO2
 
 #     include "CMN_SIZE"     ! Size parameters
-!---------------------------------------------------------
-! Prior to 2/22/05:
-!#     include "CMN"          ! XTRA2
-!---------------------------------------------------------
 #     include "CMN_DIAG"     ! ND13, LD13 (for now)
 #     include "CMN_GCTM"     ! SCALE_HEIGHT
 #     include "CMN_O3"       ! XNUMOL
@@ -3387,12 +4027,6 @@
       INTEGER                :: DAY_NUM
       REAL*8                 :: ZH(0:LLPAR), DZ(LLPAR), SO2(LLPAR)
       REAL*8                 :: DTSRCE,      HGHT,      SO2SRC
-      !-----------------------------------------------------------------
-      ! Prior to 2/22/05:
-      !REAL*8                 :: SLAB,        SLAB1,     BLTOP
-      !REAL*8                 :: TSO2,        P1,        P2
-      !REAL*8                 :: DELP,        FEMIS,     BLTHIK
-      !-----------------------------------------------------------------
       REAL*8                 :: SLAB,        SLAB1
       REAL*8                 :: TSO2,        FEMIS
       REAL*8                 :: AREA_CM2,    EPA_AN,    EPA_BF
@@ -3617,14 +4251,6 @@
       !=================================================================
       ! Add SO2 emissions into model levels
       !=================================================================
-!----------------------------------------------------------------------
-! Prior to 2/22/05:
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I,     J,      NTOP, L,  SO2,  TSO2          ) 
-!!$OMP+PRIVATE( BLTOP, BLTHIK, P1,   P2, DELP, FEMIS, SO2SRC )
-!!$OMP+SCHEDULE( DYNAMIC )
-!----------------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, NTOP, L, SO2, TSO2, FEMIS, SO2SRC )
@@ -3658,54 +4284,6 @@
          ! the entire boundary layer (if PBL top is higher than level 2)
          !===============================================================
          IF ( NTOP > 2 ) THEN
-
-!------------------------------------------------------------------------------
-! Prior to 2/22/05:
-!#if   defined( GEOS_4 )
-!                 
-!            ! BLTOP = pressure at PBL top [hPa]
-!            ! Use barometric law since PBL is in [m]
-!            BLTOP  = GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT )
-!                 
-!            ! BLTHIK is PBL thickness [hPa]
-!            BLTHIK = GET_PEDGE(I,J,1) - BLTOP
-!                 
-!#else            
-!                 
-!            ! BLTOP = pressure of PBL top [hPa]
-!            BLTOP  = GET_PEDGE(I,J,1) - PBL(I,J)
-!                 
-!            ! BLTHIK is PBL thickness [hPa]
-!            BLTHIK = PBL(I,J)
-!                 
-!#endif           
-!                 
-!            ! Loop thru levels in the PBL
-!            DO L  = 1, NTOP
-!                 
-!               ! DELP is the pressure thickness of level K
-!               P1   = GET_PEDGE(I,J,L)
-!               P2   = GET_PEDGE(I,J,L+1)
-!               DELP = P1 - P2
-!                 
-!               ! PBL top occurs w/in level L
-!               IF ( BLTOP <= P2 )  THEN
-!                  FEMIS = DELP / BLTHIK
-!                 
-!               ! Level L lies completely w/in the PBL
-!               ELSE IF ( BLTOP >  P2 .AND. BLTOP < P1 ) THEN
-!                  FEMIS = ( P1 - BLTOP ) / BLTHIK
-!                 
-!               ! Level L lies completely out of the PBL
-!               ELSE IF ( BLTOP > P1 ) THEN
-!                  CYCLE
-!                 
-!               ENDIF
-!                 
-!               ! Partition total SO2 into level K
-!               SO2(L) = FEMIS * TSO2
-!            ENDDO
-!-----------------------------------------------------------------------------
 
             ! Loop thru levels in the PBL
             DO L  = 1, NTOP
@@ -3848,18 +4426,10 @@
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,  ONLY : LNEI99
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
-      !----------------------------------------------------------------
-      ! Prior to 2/22/05:
-      !USE PRESSURE_MOD, ONLY : GET_PEDGE
-      !----------------------------------------------------------------
       USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
       USE TRACERID_MOD, ONLY : IDTSO4
 
 #     include "CMN_SIZE"     ! Size parameters
-!-------------------------------------------------------------
-! Prior to 2/22/05:
-!#     include "CMN"          ! XTRA2
-!-------------------------------------------------------------
 #     include "CMN_DIAG"     ! ND13 (for now)
 #     include "CMN_GCTM"     ! SCALE_HEIGHT
 #     include "CMN_O3"       ! XNUMOL
@@ -3870,12 +4440,6 @@
       ! Local variables
       LOGICAL                :: WEEKDAY
       INTEGER                :: I, J, K, L, DAY_NUM, NTOP
-      !--------------------------------------------------------------
-      ! Prior to 2/22/05:
-      !REAL*8                 :: SO4(LLPAR), DTSRCE,  BLTOP
-      !REAL*8                 :: TSO4,       P1,      P2     
-      !REAL*8                 :: DELP,       FEMIS,   BLTHIK
-      !--------------------------------------------------------------
       REAL*8                 :: SO4(LLPAR), DTSRCE  
       REAL*8                 :: TSO4,       FEMIS
       REAL*8                 :: AREA_CM2,   EPA_AN,  EPA_BF
@@ -3958,14 +4522,6 @@
       !=================================================================
       ! Compute SO4 emissions 
       !=================================================================
-!-------------------------------------------------------------
-! Prior to 2/22/05:
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I,     J,      NTOP, SO4, TSO4, L     )
-!!$OMP+PRIVATE( BLTOP, BLTHIK, P1,   P2,  DELP, FEMIS )
-!!$OMP+SCHEDULE( DYNAMIC )
-!-------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, NTOP, SO4, TSO4, L, FEMIS )
@@ -3975,10 +4531,6 @@
       DO I = 1, IIPAR
 
          ! Top level of boundary layer at (I,J)
-         !-------------------------------------------
-         ! Prior to 2/22/05:
-         !NTOP = CEILING( XTRA2(I,J) )
-         !-------------------------------------------
          NTOP = CEILING( GET_PBL_TOP_L( I, J ) )
 
          ! Zero SO4 array at all levels 
@@ -3994,53 +4546,6 @@
          ! boundary layer (if PBL top is higher than level 2)
          !==============================================================
          IF ( NTOP > 2 ) THEN
-
-!------------------------------------------------------------------------------
-!#if   defined( GEOS_4 )
-!                 
-!            ! BLTOP = pressure at PBL top [hPa]
-!            ! Use barometric law since PBL is in [m]
-!            BLTOP  = GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT )
-!                 
-!            ! BLTHIK is PBL thickness [hPa]
-!            BLTHIK = GET_PEDGE(I,J,1) - BLTOP
-!                 
-!#else            
-!                 
-!            ! BLTOP = pressure of PBL top [hPa]
-!            BLTOP  = GET_PEDGE(I,J,1) - PBL(I,J)
-!                 
-!            ! BLTHIK is PBL thickness [hPa]
-!            BLTHIK = PBL(I,J)
-!                 
-!#endif           
-!                 
-!            ! Loop thru boundary layer
-!            DO L = 1, NTOP
-!                 
-!               ! DELP is the pressure thickness of level L [hPa]
-!               P1   = GET_PEDGE(I,J,L)
-!               P2   = GET_PEDGE(I,J,L+1)
-!               DELP = P1 - P2
-!                 
-!               ! PBL top occurs w/in level L
-!               IF ( BLTOP <= P2 )  THEN
-!                  FEMIS = DELP / BLTHIK
-!                 
-!               ! Level L lies completely w/in the PBL
-!               ELSE IF ( BLTOP >  P2 .AND. BLTOP < P1 ) THEN
-!                  FEMIS = ( P1 - BLTOP ) / BLTHIK               
-!                 
-!               ! Level L lies completely out of the PBL
-!               ELSE IF ( BLTOP > P1 ) THEN
-!                  CYCLE 
-!                 
-!               ENDIF
-!                 
-!               ! Fraction of total SO4 in layer L
-!               SO4(L) = FEMIS * TSO4
-!            ENDDO
-!------------------------------------------------------------------------------
 
             ! Loop thru boundary layer
             DO L = 1, NTOP
@@ -4151,18 +4656,10 @@
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE LOGICAL_MOD,  ONLY : LNEI99
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
-      !---------------------------------------------------------
-      ! Prior to 2/22/05:
-      !USE PRESSURE_MOD, ONLY : GET_PEDGE
-      !---------------------------------------------------------
       USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
       USE TRACERID_MOD, ONLY : IDTNH3
 
 #     include "CMN_SIZE"     ! Size parameters
-!-----------------------------------------------
-! Prior to 2/22/05:
-!#     include "CMN"          ! XTRA2
-!-----------------------------------------------
 #     include "CMN_DIAG"     ! ND13
 #     include "CMN_GCTM"     ! SCALE_HEIGHT
 #     include "CMN_O3"       ! XNUMOL
@@ -4173,12 +4670,6 @@
       ! Local variables
       LOGICAL                :: WEEKDAY
       INTEGER                :: I, J, L,  K, NTOP, DAY_NUM
-      !--------------------------------------------------------
-      ! Prior to 2/22/05:
-      !REAL*8                 :: BLTOP,    P1,      P2 
-      !REAL*8                 :: DELP,     FEMIS,   DTSRCE
-      !REAL*8                 :: NH3SRC,   TNH3,    BLTHIK
-      !--------------------------------------------------------
       REAL*8                 :: FEMIS,    DTSRCE,  TNH3    
       REAL*8                 :: AREA_CM2, EPA_AN,  EPA_BF
       REAL*8                 :: NH3an(IIPAR,JJPAR)
@@ -4276,14 +4767,6 @@
       !=================================================================
 
       ! Loop over surface grid boxes
-!--------------------------------------------------------------
-! Prior ot 2/22/05:
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I,      J, NTOP, NH3SRC, TNH3, BLTOP ) 
-!!$OMP+PRIVATE( BLTHIK, L, P1,   P2,     DELP, FEMIS )
-!!$OMP+SCHEDULE( DYNAMIC )
-!--------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, NTOP, TNH3, L, FEMIS )
@@ -4292,101 +4775,11 @@
       DO I = 1, IIPAR
           
          ! Layer where the PBL top happens
-         !-----------------------------------------
-         ! Prior to 2/25/05:
-         !NTOP   = CEILING( XTRA2(I,J) )
-         !-----------------------------------------
          NTOP   = CEILING( GET_PBL_TOP_L( I, J ) )
-
-         !--------------------
-         ! Prior to 2/22/05:
-         !! Initialize
-         !NH3SRC = 0.d0
-         !--------------------
 
          ! Sum all types of NH3 emission [kg/box/s]
          TNH3   = NH3an(I,J) + ENH3_bb(I,J) + 
      &            NH3bf(I,J) + ENH3_na(I,J)
-
-!-----------------------------------------------------------------------------
-! Prior to 2/22/05:
-!         !==============================================================
-!         ! Add NH3 emissions [kg NH3/box] into the tracer array
-!         ! Partition total NH3 throughout the entire boundary layer
-!         !==============================================================
-!         IF ( NTOP >= 2 ) THEN
-!
-!#if   defined( GEOS_4 )
-!
-!            ! BLTOP = pressure at PBL top [hPa]
-!            ! Use barometric law since PBL is in [m]
-!            BLTOP  = GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT )
-!
-!            ! BLTHIK is PBL thickness [hPa]
-!            BLTHIK = GET_PEDGE(I,J,1) - BLTOP
-!
-!#else
-!
-!            ! BLTOP = pressure of PBL top [hPa]
-!            BLTOP  = GET_PEDGE(I,J,1) - PBL(I,J)
-!
-!            ! BLTHIK is PBL thickness [hPa]
-!            BLTHIK = PBL(I,J)
-!
-!#endif
-!
-!            ! Loop over all levels in the boundary layer
-!            DO L = 1, NTOP
-!
-!               ! DELP is the pressure thickness of level K [hPa]
-!               P1   = GET_PEDGE(I,J,L)
-!               P2   = GET_PEDGE(I,J,L+1)
-!               DELP = P1 - P2
-!
-!               ! Case of model grid is lower than PBL
-!               IF ( BLTOP <= P2 )  THEN
-!                  FEMIS = DELP / BLTHIK
-!
-!               ! Level L lies completely w/in the PBL
-!               ELSE IF ( BLTOP >  P2 .AND. BLTOP < P1 ) THEN
-!                  FEMIS = ( P1 - BLTOP ) / BLTHIK
-!
-!               ! Level L lies completely out of the PBL
-!               ELSE IF ( BLTOP > P1 ) THEN
-!                  CYCLE       
-!
-!               ENDIF
-!
-!               ! Partition total NH3 into level K [kg NH3/s]
-!               ! This is just for error checking
-!               NH3SRC    = NH3SRC  + ( FEMIS * TNH3 )
-!
-!               ! Add NH3 emissions into tracer array [kg NH3/timestep]
-!               TC(I,J,L) = TC(I,J,L) + ( TNH3 * FEMIS * DTSRCE )
-!            ENDDO
-!
-!            ! Error check
-!            IF ( ABS( NH3SRC - TNH3 ) > 1.D-5 ) THEN
-!!$OMP CRITICAL
-!               PRINT*, '### ERROR in SRCNH3!'
-!               PRINT*, '### I, J         : ', I, J
-!               PRINT*, '### NH3SRC       : ', NH3SRC
-!               PRINT*, '### ENH3_an(I,J) : ', NH3an(I,J) 
-!               PRINT*, '### ENH3_bb(I,J) : ', ENH3_bb(I,J)
-!               PRINT*, '### ENH3_bf(I,J) : ', NH3bf(I,J)
-!!$OMP END CRITICAL
-!               CALL ERROR_STOP( 'Check NH3 redistribution', 
-!     &                          'SRCNH3 (sulfate_mod.f)' )
-!            ENDIF
-!
-!         !============================================================
-!         ! If PBL height close to the top of level 2, then put all of
-!         ! the emission into the surface layer [kg NH3/box/timestep]
-!         !============================================================
-!         ELSE
-!            TC(I,J,1) = TC(I,J,1) + ( TNH3 * DTSRCE )
-!         ENDIF
-!-----------------------------------------------------------------------------
 
          !==============================================================
          ! Add NH3 emissions [kg NH3/box] into the tracer array
@@ -5350,50 +5743,6 @@
      &                                      31d0, 30d0, 31d0, 31d0, 
      &                                      30d0, 31d0, 30d0, 31d0 /)
 
-!------------------------------------------------------------------------------
-! Prior to 1/11/05:
-! Now read biomass emissions from files instead of using molar ratios 
-! (rjp, bmy, 1/11/05)
-!      !=================================================================
-!      ! READ_BIOMASS_SO2 begins here!
-!      !
-!      ! Compute biomass SO2 from biomass CO.  Use a molar ratio 
-!      ! of 0.0026 moles SO2/mole CO. (rjp, bmy, 1/16/03)
-!      !=================================================================
-!      
-!      ! File name for climatological biomass burning
-!      FILENAME = TRIM( DATA_DIR )                       // 
-!     &           'biomass_200110/bioburn.seasonal.geos.'// GET_RES_EXT()
-!
-!      WRITE( 6, 100 ) TRIM( FILENAME )
-! 100  FORMAT( '     - READ_BIOMASS_SO2: Reading ', a )
-!
-!      ! Get TAU0 value (use generic year 1985)
-!      XTAU = GET_TAU0( THISMONTH, 1, 1985 )
-!
-!      ! Read Biomass burning of CO [molec/cm2/month]
-!      CALL READ_BPCH2( FILENAME, 'BIOBSRCE',    4, 
-!     &                 XTAU,      IGLOB,        JGLOB,     
-!     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. ) 
-!
-!      ! Cast from REAL*4 to REAL*8
-!      CALL TRANSFER_2D( ARRAY(:,:,1), BIOCO )
-!
-!      ! Convert from [molec CO/cm2/month] to [kg SO2/box/s]
-!      DO J = 1, JJPAR
-!
-!         ! Grid box surface area [cm2]
-!         AREA_CM2 = GET_AREA_CM2( J )
-!         
-!         DO I = 1, IIPAR
-!            ESO2_bb(I,J) = BIOCO(I,J) * AREA_CM2 * 
-!     &                     0.0026d0 * 64d-3 * 12.d0 /
-!     &                    ( 6.022d23 * 86400.d0 * 365.25d0 )
-!         ENDDO
-!      ENDDO
-!
-!------------------------------------------------------------------------------
-
       !=================================================================
       ! READ_BIOMASS_SO2 begins here!
       !=================================================================
@@ -5893,10 +6242,6 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE GRID_MOD,      ONLY : GET_AREA_M2
       USE LOGICAL_MOD,   ONLY : LBBSEA
-      !---------------------------------------------------------
-      ! Prior to 1/11/05:
-      !USE TIME_MOD,      ONLY : GET_YEAR, GET_TAU      
-      !---------------------------------------------------------
       USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR, GET_MONTH, 
      &                          GET_TAU,        GET_YEAR    
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
@@ -5919,105 +6264,6 @@
       !=================================================================
       ! READ_BIOMASS_NH3 begins here!
       !=================================================================
-
-!------------------------------------------------------------------------------
-! Prior to 1/11/05:
-! Now read biomass files directly instead of computing from molar ratios
-! (rjp, bmy, 1/11/05)
-!      ! Current TAU value
-!      TAU = GET_TAU()
-! 
-!      ! Use seasonal or interannual emisisons?
-!      IF ( LBBSEA ) THEN
-! 
-!         !-----------------------------------------
-!         ! Use seasonal biomass emissions
-!         !-----------------------------------------
-! 
-!         ! File name for seasonal BB emissions
-!         FILENAME = TRIM( DATA_DIR )                        //
-!     &              'biomass_200110/bioburn.seasonal.geos.' //
-!     &              GET_RES_EXT()
-! 
-!         ! Get TAU0 value (use generic year 1985)
-!         XTAU = GET_TAU0( THISMONTH, 1, 1985 )      
-!         
-!      ELSE IF ( ( .not. LBBSEA ) .AND. 
-!     &          ( TAU < 101520d0 .or. TAU > 140256d0 ) ) THEN
-! 
-!         !-----------------------------------------
-!         ! Use seasonal biomass emissions as a
-!         ! proxy for missing interannual emissions
-!         !-----------------------------------------
-! 
-!         ! File name for seasonal BB emissions
-!         FILENAME = TRIM( DATA_DIR )                        //
-!     &              'biomass_200110/bioburn.seasonal.geos.' //
-!     &              GET_RES_EXT()
-! 
-!         ! Get TAU0 value (use generic year 1985)
-!         XTAU = GET_TAU0( THISMONTH, 1, 1985 )   
-! 
-!      ELSE
-! 
-!         !-----------------------------------------
-!         ! Use interannual biomass emissions for
-!         ! years between 1996 and 2000 
-!         !-----------------------------------------
-! 
-!         ! Get year for interannual biomass emissions
-!         YEAR = MAX( MIN( GET_YEAR(), 2000 ), 1996 )
-! 
-!         ! Convert YEAR to a string
-!         ! Now use ENCODE to define CYEAR string for PGI/Linux (bmy, 9/29/03)
-!#if   defined ( LINUX_PGI ) 
-!         ENCODE( 4, '(i4)', CYEAR ) YEAR
-!#else
-!         WRITE( CYEAR, '(i4)' ) YEAR
-!#endif
-!    
-!         ! File name for interannual biomass burning emissions
-!         FILENAME = TRIM( DATA_DIR )                           //
-!     &              'biomass_200110/bioburn.interannual.geos.' //
-!     &               GET_RES_EXT() // '.' // CYEAR
-! 
-!         ! Get TAU0 value for the given year
-!         XTAU = GET_TAU0( THISMONTH, 1, YEAR ) 
-! 
-!      ENDIF
-! 
-!      ! Echo filename
-!      WRITE( 6, 100 ) TRIM( FILENAME )
-! 100  FORMAT( '     - READ_BIOMASS_NH3: Reading ', a )
-! 
-!      ! Read TOTAL Drymass burned [g/cm2] as tracer #33
-!      CALL READ_BPCH2( FILENAME, 'BIOBSRCE',    33, 
-!     &                 XTAU,      IGLOB,        JGLOB,      
-!     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
-! 
-!      ! Cast from REAL*4 to REAL*8 and resize if necessary
-!      CALL TRANSFER_2D( ARRAY(:,:,1), ENH3_bb )
-! 
-!      ! Loop over grid boxes
-!      DO J = 1, JJPAR
-!         
-!         ! Grid box surface area [m2]
-!         AREA_M2 = GET_AREA_M2( J )
-!         
-!         DO I = 1, IIPAR
-! 
-!            ! Convert [g/cm2/month] to [kg/box/s] dry biomass burned
-!            DMASS = ENH3_bb(I,J) * AREA_M2 * 10.d0 /
-!     &              ( NMDAY(THISMONTH) * 86400d0 )
-! 
-!            ! Convert [kg/box/s] dry biomass to [kg NH3/box/s]
-!            ! Using emission factor of 0.0013 from Andreae & Merlet 2001
-!            ENH3_bb(I,J) = DMASS * 0.0013d0          
-!         ENDDO
-!      ENDDO
-! 
-!------------------------------------------------------------------------------
-
       IF ( THISMONTH == 2 ) THEN
          IF( ITS_A_LEAPYEAR() ) THEN
             NMDAY(2) = 29
@@ -6359,7 +6605,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_SULFATE initializes and zeros all allocatable arrays
-!  declared in "sulfate_mod.f" (bmy, 6/2/00, 1/6/05)
+!  declared in "sulfate_mod.f" (bmy, 6/2/00, 4/13/05)
 !
 !  NOTES:
 !  (1 ) Only allocate some arrays for the standalone simulation (NSRCX==10).
@@ -6376,6 +6622,7 @@
 !  (7 ) Now locate species in the DEPSAV array here instead of in CHEMSULFATE.
 !        Now reference LDRYD from "logical_mod.f".  Updated for AS, AHS, LET, 
 !        SO4aq, NH4aq. (bmy, 1/6/06)
+!  (8 ) Now allocates PSO4_ss, PNITs (bec, bmy, 4/13/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -6510,6 +6757,14 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSO4_SO2' )
       PSO4_SO2 = 0d0
 
+      ALLOCATE( PSO4_ss( IIPAR, JJPAR, LLTROP ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSO4_ss' )
+      PSO4_ss = 0d0
+
+      ALLOCATE( PNITs( IIPAR, JJPAR, LLTROP ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PNITs' )
+      PNITs = 0d0
+
       ALLOCATE( SOx_SCALE( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOx_SCALE' )
       SOx_SCALE = 0d0
@@ -6557,10 +6812,12 @@
          DRYH2O2  = 0
          DRYSO2   = 0
          DRYSO4   = 0
+         DRYSO4s  = 0
          DRYMSA   = 0
          DRYNH3   = 0
          DRYNH4   = 0
          DRYNIT   = 0
+         DRYSO4s  = 0
          DRYAS    = 0
          DRYAHS   = 0
          DRYLET   = 0
@@ -6576,6 +6833,8 @@
                   DRYSO2   = N
                CASE ( 'SO4'   )
                   DRYSO4   = N
+               CASE ( 'SO4S'   )
+                  DRYSO4s  = N
                CASE ( 'MSA'   )
                   DRYMSA   = N
                CASE ( 'NH3'   )
@@ -6584,6 +6843,8 @@
                   DRYNH4   = N
                CASE ( 'NIT'   )
                   DRYNIT   = N
+               CASE ( 'NITS'   )
+                  DRYNITs  = N
                CASE ( 'AS'    )
                   DRYAS    = N
                CASE ( 'AHS'   )
