@@ -1,4 +1,4 @@
-! $Id: gamap_mod.f,v 1.1 2005/05/09 14:33:58 bmy Exp $
+! $Id: gamap_mod.f,v 1.2 2005/05/09 17:48:34 bmy Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
@@ -53,7 +53,8 @@
 !  (10) file_mod.f           : Module w/ file unit numbers & I/O error checks
 !  (11) time_mod.f           : Module w/ routines for computing time & date
 !  (12) tracer_mod.f         : Module w/ GEOS-CHEM tracer array STT etc.
-!  (13) wetscav_mod.f        : Module w/ routines for wetdep/scavenging
+!  (13) tracerid_mod.f       : Module w/ GEOS-CHEM tracer ID flags
+!  (14) wetscav_mod.f        : Module w/ routines for wetdep/scavenging
 !
 !  References:
 !  ============================================================================
@@ -631,19 +632,20 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG03_MOD,  ONLY : ND03
-      USE DIAG41_MOD,  ONLY : ND41
-      USE DIAG48_MOD,  ONLY : DO_SAVE_DIAG48
-      USE DIAG49_MOD,  ONLY : DO_SAVE_DIAG49
-      USE DIAG50_MOD,  ONLY : DO_SAVE_DIAG50
-      USE DIAG51_MOD,  ONLY : DO_SAVE_DIAG51
-      USE DIAG_PL_MOD, ONLY : DO_SAVE_PL,  GET_NFAM,
-     &                        GET_FAM_MWT, GET_FAM_NAME
-      USE DRYDEP_MOD,  ONLY : DEPNAME,     NUMDEP,    NTRAIND
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE TIME_MOD,    ONLY : EXPAND_DATE, GET_NHMSb, GET_NYMDb
+      USE DIAG03_MOD,   ONLY : ND03
+      USE DIAG41_MOD,   ONLY : ND41
+      USE DIAG48_MOD,   ONLY : DO_SAVE_DIAG48
+      USE DIAG49_MOD,   ONLY : DO_SAVE_DIAG49
+      USE DIAG50_MOD,   ONLY : DO_SAVE_DIAG50
+      USE DIAG51_MOD,   ONLY : DO_SAVE_DIAG51
+      USE DIAG_PL_MOD,  ONLY : DO_SAVE_PL,  GET_NFAM,
+     &                         GET_FAM_MWT, GET_FAM_NAME
+      USE DRYDEP_MOD,   ONLY : DEPNAME,     NUMDEP,    NTRAIND
+      USE ERROR_MOD,    ONLY : ALLOC_ERR
+      USE TIME_MOD,     ONLY : EXPAND_DATE, GET_NHMSb, GET_NYMDb
       USE TRACER_MOD
-      USE WETSCAV_MOD, ONLY : GET_WETDEP_IDWETD, GET_WETDEP_NSOL
+      USE TRACERID_MOD, ONLY : IDTBCPI, IDTOCPI
+      USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD, GET_WETDEP_NSOL
 
 #     include "CMN_SIZE"    ! Size parameters
 #     include "CMN_DIAG"    ! NDxx flags
