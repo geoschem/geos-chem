@@ -1,9 +1,9 @@
-! $Id: chemistry_mod.f,v 1.14 2005/05/09 14:33:56 bmy Exp $
+! $Id: chemistry_mod.f,v 1.15 2005/06/22 20:49:59 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
 !  Module CHEMISTRY_MOD is used to call the proper chemistry subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 4/13/05)
+!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 6/22/05)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -90,6 +90,7 @@
 !        CHEMSULFATE.  Now do aerosol thermodynamic equilibrium before
 !        aerosol chemistry for offline aerosol runs.  Now also reference 
 !        CLDF from "dao_mod.f" (bec, bmy, 4/20/05)
+!  (11) Now modified for GCAP met fields (bmy, 6/22/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -99,12 +100,6 @@
       USE C2H6_MOD,        ONLY : CHEMC2H6
       USE CARBON_MOD,      ONLY : CHEMCARBON
       USE CH3I_MOD,        ONLY : CHEMCH3I
-!--------------------------------------------------------------------------
-! Prior to 4/20/05:
-! Now also reference CLDF from "dao_mod.f" (bmy, 4/20/05)
-!      USE DAO_MOD,         ONLY : CLMOSW,  CLROSW, DELP, 
-!     &                            MAKE_RH, OPTDEP, OPTD, T
-!--------------------------------------------------------------------------
       USE DAO_MOD,         ONLY : CLDF,    CLMOSW, CLROSW, DELP, 
      &                            MAKE_RH, OPTDEP, OPTD,   T
       USE DRYDEP_MOD,      ONLY : DRYFLX, DRYFLXRnPbBe
@@ -146,16 +141,11 @@
          CALL OPTDEPTH( LLPAR, CLMOSW, CLROSW, DELP, T, OPTD )
       ENDIF
 
-#elif defined( GEOS_3 ) || defined( GEOS_4 ) 
+#elif defined( GEOS_3 ) || defined( GEOS_4 ) || defined( GCAP )
 
       ! Compute optical depths (except for CO-OH run)
       ! GEOS-2/GEOS-3: Copy OPTDEP to OPTD, also archive diagnostics
       IF ( ITS_NOT_COPARAM_OR_CH4() ) THEN
-         !-------------------------------------------------------------
-         ! Prior to 4/20/05:
-         ! Now pass CLDTOT to OPTDEPTH for diagnostics (bmy, 4/20/05)
-         !CALL OPTDEPTH( LLPAR, OPTDEP, OPTD )
-         !-------------------------------------------------------------
          CALL OPTDEPTH( LLPAR, CLDF, OPTDEP, OPTD )
       ENDIF
 #endif 

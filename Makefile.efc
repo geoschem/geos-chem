@@ -1,6 +1,6 @@
-# $Id: Makefile.efc,v 1.17 2005/05/09 14:33:55 bmy Exp $
+# $Id: Makefile.efc,v 1.18 2005/06/22 20:49:58 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for LINUX/EFC compiler (bmy, Fri Apr 29 13:41:26 2005)
+# GEOS-CHEM Makefile for LINUX/EFC compiler (bmy, Tue Jun 14 15:34:26 2005)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -36,7 +36,6 @@ correctOH.o               \
 decomp.o                  \
 diag1.o                   \
 diag3.o                   \
-diag52.o                  \
 diag_2pm.o                \
 diagoh.o                  \
 diffg.o                   \
@@ -51,6 +50,7 @@ emmonot.o                 \
 fertadd.o                 \
 findmon.o                 \
 fyrno3.o                  \
+gamap_mod.o               \
 gasconc.o                 \
 getalt.o                  \
 getifsun.o                \
@@ -99,7 +99,6 @@ sunparam.o                \
 tcorr.o                   \
 tropopause.o              \
 update.o                  \
-write49.o                 \
 xltmmp.o                  
 
 CO_OH =                   \
@@ -241,6 +240,7 @@ seasalt_mod.o             \
 sulfate_mod.o             \
 tagged_co_mod.o           \
 tagged_ox_mod.o           \
+gcap_convect_mod.o        \
 fvdas_convect_mod.o       \
 convection_mod.o          \
 pjc_pfix_mod.o            \
@@ -330,7 +330,7 @@ XSEC1D.o                   : XSEC1D.f                   cmn_fj.h CMN_SIZE define
 XSECO2.o                   : XSECO2.f                   cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 XSECO3.o                   : XSECO3.f                   cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 a3_read_mod.o              : a3_read_mod.f              CMN_DIAG CMN_SIZE define.h 
-a6_read_mod.o              : a6_read_mod.f              CMN_DIAG CMN_SIZE define.h 
+a6_read_mod.o              : a6_read_mod.f              CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 acetone_mod.o              : acetone_mod.f              CMN_DEP CMN_DIAG CMN_MONOT CMN_SIZE define.h 
 aerosol_mod.o              : aerosol_mod.f              CMN CMN_DIAG CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h comode.h jv_cmn.h 
 aircraft_nox_mod.o         : aircraft_nox_mod.f         CMN CMN_DIAG CMN_NOX CMN_SIZE define.h 
@@ -362,7 +362,7 @@ clean.o                    : clean.f                    CMN_OH
 cleanisop.o                : cleanisop.f                CMN_OH 
 cleanup.o                  : cleanup.f                  
 comode_mod.o               : comode_mod.f               CMN_SIZE define.h comode.h 
-convection_mod.o           : convection_mod.f           CMN_DIAG CMN_SIZE define.h 
+convection_mod.o           : convection_mod.f           CMN_DIAG CMN_SIZE define.h define.h 
 correctOH.o                : correctOH.f                CMN_OH 
 dao_mod.o                  : dao_mod.f                  CMN_GCTM CMN_SIZE define.h 
 decomp.o                   : decomp.f                   CMN_SIZE define.h comode.h 
@@ -374,7 +374,7 @@ diag48_mod.o               : diag48_mod.f               CMN_DIAG CMN_GCTM CMN_O3
 diag49_mod.o               : diag49_mod.f               CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 diag50_mod.o               : diag50_mod.f               CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 diag51_mod.o               : diag51_mod.f               CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h jv_cmn.h 
-diag52.o                   : diag52.f                   CMN CMN_DIAG CMN_O3 CMN_SIZE define.h CMN_TIMES 
+diag52_mod.o               : diag52_mod.f               CMN CMN_DIAG CMN_O3 CMN_SIZE define.h 
 diag_2pm.o                 : diag_2pm.f                 CMN_DIAG CMN_SIZE define.h 
 diag_mod.o                 : diag_mod.f                 
 diag_oh_mod.o              : diag_oh_mod.f              CMN_DIAG CMN_SIZE define.h comode.h 
@@ -408,7 +408,9 @@ funbas.o                   : funbas.f                   CMN_SIZE define.h comsol
 funo1dham2.o               : funo1dham2.f               
 fvdas_convect_mod.o        : fvdas_convect_mod.f        CMN_DIAG CMN_SIZE define.h 
 fyrno3.o                   : fyrno3.f                   
+gamap_mod.o                : gamap_mod.f                CMN_DIAG CMN_SIZE define.h 
 gasconc.o                  : gasconc.f                  CMN_SIZE define.h comode.h 
+gcap_convect_mod.o         : gcap_convect_mod.f         CMN_DIAG CMN_SIZE define.h 
 geia_mod.o                 : geia_mod.f                 CMN_SIZE define.h 
 get_refl.o                 : get_refl.f                 CMN CMN_CO CMN_SIZE define.h 
 getalt.o                   : getalt.f                   CMN CMN_SIZE define.h comode.h 
@@ -542,7 +544,6 @@ upbdflx_mod.o              : upbdflx_mod.f              CMN CMN_GCTM CMN_O3 CMN_
 update.o                   : update.f                   CMN_SIZE define.h comode.h 
 uvalbedo_mod.o             : uvalbedo_mod.f             CMN_SIZE define.h 
 wetscav_mod.o              : wetscav_mod.f              CMN_DIAG CMN_SIZE define.h 
-write49.o                  : write49.f                  
 xltmmp.o                   : xltmmp.f                   CMN_SIZE define.h 
 
 #==============================================================================

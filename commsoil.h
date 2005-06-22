@@ -1,4 +1,4 @@
-! $Id: commsoil.h,v 1.2 2004/12/02 21:48:34 bmy Exp $
+! $Id: commsoil.h,v 1.3 2005/06/22 20:49:59 bmy Exp $
 !
 !**********************************************************************
 !                                                                     *
@@ -40,20 +40,6 @@
       PARAMETER( NLAND=????, NPULSE=3 )       
 
 #elif defined( GRID1x1 )
-      !---------------------------------------------------------------------
-      ! Prior to 11/18/04:
-      ! Now use Cpp switches to pick the # of land points (bmy, 11/18/04)
-      !!--------------------------------------------
-      !! Uncomment for 1x1 global grid
-      !!PARAMETER( NLAND=17174, NPULSE=3 )
-      !!--------------------------------------------
-      !! Uncomment for 1x1 nested grid -- China
-      !!PARAMETER( NLAND=2681, NPULSE=3 ) 
-      !!--------------------------------------------
-      !! Uncomment for 1x1 nested grid -- USA
-      !!PARAMETER( NLAND=2118, NPULSE=3 )
-      !!--------------------------------------------
-      !----------------------------------------------------------------------
 
       ! There are 2681  land points for the CHINA nested grid
       ! There are 2118  land points for the N. AMERICA nested grid

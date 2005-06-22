@@ -1,9 +1,9 @@
-! $Id: drydep_mod.f,v 1.19 2005/05/09 14:33:58 bmy Exp $
+! $Id: drydep_mod.f,v 1.20 2005/06/22 20:50:01 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
 !  Module DRYDEP_MOD contains variables and routines for the GEOS-CHEM dry
-!  deposition scheme. (bmy, 1/27/03, 2/22/05)
+!  deposition scheme. (bmy, 1/27/03, 5/25/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -137,6 +137,7 @@
 !  (16) Now include SO4s, NITs tracers.  Now accounts for hygroscopic growth
 !        of seasalt aerosols when computing aerodynamic resistances.
 !        (bec, bmy, 4/13/05)
+!  (17) Now modified for GEOS-5 and GCAP met fields (bmy, 5/25/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -216,7 +217,7 @@
 !  Subroutine DO_DRYDEP is the driver for the GEOS-CHEM dry deposition scheme.
 !  DO_DRYDEP calls DEPVEL to compute deposition velocities [m/s], which are 
 !  then converted to [cm/s].  Drydep frequencies are also computed.  
-!  (lwh, gmg, djj, 1989, 1994; bmy, 2/11/03, 4/13/05)
+!  (lwh, gmg, djj, 1989, 1994; bmy, 2/11/03, 5/25/05)
 !
 !  DAO met fields passed via "dao_mod.f":
 !  ============================================================================
@@ -265,6 +266,8 @@
 !        Parallelize DO-loops. (bmy, 2/22/05)
 !  (6 ) Now define RHB as a local array, which is defined in METERO and then
 !        passed to DEPVEL. (bec, bmy, 4/13/05)
+!  (7 ) Now dimension AZO for GEOS or GCAP met fields.  Remove obsolete
+!        variables. (swu, bmy, 5/25/05)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -277,19 +280,39 @@
 #     include "CMN_SIZE" ! Size parameters
 #     include "CMN_DIAG" ! ND44
 #     include "CMN_DEP"  ! IREG, ILAND, IUSE, etc.
-#     include "CMN_GCTM"
+#     include "CMN_GCTM" ! Physical constants
 
       ! Local variables
+      !---------------------------------------------------------------------
+      ! Prior to 5/25/05:
+      ! Remove obsolete variables
+      !LOGICAL, SAVE     :: FIRST = .TRUE.
+      !LOGICAL           :: LSNOW(MAXIJ)
+      !INTEGER           :: I, J, L, N, M, IJLOOP, LAYBOT, NN, NDVZ
+      !REAL*8            :: PS, X25, RESIDU, P1, P2, THIK, DVZ, PL1, PL2 
+      !REAL*8            :: HEIGHT(LLPAR),  CZ1(MAXIJ) 
+      !REAL*8            :: TC0(MAXIJ),     DVEL(MAXIJ,MAXDEP)
+      !REAL*8            :: ZH(MAXIJ),      OBK(MAXIJ)
+      !REAL*8            :: CFRAC(MAXIJ),   RADIAT(MAXIJ)
+      !REAL*8            :: USTAR(MAXIJ),   AZO(MAXIJ)
+      !REAL*8            :: RHB(MAXIJ)
+      !----------------------------------------------------------------------
       LOGICAL, SAVE     :: FIRST = .TRUE.
       LOGICAL           :: LSNOW(MAXIJ)
-      INTEGER           :: I, J, L, N, M, IJLOOP, LAYBOT, NN, NDVZ
-      REAL*8            :: PS, X25, RESIDU, P1, P2, THIK, DVZ, PL1, PL2 
-      REAL*8            :: HEIGHT(LLPAR),  CZ1(MAXIJ) 
-      REAL*8            :: TC0(MAXIJ),     DVEL(MAXIJ,MAXDEP)
-      REAL*8            :: ZH(MAXIJ),      OBK(MAXIJ)
-      REAL*8            :: CFRAC(MAXIJ),   RADIAT(MAXIJ)
-      REAL*8            :: USTAR(MAXIJ),   AZO(MAXIJ)
-      REAL*8            :: RHB(MAXIJ)
+      INTEGER           :: I, J, L, N, IJLOOP, NN, NDVZ
+      REAL*8            :: THIK,              DVZ
+      REAL*8            :: CZ1(MAXIJ),        TC0(MAXIJ)
+      REAL*8            :: ZH(MAXIJ),         OBK(MAXIJ)
+      REAL*8            :: CFRAC(MAXIJ),      RADIAT(MAXIJ)
+      REAL*8            :: USTAR(MAXIJ),      RHB(MAXIJ)
+      REAL*8            :: DVEL(MAXIJ,MAXDEP)
+
+      ! Dimension AZO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
+#if   defined( GCAP )
+      REAL*8            :: AZO(NTYPE)
+#else
+      REAL*8            :: AZO(MAXIJ)
+#endif
 
       !=================================================================
       ! DO_DRYDEP begins here!
@@ -303,21 +326,12 @@
       ENDIF
  
       ! Call METERO to obtain meterological fields (all 1-D arrays)
-      !-------------------------------------------------------------------
-      ! Prior to 4/13/05:
-      !CALL METERO( CZ1, TC0, OBK, CFRAC, RADIAT, AZO, USTAR, ZH, LSNOW )
-      !-------------------------------------------------------------------
       CALL METERO( CZ1, TC0,   OBK, CFRAC, RADIAT, 
      &             AZO, USTAR, ZH,  LSNOW, RHB )
 
       !=================================================================
       ! Call DEPVEL to compute dry deposition velocities [m/s]
       !=================================================================
-!----------------------------------------------------------------------
-! Prior to 4/13/05:
-!      CALL DEPVEL( MAXIJ, RADIAT, TC0, SUNCOS, F0, HSTAR, XMW,  AIROSOL,
-!     &             USTAR, CZ1,    OBK, CFRAC,  ZH, LSNOW, DVEL, AZO ) 
-!----------------------------------------------------------------------
       CALL DEPVEL( MAXIJ, RADIAT,  TC0,   SUNCOS, F0,  HSTAR, 
      &             XMW,   AIROSOL, USTAR, CZ1,    OBK, CFRAC,  
      &             ZH,    LSNOW,   DVEL,  AZO,    RHB ) 
@@ -453,7 +467,7 @@
 !
 !******************************************************************************
 !  Subroutine METERO calculates meteorological constants needed for the      
-!  dry deposition velocity module. (lwh, gmg, djj, 1989, 1994; bmy, 4/13/05)
+!  dry deposition velocity module. (lwh, gmg, djj, 1989, 1994; bmy, 5/25/05)
 !
 !  Arguments as Output:
 !  ============================================================================
@@ -491,11 +505,21 @@
 !        reference ALBD from "dao_mod.f" (bmy, 2/22/05)
 !  (5 ) Now references RH from "dao_mod.f".  Now passes relative humidity
 !        from the surface layer back via RHB argument. (bec, bmy, 4/13/05)
+!  (6 ) Now call GET_OBK from "dao_mod.f" to get the M-O length for both
+!        GEOS or GCAP met fields.  Remove local computation of M-O length
+!        here.  Also now dimension AZO appropriately for GCAP or GEOS met
+!        fields.  Remove obsolete variables. (swu, bmy, 5/25/05)
 !******************************************************************************
 !
       ! References to F90 modules 
-      USE DAO_MOD,      ONLY : AIRDEN, ALBD, BXHEIGHT, CLDFRC, HFLUX, 
-     &                         RADSWG, RH,   TS,       USTAR,  Z0
+!-----------------------------------------------------------------------------
+! Prior to 5/25/05:
+! Remove HFLUX from DAO_MOD list (swu, bmy, 5/25/05)
+!      USE DAO_MOD,      ONLY : AIRDEN, ALBD, BXHEIGHT, CLDFRC, HFLUX, 
+!     &                         RADSWG, RH,   TS,       USTAR,  Z0
+!-----------------------------------------------------------------------------
+      USE DAO_MOD,      ONLY : ALBD,   BXHEIGHT, CLDFRC, GET_OBK,
+     &                         RADSWG, RH,       TS,     USTAR,   Z0
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_m
                                   
 #     include "CMN_SIZE"     ! Size parameters
@@ -509,15 +533,30 @@
       REAL*8,  INTENT(OUT)  :: CFRAC(MAXIJ)
       REAL*8,  INTENT(OUT)  :: RADIAT(MAXIJ)
       REAL*8,  INTENT(OUT)  :: RHB(MAXIJ)
-      REAL*8,  INTENT(OUT)  :: AZO(MAXIJ)
+      !------------------------------------------
+      ! Prior to 5/25/05:
+      !REAL*8,  INTENT(OUT)  :: AZO(MAXIJ)
+      !------------------------------------------
       REAL*8,  INTENT(OUT)  :: USTR(MAXIJ)
       REAL*8,  INTENT(OUT)  :: ZH(MAXIJ)
 
+      ! Dimension AZO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
+#if   defined( GCAP )
+      REAL*8, INTENT(OUT)   :: AZO(NTYPE)
+#else
+      REAL*8, INTENT(OUT)   :: AZO(MAXIJ)
+#endif
+
       ! Local variables
       INTEGER               :: I,  J,  IJLOOP
-      REAL*8                :: P1, P2, THIK, NUM, DEN
-      REAL*8, PARAMETER     :: KAPPA = 0.4d0 
-      REAL*8, PARAMETER     :: CP    = 1000.0d0
+      !----------------------------------------------------
+      ! Prior to 5/25/05:
+      ! Remove obsolete variables
+      !REAL*8                :: P1, P2, THIK, NUM, DEN
+      !REAL*8, PARAMETER     :: KAPPA = 0.4d0 
+      !REAL*8, PARAMETER     :: CP    = 1000.0d0
+      !----------------------------------------------------
+      REAL*8                :: THIK
 
       ! External functions
       REAL*8, EXTERNAL      :: XLTMMP
@@ -526,10 +565,24 @@
       ! METERO begins here!
       !=================================================================
 
+#if   defined( GCAP )
+      ! For GCAP: AZO (roughness ht) is a function of Olson land type 
+      ! instead of lat/lon location.  Zero AZO here; AZO will be 
+      ! computed internally w/in routine DEPVEL (swu, bmy, 5/25/05)
+      AZO(:) = 0d0
+#endif
+
       ! Loop over surface grid boxes
+!----------------------------------------------------------------
+! Prior to 5/25/05:
+! Remove obsolete NUM, DEN from PRIVATE statement (bmy, 5/25/05)
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, IJLOOP, THIK, NUM, DEN )
+!----------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, IJLOOP, THIK, NUM, DEN )
+!$OMP+PRIVATE( I, J, IJLOOP, THIK )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -542,46 +595,56 @@
          ! Midpoint height of first model level [m]
          CZ1(IJLOOP) = THIK / 2.0d0
 
-         !==============================================================
-         ! The direct computation of the Monin-Obhukov length is:
-         !
-         !            - Air density * Cp * T(surface air) * Ustar^3 
-         !    OBK =  -----------------------------------------------
-         !              Kappa       * g  * Sensible Heat flux
-         !
-         ! Cp    = 1000 J / kg / K = specific heat of air at constant P
-         ! Kappa = 0.4             = Von Karman's constant
-         !
-         !
-         !  Also test the denominator in order to prevent div by zero.
-         !==============================================================
-
-         ! Numerator
-         NUM = -AIRDEN(1,I,J) *  CP            * TS(I,J) *
-     &          USTAR(I,J)    *  USTAR(I,J)    * USTAR(I,J)
-
-         ! Denominator
-         DEN =  KAPPA * g0 * HFLUX(I,J) 
-
-         ! Prevent div by zero
-         IF ( ABS( DEN ) > 0d0 ) THEN
-            OBK(IJLOOP) = NUM / DEN
-         ELSE
-            OBK(IJLOOP) = 1.0d5
-         ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 5/25/05:
+! We now call GET_OBK from "dao_mod.f" to return the M-O length for both GCAP 
+! and GEOS met fields, so remove local computation here (swu, bmy, 5/25/05)
+!         !==============================================================
+!         ! The direct computation of the Monin-Obhukov length is:
+!         !
+!         !            - Air density * Cp * T(surface air) * Ustar^3 
+!         !    OBK =  -----------------------------------------------
+!         !              Kappa       * g  * Sensible Heat flux
+!         !
+!         ! Cp    = 1000 J / kg / K = specific heat of air at constant P
+!         ! Kappa = 0.4             = Von Karman's constant
+!         !
+!         !
+!         !  Also test the denominator in order to prevent div by zero.
+!         !==============================================================
+!         
+!         ! Numerator
+!         NUM = -AIRDEN(1,I,J) *  CP            * TS(I,J) *
+!     &          USTAR(I,J)    *  USTAR(I,J)    * USTAR(I,J)
+!         
+!         ! Denominator
+!         DEN =  KAPPA * g0 * HFLUX(I,J) 
+!         
+!         ! Prevent div by zero
+!         IF ( ABS( DEN ) > 0d0 ) THEN
+!            OBK(IJLOOP) = NUM / DEN
+!         ELSE
+!            OBK(IJLOOP) = 1.0d5
+!         ENDIF
+!-----------------------------------------------------------------------------
 
          !==============================================================
          ! Return meterological quantities as 1-D arrays for DEPVEL
          !==============================================================
 
-         ! Roughness height [m]
+#if   !defined( GCAP )
+         ! For GEOS: Roughness height [m] is a function of lat/lon
          AZO(IJLOOP)    = Z0(I,J)
+#endif
 
          ! Column cloud fraction [unitless]
          CFRAC(IJLOOP)  = CLDFRC(I,J)
 
          ! Set logical LSNOW if snow and sea ice (ALBEDO > 0.4)
          LSNOW(IJLOOP)  = ( ALBD(I,J) > 0.4 )
+
+         ! Monin-Obhukov length [m]
+         OBK(IJLOOP)    = GET_OBK( I, J )
 
          ! Solar insolation @ ground [W/m2]
          RADIAT(IJLOOP) = RADSWG(I,J) 
@@ -748,7 +811,7 @@
 !******************************************************************************
 !  Subroutine DRYFLXRnPbBe removes dry deposition losses from the STT tracer
 !  array and archives deposition fluxes to the ND44 diagnostic. 
-!  (hyl, bmy, bdf, 4/2/99, 7/20/04)
+!  (hyl, bmy, bdf, 4/2/99, 5/25/05)
 !
 !  NOTES:
 !  (1 ) Now eliminate DEPFLUX from CMN_SAV, in order to save memory.
@@ -773,6 +836,7 @@
 !  (12) Now follow GEOS-3 algorithm for GEOS-4 model (bmy, 12/2/03)
 !  (13) Now reference STT from "tracer_mod.f" and LDRYD from "logical_mod.f"
 !        (bmy, 7/20/04)
+!  (14) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -805,9 +869,9 @@
       PBL_MAX = GET_PBL_MAX_L() 
 
       ! Loop over drydep species
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, N, NN, F_UNDER_TOP, FRACLOST, AMT_LOST )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N, NN, F_UNDER_TOP, FRACLOST, AMT_LOST )
       DO N = 1, NUMDEP
 
          ! Tracer index in STT that corresponds to drydep species N
@@ -827,38 +891,45 @@
             ! the fraction of layer L located totally w/in the PBL.
             FRACLOST = DEPSAV(I,J,N) * F_UNDER_TOP * DTCHEM
 
-#if defined( GEOS_1 ) || defined( GEOS_STRAT )
+!-----------------------------------------------------------------------------
+! Prior to 6/9/05:
+! Now treat all met fields in the same way (bmy, 6/9/05)
+!
+!#if defined( GEOS_1 ) || defined( GEOS_STRAT )
+!            !===========================================================
+!            ! GEOS-1 or GEOS-STRAT:
+!            ! ---------------------
+!            ! (a) If FRACLOST >= 1 or FRACLOST < 0, stop the run
+!            ! (b) If not, then subtract drydep losses from STT
+!            !===========================================================
+!            IF ( FRACLOST >= 1 .or. FRACLOST < 0 ) THEN
+!               WRITE(6,*) 'DEPSAV*DTCHEM >=1 or <0 : '
+!               WRITE(6,*) 'DEPSAV*DTCHEM   = ', FRACLOST
+!               WRITE(6,*) 'DEPSAV(I,J,1,N) = ', DEPSAV(I,J,N)
+!               WRITE(6,*) 'DTCHEM (s)      = ', DTCHEM
+!               WRITE(6,*) 'I,J             = ', I, J
+!               WRITE(6,*) 'STOP in dryflxRnPbBe.f'
+!               CALL GEOS_CHEM_STOP
+!            ENDIF
+!
+!            ! AMT_LOST = amount of species lost to drydep [kg]
+!            AMT_LOST = STT(I,J,L,NN) * FRACLOST
+!
+!            ! ND44 diagnostic: drydep flux [kg/s]
+!            IF ( ND44 > 0 ) THEN
+!!$OMP CRITICAL
+!               AD44(I,J,N,1) = AD44(I,J,N,1) + ( AMT_LOST/DTCHEM )
+!!$OMP END CRITICAL
+!            ENDIF
+!
+!            ! Subtract AMT_LOST from the STT array [kg]
+!            STT(I,J,L,NN) = STT(I,J,L,NN) - AMT_LOST
+!
+!#elif defined( GEOS_3 ) || defined( GEOS_4 )
+!-----------------------------------------------------------------------------
             !===========================================================
-            ! GEOS-1 or GEOS-STRAT:
-            ! ---------------------
-            ! (a) If FRACLOST >= 1 or FRACLOST < 0, stop the run
-            ! (b) If not, then subtract drydep losses from STT
-            !===========================================================
-            IF ( FRACLOST >= 1 .or. FRACLOST < 0 ) THEN
-               WRITE(6,*) 'DEPSAV*DTCHEM >=1 or <0 : '
-               WRITE(6,*) 'DEPSAV*DTCHEM   = ', FRACLOST
-               WRITE(6,*) 'DEPSAV(I,J,1,N) = ', DEPSAV(I,J,N)
-               WRITE(6,*) 'DTCHEM (s)      = ', DTCHEM
-               WRITE(6,*) 'I,J             = ', I, J
-               WRITE(6,*) 'STOP in dryflxRnPbBe.f'
-               CALL GEOS_CHEM_STOP
-            ENDIF
-
-            ! AMT_LOST = amount of species lost to drydep [kg]
-            AMT_LOST = STT(I,J,L,NN) * FRACLOST
-
-            ! ND44 diagnostic: drydep flux [kg/s]
-            IF ( ND44 > 0 ) THEN
-               AD44(I,J,N,1) = AD44(I,J,N,1) + ( AMT_LOST/DTCHEM )
-            ENDIF
-
-            ! Subtract AMT_LOST from the STT array [kg]
-            STT(I,J,L,NN) = STT(I,J,L,NN) - AMT_LOST
-
-#elif defined( GEOS_3 ) || defined( GEOS_4 )
-            !===========================================================
-            ! GEOS-3 or GEOS-4:
-            ! -----------------
+            ! Proceed as follows:
+            ! --------------------------------
             ! (a) If FRACLOST < 0, then stop the run.
             !
             ! (b) If FRACLOST > 1, use an exponential loss to 
@@ -883,29 +954,29 @@
 
             ! ND44 diagnostic: drydep flux [kg/s]
             IF ( ND44 > 0 ) THEN
+!$OMP CRITICAL
                AD44(I,J,N,1) = AD44(I,J,N,1) + ( AMT_LOST/DTCHEM ) 
+!$OMP END CRITICAL
             ENDIF
 
             ! Subtract AMT_LOST from the STT array [kg]
             STT(I,J,L,NN)  = STT(I,J,L,NN) - AMT_LOST
-#endif
+
+!-----------------------
+! Prior to 6/9/05:
+!#endif
+!-----------------------
          ENDDO
          ENDDO
          ENDDO
-!!$OMP END PARALLEL DO
       ENDDO
+!$OMP END PARALLEL DO
 
       ! Return to calling program
       END SUBROUTINE DRYFLXRnPbBe
 
 !------------------------------------------------------------------------------
 
-!----------------------------------------------------------------------------
-! Prior to 4/13/05:
-!      SUBROUTINE DEPVEL(NPTS,RADIAT,TEMP,SUNCOS,F0,HSTAR,XMW,
-!     1                  AIROSOL,USTAR,CZ1,OBK,CFRAC,ZH,
-!     2                  LSNOW,DVEL,ZO)
-!----------------------------------------------------------------------------
       SUBROUTINE DEPVEL( NPTS, RADIAT,  TEMP,  SUNCOS, F0,  HSTAR,
      &                   XMW,  AIROSOL, USTAR, CZ1,    OBK, CFRAC,
      &                   ZH,   LSNOW,   DVEL,  ZO,     RHB )
@@ -932,6 +1003,7 @@ C** Version 3.8    4/13/05  -- Accounts for hygroscopic growth of SEASALT
 C**                             aerosol tracers.  DUST aerosol tracers do
 C**                             not grow hygroscopically.  Added RHB as
 C**                             an input argument.
+C** Version 3.9    5/25/05  -- Now restore GISS-specific code for GCAP model
 C
 C***********************************************************************
 C   Changes from Version 3.2 to Version 3.3:                         ***
@@ -1069,14 +1141,15 @@ C***********************************************************************
                                    
       REAL*8  C1X(MAXDEP),VD(MAXDEP),VK(MAXDEP)              
 
-      !----------------------------------------------------------------------- 
-      ! This only applies to the GISS-CTM...comment out (bmy, 11/12/99)
-      !REAL*8  ZO(NTYPE)           
-      !-----------------------------------------------------------------------
-
+#if   defined( GCAP )
+      ! For the GISS/GCAP model, ZO is a function of land type 
+      ! and is of dimension NTYPE (swu, bmy, 5/25/05)
+      REAL*8  ZO(NTYPE)           
+#else
       ! For GEOS-CTM, ZO is now of size MAXIJ and is passed via 
       ! the argument list, since it is a DAO met field. (bmy, 11/10/99)
       REAL*8  ZO(MAXIJ)           
+#endif
 
       LOGICAL LDEP(MAXDEP)
       LOGICAL AIROSOL(MAXDEP)
@@ -1351,19 +1424,6 @@ C** equations (15)-(17) of Walcek et al. [1986]
 	      ! Seasalt (yes), Dust (no)  (bec, bmy, 4/13/05 )
               !===========================================================
 
-!-----------------------------------------------------------------------------
-! Prior to 4/13/05:
-! We need to split these up to account for hygroscopic growth 
-! (bec, bmy, 4/13/05)
-!               ! Test for DUST or SEASALT aerosol tracers
-!               IF ( ( DEPNAME(K) == 'DST1' )  .OR. 
-!     &              ( DEPNAME(K) == 'DST2' )  .OR. 
-!     &              ( DEPNAME(K) == 'DST3' )  .OR. 
-!     &              ( DEPNAME(K) == 'DST4' )  .OR.
-!     &              ( DEPNAME(K) == 'SALA' )  .OR.
-!     &              ( DEPNAME(K) == 'SALC' ) ) THEN 
-!-----------------------------------------------------------------------------
-
                IF ( ( DEPNAME(K) == 'SALA' )  .OR. 
      &              ( DEPNAME(K) == 'SALC' )  .OR. 
      &              ( DEPNAME(K) == 'SO4S' )  .OR. 
@@ -1455,21 +1515,20 @@ C*
             IF (IJUSE(IJLOOP,LDT) .EQ. 0) GOTO 500
             IOLSON = IJLAND(IJLOOP,LDT)+1
 
-!-----------------------------------------------------------------------------
-! This section only applies to the GISS-CTM...comment out (bmy, 11/12/99)
-!
-!C** Get roughness heights; they are specified constants for each surface
-!C** type except over water where zo = f(u*).  The latter dependence
-!C** is from equation (6) of Hicks and Liss [1976]. 
-!              DO 200 IW=1,NWATER
-!                  IF (IOLSON .NE. IWATER(IW)) GOTO 200
-!                  ZO(LDT) = 1.4D-02*USTAR(IJLOOP)*USTAR(IJLOOP)/9.8D0   
-!     1                               + 1.1D-01*XNU/USTAR(IJLOOP)        
-!                  GOTO 210
-! 200          CONTINUE
-!              ZO(LDT) = DBLE(IZO(IOLSON))*1.D-4
-! 210          CONTINUE
-!-----------------------------------------------------------------------------
+#if   defined( GCAP )
+! NOTE: This section only applies to the GCAP/GISS model (swu, bmy, 5/25/05)
+!** Get roughness heights; they are specified constants for each surface
+!** type except over water where zo = f(u*).  The latter dependence
+!** is from equation (6) of Hicks and Liss [1976]. 
+            DO 200 IW=1,NWATER
+               IF (IOLSON .NE. IWATER(IW)) GOTO 200
+               ZO(LDT) = 1.4D-02*USTAR(IJLOOP)*USTAR(IJLOOP)/9.8D0   
+     1                 + 1.1D-01*XNU/USTAR(IJLOOP)        
+               GOTO 210
+ 200        CONTINUE
+            ZO(LDT) = DBLE(IZO(IOLSON))*1.D-4
+ 210        CONTINUE
+#endif
 
 C***** Get aerodynamic resistances Ra and Rb. ***********************
 C   The aerodynamic resistance Ra is integrated from altitude z0+d up to the
@@ -1544,26 +1603,26 @@ C   to zero.
 C*********************************************************************
             CKUSTR = XCKMAN*USTAR(IJLOOP)
 
-            !-----------------------------------------------------------------
-            ! This applies to the GISS-CTM...comment out (bmy, 11/12/99)
-            !REYNO = USTAR(IJLOOP)*ZO(LDT)/XNU 
-            !-----------------------------------------------------------------
-
-            ! For GEOS-CTM, Z0 is now of dimension MAXIJ (bmy, 11/12/99)
+            ! Define REYNO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
+#if   defined( GCAP )
+            REYNO = USTAR(IJLOOP)*ZO(LDT)/XNU 
+#else
             REYNO = USTAR(IJLOOP)*ZO(IJLOOP)/XNU  
+#endif
+
             IF ( OBK(IJLOOP) .EQ. 0.0D0 )
      c           WRITE(6,211) OBK(IJLOOP),IJLOOP,LDT                
  211        FORMAT(1X,'OBK(IJLOOP)=',E11.2,1X,' IJLOOP = ',I4,1X,
      c           'LDT=',I3/) 
             CORR1 = CZ/OBK(IJLOOP)
 
-            !-----------------------------------------------------------------
-            ! This applies to the GISS-CTM...comment out (bmy, 11/12/99)
-            !Z0OBK = ZO(LDT)/OBK(IJLOOP)
-            !-----------------------------------------------------------------
-
-            ! For GEOS-CTM, Z0 is now of dimension MAXIJ (bmy, 11/12/99)
+            ! Define Z0OBK for GCAP or GEOS met fields (swu, bmy, 5/25/05)
+#if   defined( GCAP )
+            Z0OBK = ZO(LDT)/OBK(IJLOOP)
+#else
             Z0OBK = ZO(IJLOOP)/OBK(IJLOOP) 
+#endif
+
             LRGERA(IJLOOP) = .FALSE.
             IF (CORR1 .GT. 0.D0) THEN
                IF (CORR1 .GT.  1.5D0) LRGERA(IJLOOP) = .TRUE.
@@ -1623,17 +1682,19 @@ C*... very stable conditions
             ENDIF
 C* check that RA is positive; if RA is negative (as occasionally
 C* happened in version 3.1) send a warning message.
-            !-----------------------------------------------------------------
-            ! Debug output for GISS-CTM...comment out (bmy, 5/8/00)
-            !IF (RA .LT. 0.) WRITE (6,1001) RA,CZ,ZO(LDT),OBK(IJLOOP)
-            !-----------------------------------------------------------------
-
+#if   defined( GCAP )
+            ! Debug output for GISS/GCAP model (swu, bmy, 5/25/05)
+            IF (RA .LT. 0.) THEN
+               WRITE (6,1001) IJLOOP,RA,CZ,ZO(LDT),OBK(IJLOOP)
+            ENDIF
+#else
             ! For GEOS-CTM, We use ZO(MAXIJ), and IJLOOP is the index.
             ! Also, if RA is < 0, set RA = 0 (bmy, 11/12/99)
             IF (RA .LT. 0.D0) THEN
                WRITE (6,1001) IJLOOP,RA,CZ,ZO(IJLOOP),OBK(IJLOOP)  
                RA = 0.0D0
             ENDIF
+#endif
  1001       FORMAT('WARNING: RA < 0 IN SUBROUTINE DEPVEL',
      &             I10,4(1X,E12.5))
 C* Get total resistance for deposition - loop over species.
@@ -2151,22 +2212,8 @@ C** Load array DVEL
       ! Ratio dry over wet radii at the cubic power
       RATIO_R = ( A_RADI(K) / RWET )**3.d0
 
-      !---------------------------------------------------------
-      ! Prior to 4/13/05:
-      ! Now account for hygroscopic growth (bec, bmy, 4/13/05)
-      !! Particle diameter [m]
-      !DIAM  = A_RADI(K) * 2.d0 
-      !---------------------------------------------------------
-
       ! Diameter of the wet aerosol [m]
       DIAM  = RWET * 2.d0  
-
-      !---------------------------------------------------------
-      ! Prior to 4/13/05:
-      ! Now account for hygroscopic growth (bec, bmy, 4/13/05)
-      !! Particle density [kg/m3]
-      !DEN   = A_DEN(K)   
-      !---------------------------------------------------------
 
       ! Density of the wet aerosol [kg/m3] (bec, 12/8/04)
       DEN   = RATIO_R * A_DEN(K) + ( 1.d0 - RATIO_R ) * 1000.d0 
@@ -2245,10 +2292,6 @@ C** Load array DVEL
 
 !------------------------------------------------------------------------------
 
-      !-------------------------------------------------------------------
-      ! Prior to 4/15/05:
-      !FUNCTION AERO_SFCRSI( K, II, PRESS, TEMP, USTAR ) RESULT( RS )
-      !-------------------------------------------------------------------
       FUNCTION DUST_SFCRSI( K, II, PRESS, TEMP, USTAR ) RESULT( RS )
 !
 !******************************************************************************
@@ -2413,20 +2456,10 @@ C** Load array DVEL
       RS   = 1.D0 / ( E0 * USTAR * (EB + EIM) )
       
       ! Return to calling program
-      !-----------------------------------------------
-      ! Prior to 4/15/05:
-      ! Rename to DUST_SFCRSI (bec, bmy, 4/15/05)
-      !END FUNCTION AERO_SFCRSI
-      !-----------------------------------------------
       END FUNCTION DUST_SFCRSI
 
 !------------------------------------------------------------------------------
 
-      !-------------------------------------------------------------------
-      ! Prior to 4/13/05:
-      ! Rename to DUST_SFCRSII (bec, bmy, 4/15/05)
-      !FUNCTION AERO_SFCRSII( K, II, PRESS, TEMP, USTAR ) RESULT( RS )
-      !-------------------------------------------------------------------
       FUNCTION DUST_SFCRSII( K, II, PRESS, TEMP, USTAR ) RESULT( RS )
 !
 !******************************************************************************
@@ -2697,11 +2730,6 @@ C** Load array DVEL
       RS   = 1.D0 / (E0 * USTAR * (EB + EIM + EIN) * R1 )
 
       ! Return to calling program
-      !---------------------------------------------
-      ! Prior to 4/15/05:
-      ! Rename to DUST_SFCRSII (bec, bmy, 4/15/05)
-      !END FUNCTION AERO_SFCRSII
-      !---------------------------------------------
       END FUNCTION DUST_SFCRSII
 
 !------------------------------------------------------------------------------

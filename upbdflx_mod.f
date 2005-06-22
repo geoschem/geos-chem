@@ -1,9 +1,9 @@
-! $Id: upbdflx_mod.f,v 1.10 2005/05/09 14:34:01 bmy Exp $
+! $Id: upbdflx_mod.f,v 1.11 2005/06/22 20:50:06 bmy Exp $
       MODULE UPBDFLX_MOD
 !
 !******************************************************************************
 !  Module UPBDFLX_MOD contains subroutines which impose stratospheric boundary
-!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 12/1/04)
+!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 5/25/05)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -52,6 +52,7 @@
 !  (16) Now made IORD, JORD, KORD module variables.  Now added routine
 !        SET_UPBDFLX.  Now added routine SET_TRANSPORT (bmy, 7/20/04)
 !  (17) Bug fix for COMPAQ compiler.  Now supports 1x125 grid. (bmy, 12/1/04)
+!  (18) Now supports GEOS-5 and GCAP grids (swu, bmy, 5/25/05)
 !******************************************************************************
 !      
       IMPLICIT NONE
@@ -140,7 +141,7 @@
 !******************************************************************************
 !  Subroutine UPBDFLX_O3 establishes the flux boundary condition for Ozone
 !  coming down from the stratosphere, using the Synoz algorithm of
-!  McLinden et al, 2000. (qli, bmy, 12/13/99, 12/1/04)
+!  McLinden et al, 2000. (qli, bmy, 12/13/99, 5/25/05)
 !
 !  Reference:
 !  ===========================================================================
@@ -195,6 +196,7 @@
 !  (23) Use an #ifdef block to comment out an EXIT statement from w/in a
 !        parallel loop for COMPAQ compiler.  COMPAQ seems to have some 
 !        problems with this.  Now supports 1x125 grid. (auvray, bmy, 12/1/04)
+!  (24) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -219,8 +221,17 @@
 
       ! Select the grid boxes at the edges of the O3 release region, 
       ! for the proper model resolution (qli, bmy, 12/1/04)
-#if   defined( GRID4x5 ) 
-      INTEGER, PARAMETER   :: J30S = 16, J30N = 31  
+!-------------------------------------------------------------------
+! Prior to 5/25/05:
+!#if   defined( GRID4x5 ) 
+!      INTEGER, PARAMETER   :: J30S = 16, J30N = 31  
+!-------------------------------------------------------------------
+#if   defined( GRID4x5 ) && defined( GCAP )
+      ! GCAP has 45 latitudes, shift by 1/2 grid box (swu, bmy, 5/25/05)
+      INTEGER, PARAMETER   :: J30S = 16, J30N = 30 
+
+#elif defined( GRID4x5 )
+      INTEGER, PARAMETER   :: J30S = 16, J30N = 31 
 
 #elif defined( GRID2x25 ) 
       INTEGER, PARAMETER   :: J30S = 31, J30N = 61
@@ -280,9 +291,6 @@
       PO3_vmr = 4.2d-14                                  ! 3,3,7
       IF ( IORD + JORD + KORD == 17 ) PO3_vmr = 4.07d-14 ! 5,5,7
 
-#elif defined( GEOS_2 )
-#error "Not running full chem yet with GEOS-2 data..."
-
 #elif defined( GEOS_3 )
 
       !--------------------------------------------------------------------
@@ -297,6 +305,17 @@
 
       PO3_vmr = 5.14d-14                                 ! 3,3,7
 
+#elif defined( GEOS_5 )
+
+      ! For now assume GEOS-5 has same PO3_vmr value 
+      ! as GEOS-4; we can redefine later (bmy, 5/25/05)
+      PO3_vmr = 5.14d-14   
+
+#elif defined( GCAP )
+
+      ! For GCAP, assuming 3,3,7 (swu, bmy, 5/25/05)
+      PO3_vmr = 5.0d-14 
+      
 #endif
 
       ! Store in the proper Ox tracer #
@@ -378,6 +397,7 @@
             ! Convert O3 in grid box (I,J,L) from v/v/s to kg/box
             PO3 = PO3_vmr * DTDYN 
 
+#if   !defined( GCAP ) 
             ! For both 2 x 2.5 and 4 x 5 GEOS grids, 30S and 30 N are
             ! grid box centers.  However, the O3 release region is 
             ! edged by 30S and 30N.  Therefore, if we are at the 30S
@@ -385,7 +405,7 @@
             IF ( J == J30S .or. J == J30N ) THEN
                PO3 = PO3 / 2d0
             ENDIF 
-
+#endif
             ! If we are in the lower level, compute the fraction
             ! of this level that lies above 70 mb, and scale 
             ! the O3 flux accordingly.
@@ -484,7 +504,7 @@
       USE BPCH2_MOD
       USE DAO_MOD,       ONLY : AD
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE ERROR_MOD,     ONLY : ERROR_STOP, it_is_nan
       USE TRACERID_MOD,  ONLY : IDTNOX,     IDTHNO3
       USE TIME_MOD,      ONLY : GET_TS_DYN, GET_MONTH
       USE TRACER_MOD,    ONLY : STT
@@ -651,7 +671,6 @@
      &                         STRATHNO3(J,L) ) 
             ENDDO
             ENDDO
-
          ENDIF
 
          !==============================================================

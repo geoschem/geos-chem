@@ -1,14 +1,16 @@
-! $Id: convection_mod.f,v 1.8 2005/02/10 19:53:24 bmy Exp $
+! $Id: convection_mod.f,v 1.9 2005/06/22 20:50:00 bmy Exp $
       MODULE CONVECTION_MOD
 !
 !******************************************************************************
 !  Module CONVECTION_MOD contains routines which select the proper convection
 !  code for GEOS-1, GEOS-STRAT, GEOS-3, or GEOS-4 met field data sets. 
-!  (bmy, 6/28/03, 1/19/05)
+!  (bmy, 6/28/03, 5/25/05)
 !
 !  Module Routines:
 !  ============================================================================
 !  (1 ) DO_CONVECTION       : Wrapper routine, chooses correct convection code
+!  (2 ) DO_GEOS4_CONVECT    : Calls GEOS-4 convection routines 
+!  (3 ) DO_GCAP_CONVECT     : Calls GCAP convection routines
 !  (2 ) NFCLDMX             : Convection routine for GEOS-1, GEOS-S, GEOS-3
 !
 !  GEOS-CHEM modules referenced by convection_mod.f
@@ -34,9 +36,23 @@
 !  (3 ) Now references "logical_mod.f" and "tracer_mod.f" (bmy, 7/20/04)
 !  (4 ) Now also references "ocean_mercury_mod.f" and "tracerid_mod.f" 
 !        (sas, bmy, 1/19/05)
+!  (5 ) Now added routines DO_GEOS4_CONVECT and DO_GCAP_CONVECT by breaking 
+!        off code from DO_CONVECTION, in order to implement GCAP convection
+!        in a much cleaner way. (swu, bmy, 5/25/05)
 !******************************************************************************
 !
       IMPLICIT NONE
+
+      !=================================================================
+      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
+      ! and routines from being seen outside "convection_mod.f"
+      !=================================================================
+
+      ! Make everything PRIVATE ...
+      PRIVATE
+
+      ! ... except these routines
+      PUBLIC :: DO_CONVECTION
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -44,22 +60,263 @@
       CONTAINS
 
 !------------------------------------------------------------------------------
+! Prior to 5/25/05:
+! We need to split this up in order to avoid confusion (swu, bmy, 5/25/05)
+!      SUBROUTINE DO_CONVECTION
+!!
+!!*****************************************************************************
+!!  Subroutine DO_CONVECTION is a wrapper for the GEOS-CHEM convection code.
+!!  It calls the proper convection routine for GEOS-1, GEOS-S, GEOS-3, or 
+!!  GEOS-4 met field types. (bmy, 6/26/03, 7/20/04)
+!!
+!!  NOTES:
+!!  (1 ) Now updated for GEOS-4/fvDAS convection.  Also placed calls to 
+!!         DEBUG_MSG for debugging msg output. (swu, bmy, 1/27/04)
+!!  (2 ) Only pass NTRACE elements of TCVV to FVDAS_CONVECT to prevent array
+!!        out-of-bounds error for less than NTRACE tracers (bmy, 2/23/04)
+!!  (3 ) Now references LPRT from "logical_mod.f".  Now references N_TRACERS,
+!!        STT, and TCVV from "tracer_mod.f" (bmy, 7/20/04)
+!!*****************************************************************************
+!!     
+!      ! References to F90 modules
+!      USE DAO_MOD,           ONLY : HKETA, HKBETA, ZMEU, ZMMU, ZMMD
+!      USE DIAG_MOD,          ONLY : AD37
+!      USE ERROR_MOD,         ONLY : DEBUG_MSG
+!      USE FVDAS_CONVECT_MOD, ONLY : INIT_FVDAS_CONVECT, FVDAS_CONVECT
+!      USE LOGICAL_MOD,       ONLY : LPRT
+!      USE TIME_MOD,          ONLY : GET_TS_CONV
+!      USE TRACER_MOD,        ONLY : N_TRACERS, STT, TCVV
+!      USE PRESSURE_MOD              
+!      USE WETSCAV_MOD,       ONLY : COMPUTE_F
+!
+!#     include "CMN_SIZE"  ! Size parameters
+!#     include "CMN_DIAG"  ! ND37, LD37 
+!
+!#if   defined( GEOS_4 )
+!      
+!      ! More local variables 
+!      LOGICAL, SAVE :: FIRST = .TRUE.
+!      INTEGER       :: I, ISOL, J, L, L2, N, NSTEP  
+!      INTEGER       :: INDEXSOL(N_TRACERS) 
+!      INTEGER       :: CONVDT    
+!      REAL*8        :: F(IIPAR,JJPAR,LLPAR,N_TRACERS)
+!      REAL*8        :: RPDEL(IIPAR,JJPAR,LLPAR)
+!      REAL*8        :: DP(IIPAR,JJPAR,LLPAR)
+!      REAL*8        :: TEMP_DIAG
+!      REAL*8        :: P1, P2, TDT   
+!
+!      ! Declare temporary arrays to hold flipped met fields.  This means 
+!      ! that we won't have to reflip them after convection. (bmy, 12/12/03)
+!      REAL*8        :: HKBETA_F(IIPAR,JJPAR,LLPAR)
+!      REAL*8        :: HKETA_F(IIPAR,JJPAR,LLPAR)
+!      REAL*8        :: ZMEU_F(IIPAR,JJPAR,LLPAR)
+!      REAL*8        :: ZMMD_F(IIPAR,JJPAR,LLPAR)
+!      REAL*8        :: ZMMU_F(IIPAR,JJPAR,LLPAR)
+!
+!      !=================================================================
+!      ! DO_CONVECTION begins here! (for GEOS-4!)
+!      !=================================================================
+!      
+!      ! Convection timestep [s]
+!      CONVDT = GET_TS_CONV() * 60d0 
+!       
+!      ! NSTEP is the # of internal convection timesteps.  According to
+!      ! notes in the old convection code, 300s works well. (swu, 12/12/03)
+!      NSTEP  = CONVDT / 300    
+!      NSTEP  = MAX( NSTEP, 1 ) 
+!
+!      ! TIMESTEP*2; will be divided by 2 before passing to CONVTRAN 
+!      TDT    = DBLE( CONVDT ) * 2.0D0 / DBLE( NSTEP )
+!
+!      ! First-time initialization
+!      IF ( FIRST ) THEN
+!         CALL INIT_FVDAS_CONVECT
+!         FIRST = .FALSE.
+!      ENDIF
+!         
+!      !### Debug
+!      IF ( LPRT ) CALL DEBUG_MSG( '### DO_CONVECTION: a INIT_FV' )
+!
+!      !=================================================================
+!      ! Before calling convection, compute the fraction of insoluble
+!      ! tracer (Finsoluble) lost in updrafts.  Finsoluble = 1-Fsoluble.
+!      !=================================================================
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, N, ISOL )
+!!$OMP+SCHEDULE( DYNAMIC )
+!      DO N = 1, N_TRACERS
+!
+!         ! Get fraction of tracer scavenged and the soluble tracer 
+!         ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
+!         CALL COMPUTE_F( N, F(:,:,:,N), ISOL ) 
+!         
+!         ! Store ISOL in an array for later use
+!         INDEXSOL(N) = ISOL
+!
+!         ! Loop over grid boxes
+!         DO L = 1, LLPAR
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!
+!            ! ND37 diagnostic: store fraction of tracer 
+!            ! lost in moist convective updrafts ("MC-FRC-$")
+!            IF ( ND37 > 0 .and. ISOL > 0 .and. L <= LD37 ) THEN
+!               AD37(I,J,L,ISOL) = AD37(I,J,L,ISOL) + F(I,J,L,N) 
+!            ENDIF
+!
+!            ! GEOS-4 convection routines need the insoluble fraction
+!            F(I,J,L,N) = 1d0 - F(I,J,L,N)
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!       
+!      !### Debug
+!      IF ( LPRT ) CALL DEBUG_MSG( '### DO_CONVECTION: a COMPUTE_F' )
+!
+!      !=================================================================
+!      ! Compute pressure thickness arrays DP and RPDEL
+!      ! These arrays are indexed from atm top --> surface
+!      !=================================================================
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, L2, P1, P2 )
+!      DO L = 1, LLPAR
+!
+!         ! L2 runs from the atm top down to the surface
+!         L2 = LLPAR - L + 1
+!
+!         ! Loop over surface grid boxes
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!               
+!            ! Pressure at bottom and top edges of grid box [hPa]
+!            P1 = GET_PEDGE(I,J,L)
+!            P2 = GET_PEDGE(I,J,L+1)
+!
+!            ! DP = Pressure difference between top & bottom edges [Pa]
+!            DP(I,J,L2) = ( P1 - P2 ) * 100.0d0
+!
+!            ! RPDEL = reciprocal of DP [1/hPa]
+!            RPDEL(I,J,L2) = 100.0d0 / DP(I,J,L2) 
+!         ENDDO
+!         ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!
+!      !### Debug
+!      IF ( LPRT ) CALL DEBUG_MSG( '### DO_CONVECTION: a DP, RPDEL' )
+!   
+!      !=================================================================
+!      ! Flip arrays in the vertical and call FVDAS_CONVECT
+!      !=================================================================
+!
+!      ! Flip 4-D arrays for FVDAS_CONVECT
+!      STT(:,:,1:LLPAR,1:N_TRACERS) = STT(:,:,LLPAR:1:-1,1:N_TRACERS)
+!      F  (:,:,1:LLPAR,1:N_TRACERS) = F  (:,:,LLPAR:1:-1,1:N_TRACERS)
+!
+!      ! Flip met fields for FVDAS_CONVECT.  Store them in temporary
+!      ! local arrays so that we don't have to reflip them,  This
+!      ! is more efficient and saves clock cycles. (bmy, 12/16/03)
+!      HKBETA_F(:,:,1:LLPAR) = HKBETA(:,:,LLPAR:1:-1)
+!      HKETA_F (:,:,1:LLPAR) = HKETA (:,:,LLPAR:1:-1)
+!      ZMEU_F  (:,:,1:LLPAR) = ZMEU  (:,:,LLPAR:1:-1)
+!      ZMMD_F  (:,:,1:LLPAR) = ZMMD  (:,:,LLPAR:1:-1)
+!      ZMMU_F  (:,:,1:LLPAR) = ZMMU  (:,:,LLPAR:1:-1)
+!
+!      IF ( LPRT ) CALL DEBUG_MSG( '### DO_CONVECTION: a flip' )
+!
+!      ! Call the fvDAS convection routines (originally from NCAR!)
+!      CALL FVDAS_CONVECT( TDT,      N_TRACERS, STT,    RPDEL,  HKETA_F, 
+!     &                    HKBETA_F, ZMMU_F,    ZMMD_F, ZMEU_F, DP,     
+!     &                    NSTEP,    F,         TCVV,   INDEXSOL )
+!
+!      ! Reflip STT array after FVDAS_CONVECT
+!      STT(:,:,1:LLPAR,1:N_TRACERS) = STT(:,:,LLPAR:1:-1,1:N_TRACERS)
+!
+!      !### Debug! Call the fvDAS convection routines (originally from NCAR!)
+!      IF ( LPRT ) CALL DEBUG_MSG( '### DO_CONVECTION: a FVDAS_CONVECT' )
+!
+!#else
+!
+!      !==================================================================
+!      ! DO_CONVECTION begins here! (for GEOS-3)
+!      !==================================================================
+!
+!      ! Call the S-J Lin convection routine for GEOS-1, GEOS-S, GEOS-3
+!      CALL NFCLDMX( N_TRACERS, TCVV, STT )
+!
+!      !### Debug
+!      IF ( LPRT ) CALL DEBUG_MSG( '### DO_CONVECTION: a NFCLDMX' )
+!
+!#endif
+!
+!      ! Return to calling program
+!      END SUBROUTINE DO_CONVECTION
+!
+!------------------------------------------------------------------------------
 
       SUBROUTINE DO_CONVECTION
 !
 !******************************************************************************
-!  Subroutine DO_CONVECTION is a wrapper for the GEOS-CHEM convection code.
-!  It calls the proper convection routine for GEOS-1, GEOS-S, GEOS-3, or 
-!  GEOS-4 met field types. (bmy, 6/26/03, 7/20/04)
+!  Subroutine DO_CONVECTION calls the appropriate convection driver program
+!  for different met field data sets. (swu, bmy, 5/25/05)
 !
 !  NOTES:
-!  (1 ) Now updated for GEOS-4/fvDAS convection.  Also placed calls to 
-!         DEBUG_MSG for debugging msg output. (swu, bmy, 1/27/04)
-!  (2 ) Only pass NTRACE elements of TCVV to FVDAS_CONVECT to prevent array
-!        out-of-bounds error for less than NTRACE tracers (bmy, 2/23/04)
-!  (3 ) Now references LPRT from "logical_mod.f".  Now references N_TRACERS,
-!        STT, and TCVV from "tracer_mod.f" (bmy, 7/20/04)
 !******************************************************************************
+!
+      ! References to F90 modules
+      USE TRACER_MOD, ONLY : N_TRACERS, TCVV, STT
+
+#     include "define.h"   ! C-preprocessor switches 
+
+#if   defined( GCAP ) 
+
+      !-------------------------
+      ! GCAP met fields
+      !-------------------------
+
+      ! Call GEOS-4 driver routine
+      CALL DO_GCAP_CONVECT
+
+#elif defined( GEOS_4 )
+
+      !-------------------------
+      ! GEOS-4 met fields
+      !-------------------------
+
+      ! Call GEOS-4 driver routine
+      CALL DO_GEOS4_CONVECT
+
+#else
+      !-------------------------
+      ! GEOS-1, GEOS-S, GEOS-3
+      !-------------------------
+
+      ! Call the S-J Lin convection routine for GEOS-1, GEOS-S, GEOS-3
+      CALL NFCLDMX( N_TRACERS, TCVV, STT )
+
+#endif
+
+      ! Return to calling program
+      END SUBROUTINE DO_CONVECTION
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE DO_GEOS4_CONVECT
+!
+!******************************************************************************
+!  Subroutine DO_GEOS4_CONVECT is a wrapper for the GEOS-4/fvDAS convection 
+!  code.  This was broken off from the old DO_CONVECTION routine above.
+!  (swu, bmy, 5/25/05)
+!
+!  NOTES:
+!  (1 ) Now use array masks to flip arrays vertically in call to FVDAS_CONVECT
+!        (bmy, 5/25/05)
+!*****************************************************************************
 !     
       ! References to F90 modules
       USE DAO_MOD,           ONLY : HKETA, HKBETA, ZMEU, ZMMU, ZMMD
@@ -72,32 +329,21 @@
       USE PRESSURE_MOD              
       USE WETSCAV_MOD,       ONLY : COMPUTE_F
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! ND37, LD37 
+#     include "CMN_SIZE"          ! Size parameters
+#     include "CMN_DIAG"          ! ND37, LD37 
 
-#if   defined( GEOS_4 )
-      
-      ! More local variables 
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      INTEGER       :: I, ISOL, J, L, L2, N, NSTEP  
-      INTEGER       :: INDEXSOL(N_TRACERS) 
-      INTEGER       :: CONVDT    
-      REAL*8        :: F(IIPAR,JJPAR,LLPAR,N_TRACERS)
-      REAL*8        :: RPDEL(IIPAR,JJPAR,LLPAR)
-      REAL*8        :: DP(IIPAR,JJPAR,LLPAR)
-      REAL*8        :: TEMP_DIAG
-      REAL*8        :: P1, P2, TDT   
-
-      ! Declare temporary arrays to hold flipped met fields.  This means 
-      ! that we won't have to reflip them after convection. (bmy, 12/12/03)
-      REAL*8        :: HKBETA_F(IIPAR,JJPAR,LLPAR)
-      REAL*8        :: HKETA_F(IIPAR,JJPAR,LLPAR)
-      REAL*8        :: ZMEU_F(IIPAR,JJPAR,LLPAR)
-      REAL*8        :: ZMMD_F(IIPAR,JJPAR,LLPAR)
-      REAL*8        :: ZMMU_F(IIPAR,JJPAR,LLPAR)
+      ! Local variables 
+      LOGICAL, SAVE              :: FIRST = .TRUE.
+      INTEGER                    :: I, ISOL, J, L, L2, N, NSTEP  
+      INTEGER                    :: INDEXSOL(N_TRACERS) 
+      INTEGER                    :: CONVDT    
+      REAL*8                     :: F(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      REAL*8                     :: RPDEL(IIPAR,JJPAR,LLPAR)
+      REAL*8                     :: DP(IIPAR,JJPAR,LLPAR)
+      REAL*8                     :: P1, P2, TDT   
 
       !=================================================================
-      ! DO_CONVECTION begins here! (for GEOS-4!)
+      ! DO_GEOS4_CONVECT begins here!
       !=================================================================
       
       ! Convection timestep [s]
@@ -118,7 +364,7 @@
       ENDIF
          
       !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### DO_CONVECTION: a INIT_FV' )
+      IF ( LPRT ) CALL DEBUG_MSG( '### DO_G4_CONV: a INIT_FV' )
 
       !=================================================================
       ! Before calling convection, compute the fraction of insoluble
@@ -158,7 +404,7 @@
 !$OMP END PARALLEL DO
        
       !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### DO_CONVECTION: a COMPUTE_F' )
+      IF ( LPRT ) CALL DEBUG_MSG( '### DO_G4_CONV: a COMPUTE_F' )
 
       !=================================================================
       ! Compute pressure thickness arrays DP and RPDEL
@@ -189,56 +435,192 @@
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
+!
       !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### DO_CONVECTION: a DP, RPDEL' )
+      IF ( LPRT ) CALL DEBUG_MSG( '### DO_G4_CONV: a DP, RPDEL' )
    
       !=================================================================
       ! Flip arrays in the vertical and call FVDAS_CONVECT
       !=================================================================
 
-      ! Flip 4-D arrays for FVDAS_CONVECT
-      STT(:,:,1:LLPAR,1:N_TRACERS) = STT(:,:,LLPAR:1:-1,1:N_TRACERS)
-      F  (:,:,1:LLPAR,1:N_TRACERS) = F  (:,:,LLPAR:1:-1,1:N_TRACERS)
-
-      ! Flip met fields for FVDAS_CONVECT.  Store them in temporary
-      ! local arrays so that we don't have to reflip them,  This
-      ! is more efficient and saves clock cycles. (bmy, 12/16/03)
-      HKBETA_F(:,:,1:LLPAR) = HKBETA(:,:,LLPAR:1:-1)
-      HKETA_F (:,:,1:LLPAR) = HKETA (:,:,LLPAR:1:-1)
-      ZMEU_F  (:,:,1:LLPAR) = ZMEU  (:,:,LLPAR:1:-1)
-      ZMMD_F  (:,:,1:LLPAR) = ZMMD  (:,:,LLPAR:1:-1)
-      ZMMU_F  (:,:,1:LLPAR) = ZMMU  (:,:,LLPAR:1:-1)
-
-      IF ( LPRT ) CALL DEBUG_MSG( '### DO_CONVECTION: a flip' )
-
       ! Call the fvDAS convection routines (originally from NCAR!)
-      CALL FVDAS_CONVECT( TDT,      N_TRACERS, STT,    RPDEL,  HKETA_F, 
-     &                    HKBETA_F, ZMMU_F,    ZMMD_F, ZMEU_F, DP,     
-     &                    NSTEP,    F,         TCVV,   INDEXSOL )
+      CALL FVDAS_CONVECT( TDT,      
+     &                    N_TRACERS, 
+     &                    STT   (:,:,LLPAR:1:-1,:),    
+     &                    RPDEL,         
+     &                    HKETA (:,:,LLPAR:1:-1  ),
+     &                    HKBETA(:,:,LLPAR:1:-1  ), 
+     &                    ZMMU  (:,:,LLPAR:1:-1  ),    
+     &                    ZMMD  (:,:,LLPAR:1:-1  ),  
+     &                    ZMEU  (:,:,LLPAR:1:-1  ),  
+     &                    DP,     
+     &                    NSTEP,    
+     &                    F     (:,:,LLPAR:1:-1,:),         
+     &                    TCVV,   
+     &                    INDEXSOL )
 
-      ! Reflip STT array after FVDAS_CONVECT
-      STT(:,:,1:LLPAR,1:N_TRACERS) = STT(:,:,LLPAR:1:-1,1:N_TRACERS)
-
-      !### Debug! Call the fvDAS convection routines (originally from NCAR!)
-      IF ( LPRT ) CALL DEBUG_MSG( '### DO_CONVECTION: a FVDAS_CONVECT' )
-
-#else
-
-      !==================================================================
-      ! DO_CONVECTION begins here! (for GEOS-3)
-      !==================================================================
-
-      ! Call the S-J Lin convection routine for GEOS-1, GEOS-S, GEOS-3
-      CALL NFCLDMX( N_TRACERS, TCVV, STT )
-
-      !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### DO_CONVECTION: a NFCLDMX' )
-
-#endif
+      !### Debug! 
+      IF ( LPRT ) CALL DEBUG_MSG( '### DO_G4_CONV: a FVDAS_CONVECT' )
 
       ! Return to calling program
-      END SUBROUTINE DO_CONVECTION
+      END SUBROUTINE DO_GEOS4_CONVECT
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE DO_GCAP_CONVECT
+!
+!******************************************************************************
+!  Subroutine DO_GCAP_CONVECT is a wrapper for the GCAP convection code.  
+!  This was broken off from the old DO_CONVECTION routine above.
+!  (swu, bmy, 5/25/05)
+!
+!  NOTES:
+!  (1 ) Now use array masks to flip arrays vertically in call to GCAP_CONVECT
+!        (bmy, 5/25/05)
+!*****************************************************************************
+!     
+      ! References to F90 modules
+      USE DAO_MOD,          ONLY : DETRAINE, DETRAINN, DNDE,
+     &                             DNDN,     ENTRAIN,  UPDN, UPDE
+      USE DIAG_MOD,         ONLY : AD37
+      USE ERROR_MOD,        ONLY : DEBUG_MSG
+      USE GCAP_CONVECT_MOD, ONLY : GCAP_CONVECT
+      USE LOGICAL_MOD,      ONLY : LPRT
+      USE TIME_MOD,         ONLY : GET_TS_CONV
+      USE TRACER_MOD,       ONLY : N_TRACERS, STT, TCVV
+      USE PRESSURE_MOD              
+      USE WETSCAV_MOD,      ONLY : COMPUTE_F
+
+#     include "CMN_SIZE"         ! Size parameters
+#     include "CMN_DIAG"         ! ND37, LD37 
+
+      ! Local variables 
+      LOGICAL, SAVE             :: FIRST = .TRUE.
+      INTEGER                   :: I, ISOL, J, L, L2, N, NSTEP  
+      INTEGER                   :: INDEXSOL(N_TRACERS) 
+      INTEGER                   :: CONVDT    
+      REAL*8                    :: F(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      REAL*8                    :: DP(IIPAR,JJPAR,LLPAR)
+      REAL*8                    :: P1, P2, TDT   
+      REAL*8                    :: GAINMASS
+
+      !=================================================================
+      ! DO_GCAP_CONVECT begins here!
+      !=================================================================
+      
+      ! Test??
+      GAINMASS = 0d0
+
+      ! Convection timestep [s]
+      CONVDT = GET_TS_CONV() * 60d0 
+       
+      ! NSTEP is the # of internal convection timesteps.  According to
+      ! notes in the old convection code, 300s works well. (swu, 12/12/03)
+      NSTEP  = CONVDT / 300    
+      NSTEP  = MAX( NSTEP, 1 ) 
+
+      ! TIMESTEP*2; will be divided by 2 before passing to CONVTRAN 
+      TDT    = DBLE( CONVDT ) * 2.0D0 / DBLE( NSTEP )
+         
+      !### Debug
+      IF ( LPRT ) CALL DEBUG_MSG( '### DO_GCAP_CONV: a INIT_FV' )
+
+      !=================================================================
+      ! Before calling convection, compute the fraction of insoluble
+      ! tracer (Finsoluble) lost in updrafts.  Finsoluble = 1-Fsoluble.
+      !=================================================================
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N, ISOL )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO N = 1, N_TRACERS
+
+         ! Get fraction of tracer scavenged and the soluble tracer 
+         ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
+         CALL COMPUTE_F( N, F(:,:,:,N), ISOL ) 
+         
+         ! Store ISOL in an array for later use
+         INDEXSOL(N) = ISOL
+
+         ! Loop over grid boxes
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! ND37 diagnostic: store fraction of tracer 
+            ! lost in moist convective updrafts ("MC-FRC-$")
+            IF ( ND37 > 0 .and. ISOL > 0 .and. L <= LD37 ) THEN
+               AD37(I,J,L,ISOL) = AD37(I,J,L,ISOL) + F(I,J,L,N) 
+            ENDIF
+
+            ! GEOS-4 convection routines need the insoluble fraction
+            F(I,J,L,N) = 1d0 - F(I,J,L,N)
+         ENDDO
+         ENDDO
+         ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+       
+      !### Debug
+      IF ( LPRT ) CALL DEBUG_MSG( '### DO_GCAP_CONV: a COMPUTE_F' )
+
+      !=================================================================
+      ! Compute pressure thickness arrays DP and RPDEL
+      ! These arrays are indexed from atm top --> surface
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, L2, P1, P2 )
+      DO L = 1, LLPAR
+
+         ! L2 runs from the atm top down to the surface
+         L2 = LLPAR - L + 1
+
+         ! Loop over surface grid boxes
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+               
+            ! Pressure at bottom and top edges of grid box [hPa]
+            P1 = GET_PEDGE(I,J,L)
+            P2 = GET_PEDGE(I,J,L+1)
+
+            ! DP = Pressure difference between top & bottom edges [Pa]
+            DP(I,J,L2) = ( P1 - P2 ) * 100.0d0
+         ENDDO
+         ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      !### Debug
+      IF ( LPRT ) CALL DEBUG_MSG( '### DO_GCAP_CONV: a DP, RPDEL' )
+   
+      !=================================================================
+      ! Flip arrays in the vertical and call FVDAS_CONVECT
+      !=================================================================
+
+      ! Call the GCAP convection routines 
+      CALL GCAP_CONVECT( TDT, 
+     &                   STT      (:,:,LLPAR:1:-1,:),    
+     &                   N_TRACERS,   
+     &                   DP, ! I think this is the correct way (bmy, 5/25/05)
+     &                   NSTEP, 
+     &                   F        (:,:,LLPAR:1:-1,:),     
+     &                   TCVV,   
+     &                   INDEXSOL, 
+     &                   UPDE     (:,:,LLPAR:1:-1  ),
+     &                   DNDE     (:,:,LLPAR:1:-1  ), 
+     &                   ENTRAIN  (:,:,LLPAR:1:-1  ), 
+     &                   DETRAINE (:,:,LLPAR:1:-1  ), 
+     &                   UPDN     (:,:,LLPAR:1:-1  ),  
+     &                   DNDN     (:,:,LLPAR:1:-1  ),
+     &                   DETRAINN (:,:,LLPAR:1:-1  )  )
+
+      !### Debug! 
+      IF ( LPRT ) CALL DEBUG_MSG( '### DO_GCAP_CONV: a GCAP_CONVECT' )
+
+      ! Return to calling program
+      END SUBROUTINE DO_GCAP_CONVECT
 
 !------------------------------------------------------------------------------
 

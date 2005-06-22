@@ -1,9 +1,9 @@
-! $Id: bpch2_mod.f,v 1.5 2004/12/02 21:48:33 bmy Exp $
+! $Id: bpch2_mod.f,v 1.6 2005/06/22 20:49:59 bmy Exp $
       MODULE BPCH2_MOD
 !
 !******************************************************************************
 !  Module BPCH2_MOD contains the routines used to read data from and write
-!  data to binary punch (BPCH) file format (v. 2.0). (bmy, 6/28/00, 12/1/04)
+!  data to binary punch (BPCH) file format (v. 2.0). (bmy, 6/28/00, 5/24/05)
 !
 !  Module Routines:
 !  ============================================================================
@@ -57,6 +57,7 @@
 !  (26) Made modification in READ_BPCH2 for 1x1 nested grids (bmy, 3/11/03)
 !  (27) Modifications for GEOS-4, 30-layer grid (bmy, 11/3/03)
 !  (28) Added cpp switches for GEOS-4 1x125 grid (bmy, 12/1/04)
+!  (29) Modified for GCAP and GEOS-5 met fields (bmy, 5/24/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -544,13 +545,15 @@
 !******************************************************************************
 !  Function GET_MODELNAME returns the proper value of MODELNAME for GEOS-1,
 !  GEOS-STRAT, GEOS-2, or GEOS-3 data.  MODELNAME is written to the binary
-!  punch file and is used by the GAMAP package. (bmy, 6/22/00, 11/20/01)
+!  punch file and is used by the GAMAP package. (bmy, 6/22/00, 5/24/05)
 !
 !  NOTES:
 !  (1 ) Now use special model name for GEOS-3 w/ 30 layers (bmy, 10/9/01)
 !  (2 ) Added modelname for GEOS-4/fvDAS model type (bmy, 11/20/01)
-!  (2 ) Added "GEOS4_30L" for reduced GEOS-4 grid.  Also now use C-preprocessor
+!  (3 ) Added "GEOS4_30L" for reduced GEOS-4 grid.  Also now use C-preprocessor
 !        switch "GRID30LEV" instead of IF statements. (bmy, 11/3/03)
+!  (4 ) Updated for GCAP and GEOS-5 met fields.  Rearranged coding for
+!        simplicity. (swu, bmy, 5/24/05)
 !******************************************************************************
 !
 #     include "CMN_SIZE"
@@ -568,21 +571,45 @@
 #elif defined( GEOS_STRAT ) 
       MODELNAME = 'GEOS_STRAT'
 
+!-----------------------------------------------------------------------------
+! Prior to 5/24/05:
+! Make the coding much simpler (swu, bmy, 5/24/05)
+!#elif defined( GEOS_3 )
+!
+!#if   defined( GRID30LEV )
+!      MODELNAME = 'GEOS3_30L'   ! Special modelname for GAMAP (GEOS-3 30L)
+!#else
+!      MODELNAME = 'GEOS3'       ! Normal modelname (GEOS-3 48L)
+!#endif
+!
+!#elif defined( GEOS_4 )
+!
+!#if   defined( GRID30LEV )
+!      MODELNAME = 'GEOS4_30L'   ! Special modelname for GAMAP (GEOS-4 30L)
+!#else 
+!      MODELNAME = 'GEOS4'       ! Original modelname (GEOS-4 55L)
+!#endif
+!-----------------------------------------------------------------------------
+#elif defined( GEOS_3 ) && defined( GRID30LEV )
+      MODELNAME = 'GEOS3_30L'
+
 #elif defined( GEOS_3 )
-      
-#if   defined( GRID30LEV )
-      MODELNAME = 'GEOS3_30L'   ! Special modelname for GAMAP (GEOS-3 30L)
-#else
-      MODELNAME = 'GEOS3'       ! Normal modelname (GEOS-3 48L)
-#endif
+      MODELNAME = 'GEOS3'
+
+#elif defined( GEOS_4 ) && defined( GRID30LEV )
+      MODELNAME = 'GEOS4_30L'
 
 #elif defined( GEOS_4 )
+      MODELNAME = 'GEOS4'
 
-#if   defined( GRID30LEV )
-      MODELNAME = 'GEOS4_30L'   ! Special modelname for GAMAP (GEOS-4 30L)
-#else 
-      MODELNAME = 'GEOS4'       ! Original modelname (GEOS-4 55L)
-#endif
+#elif defined( GEOS_5 ) && defined( GRID30LEV )
+      MODELNAME = 'GEOS5_30L'
+      
+#elif defined( GEOS_5 ) 
+      MODELNAME = 'GEOS5'
+
+#elif defined( GCAP )
+      MODELNAME = 'GCAP'
 
 #endif
 
@@ -595,30 +622,46 @@
 !
 !******************************************************************************
 !  Function GET_NAME_EXT returns the proper filename extension for CTM
-!  model name (i.e. "geos1", "geoss", "geos3", or "geos4").  
-!  (bmy, 6/28/00, 11/3/03)
+!  model name (i.e. "geos1", "geoss", "geos3", "geos4", "geos5", or "gcap").  
+!  (bmy, 6/28/00, 5/24/05)
 !  
 !  NOTES:
 !  (1 ) Added name string for GEOS-4/fvDAS model type (bmy, 11/20/01)
 !  (2 ) Remove obsolete "geos2" model name strning (bmy, 11/3/03)
+!  (3 ) Modified for GCAP and GEOS-5 met fields (bmy, 5/24/05)
 !******************************************************************************
 !
 #     include "define.h"
 
-      ! EXTENSION holds the return value for the function
-      CHARACTER(LEN=5) :: NAME_EXT
+      !------------------------------------------------------
+      ! Prior to 5/24/05:
+      !! EXTENSION holds the return value for the function
+      !CHARACTER(LEN=5) :: NAME_EXT
+      !------------------------------------------------------
 
 #if   defined( GEOS_1 ) 
+      CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'geos1'
      
 #elif defined( GEOS_STRAT ) 
+      CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'geoss'
 
 #elif defined( GEOS_3 )
+      CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'geos3'
 
 #elif defined( GEOS_4 )
+      CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'geos4'
+
+#elif defined( GEOS_5 )
+      CHARACTER(LEN=5) :: NAME_EXT
+      NAME_EXT = 'geos5'
+
+#elif defined( GCAP )
+      CHARACTER(LEN=4) :: NAME_EXT
+      NAME_EXT = 'gcap'
 
 #endif
 

@@ -1,9 +1,9 @@
-! $Id: emisop_grass.f,v 1.5 2005/03/29 15:52:42 bmy Exp $
+! $Id: emisop_grass.f,v 1.6 2005/06/22 20:50:02 bmy Exp $
       FUNCTION EMISOP_GRASS( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL ) 
 !
 !******************************************************************************
 !  Subroutine EMISOP_GRASS computes the ISOPRENE EMISSIONS FROM GRASSLANDS
-!  in units of [atoms C/box/step]. (bdf, bmy, 8/1/01, 3/15/05)
+!  in units of [atoms C/box/step]. (bdf, bmy, 8/1/01, 6/16/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -34,6 +34,7 @@
 !  (4 ) Now force ISOP totals to be the same for GEOS-3 and GEOS-4 met fields
 !        for the year 2001.  This will facilitate cross-model intercomparison.
 !        (jal, bmy, 3/15/05)
+!  (5 ) Bug fix: change #else to #elif (swu, bmy, 6/16/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -140,7 +141,11 @@
       !       met fields, but that is OK (jal, bmy, 3/15/05)
       EMISOP_GRASS = EMISOP_GRASS * ( 400d0 / 579d0 )
 
-#else defined( GEOS_4 )
+!-------------------------
+! Prior to 6/16/05:
+!#else defined( GEOS_4 )
+!-------------------------
+#elif defined( GEOS_4 )
 
       ! Original GEOS-4 scaling produced 443 Tg C/yr w/ 2003 "V3" met 
       ! fields.  However we have since switched to GEOS-4 "V4" met fields 

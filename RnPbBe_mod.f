@@ -1,9 +1,9 @@
-! $Id: RnPbBe_mod.f,v 1.5 2004/12/02 21:48:32 bmy Exp $
+! $Id: RnPbBe_mod.f,v 1.6 2005/06/22 20:49:59 bmy Exp $
       MODULE RnPbBe_MOD
 !
 !******************************************************************************
 !  Module RnPbBe_MOD contains variables and routines used for the 
-!  222Rn-210Pb-7Be simulation. (hyl, swu, bmy, 6/14/01, 7/20/04)
+!  222Rn-210Pb-7Be simulation. (hyl, swu, bmy, 6/14/01, 5/24/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -67,6 +67,7 @@
 !        (swu, bmy, 10/28/03)
 !  (13) Now references "directory_mod.f", "logical_mod.f", and "tracer_mod.f"
 !        (bmy, 7/20/04)
+!  (14) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -76,12 +77,22 @@
       ! and routines from being seen outside "RnPbBe_mod.f"
       !=================================================================
 
-      ! PRIVATE module variables
-      PRIVATE :: LATSOU, PRESOU, BESOU, XNUMOL_Rn, XNUMOL_Pb, XNUMOL_Be
+      !--------------------------------------------------------------------
+      ! Prior to 5/24/05:
+      !! PRIVATE module variables
+      !PRIVATE :: LATSOU, PRESOU, BESOU, XNUMOL_Rn, XNUMOL_Pb, XNUMOL_Be
+      !
+      !! PRIVATE module routines
+      !PRIVATE :: READ_7BE, CORRECT_STE, SLQ
+      !--------------------------------------------------------------------
 
-      ! PRIVATE module routines
-      PRIVATE :: READ_7BE, CORRECT_STE, SLQ
+      ! Make everything PRIVATE ...
+      PRIVATE
        
+      ! ... except these routines
+      PUBLIC :: EMISSRnPbBe 
+      PUBLIC :: CHEMRnPbBe
+
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
@@ -185,13 +196,14 @@
 !******************************************************************************
 !  Subroutine CORRECT_STE reduces the emission of 210Pb and/or 7Be in the
 !  stratosphere, to correct for too fast STE in the GEOS-CHEM model.
-!  (hyl, bmy, 8/7/02)
+!  (hyl, bmy, 8/7/02, 5/24/05)
 !
 !  Arguments as Input/Output:
 !  ============================================================================
 !  (1  ) EMISSION (REAL*8)  : Emissions to be corrected [kg]
 !
 !  NOTES:
+!  (1 ) Now updated for GCAP met fields (swu, bmy, 5/24/05)
 !******************************************************************************
 !
 #     include "define.h"    ! Switches
@@ -215,6 +227,12 @@
 
 #elif defined( GEOS_4 )
       !EMISSION = 0d0           ! to be determined later
+
+#elif defined( GEOS_5 )
+      !EMISSION = 0d0           ! to be determined later
+
+#elif defined( GCAP )
+      EMISSION = EMISSION / 3.5d0
 
 #endif
       

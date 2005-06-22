@@ -1,10 +1,10 @@
-! $Id: pbl_mix_mod.f,v 1.1 2005/04/14 14:30:16 bmy Exp $
+! $Id: pbl_mix_mod.f,v 1.2 2005/06/22 20:50:04 bmy Exp $
       MODULE PBL_MIX_MOD
 !
 !******************************************************************************
 !  Module PBL_MIX_MOD contains routines and variables used to compute the
 !  planetary boundary layer (PBL) height and to mix tracers underneath the 
-!  PBL top. (bmy, 2/11/05)
+!  PBL top. (bmy, 2/11/05, 5/24/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -41,12 +41,14 @@
 !  (8 ) tracer_mod.f          : Module w/ GEOS-CHEM tracer array STT etc.
 !
 !  NOTES:
+!  (1 ) Now modified for GCAP and GEOS-5 met fields (bmy, 5/24/05)
 !******************************************************************************
 !
       IMPLICIT NONE
 
       !=================================================================
-      ! MODULE VARIABLES
+      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
+      ! and routines from being seen outside "pbl_mix_mod.f"
       !=================================================================
 
       ! Make everything PRIVATE ...
@@ -138,9 +140,10 @@
 !
 !******************************************************************************
 !  Subroutine COMPUTE_PBL_HEIGHT computes the PBL height and other related
-!  quantities. (bmy, 2/15/05)
+!  quantities. (bmy, 2/15/05, 5/25/05)
 !
 !  NOTES:
+!  (1 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -178,23 +181,49 @@
             P(L) = GET_PEDGE(I,J,L+1)
          ENDDO
 
-#if   defined( GEOS_4 )
+!-----------------------------------------------------------------------------
+! Prior to 5/25/05:
+! Rewrite the logic of the #if block since most new met fields will be more 
+! like GEOS-4 or GCAP than like GEOS-1 thru GEOS-3 (swu, bmy, 5/25/05)
+!#if   defined( GEOS_4 )
+! 
+!         !----------------------------------------------
+!         ! GEOS-4: Find PBL top and thickness [hPa]
+!         !----------------------------------------------
+! 
+!         ! BLTOP = pressure at PBL top [hPa]
+!         ! Use barometric law since PBL is in [m]
+!         BLTOP  = P(0) * EXP( -PBL(I,J) / SCALE_HEIGHT )
+! 
+!         ! BLTHIK is PBL thickness [hPa]
+!         BLTHIK = P(0) - BLTOP
+! 
+!#else
+! 
+!         !----------------------------------------------
+!         ! GEOS-3 etc. Find PBL top and thickness [hPa]
+!         !----------------------------------------------
+! 
+!         ! BLTOP = pressure at PBL top
+!         ! PBL is in [hPa], so subtract it from surface pressure [hPa]
+!         BLTOP  = P(0) - PBL(I,J)
+!       
+!         ! BLTHIK is PBL thickness [hPa]
+!         BLTHIK = MAX( PBL(I,J), 1.D0 )
+!  
+!         ! If the PBL depth is very small (or zero), then assume
+!         ! a PBL depth of 2 mb.  This will prevent NaN's from
+!         ! propagating throughout the code. (bmy, 3/7/01)
+!         IF ( PBL(I,J) < 1d-5 ) BLTOP = P(0) - 2d0
+! 
+!#endif
+!------------------------------------------------------------------------------
+
+#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
 
          !----------------------------------------------
-         ! GEOS-4: Find PBL top and thickness [hPa]
-         !----------------------------------------------
-
-         ! BLTOP = pressure at PBL top [hPa]
-         ! Use barometric law since PBL is in [m]
-         BLTOP  = P(0) * EXP( -PBL(I,J) / SCALE_HEIGHT )
-
-         ! BLTHIK is PBL thickness [hPa]
-         BLTHIK = P(0) - BLTOP
-
-#else
-
-         !----------------------------------------------
-         ! GEOS-3 etc. Find PBL top and thickness [hPa]
+         ! GEOS-1, GEOS-STRAT, GEOS-3:
+         ! Find PBL top and thickness [hPa]
          !----------------------------------------------
 
          ! BLTOP = pressure at PBL top
@@ -208,6 +237,20 @@
          ! a PBL depth of 2 mb.  This will prevent NaN's from
          ! propagating throughout the code. (bmy, 3/7/01)
          IF ( PBL(I,J) < 1d-5 ) BLTOP = P(0) - 2d0
+
+#else
+
+         !----------------------------------------------
+         ! GEOS-4, GEOS-5, GCAP:
+         ! Find PBL top and thickness [hPa]
+         !----------------------------------------------
+
+         ! BLTOP = pressure at PBL top [hPa]
+         ! Use barometric law since PBL is in [m]
+         BLTOP  = P(0) * EXP( -PBL(I,J) / SCALE_HEIGHT )
+
+         ! BLTHIK is PBL thickness [hPa]
+         BLTHIK = P(0) - BLTOP
 
 #endif
 

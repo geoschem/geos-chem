@@ -1,5 +1,12 @@
-C $Id: main.f,v 1.23 2005/05/09 14:33:59 bmy Exp $
+C $Id: main.f,v 1.24 2005/06/22 20:50:04 bmy Exp $
 C $Log: main.f,v $
+C Revision 1.24  2005/06/22 20:50:04  bmy
+C
+C GEOS-CHEM v7-03-02R, includes the following modifications:
+C - Added code for GCAP and GEOS-5 met fields
+C - removed obsolete routines
+C (bmy, 6/22/05)
+C
 C Revision 1.23  2005/05/09 14:33:59  bmy
 C GEOS-CHEM v7-03-01, includes the following modifications:
 C - Now contains ISORROPIA code for aerosol thermodynamic equilibrium
@@ -943,6 +950,10 @@ C
       WRITE( 6, '(a)' ) 'Using GEOS-3 met fields'
 #elif defined( GEOS_4     )
       WRITE( 6, '(a)' ) 'Using GEOS-4/fvDAS met fields'
+#elif defined( GEOS_5     )
+      WRITE( 6, '(a)' ) 'Using GEOS-5/fvDAS met fields'
+#elif defined( GCAP       )
+      WRITE( 6, '(a)' ) 'Using GCAP/GISS met fields'
 #endif
 
       !-----------------------
@@ -979,6 +990,13 @@ C
 
 #elif defined( GEOS_4 )
       NYMD_PHIS = 20030101
+
+#elif defined( GEOS_5 )
+      NYMD_PHIS = 20030101  ! change if necessary
+
+#elif defined( GCAP )
+      NYMD_PHIS = 20000101
+
 
 #endif
 

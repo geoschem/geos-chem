@@ -1,11 +1,11 @@
-! $Id: transfer_mod.f,v 1.2 2003/11/06 21:07:19 bmy Exp $
+! $Id: transfer_mod.f,v 1.3 2005/06/22 20:50:06 bmy Exp $
       MODULE TRANSFER_MOD
 !
 !******************************************************************************
 !  Module TRANSFER_MOD contains routines used to copy data from REAL*4 to
 !  REAL*8 arrays after being read from disk.  Also, regridding of GEOS-3
 !  vertical levels from 48 levels to 30 levels will be done if necessary.
-!  (mje, bmy, 9/27/01, 10/31/03)
+!  (mje, bmy, 9/27/01, 6/7/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -70,6 +70,7 @@
 !        (bmy, 3/11/03)
 !  (13) Added code to regrid GEOS-4 from 55 --> 30 levels.  Renamed module
 !        variable SIGE_IN to EDGE_IN. (mje, bmy, 10/31/03)
+!  (14) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/24/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -98,27 +99,57 @@
       ! argument types or # of arguments under one unique name
       !================================================================= 
 
+!------------------------------------------------------------------------------
+! Prior to 6/7/05:
+! Cosmetic changes (bmy, 6/7/05)
+!      ! Interface for routines to lump 2 levels together (REAL*4 and REAL*8)
+!      INTERFACE LUMP_2
+!         MODULE PROCEDURE LUMP_2_R4, LUMP_2_R8
+!      END INTERFACE
+!
+!      ! Interface for routines to lump 2 levels together (REAL*4 and REAL*8)
+!      INTERFACE LUMP_4
+!         MODULE PROCEDURE LUMP_4_R4, LUMP_4_R8
+!      END INTERFACE
+!
+!      ! Interface for routines which copy 2-D data 
+!      ! (INTEGER, REAL*4, and REAL*8)
+!      INTERFACE TRANSFER_2D
+!         MODULE PROCEDURE TRANSFER_2D_INT,
+!     &                    TRANSFER_2D_R4, 
+!     &                    TRANSFER_2D_R8
+!      END INTERFACE
+!
+!      ! Interface for routines which copy lat-alt data (REAL*4 and REAL*8)
+!      INTERFACE TRANSFER_ZONAL
+!         MODULE PROCEDURE TRANSFER_ZONAL_R4, TRANSFER_ZONAL_R8
+!      END INTERFACE
+!------------------------------------------------------------------------------
+
       ! Interface for routines to lump 2 levels together (REAL*4 and REAL*8)
       INTERFACE LUMP_2
-         MODULE PROCEDURE LUMP_2_R4, LUMP_2_R8
+         MODULE PROCEDURE LUMP_2_R4
+         MODULE PROCEDURE LUMP_2_R8
       END INTERFACE
 
       ! Interface for routines to lump 2 levels together (REAL*4 and REAL*8)
       INTERFACE LUMP_4
-         MODULE PROCEDURE LUMP_4_R4, LUMP_4_R8
+         MODULE PROCEDURE LUMP_4_R4
+         MODULE PROCEDURE LUMP_4_R8
       END INTERFACE
 
       ! Interface for routines which copy 2-D data 
       ! (INTEGER, REAL*4, and REAL*8)
       INTERFACE TRANSFER_2D
-         MODULE PROCEDURE TRANSFER_2D_INT,
-     &                    TRANSFER_2D_R4, 
-     &                    TRANSFER_2D_R8
+         MODULE PROCEDURE TRANSFER_2D_INT
+         MODULE PROCEDURE TRANSFER_2D_R4
+         MODULE PROCEDURE TRANSFER_2D_R8
       END INTERFACE
 
       ! Interface for routines which copy lat-alt data (REAL*4 and REAL*8)
       INTERFACE TRANSFER_ZONAL
-         MODULE PROCEDURE TRANSFER_ZONAL_R4, TRANSFER_ZONAL_R8
+         MODULE PROCEDURE TRANSFER_ZONAL_R4
+         MODULE PROCEDURE TRANSFER_ZONAL_R8
       END INTERFACE
 
       !=================================================================
@@ -134,18 +165,20 @@
 !  Function GET_L_COPY returns the value L_COPY, which is the number
 !  of vertical levels to copy from a REAL*4 array to a REAL*8 array.  
 !  Levels above L_COPY will be vertically regridded, if necessary. 
-!  (bmy, 6/18/03, 10/31/03)
+!  (bmy, 6/18/03, 5/24/05)
 !
+!               { LGLOB, for GCAP
 !               { LGLOB, for GEOS-1
 !               { LGLOB, for GEOS-STRAT
-!      L_INT =  { LGLOB, for GEOS-3      (if LLPAR == LGLOB)
-!               { 22   , for GEOS-3      (if LLPAR /= LGLOB)
-!               { LGLOB, for GEOS-4      (if LLPAR == LGLOB)
-!               { 19   , for GEOS-4      (if LLPAR /= LGLOB)
+!      L_INT =  { LGLOB, for GEOS-3            (if LLPAR == LGLOB)
+!               { 22   , for GEOS-3            (if LLPAR /= LGLOB)
+!               { LGLOB, for GEOS-4 or GEOS-5  (if LLPAR == LGLOB)
+!               { 19   , for GEOS-4 or GEOS-5  (if LLPAR /= LGLOB)
 !
 !  NOTES:
 !  (1 ) Add value of L_COPY for GEOS-4/fvDAS (6/18/03)
 !  (2 ) Add LCOPY = 19 for GEOS-4 if regridding (bmy, 10/31/03)
+!  (3 ) Now modified for GEOS-5 and GCAP met fields (bmy, 5/24/05)
 !******************************************************************************
 !
 #     include "CMN_SIZE"
@@ -172,14 +205,24 @@
          L_COPY = 22
       ENDIF
       
-#elif defined( GEOS_4 )
+!------------------------------------------------------------------------
+! Prior to 5/24/05:
+! For now, assume GEOS-4 and GEOS-5 are on the same grid (bmy, 5/24/05)
+!#elif defined( GEOS_4 )
+!------------------------------------------------------------------------
+#elif defined( GEOS_4 ) || defined( GEOS_5 )
 
-      ! For GEOS-4, only regrid if LLPAR does not equal LGLOB 
+      ! For GEOS-4 & GEOS-5, only regrid if LLPAR does not equal LGLOB 
       IF ( LLPAR == LGLOB ) THEN
          L_COPY = LGLOB
       ELSE
          L_COPY = 19
       ENDIF
+
+#elif defined( GCAP )
+
+      ! Copy all vertical levels for GCAP met fields (swu, bmy, 5/24/05)
+      L_COPY = LGLOB
 
 #endif
 
@@ -194,7 +237,7 @@
 !  Subroutine TRANSFER_A6 transfers A-6 data from a REAL*4 array of dimension
 !  (IGLOB,JGLOB,LGLOB) to a REAL*8 array of dimension (LLPAR,IIPAR,JJPAR).
 !  Regrid GEOS-3 data from 48 --> 30 levels or GEOS-4 data from 55 --> 30 
-!  levels if necessary. (bmy, 9/21/01, 10/31/03)
+!  levels if necessary. (bmy, 9/21/01, 5/24/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -212,6 +255,7 @@
 !  (3 ) Now use functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f".
 !        Now I0, J0 are local variables. (bmy, 3/11/03)
 !  (4 ) Added code to regrid GEOS-4 from 55 --> 30 levels (mje, bmy, 10/31/03)
+!  (5 ) Now modified for GEOS-5 met fields (bmy, 5/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -305,10 +349,15 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#elif defined( GEOS_4 )
+!--------------------------------------------------------------------------
+! Prior to 5/24/05:
+! For now, assume GEOS-4 and GEOS-5 are have the same grid (bmy, 5/24/05)
+!#elif defined( GEOS_4 )
+!--------------------------------------------------------------------------
+#elif defined( GEOS_4 ) || defined( GEOS_5 )
 
       !================================================================
-      ! For GEOS-4, when LLPAR /= LGLOB, then lump 55 levels into 
+      ! GEOS-4/GEOS-5: When LLPAR /= LGLOB, then lump 55 levels into 
       ! 30 levels, according to the formulation proposed by Mat Evans.  
       ! Lump levels above L_COPY = 19 in groups of 2 or groups of 4.
       !================================================================ 
@@ -362,7 +411,7 @@
 !  Subroutine TRANSFER_3D transfers 3-D data from a REAL*4 array of dimension
 !  (IGLOB,JGLOB,LGLOB) to a REAL*8 array of dimension (IIPAR,JJPAR,LLPAR).
 !  Regrid GEOS-3 data from 48 --> 30 levels or GEOS-4 data from 55 --> 30 
-!  levels if necessary. (bmy, 9/21/01, 10/31/03)
+!  levels if necessary. (bmy, 9/21/01, 5/24/05)
 !
 !  NOTE: TRANSFER_3D can be used w/ I-6 met fields, since these are of
 !  dimensions (IIPAR,JJPAR,LLPAR).
@@ -382,6 +431,7 @@
 !  (3 ) Now use functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f".
 !        Now I0, J0 are local variables. (bmy, 3/11/03)
 !  (4 ) Added code to regrid GEOS-4 from 55 --> 30 levels (mje, bmy, 10/31/03)
+!  (5 ) Now modified for GEOS-5 met fields (bmy, 5/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -472,10 +522,15 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#elif defined( GEOS_4 )
+!-----------------------------------------------------------------------------
+! Prior to 5/24/05:
+! For now, assume GEOS-5 has same grid as GEOS-4 (bmy, 5/24/05)
+!#elif defined( GEOS_4 )
+!-----------------------------------------------------------------------------
+#elif defined( GEOS_4 ) || defined( GEOS_5 )
 
       !================================================================
-      ! For GEOS-4, when LLPAR /= LGLOB, then lump 55 levels into 
+      ! GEOS-4/GEOS-5: When LLPAR /= LGLOB, then lump 55 levels into 
       ! 30 levels, according to the formulation proposed by Mat Evans.  
       ! Lump levels above L_COPY = 19 in groups of 2 or groups of 4.
       !================================================================ 
@@ -571,7 +626,7 @@
 !  Subroutine TRANSFER_ZONAL_R4 transfers zonal mean or lat-alt data from a 
 !  REAL*4 array of dimension (JGLOB,LGLOB) to a REAL*4 array of dimension 
 !  (JJPAR,LLPAR).   Regrid GEOS-3 data from 48 --> 30 levels or GEOS-4 data
-!  from 55 --> 30 levels if necessary. (bmy, 9/21/01, 10/31/03)
+!  from 55 --> 30 levels if necessary. (bmy, 9/21/01, 5/24/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -588,6 +643,7 @@
 !  (3 ) Now use function GET_YOFFSET from "grid_mod.f".  Now I0 and J0 are 
 !        local variables (bmy, 3/11/03)
 !  (4 ) Added code to regrid GEOS-4 from 55 --> 30 levels (mje, bmy, 10/31/03)
+!  (5 ) Now modified for GEOS-5 met fields (bmy, 5/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -670,10 +726,15 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#elif defined( GEOS_4 )
+!-----------------------------------------------------------------------------
+! Prior to 5/24/05:
+! For now, assume GEOS-5 has the same grid as GEOS-4 (bmy, 5/24/05)
+!#elif defined( GEOS_4 )
+!-----------------------------------------------------------------------------
+#elif defined( GEOS_4 ) || defined( GEOS_5 )
       
       !================================================================
-      ! For GEOS-4, when LLPAR /= LGLOB, then lump 55 levels into 
+      ! GEOS-4/GEOS-5: When LLPAR /= LGLOB, then lump 55 levels into 
       ! 30 levels, according to the formulation proposed by Mat Evans.  
       ! Lump levels above L_COPY = 19 in groups of 2 or groups of 4.
       !================================================================ 
@@ -723,7 +784,7 @@
 !  Subroutine TRANSFER_ZONAL_R8 transfers zonal mean or lat-alt data from a 
 !  REAL*4 array of dimension (JGLOB,LGLOB) to a REAL*8 array of dimension 
 !  (JJPAR,LLPAR).  Regrid GEOS-3 data from 48 --> 30 levels or GEOS-4 data
-!  from 55 --> 30 levels if necessary. (bmy, 9/21/01, 10/31/03)
+!  from 55 --> 30 levels if necessary. (bmy, 9/21/01, 5/24/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -737,6 +798,7 @@
 !  (3 ) Now use functions GET_YOFFSET from "grid_mod.f".  Now J0 is a local 
 !        variable. (bmy, 3/11/03)
 !  (4 ) Added code to regrid GEOS-4 from 55 --> 30 levels (mje, bmy, 10/31/03)
+!  (5 ) Now modified for GEOS-5 met fields (bmy, 5/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -819,10 +881,15 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#elif defined( GEOS_4 )
+!-----------------------------------------------------------------------------
+! Prior to 5/24/05:
+! Assume that GEOS-5 has the same grid as GEOS-4 (bmy, 5/24/05)
+!#elif defined( GEOS_4 )
+!-----------------------------------------------------------------------------
+#elif defined( GEOS_4 ) || defined( GEOS_5 )
       
       !================================================================
-      ! For GEOS-4, when LLPAR /= LGLOB, then lump 55 levels into 
+      ! GEOS-4/GEOS-5: When LLPAR /= LGLOB, then lump 55 levels into 
       ! 30 levels, according to the formulation proposed by Mat Evans.  
       ! Lump levels above L_COPY = 19 in groups of 2 or groups of 4.
       !================================================================  
@@ -1518,7 +1585,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_TRANSFER initializes and zeroes the EDGE_IN array.
-!  (bmy, 9/19/01, 10/31/03)
+!  (bmy, 9/19/01, 5/24/05)
 !
 !  NOTES:
 !  (1 ) Removed additional "," for GEOS-1 definition of EDGE_IN (bmy, 3/25/02)
@@ -1529,6 +1596,7 @@
 !  (4 ) Renamed SIGE_IN to EDGE_IN to denote that it is not always a sigma
 !        coordinate (as for GEOS-4).  Now assign original Ap coordinates from
 !        the GEOS-4 grid to the EDGE_IN array (bmy, 10/31/03)
+!  (5 ) Now modified for GEOS-5 met fields (bmy, 5/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1551,7 +1619,12 @@
          ALLOCATE( EDGE_IN( LGLOB + 1 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGE_IN' )
 
-#if   defined( GEOS_4 ) 
+!--------------------------------------------------------------------------
+! Prior to 5/24/05:
+! Assume that GEOS-5 has same grid as GEOS-4 (bmy, 5/24/05)
+!#if   defined( GEOS_4 ) 
+!--------------------------------------------------------------------------
+#if   defined( GEOS_4 ) || defined( GEOS_5 )
 
          ! For GEOS-4, this is a hybrid grid.  Assign the original 56 
          ! Ap values (which for stratospheric levels are pressures

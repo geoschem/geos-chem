@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.13 2005/05/09 14:33:59 bmy Exp $
+! $Id: input_mod.f,v 1.14 2005/06/22 20:50:04 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS_CHEM input file at the start of the run
 !  and passes the information to several other GEOS-CHEM F90 modules.
-!  (bmy, 7/20/04, 3/28/05)
+!  (bmy, 7/20/04, 5/25/05)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -95,6 +95,7 @@
 !  (4 ) Now references "diag03_mod.f" and "diag41_mod.f".  Fixed minor
 !        bugs.  Now references FILE_EXISTS from "file_mod.f".  Updated
 !        comments. (bmy, 3/28/05)
+!  (5 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -462,10 +463,11 @@
 !
 !******************************************************************************
 !  Subroutine READ_SIMULATION_MENU reads the SIMULATION MENU section of 
-!  the GEOS-CHEM input file (bmy, 7/20/04, 2/23/05)
+!  the GEOS-CHEM input file (bmy, 7/20/04, 5/25/05)
 !
 !  NOTES:
 !  (1 ) Bug fix: Read LSVGLB w/ the * format and not w/ '(a)'. (bmy, 2/23/05)
+!  (2 ) Now read GEOS_5_DIR and GCAP_DIR from input.geos (swu, bmy, 5/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -518,40 +520,48 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:7' )
       READ( SUBSTRS(1:N), '(a)' ) DATA_DIR
 
-      ! GEOS-1 subdir
+      ! GCAP subdir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:8' )
+      READ( SUBSTRS(1:N), '(a)' ) GCAP_DIR
+
+      ! GEOS-1 subdir
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:9' )
       READ( SUBSTRS(1:N), '(a)' ) GEOS_1_DIR
 
       ! GEOS-STRAT subdir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:9' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:10' )
       READ( SUBSTRS(1:N), '(a)' ) GEOS_S_DIR
 
       ! GEOS-3 subdir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:10' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:11' )
       READ( SUBSTRS(1:N), '(a)' ) GEOS_3_DIR
 
       ! GEOS-4 subdir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:11' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:12' )
       READ( SUBSTRS(1:N), '(a)' ) GEOS_4_DIR
 
+      ! GEOS-5 subdir
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:13' )
+      READ( SUBSTRS(1:N), '(a)' ) GEOS_5_DIR
+
       ! Temp dir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:12' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:14' )
       READ( SUBSTRS(1:N), '(a)' ) TEMP_DIR
 
       ! Unzip met fields
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:13' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:15' )
       READ( SUBSTRS(1:N), *     ) LUNZIP
 
       ! Wait for met fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:14' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:16' )
       READ( SUBSTRS(1:N), *     ) LWAIT
 
       ! I0, J0
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:15' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:17' )
       READ( SUBSTRS(1:N), * ) I0, J0
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:16' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:18' )
 
       !=================================================================
       ! Print to screen
@@ -564,6 +574,8 @@
      &                     TRIM( RUN_DIR )
       WRITE( 6, 110     ) 'Data Directory              : ',
      &                     TRIM( DATA_DIR )
+      WRITE( 6, 110     ) 'GCAP       sub-directory    : ', 
+     &                     TRIM( GCAP_DIR )
       WRITE( 6, 110     ) 'GEOS-1     sub-directory    : ', 
      &                     TRIM( GEOS_1_DIR )
       WRITE( 6, 110     ) 'GEOS-STRAT sub-directory    : ', 
@@ -571,6 +583,8 @@
       WRITE( 6, 110     ) 'GEOS-3     sub-directory    : ', 
      &                     TRIM( GEOS_3_DIR )
       WRITE( 6, 110     ) 'GEOS-4     sub-directory    : ', 
+     &                     TRIM( GEOS_4_DIR )
+      WRITE( 6, 110     ) 'GEOS-5     sub-directory    : ', 
      &                     TRIM( GEOS_4_DIR )
       WRITE( 6, 110     ) 'Temporary Directory         : ', 
      &                     TRIM( TEMP_DIR )
@@ -1465,10 +1479,6 @@
 
       ! If TS_DYN is greater than MAX_DYN, then stop w/ error
       IF ( TS_DYN > MAX_DYN ) THEN
-         !---------------------------------------------
-         ! Prior to 2/23/05:
-         !MSG = 'Transport timestep is too small!'
-         !---------------------------------------------
          MSG = 'Transport timestep is too big!'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
@@ -1686,7 +1696,7 @@
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
 
       !=================================================================
-      ! READ_UNIX_CMDS_MENU begins here!
+      ! READ_GAMAP_MENU begins here!
       !=================================================================
 
       ! Background
@@ -2975,7 +2985,6 @@
 
       ! Local variables
       LOGICAL            :: EOF, DO_SAVE_PL, DO_SAVE_O3
-      LOGICAL            :: EOF
       INTEGER, PARAMETER :: MAXMEM=10
       INTEGER            :: F, M, N, NFAM
       INTEGER            :: FAM_NMEM(MAXFAM)

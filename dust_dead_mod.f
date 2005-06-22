@@ -1,11 +1,11 @@
-! $Id: dust_dead_mod.f,v 1.6 2005/03/29 15:52:41 bmy Exp $
+! $Id: dust_dead_mod.f,v 1.7 2005/06/22 20:50:01 bmy Exp $
       MODULE DUST_DEAD_MOD
 !
 !******************************************************************************
 !  Module DUST_DEAD_MOD contains routines and variables from Charlie Zender's
 !  DEAD dust mobilization model.  Most routines are from Charlie Zender, but 
 !  have been modified and/or cleaned up for inclusion into GEOS-CHEM. 
-!  (tdf, rjp, bmy, 4/6/04, 3/1/05) 
+!  (tdf, rjp, bmy, 4/6/04, 6/9/05) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -123,6 +123,7 @@
 !  (1 ) Added parallel DO loop in GET_ORO (bmy, 4/14/04)
 !  (2 ) Now references "directory_mod.f" (bmy, 7/20/04)
 !  (3 ) Fixed typo in ORO_IS_LND for PGI compiler (bmy, 3/1/05)
+!  (4 ) Modified for GEOS-5 and GCAP met fields (swu, bmy, 6/9/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -136,11 +137,11 @@
       PRIVATE
       
       ! Except these routines
-      PUBLIC               :: DST_MBL
-      PUBLIC               :: CLEANUP_DUST_DEAD
-      PUBLIC               :: GET_ORO
-      PUBLIC               :: GET_TIME_INVARIANT_DATA
-      PUBLIC               :: GET_MONTHLY_DATA
+      PUBLIC :: DST_MBL
+      PUBLIC :: CLEANUP_DUST_DEAD
+      PUBLIC :: GET_ORO
+      PUBLIC :: GET_TIME_INVARIANT_DATA
+      PUBLIC :: GET_MONTHLY_DATA
 
       !=================================================================
       ! MODULE VARIABLES
@@ -1174,7 +1175,7 @@ ctdf        print *,' no mobilisation candidates'
 !
 !******************************************************************************
 !  Subroutine GET_ORO creates a 2D orography array, OROGRAPHY, from the
-!  GMAO LWI fields.  Ocean= 0; Land=1; ice=2. (tdf, bmy, 3/30/04, 4/14/04)
+!  GMAO LWI fields.  Ocean= 0; Land=1; ice=2. (tdf, bmy, 3/30/04, 6/9/05)
 !
 !  Arguments as Output:
 !  ============================================================================
@@ -1182,10 +1183,11 @@ ctdf        print *,' no mobilisation candidates'
 !
 !  NOTES:
 !  (1 ) Added parallel DO-loop (bmy, 4/14/04)
+!  (2 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 6/9/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD, ONLY : LWI          
+      USE DAO_MOD, ONLY : LWI, LWI_GISS, SNICE
 
 #     include "CMN_SIZE"
 
@@ -1204,22 +1206,78 @@ ctdf        print *,' no mobilisation candidates'
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Take value from GEOS-CHEM
-         OROGRAPHY(I,J) = LWI(I,J)
+!-----------------------------------------------------------------------------
+! Prior to 6/9/05
+! Rewrite if statement for clarity; add GEOS-5 and GCAP blocks 
+! (swu, bmy, 6/9/05)
+!         ! Take value from GEOS-CHEM
+!         OROGRAPHY(I,J) = LWI(I,J)
+!
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!
+!         !-----------------
+!         ! GEOS-1 or GEOSS
+!         !-----------------
+!         SELECT CASE ( OROGRAPHY(I,J) )
+!
+!            ! GEOS-1/GEOSS land ice
+!            CASE ( 3, 4 ) 
+!               OROGRAPHY(I,J) = 2
+!               
+!            CASE DEFAULT
+!               ! Nothing
+!
+!         END SELECT
+!
+!#elif defined( GEOS_3 )
+!
+!         !-----------------
+!         ! GEOS-3 
+!         !-----------------
+!         SELECT CASE ( OROGRAPHY(I,J) )
+!
+!            ! Land types
+!            CASE ( 0:50 )
+!               OROGRAPHY(I,J) = 1
+!             
+!            !----------------------------
+!            !! Land ice
+!            !CASE ( 9  )
+!            !   OROGRAPHY(I,J) = 2
+!            !----------------------------
+!
+!            ! GEOS-3 ocean
+!            CASE ( 51:100 )
+!               OROGRAPHY(I,J) = 0
+!               
+!            ! GEOS-3 sea ice
+!            CASE ( 101 )
+!               OROGRAPHY(I,J) = 2
+!
+!            CASE DEFAULT
+!               ! Nothing
+!
+!         END SELECT
+!
+!#endif
+!-----------------------------------------------------------------------------
 
 #if   defined( GEOS_1 ) || defined( GEOS_STRAT )
 
          !-----------------
-         ! GEOS-1 or GEOSS
+         ! GEOS-1 & GEOS-S
          !-----------------
-         SELECT CASE ( OROGRAPHY(I,J) )
 
-            ! GEOS-1/GEOSS land ice
+         ! Test land/water flags
+         SELECT CASE ( LWI(I,J) )
+
+            ! GEOS-1 & GEOS-S land or ocean ice
             CASE ( 3, 4 ) 
                OROGRAPHY(I,J) = 2
-               
+
+            ! Ocean or land
             CASE DEFAULT
-               ! Nothing
+               OROGRAPHY(I,J) = LWI(I,J)
 
          END SELECT
 
@@ -1228,7 +1286,9 @@ ctdf        print *,' no mobilisation candidates'
          !-----------------
          ! GEOS-3 
          !-----------------
-         SELECT CASE ( OROGRAPHY(I,J) )
+
+         ! Test land/water flags
+         SELECT CASE ( LWI(I,J) )
 
             ! Land types
             CASE ( 0:50 )
@@ -1248,11 +1308,36 @@ ctdf        print *,' no mobilisation candidates'
             CASE ( 101 )
                OROGRAPHY(I,J) = 2
 
+            ! Default
             CASE DEFAULT
-               ! Nothing
+               OROGRAPHY(I,J) = LWI(I,J)
 
          END SELECT
 
+#elif defined( GEOS_4 ) || defined( GEOS_5 )
+         
+         !-----------------
+         ! GEOS-4 & GEOS-5
+         !-----------------
+
+         ! Take value from GEOS-CHEM
+         OROGRAPHY(I,J) = LWI(I,J)
+
+#elif defined( GCAP )
+
+         !-----------------
+         ! GCAP
+         !-----------------
+
+         ! Default: Ocean
+         OROGRAPHY(I,J) = 0
+
+         ! Test for land
+         IF ( LWI_GISS(I,J) > 0.5d0 ) OROGRAPHY(I,J) = 1
+
+         ! Test for ice
+         IF ( SNICE(I,J)    > 0.5d0 ) OROGRAPHY(I,J) = 2
+         
 #endif
 
       ENDDO

@@ -1,11 +1,11 @@
-! $Id: planeflight_mod.f,v 1.13 2005/05/09 14:34:00 bmy Exp $
+! $Id: planeflight_mod.f,v 1.14 2005/06/22 20:50:05 bmy Exp $
       MODULE PLANEFLIGHT_MOD
 !
 !******************************************************************************
 !  Module PLANEFLIGHT_MOD contains variables and routines which are used to
 !  "fly" a plane through the GEOS-CHEM model simulation.  This is useful for
 !  comparing model results with aircraft observations. 
-!  (mje, bmy, 7/30/02, 3/25/05)
+!  (mje, bmy, 7/30/02, 5/20/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -76,6 +76,7 @@
 !  (12) Bug fix in READ_VARIABLES (1/7/05)
 !  (13) Modified the plane flight diagnostic so that it writes output files
 !        for each day where flight track files are defined. (bmy, 3/24/05)
+!  (14) Minor bug fix in ARCHIVE_RXNS_FOR_PF (bmy, 5/20/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1160,7 +1161,7 @@
 !******************************************************************************
 !  Subroutine ARCHIVE_RXNS_FOR_PF is called from "calcrate.f" to pass reaction
 !  rates from the SMVGEAR solver for the planeflight diagnostic. 
-!  (mje, bmy, 7/8/02, 8/8/03)
+!  (mje, bmy, 7/8/02, 5/20/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1174,7 +1175,10 @@
 !  (3 ) Renamed PRATE to PRRATE to avoid conflict w/ SMVGEAR II (bmy, 4/1/03)
 !  (4 ) Now also pass N2O5 hydrolysis rxn rate array via the arg list.  
 !        Also bug fix: replace TMP with RATE in under/overflow checking
-!        for JO1D and N2O5. (bmy, 8/8/03)
+!        for JO1D and N2O5. (bmy, 8/8/03)      
+!  (5 ) Bug fix: Replace with DO_PF since this variable is reset to either T 
+!        or F each day depending on whether there is plane flight data 
+!        available (bmy, 5/20/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1199,7 +1203,14 @@
       !=================================================================
       ! ARCHIVE_RXNS_FOR_PF begins here!
       !=================================================================
-      IF ( ND40 > 0 ) THEN
+      !-----------------------------------------------------------------
+      ! Prior to 5/20/05:
+      ! Bug fix: Replace with DO_PF since this variable is reset to 
+      ! either T or F each day depending on whether there is a 
+      ! plane flight data file (bmy, 5/20/05)
+      !IF ( ND40 > 0 ) THEN
+      !-----------------------------------------------------------------
+      IF ( DO_PF ) THEN
 
          ! Loop over SMVGEAR reactions
          DO R = 1, NPREAC

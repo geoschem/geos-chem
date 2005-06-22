@@ -1,9 +1,9 @@
-! $Id: a6_read_mod.f,v 1.10 2005/03/29 15:52:39 bmy Exp $
+! $Id: a6_read_mod.f,v 1.11 2005/06/22 20:49:59 bmy Exp $
       MODULE A6_READ_MOD
 !
 !******************************************************************************
 !  Module A6_READ_MOD contains subroutines that unzip, open, and read
-!  GEOS-CHEM A-3 (avg 3-hour) met fields from disk. (bmy, 6/19/03, 3/23/05)
+!  GEOS-CHEM A-6 (avg 6-hour) met fields from disk. (bmy, 6/19/03, 5/25/05)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -11,11 +11,12 @@
 !  (2 ) DO_OPEN_A6      : Returns TRUE if it's time to open A-6 fields
 !  (3 ) OPEN_A6_FIELDS  : Opens met field files residing in the temp dir
 !  (4 ) GET_A6_FIELDS   : Wrapper for routine READ_A6
-!  (5 ) MAKE_CLDFRC     : Computes CFRAC from CLMO and CLRO for GEOS-STRAT
-!  (6 ) GET_N_A6        : Returns # of A-6 fields for each DAO data set
-!  (7 ) CHECK_TIME      : Tests if A-6 et field timestamps equal current time
-!  (8 ) READ_A6         : Reads A-6 fields from disk
-!  (9 ) A6_CHECK        : Checks if we have found all of the A-6 fields
+!  (5 ) MAKE_CLDFRC     : Computes CLDFRC from CLMO and CLRO for GEOS-STRAT
+!  (6 ) MAKE_GCAP_CLDFRC: Computes CLDFRC from 3-D CLDF field for GCAP
+!  (7 ) GET_N_A6        : Returns # of A-6 fields for each DAO data set
+!  (8 ) CHECK_TIME      : Tests if A-6 et field timestamps equal current time
+!  (9 ) READ_A6         : Reads A-6 fields from disk
+!  (10) A6_CHECK        : Checks if we have found all of the A-6 fields
 ! 
 !  GEOS-CHEM modules referenced by a6_read_mod.f
 !  ============================================================================
@@ -41,6 +42,8 @@
 !  (7 ) Now references "unix_cmds_mod.f", "directory_mod.f" and
 !        "logical_mod.f" (bmy, 7/20/04)
 !  (8 ) Now references FILE_EXISTS from "file_mod.f" (bmy, 3/23/05)
+!  (9 ) Now modified for GEOS-5 and GCAP met fields.  Added MAKE_GCAP_CLDFRC
+!        routine. (swu, bmy, 5/25/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -50,9 +53,20 @@
       ! and routines from being seen outside "a6_read_mod.f"
       !=================================================================
 
-      ! PRIVATE module routines
-      PRIVATE :: A6_CHECK, CHECK_TIME,  DO_OPEN_A6
-      PRIVATE :: GET_N_A6, MAKE_CLDFRC, READ_A6
+      !------------------------------------------------
+      ! Prior to 5/25/05:
+      !! PRIVATE module routines
+      !PRIVATE :: A6_CHECK, CHECK_TIME,  DO_OPEN_A6
+      !PRIVATE :: GET_N_A6, MAKE_CLDFRC, READ_A6
+      !------------------------------------------------
+
+      ! Make everything PRIVATE ...
+      PRIVATE
+
+      ! ... except these routines
+      PUBLIC :: GET_A6_FIELDS   
+      PUBLIC :: OPEN_A6_FIELDS  
+      PUBLIC :: UNZIP_A6_FIELDS
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -63,14 +77,14 @@
 
       SUBROUTINE UNZIP_A6_FIELDS( OPTION, NYMD )
 !
-!*****************************************************************************
+!******************************************************************************
 !  Subroutine UNZIP_A6_FIELDS invokes a FORTRAN system call to uncompress
 !  GEOS-CHEM A-6 met field files and store the uncompressed data in a 
 !  temporary directory, where GEOS-CHEM can read them.  The original data 
-!  files are not disturbed.  (bmy, bdf, 6/15/98, 7/20/04)
+!  files are not disturbed.  (bmy, bdf, 6/15/98, 5/25/05)
 !
 !  Arguments as input:
-!  ===========================================================================
+!  ============================================================================
 !  (1 ) OPTION (CHAR*(*)) : Option
 !  (2 ) NYMD   (INTEGER ) : YYYYMMDD of A-6 file to be unzipped (optional)
 !
@@ -81,7 +95,9 @@
 !  (3 ) Now reference "directory_mod.f" and "unix_cmds_mod.f". Now prevent 
 !        EXPAND_DATE from overwriting directory paths with Y/M/D tokens in 
 !        them (bmy, 7/20/04)
-!*****************************************************************************
+!  (4 ) Removed code for GEOS-4 a_llk_03 data.  Also modified for GEOS-5
+!        and GCAP met fields. (bmy, 5/25/05)
+!******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,    ONLY : GET_RES_EXT
@@ -129,6 +145,18 @@
 
          ! Strings for directory & filename
          GEOS_DIR = TRIM( GEOS_4_DIR )
+         A6_STR   = 'YYYYMMDD.a6.' // GET_RES_EXT() 
+
+#elif defined( GEOS_5 )
+
+         ! Strings for directory & filename
+         GEOS_DIR = TRIM( GEOS_5_DIR )
+         A6_STR   = 'YYYYMMDD.a6.' // GET_RES_EXT() 
+
+#elif defined( GCAP )
+
+         ! Strings for directory & filename
+         GEOS_DIR = TRIM( GCAP_DIR )
          A6_STR   = 'YYYYMMDD.a6.' // GET_RES_EXT() 
 
 #endif
@@ -213,7 +241,7 @@
 !******************************************************************************
 !  Function DO_OPEN_A6 returns TRUE if is time to open the A-6 met field file
 !  or FALSE otherwise.  This prevents us from opening a file which has already
-!  been opened. (bmy, 6/19/03)
+!  been opened. (bmy, 6/19/03, 5/25/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -222,6 +250,8 @@
 !
 !  NOTES:
 !  (1 ) Now modified for GEOS-4 "a_llk_03" or "a_llk_04" data (bmy, 3/22/04)
+!  (2 ) Remove code for obsolete GEOS-4 a_llk_03 data.  Also modified for
+!        GEOS-5 and GCAP met fields. (swu, bmy, 5/25/05)
 !******************************************************************************
 !
       ! Arguments
@@ -246,10 +276,24 @@
          GOTO 999
       ENDIF
 
-#if   defined( GEOS_4 ) && defined( A_LLK_03 )
+!---------------------------------------------------------------
+! Prior to 5/25/05:
+! GEOS-4 a_llk_03 data is now obsolete.  
+! Also modified for GCAP data (swu, bmy, 5/25/05)
+!#if   defined( GEOS_4 ) && defined( A_LLK_03 )
+!
+!      ! Open file if it's 03 GMT or first call 
+!      ! (GEOS-4 "a_llk_03" only)
+!      IF ( NHMS == 030000 .or. FIRST ) THEN
+!         DO_OPEN = .TRUE. 
+!         GOTO 999
+!      ENDIF
+!
+!#else
+!---------------------------------------------------------------
+#if   defined( GCAP )
 
-      ! Open file if it's 03 GMT or first call 
-      ! (GEOS-4 "a_llk_03" only)
+      ! Open file if it's 03 GMT or first call (GCAP only) 
       IF ( NHMS == 030000 .or. FIRST ) THEN
          DO_OPEN = .TRUE. 
          GOTO 999
@@ -257,8 +301,7 @@
 
 #else
 
-      ! Open file if it's 00:00 GMT or first call 
-      ! (GEOS-1, GEOS-S, GEOS-3, GEOS-4 "a_llk_04")
+      ! Open file if it's 00:00 GMT or first call (all GEOS data)
       IF ( NHMS == 000000 .or. FIRST ) THEN
          DO_OPEN = .TRUE. 
          GOTO 999
@@ -283,7 +326,7 @@
 !
 !******************************************************************************
 !  Subroutine OPEN_A6_FIELDS opens the A-6 met fields file for date NYMD and 
-!  time NHMS. (bmy, bdf, 6/15/98, 7/20/04)
+!  time NHMS. (bmy, bdf, 6/15/98, 5/25/05)
 !  
 !  Arguments as input:
 !  ===========================================================================
@@ -299,6 +342,7 @@
 !        from overwriting Y/M/D tokens in directory paths. (bmy, 7/20/04)
 !  (5 ) Now use FILE_EXISTS from "file_mod.f" to determine if file unit IU_A6 
 !        refers to a valid file on disk (bmy, 3/23/05)
+!  (6 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -354,6 +398,18 @@
          GEOS_DIR = TRIM( GEOS_4_DIR )
          A6_FILE  = 'YYYYMMDD.a6.' // GET_RES_EXT()
 
+#elif defined( GEOS_5 )
+
+         ! Strings for directory & filename
+         GEOS_DIR = TRIM( GEOS_5_DIR )
+         A6_FILE  = 'YYYYMMDD.a6.' // GET_RES_EXT()
+
+#elif defined( GCAP )
+
+         ! Strings for directory & filename
+         GEOS_DIR = TRIM( GCAP_DIR )
+         A6_FILE  = 'YYYYMMDD.a6.' // GET_RES_EXT()
+
 #endif
 
          ! Replace date tokens
@@ -371,15 +427,6 @@
 
          ! Close previously opened A-3 file
          CLOSE( IU_A6 )
-
-         !------------------------------------------------------------------
-         ! Prior to 3/23/05:
-         !! Make sure the file exists before we open it!
-         !! Maybe make this a function in ERROR_MOD (bmy, 6/19/03)
-         !INQUIRE( IU_A6, EXIST=IT_EXISTS )
-         !
-         !IF ( .not. IT_EXISTS ) THEN
-         !------------------------------------------------------------------
 
          ! Make sure the file unit is valid before we open the file
          IF ( .not. FILE_EXISTS( IU_A6 ) ) THEN
@@ -400,9 +447,13 @@
          WRITE( 6, 100 ) TRIM( PATH )
  100     FORMAT( '     - Opening: ', a ) 
 
-#if   defined( GEOS_4 )
+!----------------------------
+! Prior to 5/25/05:
+!#if   defined( GEOS_4 )
+!----------------------------
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( GCAP )
 
-         ! Skip past the GEOS-4 ident string
+         ! Skip past the ident string
          READ( IU_A6, IOSTAT=IOS ) IDENT
 
          IF ( IOS /= 0 ) THEN
@@ -423,7 +474,7 @@
 !******************************************************************************
 !  Subroutine GET_A6_FIELDS is a wrapper for routine READ_A6.  GET_A6_FIELDS
 !  calls READ_A6 properly for reading A-6 fields from GEOS-1, GEOS-STRAT, 
-!  GEOS-3, or GEOS-4 met data sets. (bmy, 6/19/03, 3/4/04)
+!  GEOS-3, GEOS-4, GEOS-5, or GCAP met data sets. (bmy, 6/19/03, 5/25/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -434,13 +485,22 @@
 !  (1 ) CFRAC has been removed from CMN_DEP.  Now use CLDFRC(I,J) from
 !        "dao_mod.f" (bmy, 12/9/03)
 !  (2 ) Now pass CLDTOPS to READ_A6 for GEOS-4 (bmy, 3/4/04)
+!  (3 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !******************************************************************************
 !
-      ! References to F90 modules
-      USE DAO_MOD, ONLY : CLDF,    CLDFRC, CLDMAS, CLMOSW, CLROSW, 
-     &                    CLDTOPS, DTRAIN, HKBETA, HKETA,  MOISTQ, 
-     &                    OPTDEP,  SPHU,   T,      UWND,   VWND,   
-     &                    ZMEU,    ZMMD,   ZMMU  
+!-------------------------------------------------------------------------
+! Prior to 5/25/05:
+!      ! References to F90 modules
+!      USE DAO_MOD, ONLY : CLDF,    CLDFRC, CLDMAS, CLMOSW, CLROSW, 
+!     &                    CLDTOPS, DTRAIN, HKBETA, HKETA,  MOISTQ, 
+!     &                    OPTDEP,  SPHU,   T,      UWND,   VWND,   
+!     &                    ZMEU,    ZMMD,   ZMMU
+!-------------------------------------------------------------------------
+      USE DAO_MOD, ONLY : CLDF,    CLDFRC,   CLDMAS,   CLMOSW, CLROSW, 
+     &                    CLDTOPS, DETRAINE, DETRAINN, DNDE,   DNDN,
+     &                    DTRAIN,  ENTRAIN,  HKBETA,   HKETA,  MOISTQ, 
+     &                    OPTDEP,  SPHU,     T,        UPDE,   UPDN,
+     &                    UWND,    VWND,     ZMEU,     ZMMD,   ZMMU
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -465,8 +525,8 @@
 #if   defined( GEOS_1 )
 
       !=================================================================
-      ! GEOS-1 and GEOS-STRAT: 
-      ! read CLDF, CLDMAS, CLDTOPS, CLMO, CLRO, DTRAIN, MOISTQ
+      ! GEOS-1: read CLDF, CLDMAS, CLMO, CLRO, DTRAIN, MOISTQ
+      !         and compute CLDTOPS
       !=================================================================
       CALL READ_A6( NYMD=NYMD,     NHMS=NHMS,       CLDF=CLDF,             
      &              CLDMAS=CLDMAS, CLDTOPS=CLDTOPS, CLMOLW=CLMOSW, 
@@ -476,6 +536,7 @@
 
       !=================================================================
       ! GEOS-S: read CLDF, CLDMAS, CLDTOPS, CLMO, CLRO, DTRAIN, MOISTQ
+      !         and compute CLDTOPS
       !=================================================================
       CALL READ_A6( NYMD=NYMD,     NHMS=NHMS,       CLDF=CLDF,             
      &              CLDMAS=CLDMAS, CLDTOPS=CLDTOPS, CLMOLW=CLMOSW, 
@@ -488,18 +549,23 @@
 #elif defined( GEOS_3 ) 
 
       !=================================================================      
-      ! GEOS-3: read CLDF, CLDMAS, CLDTOPS, DTRAIN, MOISTQ, OPTDEP
+      ! GEOS-3: read CLDF, CLDMAS, DTRAIN, MOISTQ, OPTDEP
+      !         and compute CLDTOPS
       !=================================================================
       CALL READ_A6( NYMD=NYMD,     NHMS=NHMS,       
      &              CLDF=CLDF,     CLDMAS=CLDMAS, CLDTOPS=CLDTOPS, 
      &              DTRAIN=DTRAIN, MOISTQ=MOISTQ, OPTDEPTH=OPTDEP )
 
-#elif defined( GEOS_4 ) 
+!--------------------------
+! Prior to 5/25/05:
+!#elif defined( GEOS_4 )
+!--------------------------
+#elif defined( GEOS_4 ) || defined( GEOS_5 )
 
       !=================================================================      
-      ! GEOS-4: read CLDTOPS, CLDF, HKBETA, HKETA, MOISTQ, OPTDEP, SPHU
-      !                       TMPU, UWND,   VWND,  ZMEU,   ZMMD,   ZMMU
-      !
+      ! GEOS-4 : read CLDF, HKBETA, HKETA, MOISTQ, OPTDEP, SPHU
+      ! GEOS-5 :      TMPU, UWND,   VWND,  ZMEU,   ZMMD,   ZMMU
+      !          and compute CLDTOPS
       !=================================================================
       CALL READ_A6( NYMD=NYMD,     NHMS=NHMS,       CLDTOPS=CLDTOPS,
      &              CLDF=CLDF,     HKBETA=HKBETA,   HKETA=HKETA,   
@@ -507,6 +573,26 @@
      &              T=T,           U=UWND,          V=VWND,        
      &              ZMEU=ZMEU,     ZMMD=ZMMD,       ZMMU=ZMMU ) 
 
+#elif defined( GCAP ) 
+
+      !=================================================================
+      ! GCAP: read CLDF,   DETRAINE, DETRAIN, DNDE, DNDN, ENTRAIN,   
+      !            MOISTQ, OPTDEPTH, SPHU,    T=T,  UWND, UPDE,
+      !            UPDN,   VWND, and compute CLDTOPS & CLDFRC
+      !=================================================================
+      CALL READ_A6( NYMD=NYMD,         NHMS=NHMS,         
+     &              CLDF=CLDF,         CLDTOPS=CLDTOPS, 
+     &              DETRAINE=DETRAINE, DETRAINN=DETRAINN, 
+     &              DNDE=DNDE,         DNDN=DNDN,         
+     &              ENTRAIN=ENTRAIN,   MOISTQ=MOISTQ,
+     &              OPTDEPTH=OPTDEP,   Q=SPHU,            
+     &              T=T,               U=UWND,            
+     &              UPDE=UPDE,         UPDN=UPDN,  
+     &              V=VWND )
+        
+      ! Create 2-D CLDFRC field from 3-D CLDF field
+      CALL MAKE_GCAP_CLDFRC( CLDF, CLDFRC )
+      
 #endif
 
       ! Save NYMD and NHMS for next call
@@ -521,7 +607,7 @@
       SUBROUTINE MAKE_CLDFRC( CLMOSW, CLROSW, CLDFRC )
 !
 !******************************************************************************
-!  Subroutine MAKE_CLDFRC constructs the DAO CLDFRC field from the 
+!  Subroutine MAKE_CLDFRC constructs the GMAO CLDFRC field from the 
 !  GEOS-STRAT CLMOSW and CLROSW fields. (bmy, 3/17/99, 12/9/03) 
 !
 !  Arguments as Input:
@@ -626,6 +712,65 @@
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE MAKE_GCAP_CLDFRC( CLDF, CLDFRC )
+!
+!******************************************************************************
+!  Subroutine MAKE_CLDFRC constructs the GCAP CLDFRC field from the 3-D
+!  cloud fraction field. (swu, bmy, 5/25/05)
+!
+!  Arguments as Input:
+!  ===========================================================================
+!  (1 ) CLDF   (REAL*8) : GCAP 3-D cloud fraction field [unitless]
+!
+!  Arguments as Output:
+!  ===========================================================================
+!  (2 ) CLDFRC (REAL*8) : GCAP column cloud fraction field [unitless]
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE DIAG_MOD, ONLY : AD67
+
+#     include "CMN_SIZE"   ! Size parameters
+#     include "CMN_DIAG"   ! ND67
+
+      ! Arguments
+      REAL*8, INTENT(IN)  :: CLDF(LLPAR,IIPAR,JJPAR)
+      REAL*8, INTENT(OUT) :: CLDFRC(IIPAR,JJPAR)
+
+      ! Local variables
+      LOGICAL             :: IS_ND67 
+      INTEGER             :: I, J
+      
+      !=================================================================
+      ! MAKE_GCAP_CLDFRC begins here!
+      !=================================================================
+
+      ! Is the ND67 diagnostic turned on?
+      IS_ND67 = ( ND67 > 0 )
+
+      ! Make 2-D cloud fraction
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Take max value
+         CLDFRC(I,J) = MAXVAL( CLDF(:,I,J) )
+
+         ! Store in ND67 diagnostic if necessary
+         IF ( IS_ND67 ) AD67(I,J,10) = AD67(I,J,10) + CLDFRC(I,J)
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Return to calling program
+      END SUBROUTINE MAKE_GCAP_CLDFRC
+
+!------------------------------------------------------------------------------
+
       FUNCTION GET_N_A6() RESULT( N_A6 )
 !
 !******************************************************************************
@@ -637,6 +782,7 @@
 !  (1 ) NYMD (INTEGER) : YYYYMMDD for which to read in A-6 fields
 !
 !  NOTES:
+!  (1 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/25/05)
 !******************************************************************************
 !
 #     include "CMN_SIZE" 
@@ -657,10 +803,20 @@
       ! GEOS-3 has 6 A-6 fields
       N_A6 = 6
 
-#elif defined( GEOS_4 )
+!----------------------------------------------------------------------------
+! Prior to 5/25/05:
+! For now, assume GEOS-5 has same # of fields as GEOS-4 (swu, bmy, 5/25/05)
+!#elif defined( GEOS_4 )
+!----------------------------------------------------------------------------
+#elif defined( GEOS_4 ) || defined( GEOS_5 )
 
       ! GEOS-4 has 12 A-6 fields
       N_A6 = 12
+
+#elif defined( GCAP )
+      
+      ! GCAP has 14 A-6 fields
+      N_A6 = 14
 
 #endif
 
@@ -731,46 +887,58 @@
 !-----------------------------------------------------------------------------
 
       SUBROUTINE READ_A6( NYMD,   NHMS,   
-     &                    CLDF,   CLDMAS,   CLDTOPS, CLMOLW, 
-     &                    CLROLW, DTRAIN,   HKBETA,  HKETA,
-     &                    MOISTQ, OPTDEPTH, Q,       T,       
-     &                    U,      V,        ZMEU,    ZMMD,
-     &                    ZMMU )
+     &                    CLDF,   CLDMAS,   CLDTOPS,  CLMOLW, 
+     &                    CLROLW, DETRAINE, DETRAINN, DNDE,
+     &                    DNDN,   DTRAIN,   ENTRAIN,  HKBETA,  
+     &                    HKETA,  MOISTQ,   OPTDEPTH, Q,       
+     &                    T,      U,        UPDE,     UPDN,
+     &                    V,      ZMEU,     ZMMD,     ZMMU )
 !
 !*****************************************************************************
 !  Subroutine READ_A6 reads A-6 (avg 6-hr) met fields from disk. 
-!  (bmy, 6/5/98, 10/28/03)
+!  (bmy, 6/5/98, 5/25/05)
 ! 
 !  Arguments as input:
 !  ===========================================================================
-!  (1 ) NYMD    : YYYYMMDD
-!  (2 ) NHMS    :  and HHMMSS of A-6 met fields to be accessed
+!  (1 ) NYMD     : YYYYMMDD
+!  (2 ) NHMS     :  and HHMMSS of A-6 met fields to be accessed
 !
 !  A-6 Met Fields as Output (Optional Arguments):
 !  ============================================================================
-!  (3 ) CLDF    : (3-D) Total cloud fractions                [unitless]
-!  (4 ) CLDMAS  : (3-D) Cloud mass flux field                [kg/m2/600s]
-!  (5 ) CLDTOPS : (2-D) CTM Level in which cloud top occurs  [unitless]
-!  (6 ) CLMOLW  : (3-D) GEOS-1 LW max-overlap cloud frac     [unitless]
-!  (7 ) CLROLW  : (3-D) GEOS-1 LW random-overlap cloud frac  [unitless]
-!  (8 ) DTRAIN  : (3-D) Detrainment field                    [kg/m2/600s]
-!  (9 ) HKBETA  : (3-D) Hack overshoot parameter             [unitless]
-!  (10) HKETA   : (3-D) Hack convective mass flux            [kg/m2/s]
-!  (11) MOISTQ  : (3-D) DAO water vapor tendency d           [g H2O/kg air/day]
-!  (12) OPTDEPTH: (3-D) GEOS-2 grid box optical depth        [unitless]
-!  (13) Q       : (3-D) Specific humidity                    [g H2O/kg air]
-!  (14) T       : (3-D) Temperature                          [K]
-!  (15) U       : (3-D) Zonal winds                          [m/s]
-!  (16) V       : (3-D) Meridional winds                     [m/s]
-!  (17) ZMEU    : (3-D) Zhang/McFarlane updraft entrainment  [Pa/s]
-!  (18) ZMMD    : (3-D) Zhang/McFarlane downdraft mass flux  [Pa/s]
-!  (19) ZMMU    : (3-D) Zhang/McFarlane updraft mass flux    [Pa/s]
+!  (3 ) CLDF     : (3-D) Total cloud fractions               [unitless]
+!  (4 ) CLDMAS   : (3-D) Cloud mass flux field               [kg/m2/600s]
+!  (5 ) CLDTOPS  : (2-D) CTM Level in which cloud top occurs [unitless]
+!  (6 ) CLMOLW   : (3-D) GEOS-1 LW max-overlap cloud frac    [unitless]
+!  (7 ) CLROLW   : (3-D) GEOS-1 LW random-overlap cloud frac [unitless]
+!  (8 ) DETRAINE : (3-D) GCAP detrainment (entraining plume)
+!  (9 ) DETRAINN : (3-D) GCAP detrainment (non-entr'n plume)
+!  (10) DNDE     : (3-D) GCAP downdraft   (entraining plume)
+!  (11) DNDN     : (3-D) GCAP downdraft   (non-entr'n plume)
+!  (12) ENTRAIN  : (3-D) GCAP entrainment 
+!  (13) DTRAIN   : (3-D) Detrainment field                   [kg/m2/600s]
+!  (14) DTRAIN   : (3-D) Detrainment field                   [kg/m2/600s]
+!  (15) HKBETA   : (3-D) Hack overshoot parameter            [unitless]
+!  (16) HKETA    : (3-D) Hack convective mass flux           [kg/m2/s]
+!  (17) MOISTQ   : (3-D) DAO water vapor tendency d          [g H2O/kg air/day]
+!  (18) OPTDEPTH : (3-D) GEOS-2 grid box optical depth       [unitless]
+!  (19) Q        : (3-D) Specific humidity                   [g H2O/kg air]
+!  (20) T        : (3-D) Temperature                         [K]
+!  (21) U        : (3-D) Zonal winds                         [m/s]
+!  (22) UPDE     : (3-D) GCAP updraft (entraining plume)
+!  (23) UPDN     : (3-D) GCAP updraft (non-entr'n plume)
+!  (24) V        : (3-D) Meridional winds                    [m/s]
+!  (25) ZMEU     : (3-D) Zhang/McFarlane updraft entrainment [Pa/s]
+!  (26) ZMMD     : (3-D) Zhang/McFarlane downdraft mass flux [Pa/s]
+!  (27) ZMMU     : (3-D) Zhang/McFarlane updraft mass flux   [Pa/s]
 !
 !  NOTES:
 !  (1 ) Adapted from READ_A6 of "dao_read_mod.f" (bmy, 6/19/03)
 !  (2 ) Now use function TIMESTAMP_STRING from "time_mod.f" for formatted 
 !        date/time output. (bmy, 10/28/03)
 !  (3 ) Now compute CLDTOPS using ZMMU for GEOS-4 (bmy, 3/4/04)
+!  (4 ) Now modified for GEOS-5 and GCAP fields.  Added DETRAINE, 
+!        DETRAINN, DNDE, DNDN, ENTRAIN, UPDE, UPDN as optional arguments.
+!        Now references "CMN_DIAG". (swu, bmy, 5/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -781,6 +949,7 @@
 
 #     include "CMN_SIZE"             ! Size parameters
 #     include "CMN_DIAG"             ! ND66, ND67
+#     include "CMN_GCTM"             ! g0
 
       ! Arguments
       INTEGER, INTENT(IN)            :: NYMD, NHMS
@@ -789,6 +958,11 @@
       REAL*8,  INTENT(OUT), OPTIONAL :: CLDMAS(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: CLMOLW(LLPAR,IIPAR,JJPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: CLROLW(LLPAR,IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: DETRAINE(IIPAR,JJPAR,LLPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: DETRAINN(IIPAR,JJPAR,LLPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: DNDE(IIPAR,JJPAR,LLPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: DNDN(IIPAR,JJPAR,LLPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: ENTRAIN(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: DTRAIN(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: HKBETA(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: HKETA(IIPAR,JJPAR,LLPAR)
@@ -797,6 +971,8 @@
       REAL*8,  INTENT(OUT), OPTIONAL :: Q(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: T(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: U(IIPAR,JJPAR,LLPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: UPDE(IIPAR,JJPAR,LLPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: UPDN(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: V(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: ZMEU(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: ZMMD(IIPAR,JJPAR,LLPAR)
@@ -866,9 +1042,9 @@
 
             !--------------------------------
             ! CLDTOT: 3-D total cloud frac
-            ! (GEOS-3, GEOS-4 only)
+            ! (GEOS-{3,4,5}, GCAP only)
             !--------------------------------
-            CASE ( 'CLDTOT' ) 
+            CASE ( 'CLDTOT', 'CLDF' ) 
                READ( IU_A6, IOSTAT=IOS ) XYMD, XHMS, Q3
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:3' )
 
@@ -902,14 +1078,85 @@
                   IF ( PRESENT( CLROLW ) ) CALL TRANSFER_A6( Q3,CLROLW )
                   NFOUND = NFOUND + 1 
                ENDIF
+
+            !--------------------------------
+            ! DETRAINE: Detrainment (ent pl)
+            ! (GCAP only)
+            !--------------------------------
+            CASE ( 'DETRAINE' ) 
+               READ( IU_A6, IOSTAT=IOS ) XYMD, XHMS, Q3
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:6' )
+ 
+               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+                  IF ( PRESENT( DETRAINE ) ) THEN
+                     CALL TRANSFER_3D( Q3, DETRAINE )
+                  ENDIF
+                  NFOUND = NFOUND + 1
+               ENDIF
+
+            !--------------------------------
+            ! DETRAINN: Detrainment (non-ent)
+            ! (GCAP only)
+            !--------------------------------
+            CASE ( 'DETRAINN' ) 
+               READ( IU_A6, IOSTAT=IOS ) XYMD, XHMS, Q3
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:7' )
+ 
+               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+                  IF ( PRESENT( DETRAINN ) ) THEN
+                     CALL TRANSFER_3D( Q3, DETRAINN )
+                  ENDIF
+                  NFOUND = NFOUND + 1
+               ENDIF
+
+            !--------------------------------
+            ! DNDE: Downdraft (ent plume)
+            ! (GCAP only)
+            !--------------------------------
+            CASE ( 'DNDE' ) 
+               READ( IU_A6, IOSTAT=IOS ) XYMD, XHMS, Q3
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:8' )
+ 
+               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+                  IF ( PRESENT( DNDE ) ) CALL TRANSFER_3D( Q3, DNDE )
+                  NFOUND = NFOUND + 1
+               ENDIF
                
+            !--------------------------------
+            ! DNDN: Downdraft (non-ent plume)
+            ! (GCAP only)
+            !--------------------------------
+            CASE ( 'DNDN' ) 
+               READ( IU_A6, IOSTAT=IOS ) XYMD, XHMS, Q3
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:9' )
+ 
+               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+                  IF ( PRESENT( DNDN ) ) CALL TRANSFER_3D( Q3, DNDN )
+                  NFOUND = NFOUND + 1
+               ENDIF
+
+            !--------------------------------
+            ! ENTRAIN: Entrainment
+            ! (GCAP only)
+            !--------------------------------
+            CASE ( 'ENTRAIN' ) 
+               READ( IU_A6, IOSTAT=IOS ) XYMD, XHMS, Q3
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:10' )
+ 
+               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+                  IF ( PRESENT( ENTRAIN ) ) THEN
+                     CALL TRANSFER_3D( Q3, ENTRAIN )
+                  ENDIF
+                  NFOUND = NFOUND + 1
+               ENDIF
+
             !--------------------------------
             ! DTRAIN: cloud detrainment
             ! (GEOS-1, GEOS-STRAT, GEOS-3)
             !--------------------------------
             CASE ( 'DTRAIN' ) 
                READ( IU_A6, IOSTAT=IOS ) XYMD, XHMS, Q3
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:6' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:11' )
  
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( DTRAIN ) ) CALL TRANSFER_3D( Q3,DTRAIN )
@@ -922,7 +1169,7 @@
             !--------------------------------
             CASE ( 'HKBETA' ) 
                READ( IU_A6, IOSTAT=IOS ) XYMD, XHMS, Q3
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:7' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:12' )
  
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( HKBETA ) ) CALL TRANSFER_3D( Q3,HKBETA )
@@ -935,7 +1182,7 @@
             !--------------------------------
             CASE ( 'HKETA' ) 
                READ( IU_A6, IOSTAT=IOS ) XYMD, XHMS, Q3
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:8' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:13' )
  
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( HKETA ) ) CALL TRANSFER_3D( Q3, HKETA )
@@ -948,7 +1195,7 @@
             !--------------------------------
             CASE ( 'MOISTQ' ) 
                READ( IU_A6, IOSTAT=IOS ) XYMD, XHMS, Q3
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:7' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:14' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( MOISTQ ) ) CALL TRANSFER_A6( Q3,MOISTQ )
@@ -961,7 +1208,7 @@
             !--------------------------------
             CASE ( 'OPTDEPTH' ) 
                READ( IU_A6, IOSTAT=IOS ) XYMD, XHMS, Q3
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:8' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:15' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( OPTDEPTH ) ) THEN
@@ -976,7 +1223,7 @@
             !--------------------------------
             CASE ( 'Q' ) 
                READ( IU_A6, IOSTAT=IOS ) XYMD, XHMS, Q3
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:9' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:16' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( Q ) ) CALL TRANSFER_3D( Q3, Q )
@@ -989,7 +1236,7 @@
             !--------------------------------
             CASE ( 'T' ) 
                READ( IU_A6, IOSTAT=IOS ) XYMD, XHMS, Q3
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:10' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:17' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( T ) ) CALL TRANSFER_3D( Q3, T )
@@ -1002,11 +1249,37 @@
             !--------------------------------
             CASE ( 'U' ) 
                READ( IU_A6, IOSTAT=IOS ) XYMD, XHMS, Q3
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:11' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:18' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( U ) ) CALL TRANSFER_3D( Q3, U )
                   NFOUND = NFOUND + 1 
+               ENDIF
+
+            !--------------------------------
+            ! UPDE: Downdraft (ent plume)
+            ! (GCAP only)
+            !--------------------------------
+            CASE ( 'UPDE' ) 
+               READ( IU_A6, IOSTAT=IOS ) XYMD, XHMS, Q3
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:19' )
+ 
+               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+                  IF ( PRESENT( UPDE ) ) CALL TRANSFER_3D( Q3, UPDE )
+                  NFOUND = NFOUND + 1
+               ENDIF
+               
+            !--------------------------------
+            ! UPDN: Downdraft (non-ent plume)
+            ! (GCAP only)
+            !--------------------------------
+            CASE ( 'UPDN' ) 
+               READ( IU_A6, IOSTAT=IOS ) XYMD, XHMS, Q3
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:20' )
+ 
+               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+                  IF ( PRESENT( UPDN ) ) CALL TRANSFER_3D( Q3, UPDN )
+                  NFOUND = NFOUND + 1
                ENDIF
 
             !--------------------------------
@@ -1015,7 +1288,7 @@
             !--------------------------------
             CASE ( 'V' ) 
                READ( IU_A6, IOSTAT=IOS ) XYMD, XHMS, Q3
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:12' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:21' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( V ) ) CALL TRANSFER_3D( Q3, V )
@@ -1028,7 +1301,7 @@
             !--------------------------------
             CASE ( 'ZMEU' ) 
                READ( IU_A6, IOSTAT=IOS ) XYMD, XHMS, Q3
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:13' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:22' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( ZMEU ) ) CALL TRANSFER_3D( Q3, ZMEU )
@@ -1041,7 +1314,7 @@
             !--------------------------------
             CASE ( 'ZMMD' ) 
                READ( IU_A6, IOSTAT=IOS ) XYMD, XHMS, Q3
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:14' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:23' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( ZMMD ) ) CALL TRANSFER_3D( Q3, ZMMD )
@@ -1054,7 +1327,7 @@
             !--------------------------------
             CASE ( 'ZMMU' ) 
                READ( IU_A6, IOSTAT=IOS ) XYMD, XHMS, Q3
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:15' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:24' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( ZMMU ) ) CALL TRANSFER_3D( Q3, ZMMU )
@@ -1067,7 +1340,7 @@
             !--------------------------------
             CASE ( 'TAUCLD' ) 
                READ( IU_A6, IOSTAT=IOS ) XYMD, XHMS, Q3
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:16' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:25' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   NFOUND = NFOUND + 1 
@@ -1078,16 +1351,18 @@
             !--------------------------------
             CASE ( 'KH' ) 
                READ( IU_A6, IOSTAT=IOS ) XYMD, XHMS, Q3
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:17' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:26' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   NFOUND = NFOUND + 1 
                ENDIF
 
-            ! Field not found
+            ! Field not found -- skip over
             CASE DEFAULT
                WRITE ( 6, '(a)' ) 'Searching for next A-6 field!'
-               
+               READ( IU_A6, IOSTAT=IOS ) XYMD, XHMS, Q3
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:27' )
+
          END SELECT
 
          !==============================================================
@@ -1116,10 +1391,32 @@
       ! GEOS-CHEM cloud top at (I,J) is at top of first level where 
       ! cloud mass flux goes from being nonzero to zero.  
       !
-      ! For GEOS-1, GEOS-STRAT, GEOS-3: mass flux is "CLDMAS" field
-      ! For GEOS_4                    : mass flux is "ZMMU"   field
+      ! For GEOS-1, GEOS-STRAT, GEOS-3 : mass flux is "CLDMAS" field
+      ! For GEOS_4                     : mass flux is "ZMMU"   field
+      ! For GCAP                       : mass flux is "UPDN"   field
       !=================================================================
-#if   defined( GEOS_4 )
+#if   defined( GCAP )
+
+      ! CLDTOPS is highest location of ZMMU in the column (I,J)
+      IF ( PRESENT( CLDTOPS ) .and. PRESENT( UPDN ) ) THEN
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            K = 1
+            DO L = 1, LLPAR
+               IF ( UPDN(I,J,L) > 0d0 ) THEN
+                  K = K + 1
+               ENDIF
+            ENDDO         
+            CLDTOPS(I,J) = K
+         ENDDO
+         ENDDO
+      ENDIF     
+
+!--------------------------
+! Prior to 5/25/05:
+!#if   defined( GEOS_4 )
+!--------------------------
+#elif defined( GEOS_4 )
 
       ! CLDTOPS is highest location of ZMMU in the column (I,J)
       IF ( PRESENT( CLDTOPS ) .and. PRESENT( ZMMU ) ) THEN
@@ -1227,22 +1524,38 @@
          IF ( PRESENT( U ) ) THEN 
             AD66(:,:,1:LD66,1) = AD66(:,:,1:LD66,1) + U(:,:,1:LD66)
          ENDIF  
-
+      
          IF ( PRESENT( V ) ) THEN 
             AD66(:,:,1:LD66,2) = AD66(:,:,1:LD66,2) + V(:,:,1:LD66)
          ENDIF  
-
+      
          IF ( PRESENT( T ) ) THEN 
             AD66(:,:,1:LD66,3) = AD66(:,:,1:LD66,3) + T(:,:,1:LD66)
          ENDIF  
-
+      
          IF ( PRESENT( Q ) ) THEN 
             AD66(:,:,1:LD66,4) = AD66(:,:,1:LD66,4) + Q(:,:,1:LD66)
          ENDIF  
          
+         ! GEOS-1, GEOS-S, GEOS-3 cloud mass flux
          IF ( PRESENT( CLDMAS ) ) THEN 
             AD66(:,:,1:LD66,5) = AD66(:,:,1:LD66,5) + CLDMAS(:,:,1:LD66)
          ENDIF  
+      
+         ! GEOS-4 cloud mass flux
+         IF ( PRESENT( ZMMU ) ) THEN
+            AD66(:,:,1:LD66,5) = AD66(:,:,1:LD66,5) + CLDMAS(:,:,1:LD66)
+         ENDIF
+      
+         ! GCAP cloud mass flux 
+         IF ( PRESENT( UPDE ) ) THEN
+            AD66(:,:,1:LD66,5) = AD66(:,:,1:LD66,5) +UPDE(:,:,1:LD66)/g0
+         ENDIF
+
+         ! GCAP cloud mass flux 
+         IF ( PRESENT( UPDN ) ) THEN
+            AD66(:,:,1:LD66,5) = AD66(:,:,1:LD66,5) +UPDN(:,:,1:LD66)/g0
+         ENDIF
       ENDIF
 
       !=================================================================

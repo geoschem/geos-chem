@@ -1,9 +1,9 @@
-! $Id: grid_mod.f,v 1.4 2004/12/02 21:48:37 bmy Exp $
+! $Id: grid_mod.f,v 1.5 2005/06/22 20:50:03 bmy Exp $
       MODULE GRID_MOD
 !
 !******************************************************************************
 !  Module GRID_MOD contains variables and routines which are used to specify 
-!  the parameters of a GEOS-CHEM horizontal grid. (bmy, 3/11/03, 12/1/04)
+!  the parameters of a GEOS-CHEM horizontal grid. (bmy, 3/11/03, 5/24/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -56,6 +56,7 @@
 !  NOTES:
 !  (1 ) Fixed typos in "grid_mod.f" (bmy, 4/28/03)
 !  (2 ) Added routine GET_BOUNDING_BOX.  Now define 1x125 grid. (bmy, 12/1/04)
+!  (3 ) Modified for GCAP 4x5 horizontal grid (swu, bmy, 5/24/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -97,12 +98,13 @@
 !
 !******************************************************************************
 !  Subroutine COMPUTE_GRID initializes the longitude, latitude and surface 
-!  area arrays. (bmy, 3/11/03, 12/1/04)
+!  area arrays. (bmy, 3/11/03, 5/24/05)
 !
 !  NOTES:
 !  (1 ) Added fancy output (bmy, 4/26/04)
 !  (2 ) Suppress some output lines (bmy, 7/20/04)
-!  (3 ) Now also support 1 x 1.25 grid (bmy, 12/1/040
+!  (3 ) Now also support 1 x 1.25 grid (bmy, 12/1/04)
+!  (4 ) Now modified for GCAP 4x5 horizontal grid (swu, bmy, 5/24/05)
 !******************************************************************************
 !
 #     include "CMN_SIZE"  ! Size parameters
@@ -134,8 +136,18 @@
          YMID_G(J)  = DJSIZE * ( DBLE(J) - FMID  )
          YEDGE_G(J) = DJSIZE * ( DBLE(J) - FEDGE )
       ENDDO
-      
-#if   defined( GRID4x5 )
+
+#if   defined( GRID4x5 ) && defined( GCAP )
+      ! Overwrite YMID at poles for GCAP 4 x 5 grid (swu, bmy, 5/24/05)
+      YMID_G(1)      = -88.d0
+      YMID_G(JJGLOB) = +88.d0      
+
+!--------------------------------------------------------
+! Prior to 5/24/05:
+! Add GCAP 4x5 grid #if block above (swu, bmy, 5/24/05)
+!#if   defined( GRID4x5 )
+!---------------------------------------------------------
+#elif defined( GRID4x5 )
       ! Overwrite YMID at poles for 4 x 5 grid
       YMID_G(1)      = -89.d0
       YMID_G(JJGLOB) = +89.d0
@@ -742,12 +754,13 @@
 !
 !******************************************************************************
 !  Subroutine INIT_GRID initializes variables and allocates module arrays.
-!  (bmy, 3/11/03, 12/1/04)
+!  (bmy, 3/11/03, 5/24/05)
 !
 !  NOTES:
 !  (1 ) Fixed typos that caused AREA_CM2_G and AREA_CM2 to be initialized 
 !        before they were allocated. (bmy, 4/28/03)
 !  (2 ) Now define IIGLOB & JJGLOB for 1 x 1.25 grid (bmy, 12/1/04)
+!  (3 ) Modified for GCAP 4x5 horizontal grid (swu, bmy, 5/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -773,7 +786,17 @@
 #elif defined( GRID2x25 )
       IIGLOB = 144
       JJGLOB = 91
-#elif defined( GRID4x5 ) 
+!---------------------------------------------------------
+! Prior to 5/24/05:
+! Need to add the 4x5 GCAP grid here (swu, bmy, 5/24/05)
+!#elif defined( GRID4x5 ) 
+!      IIGLOB = 72
+!      JJGLOB = 46
+!---------------------------------------------------------
+#elif defined( GRID4x5 ) && defined( GCAP )
+      IIGLOB = 72
+      JJGLOB = 45
+#elif defined( GRID4x5 )
       IIGLOB = 72
       JJGLOB = 46
 #endif

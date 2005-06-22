@@ -1,9 +1,9 @@
-! $Id: time_mod.f,v 1.12 2005/05/09 14:34:01 bmy Exp $
+! $Id: time_mod.f,v 1.13 2005/06/22 20:50:05 bmy Exp $
       MODULE TIME_MOD
 !
 !******************************************************************************
 !  TIME_MOD contains GEOS-CHEM date and time variables and timesteps, and 
-!  routines for accessing them. (bmy, 6/21/00, 5/3/05) 
+!  routines for accessing them. (bmy, 6/21/00, 5/24/05) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -166,7 +166,8 @@
 !        variable NDIAGTIME. (bmy, 7/20/04)
 !  (17) Added routine GET_DAY_OF_WEEK (bmy, 11/5/04)
 !  (18) Removed obsolete FIRST variable in GET_A3_TIME (bmy, 12/10/04)
-!  (19) Added routines SYSTEM_DATE_TIME and SYSTEM_TIMESTAMP (bmy, 5/3/05)
+!  (19) Added routines SYSTEM_DATE_TIME and SYSTEM_TIMESTAMP.  Also modified
+!        for GCAP and GEOS-5 met fields. (swu, bmy, 5/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1753,11 +1754,12 @@
 !******************************************************************************
 !  Function GET_A3_TIME returns the correct YYYYMMDD and HHMMSS values
 !  that are needed to read in the next average 3-hour (A-3) fields. 
-!  (bmy, 3/21/03, 12/10/04)
+!  (bmy, 3/21/03, 5/24/05)
 !
 !  NOTES:
 !  (1 ) Now return proper time for GEOS-4/fvDAS fields (bmy, 6/19/03)
 !  (2 ) Remove reference to FIRST variable (bmy, 12/10/04)
+!  (3 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
 !******************************************************************************
 !
 #     include "define.h"
@@ -1768,21 +1770,41 @@
       !=================================================================
       ! GET_A3_TIME begins here!
       !=================================================================
-#if   defined( GEOS_4 ) 
+!------------------------------------------------------------------------------
+! Prior to 5/24/05:
+!#if   defined( GEOS_4 ) 
+!
+!      ! For GEOS-4/fvDAS, he A-3 fields are timestamped by center time.  
+!      ! Therefore, the difference between the actual time when the fields 
+!      ! are read and the A-3 timestamp time is 90 minutes.
+!      DATE = GET_TIME_AHEAD( 90 )   
+!
+!#else
+!      
+!      ! For GEOS-1, GEOS-STRAT, GEOS-3, the A-3 fields are timestamped 
+!      ! by ending time.  Therefore, the difference between the actual time
+!      ! when the fields are read and the A-3 timestamp time is 180 minutes.
+!      DATE = GET_TIME_AHEAD( 180 )      
+!
+!#endif
+!-----------------------------------------------------------------------------
 
-      ! For GEOS-4/fvDAS, the A-3 fields are timestamped by center time.
-      ! Therefore, the difference between the actual time when the fields 
-      ! are read and the A-3 timestamp time is 90 minutes.
-      DATE = GET_TIME_AHEAD( 90 )   
+#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
 
-#else
-      
       ! For GEOS-1, GEOS-STRAT, GEOS-3, the A-3 fields are timestamped 
       ! by ending time.  Therefore, the difference between the actual time
       ! when the fields are read and the A-3 timestamp time is 180 minutes.
       DATE = GET_TIME_AHEAD( 180 )      
 
+#else
+      
+      ! For GEOS-4, GEOS-5, or GCAP data: The A-3 fields are timestamped 
+      ! by center time.  Therefore, the difference between the actual time 
+      ! when the fields are read and the A-3 timestamp time is 90 minutes.
+      DATE = GET_TIME_AHEAD( 90 )   
+
 #endif
+
 
       ! Return to calling program
       END FUNCTION GET_A3_TIME
@@ -1845,10 +1867,12 @@
       FUNCTION GET_FIRST_A3_TIME() RESULT( DATE )
 !
 !******************************************************************************
-!  Function GET_FIRST_A3_TIME returns the correct YYYYMMDD and HHMMSS values
-!  the first time that A-3 fields are read in from disk. (bmy, 6/26/03)
+!  Function GET_FIRST_A3_TIME returns the correct YYYYMMDD and HHMMSS 
+!  values the first time that A-3 fields are read in from disk. 
+!  (bmy, 6/26/03, 5/24/05)
 !
 !  NOTES:
+!  (1 ) Now modified for GCAP and GEOS-5 data (swu, bmy, 5/24/05)
 !******************************************************************************
 !
 #     include "define.h"
@@ -1860,17 +1884,33 @@
       ! GET_FIRST_A3_TIME begins here!
       !=================================================================
 
-#if   defined( GEOS_4 )
+!----------------------------------------------------------------------------
+! Prior to 5/24/05:
+!#if   defined( GEOS_4 )
+!
+!      ! For GEOS-4, call GET_A3_TIME to return date/time
+!      ! under which the A-3 fields are timestamped
+!      DATE = GET_A3_TIME()
+!      
+!#else
+!
+!      ! For GEOS-1, GEOS-STRAT, GEOS-3, return the current date/time
+!      DATE = (/ NYMD, NHMS /)
+!
+!#endif
+!----------------------------------------------------------------------------
 
-      ! For GEOS-4, call GET_A3_TIME to return date/time
-      ! under which the A-3 fields are timestamped
-      DATE = GET_A3_TIME()
-      
-#else
+#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
 
-      ! For GEOS-1, GEOS-STRAT, GEOS-3, return the current date/time
+      ! For GEOS-1, GEOS-STRAT, GEOS-3: Return the current date/time
       DATE = (/ NYMD, NHMS /)
 
+#else
+  
+      ! For GEOS-4, GEOS-5, and GCAP: Call GET_A3_TIME to return 
+      ! the date/time under which the A-3 fields are timestamped
+      DATE = GET_A3_TIME()
+    
 #endif
 
       ! Return to calling program
@@ -1882,10 +1922,11 @@
 !
 !******************************************************************************
 !  Function GET_FIRST_A6_TIME returns the correct YYYYMMDD & HHMMSS values the
-!  first time that A-6 fields are read in from disk. (bmy, 6/26/03, 3/22/04)
+!  first time that A-6 fields are read in from disk. (bmy, 6/26/03, 5/24/05)
 !
 !  NOTES:
 !  (1 ) Now modified for GEOS-4 "a_llk_03" and "a_llk_04" fields (bmy, 3/22/04)
+!  (2 ) Modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
 !******************************************************************************
 !
 #     include "define.h"
@@ -1897,15 +1938,32 @@
       ! GET_FIRST_A6_TIME begins here!
       !=================================================================
 
-#if   defined( GEOS_4 ) && defined( A_LLK_03 )
+!-----------------------------------------------------------------------------
+! Prior to 5/23/05:
+! Remove code for obsolete GEOS-4 a_llk_03 data (bmy, 5/23/05)
+!#if   defined( GEOS_4 ) && defined( A_LLK_03 )
+!
+!      ! For GEOS-4, call GET_A3_TIME to return date/time
+!      ! under which the A-3 fields are timestamped
+!      DATE = GET_A6_TIME()
+!      
+!#else
+!
+!      ! For GEOS-1, GEOS-STRAT, GEOS-3, return the current date/time
+!      DATE = (/ NYMD, NHMS /)
+!
+!#endif
+!----------------------------------------------------------------------------
 
-      ! For GEOS-4, call GET_A3_TIME to return date/time
-      ! under which the A-3 fields are timestamped
-      DATE = GET_A6_TIME()
-      
-#else
+#if   defined( GCAP )
 
-      ! For GEOS-1, GEOS-STRAT, GEOS-3, return the current date/time
+      ! For GCAP data: Call GET_A6_TIME to return date/time
+      ! under which the A-6 fields are timestamped
+      DATE = GET_A6_TIME()      
+
+#elif
+
+      ! For GEOS data: Return the current date/time
       DATE = (/ NYMD, NHMS /)
 
 #endif
@@ -2075,11 +2133,12 @@
 !
 !******************************************************************************
 !  Function ITS_TIME_FOR_A6 returns TRUE if it is time to read in A-6
-!  (average 6-h fields) and FALSE otherwise. (bmy, 3/21/03, 3/22/04)
+!  (average 6-h fields) and FALSE otherwise. (bmy, 3/21/03, 5/24/05)
 !
 !  NOTES:
 !  (1 ) Now compute when it's time to read in GEOS-4 A-6 fields. (bmy, 6/26/03)
 !  (2 ) Now modified for GEOS-4 "a_llk_03" and "a_llk_04" fields (bmy, 3/22/04)
+!  (3 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
 !******************************************************************************
 !
 #     include "define.h"
@@ -2093,22 +2152,40 @@
       !=================================================================
       ! ITS_TIME_FOR_A6 begins here!
       !=================================================================
-      
-#if   defined( GEOS_4 ) && defined( A_LLK_03 )
 
-      ! For GEOS-4 "a_llk_03" data, we need to read A-6 fields when it 
-      ! is 00, 06, 12, 18 GMT.  DATE is the current time -- test below.
+!-----------------------------------------------------------------------------
+! Prior to 5/23/05:
+! Remove code for obsolete GEOS-4 a_llk_03 data (bmy, 5/23/05)
+!#if   defined( GEOS_4 ) && defined( A_LLK_03 )
+!
+!      ! For GEOS-4 "a_llk_03" data, we need to read A-6 fields when it 
+!      ! is 00, 06, 12, 18 GMT.  DATE is the current time -- test below.
+!      DATE = GET_TIME_AHEAD( 0 )
+!
+!#else
+!
+!      ! For GEOS-1, GEOS-S, GEOS-3, and GEOS-4 "a_llk_04" data, 
+!      ! we need to read A-6 fields when it is 03, 09, 15, 21 GMT.  
+!      ! DATE is the time 3 hours from now -- test below.
+!      DATE = GET_TIME_AHEAD( 180 )
+!     
+!#endif
+!-----------------------------------------------------------------------------
+ 
+#if   defined( GCAP )
+
+      ! For GCAP data: We need to read A-6 fields when it 00, 06, 
+      ! 12, 18 GMT.  DATE is the current time -- test below.
       DATE = GET_TIME_AHEAD( 0 )
 
 #else
 
-      ! For GEOS-1, GEOS-S, GEOS-3, and GEOS-4 "a_llk_04" data, 
-      ! we need to read A-6 fields when it is 03, 09, 15, 21 GMT.  
-      ! DATE is the time 3 hours from now -- test below.
+      ! For all GEOS data: We need to read A-6 fields when it is 03, 
+      ! 09, 15, 21 GMT.  DATE is the time 3 hours from now -- test below.
       DATE = GET_TIME_AHEAD( 180 )
      
 #endif
- 
+
       ! Test if DATE corresponds to 00, 06, 12, 18 GMT.  
       ! If so, then it is time to read A-6 fields from disk.
       FLAG = ( MOD( DATE(2), 060000 ) == 0 ) 

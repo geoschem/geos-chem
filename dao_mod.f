@@ -1,10 +1,10 @@
-! $Id: dao_mod.f,v 1.10 2004/12/02 21:48:34 bmy Exp $
+! $Id: dao_mod.f,v 1.11 2005/06/22 20:50:00 bmy Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
 !  Module DAO_MOD contains both arrays that hold DAO met fields, as well as
 !  subroutines that compute, interpolate, or otherwise process DAO met field 
-!  data. (bmy, 6/27/00, 12/1/04)
+!  data. (bmy, 6/27/00, 5/25/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -70,22 +70,36 @@
 !  (51) WIND_10M (REAL*8 ) : Wind speed @ 10 m for GEOS-STRAT    [m/s]
 !  (52) Z0       (REAL*8 ) : Roughness height                    [m]
 !
+!  GCAP-specific met fields (taken from GISS model):
+!  ----------------------------------------------------------------------------
+!  (52) DETRAINE (REAL*8)  : Detrainment flux (entr. plume)
+!  (53) DETRAINN (REAL*8)  : Detrainment flux (non-entr. plume)
+!  (54) DNDE     (REAL*8)  : Downdraft (entraining plume) 
+!  (55) DNDN     (REAL*8)  : Downdraft (non-entraining plume)
+!  (56) ENTRAIN  (REAL*8)  : Entrainment flux
+!  (57) LWI_GISS (REAL*8)  : Fraction of land cover
+!  (58) MOLENGTH (REAL*8)  : Monin-Obhukov length
+!  (59) OICE     (REAL*8)  : Ocean ice ??
+!  (60) SNICE    (REAL*8)  : Snow ice ??
+!  (61) UPDE     (REAL*8)  : Updraft (entraining plume)
+!  (62) UPDN     (REAL*8)  : Updraft (non-entraining plume)
+!
 !  Computed meteorolgical quantities:
 !  ----------------------------------------------------------------------------
-!  (54) AD       (REAL*8 ) : Dry air mass                        [kg]
-!  (55) AIRVOL   (REAL*8 ) : Volume of air in grid box           [m3]
-!  (56) AIRDEN   (REAL*8 ) : Density of air in grid box          [kg/m3]
-!  (57) AVGW     (REAL*8 ) : Mixing ratio of water vapor         [v/v]
-!  (58) BXHEIGHT (REAL*8 ) : Grid box height                     [m]
-!  (59) DELP     (REAL*8 ) : Pressure thickness of grid box      [hPa]
-!  (60) OBK      (REAL*8 ) : Monin-Obhukov length                [m]
-!  (61) RH       (REAL*8 ) : Relative humidity                   [%]
-!  (62) SUNCOS   (REAL*8 ) : COSINE( solar zenith angle )        [unitless]
-!  (63) SUNCOSB  (REAL*8 ) : COSINE( SZA ) at next chem time     [unitless]
+!  (63) AD       (REAL*8 ) : Dry air mass                        [kg]
+!  (64) AIRVOL   (REAL*8 ) : Volume of air in grid box           [m3]
+!  (65) AIRDEN   (REAL*8 ) : Density of air in grid box          [kg/m3]
+!  (66) AVGW     (REAL*8 ) : Mixing ratio of water vapor         [v/v]
+!  (67) BXHEIGHT (REAL*8 ) : Grid box height                     [m]
+!  (68) DELP     (REAL*8 ) : Pressure thickness of grid box      [hPa]
+!  (69) OBK      (REAL*8 ) : Monin-Obhukov length                [m]
+!  (70) RH       (REAL*8 ) : Relative humidity                   [%]
+!  (71) SUNCOS   (REAL*8 ) : COSINE( solar zenith angle )        [unitless]
+!  (72) SUNCOSB  (REAL*8 ) : COSINE( SZA ) at next chem time     [unitless]
 !
 !  Other variables:
 !  ----------------
-!  (64) USE_WIND_10M (LOGICAL) : Flag to denote if make_wind10m.f is called 
+!  (73) USE_WIND_10M (LOGICAL) : Flag to denote if make_wind10m.f is called 
 !
 !  Module Routines:
 !  ============================================================================
@@ -152,6 +166,7 @@
 !  (19) Added routine COPY_I6_FIELDS w/ parallel DO-loops (bmy, 4/13/04)
 !  (20) Now also allocate AVGW for offline aerosol simulation (bmy, 9/28/04)
 !  (21) AVGPOLE now uses NESTED_CH and NESTED_NA cpp switches (bmy, 12/1/04)
+!  (22) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -160,7 +175,7 @@
       ! MODULE VARIABLES
       !=================================================================
 
-      ! I-6 fields
+      ! I-6 met fields
       INTEGER, ALLOCATABLE :: LWI(:,:)
       REAL*8,  ALLOCATABLE :: ALBD1(:,:)
       REAL*8,  ALLOCATABLE :: ALBD2(:,:)
@@ -184,7 +199,7 @@
       REAL*8,  ALLOCATABLE :: VWND1(:,:,:)
       REAL*8,  ALLOCATABLE :: VWND2(:,:,:)
 
-      ! A-6 fields
+      ! A-6 met fields
       INTEGER, ALLOCATABLE :: CLDTOPS(:,:)
       REAL*8,  ALLOCATABLE :: CLDF(:,:,:)
       REAL*8,  ALLOCATABLE :: CLDMAS(:,:,:)
@@ -200,7 +215,7 @@
       REAL*8,  ALLOCATABLE :: ZMMD(:,:,:)
       REAL*8,  ALLOCATABLE :: ZMMU(:,:,:)
 
-      ! A-3 fields
+      ! A-3 met fields
       LOGICAL              :: USE_WIND_10M   ! Internal flag
       REAL*8,  ALLOCATABLE :: CLDFRC(:,:)
       REAL*8,  ALLOCATABLE :: GWETTOP(:,:)
@@ -220,6 +235,19 @@
       REAL*8,  ALLOCATABLE :: V10M(:,:)
       REAL*8,  ALLOCATABLE :: WIND_10M(:,:)
       REAL*8,  ALLOCATABLE :: Z0(:,:)
+
+      ! GCAP-specific met fields
+      REAL*8,  ALLOCATABLE :: DETRAINE(:,:,:)
+      REAL*8,  ALLOCATABLE :: DETRAINN(:,:,:)
+      REAL*8,  ALLOCATABLE :: DNDE(:,:,:)
+      REAL*8,  ALLOCATABLE :: DNDN(:,:,:)
+      REAL*8,  ALLOCATABLE :: ENTRAIN(:,:,:)
+      REAL*8,  ALLOCATABLE :: LWI_GISS(:,:)
+      REAL*8,  ALLOCATABLE :: MOLENGTH(:,:)
+      REAL*8,  ALLOCATABLE :: OICE(:,:)      
+      REAL*8,  ALLOCATABLE :: SNICE(:,:)
+      REAL*8,  ALLOCATABLE :: UPDE(:,:,:)
+      REAL*8,  ALLOCATABLE :: UPDN(:,:,:)
 
       ! Computed quantities
       REAL*8,  ALLOCATABLE :: AD(:,:,:)
@@ -475,7 +503,7 @@
 !******************************************************************************
 !  Subroutine INTERP linearly interpolates GEOS-CHEM I-6 fields (winds, 
 !  surface pressure, temperature, surface albedo, specific humidity) to the 
-!  current dynamic timestep. (bdf, bmy, 1/30/98, 6/19/03)
+!  current dynamic timestep. (bdf, bmy, 1/30/98, 5/25/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -512,6 +540,7 @@
 !        Eliminate TC variable, it's obsolete.  Now use double precision to
 !        compute TM and TC2 values.  Renamed NTIME to NTIME1 and NTIME1 to
 !        NTIME0.  Updated comments. (bmy, 6/19/03)
+!  (13) Now modified for GEOS-5 and GCAP met fields. (swu, bmy, 5/25/05)
 !******************************************************************************
 !     
 #     include "CMN_SIZE"   ! Size parameters
@@ -539,21 +568,62 @@
       ! Fraction of 6h timestep elapsed at the end of this dyn timestep
       TC2 = ( D_NTIME1 + D_NTDT     - D_NTIME0 ) / D_NDT 
 
-#if   defined( GEOS_4 ) 
+!-----------------------------------------------------------------------------
+! Prior to 5/25/05:
+! Reverse the logic on the #if block since the newer met fields will be
+! more like GEOS-4 than like GEOS-1, GEOS-S, or GEOS-3 (swu, bmy, 5/25/05)
+!#if   defined( GEOS_4 ) 
+!
+!      !=================================================================
+!      ! GEOS-4: interpolate PSC2 (pressure at end of dyn timestep)
+!      !=================================================================
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!         PSC2(I,J) = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
+!      ENDDO
+!      ENDDO
+!
+!#else
+!
+!      !=================================================================
+!      ! GEOS-1, GEOS-S, GEOS-3: interp PSC2, UWND, VWND, ALBD, T, SPHU
+!      !=================================================================
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!      DO L = 1, LLPAR
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!         
+!         ! 2D variables
+!         IF ( L == 1 ) THEN
+!            
+!            ! Pressures: at start, midpt, and end of dyn timestep
+!            PSC2(I,J) = PS1(I,J)   + ( PS2(I,J) - PS1(I,J) ) * TC2 
+!
+!            ! Albedo: at midpt of dyn timestep
+!            ALBD(I,J) = ALBD1(I,J) + ( ALBD2(I,J) - ALBD1(I,J) ) * TM
+!  
+!         ENDIF
+!         
+!         ! 3D Variables: at midpt of dyn timestep
+!         UWND(I,J,L) = UWND1(I,J,L) + (UWND2(I,J,L) - UWND1(I,J,L)) * TM
+!         VWND(I,J,L) = VWND1(I,J,L) + (VWND2(I,J,L) - VWND1(I,J,L)) * TM
+!         SPHU(I,J,L) = SPHU1(I,J,L) + (SPHU2(I,J,L) - SPHU1(I,J,L)) * TM
+!         T(I,J,L)    = TMPU1(I,J,L) + (TMPU2(I,J,L) - TMPU1(I,J,L)) * TM
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!
+!#endif
+!-----------------------------------------------------------------------------
+
+#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
 
       !=================================================================
-      ! GEOS-4: interpolate PSC2 (pressure at end of dyn timestep)
-      !=================================================================
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         PSC2(I,J) = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
-      ENDDO
-      ENDDO
-
-#else
-
-      !=================================================================
-      ! GEOS-1, GEOS-S, GEOS-3: interp PSC2, UWND, VWND, ALBD, T, SPHU
+      ! For GEOS-1, GEOS-S, GEOS-3 met fields:
+      ! Interpolate PSC2, UWND, VWND, ALBD, T, SPHU
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -583,6 +653,18 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+#else
+
+      !=================================================================
+      ! For GEOS-4, GEOS-5, GCAP met fields:
+      ! Interpolate PSC2 only (pressure at end of dyn timestep)
+      !=================================================================
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         PSC2(I,J) = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
+      ENDDO
+      ENDDO
+
 #endif
 
       ! Return to calling program
@@ -594,7 +676,7 @@
 !
 !******************************************************************************
 !  Function IS_LAND returns TRUE if surface grid box (I,J) is a land 
-!  or a land-ice box.  (bmy, 6/26/00, 6/18/03)
+!  or a land-ice box.  (bmy, 6/26/00, 5/25/05)
 !
 !  Arguments as Input
 !  ===========================================================================
@@ -616,6 +698,7 @@
 !  (5 ) Now uses function GET_YEAR from "time_mod.f".  Removed reference
 !        to CMN header file. (bmy, 3/11/03)
 !  (6 ) Added code to determine land boxes for GEOS-4 (bmy, 6/18/03)
+!  (7 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -658,11 +741,17 @@
 
       ENDIF
 
-#elif defined( GEOS_4 )
+#elif defined( GEOS_4 ) || defined( GEOS_5 )
 
-      ! For GEOS-4: LWI=1 is a land box (bmy, 6/16/03)
+      ! For GEOS-4/GEOS-5: LWI=1 is a land box (bmy, 6/16/03)
       LAND = ( LWI(I,J) == 1 )
 
+#elif defined( GCAP )
+
+      ! For GCAP: It's a land box if 50% or more of 
+      ! the box is covered by land (swu, bmy, 5/25/05)
+      LAND = ( LWI_GISS(I,J) > = 0.5d0 )
+    
 #endif
 
       ! Return to calling program
@@ -674,7 +763,7 @@
 !
 !******************************************************************************
 !  Function IS_WATER returns TRUE if surface grid box (I,J) is an ocean 
-!  or an ocean-ice box.  (bmy, 6/26/00, 6/18/03)
+!  or an ocean-ice box.  (bmy, 6/26/00, 5/25/05)
 !
 !  Arguments as Input
 !  ===========================================================================
@@ -696,6 +785,7 @@
 !  (5 ) Now uses function GET_YEAR from "time_mod.f".  Removed reference
 !        to CMN header file. (bmy, 3/11/03)
 !  (6 ) Added code to determine water boxes for GEOS-4 (bmy, 6/18/03)
+!  (7 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -737,10 +827,16 @@
 
       ENDIF
 
-#elif defined( GEOS_4 )
+#elif defined( GEOS_4 ) || defined( GEOS_5 )
 
-      ! GEOS-4: LWI=0 is water; LWI=2 is sea ice 
+      ! GEOS-4/GEOS-5: LWI=0 is water; LWI=2 is sea ice 
       WATER = ( LWI(I,J) == 0 .or. LWI(I,J) == 2 )
+
+#elif defined( GCAP )
+
+      ! For GCAP: It's a water box if less than 50% of 
+      ! the box is covered by land (swu, bmy, 5/25/05) 
+      WATER = ( LWI_GISS(I,J) < 0.5d0 )
 
 #endif
 
@@ -975,6 +1071,80 @@
       ! Return to calling program
       END SUBROUTINE MAKE_WIND10M
 
+!------------------------------------------------------------------------------
+
+      FUNCTION GET_OBK( I, J ) RESULT( OBK )
+!
+!******************************************************************************
+!  Function GET_OBK returns the Monin-Obhukov length at a grid box (I,J)
+!  (bmy, 5/25/05)
+!  
+!  Arguments as Input:
+!  ============================================================================
+!  (1-2) I, J (INTEGER) : GEOS-CHEM longitude & latitude indices
+!
+!  NOTES:
+!******************************************************************************
+!      
+#     include "CMN_SIZE"   ! Size parameters
+#     include "CMN_GCTM"   ! Physical constants
+
+      ! Arguments
+      INTEGER, INTENT(IN) :: I, J
+
+      ! Function value
+      REAL*8              :: OBK
+
+#if   defined( GCAP )
+
+      !=================================================================
+      ! For GCAP met fields (based on GISS model)
+      !=================================================================
+
+      ! Monin-Obhukov length is a GCAP met field
+      OBK = MOLENGTH(I,J)
+
+#else
+
+      !=================================================================
+      ! For all GEOS met fields:
+      !
+      ! The direct computation of the Monin-Obhukov length is:
+      !
+      !            - Air density * Cp * T(surface air) * Ustar^3 
+      !    OBK =  -----------------------------------------------
+      !              Kappa       * g  * Sensible Heat flux
+      !
+      ! Cp    = 1000 J / kg / K = specific heat of air at constant P
+      ! Kappa = 0.4             = Von Karman's constant
+      !
+      !
+      !  Also test the denominator in order to prevent div by zero.
+      !=================================================================
+
+      ! Parameters
+      REAL*8, PARAMETER :: KAPPA = 0.4d0 
+      REAL*8, PARAMETER :: CP    = 1000.0d0
+
+      ! Numerator
+      NUM = -AIRDEN(1,I,J) *  CP            * TS(I,J) *
+     &       USTAR(I,J)    *  USTAR(I,J)    * USTAR(I,J)
+
+      ! Denominator
+      DEN =  KAPPA * g0 * HFLUX(I,J) 
+
+      ! Prevent div by zero
+      IF ( ABS( DEN ) > 0d0 ) THEN
+         OBK = NUM / DEN
+      ELSE
+         OBK = 1.0d5
+      ENDIF
+
+#endif
+
+      ! Return to calling program
+      END FUNCTION GET_OBK
+      
 !------------------------------------------------------------------------------
 
       SUBROUTINE COSSZA( JDAY, NHMSb, NSEC, SUNCOS )
@@ -1361,6 +1531,7 @@
 !        LWETD, LDRYD, LCHEM from "logical_mod.f".  Now allocate RH regardless
 !        of simulation. (bmy, 7/20/04)
 !  (12) Now also allocate AVGW for offline aerosol simulations (bmy, 9/27/04)
+!  (13) Now modified for GCAP met fields (bmy, 5/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1482,7 +1653,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'HFLUX' )
       HFLUX = 0d0
 
-#if   defined( GEOS_4 ) 
+#if   defined( GEOS_4 )
 
       ! HKBETA is only defined for GEOS-4 
       ALLOCATE( HKBETA( IIPAR, JJPAR, LLPAR ), STAT=AS )
@@ -1496,17 +1667,29 @@
 
 #endif
 
+#if   defined( GCAP )
+
+      ! LWI_GISS is defined only for GCAP
+      ALLOCATE( LWI_GISS( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI_GISS' )
+      LWI_GISS = 0d0
+
+#else
+
+      ! LWI is defined only for GEOS met fields
       ALLOCATE( LWI( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI' )
       LWI = 0
+
+#endif
 
       ALLOCATE( MOISTQ( LLPAR, IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ' )
       MOISTQ = 0d0
 
-#if   defined( GEOS_3 ) || defined( GEOS_4 )
+#if   defined( GEOS_3 ) || defined( GEOS_4 ) || defined( GCAP )
 
-      ! OPTDEP is only defined for GEOS-3 and GEOS-4
+      ! OPTDEP is only defined for GEOS-3, GEOS-4, and GCAP
       ALLOCATE( OPTDEP( LLPAR, IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP' )
       OPTDEP = 0d0
@@ -1568,7 +1751,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADSWG' )
       RADSWG = 0d0
 
-#if   defined( GEOS_3 ) || defined( GEOS_4 )
+#if   defined( GEOS_3 ) || defined( GEOS_4 ) || defined( GCAP )
 
       ! SLP is only defined for GEOS-3 and GEOS-4
       ALLOCATE( SLP( IIPAR, JJPAR ), STAT=AS ) 
@@ -1636,9 +1819,9 @@
 
 #endif
 
-#if   defined( GEOS_3 ) || defined ( GEOS_4 ) 
+#if   defined( GEOS_3 ) || defined ( GEOS_4 ) || defined( GCAP )
 
-      ! TROPP is only defined for GEOS-3 or GEOS-4
+      ! TROPP is only defined for GEOS-3, GEOS-4, or GCAP
       ALLOCATE( TROPP( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP' )
       TROPP = 0d0
@@ -1738,6 +1921,64 @@
 
 #endif
 
+#if   defined( GCAP )
+
+      !------------------------------------
+      ! Allocate GCAP-only met fields here
+      !------------------------------------
+
+      ! DTRAINE is only defined for GCAP
+      ALLOCATE( DETRAINE( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DETRAINE' )
+      DETRAINE = 0d0  
+
+      ! DETRAINN is only defined for GCAP
+      ALLOCATE( DETRAINN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DETRAINN' )
+      DETRAINN = 0d0  
+
+      ! DNDE is only defined for GCAP
+      ALLOCATE( DNDE( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DNDE' )
+      DNDE = 0d0  
+
+      ! DNDN is only defined for GCAP
+      ALLOCATE( DNDN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DNDN' )
+      DNDN = 0d0  
+
+      ! ENTRAIN is only defined for GCAP
+      ALLOCATE( ENTRAIN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENTRAIN' )
+      ENTRAIN = 0d0  
+
+      ! MOLENGTH is only defined for GCAP
+      ALLOCATE( MOLENGTH( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOLENGTH' )
+      MOLENGTH = 0d0
+
+      ! OICE is only defined for GCAP
+      ALLOCATE( OICE( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OICE' )
+      OICE = 0d0
+
+      ! SNICE is only defined for GCAP
+      ALLOCATE( SNICE( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNICE' )
+      SNICE = 0d0
+
+      ! UPDE is only defined for GCAP
+      ALLOCATE( UPDE( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UPDE' )
+      UPDE = 0d0  
+
+      ! UPDN is only defined for GCAP
+      ALLOCATE( UPDN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UPDN' )
+      UPDN = 0d0  
+
+#endif
+
       ! Return to calling program
       END SUBROUTINE INIT_DAO
 
@@ -1747,7 +1988,7 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_DAO deallocates all met field arrays. 
-!  (bmy, 6/26/00, 12/9/03)
+!  (bmy, 6/26/00, 5/25/05)
 ! 
 !  NOTES:
 !  (1 ) Now deallocate SLP met field for GEOS-3 (bmy, 10/10/00)
@@ -1764,6 +2005,7 @@
 !  (10) Now list all arrays in order.  Now also deallocate new arrays
 !        for GEOS-4/fvDAS. (bmy, 6/25/03)
 !  (11) Now deallocate CLDFRC, RADLWG, RADSWG, SNOW arrays (bmy, 12/9/03)
+!  (12) Now deallocate GCAP met fields (bmy, 5/25/05)
 !******************************************************************************
 !
       !=================================================================
@@ -1784,13 +2026,21 @@
       IF ( ALLOCATED( CLMOSW   ) ) DEALLOCATE( CLMOSW   )
       IF ( ALLOCATED( CLROSW   ) ) DEALLOCATE( CLROSW   )
       IF ( ALLOCATED( DELP     ) ) DEALLOCATE( DELP     )
+      IF ( ALLOCATED( DETRAINE ) ) DEALLOCATE( DETRAINE )
+      IF ( ALLOCATED( DETRAINN ) ) DEALLOCATE( DETRAINN ) 
+      IF ( ALLOCATED( DNDE     ) ) DEALLOCATE( DNDE     ) 
+      IF ( ALLOCATED( DNDN     ) ) DEALLOCATE( DNDN     ) 
       IF ( ALLOCATED( DTRAIN   ) ) DEALLOCATE( DTRAIN   )
+      IF ( ALLOCATED( ENTRAIN  ) ) DEALLOCATE( ENTRAIN  ) 
       IF ( ALLOCATED( GWETTOP  ) ) DEALLOCATE( GWETTOP  )
       IF ( ALLOCATED( HFLUX    ) ) DEALLOCATE( HFLUX    )
       IF ( ALLOCATED( HKBETA   ) ) DEALLOCATE( HKBETA   )
       IF ( ALLOCATED( HKETA    ) ) DEALLOCATE( HKETA    )
       IF ( ALLOCATED( LWI      ) ) DEALLOCATE( LWI      )
+      IF ( ALLOCATED( LWI_GISS ) ) DEALLOCATE( LWI_GISS ) 
+      IF ( ALLOCATED( MOLENGTH ) ) DEALLOCATE( MOLENGTH ) 
       IF ( ALLOCATED( MOISTQ   ) ) DEALLOCATE( MOISTQ   )
+      IF ( ALLOCATED( OICE     ) ) DEALLOCATE( OICE     )  
       IF ( ALLOCATED( OPTD     ) ) DEALLOCATE( OPTD     )
       IF ( ALLOCATED( OPTDEP   ) ) DEALLOCATE( OPTDEP   )
       IF ( ALLOCATED( PARDF    ) ) DEALLOCATE( PARDF    )
@@ -1806,6 +2056,7 @@
       IF ( ALLOCATED( RADSWG   ) ) DEALLOCATE( RADSWG   )
       IF ( ALLOCATED( RH       ) ) DEALLOCATE( RH       )
       IF ( ALLOCATED( SLP      ) ) DEALLOCATE( SLP      )
+      IF ( ALLOCATED( SNICE    ) ) DEALLOCATE( SNICE    ) 
       IF ( ALLOCATED( SNOW     ) ) DEALLOCATE( SNOW     )
       IF ( ALLOCATED( SPHU1    ) ) DEALLOCATE( SPHU1    )
       IF ( ALLOCATED( SPHU2    ) ) DEALLOCATE( SPHU2    )
@@ -1819,6 +2070,8 @@
       IF ( ALLOCATED( TS       ) ) DEALLOCATE( TS       )
       IF ( ALLOCATED( TSKIN    ) ) DEALLOCATE( TSKIN    )
       IF ( ALLOCATED( U10M     ) ) DEALLOCATE( U10M     )
+      IF ( ALLOCATED( UPDE     ) ) DEALLOCATE( UPDE     ) 
+      IF ( ALLOCATED( UPDN     ) ) DEALLOCATE( UPDN     ) 
       IF ( ALLOCATED( USTAR    ) ) DEALLOCATE( USTAR    )
       IF ( ALLOCATED( UWND     ) ) DEALLOCATE( UWND     )
       IF ( ALLOCATED( UWND1    ) ) DEALLOCATE( UWND1    )

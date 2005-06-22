@@ -1,197 +1,245 @@
-REVISIONS (v7-03-01)  
-bmy, 04 May 2005
+REVISIONS (v7-03-02)  
+bmy, 22 Jun 2005
 
 
-New in v7-03-01:
+New in v7-03-02:
 -------------------------------------------------------------------------------
 
-aero_sfcrsii		-- New code from Becky Alexander, now accounts for
-("drydep_mod.f")	   hygroscopic growth of aerosol particles.
+do_geos4_convect	-- Driver routine for GEOS-4 convection code
+("convection_mod.f")       (split off from DO_CONVECTION)
 
-diag3.f			-- Add P(SO4s) to row 8 of ND05 diagnostic
+do_geos4_convect	-- Driver routine for GEOS-4 convection code
+("convection_mod.f")       (split off from DO_CONVECTION)
 
-dust_sfcrsi		-- Renamed from AERO_SFCRSI, does not account for
-("drydep_mod.f")	   hygroscopic growth of particles
+get_obk			-- Routine to compute the Monin-Obhukov length
+("dao_mod.f")		   (code was formerly in routine METERO of
+			   "drydep_mod.f")
 
-dust_sfcrsii		-- Renamed from AERO_SFCRSII, does not account for
-("drydep_mod.f")	   hygroscopic growth of particles
+make_gcap_cldfrc	-- Added routine to create CLDFRC field from
+("a6_read_mod.f")	   CLDF field for GCAP data
 
-gamap_mod.f		-- Module containing routines which create GAMAP 
-			   "tracerinfo.dat" and "diaginfo.dat" files which are 
-			   customized to each particular GEOS-CHEM simulation
-
-get_alk			-- Routine for computing alkalinity of seasalt
-("seasalt_mod.f")	   emissions; called from SULFATE_MOD
-
-get_fam_name		-- Routine that returns ND65 P/L family names
-("diag_pl_mod.f")
-
-get_fam_mwt		-- Routine that returns ND65 P/L family molec. wts
-("diag_pl_mod.f")
-
-get_nfam		-- Routine that returns # of ND65 P/L families
-("diag_pl_mod.f")
-
-get_sim_name		-- Returns returns the name 
-("tracer_mod.f")	   (e.g. "NOx-Ox-Hydrocarbon-Aerosol", "Tagged CO", 
-			   etc.) of the GEOS-CHEM simulation. 
-
-grav_settling		-- Computes gravitational settling of SO4s, NITs
-("sulfate_mod.f")
-
-isoropia_mod.f		-- Module containing routines from the ISOROPIA
-			   package for aerosol thermodynamical equilibrium
-
-seasalt_chem		-- Function SEASALT_CHEM computes SO4 formed from 
-("sulfate_mod.f")	   S(IV) + O3 on seasalt aerosols as a function of
-			   seasalt alkalinity
-
-system_date_time	-- Returns the system date and time (local time)
-("time_mod.f")		   as opposed to the model date & time
-
-system_timestamp	-- Returns a 16 character string with the system
-("time_mod.f")		   date and time in YYYY/MM/DD HH:MM format.
+tagged_hcn_ch3cn_mod.f	-- Module for tagged HCN and CH3CN simulation
 
 
 
-Removed in v7-03-01:
+Removed in v7-03-02:
 -------------------------------------------------------------------------------
 
 
 
-Changed from v7-02-04:
+Changed from v7-03-01:
 -------------------------------------------------------------------------------
 
-accumulate_diag50       -- Now reference CLDF and BXHEIGHT from "dao_mod.f".  
-("diag50_mod.f")	-- Now save 3-D cloud fraction as tracer #79 and 
-			   box height as tracer #93.  
-			-- Now remove references to CLMOSW, CLROSW, and PBL 
-			   from "dao_mod.f".
+archive_rxns_for_pf	-- Bug fix: Replace with DO_PF since this variable is 
+("planeflight_mod.f")	   reset to either T or F each day depending on 
+			   whether there is plane flight data available
 
-accumulate_diag51       -- Now reference CLDF and BXHEIGHT from "dao_mod.f".  
-("diag50_mod.f")	-- Now save 3-D cloud fraction as tracer #79 and 
-			   box height as tracer #93.  
-			-- Now remove references to CLMOSW, CLROSW, and PBL 
-			   from "dao_mod.f".
+cleanup_dao		-- Now deallocates GCAP met field arrays
+("dao_mod.f")
 
-chemsulfate		-- Now handle gravitational settling of SO4s, NITs
-("sulfate_mod.f")
+CMN_SIZE		-- Now add parameters for GCAP & GEOS-5 grids
 
-chem_dms		-- Shift rows 8,9 in AD05 to 9,10 in to make room for
-("sulfate_mod.f")	   P(SO4) from O3 oxidation in sea-salt aerosols
+compute_grid		-- Now modified for GCAP 4x5 horizontal grid
+("grid_mod.f")
 
-chem_so2		-- Modified for SO4s, NITs chemistry
-("sulfate_mod.f")	-- Modified for alkalinity w/in the seasalt chemistry
+compute_pbl_height	-- Now modified for GEOS-5 and GCAP met fields
+("pbl_mix_mod.f")
 
-cleanup_seasalt		-- Now deallocates ALK_EMIS, N_DENS, SRC_N
-("seasalt_mod.f")
+correct_ste		-- Now updated for GCAP met fields
+("RnPbBe_mod.f")
 
-CMN_DIAG		-- Rename MAXDIAG to MAX_DIAG and MAXTRACER to 
- 			   MAX_TRACER in order to avoid name conflicts with 
-		           "gamap_mod.f"
+dao_mod.f		-- Now declare extra variables for GCAP met fields
 
-compute_f		-- Updated for SO4s, NITs
-("wetscav_mod.f")
+define.h		-- Removed obsolete A_LLK_03 switch.  
+			-- Also added extra switches for GCAP and 
+			   GEOS_5 met fields
 
-define.h		-- Removed obsolete A_LLK_03 switch
+depvel			-- Now define AZO for the proper dimension for
+("drydep_mod.f")	   GCAP or GEOS met fields
+			-- Now compute REYNO for GCAP or GEOS met fields
+			-- Now compute Z0OBK for GCAP or GEOS met fields
+			-- Now activate other GISS-specific code sections
+			   when using the GCAP met fields
 
-depvel			-- Now calls AERO_SFCRSII for seasalt tracers, and
-("drydep_mod.f")	   DUST_SFCRSII for dust tracers.  Seasalt tracers
-			   have hygroscopic growth, dust do not.
-			-- Added RHB as an inpuat array
+diag1.f			-- Fixed ND67 PS-PBL for GCAP and GEOS-5 met fields
 
-diag3.f			-- Add P(SO4s) to row 8 of ND05 diagnostic
-			-- Also remove special tracer #'s for the ND67 diag
-			-- Now do not save CLDMAS for ND67 for GEOS-4, since 
-			   GEOS-4 convection uses different met fields
+diag3.f			-- Now modified for GEOS-5 and GCAP met fields
+			-- Bug fix in ND68 diagnostic: use LD68 instead of 
+			   ND68 in call to BPCH2
 
-diag48			-- Now reference CLDF and BXHEIGHT from "dao_mod.f"
-("diag48_mod.f")	-- Now save 3-D cloud fraction as tracer #79 and box 
-			   height as tracer #93
-			-- Now remove reference to PBL from "dao_mod.f"
+directory_mod.f		-- Added variables GCAP_DIR and GEOS_5_DIR
 
-diag49			-- Now reference CLDF and BXHEIGHT from "dao_mod.f" 
-("diag49_mod.f")	-- Now save 3-D cloud fraction as tracer #79 and grid 
-			   box height as tracer #93. 
-			-- Now remove reference to PBL from "dao_mod.f"
+do_chemistry		-- Now modified for GCAP met fields
+("chemistry_mod.f")
 
-display_end_time	-- Now prints the ending time of the GEOS-CHEM
-("main.f")		   simulation in YYYY/MM/DD HH:MM format
+do_convection		-- Now calls separate driver routines for convection
+("convection_mod.f")	   depending on met field type 
 
-display_grid_and_model	-- Now also prints the starting time of the GEOS-CHEM
-("main.f")		   simulation in YYYY/MM/DD HH:MM format
+do_drydep		-- Now dimension AZO for GEOS or GCAP met fields
+("drydep_mod.f")	-- Remove obsolete variables
 
-do_chemistry		-- Now use ISOROPIA for aer thermodyn equilibrium if 
-("chemistry_mod.f")	   we have seasalt tracers defined, or RPMARES if not
-			-- Now call CHEMSEASALT before CHEMSULFATE due to the
-			   new seasalt chemistry for SO4s and NITs
-			-- Now do aerosol thermodynamic equilibrium before
-			   aerosol chemistry for offline aerosol runs.
-			-- Now references CLDF from "dao_mod.f"
-			-- Now passes CLDF to OPTDEPTH 
+do_open_a3		-- Remove code for obsolete GEOS-4 a_llk_03 data
+("a3_read_mod.f")	-- Now modified for GEOS-5 and GCAP met fields
 
-do_drydep		-- Now define RHB as a local array, which is defined 
-("drydep_mod.f")	   in METERO and then passed to DEPVEL
+do_open_a6		-- Remove code for obsolete GEOS-4 a_llk_03 data
+("a6_read_mod.f")	-- Now modified for GEOS-5 and GCAP met fields
 
-do_emissions 		-- Now call EMISSSEASALT before EMISSSULFATE due to the
-("emissions_mod.f")	   new seasalt chemistry for SO4s and NITs
-			
-emissseasalt		-- Now call INIT_SEASALT on the first timestep
-("seasalt_mod.f")	-- Also initialize ALK_EMIS & N_DENS on each timestep.
+do_global_transport	-- For GEOS-3 transport, we don't have to flip the 
+("transport_mod.f")	   STT array before & after the call to TPCORE because
+			   we now call TPCORE with the array mask statement
+		           STT(:,:,LLPAR:1:-1,:)
+			-- Also modified for GEOS-5 and GCAP met fields. 
 
-get_global_hno3		-- Now read total gas + aerosol HNO3 data
-("global_hno3_mod.f")
+dryflxRnPbBe		-- Now modified for GEOS-5 and GCAP met fields
+("drydep_mod.f")
 
-get_wetdep_nmax		-- Updated for SO4s, NITs
-("wetscav_mod.f")
+emisop.f		-- Bug fix: change #else to #elif
 
-init_drydep		-- Included SO4s, NITs tracers
-("drydep_mod.f")	
+emisop_mb.f		-- Bug fix: change #else to #elif
 
-init_seasalt		-- Now exit if we have allocated arrays before
-("seasalt_mod.f")	-- Now also allocate ALK_EMIS, N_DENS, SRC_N
-			-- Now references CMN_SIZE
+emisop_grass.f		-- Bug fix: change #else to #elif
 
-init_sulfate		-- Now allocates PSO4_ss, PNITs
-("drydep_mod.f")	
+get_a3_fields		-- Now modified for GCAP and GEOS-5 met fields
+("a3_read_mod.f")
 
-metero			-- Now references RH from "dao_mod.f".  
-("drydep_mod.f")	-- Now passes relative humidity in the surface layer 
-			   back via RHB argument.
+get_a6_fields		-- Now modified for GCAP and GEOS-5 met fields
+("a3_read_mod.f")
 
-ndxx_setup.f		-- Now use PD05=11 to dimension AD05 array
+get_a3_time		-- Now modified for GCAP and GEOS-5 met fields
+("time_mod.f")
 
-od_geos3_geos4		-- Renamed from od_geos2_geos3
-("optdepth_mod.f")	-- Now passes CLDF via the arg list
-			-- Now saves CLDF to ND21 diagnostic
+get_a6_time		-- Now modified for GCAP and GEOS-5 met fields
+("time_mod.f")
 
-rainout			-- Updated for SO4s, NITs
-("wetscav_mod.f")
+get_first_a3_time	-- Modified for GCAP and GEOS-5 met fields
+("time_mod.f")
 
-read_aerosol_menu	-- Now also require LSSALT=T when LSULF=T, since we 
-("input_mod.f")		   now compute the production of SO4 and NIT w/in 
-			   the seasalt aerosol
+get_first_a6_time	-- Modified for GCAP and GEOS-5 met fields
+("time_mod.f")
 
-srcsalt			-- Now also compute alkalinity and number density 
-("seasalt_mod.f")	   of seasalt emissions
+get_i6_fields_1		-- Now modified for GEOS-5 and GCAP met fields
+("i6_read_mod.f")
 
-tracerid		-- Added IDTSO4s and IDTNITs
-("tracerid_mod.f")
+get_i6_fields_2		-- Now modified for GEOS-5 and GCAP met fields
+("i6_read_mod.f")
 
-washout			-- Updated for SO4s, NITs
-("wetscav_mod.f")
+get_l_copy		-- Now modified for GEOS-5 and GCAP met fields
+("transfer_mod.f")
 
-wetdep			-- Block out parallel loop with #ifdef statements 
-("wetscav_mod.f")	   for SGI_MIPS compiler.  For some reason this 
-		           causes an error.
+get_modelname		-- Updated for GCAP and GEOS-5 met fields
+("bpch2_mod.f")		-- Rearranged coding for simplicity.
 
-wetdepid		-- Updated for SO4s, NITs
-("wetscav_mod.f")
+get_n_a3		-- Now modified for GCAP and GEOS-5 met fields
+("a3_read_mod.f")
 
-wetscav_mod.f		-- Increased NSOLMAX from 29 to 31
+get_n_a6		-- Now modified for GCAP and GEOS-5 met fields
+("a6_read_mod.f")
 
-write_diag50		-- Now save grid box heights as tracer #93
-("diag50_mod.f")	-- Now save 3-D cloud fraction as tracer #79
+get_n_i6		-- Now modified for GCAP and GEOS-5 met fields
+("i6_read_mod.f")
 
-write_diag51		-- Now save grid box heights as tracer #93
-("diag50_mod.f")	-- Now save 3-D cloud fraction as tracer #79
+get_name_ext		-- Updated for GCAP and GEOS-5 met fields
+("bpch2_mod.f")
+
+get_oro			-- Modified for GEOS-5 and GCAP met fields
+("dust_dead_mod.f")
+
+get_phis_field      	-- Now also read LWI_GISS for GCAP met fields
+("phis_read_mod.f")
+
+init_dao		-- Modified for GCAP met fields
+("dao_mod.f")
+
+init_gamap		-- Now add proper UNIT & SCALE for Rn/Pb/Be simulations
+("gamap_mod.f")
+
+init_grid		-- Modified for GCAP 4x5 horizontal grid
+("grid_mod.f")
+
+init_pressure		-- Now modified for both GCAP & GEOS-5 vertical grids
+("pressure_mod.f")
+
+init_transport		-- Now modified for both GCAP & GEOS-5 met fields
+("transport_mod.f")
+
+interp			-- Now modified for GEOS-5 and GCAP met fields 
+("dao_mod.f")
+
+is_land			-- Now modified for GEOS-5 and GCAP met fields 
+("dao_mod.f")
+
+is_water		-- Now modified for GEOS-5 and GCAP met fields 
+("dao_mod.f")
+
+its_time_for_a6		-- Now modified for GCAP and GEOS-5 met fields 
+("time_mod.f")
+
+init_transfer		-- Now modified for GEOS-5 met fields
+("transfer_mod.f")
+
+metero			-- Now call GET_OBK from "dao_mod.f" to get the M-O 
+("drydep_mod.f")	   length for both GEOS or GCAP met fields 
+			-- Remove local computation of M-O length here
+			-- Also now dimension AZO appropriately for GCAP or 
+			   GEOS met fields
+			-- Remove obsolete variables
+
+open_a3_fields      	-- Now modified for GEOS-5 and GCAP met fields 
+("a3_read_mod.f")
+
+open_a6_fields      	-- Now modified for GEOS-5 and GCAP met fields 
+("a3_read_mod.f")
+
+open_i6_fields      	-- Now modified for GEOS-5 and GCAP met fields 
+("i6_read_mod.f")
+
+open_phis_field      	-- Now modified for GEOS-5 and GCAP met fields 
+("phis_read_mod.f")
+
+read_a3			-- Now modified for GEOS-5 and GCAP met fields
+("a3_read_mod.f")	-- Added GCAP MOLENGTH, SNICE, OICE optional arguments
+
+read_a6			-- Now modified for GEOS-5 and GCAP met fields
+("a3_read_mod.f")	-- Added DETRAINE, DETRAINN, DNDE, DNDN, ENTRAIN, 
+			   UPDE, UPDN as optional arguments
+			-- Now references "CMN_DIAG"
+
+reader.f		-- Redefine CHEMINTV [s] to the value in "input.geos" 
+			   so that we don't have a discrepancy with the value 
+			   in "mglob.dat"
+
+read_phis		-- Now also read LWI_GISS for GCAP met fields
+("phis_read_mod.f") 	-- Added optional variable LWI to the arg list.
+
+read_simulation_menu	-- Now read GEOS_5_DIR and GCAP_DIR from input.geos 
+("input_mod.f")
+
+read_uvalbedo		-- Now references GET_NAME_EXT from "bpch_mod.f"
+("uvalbedo_mod.f")
+
+transfer_3d		-- Now modified for GEOS-5 met fields
+("transfer_mod.f")
+
+transfer_a6		-- Now modified for GEOS-5 met fields
+("transfer_mod.f")
+
+transfer_zonal_r4	-- Now modified for GEOS-5 met fields
+("transfer_mod.f")
+
+transfer_zonal_r8	-- Now modified for GEOS-5 met fields
+("transfer_mod.f")
+
+unzip_a3_fields		-- Now modified for GEOS-5 and GCAP met fields
+("a3_read_mod.f")
+
+unzip_a3_fields		-- Now modified for GEOS-5 and GCAP met fields
+("a3_read_mod.f")
+
+unzip_a6_fields		-- Remove code for obsolete GEOS-4 a_llk_03 data 
+("a6_read_mod.f")	-- Now modified for GEOS-5 and GCAP met fields
+
+unzip_phis_field	-- Now modified for GEOS-5 and GCAP met fields
+("phis_read_mod.f")
+
+upbdflx_o3		-- Now modified for GEOS-5 and GCAP met fields
+("upbdflx_mod.f")

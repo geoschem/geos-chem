@@ -1,10 +1,10 @@
-! $Id: uvalbedo_mod.f,v 1.3 2004/12/02 21:48:42 bmy Exp $
+! $Id: uvalbedo_mod.f,v 1.4 2005/06/22 20:50:06 bmy Exp $
       MODULE UVALBEDO_MOD
 !
 !******************************************************************************
 !  Module UVALBEDO_MOD contains variables and routines for reading the UV
 !  Albedo data from disk (for use w/ the FAST-J photolysis routines).
-!  (bmy, 4/19/02, 7/20/04)
+!  (bmy, 4/19/02, 6/8/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -30,6 +30,7 @@
 !  (3 ) Now references "error_mod.f" (bmy, 10/15/02)
 !  (4 ) Minor modification in READ_UVALBEDO (bmy, 3/14/03)
 !  (5 ) Now references "directory_mod.f" (bmy, 7/20/04)
+!  (6 ) Bug fix for GCAP grid in READ_UVALBEDO (bmy, 6/8/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -87,6 +88,7 @@
 !  (11) Now call READ_BPCH2 with QUIET=.TRUE. to suppress printing of extra 
 !        info to stdout.  Also made cosmetic changes. (bmy, 3/14/03)
 !  (12) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  (13) Now references GET_NAME_EXT from "bpch_mod.f" (bmy, 6/8/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -130,8 +132,15 @@
       !=================================================================
 
       ! Create filename
-      FILENAME = TRIM( DATA_DIR )                 // 
-     &           'uvalbedo_200111/uvalbedo.geos.' // GET_RES_EXT()
+!---------------------------------------------------------------------------
+! Prior to 6/8/05:
+! Now references GET_NAME_EXT from "bpch2_mod.f" (bmy, 6/8/05)
+!      FILENAME = TRIM( DATA_DIR )                 // 
+!     &           'uvalbedo_200111/uvalbedo.geos.' // GET_RES_EXT()
+!---------------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR )  // 
+     &           'uvalbedo_200111/uvalbedo.' // GET_NAME_EXT() // 
+     &           '.'                         // GET_RES_EXT()
 
       ! Echo filename
       WRITE( 6, 110 ) TRIM( FILENAME )

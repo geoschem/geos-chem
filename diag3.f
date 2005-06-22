@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.21 2005/05/09 14:33:57 bmy Exp $
+! $Id: diag3.f,v 1.22 2005/06/22 20:50:00 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out diagnostics to the BINARY format punch file 
-!  (bmy, bey, mgs, rvm, 5/27/99, 4/13/05)
+!  (bmy, bey, mgs, rvm, 5/27/99, 6/9/05)
 !
 !  NOTES: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
@@ -56,6 +56,9 @@
 !        numbers for the ND67 diagnostic.  Now do not save CLDMAS for ND67
 !        for GEOS-4, since GEOS-4 convection uses different met fields.
 !        (bec, bmy, 5/3/05)
+!  (60) Bug fix in ND68 diagnostic: use LD68 instead of ND68 in call
+!        to BPCH2.  Now modified for GEOS-5 and GCAP met fields
+!        (swu, bmy, 5/25/05)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -254,10 +257,6 @@
 
             ! Tracers 9, 10 are OH, NO3
             ! and are in [kg] instead of [kg S]
-            !-----------------------
-            ! Prior to 4/13/05:
-            !IF ( N < 8 ) THEN 
-            !-----------------------
             IF ( N < 9 ) THEN 
                UNIT = 'kg S'
             ELSE
@@ -2490,6 +2489,7 @@
 !       #7 (for compatibility with the existing GAMAP).  (rvm, bmy, 9/8/00)
 !  (3) For GEOS-4/fvDAS, UWND, VWND, TMPU, SPHU are A-6 fields.  Adjust
 !       the scale factors accordingly.  Also delete KZZ. (bmy, 6/23/03)
+!  (4) Modified for GEOS-5 and GCAP (bmy, 6/9/05)
 !******************************************************************************
 !
       IF ( ND66 > 0 ) THEN
@@ -2503,29 +2503,58 @@
 
                ! UWND, VWND
                CASE ( 1,2 )
-#if   defined( GEOS_4 )
-                  SCALEX = SCALE_A6
-#else
+!---------------------------------------------------------------------------
+! Prior to 6/9/05:
+! Winds are I-6 fields in GEOS-1, GEOS-S, GEOS-3; A-6 otherwise 
+! (swu, bmy, 6/9/05)
+!#if   defined( GEOS_4 )
+!                  SCALEX = SCALE_A6
+!#else
+!                  SCALEX = SCALE_I6
+!#endif
+!---------------------------------------------------------------------------
+#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
                   SCALEX = SCALE_I6
+#else
+                  SCALEX = SCALE_A6
 #endif
-
                   UNIT   = 'm/s'
 
                ! TMPU
                CASE ( 3 )
-#if   defined( GEOS_4 )
-                  SCALEX = SCALE_A6
-#else
+!---------------------------------------------------------------------------
+! Prior to 6/9/05:
+! Temperature is an I-6 field in GEOS-1, GEOS-S, GEOS-3; A-6 otherwise 
+! (swu, bmy, 6/9/05)
+!#if   defined( GEOS_4 )
+!                  SCALEX = SCALE_A6
+!#else
+!                  SCALEX = SCALE_I6
+!#endif
+!---------------------------------------------------------------------------
+#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
                   SCALEX = SCALE_I6
+#else
+                  SCALEX = SCALE_A6
 #endif
                   UNIT   = 'K'
 
                ! SPHU
                CASE ( 4 )
-#if   defined( GEOS_4 )
-                  SCALEX = SCALE_A6
-#else
+!---------------------------------------------------------------------------
+! Prior to 6/9/05:
+! SPHU is an I-6 field in GEOS-1, GEOS-S, GEOS-3; A-6 otherwise 
+! (swu, bmy, 6/9/05)
+!#if   defined( GEOS_4 )
+!                  SCALEX = SCALE_A6
+!#else
+!                  SCALEX = SCALE_I6
+!#endif
+!---------------------------------------------------------------------------
+#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
                   SCALEX = SCALE_I6
+#else
+                  SCALEX = SCALE_A6
 #endif
                   UNIT   = 'g/kg'
 
@@ -2620,6 +2649,13 @@
                CASE ( 10 )
                   SCALEX = SCALE_A3
                   UNIT   = 'unitless'
+
+#if   defined( GEOS_STRAT ) || defined( GCAP )
+                  ! CLDFRC is a 6-hr field in GCAP, GEOS-STRAT 
+                  ! (swu, bmy, 6/9/05)
+                  SCALEX = SCALE_A6
+#endif
+
                CASE ( 13 )
                   SCALEX = SCALEDYN
                   UNIT   = 'hPa'
@@ -2635,45 +2671,21 @@
                CASE ( 17 ) 
                   SCALEX = SCALE_I6
                   UNIT   = 'hPa'
-                  !---------------------------
-                  ! Prior to 5/3/05:
-                  !NN     = 19   ! for GAMAP
-                  !---------------------------
                CASE ( 18 ) 
                   SCALEX = SCALE_I6
                   UNIT   = 'hPa'
-                  !---------------------------
-                  ! Prior to 5/3/05:
-                  !NN     = 21   ! for GAMAP
-                  !---------------------------
                CASE ( 19 ) 
                   SCALEX = SCALE_A3
                   UNIT   = 'K'
-                  !---------------------------
-                  ! Prior to 5/3/05:
-                  !NN     = 29   ! for GAMAP
-                  !---------------------------
                CASE ( 20 ) 
                   SCALEX = SCALE_A3
                   UNIT   = 'W/m2'
-                  !---------------------------
-                  ! Prior to 5/3/05:
-                  !NN     = 32   ! for GAMAP
-                  !---------------------------
                CASE ( 21 ) 
                   SCALEX = SCALE_A3
                   UNIT   = 'W/m2'
-                  !---------------------------
-                  ! Prior to 5/3/05:
-                  !NN     = 33   ! for GAMAP
-                  !---------------------------
                CASE ( 22 ) 
                   SCALEX = SCALE_A3
                   UNIT   = 'unitless'
-                  !---------------------------
-                  ! Prior to 5/3/05
-                  !NN     = 27   ! for GAMAP
-                  !---------------------------
                CASE DEFAULT
                   CYCLE
             END SELECT
@@ -2701,7 +2713,7 @@
 !  NOTES:
 !  (1) We don't need to add TRCOFFSET to N.  These are not CTM tracers.
 !  (2) Now replaced SCALE1 with SCALEDYN (bmy, 2/24/03)
-!  (3) Bug fix: replace ND68 with LD68 in call to BPCH2 (auvray, bmy, 11/29/04)
+!  (3) Bug fix: replace ND68 with LD68 in call to BPCH2 (swu, bmy, 6/9/05)
 !******************************************************************************
 !
       IF ( ND68 > 0 ) THEN
@@ -2720,7 +2732,12 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     ND68,     IFIRST,     
+!-----------------------------------------------------------------------
+! Prior to 6/9/05:
+! Bug fix: Use LD68 instead of ND68 (swu, bmy, 6/9/05)
+!     &                  IIPAR,     JJPAR,     ND68,     IFIRST,     
+!-----------------------------------------------------------------------
+     &                  IIPAR,     JJPAR,     LD68,     IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD68) )
          ENDDO
       ENDIF

@@ -1,10 +1,10 @@
-! $Id: transport_mod.f,v 1.7 2004/10/15 20:16:43 bmy Exp $
+! $Id: transport_mod.f,v 1.8 2005/06/22 20:50:06 bmy Exp $
       MODULE TRANSPORT_MOD
 !
 !******************************************************************************
 !  Module TRANSPORT_MOD is used to call the proper version of TPCORE for
 !  GEOS-1, GEOS-STRAT, GEOS-3 or GEOS-4 nested-grid or global simulations.
-!  (yxw, bmy, 3/10/03, 9/28/04)
+!  (yxw, bmy, 3/10/03, 5/25/05)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -61,6 +61,7 @@
 !        "logical_mod.f" and "tracer_mod.f" (bmy, 7/20/04)
 !  (6 ) Add mass-flux diagnostics to TPCORE_FVDAS (bdf, bmy, 9/28/04)
 !  (7 ) Now references "diag_mod.f" (bmy, 9/28/04)
+!  (8 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -147,7 +148,7 @@
 !******************************************************************************
 !  Subroutine DO_TRANSPORT is the driver routine for the proper TPCORE 
 !  program for GEOS-1, GEOS-STRAT, GEOS-3 or GEOS-4 global simulations. 
-!  (bdf, bmy, 3/10/03, 7/20/04)
+!  (bdf, bmy, 3/10/03, 5/25/05)
 ! 
 !  NOTES:
 !  (1 ) Now references routine TPCORE_FVDAS from "tpcore_fvdas_mod.f90".
@@ -169,6 +170,10 @@
 !        (bmy, 7/20/04) 
 !  (6 ) Now references MASSFLEW, MASSFLNS, MASSFLUP from "diag_mod.f".
 !        Also references ND24, ND25, ND26 from "CMN_DIAG". (bmy, 9/28/04)
+!  (7 ) For GEOS-3 transport, we don't have to flip the STT array before & 
+!        after the call to TPCORE because we now call TPCORE with the array 
+!        mask statement STT(:,:,LLPAR:1:-1,:).  Also modified for GEOS-5 
+!        and GCAP met fields. (swu, bmy, 5/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -190,7 +195,7 @@
 #     include "CMN_DIAG"  ! ND24, ND25, ND26
       
       ! Local variables
-      INTEGER             :: I, J, L, N, N_DYN
+      INTEGER             :: I, J, L, L2, N, N_DYN
       REAL*8              :: A_DIFF, D_DYN, TR_DIFF
       REAL*8              :: AD_A(IIPAR,JJPAR,LLPAR)
       REAL*8              :: AD_B(IIPAR,JJPAR,LLPAR)
@@ -317,20 +322,25 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-#if defined( GEOS_4 )
+!------------------------
+! Prior to 5/25/05:
+!#if defined( GEOS_4 )
+!------------------------
+#if defined( GEOS_4 ) || defined( GEOS_5 )
 
-         ! For GEOS-4 winds, we need to have P_TP1 and P_TP2 as the
-         ! true surface pressure, in order to be consistent with the
-         ! Ap and Bp coordinates which define the GEOS-4 hybrid grid.
+         ! *** For GEOS-4, GEOS-5 winds ***
+         ! We need to have P_TP1 and P_TP2 as the true surface pressure, 
+         ! in order to be consistent with the Ap and Bp coordinates which 
+         ! define the GEOS-4 hybrid grid.
          P_TP1(I,J) = GET_PEDGE(I,J,1)
          P_TP2(I,J) = PSC2(I,J)       
 
 #else 
 
-         ! For GEOS-3, GEOS-STRAT, GEOS-1 winds, we need to have
-         ! P_TP1 and P_TP2 to be ( true surface pressure - PTOP )
-         ! in order to be consistent with the Ap and Bp coordinates
-         ! which define the pure-sigma grid.  
+         ! *** For GCAP, GEOS-3, GEOS-STRAT, GEOS-1 winds *** 
+         ! We need to have P_TP1 and P_TP2 to be ( true sfc pressure - PTOP )
+         ! in order to be consistent with the Ap and Bp coordinates which 
+         ! define the pure-sigma grid.  
          P_TP1(I,J) = GET_PEDGE(I,J,1) - PTOP
          P_TP2(I,J) = PSC2(I,J)        - PTOP
 
@@ -342,7 +352,8 @@
       IF ( USE_GEOS_4_TRANSPORT ) THEN
 
          !==============================================================
-         ! GEOS-3 or GEOS-4: Use GEOS-4/fvDAS version of TPCORE
+         ! Use GEOS-4/fvDAS version of TPCORE
+         ! (compatible with GEOS-3, GEOS-4, or GCAP winds)
          !==============================================================
          DO N = 1, N_TRACERS
 !$OMP PARALLEL DO
@@ -370,18 +381,23 @@
          ! Apply pressure fixer 
          !----------------------------
 
-#if   defined( GEOS_4 )
+!--------------------------
+! Prior to 5/25/05:
+!#if   defined( GEOS_4 )
+!--------------------------
+#if   defined( GEOS_4 ) || defined( GEOS_5 )
 
+         ! *** For GEOS-4 and GEOS-5 winds ***
          ! Call PJC P-fixer to get adjusted air masses (XMASS, YMASS)
-         ! For GEOS-4, pass "true" surface pressures P_TP1 and P_TP2 
-         ! to routine DO_PJC_PFIX.
+         ! Pass "true" surface pressures P_TP1 and P_TP2 to DO_PJC_PFIX.
          CALL DO_PJC_PFIX( D_DYN, P_TP1, P_TP2, 
      &                     UWND,  VWND,  XMASS, YMASS )
 
 #else
+         ! *** For GCAP and GEOS-3 winds ***
          ! Call PJC P-fixer to get adjusted air masses (XMASS, YMASS)
-         ! For GEOS-3, P_TP1 and P_TP2 are ( Psurface - PTOP ), so we must 
-         ! call DO_PJC_PFIX with ( P_TP1 + PTOP ) and ( P_TP2 + PTOP ). 
+         ! P_TP1 and P_TP2 are ( Psurface - PTOP ), so we must call 
+         ! DO_PJC_PFIX with ( P_TP1 + PTOP ) and ( P_TP2 + PTOP ). 
          CALL DO_PJC_PFIX( D_DYN, P_TP1+PTOP, P_TP2+PTOP, 
      &                     UWND,  VWND,       XMASS, YMASS )
 
@@ -435,17 +451,23 @@
          ! Reset surface pressure
          !----------------------------
 
-#if   defined( GEOS_4 )
+!-------------------------
+! Prior to 5/25/05:
+!#if   defined( GEOS_4 )
+!-------------------------
+#if   defined( GEOS_4 ) || defined( GEOS_5 )
 
-         ! For GEOS-4, P_TP2 is the "true" surface pressure at the end of 
-         ! the dynamic timestep.  Reset the pressure with P_TP2.  This will 
+         ! *** For GEOS-4 or GEOS-5 winds ***
+         ! P_TP2 is the "true" surface pressure at the end of the 
+         ! dynamic timestep.  Reset the pressure with P_TP2.  This will 
          ! be the pressure at the start of the next dynamic timestep.
          CALL SET_FLOATING_PRESSURE( P_TP2 )
 #else
 
-         ! For GEOS-3, P_TP2 is the "true" surface pressure at the end of 
-         ! the dynamic timestep - PTOP.  Reset the pressure with P_TP2+PTOP.  
-         ! This will be the pressure at the start of the next dynamic timestep.
+         ! *** For GCAP and GEOS-3 winds ***
+         ! P_TP2 is the "true" surface pressure at the end of the dynamic 
+         ! timestep - PTOP.  Reset the pressure with P_TP2+PTOP.  This 
+         ! will be the pressure at the start of the next dynamic timestep.
          CALL SET_FLOATING_PRESSURE( P_TP2 + PTOP )
 
 #endif
@@ -518,32 +540,50 @@
       ELSE
       
          !==============================================================
-         ! GEOS-1, GEOS-STRAT, or GEOS-3: Use TPCORE version 7.1.m
+         ! Use TPCORE version 7.1.m
+         ! (compatible with GEOS-1, GEOS-STRAT, or GEOS-3)
          !==============================================================
 
          ! Flip arrays in vertical dimension
          ! Store winds in UTMP, VTMP to preserve UWND, VWND for diagnostics
          UTMP(:,:,1:LLPAR  ) = UWND(:,:,LLPAR:1:-1  )
          VTMP(:,:,1:LLPAR  ) = VWND(:,:,LLPAR:1:-1  )
-         STT (:,:,1:LLPAR,:) = STT (:,:,LLPAR:1:-1,:)
+         !-------------------------------------------------------------
+         ! Prior to 5/18/05:
+         ! Now we don't have to flip the array anymore (bmy, 5/18/05)
+         !STT (:,:,1:LLPAR,:) = STT (:,:,LLPAR:1:-1,:)
+         !-------------------------------------------------------------
 
          ! TPCORE v7.1.m transport scheme (output pressure is P_TP2)
          ! The pressures P_TP1 and P_TP2 are PS-PTOP, in order to
          ! be consistent with the definition of Ap and Bp for GEOS-3
          ! GEOS-STRAT, and GEOS-1 winds. (bmy, 10/27/03)
-         CALL TPCORE( IGD,   STT,   P_TP1, P_TP2, UTMP, VTMP,  
-     &                WW,    N_DYN, IORD,  JORD,  KORD, N_TRACERS, 
-     &                IIPAR, JJPAR, J1,    LLPAR, Ap,   Bp,     
-     &                PTOP,  Re,    LFILL, LMFCT, Umax )
-
+!----------------------------------------------------------------------------
+! Prior to 5/18/05:
+! We now pass the flipped array mask to TPCORE, so we don't have to manually 
+! flip the array before & after, it will do it for us (bmy, 5/17/05)
+!         CALL TPCORE( IGD,   STT,   P_TP1, P_TP2, UTMP, VTMP,  
+!     &                WW,    N_DYN, IORD,  JORD,  KORD, N_TRACERS, 
+!     &                IIPAR, JJPAR, J1,    LLPAR, Ap,   Bp,     
+!     &                PTOP,  Re,    LFILL, LMFCT, Umax )
+!----------------------------------------------------------------------------
+         CALL TPCORE( IGD,   STT(:,:,LLPAR:1:-1,:),
+     &                P_TP1, P_TP2, UTMP, VTMP,  WW,    
+     &                N_DYN, IORD,  JORD, KORD,  N_TRACERS, 
+     &                IIPAR, JJPAR, J1,   LLPAR, Ap,   
+     &                Bp,    PTOP,  Re,   LFILL, LMFCT, Umax )
 
          ! Reset floating pressure w/ pressure adjusted by TPCORE.  Here
          ! P_TP2 is PS-PTOP, so reset the pressure with P_TP2+PTOP. This
          ! will be the pressure at the start of the next dynamic timestep.
          CALL SET_FLOATING_PRESSURE( P_TP2 + PTOP )
            
-         ! Re-Flip STT in the vertical dimension
-         STT(:,:,1:LLPAR,:) = STT(:,:,LLPAR:1:-1,:)
+         !------------------------------------------------------------
+         ! Prior to 5/18/05:
+         ! Now we don't have to flip the array anymore (bmy, 5/18/05)
+         !! Re-Flip STT in the vertical dimension
+         !STT(:,:,1:LLPAR,:) = STT(:,:,LLPAR:1:-1,:)
+         !------------------------------------------------------------
 
       ENDIF
 
@@ -771,7 +811,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_TRANSPORT initializes all module variables and arrays. 
-!  (bmy, 3/10/03, 7/20/04)
+!  (bmy, 3/10/03, 5/25/05)
 !
 !  NOTES:
 !  (1 ) Now references GET_TS_DYN from "time_mod.f", INIT_TPCORE_FVDAS from
@@ -780,6 +820,7 @@
 !  (2 ) Remove reference to DSIG, it's obsolete. (bmy, 6/24/03)
 !  (3 ) Now references LEMBED & LTPFV from "logical_mod.f".  Now references
 !        N_TRACERS from "tracer_mod.f". (bmy, 7/20/04)
+!  (4 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -799,9 +840,13 @@
       INTEGER             :: AS, J, K, L, N_DYN
       REAL*8              :: YMID_R(JJPAR)
 
-#if   defined( GEOS_4 ) 
+!--------------------------
+! Prior to 5/25/05:
+!#if   defined( GEOS_4 ) 
+!--------------------------
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( GCAP )
 
-      ! For GEOS-4/fvDAS fields, use the fvDAS transport routines
+      ! For GEOS-4, GEOS-5, or GCAP winds, use the fvDAS transport routines
       USE_GEOS_4_TRANSPORT = .TRUE.
 
 #elif defined( GEOS_3 ) 

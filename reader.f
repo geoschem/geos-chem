@@ -1,9 +1,9 @@
-! $Id: reader.f,v 1.4 2003/08/06 15:30:53 bmy Exp $
+! $Id: reader.f,v 1.5 2005/06/22 20:50:05 bmy Exp $
       SUBROUTINE READER( FIRSTCHEM )
 !
 !******************************************************************************
 !  Subroutine READER reads on/off switches and other settings for SMVGEAR II.
-!  (M. Jacobson 1997; bdf, bmy, 4/18/03, 7/16/03)
+!  (M. Jacobson 1997; bdf, bmy, 4/18/03, 5/10/05)
 !
 !  NOTES:
 !  (1 ) Now force double-precision values with the "D" exponent.  Also use
@@ -17,11 +17,14 @@
 !        PID180, PID2, SCTWOPI, AMRGAS, TWPISC, REARTH. these aren't used w/in 
 !        "reader.f" anymore.  Use F90-style variable declarations.  Also 
 !        remove obsolete variables from documentation. (bmy, 7/16/03)
+!  (3 ) Redefine CHEMINTV [s] to the value in "input.geos" so that we don't !
+!        have a discrepancy with the value in "mglob.dat" (bmy, 5/10/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
       USE FILE_MOD,  ONLY : IU_FILE, IU_CHEMDAT, IU_SMV2LOG
+      USE TIME_MOD,  ONLY : GET_TS_CHEM
 
       IMPLICIT NONE
 
@@ -159,6 +162,11 @@ C
       READ( IU_FILE, CTLPRT )
       READ( IU_FILE, CLGEAR )
       CLOSE( IU_FILE )
+
+      ! NOTE: Redefine CHEMINTV [s] to the value in "input.geos" so 
+      ! that we don't have a discrepancy with the value in "mglob.dat" 
+      ! (bmy, 5/10/05)
+      CHEMINTV = GET_TS_CHEM() * 60d0
 C
 C *********************************************************************
 C *                     DEFINE SOME GRID PARAMETERS                   *

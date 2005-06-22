@@ -1,9 +1,9 @@
-! $Id: define.h,v 1.28 2005/05/09 14:33:57 bmy Exp $
+! $Id: define.h,v 1.29 2005/06/22 20:50:00 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
 !  used to include or exclude certain sections of code.  
-!  (bmy, bdf, 1/30/98, 4/20/05)
+!  (bmy, bdf, 1/30/98, 5/24/05)
 !
 !  List of "Switches"
 !  ===========================================================================
@@ -65,17 +65,19 @@
 !        a newer product.  (bmy, 3/22/04) 
 !  (19) Added NESTED_NA and NESTED_CH cpp switches.  Also add GRID1x125
 !        cpp switch. (bmy, 12/1/04)
-!  (20) Removed obsolete A_LLK_03 switch (bmy, 4/20/05)
+!  (20) Removed obsolete A_LLK_03 switch.  Also added extra switches for
+!        GCAP and GEOS_5 met fields (bmy, 5/24/05)
 !******************************************************************************
 !
 !==============================================================================
 ! Undefine all "switches" so that they cannot be accidentally reset  
 !==============================================================================
+#undef GCAP
 #undef GEOS_1
 #undef GEOS_STRAT
 #undef GEOS_3
 #undef GEOS_4
-#undef A_LLK_03
+#undef GEOS_5
 #undef GRID30LEV
 #undef GRID4x5
 #undef GRID2x25  
@@ -102,10 +104,12 @@
 !==============================================================================
 
 !----- Model types -----
+#define GCAP        'GCAP'
 !#define GEOS_1      'GEOS_1'       
 !#define GEOS_STRAT  'GEOS_STRAT'
-#define GEOS_3      'GEOS_3'
+!#define GEOS_3      'GEOS_3'
 !#define GEOS_4      'GEOS_4'
+!#define GEOS_5      'GEOS_5'
 
 !----- Grid sizes -----
 !#define GRID1x1     'GRID1x1'
@@ -114,7 +118,7 @@
 !#define GRID1x125   'GRID1x125'
 !#define GRID2x25    'GRID2x25'
 #define GRID4x5     'GRID4x5'
-#define GRID30LEV   'GRID30LEV'
+!#define GRID30LEV   'GRID30LEV'
 
 !----- Chemistry -----
 #define FULLCHEM    'FULLCHEM'
@@ -129,15 +133,15 @@
 !#define IBM_AIX     'IBM_AIX'
 !#define LINUX_PGI   'LINUX_PGI'
 !#define LINUX_IFC   'LINUX_IFC'
-!#define LINUX_EFC   'LINUX_EFC'
-#define SGI_MIPS    'SGI_MIPS'
+#define LINUX_EFC   'LINUX_EFC'
+!#define SGI_MIPS    'SGI_MIPS'
 !#define SPARC       'SPARC'
 
 !==============================================================================
 ! Force a compile error if GEOS_1, GEOS_STRAT, GEOS_3, GEOS_4 are undefined 
 !==============================================================================
-#if !defined( GEOS_1 ) && !defined( GEOS_STRAT ) && !defined( GEOS_3 ) && !defined( GEOS_4 )
-#error "ERROR: GEOS_1, GEOS_STRAT, GEOS_3, and GEOS_4"
+#if !defined( GEOS_1 ) && !defined( GEOS_STRAT ) && !defined( GEOS_3 ) && !defined( GEOS_4 ) && !defined( GEOS_5 ) && !defined( GCAP )
+#error "ERROR: GEOS_1, GEOS_STRAT, GEOS_3, GEOS_4, GEOS_5, and GCAP"
 #error "are ALL undefined in header file define.h"
 #endif
 

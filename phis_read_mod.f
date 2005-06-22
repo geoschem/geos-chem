@@ -1,10 +1,10 @@
-! $Id: phis_read_mod.f,v 1.7 2005/03/29 15:52:43 bmy Exp $
+! $Id: phis_read_mod.f,v 1.8 2005/06/22 20:50:04 bmy Exp $
       MODULE PHIS_READ_MOD
 !
 !******************************************************************************
 !  Module PHIS_READ_MOD contains subroutines that unzip, open, and 
 !  read the GEOS-CHEM PHIS (geopotential heights) field from disk. 
-!  (bmy, 6/16/03, 3/23/05)
+!  (bmy, 6/16/03, 5/25/05)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -36,6 +36,7 @@
 !  (5 ) Now references "directory_mod.f", "unix_cmds_mod.f", and
 !        "logical_mod.f" (bmy, 7/20/04)
 !  (6 ) Now references FILE_EXISTS from "file_mod.f" (bmy, 3/23/05)
+!  (7 ) Now modified for GEOS-5 and GCAP met fields (bmy, 5/25/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -45,7 +46,7 @@
       ! and routines from being seen outside "i6_read_mod.f"
       !=================================================================
 
-      ! PRIVATE module routines
+      !! PRIVATE module routines
       PRIVATE :: CHECK_TIME, PHIS_CHECK, READ_PHIS
 
       !=================================================================
@@ -61,7 +62,7 @@
 !  Subroutine UNZIP_PHIS_FIELDS invokes a FORTRAN system call to uncompress
 !  GEOS-CHEM PHIS met field files and store the uncompressed data in a 
 !  temporary directory, where GEOS-CHEM can read them.  The original data 
-!  files are not disturbed.  (bmy, bdf, 6/15/98, 12/11/03)
+!  files are not disturbed.  (bmy, bdf, 6/15/98, 5/25/05)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -75,6 +76,7 @@
 !  (3 ) Now reference "directory_mod.f" and "unix_cmds_mod.f". Now prevent 
 !        EXPAND_DATE from overwriting directory paths with Y/M/D tokens in 
 !        them (bmy, 7/20/04)
+!  (4 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -84,7 +86,7 @@
       USE TIME_MOD,     ONLY : EXPAND_DATE
       USE UNIX_CMDS_MOD
 
-#     include "CMN_SIZE"
+#     include "CMN_SIZE"     ! Size parameters
 
       ! Arguments
       CHARACTER(LEN=*),  INTENT(IN) :: OPTION
@@ -119,10 +121,22 @@
          GEOS_DIR = TRIM( GEOS_3_DIR )
          PHIS_STR = 'YYYYMMDD.phis.' // GET_RES_EXT() 
 
-#elif defined( GEOS_4 )
+#elif defined( GEOS_4 ) 
 
          ! Strings for directory & filename
          GEOS_DIR = TRIM( GEOS_4_DIR )
+         PHIS_STR = 'YYYYMMDD.phis.' // GET_RES_EXT() 
+
+#elif defined( GEOS_5 )
+
+         ! Strings for directory & filename
+         GEOS_DIR = TRIM( GEOS_5_DIR )
+         PHIS_STR = 'YYYYMMDD.phis.' // GET_RES_EXT() 
+
+#elif defined( GCAP )
+
+         ! Strings for directory & filename
+         GEOS_DIR = TRIM( GCAP_DIR )
          PHIS_STR = 'YYYYMMDD.phis.' // GET_RES_EXT() 
 
 #endif
@@ -206,7 +220,7 @@
 !
 !******************************************************************************
 !  Subroutine OPEN_PHIS_FIELDS opens the I-6 met fields file for date NYMD and 
-!  time NHMS. (bmy, bdf, 6/15/98, 3/23/05)
+!  time NHMS. (bmy, bdf, 6/15/98, 5/25/05)
 !  
 !  Arguments as input:
 !  ===========================================================================
@@ -222,6 +236,7 @@
 !        from overwriting Y/M/D tokens in directory paths. (bmy, 7/20/04)
 !  (5 ) Now use FILE_EXISTS from "file_mod.f" to determine if file unit IU_PH 
 !        refers to a valid file on disk (bmy, 3/23/05)
+!  (6 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -277,6 +292,18 @@
          GEOS_DIR  = TRIM( GEOS_4_DIR )
          PHIS_FILE = 'YYYYMMDD.phis.' // GET_RES_EXT()
 
+#elif defined( GEOS_5 )
+
+         ! Strings for directory & filename
+         GEOS_DIR  = TRIM( GEOS_5_DIR )
+         PHIS_FILE = 'YYYYMMDD.phis.' // GET_RES_EXT() 
+
+#elif defined( GCAP )
+
+         ! Strings for directory & filename
+         GEOS_DIR  = TRIM( GCAP_DIR )
+         PHIS_FILE = 'YYYYMMDD.phis.' // GET_RES_EXT() 
+
 #endif
 
          ! Replace date tokens
@@ -294,15 +321,6 @@
 
          ! Close previously opened A-3 file
          CLOSE( IU_PH )
-
-         !-------------------------------------------------------------
-         ! Prior to 3/23/05:
-         !! Make sure the file exists before we open it!
-         !! Maybe make this a function in ERROR_MOD (bmy, 6/16/03)
-         !INQUIRE( IU_PH, EXIST=IT_EXISTS )
-         !   
-         !IF ( .not. IT_EXISTS ) THEN
-         !-------------------------------------------------------------
 
          ! Make sure the file unit is valid before we open the file
          IF ( .not. FILE_EXISTS( IU_PH ) ) THEN
@@ -326,7 +344,11 @@
          ! Set the proper first-time-flag false
          FIRST = .FALSE.
 
-#if   defined( GEOS_4 )
+!--------------------------
+! Prior to 5/25/05:
+!#if   defined( GEOS_4 )
+!--------------------------
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( GCAP )
 
          ! Skip past the GEOS-4 ident string
          READ( IU_PH, IOSTAT=IOS ) IDENT
@@ -350,7 +372,7 @@
 !  Subroutine GET_PHIS_FIELD is a wrapper for routine READ_PHIS.  This routine
 !  calls READ_PHIS properly for reading PHIS fields from GEOS-1, GEOS-STRAT, 
 !  GEOS-3, or GEOS-4 met data sets at the START of a GEOS-CHEM run. 
-!  (bmy, 6/16/03)
+!  (bmy, 6/16/03, 5/25/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -358,10 +380,11 @@
 !  (2 ) NHMS (INTEGER) :  and HHMMSS of I-6 fields to be read from disk
 !
 !  NOTES:
+!  (1 ) Now also read LWI_GISS for GCAP met fields (swu, bmy, 5/25/05)
 !******************************************************************************
 ! 
       ! References to F90 modules
-      USE DAO_MOD, ONLY : PHIS
+      USE DAO_MOD, ONLY : PHIS, LWI_GISS
 
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS 
@@ -369,7 +392,17 @@
       !=================================================================
       ! GET_PHIS_FIELD begins here!
       !=================================================================
+
+#if   defined( GCAP ) 
+
+      ! For GCAP met fields: read PHIS and LWI_GISS
+      CALL READ_PHIS( NYMD=NYMD, NHMS=NHMS, PHIS=PHIS, LWI=LWI_GISS )
+#else
+
+      ! For GEOS met fields: just read PHIS
       CALL READ_PHIS( NYMD=NYMD, NHMS=NHMS, PHIS=PHIS )
+
+#endif
 
       ! Return to calling program
       END SUBROUTINE GET_PHIS_FIELD
@@ -437,7 +470,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE READ_PHIS( NYMD, NHMS, PHIS )
+      SUBROUTINE READ_PHIS( NYMD, NHMS, PHIS, LWI )
 !
 !******************************************************************************
 !  Subroutine READ_PHIS reads DAO PHIS (surface geopotential heights) field 
@@ -459,6 +492,8 @@
 !  (1 ) Adapted from READ_PHIS from "dao_read_mod.f" (bmy, 6/16/03)
 !  (2 ) Now use function TIMESTAMP_STRING from "time_mod.f" for formatted 
 !        date/time output. (bmy, 10/28/03)
+!  (3 ) Now also read LWI_GISS for GCAP met fields.  Added optional variable
+!        LWI to the arg list. (swu, bmy, 5/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -472,23 +507,35 @@
 #     include "CMN_DIAG"   ! ND67
 
       ! Arguments
-      INTEGER, INTENT(IN)  :: NYMD, NHMS
-      REAL*8,  INTENT(OUT) :: PHIS(IIPAR,JJPAR) 
+      INTEGER, INTENT(IN)            :: NYMD, NHMS
+      REAL*8,  INTENT(OUT)           :: PHIS(IIPAR,JJPAR) 
+      REAL*8,  INTENT(OUT), OPTIONAL :: LWI(IIPAR,JJPAR) 
 
       ! Local Variables
-      INTEGER              :: NFOUND, IOS
-      INTEGER, PARAMETER   :: N_PHIS = 1
-      REAL*4               :: Q2(IGLOB,JGLOB)
-      CHARACTER(LEN=8)     :: NAME
-      CHARACTER(LEN=16)    :: STAMP
+      INTEGER                        :: NFOUND, IOS
+      !-----------------------------------------------------
+      ! Prior to 5/25/05:
+      ! Now define this below (swu, bmy, 5/25/05)
+      !INTEGER, PARAMETER             :: N_PHIS = 1
+      !-----------------------------------------------------
+      REAL*4                         :: Q2(IGLOB,JGLOB)
+      CHARACTER(LEN=8)               :: NAME
+      CHARACTER(LEN=16)              :: STAMP
 
       ! XYMD, XHMS have to be REAL*4 for GEOS-1 and GEOS-STRAT
       ! but INTEGER for GEOS-3 and GEOS-4 (bmy, 6/16/03)
 #if   defined( GEOS_1 ) || defined ( GEOS_STRAT )
-      REAL*4               :: XYMD, XHMS 
+      REAL*4                         :: XYMD, XHMS 
 #else
-      INTEGER              :: XYMD, XHMS 
+      INTEGER                        :: XYMD, XHMS 
 #endif
+
+      ! Define # of fields w/in the file (swu, bmy, 5/25/05)
+#if   defined( GCAP )
+      INTEGER, PARAMETER             :: N_PHIS = 2
+#else
+      INTEGER, PARAMETER             :: N_PHIS = 1
+#endif      
 
       !=================================================================
       ! READ_PHIS begins here!
@@ -517,15 +564,27 @@
          ! CASE statement for met fields
          SELECT CASE ( TRIM( NAME ) )
 
-            !--------------------------------
+            !---------------------------------
             ! PHIS: geopotential heights
-            !--------------------------------
+            !---------------------------------
             CASE ( 'PHIS' ) 
                READ( IU_PH, IOSTAT=IOS ) XYMD, XHMS, Q2
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_PH, 'read_phis:2' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   CALL TRANSFER_2D( Q2, PHIS )
+                  NFOUND = NFOUND + 1
+               ENDIF
+
+            !---------------------------------
+            ! LWI_GISS: GCAP land/water flags
+            !---------------------------------
+            CASE ( 'LWI', 'LWI_GISS' ) 
+               READ( IU_PH, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_PH, 'read_phis:3' )
+               
+               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+                  IF ( PRESENT( LWI ) ) CALL TRANSFER_2D( Q2, LWI )
                   NFOUND = NFOUND + 1
                ENDIF
 

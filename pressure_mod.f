@@ -1,11 +1,11 @@
-! $Id: pressure_mod.f,v 1.7 2004/05/03 14:46:18 bmy Exp $
+! $Id: pressure_mod.f,v 1.8 2005/06/22 20:50:05 bmy Exp $
       MODULE PRESSURE_MOD
 !
 !******************************************************************************
 !  Module PRESSURE_MOD contains variables and routines which specify the grid 
 !  box pressures for both hybrid or pure-sigma models.  This is necessary
 !  for running GEOS-CHEM with the new GEOS-4/fvDAS meteorological fields.
-!  (dsa, bmy, 8/27/02, 4/14/04)
+!  (dsa, bmy, 8/27/02, 5/24/05)
 !
 !  The Hybrid ETA-coordinate (dsa, 8/27/02, 4/14/04)
 !  ============================================================================
@@ -54,6 +54,7 @@
 !  (4 ) Bug fix: use PFLT instead of PFLT-PTOP for GEOS-4 (bmy, 10/24/03)
 !  (5 ) Modifications for 30L and 55L GEOS-4 grids (bmy, 11/3/03)
 !  (6 ) Added parallel DO-loop in SET_FLOATING_PRESSURE (bmy, 4/14/04)
+!  (7 ) Modified for GCAP and GEOS-5 grids (swu, bmy, 5/24/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -63,7 +64,10 @@
       ! and routines from being seen outside "pressure_mod.f"
       !=================================================================
 
-      ! PRIVATE module variables
+      ! Make everything PUBLIC ...
+      PUBLIC
+      
+      ! ... except these variables
       PRIVATE :: AP, BP, PFLT
 
       !=================================================================
@@ -280,9 +284,10 @@
 !******************************************************************************
 !  Subroutine INIT_PRESSURE allocates and initializes the AP and BP arrays.
 !  It must be called in "main.f", after SIGE is defined.  GEOS-4 uses fvDAS, 
-!  which requires the hybred pressure system specified by the listed values 
+!  which requires the hybrid pressure system specified by the listed values 
 !  of AP and BP, while earlier versions of GEOS use a pure sigma pressure
-!  system. (dsa, bmy, 8/20/02, 11/3/03)
+!  system.  GCAP met fields (based on GISS) also use a hybrid system. 
+!  (dsa, swu, bmy, 8/20/02, 5/24/05)
 !
 !  NOTES:
 !  (1 ) Now reference ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
@@ -290,6 +295,7 @@
 !  (3 ) Now print LLPAR+1 levels for Ap, Bp.  Remove reference to SIGE, it's
 !        obsolete.  Also now use C-preprocessor switch GRID30LEV instead of
 !        IF statements to define vertical coordinates. (bmy, 11/3/03)
+!  (4 ) Now modified for both GCAP & GEOS-5 vertical grids (swu, bmy, 5/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -300,7 +306,10 @@
       ! Local Variables
       INTEGER :: AS
       INTEGER :: L
-      
+
+      ! Temporary array for GCAP met fields (swu, bmy, 5/24/05)
+      REAL*8  :: SIGE_GCAP(LLPAR+1)  
+
       !=================================================================
       ! INIT_PRESSURE begins here!
       !=================================================================
@@ -316,17 +325,23 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BP' )
       BP = 0d0
 
-#if   defined( GEOS_4 )
+!-----------------------------------------------------------------------------
+! Prior to 5/24/05:
+! For now we will assume that GEOS-5 has the same vertical grid as GEOS-4
+! (swu, bmy, 5/24/05)
+!#if   defined( GEOS_4 )
+!-----------------------------------------------------------------------------
+#if   defined( GEOS_4 ) || defined( GEOS_5 )
       
       !=================================================================
-      ! GEOS-4 vertical coordinates (30 or 55 levels)
+      ! GEOS-4 or GEOS-5 vertical coordinates (30 or 55 levels)
       !=================================================================
 
 #if   defined( GRID30LEV )
 
-      !----------------------
-      ! GEOS-4 30 level grid
-      !----------------------
+      !--------------------------------
+      ! GEOS-4 or GEOS-5 30 level grid
+      !--------------------------------
 
       ! Ap [hPa] for 30 levels (31 edges)
       AP = (/  0.000000d0,   0.000000d0,  12.704939d0,  35.465965d0, 
@@ -350,9 +365,9 @@
 
 #else
 
-      !----------------------
-      ! GEOS-4 55 level grid
-      !----------------------
+      !--------------------------------
+      ! GEOS-4 or GEOS-5 55 level grid
+      !--------------------------------
 
       ! AP [hPa] for 55 levels (56 edges)
       AP = (/ 0.000000d0,   0.000000d0,  12.704939d0,  35.465965d0, 
@@ -389,7 +404,7 @@
 
 #endif
 
-#elif defined( GEOS_3 )
+#elif defined( GEOS_3 ) 
 
       !=================================================================
       ! GEOS-3 vertical coordinates (30 or 48 levels)
@@ -397,9 +412,9 @@
 
 #if   defined( GRID30LEV )
 
-      !----------------------
+      !--------------------------------
       ! GEOS-3 30 level grid
-      !----------------------
+      !--------------------------------
 
       ! AP [hPa] is just PTOP for a pure-sigma grid
       AP = PTOP
@@ -416,9 +431,9 @@
 
 #else
 
-      !----------------------
-      ! GEOS-3 55 level grid
-      !----------------------
+      !--------------------------------
+      ! GEOS-3 48 level grid
+      !--------------------------------
 
       ! AP [hPa] is just PTOP for a pure-sigma grid
       AP = PTOP
@@ -473,6 +488,33 @@
      &              0.462000d0, 0.387500d0, 0.316500d0, 0.251000d0, 
      &              0.194500d0, 0.149800d0, 0.114600d0, 0.085500d0, 
      &              0.060500d0, 0.039000d0, 0.019000d0, 0.000000d0 /)
+
+#elif defined( GCAP )
+
+      !=================================================================
+      ! GCAP vertical coordinates (23 levels)
+      !=================================================================
+
+      ! Define SIGMA edges from GISS 23L model
+      SIGE_GCAP = (/ 1.0d0,           0.9712230d0,     0.9340528d0,     
+     &               0.8800959d0,     0.8021583d0,     0.6714628d0, 
+     &               0.5035971403d0,  0.3297362030d0,  0.1966426820d0,  
+     &               0.1139088720d0,  0.0503597111d0,  0.0000000000d0, 
+     &              -0.0395683460d0, -0.0764988065d0, -0.1124700233d0, 
+     &              -0.1419664323d0, -0.1585131884d0, -0.1678657085d0, 
+     &              -0.1743045598d0, -0.1781055182d0, -0.1793033630d0, 
+     &              -0.1796822548d0, -0.1798187047d0, -0.1798536479d0 /)
+
+      ! Convert SIGMA to AP and BP coordinates
+      DO  L = 1, LLTROP
+         AP(L) = 150d0 + ( SIGE_GCAP(L) * ( PTOP - 150d0 ) )
+         BP(L) = SIGE_GCAP(L)
+      ENDDO
+
+      DO L = LLTROP+1, LLPAR+1  
+         AP(L) = 150d0 + ( SIGE_GCAP(L) * ( 984d0 - 150d0 ) )
+         BP(L) = 0d0
+      ENDDO
 
 #endif
       

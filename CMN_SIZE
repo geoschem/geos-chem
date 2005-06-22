@@ -1,6 +1,6 @@
-! $Id: CMN_SIZE,v 1.11 2005/02/10 19:53:21 bmy Exp $
+! $Id: CMN_SIZE,v 1.12 2005/06/22 20:49:57 bmy Exp $
       !=======================================================================
-      ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 12/1/04)
+      ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 5/25/05)
       !
       ! NOTES:
       ! (1 ) Now set LLTROP = 20 for GEOS-3 (bmy, 4/12/01)
@@ -36,6 +36,7 @@
       ! (19) Now use NESTED_CH and NESTED_NA cpp switches to define 
       !       parameters for 1x1 nested grids.  Also add parameters for
       !       the 1 x 1.25 global grid. (bmy, 12/1/04)
+      ! (20) Now add parameters for GCAP and GEOS-5 grids (swu, bmy, 5/25/05)
       !=======================================================================
 
       ! C Preprocessor #define statements for conditional compilation
@@ -80,7 +81,29 @@
       !
       ! For nested grids, then IIPAR<IGLOB, JJPAR<JGLOB, LLPAR<LGLOB.
       !=================================================================
-#if   defined( GEOS_1 ) && defined( GRID4x5 ) 
+!----------------------------------------------
+! Prior to 5/24/05: 
+! Also add GCAP definition (swu, bmy, 5/24/05)
+!#if   defined( GEOS_1 ) && defined( GRID4x5 ) 
+!----------------------------------------------
+#if   defined( GCAP ) && defined( GRID4x5 )
+
+      !--------------------
+      ! GCAP 4 x 5
+      !--------------------
+      INTEGER, PARAMETER :: IGLOB  = 72
+      INTEGER, PARAMETER :: JGLOB  = 45
+      INTEGER, PARAMETER :: LGLOB  = 23
+
+      INTEGER, PARAMETER :: IIPAR  = IGLOB
+      INTEGER, PARAMETER :: JJPAR  = JGLOB
+      INTEGER, PARAMETER :: LLPAR  = LGLOB
+
+      INTEGER, PARAMETER :: LLTROP = 12     
+
+      REAL*8,  PARAMETER :: PTOP   = 0.002d0
+
+#elif defined( GEOS_1 ) && defined( GRID4x5 ) 
 
       !--------------------
       ! GEOS-1 4 x 5
@@ -297,6 +320,72 @@
 #endif
 
       INTEGER, PARAMETER :: LLTROP = 17
+
+      REAL*8,  PARAMETER :: PTOP   = 0.01d0
+
+#elif defined( GEOS_5 ) && defined( GRID4x5 )
+
+      !--------------------
+      ! GEOS-5 4 x 5
+      !--------------------
+      INTEGER, PARAMETER :: IGLOB  = 72
+      INTEGER, PARAMETER :: JGLOB  = 46
+      INTEGER, PARAMETER :: LGLOB  = 55           
+
+      INTEGER, PARAMETER :: IIPAR  = IGLOB
+      INTEGER, PARAMETER :: JJPAR  = JGLOB
+
+#if   defined( GRID30LEV ) 
+      INTEGER, PARAMETER :: LLPAR  = 30     ! 30 levels
+#else
+      INTEGER, PARAMETER :: LLPAR  = LGLOB  ! 55 levels
+#endif
+
+      INTEGER, PARAMETER :: LLTROP = 17     ! Need to check this
+
+      REAL*8,  PARAMETER :: PTOP   = 0.01d0
+
+#elif defined( GEOS_5 ) && defined( GRID2x25 )
+
+      !--------------------
+      ! GEOS-5 2 x 2.5
+      !--------------------
+      INTEGER, PARAMETER :: IGLOB  = 144
+      INTEGER, PARAMETER :: JGLOB  = 91
+      INTEGER, PARAMETER :: LGLOB  = 55
+
+      INTEGER, PARAMETER :: IIPAR  = IGLOB
+      INTEGER, PARAMETER :: JJPAR  = JGLOB
+
+#if   defined( GRID30LEV )
+      INTEGER, PARAMETER :: LLPAR  = 30     ! 30 levels
+#else 
+      INTEGER, PARAMETER :: LLPAR  = LGLOB  ! 55 levels
+#endif
+
+      INTEGER, PARAMETER :: LLTROP = 17     ! Need to check this
+
+      REAL*8,  PARAMETER :: PTOP   = 0.01d0
+
+#elif defined( GEOS_5 ) && defined( GRID1x125 )
+
+      !--------------------
+      ! GEOS-5 1 x 1.2.5
+      !--------------------
+      INTEGER, PARAMETER :: IGLOB  = 288
+      INTEGER, PARAMETER :: JGLOB  = 181
+      INTEGER, PARAMETER :: LGLOB  = 55
+
+      INTEGER, PARAMETER :: IIPAR  = IGLOB
+      INTEGER, PARAMETER :: JJPAR  = JGLOB
+
+#if   defined( GRID30LEV )
+      INTEGER, PARAMETER :: LLPAR  = 30     ! 30 levels
+#else 
+      INTEGER, PARAMETER :: LLPAR  = LGLOB  ! 55 levels
+#endif
+
+      INTEGER, PARAMETER :: LLTROP = 17     ! Need to check this!
 
       REAL*8,  PARAMETER :: PTOP   = 0.01d0
 

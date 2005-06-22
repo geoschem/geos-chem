@@ -1,9 +1,9 @@
-! $Id: diag1.f,v 1.6 2004/10/15 20:16:40 bmy Exp $
+! $Id: diag1.f,v 1.7 2005/06/22 20:50:00 bmy Exp $
       SUBROUTINE DIAG1 
 !
 !******************************************************************************
 !  Subroutine DIAG1 accumulates diagnostic quantities every NDIAG minutes
-!  (bmy, bey, 6/16/98, 7/20/04)
+!  (bmy, bey, 6/16/98, 6/9/05)
 !
 !  NOTES:
 !  (1 ) This subroutine was reconstructed from gmg's version of (10/10/97)
@@ -45,6 +45,7 @@
 !        SCALE_HEIGHT from header file "CMN_GCTM". (bmy, 6/23/03)
 !  (22) Now references N_TRACERS, STT, and ITS_A_FULLCHEM_SIM from
 !        "tracer_mod.f" (bmy, 7/20/04)
+!  (23) Fixed ND67 PS-PBL for GCAP and GEOS-5 met fields (swu, bmy, 6/9/05)
 !******************************************************************************
 !  List of GEOS-CHEM Diagnostics (bmy, 5/25/04)
 !
@@ -492,16 +493,31 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-#if   defined( GEOS_4 )
+!-----------------------------------------------------------------------------
+!#if   defined( GEOS_4 )
+!            
+!            ! GEOS-4: PBL is in [m], use hydrostatic law to get [hPa]
+!            AD67(I,J,13) = AD67(I,J,13) + 
+!     &           ( GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT ) )
+!            
+!#else
+!
+!            ! Otherwise, PBL is in [hPa], subtract from PSurface
+!            AD67(I,J,13) = AD67(I,J,13) + GET_PEDGE(I,J,1) - PBL(I,J) 
+!
+!#endif
+!-----------------------------------------------------------------------------
+
+#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+
+            ! PBL is in [hPa], subtract from PSurface
+            AD67(I,J,13) = AD67(I,J,13) + GET_PEDGE(I,J,1) - PBL(I,J) 
+
+#else
             
-            ! GEOS-4: PBL is in [m], use hydrostatic law to get [hPa]
+            ! PBL is in [m], use hydrostatic law to get [hPa]
             AD67(I,J,13) = AD67(I,J,13) + 
      &           ( GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT ) )
-            
-#else
-
-            ! Otherwise, PBL is in [hPa], subtract from PSurface
-            AD67(I,J,13) = AD67(I,J,13) + GET_PEDGE(I,J,1) - PBL(I,J) 
 
 #endif
 

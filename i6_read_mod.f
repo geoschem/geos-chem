@@ -1,19 +1,20 @@
-! $Id: i6_read_mod.f,v 1.7 2005/03/29 15:52:42 bmy Exp $
+! $Id: i6_read_mod.f,v 1.8 2005/06/22 20:50:03 bmy Exp $
       MODULE I6_READ_MOD
 !
 !******************************************************************************
 !  Module I6_READ_MOD contains subroutines that unzip, open, and read
 !  GEOS-CHEM I-6 (instantaneous 6-hr) met fields from disk. 
-!  (bmy, 6/23/03, 3/23/05)
+!  (bmy, 6/23/03, 5/25/05)
 ! 
 !  Module Routines:
 !  =========================================================================
 !  (1 ) UNZIP_I6_FIELDS : Unzips & copies met field files to a temp dir
 !  (2 ) OPEN_I6_FIELDS  : Opens met field files residing in the temp dir
-!  (3 ) GET_I6_FIELDS   : Wrapper for routine READ_I6
-!  (4 ) GET_N_I6        : Returns # of A-3 fields for each DAO data set 
-!  (5 ) READ_I6         : Reads A-3 fields from disk
-!  (6 ) I6_CHECK        : Checks if we have found all of the fields
+!  (3 ) GET_I6_FIELDS_1 : Wrapper for routine READ_I6
+!  (4 ) GET_I6_FIELDS_2 : Wrapper for routine READ_I6
+!  (5 ) GET_N_I6        : Returns # of A-3 fields for each DAO data set 
+!  (6 ) READ_I6         : Reads A-3 fields from disk
+!  (7 ) I6_CHECK        : Checks if we have found all of the fields
 ! 
 !  GEOS-CHEM modules referenced by i6_read_mod.f
 !  ============================================================================
@@ -36,6 +37,7 @@
 !  (5 ) Now references "directory_mod.f", "unix_cmds_mod.f", and
 !        "logical_mod.f" (bmy, 7/20/04)
 !  (6 ) Now references FILE_EXISTS from "file_mod.f" (bmy, 3/23/05)
+!  (7 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -45,8 +47,20 @@
       ! and routines from being seen outside "i6_read_mod.f"
       !=================================================================
 
-      ! PRIVATE module routines
-      PRIVATE :: GET_N_I6, I6_CHECK, READ_I6
+      !-------------------------------------------
+      ! Prior to 5/25/05:
+      !! PRIVATE module routines
+      !PRIVATE :: GET_N_I6, I6_CHECK, READ_I6
+      !-------------------------------------------
+
+      ! Make everything PRIVATE ...
+      PRIVATE
+
+      ! ... except these routines
+      PUBLIC :: GET_I6_FIELDS_1
+      PUBLIC :: GET_I6_FIELDS_2
+      PUBLIC :: OPEN_I6_FIELDS 
+      PUBLIC :: UNZIP_I6_FIELDS 
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -61,7 +75,7 @@
 !  Subroutine UNZIP_I6_FIELDS invokes a FORTRAN system call to uncompress
 !  GEOS-CHEM I-6 met field files and store the uncompressed data in a 
 !  temporary directory, where GEOS-CHEM can read them.  The original data 
-!  files are not disturbed.  (bmy, bdf, 6/15/98, 7/20/04)
+!  files are not disturbed.  (bmy, bdf, 6/15/98, 5/25/05)
 !
 !  Arguments as input:
 !  ============================================================================
@@ -75,6 +89,7 @@
 !  (3 ) Now reference "directory_mod.f" and "unix_cmds_mod.f". Now prevent 
 !        EXPAND_DATE from overwriting directory paths with Y/M/D tokens in 
 !        them (bmy, 7/20/04)
+!  (4 ) Now modified for GEOS-5 and GCAP met fields
 !******************************************************************************
 !
       ! References to F90 modules
@@ -123,6 +138,18 @@
 
          ! Strings for directory & filename
          GEOS_DIR = TRIM( GEOS_4_DIR )
+         I6_STR   = 'YYYYMMDD.i6.' // GET_RES_EXT() 
+
+#elif defined( GEOS_5 )
+
+         ! Strings for directory & filename
+         GEOS_DIR = TRIM( GEOS_5_DIR )
+         I6_STR   = 'YYYYMMDD.i6.' // GET_RES_EXT() 
+
+#elif defined( GCAP )
+
+         ! Strings for directory & filename
+         GEOS_DIR = TRIM( GCAP_DIR )
          I6_STR   = 'YYYYMMDD.i6.' // GET_RES_EXT() 
 
 #endif
@@ -206,7 +233,7 @@
 !
 !******************************************************************************
 !  Subroutine OPEN_I6_FIELDS opens the I-6 met fields file for date NYMD and 
-!  time NHMS. (bmy, bdf, 6/15/98, 3/23/05)
+!  time NHMS. (bmy, bdf, 6/15/98, 5/25/05)
 !  
 !  Arguments as input:
 !  ===========================================================================
@@ -221,7 +248,8 @@
 !        references LUNZIP from "logical_mod.f".  Also now prevents EXPAND_DATE
 !        from overwriting Y/M/D tokens in directory paths. (bmy, 7/20/04)
 !  (5 ) Now use FILE_EXISTS from "file_mod.f" to determine if file unit IU_I6
-!        refers to a valid file on disk (bmy, 3/23/05)
+!        refers to a valid file on disk (bmy, 3/23/05
+!  (6 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -277,6 +305,18 @@
          GEOS_DIR = TRIM( GEOS_4_DIR )
          I6_FILE  = 'YYYYMMDD.i6.' // GET_RES_EXT()
 
+#elif defined( GEOS_5 )
+
+         ! Strings for directory & filename
+         GEOS_DIR = TRIM( GEOS_5_DIR )
+         I6_FILE  = 'YYYYMMDD.i6.' // GET_RES_EXT()
+
+#elif defined( GCAP )
+
+         ! Strings for directory & filename
+         GEOS_DIR = TRIM( GCAP_DIR )
+         I6_FILE  = 'YYYYMMDD.i6.' // GET_RES_EXT()
+
 #endif
 
          ! Replace date tokens
@@ -294,15 +334,6 @@
 
          ! Close previously opened A-3 file
          CLOSE( IU_I6 )
-
-         !----------------------------------------------------------------
-         ! Prior to 3/23/05:
-         !! Make sure the file exists before we open it!
-         !! Maybe make this a function in ERROR_MOD (bmy, 6/23/03)
-         !INQUIRE( IU_I6, EXIST=IT_EXISTS )
-         !   
-         !IF ( .not. IT_EXISTS ) THEN
-         !----------------------------------------------------------------
 
          ! Make sure the file unit is valid before we open it 
          IF ( .not. FILE_EXISTS( IU_I6 ) ) THEN 
@@ -326,9 +357,13 @@
          ! Set the proper first-time-flag false
          FIRST = .FALSE.
 
-#if   defined( GEOS_4 )
+!-------------------------
+! Prior to 5/25/05:
+!#if   defined( GEOS_4 )
+!-------------------------
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( GCAP )
 
-         ! Skip past the GEOS-4 ident string
+         ! Skip past the ident string
          READ( IU_I6, IOSTAT=IOS ) IDENT
 
          IF ( IOS /= 0 ) THEN
@@ -350,7 +385,7 @@
 !  Subroutine GET_I6_FIELDS_1 is a wrapper for routine READ_I6.  This routine
 !  calls READ_I6 properly for reading I-6 fields from GEOS-1, GEOS-STRAT, 
 !  GEOS-3, or GEOS-4 met data sets at the START of a GEOS-CHEM run. 
-!  (bmy, 6/23/03)
+!  (bmy, 6/23/03, 5/25/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -358,6 +393,7 @@
 !  (2 ) NHMS (INTEGER) :  and HHMMSS of I-6 fields to be read from disk
 !
 !  NOTES:
+!  (1 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -394,12 +430,24 @@
       ! Initialize T with TMPU1
       T = TMPU1
 
-#elif defined( GEOS_4 )
+!-----------------------------------------------------------------------
+! Prior to 5/25/05:
+! Assume GEOS-4 and GEOS-5 have the same I-6 fields (swu, bmy, 5/25/05)
+!#elif defined( GEOS_4 )
+!-----------------------------------------------------------------------
+#elif defined( GEOS_4 ) || defined( GEOS_5 )
 
       !=================================================================
-      ! GEOS-4: read LWI, PS1, SLP
+      ! GEOS-4 & GEOS-5 read LWI, PS1, SLP
       !=================================================================
       CALL READ_I6( NYMD=NYMD, NHMS=NHMS, LWI=LWI, PS=PS1, SLP=SLP )
+
+#elif defined( GCAP )
+
+      !=================================================================
+      ! GCAP: read PS1, SLP
+      !=================================================================
+      CALL READ_I6( NYMD=NYMD, NHMS=NHMS, PS=PS1, SLP=SLP )
 
 #endif
       
@@ -414,7 +462,7 @@
 !  Subroutine GET_I6_FIELDS_2 is a wrapper for routine READ_I6.  This routine
 !  calls READ_I6 properly for reading I-6 fields from GEOS-1, GEOS-STRAT, 
 !  GEOS-3, or GEOS-4 met data sets every 6 hours during a GEOS-CHEM run. 
-!  (bmy, 6/23/03)
+!  (bmy, 6/23/03, 5/25/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -422,6 +470,7 @@
 !  (2 ) NHMS (INTEGER) :  and HHMMSS of A-3 fields to be read from disk
 !
 !  NOTES:
+!  (1 ) Now modified for GEOS-5 and GCAP met fields
 !******************************************************************************
 !
       ! References to F90 modules
@@ -452,13 +501,24 @@
      &              SLP=SLP,      TROPP=TROPP,  UWND=UWND2,  
      &              VWND=VWND2,   TMPU=TMPU2,   SPHU=SPHU2 ) 
 
-#elif defined( GEOS_4 )
+!-----------------------------------------------------------------------
+! Prior to 5/25/05:
+! Assume GEOS-5 has same I-6 fields as GEOS-4 (swu, bmy, 5/25/05)
+!#elif defined( GEOS_4 )
+!-----------------------------------------------------------------------
+#elif defined( GEOS_4 ) || defined( GEOS_5 )
 
       !=================================================================
       ! GEOS-4: read LWI, PS2, SLP
       !=================================================================
       CALL READ_I6( NYMD=NYMD, NHMS=NHMS, LWI=LWI, PS=PS2, SLP=SLP )
 
+#elif defined( GCAP )
+
+      !=================================================================
+      ! GCAP: read PS1, SLP
+      !=================================================================
+      CALL READ_I6( NYMD=NYMD, NHMS=NHMS, PS=PS2, SLP=SLP )
 #endif
 
       ! Return to calling program
@@ -470,13 +530,14 @@
 !
 !******************************************************************************
 !  Function GET_N_I6 returns the number of I-6 fields per met data set
-!  (GEOS-1, GEOS-STRAT, GEOS-3, GEOS-4). (bmy, 6/23/03) 
+!  (GEOS-1, GEOS-STRAT, GEOS-3, GEOS-4). (bmy, 6/23/03, 5/25/05) 
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) NYMD (INTEGER) : YYYYMMDD for which to read in I-6 fields
 !
 !  NOTES:
+!  (1 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/25/05)
 !******************************************************************************
 !
 #     include "CMN_SIZE" 
@@ -508,10 +569,20 @@
             
       END SELECT
 
-#elif defined( GEOS_4 )
+!------------------------------------------------------------------------
+! Prior to 5/25/05:
+! Assume GEOS-5 has same I-6 fields as GEOS-4 (swu, bmy, 5/25/05)
+!#elif defined( GEOS_4 )
+!------------------------------------------------------------------------
+#elif defined( GEOS_4 ) || defined( GEOS_5 )
 
-      ! GEOS-4 has 3 I-6 fields
-      N_I6 =3 
+      ! GEOS-4 & GEOS-5 have 3 I-6 fields
+      N_I6 = 3 
+
+#elif defined( GCAP )
+
+      ! GCAP has 2 I-6 fields
+      N_I6 = 2 
 
 #endif
 

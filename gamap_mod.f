@@ -1,10 +1,10 @@
-! $Id: gamap_mod.f,v 1.2 2005/05/09 17:48:34 bmy Exp $
+! $Id: gamap_mod.f,v 1.3 2005/06/22 20:50:03 bmy Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
 !  Module GAMAP_MOD contains routines to create GAMAP "tracerinfo.dat" and
 !  "diaginfo.dat" files which are customized to each particular GEOS-CHEM
-!  simulation. (bmy, 5/3/05)
+!  simulation. (bmy, 5/3/05, 5/11/05)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -62,6 +62,7 @@
 !        http://www-as.harvard.edu/chemistry/trop/gamap/documentation/
 !
 !  NOTES:
+!  (1 ) Minor bug fix for Rn/Pb/Be simulations (bmy, 5/11/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -621,7 +622,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_GAMAP allocates and initializes all module variables.  
-!  (bmy, 4/22/05)
+!  (bmy, 4/22/05, 5/11/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -629,6 +630,7 @@
 !  (2 ) TRACERINFO (CHARACTER) : Path name of the GAMAP "tracerinfo.dat" file
 !
 !  NOTES:
+!  (1 ) Now add proper UNIT & SCALE for Rn/Pb/Be simulations (bmy, 5/11/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1218,6 +1220,24 @@
          ELSE
             UNIT(T,45) = 'ppbv'
          ENDIF
+
+         ! Special handling for Rn-Pb-Be simulation (bmy, 5/11/05)
+         IF ( ITS_A_RnPbBe_SIM() ) THEN
+            SELECT CASE( T ) 
+               CASE( 1 )
+                  UNIT (T,45) = 'pCi/SCM'
+                  SCALE(T,45) = 1.5243e21
+               CASE( 2 ) 
+                  UNIT (T,45) = 'fCi/SCM'
+                  SCALE(T,45) = 7.0651e20
+               CASE( 3 )
+                  UNIT (T,45) = 'fCi/SCM'
+                  SCALE(T,45) = 1.0938e23
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT
+         ENDIF
+
       ENDDO
 
       ! Number of ND45 tracers 
@@ -1449,7 +1469,7 @@
                   NAME (T,11) = 'ACETmo'
                   FNAME(T,11) = 'ACET from monoterpenes'
                CASE( 2 )
-                  NAME (T,11) = 'ACET mb'
+                  NAME (T,11) = 'ACETmb'
                   FNAME(T,11) = 'ACET from methyl butenol'
                CASE( 3 )
                   NAME (T,11) = 'ACETbg'
