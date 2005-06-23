@@ -18,13 +18,32 @@ get_obk			-- Routine to compute the Monin-Obhukov length
 make_gcap_cldfrc	-- Added routine to create CLDFRC field from
 ("a6_read_mod.f")	   CLDF field for GCAP data
 
-tagged_hcn_ch3cn_mod.f	-- Module for tagged HCN and CH3CN simulation
+hcn_ch3cn_mod.f		-- Module for tagged HCN and CH3CN simulation
 
 
 
 Removed in v7-03-02:
 -------------------------------------------------------------------------------
 
+CMN_CLD			-- Routines from the obsolete SLOW-J package
+comsol.h
+findxsect.f
+funbas.f
+funo1dham2.f
+gettoto3.f
+jvaluein.f
+jvalueinhcn.f
+matinv.f
+numair.f
+numo3.f
+readcs.f
+readcshcn.f
+rtfunc.f
+scattr.f
+sol.f
+
+emisshcn.f		-- Now replaced by the newer routines in F90
+chemhcn.f		   module "hcn_ch3cn_mod.f"
 
 
 Changed from v7-03-01:
@@ -33,6 +52,18 @@ Changed from v7-03-01:
 archive_rxns_for_pf	-- Bug fix: Replace with DO_PF since this variable is 
 ("planeflight_mod.f")	   reset to either T or F each day depending on 
 			   whether there is plane flight data available
+
+calcrate.f		-- SLOW-J is now obsolete; remove LSLOWJ #ifdef blocks
+
+chem.f			-- SLOW-J is now obsolete; remove LSLOWJ #ifdef blocks
+
+chemch3i		-- FAST-J is now the default, so we don't need the 
+			   LFASTJ C-preprocessor switch any more
+
+chemdr.f		-- FAST-J is now the default, so we don't need the 
+			   LFASTJ C-preprocessor switch any more
+
+cleanup.f		-- Now calls CLEANUP_HCN_CH3CN
 
 cleanup_dao		-- Now deallocates GCAP met field arrays
 ("dao_mod.f")
@@ -50,7 +81,7 @@ correct_ste		-- Now updated for GCAP met fields
 
 dao_mod.f		-- Now declare extra variables for GCAP met fields
 
-define.h		-- Removed obsolete A_LLK_03 switch.  
+define.h		-- Removed obsolete A_LLK_03, LFASTJ, LSLOWJ switches  
 			-- Also added extra switches for GCAP and 
 			   GEOS_5 met fields
 
@@ -70,13 +101,16 @@ diag3.f			-- Now modified for GEOS-5 and GCAP met fields
 directory_mod.f		-- Added variables GCAP_DIR and GEOS_5_DIR
 
 do_chemistry		-- Now modified for GCAP met fields
-("chemistry_mod.f")
+("chemistry_mod.f")	-- Now call CHEM_HCN_CH3CN from "hcn_ch3cn_mod.f"
 
 do_convection		-- Now calls separate driver routines for convection
 ("convection_mod.f")	   depending on met field type 
 
 do_drydep		-- Now dimension AZO for GEOS or GCAP met fields
 ("drydep_mod.f")	-- Remove obsolete variables
+
+do_emissions		-- Now call EMISS_HCN_CH3CN from "hcn_ch3cn_mod.f"
+("emissions_mod.f")
 
 do_open_a3		-- Remove code for obsolete GEOS-4 a_llk_03 data
 ("a3_read_mod.f")	-- Now modified for GEOS-5 and GCAP met fields
@@ -207,6 +241,7 @@ read_a6			-- Now modified for GEOS-5 and GCAP met fields
 reader.f		-- Redefine CHEMINTV [s] to the value in "input.geos" 
 			   so that we don't have a discrepancy with the value 
 			   in "mglob.dat"
+			-- SLOW-J is now obsolete; remove LSLOWJ #ifdef blocks
 
 read_phis		-- Now also read LWI_GISS for GCAP met fields
 ("phis_read_mod.f") 	-- Added optional variable LWI to the arg list.
@@ -216,6 +251,8 @@ read_simulation_menu	-- Now read GEOS_5_DIR and GCAP_DIR from input.geos
 
 read_uvalbedo		-- Now references GET_NAME_EXT from "bpch_mod.f"
 ("uvalbedo_mod.f")
+
+ruralbox.f		-- SLOW-J is now obsolete; remove LSLOWJ #ifdef blocks
 
 transfer_3d		-- Now modified for GEOS-5 met fields
 ("transfer_mod.f")

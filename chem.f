@@ -1,4 +1,4 @@
-! $Id: chem.f,v 1.3 2003/10/30 16:17:16 bmy Exp $
+! $Id: chem.f,v 1.4 2005/06/23 19:32:54 bmy Exp $
       SUBROUTINE CHEM( FIRSTCHEM, NPTS,     SUNCOS,  SUNCOSB, 
      &                 CLOUDS,    ALT,      SURFALT, TOTO3, 
      &                 IDXAIR,    IDXO3,    OPTD,    UVALBEDO  )
@@ -6,7 +6,7 @@
 !******************************************************************************
 !  Subroutine CHEM is the driver for the photolysis code (either the ancient
 !  SLOW-J code or the newer FAST-J code) and the SMVGEAR chemistry solver. 
-!  (lwh, jyl, gmg, djj, 1990's; bmy, 4/1/03, 7/30/03)
+!  (lwh, jyl, gmg, djj, 1990's; bmy, 4/1/03, 6/23/05)
 ! 
 !  Arguments as Input:
 !  ============================================================================
@@ -31,15 +31,19 @@
 !  (2 ) Remove LSAMERAD argument, it's obsolete.  Add SUNCOSB to the arg list.
 !        Now remove test for GETIFSUN, since FAST-J has an internal test for
 !        daytime/nighttime.  Pass SUNCOSB to "physproc.f". (gcc, bmy, 7/30/03)
+!  (3 ) SLOW-J is now obsolete; remove LSLOWJ #ifdef blocks (bmy, 6/23/05)
 !******************************************************************************
 !
       IMPLICIT NONE
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "comode.h"     ! SMVGEAR II arrays
-#if   defined( LSLOWJ )
-#     include "comsol.h"     ! SLOW-J arrays
-#endif
+!-------------------------------------------------------
+! Prior to 6/23/05:
+!#if   defined( LSLOWJ )
+!#     include "comsol.h"     ! SLOW-J arrays
+!#endif
+!-------------------------------------------------------
 
       ! Arguments
       LOGICAL, INTENT(INOUT) :: FIRSTCHEM
@@ -66,22 +70,29 @@
       !=================================================================
       ! Call photolysis routine to compute J-Values
       !=================================================================
-#if   defined( LFASTJ )
+!------------------------------------------------------------------------------
+! Prior to 6/23/05:
+!#if   defined( LFASTJ )
+!------------------------------------------------------------------------------
 
       ! FAST-J only: call FAST_J to compute J-values
       CALL FAST_J( SUNCOS, OPTD, UVALBEDO )              
 
-#elif defined( LSLOWJ )                                            
+!------------------------------------------------------------------------------
+! Prior to 6/23/05;
+!#elif defined( LSLOWJ )                                            
+!
+!      ! SLOW-J only: call SOL to compute column densities and J-values
+!      CALL SOL( NPTS,  SUNCOS, ALT,    SURFALT,
+!     &          TOTO3, CLOUDS, IDXAIR, IDXO3 )
+!
+!      ! SLOW-J only: Call FINDXSECT which gets index INAME, which gives the
+!      ! position of each photolysis species in the cross-section array XSECT  
+!      IF ( FIRSTCHEM ) CALL FINDXSECT
+!
+!#endif
+!------------------------------------------------------------------------------
 
-      ! SLOW-J only: call SOL to compute column densities and J-values
-      CALL SOL( NPTS,  SUNCOS, ALT,    SURFALT,
-     &          TOTO3, CLOUDS, IDXAIR, IDXO3 )
-
-      ! SLOW-J only: Call FINDXSECT which gets index INAME, which gives the
-      ! position of each photolysis species in the cross-section array XSECT  
-      IF ( FIRSTCHEM ) CALL FINDXSECT
-
-#endif
 
       !================================================================
       ! Call chemistry routines

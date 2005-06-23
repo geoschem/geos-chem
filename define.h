@@ -1,9 +1,9 @@
-! $Id: define.h,v 1.29 2005/06/22 20:50:00 bmy Exp $
+! $Id: define.h,v 1.30 2005/06/23 19:32:55 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
 !  used to include or exclude certain sections of code.  
-!  (bmy, bdf, 1/30/98, 5/24/05)
+!  (bmy, bdf, 1/30/98, 6/23/05)
 !
 !  List of "Switches"
 !  ===========================================================================
@@ -20,15 +20,13 @@
 !  (11) GRID4x5    : Enables code for 4 x 5   GLOBAL        GRID 
 !  (12) FULLCHEM   : Enables code for "Full" Chemistry (ISOP and NMHC)
 !  (13) LGEOSCO    : Enables code for CO run w/ parameterized OH
-!  (14) LFASTJ     : Enables code for FAST-J photolysis
-!  (15) LSLOWJ     : Enables code for SLOW-J photolysis
-!  (16) COMPAQ     : Enables code for Alpha w/ COMPAQ/HP Alpha compiler
-!  (17) IBM_AIX    : Enables code for IBM/AIX compiler
-!  (18) LINUX_PGI  : Enables code for Linux w/ PGI compiler
-!  (19) LINUX_IFC  : Enables code for Linux w/ 32-bit Intel Fortran compiler
-!  (20) LINUX_EFC  : Enables code for Linux w/ 64-bit Intel Fortran compiler
-!  (21) SGI_MIPS   : Enables code for SGI Origin w/ MIPS compiler
-!  (22) SPARC      : Enables code for Sun w/ SPARC compiler
+!  (15) COMPAQ     : Enables code for Alpha w/ COMPAQ/HP Alpha compiler
+!  (16) IBM_AIX    : Enables code for IBM/AIX compiler
+!  (17) LINUX_PGI  : Enables code for Linux w/ PGI compiler
+!  (18) LINUX_IFC  : Enables code for Linux w/ 32-bit Intel Fortran compiler
+!  (19) LINUX_EFC  : Enables code for Linux w/ 64-bit Intel Fortran compiler
+!  (20) SGI_MIPS   : Enables code for SGI Origin w/ MIPS compiler
+!  (21) SPARC      : Enables code for Sun w/ SPARC compiler
 ! 
 !  NOTES:
 !  (1 ) "define.h" is #include'd at the top of CMN_SIZE.  All subroutines
@@ -65,8 +63,8 @@
 !        a newer product.  (bmy, 3/22/04) 
 !  (19) Added NESTED_NA and NESTED_CH cpp switches.  Also add GRID1x125
 !        cpp switch. (bmy, 12/1/04)
-!  (20) Removed obsolete A_LLK_03 switch.  Also added extra switches for
-!        GCAP and GEOS_5 met fields (bmy, 5/24/05)
+!  (20) Removed obsolete A_LLK_03, LFASTJ, LSLOWJ switches.  Also added extra 
+!        switches for GCAP and GEOS_5 met fields.  (bmy, 6/23/05)
 !******************************************************************************
 !
 !==============================================================================
@@ -87,8 +85,6 @@
 #undef NESTED_CH
 #undef FULLCHEM  
 #undef LGEOSCO
-#undef LFASTJ
-#undef LSLOWJ
 #undef COMPAQ
 #undef IBM_AIX
 #undef LINUX_PGI
@@ -124,9 +120,13 @@
 #define FULLCHEM    'FULLCHEM'
 !#define LGEOSCO     'LGEOSCO'
 
-!----- Photolysis -----
-#define LFASTJ      'LFASTJ'
-!#define LSLOWJ      'LSLOWJ'
+!------------------------------------------------------------------
+! Prior to 6/22/05:
+! SLOW-J is obsolete; FAST-J is now the default (bmy, 6/23/05)
+!!----- Photolysis -----
+!#define LFASTJ      'LFASTJ'
+!!#define LSLOWJ      'LSLOWJ'
+!------------------------------------------------------------------
 
 !----- Compilers -----
 !#define COMPAQ      'COMPAQ'

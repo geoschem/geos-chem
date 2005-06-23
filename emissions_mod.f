@@ -1,9 +1,9 @@
-! $Id: emissions_mod.f,v 1.11 2005/05/09 14:33:58 bmy Exp $
+! $Id: emissions_mod.f,v 1.12 2005/06/23 19:32:55 bmy Exp $
       MODULE EMISSIONS_MOD
 !
 !******************************************************************************
 !  Module EMISSIONS_MOD is used to call the proper emissions subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 2/11/03, 1/11/05)
+!  for the various GEOS-CHEM simulations. (bmy, 2/11/03, 6/23/05)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -11,22 +11,23 @@
 !
 !  GEOS-CHEM modules referenced by emissions_mod.f
 !  ============================================================================
-!  (1 ) c2h6_mod.f       : Module containing routines for C2H6 chemistry
-!  (2 ) carbon_mod.f     : Module containing routines for carbon arsl emissions
-!  (3 ) ch3i_mod.f       : Module containing routines for CH3I chemistry
-!  (4 ) dust_mod.f       : Module containing routines for dust arsl emissions
-!  (5 ) epa_nei_mod.f    : Module containing routines to read EPA/NEI99 data
-!  (6 ) error_mod.f      : Module containing NaN and other error checks
-!  (7 ) global_ch4_mod.f : Module containing routines for CH4 emissions
-!  (8 ) Kr85_mod.f       : Module containing routines for Kr85 emissions
-!  (9 ) logical_mod.f    : Module containing GEOS-CHEM logical switches
-!  (10) mercury_mod.f    : Module containing routines for mercury chemistry
-!  (11) RnPbBe_mod.f     : Module containing routines for Rn-Pb-Be emissions
-!  (12) tagged_co_mod.f  : Module containing routines for Tagged CO emissions
-!  (13) time_mod.f       : Module containing routines to compute date & time
-!  (14) tracer_mod.f     : Module containing GEOS-CHEM tracer array STT etc.
-!  (15) seasalt_mod.f    : Module containing routines for seasalt emissions
-!  (16) sulfate_mod.f    : Module containing routines for sulfate emissions
+!  (1 ) c2h6_mod.f       : Module w/ routines for C2H6 chemistry
+!  (2 ) carbon_mod.f     : Module w/ routines for carbon arsl emissions
+!  (3 ) ch3i_mod.f       : Module w/ routines for CH3I chemistry
+!  (4 ) dust_mod.f       : Module w/ routines for dust aerosol emissions
+!  (5 ) epa_nei_mod.f    : Module w/ routines to read EPA/NEI99 data
+!  (6 ) error_mod.f      : Module w/ NaN and other error checks
+!  (7 ) global_ch4_mod.f : Module w/ routines for CH4 emissions
+!  (8 ) hcn_ch3cn_mod.f  : Module w/ routines for HCN and CH3CN emissions 
+!  (9 ) Kr85_mod.f       : Module w/ routines for Kr85 emissions
+!  (10) logical_mod.f    : Module w/ GEOS-CHEM logical switches
+!  (11) mercury_mod.f    : Module w/ routines for mercury chemistry
+!  (12) RnPbBe_mod.f     : Module w/ routines for Rn-Pb-Be emissions
+!  (13) tagged_co_mod.f  : Module w/ routines for Tagged CO emissions
+!  (14) time_mod.f       : Module w/ routines to compute date & time
+!  (15) tracer_mod.f     : Module w/ GEOS-CHEM tracer array STT etc.
+!  (16) seasalt_mod.f    : Module w/ routines for seasalt emissions
+!  (17) sulfate_mod.f    : Module w/ routines for sulfate emissions
 !
 !  NOTES:
 !  (1 ) Now references DEBUG_MSG from "error_mod.f"
@@ -54,7 +55,7 @@
 !******************************************************************************
 !  Subroutine DO_EMISSIONS is the driver routine which calls the appropriate
 !  emissions subroutine for the various GEOS-CHEM simulations. 
-!  (bmy, 2/11/03, 4/13/05)
+!  (bmy, 2/11/03, 6/23/05)
 !
 !  NOTES:
 !  (1 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
@@ -71,6 +72,7 @@
 !        the offline sulfate simulation.  Also call EMISS_EPA_NEI for the
 !        tagged CO simulation. (cas, bmy, stu, 1/10/05).
 !  (9 ) Now call EMISSSEASALT before EMISSSULFATE (bec, bmy, 4/13/05)
+!  (10) Now call EMISS_HCN_CH3CN from "hcn_ch3cn_mod.f" (xyp, bmy, 6/23/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -81,6 +83,7 @@
       USE EPA_NEI_MOD,    ONLY : EMISS_EPA_NEI
       USE ERROR_MOD,      ONLY : DEBUG_MSG
       USE GLOBAL_CH4_MOD, ONLY : EMISSCH4
+      USE HCN_CH3CN_MOD,  ONLY : EMISS_HCN_CH3CN
       USE Kr85_MOD,       ONLY : EMISSKr85
       USE LOGICAL_MOD
       USE MERCURY_MOD,    ONLY : EMISSMERCURY
@@ -91,7 +94,7 @@
       USE TRACER_MOD
       USE TAGGED_CO_MOD,  ONLY : EMISS_TAGGED_CO
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_SIZE"       ! Size parameters
 
       !=================================================================
       ! DO_EMISSIONS begins here!
@@ -109,10 +112,6 @@
          IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE
          IF ( LCARB             ) CALL EMISSCARBON
          IF ( LDUST             ) CALL EMISSDUST
-         !-----------------------------------------------
-         ! Prior to 4/13/05:
-         !IF ( LSSALT            ) CALL EMISSSEASALT
-         !-----------------------------------------------
 
       ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
          
@@ -124,10 +123,6 @@
          IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE
          IF ( LCARB             ) CALL EMISSCARBON
          IF ( LDUST             ) CALL EMISSDUST
-         !-------------------------------------------------
-         ! Prior to 4/13/05:
-         !IF ( LSSALT            ) CALL EMISSSEASALT
-         !-------------------------------------------------
 
       ELSE IF ( ITS_A_RnPbBe_SIM() ) THEN
          
@@ -142,7 +137,11 @@
       ELSE IF ( ITS_A_HCN_SIM() ) THEN
 
          ! HCN - CH3CN
-         CALL EMISSHCN
+         !-------------------------------------------
+         ! Prior to 6/23/05:
+         !CALL EMISSHCN
+         !-------------------------------------------
+         CALL EMISS_HCN_CH3CN( N_TRACERS, STT )
 
       ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
 
@@ -189,4 +188,5 @@
 
 !------------------------------------------------------------------------------
 
+      ! End of module
       END MODULE EMISSIONS_MOD

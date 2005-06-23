@@ -1,9 +1,9 @@
-! $Id: reader.f,v 1.5 2005/06/22 20:50:05 bmy Exp $
+! $Id: reader.f,v 1.6 2005/06/23 19:32:57 bmy Exp $
       SUBROUTINE READER( FIRSTCHEM )
 !
 !******************************************************************************
 !  Subroutine READER reads on/off switches and other settings for SMVGEAR II.
-!  (M. Jacobson 1997; bdf, bmy, 4/18/03, 5/10/05)
+!  (M. Jacobson 1997; bdf, bmy, 4/18/03, 6/23/05)
 !
 !  NOTES:
 !  (1 ) Now force double-precision values with the "D" exponent.  Also use
@@ -17,8 +17,9 @@
 !        PID180, PID2, SCTWOPI, AMRGAS, TWPISC, REARTH. these aren't used w/in 
 !        "reader.f" anymore.  Use F90-style variable declarations.  Also 
 !        remove obsolete variables from documentation. (bmy, 7/16/03)
-!  (3 ) Redefine CHEMINTV [s] to the value in "input.geos" so that we don't !
-!        have a discrepancy with the value in "mglob.dat" (bmy, 5/10/05)
+!  (3 ) Redefine CHEMINTV [s] to the value in "input.geos" so that we don't 
+!        have a discrepancy with the value in "mglob.dat".  SLOW-J is now 
+!        obsolete; remove LSLOWJ #ifdef blocks (bmy, 6/23/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -268,16 +269,22 @@ C
          WRITE( IO93, *       ) 'YHIS      = ', YHIS
          WRITE( IO93, *       ) 'HMAXDAYS  = ', HMAXDAYS 
          WRITE( IO93, *       ) 'HMAXNIT   = ', HMAXNIT
+!-----------------------------------------------------------------------------
+! Prior to 6/23/05:
+!#if   defined( LFASTJ ) 
+!-----------------------------------------------------------------------------
 
-#if   defined( LFASTJ ) 
          WRITE ( IO93, '(/,a)' ) 'Using U.C.I. Fast-J photolysis'  
          WRITE (    6, '(a)'   ) 'Using U.C.I. Fast-J photolysis'     
 
-#elif defined( LSLOWJ )
-         WRITE ( IO93, '(/,a)' ) 'Using traditional photolysis code'
-         WRITE (    6, '(a)'   ) 'Using traditional photolysis code'
-
-#endif
+!----------------------------------------------------------------------------
+! Prior to 6/23/05:
+!#elif defined( LSLOWJ )
+!         WRITE ( IO93, '(/,a)' ) 'Using traditional photolysis code'
+!         WRITE (    6, '(a)'   ) 'Using traditional photolysis code'
+!
+!#endif
+!----------------------------------------------------------------------------
          
          ! Write spacer line to "smv2.log
          WRITE( IO93, '(a)' )

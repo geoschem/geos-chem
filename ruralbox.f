@@ -1,4 +1,4 @@
-! $Id: ruralbox.f,v 1.1 2003/06/30 20:26:03 bmy Exp $
+! $Id: ruralbox.f,v 1.2 2005/06/23 19:32:58 bmy Exp $
       SUBROUTINE RURALBOX( AD,     T,      AVGW,   ALT,   ALBD,  
      &                     SUNCOS, CLOUDS, LEMBED, IEBD1, IEBD2,  
      &                     JEBD1,  JEBD2,  LPAUSE )
@@ -6,7 +6,7 @@
 !******************************************************************************
 !  Subroutine RURALBOX computes which boxes are tropospheric and which
 !  are stratospheric.  SMVGEAR arrays are initialized with quantities from 
-!  tropospheric boxes.  (amf, bey, ljm, lwh, gmg, bdf, bmy, 7/16/01, 4/1/03)
+!  tropospheric boxes.  (amf, bey, ljm, lwh, gmg, bdf, bmy, 7/16/01, 6/23/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -48,6 +48,7 @@
 !        commented-out code.  Also eliminate P, SIG, and NSKIPL from the arg 
 !        list, since we don't need them anymore. (dsa, bdf, bmy, 8/20/02)
 !  (11) Added modifications for SMVGEAR II (gcc, bdf, bmy, 4/1/03)
+!  (12) SLOW-J is now obsolete; remove LSLOWJ #ifdef blocks (bmy, 6/23/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -74,11 +75,14 @@
       ! Local variables      
       LOGICAL                :: LDEBUG
       INTEGER                :: I, J, L, JLOOP, IJLOOP, LL
-      REAL*8                 :: PSURF, CLOUDREF(5)
-#if   defined( LSLOWJ )
-      INTEGER                :: IJWINDOW
-      REAL*8                 :: GMU      
-#endif
+!-----------------------------------------------------------------------------
+! Prior to 6/23/05:
+!      REAL*8                 :: PSURF, CLOUDREF(5)
+!#if   defined( LSLOWJ )
+!      INTEGER                :: IJWINDOW
+!      REAL*8                 :: GMU      
+!#endif
+!-----------------------------------------------------------------------------
 
       ! External functions
       REAL*8,  EXTERNAL      :: BOXVL
@@ -177,45 +181,47 @@
             VOLUME(JLOOP)  = BOXVL(I, J, L)
 
             ! get air density in (molecs cm^-3)
-            !AIRDENS(JLOOP) = AD(I, J, L)*1000./VOLUME(JLOOP)*AVG/WTAIR
             AIRDENS(JLOOP) = AD(I,J,L)*1000.d0/VOLUME(JLOOP)*AVG/WTAIR
 
             ! get temperature
             T3(JLOOP)      = T(I,J,L)
 
-#if   defined( LSLOWJ )
-            !===========================================================
-            ! This IF block is only for SLOW-J photolysis!
-            !===========================================================
-            IF ( L == 1 ) THEN
-
-               ! CLOUDREF are the GISS-CTM cloud reflectivities 
-               ! at the surface, 800mb, 500mb, 200mb, and the top 
-               ! of the atmosphere.  Set CLOUDREF(1) equal to the 
-               ! surface albedo AVGF, and 0 elsewhere (bmy, 1/30/98)
-               CLOUDREF(1) = ALBD(I,J)
-               DO LL = 2, 5
-                  CLOUDREF(LL) = 0d0
-               ENDDO
-
-               PSURF  = GET_PEDGE(I,J,1) - PTOP
-               LDEBUG = .FALSE.
-               IJLOOP = JLOP(I,J,1)
-
-               ! Get the right index for SUNCOS, which is calculated
-               ! outside of chemistry module.
-               ! (This works for LEMBED= .TRUE. or .FALSE.)
-               IJWINDOW = (J-1)*IM + I
-               GMU      = SUNCOS(IJWINDOW)
-
-               ! NOTE: Do not pass PTOP to SETCLOUD, since PTOP
-               ! is now a parameter in "CMN_SIZE" (bmy, 2/10/00)
-               CALL SETCLOUD( CLOUDS, GMU, CLOUDREF,
-     &                        IJLOOP, ALT, LDEBUG,
-     &                        PSURF,  SIG, IJWINDOW)
-
-            ENDIF  ! L=1
-#endif
+!-----------------------------------------------------------------------------
+! Prior to 6/23/05:
+!#if   defined( LSLOWJ )
+!            !===========================================================
+!            ! This IF block is only for SLOW-J photolysis!
+!            !===========================================================
+!            IF ( L == 1 ) THEN
+!
+!               ! CLOUDREF are the GISS-CTM cloud reflectivities 
+!               ! at the surface, 800mb, 500mb, 200mb, and the top 
+!               ! of the atmosphere.  Set CLOUDREF(1) equal to the 
+!               ! surface albedo AVGF, and 0 elsewhere (bmy, 1/30/98)
+!               CLOUDREF(1) = ALBD(I,J)
+!               DO LL = 2, 5
+!                  CLOUDREF(LL) = 0d0
+!               ENDDO
+!
+!               PSURF  = GET_PEDGE(I,J,1) - PTOP
+!               LDEBUG = .FALSE.
+!               IJLOOP = JLOP(I,J,1)
+!
+!               ! Get the right index for SUNCOS, which is calculated
+!               ! outside of chemistry module.
+!               ! (This works for LEMBED= .TRUE. or .FALSE.)
+!               IJWINDOW = (J-1)*IM + I
+!               GMU      = SUNCOS(IJWINDOW)
+!
+!               ! NOTE: Do not pass PTOP to SETCLOUD, since PTOP
+!               ! is now a parameter in "CMN_SIZE" (bmy, 2/10/00)
+!               CALL SETCLOUD( CLOUDS, GMU, CLOUDREF,
+!     &                        IJLOOP, ALT, LDEBUG,
+!     &                        PSURF,  SIG, IJWINDOW)
+!
+!            ENDIF  ! L=1
+!#endif
+!-----------------------------------------------------------------------------
 
             ! PRESS3 = pressure in bar, multiply mb * 1000
             PRESS3(JLOOP) = GET_PCENTER(I,J,L) * 1000d0

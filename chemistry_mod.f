@@ -1,9 +1,9 @@
-! $Id: chemistry_mod.f,v 1.15 2005/06/22 20:49:59 bmy Exp $
+! $Id: chemistry_mod.f,v 1.16 2005/06/23 19:32:55 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
 !  Module CHEMISTRY_MOD is used to call the proper chemistry subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 6/22/05)
+!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 6/23/05)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -11,27 +11,28 @@
 !
 !  GEOS-CHEM modules referenced by chemistry_mod.f
 !  ============================================================================
-!  (1 ) acetone_mod.f      : Module containing routines for ACET chemistry
-!  (2 ) c2h6_mod.f         : Module containing routines for C2H6 chemistry
-!  (3 ) carbon_mod.f       : Module containing routines for carbon arsl chem.
-!  (4 ) ch3i_mod.f         : Module containing routines for CH3I chemistry
-!  (5 ) dao_mod.f          : Module containing arrays for DAO met fields
-!  (6 ) diag_pl_mod.f      : Module containing routines to save P(Ox), L(Ox)
-!  (7 ) drydep_mod.f       : Module containing GEOS-CHEM drydep routines
-!  (8 ) dust_mod.f         : Module containing routines for dust arsl chem.
-!  (9 ) error_mod.f        : Module containing NaN and error checks
-!  (10) global_ch4_mod.f   : Module containing routines for CH4 chemistry
-!  (11) Kr85_mod.f         : Module containing routines for Kr85 chemistry
-!  (12) logical_mod.f      : Module containing GEOS-CHEM logical switches
-!  (13) RnPbBe_mod.f       : Module containing routines for Rn-Pb-Be chemistry
-!  (14) rpmares_mod.f      : Module containing routines for arsl phase equilib.
-!  (15) seasalt_mod.f      : Module containing routines for seasalt chemistry
-!  (16) sulfate_mod.f      : Module containing routines for sulfate chemistry
-!  (17) tagged_co_mod.f    : Module containing routines for Tagged CO chemistry
-!  (18) tagged_ox_mod.f    : Module containing routines for Tagged Ox chemistry
-!  (19) time_mod.f         : Module containing routines to compute time & date
-!  (20) tracer_mod.f       : Module containing GEOS-CHEM tracer array STT etc. 
-!  (21) tracerid_mod.f     : Module containing pointers to tracers & emissions
+!  (1 ) acetone_mod.f      : Module w/ routines for ACET chemistry
+!  (2 ) c2h6_mod.f         : Module w/ routines for C2H6 chemistry
+!  (3 ) carbon_mod.f       : Module w/ routines for carbon arsl chem.
+!  (4 ) ch3i_mod.f         : Module w/ routines for CH3I chemistry
+!  (5 ) dao_mod.f          : Module w/ arrays for DAO met fields
+!  (6 ) diag_pl_mod.f      : Module w/ routines to save P(Ox), L(Ox)
+!  (7 ) drydep_mod.f       : Module w/ GEOS-CHEM drydep routines
+!  (8 ) dust_mod.f         : Module w/ routines for dust arsl chem.
+!  (9 ) error_mod.f        : Module w/ NaN and error checks
+!  (10) global_ch4_mod.f   : Module w/ routines for CH4 chemistry
+!  (11) hcn_ch3cn_mod.f    : Module w/ routines for HCN and CH3CN chemistry
+!  (12) Kr85_mod.f         : Module w/ routines for Kr85 chemistry
+!  (13) logical_mod.f      : Module w/ GEOS-CHEM logical switches
+!  (14) RnPbBe_mod.f       : Module w/ routines for Rn-Pb-Be chemistry
+!  (15) rpmares_mod.f      : Module w/ routines for arsl phase equilib.
+!  (16) seasalt_mod.f      : Module w/ routines for seasalt chemistry
+!  (17) sulfate_mod.f      : Module w/ routines for sulfate chemistry
+!  (18) tagged_co_mod.f    : Module w/ routines for Tagged CO chemistry
+!  (19) tagged_ox_mod.f    : Module w/ routines for Tagged Ox chemistry
+!  (20) time_mod.f         : Module w/ routines to compute time & date
+!  (21) tracer_mod.f       : Module w/ GEOS-CHEM tracer array STT etc. 
+!  (22) tracerid_mod.f     : Module w/ pointers to tracers & emissions
 !
 !  NOTES:
 !  (1 ) Bug fix in DO_CHEMISTRY (bnd, bmy, 4/14/03)
@@ -45,6 +46,7 @@
 !        "diag65_mod.f", and "aerosol_mod." (bmy, 7/20/04)
 !  (9 ) Now references "mercury_mod.f" (bmy, 12/7/04)
 !  (10) Updated for SO4s, NITs chemistry (bec, bmy, 4/13/05)
+!  (11) Now call CHEM_HCN_CH3CN from "hcn_ch3cn_mod.f" (xyp, bmy, 6/23/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -90,7 +92,8 @@
 !        CHEMSULFATE.  Now do aerosol thermodynamic equilibrium before
 !        aerosol chemistry for offline aerosol runs.  Now also reference 
 !        CLDF from "dao_mod.f" (bec, bmy, 4/20/05)
-!  (11) Now modified for GCAP met fields (bmy, 6/22/05)
+!  (11) Now modified for GCAP met fields.  Now call CHEM_HCN_CH3CN from 
+!        "hcn_ch3cn_mod.f" (xyp, bmy, 6/23/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -106,6 +109,7 @@
       USE DUST_MOD,        ONLY : CHEMDUST, RDUST_ONLINE
       USE ERROR_MOD,       ONLY : DEBUG_MSG
       USE GLOBAL_CH4_MOD,  ONLY : CHEMCH4
+      USE HCN_CH3CN_MOD,   ONLY : CHEM_HCN_CH3CN
       USE ISOROPIA_MOD,    ONLY : DO_ISOROPIA
       USE Kr85_MOD,        ONLY : CHEMKr85
       USE LOGICAL_MOD
@@ -176,12 +180,6 @@
                ! Do sulfate chemistry
                CALL CHEMSULFATE
 
-               !--------------------------------------------------
-               ! Prior to 4/13/05:
-               !! Do aerosol phase equilibrium
-               !CALL DO_RPMARES
-               !--------------------------------------------------
-
                ! Do aerosol thermodynamic equilibrium
                IF ( LSSALT ) THEN
 
@@ -202,12 +200,6 @@
 
             ! Do dust aerosol chemistry
             IF ( LDUST ) CALL CHEMDUST
-
-            !--------------------------------------
-            ! Prior to 4/13/05:
-            !! Do seasalt aerosol chemistry
-            !IF ( LSSALT ) CALL CHEMSEASALT
-            !--------------------------------------
 
             ! ND44 drydep fluxes
             CALL DRYFLX     
@@ -280,15 +272,6 @@
                ! Do sulfate chemistry
                CALL CHEMSULFATE
 
-               !-----------------------------------------------------------
-               ! Prior to 4/13/05:
-               ! For offline runs we now do aerosol thermodyn
-               ! equilibrium before sulfate chemistry (bec, bmy, 4/13/05)
-               !! Do aerosol phase equilibrium
-               !! (skip for crystalline & aqueous offline run)
-               !IF ( .not. LCRYST ) CALL DO_RPMARES
-               !----------------------------------------------------------
-
             ENDIF
                
             !*** CARBON AND 2NDARY ORGANIC AEROSOLS ***
@@ -303,13 +286,6 @@
                ! Compute dust OD's & surface areas
                CALL RDUST_ONLINE( SOILDUST )
             ENDIF
-
-            !-----------------------------------------------------------------
-            ! Prior to 4/13/05
-            ! Move seasalt chemistry before sulfate chem (bec, bmy, 4/13/05)
-            !!*** SEASALT AEROSOLS ***
-            !IF ( LSSALT ) CALL CHEMSEASALT
-            !-----------------------------------------------------------------
 
          !---------------------------------
          ! Rn-Pb-Be
@@ -329,7 +305,11 @@
          ! HCN
          !---------------------------------
          ELSE IF ( ITS_A_HCN_SIM() ) THEN
-            CALL CHEMHCN
+            !-----------------------------------------------
+            ! Prior to 6/23/05:
+            !CALL CHEMHCN
+            !-----------------------------------------------
+            CALL CHEM_HCN_CH3CN( N_TRACERS, STT )
 
          !---------------------------------
          ! Tagged O3

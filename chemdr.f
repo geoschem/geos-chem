@@ -1,9 +1,9 @@
-! $Id: chemdr.f,v 1.13 2005/03/29 15:52:40 bmy Exp $
+! $Id: chemdr.f,v 1.14 2005/06/23 19:32:54 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
 !  Subroutine CHEMDR is the driver subroutine for full chemistry w/ SMVGEAR.
-!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 3/24/05)
+!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 6/23/05)
 !
 !  Important input variables from "dao_mod.f" and "uvalbedo_mod.f":
 !  ============================================================================
@@ -137,6 +137,8 @@
 !        AEROSOL_CONC, RDAER, & SOILDUST from "aerosol_mod.f" (bmy, 7/20/04)
 !  (22) Now references ITS_A_NEW_DAY from "time_mod.f".  Now calls routine
 !        SETUP_PLANEFLIGHT at the start of each new day. (bmy, 3/24/05)
+!  (23) FAST-J is now the default, so we don't need the LFASTJ C-preprocessor 
+!        switch any more (bmy, 6/23/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -313,12 +315,18 @@
          ! Pass ALL variables via argument list, except PTOP, which
          ! is declared as a parameter in "CMN_SIZE" (bmy, 2/10/00)
          !==============================================================
-#if   defined( LFASTJ ) 
+!-----------------------------
+! Prior to 6/23/05:
+!#if   defined( LFASTJ ) 
+!-----------------------------
          CALL INPHOT( LLTROP, NPHOT ) 
 
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after INPHOT' )        
-#endif
+!-----------------------------
+! Prior to 6/23/05:
+!#endif
+!-----------------------------
 
          !==============================================================
          ! Call SETTRACE which flags certain chemical species

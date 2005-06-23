@@ -1,9 +1,9 @@
-! $Id: ch3i_mod.f,v 1.4 2004/12/02 21:48:33 bmy Exp $
+! $Id: ch3i_mod.f,v 1.5 2005/06/23 19:32:54 bmy Exp $
       MODULE CH3I_MOD
 !
 !******************************************************************************
 !  Module CH3I_MOD contains emissions and chemistry routines for the CH3I
-!  (Methyl Iodide) simulation. (bmy, 1/23/02, 7/20/04)
+!  (Methyl Iodide) simulation. (bmy, 1/23/02, 6/23/05)
 !
 !  Module Routines:
 !  ============================================================================
@@ -874,7 +874,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEMCH3I performs loss chemistry for methyl iodide (CH3I).  
-!  (mgs, bey, bmy, 11/20/98, 7/20/04)
+!  (mgs, bey, bmy, 11/20/98, 6/23/05)
 !
 !  If the LFASTJ C-preprocessor switch is set, then CHEMCH3I will invokes 
 !  the FAST-J subroutines to compute local photolysis rates, which in 
@@ -922,6 +922,8 @@
 !  (22) Now reference STT and N_TRACERS from "ch3i_mod.f".  Also replace
 !        NSKIPL-1 with LLTROP for now.  Now references AD65 from 
 !        "diag_pl_mod.f". (bmy, 7/20/04)
+!  (23) FAST-J is now the default, so we don't need the LFASTJ C-preprocessor
+!        switch any more (bmy, 6/23/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -972,7 +974,11 @@
 !      ENDIF
 !-----------------------------------------------------------------------------
 
-#if   defined( LFASTJ )
+!------------------------------------------------------------------------------
+! Prior to 6/23/05:
+! FAST-J is now the default, so we don't need the LFASTJ switch (bmy, 6/23/05)
+!#if   defined( LFASTJ )
+!------------------------------------------------------------------------------
 
          !==============================================================
          ! If LFASTJ is defined in "define.h", then invoke FAST-J 
@@ -1076,43 +1082,47 @@
             ENDDO
          ENDDO
 
-#else
-         
-         !==============================================================
-         ! If LFASTJ is not set in "define.h", then treat the decay of 
-         ! CH3I as if it were radioactive decay.  This is useful for 
-         ! testing.
-         !
-         ! TCHEMA: first order loss rate in 1/s
-         ! CH3I, lifetime 4 days : TCHEMA = 2.8935E-6
-         ! (old : CH3I, lifetime 3 days : TCHEMA = 3.85E-6)
-         !
-         ! NOTE: If you modify CHEMCH3I so that it will handle more 
-         ! than one species, you must specify TCHEMA as an array, loop 
-         ! over N, and then compute RLRAD as:
-         !        
-         !       RLRAD = DTCHEM*TCHEMA(N)
-         !
-         ! Also redefine RDLOSS so that it is just the exponential term, 
-         ! which can then be multiplied by the tracer STT in one step 
-         ! (bmy, 1/11/99)         
-         !==============================================================
-         SPECNAME = 'CH3I'
-         TCHEMA   = 2.8935D-6
-         RLRAD    = DTCHEM * TCHEMA
-         RDLOSS   = EXP( -RLRAD )
-
-         DO N = 1, N_TRACERS
-         DO L = 1, LLTROP
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            STT(I,J,L,N) = STT(I,J,L,N) * RDLOSS
-         ENDDO
-         ENDDO
-         ENDDO
-         ENDDO
-         
-#endif
+!------------------------------------------------------------------------------
+! Prior to 6/22/03:
+! Leave this commented here for now (bmy, 6/22/03)
+!#else
+!         
+!         !==============================================================
+!         ! If LFASTJ is not set in "define.h", then treat the decay of 
+!         ! CH3I as if it were radioactive decay.  This is useful for 
+!         ! testing.
+!         !
+!         ! TCHEMA: first order loss rate in 1/s
+!         ! CH3I, lifetime 4 days : TCHEMA = 2.8935E-6
+!         ! (old : CH3I, lifetime 3 days : TCHEMA = 3.85E-6)
+!         !
+!         ! NOTE: If you modify CHEMCH3I so that it will handle more 
+!         ! than one species, you must specify TCHEMA as an array, loop 
+!         ! over N, and then compute RLRAD as:
+!         !        
+!         !       RLRAD = DTCHEM*TCHEMA(N)
+!         !
+!         ! Also redefine RDLOSS so that it is just the exponential term, 
+!         ! which can then be multiplied by the tracer STT in one step 
+!         ! (bmy, 1/11/99)         
+!         !==============================================================
+!         SPECNAME = 'CH3I'
+!         TCHEMA   = 2.8935D-6
+!         RLRAD    = DTCHEM * TCHEMA
+!         RDLOSS   = EXP( -RLRAD )
+!
+!         DO N = 1, N_TRACERS
+!         DO L = 1, LLTROP
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!            STT(I,J,L,N) = STT(I,J,L,N) * RDLOSS
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!         
+!#endif
+!------------------------------------------------------------------------------
 
 !-----------------------------------------------------------------------------
 !### Debug output in unit 97 ...comment out if necessary (bmy, 11/23/98)

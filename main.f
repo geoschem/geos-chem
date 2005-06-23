@@ -1,11 +1,14 @@
-C $Id: main.f,v 1.24 2005/06/22 20:50:04 bmy Exp $
+C $Id: main.f,v 1.25 2005/06/23 19:32:56 bmy Exp $
 C $Log: main.f,v $
-C Revision 1.24  2005/06/22 20:50:04  bmy
-C
-C GEOS-CHEM v7-03-02R, includes the following modifications:
+C Revision 1.25  2005/06/23 19:32:56  bmy
+C GEOS-CHEM v7-03-02, includes the following modifications:
 C - Added code for GCAP and GEOS-5 met fields
 C - removed obsolete routines
-C (bmy, 6/22/05)
+C
+C Revision 1.24  2005/06/22 20:50:04  bmy
+C GEOS-CHEM v7-03-02, includes the following modifications:
+C - Added code for GCAP and GEOS-5 met fields
+C - removed obsolete routines
 C
 C Revision 1.23  2005/05/09 14:33:59  bmy
 C GEOS-CHEM v7-03-01, includes the following modifications:

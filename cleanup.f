@@ -1,9 +1,9 @@
-! $Id: cleanup.f,v 1.10 2005/03/29 15:52:40 bmy Exp $
+! $Id: cleanup.f,v 1.11 2005/06/23 19:32:55 bmy Exp $
       SUBROUTINE CLEANUP
 !
 !******************************************************************************
 !  Subroutine CLEANUP deallocates the memory assigned to dynamic allocatable 
-!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 2/17/05)
+!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 6/23/05)
 !
 !  NOTES:
 !  (1 ) CLEANUP is written in Fixed-Format F90.
@@ -60,6 +60,7 @@
 !        reordered the calling sequence. (sas, bmy, 1/21/05)
 !  (29) Now call CLEANUP_PBL_MIX from "pbl_mix_mod.f".  Now call CLEANUP_DIAG41
 !        from "diag41_mod.f". (bmy, 2/17/05)
+!  (30) Now calls CLEANUP_HCN_CH3CN from "hcn_ch3cn_mod.f (bmy, 6/23/05)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -89,6 +90,7 @@
       USE GLOBAL_NO3_MOD,    ONLY : CLEANUP_GLOBAL_NO3
       USE GLOBAL_NOX_MOD,    ONLY : CLEANUP_GLOBAL_NOX
       USE GLOBAL_OH_MOD,     ONLY : CLEANUP_GLOBAL_OH
+      USE HCN_CH3CN_MOD,     ONLY : CLEANUP_HCN_CH3CN
       USE LIGHTNING_NOX_MOD, ONLY : CLEANUP_LIGHTNING_NOX
       USE MERCURY_MOD,       ONLY : CLEANUP_MERCURY
       USE OCEAN_MERCURY_MOD, ONLY : CLEANUP_OCEAN_MERCURY
@@ -140,6 +142,7 @@
       CALL CLEANUP_GLOBAL_NOX
       CALL CLEANUP_GLOBAL_NO3
       CALL CLEANUP_GLOBAL_OH
+      CALL CLEANUP_HCN_CH3CN
       CALL CLEANUP_LIGHTNING_NOX
       CALL CLEANUP_MERCURY
       CALL CLEANUP_OCEAN_MERCURY
