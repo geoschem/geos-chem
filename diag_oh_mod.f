@@ -1,11 +1,11 @@
-! $Id: diag_oh_mod.f,v 1.1 2004/09/21 18:04:11 bmy Exp $
+! $Id: diag_oh_mod.f,v 1.2 2005/06/27 19:41:45 bmy Exp $
       MODULE DIAG_OH_MOD
 !
 !******************************************************************************
 !  Module DIAG_OH_MOD contains routines and variables to archive OH mass
 !  and air mass concentrations.  These are then used to print out the mass-
 !  weighted mean OH concentration in 1e5 molec/cm3.  This is a metric of
-!  how certain chemisry simulations are performing. (bmy, 7/20/04)
+!  how certain chemisry simulations are performing. (bmy, 7/20/04, 6/24/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -22,13 +22,14 @@
 !
 !  GEOS-CHEM modules referenced by "diag_oh_mod.f":
 !  ============================================================================
-!  (1 ) comode_mod.f      : Module containing SMVGEAR allocatable arrays
-!  (2 ) error_mod.f       : Module containing I/O error and NaN check routines 
-!  (3 ) logical_mod.f     : Module containing GEOS-CHEM logical switches
-!  (4 ) tracer_mod.f      : Module containing GEOS-CHEM tracer array STT etc.  
-!  (5 ) tracerid_mod.f    : Module containing pointers to tracers & emissions 
+!  (1 ) comode_mod.f      : Module w/ SMVGEAR allocatable arrays
+!  (2 ) error_mod.f       : Module w/ I/O error and NaN check routines 
+!  (3 ) logical_mod.f     : Module w/ GEOS-CHEM logical switches
+!  (4 ) tracer_mod.f      : Module w/ GEOS-CHEM tracer array STT etc.  
+!  (5 ) tracerid_mod.f    : Module w/ pointers to tracers & emissions 
 !
 !  NOTES:
+!  (1 ) Remove code for obsolete CO-OH simulation (bmy, 6/24/05)
 !******************************************************************************
 ! 
       IMPLICIT NONE
@@ -215,20 +216,31 @@
       SUBROUTINE INIT_DIAG_OH
 !
 !******************************************************************************
-!  Subroutine INIT_DIAG_OH initializes all module arrays. (bmy, 7/20/04)
+!  Subroutine INIT_DIAG_OH initializes all module arrays. 
+!  (bmy, 7/20/04, 6/24/05)
 !
 !  NOTES:
+!  (1 ) Remove references to CO-OH simulation and to CMN_DIAG (bmy, 6/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE LOGICAL_MOD, ONLY : LCHEM
-      USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM,  
-     &                        ITS_A_COPARAM_SIM, 
-     &                        ITS_A_CH4_SIM
+!-----------------------------------------------------------------------
+! Prior to 6/24/05:
+! Remove reference to CO-OH simulation (bmy, 6/24/05)
+!      USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM,  
+!     &                        ITS_A_COPARAM_SIM, 
+!     &                        ITS_A_CH4_SIM
+!-----------------------------------------------------------------------
+      USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM, ITS_A_CH4_SIM
 
 #     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_DIAG"    ! ND23
+!-----------------------------------------------------------------------
+! Prior to 6/24/05:
+! This reference is no longer needed (bmy, 6/24/05)
+!#     include "CMN_DIAG"    ! ND23
+!-----------------------------------------------------------------------
 
       ! Local variables
       INTEGER :: AS, LMAX
@@ -251,11 +263,15 @@
          LMAX       = LLTROP
          DO_SAVE_OH = .TRUE.
 
-      ELSE IF ( ITS_A_COPARAM_SIM() ) THEN
-
-         ! CO w/ OH param: all levels
-         LMAX       = LLPAR
-         DO_SAVE_OH = .TRUE.
+      !-----------------------------------------------------------
+      ! Prior to 6/24/05:
+      ! CO-OH simulation is now obsolete (bmy, 6/24/05)
+      !ELSE IF ( ITS_A_COPARAM_SIM() ) THEN
+      !
+      !   ! CO w/ OH param: all levels
+      !   LMAX       = LLPAR
+      !   DO_SAVE_OH = .TRUE.
+      !-----------------------------------------------------------
 
       ELSE IF ( ITS_A_CH4_SIM() ) THEN
 

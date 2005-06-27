@@ -1,10 +1,10 @@
-! $Id: restart_mod.f,v 1.7 2004/12/02 21:48:39 bmy Exp $
+! $Id: restart_mod.f,v 1.8 2005/06/27 19:41:50 bmy Exp $
       MODULE RESTART_MOD
 !
 !******************************************************************************
 !  Module RESTART_MOD contains variables and routines which are used to read
 !  and write GEOS-CHEM restart files, which contain tracer concentrations
-!  in [v/v] mixing ratio. (bmy, 6/25/02, 7/20/04)
+!  in [v/v] mixing ratio. (bmy, 6/25/02, 6/24/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -17,21 +17,19 @@
 !  (2 ) READ_RESTART_FILE    : Reads restart file from disk 
 !  (3 ) CONVERT_TRACER_TO_VV : Converts from [ppbv], [ppmv], etc to [v/v]
 !  (4 ) CHECK_DIMENSIONS     : Ensures that restart file contains global data
-!  (5 ) TRUE_TRACER_INDEX    : Removes GAMAP tracer offset from tracer number
-!  (6 ) COPY_STT             : Converts [v/v] to [kg] and stores in STT
-!  (7 ) COPY_STT_FOR_CO_OH   : Converts [v/v] to [kg] for CO w/ param. OH run
-!  (8 ) CHECK_DATA_BLOCKS    : Makes sure we have read in data for each tracer
-!  (9 ) SET_RESTART          : Gets restart filenames from "input_mod.f"
+!  (5 ) COPY_STT             : Converts [v/v] to [kg] and stores in STT
+!  (6 ) CHECK_DATA_BLOCKS    : Makes sure we have read in data for each tracer
+!  (7 ) SET_RESTART          : Gets restart filenames from "input_mod.f"
 !
 !  GEOS-CHEM modules referenced by restart_mod.f
 !  ============================================================================
-!  (1 ) bpch2_mod.f   : Module containing routines for binary punch file I/O
-!  (2 ) error_mod.f   : Module containing NaN and other error check routines
-!  (3 ) file_mod.f    : Module containing file unit numbers and error checks
-!  (4 ) grid_mod.f    : Module containing horizontal grid information
-!  (5 ) logical_mod.f : Module containing GEOS-CHEM logical switches
-!  (6 ) time_mod.f    : Module containing routines for computing time & date
-!  (7 ) tracer_mod.f  : Module containing GEOS-CHEM tracer array STT etc.
+!  (1 ) bpch2_mod.f          : Module w/ routines for binary punch file I/O
+!  (2 ) error_mod.f          : Module w/ NaN and other error check routines
+!  (3 ) file_mod.f           : Module w/ file unit numbers and error checks
+!  (4 ) grid_mod.f           : Module w/ horizontal grid information
+!  (5 ) logical_mod.f        : Module w/ GEOS-CHEM logical switches
+!  (6 ) time_mod.f           : Module w/ routines for computing time & date
+!  (7 ) tracer_mod.f         : Module w/ GEOS-CHEM tracer array STT etc.
 !
 !  NOTES:
 !  (1 ) Moved routines "make_restart_file.f"" and "read_restart_file.f" into
@@ -46,6 +44,8 @@
 !  (6 ) Add fancy output (bmy, 4/26/04)
 !  (7 ) Added routine SET_RESTART.  Now reference "logical_mod.f" and
 !        "tracer_mod.f" (bmy, 7/20/04)
+!  (8 ) Removed obsolete routines TRUE_TRACER_INDEX and COPY_DATA_FOR_CO_OH
+!        (bmy, 6/24/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -55,13 +55,24 @@
       ! and routines from being seen outside "restart_mod.f"
       !=================================================================
 
-      ! Private module routines
-      PRIVATE :: CONVERT_TRACER_TO_VV
-      PRIVATE :: CHECK_DIMENSIONS
-      PRIVATE :: TRUE_TRACER_INDEX
-      PRIVATE :: COPY_STT
-      PRIVATE :: COPY_STT_FOR_CO_OH
-      PRIVATE :: CHECK_DATA_BLOCKS
+      !---------------------------------------
+      ! Prior to 6/24/05:
+      !! Private module routines
+      !PRIVATE :: CONVERT_TRACER_TO_VV
+      !PRIVATE :: CHECK_DIMENSIONS
+      !PRIVATE :: TRUE_TRACER_INDEX
+      !PRIVATE :: COPY_STT
+      !PRIVATE :: COPY_STT_FOR_CO_OH
+      !PRIVATE :: CHECK_DATA_BLOCKS
+      !---------------------------------------
+
+      ! Make everything PRIVATE ...
+      PRIVATE
+
+      ! ... except these routines
+      PUBLIC  :: MAKE_RESTART_FILE
+      PUBLIC  :: READ_RESTART_FILE
+      PUBLIC  :: SET_RESTART
 
       !=================================================================
       ! MODULE VARIABLES
@@ -80,7 +91,7 @@
 !
 !******************************************************************************
 !  Subroutine MAKE_RESTART_FILE creates GEOS-CHEM restart files of tracer 
-!  mixing ratios (v/v), in binary punch file format. (bmy, 5/27/99, 7/20/04)
+!  mixing ratios (v/v), in binary punch file format. (bmy, 5/27/99, 6/24/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -107,6 +118,7 @@
 !  (9 ) Now reference STT, N_TRACERS, TCVV from "tracer_mod.f".  Also now
 !        remove hardwired output restart filename.   Now references LPRT
 !        from "logical_mod.f". (bmy, 7/20/04)
+!  (10) Remove references to CMN_DIAG and TRCOFFSET (bmy, 6/24/05)
 !******************************************************************************
 !     
       ! References to F90 modules
@@ -120,7 +132,10 @@
       USE TRACER_MOD,  ONLY : STT, N_TRACERS, TCVV
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_DIAG"   ! TRCOFFSET
+!----------------------------------------------------
+! Prior to 6/24/05:
+!#     include "CMN_DIAG"   ! TRCOFFSET
+!----------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)  :: YYYYMMDD, HHMMSS
@@ -199,7 +214,12 @@
          ! Convert STT from [kg] to [v/v] mixing ratio 
          ! and store in temporary variable TRACER
          CALL BPCH2( IU_RST,    MODELNAME, LONRES,    LATRES,    
-     &               HALFPOLAR, CENTER180, CATEGORY,  N+TRCOFFSET,
+!-------------------------------------------------------------------------
+! Prior to 6/24/05:
+! TRCOFFSET=0 now so we really don't need it anymore (bmy, 6/24/05)
+!     &               HALFPOLAR, CENTER180, CATEGORY,  N+TRCOFFSET,
+!-------------------------------------------------------------------------
+     &               HALFPOLAR, CENTER180, CATEGORY,  N,
      &               UNIT,      GET_TAU(), GET_TAU(), RESERVED,   
      &               IIPAR,     JJPAR,     LLPAR,     I0+1,            
      &               J0+1,      1,         TRACER )
@@ -220,7 +240,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_RESTART_FILE initializes GEOS-CHEM tracer concentrations 
-!  from a restart file (binary punch file format) (bmy, 5/27/99, 7/20/04)
+!  from a restart file (binary punch file format) (bmy, 5/27/99, 6/24/05)
 !
 !  Arguments as input:
 !  ============================================================================
@@ -267,6 +287,9 @@
 !  (17) Add fancy output string (bmy, 4/26/04)
 !  (18) No longer use hardwired filename.  Also now reference "logical_mod.f"
 !        and "tracer_mod.f" (bmy, 7/20/04)
+!  (19) Remove code for obsolete CO-OH simulation.  Also remove references
+!        to CMN_DIAG and TRCOFFSET.   Change tracer name format string to A10.
+!        (bmy, 6/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -279,7 +302,11 @@
       USE TRACER_MOD
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_DIAG"   ! TRCOFFSET
+!---------------------------------------------------------------------
+! Prior to 6/24/05:
+! TRCOFFSET=0 now so we don't really need it anymore (bmy, 6/24/05)
+!#     include "CMN_DIAG"   ! TRCOFFSET
+!----------------------------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: YYYYMMDD, HHMMSS
@@ -374,12 +401,17 @@
             ! Convert TRACER from its native units to [v/v] mixing ratio
             CALL CONVERT_TRACER_TO_VV( NTRACER, TRACER, UNIT )
 
-            ! Convert TRACER from [v/v] to [kg] and copy into STT array
-            IF ( ITS_A_COPARAM_SIM() ) THEN
-               CALL COPY_STT_FOR_CO_OH( NTRACER, TRACER, NCOUNT )            
-            ELSE
-               CALL COPY_STT( NTRACER, TRACER, NCOUNT )
-            ENDIF
+            !! Convert TRACER from [v/v] to [kg] and copy into STT array
+            !---------------------------------------------------------------
+            ! Prior to 6/24/05:
+            ! Remove code for obsolete CO-OH simulation (bmy, 6/24/05)
+            !IF ( ITS_A_COPARAM_SIM() ) THEN
+            !   CALL COPY_STT_FOR_CO_OH( NTRACER, TRACER, NCOUNT )            
+            !ELSE
+            !   CALL COPY_STT( NTRACER, TRACER, NCOUNT )
+            !ENDIF
+            !---------------------------------------------------------------
+            CALL COPY_STT( NTRACER, TRACER, NCOUNT )
 
          ENDIF
       ENDDO
@@ -410,7 +442,12 @@
          ! Print totals
          WRITE( 6, 130 ) N,                   TRACER_NAME(N), 
      &                   SUM( STT(:,:,:,N) ), ADJUSTL( UNIT )
- 130     FORMAT( 'Tracer ', i3, ' (', a4, ') ', es12.5, 1x, a4)
+!--------------------------------------------------------------------
+! Prior to 6/27/05:
+! Change tracer name format to A10 (bmy, 6/27/05)
+! 130     FORMAT( 'Tracer ', i3, ' (', a4, ') ', es12.5, 1x, a4)
+!--------------------------------------------------------------------
+ 130     FORMAT( 'Tracer ', i3, ' (', a10, ') ', es12.5, 1x, a4)
       ENDDO
 
       ! Fancy output
@@ -429,7 +466,7 @@
 !******************************************************************************
 !  Subroutine CONVERT_TRACER_TO_VV converts the TRACER array from its
 !  natural units (e.g. ppbv, ppmv) as read from the restart file to v/v
-!  mixing ratio. (bmy, 6/25/02, 10/15/02)
+!  mixing ratio. (bmy, 6/25/02, 6/24/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -442,6 +479,7 @@
 !        to v/v mixing ratio. (bmy, 6/25/02)
 !  (2 ) Now reference GEOS_CHEM_STOP from "error_mod.f", which frees all
 !        allocated memory before stopping the run. (bmy, 10/15/02)
+!  (3 ) Remove obsolete reference to CMN (bmy, 6/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -449,7 +487,10 @@
       USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
 
 #     include "CMN_SIZE"              ! Size parameters
-#     include "CMN"                   ! TCNAME
+!----------------------------------------------------------------
+! Prior to 6/24/05:
+!#     include "CMN"                   ! TCNAME
+!----------------------------------------------------------------
 
       ! Arguments
       INTEGER,          INTENT(IN)    :: NTRACER
@@ -557,60 +598,60 @@
       END SUBROUTINE CHECK_DIMENSIONS
 
 !------------------------------------------------------------------------------
-
-      FUNCTION TRUE_TRACER_INDEX( NTRACER ) RESULT( N )
 !
-!******************************************************************************
-!  Function TRUE_TRACER_INDEX returns the "true" index for CTM tracers; that
-!  is, the tracer number minus the GAMAP "special chemistry" offset.
-!  (bmy, 6/25/02, 10/15/02)
+!      FUNCTION TRUE_TRACER_INDEX( NTRACER ) RESULT( N )
+!!
+!!******************************************************************************
+!!  Function TRUE_TRACER_INDEX returns the "true" index for CTM tracers; that
+!!  is, the tracer number minus the GAMAP "special chemistry" offset.
+!!  (bmy, 6/25/02, 10/15/02)
+!!
+!!  NOTES:
+!!  (1 ) Added to "restart_mod.f".  Also now use F90 intrinsic REPEAT to
+!!        write a long line of "="'s to the screen. (bmy, 6/25/02)
+!!  (2 ) Now reference GEOS_CHEM_STOP from "error_mod.f", which frees all
+!!        allocated memory before stopping the run. (bmy, 10/15/02)
+!!******************************************************************************
+!!
+!      ! References to F90 modules
+!      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 !
-!  NOTES:
-!  (1 ) Added to "restart_mod.f".  Also now use F90 intrinsic REPEAT to
-!        write a long line of "="'s to the screen. (bmy, 6/25/02)
-!  (2 ) Now reference GEOS_CHEM_STOP from "error_mod.f", which frees all
-!        allocated memory before stopping the run. (bmy, 10/15/02)
-!******************************************************************************
+!#     include "CMN_SIZE"  ! Size parameters
+!#     include "CMN_DIAG"  ! TRCOFFSET
 !
-      ! References to F90 modules
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! TRCOFFSET
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: NTRACER
-      
-      ! Return value
-      INTEGER             :: N
-
-      !=================================================================
-      ! TRUE_TRACER_INDEX begins here!
-      !=================================================================
-
-      ! Subtract TRCOFFSET from NTRACER -- TRCOFFSET is used
-      ! by GAMAP to distinguish special chemistry routines
-      N = NTRACER - TRCOFFSET
-
-      ! Stop with error message if N is out of range
-      IF ( N < 1 ) THEN 
-         WRITE( 6, '(a)' ) 'NTRACER - TRCOFFSET is less than 1!'
-         WRITE( 6, '(a)' ) 'Please double-check the value of NSRCX!'
-         WRITE( 6, '(a)' ) 'STOP in TRUE_TRACER_INDEX (restart_mod.f)'
-         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-         CALL GEOS_CHEM_STOP
-      ENDIF
-
-      ! Return to calling program
-      END FUNCTION TRUE_TRACER_INDEX
-
+!      ! Arguments
+!      INTEGER, INTENT(IN) :: NTRACER
+!      
+!      ! Return value
+!      INTEGER             :: N
+!
+!      !=================================================================
+!      ! TRUE_TRACER_INDEX begins here!
+!      !=================================================================
+!
+!      ! Subtract TRCOFFSET from NTRACER -- TRCOFFSET is used
+!      ! by GAMAP to distinguish special chemistry routines
+!      N = NTRACER - TRCOFFSET
+!
+!      ! Stop with error message if N is out of range
+!      IF ( N < 1 ) THEN 
+!         WRITE( 6, '(a)' ) 'NTRACER - TRCOFFSET is less than 1!'
+!         WRITE( 6, '(a)' ) 'Please double-check the value of NSRCX!'
+!         WRITE( 6, '(a)' ) 'STOP in TRUE_TRACER_INDEX (restart_mod.f)'
+!         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+!         CALL GEOS_CHEM_STOP
+!      ENDIF
+!
+!      ! Return to calling program
+!      END FUNCTION TRUE_TRACER_INDEX
+!
 !------------------------------------------------------------------------------
      
       SUBROUTINE COPY_STT( NTRACER, TRACER, NCOUNT )
 !
 !******************************************************************************
 !  Subroutine COPY_STT converts tracer concetrations from [v/v] to [kg] and 
-!  then copies the results into the STT tracer array. (bmy, 6/25/02, 7/20/04)
+!  then copies the results into the STT tracer array. (bmy, 6/25/02, 6/24/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -623,13 +664,14 @@
 !  (2 ) Now reference AD from "dao_mod.f" (bmy, 9/18/02)
 !  (3 ) Now exit if N is out of range (bmy, 4/29/03)
 !  (4 ) Now references N_TRACERS, STT & TCVV from "tracer_mod.f" (bmy, 7/20/04)
+!  (5 ) Remove call to TRUE_TRACER_INDEX (bmy, 6/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,    ONLY : AD
       USE TRACER_MOD, ONLY : N_TRACERS, STT, TCVV
       
-#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_SIZE"   ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NTRACER
@@ -643,8 +685,16 @@
       ! COPY_STT begins here!
       !=================================================================
 
-      ! Make sure N is a valid tracer number
-      N = TRUE_TRACER_INDEX( NTRACER )
+      !--------------------------------------------------------
+      ! Prior to 6/24/05:
+      ! TRCOFFSET is now always zero, so we don't need to call
+      ! TRUE_TRACER_INDEX any more (bmy, 6/24/05)
+      !! Make sure N is a valid tracer number
+      !N = TRUE_TRACER_INDEX( NTRACER )
+      !-------------------------------------------------------
+
+      ! Tracer number
+      N = NTRACER
 
       ! Exit if N is out of range
       IF ( N < 1 .or. N > N_TRACERS ) RETURN
@@ -668,78 +718,80 @@
       END SUBROUTINE COPY_STT
 
 !------------------------------------------------------------------------------
-
-      SUBROUTINE COPY_STT_FOR_CO_OH( NTRACER, TRACER, NCOUNT )
+! Prior to 6/24/05:
+! Remove this, the CO-OH simulation is obsolete now (bmy, 6/24/05)
 !
-!******************************************************************************
-!  Subroutine COPY_STT_FOR_CO_OH copies data from the TRACER array into the 
-!  STT array for the CO run with parameterized OH, readjusting the
-!  tracer number accordingly. (bmy, 6/25/02, 9/18/02)
+!      SUBROUTINE COPY_STT_FOR_CO_OH( NTRACER, TRACER, NCOUNT )
+!!
+!!******************************************************************************
+!!  Subroutine COPY_STT_FOR_CO_OH copies data from the TRACER array into the 
+!!  STT array for the CO run with parameterized OH, readjusting the
+!!  tracer number accordingly. (bmy, 6/25/02, 9/18/02)
+!!
+!!  Arguments as Input:
+!!  ============================================================================
+!!  (1 ) NTRACER (INTEGER) : Tracer number
+!!  (2 ) NCOUNT  (INTEGER) : Ctr array - # of data blocks read for each tracer
+!!  (3 ) TRACER  (REAL*4 ) : Tracer concentrations [v/v]
+!!
+!!  NOTES:
+!!  (1 ) Added to "restart_mod.f". (bmy, 6/25/02)
+!!  (2 ) Now reference AD from "dao_mod.f" (bmy, 9/18/02)
+!!******************************************************************************
+!!
+!      ! References to F90 modules
+!      USE DAO_MOD, ONLY : AD
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NTRACER (INTEGER) : Tracer number
-!  (2 ) NCOUNT  (INTEGER) : Ctr array - # of data blocks read for each tracer
-!  (3 ) TRACER  (REAL*4 ) : Tracer concentrations [v/v]
+!#     include "CMN_SIZE"     ! Size parameters
+!#     include "CMN"          ! TCVV, AD, STT
 !
-!  NOTES:
-!  (1 ) Added to "restart_mod.f". (bmy, 6/25/02)
-!  (2 ) Now reference AD from "dao_mod.f" (bmy, 9/18/02)
-!******************************************************************************
+!      ! Arguments
+!      INTEGER, INTENT(IN)    :: NTRACER
+!      REAL*4,  INTENT(IN)    :: TRACER(IIPAR,JJPAR,LLPAR)
+!      INTEGER, INTENT(INOUT) :: NCOUNT(NNPAR)
+!   
+!      ! Local variables
+!      INTEGER                :: I, J, L
 !
-      ! References to F90 modules
-      USE DAO_MOD, ONLY : AD
-
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! TCVV, AD, STT
-
-      ! Arguments
-      INTEGER, INTENT(IN)    :: NTRACER
-      REAL*4,  INTENT(IN)    :: TRACER(IIPAR,JJPAR,LLPAR)
-      INTEGER, INTENT(INOUT) :: NCOUNT(NNPAR)
-   
-      ! Local variables
-      INTEGER                :: I, J, L
-
-#if   defined( LGEOSCO )
-
-#     include "CMN_CO_BUDGET" 
-
-      !=================================================================
-      ! COPY_STT_FOR_CO_OH begins here!
-      !=================================================================
-
-      ! CO is tracer #4 in a full-chemistry restart file
-      IF ( NTRACER == 4 ) THEN
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
- 
-            ! Convert from [v/v] to [kg CO]
-            STT(I,J,L,N) = TRACER(I,J,L) * AD(I,J,L) / TCVV_CO
-
-            ! Save initial CO budget in TCO(:,:,:,1)
-            TCO(I,J,L,1) = TRACER(I,J,L) 
-            
-            ! 
-            TCO(I,J,L,2:12) = 0d0
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-
-         ! Update count
-         NCOUNT(1) = NCOUNT(1) + 1
-      ENDIF
-#endif
-      
-      ! Return to READ_RESTART_FILE
-      END SUBROUTINE COPY_STT_FOR_CO_OH
-
+!#if   defined( LGEOSCO )
+!
+!#     include "CMN_CO_BUDGET" 
+!
+!      !=================================================================
+!      ! COPY_STT_FOR_CO_OH begins here!
+!      !=================================================================
+!
+!      ! CO is tracer #4 in a full-chemistry restart file
+!      IF ( NTRACER == 4 ) THEN
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!         DO L = 1, LLPAR
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+! 
+!            ! Convert from [v/v] to [kg CO]
+!            STT(I,J,L,N) = TRACER(I,J,L) * AD(I,J,L) / TCVV_CO
+!
+!            ! Save initial CO budget in TCO(:,:,:,1)
+!            TCO(I,J,L,1) = TRACER(I,J,L) 
+!            
+!            ! 
+!            TCO(I,J,L,2:12) = 0d0
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!!$OMP END PARALLEL DO
+!
+!         ! Update count
+!         NCOUNT(1) = NCOUNT(1) + 1
+!      ENDIF
+!#endif
+!      
+!      ! Return to READ_RESTART_FILE
+!      END SUBROUTINE COPY_STT_FOR_CO_OH
+!
 !------------------------------------------------------------------------------
 
       SUBROUTINE CHECK_DATA_BLOCKS( NTRACE, NCOUNT )

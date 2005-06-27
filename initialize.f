@@ -1,8 +1,8 @@
-! $Id: initialize.f,v 1.13 2005/05/09 14:33:58 bmy Exp $
+! $Id: initialize.f,v 1.14 2005/06/27 19:41:47 bmy Exp $
       SUBROUTINE INITIALIZE( IFLAG )
 !
 !******************************************************************************
-!  Subroutine INITIALIZE (bmy, 6/15/98, 2/17/05) does the following:
+!  Subroutine INITIALIZE (bmy, 6/15/98, 6/27/05) does the following:
 !     (1) Zeroes globally defined GEOS-CHEM variables.
 !     (2) Zeroes accumulating diagnostic arrays.
 !     (3) Resets certain year/month/day and counter variables used 
@@ -154,6 +154,7 @@
 !        to zero ND03 arrays (bmy, 1/21/05) 
 !  (31) Now call ZERO_DIAG41 from "diag41_mod.f".  Also removed references
 !        to AD41 and AFTTOT. (bmy, 2/17/05)
+!  (32) Now zero AD09 and AD09_em for HCN simulation (xyp, bmy, 6/27/05)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -245,6 +246,12 @@
             AD07_BC  = 0e0
             AD07_OC  = 0e0
             AD07_HC  = 0e0
+         ENDIF
+
+         ! ND09 -- HCN & CH3CN simulation (xyp, bmy, 6/27/05)
+         IF ( ND09 > 0 ) THEN
+            AD09     = 0e0
+            AD09_em  = 0e0
          ENDIF
          
          ! For ND13 - sulfur emissions (bmy, 6/6/00, 5/20/04)

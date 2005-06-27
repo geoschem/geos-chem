@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.22 2005/06/22 20:50:00 bmy Exp $
+! $Id: diag3.f,v 1.23 2005/06/27 19:41:44 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out diagnostics to the BINARY format punch file 
-!  (bmy, bey, mgs, rvm, 5/27/99, 6/9/05)
+!  (bmy, bey, mgs, rvm, 5/27/99, 6/24/05)
 !
 !  NOTES: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
@@ -56,9 +56,10 @@
 !        numbers for the ND67 diagnostic.  Now do not save CLDMAS for ND67
 !        for GEOS-4, since GEOS-4 convection uses different met fields.
 !        (bec, bmy, 5/3/05)
-!  (60) Bug fix in ND68 diagnostic: use LD68 instead of ND68 in call
-!        to BPCH2.  Now modified for GEOS-5 and GCAP met fields
-!        (swu, bmy, 5/25/05)
+!  (60) Bug fix in ND68 diagnostic: use LD68 instead of ND68 in call to BPCH2.
+!        Now modified for GEOS-5 and GCAP met fields.  Remove references to
+!        CO-OH param simulation.  Also remove references to TRCOFFSET since
+!        that is always zero now. (swu, bmy, 6/24/05)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -170,7 +171,7 @@
          DO M = 1, TMAX(1)
             N  = TINDEX(1,M)
             IF ( N > N_TRACERS ) CYCLE
-            NN = N + TRCOFFSET
+            NN = N
                
             ! Pb "emission" comes from chemical decay of Rn, which happens 
             ! in the chemistry routine, so use SCALECHEM (bmy, 1/27/03)
@@ -210,7 +211,7 @@
          DO M = 1, TMAX(2)
             N  = TINDEX(2,M)
             IF ( N > N_TRACERS ) CYCLE
-            NN = N + TRCOFFSET
+            NN = N
 
             ! Divide by # of chemistry timesteps
             DO L = 1, LD02
@@ -263,7 +264,7 @@
                UNIT = 'kg'
             ENDIF
 
-            NN     = N + TRCOFFSET
+            NN     = N
             SCALEX = 1.d0
 
             DO L = 1, LD05
@@ -296,10 +297,10 @@
          DO N = 1, NDSTBIN 
 
             ! At present we have 4 dust bins
-            IF ( N == 1 ) NN = IDTDST1 + TRCOFFSET
-            IF ( N == 2 ) NN = IDTDST2 + TRCOFFSET
-            IF ( N == 3 ) NN = IDTDST3 + TRCOFFSET
-            IF ( N == 4 ) NN = IDTDST4 + TRCOFFSET
+            IF ( N == 1 ) NN = IDTDST1 
+            IF ( N == 2 ) NN = IDTDST2 
+            IF ( N == 3 ) NN = IDTDST3 
+            IF ( N == 4 ) NN = IDTDST4 
 
             ! Save dust into ARRAY
             ARRAY(:,:,1) = AD06(:,:,N) 
@@ -330,7 +331,7 @@
          ! BC ANTHRO source
          !-------------------
          CATEGORY     = 'BC-ANTH'
-         N            = IDTBCPI + TRCOFFSET
+         N            = IDTBCPI
          ARRAY(:,:,1) = AD07(:,:,1) 
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -343,7 +344,7 @@
          ! BC BIOMASS source
          !-------------------
          CATEGORY     = 'BC-BIOB'
-         N            = IDTBCPI + TRCOFFSET     
+         N            = IDTBCPI
          ARRAY(:,:,1) = AD07(:,:,2) 
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -356,7 +357,7 @@
          ! BC BIOFUEL source
          !------------------- 
          CATEGORY     = 'BC-BIOF'
-         N            = IDTBCPI + TRCOFFSET     
+         N            = IDTBCPI
          ARRAY(:,:,1) = AD07(:,:,3) 
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -369,7 +370,7 @@
          ! H-philic BC from H-phobic BC
          !------------------------------ 
          CATEGORY     = 'PL-BC=$'
-         N            = IDTBCPI + TRCOFFSET     
+         N            = IDTBCPI
 
          DO L = 1, LD07
             ARRAY(:,:,L) = AD07_BC(:,:,L) 
@@ -385,7 +386,7 @@
          ! OC ANTHRO source
          !------------------------------ 
          CATEGORY     = 'OC-ANTH'
-         N            = IDTOCPI + TRCOFFSET             
+         N            = IDTOCPI
          ARRAY(:,:,1) = AD07(:,:,4) 
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -398,7 +399,7 @@
          ! OC BIOMASS source
          !------------------------------
          CATEGORY     = 'OC-BIOB'
-         N            = IDTOCPI + TRCOFFSET             
+         N            = IDTOCPI
          ARRAY(:,:,1) = AD07(:,:,5) 
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -411,7 +412,7 @@
          ! OC BIOFUEL source
          !------------------------------
          CATEGORY     = 'OC-BIOF'
-         N            = IDTOCPI + TRCOFFSET             
+         N            = IDTOCPI
          ARRAY(:,:,1) = AD07(:,:,6) 
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -424,7 +425,7 @@
          ! OC BIOGENIC source
          !------------------------------
          CATEGORY     = 'OC-BIOG'
-         N            = IDTOCPI + TRCOFFSET             
+         N            = IDTOCPI
          ARRAY(:,:,1) = AD07(:,:,7) 
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -437,7 +438,7 @@
          ! H-philic OC from H-phobic OC
          !------------------------------
          CATEGORY     = 'PL-OC=$'
-         N            = IDTOCPI + TRCOFFSET     
+         N            = IDTOCPI
 
          DO L = 1, LD07
             ARRAY(:,:,L) = AD07_OC(:,:,L) 
@@ -462,27 +463,27 @@
                   ! ALPH
                   CASE ( 8 )
                      CATEGORY = 'OC-ALPH'
-                     NN       = IDTALPH + TRCOFFSET
+                     NN       = IDTALPH
 
                   ! LIMO
                   CASE ( 9 )
                      CATEGORY = 'OC-LIMO'
-                     NN       = IDTLIMO + TRCOFFSET
+                     NN       = IDTLIMO
 
                   ! TERP
                   CASE ( 10 )
                      CATEGORY = 'OC-TERP'
-                     NN       = IDTLIMO + TRCOFFSET + 1
+                     NN       = IDTLIMO + 1
 
                   ! ALCO
                   CASE ( 11 )
                      CATEGORY = 'OC-ALCO'
-                     NN       = IDTLIMO + TRCOFFSET + 2
+                     NN       = IDTLIMO + 2
 
                   ! SESQ
                   CASE ( 12 )
                      CATEGORY = 'OC-SESQ'
-                     NN       = IDTLIMO + TRCOFFSET + 3
+                     NN       = IDTLIMO + 3
 
                END SELECT
 
@@ -505,9 +506,9 @@
 
             DO N = 1, 3
 
-               IF ( N == 1 ) NN = IDTSOA1 + TRCOFFSET
-               IF ( N == 2 ) NN = IDTSOA2 + TRCOFFSET
-               IF ( N == 3 ) NN = IDTSOA3 + TRCOFFSET
+               IF ( N == 1 ) NN = IDTSOA1
+               IF ( N == 2 ) NN = IDTSOA2
+               IF ( N == 3 ) NN = IDTSOA3
 
                DO L = 1, LD07
                   ARRAY(:,:,L) = AD07_HC(:,:,L,N) / SCALEX
@@ -542,8 +543,8 @@
          DO N = 1, 2
 
             ! At present we have 2 seasalts
-            IF ( N == 1 ) NN = IDTSALA + TRCOFFSET
-            IF ( N == 2 ) NN = IDTSALC + TRCOFFSET
+            IF ( N == 1 ) NN = IDTSALA
+            IF ( N == 2 ) NN = IDTSALC
 
             ! Save seasalts into ARRAY
             ARRAY(:,:,1) = AD08(:,:,N) 
@@ -556,6 +557,75 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF   
+!
+!******************************************************************************
+!  ND10: HCN/CH3CN sources/sinks (Categories: "HCN-PL-$", "HCN-SRCE")
+!
+!  # : Field    : Description                     : Units       : Scale factor
+! ----------------------------------------------------------------------------
+! (1:N) sink    : Loss of tagged tracer to OH     : kg
+! (N+1) HCNbb   : HCN from biomass burning        : molec/cm2/s : SCALESRCE
+! (N+2) HCNdf   : HCN from domestic fossil fuel   : molec/cm2/s : SCALESRCE
+! (N+3) HCNoc   : HCN loss to ocean uptake        : molec/cm2/s : SCALECHEM
+! (N+4) CH3CNoc : CH3CN loss to ocean uptake      : kg/cm3      : SCALECHEM
+!******************************************************************************
+!
+      IF ( ND09 > 0 ) THEN
+
+         ! Binary punch file
+         DO M = 1, TMAX(9)
+            N  = TINDEX(9,M)
+            IF ( N > N_TRACERS+4 ) CYCLE
+
+            ! Test tracer number
+            IF ( N <= N_TRACERS ) THEN
+
+               !---------------------------
+               ! HCN/CH3CN sinks
+               !---------------------------              
+               CATEGORY  = 'HCN-PL-$'
+               UNIT      = 'kg'
+               NN        = N
+              
+               DO L = 1, LD09
+                  ARRAY(:,:,L) = AD09(:,:,L,N)
+               ENDDO
+
+               ! Save to disk
+               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                     HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                     IIPAR,     JJPAR,     LD09,     IFIRST,
+     &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD09) )
+
+            ELSE 
+
+               !---------------------------
+               ! HCN/CH3CN sources
+               !---------------------------
+               CATEGORY     = 'HCN-SRCE'
+               UNIT         = 'kg'
+               NN           = N - N_TRACERS
+
+               ! Pick proper scale
+               IF ( NN <= 2 ) THEN
+                  SCALEX = SCALESRCE
+               ELSE
+                  SCALEX = SCALECHEM
+               ENDIF
+
+               ! Scale data
+               ARRAY(:,:,1) = AD09_em(:,:,NN) / SCALEX
+ 
+               ! Write to disk
+               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                     HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                     IIPAR,     JJPAR,     1,        IFIRST,
+     &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
+            ENDIF
+         ENDDO
+      ENDIF
 !
 !******************************************************************************
 !  ND11: Acetone source & sink diagnostic (Category: "ACETSRCE")
@@ -649,7 +719,7 @@
          !==============================================================
          CATEGORY     = 'DMS-BIOG'
          ARRAY(:,:,1) = AD13_DMS(:,:)
-         N            = IDTDMS + TRCOFFSET
+         N            = IDTDMS
          
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
@@ -661,7 +731,7 @@
          ! Aircraft SO2 
          !==============================================================
          CATEGORY = 'SO2-AC-$'
-         N        = IDTSO2 + TRCOFFSET
+         N        = IDTSO2
 
          DO L = 1, LD13
             ARRAY(:,:,L) = AD13_SO2_ac(:,:,L)
@@ -677,7 +747,7 @@
          ! Anthropogenic SO2 
          !==============================================================
          CATEGORY = 'SO2-AN-$'
-         N        = IDTSO2 + TRCOFFSET
+         N        = IDTSO2
          
          DO L = 1, NOXEXTENT 
             ARRAY(:,:,L) = AD13_SO2_an(:,:,L)
@@ -694,7 +764,7 @@
          !==============================================================
          CATEGORY     = 'SO2-BIOB'
          ARRAY(:,:,1) = AD13_SO2_bb(:,:)
-         N            = IDTSO2 + TRCOFFSET
+         N            = IDTSO2
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
@@ -708,7 +778,7 @@
          !==============================================================
          CATEGORY     = 'SO2-BIOF'
          ARRAY(:,:,1) = AD13_SO2_bf(:,:)
-         N            = IDTSO2 + TRCOFFSET
+         N            = IDTSO2
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
@@ -720,7 +790,7 @@
          ! Eruptive volcano SO2 
          !==============================================================
          CATEGORY = 'SO2-EV-$'
-         N        = IDTSO2 + TRCOFFSET
+         N        = IDTSO2
 
          DO L = 1, LD13
             ARRAY(:,:,L) = AD13_SO2_ev(:,:,L)
@@ -736,7 +806,7 @@
          ! Non-eruptive volcano SO2 
          !==============================================================
          CATEGORY = 'SO2-NV-$'
-         N        = IDTSO2 + TRCOFFSET
+         N        = IDTSO2
 
          DO L = 1, LD13 
             ARRAY(:,:,L) = AD13_SO2_nv(:,:,L)
@@ -755,7 +825,7 @@
          IF ( LSHIPSO2 ) THEN
             CATEGORY     = 'SO2-SHIP'
             ARRAY(:,:,1) = AD13_SO2_sh(:,:)
-            N            = IDTSO2 + TRCOFFSET
+            N            = IDTSO2
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, N,
@@ -768,7 +838,7 @@
          ! Anthropogenic SO4 
          !==============================================================
          CATEGORY = 'SO4-AN-$'
-         N        = IDTSO4 + TRCOFFSET
+         N        = IDTSO4
 
          DO L = 1, NOXEXTENT 
             ARRAY(:,:,L) = AD13_SO4_an(:,:,L)
@@ -785,7 +855,7 @@
          !==============================================================
          CATEGORY     = 'SO4-BIOF'
          ARRAY(:,:,1) = AD13_SO4_bf(:,:)
-         N            = IDTSO4 + TRCOFFSET
+         N            = IDTSO4
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
@@ -800,7 +870,7 @@
          UNIT         = 'kg'
          CATEGORY     = 'NH3-ANTH'
          ARRAY(:,:,1) = AD13_NH3_an(:,:) 
-         N            = IDTNH3 + TRCOFFSET
+         N            = IDTNH3
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
@@ -813,7 +883,7 @@
          !==============================================================
          CATEGORY     = 'NH3-NATU'
          ARRAY(:,:,1) = AD13_NH3_na(:,:) 
-         N            = IDTNH3 + TRCOFFSET
+         N            = IDTNH3
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
@@ -826,7 +896,7 @@
          !==============================================================
          CATEGORY     = 'NH3-BIOB'
          ARRAY(:,:,1) = AD13_NH3_bb(:,:)
-         N            = IDTNH3 + TRCOFFSET
+         N            = IDTNH3
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
@@ -839,7 +909,7 @@
          !==============================================================
          CATEGORY     = 'NH3-BIOF'
          ARRAY(:,:,1) = AD13_NH3_bf(:,:)
-         N            = IDTNH3 + TRCOFFSET
+         N            = IDTNH3
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
@@ -866,7 +936,7 @@
          DO M = 1, TMAX(14)
             N  = TINDEX(14,M)
             IF ( N > N_TRACERS ) CYCLE
-            NN = N + TRCOFFSET
+            NN = N
                
             ARRAY(:,:,1:LD14) = CONVFLUP(:,:,1:LD14,N) / SCALECONV
 
@@ -896,7 +966,7 @@
          DO M = 1, TMAX(15)
             N  = TINDEX(15,M)
             IF ( N > N_TRACERS ) CYCLE
-            NN = N + TRCOFFSET
+            NN = N
 
             ARRAY(:,:,1:LD15) = TURBFLUP(:,:,1:LD15,N) / SCALECONV
                
@@ -963,8 +1033,8 @@
          ! Loop over soluble tracers
          DO N = 1, NMAX
 
-            ! Tracer number plus GAMAP offset
-            NN = GET_WETDEP_IDWETD(N) + TRCOFFSET
+            ! Tracer number 
+            NN = GET_WETDEP_IDWETD( N )
  
             ! Large-scale rainout/washout fractions
             CATEGORY = 'WD-LSR-$'
@@ -1018,11 +1088,8 @@
 
          DO N = 1, NMAX
 
-            ! Add GAMAP tracer offset
-            NN = N + TRCOFFSET
-
-            ! Tracer number plus GAMAP offset
-            NN = GET_WETDEP_IDWETD(N) + TRCOFFSET
+            ! Tracer number
+            NN = GET_WETDEP_IDWETD( N )
 
             ! Large-scale rainout/washout fractions
             CATEGORY = 'WD-LSW-$'
@@ -1098,13 +1165,19 @@
       IF ( ND21 > 0 ) THEN
          CATEGORY = 'OD-MAP-$'
 
-         ! For CO-OH param run,   ND21 is updated every dynamic   timestep
-         ! For other simulations, ND21 is updated every chemistry timestep
-         IF ( ITS_A_COPARAM_SIM() ) THEN
-            SCALEX = SCALEDYN
-         ELSE
-            SCALEX = SCALECHEM
-         ENDIF
+         !--------------------------------------------------------------------
+         ! Prior to 6/24/05:
+         !! For CO-OH param run,   ND21 is updated every dynamic   timestep
+         !! For other simulations, ND21 is updated every chemistry timestep
+         !IF ( ITS_A_COPARAM_SIM() ) THEN
+         !   SCALEX = SCALEDYN
+         !ELSE
+         !   SCALEX = SCALECHEM
+         !ENDIF
+         !--------------------------------------------------------------------
+
+         ! ND21 is updated every chem timestep 
+         SCALEX = SCALECHEM
 
          DO M = 1, TMAX(21)
             N  = TINDEX(21,M)
@@ -1219,15 +1292,20 @@
          DO M = 1, TMAX(22)
             N  = TINDEX(22,M)
             IF ( N > PD22 ) CYCLE
-            
-            ! Add TRCOFFSET to CH3I and HCN tracer numbers
-            IF ( ITS_A_CH3I_SIM() ) THEN
-               NN = N + TRCOFFSET
-            ELSE IF ( ITS_A_HCN_SIM() ) THEN
-               NN = N + TRCOFFSET
-            ELSE
-               NN = N
-            ENDIF
+            NN = N
+
+            !-----------------------------------------------------
+            ! Prior to 6/24/05:
+            ! Remove TRCOFFSET, it's always zero (bmy, 6/24/05)
+            !! Add TRCOFFSET to CH3I and HCN tracer numbers
+            !IF ( ITS_A_CH3I_SIM() ) THEN
+            !   NN = N + TRCOFFSET
+            !ELSE IF ( ITS_A_HCN_SIM() ) THEN
+            !   NN = N + TRCOFFSET
+            !ELSE
+            !   NN = N
+            !ENDIF
+            !-----------------------------------------------------
 
             DO L = 1, LD22
                ARRAY(:,:,L) = AD22(:,:,L,N) / SCALE_TMP(:,:)
@@ -1261,7 +1339,7 @@
          DO M = 1, TMAX(24)
             N  = TINDEX(24,M)
             IF ( N > N_TRACERS ) CYCLE
-            NN = N + TRCOFFSET
+            NN = N
             
             ARRAY(:,:,1:LD24) = MASSFLEW(:,:,1:LD24,N) / SCALEDYN
 
@@ -1293,7 +1371,7 @@
          DO M = 1, TMAX(25)
             N  = TINDEX(25,M)
             IF ( N > N_TRACERS ) CYCLE
-            NN = N + TRCOFFSET
+            NN = N
 
             ARRAY(:,:,1:LD25) = MASSFLNS(:,:,1:LD25,N) / SCALEDYN
 
@@ -1325,7 +1403,7 @@
          DO M = 1, TMAX(26)
             N  = TINDEX(26,M)
             IF ( N > N_TRACERS ) CYCLE
-            NN = N + TRCOFFSET
+            NN = N
             
             ARRAY(:,:,1:LD26) = MASSFLUP(:,:,1:LD26,N) / SCALEDYN
                
@@ -1424,7 +1502,7 @@
                ENDDO
 
                UNIT = 'kg/s'
-               NN   = N + TRCOFFSET
+               NN   = N
                   
                ARRAY(:,:,1) = ARRAY(:,:,1) / SCALEDYN
 
@@ -1468,7 +1546,7 @@
          DO M = 1, TMAX(28)
             N  = TINDEX(28,M)
             IF ( .not. ANY( BIOTRCE == N ) ) CYCLE
-            NN = N + TRCOFFSET
+            NN = N
             
             ARRAY(:,:,1) = AD28(:,:,M) / SCALESRCE
             
@@ -1726,7 +1804,7 @@
          DO M = 1, TMAX(33)
             N  = TINDEX(33,M)
             IF ( N > N_TRACERS ) CYCLE
-            NN = N + TRCOFFSET 
+            NN = N
             
             ARRAY(:,:,1) = AD33(:,:,N) / SCALEDYN
 
@@ -1768,7 +1846,7 @@
          DO M = 1, TMAX(34)
             N  = TINDEX(34,M)
             IF ( .not. ANY( BFTRACE == N ) ) CYCLE
-            NN = N + TRCOFFSET
+            NN = N
 
             ARRAY(:,:,1) = AD34(:,:,M) / SCALESRCE
 
@@ -1799,7 +1877,7 @@
          DO M = 1, TMAX(35)
             N  = TINDEX(35,M)
             IF ( N > N_TRACERS ) CYCLE
-            NN = N + TRCOFFSET
+            NN = N
                
             ARRAY(:,:,1) = AD35(:,:,N) / SCALEDYN
 
@@ -1866,8 +1944,10 @@
                N  = IDEMS(M)
             ENDIF
 
-            NN = N + TRCOFFSET
+            ! Tracer number
+            NN = N
 
+            ! Divide by seconds
             ARRAY(:,:,1) = AD36(:,:,MM) / SECONDS
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -1899,8 +1979,8 @@
             ! Cycle if N is too high
             IF ( N > NMAX ) CYCLE
 
-            ! Tracer number plus GAMAP offset
-            NN = GET_WETDEP_IDWETD(N) + TRCOFFSET
+            ! Tracer number
+            NN = GET_WETDEP_IDWETD( N )
 
             DO L = 1, LD37
                ARRAY(:,:,L) = AD37(:,:,L,M) / SCALECONV
@@ -1935,8 +2015,8 @@
          ! Loop over soluble tracers
          DO N = 1, M
 
-            ! Tracer number plus GAMAP offset
-            NN = GET_WETDEP_IDWETD(N) + TRCOFFSET
+            ! Tracer number
+            NN = GET_WETDEP_IDWETD( N )
 
             ! Divide by # of convective timesteps
             DO L = 1, LD38
@@ -1969,8 +2049,8 @@
          ! Loop over soluble tracers
          DO N = 1, M
                
-            ! Tracer number plus GAMAP offset
-            NN = GET_WETDEP_IDWETD(N) + TRCOFFSET
+            ! Tracer number
+            NN = GET_WETDEP_IDWETD( N )
 
             ! Divide by # of wetdep (= dynamic) timesteps
             DO L = 1, LD39
@@ -2013,8 +2093,13 @@
 !  (4) Added NO3 to ND43 (bmy, 1/16/03)
 !******************************************************************************
 !
-      IF ( ND43 > 0 .and. 
-     &     ( ITS_A_FULLCHEM_SIM() .or. ITS_A_COPARAM_SIM() ) ) THEN 
+!---------------------------------------------------------------------------
+! Prior to 6/24/05;
+! Remove CO-OH parameterization code (bmy, 6/24/05)
+!      IF ( ND43 > 0 .and. 
+!     &     ( ITS_A_FULLCHEM_SIM() .or. ITS_A_COPARAM_SIM() ) ) THEN 
+!---------------------------------------------------------------------------
+      IF ( ND43 > 0 .and. ITS_A_FULLCHEM_SIM() ) THEN
 
          CATEGORY = 'CHEM-L=$' 
 
@@ -2028,16 +2113,20 @@
                CASE ( 1 )
                   SCALE_TMP(:,:) = FLOAT( CTOH ) + 1d-20
                   UNIT           = 'molec/cm3'
-                     
-                  !================================================
-                  ! For the CO-OH parameterization option, 24-hr 
-                  ! chemistry time steps are taken.  As a result, 
-                  ! the last day's OH is not calculated, so adjust 
-                  ! SCALE_TMP accordingly. (bnd, bmy, 4/18/00)
-                  !================================================
-                  IF ( ITS_A_COPARAM_SIM() ) THEN
-                     SCALE_TMP(:,:) = SCALE_TMP(:,:) - 1
-                  ENDIF
+                  
+                  !-----------------------------------------------------
+                  ! Prior to 6/24/05:
+                  ! Remove obsolete CO-OH code
+                  !!================================================
+                  !! For the CO-OH parameterization option, 24-hr 
+                  !! chemistry time steps are taken.  As a result, 
+                  !! the last day's OH is not calculated, so adjust 
+                  !! SCALE_TMP accordingly. (bnd, bmy, 4/18/00)
+                  !!================================================
+                  !IF ( ITS_A_COPARAM_SIM() ) THEN
+                  !   SCALE_TMP(:,:) = SCALE_TMP(:,:) - 1
+                  !ENDIF
+                  !-----------------------------------------------------
 
                ! NO
                CASE ( 2 ) 
@@ -2120,19 +2209,19 @@
 
                ! Radon
                UNIT = 'kg/s'       
-               NN   = NTRAIND(N) + TRCOFFSET
+               NN   = NTRAIND(N)
  
             ELSE IF ( ITS_A_TAGOX_SIM() .or. ITS_A_MERCURY_SIM() ) THEN
 
                ! Tagged Ox or Tagged Hg
                UNIT = 'molec/cm2/s'
-               NN   = N + TRCOFFSET
+               NN   = N
   
             ELSE 
      
                ! Other simulations
                UNIT = 'molec/cm2/s'
-               NN   = NTRAIND(N) + TRCOFFSET
+               NN   = NTRAIND(N)
  
             ENDIF
 
@@ -2169,7 +2258,7 @@
          DO N = 1, M
 
             ! Tracer number plus GAMAP offset
-            NN           = NTRAIND(N) + TRCOFFSET
+            NN           = NTRAIND(N)
             ARRAY(:,:,1) = AD44(:,:,N,2) / SCALESRCE
 
             ! Write to file
@@ -2203,7 +2292,7 @@
          DO M = 1, TMAX(45)
             N  = TINDEX(45,M)
             IF ( N > N_TRACERS ) CYCLE
-            NN = N + TRCOFFSET
+            NN = N
 
             DO L = 1, LD45
                ARRAY(:,:,L) = AD45(:,:,L,N) / SCALE_TMP(:,:)
@@ -2222,7 +2311,7 @@
      &                 AD45(:,:,L,N_TRACERS+1) / SCALE_TMP(:,:)
                ENDDO
                   
-               NN = N_TRACERS + 1 + TRCOFFSET   
+               NN = N_TRACERS + 1
 
                CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                     HALFPOLAR, CENTER180, CATEGORY, NN,    
@@ -2297,7 +2386,7 @@
          DO M = 1, TMAX(47)
             N  = TINDEX(47,M)
             IF ( N > N_TRACERS ) CYCLE
-            NN = N + TRCOFFSET
+            NN = N
             
             DO L = 1, LD47
                ARRAY(:,:,L) = AD47(:,:,L,N) / SCALEDYN
@@ -2315,7 +2404,7 @@
                   ARRAY(:,:,L) = AD47(:,:,L,N_TRACERS+1) / SCALEDYN
                ENDDO
                
-               NN = N_TRACERS + 1 + TRCOFFSET   
+               NN = N_TRACERS + 1
 
                CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                     HALFPOLAR, CENTER180, CATEGORY, NN,    
@@ -2439,22 +2528,22 @@
             ! Don't add TRCOFFSET for single tracer Ox
             ! Also select proper unit string
             IF ( ITS_A_CH3I_SIM() ) THEN
-               NN     = N + TRCOFFSET
+               NN     = N
                UNIT   = 'kg/s'
                SCALEX = 1d0
 
             ELSE IF ( ITS_A_TAGOX_SIM() ) THEN
-               NN     = N + TRCOFFSET
+               NN     = N
                UNIT   = 'kg/s'
                SCALEX = SCALECHEM
                
             ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
-               NN     = N + TRCOFFSET
+               NN     = N
                UNIT   = 'mol/cm3/s'
                SCALEX = SCALECHEM
                
             ELSE
-               NN     = N + TRCOFFSET
+               NN     = N
                UNIT   = 'mol/cm3/s'
                SCALEX = SCALECHEM
                

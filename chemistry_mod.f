@@ -1,9 +1,9 @@
-! $Id: chemistry_mod.f,v 1.16 2005/06/23 19:32:55 bmy Exp $
+! $Id: chemistry_mod.f,v 1.17 2005/06/27 19:41:43 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
 !  Module CHEMISTRY_MOD is used to call the proper chemistry subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 6/23/05)
+!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 6/24/05)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -46,7 +46,8 @@
 !        "diag65_mod.f", and "aerosol_mod." (bmy, 7/20/04)
 !  (9 ) Now references "mercury_mod.f" (bmy, 12/7/04)
 !  (10) Updated for SO4s, NITs chemistry (bec, bmy, 4/13/05)
-!  (11) Now call CHEM_HCN_CH3CN from "hcn_ch3cn_mod.f" (xyp, bmy, 6/23/05)
+!  (11) Now call CHEM_HCN_CH3CN from "hcn_ch3cn_mod.f".  Also remove all
+!        references to the obsolete CO-OH param simulation. (xyp, bmy, 6/24/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -93,7 +94,8 @@
 !        aerosol chemistry for offline aerosol runs.  Now also reference 
 !        CLDF from "dao_mod.f" (bec, bmy, 4/20/05)
 !  (11) Now modified for GCAP met fields.  Now call CHEM_HCN_CH3CN from 
-!        "hcn_ch3cn_mod.f" (xyp, bmy, 6/23/05)
+!        "hcn_ch3cn_mod.f".  Also remove allreferences to the obsolete 
+!         CO-OH param simulation. (xyp, bmy, 6/23/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -306,7 +308,7 @@
          !---------------------------------
          ELSE IF ( ITS_A_HCN_SIM() ) THEN
             !-----------------------------------------------
-            ! Prior to 6/23/05:
+            ! Prior to 6/24/05:
             !CALL CHEMHCN
             !-----------------------------------------------
             CALL CHEM_HCN_CH3CN( N_TRACERS, STT )
@@ -350,19 +352,6 @@
             ! Do Hg chemistry
             CALL CHEMMERCURY
                
-!-----------------------------------------------------------------------------
-! Prior to 7/19/04:
-!
-!        ELSE IF ( ITS_A_COPARAM_SIM() ) THEN    
-!
-!#if   defined( LGEOSCO )
-!               ! Parameterized OH
-!               ! Call after 24 hours have passed
-!               IF ( NMIN >= NCHEM ) THEN 
-!                     CALL CHEMCO( FIRSTCHEM, LMN, 
-!     &                            NSEASON,   NYMDb, NYMDe )
-!                     ENDIF 
-!#endif
 !-----------------------------------------------------------------------------
 ! Prior to 7/19/04:
 ! Fully install Kr85 run later (bmy, 7/19/04)

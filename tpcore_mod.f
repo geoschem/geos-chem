@@ -1,9 +1,9 @@
-! $Id: tpcore_mod.f,v 1.4 2004/12/02 21:48:41 bmy Exp $
+! $Id: tpcore_mod.f,v 1.5 2005/06/27 19:41:50 bmy Exp $
       MODULE TPCORE_MOD
 !
 !******************************************************************************
 !  Module TPCORE_MOD contains the TPCORE transport subroutine package by
-!  S-J Lin, version 7.1. (bmy, 7/16/01, 6/27/03)
+!  S-J Lin, version 7.1. (bmy, 7/16/01, 6/24/05)
 !
 !  Module Routines:
 !  ============================================================================
@@ -70,6 +70,7 @@
 !        parallelization commands (bmy, 3/23/03)
 !  (12) Now references "grid_mod.f" and "time_mod.f" (bmy, 3/24/03)
 !  (13) Now print output for IBM/AIX platform in "tpcore" (gcc, bmy, 6/27/03)
+!  (14) Remove obsolete code for CO-OH parameterization (bmy, 6/24/05)
 !******************************************************************************
 !
       !=================================================================
@@ -4023,7 +4024,7 @@ C
 !
 !******************************************************************************
 !  Subroutine DIAG_FLUX archives the mass fluxes in TPCORE version 7.1.
-!  (bey, bmy, 9/20/00, 7/20/04)
+!  (bey, bmy, 9/20/00, 6/24/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -4058,6 +4059,7 @@ C
 !        Also remove all references to JREF.  (bmy, 2/11/03)
 !  (8 ) Now references TCVV and ITS_A_CH4_SIM from "tracer_mod.f" 
 !        (bmy, 7/20/04)
+!  (9 ) Remove references obsolete to CO-OH param code (bmy, 6/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4071,8 +4073,12 @@ C
 #     include "CMN_SIZE"      ! Size parameters
 #     include "CMN_DIAG"      ! Diagnostic switches
 #     include "CMN_GCTM"      ! g0_100
-#     include "CMN_CO"        ! CO arrays
-#     include "CMN_CO_BUDGET" ! TCO
+!---------------------------------------------------------------------------
+! Prior to 6/24/05:
+! Remove obsolete common blocks for CO-OH parameterized OH (bmy, 6/24/05)
+!#     include "CMN_CO"        ! CO arrays
+!#     include "CMN_CO_BUDGET" ! TCO
+!---------------------------------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: IC, NDT
@@ -4170,11 +4176,15 @@ C
      &                  ( ACOSP(J)  * g0_100 * AREA_M2 ) /
      &                  ( TCVV(IC)  * DTDYN            )
 
-#if   defined( LGEOSCO )
-                  ! Contribution for CO-OH run (bnd, bmy, 10/16/00)
-                  TCO(I,J,K,10) = TCO(I,J,K,10) + 
-     &                            ( DTC * DTDYN * XNUMOL_CO )
-#endif
+!------------------------------------------------------------------------------
+! Prior to 6/24/05:
+! CO-OH parameterization is obsolete, remove this (bmy, 6/24/05)
+!#if   defined( LGEOSCO )
+!                  ! Contribution for CO-OH run (bnd, bmy, 10/16/00)
+!                  TCO(I,J,K,10) = TCO(I,J,K,10) + 
+!     &                            ( DTC * DTDYN * XNUMOL_CO )
+!#endif
+!------------------------------------------------------------------------------
 
                   ! Contribution for CH4 run (bmy, 1/17/01)
                   IF ( ITS_A_CH4_SIM() ) THEN

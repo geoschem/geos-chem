@@ -1,9 +1,9 @@
-! $Id: diag48_mod.f,v 1.5 2005/05/09 14:33:57 bmy Exp $
+! $Id: diag48_mod.f,v 1.6 2005/06/27 19:41:44 bmy Exp $
       MODULE DIAG48_MOD
 !
 !******************************************************************************
 !  Module DIAG48_MOD contains variables and routines to save out 3-D 
-!  timeseries output to disk (bmy, 7/20/04, 4/20/05)
+!  timeseries output to disk (bmy, 7/20/04, 6/24/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -60,6 +60,7 @@
 !  
 !  NOTES:
 !  (1 ) Now save out cld frac and grid box heights (bmy, 4/20/05)
+!  (2 ) Remove TRCOFFSET because it's always zero (bmy, 6/24/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -123,18 +124,14 @@
 !  (1 ) Remove reference to "CMN".  Also now get PBL heights in meters and
 !        model layers from GET_PBL_TOP_m and GET_PBL_TOP_L of "pbl_mix_mod.f".
 !        (bmy, 2/16/05)
-!  (4 ) Now reference CLDF and BXHEIGHT from "dao_mod.f".  Now save 3-D cloud 
+!  (2 ) Now reference CLDF and BXHEIGHT from "dao_mod.f".  Now save 3-D cloud 
 !        fraction as tracer #79 and box height as tracer #93.  Now remove
 !        reference to PBL from "dao_mod.f" (bmy, 4/20/05)
+!  (3 ) Remove references to TRCOFFSET because it's always zero (bmy, 6/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-!-------------------------------------------------------------------
-! Prior to 4/20/05:
-!      USE DAO_MOD,      ONLY : AD, AIRDEN, CLDTOPS, OPTD, PBL,    
-!     &                         RH, SLP,    T,       UWND, VWND 
-!-------------------------------------------------------------------
       USE DAO_MOD,      ONLY : AD,      AIRDEN, BXHEIGHT, CLDF, 
      &                         CLDTOPS, OPTD,   RH,       SLP,    
      &                         T,       UWND,   VWND 
@@ -152,7 +149,10 @@
 
 #     include "cmn_fj.h"    ! Size parameters + FAST-J stuff
 #     include "jv_cmn.h"    ! ODAER, ODMDUST
-#     include "CMN_DIAG"    ! TRCOFFSET
+!--------------------------------------------------------------
+! Prior to 6/24/05:
+!#     include "CMN_DIAG"    ! TRCOFFSET
+!--------------------------------------------------------------
 #     include "CMN_O3"      ! XNUMOLAIR
 #     include "CMN_GCTM"    ! SCALE_HEIGHT
 
@@ -233,7 +233,7 @@
             !------------------------------------
             CATEGORY = 'IJ-AVG-$'
             UNIT     = ''              ! Let GAMAP pick the unit
-            GMTRC    = N + TRCOFFSET
+            GMTRC    = N
 
             DO L = 1, K
                Q(L) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
@@ -246,7 +246,7 @@
             !------------------------------------
             CATEGORY = 'IJ-AVG-$'
             UNIT     = ''              ! Let GAMAP pick the unit
-            GMTRC    = N_TRACERS + 1 + TRCOFFSET
+            GMTRC    = N_TRACERS + 1
 
             DO L = 1, K
                Q(L) = STT(I,J,L,IDTOX) * TCVV(IDTOX)  / 
@@ -402,12 +402,6 @@
             UNIT     = 'unitless'
             GMTRC    = 20
 
-            !----------------------------------
-            ! Prior to 4/20/05:
-            !DO L = 1, K
-            !   Q(1) = OPTD(L,I,J)
-            !ENDDO
-            !----------------------------------
             Q(1) = SUM( OPTD(:,I,J) )
 
          ELSE IF ( N == 81 .and. IS_CLDTOPS ) THEN

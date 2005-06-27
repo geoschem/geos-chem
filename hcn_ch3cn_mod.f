@@ -1,4 +1,4 @@
-! $Id: hcn_ch3cn_mod.f,v 1.1 2005/06/23 19:32:56 bmy Exp $
+! $Id: hcn_ch3cn_mod.f,v 1.2 2005/06/27 19:41:46 bmy Exp $
       MODULE HCN_CH3CN_MOD
 !
 !******************************************************************************
@@ -98,7 +98,7 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE GRID_MOD, GET_XMID, GET_YMID
+      USE GRID_MOD, ONLY : GET_XMID, GET_YMID
 
 #     include "CMN_SIZE" 
 
@@ -245,15 +245,15 @@
       USE BIOMASS_MOD,   ONLY : BURNEMIS, BIOBURN
       USE GEIA_MOD
       USE GRID_MOD,      ONLY : GET_AREA_CM2
-      !USE DIAG_MOD,      ONLY : AD10
+      USE DIAG_MOD,      ONLY : AD09_em
       USE LOGICAL_MOD,   ONLY : LSPLIT
-      USE PBL_MIX_MOD,   ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX
-      USE TIME_MOD,      ONLY : GET_TS_CHEM, GET_MONTH, ITS_A_NEW_MONTH
+      USE PBL_MIX_MOD,   ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
+      USE TIME_MOD,      ONLY : GET_MONTH, GET_TAU, GET_TS_CHEM
+      USE TRACERID_MOD,  ONLY : IDBCO
       
 #     include "CMN_SIZE"      ! Size parameters
-#     include "CMN_O3"        ! SCNR89, TODH, TODB, TODN, EMISTRCO
-!#     include "CMN_DIAG"      ! ND10
-#     include "comtrid.h"     ! IDBCO
+#     include "CMN_O3"        ! SCNR89, TODH, TODB, TODN, EMISTCO
+#     include "CMN_DIAG"      ! ND09
 
       ! Arguments
       INTEGER, INTENT(IN)    :: N_TRACERS
@@ -261,8 +261,8 @@
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
-      INTEGER                :: PBL_MAX 
-      INTEGER                :: I,      J,      L,      N
+      INTEGER                :: I,      J,      L,      N, NTAU
+      INTEGER                :: IHOUR,  INDEX,  MONTH,  PBL_MAX 
       REAL*8                 :: ACM2,   E_CObb, E_COdf, SFAC89 
       REAL*8                 :: DTSRCE, HCN_bb, HCN_df, FRAC
 
@@ -280,6 +280,18 @@
       ! EMISS_TAGGED_HCN_CH3CN begins here!
       !=================================================================
 
+      ! DTSRCE is the number of seconds per emission timestep
+      DTSRCE  = GET_TS_CHEM() * 60d0
+
+      ! Get the highest extent of the PBL [levels]
+      PBL_MAX = GET_PBL_MAX_L()
+
+      ! Get the current month
+      MONTH   = GET_MONTH()
+
+      ! Current TAU value (integer)
+      NTAU    = GET_TAU()
+
       ! First-time initialization
       IF ( FIRST ) THEN 
 
@@ -287,27 +299,24 @@
          CALL READ_TODX( TODN, TODH, TODB, SCNR89 )
 
          ! Read domestic fossil fuel CO emissions from GEIA
-         CALL READ_GEIA( E_RCO=EMISTRCO  )
+         CALL READ_GEIA( E_CO=EMISTCO  )
 
          ! Allocate all module arrays
-         CALL INIT_TAGGED_HCN_CH3CN
+         CALL INIT_HCN_CH3CN
 
          ! Set first-time flag to false
          FIRST = .FALSE.
       ENDIF
 
-      ! DTSRCE is the number of seconds per emission timestep
-      DTSRCE = GET_TS_CHEM() * 60d0
-
       !=================================================================
       ! Process biomass burning/domestic fossil fuel HCN/CH3CN emissions
       !=================================================================
-      CALL BIOBURN( MONTH )
+      CALL BIOBURN
 
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I,      J,      L,     N,    ACM2,   E_CObb )
-!!$OMP+PRIVATE( SFAC89, E_COdf, IHOUR, FRAC, HCN_bb, HCN_df ) 
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I,      J,     ACM2, E_CObb, INDEX,  SFAC89 )
+!$OMP+PRIVATE( E_COdf, IHOUR, N,    L,      HCN_bb, HCN_df )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -321,10 +330,10 @@
          ! Convert [molec CO/cm3/s] to [molec CO/cm2/s]
          E_CObb = BURNEMIS(IDBCO,I,J) * BOXVL(I,J,1) / ACM2
 
-         !! Diagnostic ND10: biomass burning HCN/CH3CN emissions [molec/cm2/s]
-         !IF ( ND10 > 0 ) THEN
-         !   AD10(I,J,1) = AD10(I,J,1) + EHCN_BB * E_CObb
-         !ENDIF
+         ! ND09: biomass burning HCN/CH3CN emissions [molec/cm2/s]
+         IF ( ND09 > 0 ) THEN
+            AD09_em(I,J,1) = AD09_em(I,J,1) + EHCN_BB * E_CObb
+         ENDIF
 
          ! Convert [molec CO/cm2/s] to [mole/grid box]: 1/6.022d23 = 1.66d-24
          E_CObb = E_CObb * 1.66d-24 * ACM2 * DTSRCE
@@ -334,23 +343,24 @@
          !-----------------------------------------------------------------
 
          ! SFAC89 is the Weekday/Saturday/Sunday scale factor
-         SFAC89 = SCNR89( 2, GET_DAY_INDEX( NTAU ) ) 
+         INDEX     = GET_DAY_INDEX( NTAU )
+         SFAC89    = SCNR89( 2, INDEX ) 
 
          ! E_COdf is DF CO emissions in [molec CO/cm2/s]
          ! Scale E_COdf by the day-of-week scale factor SFAC89
-         E_COdf = EMISTRCO(I,J) * SFAC89
+         E_COdf    = EMISTCO(I,J) * SFAC89
 
          ! Scale E_COdf by the time-of-day scale factor TODH
          ! IHOUR is the index for the time-of-day scale factor TODH
-         IHOUR = GET_IHOUR( I, TOFDAY, NDYN, DISIZE )
-         E_COdf  = E_COdf * TODH(IHOUR)
+         IHOUR     = GET_IHOUR( I )
+         E_COdf    = E_COdf * TODH(IHOUR)
 
          ! Enhance E_COdf by 18.5% to account for oxidation 
          ! from anthropogenic VOC's (bnd, bmy, 6/8/01)
-         E_COdf = E_COdf * 1.185d0
+         E_COdf    = E_COdf * 1.185d0
             
          ! Get domestic fossil fuel region #
-         N = DF_REGION(I,J)
+         N         = DF_REGION(I,J)
 
          ! To achieve the best fit to the observed HCN-CH3CN-CO correlations 
          ! in the boundary layer, we have to double the residential coal 
@@ -364,13 +374,13 @@
             E_COdf = E_COdf / 8.0d0   ! Elsewhere domestic fossil fuel
          ENDIF
 
-         !! ND10: domestic fossil fuel HCN/CH3CN emissions [molec/cm2/s]
-         !IF ( ND10 > 0 ) THEN
-         !   AD10(I,J,2) = AD10(I,J,2) + EHCN_DF   * E_COdf
-         !ENDIF
+         ! ND09: domestic fossil fuel HCN/CH3CN emissions [molec/cm2/s]
+         IF ( ND09 > 0 ) THEN
+            AD09_em(I,J,2) = AD09_em(I,J,2) + EHCN_df * E_COdf
+         ENDIF
 
          ! Convert [molec CO/cm2/s] to [mole/grid box]: 1/6.022d23 = 1.66d-24
-         E_COdf = E_COdf * 1.66d-24 * ACM2 * DTSRCE       
+         E_COdf    = E_COdf * 1.66d-24 * ACM2 * DTSRCE       
 
          !-----------------------------------------------------------------
          ! (3) Partition emissions throughout the boundary layer
@@ -406,10 +416,10 @@
          ENDDO
       ENDDO
       ENDDO
-!!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 
       ! Return to calling program
-      END SUBROUTINE EMISS_TAGGED_HCN_CH3CN
+      END SUBROUTINE EMISS_HCN_CH3CN
 
 !------------------------------------------------------------------------------
 
@@ -424,16 +434,16 @@
 !******************************************************************************
 ! 
       ! References to F90 modules
-      USE DAO_MOD,       ONLY : ALBD, TS, U10M, V10M
-      USE DIAG_MOD,      ONLY : AD09, AD10
+      USE DAO_MOD,       ONLY : AD, ALBD, T, TS, U10M, V10M
+      USE DIAG_MOD,      ONLY : AD09, AD09_em
       USE GLOBAL_OH_MOD, ONLY : OH, GET_GLOBAL_OH
       USE GRID_MOD,      ONLY : GET_AREA_CM2
-      USE TIME_MOD,      ONLY : GET_TS_CHEM
+      USE LOGICAL_MOD,   ONLY : LSPLIT
+      USE TIME_MOD,      ONLY : GET_TS_CHEM, GET_MONTH, ITS_A_NEW_MONTH
 
 #     include "CMN_SIZE"     ! Size parameters 
-#     include "CMN_DIAG"     ! ND10
+#     include "CMN_DIAG"     ! ND09
 #     include "CMN_DEP"      ! FRCLND 
-#     include "CMN_SETUP"    ! LSPLIT
 
       ! Arguments
       ! Arguments
@@ -441,9 +451,7 @@
       REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
       
       ! Local variables
-      INTEGER, SAVE          :: LAST_MONTH=-1
-
-      ! Local variables
+      LOGICAL, SAVE          :: FIRST = .TRUE.
       INTEGER                :: I,    J,  K,    L,     N,      N_MAX
       REAL*8                 :: K0,   K1, TMP,  KRATE, DTCHEM, KTMP
       REAL*8                 :: H,    U,  TC,   SC,    KL,     KG
@@ -475,7 +483,7 @@
 
       ! First-time initialization (if not already done)
       IF ( FIRST ) THEN
-         CALL INIT_HCN_CH3N
+         CALL INIT_HCN_CH3CN
          FIRST = .FALSE.
       ENDIF
 
@@ -499,9 +507,9 @@
       DTCHEM = GET_TS_CHEM() * 60d0
 
       ! Loop over grid boxes
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, K0, K1, TMP, KTMP, KRATE, N )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, K0, K1, TMP, KTMP, KRATE, N, AMT_LOST )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -541,19 +549,19 @@
       ENDDO
       ENDDO
       ENDDO
-!!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 
       !=================================================================
       ! HCN and CH3CN ocean uptake
       !=================================================================
 
       ! Loop over grid boxes
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I,    J,         ACM2, FOCEAN,   U,   TC  )
-!!$OMP+PRIVATE( H,    SC,        KL,   KG,       KKG, CG  )
-!!$OMP+PRIVATE( FLUX, OCEAN_HCN, N,    AMT_LOST, CL       )
-!!$OMP+SCHEDULE( DYNAMIC )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I,    J,  ACM2,      FOCEAN, U,       TC  )
+!$OMP+PRIVATE( H,    SC, KL,        KG,     KKG,     CG  )
+!$OMP+PRIVATE( FLUX, CL, OCEAN_HCN, N,      AMT_LOST     )
+!$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -641,17 +649,17 @@
          !--------------------------------------------------------------
          ! ND10 diag: Save HCN/CH3CN ocean uptake in [molec/cm2/s]
          !--------------------------------------------------------------
-         IF ( ND10 > 0 ) THEN
-            AD10(I,J,3) = AD10(I,J,3) + 
-     &                    ( OCEAN_HCN * XNUMOL_HCN / ( ACM2 * DTCHEM ) )
-
+         IF ( ND09 > 0 ) THEN
+            AD09_em(I,J,3) = AD09_em(I,J,3) + 
+     &                     ( OCEAN_HCN * XNUMOL_HCN / ( ACM2 * DTCHEM ))
+ 
             ! CL in kg/cm3
             ! how to deal with SR when less than 50% water in grid box???
-            AD10(I,J,4) = AD10(I,J,4) + CL
+            AD09_em(I,J,4) = AD09_em(I,J,4) + CL
          ENDIF
       ENDDO
       ENDDO
-!!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 
       ! Return to calling program
       END SUBROUTINE CHEM_HCN_CH3CN
@@ -677,7 +685,7 @@
       ! INIT_TAGGED_CO begins here!
       !=================================================================
 
-      ! 
+      ! Return if we have already allocated arrays
       IF ( IS_INIT ) RETURN
 
       ! Allocate BB_REGION -- array for biomass burning regions
@@ -693,6 +701,9 @@
 
       ! Define geographic regions for domestic fossil fuel burning
       CALL DEFINE_DF_REGIONS( DF_REGION )      
+
+      ! Set flag
+      IS_INIT = .TRUE.
 
       ! Return to calling program
       END SUBROUTINE INIT_HCN_CH3CN

@@ -1,11 +1,11 @@
-! $Id: tracer_mod.f,v 1.3 2005/05/09 14:34:01 bmy Exp $
+! $Id: tracer_mod.f,v 1.4 2005/06/27 19:41:51 bmy Exp $
       MODULE TRACER_MOD
 !
 !******************************************************************************
 !  Module TRACER_MOD contains the GEOS-CHEM tracer array STT plus various
 !  other related quantities.  TRACER_MOD also contains inquiry functions that
 !  can be used to determine the type of GEOS-CHEM simulation.
-!  (bmy, 7/20/04, 5/3/05)
+!  (bmy, 7/20/04, 6/24/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -31,15 +31,14 @@
 !  (2 ) ITS_A_CH3I_SIM         : Returns TRUE if it's a  CH3I      simulation
 !  (3 ) ITS_A_FULLCHEM_SIM     : Returns TRUE if it's a  fullchem  simulation
 !  (4 ) ITS_A_HCN_SIM          : Returns TRUE if it's a  HCN       simulation
-!  (5 ) ITS_A_COPARAM_SIM      : Returns TRUE if it's a  CO param  simulation
-!  (6 ) ITS_A_TAGOX_SIM        : Returns TRUE if it's a  Tagged Ox simulation
-!  (7 ) ITS_A_TAGCO_SIM        : Returns TRUE if it's a  Tagged CO simulation
-!  (8 ) ITS_A_C2H6_SIM         : Returns TRUE if it's a  C2H6      simulation
-!  (9 ) ITS_A_CH4_SIM          : Returns TRUE if it's a  CH4       simulation
-!  (10) ITS_AN_AEROSOL_SIM     : Returns TRUE if it's an aerosol   simulation
-!  (11) ITS_A_MERCURY_SIM      : Returns TRUE if it's a  mercury   simulation
-!  (12) ITS_NOT_COPARAM_OR_CH4 : Returns TRUE if it's not CO param or CH4 
-!  (13) GET_SIM_NAME           : Returns the name of the current simulation
+!  (5 ) ITS_A_TAGOX_SIM        : Returns TRUE if it's a  Tagged Ox simulation
+!  (6 ) ITS_A_TAGCO_SIM        : Returns TRUE if it's a  Tagged CO simulation
+!  (7 ) ITS_A_C2H6_SIM         : Returns TRUE if it's a  C2H6      simulation
+!  (8 ) ITS_A_CH4_SIM          : Returns TRUE if it's a  CH4       simulation
+!  (9 ) ITS_AN_AEROSOL_SIM     : Returns TRUE if it's an aerosol   simulation
+!  (10) ITS_A_MERCURY_SIM      : Returns TRUE if it's a  mercury   simulation
+!  (11) ITS_NOT_COPARAM_OR_CH4 : Returns TRUE if it's not CO param or CH4 
+!  (12) GET_SIM_NAME           : Returns the name of the current simulation
 !  (13) CHECK_STT              : Checks STT array for NaN, Inf, or negatives
 !  (14) INIT_TRACER            : Allocates and zeroes all module arrays
 !  (15) CLEANUP_TRACER         : Deallocates all module arrays
@@ -50,6 +49,7 @@
 !
 !  NOTES:
 !  (1 ) Added function GET_SIM_NAME (bmy, 5/3/05)
+!  (2 ) Removed ITS_A_COPARAM_SIM; the CO-OH param is obsolete (bmy, 6/24/05)
 !******************************************************************************
 !
       !=================================================================
@@ -168,27 +168,29 @@
       END FUNCTION ITS_A_HCN_SIM
 
 !------------------------------------------------------------------------------
-
-      FUNCTION ITS_A_COPARAM_SIM() RESULT( VALUE )
+! Prior to 6/24/05:
+! The CO-OH simulation is now obsolete (bmy, 6/24/05)
 !
-!******************************************************************************
-!  Function ITS_A_COPARAM_SIM returns TRUE if we are doing a GEOS-CHEM CO 
-!  simulation with parameterized OH simulation (cf. B. Duncan). (bmy, 7/15/04)
+!      FUNCTION ITS_A_COPARAM_SIM() RESULT( VALUE )
+!!
+!!*****************************************************************************
+!!  Function ITS_A_COPARAM_SIM returns TRUE if we are doing a GEOS-CHEM CO 
+!!  simulation with parameterized OH simulation (cf. B. Duncan). (bmy, 7/15/04)
+!!
+!!  NOTES:
+!!*****************************************************************************
+!!
+!      ! Local variables
+!      LOGICAL :: VALUE
+!      
+!      !=================================================================
+!      ! ITS_A_CO_OH_SIM begins here!
+!      !=================================================================
+!      VALUE = ( SIM_TYPE == 5 )
 !
-!  NOTES:
-!******************************************************************************
+!      ! Return to calling program
+!      END FUNCTION ITS_A_COPARAM_SIM
 !
-      ! Local variables
-      LOGICAL :: VALUE
-      
-      !=================================================================
-      ! ITS_A_CO_OH_SIM begins here!
-      !=================================================================
-      VALUE = ( SIM_TYPE == 5 )
-
-      ! Return to calling program
-      END FUNCTION ITS_A_COPARAM_SIM
-
 !------------------------------------------------------------------------------
 
       FUNCTION ITS_A_TAGOX_SIM() RESULT( VALUE )
@@ -326,10 +328,12 @@
       FUNCTION ITS_NOT_COPARAM_OR_CH4() RESULT( VALUE )
 !
 !******************************************************************************
-!  Function ITS_NOT_COPARAM_OR_CH4 returns TRUE if we are doing a GEOS-CHEM
-!  simulation other than CO w/ Parameterized OH or CH4. (bmy, 7/15/04)
+!  Function ITS_NOT_COPARAM_OR_CH4 returns TRUE if we are doing a 
+!  GEOS-CHEM simulation other than CO w/ Parameterized OH or CH4. 
+!  (bmy, 7/15/04, 6/24/05)
 !
 !  NOTES:
+!  (1 ) The CO-OH param (SIM_TYPE=5) is now obsolete (bmy, 6/24/05)
 !******************************************************************************
 !
       ! Local variables
@@ -338,7 +342,11 @@
       !=================================================================
       ! ITS_NOT_COPARAM_OR_CH4 begins here!
       !=================================================================
-      VALUE = ( SIM_TYPE /= 5 .and. SIM_TYPE /= 9 )
+      !-----------------------------------------------
+      ! Prior to 6/24/05:
+      !VALUE = ( SIM_TYPE /= 5 .and. SIM_TYPE /= 9 )
+      !-----------------------------------------------
+      VALUE = ( SIM_TYPE /= 9 )
 
       ! Return to calling program
       END FUNCTION ITS_NOT_COPARAM_OR_CH4
@@ -349,9 +357,10 @@
 !
 !******************************************************************************
 !  Function GET_SIM_NAME returns the name (e.g. "NOx-Ox-Hydrocarbon-Aerosol", 
-!  "Tagged CO", etc.) of the GEOS-CHEM simulation. (bmy, 5/3/05)
+!  "Tagged CO", etc.) of the GEOS-CHEM simulation. (bmy, 5/3/05, 6/24/05)
 !
 !  NOTES:
+!  (1 ) The CO-OH simulation has been removed (bmy, 6/24/05)
 !******************************************************************************
 !
       ! Function value
@@ -372,7 +381,11 @@
          CASE( 4 )
             NAME = 'HCN'
          CASE( 5 )
-            NAME = 'CO w/ parameterized OH'
+            !-------------------------------------
+            ! Prior to 6/24/05:
+            !NAME = 'CO with parameterized OH'
+            !-------------------------------------
+            NAME = ''
          CASE( 6 )
             NAME = 'Tagged Ox'
          CASE( 7 )

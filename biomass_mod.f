@@ -1,4 +1,4 @@
-! $Id: biomass_mod.f,v 1.7 2005/03/29 15:52:39 bmy Exp $
+! $Id: biomass_mod.f,v 1.8 2005/06/27 19:41:43 bmy Exp $
       MODULE BIOMASS_MOD
 !
 !******************************************************************************
@@ -909,9 +909,6 @@
 
          ! Tagged CO -- enhance by 11%
          BBARRAY = BBARRAY * 1.11d0
-
-      !ELSE IF ( ITS_A_COPARAM_SIM()
-      !   BBARRAY = BBARRAY * 
 
       ENDIF
 

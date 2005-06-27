@@ -1,9 +1,9 @@
-! $Id: ndxx_setup.f,v 1.18 2005/05/09 14:34:00 bmy Exp $
+! $Id: ndxx_setup.f,v 1.19 2005/06/27 19:41:47 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
 !  NDXX_SETUP dynamically allocates memory for certain diagnostic arrays that 
-!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 4/13/05)
+!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 6/27/05)
 !
 !  This allows us to reduce the amount of memory that needs to be declared 
 !  globally.  We only allocate memory for arrays if the corresponding 
@@ -115,6 +115,7 @@
 !        for non-full-chemistry runs in main.f -- this will allow it to look 
 !        for flight files for each day (bmy, 3/24/05)
 !  (54) Now use PD05=10 to dimension AD05 array (bmy, 4/13/05)
+!  (55) Now also allocates AD09 and AD09_em (bmy, 6/27/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -146,6 +147,7 @@
       LD01 = 1
       LD02 = 1
       LD05 = 1
+      LD09 = 1
       LD07 = 1
       LD12 = 1
       LD13 = 1
@@ -174,71 +176,6 @@
       ! Define TRCOFFSET for "alternate chemistry" runs
       ! TRCOFFSET will be used to offset punch file tracer indices
       !=================================================================
-
-      !-----------------------------------------------------------------------
-      !IF ( ITS_A_RnPbBe_SIM() ) THEN
-      !   TRCOFFSET = 60         
-      !      
-      !ELSE IF ( ITS_A_CH3I_SIM() ) THEN
-      !   TRCOFFSET = 70         
-      !
-      !ELSE IF ( ITS_A_HCN_SIM() ) THEN
-      !   TRCOFFSET = 80         
-      !
-      !ELSE IF ( ITS_A_COPARAM_SIM() ) THEN
-      !   TRCOFFSET = 3          
-      !
-      !ELSE IF ( ITS_A_TAGOX_SIM() ) THEN
-      !   TRCOFFSET = 40         
-      !
-      !ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
-      !   TRCOFFSET = 80         
-      !
-      !ELSE IF ( ITS_A_C2H6_SIM() ) THEN
-      !   TRCOFFSET = 64         
-      !
-      !ELSE IF ( ITS_A_CH4_SIM() ) THEN
-      !   TRCOFFSET = 54         
-      !
-      !ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
-      !   TRCOFFSET = 70
-      !
-      !ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
-      !   TRCOFFSET = 50         
-      !
-      !   IF ( LCARB ) THEN
-      !
-      !      ! Tracer offset for carbon-aerosol-only simulation
-      !      IF ( .not. ( LSULF .and. LDUST .and. LSSALT ) ) THEN
-      !         TRCOFFSET = 58
-      !      ENDIF
-      !    
-      !   ELSE IF ( LDUST ) THEN
-      !
-      !      ! Tracer offset dust-aerosol-only simulation
-      !      IF ( .not. ( LSULF .and. LCARB .and. LSSALT ) ) THEN
-      !         TRCOFFSET = 62
-      !      ENDIF            
-      !
-      !   ELSE IF ( LSSALT ) THEN
-      !   
-      !      !! Tracer offset seasalt-aerosol-only simulation
-      !      !IF ( .not. ( LSULF .and. LCARB .and. LSSALT ) ) THEN
-      !      !   TRCOFFSET = 66
-      !      !ENDIF    
-      !      TRCOFFSET = 50
-      !
-      !   ENDIF
-      !
-      !! Implement this more fully later...
-      !!ELSE IF ( ITS_A_Kr85_SIM() ) THEN
-      !!   TRCOFFSET = 75        
-      !       
-      !ELSE
-      !   TRCOFFSET = 0
-      !
-      !ENDIF
-      !-----------------------------------------------------------------------
 
       ! Make TRCOFFSET = 0 since we now write out both "diaginfo.dat" 
       ! and "tracerinfo.dat" files for GAMAP (bmy, 4/20/05)
@@ -312,7 +249,20 @@
       ENDIF
 
       !=================================================================
-      ! ND09 - ND10: Free diagnostics
+      ! ND09: HCN / CH3CN source & sink
+      !=================================================================
+      IF ( ND09 > 0 ) THEN
+         LD09 = MIN( ND09, LLPAR )
+
+         ALLOCATE( AD09( IIPAR, JJPAR, LD09, N_TRACERS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD09' )
+
+         ALLOCATE( AD09_em( IIPAR, JJPAR, PD09 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD09_em' )
+      ENDIF
+
+      !=================================================================
+      ! ND10: Free diagnostic
       !
       ! ND11: Acetone source diagnostics [atoms C/cm2/s]
       !       --> uses AD11 array (allocatable)

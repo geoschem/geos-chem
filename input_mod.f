@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.14 2005/06/22 20:50:04 bmy Exp $
+! $Id: input_mod.f,v 1.15 2005/06/27 19:41:47 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -1580,12 +1580,13 @@
 !
 !******************************************************************************
 !  Subroutine READ_DEPOSITION_MENU reads the DEPOSITION MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 3/1/05)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 6/24/05)
 !
 !  NOTES:
 !  (1 ) Now print an informational message for tagged Hg (bmy, 12/15/04)
 !  (2 ) We need to call WETDEPID for both wetdep and cloud convection
 !        since this sets up the list of soluble tracers (bmy, 3/1/05)
+!  (3 ) Remove references to obsolete CO_OH simulation (bmy, 6/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1626,13 +1627,21 @@
 
       ! Turn off drydep for simulations that don't need it
       IF ( ITS_A_CH3I_SIM()    ) LDRYD = .FALSE.
-      IF ( ITS_A_COPARAM_SIM() ) LDRYD = .FALSE.
+      !-----------------------------------------------------------------
+      ! Prior to 6/24/05:
+      ! The CO-OH simulation is obsolete (bmy, 6/24/05)
+      !IF ( ITS_A_COPARAM_SIM() ) LDRYD = .FALSE.
+      !-----------------------------------------------------------------
       IF ( ITS_A_TAGCO_SIM()   ) LDRYD = .FALSE.
 
       ! Turn off wetdep for simulations that don't need it
       IF ( ITS_A_CH3I_SIM()    ) LWETD = .FALSE.
       IF ( ITS_A_HCN_SIM()     ) LWETD = .FALSE.
-      IF ( ITS_A_COPARAM_SIM() ) LWETD = .FALSE.
+      !-----------------------------------------------------------------
+      ! Prior to 6/24/05:
+      ! The CO-OH simulation is obsolete (bmy, 6/24/05)
+      !IF ( ITS_A_COPARAM_SIM() ) LWETD = .FALSE.
+      !-----------------------------------------------------------------
       IF ( ITS_A_TAGOX_SIM()   ) LWETD = .FALSE.
       IF ( ITS_A_TAGCO_SIM()   ) LWETD = .FALSE.
       IF ( ITS_A_C2H6_SIM()    ) LWETD = .FALSE.
@@ -1786,7 +1795,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_DIAGNOSTIC_MENU reads the DIAGNOSTIC MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 3/25/05)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 6/27/05)
 !
 !  NOTES:
 !  (1 ) Now reference IU_BPCH from "file_mod.f" and OPEN_BPCH2_FOR_WRITE
@@ -1796,6 +1805,7 @@
 !        when both LWETD=F and LCONV=F.  Now calls EXPAND_DATE to replace
 !        YYYYMMDD and HHMMSS tokens in the bpch file name with the actual
 !        starting date & time of the run. (bmy, 3/25/05)
+!  (3 ) Now get diag info for ND09 for HCN/CH3CN sim (bmy, 6/27/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1909,11 +1919,11 @@
       CALL SET_TINDEX( 08, ND08, SUBSTRS(2:N), N-1, PD08 )
 
       !--------------------------
-      ! ND09: Free
+      ! ND09: HCN/CH3CN
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:11' )
       READ( SUBSTRS(1), * ) ND09
-      CALL SET_TINDEX( 09, ND09, SUBSTRS(2:N), N-1, PD09 )
+      CALL SET_TINDEX( 09, ND09, SUBSTRS(2:N), N-1, N_TRACERS+4 )
 
       !--------------------------
       ! ND10: Free

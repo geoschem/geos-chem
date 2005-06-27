@@ -1,4 +1,4 @@
-! $Id: comode.h,v 1.11 2005/02/10 19:53:24 bmy Exp $
+! $Id: comode.h,v 1.12 2005/06/27 19:41:44 bmy Exp $
 !
 !******************************************************************************
 !  Header file COMODE contains common blocks and variables for SMVGEAR II.
@@ -42,6 +42,7 @@
 !         (mje, bmy, 8/7/03)
 !  (7 ) Eliminated SMALLCHEM cpp switch (bmy, 12/2/03)
 !  (8 ) Now set MAXGL3 = NNPAR for new # of tracers (bmy, 4/6/04)
+!  (9 ) Remove obsolete LGEOSCO and FULLCHEM Cpp switches (bmy, 6/24/05)
 !******************************************************************************
 !
 C         CCCCCCC  OOOOOOO  M     M  OOOOOOO  DDDDDD   EEEEEEE 
@@ -137,7 +138,12 @@ C
       INTEGER MAXGL,MAXGL2,MAXGL3,MAXGL4,ICS,ICP,MORDER,IPHOT8,IMISC
       INTEGER IMASBAL,IALTS,MXCOF
 
-#if   defined ( FULLCHEM )
+!-----------------------------------------------------------------------------
+! Prior to 6/24/05:
+! LGEOSCO is obsolete, so we no longer need FULLCHEM to distinguish between
+! CO-OH runs and full-chem runs (bmy, 6/24/05)
+!#if   defined ( FULLCHEM )
+!-----------------------------------------------------------------------------
       ! Updated for SMVGEAR II (bdf, bmy, 4/1/03)
       PARAMETER ( IGAS    = 125,               IAERTY  = 1           )
       PARAMETER ( NMRATE  = 360,               IPHOT   = 60          )
@@ -151,22 +157,26 @@ C
       PARAMETER ( IMASBAL = 9,                 IALTS   = 22          )
       PARAMETER ( MXCOF   = 5                                        )
 
-#elif defined( LGEOSCO )
-      ! New settings for small chemistry to save array space (bmy, 1/5/98)
-      ! Need these to also be defined for LGEOSCO run (bmy, 10/3/00)
-      PARAMETER ( IGAS    = 35,                IAERTY  = 1           )
-      PARAMETER ( NMRATE  = 70,                IPHOT   = 15          )
-      PARAMETER ( NMTRATE = NMRATE + IPHOT,    NMQRATE = 1           )
-      PARAMETER ( NMRPROD = 25,                NMDEAD  = 15          )
-      PARAMETER ( MAXGL   = 130,               MAXGL2  = 50          )
-      PARAMETER ( MAXGL3  = 25                                       )
-      PARAMETER ( ICS     = 1,                 ICP     = 2*ICS       )
-      PARAMETER ( MORDER  = 7                                        )
-      PARAMETER ( IPHOT8  = IPHOT + 8,         IMISC   = 100         )
-      PARAMETER ( IMASBAL = 9,                 IALTS   = 22          )
-      PARAMETER ( MXCOF   = 5                                        )
-
-#endif
+!-----------------------------------------------------------------------------
+! Prior to 6/24/05:
+! Remove obsolete settings for CO-OH run (bmy, 6/24/05)
+!#elif defined( LGEOSCO )
+!      ! New settings for small chemistry to save array space (bmy, 1/5/98)
+!      ! Need these to also be defined for LGEOSCO run (bmy, 10/3/00)
+!      PARAMETER ( IGAS    = 35,                IAERTY  = 1           )
+!      PARAMETER ( NMRATE  = 70,                IPHOT   = 15          )
+!      PARAMETER ( NMTRATE = NMRATE + IPHOT,    NMQRATE = 1           )
+!      PARAMETER ( NMRPROD = 25,                NMDEAD  = 15          )
+!      PARAMETER ( MAXGL   = 130,               MAXGL2  = 50          )
+!      PARAMETER ( MAXGL3  = 25                                       )
+!      PARAMETER ( ICS     = 1,                 ICP     = 2*ICS       )
+!      PARAMETER ( MORDER  = 7                                        )
+!      PARAMETER ( IPHOT8  = IPHOT + 8,         IMISC   = 100         )
+!      PARAMETER ( IMASBAL = 9,                 IALTS   = 22          )
+!      PARAMETER ( MXCOF   = 5                                        )
+!
+!#endif
+!-----------------------------------------------------------------------------
 C
 C ****************** PARAMETERS TO MINIMIZE ARRAY SPACE ***************
 C

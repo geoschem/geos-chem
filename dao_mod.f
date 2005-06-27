@@ -1,10 +1,10 @@
-! $Id: dao_mod.f,v 1.11 2005/06/22 20:50:00 bmy Exp $
+! $Id: dao_mod.f,v 1.12 2005/06/27 19:41:44 bmy Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
 !  Module DAO_MOD contains both arrays that hold DAO met fields, as well as
 !  subroutines that compute, interpolate, or otherwise process DAO met field 
-!  data. (bmy, 6/27/00, 5/25/05)
+!  data. (bmy, 6/27/00, 6/24/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -1122,6 +1122,9 @@
       !  Also test the denominator in order to prevent div by zero.
       !=================================================================
 
+      ! Local variables
+      REAL*8            :: NUM, DEN
+
       ! Parameters
       REAL*8, PARAMETER :: KAPPA = 0.4d0 
       REAL*8, PARAMETER :: CP    = 1000.0d0
@@ -1505,7 +1508,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_DAO allocates memory for all allocatable module arrays. 
-!  (bmy, 6/26/00, 7/19/04)
+!  (bmy, 6/26/00, 6/24/05)
 !
 !  NOTES:
 !  (1 ) Now allocate AVGW for either NSRCX == 3 or NSRCX == 5 (bmy, 9/24/01)
@@ -1531,13 +1534,15 @@
 !        LWETD, LDRYD, LCHEM from "logical_mod.f".  Now allocate RH regardless
 !        of simulation. (bmy, 7/20/04)
 !  (12) Now also allocate AVGW for offline aerosol simulations (bmy, 9/27/04)
-!  (13) Now modified for GCAP met fields (bmy, 5/25/05)
+!  (13) Now modified for GCAP met fields.  Removed references to CO-OH param 
+!        simulation.  Now allocate AVGW only for fullchem or offline aerosol
+!        simulations. (bmy, 6/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE LOGICAL_MOD, ONLY : LWETD, LDRYD, LCHEM
-      USE TRACER_MOD,  ONLY : ITS_AN_AEROSOL_SIM, ITS_A_COPARAM_SIM,
+      USE TRACER_MOD,  ONLY : ITS_AN_AEROSOL_SIM, 
      &                        ITS_A_FULLCHEM_SIM, ITS_A_HCN_SIM
 
 #     include "CMN_SIZE"    ! Size parameters 
@@ -1579,9 +1584,8 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD' )
       ALBD = 0d0
 
-      ! AVGW is only used for NOx-Ox-HC, aerosol, HCN, or CO-OH sims
-      IF ( ITS_A_FULLCHEM_SIM() .or. ITS_AN_AEROSOL_SIM() .or.
-     &     ITS_A_HCN_SIM()      .or. ITS_A_COPARAM_SIM() ) THEN 
+      ! AVGW is only used for NOx-Ox-HC or aerosol simulations
+      IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_HCN_SIM() ) THEN 
          ALLOCATE( AVGW( IIPAR, JJPAR, LLPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AVGW' )
          AVGW = 0d0

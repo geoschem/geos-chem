@@ -1,10 +1,9 @@
-! $Id: diag50_mod.f,v 1.7 2005/05/09 14:33:57 bmy Exp $
+! $Id: diag50_mod.f,v 1.8 2005/06/27 19:41:45 bmy Exp $
       MODULE DIAG50_MOD
 !
 !******************************************************************************
-!  Module DIAG50_MOD contains variables and routines to generate save 
-!  timeseries data over the United States where the local time is between 
-!  two user-defined limits. (amf, bey, bdf, pip, bmy, 11/30/00, 4/20/05)
+!  Module DIAG50_MOD contains variables and routines to generate 24-hour 
+!  average timeseries data. (amf, bey, bdf, pip, bmy, 11/30/00, 6/24/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -99,6 +98,7 @@
 !  (4 ) Now only archive AOD's once per chemistry timestep (bmy, 1/14/05)
 !  (5 ) Now references "pbl_mix_mod.f" (bmy, 2/16/05)
 !  (6 ) Now save cloud fractions & grid box heights (bmy, 4/20/05)
+!  (7 ) Remove TRCOFFSET since it's always zero (bmy, 6/24/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -181,7 +181,7 @@
 !
 !******************************************************************************
 !  Subroutine ACCUMULATE_DIAG50 accumulates tracers into the Q array. 
-!  (bmy, 8/20/02, 1/14/05)
+!  (bmy, 8/20/02, 6/24/05)
 !
 !  NOTES:
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
@@ -199,15 +199,10 @@
 !        cloud fraction as tracer #79 and box height as tracer #93.  Now 
 !        remove references to CLMOSW, CLROSW, and PBL from "dao_mod.f". 
 !        (bmy, 4/20/05)
+!  (6 ) Remove references to TRCOFFSET because it's always zero (bmy, 6/24/05)
 !******************************************************************************
 !
       ! Reference to F90 modules
-!-------------------------------------------------------------------------
-! Prior to 4/20/05:
-!      USE DAO_MOD,      ONLY : AD,     AIRDEN, BXHEIGHT, CLDTOPS, 
-!     &                         CLMOSW, CLROSW, OPTD,     RH, T, 
-!     &                         PBL,    UWND,   VWND,     SLP
-!-------------------------------------------------------------------------
       USE DAO_MOD,      ONLY : AD,      AIRDEN, BXHEIGHT, CLDF,
      &                         CLDTOPS, OPTD,   RH,       T, 
      &                         UWND,    VWND,   SLP
@@ -221,7 +216,10 @@
 #     include "cmn_fj.h"  ! includes CMN_SIZE
 #     include "jv_cmn.h"  ! ODAER
 #     include "CMN_O3"    ! FRACO3, FRACNO, SAVEO3, SAVENO2, SAVEHO2, FRACNO2
-#     include "CMN_DIAG"  ! TRCOFFSET
+!------------------------------------------------
+! Prior to 6/24/05:
+!#     include "CMN_DIAG"  ! TRCOFFSET
+!------------------------------------------------
 #     include "CMN_GCTM"  ! SCALE_HEIGHT
 
       ! Local variables
@@ -419,11 +417,6 @@
                !--------------------------------------
                ! 3_D CLOUD FRACTION [unitless]
                !--------------------------------------
-               !---------------------------------------------
-               ! Prior to 4/20/05:
-               ! Now save 3-D cloud fraction (bmy, 4/20/05)
-               !Q(X,Y,1,W) = Q(X,Y,1,W) + CLDF(L,I,J)
-               !---------------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + CLDF(L,I,J)
 
             ELSE IF ( N == 80 .and. IS_OPTD ) THEN
@@ -671,6 +664,7 @@
 !        these are only updated once per chemistry timestep (bmy, 1/14/05)
 !  (4 ) Now save grid box heights as tracer #93.  Now save 3-D cloud fraction
 !        as tracer #79. (bmy, 4/20/05)
+!  (5 ) Remove references to TRCOFFSET because it's always zero (bmy, 6/24/05)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -683,7 +677,10 @@
       USE TRACER_MOD, ONLY : N_TRACERS
 
 #     include "CMN_SIZE"  ! Size Parameters
-#     include "CMN_DIAG"  ! TRCOFFSET
+!--------------------------------------------------
+! Prior to 6/24/05:
+!#     include "CMN_DIAG"  ! TRCOFFSET
+!--------------------------------------------------
 
       ! Local variables
       INTEGER            :: DIVISOR
@@ -773,7 +770,7 @@
             CATEGORY = 'IJ-AVG-$'
             UNIT     = ''              ! Let GAMAP pick unit
             GMNL     = ND50_NL
-            GMTRC    = N + TRCOFFSET
+            GMTRC    = N
 
          ELSE IF ( N == 71 ) THEN
 
@@ -783,7 +780,7 @@
             CATEGORY = 'IJ-AVG-$'
             UNIT     = ''              ! Let GAMAP pick unit
             GMNL     = ND50_NL
-            GMTRC    = N_TRACERS + 1 + TRCOFFSET
+            GMTRC    = N_TRACERS + 1
 
          ELSE IF ( N == 72 ) THEN
 
@@ -862,11 +859,6 @@
             !---------------------
             CATEGORY = 'TIME-SER'
             UNIT     = 'unitless'
-            !---------------------------------------------
-            ! Prior to 4/20/05:
-            ! Now save 3-D cloud fraction (bmy, 4/20/05)
-            !GMNL     = 1
-            !---------------------------------------------
             GMNL     = ND50_NL
             GMTRC    = 19
 

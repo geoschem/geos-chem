@@ -1,9 +1,9 @@
-! $Id: diag_mod.f,v 1.14 2005/05/09 14:33:57 bmy Exp $
+! $Id: diag_mod.f,v 1.15 2005/06/27 19:41:45 bmy Exp $
       MODULE DIAG_MOD 
 !
 !******************************************************************************
 !  Module DIAG_MOD contains declarations for allocatable arrays for use with 
-!  GEOS-CHEM diagnostics. (amf, bdf, bmy, 11/30/99, 2/17/05)
+!  GEOS-CHEM diagnostics. (amf, bdf, bmy, 11/30/99, 6/27/05)
 !
 !  Module Routines:
 !  ============================================================================
@@ -49,6 +49,7 @@
 !  (21) Added extra ND21 array for crystalline sulfur tracers.  Also remove
 !        ND03 and ND48 arrays; they are obsolete (bmy, 1/21/05)
 !  (22) Removed AD41 and AFTTOT arrays; they're obsolete (bmy, 2/17/05)
+!  (23) Added AD09, AD09_em arrays for HCN/CH3CN simulation (xyp, bmy, 6/27/05)
 !******************************************************************************
 !     
       !=================================================================
@@ -80,6 +81,10 @@
 
       ! For ND08 -- seasalt emission
       REAL*4,  ALLOCATABLE :: AD08(:,:,:)
+
+      ! For ND09 -- HCN / CH3CN simulation
+      REAL*4,  ALLOCATABLE :: AD09(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD09_em(:,:,:)
 
       ! For ND12 -- boundary layer multiplication factor
       REAL*4,  ALLOCATABLE :: AD11(:,:,:)
@@ -238,7 +243,7 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_DIAG deallocates all module arrays.
-!  (bmy, 12/13/02, 1/21/05)
+!  (bmy, 12/13/02, 6/27/05)
 !
 !  NOTES:
 !  (1 ) Now also deallocate AD13_NH3_an, AD13_NH3_bb, AD13_NH3_bf arrays
@@ -255,6 +260,7 @@
 !  (10) Now deallocates AD21_cr array.  Remove reference to arrays for ND03
 !        and ND48 diagnostics, they're obsolete. (cas, sas, bmy, 1/21/05)
 !  (11) Removed AD41 and AFTTOT arrays; they're obsolete (bmy, 2/17/05)
+!  (12) Now also deallocate AD09 and AD09_em (bmy, 6/27/05)
 !******************************************************************************
 !
       !=================================================================
@@ -268,6 +274,8 @@
       IF ( ALLOCATED( AD07_OC     ) ) DEALLOCATE( AD07_OC     )
       IF ( ALLOCATED( AD07_HC     ) ) DEALLOCATE( AD07_HC     )
       IF ( ALLOCATED( AD08        ) ) DEALLOCATE( AD08        )
+      IF ( ALLOCATED( AD09        ) ) DEALLOCATE( AD09        )
+      IF ( ALLOCATED( AD09_em     ) ) DEALLOCATE( AD09_em     )
       IF ( ALLOCATED( AD11        ) ) DEALLOCATE( AD11        )
       IF ( ALLOCATED( AD12        ) ) DEALLOCATE( AD12        )
       IF ( ALLOCATED( AD13_DMS    ) ) DEALLOCATE( AD13_DMS    )

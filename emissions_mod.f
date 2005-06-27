@@ -1,9 +1,9 @@
-! $Id: emissions_mod.f,v 1.12 2005/06/23 19:32:55 bmy Exp $
+! $Id: emissions_mod.f,v 1.13 2005/06/27 19:41:45 bmy Exp $
       MODULE EMISSIONS_MOD
 !
 !******************************************************************************
 !  Module EMISSIONS_MOD is used to call the proper emissions subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 2/11/03, 6/23/05)
+!  for the various GEOS-CHEM simulations. (bmy, 2/11/03, 6/24/05)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -39,6 +39,7 @@
 !  (7 ) Now references "emissions_mod.f" (bmy, 12/7/04)
 !  (8 ) Now calls EMISSSULFATE if LCRYST=T.  Also read EPA/NEI emissions for 
 !        the offline aerosol simulation. (bmy, 1/11/05)
+!  (9 ) Remove code for the obsolete CO-OH param simulation (bmy, 6/24/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -55,7 +56,7 @@
 !******************************************************************************
 !  Subroutine DO_EMISSIONS is the driver routine which calls the appropriate
 !  emissions subroutine for the various GEOS-CHEM simulations. 
-!  (bmy, 2/11/03, 6/23/05)
+!  (bmy, 2/11/03, 6/24/05)
 !
 !  NOTES:
 !  (1 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
@@ -72,7 +73,8 @@
 !        the offline sulfate simulation.  Also call EMISS_EPA_NEI for the
 !        tagged CO simulation. (cas, bmy, stu, 1/10/05).
 !  (9 ) Now call EMISSSEASALT before EMISSSULFATE (bec, bmy, 4/13/05)
-!  (10) Now call EMISS_HCN_CH3CN from "hcn_ch3cn_mod.f" (xyp, bmy, 6/23/05)
+!  (10) Now call EMISS_HCN_CH3CN from "hcn_ch3cn_mod.f".   Also remove all 
+!        references to the obsolete CO-OH param simulation. (xyp, bmy, 6/23/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -165,18 +167,6 @@
 
          ! Mercury
          CALL EMISSMERCURY
-
-!-----------------------------------------------------------------------------
-! Prior to 2/11/03:
-! Reinstate this later in a more integrated way (bmy, 2/11/03)
-!#if   defined( LGEOSCO )
-!      ELSE IF ( ITS_A_COPARAM_SIM() ) THEN
-!
-!         ! CO w/ parameterized OH
-!         CALL EMISSCO( FIRSTEMISS, NSEASON, LMN, SUNCOS )
-!
-!#endif
-!-----------------------------------------------------------------------------
 
       ENDIF
 

@@ -1,10 +1,10 @@
-! $Id: uvalbedo_mod.f,v 1.4 2005/06/22 20:50:06 bmy Exp $
+! $Id: uvalbedo_mod.f,v 1.5 2005/06/27 19:41:51 bmy Exp $
       MODULE UVALBEDO_MOD
 !
 !******************************************************************************
 !  Module UVALBEDO_MOD contains variables and routines for reading the UV
 !  Albedo data from disk (for use w/ the FAST-J photolysis routines).
-!  (bmy, 4/19/02, 6/8/05)
+!  (bmy, 4/19/02, 6/27/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -30,7 +30,7 @@
 !  (3 ) Now references "error_mod.f" (bmy, 10/15/02)
 !  (4 ) Minor modification in READ_UVALBEDO (bmy, 3/14/03)
 !  (5 ) Now references "directory_mod.f" (bmy, 7/20/04)
-!  (6 ) Bug fix for GCAP grid in READ_UVALBEDO (bmy, 6/8/05)
+!  (6 ) Bug fix for GCAP grid in READ_UVALBEDO (bmy, 6/27/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -53,7 +53,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_UVALBEDO reads in UV albedo data from a binary punch
-!  file for the given grid, model, and month. (bmy, 2/2/00, 3/14/03)  
+!  file for the given grid, model, and month. (bmy, 2/2/00, 6/27/05)  
 !
 !  Arguments as Input:
 !  ==========================================================================
@@ -88,7 +88,7 @@
 !  (11) Now call READ_BPCH2 with QUIET=.TRUE. to suppress printing of extra 
 !        info to stdout.  Also made cosmetic changes. (bmy, 3/14/03)
 !  (12) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  (13) Now references GET_NAME_EXT from "bpch_mod.f" (bmy, 6/8/05)
+!  (13) Read proper filename for GCAP or GEOS grids (swu, bmy, 6/27/05) 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -132,15 +132,13 @@
       !=================================================================
 
       ! Create filename
-!---------------------------------------------------------------------------
-! Prior to 6/8/05:
-! Now references GET_NAME_EXT from "bpch2_mod.f" (bmy, 6/8/05)
-!      FILENAME = TRIM( DATA_DIR )                 // 
-!     &           'uvalbedo_200111/uvalbedo.geos.' // GET_RES_EXT()
-!---------------------------------------------------------------------------
-      FILENAME = TRIM( DATA_DIR )  // 
-     &           'uvalbedo_200111/uvalbedo.' // GET_NAME_EXT() // 
-     &           '.'                         // GET_RES_EXT()
+#if   defined( GCAP ) 
+      FILENAME = TRIM( DATA_DIR )                 // 
+     &           'uvalbedo_200111/uvalbedo.gcap.' // GET_RES_EXT()
+#else
+      FILENAME = TRIM( DATA_DIR )                 // 
+     &           'uvalbedo_200111/uvalbedo.geos.' // GET_RES_EXT()
+#endif
 
       ! Echo filename
       WRITE( 6, 110 ) TRIM( FILENAME )

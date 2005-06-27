@@ -1,4 +1,4 @@
-! $Id: time_mod.f,v 1.13 2005/06/22 20:50:05 bmy Exp $
+! $Id: time_mod.f,v 1.14 2005/06/27 19:41:50 bmy Exp $
       MODULE TIME_MOD
 !
 !******************************************************************************
@@ -1961,7 +1961,7 @@
       ! under which the A-6 fields are timestamped
       DATE = GET_A6_TIME()      
 
-#elif
+#else
 
       ! For GEOS data: Return the current date/time
       DATE = (/ NYMD, NHMS /)

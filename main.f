@@ -1,14 +1,10 @@
-C $Id: main.f,v 1.25 2005/06/23 19:32:56 bmy Exp $
+C $Id: main.f,v 1.26 2005/06/27 19:41:47 bmy Exp $
 C $Log: main.f,v $
-C Revision 1.25  2005/06/23 19:32:56  bmy
+C Revision 1.26  2005/06/27 19:41:47  bmy
 C GEOS-CHEM v7-03-02, includes the following modifications:
 C - Added code for GCAP and GEOS-5 met fields
-C - removed obsolete routines
-C
-C Revision 1.24  2005/06/22 20:50:04  bmy
-C GEOS-CHEM v7-03-02, includes the following modifications:
-C - Added code for GCAP and GEOS-5 met fields
-C - removed obsolete routines
+C - Added code for tagged HCN & CH3CN simulation
+C - Removed obsolete routines (SLOW-J and CO-OH parameterization)
 C
 C Revision 1.23  2005/05/09 14:33:59  bmy
 C GEOS-CHEM v7-03-01, includes the following modifications:
@@ -697,8 +693,12 @@ C
          !               ***** C H E M I S T R Y *****
          !===========================================================    
 
-         ! Setup fields for CO_OH parameterization
-         IF ( ITS_A_COPARAM_SIM() ) CALL SETUP_CO_OH_CHEM
+         !-------------------------------------------------------------------
+         ! Prior to 6/24/05:
+         ! Remove obsolete code for CO-OH param (bmy, 6/24/05)
+         !! Setup fields for CO_OH parameterization
+         !IF ( ITS_A_COPARAM_SIM() ) CALL SETUP_CO_OH_CHEM
+         !-------------------------------------------------------------------
 
          ! Also need to compute avg P, T for CH4 chemistry (bmy, 1/16/01)
          IF ( ITS_A_CH4_SIM() ) CALL CH4_AVGTP
@@ -1093,45 +1093,47 @@ C
       END SUBROUTINE GET_WIND10M
 
 !-----------------------------------------------------------------------------
-
-      SUBROUTINE SETUP_CO_OH_CHEM
-
-      !=================================================================
-      ! Internal Subroutine CO_OH_CHEM_SETUP calls subroutines which
-      ! set up variables for the CO-OH parameterization simulation
-      ! (when LGEOSCO is defined and when NSRCX == 5).
-      !
-      ! NOTE: These routines need to be called every dynamic timestep.
-      !=================================================================
-#if   defined( LGEOSCO )
-
-      ! Get optical depth for the proper data set
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-
-      ! GEOS-1/GEOS-STRAT: Compute OPTD from T, CLMO, CLRO, DELP
-      CALL OPTDEPTH( LM, CLMOSW, CLROSW, DELP, T, OPTD )
-
-#elif defined( GEOS_3 ) || defined( GEOS_4 )
-
-      ! GEOS-3/GEOS-4: Copy OPTDEP to OPTD, also save diagnostics
-      CALL OPTDEPTH( LM, CLDF, OPTDEP, OPTD )
-
-#endif
-
-      ! Compute 24h average reflectivities
-      CALL AVGREFL( FIRSTCHEM, OPTD, N_DYN, NHMSb, NSEC, XMID, NMIN )
-
-      ! Compute 24h average temp & pressure
-      CALL AVGTP( N_DYN, NMIN )
-
-      ! Compute 24h average water vapor
-      CALL AVGAVGW( N_DYN, NMIN, NCHEM )
-
-#endif
-
-      ! Return to MAIN program
-      END SUBROUTINE SETUP_CO_OH_CHEM
-
+! Prior to 6/24/05:
+! Remove code for obsolete CO-OH parameterization (bmy, 6/24/05)
+!
+!      SUBROUTINE SETUP_CO_OH_CHEM
+!
+!      !=================================================================
+!      ! Internal Subroutine CO_OH_CHEM_SETUP calls subroutines which
+!      ! set up variables for the CO-OH parameterization simulation
+!      ! (when LGEOSCO is defined and when NSRCX == 5).
+!      !
+!      ! NOTE: These routines need to be called every dynamic timestep.
+!      !=================================================================
+!#if   defined( LGEOSCO )
+!
+!      ! Get optical depth for the proper data set
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!
+!      ! GEOS-1/GEOS-STRAT: Compute OPTD from T, CLMO, CLRO, DELP
+!      CALL OPTDEPTH( LM, CLMOSW, CLROSW, DELP, T, OPTD )
+!
+!#elif defined( GEOS_3 ) || defined( GEOS_4 )
+!
+!      ! GEOS-3/GEOS-4: Copy OPTDEP to OPTD, also save diagnostics
+!      CALL OPTDEPTH( LM, CLDF, OPTDEP, OPTD )
+!
+!#endif
+!
+!      ! Compute 24h average reflectivities
+!      CALL AVGREFL( FIRSTCHEM, OPTD, N_DYN, NHMSb, NSEC, XMID, NMIN )
+!
+!      ! Compute 24h average temp & pressure
+!      CALL AVGTP( N_DYN, NMIN )
+!
+!      ! Compute 24h average water vapor
+!      CALL AVGAVGW( N_DYN, NMIN, NCHEM )
+!
+!#endif
+!
+!      ! Return to MAIN program
+!      END SUBROUTINE SETUP_CO_OH_CHEM
+!
 !-----------------------------------------------------------------------------
 
       SUBROUTINE CTM_FLUSH

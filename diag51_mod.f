@@ -1,4 +1,4 @@
-! $Id: diag51_mod.f,v 1.15 2005/05/09 14:33:57 bmy Exp $
+! $Id: diag51_mod.f,v 1.16 2005/06/27 19:41:45 bmy Exp $
       MODULE DIAG51_MOD
 !
 !******************************************************************************
@@ -277,7 +277,7 @@
 !
 !******************************************************************************
 !  Subroutine ACCUMULATE_DIAG51 accumulates tracers into the Q array. 
-!  (bmy, 8/20/02, 4/20/05
+!  (bmy, 8/20/02, 6/24/05)
 !
 !  NOTES:
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
@@ -294,15 +294,10 @@
 !  (5 ) Now reference CLDF and BXHEIGHT from "dao_mod.f".  Now save 3-D cloud 
 !        fraction as tracer #79 and box height as tracer #93.  Now remove 
 !        references to CLMOSW, CLROSW, and PBL from "dao_mod.f". (bmy, 4/20/05)
+!  (6 ) Remove references to TRCOFFSET because it's always zero (bmy, 6/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
-!----------------------------------------------------------------------------
-! Prior to 4/20/05:
-!      USE DAO_MOD,      ONLY : AD,     AIRDEN, BXHEIGHT, CLDTOPS, 
-!     &                         CLMOSW, CLROSW, OPTD,     RH,  T, 
-!     &                         PBL,    UWND,   VWND,     SLP
-!----------------------------------------------------------------------------
       USE DAO_MOD,      ONLY : AD,      AIRDEN, BXHEIGHT, CLDF, 
      &                         CLDTOPS, OPTD,   RH,       T, 
      &                         UWND,    VWND,   SLP
@@ -317,7 +312,10 @@
 #     include "cmn_fj.h"  ! includes CMN_SIZE
 #     include "jv_cmn.h"  ! ODAER
 #     include "CMN_O3"    ! FRACO3, FRACNO, SAVEO3, SAVENO2, SAVEHO2, FRACNO2
-#     include "CMN_DIAG"  ! TRCOFFSET
+!----------------------------------------------
+! Prior to 6/24/05:
+!#     include "CMN_DIAG"  ! TRCOFFSET
+!----------------------------------------------
 #     include "CMN_GCTM"  ! SCALE_HEIGHT
 
       ! Local variables
@@ -804,7 +802,7 @@
 !  Subroutine WRITE_DIAG51 computes the time-average of quantities between
 !  local time limits ND51_HR1 and ND51_HR2 and writes them to a bpch file.
 !  Arrays and counters are also zeroed for the next diagnostic interval.
-!  (bmy, 12/1/00, 4/20/05)  
+!  (bmy, 12/1/00, 6/24/05)  
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -822,6 +820,7 @@
 !        these are only updated once per chemistry timestep (bmy, 1/14/05)
 !  (4 ) Now save grid box heights as tracer #93.  Now save 3-D cloud fraction 
 !        as tracer #79 (bmy, 4/20/05)
+!  (5 ) Remove references to TRCOFFSET because it's always zero (bmy, 6/24/05)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -834,7 +833,10 @@
       USE TRACER_MOD, ONLY : N_TRACERS
 
 #     include "CMN_SIZE"  ! Size Parameters
-#     include "CMN_DIAG"  ! TRCOFFSET
+!-----------------------------------------------
+! Prior to 6/24/05:
+!#     include "CMN_DIAG"  ! TRCOFFSET
+!-----------------------------------------------
 
       ! Arguments
       REAL*8, INTENT(IN) :: TAU_W
@@ -942,7 +944,7 @@
             CATEGORY = 'IJ-AVG-$'
             UNIT     = ''              ! Let GAMAP pick unit
             GMNL     = ND51_NL
-            GMTRC    = N + TRCOFFSET
+            GMTRC    = N
 
          ELSE IF ( N == 71 ) THEN
 
@@ -952,7 +954,7 @@
             CATEGORY = 'IJ-AVG-$'
             UNIT     = ''              ! Let GAMAP pick unit
             GMNL     = ND51_NL
-            GMTRC    = N_TRACERS + 1 + TRCOFFSET
+            GMTRC    = N_TRACERS + 1
 
          ELSE IF ( N == 72 ) THEN
 
@@ -1031,11 +1033,6 @@
             !---------------------
             CATEGORY = 'TIME-SER'
             UNIT     = 'unitless'
-            !---------------------------------------
-            ! Prior to 4/20/05:
-            ! Now save 3-D cld frac (bmy, 4/20/05)
-            !GMNL     = 1
-            !---------------------------------------
             GMNL     = ND51_NL
             GMTRC    = 19
 

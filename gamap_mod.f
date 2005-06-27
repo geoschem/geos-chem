@@ -1,10 +1,10 @@
-! $Id: gamap_mod.f,v 1.3 2005/06/22 20:50:03 bmy Exp $
+! $Id: gamap_mod.f,v 1.4 2005/06/27 19:41:46 bmy Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
 !  Module GAMAP_MOD contains routines to create GAMAP "tracerinfo.dat" and
 !  "diaginfo.dat" files which are customized to each particular GEOS-CHEM
-!  simulation. (bmy, 5/3/05, 5/11/05)
+!  simulation. (bmy, 5/3/05, 6/27/05)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -63,6 +63,7 @@
 !
 !  NOTES:
 !  (1 ) Minor bug fix for Rn/Pb/Be simulations (bmy, 5/11/05)
+!  (2 ) Added ND09 diagnostic for HCN/CH3CN simulation (xyp, bmy, 6/27/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -622,7 +623,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_GAMAP allocates and initializes all module variables.  
-!  (bmy, 4/22/05, 5/11/05)
+!  (bmy, 4/22/05, 6/27/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -631,6 +632,7 @@
 !
 !  NOTES:
 !  (1 ) Now add proper UNIT & SCALE for Rn/Pb/Be simulations (bmy, 5/11/05)
+!  (2 ) Added HCN & CH3CN source & sink info for ND09 (bmy, 6/27/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1187,6 +1189,16 @@
       DESCRIPT(N) = 'Drydep velocities'
       OFFSET(N)   = SPACING * 37
 
+      N           = N + 1
+      CATEGORY(N) = 'HCN-PL-$'
+      DESCRIPT(N) = 'HCN & CH3CN sinks'
+      OFFSET(N)   = SPACING * 38
+
+      N           = N + 1
+      CATEGORY(N) = 'HCN-SRCE'
+      DESCRIPT(N) = 'HCN & CH3CN sources'
+      OFFSET(N)   = SPACING * 39
+
       ! Number of categories
       NCATS = N
 
@@ -1452,6 +1464,69 @@
          ENDDO
       ENDIF
 
+      !-------------------------------------
+      ! HCN & CH3CN sources & sinks (ND09)
+      !-------------------------------------
+      IF ( ND09 > 0 ) THEN
+         
+         ! Number of tracers
+         NTRAC(09) = N_TRACERS + 4
+
+         ! Loop over tracers: HCN-PL-$
+         DO T = 1, NTRAC(09)-4
+            NAME (T,09) = TRACER_NAME(T)
+            FNAME(T,09) = TRIM( TRACER_NAME(T) ) // ' lost via OH rxn'
+            UNIT (T,09) = 'kg'
+            INDEX(T,09) = T + ( SPACING * 38 )
+            MOLC (T,09) = 1
+            MWT  (T,09) = TRACER_MW_KG(T)
+            SCALE(T,09) = 1e0
+         ENDDO
+
+         ! Loop over tracers: HCN-SRCE
+         DO T = NTRAC(09)-3, NTRAC(09)
+
+            ! Define quantities
+            IF ( T == N_TRACERS+1 ) THEN
+               NAME (T,09) = 'HCN_bb'
+               FNAME(T,09) = 'HCN biomass burning emissions'
+               UNIT (T,09) = 'molec/cm2/s'
+               MWT  (T,09) = 27d-3
+               INDEX(T,09) = ( T - N_TRACERS ) + ( SPACING * 39 )
+               MOLC (T,09) = 1
+               SCALE(T,09) = 1e0
+               
+            ELSE IF ( T == N_TRACERS+2 ) THEN
+               NAME (T,09) = 'HCN_df'
+               FNAME(T,09) = 'HCN domestic fossil fuel emissions'
+               UNIT (T,09) = 'molec/cm2/s'
+               MWT  (T,09) = 27d-3
+               INDEX(T,09) = ( T - N_TRACERS ) + ( SPACING * 39 )
+               MOLC (T,09) = 1
+               SCALE(T,09) = 1e0
+
+            ELSE IF ( T == N_TRACERS+3 ) THEN
+               NAME (T,09) = 'HCN_oc'
+               FNAME(T,09) = 'HCN ocean uptake'
+               UNIT (T,09) = 'molec/cm2/s'
+               MWT  (T,09) = 27d-3
+               INDEX(T,09) = ( T - N_TRACERS ) + ( SPACING * 39 )
+               MOLC (T,09) = 1
+               SCALE(T,09) = 1e0
+
+            ELSE IF ( T == N_TRACERS+4 ) THEN
+               NAME (T,09) = 'CL'
+               FNAME(T,09) = 'Air-to-sea flux of HCN'
+               UNIT (T,09) = 'kg/cm3'
+               MWT  (T,09) = 27d-3
+               INDEX(T,09) = ( T - N_TRACERS ) + ( SPACING * 39 )
+               MOLC (T,09) = 1
+               SCALE(T,09) = 1e0
+
+            ENDIF
+         ENDDO
+      ENDIF
+      
       !-------------------------------------
       ! Acetone sources & sinks (ND11)
       !-------------------------------------

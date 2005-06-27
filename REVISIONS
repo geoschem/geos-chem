@@ -1,5 +1,5 @@
 REVISIONS (v7-03-02)  
-bmy, 22 Jun 2005
+bmy, 27 Jun 2005
 
 
 New in v7-03-02:
@@ -45,9 +45,72 @@ sol.f
 emisshcn.f		-- Now replaced by the newer routines in F90
 chemhcn.f		   module "hcn_ch3cn_mod.f"
 
+AerosolOH.o		-- Removed code from the obsolete CO-OH 
+CO_budget.o                parameterization simulation.  There is no
+CO_decay.o                 need for this now that we can run fullchem
+CO_fillfields.o            for several years.
+CO_fromHCs.o              
+CO_ohsave.o               
+CO_read_clim.o            
+CO_read_fastj.o           
+CO_readfields.o           
+CO_set_prof.o             
+CO_strat.o                
+OHparam.o                 
+avgavgw.o                 
+avgrefl.o                 
+avgtp.o                   
+calc_oh.o                 
+chemco.o                  
+clean.o                   
+cleanisop.o               
+emissco.o                 
+fastjO3col.o              
+get_refl.o                
+getinfo.o                 
+getoh.o                   
+hipolluted.o              
+interpOH.o                
+modpolluted.o             
+o3above.o                 
+paramA.o                  
+paramB.o                  
+paramC.o                  
+paramD.o                  
+paramE.o                  
+paramF.o                  
+polint.o                  
+read_COPminusL.o          
+read_TOMSO3.o             
+read_coeff.o              
+read_percentages.o        
+readavgOH.o               
+remote.o                  
+skip.o                    
+sumup.o     
+CMN_CO
+CMN_OH
+CMN_CO_BUDGET
+
+copy_stt_for_co_oh	-- The CO-OH simulation is obsolete, remove this
+("restart_mod.f")
+
+its_a_coparam_sim	-- The CO-OH simulation is obsolete, remove this
+("tracer_mod.f")
+
+true_tracer_index	-- We don't need to call this anymore because
+("restart_mod.f")	   TRCOFFSET = 0 always
+
+
 
 Changed from v7-03-01:
 -------------------------------------------------------------------------------
+
+accumulate_diag50	-- Remove references to TRCOFFSET because 
+("diag50_mod.f")	   it's always zero
+
+accumulate_diag51	-- Remove references to TRCOFFSET because 
+("diag51_mod.f")	   it's always zero
 
 archive_rxns_for_pf	-- Bug fix: Replace with DO_PF since this variable is 
 ("planeflight_mod.f")	   reset to either T or F each day depending on 
@@ -68,7 +131,16 @@ cleanup.f		-- Now calls CLEANUP_HCN_CH3CN
 cleanup_dao		-- Now deallocates GCAP met field arrays
 ("dao_mod.f")
 
+cleanup_diag		-- Now also deallocate AD09 and AD09_em
+
+CMN_DIAG		-- Now set PD09 to 5 
+			-- Added LD09 to common block
+
 CMN_SIZE		-- Now add parameters for GCAP & GEOS-5 grids
+			-- Remove references to obsolete LGEOSCO and 
+			   FULLCHEM C-preprocessor switches 
+
+comode.h		-- Remove obsolete LGEOSCO and FULLCHEM Cpp switches 
 
 compute_grid		-- Now modified for GCAP 4x5 horizontal grid
 ("grid_mod.f")
@@ -76,12 +148,19 @@ compute_grid		-- Now modified for GCAP 4x5 horizontal grid
 compute_pbl_height	-- Now modified for GEOS-5 and GCAP met fields
 ("pbl_mix_mod.f")
 
+convert_tracer_to_vv	-- Remove obsolete reference to CMN
+("restart_mod.f") 
+
+copy_stt		-- Remove call to TRUE_TRACER_INDEX 
+("restart_mod.f")
+
 correct_ste		-- Now updated for GCAP met fields
 ("RnPbBe_mod.f")
 
 dao_mod.f		-- Now declare extra variables for GCAP met fields
 
-define.h		-- Removed obsolete A_LLK_03, LFASTJ, LSLOWJ switches  
+define.h		-- Removed obsolete A_LLK_03, LFASTJ, LSLOWJ,
+			   FULLCHEM, LGEOSCO switches  
 			-- Also added extra switches for GCAP and 
 			   GEOS_5 met fields
 
@@ -92,16 +171,35 @@ depvel			-- Now define AZO for the proper dimension for
 			-- Now activate other GISS-specific code sections
 			   when using the GCAP met fields
 
+diag_mod.f		-- Added AD09, AD09_em arrays for HCN/CH3CN simulation
+
 diag1.f			-- Fixed ND67 PS-PBL for GCAP and GEOS-5 met fields
 
 diag3.f			-- Now modified for GEOS-5 and GCAP met fields
 			-- Bug fix in ND68 diagnostic: use LD68 instead of 
 			   ND68 in call to BPCH2
+			-- Remove references to CO-OH param simulation
+			-- Also remove references to TRCOFFSET since
+			   that is always zero now. 
+
+diag48			-- Also remove references to TRCOFFSET since
+("diag48_mod.f")	   that is always zero now. 
+
+diag49			-- Also remove references to TRCOFFSET since
+("diag49_mod.f")	   that is always zero now. 
+
+diag_flux		-- Remove references obsolete to CO-OH param code
+("tpcore_mod.f")
+
+diag_flux		-- Remove references obsolete to CO-OH param code
+("tpcore_mod.f")
 
 directory_mod.f		-- Added variables GCAP_DIR and GEOS_5_DIR
 
 do_chemistry		-- Now modified for GCAP met fields
 ("chemistry_mod.f")	-- Now call CHEM_HCN_CH3CN from "hcn_ch3cn_mod.f"
+			-- Also remove all references to the obsolete 
+			   CO-OH param simulation.
 
 do_convection		-- Now calls separate driver routines for convection
 ("convection_mod.f")	   depending on met field type 
@@ -110,7 +208,8 @@ do_drydep		-- Now dimension AZO for GEOS or GCAP met fields
 ("drydep_mod.f")	-- Remove obsolete variables
 
 do_emissions		-- Now call EMISS_HCN_CH3CN from "hcn_ch3cn_mod.f"
-("emissions_mod.f")
+("emissions_mod.f")	-- Also remove all references to the obsolete CO-OH 
+			   parameterization simulation
 
 do_open_a3		-- Remove code for obsolete GEOS-4 a_llk_03 data
 ("a3_read_mod.f")	-- Now modified for GEOS-5 and GCAP met fields
@@ -175,6 +274,9 @@ get_n_i6		-- Now modified for GCAP and GEOS-5 met fields
 get_name_ext		-- Updated for GCAP and GEOS-5 met fields
 ("bpch2_mod.f")
 
+get_sim_name		-- The CO-OH simulation has been removed 
+("tracer_mod.f")
+
 get_oro			-- Modified for GEOS-5 and GCAP met fields
 ("dust_dead_mod.f")
 
@@ -182,13 +284,20 @@ get_phis_field      	-- Now also read LWI_GISS for GCAP met fields
 ("phis_read_mod.f")
 
 init_dao		-- Modified for GCAP met fields
-("dao_mod.f")
+("dao_mod.f")		-- Removed references to CO-OH param simulation
+			-- Now allocate AVGW only for fullchem or offline 
+			   aerosol simulations
+
+init_diag_oh		-- Remove references to CO-OH simulation and to 
+("diag_oh_mod.f")	   CMN_DIAG
 
 init_gamap		-- Now add proper UNIT & SCALE for Rn/Pb/Be simulations
-("gamap_mod.f")
+("gamap_mod.f")		-- Added HCN & CH3CN source & sink info for ND09
 
 init_grid		-- Modified for GCAP 4x5 horizontal grid
 ("grid_mod.f")
+
+initialize.f		-- Now zero AD09 and AD09_em for HCN simulation
 
 init_pressure		-- Now modified for both GCAP & GEOS-5 vertical grids
 ("pressure_mod.f")
@@ -205,11 +314,17 @@ is_land			-- Now modified for GEOS-5 and GCAP met fields
 is_water		-- Now modified for GEOS-5 and GCAP met fields 
 ("dao_mod.f")
 
+its_not_coparam_or_ch4  -- The CO-OH param (SIM_TYPE=5) is now obsolete 
+("tracer_mod.f")
+
 its_time_for_a6		-- Now modified for GCAP and GEOS-5 met fields 
 ("time_mod.f")
 
 init_transfer		-- Now modified for GEOS-5 met fields
 ("transfer_mod.f")
+
+make_restart_file	-- Remove references to CMN_DIAG and TRCOFFSET
+("restart_mod.f")
 
 metero			-- Now call GET_OBK from "dao_mod.f" to get the M-O 
 ("drydep_mod.f")	   length for both GEOS or GCAP met fields 
@@ -238,6 +353,12 @@ read_a6			-- Now modified for GEOS-5 and GCAP met fields
 			   UPDE, UPDN as optional arguments
 			-- Now references "CMN_DIAG"
 
+read_deposition_menu	-- Remove references to obsolete CO_OH simulation
+("input_mod.f")
+
+read_diagnostic_menu	-- Now get diag info for ND09 for HCN/CH3CN sim
+("input_mod.f")
+
 reader.f		-- Redefine CHEMINTV [s] to the value in "input.geos" 
 			   so that we don't have a discrepancy with the value 
 			   in "mglob.dat"
@@ -246,10 +367,14 @@ reader.f		-- Redefine CHEMINTV [s] to the value in "input.geos"
 read_phis		-- Now also read LWI_GISS for GCAP met fields
 ("phis_read_mod.f") 	-- Added optional variable LWI to the arg list.
 
+read_restart_file	-- Remove references to CMN_DIAG and TRCOFFSET
+("restart_mod.f")	-- Remove code for obsolete CO-OH simulation
+			-- Change tracer name format string to A10.
+
 read_simulation_menu	-- Now read GEOS_5_DIR and GCAP_DIR from input.geos 
 ("input_mod.f")
 
-read_uvalbedo		-- Now references GET_NAME_EXT from "bpch_mod.f"
+read_uvalbedo		-- Read proper filename for GCAP or GEOS grids
 ("uvalbedo_mod.f")
 
 ruralbox.f		-- SLOW-J is now obsolete; remove LSLOWJ #ifdef blocks

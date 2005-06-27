@@ -1,9 +1,9 @@
-! $Id: diag49_mod.f,v 1.6 2005/05/09 14:33:57 bmy Exp $
+! $Id: diag49_mod.f,v 1.7 2005/06/27 19:41:45 bmy Exp $
       MODULE DIAG49_MOD
 !
 !******************************************************************************
 !  Module DIAG49_MOD contains variables and routines to save out 3-D 
-!  timeseries output to disk (bmy, 7/20/04, 4/20/05)
+!  timeseries output to disk (bmy, 7/20/04, 6/24/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -85,6 +85,7 @@
 !  (1 ) Bug fix: get I0, J0 properly for nested grids (bmy, 11/9/04)
 !  (2 ) Now references "pbl_mix_mod.f" (bmy, 2/16/05)
 !  (3 ) Now saves 3-D cld frac & grid box height (bmy, 4/20/05)
+!  (4 ) Remove TRCOFFSET since it's always zero (bmy, 6/24/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -136,7 +137,7 @@
 !******************************************************************************
 !  Subroutine DIAG49 produces time series (instantaneous fields) for a 
 !  geographical domain from the information read in timeseries.dat.  Output 
-!  will be in binary punch (BPCH) format. (bey, bmy, rvm, 4/9/99, 4/20/05)
+!  will be in binary punch (BPCH) format. (bey, bmy, rvm, 4/9/99, 6/24/05)
 !
 !  NOTES:
 !  (1 ) Now bundled into "diag49_mod.f".  Now reference STT from 
@@ -149,6 +150,7 @@
 !  (4 ) Now reference CLDF and BXHEIGHT from "dao_mod.f".  Now save 3-D cloud 
 !        fraction as tracer #79 and box height as tracer #93.  Now remove 
 !        reference to PBL from "dao_mod.f"(bmy, 4/20/05)
+!  (5 ) Remove references to TRCOFFSET because it is always zero (bmy, 6/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -171,7 +173,10 @@
 #     include "cmn_fj.h"        ! FAST-J stuff, includes CMN_SIZE
 #     include "jv_cmn.h"        ! ODAER
 #     include "CMN_O3"		! Pure O3, SAVENO2
-#     include "CMN_DIAG"        ! TRCOFFSET
+!-------------------------------------------------------
+! Prior to 6/24/05:
+!#     include "CMN_DIAG"        ! TRCOFFSET
+!-------------------------------------------------------
 #     include "CMN_GCTM"        ! XTRA2
 
       ! Local variables
@@ -254,7 +259,7 @@
             CATEGORY = 'IJ-AVG-$'
             UNIT     = ''           ! Let GAMAP pick the unit
             GMNL     = ND49_NL
-            GMTRC    = N + TRCOFFSET
+            GMTRC    = N
       
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -279,7 +284,7 @@
             CATEGORY = 'IJ-AVG-$'
             UNIT     = ''           ! Let GAMAP pick the unit
             GMNL     = ND49_NL
-            GMTRC    = N_TRACERS + 1 + TRCOFFSET
+            GMTRC    = N_TRACERS + 1
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -537,24 +542,6 @@
             UNIT     = 'unitless'
             GMNL     = 1
             GMTRC    = 20
-
-!--------------------------------------------------------------
-! Prior to 4/21/05:
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, X, Y, K )
-!            DO Y = 1, ND49_NJ
-!               J = JOFF + Y
-!            DO X = 1, ND49_NI
-!               I = GET_I( X )
-!            DO K = 1, ND49_NL
-!               L = LOFF + K
-!               Q(X,Y,1) = Q(X,Y,1) + OPTD(L,I,J)
-!            ENDDO
-!            ENDDO
-!            ENDDO
-!!$OMP END PARALLEL DO
-!--------------------------------------------------------------
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )

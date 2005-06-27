@@ -1,6 +1,6 @@
-! $Id: CMN_SIZE,v 1.12 2005/06/22 20:49:57 bmy Exp $
+! $Id: CMN_SIZE,v 1.13 2005/06/27 19:41:40 bmy Exp $
       !=======================================================================
-      ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 5/25/05)
+      ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 6/24/05)
       !
       ! NOTES:
       ! (1 ) Now set LLTROP = 20 for GEOS-3 (bmy, 4/12/01)
@@ -36,7 +36,8 @@
       ! (19) Now use NESTED_CH and NESTED_NA cpp switches to define 
       !       parameters for 1x1 nested grids.  Also add parameters for
       !       the 1 x 1.25 global grid. (bmy, 12/1/04)
-      ! (20) Now add parameters for GCAP and GEOS-5 grids (swu, bmy, 5/25/05)
+      ! (20) Now add parameters for GCAP and GEOS-5 grids.  Remove references
+      !       to obsolete LGEOSCO and FULLCHEM Cpp switches (bmy, 6/24/05)
       !=======================================================================
 
       ! C Preprocessor #define statements for conditional compilation
@@ -397,21 +398,26 @@
       ! NNPAR   = max number of tracers
       ! NEMPARA = max number of anthropogenic emission species
       ! NEMPARB = max number of biogenic      emission species
-      !
-      ! NOTE: Need to define these for LGEOSCO, even if FULLCHEM
-      !       and SMALLCHEM switches are turned off (bmy, 10/2/00)
       !=================================================================
-#if   defined( FULLCHEM  )
+!----------------------------------------------------------------------------
+! Prior to 6/24/05:
+! No longer need to distinguish between FULLCHEM & LGEOSCO (bmy, 6/24/05)
+!#if   defined( FULLCHEM  )
+!----------------------------------------------------------------------------
       INTEGER, PARAMETER :: NNPAR   = 50
       INTEGER, PARAMETER :: NEMPARA = 10
       INTEGER, PARAMETER :: NEMPARB = 1
 
-#elif defined( LGEOSCO ) && !defined( FULLCHEM ) && !defined( SMALLCHEM )
-      INTEGER, PARAMETER :: NNPAR   = 10
-      INTEGER, PARAMETER :: NEMPARA = 10
-      INTEGER, PARAMETER :: NEMPARB = 1
-      
-#endif
+!----------------------------------------------------------------------------
+! Prior to 6/24/05:
+! No longer need to distinguish between FULLCHEM & LGEOSCO (bmy, 6/24/05)
+!#elif defined( LGEOSCO ) && !defined( FULLCHEM ) && !defined( SMALLCHEM )
+!      INTEGER, PARAMETER :: NNPAR   = 10
+!      INTEGER, PARAMETER :: NEMPARA = 10
+!      INTEGER, PARAMETER :: NEMPARB = 1
+!      
+!#endif
+!----------------------------------------------------------------------------
 
       !=================================================================
       ! OTHER PARAMETERS 

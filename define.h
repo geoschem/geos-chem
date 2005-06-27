@@ -1,4 +1,4 @@
-! $Id: define.h,v 1.30 2005/06/23 19:32:55 bmy Exp $
+! $Id: define.h,v 1.31 2005/06/27 19:41:44 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
@@ -18,15 +18,13 @@
 !  (9 ) NESTED_NA  : Enables code for 1 x 1   N. AM. NESTED GRID
 !  (10) GRID2x25   : Enables code for 2 x 2.5 GLOBAL        GRID
 !  (11) GRID4x5    : Enables code for 4 x 5   GLOBAL        GRID 
-!  (12) FULLCHEM   : Enables code for "Full" Chemistry (ISOP and NMHC)
-!  (13) LGEOSCO    : Enables code for CO run w/ parameterized OH
-!  (15) COMPAQ     : Enables code for Alpha w/ COMPAQ/HP Alpha compiler
-!  (16) IBM_AIX    : Enables code for IBM/AIX compiler
-!  (17) LINUX_PGI  : Enables code for Linux w/ PGI compiler
-!  (18) LINUX_IFC  : Enables code for Linux w/ 32-bit Intel Fortran compiler
-!  (19) LINUX_EFC  : Enables code for Linux w/ 64-bit Intel Fortran compiler
-!  (20) SGI_MIPS   : Enables code for SGI Origin w/ MIPS compiler
-!  (21) SPARC      : Enables code for Sun w/ SPARC compiler
+!  (12) COMPAQ     : Enables code for Alpha w/ COMPAQ/HP Alpha compiler
+!  (13) IBM_AIX    : Enables code for IBM/AIX compiler
+!  (14) LINUX_PGI  : Enables code for Linux w/ PGI compiler
+!  (15) LINUX_IFC  : Enables code for Linux w/ 32-bit Intel Fortran compiler
+!  (16) LINUX_EFC  : Enables code for Linux w/ 64-bit Intel Fortran compiler
+!  (17) SGI_MIPS   : Enables code for SGI Origin w/ MIPS compiler
+!  (18) SPARC      : Enables code for Sun w/ SPARC compiler
 ! 
 !  NOTES:
 !  (1 ) "define.h" is #include'd at the top of CMN_SIZE.  All subroutines
@@ -63,8 +61,9 @@
 !        a newer product.  (bmy, 3/22/04) 
 !  (19) Added NESTED_NA and NESTED_CH cpp switches.  Also add GRID1x125
 !        cpp switch. (bmy, 12/1/04)
-!  (20) Removed obsolete A_LLK_03, LFASTJ, LSLOWJ switches.  Also added extra 
-!        switches for GCAP and GEOS_5 met fields.  (bmy, 6/23/05)
+!  (20) Removed obsolete A_LLK_03, LFASTJ, LSLOWJ, FULLCHEM, LGEOSCO switches.
+!        Also added extra switches for GCAP and GEOS_5 met fields.  
+!        (bmy, 6/23/05)
 !******************************************************************************
 !
 !==============================================================================
@@ -83,8 +82,6 @@
 #undef GRID1x1
 #undef NESTED_NA
 #undef NESTED_CH
-#undef FULLCHEM  
-#undef LGEOSCO
 #undef COMPAQ
 #undef IBM_AIX
 #undef LINUX_PGI
@@ -100,11 +97,11 @@
 !==============================================================================
 
 !----- Model types -----
-#define GCAP        'GCAP'
+!#define GCAP        'GCAP'
 !#define GEOS_1      'GEOS_1'       
 !#define GEOS_STRAT  'GEOS_STRAT'
 !#define GEOS_3      'GEOS_3'
-!#define GEOS_4      'GEOS_4'
+#define GEOS_4      'GEOS_4'
 !#define GEOS_5      'GEOS_5'
 
 !----- Grid sizes -----
@@ -114,15 +111,17 @@
 !#define GRID1x125   'GRID1x125'
 !#define GRID2x25    'GRID2x25'
 #define GRID4x5     'GRID4x5'
-!#define GRID30LEV   'GRID30LEV'
-
-!----- Chemistry -----
-#define FULLCHEM    'FULLCHEM'
-!#define LGEOSCO     'LGEOSCO'
+#define GRID30LEV   'GRID30LEV'
 
 !------------------------------------------------------------------
 ! Prior to 6/22/05:
-! SLOW-J is obsolete; FAST-J is now the default (bmy, 6/23/05)
+! We have removed the obsolete CO-OH simulation (bmy, 6/24/05) 
+!!----- Chemistry -----
+!#define FULLCHEM    'FULLCHEM'
+!!#define LGEOSCO     'LGEOSCO'
+!------------------------------------------------------------------
+! Prior to 6/22/05:
+! SLOW-J is obsolete; FAST-J is now the default (bmy, 6/24/05)
 !!----- Photolysis -----
 !#define LFASTJ      'LFASTJ'
 !!#define LSLOWJ      'LSLOWJ'
@@ -153,13 +152,17 @@
 #error "are ALL undefined in header file define.h"
 #endif
 
-!==============================================================================
-! Force a compile error if switches FULLCHEM, LGEOSCO are undefined
-!==============================================================================
-#if !defined( FULLCHEM ) && !defined( LGEOSCO )
-#error "ERROR: One of FULLCHEM, LGEOSCO" 
-#error "needs to be defined in header file define.h"
-#endif
+!------------------------------------------------------------------------------
+! Prior to 6/24/05:
+! This is now obsolete (bmy, 6/24/05)
+!!============================================================================
+!! Force a compile error if switches FULLCHEM, LGEOSCO are undefined
+!!============================================================================
+!#if !defined( FULLCHEM ) && !defined( LGEOSCO )
+!#error "ERROR: One of FULLCHEM, LGEOSCO" 
+!#error "needs to be defined in header file define.h"
+!#endif
+!------------------------------------------------------------------------------
 
 !==============================================================================
 ! Force a compile  error if all compiler switches are undefined
