@@ -1,10 +1,10 @@
-! $Id: restart_mod.f,v 1.8 2005/06/27 19:41:50 bmy Exp $
+! $Id: restart_mod.f,v 1.9 2005/06/28 18:59:30 bmy Exp $
       MODULE RESTART_MOD
 !
 !******************************************************************************
 !  Module RESTART_MOD contains variables and routines which are used to read
 !  and write GEOS-CHEM restart files, which contain tracer concentrations
-!  in [v/v] mixing ratio. (bmy, 6/25/02, 6/24/05)
+!  in [v/v] mixing ratio. (bmy, 6/25/02, 6/28/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -45,7 +45,7 @@
 !  (7 ) Added routine SET_RESTART.  Now reference "logical_mod.f" and
 !        "tracer_mod.f" (bmy, 7/20/04)
 !  (8 ) Removed obsolete routines TRUE_TRACER_INDEX and COPY_DATA_FOR_CO_OH
-!        (bmy, 6/24/05)
+!        (bmy, 6/28/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -118,7 +118,9 @@
 !  (9 ) Now reference STT, N_TRACERS, TCVV from "tracer_mod.f".  Also now
 !        remove hardwired output restart filename.   Now references LPRT
 !        from "logical_mod.f". (bmy, 7/20/04)
-!  (10) Remove references to CMN_DIAG and TRCOFFSET (bmy, 6/24/05)
+!  (10) Remove references to CMN_DIAG and TRCOFFSET.  Now call GET_HALFPOLAR 
+!        from "bpch2_mod.f" to get the HALFPOLAR flag value for GEOS or GCAP 
+!        grids. (bmy, 6/28/05)
 !******************************************************************************
 !     
       ! References to F90 modules
@@ -148,7 +150,12 @@
 
       ! For binary punch file, version 2.0
       REAL*4               :: LONRES, LATRES
-      INTEGER, PARAMETER   :: HALFPOLAR = 1
+      !------------------------------------------------------------------
+      ! Prior to 6/28/05:
+      ! Need to make HALFPOLAR a variable, not a parameter (bmy, 6/28/05)
+      !INTEGER, PARAMETER   :: HALFPOLAR = 1
+      !------------------------------------------------------------------
+      INTEGER              :: HALFPOLAR
       INTEGER, PARAMETER   :: CENTER180 = 1
       
       CHARACTER(LEN=20)    :: MODELNAME
@@ -172,6 +179,10 @@
       ! Call GET_MODELNAME to return the proper model name for
       ! the given met data being used (bmy, 6/22/00)
       MODELNAME = GET_MODELNAME()
+
+      ! Call GET_HALFPOLAR to return the proper value
+      ! for either GCAP or GEOS grids (bmy, 6/28/05)
+      HALFPOLAR = GET_HALFPOLAR()
 
       ! Get the nested-grid offsets
       I0 = GET_XOFFSET( GLOBAL=.TRUE. )

@@ -1,9 +1,9 @@
-! $Id: diag03_mod.f,v 1.2 2005/02/17 18:54:21 bmy Exp $
+! $Id: diag03_mod.f,v 1.3 2005/06/28 18:59:29 bmy Exp $
       MODULE DIAG03_MOD
 !
 !******************************************************************************
 !  Module DIAG03_MOD contains arrays and routines for archiving the ND03
-!  diagnostic -- Hg emissions, mass, and production. (bmy, 1/21/05) 
+!  diagnostic -- Hg emissions, mass, and production. (bmy, 1/21/05, 6/28/05) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -34,6 +34,7 @@
 !  (3 ) HgP                   : Particulate mercury
 !
 !  NOTES:
+!  (1 ) Updated for GCAP grid (bmy, 6/28/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -121,7 +122,7 @@
 !
 !******************************************************************************
 !  Subroutine WRITE_DIAG03 writes the ND03 diagnostic arrays to the binary
-!  punch file at the proper time. (bmy, 1/21/05)
+!  punch file at the proper time. (bmy, 1/21/05, 6/28/05)
 !
 !   # : Field    : Description                     : Units    : Scale factor
 !  --------------------------------------------------------------------------
@@ -140,6 +141,8 @@
 !  (13) PL-HG2-$ : Production of Hg2 from rxn w/O3 : kg       : 1
 !
 !  NOTES:
+!  (1 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
+!        value for GEOS or GCAP grids. (bmy, 6/28/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -172,7 +175,13 @@
       CENTER180 = 1
       DIAGb     = GET_DIAGb()
       DIAGe     = GET_DIAGe()
-      HALFPOLAR = 1
+      !-----------------------------------------------------------------
+      ! Prior to 6/28/05:
+      ! Now call GET_HALFPOLAR to get the value for GCAP or GEOS grids 
+      ! (bmy, 6/28/05)
+      !HALFPOLAR = 1
+      !-----------------------------------------------------------------
+      HALFPOLAR = GET_HALFPOLAR()
       IFIRST    = GET_XOFFSET( GLOBAL=.TRUE. ) + 1
       JFIRST    = GET_YOFFSET( GLOBAL=.TRUE. ) + 1
       LATRES    = DJSIZE

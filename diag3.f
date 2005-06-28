@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.23 2005/06/27 19:41:44 bmy Exp $
+! $Id: diag3.f,v 1.24 2005/06/28 18:59:29 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out diagnostics to the BINARY format punch file 
-!  (bmy, bey, mgs, rvm, 5/27/99, 6/24/05)
+!  (bmy, bey, mgs, rvm, 5/27/99, 6/28/05)
 !
 !  NOTES: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
@@ -59,7 +59,8 @@
 !  (60) Bug fix in ND68 diagnostic: use LD68 instead of ND68 in call to BPCH2.
 !        Now modified for GEOS-5 and GCAP met fields.  Remove references to
 !        CO-OH param simulation.  Also remove references to TRCOFFSET since
-!        that is always zero now. (swu, bmy, 6/24/05)
+!        that is always zero now.  Now call GET_HALFPOLAR from "bpch2_mod.f" 
+!        to get the HALFPOLAR value for GEOS or GCAP grids. (swu, bmy, 6/24/05)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -103,7 +104,13 @@
       REAL*4             :: ARRAY(IIPAR,JJPAR,LLPAR)
       REAL*4             :: LONRES, LATRES
       INTEGER            :: IFIRST, JFIRST, LFIRST
-      INTEGER, PARAMETER :: HALFPOLAR = 1
+      !--------------------------------------------------------------------
+      ! Prior to 6/28/05:
+      ! Now use GET_HALFPOLAR to get value of HALFPOLAR for GEOS or GCAP
+      ! (bmy, 6/28/05)
+      !INTEGER, PARAMETER :: HALFPOLAR = 1
+      !--------------------------------------------------------------------
+      INTEGER            :: HALFPOLAR
       INTEGER, PARAMETER :: CENTER180 = 1
       CHARACTER (LEN=20) :: MODELNAME 
       CHARACTER (LEN=40) :: UNIT
@@ -143,8 +150,9 @@
       LONRES = DISIZE
       LATRES = DJSIZE
 
-      ! Get the proper model name for the binary punch file
+      ! Get the proper model name and HALFPOLAR setting for the bpch file
       MODELNAME = GET_MODELNAME()
+      HALFPOLAR = GET_HALFPOLAR()
 !
 !******************************************************************************
 !  ND01: Rn, Pb, Be emissions (Category: "RN--SRCE")

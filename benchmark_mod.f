@@ -1,4 +1,4 @@
-! $Id: benchmark_mod.f,v 1.2 2005/02/10 19:53:23 bmy Exp $
+! $Id: benchmark_mod.f,v 1.3 2005/06/28 18:59:29 bmy Exp $
       MODULE BENCHMARK_MOD
 !
 !******************************************************************************
@@ -26,6 +26,7 @@
 !
 !  NOTES:
 !  (1 ) Now expand date & time tokens in filenames (bmy, 1/31/05)
+!  (2 ) Now modified for GCAP grid (swu, bmy, 6/28/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -48,7 +49,7 @@
 !******************************************************************************
 !  Subroutine STDRUN dumps the mass of either Ox [kg] or 222Rn, 210Pb, and 7Be
 !  [kg] at the start & end of each run.  This is necessary for GEOS-CHEM
-!  benchmarking.  (bmy, 8/12/02, 1/31/05)
+!  benchmarking.  (bmy, 8/12/02, 6/28/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -62,6 +63,9 @@
 !        run.  (bmy, 8/12/02)
 !  (2 ) Bundled into "benchmark_mod.f" (bmy, 7/20/04)
 !  (3 ) Now expand date tokens in the filename (bmy, 1/31/05)
+!  (4 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag
+!        value for GEOS or GCAP grids .  Also removed references to CMN_DIAG
+!        and TRCOFFSET. (bmy, 6/28/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -74,7 +78,11 @@
       USE TRACERID_MOD, ONLY : IDTOX
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_DIAG"   ! TRCOFFSET
+!------------------------------------------------------
+! Prior to 6/28/05:
+! TRCOFFSET=0 always so remove it (bmy, 6/28/05)
+!#     include "CMN_DIAG"   ! TRCOFFSET
+!------------------------------------------------------
 
       ! Arguments
       LOGICAL, INTENT(IN) :: LBEGIN 
@@ -82,7 +90,13 @@
       ! Local variables
       INTEGER             :: N,        NYMD,     NHMS
       INTEGER, PARAMETER  :: IFIRST=1, JFIRST=1, LFIRST=1
-      INTEGER, PARAMETER  :: HALFPOLAR=1, CENTER180=1
+      !----------------------------------------------------------
+      ! Prior to 6/28/05:
+      ! Now get HALFPOLAR for GCAP or GEOS grids (bmy, 6/28/05)
+      !INTEGER, PARAMETER  :: HALFPOLAR=1, CENTER180=1
+      !----------------------------------------------------------
+      INTEGER, PARAMETER  :: CENTER180=1
+      INTEGER             :: HALFPOLAR
       REAL*4              :: ARRAY(IIPAR,JJPAR,LLPAR)
       REAL*4              :: LONRES, LATRES
       REAL*8              :: TAU
@@ -101,6 +115,7 @@
 
       ! Define variables for binary punch file
       MODELNAME = GET_MODELNAME()
+      HALFPOLAR = GET_HALFPOLAR()
       CATEGORY  = 'TCMASS-$'
       UNIT      = 'kg'
       RESERVED  = ''      
@@ -138,7 +153,12 @@
 
             ! Write Rn, Pb, Be to binary punch file
             CALL BPCH2( IU_FILE,   MODELNAME, LONRES,    LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY,  N+TRCOFFSET,    
+!---------------------------------------------------------------------------
+! Prior to 6/28/05:
+! Remove TRCOFFSET, it's always zero now (bmy, 6/28/05)
+!     &                  HALFPOLAR, CENTER180, CATEGORY,  N+TRCOFFSET,    
+!---------------------------------------------------------------------------
+     &                  HALFPOLAR, CENTER180, CATEGORY,  N,    
      &                  UNIT,      TAU,       TAU,       RESERVED,   
      &                  IIPAR,     JJPAR,     LLPAR,     IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,:) )

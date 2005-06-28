@@ -1,9 +1,9 @@
-! $Id: diag41_mod.f,v 1.1 2005/04/14 14:34:30 bmy Exp $
+! $Id: diag41_mod.f,v 1.2 2005/06/28 18:59:29 bmy Exp $
       MODULE DIAG41_MOD
 !
 !******************************************************************************
 !  Module DIAG41_MOD contains arrays and routines for archiving the ND41
-!  diagnostic -- Afternoon PBL heights. (bmy, 2/17/05) 
+!  diagnostic -- Afternoon PBL heights. (bmy, 2/17/05, 6/28/05) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -28,6 +28,7 @@
 !  (6 ) time_mod.f         : Module w/ routines to compute date & time!      
 !
 !  NOTES:
+!  (1 ) Updated for GCAP grid (bmy, 6/28/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -110,7 +111,7 @@
 !
 !******************************************************************************
 !  Subroutine WRITE_DIAG41 writes the ND41 diagnostic arrays to the binary
-!  punch file at the proper time. (bmy, 2/17/05)
+!  punch file at the proper time. (bmy, 2/17/05, 6/28/05)
 !
 !  ND41: Afternoon PBL depth (between 1200 and 1600 Local Time)
 !
@@ -119,6 +120,8 @@
 !  (1) PBLDEPTH : Afternoon PBL heights       : m         : GOOD_CT
 !
 !  NOTES:
+!  (1 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
+!        value for GEOS or GCAP grids. (bmy, 6/28/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -152,7 +155,13 @@
       CENTER180 = 1
       DIAGb     = GET_DIAGb()
       DIAGe     = GET_DIAGe()
-      HALFPOLAR = 1
+      !---------------------------------------------------------------------
+      ! Prior to 6/28/05:
+      ! Now call GET_HALFPOLAR to return the value for GCAP or GEOS grids
+      ! (bmy, 6/28/05)
+      !HALFPOLAR = 1
+      !---------------------------------------------------------------------
+      HALFPOLAR = GET_HALFPOLAR()
       IFIRST    = GET_XOFFSET( GLOBAL=.TRUE. ) + 1
       JFIRST    = GET_YOFFSET( GLOBAL=.TRUE. ) + 1
       LATRES    = DJSIZE

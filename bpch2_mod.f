@@ -1,9 +1,9 @@
-! $Id: bpch2_mod.f,v 1.6 2005/06/22 20:49:59 bmy Exp $
+! $Id: bpch2_mod.f,v 1.7 2005/06/28 18:59:29 bmy Exp $
       MODULE BPCH2_MOD
 !
 !******************************************************************************
 !  Module BPCH2_MOD contains the routines used to read data from and write
-!  data to binary punch (BPCH) file format (v. 2.0). (bmy, 6/28/00, 5/24/05)
+!  data to binary punch (BPCH) file format (v. 2.0). (bmy, 6/28/00, 6/28/05)
 !
 !  Module Routines:
 !  ============================================================================
@@ -15,7 +15,8 @@
 !  (6 ) GET_MODELNAME       : returns MODELNAME for the given met field
 !  (7 ) GET_NAME_EXT        : returns file extension string for model name
 !  (8 ) GET_RES_EXT         : returns file extension string for model res.
-!  (9 ) GET_TAU0_6A         : computes TAU0 from MONTH, DAY, YEAR (, H, M, SEC)
+!  (9 ) GET_HALFPOLAR       : returns 1 for half-polar grids; 0 otherwise
+!  (10) GET_TAU0_6A         : computes TAU0 from MONTH, DAY, YEAR (, H, M, SEC)
 !
 !  Module Interfaces
 !  ============================================================================
@@ -57,7 +58,8 @@
 !  (26) Made modification in READ_BPCH2 for 1x1 nested grids (bmy, 3/11/03)
 !  (27) Modifications for GEOS-4, 30-layer grid (bmy, 11/3/03)
 !  (28) Added cpp switches for GEOS-4 1x125 grid (bmy, 12/1/04)
-!  (29) Modified for GCAP and GEOS-5 met fields (bmy, 5/24/05)
+!  (29) Modified for GCAP and GEOS-5 met fields.  Added function
+!        GET_HALFPOLAR. (bmy, 6/28/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -701,6 +703,41 @@
 #endif
 
       END FUNCTION GET_RES_EXT
+
+!------------------------------------------------------------------------------
+
+      FUNCTION GET_HALFPOLAR() RESULT( HALFPOLAR )
+!
+!******************************************************************************
+!  Function GET_HALFPOLAR returns 1 if the current grid has half-sized polar
+!  boxes (e.g. GEOS), or zero otherwise (e.g. GCAP).  (swu, bmy, 6/28/05)
+!
+!  NOTES: 
+!******************************************************************************
+!
+#     include "define.h"
+
+      ! Local variables
+      INTEGER :: HALFPOLAR
+
+      !=================================================================
+      ! GET_HALFPOLAR begins here!
+      !=================================================================
+
+#if   defined( GCAP ) 
+
+      ! GCAP grid does not have half-sized polar boxes
+      HALFPOLAR = 0
+
+#else
+
+      ! All GEOS grids have half-sized polar boxes
+      HALFPOLAR = 1
+
+#endif
+
+      ! Return to calling program
+      END FUNCTION GET_HALFPOLAR
 
 !------------------------------------------------------------------------------
 

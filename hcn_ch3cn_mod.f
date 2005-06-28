@@ -1,4 +1,4 @@
-! $Id: hcn_ch3cn_mod.f,v 1.2 2005/06/27 19:41:46 bmy Exp $
+! $Id: hcn_ch3cn_mod.f,v 1.3 2005/06/28 18:59:30 bmy Exp $
       MODULE HCN_CH3CN_MOD
 !
 !******************************************************************************
@@ -592,7 +592,7 @@
 
             ! KL: conductance for mass transfer in liquid phase 
             ! (Nightingale 2000), which has unit of [cm/h]
-            KL           = ( 0.222d0 * U * U + 0.333d0 * U ) 
+            KL           = ( 0.222d0 * U*U + 0.333d0 * U ) 
      &                   * ( SC / 600d0 )**( -0.5d0 )  
 
             ! KG: conductance for mass transfer in gas phase (Asher 1997)

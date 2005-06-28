@@ -1,9 +1,9 @@
-! $Id: diag48_mod.f,v 1.6 2005/06/27 19:41:44 bmy Exp $
+! $Id: diag48_mod.f,v 1.7 2005/06/28 18:59:29 bmy Exp $
       MODULE DIAG48_MOD
 !
 !******************************************************************************
 !  Module DIAG48_MOD contains variables and routines to save out 3-D 
-!  timeseries output to disk (bmy, 7/20/04, 6/24/05)
+!  timeseries output to disk (bmy, 7/20/04, 6/28/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -60,7 +60,8 @@
 !  
 !  NOTES:
 !  (1 ) Now save out cld frac and grid box heights (bmy, 4/20/05)
-!  (2 ) Remove TRCOFFSET because it's always zero (bmy, 6/24/05)
+!  (2 ) Remove TRCOFFSET because it's always zero.  Now call GET_HALFPOLAR
+!        to get the value for GEOS or GCAP grids. (bmy, 6/28/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -92,7 +93,12 @@
       INTEGER, PARAMETER   :: ND48_MAX_STATIONS=1000
       INTEGER              :: ND48_FREQ
       INTEGER              :: ND48_N_STATIONS
-      INTEGER, PARAMETER   :: HALFPOLAR=1
+      !----------------------------------------------------------------------
+      ! Prior to 6/28/05:
+      ! Need to make HALFPOLAR a variable, not a parameter (bmy, 6/28/05)
+      !INTEGER, PARAMETER   :: HALFPOLAR=1
+      !----------------------------------------------------------------------
+      INTEGER              :: HALFPOLAR
       INTEGER, PARAMETER   :: CENTER180=1 
       REAL*4               :: LONRES
       REAL*4               :: LATRES
@@ -118,7 +124,7 @@
 !
 !******************************************************************************
 !  Subroutine DIAG48 saves station time series diagnostics to disk.
-!  (bmy, bey, amf, 6/1/99, 4/20/05)
+!  (bmy, bey, amf, 6/1/99, 6/28/05)
 !
 !  NOTES:
 !  (1 ) Remove reference to "CMN".  Also now get PBL heights in meters and
@@ -127,7 +133,9 @@
 !  (2 ) Now reference CLDF and BXHEIGHT from "dao_mod.f".  Now save 3-D cloud 
 !        fraction as tracer #79 and box height as tracer #93.  Now remove
 !        reference to PBL from "dao_mod.f" (bmy, 4/20/05)
-!  (3 ) Remove references to TRCOFFSET because it's always zero (bmy, 6/24/05)
+!  (3 ) Remove references to TRCOFFSET because it's always zero.  Now call 
+!        GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag value for 
+!        GEOS or GCAP grids.  (bmy, 6/28/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -780,10 +788,12 @@
 !  (8 ) FILE    (CHAR*255) : ND48 output file name read by "input_mod.f"
 ! 
 !  NOTES:
+!  (1 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
+!        value for GEOS or GCAP grids. (bmy, 6/28/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD, ONLY : GET_MODELNAME
+      USE BPCH2_MOD, ONLY : GET_MODELNAME, GET_HALFPOLAR
       USE ERROR_MOD, ONLY : ALLOC_ERR, ERROR_STOP
 
 #     include "CMN_SIZE"  ! Size parameters
@@ -873,6 +883,7 @@
       LONRES    = DISIZE
       LATRES    = DJSIZE
       MODELNAME = GET_MODELNAME()
+      HALFPOLAR = GET_HALFPOLAR()
 
       ! Return to calling program
       END SUBROUTINE INIT_DIAG48

@@ -1,5 +1,5 @@
 REVISIONS (v7-03-02)  
-bmy, 27 Jun 2005
+bmy, 28 Jun 2005
 
 
 New in v7-03-02:
@@ -11,14 +11,17 @@ do_geos4_convect	-- Driver routine for GEOS-4 convection code
 do_geos4_convect	-- Driver routine for GEOS-4 convection code
 ("convection_mod.f")       (split off from DO_CONVECTION)
 
+get_halfpolar		-- Returns 1 for half-polar grids (e.g. GEOS) or
+("bpch2_mod.f")            0 otherwise (e.g. GCAP)
+
 get_obk			-- Routine to compute the Monin-Obhukov length
 ("dao_mod.f")		   (code was formerly in routine METERO of
 			   "drydep_mod.f")
 
+hcn_ch3cn_mod.f		-- Module for tagged HCN and CH3CN simulation
+
 make_gcap_cldfrc	-- Added routine to create CLDFRC field from
 ("a6_read_mod.f")	   CLDF field for GCAP data
-
-hcn_ch3cn_mod.f		-- Module for tagged HCN and CH3CN simulation
 
 
 
@@ -45,49 +48,49 @@ sol.f
 emisshcn.f		-- Now replaced by the newer routines in F90
 chemhcn.f		   module "hcn_ch3cn_mod.f"
 
-AerosolOH.o		-- Removed code from the obsolete CO-OH 
-CO_budget.o                parameterization simulation.  There is no
-CO_decay.o                 need for this now that we can run fullchem
-CO_fillfields.o            for several years.
-CO_fromHCs.o              
-CO_ohsave.o               
-CO_read_clim.o            
-CO_read_fastj.o           
-CO_readfields.o           
-CO_set_prof.o             
-CO_strat.o                
-OHparam.o                 
-avgavgw.o                 
-avgrefl.o                 
-avgtp.o                   
-calc_oh.o                 
-chemco.o                  
-clean.o                   
-cleanisop.o               
-emissco.o                 
-fastjO3col.o              
-get_refl.o                
-getinfo.o                 
-getoh.o                   
-hipolluted.o              
-interpOH.o                
-modpolluted.o             
-o3above.o                 
-paramA.o                  
-paramB.o                  
-paramC.o                  
-paramD.o                  
-paramE.o                  
-paramF.o                  
-polint.o                  
-read_COPminusL.o          
-read_TOMSO3.o             
-read_coeff.o              
-read_percentages.o        
-readavgOH.o               
-remote.o                  
-skip.o                    
-sumup.o     
+AerosolOH.f		-- Removed code from the obsolete CO-OH 
+CO_budget.f                parameterization simulation.  There is no
+CO_decay.f                 need for this code now that we can run a
+CO_fillfields.f            full-chemistry simulation for several years.
+CO_fromHCs.f              
+CO_ohsave.f               
+CO_read_clim.f            
+CO_read_fastj.f           
+CO_readfields.f           
+CO_set_prof.f             
+CO_strat.f                
+OHparam.f                 
+avgavgw.f                 
+avgrefl.f                 
+avgtp.f                   
+calc_oh.f                 
+chemco.f                  
+clean.f                   
+cleanisop.f               
+emissco.f                 
+fastjO3col.f              
+get_refl.f                
+getinfo.f                 
+getoh.f                   
+hipolluted.f              
+interpOH.f                
+modpolluted.f             
+o3above.f                 
+paramA.f                  
+paramB.f                  
+paramC.f                  
+paramD.f                  
+paramE.f                  
+paramF.f                  
+polint.f                  
+read_COPminusL.f          
+read_TOMSO3.f             
+read_coeff.f              
+read_percentages.f        
+readavgOH.f               
+remote.f                  
+skip.f                    
+sumup.f     
 CMN_CO
 CMN_OH
 CMN_CO_BUDGET
@@ -106,11 +109,11 @@ true_tracer_index	-- We don't need to call this anymore because
 Changed from v7-03-01:
 -------------------------------------------------------------------------------
 
-accumulate_diag50	-- Remove references to TRCOFFSET because 
+accumulate_diag50	-- Remove ref's to TRCOFFSET because it's always zero 
 ("diag50_mod.f")	   it's always zero
 
-accumulate_diag51	-- Remove references to TRCOFFSET because 
-("diag51_mod.f")	   it's always zero
+accumulate_diag51	-- Remove ref's to TRCOFFSET because it's always zero
+("diag51_mod.f")	   
 
 archive_rxns_for_pf	-- Bug fix: Replace with DO_PF since this variable is 
 ("planeflight_mod.f")	   reset to either T or F each day depending on 
@@ -132,6 +135,9 @@ cleanup_dao		-- Now deallocates GCAP met field arrays
 ("dao_mod.f")
 
 cleanup_diag		-- Now also deallocate AD09 and AD09_em
+
+cleanup_ocean_mercury	-- Now call GET_HALFPOLAR from "bpch2_mod.f" to get 
+("ocean_mercury_mod.f")	   the HALFPOLAR flag value for GEOS or GCAP grids
 
 CMN_DIAG		-- Now set PD09 to 5 
 			-- Added LD09 to common block
@@ -181,12 +187,28 @@ diag3.f			-- Now modified for GEOS-5 and GCAP met fields
 			-- Remove references to CO-OH param simulation
 			-- Also remove references to TRCOFFSET since
 			   that is always zero now. 
+			-- Now call GET_HALFPOLAR from "bpch2_mod.f" to get 
+		           the HALFPOLAR value for GEOS or GCAP grids.
 
 diag48			-- Also remove references to TRCOFFSET since
 ("diag48_mod.f")	   that is always zero now. 
 
+diag48_mod.f		-- Need to make HALFPOLAR a variable, not a parameter
+
 diag49			-- Also remove references to TRCOFFSET since
 ("diag49_mod.f")	   that is always zero now. 
+
+diag49_mod.f		-- Need to make HALFPOLAR a variable, not a parameter
+
+diag50			-- Also remove references to TRCOFFSET since
+("diag50_mod.f")	   that is always zero now. 
+
+diag50_mod.f		-- Need to make HALFPOLAR a variable, not a parameter
+
+diag51			-- Also remove references to TRCOFFSET since
+("diag51_mod.f")	   that is always zero now. 
+
+diag51_mod.f		-- Need to make HALFPOLAR a variable, not a parameter
 
 diag_flux		-- Remove references obsolete to CO-OH param code
 ("tpcore_mod.f")
@@ -288,6 +310,18 @@ init_dao		-- Modified for GCAP met fields
 			-- Now allocate AVGW only for fullchem or offline 
 			   aerosol simulations
 
+init_diag48		-- Now call GET_HALFPOLAR from "bpch2_mod.f" to get 
+("diag48_mod.f")	   the HALFPOLAR flag value for GEOS or GCAP grids.
+
+init_diag49		-- Now call GET_HALFPOLAR from "bpch2_mod.f" to get 
+("diag49_mod.f")	   the HALFPOLAR flag value for GEOS or GCAP grids.
+
+init_diag50		-- Now call GET_HALFPOLAR from "bpch2_mod.f" to get 
+("diag50_mod.f")	   the HALFPOLAR flag value for GEOS or GCAP grids.
+
+init_diag51		-- Now call GET_HALFPOLAR from "bpch2_mod.f" to get 
+("diag51_mod.f")	   the HALFPOLAR flag value for GEOS or GCAP grids.
+
 init_diag_oh		-- Remove references to CO-OH simulation and to 
 ("diag_oh_mod.f")	   CMN_DIAG
 
@@ -324,7 +358,8 @@ init_transfer		-- Now modified for GEOS-5 met fields
 ("transfer_mod.f")
 
 make_restart_file	-- Remove references to CMN_DIAG and TRCOFFSET
-("restart_mod.f")
+("restart_mod.f")	-- Now call GET_HALFPOLAR from "bpch2_mod.f" to get 
+			   the HALFPOLAR flag value for GEOS or GCAP grids
 
 metero			-- Now call GET_OBK from "dao_mod.f" to get the M-O 
 ("drydep_mod.f")	   length for both GEOS or GCAP met fields 
@@ -379,6 +414,13 @@ read_uvalbedo		-- Read proper filename for GCAP or GEOS grids
 
 ruralbox.f		-- SLOW-J is now obsolete; remove LSLOWJ #ifdef blocks
 
+save_global_tpcore_bc	-- Now call GET_HALFPOLAR from "bpch2_mod.f" to get 
+("tpcore_bc_mod.f")	   the HALFPOLAR flag value for GEOS or GCAP grids
+
+stdrun			-- Now call GET_HALFPOLAR from "bpch2_mod.f" to get 
+("benchmark_mod.f")	   the HALFPOLAR flag value for GEOS or GCAP grids
+			-- Remove references to TRCOFFSET and CMN_DIAG
+
 transfer_3d		-- Now modified for GEOS-5 met fields
 ("transfer_mod.f")
 
@@ -405,3 +447,9 @@ unzip_phis_field	-- Now modified for GEOS-5 and GCAP met fields
 
 upbdflx_o3		-- Now modified for GEOS-5 and GCAP met fields
 ("upbdflx_mod.f")
+
+write_diag03		-- Now call GET_HALFPOLAR from "bpch2_mod.f" to get 
+("diag03_mod.f")	   the HALFPOLAR flag value for GEOS or GCAP grids.
+
+write_diag41		-- Now call GET_HALFPOLAR from "bpch2_mod.f" to get 
+("diag41_mod.f")	   the HALFPOLAR flag value for GEOS or GCAP grids.

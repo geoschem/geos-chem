@@ -1,9 +1,9 @@
-! $Id: diag50_mod.f,v 1.8 2005/06/27 19:41:45 bmy Exp $
+! $Id: diag50_mod.f,v 1.9 2005/06/28 18:59:30 bmy Exp $
       MODULE DIAG50_MOD
 !
 !******************************************************************************
 !  Module DIAG50_MOD contains variables and routines to generate 24-hour 
-!  average timeseries data. (amf, bey, bdf, pip, bmy, 11/30/00, 6/24/05)
+!  average timeseries data. (amf, bey, bdf, pip, bmy, 11/30/00, 6/28/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -98,7 +98,8 @@
 !  (4 ) Now only archive AOD's once per chemistry timestep (bmy, 1/14/05)
 !  (5 ) Now references "pbl_mix_mod.f" (bmy, 2/16/05)
 !  (6 ) Now save cloud fractions & grid box heights (bmy, 4/20/05)
-!  (7 ) Remove TRCOFFSET since it's always zero (bmy, 6/24/05)
+!  (7 ) Remove TRCOFFSET since it's always zero.  Also now get HALFPOLAR for
+!        both GCAP and GEOS grids. (bmy, 6/24/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -134,7 +135,13 @@
       INTEGER              :: ND50_IMIN,      ND50_IMAX
       INTEGER              :: ND50_JMIN,      ND50_JMAX
       INTEGER              :: ND50_LMIN,      ND50_LMAX
-      INTEGER, PARAMETER   :: HALFPOLAR=1,    CENTER180=1
+      !--------------------------------------------------------------------
+      ! Prior to 6/28/05:
+      ! Need to make HALFPOLAR a variable, not a parameter (bmy, 6/28/05)
+      !INTEGER, PARAMETER   :: HALFPOLAR=1,    CENTER180=1
+      !--------------------------------------------------------------------
+      INTEGER              :: HALFPOLAR
+      INTEGER, PARAMETER   :: CENTER180=1
       REAL*4               :: LONRES,         LATRES
       REAL*8               :: TAU0,           TAU1
       CHARACTER(LEN=20)    :: MODELNAME
@@ -1124,7 +1131,7 @@
 !******************************************************************************
 !  Subroutine INIT_DIAG50 allocates and zeroes all module arrays.  
 !  It also gets values for module variables from "input_mod.f". 
-!  (bmy, 7/20/04)
+!  (bmy, 7/20/04, 6/28/05)
 ! 
 !  Arguments as Input:
 !  ============================================================================
@@ -1141,10 +1148,12 @@
 !
 !  NOTES:
 !  (1 ) Now get I0 and J0 correctly for nested grid simulations (bmy, 11/9/04)
+!  (2 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
+!        value for GEOS or GCAP grids. (bmy, 6/28/05)
 !******************************************************************************
 !    
       ! References to F90 modules
-      USE BPCH2_MOD,  ONLY : GET_MODELNAME
+      USE BPCH2_MOD,  ONLY : GET_MODELNAME, GET_HALFPOLAR
       USE ERROR_MOD,  ONLY : ALLOC_ERR,   ERROR_STOP
       USE GRID_MOD,   ONLY : GET_XOFFSET, GET_YOFFSET, ITS_A_NESTED_GRID
       USE TIME_MOD,   ONLY : GET_TAUb
@@ -1285,6 +1294,7 @@
       LONRES    = DISIZE
       LATRES    = DJSIZE
       MODELNAME = GET_MODELNAME()
+      HALFPOLAR = GET_HALFPOLAR()
 
       ! Reset offsets to global values for bpch write
       I0        = GET_XOFFSET( GLOBAL=.TRUE. )

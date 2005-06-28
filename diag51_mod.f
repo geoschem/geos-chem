@@ -1,11 +1,11 @@
-! $Id: diag51_mod.f,v 1.16 2005/06/27 19:41:45 bmy Exp $
+! $Id: diag51_mod.f,v 1.17 2005/06/28 18:59:30 bmy Exp $
       MODULE DIAG51_MOD
 !
 !******************************************************************************
 !  Module DIAG51_MOD contains variables and routines to generate save 
 !  timeseries data where the local time is between two user-defined limits. 
 !  This facilitates comparisons with morning or afternoon-passing satellites
-!  such as GOME. (amf, bey, bdf, pip, bmy, 11/30/00, 4/20/05)
+!  such as GOME. (amf, bey, bdf, pip, bmy, 11/30/00, 6/28/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -103,6 +103,8 @@
 !  (4 ) Now only archive AOD's once per chemistry timestep (bmy, 1/14/05)
 !  (5 ) Now references "pbl_mix_mod.f" (bmy, 2/16/05)
 !  (6 ) Now save cld frac and grid box heights (bmy, 4/20/05)
+!  (7 ) Remove TRCOFFSET since it's always zero  Also now get HALFPOLAR for
+!        both GCAP and GEOS grids.  (bmy, 6/28/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -137,7 +139,13 @@
       INTEGER              :: ND51_LMIN,      ND51_LMAX
       INTEGER              :: ND51_FREQ,      ND51_NI
       INTEGER              :: ND51_NJ,        ND51_NL
-      INTEGER, PARAMETER   :: HALFPOLAR=1,    CENTER180=1
+      !---------------------------------------------------------------------
+      ! Prior to 6/28/05:
+      ! Need to make HALFPOLAR a variable, not a parameter (bmy, 6/28/05)
+      !INTEGER, PARAMETER   :: HALFPOLAR=1,    CENTER180=1
+      !---------------------------------------------------------------------
+      INTEGER              :: HALFPOLAR
+      INTEGER, PARAMETER   :: CENTER180=1
       REAL*4               :: LONRES,         LATRES
       REAL*8               :: TAU0,           TAU1
       REAL*8               :: ND51_HR1,       ND51_HR2
@@ -294,7 +302,8 @@
 !  (5 ) Now reference CLDF and BXHEIGHT from "dao_mod.f".  Now save 3-D cloud 
 !        fraction as tracer #79 and box height as tracer #93.  Now remove 
 !        references to CLMOSW, CLROSW, and PBL from "dao_mod.f". (bmy, 4/20/05)
-!  (6 ) Remove references to TRCOFFSET because it's always zero (bmy, 6/24/05)
+!  (6 ) Remove TRCOFFSET since it's always zero  Also now get HALFPOLAR for
+!        both GCAP and GEOS grids.  (bmy, 6/28/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -809,7 +818,7 @@
 !  (1 ) TAU_W (REAL*8) : TAU value at time of writing to disk 
 !
 !  NOTES:
-!  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
+!  (1 ) Rewrote to` remove hardwiring and for better efficiency.  Added extra
 !        diagnostics and updated numbering scheme. (bmy, 7/20/04) 
 !  (2 ) Added TAU_W to the arg list.  Now use TAU_W to set TAU0 and TAU0.
 !        Also now all diagnostic counters are 1-D since they only depend on 
@@ -1304,7 +1313,7 @@
 !******************************************************************************
 !  Subroutine INIT_DIAG51 allocates and zeroes all module arrays.  
 !  It also gets values for module variables from "input_mod.f". 
-!  (bmy, 7/20/04, 11/9/04)
+!  (bmy, 7/20/04, 6/28/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1327,10 +1336,12 @@
 !        which is the counter array of "good" boxes at each chemistry
 !        timesteps.  Now allocate GOOD_CT_CHEM. (bmy, 10/25/04)
 !  (2 ) Now get I0 and J0 correctly for nested grid simulations (bmy, 11/9/04)
+!  (3 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
+!        value for GEOS or GCAP grids. (bmy, 6/28/05)
 !******************************************************************************
 !    
       ! References to F90 modules
-      USE BPCH2_MOD,  ONLY : GET_MODELNAME
+      USE BPCH2_MOD,  ONLY : GET_MODELNAME, GET_HALFPOLAR
       USE ERROR_MOD,  ONLY : ALLOC_ERR,   ERROR_STOP
       USE GRID_MOD,   ONLY : GET_XOFFSET, GET_YOFFSET, ITS_A_NESTED_GRID
       USE TIME_MOD,   ONLY : GET_TAUb
@@ -1474,6 +1485,7 @@
       LONRES    = DISIZE
       LATRES    = DJSIZE
       MODELNAME = GET_MODELNAME()
+      HALFPOLAR = GET_HALFPOLAR()
 
       ! Reset offsets to global values for bpch write
       I0        = GET_XOFFSET( GLOBAL=.TRUE. )

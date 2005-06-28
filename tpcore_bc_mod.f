@@ -1,10 +1,10 @@
-! $Id: tpcore_bc_mod.f,v 1.5 2004/12/02 21:48:41 bmy Exp $
+! $Id: tpcore_bc_mod.f,v 1.6 2005/06/28 18:59:31 bmy Exp $
       MODULE TPCORE_BC_MOD
 !
 !******************************************************************************
 !  Module TPCORE_BC_MOD contains modules and variables which are needed to
 !  save and read TPCORE nested-grid boundary conditions to/from disk.
-!  (yxw, bmy, 3/4/03, 7/20/04)
+!  (yxw, bmy, 3/4/03, 6/28/05)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -128,6 +128,7 @@
 !  (1 ) Bug fix for LINUX w/ TIMESTAMP_STRING (bmy, 9/29/03)
 !  (2 ) Now references "tracer_mod.f", "directory_mod.f", and
 !        "logical_mod.f" (bmy, 7/20/04)
+!  (3 ) Now get HALFPOLAR for GEOS or GCAP grids (bmy, 6/28/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -268,6 +269,8 @@
 !  NOTES:
 !  (1 ) Now references N_TRACERS and STT from "tracer_mod.f".  Also now 
 !        references TIMESTAMP_STRING from "time_mod.f".  (bmy, 7/20/04) 
+!  (2 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
+!        value for GEOS or GCAP grids (bmy, 6/28/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -281,7 +284,12 @@
 
       ! Local variables
       LOGICAL, SAVE      :: FIRST     = .TRUE.
-      INTEGER, PARAMETER :: HALFPOLAR =  1
+      !-------------------------------------------------------------------
+      ! Prior to 6/28/05:
+      ! Need to make HALFPOLAR a variable, not a parameter (bmy, 6/28/05)
+      !INTEGER, PARAMETER :: HALFPOLAR =  1
+      !-------------------------------------------------------------------
+      INTEGER            :: HALFPOLAR
       INTEGER, PARAMETER :: CENTER180 =  1
       INTEGER            :: I, IOS, J, L, N
       REAL*4             :: LONRES, LATRES
@@ -310,6 +318,7 @@
       ! Define variables for BPCH output
       LONRES    = DISIZE
       LATRES    = DJSIZE
+      HALFPOLAR = GET_HALFPOLAR()
       MODELNAME = GET_MODELNAME()
       TAU       = GET_TAU()
 

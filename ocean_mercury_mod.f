@@ -1,10 +1,10 @@
-! $Id: ocean_mercury_mod.f,v 1.3 2005/03/29 15:52:43 bmy Exp $
+! $Id: ocean_mercury_mod.f,v 1.4 2005/06/28 18:59:30 bmy Exp $
       MODULE OCEAN_MERCURY_MOD
 !
 !******************************************************************************
 !  Module OCEAN_MERCURY_MOD contains variables and routines needed to compute
 !  the oceanic flux of mercury.  Original code by Sarah Strode at UWA/Seattle.
-!  (sas, bmy, 1/21/05, 2/24/05)
+!  (sas, bmy, 1/21/05, 6/28/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -66,6 +66,7 @@
 !
 !  NOTES:
 !  (1 ) Modified ocean flux w/ Sarah's new Ks value (sas, bmy, 2/24/05)
+!  (2 ) Now get HALFPOLAR for GCAP or GEOS grids (bmy, 6/28/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -682,10 +683,13 @@
       SUBROUTINE CLEANUP_OCEAN_MERCURY
 !
 !******************************************************************************
-!  Subroutine CLEANUP_OCEAN_MERCURY deallocates all arrays.  The final oceanic
-!  masses of Hg(0) and Hg(II) are also written to disk. (sas, bmy, 1/20/05)
+!  Subroutine CLEANUP_OCEAN_MERCURY deallocates all arrays.  The final 
+!  oceanic masses of Hg(0) and Hg(II) are also written to disk. 
+!  (sas, bmy, 1/20/05, 6/28/05)
 !  
 !  NOTES:
+!  (1 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
+!        value for GEOS or GCAP grids. (bmy, 6/28/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -723,7 +727,12 @@
          IFIRST    = GET_XOFFSET( GLOBAL=.TRUE. ) + 1
          JFIRST    = GET_YOFFSET( GLOBAL=.TRUE. ) + 1
          LFIRST    = 1
-         HALFPOLAR = 1
+         !------------------------------------------------------------------
+         ! Prior to 6/28/05:
+         ! Now get HALFPOLAR for GCAP or GEOS grids (bmy, 6/28/05)
+         !HALFPOLAR = 1
+         !------------------------------------------------------------------
+         HALFPOLAR = GET_HALFPOLAR()
          CENTER180 = 1
          LONRES    = DISIZE
          LATRES    = DJSIZE

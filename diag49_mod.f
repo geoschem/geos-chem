@@ -1,9 +1,9 @@
-! $Id: diag49_mod.f,v 1.7 2005/06/27 19:41:45 bmy Exp $
+! $Id: diag49_mod.f,v 1.8 2005/06/28 18:59:30 bmy Exp $
       MODULE DIAG49_MOD
 !
 !******************************************************************************
 !  Module DIAG49_MOD contains variables and routines to save out 3-D 
-!  timeseries output to disk (bmy, 7/20/04, 6/24/05)
+!  timeseries output to disk (bmy, 7/20/04, 6/28/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -85,7 +85,8 @@
 !  (1 ) Bug fix: get I0, J0 properly for nested grids (bmy, 11/9/04)
 !  (2 ) Now references "pbl_mix_mod.f" (bmy, 2/16/05)
 !  (3 ) Now saves 3-D cld frac & grid box height (bmy, 4/20/05)
-!  (4 ) Remove TRCOFFSET since it's always zero (bmy, 6/24/05)
+!  (4 ) Remove TRCOFFSET since it's always zero  Also now get HALFPOLAR for
+!        both GCAP and GEOS grids.  (bmy, 6/28/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -118,7 +119,13 @@
       INTEGER            :: ND49_LMIN,      ND49_LMAX
       INTEGER            :: ND49_FREQ,      ND49_NI
       INTEGER            :: ND49_NJ,        ND49_NL
-      INTEGER, PARAMETER :: HALFPOLAR=1,    CENTER180=1 
+      !----------------------------------------------------------------
+      ! Prior to 6/28/05:
+      ! Need to make HALFPOLAR a variable, not a parameter
+      !INTEGER, PARAMETER :: HALFPOLAR=1,    CENTER180=1
+      !----------------------------------------------------------------
+      INTEGER            :: HALFPOLAR
+      INTEGER, PARAMETER :: CENTER180=1 
       REAL*4             :: LONRES,         LATRES
       CHARACTER(LEN=20)  :: MODELNAME
       CHARACTER(LEN=40)  :: RESERVED = ''
@@ -1122,7 +1129,7 @@
 !******************************************************************************
 !  Subroutine INIT_DIAG49 allocates and zeroes all module arrays.  
 !  It also gets values for module variables from "input_mod.f". 
-!  (bmy, 7/20/04)
+!  (bmy, 7/20/04, 6/28/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1140,10 +1147,12 @@
 ! 
 !  NOTES:
 !  (1 ) Now get I0 and J0 correctly for nested grid simulations (bmy, 11/9/04)
+!  (2 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
+!        value for GEOS or GCAP grids. (bmy, 6/28/05)
 !******************************************************************************
 !      
       ! References to F90 modules
-      USE BPCH2_MOD, ONLY : GET_MODELNAME
+      USE BPCH2_MOD, ONLY : GET_MODELNAME, GET_HALFPOLAR
       USE GRID_MOD,  ONLY : GET_XOFFSET, GET_YOFFSET, ITS_A_NESTED_GRID
       USE ERROR_MOD, ONLY : ERROR_STOP
 
@@ -1188,14 +1197,6 @@
       !=================================================================
       ! Compute lon, lat, alt extents and check for errors
       !=================================================================
-
-      !---------------------------------------------
-      ! Prior to 11/9/04:
-      ! Fix for nested grid (bmy, 11/9/04)
-      !! Get grid offsets
-      !I0 = GET_XOFFSET( GLOBAL=.TRUE. )
-      !J0 = GET_YOFFSET( GLOBAL=.TRUE. )
-      !---------------------------------------------
 
       ! Get grid offsets for error checking
       IF ( ITS_A_NESTED_GRID() ) THEN
@@ -1285,6 +1286,7 @@
       LONRES    = DISIZE
       LATRES    = DJSIZE
       MODELNAME = GET_MODELNAME()
+      HALFPOLAR = GET_HALFPOLAR()
       
       ! Reset grid offsets to global values for bpch write
       I0        = GET_XOFFSET( GLOBAL=.TRUE. )
