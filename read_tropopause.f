@@ -1,4 +1,4 @@
-! $Id: read_tropopause.f,v 1.2 2004/09/21 18:04:17 bmy Exp $
+! $Id: read_tropopause.f,v 1.3 2005/06/30 18:55:30 bmy Exp $
       SUBROUTINE READ_TROPOPAUSE
 !
 !******************************************************************************
@@ -56,7 +56,7 @@
       ! Read the annual mean tropopause from disk (binary punch file 
       ! format).  Transfer data into an array of size (IIPAR,JJPAR).
       !=================================================================
-
+      
       ! Create filename
       FILENAME = TRIM( DATA_DIR )                      // 
      &           'ann_mean_trop_200202/ann_mean_trop.' //

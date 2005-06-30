@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.15 2005/06/27 19:41:47 bmy Exp $
+! $Id: input_mod.f,v 1.16 2005/06/30 18:55:30 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS_CHEM input file at the start of the run
 !  and passes the information to several other GEOS-CHEM F90 modules.
-!  (bmy, 7/20/04, 5/25/05)
+!  (bmy, 7/20/04, 6/30/05)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -95,7 +95,8 @@
 !  (4 ) Now references "diag03_mod.f" and "diag41_mod.f".  Fixed minor
 !        bugs.  Now references FILE_EXISTS from "file_mod.f".  Updated
 !        comments. (bmy, 3/28/05)
-!  (5 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
+!  (5 ) Now modified for GEOS-5 and GCAP met fields.  Also now set LSPLIT
+!        correctly for HCN/CH3CN simulation. (swu, xyp, bmy, 6/30/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -645,11 +646,12 @@
 !
 !******************************************************************************
 !  Subroutine READ_TRACER_MENU reads the TRACER MENU section of the 
-!  GEOS-CHEM input file (bmy, 7/20/04, 1/20/05)
+!  GEOS-CHEM input file (bmy, 7/20/04, 6/30/05)
 !
 !  NOTES:
 !  (1 ) Now set LSPLIT correctly for Tagged Hg simulation (eck, bmy, 12/13/04)
 !  (2 ) Now initialize ocean mercury module (sas, bmy, 1/20/05)
+!  (3 ) Now set LSPLIT correctly for Tagged HCN/CH3CN sim (xyp, bmy, 6/30/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -877,6 +879,11 @@
 
          ! Also initialize ocean flux module
          CALL INIT_OCEAN_MERCURY
+
+      ELSE IF ( ITS_A_HCN_SIM() ) THEN
+
+         ! Need HCN, CH3CN for HCN simulation
+         LSPLIT = ( N_TRACERS > 2 )
 
       ELSE
          LSPLIT = ( N_TRACERS > 1 )
@@ -1923,7 +1930,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:11' )
       READ( SUBSTRS(1), * ) ND09
-      CALL SET_TINDEX( 09, ND09, SUBSTRS(2:N), N-1, N_TRACERS+4 )
+      CALL SET_TINDEX( 09, ND09, SUBSTRS(2:N), N-1, N_TRACERS+PD09 )
 
       !--------------------------
       ! ND10: Free

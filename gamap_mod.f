@@ -1,10 +1,10 @@
-! $Id: gamap_mod.f,v 1.4 2005/06/27 19:41:46 bmy Exp $
+! $Id: gamap_mod.f,v 1.5 2005/06/30 18:55:30 bmy Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
 !  Module GAMAP_MOD contains routines to create GAMAP "tracerinfo.dat" and
 !  "diaginfo.dat" files which are customized to each particular GEOS-CHEM
-!  simulation. (bmy, 5/3/05, 6/27/05)
+!  simulation. (bmy, 5/3/05, 6/30/05)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -63,7 +63,7 @@
 !
 !  NOTES:
 !  (1 ) Minor bug fix for Rn/Pb/Be simulations (bmy, 5/11/05)
-!  (2 ) Added ND09 diagnostic for HCN/CH3CN simulation (xyp, bmy, 6/27/05)
+!  (2 ) Added ND09 diagnostic for HCN/CH3CN simulation (xyp, bmy, 6/30/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1470,10 +1470,10 @@
       IF ( ND09 > 0 ) THEN
          
          ! Number of tracers
-         NTRAC(09) = N_TRACERS + 4
+         NTRAC(09) = N_TRACERS + 6
 
          ! Loop over tracers: HCN-PL-$
-         DO T = 1, NTRAC(09)-4
+         DO T = 1, NTRAC(09)-6
             NAME (T,09) = TRACER_NAME(T)
             FNAME(T,09) = TRIM( TRACER_NAME(T) ) // ' lost via OH rxn'
             UNIT (T,09) = 'kg'
@@ -1484,45 +1484,39 @@
          ENDDO
 
          ! Loop over tracers: HCN-SRCE
-         DO T = NTRAC(09)-3, NTRAC(09)
+         DO T = NTRAC(09)-6+1, NTRAC(09)
 
-            ! Define quantities
+            ! Get tracer number, C number, scale factor, unit
+            INDEX(T,09) = ( T - N_TRACERS ) + ( SPACING * 39 )
+            MOLC (T,09) = 1
+            SCALE(T,09) = 1e0
+            UNIT (T,09) = 'molec/cm2/s'
+              
+            ! Get name, longname, unit, mwt
             IF ( T == N_TRACERS+1 ) THEN
-               NAME (T,09) = 'HCN_bb'
-               FNAME(T,09) = 'HCN biomass burning emissions'
-               UNIT (T,09) = 'molec/cm2/s'
+               NAME (T,09) = 'HCNbb'
+               FNAME(T,09) = 'HCN biomass emissions'
                MWT  (T,09) = 27d-3
-               INDEX(T,09) = ( T - N_TRACERS ) + ( SPACING * 39 )
-               MOLC (T,09) = 1
-               SCALE(T,09) = 1e0
-               
             ELSE IF ( T == N_TRACERS+2 ) THEN
-               NAME (T,09) = 'HCN_df'
-               FNAME(T,09) = 'HCN domestic fossil fuel emissions'
-               UNIT (T,09) = 'molec/cm2/s'
-               MWT  (T,09) = 27d-3
-               INDEX(T,09) = ( T - N_TRACERS ) + ( SPACING * 39 )
-               MOLC (T,09) = 1
-               SCALE(T,09) = 1e0
-
+               NAME (T,09) = 'CH3CNbb'
+               FNAME(T,09) = 'CH3CN biomass emissions'
+               MWT  (T,09) = 41d-3
             ELSE IF ( T == N_TRACERS+3 ) THEN
-               NAME (T,09) = 'HCN_oc'
-               FNAME(T,09) = 'HCN ocean uptake'
-               UNIT (T,09) = 'molec/cm2/s'
+               NAME (T,09) = 'HCNdf'
+               FNAME(T,09) = 'HCN domestic FF emiss'
                MWT  (T,09) = 27d-3
-               INDEX(T,09) = ( T - N_TRACERS ) + ( SPACING * 39 )
-               MOLC (T,09) = 1
-               SCALE(T,09) = 1e0
-
             ELSE IF ( T == N_TRACERS+4 ) THEN
-               NAME (T,09) = 'CL'
-               FNAME(T,09) = 'Air-to-sea flux of HCN'
-               UNIT (T,09) = 'kg/cm3'
+               NAME (T,09) = 'CH3CNdf'
+               FNAME(T,09) = 'CH3CN domestic FF emiss'
+               MWT  (T,09) = 41d-3
+            ELSE IF ( T == N_TRACERS+5 ) THEN
+               NAME (T,09) = 'HCNoc'
+               FNAME(T,09) = 'HCN ocean uptake'
                MWT  (T,09) = 27d-3
-               INDEX(T,09) = ( T - N_TRACERS ) + ( SPACING * 39 )
-               MOLC (T,09) = 1
-               SCALE(T,09) = 1e0
-
+            ELSE IF ( T == N_TRACERS+6 ) THEN
+               NAME (T,09) = 'CH3CNoc'
+               FNAME(T,09) = 'CH3CN ocean uptake'
+               MWT  (T,09) = 41d-3
             ENDIF
          ENDDO
       ENDIF

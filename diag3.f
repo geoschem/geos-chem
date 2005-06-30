@@ -1,4 +1,4 @@
-! $Id: diag3.f,v 1.24 2005/06/28 18:59:29 bmy Exp $
+! $Id: diag3.f,v 1.25 2005/06/30 18:55:29 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
@@ -567,15 +567,17 @@
       ENDIF   
 !
 !******************************************************************************
-!  ND10: HCN/CH3CN sources/sinks (Categories: "HCN-PL-$", "HCN-SRCE")
+!  ND09: HCN/CH3CN sources/sinks (Categories: "HCN-PL-$", "HCN-SRCE")
 !
 !  # : Field    : Description                     : Units       : Scale factor
 ! ----------------------------------------------------------------------------
 ! (1:N) sink    : Loss of tagged tracer to OH     : kg
-! (N+1) HCNbb   : HCN from biomass burning        : molec/cm2/s : SCALESRCE
-! (N+2) HCNdf   : HCN from domestic fossil fuel   : molec/cm2/s : SCALESRCE
-! (N+3) HCNoc   : HCN loss to ocean uptake        : molec/cm2/s : SCALECHEM
-! (N+4) CH3CNoc : CH3CN loss to ocean uptake      : kg/cm3      : SCALECHEM
+! (N+1) HCNbb   : HCN   from biomass burning      : molec/cm2/s : SCALESRCE
+! (N+2) CH3CNbb : CH3CN from biomass burning      : molec/cm2/s : SCALESRCE
+! (N+3) HCNdf   : HCN   from domestic fossil fuel : molec/cm2/s : SCALESRCE
+! (N+4) CH3CNdf : CH3CN from domestic fossil fuel : molec/cm2/s : SCALESRCE
+! (N+5) HCNoc   : HCN   loss to ocean uptake      : molec/cm2/s : SCALECHEM
+! (N+6) CH3CNoc : CH3CN loss to ocean uptake      : molec/cm2/s : SCALECHEM
 !******************************************************************************
 !
       IF ( ND09 > 0 ) THEN
@@ -583,7 +585,7 @@
          ! Binary punch file
          DO M = 1, TMAX(9)
             N  = TINDEX(9,M)
-            IF ( N > N_TRACERS+4 ) CYCLE
+            IF ( N > N_TRACERS+6 ) CYCLE
 
             ! Test tracer number
             IF ( N <= N_TRACERS ) THEN
@@ -612,11 +614,11 @@
                ! HCN/CH3CN sources
                !---------------------------
                CATEGORY     = 'HCN-SRCE'
-               UNIT         = 'kg'
+               UNIT         = 'molec/cm2/s'
                NN           = N - N_TRACERS
 
                ! Pick proper scale
-               IF ( NN <= 2 ) THEN
+               IF ( NN <= 4 ) THEN
                   SCALEX = SCALESRCE
                ELSE
                   SCALEX = SCALECHEM

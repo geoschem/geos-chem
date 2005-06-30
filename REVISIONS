@@ -409,6 +409,9 @@ read_restart_file	-- Remove references to CMN_DIAG and TRCOFFSET
 read_simulation_menu	-- Now read GEOS_5_DIR and GCAP_DIR from input.geos 
 ("input_mod.f")
 
+read_tracer_menu	-- Now set LSPLIT correctly for Tagged HCN/CH3CN sim 
+("input_mod.f")
+
 read_uvalbedo		-- Read proper filename for GCAP or GEOS grids
 ("uvalbedo_mod.f")
 

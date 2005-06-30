@@ -1,14 +1,16 @@
-! $Id: hcn_ch3cn_mod.f,v 1.3 2005/06/28 18:59:30 bmy Exp $
+! $Id: hcn_ch3cn_mod.f,v 1.4 2005/06/30 18:55:30 bmy Exp $
       MODULE HCN_CH3CN_MOD
 !
 !******************************************************************************
 !  Module HCN_CH3CN_MOD contains variables and routines that are used for the 
-!  geographically tagged HCN/CH3CN simulation. (qli, xyp, bmy, 6/23/05)
+!  geographically tagged HCN/CH3CN simulation. (qli, xyp, bmy, 6/30/05`)
 !
 !  Module Variables:
 !  ============================================================================
-!  (1 ) BB_REGION         : Array w/ geographic regions for biomass burning
-!  (2 ) DF_REGION         : Array w/ geographic regions for domestic fossilfuel
+!  (1 ) HCN_BB_REGION     : Array to denote tagged HCN biomass tracers
+!  (2 ) HCN_DF_REGION     : Array to denote tagged HCN fossil fuel tracers
+!  (3 ) CH3CN_BB_REGION   : Array to denote tagged CH3CN biomass tracers
+!  (4 ) CH3CN_DF_REGION   : Array to denote tagged CH3CN fossil fuel tracers
 !
 !  Module Routines:
 !  ============================================================================
@@ -30,11 +32,11 @@
 !  Tagged HCN/CH3CN tracers:
 !  ============================================================================
 !  (1 ) Total HCN
-!  (2 ) HCN from Asian biomass burning
-!  (3 ) HCN from elsewhere biomass burning 
-!  (4 ) HCN from Asian domestic fossil fuel 
-!  (5 ) HCN from elsewhere domestic fossil fuel
-!  (6 ) Total CH3CN
+!  (2 ) Total CH3CN
+!  (3 ) HCN from Asian biomass burning
+!  (4 ) HCN from elsewhere biomass burning 
+!  (5 ) HCN from Asian domestic fossil fuel 
+!  (6 ) HCN from elsewhere domestic fossil fuel
 !  (7 ) CH3CN from Asian biomass burning
 !  (8 ) CH3CN from elsewhere biomass burning 
 !  (9 ) CH3CN from Asian domestic fossil fuel 
@@ -73,9 +75,20 @@
       REAL*8,  PARAMETER   :: XNUMOL_HCN   = 6.022d23 / MHCN    ! molec/kg
       REAL*8,  PARAMETER   :: XNUMOL_CH3CN = 6.022d23 / MCH3CN  ! molec/kg
 
-      ! Arrays
-      INTEGER, ALLOCATABLE :: BB_REGION(:,:)
-      INTEGER, ALLOCATABLE :: DF_REGION(:,:)
+      ! Allocatable arrays
+      INTEGER, ALLOCATABLE :: HCN_REG_bb(:,:)
+      INTEGER, ALLOCATABLE :: HCN_REG_df(:,:)
+      INTEGER, ALLOCATABLE :: CH3CN_REG_bb(:,:)
+      INTEGER, ALLOCATABLE :: CH3CN_REG_df(:,:)
+      REAL*8,  ALLOCATABLE :: EMIS_CO_df(:,:)
+
+      ! Fixed-size arrays
+      INTEGER              :: HCN_INDEX(5)
+      INTEGER              :: CH3CN_INDEX(5)
+      REAL*8               :: SCNR89(3,3)
+      REAL*8               :: TODH(6)
+      REAL*8               :: TODN(6)
+      REAL*8               :: TODB(6)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -84,26 +97,23 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE DEFINE_BB_REGIONS( REGION )
+      SUBROUTINE DEFINE_BB_REGIONS
 !
 !******************************************************************************
-!  Subroutine DEFINE_BB_REGIONS defines the geographic regions 
-!  for biomass burning emissions for the tagged HCN/CH3CN simulation. 
+!  Subroutine DEFINE_BB_REGIONS defines the geographic regions for biomass 
+!  burning emissions for the tagged HCN/CH3CN simulation. (xyp, bmy, 6/30/05)
 !
-!  Arguments as Output:
+!  Arguments as Input:
 !  ============================================================================
-!  (1 ) REGION (INTEGER) : Array of Fossil Fuel CO regions 
-!
-!  NOTES:
+!  (1 ) REGION (INTEGER) : Array of Fossil Fuel CO regions
+! 
+!  NOTES: 
 !******************************************************************************
 !
       ! References to F90 modules
       USE GRID_MOD, ONLY : GET_XMID, GET_YMID
 
-#     include "CMN_SIZE" 
-
-      ! Arguments
-      INTEGER, INTENT(OUT) :: REGION(IIPAR,JJPAR)
+#     include "CMN_SIZE"    ! Size parameters
 
       ! Local variables
       INTEGER              :: I, J
@@ -124,35 +134,29 @@
 
          ! Loop over longitudes
          DO I = 1, IIPAR
-
+         
             ! Longitude [degrees]
             X = GET_XMID( I )
 
-            ! Region #2/#7 -- SE Asian BB (1st sub-box)
+            ! Region #3: SE Asian BB HCN (1st sub-box)
             IF      ( ( X >= 72.5 .AND. X < 127.5 )  .AND.
      &                ( Y >=  8.0 .AND. Y <  28.0 ) ) THEN
-               REGION(I,J) = 2
+               HCN_REG_bb(I,J) = 3
 
-            ! Region #2/#7 -- SE Asian BB (2nd sub-box)
+            ! Region #3: SE Asian HCN BB (2nd sub-box)
             ELSE IF ( ( X >= 72.5 .AND. X < 152.5 )  .AND.
      &                ( Y >= 28.0 .AND. Y <  48.0 ) ) THEN
-               REGION(I,J) = 2
+               HCN_REG_bb(I,J) = 3
   
-            ! Region #3 -- African BB
-            ELSE IF ( ( X >= -17.5 .and. X < 65.0 )  .and.
-     &                ( Y >= -36.5 .and. Y < 36.0 ) ) THEN
-               REGION(I,J) = 3
-
-            ! Region #4 -- South America
-            ELSE IF ( ( X >= -100.0 .and. X < -30.0 )  .and.
-     &                ( Y >= -60.0 .and. Y < 0.0 ) ) THEN
-               REGION(I,J) = 4
-
-            ! Region #5 -- BB from elsewhere
+            ! Region #4: HCN BB from elsewhere
             ELSE
-               REGION(I,J) = 5
-               
+               HCN_REG_bb(I,J) = 4
+
             ENDIF
+
+            ! CH3CN tracer #'s are HCN tagged tracers + 4
+            CH3CN_REG_bb(I,J)  = HCN_REG_bb(I,J) + 4
+
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -162,11 +166,11 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE DEFINE_DF_REGIONS( REGION )
+      SUBROUTINE DEFINE_DF_REGIONS
 !
 !******************************************************************************
-!  Subroutine DEFINE_DF_REGIONS defines the geographic regions
-!  for domestic fossil fuel emissions for the tagged HCN/CH3CN simulation. 
+!  Subroutine DEFINE_DF_REGIONS defines the geographic regions for domestic 
+!  fossil fuel emissions for the HCN/CH3CN simulation. (xyp, bmy, 6/30/05)
 !
 !  Arguments as Output:
 !  ============================================================================
@@ -178,10 +182,7 @@
       ! References to F90 modules
       USE GRID_MOD, ONLY : GET_XMID, GET_YMID
 
-#     include "CMN_SIZE"    ! Size parameters 
-
-      ! Arguments
-      INTEGER, INTENT(OUT) :: REGION(IIPAR,JJPAR)
+#     include "CMN_SIZE"    ! Size parameters
 
       ! Local variables
       INTEGER              :: I, J
@@ -196,7 +197,7 @@
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I, J, X, Y )
       DO J = 1, JJPAR
-
+         
          ! Latitude [degrees]
          Y = GET_YMID( J )         
 
@@ -205,22 +206,26 @@
 
             ! Longitude [degrees]
             X = GET_XMID( I )
-         
-            ! Region #4/#9 -- Asian DF (1st sub-box)
+
+            ! Region #5: HCN Asian DF (1st sub-box)
             IF      ( ( X >= 72.5 .AND. X < 127.5 )  .AND.
      &                ( Y >=  8.0 .AND. Y <  28.0 ) ) THEN
-               REGION(I,J) = 6
+               HCN_REG_df(I,J) = 5
 
-            ! Region #4/#9 -- Asian DF (2nd sub-box)
+            ! Region #5: HCN Asian DF (2nd sub-box)
             ELSE IF ( ( X >= 72.5 .AND. X < 152.5 )  .AND.
-     &                ( Y >= 28.0 .AND. Y <  48.0 ) ) THEN
-               REGION(I,J) = 6
+     &             ( Y >= 28.0 .AND. Y <  48.0 ) ) THEN
+               HCN_REG_df(I,J) = 5
    
-            ! Region #5/#10 -- DF from elsewhere
+            ! Region #6: HCN DF from elsewhere
             ELSE
-               REGION(I,J) = 7
+               HCN_REG_df(I,J) = 6
                
             ENDIF
+
+            ! CH3CN tracer #'s are HCN tagged tracers + 4
+            CH3CN_REG_df(I,J)  = HCN_REG_df(I,J) + 4
+
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -252,7 +257,6 @@
       USE TRACERID_MOD,  ONLY : IDBCO
       
 #     include "CMN_SIZE"      ! Size parameters
-#     include "CMN_O3"        ! SCNR89, TODH, TODB, TODN, EMISTCO
 #     include "CMN_DIAG"      ! ND09
 
       ! Arguments
@@ -261,10 +265,11 @@
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
-      INTEGER                :: I,      J,      L,      N, NTAU
-      INTEGER                :: IHOUR,  INDEX,  MONTH,  PBL_MAX 
-      REAL*8                 :: ACM2,   E_CObb, E_COdf, SFAC89 
-      REAL*8                 :: DTSRCE, HCN_bb, HCN_df, FRAC
+      INTEGER                :: I,      J,      L,        N, NTAU
+      INTEGER                :: IHOUR,  INDEX,  MONTH,    PBL_MAX 
+      REAL*8                 :: ACM2,   E_CObb, E_COdf,   SFAC89 
+      REAL*8                 :: HCN_bb, HCN_df, CH3CN_bb, CH3CN_df
+      REAL*8                 :: DTSRCE, FRAC
 
       ! Emission ratios for HCN/CH3CN from biomass burning 
       ! and domestic fossil fuel
@@ -294,17 +299,7 @@
 
       ! First-time initialization
       IF ( FIRST ) THEN 
-
-         ! Read time-of-day and day-of-week scale factors for GEIA emissions
-         CALL READ_TODX( TODN, TODH, TODB, SCNR89 )
-
-         ! Read domestic fossil fuel CO emissions from GEIA
-         CALL READ_GEIA( E_CO=EMISTCO  )
-
-         ! Allocate all module arrays
          CALL INIT_HCN_CH3CN
-
-         ! Set first-time flag to false
          FIRST = .FALSE.
       ENDIF
 
@@ -315,8 +310,8 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,      J,     ACM2, E_CObb, INDEX,  SFAC89 )
-!$OMP+PRIVATE( E_COdf, IHOUR, N,    L,      HCN_bb, HCN_df )
+!$OMP+PRIVATE( I,     J, ACM2, E_CObb, INDEX,  SFAC89,   E_COdf   )
+!$OMP+PRIVATE( IHOUR, N, L,    HCN_bb, HCN_df, CH3CN_bb, CH3CN_df )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -332,7 +327,8 @@
 
          ! ND09: biomass burning HCN/CH3CN emissions [molec/cm2/s]
          IF ( ND09 > 0 ) THEN
-            AD09_em(I,J,1) = AD09_em(I,J,1) + EHCN_BB * E_CObb
+            AD09_em(I,J,1) = AD09_em(I,J,1) + ( EHCN_bb   * E_CObb )
+            AD09_em(I,J,2) = AD09_em(I,J,2) + ( ECH3CN_bb * E_CObb )
          ENDIF
 
          ! Convert [molec CO/cm2/s] to [mole/grid box]: 1/6.022d23 = 1.66d-24
@@ -348,7 +344,7 @@
 
          ! E_COdf is DF CO emissions in [molec CO/cm2/s]
          ! Scale E_COdf by the day-of-week scale factor SFAC89
-         E_COdf    = EMISTCO(I,J) * SFAC89
+         E_COdf    = EMIS_CO_df(I,J) * SFAC89
 
          ! Scale E_COdf by the time-of-day scale factor TODH
          ! IHOUR is the index for the time-of-day scale factor TODH
@@ -359,8 +355,8 @@
          ! from anthropogenic VOC's (bnd, bmy, 6/8/01)
          E_COdf    = E_COdf * 1.185d0
             
-         ! Get domestic fossil fuel region #
-         N         = DF_REGION(I,J)
+         ! Get HCN domestic fossil fuel region # (either =5 or =6)
+         N         = HCN_REG_df(I,J)
 
          ! To achieve the best fit to the observed HCN-CH3CN-CO correlations 
          ! in the boundary layer, we have to double the residential coal 
@@ -368,15 +364,16 @@
          ! coal burning source from the rest of the world by a factor of eight
          ! to achieve a best fit to the observed vertical distributions of HCN
          ! and CH3CN. (xyp, 6/22/05)
-         IF ( N == 6 ) THEN
+         IF ( N == 5 ) THEN
             E_COdf = E_COdf * 2.1d0   ! Asian domestic fossil fuel
-         ELSE 
+         ELSE
             E_COdf = E_COdf / 8.0d0   ! Elsewhere domestic fossil fuel
          ENDIF
 
          ! ND09: domestic fossil fuel HCN/CH3CN emissions [molec/cm2/s]
          IF ( ND09 > 0 ) THEN
-            AD09_em(I,J,2) = AD09_em(I,J,2) + EHCN_df * E_COdf
+            AD09_em(I,J,3) = AD09_em(I,J,3) + ( EHCN_df   * E_COdf )
+            AD09_em(I,J,4) = AD09_em(I,J,4) + ( ECH3CN_df * E_COdf )
          ENDIF
 
          ! Convert [molec CO/cm2/s] to [mole/grid box]: 1/6.022d23 = 1.66d-24
@@ -392,25 +389,38 @@
             ! Fraction of the PBL occupied by this layer
             FRAC            = GET_FRAC_OF_PBL( I, J, L )
 
-            ! HCN biomass burning emissions
-            HCN_bb          = FRAC * MHCN * EHCN_BB * E_CObb
-         
-            ! HCN domestic fossil fuel emissions
-            HCN_df          = FRAC * MHCN * EHCN_DF * E_COdf
+            ! HCN biomass and domestic fossil fuel emissions
+            HCN_bb          = FRAC * MHCN * EHCN_bb * E_CObb
+            HCN_df          = FRAC * MHCN * EHCN_df * E_COdf
 
-            ! Total HCN/CH3CN emissions (BB+DF)
-            STT(I,J,L,1)    = STT(I,J,L,1) + HCN_bb + HCN_df
+            ! CH3CN biomass and domestic fossil fuel emissions
+            CH3CN_bb        = FRAC * MCH3CN * ECH3CN_bb * E_CObb
+            CH3CN_df        = FRAC * MCH3CN * ECH3CN_df * E_COdf
+
+            ! Add total HCN emissions (BB+DF) into STT
+            STT(I,J,L,1)    = STT(I,J,L,1) + ( HCN_bb   + HCN_df  )
+
+            ! Add total CH3CN emissions (BB+DF) into STT
+            STT(I,J,L,2)    = STT(I,J,L,2) + ( CH3CN_bb + CH3CN_df )
 
             ! If we are using tagged tracers ...
             IF ( LSPLIT ) THEN
                
-               ! Add emissions into tagged biomass tracers
-               N            = BB_REGION(I,J)
+               ! Add emissions into tagged HCN biomass tracers
+               N            = HCN_REG_bb(I,J)
                STT(I,J,L,N) = STT(I,J,L,N) + HCN_bb
 
-               ! Add emissions into tagged domestic fossil fuel tracers
-               N            = DF_REGION(I,J)
+               ! Add emissions into tagged HCN dom. fossil tracers
+               N            = HCN_REG_df(I,J)
                STT(I,J,L,N) = STT(I,J,L,N) + HCN_df
+
+               ! Add emissions into tagged CH3CN biomass tracers
+               N            = CH3CN_REG_bb(I,J)
+               STT(I,J,L,N) = STT(I,J,L,N) + CH3CN_bb
+
+               ! Add emissions into tagged CH3CN dom. fossil tracers
+               N            = CH3CN_REG_df(I,J)
+               STT(I,J,L,N) = STT(I,J,L,N) + CH3CN_df
 
             ENDIF
          ENDDO
@@ -446,37 +456,37 @@
 #     include "CMN_DEP"      ! FRCLND 
 
       ! Arguments
-      ! Arguments
       INTEGER, INTENT(IN)    :: N_TRACERS
       REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
       
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
-      INTEGER                :: I,    J,  K,    L,     N,      N_MAX
-      REAL*8                 :: K0,   K1, TMP,  KRATE, DTCHEM, KTMP
-      REAL*8                 :: H,    U,  TC,   SC,    KL,     KG
-      REAL*8                 :: KKG,  CL, SR,   CG,    FLUX,   FOCEAN
-      REAL*8                 :: ACM2, AMT_LOST, OCEAN_HCN, OCEAN_CH3CN
+      INTEGER                :: I,      J,    L,    N,     NN,  N_MAX
+      REAL*8                 :: K0,     K1,   KTMP, KRATE, TMP, DTCHEM
+      REAL*8                 :: KTMP,   H,    U,    TC,    SC,  KL
+      REAL*8                 :: KG,     KKG,  CL,   SR,    CG,  FLUX
+      REAL*8                 :: ACM2,   AMT_LOST,   OCEAN_HCN
+      REAL*8                 :: FOCEAN, OCEAN_CH3CN
 
       ! Undersaturation ratios for HCN/CH3CN in seawater
       REAL*8, PARAMETER      :: ALPHA_HCN   = 0.21d0
       REAL*8, PARAMETER      :: ALPHA_CH3CN = 0.12d0
 
       ! Coefficients for fitting the Schmdit number for HCN in seawater
-      REAL*8, PARAMETER      :: A0 = 2008.917d0
-      REAL*8, PARAMETER      :: A1 =  -83.235d0
-      REAL*8, PARAMETER      :: A2 =    1.348d0
-      REAL*8, PARAMETER      :: A3 =   -0.009d0
-
+      REAL*8, PARAMETER      :: A0          = 2008.917d0
+      REAL*8, PARAMETER      :: A1          =  -83.235d0
+      REAL*8, PARAMETER      :: A2          =    1.348d0
+      REAL*8, PARAMETER      :: A3          =   -0.009d0
+      
       ! Coefficients for fitting the Schmdit number for CH3CN in seawater
-      REAL*8, PARAMETER      :: B0 = 2745.722d0
-      REAL*8, PARAMETER      :: B1 = -113.763d0
-      REAL*8, PARAMETER      :: B2 =    1.843d0
-      REAL*8, PARAMETER      :: B3 =   -0.012d0
+      REAL*8, PARAMETER      :: B0          = 2745.722d0
+      REAL*8, PARAMETER      :: B1          = -113.763d0
+      REAL*8, PARAMETER      :: B2          =    1.843d0
+      REAL*8, PARAMETER      :: B3          =   -0.012d0
 
       ! External functions
       REAL*8, EXTERNAL       :: BOXVL
-      
+     
       !=================================================================
       ! CHEM_HCN_CH3CN begins here! 
       !=================================================================
@@ -494,7 +504,7 @@
      
       ! Compute number of tracers to process
       IF ( LSPLIT ) THEN
-         N_MAX = N_TRACERS
+         N_MAX = 5
       ELSE
          N_MAX = 1
       ENDIF
@@ -509,7 +519,7 @@
       ! Loop over grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, K0, K1, TMP, KTMP, KRATE, N, AMT_LOST )
+!$OMP+PRIVATE( I, J, L, K0, K1, TMP, KTMP, KRATE, NN, N, AMT_LOST )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -520,20 +530,20 @@
 
          K0    = 7.4d-33 
          K1    = 9.0d-15 * ( T(I,J,L) / 300d0 ) ** 3.2d0
-
-         ! AD: air mass in kg
          TMP   = K0 / K1 * AD(I,J,L) * XNUMOL_AIR / BOXVL(I,J,L)
 
          ! K: [cm3/molec/s]
          KTMP  = K1 * TMP / ( 1d0 + TMP )      
      &         * EXP ( -0.511d0 / ( 1d0 + LOG10( TMP ) ** 2d0 ) )
 
+         ! Rate constant for rxn w/ OH [units??]
          KRATE = KTMP * OH(I,J,L) * DTCHEM
 
-         !--------------------------------------------------------------
-         ! (2) Subtract lost tracer from STT array
-         !--------------------------------------------------------------
-         DO N = 1, N_MAX 
+         ! Subtract lost HCN from STT array
+         DO NN = 1, N_MAX 
+
+            ! Get the pr
+            N = HCN_INDEX(NN)
 
             ! Compute the amount of tracer that is lost to OH
             AMT_LOST     = KRATE * STT(I,J,L,N)
@@ -542,6 +552,32 @@
             STT(I,J,L,N) = MAX( STT(I,J,L,N) - AMT_LOST, 0d0 )
             
             ! ND09 diagnostic: HCN/CH3CN loss via OH [kg]
+            IF ( ND09 > 0 ) THEN
+               AD09(I,J,L,N) = AD09(I,J,L,N) + AMT_LOST
+            ENDIF
+         ENDDO
+
+         !------------------------------------------------------------------
+         ! (2) CH3CN loss via reaction with OH
+         !------------------------------------------------------------------
+
+         ! K: [cm3/molec/s]
+         KTMP  = 7.8d-13 * EXP( -1050d0 / T(I,J,L) )
+         KRATE = KTMP * OH(I,J,L) * DTCHEM
+
+         ! Subtract lost CH3CN tracer from STT
+         DO NN = 1, N_MAX 
+
+            ! Get the proper tracer number
+            N = CH3CN_INDEX(NN)
+
+            ! Compute the amount of tracer that is lost to OH
+            AMT_LOST     = KRATE * STT(I,J,L,N)
+
+            ! Remove lost CH3CN tracer from STT array (avoid negatives!)
+            STT(I,J,L,N) = MAX( STT(I,J,L,N) - AMT_LOST, 0d0 )
+            
+            ! ND09 diagnostic: CH3CN loss via OH [kg]
             IF ( ND09 > 0 ) THEN
                AD09(I,J,L,N) = AD09(I,J,L,N) + AMT_LOST
             ENDIF
@@ -558,33 +594,37 @@
       ! Loop over grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,    J,  ACM2,      FOCEAN, U,       TC  )
-!$OMP+PRIVATE( H,    SC, KL,        KG,     KKG,     CG  )
-!$OMP+PRIVATE( FLUX, CL, OCEAN_HCN, N,      AMT_LOST     )
+!$OMP+PRIVATE( I,   J,  FOCEAN, OCEAN_HCN, OCEAN_CH3CN, ACM2     )
+!$OMP+PRIVATE( U,   TC, H,      SC,        KL,          KG       )
+!$OMP+PRIVATE( KKG, NN, N,      CG,        FLUX,        AMT_LOST )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Grid box area in [cm2]
-         ACM2            = GET_AREA_CM2( J ) 
-            
          ! Fraction of a grid box that is ocean
          FOCEAN          = 1d0 - FRCLND(I,J) 
 
-         !--------------------------------------------------------------
-         ! Only compute ocean sink if there is more than 50% ocean
-         ! in the grid box, and if it is not ice (albedo > 0.4)
-         ! (mje, rvm, bmy, 11/26/01)
-         !--------------------------------------------------------------
+         ! Initialize HCN and CH3CN [kg] lost into the ocean
+         OCEAN_HCN       = 0d0
+         OCEAN_CH3CN     = 0d0
+
+         ! Make sure there is > 50% ocean (not ice) in the grid box
          IF ( FOCEAN > 0.5d0 .AND. ALBD(I,J) <= 0.4d0 ) THEN
 
+            ! Grid box area in [cm2]
+            ACM2         = GET_AREA_CM2( J ) 
+            
             ! Wind speed [m/s] at 10m above the surface 
             U            = SQRT( U10M(I,J)**2 + V10M(I,J)**2 )
 
             ! Surface temperature [C]
             TC           = TS(I,J) - 273.15d0  
 
-            ! Dimensionless Henry's law constants for HCN
+            !-----------------------------------------------------------
+            ! (1) HCN ocean uptake
+            !-----------------------------------------------------------
+
+            ! Henry's law constant for HCN [unitless]
             H            = 7.93d4 * EXP( -5000d0 / TS(I,J) ) 
             
             ! SC is Schmidt # for HCN in seawater [unitless]
@@ -603,59 +643,86 @@
             ! Convert from [cm/h] to [cm/s] by dividing 3600
             KKG          = 2.78d-4 * KL * KG / ( KL + H * KG )
 
-            ! CG: bulk concentration of HCN in gas phase [kg/cm3]
-            CG           = STT(I,J,1,1) / BOXVL(I,J,1)
+            ! Loop over HCN tagged tracers
+            DO NN = 1, N_MAX
+               
+               ! Get HCN tagged tracer number
+               N            = HCN_INDEX(NN)
 
-            ! FLUX: air-to-sea flux of HCN [kg/cm2/s]
-            FLUX         = ALPHA_HCN * KKG * CG     
-            CL           = ( 1d0 - ALPHA_HCN ) * CG / H
+               ! Bulk concentration of HCN in gas phase [kg/cm3]
+               CG           = STT(I,J,1,N) / BOXVL(I,J,1)
 
-            ! Amount of HCN lost to the ocean [kg]
-            OCEAN_HCN    = FLUX * FOCEAN * ACM2 * DTCHEM 
+               ! Air-to-sea flux of HCN [kg/cm2/s]
+               FLUX         = ALPHA_HCN * KKG * CG     
 
-            ! Subtract ocean loss from STT array [kg/box/step]
-            STT(I,J,1,1) = MAX( STT(I,J,1,1) - OCEAN_HCN, 0d0 )
+               ! Amount of tagged tracer lost to ocean [kg]
+               AMT_LOST     = FLUX * FOCEAN * ACM2 * DTCHEM
 
-            ! If there is more than one tracer
-            IF ( LSPLIT ) THEN
+               ! Save total HCN lost to ocean for ND09 diag [molec/cm2/s]
+               IF ( N == 1 ) THEN
+                  OCEAN_HCN = AMT_LOST * XNUMOL_HCN / ( ACM2 * DTCHEM )
+               ENDIF
 
-               ! Subtract ocean loss for tagged tracers
-               DO N = 2, N_TRACERS
+               ! Subtract ocean loss from STT array [kg/box/step]
+               STT(I,J,1,N) = MAX( STT(I,J,1,N) - AMT_LOST, 0d0 )
 
-                  ! FLUX: air-to-sea flux of tagged tracers [kg/cm2/s]
-                  FLUX         = ALPHA_HCN    * KKG * 
-     *                           STT(I,J,1,N) / BOXVL(I,J,1)    
+            ENDDO
 
-                  ! Amount of tagged tracer lost to ocean [kg]
-                  AMT_LOST     = FLUX * FOCEAN * ACM2 * DTCHEM
+            !-----------------------------------------------------------
+            ! (2) CH3CN ocean uptake
+            !-----------------------------------------------------------
 
-                  ! Remove lost tagged tracer from STT array [kg]
-                  STT(I,J,1,N) = MAX( STT(I,J,1,N) - AMT_LOST, 0d0 )
-               ENDDO
-            ENDIF
+            ! Henry's law constant for CH3CN [unitless]
+            H            = 861.7d0 * EXP( -4100d0 / TS(I,J) ) 
 
-         !--------------------------------------------------------------
-         ! If there is less than 50% water in the grid box, or  
-         ! if there is ice on the ocean, then zero the ocean sink
-         !--------------------------------------------------------------
-         ELSE
+            ! SC is Schmidt # for HCN in seawater [unitless]
+            SC           = B0 + TC * ( B1 + TC * ( B2 + TC * ( B3 )))
 
-            ! Set to zero
-            OCEAN_HCN = 0d0
-            CL        = 0d0
+            ! KL: conductance for mass transfer in liquid phase
+            ! (Wanninkhof 1992), which has units of [cm/h]
+            KL           = ( 0.222d0 * U * U  + 0.333d0 * U )
+     &                   * ( SC / 600d0 )**( -0.5d0 )
 
+            ! KG: conductance for mass transfer in gas phase (Asher 1997)
+            ! Convert from m/s to cm/h by mutiplying by 360000
+            KG           = ( 12.4d0 + 763.3d0 * U ) 
+
+            ! KKG: transfer velocity on a gas phase basis (Liss & Slater 1974)
+            ! Convert from [cm/h] to [cm/s] by dividing by 3600
+            KKG          = 2.78d-4 * KL * KG / ( KL + H * KG )
+
+            ! Loop over CH3HCN tagged tracers
+            DO NN = 1, N_MAX
+               
+               ! Get CH3CN tagged tracer number
+               N              = CH3CN_INDEX(NN)
+
+               ! Bulk concentration of CH3CN in gas phase [kg/cm3]
+               CG             = STT(I,J,1,N) / BOXVL(I,J,1)
+
+               ! Air-to-sea flux of HCN [kg/cm2/s]
+               FLUX           = ALPHA_HCN * KKG * CG     
+
+               ! Amount of tagged tracer lost to ocean [kg]
+               AMT_LOST       = FLUX * FOCEAN * ACM2 * DTCHEM
+
+               ! Save total HCN lost to ocean for ND09 diag [molec/cm2/s]
+               IF ( N == 2 ) THEN
+                  OCEAN_CH3CN = AMT_LOST * XNUMOL_CH3CN / (ACM2*DTCHEM) 
+               ENDIF
+
+               ! Subtract ocean loss from STT array [kg/box/step]
+               STT(I,J,1,N)   = MAX( STT(I,J,1,N) - AMT_LOST, 0d0 )
+
+            ENDDO
          ENDIF
 
          !--------------------------------------------------------------
-         ! ND10 diag: Save HCN/CH3CN ocean uptake in [molec/cm2/s]
+         ! ND10 diag: Save HCN and CH3CN ocean uptake in [molec/cm2/s]
          !--------------------------------------------------------------
          IF ( ND09 > 0 ) THEN
-            AD09_em(I,J,3) = AD09_em(I,J,3) + 
-     &                     ( OCEAN_HCN * XNUMOL_HCN / ( ACM2 * DTCHEM ))
- 
-            ! CL in kg/cm3
-            ! how to deal with SR when less than 50% water in grid box???
-            AD09_em(I,J,4) = AD09_em(I,J,4) + CL
+            AD09_em(I,J,5) = AD09_em(I,J,5) + OCEAN_HCN 
+            AD09_em(I,J,6) = AD09_em(I,J,6) + OCEAN_CH3CN 
          ENDIF
       ENDDO
       ENDDO
@@ -666,10 +733,67 @@
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE READ_EMISSIONS
+!
+!******************************************************************************
+!  Subroutine READ_EMISSIONS reads the domestic fossil fuel emissions from
+!  disk. (bmy, 6/29/05)
+!
+!  Arguments as Output:
+!  ============================================================================
+!  (1 ) E_CO   (REAL*4) : GEIA anthro CO   (no seasonality, 1 level )
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE BPCH2_MOD
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE GEIA_MOD,      ONLY : READ_TODX
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+
+#     include "CMN_SIZE"   ! Size parameters
+
+      ! Local variables
+      REAL*4              :: ARRAY(IGLOB,JGLOB,1)
+      CHARACTER(LEN=255)  :: FILENAME
+
+      !=================================================================
+      ! READ_EMISSIONS begins here!
+      !=================================================================
+
+      ! Define the binary punch file name
+      FILENAME = TRIM( DATA_DIR )                        //
+     &           'HCN_200507/domfos_CO_for_TRACEP.geos.' //
+     &           GET_RES_EXT() 
+      
+      ! Write file name to stdout
+      WRITE( 6, 100 ) TRIM( FILENAME )
+ 100  FORMAT( 'READ_EMISSIONS: Reading ', a )
+
+      ! Read time-of-day and day-of-week scale factors for GEIA emissions
+      CALL READ_TODX( TODN, TODH, TODB, SCNR89 )
+
+      ! Read CO (tracer #4): aseasonal
+      CALL READ_BPCH2( FILENAME, 'ANTHSRCE',    4,  
+     &                 0d0,       IGLOB,        JGLOB,     
+     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
+
+      ! Cast to REAL*8 and resize if necessary
+      CALL TRANSFER_2D( ARRAY(:,:,1), EMIS_CO_df )
+
+      ! Return to calling program
+      END SUBROUTINE READ_EMISSIONS
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE INIT_HCN_CH3CN
 !
 !******************************************************************************
 !  Subroutine INIT_TAGGED_HCN_CH3CN allocates memory to module arrays.
+!  (bmy, 6/29/05)
+! 
+!  NOTES:
 !******************************************************************************
 !
       ! References to F90 modules
@@ -688,19 +812,36 @@
       ! Return if we have already allocated arrays
       IF ( IS_INIT ) RETURN
 
-      ! Allocate BB_REGION -- array for biomass burning regions
-      ALLOCATE( BB_REGION( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BB_REGION' )         
+      ! Allocate arrays
+      ALLOCATE( HCN_REG_bb( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HCN_REG_bb' )         
 
-      ! Allocate DF_REGION -- array for fossil fuel regions
-      ALLOCATE( DF_REGION( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DF_REGION' )
+      ALLOCATE( HCN_REG_df( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HCN_REG_df' )
+
+      ALLOCATE( CH3CN_REG_bb( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH3CN_REG_bb' )         
+
+      ALLOCATE( CH3CN_REG_df( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH3CN_REG_df' )
       
+      ALLOCATE( EMIS_CO_df( IIPAR, JJPAR ), STAT=as )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMIS_CO_df' )
+
       ! Define geographic regions for biomass burning
-      CALL DEFINE_BB_REGIONS( BB_REGION )
+      CALL DEFINE_BB_REGIONS
 
       ! Define geographic regions for domestic fossil fuel burning
-      CALL DEFINE_DF_REGIONS( DF_REGION )      
+      CALL DEFINE_DF_REGIONS
+
+      ! Read domestic fossil fuel emissions
+      CALL READ_EMISSIONS
+
+      ! Index of HCN tracers
+      HCN_INDEX(:)   = (/ 1, 3, 4, 5, 6  /)
+
+      ! Index of CH3CN tracers
+      CH3CN_INDEX(:) = (/ 2, 7, 8, 9, 10 /)
 
       ! Set flag
       IS_INIT = .TRUE.
@@ -722,8 +863,11 @@
       !=================================================================
       ! CLEANUP_HCN_CH3CN begins here!
       !=================================================================
-      IF ( ALLOCATED( BB_REGION ) ) DEALLOCATE( BB_REGION )
-      IF ( ALLOCATED( DF_REGION ) ) DEALLOCATE( DF_REGION )
+      IF ( ALLOCATED( HCN_REG_bb    ) ) DEALLOCATE( HCN_REG_bb   )
+      IF ( ALLOCATED( HCN_REG_df    ) ) DEALLOCATE( HCN_REG_df   )
+      IF ( ALLOCATED( CH3CN_REG_bb  ) ) DEALLOCATE( CH3CN_REG_bb )
+      IF ( ALLOCATED( CH3CN_REG_df  ) ) DEALLOCATE( CH3CN_REG_df )
+      IF ( ALLOCATED( EMIS_CO_df    ) ) DEALLOCATE( EMIS_CO_df   )
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_HCN_CH3CN
