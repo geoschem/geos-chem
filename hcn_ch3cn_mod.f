@@ -1,9 +1,9 @@
-! $Id: hcn_ch3cn_mod.f,v 1.4 2005/06/30 18:55:30 bmy Exp $
+! $Id: hcn_ch3cn_mod.f,v 1.5 2005/06/30 20:18:58 bmy Exp $
       MODULE HCN_CH3CN_MOD
 !
 !******************************************************************************
 !  Module HCN_CH3CN_MOD contains variables and routines that are used for the 
-!  geographically tagged HCN/CH3CN simulation. (qli, xyp, bmy, 6/30/05`)
+!  geographically tagged HCN/CH3CN simulation. (qli, xyp, bmy, 6/30/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -11,6 +11,13 @@
 !  (2 ) HCN_DF_REGION     : Array to denote tagged HCN fossil fuel tracers
 !  (3 ) CH3CN_BB_REGION   : Array to denote tagged CH3CN biomass tracers
 !  (4 ) CH3CN_DF_REGION   : Array to denote tagged CH3CN fossil fuel tracers
+!  (5 ) EMIS_CO_df        : Array for CO from domestic fossil fuel
+!  (6 ) HCN_INDEX         : Index array for HCN tracers
+!  (7 ) CH3CN_INDEX       : Index array for CH3CN tracers
+!  (8 ) SCNR89            : Weekday/weekend scenarios for fossil fuel scaling
+!  (9 ) TODH              : Time of day scale factor for hydrocarbon emissions
+!  (10) TODN              : Time of day scale factor for NOx emissions
+!  (11) TODB              : Time of day scale factor for biogenic emissions
 !
 !  Module Routines:
 !  ============================================================================
@@ -23,11 +30,21 @@
 !
 !  GEOS-CHEM modules referenced by hcn_ch3cn_mod.f
 !  ============================================================================
-!  (1 ) diag_mod.f        : Module w/ GEOS-CHEM diagnostic arrays
-!  (2 ) dao_mod.f         : Module w/ arrays for DAO met fields!
-!  (3 ) biomass_mod.f     : Module w/ routines to read biomass emissions
-!  (4 ) geia_mod          : Module w/ routines to read anthro emissions
-!  (5 ) global_oh_mod.f   : Module w/ routines to read 3-D OH field
+!  (1 ) biomass_mod.f     : Module w/ routines to read biomass emissions
+!  (2 ) bpch2_mod.f       : Module w/ routines for binary punch file I/O
+!  (3 ) dao_mod.f         : Module w/ arrays for DAO met fields!
+!  (4 ) diag_mod.f        : Module w/ GEOS-CHEM diagnostic arrays
+!  (5 ) directory_mod.f   : Module w/ GEOS-CHEM data & met field dirs
+!  (6 ) geia_mod.f        : Module w/ routines to read anthro emissions
+!  (7 ) global_oh_mod.f   : Module w/ routines to read 3-D OH field
+!  (8 ) grid_mod.f        : Module w/ horizontal grid information
+!  (9 ) global_oh_mod.f   : Module w/ routines to read 3-D OH field
+!  (10) logical_mod.f     : Module w/ GEOS-CHEM logical switches
+!  (11) pbl_mix_mod.f     : Module w/ routines for PBL height & mixing
+!  (12) time_mod.f        : Module w/ routines for computing time & date
+!  (13) tracerid_mod.f    : Module w/ pointers to tracers & emissions
+!  (14) transfer_mod.f    : Module w/ routines to cast & resize arrays
+!  
 ! 
 !  Tagged HCN/CH3CN tracers:
 !  ============================================================================
