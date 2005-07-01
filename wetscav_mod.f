@@ -1,4 +1,4 @@
-! $Id: wetscav_mod.f,v 1.16 2005/05/09 14:34:01 bmy Exp $
+! $Id: wetscav_mod.f,v 1.17 2005/07/01 20:35:09 bmy Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
@@ -141,10 +141,6 @@
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
-      !-------------------------------------------
-      ! Prior to 4/25/05:
-      !INTEGER, PARAMETER   :: NSOLMAX = 29
-      !-------------------------------------------
       INTEGER, PARAMETER   :: NSOLMAX = 31
       INTEGER              :: NSOL 
       INTEGER              :: IDWETD(NSOLMAX)
@@ -580,7 +576,7 @@
       USE DAO_MOD,     ONLY : BXHEIGHT, T
       USE TRACERID_MOD
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "CMN_SIZE"    ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: N
