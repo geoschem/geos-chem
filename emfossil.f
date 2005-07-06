@@ -1,9 +1,9 @@
-! $Id: emfossil.f,v 1.2 2004/12/02 21:48:36 bmy Exp $
+! $Id: emfossil.f,v 1.3 2005/07/06 17:42:47 bmy Exp $
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
 !*****************************************************************************
 !  Subroutine EMFOSSIL emits fossil fuels into the EMISRR and EMISRRN 
-!  arrays, which are then passed to SMVGEAR. (bmy, 4/19/99, 11/5/04)
+!  arrays, which are then passed to SMVGEAR. (bmy, 4/19/99, 7/06/05)
 !
 !  Arguments as input:
 !  ========================================================================
@@ -36,6 +36,8 @@
 !        continental USA if LNEI99=T.  Now reference LNEI99 from F90
 !        module "logical_mod.f".  Now reference GET_EPA_ANTHRO and
 !        GET_USA_MASK from "epa_nei_mod.f". (rch, rjp, bmy, 11/5/04)
+!  (17) Now references GET_DAY_OF_WEEK from "time_mod.f" to correctly figure
+!        out if this is a weekday or weekend. (bmy, 7/6/05)
 !*****************************************************************************
 !          
       ! References to F90 modules
@@ -43,7 +45,7 @@
       USE EPA_NEI_MOD, ONLY : GET_EPA_ANTHRO, GET_USA_MASK
       USE GRID_MOD,    ONLY : GET_AREA_CM2
       USE LOGICAL_MOD, ONLY : LNEI99
-      USE TIME_MOD,    ONLY : GET_TS_EMIS
+      USE TIME_MOD,    ONLY : GET_TS_EMIS, GET_DAY_OF_WEEK
       USE TRACERID_MOD
   
       IMPLICIT NONE
@@ -59,7 +61,7 @@
 
       ! Local Variables & external functions
       LOGICAL             :: WEEKDAY
-      INTEGER             :: L, LL, K
+      INTEGER             :: L, LL, K, DOW
       REAL*8              :: TODX, DTSRCE, AREA_CM2           
       REAL*8              :: EMX(NOXLEVELS)  
       REAL*8              :: XEMISR
@@ -71,13 +73,20 @@
       !=================================================================
 
       ! Emission timestep [s]
-      DTSRCE = GET_TS_EMIS() * 60d0
+      DTSRCE   = GET_TS_EMIS() * 60d0
 
       ! Surface area of grid box
       AREA_CM2 = GET_AREA_CM2( J )
 
       ! Flag for weekday or weekend for NEI emissions
-      WEEKDAY = ( JSCEN .ne. 4 .and. JSCEN .ne. 5 )
+      !------------------------------------------------------------------------
+      ! Prior to 7/6/05:
+      ! Now use GET_DAY_OF_WEEK to find the proper day of the week
+      ! This eliminates a bug in determining weekday or weekend (bmy, 7/6/05)
+      !WEEKDAY = ( JSCEN .ne. 4 .and. JSCEN .ne. 5 )
+      !------------------------------------------------------------------------
+      DOW      = GET_DAY_OF_WEEK()
+      WEEKDAY  = ( DOW > 0 .and. DOW < 6 )
 
       !=================================================================
       ! Call EMF_SCALE to do the following:
