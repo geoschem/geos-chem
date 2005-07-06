@@ -1,4 +1,4 @@
-! $Id: hcn_ch3cn_mod.f,v 1.5 2005/06/30 20:18:58 bmy Exp $
+! $Id: hcn_ch3cn_mod.f,v 1.6 2005/07/06 15:29:31 bmy Exp $
       MODULE HCN_CH3CN_MOD
 !
 !******************************************************************************
@@ -61,6 +61,11 @@
 !
 !  References:
 !  ============================================================================
+!  (1 ) Li, Q.B., D.J. Jacob, R.M. Yantosca, C.L. Heald, H.B. Singh, M. Koike, 
+!        Y.Zhao, G.W. Sachse, and D.G. Streets, "A Global 3-D Model Evaluation 
+!        of the Atmospheric Budgets of HCN and CH3CN: Constraints From 
+!        Aircraft Measurements Over the Western Pacific", J. Geophys. Res., 
+!        108(D21), 2003
 !
 !  NOTES:
 !******************************************************************************
@@ -380,7 +385,7 @@
          ! burning source from Asia. This leads us to reduce the residential 
          ! coal burning source from the rest of the world by a factor of eight
          ! to achieve a best fit to the observed vertical distributions of HCN
-         ! and CH3CN. (xyp, 6/22/05)
+         ! and CH3CN. [According to Li et al 2003.] (xyp, 6/22/05)
          IF ( N == 5 ) THEN
             E_COdf = E_COdf * 2.1d0   ! Asian domestic fossil fuel
          ELSE
