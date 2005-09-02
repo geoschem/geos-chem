@@ -1,12 +1,17 @@
-! $Id: ruralbox.f,v 1.2 2005/06/23 19:32:58 bmy Exp $
+! $Id: ruralbox.f,v 1.3 2005/09/02 15:17:22 bmy Exp $
       SUBROUTINE RURALBOX( AD,     T,      AVGW,   ALT,   ALBD,  
      &                     SUNCOS, CLOUDS, LEMBED, IEBD1, IEBD2,  
-     &                     JEBD1,  JEBD2,  LPAUSE )
+!-------------------------------------------------------------------
+! Prior to 8/22/05:
+! Remove LPAUSE from the arg list, it's obsolete (bmy, 8/22/05)
+!     &                     JEBD1,  JEBD2,  LPAUSE )
+!-------------------------------------------------------------------
+     &                     JEBD1,  JEBD2 )
 !
 !******************************************************************************
 !  Subroutine RURALBOX computes which boxes are tropospheric and which
 !  are stratospheric.  SMVGEAR arrays are initialized with quantities from 
-!  tropospheric boxes.  (amf, bey, ljm, lwh, gmg, bdf, bmy, 7/16/01, 6/23/05)
+!  tropospheric boxes.  (amf, bey, ljm, lwh, gmg, bdf, bmy, 7/16/01, 8/22/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -49,12 +54,16 @@
 !        list, since we don't need them anymore. (dsa, bdf, bmy, 8/20/02)
 !  (11) Added modifications for SMVGEAR II (gcc, bdf, bmy, 4/1/03)
 !  (12) SLOW-J is now obsolete; remove LSLOWJ #ifdef blocks (bmy, 6/23/05)
+!  (13) Now reference ITS_IN_THE_TROP and ITS_IN_THE_STRAT from 
+!        "tropopause_mod.f" to diagnose trop & strat boxes.  Also remove
+!        LPAUSE from the arg list (bmy, 8/22/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE COMODE_MOD,   ONLY : ABSHUM, AIRDENS, IXSAVE, IYSAVE, IZSAVE,
-     &                         JLOP,   PRESS3,  T3,     VOLUME 
-      USE PRESSURE_MOD, ONLY : GET_PCENTER, GET_PEDGE
+      USE COMODE_MOD,     ONLY : ABSHUM, AIRDENS, IXSAVE, IYSAVE, 
+     &                           IZSAVE, JLOP,    PRESS3, T3,  VOLUME 
+      USE PRESSURE_MOD,   ONLY : GET_PCENTER, GET_PEDGE
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT, ITS_IN_THE_TROP
 
       IMPLICIT NONE
 
@@ -63,7 +72,10 @@
 
       LOGICAL, INTENT(IN)    :: LEMBED 
       INTEGER, INTENT(IN)    :: IEBD1, IEBD2, JEBD1, JEBD2
-      INTEGER, INTENT(IN)    :: LPAUSE(IIPAR,JJPAR)
+      !----------------------------------------------------------
+      ! Prior to 8/22/05:
+      !INTEGER, INTENT(IN)    :: LPAUSE(IIPAR,JJPAR)
+      !----------------------------------------------------------
       REAL*8,  INTENT(IN)    :: AD(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(IN)    :: T(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(IN)    :: AVGW(IIPAR,JJPAR,LLPAR)
@@ -75,14 +87,6 @@
       ! Local variables      
       LOGICAL                :: LDEBUG
       INTEGER                :: I, J, L, JLOOP, IJLOOP, LL
-!-----------------------------------------------------------------------------
-! Prior to 6/23/05:
-!      REAL*8                 :: PSURF, CLOUDREF(5)
-!#if   defined( LSLOWJ )
-!      INTEGER                :: IJWINDOW
-!      REAL*8                 :: GMU      
-!#endif
-!-----------------------------------------------------------------------------
 
       ! External functions
       REAL*8,  EXTERNAL      :: BOXVL
@@ -120,7 +124,11 @@
                !=======================================================
                ! Skip over strat boxes
                !=======================================================
-               IF ( L >= LPAUSE(I,J) ) GOTO 40
+               !----------------------------------------------
+               ! Prior to 8/22/05:
+               !IF ( L >= LPAUSE(I,J) ) GOTO 40
+               !----------------------------------------------
+               IF ( ITS_IN_THE_STRAT( I, J, L ) ) GOTO 40
 
                ! Increment JLOOP for trop boxes
                JLOOP          = JLOOP + 1
@@ -145,7 +153,11 @@
                JLOOP          = JLOOP + 1
                JLOP(I,J,L)    = JLOOP
 
-               IF ( L < LPAUSE(I,J) ) THEN
+               !--------------------------------------------------------
+               ! Prior to 8/22/05:
+               !IF ( L < LPAUSE(I,J) ) THEN
+               !--------------------------------------------------------
+               IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
 
                   ! Tropospheric boxes go into the SMVGEAR II "URBAN" slot
                   NTLOOPNCS(NCSURBAN) = NTLOOPNCS(NCSURBAN) + 1
@@ -185,43 +197,6 @@
 
             ! get temperature
             T3(JLOOP)      = T(I,J,L)
-
-!-----------------------------------------------------------------------------
-! Prior to 6/23/05:
-!#if   defined( LSLOWJ )
-!            !===========================================================
-!            ! This IF block is only for SLOW-J photolysis!
-!            !===========================================================
-!            IF ( L == 1 ) THEN
-!
-!               ! CLOUDREF are the GISS-CTM cloud reflectivities 
-!               ! at the surface, 800mb, 500mb, 200mb, and the top 
-!               ! of the atmosphere.  Set CLOUDREF(1) equal to the 
-!               ! surface albedo AVGF, and 0 elsewhere (bmy, 1/30/98)
-!               CLOUDREF(1) = ALBD(I,J)
-!               DO LL = 2, 5
-!                  CLOUDREF(LL) = 0d0
-!               ENDDO
-!
-!               PSURF  = GET_PEDGE(I,J,1) - PTOP
-!               LDEBUG = .FALSE.
-!               IJLOOP = JLOP(I,J,1)
-!
-!               ! Get the right index for SUNCOS, which is calculated
-!               ! outside of chemistry module.
-!               ! (This works for LEMBED= .TRUE. or .FALSE.)
-!               IJWINDOW = (J-1)*IM + I
-!               GMU      = SUNCOS(IJWINDOW)
-!
-!               ! NOTE: Do not pass PTOP to SETCLOUD, since PTOP
-!               ! is now a parameter in "CMN_SIZE" (bmy, 2/10/00)
-!               CALL SETCLOUD( CLOUDS, GMU, CLOUDREF,
-!     &                        IJLOOP, ALT, LDEBUG,
-!     &                        PSURF,  SIG, IJWINDOW)
-!
-!            ENDIF  ! L=1
-!#endif
-!-----------------------------------------------------------------------------
 
             ! PRESS3 = pressure in bar, multiply mb * 1000
             PRESS3(JLOOP) = GET_PCENTER(I,J,L) * 1000d0

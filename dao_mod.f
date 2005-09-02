@@ -1,10 +1,10 @@
-! $Id: dao_mod.f,v 1.12 2005/06/27 19:41:44 bmy Exp $
+! $Id: dao_mod.f,v 1.13 2005/09/02 15:17:01 bmy Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
 !  Module DAO_MOD contains both arrays that hold DAO met fields, as well as
 !  subroutines that compute, interpolate, or otherwise process DAO met field 
-!  data. (bmy, 6/27/00, 6/24/05)
+!  data. (bmy, 6/27/00, 8/17/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -167,6 +167,7 @@
 !  (20) Now also allocate AVGW for offline aerosol simulation (bmy, 9/28/04)
 !  (21) AVGPOLE now uses NESTED_CH and NESTED_NA cpp switches (bmy, 12/1/04)
 !  (22) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
+!  (23) Now allocate SNOW and GWET for GCAP (bmy, 8/17/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -568,57 +569,6 @@
       ! Fraction of 6h timestep elapsed at the end of this dyn timestep
       TC2 = ( D_NTIME1 + D_NTDT     - D_NTIME0 ) / D_NDT 
 
-!-----------------------------------------------------------------------------
-! Prior to 5/25/05:
-! Reverse the logic on the #if block since the newer met fields will be
-! more like GEOS-4 than like GEOS-1, GEOS-S, or GEOS-3 (swu, bmy, 5/25/05)
-!#if   defined( GEOS_4 ) 
-!
-!      !=================================================================
-!      ! GEOS-4: interpolate PSC2 (pressure at end of dyn timestep)
-!      !=================================================================
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!         PSC2(I,J) = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
-!      ENDDO
-!      ENDDO
-!
-!#else
-!
-!      !=================================================================
-!      ! GEOS-1, GEOS-S, GEOS-3: interp PSC2, UWND, VWND, ALBD, T, SPHU
-!      !=================================================================
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
-!      DO L = 1, LLPAR
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!         
-!         ! 2D variables
-!         IF ( L == 1 ) THEN
-!            
-!            ! Pressures: at start, midpt, and end of dyn timestep
-!            PSC2(I,J) = PS1(I,J)   + ( PS2(I,J) - PS1(I,J) ) * TC2 
-!
-!            ! Albedo: at midpt of dyn timestep
-!            ALBD(I,J) = ALBD1(I,J) + ( ALBD2(I,J) - ALBD1(I,J) ) * TM
-!  
-!         ENDIF
-!         
-!         ! 3D Variables: at midpt of dyn timestep
-!         UWND(I,J,L) = UWND1(I,J,L) + (UWND2(I,J,L) - UWND1(I,J,L)) * TM
-!         VWND(I,J,L) = VWND1(I,J,L) + (VWND2(I,J,L) - VWND1(I,J,L)) * TM
-!         SPHU(I,J,L) = SPHU1(I,J,L) + (SPHU2(I,J,L) - SPHU1(I,J,L)) * TM
-!         T(I,J,L)    = TMPU1(I,J,L) + (TMPU2(I,J,L) - TMPU1(I,J,L)) * TM
-!      ENDDO
-!      ENDDO
-!      ENDDO
-!!$OMP END PARALLEL DO
-!
-!#endif
-!-----------------------------------------------------------------------------
-
 #if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
 
       !=================================================================
@@ -675,8 +625,8 @@
       FUNCTION IS_LAND( I, J ) RESULT ( LAND )
 !
 !******************************************************************************
-!  Function IS_LAND returns TRUE if surface grid box (I,J) is a land 
-!  or a land-ice box.  (bmy, 6/26/00, 5/25/05)
+!  Function IS_LAND returns TRUE if surface grid box (I,J) is a land box.
+!  (bmy, 6/26/00, 8/10/05)
 !
 !  Arguments as Input
 !  ===========================================================================
@@ -699,6 +649,7 @@
 !        to CMN header file. (bmy, 3/11/03)
 !  (6 ) Added code to determine land boxes for GEOS-4 (bmy, 6/18/03)
 !  (7 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
+!  (8 ) Now return TRUE only for land boxes (w/ no ice) (bmy, 8/10/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -717,40 +668,50 @@
       !=================================================================
 #if   defined( GEOS_1 ) || defined( GEOS_STRAT )
 
-      ! For GEOS-1 or GEOS-STRAT -> LWI(I,J) = 2 is a land box
-      !                             LWI(I,J) = 3 is a land ice box
-      LAND = ( LWI(I,J) == 2 .or. LWI(I,J) == 3 )
+      !---------------------
+      ! GEOS-1 & GEOS-STRAT
+      !---------------------
+
+      ! LWI(I,J) = 2 is a land box
+      LAND = ( LWI(I,J) == 2 )
 
 
 #elif defined( GEOS_3 )
 
+      !---------------------
+      ! GEOS-3
+      !---------------------
       IF ( GET_YEAR() == 1998 ) THEN
- 
-         ! GEOS-3 fields for 1998 don't have LWI/SURFTYPE flags,
-         ! so we need to use albedo as a proxy for land coverage:
-         ! Land    : 0.08 < ALBEDO < 0.04
-         ! Land Ice: ALBEDO > 0.75
-         LAND = ( ( ALBD(I,J) > 0.08d0 .and. ALBD(I,J) < 0.55d0 ) .OR. 
-     &            ( ALBD(I,J) > 0. 75d0 ) )
+
+         ! Fields for 1998 don't have LWI/SURFTYPE flags, so use albedo 
+         ! as a proxy for land coverage instead: 0.08 < ALBEDO < 0.55
+         LAND = ( ALBD(I,J) > 0.08d0 .and. ALBD(I,J) < 0.55d0 )
 
       ELSE
 
-         ! For other GEOS-3 years, LWI/SURFTYPE flags are included
-         ! Land: LWI < 50
-         LAND = ( LWI(I,J) < 50 )
+         ! Otherwise LWI < 50 and ALBEDO less than 69.5% is a water box 
+         LAND = ( LWI(I,J) < 50 .and. ALBD(I,J) < 0.695d0 )
 
       ENDIF
 
 #elif defined( GEOS_4 ) || defined( GEOS_5 )
 
-      ! For GEOS-4/GEOS-5: LWI=1 is a land box (bmy, 6/16/03)
-      LAND = ( LWI(I,J) == 1 )
+      !---------------------
+      ! GEOS-4 & GEOS-5
+      !---------------------
+
+      ! LWI=1 and ALBEDO less than 69.5% is a LAND box 
+      LAND = ( LWI(I,J) == 1 .and. ALBD(I,J) < 0.695d0 )
 
 #elif defined( GCAP )
 
-      ! For GCAP: It's a land box if 50% or more of 
-      ! the box is covered by land (swu, bmy, 5/25/05)
-      LAND = ( LWI_GISS(I,J) > = 0.5d0 )
+      !-----------------------
+      ! GCAP
+      !-----------------------
+
+      ! It's a land box if 50% or more of the box is covered by 
+      ! land and less than 50% of the box is covered by ice
+      LAND = ( LWI_GISS(I,J) > = 0.5d0 .and. SNICE(I,J) < 0.5d0 )
     
 #endif
 
@@ -763,7 +724,7 @@
 !
 !******************************************************************************
 !  Function IS_WATER returns TRUE if surface grid box (I,J) is an ocean 
-!  or an ocean-ice box.  (bmy, 6/26/00, 5/25/05)
+!  or an ocean-ice box.  (bmy, 6/26/00, 8/10/05)
 !
 !  Arguments as Input
 !  ===========================================================================
@@ -786,6 +747,7 @@
 !        to CMN header file. (bmy, 3/11/03)
 !  (6 ) Added code to determine water boxes for GEOS-4 (bmy, 6/18/03)
 !  (7 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
+!  (8 ) Now remove test for sea ice (bmy, 8/10/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -804,44 +766,125 @@
       !=================================================================
 #if   defined( GEOS_1 ) || defined( GEOS_STRAT )
 
-      ! For GEOS-1 or GEOS-STRAT -> LWI(I,J) = 1 is an ocean box
-      !                             LWI(I,J) = 4 is an ocean ice box
-      WATER = ( LWI(I,J) == 1 .or. LWI(I,J) == 4 )
+      !---------------------
+      ! GEOS-1 & GEOS-STRAT
+      !---------------------
+
+      ! LWI(I,J) = 1 is an ocean box
+      WATER = ( LWI(I,J) == 1 )
 
 #elif defined( GEOS_3 )
       
+      !---------------------
+      ! GEOS-3 
+      !---------------------
       IF ( GET_YEAR() == 1998 ) THEN
 
-         ! GEOS-3 fields for 1998 don't have LWI/SURFTYPE flags,
-         ! so we need to use albedo as a proxy for water coverage:
-         ! Liquid Water : ALBEDO < 0.08
-         ! Water Ice    : 0.5  < ALBEDO < 0.75
-         WATER = ( ( ALBD(I,J) < 0.08d0 ) .OR. 
-     &             ( ALBD(I,J) > 0.55d0 .and. ALBD(I,J) < 0.75d0 ) ) 
+         ! 1998 fields don't have LWI/SURFTYPE flags, so use albedo as 
+         ! a proxy for water coverage: 55%  < ALBEDO < 69.5%
+         WATER = ( ALBD(I,J) > 0.55d0 .and. ALBD(I,J) < 0.695d0 )
 
       ELSE
 
-         ! For other GEOS-3 years, LWI/SURFTYPE flags are included
-         ! Water: LWI >= 50 
-         WATER = ( LWI(I,J) >= 50 )
-
+         ! Otherwise LWI >= 50 and ALBEDO less than 69.5% is a water box
+         WATER = ( LWI(I,J) >= 50 .and. ALBD(I,J) < 0.695d0 )
+         
       ENDIF
 
 #elif defined( GEOS_4 ) || defined( GEOS_5 )
+      
+      !----------------------
+      ! GEOS-4 and GEOS-5
+      !----------------------
 
-      ! GEOS-4/GEOS-5: LWI=0 is water; LWI=2 is sea ice 
-      WATER = ( LWI(I,J) == 0 .or. LWI(I,J) == 2 )
+      ! LWI=0 and ALBEDO less than 69.5% is a water box 
+      WATER = ( LWI(I,J) == 0 .and. ALBD(I,J) < 0.695d0 )
 
 #elif defined( GCAP )
 
-      ! For GCAP: It's a water box if less than 50% of 
-      ! the box is covered by land (swu, bmy, 5/25/05) 
-      WATER = ( LWI_GISS(I,J) < 0.5d0 )
+      !-----------------------
+      ! GCAP
+      !-----------------------
+
+      ! It's a water box if less than 50% of the box is
+      ! covered by land and less than 50% is covered by ice
+      WATER = ( LWI_GISS(I,J) < 0.5d0 .and. SNICE(I,J) < 0.5d0 )
 
 #endif
 
       ! Return to calling program
       END FUNCTION IS_WATER
+
+!------------------------------------------------------------------------------
+
+      FUNCTION IS_ICE( I, J ) RESULT ( ICE )
+!
+!******************************************************************************
+!  Function IS_ICE returns TRUE if surface grid box (I,J) contains either
+!  land-ice or sea-ice. (bmy, 8/9/05)
+!
+!  Arguments as Input
+!  ===========================================================================
+!  (1-2) I, J : Longitude and latitude indices of the grid box
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE TIME_MOD, ONLY : GET_YEAR
+
+#     include "CMN_SIZE"    ! Size parameters
+
+      ! Arguments
+      INTEGER, INTENT(IN)  :: I, J
+
+      ! Return variable
+      LOGICAL              :: ICE
+
+      !=================================================================
+      ! IS_WATER begins here!
+      !=================================================================
+#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+
+      !---------------------
+      ! GEOS-1 & GEOS-STRAT
+      !---------------------
+
+      ! LWI > 2 is an ice box
+      ICE = ( LWI(I,J) > 2 )
+
+#elif defined( GEOS_3 )
+
+      !---------------------
+      ! GEOS-3
+      !---------------------      
+
+      ! Fields for 1998 don't have LWI/SURFTYPE flags, so use albedo 
+      ! as a proxy for water coverage instead: ALBEDO > 0.695
+      ICE = ( ALBD(I,J) >= 0.695d0 )
+
+#elif defined( GEOS_4 ) || defined( GEOS_5 )
+
+      !---------------------
+      ! GEOS-4 & GEOS-5
+      !---------------------  
+
+      ! LWI=2 or ALBEDO > 69.5% is ice
+      ICE = ( LWI(I,J) == 2 .or. ALBD(I,J) >= 0.695d0 )
+
+#elif defined( GCAP )
+
+      !-----------------------
+      ! GCAP
+      !-----------------------
+
+      ! It's an ice box if 50% or more of the box is covered by ice
+      ICE = ( SNICE(I,J) >= 0.5d0 )
+
+#endif
+
+      ! Return to calling program
+      END FUNCTION IS_ICE
 
 !------------------------------------------------------------------------------
 
@@ -1537,13 +1580,13 @@
 !  (13) Now modified for GCAP met fields.  Removed references to CO-OH param 
 !        simulation.  Now allocate AVGW only for fullchem or offline aerosol
 !        simulations. (bmy, 6/24/05)
+!  (14) Now allocate SNOW and GWETTOP for GCAP (bmy, 8/17/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE LOGICAL_MOD, ONLY : LWETD, LDRYD, LCHEM
-      USE TRACER_MOD,  ONLY : ITS_AN_AEROSOL_SIM, 
-     &                        ITS_A_FULLCHEM_SIM, ITS_A_HCN_SIM
+      USE TRACER_MOD,  ONLY : ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
 
 #     include "CMN_SIZE"    ! Size parameters 
 
@@ -1585,7 +1628,7 @@
       ALBD = 0d0
 
       ! AVGW is only used for NOx-Ox-HC or aerosol simulations
-      IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_HCN_SIM() ) THEN 
+      IF ( ITS_A_FULLCHEM_SIM() .or. ITS_AN_AEROSOL_SIM() ) THEN 
          ALLOCATE( AVGW( IIPAR, JJPAR, LLPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AVGW' )
          AVGW = 0d0
@@ -1644,7 +1687,7 @@
 
 #endif
 
-#if   defined( GEOS_3 ) || defined( GEOS_4 )
+#if   defined( GEOS_3 ) || defined( GEOS_4 ) || defined( GCAP )
 
       ! GWETTOP is defined for GEOS-3 or GEOS-4 
       ALLOCATE( GWETTOP( IIPAR, JJPAR ), STAT=AS )
@@ -1769,6 +1812,10 @@
       ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
       RADLWG = 0d0
+
+#endif
+
+#if   defined( GEOS_3 ) || defined( GEOS_4 ) || defined( GCAP )
 
       ALLOCATE( SNOW( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOW' )

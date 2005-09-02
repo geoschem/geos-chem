@@ -1,9 +1,9 @@
-! $Id: cleanup.f,v 1.11 2005/06/23 19:32:55 bmy Exp $
+! $Id: cleanup.f,v 1.12 2005/09/02 15:17:00 bmy Exp $
       SUBROUTINE CLEANUP
 !
 !******************************************************************************
 !  Subroutine CLEANUP deallocates the memory assigned to dynamic allocatable 
-!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 6/23/05)
+!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 8/15/05)
 !
 !  NOTES:
 !  (1 ) CLEANUP is written in Fixed-Format F90.
@@ -61,6 +61,8 @@
 !  (29) Now call CLEANUP_PBL_MIX from "pbl_mix_mod.f".  Now call CLEANUP_DIAG41
 !        from "diag41_mod.f". (bmy, 2/17/05)
 !  (30) Now calls CLEANUP_HCN_CH3CN from "hcn_ch3cn_mod.f (bmy, 6/23/05)
+!  (31) Now calls CLEANUP_DIAG04, CLEANUP_CO2, and CLEANUP_TROPOPAUSE 
+!         (bmy, 8/15/05) 
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -71,10 +73,12 @@
       USE BIOFUEL_MOD,       ONLY : CLEANUP_BIOFUEL
       USE C2H6_MOD,          ONLY : CLEANUP_C2H6
       USE CARBON_MOD,        ONLY : CLEANUP_CARBON
+      USE CO2_MOD,           ONLY : CLEANUP_CO2
       USE COMODE_MOD,        ONLY : CLEANUP_COMODE
       USE DAO_MOD,           ONLY : CLEANUP_DAO
       USE DIAG_MOD,          ONLY : CLEANUP_DIAG
       USE DIAG03_MOD,        ONLY : CLEANUP_DIAG03
+      USE DIAG04_MOD,        ONLY : CLEANUP_DIAG04
       USE DIAG41_MOD,        ONLY : CLEANUP_DIAG41
       USE DIAG50_MOD,        ONLY : CLEANUP_DIAG50
       USE DIAG51_MOD,        ONLY : CLEANUP_DIAG51
@@ -105,6 +109,7 @@
       USE TPCORE_FVDAS_MOD,  ONLY : EXIT_TPCORE
       USE TRACER_MOD,        ONLY : CLEANUP_TRACER
       USE TRANSPORT_MOD,     ONLY : CLEANUP_TRANSPORT
+      USE TROPOPAUSE_MOD,    ONLY : CLEANUP_TROPOPAUSE
       USE UVALBEDO_MOD,      ONLY : CLEANUP_UVALBEDO
       USE WETSCAV_MOD,       ONLY : CLEANUP_WETSCAV
 
@@ -123,10 +128,12 @@
       CALL CLEANUP_BIOFUEL
       CALL CLEANUP_C2H6
       CALL CLEANUP_CARBON
+      CALL CLEANUP_CO2
       CALL CLEANUP_COMODE
       CALL CLEANUP_DAO
       CALL CLEANUP_DIAG
       CALL CLEANUP_DIAG03
+      CALL CLEANUP_DIAG04
       CALL CLEANUP_DIAG41
       CALL CLEANUP_DIAG50
       CALL CLEANUP_DIAG51
@@ -156,6 +163,7 @@
       CALL CLEANUP_TRANSPORT
       CALL CLEANUP_TOMS
       CALL CLEANUP_TRACER
+      CALL CLEANUP_TROPOPAUSE
       CALL CLEANUP_UVALBEDO
       CALL CLEANUP_WETSCAV
       CALL EXIT_TPCORE

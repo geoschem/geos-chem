@@ -1,10 +1,10 @@
-! $Id: CO_strat_pl.f,v 1.3 2005/03/29 15:52:38 bmy Exp $
+! $Id: CO_strat_pl.f,v 1.4 2005/09/02 15:16:52 bmy Exp $
       SUBROUTINE CO_STRAT_PL( COPROD, COLOSS )
 !
 !******************************************************************************
 !  Subroutine CO_STRAT_PL computes net production of CO above the 
 !  annual mean tropopause using archived rates for P(CO) and L(CO).
-!  (bnd, qli, bmy, 12/9/99, 7/20/04)
+!  (bnd, qli, bmy, 12/9/99, 8/22/05)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -22,18 +22,25 @@
 !  (4 ) Now use function GET_TS_CHEM from "time_mod.f".  Updated comments.
 !        (bmy, 2/11/03)
 !  (5 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
+!  (6 ) Now use functions from "tropopause_mod.f" to diagnose whether a box
+!        is in the stratosphere or not.  Remove reference to CMN, it's 
+!        obsolete. (bmy, 8/22/05)
 !******************************************************************************
 !
       ! References to F90 modules 
-      USE DAO_MOD,      ONLY : AD
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTCO, IDTCH2O
+      USE DAO_MOD,        ONLY : AD
+      USE TIME_MOD,       ONLY : GET_TS_CHEM
+      USE TRACER_MOD,     ONLY : STT
+      USE TRACERID_MOD,   ONLY : IDTCO, IDTCH2O
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP, GET_MIN_TPAUSE_LEVEL
 
       IMPLICIT NONE
      
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN"        ! LPAUSE
+!-------------------------------------------------
+! Prior to 8/22/05:
+!#     include "CMN"        ! LPAUSE
+!-------------------------------------------------
 #     include "CMN_O3"     ! XNUMOLAIR
 
       ! Arguments
@@ -72,13 +79,24 @@
       !     --------
       !       cm3
       !=================================================================
-      DO L = MINVAL( LPAUSE ), LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+
+      ! Get the minimum extent of the tropopause
+      LMIN = GET_MIN_TPAUSE_LEVEL()
+
+      !----------------------------------
+      ! Prior to 8/22/05:
+      !DO L = MINVAL( LPAUSE ), LLPAR
+      !----------------------------------
+      DO L = LMIN, LLPAR
+      DO J = 1,    JJPAR
+      DO I = 1,    IIPAR
 
          ! Skip tropospheric grid boxes
-         IF ( L < LPAUSE(I,J) ) CYCLE
-         !IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
+         !--------------------------------------
+         ! Prior to 8/22/05:
+         !IF ( L < LPAUSE(I,J) ) CYCLE
+         !--------------------------------------
+         IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
 
          ! conversion factor from [kg/box] to [molec/cm3]
          STTTOGCO = 6.022d23 / ( 28d-3 * BOXVL(I,J,L) )

@@ -1,4 +1,4 @@
-! $Id: planeflight_mod.f,v 1.14 2005/06/22 20:50:05 bmy Exp $
+! $Id: planeflight_mod.f,v 1.15 2005/09/02 15:17:20 bmy Exp $
       MODULE PLANEFLIGHT_MOD
 !
 !******************************************************************************
@@ -1001,7 +1001,7 @@
 !
 !******************************************************************************
 !  Subroutine TEST_VALID tests to see if we are w/in the tropopause, which
-!  is where SMVGEAR chemistry is done (mje, bmy, 7/8/02, 4/23/03)
+!  is where SMVGEAR chemistry is done (mje, bmy, 7/8/02, 8/22/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1022,15 +1022,20 @@
 !        be done correctly.  Also make sure that I is computed correctly
 !	 for points near the date line.  (bmy, 4/23/04)
 !  (4 ) Now references ITS_A_FULLCHEM_SIM from "tracer_mod.f" (bmy, 7/20/04)
+!  (5 ) Now references ITS_IN_THE_TROP from "tropopause_mod.f" (bmy, 8/22/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE COMODE_MOD,   ONLY : JLOP
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM
+      USE COMODE_MOD,     ONLY : JLOP
+      USE PRESSURE_MOD,   ONLY : GET_PEDGE
+      USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN"        ! LPAUSE
+!--------------------------------------------------
+! Prior to 8/22/05:
+!#     include "CMN"        ! LPAUSE
+!--------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)  :: IND
@@ -1070,11 +1075,18 @@
       ! Error check: L must be 1 or higher
       IF ( L == 0 ) L = 1
 
+      !----------------------------------------------------------------------
+      ! Prior to 8/22/05:
+      !!=================================================================
+      !! L <  LPAUSE(I,J) is a TROPOSPHERIC  box -- we do chem there
+      !! L >= LPAUSE(I,J) is a STRATOSPHERIC box -- no chem is done
+      !!=================================================================
+      !IF ( L < LPAUSE(I,J) ) THEN 
+      !----------------------------------------------------------------------
       !=================================================================
-      ! L <  LPAUSE(I,J) is a TROPOSPHERIC  box -- we do chem there
-      ! L >= LPAUSE(I,J) is a STRATOSPHERIC box -- no chem is done
+      ! We only do full-chemistry in the troposphere
       !=================================================================
-      IF ( L < LPAUSE(I,J) ) THEN 
+      IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN 
 
          IF ( ITS_A_FULLCHEM_SIM() ) THEN
   
@@ -1203,13 +1215,6 @@
       !=================================================================
       ! ARCHIVE_RXNS_FOR_PF begins here!
       !=================================================================
-      !-----------------------------------------------------------------
-      ! Prior to 5/20/05:
-      ! Bug fix: Replace with DO_PF since this variable is reset to 
-      ! either T or F each day depending on whether there is a 
-      ! plane flight data file (bmy, 5/20/05)
-      !IF ( ND40 > 0 ) THEN
-      !-----------------------------------------------------------------
       IF ( DO_PF ) THEN
 
          ! Loop over SMVGEAR reactions

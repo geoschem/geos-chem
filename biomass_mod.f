@@ -1,10 +1,10 @@
-! $Id: biomass_mod.f,v 1.8 2005/06/27 19:41:43 bmy Exp $
+! $Id: biomass_mod.f,v 1.9 2005/09/02 15:16:57 bmy Exp $
       MODULE BIOMASS_MOD
 !
 !******************************************************************************
 !  Module BIOMASS_MOD contains arrays and routines to compute monthly
 !  biomass burning emissions for NOx, CO, ALK4, ACET, MEK, ALD2, PRPE, 
-!  C3H8, CH2O, C2H6, CH4, and CH3I. (bmy, 9/11/00, 3/18/05)
+!  C3H8, CH2O, C2H6, CH4, and CH3I. (bmy, 9/11/00, 8/16/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -143,6 +143,7 @@
 !        to routine READ_BIOMASS. (bmy, 4/28/03)
 !  (26) Now references "directory_mod.f" & "logical_mod.f" (bmy, 7/20/04)
 !  (27) Bug fix in BIOBURN for TAU w/ interannual emissions (bmy, 3/18/05)
+!  (28) Now can read data for both GEOS and GCAP grids (bmy, 3/18/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -196,7 +197,7 @@
 !
 !******************************************************************************
 !  Subroutine BIOBURN computes the biomass burning emissions for several
-!  species for the given month (jal, acs, rvm, bmy, 9/11/00, 3/18/05)
+!  species for the given month (jal, acs, rvm, bmy, 9/11/00, 8/16/05)
 !
 !  NOTES:
 !  (1 ) Incorporated original functionality of "bioburn.f" and "biomass.h"
@@ -264,6 +265,7 @@
 !         for the first of the current month & year.  This will make sure that
 !         runs which start mid-month will access the biomass data correctly.
 !         (bmy, 3/18/05)
+!  (24) Now can read data from both GEOS and GCAP grids (bmy, 8/16/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -404,8 +406,14 @@
             XTAU = GET_TAU0( GET_MONTH(), 1, 1985 )
 
             ! Filename for seasonal biomass burning emissions
-            FILENAME = TRIM( DATA_DIR ) // TRIM( BIOMASS_DIR ) // 
-     &                 'bioburn.seasonal.geos.' // GET_RES_EXT()
+!-------------------------------------------------------------------------
+! Prior to 8/16/05:
+!            FILENAME = TRIM( DATA_DIR ) // TRIM( BIOMASS_DIR ) // 
+!     &                 'bioburn.seasonal.geos.' // GET_RES_EXT()
+!-------------------------------------------------------------------------
+            FILENAME = TRIM( DATA_DIR )    // TRIM( BIOMASS_DIR ) // 
+     &                 'bioburn.seasonal.' // GET_NAME_EXT_2D()   //
+     &                 '.'                 // GET_RES_EXT()
 
             ! Read the seasonal biomass burning emissions from disk
             CALL READ_BIOMASS( FILENAME, XTAU, BIOMASS )
@@ -425,8 +433,14 @@
             XTAU = GET_TAU0( GET_MONTH(), 1, 1985 )            
 
             ! Filename for seasonal biomass burning emissions
-            FILENAME = TRIM( DATA_DIR ) // TRIM( BIOMASS_DIR ) //
-     &                 'bioburn.seasonal.geos.' // GET_RES_EXT()
+!-----------------------------------------------------------------------------
+! Prior to 8/16/05:
+!            FILENAME = TRIM( DATA_DIR ) // TRIM( BIOMASS_DIR ) //
+!     &                 'bioburn.seasonal.geos.' // GET_RES_EXT()
+!-----------------------------------------------------------------------------
+            FILENAME = TRIM( DATA_DIR )    // TRIM( BIOMASS_DIR ) //
+     &                 'bioburn.seasonal.' // GET_NAME_EXT_2D()   //
+     &                 '.'                 // GET_RES_EXT()
 
             ! Read the seasonal biomass burning emissions into BIOMASS_SEA
             CALL READ_BIOMASS( FILENAME, XTAU, 
@@ -436,8 +450,14 @@
             XTAU = GET_TAU0( 1, 1, 1985 )
 
             ! Filename for annual biomass burning emissions 
-            FILENAME = TRIM( DATA_DIR ) // TRIM( BIOMASS_DIR ) //
-     &                 'bioburn.annual.geos.' // GET_RES_EXT()
+!------------------------------------------------------------------------------
+! Prior to 8/16/05:
+!            FILENAME = TRIM( DATA_DIR ) // TRIM( BIOMASS_DIR ) //
+!     &                 'bioburn.annual.geos.' // GET_RES_EXT()
+!------------------------------------------------------------------------------
+            FILENAME = TRIM( DATA_DIR )  // TRIM( BIOMASS_DIR ) //
+     &                 'bioburn.annual.' // GET_NAME_EXT_2D()   //
+     &                 '.'               // GET_RES_EXT()
 
             ! Read the annual biomass burning emissions into BIOMASS_ANN
             CALL READ_BIOMASS( FILENAME, XTAU, 
@@ -469,8 +489,14 @@
                XTAU = GET_TAU0( GET_MONTH(), 1, 1985 )
 
                ! Filename for seasonal biomass burning emissions
-               FILENAME = TRIM( DATA_DIR ) // TRIM( BIOMASS_DIR ) //
-     &                    'bioburn.seasonal.geos.' // GET_RES_EXT()
+!-----------------------------------------------------------------------------
+! Prior to 8/16/05:
+!               FILENAME = TRIM( DATA_DIR ) // TRIM( BIOMASS_DIR ) //
+!     &                    'bioburn.seasonal.geos.' // GET_RES_EXT()
+!-----------------------------------------------------------------------------
+               FILENAME = TRIM( DATA_DIR )    // TRIM( BIOMASS_DIR ) //
+     &                    'bioburn.seasonal.' // GET_NAME_EXT_2D()   //
+     &                    '.'                 // GET_RES_EXT() 
 
                ! Read the seasonal biomass burning emissions into BIOMASS_SEA
                CALL READ_BIOMASS( FILENAME, XTAU, 
@@ -481,8 +507,14 @@
                XTAU = GET_TAU0( 1, 1, 1985 )
 
                ! Filename for annual biomass burning emissions
-               FILENAME = TRIM( DATA_DIR ) // TRIM( BIOMASS_DIR ) //
-     &                    'bioburn.annual.geos.' // GET_RES_EXT()
+!-----------------------------------------------------------------------------
+! Prior to 8/16/05:
+!               FILENAME = TRIM( DATA_DIR ) // TRIM( BIOMASS_DIR ) //
+!     &                    'bioburn.annual.geos.' // GET_RES_EXT()
+!-----------------------------------------------------------------------------
+               FILENAME = TRIM( DATA_DIR )  // TRIM( BIOMASS_DIR ) //
+     &                    'bioburn.annual.' // GET_NAME_EXT_2D()   //
+     &                    '.'               // GET_RES_EXT()
 
                ! Read the annual biomass burning emissions from disk
                CALL READ_BIOMASS( FILENAME, XTAU, 
@@ -500,9 +532,17 @@
                XTAU = GET_TAU()
 
                ! Filename for interannual variability biomass burning emissions
-               FILENAME = TRIM( DATA_DIR ) // TRIM( BIOMASS_DIR ) //
-     &                    'bioburn.interannual.geos.' // 
-     &                    GET_RES_EXT() // '.' // CYEAR           
+!-----------------------------------------------------------------------------
+! Prior to 8/16/05:
+!               FILENAME = TRIM( DATA_DIR ) // TRIM( BIOMASS_DIR ) //
+!     &                    'bioburn.interannual.geos.' // 
+!     &                    GET_RES_EXT() // '.' // CYEAR           
+!-----------------------------------------------------------------------------
+               FILENAME = TRIM( DATA_DIR )       // 
+     &                    TRIM( BIOMASS_DIR )    //
+     &                    'bioburn.interannual.' // GET_NAME_EXT_2D() // 
+     &                    '.'                    // GET_RES_EXT()     // 
+     &                    '.'                    // CYEAR           
 
                ! Read interannual variability biomass burning
                CALL READ_BIOMASS( FILENAME, XTAU, BIOMASS )
@@ -517,22 +557,21 @@
          !==============================================================
          ELSE IF ( ( .not. LBBSEA ) .and. ( .not. LTOMSAI ) ) THEN
 
-            !--------------------------------------------------------------
-            ! Prior to 3/18/05:
-            ! Need to get the TAU0 value for the first day of the current 
-            ! month and year so that runs which don't start on the first 
-            ! day of the month won't die (bmy, 3/18/05)
-            !! Use actual TAU0 value to index punch file
-            !XTAU = GET_TAU()
-            !---------------------------------------------------------------
-
             ! TAU0 value for 0 GMT on the first day of this month & year
             XTAU = GET_TAU0( GET_MONTH(), 1, GET_YEAR() )
 
             ! Filename for interannual variability biomass burning emissions
-            FILENAME = TRIM( DATA_DIR ) // TRIM( BIOMASS_DIR ) //      
-     &                'bioburn.interannual.geos.' // 
-     &                 GET_RES_EXT() // '.' // CYEAR
+!------------------------------------------------------------------------------
+! Prior to 8/16/05:
+!            FILENAME = TRIM( DATA_DIR ) // TRIM( BIOMASS_DIR ) //      
+!     &                'bioburn.interannual.geos.' // 
+!     &                 GET_RES_EXT() // '.' // CYEAR
+!------------------------------------------------------------------------------
+            FILENAME = TRIM( DATA_DIR )       // 
+     &                 TRIM( BIOMASS_DIR )    //      
+     &                 'bioburn.interannual.' // GET_NAME_EXT_2D() // 
+     &                 '.'                    // GET_RES_EXT()     // 
+     &                 '.'                    // CYEAR
                
             ! Read interannual variability biomass burning
             CALL READ_BIOMASS( FILENAME, XTAU, BIOMASS )

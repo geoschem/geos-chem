@@ -1,14 +1,11 @@
-! $Id: schem.f,v 1.5 2004/12/02 21:48:40 bmy Exp $
+! $Id: schem.f,v 1.6 2005/09/02 15:17:22 bmy Exp $
       SUBROUTINE SCHEM
 !
 !******************************************************************************
 !  Subroutine SCHEM performs simplified stratospheric chemistry, which means
 !  only reactions with OH and photolysis are considered. The production and
 !  loss of CO and NOy in the stratosphere are taken from Dylan Jones' 2-D 
-!  model. (qli, bmy, 11/20/1999, 7/20/04) 
-!
-!  We now use the annual mean tropopause, as read into the LPAUSE
-!  array by "read_tropopause.f".
+!  model. (qli, bmy, 11/20/1999, 8/22/05) 
 !
 !  NOTES:
 !  (1 ) Now read all inputs (stratospheric OH, monthly mean J-values,  
@@ -58,29 +55,36 @@
 !        DATA_DIR from "directory_mod.f".  Bug fix: now loop over N_TRACERS
 !        and not NNPAR.  NNPAR is the max # of tracers but may not be the
 !        actual number of tracers. (bmy, 7/20/04)
+!  (19) Now references GET_MIN_TPAUSE_LEVEL and ITS_IN_THE_STRAT from
+!        "tropopause_mod.f".  Now remove reference to CMN, it's obsolete.
+!        (bmy, 8/22/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE DAO_MOD,       ONLY : AD, T
-      USE DIRECTORY_MOD, ONLY : DATA_DIR 
-      USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE TIME_MOD,      ONLY : GET_MONTH,   GET_TAU, 
-     &                          GET_TS_CHEM, TIMESTAMP_STRING
-      USE TRACER_MOD,    ONLY : N_TRACERS,   STT, TRACER_MW_KG
+      USE DAO_MOD,        ONLY : AD, T
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR 
+      USE ERROR_MOD,      ONLY : ALLOC_ERR
+      USE TIME_MOD,       ONLY : GET_MONTH,   GET_TAU, 
+     &                           GET_TS_CHEM, TIMESTAMP_STRING
+      USE TRACER_MOD,     ONLY : N_TRACERS,   STT, TRACER_MW_KG
       USE TRACERID_MOD
-      USE TRANSFER_MOD,  ONLY : TRANSFER_ZONAL
+      USE TRANSFER_MOD,   ONLY : TRANSFER_ZONAL
+      USE TROPOPAUSE_MOD, ONLY : GET_MIN_TPAUSE_LEVEL, ITS_IN_THE_STRAT
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"        ! Size parameters
-#     include "CMN"             ! LPAUSE
+!-------------------------------------------------------
+! Prior to 8/22/05:
+!#     include "CMN"             ! LPAUSE
+!-------------------------------------------------------
 #     include "CMN_O3"          ! XNUMOLAIR
 
       ! Local variables
       LOGICAL, SAVE             :: FIRST = .TRUE.
 
-      INTEGER                   :: I, IOS, J, L, N, NN
+      INTEGER                   :: I, IOS, J, L, N, NN, LMIN
       INTEGER, SAVE             :: MONTHSAVE = 0 
       
       ! Number of photolysis species (currently is 13)
@@ -242,6 +246,10 @@
       ! Do photolysis for selected tracers with this 
       ! month's archived J-values
       !=================================================================
+
+      ! Get the minimum level extent of the ann mean tropopause
+      LMIN = GET_MIN_TPAUSE_LEVEL()
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, NN )
@@ -249,17 +257,32 @@
       DO NN = 1, NSPHOTO
          N = SPHOTOID(NN)
 
-         DO L = MINVAL( LPAUSE ), LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         !---------------------------------
+         ! Prior to 8/22/05:
+         !DO L = MINVAL( LPAUSE ), LLPAR
+         !---------------------------------
+         DO L = LMIN, LLPAR
+         DO J = 1,    JJPAR
+         DO I = 1,    IIPAR
 
-            ! Skip tropospheric grid boxes
-            IF ( L < LPAUSE(I,J) ) CYCLE
+!-------------------------------------------------------------------
+! Prior to 8/22/05:
+!            ! Skip tropospheric grid boxes
+!            IF ( L < LPAUSE(I,J) ) CYCLE
+!
+!            ! Compute photolysis loss 
+!            STT(I,J,L,N) = STT(I,J,L,N) * 
+!     &                     EXP( -SJVALUE(J,L,NN) * DTCHEM )
+!-------------------------------------------------------------------
+          
+            ! Only proceed for stratospheric boxes
+            IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
 
-            ! Compute photolysis loss 
-            STT(I,J,L,N) = STT(I,J,L,N) * 
-     &                     EXP( -SJVALUE(J,L,NN) * DTCHEM )
-            
+               ! Compute photolysis loss 
+               STT(I,J,L,N) = STT(I,J,L,N) * 
+     &                        EXP( -SJVALUE(J,L,NN) * DTCHEM )
+            ENDIF
+
          ENDDO
          ENDDO
          ENDDO
@@ -272,9 +295,7 @@
       ! CO is special -- 
       ! use archived P, L rates for CO chemistry in stratosphere
       !=================================================================
-      !print*, 'In schem, before CO_strat'
       CALL CO_STRAT_PL( COPROD, COLOSS )
-      !print*, 'In schem, after CO_strat'
 
       !=================================================================
       ! Reaction with OH -- compute rate constants for each tracer
@@ -285,105 +306,117 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, M, TK, RC, k0, k1, RDLOSS, T1L )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO N = 1, N_TRACERS
-      DO L = MINVAL( LPAUSE ), LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      !--------------------------------------
+      ! Prior to 8/22/05:
+      !DO N = 1, N_TRACERS
+      !DO L = MINVAL( LPAUSE ), LLPAR
+      !DO J = 1, JJPAR
+      !DO I = 1, IIPAR
+      !--------------------------------------
+      DO N = 1,    N_TRACERS
+      DO L = LMIN, LLPAR
+      DO J = 1,    JJPAR
+      DO I = 1,    IIPAR
 
-         ! Skip tropospheric grid boxes
-         IF ( L < LPAUSE(I,J) ) CYCLE
+         !---------------------------------------
+         ! Prior to 8/22/05:
+         !! Skip tropospheric grid boxes
+         !IF ( L < LPAUSE(I,J) ) CYCLE
+         !---------------------------------------
 
-         ! Density of air at grid box (I,J,L) in molec/cm3
-         M = AD(I,J,L) / BOXVL(I,J,L) * XNUMOLAIR
+         ! Only proceed for stratospheric boxes
+         IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
 
-         ! Temperature at grid box (I,J,L) in K
-         TK = T(I,J,L)
+            ! Density of air at grid box (I,J,L) in molec/cm3
+            M = AD(I,J,L) / BOXVL(I,J,L) * XNUMOLAIR
 
-         ! Select proper reaction rate w/ OH for the given tracer
-         ! Some rates are temperature or density dependent
-         IF ( N == IDTALK4 ) THEN
-            RC = 8.20D-12 * EXP(  -300.D0 / TK )
+            ! Temperature at grid box (I,J,L) in K
+            TK = T(I,J,L)
+
+            ! Select proper reaction rate w/ OH for the given tracer
+            ! Some rates are temperature or density dependent
+            IF ( N == IDTALK4 ) THEN
+               RC = 8.20D-12 * EXP(  -300.D0 / TK )
          
-         ELSE IF ( N == IDTISOP ) THEN
-            RC = 2.55D-11 * EXP(   410.D0 / TK )
+            ELSE IF ( N == IDTISOP ) THEN
+               RC = 2.55D-11 * EXP(   410.D0 / TK )
 
-         ELSE IF ( N == IDTH2O2 ) THEN 
-            RC = 2.90D-12 * EXP(  -160.D0 / TK )
+            ELSE IF ( N == IDTH2O2 ) THEN 
+               RC = 2.90D-12 * EXP(  -160.D0 / TK )
                
-         ELSE IF ( N == IDTACET ) THEN
-            RC = 1.70D-12 * EXP(  -600.D0 / TK )
+            ELSE IF ( N == IDTACET ) THEN
+               RC = 1.70D-12 * EXP(  -600.D0 / TK )
                
-         ELSE IF ( N == IDTMEK  ) THEN 
-            RC = 2.92D-13 * EXP(   414.D0 / TK )
+            ELSE IF ( N == IDTMEK  ) THEN 
+               RC = 2.92D-13 * EXP(   414.D0 / TK )
             
-         ELSE IF ( N == IDTALD2 ) THEN 
-            RC = 1.40D-12 * EXP( -1860.D0 / TK )
+            ELSE IF ( N == IDTALD2 ) THEN 
+               RC = 1.40D-12 * EXP( -1860.D0 / TK )
                
-         ELSE IF ( N == IDTRCHO ) THEN 
-            RC = 2.00D-11
+            ELSE IF ( N == IDTRCHO ) THEN 
+               RC = 2.00D-11
                
-         ELSE IF ( N == IDTMVK  ) THEN 
-            RC = 4.13D-12 * EXP(   452.D0 / TK )
+            ELSE IF ( N == IDTMVK  ) THEN 
+               RC = 4.13D-12 * EXP(   452.D0 / TK )
                   
-         ELSE IF ( N == IDTMACR ) THEN 
-            RC = 1.86D-11 * EXP(  -175.D0 / TK )
+            ELSE IF ( N == IDTMACR ) THEN 
+               RC = 1.86D-11 * EXP(  -175.D0 / TK )
             
-         ELSE IF ( N == IDTPMN  ) THEN 
-            RC = 3.60D-12
+            ELSE IF ( N == IDTPMN  ) THEN 
+               RC = 3.60D-12
 
-         ELSE IF ( N == IDTR4N2 ) THEN
-            RC = 1.30D-12
+            ELSE IF ( N == IDTR4N2 ) THEN
+               RC = 1.30D-12
                
-         ELSE IF ( N == IDTPRPE ) THEN 
-            k0 = 8.0D-27 * ( 300.D0 / TK )**3.5
-            k1 = 3.0D-11
+            ELSE IF ( N == IDTPRPE ) THEN 
+               k0 = 8.0D-27 * ( 300.D0 / TK )**3.5
+               k1 = 3.0D-11
 
-            RC = k1 * k0 * M / ( k1 + k0*M )
-            RC = RC * 0.5 ** (1 / ( 1 + LOG10( k0*M/k1 )**2 ) )
+               RC = k1 * k0 * M / ( k1 + k0*M )
+               RC = RC * 0.5 ** (1 / ( 1 + LOG10( k0*M/k1 )**2 ) )
 
-         ELSE IF ( N == IDTC3H8 ) THEN
-            RC = 8.00D-12 * EXP(  -590.D0 / TK )
+            ELSE IF ( N == IDTC3H8 ) THEN
+               RC = 8.00D-12 * EXP(  -590.D0 / TK )
+               
+            ELSE IF ( N == IDTCH2O ) THEN
+               RC = 1.00D-12
+               
+            ELSE IF ( N == IDTC2H6 ) THEN
+               RC =  7.9D-12 * EXP( -1030.D0 / TK )
+               
+            ELSE IF ( N == IDTHNO4 ) THEN
+               RC = 1.30D-12 * EXP(   380.D0 / TK )
+               
+            ELSE IF ( N == IDTMP ) THEN
+               RC = 1.14D-12 * EXP(   200.D0 / TK )
 
-         ELSE IF ( N == IDTCH2O ) THEN
-            RC = 1.00D-12
+            ELSE
+               RC = 0d0
+               
+            ENDIF
 
-         ELSE IF ( N == IDTC2H6 ) THEN
-            RC =  7.9D-12 * EXP( -1030.D0 / TK )
+            ! Compute loss with OH based on the rate constants from above
+            ! Cap RDLOSS so that it does not exceed 1.0 (bmy, 5/4/00)
+            RDLOSS       = RC * STRATOH(J,L) * DTCHEM
+            RDLOSS       = MIN( RDLOSS, 1d0 )
 
-         ELSE IF ( N == IDTHNO4 ) THEN
-            RC = 1.30D-12 * EXP(   380.D0 / TK )
-            
-         ELSE IF ( N == IDTMP ) THEN
-            RC = 1.14D-12 * EXP(   200.D0 / TK )
-
-         ELSE
-            RC = 0d0
-
-         ENDIF
-
-         ! Compute loss with OH based on the rate constants from above
-         ! Cap RDLOSS so that it does not exceed 1.0 (bmy, 5/4/00)
-         RDLOSS       = RC * STRATOH(J,L) * DTCHEM
-         RDLOSS       = MIN( RDLOSS, 1d0 )
-
-         ! T1L is the absolute amount of STT lost to rxn with OH
-         ! Subtract T1L from STT 
-         T1L          = STT(I,J,L,N) * RDLOSS
-         STT(I,J,L,N) = STT(I,J,L,N) - T1L
+            ! T1L is the absolute amount of STT lost to rxn with OH
+            ! Subtract T1L from STT 
+            T1L          = STT(I,J,L,N) * RDLOSS
+            STT(I,J,L,N) = STT(I,J,L,N) - T1L
          
-         ! Oxidation of PRPE as source of ACET with 80% yield
-         IF ( N == IDTPRPE ) THEN
-            STT(I,J,L,IDTACET) = STT(I,J,L,IDTACET) +
-     &           0.8d0 * T1L * 
-     &           TRACER_MW_KG(IDTACET) / TRACER_MW_KG(IDTPRPE)
+            ! Oxidation of PRPE as source of ACET with 80% yield
+            IF ( N == IDTPRPE ) THEN
+               STT(I,J,L,IDTACET) = STT(I,J,L,IDTACET) +
+     &              0.8d0 * T1L * 
+     &              TRACER_MW_KG(IDTACET) / TRACER_MW_KG(IDTPRPE)
+            ENDIF
          ENDIF
       ENDDO
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-      !print*, 'In schem, done with reaction with OH'
 
       ! Set FIRST = .FALSE. -- we have been thru SCHEM at least once now
       FIRST = .FALSE.

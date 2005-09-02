@@ -1,4 +1,4 @@
-! $Id: CMN,v 1.4 2004/12/02 21:48:30 bmy Exp $
+! $Id: CMN,v 1.5 2005/09/02 15:16:51 bmy Exp $
       !=================================================================
       ! NOTES:
       ! (1 ) Changed RCS ID tag comment character from "C" to "!" to
@@ -21,7 +21,7 @@
       !       NSRCE.  Most of these are now superseded by either
       !       "grid_mod.f" or "time_mod.f". (bmy, 3/11/03)
       ! (5 ) Fix for LINUX - remove & in column 73 (bmy, 6/27/03)
-      ! (6 ) Remove obsolete variables (bmy, 7/19/04)
+      ! (6 ) Remove obsolete variables and XTRA2 (bmy, 8/2/05)
       !================================================================= 
 
       !=================================================================
@@ -30,11 +30,14 @@
       INTEGER ::      IEBD1, IEBD2, JEBD1, JEBD2
       COMMON /EMBCHM/ IEBD1, IEBD2, JEBD1, JEBD2
 
-      !=================================================================
-      ! XTRA2 holds BL height for the global region (1:IGLOB, 1:JGLOB)
-      !=================================================================
-      REAL*8 ::    XTRA2(IIPAR,JJPAR)
-      COMMON /ASC/ XTRA2
+      !-----------------------------------------------------------------------
+      ! Prior to 8/3/05:
+      !!=================================================================
+      !! XTRA2 holds BL height for the global region (1:IGLOB, 1:JGLOB)
+      !!=================================================================
+      !REAL*8 ::    XTRA2(IIPAR,JJPAR)
+      !COMMON /ASC/ XTRA2
+      !-----------------------------------------------------------------------
 
       !=================================================================
       ! LPAUSE  stores the annual mean tropopause (bmy, 12/6/99)

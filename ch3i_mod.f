@@ -1,9 +1,9 @@
-! $Id: ch3i_mod.f,v 1.5 2005/06/23 19:32:54 bmy Exp $
+! $Id: ch3i_mod.f,v 1.6 2005/09/02 15:16:59 bmy Exp $
       MODULE CH3I_MOD
 !
 !******************************************************************************
 !  Module CH3I_MOD contains emissions and chemistry routines for the CH3I
-!  (Methyl Iodide) simulation. (bmy, 1/23/02, 6/23/05)
+!  (Methyl Iodide) simulation. (bmy, 1/23/02, 8/16/05)
 !
 !  Module Routines:
 !  ============================================================================
@@ -13,17 +13,27 @@
 ! 
 !  GEOS-CHEM modules referenced by ch3i_mod.f
 !  ============================================================================
-!  (1 ) biofuel_mod.f   : Module containing routines to read biofuel emissions
-!  (2 ) biomass_mod.f   : Module containing routines to read biomass emissions
-!  (3 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
-!  (4 ) dao_mod.f       : Module containing arrays for DAO met fields  
-!  (5 ) diag_mod.f      : Module containing GEOS-CHEM diagnostic arrays
-!  (6 ) diag_pl_mod.f   : Module containing routines for prod & logs diag's
-!  (7 ) error_mod.f     : Module containing NaN and other error check routines
-!  (8 ) file_mod.f      : Module containing file unit numbers and error checks
-!  (9 ) tracerid_mod.f  : Module containing pointers to tracers & emissions
-!  (10) transfer_mod.f  : Module containing routines to cast & resize arrays
-!  (11) uvalbedo_mod.f  : Module containing routines to read UV albedo data
+!  (1 ) biofuel_mod.f   : Module w/ routines to read biofuel emissions
+!  (2 ) biomass_mod.f   : Module w/ routines to read biomass emissions
+!  (3 ) bpch2_mod.f     : Module w/ routines for binary punch file I/O
+!  (4 ) dao_mod.f       : Module w/ arrays for DAO met fields  
+!  (5 ) diag_mod.f      : Module w/ GEOS-CHEM diagnostic arrays
+!  (6 ) diag_pl_mod.f   : Module w/ routines for prod & logs diag's
+!  (7 ) error_mod.f     : Module w/ NaN and other error check routines
+!  (8 ) file_mod.f      : Module w/ file unit numbers and error checks
+!  (9 ) tracerid_mod.f  : Module w/ pointers to tracers & emissions
+!  (10) transfer_mod.f  : Module w/ routines to cast & resize arrays
+!  (11) uvalbedo_mod.f  : Module w/ routines to read UV albedo data
+!
+!  References
+!  ============================================================================
+!  (1 ) Bell, N. et al, "Methyl Iodide: Atmospheric budget and use as a tracer
+!        of marine convection in global models", J. Geophys. Res, 107(D17), 
+!        4340, 2002.
+!  (2 ) Nightingale et al [2000a], J. Geophys. Res, 14, 373-387
+!  (3 ) Nightingale et al [2000b], Geophys. Res. Lett, 27, 2117-2120
+!  (4 ) Wanninkhof, R., "Relation between wind speed and gas exchange over
+!        the ocean", J. Geophys. Res, 97, 7373-7382, 1992.
 !
 !  NOTES:
 !  (1 ) Removed obsolete code from 1/15/02 (bmy, 4/15/02)
@@ -40,6 +50,8 @@
 !        (bdf, bmy, 4/21/03)
 !  (9 ) Now references "directory_mod.f".  Now references "diag_pl_mod.f".
 !        (bmy, 7/20/04)
+!  (10) Now can read data for both GEOS and GCAP grids.  Now use Nightingale
+!        et al formulation for piston velocity Kw. (bmy, 8/16/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -98,6 +110,7 @@
 !  (12) Now bundled into "ch3i_mod.f" Updated comments, cosmetic changes.
 !        (bmy, 1/23/02)
 !  (13) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  (14) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -138,12 +151,20 @@
 !     &            'CH3I/ocean_npp.geos.' // GET_RES_EXT()
 
       ! Uncomment this to read aqueous CH3I
-      FILENAME = TRIM( DATA_DIR )        // 
-     &           'CH3I/ocean_ch3i.geos.' // GET_RES_EXT()
+!----------------------------------------------------------------------------
+! Prior to 8/16/05:
+!      FILENAME = TRIM( DATA_DIR )        // 
+!     &           'CH3I/ocean_ch3i.geos.' // GET_RES_EXT()
+!----------------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR )   // 
+     &           'CH3I/ocean_ch3i.' // GET_NAME_EXT_2D() //
+     &           '.'                // GET_RES_EXT()
+
 
       ! Read Caq in [ng/L] from the binary punch file
-      CALL READ_BPCH2( TRIM( FILENAME ), 'IJ-AVG-$', 71, XTAU,    
-     &                 IGLOB,             JGLOB,     1,  Q1 )
+      CALL READ_BPCH2( TRIM( FILENAME ), 'IJ-AVG-$', 71, 
+     &                 XTAU,              IGLOB,     JGLOB,     
+     &                 1,                 Q1,        QUIET=.TRUE. )
 
       ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
       CALL TRANSFER_2D( Q1(:,:,1), OCDATA )
@@ -151,12 +172,19 @@
       !=================================================================
       ! Read rice paddy emissions
       !=================================================================
-      FILENAME = TRIM( DATA_DIR )     // 
-     &           'CH3I/ch4_rice.geos' // GET_RES_EXT()
+!-------------------------------------------------------------------------
+! Prior to 8/16/05:
+!      FILENAME = TRIM( DATA_DIR )     // 
+!     &           'CH3I/ch4_rice.geos' // GET_RES_EXT()
+!-------------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR ) // 
+     &           'CH3I/ch4_rice.' // GET_NAME_EXT_2D() //
+     &           '.'              // GET_RES_EXT()
 
       ! Read CH4 rice paddy emissions in [kg/m2/s] 
-      CALL READ_BPCH2( TRIM( FILENAME ), 'CH4-SRCE', 1, XTAU,    
-     &                 IGLOB,             JGLOB,     1, Q1 )
+      CALL READ_BPCH2( TRIM( FILENAME ), 'CH4-SRCE', 1, 
+     &                 XTAU,              IGLOB,     JGLOB,     
+     &                 1,                 Q1,        QUIET=.TRUE. )
 
       ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
       CALL TRANSFER_2D( Q1(:,:,1), EFCH4R )
@@ -191,12 +219,19 @@
       !=================================================================
       ! Read CH4 wetland emissions
       !=================================================================
-      FILENAME = TRIM( DATA_DIR )      // 
-     &           'CH3I/ch4_wetl.geos.' // GET_RES_EXT()
+!--------------------------------------------------------------------------
+! Prior to 8/16/05:
+!      FILENAME = TRIM( DATA_DIR )      // 
+!     &           'CH3I/ch4_wetl.geos.' // GET_RES_EXT()
+!--------------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR ) // 
+     &           'CH3I/ch4_wetl.' // GET_NAME_EXT_2D() //
+     &           '.'              // GET_RES_EXT()
 
       ! Read CH4 rice paddy emissions in [kg/m2/s] 
-      CALL READ_BPCH2( TRIM( FILENAME ), 'CH4-SRCE', 2, XTAU,    
-     &                 IGLOB,             JGLOB,     1, Q1 )
+      CALL READ_BPCH2( TRIM( FILENAME ), 'CH4-SRCE', 2, 
+     &                 XTAU,              IGLOB,     JGLOB,     
+     &                 1,                 Q1,        QUIET=.TRUE. )
 
       ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
       CALL TRANSFER_2D( Q1(:,:,1), EFCH4W )
@@ -344,6 +379,10 @@
      
       ! surface layer gas concentration (ocean)
       REAL*8             :: CGAS      
+
+      ! For Nightingale sea-air transfer formulation
+      REAL*8             ::  W10
+      REAL*8, PARAMETER  ::  ScCO2 = 600.0d0
 
       ! molar volume ratio CH3I/CH3Br for computation
       ! of exchange coefficient ocean atmosphere = (62.9/52.9)**0.6
@@ -545,7 +584,10 @@
       ! KW is exchange parameter (piston velocity) and given by
       !      KW = 0.31 u^2 ( Sc/660 )^(-1/2)     (cm/h) 
       !      [Wanninkhof et al., 1992]
-      ! 
+      ! NOTE: As of 8/16/05, we now use the Nightingale et al [2000b]
+      ! formulation for piston velocity which is:
+      !      Kw   = ( 0.24 * u^2 + 0.061d0*u ) * SQRT( 600/Sc )  
+      !
       ! u^2 is square of surface wind speed (10m above ground) in m/s
       !
       ! Sc is Schmidt number:
@@ -609,8 +651,19 @@
             ! Schmidt # [unitless]
             Sc = MVR__ * ( 2004. - 93.5*TC + 1.39*TC**2 )
             
-            ! Piston velocity [cm/h]
-            KW = 0.31 * SFCWINDSQR(I,J) / SQRT(Sc/660.)
+            !---------------------------------------------------------------
+            ! Prior to 8/16/05:
+            ! Now use Nightingale et al [2000b] formulation (bmy, 8/16/05)
+            !! Piston velocity [cm/h]
+            !KW = 0.31 * SFCWINDSQR(I,J) / SQRT(Sc/660.)
+            !---------------------------------------------------------------
+
+            ! 10-m wind speed 
+            W10  = SQRT( SFCWINDSQR(I,J) )
+
+            ! Piston velocity [cm/h], cf Nightingale et al [2000b] 
+            ! (swu, bmy, 8/16/05)
+            Kw   = ( 0.24d0*W10*W10 + 0.061d0*W10 ) * SQRT( ScCO2/Sc )  
 
             ! convert gas-phase tracer mass to concentration in ng/L
             CGAS = STT(I,J,L,N) * 1.0D9 / AIRVOL(I,J,L)
@@ -874,7 +927,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEMCH3I performs loss chemistry for methyl iodide (CH3I).  
-!  (mgs, bey, bmy, 11/20/98, 6/23/05)
+!  (mgs, bey, bmy, 11/20/98, 8/16/05)
 !
 !  If the LFASTJ C-preprocessor switch is set, then CHEMCH3I will invokes 
 !  the FAST-J subroutines to compute local photolysis rates, which in 
@@ -924,6 +977,8 @@
 !        "diag_pl_mod.f". (bmy, 7/20/04)
 !  (23) FAST-J is now the default, so we don't need the LFASTJ C-preprocessor
 !        switch any more (bmy, 6/23/05)
+!  (24) Now use Nightingale et al [2000b] formulation for piston velocity
+!        (swu, bmy, 8/16/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -973,12 +1028,6 @@
 !          ENDDO
 !      ENDIF
 !-----------------------------------------------------------------------------
-
-!------------------------------------------------------------------------------
-! Prior to 6/23/05:
-! FAST-J is now the default, so we don't need the LFASTJ switch (bmy, 6/23/05)
-!#if   defined( LFASTJ )
-!------------------------------------------------------------------------------
 
          !==============================================================
          ! If LFASTJ is defined in "define.h", then invoke FAST-J 

@@ -1,4 +1,4 @@
-! $Id: chem.f,v 1.4 2005/06/23 19:32:54 bmy Exp $
+! $Id: chem.f,v 1.5 2005/09/02 15:16:59 bmy Exp $
       SUBROUTINE CHEM( FIRSTCHEM, NPTS,     SUNCOS,  SUNCOSB, 
      &                 CLOUDS,    ALT,      SURFALT, TOTO3, 
      &                 IDXAIR,    IDXO3,    OPTD,    UVALBEDO  )
@@ -38,12 +38,6 @@
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "comode.h"     ! SMVGEAR II arrays
-!-------------------------------------------------------
-! Prior to 6/23/05:
-!#if   defined( LSLOWJ )
-!#     include "comsol.h"     ! SLOW-J arrays
-!#endif
-!-------------------------------------------------------
 
       ! Arguments
       LOGICAL, INTENT(INOUT) :: FIRSTCHEM
@@ -70,29 +64,9 @@
       !=================================================================
       ! Call photolysis routine to compute J-Values
       !=================================================================
-!------------------------------------------------------------------------------
-! Prior to 6/23/05:
-!#if   defined( LFASTJ )
-!------------------------------------------------------------------------------
 
       ! FAST-J only: call FAST_J to compute J-values
       CALL FAST_J( SUNCOS, OPTD, UVALBEDO )              
-
-!------------------------------------------------------------------------------
-! Prior to 6/23/05;
-!#elif defined( LSLOWJ )                                            
-!
-!      ! SLOW-J only: call SOL to compute column densities and J-values
-!      CALL SOL( NPTS,  SUNCOS, ALT,    SURFALT,
-!     &          TOTO3, CLOUDS, IDXAIR, IDXO3 )
-!
-!      ! SLOW-J only: Call FINDXSECT which gets index INAME, which gives the
-!      ! position of each photolysis species in the cross-section array XSECT  
-!      IF ( FIRSTCHEM ) CALL FINDXSECT
-!
-!#endif
-!------------------------------------------------------------------------------
-
 
       !================================================================
       ! Call chemistry routines

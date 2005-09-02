@@ -1,10 +1,10 @@
-! $Id: i6_read_mod.f,v 1.8 2005/06/22 20:50:03 bmy Exp $
+! $Id: i6_read_mod.f,v 1.9 2005/09/02 15:17:14 bmy Exp $
       MODULE I6_READ_MOD
 !
 !******************************************************************************
 !  Module I6_READ_MOD contains subroutines that unzip, open, and read
 !  GEOS-CHEM I-6 (instantaneous 6-hr) met fields from disk. 
-!  (bmy, 6/23/03, 5/25/05)
+!  (bmy, 6/23/03, 8/10/05)
 ! 
 !  Module Routines:
 !  =========================================================================
@@ -38,6 +38,7 @@
 !        "logical_mod.f" (bmy, 7/20/04)
 !  (6 ) Now references FILE_EXISTS from "file_mod.f" (bmy, 3/23/05)
 !  (7 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
+!  (8 ) Now account for GEOS-4 coastal boxes in LWI properly (bmy, 8/10/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -46,12 +47,6 @@
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
       ! and routines from being seen outside "i6_read_mod.f"
       !=================================================================
-
-      !-------------------------------------------
-      ! Prior to 5/25/05:
-      !! PRIVATE module routines
-      !PRIVATE :: GET_N_I6, I6_CHECK, READ_I6
-      !-------------------------------------------
 
       ! Make everything PRIVATE ...
       PRIVATE
@@ -357,10 +352,6 @@
          ! Set the proper first-time-flag false
          FIRST = .FALSE.
 
-!-------------------------
-! Prior to 5/25/05:
-!#if   defined( GEOS_4 )
-!-------------------------
 #if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( GCAP )
 
          ! Skip past the ident string
@@ -430,11 +421,6 @@
       ! Initialize T with TMPU1
       T = TMPU1
 
-!-----------------------------------------------------------------------
-! Prior to 5/25/05:
-! Assume GEOS-4 and GEOS-5 have the same I-6 fields (swu, bmy, 5/25/05)
-!#elif defined( GEOS_4 )
-!-----------------------------------------------------------------------
 #elif defined( GEOS_4 ) || defined( GEOS_5 )
 
       !=================================================================
@@ -501,11 +487,6 @@
      &              SLP=SLP,      TROPP=TROPP,  UWND=UWND2,  
      &              VWND=VWND2,   TMPU=TMPU2,   SPHU=SPHU2 ) 
 
-!-----------------------------------------------------------------------
-! Prior to 5/25/05:
-! Assume GEOS-5 has same I-6 fields as GEOS-4 (swu, bmy, 5/25/05)
-!#elif defined( GEOS_4 )
-!-----------------------------------------------------------------------
 #elif defined( GEOS_4 ) || defined( GEOS_5 )
 
       !=================================================================
@@ -569,11 +550,6 @@
             
       END SELECT
 
-!------------------------------------------------------------------------
-! Prior to 5/25/05:
-! Assume GEOS-5 has same I-6 fields as GEOS-4 (swu, bmy, 5/25/05)
-!#elif defined( GEOS_4 )
-!------------------------------------------------------------------------
 #elif defined( GEOS_4 ) || defined( GEOS_5 )
 
       ! GEOS-4 & GEOS-5 have 3 I-6 fields
@@ -658,7 +634,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_I6 reads GEOS-CHEM I-6 (inst. 6-hr) met fields from disk.
-!  (bmy, 5/8/98, 10/28/03)
+!  (bmy, 5/8/98, 8/10/05)
 ! 
 !  Arguments as Input:
 !  ===========================================================================
@@ -681,6 +657,7 @@
 !  (1 ) Adapted from "READ_I6" of "dao_read_mod.f" (bmy, 6/23/03)
 !  (2 ) Now use function TIMESTAMP_STRING from "time_mod.f" for formatted 
 !        date/time output. (bmy, 10/28/03)
+!  (3 ) Round up to account for GEOS-4 coastal boxes properly (bmy, 8/10/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -771,6 +748,13 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:3' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+
+#if   defined( GEOS_4 ) 
+                  ! Round up in order to account for GEOS-4 coastal
+                  ! boxes properly. (bmy, 8/10/05)
+                  Q2 = INT( Q2 + 0.5 )
+#endif
+
                   IF ( PRESENT( LWI ) ) CALL TRANSFER_2D( Q2, LWI )
                   NFOUND = NFOUND + 1
                ENDIF

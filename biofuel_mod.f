@@ -1,10 +1,10 @@
-! $Id: biofuel_mod.f,v 1.4 2004/12/02 21:48:32 bmy Exp $
+! $Id: biofuel_mod.f,v 1.5 2005/09/02 15:16:56 bmy Exp $
       MODULE BIOFUEL_MOD
 !
 !******************************************************************************
 !  Module BIOFUEL_MOD contains arrays and routines to compute yearly
 !  biofuel emissions for NOx, CO, ALK4, ACET, MEK, ALD2, PRPE, C3H8, 
-!  CH2O, and C2H6 (bmy, 9/12/00, 11/5/04)
+!  CH2O, and C2H6 (bmy, 9/12/00, 8/16/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -65,6 +65,7 @@
 !  (12) Now call READ_BPCH2 with QUIET=.TRUE. to suppress output (bmy, 3/14/03)
 !  (13) Now references "directory_mod.f" (bmy, 7/19/04)
 !  (14) Now references "time_mod.f" and "epa_nei_mod.f" (bmy, 11/5/04)
+!  (15) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -151,6 +152,7 @@
 !        function GET_DAY_OF_WEEK from "time_mod.f".  Now references LNEI99
 !        from "logical_mod.f".  Now reference GET_EPA_BIOFUEL and
 !        GET_USA_MASK from "epa_nei_mod.f". (rch, rjp, bmy, 11/5/04)
+!  (18) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -236,9 +238,15 @@
          ! volumes throughout the year, instead of only at the
          ! first timestep (bmy, 5/3/02)
          !==============================================================
-         FILENAME = TRIM( DATA_DIR )               // 
-     &              'biofuel_200202/biofuel.geos.' // 
-     &              GET_RES_EXT()
+!------------------------------------------------------------------------
+! Prior to 8/16/05:
+!         FILENAME = TRIM( DATA_DIR )               // 
+!     &              'biofuel_200202/biofuel.geos.' // 
+!     &              GET_RES_EXT()
+!------------------------------------------------------------------------
+         FILENAME = TRIM( DATA_DIR )          // 
+     &              'biofuel_200202/biofuel.' // GET_NAME_EXT_2D() // 
+     &              '.'                       // GET_RES_EXT()
 
          ! Echo filename to log file
          WRITE( 6, 110 ) TRIM( FILENAME )

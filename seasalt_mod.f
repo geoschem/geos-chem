@@ -1,4 +1,4 @@
-! $Id: seasalt_mod.f,v 1.6 2005/05/09 14:34:00 bmy Exp $
+! $Id: seasalt_mod.f,v 1.7 2005/09/02 15:17:22 bmy Exp $
       MODULE SEASALT_MOD
 !
 !******************************************************************************
@@ -640,10 +640,6 @@
 
       ! Local variables 
       LOGICAL, SAVE          :: FIRST = .TRUE.
-      !-----------------------------------------------
-      ! Prior to 4/13/05:
-      !LOGICAL, SAVE          :: FLAG  = .TRUE.
-      !-----------------------------------------------
       INTEGER                :: I,     J,      L
       INTEGER                :: R,     NR,     NTOP
       REAL*8                 :: W10M,  DTEMIS, R0
@@ -663,15 +659,6 @@
       ! SRCSALT begins here!
       !=================================================================
       
-      !---------------------------
-      ! Prior to 4/13/05:
-      !! Alllocate arrays
-      !IF ( FIRST ) THEN
-      !   CALL INIT_SEASALT
-      !   FIRST = .FALSE.
-      !ENDIF
-      !---------------------------
-
       ! Emission timestep [s]
       DTEMIS = GET_TS_EMIS() * 60d0
 

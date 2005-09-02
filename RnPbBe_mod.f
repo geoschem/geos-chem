@@ -1,35 +1,36 @@
-! $Id: RnPbBe_mod.f,v 1.6 2005/06/22 20:49:59 bmy Exp $
+! $Id: RnPbBe_mod.f,v 1.7 2005/09/02 15:16:54 bmy Exp $
       MODULE RnPbBe_MOD
 !
 !******************************************************************************
 !  Module RnPbBe_MOD contains variables and routines used for the 
-!  222Rn-210Pb-7Be simulation. (hyl, swu, bmy, 6/14/01, 5/24/05)
+!  222Rn-210Pb-7Be simulation. (hyl, swu, bmy, 6/14/01, 8/15/05)
 !
 !  Module Variables:
 !  ============================================================================
-!  (1 ) LATSOU       : Array holding 10 latitudes for 7Be emissions
-!  (2 ) PRESOU       : Array holding 33 pressure levels for 7Be emissions
-!  (3 ) BESOU        : Array holding 7Be emissions for 10 lats & 33 prs levels
-!  (4 ) XNUMOL_Rn    : Atoms 222Rn per kg 222Rn
-!  (5 ) XNUMOL_Pb    : Atoms 210Pb per kg 210Pb
-!  (6 ) XNUMOL_Be    : Atoms   7Be per kg   7Be
+!  (1 ) LATSOU           : Array holding 10 latitudes for 7Be emissions
+!  (2 ) PRESOU           : Array holding 33 pressure levels for 7Be emissions
+!  (3 ) BESOU            : Array holding 7Be emissions for 10 lat x 33 prs levs
+!  (4 ) XNUMOL_Rn        : Atoms 222Rn per kg 222Rn
+!  (5 ) XNUMOL_Pb        : Atoms 210Pb per kg 210Pb
+!  (6 ) XNUMOL_Be        : Atoms   7Be per kg   7Be
 !
 !  Module Procedures:
 !  ============================================================================
-!  (1 ) READ_7BE     : Reads Lal & Peters 7Be emissions from a file
-!  (2 ) CORRECT_STE  : Corrects S-T exchange for 210Pb and 7Be
-!  (3 ) EMISSRnPbBe  : Adds emissions of Rn, 210Pb, 7Be, to tracer array  
-!  (4 ) CHEMRnPbBe   : Performs radioactive decay for Rn, 210Pb, 7Be
-!  (5 ) SLQ          : Interpolation subroutine (cf. Numerical Recpies)
+!  (1 ) READ_7BE         : Reads Lal & Peters 7Be emissions from a file
+!  (2 ) CORRECT_STE      : Corrects S-T exchange for 210Pb and 7Be
+!  (3 ) EMISSRnPbBe      : Adds emissions of Rn, 210Pb, 7Be, to tracer array  
+!  (4 ) CHEMRnPbBe       : Performs radioactive decay for Rn, 210Pb, 7Be
+!  (5 ) SLQ              : Interpolation subroutine (cf. Numerical Recpies)
 !
 !  GEOS-CHEM modules referenced by RnPbBe_mod.f
 !  ============================================================================
-!  (1 ) dao_mod.f       : Module containing arrays for DAO met fields
-!  (2 ) diag_mod.f      : Module containing GEOS-CHEM diagnostic arrays
-!  (3 ) directory_mod.f : Module containing GEOS-CHEM data & met field dires
-!  (4 ) file_mod.f      : Module containing file unit numbers and error checks
-!  (5 ) logical_mod.f   : Module containing GEOS-CHEM logical switches
-!  (6 ) tracer_mod.f    : Module containing GEOS-CHEM tracer array STT etc.
+!  (1 ) dao_mod.f        : Module w/ arrays for DAO met fields
+!  (2 ) diag_mod.f       : Module w/ GEOS-CHEM diagnostic arrays
+!  (3 ) directory_mod.f  : Module w/ GEOS-CHEM data & met field dires
+!  (4 ) file_mod.f       : Module w/ file unit numbers and error checks
+!  (5 ) logical_mod.f    : Module w/ GEOS-CHEM logical switches
+!  (6 ) tracer_mod.f     : Module w/ GEOS-CHEM tracer array STT etc.
+!  (7 ) tropopause_mod.f : Module w/ routines to read in ann mean tropopause
 !
 !  References:
 !  ============================================================================
@@ -68,6 +69,7 @@
 !  (13) Now references "directory_mod.f", "logical_mod.f", and "tracer_mod.f"
 !        (bmy, 7/20/04)
 !  (14) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
+!  (15) Now references "tropopause_mod.f"
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -76,15 +78,6 @@
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
       ! and routines from being seen outside "RnPbBe_mod.f"
       !=================================================================
-
-      !--------------------------------------------------------------------
-      ! Prior to 5/24/05:
-      !! PRIVATE module variables
-      !PRIVATE :: LATSOU, PRESOU, BESOU, XNUMOL_Rn, XNUMOL_Pb, XNUMOL_Be
-      !
-      !! PRIVATE module routines
-      !PRIVATE :: READ_7BE, CORRECT_STE, SLQ
-      !--------------------------------------------------------------------
 
       ! Make everything PRIVATE ...
       PRIVATE
@@ -282,19 +275,25 @@
 !        and also shut off emissions poleward of 70 deg. (swu, bmy, 10/28/03)
 !  (17) Now reference LEMIS from "logical_mod.f".  Now reference STT and
 !        N_TRACERS from "tracer_mod.f" (bmy, 7/20/04)
+!  (18) Remove reference to CMN; it's obsolete.  Now use inquiry functions
+!        from "tropopause_mod.f" to diagnose strat boxes. (bmy, 8/15/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : AD, TS
-      USE DIAG_MOD,     ONLY : AD01 
-      USE GRID_MOD,     ONLY : GET_AREA_CM2, GET_YMID, GET_YEDGE 
-      USE LOGICAL_MOD,  ONLY : LEMIS
-      USE TIME_MOD,     ONLY : GET_TS_EMIS
-      USE TRACER_MOD,   ONLY : STT, N_TRACERS
-      USE PRESSURE_MOD, ONLY : GET_PCENTER
+      USE DAO_MOD,        ONLY : AD, TS
+      USE DIAG_MOD,       ONLY : AD01 
+      USE GRID_MOD,       ONLY : GET_AREA_CM2, GET_YMID, GET_YEDGE 
+      USE LOGICAL_MOD,    ONLY : LEMIS
+      USE TIME_MOD,       ONLY : GET_TS_EMIS
+      USE TRACER_MOD,     ONLY : STT, N_TRACERS
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+      USE PRESSURE_MOD,   ONLY : GET_PCENTER
 
 #     include "CMN_SIZE" ! Size parameters
-#     include "CMN"      ! LPAUSE
+!------------------------------------------------
+! Prior to 8/15/05:
+!#     include "CMN"      ! LPAUSE
+!------------------------------------------------
 #     include "CMN_DIAG" ! ND02 
 #     include "CMN_DEP"  ! FRCLND
 
@@ -494,7 +493,14 @@
             ADD_Be  = Be_TMP * DTSRCE / XNUMOL_Be 
 
             ! Correct the strat-trop exchange of 7Be
-            IF ( L >= LPAUSE(I,J) ) CALL CORRECT_STE( ADD_Be )
+            !------------------------------------------------------
+            ! Prior to 8/15/05:
+            ! Use function from tropopause_mod.f (bmy, 8/15/05)
+            !IF ( L >= LPAUSE(I,J) ) CALL CORRECT_STE( ADD_Be )
+            !------------------------------------------------------
+            IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
+               CALL CORRECT_STE( ADD_Be )
+            ENDIF
 
             ! Add 7Be into STT tracer array [kg]
             STT(I,J,L,3) = STT(I,J,L,3) + ADD_Be
@@ -521,7 +527,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEMRnPbBe performs loss chemistry on 222Rn, 210Pb, and 7Be.
-!  (hyl, amf, bey, bmy, 10/13/99, 7/20/04)
+!  (hyl, amf, bey, bmy, 10/13/99, 8/15/05)
 !
 !  NOTES:
 !  (1 ) Now use F90 syntax (bmy, hyl, 3/22/99)
@@ -538,15 +544,21 @@
 !  (8 ) Now make FIRSTCHEM a local SAVEd variable.  (bmy, 1/27/03)
 !  (9 ) Now use function GET_TS_CHEM from "time_mod.f" (bmy, 2/11/03)
 !  (10) Now references STT and N_TRACERS from "tracer_mod.f" (bmy, 7/20/04)
+!  (11) Remove reference to CMN; it's obsolete.  Now use inquiry functions 
+!        from "tropopause_mod.f" to diagnose strat boxes. (bmy, 8/15/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD,   ONLY : AD01, AD02
-      USE TIME_MOD,   ONLY : GET_TS_CHEM
-      USE TRACER_MOD, ONLY : STT, N_TRACERS
+      USE DIAG_MOD,       ONLY : AD01, AD02
+      USE TIME_MOD,       ONLY : GET_TS_CHEM
+      USE TRACER_MOD,     ONLY : STT, N_TRACERS
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
 #     include "CMN_SIZE" ! Size parameters
-#     include "CMN"      ! LPAUSE
+!-----------------------------------------------
+! Prior to 8/15/05:
+!#     include "CMN"      ! LPAUSE
+!-----------------------------------------------
 #     include "CMN_DIAG" ! ND01, ND02
 
       ! Local variables
@@ -621,7 +633,14 @@
             ADD_Pb = Rn_LOST(I,J,L) * Pb_Rn_RATIO 
 
             ! Correct strat-trop exchange of 210Pb in stratosphere
-            IF ( L >= LPAUSE(I,J) ) CALL CORRECT_STE( ADD_Pb )
+            !-----------------------------------------------------------
+            ! Prior to 8/15/05:
+            ! Now call inquiry function from "tropopause_mod.f"
+            !IF ( L >= LPAUSE(I,J) ) CALL CORRECT_STE( ADD_Pb )
+            !-----------------------------------------------------------
+            IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
+               CALL CORRECT_STE( ADD_Pb )
+            ENDIF
 
             ! ND01 diag: 210Pb emission from 222Rn decay [kg/s]
             IF ( ND01 > 0 ) THEN

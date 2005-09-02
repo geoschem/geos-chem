@@ -1,4 +1,4 @@
-! $Id: emfossil.f,v 1.3 2005/07/06 17:42:47 bmy Exp $
+! $Id: emfossil.f,v 1.4 2005/09/02 15:17:09 bmy Exp $
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
 !*****************************************************************************
@@ -79,12 +79,6 @@
       AREA_CM2 = GET_AREA_CM2( J )
 
       ! Flag for weekday or weekend for NEI emissions
-      !------------------------------------------------------------------------
-      ! Prior to 7/6/05:
-      ! Now use GET_DAY_OF_WEEK to find the proper day of the week
-      ! This eliminates a bug in determining weekday or weekend (bmy, 7/6/05)
-      !WEEKDAY = ( JSCEN .ne. 4 .and. JSCEN .ne. 5 )
-      !------------------------------------------------------------------------
       DOW      = GET_DAY_OF_WEEK()
       WEEKDAY  = ( DOW > 0 .and. DOW < 6 )
 

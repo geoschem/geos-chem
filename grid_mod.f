@@ -1,4 +1,4 @@
-! $Id: grid_mod.f,v 1.5 2005/06/22 20:50:03 bmy Exp $
+! $Id: grid_mod.f,v 1.6 2005/09/02 15:17:13 bmy Exp $
       MODULE GRID_MOD
 !
 !******************************************************************************
@@ -142,11 +142,6 @@
       YMID_G(1)      = -88.d0
       YMID_G(JJGLOB) = +88.d0      
 
-!--------------------------------------------------------
-! Prior to 5/24/05:
-! Add GCAP 4x5 grid #if block above (swu, bmy, 5/24/05)
-!#if   defined( GRID4x5 )
-!---------------------------------------------------------
 #elif defined( GRID4x5 )
       ! Overwrite YMID at poles for 4 x 5 grid
       YMID_G(1)      = -89.d0
@@ -786,13 +781,6 @@
 #elif defined( GRID2x25 )
       IIGLOB = 144
       JJGLOB = 91
-!---------------------------------------------------------
-! Prior to 5/24/05:
-! Need to add the 4x5 GCAP grid here (swu, bmy, 5/24/05)
-!#elif defined( GRID4x5 ) 
-!      IIGLOB = 72
-!      JJGLOB = 46
-!---------------------------------------------------------
 #elif defined( GRID4x5 ) && defined( GCAP )
       IIGLOB = 72
       JJGLOB = 45

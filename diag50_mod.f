@@ -1,9 +1,9 @@
-! $Id: diag50_mod.f,v 1.9 2005/06/28 18:59:30 bmy Exp $
+! $Id: diag50_mod.f,v 1.10 2005/09/02 15:17:06 bmy Exp $
       MODULE DIAG50_MOD
 !
 !******************************************************************************
 !  Module DIAG50_MOD contains variables and routines to generate 24-hour 
-!  average timeseries data. (amf, bey, bdf, pip, bmy, 11/30/00, 6/28/05)
+!  average timeseries data. (amf, bey, bdf, pip, bmy, 11/30/00, 8/2/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -100,6 +100,7 @@
 !  (6 ) Now save cloud fractions & grid box heights (bmy, 4/20/05)
 !  (7 ) Remove TRCOFFSET since it's always zero.  Also now get HALFPOLAR for
 !        both GCAP and GEOS grids. (bmy, 6/24/05)
+!  (8 ) Bug fix: don't save SLP unless it is allocated (bmy, 8/2/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -135,11 +136,6 @@
       INTEGER              :: ND50_IMIN,      ND50_IMAX
       INTEGER              :: ND50_JMIN,      ND50_JMAX
       INTEGER              :: ND50_LMIN,      ND50_LMAX
-      !--------------------------------------------------------------------
-      ! Prior to 6/28/05:
-      ! Need to make HALFPOLAR a variable, not a parameter (bmy, 6/28/05)
-      !INTEGER, PARAMETER   :: HALFPOLAR=1,    CENTER180=1
-      !--------------------------------------------------------------------
       INTEGER              :: HALFPOLAR
       INTEGER, PARAMETER   :: CENTER180=1
       REAL*4               :: LONRES,         LATRES
@@ -188,7 +184,7 @@
 !
 !******************************************************************************
 !  Subroutine ACCUMULATE_DIAG50 accumulates tracers into the Q array. 
-!  (bmy, 8/20/02, 6/24/05)
+!  (bmy, 8/20/02, 8/2/05)
 !
 !  NOTES:
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
@@ -207,6 +203,7 @@
 !        remove references to CLMOSW, CLROSW, and PBL from "dao_mod.f". 
 !        (bmy, 4/20/05)
 !  (6 ) Remove references to TRCOFFSET because it's always zero (bmy, 6/24/05)
+!  (7 ) Now do not save SLP data if it is not allocated (bmy, 8/2/05)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -223,16 +220,12 @@
 #     include "cmn_fj.h"  ! includes CMN_SIZE
 #     include "jv_cmn.h"  ! ODAER
 #     include "CMN_O3"    ! FRACO3, FRACNO, SAVEO3, SAVENO2, SAVEHO2, FRACNO2
-!------------------------------------------------
-! Prior to 6/24/05:
-!#     include "CMN_DIAG"  ! TRCOFFSET
-!------------------------------------------------
 #     include "CMN_GCTM"  ! SCALE_HEIGHT
 
       ! Local variables
       LOGICAL, SAVE       :: FIRST = .TRUE.
-      LOGICAL, SAVE       :: IS_FULLCHEM, IS_NOx, IS_Ox,  IS_SEASALT
-      LOGICAL, SAVE       :: IS_CLDTOPS,  IS_NOy, IS_OPTD
+      LOGICAL, SAVE       :: IS_FULLCHEM, IS_NOx, IS_Ox,   IS_SEASALT
+      LOGICAL, SAVE       :: IS_CLDTOPS,  IS_NOy, IS_OPTD, IS_SLP
       LOGICAL             :: IS_CHEM
       INTEGER             :: H, I, J, K, L, M, N
       INTEGER             :: PBLINT,  R, X, Y, W
@@ -250,6 +243,7 @@
       IF ( FIRST ) THEN
          IS_OPTD     = ALLOCATED( OPTD    )
          IS_CLDTOPS  = ALLOCATED( CLDTOPS )
+         IS_SLP      = ALLOCATED( SLP     )
          IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
          IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
          IS_NOx      = ( IS_FULLCHEM .and. IDTNOX  > 0 )
@@ -568,7 +562,11 @@
                !--------------------------------------               
                Q(X,Y,K,W) = Q(X,Y,K,W) + RH(I,J,L)
 
-            ELSE IF ( N == 95 ) THEN
+            !-------------------------------------------------
+            ! Prior to 8/2/05:
+            !ELSE IF ( N == 95 ) THEN
+            !-------------------------------------------------
+            ELSE IF ( N == 95 .and. IS_SLP ) THEN
 
                !--------------------------------------
                ! SEA LEVEL PRESSURE [hPa]
@@ -684,10 +682,6 @@
       USE TRACER_MOD, ONLY : N_TRACERS
 
 #     include "CMN_SIZE"  ! Size Parameters
-!--------------------------------------------------
-! Prior to 6/24/05:
-!#     include "CMN_DIAG"  ! TRCOFFSET
-!--------------------------------------------------
 
       ! Local variables
       INTEGER            :: DIVISOR

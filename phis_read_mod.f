@@ -1,4 +1,4 @@
-! $Id: phis_read_mod.f,v 1.8 2005/06/22 20:50:04 bmy Exp $
+! $Id: phis_read_mod.f,v 1.9 2005/09/02 15:17:20 bmy Exp $
       MODULE PHIS_READ_MOD
 !
 !******************************************************************************
@@ -344,10 +344,6 @@
          ! Set the proper first-time-flag false
          FIRST = .FALSE.
 
-!--------------------------
-! Prior to 5/25/05:
-!#if   defined( GEOS_4 )
-!--------------------------
 #if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( GCAP )
 
          ! Skip past the GEOS-4 ident string

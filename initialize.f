@@ -1,8 +1,8 @@
-! $Id: initialize.f,v 1.14 2005/06/27 19:41:47 bmy Exp $
+! $Id: initialize.f,v 1.15 2005/09/02 15:17:15 bmy Exp $
       SUBROUTINE INITIALIZE( IFLAG )
 !
 !******************************************************************************
-!  Subroutine INITIALIZE (bmy, 6/15/98, 6/27/05) does the following:
+!  Subroutine INITIALIZE (bmy, 6/15/98, 8/18/05) does the following:
 !     (1) Zeroes globally defined GEOS-CHEM variables.
 !     (2) Zeroes accumulating diagnostic arrays.
 !     (3) Resets certain year/month/day and counter variables used 
@@ -155,11 +155,14 @@
 !  (31) Now call ZERO_DIAG41 from "diag41_mod.f".  Also removed references
 !        to AD41 and AFTTOT. (bmy, 2/17/05)
 !  (32) Now zero AD09 and AD09_em for HCN simulation (xyp, bmy, 6/27/05)
+!  (33) Now references ND04, ZERO_DIAG04 from "diag04_mod.f".  Also remove
+!        reference to "CMN" and XTRA2.  Now zeroes AD30 array (bmy, 8/18/05)
 !******************************************************************************
 ! 
       ! References to F90 modules
       USE DIAG_MOD
       USE DIAG03_MOD,  ONLY : ND03, ZERO_DIAG03
+      USE DIAG04_MOD,  ONLY : ND04, ZERO_DIAG04
       USE DIAG41_MOD,  ONLY : ND41, ZERO_DIAG41
       USE DIAG_PL_MOD, ONLY : AD65, FAM_PL
       USE ERROR_MOD,   ONLY : ERROR_STOP
@@ -169,7 +172,10 @@
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! XTRA2
+!----------------------------------------------------------
+! Prior to 8/3/05:
+!#     include "CMN"       ! XTRA2
+!----------------------------------------------------------
 #     include "CMN_DIAG"  ! NDxx flags
 
       ! Arguments 
@@ -178,18 +184,22 @@
       !=================================================================
       ! INITIALIZE begins here!
       !
-      ! Error condition if IFLAG does not equal 1, 2, or 3!
+      ! Error condition if IFLAG does not equal 2, or 3!
       !=================================================================
-      IF ( IFLAG < 1 .or. IFLAG > 3 ) THEN
+      IF ( IFLAG < 2 .or. IFLAG > 3 ) THEN
          CALL ERROR_STOP( 'Invalid IFLAG!', 'initialize.f' )
       ENDIF  
 
-      !=================================================================
-      ! If IFLAG=1 then zero the following CTM variables: XTRA2
-      !=================================================================
-      IF ( IFLAG == 1 ) THEN
-         XTRA2 = 0d0
-      ENDIF  
+      !-----------------------------------------------------------------------
+      ! Prior to 8/3/05:
+      ! This is now obsolete (bmy, 8/3/05)
+      !!=================================================================
+      !! If IFLAG=1 then zero the following CTM variables: XTRA2
+      !!=================================================================
+      !IF ( IFLAG == 1 ) THEN
+      !   XTRA2 = 0d0
+      !ENDIF  
+      !-----------------------------------------------------------------------
 
       !=================================================================
       ! If IFLAG=2 then zero the accumulating arrays
@@ -216,6 +226,7 @@
          IF ( ND26 > 0 ) MASSFLUP = 0d0
          IF ( ND28 > 0 ) AD28     = 0e0
          IF ( ND29 > 0 ) AD29     = 0e0
+         IF ( ND30 > 0 ) AD30     = 0e0
          IF ( ND31 > 0 ) AD31     = 0e0
          IF ( ND33 > 0 ) AD33     = 0e0
          IF ( ND34 > 0 ) AD34     = 0e0
@@ -238,6 +249,11 @@
          ! For ND03 - mercury simulations (eck, sas, bmy, 1/20/05)
          IF ( ND03 > 0 ) THEN
             CALL ZERO_DIAG03
+         ENDIF
+
+         ! For ND04 - CO2 simulation (pns, bmy, 7/26/05)
+         IF ( ND04 > 0 ) THEN
+            CALL ZERO_DIAG04
          ENDIF
 
          ! ND07 -- carbon aerosol emissions (rjp, tdf, bmy, 4/5/04)

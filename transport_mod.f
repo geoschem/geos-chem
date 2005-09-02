@@ -1,4 +1,4 @@
-! $Id: transport_mod.f,v 1.8 2005/06/22 20:50:06 bmy Exp $
+! $Id: transport_mod.f,v 1.9 2005/09/02 15:17:29 bmy Exp $
       MODULE TRANSPORT_MOD
 !
 !******************************************************************************
@@ -322,10 +322,6 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-!------------------------
-! Prior to 5/25/05:
-!#if defined( GEOS_4 )
-!------------------------
 #if defined( GEOS_4 ) || defined( GEOS_5 )
 
          ! *** For GEOS-4, GEOS-5 winds ***
@@ -381,10 +377,6 @@
          ! Apply pressure fixer 
          !----------------------------
 
-!--------------------------
-! Prior to 5/25/05:
-!#if   defined( GEOS_4 )
-!--------------------------
 #if   defined( GEOS_4 ) || defined( GEOS_5 )
 
          ! *** For GEOS-4 and GEOS-5 winds ***
@@ -451,10 +443,6 @@
          ! Reset surface pressure
          !----------------------------
 
-!-------------------------
-! Prior to 5/25/05:
-!#if   defined( GEOS_4 )
-!-------------------------
 #if   defined( GEOS_4 ) || defined( GEOS_5 )
 
          ! *** For GEOS-4 or GEOS-5 winds ***
@@ -548,25 +536,11 @@
          ! Store winds in UTMP, VTMP to preserve UWND, VWND for diagnostics
          UTMP(:,:,1:LLPAR  ) = UWND(:,:,LLPAR:1:-1  )
          VTMP(:,:,1:LLPAR  ) = VWND(:,:,LLPAR:1:-1  )
-         !-------------------------------------------------------------
-         ! Prior to 5/18/05:
-         ! Now we don't have to flip the array anymore (bmy, 5/18/05)
-         !STT (:,:,1:LLPAR,:) = STT (:,:,LLPAR:1:-1,:)
-         !-------------------------------------------------------------
 
          ! TPCORE v7.1.m transport scheme (output pressure is P_TP2)
          ! The pressures P_TP1 and P_TP2 are PS-PTOP, in order to
          ! be consistent with the definition of Ap and Bp for GEOS-3
          ! GEOS-STRAT, and GEOS-1 winds. (bmy, 10/27/03)
-!----------------------------------------------------------------------------
-! Prior to 5/18/05:
-! We now pass the flipped array mask to TPCORE, so we don't have to manually 
-! flip the array before & after, it will do it for us (bmy, 5/17/05)
-!         CALL TPCORE( IGD,   STT,   P_TP1, P_TP2, UTMP, VTMP,  
-!     &                WW,    N_DYN, IORD,  JORD,  KORD, N_TRACERS, 
-!     &                IIPAR, JJPAR, J1,    LLPAR, Ap,   Bp,     
-!     &                PTOP,  Re,    LFILL, LMFCT, Umax )
-!----------------------------------------------------------------------------
          CALL TPCORE( IGD,   STT(:,:,LLPAR:1:-1,:),
      &                P_TP1, P_TP2, UTMP, VTMP,  WW,    
      &                N_DYN, IORD,  JORD, KORD,  N_TRACERS, 
@@ -578,13 +552,6 @@
          ! will be the pressure at the start of the next dynamic timestep.
          CALL SET_FLOATING_PRESSURE( P_TP2 + PTOP )
            
-         !------------------------------------------------------------
-         ! Prior to 5/18/05:
-         ! Now we don't have to flip the array anymore (bmy, 5/18/05)
-         !! Re-Flip STT in the vertical dimension
-         !STT(:,:,1:LLPAR,:) = STT(:,:,LLPAR:1:-1,:)
-         !------------------------------------------------------------
-
       ENDIF
 
       !=================================================================
@@ -840,10 +807,6 @@
       INTEGER             :: AS, J, K, L, N_DYN
       REAL*8              :: YMID_R(JJPAR)
 
-!--------------------------
-! Prior to 5/25/05:
-!#if   defined( GEOS_4 ) 
-!--------------------------
 #if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( GCAP )
 
       ! For GEOS-4, GEOS-5, or GCAP winds, use the fvDAS transport routines

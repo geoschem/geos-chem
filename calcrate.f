@@ -1,4 +1,4 @@
-! $Id: calcrate.f,v 1.11 2005/06/23 19:32:54 bmy Exp $
+! $Id: calcrate.f,v 1.12 2005/09/02 15:16:58 bmy Exp $
       SUBROUTINE CALCRATE( SUNCOS )
 !
 !******************************************************************************
@@ -96,14 +96,6 @@
       REAL*8           :: CONCO2(KBLOOP),  CONCN2(KBLOOP)
       REAL*8           :: T3I(KBLOOP),     TEMP1(KBLOOP)
       REAL*8           :: T3K(KBLOOP),     PRESSK(KBLOOP) 
-
-!------------------------------------------------------------------------------
-! Prior to 6/22/05:
-!#if   defined( LSLOWJ )
-!      ! Include SLOW-J header file if FAST-J is turned off (bmy, 9/30/99)
-!#     include "comsol.h"
-!#endif
-!------------------------------------------------------------------------------
 
       ! FAST-J: Zero out the dummy array (bmy, 9/30/99)
       DUMMY = 0d0
@@ -725,14 +717,6 @@ C
             IFNC             = DEFPRAT(NK,NCS) + 0.01D0
             IBRCH            = 10.D0*(DEFPRAT(NK,NCS)-IFNC) + 0.5D0
 
-!------------------------------------------------------------------------------
-! Prior to 6/22/05:
-!#if   defined( LSLOWJ )
-!            ! ISPEC is only needed for SLOW-J photolysis
-!            ISPEC            = INAME(I)
-!#endif
-!------------------------------------------------------------------------------
-
             DO KLOOP            = 1, KTLOOP 
                JLOOP            = LREORDER(KLOOP+JLOOPLO)
 
@@ -748,26 +732,8 @@ C
                ! For daylight boxes...
                IF(GMU.GT. 0.D0) THEN
 
-!------------------------------------------------------------------------------
-! Prior to 6/22/05:
-!#if   defined( LFASTJ )
-!------------------------------------------------------------------------------
-
                   ! For FAST-J, get photorates from fjfunc.f
                   RRATE(KLOOP,NKN)  = FJFUNC(IX,IY,IZ,I,IBRCH,SPECNAME)
-
-!------------------------------------------------------------------------------
-! Prior to 6/22/05:
-!#elif defined( LSLOWJ )
-!
-!                  ! For SLOW-J, get photorates from rtfunc.f
-!                  TT               = T3K(KLOOP)
-!                  PRESMB           = PRESS3(JLOOP) * 1.D-3
-!                  RRATE(KLOOP,NKN) = RTFUNC(GMU,ISPEC,IFNC,IBRCH,TT
-!     &                                     ,PRESMB,JLOOP)
-!
-!#endif
-!------------------------------------------------------------------------------
 
 !### Debug: warn if there are negative J-values, for either 
 !### FAST-J or SLOW-J photolysis (bmy, 10/1/98)

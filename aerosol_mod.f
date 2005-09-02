@@ -1,10 +1,10 @@
-! $Id: aerosol_mod.f,v 1.4 2005/02/10 19:53:23 bmy Exp $
+! $Id: aerosol_mod.f,v 1.5 2005/09/02 15:16:56 bmy Exp $
       MODULE AEROSOL_MOD
 !
 !******************************************************************************
 !  Module AEROSOL_MOD contains variables and routines for computing optical
 !  properties for aerosols which are needed for both the FAST-J photolysis
-!  and ND21 optical depth diagnostics.  (bmy, 7/20/04, 1/27/05)
+!  and ND21 optical depth diagnostics.  (bmy, 7/20/04, 8/22/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -27,23 +27,25 @@
 !
 !  GEOS-CHEM modules referenced by "aerosol_mod.f"
 !  ============================================================================
-!  (1 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
-!  (2 ) comode_mod.f    : Module containing SMVGEAR allocatable arrays
-!  (3 ) dao_mod.f       : Module containing arrays for DAO met fields
-!  (4 ) diag_mod.f      : Module containing GEOS-CHEM diagnostic arrays
-!  (5 ) directory_mod.f : Module containing GEOS-CHEM data & met field dirs
-!  (6 ) error_mod.f     : Module containing I/O error and NaN check routines
-!  (7 ) logical_mod.f   : Module containing GEOS-CHEM logical switches
-!  (8 ) time_mod.f      : Module containing routines for computing time & date
-!  (9 ) tracer_mod.f    : Module containing GEOS-CHEM tracer array STT etc.
-!  (10) tracerid_mod.f  : Module containing pointers to tracers & emissions
-!  (11) transfer_mod.f  : Module containing routines to cast & resize arrays
+!  (1 ) bpch2_mod.f      : Module w/ routines for binary punch file I/O
+!  (2 ) comode_mod.f     : Module w/ SMVGEAR allocatable arrays
+!  (3 ) dao_mod.f        : Module w/ arrays for DAO met fields
+!  (4 ) diag_mod.f       : Module w/ GEOS-CHEM diagnostic arrays
+!  (5 ) directory_mod.f  : Module w/ GEOS-CHEM data & met field dirs
+!  (6 ) error_mod.f      : Module w/ I/O error and NaN check routines
+!  (7 ) logical_mod.f    : Module w/ GEOS-CHEM logical switches
+!  (8 ) time_mod.f       : Module w/ routines for computing time & date
+!  (9 ) tracer_mod.f     : Module w/ GEOS-CHEM tracer array STT etc.
+!  (10) tracerid_mod.f   : Module w/ pointers to tracers & emissions
+!  (11) transfer_mod.f   : Module w/ routines to cast & resize arrays
+!  (12) tropopause_mod.f : Module w/ routines to read in ann mean tropopause
 !
 !  NOTES:
 !  (1 ) Added AEROSOL_RURALBOX routine (bmy, 9/28/04)
 !  (2 ) Now convert ABSHUM from absolute humidity to relative humidity in
 !         AEROSOL_RURALBOX, using the same algorithm as in "gasconc.f".
 !         (bmy, 1/27/05)
+!  (3 ) Now references "tropopause_mod.f" (bmy, 8/22/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -89,7 +91,7 @@
 !******************************************************************************
 !  Subroutine AEROSOL_RURALBOX computes quantities that are needed by RDAER.
 !  This mimics the call to RURALBOX, which is only done for fullchem runs.
-!  (bmy, 9/28/04)
+!  (bmy, 9/28/04, 8/28/05)
 !
 !  Arguments as Output:
 !  ============================================================================
@@ -99,14 +101,20 @@
 !  (1 ) Now convert ABSHUM from absolute humidity to relative humidity in
 !        AEROSOL_RURALBOX, using the same algorithm as in "gasconc.f".
 !        (bmy, 1/27/05)
+!  (2 ) Now references ITS_IN_THE_TROP from "tropopause_mod.f" to diagnose
+!        boxes w/in the troposphere. (bmy, 8/22/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE COMODE_MOD
-      USE DAO_MOD,   ONLY : AD, AVGW, MAKE_AVGW, T
+      USE DAO_MOD,        ONLY : AD, AVGW, MAKE_AVGW, T
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! LPAUSE
+!-------------------------------------------------
+! Prior to 8/22/05:
+!#     include "CMN"       ! LPAUSE
+!-------------------------------------------------
 #     include "comode.h"  ! AD, WTAIR, other SMVGEAR variables
 
       ! Argumetns
@@ -151,7 +159,11 @@
             !----------------------------------
             ! Boxes w/in ann mean tropopause
             !----------------------------------
-            IF ( L < LPAUSE(I,J) ) THEN
+            !---------------------------------------
+            ! Prior to 8/22/05:
+            !IF ( L < LPAUSE(I,J) ) THEN
+            !----------------------------------------
+            IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
 
                ! Increment JLOOP for trop boxes
                JLOOP          = JLOOP + 1

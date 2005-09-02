@@ -1,10 +1,10 @@
-! $Id: epa_nei_mod.f,v 1.2 2005/02/10 19:53:25 bmy Exp $
+! $Id: epa_nei_mod.f,v 1.3 2005/09/02 15:17:10 bmy Exp $
       MODULE EPA_NEI_MOD
 !
 !******************************************************************************
 !  Module EPA_NEI_MOD contains variables and routines to read the
 !  weekday/weekend emissions from the EPA/NEI emissions inventory.
-!  (rch, bmy, 11/10/04, 1/26/05)
+!  (rch, bmy, 11/10/04, 8/16/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -84,6 +84,7 @@
 !  NOTES:
 !  (1 ) Prevent out of bounds errors in routines TOTAL_ANTHRO_TG and 
 !        TOTAL_BIOFUEL_TG (bmy, 1/26/05)
+!  (2 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -177,15 +178,16 @@
 !
 !******************************************************************************
 !  Subroutine EMISS_EPA_NEI reads all EPA emissions from disk at the start
-!  of a new month. (rch, bmy, 11/10/04)
+!  of a new month. (rch, bmy, 11/10/04, 8/16/05)
 !
 !  NOTES:
+!  (1 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
 !******************************************************************************
-                               
+!                               
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TIME_MOD,      ONLY : EXPAND_DATE, GET_MONTH
+      USE TIME_MOD,      ONLY : EXPAND_DATE,     GET_MONTH
 
 #     include "CMN_SIZE"   ! Size parameters
 
@@ -228,9 +230,15 @@
       !=================================================================
 
       ! Weekday anthro file name
-      FILENAME = TRIM( DATA_DIR )                           // 
-     &           'EPA_NEI_200411/wkday_avg_an.YYYYMM.geos.' //
-     &           GET_RES_EXT()
+!------------------------------------------------------------------------
+! Prior to 8/16/05:
+!      FILENAME = TRIM( DATA_DIR )                           // 
+!     &           'EPA_NEI_200411/wkday_avg_an.YYYYMM.geos.' //
+!     &           GET_RES_EXT()
+!------------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR )                         // 
+     &           'EPA_NEI_200411/wkday_avg_an.YYYYMM.'    //
+     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()     
 
       ! Replace date in filename
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
@@ -247,9 +255,15 @@
       !=================================================================
 
       ! Weekend anthro file name
-      FILENAME = TRIM( DATA_DIR )                           // 
-     &           'EPA_NEI_200411/wkend_avg_an.YYYYMM.geos.' //
-     &           GET_RES_EXT()
+!-----------------------------------------------------------------------
+! Prior to 8/16/05:
+!      FILENAME = TRIM( DATA_DIR )                           // 
+!     &           'EPA_NEI_200411/wkend_avg_an.YYYYMM.geos.' //
+!     &           GET_RES_EXT()
+!-----------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR )                         // 
+     &           'EPA_NEI_200411/wkend_avg_an.YYYYMM.'    //
+     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
 
       ! Replace date in filename
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
@@ -266,9 +280,15 @@
       !=================================================================
 
       ! Weekday biofuel file name
-      FILENAME = TRIM( DATA_DIR )                           // 
-     &           'EPA_NEI_200411/wkday_avg_bf.YYYYMM.geos.' //
-     &           GET_RES_EXT()
+!-------------------------------------------------------------------------
+! Prior to 8/16/05:
+!      FILENAME = TRIM( DATA_DIR )                           // 
+!     &           'EPA_NEI_200411/wkday_avg_bf.YYYYMM.geos.' //
+!     &           GET_RES_EXT()
+!-------------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR )                         // 
+     &           'EPA_NEI_200411/wkday_avg_bf.YYYYMM.'    //
+     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
 
       ! Replace date in filename
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
@@ -285,9 +305,15 @@
       !=================================================================
 
       ! Weekend biofuel file name
-      FILENAME = TRIM( DATA_DIR )                           // 
-     &           'EPA_NEI_200411/wkend_avg_bf.YYYYMM.geos.' //
-     &           GET_RES_EXT()  
+!------------------------------------------------------------------------
+! Prior to 8/16/05:
+!      FILENAME = TRIM( DATA_DIR )                           // 
+!     &           'EPA_NEI_200411/wkend_avg_bf.YYYYMM.geos.' //
+!     &           GET_RES_EXT()  
+!------------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR )                         // 
+     &           'EPA_NEI_200411/wkend_avg_bf.YYYYMM.'    //
+     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()  
 
       ! Replace date in filename
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
@@ -532,9 +558,10 @@
 !******************************************************************************
 !  Subroutine READ_USA_MASK reads the USA mask from disk.   The USA mask is
 !  the fraction of the grid box (I,J) which lies w/in the continental USA.
-!  (rch, bmy, 11/10/04)
+!  (rch, bmy, 11/10/04, 8/16/05)
 !
 !  NOTES:
+!  (1 ) Now can read data for GEOS and GCAP grids (bmy, 8/16/05)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -554,8 +581,18 @@
       !=================================================================
 
       ! File name
-      FILENAME = TRIM( DATA_DIR ) //
-     &           'EPA_NEI_200411/usa_mask.geos.' // GET_RES_EXT()
+!---------------------------------------------------------------------------
+! Prior to 8/16/05:
+!      FILENAME = TRIM( DATA_DIR ) //
+!     &           'EPA_NEI_200411/usa_mask.geos.' // GET_RES_EXT()
+!---------------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR )           //
+     &           'EPA_NEI_200411/usa_mask.' // GET_NAME_EXT_2D() //
+     &           '.'                        // GET_RES_EXT()
+
+      ! Echo info
+      WRITE( 6, 100 ) TRIM( FILENAME )
+ 100  FORMAT( '     - READ_USA_MASK: Reading ', a )
 
       ! Get TAU0 for Jan 1985
       XTAU  = GET_TAU0( 1, 1, 1985 )
@@ -813,7 +850,7 @@
      &                                  31, 31, 30, 31, 30, 31 /)
 
       !=================================================================
-      ! TOTAL_ANTHRO_TG begins here!
+      ! TOTAL_BIOFUEL_TG begins here!
       !=================================================================
 
       ! Summing variables for weekday avg anthro
@@ -873,7 +910,7 @@
       IF ( IDTNH3  > 0 ) F_NH3  = FMOL(IDTNH3 )
 
       !=================================================================
-      ! Sum anthropogenic emissions
+      ! Sum biofuel emissions
       !=================================================================
 
       ! Loop over surface boxes
@@ -920,7 +957,7 @@
       ! Print info
       !=================================================================
       
-      ! Weekday avg anthro
+      ! Weekday avg biofuel
       WRITE( 6, '(a)' )
       WRITE( 6, 100   ) 'NOx ', THISMONTH, WD_NOX,  '  '
       WRITE( 6, 100   ) 'CO  ', THISMONTH, WD_CO,   '  '
@@ -937,7 +974,7 @@
  100  FORMAT( 'Total weekday avg biofuel ', a4, ' for 1999/', 
      &         i2.2, ': ', f13.6, ' Tg', a2 )
 
-      ! Weekend avg anthro
+      ! Weekend avg biofuel
       WRITE( 6, '(a)' )
       WRITE( 6, 110   ) 'NOx ', THISMONTH, WE_NOX,  '  '
       WRITE( 6, 110   ) 'CO  ', THISMONTH, WE_CO,   '  '

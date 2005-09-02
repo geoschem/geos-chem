@@ -1,9 +1,9 @@
-! $Id: time_mod.f,v 1.14 2005/06/27 19:41:50 bmy Exp $
+! $Id: time_mod.f,v 1.15 2005/09/02 15:17:25 bmy Exp $
       MODULE TIME_MOD
 !
 !******************************************************************************
 !  TIME_MOD contains GEOS-CHEM date and time variables and timesteps, and 
-!  routines for accessing them. (bmy, 6/21/00, 5/24/05) 
+!  routines for accessing them. (bmy, 6/21/00, 8/29/05) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -168,6 +168,7 @@
 !  (18) Removed obsolete FIRST variable in GET_A3_TIME (bmy, 12/10/04)
 !  (19) Added routines SYSTEM_DATE_TIME and SYSTEM_TIMESTAMP.  Also modified
 !        for GCAP and GEOS-5 met fields. (swu, bmy, 5/3/05)
+!  (20) GCAP/GISS met fields don't have leap years (swu, bmy, 8/29/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -230,9 +231,13 @@
       SUBROUTINE SET_CURRENT_TIME
 !
 !******************************************************************************
-!  Subroutine SET_TIME takes in the elapsed time in minutes since the start of
-!  a GEOS-CHEM simulation and sets the GEOS-CHEM time variables accordingly.
-!  (bmy, 2/5/03)
+!  Subroutine SET_CURRENT_TIME takes in the elapsed time in minutes since the 
+!  start of a GEOS-CHEM simulation and sets the GEOS-CHEM time variables 
+!  accordingly. (bmy, 2/5/03)
+!
+!  NOTES:
+!  (1 ) GCAP/GISS fields don't have leap years, so if JULDAY says it's 
+!        Feb 29th, reset MONTH, DAY, JD1 to Mar 1st. (swu, bmy, 8/29/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -251,6 +256,18 @@
 
       ! JD1: Astronomical Julian Date at current time
       JD1  = JD0 + ( DBLE( ELAPSED_MIN ) / 1440d0 )
+
+#if   defined( GCAP )
+
+      ! GCAP/GISS fields don't have leap years, so if JULDAY says it's 
+      ! Feb 29th, reset MONTH, DAY, JD1 to Mar 1st. (swu, bmy, 8/29/05)
+      IF ( MONTH == 2 .and. DAY == 29 ) THEN
+         MONTH = 3
+         DAY   = 1
+         JD1   = JD1 + 1.0d0
+      ENDIF 
+
+#endif
 
       ! Call CALDATE to compute the current YYYYMMDD and HHMMSS
       CALL CALDATE( JD1, NYMD, NHMS )
@@ -1770,24 +1787,6 @@
       !=================================================================
       ! GET_A3_TIME begins here!
       !=================================================================
-!------------------------------------------------------------------------------
-! Prior to 5/24/05:
-!#if   defined( GEOS_4 ) 
-!
-!      ! For GEOS-4/fvDAS, he A-3 fields are timestamped by center time.  
-!      ! Therefore, the difference between the actual time when the fields 
-!      ! are read and the A-3 timestamp time is 90 minutes.
-!      DATE = GET_TIME_AHEAD( 90 )   
-!
-!#else
-!      
-!      ! For GEOS-1, GEOS-STRAT, GEOS-3, the A-3 fields are timestamped 
-!      ! by ending time.  Therefore, the difference between the actual time
-!      ! when the fields are read and the A-3 timestamp time is 180 minutes.
-!      DATE = GET_TIME_AHEAD( 180 )      
-!
-!#endif
-!-----------------------------------------------------------------------------
 
 #if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
 
@@ -1884,22 +1883,6 @@
       ! GET_FIRST_A3_TIME begins here!
       !=================================================================
 
-!----------------------------------------------------------------------------
-! Prior to 5/24/05:
-!#if   defined( GEOS_4 )
-!
-!      ! For GEOS-4, call GET_A3_TIME to return date/time
-!      ! under which the A-3 fields are timestamped
-!      DATE = GET_A3_TIME()
-!      
-!#else
-!
-!      ! For GEOS-1, GEOS-STRAT, GEOS-3, return the current date/time
-!      DATE = (/ NYMD, NHMS /)
-!
-!#endif
-!----------------------------------------------------------------------------
-
 #if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
 
       ! For GEOS-1, GEOS-STRAT, GEOS-3: Return the current date/time
@@ -1937,23 +1920,6 @@
       !=================================================================
       ! GET_FIRST_A6_TIME begins here!
       !=================================================================
-
-!-----------------------------------------------------------------------------
-! Prior to 5/23/05:
-! Remove code for obsolete GEOS-4 a_llk_03 data (bmy, 5/23/05)
-!#if   defined( GEOS_4 ) && defined( A_LLK_03 )
-!
-!      ! For GEOS-4, call GET_A3_TIME to return date/time
-!      ! under which the A-3 fields are timestamped
-!      DATE = GET_A6_TIME()
-!      
-!#else
-!
-!      ! For GEOS-1, GEOS-STRAT, GEOS-3, return the current date/time
-!      DATE = (/ NYMD, NHMS /)
-!
-!#endif
-!----------------------------------------------------------------------------
 
 #if   defined( GCAP )
 
@@ -2153,25 +2119,6 @@
       ! ITS_TIME_FOR_A6 begins here!
       !=================================================================
 
-!-----------------------------------------------------------------------------
-! Prior to 5/23/05:
-! Remove code for obsolete GEOS-4 a_llk_03 data (bmy, 5/23/05)
-!#if   defined( GEOS_4 ) && defined( A_LLK_03 )
-!
-!      ! For GEOS-4 "a_llk_03" data, we need to read A-6 fields when it 
-!      ! is 00, 06, 12, 18 GMT.  DATE is the current time -- test below.
-!      DATE = GET_TIME_AHEAD( 0 )
-!
-!#else
-!
-!      ! For GEOS-1, GEOS-S, GEOS-3, and GEOS-4 "a_llk_04" data, 
-!      ! we need to read A-6 fields when it is 03, 09, 15, 21 GMT.  
-!      ! DATE is the time 3 hours from now -- test below.
-!      DATE = GET_TIME_AHEAD( 180 )
-!     
-!#endif
-!-----------------------------------------------------------------------------
- 
 #if   defined( GCAP )
 
       ! For GCAP data: We need to read A-6 fields when it 00, 06, 
@@ -2304,12 +2251,13 @@
 !
 !******************************************************************************
 !  Function ITS_A_LEAPYEAR tests to see if a year is really a leapyear. 
-!  (bmy, 3/17/99, 9/25/03)
+!  (bmy, 3/17/99, 8/29/05)
 !
 !  NOTES: 
 !  (1 ) Now remove YEAR from ARG list; use the module variable (bmy, 3/21/03)
 !  (2 ) Now add YEAR_IN as an optional argument.  If YEAR_IN is not passed,
 !        then test if the current year is a leapyear (bmy, 9/25/03)
+!  (3 ) Now always return FALSE for GCAP (swu, bmy, 8/29/05)
 !******************************************************************************
 !
       ! Arguments
@@ -2349,6 +2297,11 @@
       !     4, 100, and 400.
       !=================================================================
       IS_LEAPYEAR = .FALSE.
+
+#if   defined( GCAP )
+      ! For GCAP/GISS met fields, there are no leap years (swu, bmy, 8/29/05)
+      RETURN
+#endif
 
       IF ( MOD( THISYEAR, 4 ) == 0 ) THEN
          IF ( MOD( THISYEAR, 100 ) == 0 ) THEN

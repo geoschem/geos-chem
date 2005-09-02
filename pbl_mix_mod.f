@@ -1,10 +1,10 @@
-! $Id: pbl_mix_mod.f,v 1.2 2005/06/22 20:50:04 bmy Exp $
+! $Id: pbl_mix_mod.f,v 1.3 2005/09/02 15:17:19 bmy Exp $
       MODULE PBL_MIX_MOD
 !
 !******************************************************************************
 !  Module PBL_MIX_MOD contains routines and variables used to compute the
 !  planetary boundary layer (PBL) height and to mix tracers underneath the 
-!  PBL top. (bmy, 2/11/05, 5/24/05)
+!  PBL top. (bmy, 2/11/05, 8/30/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -42,6 +42,7 @@
 !
 !  NOTES:
 !  (1 ) Now modified for GCAP and GEOS-5 met fields (bmy, 5/24/05)
+!  (2 ) Remove reference to "CMN" and XTRA2. (bmy, 8/30/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -96,7 +97,7 @@
 !  Subroutine DO_PBL_MIX is the driver routine for planetary boundary layer
 !  mixing.  The PBL layer height and related quantities are always computed.
 !  Complete mixing of tracers underneath the PBL top is toggled by the 
-!  DO_TURBDAY switch.
+!  DO_TURBDAY switch. (bmy, 2/11/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -140,10 +141,13 @@
 !
 !******************************************************************************
 !  Subroutine COMPUTE_PBL_HEIGHT computes the PBL height and other related
-!  quantities. (bmy, 2/15/05, 5/25/05)
+!  quantities. (bmy, 2/15/05, 8/30/05)
 !
 !  NOTES:
 !  (1 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
+!  (2 ) Remove reference to "CMN" and XTRA2 -- they're obsolete.  Also do not
+!        force BLTOP, BLTHIK to minimum values for GEOS-STRAT met fields.
+!        (bmy, 8/30/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -153,7 +157,10 @@
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_GCTM"     ! Scale height
-#     include "CMN"          ! XTRA2 -- for now
+!--------------------------------------------------------------
+! Prior to 8/3/05:
+!#     include "CMN"          ! XTRA2 -- for now
+!--------------------------------------------------------------
 
       ! Local variables
       INTEGER               :: I,     J,      L,    LTOP
@@ -181,44 +188,6 @@
             P(L) = GET_PEDGE(I,J,L+1)
          ENDDO
 
-!-----------------------------------------------------------------------------
-! Prior to 5/25/05:
-! Rewrite the logic of the #if block since most new met fields will be more 
-! like GEOS-4 or GCAP than like GEOS-1 thru GEOS-3 (swu, bmy, 5/25/05)
-!#if   defined( GEOS_4 )
-! 
-!         !----------------------------------------------
-!         ! GEOS-4: Find PBL top and thickness [hPa]
-!         !----------------------------------------------
-! 
-!         ! BLTOP = pressure at PBL top [hPa]
-!         ! Use barometric law since PBL is in [m]
-!         BLTOP  = P(0) * EXP( -PBL(I,J) / SCALE_HEIGHT )
-! 
-!         ! BLTHIK is PBL thickness [hPa]
-!         BLTHIK = P(0) - BLTOP
-! 
-!#else
-! 
-!         !----------------------------------------------
-!         ! GEOS-3 etc. Find PBL top and thickness [hPa]
-!         !----------------------------------------------
-! 
-!         ! BLTOP = pressure at PBL top
-!         ! PBL is in [hPa], so subtract it from surface pressure [hPa]
-!         BLTOP  = P(0) - PBL(I,J)
-!       
-!         ! BLTHIK is PBL thickness [hPa]
-!         BLTHIK = MAX( PBL(I,J), 1.D0 )
-!  
-!         ! If the PBL depth is very small (or zero), then assume
-!         ! a PBL depth of 2 mb.  This will prevent NaN's from
-!         ! propagating throughout the code. (bmy, 3/7/01)
-!         IF ( PBL(I,J) < 1d-5 ) BLTOP = P(0) - 2d0
-! 
-!#endif
-!------------------------------------------------------------------------------
-
 #if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
 
          !----------------------------------------------
@@ -229,14 +198,24 @@
          ! BLTOP = pressure at PBL top
          ! PBL is in [hPa], so subtract it from surface pressure [hPa]
          BLTOP  = P(0) - PBL(I,J)
-       
+
+#if   defined( GEOS_STRAT )
+
          ! BLTHIK is PBL thickness [hPa]
-         BLTHIK = MAX( PBL(I,J), 1.D0 )
-  
+         BLTHIK = PBL(I,J)
+
+#else
+
+         ! BLTHIK is PBL thickness [hPa]
+         BLTHIK = MAX( PBL(I,J), 1d0 )
+ 
          ! If the PBL depth is very small (or zero), then assume
          ! a PBL depth of 2 mb.  This will prevent NaN's from
          ! propagating throughout the code. (bmy, 3/7/01)
-         IF ( PBL(I,J) < 1d-5 ) BLTOP = P(0) - 2d0
+         IF ( PBL(I,J) < 1d-5 ) BLTOP  = P(0) - 2d0
+
+#endif
+
 
 #else
 
@@ -285,9 +264,12 @@
          ! PBL top [model layers]
          PBL_TOP_L(I,J)   = FLOAT( IMIX(I,J) - 1 ) + FPBL(I,J)
 
-         !### NOTE: For backwards compatibility, save into XTRA2 for
-         !### now, but this will be removed later on (bmy, 2/15/05)
-         XTRA2(I,J)       = PBL_TOP_L(I,J)
+         !------------------------------------------------------------------
+         ! Prior to 8/3/05:
+         !!### NOTE: For backwards compatibility, save into XTRA2 for
+         !!### now, but this will be removed later on (bmy, 2/15/05)
+         !XTRA2(I,J)       = PBL_TOP_L(I,J)
+         !------------------------------------------------------------------
 
          ! PBL top [hPa]
          PBL_TOP_hPa(I,J) = BLTOP
@@ -358,6 +340,7 @@
 !               PRINT*, '### I, J, L     : ', I, J, L
 !               PRINT*, '### P(L-1)      : ', P(L-1)
 !               PRINT*, '### P(L)        : ', P(L)
+!               PRINT*, '### PBL(I,J)    : ', PBL(I,J)
 !               PRINT*, '### F_OF_PBL    : ', F_OF_PBL(I,J,L)
 !               PRINT*, '### F_UNDER_TOP : ', F_UNDER_TOP(I,J,L)
 !               PRINT*, '### IMIX        : ', IMIX(I,J)
@@ -377,6 +360,7 @@
 
          ! Error check
          IF ( ABS( SUM( F_OF_PBL(I,J,:) ) - 1.d0 ) > 1.d-3 ) THEN
+            PRINT*, 'bad sum at: ', I, J
             CALL ERROR_STOP( 'Error in computing F_OF_PBL!',
      &                       'COMPUTE_PBL_HEIGHT ("pbl_mix_mod.f")' )
          ENDIF
@@ -705,7 +689,7 @@
       INTEGER  :: TOP
 
       !=================================================================
-      ! GET_PBL_TOP_L begins here!
+      ! GET_PBL_MAX_L begins here!
       !=================================================================
       TOP = PBL_MAX_L
 

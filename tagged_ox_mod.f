@@ -1,4 +1,4 @@
-! $Id: tagged_ox_mod.f,v 1.10 2005/05/09 14:34:01 bmy Exp $
+! $Id: tagged_ox_mod.f,v 1.11 2005/09/02 15:17:25 bmy Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
@@ -188,7 +188,7 @@
 !******************************************************************************
 !  Subroutine GET_REGIONAL_POX returns the P(Ox) for each of the tagged Ox 
 !  tracers. Tagged Ox tracers are defined by both geographic location and 
-!  altitude. (amf, rch, bmy, 8/19/03, 5/27/04)
+!  altitude. (amf, rch, bmy, 8/19/03, 8/22/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -204,15 +204,21 @@
 !        Now references SCALE_HEIGHT from "CMN_GCTM". (bmy, 1/15/04)
 !  (3 ) Now uses model levels instead of pressure in order to delineate
 !        between PBL, MT, and UT regions (amf, rch, bmy, 5/27/04)
+!  (4 ) Now references ITS_IN_THE_TROP from "tropopause_mod.f".  Now remove
+!        reference to "CMN", it's obsolete. (bmy, 8/22/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : PBL
-      USE GRID_MOD,     ONLY : GET_XMID,  GET_YMID
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
+      USE DAO_MOD,        ONLY : PBL
+      USE GRID_MOD,       ONLY : GET_XMID,  GET_YMID
+      USE TIME_MOD,       ONLY : GET_TS_CHEM
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! LPAUSE
+!-----------------------------------------------------
+! Prior to 8/22/05:
+!#     include "CMN"       ! LPAUSE
+!-----------------------------------------------------
 #     include "CMN_GCTM"  ! SCALE_HEIGHT
 
       ! Arguments
@@ -238,8 +244,12 @@
       PP(I,J,L,:) = 0d0
       
       ! IS TROP is TRUE if we are in the troposphere
-      ITS_IN_TROP = ( L < LPAUSE(I,J) )
-
+      !--------------------------------------------------
+      ! Prior to 8/22/05:
+      !ITS_IN_TROP = ( L < LPAUSE(I,J) )
+      !--------------------------------------------------
+      ITS_IN_TROP = ITS_IN_THE_TROP( I, J, L )
+      
       ! Skip stratospheric boxes
       IF ( .not. ITS_IN_TROP ) RETURN
 
@@ -264,6 +274,9 @@
       PBLTOP = 10
       MTTOP  = 16
 #elif defined( GEOS_4 )
+      PBLTOP = 5
+      MTTOP  = 10
+#elif defined( GEOS_5 )
       PBLTOP = 5
       MTTOP  = 10
 #endif

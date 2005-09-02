@@ -1,4 +1,4 @@
-! $Id: transfer_mod.f,v 1.3 2005/06/22 20:50:06 bmy Exp $
+! $Id: transfer_mod.f,v 1.4 2005/09/02 15:17:28 bmy Exp $
       MODULE TRANSFER_MOD
 !
 !******************************************************************************
@@ -99,33 +99,6 @@
       ! argument types or # of arguments under one unique name
       !================================================================= 
 
-!------------------------------------------------------------------------------
-! Prior to 6/7/05:
-! Cosmetic changes (bmy, 6/7/05)
-!      ! Interface for routines to lump 2 levels together (REAL*4 and REAL*8)
-!      INTERFACE LUMP_2
-!         MODULE PROCEDURE LUMP_2_R4, LUMP_2_R8
-!      END INTERFACE
-!
-!      ! Interface for routines to lump 2 levels together (REAL*4 and REAL*8)
-!      INTERFACE LUMP_4
-!         MODULE PROCEDURE LUMP_4_R4, LUMP_4_R8
-!      END INTERFACE
-!
-!      ! Interface for routines which copy 2-D data 
-!      ! (INTEGER, REAL*4, and REAL*8)
-!      INTERFACE TRANSFER_2D
-!         MODULE PROCEDURE TRANSFER_2D_INT,
-!     &                    TRANSFER_2D_R4, 
-!     &                    TRANSFER_2D_R8
-!      END INTERFACE
-!
-!      ! Interface for routines which copy lat-alt data (REAL*4 and REAL*8)
-!      INTERFACE TRANSFER_ZONAL
-!         MODULE PROCEDURE TRANSFER_ZONAL_R4, TRANSFER_ZONAL_R8
-!      END INTERFACE
-!------------------------------------------------------------------------------
-
       ! Interface for routines to lump 2 levels together (REAL*4 and REAL*8)
       INTERFACE LUMP_2
          MODULE PROCEDURE LUMP_2_R4
@@ -205,11 +178,6 @@
          L_COPY = 22
       ENDIF
       
-!------------------------------------------------------------------------
-! Prior to 5/24/05:
-! For now, assume GEOS-4 and GEOS-5 are on the same grid (bmy, 5/24/05)
-!#elif defined( GEOS_4 )
-!------------------------------------------------------------------------
 #elif defined( GEOS_4 ) || defined( GEOS_5 )
 
       ! For GEOS-4 & GEOS-5, only regrid if LLPAR does not equal LGLOB 
@@ -349,11 +317,6 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-!--------------------------------------------------------------------------
-! Prior to 5/24/05:
-! For now, assume GEOS-4 and GEOS-5 are have the same grid (bmy, 5/24/05)
-!#elif defined( GEOS_4 )
-!--------------------------------------------------------------------------
 #elif defined( GEOS_4 ) || defined( GEOS_5 )
 
       !================================================================
@@ -522,11 +485,6 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-!-----------------------------------------------------------------------------
-! Prior to 5/24/05:
-! For now, assume GEOS-5 has same grid as GEOS-4 (bmy, 5/24/05)
-!#elif defined( GEOS_4 )
-!-----------------------------------------------------------------------------
 #elif defined( GEOS_4 ) || defined( GEOS_5 )
 
       !================================================================
@@ -726,11 +684,6 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-!-----------------------------------------------------------------------------
-! Prior to 5/24/05:
-! For now, assume GEOS-5 has the same grid as GEOS-4 (bmy, 5/24/05)
-!#elif defined( GEOS_4 )
-!-----------------------------------------------------------------------------
 #elif defined( GEOS_4 ) || defined( GEOS_5 )
       
       !================================================================
@@ -881,11 +834,6 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-!-----------------------------------------------------------------------------
-! Prior to 5/24/05:
-! Assume that GEOS-5 has the same grid as GEOS-4 (bmy, 5/24/05)
-!#elif defined( GEOS_4 )
-!-----------------------------------------------------------------------------
 #elif defined( GEOS_4 ) || defined( GEOS_5 )
       
       !================================================================
@@ -1619,11 +1567,6 @@
          ALLOCATE( EDGE_IN( LGLOB + 1 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGE_IN' )
 
-!--------------------------------------------------------------------------
-! Prior to 5/24/05:
-! Assume that GEOS-5 has same grid as GEOS-4 (bmy, 5/24/05)
-!#if   defined( GEOS_4 ) 
-!--------------------------------------------------------------------------
 #if   defined( GEOS_4 ) || defined( GEOS_5 )
 
          ! For GEOS-4, this is a hybrid grid.  Assign the original 56 

@@ -1,4 +1,4 @@
-! $Id: a6_read_mod.f,v 1.11 2005/06/22 20:49:59 bmy Exp $
+! $Id: a6_read_mod.f,v 1.12 2005/09/02 15:16:55 bmy Exp $
       MODULE A6_READ_MOD
 !
 !******************************************************************************
@@ -52,13 +52,6 @@
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
       ! and routines from being seen outside "a6_read_mod.f"
       !=================================================================
-
-      !------------------------------------------------
-      ! Prior to 5/25/05:
-      !! PRIVATE module routines
-      !PRIVATE :: A6_CHECK, CHECK_TIME,  DO_OPEN_A6
-      !PRIVATE :: GET_N_A6, MAKE_CLDFRC, READ_A6
-      !------------------------------------------------
 
       ! Make everything PRIVATE ...
       PRIVATE
@@ -276,21 +269,6 @@
          GOTO 999
       ENDIF
 
-!---------------------------------------------------------------
-! Prior to 5/25/05:
-! GEOS-4 a_llk_03 data is now obsolete.  
-! Also modified for GCAP data (swu, bmy, 5/25/05)
-!#if   defined( GEOS_4 ) && defined( A_LLK_03 )
-!
-!      ! Open file if it's 03 GMT or first call 
-!      ! (GEOS-4 "a_llk_03" only)
-!      IF ( NHMS == 030000 .or. FIRST ) THEN
-!         DO_OPEN = .TRUE. 
-!         GOTO 999
-!      ENDIF
-!
-!#else
-!---------------------------------------------------------------
 #if   defined( GCAP )
 
       ! Open file if it's 03 GMT or first call (GCAP only) 
@@ -447,10 +425,6 @@
          WRITE( 6, 100 ) TRIM( PATH )
  100     FORMAT( '     - Opening: ', a ) 
 
-!----------------------------
-! Prior to 5/25/05:
-!#if   defined( GEOS_4 )
-!----------------------------
 #if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( GCAP )
 
          ! Skip past the ident string
@@ -488,14 +462,7 @@
 !  (3 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !******************************************************************************
 !
-!-------------------------------------------------------------------------
-! Prior to 5/25/05:
-!      ! References to F90 modules
-!      USE DAO_MOD, ONLY : CLDF,    CLDFRC, CLDMAS, CLMOSW, CLROSW, 
-!     &                    CLDTOPS, DTRAIN, HKBETA, HKETA,  MOISTQ, 
-!     &                    OPTDEP,  SPHU,   T,      UWND,   VWND,   
-!     &                    ZMEU,    ZMMD,   ZMMU
-!-------------------------------------------------------------------------
+      ! References to F90 modules
       USE DAO_MOD, ONLY : CLDF,    CLDFRC,   CLDMAS,   CLMOSW, CLROSW, 
      &                    CLDTOPS, DETRAINE, DETRAINN, DNDE,   DNDN,
      &                    DTRAIN,  ENTRAIN,  HKBETA,   HKETA,  MOISTQ, 
@@ -556,10 +523,6 @@
      &              CLDF=CLDF,     CLDMAS=CLDMAS, CLDTOPS=CLDTOPS, 
      &              DTRAIN=DTRAIN, MOISTQ=MOISTQ, OPTDEPTH=OPTDEP )
 
-!--------------------------
-! Prior to 5/25/05:
-!#elif defined( GEOS_4 )
-!--------------------------
 #elif defined( GEOS_4 ) || defined( GEOS_5 )
 
       !=================================================================      
@@ -803,11 +766,6 @@
       ! GEOS-3 has 6 A-6 fields
       N_A6 = 6
 
-!----------------------------------------------------------------------------
-! Prior to 5/25/05:
-! For now, assume GEOS-5 has same # of fields as GEOS-4 (swu, bmy, 5/25/05)
-!#elif defined( GEOS_4 )
-!----------------------------------------------------------------------------
 #elif defined( GEOS_4 ) || defined( GEOS_5 )
 
       ! GEOS-4 has 12 A-6 fields
@@ -1412,10 +1370,6 @@
          ENDDO
       ENDIF     
 
-!--------------------------
-! Prior to 5/25/05:
-!#if   defined( GEOS_4 )
-!--------------------------
 #elif defined( GEOS_4 )
 
       ! CLDTOPS is highest location of ZMMU in the column (I,J)

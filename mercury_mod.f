@@ -1,9 +1,9 @@
-! $Id: mercury_mod.f,v 1.4 2005/04/12 15:33:03 bmy Exp $
+! $Id: mercury_mod.f,v 1.5 2005/09/02 15:17:18 bmy Exp $
       MODULE MERCURY_MOD
 !
 !******************************************************************************
 !  Module MERCURY_MOD contains variables and routines for the GEOS-CHEM 
-!  mercury simulation. (eck, bmy, 12/14/04, 2/24/05)
+!  mercury simulation. (eck, bmy, 12/14/04, 8/16/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -122,6 +122,7 @@
 !        diagnostic arrays from "diag03_mod.f".  (eck, sas, bmy, 1/21/05)
 !  (2 ) Now references "pbl_mix_mod.f".  Remove FEMIS array and routine
 !        COMPUTE_FEMIS. (bmy, 2/15/05)
+!  (3 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1527,12 +1528,13 @@
 !
 !******************************************************************************
 !  Subroutine MERCURY_READYR reads the year-invariant emissions for Mercury
-!  from anthropogenic, ocean, and land sources. (eck, bmy, 12/6/04, 1/20/05)
+!  from anthropogenic, ocean, and land sources. (eck, bmy, 12/6/04, 8/16/05)
 !  
 !  NOTES:
 !  (1 ) Now read data from mercury_200501 subdirectory.  Now compute oceanic 
 !        Hg(0) emissions w/ ocean flux module instead of reading them from 
 !        disk.  Now use 1985 TAU values. (sas, bmy, 1/20/05) 
+!  (2 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1556,8 +1558,14 @@
       !=================================================================
 
       ! Filename for anthropogenic mercury source
-      FILENAME = TRIM( DATA_DIR )                  // 
-     &           'mercury_200501/Hg_anthro.geos.'  // GET_RES_EXT()
+!----------------------------------------------------------------------------
+! Prior to 8/16/05:
+!      FILENAME = TRIM( DATA_DIR )                // 
+!     &           'mercury_200501/Hg_anthro.geos' // GET_RES_EXT()
+!----------------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR )            // 
+     &           'mercury_200501/Hg_anthro.' // GET_NAME_EXT_2D() //
+     &           '.'                         // GET_RES_EXT()
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1620,8 +1628,9 @@
 !      !=================================================================
 !
 !      ! Filename for ocean source
-!      FILENAME = TRIM( DATA_DIR )                // 
-!     &           'mercury_200412/Hg_ocean.geos.' // GET_RES_EXT()    
+!      FILENAME = TRIM( DATA_DIR )           // 
+!     &           'mercury_200412/Hg_ocean.' // GET_NAME_EXT_2D() //
+!     &           '.'                        // GET_RES_EXT()    
 !
 !      ! Echo info
 !      WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1647,8 +1656,14 @@
       !=================================================================
 
       ! Filename for re-emitted anthropogenic mercury
-      FILENAME = TRIM( DATA_DIR )               // 
-     &           'mercury_200501/Hg_land.geos.' // GET_RES_EXT()   
+!----------------------------------------------------------------------------
+! Prior to 8/16/05:
+!      FILENAME = TRIM( DATA_DIR )               // 
+!     &           'mercury_200501/Hg_land.geos.' // GET_RES_EXT()   
+!----------------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR )          // 
+     &           'mercury_200501/Hg_land.' // GET_NAME_EXT_2D() //
+     &           '.'                       // GET_RES_EXT()   
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1672,8 +1687,15 @@
       !=================================================================
 
       ! Filename for natural land-source mercury
-      FILENAME = TRIM( DATA_DIR )                  // 
-     &           'mercury_200501/Hg_natural.geos.' // GET_RES_EXT() 
+!----------------------------------------------------------------------------
+! Prior to 8/16/05:
+!      FILENAME = TRIM( DATA_DIR )                  // 
+!     &           'mercury_200501/Hg_natural.geos.' // GET_RES_EXT() 
+!----------------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR )             // 
+     &           'mercury_200501/Hg_natural.' // GET_NAME_EXT_2D() //
+     &           '.'                          // GET_RES_EXT() 
+
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
 

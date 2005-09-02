@@ -1,9 +1,9 @@
-! $Id: ndxx_setup.f,v 1.19 2005/06/27 19:41:47 bmy Exp $
+! $Id: ndxx_setup.f,v 1.20 2005/09/02 15:17:19 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
 !  NDXX_SETUP dynamically allocates memory for certain diagnostic arrays that 
-!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 6/27/05)
+!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 8/18/05)
 !
 !  This allows us to reduce the amount of memory that needs to be declared 
 !  globally.  We only allocate memory for arrays if the corresponding 
@@ -116,6 +116,7 @@
 !        for flight files for each day (bmy, 3/24/05)
 !  (54) Now use PD05=10 to dimension AD05 array (bmy, 4/13/05)
 !  (55) Now also allocates AD09 and AD09_em (bmy, 6/27/05)
+!  (56) Now allocates AD30 (bmy, 8/18/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -534,8 +535,14 @@
       ENDIF
 
       !=================================================================
-      ! ND30: Plot land map...does not use any allocatable arrays
-      !
+      ! ND30: Land/water/ice flags
+      !=================================================================      
+      IF ( ND30 > 0 ) THEN
+         ALLOCATE( AD30( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD30' )
+      ENDIF
+
+      !=================================================================
       ! ND31: PS - PTOP [mb] --> Uses AD31 array (allocatable)
       !=================================================================
       IF ( ND31 > 0 ) THEN

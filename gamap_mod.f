@@ -1,10 +1,10 @@
-! $Id: gamap_mod.f,v 1.5 2005/06/30 18:55:30 bmy Exp $
+! $Id: gamap_mod.f,v 1.6 2005/09/02 15:17:11 bmy Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
 !  Module GAMAP_MOD contains routines to create GAMAP "tracerinfo.dat" and
 !  "diaginfo.dat" files which are customized to each particular GEOS-CHEM
-!  simulation. (bmy, 5/3/05, 6/30/05)
+!  simulation. (bmy, 5/3/05, 7/25/05)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -63,7 +63,8 @@
 !
 !  NOTES:
 !  (1 ) Minor bug fix for Rn/Pb/Be simulations (bmy, 5/11/05)
-!  (2 ) Added ND09 diagnostic for HCN/CH3CN simulation (xyp, bmy, 6/30/05)
+!  (2 ) Added ND09 diagnostic for HCN/CH3CN simulation. (bmy, 6/30/05)
+!  (3 ) Added ND04 diagnostic for CO2 simulation (bmy, 7/25/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -623,7 +624,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_GAMAP allocates and initializes all module variables.  
-!  (bmy, 4/22/05, 6/27/05)
+!  (bmy, 4/22/05, 7/25/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -633,10 +634,14 @@
 !  NOTES:
 !  (1 ) Now add proper UNIT & SCALE for Rn/Pb/Be simulations (bmy, 5/11/05)
 !  (2 ) Added HCN & CH3CN source & sink info for ND09 (bmy, 6/27/05)
+!  (3 ) Bug fix: removed duplicate category names.  Updated for CO2-SRCE 
+!        diagnostic.  Now references ND04 from "diag04_mod.f. 
+!        (pns, bmy, 7/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIAG03_MOD,   ONLY : ND03
+      USE DIAG04_MOD,   ONLY : ND04
       USE DIAG41_MOD,   ONLY : ND41
       USE DIAG48_MOD,   ONLY : DO_SAVE_DIAG48
       USE DIAG49_MOD,   ONLY : DO_SAVE_DIAG49
@@ -662,7 +667,7 @@
       INTEGER                        :: AS, N, NN, NYMDb, NHMSb, T
 
       !=================================================================
-      ! DO_GAMAP begins here!
+      ! INIT_GAMAP begins here!
       !=================================================================
 
       ! Save from arguments to module variables
@@ -955,31 +960,6 @@
       OFFSET(N)   = SPACING * 4
 
       N           = N + 1
-      CATEGORY(N) = 'CV-FLX-$'
-      DESCRIPT(N) = 'Upward flux from wet conv'
-      OFFSET(N)   = SPACING * 4
-
-      N           = N + 1
-      CATEGORY(N) = 'TURBMC-$'
-      DESCRIPT(N) = 'Upward flux from PBL mixing'
-      OFFSET(N)   = SPACING * 4
-
-      N           = N + 1
-      CATEGORY(N) = 'EW-FLX-$'
-      DESCRIPT(N) = 'E/W transport flux'
-      OFFSET(N)   = SPACING * 4
-
-      N           = N + 1
-      CATEGORY(N) = 'NS-FLX-$'
-      DESCRIPT(N) = 'N/S transport flux'
-      OFFSET(N)   = SPACING * 4
-
-      N           = N + 1
-      CATEGORY(N) = 'UP-FLX-$'
-      DESCRIPT(N) = 'Up/down transport flux'
-      OFFSET(N)   = SPACING * 4
-
-      N           = N + 1
       CATEGORY(N) = 'PS-PTOP'
       DESCRIPT(N) = 'GEOS PS - PTOP'
       OFFSET(N)   = SPACING * 10 
@@ -1199,6 +1179,11 @@
       DESCRIPT(N) = 'HCN & CH3CN sources'
       OFFSET(N)   = SPACING * 39
 
+      N           = N + 1
+      CATEGORY(N) = 'CO2-SRCE'
+      DESCRIPT(N) = 'CO2 fluxes'
+      OFFSET(N)   = SPACING * 40
+
       ! Number of categories
       NCATS = N
 
@@ -1354,6 +1339,50 @@
             MOLC (T,03) = 1
             MWT  (T,03) = 201e-3
             SCALE(T,03) = 1e0
+         ENDDO
+      ENDIF
+
+      !-------------------------------------
+      ! CO2 sources & fluxes
+      !-------------------------------------
+      IF ( ND04 > 0 ) THEN
+         
+         ! Number of tracers
+         NTRAC(04) = 6
+
+         ! Loop over tracers: HG-SRCE
+         DO T = 1, NTRAC(04)
+
+            ! Define quantities
+            UNIT (T,04) = 'atoms C/cm2/s'
+            INDEX(T,04) = T + ( SPACING * 40 )
+            MOLC (T,04) = 1
+            MWT  (T,04) = 12e-3
+            SCALE(T,04) = 1e0
+
+            ! Get name, long-name
+            SELECT CASE( T )
+               CASE( 1  )
+                  NAME (T,04) = 'CO2ff'
+                  FNAME(T,04) = 'CO2 fossil fuel emiss'
+               CASE( 2  )
+                  NAME (T,04) = 'CO2oc'
+                  FNAME(T,04) = 'CO2 ocean emissions'
+               CASE( 3  )
+                  NAME (T,04) = 'CO2bal'
+                  FNAME(T,04) = 'CO2 balanced biosphere'
+               CASE( 4  )
+                  NAME (T,04) = 'CO2bb'
+                  FNAME(T,04) = 'CO2 biomass burning emiss'
+               CASE( 5  )
+                  NAME (T,04) = 'CO2bf'
+                  FNAME(T,04) = 'CO2 biofuel emission'
+               CASE( 6  )
+                  NAME (T,04) = 'CO2net'
+                  FNAME(T,04) = 'CO2 net terr exchange'
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT
          ENDDO
       ENDIF
 
@@ -1520,7 +1549,7 @@
             ENDIF
          ENDDO
       ENDIF
-      
+    
       !-------------------------------------
       ! Acetone sources & sinks (ND11)
       !-------------------------------------

@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.16 2005/06/30 18:55:30 bmy Exp $
+! $Id: input_mod.f,v 1.17 2005/09/02 15:17:15 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -1039,11 +1039,6 @@
       !---------------------------------
       ! Error check SULFUR AEROSOLS
       !---------------------------------
-      !-----------------------------------------------------------------
-      ! Prior to 4/13/05:
-      ! Also add SO4s and NITs
-      !I = IDTDMS + IDTSO2 + IDTSO4 + IDTMSA + IDTNH3 + IDTNH4 + IDTNIT
-      !-----------------------------------------------------------------
       I = IDTDMS + IDTSO2 + IDTSO4 + IDTSO4s + 
      &    IDTMSA + IDTNH3 + IDTNH4 + IDTNITs
 
@@ -1634,21 +1629,11 @@
 
       ! Turn off drydep for simulations that don't need it
       IF ( ITS_A_CH3I_SIM()    ) LDRYD = .FALSE.
-      !-----------------------------------------------------------------
-      ! Prior to 6/24/05:
-      ! The CO-OH simulation is obsolete (bmy, 6/24/05)
-      !IF ( ITS_A_COPARAM_SIM() ) LDRYD = .FALSE.
-      !-----------------------------------------------------------------
       IF ( ITS_A_TAGCO_SIM()   ) LDRYD = .FALSE.
 
       ! Turn off wetdep for simulations that don't need it
       IF ( ITS_A_CH3I_SIM()    ) LWETD = .FALSE.
       IF ( ITS_A_HCN_SIM()     ) LWETD = .FALSE.
-      !-----------------------------------------------------------------
-      ! Prior to 6/24/05:
-      ! The CO-OH simulation is obsolete (bmy, 6/24/05)
-      !IF ( ITS_A_COPARAM_SIM() ) LWETD = .FALSE.
-      !-----------------------------------------------------------------
       IF ( ITS_A_TAGOX_SIM()   ) LWETD = .FALSE.
       IF ( ITS_A_TAGCO_SIM()   ) LWETD = .FALSE.
       IF ( ITS_A_C2H6_SIM()    ) LWETD = .FALSE.
@@ -1802,7 +1787,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_DIAGNOSTIC_MENU reads the DIAGNOSTIC MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 6/27/05)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 7/26/05)
 !
 !  NOTES:
 !  (1 ) Now reference IU_BPCH from "file_mod.f" and OPEN_BPCH2_FOR_WRITE
@@ -1813,6 +1798,7 @@
 !        YYYYMMDD and HHMMSS tokens in the bpch file name with the actual
 !        starting date & time of the run. (bmy, 3/25/05)
 !  (3 ) Now get diag info for ND09 for HCN/CH3CN sim (bmy, 6/27/05)
+!  (4 ) Now references "diag04_mod.f" (bmy, 7/26/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1821,6 +1807,7 @@
       USE BPCH2_MOD,    ONLY : OPEN_BPCH2_FOR_WRITE
       USE DIAG_MOD
       USE DIAG03_MOD,   ONLY : ND03, PD03, INIT_DIAG03
+      USE DIAG04_MOD,   ONLY : ND04, PD04, INIT_DIAG04
       USE DIAG41_MOD,   ONLY : ND41, PD41, INIT_DIAG41
       USE DIAG_OH_MOD,  ONLY : INIT_DIAG_OH
       USE DRYDEP_MOD,   ONLY : NUMDEP
@@ -1887,10 +1874,11 @@
       CALL SET_TINDEX( 03, ND03, SUBSTRS(2:N), N-1, PD03 )
 
       !--------------------------
-      ! ND04: Free diagnostic
+      ! ND04: CO2 emissions
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:6' )
       READ( SUBSTRS(1), * ) ND04
+      IF ( .not. ITS_A_CO2_SIM() ) ND04 = 0
       CALL SET_TINDEX( 04, ND04, SUBSTRS(2:N), N-1, PD04 )
 
       !--------------------------
@@ -2140,10 +2128,6 @@
       N_TMP = GET_WETDEP_NMAX()
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:39' )
       READ( SUBSTRS(1), * ) ND38
-      !---------------------------------
-      ! Prior to 3/1/05:
-      !IF ( .not. LWETD ) ND38 = 0
-      !---------------------------------
       IF ( .not. LWETD .and. .not. LCONV ) ND38 = 0
       CALL SET_TINDEX( 38, ND38, SUBSTRS(2:N), N-1, N_TMP )
 
@@ -2360,6 +2344,7 @@
 
       ! Allocate diagnostic arrays
       CALL INIT_DIAG03
+      CALL INIT_DIAG04
       CALL INIT_DIAG41
       CALL NDXX_SETUP
 
@@ -3527,7 +3512,7 @@
 #if   defined( GEOS_1 )
 
       ! Check GEOS-1 met field directory (starting date)
-      DIR = GEOS_1_DIR7
+      DIR = GEOS_1_DIR
       CALL EXPAND_DATE( DIR, NYMDb, 000000 )
       DIR = TRIM( DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( DIR )

@@ -1,4 +1,4 @@
-! $Id: dust_mod.f,v 1.5 2004/10/15 20:16:41 bmy Exp $
+! $Id: dust_mod.f,v 1.6 2005/09/02 15:17:09 bmy Exp $
       MODULE DUST_MOD
 !
 !******************************************************************************
@@ -694,41 +694,41 @@
          DO I = 1, IIPAR
 
             ! Pressure [hPa] at bottom and top edge of level 1
-            P1 = GET_PEDGE(I,J,1)
-            P2 = GET_PEDGE(I,J,2)
+            P1             = GET_PEDGE(I,J,1)
+            P2             = GET_PEDGE(I,J,2)
 
             ! Pressure thickness of 1st layer [Pa]
-            PTHICK(I) = ( P1 - P2 ) * 100d0
+            PTHICK(I)      = ( P1 - P2 ) * 100d0
 
             ! Pressure at midpt of surface layer [Pa]
-            PMID(I)   = GET_PCENTER(I,J,1) * 100d0 
+            PMID(I)        = GET_PCENTER(I,J,1) * 100d0 
 
             ! Temperature [K] at surface layer
-            TLON(I)   = T(I,J,1)
+            TLON(I)        = T(I,J,1)
 
             ! Potential temperature [K] at surface layer
-            THLON(I)  = TLON(I) * ( P1000 / PMID(I) )**AKAP
+            THLON(I)       = TLON(I) * ( P1000 / PMID(I) )**AKAP
 
             ! U and V winds at surface [m/s]
-            ULON(I) = UWND(I,J,1)
-            VLON(I) = VWND(I,J,1)
+            ULON(I)        = UWND(I,J,1)
+            VLON(I)        = VWND(I,J,1)
             
             ! Half box height at surface [m]
-            BHT2(I) = BXHEIGHT(I,J,1) / 2.d0
+            BHT2(I)        = BXHEIGHT(I,J,1) / 2.d0
 
             ! Specific humidity at surface [kg H2O/kg air]
-            Q_H2O(I) = SPHU(I,J,1) / 1000.d0         
+            Q_H2O(I)       = SPHU(I,J,1) / 1000.d0         
 
             ! Orography at surface
             ! Ocean is 0; land is 1; ice is 2
-            ORO(I) = OROGRAPHY(I,J) 
+            ORO(I)         = OROGRAPHY(I,J) 
 
             ! Snow height [m H2O]
             SNW_HGT_LQD(I) = SNOW(I,J) * 1d3
 
             ! Dust tracer and increments
             DO N = 1, NDSTBIN
-               DSRC(I,N)  = 0.0d0
+               DSRC(I,N)   = 0.0d0
             ENDDO
          ENDDO 
 

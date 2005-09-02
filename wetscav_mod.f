@@ -1,4 +1,4 @@
-! $Id: wetscav_mod.f,v 1.17 2005/07/01 20:35:09 bmy Exp $
+! $Id: wetscav_mod.f,v 1.18 2005/09/02 15:17:30 bmy Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
@@ -829,10 +829,6 @@
       ! SO4   (gaseous aerosol) or
       ! SO4aq (aqueous aerosol)
       !-------------------------------
-      !----------------------------------------------------
-      ! Prior to 4/25/05:
-      !ELSE IF ( N == IDTSO4 .or. N == IDTSO4aq ) THEN
-      !----------------------------------------------------
       ELSE IF ( N == IDTSO4 .or. N == IDTSO4s .or. N == IDTSO4aq ) THEN
 
          CALL F_AEROSOL( KC, F ) 
@@ -913,11 +909,6 @@
       !-------------------------------
       ! NIT / LET / AS / AHS (aerosol)
       !-------------------------------
-!--------------------------------------------------------
-! Prior 4/25/05:
-!      ELSE IF ( N == IDTNIT .or. N == IDTAS   .or. 
-!     &          N == IDTAHS .or. N == IDTLET ) THEN 
-!--------------------------------------------------------
       ELSE IF ( N == IDTNIT  .or. N == IDTNITs .or.
      &          N == IDTAS   .or. N == IDTAHS  .or. 
      &          N == IDTLET ) THEN 
@@ -1634,10 +1625,6 @@
       !----------------------------
       ! SO4 and SO4aq (aerosol)
       !----------------------------
-      !------------------------------------------------------------------
-      ! Prior to 4/25/05:
-      !ELSE IF ( N == IDTSO4 .or. N == IDTSO4aq ) THEN
-      !------------------------------------------------------------------
       ELSE IF ( N == IDTSO4 .or. N == IDTSO4s .or. N == IDTSO4aq ) THEN
          RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
@@ -3881,11 +3868,6 @@
          ! Fullchem simulation
          !-----------------------
          NMAX = 4                               ! HNO3, H2O2, CH2O, MP
-
-         !---------------------------------------------------------------------
-         ! Prior to 4/25/05:
-         !IF ( LSULF )    NMAX = NMAX + 6        ! SO2, SO4, MSA, NH3, NH4, NIT
-         !---------------------------------------------------------------------
          IF ( LSULF )    NMAX = NMAX + 8        ! SO2, SO4, MSA, NH3, NH4, NIT
          IF ( LDUST  )   NMAX = NMAX + NDSTBIN  ! plus # of dust bins
          IF ( LSSALT )   NMAX = NMAX + 2        ! plus 2 seasalts
@@ -3902,11 +3884,6 @@
          ! Offline simulation
          !-----------------------
          NMAX = 0
-
-         !---------------------------------------------------------------------
-         ! Prior to 4/25/05:
-         !IF ( LSULF  )   NMAX = NMAX + 7        ! add 7 sulfur species
-         !---------------------------------------------------------------------
          IF ( LSULF  )   NMAX = NMAX + 9        ! add 9 sulfur species
          IF ( LCRYST )   NMAX = NMAX + 5        ! add 5 cryst & aq species
          IF ( LDUST  )   NMAX = NMAX + NDSTBIN  ! Add number of dust bins
@@ -4130,7 +4107,7 @@
          PL = GET_PCENTER(I,J,L)
 
          !==============================================================
-         ! Compute Vud -- 5 m/s over oceans, 10 m/s over land
+         ! Compute Vud -- 5 m/s over oceans, 10 m/s over land (or ice?)
          ! Assume Vud is the same at all altitudes; the array can be 2-D
          !==============================================================
          IF ( L == 1 ) THEN

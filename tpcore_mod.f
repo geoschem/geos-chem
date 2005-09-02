@@ -1,9 +1,9 @@
-! $Id: tpcore_mod.f,v 1.5 2005/06/27 19:41:50 bmy Exp $
+! $Id: tpcore_mod.f,v 1.6 2005/09/02 15:17:27 bmy Exp $
       MODULE TPCORE_MOD
 !
 !******************************************************************************
 !  Module TPCORE_MOD contains the TPCORE transport subroutine package by
-!  S-J Lin, version 7.1. (bmy, 7/16/01, 6/24/05)
+!  S-J Lin, version 7.1. (bmy, 7/16/01, 7/21/05)
 !
 !  Module Routines:
 !  ============================================================================
@@ -71,6 +71,7 @@
 !  (12) Now references "grid_mod.f" and "time_mod.f" (bmy, 3/24/03)
 !  (13) Now print output for IBM/AIX platform in "tpcore" (gcc, bmy, 6/27/03)
 !  (14) Remove obsolete code for CO-OH parameterization (bmy, 6/24/05)
+!  (15) Bug fix in DIAG_FLUX: now dimension FX, FX properly (bmy, 7/21/05)
 !******************************************************************************
 !
       !=================================================================
@@ -1843,12 +1844,6 @@ C============================================================================
  
 C find global min/max
  
-      !----------------------------------------------------------------------
-      ! Prior to 4/25/00:
-      !call vmax1d(P(1,1, 1),Tmax,Tmin,IMR*JNP)
-      !call vmax1d(P(1,1,NL),Bmax,Bmin,IMR*JNP)
-      !----------------------------------------------------------------------
-      
       ! VMAX1D causes bus errors on SGI.  Replace with F90 intrinsic
       ! functions "MAXVAL" and "MINVAL".  These functions produced
       ! identical results as vmax1d in testing.  "MAXVAL" and "MINVAL"
@@ -4024,7 +4019,7 @@ C
 !
 !******************************************************************************
 !  Subroutine DIAG_FLUX archives the mass fluxes in TPCORE version 7.1.
-!  (bey, bmy, 9/20/00, 6/24/05)
+!  (bey, bmy, 9/20/00, 7/21/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -4060,6 +4055,8 @@ C
 !  (8 ) Now references TCVV and ITS_A_CH4_SIM from "tracer_mod.f" 
 !        (bmy, 7/20/04)
 !  (9 ) Remove references obsolete to CO-OH param code (bmy, 6/24/05)
+!  (10) Bug fix: FX should be dimensioned with IIPAR+1 and FZ should be
+!        dimensioned with LLPAR+1 (bmy, 7/21/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4073,20 +4070,22 @@ C
 #     include "CMN_SIZE"      ! Size parameters
 #     include "CMN_DIAG"      ! Diagnostic switches
 #     include "CMN_GCTM"      ! g0_100
-!---------------------------------------------------------------------------
-! Prior to 6/24/05:
-! Remove obsolete common blocks for CO-OH parameterized OH (bmy, 6/24/05)
-!#     include "CMN_CO"        ! CO arrays
-!#     include "CMN_CO_BUDGET" ! TCO
-!---------------------------------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: IC, NDT
-      REAL*8,  INTENT(IN) :: FX(IIPAR,JJPAR,LLPAR) 
+      !--------------------------------------------------------
+      ! Prior to 7/21/05:
+      !REAL*8,  INTENT(IN) :: FX(IIPAR,JJPAR,LLPAR) 
+      !--------------------------------------------------------
+      REAL*8,  INTENT(IN) :: FX(IIPAR+1,JJPAR,LLPAR) 
       REAL*8,  INTENT(IN) :: FX1_TP(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(IN) :: FY(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(IN) :: FY1_TP(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN) :: FZ(IIPAR,JJPAR,LLPAR) 
+      !--------------------------------------------------------
+      ! Prior to 7/21/05:
+      !REAL*8,  INTENT(IN) :: FZ(IIPAR,JJPAR,LLPAR) 
+      !--------------------------------------------------------
+      REAL*8,  INTENT(IN) :: FZ(IIPAR,JJPAR,LLPAR+1) 
       REAL*8,  INTENT(IN) :: FZ1_TP(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(IN) :: ACOSP(JJPAR)
        
@@ -4176,16 +4175,6 @@ C
      &                  ( ACOSP(J)  * g0_100 * AREA_M2 ) /
      &                  ( TCVV(IC)  * DTDYN            )
 
-!------------------------------------------------------------------------------
-! Prior to 6/24/05:
-! CO-OH parameterization is obsolete, remove this (bmy, 6/24/05)
-!#if   defined( LGEOSCO )
-!                  ! Contribution for CO-OH run (bnd, bmy, 10/16/00)
-!                  TCO(I,J,K,10) = TCO(I,J,K,10) + 
-!     &                            ( DTC * DTDYN * XNUMOL_CO )
-!#endif
-!------------------------------------------------------------------------------
-
                   ! Contribution for CH4 run (bmy, 1/17/01)
                   IF ( ITS_A_CH4_SIM() ) THEN
                      TCH4(I,J,K,10) = TCH4(I,J,K,10) + 
@@ -4223,14 +4212,6 @@ C
      &                  ( g0_100    * AREA_M2       ) /
      &                  ( TCVV(IC)  * DTDYN         )
 
-!#if   defined( LGEOSCO )
-! Not really the cross-tropopause flux - there is some horizontal
-! transport across tropopause as well.
-!                  IF ( K2 == LPAUSE(I,J) - 1 ) THEN
-!                     TCO(I,J,1,10) = TCO(I,J,1,10) + 
-!     &                               DTC * DTDYN * XNUMOL_CO
-!                  ENDIF
-!#endif
                   MASSFLUP(I,J,K2,IC) = MASSFLUP(I,J,K2,IC) + DTC
                ENDDO
             ENDDO

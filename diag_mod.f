@@ -1,9 +1,9 @@
-! $Id: diag_mod.f,v 1.15 2005/06/27 19:41:45 bmy Exp $
+! $Id: diag_mod.f,v 1.16 2005/09/02 15:17:07 bmy Exp $
       MODULE DIAG_MOD 
 !
 !******************************************************************************
 !  Module DIAG_MOD contains declarations for allocatable arrays for use with 
-!  GEOS-CHEM diagnostics. (amf, bdf, bmy, 11/30/99, 6/27/05)
+!  GEOS-CHEM diagnostics. (amf, bdf, bmy, 11/30/99, 8/18/05)
 !
 !  Module Routines:
 !  ============================================================================
@@ -50,6 +50,7 @@
 !        ND03 and ND48 arrays; they are obsolete (bmy, 1/21/05)
 !  (22) Removed AD41 and AFTTOT arrays; they're obsolete (bmy, 2/17/05)
 !  (23) Added AD09, AD09_em arrays for HCN/CH3CN simulation (xyp, bmy, 6/27/05)
+!  (24) Added AD30 array for land/water/ice output (bmy, 8/18/05)
 !******************************************************************************
 !     
       !=================================================================
@@ -153,6 +154,9 @@
       ! For ND29 -- CO source diagnostic
       REAL*4,  ALLOCATABLE :: AD29(:,:,:)
 
+      ! For ND30 -- land / water / ice flags
+      REAL*4,  ALLOCATABLE :: AD30(:,:)
+
       ! For ND31 -- surface pressures
       REAL*4,  ALLOCATABLE :: AD31(:,:,:)
 
@@ -243,7 +247,7 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_DIAG deallocates all module arrays.
-!  (bmy, 12/13/02, 6/27/05)
+!  (bmy, 12/13/02, 8/18/05)
 !
 !  NOTES:
 !  (1 ) Now also deallocate AD13_NH3_an, AD13_NH3_bb, AD13_NH3_bf arrays
@@ -261,6 +265,7 @@
 !        and ND48 diagnostics, they're obsolete. (cas, sas, bmy, 1/21/05)
 !  (11) Removed AD41 and AFTTOT arrays; they're obsolete (bmy, 2/17/05)
 !  (12) Now also deallocate AD09 and AD09_em (bmy, 6/27/05)
+!  (13) Now deallocate AD30 (bmy, 8/18/05)
 !******************************************************************************
 !
       !=================================================================
@@ -300,6 +305,7 @@
       IF ( ALLOCATED( AD22        ) ) DEALLOCATE( AD22        ) 
       IF ( ALLOCATED( AD28        ) ) DEALLOCATE( AD28        ) 
       IF ( ALLOCATED( AD29        ) ) DEALLOCATE( AD29        ) 
+      IF ( ALLOCATED( AD30        ) ) DEALLOCATE( AD30        ) 
       IF ( ALLOCATED( AD31        ) ) DEALLOCATE( AD31        ) 
       IF ( ALLOCATED( AD32_ac     ) ) DEALLOCATE( AD32_ac     ) 
       IF ( ALLOCATED( AD32_an     ) ) DEALLOCATE( AD32_an     )

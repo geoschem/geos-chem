@@ -1,9 +1,9 @@
-! $Id: tagged_co_mod.f,v 1.8 2005/03/29 15:52:44 bmy Exp $
+! $Id: tagged_co_mod.f,v 1.9 2005/09/02 15:17:25 bmy Exp $
       MODULE TAGGED_CO_MOD
 !
 !******************************************************************************
 !  Module TAGGED_CO_MOD contains variables and routines used for the 
-!  geographically tagged CO simulation. (bmy, 7/28/00, 3/7/05)
+!  geographically tagged CO simulation. (bmy, 7/28/00, 8/22/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -38,23 +38,24 @@
 !
 !  GEOS-CHEM modules referenced by tagged_co_mod.f
 !  ============================================================================
-!  (1 ) biofuel_mod.f    : Module containing routines to read biofuel emissions
-!  (2 ) biomass_mod.f    : Module containing routines to read biomass emissions
-!  (3 ) bpch2_mod.f      : Module containing routines for binary punch file I/O
-!  (4 ) dao_mod.f        : Module containing arrays for DAO met fields
-!  (5 ) diag_mod.f       : Module containing GEOS-CHEM diagnostic arrays
-!  (6 ) diag_pl_mod.f    : Module containing routines for prod & loss diag's
-!  (7 ) directory_mod.f  : Module containing GEOS-CHEM data & met field dirs
-!  (8 ) error_mod.f      : Module containing I/O error and NaN check routines
-!  (9 ) geia_mod         : Module containing routines to read anthro emissions
-!  (10) global_oh_mod.f  : Module containing routines to read 3-D OH field
-!  (11) global_nox_mod.f : Module containing routines to read 3-D NOx field
-!  (12) global_ch4_mod.f : Module containing routines to read 3-D CH4 field
-!  (13) grid_mod.f       : Module containing horizontal grid information
-!  (14) logical_mod.f    : Module containing GEOS-CHEM logical switches
-!  (15) pressure_mod.f   : Module containing routines to compute P(I,J,L)
-!  (16) time_mod.f       : Module containing routines for computing time & date
-!  (17) tracer_mod.f     : Module containing GEOS-CHEM tracer array STT etc.
+!  (1 ) biofuel_mod.f    : Module w/ routines to read biofuel emissions
+!  (2 ) biomass_mod.f    : Module w/ routines to read biomass emissions
+!  (3 ) bpch2_mod.f      : Module w/ routines for binary punch file I/O
+!  (4 ) dao_mod.f        : Module w/ arrays for DAO met fields
+!  (5 ) diag_mod.f       : Module w/ GEOS-CHEM diagnostic arrays
+!  (6 ) diag_pl_mod.f    : Module w/ routines for prod & loss diag's
+!  (7 ) directory_mod.f  : Module w/ GEOS-CHEM data & met field dirs
+!  (8 ) error_mod.f      : Module w/ I/O error and NaN check routines
+!  (9 ) geia_mod         : Module w/ routines to read anthro emissions
+!  (10) global_oh_mod.f  : Module w/ routines to read 3-D OH field
+!  (11) global_nox_mod.f : Module w/ routines to read 3-D NOx field
+!  (12) global_ch4_mod.f : Module w/ routines to read 3-D CH4 field
+!  (13) grid_mod.f       : Module w/ horizontal grid information
+!  (14) logical_mod.f    : Module w/ GEOS-CHEM logical switches
+!  (15) pressure_mod.f   : Module w/ routines to compute P(I,J,L)
+!  (16) time_mod.f       : Module w/ routines for computing time & date
+!  (17) tracer_mod.f     : Module w/ GEOS-CHEM tracer array STT etc.
+!  (18) tropopause_mod.f : Module w/ routines to read ann mean tropopause
 ! 
 !  Tagged CO Tracers (you can modify these as needs be!)
 !  ============================================================================
@@ -116,6 +117,8 @@
 !  (24) Now references "directory_mod.f", "logical_mod.f", "tracer_mod.f".
 !        Now remove IJLOOP_CO. (bmy, 7/20/04)
 !  (25) Fixed bug in CHEM_TAGGED_CO (bmy, 3/7/05)
+!  (26) Now reads data from both GEOS and GCAP grids.  Now also references
+!        "tropopause_mod.f". (bmy, 8/16/05)
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -744,7 +747,7 @@
 !******************************************************************************
 !  Subroutine CHEM_TAGGED_CO performs CO chemistry on geographically
 !  "tagged" CO tracers.  Loss is via reaction with OH. 
-!  (qli, bnd, bdf, bmy, 10/19/99, 3/7/05)
+!  (qli, bnd, bdf, bmy, 10/19/99, 8/22/05)
 !
 !  NOTES:
 !  (1 ) Now do chemistry all the way to the model top. 
@@ -786,6 +789,8 @@
 !        "diag_pl_mod.f".  Updated comments. (bmy, 7/20/04)
 !  (17) Bug fix: re-insert ELSE between (1a-1) and (1a-2); it appears to have
 !        been mistakenly deleted. (bmy, 3/7/05)
+!  (18) Now references ITS_IN_THE_STRAT from "tropopause_mod.f".  Now remove
+!        reference to "CMN", it's obsolete. (bmy, 8/22/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -801,9 +806,13 @@
       USE TIME_MOD,       ONLY : GET_TS_CHEM,     GET_MONTH, GET_YEAR,
      &                           ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
       USE TRACER_MOD,     ONLY : N_TRACERS,       STT
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! LPAUSE
+!-----------------------------------------------
+! Prior to 8/22/05:
+!#     include "CMN"          ! LPAUSE
+!-----------------------------------------------
 #     include "CMN_DIAG"     ! ND65
 
       ! Local variables
@@ -909,7 +918,11 @@
          CO_CH4 = 0d0
 
          ! Test level for stratosphere or troposphere
-         IF ( L >= LPAUSE(I,J) ) THEN 
+         !------------------------------------------------
+         ! Prior to 8/22/05:
+         !IF ( L >= LPAUSE(I,J) ) THEN 
+         !------------------------------------------------
+         IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
 
             !===========================================================
             ! (1a-1) Production of CO from CH4 in the stratosphere 
@@ -1146,7 +1159,11 @@
          !==============================================================
 
          ! Select out tropospheric or stratospheric boxes
-         IF ( L >= LPAUSE(I,J) ) THEN
+         !-------------------------------------------------
+         ! Prior to 8/22/05:
+         !IF ( L >= LPAUSE(I,J) ) THEN
+         !-------------------------------------------------
+         IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
 
             !===========================================================
             ! (2a-1) Stratospheric loss of CO due to chemical rxn w/ OH
@@ -1515,7 +1532,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_ACETONE reads in biogenic acetone emissions from
-!  a binary punch file. (bdf, bnd, bmy, 6/19/01, 10/22/01)
+!  a binary punch file. (bdf, bnd, bmy, 6/19/01, 8/16/05)
 !
 !  Arguments as Input
 !  =========================================================================== 
@@ -1532,7 +1549,8 @@
 !        in call to GET_TAU0.  Use IGLOB,JGLOB in call to READ_BPCH2.
 !        Added array TEMP(IIPAR,JJPAR).  Updated comments. (bmy, 9/28/01)
 !  (5 ) Removed obsolete code from 9/28/01 (bmy, 10/22/01)
-!  (6 ) Now references DATA_DIR from "directory_mod.f"
+!  (6 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  (7 ) Now reads data from both GEOS and GCAP grids (bmy, 8/16/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1557,8 +1575,14 @@
       !=================================================================
 
       ! Name of file with acetone data
-      FILENAME = TRIM( DATA_DIR )                 // 
-     &           'tagged_CO_200106/acetone.geos.' // GET_RES_EXT()
+!-----------------------------------------------------------------------
+! Prior to 8/16/05:
+!      FILENAME = TRIM( DATA_DIR )                 // 
+!     &           'tagged_CO_200106/acetone.geos.' // GET_RES_EXT()
+!-----------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR )            // 
+     &           'tagged_CO_200106/acetone.' // GET_NAME_EXT_2D() //
+     &           '.'                         // GET_RES_EXT()
 
       ! Echo to stdout
       WRITE( 6, '(a)' ) 'READING ', TRIM( FILENAME )

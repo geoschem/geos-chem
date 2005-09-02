@@ -1,4 +1,4 @@
-! $Id: smvgear.f,v 1.5 2003/10/01 20:32:23 bmy Exp $ 
+! $Id: smvgear.f,v 1.6 2005/09/02 15:17:23 bmy Exp $ 
       SUBROUTINE SMVGEAR
 !
 !******************************************************************************
@@ -278,11 +278,6 @@ C
       REAL*8             :: SPECMAX
 
       ! Maximum iteration count for SMVGEAR (bmy, 4/11/03)
-      !-----------------------------------------------------------------
-      ! Prior to 9/15/03:
-      ! Increase max iteration count (mje, bmy, 9/15/03)
-      !INTEGER, PARAMETER :: MAX_ITERATIONS = 9999
-      !-----------------------------------------------------------------
       INTEGER, PARAMETER :: MAX_ITERATIONS = 99999
       
       ! Variables from "comode.h" which are only ever used in "smvgear.f"

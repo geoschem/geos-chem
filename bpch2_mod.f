@@ -1,9 +1,9 @@
-! $Id: bpch2_mod.f,v 1.7 2005/06/28 18:59:29 bmy Exp $
+! $Id: bpch2_mod.f,v 1.8 2005/09/02 15:16:57 bmy Exp $
       MODULE BPCH2_MOD
 !
 !******************************************************************************
 !  Module BPCH2_MOD contains the routines used to read data from and write
-!  data to binary punch (BPCH) file format (v. 2.0). (bmy, 6/28/00, 6/28/05)
+!  data to binary punch (BPCH) file format (v. 2.0). (bmy, 6/28/00, 8/16/05)
 !
 !  Module Routines:
 !  ============================================================================
@@ -14,9 +14,10 @@
 !  (5 ) READ_BPCH2          : reads a data block from a binary punch file
 !  (6 ) GET_MODELNAME       : returns MODELNAME for the given met field
 !  (7 ) GET_NAME_EXT        : returns file extension string for model name
-!  (8 ) GET_RES_EXT         : returns file extension string for model res.
-!  (9 ) GET_HALFPOLAR       : returns 1 for half-polar grids; 0 otherwise
-!  (10) GET_TAU0_6A         : computes TAU0 from MONTH, DAY, YEAR (, H, M, SEC)
+!  (8 ) GET_NAME_EXT_2D     : returns file extension string for 2-D model name
+!  (9 ) GET_RES_EXT         : returns file extension string for model res.
+!  (10) GET_HALFPOLAR       : returns 1 for half-polar grids; 0 otherwise
+!  (11) GET_TAU0_6A         : computes TAU0 from MONTH, DAY, YEAR (, H, M, SEC)
 !
 !  Module Interfaces
 !  ============================================================================
@@ -60,6 +61,8 @@
 !  (28) Added cpp switches for GEOS-4 1x125 grid (bmy, 12/1/04)
 !  (29) Modified for GCAP and GEOS-5 met fields.  Added function
 !        GET_HALFPOLAR. (bmy, 6/28/05)
+!  (30) Added GET_NAME_EXT_2D to get filename extension for files which do
+!        not contain any vertical information (bmy, 8/16/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -561,7 +564,7 @@
 #     include "CMN_SIZE"
 
       ! MODELNAME holds the return value for the function
-      CHARACTER(LEN=20) :: MODELNAME
+      CHARACTER(LEN=20)   :: MODELNAME
 
       !=================================================================
       ! GET_MODELNAME begins here!
@@ -573,25 +576,6 @@
 #elif defined( GEOS_STRAT ) 
       MODELNAME = 'GEOS_STRAT'
 
-!-----------------------------------------------------------------------------
-! Prior to 5/24/05:
-! Make the coding much simpler (swu, bmy, 5/24/05)
-!#elif defined( GEOS_3 )
-!
-!#if   defined( GRID30LEV )
-!      MODELNAME = 'GEOS3_30L'   ! Special modelname for GAMAP (GEOS-3 30L)
-!#else
-!      MODELNAME = 'GEOS3'       ! Normal modelname (GEOS-3 48L)
-!#endif
-!
-!#elif defined( GEOS_4 )
-!
-!#if   defined( GRID30LEV )
-!      MODELNAME = 'GEOS4_30L'   ! Special modelname for GAMAP (GEOS-4 30L)
-!#else 
-!      MODELNAME = 'GEOS4'       ! Original modelname (GEOS-4 55L)
-!#endif
-!-----------------------------------------------------------------------------
 #elif defined( GEOS_3 ) && defined( GRID30LEV )
       MODELNAME = 'GEOS3_30L'
 
@@ -635,12 +619,6 @@
 !
 #     include "define.h"
 
-      !------------------------------------------------------
-      ! Prior to 5/24/05:
-      !! EXTENSION holds the return value for the function
-      !CHARACTER(LEN=5) :: NAME_EXT
-      !------------------------------------------------------
-
 #if   defined( GEOS_1 ) 
       CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'geos1'
@@ -669,6 +647,35 @@
 
       ! Return to calling program
       END FUNCTION GET_NAME_EXT
+
+!------------------------------------------------------------------------------
+
+      FUNCTION GET_NAME_EXT_2D() RESULT( NAME_EXT_2D )
+!
+!******************************************************************************
+!  Function GET_NAME_EXT_2D returns the proper filename extension for CTM
+!  model name for files which do not contain any vertical information
+!  (i.e. "geos" or "gcap").  (bmy, 8/16/05)
+!
+!  NOTES: 
+!******************************************************************************
+!
+      ! Local variables
+      CHARACTER(LEN=4) :: NAME_EXT_2D
+      CHARACTER(LEN=5) :: TEMP_NAME
+
+      !=================================================================
+      ! GET_NAME_EXT_2D begins here!
+      !=================================================================
+
+      ! Get the name extension
+      TEMP_NAME   = GET_NAME_EXT()
+
+      ! Take the 1st 4 characters ("geos" or "gcap") and return
+      NAME_EXT_2D = TEMP_NAME(1:4)
+
+      ! Return to calling program
+      END FUNCTION GET_NAME_EXT_2D 
 
 !------------------------------------------------------------------------------
 

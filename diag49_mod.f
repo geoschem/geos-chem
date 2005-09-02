@@ -1,9 +1,9 @@
-! $Id: diag49_mod.f,v 1.8 2005/06/28 18:59:30 bmy Exp $
+! $Id: diag49_mod.f,v 1.9 2005/09/02 15:17:05 bmy Exp $
       MODULE DIAG49_MOD
 !
 !******************************************************************************
 !  Module DIAG49_MOD contains variables and routines to save out 3-D 
-!  timeseries output to disk (bmy, 7/20/04, 6/28/05)
+!  timeseries output to disk (bmy, 7/20/04, 8/2/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -87,6 +87,7 @@
 !  (3 ) Now saves 3-D cld frac & grid box height (bmy, 4/20/05)
 !  (4 ) Remove TRCOFFSET since it's always zero  Also now get HALFPOLAR for
 !        both GCAP and GEOS grids.  (bmy, 6/28/05)
+!  (5 ) Bug fix: do not save SLP if it's not allocated (bmy, 8/2/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -119,11 +120,6 @@
       INTEGER            :: ND49_LMIN,      ND49_LMAX
       INTEGER            :: ND49_FREQ,      ND49_NI
       INTEGER            :: ND49_NJ,        ND49_NL
-      !----------------------------------------------------------------
-      ! Prior to 6/28/05:
-      ! Need to make HALFPOLAR a variable, not a parameter
-      !INTEGER, PARAMETER :: HALFPOLAR=1,    CENTER180=1
-      !----------------------------------------------------------------
       INTEGER            :: HALFPOLAR
       INTEGER, PARAMETER :: CENTER180=1 
       REAL*4             :: LONRES,         LATRES
@@ -158,6 +154,7 @@
 !        fraction as tracer #79 and box height as tracer #93.  Now remove 
 !        reference to PBL from "dao_mod.f"(bmy, 4/20/05)
 !  (5 ) Remove references to TRCOFFSET because it is always zero (bmy, 6/24/05)
+!  (6 ) Now do not save SLP data if it is not allocated (bmy, 8/2/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -180,16 +177,13 @@
 #     include "cmn_fj.h"        ! FAST-J stuff, includes CMN_SIZE
 #     include "jv_cmn.h"        ! ODAER
 #     include "CMN_O3"		! Pure O3, SAVENO2
-!-------------------------------------------------------
-! Prior to 6/24/05:
-!#     include "CMN_DIAG"        ! TRCOFFSET
-!-------------------------------------------------------
 #     include "CMN_GCTM"        ! XTRA2
 
       ! Local variables
       LOGICAL, SAVE            :: FIRST  = .TRUE.
-      LOGICAL, SAVE            :: IS_FULLCHEM, IS_NOx,  IS_Ox,  IS_NOy
-      LOGICAL, SAVE            :: IS_CLDTOPS,  IS_OPTD, IS_SEASALT
+      LOGICAL, SAVE            :: IS_FULLCHEM, IS_NOx,     IS_Ox 
+      LOGICAL, SAVE            :: IS_NOy,      IS_CLDTOPS, IS_OPTD
+      LOGICAL, SAVE            :: IS_SEASALT,  IS_SLP
       INTEGER                  :: IOS, GMTRC, GMNL, I, J, K, L 
       INTEGER                  :: N,   R,     H,    W, X, Y
       REAL*8                   :: TAU, TMP,   SCALE400nm
@@ -210,6 +204,7 @@
       IF ( FIRST ) THEN
          IS_CLDTOPS  = ALLOCATED( CLDTOPS )
          IS_OPTD     = ALLOCATED( OPTD    )
+         IS_SLP      = ALLOCATED( SLP     )
          IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
          IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
          IS_Ox       = ( IS_FULLCHEM .and. IDTOX   > 0 )
@@ -861,7 +856,11 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 95 ) THEN
+         !-------------------------------------------
+         ! Prior to 8/2/05:
+         !ELSE IF ( N == 95 ) THEN
+         !-------------------------------------------
+         ELSE IF ( N == 95 .and. IS_SLP ) THEN
 
             !-----------------------------------
             ! SEA LEVEL PRESSURE [hPa]

@@ -1,4 +1,4 @@
-! $Id: reader.f,v 1.6 2005/06/23 19:32:57 bmy Exp $
+! $Id: reader.f,v 1.7 2005/09/02 15:17:21 bmy Exp $
       SUBROUTINE READER( FIRSTCHEM )
 !
 !******************************************************************************
@@ -269,23 +269,9 @@ C
          WRITE( IO93, *       ) 'YHIS      = ', YHIS
          WRITE( IO93, *       ) 'HMAXDAYS  = ', HMAXDAYS 
          WRITE( IO93, *       ) 'HMAXNIT   = ', HMAXNIT
-!-----------------------------------------------------------------------------
-! Prior to 6/23/05:
-!#if   defined( LFASTJ ) 
-!-----------------------------------------------------------------------------
+         WRITE( IO93, '(/,a)' ) 'Using U.C.I. Fast-J photolysis'  
+         WRITE(    6, '(a)'   ) 'Using U.C.I. Fast-J photolysis'     
 
-         WRITE ( IO93, '(/,a)' ) 'Using U.C.I. Fast-J photolysis'  
-         WRITE (    6, '(a)'   ) 'Using U.C.I. Fast-J photolysis'     
-
-!----------------------------------------------------------------------------
-! Prior to 6/23/05:
-!#elif defined( LSLOWJ )
-!         WRITE ( IO93, '(/,a)' ) 'Using traditional photolysis code'
-!         WRITE (    6, '(a)'   ) 'Using traditional photolysis code'
-!
-!#endif
-!----------------------------------------------------------------------------
-         
          ! Write spacer line to "smv2.log
          WRITE( IO93, '(a)' )
       END IF

@@ -1,10 +1,10 @@
-! $Id: setemis.f,v 1.5 2005/03/29 15:52:44 bmy Exp $
+! $Id: setemis.f,v 1.6 2005/09/02 15:17:22 bmy Exp $
       SUBROUTINE SETEMIS( EMISRR, EMISRRN )
 !
 !******************************************************************************
 !  Subroutine SETEMIS places emissions computed from GEOS-CHEM 
 !  subroutines into arrays for SMVGEAR II chemistry. 
-!  (lwh, jyl, gmg, djj, bdf, bmy, 6/8/98, 11/29/04)
+!  (lwh, jyl, gmg, djj, bdf, bmy, 6/8/98, 8/22/05)
 !
 !  SETEMIS converts from units of [molec tracer/box/s] to units of
 !  [molec chemical species/cm3/s], and stores in the REMIS array.  For
@@ -80,20 +80,28 @@
 !        for all instances of JLOOP1.  Updated comments. (hamid, bmy, 3/19/04)
 !  (23) Bug fix for COMPAQ compiler...do not use EXIT from w/in parallel loop.
 !        (auvray, bmy, 11/29/04)
+!  (24) Now replace XTRA2 with GET_PBL_TOP_L in "pbl_mix_mod.f".  Now remove
+!        reference to CMN, it's obsolete.  Now references GET_TPAUSE_LEVEL
+!        from "tropopause_mod.f" (bmy, 8/22/05)
 !******************************************************************************
 !
       ! References to F90 modules 
-      USE BIOFUEL_MOD,  ONLY : BIOFUEL,     BFTRACE, NBFTRACE
-      USE BIOMASS_MOD,  ONLY : BURNEMIS,    BIOTRCE, NBIOTRCE
-      USE COMODE_MOD,   ONLY : JLOP,        REMIS,   VOLUME
-      USE DIAG_MOD,     ONLY : AD12
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
+      USE BIOFUEL_MOD,    ONLY : BIOFUEL,     BFTRACE, NBFTRACE
+      USE BIOMASS_MOD,    ONLY : BURNEMIS,    BIOTRCE, NBIOTRCE
+      USE COMODE_MOD,     ONLY : JLOP,        REMIS,   VOLUME
+      USE DIAG_MOD,       ONLY : AD12
+      USE PBL_MIX_MOD,    ONLY : GET_PBL_TOP_L
+      USE PRESSURE_MOD,   ONLY : GET_PEDGE
       USE TRACERID_MOD
+      USE TROPOPAUSE_MOD, ONLY : GET_TPAUSE_LEVEL
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! PW, SIGE, LPAUSE, XTRA2(I,J,5)
+!------------------------------------------------------
+! Prior to 8/22/05:
+!#     include "CMN"       ! LPAUSE
+!------------------------------------------------------
 #     include "CMN_NOX"   ! GEMISNOX, GEMISNOX2
 #     include "CMN_DIAG"  ! Diagnostic flags
 #     include "comode.h"  ! IDEMS, NEMIS
@@ -103,7 +111,7 @@
       REAL*8,  INTENT(IN) :: EMISRRN(IIPAR,JJPAR,NOXEXTENT)  
 
       ! Local variables
-      INTEGER             :: I, J,  JLOOP, JLOOP1 
+      INTEGER             :: I, J,  JLOOP, JLOOP1, LTROP
       INTEGER             :: L, LL, N, NN,  NBB, NBF, TOP
       REAL*8              :: COEF1,   TOTPRES, DELTPRES
       REAL*8              :: EMIS_BL, NOXTOT,  TOTAL
@@ -178,7 +186,11 @@
 
             ! Top level of the boundary layer
             ! guard for b.l. being in first level.
-            TOP = FLOOR( XTRA2(I,J) )
+            !-------------------------------------------
+            ! Prior to 8/3/05:
+            !TOP = FLOOR( XTRA2(I,J) )
+            !-------------------------------------------
+            TOP = FLOOR( GET_PBL_TOP_L( I, J ) )
             IF ( TOP == 0 ) TOP = 1
 
             ! Pressure thickness of entire boundary layer [hPa]
@@ -259,9 +271,14 @@
 
                !========================================================
                ! Aircraft and Lightning NOx [molec/cm3/s]
-               ! Distribute emissions in the troposphere: L < LPAUSE(I,J) 
+               ! Distribute emissions in the troposphere
                !========================================================
-               DO L = 1, LPAUSE(I,J) - 1
+               !------------------------------------------
+               ! Prior to 8/22/05:
+               !DO L = 1, LPAUSE(I,J) - 1
+               !------------------------------------------
+               LTROP = GET_TPAUSE_LEVEL( I, J ) - 1
+               DO L = 1, LTROP 
                   JLOOP   = JLOP(I,J,L)
                   EMIS_BL = 0d0
 

@@ -1,4 +1,4 @@
-! $Id: tpcore_bc_mod.f,v 1.6 2005/06/28 18:59:31 bmy Exp $
+! $Id: tpcore_bc_mod.f,v 1.7 2005/09/02 15:17:26 bmy Exp $
       MODULE TPCORE_BC_MOD
 !
 !******************************************************************************
@@ -284,11 +284,6 @@
 
       ! Local variables
       LOGICAL, SAVE      :: FIRST     = .TRUE.
-      !-------------------------------------------------------------------
-      ! Prior to 6/28/05:
-      ! Need to make HALFPOLAR a variable, not a parameter (bmy, 6/28/05)
-      !INTEGER, PARAMETER :: HALFPOLAR =  1
-      !-------------------------------------------------------------------
       INTEGER            :: HALFPOLAR
       INTEGER, PARAMETER :: CENTER180 =  1
       INTEGER            :: I, IOS, J, L, N

@@ -1,4 +1,4 @@
-! $Id: diag_oh_mod.f,v 1.2 2005/06/27 19:41:45 bmy Exp $
+! $Id: diag_oh_mod.f,v 1.3 2005/09/02 15:17:07 bmy Exp $
       MODULE DIAG_OH_MOD
 !
 !******************************************************************************
@@ -226,21 +226,9 @@
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE LOGICAL_MOD, ONLY : LCHEM
-!-----------------------------------------------------------------------
-! Prior to 6/24/05:
-! Remove reference to CO-OH simulation (bmy, 6/24/05)
-!      USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM,  
-!     &                        ITS_A_COPARAM_SIM, 
-!     &                        ITS_A_CH4_SIM
-!-----------------------------------------------------------------------
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM, ITS_A_CH4_SIM
 
 #     include "CMN_SIZE"    ! Size parameters
-!-----------------------------------------------------------------------
-! Prior to 6/24/05:
-! This reference is no longer needed (bmy, 6/24/05)
-!#     include "CMN_DIAG"    ! ND23
-!-----------------------------------------------------------------------
 
       ! Local variables
       INTEGER :: AS, LMAX
@@ -262,16 +250,6 @@
          ! Fullchem: tropopshere only
          LMAX       = LLTROP
          DO_SAVE_OH = .TRUE.
-
-      !-----------------------------------------------------------
-      ! Prior to 6/24/05:
-      ! CO-OH simulation is now obsolete (bmy, 6/24/05)
-      !ELSE IF ( ITS_A_COPARAM_SIM() ) THEN
-      !
-      !   ! CO w/ OH param: all levels
-      !   LMAX       = LLPAR
-      !   DO_SAVE_OH = .TRUE.
-      !-----------------------------------------------------------
 
       ELSE IF ( ITS_A_CH4_SIM() ) THEN
 

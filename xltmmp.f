@@ -1,10 +1,10 @@
-C $Id: xltmmp.f,v 1.2 2004/09/21 18:04:21 bmy Exp $
+! $Id: xltmmp.f,v 1.3 2005/09/02 15:17:31 bmy Exp $
       FUNCTION XLTMMP( I, J, IJLOOP ) RESULT( VALUE )
 !
-!*****************************************************************************
+!******************************************************************************
 !  The new XLTMMP passes the value of the DAO meterological field 
 !  TS(IIPAR,JJPAR) back to the calling subroutine.  This preserves the 
-!  functionality of the H/G/I CTM function XLTMMP. (bmy, 1/30/98, 7/20/04)
+!  functionality of the H/G/I CTM function XLTMMP. (bmy, 1/30/98, 8/4/05)
 !
 !  NOTES
 !  (1 ) XLTMMP is written in Fixed-Form Fortran 90.
@@ -22,7 +22,9 @@ C $Id: xltmmp.f,v 1.2 2004/09/21 18:04:21 bmy Exp $
 !  (7 ) Remove obsolete commented out code from 9/01 (bmy, 10/24/01)
 !  (8 ) IJLOOP is now not declared optional...this facilitates compiling with
 !        -C on Altix (psk, bmy, 7/20/04)
-!*****************************************************************************
+!  (9 ) Now make IJLOOP an optional argument; it's only kept for backwards
+!        compatibility w/ older code (bmy, 8/4/05)
+!******************************************************************************
 ! 
       ! References to F90 modules
       USE DAO_MOD, ONLY : TS
@@ -32,11 +34,11 @@ C $Id: xltmmp.f,v 1.2 2004/09/21 18:04:21 bmy Exp $
 #     include "CMN_SIZE"
 
       ! Arguments
-      INTEGER, INTENT(IN) :: I, J
-      INTEGER, INTENT(IN) :: IJLOOP
+      INTEGER, INTENT(IN)           :: I, J
+      INTEGER, INTENT(IN), OPTIONAL :: IJLOOP
 
       ! Function value
-      REAL*8              :: VALUE
+      REAL*8                        :: VALUE
 
       !=================================================================
       ! XLTMMP begins here!      

@@ -1,4 +1,4 @@
-! $Id: upbdflx_mod.f,v 1.11 2005/06/22 20:50:06 bmy Exp $
+! $Id: upbdflx_mod.f,v 1.12 2005/09/02 15:17:30 bmy Exp $
       MODULE UPBDFLX_MOD
 !
 !******************************************************************************
@@ -221,11 +221,6 @@
 
       ! Select the grid boxes at the edges of the O3 release region, 
       ! for the proper model resolution (qli, bmy, 12/1/04)
-!-------------------------------------------------------------------
-! Prior to 5/25/05:
-!#if   defined( GRID4x5 ) 
-!      INTEGER, PARAMETER   :: J30S = 16, J30N = 31  
-!-------------------------------------------------------------------
 #if   defined( GRID4x5 ) && defined( GCAP )
       ! GCAP has 45 latitudes, shift by 1/2 grid box (swu, bmy, 5/25/05)
       INTEGER, PARAMETER   :: J30S = 16, J30N = 30 

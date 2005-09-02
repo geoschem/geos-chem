@@ -1,10 +1,10 @@
- ! $Id: carbon_mod.f,v 1.11 2005/05/09 14:33:56 bmy Exp $
+ ! $Id: carbon_mod.f,v 1.12 2005/09/02 15:16:58 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
 !  Module CARBON_MOD contains arrays and routines for performing a 
 !  carbonaceous aerosol simulation.  Original code taken from Mian Chin's 
-!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 3/4/05)
+!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 8/16/05)
 !
 !  4 Aerosol species : Organic and Black carbon 
 !                    : hydrophilic (soluble) and hydrophobic of each
@@ -129,6 +129,7 @@
 !        Also parallelize loop in OHNO3TIME. (rjp, bmy, 1/18/05)
 !  (5 ) Now references "pbl_mix_mod.f".  Bug fix: now make sure only to save
 !        up to LD07 levels for the ND07 diagnostic in SOA_LUMP. (bmy, 3/4/05)
+!  (6 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -2821,7 +2822,7 @@ c
 !  Subroutine ANTHRO_CARB_TBOND computes annual mean anthropogenic and 
 !  biofuel emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC 
 !  CARBON.  It also separates these into HYDROPHILIC and HYDROPHOBIC 
-!  fractions. (rjp, bmy, 4/2/04, 11/15/04)
+!  fractions. (rjp, bmy, 4/2/04, 8/16/05)
 !
 !  Emissions data comes from the Bond et al [2004] inventory and has units
 !  of [kg C/yr].  This will be converted to [kg C/timestep] below.
@@ -2832,6 +2833,7 @@ c
 !  NOTES:
 !  (1 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (2 ) Now read data from "carbon_200411" subdir of DATA_DIR (bmy, 11/15/04)
+!  (3 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2872,9 +2874,15 @@ c
       !=================================================================
 
       ! Filename for carbon aerosol from fossil fuel use
-      FILENAME = TRIM( DATA_DIR )                        // 
-     &           'carbon_200411/BCOC_TBond_fossil.geos.' // 
-     &           GET_RES_EXT()
+!-----------------------------------------------------------------------------
+! Prior to 8/16/05:
+!      FILENAME = TRIM( DATA_DIR )                        // 
+!     &           'carbon_200411/BCOC_TBond_fossil.geos.' // 
+!     &           GET_RES_EXT()
+!-----------------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR )                         // 
+     &           'carbon_200411/BCOC_TBond_fossil.'       // 
+     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -2939,9 +2947,16 @@ c
       !=================================================================
 
       ! Filename
+!-------------------------------------------------------------------------
+! Prior to 8/16/05:
+!      FILENAME = TRIM( DATA_DIR )                         // 
+!     &           'carbon_200411/BCOC_TBond_biofuel.geos.' // 
+!     &           GET_RES_EXT()
+!-------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )                         // 
-     &           'carbon_200411/BCOC_TBond_biofuel.geos.' // 
-     &           GET_RES_EXT()
+     &           'carbon_200411/BCOC_TBond_biofuel.'      // 
+     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -3009,7 +3024,7 @@ c
 !  Subroutine ANTHRO_CARB_COOKE computes monthly mean anthropogenic and 
 !  biofuel emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC 
 !  CARBON.  It also separates these into HYDROPHILIC and HYDROPHOBIC 
-!  fractions. (rjp, bmy, 4/2/04, 12/1/04)
+!  fractions. (rjp, bmy, 4/2/04, 8/16/05)
 !
 !  Emissions data comes from the Cooke et al. [1999] inventory and 
 !  seasonality imposed by Park et al. [2003].  The data has units of 
@@ -3023,6 +3038,7 @@ c
 !  (2 ) Now read data from "carbon_200411" subdir of DATA_DIR.  Now only apply
 !        Cooke/RJP emissions over the North American region (i.e. the region
 !        bounded by indices I1_NA, J1_NA, I2_NA, J2_NA).  (rjp, bmy, 12/1/04)
+!  (3 ) Now can read data from both GEOS and GCAP grids (bmy, 8/16/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3074,10 +3090,16 @@ c
       !=================================================================
 
       ! Filename
-      FILENAME = TRIM( DATA_DIR )                    //
-     &           'carbon_200411/BCOC_anthsrce.geos.' // 
-     &            GET_RES_EXT()
-       
+!----------------------------------------------------------------------------
+! Prior to 8/16/05:
+!      FILENAME = TRIM( DATA_DIR )                    //
+!     &           'carbon_200411/BCOC_anthsrce.geos.' // 
+!     &            GET_RES_EXT()
+!----------------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR )               //
+     &           'carbon_200411/BCOC_anthsrce.' // GET_NAME_EXT_2D() // 
+     &           '.'                            // GET_RES_EXT()       
+
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - ANTHRO_CARB_COOKE: Reading ', a )
@@ -3142,14 +3164,19 @@ c
       !=================================================================
 
       ! Filename
-      FILENAME = TRIM( DATA_DIR )                   //
-     &           'carbon_200411/BCOC_biofuel.geos.' // 
-     &           GET_RES_EXT()
+!-----------------------------------------------------------------------------
+!      FILENAME = TRIM( DATA_DIR )                   //
+!     &           'carbon_200411/BCOC_biofuel.geos.' // 
+!     &           GET_RES_EXT()
+!-----------------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR )              //
+     &           'carbon_200411/BCOC_biofuel.' // GET_NAME_EXT_2D() //
+     &           '.'                           // GET_RES_EXT()
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
 
-      ! Read data7
+      ! Read data
       CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 34, 
      &                 XTAU,      IGLOB,     JGLOB,
      &                 1,         ARRAY,     QUIET=.TRUE. ) 
@@ -3211,7 +3238,7 @@ c
 !  Subroutine BIOMASS_CARB_TBOND computes annual mean biomass burning 
 !  emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC CARBON.  
 !  It also separates these into HYDROPHILIC and HYDROPHOBIC fractions. 
-!  (rjp, bmy, 4/2/04, 11/15/04)
+!  (rjp, bmy, 4/2/04, 8/16/05)
 !
 !  Emissions data comes from the Bond et al [2004] inventory and has units
 !  of [kg C/yr].  This will be converted to [kg C/timestep] below.
@@ -3222,6 +3249,7 @@ c
 !  NOTES:
 !  (1 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (2 ) Now read data from "carbon_200411" subdir of DATA_DIR (bmy, 11/15/04)
+!  (3 ) Now can read from both GEOS and GCAP grids (bmy, 8/16/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3251,9 +3279,16 @@ c
       STEPS_PER_YR = ( ( 1440 * 365 ) / GET_TS_EMIS() )
 
       ! Filename containing biomass emissions
+!-----------------------------------------------------------------------------
+! Prior to 8/16/05:
+!      FILENAME = TRIM( DATA_DIR )                         //
+!     &           'carbon_200411/BCOC_TBond_biomass.geos.' // 
+!     &            GET_RES_EXT()
+!-----------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )                         //
-     &           'carbon_200411/BCOC_TBond_biomass.geos.' // 
-     &            GET_RES_EXT()
+     &           'carbon_200411/BCOC_TBond_biomass.'      // 
+     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+
 
       ! Get TAU0 value to index the punch file
       XTAU = GET_TAU0( 1, 1, 2001 )
@@ -3329,7 +3364,7 @@ c
 !  Subroutine BIOMASS_CARB_GEOS computes monthly mean biomass burning 
 !  emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC CARBON.  
 !  It also separates these into HYDROPHILIC and HYDROPHOBIC fractions. 
-!  (rjp, bmy, 4/2/04, 7/20/04, 1/11/05)
+!  (rjp, bmy, 4/2/04, 7/20/04, 8/16/05)
 !
 !  Emissions data comes from the Duncan et al. [2001] inventory and has units
 !  of [kg C/month].  This will be converted to [kg C/timestep] below.
@@ -3343,6 +3378,7 @@ c
 !  (2 ) Now read data from "carbon_200411" subdir of DATA_DIR (bmy, 11/15/04)
 !  (3 ) Now read BCPO, OCPO biomass burning data directly from files instead
 !        of computing from emission factors. (rjp, bmy, 1/11/05)
+!  (4 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
 !******************************************************************************
 !
 !      ! References to F90 modules
@@ -3408,14 +3444,26 @@ c
          !-----------------------------------------
 
          ! File name for seasonal BCPO biomass emissions
-         BC_FILE = TRIM( DATA_DIR )                             //
-     &             'biomass_200110/BCPO.bioburn.seasonal.geos.' //
-     &             GET_RES_EXT()
+!-----------------------------------------------------------------------
+! Prior to 8/16/05:
+!         BC_FILE = TRIM( DATA_DIR )                             //
+!     &             'biomass_200110/BCPO.bioburn.seasonal.geos.' //
+!     &             GET_RES_EXT()
+!-----------------------------------------------------------------------
+         BC_FILE = TRIM( DATA_DIR )                          //
+     &             'biomass_200110/BCPO.bioburn.seasonal.'   //
+     &             GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
 
          ! File name for seasonal OCPO biomass emissions
-         OC_FILE = TRIM( DATA_DIR )                             //
-     &             'biomass_200110/OCPO.bioburn.seasonal.geos.' //
-     &             GET_RES_EXT()
+!-----------------------------------------------------------------------
+! Prior to 8/16/05:
+!         OC_FILE = TRIM( DATA_DIR )                             //
+!     &             'biomass_200110/OCPO.bioburn.seasonal.geos.' //
+!     &             GET_RES_EXT()
+!-----------------------------------------------------------------------
+         OC_FILE = TRIM( DATA_DIR )                         //
+     &             'biomass_200110/OCPO.bioburn.seasonal.'  //
+     &             GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
 
          ! Get TAU0 value (use generic year 1985)
          XTAU = GET_TAU0( THISMONTH, 1, 1985 )      
@@ -3428,14 +3476,28 @@ c
          !-----------------------------------------
 
          ! File name for interannual BCPO biomass burning emissions
-         BC_FILE = TRIM( DATA_DIR )                                //
-     &             'biomass_200110/BCPO.bioburn.interannual.geos.' // 
-     &             GET_RES_EXT() // '.' // CYEAR
+!---------------------------------------------------------------------------
+! Prior to 8/16/05:
+!         BC_FILE = TRIM( DATA_DIR )                                //
+!     &             'biomass_200110/BCPO.bioburn.interannual.geos.' // 
+!     &             GET_RES_EXT() // '.' // CYEAR
+!---------------------------------------------------------------------------
+         BC_FILE = TRIM( DATA_DIR )                           //
+     &             'biomass_200110/BCPO.bioburn.interannual.' // 
+     &             GET_NAME_EXT_2D() // '.'                   //
+     &             GET_RES_EXT()     // '.'                   // CYEAR
 
          ! File name for interannual BCPO biomass burning emissions
-         OC_FILE = TRIM( DATA_DIR )                                //
-     &             'biomass_200110/OCPO.bioburn.interannual.geos.' // 
-     &             GET_RES_EXT() // '.' // CYEAR
+!-----------------------------------------------------------------------------
+! Prior to 8/16/05:
+!         OC_FILE = TRIM( DATA_DIR )                                //
+!     &             'biomass_200110/OCPO.bioburn.interannual.geos.' // 
+!     &             GET_RES_EXT() // '.' // CYEAR
+!-----------------------------------------------------------------------------
+         OC_FILE = TRIM( DATA_DIR )                           //
+     &             'biomass_200110/OCPO.bioburn.interannual.' // 
+     &             GET_NAME_EXT_2D() // '.'                   //
+     &             GET_RES_EXT()     // '.'                   // CYEAR
 
          ! Use TAU0 value on the 1st of this month to index bpch file
          XTAU = GET_TAU0( THISMONTH, 1, THISYEAR )

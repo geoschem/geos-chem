@@ -1,4 +1,4 @@
-! $Id: define.h,v 1.33 2005/06/30 18:57:40 bmy Exp $
+! $Id: define.h,v 1.34 2005/09/02 15:17:02 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
@@ -100,8 +100,8 @@
 !#define GCAP        'GCAP'
 !#define GEOS_1      'GEOS_1'       
 !#define GEOS_STRAT  'GEOS_STRAT'
-!#define GEOS_3      'GEOS_3'
-#define GEOS_4      'GEOS_4'
+#define GEOS_3      'GEOS_3'
+!#define GEOS_4      'GEOS_4'
 !#define GEOS_5      'GEOS_5'
 
 !----- Grid sizes -----
@@ -113,27 +113,13 @@
 #define GRID4x5     'GRID4x5'
 #define GRID30LEV   'GRID30LEV'
 
-!------------------------------------------------------------------
-! Prior to 6/22/05:
-! We have removed the obsolete CO-OH simulation (bmy, 6/24/05) 
-!!----- Chemistry -----
-!#define FULLCHEM    'FULLCHEM'
-!!#define LGEOSCO     'LGEOSCO'
-!------------------------------------------------------------------
-! Prior to 6/22/05:
-! SLOW-J is obsolete; FAST-J is now the default (bmy, 6/24/05)
-!!----- Photolysis -----
-!#define LFASTJ      'LFASTJ'
-!!#define LSLOWJ      'LSLOWJ'
-!------------------------------------------------------------------
-
 !----- Compilers -----
 !#define COMPAQ      'COMPAQ'
 !#define IBM_AIX     'IBM_AIX'
 !#define LINUX_PGI   'LINUX_PGI'
 !#define LINUX_IFC   'LINUX_IFC'
-!#define LINUX_EFC   'LINUX_EFC'
-#define SGI_MIPS    'SGI_MIPS'
+#define LINUX_EFC   'LINUX_EFC'
+!#define SGI_MIPS    'SGI_MIPS'
 !#define SPARC       'SPARC'
 
 !==============================================================================
@@ -151,18 +137,6 @@
 #error "ERROR: GRID4x5, GRID2x25, GRID1x125, and GRID1x1"
 #error "are ALL undefined in header file define.h"
 #endif
-
-!------------------------------------------------------------------------------
-! Prior to 6/24/05:
-! This is now obsolete (bmy, 6/24/05)
-!!============================================================================
-!! Force a compile error if switches FULLCHEM, LGEOSCO are undefined
-!!============================================================================
-!#if !defined( FULLCHEM ) && !defined( LGEOSCO )
-!#error "ERROR: One of FULLCHEM, LGEOSCO" 
-!#error "needs to be defined in header file define.h"
-!#endif
-!------------------------------------------------------------------------------
 
 !==============================================================================
 ! Force a compile  error if all compiler switches are undefined

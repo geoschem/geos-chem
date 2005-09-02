@@ -1,9 +1,9 @@
-! $Id: diag1.f,v 1.7 2005/06/22 20:50:00 bmy Exp $
+! $Id: diag1.f,v 1.8 2005/09/02 15:17:04 bmy Exp $
       SUBROUTINE DIAG1 
 !
 !******************************************************************************
 !  Subroutine DIAG1 accumulates diagnostic quantities every NDIAG minutes
-!  (bmy, bey, 6/16/98, 6/9/05)
+!  (bmy, bey, 6/16/98, 8/18/05)
 !
 !  NOTES:
 !  (1 ) This subroutine was reconstructed from gmg's version of (10/10/97)
@@ -46,6 +46,7 @@
 !  (22) Now references N_TRACERS, STT, and ITS_A_FULLCHEM_SIM from
 !        "tracer_mod.f" (bmy, 7/20/04)
 !  (23) Fixed ND67 PS-PBL for GCAP and GEOS-5 met fields (swu, bmy, 6/9/05)
+!  (24) Now archive ND30 diagnostic for land/water/ice flags (bmy, 8/18/05)
 !******************************************************************************
 !  List of GEOS-CHEM Diagnostics (bmy, 5/25/04)
 !
@@ -314,8 +315,9 @@
 !*****************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : AD, AIRDEN, AVGW, BXHEIGHT, PBL
-      USE DIAG_MOD,     ONLY : AD31, AD33, AD35, AD45, 
+      USE DAO_MOD,      ONLY : AD,  AIRDEN, AVGW,     BXHEIGHT, 
+     &                         PBL, IS_ICE, IS_WATER, IS_LAND
+      USE DIAG_MOD,     ONLY : AD30, AD31, AD33, AD35, AD45, 
      &                         AD47, AD67, AD68, AD69, LTOTH
       USE GRID_MOD,     ONLY : GET_AREA_M2
       USE PRESSURE_MOD, ONLY : GET_PEDGE
@@ -355,6 +357,23 @@
      &           MAX( STT(I,J,L,N) * TCVV(N) / AD(I,J,L), 0d0 )
          ENDDO
          ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+      ENDIF
+
+      !================================================================= 
+      ! ND30: Land/water/ice flags
+      !=================================================================
+      IF ( ND30 > 0 ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            IF ( IS_WATER( I, J ) ) AD30(I,J) = AD30(I,J) + 0e0
+            IF ( IS_LAND ( I, J ) ) AD30(I,J) = AD30(I,J) + 1e0
+            IF ( IS_ICE  ( I, J ) ) AD30(I,J) = AD30(I,J) + 2e0
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
@@ -492,21 +511,6 @@
       IF ( ND67 > 0 ) THEN
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-
-!-----------------------------------------------------------------------------
-!#if   defined( GEOS_4 )
-!            
-!            ! GEOS-4: PBL is in [m], use hydrostatic law to get [hPa]
-!            AD67(I,J,13) = AD67(I,J,13) + 
-!     &           ( GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT ) )
-!            
-!#else
-!
-!            ! Otherwise, PBL is in [hPa], subtract from PSurface
-!            AD67(I,J,13) = AD67(I,J,13) + GET_PEDGE(I,J,1) - PBL(I,J) 
-!
-!#endif
-!-----------------------------------------------------------------------------
 
 #if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
 

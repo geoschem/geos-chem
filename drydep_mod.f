@@ -1,4 +1,4 @@
-! $Id: drydep_mod.f,v 1.20 2005/06/22 20:50:01 bmy Exp $
+! $Id: drydep_mod.f,v 1.21 2005/09/02 15:17:07 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
@@ -283,20 +283,6 @@
 #     include "CMN_GCTM" ! Physical constants
 
       ! Local variables
-      !---------------------------------------------------------------------
-      ! Prior to 5/25/05:
-      ! Remove obsolete variables
-      !LOGICAL, SAVE     :: FIRST = .TRUE.
-      !LOGICAL           :: LSNOW(MAXIJ)
-      !INTEGER           :: I, J, L, N, M, IJLOOP, LAYBOT, NN, NDVZ
-      !REAL*8            :: PS, X25, RESIDU, P1, P2, THIK, DVZ, PL1, PL2 
-      !REAL*8            :: HEIGHT(LLPAR),  CZ1(MAXIJ) 
-      !REAL*8            :: TC0(MAXIJ),     DVEL(MAXIJ,MAXDEP)
-      !REAL*8            :: ZH(MAXIJ),      OBK(MAXIJ)
-      !REAL*8            :: CFRAC(MAXIJ),   RADIAT(MAXIJ)
-      !REAL*8            :: USTAR(MAXIJ),   AZO(MAXIJ)
-      !REAL*8            :: RHB(MAXIJ)
-      !----------------------------------------------------------------------
       LOGICAL, SAVE     :: FIRST = .TRUE.
       LOGICAL           :: LSNOW(MAXIJ)
       INTEGER           :: I, J, L, N, IJLOOP, NN, NDVZ
@@ -512,12 +498,6 @@
 !******************************************************************************
 !
       ! References to F90 modules 
-!-----------------------------------------------------------------------------
-! Prior to 5/25/05:
-! Remove HFLUX from DAO_MOD list (swu, bmy, 5/25/05)
-!      USE DAO_MOD,      ONLY : AIRDEN, ALBD, BXHEIGHT, CLDFRC, HFLUX, 
-!     &                         RADSWG, RH,   TS,       USTAR,  Z0
-!-----------------------------------------------------------------------------
       USE DAO_MOD,      ONLY : ALBD,   BXHEIGHT, CLDFRC, GET_OBK,
      &                         RADSWG, RH,       TS,     USTAR,   Z0
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_m
@@ -533,10 +513,6 @@
       REAL*8,  INTENT(OUT)  :: CFRAC(MAXIJ)
       REAL*8,  INTENT(OUT)  :: RADIAT(MAXIJ)
       REAL*8,  INTENT(OUT)  :: RHB(MAXIJ)
-      !------------------------------------------
-      ! Prior to 5/25/05:
-      !REAL*8,  INTENT(OUT)  :: AZO(MAXIJ)
-      !------------------------------------------
       REAL*8,  INTENT(OUT)  :: USTR(MAXIJ)
       REAL*8,  INTENT(OUT)  :: ZH(MAXIJ)
 
@@ -549,13 +525,6 @@
 
       ! Local variables
       INTEGER               :: I,  J,  IJLOOP
-      !----------------------------------------------------
-      ! Prior to 5/25/05:
-      ! Remove obsolete variables
-      !REAL*8                :: P1, P2, THIK, NUM, DEN
-      !REAL*8, PARAMETER     :: KAPPA = 0.4d0 
-      !REAL*8, PARAMETER     :: CP    = 1000.0d0
-      !----------------------------------------------------
       REAL*8                :: THIK
 
       ! External functions
@@ -573,13 +542,6 @@
 #endif
 
       ! Loop over surface grid boxes
-!----------------------------------------------------------------
-! Prior to 5/25/05:
-! Remove obsolete NUM, DEN from PRIVATE statement (bmy, 5/25/05)
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, IJLOOP, THIK, NUM, DEN )
-!----------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, IJLOOP, THIK )
@@ -594,39 +556,6 @@
 
          ! Midpoint height of first model level [m]
          CZ1(IJLOOP) = THIK / 2.0d0
-
-!-----------------------------------------------------------------------------
-! Prior to 5/25/05:
-! We now call GET_OBK from "dao_mod.f" to return the M-O length for both GCAP 
-! and GEOS met fields, so remove local computation here (swu, bmy, 5/25/05)
-!         !==============================================================
-!         ! The direct computation of the Monin-Obhukov length is:
-!         !
-!         !            - Air density * Cp * T(surface air) * Ustar^3 
-!         !    OBK =  -----------------------------------------------
-!         !              Kappa       * g  * Sensible Heat flux
-!         !
-!         ! Cp    = 1000 J / kg / K = specific heat of air at constant P
-!         ! Kappa = 0.4             = Von Karman's constant
-!         !
-!         !
-!         !  Also test the denominator in order to prevent div by zero.
-!         !==============================================================
-!         
-!         ! Numerator
-!         NUM = -AIRDEN(1,I,J) *  CP            * TS(I,J) *
-!     &          USTAR(I,J)    *  USTAR(I,J)    * USTAR(I,J)
-!         
-!         ! Denominator
-!         DEN =  KAPPA * g0 * HFLUX(I,J) 
-!         
-!         ! Prevent div by zero
-!         IF ( ABS( DEN ) > 0d0 ) THEN
-!            OBK(IJLOOP) = NUM / DEN
-!         ELSE
-!            OBK(IJLOOP) = 1.0d5
-!         ENDIF
-!-----------------------------------------------------------------------------
 
          !==============================================================
          ! Return meterological quantities as 1-D arrays for DEPVEL
@@ -891,42 +820,6 @@
             ! the fraction of layer L located totally w/in the PBL.
             FRACLOST = DEPSAV(I,J,N) * F_UNDER_TOP * DTCHEM
 
-!-----------------------------------------------------------------------------
-! Prior to 6/9/05:
-! Now treat all met fields in the same way (bmy, 6/9/05)
-!
-!#if defined( GEOS_1 ) || defined( GEOS_STRAT )
-!            !===========================================================
-!            ! GEOS-1 or GEOS-STRAT:
-!            ! ---------------------
-!            ! (a) If FRACLOST >= 1 or FRACLOST < 0, stop the run
-!            ! (b) If not, then subtract drydep losses from STT
-!            !===========================================================
-!            IF ( FRACLOST >= 1 .or. FRACLOST < 0 ) THEN
-!               WRITE(6,*) 'DEPSAV*DTCHEM >=1 or <0 : '
-!               WRITE(6,*) 'DEPSAV*DTCHEM   = ', FRACLOST
-!               WRITE(6,*) 'DEPSAV(I,J,1,N) = ', DEPSAV(I,J,N)
-!               WRITE(6,*) 'DTCHEM (s)      = ', DTCHEM
-!               WRITE(6,*) 'I,J             = ', I, J
-!               WRITE(6,*) 'STOP in dryflxRnPbBe.f'
-!               CALL GEOS_CHEM_STOP
-!            ENDIF
-!
-!            ! AMT_LOST = amount of species lost to drydep [kg]
-!            AMT_LOST = STT(I,J,L,NN) * FRACLOST
-!
-!            ! ND44 diagnostic: drydep flux [kg/s]
-!            IF ( ND44 > 0 ) THEN
-!!$OMP CRITICAL
-!               AD44(I,J,N,1) = AD44(I,J,N,1) + ( AMT_LOST/DTCHEM )
-!!$OMP END CRITICAL
-!            ENDIF
-!
-!            ! Subtract AMT_LOST from the STT array [kg]
-!            STT(I,J,L,NN) = STT(I,J,L,NN) - AMT_LOST
-!
-!#elif defined( GEOS_3 ) || defined( GEOS_4 )
-!-----------------------------------------------------------------------------
             !===========================================================
             ! Proceed as follows:
             ! --------------------------------
@@ -962,10 +855,6 @@
             ! Subtract AMT_LOST from the STT array [kg]
             STT(I,J,L,NN)  = STT(I,J,L,NN) - AMT_LOST
 
-!-----------------------
-! Prior to 6/9/05:
-!#endif
-!-----------------------
          ENDDO
          ENDDO
          ENDDO

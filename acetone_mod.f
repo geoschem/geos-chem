@@ -1,9 +1,9 @@
-! $Id: acetone_mod.f,v 1.4 2004/12/02 21:48:32 bmy Exp $
+! $Id: acetone_mod.f,v 1.5 2005/09/02 15:16:56 bmy Exp $
       MODULE ACETONE_MOD
 !
 !******************************************************************************
 !  F90 module ACETONE_MOD contains subroutines to emit the biogenic flux of
-!  acetone into the full chemistry simulation (bdf, bmy, 9/18/01, 7/19/04)
+!  acetone into the full chemistry simulation (bdf, bmy, 9/18/01, 8/16/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -29,9 +29,11 @@
 !
 !  Reference:
 !  ============================================================================
-!  Jacob, D.J., B.D. Field, E. Jin, I. Bey, Q. Li, J.A. Logan, and 
-!    R.M. Yantosca, Atmospheric budget of acetone, Geophys. Res. Lett., 
-!    in press, 2002. 
+!  (1 ) Jacob, D.J., B.D. Field, E. Jin, I. Bey, Q. Li, J.A. Logan, and 
+!        R.M. Yantosca, "Atmospheric budget of acetone", Geophys. Res. Lett., 
+!        107(D11), 4100, 2002. 
+!  (2 ) Nightingale et al [2000a], J. Geophys. Res, 14, 373-387
+!  (3 ) Nightingale et al [2000b], Geophys. Res. Lett, 27, 2117-2120
 !
 !  NOTES:
 !  (1 ) Added changes from bdf and updated comments (bmy, 9/5/01)
@@ -57,6 +59,8 @@
 !  (14) Scale ACET ocean source to Jacob et al 2002 for GEOS-4, and now
 !        account for surface area ratio for all GEOS grids. (bmy, 3/15/04)
 !  (15) Now references "directory_mod.f" (bmy, 7/19/04)
+!  (16) Now can read data from GEOS and GCAP grids.  Also now use Nightingale
+!        et al 2000b formulation for piston velocity KL. (swu, bmy, 8/16/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -117,6 +121,7 @@
 !  (4 ) Now call READ_BPCH2 with QUIET=.TRUE. to suppress printing of extra
 !        info to stdout.  Also made cosmetic changes. (bmy, 3/14/03)
 !  (5 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/19/04)
+!  (6 ) Now can read data from GEOS and GCAP grids (bmy, 8/16/05)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -150,8 +155,14 @@
       ENDIF
 
       ! Construct filename
-      FILENAME = TRIM( DATA_DIR )            // 
-     &           'acetone_200108/JO1D.geos.' // GET_RES_EXT()
+!-----------------------------------------------------------------------------
+! Prior to 8/16/05:
+!      FILENAME = TRIM( DATA_DIR )            // 
+!     &           'acetone_200108/JO1D.geos.' // GET_RES_EXT()
+!-----------------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR )       // 
+     &           'acetone_200108/JO1D.' // GET_NAME_EXT_2D() //
+     &           '.'                    // GET_RES_EXT()
 
       ! Echo filename 
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -204,7 +215,8 @@
 !        GET_TAU0 w/ 3 arguments. (bmy, 10/15/02)
 !  (4 ) Now call READ_BPCH2 with QUIET=.TRUE. to suppress printing of extra
 !        info to stdout.  Also made cosmetic changes. (bmy, 3/14/03)
-!  (5 ) Now references DATA_DIR from "directory_mod.f"
+!  (5 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  (6 ) Now can read files for both GEOS and GCAP grids (bmy, 8/16/05)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -238,8 +250,14 @@
       ENDIF
 
       ! Construct filename
-      FILENAME = TRIM( DATA_DIR )            // 
-     &           'acetone_200108/resp.geos.' // GET_RES_EXT()
+!----------------------------------------------------------------------------
+! Prior to 8/16/05:
+!      FILENAME = TRIM( DATA_DIR )            // 
+!     &           'acetone_200108/resp.geos.' // GET_RES_EXT()
+!----------------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR )       // 
+     &           'acetone_200108/resp.' // GET_NAME_EXT_2D() //
+     &           '.'                    // GET_RES_EXT()
       
       ! Echo filename 
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -276,7 +294,7 @@
 !
 !******************************************************************************
 !  Subroutine OCEAN_SOURCE_ACET specifies the ocean source of acetone.
-!  (bdf, bmy, 9/12/01, 12/1/04)
+!  (bdf, bmy, 9/12/01, 8/16/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -313,6 +331,8 @@
 !  (10) Scale the ocean source to Jacob et al 2002 for GEOS-4.  Also account
 !        for surface area ratio for all GEOS grids. (bmy, 3/15/04)
 !  (11) Added space in #ifdef block for GEOS-4 x 1x125 grid (bmy, 12/1/04)
+!  (12) Now use Nightingale et al 2000b formulation for piston velocity KL.
+!        (swu, bmy, 8/16/05)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -453,10 +473,17 @@
          ! SC is Schmidt # for acetone [unitless]
          SC       = A0 + A1*TC + A2*TC**2 + A3*TC**3 
 
+         !------------------------------------------------------------------
+         ! Prior to 8/16/05:
+         !! KL is conductance for mass transfer in liquid phase 
+         !! (Wanninkhof 1992), which has units of [cm/hr]
+         !KL600    = ( 0.222d0 * U * U ) + ( 0.333d0 * U )
+         !KL       = KL600 * ( SC / 600d0 )**( -0.5d0 )
+         !------------------------------------------------------------------
+         
          ! KL is conductance for mass transfer in liquid phase 
-         ! (Wanninkhof 1992), which has units of [cm/hr]
-         KL600    = ( 0.222d0 * U * U ) + ( 0.333d0 * U )
-         KL       = KL600 * ( SC / 600d0 )**( -0.5d0 )
+         ! (Nightingale et al 2000b), which has units of [cm/hr]
+         KL       = ( 0.24d0*U*U + 0.061d0*U ) * SQRT( 600d0/Sc )  
 
          ! KG is conductance for mass transfer in gas phase (Asher 1997)
          ! Multiply KG by 360000 to convert from [m/s] to [cm/hr]
@@ -559,6 +586,8 @@
 !  (9 ) Now use function GET_AREA_CM2 of "grid_mod.f" to return the
 !        grid box area in cm2.  Now use function GET_TS_CHEM from
 !        "time_mod.f".  Remove reference to CMN header file. (bmy, 2/11/03)
+!  (12) Now use Nightingale et al 2000b formulation for piston velocity KL.
+!        (swu, bmy, 8/16/05)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -644,10 +673,19 @@
                ! SC is Schmidt # for acetone [unitless]
                SC    = A0 + A1*TC + A2*TC**2 + A3*TC**3 
 
+               !------------------------------------------------------------
+               ! Prior to 8/16/05:
+               ! Now use Nightingale et al 2000b formulation for KL 
+               ! (swu, bmy, 8/16/05)
+               !! KL is conductance for mass transfer in liquid phase 
+               !! (Wanninkhof 1992), which has units of [cm/hr]
+               !KL600 = ( 0.222d0 * U * U ) + ( 0.333D0 * U )
+               !KL    = KL600 * ( SC / 600d0 )**( -.5d0 ) 
+               !------------------------------------------------------------
+
                ! KL is conductance for mass transfer in liquid phase 
-               ! (Wanninkhof 1992), which has units of [cm/hr]
-               KL600 = ( 0.222d0 * U * U ) + ( 0.333D0 * U )
-               KL    = KL600 * ( SC / 600d0 )**( -.5d0 ) 
+               ! (Nightingale et al 2000b), which has units of [cm/hr]
+               KL    = ( 0.24d0*U*U + 0.061d0*U ) * SQRT( 600d0/Sc )  
 
                ! KG is conductance for mass transfer in gas phase (Asher 1997)
                ! Multiply KG by 360000 to convert from [m/s] to [cm/hr]

@@ -1,9 +1,9 @@
-! $Id: chemdr.f,v 1.14 2005/06/23 19:32:54 bmy Exp $
+! $Id: chemdr.f,v 1.15 2005/09/02 15:16:59 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
 !  Subroutine CHEMDR is the driver subroutine for full chemistry w/ SMVGEAR.
-!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 6/23/05)
+!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 8/22/05)
 !
 !  Important input variables from "dao_mod.f" and "uvalbedo_mod.f":
 !  ============================================================================
@@ -139,6 +139,8 @@
 !        SETUP_PLANEFLIGHT at the start of each new day. (bmy, 3/24/05)
 !  (23) FAST-J is now the default, so we don't need the LFASTJ C-preprocessor 
 !        switch any more (bmy, 6/23/05)
+!  (24) Now remove LPAUSE from the arg list to "ruralbox.f" and "gasconc.f".
+!        (bmy, 8/22/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -242,7 +244,12 @@
 
       CALL RURALBOX( AD,     T,      AVGW,   ALT,   ALBD,  
      &               SUNCOS, CLOUDS, LEMBED, IEBD1, IEBD2, 
-     &               JEBD1,  JEBD2,  LPAUSE )
+!---------------------------------------------------------------
+! Prior to 8/22/05:
+! Remove LPAUSE from the arg list, it's obsolete (bmy, 8/22/05)
+!     &               JEBD1,  JEBD2,  LPAUSE )
+!---------------------------------------------------------------
+     &               JEBD1,  JEBD2 )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after RURALBOX' ) 
@@ -288,12 +295,6 @@
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after READCHEM' )
 
-         !--------------------------------------------------------
-         ! Prior to 3/24/05:
-         !! Set up plane flight diagnostic here -- test 
-         !IF ( ND40 > 0 ) CALL SETUP_PLANEFLIGHT
-         !--------------------------------------------------------
-
          !==============================================================
          ! If CH4 is a SMVGEAR II species, then call GET_GLOBAL_CH4
          ! to return the globally-varying CH4 conc. as a function of
@@ -315,18 +316,10 @@
          ! Pass ALL variables via argument list, except PTOP, which
          ! is declared as a parameter in "CMN_SIZE" (bmy, 2/10/00)
          !==============================================================
-!-----------------------------
-! Prior to 6/23/05:
-!#if   defined( LFASTJ ) 
-!-----------------------------
          CALL INPHOT( LLTROP, NPHOT ) 
 
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after INPHOT' )        
-!-----------------------------
-! Prior to 6/23/05:
-!#endif
-!-----------------------------
 
          !==============================================================
          ! Call SETTRACE which flags certain chemical species
@@ -372,7 +365,12 @@
       ! splits up family tracers like NOx and Ox into individual
       ! chemical species for SMVGEAR.
       !=================================================================
-      CALL GASCONC( FIRSTCHEM, N_TRACERS, STT, XNUMOL, LPAUSE, FRCLND )
+      !---------------------------------------------------------------------
+      ! Prior to 8/22/05:
+      ! Remove LPAUSE from the argument list (bmy, 8/22/05)
+      !CALL GASCONC( FIRSTCHEM, N_TRACERS, STT, XNUMOL, LPAUSE, FRCLND )
+      !---------------------------------------------------------------------
+      CALL GASCONC( FIRSTCHEM, N_TRACERS, STT, XNUMOL, FRCLND )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after GASCONC' )

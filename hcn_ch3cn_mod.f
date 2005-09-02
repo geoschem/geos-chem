@@ -1,9 +1,9 @@
-! $Id: hcn_ch3cn_mod.f,v 1.6 2005/07/06 15:29:31 bmy Exp $
+! $Id: hcn_ch3cn_mod.f,v 1.7 2005/09/02 15:17:14 bmy Exp $
       MODULE HCN_CH3CN_MOD
 !
 !******************************************************************************
 !  Module HCN_CH3CN_MOD contains variables and routines that are used for the 
-!  geographically tagged HCN/CH3CN simulation. (qli, xyp, bmy, 6/30/05)
+!  geographically tagged HCN/CH3CN simulation. (qli, xyp, bmy, 8/16/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -66,8 +66,11 @@
 !        of the Atmospheric Budgets of HCN and CH3CN: Constraints From 
 !        Aircraft Measurements Over the Western Pacific", J. Geophys. Res., 
 !        108(D21), 2003
+!  (2 ) Nightingale et al [2000a], J. Geophys. Res, 14, 373-387
+!  (3 ) Nightingale et al [2000b], Geophys. Res. Lett, 27, 2117-2120
 !
 !  NOTES:
+!  (1 ) Now use Nightingale et al [2000b] formulation for KL (bmy, 8/16/05)
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -462,7 +465,10 @@
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1) FIRSTCHEM (LOGICAL) : = T if this is the first call to this routine
+!  (1 ) FIRSTCHEM (LOGICAL) : = T if this is the first call to this routine
+!
+!  NOTES:
+!  (1 ) Now use Nightingale et al [2000b] formulation for KL (bmy, 8/16/05)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -652,10 +658,18 @@
             ! SC is Schmidt # for HCN in seawater [unitless]
             SC           = A0 + TC * ( A1 + TC * ( A2 + TC * ( A3 )))
 
+!-----------------------------------------------------------------------------
+! Prior to 8/16/05:
+! Update to Nightingale et al [2000b] best fit formulation (bmy, 8/16/05)
+!            ! KL: conductance for mass transfer in liquid phase 
+!            ! (Nightingale 2000a), which has unit of [cm/h]
+!            KL           = ( 0.222d0 * U*U + 0.333d0 * U ) 
+!     &                   * ( SC / 600d0 )**( -0.5d0 )
+!-----------------------------------------------------------------------------
+
             ! KL: conductance for mass transfer in liquid phase 
-            ! (Nightingale 2000), which has unit of [cm/h]
-            KL           = ( 0.222d0 * U*U + 0.333d0 * U ) 
-     &                   * ( SC / 600d0 )**( -0.5d0 )  
+            ! (Nightingale 2000b), which has unit of [cm/h]
+            KL           = ( 0.24d0*U*U + 0.061d0*U ) * SQRT( 600d0/SC ) 
 
             ! KG: conductance for mass transfer in gas phase (Asher 1997)
             ! Convert from m/s to cm/h by multiplying 360000
@@ -785,9 +799,9 @@
       !=================================================================
 
       ! Define the binary punch file name
-      FILENAME = TRIM( DATA_DIR )                        //
-     &           'HCN_200507/domfos_CO_for_TRACEP.geos.' //
-     &           GET_RES_EXT() 
+      FILENAME = TRIM( DATA_DIR )                         //
+     &           'HCN_200507/domfos_CO_for_TRACEP.'       // 
+     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT() 
       
       ! Write file name to stdout
       WRITE( 6, 100 ) TRIM( FILENAME )

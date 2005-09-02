@@ -1,4 +1,4 @@
-C $Id: optdepth_mod.f,v 1.3 2005/05/09 14:34:00 bmy Exp $
+C $Id: optdepth_mod.f,v 1.4 2005/09/02 15:17:19 bmy Exp $
       MODULE OPTDEPTH_MOD
 !
 !******************************************************************************
@@ -36,10 +36,6 @@ C $Id: optdepth_mod.f,v 1.3 2005/05/09 14:34:00 bmy Exp $
 
       ! PRIVATE module routines
       PRIVATE OD_GEOS1_GEOSS
-      !--------------------------------
-      ! Prior to 4/20/05:
-      !PRIVATE OD_GEOS2_GEOS3
-      !--------------------------------
       PRIVATE OD_GEOS3_GEOS4
 
       !=================================================================
@@ -47,11 +43,8 @@ C $Id: optdepth_mod.f,v 1.3 2005/05/09 14:34:00 bmy Exp $
       ! argument types or # of arguments under one unique name
       !================================================================= 
       INTERFACE OPTDEPTH
-         !-----------------------------------------------------
-         ! Prior to 4/20/05:
-         !MODULE PROCEDURE OD_GEOS1_GEOSS, OD_GEOS2_GEOS3
-         !-----------------------------------------------------
-         MODULE PROCEDURE OD_GEOS1_GEOSS, OD_GEOS3_GEOS4
+         MODULE PROCEDURE OD_GEOS1_GEOSS
+         MODULE PROCEDURE OD_GEOS3_GEOS4
       END INTERFACE
 
       !=================================================================
@@ -206,11 +199,6 @@ C $Id: optdepth_mod.f,v 1.3 2005/05/09 14:34:00 bmy Exp $
 
 !------------------------------------------------------------------------------
 
-      !-----------------------------------------------------------------
-      ! Prior to 4/20/05:
-      ! Now pass CLDTOT for diagnostics (bmy, 4/20/05)
-      !SUBROUTINE OD_GEOS2_GEOS3( NVERT, OPTDEP, OPTD )
-      !-----------------------------------------------------------------
       SUBROUTINE OD_GEOS3_GEOS4( NVERT, CLDF, OPTDEP, OPTD )
 !
 !******************************************************************************
@@ -287,10 +275,6 @@ C $Id: optdepth_mod.f,v 1.3 2005/05/09 14:34:00 bmy Exp $
 !$OMP END PARALLEL DO
 
       ! Return to calling program
-      !--------------------------------------
-      ! Prior to 4/20/05:
-      !END SUBROUTINE OD_GEOS2_GEOS3
-      !--------------------------------------
       END SUBROUTINE OD_GEOS3_GEOS4
 
 !------------------------------------------------------------------------------

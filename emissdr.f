@@ -1,4 +1,4 @@
-! $Id: emissdr.f,v 1.7 2004/12/02 21:48:36 bmy Exp $
+! $Id: emissdr.f,v 1.8 2005/09/02 15:17:10 bmy Exp $
       SUBROUTINE EMISSDR
 !
 !******************************************************************************
@@ -145,7 +145,7 @@
       EMISRR    = 0d0
       GEMISNOX  = 0d0
       GEMISNOX2 = 0d0
-
+      
       ! Loop over latitudes
       IJLOOP = 0
       DO J = 1, JJPAR

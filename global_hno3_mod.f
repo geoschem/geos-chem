@@ -1,9 +1,9 @@
-! $Id: global_hno3_mod.f,v 1.5 2005/05/09 14:33:58 bmy Exp $
+! $Id: global_hno3_mod.f,v 1.6 2005/09/02 15:17:13 bmy Exp $
       MODULE GLOBAL_HNO3_MOD
 !
 !******************************************************************************
 !  Module GLOBAL_HNO3_MOD contains variables and routines for reading the
-!  global monthly mean HNO3 fields from disk. (bmy, 10/15/02, 4/13/05)
+!  global monthly mean HNO3 fields from disk. (bmy, 10/15/02, 8/1/05)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -31,6 +31,7 @@
 !  (3 ) Now references "directory_mod.f" & "tracer_mod.f" (bmy, 7/20/04)
 !  (4 ) Now suppress output from READ_BPCH2 with QUIET=T (bmy, 1/14/05)
 !  (5 ) Now read total gas + aerosol HNO3 data (bec, bmy, 4/13/05)
+!  (6 ) Now read files from "sulfate_sim_200508/offline" dir (bmy, 8/1/05)
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -108,7 +109,7 @@
 !******************************************************************************
 !  Subroutine GET_GLOBAL_HNO3 reads global OH from binary punch files stored
 !  in the data directory.  This is needed for the offline sulfate simulation.
-!  (bmy, 10/3/02, 4/13/05)
+!  (bmy, 10/3/02, 8/1/05)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -120,12 +121,15 @@
 !  (3 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (4 ) Now suppress output from READ_BPCH2 with QUIET=T (bmy, 1/14/05)
 !  (5 ) Now read total gas + aerosol HNO3 data (bec, bmy, 4/13/05)
+!  (6 ) GEOS-3 and GEOS-4 data comes from model runs w/ 30 layers.  Also now
+!        read from "sulfate_sim_200508/offline" directory (bmy, 8/1/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
+      USE ERROR_MOD,     ONLY : ERROR_STOP
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D, TRANSFER_3D
 
       IMPLICIT NONE
 
@@ -153,19 +157,16 @@
          FIRST = .FALSE.
       ENDIF
 
-!----------------------------------------------------------------------------
-! Prior to 4/13/05:
-! Now use total gas + aerosol nitrate file
-!      ! File name
-!      FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/HNO3.' //
-!     &           GET_NAME_EXT()  // '.' // GET_RES_EXT()
-!----------------------------------------------------------------------------
-
       ! File name for modified HNO3 (total gas + aerosol nitrate)
-      ! after sea-salt chemistry (bec, bmy, 4/13/05)
-      FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/THNO3.' //
-     &           GET_NAME_EXT()   // '.'                         // 
-     &           GET_RES_EXT()
+      ! after sea-salt chemistry (bec, bmy, 4/13/05, 8/1/05)
+!--------------------------------------------------------------------------
+! Prior to 8/1/05:
+! Now read from sulfate_sim_200508/offline directory (bmy, 8/1/05)
+!      FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/THNO3.' //
+!--------------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR )                      // 
+     &           'sulfate_sim_200508/offline/THNO3.'   // 
+     &           GET_NAME_EXT() // '.' // GET_RES_EXT()!
 
       ! Echo some information to the standard output
       WRITE( 6, 110 ) TRIM( FILENAME )
@@ -173,7 +174,43 @@
 
       ! Get the TAU0 value for the start of the given month
       ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
-      XTAU = GET_TAU0( THISMONTH, 1, 2001 )
+      !---------------------------------------------------------
+      ! Prior to 8/1/05:
+      !XTAU = GET_TAU0( THISMONTH, 1, 2001 )
+      !---------------------------------------------------------
+      XTAU = GET_TAU0( THISMONTH, 1, 1985 )
+
+#if   defined( GEOS_3 ) || defined( GEOS_4 ) 
+
+      !-------------------------------------------------------
+      ! GEOS-3 / GEOS-4 data come from the 30 level model run
+      !-------------------------------------------------------
+
+#if   defined( GRID30LEV )
+
+      ! Read HNO3 data from the binary punch file
+      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$',          7,     
+     &                 XTAU,      IGLOB,              JGLOB,      
+     &                 LLPAR,     ARRAY(:,:,1:LLPAR), QUIET=.TRUE. )
+
+      ! Assign data from ARRAY to the module variable HNO3
+      DO L = 1, LLPAR
+         CALL TRANSFER_2D( ARRAY(:,:,L), HNO3(:,:,L) )
+      ENDDO
+
+#else
+ 
+     ! If LLPAR is not 30 levels then stop with error
+     CALL ERROR_STOP( 'Must use 30 levels for offline aerosol sim!',
+    &                 'GET_GLOBAL_HNO3 ("global_hno3_mod.f!")' )
+
+#endif
+
+#else
+
+      !-------------------------------------------------------
+      ! Data for other GEOS grids have LGLOB levels 
+      !-------------------------------------------------------
 
       ! Read HNO3 data from the binary punch file
       CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 7,     
@@ -182,6 +219,8 @@
 
       ! Assign data from ARRAY to the module variable HNO3
       CALL TRANSFER_3D( ARRAY, HNO3 )
+
+#endif
 
       ! Return to calling program
       END SUBROUTINE GET_GLOBAL_HNO3
@@ -196,6 +235,7 @@
 !
 !  NOTES:
 !  (1 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
+!  (2 ) Now dimension HNO3 as (IIPAR,JJPAR,LLPAR) (bmy, 8/1/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -209,7 +249,11 @@
       !=================================================================
       ! INIT_GLOBAL_HNO3 begins here!
       !=================================================================
-      ALLOCATE( HNO3( IGLOB, JGLOB, LGLOB ), STAT=AS )
+      !----------------------------------------------------
+      ! Prior to 8/1/05:
+      !ALLOCATE( HNO3( IGLOB, JGLOB, LGLOB ), STAT=AS )
+      !----------------------------------------------------
+      ALLOCATE( HNO3( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'HNO3' )
       HNO3 = 0d0
 

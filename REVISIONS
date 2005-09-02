@@ -1,458 +1,282 @@
-REVISIONS (v7-03-02)  
-bmy, 28 Jun 2005
+REVISIONS (v7-03-03)  
+bmy, 30 Aug 2005
 
 
-New in v7-03-02:
+New in v7-03-03:
 -------------------------------------------------------------------------------
 
-do_geos4_convect	-- Driver routine for GEOS-4 convection code
-("convection_mod.f")       (split off from DO_CONVECTION)
+co2_mod.f		-- Contains routines & variables for the CO2 simulation
 
-do_geos4_convect	-- Driver routine for GEOS-4 convection code
-("convection_mod.f")       (split off from DO_CONVECTION)
+diag04_mod.f		-- Contains arrays and routines for archiving the ND04
+                           diagnostic -- CO2 emissions and fluxes 
 
-get_halfpolar		-- Returns 1 for half-polar grids (e.g. GEOS) or
-("bpch2_mod.f")            0 otherwise (e.g. GCAP)
+get_name_ext_2d		-- Added GET_NAME_EXT_2D to get filename extension 
+("bpch2_mod.f")            for files which do not contain any vertical  
+                           information
 
-get_obk			-- Routine to compute the Monin-Obhukov length
-("dao_mod.f")		   (code was formerly in routine METERO of
-			   "drydep_mod.f")
+is_ice			-- Returns TRUE if grid box is covered by ice
+("dao_mod.f")
 
-hcn_ch3cn_mod.f		-- Module for tagged HCN and CH3CN simulation
+its_a_co2_sim		-- Returns TRUE if it's a CO2 simulation
+("tracer_mod.f")
 
-make_gcap_cldfrc	-- Added routine to create CLDFRC field from
-("a6_read_mod.f")	   CLDF field for GCAP data
+tropopause_mod.f	-- Contains routines & variables to read in the
+			   annual mean tropopause from disk
 
 
 
-Removed in v7-03-02:
+Removed in v7-03-03:
 -------------------------------------------------------------------------------
 
-CMN_CLD			-- Routines from the obsolete SLOW-J package
-comsol.h
-findxsect.f
-funbas.f
-funo1dham2.f
-gettoto3.f
-jvaluein.f
-jvalueinhcn.f
-matinv.f
-numair.f
-numo3.f
-readcs.f
-readcshcn.f
-rtfunc.f
-scattr.f
-sol.f
+CMN_HCN			-- Obsolete header file for old HCN chemistry
 
-emisshcn.f		-- Now replaced by the newer routines in F90
-chemhcn.f		   module "hcn_ch3cn_mod.f"
+CMN_SETUP		-- Now replaced by "logical_mod.f" & "directory_mod.f"
 
-AerosolOH.f		-- Removed code from the obsolete CO-OH 
-CO_budget.f                parameterization simulation.  There is no
-CO_decay.f                 need for this code now that we can run a
-CO_fillfields.f            full-chemistry simulation for several years.
-CO_fromHCs.f              
-CO_ohsave.f               
-CO_read_clim.f            
-CO_read_fastj.f           
-CO_readfields.f           
-CO_set_prof.f             
-CO_strat.f                
-OHparam.f                 
-avgavgw.f                 
-avgrefl.f                 
-avgtp.f                   
-calc_oh.f                 
-chemco.f                  
-clean.f                   
-cleanisop.f               
-emissco.f                 
-fastjO3col.f              
-get_refl.f                
-getinfo.f                 
-getoh.f                   
-hipolluted.f              
-interpOH.f                
-modpolluted.f             
-o3above.f                 
-paramA.f                  
-paramB.f                  
-paramC.f                  
-paramD.f                  
-paramE.f                  
-paramF.f                  
-polint.f                  
-read_COPminusL.f          
-read_TOMSO3.f             
-read_coeff.f              
-read_percentages.f        
-readavgOH.f               
-remote.f                  
-skip.f                    
-sumup.f     
-CMN_CO
-CMN_OH
-CMN_CO_BUDGET
-
-copy_stt_for_co_oh	-- The CO-OH simulation is obsolete, remove this
-("restart_mod.f")
-
-its_a_coparam_sim	-- The CO-OH simulation is obsolete, remove this
-("tracer_mod.f")
-
-true_tracer_index	-- We don't need to call this anymore because
-("restart_mod.f")	   TRCOFFSET = 0 always
+read_tropopause.f       -- Now superseded by "tropopause_mod.f"
 
 
 
-Changed from v7-03-01:
+Changed from v7-03-02:
 -------------------------------------------------------------------------------
 
-accumulate_diag50	-- Remove ref's to TRCOFFSET because it's always zero 
-("diag50_mod.f")	   it's always zero
+accumulate_diag50	-- Now do not save SLP data if it is not allocated
+("diag50_mod.f")
 
-accumulate_diag51	-- Remove ref's to TRCOFFSET because it's always zero
-("diag51_mod.f")	   
+accumulate_diag51	-- Now do not save SLP data if it is not allocated
+("diag51_mod.f")
 
-archive_rxns_for_pf	-- Bug fix: Replace with DO_PF since this variable is 
-("planeflight_mod.f")	   reset to either T or F each day depending on 
-			   whether there is plane flight data available
+aerosol_ruralbox        -- Now references ITS_IN_THE_TROP from 
+("aerosol_mod.f")          "tropopause_mod.f" to diagnose boxes w/in 
+                           the troposphere.
 
-calcrate.f		-- SLOW-J is now obsolete; remove LSLOWJ #ifdef blocks
+chemch3i		-- Now use Nightingale et al [2000b] formulation for 
+("ch3i_mod.f")		   exchange coefficient (aka piston velocity)
 
-chem.f			-- SLOW-J is now obsolete; remove LSLOWJ #ifdef blocks
+chem_dms		-- Now remove reference to CMN, it's obsolete
+("sulfate_mod.f")	-- Now reference ITS_IN_THE_STRAT from 
+			   "tropopause_mod.f"
 
-chemch3i		-- FAST-J is now the default, so we don't need the 
-			   LFASTJ C-preprocessor switch any more
+chem_h2o2		-- Now read offline files from 
+("sulfate_mod.f")	   "sulfate_sim_200508/offline"
+			-- Now remove reference to CMN, it's obsolete
+			-- Now reference ITS_IN_THE_STRAT from 
+			   "tropopause_mod.f"
 
-chemdr.f		-- FAST-J is now the default, so we don't need the 
-			   LFASTJ C-preprocessor switch any more
+chem_hcn_ch3cn		-- Update to Nightingale et al [2000b] best fit        
+("hcn_ch3cn_mod.f")        formulation for KL exchange coefficient (aka
+	                   piston velocity)
 
-cleanup.f		-- Now calls CLEANUP_HCN_CH3CN
+chemRnPbBe		-- Remove reference to CMN; it's obsolete.  
+("RnPbBe_mod.f")	-- Now use inquiry functions from "tropopause_mod.f" 
+			   to diagnose strat boxes
 
-cleanup_dao		-- Now deallocates GCAP met field arrays
+chem_so2		-- Now remove reference to CMN, it's obsolete
+("sulfate_mod.f")	-- Now reference ITS_IN_THE_STRAT from 
+			   "tropopause_mod.f"
+
+chem_so4		-- Now remove reference to CMN, it's obsolete
+("sulfate_mod.f")	-- Now reference ITS_IN_THE_STRAT from 
+			   "tropopause_mod.f"
+
+cleanup.f		-- Now calls CLEANUP_DIAG04, CLEANUP_CO2, and
+	                   CLEANUP_TROPOPAUSE
+
+CO_strat_pl.f		-- Now use functions from "tropopause_mod.f" to 
+			   diagnose whether a box is in the stratosphere 
+                           or not 
+			-- Remove reference to CMN, it's obsolete
+
+CMN			-- Removed XTRA2, it's obsolete
+
+CMN_DIAG		-- Removed PD04 -- now in "diag04_mod.f" 
+			-- Removed ND04 -- now in "diag04_mod.f"
+			-- Set PD30 to 1
+
+compute_pbl_height	-- Remove refs to "CMN" and XTRA2; they're obsolete
+("pbl_mix_mod.f")	-- Also do not force BLTOP, BLTHIK to minimum values 
+			   for GEOS-STRAT met fields 
+
+diag1.f			-- Now archive ND30 diag for land/water/ice flags
+
+diag3.f			-- References ND04, WRITE_DIAG04 from "diag04_mod.f"
+			-- Also now updated ND30 diag for land/water/ice flags
+			-- Also remove reference to LWI array.
+
+diag48			-- Now do not save SLP data if it is not allocated
+("diag48_mod.f")
+
+diag49			-- Now do not save SLP data if it is not allocated
+("diag49_mod.f")
+
+diag_mod.f		-- Added AD30 array for land/water/ice output
+
+do_emissions		-- Now call EMISSCO2 from "co2_mod.f"
+("co2_mod.f")
+
+do_isoropia		-- Now references ITS_IN_THE_STRAT from 
+("isoropia_mod.f")	   "tropopause_mod.f"
+			-- Now remove reference to CMN, it's obsolete.
+
+emissRnPbBe		-- Remove reference to CMN; it's obsolete
+("RnPbBe_mod.f")	-- Now use inquiry functions from "tropopause_mod.f" 
+			   to diagnose strat boxes
+
+emisssulfate		-- Now references GET_YEAR from "time_mod.f"
+("sulfate_mod.f") 
+
+gasconc.f		-- Now remove LPAUSE from the arg list
+			-- Now references ITS_IN_THE_TROP
+			   from "tropopause_mod.f"
+
+get_global_hno3		-- GEOS-3 & GEOS-4 data comes from model runs w/ 30 lev
+("global_hno3_mod.f")	-- Also now read from "sulfate_sim_200508/offline" dir
+
+get_global_no3		-- GEOS-3 & GEOS-4 data comes from model runs w/ 30 lev
+("global_no3_mod.f")	-- Now read from "sulfate_sim_200508/offline" directory
+			-- Now read up to LLTROP levels
+			-- References TRANSFER_3D_TROP from "transfer_mod.f"
+
+get_global_o3		-- Now reads O3 data from 
+("global_o3_mod.f")	   "sulfate_sim_200508/offline" directory
+
+get_o3			-- Now remove reference to CMN, it's obsolete
+("sulfate_mod.f")
+
+get_oro			-- Now use IS_LAND, IS_WATER, IS_ICE functions from 
+("dust_dead_mod.f")	   "dao_mod.f".  Ice is now flagged separately from
+			   land and water.
+
+get_regional_pox	-- Now references ITS_IN_THE_TROP from 
+("tagged_ox_mod.f")	   "tropopause_mod.f"
+			-- Now remove reference to "CMN", it's obsolete.
+
+init_dao		-- Now allocate SNOW and GWET for GCAP
 ("dao_mod.f")
 
-cleanup_diag		-- Now also deallocate AD09 and AD09_em
+init_gamap		-- Bug fix: removed duplicate category names
+("gamap_mod.f")		-- Added ND04 diagnostic for CO2
+			-- Now references ND04 from "diag04_mod.f"
 
-cleanup_ocean_mercury	-- Now call GET_HALFPOLAR from "bpch2_mod.f" to get 
-("ocean_mercury_mod.f")	   the HALFPOLAR flag value for GEOS or GCAP grids
+init_global_hno3	-- Now allocate NO3 array up to LLTROP levels
+("global_no3_mod.f")	-- Now dimension HNO3 as (IIPAR,JJPAR,LLPAR)
 
-CMN_DIAG		-- Now set PD09 to 5 
-			-- Added LD09 to common block
+init_global_no3		-- Now allocate NO3 array up to LLTROP levels
+("global_no3_mod.f")
 
-CMN_SIZE		-- Now add parameters for GCAP & GEOS-5 grids
-			-- Remove references to obsolete LGEOSCO and 
-			   FULLCHEM C-preprocessor switches 
+initialize.f		-- Now references ND04, ZERO_DIAG04 from "diag04_mod.f"
+			-- Also remove reference to "CMN" and XTRA2
+			-- Now zeroes AD30 array 
 
-comode.h		-- Remove obsolete LGEOSCO and FULLCHEM Cpp switches 
-
-compute_grid		-- Now modified for GCAP 4x5 horizontal grid
-("grid_mod.f")
-
-compute_pbl_height	-- Now modified for GEOS-5 and GCAP met fields
-("pbl_mix_mod.f")
-
-convert_tracer_to_vv	-- Remove obsolete reference to CMN
-("restart_mod.f") 
-
-copy_stt		-- Remove call to TRUE_TRACER_INDEX 
-("restart_mod.f")
-
-correct_ste		-- Now updated for GCAP met fields
-("RnPbBe_mod.f")
-
-dao_mod.f		-- Now declare extra variables for GCAP met fields
-
-define.h		-- Removed obsolete A_LLK_03, LFASTJ, LSLOWJ,
-			   FULLCHEM, LGEOSCO switches  
-			-- Also added extra switches for GCAP and 
-			   GEOS_5 met fields
-
-depvel			-- Now define AZO for the proper dimension for
-("drydep_mod.f")	   GCAP or GEOS met fields
-			-- Now compute REYNO for GCAP or GEOS met fields
-			-- Now compute Z0OBK for GCAP or GEOS met fields
-			-- Now activate other GISS-specific code sections
-			   when using the GCAP met fields
-
-diag_mod.f		-- Added AD09, AD09_em arrays for HCN/CH3CN simulation
-
-diag1.f			-- Fixed ND67 PS-PBL for GCAP and GEOS-5 met fields
-
-diag3.f			-- Now modified for GEOS-5 and GCAP met fields
-			-- Bug fix in ND68 diagnostic: use LD68 instead of 
-			   ND68 in call to BPCH2
-			-- Remove references to CO-OH param simulation
-			-- Also remove references to TRCOFFSET since
-			   that is always zero now. 
-			-- Now call GET_HALFPOLAR from "bpch2_mod.f" to get 
-		           the HALFPOLAR value for GEOS or GCAP grids.
-
-diag48			-- Also remove references to TRCOFFSET since
-("diag48_mod.f")	   that is always zero now. 
-
-diag48_mod.f		-- Need to make HALFPOLAR a variable, not a parameter
-
-diag49			-- Also remove references to TRCOFFSET since
-("diag49_mod.f")	   that is always zero now. 
-
-diag49_mod.f		-- Need to make HALFPOLAR a variable, not a parameter
-
-diag50			-- Also remove references to TRCOFFSET since
-("diag50_mod.f")	   that is always zero now. 
-
-diag50_mod.f		-- Need to make HALFPOLAR a variable, not a parameter
-
-diag51			-- Also remove references to TRCOFFSET since
-("diag51_mod.f")	   that is always zero now. 
-
-diag51_mod.f		-- Need to make HALFPOLAR a variable, not a parameter
-
-diag_flux		-- Remove references obsolete to CO-OH param code
-("tpcore_mod.f")
-
-diag_flux		-- Remove references obsolete to CO-OH param code
-("tpcore_mod.f")
-
-directory_mod.f		-- Added variables GCAP_DIR and GEOS_5_DIR
-
-do_chemistry		-- Now modified for GCAP met fields
-("chemistry_mod.f")	-- Now call CHEM_HCN_CH3CN from "hcn_ch3cn_mod.f"
-			-- Also remove all references to the obsolete 
-			   CO-OH param simulation.
-
-do_convection		-- Now calls separate driver routines for convection
-("convection_mod.f")	   depending on met field type 
-
-do_drydep		-- Now dimension AZO for GEOS or GCAP met fields
-("drydep_mod.f")	-- Remove obsolete variables
-
-do_emissions		-- Now call EMISS_HCN_CH3CN from "hcn_ch3cn_mod.f"
-("emissions_mod.f")	-- Also remove all references to the obsolete CO-OH 
-			   parameterization simulation
-
-do_open_a3		-- Remove code for obsolete GEOS-4 a_llk_03 data
-("a3_read_mod.f")	-- Now modified for GEOS-5 and GCAP met fields
-
-do_open_a6		-- Remove code for obsolete GEOS-4 a_llk_03 data
-("a6_read_mod.f")	-- Now modified for GEOS-5 and GCAP met fields
-
-do_global_transport	-- For GEOS-3 transport, we don't have to flip the 
-("transport_mod.f")	   STT array before & after the call to TPCORE because
-			   we now call TPCORE with the array mask statement
-		           STT(:,:,LLPAR:1:-1,:)
-			-- Also modified for GEOS-5 and GCAP met fields. 
-
-dryflxRnPbBe		-- Now modified for GEOS-5 and GCAP met fields
-("drydep_mod.f")
-
-emisop.f		-- Bug fix: change #else to #elif
-
-emisop_mb.f		-- Bug fix: change #else to #elif
-
-emisop_grass.f		-- Bug fix: change #else to #elif
-
-get_a3_fields		-- Now modified for GCAP and GEOS-5 met fields
-("a3_read_mod.f")
-
-get_a6_fields		-- Now modified for GCAP and GEOS-5 met fields
-("a3_read_mod.f")
-
-get_a3_time		-- Now modified for GCAP and GEOS-5 met fields
-("time_mod.f")
-
-get_a6_time		-- Now modified for GCAP and GEOS-5 met fields
-("time_mod.f")
-
-get_first_a3_time	-- Modified for GCAP and GEOS-5 met fields
-("time_mod.f")
-
-get_first_a6_time	-- Modified for GCAP and GEOS-5 met fields
-("time_mod.f")
-
-get_i6_fields_1		-- Now modified for GEOS-5 and GCAP met fields
-("i6_read_mod.f")
-
-get_i6_fields_2		-- Now modified for GEOS-5 and GCAP met fields
-("i6_read_mod.f")
-
-get_l_copy		-- Now modified for GEOS-5 and GCAP met fields
-("transfer_mod.f")
-
-get_modelname		-- Updated for GCAP and GEOS-5 met fields
-("bpch2_mod.f")		-- Rearranged coding for simplicity.
-
-get_n_a3		-- Now modified for GCAP and GEOS-5 met fields
-("a3_read_mod.f")
-
-get_n_a6		-- Now modified for GCAP and GEOS-5 met fields
-("a6_read_mod.f")
-
-get_n_i6		-- Now modified for GCAP and GEOS-5 met fields
-("i6_read_mod.f")
-
-get_name_ext		-- Updated for GCAP and GEOS-5 met fields
-("bpch2_mod.f")
-
-get_sim_name		-- The CO-OH simulation has been removed 
-("tracer_mod.f")
-
-get_oro			-- Modified for GEOS-5 and GCAP met fields
-("dust_dead_mod.f")
-
-get_phis_field      	-- Now also read LWI_GISS for GCAP met fields
-("phis_read_mod.f")
-
-init_dao		-- Modified for GCAP met fields
-("dao_mod.f")		-- Removed references to CO-OH param simulation
-			-- Now allocate AVGW only for fullchem or offline 
-			   aerosol simulations
-
-init_diag48		-- Now call GET_HALFPOLAR from "bpch2_mod.f" to get 
-("diag48_mod.f")	   the HALFPOLAR flag value for GEOS or GCAP grids.
-
-init_diag49		-- Now call GET_HALFPOLAR from "bpch2_mod.f" to get 
-("diag49_mod.f")	   the HALFPOLAR flag value for GEOS or GCAP grids.
-
-init_diag50		-- Now call GET_HALFPOLAR from "bpch2_mod.f" to get 
-("diag50_mod.f")	   the HALFPOLAR flag value for GEOS or GCAP grids.
-
-init_diag51		-- Now call GET_HALFPOLAR from "bpch2_mod.f" to get 
-("diag51_mod.f")	   the HALFPOLAR flag value for GEOS or GCAP grids.
-
-init_diag_oh		-- Remove references to CO-OH simulation and to 
-("diag_oh_mod.f")	   CMN_DIAG
-
-init_gamap		-- Now add proper UNIT & SCALE for Rn/Pb/Be simulations
-("gamap_mod.f")		-- Added HCN & CH3CN source & sink info for ND09
-
-init_grid		-- Modified for GCAP 4x5 horizontal grid
-("grid_mod.f")
-
-initialize.f		-- Now zero AD09 and AD09_em for HCN simulation
-
-init_pressure		-- Now modified for both GCAP & GEOS-5 vertical grids
-("pressure_mod.f")
-
-init_transport		-- Now modified for both GCAP & GEOS-5 met fields
-("transport_mod.f")
-
-interp			-- Now modified for GEOS-5 and GCAP met fields 
+is_land			-- Now return TRUE only for land boxes (w/ no ice) 
 ("dao_mod.f")
 
-is_land			-- Now modified for GEOS-5 and GCAP met fields 
+is_water		-- Now return TRUE only for water boxes (w/ no ice) 
 ("dao_mod.f")
 
-is_water		-- Now modified for GEOS-5 and GCAP met fields 
-("dao_mod.f")
-
-its_not_coparam_or_ch4  -- The CO-OH param (SIM_TYPE=5) is now obsolete 
-("tracer_mod.f")
-
-its_time_for_a6		-- Now modified for GCAP and GEOS-5 met fields 
+its_a_leapyear		-- Now always return FALSE for GCAP
 ("time_mod.f")
 
-init_transfer		-- Now modified for GEOS-5 met fields
-("transfer_mod.f")
+lightning		-- Now apply new met-field dependent scale factors to
+("lightning_nox_mod.f")	   bring lightning totals to a specified total value
+			-- Eliminated historical baggage
 
-make_restart_file	-- Remove references to CMN_DIAG and TRCOFFSET
-("restart_mod.f")	-- Now call GET_HALFPOLAR from "bpch2_mod.f" to get 
-			   the HALFPOLAR flag value for GEOS or GCAP grids
+lightning_nox_mod.f	-- Added MET_SCALE variable
+			-- Added GET_MET_FIELD_SCALE function
 
-metero			-- Now call GET_OBK from "dao_mod.f" to get the M-O 
-("drydep_mod.f")	   length for both GEOS or GCAP met fields 
-			-- Remove local computation of M-O length here
-			-- Also now dimension AZO appropriately for GCAP or 
-			   GEOS met fields
-			-- Remove obsolete variables
+main.f			-- Remove call to INITIALIZE(1), it's obsolete
+			-- remove reference to CMN, it's obsolete
 
-open_a3_fields      	-- Now modified for GEOS-5 and GCAP met fields 
-("a3_read_mod.f")
+ndxx_setup.f		-- Now allocates AD30
 
-open_a6_fields      	-- Now modified for GEOS-5 and GCAP met fields 
-("a3_read_mod.f")
+ocean_source_acet	-- Now use Nightingale et al [2000b] formulation for 
+("acetone_mod.f")	   exchange coefficient KL (aka piston velocity)
 
-open_i6_fields      	-- Now modified for GEOS-5 and GCAP met fields 
-("i6_read_mod.f")
+ocean_sink_acet		-- Now use Nightingale et al [2000b] formulation for 
+("acetone_mod.f")	   exchange coefficient KL (aka piston velocity)
 
-open_phis_field      	-- Now modified for GEOS-5 and GCAP met fields 
-("phis_read_mod.f")
+read_anthro_sox		-- Now read files from "sulfate_sim_200508/"
+("sulfate_mod.f")
 
-read_a3			-- Now modified for GEOS-5 and GCAP met fields
-("a3_read_mod.f")	-- Added GCAP MOLENGTH, SNICE, OICE optional arguments
+read_anthro_nh3		-- Now read files from "sulfate_sim_200508/"
+("sulfate_mod.f")
 
-read_a6			-- Now modified for GEOS-5 and GCAP met fields
-("a3_read_mod.f")	-- Added DETRAINE, DETRAINN, DNDE, DNDN, ENTRAIN, 
-			   UPDE, UPDN as optional arguments
-			-- Now references "CMN_DIAG"
+read_biomass_nh3       	-- Now read files from "sulfate_sim_200508/"
+("sulfate_mod.f")
 
-read_deposition_menu	-- Remove references to obsolete CO_OH simulation
+read_diagnostic_menu	-- Now references "diag04_mod.f"
 ("input_mod.f")
 
-read_diagnostic_menu	-- Now get diag info for ND09 for HCN/CH3CN sim
-("input_mod.f")
+read_erup_volc		-- Now read files from "sulfate_sim_200508/"
+("sulfate_mod.f")
 
-reader.f		-- Redefine CHEMINTV [s] to the value in "input.geos" 
-			   so that we don't have a discrepancy with the value 
-			   in "mglob.dat"
-			-- SLOW-J is now obsolete; remove LSLOWJ #ifdef blocks
+read_i6			-- Round up LWI to account for GEOS-4 coastal boxes 
+("i6_read_mod.f")	   properly
 
-read_phis		-- Now also read LWI_GISS for GCAP met fields
-("phis_read_mod.f") 	-- Added optional variable LWI to the arg list.
+read_kmc		-- Now reads kmc*bin files from the
+("isoropia_mod.f")         directory sulfate_sim_200508/isorropia
+			-- Also remove reference to obsolete "CMN_SETUP"
 
-read_restart_file	-- Remove references to CMN_DIAG and TRCOFFSET
-("restart_mod.f")	-- Remove code for obsolete CO-OH simulation
-			-- Change tracer name format string to A10.
+read_natural_nh3	-- Now read files from "sulfate_sim_200508/"
+("sulfate_mod.f")
 
-read_simulation_menu	-- Now read GEOS_5_DIR and GCAP_DIR from input.geos 
-("input_mod.f")
+read_nonerup_volc	-- Now read files from "sulfate_sim_200508/"
+("sulfate_mod.f")
 
-read_tracer_menu	-- Now set LSPLIT correctly for Tagged HCN/CH3CN sim 
-("input_mod.f")
+read_ocean_dms		-- Now read files from "sulfate_sim_200508/"
+("sulfate_mod.f")
 
-read_uvalbedo		-- Read proper filename for GCAP or GEOS grids
-("uvalbedo_mod.f")
+read_oxidant		-- Now read files from "sulfate_sim_200508/offline"
+("sulfate_mod.f")
 
-ruralbox.f		-- SLOW-J is now obsolete; remove LSLOWJ #ifdef blocks
+read_ship_so2		-- Now read files from "sulfate_sim_200508/"
+("sulfate_mod.f")
 
-save_global_tpcore_bc	-- Now call GET_HALFPOLAR from "bpch2_mod.f" to get 
-("tpcore_bc_mod.f")	   the HALFPOLAR flag value for GEOS or GCAP grids
+read_sst		-- Now use interannual SST data from NOAA if present; 
+("sulfate_mod.f")          otherwise use climatological SST data
 
-stdrun			-- Now call GET_HALFPOLAR from "bpch2_mod.f" to get 
-("benchmark_mod.f")	   the HALFPOLAR flag value for GEOS or GCAP grids
-			-- Remove references to TRCOFFSET and CMN_DIAG
+ruralbox.f		-- Now reference ITS_IN_THE_TROP and ITS_IN_THE_STRAT
+			   from "tropopause_mod.f" to diagnose trop & strat 
+			   boxes
+			-- Also remove LPAUSE from the arg list
 
-transfer_3d		-- Now modified for GEOS-5 met fields
-("transfer_mod.f")
+schem.f			-- Now references GET_MIN_TPAUSE_LEVEL and 
+			   ITS_IN_THE_STRAT from "tropopause_mod.f" 	
+			-- Now remove reference to CMN, it's obsolete
 
-transfer_a6		-- Now modified for GEOS-5 met fields
-("transfer_mod.f")
+set_current_time	-- GCAP/GISS fields don't have leap years, so if 
+("time_mod.f") 		   GET_JD says it's Feb 29th, reset MONTH, DAY, 
+			   JD1 to Mar 1st.
 
-transfer_zonal_r4	-- Now modified for GEOS-5 met fields
-("transfer_mod.f")
+setemis.f		-- Now replace XTRA2 with GET_PBL_TOP_L in 
+			   "pbl_mix_mod.f"
+			-- Now remove reference to CMN, it's obsolete
+			-- Now references GET_TPAUSE_LEVEL from 
+      			   "tropopause_mod.f"
 
-transfer_zonal_r8	-- Now modified for GEOS-5 met fields
-("transfer_mod.f")
+srcdms			-- Switch from Liss & Merlivat to Nightingale et al
+("sulfate_mod.f")	   2000b formulation for sea-air exchange coefficient
+                           for DMS emissions.
 
-unzip_a3_fields		-- Now modified for GEOS-5 and GCAP met fields
-("a3_read_mod.f")
+test_valid		-- Now references ITS_IN_THE_TROP from 	
+("planeflight_mod.f")      "tropopause_mod.f"
 
-unzip_a3_fields		-- Now modified for GEOS-5 and GCAP met fields
-("a3_read_mod.f")
+xltmmp.f		-- Now make IJLOOP an optional argument; it's only 
+			   kept for backwards compatibility w/ older code
 
-unzip_a6_fields		-- Remove code for obsolete GEOS-4 a_llk_03 data 
-("a6_read_mod.f")	-- Now modified for GEOS-5 and GCAP met fields
-
-unzip_phis_field	-- Now modified for GEOS-5 and GCAP met fields
-("phis_read_mod.f")
-
-upbdflx_o3		-- Now modified for GEOS-5 and GCAP met fields
-("upbdflx_mod.f")
-
-write_diag03		-- Now call GET_HALFPOLAR from "bpch2_mod.f" to get 
-("diag03_mod.f")	   the HALFPOLAR flag value for GEOS or GCAP grids.
-
-write_diag41		-- Now call GET_HALFPOLAR from "bpch2_mod.f" to get 
-("diag41_mod.f")	   the HALFPOLAR flag value for GEOS or GCAP grids.
+---
+acetone_mod.f		-- Now references GET_NAME_EXT_2D from "bpch2_mod.f"
+biofuel_mod.f              to return the proper filename extension for 
+biomass_mod.f              data files which contain no vertical information
+carbon_mod.f               (e.g. "geos", "gcap")
+ch3i_mod.f
+co2_mod.f
+dust_dead_mod.f
+geia_mod.f
+global_ch4_mod.f
+hcn_ch3cn_mod.f
+mercury_mod.f
+ocean_mercury_mod.f
+sulfate_mod.f
+tagged_co_mod.f
+toms_mod.f
+uvalbedo_mod.f

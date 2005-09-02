@@ -1,4 +1,4 @@
-! $Id: restart_mod.f,v 1.9 2005/06/28 18:59:30 bmy Exp $
+! $Id: restart_mod.f,v 1.10 2005/09/02 15:17:21 bmy Exp $
       MODULE RESTART_MOD
 !
 !******************************************************************************
@@ -54,17 +54,6 @@
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
       ! and routines from being seen outside "restart_mod.f"
       !=================================================================
-
-      !---------------------------------------
-      ! Prior to 6/24/05:
-      !! Private module routines
-      !PRIVATE :: CONVERT_TRACER_TO_VV
-      !PRIVATE :: CHECK_DIMENSIONS
-      !PRIVATE :: TRUE_TRACER_INDEX
-      !PRIVATE :: COPY_STT
-      !PRIVATE :: COPY_STT_FOR_CO_OH
-      !PRIVATE :: CHECK_DATA_BLOCKS
-      !---------------------------------------
 
       ! Make everything PRIVATE ...
       PRIVATE
@@ -134,10 +123,6 @@
       USE TRACER_MOD,  ONLY : STT, N_TRACERS, TCVV
 
 #     include "CMN_SIZE"   ! Size parameters
-!----------------------------------------------------
-! Prior to 6/24/05:
-!#     include "CMN_DIAG"   ! TRCOFFSET
-!----------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)  :: YYYYMMDD, HHMMSS
@@ -150,11 +135,6 @@
 
       ! For binary punch file, version 2.0
       REAL*4               :: LONRES, LATRES
-      !------------------------------------------------------------------
-      ! Prior to 6/28/05:
-      ! Need to make HALFPOLAR a variable, not a parameter (bmy, 6/28/05)
-      !INTEGER, PARAMETER   :: HALFPOLAR = 1
-      !------------------------------------------------------------------
       INTEGER              :: HALFPOLAR
       INTEGER, PARAMETER   :: CENTER180 = 1
       
@@ -225,11 +205,6 @@
          ! Convert STT from [kg] to [v/v] mixing ratio 
          ! and store in temporary variable TRACER
          CALL BPCH2( IU_RST,    MODELNAME, LONRES,    LATRES,    
-!-------------------------------------------------------------------------
-! Prior to 6/24/05:
-! TRCOFFSET=0 now so we really don't need it anymore (bmy, 6/24/05)
-!     &               HALFPOLAR, CENTER180, CATEGORY,  N+TRCOFFSET,
-!-------------------------------------------------------------------------
      &               HALFPOLAR, CENTER180, CATEGORY,  N,
      &               UNIT,      GET_TAU(), GET_TAU(), RESERVED,   
      &               IIPAR,     JJPAR,     LLPAR,     I0+1,            
@@ -313,11 +288,6 @@
       USE TRACER_MOD
 
 #     include "CMN_SIZE"   ! Size parameters
-!---------------------------------------------------------------------
-! Prior to 6/24/05:
-! TRCOFFSET=0 now so we don't really need it anymore (bmy, 6/24/05)
-!#     include "CMN_DIAG"   ! TRCOFFSET
-!----------------------------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: YYYYMMDD, HHMMSS
@@ -412,16 +382,7 @@
             ! Convert TRACER from its native units to [v/v] mixing ratio
             CALL CONVERT_TRACER_TO_VV( NTRACER, TRACER, UNIT )
 
-            !! Convert TRACER from [v/v] to [kg] and copy into STT array
-            !---------------------------------------------------------------
-            ! Prior to 6/24/05:
-            ! Remove code for obsolete CO-OH simulation (bmy, 6/24/05)
-            !IF ( ITS_A_COPARAM_SIM() ) THEN
-            !   CALL COPY_STT_FOR_CO_OH( NTRACER, TRACER, NCOUNT )            
-            !ELSE
-            !   CALL COPY_STT( NTRACER, TRACER, NCOUNT )
-            !ENDIF
-            !---------------------------------------------------------------
+            ! Convert TRACER from [v/v] to [kg] and copy into STT array
             CALL COPY_STT( NTRACER, TRACER, NCOUNT )
 
          ENDIF
@@ -453,11 +414,6 @@
          ! Print totals
          WRITE( 6, 130 ) N,                   TRACER_NAME(N), 
      &                   SUM( STT(:,:,:,N) ), ADJUSTL( UNIT )
-!--------------------------------------------------------------------
-! Prior to 6/27/05:
-! Change tracer name format to A10 (bmy, 6/27/05)
-! 130     FORMAT( 'Tracer ', i3, ' (', a4, ') ', es12.5, 1x, a4)
-!--------------------------------------------------------------------
  130     FORMAT( 'Tracer ', i3, ' (', a10, ') ', es12.5, 1x, a4)
       ENDDO
 
@@ -498,10 +454,6 @@
       USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
 
 #     include "CMN_SIZE"              ! Size parameters
-!----------------------------------------------------------------
-! Prior to 6/24/05:
-!#     include "CMN"                   ! TCNAME
-!----------------------------------------------------------------
 
       ! Arguments
       INTEGER,          INTENT(IN)    :: NTRACER
@@ -696,14 +648,6 @@
       ! COPY_STT begins here!
       !=================================================================
 
-      !--------------------------------------------------------
-      ! Prior to 6/24/05:
-      ! TRCOFFSET is now always zero, so we don't need to call
-      ! TRUE_TRACER_INDEX any more (bmy, 6/24/05)
-      !! Make sure N is a valid tracer number
-      !N = TRUE_TRACER_INDEX( NTRACER )
-      !-------------------------------------------------------
-
       ! Tracer number
       N = NTRACER
 
@@ -728,81 +672,6 @@
 
       END SUBROUTINE COPY_STT
 
-!------------------------------------------------------------------------------
-! Prior to 6/24/05:
-! Remove this, the CO-OH simulation is obsolete now (bmy, 6/24/05)
-!
-!      SUBROUTINE COPY_STT_FOR_CO_OH( NTRACER, TRACER, NCOUNT )
-!!
-!!******************************************************************************
-!!  Subroutine COPY_STT_FOR_CO_OH copies data from the TRACER array into the 
-!!  STT array for the CO run with parameterized OH, readjusting the
-!!  tracer number accordingly. (bmy, 6/25/02, 9/18/02)
-!!
-!!  Arguments as Input:
-!!  ============================================================================
-!!  (1 ) NTRACER (INTEGER) : Tracer number
-!!  (2 ) NCOUNT  (INTEGER) : Ctr array - # of data blocks read for each tracer
-!!  (3 ) TRACER  (REAL*4 ) : Tracer concentrations [v/v]
-!!
-!!  NOTES:
-!!  (1 ) Added to "restart_mod.f". (bmy, 6/25/02)
-!!  (2 ) Now reference AD from "dao_mod.f" (bmy, 9/18/02)
-!!******************************************************************************
-!!
-!      ! References to F90 modules
-!      USE DAO_MOD, ONLY : AD
-!
-!#     include "CMN_SIZE"     ! Size parameters
-!#     include "CMN"          ! TCVV, AD, STT
-!
-!      ! Arguments
-!      INTEGER, INTENT(IN)    :: NTRACER
-!      REAL*4,  INTENT(IN)    :: TRACER(IIPAR,JJPAR,LLPAR)
-!      INTEGER, INTENT(INOUT) :: NCOUNT(NNPAR)
-!   
-!      ! Local variables
-!      INTEGER                :: I, J, L
-!
-!#if   defined( LGEOSCO )
-!
-!#     include "CMN_CO_BUDGET" 
-!
-!      !=================================================================
-!      ! COPY_STT_FOR_CO_OH begins here!
-!      !=================================================================
-!
-!      ! CO is tracer #4 in a full-chemistry restart file
-!      IF ( NTRACER == 4 ) THEN
-!
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
-!         DO L = 1, LLPAR
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-! 
-!            ! Convert from [v/v] to [kg CO]
-!            STT(I,J,L,N) = TRACER(I,J,L) * AD(I,J,L) / TCVV_CO
-!
-!            ! Save initial CO budget in TCO(:,:,:,1)
-!            TCO(I,J,L,1) = TRACER(I,J,L) 
-!            
-!            ! 
-!            TCO(I,J,L,2:12) = 0d0
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO
-!
-!         ! Update count
-!         NCOUNT(1) = NCOUNT(1) + 1
-!      ENDIF
-!#endif
-!      
-!      ! Return to READ_RESTART_FILE
-!      END SUBROUTINE COPY_STT_FOR_CO_OH
-!
 !------------------------------------------------------------------------------
 
       SUBROUTINE CHECK_DATA_BLOCKS( NTRACE, NCOUNT )

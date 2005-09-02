@@ -1,9 +1,9 @@
-! $Id: global_ch4_mod.f,v 1.5 2004/12/02 21:48:37 bmy Exp $
+! $Id: global_ch4_mod.f,v 1.6 2005/09/02 15:17:12 bmy Exp $
       MODULE GLOBAL_CH4_MOD
 !
 !******************************************************************************
 !  Module GLOBAL_CH4_MOD contains variables and routines for simulating
-!  CH4 chemistry in the troposphere (jsw, bnd, bmy, 1/17/01, 7/20/04)
+!  CH4 chemistry in the troposphere (jsw, bnd, bmy, 1/17/01, 8/16/05)
 !
 !  Module Variables:
 !  =========================================================================== 
@@ -78,6 +78,7 @@
 !  (19) Updates to GET_GLOBAL_CH4 (bmy, 7/1/03)
 !  (20) Now references "directory_mod.f", "tracer_mod.f", and "diag_oh_mod.f"
 !        (bmy, 7/20/04)
+!  (21) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -601,8 +602,14 @@
       !
       ! Read aseasonal CH4 emissions 
       !=================================================================
-      FILENAME = TRIM( DATA_DIR )      // 
-     &           'CH4_aseasonal.geos.' // GET_RES_EXT()
+!---------------------------------------------------------------------------
+! Prior to 8/16/05:
+!      FILENAME = TRIM( DATA_DIR )      // 
+!     &           'CH4_aseasonal.geos.' // GET_RES_EXT()
+!---------------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR )            // 
+     &           'CH4_200202/CH4_aseasonal.' // GET_NAME_EXT_2D() // 
+     &           '.'                         // GET_RES_EXT()
 
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'emissch4:1' )
@@ -616,8 +623,14 @@
       !=================================================================
       ! Read monthly-varying CH4 emissions
       !=================================================================
-      FILENAME = TRIM( DATA_DIR )    // 
-     &           'CH4_monthly.geos.' // GET_RES_EXT()
+!---------------------------------------------------------------------------
+! Prior to 8/16/05:
+!      FILENAME = TRIM( DATA_DIR )    // 
+!     &           'CH4_monthly.geos.' // GET_RES_EXT()
+!---------------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR )          // 
+     &           'CH4_200202/CH4_monthly.' // GET_NAME_EXT_2D() // 
+     &           '.'                       // GET_RES_EXT()
 
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'emissch4:3' )      
@@ -1117,7 +1130,7 @@
 !
 !*****************************************************************************
 !  Subroutine READ_COPROD reads production and destruction rates for CO in 
-!  the stratosphere. (bnd, bmy, 1/17/01, 7/20/04)
+!  the stratosphere. (bnd, bmy, 1/17/01, 8/16/05)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -1132,6 +1145,7 @@
 !  (3 ) ARRAY needs to be dimensioned (1,JGLOB,LGLOB) (bmy, 9/26/01)
 !  (4 ) Remove obsolete code from 9/01 (bmy, 10/24/01)
 !  (5 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  (6 ) Now reads data for both GEOS and GCAP grids (bmy, 8/16/05)
 !*****************************************************************************
 !
       ! References to F90 modules
@@ -1160,12 +1174,19 @@
          XTAU = GET_TAU0( M, 1, 1985 )
 
          ! Construct filename
-         FILENAME = TRIM( DATA_DIR ) // 'COprod.'  //
-     &              GET_NAME_EXT()   // '.'        // GET_RES_EXT()
+!---------------------------------------------------------------------------
+! Prior to 8/16/05:
+!         FILENAME = TRIM( DATA_DIR ) // 'COprod.'  //
+!     &              GET_NAME_EXT()   // '.'        // GET_RES_EXT()
+!---------------------------------------------------------------------------
+         FILENAME = TRIM( DATA_DIR )         // 
+     &              'pco_lco_200203/COprod.' // GET_NAME_EXT_2D() //
+     &              '.'                      // GET_RES_EXT()
 
          ! Read P(CO) in units of [v/v/s]
-         CALL READ_BPCH2( FILENAME, 'PORL-L=$', 9,     XTAU, 
-     &                    1,         JGLOB,     LGLOB, ARRAY )
+         CALL READ_BPCH2( FILENAME, 'PORL-L=$', 9,     
+     &                    XTAU,      1,         JGLOB,     
+     &                    LGLOB,     ARRAY,     QUIET=.TRUE. )
          
          ! Copy REAL*4 to REAL*8 data, and resize from (JGLOB,LGLOB) 
          ! to (JJPAR,LLPAR) -- vertically regrid if necessary
@@ -1225,7 +1246,11 @@
       !=================================================================
       ! Read in Clarisa's climatological OH data from "avgOH.cms"
       !=================================================================
-      FILENAME = TRIM( DATA_DIR ) // 'avgOH.cms' 
+      !-----------------------------------------------------------------
+      ! Prior to 8/16/05:
+      !FILENAME = TRIM( DATA_DIR ) // 'avgOH.cms' 
+      !-----------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR ) // 'CH4_200202/avgOH.cms' 
 
       OPEN( IU_FILE, FILE=FILENAME, STATUS='OLD', IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'interpoh:1' )

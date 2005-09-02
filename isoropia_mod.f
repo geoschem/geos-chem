@@ -1,9 +1,9 @@
-! $Id: isoropia_mod.f,v 1.2 2005/05/09 14:33:59 bmy Exp $
+! $Id: isoropia_mod.f,v 1.3 2005/09/02 15:17:16 bmy Exp $
       MODULE ISOROPIA_MOD
 !
 !******************************************************************************
-!  Module ISOROPIA_MOD contains the routines from the ISORROPIA package, 
-!  which performs aerosol thermodynamical equilibrium (bec, bmy, 4/12/05)
+!  Module ISOROPIA_MOD contains the routines from the ISORROPIA package, which
+!  performs aerosol thermodynamical equilibrium (bec, bmy, 4/12/05, 8/22/05)
 !
 !  NOTE: ISORROPIA is Greek for "equilibrium", in case you were wondering. :-)
 !
@@ -182,8 +182,10 @@
 !  (8  ) time_mod.f       : Module w/ routines for computing time & date
 !  (9  ) tracerid_mod.f   : Module w/ pointers to tracers & emissions
 !  (10 ) transfer_mod.f   : Module w/ routines to cast & resize arrays
+!  (11 ) tropopause_mod.f : Module w/ routines to read ann mean tropopause
 !  
 !  NOTES:
+!  (1 ) Now references "tropopause_mod.f" (bmy, 8/22/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -261,9 +263,12 @@
 !******************************************************************************
 !  Subroutine DO_ISOROPIA is the interface between the GEOS-CHEM model
 !  and the aerosol thermodynamical equilibrium routine in "rpmares.f"
-!  (rjp, bec, bmy, 12/17/01, 3/10/05)
+!  (rjp, bec, bmy, 12/17/01, 8/22/05)
 ! 
-!  NOTES: Aerosol concentrations are all in ug/m^3
+!  NOTES: 
+!  (1 ) Aerosol concentrations are all in ug/m^3
+!  (2 ) Now references ITS_IN_THE_STRAT from "tropopause_mod.f".  Now remove
+!        reference to CMN, it's obsolete. (bmy, 8/22/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -274,9 +279,13 @@
       USE TIME_MOD,        ONLY : GET_MONTH,       ITS_A_NEW_MONTH
       USE TRACER_MOD
       USE TRACERID_MOD
+      USE TROPOPAUSE_MOD,  ONLY : ITS_IN_THE_STRAT
 
 #     include "CMN_SIZE"        ! Size aprameters
-#     include "CMN"             ! LPAUSE
+!--------------------------------------------------------------
+! Prior to 8/22/05:
+!#     include "CMN"             ! LPAUSE
+!--------------------------------------------------------------
 #     include "isoropia.h"      ! ISOROPIA common blocks
 
       ! Local variables
@@ -374,7 +383,11 @@
       DO I = 1, IIPAR
 
          ! Skip strat boxes 
-         IF ( L >= LPAUSE(I,J) ) CYCLE
+         !---------------------------------------------
+         ! Prior to 8/22/05:
+         !IF ( L >= LPAUSE(I,J) ) CYCLE
+         !---------------------------------------------
+         IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
 
          ! coordinates
          I_SAV = I
@@ -2926,12 +2939,20 @@ CCC      ENDIF
 !  Subroutine READ_KMC reads data from binary files in order to initialize
 !  parameters for the ISORROPIA routines.  This is necessary since the 
 !  original code uses big BLOCK DATA statements which don't compile well on 
-!  SGI. (rjp, bdf, bmy, 9/23/02) 
+!  SGI. (rjp, bdf, bmy, 9/23/02, 7/28/05) 
 !
 !  NOTES:
+!  (1 ) Now read files from "sulfate_sim_200508/isorropia".  Also remove
+!        reference to obsolete "CMN_SETUP" (bmy, 7/28/05)
 !******************************************************************************
 !
-#     include "CMN_SETUP" ! DATA_DIR
+      ! References to F90 modules
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+
+!------------------------------------------
+! Prior to 7/28/05:
+!#     include "CMN_SETUP" ! DATA_DIR
+!------------------------------------------
 
 
       ! Local variables
@@ -2945,27 +2966,57 @@ CCC      ENDIF
       !CALL INIT_KMC
 
       ! Read data at 198 K
-      FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/kmc198.bin'
+      !--------------------------------------------------------------------
+      ! Prior to 7/28/05:
+      !FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/kmc198.bin'
+      !--------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR ) // 
+     &           'sulfate_sim_200508/isorropia/kmc198.bin'
       CALL READ_BINARY( FILENAME, BNC198 )
 
       ! Read data at 223 K
-      FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/kmc223.bin'
+      !--------------------------------------------------------------------
+      ! Prior to 7/28/05:
+      !FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/kmc223.bin'
+      !--------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR ) // 
+     &           'sulfate_sim_200508/isorropia/kmc223.bin'
       CALL READ_BINARY( FILENAME, BNC223 ) 
 
       ! Read data at 248 K
-      FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/kmc248.bin'
+      !--------------------------------------------------------------------
+      ! Prior to 7/28/05:
+      !FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/kmc248.bin'
+      !--------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR ) // 
+     &           'sulfate_sim_200508/isorropia/kmc248.bin'
       CALL READ_BINARY( FILENAME, BNC248 )
 
       ! Read data at 273 K
-      FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/kmc273.bin'
+      !--------------------------------------------------------------------
+      ! Prior to 7/28/05:
+      !FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/kmc273.bin'
+      !--------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR ) // 
+     &           'sulfate_sim_200508/isorropia/kmc273.bin'
       CALL READ_BINARY( FILENAME, BNC273 )
 
       ! Read data at 298 K
-      FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/kmc298.bin'
+      !--------------------------------------------------------------------
+      ! Prior to 7/28/05:
+      !FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/kmc298.bin'
+      !--------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR ) // 
+     &           'sulfate_sim_200508/isorropia/kmc298.bin'
       CALL READ_BINARY( FILENAME, BNC298 )
 
       ! Read data at 323 K
-      FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/kmc323.bin'
+      !--------------------------------------------------------------------
+      ! Prior to 7/28/05:
+      !FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/kmc323.bin'
+      !--------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR ) // 
+     &           'sulfate_sim_200508/isorropia/kmc323.bin'
       CALL READ_BINARY( FILENAME, BNC323 )
 
       ! Return to calling program

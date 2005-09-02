@@ -1,10 +1,10 @@
-! $Id: uvalbedo_mod.f,v 1.5 2005/06/27 19:41:51 bmy Exp $
+! $Id: uvalbedo_mod.f,v 1.6 2005/09/02 15:17:30 bmy Exp $
       MODULE UVALBEDO_MOD
 !
 !******************************************************************************
 !  Module UVALBEDO_MOD contains variables and routines for reading the UV
 !  Albedo data from disk (for use w/ the FAST-J photolysis routines).
-!  (bmy, 4/19/02, 6/27/05)
+!  (bmy, 4/19/02, 8/16/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -30,7 +30,7 @@
 !  (3 ) Now references "error_mod.f" (bmy, 10/15/02)
 !  (4 ) Minor modification in READ_UVALBEDO (bmy, 3/14/03)
 !  (5 ) Now references "directory_mod.f" (bmy, 7/20/04)
-!  (6 ) Bug fix for GCAP grid in READ_UVALBEDO (bmy, 6/27/05)
+!  (6 ) Bug fix for GCAP grid in READ_UVALBEDO (bmy, 8/16/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -88,7 +88,7 @@
 !  (11) Now call READ_BPCH2 with QUIET=.TRUE. to suppress printing of extra 
 !        info to stdout.  Also made cosmetic changes. (bmy, 3/14/03)
 !  (12) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  (13) Read proper filename for GCAP or GEOS grids (swu, bmy, 6/27/05) 
+!  (13) Read proper filename for GCAP or GEOS grids (swu, bmy, 8/15/05) 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -131,14 +131,22 @@
       ! Read UVALBEDO data from disk
       !=================================================================
 
+!-----------------------------------------------------------------------------
+! Prior to 8/16/05:
+!      ! Create filename
+!#if   defined( GCAP ) 
+!      FILENAME = TRIM( DATA_DIR )                 // 
+!     &           'uvalbedo_200111/uvalbedo.gcap.' // GET_RES_EXT()
+!#else
+!      FILENAME = TRIM( DATA_DIR )                 // 
+!     &           'uvalbedo_200111/uvalbedo.geos.' // GET_RES_EXT()
+!#endif
+!-----------------------------------------------------------------------------
+
       ! Create filename
-#if   defined( GCAP ) 
-      FILENAME = TRIM( DATA_DIR )                 // 
-     &           'uvalbedo_200111/uvalbedo.gcap.' // GET_RES_EXT()
-#else
-      FILENAME = TRIM( DATA_DIR )                 // 
-     &           'uvalbedo_200111/uvalbedo.geos.' // GET_RES_EXT()
-#endif
+      FILENAME = TRIM( DATA_DIR )            // 
+     &           'uvalbedo_200111/uvalbedo.' // GET_NAME_EXT_2D() //
+     &           '.'                         // GET_RES_EXT()
 
       ! Echo filename
       WRITE( 6, 110 ) TRIM( FILENAME )

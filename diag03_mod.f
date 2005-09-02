@@ -1,4 +1,4 @@
-! $Id: diag03_mod.f,v 1.3 2005/06/28 18:59:29 bmy Exp $
+! $Id: diag03_mod.f,v 1.4 2005/09/02 15:17:02 bmy Exp $
       MODULE DIAG03_MOD
 !
 !******************************************************************************
@@ -19,7 +19,7 @@
 !  (3 ) INIT_DIAG03           : Allocates all module arrays
 !  (4 ) CLEANUP_DIAG03        : Deallocates all module arrays
 !
-!  GEOS-CHEM modules referenced by diag03_mod_mod.f
+!  GEOS-CHEM modules referenced by diag03_mod.f
 !  ============================================================================
 !  (1 ) bpch2_mod.f           : Module w/ routines for binary pch file I/O
 !  (2 ) error_mod.f           : Module w/ NaN and other error check routines
@@ -175,12 +175,6 @@
       CENTER180 = 1
       DIAGb     = GET_DIAGb()
       DIAGe     = GET_DIAGe()
-      !-----------------------------------------------------------------
-      ! Prior to 6/28/05:
-      ! Now call GET_HALFPOLAR to get the value for GCAP or GEOS grids 
-      ! (bmy, 6/28/05)
-      !HALFPOLAR = 1
-      !-----------------------------------------------------------------
       HALFPOLAR = GET_HALFPOLAR()
       IFIRST    = GET_XOFFSET( GLOBAL=.TRUE. ) + 1
       JFIRST    = GET_YOFFSET( GLOBAL=.TRUE. ) + 1

@@ -1,5 +1,17 @@
-C $Id: main.f,v 1.26 2005/06/27 19:41:47 bmy Exp $
+C $Id: main.f,v 1.27 2005/09/02 15:17:18 bmy Exp $
 C $Log: main.f,v $
+C Revision 1.27  2005/09/02 15:17:18  bmy
+C GEOS-CHEM v7-03-03, includes the following modifications:
+C - Further modifications for GCAP
+C - Land/water/ice boxes now flagged correctly
+C - Rescaling of lightning NOx, suppress lightning over polar regions
+C - Suppress DMS, sea salt emissions where ice is on the surface
+C - Now use Nightingale et al 2000b formulation for sea-air exchange
+C - Contains CO2 simulation (further work may be needed)
+C - Offline aerosol simulation now reads from updated oxidant, etc files
+C - Removed references to common-block variables
+C - Removed obsolete code
+C
 C Revision 1.26  2005/06/27 19:41:47  bmy
 C GEOS-CHEM v7-03-02, includes the following modifications:
 C - Added code for GCAP and GEOS-5 met fields
@@ -20,7 +32,7 @@ C GEOS-CHEM v7-02-04, includes the following modifications:
 C - Centralized PBL mixing routines into "pbl_mix_mod.f"
 C - GEOS-4 LNOx and ISOP are now scaled to the same values as GEOS-3
 C - Updated mercury simulation according to latest reduction constant
-C - Ocean sinking term of mercury is now 2.03E6 kg/yr (cf. S. Strode)
+C - Ocean sinking term of` mercury is now 2.03E6 kg/yr (cf. S. Strode)
 C - Parallelized dry deposition routine DEPVEL (in "drydep_mod.f")
 C - Now uses analytic function for sat vap pressure of water (E_ICE)
 C - ND40 planeflight diag now looks for a new flight track file each day
@@ -141,6 +153,7 @@ C
       USE TRACER_MOD
       USE TRACERID_MOD 
       USE TRANSPORT_MOD,     ONLY : DO_TRANSPORT
+      USE TROPOPAUSE_MOD,    ONLY : READ_TROPOPAUSE
       USE RESTART_MOD,       ONLY : READ_RESTART_FILE, MAKE_RESTART_FILE
       USE UPBDFLX_MOD,       ONLY : DO_UPBDFLX, UPBDFLX_NOY
       USE UVALBEDO_MOD,      ONLY : READ_UVALBEDO
@@ -151,7 +164,10 @@ C
       
       ! Header files 
 #     include "CMN_SIZE"        ! Size parameters
-#     include "CMN"             ! XTRA2
+!------------------------------------------------------------------
+! Prior to 8/22/05:
+!#     include "CMN"             ! XTRA2
+!------------------------------------------------------------------
 #     include "CMN_DIAG"        ! Diagnostic switches, NJDAY
 #     include "CMN_GCTM"        ! Physical constants
 #     include "CMN_O3"          ! TCOBOX, FMOL, SAVEOH
@@ -162,6 +178,7 @@ C
       INTEGER :: I,           IOS,   J,         K,         L
       INTEGER :: N,           JDAY,  NYMD_PHIS, NDIAGTIME, N_DYN
       INTEGER :: N_DYN_STEPS, NSECb, N_STEP,    DATE(2)
+      INTEGER :: LPAUSE2(IIPAR,JJPAR)
 
       !=================================================================
       ! GEOS-CHEM starts here!                                            
@@ -184,14 +201,18 @@ C
       CALL INIT_DAO
 
       ! Initialize diagnostic arrays and counters
-      CALL INITIALIZE( 1 )
+      !---------------------------------------
+      ! Prior to 8/3/05:
+      ! This is now obsolete (bmy, 8/3/05)
+      !CALL INITIALIZE( 1 )
+      !---------------------------------------
       CALL INITIALIZE( 2 )
       CALL INITIALIZE( 3 )
 
       ! Initialize the new hybrid pressure module.  Define Ap and Bp.
       CALL INIT_PRESSURE
 
-      ! Read annual mean tropopause    
+      ! Read annual mean tropopause
       CALL READ_TROPOPAUSE
 
       ! Initialize allocatable SMVGEAR arrays
@@ -693,13 +714,6 @@ C
          !               ***** C H E M I S T R Y *****
          !===========================================================    
 
-         !-------------------------------------------------------------------
-         ! Prior to 6/24/05:
-         ! Remove obsolete code for CO-OH param (bmy, 6/24/05)
-         !! Setup fields for CO_OH parameterization
-         !IF ( ITS_A_COPARAM_SIM() ) CALL SETUP_CO_OH_CHEM
-         !-------------------------------------------------------------------
-
          ! Also need to compute avg P, T for CH4 chemistry (bmy, 1/16/01)
          IF ( ITS_A_CH4_SIM() ) CALL CH4_AVGTP
 
@@ -846,15 +860,6 @@ C
 
       ! Print ending time of simulation
       CALL DISPLAY_END_TIME
-
-!------------------------------------------------------------------------------
-! Prior to 5/3/05:
-!      ! Echo info
-!      WRITE ( 6, 3000 ) 
-! 3000 FORMAT
-!     &   ( /, /, '**************   E N D   O F   G E O S -- C H E M   ',
-!     &    '***************')
-!------------------------------------------------------------------------------
 !
 !******************************************************************************
 !  Internal procedures -- Use the F90 CONTAINS command to inline 
@@ -871,8 +876,7 @@ C
 !  (3 ) DISPLAY_SIGMA_LAT_LON  : Displays sigma, lat, and lon information
 !  (4 ) GET_WIND10M            : Wrapper for MAKE_WIND10M (from "dao_mod.f")
 !  (5 ) CTM_FLUSH              : Flushes diagnostic files to disk
-!  (6 ) SETUP_CO_OH_CHEM       : Calls setup routines for CO-OH param run
-!  (7 ) DISPLAY_END_TIME       : Displays ending time of simulation
+!  (6 ) DISPLAY_END_TIME       : Displays ending time of simulation
 !  (7 ) MET_FIELD_DEBUG        : Prints min and max of met fields for debug
 !******************************************************************************
 !
@@ -1092,48 +1096,6 @@ C
       ! Return to MAIN program
       END SUBROUTINE GET_WIND10M
 
-!-----------------------------------------------------------------------------
-! Prior to 6/24/05:
-! Remove code for obsolete CO-OH parameterization (bmy, 6/24/05)
-!
-!      SUBROUTINE SETUP_CO_OH_CHEM
-!
-!      !=================================================================
-!      ! Internal Subroutine CO_OH_CHEM_SETUP calls subroutines which
-!      ! set up variables for the CO-OH parameterization simulation
-!      ! (when LGEOSCO is defined and when NSRCX == 5).
-!      !
-!      ! NOTE: These routines need to be called every dynamic timestep.
-!      !=================================================================
-!#if   defined( LGEOSCO )
-!
-!      ! Get optical depth for the proper data set
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-!
-!      ! GEOS-1/GEOS-STRAT: Compute OPTD from T, CLMO, CLRO, DELP
-!      CALL OPTDEPTH( LM, CLMOSW, CLROSW, DELP, T, OPTD )
-!
-!#elif defined( GEOS_3 ) || defined( GEOS_4 )
-!
-!      ! GEOS-3/GEOS-4: Copy OPTDEP to OPTD, also save diagnostics
-!      CALL OPTDEPTH( LM, CLDF, OPTDEP, OPTD )
-!
-!#endif
-!
-!      ! Compute 24h average reflectivities
-!      CALL AVGREFL( FIRSTCHEM, OPTD, N_DYN, NHMSb, NSEC, XMID, NMIN )
-!
-!      ! Compute 24h average temp & pressure
-!      CALL AVGTP( N_DYN, NMIN )
-!
-!      ! Compute 24h average water vapor
-!      CALL AVGAVGW( N_DYN, NMIN, NCHEM )
-!
-!#endif
-!
-!      ! Return to MAIN program
-!      END SUBROUTINE SETUP_CO_OH_CHEM
-!
 !-----------------------------------------------------------------------------
 
       SUBROUTINE CTM_FLUSH

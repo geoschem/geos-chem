@@ -1,4 +1,4 @@
-! $Id: gwet_read_mod.f,v 1.5 2005/03/29 15:52:42 bmy Exp $
+! $Id: gwet_read_mod.f,v 1.6 2005/09/02 15:17:14 bmy Exp $
       MODULE GWET_READ_MOD
 !
 !******************************************************************************
@@ -338,15 +338,6 @@
          ! Close previously opened A-3 file
          CLOSE( IU_GWET )
          
-         !---------------------------------------------------------------
-         ! Prior to 3/23/05:
-         !! Make sure the file exists before we open it!
-         !! Maybe make this a function in ERROR_MOD (bmy, 6/23/03)
-         !INQUIRE( IU_GWET, EXIST=IT_EXISTS )
-         !   
-         !IF ( .not. IT_EXISTS ) THEN
-         !---------------------------------------------------------------
-
          ! Make sure file unit is valid before we open the file
          IF ( .not. FILE_EXISTS( IU_GWET ) ) THEN
             CALL ERROR_STOP( 'Could not find file!', 

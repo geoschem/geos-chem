@@ -1,10 +1,10 @@
-! $Id: ocean_mercury_mod.f,v 1.4 2005/06/28 18:59:30 bmy Exp $
+! $Id: ocean_mercury_mod.f,v 1.5 2005/09/02 15:17:19 bmy Exp $
       MODULE OCEAN_MERCURY_MOD
 !
 !******************************************************************************
 !  Module OCEAN_MERCURY_MOD contains variables and routines needed to compute
 !  the oceanic flux of mercury.  Original code by Sarah Strode at UWA/Seattle.
-!  (sas, bmy, 1/21/05, 6/28/05)
+!  (sas, bmy, 1/21/05, 8/16/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -67,6 +67,7 @@
 !  NOTES:
 !  (1 ) Modified ocean flux w/ Sarah's new Ks value (sas, bmy, 2/24/05)
 !  (2 ) Now get HALFPOLAR for GCAP or GEOS grids (bmy, 6/28/05)
+!  (3 ) Now can read data for both GCAP or GEOS grids (bmy, 8/16/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -498,8 +499,9 @@
 !      !------------------------------
 !
 !      ! Radiation file name
-!      FILENAME = TRIM( DATA_DIR )              // 
-!     &           'mercury_200501/radswg.geos.' // GET_RES_EXT()
+!      FILENAME = TRIM( DATA_DIR )         // 
+!     &           'mercury_200501/radswg.' // GET_NAME_EXT_2D() //
+!     &           '.'                      // GET_RES_EXT()
 !
 !      ! Echo info
 !      WRITE( 6, 100 ) TRIM( FILENAME )
@@ -521,8 +523,14 @@
       !------------------------------
 
       ! MLD file name
-      FILENAME = TRIM( DATA_DIR )           // 
-     &           'mercury_200501/mld.geos.' // GET_RES_EXT()      
+!-------------------------------------------------------------------
+! Prior to 8/16/05:
+!      FILENAME = TRIM( DATA_DIR )           // 
+!     &           'mercury_200501/mld.geos.' // GET_RES_EXT()      
+!-------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR )      // 
+     &           'mercury_200501/mld.' // GET_NAME_EXT_2D() //
+     &           '.'                   // GET_RES_EXT()      
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -547,8 +555,14 @@
       !------------------------------
  
       ! NPP file name
-      FILENAME = TRIM( DATA_DIR )                 // 
-     &           'mercury_200501/modis_npp.geos.' // GET_RES_EXT() 
+!-----------------------------------------------------------------------
+! Prior to 8/16/05:
+!      FILENAME = TRIM( DATA_DIR )                 // 
+!     &           'mercury_200501/modis_npp.geos.' // GET_RES_EXT() 
+!-----------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR )            // 
+     &           'mercury_200501/modis_npp.' // GET_NAME_EXT_2D() //
+     &           '.'                         // GET_RES_EXT() 
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -727,11 +741,6 @@
          IFIRST    = GET_XOFFSET( GLOBAL=.TRUE. ) + 1
          JFIRST    = GET_YOFFSET( GLOBAL=.TRUE. ) + 1
          LFIRST    = 1
-         !------------------------------------------------------------------
-         ! Prior to 6/28/05:
-         ! Now get HALFPOLAR for GCAP or GEOS grids (bmy, 6/28/05)
-         !HALFPOLAR = 1
-         !------------------------------------------------------------------
          HALFPOLAR = GET_HALFPOLAR()
          CENTER180 = 1
          LONRES    = DISIZE

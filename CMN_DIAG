@@ -1,4 +1,4 @@
-! $Id: CMN_DIAG,v 1.13 2005/06/30 18:55:29 bmy Exp $
+! $Id: CMN_DIAG,v 1.14 2005/09/02 15:16:51 bmy Exp $
 ! 
 ! NOTES:
 ! (1 ) Changed RCS ID tag comment character from "C" to "!" to allow freeform
@@ -41,9 +41,10 @@
       ! Removed PD03 -- now in "diag03_mod.f" (bmy, 1/21/05)
       ! Removed PD41 -- now in "diag41_mod.f" (bmy, 1/21/05)
       ! Now set PD09 to 6 (bmy, 6/27/05)
+      ! Removed PD04 -- now in "diag04_mod.f" (bmy, 7/26/05)
+      ! Now set PD30 to 1 (bmy, 8/18/05)
       INTEGER, PARAMETER :: PD01=3            
       INTEGER, PARAMETER :: PD02=3
-      INTEGER, PARAMETER :: PD04=0
       INTEGER, PARAMETER :: PD05=10        
       INTEGER, PARAMETER :: PD06=NDSTBIN
       INTEGER, PARAMETER :: PD07=12
@@ -69,7 +70,7 @@
       INTEGER, PARAMETER :: PD27=1            
       INTEGER, PARAMETER :: PD28=0           
       INTEGER, PARAMETER :: PD29=5
-      INTEGER, PARAMETER :: PD30=0            
+      INTEGER, PARAMETER :: PD30=1           
       INTEGER, PARAMETER :: PD31=1           
       INTEGER, PARAMETER :: PD32=1
       INTEGER, PARAMETER :: PD33=NNPAR        
@@ -131,7 +132,7 @@
 !----------------------------------------------------------------------------
 ! NDxx diagnostic flags
       INTEGER                                                           
-     &   ND01, ND02,       ND04, ND05, ND06, ND07, ND08, ND09, ND10,
+     &   ND01, ND02,             ND05, ND06, ND07, ND08, ND09, ND10,
      &   ND11, ND12, ND13, ND14, ND15, ND16, ND17, ND18, ND19, ND20,        
      &   ND21, ND22, ND23, ND24, ND25, ND26, ND27, ND28, ND29, ND30,     
      &   ND31, ND32, ND33, ND34, ND35, ND36, ND37, ND38, ND39, ND40,     
@@ -141,7 +142,7 @@
      &   ND71, ND72, ND73, ND74, ND75
 
       COMMON /CDIAG2/                                                   
-     &   ND01, ND02,       ND04, ND05, ND06, ND07, ND08, ND09, ND10,    
+     &   ND01, ND02,             ND05, ND06, ND07, ND08, ND09, ND10,    
      &   ND11, ND12, ND13, ND14, ND15, ND16, ND17, ND18, ND19, ND20,      
      &   ND21, ND22, ND23, ND24, ND25, ND26, ND27, ND28, ND29, ND30,     
      &   ND31, ND32, ND33, ND34, ND35, ND36, ND37, ND38, ND39, ND40,     

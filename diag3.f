@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.25 2005/06/30 18:55:29 bmy Exp $
+! $Id: diag3.f,v 1.26 2005/09/02 15:17:04 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out diagnostics to the BINARY format punch file 
-!  (bmy, bey, mgs, rvm, 5/27/99, 6/28/05)
+!  (bmy, bey, mgs, rvm, 5/27/99, 7/26/05)
 !
 !  NOTES: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
@@ -61,15 +61,22 @@
 !        CO-OH param simulation.  Also remove references to TRCOFFSET since
 !        that is always zero now.  Now call GET_HALFPOLAR from "bpch2_mod.f" 
 !        to get the HALFPOLAR value for GEOS or GCAP grids. (swu, bmy, 6/24/05)
+!  (61) References ND04, WRITE_DIAG04 from "diag04_mod.f".  Also now updated
+!        ND30 diagnostic for land/water/ice flags.  Also remove reference
+!        to LWI array. (bmy, 8/18/05)
 !******************************************************************************
 ! 
       ! References to F90 modules
       USE BPCH2_MOD
       USE BIOMASS_MOD, ONLY : BIOTRCE
       USE BIOFUEL_MOD, ONLY : NBFTRACE, BFTRACE
-      USE DAO_MOD,     ONLY : LWI
+      !-------------------------------------------
+      ! Prior to 8/18/05:
+      !USE DAO_MOD,     ONLY : LWI
+      !-------------------------------------------
       USE DIAG_MOD
       USE DIAG03_MOD,  ONLY : ND03, WRITE_DIAG03
+      USE DIAG04_MOD,  ONLY : ND04, WRITE_DIAG04
       USE DIAG41_MOD,  ONLY : ND41, WRITE_DIAG41
       USE DIAG_PL_MOD, ONLY : AD65
       USE DRYDEP_MOD,  ONLY : NUMDEP, NTRAIND
@@ -104,12 +111,6 @@
       REAL*4             :: ARRAY(IIPAR,JJPAR,LLPAR)
       REAL*4             :: LONRES, LATRES
       INTEGER            :: IFIRST, JFIRST, LFIRST
-      !--------------------------------------------------------------------
-      ! Prior to 6/28/05:
-      ! Now use GET_HALFPOLAR to get value of HALFPOLAR for GEOS or GCAP
-      ! (bmy, 6/28/05)
-      !INTEGER, PARAMETER :: HALFPOLAR = 1
-      !--------------------------------------------------------------------
       INTEGER            :: HALFPOLAR
       INTEGER, PARAMETER :: CENTER180 = 1
       CHARACTER (LEN=20) :: MODELNAME 
@@ -239,6 +240,12 @@
 !******************************************************************************
 !
       IF ( ND03 > 0 ) CALL WRITE_DIAG03
+!
+!******************************************************************************
+!  ND04: Diagnostics from CO2 simulation (pns, bmy, 7/26/05)
+!******************************************************************************
+!
+      IF ( ND04 > 0 ) CALL WRITE_DIAG04
 !
 !******************************************************************************
 !  ND05: Production/Loss for coupled fullchem/aerosol runs (NSRCX==3) or
@@ -1175,17 +1182,6 @@
       IF ( ND21 > 0 ) THEN
          CATEGORY = 'OD-MAP-$'
 
-         !--------------------------------------------------------------------
-         ! Prior to 6/24/05:
-         !! For CO-OH param run,   ND21 is updated every dynamic   timestep
-         !! For other simulations, ND21 is updated every chemistry timestep
-         !IF ( ITS_A_COPARAM_SIM() ) THEN
-         !   SCALEX = SCALEDYN
-         !ELSE
-         !   SCALEX = SCALECHEM
-         !ENDIF
-         !--------------------------------------------------------------------
-
          ! ND21 is updated every chem timestep 
          SCALEX = SCALECHEM
 
@@ -1303,19 +1299,6 @@
             N  = TINDEX(22,M)
             IF ( N > PD22 ) CYCLE
             NN = N
-
-            !-----------------------------------------------------
-            ! Prior to 6/24/05:
-            ! Remove TRCOFFSET, it's always zero (bmy, 6/24/05)
-            !! Add TRCOFFSET to CH3I and HCN tracer numbers
-            !IF ( ITS_A_CH3I_SIM() ) THEN
-            !   NN = N + TRCOFFSET
-            !ELSE IF ( ITS_A_HCN_SIM() ) THEN
-            !   NN = N + TRCOFFSET
-            !ELSE
-            !   NN = N
-            !ENDIF
-            !-----------------------------------------------------
 
             DO L = 1, LD22
                ARRAY(:,:,L) = AD22(:,:,L,N) / SCALE_TMP(:,:)
@@ -1612,16 +1595,18 @@
 !  (1) LWI   : GMAO Land-Water indices  : unitless  : SCALED 
 !
 !  NOTES: 
-!  (1) Values are: 1=sea, 2=land, 3=land ice, 4=sea ice
-!  (2) The antarctic sea ice pack will grow and retreat during the year. 
-!  (3) Remove reference to the AAAIJ array (bmy, 12/12/00)
+!  (1) Values are: 0=water; 1=land; 2=ice (bmy, 8/18/05)
 !******************************************************************************
 !
       IF ( ND30 > 0 ) THEN
          CATEGORY = 'LANDMAP'
          UNIT     = 'unitless'
             
-         ARRAY(:,:,1) = FLOAT( LWI(:,:) )
+         !------------------------------------
+         ! Prior to 8/18/05:
+         !ARRAY(:,:,1) = FLOAT( LWI(:,:) )
+         !------------------------------------
+         ARRAY(:,:,1) = AD30(:,:) / SCALEDYN
          NN           = 1 
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -2103,12 +2088,6 @@
 !  (4) Added NO3 to ND43 (bmy, 1/16/03)
 !******************************************************************************
 !
-!---------------------------------------------------------------------------
-! Prior to 6/24/05;
-! Remove CO-OH parameterization code (bmy, 6/24/05)
-!      IF ( ND43 > 0 .and. 
-!     &     ( ITS_A_FULLCHEM_SIM() .or. ITS_A_COPARAM_SIM() ) ) THEN 
-!---------------------------------------------------------------------------
       IF ( ND43 > 0 .and. ITS_A_FULLCHEM_SIM() ) THEN
 
          CATEGORY = 'CHEM-L=$' 
@@ -2124,20 +2103,6 @@
                   SCALE_TMP(:,:) = FLOAT( CTOH ) + 1d-20
                   UNIT           = 'molec/cm3'
                   
-                  !-----------------------------------------------------
-                  ! Prior to 6/24/05:
-                  ! Remove obsolete CO-OH code
-                  !!================================================
-                  !! For the CO-OH parameterization option, 24-hr 
-                  !! chemistry time steps are taken.  As a result, 
-                  !! the last day's OH is not calculated, so adjust 
-                  !! SCALE_TMP accordingly. (bnd, bmy, 4/18/00)
-                  !!================================================
-                  !IF ( ITS_A_COPARAM_SIM() ) THEN
-                  !   SCALE_TMP(:,:) = SCALE_TMP(:,:) - 1
-                  !ENDIF
-                  !-----------------------------------------------------
-
                ! NO
                CASE ( 2 ) 
                   SCALE_TMP(:,:) = FLOAT( CTNO ) + 1d-20
@@ -2602,16 +2567,6 @@
 
                ! UWND, VWND
                CASE ( 1,2 )
-!---------------------------------------------------------------------------
-! Prior to 6/9/05:
-! Winds are I-6 fields in GEOS-1, GEOS-S, GEOS-3; A-6 otherwise 
-! (swu, bmy, 6/9/05)
-!#if   defined( GEOS_4 )
-!                  SCALEX = SCALE_A6
-!#else
-!                  SCALEX = SCALE_I6
-!#endif
-!---------------------------------------------------------------------------
 #if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
                   SCALEX = SCALE_I6
 #else
@@ -2621,16 +2576,6 @@
 
                ! TMPU
                CASE ( 3 )
-!---------------------------------------------------------------------------
-! Prior to 6/9/05:
-! Temperature is an I-6 field in GEOS-1, GEOS-S, GEOS-3; A-6 otherwise 
-! (swu, bmy, 6/9/05)
-!#if   defined( GEOS_4 )
-!                  SCALEX = SCALE_A6
-!#else
-!                  SCALEX = SCALE_I6
-!#endif
-!---------------------------------------------------------------------------
 #if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
                   SCALEX = SCALE_I6
 #else
@@ -2640,16 +2585,6 @@
 
                ! SPHU
                CASE ( 4 )
-!---------------------------------------------------------------------------
-! Prior to 6/9/05:
-! SPHU is an I-6 field in GEOS-1, GEOS-S, GEOS-3; A-6 otherwise 
-! (swu, bmy, 6/9/05)
-!#if   defined( GEOS_4 )
-!                  SCALEX = SCALE_A6
-!#else
-!                  SCALEX = SCALE_I6
-!#endif
-!---------------------------------------------------------------------------
 #if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
                   SCALEX = SCALE_I6
 #else
@@ -2660,10 +2595,6 @@
 #if   !defined( GEOS_4 ) 
                ! CLDMAS
                CASE( 5 )
-                  !----------------------------
-                  ! Prior to 5/3/05
-                  !NN     = 7
-                  !----------------------------
                   SCALEX = SCALE_A6
                   UNIT   = 'kg/m2/s'
 #endif
@@ -2831,11 +2762,6 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-!-----------------------------------------------------------------------
-! Prior to 6/9/05:
-! Bug fix: Use LD68 instead of ND68 (swu, bmy, 6/9/05)
-!     &                  IIPAR,     JJPAR,     ND68,     IFIRST,     
-!-----------------------------------------------------------------------
      &                  IIPAR,     JJPAR,     LD68,     IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD68) )
          ENDDO

@@ -1,11 +1,11 @@
-! $Id: lightning_nox_mod.f,v 1.5 2005/05/09 14:33:59 bmy Exp $
+! $Id: lightning_nox_mod.f,v 1.6 2005/09/02 15:17:17 bmy Exp $
       MODULE LIGHTNING_NOX_MOD
 !
 !******************************************************************************
 !  Module LIGHTNING_NOX_MOD contains variables and routines for emitting NOx
 !  from lightning into the atmosphere.  Original code comes from the old 
 !  GISS-II CTM's of Yuhang Wang, Gerry Gardner, & Larry Horowitz.  Cleaned 
-!  up for inclusion into GEOS-CHEM. (bmy, 4/14/04, 3/16/05)
+!  up for inclusion into GEOS-CHEM. (bmy, 4/14/04, 8/25/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -17,6 +17,7 @@
 !  (5 ) CICG       (REAL*8 )  : Inter-Cloud/Cloud-Ground energy ratio
 !  (6 ) TNCHARGE   (REAL*8 )  : Temperature of negative charge center [K]
 !  (7 ) FLASHSCALE (REAL*8 )  : Scaling factor for lightning to 6 Tg N/yr
+!  (8 ) MET_SCALE  (REAL*8 )  : Met-field dependent scale factor
 !
 !  Module Routines:
 !  ============================================================================
@@ -24,10 +25,11 @@
 !  (2 ) LIGHTDIST             : Partitions NOx vertically w/ Pickering CDF's
 !  (3 ) FLASHES               : Computes flash rate and IC/CG ratio 
 !  (4 ) EMLIGHTNING           : Saves lightning NOx into GEMISNOX array
+!  (5 ) GET_MET_FIELD_SCALE   : Gets the met-field dependent scale factor
 !  (5 ) INIT_LIGHTNING_NOX    : Zeroes module arrays and reads CDF data
 !  (6 ) CLEANUP_LIGHTNING_NOX : Deallocates all module arrays
 !
-!  GEOS-CHEM modules referenced by carbon_mod.f
+!  GEOS-CHEM modules referenced by lightning_nox_mod.f
 !  ============================================================================
 !  (1 ) dao_mod.f             : Module containing arrays for DAO met fields
 !  (2 ) diag_mod.f            : Module containing GEOS-CHEM diagnostic arrays
@@ -46,6 +48,8 @@
 !  (1 ) Now references "directory_mod.f".  Now also bundle "flashes.f" into 
 !        this module (bmy, 7/20/04)
 !  (2 ) Update scaling for GEOS-4 in routine LIGHTNING (bmy, 3/16/05)
+!  (3 ) Now suppress lightning where ice is on the ground.  Added MET_SCALE
+!        variable and GET_MET_FIELD_SCALE function. (bmy, 8/25/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -86,6 +90,7 @@
       REAL*8,  PARAMETER   :: CICG       = 1d0 / 3d0
       REAL*8,  PARAMETER   :: TNCHARGE   = 263.0d0
       REAL*8,  PARAMETER   :: FLASHSCALE = 15d0 
+      REAL*8               :: MET_SCALE  
 
       ! Allocatable arrays
       REAL*8,  ALLOCATABLE :: PROFILE(:,:)
@@ -163,10 +168,10 @@
 !******************************************************************************
 !      
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : BXHEIGHT
+      USE DAO_MOD,      ONLY : BXHEIGHT, IS_ICE
       USE GRID_MOD,     ONLY : GET_YMID
       USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
-
+      
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_GCTM"     ! Physical constants
 
@@ -181,25 +186,6 @@
       REAL*8                :: HCHARGE, H0, XIGCRATIO, FLASHRATE
       REAL*8                :: X, RATE, TSUM, Z1, Z2, TOTAL, YMID
       REAL*8                :: VERTPROF(LLPAR)
-
-#if   defined( GEOS_4 ) && defined( GRID4x5 ) 
-
-      ! Scale GEOS-4 4x5 LNOx to GEOS-3 4x5 2001 total of 4.72 Tg N/yr
-      REAL*8,  PARAMETER    :: G4_SCALE = ( 6.0d0    / 4.1749d0  ) * 
-     &                                    ( 4.7238d0 / 2.5375d0  )
-
-#elif defined( GEOS_4 ) && defined( GRID2x25 )
-
-      ! Scale GEOS-4 2x25 LNOx to GEOS-3 2x25 2001 total of 4.72 Tg N/yr
-      REAL*8,  PARAMETER    :: G4_SCALE = ( 6.0d0    / 12.355d0  ) *
-     &                                    ( 4.7238d0 /  3.1523d0 )
-
-#elif defined( GEOS_4 ) && defined( GRID1x125 )
-
-      ! NOTE: Need to define this, set to 1 for now (bmy, 3/15/05)
-      REAL*8,  PARAMETER    :: G4_SCALE = 1d0
-
-#endif
 
       !=================================================================
       ! LIGHTNING begins here!
@@ -397,130 +383,37 @@
             TOTAL = RFLASH * ( ( (1 - X) * CICG * Z2 ) + ( X * Z1 ) ) * 
      &              (FLASHRATE * 60) * FLASHSCALE
 
-            IF ( TOTAL > 0 ) THEN
-               CALL LIGHTDIST( I, J, LTOP, H0, YMID, TOTAL, VERTPROF )
-            ENDIF
+            !-------------------------------------------------------------
+            ! Prior to 8/19/05:
+            !IF ( TOTAL > 0 ) THEN
+            !   CALL LIGHTDIST( I, J, LTOP, H0, YMID, TOTAL, VERTPROF )
+            !ENDIF
+            !-------------------------------------------------------------
 
-            ! Add back into SLBASE
-            DO L = 1, LLPAR
-               SLBASE(I,J,L) = SLBASE(I,J,L) + VERTPROF(L)
-            ENDDO
+            ! If there's lightning w/in the column ...
+            IF ( TOTAL > 0d0 ) THEN
+
+               ! Partition the column total NOx from lightning into
+               ! the vertical using Pickering PDF functions
+               CALL LIGHTDIST( I, J, LTOP, H0, YMID, TOTAL, VERTPROF )
+
+               ! Loop over levels
+               DO L = 1, LLPAR
+
+                  ! Add vertically partitioned NOx into SLBASE array
+                  SLBASE(I,J,L) = SLBASE(I,J,L) + VERTPROF(L) 
+                  
+                  ! Apply met-field dependent scale factor for a given year
+                  ! Temporary fix for the time being (rch, bmy, 8/25/05)
+                  SLBASE(I,J,L) = SLBASE(I,J,L) * MET_SCALE
+               ENDDO
+            ENDIF
 
             ! Go to next (I,J) position
  20         CONTINUE
-         ENDDO  ! I
-      ENDDO     ! J
+         ENDDO  
+      ENDDO     
 !$OMP END PARALLEL DO
-
-#if   defined( GEOS_4 ) 
-
-      !================================================================= 
-      ! Scaling: For GEOS-4 met fields only
-      !=================================================================
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Scale GEOS-4 LNOx to match the same total that we get with
-         ! GEOS-3 meteorology for 2001 = 4.72 Tg N/yr (jal, bmy, 3/16/05)
-         SLBASE(I,J,L) = SLBASE(I,J,L) * G4_SCALE
-
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#else 
-
-      !=================================================================
-      ! Scaling: For GEOS-1, GEOS-STRAT, and GEOS-3
-      !=================================================================
-
-#if   defined ( GRID2x25 )
-
-      !----------------------------
-      ! 2 x 2.5 (all model types)
-      !----------------------------
-
-      ! In the 2x2.5 model the emissions from lightning are too high.
-      ! Emissions need to be scaled by the factor .522 to match the 4x5 
-      ! emissions. 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         SLBASE(I,J,L) = SLBASE(I,J,L) * .522d0
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#endif
-
-#if   defined( GEOS_3 ) 
-
-      !----------------------------
-      ! GEOS-3 (all resolutions)
-      !----------------------------
-
-      ! Also, for GEOS-3, the convective cloud tops are a lot higher 
-      ! than in GEOS-1 or GEOS-STRAT, so more NOx will be produced.  
-      ! Mat Evans found that approx 7.2 Tg NOx was produced in 1 year 
-      ! by GEOS-3.  We scale that to 3 Tg NOx by multiplying by 
-      ! 3/7.2 ~= 0.4 (mje, bmy, 7/3/01)
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         SLBASE(I,J,L) = SLBASE(I,J,L) * 0.4d0
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#endif
-
-#if   defined( GRID1x1 ) && defined( NESTED_CH )
-
-      !----------------------------
-      ! For China nested grid
-      !----------------------------
-
-      ! Further scaling is necessary for 1x1 nested grids in order to
-      ! match the amount of lightning from 4x5 (yxw, bmy, 5/16/03)
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         SLBASE(I,J,L) = SLBASE(I,J,L) * 0.158d0
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#endif
-
-#if   defined( GRID1x1 ) && defined( NESTED_NA )
-
-      !----------------------------
-      ! For N. America nested grid
-      !----------------------------
-
-      ! NOTE! Need to define this!
-
-#endif
-
-#endif
 
       ! Return to calling program
       END SUBROUTINE LIGHTNING
@@ -541,7 +434,7 @@
 !  (4  ) H0       (REAL*8 ) : Convective cloud top height [m]
 !  (5  ) XLAT     (REAL*8 ) : Latitude of surface grid box (I,J) [degrees]
 !  (6  ) TOTAL    (REAL*8 ) : Total # of NOx molec. released from lightning
-!  (7  ) VERTPROF (REAL*8 ) :
+!  (7  ) VERTPROF (REAL*8 ) : Vertical profile of lightning emissions
 !
 !  References:
 !  ============================================================================
@@ -570,7 +463,7 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,       ONLY : IS_LAND, IS_WATER, BXHEIGHT
+      USE DAO_MOD,       ONLY : IS_LAND, IS_WATER, IS_ICE, BXHEIGHT
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
@@ -606,6 +499,9 @@
       !   MTYPE = 1: ocean lightning
       !   MTYPE = 2: tropical continental lightning (from 30S to 30N)
       !   MTYPE = 3: midlatitude continental lightning (all other lats)
+      !
+      ! Note: for now return with VERTPROF(:) = 0 over ice, as there
+      ! is no lightning over the polar regions (bmy, 8/12/05)
       !=================================================================
       IF ( IS_LAND(I,J) ) THEN
          IF ( ABS( XLAT ) <= 30 ) THEN
@@ -615,6 +511,8 @@
          ENDIF
       ELSE IF ( IS_WATER(I,J) ) THEN 
          MTYPE = 1
+      ELSE IF ( IS_ICE(I,J) ) THEN
+         RETURN
       ENDIF
 
 #if   defined( GEOS_1 ) || defined( GEOS_STRAT )
@@ -676,7 +574,7 @@
          VERTPROF(L) = ( FRAC(L) * TOTAL )
       ENDDO
 
-#endif
+#endif 
 
       ! Return to calling program
       END SUBROUTINE LIGHTDIST
@@ -689,7 +587,7 @@
 !  Subroutine FLASHES determines the rate of lightning flashes per minute,
 !  based on the height of convective cloud tops, and the inter-cloud
 !  to cloud-ground strike ratio.  FLASHES has been optimized for GEOS-CHEM
-!  (bmy, 10/9/97, 7/20/04)
+!  (bmy, 10/9/97, 8/19/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -711,10 +609,11 @@
 !         declaration syntax. (bmy, 6/26/00)
 !  (2  ) Eliminate obsolete code from 6/26/00 (bmy, 8/31/00)
 !  (3  ) Bundled into "lightning_nox_mod.f".  Cleaned up stuff. (bmy, 7/20/04)
+!  (4  ) Now suppress lightning over ice boxes (bmy, 8/19/05)
 !******************************************************************************
 !    
       ! References to F90 modules
-      USE DAO_MOD, ONLY : IS_LAND, IS_WATER
+      USE DAO_MOD, ONLY : IS_LAND, IS_WATER, IS_ICE
 
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J
@@ -731,24 +630,33 @@
       !    FLAND  = 3.44e-5 * ( CLDTOP HEIGHT [km] ^ 4.9  )
       !    FOCEAN = 6.4e-4  * ( CLDTOP HEIGHT [km] ^ 1.73 )
       !
-      ! Lightning will therefore occur much more often on land.  It goes
-      ! as approx. the 5th power of height, as opposed to approx. the
-      ! 2nd power of height over oceans.
+      ! Lightning will therefore occur much more often on land.  It 
+      ! goes as approx. the 5th power of height, as opposed to approx. 
+      ! the 2nd power of height over oceans.
       !
       ! Price & Rind (1992) also compute the ratio between Inter-Cloud 
       ! and Cloud-Ground flashes by the parameterization:
       !
       !    IC/CG  = 2.7d0 * SQRT( lightning flashes per minute )
+      !
+      ! Now suppress lightning over areas where the surface is mostly 
+      ! ice.  There shouldn't be a lot of lightning in the polar 
+      ! regions anyway. (bmy, 8/19/05)
       !=================================================================
-      IF ( IS_LAND(I,J) ) THEN
+      IF ( IS_LAND( I, J ) ) THEN
 
          ! Flashes/minute over land (cf. Price & Rind 1992)
          FLASHRATE = 3.44d-5 * ( ( HEIGHT * 1d-3 )**4.9d0  )  
 
-      ELSE IF ( IS_WATER(I,J) ) THEN 
+      ELSE IF ( IS_WATER( I, J ) ) THEN 
 
          ! Flashes/minute over water (cf. Price & Rind 1992)
          FLASHRATE = 6.4d-4 *  ( ( HEIGHT * 1d-3 )**1.73d0 )   
+
+      ELSE IF ( IS_ICE( I, J ) ) THEN
+         
+         ! No lightning over the polar regions (bmy, 8/19/05)
+         FLASHRATE = 0d0
 
       ENDIF
 
@@ -780,8 +688,6 @@
       ! References to F90 modules
       USE DAO_MOD,  ONLY : BXHEIGHT
       USE DIAG_MOD, ONLY : AD32_li
-
-      IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN_DIAG"  ! ND32
@@ -819,15 +725,114 @@
 
 !------------------------------------------------------------------------------
 
+      FUNCTION GET_MET_FIELD_SCALE() RESULT( SCALE )
+!
+!******************************************************************************
+!  Function GET_MET_FIELD_SCALE returns a met-field dependent scale factor
+!  which is to be applied to the LNOx emissions in order to bring the total
+!  to a specified value.  (bmy, 8/25/05)
+!
+!  NOTES:
+!******************************************************************************
+!
+#     include "define.h"
+
+      ! Local variables
+      REAL*8 :: SCALE
+
+      !=================================================================
+      ! GET_MET_FIELD_SCALE begins here!
+      !=================================================================
+
+#if   defined( GCAP )
+
+      ! GCAP 4x5 2002 produces 2.3090 Tg N/yr w/o any further scaling.
+      ! Scale this to 6 Tg N/yr (swu, djj, bmy, 8/25/05)
+      SCALE = 6.0d0 / 2.3090d0 
+
+#elif defined( GEOS_4 ) && defined( GRID4x5 ) 
+
+      ! GEOS-4 4x5 2001 produces 3.3374 Tg N/yr w/o any further scaling.
+      ! For compatibility w/ prior runs, scale this to 4.7241 Tg N,
+      ! which is the value from the v7-02-03 1-yr benchmark (bmy, 8/25/05)
+      SCALE = 4.7241d0 / 3.3374d0
+
+#elif defined( GEOS_4 ) && defined( GRID2x25 )
+
+      ! GEOS-4 2x25 2001 produces 9.5883 Tg N/yr w/o any further scaling.
+      ! For compatibility w/ prior runs, scale this to 4.7241 Tg N,
+      ! which is the value from the v7-02-03 1-yr benchmark (bmy, 8/25/05)
+      SCALE = 4.7241d0 / 9.5883d0
+
+#elif defined( GEOS_4 ) && defined( GRID1x125 )
+
+      !%%% RESERVED FOR FUTURE USE %%%
+      SCALE = 1d0
+
+#elif defined( GEOS_3 ) && defined( GRID4x5 )
+
+      ! GEOS-3 4x5 2001 produces 11.8093 Tg N/yr w/o any further scaling.
+      ! For compatibility w/ prior runs, scale this to 4.7241 Tg N,
+      ! which is the value from the v7-02-03 1-yr benchmark (bmy, 8/25/05)
+      SCALE = 4.7241d0 / 11.8093d0
+
+#elif defined( GEOS_3 ) && defined( GRID2x25 )
+
+      ! GEOS-3 2x25 2001 produces 22.1249 Tg N/yr w/o any further scaling.
+      ! For compatibility w/ prior runs, scale this to 4.7241 Tg N,
+      ! which is the value from the v7-02-03 1-yr benchmark (bmy, 8/25/05)
+      SCALE = 4.7241d0 / 22.1249d0
+
+#elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_CH )
+
+      !%%% Figure this out later %%%
+      SCALE = 1d0
+
+#elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_CH )
+
+      !%%% Figure this out later %%%
+      SCALE = 1d0
+
+#elif defined( GEOS_STRAT ) && defined( GRID4x5 )
+
+      ! GEOS-STRAT 4x5 1997 produces 5.9220 Tg N/yr w/o any further scaling. 
+      SCALE = 1d0  
+
+#elif defined( GEOS_STRAT ) && defined( GRID2x25 )
+
+      ! GEOS-STRAT 2x25 1997 produces 12.0636 Tg N/yr w/o any further scaling. 
+      ! Scale this to 5.9220 Tg N/yr to match the 4x5 total. (bmy, 8/30/05)
+      SCALE = 5.9220d0 / 12.0636d0
+
+#elif defined( GEOS_1 ) && defined( GRID4x5 )
+
+      ! GEOS-1 4x5 1994 produces 6.7645 Tg N/yr w/o any further scaling.
+      SCALE = 1d0
+
+#elif defined( GEOS_1 ) && defined( GRID2x25 )
+
+      ! GEOS-1 2x25 1994 produces 13.0084 Tg N/yr w/o any further scaling.
+      ! Scale this to 6.7645 Tg N/yr to match the 4x5 total. (bmy, 8/30/05)
+      SCALE = 6.7645d0 / 13.0084d0 
+
+#endif
+
+      ! Return to calling program
+      END FUNCTION GET_MET_FIELD_SCALE
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE INIT_LIGHTNING_NOX
 !
 !******************************************************************************
 !  Subroutine INIT_LIGHTNING_NOX allocates all module arrays.  It also reads 
 !  the lightning CDF data from disk before the first lightning timestep. 
-!  (bmy, 4/14/04)
+!  (bmy, 4/14/04, 8/25/05)
 !
 !  NOTES:
 !  (1 ) Now reference DATA_DIR from "directory_mod.f"
+!  (2 ) Now call GET_MET_FIELD_SCALE to initialize the scale factor for
+!        each met field type and grid resolution (bmy, 8/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -844,6 +849,9 @@
       !=================================================================
       ! INIT_LIGHTNING_NOX begins here!
       !=================================================================
+
+      ! Get the proper scale factor depending on the met fields
+      MET_SCALE = GET_MET_FIELD_SCALE()
 
       ! NNLIGHT is the number of points for the lightning PDF's
 #if   defined( GEOS_1 ) || defined( GEOS_STRAT )

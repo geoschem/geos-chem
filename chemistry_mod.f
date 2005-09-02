@@ -1,4 +1,4 @@
-! $Id: chemistry_mod.f,v 1.17 2005/06/27 19:41:43 bmy Exp $
+! $Id: chemistry_mod.f,v 1.18 2005/09/02 15:17:00 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
@@ -218,7 +218,7 @@
          ! Offline aerosol simulation
          !---------------------------------
          ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
-            
+
             ! Get relative humidity
             CALL MAKE_RH
 
@@ -307,10 +307,6 @@
          ! HCN
          !---------------------------------
          ELSE IF ( ITS_A_HCN_SIM() ) THEN
-            !-----------------------------------------------
-            ! Prior to 6/24/05:
-            !CALL CHEMHCN
-            !-----------------------------------------------
             CALL CHEM_HCN_CH3CN( N_TRACERS, STT )
 
          !---------------------------------

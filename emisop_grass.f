@@ -1,4 +1,4 @@
-! $Id: emisop_grass.f,v 1.6 2005/06/22 20:50:02 bmy Exp $
+! $Id: emisop_grass.f,v 1.7 2005/09/02 15:17:10 bmy Exp $
       FUNCTION EMISOP_GRASS( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL ) 
 !
 !******************************************************************************
@@ -141,10 +141,6 @@
       !       met fields, but that is OK (jal, bmy, 3/15/05)
       EMISOP_GRASS = EMISOP_GRASS * ( 400d0 / 579d0 )
 
-!-------------------------
-! Prior to 6/16/05:
-!#else defined( GEOS_4 )
-!-------------------------
 #elif defined( GEOS_4 )
 
       ! Original GEOS-4 scaling produced 443 Tg C/yr w/ 2003 "V3" met 

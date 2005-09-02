@@ -1,4 +1,4 @@
-! $Id: a3_read_mod.f,v 1.8 2005/06/22 20:49:59 bmy Exp $
+! $Id: a3_read_mod.f,v 1.9 2005/09/02 15:16:55 bmy Exp $
       MODULE A3_READ_MOD
 !
 !******************************************************************************
@@ -46,12 +46,6 @@
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
       ! and routines from being seen outside "a3_read_mod.f"
       !=================================================================
-
-      !-----------------------------------------------------------------
-      ! Prior to 5/25/05:
-      !! PRIVATE module routines
-      !PRIVATE :: A3_CHECK, CHECK_TIME, DO_OPEN_A3, GET_N_A3, READ_A3
-      !-----------------------------------------------------------------
 
       ! Make everything PRIVATE ...
       PRIVATE
@@ -267,10 +261,6 @@
          GOTO 999
       ENDIF
 
-!-------------------------
-! Prior to 5/25/05:
-!#if   defined( GEOS_4 )
-!-------------------------
 #if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( GCAP )
 
       ! Open A-3 file if it's 01:30 GMT,  or on the first call
@@ -427,10 +417,6 @@
          WRITE( 6, 100 ) TRIM( PATH )
  100     FORMAT( '     - Opening: ', a )
          
-!--------------------------
-! Prior to 5/25/05:
-!#if   defined( GEOS_4 ) 
-!--------------------------
 #if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( GCAP )
 
          ! Skip past the GEOS-4 ident string
@@ -469,13 +455,6 @@
 !******************************************************************************
 !
       ! References to F90 modules
-!--------------------------------------------------------------------------
-! Prior to 5/25/05:
-! Now reference extra fields for GCAP
-!      USE DAO_MOD, ONLY : ALBD, CLDFRC, GWETTOP, HFLUX,  PARDF,  PARDR,  
-!     &                    PBL,  PREACC, PRECON,  RADLWG, RADSWG, SNOW,  
-!     &                    TS,   TSKIN,  U10M,    USTAR,  V10M,   Z0
-!--------------------------------------------------------------------------
       USE DAO_MOD, ONLY : ALBD,   CLDFRC, GWETTOP, HFLUX,  MOLENGTH,
      &                    OICE,   PARDF,  PARDR,   PBL,    PREACC, 
      &                    PRECON, RADLWG, RADSWG,  SNICE,  SNOW,  
@@ -541,10 +520,6 @@
  
       ENDIF
 
-!_------------------------
-! Prior to 5/25/05:
-!#elif defined( GEOS_4 )
-!--------------------------
 #elif defined( GEOS_4 ) || defined( GEOS_5 )
 
       !================================================================
@@ -648,10 +623,6 @@
       
       END SELECT
 
-!-------------------------
-! Prior to 5/25/05:
-!#elif defined( GEOS_4 )
-!-------------------------
 #elif defined( GEOS_4 ) || defined( GEOS_5 )
 
       ! GEOS-4 & GEOS-5 have 19 fields
@@ -730,15 +701,6 @@
 
 !-----------------------------------------------------------------------------
 
-!------------------------------------------------------------------------
-! Prior to 5/25/05:
-! Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
-!      SUBROUTINE READ_A3( NYMD,   NHMS, 
-!     &                    ALBEDO, CLDFRC, GWETTOP, HFLUX,  PARDF,  
-!     &                    PARDR,  PBL,    PREACC,  PRECON, RADLWG, 
-!     &                    RADSWG, RADSWT, SNOW,    TS,     TSKIN,   
-!     &                    U10M,   USTAR,  V10M,    Z0 )
-!------------------------------------------------------------------------
       SUBROUTINE READ_A3( NYMD,   NHMS, 
      &                    ALBEDO, CLDFRC, GWETTOP, HFLUX,  MOLENGTH,
      &                    OICE,   PARDF,  PARDR,   PBL,    PREACC,  

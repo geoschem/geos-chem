@@ -1,4 +1,4 @@
-! $Id: tpcore_window_mod.f,v 1.6 2005/06/27 19:41:51 bmy Exp $
+! $Id: tpcore_window_mod.f,v 1.7 2005/09/02 15:17:27 bmy Exp $
       MODULE TPCORE_WINDOW_MOD
 !
 !******************************************************************************
@@ -129,18 +129,6 @@
       ! ... except this routine
       PUBLIC :: TPCORE_WINDOW
       
-      !--------------------------------------------------------------
-      ! Prior to 11/9/04:
-      !! PRIVATE module routines
-      !PRIVATE :: COSA,      COSC,      FILEW   !FCT3D,   FILEW    
-      !PRIVATE :: FILNS,     FXPPM,     FYPPM,   FZPPM    
-      !PRIVATE :: HILO,      HILO3D,    QCKXYZ,  LMTPPM_x 
-      !PRIVATE :: LMTPPM_y,  LMTPPM_z,  XADV,    XMIST
-      !PRIVATE :: XTP,       YMIST,     YTP,     PRESS_FIX
-      !PRIVATE :: DYN0,      PFILTR,    LOCFLT,  POLFLT
-      !PRIVATE :: DIAG_FLUX, POSITION_WINDOW
-      !--------------------------------------------------------------
-
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
       !=================================================================
@@ -5032,11 +5020,6 @@ C
 #     include "CMN_SIZE"      ! Size parameters
 #     include "CMN_DIAG"      ! Diagnostic switches
 #     include "CMN_GCTM"      ! g0_100
-!-----------------------------------------------------------------------------
-! Prior to 6/24/05:
-!#     include "CMN_CO"        ! CO arrays
-!#     include "CMN_CO_BUDGET" ! TCO
-!-----------------------------------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: IC, NDT, Jmax
@@ -5152,16 +5135,6 @@ C
                   DTC = ( FY(I,J,K) + FY1_TP(I,J,K)       ) *
      &                  ( ACOSP(J)  * G0_100 * DXYP(JREF) ) /
      &                  ( TCVV(IC)  * DTDYN               )
-
-!-----------------------------------------------------------------------------
-! Prior to 6/24/05:
-! Remove obsolete CO-OH simulation (bmy, 6/24/05)
-!#if   defined( LGEOSCO )
-!                  ! Contribution for CO-OH run (bnd, bmy, 10/16/00)
-!                  TCO(I+I0_W,J+J0_W,K,10)=TCO(I+I0_W,J+J0_W,K,10)+ 
-!     &                            ( DTC * DTDYN * XNUMOL_CO )
-!#endif
-!-----------------------------------------------------------------------------
 
                   ! Contribution for CH4 run (bmy, 1/17/01)
                   IF ( ITS_A_CH4_SIM() ) THEN

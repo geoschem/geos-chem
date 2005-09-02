@@ -1,4 +1,4 @@
-! $Id: benchmark_mod.f,v 1.3 2005/06/28 18:59:29 bmy Exp $
+! $Id: benchmark_mod.f,v 1.4 2005/09/02 15:16:56 bmy Exp $
       MODULE BENCHMARK_MOD
 !
 !******************************************************************************
@@ -78,11 +78,6 @@
       USE TRACERID_MOD, ONLY : IDTOX
 
 #     include "CMN_SIZE"   ! Size parameters
-!------------------------------------------------------
-! Prior to 6/28/05:
-! TRCOFFSET=0 always so remove it (bmy, 6/28/05)
-!#     include "CMN_DIAG"   ! TRCOFFSET
-!------------------------------------------------------
 
       ! Arguments
       LOGICAL, INTENT(IN) :: LBEGIN 
@@ -90,11 +85,6 @@
       ! Local variables
       INTEGER             :: N,        NYMD,     NHMS
       INTEGER, PARAMETER  :: IFIRST=1, JFIRST=1, LFIRST=1
-      !----------------------------------------------------------
-      ! Prior to 6/28/05:
-      ! Now get HALFPOLAR for GCAP or GEOS grids (bmy, 6/28/05)
-      !INTEGER, PARAMETER  :: HALFPOLAR=1, CENTER180=1
-      !----------------------------------------------------------
       INTEGER, PARAMETER  :: CENTER180=1
       INTEGER             :: HALFPOLAR
       REAL*4              :: ARRAY(IIPAR,JJPAR,LLPAR)
@@ -153,11 +143,6 @@
 
             ! Write Rn, Pb, Be to binary punch file
             CALL BPCH2( IU_FILE,   MODELNAME, LONRES,    LATRES,
-!---------------------------------------------------------------------------
-! Prior to 6/28/05:
-! Remove TRCOFFSET, it's always zero now (bmy, 6/28/05)
-!     &                  HALFPOLAR, CENTER180, CATEGORY,  N+TRCOFFSET,    
-!---------------------------------------------------------------------------
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,    
      &                  UNIT,      TAU,       TAU,       RESERVED,   
      &                  IIPAR,     JJPAR,     LLPAR,     IFIRST,     

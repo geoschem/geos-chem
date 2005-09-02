@@ -1,4 +1,4 @@
-! $Id: gcap_convect_mod.f,v 1.1 2005/06/22 20:50:03 bmy Exp $
+! $Id: gcap_convect_mod.f,v 1.2 2005/09/02 15:17:12 bmy Exp $
       MODULE GCAP_CONVECT_MOD
 !
 !******************************************************************************
@@ -729,12 +729,6 @@
                ENDIF 
 
                NETFLUX = FLUXIN - FLUXOUT
-
-            ! Prior to 6/9/05:
-            ! We don't need this for GCAP (bmy, 6/9/05)
-            !IF ( ABS(NETFLUX) < MAX(FLUXIN,FLUXOUT)*TINYNUM) THEN
-            !   NETFLUX = 0.D0
-            !ENDIF
 
                IF ( DP(I,K)< 0.0D0 ) THEN 
                   WRITE(6,*) 'WARNING! negative DP!!!', DP(I,K)

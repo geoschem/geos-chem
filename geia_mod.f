@@ -1,9 +1,9 @@
-! $Id: geia_mod.f,v 1.4 2004/12/02 21:48:37 bmy Exp $
+! $Id: geia_mod.f,v 1.5 2005/09/02 15:17:12 bmy Exp $
       MODULE GEIA_MOD
 !
 !******************************************************************************
 !  Module GEIA_MOD contains routines used to read and scale the GEIA fossil 
-!  fuel emissions for NOx, CO, and hydrocarbons (bmy, 7/28/00, 7/20/04)
+!  fuel emissions for NOx, CO, and hydrocarbons (bmy, 7/28/00, 8/16/05)
 !
 !  Module Routines:
 !  ============================================================================
@@ -44,6 +44,7 @@
 !  (10) Now references "file_mod.f" (bmy, 6/27/02)
 !  (11) Now references "grid_mod.f" and the new "time_mod.f" (bmy, 2/10/03)
 !  (12) Now references "directory_mod.f" (bmy, 7/20/04)
+!  (13) Now can read data from both GEOS and GCAP grids (bmy, 8/16/05)
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -123,15 +124,15 @@
          ! Open the file containing liquid CO2 scale factors
          OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', 
      &                  FORM='UNFORMATTED',    IOSTAT=IOS )
-         IF ( IOS /= 0 ) CALL IOERROR( IOS,IU_FILE,'read_liqco2_file:1')
+         IF ( IOS /= 0 ) CALL IOERROR( IOS,IU_FILE,'read_totco2_file:1')
 
          ! Read the array dimensions IX, JX
          READ( IU_FILE, IOSTAT=IOS ) IX, JX
-         IF ( IOS /= 0 ) CALL IOERROR( IOS,IU_FILE,'read_liqco2_file:2')
+         IF ( IOS /= 0 ) CALL IOERROR( IOS,IU_FILE,'read_totco2_file:2')
 
          ! Read the data block of Liquid CO2 scale factors
          READ( IU_FILE, IOSTAT=IOS ) ( ( TOTCO2(I,J), I=1,IX ), J=1,JX )
-         IF ( IOS /= 0 ) CALL IOERROR( IOS,IU_FILE,'read_liqco2_file:3')
+         IF ( IOS /= 0 ) CALL IOERROR( IOS,IU_FILE,'read_totco2_file:3')
 
          ! Close the file
          CLOSE( IU_FILE )
@@ -498,7 +499,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_GEIA reads the anthropogenic GEIA emissions 
-!  from a binary punch file. (bmy, 4/23/01, 7/20/04)
+!  from a binary punch file. (bmy, 4/23/01, 8/16/05)
 !
 !  Arguments as Output:
 !  ============================================================================
@@ -523,7 +524,8 @@
 !        (bmy, 9/6/01)
 !  (4 ) Now write file name to stdout (bmy, 4/3/02)
 !  (5 ) Now call READ_BPCH2 with QUIET=.TRUE. (bmy, 3/14/03)
-!  (6 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04
+!  (6 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  (7 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -554,9 +556,15 @@
       !=================================================================
 
       ! Define the binary punch file name
-      FILENAME = TRIM( DATA_DIR )                       //
-     &           'fossil_200104/merge_nobiofuels.geos.' // 
-     &           GET_RES_EXT() 
+!------------------------------------------------------------------------
+! Prior to 8/16/05:
+!      FILENAME = TRIM( DATA_DIR )                       //
+!     &           'fossil_200104/merge_nobiofuels.geos.' // 
+!     &           GET_RES_EXT() 
+!------------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR )                          //
+     &           'fossil_200104/merge_nobiofuels.'         //
+     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT() 
       
       ! Write file name to stdout
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -743,7 +751,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_C3H8_C2H6_NGAS reads the anthropogenic C3H8 and C2H6
-!  emissions, which are scaled from Natural Gas (CH4) (bmy, 9/6/01, 7/20/04)
+!  emissions, which are scaled from Natural Gas (CH4) (bmy, 9/6/01, 8/16/05)
 !
 !  Emissions files are from Yaping Xiao (9/01)  Their path names are:
 !     /data/ctm/GEOS_2x2.5/C3H8_C2H6_200109/C3H8_C2H6_ngas.geos.2x25
@@ -759,6 +767,7 @@
 !  (2 ) Now echo filename to standard output (bmy, 1/25/02)
 !  (3 ) Now call READ_BPCH2 with QUIET=.TRUE. (bmy, 3/11/03)
 !  (4 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  (5 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -781,9 +790,15 @@
       !=================================================================
 
       ! Define the binary punch file name
-      FILENAME = TRIM( DATA_DIR )                        //
-     &           'C3H8_C2H6_200109/C3H8_C2H6_ngas.geos.' // 
-     &           GET_RES_EXT() 
+!--------------------------------------------------------------------------
+! Prior to 8/16/05:
+!      FILENAME = TRIM( DATA_DIR )                        //
+!     &           'C3H8_C2H6_200109/C3H8_C2H6_ngas.geos.' // 
+!     &           GET_RES_EXT() 
+!--------------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR )                         //
+     &           'C3H8_C2H6_200109/C3H8_C2H6_ngas.'       // 
+     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT() 
       
       ! Echo filename to std output
       WRITE( 6, 110 ) TRIM( FILENAME )

@@ -1,10 +1,10 @@
-! $Id: global_no3_mod.f,v 1.4 2005/02/10 19:53:26 bmy Exp $
+! $Id: global_no3_mod.f,v 1.5 2005/09/02 15:17:13 bmy Exp $
       MODULE GLOBAL_NO3_MOD
 !
 !******************************************************************************
 !  Module GLOBAL_NO3_MOD contains variables and routines for reading the
 !  global monthly mean NO3 concentration from disk.  These are needed for the 
-!  offline sulfate/aerosol simulation. (bmy, 10/15/02, 1/15/05)
+!  offline sulfate/aerosol simulation. (bmy, 10/15/02, 8/1/05)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -29,6 +29,7 @@
 !  (3 ) Cosmetic changes (bmy, 3/27/03)
 !  (4 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (5 ) Now suppress output from READ_BPCH2 with QUIET=T (bmy, 1/14/05)
+!  (6 ) Now read from "sulfate_sim_200508/offline" directory (bmy, 8/1/05)
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -60,7 +61,7 @@
 !******************************************************************************
 !  Subroutine GET_GLOBAL_NO3 reads monthly mean NO3 data fields.  These 
 !  are needed for simulations such as offline sulfate/aerosol. 
-!  (bmy, 10/15/02, 1/13/05)
+!  (bmy, 10/15/02, 8/1/05)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -71,12 +72,16 @@
 !  (2 ) Cosmetic changes (bmy, 3/27/03)
 !  (3 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (4 ) Now suppress output from READ_BPCH2 with QUIET=T (bmy, 1/14/05)
+!  (5 ) GEOS-3 & GEOS-4 data comes from model runs w/ 30 levels.  Also now 
+!        read from "sulfate_sim_200508/offline" directory.  Also now read
+!        up to LLTROP levels.  Now reference TRANSFER_3D_TROP from 
+!        "transfer_mod.f". (bmy, 8/1/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
+      USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
 
       IMPLICIT NONE
 
@@ -86,8 +91,12 @@
       INTEGER, INTENT(IN)  :: THISMONTH
 
       ! Local variables
-      INTEGER              :: I, J, L
-      REAL*4               :: ARRAY(IGLOB,JGLOB,LGLOB)
+      !------------------------------------------------------
+      ! Prior to 8/1/05:
+      !INTEGER              :: I, J, L
+      !REAL*4               :: ARRAY(IGLOB,JGLOB,LGLOB)
+      !------------------------------------------------------
+      REAL*4               :: ARRAY(IGLOB,JGLOB,LLTROP)
       REAL*8               :: XTAU
       CHARACTER(LEN=255)   :: FILENAME
 
@@ -104,9 +113,16 @@
          FIRST = .FALSE.
       ENDIF
 
+!----------------------------------------------------------------------------
+!      ! File name
+!      FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/NO3.' //
+!     &           GET_NAME_EXT()  // '.' // GET_RES_EXT()
+!----------------------------------------------------------------------------
+
       ! File name
-      FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/NO3.' //
-     &           GET_NAME_EXT()  // '.' // GET_RES_EXT()
+      FILENAME = TRIM( DATA_DIR )                       // 
+     &           'sulfate_sim_200508/offline/NO3.'      //
+     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 
       ! Echo some information to the standard output
       WRITE( 6, 110 ) TRIM( FILENAME )
@@ -117,12 +133,13 @@
       XTAU = GET_TAU0( THISMONTH, 1, 1985 )
  
       ! Read NO3 data from the binary punch file (tracer #5)
+      ! NOTE: NO3 data is only defined w/in the tropopause
       CALL READ_BPCH2( FILENAME, 'CHEM-L=$', 5,     
      &                 XTAU,      IGLOB,     JGLOB,      
-     &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
+     &                 LLTROP,    ARRAY,     QUIET=.TRUE. )
 
       ! Assign data from ARRAY to the module variable H2O2
-      CALL TRANSFER_3D( ARRAY, NO3 )
+      CALL TRANSFER_3D_TROP( ARRAY, NO3 )
 
       ! Return to calling program
       END SUBROUTINE GET_GLOBAL_NO3
@@ -136,6 +153,7 @@
 !
 !  NOTES:
 !  (1 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
+!  (2 ) Now allocate NO3 array up to LLTROP levels (bmy, 8/1/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -149,7 +167,11 @@
       !=================================================================
       ! INIT_GLOBAL_H2O2 begins here!
       !=================================================================
-      ALLOCATE( NO3( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      !---------------------------------------------------
+      ! Prior to 8/1/05:
+      !ALLOCATE( NO3( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      !---------------------------------------------------
+      ALLOCATE( NO3( IIPAR, JJPAR, LLTROP ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'NO3' )
       NO3 = 0d0
 
