@@ -1,4 +1,4 @@
-! $Id: RnPbBe_mod.f,v 1.7 2005/09/02 15:16:54 bmy Exp $
+! $Id: RnPbBe_mod.f,v 1.8 2005/10/20 14:03:11 bmy Exp $
       MODULE RnPbBe_MOD
 !
 !******************************************************************************
@@ -290,10 +290,6 @@
       USE PRESSURE_MOD,   ONLY : GET_PCENTER
 
 #     include "CMN_SIZE" ! Size parameters
-!------------------------------------------------
-! Prior to 8/15/05:
-!#     include "CMN"      ! LPAUSE
-!------------------------------------------------
 #     include "CMN_DIAG" ! ND02 
 #     include "CMN_DEP"  ! FRCLND
 
@@ -493,11 +489,6 @@
             ADD_Be  = Be_TMP * DTSRCE / XNUMOL_Be 
 
             ! Correct the strat-trop exchange of 7Be
-            !------------------------------------------------------
-            ! Prior to 8/15/05:
-            ! Use function from tropopause_mod.f (bmy, 8/15/05)
-            !IF ( L >= LPAUSE(I,J) ) CALL CORRECT_STE( ADD_Be )
-            !------------------------------------------------------
             IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
                CALL CORRECT_STE( ADD_Be )
             ENDIF
@@ -555,10 +546,6 @@
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
 #     include "CMN_SIZE" ! Size parameters
-!-----------------------------------------------
-! Prior to 8/15/05:
-!#     include "CMN"      ! LPAUSE
-!-----------------------------------------------
 #     include "CMN_DIAG" ! ND01, ND02
 
       ! Local variables
@@ -633,11 +620,6 @@
             ADD_Pb = Rn_LOST(I,J,L) * Pb_Rn_RATIO 
 
             ! Correct strat-trop exchange of 210Pb in stratosphere
-            !-----------------------------------------------------------
-            ! Prior to 8/15/05:
-            ! Now call inquiry function from "tropopause_mod.f"
-            !IF ( L >= LPAUSE(I,J) ) CALL CORRECT_STE( ADD_Pb )
-            !-----------------------------------------------------------
             IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
                CALL CORRECT_STE( ADD_Pb )
             ENDIF

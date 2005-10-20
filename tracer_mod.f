@@ -1,11 +1,11 @@
-! $Id: tracer_mod.f,v 1.5 2005/09/02 15:17:28 bmy Exp $
+! $Id: tracer_mod.f,v 1.6 2005/10/20 14:03:44 bmy Exp $
       MODULE TRACER_MOD
 !
 !******************************************************************************
 !  Module TRACER_MOD contains the GEOS-CHEM tracer array STT plus various
 !  other related quantities.  TRACER_MOD also contains inquiry functions that
 !  can be used to determine the type of GEOS-CHEM simulation.
-!  (bmy, 7/20/04, 7/25/05)
+!  (bmy, 7/20/04, 10/3/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -52,6 +52,7 @@
 !  (1 ) Added function GET_SIM_NAME (bmy, 5/3/05)
 !  (2 ) Removed ITS_A_COPARAM_SIM; the CO-OH param is obsolete (bmy, 6/24/05)
 !  (3 ) Added ITS_A_CO2_SIM (pns, bmy, 7/25/05)
+!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       !=================================================================
@@ -404,7 +405,7 @@
 !******************************************************************************
 !  Subroutine CHECK_STT checks the STT tracer array for negative values,
 !  NaN values, or Infinity values.  If any of these are found, the code
-!  will stop with an error message. (bmy, 3/8/01, 7/15/04)
+!  will stop with an error message. (bmy, 3/8/01, 10/3/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -419,10 +420,13 @@
 !        run outside of the parallel DO-loop. (bmy, 11/27/02)
 !  (3 ) Bug fix in FORMAT statement: replace missing commas (bmy, 3/23/03)
 !  (4 ) Moved from "error_mod.f" to "tracer_mod.f" (bmy, 7/15/04)
+!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD
+      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
+      USE ERROR_MOD, ONLY : IT_IS_NAN
+      USE ERROR_MOD, ONLY : IT_IS_FINITE
 
 #     include "CMN_SIZE"           ! Size parameters
 

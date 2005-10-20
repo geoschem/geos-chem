@@ -1,10 +1,10 @@
-! $Id: anthroems.f,v 1.2 2004/05/03 14:46:14 bmy Exp $
+! $Id: anthroems.f,v 1.3 2005/10/20 14:03:13 bmy Exp $
       SUBROUTINE ANTHROEMS( NSEASON )
 !
 !******************************************************************************
 !  Subroutine ANTHROEMS reads anthropogenic tracers for each season.
 !  NOx emissions at levels other than the surface are now accounted for.
-!  (bmy, 6/4/98, 2/4/03)
+!  (bmy, 6/4/98, 10/3/05)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -81,13 +81,18 @@
 !        Now use functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f".
 !        Now I0 and J0 are local variables.  Now use functions GET_TS_EMIS,
 !        GET_YEAR, GET_SEASON from "time_mod.f". (bmy, 2/11/03)
+!  (26) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !      
       ! References to F90 modules
-      USE GEIA_MOD
-      USE GRID_MOD,    ONLY : GET_AREA_CM2, GET_XOFFSET, GET_YOFFSET
-      USE TIME_MOD,    ONLY : GET_TS_EMIS,  GET_YEAR,    GET_SEASON
-      USE TRACERID_MOD
+      USE GEIA_MOD,     ONLY : READ_GEIA,    READ_C3H8_C2H6_NGAS
+      USE GEIA_MOD,     ONLY : READ_LIQCO2,  READ_TODX
+      USE GEIA_MOD,     ONLY : READ_TOTCO2,  TOTAL_FOSSIL_TG
+      USE GRID_MOD,     ONLY : GET_AREA_CM2, GET_XOFFSET, GET_YOFFSET
+      USE TIME_MOD,     ONLY : GET_TS_EMIS,  GET_YEAR,    GET_SEASON
+      USE TRACERID_MOD, ONLY : IDEACET,      IDEALK4,     IDEC2H6
+      USE TRACERID_MOD, ONLY : IDEC3H8,      IDECO,       IDEMEK
+      USE TRACERID_MOD, ONLY : IDENOX,       IDEPRPE,     NEMANTHRO
 
       IMPLICIT NONE
 

@@ -1,9 +1,9 @@
-! $Id: upbdflx_mod.f,v 1.12 2005/09/02 15:17:30 bmy Exp $
+! $Id: upbdflx_mod.f,v 1.13 2005/10/20 14:03:45 bmy Exp $
       MODULE UPBDFLX_MOD
 !
 !******************************************************************************
 !  Module UPBDFLX_MOD contains subroutines which impose stratospheric boundary
-!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 5/25/05)
+!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 10/3/05)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -53,9 +53,11 @@
 !        SET_UPBDFLX.  Now added routine SET_TRANSPORT (bmy, 7/20/04)
 !  (17) Bug fix for COMPAQ compiler.  Now supports 1x125 grid. (bmy, 12/1/04)
 !  (18) Now supports GEOS-5 and GCAP grids (swu, bmy, 5/25/05)
+!  (19) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !      
       IMPLICIT NONE
+
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
       ! and routines from being seen outside "upbdflx_mod.f"
@@ -446,7 +448,7 @@
 !  Subroutine UPBDFLX_NOY imposes NOy (NOx + HNO3) upper boundary condition
 !  in the stratosphere. The production rates for NOy are provided by Dylan
 !  Jones, along with NOx and HNO3 concentrations. 
-!  (qli, rvm, mje, bmy, 12/22/99, 4/15/04)
+!  (qli, rvm, mje, bmy, 12/22/99, 10/3/05)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -493,10 +495,12 @@
 !        the IF block which only gets done once per month. (bmy, 4/15/04)
 !  (17) Now references STT from "tracer_mod.f".  Now references DATA_DIR 
 !        from "directory_mod.f". (bmy, 7/20/04)
+!  (18) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !      
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
       USE DAO_MOD,       ONLY : AD
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE ERROR_MOD,     ONLY : ERROR_STOP, it_is_nan

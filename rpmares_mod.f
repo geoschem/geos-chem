@@ -1,9 +1,9 @@
-! $Id: rpmares_mod.f,v 1.5 2005/05/09 14:34:00 bmy Exp $
+! $Id: rpmares_mod.f,v 1.6 2005/10/20 14:03:38 bmy Exp $
       MODULE RPMARES_MOD
 !
 !******************************************************************************
 !  Module RPMARES_MOD contains the RPMARES routines, which compute the aerosol
-!  thermodynamical equilibrium. (rjp, bdf, bmy, 11/6/02, 7/20/04)
+!  thermodynamical equilibrium. (rjp, bdf, bmy, 11/6/02, 10/3/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -39,6 +39,7 @@
 !  (3 ) Now references "time_mod.f".  Now removed ELAPSED_SEC module variable
 !        since we can get this info from "time_mod.f".  (bmy, 3/24/03)
 !  (4 ) Now references "tracer_mod.f" (bmy, 7/20/04)
+!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -73,7 +74,7 @@
 !******************************************************************************
 !  Subroutine DO_RPMARES is the interface between the GEOS-CHEM model
 !  and the aerosol thermodynamical equilibrium routine in "rpmares.f"
-!  (rjp, bdf, bmy, 12/17/01, 7/20/04)
+!  (rjp, bdf, bmy, 12/17/01, 10/3/05)
 !
 !  NOTES
 !  (1 ) Bundled into "rpmares_mod.f" (bmy, 11/15/02)
@@ -85,17 +86,19 @@
 !  (4 ) Now reference STT, ITS_A_FULLCHEM_SIM, and ITS_AN_AEROSOL_SIM
 !        from "tracer_mod.f".  Now references ITS_A_NEW_MONTH from
 !        "time_mod.f" (bmy, 7/20/04)
+!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,         ONLY : AIRVOL, RH, T
       USE GLOBAL_HNO3_MOD, ONLY : GET_GLOBAL_HNO3
       USE ERROR_MOD,       ONLY : ERROR_STOP
-      USE TIME_MOD,        ONLY : GET_ELAPSED_SEC, GET_MONTH,
-     &                            ITS_A_NEW_MONTH
-      USE TRACER_MOD,      ONLY : ITS_A_FULLCHEM_SIM, 
-     &                            ITS_AN_AEROSOL_SIM, STT
-      USE TRACERID_MOD
+      USE TIME_MOD,        ONLY : GET_ELAPSED_SEC,    GET_MONTH
+      USE TIME_MOD,        ONLY : ITS_A_NEW_MONTH
+      USE TRACER_MOD,      ONLY : ITS_A_FULLCHEM_SIM 
+      USE TRACER_MOD,      ONLY : ITS_AN_AEROSOL_SIM, STT
+      USE TRACERID_MOD,    ONLY : IDTSO4,             IDTNH3, IDTNH4 
+      USE TRACERID_MOD,    ONLY : IDTNIT,             IDTHNO3 
       
 #     include "CMN_SIZE"     ! Size parameters
 

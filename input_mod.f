@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.17 2005/09/02 15:17:15 bmy Exp $
+! $Id: input_mod.f,v 1.18 2005/10/20 14:03:31 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS_CHEM input file at the start of the run
 !  and passes the information to several other GEOS-CHEM F90 modules.
-!  (bmy, 7/20/04, 6/30/05)
+!  (bmy, 7/20/04, 10/3/05)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -97,6 +97,7 @@
 !        comments. (bmy, 3/28/05)
 !  (5 ) Now modified for GEOS-5 and GCAP met fields.  Also now set LSPLIT
 !        correctly for HCN/CH3CN simulation. (swu, xyp, bmy, 6/30/05)
+!  (6 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -464,21 +465,24 @@
 !
 !******************************************************************************
 !  Subroutine READ_SIMULATION_MENU reads the SIMULATION MENU section of 
-!  the GEOS-CHEM input file (bmy, 7/20/04, 5/25/05)
+!  the GEOS-CHEM input file (bmy, 7/20/04, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Bug fix: Read LSVGLB w/ the * format and not w/ '(a)'. (bmy, 2/23/05)
 !  (2 ) Now read GEOS_5_DIR and GCAP_DIR from input.geos (swu, bmy, 5/25/05)
+!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIRECTORY_MOD
-      USE GRID_MOD,    ONLY : SET_XOFFSET, SET_YOFFSET, COMPUTE_GRID
-      USE LOGICAL_MOD, ONLY : LSVGLB,      LUNZIP,      LWAIT
-      USE RESTART_MOD, ONLY : SET_RESTART
-      USE TIME_MOD,    ONLY : SET_BEGIN_TIME,   SET_END_TIME, 
-     &                        SET_CURRENT_TIME, SET_DIAGb,
-     &                        SET_NDIAGTIME,    GET_TAU
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,    GCAP_DIR,    GEOS_1_DIR 
+      USE DIRECTORY_MOD, ONLY : GEOS_S_DIR,  GEOS_3_DIR,  GEOS_4_DIR 
+      USE DIRECTORY_MOD, ONLY : GEOS_5_DIR,  RUN_DIR,     TEMP_DIR   
+      USE GRID_MOD,      ONLY : SET_XOFFSET, SET_YOFFSET, COMPUTE_GRID
+      USE LOGICAL_MOD,   ONLY : LSVGLB,      LUNZIP,      LWAIT
+      USE RESTART_MOD,   ONLY : SET_RESTART
+      USE TIME_MOD,      ONLY : SET_BEGIN_TIME,   SET_END_TIME 
+      USE TIME_MOD,      ONLY : SET_CURRENT_TIME, SET_DIAGb
+      USE TIME_MOD,      ONLY : SET_NDIAGTIME,    GET_TAU
 
       ! Local variables
       INTEGER            :: I0,    J0
@@ -646,12 +650,13 @@
 !
 !******************************************************************************
 !  Subroutine READ_TRACER_MENU reads the TRACER MENU section of the 
-!  GEOS-CHEM input file (bmy, 7/20/04, 6/30/05)
+!  GEOS-CHEM input file (bmy, 7/20/04, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Now set LSPLIT correctly for Tagged Hg simulation (eck, bmy, 12/13/04)
 !  (2 ) Now initialize ocean mercury module (sas, bmy, 1/20/05)
 !  (3 ) Now set LSPLIT correctly for Tagged HCN/CH3CN sim (xyp, bmy, 6/30/05)
+!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -661,7 +666,15 @@
       USE ERROR_MOD,         ONLY : ALLOC_ERR, ERROR_STOP
       USE LOGICAL_MOD,       ONLY : LSPLIT
       USE OCEAN_MERCURY_MOD, ONLY : INIT_OCEAN_MERCURY
-      USE TRACER_MOD
+      USE TRACER_MOD,        ONLY : ID_EMITTED,     ID_TRACER
+      USE TRACER_MOD,        ONLY : SIM_TYPE,       N_TRACERS
+      USE TRACER_MOD,        ONLY : TCVV,           TRACER_COEFF
+      USE TRACER_MOD,        ONLY : TRACER_CONST,   TRACER_MW_G
+      USE TRACER_MOD,        ONLY : TRACER_MW_KG,   TRACER_N_CONST
+      USE TRACER_MOD,        ONLY : TRACER_NAME,    INIT_TRACER
+      USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,        ONLY : ITS_A_HCN_SIM
+      USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
       USE TRACERID_MOD,      ONLY : TRACERID
 
 #     include "CMN_SIZE"  ! Size parameters
@@ -911,7 +924,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_AEROSOL_MENU reads the AEROSOL MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 1/14/05)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Now reference LSOA (bmy, 9/28/04)
@@ -921,16 +934,24 @@
 !        logical switch is set. (cas, bmy, 1/14/05)
 !  (4 ) Now also require LSSALT=T when LSULF=T, since we now compute the 
 !        production of SO4 and NIT w/in the seasalt aerosol (bec, bmy, 4/13/05)
+!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE LOGICAL_MOD,  ONLY : LSULF, LCARB, LSOA, 
-     &                         LDUST, LDEAD, LSSALT, LCRYST
-      USE TRACER_MOD,   ONLY : N_TRACERS, 
-     &                         SALA_REDGE_um,      SALC_REDGE_um,
-     &                         ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
-      USE TRACERID_MOD
+      USE LOGICAL_MOD,  ONLY : LSULF, LCARB, LSOA
+      USE LOGICAL_MOD,  ONLY : LDUST, LDEAD, LSSALT, LCRYST
+      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE TRACER_MOD,   ONLY : SALA_REDGE_um,      SALC_REDGE_um
+      USE TRACER_MOD,   ONLY : ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
+      USE TRACERID_MOD, ONLY : IDTDMS,   IDTSO2,   IDTSO4,  IDTSO4s 
+      USE TRACERID_MOD, ONLY : IDTMSA,   IDTNH3,   IDTNH4,  IDTNITs 
+      USE TRACERID_MOD, ONLY : IDTAS,    IDTAHS,   IDTLET,  IDTNH4aq 
+      USE TRACERID_MOD, ONLY : IDTSO4aq, IDTBCPO,  IDTBCPI, IDTOCPO 
+      USE TRACERID_MOD, ONLY : IDTOCPI,  IDTALPH,  IDTLIMO, IDTALCO 
+      USE TRACERID_MOD, ONLY : IDTSOG1,  IDTSOG2,  IDTSOG3, IDTSOA1 
+      USE TRACERID_MOD, ONLY : IDTSOA2,  IDTSOA3,  IDTDST1, IDTDST2 
+      USE TRACERID_MOD, ONLY : IDTDST3,  IDTDST4,  IDTSALA, IDTSALC 
 
       ! Local variables
       INTEGER            :: N, T, I
@@ -1181,24 +1202,29 @@
 !
 !******************************************************************************
 !  Subroutine READ_EMISSIONS_MENU reads the EMISSIONS MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 11/5/04)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Now read LNEI99 -- switch for EPA/NEI99 emissions (bmy, 11/5/04)
 !  (2 ) Now read LAVHRRLAI-switch for using AVHRR-derived LAI (bmy, 12/20/04)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,  ONLY : ERROR_STOP
-      USE LOGICAL_MOD
-      USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
+      USE ERROR_MOD,   ONLY : ERROR_STOP
+      USE LOGICAL_MOD, ONLY : LAIRNOX,  LANTHRO,   LAVHRRLAI, LBBSEA    
+      USE LOGICAL_MOD, ONLY : LBIOFUEL, LBIOGENIC, LBIOMASS,  LBIONOX   
+      USE LOGICAL_MOD, ONLY : LEMIS,    LFOSSIL,   LLIGHTNOX, LMONOT    
+      USE LOGICAL_MOD, ONLY : LNEI99,   LSHIPSO2,  LSOILNOX,  LTOMSAI   
+      USE LOGICAL_MOD, ONLY : LWOODCO
+      USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_O3"    ! FSCALYR
+#     include "CMN_SIZE"    ! Size parameters
+#     include "CMN_O3"      ! FSCALYR
 
       ! Local variables
-      INTEGER            :: N
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG
+      INTEGER              :: N
+      CHARACTER(LEN=255)   :: SUBSTRS(MAXDIM), MSG
 
       !=================================================================
       ! READ_EMISSIONS_MENU begins here!
@@ -1402,16 +1428,18 @@
 !
 !******************************************************************************
 !  Subroutine READ_TRANSPORT_MENU reads the TRANSPORT MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 2/23/05)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Now define MAX_DYN for 1 x 1.25 grid (bmy, 12/1/04)
 !  (2 ) Update text in error message (bmy, 2/23/05)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE LOGICAL_MOD,   ONLY : LTRAN, LUPBD, LMFCT, LFILL
+      USE LOGICAL_MOD,   ONLY : LTRAN,              LUPBD
+      USE LOGICAL_MOD,   ONLY : LMFCT,              LFILL
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGOX_SIM
       USE TRANSPORT_MOD, ONLY : SET_TRANSPORT
       USE UPBDFLX_MOD,   ONLY : INIT_UPBDFLX
@@ -1532,8 +1560,8 @@
       USE LOGICAL_MOD, ONLY : LCONV, LTURB
 
       ! Local variables
-      INTEGER            :: N
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG
+      INTEGER              :: N
+      CHARACTER(LEN=255)   :: SUBSTRS(MAXDIM), MSG
 
       !=================================================================
       ! READ_CONVECTION_MENU begins here!
@@ -1582,25 +1610,30 @@
 !
 !******************************************************************************
 !  Subroutine READ_DEPOSITION_MENU reads the DEPOSITION MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 6/24/05)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Now print an informational message for tagged Hg (bmy, 12/15/04)
 !  (2 ) We need to call WETDEPID for both wetdep and cloud convection
 !        since this sets up the list of soluble tracers (bmy, 3/1/05)
 !  (3 ) Remove references to obsolete CO_OH simulation (bmy, 6/24/05)
+!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE DRYDEP_MOD,  ONLY : INIT_DRYDEP
-      USE LOGICAL_MOD, ONLY : LCONV, LDRYD, LWETD, LSPLIT
-      USE TRACER_MOD
+      USE LOGICAL_MOD, ONLY : LCONV,             LDRYD
+      USE LOGICAL_MOD, ONLY : LWETD,             LSPLIT
+      USE TRACER_MOD,  ONLY : ITS_A_C2H6_SIM,    ITS_A_CH3I_SIM
+      USE TRACER_MOD,  ONLY : ITS_A_CH4_SIM,     ITS_A_HCN_SIM
+      USE TRACER_MOD,  ONLY : ITS_A_MERCURY_SIM, ITS_A_TAGCO_SIM
+      USE TRACER_MOD,  ONLY : ITS_A_TAGOX_SIM
       USE WETSCAV_MOD, ONLY : WETDEPID
 
       ! Local variables
-      INTEGER            :: N
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG
+      INTEGER              :: N
+      CHARACTER(LEN=255)   :: SUBSTRS(MAXDIM), MSG
 
       !=================================================================
       ! READ_DEPOSITION_MENU begins here!
@@ -1787,7 +1820,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_DIAGNOSTIC_MENU reads the DIAGNOSTIC MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 7/26/05)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Now reference IU_BPCH from "file_mod.f" and OPEN_BPCH2_FOR_WRITE
@@ -1799,23 +1832,34 @@
 !        starting date & time of the run. (bmy, 3/25/05)
 !  (3 ) Now get diag info for ND09 for HCN/CH3CN sim (bmy, 6/27/05)
 !  (4 ) Now references "diag04_mod.f" (bmy, 7/26/05)
+!  (5 ) Now make sure all USE statements are USE, ONLY.  Also remove reference
+!        to DIAG_MOD, it's not needed. (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BIOMASS_MOD,  ONLY : NBIOTRCE
       USE BIOFUEL_MOD,  ONLY : NBFTRACE
       USE BPCH2_MOD,    ONLY : OPEN_BPCH2_FOR_WRITE
-      USE DIAG_MOD
-      USE DIAG03_MOD,   ONLY : ND03, PD03, INIT_DIAG03
-      USE DIAG04_MOD,   ONLY : ND04, PD04, INIT_DIAG04
-      USE DIAG41_MOD,   ONLY : ND41, PD41, INIT_DIAG41
+      !---------------------------------------------------------------
+      ! Prior to 10/3/05:
+      ! Comment this reference out, it is not necessary (bmy, 10/3/05)
+      !USE DIAG_MOD
+      !---------------------------------------------------------------
+      USE DIAG03_MOD,   ONLY : ND03,      PD03,      INIT_DIAG03
+      USE DIAG04_MOD,   ONLY : ND04,      PD04,      INIT_DIAG04
+      USE DIAG41_MOD,   ONLY : ND41,      PD41,      INIT_DIAG41
       USE DIAG_OH_MOD,  ONLY : INIT_DIAG_OH
       USE DRYDEP_MOD,   ONLY : NUMDEP
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE FILE_MOD,     ONLY : IU_BPCH
-      USE LOGICAL_MOD
-      USE TIME_MOD,     ONLY : EXPAND_DATE, GET_NYMDb, GET_NHMSb
-      USE TRACER_MOD
+      USE LOGICAL_MOD,  ONLY : LBIOMASS,  LBIOFUEL,  LCARB, LCONV    
+      USE LOGICAL_MOD,  ONLY : LDRYD,     LDUST,     LPRT,  LSULF    
+      USE LOGICAL_MOD,  ONLY : LSSALT,    LTURB,     LWETD    
+      USE TIME_MOD,     ONLY : GET_NYMDb, GET_NHMSb, EXPAND_DATE
+      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE TRACER_MOD,   ONLY : ITS_A_CO2_SIM,        ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM,    ITS_A_RnPbBe_SIM
+      USE TRACER_MOD,   ONLY : ITS_A_TAGOX_SIM,      SALA_REDGE_um
       USE TRACERID_MOD, ONLY : NEMANTHRO
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_NMAX
 
@@ -2663,17 +2707,17 @@
       USE DIAG49_MOD, ONLY : INIT_DIAG49
       USE ERROR_MOD,  ONLY : ERROR_STOP
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_SIZE"   ! Size parameters
 
       ! Local variables
-      LOGICAL            :: DO_ND49
-      INTEGER            :: N,    I,         AS
-      INTEGER            :: ND49, N_TRACERS, TRACERS(100)
-      INTEGER            :: IMIN, IMAX,      FREQ
-      INTEGER            :: JMIN, JMAX,      N_ND49
-      INTEGER            :: LMIN, LMAX
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG
-      CHARACTER(LEN=255) :: FILE
+      LOGICAL             :: DO_ND49
+      INTEGER             :: N,    I,         AS
+      INTEGER             :: ND49, N_TRACERS, TRACERS(100)
+      INTEGER             :: IMIN, IMAX,      FREQ
+      INTEGER             :: JMIN, JMAX,      N_ND49
+      INTEGER             :: LMIN, LMAX
+      CHARACTER(LEN=255)  :: SUBSTRS(MAXDIM), MSG
+      CHARACTER(LEN=255)  :: FILE
 
       !=================================================================
       ! READ_ND49_MENU begins here!
@@ -2770,12 +2814,12 @@
       USE ERROR_MOD,  ONLY : ERROR_STOP
 
       ! Local variables
-      LOGICAL            :: DO_ND50
-      INTEGER            :: N,      I,       AS  
-      INTEGER            :: N_ND50, IMIN,    IMAX, TRACERS(100)   
-      INTEGER            :: JMIN,   JMAX,    LMIN, LMAX
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG
-      CHARACTER(LEN=255) :: FILE
+      LOGICAL             :: DO_ND50
+      INTEGER             :: N,      I,       AS  
+      INTEGER             :: N_ND50, IMIN,    IMAX, TRACERS(100)   
+      INTEGER             :: JMIN,   JMAX,    LMIN, LMAX
+      CHARACTER(LEN=255)  :: SUBSTRS(MAXDIM), MSG
+      CHARACTER(LEN=255)  :: FILE
 
       !=================================================================
       ! READ_ND50_MENU begins here!
@@ -2864,18 +2908,18 @@
       USE DIAG51_MOD, ONLY : INIT_DIAG51
       USE ERROR_MOD,  ONLY : ERROR_STOP
 
-#     include "CMN_SIZE"
-#     include "CMN_DIAG"
+#     include "CMN_SIZE"   ! Size parameters
+#     include "CMN_DIAG"   ! NDxx flags
 
       ! Local variables
-      LOGICAL            :: DO_ND51
-      INTEGER            :: N,      I,       AS
-      INTEGER            :: N_ND51, FREQ,    TRACERS(100)
-      INTEGER            :: IMIN,   IMAX,    JMIN
-      INTEGER            :: JMAX,   LMIN,    LMAX
-      REAL*8             :: HR1,    HR2,     HR_WRITE
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG
-      CHARACTER(LEN=255) :: FILE
+      LOGICAL             :: DO_ND51
+      INTEGER             :: N,      I,       AS
+      INTEGER             :: N_ND51, FREQ,    TRACERS(100)
+      INTEGER             :: IMIN,   IMAX,    JMIN
+      INTEGER             :: JMAX,   LMIN,    LMAX
+      REAL*8              :: HR1,    HR2,     HR_WRITE
+      CHARACTER(LEN=255)  :: SUBSTRS(MAXDIM), MSG
+      CHARACTER(LEN=255)  :: FILE
 
       !=================================================================
       ! READ_ND51_MENU begins here!
@@ -2976,26 +3020,26 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE CHARPAK_MOD, ONLY : ISDIGIT, STRSPLIT
+      USE CHARPAK_MOD, ONLY : ISDIGIT,         STRSPLIT
       USE DIAG_PL_MOD, ONLY : INIT_DIAG_PL
       USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE TRACER_MOD,  ONLY : N_TRACERS,       ITS_A_TAGCO_SIM, 
-     &                        ITS_A_TAGOX_SIM, ITS_AN_AEROSOL_SIM
+      USE TRACER_MOD,  ONLY : N_TRACERS,       ITS_A_TAGCO_SIM
+      USE TRACER_MOD,  ONLY : ITS_A_TAGOX_SIM, ITS_AN_AEROSOL_SIM
 
-#     include "CMN_SIZE"  ! MAXFAM
-#     include "CMN_DIAG"  ! ND65
+#     include "CMN_SIZE"    ! MAXFAM
+#     include "CMN_DIAG"    ! ND65
 
       ! Local variables
-      LOGICAL            :: EOF, DO_SAVE_PL, DO_SAVE_O3
-      INTEGER, PARAMETER :: MAXMEM=10
-      INTEGER            :: F, M, N, NFAM
-      INTEGER            :: FAM_NMEM(MAXFAM)
-      REAL*8             :: FAM_COEF(MAXMEM,MAXFAM)
-      CHARACTER(LEN=14 ) :: FAM_NAME(MAXFAM)
-      CHARACTER(LEN=14 ) :: FAM_TYPE(MAXFAM)
-      CHARACTER(LEN=14 ) :: FAM_MEMB(MAXMEM,MAXFAM)
-      CHARACTER(LEN=255) :: LOCATION,        NAME         
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG 
+      LOGICAL              :: EOF, DO_SAVE_PL, DO_SAVE_O3
+      INTEGER, PARAMETER   :: MAXMEM=10
+      INTEGER              :: F, M, N, NFAM
+      INTEGER              :: FAM_NMEM(MAXFAM)
+      REAL*8               :: FAM_COEF(MAXMEM,MAXFAM)
+      CHARACTER(LEN=14 )   :: FAM_NAME(MAXFAM)
+      CHARACTER(LEN=14 )   :: FAM_TYPE(MAXFAM)
+      CHARACTER(LEN=14 )   :: FAM_MEMB(MAXMEM,MAXFAM)
+      CHARACTER(LEN=255)   :: LOCATION,        NAME         
+      CHARACTER(LEN=255)   :: SUBSTRS(MAXDIM), MSG 
 
       !=================================================================
       ! READ_PROD_LOSS_MENU begins here!
@@ -3163,19 +3207,22 @@
 !
 !******************************************************************************
 !  Subroutine READ_UNIX_CMDS_MENU reads the UNIX CMDS MENU section of the 
-!  GEOS-CHEM input file. (bmy, 7/20/04)
+!  GEOS-CHEM input file. (bmy, 7/20/04, 10/3/05)
 !
 !  NOTES:
+!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE CHARPAK_MOD, ONLY : STRSQUEEZE
-      USE UNIX_CMDS_MOD
+      USE CHARPAK_MOD,   ONLY : STRSQUEEZE
+      USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,  REMOVE_CMD 
+      USE UNIX_CMDS_MOD, ONLY : SEPARATOR,  SPACE,     UNZIP_CMD
+      USE UNIX_CMDS_MOD, ONLY : WILD_CARD,  ZIP_SUFFIX 
 
       ! Local variables
-      LOGICAL            :: EOF
-      INTEGER            :: N
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+      LOGICAL                :: EOF
+      INTEGER                :: N
+      CHARACTER(LEN=255)     :: SUBSTRS(MAXDIM)
 
       !=================================================================
       ! READ_UNIX_CMDS_MENU begins here!
@@ -3470,22 +3517,27 @@
 !******************************************************************************
 !  Subroutine VALIDATE_DIRECTORIES makes sure that each of the directories
 !  that we have read from the GEOS-CHEM input file are valid.  Also, trailing
-!  separator characters will be added. (bmy, 7/20/04)
+!  separator characters will be added. (bmy, 7/20/04, 10/3/05)
 !
 !  NOTES:
+!  (1 ) Now make sure all USE statements are USE, ONLY.  Now also validate
+!        GCAP and GEOS-5 directories. (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIRECTORY_MOD
-      USE GRID_MOD,    ONLY : ITS_A_NESTED_GRID 
-      USE LOGICAL_MOD, ONLY : LWINDO,      LUNZIP
-      USE TIME_MOD,    ONLY : EXPAND_DATE, GET_NYMDb, GET_NYMDe
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_1_DIR 
+      USE DIRECTORY_MOD, ONLY : GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR 
+      USE DIRECTORY_MOD, ONLY : GEOS_5_DIR, O3PL_DIR,   OH_DIR     
+      USE DIRECTORY_MOD, ONLY : RUN_DIR,    TEMP_DIR,   TPBC_DIR   
+      USE GRID_MOD,      ONLY : ITS_A_NESTED_GRID 
+      USE LOGICAL_MOD,   ONLY : LWINDO,      LUNZIP
+      USE TIME_MOD,      ONLY : EXPAND_DATE, GET_NYMDb, GET_NYMDe
 
 #     include "define.h" 
 
       ! Local variables
-      INTEGER            :: NYMDb, NYMDe
-      CHARACTER(LEN=255) :: DIR
+      INTEGER                :: NYMDb, NYMDe
+      CHARACTER(LEN=255)     :: DIR
 
       !=================================================================
       ! VALIDATE_DIRECTORIES begins here!
@@ -3566,6 +3618,36 @@
       DIR = TRIM( DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( DIR )
 
+#elif defined( GEOS_5 )
+
+      ! Check GEOS-5 met field directory (starting date)
+      DIR = GEOS_5_DIR
+      CALL EXPAND_DATE( DIR, NYMDb, 000000 )
+      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
+      CALL CHECK_DIRECTORY( DIR )
+
+
+      ! Check GEOS-5 met field directory (ending date)
+      DIR = GEOS_5_DIR
+      CALL EXPAND_DATE( DIR, NYMDe, 000000 )
+      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
+      CALL CHECK_DIRECTORY( DIR )
+
+#elif defined( GCAP )
+
+      ! Check GEOS-5 met field directory (starting date)
+      DIR = GCAP_DIR
+      CALL EXPAND_DATE( DIR, NYMDb, 000000 )
+      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
+      CALL CHECK_DIRECTORY( DIR )
+
+
+      ! Check GEOS-5 met field directory (ending date)
+      DIR = GCAP_DIR
+      CALL EXPAND_DATE( DIR, NYMDe, 000000 )
+      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
+      CALL CHECK_DIRECTORY( DIR )
+
 #endif
 
       ! Return to calling program
@@ -3635,14 +3717,16 @@
 !  Subroutine CHECK_TIME_STEPS computes the smallest dynamic time step for the
 !  model, based on which operation are turned on.  This is called from routine
 !  READ_INPUT_FILE, after all of the timesteps and logical flags have been
-!  read from "input.geos". (bmy, 7/20/04)
+!  read from "input.geos". (bmy, 7/20/04, 10/3/05)
 !
 !  NOTES:
+!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE LOGICAL_MOD
-      USE TIME_MOD,  ONLY : SET_TIMESTEPS
+      USE LOGICAL_MOD, ONLY : LCONV, LCHEM, LDRYD 
+      USE LOGICAL_MOD, ONLY : LEMIS, LTRAN, LTURB 
+      USE TIME_MOD,    ONLY : SET_TIMESTEPS
       
       ! Local variables
       INTEGER              :: I, J, K, L, TS_SMALLEST
@@ -3754,16 +3838,34 @@
 !
 !******************************************************************************
 !  Subroutine INIT_INPUT initializes all variables from "directory_mod.f" and
-!  "logical_mod.f" for safety's sake. (bmy, 7/20/04, 11/5/04)
+!  "logical_mod.f" for safety's sake. (bmy, 7/20/04, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Now also initialize LNEI99 from "logical_mod.f" (bmy, 11/5/04)
 !  (2 ) Now also initialize LAVHRRLAI from "logical_mod.f" (bmy, 12/20/04)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIRECTORY_MOD
-      USE LOGICAL_MOD
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GEOS_1_DIR, GEOS_S_DIR 
+      USE DIRECTORY_MOD, ONLY : GEOS_3_DIR, GEOS_4_DIR, TEMP_DIR   
+      USE DIRECTORY_MOD, ONLY : RUN_DIR,    OH_DIR,     O3PL_DIR   
+      USE DIRECTORY_MOD, ONLY : TPBC_DIR
+      USE LOGICAL_MOD,   ONLY : LATEQ,      LAVHRRLAI,  LCARB      
+      USE LOGICAL_MOD,   ONLY : LDEAD,      LDUST,      LSULF      
+      USE LOGICAL_MOD,   ONLY : LSOA,       LSSALT,     LCHEM      
+      USE LOGICAL_MOD,   ONLY : LEMBED,     LCONV,      LDBUG      
+      USE LOGICAL_MOD,   ONLY : LDIAG,      LPRT,       LSTDRUN    
+      USE LOGICAL_MOD,   ONLY : LDRYD,      LAIRNOX,    LANTHRO    
+      USE LOGICAL_MOD,   ONLY : LBIONOX,    LBIOMASS,   LBIOFUEL   
+      USE LOGICAL_MOD,   ONLY : LBIOGENIC,  LBBSEA,     LEMIS      
+      USE LOGICAL_MOD,   ONLY : LFFNOX,     LFOSSIL,    LLIGHTNOX  
+      USE LOGICAL_MOD,   ONLY : LMONOT,     LNEI99,     LSHIPSO2   
+      USE LOGICAL_MOD,   ONLY : LSOILNOX,   LTOMSAI,    LWOODCO     
+      USE LOGICAL_MOD,   ONLY : LFILL,      LMFCT,      LTRAN      
+      USE LOGICAL_MOD,   ONLY : LTPFV,      LUPBD,      LWINDO     
+      USE LOGICAL_MOD,   ONLY : LUNZIP,     LWAIT,      LTURB      
+      USE LOGICAL_MOD,   ONLY : LSVGLB,     LSPLIT,     LWETD      
 
       !=================================================================
       ! INIT_INPUT begins here!
@@ -3797,24 +3899,24 @@
       LDIAG      = .FALSE.
       LPRT       = .FALSE.
       LSTDRUN    = .FALSE.
-      LDRYD      = .FALSE. 
+      LDRYD      = .FALSE.
       LAIRNOX    = .FALSE.
       LANTHRO    = .FALSE.
-      LBIONOX    = .FALSE.   
+      LBIONOX    = .FALSE.
       LBIOMASS   = .FALSE.
       LBIOFUEL   = .FALSE.
       LBIOGENIC  = .FALSE.
       LBBSEA     = .FALSE.
       LEMIS      = .FALSE.
-      LFFNOX     = .FALSE.               
-      LFOSSIL    = .FALSE.  
+      LFFNOX     = .FALSE.
+      LFOSSIL    = .FALSE.
       LLIGHTNOX  = .FALSE.
       LMONOT     = .FALSE.
       LNEI99     = .FALSE.
       LSHIPSO2   = .FALSE.
       LSOILNOX   = .FALSE.
       LTOMSAI    = .FALSE.
-      LWOODCO    = .FALSE. 
+      LWOODCO    = .FALSE.
       LFILL      = .FALSE.
       LMFCT      = .FALSE.
       LTRAN      = .FALSE.

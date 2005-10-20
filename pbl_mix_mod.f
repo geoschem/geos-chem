@@ -1,4 +1,4 @@
-! $Id: pbl_mix_mod.f,v 1.3 2005/09/02 15:17:19 bmy Exp $
+! $Id: pbl_mix_mod.f,v 1.4 2005/10/20 14:03:36 bmy Exp $
       MODULE PBL_MIX_MOD
 !
 !******************************************************************************
@@ -157,10 +157,6 @@
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_GCTM"     ! Scale height
-!--------------------------------------------------------------
-! Prior to 8/3/05:
-!#     include "CMN"          ! XTRA2 -- for now
-!--------------------------------------------------------------
 
       ! Local variables
       INTEGER               :: I,     J,      L,    LTOP
@@ -263,13 +259,6 @@
 
          ! PBL top [model layers]
          PBL_TOP_L(I,J)   = FLOAT( IMIX(I,J) - 1 ) + FPBL(I,J)
-
-         !------------------------------------------------------------------
-         ! Prior to 8/3/05:
-         !!### NOTE: For backwards compatibility, save into XTRA2 for
-         !!### now, but this will be removed later on (bmy, 2/15/05)
-         !XTRA2(I,J)       = PBL_TOP_L(I,J)
-         !------------------------------------------------------------------
 
          ! PBL top [hPa]
          PBL_TOP_hPa(I,J) = BLTOP

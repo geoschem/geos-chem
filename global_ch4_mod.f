@@ -1,9 +1,9 @@
-! $Id: global_ch4_mod.f,v 1.6 2005/09/02 15:17:12 bmy Exp $
+! $Id: global_ch4_mod.f,v 1.7 2005/10/20 14:03:28 bmy Exp $
       MODULE GLOBAL_CH4_MOD
 !
 !******************************************************************************
 !  Module GLOBAL_CH4_MOD contains variables and routines for simulating
-!  CH4 chemistry in the troposphere (jsw, bnd, bmy, 1/17/01, 8/16/05)
+!  CH4 chemistry in the troposphere (jsw, bnd, bmy, 1/17/01, 10/3/05)
 !
 !  Module Variables:
 !  =========================================================================== 
@@ -79,6 +79,7 @@
 !  (20) Now references "directory_mod.f", "tracer_mod.f", and "diag_oh_mod.f"
 !        (bmy, 7/20/04)
 !  (21) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
+!  (22) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -510,7 +511,7 @@
 !
 !******************************************************************************
 !  Subroutine EMISSCH4 places emissions of CH4 [kg] into the STT array.
-!  (jsw, bnd, bey, bmy, 1/16/01, 7/20/04)
+!  (jsw, bnd, bey, bmy, 1/16/01, 10/3/05)
 !
 !  I might want to eventually adjust my swamps (WS) source upward
 !  because it is currently 39.1 Tg/yr whereas in Fung et al. [1991] it is
@@ -543,10 +544,11 @@
 !        I0 and J0 are now local variables. (bmy, 3/27/03)
 !  (11) Now reference STT from "tracer_mod.f".  Now reference DATA_DIR from
 !        "directory_mod.f". (bmy, 7/20/04)
+!  (12) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT,  GET_NAME_EXT_2D
       USE DAO_MOD,       ONLY : BXHEIGHT,     SUNCOS
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IU_FILE,      IOERROR
@@ -602,11 +604,6 @@
       !
       ! Read aseasonal CH4 emissions 
       !=================================================================
-!---------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )      // 
-!     &           'CH4_aseasonal.geos.' // GET_RES_EXT()
-!---------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )            // 
      &           'CH4_200202/CH4_aseasonal.' // GET_NAME_EXT_2D() // 
      &           '.'                         // GET_RES_EXT()
@@ -623,11 +620,6 @@
       !=================================================================
       ! Read monthly-varying CH4 emissions
       !=================================================================
-!---------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )    // 
-!     &           'CH4_monthly.geos.' // GET_RES_EXT()
-!---------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )          // 
      &           'CH4_200202/CH4_monthly.' // GET_NAME_EXT_2D() // 
      &           '.'                       // GET_RES_EXT()
@@ -849,7 +841,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEMCH4 computes the chemical loss of CH4 (sources - sinks).
-!  (jsw, bnd, bmy, 6/8/00, 7/20/04)
+!  (jsw, bnd, bmy, 6/8/00, 10/3/05)
 !
 !  CH4 SOURCES
 !  ============================================================================
@@ -886,10 +878,14 @@
 !        GET_NYMDb, GET_NYMDe, GET_MONTH, GET_DAY from the new "time_mod.f"
 !        (bmy, 3/27/03) 
 !  (8 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  (9 ) Remove reference to BPCH2_MOD, it's not needed (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      !----------------------------------------
+      ! Prior to 10/3/05:
+      !USE BPCH2_MOD
+      !----------------------------------------
       USE DAO_MOD,       ONLY : AD, ALBD
       USE DIAG_MOD,      ONLY : AD43
       USE DIRECTORY_MOD, ONLY : DATA_DIR
@@ -1130,7 +1126,7 @@
 !
 !*****************************************************************************
 !  Subroutine READ_COPROD reads production and destruction rates for CO in 
-!  the stratosphere. (bnd, bmy, 1/17/01, 8/16/05)
+!  the stratosphere. (bnd, bmy, 1/17/01, 10/3/05)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -1146,10 +1142,12 @@
 !  (4 ) Remove obsolete code from 9/01 (bmy, 10/24/01)
 !  (5 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (6 ) Now reads data for both GEOS and GCAP grids (bmy, 8/16/05)
+!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !*****************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_ZONAL
 
@@ -1174,11 +1172,6 @@
          XTAU = GET_TAU0( M, 1, 1985 )
 
          ! Construct filename
-!---------------------------------------------------------------------------
-! Prior to 8/16/05:
-!         FILENAME = TRIM( DATA_DIR ) // 'COprod.'  //
-!     &              GET_NAME_EXT()   // '.'        // GET_RES_EXT()
-!---------------------------------------------------------------------------
          FILENAME = TRIM( DATA_DIR )         // 
      &              'pco_lco_200203/COprod.' // GET_NAME_EXT_2D() //
      &              '.'                      // GET_RES_EXT()
@@ -1246,10 +1239,6 @@
       !=================================================================
       ! Read in Clarisa's climatological OH data from "avgOH.cms"
       !=================================================================
-      !-----------------------------------------------------------------
-      ! Prior to 8/16/05:
-      !FILENAME = TRIM( DATA_DIR ) // 'avgOH.cms' 
-      !-----------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR ) // 'CH4_200202/avgOH.cms' 
 
       OPEN( IU_FILE, FILE=FILENAME, STATUS='OLD', IOSTAT=IOS )
@@ -1705,7 +1694,7 @@
 !******************************************************************************
 !  Subroutine CH4_BUDGET calculates the budget of CH4.  This SR only works 
 !  for monthly averages, so be sure to start on the first of the month 
-!  and run to another first of the month!!!  (jsw, bnd, bmy, 1/16/01, 7/20/04)
+!  and run to another first of the month!!!  (jsw, bnd, bmy, 1/16/01, 10/3/05)
 !
 !  Store the sources/sinks of CH4 in TCH4 in total molecules
 !           ( 1) = Initial burden
@@ -1744,12 +1733,14 @@
 !        variable.  Use functions GET_XOFFSET and GET_YOFFSET from 
 !        "grid_mod.f".  (bmy, 3/27/03)
 !  (6 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
+!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,  ONLY : BPCH2,       BPCH2_HDR,   GET_MODELNAME
       USE GRID_MOD,   ONLY : GET_XOFFSET, GET_YOFFSET
-      USE TIME_MOD,   ONLY : GET_MONTH, GET_YEAR, GET_DIAGb, GET_CT_DYN
+      USE TIME_MOD,   ONLY : GET_MONTH,   GET_YEAR
+      USE TIME_MOD,   ONLY : GET_DIAGb,   GET_CT_DYN
       USE TRACER_MOD, ONLY : STT
 
 #     include "CMN_SIZE"       ! Size parameters

@@ -1,9 +1,9 @@
-! $Id: mercury_mod.f,v 1.5 2005/09/02 15:17:18 bmy Exp $
+! $Id: mercury_mod.f,v 1.6 2005/10/20 14:03:34 bmy Exp $
       MODULE MERCURY_MOD
 !
 !******************************************************************************
 !  Module MERCURY_MOD contains variables and routines for the GEOS-CHEM 
-!  mercury simulation. (eck, bmy, 12/14/04, 8/16/05)
+!  mercury simulation. (eck, bmy, 12/14/04, 10/3/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -123,6 +123,7 @@
 !  (2 ) Now references "pbl_mix_mod.f".  Remove FEMIS array and routine
 !        COMPUTE_FEMIS. (bmy, 2/15/05)
 !  (3 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
+!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1528,17 +1529,19 @@
 !
 !******************************************************************************
 !  Subroutine MERCURY_READYR reads the year-invariant emissions for Mercury
-!  from anthropogenic, ocean, and land sources. (eck, bmy, 12/6/04, 8/16/05)
+!  from anthropogenic, ocean, and land sources. (eck, bmy, 12/6/04, 10/3/05)
 !  
 !  NOTES:
 !  (1 ) Now read data from mercury_200501 subdirectory.  Now compute oceanic 
 !        Hg(0) emissions w/ ocean flux module instead of reading them from 
 !        disk.  Now use 1985 TAU values. (sas, bmy, 1/20/05) 
 !  (2 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
@@ -1558,11 +1561,6 @@
       !=================================================================
 
       ! Filename for anthropogenic mercury source
-!----------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )                // 
-!     &           'mercury_200501/Hg_anthro.geos' // GET_RES_EXT()
-!----------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )            // 
      &           'mercury_200501/Hg_anthro.' // GET_NAME_EXT_2D() //
      &           '.'                         // GET_RES_EXT()
@@ -1656,11 +1654,6 @@
       !=================================================================
 
       ! Filename for re-emitted anthropogenic mercury
-!----------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )               // 
-!     &           'mercury_200501/Hg_land.geos.' // GET_RES_EXT()   
-!----------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )          // 
      &           'mercury_200501/Hg_land.' // GET_NAME_EXT_2D() //
      &           '.'                       // GET_RES_EXT()   
@@ -1687,11 +1680,6 @@
       !=================================================================
 
       ! Filename for natural land-source mercury
-!----------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )                  // 
-!     &           'mercury_200501/Hg_natural.geos.' // GET_RES_EXT() 
-!----------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )             // 
      &           'mercury_200501/Hg_natural.' // GET_NAME_EXT_2D() //
      &           '.'                          // GET_RES_EXT() 
@@ -1984,8 +1972,8 @@
 !
       ! References to F90 modules
       USE GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
-      USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC, 
-     &                     GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
+      USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
+      USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN_GCTM"  ! Physical constants
@@ -2121,17 +2109,23 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE GRID_MOD,   ONLY : GET_XMID, GET_YMID
-      USE ERROR_MOD,  ONLY : ERROR_STOP
-      USE TRACER_MOD, ONLY : N_TRACERS
-      USE TRACERID_MOD
+      USE GRID_MOD,     ONLY : GET_XMID, GET_YMID
+      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE TRACERID_MOD, ONLY : IDTHG0_na, IDTHG2_na, IDTHGP_na 
+      USE TRACERID_MOD, ONLY : IDTHG0_eu, IDTHG2_eu, IDTHGP_eu 
+      USE TRACERID_MOD, ONLY : IDTHG0_as, IDTHG2_as, IDTHGP_as 
+      USE TRACERID_MOD, ONLY : IDTHG0_rw, IDTHG2_rw, IDTHGP_rw 
+      USE TRACERID_MOD, ONLY : IDTHG0_oc, IDTHG2_oc, IDTHGP_oc 
+      USE TRACERID_MOD, ONLY : IDTHG0_ln, IDTHG2_ln, IDTHGP_ln 
+      USE TRACERID_MOD, ONLY : IDTHG0_nt, IDTHG2_nt, IDTHGP_nt 
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "CMN_SIZE"     ! Size parameters
 
       ! Local variables
-      INTEGER             :: I, J
-      REAL*8              :: X, Y
-      CHARACTER(LEN=255)  :: LOCATION
+      INTEGER               :: I, J
+      REAL*8                :: X, Y
+      CHARACTER(LEN=255)    :: LOCATION
 
       !=================================================================
       ! DEFINE_TAGGED_Hg begins here!

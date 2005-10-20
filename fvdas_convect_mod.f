@@ -1,4 +1,4 @@
-! $Id: fvdas_convect_mod.f,v 1.7 2005/03/29 15:52:42 bmy Exp $
+! $Id: fvdas_convect_mod.f,v 1.8 2005/10/20 14:03:26 bmy Exp $
       MODULE FVDAS_CONVECT_MOD
 !
 !******************************************************************************
@@ -150,7 +150,7 @@
 !******************************************************************************
 !  Subroutine FVDAS_CONVECT is the convection driver routine for GEOS-4/fvDAS
 !  met fields.  It calls both HACK and ZHANG/MCFARLANE convection schemes.
-!  (pjr, dsa, bmy, 6/26/03, 7/20/04)
+!  (pjr, dsa, bmy, 6/26/03, 10/18/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -196,6 +196,7 @@
 !  (2 ) Handle parallel loops differently for Intel Fortran Compilers, since
 !        for some reason the code dies if large arrays (QTMP, FTMP) are held
 !        PRIVATE in parallel loops. (bmy, 7/20/04)
+!  (3 ) Added LINUX_IFORT switch for Intel v8/v9 compilers (bmy, 10/18/05)
 !******************************************************************************
 
 #     include "CMN_SIZE"     ! Size parameters
@@ -235,10 +236,10 @@
       ! FVDAS_CONVECT begins here!
       !=================================================================
 
-#if   defined( LINUX_IFC ) || defined( LINUX_EFC )
+#if   defined( LINUX_IFC ) || defined( LINUX_EFC ) || defined( LINUX_IFORT )
 
       !=================================================================
-      ! INTEL FORTRAN COMPILER v7 -- Linux Boxes, Altix, or Altix 350
+      ! INTEL FORTRAN COMPILER -- Linux Boxes, Altix, or Altix 350
       !
       ! For some reason the code dies w/ an error on Altix 350 when
       ! large arrays are held PRIVATE w/in the parallel loop.  We have

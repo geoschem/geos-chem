@@ -1,10 +1,10 @@
-! $Id: restart_mod.f,v 1.10 2005/09/02 15:17:21 bmy Exp $
+! $Id: restart_mod.f,v 1.11 2005/10/20 14:03:37 bmy Exp $
       MODULE RESTART_MOD
 !
 !******************************************************************************
 !  Module RESTART_MOD contains variables and routines which are used to read
 !  and write GEOS-CHEM restart files, which contain tracer concentrations
-!  in [v/v] mixing ratio. (bmy, 6/25/02, 6/28/05)
+!  in [v/v] mixing ratio. (bmy, 6/25/02, 10/3/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -46,6 +46,7 @@
 !        "tracer_mod.f" (bmy, 7/20/04)
 !  (8 ) Removed obsolete routines TRUE_TRACER_INDEX and COPY_DATA_FOR_CO_OH
 !        (bmy, 6/28/05)
+!  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -80,7 +81,7 @@
 !
 !******************************************************************************
 !  Subroutine MAKE_RESTART_FILE creates GEOS-CHEM restart files of tracer 
-!  mixing ratios (v/v), in binary punch file format. (bmy, 5/27/99, 6/24/05)
+!  mixing ratios (v/v), in binary punch file format. (bmy, 5/27/99, 10/3/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -110,17 +111,19 @@
 !  (10) Remove references to CMN_DIAG and TRCOFFSET.  Now call GET_HALFPOLAR 
 !        from "bpch2_mod.f" to get the HALFPOLAR flag value for GEOS or GCAP 
 !        grids. (bmy, 6/28/05)
+!  (11) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !     
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,   ONLY : BPCH2,         GET_MODELNAME
+      USE BPCH2_MOD,   ONLY : GET_HALFPOLAR, OPEN_BPCH2_FOR_WRITE
       USE DAO_MOD,     ONLY : AD
       USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE FILE_MOD,    ONLY : IU_RST,      IOERROR
-      USE GRID_MOD,    ONLY : GET_XOFFSET, GET_YOFFSET
+      USE FILE_MOD,    ONLY : IU_RST,        IOERROR
+      USE GRID_MOD,    ONLY : GET_XOFFSET,   GET_YOFFSET
       USE LOGICAL_MOD, ONLY : LPRT
-      USE TIME_MOD,    ONLY : EXPAND_DATE, GET_TAU
-      USE TRACER_MOD,  ONLY : STT, N_TRACERS, TCVV
+      USE TIME_MOD,    ONLY : EXPAND_DATE,   GET_TAU
+      USE TRACER_MOD,  ONLY : STT,           N_TRACERS,  TCVV
 
 #     include "CMN_SIZE"   ! Size parameters
 
@@ -282,10 +285,11 @@
       USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_READ
       USE DAO_MOD,     ONLY : AD
       USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE FILE_MOD,    ONLY : IU_RST, IOERROR
-      USE LOGICAL_MOD, ONLY : LSPLIT, LPRT
+      USE FILE_MOD,    ONLY : IU_RST,      IOERROR
+      USE LOGICAL_MOD, ONLY : LSPLIT,      LPRT
       USE TIME_MOD,    ONLY : EXPAND_DATE
-      USE TRACER_MOD
+      USE TRACER_MOD,  ONLY : N_TRACERS,   STT
+      USE TRACER_MOD,  ONLY : TRACER_NAME, TRACER_MW_G
 
 #     include "CMN_SIZE"   ! Size parameters
 

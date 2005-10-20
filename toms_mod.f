@@ -1,10 +1,10 @@
-! $Id: toms_mod.f,v 1.3 2005/09/02 15:17:26 bmy Exp $
+! $Id: toms_mod.f,v 1.4 2005/10/20 14:03:42 bmy Exp $
       MODULE TOMS_MOD
 !
 !******************************************************************************
 !  Module TOMS_MOD contains variables and routines for reading the EP-TOMS
 !  O3 column data from disk (for use w/ the FAST-J photolysis routines).
-!  (mje, bmy, 7/14/03, 8/16/05)
+!  (mje, bmy, 7/14/03, 10/3/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -29,6 +29,7 @@
 !  NOTES:
 !  (1 ) Now references "directory_mod.f" (bmy, 7/20/04)
 !  (2 ) Now can read files for GEOS or GCAP grids (bmy, 8/16/05)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -54,7 +55,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_TOMS reads in TOMS O3 column data from a binary punch
-!  file for the given grid, month and year. (mje, bmy 12/10/02, 8/16/05)
+!  file for the given grid, month and year. (mje, bmy 12/10/02, 10/3/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -68,10 +69,12 @@
 !  (1 ) Bundled into "toms_mod.f" (bmy, 7/14/03)
 !  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (3 ) Now can read files for GEOS or GCAP grids (bmy, 8/16/05)
+!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TIME_MOD,      ONLY : EXPAND_DATE
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
@@ -128,11 +131,6 @@
       XTAU = GET_TAU0( THISMONTH, 1, THISYEAR )
 
       ! Define filename
-!------------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )                    // 
-!     &           'TOMS_200307/TOMS_O3col_YYYY.geos.' // GET_RES_EXT()
-!------------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )               // 
      &           'TOMS_200307/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
      &           '.'                            // GET_RES_EXT()

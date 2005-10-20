@@ -1,10 +1,10 @@
-! $Id: transport_mod.f,v 1.9 2005/09/02 15:17:29 bmy Exp $
+! $Id: transport_mod.f,v 1.10 2005/10/20 14:03:45 bmy Exp $
       MODULE TRANSPORT_MOD
 !
 !******************************************************************************
 !  Module TRANSPORT_MOD is used to call the proper version of TPCORE for
 !  GEOS-1, GEOS-STRAT, GEOS-3 or GEOS-4 nested-grid or global simulations.
-!  (yxw, bmy, 3/10/03, 5/25/05)
+!  (yxw, bmy, 3/10/03, 10/3/05)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -62,6 +62,7 @@
 !  (6 ) Add mass-flux diagnostics to TPCORE_FVDAS (bdf, bmy, 9/28/04)
 !  (7 ) Now references "diag_mod.f" (bmy, 9/28/04)
 !  (8 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
+!  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -148,7 +149,7 @@
 !******************************************************************************
 !  Subroutine DO_TRANSPORT is the driver routine for the proper TPCORE 
 !  program for GEOS-1, GEOS-STRAT, GEOS-3 or GEOS-4 global simulations. 
-!  (bdf, bmy, 3/10/03, 5/25/05)
+!  (bdf, bmy, 3/10/03, 10/3/05)
 ! 
 !  NOTES:
 !  (1 ) Now references routine TPCORE_FVDAS from "tpcore_fvdas_mod.f90".
@@ -174,6 +175,7 @@
 !        after the call to TPCORE because we now call TPCORE with the array 
 !        mask statement STT(:,:,LLPAR:1:-1,:).  Also modified for GEOS-5 
 !        and GCAP met fields. (swu, bmy, 5/25/05)
+!  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -611,13 +613,14 @@
 !
 !******************************************************************************
 !  Subroutine DO_WINDOW_TRANSPORT is the driver program for the proper TPCORE
-!  program for nested-grid window simulations. (yxw, bmy, 8/7/03, 7/20/04)
+!  program for nested-grid window simulations. (yxw, bmy, 8/7/03, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
 !  (2 ) Removed IORD, JORD, KORD from the arg list, since these are now
 !        module variables.  Now reference LFILL, LMFCT, LPRT from 
 !        "logical_mod.f".  Now reference STT, N_TRACERS from "tracer_mod.f".
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -627,7 +630,9 @@
       USE LOGICAL_MOD,       ONLY : LFILL, LMFCT, LPRT
       USE PRESSURE_MOD,      ONLY : GET_PEDGE, SET_FLOATING_PRESSURE
       USE TIME_MOD,          ONLY : GET_TS_DYN
-      USE TPCORE_BC_MOD
+      USE TPCORE_BC_MOD,     ONLY : I0_W, J0_W, I1_W, J1_W
+      USE TPCORE_BC_MOD,     ONLY : I2_W, J2_W, IM_W, JM_W, IGZD 
+      USE TPCORE_BC_MOD,     ONLY : DO_WINDOW_TPCORE_BC
       USE TPCORE_WINDOW_MOD, ONLY : TPCORE_WINDOW
       USE TRACER_MOD,        ONLY : STT, N_TRACERS
 

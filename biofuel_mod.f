@@ -1,10 +1,10 @@
-! $Id: biofuel_mod.f,v 1.5 2005/09/02 15:16:56 bmy Exp $
+! $Id: biofuel_mod.f,v 1.6 2005/10/20 14:03:13 bmy Exp $
       MODULE BIOFUEL_MOD
 !
 !******************************************************************************
 !  Module BIOFUEL_MOD contains arrays and routines to compute yearly
 !  biofuel emissions for NOx, CO, ALK4, ACET, MEK, ALD2, PRPE, C3H8, 
-!  CH2O, and C2H6 (bmy, 9/12/00, 8/16/05)
+!  CH2O, and C2H6 (bmy, 9/12/00, 10/3/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -66,6 +66,7 @@
 !  (13) Now references "directory_mod.f" (bmy, 7/19/04)
 !  (14) Now references "time_mod.f" and "epa_nei_mod.f" (bmy, 11/5/04)
 !  (15) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
+!  (16) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -106,7 +107,7 @@
 !******************************************************************************
 !  Subroutine BIOFUEL_BURN computes the yearly biofuel burning emissions
 !  and also archives them into GEOS-CHEM diagnostics. 
-!  (rvm, acs, bnd, bmy, 9/12/00, 11/5/04)
+!  (rvm, acs, bnd, bmy, 9/12/00, 10/3/05)
 !
 !  Biofuel emissions are based on estimates by Rose Yevich and Jennifer
 !  Logan (reference TBA).
@@ -153,18 +154,27 @@
 !        from "logical_mod.f".  Now reference GET_EPA_BIOFUEL and
 !        GET_USA_MASK from "epa_nei_mod.f". (rch, rjp, bmy, 11/5/04)
 !  (18) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
+!  (19) Now make sure all USE statements are USE, ONLY.  Eliminate reference 
+!        to TRACER_MOD, it's obsolete (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      !USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DAO_MOD,       ONLY : BXHEIGHT
       USE DIAG_MOD,      ONLY : AD29, AD32_bf, AD34
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE EPA_NEI_MOD,   ONLY : GET_EPA_BIOFUEL, GET_USA_MASK
       USE LOGICAL_MOD,   ONLY : LNEI99
       USE TIME_MOD,      ONLY : GET_DAY_OF_WEEK
-      USE TRACER_MOD
-      USE TRACERID_MOD 
+      !----------------------------------------------------------------
+      ! Prior to 10/3/05:
+      !USE TRACER_MOD
+      !----------------------------------------------------------------
+      USE TRACERID_MOD,  ONLY : IDBFCO,  IDBFNOX, IDTACET, IDTALD2
+      USE TRACERID_MOD,  ONLY : IDTALK4, IDTC2H6, IDTC3H8, IDTCH2O 
+      USE TRACERID_MOD,  ONLY : IDTCO,   IDTMEK,  IDTNOX,  IDTPRPE 
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
       IMPLICIT NONE
@@ -238,12 +248,6 @@
          ! volumes throughout the year, instead of only at the
          ! first timestep (bmy, 5/3/02)
          !==============================================================
-!------------------------------------------------------------------------
-! Prior to 8/16/05:
-!         FILENAME = TRIM( DATA_DIR )               // 
-!     &              'biofuel_200202/biofuel.geos.' // 
-!     &              GET_RES_EXT()
-!------------------------------------------------------------------------
          FILENAME = TRIM( DATA_DIR )          // 
      &              'biofuel_200202/biofuel.' // GET_NAME_EXT_2D() // 
      &              '.'                       // GET_RES_EXT()
@@ -626,13 +630,18 @@
 !******************************************************************************
 !  Subroutine SET_NBFTRACE sets the NBFTRACE variable with the number of
 !  biofuel tracers that are turned on.  This was split off from "tracerid.f"
-!  in order to prevent circular module references. (bmy, 11/6/02)
+!  in order to prevent circular module references. (bmy, 11/6/02, 10/3/05)
 !
 !  NOTES:
+!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE TRACERID_MOD
+      USE TRACERID_MOD, ONLY : IDBFACET, IDBFALD2, IDBFALK4, IDBFC2H6 
+      USE TRACERID_MOD, ONLY : IDBFC3H8, IDBFCH2O, IDBFCO,   IDBFMEK  
+      USE TRACERID_MOD, ONLY : IDBFNOX,  IDBFPRPE, IDTACET,  IDTALD2 
+      USE TRACERID_MOD, ONLY : IDTALK4,  IDTC2H6,  IDTC3H8,  IDTCH2O
+      USE TRACERID_MOD, ONLY : IDTCO,    IDTMEK,   IDTNOX,   IDTPRPE 
 
       !=================================================================
       ! SET_BFTRACE begins here!
@@ -688,12 +697,16 @@
 !  (5 ) Now references ALLOC_ERR from "error_mod.f".  Also references IDBFNOX,
 !        IDBFCO, etc from "tracerid_mod.f" (bmy, 11/6/02)
 !  (6 ) Replace LWOODCO w/ LBIOFUEL from "logical_mod.f" (bmy, 7/19/04)
+!  (7 ) Remove reference to TRACERID_MOD, it's obsolete (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE LOGICAL_MOD, ONLY : LBIOFUEL
-      USE TRACERID_MOD
+      USE ERROR_MOD,    ONLY : ALLOC_ERR
+      USE LOGICAL_MOD,  ONLY : LBIOFUEL
+      !------------------------------------------
+      ! Prior to 10/3/05
+      !USE TRACERID_MOD
+      !------------------------------------------
 
 #     include "CMN_SIZE"  ! Size parameters, etc
 

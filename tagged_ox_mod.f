@@ -1,10 +1,10 @@
-! $Id: tagged_ox_mod.f,v 1.11 2005/09/02 15:17:25 bmy Exp $
+! $Id: tagged_ox_mod.f,v 1.12 2005/10/20 14:03:41 bmy Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
 !  Module TAGGED_OX_MOD contains variables and routines to perform a tagged Ox
 !  simulation.  P(Ox) and L(Ox) rates need to be archived from a full chemistry
-!  simulation before you can run w/ Tagged Ox. (amf,rch,bmy, 8/20/03, 2/17/05)
+!  simulation before you can run w/ Tagged Ox. (amf,rch,bmy, 8/20/03, 10/3/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -45,6 +45,7 @@
 !  (4 ) Now define regions w/ levels in GET_REGIONAL_POX (amf,rch,bmy,5/27/04)
 !  (5 ) Bug fix-avoid seg fault if PBLFRAC isn't allocated (bdf, bmy, 10/12/04)
 !  (6 ) Now reference "pbl_mix_mod.f" (bmy, 2/17/05)
+!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -120,15 +121,16 @@
 !
 !******************************************************************************
 !  Subroutine READ_POX_LOX reads previously-archived Ox production & loss 
-!  rates from binary punch file format. (bmy, 8/20/03, 7/20/04)
+!  rates from binary punch file format. (bmy, 8/20/03, 10/3/05)
 ! 
 !  NOTES:
 !  (1 ) Updated from the old routine "chemo3_split.f" (rch, bmy, 8/20/03)
 !  (2 ) Now references O3PL_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : READ_BPCH2
       USE DIRECTORY_MOD, ONLY : O3PL_DIR 
       USE TIME_MOD,      ONLY : EXPAND_DATE, GET_NYMD, GET_TAU
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
@@ -215,10 +217,6 @@
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
 #     include "CMN_SIZE"  ! Size parameters
-!-----------------------------------------------------
-! Prior to 8/22/05:
-!#     include "CMN"       ! LPAUSE
-!-----------------------------------------------------
 #     include "CMN_GCTM"  ! SCALE_HEIGHT
 
       ! Arguments
@@ -244,10 +242,6 @@
       PP(I,J,L,:) = 0d0
       
       ! IS TROP is TRUE if we are in the troposphere
-      !--------------------------------------------------
-      ! Prior to 8/22/05:
-      !ITS_IN_TROP = ( L < LPAUSE(I,J) )
-      !--------------------------------------------------
       ITS_IN_TROP = ITS_IN_THE_TROP( I, J, L )
       
       ! Skip stratospheric boxes

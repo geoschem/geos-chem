@@ -1,9 +1,9 @@
-! $Id: co2_mod.f,v 1.1 2005/09/02 15:17:00 bmy Exp $
+! $Id: co2_mod.f,v 1.2 2005/10/20 14:03:17 bmy Exp $
       MODULE CO2_MOD
 !
 !******************************************************************************
 !  Module CO2_MOD contains variables and routines used for the CO2 simulation.
-!  (pns, bmy, 8/16/05) 
+!  (pns, bmy, 8/16/05, 10/3/05) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -77,6 +77,7 @@
 !        Cycles, Vol 17, 1095, doi:10.1029/2002GB001952, 2003
 !
 !  NOTES: 
+!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -131,22 +132,23 @@
 !
 !******************************************************************************
 !  Subroutine EMISSCO2 is the driver routine for CO2 emissions. 
-!  (pns, bmy, 8/16/05)
+!  (pns, bmy, 8/16/05, 10/3/05)
 !
 !  The initial condition for CO2 has to be at least 50 ppm or higher or else
 !  the balanced biosphere fluxes will make STT negative. (pns, bmy, 8/16/05)
 !
 !  NOTES:
+!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG04_MOD,    ONLY : ND04, AD04
+      USE DIAG04_MOD,    ONLY : AD04,          ND04
       USE GRID_MOD,      ONLY : GET_AREA_CM2
-      USE TIME_MOD,      ONLY : GET_DAY,       GET_DAY_OF_YEAR,
-     &                          GET_HOUR,      GET_MONTH,
-     &                          GET_YEAR,      GET_TS_CHEM, 
-     &                          ITS_A_NEW_DAY, ITS_A_NEW_MONTH
-      USE TRACER_MOD,    ONLY : STT, N_TRACERS
+      USE TIME_MOD,      ONLY : GET_DAY,       GET_DAY_OF_YEAR
+      USE TIME_MOD,      ONLY : GET_HOUR,      GET_MONTH
+      USE TIME_MOD,      ONLY : GET_YEAR,      GET_TS_CHEM 
+      USE TIME_MOD,      ONLY : ITS_A_NEW_DAY, ITS_A_NEW_MONTH
+      USE TRACER_MOD,    ONLY : N_TRACERS,     STT
       
 #     include "CMN_SIZE"      ! Size parameters
 
@@ -381,7 +383,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_ANNUAL_FOSSILCO2 reads in annual mean fossil CO2 emissions 
-!  from a binary punch file. (pns, bmy, 8/16/05)
+!  from a binary punch file. (pns, bmy, 8/16/05, 10/3/05)
 !
 !  References:
 !  ============================================================================
@@ -389,20 +391,22 @@
 !
 !  NOTES:
 !  (1 ) Emissions read in from directory : DATA_DIR/CO2XXX
+!  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR
-      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_SIZE"      ! Size parameters
 
       ! Local variables
-      INTEGER             :: I, J
-      REAL*4              :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8              :: TAU
-      CHARACTER(LEN=255)  :: FILENAME
+      INTEGER                :: I, J
+      REAL*4                 :: ARRAY(IGLOB,JGLOB,1)
+      REAL*8                 :: TAU
+      CHARACTER(LEN=255)     :: FILENAME
 
       !=================================================================
       ! READ_ANNUAL_FOSSILCO2 begins here!
@@ -437,27 +441,29 @@
 !
 !******************************************************************************
 !  Subroutine READ_ANNUAL_OCEANCO2 reads in annual mean oceanic CO2 exchange  
-!  from a binary punch file. (pns, bmy, 8/16/05)
+!  from a binary punch file. (pns, bmy, 8/16/05, 10/3/05)
 !
 !  References:
 !  ============================================================================
 !  (1 ) Takahashi et al. (1997)
 !
 !  NOTES:
+!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR
-      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_SIZE"      ! Size parameters
 
       ! Local variables
-      INTEGER             :: I, J
-      REAL*4              :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8              :: TAU
-      CHARACTER(LEN=255)  :: FILENAME
+      INTEGER                :: I, J
+      REAL*4                 :: ARRAY(IGLOB,JGLOB,1)
+      REAL*8                 :: TAU
+      CHARACTER(LEN=255)     :: FILENAME
 
       !=================================================================
       ! READ_ANNUAL_OCEANCO2 begins here!
@@ -492,7 +498,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_ANNUAL_BIOFUELCO2 reads in annual mean biofuel CO2 
-!  emissions from a binary punch file (pns, bmy, 8/16/05)
+!  emissions from a binary punch file (pns, bmy, 8/16/05, 10/3/05)
 !
 !  References:
 !  ============================================================================
@@ -501,20 +507,22 @@
 !  (2 ) See routines in /users/trop/pns/GEOSCHEM/EMISSIONS/BIOFUEL
 !
 !  NOTES:
+!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR
-      USE TRANSFER_MOD,   ONLY:  TRANSFER_2D
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_SIZE"      ! Size parameters
 
       ! Local variables
-      INTEGER             :: I, J
-      REAL*4              :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8              :: TAU
-      CHARACTER(LEN=255)  :: FILENAME
+      INTEGER                :: I, J
+      REAL*4                 :: ARRAY(IGLOB,JGLOB,1)
+      REAL*8                 :: TAU
+      CHARACTER(LEN=255)     :: FILENAME
 
       !=================================================================
       ! READ_ANNUAL_BIOFUELCO2 begins here!
@@ -612,7 +620,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_DAILY_BBIO_CO2 reads in daily values for balanced 
-!  biospheric exchange from a binary punch file.  (pns, bmy, 8/16/05)
+!  biospheric exchange from a binary punch file.  (pns, bmy, 8/16/05, 10/3/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -632,24 +640,26 @@
 !  (1 ) Randerson et al. [1997]
 !
 !  NOTES:
+!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD            
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR
-      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_SIZE"      ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN) :: MONTH, DAY, DOY
+      INTEGER, INTENT(IN)    :: MONTH, DAY, DOY
 
       ! Local variables
-      INTEGER             :: I, J
-      REAL*4              :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8              :: TAU
-      CHARACTER(LEN=3  )  :: SDOY
-      CHARACTER(LEN=255)  :: FILENAME
+      INTEGER                :: I, J
+      REAL*4                 :: ARRAY(IGLOB,JGLOB,1)
+      REAL*8                 :: TAU
+      CHARACTER(LEN=3  )     :: SDOY
+      CHARACTER(LEN=255)     :: FILENAME
 
       !=================================================================
       ! READ_BBIO_DAILYAVERAGE begins here!
@@ -689,7 +699,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_BBIO_DIURNALCYCLE reads CASA daily Net Ecosystem Production
-!  (NEP) fluxes but with a diurnal cycle imposed.  (pns, bmy, 8/16/05)
+!  (NEP) fluxes but with a diurnal cycle imposed.  (pns, bmy, 8/16/05, 10/3/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -703,10 +713,12 @@
 !        from CASA model
 !
 !  NOTES:
+!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D 
 
@@ -763,7 +775,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_MONTH_BIOBRN_CO2 reads in monthly values of CO for biomass 
-!  burning from a binary punch file.  
+!  burning from a binary punch file. (pns, bmy, 8/16/05, 10/3/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -771,10 +783,12 @@
 !  (2 ) YEAR  (INTEGER) : Current year (e.g. 1990)
 !
 !  NOTES:
+!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE LOGICAL_MOD,   ONLY : LBBSEA
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D

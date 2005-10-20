@@ -1,11 +1,11 @@
-! $Id: lightning_nox_mod.f,v 1.6 2005/09/02 15:17:17 bmy Exp $
+! $Id: lightning_nox_mod.f,v 1.7 2005/10/20 14:03:33 bmy Exp $
       MODULE LIGHTNING_NOX_MOD
 !
 !******************************************************************************
 !  Module LIGHTNING_NOX_MOD contains variables and routines for emitting NOx
 !  from lightning into the atmosphere.  Original code comes from the old 
 !  GISS-II CTM's of Yuhang Wang, Gerry Gardner, & Larry Horowitz.  Cleaned 
-!  up for inclusion into GEOS-CHEM. (bmy, 4/14/04, 8/25/05)
+!  up for inclusion into GEOS-CHEM. (bmy, 4/14/04, 10/3/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -50,6 +50,7 @@
 !  (2 ) Update scaling for GEOS-4 in routine LIGHTNING (bmy, 3/16/05)
 !  (3 ) Now suppress lightning where ice is on the ground.  Added MET_SCALE
 !        variable and GET_MET_FIELD_SCALE function. (bmy, 8/25/05)
+!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -382,13 +383,6 @@
             X     = 1d0 / ( 1d0 + XIGCRATIO )
             TOTAL = RFLASH * ( ( (1 - X) * CICG * Z2 ) + ( X * Z1 ) ) * 
      &              (FLASHRATE * 60) * FLASHSCALE
-
-            !-------------------------------------------------------------
-            ! Prior to 8/19/05:
-            !IF ( TOTAL > 0 ) THEN
-            !   CALL LIGHTDIST( I, J, LTOP, H0, YMID, TOTAL, VERTPROF )
-            !ENDIF
-            !-------------------------------------------------------------
 
             ! If there's lightning w/in the column ...
             IF ( TOTAL > 0d0 ) THEN
@@ -827,18 +821,19 @@
 !******************************************************************************
 !  Subroutine INIT_LIGHTNING_NOX allocates all module arrays.  It also reads 
 !  the lightning CDF data from disk before the first lightning timestep. 
-!  (bmy, 4/14/04, 8/25/05)
+!  (bmy, 4/14/04, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Now reference DATA_DIR from "directory_mod.f"
 !  (2 ) Now call GET_MET_FIELD_SCALE to initialize the scale factor for
 !        each met field type and grid resolution (bmy, 8/25/05)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE FILE_MOD
+      USE FILE_MOD,      ONLY : IOERROR, IU_FILE
 
 #     include "CMN_SIZE"  ! Size parameters
   

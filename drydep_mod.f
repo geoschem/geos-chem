@@ -1,9 +1,9 @@
-! $Id: drydep_mod.f,v 1.21 2005/09/02 15:17:07 bmy Exp $
+! $Id: drydep_mod.f,v 1.22 2005/10/20 14:03:22 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
 !  Module DRYDEP_MOD contains variables and routines for the GEOS-CHEM dry
-!  deposition scheme. (bmy, 1/27/03, 5/25/05)
+!  deposition scheme. (bmy, 1/27/03, 10/3/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -138,6 +138,7 @@
 !        of seasalt aerosols when computing aerodynamic resistances.
 !        (bec, bmy, 4/13/05)
 !  (17) Now modified for GEOS-5 and GCAP met fields (bmy, 5/25/05)
+!  (18) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -268,6 +269,7 @@
 !        passed to DEPVEL. (bec, bmy, 4/13/05)
 !  (7 ) Now dimension AZO for GEOS or GCAP met fields.  Remove obsolete
 !        variables. (swu, bmy, 5/25/05)
+!  (8 ) Remove reference to TRACERID_MOD, it's not needed (bmy, 10/3/05)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -275,7 +277,10 @@
       USE DAO_MOD,      ONLY : AD, ALBD, BXHEIGHT, SUNCOS
       USE ERROR_MOD,    ONLY : DEBUG_MSG
       USE LOGICAL_MOD,  ONLY : LPRT
-      USE TRACERID_MOD
+      !------------------------------------------
+      ! Prior to 10/3/05:
+      !USE TRACERID_MOD
+      !------------------------------------------
 
 #     include "CMN_SIZE" ! Size parameters
 #     include "CMN_DIAG" ! ND44
@@ -383,7 +388,7 @@
 !******************************************************************************
 !  Function DVZ_MINVAL sets minimum values for drydep velocities for 
 !  SULFATE TRACERS, according to Mian Chin's GOCART model. 
-!  (rjp, bmy, 11/21/02, 7/20/04)
+!  (rjp, bmy, 11/21/02, 10/3/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -394,10 +399,12 @@
 !  NOTES:
 !  (1 ) Don't put a min drydep value on H2O2 for offline run (rjp, bmy,3/31/03)
 !  (2 ) Remove reference to CMN, it's obsolete (bmy, 7/20/04)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE TRACERID_MOD
+      USE TRACERID_MOD, ONLY : IDTMSA, IDTNH3, IDTNH4
+      USE TRACERID_MOD, ONLY : IDTNIT, IDTSO2, IDTSO4
 
 #     include "CMN_SIZE"   ! Size parameters!
 
@@ -453,7 +460,7 @@
 !
 !******************************************************************************
 !  Subroutine METERO calculates meteorological constants needed for the      
-!  dry deposition velocity module. (lwh, gmg, djj, 1989, 1994; bmy, 5/25/05)
+!  dry deposition velocity module. (lwh, gmg, djj, 1989, 1994; bmy, 10/3/05)
 !
 !  Arguments as Output:
 !  ============================================================================
@@ -495,11 +502,12 @@
 !        GEOS or GCAP met fields.  Remove local computation of M-O length
 !        here.  Also now dimension AZO appropriately for GCAP or GEOS met
 !        fields.  Remove obsolete variables. (swu, bmy, 5/25/05)
+!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules 
-      USE DAO_MOD,      ONLY : ALBD,   BXHEIGHT, CLDFRC, GET_OBK,
-     &                         RADSWG, RH,       TS,     USTAR,   Z0
+      USE DAO_MOD,      ONLY : ALBD,   BXHEIGHT, CLDFRC, GET_OBK
+      USE DAO_MOD,      ONLY : RADSWG, RH,       TS,     USTAR,   Z0
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_m
                                   
 #     include "CMN_SIZE"     ! Size parameters
@@ -2627,7 +2635,7 @@ C** Load array DVEL
 !
 !******************************************************************************
 !  Subroutine INIT_DRYDEP initializes certain variables for the GEOS-CHEM
-!  dry deposition subroutines. (bmy, 11/19/02, 4/13/05)
+!  dry deposition subroutines. (bmy, 11/19/02, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Added N2O5 as a drydep tracer, w/ the same drydep velocity as
@@ -2643,13 +2651,29 @@ C** Load array DVEL
 !  (6 ) Included AS, AHS, LET, NH4aq, SO4aq tracers (cas, bmy, 1/6/05)
 !  (7 ) Remove reference to PBLFRAC array -- it's obsolete (bmy, 2/22/05)
 !  (8 ) Included SO4s, NITs tracers (bec, bmy, 4/13/05)
+!  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE LOGICAL_MOD, ONLY : LDRYD
-      USE TRACER_MOD,  ONLY : N_TRACERS, SALA_REDGE_um, SALC_REDGE_um
-      USE TRACERID_MOD
+      USE ERROR_MOD,    ONLY : ALLOC_ERR
+      USE LOGICAL_MOD,  ONLY : LDRYD
+      USE TRACER_MOD,   ONLY : N_TRACERS, SALA_REDGE_um, SALC_REDGE_um
+      USE TRACERID_MOD, ONLY : IDTPB,     IDTBE7,        IDTNOX
+      USE TRACERID_MOD, ONLY : IDTOX,     IDTPAN,        IDTHNO3 
+      USE TRACERID_MOD, ONLY : IDTH2O2,   IDTPMN,        IDTPPN  
+      USE TRACERID_MOD, ONLY : IDTISN2,   IDTR4N2,       IDTCH2O 
+      USE TRACERID_MOD, ONLY : IDTN2O5,   IDTSO2,        IDTSO4  
+      USE TRACERID_MOD, ONLY : IDTSO4S,   IDTMSA,        IDTNH3  
+      USE TRACERID_MOD, ONLY : IDTNH4,    IDTNIT,        IDTNITS 
+      USE TRACERID_MOD, ONLY : IDTAS,     IDTAHS,        IDTLET  
+      USE TRACERID_MOD, ONLY : IDTSO4aq,  IDTNH4aq,      IDTBCPI 
+      USE TRACERID_MOD, ONLY : IDTOCPI,   IDTBCPO,       IDTOCPO 
+      USE TRACERID_MOD, ONLY : IDTALPH,   IDTLIMO,       IDTALCO 
+      USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,       IDTSOG3 
+      USE TRACERID_MOD, ONLY : IDTSOA1,   IDTSOA2,       IDTSOA3 
+      USE TRACERID_MOD, ONLY : IDTDST1,   IDTDST2,       IDTDST3 
+      USE TRACERID_MOD, ONLY : IDTDST4,   IDTSALA,       IDTSALC 
+      USE TRACERID_MOD, ONLY : IDTHG2,    IDTHGP  
 
 #     include "CMN_SIZE"  ! Size parameters
 

@@ -1,9 +1,9 @@
-! $Id: emfossil.f,v 1.4 2005/09/02 15:17:09 bmy Exp $
+! $Id: emfossil.f,v 1.5 2005/10/20 14:03:24 bmy Exp $
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
 !*****************************************************************************
 !  Subroutine EMFOSSIL emits fossil fuels into the EMISRR and EMISRRN 
-!  arrays, which are then passed to SMVGEAR. (bmy, 4/19/99, 7/06/05)
+!  arrays, which are then passed to SMVGEAR. (bmy, 4/19/99, 10/3/05)
 !
 !  Arguments as input:
 !  ========================================================================
@@ -38,15 +38,16 @@
 !        GET_USA_MASK from "epa_nei_mod.f". (rch, rjp, bmy, 11/5/04)
 !  (17) Now references GET_DAY_OF_WEEK from "time_mod.f" to correctly figure
 !        out if this is a weekday or weekend. (bmy, 7/6/05)
+!  (18) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !*****************************************************************************
 !          
       ! References to F90 modules
-      USE DIAG_MOD,    ONLY : AD29, AD32_an, AD36
-      USE EPA_NEI_MOD, ONLY : GET_EPA_ANTHRO, GET_USA_MASK
-      USE GRID_MOD,    ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD, ONLY : LNEI99
-      USE TIME_MOD,    ONLY : GET_TS_EMIS, GET_DAY_OF_WEEK
-      USE TRACERID_MOD
+      USE DIAG_MOD,     ONLY : AD29, AD32_an, AD36
+      USE EPA_NEI_MOD,  ONLY : GET_EPA_ANTHRO, GET_USA_MASK
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,  ONLY : LNEI99
+      USE TIME_MOD,     ONLY : GET_TS_EMIS, GET_DAY_OF_WEEK
+      USE TRACERID_MOD, ONLY : IDENOX, IDEOX, IDTCO
   
       IMPLICIT NONE
 

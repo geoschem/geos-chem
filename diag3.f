@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.26 2005/09/02 15:17:04 bmy Exp $
+! $Id: diag3.f,v 1.27 2005/10/20 14:03:19 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out diagnostics to the BINARY format punch file 
-!  (bmy, bey, mgs, rvm, 5/27/99, 7/26/05)
+!  (bmy, bey, mgs, rvm, 5/27/99, 10/3/03)
 !
 !  NOTES: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
@@ -64,29 +64,72 @@
 !  (61) References ND04, WRITE_DIAG04 from "diag04_mod.f".  Also now updated
 !        ND30 diagnostic for land/water/ice flags.  Also remove reference
 !        to LWI array. (bmy, 8/18/05)
+!  (62) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 ! 
       ! References to F90 modules
       USE BPCH2_MOD
-      USE BIOMASS_MOD, ONLY : BIOTRCE
-      USE BIOFUEL_MOD, ONLY : NBFTRACE, BFTRACE
-      !-------------------------------------------
-      ! Prior to 8/18/05:
-      !USE DAO_MOD,     ONLY : LWI
-      !-------------------------------------------
-      USE DIAG_MOD
-      USE DIAG03_MOD,  ONLY : ND03, WRITE_DIAG03
-      USE DIAG04_MOD,  ONLY : ND04, WRITE_DIAG04
-      USE DIAG41_MOD,  ONLY : ND41, WRITE_DIAG41
-      USE DIAG_PL_MOD, ONLY : AD65
-      USE DRYDEP_MOD,  ONLY : NUMDEP, NTRAIND
-      USE FILE_MOD,    ONLY : IU_BPCH
-      USE GRID_MOD,    ONLY : GET_AREA_M2, GET_XOFFSET, GET_YOFFSET
-      USE LOGICAL_MOD
-      USE TIME_MOD
-      USE TRACER_MOD
-      USE TRACERID_MOD
-      USE WETSCAV_MOD, ONLY : GET_WETDEP_NSOL, GET_WETDEP_IDWETD  
+      USE BIOMASS_MOD,  ONLY : BIOTRCE
+      USE BIOFUEL_MOD,  ONLY : NBFTRACE,    BFTRACE
+      USE DIAG_MOD,     ONLY : AD01,        AD02,        AD05    
+      USE DIAG_MOD,     ONLY : AD06,        AD07,        AD07_BC
+      USE DIAG_MOD,     ONLY : AD07_OC,     AD07_HC,     AD08
+      USE DIAG_MOD,     ONLY : AD09,        AD09_em,     AD11
+      USE DIAG_MOD,     ONLY : AD12,        AD13_DMS,    AD13_SO2_ac 
+      USE DIAG_MOD,     ONLY : AD13_SO2_an, AD13_SO2_bb, AD13_SO2_bf
+      USE DIAG_MOD,     ONLY : AD13_SO2_ev, AD13_SO2_nv, AD13_SO4_an
+      USE DIAG_MOD,     ONLY : AD13_SO4_bf, AD13_SO2_sh, AD13_NH3_an
+      USE DIAG_MOD,     ONLY : AD13_NH3_na, AD13_NH3_bb, AD13_NH3_bf
+      USE DIAG_MOD,     ONLY : CONVFLUP,    TURBFLUP,    AD16
+      USE DIAG_MOD,     ONLY : CT16,        AD17,        CT17
+      USE DIAG_MOD,     ONLY : AD18,        CT18,        AD21
+      USE DIAG_MOD,     ONLY : AD21_cr,     AD22,        LTJV
+      USE DIAG_MOD,     ONLY : CTJV,        MASSFLEW,    MASSFLNS
+      USE DIAG_MOD,     ONLY : MASSFLUP,    AD28,        AD29
+      USE DIAG_MOD,     ONLY : AD30,        AD30,        AD31
+      USE DIAG_MOD,     ONLY : AD32_ac,     AD32_an,     AD32_bb
+      USE DIAG_MOD,     ONLY : AD32_bf,     AD32_fe,     AD32_li
+      USE DIAG_MOD,     ONLY : AD32_so,     AD32_ub,     AD33
+      USE DIAG_MOD,     ONLY : AD34,        AD35,        AD36
+      USE DIAG_MOD,     ONLY : AD37,        AD38,        AD39
+      USE DIAG_MOD,     ONLY : AD43,        AD43,        LTNO
+      USE DIAG_MOD,     ONLY : CTNO,        LTOH,        CTOH
+      USE DIAG_MOD,     ONLY : LTHO2,       CTHO2,       LTNO2
+      USE DIAG_MOD,     ONLY : CTNO2,       LTNO3,       CTNO3
+      USE DIAG_MOD,     ONLY : AD44,        AD45,        LTOTH
+      USE DIAG_MOD,     ONLY : CTOTH,       AD46,        AD47
+      USE DIAG_MOD,     ONLY : AD55,        AD66,        AD67
+      USE DIAG_MOD,     ONLY : AD68,        AD69
+      USE DIAG03_MOD,   ONLY : ND03,        WRITE_DIAG03
+      USE DIAG04_MOD,   ONLY : ND04,        WRITE_DIAG04
+      USE DIAG41_MOD,   ONLY : ND41,        WRITE_DIAG41
+      USE DIAG_PL_MOD,  ONLY : AD65
+      USE DRYDEP_MOD,   ONLY : NUMDEP,      NTRAIND
+      USE FILE_MOD,     ONLY : IU_BPCH
+      USE GRID_MOD,     ONLY : GET_AREA_M2, GET_XOFFSET, GET_YOFFSET
+      USE LOGICAL_MOD,  ONLY : LCARB,       LCRYST,      LDUST    
+      USE LOGICAL_MOD,  ONLY : LSHIPSO2,    LSOA,        LSSALT   
+      USE TIME_MOD,     ONLY : GET_DIAGb,   GET_DIAGe,   GET_CT_A3   
+      USE TIME_MOD,     ONLY : GET_CT_A6,   GET_CT_CHEM, GET_CT_CONV 
+      USE TIME_MOD,     ONLY : GET_CT_DYN,  GET_CT_EMIS, GET_CT_I6   
+      USE TRACER_MOD,   ONLY : N_TRACERS,   STT,         TRACER_MW_G
+      USE TRACER_MOD,   ONLY : ITS_AN_AEROSOL_SIM
+      USE TRACER_MOD,   ONLY : ITS_A_CH3I_SIM
+      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM
+      USE TRACER_MOD,   ONLY : ITS_A_RnPbBe_SIM
+      USE TRACER_MOD,   ONLY : ITS_A_TAGOX_SIM
+      USE TRACERID_MOD, ONLY : IDTPB,       IDTDST1,     IDTDST2 
+      USE TRACERID_MOD, ONLY : IDTDST3,     IDTDST4,     IDTBCPI 
+      USE TRACERID_MOD, ONLY : IDTOCPI,     IDTALPH,     IDTLIMO 
+      USE TRACERID_MOD, ONLY : IDTSOA1,     IDTSOA2,     IDTSOA3 
+      USE TRACERID_MOD, ONLY : IDTSALA,     IDTSALC,     IDTDMS 
+      USE TRACERID_MOD, ONLY : IDTSO2,      IDTSO4,      IDTNH3 
+      USE TRACERID_MOD, ONLY : IDTOX,       IDTNOX,      IDTHNO3 
+      USE TRACERID_MOD, ONLY : IDTISOP,     IDTACET,     IDTPRPE 
+      USE TRACERID_MOD, ONLY : NEMANTHRO 
+      USE WETSCAV_MOD,  ONLY : GET_WETDEP_NSOL
+      USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD  
 
       IMPLICIT NONE
 
@@ -1602,10 +1645,6 @@
          CATEGORY = 'LANDMAP'
          UNIT     = 'unitless'
             
-         !------------------------------------
-         ! Prior to 8/18/05:
-         !ARRAY(:,:,1) = FLOAT( LWI(:,:) )
-         !------------------------------------
          ARRAY(:,:,1) = AD30(:,:) / SCALEDYN
          NN           = 1 
 

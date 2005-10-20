@@ -1,10 +1,10 @@
-! $Id: uvalbedo_mod.f,v 1.6 2005/09/02 15:17:30 bmy Exp $
+! $Id: uvalbedo_mod.f,v 1.7 2005/10/20 14:03:46 bmy Exp $
       MODULE UVALBEDO_MOD
 !
 !******************************************************************************
 !  Module UVALBEDO_MOD contains variables and routines for reading the UV
 !  Albedo data from disk (for use w/ the FAST-J photolysis routines).
-!  (bmy, 4/19/02, 8/16/05)
+!  (bmy, 4/19/02, 10/3/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -31,6 +31,7 @@
 !  (4 ) Minor modification in READ_UVALBEDO (bmy, 3/14/03)
 !  (5 ) Now references "directory_mod.f" (bmy, 7/20/04)
 !  (6 ) Bug fix for GCAP grid in READ_UVALBEDO (bmy, 8/16/05)
+!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -53,7 +54,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_UVALBEDO reads in UV albedo data from a binary punch
-!  file for the given grid, model, and month. (bmy, 2/2/00, 6/27/05)  
+!  file for the given grid, model, and month. (bmy, 2/2/00, 10/3/05)  
 !
 !  Arguments as Input:
 !  ==========================================================================
@@ -89,10 +90,12 @@
 !        info to stdout.  Also made cosmetic changes. (bmy, 3/14/03)
 !  (12) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (13) Read proper filename for GCAP or GEOS grids (swu, bmy, 8/15/05) 
+!  (14) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
@@ -130,18 +133,6 @@
       !=================================================================
       ! Read UVALBEDO data from disk
       !=================================================================
-
-!-----------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      ! Create filename
-!#if   defined( GCAP ) 
-!      FILENAME = TRIM( DATA_DIR )                 // 
-!     &           'uvalbedo_200111/uvalbedo.gcap.' // GET_RES_EXT()
-!#else
-!      FILENAME = TRIM( DATA_DIR )                 // 
-!     &           'uvalbedo_200111/uvalbedo.geos.' // GET_RES_EXT()
-!#endif
-!-----------------------------------------------------------------------------
 
       ! Create filename
       FILENAME = TRIM( DATA_DIR )            // 

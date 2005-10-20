@@ -1,4 +1,4 @@
-! $Id: ndxx_setup.f,v 1.20 2005/09/02 15:17:19 bmy Exp $
+! $Id: ndxx_setup.f,v 1.21 2005/10/20 14:03:35 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
@@ -122,13 +122,45 @@
       ! References to F90 modules
       USE BIOMASS_MOD,     ONLY : NBIOTRCE
       USE BIOFUEL_MOD,     ONLY : NBFTRACE
-      USE DIAG_MOD
+      USE DIAG_MOD,        ONLY : AD01,        AD02,        AD05    
+      USE DIAG_MOD,        ONLY : AD06,        AD07,        AD07_BC
+      USE DIAG_MOD,        ONLY : AD07_OC,     AD07_HC,     AD08
+      USE DIAG_MOD,        ONLY : AD09,        AD09_em,     AD11
+      USE DIAG_MOD,        ONLY : AD12,        AD13_DMS,    AD13_SO2_ac 
+      USE DIAG_MOD,        ONLY : AD13_SO2_an, AD13_SO2_bb, AD13_SO2_bf
+      USE DIAG_MOD,        ONLY : AD13_SO2_ev, AD13_SO2_nv, AD13_SO4_an
+      USE DIAG_MOD,        ONLY : AD13_SO4_bf, AD13_SO2_sh, AD13_NH3_an
+      USE DIAG_MOD,        ONLY : AD13_NH3_na, AD13_NH3_bb, AD13_NH3_bf
+      USE DIAG_MOD,        ONLY : CONVFLUP,    TURBFLUP,    AD16
+      USE DIAG_MOD,        ONLY : CT16,        AD17,        CT17
+      USE DIAG_MOD,        ONLY : AD18,        CT18,        AD21
+      USE DIAG_MOD,        ONLY : AD21_cr,     AD22,        LTJV
+      USE DIAG_MOD,        ONLY : CTJV,        MASSFLEW,    MASSFLNS
+      USE DIAG_MOD,        ONLY : MASSFLUP,    AD28,        AD29
+      USE DIAG_MOD,        ONLY : AD30,        AD30,        AD31
+      USE DIAG_MOD,        ONLY : AD32_ac,     AD32_an,     AD32_bb
+      USE DIAG_MOD,        ONLY : AD32_bf,     AD32_fe,     AD32_li
+      USE DIAG_MOD,        ONLY : AD32_so,     AD32_ub,     AD33
+      USE DIAG_MOD,        ONLY : AD34,        AD35,        AD36
+      USE DIAG_MOD,        ONLY : AD37,        AD38,        AD39
+      USE DIAG_MOD,        ONLY : AD43,        AD43,        LTNO
+      USE DIAG_MOD,        ONLY : CTNO,        LTOH,        CTOH
+      USE DIAG_MOD,        ONLY : LTHO2,       CTHO2,       LTNO2
+      USE DIAG_MOD,        ONLY : CTNO2,       LTNO3,       CTNO3
+      USE DIAG_MOD,        ONLY : AD44,        AD45,        LTOTH
+      USE DIAG_MOD,        ONLY : CTOTH,       AD46,        AD47
+      USE DIAG_MOD,        ONLY : AD55,        AD66,        AD67
+      USE DIAG_MOD,        ONLY : AD68,        AD69
       USE DIAG_OH_MOD,     ONLY : INIT_DIAG_OH
       USE DRYDEP_MOD,      ONLY : NUMDEP
-      USE ERROR_MOD,       ONLY : ALLOC_ERR, ERROR_STOP
-      USE LOGICAL_MOD      
+      USE ERROR_MOD,       ONLY : ALLOC_ERR,   ERROR_STOP
+      USE LOGICAL_MOD,     ONLY : LDUST, LCARB, LSSALT, LCRYST 
       USE PLANEFLIGHT_MOD, ONLY : SETUP_PLANEFLIGHT
-      USE TRACER_MOD 
+      USE TRACER_MOD,      ONLY : ITS_A_CH3I_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_MERCURY_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_TAGOX_SIM
+      USE TRACER_MOD,      ONLY : N_TRACERS
       USE TRACERID_MOD,    ONLY : NEMANTHRO
       USE WETSCAV_MOD,     ONLY : GET_WETDEP_NMAX
 

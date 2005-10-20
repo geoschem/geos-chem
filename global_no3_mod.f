@@ -1,10 +1,10 @@
-! $Id: global_no3_mod.f,v 1.5 2005/09/02 15:17:13 bmy Exp $
+! $Id: global_no3_mod.f,v 1.6 2005/10/20 14:03:28 bmy Exp $
       MODULE GLOBAL_NO3_MOD
 !
 !******************************************************************************
 !  Module GLOBAL_NO3_MOD contains variables and routines for reading the
 !  global monthly mean NO3 concentration from disk.  These are needed for the 
-!  offline sulfate/aerosol simulation. (bmy, 10/15/02, 8/1/05)
+!  offline sulfate/aerosol simulation. (bmy, 10/15/02, 10/3/05)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -30,6 +30,7 @@
 !  (4 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (5 ) Now suppress output from READ_BPCH2 with QUIET=T (bmy, 1/14/05)
 !  (6 ) Now read from "sulfate_sim_200508/offline" directory (bmy, 8/1/05)
+!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -61,7 +62,7 @@
 !******************************************************************************
 !  Subroutine GET_GLOBAL_NO3 reads monthly mean NO3 data fields.  These 
 !  are needed for simulations such as offline sulfate/aerosol. 
-!  (bmy, 10/15/02, 8/1/05)
+!  (bmy, 10/15/02, 10/3/05)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -76,10 +77,12 @@
 !        read from "sulfate_sim_200508/offline" directory.  Also now read
 !        up to LLTROP levels.  Now reference TRANSFER_3D_TROP from 
 !        "transfer_mod.f". (bmy, 8/1/05)
+!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
 
@@ -91,11 +94,6 @@
       INTEGER, INTENT(IN)  :: THISMONTH
 
       ! Local variables
-      !------------------------------------------------------
-      ! Prior to 8/1/05:
-      !INTEGER              :: I, J, L
-      !REAL*4               :: ARRAY(IGLOB,JGLOB,LGLOB)
-      !------------------------------------------------------
       REAL*4               :: ARRAY(IGLOB,JGLOB,LLTROP)
       REAL*8               :: XTAU
       CHARACTER(LEN=255)   :: FILENAME
@@ -112,12 +110,6 @@
          CALL INIT_GLOBAL_NO3
          FIRST = .FALSE.
       ENDIF
-
-!----------------------------------------------------------------------------
-!      ! File name
-!      FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/NO3.' //
-!     &           GET_NAME_EXT()  // '.' // GET_RES_EXT()
-!----------------------------------------------------------------------------
 
       ! File name
       FILENAME = TRIM( DATA_DIR )                       // 
@@ -167,10 +159,6 @@
       !=================================================================
       ! INIT_GLOBAL_H2O2 begins here!
       !=================================================================
-      !---------------------------------------------------
-      ! Prior to 8/1/05:
-      !ALLOCATE( NO3( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      !---------------------------------------------------
       ALLOCATE( NO3( IIPAR, JJPAR, LLTROP ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'NO3' )
       NO3 = 0d0

@@ -1,5 +1,12 @@
-C $Id: main.f,v 1.27 2005/09/02 15:17:18 bmy Exp $
+C $Id: main.f,v 1.28 2005/10/20 14:03:34 bmy Exp $
 C $Log: main.f,v $
+C Revision 1.28  2005/10/20 14:03:34  bmy
+C GEOS-CHEM v7-03-04, includes the following modifications:
+C - Added LINUX_IFORT switch for Intel v8/v9 compiler
+C - Make sure all module USE commands are USE, ONLY (for ESMF)
+C - Eliminated obsolete references to include files and modules
+C - Bug fix for COMPAQ; declare IRMA, IRMB threadprivate in "comode.h"
+C
 C Revision 1.27  2005/09/02 15:17:18  bmy
 C GEOS-CHEM v7-03-03, includes the following modifications:
 C - Further modifications for GCAP
@@ -121,64 +128,122 @@ C
 !******************************************************************************
 !
       ! References to F90 modules 
-      USE A3_READ_MOD
-      USE A6_READ_MOD
+      USE A3_READ_MOD,       ONLY : GET_A3_FIELDS
+      USE A3_READ_MOD,       ONLY : OPEN_A3_FIELDS
+      USE A3_READ_MOD,       ONLY : UNZIP_A3_FIELDS
+      USE A6_READ_MOD,       ONLY : GET_A6_FIELDS
+      USE A6_READ_MOD,       ONLY : OPEN_A6_FIELDS
+      USE A6_READ_MOD,       ONLY : UNZIP_A6_FIELDS
       USE BENCHMARK_MOD,     ONLY : STDRUN
       USE CHEMISTRY_MOD,     ONLY : DO_CHEMISTRY
       USE CONVECTION_MOD,    ONLY : DO_CONVECTION
       USE COMODE_MOD,        ONLY : INIT_COMODE
       USE DIAG_MOD,          ONLY : DIAGCHLORO
-      USE DIAG41_MOD,        ONLY : DIAG41, ND41
-      USE DIAG48_MOD,        ONLY : DIAG48, ITS_TIME_FOR_DIAG48
-      USE DIAG49_MOD,        ONLY : DIAG49, ITS_TIME_FOR_DIAG49
-      USE DIAG50_MOD,        ONLY : DIAG50, DO_SAVE_DIAG50
-      USE DIAG51_MOD,        ONLY : DIAG51, DO_SAVE_DIAG51
+      USE DIAG41_MOD,        ONLY : DIAG41,          ND41
+      USE DIAG48_MOD,        ONLY : DIAG48,          ITS_TIME_FOR_DIAG48
+      USE DIAG49_MOD,        ONLY : DIAG49,          ITS_TIME_FOR_DIAG49
+      USE DIAG50_MOD,        ONLY : DIAG50,          DO_SAVE_DIAG50
+      USE DIAG51_MOD,        ONLY : DIAG51,          DO_SAVE_DIAG51
       USE DIAG_OH_MOD,       ONLY : PRINT_DIAG_OH
-      USE DAO_MOD
+      USE DAO_MOD,           ONLY : AD,              AIRQNT  
+      USE DAO_MOD,           ONLY : AVGPOLE,         CLDTOPS
+      USE DAO_MOD,           ONLY : CONVERT_UNITS,   COPY_I6_FIELDS
+      USE DAO_MOD,           ONLY : COSSZA,          INIT_DAO
+      USE DAO_MOD,           ONLY : INTERP,          PS1
+      USE DAO_MOD,           ONLY : PS2,             PSC2          
+      USE DAO_MOD,           ONLY : T,               TS            
+      USE DAO_MOD,           ONLY : SUNCOS,          SUNCOSB
+      USE DAO_MOD,           ONLY : INIT_DAO
+      USE DAO_MOD,           ONLY : INTERP
       USE DRYDEP_MOD,        ONLY : DO_DRYDEP
       USE EMISSIONS_MOD,     ONLY : DO_EMISSIONS
-      USE ERROR_MOD
-      USE FILE_MOD       
+      USE ERROR_MOD,         ONLY : DEBUG_MSG
+      USE FILE_MOD,          ONLY : IU_BPCH,         IU_DEBUG
+      USE FILE_MOD,          ONLY : IU_ND48,         IU_SMV2LOG    
+      USE FILE_MOD,          ONLY : CLOSE_FILES
       USE GLOBAL_CH4_MOD,    ONLY : INIT_GLOBAL_CH4, CH4_AVGTP
-      USE GWET_READ_MOD
-      USE I6_READ_MOD
+      USE GWET_READ_MOD,     ONLY : GET_GWET_FIELDS
+      USE GWET_READ_MOD,     ONLY : OPEN_GWET_FIELDS
+      USE GWET_READ_MOD,     ONLY : UNZIP_GWET_FIELDS
+      USE I6_READ_MOD,       ONLY : GET_I6_FIELDS_1
+      USE I6_READ_MOD,       ONLY : GET_I6_FIELDS_2
+      USE I6_READ_MOD,       ONLY : OPEN_I6_FIELDS
+      USE I6_READ_MOD,       ONLY : UNZIP_I6_FIELDS
       USE INPUT_MOD,         ONLY : READ_INPUT_FILE
       USE LIGHTNING_NOX_MOD, ONLY : LIGHTNING
-      USE LOGICAL_MOD
+      USE LOGICAL_MOD,       ONLY : LEMIS,     LCHEM, LUNZIP,  LDUST
+      USE LOGICAL_MOD,       ONLY : LLIGHTNOX, LPRT,  LSTDRUN, LSVGLB
+      USE LOGICAL_MOD,       ONLY : LWAIT,     LTRAN, LUPBD,   LCONV
+      USE LOGICAL_MOD,       ONLY : LWETD,     LTURB, LDRYD     
       USE PBL_MIX_MOD,       ONLY : DO_PBL_MIX
-      USE PHIS_READ_MOD
-      USE PLANEFLIGHT_MOD,   ONLY : SETUP_PLANEFLIGHT, PLANEFLIGHT
-      USE PRESSURE_MOD
-      USE TIME_MOD
-      USE TRACER_MOD
-      USE TRACERID_MOD 
+      !----------------------------------------------------------------
+      ! Prior to 10/3/05:
+      ! PHIS is now obsolete (bmy, 10/3/05)
+      !USE PHIS_READ_MOD
+      !----------------------------------------------------------------
+      USE PLANEFLIGHT_MOD,   ONLY : PLANEFLIGHT
+      USE PLANEFLIGHT_MOD,   ONLY : SETUP_PLANEFLIGHT 
+      USE PRESSURE_MOD,      ONLY : INIT_PRESSURE
+      USE PRESSURE_MOD,      ONLY : SET_FLOATING_PRESSURE
+      USE TIME_MOD,          ONLY : GET_NYMDb,        GET_NHMSb
+      USE TIME_MOD,          ONLY : GET_NYMD,         GET_NHMS
+      USE TIME_MOD,          ONLY : GET_A3_TIME,      GET_FIRST_A3_TIME
+      USE TIME_MOD,          ONLY : GET_A6_TIME,      GET_FIRST_A6_TIME
+      USE TIME_MOD,          ONLY : GET_I6_TIME,      GET_MONTH
+      USE TIME_MOD,          ONLY : GET_TAU,          GET_TAUb
+      USE TIME_MOD,          ONLY : GET_TS_CHEM,      GET_TS_DYN
+      USE TIME_MOD,          ONLY : GET_ELAPSED_SEC,  GET_TIME_AHEAD
+      USE TIME_MOD,          ONLY : GET_DAY_OF_YEAR,  ITS_A_NEW_DAY
+      USE TIME_MOD,          ONLY : ITS_A_NEW_SEASON, GET_SEASON
+      USE TIME_MOD,          ONLY : ITS_A_NEW_MONTH,  GET_NDIAGTIME
+      USE TIME_MOD,          ONLY : ITS_A_LEAPYEAR,   GET_YEAR
+      USE TIME_MOD,          ONLY : ITS_TIME_FOR_A3,  ITS_TIME_FOR_A6
+      USE TIME_MOD,          ONLY : ITS_TIME_FOR_I6,  ITS_TIME_FOR_CHEM
+      USE TIME_MOD,          ONLY : ITS_TIME_FOR_CONV,ITS_TIME_FOR_DEL
+      USE TIME_MOD,          ONLY : ITS_TIME_FOR_DIAG,ITS_TIME_FOR_DYN
+      USE TIME_MOD,          ONLY : ITS_TIME_FOR_EMIS,ITS_TIME_FOR_EXIT
+      USE TIME_MOD,          ONLY : ITS_TIME_FOR_UNIT,ITS_TIME_FOR_UNZIP
+      USE TIME_MOD,          ONLY : SET_CT_CONV,      SET_CT_DYN
+      USE TIME_MOD,          ONLY : SET_CT_EMIS,      SET_CT_CHEM
+      USE TIME_MOD,          ONLY : SET_DIAGb,        SET_DIAGe
+      USE TIME_MOD,          ONLY : SET_CURRENT_TIME, PRINT_CURRENT_TIME
+      USE TIME_MOD,          ONLY : SET_ELAPSED_MIN,  SYSTEM_TIMESTAMP
+      USE TRACER_MOD,        ONLY : CHECK_STT, N_TRACERS, STT, TCVV
+      USE TRACER_MOD,        ONLY : ITS_AN_AEROSOL_SIM
+      USE TRACER_MOD,        ONLY : ITS_A_CH4_SIM
+      USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
+      !----------------------------------------------------------------
+      ! Prior to 10/3/05:
+      ! TRACERID_MOD isn't used here anymore (bmy, 10/3/05)
+      !USE TRACERID_MOD 
+      !----------------------------------------------------------------
       USE TRANSPORT_MOD,     ONLY : DO_TRANSPORT
       USE TROPOPAUSE_MOD,    ONLY : READ_TROPOPAUSE
-      USE RESTART_MOD,       ONLY : READ_RESTART_FILE, MAKE_RESTART_FILE
-      USE UPBDFLX_MOD,       ONLY : DO_UPBDFLX, UPBDFLX_NOY
+      USE RESTART_MOD,       ONLY : MAKE_RESTART_FILE, READ_RESTART_FILE
+      USE UPBDFLX_MOD,       ONLY : DO_UPBDFLX,        UPBDFLX_NOY
       USE UVALBEDO_MOD,      ONLY : READ_UVALBEDO
-      USE WETSCAV_MOD,       ONLY : INIT_WETSCAV, DO_WETDEP
+      USE WETSCAV_MOD,       ONLY : INIT_WETSCAV,      DO_WETDEP
 
       ! Force all variables to be declared explicitly
       IMPLICIT NONE
       
       ! Header files 
-#     include "CMN_SIZE"        ! Size parameters
-!------------------------------------------------------------------
-! Prior to 8/22/05:
-!#     include "CMN"             ! XTRA2
-!------------------------------------------------------------------
-#     include "CMN_DIAG"        ! Diagnostic switches, NJDAY
-#     include "CMN_GCTM"        ! Physical constants
-#     include "CMN_O3"          ! TCOBOX, FMOL, SAVEOH
-#     include "comode.h"        ! CSAVE,  IDEMS
+#     include "CMN_SIZE"          ! Size parameters
+#     include "CMN_DIAG"          ! Diagnostic switches, NJDAY
+#     include "CMN_GCTM"          ! Physical constants
+#     include "CMN_O3"            ! FMOL,  SAVEOH
+#     include "comode.h"          ! CSAVE, IDEMS
 
       ! Local variables
       LOGICAL :: FIRST = .TRUE.
       INTEGER :: I,           IOS,   J,         K,         L
-      INTEGER :: N,           JDAY,  NYMD_PHIS, NDIAGTIME, N_DYN
+      !---------------------------------------------------------------
+      ! Prior to 10/3/05:
+      ! Remove NYMD_PHIS, it's not needed
+      !INTEGER :: N,           JDAY,  NYMD_PHIS, NDIAGTIME, N_DYN
+      !---------------------------------------------------------------
+      INTEGER :: N,           JDAY,  NDIAGTIME, N_DYN
       INTEGER :: N_DYN_STEPS, NSECb, N_STEP,    DATE(2)
-      INTEGER :: LPAUSE2(IIPAR,JJPAR)
 
       !=================================================================
       ! GEOS-CHEM starts here!                                            
@@ -187,8 +252,12 @@ C
       ! Display current grid resolution and data set type
       CALL DISPLAY_GRID_AND_MODEL
 
-      ! Get the YYYYMMDD value for the PHIS met field 
-      NYMD_PHIS = GET_NYMD_PHIS()
+      !---------------------------------------------------
+      ! Prior to 10/3/05:
+      ! This is not needed anymore (bmy, 10/3/05)
+      !! Get the YYYYMMDD value for the PHIS met field 
+      !NYMD_PHIS = GET_NYMD_PHIS()
+      !---------------------------------------------------
 
       !=================================================================
       !            ***** I N I T I A L I Z A T I O N *****
@@ -201,11 +270,6 @@ C
       CALL INIT_DAO
 
       ! Initialize diagnostic arrays and counters
-      !---------------------------------------
-      ! Prior to 8/3/05:
-      ! This is now obsolete (bmy, 8/3/05)
-      !CALL INITIALIZE( 1 )
-      !---------------------------------------
       CALL INITIALIZE( 2 )
       CALL INITIALIZE( 3 )
 
@@ -233,17 +297,25 @@ C
          CALL UNZIP_A3_FIELDS(  'remove all' )
          CALL UNZIP_A6_FIELDS(  'remove all' )
          CALL UNZIP_I6_FIELDS(  'remove all' )
-         CALL UNZIP_PHIS_FIELD( 'remove all' )
+         !------------------------------------------------
+         ! Prior to 10/3/05:
+         ! PHIS is now obsolete (bmy, 10/3/05)
+         !CALL UNZIP_PHIS_FIELD( 'remove all' )
+         !------------------------------------------------
 
          ! Unzip A-3, A-6, I-6 files for START of run
          CALL UNZIP_A3_FIELDS(  'unzip foreground', GET_NYMDb() )
          CALL UNZIP_A6_FIELDS(  'unzip foreground', GET_NYMDb() )
          CALL UNZIP_I6_FIELDS(  'unzip foreground', GET_NYMDb() )
 
-         ! Only unzip PHIS file for fullchem run
-         IF ( ITS_A_FULLCHEM_SIM() ) THEN
-            CALL UNZIP_PHIS_FIELD( 'unzip foreground', NYMD_PHIS )
-         ENDIF
+         !--------------------------------------------------------------
+         ! Prior to 10/3/05:
+         ! PHIS is now obsolete (bmy, 10/3/05)
+         !! Only unzip PHIS file for fullchem run
+         !IF ( ITS_A_FULLCHEM_SIM() ) THEN
+         !   CALL UNZIP_PHIS_FIELD( 'unzip foreground', NYMD_PHIS )
+         !ENDIF
+         !--------------------------------------------------------------
 
 #if   defined( GEOS_3 )
          ! NOTE: GEOS-3 met field files didn't contain GWET, so we
@@ -262,16 +334,20 @@ C
       !    ***** R E A D   M E T   F I E L D S  @ start of run *****
       !=================================================================
 
-      ! Only read PHIS for fullchem runs
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
-         CALL OPEN_PHIS_FIELD( NYMD_PHIS, 000000 )
-         CALL GET_PHIS_FIELD(  NYMD_PHIS, 000000 ) 
-
-         ! Remove PHIS field from temp dir
-         IF ( LUNZIP ) THEN
-            CALL UNZIP_PHIS_FIELD( 'remove date', NYMD_PHIS )
-         ENDIF
-      ENDIF
+      !-------------------------------------------------------------
+      ! Prior to 10/3/05:
+      ! PHIS is now obsolete (bmy, 10/3/05)
+      !! Only read PHIS for fullchem runs
+      !IF ( ITS_A_FULLCHEM_SIM() ) THEN
+      !   CALL OPEN_PHIS_FIELD( NYMD_PHIS, 000000 )
+      !   CALL GET_PHIS_FIELD(  NYMD_PHIS, 000000 ) 
+      !
+      !   ! Remove PHIS field from temp dir
+      !   IF ( LUNZIP ) THEN
+      !      CALL UNZIP_PHIS_FIELD( 'remove date', NYMD_PHIS )
+      !   ENDIF
+      !ENDIF
+      !-------------------------------------------------------------
 
       ! Open and read A-3 fields
       DATE = GET_FIRST_A3_TIME()
@@ -831,7 +907,11 @@ C
          CALL UNZIP_A3_FIELDS(  'remove all' )
          CALL UNZIP_A6_FIELDS(  'remove all' )
          CALL UNZIP_I6_FIELDS(  'remove all' )
-         CALL UNZIP_PHIS_FIELD( 'remove all' )
+         !-------------------------------------------
+         ! Prior to 10/3/05:
+         ! PHIS is now obsolete (bmy, 10/3/05)
+         !CALL UNZIP_PHIS_FIELD( 'remove all' )
+         !-------------------------------------------
 
 #if   defined( GEOS_3 )
          ! We only need to remove the GWET fields if we are
@@ -890,7 +970,7 @@ C
       ! Internal Subroutine DISPLAY_GRID_AND_MODEL displays the 
       ! appropriate messages for the given model grid and machine type.
       ! It also prints the starting time and date (local time) of the
-      ! GEOS-CHEM simulation. (bmy, 12/2/03, 5/3/05)
+      ! GEOS-CHEM simulation. (bmy, 12/2/03, 10/18/05)
       !=================================================================
 
       ! For system time stamp
@@ -940,6 +1020,8 @@ C
       WRITE( 6, '(a)' ) 'Created w/ LINUX/IFC (32-bit) compiler'
 #elif defined( LINUX_EFC )
       WRITE( 6, '(a)' ) 'Created w/ LINUX/EFC (64-bit) compiler'
+#elif defined( LINUX_IFORT )
+      WRITE( 6, '(a)' ) 'Created w/ LINUX/IFORT (64-bit) compiler'
 #elif defined( SGI_MIPS  )
       WRITE( 6, '(a)' ) 'Created w/ SGI MIPSpro compiler'
 #elif defined( SPARC     )
@@ -974,42 +1056,43 @@ C
       END SUBROUTINE DISPLAY_GRID_AND_MODEL
 
 !-----------------------------------------------------------------------------
-
-      FUNCTION GET_NYMD_PHIS() RESULT( NYMD_PHIS )
-
-      !=================================================================
-      ! Internal Function GET_NYMD_PHIS selects the YYMMDD at which 
-      ! there is PHIS data for the given model (GEOS-1, GEOS-STRAT, 
-      ! GEOS-3, or fvDAS).  This date is Y2K compliant.
-      !=================================================================
-
-      ! Return value 
-      INTEGER :: NYMD_PHIS
-
-#if   defined( GEOS_1 )
-      NYMD_PHIS = 19940101
-
-#elif defined( GEOS_STRAT )
-      NYMD_PHIS = 19960101
-
-#elif defined( GEOS_3 )
-      NYMD_PHIS = 20000101
-
-#elif defined( GEOS_4 )
-      NYMD_PHIS = 20030101
-
-#elif defined( GEOS_5 )
-      NYMD_PHIS = 20030101  ! change if necessary
-
-#elif defined( GCAP )
-      NYMD_PHIS = 20000101
-
-
-#endif
-
-      ! Return to MAIN program
-      END FUNCTION GET_NYMD_PHIS
-      
+! Prior to 10/3/05:
+! This is no longer needed (bmy, 10/3/05)
+!      FUNCTION GET_NYMD_PHIS() RESULT( NYMD_PHIS )
+!
+!      !=================================================================
+!      ! Internal Function GET_NYMD_PHIS selects the YYMMDD at which 
+!      ! there is PHIS data for the given model (GEOS-1, GEOS-STRAT, 
+!      ! GEOS-3, or fvDAS).  This date is Y2K compliant.
+!      !=================================================================
+!
+!      ! Return value 
+!      INTEGER :: NYMD_PHIS
+!
+!#if   defined( GEOS_1 )
+!      NYMD_PHIS = 19940101
+!
+!#elif defined( GEOS_STRAT )
+!      NYMD_PHIS = 19960101
+!
+!#elif defined( GEOS_3 )
+!      NYMD_PHIS = 20000101
+!
+!#elif defined( GEOS_4 )
+!      NYMD_PHIS = 20030101
+!
+!#elif defined( GEOS_5 )
+!      NYMD_PHIS = 20030101  ! change if necessary
+!
+!#elif defined( GCAP )
+!      NYMD_PHIS = 20000101
+!
+!
+!#endif
+!
+!      ! Return to MAIN program
+!      END FUNCTION GET_NYMD_PHIS
+!      
 !-----------------------------------------------------------------------------
 
       FUNCTION ITS_TIME_FOR_BPCH() RESULT( DO_BPCH )
@@ -1154,6 +1237,20 @@ C
       ! and minimum, and sum of DAO met fields for debugging 
       !=================================================================
 
+      ! References to F90 modules
+      USE DAO_MOD, ONLY : AD,       AIRDEN,  AIRVOL,   ALBD1,  ALBD2
+      USE DAO_MOD, ONLY : ALBD,     AVGW,    BXHEIGHT, CLDFRC, CLDF     
+      USE DAO_MOD, ONLY : CLDMAS,   CLDTOPS, CLMOSW,   CLROSW, DELP     
+      USE DAO_MOD, ONLY : DTRAIN,   GWETTOP, HFLUX,    HKBETA, HKETA     
+      USE DAO_MOD, ONLY : LWI,      MOISTQ,  OPTD,     OPTDEP, PBL      
+      USE DAO_MOD, ONLY : PREACC,   PRECON,  PS1,      PS2,    PSC2     
+      USE DAO_MOD, ONLY : RADLWG,   RADSWG,  RH,       SLP,    SNOW     
+      USE DAO_MOD, ONLY : SPHU1,    SPHU2,   SPHU,     SUNCOS, SUNCOSB  
+      USE DAO_MOD, ONLY : TMPU1,    TMPU2,   T,        TROPP,  TS       
+      USE DAO_MOD, ONLY : TSKIN,    U10M,    USTAR,    UWND1,  UWND2     
+      USE DAO_MOD, ONLY : UWND,     V10M,    VWND1,    VWND2,  VWND     
+      USE DAO_MOD, ONLY : WIND_10M, Z0,      ZMEU,     ZMMD,   ZMMU     
+
       ! Local variables
       INTEGER :: I, J, L, IJ
 
@@ -1195,7 +1292,10 @@ C
       IF ( ALLOCATED( OPTD     ) ) PRINT*, 'OPTD    : ', OPTD(L,I,J) 
       IF ( ALLOCATED( OPTDEP   ) ) PRINT*, 'OPTDEP  : ', OPTDEP(L,I,J) 
       IF ( ALLOCATED( PBL      ) ) PRINT*, 'PBL     : ', PBL(I,J) 
-      IF ( ALLOCATED( PHIS     ) ) PRINT*, 'PHIS    : ', PHIS(I,J) 
+      !---------------------------------------------------------------------
+      ! Prior to 10/3/05:
+      !IF ( ALLOCATED( PHIS     ) ) PRINT*, 'PHIS    : ', PHIS(I,J) 
+      !---------------------------------------------------------------------
       IF ( ALLOCATED( PREACC   ) ) PRINT*, 'PREACC  : ', PREACC(I,J) 
       IF ( ALLOCATED( PRECON   ) ) PRINT*, 'PRECON  : ', PRECON(I,J) 
       IF ( ALLOCATED( PS1      ) ) PRINT*, 'PS1     : ', PS1(I,J) 

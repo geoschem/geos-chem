@@ -1,10 +1,10 @@
- ! $Id: carbon_mod.f,v 1.12 2005/09/02 15:16:58 bmy Exp $
+ ! $Id: carbon_mod.f,v 1.13 2005/10/20 14:03:15 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
 !  Module CARBON_MOD contains arrays and routines for performing a 
 !  carbonaceous aerosol simulation.  Original code taken from Mian Chin's 
-!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 8/16/05)
+!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 10/3/05)
 !
 !  4 Aerosol species : Organic and Black carbon 
 !                    : hydrophilic (soluble) and hydrophobic of each
@@ -130,6 +130,7 @@
 !  (5 ) Now references "pbl_mix_mod.f".  Bug fix: now make sure only to save
 !        up to LD07 levels for the ND07 diagnostic in SOA_LUMP. (bmy, 3/4/05)
 !  (6 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
+!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -206,7 +207,7 @@
 !  Subroutine CHEMCARBON is the interface between the GEOS-CHEM main 
 !  program and the carbon aerosol chemistry routines that calculates
 !  dry deposition, chemical conversion between hydrophilic and 
-!  hydrophobic, and SOA production. (rjp, bmy, 4/1/04, 7/20/04)
+!  hydrophobic, and SOA production. (rjp, bmy, 4/1/04, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Added code from the Caltech group for SOA chemistry.  Also now 
@@ -216,6 +217,7 @@
 !        if it hasn't been done before w/in EMISSCARBON. (rjp, bmy, 7/15/04)
 !  (3 ) Now reference LSOA, LEMIS, LPRT from "logical_mod.f".  Now reference
 !        STT and ITS_AN_AEROSOL_SIM from "tracer_mod.f" (bmy, 7/20/04)
+!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -227,7 +229,7 @@
       USE LOGICAL_MOD,    ONLY : LSOA, LEMIS, LPRT
       USE TIME_MOD,       ONLY : GET_MONTH, ITS_A_NEW_MONTH
       USE TRACER_MOD,     ONLY : STT, ITS_AN_AEROSOL_SIM
-      USE TRACERID_MOD
+      USE TRACERID_MOD,   ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -854,7 +856,7 @@
       ! Return to calling program
       END SUBROUTINE CHEM_OCPO
 
-!-----------------------------------------------------------------------
+!------------------------------------------------------------------------------
 
       SUBROUTINE CHEM_OCPI( TC )
 !
@@ -870,6 +872,7 @@
 !  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f" (bmy, 2/17/05)
+!  (3 ) Bug fix: add BL_FRAC to the PRIVATE list (mak, bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -919,7 +922,12 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, TC0, CCV, FREQ, CNEW, AREA_CM2, FLUX )
+!--------------------------------------------------------------------------
+! Prior to 10/3/05:
+! BUG FIX: Add BL_FRAC to the PRIVATE list (mak, bmy, 10/3/05)
+!!$OMP+PRIVATE( I, J, L, TC0, CCV, FREQ, CNEW, AREA_CM2, FLUX )
+!--------------------------------------------------------------------------
+!$OMP+PRIVATE( I, J, L, TC0, CCV, BL_FRAC, FREQ, CNEW, AREA_CM2, FLUX )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -1082,7 +1090,9 @@
       USE DAO_MOD,      ONLY : T, AD, AIRVOL, SUNCOS
       USE DIAG_MOD,     ONLY : AD07_HC 
       USE TRACER_MOD,   ONLY : STT 
-      USE TRACERID_MOD
+      USE TRACERID_MOD, ONLY : IDTALCO, IDTALPH, IDTLIMO, IDTOCPI
+      USE TRACERID_MOD, ONLY : IDTOCPO, IDTSOA1, IDTSOA2, IDTSOA3
+      USE TRACERID_MOD, ONLY : IDTSOG1, IDTSOG2, IDTSOG3
       USE TIME_MOD,     ONLY : GET_TS_CHEM, GET_MONTH
 
 #     include "CMN_SIZE"     ! Size parameters
@@ -1800,7 +1810,7 @@ c
 !******************************************************************************
 !  Subroutine CHEM_NVOC computes the oxidation of Hydrocarbon by O3, OH, and 
 !  NO3.  This comes from the Caltech group (Hong Liao, Serena Chung, et al)
-!  and was incorporated into GEOS-CHEM. (rjp, bmy, 7/6/04, 7/20/04)
+!  and was incorporated into GEOS-CHEM. (rjp, bmy, 7/6/04, 10/3/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1818,11 +1828,12 @@ c
 !  
 !  NOTES:
 !  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
+!  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 kmodules
       USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD
+      USE TRACERID_MOD, ONLY : IDTALCO,     IDTALPH,  IDTLIMO
       USE TIME_MOD,     ONLY : GET_TS_CHEM, GET_MONTH
 
 #     include "CMN_SIZE"     ! Size parameters
@@ -1917,7 +1928,7 @@ c
 !******************************************************************************
 !  Subroutine SOA_PARTITION partitions the mass of gas and aerosol 
 !  tracers according to five Hydrocarbon species and three oxidants.
-!  (rjp, bmy, 7/7/04, 7/20/04)
+!  (rjp, bmy, 7/7/04, 10/3/05)
 !
 !  NOTE: GPROD and APROD are mass ratios of individual oxidation 
 !        products of gas/aerosol to the sum of all. 
@@ -1935,12 +1946,13 @@ c
 !
 !  NOTES:
 !  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
+!  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! Refrences to F90 modules
       USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTSOG1, IDTSOG2, IDTSOG3, 
-     &                         IDTSOA1, IDTSOA2, IDTSOA3
+      USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3
+      USE TRACERID_MOD, ONLY : IDTSOG1, IDTSOG2, IDTSOG3
 
 #     include "CMN_SIZE"     ! Size parameters
 
@@ -1996,7 +2008,7 @@ c
 !
 !******************************************************************************
 !  Subroutine SOA_LUMP returns the organic gas and aerosol back to the
-!  STT array.  (rjp, bmy, 7/7/04, 3/4/05)
+!  STT array.  (rjp, bmy, 7/7/04, 10/3/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -2010,12 +2022,14 @@ c
 !  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !  (2 ) Bug fix: make sure L <= LD07 before saving into AD07 array, or else
 !        we will get an out-of-bounds error. (bmy, 3/4/05)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD,    ONLY : AD07_HC 
-      USE TRACER_MOD,  ONLY : STT
-      USE TRACERID_MOD
+      USE DIAG_MOD,     ONLY : AD07_HC 
+      USE TRACER_MOD,   ONLY : STT
+      USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3
+      USE TRACERID_MOD, ONLY : IDTSOG1, IDTSOG2, IDTSOG3
 
 #     include "CMN_SIZE"    ! Size parameters
 #     include "CMN_DIAG"    ! ND44, ND07, LD07
@@ -2184,7 +2198,7 @@ c
 !
 !******************************************************************************
 !  Subroutine SOA_DEPO computes dry-deposition of a particular SOA species.
-!  (rjp, bmy, 7/8/04, 2/17/05)
+!  (rjp, bmy, 7/8/04, 10/3/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -2196,6 +2210,7 @@ c
 !  (1 ) Remove reference to CMN, it's obsolete (bmy, 7/20/04)
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with  GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f" (bmy, 2/17/05)
+!  (3 ) Bug fix: Add BL_FRAC to the PRIVATE list (mak, bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2247,7 +2262,12 @@ c
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, TC0, FREQ, CNEW, AREA_CM2, FLUX )
+!-----------------------------------------------------------------------------
+! Prior to 10/3/05:
+! Bug fix: BL_FRAC needs to be w/in the PRIVATE statement (mak, bmy, 10/3/05)
+!!$OMP+PRIVATE( I, J, L, TC0, FREQ, CNEW, AREA_CM2, FLUX )
+!-----------------------------------------------------------------------------
+!$OMP+PRIVATE( I, J, L, TC0, BL_FRAC, FREQ, CNEW, AREA_CM2, FLUX )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -2255,15 +2275,6 @@ c
 
          ! Initial SOA [kg]
          TC0 = TC(I,J,L)
-
-         !------------------------------------------------------
-         !! PBLFRAC is only defined up to the tropopause
-         !IF ( L > LLTROP ) THEN
-         !   BL_FRAC = 0d0
-         !ELSE
-         !   BL_FRAC = PBLFRAC(I,J,L)
-         !ENDIF
-         !------------------------------------------------------
 
          ! Fraction of box under the PBL top [unitless]
          BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
@@ -2361,7 +2372,7 @@ c
       USE LOGICAL_MOD, ONLY : LSOA,      LPRT
       USE TIME_MOD,    ONLY : GET_MONTH, ITS_A_NEW_MONTH
       USE TRACER_MOD,  ONLY : STT
-      USE TRACERID_MOD
+      !USE TRACERID_MOD
 
 #     include "CMN_SIZE"    ! Size parameters
 #     include "CMN_DIAG"    ! ND07
@@ -2612,37 +2623,38 @@ c
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DAO_MOD,       ONLY : SUNCOS
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE LOGICAL_MOD,   ONLY : LSOA
-      USE TIME_MOD,      ONLY : GET_MONTH,   GET_TS_CHEM, 
-     &                          GET_TS_EMIS, ITS_A_NEW_MONTH
+      USE TIME_MOD,      ONLY : GET_MONTH,   GET_TS_CHEM
+      USE TIME_MOD,      ONLY : GET_TS_EMIS, ITS_A_NEW_MONTH
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "CMN_SIZE"      ! Size parameters
 
       ! Local variables
-      LOGICAL, SAVE         :: FIRST = .TRUE.
-      INTEGER               :: I, J, IJLOOP, THISMONTH
-      REAL*4                :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8                :: CONVERT(NVEGTYPE)
-      REAL*8                :: GMONOT(NVEGTYPE)
-      REAL*8                :: FD2D(IIPAR,JJPAR)
-      REAL*8                :: TMMP, EMMO, VALUE
-      REAL*8                :: XTAU, STEPS_PER_MON
-      REAL*8, PARAMETER     :: FC1 = 136.2364D0 / 120.11D0
-      REAL*8, PARAMETER     :: FC2 = 154.2516D0 / 120.11D0
-      REAL*8, PARAMETER     :: FC3 = 204.3546D0 / 180.165D0
-      REAL*8, PARAMETER     :: FC4 = 152.D0     / 120.11D0
-      CHARACTER(LEN=255)    :: FILENAME
+      LOGICAL, SAVE          :: FIRST = .TRUE.
+      INTEGER                :: I, J, IJLOOP, THISMONTH
+      REAL*4                 :: ARRAY(IGLOB,JGLOB,1)
+      REAL*8                 :: CONVERT(NVEGTYPE)
+      REAL*8                 :: GMONOT(NVEGTYPE)
+      REAL*8                 :: FD2D(IIPAR,JJPAR)
+      REAL*8                 :: TMMP, EMMO, VALUE
+      REAL*8                 :: XTAU, STEPS_PER_MON
+      REAL*8, PARAMETER      :: FC1 = 136.2364D0 / 120.11D0
+      REAL*8, PARAMETER      :: FC2 = 154.2516D0 / 120.11D0
+      REAL*8, PARAMETER      :: FC3 = 204.3546D0 / 180.165D0
+      REAL*8, PARAMETER      :: FC4 = 152.D0     / 120.11D0
+      CHARACTER(LEN=255)     :: FILENAME
 
       ! Fraction of yield of OC (hydrophilic) from terpene emission
-      REAL*8, PARAMETER     :: FBIOG = 1.0d-1
+      REAL*8, PARAMETER      :: FBIOG = 1.0d-1
 
       ! External functions
-      REAL*8,  EXTERNAL     :: XLTMMP
-      REAL*8,  EXTERNAL     :: EMMONOT
+      REAL*8,  EXTERNAL      :: XLTMMP
+      REAL*8,  EXTERNAL      :: EMMONOT
 
       !=================================================================
       ! BIOGENIC_OC begins here!
@@ -2837,25 +2849,26 @@ c
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TIME_MOD,      ONLY : GET_TS_EMIS
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "CMN_SIZE"      ! Size parameters
 
       ! Local variables
-      INTEGER             :: I, J
-      REAL*4              :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8              :: XTAU, STEPS_PER_YR
-      REAL*8              :: FD2D(IIPAR,JJPAR)
-      CHARACTER(LEN=255)  :: FILENAME
+      INTEGER                :: I, J
+      REAL*4                 :: ARRAY(IGLOB,JGLOB,1)
+      REAL*8                 :: XTAU, STEPS_PER_YR
+      REAL*8                 :: FD2D(IIPAR,JJPAR)
+      CHARACTER(LEN=255)     :: FILENAME
 
       ! Hydrophilic fraction of BLACK CARBON (aka ELEMENTAL CARBON)
-      REAL*8, PARAMETER   :: FHB = 0.2d0
+      REAL*8, PARAMETER      :: FHB = 0.2d0
 
       ! Hydrophilic fraction of ORGANIC CARBON 
-      REAL*8, PARAMETER   :: FHO = 0.5d0 
+      REAL*8, PARAMETER      :: FHO = 0.5d0 
 
       !=================================================================
       ! ANTHRO_CARB_TBOND begins here!
@@ -2874,12 +2887,6 @@ c
       !=================================================================
 
       ! Filename for carbon aerosol from fossil fuel use
-!-----------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )                        // 
-!     &           'carbon_200411/BCOC_TBond_fossil.geos.' // 
-!     &           GET_RES_EXT()
-!-----------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )                         // 
      &           'carbon_200411/BCOC_TBond_fossil.'       // 
      &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
@@ -2947,12 +2954,6 @@ c
       !=================================================================
 
       ! Filename
-!-------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )                         // 
-!     &           'carbon_200411/BCOC_TBond_biofuel.geos.' // 
-!     &           GET_RES_EXT()
-!-------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )                         // 
      &           'carbon_200411/BCOC_TBond_biofuel.'      // 
      &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
@@ -3042,7 +3043,8 @@ c
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TIME_MOD,      ONLY : GET_TS_EMIS
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
@@ -3090,12 +3092,6 @@ c
       !=================================================================
 
       ! Filename
-!----------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )                    //
-!     &           'carbon_200411/BCOC_anthsrce.geos.' // 
-!     &            GET_RES_EXT()
-!----------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )               //
      &           'carbon_200411/BCOC_anthsrce.' // GET_NAME_EXT_2D() // 
      &           '.'                            // GET_RES_EXT()       
@@ -3164,11 +3160,6 @@ c
       !=================================================================
 
       ! Filename
-!-----------------------------------------------------------------------------
-!      FILENAME = TRIM( DATA_DIR )                   //
-!     &           'carbon_200411/BCOC_biofuel.geos.' // 
-!     &           GET_RES_EXT()
-!-----------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )              //
      &           'carbon_200411/BCOC_biofuel.' // GET_NAME_EXT_2D() //
      &           '.'                           // GET_RES_EXT()
@@ -3253,7 +3244,8 @@ c
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TIME_MOD,      ONLY : GET_TS_EMIS
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
@@ -3279,12 +3271,6 @@ c
       STEPS_PER_YR = ( ( 1440 * 365 ) / GET_TS_EMIS() )
 
       ! Filename containing biomass emissions
-!-----------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )                         //
-!     &           'carbon_200411/BCOC_TBond_biomass.geos.' // 
-!     &            GET_RES_EXT()
-!-----------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )                         //
      &           'carbon_200411/BCOC_TBond_biomass.'      // 
      &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
@@ -3382,16 +3368,17 @@ c
 !******************************************************************************
 !
 !      ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE GRID_MOD,      ONLY : GET_AREA_M2
       USE LOGICAL_MOD,   ONLY : LBBSEA
-      USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR, GET_MONTH, 
-     &                          GET_TAU,        GET_YEAR, 
-     &                          GET_TS_EMIS
+      USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR,  GET_MONTH 
+      USE TIME_MOD,      ONLY : GET_TAU,         GET_YEAR 
+      USE TIME_MOD,      ONLY : GET_TS_EMIS
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "CMN_SIZE"      ! Size parameters
 
       !-------------------
       ! Arguments
@@ -3444,23 +3431,11 @@ c
          !-----------------------------------------
 
          ! File name for seasonal BCPO biomass emissions
-!-----------------------------------------------------------------------
-! Prior to 8/16/05:
-!         BC_FILE = TRIM( DATA_DIR )                             //
-!     &             'biomass_200110/BCPO.bioburn.seasonal.geos.' //
-!     &             GET_RES_EXT()
-!-----------------------------------------------------------------------
          BC_FILE = TRIM( DATA_DIR )                          //
      &             'biomass_200110/BCPO.bioburn.seasonal.'   //
      &             GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
 
          ! File name for seasonal OCPO biomass emissions
-!-----------------------------------------------------------------------
-! Prior to 8/16/05:
-!         OC_FILE = TRIM( DATA_DIR )                             //
-!     &             'biomass_200110/OCPO.bioburn.seasonal.geos.' //
-!     &             GET_RES_EXT()
-!-----------------------------------------------------------------------
          OC_FILE = TRIM( DATA_DIR )                         //
      &             'biomass_200110/OCPO.bioburn.seasonal.'  //
      &             GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
@@ -3476,24 +3451,12 @@ c
          !-----------------------------------------
 
          ! File name for interannual BCPO biomass burning emissions
-!---------------------------------------------------------------------------
-! Prior to 8/16/05:
-!         BC_FILE = TRIM( DATA_DIR )                                //
-!     &             'biomass_200110/BCPO.bioburn.interannual.geos.' // 
-!     &             GET_RES_EXT() // '.' // CYEAR
-!---------------------------------------------------------------------------
          BC_FILE = TRIM( DATA_DIR )                           //
      &             'biomass_200110/BCPO.bioburn.interannual.' // 
      &             GET_NAME_EXT_2D() // '.'                   //
      &             GET_RES_EXT()     // '.'                   // CYEAR
 
          ! File name for interannual BCPO biomass burning emissions
-!-----------------------------------------------------------------------------
-! Prior to 8/16/05:
-!         OC_FILE = TRIM( DATA_DIR )                                //
-!     &             'biomass_200110/OCPO.bioburn.interannual.geos.' // 
-!     &             GET_RES_EXT() // '.' // CYEAR
-!-----------------------------------------------------------------------------
          OC_FILE = TRIM( DATA_DIR )                           //
      &             'biomass_200110/OCPO.bioburn.interannual.' // 
      &             GET_NAME_EXT_2D() // '.'                   //
@@ -3588,8 +3551,8 @@ c
       ! References to F90 modules
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
       USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO, 
-     &                         IDTALPH, IDTLIMO, IDTALCO
+      USE TRACERID_MOD, ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
+      USE TRACERID_MOD, ONLY : IDTALPH, IDTLIMO, IDTALCO
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -3713,8 +3676,8 @@ c
 !
       ! References to F90 modules
       USE GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
-      USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC, 
-     &                     GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
+      USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
+      USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN_GCTM"

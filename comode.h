@@ -1,8 +1,8 @@
-! $Id: comode.h,v 1.13 2005/09/02 15:17:01 bmy Exp $
+! $Id: comode.h,v 1.14 2005/10/20 14:03:17 bmy Exp $
 !
 !******************************************************************************
 !  Header file COMODE contains common blocks and variables for SMVGEAR II.
-!  (M. Jacobson 1997; bdf, bmy, 4/23/03, 4/6/04)
+!  (M. Jacobson 1997; bdf, bmy, 4/23/03, 10/17/05)
 !
 !  NOTES:
 !  (1 ) Removed many commented-out common blocks not needed for GEOS-CHEM.
@@ -43,6 +43,8 @@
 !  (7 ) Eliminated SMALLCHEM cpp switch (bmy, 12/2/03)
 !  (8 ) Now set MAXGL3 = NNPAR for new # of tracers (bmy, 4/6/04)
 !  (9 ) Remove obsolete LGEOSCO and FULLCHEM Cpp switches (bmy, 6/24/05)
+!  (10) For COMPAQ, put IRMA, IRMB in /INMTRATE2/ common block.  For COMPAQ, 
+!        also declare /INMTRATE2/ THREADPRIVATE. (Q. Liang, bmy, 10/17/05)
 !******************************************************************************
 !
 C         CCCCCCC  OOOOOOO  M     M  OOOOOOO  DDDDDD   EEEEEEE 
@@ -455,10 +457,18 @@ C
      5  NCEQUAT(NMTRATE,  ICS),  NOLDFNEW(NMTRATE, ICS),
      6  NEWFOLD(NMTRATE*2,ICS),  NKONER(  NMTRATE, ICS),
      7  NKTWOR( NMTRATE,  ICS),  NKTHRR(  NMTRATE, ICS),
-     8  IRMA(   NMTRATE      ),  IRMB(    NMTRATE     ),
+!------------------------------------------------------------------------------
+! Prior to 10/17/05:
+! For COMPAQ, put IRMA, IRMB in /INMTRATE2/ (Q. Liang, bmy, 10/17/05)
+!     8  IRMA(   NMTRATE      ),  IRMB(    NMTRATE     ),
+!------------------------------------------------------------------------------
      9  KCRR(   NMTRATE,  ICS),  LSKIP(   MXRATE,  ICS),
      1  IRMC(   NMTRATE      ),  JPHOTNK( NMTRATE, ICS),
      2  IUSED(  MXRATE,   ICS)
+
+      ! For COMPAQ, put IRMA, IRMB in /INMTRATE2/ (Q. Liang, bmy, 10/17/05)
+      COMMON /INMTRATE2/
+     & IRMA(   NMTRATE      ),  IRMB(    NMTRATE     )
 
       INTEGER ::       NEWNK
       COMMON /IMAXGL3/ NEWNK(MAXGL)
@@ -682,6 +692,12 @@ C     6  JHIZ2(   MXGSAER,      ICP)
 !$OMP THREADPRIVATE( /DKBLOOP2/ )
 !$OMP THREADPRIVATE( /IGEAR2/   )
 !$OMP THREADPRIVATE( /IXYGD2/   )
+
+#if   defined( COMPAQ )
+! For COMPAQ, declare /INMTRATE2/ threadprivate (Q. Liang, bmy, 10/17/05)
+!$OMP THREADPRIVATE( /INMTRATE2/ )
+#endif
+
 C
 C *********************************************************************
 C ****************** END OF COMMON BLOCK COMODE.H *********************

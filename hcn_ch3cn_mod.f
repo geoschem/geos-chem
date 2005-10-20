@@ -1,9 +1,9 @@
-! $Id: hcn_ch3cn_mod.f,v 1.7 2005/09/02 15:17:14 bmy Exp $
+! $Id: hcn_ch3cn_mod.f,v 1.8 2005/10/20 14:03:30 bmy Exp $
       MODULE HCN_CH3CN_MOD
 !
 !******************************************************************************
 !  Module HCN_CH3CN_MOD contains variables and routines that are used for the 
-!  geographically tagged HCN/CH3CN simulation. (qli, xyp, bmy, 8/16/05)
+!  geographically tagged HCN/CH3CN simulation. (qli, xyp, bmy, 8/16/05,10/3/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -71,6 +71,7 @@
 !
 !  NOTES:
 !  (1 ) Now use Nightingale et al [2000b] formulation for KL (bmy, 8/16/05)
+!  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -263,22 +264,26 @@
       SUBROUTINE EMISS_HCN_CH3CN( N_TRACERS, STT )
 !
 !******************************************************************************
-!  Subroutine EMISS_HCN_CH3CN reads in CO emissions and scale them to 
-!  get HCN/CH3CN emissions for the tagged HCN/CH3CN run.
+!  Subroutine EMISS_HCN_CH3CN reads in CO emissions and scale them to get
+!  HCN/CH3CN emissions for the tagged HCN/CH3CN run. (bmy, 8/16/05, 10/3/05)
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1) FIRSTEMISS (LOGICAL) : = T if this is the first call to this routine
+!  (1 ) N_TRACERS (INTEGER) : Number of tracers
+!  (2 ) STT       (REAL*8 ) : Tracer array [kg]
+!
+!  NOTES:
+!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BIOMASS_MOD,   ONLY : BURNEMIS, BIOBURN
-      USE GEIA_MOD
+      USE BIOMASS_MOD,   ONLY : BURNEMIS,        BIOBURN
+      USE GEIA_MOD,      ONLY : GET_DAY_INDEX,   GET_IHOUR
       USE GRID_MOD,      ONLY : GET_AREA_CM2
       USE DIAG_MOD,      ONLY : AD09_em
       USE LOGICAL_MOD,   ONLY : LSPLIT
       USE PBL_MIX_MOD,   ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
-      USE TIME_MOD,      ONLY : GET_MONTH, GET_TAU, GET_TS_CHEM
+      USE TIME_MOD,      ONLY : GET_MONTH,       GET_TS_CHEM,  GET_TAU
       USE TRACERID_MOD,  ONLY : IDBCO
       
 #     include "CMN_SIZE"      ! Size parameters
@@ -658,15 +663,6 @@
             ! SC is Schmidt # for HCN in seawater [unitless]
             SC           = A0 + TC * ( A1 + TC * ( A2 + TC * ( A3 )))
 
-!-----------------------------------------------------------------------------
-! Prior to 8/16/05:
-! Update to Nightingale et al [2000b] best fit formulation (bmy, 8/16/05)
-!            ! KL: conductance for mass transfer in liquid phase 
-!            ! (Nightingale 2000a), which has unit of [cm/h]
-!            KL           = ( 0.222d0 * U*U + 0.333d0 * U ) 
-!     &                   * ( SC / 600d0 )**( -0.5d0 )
-!-----------------------------------------------------------------------------
-
             ! KL: conductance for mass transfer in liquid phase 
             ! (Nightingale 2000b), which has unit of [cm/h]
             KL           = ( 0.24d0*U*U + 0.061d0*U ) * SQRT( 600d0/SC ) 
@@ -773,17 +769,19 @@
 !
 !******************************************************************************
 !  Subroutine READ_EMISSIONS reads the domestic fossil fuel emissions from
-!  disk. (bmy, 6/29/05)
+!  disk. (bmy, 6/29/05, 10/3/05)
 !
 !  Arguments as Output:
 !  ============================================================================
 !  (1 ) E_CO   (REAL*4) : GEIA anthro CO   (no seasonality, 1 level )
 !
 !  NOTES:
+!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE GEIA_MOD,      ONLY : READ_TODX
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D

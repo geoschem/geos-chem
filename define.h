@@ -1,9 +1,9 @@
-! $Id: define.h,v 1.34 2005/09/02 15:17:02 bmy Exp $
+! $Id: define.h,v 1.35 2005/10/20 14:03:18 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
 !  used to include or exclude certain sections of code.  
-!  (bmy, bdf, 1/30/98, 6/23/05)
+!  (bmy, bdf, 1/30/98, 10/18/05)
 !
 !  List of "Switches"
 !  ===========================================================================
@@ -21,10 +21,11 @@
 !  (12) COMPAQ     : Enables code for Alpha w/ COMPAQ/HP Alpha compiler
 !  (13) IBM_AIX    : Enables code for IBM/AIX compiler
 !  (14) LINUX_PGI  : Enables code for Linux w/ PGI compiler
-!  (15) LINUX_IFC  : Enables code for Linux w/ 32-bit Intel Fortran compiler
-!  (16) LINUX_EFC  : Enables code for Linux w/ 64-bit Intel Fortran compiler
-!  (17) SGI_MIPS   : Enables code for SGI Origin w/ MIPS compiler
-!  (18) SPARC      : Enables code for Sun w/ SPARC compiler
+!  (15) LINUX_IFC  : Enables code for Linux w/ 32-bit Intel v7 Fortran compiler
+!  (16) LINUX_EFC  : Enables code for Linux w/ 64-bit Intel v7 Fortran compiler
+!  (17) LINUX_IFORT: Enables code for Linux v8 or v9 compiler
+!  (18) SGI_MIPS   : Enables code for SGI Origin w/ MIPS compiler
+!  (19) SPARC      : Enables code for Sun w/ SPARC compiler
 ! 
 !  NOTES:
 !  (1 ) "define.h" is #include'd at the top of CMN_SIZE.  All subroutines
@@ -64,6 +65,8 @@
 !  (20) Removed obsolete A_LLK_03, LFASTJ, LSLOWJ, FULLCHEM, LGEOSCO switches.
 !        Also added extra switches for GCAP and GEOS_5 met fields.  
 !        (bmy, 6/23/05)
+!  (21) Added LINUX_IFORT switch to delineate Intel compilers v8 or v9 
+!        from v7. (bmy, 10/18/05)
 !******************************************************************************
 !
 !==============================================================================
@@ -87,6 +90,7 @@
 #undef LINUX_PGI
 #undef LINUX_IFC
 #undef LINUX_EFC
+#undef LINUX_IFORT
 #undef SGI_MIPS
 #undef SPARC
 
@@ -118,8 +122,9 @@
 !#define IBM_AIX     'IBM_AIX'
 !#define LINUX_PGI   'LINUX_PGI'
 !#define LINUX_IFC   'LINUX_IFC'
-#define LINUX_EFC   'LINUX_EFC'
-!#define SGI_MIPS    'SGI_MIPS'
+!#define LINUX_EFC   'LINUX_EFC'
+!#define LINUX_IFORT 'LINUX_IFORT'
+#define SGI_MIPS    'SGI_MIPS'
 !#define SPARC       'SPARC'
 
 !==============================================================================
@@ -141,8 +146,8 @@
 !==============================================================================
 ! Force a compile  error if all compiler switches are undefined
 !==============================================================================
-#if !defined(COMPAQ) && !defined(IBM_AIX) && !defined(LINUX_PGI) && !defined(LINUX_IFC) && !defined(LINUX_EFC) && !defined(SGI_MIPS) && ! defined(SPARC)
+#if !defined(COMPAQ) && !defined(IBM_AIX) && !defined(LINUX_PGI) && !defined(LINUX_IFC) && !defined(LINUX_EFC) && !defined(LINUX_IFORT) && !defined(SGI_MIPS) && ! defined(SPARC)
 #error "ERROR: One of COMPAQ, IBM_AIX, LINUX_PGI,"
-#error "LINUX_IFC, LINUX_EFC, SGI_MIPS, SPARC"
+#error "LINUX_IFC, LINUX_EFC, LINUX_IFORT, SGI_MIPS, SPARC"
 #error "needs to be defined in header file define.h"
 #endif

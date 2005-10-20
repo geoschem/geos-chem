@@ -1,10 +1,10 @@
-! $Id: tpcore_bc_mod.f,v 1.7 2005/09/02 15:17:26 bmy Exp $
+! $Id: tpcore_bc_mod.f,v 1.8 2005/10/20 14:03:42 bmy Exp $
       MODULE TPCORE_BC_MOD
 !
 !******************************************************************************
 !  Module TPCORE_BC_MOD contains modules and variables which are needed to
 !  save and read TPCORE nested-grid boundary conditions to/from disk.
-!  (yxw, bmy, 3/4/03, 6/28/05)
+!  (yxw, bmy, 3/4/03, 10/3/05)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -129,6 +129,7 @@
 !  (2 ) Now references "tracer_mod.f", "directory_mod.f", and
 !        "logical_mod.f" (bmy, 7/20/04)
 !  (3 ) Now get HALFPOLAR for GEOS or GCAP grids (bmy, 6/28/05)
+!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -205,7 +206,7 @@
 !******************************************************************************
 !  Subroutine OPEN_BC_FILE opens the file which contains boundary conditions
 !  saved from the coarse-grid WINDOW REGION for either reading or writing.
-!  (bmy, 3/7/03, 7/20/04)
+!  (bmy, 3/7/03, 10/3/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -215,10 +216,12 @@
 !  NOTES:
 !  (1 ) Now use ITS_A_NEW_DAY from "time_mod.f".  Now references TPBC_DIR
 !        from "directory_mod.f" (bmy, 7/20/04)
+!  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_WRITE
+      USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_READ
       USE DIRECTORY_MOD, ONLY : TPBC_DIR
       USE FILE_MOD,      ONLY : IU_BC
       USE TIME_MOD,      ONLY : DATE_STRING, ITS_A_NEW_DAY
@@ -264,17 +267,18 @@
 !  Subroutine SAVE_GLOBAL_TPCORE_BC saves concentrations from the WINDOW
 !  REGION of a coarse-resolution model run (e.g. 4x5) to a bpch file.  
 !  A new boundary conditions file is created for each day. 
-!  (yxw, bmy, 3/4/03, 7/20/04)
+!  (yxw, bmy, 3/4/03, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Now references N_TRACERS and STT from "tracer_mod.f".  Also now 
 !        references TIMESTAMP_STRING from "time_mod.f".  (bmy, 7/20/04) 
 !  (2 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
 !        value for GEOS or GCAP grids (bmy, 6/28/05)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,  ONLY : BPCH2,     GET_HALFPOLAR,   GET_MODELNAME
       USE FILE_MOD,   ONLY : IU_BC
       USE TIME_MOD,   ONLY : GET_NYMD,  GET_NHMS, 
      &                       GET_TAU,   TIMESTAMP_STRING

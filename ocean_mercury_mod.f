@@ -1,4 +1,4 @@
-! $Id: ocean_mercury_mod.f,v 1.5 2005/09/02 15:17:19 bmy Exp $
+! $Id: ocean_mercury_mod.f,v 1.6 2005/10/20 14:03:36 bmy Exp $
       MODULE OCEAN_MERCURY_MOD
 !
 !******************************************************************************
@@ -463,17 +463,19 @@
 !******************************************************************************
 !  Subroutine OCEAN_MERCURY_READ reads in the mixed layer depth, net primary 
 !  productivity and radiation climatology for each month.  This is needed for
-!  the ocean flux computation. (sas, bmy, 1/20/05)
+!  the ocean flux computation. (sas, bmy, 1/20/05, 10/3/05)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) THISMONTH (INTEGER) : Month to read fields (1-12)
 !
 !  NOTES:
+!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
@@ -523,11 +525,6 @@
       !------------------------------
 
       ! MLD file name
-!-------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )           // 
-!     &           'mercury_200501/mld.geos.' // GET_RES_EXT()      
-!-------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )      // 
      &           'mercury_200501/mld.' // GET_NAME_EXT_2D() //
      &           '.'                   // GET_RES_EXT()      
@@ -555,11 +552,6 @@
       !------------------------------
  
       ! NPP file name
-!-----------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )                 // 
-!     &           'mercury_200501/modis_npp.geos.' // GET_RES_EXT() 
-!-----------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )            // 
      &           'mercury_200501/modis_npp.' // GET_NAME_EXT_2D() //
      &           '.'                         // GET_RES_EXT() 
@@ -588,13 +580,14 @@
 !******************************************************************************
 !  Subroutine INIT_OCEAN_MERCURY allocates and zeroes module arrays.  The
 !  initial masses of oceanic Hg(0) and Hg(II) are also read from disk.
-!  (sas, bmy, 1/19/05)
+!  (sas, bmy, 1/19/05, 10/3/05)
 !
 !  NOTES:
+!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,    ONLY : READ_BPCH2
       USE ERROR_MOD,    ONLY : ALLOC_ERR
       USE TIME_MOD,     ONLY : EXPAND_DATE, GET_NYMD, GET_NHMS, GET_TAU
       USE TRANSFER_MOD, ONLY : TRANSFER_2D
@@ -707,11 +700,12 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,  ONLY : GET_HALFPOLAR, GET_MODELNAME
+      USE BPCH2_MOD,  ONLY : BPCH2,         OPEN_BPCH2_FOR_WRITE
       USE FILE_MOD,   ONLY : IU_FILE
-      USE GRID_MOD,   ONLY : GET_XOFFSET, GET_YOFFSET
-      USE TIME_MOD,   ONLY : EXPAND_DATE, GET_NYMD, GET_NHMS, 
-     &                       GET_TAU,     GET_TAUb
+      USE GRID_MOD,   ONLY : GET_XOFFSET,   GET_YOFFSET
+      USE TIME_MOD,   ONLY : EXPAND_DATE,   GET_NYMD, GET_NHMS
+      USE TIME_MOD,   ONLY : GET_TAU,       GET_TAUb
       USE TRACER_MOD, ONLY : ITS_A_MERCURY_SIM
 
 #     include "CMN_SIZE"  ! Size parameters

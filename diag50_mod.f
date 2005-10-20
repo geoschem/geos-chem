@@ -1,9 +1,9 @@
-! $Id: diag50_mod.f,v 1.10 2005/09/02 15:17:06 bmy Exp $
+! $Id: diag50_mod.f,v 1.11 2005/10/20 14:03:20 bmy Exp $
       MODULE DIAG50_MOD
 !
 !******************************************************************************
 !  Module DIAG50_MOD contains variables and routines to generate 24-hour 
-!  average timeseries data. (amf, bey, bdf, pip, bmy, 11/30/00, 8/2/05)
+!  average timeseries data. (amf, bey, bdf, pip, bmy, 11/30/00, 10/3/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -184,7 +184,7 @@
 !
 !******************************************************************************
 !  Subroutine ACCUMULATE_DIAG50 accumulates tracers into the Q array. 
-!  (bmy, 8/20/02, 8/2/05)
+!  (bmy, 8/20/02, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
@@ -204,18 +204,21 @@
 !        (bmy, 4/20/05)
 !  (6 ) Remove references to TRCOFFSET because it's always zero (bmy, 6/24/05)
 !  (7 ) Now do not save SLP data if it is not allocated (bmy, 8/2/05)
+!  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! Reference to F90 modules
-      USE DAO_MOD,      ONLY : AD,      AIRDEN, BXHEIGHT, CLDF,
-     &                         CLDTOPS, OPTD,   RH,       T, 
-     &                         UWND,    VWND,   SLP
+      USE DAO_MOD,      ONLY : AD,      AIRDEN, BXHEIGHT, CLDF
+      USE DAO_MOD,      ONLY : CLDTOPS, OPTD,   RH,       T 
+      USE DAO_MOD,      ONLY : UWND,    VWND,   SLP
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L, GET_PBL_TOP_m
       USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE TIME_MOD,     ONLY : GET_ELAPSED_MIN, GET_TS_CHEM,
-     &                         TIMESTAMP_STRING
+      USE TIME_MOD,     ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
+      USE TIME_MOD,     ONLY : TIMESTAMP_STRING
       USE TRACER_MOD,   ONLY : STT, TCVV, ITS_A_FULLCHEM_SIM, N_TRACERS
-      USE TRACERID_MOD
+      USE TRACERID_MOD, ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
+      USE TRACERID_MOD, ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
+      USE TRACERID_MOD, ONLY : IDTR4N2, IDTSALA, IDTSALC 
 
 #     include "cmn_fj.h"  ! includes CMN_SIZE
 #     include "jv_cmn.h"  ! ODAER
@@ -562,10 +565,6 @@
                !--------------------------------------               
                Q(X,Y,K,W) = Q(X,Y,K,W) + RH(I,J,L)
 
-            !-------------------------------------------------
-            ! Prior to 8/2/05:
-            !ELSE IF ( N == 95 ) THEN
-            !-------------------------------------------------
             ELSE IF ( N == 95 .and. IS_SLP ) THEN
 
                !--------------------------------------
@@ -657,7 +656,7 @@
 !
 !******************************************************************************
 !  Subroutine WRITE_DIAG50 computes the 24-hr time-average of quantities
-!  and saves to bpch file format. (bmy, 12/1/00, 4/20/05)  
+!  and saves to bpch file format. (bmy, 12/1/00, 10/3/05)  
 !
 !  NOTES:
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
@@ -670,15 +669,17 @@
 !  (4 ) Now save grid box heights as tracer #93.  Now save 3-D cloud fraction
 !        as tracer #79. (bmy, 4/20/05)
 !  (5 ) Remove references to TRCOFFSET because it's always zero (bmy, 6/24/05)
+!  (6 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! Reference to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,  ONLY : BPCH2,         GET_MODELNAME
+      USE BPCH2_MOD,  ONLY : GET_HALFPOLAR, OPEN_BPCH2_FOR_WRITE
       USE ERROR_MOD,  ONLY : ALLOC_ERR
       USE FILE_MOD,   ONLY : IU_ND50
       USE GRID_MOD,   ONLY : GET_XOFFSET, GET_YOFFSET
-      USE TIME_MOD,   ONLY : EXPAND_DATE, GET_NYMD,   GET_NHMS,
-     &                       GET_TAU,     GET_TS_DYN, TIMESTAMP_STRING
+      USE TIME_MOD,   ONLY : EXPAND_DATE, GET_NYMD,   GET_NHMS
+      USE TIME_MOD,   ONLY : GET_TAU,     GET_TS_DYN, TIMESTAMP_STRING
       USE TRACER_MOD, ONLY : N_TRACERS
 
 #     include "CMN_SIZE"  ! Size Parameters

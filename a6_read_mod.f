@@ -1,9 +1,9 @@
-! $Id: a6_read_mod.f,v 1.12 2005/09/02 15:16:55 bmy Exp $
+! $Id: a6_read_mod.f,v 1.13 2005/10/20 14:03:12 bmy Exp $
       MODULE A6_READ_MOD
 !
 !******************************************************************************
 !  Module A6_READ_MOD contains subroutines that unzip, open, and read
-!  GEOS-CHEM A-6 (avg 6-hour) met fields from disk. (bmy, 6/19/03, 5/25/05)
+!  GEOS-CHEM A-6 (avg 6-hour) met fields from disk. (bmy, 6/19/03, 10/3/05)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -44,6 +44,7 @@
 !  (8 ) Now references FILE_EXISTS from "file_mod.f" (bmy, 3/23/05)
 !  (9 ) Now modified for GEOS-5 and GCAP met fields.  Added MAKE_GCAP_CLDFRC
 !        routine. (swu, bmy, 5/25/05)
+!  (10) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -74,7 +75,7 @@
 !  Subroutine UNZIP_A6_FIELDS invokes a FORTRAN system call to uncompress
 !  GEOS-CHEM A-6 met field files and store the uncompressed data in a 
 !  temporary directory, where GEOS-CHEM can read them.  The original data 
-!  files are not disturbed.  (bmy, bdf, 6/15/98, 5/25/05)
+!  files are not disturbed.  (bmy, bdf, 6/15/98, 10/3/05)
 !
 !  Arguments as input:
 !  ============================================================================
@@ -90,14 +91,18 @@
 !        them (bmy, 7/20/04)
 !  (4 ) Removed code for GEOS-4 a_llk_03 data.  Also modified for GEOS-5
 !        and GCAP met fields. (bmy, 5/25/05)
+!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,    ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE TIME_MOD,     ONLY : EXPAND_DATE
-      USE UNIX_CMDS_MOD
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_1_DIR 
+      USE DIRECTORY_MOD, ONLY : GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR 
+      USE DIRECTORY_MOD, ONLY : GEOS_5_DIR, TEMP_DIR 
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE TIME_MOD,      ONLY : EXPAND_DATE
+      USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD 
+      USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD,  WILD_CARD,  ZIP_SUFFIX
 
 #     include "CMN_SIZE"
 
@@ -321,29 +326,32 @@
 !  (5 ) Now use FILE_EXISTS from "file_mod.f" to determine if file unit IU_A6 
 !        refers to a valid file on disk (bmy, 3/23/05)
 !  (6 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !      
       ! References to F90 modules
-      USE BPCH2_MOD,    ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE LOGICAL_MOD,  ONLY : LUNZIP
-      USE FILE_MOD,     ONLY : IU_A6, IOERROR, FILE_EXISTS
-      USE TIME_MOD,     ONLY : EXPAND_DATE
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_1_DIR 
+      USE DIRECTORY_MOD, ONLY : GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR 
+      USE DIRECTORY_MOD, ONLY : GEOS_5_DIR, TEMP_DIR 
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE LOGICAL_MOD,   ONLY : LUNZIP
+      USE FILE_MOD,      ONLY : IU_A6, IOERROR, FILE_EXISTS
+      USE TIME_MOD,      ONLY : EXPAND_DATE
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "CMN_SIZE"      ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN)   :: NYMD, NHMS
+      INTEGER, INTENT(IN)    :: NYMD, NHMS
 
       ! Local variables
-      LOGICAL, SAVE         :: FIRST = .TRUE.
-      LOGICAL               :: IT_EXISTS
-      INTEGER               :: IOS, IUNIT
-      CHARACTER(LEN=8)      :: IDENT
-      CHARACTER(LEN=255)    :: A6_FILE
-      CHARACTER(LEN=255)    :: GEOS_DIR
-      CHARACTER(LEN=255)    :: PATH
+      LOGICAL, SAVE          :: FIRST = .TRUE.
+      LOGICAL                :: IT_EXISTS
+      INTEGER                :: IOS, IUNIT
+      CHARACTER(LEN=8)       :: IDENT
+      CHARACTER(LEN=255)     :: A6_FILE
+      CHARACTER(LEN=255)     :: GEOS_DIR
+      CHARACTER(LEN=255)     :: PATH
 
       !=================================================================
       ! OPEN_A6_FIELDS begins here!

@@ -1,4 +1,4 @@
-! $Id: CO_strat_pl.f,v 1.4 2005/09/02 15:16:52 bmy Exp $
+! $Id: CO_strat_pl.f,v 1.5 2005/10/20 14:03:10 bmy Exp $
       SUBROUTINE CO_STRAT_PL( COPROD, COLOSS )
 !
 !******************************************************************************
@@ -37,10 +37,6 @@
       IMPLICIT NONE
      
 #     include "CMN_SIZE"   ! Size parameters
-!-------------------------------------------------
-! Prior to 8/22/05:
-!#     include "CMN"        ! LPAUSE
-!-------------------------------------------------
 #     include "CMN_O3"     ! XNUMOLAIR
 
       ! Arguments
@@ -83,19 +79,11 @@
       ! Get the minimum extent of the tropopause
       LMIN = GET_MIN_TPAUSE_LEVEL()
 
-      !----------------------------------
-      ! Prior to 8/22/05:
-      !DO L = MINVAL( LPAUSE ), LLPAR
-      !----------------------------------
       DO L = LMIN, LLPAR
       DO J = 1,    JJPAR
       DO I = 1,    IIPAR
 
          ! Skip tropospheric grid boxes
-         !--------------------------------------
-         ! Prior to 8/22/05:
-         !IF ( L < LPAUSE(I,J) ) CYCLE
-         !--------------------------------------
          IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
 
          ! conversion factor from [kg/box] to [molec/cm3]

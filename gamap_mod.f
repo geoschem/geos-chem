@@ -1,10 +1,10 @@
-! $Id: gamap_mod.f,v 1.6 2005/09/02 15:17:11 bmy Exp $
+! $Id: gamap_mod.f,v 1.7 2005/10/20 14:03:26 bmy Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
 !  Module GAMAP_MOD contains routines to create GAMAP "tracerinfo.dat" and
 !  "diaginfo.dat" files which are customized to each particular GEOS-CHEM
-!  simulation. (bmy, 5/3/05, 7/25/05)
+!  simulation. (bmy, 5/3/05, 10/3/05)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -65,6 +65,7 @@
 !  (1 ) Minor bug fix for Rn/Pb/Be simulations (bmy, 5/11/05)
 !  (2 ) Added ND09 diagnostic for HCN/CH3CN simulation. (bmy, 6/30/05)
 !  (3 ) Added ND04 diagnostic for CO2 simulation (bmy, 7/25/05)
+!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -624,7 +625,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_GAMAP allocates and initializes all module variables.  
-!  (bmy, 4/22/05, 7/25/05)
+!  (bmy, 4/22/05, 10/3/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -637,6 +638,7 @@
 !  (3 ) Bug fix: removed duplicate category names.  Updated for CO2-SRCE 
 !        diagnostic.  Now references ND04 from "diag04_mod.f. 
 !        (pns, bmy, 7/25/05)
+!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -647,12 +649,16 @@
       USE DIAG49_MOD,   ONLY : DO_SAVE_DIAG49
       USE DIAG50_MOD,   ONLY : DO_SAVE_DIAG50
       USE DIAG51_MOD,   ONLY : DO_SAVE_DIAG51
-      USE DIAG_PL_MOD,  ONLY : DO_SAVE_PL,  GET_NFAM,
-     &                         GET_FAM_MWT, GET_FAM_NAME
+      USE DIAG_PL_MOD,  ONLY : DO_SAVE_PL,  GET_NFAM
+      USE DIAG_PL_MOD,  ONLY : GET_FAM_MWT, GET_FAM_NAME
       USE DRYDEP_MOD,   ONLY : DEPNAME,     NUMDEP,    NTRAIND
       USE ERROR_MOD,    ONLY : ALLOC_ERR
       USE TIME_MOD,     ONLY : EXPAND_DATE, GET_NHMSb, GET_NYMDb
-      USE TRACER_MOD
+      USE TRACER_MOD,   ONLY : ITS_A_CH3I_SIM,   ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,   ONLY : ITS_A_HCN_SIM,    ITS_A_MERCURY_SIM
+      USE TRACER_MOD,   ONLY : ITS_A_RnPbBe_SIM, ITS_A_TAGOX_SIM
+      USE TRACER_MOD,   ONLY : N_TRACERS,        TRACER_COEFF
+      USE TRACER_MOD,   ONLY : TRACER_MW_KG,     TRACER_NAME
       USE TRACERID_MOD, ONLY : IDTBCPI, IDTOCPI
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD, GET_WETDEP_NSOL
 

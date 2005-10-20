@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# $Id: build,v 1.6 2004/12/02 21:48:33 bmy Exp $
+# $Id: build,v 1.7 2005/10/20 14:03:14 bmy Exp $
 
 =head1 NAME
 
@@ -31,8 +31,8 @@ main        : Driver program
 
 =head1 MODIFICATION HISTORY
 
-bmy, 04 December 2002
-     - INITIAL VERSION
+bmy, 04 Dec 2002 - INITIAL VERSION
+bmy, 18 Oct 2005 - Modified for Intel "ifort" compiler
 
 =head1 AUTHOR
 
@@ -44,7 +44,7 @@ trun, bmrun
 
 =head1 COPYRIGHT
 
-Copyright 2002, 2003, Bob Yantosca.  All rights reserved.
+Copyright 2002-2005, Bob Yantosca.  All rights reserved.
 
 =cut
 
@@ -60,13 +60,15 @@ sub getMakeFile() {
   #=========================================================================
   # Subroutine getMakeFile examines the "define.h" file in order to 
   # determine the name of the makefile which will be used to compile
-  # GEOS-CHEM for the given platform and compiler.  (bmy, 12/4/03)
+  # GEOS-CHEM for the given platform and compiler.  (bmy, 12/4/03, 10/18/05)
   #
   # Calling Sequence:
   # ------------------------------------------------------------------------  
   # $makeFile = getMakeFile();
   #
-  # Notes
+  # NOTES:
+  # (1 ) Now searches for Intel "ifort" compiler makefile "Makefile.ifort 
+  #       if LINUX_IFORT switch is #defined. (bmy, 10/18/05)
   #=========================================================================
 
   # Local variables
@@ -83,14 +85,15 @@ sub getMakeFile() {
 
     # Determine makefile name from the defined C-preprocessor switch
     if ( $line =~ "#define" and !( $line =~ "!#define" ) ) { 
-      if    ( $line =~ "COMPAQ"    ) { return( "Makefile.compaq" ); }
-      elsif ( $line =~ "IBM"       ) { return( "Makefile.ibm"    ); }
-      elsif ( $line =~ "LINUX_PGI" ) { return( "Makefile.pgi"    ); } 
-      elsif ( $line =~ "LINUX_IFC" ) { return( "Makefile.ifc"    ); } 
-      elsif ( $line =~ "LINUX_EFC" ) { return( "Makefile.efc"    ); } 
-      elsif ( $line =~ "LINUX"     ) { return( "Makefile.linux"  ); } 
-      elsif ( $line =~ 'SGI'       ) { return( "Makefile.sgi"    ); }
-      elsif ( $line =~ 'SPARC'     ) { return( "Makefile.sparc"  ); }
+      if    ( $line =~ "COMPAQ"      ) { return( "Makefile.compaq" ); }
+      elsif ( $line =~ "IBM"         ) { return( "Makefile.ibm"    ); }
+      elsif ( $line =~ "LINUX_PGI"   ) { return( "Makefile.pgi"    ); } 
+      elsif ( $line =~ "LINUX_IFC"   ) { return( "Makefile.ifc"    ); } 
+      elsif ( $line =~ "LINUX_EFC"   ) { return( "Makefile.efc"    ); } 
+      elsif ( $line =~ "LINUX_IFORT" ) { return( "Makefile.ifort"  ); } 
+      elsif ( $line =~ "LINUX"       ) { return( "Makefile.linux"  ); } 
+      elsif ( $line =~ 'SGI'         ) { return( "Makefile.sgi"    ); }
+      elsif ( $line =~ 'SPARC'       ) { return( "Makefile.sparc"  ); }
     }
   }
 

@@ -1,10 +1,10 @@
-! $Id: setemis.f,v 1.6 2005/09/02 15:17:22 bmy Exp $
+! $Id: setemis.f,v 1.7 2005/10/20 14:03:39 bmy Exp $
       SUBROUTINE SETEMIS( EMISRR, EMISRRN )
 !
 !******************************************************************************
 !  Subroutine SETEMIS places emissions computed from GEOS-CHEM 
 !  subroutines into arrays for SMVGEAR II chemistry. 
-!  (lwh, jyl, gmg, djj, bdf, bmy, 6/8/98, 8/22/05)
+!  (lwh, jyl, gmg, djj, bdf, bmy, 6/8/98, 10/3/05)
 !
 !  SETEMIS converts from units of [molec tracer/box/s] to units of
 !  [molec chemical species/cm3/s], and stores in the REMIS array.  For
@@ -83,6 +83,7 @@
 !  (24) Now replace XTRA2 with GET_PBL_TOP_L in "pbl_mix_mod.f".  Now remove
 !        reference to CMN, it's obsolete.  Now references GET_TPAUSE_LEVEL
 !        from "tropopause_mod.f" (bmy, 8/22/05)
+!  (25) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -92,16 +93,12 @@
       USE DIAG_MOD,       ONLY : AD12
       USE PBL_MIX_MOD,    ONLY : GET_PBL_TOP_L
       USE PRESSURE_MOD,   ONLY : GET_PEDGE
-      USE TRACERID_MOD
+      USE TRACERID_MOD,   ONLY : CTRMB,       IDEMIS,  IDENOX
       USE TROPOPAUSE_MOD, ONLY : GET_TPAUSE_LEVEL
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
-!------------------------------------------------------
-! Prior to 8/22/05:
-!#     include "CMN"       ! LPAUSE
-!------------------------------------------------------
 #     include "CMN_NOX"   ! GEMISNOX, GEMISNOX2
 #     include "CMN_DIAG"  ! Diagnostic flags
 #     include "comode.h"  ! IDEMS, NEMIS
@@ -186,10 +183,6 @@
 
             ! Top level of the boundary layer
             ! guard for b.l. being in first level.
-            !-------------------------------------------
-            ! Prior to 8/3/05:
-            !TOP = FLOOR( XTRA2(I,J) )
-            !-------------------------------------------
             TOP = FLOOR( GET_PBL_TOP_L( I, J ) )
             IF ( TOP == 0 ) TOP = 1
 
@@ -273,10 +266,6 @@
                ! Aircraft and Lightning NOx [molec/cm3/s]
                ! Distribute emissions in the troposphere
                !========================================================
-               !------------------------------------------
-               ! Prior to 8/22/05:
-               !DO L = 1, LPAUSE(I,J) - 1
-               !------------------------------------------
                LTROP = GET_TPAUSE_LEVEL( I, J ) - 1
                DO L = 1, LTROP 
                   JLOOP   = JLOP(I,J,L)

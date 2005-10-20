@@ -1,10 +1,10 @@
-! $Id: tracerid_mod.f,v 1.11 2005/05/09 14:34:01 bmy Exp $
+! $Id: tracerid_mod.f,v 1.12 2005/10/20 14:03:44 bmy Exp $
       MODULE TRACERID_MOD
 !
 !******************************************************************************
 !  Module TRACERID_MOD contains variables which point to SMVGEAR species,
 !  CTM Tracers, Biomass species, and biofuel species located within various
-!  GEOS-CHEM arrays. (bmy, 11/12/02, 4/13/05)
+!  GEOS-CHEM arrays. (bmy, 11/12/02, 10/3/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -176,6 +176,7 @@
 !  (8 ) Added IDTHG0, IDTHG2, IDTHGP + tagged Hg's (eck, bmy, 12/7/04)
 !  (9 ) Added IDTAS, IDTAHS, IDTLET, IDTNH4aq, IDTSO4aq (cas, bmy, 12/20/04)
 !  (10) Added IDTSO4s, IDTNITs
+!  (11) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -246,7 +247,7 @@
 !******************************************************************************
 !  Subroutine TRACERID reads the "tracer.dat" file and determines which
 !  tracers, emission species, biomass burning species, and biofuel burning
-!  species are turned on/off. (bmy, 3/16/01, 4/13/05)
+!  species are turned on/off. (bmy, 3/16/01, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Original code from Loretta's version of the GISS-II model.  Now we
@@ -265,11 +266,14 @@
 !        to declare IDTCO, IDBCO, IDBFCO for offline aerosol simulations. 
 !        (cas, bmy, 1/26/05)
 !  (9 ) Added IDTSO4s and IDTNITs (bec, bmy, 4/13/05)
+!  (10) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE CHARPAK_MOD, ONLY : TRANUC
-      USE TRACER_MOD
+      USE TRACER_MOD,  ONLY : ITS_A_C2H6_SIM,  ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,  ONLY : ITS_A_TAGCO_SIM, N_TRACERS
+      USE TRACER_MOD,  ONLY : TRACER_NAME
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "comode.h"  ! IDEMS
@@ -707,7 +711,7 @@
 !
 !******************************************************************************
 !  Subroutine SETTRACE flags certain chemical species w/in the SMVGEAR full
-!  chemistry mechanism. (lwh, jyl, gmg, djj, 1990's; bmy, 11/12/02, 7/20/04)
+!  chemistry mechanism. (lwh, jyl, gmg, djj, 1990's; bmy, 11/12/02, 10/3/05)
 !
 !  Arguments as Input: 
 !  ============================================================================
@@ -724,14 +728,17 @@
 !  (5 ) Removed NTRACER from the arg list, we can use N_TRACERS from 
 !        "tracer_mod.f".  Now references "tracer_mod.f".  Now does not have 
 !        to read the "tracer.dat" file. (bmy, 7/20/04)
+!  (6 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD, ONLY : ERROR_STOP
-      USE TRACER_MOD 
+      USE ERROR_MOD,  ONLY : ERROR_STOP
+      USE TRACER_MOD, ONLY : ID_EMITTED,     N_TRACERS
+      USE TRACER_MOD, ONLY : TRACER_COEFF,   TRACER_CONST
+      USE TRACER_MOD, ONLY : TRACER_N_CONST, TRACER_NAME
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "comode.h"  ! NAMEGAS
+#     include "CMN_SIZE"   ! Size parameters
+#     include "comode.h"   ! NAMEGAS
 
       ! Local variabales
       INTEGER             :: I, J, T, C

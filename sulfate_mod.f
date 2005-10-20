@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.17 2005/09/02 15:17:23 bmy Exp $
+! $Id: sulfate_mod.f,v 1.18 2005/10/20 14:03:39 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 8/22/05)
+!  (rjp, bdf, bmy, 6/22/00, 10/3/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -195,6 +195,7 @@
 !  (29) Now reads updated files for SST and offline chemistry.  Now read data
 !        for both GCAP and GEOS grids.  Now references "tropopause_mod.f".
 !        (bmy, 8/22/05)
+!  (30) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -406,7 +407,7 @@
 !  Subroutine CHEMSULFATE is the interface between the GEOS-CHEM main program
 !  and the sulfate chemistry routines.  The user has the option of running
 !  a coupled chemistry-aerosols simulation or an offline aerosol simulation.
-!  (rjp, bdf, bmy, 5/31/00, 4/13/05)
+!  (rjp, bdf, bmy, 5/31/00, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Now reference all arguments except FIRSTCHEM and RH from either F90 
@@ -429,21 +430,22 @@
 !        logical_mod.f.  Now locate species in the DEPSAV array w/in 
 !        INIT_SULFATE. (bmy, 12/21/04)
 !  (6 ) Now handle gravitational settling of SO4s, NITs (bec, bmy, 4/13/05)
+!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,        ONLY : AD,     AIRDEN,  CLDF, 
-     &                           SUNCOS, MAKE_RH, CONVERT_UNITS
+      USE DAO_MOD,        ONLY : AD,     AIRDEN,  CLDF
+      USE DAO_MOD,        ONLY : SUNCOS, MAKE_RH, CONVERT_UNITS
       USE DRYDEP_MOD,     ONLY : DEPSAV
       USE ERROR_MOD,      ONLY : DEBUG_MSG
       USE GLOBAL_OH_MOD,  ONLY : GET_GLOBAL_OH
       USE GLOBAL_NO3_MOD, ONLY : GET_GLOBAL_NO3
       USE LOGICAL_MOD,    ONLY : LCRYST,          LPRT
-      USE TIME_MOD,       ONLY : GET_MONTH,       GET_TS_CHEM, 
-     &                           GET_ELAPSED_SEC, ITS_A_NEW_MONTH
-      USE TRACER_MOD,     ONLY : STT,             TCVV, 
-     &                           N_TRACERS,       ITS_AN_AEROSOL_SIM
-      USE TRACERID_MOD
+      USE TIME_MOD,       ONLY : GET_MONTH,       GET_TS_CHEM
+      USE TIME_MOD,       ONLY : GET_ELAPSED_SEC, ITS_A_NEW_MONTH
+      USE TRACER_MOD,     ONLY : STT,             TCVV 
+      USE TRACER_MOD,     ONLY : N_TRACERS,       ITS_AN_AEROSOL_SIM
+      USE TRACERID_MOD,   ONLY : IDTNITs,         IDTSO4s
  
 #     include "CMN_SIZE"     ! Size parameters 
 
@@ -617,7 +619,7 @@
       USE DRYDEP_MOD,    ONLY : DEPSAV
       USE PRESSURE_MOD,  ONLY : GET_PCENTER
       USE TRACER_MOD,    ONLY : SALA_REDGE_um,   SALC_REDGE_um
-      USE TRACERID_MOD,  ONLY : IDTSO4S,         IDTNITS
+      USE TRACERID_MOD,  ONLY : IDTSO4s,         IDTNITs
       USE TIME_MOD,      ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
       USE GRID_MOD,      ONLY : GET_AREA_CM2
 
@@ -877,10 +879,6 @@
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
 #     include "CMN_SIZE"     ! Size parameters
-!----------------------------------------------------
-! Prior to 8/22/05:
-!#     include "CMN"          ! LPAUSE
-!----------------------------------------------------
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_GCTM"     ! AIRMW
 #     include "CMN_DIAG"     ! ND05, LD05
@@ -933,10 +931,6 @@
       DO I = 1, IIPAR
 
          ! Skip stratospheric boxes
-         !-------------------------------------------------
-         ! Prior to 8/22/05:
-         !IF ( L >= LPAUSE(I,J) ) CYCLE
-         !-------------------------------------------------
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
 
          ! IJLOOP is the 1-D grid box index for SUNCOS
@@ -1089,7 +1083,7 @@
 !******************************************************************************
 !  Subroutine CHEM_H2O2 is the H2O2 chemistry subroutine for offline sulfate
 !  simulations.  For coupled runs, H2O2 chemistry is already computed by
-!  the SMVGEAR module. (rjp, bmy, 11/26/02, 7/28/05)
+!  the SMVGEAR module. (rjp, bmy, 11/26/02, 10/3/05)
 !                                                                           
 !  NOTES:
 !  (1 ) Bug fix: need to multiply DXYP by 1d4 for cm2 (bmy, 3/23/03)
@@ -1114,10 +1108,12 @@
 !  (10) Now read offline files from "sulfate_sim_200508/offline".  Now remove 
 !        reference to CMN, it's obsolete.  Now reference ITS_IN_THE_STRAT from 
 !        "tropopause_mod.f". (bmy, 8/22/05)
+!  (11) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,      ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,      ONLY : GET_TAU0,     READ_BPCH2
       USE DAO_MOD,        ONLY : AD, AIRDEN, OPTD, SUNCOS, T
       USE DIAG_MOD,       ONLY : AD44 
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
@@ -1132,10 +1128,6 @@
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
  
 #     include "cmn_fj.h"       ! IPAR, JPAR, LPAR, CMN_SIZE
-!----------------------------------------------------------------
-! Prior to 8/22/05:
-!#     include "CMN"            ! LPAUSE
-!----------------------------------------------------------------
 #     include "CMN_O3"         ! XNUMOL
 #     include "CMN_GCTM"       ! AIRMW
 #     include "CMN_DIAG"       ! ND44
@@ -1183,12 +1175,6 @@
       IF ( ITS_A_NEW_MONTH() ) THEN
 
          ! File name to read data 
-!--------------------------------------------------------------------------
-! Prior to 7/28/05:
-!         FILENAME = TRIM( DATA_DIR )           // 
-!     &              'sulfate_sim_200210/JH2O2.'// GET_NAME_EXT() //
-!     &              '.'                        // GET_RES_EXT()
-!--------------------------------------------------------------------------
          FILENAME = TRIM( DATA_DIR )                       // 
      &              'sulfate_sim_200508/offline/JH2O2.'    // 
      &              GET_NAME_EXT() // '.' // GET_RES_EXT()
@@ -1196,12 +1182,6 @@
          ! Print filename
          WRITE( 6, 100 ) TRIM( FILENAME )
  100     FORMAT( '     - CHEM_H2O2: Reading ', a )
-
-         !--------------------------------------------
-         ! Prior to 8/1/05:
-         !! Get TAU0 value for 1998
-         !XTAU = GET_TAU0( GET_MONTH(), 1, 1998 )
-         !--------------------------------------------
 
          ! Get TAU0 value for this month in "generic" year 1985
          XTAU = GET_TAU0( GET_MONTH(), 1, 1985 )
@@ -1237,10 +1217,6 @@
          FREQ = 0d0
 
          ! Skip stratospheric boxes
-         !------------------------------------------------------------
-         ! Prior to 8/22/05:
-         !IF ( L >= LPAUSE(I,J) ) CYCLE
-         !------------------------------------------------------------
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
 
          ! Density of air [molec/cm3]
@@ -1388,8 +1364,8 @@
       USE GRID_MOD,        ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,     ONLY : GET_FRAC_UNDER_PBLTOP
       USE PRESSURE_MOD,    ONLY : GET_PCENTER
-      USE TIME_MOD,        ONLY : GET_TS_CHEM, GET_MONTH, 
-     &                            ITS_A_NEW_MONTH
+      USE TIME_MOD,        ONLY : GET_TS_CHEM, GET_MONTH
+      USE TIME_MOD,        ONLY : ITS_A_NEW_MONTH
       USE TRACER_MOD,      ONLY : STT,     TCVV,  ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,    ONLY : IDTH2O2, IDTSO2
       USE SEASALT_MOD,     ONLY : GET_ALK
@@ -1397,10 +1373,6 @@
       USE TROPOPAUSE_MOD,  ONLY : ITS_IN_THE_STRAT
 
 #     include "CMN_SIZE"    ! Size parameters
-!----------------------------------------------------
-! Prior to 8/22/05:
-!#     include "CMN"         ! LPAUSE
-!----------------------------------------------------
 #     include "CMN_GCTM"    ! AIRMW
 #     include "CMN_O3"      ! XNUMOL
 #     include "CMN_DIAG"    ! LD05, ND05, ND44
@@ -1481,10 +1453,6 @@
          Ld       = 0d0
 
          ! Skip stratospheric boxes
-         !------------------------------------------------
-         ! Prior to 8/22/05:
-         !IF ( L >= LPAUSE(I,J) ) CYCLE
-         !------------------------------------------------
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
 
          ! Initial SO2, H2O2 and O3 [v/v]
@@ -2394,16 +2362,12 @@
       USE LOGICAL_MOD,    ONLY : LCRYST, LSSALT
       USE PBL_MIX_MOD,    ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,       ONLY : GET_TS_CHEM
-      USE TRACER_MOD,     ONLY : STT, TCVV
-      USE TRACERID_MOD,   ONLY : IDTSO4, IDTSO4s,  IDTAS,   IDTAHS, 
-     &                           IDTLET, IDTSO4aq, IDTNH4aq
+      USE TRACER_MOD,     ONLY : STT,    TCVV
+      USE TRACERID_MOD,   ONLY : IDTSO4, IDTSO4s,  IDTAS,   IDTAHS 
+      USE TRACERID_MOD,   ONLY : IDTLET, IDTSO4aq, IDTNH4aq
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
 #     include "CMN_SIZE"     ! Size parameters
-!-------------------------------------------------------------
-! Prior to 8/22/05:
-!#     include "CMN"          ! LPAUSE
-!-------------------------------------------------------------
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44
 
@@ -2493,10 +2457,6 @@
 !------------------------------------------------------------------------------
 
          ! Skip stratospheric boxes
-         !------------------------------------------------------
-         ! Prior to 8/22/05:
-         !IF ( L >= LPAUSE(I,J) ) CYCLE
-         !------------------------------------------------------
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
 
          !==============================================================
@@ -3654,7 +3614,7 @@
 !
 !******************************************************************************
 !  Subroutine EMISSSULFATE is the interface between the GEOS-CHEM model and
-!  the sulfate emissions routines in "sulfate_mod.f" (bmy, 6/7/00, 8/1/05)
+!  the sulfate emissions routines in "sulfate_mod.f" (bmy, 6/7/00, 10/3/05)
 ! 
 !  NOTES:
 !  (1 ) BXHEIGHT is now dimensioned IIPAR,JJPAR,LLPAR (bmy, 9/26/01)
@@ -3678,14 +3638,17 @@
 !  (8 ) Now references STT and ITS_AN_AEROSOL_SIM from "tracer_mod.f".  
 !        Now references LSHIPSO2 from "logical_mod.f" (bmy, 7/20/04)
 !  (9 ) Now references GET_YEAR from "time_mod.f". (bmy, 8/1/05)
+!  (10) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE LOGICAL_MOD, ONLY : LSHIPSO2
-      USE TIME_MOD,    ONLY : GET_SEASON, GET_MONTH, 
-     &                        GET_YEAR,   ITS_A_NEW_MONTH
-      USE TRACER_MOD,  ONLY : STT,        ITS_AN_AEROSOL_SIM
-      USE TRACERID_MOD
+      USE LOGICAL_MOD,  ONLY : LSHIPSO2
+      USE TIME_MOD,     ONLY : GET_SEASON, GET_MONTH
+      USE TIME_MOD,     ONLY : GET_YEAR,   ITS_A_NEW_MONTH
+      USE TRACER_MOD,   ONLY : STT,        ITS_AN_AEROSOL_SIM
+      USE TRACERID_MOD, ONLY : IDTNITs,    IDTSO4s
+      USE TRACERID_MOD, ONLY : IDTDMS,     IDTSO2 
+      USE TRACERID_MOD, ONLY : IDTSO4,     IDTNH3
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -3736,11 +3699,6 @@
       IF ( ITS_A_NEW_MONTH() ) THEN 
 
          ! Read monthly mean data
-         !-----------------------------------------------
-         ! Prior to 8/1/05:
-         ! Now also pass YEAR to READ_SST (bmy, 8/1/05)
-         !CALL READ_SST( MONTH )
-         !-----------------------------------------------
          CALL READ_SST( MONTH, YEAR )
          CALL READ_OCEAN_DMS( MONTH )
          CALL READ_AIRCRAFT_SO2( MONTH )
@@ -5168,10 +5126,6 @@
       USE TRACERID_MOD, ONLY : IDO3
 
 #     include "CMN_SIZE"     ! Size parameters
-!-------------------------------------------------------------
-! Prior to 8/22/05:
-!#     include "CMN"         ! LPAUSE
-!-------------------------------------------------------------
 #     include "CMN_O3"       ! XNUMOLAIR
 
       ! Arguments
@@ -5234,16 +5188,17 @@
 !
 !******************************************************************************
 !  Subroutine READ_NONERUP_VOLC reads SO2 emissions from non-eruptive
-!  volcanoes. (rjp, bdf, bmy, 9/19/02, 7/28/05)
+!  volcanoes. (rjp, bdf, bmy, 9/19/02, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Split off from old module routine "sulfate_readyr" (bmy, 9/19/02)
 !  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (3 ) Now read files from "sulfate_sim_200508/" (bmy, 7/28/05)
+!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 ! 
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT, GET_TAU0, READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
@@ -5262,10 +5217,6 @@
       K        = 1
       Env      = 0.d0
       FILENAME = TRIM( DATA_DIR )                  // 
-!----------------------------------------------------------------------------
-! Prior to 7/28/05:
-!     &           'sulfate_sim_200210/volcano.con.' // GET_RES_EXT()
-!----------------------------------------------------------------------------
      &           'sulfate_sim_200508/volcano.con.' // GET_RES_EXT()
 
       !=================================================================
@@ -5324,16 +5275,17 @@
 !
 !***************************************************************************** 
 !  Subroutine READ_ERUP_VOLC reads SO2 emissions from eruptive
-!  volcanoes. (rjp, bdf, bmy, 9/19/02, 7/28/05)
+!  volcanoes. (rjp, bdf, bmy, 9/19/02, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Split off from old module routine "sulfate_readyr" (bmy, 9/19/02)
 !  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (3 ) Now read files from "sulfate_sim_200508/" (bmy, 7/28/05)
+!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !*****************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT, GET_TAU0, READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
       
@@ -5352,10 +5304,6 @@
       K        = 1
       Eev(:)   = 0.d0
       FILENAME = TRIM( DATA_DIR )                        // 
-!-------------------------------------------------------------------------
-! Prior to 7/28/05:
-!     &           'sulfate_sim_200210/volcano.erup.1990.' // 
-!-------------------------------------------------------------------------
      &           'sulfate_sim_200508/volcano.erup.1990.' // 
      &           GET_RES_EXT()
       
@@ -5423,7 +5371,7 @@
 !******************************************************************************
 !  Suborutine READ_ANTHRO_SOx reads the anthropogenic SOx from disk, 
 !  and partitions it into anthropogenic SO2 and SO4. 
-!  (rjp, bdf, bmy, 9/20/02, 8/16/05)
+!  (rjp, bdf, bmy, 9/20/02, 10/3/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -5439,10 +5387,12 @@
 !        reference to CMN, it's not needed. (bmy, 7/20/04)
 !  (3 ) Now read files from "sulfate_sim_200508/".  Now read data for both
 !        GCAP and GEOS grids (bmy, 8/16/05)
+!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD      
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE GRID_MOD,      ONLY : GET_XMID, GET_YMID, GET_AREA_CM2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TIME_MOD,      ONLY : GET_YEAR
@@ -5469,12 +5419,6 @@
       !=================================================================
 
       ! Define filename
-!----------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )                       //
-!     &           'fossil_200104/merge_nobiofuels.geos.' // 
-!     &           GET_RES_EXT() 
-!----------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )                          //
      &           'fossil_200104/merge_nobiofuels.'         //
      &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT() 
@@ -5510,10 +5454,6 @@
          ! put in SOX scale year here (hardwired to 1998 for now)
          SYEAR    = '1998'
          FILENAME = TRIM( DATA_DIR )                    // 
-!----------------------------------------------------------------------------
-! Prior to 7/28/05:
-!     &              'sulfate_sim_200210/scalefoss.SOx.' //  
-!----------------------------------------------------------------------------
      &              'sulfate_sim_200508/scalefoss.SOx.' //  
      &              GET_RES_EXT()  // '.' // SYEAR
         
@@ -5607,7 +5547,7 @@
 !
 !***************************************************************************** 
 !  Subroutine READ_OCEAN_DMS reads seawater concentrations of DMS (nmol/L).
-!  (rjp, bdf, bmy, 9/20/02, 8/16/05)
+!  (rjp, bdf, bmy, 9/20/02, 10/3/05)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -5619,10 +5559,12 @@
 !  (3 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (4 ) Now read files from "sulfate_sim_200508/".  Now read data for both
 !        GCAP and GEOS grids (bmy, 8/16/05) 
+!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !*****************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
@@ -5641,12 +5583,6 @@
       !==================================================================
 
       ! File name
-!---------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )                        // 
-!     &           'sulfate_sim_200210/DMS_seawater.geos.' //
-!     &           GET_RES_EXT()
-!---------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )                         // 
      &           'sulfate_sim_200508/DMS_seawater.'       //
      &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
@@ -5671,15 +5607,11 @@
 
 !------------------------------------------------------------------------------
 
-      !--------------------------------------------------
-      ! Prior to 8/1/05:
-      !SUBROUTINE READ_SST( THISMONTH )
-      !--------------------------------------------------
       SUBROUTINE READ_SST( THISMONTH, THISYEAR )
 !
 !***************************************************************************** 
 !  Subroutine READ_SST reads monthly mean sea surface temperatures.
-!  (rjp, bdf, bmy, 9/18/02, 8/1/05)
+!  (rjp, bdf, bmy, 9/18/02, 10/3/05)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -5693,10 +5625,12 @@
 !  (4 ) Now use interannual SST data from NOAA if present; otherwise use
 !        climatological SST data.  Now read data for both GCAP and GEOS 
 !        grids (bmy, 8/16/05) 
+!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !*****************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
@@ -5714,29 +5648,6 @@
       !==================================================================
       ! READ_SST begins here!
       !==================================================================
-
-!----------------------------------------------------------------------------
-! Prior to 8/1/05:
-! Now use interannual SST data if present (rjp, bmy, 8/1/05)
-!      ! File name
-!      FILENAME = TRIM( DATA_DIR )               // 
-!     &           'sulfate_sim_200210/SST.geos.' // GET_RES_EXT()
-!
-!      ! Echo output
-!      WRITE( 6, 100 ) TRIM( FILENAME )  
-! 100  FORMAT( '     - READ_SST: Reading ', a ) 
-!
-!      ! TAU value (use generic year 1985)
-!      XTAU = GET_TAU0( THISMONTH, 1, 1985 )
-!
-!      ! Read sea surface temperature [K]
-!      CALL READ_BPCH2( FILENAME, 'DAO-FLDS',    5, 
-!     &                 XTAU,      IGLOB,        JGLOB,     
-!     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. ) 
-!
-!      ! Cast from REAL*4 to REAL*8 
-!      CALL TRANSFER_2D( ARRAY(:,:,1), SSTEMP )
-!----------------------------------------------------------------------------
 
       IF ( THISYEAR >= 1985 .and. THISYEAR <= 2004 ) THEN 
          
@@ -5807,7 +5718,7 @@
 !******************************************************************************
 !  Subroutine READ_BIOMASS_SO2 reads monthly mean biomass burning 
 !  emissions for SO2.  SOx is read in, and converted to SO2. 
-!  (rjp, bdf, bmy, 1/16/03, 8/16/05)
+!  (rjp, bdf, bmy, 1/16/03, 10/3/05)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -5827,15 +5738,17 @@
 !        Now reads SO2 biomass emissions directly rather than computing
 !        it by mole fraction from CO. (rjp, bmy, 1/11/05)
 !  (6 ) Now read data for both GCAP and GEOS grids (bmy, 8/16/05) 
+!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE GRID_MOD,      ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,   ONLY : LBBSEA
-      USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR, GET_MONTH,
-     &                          GET_TAU,        GET_YEAR
+      USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR,  GET_MONTH
+      USE TIME_MOD,      ONLY : GET_TAU,         GET_YEAR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
       
 #     include "CMN_SIZE"  ! Size parameters
@@ -5884,12 +5797,6 @@
          !-----------------------------------------
 
          ! File name for seasonal BB emissions
-!--------------------------------------------------------------------------
-! Prior to 8/16/05:
-!         FILENAME = TRIM( DATA_DIR )                            //
-!     &              'biomass_200110/SO2.bioburn.seasonal.geos.' //
-!     &              GET_RES_EXT()
-!--------------------------------------------------------------------------
          FILENAME = TRIM( DATA_DIR )                         //
      &              'biomass_200110/SO2.bioburn.seasonal.'   //
      &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
@@ -5905,12 +5812,6 @@
          !-----------------------------------------
 
          ! File name for interannual biomass burning emissions
-!--------------------------------------------------------------------------
-! Prior to 8/16/05:
-!         FILENAME = TRIM( DATA_DIR )                               // 
-!     &              'biomass_200110/SO2.bioburn.interannual.geos.' // 
-!     &              GET_RES_EXT() // '.' // CYEAR
-!--------------------------------------------------------------------------
          FILENAME = TRIM( DATA_DIR )                          // 
      &              'biomass_200110/SO2.bioburn.interannual.' // 
      &              GET_NAME_EXT_2D() // '.'                  //
@@ -5943,11 +5844,6 @@
       !=================================================================
       
       ! File name for biofuel burning file
-!-----------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )               // 
-!     &           'biofuel_200202/biofuel.geos.' // GET_RES_EXT()
-!-----------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )          // 
      &           'biofuel_200202/biofuel.' // GET_NAME_EXT_2D() //
      &           '.'                       // GET_RES_EXT()
@@ -5982,7 +5878,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_AIRCRAFT_SO2 reads monthly mean aircraft fuel emissions 
-!  and converts them to SO2 emissions. (rjp, bdf, bmy, 9/18/02, 8/16/05)
+!  and converts them to SO2 emissions. (rjp, bdf, bmy, 9/18/02, 10/3/05)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -5993,10 +5889,11 @@
 !  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (3 ) Now read files from "sulfate_sim_200508/".  Now read data for both 
 !        GCAP and GEOS grids (bmy, 8/16/05)
+!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! Reference to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT, GET_TAU0, READ_BPCH2
       USE DAO_MOD,       ONLY : BXHEIGHT
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
@@ -6026,12 +5923,6 @@
       ACSO2   = 0d0
       
       ! File name
-!----------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )               // 
-!     &           'sulfate_sim_200210/aircraft.' // GET_RES_EXT() //
-!     &           '.1992.'                       // CMONTH(THISMONTH)
-!----------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )               // 
      &           'sulfate_sim_200508/aircraft.' // GET_RES_EXT() //
      &           '.1992.'                       // CMONTH(THISMONTH)
@@ -6125,7 +6016,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_SHIP_SO2 reads in ship SO2 emissions. 
-!  (bec, qli, 10/01/03, 8/16/05)
+!  (bec, qli, 10/01/03, 10/3/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -6135,10 +6026,12 @@
 !  (1 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (2 ) Now read files from "sulfate_sim_200508/".  Now read data for both 
 !        GCAP and GEOS grids. (bmy, 8/16/05)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
       USE GRID_MOD,      ONLY : GET_AREA_CM2
       USE TRACERID_MOD,  ONLY : IDTSO2
@@ -6162,11 +6055,6 @@
       !=================================================================
 
       ! Filename
-!-------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )                   // 
-!     &           'sulfate_sim_200210/shipSOx.geos.' // GET_RES_EXT()
-!-------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )              // 
      &           'sulfate_sim_200508/shipSOx.' // GET_NAME_EXT_2D() //
      &           '.'                           // GET_RES_EXT()
@@ -6215,7 +6103,7 @@
 !******************************************************************************
 !  Subroutine READ_ANTHRO_NH3 reads the monthly mean anthropogenic 
 !  NH3 emissions from disk and converts to [kg NH3/box/s]. 
-!  (rjp, bdf, bmy, 9/20/02, 8/16/05)
+!  (rjp, bdf, bmy, 9/20/02, 10/3/05)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -6231,10 +6119,12 @@
 !  (4 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (5 ) Now read files from "sulfate_sim_200508/". Now read data for both 
 !        GCAP and GEOS grids. (bmy, 8/16/05)
+!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
@@ -6258,12 +6148,6 @@
       !=================================================================
 
       ! File name
-!---------------------------------------------------------------------
-! Prior to 7/28/05:
-!      FILENAME = TRIM( DATA_DIR )                        //
-!     &           'sulfate_sim_200210/NH3_anthsrce.geos.' //
-!     &           GET_RES_EXT()
-!---------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )                         //
      &           'sulfate_sim_200508/NH3_anthsrce.'       //
      &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
@@ -6297,7 +6181,7 @@
 !******************************************************************************
 !  Subroutine READ_NATURAL_NH3 reads the monthly mean natural 
 !  NH3 emissions from disk and converts to [kg NH3/box/s]. 
-!  (rjp, bdf, bmy, 9/20/02, 8/16/05)
+!  (rjp, bdf, bmy, 9/20/02, 10/3/05)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -6309,10 +6193,12 @@
 !  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (3 ) Now read files from "sulfate_sim_200508/".  Now read data for both 
 !        GCAP and GEOS grids. (bmy, 8/16/05)
+!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
@@ -6334,12 +6220,6 @@
       !=================================================================
 
       ! File name
-!-----------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )                        //
-!     &           'sulfate_sim_200210/NH3_natusrce.geos.' //
-!     &           GET_RES_EXT()
-!-----------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )                         //
      &           'sulfate_sim_200508/NH3_natusrce.'       //
      &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
@@ -6373,7 +6253,7 @@
 !******************************************************************************
 !  Subroutine READ_BIOMASS_NH3 reads the monthly mean biomass NH3 
 !  and biofuel emissions from disk and converts to [kg NH3/box/s]. 
-!  (rjp, bdf, bmy, 9/20/02, 8/16/05)
+!  (rjp, bdf, bmy, 9/20/02, 10/3/05)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -6401,10 +6281,12 @@
 !        from CO. (rjp, bmy, 1/11/05)
 !  (8 ) Now read files from "sulfate_sim_200508/".  Now read data for both 
 !        GCAP and GEOS grids. (bmy, 8/16/05)
+!  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE GRID_MOD,      ONLY : GET_AREA_M2
       USE LOGICAL_MOD,   ONLY : LBBSEA
@@ -6458,12 +6340,6 @@
          !-----------------------------------------
 
          ! File name for seasonal BB emissions
-!-------------------------------------------------------------------------
-! Prior to 8/16/05:
-!         FILENAME = TRIM( DATA_DIR )                            // 
-!     &              'biomass_200110/NH3.bioburn.seasonal.geos.' //
-!     &              GET_RES_EXT()
-!-------------------------------------------------------------------------
          FILENAME = TRIM( DATA_DIR )                         // 
      &              'biomass_200110/NH3.bioburn.seasonal.'   //
      &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
@@ -6479,12 +6355,6 @@
          !-----------------------------------------
     
          ! File name for interannual biomass burning emissions
-!----------------------------------------------------------------------------
-! Prior to 8/16/05:
-!         FILENAME = TRIM( DATA_DIR )                               // 
-!     &              'biomass_200110/NH3.bioburn.interannual.geos.' // 
-!     &              GET_RES_EXT() // '.' // CYEAR
-!----------------------------------------------------------------------------
          FILENAME = TRIM( DATA_DIR )                          // 
      &              'biomass_200110/NH3.bioburn.interannual.' // 
      &              GET_NAME_EXT_2D() // '.'                  //
@@ -6515,11 +6385,6 @@
       !=================================================================
 
       ! File name
-!---------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )                       // 
-!     &           'sulfate_sim_200210/NH3_biofuel.geos.' // GET_RES_EXT()
-!---------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )                         // 
      &           'sulfate_sim_200508/NH3_biofuel.'        // 
      &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
@@ -6550,7 +6415,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_OXIDANT reads in monthly mean H2O2 and O3 fields for the
-!  offline sulfate + aerosol simulation. (rjp, bdf, bmy, 11/1/02, 8/16/05)
+!  offline sulfate + aerosol simulation. (rjp, bdf, bmy, 11/1/02, 10/3/05)
 !
 !  Arguments as input:
 !  ============================================================================
@@ -6559,12 +6424,14 @@
 !  NOTES:
 !  (1 ) Now call READ_BPCH2 with QUIET=.TRUE. (bmy, 3/27/03)
 !  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  (8 ) Now read files from "sulfate_sim_200508/offline/".  Now read data
+!  (3 ) Now read files from "sulfate_sim_200508/offline/".  Now read data
 !        for both GEOS and GCAP grids (bmy, 8/16/05)
+!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !  
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
 
@@ -6594,11 +6461,6 @@
       !=================================================================
       ! Read monthly mean PH2O2 (from HO2 + HO2 = H2O2) [molec/cm3/s]
       !=================================================================
-!---------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/PH2O2.' //
-!     &           GET_NAME_EXT()    // '.' // GET_RES_EXT()
-!---------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )                      // 
      &           'sulfate_sim_200508/offline/PH2O2.'   // 
      &           GET_NAME_EXT() //  '.' // GET_RES_EXT()
@@ -6608,11 +6470,6 @@
  100  FORMAT( '     - READ_OXIDANT: Reading ', a ) 
 
       ! Read data
-!-------------------------------------------------------------------------
-! Prior to 8/16/05:
-! Change tracer to #5
-!      CALL READ_BPCH2( FILENAME, 'PORL-L=$', 20,     
-!-------------------------------------------------------------------------
       CALL READ_BPCH2( FILENAME, 'PORL-L=$', 5,     
      &                 XTAU,      IGLOB,     JGLOB,     
      &                 LLTROP,    ARRAY,     QUIET=.TRUE. )
@@ -6623,11 +6480,6 @@
       !=================================================================
       ! Read monthly mean O3 [v/v]
       !=================================================================
-!----------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/O3.' //
-!     &           GET_NAME_EXT()    // '.' // GET_RES_EXT()
-!----------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )                      // 
      &           'sulfate_sim_200508/offline/O3.'      //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
@@ -6636,11 +6488,6 @@
       WRITE( 6, 100 ) TRIM( FILENAME )
 
       ! Read data
-!-------------------------------------------------------------------------
-! Prior to 8/16/05:
-! Change tracer to #51
-!      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 32,     
-!-------------------------------------------------------------------------
       CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 51,     
      &                 XTAU,      IGLOB,     JGLOB,     
      &                 LLTROP,    ARRAY,     QUIET=.TRUE. )
@@ -6675,8 +6522,8 @@
 !
       ! References to F90 modules
       USE GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
-      USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC, 
-     &                     GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
+      USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
+      USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN_GCTM"

@@ -1,9 +1,9 @@
-! $Id: diag41_mod.f,v 1.3 2005/09/02 15:17:05 bmy Exp $
+! $Id: diag41_mod.f,v 1.4 2005/10/20 14:03:19 bmy Exp $
       MODULE DIAG41_MOD
 !
 !******************************************************************************
 !  Module DIAG41_MOD contains arrays and routines for archiving the ND41
-!  diagnostic -- Afternoon PBL heights. (bmy, 2/17/05, 6/28/05) 
+!  diagnostic -- Afternoon PBL heights. (bmy, 2/17/05, 10/3/05) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -29,6 +29,7 @@
 !
 !  NOTES:
 !  (1 ) Updated for GCAP grid (bmy, 6/28/05)
+!  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -111,7 +112,7 @@
 !
 !******************************************************************************
 !  Subroutine WRITE_DIAG41 writes the ND41 diagnostic arrays to the binary
-!  punch file at the proper time. (bmy, 2/17/05, 6/28/05)
+!  punch file at the proper time. (bmy, 2/17/05, 10/3/05)
 !
 !  ND41: Afternoon PBL depth (between 1200 and 1600 Local Time)
 !
@@ -122,26 +123,27 @@
 !  NOTES:
 !  (1 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
 !        value for GEOS or GCAP grids. (bmy, 6/28/05)
+!  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
-      USE FILE_MOD, ONLY : IU_BPCH
-      USE GRID_MOD, ONLY : GET_XOFFSET, GET_YOFFSET
-      USE TIME_MOD, ONLY : GET_CT_EMIS, GET_DIAGb,  GET_DIAGe
+      USE BPCH2_MOD, ONLY : BPCH2, GET_HALFPOLAR, GET_MODELNAME 
+      USE FILE_MOD,  ONLY : IU_BPCH
+      USE GRID_MOD,  ONLY : GET_XOFFSET, GET_YOFFSET
+      USE TIME_MOD,  ONLY : GET_CT_EMIS, GET_DIAGb,  GET_DIAGe
 
-#     include "CMN_SIZE" ! Size parameters
-#     include "CMN_DIAG" ! TINDEX
+#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_DIAG"  ! TINDEX
 
       ! Local variables
-      INTEGER           :: I,         J,           M,      N
-      INTEGER           :: CENTER180, HALFPOLAR,   IFIRST
-      INTEGER           :: JFIRST,    LFIRST,      LMAX
-      REAL*4            :: ARRAY(IIPAR,JJPAR,LLPAR)
-      REAL*4            :: LONRES,    LATRES,      EPS
-      REAL*8            :: DIAGb,     DIAGe,       SCALE
-      CHARACTER(LEN=20) :: MODELNAME 
-      CHARACTER(LEN=40) :: CATEGORY,  RESERVED,    UNIT
+      INTEGER            :: I,         J,           M,      N
+      INTEGER            :: CENTER180, HALFPOLAR,   IFIRST
+      INTEGER            :: JFIRST,    LFIRST,      LMAX
+      REAL*4             :: ARRAY(IIPAR,JJPAR,LLPAR)
+      REAL*4             :: LONRES,    LATRES,      EPS
+      REAL*8             :: DIAGb,     DIAGe,       SCALE
+      CHARACTER(LEN=20)  :: MODELNAME 
+      CHARACTER(LEN=40)  :: CATEGORY,  RESERVED,    UNIT
 
       !=================================================================
       ! WRITE_DIAG41 begins here!

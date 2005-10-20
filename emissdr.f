@@ -1,10 +1,10 @@
-! $Id: emissdr.f,v 1.8 2005/09/02 15:17:10 bmy Exp $
+! $Id: emissdr.f,v 1.9 2005/10/20 14:03:24 bmy Exp $
       SUBROUTINE EMISSDR
 !
 !******************************************************************************
 !  Subroutine EMISSDR computes emissions for the full chemistry simulation
 !  (NSRCX == 3).  Emissions are stored in GEMISNOX and EMISRR arrays, 
-!  which are then passed to the SMVGEAR subroutines (bmy, 10/8/98, 7/20/04)
+!  which are then passed to the SMVGEAR subroutines (bmy, 10/8/98, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Now accounts for seasonal NOx emissions, and multi-level NOx 
@@ -51,22 +51,26 @@
 !  (21) Now references EMLIGHTNING from "lightning_nox_mod.f" (bmy, 4/14/04)
 !  (22) Now references "logical_mod.f".  Now replaced LFOSSIL with LANTHRO.
 !        (bmy, 7/20/04)
+!  (23) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ACETONE_MOD
+      USE ACETONE_MOD,       ONLY : EMISS_BIOACET, OCEAN_SOURCE_ACET
+      USE ACETONE_MOD,       ONLY : READ_JO1D,     READ_RESP
       USE AIRCRAFT_NOX_MOD,  ONLY : AIREMISS
       USE BIOFUEL_MOD,       ONLY : BIOFUEL_BURN
       USE BIOMASS_MOD,       ONLY : BIOBURN
       USE DAO_MOD,           ONLY : SUNCOS
-      USE DIAG_MOD,          ONLY : AD29, AD46
-      USE GRID_MOD,          ONLY : GET_AREA_CM2, 
-     &                              GET_XOFFSET, GET_YOFFSET
+      USE DIAG_MOD,          ONLY : AD29,          AD46
+      USE GRID_MOD,          ONLY : GET_AREA_CM2
+      USE GRID_MOD,          ONLY : GET_XOFFSET,   GET_YOFFSET
       USE LIGHTNING_NOX_MOD, ONLY : EMLIGHTNING
-      USE LOGICAL_MOD
-      USE TIME_MOD,          ONLY : GET_MONTH,   GET_TAU,
-     &                              GET_TS_EMIS, GET_LOCALTIME
-      USE TRACERID_MOD 
+      USE LOGICAL_MOD,       ONLY : LANTHRO,       LLIGHTNOX, LSOILNOX  
+      USE LOGICAL_MOD,       ONLY : LAIRNOX,       LBIONOX,   LWOODCO   
+      USE TIME_MOD,          ONLY : GET_MONTH,     GET_TAU
+      USE TIME_MOD,          ONLY : GET_TS_EMIS,   GET_LOCALTIME
+      USE TRACERID_MOD,      ONLY : IDEACET,       IDTISOP,   IDEISOP   
+      USE TRACERID_MOD,      ONLY : IDECO,         IDEPRPE,   NEMANTHRO 
 
       IMPLICIT NONE
 

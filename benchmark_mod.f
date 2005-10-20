@@ -1,10 +1,10 @@
-! $Id: benchmark_mod.f,v 1.4 2005/09/02 15:16:56 bmy Exp $
+! $Id: benchmark_mod.f,v 1.5 2005/10/20 14:03:13 bmy Exp $
       MODULE BENCHMARK_MOD
 !
 !******************************************************************************
 !  Module BENCHMARK_MOD contains routines to save out initial and final
 !  tracer masses which are needed for GEOS-CHEM benchmark diagnostics.
-!  (bmy, 7/20/04, 1/31/05)
+!  (bmy, 7/20/04, 10/3/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -27,6 +27,7 @@
 !  NOTES:
 !  (1 ) Now expand date & time tokens in filenames (bmy, 1/31/05)
 !  (2 ) Now modified for GCAP grid (swu, bmy, 6/28/05)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -49,7 +50,7 @@
 !******************************************************************************
 !  Subroutine STDRUN dumps the mass of either Ox [kg] or 222Rn, 210Pb, and 7Be
 !  [kg] at the start & end of each run.  This is necessary for GEOS-CHEM
-!  benchmarking.  (bmy, 8/12/02, 6/28/05)
+!  benchmarking.  (bmy, 8/12/02, 10/3/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -66,15 +67,17 @@
 !  (4 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag
 !        value for GEOS or GCAP grids .  Also removed references to CMN_DIAG
 !        and TRCOFFSET. (bmy, 6/28/05)
+!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
-      USE FILE_MOD,     ONLY : IU_FILE,            IOERROR
-      USE TIME_MOD,     ONLY : EXPAND_DATE,        GET_NYMD, 
-     &                         GET_NHMS,           GET_TAU
-      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM, ITS_A_RnPbBe_SIM,
-     &                         STT,                N_TRACERS
+      USE BPCH2_MOD,    ONLY : OPEN_BPCH2_FOR_WRITE, BPCH2             
+      USE BPCH2_MOD,    ONLY : GET_HALFPOLAR,        GET_MODELNAME
+      USE FILE_MOD,     ONLY : IU_FILE,              IOERROR
+      USE TIME_MOD,     ONLY : EXPAND_DATE,          GET_NYMD
+      USE TIME_MOD,     ONLY : GET_NHMS,             GET_TAU
+      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM,   ITS_A_RnPbBe_SIM
+      USE TRACER_MOD,   ONLY : STT,                  N_TRACERS
       USE TRACERID_MOD, ONLY : IDTOX
 
 #     include "CMN_SIZE"   ! Size parameters

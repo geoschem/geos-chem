@@ -1,4 +1,4 @@
-! $Id: rdland.f,v 1.6 2004/12/20 16:43:18 bmy Exp $
+! $Id: rdland.f,v 1.7 2005/10/20 14:03:37 bmy Exp $
       SUBROUTINE RDLAND
 !
 !******************************************************************************
@@ -55,13 +55,6 @@
       ! Get nested-grid offsets (bmy, 2/11/03)
       I0 = GET_XOFFSET()
       J0 = GET_YOFFSET()
-
-!-----------------------------------------------------------------------------
-! Prior to 12/20/04:
-!      ! File name
-!      FILENAME = TRIM( DATA_DIR ) // 
-!     &           'leaf_area_index_200202/vegtype.global'
-!-----------------------------------------------------------------------------
 
       ! Read the "vegtype.global" from the proper directory
       ! depending on the setting of the LAVHRRLAI flag (bmy, 12/20/04)

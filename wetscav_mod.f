@@ -1,9 +1,9 @@
-! $Id: wetscav_mod.f,v 1.18 2005/09/02 15:17:30 bmy Exp $
+! $Id: wetscav_mod.f,v 1.19 2005/10/20 14:03:46 bmy Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
 !  Module WETSCAV_MOD contains arrays for used in the wet scavenging of
-!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 5/5/05)
+!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 10/3/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -113,6 +113,7 @@
 !        function for E_ICE(T). (bmy, 3/7/05)
 !  (19) Added SO4s, NITs.  Increased NSOLMAX to 31.  Also block out 
 !        parallel loop in WETDEP for SGI MIPS compiler. (bec, bmy, 5/5/05)
+!  (20) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -513,7 +514,7 @@
 !
 !******************************************************************************
 !  Subroutine COMPUTE_F computes F, the fraction of soluble tracer lost by 
-!  scavenging in convective cloud updrafts. (hyl, bmy, djj, 2/23/00, 4/25/05)
+!  scavenging in convective cloud updrafts. (hyl, bmy, djj, 2/23/00, 10/3/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -570,11 +571,26 @@
 !  (16) Updated for AS, AHS, LET, NH4aq, SO4aq.  Also condensed the IF
 !        statement by combining branches for aerosols. (cas, bmy, 12/20/04)
 !  (17) Updated for SO4s, NITs (bec, bmy, 4/25/05)
+!  (18) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,     ONLY : BXHEIGHT, T
-      USE TRACERID_MOD
+      USE DAO_MOD,      ONLY : BXHEIGHT, T
+      USE TRACERID_MOD, ONLY : IDTPB,     IDTBE7,    IDTHNO3, IDTH2O2 
+      USE TRACERID_MOD, ONLY : IDTCH2O,   IDTMP,     IDTSO2,  IDTSO4  
+      USE TRACERID_MOD, ONLY : IDTSO4s,   IDTSO4aq,  IDTMSA,  IDTNH3   
+      USE TRACERID_MOD, ONLY : IDTNH4,    IDTNH4aq,  IDTNIT,  IDTNITs  
+      USE TRACERID_MOD, ONLY : IDTAS,     IDTAHS,    IDTLET,  IDTBCPI 
+      USE TRACERID_MOD, ONLY : IDTOCPI,   IDTBCPO,   IDTOCPO, IDTDST1 
+      USE TRACERID_MOD, ONLY : IDTDST2,   IDTDST3,   IDTDST4, IDTSALA 
+      USE TRACERID_MOD, ONLY : IDTSALC,   IDTALPH,   IDTLIMO, IDTALCO 
+      USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,   IDTSOG3, IDTSOA1 
+      USE TRACERID_MOD, ONLY : IDTSOA2,   IDTSOA3,   IDTHG2,  IDTHG2_na 
+      USE TRACERID_MOD, ONLY : IDTHG2_eu, IDTHG2_as, IDTHG2_rw
+      USE TRACERID_MOD, ONLY : IDTHG2_oc, IDTHG2_ln, IDTHG2_nt 
+      USE TRACERID_MOD, ONLY : IDTHGP,    IDTHGP_na, IDTHGP_eu
+      USE TRACERID_MOD, ONLY : IDTHGP_as, IDTHGP_rw, IDTHGP_oc 
+      USE TRACERID_MOD, ONLY : IDTHGP_ln, IDTHGP_nt 
 
 #     include "CMN_SIZE"    ! Size parameters
 
@@ -1389,7 +1405,7 @@
 !
 !******************************************************************************
 !  Subroutine RAINOUT computes RAINFRAC, the fraction of soluble tracer
-!  lost to rainout events in precipitation. (djj, bmy, 2/28/00, 4/25/05)
+!  lost to rainout events in precipitation. (djj, bmy, 2/28/00, 10/3/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1431,12 +1447,27 @@
 !  (11) Updated for AS, AHS, LET, NH4aq, SO4aq.  Also condensed the IF
 !        statement by grouping blocks together. (cas, bmy, 12/20/04)
 !  (12) Updated for SO4s, NITs (bec, bmy, 4/25/05)
+!  (13) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,     ONLY : T
       USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE TRACERID_MOD
+      USE TRACERID_MOD, ONLY : IDTPB,     IDTBE7,    IDTHNO3, IDTH2O2 
+      USE TRACERID_MOD, ONLY : IDTCH2O,   IDTMP,     IDTSO2,  IDTSO4  
+      USE TRACERID_MOD, ONLY : IDTSO4s,   IDTSO4aq,  IDTMSA,  IDTNH3   
+      USE TRACERID_MOD, ONLY : IDTNH4,    IDTNH4aq,  IDTNIT,  IDTNITs  
+      USE TRACERID_MOD, ONLY : IDTAS,     IDTAHS,    IDTLET,  IDTBCPI 
+      USE TRACERID_MOD, ONLY : IDTOCPI,   IDTBCPO,   IDTOCPO, IDTDST1 
+      USE TRACERID_MOD, ONLY : IDTDST2,   IDTDST3,   IDTDST4, IDTSALA 
+      USE TRACERID_MOD, ONLY : IDTSALC,   IDTALPH,   IDTLIMO, IDTALCO 
+      USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,   IDTSOG3, IDTSOA1 
+      USE TRACERID_MOD, ONLY : IDTSOA2,   IDTSOA3,   IDTHG2,  IDTHG2_na 
+      USE TRACERID_MOD, ONLY : IDTHG2_eu, IDTHG2_as, IDTHG2_rw
+      USE TRACERID_MOD, ONLY : IDTHG2_oc, IDTHG2_ln, IDTHG2_nt 
+      USE TRACERID_MOD, ONLY : IDTHGP,    IDTHGP_na, IDTHGP_eu
+      USE TRACERID_MOD, ONLY : IDTHGP_as, IDTHGP_rw, IDTHGP_oc 
+      USE TRACERID_MOD, ONLY : IDTHGP_ln, IDTHGP_nt 
 
       IMPLICIT NONE
 
@@ -1961,7 +1992,7 @@
 !
 !******************************************************************************
 !  Subroutine WASHOUT computes WASHFRAC, the fraction of soluble tracer
-!  lost to washout events in precipitation. (djj, bmy, 2/28/00, 4/25/05)
+!  lost to washout events in precipitation. (djj, bmy, 2/28/00, 10/3/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -2009,12 +2040,27 @@
 !  (13) Updated for AS, AHS, LET, NH4aq, SO4aq.  Also condensed the IF
 !        statement by grouping blocks together (cas, bmy, 12/20/04)
 !  (14) Updated for SO4s, NITs (bec, bmy, 4/25/05)
+!  (15) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : BXHEIGHT, T
       USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE TRACERID_MOD
+      USE TRACERID_MOD, ONLY : IDTPB,     IDTBE7,    IDTHNO3, IDTH2O2 
+      USE TRACERID_MOD, ONLY : IDTCH2O,   IDTMP,     IDTSO2,  IDTSO4  
+      USE TRACERID_MOD, ONLY : IDTSO4s,   IDTSO4aq,  IDTMSA,  IDTNH3   
+      USE TRACERID_MOD, ONLY : IDTNH4,    IDTNH4aq,  IDTNIT,  IDTNITs  
+      USE TRACERID_MOD, ONLY : IDTAS,     IDTAHS,    IDTLET,  IDTBCPI 
+      USE TRACERID_MOD, ONLY : IDTOCPI,   IDTBCPO,   IDTOCPO, IDTDST1 
+      USE TRACERID_MOD, ONLY : IDTDST2,   IDTDST3,   IDTDST4, IDTSALA 
+      USE TRACERID_MOD, ONLY : IDTSALC,   IDTALPH,   IDTLIMO, IDTALCO 
+      USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,   IDTSOG3, IDTSOA1 
+      USE TRACERID_MOD, ONLY : IDTSOA2,   IDTSOA3,   IDTHG2,  IDTHG2_na 
+      USE TRACERID_MOD, ONLY : IDTHG2_eu, IDTHG2_as, IDTHG2_rw
+      USE TRACERID_MOD, ONLY : IDTHG2_oc, IDTHG2_ln, IDTHG2_nt 
+      USE TRACERID_MOD, ONLY : IDTHGP,    IDTHGP_na, IDTHGP_eu
+      USE TRACERID_MOD, ONLY : IDTHGP_as, IDTHGP_rw, IDTHGP_oc 
+      USE TRACERID_MOD, ONLY : IDTHGP_ln, IDTHGP_nt 
 
 #     include "CMN_SIZE"   ! Size parameters
 
@@ -2480,8 +2526,8 @@
 !
       ! References to F90 modules
       USE DAO_MOD,           ONLY : BXHEIGHT
-      USE DIAG_MOD,          ONLY : AD16, AD17, AD18, 
-     &                              CT16, CT17, CT18, AD39 
+      USE DIAG_MOD,          ONLY : AD16, AD17, AD18
+      USE DIAG_MOD,          ONLY : CT16, CT17, CT18, AD39 
       USE ERROR_MOD,         ONLY : GEOS_CHEM_STOP, IT_IS_NAN
       USE OCEAN_MERCURY_MOD, ONLY : ADD_Hg2_WD
       USE TIME_MOD,          ONLY : GET_TS_DYN
@@ -3518,7 +3564,7 @@
 !
 !******************************************************************************
 !  Subroutine WETDEPID sets up the index array of soluble tracers used in
-!  the WETDEP routine above (bmy, 11/8/02, 4/25/05)
+!  the WETDEP routine above (bmy, 11/8/02, 10/3/05)
 ! 
 !  NOTES:
 !  (1 ) Now references "tracerid_mod.f".  Also references "CMN" in order to
@@ -3532,12 +3578,27 @@
 !  (6 ) Updated for mercury aerosol tracers (eck, bmy, 12/9/04)
 !  (7 ) Updated for AS, AHS, LET, NH4aq, SO4aq (cas, bmy, 12/20/04)
 !  (8 ) Updated for SO4s, NITs (bec, bmy, 4/25/05)
+!  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References To F90 modules
-      USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE TRACER_MOD,  ONLY : N_TRACERS, TRACER_NAME, TRACER_MW_G
-      USE TRACERID_MOD
+      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE TRACER_MOD,   ONLY : N_TRACERS, TRACER_NAME, TRACER_MW_G
+      USE TRACERID_MOD, ONLY : IDTPB,     IDTBE7,    IDTHNO3, IDTH2O2 
+      USE TRACERID_MOD, ONLY : IDTCH2O,   IDTMP,     IDTSO2,  IDTSO4  
+      USE TRACERID_MOD, ONLY : IDTSO4s,   IDTSO4aq,  IDTMSA,  IDTNH3   
+      USE TRACERID_MOD, ONLY : IDTNH4,    IDTNH4aq,  IDTNIT,  IDTNITs  
+      USE TRACERID_MOD, ONLY : IDTAS,     IDTAHS,    IDTLET,  IDTBCPI 
+      USE TRACERID_MOD, ONLY : IDTOCPI,   IDTBCPO,   IDTOCPO, IDTDST1 
+      USE TRACERID_MOD, ONLY : IDTDST2,   IDTDST3,   IDTDST4, IDTSALA 
+      USE TRACERID_MOD, ONLY : IDTSALC,   IDTALPH,   IDTLIMO, IDTALCO 
+      USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,   IDTSOG3, IDTSOA1 
+      USE TRACERID_MOD, ONLY : IDTSOA2,   IDTSOA3,   IDTHG2,  IDTHG2_na 
+      USE TRACERID_MOD, ONLY : IDTHG2_eu, IDTHG2_as, IDTHG2_rw
+      USE TRACERID_MOD, ONLY : IDTHG2_oc, IDTHG2_ln, IDTHG2_nt 
+      USE TRACERID_MOD, ONLY : IDTHGP,    IDTHGP_na, IDTHGP_eu
+      USE TRACERID_MOD, ONLY : IDTHGP_as, IDTHGP_rw, IDTHGP_oc 
+      USE TRACERID_MOD, ONLY : IDTHGP_ln, IDTHGP_nt 
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -3847,10 +3908,10 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE LOGICAL_MOD, ONLY : LCARB,  LDUST, LSOA, 
-     &                        LSSALT, LSULF, LSPLIT, LCRYST
-      USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM,
-     &                        ITS_A_RnPbBe_SIM,   ITS_A_MERCURY_SIM
+      USE LOGICAL_MOD, ONLY : LCARB,  LDUST, LSOA
+      USE LOGICAL_MOD, ONLY : LSSALT, LSULF, LSPLIT, LCRYST
+      USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
+      USE TRACER_MOD,  ONLY : ITS_A_RnPbBe_SIM,   ITS_A_MERCURY_SIM
 
 #     include "CMN_SIZE"   ! Size Parameters
 

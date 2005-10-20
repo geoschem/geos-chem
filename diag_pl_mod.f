@@ -1,10 +1,10 @@
-! $Id: diag_pl_mod.f,v 1.4 2005/05/09 14:33:58 bmy Exp $
+! $Id: diag_pl_mod.f,v 1.5 2005/10/20 14:03:21 bmy Exp $
       MODULE DIAG_PL_MOD
 !
 !******************************************************************************
 !  Module DIAG_PL_MOD contains variables and routines which are used to 
 !  compute the production and loss of chemical families in SMVGEAR chemistry.
-!  (bmy, 7/20/04, 5/2/05)
+!  (bmy, 7/20/04, 10/3/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -61,6 +61,7 @@
 !        the end of the simulation. (bmy, 11/15/04)
 !  (2 ) Added routine ITS_TIME_FOR_WRITE20 (bmy, 3/3/05)
 !  (3 ) Added functions GET_NFAM, GET_FAM_MWT, GET_FAM_NAME (bmy, 5/2/05)
+!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !      
       IMPLICIT NONE
@@ -639,9 +640,9 @@
       ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : O3PL_DIR
       USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE TIME_MOD,      ONLY : EXPAND_DATE,   GET_NYMD, 
-     &                          GET_TAU,       GET_TAUb, 
-     &                          ITS_A_NEW_DAY, TIMESTAMP_STRING
+      USE TIME_MOD,      ONLY : EXPAND_DATE,   GET_NYMD
+      USE TIME_MOD,      ONLY : GET_TAU,       GET_TAUb 
+      USE TIME_MOD,      ONLY : ITS_A_NEW_DAY, TIMESTAMP_STRING
       USE TRACER_MOD,    ONLY : STT
       USE TRACERID_MOD,  ONLY : IDTOX
 
@@ -797,25 +798,27 @@
 !
 !******************************************************************************
 !  Subroutine WRITE20 saves production and loss rates to disk, where they 
-!  will be later read by subroutine CHEMO3. (bey, bmy, 6/9/99, 11/15/04)
+!  will be later read by subroutine CHEMO3. (bey, bmy, 6/9/99, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Now bundled into "diag20_mod.f" (bmy, 7/20/04)
 !  (2 ) Bug fix: remove declaration of FILENAME which masked the global
 !        declaration (bmy, 11/15/04)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD 
+      USE BPCH2_MOD, ONLY : BPCH2,         GET_HALFPOLAR
+      USE BPCH2_MOD, ONLY : GET_MODELNAME, OPEN_BPCH2_FOR_WRITE
       USE FILE_MOD,  ONLY : IU_ND20
-      USE GRID_MOD,  ONLY : GET_XOFFSET, GET_YOFFSET
+      USE GRID_MOD,  ONLY : GET_XOFFSET,   GET_YOFFSET
 
 #     include "CMN_SIZE"   ! Size parameters
 
       ! Local variables
       INTEGER             :: I, J, L, N, IOS
       INTEGER             :: IFIRST, JFIRST, LFIRST
-      INTEGER, PARAMETER  :: HALFPOLAR = 1
+      INTEGER             :: HALFPOLAR 
       INTEGER, PARAMETER  :: CENTER180 = 1 
       REAL*4              :: LONRES, LATRES
       REAL*4              :: ARRAY(IIPAR,JJPAR,LLTROP)
@@ -836,6 +839,7 @@
       LONRES    = DISIZE
       LATRES    = DJSIZE
       MODELNAME = GET_MODELNAME()
+      HALFPOLAR = GET_HALFPOLAR()
       IFIRST    = 1 + GET_XOFFSET( GLOBAL=.TRUE. )
       JFIRST    = 1 + GET_YOFFSET( GLOBAL=.TRUE. )
       LFIRST    = 1
@@ -921,8 +925,8 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE TIME_MOD, ONLY : GET_HOUR, GET_MINUTE, GET_TAU,  
-     &                     GET_TAUb, GET_TAUe,   GET_TS_CHEM, GET_TS_DYN
+      USE TIME_MOD, ONLY : GET_HOUR, GET_MINUTE, GET_TAU
+      USE TIME_MOD, ONLY : GET_TAUb, GET_TAUe,   GET_TS_CHEM, GET_TS_DYN
 
       ! Arguments
       REAL*8,  INTENT(OUT) :: TAU_W

@@ -1,9 +1,9 @@
-! $Id: acetone_mod.f,v 1.5 2005/09/02 15:16:56 bmy Exp $
+! $Id: acetone_mod.f,v 1.6 2005/10/20 14:03:12 bmy Exp $
       MODULE ACETONE_MOD
 !
 !******************************************************************************
 !  F90 module ACETONE_MOD contains subroutines to emit the biogenic flux of
-!  acetone into the full chemistry simulation (bdf, bmy, 9/18/01, 8/16/05)
+!  acetone into the full chemistry simulation (bdf, bmy, 9/18/01, 10/3/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -61,6 +61,7 @@
 !  (15) Now references "directory_mod.f" (bmy, 7/19/04)
 !  (16) Now can read data from GEOS and GCAP grids.  Also now use Nightingale
 !        et al 2000b formulation for piston velocity KL. (swu, bmy, 8/16/05)
+!  (17) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -103,7 +104,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_JO1D reads in the J-Values for O1D from disk that
-!  are needed for the biogenic acetone fluxes, (bdf, bmy, 9/14/01, 7/19/04)
+!  are needed for the biogenic acetone fluxes, (bdf, bmy, 9/14/01, 10/3/05)
 !
 !  J-values for O1D are are stored in the JO1D module array in [s^-1].
 !
@@ -122,12 +123,14 @@
 !        info to stdout.  Also made cosmetic changes. (bmy, 3/14/03)
 !  (5 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/19/04)
 !  (6 ) Now can read data from GEOS and GCAP grids (bmy, 8/16/05)
+!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !      
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : ALLOC_ERR, ERROR_STOP
+      USE ERROR_MOD,     ONLY : ALLOC_ERR,       ERROR_STOP
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"   ! Size parameters
@@ -155,11 +158,6 @@
       ENDIF
 
       ! Construct filename
-!-----------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )            // 
-!     &           'acetone_200108/JO1D.geos.' // GET_RES_EXT()
-!-----------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )       // 
      &           'acetone_200108/JO1D.' // GET_NAME_EXT_2D() //
      &           '.'                    // GET_RES_EXT()
@@ -198,7 +196,7 @@
 !******************************************************************************
 !  Subroutine READ_RESP reads in the monthly heterotrophic respiration 
 !  measured in g of plant matter/m^2 flowing out of the biosphere. This is 
-!  needed for the biogenic acetone fluxes. (bdf, bmy, 9/14/01, 7/19/04)
+!  needed for the biogenic acetone fluxes. (bdf, bmy, 9/14/01, 10/3/05)
 !
 !  Respiration values are stored in the RESP module array in [g C/m2/s].
 !
@@ -217,10 +215,12 @@
 !        info to stdout.  Also made cosmetic changes. (bmy, 3/14/03)
 !  (5 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (6 ) Now can read files for both GEOS and GCAP grids (bmy, 8/16/05)
+!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !      
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
@@ -250,11 +250,6 @@
       ENDIF
 
       ! Construct filename
-!----------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )            // 
-!     &           'acetone_200108/resp.geos.' // GET_RES_EXT()
-!----------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )       // 
      &           'acetone_200108/resp.' // GET_NAME_EXT_2D() //
      &           '.'                    // GET_RES_EXT()
@@ -473,14 +468,6 @@
          ! SC is Schmidt # for acetone [unitless]
          SC       = A0 + A1*TC + A2*TC**2 + A3*TC**3 
 
-         !------------------------------------------------------------------
-         ! Prior to 8/16/05:
-         !! KL is conductance for mass transfer in liquid phase 
-         !! (Wanninkhof 1992), which has units of [cm/hr]
-         !KL600    = ( 0.222d0 * U * U ) + ( 0.333d0 * U )
-         !KL       = KL600 * ( SC / 600d0 )**( -0.5d0 )
-         !------------------------------------------------------------------
-         
          ! KL is conductance for mass transfer in liquid phase 
          ! (Nightingale et al 2000b), which has units of [cm/hr]
          KL       = ( 0.24d0*U*U + 0.061d0*U ) * SQRT( 600d0/Sc )  
@@ -672,16 +659,6 @@
 
                ! SC is Schmidt # for acetone [unitless]
                SC    = A0 + A1*TC + A2*TC**2 + A3*TC**3 
-
-               !------------------------------------------------------------
-               ! Prior to 8/16/05:
-               ! Now use Nightingale et al 2000b formulation for KL 
-               ! (swu, bmy, 8/16/05)
-               !! KL is conductance for mass transfer in liquid phase 
-               !! (Wanninkhof 1992), which has units of [cm/hr]
-               !KL600 = ( 0.222d0 * U * U ) + ( 0.333D0 * U )
-               !KL    = KL600 * ( SC / 600d0 )**( -.5d0 ) 
-               !------------------------------------------------------------
 
                ! KL is conductance for mass transfer in liquid phase 
                ! (Nightingale et al 2000b), which has units of [cm/hr]

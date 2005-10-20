@@ -1,9 +1,9 @@
-! $Id: tropopause_mod.f,v 1.1 2005/09/02 15:17:29 bmy Exp $
+! $Id: tropopause_mod.f,v 1.2 2005/10/20 14:03:45 bmy Exp $
       MODULE TROPOPAUSE_MOD
 !
 !******************************************************************************
 !  Module TROPOPAUSE_MOD contains routines and variables for reading and
-!  returning the value of the annual mean tropopause. (bmy, 8/15/05)
+!  returning the value of the annual mean tropopause. (bmy, 8/15/05, 10/3/05)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -30,6 +30,7 @@
 !  (4 ) transfer_mod.f       : Module w/ routines to cast & resize arrays
 !
 !  NOTES:
+!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -73,7 +74,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_TROPOPAUSE reads in the annual mean tropopause. 
-!  (qli, bmy, 12/13/99, 2/10/05)
+!  (qli, bmy, 12/13/99, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Call READ_BPCH2 to read in the annual mean tropopause data
@@ -99,10 +100,12 @@
 !        info to stdout.  Also updated FORMAT strings. (bmy, 3/14/03)
 !  (12) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (13) Now bundled into "tropopause_mod.f' (bmy, 2/10/05)
+!  (14) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D

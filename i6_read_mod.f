@@ -1,10 +1,10 @@
-! $Id: i6_read_mod.f,v 1.9 2005/09/02 15:17:14 bmy Exp $
+! $Id: i6_read_mod.f,v 1.10 2005/10/20 14:03:30 bmy Exp $
       MODULE I6_READ_MOD
 !
 !******************************************************************************
 !  Module I6_READ_MOD contains subroutines that unzip, open, and read
 !  GEOS-CHEM I-6 (instantaneous 6-hr) met fields from disk. 
-!  (bmy, 6/23/03, 8/10/05)
+!  (bmy, 6/23/03, 10/3/05)
 ! 
 !  Module Routines:
 !  =========================================================================
@@ -39,6 +39,7 @@
 !  (6 ) Now references FILE_EXISTS from "file_mod.f" (bmy, 3/23/05)
 !  (7 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !  (8 ) Now account for GEOS-4 coastal boxes in LWI properly (bmy, 8/10/05)
+!  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -70,7 +71,7 @@
 !  Subroutine UNZIP_I6_FIELDS invokes a FORTRAN system call to uncompress
 !  GEOS-CHEM I-6 met field files and store the uncompressed data in a 
 !  temporary directory, where GEOS-CHEM can read them.  The original data 
-!  files are not disturbed.  (bmy, bdf, 6/15/98, 5/25/05)
+!  files are not disturbed.  (bmy, bdf, 6/15/98, 10/3/05)
 !
 !  Arguments as input:
 !  ============================================================================
@@ -85,14 +86,19 @@
 !        EXPAND_DATE from overwriting directory paths with Y/M/D tokens in 
 !        them (bmy, 7/20/04)
 !  (4 ) Now modified for GEOS-5 and GCAP met fields
+!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,    ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE TIME_MOD,     ONLY : EXPAND_DATE
-      USE UNIX_CMDS_MOD
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_1_DIR 
+      USE DIRECTORY_MOD, ONLY : GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR 
+      USE DIRECTORY_MOD, ONLY : GEOS_5_DIR, TEMP_DIR 
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE TIME_MOD,      ONLY : EXPAND_DATE
+      USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD 
+      USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD,  WILD_CARD,  ZIP_SUFFIX
 
 #     include "CMN_SIZE"
 
@@ -228,7 +234,7 @@
 !
 !******************************************************************************
 !  Subroutine OPEN_I6_FIELDS opens the I-6 met fields file for date NYMD and 
-!  time NHMS. (bmy, bdf, 6/15/98, 5/25/05)
+!  time NHMS. (bmy, bdf, 6/15/98, 10/3/05)
 !  
 !  Arguments as input:
 !  ===========================================================================
@@ -245,29 +251,32 @@
 !  (5 ) Now use FILE_EXISTS from "file_mod.f" to determine if file unit IU_I6
 !        refers to a valid file on disk (bmy, 3/23/05
 !  (6 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
+!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !      
       ! References to F90 modules
-      USE BPCH2_MOD,    ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE LOGICAL_MOD,  ONLY : LUNZIP
-      USE FILE_MOD,     ONLY : IU_I6, IOERROR, FILE_EXISTS
-      USE TIME_MOD,     ONLY : EXPAND_DATE
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_1_DIR 
+      USE DIRECTORY_MOD, ONLY : GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR 
+      USE DIRECTORY_MOD, ONLY : GEOS_5_DIR, TEMP_DIR 
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE LOGICAL_MOD,   ONLY : LUNZIP
+      USE FILE_MOD,      ONLY : IU_I6, IOERROR, FILE_EXISTS
+      USE TIME_MOD,      ONLY : EXPAND_DATE
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "CMN_SIZE"      ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN)   :: NYMD, NHMS
+      INTEGER, INTENT(IN)    :: NYMD, NHMS
 
       ! Local variables
-      LOGICAL, SAVE         :: FIRST = .TRUE.
-      LOGICAL               :: IT_EXISTS
-      INTEGER               :: IOS, IUNIT
-      CHARACTER(LEN=8)      :: IDENT
-      CHARACTER(LEN=255)    :: GEOS_DIR
-      CHARACTER(LEN=255)    :: I6_FILE
-      CHARACTER(LEN=255)    :: PATH
+      LOGICAL, SAVE          :: FIRST = .TRUE.
+      LOGICAL                :: IT_EXISTS
+      INTEGER                :: IOS, IUNIT
+      CHARACTER(LEN=8)       :: IDENT
+      CHARACTER(LEN=255)     :: GEOS_DIR
+      CHARACTER(LEN=255)     :: I6_FILE
+      CHARACTER(LEN=255)     :: PATH
 
       !=================================================================
       ! OPEN_I6_FIELDS begins here!

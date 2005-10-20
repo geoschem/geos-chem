@@ -1,10 +1,10 @@
-! $Id: file_mod.f,v 1.7 2005/03/29 15:52:42 bmy Exp $
+! $Id: file_mod.f,v 1.8 2005/10/20 14:03:26 bmy Exp $
       MODULE FILE_MOD
 !
 !******************************************************************************
 !  Module FILE_MOD contains file unit numbers, as well as file I/O routines
 !  for GEOS-CHEM.  FILE_MOD keeps all of the I/O unit numbers in a single
-!  location for convenient access. (bmy, 7/1/02, 3/23/05)
+!  location for convenient access. (bmy, 7/1/02, 10/18/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -53,6 +53,7 @@
 !  (8 ) Renumbered the order of the files.  Also removed IU_INPTR and 
 !        IU_INPUT since they are now obsolete. (bmy, 7/20/04)
 !  (9 ) Added overloaded routines FILE_EX_C and FILE_EX_I (bmy, 3/23/05)
+!  (10) Added LINUX_IFORT switch for Intel v8 & v9 compilers (bmy, 10/18/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -112,7 +113,7 @@
 !******************************************************************************
 !  Subroutine IOERRROR prints out I/O error messages.  The error number, 
 !  file unit, location, and a brief description will be printed, and 
-!  program execution will be halted. (bmy, 5/28/99, 4/23/04)
+!  program execution will be halted. (bmy, 5/28/99, 10/18/05)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -137,6 +138,7 @@
 !  (6 ) Renamed SGI to SGI_MIPS, LINUX to LINUX_PGI, INTEL_FC to INTEL_IFC, 
 !        and added LINUX_EFC. (bmy, 12/2/03)
 !  (7 ) Now don't flush the buffer for LINUX_EFC (bmy, 4/23/04)
+!  (8 ) Added LINUX_IFORT switch for Intel v8 & v9 compilers (bmy, 10/18/05)
 !******************************************************************************
 !  
       ! References to F90 modules
@@ -222,7 +224,7 @@
       WRITE( 6, 120 ) TRIM( ERROR_MSG )
  120  FORMAT( /, 'Error: ', a )
 
-#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC )
+#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC ) || defined( LINUX_IFORT )
 
       !=================================================================
       ! For LINUX platform: call gerror() to get the I/O error msg

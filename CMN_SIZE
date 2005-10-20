@@ -1,4 +1,4 @@
-! $Id: CMN_SIZE,v 1.13 2005/06/27 19:41:40 bmy Exp $
+! $Id: CMN_SIZE,v 1.14 2005/10/20 14:03:10 bmy Exp $
       !=======================================================================
       ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 6/24/05)
       !
@@ -82,11 +82,6 @@
       !
       ! For nested grids, then IIPAR<IGLOB, JJPAR<JGLOB, LLPAR<LGLOB.
       !=================================================================
-!----------------------------------------------
-! Prior to 5/24/05: 
-! Also add GCAP definition (swu, bmy, 5/24/05)
-!#if   defined( GEOS_1 ) && defined( GRID4x5 ) 
-!----------------------------------------------
 #if   defined( GCAP ) && defined( GRID4x5 )
 
       !--------------------
@@ -399,25 +394,9 @@
       ! NEMPARA = max number of anthropogenic emission species
       ! NEMPARB = max number of biogenic      emission species
       !=================================================================
-!----------------------------------------------------------------------------
-! Prior to 6/24/05:
-! No longer need to distinguish between FULLCHEM & LGEOSCO (bmy, 6/24/05)
-!#if   defined( FULLCHEM  )
-!----------------------------------------------------------------------------
       INTEGER, PARAMETER :: NNPAR   = 50
       INTEGER, PARAMETER :: NEMPARA = 10
       INTEGER, PARAMETER :: NEMPARB = 1
-
-!----------------------------------------------------------------------------
-! Prior to 6/24/05:
-! No longer need to distinguish between FULLCHEM & LGEOSCO (bmy, 6/24/05)
-!#elif defined( LGEOSCO ) && !defined( FULLCHEM ) && !defined( SMALLCHEM )
-!      INTEGER, PARAMETER :: NNPAR   = 10
-!      INTEGER, PARAMETER :: NEMPARA = 10
-!      INTEGER, PARAMETER :: NEMPARB = 1
-!      
-!#endif
-!----------------------------------------------------------------------------
 
       !=================================================================
       ! OTHER PARAMETERS 

@@ -1,10 +1,10 @@
-! $Id: epa_nei_mod.f,v 1.3 2005/09/02 15:17:10 bmy Exp $
+! $Id: epa_nei_mod.f,v 1.4 2005/10/20 14:03:25 bmy Exp $
       MODULE EPA_NEI_MOD
 !
 !******************************************************************************
 !  Module EPA_NEI_MOD contains variables and routines to read the
 !  weekday/weekend emissions from the EPA/NEI emissions inventory.
-!  (rch, bmy, 11/10/04, 8/16/05)
+!  (rch, bmy, 11/10/04, 10/3/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -85,6 +85,7 @@
 !  (1 ) Prevent out of bounds errors in routines TOTAL_ANTHRO_TG and 
 !        TOTAL_BIOFUEL_TG (bmy, 1/26/05)
 !  (2 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -230,12 +231,6 @@
       !=================================================================
 
       ! Weekday anthro file name
-!------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )                           // 
-!     &           'EPA_NEI_200411/wkday_avg_an.YYYYMM.geos.' //
-!     &           GET_RES_EXT()
-!------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )                         // 
      &           'EPA_NEI_200411/wkday_avg_an.YYYYMM.'    //
      &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()     
@@ -255,12 +250,6 @@
       !=================================================================
 
       ! Weekend anthro file name
-!-----------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )                           // 
-!     &           'EPA_NEI_200411/wkend_avg_an.YYYYMM.geos.' //
-!     &           GET_RES_EXT()
-!-----------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )                         // 
      &           'EPA_NEI_200411/wkend_avg_an.YYYYMM.'    //
      &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
@@ -280,12 +269,6 @@
       !=================================================================
 
       ! Weekday biofuel file name
-!-------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )                           // 
-!     &           'EPA_NEI_200411/wkday_avg_bf.YYYYMM.geos.' //
-!     &           GET_RES_EXT()
-!-------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )                         // 
      &           'EPA_NEI_200411/wkday_avg_bf.YYYYMM.'    //
      &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
@@ -305,12 +288,6 @@
       !=================================================================
 
       ! Weekend biofuel file name
-!------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )                           // 
-!     &           'EPA_NEI_200411/wkend_avg_bf.YYYYMM.geos.' //
-!     &           GET_RES_EXT()  
-!------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )                         // 
      &           'EPA_NEI_200411/wkend_avg_bf.YYYYMM.'    //
      &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()  
@@ -558,14 +535,16 @@
 !******************************************************************************
 !  Subroutine READ_USA_MASK reads the USA mask from disk.   The USA mask is
 !  the fraction of the grid box (I,J) which lies w/in the continental USA.
-!  (rch, bmy, 11/10/04, 8/16/05)
+!  (rch, bmy, 11/10/04, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Now can read data for GEOS and GCAP grids (bmy, 8/16/05)
+!  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! Reference to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
@@ -581,11 +560,6 @@
       !=================================================================
 
       ! File name
-!---------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR ) //
-!     &           'EPA_NEI_200411/usa_mask.geos.' // GET_RES_EXT()
-!---------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )           //
      &           'EPA_NEI_200411/usa_mask.' // GET_NAME_EXT_2D() //
      &           '.'                        // GET_RES_EXT()
@@ -631,11 +605,14 @@
 !  (2) Now replace DXYP(J)*1d4 with routine GET_AREA_CM2 from "grid_mod.f".
 !       (bmy, 2/4/03)
 !  (3) Prevent out of bounds error when tracers are undefined (bmy, 1/25/05)
+!  (4) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE GRID_MOD,    ONLY : GET_AREA_CM2
-      USE TRACERID_MOD   
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
+      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
+      USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN_O3"    ! FMOL
@@ -823,8 +800,10 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE GRID_MOD,    ONLY : GET_AREA_CM2
-      USE TRACERID_MOD   
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
+      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
+      USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN_O3"    ! FMOL
@@ -1031,7 +1010,7 @@
 !
 !******************************************************************************
 !  Function GET_EPA_ANTHRO returns the EPA weekday avg or weekend avg 
-!  anthropogenic emissions at a (I,J) location. (rch, bmy, 11/10/04)
+!  anthropogenic emissions at a (I,J) location. (rch, bmy, 11/10/04, 10/3/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1041,12 +1020,14 @@
 !  (4 ) WEEKDAY (LOGICAL) : Fla for weekday (=T) or weekend (=F) emissions
 !
 !  NOTES:
+!  (1 ) Now make sure all USE statements are USE, ONLY.  Also remove reference
+!        to BPCH2_MOD and TRACERID_MOD, they're not needed.  (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
-      USE TRACERID_MOD
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
+      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
+      USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
 #     include "CMN_SIZE"   ! Size parameters
 
@@ -1165,7 +1146,7 @@
 !
 !******************************************************************************
 !  Function GET_EPA_BIOFUEL returns the EPA weekday avg or weekend avg 
-!  biofuel emissions at a (I,J) location. (rch, bmy, 11/10/04)
+!  biofuel emissions at a (I,J) location. (rch, bmy, 11/10/04, 10/3/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1175,12 +1156,14 @@
 !  (4 ) WEEKDAY (LOGICAL) : Fla for weekday (=T) or weekend (=F) emissions
 !
 !  NOTES:
+!  (1 ) Now make sure all USE statements are USE, ONLY.  Also remove reference
+!        to BPCH2_MOD and TRACERID_MOD, they're not needed.  (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
-      USE TRACERID_MOD
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
+      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
+      USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
 #     include "CMN_SIZE"   ! Size parameters
 

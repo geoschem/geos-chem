@@ -1,10 +1,10 @@
-! $Id: aerosol_mod.f,v 1.5 2005/09/02 15:16:56 bmy Exp $
+! $Id: aerosol_mod.f,v 1.6 2005/10/20 14:03:13 bmy Exp $
       MODULE AEROSOL_MOD
 !
 !******************************************************************************
 !  Module AEROSOL_MOD contains variables and routines for computing optical
 !  properties for aerosols which are needed for both the FAST-J photolysis
-!  and ND21 optical depth diagnostics.  (bmy, 7/20/04, 8/22/05)
+!  and ND21 optical depth diagnostics.  (bmy, 7/20/04, 10/3/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -91,7 +91,7 @@
 !******************************************************************************
 !  Subroutine AEROSOL_RURALBOX computes quantities that are needed by RDAER.
 !  This mimics the call to RURALBOX, which is only done for fullchem runs.
-!  (bmy, 9/28/04, 8/28/05)
+!  (bmy, 9/28/04, 10/3/05)
 !
 !  Arguments as Output:
 !  ============================================================================
@@ -103,18 +103,16 @@
 !        (bmy, 1/27/05)
 !  (2 ) Now references ITS_IN_THE_TROP from "tropopause_mod.f" to diagnose
 !        boxes w/in the troposphere. (bmy, 8/22/05)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE COMODE_MOD
-      USE DAO_MOD,        ONLY : AD, AVGW, MAKE_AVGW, T
+      USE COMODE_MOD,     ONLY : ABSHUM, AIRDENS, IXSAVE   
+      USE COMODE_MOD,     ONLY : IYSAVE, IZSAVE,  JLOP       
+      USE DAO_MOD,        ONLY : AD,     AVGW,    MAKE_AVGW, T
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
 #     include "CMN_SIZE"  ! Size parameters
-!-------------------------------------------------
-! Prior to 8/22/05:
-!#     include "CMN"       ! LPAUSE
-!-------------------------------------------------
 #     include "comode.h"  ! AD, WTAIR, other SMVGEAR variables
 
       ! Argumetns
@@ -159,10 +157,6 @@
             !----------------------------------
             ! Boxes w/in ann mean tropopause
             !----------------------------------
-            !---------------------------------------
-            ! Prior to 8/22/05:
-            !IF ( L < LPAUSE(I,J) ) THEN
-            !----------------------------------------
             IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
 
                ! Increment JLOOP for trop boxes
@@ -270,7 +264,7 @@
 !  Subroutine AEROSOL_CONC computes aerosol concentrations in kg/m3 from
 !  the tracer mass in kg in the STT array.  These are needed to compute
 !  optical properties for photolysis and for the optical depth diagnostics.
-!  (bmy, 7/20/04)
+!  (bmy, 7/20/04, 10/3/05)
 !  
 !  This code was originally included in "chemdr.f", but the same computation 
 !  also needs to be done for offline aerosol simulations.  Therefore, we have 
@@ -278,13 +272,17 @@
 !  fullchem and offline aerosol simulations.
 !
 !  NOTES:
+!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,     ONLY : AIRVOL
-      USE LOGICAL_MOD, ONLY : LCARB, LDUST, LSOA, LSSALT, LSULF
-      USE TRACER_MOD,  ONLY : STT
-      USE TRACERID_MOD 
+      USE DAO_MOD,      ONLY : AIRVOL
+      USE LOGICAL_MOD,  ONLY : LCARB,   LDUST,   LSOA,    LSSALT, LSULF
+      USE TRACER_MOD,   ONLY : STT
+      USE TRACERID_MOD, ONLY : IDTBCPI, IDTBCPO, IDTDST1, IDTDST2
+      USE TRACERID_MOD, ONLY : IDTDST3, IDTDST4, IDTNH4,  IDTNIT  
+      USE TRACERID_MOD, ONLY : IDTOCPO, IDTOCPI, IDTSALA, IDTSALC 
+      USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSO4  
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -494,9 +492,10 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
-      USE COMODE_MOD,    ONLY : ABSHUM, ERADIUS, IXSAVE, 
-     &                          IYSAVE, IZSAVE,  TAREA 
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
+      USE COMODE_MOD,    ONLY : ABSHUM, ERADIUS, IXSAVE
+      USE COMODE_MOD,    ONLY : IYSAVE, IZSAVE,  TAREA 
       USE DAO_MOD,       ONLY : BXHEIGHT
       USE DIAG_MOD,      ONLY : AD21
       USE DIRECTORY_MOD, ONLY : DATA_DIR

@@ -1,11 +1,6 @@
-! $Id: ruralbox.f,v 1.3 2005/09/02 15:17:22 bmy Exp $
+! $Id: ruralbox.f,v 1.4 2005/10/20 14:03:38 bmy Exp $
       SUBROUTINE RURALBOX( AD,     T,      AVGW,   ALT,   ALBD,  
      &                     SUNCOS, CLOUDS, LEMBED, IEBD1, IEBD2,  
-!-------------------------------------------------------------------
-! Prior to 8/22/05:
-! Remove LPAUSE from the arg list, it's obsolete (bmy, 8/22/05)
-!     &                     JEBD1,  JEBD2,  LPAUSE )
-!-------------------------------------------------------------------
      &                     JEBD1,  JEBD2 )
 !
 !******************************************************************************
@@ -72,10 +67,6 @@
 
       LOGICAL, INTENT(IN)    :: LEMBED 
       INTEGER, INTENT(IN)    :: IEBD1, IEBD2, JEBD1, JEBD2
-      !----------------------------------------------------------
-      ! Prior to 8/22/05:
-      !INTEGER, INTENT(IN)    :: LPAUSE(IIPAR,JJPAR)
-      !----------------------------------------------------------
       REAL*8,  INTENT(IN)    :: AD(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(IN)    :: T(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(IN)    :: AVGW(IIPAR,JJPAR,LLPAR)
@@ -124,10 +115,6 @@
                !=======================================================
                ! Skip over strat boxes
                !=======================================================
-               !----------------------------------------------
-               ! Prior to 8/22/05:
-               !IF ( L >= LPAUSE(I,J) ) GOTO 40
-               !----------------------------------------------
                IF ( ITS_IN_THE_STRAT( I, J, L ) ) GOTO 40
 
                ! Increment JLOOP for trop boxes
@@ -153,10 +140,6 @@
                JLOOP          = JLOOP + 1
                JLOP(I,J,L)    = JLOOP
 
-               !--------------------------------------------------------
-               ! Prior to 8/22/05:
-               !IF ( L < LPAUSE(I,J) ) THEN
-               !--------------------------------------------------------
                IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
 
                   ! Tropospheric boxes go into the SMVGEAR II "URBAN" slot

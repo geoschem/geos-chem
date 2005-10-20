@@ -1,9 +1,9 @@
-! $Id: tpcore_window_mod.f,v 1.7 2005/09/02 15:17:27 bmy Exp $
+! $Id: tpcore_window_mod.f,v 1.8 2005/10/20 14:03:43 bmy Exp $
       MODULE TPCORE_WINDOW_MOD
 !
 !******************************************************************************
 !  Module TPCORE_MOD contains the TPCORE transport subroutine package by
-!  S-J Lin, version 7.1. (yxw, bmy, 12/2/03, 6/24/05)
+!  S-J Lin, version 7.1. (yxw, bmy, 12/2/03, 10/18/05)
 !  
 !  Module routines:
 !  ============================================================================
@@ -116,6 +116,7 @@
 !  (4 ) Simplify PRIVATE definitions.  Also fixed bug in FZPPM which was
 !        preventing the nested grid run from working on Altix (bmy, 11/9/04)
 !  (5 ) Remove obsolete CO-OH code (bmy, 6/24/05)
+!  (6 ) Now print output for IFORT compiler in "tpcore_window" (bmy, 10/18/05)
 !******************************************************************************
 !
       !=================================================================
@@ -540,9 +541,11 @@ C****6***0*********0*********0*********0*********0*********0**********72
 #elif defined( LINUX_PGI )
       WRITE( 6, '(a)' ) 'for Linux environment w/ PGI compiler'
 #elif defined( LINUX_IFC )
-      WRITE( 6, '(a)' ) 'for Linux environment w/ IFC compiler'
+      WRITE( 6, '(a)' ) 'for Linux environment w/ Intel IFC compiler'
 #elif defined( LINUX_EFC )
-      WRITE( 6, '(a)' ) 'for Linux environment w/ EFC compiler'
+      WRITE( 6, '(a)' ) 'for Linux environment w/ Intel EFC compiler'
+#elif defined( LINUX_IFORT )
+      WRITE( 6, '(a)' ) 'for Linux environment w/ Intel IFORT compiler'
 #elif defined( SPARC )
       WRITE( 6, '(a)' ) 'for SUN/Sparc machines'
 #elif defined( IBM_AIX )

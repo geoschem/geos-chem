@@ -1,8 +1,8 @@
-! $Id: initialize.f,v 1.15 2005/09/02 15:17:15 bmy Exp $
+! $Id: initialize.f,v 1.16 2005/10/20 14:03:30 bmy Exp $
       SUBROUTINE INITIALIZE( IFLAG )
 !
 !******************************************************************************
-!  Subroutine INITIALIZE (bmy, 6/15/98, 8/18/05) does the following:
+!  Subroutine INITIALIZE (bmy, 6/15/98, 10/3/05) does the following:
 !     (1) Zeroes globally defined GEOS-CHEM variables.
 !     (2) Zeroes accumulating diagnostic arrays.
 !     (3) Resets certain year/month/day and counter variables used 
@@ -157,14 +157,43 @@
 !  (32) Now zero AD09 and AD09_em for HCN simulation (xyp, bmy, 6/27/05)
 !  (33) Now references ND04, ZERO_DIAG04 from "diag04_mod.f".  Also remove
 !        reference to "CMN" and XTRA2.  Now zeroes AD30 array (bmy, 8/18/05)
+!  (34) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 ! 
       ! References to F90 modules
-      USE DIAG_MOD
-      USE DIAG03_MOD,  ONLY : ND03, ZERO_DIAG03
-      USE DIAG04_MOD,  ONLY : ND04, ZERO_DIAG04
-      USE DIAG41_MOD,  ONLY : ND41, ZERO_DIAG41
-      USE DIAG_PL_MOD, ONLY : AD65, FAM_PL
+      USE DIAG_MOD,    ONLY : AD01,        AD02,        AD05    
+      USE DIAG_MOD,    ONLY : AD06,        AD07,        AD07_BC
+      USE DIAG_MOD,    ONLY : AD07_OC,     AD07_HC,     AD08
+      USE DIAG_MOD,    ONLY : AD09,        AD09_em,     AD11
+      USE DIAG_MOD,    ONLY : AD12,        AD13_DMS,    AD13_SO2_ac 
+      USE DIAG_MOD,    ONLY : AD13_SO2_an, AD13_SO2_bb, AD13_SO2_bf
+      USE DIAG_MOD,    ONLY : AD13_SO2_ev, AD13_SO2_nv, AD13_SO4_an
+      USE DIAG_MOD,    ONLY : AD13_SO4_bf, AD13_SO2_sh, AD13_NH3_an
+      USE DIAG_MOD,    ONLY : AD13_NH3_na, AD13_NH3_bb, AD13_NH3_bf
+      USE DIAG_MOD,    ONLY : CONVFLUP,    TURBFLUP,    AD16
+      USE DIAG_MOD,    ONLY : CT16,        AD17,        CT17
+      USE DIAG_MOD,    ONLY : AD18,        CT18,        AD21
+      USE DIAG_MOD,    ONLY : AD21_cr,     AD22,        LTJV
+      USE DIAG_MOD,    ONLY : CTJV,        MASSFLEW,    MASSFLNS
+      USE DIAG_MOD,    ONLY : MASSFLUP,    AD28,        AD29
+      USE DIAG_MOD,    ONLY : AD30,        AD30,        AD31
+      USE DIAG_MOD,    ONLY : AD32_ac,     AD32_an,     AD32_bb
+      USE DIAG_MOD,    ONLY : AD32_bf,     AD32_fe,     AD32_li
+      USE DIAG_MOD,    ONLY : AD32_so,     AD32_ub,     AD33
+      USE DIAG_MOD,    ONLY : AD34,        AD35,        AD36
+      USE DIAG_MOD,    ONLY : AD37,        AD38,        AD39
+      USE DIAG_MOD,    ONLY : AD43,        AD43,        LTNO
+      USE DIAG_MOD,    ONLY : CTNO,        LTOH,        CTOH
+      USE DIAG_MOD,    ONLY : LTHO2,       CTHO2,       LTNO2
+      USE DIAG_MOD,    ONLY : CTNO2,       LTNO3,       CTNO3
+      USE DIAG_MOD,    ONLY : AD44,        AD45,        LTOTH
+      USE DIAG_MOD,    ONLY : CTOTH,       AD46,        AD47
+      USE DIAG_MOD,    ONLY : AD55,        AD66,        AD67
+      USE DIAG_MOD,    ONLY : AD68,        AD69
+      USE DIAG03_MOD,  ONLY : ND03,        ZERO_DIAG03
+      USE DIAG04_MOD,  ONLY : ND04,        ZERO_DIAG04
+      USE DIAG41_MOD,  ONLY : ND41,        ZERO_DIAG41
+      USE DIAG_PL_MOD, ONLY : AD65,        FAM_PL
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE LOGICAL_MOD, ONLY : LCRYST
       USE TIME_MOD
@@ -172,10 +201,6 @@
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
-!----------------------------------------------------------
-! Prior to 8/3/05:
-!#     include "CMN"       ! XTRA2
-!----------------------------------------------------------
 #     include "CMN_DIAG"  ! NDxx flags
 
       ! Arguments 
@@ -189,17 +214,6 @@
       IF ( IFLAG < 2 .or. IFLAG > 3 ) THEN
          CALL ERROR_STOP( 'Invalid IFLAG!', 'initialize.f' )
       ENDIF  
-
-      !-----------------------------------------------------------------------
-      ! Prior to 8/3/05:
-      ! This is now obsolete (bmy, 8/3/05)
-      !!=================================================================
-      !! If IFLAG=1 then zero the following CTM variables: XTRA2
-      !!=================================================================
-      !IF ( IFLAG == 1 ) THEN
-      !   XTRA2 = 0d0
-      !ENDIF  
-      !-----------------------------------------------------------------------
 
       !=================================================================
       ! If IFLAG=2 then zero the accumulating arrays

@@ -1,10 +1,10 @@
-! $Id: partition.f,v 1.5 2004/12/02 21:48:38 bmy Exp $
+! $Id: partition.f,v 1.6 2005/10/20 14:03:36 bmy Exp $
       SUBROUTINE PARTITION( NTRACER, STT, XNUMOL ) 
 !
 !******************************************************************************
 !  Subroutine PARTITION separates GEOS-CHEM tracers into its individual
 !  constituent chemistry species before each SMVGEAR chemistry timestep.
-!  (bdf, bmy, 4/1/03, 7/20/04)
+!  (bdf, bmy, 4/1/03, 10/3/05)
 ! 
 !  Arguments as Input:
 !  ============================================================================
@@ -21,12 +21,15 @@
 !        changes (bmy, 4/24/03)
 !  (2 ) Add OpenMP parallelization commands (bmy, 8/1/03)
 !  (3 ) Now dimension args XNUMOL, STT w/ NTRACER and not NNPAR (bmy, 7/20/04)
+!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules 
-      USE COMODE_MOD,  ONLY : CSPEC, JLOP, VOLUME
-      USE ERROR_MOD,   ONLY : ALLOC_ERR, ERROR_STOP
-      USE TRACERID_MOD
+      USE COMODE_MOD,   ONLY : CSPEC,     JLOP,      VOLUME
+      USE ERROR_MOD,    ONLY : ALLOC_ERR, ERROR_STOP
+      USE TRACERID_MOD, ONLY : IDTOX,     IDTNOX,    IDTRMB
+      USE TRACERID_MOD, ONLY : IDO3,      IDNO,      IDHNO2
+      USE TRACERID_MOD, ONLY : CTRMB,     NMEMBER
 
       IMPLICIT NONE
 

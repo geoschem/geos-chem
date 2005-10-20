@@ -1,9 +1,9 @@
-! $Id: ch3i_mod.f,v 1.6 2005/09/02 15:16:59 bmy Exp $
+! $Id: ch3i_mod.f,v 1.7 2005/10/20 14:03:16 bmy Exp $
       MODULE CH3I_MOD
 !
 !******************************************************************************
 !  Module CH3I_MOD contains emissions and chemistry routines for the CH3I
-!  (Methyl Iodide) simulation. (bmy, 1/23/02, 8/16/05)
+!  (Methyl Iodide) simulation. (bmy, 1/23/02, 10/3/05)
 !
 !  Module Routines:
 !  ============================================================================
@@ -52,6 +52,7 @@
 !        (bmy, 7/20/04)
 !  (10) Now can read data for both GEOS and GCAP grids.  Now use Nightingale
 !        et al formulation for piston velocity Kw. (bmy, 8/16/05)
+!  (11) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -67,7 +68,7 @@
 !
 !******************************************************************************
 !  Subroutine OPEN_CH3I_FILES loads surface emission fields for CH3I
-!  (mgs, 3/15/99; bmy, hsu, 3/24/00,. bmy, 6/19/01, 7/20/04)
+!  (mgs, 3/15/99; bmy, hsu, 3/24/00,. bmy, 6/19/01, 10/3/05)
 !
 !  As of 16 June 1999, scale factors are applied in emissch3i.f (mgs)
 !  and we use monthly RADSWG fields instead of NPP.
@@ -111,10 +112,12 @@
 !        (bmy, 1/23/02)
 !  (13) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (14) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
+!  (15) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
@@ -151,11 +154,6 @@
 !     &            'CH3I/ocean_npp.geos.' // GET_RES_EXT()
 
       ! Uncomment this to read aqueous CH3I
-!----------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )        // 
-!     &           'CH3I/ocean_ch3i.geos.' // GET_RES_EXT()
-!----------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )   // 
      &           'CH3I/ocean_ch3i.' // GET_NAME_EXT_2D() //
      &           '.'                // GET_RES_EXT()
@@ -172,11 +170,6 @@
       !=================================================================
       ! Read rice paddy emissions
       !=================================================================
-!-------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )     // 
-!     &           'CH3I/ch4_rice.geos' // GET_RES_EXT()
-!-------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR ) // 
      &           'CH3I/ch4_rice.' // GET_NAME_EXT_2D() //
      &           '.'              // GET_RES_EXT()
@@ -219,11 +212,6 @@
       !=================================================================
       ! Read CH4 wetland emissions
       !=================================================================
-!--------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )      // 
-!     &           'CH3I/ch4_wetl.geos.' // GET_RES_EXT()
-!--------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR ) // 
      &           'CH3I/ch4_wetl.' // GET_NAME_EXT_2D() //
      &           '.'              // GET_RES_EXT()
@@ -651,13 +639,6 @@
             ! Schmidt # [unitless]
             Sc = MVR__ * ( 2004. - 93.5*TC + 1.39*TC**2 )
             
-            !---------------------------------------------------------------
-            ! Prior to 8/16/05:
-            ! Now use Nightingale et al [2000b] formulation (bmy, 8/16/05)
-            !! Piston velocity [cm/h]
-            !KW = 0.31 * SFCWINDSQR(I,J) / SQRT(Sc/660.)
-            !---------------------------------------------------------------
-
             ! 10-m wind speed 
             W10  = SQRT( SFCWINDSQR(I,J) )
 

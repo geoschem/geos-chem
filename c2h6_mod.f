@@ -1,9 +1,9 @@
-! $Id: c2h6_mod.f,v 1.3 2004/12/02 21:48:33 bmy Exp $
+! $Id: c2h6_mod.f,v 1.4 2005/10/20 14:03:14 bmy Exp $
       MODULE C2H6_MOD
 !
 !******************************************************************************
 !  Module C2H6_MOD contains variables and routines used for the tagged 
-!  C2H6 (ethane) simulation. (xyp, qli, bmy, 7/28/01, 7/20/04)
+!  C2H6 (ethane) simulation. (xyp, qli, bmy, 7/28/01, 10/3/05)
 !
 !  Setting LSPLIT = T in "input.geos" will run with the following tracers:
 !     (1) Total C2H6
@@ -30,16 +30,15 @@
 !  ============================================================================
 !  (1 ) biofuel_mod.f   : Module containing routines to read biofuel emissions
 !  (2 ) biomass_mod.f   : Module containing routines to read biomass emissions
-!  (3 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
-!  (4 ) dao_mod.f       : Module containing arrays for DAO met fields!
-!  (5 ) diag_mod.f      : Module containing GEOS-CHEM diagnostic arrays
-!  (6 ) error_mod.f     : Module containing NaN and other error check routines
-!  (7 ) geia_mod.f      : Module containing routines to read anthro emissions
-!  (8 ) grid_mod.f      : Module containing horizontal grid information
-!  (9 ) global_oh_mod.f : Module containing routines to read 3-D OH field
-!  (10) time_mod.f      : Module containing routines to compute date & time
-!  (11) tracerid_mod.f  : Module containing pointers to tracers and emissions
-!  (12) transfer_mod.f  : Module containing routines to cast and resize arrays
+!  (3 ) dao_mod.f       : Module containing arrays for DAO met fields!
+!  (4 ) diag_mod.f      : Module containing GEOS-CHEM diagnostic arrays
+!  (5 ) error_mod.f     : Module containing NaN and other error check routines
+!  (6 ) geia_mod.f      : Module containing routines to read anthro emissions
+!  (7 ) grid_mod.f      : Module containing horizontal grid information
+!  (8 ) global_oh_mod.f : Module containing routines to read 3-D OH field
+!  (9 ) time_mod.f      : Module containing routines to compute date & time
+!  (10) tracerid_mod.f  : Module containing pointers to tracers and emissions
+!  (11) transfer_mod.f  : Module containing routines to cast and resize arrays
 !
 !  NOTES:
 !  (1 ) Eliminated obsolete code from 1/02 (bmy, 2/27/02)
@@ -51,6 +50,7 @@
 !  (4 ) Now references "grid_mod.f" and the new "time_mod.f" (bmy, 2/11/03)
 !  (5 ) Now references "directory_mod.f", "logical_mod.f", and "tracer_mod.f".
 !        (bmy, 7/20/04)
+!  (6 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -89,7 +89,7 @@
 !
 !******************************************************************************
 !  Subroutine EMISSC2H6 reads in C2H6 emissions for the Tagged C2H6 run.
-!  (xyp, qli, bmy, 7/21/00, 7/20/04)
+!  (xyp, qli, bmy, 7/21/00, 10/3/05)
 !
 !  NOTES:
 !  (1 ) BURNEMIS and BIOFUEL are now dimensioned with IIPAR,JJPAR instead of
@@ -107,12 +107,13 @@
 !  (5 ) Now replace CMN_SETUP w/ references from "logical_mod.f" and
 !        "directory_mod.f".  Now references STT from "tracer_mod.f".
 !        Replace LFOSSIL with LANTHRO (bmy, 7/20/04)
+!  (6 ) Now make sure all USE statements are USE, ONLY.  Also eliminate 
+!        reference to BPCH2_MOD, it's obsolete. (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
-      USE BIOMASS_MOD,   ONLY : BURNEMIS, BIOBURN
-      USE BIOFUEL_MOD,   ONLY : BIOFUEL, BIOFUEL_BURN
+      USE BIOMASS_MOD,   ONLY : BURNEMIS,     BIOBURN
+      USE BIOFUEL_MOD,   ONLY : BIOFUEL,      BIOFUEL_BURN
       USE DIAG_MOD,      ONLY : AD36
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE GEIA_MOD,      ONLY : READ_C3H8_C2H6_NGAS, TOTAL_FOSSIL_TG
@@ -120,7 +121,7 @@
       USE LOGICAL_MOD,   ONLY : LSPLIT, LBIOMASS, LBIOFUEL, LANTHRO
       USE TIME_MOD,      ONLY : GET_MONTH, GET_TS_EMIS
       USE TRACER_MOD,    ONLY : STT
-      USE TRACERID_MOD
+      USE TRACERID_MOD,  ONLY : IDBC2H6, IDBFC2H6, IDEC2H6
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"     ! Size parameters

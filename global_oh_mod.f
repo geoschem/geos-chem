@@ -1,9 +1,9 @@
-! $Id: global_oh_mod.f,v 1.4 2004/12/02 21:48:37 bmy Exp $
+! $Id: global_oh_mod.f,v 1.5 2005/10/20 14:03:29 bmy Exp $
       MODULE GLOBAL_OH_MOD
 !
 !******************************************************************************
 !  Module GLOBAL_OH_MOD contains variables and routines for reading the
-!  global monthly mean OH concentration from disk. (bmy, 7/28/00, 7/20/04)
+!  global monthly mean OH concentration from disk. (bmy, 7/28/00, 10/3/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -33,6 +33,7 @@
 !  (7 ) Minor bug fixes in FORMAT statements (bmy, 3/23/03)
 !  (8 ) Cosmetic changes to simplify output (bmy, 3/27/03)
 !  (9 ) Bug fix: OH should be (IIPAR,JJPAR,LLPAR) (bmy, 5/4/04)
+!  (10) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -57,7 +58,7 @@
 !  Subroutine GET_GLOBAL_OH reads global OH from binary punch files stored
 !  in the /data/ctm/GEOS_MEAN directory.  This OH data is needed as oxidant
 !  for various chemistry mechanisms (HCN, Tagged CO, etc...)  
-!  (bmy, 7/28/00, 3/27/03)
+!  (bmy, 7/28/00, 10/3/05)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -78,10 +79,12 @@
 !  (6 ) Cosmetic changes to simplify output (bmy, 3/27/03)
 !  (7 ) Add Mat's OH as an option.  Also read bpch file quietly (bmy, 5/4/04)
 !  (8 ) Now use OH_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
       USE DIRECTORY_MOD, ONLY : OH_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
 

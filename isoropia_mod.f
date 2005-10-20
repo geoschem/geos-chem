@@ -1,4 +1,4 @@
-! $Id: isoropia_mod.f,v 1.3 2005/09/02 15:17:16 bmy Exp $
+! $Id: isoropia_mod.f,v 1.4 2005/10/20 14:03:32 bmy Exp $
       MODULE ISOROPIA_MOD
 !
 !******************************************************************************
@@ -282,10 +282,6 @@
       USE TROPOPAUSE_MOD,  ONLY : ITS_IN_THE_STRAT
 
 #     include "CMN_SIZE"        ! Size aprameters
-!--------------------------------------------------------------
-! Prior to 8/22/05:
-!#     include "CMN"             ! LPAUSE
-!--------------------------------------------------------------
 #     include "isoropia.h"      ! ISOROPIA common blocks
 
       ! Local variables
@@ -383,10 +379,6 @@
       DO I = 1, IIPAR
 
          ! Skip strat boxes 
-         !---------------------------------------------
-         ! Prior to 8/22/05:
-         !IF ( L >= LPAUSE(I,J) ) CYCLE
-         !---------------------------------------------
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
 
          ! coordinates
@@ -2949,12 +2941,6 @@ CCC      ENDIF
       ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : DATA_DIR
 
-!------------------------------------------
-! Prior to 7/28/05:
-!#     include "CMN_SETUP" ! DATA_DIR
-!------------------------------------------
-
-
       ! Local variables
       CHARACTER(LEN=255) :: FILENAME
 
@@ -2966,55 +2952,31 @@ CCC      ENDIF
       !CALL INIT_KMC
 
       ! Read data at 198 K
-      !--------------------------------------------------------------------
-      ! Prior to 7/28/05:
-      !FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/kmc198.bin'
-      !--------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR ) // 
      &           'sulfate_sim_200508/isorropia/kmc198.bin'
       CALL READ_BINARY( FILENAME, BNC198 )
 
       ! Read data at 223 K
-      !--------------------------------------------------------------------
-      ! Prior to 7/28/05:
-      !FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/kmc223.bin'
-      !--------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR ) // 
      &           'sulfate_sim_200508/isorropia/kmc223.bin'
       CALL READ_BINARY( FILENAME, BNC223 ) 
 
       ! Read data at 248 K
-      !--------------------------------------------------------------------
-      ! Prior to 7/28/05:
-      !FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/kmc248.bin'
-      !--------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR ) // 
      &           'sulfate_sim_200508/isorropia/kmc248.bin'
       CALL READ_BINARY( FILENAME, BNC248 )
 
       ! Read data at 273 K
-      !--------------------------------------------------------------------
-      ! Prior to 7/28/05:
-      !FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/kmc273.bin'
-      !--------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR ) // 
      &           'sulfate_sim_200508/isorropia/kmc273.bin'
       CALL READ_BINARY( FILENAME, BNC273 )
 
       ! Read data at 298 K
-      !--------------------------------------------------------------------
-      ! Prior to 7/28/05:
-      !FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/kmc298.bin'
-      !--------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR ) // 
      &           'sulfate_sim_200508/isorropia/kmc298.bin'
       CALL READ_BINARY( FILENAME, BNC298 )
 
       ! Read data at 323 K
-      !--------------------------------------------------------------------
-      ! Prior to 7/28/05:
-      !FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/kmc323.bin'
-      !--------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR ) // 
      &           'sulfate_sim_200508/isorropia/kmc323.bin'
       CALL READ_BINARY( FILENAME, BNC323 )

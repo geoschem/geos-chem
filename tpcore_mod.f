@@ -1,9 +1,9 @@
-! $Id: tpcore_mod.f,v 1.6 2005/09/02 15:17:27 bmy Exp $
+! $Id: tpcore_mod.f,v 1.7 2005/10/20 14:03:42 bmy Exp $
       MODULE TPCORE_MOD
 !
 !******************************************************************************
 !  Module TPCORE_MOD contains the TPCORE transport subroutine package by
-!  S-J Lin, version 7.1. (bmy, 7/16/01, 7/21/05)
+!  S-J Lin, version 7.1. (bmy, 7/16/01, 10/18/05)
 !
 !  Module Routines:
 !  ============================================================================
@@ -72,6 +72,7 @@
 !  (13) Now print output for IBM/AIX platform in "tpcore" (gcc, bmy, 6/27/03)
 !  (14) Remove obsolete code for CO-OH parameterization (bmy, 6/24/05)
 !  (15) Bug fix in DIAG_FLUX: now dimension FX, FX properly (bmy, 7/21/05)
+!  (16) Now print output for IFORT compiler in "tpcore" (bmy, 10/18/05)
 !******************************************************************************
 !
       !=================================================================
@@ -447,9 +448,11 @@ C****6***0*********0*********0*********0*********0*********0**********72
 #elif defined( LINUX_PGI )
       WRITE( 6, '(a)' ) 'for Linux environment w/ PGI compiler'
 #elif defined( LINUX_IFC )
-      WRITE( 6, '(a)' ) 'for Linux environment w/ IFC compiler'
+      WRITE( 6, '(a)' ) 'for Linux environment w/ Intel IFC compiler'
 #elif defined( LINUX_EFC )
-      WRITE( 6, '(a)' ) 'for Linux environment w/ EFC compiler'
+      WRITE( 6, '(a)' ) 'for Linux environment w/ Intel EFC compiler'
+#elif defined( LINUX_IFORT )
+      WRITE( 6, '(a)' ) 'for Linux environment w/ Intel IFORT compiler'
 #elif defined( SPARC )
       WRITE( 6, '(a)' ) 'for SUN/Sparc machines'
 #elif defined( IBM_AIX )
@@ -4073,18 +4076,10 @@ C
 
       ! Arguments
       INTEGER, INTENT(IN) :: IC, NDT
-      !--------------------------------------------------------
-      ! Prior to 7/21/05:
-      !REAL*8,  INTENT(IN) :: FX(IIPAR,JJPAR,LLPAR) 
-      !--------------------------------------------------------
       REAL*8,  INTENT(IN) :: FX(IIPAR+1,JJPAR,LLPAR) 
       REAL*8,  INTENT(IN) :: FX1_TP(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(IN) :: FY(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(IN) :: FY1_TP(IIPAR,JJPAR,LLPAR)
-      !--------------------------------------------------------
-      ! Prior to 7/21/05:
-      !REAL*8,  INTENT(IN) :: FZ(IIPAR,JJPAR,LLPAR) 
-      !--------------------------------------------------------
       REAL*8,  INTENT(IN) :: FZ(IIPAR,JJPAR,LLPAR+1) 
       REAL*8,  INTENT(IN) :: FZ1_TP(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(IN) :: ACOSP(JJPAR)

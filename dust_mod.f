@@ -1,9 +1,9 @@
-! $Id: dust_mod.f,v 1.6 2005/09/02 15:17:09 bmy Exp $
+! $Id: dust_mod.f,v 1.7 2005/10/20 14:03:24 bmy Exp $
       MODULE DUST_MOD
 !
 !******************************************************************************
 !  Module DUST_MOD contains routines for computing dust aerosol emissions,
-!  chemistry, and optical depths. (rjp, tdf, bmy, 4/14/04, 7/20/04)
+!  chemistry, and optical depths. (rjp, tdf, bmy, 4/14/04, 10/3/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -49,6 +49,7 @@
 !  (1 ) Bug fix in SRC_DUST_DEAD (bmy, 4/14/04)
 !  (2 ) Now references "logical_mod.f", "directory_mod.f", and "tracer_mod.f"
 !        Added comments. (bmy, 7/2/04)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -94,20 +95,21 @@
 !  NOTES:
 !  (1 ) Now references STT from "tracer_mod.f" and LDUST from "logical_mod.f"
 !        (bmy, 7/20/04)
+!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE LOGICAL_MOD, ONLY : LDUST
-      USE DRYDEP_MOD,  ONLY : DEPNAME, NUMDEP
-      USE TRACER_MOD,  ONLY : STT
-      USE TRACERID_MOD   
+      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE LOGICAL_MOD,  ONLY : LDUST
+      USE DRYDEP_MOD,   ONLY : DEPNAME, NUMDEP
+      USE TRACER_MOD,   ONLY : STT
+      USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "CMN_SIZE"     ! Size parameters
 
       ! Local variables
-      LOGICAL, SAVE       :: FIRST = .TRUE.
-      INTEGER             :: N
+      LOGICAL, SAVE         :: FIRST = .TRUE.
+      INTEGER               :: N
 
       !=================================================================
       ! CHEMDUST begins here!
@@ -458,23 +460,24 @@
 !******************************************************************************
 !  Subroutine EMISSDUST is the driver routine for the dust emission
 !  module.  You may call either the GINOUX or the DEAD dust source 
-!  function. (tdf, bmy, 3/30/04, 7/20/04)
+!  function. (tdf, bmy, 3/30/04, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Now reference LDEAD, LDUST, LPRT from "logical_mod.f".  Now reference!
 !        STT from "tracer_mod.f" (bmy, 7/20/04)
+!  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F(0 modules
-      USE ERROR_MOD,   ONLY : ERROR_STOP, DEBUG_MSG
-      USE LOGICAL_MOD, ONLY : LDEAD, LDUST, LPRT
-      USE TRACER_MOD,  ONLY : STT
-      USE TRACERID_MOD
+      USE ERROR_MOD,    ONLY : ERROR_STOP, DEBUG_MSG
+      USE LOGICAL_MOD,  ONLY : LDEAD, LDUST, LPRT
+      USE TRACER_MOD,   ONLY : STT
+      USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_SIZE"     ! Size parameters
       
       ! Local variables
-      LOGICAL, SAVE      :: FIRST = .TRUE.
+      LOGICAL, SAVE         :: FIRST = .TRUE.
       
       !=================================================================
       ! EMISSDUST begins here!
@@ -530,7 +533,7 @@
 !******************************************************************************
 !  Subroutine SRC_DUST_DEAD is the DEAD model dust emission scheme, 
 !  alternative to Ginoux scheme.  Increments the TC array with emissions 
-!  from the DEAD model.  (tdf, bmy, 4/8/04, 7/20/04)
+!  from the DEAD model.  (tdf, bmy, 4/8/04, 10/3/05)
 !
 !  Input:
 !         SRCE_FUNK Source function                               (-)
@@ -559,16 +562,15 @@
 !  (1 ) Added OpenMP parallelization, added comments (bmy, 4/8/04)
 !  (2 ) Bug fix: DSRC needs to be held PRIVATE (bmy, 4/14/04)
 !  (3 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
-      USE DAO_MOD,       ONLY : BXHEIGHT, GWETTOP, LWI,
-     &                          SNOW,     SPHU,    T,    
-     &                          TS,       UWND,    VWND
-      USE DUST_DEAD_MOD, ONLY : GET_TIME_INVARIANT_DATA, 
-     &                          GET_MONTHLY_DATA,  
-     &                          GET_ORO,  DST_MBL
+      USE DAO_MOD,       ONLY : BXHEIGHT,     GWETTOP,   LWI
+      USE DAO_MOD,       ONLY : SNOW,         SPHU,      T    
+      USE DAO_MOD,       ONLY : TS,           UWND,      VWND
+      USE DUST_DEAD_MOD, ONLY : GET_TIME_INVARIANT_DATA, GET_ORO
+      USE DUST_DEAD_MOD, ONLY : GET_MONTHLY_DATA,        DST_MBL
       USE DIAG_MOD,      ONLY : AD06
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IOERROR
@@ -1185,7 +1187,7 @@
 !******************************************************************************
 !  Subroutine RDUST_OFFLINE reads global mineral dust concentrations as 
 !  determined by P. Ginoux.  Calculates dust optical depth at each level for 
-!  the FAST-J routine "set_prof.f". (rvm, bmy, 9/30/00, 7/20/04)
+!  the FAST-J routine "set_prof.f". (rvm, bmy, 9/30/00, 10/3/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1237,12 +1239,14 @@
 !  (18) Bundled into "dust_mod.f" and renamed to RDUST_OFFLINE. (bmy, 4/1/04)
 !  (19) Now references DATA_DIR from "directory_mod.f".  Now parallelize over 
 !        the L-dimension for ND21 diagnostic. (bmy, 7/20/04)
+!  (20) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
-      USE COMODE_MOD,    ONLY : ERADIUS, IXSAVE, IYSAVE, 
-     &                          IZSAVE,  JLOP,   TAREA
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
+      USE COMODE_MOD,    ONLY : ERADIUS, IXSAVE, IYSAVE
+      USE COMODE_MOD,    ONLY : IZSAVE,  JLOP,   TAREA
       USE DAO_MOD,       ONLY : BXHEIGHT
       USE DIAG_MOD,      ONLY : AD21
       USE DIRECTORY_MOD, ONLY : DATA_DIR

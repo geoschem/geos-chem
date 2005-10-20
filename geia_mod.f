@@ -1,9 +1,9 @@
-! $Id: geia_mod.f,v 1.5 2005/09/02 15:17:12 bmy Exp $
+! $Id: geia_mod.f,v 1.6 2005/10/20 14:03:27 bmy Exp $
       MODULE GEIA_MOD
 !
 !******************************************************************************
 !  Module GEIA_MOD contains routines used to read and scale the GEIA fossil 
-!  fuel emissions for NOx, CO, and hydrocarbons (bmy, 7/28/00, 8/16/05)
+!  fuel emissions for NOx, CO, and hydrocarbons (bmy, 7/28/00, 10/3/05)
 !
 !  Module Routines:
 !  ============================================================================
@@ -45,6 +45,7 @@
 !  (11) Now references "grid_mod.f" and the new "time_mod.f" (bmy, 2/10/03)
 !  (12) Now references "directory_mod.f" (bmy, 7/20/04)
 !  (13) Now can read data from both GEOS and GCAP grids (bmy, 8/16/05)
+!  (14) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -529,7 +530,7 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT, READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
 
 #     include "CMN_SIZE"            ! Size parameters
@@ -556,12 +557,6 @@
       !=================================================================
 
       ! Define the binary punch file name
-!------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )                       //
-!     &           'fossil_200104/merge_nobiofuels.geos.' // 
-!     &           GET_RES_EXT() 
-!------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )                          //
      &           'fossil_200104/merge_nobiofuels.'         //
      &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT() 
@@ -790,12 +785,6 @@
       !=================================================================
 
       ! Define the binary punch file name
-!--------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )                        //
-!     &           'C3H8_C2H6_200109/C3H8_C2H6_ngas.geos.' // 
-!     &           GET_RES_EXT() 
-!--------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )                         //
      &           'C3H8_C2H6_200109/C3H8_C2H6_ngas.'       // 
      &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT() 

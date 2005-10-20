@@ -1,8 +1,8 @@
-! $Id: error_mod.f,v 1.8 2004/12/02 21:48:36 bmy Exp $
+! $Id: error_mod.f,v 1.9 2005/10/20 14:03:25 bmy Exp $
       MODULE ERROR_MOD
 !
 !******************************************************************************
-!  Module ERROR_MOD contains error checking routines. (bmy, 3/8/01, 7/20/04)
+!  Module ERROR_MOD contains error checking routines. (bmy, 3/8/01, 10/18/05)
 !
 !  Module Routines:
 !  ===========================================================================
@@ -51,6 +51,7 @@
 !  (12) Minor fix for LINUX_IFC and LINUX_EFC (bmy, 1/24/04)
 !  (13) Do not flush buffer for LINUX_EFC in ERROR_STOP (bmy, 4/6/04)
 !  (14) Move CHECK_STT routine to "tracer_mod.f" (bmy, 7/20/04)
+!  (15) Added LINUX_IFORT switch for Intel v8 and v9 compilers (bmy, 10/18/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -90,16 +91,16 @@
       !=================================================================
       CONTAINS
 
-!-----------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 
       FUNCTION NAN_FLOAT( VALUE ) RESULT( IT_IS_A_NAN )
 !
-!*****************************************************************************
+!******************************************************************************
 !  Module NAN_FLOAT returns TRUE if a REAL*4 number is equal to the IEEE NaN 
-!  (Not-a-Number) flag.  Returns FALSE otherwise. (bmy, 3/8/01, 12/2/03)
+!  (Not-a-Number) flag.  Returns FALSE otherwise. (bmy, 3/8/01, 10/18/05)
 !
 !  Arguments as Input:
-!  ===========================================================================
+!  ============================================================================
 !  (1) VALUE (REAL*4) : Number to be tested for NaN
 !
 !  NOTES:
@@ -112,7 +113,8 @@
 !  (5 ) Use LINUX error-trapping for INTEL_FC (bmy, 10/24/03)
 !  (6 ) Renamed SGI to SGI_MIPS, LINUX to LINUX_PGI, INTEL_FC to INTEL_IFC,
 !        and added LINUX_EFC. (bmy, 12/2/03)
-!*****************************************************************************
+!  (7 ) Added LINUX_IFORT switch for Intel v8 and v9 compilers (bmy, 10/18/05)
+!******************************************************************************
 !
 #     include "define.h" ! C-preprocessor switches
 
@@ -135,7 +137,7 @@
 #elif defined( COMPAQ )
       IT_IS_A_NAN = ISNAN( VALUE )         
 
-#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC ) 
+#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC ) || defined( LINUX_IFORT )
 
       ! Declare IS_NAN as an external function
       INTEGER, EXTERNAL  :: IS_NAN
@@ -165,16 +167,16 @@
       ! Return to calling program
       END FUNCTION NAN_FLOAT
 
-!-----------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 
       FUNCTION NAN_DBLE( VALUE ) RESULT( IT_IS_A_NAN )
 !
-!*****************************************************************************
+!******************************************************************************
 !  Module NAN_DBLE returns TRUE if a REAL*8 number is equal to the IEEE NaN 
-! (Not-a-Number) flag.  Returns FALSE otherwise. (bmy, 3/8/01, 12/2/03)
+! (Not-a-Number) flag.  Returns FALSE otherwise. (bmy, 3/8/01, 10/18/05)
 !
 !  Arguments as Input:
-!  ===========================================================================
+!  ============================================================================
 !  (1) VALUE (REAL*8) : Number to be tested for NaN
 !
 !  NOTES:
@@ -187,7 +189,8 @@
 !  (5 ) Use LINUX error-trapping for INTEL_FC (bmy, 10/24/03)
 !  (6 ) Renamed SGI to SGI_MIPS, LINUX to LINUX_PGI, INTEL_FC to INTEL_IFC,
 !        and added LINUX_EFC. (bmy, 12/2/03)
-!*****************************************************************************
+!  (7 ) Added LINUX_IFORT switch for Intel v8 and v9 compilers (bmy, 10/18/05)
+!******************************************************************************
 !
 #     include "define.h" ! C-preprocessor switches
 
@@ -210,7 +213,7 @@
 #elif defined( COMPAQ )
       IT_IS_A_NAN = ISNAN( VALUE )         
 
-#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC )
+#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC ) || defined( LINUX_IFORT )
 
       ! Declare IS_NAN as an external function
       INTEGER, EXTERNAL  :: IS_NAN
@@ -243,12 +246,12 @@
 
       FUNCTION FINITE_FLOAT( VALUE ) RESULT( IT_IS_A_FINITE )
 !
-!*****************************************************************************
+!******************************************************************************
 !  Module FINITE_FLOAT returns TRUE if a REAL*4 number is equal to the 
-!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 12/2/03)
+!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 10/18/05)
 !
 !  Arguments as Input:
-!  ===========================================================================
+!  ============================================================================
 !  (1) VALUE (REAL*4) : Number to be tested for infinity
 !
 !  NOTES:
@@ -262,6 +265,7 @@
 !  (6 ) Use LINUX error-trapping for INTEL_FC (bmy, 10/24/03)
 !  (7 ) Renamed SGI to SGI_MIPS, LINUX to LINUX_PGI, INTEL_FC to INTEL_IFC,
 !        and added LINUX_EFC. (bmy, 12/2/03)
+!  (8 ) Added LINUX_IFORT switch for Intel v8 and v9 compilers (bmy, 10/18/05)
 !*****************************************************************************
 !
 #     include "define.h" ! C-preprocessor switches
@@ -293,7 +297,7 @@
          IT_IS_A_FINITE = .TRUE.
       ENDIF
 
-#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC )
+#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC ) || defined( LINUX_IFORT )
 
       ! Declare IS_FINITE as an external function
       INTEGER, EXTERNAL :: IS_FINITE
@@ -329,7 +333,7 @@
 !
 !*****************************************************************************
 !  Module FINITE_DBLE returns TRUE if a REAL*8 number is equal to the 
-!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 12/2/03)
+!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 10/18/05)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -346,6 +350,7 @@
 !  (6 ) Use LINUX error-trapping for INTEL_FC (bmy, 10/24/03)
 !  (7 ) Renamed SGI to SGI_MIPS, LINUX to LINUX_PGI, INTEL_FC to INTEL_IFC,
 !        and added LINUX_EFC. (bmy, 12/2/03)
+!  (8 ) Added LINUX_IFORT switch for Intel v8 and v9 compilers (bmy, 10/18/05)
 !*****************************************************************************
 !
 #     include "define.h" ! C-preprocessor switches
@@ -376,7 +381,7 @@
          IT_IS_A_FINITE = .TRUE.
       ENDIF
 
-#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC )
+#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC ) || defined( LINUX_IFORT )
 
       ! Declare IS_FINITE as an external function
       INTEGER, EXTERNAL :: IS_FINITE

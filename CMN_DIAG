@@ -1,4 +1,4 @@
-! $Id: CMN_DIAG,v 1.14 2005/09/02 15:16:51 bmy Exp $
+! $Id: CMN_DIAG,v 1.15 2005/10/20 14:03:09 bmy Exp $
 ! 
 ! NOTES:
 ! (1 ) Changed RCS ID tag comment character from "C" to "!" to allow freeform
@@ -156,21 +156,10 @@
       COMMON /TRCBLK/ TRCOFFSET
 !----------------------------------------------------------------------------
 ! Variables for printing out selected tracers in diagnostic output
-      !-------------------------------------------------------
-      ! Prior to 5/3/05:
-      ! Rename to avoid conflict w/ gamap_mod.f (bmy, 5/3/05)
-      !INTEGER, PARAMETER :: MAXDIAG   = 70
-      !INTEGER, PARAMETER :: MAXTRACER = 50
-      !-------------------------------------------------------
       INTEGER, PARAMETER :: MAX_DIAG   = 70
       INTEGER, PARAMETER :: MAX_TRACER = 120
       INTEGER            :: TINDEX, TCOUNT, TMAX
 
-!----------------------------------------------------------------------
-! Prior to 5/3/05:
-!      COMMON /TR_INDEX/                                                 
-!     &   TINDEX(MAXDIAG,MAXTRACER), TCOUNT(MAXDIAG), TMAX(MAXDIAG)
-!----------------------------------------------------------------------
       COMMON /TR_INDEX/ TINDEX(MAX_DIAG,MAX_TRACER), 
      &                  TCOUNT(MAX_DIAG), 
      &                  TMAX(MAX_DIAG)

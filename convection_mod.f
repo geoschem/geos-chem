@@ -1,10 +1,10 @@
-! $Id: convection_mod.f,v 1.10 2005/09/02 15:17:01 bmy Exp $
+! $Id: convection_mod.f,v 1.11 2005/10/20 14:03:17 bmy Exp $
       MODULE CONVECTION_MOD
 !
 !******************************************************************************
 !  Module CONVECTION_MOD contains routines which select the proper convection
 !  code for GEOS-1, GEOS-STRAT, GEOS-3, or GEOS-4 met field data sets. 
-!  (bmy, 6/28/03, 5/25/05)
+!  (bmy, 6/28/03, 10/3/05)
 !
 !  Module Routines:
 !  ============================================================================
@@ -39,6 +39,7 @@
 !  (5 ) Now added routines DO_GEOS4_CONVECT and DO_GCAP_CONVECT by breaking 
 !        off code from DO_CONVECTION, in order to implement GCAP convection
 !        in a much cleaner way. (swu, bmy, 5/25/05)
+!  (6 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -113,11 +114,12 @@
 !******************************************************************************
 !  Subroutine DO_GEOS4_CONVECT is a wrapper for the GEOS-4/fvDAS convection 
 !  code.  This was broken off from the old DO_CONVECTION routine above.
-!  (swu, bmy, 5/25/05)
+!  (swu, bmy, 5/25/05, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Now use array masks to flip arrays vertically in call to FVDAS_CONVECT
 !        (bmy, 5/25/05)
+!  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !*****************************************************************************
 !     
       ! References to F90 modules
@@ -128,7 +130,7 @@
       USE LOGICAL_MOD,       ONLY : LPRT
       USE TIME_MOD,          ONLY : GET_TS_CONV
       USE TRACER_MOD,        ONLY : N_TRACERS, STT, TCVV
-      USE PRESSURE_MOD              
+      USE PRESSURE_MOD,      ONLY : GET_PEDGE
       USE WETSCAV_MOD,       ONLY : COMPUTE_F
 
 #     include "CMN_SIZE"          ! Size parameters
@@ -282,15 +284,15 @@
 !*****************************************************************************
 !     
       ! References to F90 modules
-      USE DAO_MOD,          ONLY : DETRAINE, DETRAINN, DNDE,
-     &                             DNDN,     ENTRAIN,  UPDN, UPDE
+      USE DAO_MOD,          ONLY : DETRAINE, DETRAINN, DNDE
+      USE DAO_MOD,          ONLY : DNDN,     ENTRAIN,  UPDN, UPDE
       USE DIAG_MOD,         ONLY : AD37
       USE ERROR_MOD,        ONLY : DEBUG_MSG
       USE GCAP_CONVECT_MOD, ONLY : GCAP_CONVECT
       USE LOGICAL_MOD,      ONLY : LPRT
       USE TIME_MOD,         ONLY : GET_TS_CONV
       USE TRACER_MOD,       ONLY : N_TRACERS, STT, TCVV
-      USE PRESSURE_MOD              
+      USE PRESSURE_MOD,     ONLY : GET_PEDGE
       USE WETSCAV_MOD,      ONLY : COMPUTE_F
 
 #     include "CMN_SIZE"         ! Size parameters

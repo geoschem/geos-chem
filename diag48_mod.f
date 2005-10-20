@@ -1,9 +1,9 @@
-! $Id: diag48_mod.f,v 1.8 2005/09/02 15:17:05 bmy Exp $
+! $Id: diag48_mod.f,v 1.9 2005/10/20 14:03:20 bmy Exp $
       MODULE DIAG48_MOD
 !
 !******************************************************************************
 !  Module DIAG48_MOD contains variables and routines to save out 3-D 
-!  timeseries output to disk (bmy, 7/20/04, 8/2/05)
+!  timeseries output to disk (bmy, 7/20/04, 10/3/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -62,6 +62,7 @@
 !  (1 ) Now save out cld frac and grid box heights (bmy, 4/20/05)
 !  (2 ) Remove TRCOFFSET because it's always zero.  Now call GET_HALFPOLAR
 !        to get the value for GEOS or GCAP grids. (bmy, 6/28/05)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -132,24 +133,27 @@
 !        GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag value for 
 !        GEOS or GCAP grids.  (bmy, 6/28/05)
 !  (4 ) Now do not save SLP data if it is not allocated (bmy, 8/2/05)
+!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
-      USE DAO_MOD,      ONLY : AD,      AIRDEN, BXHEIGHT, CLDF, 
-     &                         CLDTOPS, OPTD,   RH,       SLP,    
-     &                         T,       UWND,   VWND 
+      USE BPCH2_MOD,    ONLY : BPCH2
+      USE DAO_MOD,      ONLY : AD,      AIRDEN, BXHEIGHT, CLDF 
+      USE DAO_MOD,      ONLY : CLDTOPS, OPTD,   RH,       SLP   
+      USE DAO_MOD,      ONLY : T,       UWND,   VWND 
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE FILE_MOD,     ONLY : IU_ND48
       USE GRID_MOD,     ONLY : GET_XOFFSET,        GET_YOFFSET
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE TIME_MOD,     ONLY : GET_LOCALTIME,      GET_NYMD,
-     &                         GET_NHMS,           GET_TAU,
-     &                         EXPAND_DATE,        ITS_A_NEW_DAY
-      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM, N_TRACERS,
-     &                         STT,                TCVV  
-      USE TRACERID_MOD 
+      USE TIME_MOD,     ONLY : GET_LOCALTIME,      GET_NYMD
+      USE TIME_MOD,     ONLY : GET_NHMS,           GET_TAU
+      USE TIME_MOD,     ONLY : EXPAND_DATE,        ITS_A_NEW_DAY
+      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM, N_TRACERS
+      USE TRACER_MOD,   ONLY : STT,                TCVV  
+      USE TRACERID_MOD, ONLY : IDTHNO3, IDTN2O5, IDTHNO4, IDTNOX
+      USE TRACERID_MOD, ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
+      USE TRACERID_MOD, ONLY : IDTR4N2, IDTSALA, IDTSALC 
 
 #     include "cmn_fj.h"    ! Size parameters + FAST-J stuff
 #     include "jv_cmn.h"    ! ODAER, ODMDUST
@@ -572,10 +576,6 @@
                Q(L) = RH(I,J,L)
             ENDDO
 
-         !----------------------------------------
-         ! Prior to 8/2/05:
-         !ELSE IF ( N == 95 ) THEN
-         !----------------------------------------
          ELSE IF ( N == 95 .and. IS_SLP ) THEN
 
             !-----------------------------------

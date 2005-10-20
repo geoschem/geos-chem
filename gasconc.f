@@ -1,14 +1,9 @@
-! $Id: gasconc.f,v 1.6 2005/09/02 15:17:11 bmy Exp $
-!-----------------------------------------------------------------------
-! Prior to 8/22/05:
-!      SUBROUTINE GASCONC( FIRSTCHEM, NTRACER, STT,
-!     &                    XNUMOL,    LPAUSE,  FRCLND )
-!-----------------------------------------------------------------------
-      SUBROUTINE GASCONC( FIRSTCHEM, NTRACER, STT,  XNUMOL, FRCLND )
+! $Id: gasconc.f,v 1.7 2005/10/20 14:03:27 bmy Exp $
+      SUBROUTINE GASCONC( FIRSTCHEM, NTRACER, STT, XNUMOL, FRCLND )
 !
 !******************************************************************************
 !  Subroutine GASCONC initializes gas concentrations for SMVGEAR II.
-!  (M. Jacobson 1997; bdf, bmy, 4/18/03, 7/20)
+!  (M. Jacobson 1997; bdf, bmy, 4/18/03, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Now reference ABSHUM, AIRDENS, CSPEC, IXSAVE, IYSAVE, IZSAVE,  
@@ -21,12 +16,18 @@
 !  (3 ) Now dimension args XNUMOL, STT w/ NTRACER and not NNPAR (bmy, 7/20/04)
 !  (4 ) Now remove LPAUSE from the arg list.  Now references ITS_IN_THE_TROP
 !        from "tropopause_mod.f". (bmy, 8/22/05)
+!  (5 ) Now make sure all USE statements are USE, ONLY.  Also remove 
+!        reference to TRACERID_MOD, it's not needed. (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules 
-      USE COMODE_MOD,     ONLY : ABSHUM, AIRDENS, CSPEC,  IXSAVE,
-     &                           IYSAVE, IZSAVE,  PRESS3, T3
-      USE TRACERID_MOD
+      USE COMODE_MOD,     ONLY : ABSHUM, AIRDENS, CSPEC,  IXSAVE
+      USE COMODE_MOD,     ONLY : IYSAVE, IZSAVE,  PRESS3, T3
+      !----------------------------------------------------------
+      ! Prior to 10/3/05:
+      ! This reference is now obsolete (bmy, 10/3/05)
+      !USE TRACERID_MOD
+      !----------------------------------------------------------
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
       
       IMPLICIT NONE
@@ -37,10 +38,6 @@
       ! Arguments
       LOGICAL, INTENT(IN)    :: FIRSTCHEM
       INTEGER, INTENT(IN)    :: NTRACER
-      !--------------------------------------------------------------
-      ! Prior to 8/22/05:
-      !INTEGER, INTENT(IN)    :: LPAUSE(IIPAR,JJPAR)
-      !--------------------------------------------------------------
       REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NTRACER)
       REAL*8,  INTENT(IN)    :: XNUMOL(NTRACER)
       REAL*8,  INTENT(IN)    :: FRCLND(IIPAR,JJPAR)
@@ -165,10 +162,6 @@ C
                      !---------------------------
                      ! Test for troposphere
                      !---------------------------
-                     !---------------------------------------------
-                     ! Prior to 8/22/05:
-                     !IF ( IZ < LPAUSE(IX,IY) ) THEN
-                     !---------------------------------------------
                      IF ( ITS_IN_THE_TROP( IX, IY, IZ ) ) THEN
 
                         ! Free troposphere: 0.6 ppbv MOH

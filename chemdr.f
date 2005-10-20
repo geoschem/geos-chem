@@ -1,9 +1,9 @@
-! $Id: chemdr.f,v 1.15 2005/09/02 15:16:59 bmy Exp $
+! $Id: chemdr.f,v 1.16 2005/10/20 14:03:16 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
 !  Subroutine CHEMDR is the driver subroutine for full chemistry w/ SMVGEAR.
-!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 8/22/05)
+!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 10/3/05)
 !
 !  Important input variables from "dao_mod.f" and "uvalbedo_mod.f":
 !  ============================================================================
@@ -141,24 +141,26 @@
 !        switch any more (bmy, 6/23/05)
 !  (24) Now remove LPAUSE from the arg list to "ruralbox.f" and "gasconc.f".
 !        (bmy, 8/22/05)
+!  (25) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE AEROSOL_MOD,     ONLY : AEROSOL_CONC, RDAER, SOILDUST
       USE COMODE_MOD,      ONLY : ABSHUM,   CSPEC,     ERADIUS, TAREA
-      USE DAO_MOD,         ONLY : AD,       AIRVOL,    ALBD,    AVGW,    
-     &                            BXHEIGHT, MAKE_AVGW, OPTD,    SUNCOS,  
-     &                            SUNCOSB,  T
+      USE DAO_MOD,         ONLY : AD,       AIRVOL,    ALBD,    AVGW   
+      USE DAO_MOD,         ONLY : BXHEIGHT, MAKE_AVGW, OPTD,    SUNCOS  
+      USE DAO_MOD,         ONLY : SUNCOSB,  T
       USE DIAG_OH_MOD,     ONLY : DO_DIAG_OH
       USE DIAG_PL_MOD,     ONLY : DO_DIAG_PL
       USE DUST_MOD,        ONLY : RDUST_ONLINE, RDUST_OFFLINE
       USE ERROR_MOD,       ONLY : DEBUG_MSG
       USE GLOBAL_CH4_MOD,  ONLY : GET_GLOBAL_CH4
-      USE LOGICAL_MOD
+      USE LOGICAL_MOD,     ONLY : LCARB,        LDUST,     LEMBED
+      USE LOGICAL_MOD,     ONLY : LPRT,         LSSALT,    LSULF  
       USE PLANEFLIGHT_MOD, ONLY : SETUP_PLANEFLIGHT
-      USE TIME_MOD,        ONLY : GET_MONTH, GET_YEAR, ITS_A_NEW_DAY
-      USE TRACER_MOD,      ONLY : STT, N_TRACERS
-      USE TRACERID_MOD 
+      USE TIME_MOD,        ONLY : GET_MONTH,    GET_YEAR,  ITS_A_NEW_DAY
+      USE TRACER_MOD,      ONLY : STT,          N_TRACERS
+      USE TRACERID_MOD,    ONLY : IDTNOX,       IDTOX,     SETTRACE
       USE UVALBEDO_MOD,    ONLY : UVALBEDO
 
       IMPLICIT NONE
@@ -244,11 +246,6 @@
 
       CALL RURALBOX( AD,     T,      AVGW,   ALT,   ALBD,  
      &               SUNCOS, CLOUDS, LEMBED, IEBD1, IEBD2, 
-!---------------------------------------------------------------
-! Prior to 8/22/05:
-! Remove LPAUSE from the arg list, it's obsolete (bmy, 8/22/05)
-!     &               JEBD1,  JEBD2,  LPAUSE )
-!---------------------------------------------------------------
      &               JEBD1,  JEBD2 )
 
       !### Debug
@@ -365,11 +362,6 @@
       ! splits up family tracers like NOx and Ox into individual
       ! chemical species for SMVGEAR.
       !=================================================================
-      !---------------------------------------------------------------------
-      ! Prior to 8/22/05:
-      ! Remove LPAUSE from the argument list (bmy, 8/22/05)
-      !CALL GASCONC( FIRSTCHEM, N_TRACERS, STT, XNUMOL, LPAUSE, FRCLND )
-      !---------------------------------------------------------------------
       CALL GASCONC( FIRSTCHEM, N_TRACERS, STT, XNUMOL, FRCLND )
 
       !### Debug

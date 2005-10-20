@@ -1,9 +1,9 @@
-! $Id: emf_scale.f,v 1.3 2004/12/02 21:48:36 bmy Exp $
+! $Id: emf_scale.f,v 1.4 2005/10/20 14:03:24 bmy Exp $
       SUBROUTINE EMF_SCALE( I,    J,    N,     NN, 
      &                      IREF, JREF, JSCEN, XEMISR, XEMISRN )       
 !
 !******************************************************************************
-!  Subroutine EMF_SCALE (bmy, 4/2/98, 7/20/04) does the following:
+!  Subroutine EMF_SCALE (bmy, 4/2/98, 10/3/05) does the following:
 ! 
 !  (1) Saves original values of EMISR, EMISRN, EMISPN
 !      so that they can be restored later (after scaling)
@@ -22,11 +22,13 @@
 !  (4 ) Remove old obsolete commented-out code (bmy, 4/20/01)
 !  (5 ) Now references "tracerid_mod.f" (bmy, 11/6/02)
 !  (6 ) Now references LFFNOX from "logical_mod.f" (bmy, 7/20/04)
+!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE TRACERID_MOD
-      
+      USE TRACERID_MOD, ONLY : IDEALK4, IDEC3H8, IDEISOP, IDECO
+      USE TRACERID_MOD, ONLY : IDENOX,  IDEOX,   IDPRPE,  IDTNOX  
+
       IMPLICIT NONE
 
 #     include "CMN_SIZE"

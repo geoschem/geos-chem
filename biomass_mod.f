@@ -1,10 +1,10 @@
-! $Id: biomass_mod.f,v 1.9 2005/09/02 15:16:57 bmy Exp $
+! $Id: biomass_mod.f,v 1.10 2005/10/20 14:03:14 bmy Exp $
       MODULE BIOMASS_MOD
 !
 !******************************************************************************
 !  Module BIOMASS_MOD contains arrays and routines to compute monthly
 !  biomass burning emissions for NOx, CO, ALK4, ACET, MEK, ALD2, PRPE, 
-!  C3H8, CH2O, C2H6, CH4, and CH3I. (bmy, 9/11/00, 8/16/05)
+!  C3H8, CH2O, C2H6, CH4, and CH3I. (bmy, 9/11/00, 10/3/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -144,6 +144,7 @@
 !  (26) Now references "directory_mod.f" & "logical_mod.f" (bmy, 7/20/04)
 !  (27) Bug fix in BIOBURN for TAU w/ interannual emissions (bmy, 3/18/05)
 !  (28) Now can read data for both GEOS and GCAP grids (bmy, 3/18/05)
+!  (29) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -269,15 +270,16 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DAO_MOD,       ONLY : BXHEIGHT
-      USE DIAG_MOD,      ONLY : AD28, AD29, AD32_bb
+      USE DIAG_MOD,      ONLY : AD28,            AD29, AD32_bb
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : IT_IS_NAN,      GEOS_CHEM_STOP
-      USE LOGICAL_MOD,   ONLY : LBBSEA,         LTOMSAI
-      USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR, GET_MONTH, 
-     &                          GET_TAU,        GET_YEAR       
-      USE TRACERID_MOD
+      USE ERROR_MOD,     ONLY : IT_IS_NAN,       GEOS_CHEM_STOP
+      USE LOGICAL_MOD,   ONLY : LBBSEA,          LTOMSAI
+      USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR,  GET_MONTH
+      USE TIME_MOD,      ONLY : GET_TAU,         GET_YEAR       
+      USE TRACERID_MOD,  ONLY : IDBCO,           IDBNOX
 
 #     include "CMN_SIZE"   ! Size parameters
 #     include "CMN_DIAG"   ! Diagnostic arrays & switches
@@ -406,11 +408,6 @@
             XTAU = GET_TAU0( GET_MONTH(), 1, 1985 )
 
             ! Filename for seasonal biomass burning emissions
-!-------------------------------------------------------------------------
-! Prior to 8/16/05:
-!            FILENAME = TRIM( DATA_DIR ) // TRIM( BIOMASS_DIR ) // 
-!     &                 'bioburn.seasonal.geos.' // GET_RES_EXT()
-!-------------------------------------------------------------------------
             FILENAME = TRIM( DATA_DIR )    // TRIM( BIOMASS_DIR ) // 
      &                 'bioburn.seasonal.' // GET_NAME_EXT_2D()   //
      &                 '.'                 // GET_RES_EXT()
@@ -433,11 +430,6 @@
             XTAU = GET_TAU0( GET_MONTH(), 1, 1985 )            
 
             ! Filename for seasonal biomass burning emissions
-!-----------------------------------------------------------------------------
-! Prior to 8/16/05:
-!            FILENAME = TRIM( DATA_DIR ) // TRIM( BIOMASS_DIR ) //
-!     &                 'bioburn.seasonal.geos.' // GET_RES_EXT()
-!-----------------------------------------------------------------------------
             FILENAME = TRIM( DATA_DIR )    // TRIM( BIOMASS_DIR ) //
      &                 'bioburn.seasonal.' // GET_NAME_EXT_2D()   //
      &                 '.'                 // GET_RES_EXT()
@@ -450,11 +442,6 @@
             XTAU = GET_TAU0( 1, 1, 1985 )
 
             ! Filename for annual biomass burning emissions 
-!------------------------------------------------------------------------------
-! Prior to 8/16/05:
-!            FILENAME = TRIM( DATA_DIR ) // TRIM( BIOMASS_DIR ) //
-!     &                 'bioburn.annual.geos.' // GET_RES_EXT()
-!------------------------------------------------------------------------------
             FILENAME = TRIM( DATA_DIR )  // TRIM( BIOMASS_DIR ) //
      &                 'bioburn.annual.' // GET_NAME_EXT_2D()   //
      &                 '.'               // GET_RES_EXT()
@@ -489,11 +476,6 @@
                XTAU = GET_TAU0( GET_MONTH(), 1, 1985 )
 
                ! Filename for seasonal biomass burning emissions
-!-----------------------------------------------------------------------------
-! Prior to 8/16/05:
-!               FILENAME = TRIM( DATA_DIR ) // TRIM( BIOMASS_DIR ) //
-!     &                    'bioburn.seasonal.geos.' // GET_RES_EXT()
-!-----------------------------------------------------------------------------
                FILENAME = TRIM( DATA_DIR )    // TRIM( BIOMASS_DIR ) //
      &                    'bioburn.seasonal.' // GET_NAME_EXT_2D()   //
      &                    '.'                 // GET_RES_EXT() 
@@ -507,11 +489,6 @@
                XTAU = GET_TAU0( 1, 1, 1985 )
 
                ! Filename for annual biomass burning emissions
-!-----------------------------------------------------------------------------
-! Prior to 8/16/05:
-!               FILENAME = TRIM( DATA_DIR ) // TRIM( BIOMASS_DIR ) //
-!     &                    'bioburn.annual.geos.' // GET_RES_EXT()
-!-----------------------------------------------------------------------------
                FILENAME = TRIM( DATA_DIR )  // TRIM( BIOMASS_DIR ) //
      &                    'bioburn.annual.' // GET_NAME_EXT_2D()   //
      &                    '.'               // GET_RES_EXT()
@@ -532,12 +509,6 @@
                XTAU = GET_TAU()
 
                ! Filename for interannual variability biomass burning emissions
-!-----------------------------------------------------------------------------
-! Prior to 8/16/05:
-!               FILENAME = TRIM( DATA_DIR ) // TRIM( BIOMASS_DIR ) //
-!     &                    'bioburn.interannual.geos.' // 
-!     &                    GET_RES_EXT() // '.' // CYEAR           
-!-----------------------------------------------------------------------------
                FILENAME = TRIM( DATA_DIR )       // 
      &                    TRIM( BIOMASS_DIR )    //
      &                    'bioburn.interannual.' // GET_NAME_EXT_2D() // 
@@ -561,12 +532,6 @@
             XTAU = GET_TAU0( GET_MONTH(), 1, GET_YEAR() )
 
             ! Filename for interannual variability biomass burning emissions
-!------------------------------------------------------------------------------
-! Prior to 8/16/05:
-!            FILENAME = TRIM( DATA_DIR ) // TRIM( BIOMASS_DIR ) //      
-!     &                'bioburn.interannual.geos.' // 
-!     &                 GET_RES_EXT() // '.' // CYEAR
-!------------------------------------------------------------------------------
             FILENAME = TRIM( DATA_DIR )       // 
      &                 TRIM( BIOMASS_DIR )    //      
      &                 'bioburn.interannual.' // GET_NAME_EXT_2D() // 
@@ -688,7 +653,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_BIOMASS reads the biomass burning emissions from disk
-!  in units of [molec (C)/cm2/month].  (bmy, 9/25/00, 3/14/03)
+!  in units of [molec (C)/cm2/month].  (bmy, 9/25/00, 10/3/05)
 !      
 !  Arguments as Input:
 !  ============================================================================
@@ -720,11 +685,14 @@
 !  (10) Now references IDTNOX, etc. from "tracerid_mod.f" (bmy, 11/6/02)
 !  (11) Now call READ_BPCH2 with QUIET=.TRUE. flag to suppress extra info 
 !        from being printed (bmy, 3/14/03)
+!  (12) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
-      USE TRACERID_MOD
+      USE BPCH2_MOD,    ONLY : READ_BPCH2
+      USE TRACERID_MOD, ONLY : IDTACET, IDTALD2, IDTALK4, IDTC2H6
+      USE TRACERID_MOD, ONLY : IDTC3H8, IDTCH2O, IDTCO,   IDTMEK
+      USE TRACERID_MOD, ONLY : IDTNOX,  IDTPRPE 
       USE TRANSFER_MOD, ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"
@@ -1471,7 +1439,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_BIOMASS allocates and zeroes the BURNEMIS array.
-!  (bmy, 9/11/00, 7/20/04)
+!  (bmy, 9/11/00, 10/3/05)
 !
 !  NOTES:
 !  (1 ) BURNEMIS does not need to be allocated if all of the elements of 
@@ -1487,12 +1455,16 @@
 !  (6 ) Now references ALLOC_ERR from "error_mod.f".  Now reference IDBNOX,
 !        IDBCO, etc from "tracerid_mod.f". (bmy, 11/6/02)
 !  (7 ) Now references LBIOMASS from "logical_mod.f" (bmy, 7/20/04)
+!  (8 ) Eliminate reference to TRACERID_MOD, it's obsolete (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE LOGICAL_MOD, ONLY : LBIOMASS
-      USE TRACERID_MOD
+      !----------------------------------------------------
+      ! Prior to 10/3/05:
+      !USE TRACERID_MOD
+      !----------------------------------------------------
 
 #     include "CMN_SIZE"  ! Size parameters, etc
 

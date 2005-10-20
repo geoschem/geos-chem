@@ -1,4 +1,4 @@
-! $Id: ohsave.f,v 1.4 2004/12/02 21:48:38 bmy Exp $
+! $Id: ohsave.f,v 1.5 2005/10/20 14:03:36 bmy Exp $
       SUBROUTINE OHSAVE( N_TRACERS, XNUMOL,  STT,    FRACO3,  
      &                   FRACNO,    FRACNO2, SAVEOH, SAVEHO2, 
      &                   SAVENO,    SAVENO2, SAVENO3 )
@@ -6,7 +6,7 @@
 !******************************************************************************
 !  Subroutine OHSAVE stores the concentrations of OH, HO2, NO, NO2, and NO3
 !  for the ND43 diagnostic.  Also the O3/Ox, NO/NOx and NO2/NOx fractions
-!  are computed and returned to the calling program. (bmy, 2/27/02, 7/20/04) 
+!  are computed and returned to the calling program. (bmy, 2/27/02, 10/3/05) 
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -40,12 +40,14 @@
 !        references STT from "tracer_mod.f".  Added N_TRACERS to the arg list.
 !        Now dimension args XNUMOL, STT w/ N_TRACERS and not NNPAR. 
 !        (bmy, 7/20/04)
+!  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE COMODE_MOD, ONLY : AIRDENS, CSPEC, JLOP, T3, VOLUME
-      USE DIAG_MOD,   ONLY : DIAGCHLORO
-      USE TRACERID_MOD
+      USE COMODE_MOD,   ONLY : AIRDENS, CSPEC, JLOP, T3, VOLUME
+      USE DIAG_MOD,     ONLY : DIAGCHLORO
+      USE TRACERID_MOD, ONLY : IDTOX, IDTNOX, IDO3,  IDNO
+      USE TRACERID_MOD, ONLY : IDNO2, IDOH,   IDHO2, IDNO3  
 
       IMPLICIT NONE
 

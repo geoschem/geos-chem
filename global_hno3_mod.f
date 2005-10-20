@@ -1,9 +1,9 @@
-! $Id: global_hno3_mod.f,v 1.6 2005/09/02 15:17:13 bmy Exp $
+! $Id: global_hno3_mod.f,v 1.7 2005/10/20 14:03:28 bmy Exp $
       MODULE GLOBAL_HNO3_MOD
 !
 !******************************************************************************
 !  Module GLOBAL_HNO3_MOD contains variables and routines for reading the
-!  global monthly mean HNO3 fields from disk. (bmy, 10/15/02, 8/1/05)
+!  global monthly mean HNO3 fields from disk. (bmy, 10/15/02, 10/3/05)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -32,6 +32,7 @@
 !  (4 ) Now suppress output from READ_BPCH2 with QUIET=T (bmy, 1/14/05)
 !  (5 ) Now read total gas + aerosol HNO3 data (bec, bmy, 4/13/05)
 !  (6 ) Now read files from "sulfate_sim_200508/offline" dir (bmy, 8/1/05)
+!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -109,7 +110,7 @@
 !******************************************************************************
 !  Subroutine GET_GLOBAL_HNO3 reads global OH from binary punch files stored
 !  in the data directory.  This is needed for the offline sulfate simulation.
-!  (bmy, 10/3/02, 8/1/05)
+!  (bmy, 10/3/02, 10/3/05)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -123,13 +124,15 @@
 !  (5 ) Now read total gas + aerosol HNO3 data (bec, bmy, 4/13/05)
 !  (6 ) GEOS-3 and GEOS-4 data comes from model runs w/ 30 layers.  Also now
 !        read from "sulfate_sim_200508/offline" directory (bmy, 8/1/05)
+!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D, TRANSFER_3D
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D,  TRANSFER_3D
 
       IMPLICIT NONE
 
@@ -159,11 +162,6 @@
 
       ! File name for modified HNO3 (total gas + aerosol nitrate)
       ! after sea-salt chemistry (bec, bmy, 4/13/05, 8/1/05)
-!--------------------------------------------------------------------------
-! Prior to 8/1/05:
-! Now read from sulfate_sim_200508/offline directory (bmy, 8/1/05)
-!      FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/THNO3.' //
-!--------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )                      // 
      &           'sulfate_sim_200508/offline/THNO3.'   // 
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()!
@@ -174,10 +172,6 @@
 
       ! Get the TAU0 value for the start of the given month
       ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
-      !---------------------------------------------------------
-      ! Prior to 8/1/05:
-      !XTAU = GET_TAU0( THISMONTH, 1, 2001 )
-      !---------------------------------------------------------
       XTAU = GET_TAU0( THISMONTH, 1, 1985 )
 
 #if   defined( GEOS_3 ) || defined( GEOS_4 ) 
@@ -249,10 +243,6 @@
       !=================================================================
       ! INIT_GLOBAL_HNO3 begins here!
       !=================================================================
-      !----------------------------------------------------
-      ! Prior to 8/1/05:
-      !ALLOCATE( HNO3( IGLOB, JGLOB, LGLOB ), STAT=AS )
-      !----------------------------------------------------
       ALLOCATE( HNO3( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'HNO3' )
       HNO3 = 0d0

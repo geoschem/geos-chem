@@ -1,11 +1,11 @@
-! $Id: dust_dead_mod.f,v 1.8 2005/09/02 15:17:08 bmy Exp $
+! $Id: dust_dead_mod.f,v 1.9 2005/10/20 14:03:23 bmy Exp $
       MODULE DUST_DEAD_MOD
 !
 !******************************************************************************
 !  Module DUST_DEAD_MOD contains routines and variables from Charlie Zender's
 !  DEAD dust mobilization model.  Most routines are from Charlie Zender, but 
 !  have been modified and/or cleaned up for inclusion into GEOS-CHEM. 
-!  (tdf, rjp, bmy, 4/6/04, 8/16/05) 
+!  (tdf, rjp, bmy, 4/6/04, 10/3/05) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -124,6 +124,7 @@
 !  (2 ) Now references "directory_mod.f" (bmy, 7/20/04)
 !  (3 ) Fixed typo in ORO_IS_LND for PGI compiler (bmy, 3/1/05)
 !  (4 ) Modified for GEOS-5 and GCAP met fields (swu, bmy, 8/16/05)
+!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1189,10 +1190,6 @@ ctdf        print *,' no mobilisation candidates'
 !******************************************************************************
 !
       ! References to F90 modules
-      !-----------------------------------------------------------
-      ! Prior to 8/17/05:
-      !USE DAO_MOD, ONLY : LWI, LWI_GISS, SNICE
-      !-----------------------------------------------------------
       USE DAO_MOD, ONLY : IS_LAND, IS_WATER, IS_ICE
 
 #     include "CMN_SIZE"
@@ -1211,89 +1208,6 @@ ctdf        print *,' no mobilisation candidates'
 !$OMP+PRIVATE( I, J )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-
-!-----------------------------------------------------------------------------
-! Prior to 8/17/05:
-! Now use IS_LAND, IS_WATER, IS_ICE functions from "dao_mod.f"
-! NOTE: Ice is now flagged separately than land or water (bmy, 8/17/05)
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-!
-!         !-----------------
-!         ! GEOS-1 & GEOS-S
-!         !-----------------
-!
-!         ! Test land/water flags
-!         SELECT CASE ( LWI(I,J) )
-!
-!            ! GEOS-1 & GEOS-S land or ocean ice
-!            CASE ( 3, 4 ) 
-!               OROGRAPHY(I,J) = 2
-!
-!            ! Ocean or land
-!            CASE DEFAULT
-!               OROGRAPHY(I,J) = LWI(I,J)
-!
-!         END SELECT
-!
-!#elif defined( GEOS_3 )
-!
-!         !-----------------
-!         ! GEOS-3 
-!         !-----------------
-!
-!         ! Test land/water flags
-!         SELECT CASE ( LWI(I,J) )
-!
-!            ! Land types
-!            CASE ( 0:50 )
-!               OROGRAPHY(I,J) = 1
-!             
-!            !----------------------------
-!            !! Land ice
-!            !CASE ( 9  )
-!            !   OROGRAPHY(I,J) = 2
-!            !----------------------------
-!
-!            ! GEOS-3 ocean
-!            CASE ( 51:100 )
-!               OROGRAPHY(I,J) = 0
-!               
-!            ! GEOS-3 sea ice
-!            CASE ( 101 )
-!               OROGRAPHY(I,J) = 2
-!
-!            ! Default
-!            CASE DEFAULT
-!               OROGRAPHY(I,J) = LWI(I,J)
-!
-!         END SELECT
-!
-!#elif defined( GEOS_4 ) || defined( GEOS_5 )
-!         
-!         !-----------------
-!         ! GEOS-4 & GEOS-5
-!         !-----------------
-!
-!         ! Take value from GEOS-CHEM
-!         OROGRAPHY(I,J) = LWI(I,J)
-!
-!#elif defined( GCAP )
-!
-!         !-----------------
-!         ! GCAP
-!         !-----------------
-!
-!         ! Default: Ocean
-!         OROGRAPHY(I,J) = 0
-!
-!         ! Test for land
-!         IF ( LWI_GISS(I,J) > 0.5d0 ) OROGRAPHY(I,J) = 1
-!
-!         ! Test for ice
-!         IF ( SNICE(I,J)    > 0.5d0 ) OROGRAPHY(I,J) = 2
-!         
-!#endif
-!-----------------------------------------------------------------------------
 
          ! Ocean
          IF ( IS_WATER( I, J ) ) OROGRAPHY(I,J) = 0
@@ -4491,15 +4405,17 @@ c Fix up for negative argument, erf, etc.
 !******************************************************************************
 !  Subroutine GET_TIME_INVARIANT_DATA gets data for the DEAD model which 
 !  does not vary w/ time.  This routine is called from SRC_DUST_DEAD in
-!  "dust_mod.f" only on the first timestep. (bmy, 4/5/04, 8/16/05)
+!  "dust_mod.f" only on the first timestep. (bmy, 4/5/04, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (2 ) Now can read data for both GEOS & GCAP grids (bmy, 8/16/05)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
@@ -4563,11 +4479,6 @@ c Fix up for negative argument, erf, etc.
       !=================================================================
 
       ! Filename
-!----------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME =  TRIM( DATA_DIR )              //
-!     &            'dust_200203/dst_tibds.geos.' // GET_RES_EXT()
-!----------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )         //
      &           'dust_200203/dst_tibds.' // GET_NAME_EXT_2D() //
      &           '.'                      // GET_RES_EXT()    
@@ -4692,17 +4603,19 @@ c Fix up for negative argument, erf, etc.
 !******************************************************************************
 !  Subroutine GET_MONTHLY_DATA gets data for the DEAD model which varies by 
 !  month.  This routine is called from SRC_DUST_DEAD in "dust_mod.f".
-!  (tdf, bmy, 4/5/04, 8/16/05)
+!  (tdf, bmy, 4/5/04, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (2 ) Now can read data for both GEOS & GCAP grids (bmy, 8/16/05)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TIME_MOD,      ONLY : GET_MONTH, ITS_A_NEW_MONTH
+      USE TIME_MOD,      ONLY : GET_MONTH,       ITS_A_NEW_MONTH
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"     ! Size parameters
@@ -4718,11 +4631,6 @@ c Fix up for negative argument, erf, etc.
       !=================================================================
 
       ! Filename and time
-!--------------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME  = TRIM( DATA_DIR )              //
-!     &            'dust_200203/dst_tvbds.geos.' // GET_RES_EXT()
-!--------------------------------------------------------------------------
       FILENAME  = TRIM( DATA_DIR )         //
      &            'dust_200203/dst_tvbds.' // GET_NAME_EXT_2D() //
      &            '.'                      // GET_RES_EXT()

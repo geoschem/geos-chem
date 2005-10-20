@@ -1,10 +1,10 @@
-! $Id: global_o3_mod.f,v 1.4 2005/09/02 15:17:13 bmy Exp $
+! $Id: global_o3_mod.f,v 1.5 2005/10/20 14:03:29 bmy Exp $
       MODULE GLOBAL_O3_MOD
 !
 !******************************************************************************
 !  Module GLOBAL_O3_MOD contains variables and routines for reading the
 !  global monthly mean O3 concentration from disk.  These are needed for the 
-!  offline sulfate/aerosol simulation. (rjp, bmy, 3/27/03, 8/30/05)
+!  offline sulfate/aerosol simulation. (rjp, bmy, 3/27/03, 10/3/05)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -26,13 +26,14 @@
 !  NOTES:
 !  (1 ) Now references "directory_mod.f" (bmy, 7/20/04)
 !  (2 ) Now reads O3 data from "sulfate_sim_200508/offline" dir (bmy, 8/30/05)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !     
       IMPLICIT NONE
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "global_hO3_mod.f"
+      ! and routines from being seen outside "global_o3_mod.f"
       !=================================================================
 
       ! PRIVATE module variables
@@ -57,7 +58,7 @@
 !******************************************************************************
 !  Subroutine GET_GLOBAL_O3 reads monthly mean O3 data fields.  
 !  These are needed for simulations such as offline sulfate/aerosol. 
-!  (bmy, 3/23/03, 8/30/05)
+!  (bmy, 3/23/03, 10/3/05)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -68,10 +69,12 @@
 !  (2 ) Cosmetic changes (bmy, 3/27/03)
 !  (3 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (4 ) Now reads O3 data from "sulfate_sim_200508/offline" dir (bmy, 8/30/05)
+!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
 
@@ -102,11 +105,6 @@
       ENDIF
 
       ! File name
-!--------------------------------------------------------------------------
-! Prior to 8/30/05:
-!      FILENAME = TRIM( DATA_DIR ) // 'sulfate_sim_200210/O3.' //
-!     &           GET_NAME_EXT()  // '.' // GET_RES_EXT()
-!--------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR ) // 
      &           'sulfate_sim_200508/offline/O3.' // GET_NAME_EXT() // 
      &           '.'                              // GET_RES_EXT()

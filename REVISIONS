@@ -1,282 +1,168 @@
-REVISIONS (v7-03-03)  
-bmy, 30 Aug 2005
+REVISIONS (v7-03-04)  
+bmy, 18 Oct 2005
 
 
-New in v7-03-03:
+New in v7-03-04:
 -------------------------------------------------------------------------------
 
-co2_mod.f		-- Contains routines & variables for the CO2 simulation
-
-diag04_mod.f		-- Contains arrays and routines for archiving the ND04
-                           diagnostic -- CO2 emissions and fluxes 
-
-get_name_ext_2d		-- Added GET_NAME_EXT_2D to get filename extension 
-("bpch2_mod.f")            for files which do not contain any vertical  
-                           information
-
-is_ice			-- Returns TRUE if grid box is covered by ice
-("dao_mod.f")
-
-its_a_co2_sim		-- Returns TRUE if it's a CO2 simulation
-("tracer_mod.f")
-
-tropopause_mod.f	-- Contains routines & variables to read in the
-			   annual mean tropopause from disk
 
 
 
 Removed in v7-03-03:
 -------------------------------------------------------------------------------
 
-CMN_HCN			-- Obsolete header file for old HCN chemistry
+get_nymd_phis		-- This is no longer needed
+("main.f")
 
-CMN_SETUP		-- Now replaced by "logical_mod.f" & "directory_mod.f"
-
-read_tropopause.f       -- Now superseded by "tropopause_mod.f"
-
+phis_read_mod.f		-- This is no longer needed
 
 
-Changed from v7-03-02:
+
+Changed from v7-03-03:
 -------------------------------------------------------------------------------
 
-accumulate_diag50	-- Now do not save SLP data if it is not allocated
-("diag50_mod.f")
+biofuel_burn		-- Eliminate reference to TRACER_MOD, it's obsolete
+("biofuel_mod.f")
 
-accumulate_diag51	-- Now do not save SLP data if it is not allocated
-("diag51_mod.f")
+chemch4			-- Remove reference to BPCH2_MOD, it's not needed
+("global_ch4_mod.f")
 
-aerosol_ruralbox        -- Now references ITS_IN_THE_TROP from 
-("aerosol_mod.f")          "tropopause_mod.f" to diagnose boxes w/in 
-                           the troposphere.
+chem_ocpi		-- Bug fix: add BL_FRAC to the PRIVATE list
+("carbon_mod.f")
 
-chemch3i		-- Now use Nightingale et al [2000b] formulation for 
-("ch3i_mod.f")		   exchange coefficient (aka piston velocity)
+comode.h		-- For COMPAQ, put IRMA, IRMB in /INMTRATE2/ 
+			-- For COMPAQ, declare /INMTRATE2/ THREADPRIVATE
 
-chem_dms		-- Now remove reference to CMN, it's obsolete
-("sulfate_mod.f")	-- Now reference ITS_IN_THE_STRAT from 
-			   "tropopause_mod.f"
+define.h		-- Added LINUX_IFORT switch to delineate Intel 	
+       			   compilers v8 or v9 from v7.
 
-chem_h2o2		-- Now read offline files from 
-("sulfate_mod.f")	   "sulfate_sim_200508/offline"
-			-- Now remove reference to CMN, it's obsolete
-			-- Now reference ITS_IN_THE_STRAT from 
-			   "tropopause_mod.f"
+display_grid_and_model	-- Now print output for IFORT compiler
+("main.f")
 
-chem_hcn_ch3cn		-- Update to Nightingale et al [2000b] best fit        
-("hcn_ch3cn_mod.f")        formulation for KL exchange coefficient (aka
-	                   piston velocity)
+do_drydep		-- Remove reference to TRACERID_MOD, it's not needed
+("drydep_mod.f")
 
-chemRnPbBe		-- Remove reference to CMN; it's obsolete.  
-("RnPbBe_mod.f")	-- Now use inquiry functions from "tropopause_mod.f" 
-			   to diagnose strat boxes
+emissc2h6		-- Eliminate reference to BPCH2_MOD, it's obsolete.
+("c2h6_mod.f")
 
-chem_so2		-- Now remove reference to CMN, it's obsolete
-("sulfate_mod.f")	-- Now reference ITS_IN_THE_STRAT from 
-			   "tropopause_mod.f"
+finite_dble		-- Added LINUX_IFORT switch for Intel v8/v9 compilers
+("error_mod.f")
 
-chem_so4		-- Now remove reference to CMN, it's obsolete
-("sulfate_mod.f")	-- Now reference ITS_IN_THE_STRAT from 
-			   "tropopause_mod.f"
+finite_float		-- Added LINUX_IFORT switch for Intel v8/v9 compilers
+("error_mod.f")
 
-cleanup.f		-- Now calls CLEANUP_DIAG04, CLEANUP_CO2, and
-	                   CLEANUP_TROPOPAUSE
+fvdas_convect		-- Added LINUX_IFORT switch for Intel v8/v9 compilers
+("file_mod.f")
 
-CO_strat_pl.f		-- Now use functions from "tropopause_mod.f" to 
-			   diagnose whether a box is in the stratosphere 
-                           or not 
-			-- Remove reference to CMN, it's obsolete
+gasconc.f		-- Also remove reference to TRACERID_MOD, 
+			   it's not needed.
 
-CMN			-- Removed XTRA2, it's obsolete
+get_epa_anthro		-- Also remove reference to BPCH2_MOD and 
+("epa_nei_mod.f")  	   TRACERID_MOD, they're not needed.
 
-CMN_DIAG		-- Removed PD04 -- now in "diag04_mod.f" 
-			-- Removed ND04 -- now in "diag04_mod.f"
-			-- Set PD30 to 1
+get_epa_biofuel		-- Also remove reference to BPCH2_MOD and 
+("epa_nei_mod.f")  	   TRACERID_MOD, they're not needed.
 
-compute_pbl_height	-- Remove refs to "CMN" and XTRA2; they're obsolete
-("pbl_mix_mod.f")	-- Also do not force BLTOP, BLTHIK to minimum values 
-			   for GEOS-STRAT met fields 
+init_biofuel		-- Eliminate reference to TRACER_MOD, it's obsolete
+("biofuel_mod.f")
 
-diag1.f			-- Now archive ND30 diag for land/water/ice flags
+init_biomass		-- Eliminate reference to TRACERID_MOD, it's obsolete
+("biomass_mod.f")
 
-diag3.f			-- References ND04, WRITE_DIAG04 from "diag04_mod.f"
-			-- Also now updated ND30 diag for land/water/ice flags
-			-- Also remove reference to LWI array.
+ioerror			-- Added LINUX_IFORT switch for Intel v8/v9 compilers
+("file_mod.f")
 
-diag48			-- Now do not save SLP data if it is not allocated
-("diag48_mod.f")
+nan_dble		-- Added LINUX_IFORT switch for Intel v8/v9 compilers
+("error_mod.f")
 
-diag49			-- Now do not save SLP data if it is not allocated
-("diag49_mod.f")
+nan_float		-- Added LINUX_IFORT switch for Intel v8/v9 compilers
+("error_mod.f")
 
-diag_mod.f		-- Added AD30 array for land/water/ice output
-
-do_emissions		-- Now call EMISSCO2 from "co2_mod.f"
-("co2_mod.f")
-
-do_isoropia		-- Now references ITS_IN_THE_STRAT from 
-("isoropia_mod.f")	   "tropopause_mod.f"
-			-- Now remove reference to CMN, it's obsolete.
-
-emissRnPbBe		-- Remove reference to CMN; it's obsolete
-("RnPbBe_mod.f")	-- Now use inquiry functions from "tropopause_mod.f" 
-			   to diagnose strat boxes
-
-emisssulfate		-- Now references GET_YEAR from "time_mod.f"
-("sulfate_mod.f") 
-
-gasconc.f		-- Now remove LPAUSE from the arg list
-			-- Now references ITS_IN_THE_TROP
-			   from "tropopause_mod.f"
-
-get_global_hno3		-- GEOS-3 & GEOS-4 data comes from model runs w/ 30 lev
-("global_hno3_mod.f")	-- Also now read from "sulfate_sim_200508/offline" dir
-
-get_global_no3		-- GEOS-3 & GEOS-4 data comes from model runs w/ 30 lev
-("global_no3_mod.f")	-- Now read from "sulfate_sim_200508/offline" directory
-			-- Now read up to LLTROP levels
-			-- References TRANSFER_3D_TROP from "transfer_mod.f"
-
-get_global_o3		-- Now reads O3 data from 
-("global_o3_mod.f")	   "sulfate_sim_200508/offline" directory
-
-get_o3			-- Now remove reference to CMN, it's obsolete
-("sulfate_mod.f")
-
-get_oro			-- Now use IS_LAND, IS_WATER, IS_ICE functions from 
-("dust_dead_mod.f")	   "dao_mod.f".  Ice is now flagged separately from
-			   land and water.
-
-get_regional_pox	-- Now references ITS_IN_THE_TROP from 
-("tagged_ox_mod.f")	   "tropopause_mod.f"
-			-- Now remove reference to "CMN", it's obsolete.
-
-init_dao		-- Now allocate SNOW and GWET for GCAP
-("dao_mod.f")
-
-init_gamap		-- Bug fix: removed duplicate category names
-("gamap_mod.f")		-- Added ND04 diagnostic for CO2
-			-- Now references ND04 from "diag04_mod.f"
-
-init_global_hno3	-- Now allocate NO3 array up to LLTROP levels
-("global_no3_mod.f")	-- Now dimension HNO3 as (IIPAR,JJPAR,LLPAR)
-
-init_global_no3		-- Now allocate NO3 array up to LLTROP levels
-("global_no3_mod.f")
-
-initialize.f		-- Now references ND04, ZERO_DIAG04 from "diag04_mod.f"
-			-- Also remove reference to "CMN" and XTRA2
-			-- Now zeroes AD30 array 
-
-is_land			-- Now return TRUE only for land boxes (w/ no ice) 
-("dao_mod.f")
-
-is_water		-- Now return TRUE only for water boxes (w/ no ice) 
-("dao_mod.f")
-
-its_a_leapyear		-- Now always return FALSE for GCAP
-("time_mod.f")
-
-lightning		-- Now apply new met-field dependent scale factors to
-("lightning_nox_mod.f")	   bring lightning totals to a specified total value
-			-- Eliminated historical baggage
-
-lightning_nox_mod.f	-- Added MET_SCALE variable
-			-- Added GET_MET_FIELD_SCALE function
-
-main.f			-- Remove call to INITIALIZE(1), it's obsolete
-			-- remove reference to CMN, it's obsolete
-
-ndxx_setup.f		-- Now allocates AD30
-
-ocean_source_acet	-- Now use Nightingale et al [2000b] formulation for 
-("acetone_mod.f")	   exchange coefficient KL (aka piston velocity)
-
-ocean_sink_acet		-- Now use Nightingale et al [2000b] formulation for 
-("acetone_mod.f")	   exchange coefficient KL (aka piston velocity)
-
-read_anthro_sox		-- Now read files from "sulfate_sim_200508/"
-("sulfate_mod.f")
-
-read_anthro_nh3		-- Now read files from "sulfate_sim_200508/"
-("sulfate_mod.f")
-
-read_biomass_nh3       	-- Now read files from "sulfate_sim_200508/"
-("sulfate_mod.f")
-
-read_diagnostic_menu	-- Now references "diag04_mod.f"
+read_diagnostic_menu	-- Also remove reference to DIAG_MOD, it's not needed
 ("input_mod.f")
 
-read_erup_volc		-- Now read files from "sulfate_sim_200508/"
-("sulfate_mod.f")
+soa_depo		-- Bug fix: add BL_FRAC to the PRIVATE list
+("carbon_mod.f")
 
-read_i6			-- Round up LWI to account for GEOS-4 coastal boxes 
-("i6_read_mod.f")	   properly
+tpcore			-- Now print output for IFORT compiler
+("tpcore_mod.f")
 
-read_kmc		-- Now reads kmc*bin files from the
-("isoropia_mod.f")         directory sulfate_sim_200508/isorropia
-			-- Also remove reference to obsolete "CMN_SETUP"
+tpcore_window		-- Now print output for IFORT compiler
+("tpcore_mod.f")
 
-read_natural_nh3	-- Now read files from "sulfate_sim_200508/"
-("sulfate_mod.f")
-
-read_nonerup_volc	-- Now read files from "sulfate_sim_200508/"
-("sulfate_mod.f")
-
-read_ocean_dms		-- Now read files from "sulfate_sim_200508/"
-("sulfate_mod.f")
-
-read_oxidant		-- Now read files from "sulfate_sim_200508/offline"
-("sulfate_mod.f")
-
-read_ship_so2		-- Now read files from "sulfate_sim_200508/"
-("sulfate_mod.f")
-
-read_sst		-- Now use interannual SST data from NOAA if present; 
-("sulfate_mod.f")          otherwise use climatological SST data
-
-ruralbox.f		-- Now reference ITS_IN_THE_TROP and ITS_IN_THE_STRAT
-			   from "tropopause_mod.f" to diagnose trop & strat 
-			   boxes
-			-- Also remove LPAUSE from the arg list
-
-schem.f			-- Now references GET_MIN_TPAUSE_LEVEL and 
-			   ITS_IN_THE_STRAT from "tropopause_mod.f" 	
-			-- Now remove reference to CMN, it's obsolete
-
-set_current_time	-- GCAP/GISS fields don't have leap years, so if 
-("time_mod.f") 		   GET_JD says it's Feb 29th, reset MONTH, DAY, 
-			   JD1 to Mar 1st.
-
-setemis.f		-- Now replace XTRA2 with GET_PBL_TOP_L in 
-			   "pbl_mix_mod.f"
-			-- Now remove reference to CMN, it's obsolete
-			-- Now references GET_TPAUSE_LEVEL from 
-      			   "tropopause_mod.f"
-
-srcdms			-- Switch from Liss & Merlivat to Nightingale et al
-("sulfate_mod.f")	   2000b formulation for sea-air exchange coefficient
-                           for DMS emissions.
-
-test_valid		-- Now references ITS_IN_THE_TROP from 	
-("planeflight_mod.f")      "tropopause_mod.f"
-
-xltmmp.f		-- Now make IJLOOP an optional argument; it's only 
-			   kept for backwards compatibility w/ older code
+validate_directories	-- Now also validate GCAP and GEOS-5 directories
+("input_mod.f")
 
 ---
-acetone_mod.f		-- Now references GET_NAME_EXT_2D from "bpch2_mod.f"
-biofuel_mod.f              to return the proper filename extension for 
-biomass_mod.f              data files which contain no vertical information
-carbon_mod.f               (e.g. "geos", "gcap")
+a3_read_mod.f		-- Make sure all USE commands are USE, ONLY
+a6_read_mod.f		   (to facilitate conversion to ESMF) 
+acetone_mod.f		
+aerosol_mod.f
+anthroems.f
+benchmark_mod.f
+biofuel_mod.f
+biomass_mod.f
+c2h6_mod.f
+carbon_mod.f
 ch3i_mod.f
+chemdr.f
+chemistry_mod.f
 co2_mod.f
+convection_mod.f
+diag03_mod.f
+diag04_mod.f
+diag3.f
+diag41_mod.f
+diag48_mod.f
+diag49_mod.f
+diag50_mod.f
+diag51_mod.f
+diag_pl_mod.f
+drydep_mod.f
 dust_dead_mod.f
+dust_mod.f
+emf_scale.f
+emfossil.f
+emissdr.f
+epa_nei_mod.f
+gamap_mod.f
+gasconc.f
 geia_mod.f
 global_ch4_mod.f
+global_no3_mod.f
+global_nox_mod.f
+gwet_read_mod.f
 hcn_ch3cn_mod.f
+i6_read_mod.f
+input_mod.f  
+lightning_nox_mod.f
+main.f
 mercury_mod.f
+ndxx_setup.f
 ocean_mercury_mod.f
+ohsave.f
+partition.f
+restart_mod.f
+rpmares_mod.f
+schem.f
+setemis.f
 sulfate_mod.f
 tagged_co_mod.f
+tagged_ox_mod.f
 toms_mod.f
+tpcore_bc_mod.f
+tracer_mod.f
+tracerid_mod.f
+transport_mod.f
+tropopause_mod.f
+upbdflx_mod.f
 uvalbedo_mod.f
+wetscav_mod.f
+
+
+
+
+
+
+
+

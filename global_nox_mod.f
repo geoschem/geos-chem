@@ -1,9 +1,9 @@
-! $Id: global_nox_mod.f,v 1.3 2004/12/02 21:48:37 bmy Exp $
+! $Id: global_nox_mod.f,v 1.4 2005/10/20 14:03:29 bmy Exp $
       MODULE GLOBAL_NOX_MOD
 !
 !******************************************************************************
 !  Module GLOBAL_NOX_MOD contains variables and routines for reading the
-!  global monthly mean NOX concentration from disk. (bmy, 7/28/00, 7/20/04)
+!  global monthly mean NOX concentration from disk. (bmy, 7/28/00, 10/3/05)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -34,6 +34,7 @@
 !  (7 ) Minor bug fix in FORMAT statements (bmy, 3/23/03)
 !  (8 ) Cosmetic changes to improve output (bmy, 3/27/03)
 !  (9 ) Now references "directory_mod.f" and "unix_cmds_mod.f" (bmy, 7/20/04)
+!  (10) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -57,7 +58,7 @@
 !******************************************************************************
 !  Subroutine GET_GLOBAL_NOX reads global NOX from binary punch files from a 
 !  a full chemistry run.  This NOx data is needed to calculate the CO yield
-!  from isoprene oxidation. (bmy, 7/28/00, 7/20/04)
+!  from isoprene oxidation. (bmy, 7/28/00, 10/3/05)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -74,13 +75,15 @@
 !  (4 ) Now references TEMP_DIR, DATA_DIR from "directory_mod.f".  Also
 !        references Unix unzipping commands from "unix_cmds_mod.f".
 !        (bmy, 7/20/04)
+!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
-      USE DIRECTORY_MOD, ONLY : DATA_DIR, TEMP_DIR
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,     TEMP_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
-      USE UNIX_CMDS_MOD
+      USE UNIX_CMDS_MOD, ONLY : REDIRECT,     UNZIP_CMD,   ZIP_SUFFIX
 
 #     include "CMN_SIZE"    ! Size parameters
 
@@ -127,9 +130,9 @@
      &         GET_NAME_EXT()      // TRIM( ZIP_SUFFIX )
 
       ! Construct the command to unzip the file & copy to TEMP_DIR
-      CHAROP = TRIM( UNZIP_CMD ) // SPACE(1:1)          //
-     &         TRIM( RGNAME  )   // TRIM( REDIRECT  )   //
-     &         SPACE(1:1)        // TRIM( TEMP_DIR  )   //
+      CHAROP = TRIM( UNZIP_CMD )   // ' '                 //
+     &         TRIM( RGNAME  )     // TRIM( REDIRECT  )   //
+     &         ' '                 // TRIM( TEMP_DIR  )   //
      &         TRIM( TEMPO   )
 
       ! Uncompress the file and store in TEMP_DIR

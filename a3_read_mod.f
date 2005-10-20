@@ -1,9 +1,9 @@
-! $Id: a3_read_mod.f,v 1.9 2005/09/02 15:16:55 bmy Exp $
+! $Id: a3_read_mod.f,v 1.10 2005/10/20 14:03:11 bmy Exp $
       MODULE A3_READ_MOD
 !
 !******************************************************************************
 !  Module A3_READ_MOD contains routines that unzip, open, and read the
-!  GEOS-CHEM A-3 (avg 3-hour) met fields from disk. (bmy, 6/23/03, 5/25/05)
+!  GEOS-CHEM A-3 (avg 3-hour) met fields from disk. (bmy, 6/23/03, 10/3/05)
 ! 
 !  Module Routines:
 !  =========================================================================
@@ -38,6 +38,7 @@
 !        "logical_mod.f" (bmy, 7/20/04)
 !  (5 ) Now references FILE_EXISTS from "file_mod.f" (bmy, 3/23/05)
 !  (6 ) Now modified for GEOS-5 and GCAP met fields (bmy, 5/25/05)
+!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -69,7 +70,7 @@
 !  Subroutine UNZIP_A3_FIELDS invokes a FORTRAN system call to uncompress
 !  GEOS-CHEM A-3 met field files and store the uncompressed data in a 
 !  temporary directory, where GEOS-CHEM can read them.  The original data 
-!  files are not disturbed.  (bmy, bdf, 6/15/98, 5/25/05)
+!  files are not disturbed.  (bmy, bdf, 6/15/98, 10/3/05)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -84,14 +85,18 @@
 !        EXPAND_DATE from overwriting directory paths with Y/M/D tokens in 
 !        them (bmy, 7/20/04)
 !  (4 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
+!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !*****************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,    ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE TIME_MOD,     ONLY : EXPAND_DATE
-      USE UNIX_CMDS_MOD
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_1_DIR 
+      USE DIRECTORY_MOD, ONLY : GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR 
+      USE DIRECTORY_MOD, ONLY : GEOS_5_DIR, TEMP_DIR 
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE TIME_MOD,      ONLY : EXPAND_DATE
+      USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD 
+      USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD,  WILD_CARD,  ZIP_SUFFIX
 
 #     include "CMN_SIZE"
 
@@ -296,7 +301,7 @@
 !
 !******************************************************************************
 !  Subroutine OPEN_A3_FIELDS opens the A-3 met fields file for date NYMD and 
-!  time NHMS. (bmy, bdf, 6/15/98, 5/25/05)
+!  time NHMS. (bmy, bdf, 6/15/98, 10/3/05)
 !  
 !  Arguments as input:
 !  ===========================================================================
@@ -312,30 +317,33 @@
 !        from overwriting Y/M/D tokens in directory paths. (bmy, 7/20/04)
 !  (5 ) Now use FILE_EXISTS from "file_mod.f" to determine if file unit IU_A3
 !        refers to a valid file on disk (bmy, 3/23/05)
-!  (6 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
+!  (6 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)  
+!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !      
       ! References to F90 modules
-      USE BPCH2_MOD,    ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE LOGICAL_MOD,  ONLY : LUNZIP
-      USE FILE_MOD,     ONLY : IU_A3, IOERROR, FILE_EXISTS
-      USE TIME_MOD,     ONLY : EXPAND_DATE
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_1_DIR 
+      USE DIRECTORY_MOD, ONLY : GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR 
+      USE DIRECTORY_MOD, ONLY : GEOS_5_DIR, TEMP_DIR 
+      USE LOGICAL_MOD,   ONLY : LUNZIP
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE FILE_MOD,      ONLY : IU_A3, IOERROR, FILE_EXISTS
+      USE TIME_MOD,      ONLY : EXPAND_DATE
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "CMN_SIZE"      ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN)   :: NYMD, NHMS
+      INTEGER, INTENT(IN)    :: NYMD, NHMS
 
       ! Local variables
-      LOGICAL               :: DO_OPEN
-      LOGICAL               :: IT_EXISTS
-      INTEGER               :: IOS
-      CHARACTER(LEN=8)      :: IDENT
-      CHARACTER(LEN=255)    :: A3_FILE
-      CHARACTER(LEN=255)    :: GEOS_DIR
-      CHARACTER(LEN=255)    :: PATH
+      LOGICAL                :: DO_OPEN
+      LOGICAL                :: IT_EXISTS
+      INTEGER                :: IOS
+      CHARACTER(LEN=8)       :: IDENT
+      CHARACTER(LEN=255)     :: A3_FILE
+      CHARACTER(LEN=255)     :: GEOS_DIR
+      CHARACTER(LEN=255)     :: PATH
 
       !=================================================================
       ! OPEN_A3_FIELDS begins here!

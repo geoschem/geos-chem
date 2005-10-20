@@ -1,4 +1,4 @@
-! $Id: tagged_co_mod.f,v 1.9 2005/09/02 15:17:25 bmy Exp $
+! $Id: tagged_co_mod.f,v 1.10 2005/10/20 14:03:41 bmy Exp $
       MODULE TAGGED_CO_MOD
 !
 !******************************************************************************
@@ -353,7 +353,7 @@
 !
 !******************************************************************************
 !  Subroutine EMISS_TAGGED_CO reads in CO emissions for the Tagged CO run
-!  (bey, bdf, bnd, bmy, 7/21/00, 7/20/04)
+!  (bey, bdf, bnd, bmy, 7/21/00, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Adapted from "emiss_co.f" (bmy, 7/2100)
@@ -397,6 +397,7 @@
 !  (17) Now reference LSPLIT, LANTHRO, LBIOMASS, & LBIOFUEL from 
 !        "logical_mod.f".  Now reference STT from "tracer_mod.f".  Now replace
 !        IJLOOP_CO w/ an analytic function. (bmy, 7/20/04)
+!  (18) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -404,11 +405,13 @@
       USE BIOMASS_MOD,  ONLY : BURNEMIS,    BIOBURN
       USE DAO_MOD,      ONLY : SUNCOS
       USE DIAG_MOD,     ONLY : AD29,        AD46
-      USE GEIA_MOD
-      USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET, GET_AREA_CM2
-      USE LOGICAL_MOD,  ONLY : LSPLIT, LANTHRO, LBIOMASS, LBIOFUEL
-      USE TIME_MOD,     ONLY : GET_MONTH,   GET_TAU, 
-     &                         GET_YEAR,    GET_TS_EMIS  
+      USE GEIA_MOD,     ONLY : GET_IHOUR,   GET_DAY_INDEX, READ_GEIA
+      USE GEIA_MOD,     ONLY : READ_LIQCO2, READ_TOTCO2,   READ_TODX
+      USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET,   GET_AREA_CM2
+      USE LOGICAL_MOD,  ONLY : LSPLIT,      LANTHRO
+      USE LOGICAL_MOD,  ONLY : LBIOMASS,    LBIOFUEL
+      USE TIME_MOD,     ONLY : GET_MONTH,   GET_TAU 
+      USE TIME_MOD,     ONLY : GET_YEAR,    GET_TS_EMIS  
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDBCO,       IDBFCO
       
@@ -747,7 +750,7 @@
 !******************************************************************************
 !  Subroutine CHEM_TAGGED_CO performs CO chemistry on geographically
 !  "tagged" CO tracers.  Loss is via reaction with OH. 
-!  (qli, bnd, bdf, bmy, 10/19/99, 8/22/05)
+!  (qli, bnd, bdf, bmy, 10/19/99, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Now do chemistry all the way to the model top. 
@@ -791,6 +794,7 @@
 !        been mistakenly deleted. (bmy, 3/7/05)
 !  (18) Now references ITS_IN_THE_STRAT from "tropopause_mod.f".  Now remove
 !        reference to "CMN", it's obsolete. (bmy, 8/22/05)
+!  (19) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -803,16 +807,12 @@
       USE GRID_MOD,       ONLY : GET_YMID
       USE LOGICAL_MOD,    ONLY : LSPLIT
       USE PRESSURE_MOD,   ONLY : GET_PCENTER
-      USE TIME_MOD,       ONLY : GET_TS_CHEM,     GET_MONTH, GET_YEAR,
-     &                           ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
+      USE TIME_MOD,       ONLY : GET_TS_CHEM,     GET_MONTH, GET_YEAR
+      USE TIME_MOD,       ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
       USE TRACER_MOD,     ONLY : N_TRACERS,       STT
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
 #     include "CMN_SIZE"     ! Size parameters
-!-----------------------------------------------
-! Prior to 8/22/05:
-!#     include "CMN"          ! LPAUSE
-!-----------------------------------------------
 #     include "CMN_DIAG"     ! ND65
 
       ! Local variables
@@ -918,10 +918,6 @@
          CO_CH4 = 0d0
 
          ! Test level for stratosphere or troposphere
-         !------------------------------------------------
-         ! Prior to 8/22/05:
-         !IF ( L >= LPAUSE(I,J) ) THEN 
-         !------------------------------------------------
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
 
             !===========================================================
@@ -1159,10 +1155,6 @@
          !==============================================================
 
          ! Select out tropospheric or stratospheric boxes
-         !-------------------------------------------------
-         ! Prior to 8/22/05:
-         !IF ( L >= LPAUSE(I,J) ) THEN
-         !-------------------------------------------------
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
 
             !===========================================================
@@ -1387,7 +1379,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_PCO_LCO_STRAT reads production and destruction
-!  rates for CO in the stratosphere. (bnd, bmy, 9/13/00, 7/20/04)
+!  rates for CO in the stratosphere. (bnd, bmy, 9/13/00, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Now use IOS /= 0 to trap both I/O errors and EOF. (bmy, 9/13/00)
@@ -1402,10 +1394,12 @@
 !  (6 ) Update FILENAME so that it looks in the "pco_lco_200203" subdirectory
 !        of DATA_DIR. (bnd, bmy, 6/30/03)
 !  (7 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
       USE TRANSFER_MOD,  ONLY : TRANSFER_ZONAL
 
@@ -1441,8 +1435,9 @@
      &           GET_NAME_EXT()   // '.' // GET_RES_EXT()
       
       ! Read P(CO)
-      CALL READ_BPCH2( FILENAME, 'PORL-L=$', 9,     XTAU, 
-     &                 1,         JGLOB,     LGLOB, ARRAY )
+      CALL READ_BPCH2( FILENAME, 'PORL-L=$', 9,     
+     &                 XTAU,      1,         JGLOB,     
+     &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
 
       ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR)
       CALL TRANSFER_ZONAL( ARRAY(1,:,:), CO_PRODS )
@@ -1456,8 +1451,9 @@
      &           GET_NAME_EXT()   // '.' // GET_RES_EXT()
 
       ! Read L(CO)
-      CALL READ_BPCH2( FILENAME, 'PORL-L=$', 10,    XTAU,    
-     &                 1,         JGLOB,     LGLOB, ARRAY )
+      CALL READ_BPCH2( FILENAME, 'PORL-L=$', 10,    
+     &                 XTAU,      1,         JGLOB,     
+     &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
 
       ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR)
       CALL TRANSFER_ZONAL( ARRAY(1,:,:), CO_LOSSS )
@@ -1532,7 +1528,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_ACETONE reads in biogenic acetone emissions from
-!  a binary punch file. (bdf, bnd, bmy, 6/19/01, 8/16/05)
+!  a binary punch file. (bdf, bnd, bmy, 6/19/01, 10/3/05)
 !
 !  Arguments as Input
 !  =========================================================================== 
@@ -1551,10 +1547,12 @@
 !  (5 ) Removed obsolete code from 9/28/01 (bmy, 10/22/01)
 !  (6 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (7 ) Now reads data from both GEOS and GCAP grids (bmy, 8/16/05)
+!  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
@@ -1575,11 +1573,6 @@
       !=================================================================
 
       ! Name of file with acetone data
-!-----------------------------------------------------------------------
-! Prior to 8/16/05:
-!      FILENAME = TRIM( DATA_DIR )                 // 
-!     &           'tagged_CO_200106/acetone.geos.' // GET_RES_EXT()
-!-----------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR )            // 
      &           'tagged_CO_200106/acetone.' // GET_NAME_EXT_2D() //
      &           '.'                         // GET_RES_EXT()

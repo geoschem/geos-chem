@@ -1,9 +1,9 @@
-! $Id: chemistry_mod.f,v 1.18 2005/09/02 15:17:00 bmy Exp $
+! $Id: chemistry_mod.f,v 1.19 2005/10/20 14:03:16 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
 !  Module CHEMISTRY_MOD is used to call the proper chemistry subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 6/24/05)
+!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 10/3/05)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -48,6 +48,7 @@
 !  (10) Updated for SO4s, NITs chemistry (bec, bmy, 4/13/05)
 !  (11) Now call CHEM_HCN_CH3CN from "hcn_ch3cn_mod.f".  Also remove all
 !        references to the obsolete CO-OH param simulation. (xyp, bmy, 6/24/05)
+!  (12) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -64,7 +65,7 @@
 !******************************************************************************
 !  Subroutine DO_CHEMISTRY is the driver routine which calls the appropriate
 !  chemistry subroutine for the various GEOS-CHEM simulations. 
-!  (bmy, 2/11/03, 12/7/04)
+!  (bmy, 2/11/03, 10/3/05)
 !
 !  NOTES:
 !  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this
@@ -96,17 +97,18 @@
 !  (11) Now modified for GCAP met fields.  Now call CHEM_HCN_CH3CN from 
 !        "hcn_ch3cn_mod.f".  Also remove allreferences to the obsolete 
 !         CO-OH param simulation. (xyp, bmy, 6/23/05)
+!  (12) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ACETONE_MOD,     ONLY : OCEAN_SINK_ACET
-      USE AEROSOL_MOD,     ONLY : AEROSOL_CONC, AEROSOL_RURALBOX, 
-     &                            RDAER,        SOILDUST
+      USE AEROSOL_MOD,     ONLY : AEROSOL_CONC, AEROSOL_RURALBOX
+      USE AEROSOL_MOD,     ONLY : RDAER,        SOILDUST
       USE C2H6_MOD,        ONLY : CHEMC2H6
       USE CARBON_MOD,      ONLY : CHEMCARBON
       USE CH3I_MOD,        ONLY : CHEMCH3I
-      USE DAO_MOD,         ONLY : CLDF,    CLMOSW, CLROSW, DELP, 
-     &                            MAKE_RH, OPTDEP, OPTD,   T
+      USE DAO_MOD,         ONLY : CLDF,    CLMOSW, CLROSW, DELP
+      USE DAO_MOD,         ONLY : MAKE_RH, OPTDEP, OPTD,   T
       USE DRYDEP_MOD,      ONLY : DRYFLX, DRYFLXRnPbBe
       USE DUST_MOD,        ONLY : CHEMDUST, RDUST_ONLINE
       USE ERROR_MOD,       ONLY : DEBUG_MSG
@@ -114,7 +116,8 @@
       USE HCN_CH3CN_MOD,   ONLY : CHEM_HCN_CH3CN
       USE ISOROPIA_MOD,    ONLY : DO_ISOROPIA
       USE Kr85_MOD,        ONLY : CHEMKr85
-      USE LOGICAL_MOD
+      USE LOGICAL_MOD,     ONLY : LCARB, LCHEM,  LCRYST, LDUST
+      USE LOGICAL_MOD,     ONLY : LPRT,  LSSALT, LSULF  
       USE MERCURY_MOD,     ONLY : CHEMMERCURY
       USE OPTDEPTH_MOD,    ONLY : OPTDEPTH
       USE RnPbBe_MOD,      ONLY : CHEMRnPbBe
@@ -124,7 +127,18 @@
       USE TAGGED_CO_MOD,   ONLY : CHEM_TAGGED_CO
       USE TAGGED_OX_MOD,   ONLY : CHEM_TAGGED_OX
       USE TIME_MOD,        ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
-      USE TRACER_MOD  
+      USE TRACER_MOD,      ONLY : N_TRACERS,       STT  
+      USE TRACER_MOD,      ONLY : ITS_A_C2H6_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_CH3I_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_CH4_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_HCN_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_MERCURY_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_RnPbBe_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_TAGCO_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_TAGOX_SIM
+      USE TRACER_MOD,      ONLY : ITS_AN_AEROSOL_SIM
+      USE TRACER_MOD,      ONLY : ITS_NOT_COPARAM_OR_CH4
       USE TRACERID_MOD,    ONLY : IDTACET
 
 #     include "CMN_SIZE"  ! Size parameters

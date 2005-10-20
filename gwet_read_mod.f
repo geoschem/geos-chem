@@ -1,4 +1,4 @@
-! $Id: gwet_read_mod.f,v 1.6 2005/09/02 15:17:14 bmy Exp $
+! $Id: gwet_read_mod.f,v 1.7 2005/10/20 14:03:29 bmy Exp $
       MODULE GWET_READ_MOD
 !
 !******************************************************************************
@@ -79,11 +79,13 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,    ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE TIME_MOD,     ONLY : EXPAND_DATE
-      USE UNIX_CMDS_MOD
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GEOS_1_DIR, GEOS_S_DIR
+      USE DIRECTORY_MOD, ONLY : GEOS_3_DIR, TEMP_DIR
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE TIME_MOD,      ONLY : EXPAND_DATE
+      USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD 
+      USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD,  WILD_CARD,  ZIP_SUFFIX
 
 #     include "CMN_SIZE"            ! Size parameters
 
@@ -274,26 +276,27 @@
 !******************************************************************************
 !      
       ! References to F90 modules
-      USE BPCH2_MOD,    ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE LOGICAL_MOD,  ONLY : LUNZIP
-      USE FILE_MOD,     ONLY : IU_GWET, IOERROR, FILE_EXISTS
-      USE TIME_MOD,     ONLY : EXPAND_DATE
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GEOS_1_DIR, GEOS_S_DIR
+      USE DIRECTORY_MOD, ONLY : GEOS_3_DIR, TEMP_DIR
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE LOGICAL_MOD,   ONLY : LUNZIP
+      USE FILE_MOD,      ONLY : IU_GWET, IOERROR, FILE_EXISTS
+      USE TIME_MOD,      ONLY : EXPAND_DATE
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_SIZE"      ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN) :: NYMD, NHMS
+      INTEGER, INTENT(IN)    :: NYMD, NHMS
 
       ! Local variables
-      LOGICAL             :: DO_OPEN
-      LOGICAL             :: IT_EXISTS
-      INTEGER             :: IOS
-      CHARACTER(LEN=8)    :: IDENT
-      CHARACTER(LEN=255)  :: GEOS_DIR
-      CHARACTER(LEN=255)  :: GWET_FILE
-      CHARACTER(LEN=255)  :: PATH
+      LOGICAL                :: DO_OPEN
+      LOGICAL                :: IT_EXISTS
+      INTEGER                :: IOS
+      CHARACTER(LEN=8)       :: IDENT
+      CHARACTER(LEN=255)     :: GEOS_DIR
+      CHARACTER(LEN=255)     :: GWET_FILE
+      CHARACTER(LEN=255)     :: PATH
 
       !=================================================================
       ! OPEN_GWET_FIELDS begins here!

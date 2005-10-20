@@ -1,11 +1,11 @@
-! $Id: schem.f,v 1.6 2005/09/02 15:17:22 bmy Exp $
+! $Id: schem.f,v 1.7 2005/10/20 14:03:38 bmy Exp $
       SUBROUTINE SCHEM
 !
 !******************************************************************************
 !  Subroutine SCHEM performs simplified stratospheric chemistry, which means
 !  only reactions with OH and photolysis are considered. The production and
 !  loss of CO and NOy in the stratosphere are taken from Dylan Jones' 2-D 
-!  model. (qli, bmy, 11/20/1999, 8/22/05) 
+!  model. (qli, bmy, 11/20/1999, 10/3/05) 
 !
 !  NOTES:
 !  (1 ) Now read all inputs (stratospheric OH, monthly mean J-values,  
@@ -58,27 +58,29 @@
 !  (19) Now references GET_MIN_TPAUSE_LEVEL and ITS_IN_THE_STRAT from
 !        "tropopause_mod.f".  Now remove reference to CMN, it's obsolete.
 !        (bmy, 8/22/05)
+!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD
+      USE BPCH2_MOD,      ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,      ONLY : GET_TAU0,     READ_BPCH2
       USE DAO_MOD,        ONLY : AD, T
       USE DIRECTORY_MOD,  ONLY : DATA_DIR 
       USE ERROR_MOD,      ONLY : ALLOC_ERR
-      USE TIME_MOD,       ONLY : GET_MONTH,   GET_TAU, 
-     &                           GET_TS_CHEM, TIMESTAMP_STRING
-      USE TRACER_MOD,     ONLY : N_TRACERS,   STT, TRACER_MW_KG
-      USE TRACERID_MOD
+      USE TIME_MOD,       ONLY : GET_MONTH,    GET_TAU
+      USE TIME_MOD,       ONLY : GET_TS_CHEM,  TIMESTAMP_STRING
+      USE TRACER_MOD,     ONLY : N_TRACERS,    STT, TRACER_MW_KG
+      USE TRACERID_MOD,   ONLY : IDTACET, IDTALD2, IDTALK4, IDTC2H6
+      USE TRACERID_MOD,   ONLY : IDTC3H8, IDTCH2O, IDTH2O2, IDTHNO4
+      USE TRACERID_MOD,   ONLY : IDTISOP, IDTMACR, IDTMEK,  IDTMP  
+      USE TRACERID_MOD,   ONLY : IDTMVK,  IDTPMN,  IDTPRPE, IDTR4N2
+      USE TRACERID_MOD,   ONLY : IDTRCHO
       USE TRANSFER_MOD,   ONLY : TRANSFER_ZONAL
       USE TROPOPAUSE_MOD, ONLY : GET_MIN_TPAUSE_LEVEL, ITS_IN_THE_STRAT
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"        ! Size parameters
-!-------------------------------------------------------
-! Prior to 8/22/05:
-!#     include "CMN"             ! LPAUSE
-!-------------------------------------------------------
 #     include "CMN_O3"          ! XNUMOLAIR
 
       ! Local variables
@@ -257,24 +259,10 @@
       DO NN = 1, NSPHOTO
          N = SPHOTOID(NN)
 
-         !---------------------------------
-         ! Prior to 8/22/05:
-         !DO L = MINVAL( LPAUSE ), LLPAR
-         !---------------------------------
          DO L = LMIN, LLPAR
          DO J = 1,    JJPAR
          DO I = 1,    IIPAR
 
-!-------------------------------------------------------------------
-! Prior to 8/22/05:
-!            ! Skip tropospheric grid boxes
-!            IF ( L < LPAUSE(I,J) ) CYCLE
-!
-!            ! Compute photolysis loss 
-!            STT(I,J,L,N) = STT(I,J,L,N) * 
-!     &                     EXP( -SJVALUE(J,L,NN) * DTCHEM )
-!-------------------------------------------------------------------
-          
             ! Only proceed for stratospheric boxes
             IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
 
@@ -306,23 +294,10 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, M, TK, RC, k0, k1, RDLOSS, T1L )
 !$OMP+SCHEDULE( DYNAMIC )
-      !--------------------------------------
-      ! Prior to 8/22/05:
-      !DO N = 1, N_TRACERS
-      !DO L = MINVAL( LPAUSE ), LLPAR
-      !DO J = 1, JJPAR
-      !DO I = 1, IIPAR
-      !--------------------------------------
       DO N = 1,    N_TRACERS
       DO L = LMIN, LLPAR
       DO J = 1,    JJPAR
       DO I = 1,    IIPAR
-
-         !---------------------------------------
-         ! Prior to 8/22/05:
-         !! Skip tropospheric grid boxes
-         !IF ( L < LPAUSE(I,J) ) CYCLE
-         !---------------------------------------
 
          ! Only proceed for stratospheric boxes
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
