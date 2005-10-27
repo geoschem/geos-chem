@@ -1,10 +1,10 @@
-! $Id: CO_strat_pl.f,v 1.5 2005/10/20 14:03:10 bmy Exp $
+! $Id: CO_strat_pl.f,v 1.6 2005/10/27 13:59:46 bmy Exp $
       SUBROUTINE CO_STRAT_PL( COPROD, COLOSS )
 !
 !******************************************************************************
 !  Subroutine CO_STRAT_PL computes net production of CO above the 
 !  annual mean tropopause using archived rates for P(CO) and L(CO).
-!  (bnd, qli, bmy, 12/9/99, 8/22/05)
+!  (bnd, qli, bmy, 12/9/99, 10/25/05)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -25,19 +25,23 @@
 !  (6 ) Now use functions from "tropopause_mod.f" to diagnose whether a box
 !        is in the stratosphere or not.  Remove reference to CMN, it's 
 !        obsolete. (bmy, 8/22/05)
+!  (7 ) Now reference XNUMOL and XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules 
       USE DAO_MOD,        ONLY : AD
       USE TIME_MOD,       ONLY : GET_TS_CHEM
-      USE TRACER_MOD,     ONLY : STT
-      USE TRACERID_MOD,   ONLY : IDTCO, IDTCH2O
+      USE TRACER_MOD,     ONLY : STT,   XNUMOL,   XNUMOLAIR
+      USE TRACERID_MOD,   ONLY : IDTCO,           IDTCH2O
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP, GET_MIN_TPAUSE_LEVEL
 
       IMPLICIT NONE
      
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_O3"     ! XNUMOLAIR
+!--------------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"     ! XNUMOLAIR
+!--------------------------------------------------
 
       ! Arguments
       REAL*4,  INTENT(IN) :: COPROD(JJPAR,LLPAR)

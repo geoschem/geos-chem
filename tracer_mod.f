@@ -1,11 +1,11 @@
-! $Id: tracer_mod.f,v 1.6 2005/10/20 14:03:44 bmy Exp $
+! $Id: tracer_mod.f,v 1.7 2005/10/27 14:00:07 bmy Exp $
       MODULE TRACER_MOD
 !
 !******************************************************************************
 !  Module TRACER_MOD contains the GEOS-CHEM tracer array STT plus various
 !  other related quantities.  TRACER_MOD also contains inquiry functions that
 !  can be used to determine the type of GEOS-CHEM simulation.
-!  (bmy, 7/20/04, 10/3/05)
+!  (bmy, 7/20/04, 10/25/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -24,6 +24,8 @@
 !  (13) TRACER_CONST           : Array of names for tracer constituents
 !  (14) SALA_REDGE_um          : Accum mode seasalt radii bin edges [um]
 !  (15) SALC_REDGE_um          : Coarse mode seasalt radii bin edges [um]
+!  (16) XNUMOL                 : Ratio of (molec/mole) / (kg/mole) = molec/kg
+!  (17) XNUMOLAIR              : XNUMOL ratio for air
 !
 !  Module Routines:
 !  ============================================================================
@@ -53,14 +55,21 @@
 !  (2 ) Removed ITS_A_COPARAM_SIM; the CO-OH param is obsolete (bmy, 6/24/05)
 !  (3 ) Added ITS_A_CO2_SIM (pns, bmy, 7/25/05)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (5 ) Now added XNUMOL, XNUMOLAIR as module variables (bmy, 10/25/05)
 !******************************************************************************
 !
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
+
+      ! Scalars
       INTEGER                        :: SIM_TYPE
       INTEGER                        :: N_TRACERS
       INTEGER,           PARAMETER   :: N_MEMBERS = 10
+      REAL*8,            PARAMETER   :: XNUMOLAIR =  6.022d+23 / 
+     &                                               28.9644d-3
+
+      ! Arrays
       INTEGER,           ALLOCATABLE :: ID_TRACER(:)
       INTEGER,           ALLOCATABLE :: ID_EMITTED(:)
       INTEGER,           ALLOCATABLE :: TRACER_N_CONST(:)
@@ -69,6 +78,7 @@
       REAL*8,            ALLOCATABLE :: TRACER_COEFF(:,:)
       REAL*8,            ALLOCATABLE :: TRACER_MW_G(:)
       REAL*8,            ALLOCATABLE :: TRACER_MW_KG(:)
+      REAL*8,            ALLOCATABLE :: XNUMOL(:)
       CHARACTER(LEN=14), ALLOCATABLE :: TRACER_NAME(:)
       CHARACTER(LEN=14), ALLOCATABLE :: TRACER_CONST(:,:)
 
@@ -511,9 +521,11 @@
       SUBROUTINE INIT_TRACER
 !
 !******************************************************************************
-!  Subroutine INIT_TRACER initializes all module arrays (bmy, 7/15/04)
+!  Subroutine INIT_TRACER initializes all module arrays 
+!  (bmy, 7/15/04, 10/25/05)
 !
 !  NOTES:
+!  (1 ) Now allocate XNUMOL (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -567,6 +579,10 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'STT' )
       STT = 0d0      
 
+      ALLOCATE( XNUMOL( N_TRACERS ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'XNUMOL' )
+      XNUMOL = 0
+
       ! Return to calling program
       END SUBROUTINE INIT_TRACER
 
@@ -575,9 +591,11 @@
       SUBROUTINE CLEANUP_TRACER
 !
 !******************************************************************************
-!  Subroutine CLEANUP_TRACER deallocates all module arrays (bmy, 7/15/04)
+!  Subroutine CLEANUP_TRACER deallocates all module arrays 
+!  (bmy, 7/15/04, 10/25/05)
 !
 !  NOTES:
+!  (1 ) Now deallocates XNUMOL (bmy, 10/25/05)
 !******************************************************************************
 !
       !=================================================================
@@ -593,6 +611,7 @@
       IF ( ALLOCATED( TRACER_MW_G    ) ) DEALLOCATE( TRACER_MW_G    )
       IF ( ALLOCATED( TRACER_MW_KG   ) ) DEALLOCATE( TRACER_MW_KG   )
       IF ( ALLOCATED( STT            ) ) DEALLOCATE( STT            )
+      IF ( ALLOCATED( XNUMOL         ) ) DEALLOCATE( XNUMOL         )
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_TRACER

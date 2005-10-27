@@ -1,9 +1,9 @@
-! $Id: time_mod.f,v 1.15 2005/09/02 15:17:25 bmy Exp $
+! $Id: time_mod.f,v 1.16 2005/10/27 14:00:06 bmy Exp $
       MODULE TIME_MOD
 !
 !******************************************************************************
 !  TIME_MOD contains GEOS-CHEM date and time variables and timesteps, and 
-!  routines for accessing them. (bmy, 6/21/00, 8/29/05) 
+!  routines for accessing them. (bmy, 6/21/00, 10/20/05) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -55,8 +55,9 @@
 !  (10) SET_CT_DYN        : Increments/resets the dynamic timestep counter
 !  (11) SET_CT_EMIS       : Increments/resets the emissions timestep counter
 !  (12) SET_CT_A3         : Increments/resets the A-3 fields timestep counter
-!  (13) SET_CT_A6         : Increments/resets the A-6 fields timestep counter
+!  (13) SET_CT_A6         : Increments/resets the A-6 fields timestep counte
 !  (14) SET_CT_I6         : Increments/resets the I-6 fields timestep counter
+!  (14a) SET_CT_XTRA      : Increments/resets the I-6 fields timestep counter
 !  (15) SET_ELAPSED_MIN   : Updates the elapsed minutes since the start of run
 !  (16) GET_JD            : Returns Astronomical Julian Date for NYMD, NHMS
 !  (17) GET_ELAPSED_MIN   : Returns the elapsed minutes since the start of run
@@ -98,6 +99,7 @@
 !  (53) GET_CT_A3         : Returns # of times A-3 fields have been read in
 !  (54) GET_CT_A6         : Returns # of times A-6 fields have been read in
 !  (55) GET_CT_I6         : Returns # of times I-6 fields have been read in
+!  (56a) GET_CT_XTRA      : Returns # of times I-6 fields have been read in
 !  (56) GET_A3_TIME       : Returns YYYYMMDD and HHMMSS for the A-3 fields
 !  (57) GET_A6_TIME       : Returns YYYYMMDD and HHMMSS for the A-6 fields
 !  (58) GET_I6_TIME       : Returns YYYYMMDD and HHMMSS for the I-6 fields
@@ -169,6 +171,7 @@
 !  (19) Added routines SYSTEM_DATE_TIME and SYSTEM_TIMESTAMP.  Also modified
 !        for GCAP and GEOS-5 met fields. (swu, bmy, 5/3/05)
 !  (20) GCAP/GISS met fields don't have leap years (swu, bmy, 8/29/05)
+!  (21) Added counter variable & routines for XTRA fields (tmf, bmy, 10/20/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -193,7 +196,8 @@
       PRIVATE           :: TS_DYN,     TS_EMIS,     TS_UNIT
       PRIVATE           :: CT_CHEM,    CT_CONV,     CT_DYN
       PRIVATE           :: CT_EMIS,    CT_A3,       CT_A6
-      PRIVATE           :: CT_I6,      JD85,        NDIAGTIME
+      PRIVATE           :: CT_I6,      CT_XTRA,     JD85
+      PRIVATE           :: NDIAGTIME
 
       !=================================================================
       ! MODULE VARIABLES
@@ -216,7 +220,7 @@
       ! Timestep counters
       INTEGER           :: CT_CHEM,   CT_CONV,     CT_DYN    
       INTEGER           :: CT_EMIS,   CT_A3,       CT_A6
-      INTEGER           :: CT_I6
+      INTEGER           :: CT_I6,     CT_XTRA
 
       ! Astronomical Julian Date at 0 GMT, 1 Jan 1985
       REAL*8, PARAMETER :: JD85 = 2446066.5d0
@@ -510,7 +514,7 @@
 !
 !******************************************************************************
 !  Subroutine SET_TIMESTEPS initializes the timesteps for dynamics, convection,
-!  chemistry, and emissions.  Counters are also zeroed. (bmy, 3/21/03, 7/20/04)
+!  chemistry, and emissions.  Counters are also zeroed. (bmy, 3/21/03,10/20/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -522,6 +526,7 @@
 !
 !  NOTES:
 !  (1 ) Suppress some output lines (bmy, 7/20/04)
+!  (2 ) Also zero CT_XTRA (tmf, bmy, 10/20/05)
 !******************************************************************************
 !
       ! Arguments
@@ -547,6 +552,7 @@
       CT_A3   = 0
       CT_A6   = 0
       CT_I6   = 0
+      CT_XTRA = 0
 
       ! Echo to stdout
       WRITE( 6, '(/,a)' ) 'SET_TIMESTEPS: setting GEOS-CHEM timesteps!'
@@ -776,6 +782,37 @@
 
       ! Return to calling program
       END SUBROUTINE SET_CT_I6
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE SET_CT_XTRA( INCREMENT, RESET )
+!
+!******************************************************************************
+!  Subroutine SET_CT_XTRA increments CT_XTRA, the counter of the number of 
+!  times we have read in GEOS-3 XTRA fields.  (tmf, bmy, 10/20/05)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) INCREMENT (LOGICAL) : If T, then will increment counter
+!  (2 ) RESET     (LOGICAL) : If T, then will reset counter to zero!
+!
+!  NOTES:
+!******************************************************************************
+!      
+      ! Arguments
+      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT, RESET
+
+      !=================================================================
+      ! SET_CT_I6 begins here!
+      !=================================================================
+      IF ( PRESENT( INCREMENT ) ) THEN
+         CT_XTRA = CT_XTRA + 1
+      ELSE IF ( PRESENT( RESET ) ) THEN
+         CT_XTRA = 0
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE SET_CT_XTRA
 
 !------------------------------------------------------------------------------
 
@@ -1763,6 +1800,28 @@
 
       ! Return to calling program
       END FUNCTION GET_CT_I6
+
+!------------------------------------------------------------------------------
+
+      FUNCTION GET_CT_XTRA() RESULT( THIS_CT_XTRA )
+!
+!******************************************************************************
+!  Function GET_CT_XTRA returns the XTRA fields timestep counter to the
+!  calling program. (tmf, bmy, 10/20/05)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Function value
+      INTEGER :: THIS_CT_XTRA
+
+      !=================================================================
+      ! GET_CT_I6 begins here!
+      !=================================================================
+      THIS_CT_XTRA = CT_XTRA
+
+      ! Return to calling program
+      END FUNCTION GET_CT_XTRA
 
 !------------------------------------------------------------------------------
 

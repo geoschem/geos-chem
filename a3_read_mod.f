@@ -1,4 +1,4 @@
-! $Id: a3_read_mod.f,v 1.10 2005/10/20 14:03:11 bmy Exp $
+! $Id: a3_read_mod.f,v 1.11 2005/10/27 13:59:49 bmy Exp $
       MODULE A3_READ_MOD
 !
 !******************************************************************************
@@ -337,7 +337,10 @@
       INTEGER, INTENT(IN)    :: NYMD, NHMS
 
       ! Local variables
-      LOGICAL                :: DO_OPEN
+      !-------------------------------------
+      ! Prior to 10/24/05:
+      !LOGICAL                :: DO_OPEN
+      !-------------------------------------
       LOGICAL                :: IT_EXISTS
       INTEGER                :: IOS
       CHARACTER(LEN=8)       :: IDENT
@@ -348,7 +351,7 @@
       !=================================================================
       ! OPEN_A3_FIELDS begins here!
       !=================================================================
-
+ 
       ! Open A-3 fields at the proper time, or on the first call
       IF ( DO_OPEN_A3( NYMD, NHMS ) ) THEN
 
@@ -1295,4 +1298,5 @@
 
 !------------------------------------------------------------------------------
 
+      ! End of module
       END MODULE A3_READ_MOD

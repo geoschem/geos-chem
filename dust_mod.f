@@ -1,9 +1,9 @@
-! $Id: dust_mod.f,v 1.7 2005/10/20 14:03:24 bmy Exp $
+! $Id: dust_mod.f,v 1.8 2005/10/27 13:59:55 bmy Exp $
       MODULE DUST_MOD
 !
 !******************************************************************************
 !  Module DUST_MOD contains routines for computing dust aerosol emissions,
-!  chemistry, and optical depths. (rjp, tdf, bmy, 4/14/04, 10/3/05)
+!  chemistry, and optical depths. (rjp, tdf, bmy, 4/14/04, 10/25/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -50,6 +50,7 @@
 !  (2 ) Now references "logical_mod.f", "directory_mod.f", and "tracer_mod.f"
 !        Added comments. (bmy, 7/2/04)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (4 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -175,7 +176,7 @@
 !
 !******************************************************************************
 !  Subroutine DRY_SETTLING computes the dry settling of dust tracers.
-!  (tdf, bmy, 3/30/04, 7/20/04)
+!  (tdf, bmy, 3/30/04, 10/25/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -184,6 +185,7 @@
 !  NOTES
 !  (1 ) Updated comments, cosmetic changes (bmy, 3/30/04)
 !  (2 ) Remove reference to CMN, it's not needed (bmy, 7/20/04)
+!  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 ! 
       USE DAO_MOD,      ONLY : T, BXHEIGHT
@@ -191,12 +193,16 @@
       USE PRESSURE_MOD, ONLY : GET_PCENTER
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTDST1
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_GCTM"     ! g0
 #     include "CMN_DIAG"     ! ND44
-#     include "CMN_O3"       ! XNUMOL
+!-------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"       ! XNUMOL
+!-------------------------------------------
 
       ! Arguments
       REAL*8, INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)
@@ -372,13 +378,14 @@
 !
 !******************************************************************************
 !  Subroutine DRY_DEPOSITION computes the loss of dust due to dry deposition
-!  at the surface using an implicit method. (tdf, bmy, 3/30/04)
+!  at the surface using an implicit method. (tdf, bmy, 3/30/04, 10/25/05)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) TC (REAL*8) : Dust tracer array   
 !
 !  NOTES: 
+!  (1 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -386,11 +393,15 @@
       USE DRYDEP_MOD,   ONLY : DEPSAV 
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTDST1
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! ND44
-#     include "CMN_O3"       ! XNUMOL
+!-----------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"       ! XNUMOL
+!-----------------------------------------------
 
       ! Arguments
       REAL*8, INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)
@@ -577,8 +588,8 @@
       USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
       USE GRID_MOD,      ONLY : GET_YMID_R
       USE PRESSURE_MOD,  ONLY : GET_PEDGE,       GET_PCENTER 
-      USE TIME_MOD,      ONLY : GET_TS_EMIS,     GET_MONTH,   
-     &                          GET_DAY_OF_YEAR, ITS_A_NEW_MONTH
+      USE TIME_MOD,      ONLY : GET_TS_EMIS,     GET_MONTH   
+      USE TIME_MOD,      ONLY : GET_DAY_OF_YEAR, ITS_A_NEW_MONTH
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"      ! Size parameters
@@ -1028,8 +1039,8 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE COMODE_MOD,    ONLY : ERADIUS, IXSAVE, IYSAVE, 
-     &                          IZSAVE,  JLOP,   TAREA
+      USE COMODE_MOD,    ONLY : ERADIUS, IXSAVE, IYSAVE 
+      USE COMODE_MOD,    ONLY : IZSAVE,  JLOP,   TAREA
       USE DAO_MOD,       ONLY : BXHEIGHT
       USE DIAG_MOD,      ONLY : AD21
       USE DIRECTORY_MOD, ONLY : DATA_DIR

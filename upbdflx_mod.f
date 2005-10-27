@@ -1,9 +1,9 @@
-! $Id: upbdflx_mod.f,v 1.13 2005/10/20 14:03:45 bmy Exp $
+! $Id: upbdflx_mod.f,v 1.14 2005/10/27 14:00:07 bmy Exp $
       MODULE UPBDFLX_MOD
 !
 !******************************************************************************
 !  Module UPBDFLX_MOD contains subroutines which impose stratospheric boundary
-!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 10/3/05)
+!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 10/25/05)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -496,6 +496,7 @@
 !  (17) Now references STT from "tracer_mod.f".  Now references DATA_DIR 
 !        from "directory_mod.f". (bmy, 7/20/04)
 !  (18) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (19) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -503,15 +504,18 @@
       USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
       USE DAO_MOD,       ONLY : AD
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : ERROR_STOP, it_is_nan
-      USE TRACERID_MOD,  ONLY : IDTNOX,     IDTHNO3
-      USE TIME_MOD,      ONLY : GET_TS_DYN, GET_MONTH
-      USE TRACER_MOD,    ONLY : STT
+      USE ERROR_MOD,     ONLY : ERROR_STOP    
+      USE TRACERID_MOD,  ONLY : IDTNOX,       IDTHNO3
+      USE TIME_MOD,      ONLY : GET_TS_DYN,   GET_MONTH
+      USE TRACER_MOD,    ONLY : STT,          XNUMOLAIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_ZONAL
 
 #     include "CMN_SIZE"   ! Size parameters
 #     include "CMN"        ! LPAUSE
-#     include "CMN_O3"     ! XNUMOLAIR
+!------------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"     ! XNUMOLAIR
+!------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)  :: IFLAG

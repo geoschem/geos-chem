@@ -1,9 +1,9 @@
-! $Id: diag1.f,v 1.8 2005/09/02 15:17:04 bmy Exp $
+! $Id: diag1.f,v 1.9 2005/10/27 13:59:52 bmy Exp $
       SUBROUTINE DIAG1 
 !
 !******************************************************************************
 !  Subroutine DIAG1 accumulates diagnostic quantities every NDIAG minutes
-!  (bmy, bey, 6/16/98, 8/18/05)
+!  (bmy, bey, 6/16/98, 10/25/05)
 !
 !  NOTES:
 !  (1 ) This subroutine was reconstructed from gmg's version of (10/10/97)
@@ -47,8 +47,9 @@
 !        "tracer_mod.f" (bmy, 7/20/04)
 !  (23) Fixed ND67 PS-PBL for GCAP and GEOS-5 met fields (swu, bmy, 6/9/05)
 !  (24) Now archive ND30 diagnostic for land/water/ice flags (bmy, 8/18/05)
+!  (25) Now reference XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
-!  List of GEOS-CHEM Diagnostics (bmy, 5/25/04)
+!  List of GEOS-CHEM Diagnostics (bmy, 10/25/05)
 !
 !  FLAG  DIM'S    QUANTITY                                     UNITS
 !  ---- --------  --------                                     -----
@@ -221,7 +222,7 @@
 !                 ( 1 <= L <= ND45 )
 !
 !  ND46 (I,J,5)   BIOGENIC EMISSIONS of ISOP, PRPE, ACET,      molec/cm2/s
-!                 MONOTERPENES
+!                 MONOTERPENES, METHYL BUTENOL
 !
 !  ND47 (I,J,L,N) DAILY (24-h) AVERAGE TRACER CONCENTRATIONS   v/v
 !                 ( 1 <= L <= ND47 )
@@ -322,13 +323,14 @@
       USE GRID_MOD,     ONLY : GET_AREA_M2
       USE PRESSURE_MOD, ONLY : GET_PEDGE
       USE TRACER_MOD,   ONLY : N_TRACERS, STT, TCVV, ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,   ONLY : XNUMOLAIR
       USE TRACERID_MOD, ONLY : IDTOX
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN_DIAG"  ! Diagnostic arrays & parameters
-#     include "CMN_O3"    ! FMOL, XNUMOL
+#     include "CMN_O3"    ! FRACO3
 #     include "CMN_GCTM"  ! Physical constants
 
       ! Local variables

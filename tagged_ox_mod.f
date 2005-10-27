@@ -1,10 +1,10 @@
-! $Id: tagged_ox_mod.f,v 1.12 2005/10/20 14:03:41 bmy Exp $
+! $Id: tagged_ox_mod.f,v 1.13 2005/10/27 14:00:05 bmy Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
 !  Module TAGGED_OX_MOD contains variables and routines to perform a tagged Ox
 !  simulation.  P(Ox) and L(Ox) rates need to be archived from a full chemistry
-!  simulation before you can run w/ Tagged Ox. (amf,rch,bmy, 8/20/03, 10/3/05)
+!  simulation before you can run w/ Tagged Ox. (amf,rch,bmy, 8/20/03, 10/25/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -46,6 +46,7 @@
 !  (5 ) Bug fix-avoid seg fault if PBLFRAC isn't allocated (bdf, bmy, 10/12/04)
 !  (6 ) Now reference "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (8 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -404,16 +405,19 @@
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,  ONLY : LDRYD
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
-      USE TIME_MOD,     ONLY : GET_TS_CHEM,           ITS_A_NEW_DAY, 
-     &                         TIMESTAMP_STRING
-      USE TRACER_MOD,   ONLY : STT,                   N_TRACERS
+      USE TIME_MOD,     ONLY : GET_TS_CHEM,           ITS_A_NEW_DAY 
+      USE TIME_MOD,     ONLY : TIMESTAMP_STRING
+      USE TRACER_MOD,   ONLY : STT,                   N_TRACERS, XNUMOL
       USE TRACERID_MOD, ONLY : IDTOX
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN_DIAG"  ! ND44, ND65
-#     include "CMN_O3"    ! XNUMOL
+!-----------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"    ! XNUMOL
+!-----------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE     :: FIRST   = .TRUE.

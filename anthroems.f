@@ -1,10 +1,10 @@
-! $Id: anthroems.f,v 1.3 2005/10/20 14:03:13 bmy Exp $
+! $Id: anthroems.f,v 1.4 2005/10/27 13:59:49 bmy Exp $
       SUBROUTINE ANTHROEMS( NSEASON )
 !
 !******************************************************************************
 !  Subroutine ANTHROEMS reads anthropogenic tracers for each season.
 !  NOx emissions at levels other than the surface are now accounted for.
-!  (bmy, 6/4/98, 10/3/05)
+!  (bmy, 6/4/98, 10/25/05)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -82,6 +82,7 @@
 !        Now I0 and J0 are local variables.  Now use functions GET_TS_EMIS,
 !        GET_YEAR, GET_SEASON from "time_mod.f". (bmy, 2/11/03)
 !  (26) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (27) Now replace FMOL with TRACER_MW_KG (bmy, 10/25/05)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -90,6 +91,7 @@
       USE GEIA_MOD,     ONLY : READ_TOTCO2,  TOTAL_FOSSIL_TG
       USE GRID_MOD,     ONLY : GET_AREA_CM2, GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,     ONLY : GET_TS_EMIS,  GET_YEAR,    GET_SEASON
+      USE TRACER_MOD,   ONLY : TRACER_MW_KG
       USE TRACERID_MOD, ONLY : IDEACET,      IDEALK4,     IDEC2H6
       USE TRACERID_MOD, ONLY : IDEC3H8,      IDECO,       IDEMEK
       USE TRACERID_MOD, ONLY : IDENOX,       IDEPRPE,     NEMANTHRO
@@ -352,8 +354,13 @@
 
                DO I = 1, IIPAR
                   IREF = I + I0
-                  EMIST(I,J,N) = EMIST(I,J,N) * FMOL(NN) * DTSRCE * 
-     &                           AREA_CM2     / 6.023d23
+!-----------------------------------------------------------------------
+! Prior to 10/25/05:
+!                  EMIST(I,J,N) = EMIST(I,J,N) * FMOL(NN) * DTSRCE * 
+!     &                           AREA_CM2     / 6.023d23
+!-----------------------------------------------------------------------
+                  EMIST(I,J,N) = EMIST(I,J,N) * TRACER_MW_KG(NN) * 
+     &                           DTSRCE * AREA_CM2 / 6.023d23
 
                   EMISR(IREF,JREF,N) = EMIST(I,J,N)
                ENDDO    
@@ -414,7 +421,12 @@
                   DO I = 1, IIPAR
                      IREF = I + I0
 
-                     EMISTN(I,J,LL) = EMISTN(I,J,LL) * FMOL(NN) * 
+!---------------------------------------------------------------------------
+! Prior to 10/25/05:
+!                     EMISTN(I,J,LL) = EMISTN(I,J,LL) * FMOL(NN) * 
+!     &                                DTSRCE * AREA_CM2  / 6.023d23
+!---------------------------------------------------------------------------
+                     EMISTN(I,J,LL) = EMISTN(I,J,LL) *TRACER_MW_KG(NN) * 
      &                                DTSRCE * AREA_CM2  / 6.023d23
                
                      EMISRN(IREF,JREF,LL) = EMISTN(I,J,LL)

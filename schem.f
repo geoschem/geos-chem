@@ -1,11 +1,11 @@
-! $Id: schem.f,v 1.7 2005/10/20 14:03:38 bmy Exp $
+! $Id: schem.f,v 1.8 2005/10/27 14:00:03 bmy Exp $
       SUBROUTINE SCHEM
 !
 !******************************************************************************
 !  Subroutine SCHEM performs simplified stratospheric chemistry, which means
 !  only reactions with OH and photolysis are considered. The production and
 !  loss of CO and NOy in the stratosphere are taken from Dylan Jones' 2-D 
-!  model. (qli, bmy, 11/20/1999, 10/3/05) 
+!  model. (qli, bmy, 11/20/1999, 10/25/05) 
 !
 !  NOTES:
 !  (1 ) Now read all inputs (stratospheric OH, monthly mean J-values,  
@@ -58,18 +58,20 @@
 !  (19) Now references GET_MIN_TPAUSE_LEVEL and ITS_IN_THE_STRAT from
 !        "tropopause_mod.f".  Now remove reference to CMN, it's obsolete.
 !        (bmy, 8/22/05)
-!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (20) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (21) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,      ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,      ONLY : GET_TAU0,     READ_BPCH2
+      USE BPCH2_MOD,      ONLY : GET_NAME_EXT,     GET_RES_EXT
+      USE BPCH2_MOD,      ONLY : GET_TAU0,         READ_BPCH2
       USE DAO_MOD,        ONLY : AD, T
       USE DIRECTORY_MOD,  ONLY : DATA_DIR 
       USE ERROR_MOD,      ONLY : ALLOC_ERR
-      USE TIME_MOD,       ONLY : GET_MONTH,    GET_TAU
-      USE TIME_MOD,       ONLY : GET_TS_CHEM,  TIMESTAMP_STRING
-      USE TRACER_MOD,     ONLY : N_TRACERS,    STT, TRACER_MW_KG
+      USE TIME_MOD,       ONLY : GET_MONTH,        GET_TAU
+      USE TIME_MOD,       ONLY : GET_TS_CHEM,      TIMESTAMP_STRING
+      USE TRACER_MOD,     ONLY : N_TRACERS,        STT
+      USE TRACER_MOD,     ONLY : TRACER_MW_KG,     XNUMOLAIR
       USE TRACERID_MOD,   ONLY : IDTACET, IDTALD2, IDTALK4, IDTC2H6
       USE TRACERID_MOD,   ONLY : IDTC3H8, IDTCH2O, IDTH2O2, IDTHNO4
       USE TRACERID_MOD,   ONLY : IDTISOP, IDTMACR, IDTMEK,  IDTMP  
@@ -81,7 +83,10 @@
       IMPLICIT NONE
 
 #     include "CMN_SIZE"        ! Size parameters
-#     include "CMN_O3"          ! XNUMOLAIR
+!--------------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"          ! XNUMOLAIR
+!--------------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE             :: FIRST = .TRUE.

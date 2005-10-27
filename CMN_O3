@@ -1,4 +1,4 @@
-! $Id: CMN_O3,v 1.1 2003/06/30 20:26:08 bmy Exp $
+! $Id: CMN_O3,v 1.2 2005/10/27 13:59:45 bmy Exp $
 
 !-----COMMON BLOCKS FOR ANTHRO EMISSIONS (via SMVGEAR!)-----
 !
@@ -7,20 +7,26 @@
 !       compilation.  Also added & continuation characters in column 73
 !       to allow header files to be included in F90 freeform files.
 !       (bmy, 6/25/02)
+! (2 ) Removed obsolete variables (bmy, 10/25/05)
 !
 !
 ! NOTE: Now NEMPARA = max no. of anthropogenic emissions
 !           NEMPARB = max no. of biogenic emissions
 !
+!------------------------------------------------------------------------
+! Prior to 10/25/05:
+! These is now obsolete.  XNUMOL, XNUMOLAIR are now in tracer_mod.f
+! (bmy, 10/25/05)
 ! XNUMOL    = molec / kg tracer
 ! XNUMOLAIR = molec / kg air
 ! FMOL      = mol. wt. of tracer                                     
-      REAL*8          XNUMOL,        XNUMOLAIR, FMOL
-      COMMON /CCHMRY/ XNUMOL(NNPAR), XNUMOLAIR, FMOL(NNPAR)
-
-! OZCOL = column ozone in Dobson Units
-      REAL*8          OZCOL
-      COMMON /CCHMR2/ OZCOL(15,12)
+!     REAL*8          XNUMOL,        XNUMOLAIR, FMOL
+!     COMMON /CCHMRY/ XNUMOL(NNPAR), XNUMOLAIR, FMOL(NNPAR)
+!
+!! OZCOL = column ozone in Dobson Units
+!      REAL*8          OZCOL
+!      COMMON /CCHMR2/ OZCOL(15,12)
+!------------------------------------------------------------------------
 
 ! Rural Emissions: EMISRN = NOx (1:NOXLEVELS), EMISR = all other tracers
 ! Total Emissions: EMISTN = NOx (1:NOXLEVELS), EMIST = all other tracers
@@ -37,9 +43,13 @@
      &   EMISRR (IIPAR,JJPAR,2:NEMPARA+NEMPARB),                        &
      &   EMISRRN(IIPAR,JJPAR,NOXEXTENT        )
  
-! bey for archive ND48
-      REAL*8 EMISRR48
-      COMMON /EMIS3/ EMISRR48(IIPAR,JJPAR)
+!-------------------------------------------------
+! Prior to 10/25/05:
+! This is now obsolete
+!! bey for archive ND48
+!      REAL*8 EMISRR48
+!      COMMON /EMIS3/ EMISRR48(IIPAR,JJPAR)
+!-------------------------------------------------
 
 ! Arrays to read emissions from updated merge file : 
 !        NOx, CO, PRPE, C3H8, ALK4, C2H6, ACET, MEK
@@ -67,9 +77,13 @@
       REAL*4          FTOTCO2,              FLIQCO2
       COMMON /FSCAL2/ FTOTCO2(IGLOB,JGLOB), FLIQCO2(IGLOB,JGLOB)
 
-! Arrays to store fractions of O3, O2, NO
-      REAL*8       FO3,    FNO2,    FNO
-      COMMON /O3C/ FO3(5), FNO2(5), FNO(5)
+!--------------------------------------------------------
+! Prior to 10/25/05:
+! These arrays are now obsolete (bmy, 10/25/05)
+!! Arrays to store fractions of O3, O2, NO
+!      REAL*8       FO3,    FNO2,    FNO
+!      COMMON /O3C/ FO3(5), FNO2(5), FNO(5)
+!--------------------------------------------------------
 
 ! FRACO3, FRACNO          = fractions of O3, NO
 ! SAVEOH, SAVENO, SAVENO3 = array to save OH, NO, & NO3 fields 

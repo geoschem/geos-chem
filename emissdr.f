@@ -1,10 +1,10 @@
-! $Id: emissdr.f,v 1.9 2005/10/20 14:03:24 bmy Exp $
+! $Id: emissdr.f,v 1.10 2005/10/27 13:59:56 bmy Exp $
       SUBROUTINE EMISSDR
 !
 !******************************************************************************
 !  Subroutine EMISSDR computes emissions for the full chemistry simulation
 !  (NSRCX == 3).  Emissions are stored in GEMISNOX and EMISRR arrays, 
-!  which are then passed to the SMVGEAR subroutines (bmy, 10/8/98, 10/3/05)
+!  which are then passed to the SMVGEAR subroutines (bmy, 10/8/98, 10/25/05)
 !
 !  NOTES:
 !  (1 ) Now accounts for seasonal NOx emissions, and multi-level NOx 
@@ -52,6 +52,8 @@
 !  (22) Now references "logical_mod.f".  Now replaced LFOSSIL with LANTHRO.
 !        (bmy, 7/20/04)
 !  (23) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (24) Now can use MEGAN inventory for biogenic VOCs.  Now references
+!        "megan_mod.f" (bmy, tmf, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -60,13 +62,17 @@
       USE AIRCRAFT_NOX_MOD,  ONLY : AIREMISS
       USE BIOFUEL_MOD,       ONLY : BIOFUEL_BURN
       USE BIOMASS_MOD,       ONLY : BIOBURN
-      USE DAO_MOD,           ONLY : SUNCOS
+      USE DAO_MOD,           ONLY : PARDF,         PARDR,     SUNCOS        
       USE DIAG_MOD,          ONLY : AD29,          AD46
       USE GRID_MOD,          ONLY : GET_AREA_CM2
       USE GRID_MOD,          ONLY : GET_XOFFSET,   GET_YOFFSET
       USE LIGHTNING_NOX_MOD, ONLY : EMLIGHTNING
       USE LOGICAL_MOD,       ONLY : LANTHRO,       LLIGHTNOX, LSOILNOX  
       USE LOGICAL_MOD,       ONLY : LAIRNOX,       LBIONOX,   LWOODCO   
+      USE LOGICAL_MOD,       ONLY : LMEGAN
+      USE MEGAN_MOD,         ONLY : GET_EMISOP_MEGAN
+      USE MEGAN_MOD,         ONLY : GET_EMMBO_MEGAN
+      USE MEGAN_MOD,         ONLY : GET_EMMONOT_MEGAN
       USE TIME_MOD,          ONLY : GET_MONTH,     GET_TAU
       USE TIME_MOD,          ONLY : GET_TS_EMIS,   GET_LOCALTIME
       USE TRACERID_MOD,      ONLY : IDEACET,       IDTISOP,   IDEISOP   
@@ -75,7 +81,7 @@
       IMPLICIT NONE
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! STT, many other variables
+#     include "CMN"          ! IEBD1, IEBD2, JEBD1, JEBD2
 #     include "CMN_DIAG"     ! Diagnostic arrays and switches
 #     include "CMN_O3"       ! Emissions arrays, XNUMOL
 #     include "CMN_NOX"      ! GEMISNOX, GEMISNOX2
@@ -92,7 +98,8 @@
       REAL*8                 :: BIOSCAL, AREA_CM2, EMMO,  ACETSCAL
       REAL*8                 :: TMPVAL,  EMMB,     GRASS, BIO_ACET
       REAL*8                 :: CONVERT(NVEGTYPE), GMONOT(NVEGTYPE)
-      
+      REAL*8                 :: SC, PDF, PDR
+
       ! Molecules C / kg C
       REAL*8,  PARAMETER     :: XNUMOL_C = 6.022d+23 / 12d-3 
 
@@ -229,17 +236,67 @@
             ! Temperature
             TMMP  = XLTMMP(I,J,IJLOOP)
 
-            ! Monoterpenes 
-            EMMO  = EMMONOT( IJLOOP, TMMP, XNUMOL_C )
+            !--------------------------------------------------------------
+            ! Prior to 10/20/05:
+            ! Now use GEIA or MEGAN, depending on user preferences
+            ! (tmf, bmy, 10/20/05)
+            !! Monoterpenes 
+            !EMMO  = EMMONOT( IJLOOP, TMMP, XNUMOL_C )
+            !
+            !! Isoprene
+            !EMIS  = EMISOP( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C )
+            !
+            !! Methyl Butenol (MBO)
+            !EMMB  = EMISOP_MB( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C )
+            !
+            !! Isoprene emissions from grasslands
+            !GRASS = EMISOP_GRASS( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C) 
+            !--------------------------------------------------------------
+            
+            IF ( LMEGAN ) THEN
 
-            ! Isoprene
-            EMIS  = EMISOP( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C )
- 
-            ! Methyl Butenol (MBO)
-            EMMB  = EMISOP_MB( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C )
+               !------------------
+               ! MEGAN biogenics
+               !------------------
 
-            ! Isoprene emissions from grasslands
-            GRASS = EMISOP_GRASS( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C) 
+               ! Cosine of solar zenith angle
+               SC   = SUNCOS(IJLOOP)
+               
+               ! Diffuse and direct PAR
+               PDR  = PARDR(I,J)
+               PDF  = PARDF(I,J)
+
+               ! Isoprene         
+               EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP, 
+     &                                   XNUMOL_C, PDR, PDF )
+
+               ! Monoterpenes 
+               EMMO = GET_EMMONOT_MEGAN( I, J, TMMP, XNUMOL_C )
+
+               ! Methyl butenol
+               EMMB = GET_EMMBO_MEGAN(   I, J,     SC, TMMP,
+     &                                   XNUMOL_C, PDR, PDF )
+
+            ELSE  
+
+               !------------------
+               ! GEIA biogenics 
+               !------------------
+
+               ! Isoprene
+               EMIS = EMISOP(     I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C )
+
+               ! Monoterpenes
+               EMMO = EMMONOT(          IJLOOP,         TMMP, XNUMOL_C )
+             
+               ! Methyl Butenol
+               EMMB = EMISOP_MB(  I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C )
+
+            ENDIF
+
+            ! Isoprene emissions from grasslands (use GEIA always)
+            GRASS = EMISOP_GRASS( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C ) 
+
 !-----------------------------------------------------------------------------
 ! BIOGENIC ACETONE EMISSIONS
 !
@@ -275,9 +332,13 @@
                EMISRR(I,J,IDEISOP) = EMISRR(I,J,IDEISOP) + 
      &                               ( EMIS / DTSRCE )
 
-               !- bey - for ND48 time serie archive 
-               ! EMISRR48 has units [atoms C/cm2/s]
-               EMISRR48(I,J) = EMIS / ( DTSRCE * AREA_CM2 )
+               !----------------------------------------------------
+               ! Prior to 10/25/05:
+               ! This is now obsolete (bmy, 10/25/05)
+               !!- bey - for ND48 time serie archive 
+               !! EMISRR48 has units [atoms C/cm2/s]
+               !EMISRR48(I,J) = EMIS / ( DTSRCE * AREA_CM2 )
+               !----------------------------------------------------
             ENDIF
 !------------------------------------------------------------------------------
 !
@@ -362,10 +423,12 @@
 !     AD46(:,:,2) = Total biogenic ACET  emissions [atoms C/cm2/s]
 !     AD46(:,:,3) = Total biogenic PRPE  emissions [atoms C/cm2/s]
 !     AD46(:,:,4) = Total biogenic MONOT emissions [atoms C/cm2/s]
+!     AD46(:,:,5) = Total biogenic MBO   emissions [atoms C/cm2/s]
 !
 !  NOTES: 
 !  (1 ) Now make ACET tracer #2 and PRPE tracer #3 (bmy, 9/13/01)
 !  (2 ) Now archive ND46 as [atoms C/cm2/s] here (bmy, 9/13/01)
+!  (3 ) Added MBO emission diagnostics [atoms C/cm2/s] (bmy, tmf, 10/20/05)
 !******************************************************************************
 !
             IF ( ND46 > 0 ) THEN
@@ -382,6 +445,10 @@
 
                ! Monoterpene emissions [atoms C/cm2/s] -- tracer #4
                AD46(I,J,4) = AD46(I,J,4) + ( EMMO / AREA_CM2 / DTSRCE ) 
+
+               ! MBO emissions [atoms C/cm2/s] -- tracer #5
+               AD46(I,J,5) = AD46(I,J,5) + ( EMMB / AREA_CM2 / DTSRCE ) 
+
             ENDIF           
          ENDDO
       ENDDO

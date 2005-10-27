@@ -1,9 +1,9 @@
-! $Id: emfossil.f,v 1.5 2005/10/20 14:03:24 bmy Exp $
+! $Id: emfossil.f,v 1.6 2005/10/27 13:59:56 bmy Exp $
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
 !*****************************************************************************
 !  Subroutine EMFOSSIL emits fossil fuels into the EMISRR and EMISRRN 
-!  arrays, which are then passed to SMVGEAR. (bmy, 4/19/99, 10/3/05)
+!  arrays, which are then passed to SMVGEAR. (bmy, 4/19/99, 10/25/05)
 !
 !  Arguments as input:
 !  ========================================================================
@@ -39,6 +39,7 @@
 !  (17) Now references GET_DAY_OF_WEEK from "time_mod.f" to correctly figure
 !        out if this is a weekday or weekend. (bmy, 7/6/05)
 !  (18) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (19) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !*****************************************************************************
 !          
       ! References to F90 modules
@@ -47,6 +48,7 @@
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,  ONLY : LNEI99
       USE TIME_MOD,     ONLY : GET_TS_EMIS, GET_DAY_OF_WEEK
+      USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDENOX, IDEOX, IDTCO
   
       IMPLICIT NONE
@@ -54,7 +56,7 @@
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN"       ! STT, many other variables
 #     include "CMN_DIAG"  ! Diagnostic switches & arrays
-#     include "CMN_O3"    ! EMISR, EMISRR, XNUMOL, etc...
+#     include "CMN_O3"    ! EMISR, EMISRR, etc...
 #     include "comode.h"  ! IHOUR
 
       ! Arguments

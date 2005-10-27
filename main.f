@@ -1,5 +1,16 @@
-C $Id: main.f,v 1.28 2005/10/20 14:03:34 bmy Exp $
+C $Id: main.f,v 1.29 2005/10/27 14:00:00 bmy Exp $
 C $Log: main.f,v $
+C Revision 1.29  2005/10/27 14:00:00  bmy
+C GEOS-CHEM v7-03-05, includes the following modifications:
+C - Added code to read MEGAN biogenic emissions
+C - Added code to read AVHRR LAI for MEGAN
+C - Added code to read GEOS-3 "XTRA" met fields (PARDF, PARDR, SNOW)
+C - Added code to regrid data from GEOS 1x1 grid to current grid
+C - Snow depth is now used in GEOS-3 for dust emissions
+C - Removed obsolete common blocks
+C - Now reference XNUMOL, XNUMOLAIR from "tracer_mod.f"
+C - Now save column AOD's and AOD's below plane in "planeflight_mod.f"
+C
 C Revision 1.28  2005/10/20 14:03:34  bmy
 C GEOS-CHEM v7-03-04, includes the following modifications:
 C - Added LINUX_IFORT switch for Intel v8/v9 compiler
@@ -170,17 +181,16 @@ C
       USE I6_READ_MOD,       ONLY : OPEN_I6_FIELDS
       USE I6_READ_MOD,       ONLY : UNZIP_I6_FIELDS
       USE INPUT_MOD,         ONLY : READ_INPUT_FILE
+      USE LAI_MOD,           ONLY : RDISOLAI
       USE LIGHTNING_NOX_MOD, ONLY : LIGHTNING
       USE LOGICAL_MOD,       ONLY : LEMIS,     LCHEM, LUNZIP,  LDUST
       USE LOGICAL_MOD,       ONLY : LLIGHTNOX, LPRT,  LSTDRUN, LSVGLB
       USE LOGICAL_MOD,       ONLY : LWAIT,     LTRAN, LUPBD,   LCONV
-      USE LOGICAL_MOD,       ONLY : LWETD,     LTURB, LDRYD     
+      USE LOGICAL_MOD,       ONLY : LWETD,     LTURB, LDRYD,   LMEGAN     
+      USE MEGAN_MOD,         ONLY : INIT_MEGAN
+      USE MEGAN_MOD,         ONLY : UPDATE_T_15_AVG
+      USE MEGAN_MOD,         ONLY : UPDATE_T_DAY
       USE PBL_MIX_MOD,       ONLY : DO_PBL_MIX
-      !----------------------------------------------------------------
-      ! Prior to 10/3/05:
-      ! PHIS is now obsolete (bmy, 10/3/05)
-      !USE PHIS_READ_MOD
-      !----------------------------------------------------------------
       USE PLANEFLIGHT_MOD,   ONLY : PLANEFLIGHT
       USE PLANEFLIGHT_MOD,   ONLY : SETUP_PLANEFLIGHT 
       USE PRESSURE_MOD,      ONLY : INIT_PRESSURE
@@ -212,17 +222,14 @@ C
       USE TRACER_MOD,        ONLY : ITS_AN_AEROSOL_SIM
       USE TRACER_MOD,        ONLY : ITS_A_CH4_SIM
       USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
-      !----------------------------------------------------------------
-      ! Prior to 10/3/05:
-      ! TRACERID_MOD isn't used here anymore (bmy, 10/3/05)
-      !USE TRACERID_MOD 
-      !----------------------------------------------------------------
       USE TRANSPORT_MOD,     ONLY : DO_TRANSPORT
       USE TROPOPAUSE_MOD,    ONLY : READ_TROPOPAUSE
       USE RESTART_MOD,       ONLY : MAKE_RESTART_FILE, READ_RESTART_FILE
       USE UPBDFLX_MOD,       ONLY : DO_UPBDFLX,        UPBDFLX_NOY
       USE UVALBEDO_MOD,      ONLY : READ_UVALBEDO
       USE WETSCAV_MOD,       ONLY : INIT_WETSCAV,      DO_WETDEP
+      USE XTRA_READ_MOD,     ONLY : GET_XTRA_FIELDS,   OPEN_XTRA_FIELDS
+      USE XTRA_READ_MOD,     ONLY : UNZIP_XTRA_FIELDS
 
       ! Force all variables to be declared explicitly
       IMPLICIT NONE
@@ -235,15 +242,12 @@ C
 #     include "comode.h"          ! CSAVE, IDEMS
 
       ! Local variables
-      LOGICAL :: FIRST = .TRUE.
-      INTEGER :: I,           IOS,   J,         K,         L
-      !---------------------------------------------------------------
-      ! Prior to 10/3/05:
-      ! Remove NYMD_PHIS, it's not needed
-      !INTEGER :: N,           JDAY,  NYMD_PHIS, NDIAGTIME, N_DYN
-      !---------------------------------------------------------------
-      INTEGER :: N,           JDAY,  NDIAGTIME, N_DYN
-      INTEGER :: N_DYN_STEPS, NSECb, N_STEP,    DATE(2)
+      LOGICAL            :: FIRST = .TRUE.
+      LOGICAL            :: LXTRA 
+      INTEGER            :: I,           IOS,   J,         K,      L
+      INTEGER            :: N,           JDAY,  NDIAGTIME, N_DYN
+      INTEGER            :: N_DYN_STEPS, NSECb, N_STEP,    DATE(2)
+      CHARACTER(LEN=255) :: ZTYPE
 
       !=================================================================
       ! GEOS-CHEM starts here!                                            
@@ -251,13 +255,6 @@ C
 
       ! Display current grid resolution and data set type
       CALL DISPLAY_GRID_AND_MODEL
-
-      !---------------------------------------------------
-      ! Prior to 10/3/05:
-      ! This is not needed anymore (bmy, 10/3/05)
-      !! Get the YYYYMMDD value for the PHIS met field 
-      !NYMD_PHIS = GET_NYMD_PHIS()
-      !---------------------------------------------------
 
       !=================================================================
       !            ***** I N I T I A L I Z A T I O N *****
@@ -288,71 +285,70 @@ C
       ! Allocate arrays from "global_ch4_mod.f" for CH4 run 
       IF ( ITS_A_CH4_SIM() ) CALL INIT_GLOBAL_CH4
 
+      ! Initialize MEGAN arrays, get 15-day avg temperatures
+      IF ( LMEGAN ) THEN
+         CALL INIT_MEGAN
+         CALL INITIALIZE( 2 )
+         CALL INITIALIZE( 3 )
+      ENDIF
+
+      ! Local flag for reading XTRA fields for GEOS-3
+      !LXTRA = ( LDUST .or. LMEGAN )
+      LXTRA = LMEGAN
+
       !=================================================================
       !   ***** U N Z I P   M E T   F I E L D S  @ start of run *****
       !=================================================================
       IF ( LUNZIP ) THEN
 
-         ! Remove any leftover A-3, A-6, I-6, and PHIS files in temp dir
-         CALL UNZIP_A3_FIELDS(  'remove all' )
-         CALL UNZIP_A6_FIELDS(  'remove all' )
-         CALL UNZIP_I6_FIELDS(  'remove all' )
-         !------------------------------------------------
-         ! Prior to 10/3/05:
-         ! PHIS is now obsolete (bmy, 10/3/05)
-         !CALL UNZIP_PHIS_FIELD( 'remove all' )
-         !------------------------------------------------
+         !---------------------
+         ! Remove all files
+         !---------------------
 
-         ! Unzip A-3, A-6, I-6 files for START of run
-         CALL UNZIP_A3_FIELDS(  'unzip foreground', GET_NYMDb() )
-         CALL UNZIP_A6_FIELDS(  'unzip foreground', GET_NYMDb() )
-         CALL UNZIP_I6_FIELDS(  'unzip foreground', GET_NYMDb() )
-
-         !--------------------------------------------------------------
-         ! Prior to 10/3/05:
-         ! PHIS is now obsolete (bmy, 10/3/05)
-         !! Only unzip PHIS file for fullchem run
-         !IF ( ITS_A_FULLCHEM_SIM() ) THEN
-         !   CALL UNZIP_PHIS_FIELD( 'unzip foreground', NYMD_PHIS )
-         !ENDIF
-         !--------------------------------------------------------------
+         ! Type of unzip operation
+         ZTYPE = 'remove all'
+         
+         ! Remove any leftover A-3, A-6, I-6, in temp dir
+         CALL UNZIP_A3_FIELDS( ZTYPE )
+         CALL UNZIP_A6_FIELDS( ZTYPE )
+         CALL UNZIP_I6_FIELDS( ZTYPE )
 
 #if   defined( GEOS_3 )
-         ! NOTE: GEOS-3 met field files didn't contain GWET, so we
-         ! went back and saved them separately.  Unzip and read 
-         ! the GWET fields if we are using the online dust simulation.
-         ! (tdf, bmy, 4/4/03)
-         IF ( LDUST ) THEN
-            CALL UNZIP_GWET_FIELDS( 'remove all' )
-            CALL UNZIP_GWET_FIELDS( 'unzip foreground', GET_NYMDb() )
-         ENDIF
+         ! Remove GEOS-3 GWET and XTRA files 
+         IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE )
+         IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE )
 #endif
 
+         !---------------------
+         ! Unzip in foreground
+         !---------------------
+
+         ! Type of unzip operation
+         ZTYPE = 'unzip foreground'
+
+         ! Unzip A-3, A-6, I-6 files for START of run
+         CALL UNZIP_A3_FIELDS( ZTYPE, GET_NYMDb() )
+         CALL UNZIP_A6_FIELDS( ZTYPE, GET_NYMDb() )
+         CALL UNZIP_I6_FIELDS( ZTYPE, GET_NYMDb() )
+
+#if   defined( GEOS_3 )
+         ! Unzip GEOS-3 GWET and XTRA fields for START of run
+         IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE, GET_NYMDb() )
+         IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE, GET_NYMDb() )
+#endif
       ENDIF
       
       !=================================================================
       !    ***** R E A D   M E T   F I E L D S  @ start of run *****
       !=================================================================
 
-      !-------------------------------------------------------------
-      ! Prior to 10/3/05:
-      ! PHIS is now obsolete (bmy, 10/3/05)
-      !! Only read PHIS for fullchem runs
-      !IF ( ITS_A_FULLCHEM_SIM() ) THEN
-      !   CALL OPEN_PHIS_FIELD( NYMD_PHIS, 000000 )
-      !   CALL GET_PHIS_FIELD(  NYMD_PHIS, 000000 ) 
-      !
-      !   ! Remove PHIS field from temp dir
-      !   IF ( LUNZIP ) THEN
-      !      CALL UNZIP_PHIS_FIELD( 'remove date', NYMD_PHIS )
-      !   ENDIF
-      !ENDIF
-      !-------------------------------------------------------------
-
       ! Open and read A-3 fields
       DATE = GET_FIRST_A3_TIME()
       CALL OPEN_A3_FIELDS( DATE(1), DATE(2) )
       CALL GET_A3_FIELDS(  DATE(1), DATE(2) ) 
+
+      ! For MEGAN biogenics, update hourly temps w/in 15-day window
+      IF ( LMEGAN ) CALL UPDATE_T_DAY
 
       ! Open & read A-6 fields
       DATE = GET_FIRST_A6_TIME()
@@ -365,13 +361,18 @@ C
       CALL GET_I6_FIELDS_1( DATE(1), DATE(2) )
       
 #if   defined( GEOS_3 )
-      ! NOTE: GEOS-3 A-3 fields didn't contain GWET, so we went
-      ! back and saved these into separate files.  Open read the GWET
-      ! fields if we are using the online dust simulation (bmy, 4/1/04)
+      ! Open & read GEOS-3 GWET fields
       IF ( LDUST ) THEN
          DATE = GET_FIRST_A3_TIME()
          CALL OPEN_GWET_FIELDS( DATE(1), DATE(2) )
          CALL GET_GWET_FIELDS(  DATE(1), DATE(2) ) 
+      ENDIF
+
+      ! Open & read GEOS-3 XTRA fields
+      IF ( LXTRA ) THEN
+         DATE = GET_FIRST_A3_TIME()
+         CALL OPEN_XTRA_FIELDS( DATE(1), DATE(2) )
+         CALL GET_XTRA_FIELDS(  DATE(1), DATE(2) ) 
       ENDIF
 #endif
 
@@ -487,33 +488,24 @@ C
             DATE = GET_TIME_AHEAD( 720 )
 
             ! If LWAIT=T then wait for the met fields to be
-            ! fully unzipped before proceeding w/ the run
+            ! fully unzipped before proceeding w/ the run.
+            ! Otherwise, unzip fields in the background
             IF ( LWAIT ) THEN
-               CALL UNZIP_A3_FIELDS( 'unzip foreground', DATE(1) )
-               CALL UNZIP_A6_FIELDS( 'unzip foreground', DATE(1) )
-               CALL UNZIP_I6_FIELDS( 'unzip foreground', DATE(1) )
-
-#if   defined( GEOS_3 )
-               ! We only really have to unzip GWET if we are
-               ! running w/ dust turned on (tdf, bmy, 4/1/04)
-               IF ( LDUST ) THEN
-                  CALL UNZIP_GWET_FIELDS( 'unzip foreground', DATE(1) )
-               ENDIF
-#endif
-
+               ZTYPE = 'unzip foreground'
             ELSE
-               CALL UNZIP_A3_FIELDS( 'unzip background', DATE(1) )
-               CALL UNZIP_A6_FIELDS( 'unzip background', DATE(1) )
-               CALL UNZIP_I6_FIELDS( 'unzip background', DATE(1) )
+               ZTYPE = 'unzip background'
+            ENDIF
+            
+            ! Unzip A3, A6, I6 fields
+            CALL UNZIP_A3_FIELDS( ZTYPE, DATE(1) )
+            CALL UNZIP_A6_FIELDS( ZTYPE, DATE(1) )
+            CALL UNZIP_I6_FIELDS( ZTYPE, DATE(1) )
 
 #if   defined( GEOS_3 )
-               ! We only really have to unzip GWET if we are
-               ! running w/ dust turned on (tdf, bmy, 4/1/04)
-               IF ( LDUST ) THEN
-                  CALL UNZIP_GWET_FIELDS( 'unzip background', DATE(1) )
-               ENDIF
+            ! Unzip GEOS-3 GWET & XTRA fields
+            IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE, DATE(1) )
+            IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE, DATE(1) )
 #endif
-            ENDIF
          ENDIF     
 
          !===============================================================
@@ -524,19 +516,19 @@ C
             ! Get the current date
             DATE(1) = GET_NYMD()
 
+            ! Type of operation
+            ZTYPE   = 'remove date'
+
             ! Remove A-3, A-6, and I-6 files only for the current date
-            CALL UNZIP_A3_FIELDS( 'remove date', DATE(1) )
-            CALL UNZIP_A6_FIELDS( 'remove date', DATE(1) )
-            CALL UNZIP_I6_FIELDS( 'remove date', DATE(1) )
+            CALL UNZIP_A3_FIELDS( ZTYPE, DATE(1) )
+            CALL UNZIP_A6_FIELDS( ZTYPE, DATE(1) )
+            CALL UNZIP_I6_FIELDS( ZTYPE, DATE(1) )
 
 #if   defined( GEOS_3 )
-            ! We only have to remove GWET fields if we are running
-            ! w/ the online dust simulation (tdf, bmy, 4/1/04)
-            IF ( LDUST ) THEN
-               CALL UNZIP_GWET_FIELDS( 'remove date', DATE(1) )
-            ENDIF
+            ! Remove GEOS-3 GWET & XTRA fields only for the current date
+            IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE, DATE(1) )
+            IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE, DATE(1) )
 #endif
-
          ENDIF   
 
          !==============================================================
@@ -551,15 +543,22 @@ C
             CALL OPEN_A3_FIELDS( DATE(1), DATE(2) )
             CALL GET_A3_FIELDS(  DATE(1), DATE(2) )
 
+            ! Update daily mean temperature archive for MEGAN biogenics
+            IF ( LMEGAN ) CALL UPDATE_T_DAY 
+
 #if   defined( GEOS_3 )
-            ! We only need GWET for GEOS-3 dust simulation 
-            ! (GEOS-4 has GWET in the met field files already)
+            ! Read GEOS-3 GWET fields
             IF ( LDUST ) THEN
                CALL OPEN_GWET_FIELDS( DATE(1), DATE(2) )
                CALL GET_GWET_FIELDS(  DATE(1), DATE(2) )           
             ENDIF
+            
+            ! Read GEOS-3 PARDF, PARDR, SNOW fields
+            IF ( LXTRA ) THEN
+               CALL OPEN_XTRA_FIELDS( DATE(1), DATE(2) )
+               CALL GET_XTRA_FIELDS(  DATE(1), DATE(2) )           
+            ENDIF
 #endif
-
          ENDIF
 
          !==============================================================
@@ -619,6 +618,16 @@ C
             ! Read leaf-area index (needed for drydep)
             CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
 
+            ! For MEGAN biogenics ...
+            IF ( LMEGAN ) THEN
+
+               ! Read AVHRR daily leaf-area-index
+               CALL RDISOLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
+
+               ! Compute 15-day average temperature for MEGAN
+               CALL UPDATE_T_15_AVG
+            ENDIF
+               
             ! Also read soil-type info for fullchem simulation
             IF ( ITS_A_FULLCHEM_SIM() ) CALL RDSOIL 
 
@@ -904,23 +913,20 @@ C
 
       ! Remove all files from temporary directory 
       IF ( LUNZIP ) THEN
-         CALL UNZIP_A3_FIELDS(  'remove all' )
-         CALL UNZIP_A6_FIELDS(  'remove all' )
-         CALL UNZIP_I6_FIELDS(  'remove all' )
-         !-------------------------------------------
-         ! Prior to 10/3/05:
-         ! PHIS is now obsolete (bmy, 10/3/05)
-         !CALL UNZIP_PHIS_FIELD( 'remove all' )
-         !-------------------------------------------
+         
+         ! Type of operation
+         ZTYPE = 'remove all'
+
+         ! Remove A3, A6, I6 fields
+         CALL UNZIP_A3_FIELDS( ZTYPE )
+         CALL UNZIP_A6_FIELDS( ZTYPE )
+         CALL UNZIP_I6_FIELDS( ZTYPE )
 
 #if   defined( GEOS_3 )
-         ! We only need to remove the GWET fields if we are
-         ! using the online dust simulation (bmy, 4/1/04)
-         IF ( LDUST ) THEN
-            CALL UNZIP_GWET_FIELDS( 'remove all' )
-         ENDIF
+         ! Remove GEOS-3 GWET & XTRA fields
+         IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE )
+         IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE )
 #endif
-
       ENDIF
 
       ! Print the mass-weighted mean OH concentration (if applicable)
@@ -1055,44 +1061,6 @@ C
       ! Return to MAIN program
       END SUBROUTINE DISPLAY_GRID_AND_MODEL
 
-!-----------------------------------------------------------------------------
-! Prior to 10/3/05:
-! This is no longer needed (bmy, 10/3/05)
-!      FUNCTION GET_NYMD_PHIS() RESULT( NYMD_PHIS )
-!
-!      !=================================================================
-!      ! Internal Function GET_NYMD_PHIS selects the YYMMDD at which 
-!      ! there is PHIS data for the given model (GEOS-1, GEOS-STRAT, 
-!      ! GEOS-3, or fvDAS).  This date is Y2K compliant.
-!      !=================================================================
-!
-!      ! Return value 
-!      INTEGER :: NYMD_PHIS
-!
-!#if   defined( GEOS_1 )
-!      NYMD_PHIS = 19940101
-!
-!#elif defined( GEOS_STRAT )
-!      NYMD_PHIS = 19960101
-!
-!#elif defined( GEOS_3 )
-!      NYMD_PHIS = 20000101
-!
-!#elif defined( GEOS_4 )
-!      NYMD_PHIS = 20030101
-!
-!#elif defined( GEOS_5 )
-!      NYMD_PHIS = 20030101  ! change if necessary
-!
-!#elif defined( GCAP )
-!      NYMD_PHIS = 20000101
-!
-!
-!#endif
-!
-!      ! Return to MAIN program
-!      END FUNCTION GET_NYMD_PHIS
-!      
 !-----------------------------------------------------------------------------
 
       FUNCTION ITS_TIME_FOR_BPCH() RESULT( DO_BPCH )
@@ -1292,10 +1260,6 @@ C
       IF ( ALLOCATED( OPTD     ) ) PRINT*, 'OPTD    : ', OPTD(L,I,J) 
       IF ( ALLOCATED( OPTDEP   ) ) PRINT*, 'OPTDEP  : ', OPTDEP(L,I,J) 
       IF ( ALLOCATED( PBL      ) ) PRINT*, 'PBL     : ', PBL(I,J) 
-      !---------------------------------------------------------------------
-      ! Prior to 10/3/05:
-      !IF ( ALLOCATED( PHIS     ) ) PRINT*, 'PHIS    : ', PHIS(I,J) 
-      !---------------------------------------------------------------------
       IF ( ALLOCATED( PREACC   ) ) PRINT*, 'PREACC  : ', PREACC(I,J) 
       IF ( ALLOCATED( PRECON   ) ) PRINT*, 'PRECON  : ', PRECON(I,J) 
       IF ( ALLOCATED( PS1      ) ) PRINT*, 'PS1     : ', PS1(I,J) 

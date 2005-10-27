@@ -1,9 +1,9 @@
-! $Id: cleanup.f,v 1.12 2005/09/02 15:17:00 bmy Exp $
+! $Id: cleanup.f,v 1.13 2005/10/27 13:59:51 bmy Exp $
       SUBROUTINE CLEANUP
 !
 !******************************************************************************
 !  Subroutine CLEANUP deallocates the memory assigned to dynamic allocatable 
-!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 8/15/05)
+!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 10/24/05)
 !
 !  NOTES:
 !  (1 ) CLEANUP is written in Fixed-Format F90.
@@ -63,6 +63,9 @@
 !  (30) Now calls CLEANUP_HCN_CH3CN from "hcn_ch3cn_mod.f (bmy, 6/23/05)
 !  (31) Now calls CLEANUP_DIAG04, CLEANUP_CO2, and CLEANUP_TROPOPAUSE 
 !         (bmy, 8/15/05) 
+!  (32) Now calls CLEANUP_LAI from "lai_mod.f", CLEANUP_MEGAN from
+!        "megan_mod.f" and CLEANUP_REGRID_1x1 from "regrid_1x1_mod.f"
+!        (tmf, bdf, bmy, 10/24/05)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -95,13 +98,16 @@
       USE GLOBAL_NOX_MOD,    ONLY : CLEANUP_GLOBAL_NOX
       USE GLOBAL_OH_MOD,     ONLY : CLEANUP_GLOBAL_OH
       USE HCN_CH3CN_MOD,     ONLY : CLEANUP_HCN_CH3CN
+      USE LAI_MOD,           ONLY : CLEANUP_LAI
       USE LIGHTNING_NOX_MOD, ONLY : CLEANUP_LIGHTNING_NOX
+      USE MEGAN_MOD,         ONLY : CLEANUP_MEGAN
       USE MERCURY_MOD,       ONLY : CLEANUP_MERCURY
       USE OCEAN_MERCURY_MOD, ONLY : CLEANUP_OCEAN_MERCURY
       USE PBL_MIX_MOD,       ONLY : CLEANUP_PBL_MIX
       USE PJC_PFIX_MOD,      ONLY : CLEANUP_PJC_PFIX
       USE PLANEFLIGHT_MOD,   ONLY : CLEANUP_PLANEFLIGHT
       USE PRESSURE_MOD,      ONLY : CLEANUP_PRESSURE
+      USE REGRID_1x1_MOD,    ONLY : CLEANUP_REGRID_1x1
       USE SEASALT_MOD,       ONLY : CLEANUP_SEASALT
       USE SULFATE_MOD,       ONLY : CLEANUP_SULFATE
       USE TAGGED_CO_MOD,     ONLY : CLEANUP_TAGGED_CO
@@ -118,7 +124,10 @@
       !=================================================================
       ! CLEANUP begins here!
       !=================================================================
-      WRITE( 6, '(a)' ) '     - CLEANUP: deallocating arrays now...'
+
+      ! Echo info
+      WRITE( 6, 100 ) 
+ 100  FORMAT( '     - CLEANUP: deallocating arrays now...' )
 
       ! Call cleanup routines from individual F90 modules
       CALL CLEANUP_ACETONE
@@ -150,13 +159,16 @@
       CALL CLEANUP_GLOBAL_NO3
       CALL CLEANUP_GLOBAL_OH
       CALL CLEANUP_HCN_CH3CN
+      CALL CLEANUP_LAI
       CALL CLEANUP_LIGHTNING_NOX
+      CALL CLEANUP_MEGAN
       CALL CLEANUP_MERCURY
       CALL CLEANUP_OCEAN_MERCURY
       CALL CLEANUP_PBL_MIX
       CALL CLEANUP_PJC_PFIX
       CALL CLEANUP_PLANEFLIGHT
       CALL CLEANUP_PRESSURE
+      CALL CLEANUP_REGRID_1x1
       CALL CLEANUP_SEASALT
       CALL CLEANUP_SULFATE
       CALL CLEANUP_TAGGED_CO

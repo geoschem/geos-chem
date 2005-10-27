@@ -1,10 +1,10 @@
- ! $Id: carbon_mod.f,v 1.13 2005/10/20 14:03:15 bmy Exp $
+ ! $Id: carbon_mod.f,v 1.14 2005/10/27 13:59:50 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
 !  Module CARBON_MOD contains arrays and routines for performing a 
 !  carbonaceous aerosol simulation.  Original code taken from Mian Chin's 
-!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 10/3/05)
+!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 10/25/05)
 !
 !  4 Aerosol species : Organic and Black carbon 
 !                    : hydrophilic (soluble) and hydrophobic of each
@@ -109,12 +109,13 @@
 !  (9 ) global_o3_mod.f    : Module w/ routines to read 3-D O3  field
 !  (10) grid_mod.f         : Module w/ horizontal grid information
 !  (11) logical_mod.f      : Module w/ GEOS-CHEM logical switches
-!  (12) pbl_mix_mod.f      : Module w/ routines for PBL height & mixing
-!  (13) pressure_mod.f     : Module w/ routines to compute P(I,J,L)
-!  (14) time_mod.f         : Module w/ routines for computing time & date
-!  (15) tracer_mod.f       : Module w/ GEOS-CHEM tracer array STT etc. 
-!  (16) tracerid_mod.f     : Module w/ pointers to tracers & emissions
-!  (17) transfer_mod.f     : Module w/ routines to cast & resize arrays
+!  (12) megan_mod.f        : Module w/ routines to read MEGAN biogenic emiss
+!  (13) pbl_mix_mod.f      : Module w/ routines for PBL height & mixing
+!  (14) pressure_mod.f     : Module w/ routines to compute P(I,J,L)
+!  (15) time_mod.f         : Module w/ routines for computing time & date
+!  (16) tracer_mod.f       : Module w/ GEOS-CHEM tracer array STT etc. 
+!  (17) tracerid_mod.f     : Module w/ pointers to tracers & emissions
+!  (18) transfer_mod.f     : Module w/ routines to cast & resize arrays
 !
 !  NOTES:
 !  (1 ) Added code from the Caltech group for SOA chemistry (rjp, bmy, 7/15/04)
@@ -130,7 +131,9 @@
 !  (5 ) Now references "pbl_mix_mod.f".  Bug fix: now make sure only to save
 !        up to LD07 levels for the ND07 diagnostic in SOA_LUMP. (bmy, 3/4/05)
 !  (6 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
-!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (8 ) Now references "megan_mod.f".  Also now references XNUMOL and 
+!        XNUMOLAIR from "tracer_mod.f" (tmf, bmy, 10/25/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -353,7 +356,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_BCPO converts hydrophobic BC to hydrophilic BC and
-!  calculates the dry deposition of hydrophobic BC. (rjp, bmy, 4/1/04, 2/17/05)
+!  calculates the dry deposition of hydrophobic BC. (rjp, bmy, 4/1/04,10/25/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -363,6 +366,7 @@
 !  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP 
 !        from "pbl_mix_mod.f" (bmy, 2/17/05)
+!  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -371,11 +375,15 @@
       USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
+      USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTBCPO
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_O3"       ! XNUMOL
+!-----------------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"       ! XNUMOL
+!-----------------------------------------------------
 #     include "CMN_DIAG"     ! ND44, ND07, LD07
 
       ! Arguments
@@ -521,7 +529,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_BCPI calculates dry deposition of hydrophilic BC.
-!  (rjp, bmy, 4/1/04, 2/17/05)
+!  (rjp, bmy, 4/1/04, 10/25/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -531,6 +539,7 @@
 !  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f" (bmy, 2/17/05)
+!  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -539,11 +548,15 @@
       USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
+      USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTBCPI
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_O3"       ! XNUMOL
+!------------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"       ! XNUMOL
+!------------------------------------------------
 #     include "CMN_DIAG"     ! ND44
 
       ! Arguments
@@ -694,7 +707,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_OCPO converts hydrophobic OC to hydrophilic OC and
-!  calculates the dry deposition of hydrophobic OC. (rjp, bmy, 4/1/04, 2/17/05)
+!  calculates the dry deposition of hydrophobic OC. (rjp, bmy, 4/1/04,10/25/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -704,6 +717,7 @@
 !  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f" (bmy, 2/17/05)
+!  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -712,11 +726,15 @@
       USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
+      USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTOCPO
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_O3"       ! XNUMOL
+!-----------------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"       ! XNUMOL
+!-----------------------------------------------------
 #     include "CMN_DIAG"     ! ND44, ND07, LD07
 
       ! Arguments
@@ -862,7 +880,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_BCPI calculates dry deposition of hydrophilic OC.
-!  (rjp, bmy, 4/1/04, 2/17/05)
+!  (rjp, bmy, 4/1/04, 10/25/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -873,6 +891,7 @@
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (3 ) Bug fix: add BL_FRAC to the PRIVATE list (mak, bmy, 10/3/05)
+!  (4 ) Now refrerences XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -881,11 +900,15 @@
       USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
+      USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTOCPI
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_O3"       ! XNUMOL
+!------------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"       ! XNUMOL
+!------------------------------------------------
 #     include "CMN_DIAG"     ! ND44
 
       ! Arguments
@@ -922,11 +945,6 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!--------------------------------------------------------------------------
-! Prior to 10/3/05:
-! BUG FIX: Add BL_FRAC to the PRIVATE list (mak, bmy, 10/3/05)
-!!$OMP+PRIVATE( I, J, L, TC0, CCV, FREQ, CNEW, AREA_CM2, FLUX )
-!--------------------------------------------------------------------------
 !$OMP+PRIVATE( I, J, L, TC0, CCV, BL_FRAC, FREQ, CNEW, AREA_CM2, FLUX )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
@@ -2198,7 +2216,7 @@ c
 !
 !******************************************************************************
 !  Subroutine SOA_DEPO computes dry-deposition of a particular SOA species.
-!  (rjp, bmy, 7/8/04, 10/3/05)
+!  (rjp, bmy, 7/8/04, 10/25/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -2211,6 +2229,7 @@ c
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with  GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (3 ) Bug fix: Add BL_FRAC to the PRIVATE list (mak, bmy, 10/3/05)
+!  (4 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2220,9 +2239,13 @@ c
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,     ONLY : GET_TS_CHEM
+      USE TRACER_MOD,   ONLY : XNUMOL
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_O3"       ! XNUMOL
+!---------------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"       ! XNUMOL
+!---------------------------------------------------
 #     include "CMN_DIAG"     ! ND44
 
       ! Arguments
@@ -2262,11 +2285,6 @@ c
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!-----------------------------------------------------------------------------
-! Prior to 10/3/05:
-! Bug fix: BL_FRAC needs to be w/in the PRIVATE statement (mak, bmy, 10/3/05)
-!!$OMP+PRIVATE( I, J, L, TC0, FREQ, CNEW, AREA_CM2, FLUX )
-!-----------------------------------------------------------------------------
 !$OMP+PRIVATE( I, J, L, TC0, BL_FRAC, FREQ, CNEW, AREA_CM2, FLUX )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
@@ -2610,7 +2628,7 @@ c
 !
 !******************************************************************************
 !  Subroutine BIOGENIC_OC emits secondary organic carbon aerosols.
-!  Also modified for SOA tracers. (rjp, bmy, 4/1/04, 11/15/04)
+!  Also modified for SOA tracers. (rjp, bmy, 4/1/04, 10/20/05)
 !
 !  Terpene emissions as a source of OC:  TERP.GEIA90.a1.2x2.5.*
 !  Assuming 10% yield of OC(hydrophilic) from terpene emission.
@@ -2620,16 +2638,18 @@ c
 !  (2 ) Now references DATA_DIR from "directory_mod.f".  Now references LSOA
 !        from "logical_mod.f". (bmy, 7/20/04)
 !  (3 ) Now reads data from "carbon_200411" subdir of DATA_DIR (bmy, 11/15/04)
+!  (4 ) Now can use MEGAN biogenic emissions (tmf, bmy, 10/20/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D,  GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,         READ_BPCH2
       USE DAO_MOD,       ONLY : SUNCOS
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE LOGICAL_MOD,   ONLY : LSOA
-      USE TIME_MOD,      ONLY : GET_MONTH,   GET_TS_CHEM
-      USE TIME_MOD,      ONLY : GET_TS_EMIS, ITS_A_NEW_MONTH
+      USE LOGICAL_MOD,   ONLY : LMEGAN,           LSOA
+      USE MEGAN_MOD,     ONLY : GET_EMMONOT_MEGAN
+      USE TIME_MOD,      ONLY : GET_MONTH,        GET_TS_CHEM
+      USE TIME_MOD,      ONLY : GET_TS_EMIS,      ITS_A_NEW_MONTH
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"      ! Size parameters
@@ -2688,8 +2708,19 @@ c
              ! Surface temperature [K]
             TMMP           = XLTMMP(I,J,IJLOOP)
 
-            ! EMMO = [kg C/box/time-step] from monoterpenes
-            EMMO           = EMMONOT( IJLOOP, TMMP, 1.d0 )
+            !----------------------------------------------------------------
+            ! Prior to 10/20/05:
+            ! Now get EMMONOT from either MEGAN or GEIA (tmf, bmy, 10/20/05)
+            !! EMMO = [kg C/box/time-step] from monoterpenes
+            !EMMO           = EMMONOT( IJLOOP, TMMP, 1.d0 )
+            !----------------------------------------------------------------
+
+            ! Get monoterpenes from MEGAN or GEIA [kg C/box]
+            IF ( LMEGAN ) THEN
+               EMMO = GET_EMMONOT_MEGAN( I, J, TMMP, 1d0 )
+            ELSE
+               EMMO = EMMONOT( IJLOOP, TMMP, 1d0 )
+            ENDIF
 
             ! Fraction of EMMO that converts into OC [kg/box/timestep]
             TERP_ORGC(I,J) = EMMO * FBIOG
@@ -4021,6 +4052,7 @@ c
 !  NOTES:
 !  (1 ) We assume SETTRACE has been called to define IDO3. (bmy, 12/16/02)
 !  (2 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
+!  (3 ) Now reference XNUMOLAIR from "tracer_mod.f" (bmy, 10/20/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4030,10 +4062,14 @@ c
       USE GLOBAL_O3_MOD, ONLY : O3
       USE TIME_MOD,      ONLY : GET_TS_CHEM
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
+      USE TRACER_MOD,    ONLY : XNUMOLAIR
       USE TRACERID_MOD,  ONLY : IDO3
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_O3"    ! XNUMOLAIR
+!-----------------------------------------------
+! Prior to 
+!#     include "CMN_O3"    ! XNUMOLAIR
+!-----------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L

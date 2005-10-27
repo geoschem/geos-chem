@@ -1,10 +1,10 @@
-! $Id: epa_nei_mod.f,v 1.4 2005/10/20 14:03:25 bmy Exp $
+! $Id: epa_nei_mod.f,v 1.5 2005/10/27 13:59:56 bmy Exp $
       MODULE EPA_NEI_MOD
 !
 !******************************************************************************
 !  Module EPA_NEI_MOD contains variables and routines to read the
 !  weekday/weekend emissions from the EPA/NEI emissions inventory.
-!  (rch, bmy, 11/10/04, 10/3/05)
+!  (rch, bmy, 11/10/04, 10/25/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -86,6 +86,7 @@
 !        TOTAL_BIOFUEL_TG (bmy, 1/26/05)
 !  (2 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (4 ) Now replace FMOL with TRACER_MW_KG (bmy, 10/25/05) 
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -589,7 +590,7 @@
 !******************************************************************************
 !  Subroutine TOTAL_ANTHRO_TG prints the amount of EPA/NEI anthropogenic
 !  emissions that are emitted each month in Tg or Tg C. 
-!  (rch, bmy, 11/10/04, 1/25/05)
+!  (rch, bmy, 11/10/04, 10/25/05)
 !  
 !  Arguments as Input:
 !  ============================================================================
@@ -606,16 +607,21 @@
 !       (bmy, 2/4/03)
 !  (3) Prevent out of bounds error when tracers are undefined (bmy, 1/25/05)
 !  (4) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (5) Now replace FMOL with TRACER_MW_KG (bmy, 10/25/05) 
 !******************************************************************************
 !
       ! References to F90 modules
       USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE TRACER_MOD,   ONLY : TRACER_MW_KG
       USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
       USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
       USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_O3"    ! FMOL
+!-----------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"    ! FMOL
+!-----------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -684,18 +690,33 @@
       F_NH3   = 0d0 
 
       ! Prevent array out of bounds error for undefined tracers
-      IF ( IDTNOX  > 0 ) F_NOX  = FMOL(IDTNOX )
-      IF ( IDTCO   > 0 ) F_CO   = FMOL(IDTCO  )
-      IF ( IDTALK4 > 0 ) F_ALK4 = FMOL(IDTALK4)
-      IF ( IDTACET > 0 ) F_ACET = FMOL(IDTACET)
-      IF ( IDTMEK  > 0 ) F_MEK  = FMOL(IDTMEK )
-      IF ( IDTPRPE > 0 ) F_PRPE = FMOL(IDTPRPE)
-      IF ( IDTC2H6 > 0 ) F_C2H6 = FMOL(IDTC2H6)
-      IF ( IDTC3H8 > 0 ) F_C3H8 = FMOL(IDTC3H8)
-      IF ( IDTCH2O > 0 ) F_CH2O = FMOL(IDTCH2O)
-      IF ( IDTSO2  > 0 ) F_SO2  = FMOL(IDTSO2 )
-      IF ( IDTSO4  > 0 ) F_SO4  = FMOL(IDTSO4 )
-      IF ( IDTNH3  > 0 ) F_NH3  = FMOL(IDTNH3 )
+      !-----------------------------------------------------------
+      ! Prior to 10/25/05:
+      !IF ( IDTNOX  > 0 ) F_NOX  = FMOL(IDTNOX )
+      !IF ( IDTCO   > 0 ) F_CO   = FMOL(IDTCO  )
+      !IF ( IDTALK4 > 0 ) F_ALK4 = FMOL(IDTALK4)
+      !IF ( IDTACET > 0 ) F_ACET = FMOL(IDTACET)
+      !IF ( IDTMEK  > 0 ) F_MEK  = FMOL(IDTMEK )
+      !IF ( IDTPRPE > 0 ) F_PRPE = FMOL(IDTPRPE)
+      !IF ( IDTC2H6 > 0 ) F_C2H6 = FMOL(IDTC2H6)
+      !IF ( IDTC3H8 > 0 ) F_C3H8 = FMOL(IDTC3H8)
+      !IF ( IDTCH2O > 0 ) F_CH2O = FMOL(IDTCH2O)
+      !IF ( IDTSO2  > 0 ) F_SO2  = FMOL(IDTSO2 )
+      !IF ( IDTSO4  > 0 ) F_SO4  = FMOL(IDTSO4 )
+      !IF ( IDTNH3  > 0 ) F_NH3  = FMOL(IDTNH3 )
+      !-----------------------------------------------------------
+      IF ( IDTNOX  > 0 ) F_NOX  = TRACER_MW_KG(IDTNOX )
+      IF ( IDTCO   > 0 ) F_CO   = TRACER_MW_KG(IDTCO  )
+      IF ( IDTALK4 > 0 ) F_ALK4 = TRACER_MW_KG(IDTALK4)
+      IF ( IDTACET > 0 ) F_ACET = TRACER_MW_KG(IDTACET)
+      IF ( IDTMEK  > 0 ) F_MEK  = TRACER_MW_KG(IDTMEK )
+      IF ( IDTPRPE > 0 ) F_PRPE = TRACER_MW_KG(IDTPRPE)
+      IF ( IDTC2H6 > 0 ) F_C2H6 = TRACER_MW_KG(IDTC2H6)
+      IF ( IDTC3H8 > 0 ) F_C3H8 = TRACER_MW_KG(IDTC3H8)
+      IF ( IDTCH2O > 0 ) F_CH2O = TRACER_MW_KG(IDTCH2O)
+      IF ( IDTSO2  > 0 ) F_SO2  = TRACER_MW_KG(IDTSO2 )
+      IF ( IDTSO4  > 0 ) F_SO4  = TRACER_MW_KG(IDTSO4 )
+      IF ( IDTNH3  > 0 ) F_NH3  = TRACER_MW_KG(IDTNH3 )
 
       !=================================================================
       ! Sum anthropogenic emissions
@@ -797,16 +818,21 @@
 !
 !  NOTES:
 !  (1 ) Prevent out of bounds error when tracers are undefined (bmy, 1/25/05)
+!  (2 ) Now replace FMOL with TRACER_MW_KG
 !******************************************************************************
 !
       ! References to F90 modules
       USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE TRACER_MOD,   ONLY : TRACER_MW_KG
       USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
       USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
       USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_O3"    ! FMOL
+!-------------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"    ! FMOL
+!-------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -875,18 +901,33 @@
       F_NH3   = 0d0 
 
       ! Prevent array out of bounds error for undefined tracers
-      IF ( IDTNOX  > 0 ) F_NOX  = FMOL(IDTNOX )
-      IF ( IDTCO   > 0 ) F_CO   = FMOL(IDTCO  )
-      IF ( IDTALK4 > 0 ) F_ALK4 = FMOL(IDTALK4)
-      IF ( IDTACET > 0 ) F_ACET = FMOL(IDTACET)
-      IF ( IDTMEK  > 0 ) F_MEK  = FMOL(IDTMEK )
-      IF ( IDTPRPE > 0 ) F_PRPE = FMOL(IDTPRPE)
-      IF ( IDTC2H6 > 0 ) F_C2H6 = FMOL(IDTC2H6)
-      IF ( IDTC3H8 > 0 ) F_C3H8 = FMOL(IDTC3H8)
-      IF ( IDTCH2O > 0 ) F_CH2O = FMOL(IDTCH2O)
-      IF ( IDTSO2  > 0 ) F_SO2  = FMOL(IDTSO2 )
-      IF ( IDTSO4  > 0 ) F_SO4  = FMOL(IDTSO4 )
-      IF ( IDTNH3  > 0 ) F_NH3  = FMOL(IDTNH3 )
+      !-------------------------------------------------------------
+      ! Prior to 10/25/05:
+      !IF ( IDTNOX  > 0 ) F_NOX  = FMOL(IDTNOX )
+      !IF ( IDTCO   > 0 ) F_CO   = FMOL(IDTCO  )
+      !IF ( IDTALK4 > 0 ) F_ALK4 = FMOL(IDTALK4)
+      !IF ( IDTACET > 0 ) F_ACET = FMOL(IDTACET)
+      !IF ( IDTMEK  > 0 ) F_MEK  = FMOL(IDTMEK )
+      !IF ( IDTPRPE > 0 ) F_PRPE = FMOL(IDTPRPE)
+      !IF ( IDTC2H6 > 0 ) F_C2H6 = FMOL(IDTC2H6)
+      !IF ( IDTC3H8 > 0 ) F_C3H8 = FMOL(IDTC3H8)
+      !IF ( IDTCH2O > 0 ) F_CH2O = FMOL(IDTCH2O)
+      !IF ( IDTSO2  > 0 ) F_SO2  = FMOL(IDTSO2 )
+      !IF ( IDTSO4  > 0 ) F_SO4  = FMOL(IDTSO4 )
+      !IF ( IDTNH3  > 0 ) F_NH3  = FMOL(IDTNH3 )
+      !-------------------------------------------------------------
+      IF ( IDTNOX  > 0 ) F_NOX  = TRACER_MW_KG(IDTNOX )
+      IF ( IDTCO   > 0 ) F_CO   = TRACER_MW_KG(IDTCO  )
+      IF ( IDTALK4 > 0 ) F_ALK4 = TRACER_MW_KG(IDTALK4)
+      IF ( IDTACET > 0 ) F_ACET = TRACER_MW_KG(IDTACET)
+      IF ( IDTMEK  > 0 ) F_MEK  = TRACER_MW_KG(IDTMEK )
+      IF ( IDTPRPE > 0 ) F_PRPE = TRACER_MW_KG(IDTPRPE)
+      IF ( IDTC2H6 > 0 ) F_C2H6 = TRACER_MW_KG(IDTC2H6)
+      IF ( IDTC3H8 > 0 ) F_C3H8 = TRACER_MW_KG(IDTC3H8)
+      IF ( IDTCH2O > 0 ) F_CH2O = TRACER_MW_KG(IDTCH2O)
+      IF ( IDTSO2  > 0 ) F_SO2  = TRACER_MW_KG(IDTSO2 )
+      IF ( IDTSO4  > 0 ) F_SO4  = TRACER_MW_KG(IDTSO4 )
+      IF ( IDTNH3  > 0 ) F_NH3  = TRACER_MW_KG(IDTNH3 )
 
       !=================================================================
       ! Sum biofuel emissions

@@ -1,11 +1,11 @@
-! $Id: planeflight_mod.f,v 1.16 2005/10/20 14:03:37 bmy Exp $
+! $Id: planeflight_mod.f,v 1.17 2005/10/27 14:00:02 bmy Exp $
       MODULE PLANEFLIGHT_MOD
 !
 !******************************************************************************
 !  Module PLANEFLIGHT_MOD contains variables and routines which are used to
 !  "fly" a plane through the GEOS-CHEM model simulation.  This is useful for
 !  comparing model results with aircraft observations. 
-!  (mje, bmy, 7/30/02, 5/20/05)
+!  (mje, bmy, 7/30/02, 10/25/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -77,6 +77,8 @@
 !  (13) Modified the plane flight diagnostic so that it writes output files
 !        for each day where flight track files are defined. (bmy, 3/24/05)
 !  (14) Minor bug fix in ARCHIVE_RXNS_FOR_PF (bmy, 5/20/05)
+!  (15) Now split AOD's into column AOD's and AOD's below plane.  Also scale
+!        AOD's to 400nm. (bmy, 10/25/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -288,7 +290,7 @@
 !  Subroutine READ_VARIABLES reads the list of variables (SMVGEAR species,
 !  SMVGEAR rxn rates, DAO met fields, or GEOS-CHEM tracers) to be printed
 !  out and sorts the information into the appropriate module variables.
-!  (mje, bmy, 7/30/02, 1/7/05)
+!  (mje, bmy, 7/30/02, 10/24/05)
 !
 !  NOTES:
 !  (1 ) Now references GEOS_CHEM_STOP from "error_mod.f", which frees all
@@ -302,6 +304,7 @@
 !  (7 ) Now references N_TRACERS & ITS_A_FULLCHEM_SIM from "tracer_mod.f"
 !        (bmy, 7/20/04)
 !  (8 ) Bug fix: extract tracer # when reading rxn rates (bmy, 1/7/05)
+!  (9 ) Now computes column AOD's and AOD's below plane (bmy, 10/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -398,17 +401,29 @@
                IF ( LINE == 'GMAO_VWND' ) PVAR(N) = 1006 
 
             !===========================================================
-            ! Aerosol optical depths (same order as for FAST-J)
+            ! Column aerosol optical depths (same order as for FAST-J)
             ! PVAR offset: 2000
             !===========================================================
-            CASE ( 'AOD_' )
+            CASE ( 'AODC' )
+            
+               IF ( LINE == 'AODC_SULF'  ) PVAR(N) = 2001
+               IF ( LINE == 'AODC_BLKC'  ) PVAR(N) = 2002
+               IF ( LINE == 'AODC_ORGC'  ) PVAR(N) = 2003
+               IF ( LINE == 'AODC_SALA'  ) PVAR(N) = 2004
+               IF ( LINE == 'AODC_SALC'  ) PVAR(N) = 2005   
 
-               IF ( LINE == 'AOD_SULF'  ) PVAR(N) = 2001
-               IF ( LINE == 'AOD_BLKC'  ) PVAR(N) = 2002
-               IF ( LINE == 'AOD_ORGC'  ) PVAR(N) = 2003
-               IF ( LINE == 'AOD_SALA'  ) PVAR(N) = 2004
-               IF ( LINE == 'AOD_SALC'  ) PVAR(N) = 2005
-               
+            !===========================================================
+            ! Aerosol optical depths below the plane
+            ! (same order as for FAST-J)  PVAR offset: 3000
+            !===========================================================
+            CASE ( 'AODB' )
+            
+               IF ( LINE == 'AODB_SULF'  ) PVAR(N) = 3001
+               IF ( LINE == 'AODB_BLKC'  ) PVAR(N) = 3002
+               IF ( LINE == 'AODB_ORGC'  ) PVAR(N) = 3003
+               IF ( LINE == 'AODB_SALA'  ) PVAR(N) = 3004
+               IF ( LINE == 'AODB_SALC'  ) PVAR(N) = 3005 
+
             !===========================================================
             ! SMVGEAR rxn rate: listed as "REA_001", etc.
             ! PVAR offset: 10000
@@ -754,11 +769,13 @@
 !        UWND, VWND to the CASE statement (bmy, 4/23/04)
 !  (6 ) Now references STT & TCVV from "tracer_mod.f" (bmy, 7/20/04)
 !  (7 ) Now return if DO_PF = .FALSE. (bmy, 3/24/05)
+!  (8 ) Now compute column AOD's and AOD's below plane.  Also now scale
+!        AOD's to 400nm. (bmy, 10/24/05)
 !******************************************************************************
 !
       ! Reference to F90 modules 
-      USE COMODE_MOD,   ONLY : AIRDENS, CSPEC,  JLOP, T3,
-     &                         VOLUME,  ABSHUM, TAREA
+      USE COMODE_MOD,   ONLY : AIRDENS, CSPEC,  JLOP, T3
+      USE COMODE_MOD,   ONLY : VOLUME,  ABSHUM, TAREA
       USE DAO_MOD,      ONLY : AD, T,   UWND,   VWND
       USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
       USE PRESSURE_MOD, ONLY : GET_PEDGE
@@ -768,16 +785,20 @@
       IMPLICIT NONE
       
 #     include "cmn_fj.h"   ! FAST-J parameters (includes CMN_SIZE)
-#     include "jv_cmn.h"   ! ODAER
+#     include "jv_cmn.h"   ! ODAER, QAA
 #     include "comode.h"   ! CSPEC, etc.
       
       ! Local variables
       LOGICAL, SAVE       :: FIRST = .TRUE.
       LOGICAL             :: PCHEM
       INTEGER             :: I, IP, IRHN, J, L, JLOOP, M, N, R, RH, V
-      REAL*8              :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O
+      INTEGER             :: LPLANE
+      REAL*8              :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O, S400nm
       REAL*8              :: VARI(NPVAR)
       REAL*8,  PARAMETER  :: MISSING = -999.99999999d0
+
+      ! Aerosol types: SULF, BLKC, ORGC, SALA, SALC 
+      INTEGER             :: IND(5) = (/ 22, 29, 36, 43, 50 /)
 
       !=================================================================
       ! PLANEFLIGHT begins here!
@@ -924,27 +945,73 @@
                      VARI(V) = VWND(I,J,L)
 
                   !--------------------------
-                  ! Aerosol optical depths
+                  ! Column aerosol optical 
+                  ! depths [unitless]
                   !--------------------------
                   CASE ( 2001:2005 )
-
+                  
                      ! Only archive where SMVGEAR chem is done
                      IF ( PCHEM ) THEN 
-
+                  
                         ! Remove MISSING flag
                         VARI(V) = 0d0
-
+                  
                         ! Aerosol number
                         N = PVAR(V) - 2000
-
+                  
                         ! Loop over RH bins
                         DO RH = 1, NRH
                         
+                           ! Scaling factor for 400nm
+                           S400nm  = QAA(2,IND(N)+RH-1) / 
+     &                               QAA(4,IND(N)+RH-1) 
+
                            ! Index for type of aerosol and RH value
-                           IRHN = ( (N-1) * NRH ) + RH
+                           IRHN    = ( (N-1) * NRH ) + RH
                         
                            ! Sum AOD over all RH bins and store in VARI(V)
-                           VARI(V) = VARI(V) + ODAER(I,J,L,IRHN)
+                           ! Sum over all vertical levels (bmy, 10/24/05)
+                           VARI(V) = VARI(V) + 
+     &                               SUM( S400nm * ODAER(I,J,:,IRHN) )
+                        ENDDO
+                     ENDIF
+
+                  !--------------------------
+                  ! Aerosol optical depths
+                  ! below plane [unitless]
+                  !--------------------------
+                  CASE ( 3001:3005 )
+                  
+                     ! Only archive where SMVGEAR chem is done
+                     IF ( PCHEM ) THEN 
+                  
+                        ! Remove MISSING flag
+                        VARI(V) = 0d0
+                  
+                        ! Aerosol number
+                        N = PVAR(V) - 3000
+                  
+                        ! Loop over RH bins
+                        DO RH = 1, NRH
+                        
+                           ! Scaling factor for 400nm
+                           S400nm  = QAA(2,IND(N)+RH-1) / 
+     &                               QAA(4,IND(N)+RH-1) 
+
+                           ! Index for type of aerosol and RH value
+                           IRHN    = ( (N-1) * NRH ) + RH
+                          
+                           ! Level of the plane.  AOD's are only computed
+                           ! up to the tropopause, so if the plane goes into
+                           ! the stratosphere, the AOD below plane will be
+                           ! the same as the trop column at that point.
+                           ! (bmy, 10/24/05)
+                           LPLANE  = MIN( L, LLTROP )
+
+                           ! Sum AOD over all RH bins and store in VARI(V)
+                           ! Sum from surface to level where the plane is
+                           VARI(V) = VARI(V) + 
+     &                          SUM( S400nm * ODAER(I,J,1:LPLANE,IRHN) )
                         ENDDO
                      ENDIF
 
@@ -1032,6 +1099,10 @@
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
 #     include "CMN_SIZE"   ! Size parameters
+!--------------------------------------------------
+! Prior to 8/22/05:
+!#     include "CMN"        ! LPAUSE
+!--------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)  :: IND
@@ -1071,6 +1142,14 @@
       ! Error check: L must be 1 or higher
       IF ( L == 0 ) L = 1
 
+      !----------------------------------------------------------------------
+      ! Prior to 8/22/05:
+      !!=================================================================
+      !! L <  LPAUSE(I,J) is a TROPOSPHERIC  box -- we do chem there
+      !! L >= LPAUSE(I,J) is a STRATOSPHERIC box -- no chem is done
+      !!=================================================================
+      !IF ( L < LPAUSE(I,J) ) THEN 
+      !----------------------------------------------------------------------
       !=================================================================
       ! We only do full-chemistry in the troposphere
       !=================================================================

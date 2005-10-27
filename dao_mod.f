@@ -1,10 +1,10 @@
-! $Id: dao_mod.f,v 1.13 2005/09/02 15:17:01 bmy Exp $
+! $Id: dao_mod.f,v 1.14 2005/10/27 13:59:51 bmy Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
 !  Module DAO_MOD contains both arrays that hold DAO met fields, as well as
 !  subroutines that compute, interpolate, or otherwise process DAO met field 
-!  data. (bmy, 6/27/00, 8/17/05)
+!  data. (bmy, 6/27/00, 10/20/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -168,6 +168,7 @@
 !  (21) AVGPOLE now uses NESTED_CH and NESTED_NA cpp switches (bmy, 12/1/04)
 !  (22) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !  (23) Now allocate SNOW and GWET for GCAP (bmy, 8/17/05)
+!  (24) Now also add TSKIN for GEOS-3 (tmf, bmy, 10/20/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1581,6 +1582,7 @@
 !        simulation.  Now allocate AVGW only for fullchem or offline aerosol
 !        simulations. (bmy, 6/24/05)
 !  (14) Now allocate SNOW and GWETTOP for GCAP (bmy, 8/17/05)
+!  (15) Now also add TSKIN for GEOS-3 (bmy, 10/20/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1883,7 +1885,11 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TS' )
       TS = 0d0
 
-#if   defined( GEOS_4 )
+!-----------------------------
+! Prior to 10/20/05:
+!#if   defined( GEOS_4 )
+!-----------------------------
+#if   defined( GEOS_3 ) || defined( GEOS_4 )
 
       ! TSKIN is only defined for GEOS-4
       ALLOCATE( TSKIN( IIPAR, JJPAR ), STAT=AS )

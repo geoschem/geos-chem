@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.18 2005/10/20 14:03:31 bmy Exp $
+! $Id: input_mod.f,v 1.19 2005/10/27 13:59:58 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS_CHEM input file at the start of the run
 !  and passes the information to several other GEOS-CHEM F90 modules.
-!  (bmy, 7/20/04, 10/3/05)
+!  (bmy, 7/20/04, 10/25/05)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -98,6 +98,9 @@
 !  (5 ) Now modified for GEOS-5 and GCAP met fields.  Also now set LSPLIT
 !        correctly for HCN/CH3CN simulation. (swu, xyp, bmy, 6/30/05)
 !  (6 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (7 ) Now read LMEGAN switch for MEGAN biogenics.  Now read variable
+!        DATA_DIR_1x1 for 1x1 emissions files, etc.  Now reference XNUMOL and
+!        XNUMOLAIR from "tracer_mod.f" (tmf, bmy, 10/25/05) 
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -314,7 +317,7 @@
 !  variable VERBOSE is set, the line will be printed to stdout.  READ_ONE_LINE
 !  can trap an unexpected EOF if LOCATION is passed.  Otherwise, it will pass
 !  a logical flag back to the calling routine, where the error trapping will
-!  be done. (bmy, 7/20/04, 7/20/04
+!  be done. (bmy, 7/20/04)
 ! 
 !  Arguments as Output:
 !  ===========================================================================
@@ -465,20 +468,22 @@
 !
 !******************************************************************************
 !  Subroutine READ_SIMULATION_MENU reads the SIMULATION MENU section of 
-!  the GEOS-CHEM input file (bmy, 7/20/04, 10/3/05)
+!  the GEOS-CHEM input file (bmy, 7/20/04, 10/24/05)
 !
 !  NOTES:
 !  (1 ) Bug fix: Read LSVGLB w/ the * format and not w/ '(a)'. (bmy, 2/23/05)
 !  (2 ) Now read GEOS_5_DIR and GCAP_DIR from input.geos (swu, bmy, 5/25/05)
-!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (4 ) Now references DATA_DIR_1x1 for 1x1 emissions files (bmy, 10/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,    GCAP_DIR,    GEOS_1_DIR 
-      USE DIRECTORY_MOD, ONLY : GEOS_S_DIR,  GEOS_3_DIR,  GEOS_4_DIR 
-      USE DIRECTORY_MOD, ONLY : GEOS_5_DIR,  RUN_DIR,     TEMP_DIR   
-      USE GRID_MOD,      ONLY : SET_XOFFSET, SET_YOFFSET, COMPUTE_GRID
-      USE LOGICAL_MOD,   ONLY : LSVGLB,      LUNZIP,      LWAIT
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,    DATA_DIR_1x1, GCAP_DIR
+      USE DIRECTORY_MOD, ONLY : GEOS_1_DIR,  GEOS_S_DIR,   GEOS_3_DIR
+      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR,  GEOS_5_DIR,   RUN_DIR
+      USE DIRECTORY_MOD, ONLY : TEMP_DIR   
+      USE GRID_MOD,      ONLY : SET_XOFFSET, SET_YOFFSET,  COMPUTE_GRID
+      USE LOGICAL_MOD,   ONLY : LSVGLB,      LUNZIP,       LWAIT
       USE RESTART_MOD,   ONLY : SET_RESTART
       USE TIME_MOD,      ONLY : SET_BEGIN_TIME,   SET_END_TIME 
       USE TIME_MOD,      ONLY : SET_CURRENT_TIME, SET_DIAGb
@@ -551,22 +556,26 @@
 
       ! Temp dir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:14' )
+      READ( SUBSTRS(1:N), '(a)' ) DATA_DIR_1x1
+
+      ! Temp dir
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:15' )
       READ( SUBSTRS(1:N), '(a)' ) TEMP_DIR
 
       ! Unzip met fields
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:15' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:16' )
       READ( SUBSTRS(1:N), *     ) LUNZIP
 
       ! Wait for met fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:16' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:17' )
       READ( SUBSTRS(1:N), *     ) LWAIT
 
       ! I0, J0
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:17' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:18' )
       READ( SUBSTRS(1:N), * ) I0, J0
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:18' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:19' )
 
       !=================================================================
       ! Print to screen
@@ -591,6 +600,8 @@
      &                     TRIM( GEOS_4_DIR )
       WRITE( 6, 110     ) 'GEOS-5     sub-directory    : ', 
      &                     TRIM( GEOS_4_DIR )
+      WRITE( 6, 110     ) '1x1 Emissions etc Data Dir  : ',
+     &                     TRIM( DATA_DIR_1x1 )
       WRITE( 6, 110     ) 'Temporary Directory         : ', 
      &                     TRIM( TEMP_DIR )
       WRITE( 6, 110     ) 'Input restart file          : ', 
@@ -657,6 +668,7 @@
 !  (2 ) Now initialize ocean mercury module (sas, bmy, 1/20/05)
 !  (3 ) Now set LSPLIT correctly for Tagged HCN/CH3CN sim (xyp, bmy, 6/30/05)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (5 ) Now reference XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -672,13 +684,17 @@
       USE TRACER_MOD,        ONLY : TRACER_CONST,   TRACER_MW_G
       USE TRACER_MOD,        ONLY : TRACER_MW_KG,   TRACER_N_CONST
       USE TRACER_MOD,        ONLY : TRACER_NAME,    INIT_TRACER
+      USE TRACER_MOD,        ONLY : XNUMOL,         XNUMOLAIR
       USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,        ONLY : ITS_A_HCN_SIM
       USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
       USE TRACERID_MOD,      ONLY : TRACERID
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_O3"    ! XNUMOL, XNUMOLAIR
+!-----------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"    ! XNUMOL, XNUMOLAIR
+!-----------------------------------------------
 
       ! Local variables
       INTEGER            :: N,  T,  C
@@ -737,16 +753,24 @@
          ! for backwards compatibility
          !---------------------------------
 
-         ! Molecules air / kg air
-         IF ( T == 1 ) THEN
-            XNUMOLAIR    = 6.022d+23 / 28.9644d-3
-         ENDIF
+         !----------------------------------------------------------------
+         ! Prior to 10/25/05:
+         ! This is now a PARAMETER in "tracer_mod.f" (bmy, 10/25/05)
+         !! Molecules air / kg air
+         !IF ( T == 1 ) THEN
+         !   XNUMOLAIR    = 6.022d+23 / 28.9644d-3
+         !ENDIF
+         !----------------------------------------------------------------
 
          ! Molecules tracer / kg tracer
          XNUMOL(T)       = 6.022d+23 / TRACER_MW_KG(T)
          
-         ! Molecular weight [kg/mole]
-         FMOL(T)         = TRACER_MW_KG(T)
+         !----------------------------------------------------------------
+         ! Prior to 10/25/05:
+         ! FMOL is now obsolete, use TRACER_MW_KG instead (bmy, 10/25/05)
+         !! Molecular weight [kg/mole]
+         !FMOL(T)         = TRACER_MW_KG(T)
+         !----------------------------------------------------------------
 
          !----------------------------------------------------
          ! If this is a family tracer, get member species
@@ -1202,12 +1226,13 @@
 !
 !******************************************************************************
 !  Subroutine READ_EMISSIONS_MENU reads the EMISSIONS MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 10/3/05)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 10/20/05)
 !
 !  NOTES:
 !  (1 ) Now read LNEI99 -- switch for EPA/NEI99 emissions (bmy, 11/5/04)
 !  (2 ) Now read LAVHRRLAI-switch for using AVHRR-derived LAI (bmy, 12/20/04)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (4 ) Now read LMEGAN -- switch for MEGAN biogenics (tmf, bmy, 10/20/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1216,7 +1241,7 @@
       USE LOGICAL_MOD, ONLY : LBIOFUEL, LBIOGENIC, LBIOMASS,  LBIONOX   
       USE LOGICAL_MOD, ONLY : LEMIS,    LFOSSIL,   LLIGHTNOX, LMONOT    
       USE LOGICAL_MOD, ONLY : LNEI99,   LSHIPSO2,  LSOILNOX,  LTOMSAI   
-      USE LOGICAL_MOD, ONLY : LWOODCO
+      USE LOGICAL_MOD, ONLY : LWOODCO,  LMEGAN
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
 
 #     include "CMN_SIZE"    ! Size parameters
@@ -1260,9 +1285,9 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:6' )
       READ( SUBSTRS(1:N), * ) LBIOGENIC
 
-      ! Scale Isoprene to Monoterpenes?
+      ! Use MEGAN biogenic emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:7' )
-      READ( SUBSTRS(1:N), * ) LMONOT
+      READ( SUBSTRS(1:N), * ) LMEGAN
 
       ! Include biomass emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:8' )
@@ -1314,6 +1339,9 @@
       LFOSSIL = LANTHRO
       LWOODCO = LBIOFUEL
       LBIONOX = LBIOMASS
+
+      ! Set LMEGAN=F if emissions are turned off
+      LMEGAN  = ( LMEGAN .and. LEMIS )
       
       ! Turn off full-chem only switches 
       IF ( .not. ITS_A_FULLCHEM_SIM() ) THEN
@@ -1333,7 +1361,7 @@
       WRITE( 6, 110     ) 'ANTHRO scale factor year    : ', FSCALYR
       WRITE( 6, 100     ) 'Turn on BIOFUEL emissions?  : ', LFOSSIL
       WRITE( 6, 100     ) 'Turn on BIOGENIC emissions? : ', LBIOGENIC
-      WRITE( 6, 100     ) 'Scale ISOP to MONOTERPENES? : ', LMONOT
+      WRITE( 6, 100     ) 'Use MEGAN biogenic emissions: ', LMEGAN
       WRITE( 6, 100     ) 'Turn on BIOMASS EMISSIONS   : ', LBIOMASS
       WRITE( 6, 100     ) 'Use seasonal BIOMASS emiss? : ', LBBSEA
       WRITE( 6, 100     ) 'Scale BIOMASS to TOMS-AI?   : ', LTOMSAI
@@ -3517,21 +3545,23 @@
 !******************************************************************************
 !  Subroutine VALIDATE_DIRECTORIES makes sure that each of the directories
 !  that we have read from the GEOS-CHEM input file are valid.  Also, trailing
-!  separator characters will be added. (bmy, 7/20/04, 10/3/05)
+!  separator characters will be added. (bmy, 7/20/04, 10/24/05)
 !
 !  NOTES:
 !  (1 ) Now make sure all USE statements are USE, ONLY.  Now also validate
 !        GCAP and GEOS-5 directories. (bmy, 10/3/05)
+!  (2 ) Now references DATA_DIR_1x1 from directory_mod.f (bmy, 10/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_1_DIR 
-      USE DIRECTORY_MOD, ONLY : GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR 
-      USE DIRECTORY_MOD, ONLY : GEOS_5_DIR, O3PL_DIR,   OH_DIR     
-      USE DIRECTORY_MOD, ONLY : RUN_DIR,    TEMP_DIR,   TPBC_DIR   
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,    DATA_DIR_1x1, GCAP_DIR
+      USE DIRECTORY_MOD, ONLY : GEOS_1_DIR,  GEOS_S_DIR,   GEOS_3_DIR
+      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR,  GEOS_5_DIR,   O3PL_DIR  
+      USE DIRECTORY_MOD, ONLY : OH_DIR,      RUN_DIR,      TEMP_DIR
+      USE DIRECTORY_MOD, ONLY : TPBC_DIR   
       USE GRID_MOD,      ONLY : ITS_A_NESTED_GRID 
       USE LOGICAL_MOD,   ONLY : LWINDO,      LUNZIP
-      USE TIME_MOD,      ONLY : EXPAND_DATE, GET_NYMDb, GET_NYMDe
+      USE TIME_MOD,      ONLY : EXPAND_DATE, GET_NYMDb,    GET_NYMDe
 
 #     include "define.h" 
 
@@ -3548,10 +3578,11 @@
       NYMDe = GET_NYMDe()
 
       ! Check directories
-      CALL CHECK_DIRECTORY( DATA_DIR )
-      CALL CHECK_DIRECTORY( RUN_DIR  )
-      CALL CHECK_DIRECTORY( OH_DIR   )
-      CALL CHECK_DIRECTORY( O3PL_DIR )
+      CALL CHECK_DIRECTORY( DATA_DIR     )
+      CALL CHECK_DIRECTORY( DATA_DIR_1x1 )
+      CALL CHECK_DIRECTORY( RUN_DIR      )
+      CALL CHECK_DIRECTORY( OH_DIR       )
+      CALL CHECK_DIRECTORY( O3PL_DIR     )
 
       ! Only validate the TEMP_DIR if we are unzipping met fields
       IF ( LUNZIP ) CALL CHECK_DIRECTORY( TEMP_DIR )
@@ -3838,12 +3869,13 @@
 !
 !******************************************************************************
 !  Subroutine INIT_INPUT initializes all variables from "directory_mod.f" and
-!  "logical_mod.f" for safety's sake. (bmy, 7/20/04, 10/3/05)
+!  "logical_mod.f" for safety's sake. (bmy, 7/20/04, 10/20/05)
 !
 !  NOTES:
 !  (1 ) Now also initialize LNEI99 from "logical_mod.f" (bmy, 11/5/04)
 !  (2 ) Now also initialize LAVHRRLAI from "logical_mod.f" (bmy, 12/20/04)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (4 ) Now also initialize LMEGAN switch (tmf, bmy, 10/20/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3865,7 +3897,8 @@
       USE LOGICAL_MOD,   ONLY : LFILL,      LMFCT,      LTRAN      
       USE LOGICAL_MOD,   ONLY : LTPFV,      LUPBD,      LWINDO     
       USE LOGICAL_MOD,   ONLY : LUNZIP,     LWAIT,      LTURB      
-      USE LOGICAL_MOD,   ONLY : LSVGLB,     LSPLIT,     LWETD      
+      USE LOGICAL_MOD,   ONLY : LSVGLB,     LSPLIT,     LWETD 
+      USE LOGICAL_MOD,   ONLY : LMEGAN
 
       !=================================================================
       ! INIT_INPUT begins here!
@@ -3911,6 +3944,7 @@
       LFFNOX     = .FALSE.
       LFOSSIL    = .FALSE.
       LLIGHTNOX  = .FALSE.
+      LMEGAN     = .FALSE.
       LMONOT     = .FALSE.
       LNEI99     = .FALSE.
       LSHIPSO2   = .FALSE.

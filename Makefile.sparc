@@ -1,6 +1,6 @@
-# $Id: Makefile.sparc,v 1.27 2005/09/02 15:16:53 bmy Exp $
+# $Id: Makefile.sparc,v 1.28 2005/10/27 13:59:48 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for SUN/Sparc (bmy, Mon Aug 22 15:39:32 2005)
+# GEOS-CHEM Makefile for SUN/Sparc (bmy, Thu Oct 20 16:19:12 2005)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -12,7 +12,6 @@ F90 = $(FFLAGS) -Dmultitask -openmp
 
 # F90 options -- single processor
 #F90 = $(FFLAGS)
-
 
 OBJS =                    \
 CO_strat_pl.o             \
@@ -85,10 +84,10 @@ soiltype.o                \
 subfun.o                  \
 sunparam.o                \
 tcorr.o                   \
-test_tropopause.o         \
 tropopause.o              \
 update.o                  \
-xltmmp.o                  
+xltmmp.o                  \
+xtra_read_mod.o           
 
 FJ =                      \
 BLKSLV.o                  \
@@ -134,6 +133,7 @@ bpch2_mod.o               \
 pressure_mod.o            \
 transfer_mod.o            \
 tropopause_mod.o          \
+lai_mod.o                 \
 tracerid_mod.o            \
 benchmark_mod.o           \
 comode_mod.o              \
@@ -168,13 +168,15 @@ aircraft_nox_mod.o        \
 biofuel_mod.o             \
 biomass_mod.o             \
 c2h6_mod.o                \
-carbon_mod.o              \
 ch3i_mod.o                \
 a3_read_mod.o             \
 a6_read_mod.o             \
 i6_read_mod.o             \
 phis_read_mod.o           \
 gwet_read_mod.o           \
+xtra_read_mod.o           \
+megan_mod.o               \
+carbon_mod.o              \
 lightning_nox_mod.o       \
 optdepth_mod.o            \
 planeflight_mod.o         \
@@ -329,10 +331,12 @@ jsparse.o                  : jsparse.F                  CMN_SIZE define.h comode
 julday_mod.o               : julday_mod.F               
 jv_index.o                 : jv_index.F                 cmn_fj.h CMN_SIZE define.h comode.h 
 ksparse.o                  : ksparse.F                  CMN_SIZE define.h comode.h 
-lightning_nox_mod.o        : lightning_nox_mod.F        CMN_DIAG CMN_GCTM CMN_NOX CMN_SIZE define.h 
+lai_mod.o                  : lai_mod.F                  CMN_SIZE define.h 
+lightning_nox_mod.o        : lightning_nox_mod.F        CMN_DIAG CMN_GCTM CMN_NOX CMN_SIZE define.h define.h 
 logical_mod.o              : logical_mod.F              
 lump.o                     : lump.F                     CMN_SIZE define.h comode.h 
 main.o                     : main.F                     CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h comode.h 
+megan_mod.o                : megan_mod.F                CMN_GCTM CMN_SIZE define.h 
 mercury_mod.o              : mercury_mod.F              CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h 
 ndxx_setup.o               : ndxx_setup.F               CMN_DIAG CMN_SIZE define.h 
 ocean_mercury_mod.o        : ocean_mercury_mod.F        CMN_DEP CMN_SIZE define.h 
@@ -384,7 +388,6 @@ sunparam.o                 : sunparam.F
 tagged_co_mod.o            : tagged_co_mod.F            CMN_DIAG CMN_O3 CMN_SIZE define.h 
 tagged_ox_mod.o            : tagged_ox_mod.F            CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h 
 tcorr.o                    : tcorr.F                    
-test_tropopause.o          : test_tropopause.F          CMN CMN_SIZE define.h 
 time_mod.o                 : time_mod.F                 define.h 
 toms_mod.o                 : toms_mod.F                 CMN_SIZE define.h 
 tpcore_bc_mod.o            : tpcore_bc_mod.F            CMN CMN_SIZE define.h 
@@ -406,6 +409,7 @@ update.o                   : update.F                   CMN_SIZE define.h comode
 uvalbedo_mod.o             : uvalbedo_mod.F             CMN_SIZE define.h 
 wetscav_mod.o              : wetscav_mod.F              CMN_DIAG CMN_SIZE define.h 
 xltmmp.o                   : xltmmp.F                   CMN_SIZE define.h 
+xtra_read_mod.o            : xtra_read_mod.F            CMN_DIAG CMN_SIZE define.h 
 
 #=============================================================================
 #  Other Makefile Commands

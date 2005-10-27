@@ -1,10 +1,10 @@
-! $Id: gwet_read_mod.f,v 1.7 2005/10/20 14:03:29 bmy Exp $
+! $Id: gwet_read_mod.f,v 1.8 2005/10/27 13:59:58 bmy Exp $
       MODULE GWET_READ_MOD
 !
 !******************************************************************************
 !  Module GWET_READ_MOD contains routines that unzip, open, and 
 !  read the GEOS-CHEM GWET (avg 3-hour) met fields from disk. 
-!  (tdf, bmy, 3/30/04, 3/23/05)
+!  (tdf, bmy, 3/30/04, 10/24/05)
 !
 !  NOTE: GWET fields are included in GEOS-4 met data, so we only need this
 !        module to read GWET data from other GMAO data sets. (bmy, 3/30/04)
@@ -12,12 +12,12 @@
 !  Module Routines:
 !  =========================================================================
 !  (1 ) UNZIP_GWET_FIELDS : Unzips & copies met field files to a temp dir
-!  (2 ) DO_OPEN_GWET      : Returns TRUE if it's time to read A-3 fields
+!  (2 ) DO_OPEN_GWET      : Returns TRUE if it's time to read GWET fields
 !  (3 ) OPEN_GWET_FIELDS  : Opens met field files residing in the temp dir
 !  (4 ) GET_GWET_FIELDS   : Wrapper for routine READ_GWET
 !  (5 ) CHECK_TIME        : Tests if GWET met field times equal current time
-!  (6 ) READ_GWET         : Reads A-3 fields from disk
-!  (7 ) GWET_CHECK        : Checks if we have found all of the A-3 fields
+!  (6 ) READ_GWET         : Reads GWET fields from disk
+!  (7 ) GWET_CHECK        : Checks if we have found all of the GWET fields
 ! 
 !  GEOS-CHEM modules referenced by gwet_read_mod.f
 !  ============================================================================
@@ -37,6 +37,7 @@
 !  (2 ) Now references "directory_mod.f", "logical_mod.f", and 
 !        "unix_cmds_mod.f" (bmy, 7/20/04)
 !  (3 ) Now references FILE_EXISTS from "file_mod.f" (bmy, 3/23/05)
+!  (4 ) Updated comments (bmy, 10/24/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -60,14 +61,14 @@
 !
 !******************************************************************************
 !  Subroutine UNZIP_GWET_FIELDS invokes a FORTRAN system call to uncompress
-!  GEOS-CHEM A-3 met field files and store the uncompressed data in a 
+!  GEOS-CHEM GWET met field files and store the uncompressed data in a 
 !  temporary directory, where GEOS-CHEM can read them.  The original data 
 !  files are not disturbed.  (tdf, bmy, 3/30/04, 7/20/04)
 !
 !  Arguments as input:
 !  ============================================================================
 !  (1 ) OPTION (CHAR*(*)) : Option
-!  (2 ) NYMD   (INTEGER ) : YYYYMMDD of A-3 file to be unzipped (optional)
+!  (2 ) NYMD   (INTEGER ) : YYYYMMDD of GWET file to be unzipped (optional)
 !
 !  NOTES:
 !  (1 ) Adapted from "a3_read_mod.f" (tdf, bmy, 3/30/04)
@@ -128,14 +129,14 @@
          CALL EXPAND_DATE( GEOS_DIR, NYMD, 000000 )
          CALL EXPAND_DATE( GWET_STR, NYMD, 000000 )
 
-         ! Location of zipped A-3 file in data dir
+         ! Location of zipped GWET file in data dir
          GWET_FILE_GZ = TRIM( DATA_DIR   ) // TRIM( GEOS_DIR   ) // 
      &                  TRIM( GWET_STR   ) // TRIM( ZIP_SUFFIX )
 
-         ! Location of unzipped A-3 file in temp dir
+         ! Location of unzipped GWET file in temp dir
          GWET_FILE    = TRIM( TEMP_DIR   ) // TRIM( GWET_STR   )
          
-         ! Remove A-3 files for this date from temp dir
+         ! Remove GWET files for this date from temp dir
          REMOVE_DATE  = TRIM( REMOVE_CMD ) // ' '                // 
      &                  TRIM( TEMP_DIR   ) // TRIM( GWET_STR   )
 
@@ -152,7 +153,7 @@
       ENDIF
 
       !=================================================================
-      ! Define command to remove all A-3 files from the TEMP dir
+      ! Define command to remove all GWET files from the TEMP dir
       !=================================================================
       REMOVE_ALL = TRIM( REMOVE_CMD ) // ' '    // TRIM( TEMP_DIR   ) // 
      &             TRIM( WILD_CARD  ) // '.gwet.' // TRIM( WILD_CARD  ) 
@@ -162,7 +163,7 @@
       !=================================================================
       SELECT CASE ( TRIM( OPTION ) )
          
-         ! Unzip A-3 fields in the Unix foreground
+         ! Unzip GWET fields in the Unix foreground
          CASE ( 'unzip foreground' )
             WRITE( 6, 100 ) TRIM( GWET_FILE_GZ )
             CALL SYSTEM( TRIM( UNZIP_FG ) )
@@ -185,7 +186,7 @@
          ! Error -- bad option!
          CASE DEFAULT
             CALL ERROR_STOP( 'Invalid value for OPTION!', 
-     &                       'UNZIP_gwet_FIELDS (gwet_read_mod.f)' )
+     &                       'UNZIP_GWET_FIELDS (gwet_read_mod.f)' )
             
       END SELECT
 
@@ -195,21 +196,21 @@
  120  FORMAT( '     - About to execute command: ', a )
 
       ! Return to calling program
-      END SUBROUTINE UNZIP_gwet_FIELDS
+      END SUBROUTINE UNZIP_GWET_FIELDS
 
 !------------------------------------------------------------------------------
 
       FUNCTION DO_OPEN_GWET( NYMD, NHMS ) RESULT( DO_OPEN )
 !
 !******************************************************************************
-!  Function DO_OPEN_GWET returns TRUE if is time to open the A-3 met field 
+!  Function DO_OPEN_GWET returns TRUE if is time to open the GWET met field 
 !  file or FALSE otherwise.  This prevents us from opening a file which has 
 !  already been opened. (tdf, bmy, 3/30/04)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) NYMD (INTEGER) : YYYYMMDD 
-!  (2 ) NHMS (INTEGER) :  and HHMMSS to be tested for A-3 file open
+!  (2 ) NHMS (INTEGER) :  and HHMMSS to be tested for GWET file open
 !
 !  NOTES:
 !******************************************************************************
@@ -236,7 +237,7 @@
          GOTO 999
       ENDIF
 
-      ! Open A-3 file if it's 00:00 GMT, or on the first call
+      ! Open GWET file if it's 00:00 GMT, or on the first call
       IF ( NHMS == 000000 .or. FIRST ) THEN
          DO_OPEN = .TRUE. 
          GOTO 999
@@ -338,7 +339,7 @@
      &             TRIM( GEOS_DIR ) // TRIM( GWET_FILE )
          ENDIF
 
-         ! Close previously opened A-3 file
+         ! Close previously opened GWET file
          CLOSE( IU_GWET )
          
          ! Make sure file unit is valid before we open the file
@@ -398,10 +399,10 @@
       ! GET_GWET_FIELDS begins here!
       !=================================================================
 
-      ! Skip over previously-read A-3 fields
+      ! Skip over previously-read GWET fields
       IF ( NYMD == LASTNYMD .and. NHMS == LASTNHMS ) THEN
          WRITE( 6, 100 ) NYMD, NHMS
- 100     FORMAT( '     - A-3 met fields for NYMD, NHMS = ', 
+ 100     FORMAT( '     - GWET met fields for NYMD, NHMS = ', 
      &           i8.8, 1x, i6.6, ' have been read already' ) 
          RETURN
       ENDIF
@@ -537,11 +538,11 @@
       NFOUND = 0
 
       !=================================================================
-      ! Read the A-3 fields from disk
+      ! Read the GWET fields from disk
       !=================================================================
       DO
 
-         ! Read the A-3 field name
+         ! Read the GWET field name
          READ( IU_GWET, IOSTAT=IOS ) NAME
 
          ! End of file test -- make sure we have found all fields
@@ -553,7 +554,7 @@
          ! IOS > 0: True I/O error; stop w/ err msg
          IF ( IOS > 0 ) CALL IOERROR( IOS, IU_GWET, 'read_gwet:1' )
 
-         ! CASE statement for A-3 fields
+         ! CASE statement for GWET fields
          SELECT CASE ( TRIM( NAME ) )
 
             !--------------------------------
@@ -587,28 +588,7 @@
       !=================================================================
       ! ND67 diagnostic: A-3 surface fields:
       !
-      ! (1 ) HFLUX  : sensible heat flux from surface    [W/m2]  
-      ! (2 ) RADSWG : solar radiation @ ground           [W/m2]  
-      ! (3 ) PREACC : total precip. @ ground             [mm/day] 
-      ! (4 ) PRECON : conv.  precip. @ ground            [mm/day] 
-      ! (5 ) TS     : surface air temperature            [K]    
-      ! (6 ) RADSWT : solar radiation @ atm. top         [W/m2]  
-      ! (7 ) USTAR  : friction velocity                  [m/s]   
-      ! (8 ) Z0     : surface roughness height           [m]    
-      ! (9 ) PBL    : planetary boundary layer depth     [hPa]   
-      ! (10) CLDFRC : column cloud fraction              [unitless]  
-      ! (11) U10M   : U-winds @ 10 meters altitude       [m/s]   
-      ! (12) V10M   : V-winds @ 10 meters altitude       [m/s]   
-      ! (13) PS-PBL : Boundary Layer Top Pressure        [hPa]
-      ! (14) ALBD   : Surface Albedo                     [unitless]
-      ! (15) PHIS   : Geopotential Heights               [m]      
-      ! (16) CLTOP  : Cloud Top Height                   [levels]
-      ! (17) TROPP  : Tropopause pressure                [hPa] 
-      ! (18) SLP    : Sea Level pressure                 [hPa]
-      ! (19) TSKIN  : Ground/sea surface temp.           [hPa]  
-      ! (20) PARDF  : Photosyn active diffuse radiation  [W/m2]
-      ! (21) PARDR  : Photosyn active direct  radiation  [W/m2]
-      ! (22) GWET   : Top soil wetness                   [unitless]
+      ! (22) GWET : Top soil wetness [unitless]
       !=================================================================
       IF ( ND67 > 0 ) THEN
          IF ( PRESENT( GWET ) ) AD67(:,:,22) = AD67(:,:,22) + GWET
@@ -622,13 +602,13 @@
       SUBROUTINE GWET_CHECK( NFOUND, N_GWET )
 !
 !******************************************************************************
-!  Subroutine GWET_CHECK prints an error message if not all of the A-3 met 
+!  Subroutine GWET_CHECK prints an error message if not all of the GWET met 
 !  fields are found.  The run is also terminated. (tdf, bmy, 3/30/04)
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) NFOUND (INTEGER) : # of A-3 met fields read from disk
-!  (2 ) N_GWET (INTEGER) : # of A-3 met fields expected to be read from disk
+!  (1 ) NFOUND (INTEGER) : # of GWET met fields read from disk
+!  (2 ) N_GWET (INTEGER) : # of GWET met fields expected to be read from disk
 !
 !  NOTES
 !  (1 ) Adapted from "a3_read_mod.f" (bmy, 3/30/04)
@@ -663,4 +643,5 @@
 
 !------------------------------------------------------------------------------
 
+      ! End of module
       END MODULE GWET_READ_MOD

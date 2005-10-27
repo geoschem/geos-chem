@@ -1,10 +1,10 @@
-! $Id: tpcore_bc_mod.f,v 1.8 2005/10/20 14:03:42 bmy Exp $
+! $Id: tpcore_bc_mod.f,v 1.9 2005/10/27 14:00:06 bmy Exp $
       MODULE TPCORE_BC_MOD
 !
 !******************************************************************************
 !  Module TPCORE_BC_MOD contains modules and variables which are needed to
 !  save and read TPCORE nested-grid boundary conditions to/from disk.
-!  (yxw, bmy, 3/4/03, 10/3/05)
+!  (yxw, bmy, 3/4/03, 10/24/05)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -130,6 +130,7 @@
 !        "logical_mod.f" (bmy, 7/20/04)
 !  (3 ) Now get HALFPOLAR for GEOS or GCAP grids (bmy, 6/28/05)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (5 ) Rename arguments in GET_4x5_BC to avoid name conflict (bmy, 10/24/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -582,7 +583,13 @@
 
 !------------------------------------------------------------------------------
 
-      FUNCTION GET_4x5_BC( I1x1, J1x1, L1x1, N1x1 ) RESULT( VALUE )
+      !------------------------------------------------------------------
+      ! Prior to 10/24/05:
+      ! I1x1, J1x1 are now parameters in CMN_SIZE, so rename
+      ! these arguments by including an underscore (bmy, 10/24/05)
+      !FUNCTION GET_4x5_BC( I1x1, J1x1, L1x1, N1x1 ) RESULT( VALUE )
+      !------------------------------------------------------------------
+      FUNCTION GET_4x5_BC( I_1x1, J_1x1, L_1x1, N_1x1 ) RESULT( VALUE )
 !
 !******************************************************************************
 !  Function GET_4x5_BC returns a value from the 4x5 BC boundary conditions
@@ -600,12 +607,14 @@
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) I1x1 (INTEGER) : Longitude index of 1x1 grid box
-!  (2 ) J1x1 (INTEGER) : Latitude  index of 1x1 grid box
-!  (3 ) L1x1 (INTEGER) : Altitude  index of 1x1 grid box
-!  (4 ) N1x1 (INTEGER) : Tracer    index of 1x1 grid box
+!  (1 ) I_1x1 (INTEGER) : Longitude index of 1x1 grid box
+!  (2 ) J_1x1 (INTEGER) : Latitude  index of 1x1 grid box
+!  (3 ) L_1x1 (INTEGER) : Altitude  index of 1x1 grid box
+!  (4 ) N_1x1 (INTEGER) : Tracer    index of 1x1 grid box
 !
 !  NOTES:
+!  (1 ) Rename arguments to avoid conflict w/ I1x1, J1x1 parameters in 
+!        CMN_SIZE. (bmy, 10/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -615,7 +624,11 @@
 #     include "CMN"        ! NTRACE
 
       ! Arguments
-      INTEGER, INTENT(IN)  :: I1x1, J1x1, L1x1, N1x1
+      !---------------------------------------------------------
+      ! Prior to 10/24/05:
+      !INTEGER, INTENT(IN)  :: I1x1, J1x1, L1x1, N1x1
+      !---------------------------------------------------------
+      INTEGER, INTENT(IN)  :: I_1x1, J_1x1, L_1x1, N_1x1
 
       ! Local variables
       LOGICAL, SAVE        :: FIRST = .TRUE.
@@ -711,22 +724,41 @@
 
       !=============================================================
       ! Locate the tracer concentration at the 4x5 box which 
-      ! corresponds to the 1x1 box (I1x1, J1x1, L1x1, N1x1)
+      ! corresponds to the 1x1 box (I_1x1, J_1x1, L_1x1, N_1x1)
       !=============================================================
 
+      !---------------------------------------------------------------------
+      ! Prior to 10/24/05:
+      ! Rename arguments to avoid conflict w/ CMN_SIZE (bmy, 10/24/05)
+      !! Get lon indices
+      !II  = MAP1x1( I1x1, J1x1, 1 ) - I0_BC
+      !
+      !! Get lat indices
+      !JJ  = MAP1x1( I1x1, J1x1, 2 ) - J0_BC
+      !JJ1 = MAP1x1( I1x1, J1x1, 3 ) - J0_BC
+      !
+      !! Locate the 4x5 box(es) corresponding to the 1x1 box
+      !! If our 1x1 box straddles 2 4x5 boxes, average the 4x5 values
+      !IF ( MAP1x1( I1x1, J1x1, 3 ) > 0 ) THEN
+      !   VALUE = 0.5 * ( BC(II,JJ,L1x1,N1x1) + BC(II,JJ1,L1x1,N1x1) )
+      !ELSE
+      !   VALUE = BC(II,JJ,L1x1,N1x1)
+      !ENDIF
+      !---------------------------------------------------------------------
+
       ! Get lon indices
-      II  = MAP1x1( I1x1, J1x1, 1 ) - I0_BC
+      II  = MAP1x1( I_1x1, J_1x1, 1 ) - I0_BC
 
       ! Get lat indices
-      JJ  = MAP1x1( I1x1, J1x1, 2 ) - J0_BC
-      JJ1 = MAP1x1( I1x1, J1x1, 3 ) - J0_BC
+      JJ  = MAP1x1( I_1x1, J_1x1, 2 ) - J0_BC
+      JJ1 = MAP1x1( I_1x1, J_1x1, 3 ) - J0_BC
 
       ! Locate the 4x5 box(es) corresponding to the 1x1 box
       ! If our 1x1 box straddles 2 4x5 boxes, average the 4x5 values
-      IF ( MAP1x1( I1x1, J1x1, 3 ) > 0 ) THEN
-         VALUE = 0.5 * ( BC(II,JJ,L1x1,N1x1) + BC(II,JJ1,L1x1,N1x1) )
+      IF ( MAP1x1( I_1x1, J_1x1, 3 ) > 0 ) THEN
+         VALUE = 0.5 * ( BC(II,JJ,L_1x1,N_1x1) + BC(II,JJ1,L_1x1,N_1x1))
       ELSE
-         VALUE = BC(II,JJ,L1x1,N1x1)
+         VALUE = BC(II,JJ,L_1x1,N_1x1)
       ENDIF
 
       ! Return to calling program
@@ -775,8 +807,8 @@
       ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : TPBC_DIR
       USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE GRID_MOD,      ONLY : GET_XOFFSET, GET_YOFFSET, 
-     &                          ITS_A_NESTED_GRID
+      USE GRID_MOD,      ONLY : GET_XOFFSET, GET_YOFFSET 
+      USE GRID_MOD,      ONLY : ITS_A_NESTED_GRID
       USE LOGICAL_MOD,   ONLY : LWINDO
       USE TRACER_MOD,    ONLY : N_TRACERS
 

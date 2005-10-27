@@ -1,10 +1,10 @@
-! $Id: file_mod.f,v 1.8 2005/10/20 14:03:26 bmy Exp $
+! $Id: file_mod.f,v 1.9 2005/10/27 13:59:57 bmy Exp $
       MODULE FILE_MOD
 !
 !******************************************************************************
 !  Module FILE_MOD contains file unit numbers, as well as file I/O routines
 !  for GEOS-CHEM.  FILE_MOD keeps all of the I/O unit numbers in a single
-!  location for convenient access. (bmy, 7/1/02, 10/18/05)
+!  location for convenient access. (bmy, 7/1/02, 10/20/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -54,6 +54,7 @@
 !        IU_INPUT since they are now obsolete. (bmy, 7/20/04)
 !  (9 ) Added overloaded routines FILE_EX_C and FILE_EX_I (bmy, 3/23/05)
 !  (10) Added LINUX_IFORT switch for Intel v8 & v9 compilers (bmy, 10/18/05)
+!  (11) Added IU_XT for GEOS3 XTRA met fields files for MEGAN (tmf, 10/20/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -90,6 +91,7 @@
       INTEGER, PARAMETER :: IU_A3      = 73
       INTEGER, PARAMETER :: IU_KZZ     = 74
       INTEGER, PARAMETER :: IU_GWET    = 75
+      INTEGER, PARAMETER :: IU_XT      = 76
       INTEGER, PARAMETER :: IU_SMV2LOG = 93
       INTEGER, PARAMETER :: IU_DEBUG   = 98
 
@@ -385,13 +387,14 @@
 !
 !******************************************************************************
 !  Subroutine CLOSE_FILES closes files used by GEOS-CHEM.  This should be
-!  called only from the end of the "main.f" program. (bmy, 3/4/98, 7/20/04)
+!  called only from the end of the "main.f" program. (bmy, 3/4/98, 10/20/05)
 !
 !  NOTES:
 !  (1 ) Moved into "file_mod.f" (bmy, 6/27/02)
 !  (2 ) Also close IU_BC (bmy, 3/27/03)
 !  (3 ) Removed IU_INPUT and IU_INPTR, these are obsolete.  Also renamed
 !        IU_TS to IU_ND48 (bmy, 7/20/04)
+!  (4 ) Also close IU_XT (tmf, bmy, 10/20/05)
 !******************************************************************************
 !     
       !=================================================================
@@ -417,6 +420,7 @@
       CLOSE( IU_A3      )
       CLOSE( IU_KZZ     )
       CLOSE( IU_GWET    )
+      CLOSE( IU_XT      )
       CLOSE( IU_SMV2LOG )
       CLOSE( IU_DEBUG   )
 

@@ -1,11 +1,11 @@
-! $Id: seasalt_mod.f,v 1.7 2005/09/02 15:17:22 bmy Exp $
+! $Id: seasalt_mod.f,v 1.8 2005/10/27 14:00:03 bmy Exp $
       MODULE SEASALT_MOD
 !
 !******************************************************************************
 !  Module SEASALT_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline seasalt aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (bec, rjp, bmy, 6/22/00, 4/13/05)
+!  (bec, rjp, bmy, 6/22/00, 10/25/05)
 !
 !  Seasalt aerosol species: (1) Accumulation mode (usually 0.1 -  0.5 um)
 !                           (2) Coarse mode       (usually 0.5 - 10.0 um)
@@ -69,6 +69,7 @@
 !  (2 ) Added error check in EMISSSEASALT (bmy, 1/20/05)
 !  (3 ) Now references "pbl_mix_mod.f" (bmy, 2/22/05)
 !  (4 ) Added routine GET_ALK to account for alkalinity. (bec, bmy, 4/13/05)
+!  (5 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -197,7 +198,7 @@
 !
 !******************************************************************************
 !  Subroutine WET_SETTLING performs wet settling of sea salt.
-!  (bec, rjp, bmy, 4/20/04, 7/20/04)
+!  (bec, rjp, bmy, 4/20/04, 10/25/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -211,6 +212,7 @@
 !  NOTES:
 !  (1 ) Now references SALA_REDGE_um and SALC_REDGE_um from "tracer_mod.f"
 !        (bmy, 7/20/04)
+!  (2 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -218,7 +220,7 @@
       USE DIAG_MOD,      ONLY : AD44
       USE DRYDEP_MOD,    ONLY : DEPSAV
       USE PRESSURE_MOD,  ONLY : GET_PCENTER
-      USE TRACER_MOD,    ONLY : SALA_REDGE_um, SALC_REDGE_um
+      USE TRACER_MOD,    ONLY : SALA_REDGE_um, SALC_REDGE_um, XNUMOL
       USE TRACERID_MOD,  ONLY : IDTSALA,       IDTSALC
       USE TIME_MOD,      ONLY : GET_TS_CHEM
       USE GRID_MOD,      ONLY : GET_AREA_CM2
@@ -226,7 +228,10 @@
 #     include "CMN_SIZE"      ! Size parameters
 #     include "CMN_GCTM"      ! g0
 #     include "CMN_DIAG"      ! ND44
-#     include "CMN_O3"        ! XNUMOL
+!------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"        ! XNUMOL
+!------------------------------------------
 
       ! Argumetns
       INTEGER, INTENT(IN)    :: N
@@ -426,11 +431,13 @@
 !  (1 ) TC (REAL*8 ) : Contains modified tracer
 !
 !  NOTES:
+!  (1 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIAG_MOD,     ONLY : AD44
-      USE DRYDEP_MOD,   ONLY : DEPSAV   
+      USE DRYDEP_MOD,   ONLY : DEPSAV 
+      USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTSALA,   IDTSALC
       USE TIME_MOD,     ONLY : GET_MONTH, GET_TS_CHEM
       USE GRID_MOD,     ONLY : GET_AREA_CM2
@@ -438,7 +445,10 @@
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_GCTM"     ! g0
 #     include "CMN_DIAG"     ! ND44
-#     include "CMN_O3"       ! XNUMOL
+!-------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"       ! XNUMOL
+!-------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)    :: N
@@ -586,7 +596,7 @@
 !  Subroutine SRCSALT updates the surface mixing ratio of dry sea salt
 !  aerosols for NSALT size bins.  The generation of sea salt aerosols
 !  has been parameterized following Monahan et al. [1986] parameterization
-!  as described by Gong et al. [1997].  (bec, rjp, bmy, 4/20/04, 2/22/05)
+!  as described by Gong et al. [1997].  (bec, rjp, bmy, 4/20/04, 10/25/05)
 ! 
 !  Contact: Becky Alexander (bec@io.harvard.edu) or 
 !           Rokjin Park     (rjp@io.harvard.edu)
@@ -618,6 +628,7 @@
 !        "pressure_mod.f".  (bmy, 2/22/05)
 !  (3 ) Now also compute alkalinity and number density of seasalt emissions.
 !        (bec, bmy, 4/13/05)
+!  (4 ) Now references XNUMOL & XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -627,10 +638,13 @@
       USE GRID_MOD,      ONLY : GET_AREA_M2
       USE PBL_MIX_MOD,   ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE TIME_MOD,      ONLY : GET_TS_EMIS
-      USE TRACER_MOD,    ONLY : SALA_REDGE_um, SALC_REDGE_um
+      USE TRACER_MOD,    ONLY : SALA_REDGE_um, SALC_REDGE_um, XNUMOL
 
 #     include "CMN_SIZE"      ! Size parameters
-#     include "CMN_O3"        ! XNUMOL
+!--------------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"        ! XNUMOL
+!--------------------------------------------------
 #     include "CMN_DIAG"      ! ND44, ND08
 #     include "CMN_GCTM"      ! PI
 

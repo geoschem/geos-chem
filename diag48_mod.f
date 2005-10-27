@@ -1,9 +1,9 @@
-! $Id: diag48_mod.f,v 1.9 2005/10/20 14:03:20 bmy Exp $
+! $Id: diag48_mod.f,v 1.10 2005/10/27 13:59:53 bmy Exp $
       MODULE DIAG48_MOD
 !
 !******************************************************************************
 !  Module DIAG48_MOD contains variables and routines to save out 3-D 
-!  timeseries output to disk (bmy, 7/20/04, 10/3/05)
+!  timeseries output to disk (bmy, 7/20/04, 10/25/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -63,6 +63,7 @@
 !  (2 ) Remove TRCOFFSET because it's always zero.  Now call GET_HALFPOLAR
 !        to get the value for GEOS or GCAP grids. (bmy, 6/28/05)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (4 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -120,7 +121,7 @@
 !
 !******************************************************************************
 !  Subroutine DIAG48 saves station time series diagnostics to disk.
-!  (bmy, bey, amf, 6/1/99, 8/2/05)
+!  (bmy, bey, amf, 6/1/99, 10/25/05)
 !
 !  NOTES:
 !  (1 ) Remove reference to "CMN".  Also now get PBL heights in meters and
@@ -134,6 +135,7 @@
 !        GEOS or GCAP grids.  (bmy, 6/28/05)
 !  (4 ) Now do not save SLP data if it is not allocated (bmy, 8/2/05)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (6 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -151,6 +153,7 @@
       USE TIME_MOD,     ONLY : EXPAND_DATE,        ITS_A_NEW_DAY
       USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM, N_TRACERS
       USE TRACER_MOD,   ONLY : STT,                TCVV  
+      USE TRACER_MOD,   ONLY : XNUMOLAIR
       USE TRACERID_MOD, ONLY : IDTHNO3, IDTN2O5, IDTHNO4, IDTNOX
       USE TRACERID_MOD, ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
       USE TRACERID_MOD, ONLY : IDTR4N2, IDTSALA, IDTSALC 

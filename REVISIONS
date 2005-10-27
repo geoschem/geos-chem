@@ -1,168 +1,130 @@
-REVISIONS (v7-03-04)  
-bmy, 18 Oct 2005
+REVISIONS (v7-03-05)  
+bmy, 25 Oct 2005
 
 
-New in v7-03-04:
+New in v7-03-05:
+-------------------------------------------------------------------------------
+
+get_ct_xtra		-- Returns value of CT_XTRA counter 
+("time_mod.f")
+
+lai_mod.f		-- Module for AVHRR LAI variables
+
+megan_mod.f		-- Module for MEGAN biogenic emissions
+
+regrid_1x1_mod.f        -- Module which regrids 1x1 data to other grids
+
+set_ct_xtra		-- Increments CT_XTRA counter 
+("time_mod.f")
+
+xtra_read_mod.f		-- Module for reading GEOS-3 "xtra" met fields
+
+
+
+Removed in v7-03-05:
 -------------------------------------------------------------------------------
 
 
 
 
-Removed in v7-03-03:
+Changed from v7-03-04:
 -------------------------------------------------------------------------------
 
-get_nymd_phis		-- This is no longer needed
-("main.f")
-
-phis_read_mod.f		-- This is no longer needed
-
-
-
-Changed from v7-03-03:
--------------------------------------------------------------------------------
-
-biofuel_burn		-- Eliminate reference to TRACER_MOD, it's obsolete
-("biofuel_mod.f")
-
-chemch4			-- Remove reference to BPCH2_MOD, it's not needed
-("global_ch4_mod.f")
-
-chem_ocpi		-- Bug fix: add BL_FRAC to the PRIVATE list
+biogenic_oc		-- Now can use MEGAN biogenic emissions
 ("carbon_mod.f")
 
-comode.h		-- For COMPAQ, put IRMA, IRMB in /INMTRATE2/ 
-			-- For COMPAQ, declare /INMTRATE2/ THREADPRIVATE
+cleanup.f		-- Now calls CLEANUP_LAI from "lai_mod.f"
+			-- Now calls CLEANUP_MEGAN from "megan_mod.f"
+			-- Now calls CLEANUP_REGRID_1x1 from "regrid_1x1_mod.f"
 
-define.h		-- Added LINUX_IFORT switch to delineate Intel 	
-       			   compilers v8 or v9 from v7.
+cleanup_tracer		-- Now deallocate XNUMOL
+("tracer_mod.f")
 
-display_grid_and_model	-- Now print output for IFORT compiler
-("main.f")
-
-do_drydep		-- Remove reference to TRACERID_MOD, it's not needed
-("drydep_mod.f")
-
-emissc2h6		-- Eliminate reference to BPCH2_MOD, it's obsolete.
-("c2h6_mod.f")
-
-finite_dble		-- Added LINUX_IFORT switch for Intel v8/v9 compilers
-("error_mod.f")
-
-finite_float		-- Added LINUX_IFORT switch for Intel v8/v9 compilers
-("error_mod.f")
-
-fvdas_convect		-- Added LINUX_IFORT switch for Intel v8/v9 compilers
+close_files		-- Also close IU_XT
 ("file_mod.f")
 
-gasconc.f		-- Also remove reference to TRACERID_MOD, 
-			   it's not needed.
+CMN_DIAG		-- Set PD46 to 5
 
-get_epa_anthro		-- Also remove reference to BPCH2_MOD and 
-("epa_nei_mod.f")  	   TRACERID_MOD, they're not needed.
+CMN_O3			-- Removed FO3, FNO2, FNO, these are now obsolete
+			-- Removed EMISRR48, this is now obsolete
+			-- Removed OZCOL, this is now obsolete
 
-get_epa_biofuel		-- Also remove reference to BPCH2_MOD and 
-("epa_nei_mod.f")  	   TRACERID_MOD, they're not needed.
+CMN_SIZE		-- Now add I1x1=360 and J1x1=181 parameters for data 
+			   on the 1x1 GEOS grid
 
-init_biofuel		-- Eliminate reference to TRACER_MOD, it's obsolete
-("biofuel_mod.f")
+diag3.f			-- Added MBO as tracer #5 in ND46 diagnostic
 
-init_biomass		-- Eliminate reference to TRACERID_MOD, it's obsolete
-("biomass_mod.f")
+directory_mod.f		-- Added DATA_DIR_1x1 
 
-ioerror			-- Added LINUX_IFORT switch for Intel v8/v9 compilers
-("file_mod.f")
+emissdr.f		-- Now can use MEGAN inventory for biogenic VOCs
+			-- Now references "megan_mod.f" 
 
-nan_dble		-- Added LINUX_IFORT switch for Intel v8/v9 compilers
-("error_mod.f")
+file_mod.f		-- Added IU_XT for GEOS3 XTRA met fields files 
+			   for MEGAN 
 
-nan_float		-- Added LINUX_IFORT switch for Intel v8/v9 compilers
-("error_mod.f")
+get_4x5_bc		-- Rename arguments to avoid conflict w/ I1x1, 
+("tpcore_bc_mod.f")	   J1x1 parameters in CMN_SIZE.
 
-read_diagnostic_menu	-- Also remove reference to DIAG_MOD, it's not needed
+gwet_read_mod.f		-- Updated comments
+
+init_dao		-- Now also add TSKIN for GEOS-3
+("dao_mod.f")
+
+init_gamap		-- Now save MBO as tracer #5 for ND46
+("gamap_mod.f")
+
+init_input		-- Now also initialize LMEGAN switch
 ("input_mod.f")
 
-soa_depo		-- Bug fix: add BL_FRAC to the PRIVATE list
-("carbon_mod.f")
+init_tracer		-- Now allocate XNUMOL
+("tracer_mod.f")
 
-tpcore			-- Now print output for IFORT compiler
-("tpcore_mod.f")
+initialize.f		-- Now resets SET_CT_XTRA at the beginning of the run
 
-tpcore_window		-- Now print output for IFORT compiler
-("tpcore_mod.f")
+logical_mod.f		-- Added LMEGAN switch for MEGAN biogenics
 
-validate_directories	-- Now also validate GCAP and GEOS-5 directories
+planeflight		-- Now computes column AOD's and AOD's below plane
+("planeflight_mod.f")	-- Now scales AOD's to 400nm
+
+read_emissions_menu	-- Now read LMEGAN -- switch for MEGAN biogenics 
+("input_mod.f")
+
+read_variables		-- Now computes column AOD's and AOD's below plane
+("planeflight_mod.f")
+
+set_timesteps		-- Also zero CT_XTRA
+("time_mod.f")
+
+time_mod.f		-- Added counter variable & routines for XTRA fields
+
+tracer_mod.f		-- Now added XNUMOL, XNUMOLAIR 
+
+validate_directories	-- Now references DATA_DIR_1x1 from directory_mod.f
 ("input_mod.f")
 
 ---
-a3_read_mod.f		-- Make sure all USE commands are USE, ONLY
-a6_read_mod.f		   (to facilitate conversion to ESMF) 
-acetone_mod.f		
-aerosol_mod.f
-anthroems.f
-benchmark_mod.f
-biofuel_mod.f
-biomass_mod.f
-c2h6_mod.f
-carbon_mod.f
-ch3i_mod.f
-chemdr.f
-chemistry_mod.f
-co2_mod.f
-convection_mod.f
-diag03_mod.f
-diag04_mod.f
-diag3.f
-diag41_mod.f
+anthroems.f		-- Now use TRACER_MW_KG ("tracer_mod.f") instead
+epa_nei_mod.f		   of FMOL ("CMN_O3"), in preparation for ESMF
+
+---
+CO_strat_pl.f		-- Now reference XNUMOLAIR from "tracer_mod.f"
+carbon_mod.f		   instead of from "CMN_O3", in preparation for ESMF
+diag1.f
 diag48_mod.f
 diag49_mod.f
 diag50_mod.f
 diag51_mod.f
-diag_pl_mod.f
-drydep_mod.f
-dust_dead_mod.f
-dust_mod.f
-emf_scale.f
-emfossil.f
-emissdr.f
-epa_nei_mod.f
-gamap_mod.f
-gasconc.f
-geia_mod.f
-global_ch4_mod.f
-global_no3_mod.f
-global_nox_mod.f
-gwet_read_mod.f
-hcn_ch3cn_mod.f
-i6_read_mod.f
-input_mod.f  
-lightning_nox_mod.f
-main.f
-mercury_mod.f
-ndxx_setup.f
-ocean_mercury_mod.f
-ohsave.f
-partition.f
-restart_mod.f
-rpmares_mod.f
+input_mod.f
 schem.f
-setemis.f
 sulfate_mod.f
-tagged_co_mod.f
-tagged_ox_mod.f
-toms_mod.f
-tpcore_bc_mod.f
-tracer_mod.f
-tracerid_mod.f
-transport_mod.f
-tropopause_mod.f
 upbdflx_mod.f
-uvalbedo_mod.f
-wetscav_mod.f
 
-
-
-
-
-
-
+---
+carbon_mod.f		-- Now reference XNUMOL from "tracer_mod.f" instead 
+chemdr.f		   of from "CMN_O3", in preparation for ESMF
+dust_mod.f
+emfossil.f
+mercury_mod.f
+sulfate_mod.f
+tagged_ox_mod.f
 

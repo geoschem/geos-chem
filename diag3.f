@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.27 2005/10/20 14:03:19 bmy Exp $
+! $Id: diag3.f,v 1.28 2005/10/27 13:59:52 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out diagnostics to the BINARY format punch file 
-!  (bmy, bey, mgs, rvm, 5/27/99, 10/3/03)
+!  (bmy, bey, mgs, rvm, 5/27/99, 10/20/05)
 !
 !  NOTES: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
@@ -65,6 +65,7 @@
 !        ND30 diagnostic for land/water/ice flags.  Also remove reference
 !        to LWI array. (bmy, 8/18/05)
 !  (62) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (63) Added MBO as tracer #5 in ND46 diagnostic (tmf, bmy, 10/20/05)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -2339,12 +2340,13 @@
 !******************************************************************************
 !  ND46: Biogenic source diagnostic
 !
-!   # : Field : Description  : Units         : Scale Factor
+!   # : Field : Description    : Units         : Scale Factor
 !  ---------------------------------------------------------------------------
-!  (1)  ISOP  : Isoprene     : atoms C/cm2/s : SCALE3
-!  (2)  ACET  : Acetone      : atoms C/cm2/s : SCALE3
-!  (3)  PRPE  : Propene      : atoms C/cm2/s : SCALE3
-!  (4)  MONOT : Monoterpenes : atoms C/cm2/s : SCALE3
+!  (1)  ISOP  : Isoprene       : atoms C/cm2/s : SCALE3
+!  (2)  ACET  : Acetone        : atoms C/cm2/s : SCALE3
+!  (3)  PRPE  : Propene        : atoms C/cm2/s : SCALE3
+!  (4)  MONOT : Monoterpenes   : atoms C/cm2/s : SCALE3
+!  (5)  MBO   : Methyl Butenol : atoms C/cm2/s : SCALE3
 !  
 !  NOTES:
 !  (1) ND46 now uses allocatable array AD46 instead of AIJ (bmy, 3/16/00)
@@ -2353,6 +2355,7 @@
 !       diagnostics. (bnd, bmy, 4/18/00)
 !  (3) Added monoterpenes as tracer #4.  This requires updated versions
 !       of "tracerinfo.dat" and "diaginfo.dat" for GAMAP. (bmy, 1/2/01)
+!  (4) Added MBO as tracer #5. (tmf, bmy, 10/20/05)
 !******************************************************************************
 !
       IF ( ND46 > 0 ) THEN

@@ -1,9 +1,9 @@
-! $Id: chemdr.f,v 1.16 2005/10/20 14:03:16 bmy Exp $
+! $Id: chemdr.f,v 1.17 2005/10/27 13:59:51 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
 !  Subroutine CHEMDR is the driver subroutine for full chemistry w/ SMVGEAR.
-!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 10/3/05)
+!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 10/25/05)
 !
 !  Important input variables from "dao_mod.f" and "uvalbedo_mod.f":
 !  ============================================================================
@@ -142,6 +142,7 @@
 !  (24) Now remove LPAUSE from the arg list to "ruralbox.f" and "gasconc.f".
 !        (bmy, 8/22/05)
 !  (25) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (26) Now references XNUMOL & XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)! 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -159,7 +160,7 @@
       USE LOGICAL_MOD,     ONLY : LPRT,         LSSALT,    LSULF  
       USE PLANEFLIGHT_MOD, ONLY : SETUP_PLANEFLIGHT
       USE TIME_MOD,        ONLY : GET_MONTH,    GET_YEAR,  ITS_A_NEW_DAY
-      USE TRACER_MOD,      ONLY : STT,          N_TRACERS
+      USE TRACER_MOD,      ONLY : STT,          N_TRACERS, XNUMOL
       USE TRACERID_MOD,    ONLY : IDTNOX,       IDTOX,     SETTRACE
       USE UVALBEDO_MOD,    ONLY : UVALBEDO
 

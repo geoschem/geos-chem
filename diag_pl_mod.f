@@ -1,10 +1,10 @@
-! $Id: diag_pl_mod.f,v 1.5 2005/10/20 14:03:21 bmy Exp $
+! $Id: diag_pl_mod.f,v 1.6 2005/10/27 13:59:55 bmy Exp $
       MODULE DIAG_PL_MOD
 !
 !******************************************************************************
 !  Module DIAG_PL_MOD contains variables and routines which are used to 
 !  compute the production and loss of chemical families in SMVGEAR chemistry.
-!  (bmy, 7/20/04, 10/3/05)
+!  (bmy, 7/20/04, 10/25/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -62,13 +62,14 @@
 !  (2 ) Added routine ITS_TIME_FOR_WRITE20 (bmy, 3/3/05)
 !  (3 ) Added functions GET_NFAM, GET_FAM_MWT, GET_FAM_NAME (bmy, 5/2/05)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (5 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !      
       IMPLICIT NONE
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "diag65_mod.f"
+      ! and routines from being seen outside "diag_pl_mod.f"
       !=================================================================
 
       ! Make everything PRIVATE ...
@@ -619,7 +620,7 @@
 !******************************************************************************
 !  Subroutine DIAG20 computes production and loss rates of O3, and 
 !  then calls subroutine WRITE20 to save the these rates to disk. 
-!  (bey, bmy, 6/9/99, 3/3/05)
+!  (bey, bmy, 6/9/99, 10/25/05)
 !
 !  By saving, the production and loss rates from a full-chemistry run,
 !  a user can use these archived rates to perform a quick O3 chemistry
@@ -635,6 +636,7 @@
 !        chemistry timestep is the start of a new day.  Remove reference
 !        to GET_TAUe and GET_TS_CHEM.  Now archive P(Ox) and L(Ox) first
 !        and then test if we have to save the file to disk. (bmy, 3/3/05)
+!  (31) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -643,11 +645,14 @@
       USE TIME_MOD,      ONLY : EXPAND_DATE,   GET_NYMD
       USE TIME_MOD,      ONLY : GET_TAU,       GET_TAUb 
       USE TIME_MOD,      ONLY : ITS_A_NEW_DAY, TIMESTAMP_STRING
-      USE TRACER_MOD,    ONLY : STT
+      USE TRACER_MOD,    ONLY : STT,           XNUMOL
       USE TRACERID_MOD,  ONLY : IDTOX
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_O3"    ! XNUMOL
+!----------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"    ! XNUMOL
+!----------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE     :: FIRST = .TRUE.

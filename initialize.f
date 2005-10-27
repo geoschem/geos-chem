@@ -1,8 +1,8 @@
-! $Id: initialize.f,v 1.16 2005/10/20 14:03:30 bmy Exp $
+! $Id: initialize.f,v 1.17 2005/10/27 13:59:58 bmy Exp $
       SUBROUTINE INITIALIZE( IFLAG )
 !
 !******************************************************************************
-!  Subroutine INITIALIZE (bmy, 6/15/98, 10/3/05) does the following:
+!  Subroutine INITIALIZE (bmy, 6/15/98, 10/20/05) does the following:
 !     (1) Zeroes globally defined GEOS-CHEM variables.
 !     (2) Zeroes accumulating diagnostic arrays.
 !     (3) Resets certain year/month/day and counter variables used 
@@ -158,6 +158,7 @@
 !  (33) Now references ND04, ZERO_DIAG04 from "diag04_mod.f".  Also remove
 !        reference to "CMN" and XTRA2.  Now zeroes AD30 array (bmy, 8/18/05)
 !  (34) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (35) Now resets SET_CT_XTRA at the beginning of the run. (tmf, 10/20/05)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -348,6 +349,7 @@
          CALL SET_CT_DYN(  RESET=.TRUE. )
          CALL SET_CT_EMIS( RESET=.TRUE. )
          CALL SET_CT_I6(   RESET=.TRUE. )
+         CALL SET_CT_XTRA( RESET=.TRUE. )
 
          ! Leave the ND48 counter for now
          KDA48     = 0

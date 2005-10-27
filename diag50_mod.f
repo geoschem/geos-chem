@@ -1,9 +1,9 @@
-! $Id: diag50_mod.f,v 1.11 2005/10/20 14:03:20 bmy Exp $
+! $Id: diag50_mod.f,v 1.12 2005/10/27 13:59:54 bmy Exp $
       MODULE DIAG50_MOD
 !
 !******************************************************************************
 !  Module DIAG50_MOD contains variables and routines to generate 24-hour 
-!  average timeseries data. (amf, bey, bdf, pip, bmy, 11/30/00, 10/3/05)
+!  average timeseries data. (amf, bey, bdf, pip, bmy, 11/30/00, 10/25/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -101,6 +101,7 @@
 !  (7 ) Remove TRCOFFSET since it's always zero.  Also now get HALFPOLAR for
 !        both GCAP and GEOS grids. (bmy, 6/24/05)
 !  (8 ) Bug fix: don't save SLP unless it is allocated (bmy, 8/2/05)
+!  (9 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -205,6 +206,7 @@
 !  (6 ) Remove references to TRCOFFSET because it's always zero (bmy, 6/24/05)
 !  (7 ) Now do not save SLP data if it is not allocated (bmy, 8/2/05)
 !  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (9 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -216,6 +218,7 @@
       USE TIME_MOD,     ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
       USE TIME_MOD,     ONLY : TIMESTAMP_STRING
       USE TRACER_MOD,   ONLY : STT, TCVV, ITS_A_FULLCHEM_SIM, N_TRACERS
+      USE TRACER_MOD,   ONLY : XNUMOLAIR
       USE TRACERID_MOD, ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
       USE TRACERID_MOD, ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
       USE TRACERID_MOD, ONLY : IDTR4N2, IDTSALA, IDTSALC 

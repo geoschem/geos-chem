@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.18 2005/10/20 14:03:39 bmy Exp $
+! $Id: sulfate_mod.f,v 1.19 2005/10/27 14:00:04 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 10/3/05)
+!  (rjp, bdf, bmy, 6/22/00, 10/25/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -196,6 +196,7 @@
 !        for both GCAP and GEOS grids.  Now references "tropopause_mod.f".
 !        (bmy, 8/22/05)
 !  (30) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (31) Now references XNUMOL & XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -597,7 +598,7 @@
 !******************************************************************************
 !  Subroutine GRAV_SETTLING performs gravitational settling of sulfate
 !  and nitrate in coarse sea salt (SO4S and NITS).
-!  (bec, rjp, bmy, 4/20/04, 7/20/04, 12/7/04)
+!  (bec, rjp, bmy, 4/20/04, 7/20/04, 10/25/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -611,6 +612,7 @@
 !  NOTES:
 !  (1 ) Now references SALA_REDGE_um and SALC_REDGE_um from "tracer_mod.f"
 !        (bmy, 7/20/04)
+!  (2 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -618,7 +620,7 @@
       USE DIAG_MOD,      ONLY : AD44
       USE DRYDEP_MOD,    ONLY : DEPSAV
       USE PRESSURE_MOD,  ONLY : GET_PCENTER
-      USE TRACER_MOD,    ONLY : SALA_REDGE_um,   SALC_REDGE_um
+      USE TRACER_MOD,    ONLY : SALA_REDGE_um,   SALC_REDGE_um,  XNUMOL
       USE TRACERID_MOD,  ONLY : IDTSO4s,         IDTNITs
       USE TIME_MOD,      ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
       USE GRID_MOD,      ONLY : GET_AREA_CM2
@@ -626,7 +628,11 @@
 #     include "CMN_SIZE"      ! Size parameters
 #     include "CMN_GCTM"      ! g0
 #     include "CMN_DIAG"      ! ND44
-#     include "CMN_O3"        ! XNUMOL
+!------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"        ! XNUMOL
+!------------------------------------------
+
 
       ! Argumetns
       INTEGER, INTENT(IN)    :: N
@@ -821,7 +827,7 @@
 !******************************************************************************
 !  Subroutine CHEM_DMS is the DMS chemistry subroutine from Mian Chin's    
 !  GOCART model, modified for use with the GEOS-CHEM model.
-!  (rjp, bdf, bmy, 5/31/00, 8/22/05)  
+!  (rjp, bdf, bmy, 5/31/00, 10/25/05)  
 !                                                                           
 !  Module Variables used:                                                     
 !  ============================================================================
@@ -867,6 +873,7 @@
 !        oxidation in sea-salt aerosols (bec, bmy, 4/13/05)
 !  (6 ) Now remove reference to CMN, it's obsolete.  Now reference 
 !        ITS_IN_THE_STRAT from "tropopause_mod.f". (bmy, 8/22/05)
+!  (7 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -874,12 +881,15 @@
       USE DIAG_MOD,       ONLY : AD05
       USE DRYDEP_MOD,     ONLY : DEPSAV
       USE TIME_MOD,       ONLY : GET_TS_CHEM
-      USE TRACER_MOD,     ONLY : STT, ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,     ONLY : STT, ITS_A_FULLCHEM_SIM, XNUMOL
       USE TRACERID_MOD,   ONLY : IDTDMS
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_O3"       ! XNUMOL
+!--------------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"       ! XNUMOL
+!--------------------------------------------------
 #     include "CMN_GCTM"     ! AIRMW
 #     include "CMN_DIAG"     ! ND05, LD05
 
@@ -1083,7 +1093,7 @@
 !******************************************************************************
 !  Subroutine CHEM_H2O2 is the H2O2 chemistry subroutine for offline sulfate
 !  simulations.  For coupled runs, H2O2 chemistry is already computed by
-!  the SMVGEAR module. (rjp, bmy, 11/26/02, 10/3/05)
+!  the SMVGEAR module. (rjp, bmy, 11/26/02, 10/25/05)
 !                                                                           
 !  NOTES:
 !  (1 ) Bug fix: need to multiply DXYP by 1d4 for cm2 (bmy, 3/23/03)
@@ -1109,6 +1119,7 @@
 !        reference to CMN, it's obsolete.  Now reference ITS_IN_THE_STRAT from 
 !        "tropopause_mod.f". (bmy, 8/22/05)
 !  (11) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (12) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1121,14 +1132,17 @@
       USE GRID_MOD,       ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,    ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,       ONLY : GET_MONTH, GET_TS_CHEM, ITS_A_NEW_MONTH
-      USE TRACER_MOD,     ONLY : STT, TCVV
+      USE TRACER_MOD,     ONLY : STT,       TCVV,        XNUMOL
       USE TRACERID_MOD,   ONLY : IDTH2O2
       USE TRANSFER_MOD,   ONLY : TRANSFER_3D_TROP
       USE UVALBEDO_MOD,   ONLY : UVALBEDO
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
  
 #     include "cmn_fj.h"       ! IPAR, JPAR, LPAR, CMN_SIZE
-#     include "CMN_O3"         ! XNUMOL
+!------------------------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"         ! XNUMOL
+!------------------------------------------------------------
 #     include "CMN_GCTM"       ! AIRMW
 #     include "CMN_DIAG"       ! ND44
       
@@ -1303,7 +1317,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_SO2 is the SO2 chemistry subroutine 
-!  (rjp, bmy, 11/26/02, 8/22/05) 
+!  (rjp, bmy, 11/26/02, 10/25/05) 
 !                                                                          
 !  Module variables used:
 !  ============================================================================
@@ -1353,6 +1367,7 @@
 !        seasalt chemistry. (bec, bmy, 4/13/05)
 !  (10) Now remove reference to CMN, it's obsolete.  Now reference 
 !        ITS_IN_THE_STRAT from "tropopause_mod.f" (bmy, 8/22/05)
+!  (11) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -1367,6 +1382,7 @@
       USE TIME_MOD,        ONLY : GET_TS_CHEM, GET_MONTH
       USE TIME_MOD,        ONLY : ITS_A_NEW_MONTH
       USE TRACER_MOD,      ONLY : STT,     TCVV,  ITS_AN_AEROSOL_SIM
+      USE TRACER_MOD,      ONLY : XNUMOL
       USE TRACERID_MOD,    ONLY : IDTH2O2, IDTSO2
       USE SEASALT_MOD,     ONLY : GET_ALK
       USE WETSCAV_MOD,     ONLY : H2O2s,   SO2s
@@ -1374,7 +1390,10 @@
 
 #     include "CMN_SIZE"    ! Size parameters
 #     include "CMN_GCTM"    ! AIRMW
-#     include "CMN_O3"      ! XNUMOL
+!-------------------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"      ! XNUMOL
+!-------------------------------------------------------
 #     include "CMN_DIAG"    ! LD05, ND05, ND44
 
       ! Local variables
@@ -1756,7 +1775,7 @@
 !
 !******************************************************************************
 !  Function SEASALT_CHEM computes SO4 formed from S(IV) + O3 on seasalt 
-!  aerosols as a function of seasalt alkalinity. (bec, bmy, 4/13/05)
+!  aerosols as a function of seasalt alkalinity. (bec, bmy, 4/13/05, 10/25/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1788,6 +1807,7 @@
 !       Modeled after Chamedies and Stelson, 1992?
 !
 !  NOTES:
+!  (1 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1799,16 +1819,19 @@
       !USE DIAG_MOD,        ONLY : AD09
       !----------------------------------------------------------------
       USE ERROR_MOD,       ONLY : GEOS_CHEM_STOP
-      USE TIME_MOD,        ONLY : GET_TS_CHEM, GET_ELAPSED_SEC
+      USE TIME_MOD,        ONLY : GET_TS_CHEM,        GET_ELAPSED_SEC
       USE ERROR_MOD,       ONLY : IT_IS_NAN
-      USE TRACER_MOD
+      USE TRACER_MOD,      ONLY : ITS_A_FULLCHEM_SIM, STT
+      USE TRACER_MOD,      ONLY : TCVV,               XNUMOLAIR
       USE GLOBAL_HNO3_MOD, ONLY : GET_HNO3_UGM3
-      USE TIME_MOD,        ONLY : GET_ELAPSED_SEC, GET_MONTH, 
-     &                            ITS_A_NEW_MONTH
+      USE TIME_MOD,        ONLY : GET_ELAPSED_SEC,    GET_MONTH 
+      USE TIME_MOD,        ONLY : ITS_A_NEW_MONTH
       USE ISOROPIA_MOD,    ONLY : GET_GNO3
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_O3"    ! XNUMOLAIR
+!--------------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"    ! XNUMOLAIR
 !---------------------------------------------------------------
 ! DIAGNOSTIC -- leave commented out for now (bec, bmy, 4/13/05)
 !#     include "CMN_DIAG"  ! ND19
@@ -2317,7 +2340,7 @@
 !  Subroutine CHEM_SO4 is the SO4 chemistry subroutine from Mian Chin's GOCART
 !  model, modified for the GEOS-CHEM model.  Now also modified to account
 !  for production of crystalline & aqueous sulfur tracers. 
-!  (rjp, bdf, cas, bmy, 5/31/00, 8/22/05) 
+!  (rjp, bdf, cas, bmy, 5/31/00, 10/25/05) 
 !                                                                          
 !  Module Variables Used:
 !  ============================================================================
@@ -2352,6 +2375,7 @@
 !        "pbl_mix_mod.f" (bmy, 2/22/05)
 !  (9 )  Now remove reference to CMN, it's obsolete.  Now reference 
 !         ITS_IN_THE_STRAT from "tropopause_mod.f" (bmy, 8/22/05)
+!  (10) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2362,13 +2386,16 @@
       USE LOGICAL_MOD,    ONLY : LCRYST, LSSALT
       USE PBL_MIX_MOD,    ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,       ONLY : GET_TS_CHEM
-      USE TRACER_MOD,     ONLY : STT,    TCVV
+      USE TRACER_MOD,     ONLY : STT,    TCVV,     XNUMOL
       USE TRACERID_MOD,   ONLY : IDTSO4, IDTSO4s,  IDTAS,   IDTAHS 
       USE TRACERID_MOD,   ONLY : IDTLET, IDTSO4aq, IDTNH4aq
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_O3"       ! XNUMOL
+!--------------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"       ! XNUMOL
+!--------------------------------------------------
 #     include "CMN_DIAG"     ! ND44
 
       ! Local variables
@@ -2747,7 +2774,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_MSA is the SO4 chemistry subroutine from Mian Chin's GOCART
-!  model, modified for the GEOS-CHEM model. (rjp, bdf, bmy, 5/31/00, 2/22/05)
+!  model, modified for the GEOS-CHEM model. (rjp, bdf, bmy, 5/31/00, 10/25/05)
 !                                                                          
 !  Module Variables Used:
 !  ============================================================================
@@ -2777,6 +2804,7 @@
 !        "pbl_mix_mod.f".  Also reference GET_PBL_MAX_L from "pbl_mix_mod.f"
 !        Vertical DO-loops can run up to PBL_MAX and not LLTROP.   Also
 !        remove reference to header file CMN. (bmy, 2/22/05)
+!  (8 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2786,12 +2814,15 @@
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
       USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE TRACER_MOD,   ONLY : STT, TCVV
+      USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTMSA
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_GCTM"     ! AIRMW
-#     include "CMN_O3"       ! XNUMOL
+!-------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"       ! XNUMOL
+!-------------------------------------------
 #     include "CMN_DIAG"     ! ND44
 
       ! Local variables
@@ -2919,7 +2950,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_NH3 removes NH3 from the surface via dry deposition.
-!  (rjp, bdf, bmy, 1/2/02, 2/22/05)  
+!  (rjp, bdf, bmy, 1/2/02, 10/25/05)  
 !                                                                          
 !  Reaction List:
 !  ============================================================================
@@ -2942,6 +2973,7 @@
 !  (7 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f".  Also reference GET_PBL_MAX_L from "pbl_mix_mod.f"
 !        Vertical DO-loops can run up to PBL_MAX and not LLTROP. (bmy, 2/22/05)
+!  (8 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2951,11 +2983,14 @@
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
       USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE TRACER_MOD,   ONLY : STT, TCVV
+      USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNH3
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_O3"       ! XNUMOL
+!--------------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"       ! XNUMOL
+!--------------------------------------------------
 #     include "CMN_DIAG"     ! ND44
 
       ! Local variables
@@ -3073,7 +3108,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_NH4 removes NH4 from the surface via dry deposition.
-!  (rjp, bdf, bmy, 1/2/02, 2/22/05)  
+!  (rjp, bdf, bmy, 1/2/02, 10/25/05)  
 !                                                                          
 !  Reaction List:
 !  ============================================================================
@@ -3096,6 +3131,7 @@
 !  (7 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f".  Also reference GET_PBL_MAX_L from "pbl_mix_mod.f"
 !        Vertical DO-loops can run up to PBL_MAX and not LLTROP. (bmy, 2/22/05)
+!  (8 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3105,11 +3141,14 @@
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
       USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE TRACER_MOD,   ONLY : STT, TCVV
+      USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNH4
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_O3"    ! XNUMOL
+!---------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"    ! XNUMOL
+!---------------------------------------------
 #     include "CMN_DIAG"  ! ND44
 
       ! Local variables
@@ -3226,7 +3265,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_NH4aq removes NH4aq from the surface via dry deposition.
-!  (cas, bmy, 1/6/05)  
+!  (cas, bmy, 1/6/05, 10/25/05)  
 !                                                                          
 !  Reaction List:
 !  ============================================================================
@@ -3236,6 +3275,7 @@
 !  (1 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f".  Also reference GET_PBL_MAX_L from "pbl_mix_mod.f"
 !        Vertical DO-loops can run up to PBL_MAX and not LLTROP. (bmy, 2/22/05)
+!  (31) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3245,11 +3285,14 @@
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
       USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE TRACER_MOD,   ONLY : STT, TCVV
+      USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNH4aq
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_O3"    ! XNUMOL
+!-----------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"    ! XNUMOL
+!-----------------------------------------------
 #     include "CMN_DIAG"  ! ND44
 
       ! Local variables
@@ -3390,6 +3433,7 @@
 !  (7 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f".  Also reference GET_PBL_MAX_L from "pbl_mix_mod.f"
 !        Vertical DO-loops can run up to PBL_MAX and not LLTROP. (bmy, 2/22/05)
+!  (8 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3400,11 +3444,14 @@
       USE LOGICAL_MOD,  ONLY : LSSALT
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
       USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE TRACER_MOD,   ONLY : STT, TCVV
+      USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNIT, IDTNITs
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_O3"       ! XNUMOL
+!--------------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"       ! XNUMOL
+!--------------------------------------------------
 #     include "CMN_DIAG"     ! ND44
 
       ! Local variables
@@ -3935,7 +3982,7 @@
 !
 !******************************************************************************
 !  Subroutine SRCSO2 (originally from Mian Chin) computes SO2 emissons from 
-!  aircraft, biomass, and anthro sources. (rjp, bdf, bmy, 6/2/00, 2/22/05)
+!  aircraft, biomass, and anthro sources. (rjp, bdf, bmy, 6/2/00, 10/25/05)
 !
 !  Arguments as Input/Output:
 !  ===========================================================================
@@ -3963,27 +4010,32 @@
 !  (7 ) Remove reference to "pressure_mod.f".  Now reference GET_FRAC_OF_PBL 
 !        and GET_PBL_TOP_L from "pbl_mix_mod.f".  Removed reference to header
 !        file CMN. (bmy, 2/22/05)
+!  (8 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
-      USE DIAG_MOD,     ONLY : AD13_SO2_an, AD13_SO2_ac, AD13_SO2_bb,
-     &                         AD13_SO2_nv, AD13_SO2_ev, AD13_SO2_bf,
-     &                         AD13_SO2_sh
+      USE DIAG_MOD,     ONLY : AD13_SO2_an, AD13_SO2_ac, AD13_SO2_bb
+      USE DIAG_MOD,     ONLY : AD13_SO2_nv, AD13_SO2_ev, AD13_SO2_bf
+      USE DIAG_MOD,     ONLY : AD13_SO2_sh
       USE DAO_MOD,      ONLY : BXHEIGHT, PBL
-      USE EPA_NEI_MOD,  ONLY : GET_EPA_ANTHRO, GET_EPA_BIOFUEL,
-     &                         GET_USA_MASK
+      USE EPA_NEI_MOD,  ONLY : GET_EPA_ANTHRO, GET_EPA_BIOFUEL
+      USE EPA_NEI_MOD,  ONLY : GET_USA_MASK
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,  ONLY : LNEI99, LSHIPSO2
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
-      USE TIME_MOD,     ONLY : GET_TS_EMIS, GET_DAY_OF_YEAR, 
-     &                         GET_DAY_OF_WEEK
+      USE TIME_MOD,     ONLY : GET_TS_EMIS, GET_DAY_OF_YEAR 
+      USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK
+      USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTSO2
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! ND13, LD13 (for now)
 #     include "CMN_GCTM"     ! SCALE_HEIGHT
-#     include "CMN_O3"       ! XNUMOL
+!-------------------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"       ! XNUMOL
+!-------------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NSEASON
@@ -4356,7 +4408,7 @@
 !
 !******************************************************************************
 !  Subroutine SRCSO4 (originally from Mian Chin) computes SO4 emissions from 
-!  anthropogenic sources (rjp, bdf, bmy, 6/2/00, 11/16/04)
+!  anthropogenic sources (rjp, bdf, bmy, 6/2/00, 10/25/05)
 !
 !  Arguments as Input/Output:
 !  ===========================================================================
@@ -4379,24 +4431,29 @@
 !  (5 ) Remove reference to "pressure_mod.f".  Now reference GET_FRAC_OF_PBL 
 !        and GET_PBL_TOP_L from "pbl_mix_mod.f".  Removed reference to header 
 !        file CMN. (bmy, 2/22/05)
+!  (6 ) Now references XNUMOL & XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
       USE DAO_MOD,      ONLY : PBL
       USE DIAG_MOD,     ONLY : AD13_SO4_an,     AD13_SO4_bf
-      USE EPA_NEI_MOD,  ONLY : GET_EPA_ANTHRO,  GET_EPA_BIOFUEL,
-     &                         GET_USA_MASK
+      USE EPA_NEI_MOD,  ONLY : GET_EPA_ANTHRO,  GET_EPA_BIOFUEL
+      USE EPA_NEI_MOD,  ONLY : GET_USA_MASK
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,  ONLY : LNEI99
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
+      USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTSO4
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! ND13 (for now)
 #     include "CMN_GCTM"     ! SCALE_HEIGHT
-#     include "CMN_O3"       ! XNUMOL
+!--------------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"       ! XNUMOL
+!--------------------------------------------------
 
       ! Arguments      
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -4608,25 +4665,30 @@
 !  (6 ) Remove reference to "pressure_mod.f".  Now reference GET_FRAC_OF_PBL 
 !        and GET_PBL_TOP_L from "pbl_mix_mod.f".  Removed reference to header 
 !        file CMN. (bmy, 2/22/05)
+!  (7 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD,     ONLY : AD13_NH3_an, AD13_NH3_bb,
-     &                         AD13_NH3_bf, AD13_NH3_na
+      USE DIAG_MOD,     ONLY : AD13_NH3_an, AD13_NH3_bb
+      USE DIAG_MOD,     ONLY : AD13_NH3_bf, AD13_NH3_na
       USE DAO_MOD,      ONLY : PBL
       USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE EPA_NEI_MOD,  ONLY : GET_EPA_ANTHRO, GET_EPA_BIOFUEL, 
-     &                         GET_USA_MASK
+      USE EPA_NEI_MOD,  ONLY : GET_EPA_ANTHRO, GET_EPA_BIOFUEL
+      USE EPA_NEI_MOD,  ONLY : GET_USA_MASK
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE LOGICAL_MOD,  ONLY : LNEI99
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
+      USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTNH3
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! ND13
 #     include "CMN_GCTM"     ! SCALE_HEIGHT
-#     include "CMN_O3"       ! XNUMOL
+!-----------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"       ! XNUMOL
+!-----------------------------------------------
       
       ! Argumetns
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -5106,7 +5168,7 @@
 !
 !******************************************************************************
 !  Function GET_O3 returns monthly mean O3 for offline sulfate aerosol
-!  simulations. (bmy, 12/16/02, 8/22/05)
+!  simulations. (bmy, 12/16/02, 10/25/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -5116,17 +5178,22 @@
 !  (1 ) We assume SETTRACE has been called to define IDO3. (bmy, 12/16/02)
 !  (2 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
 !  (3 ) Now remove reference to CMN, it's obsolete.  (bmy, 8/22/05)
+!  (4 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE COMODE_MOD,   ONLY : CSPEC, JLOP, VOLUME
       USE DAO_MOD,      ONLY : AIRDEN
       USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM      
+      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM  
+      USE TRACER_MOD,   ONLY : XNUMOLAIR
       USE TRACERID_MOD, ONLY : IDO3
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_O3"       ! XNUMOLAIR
+!-----------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"       ! XNUMOLAIR
+!-----------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)   :: I, J, L
@@ -5388,6 +5455,7 @@
 !  (3 ) Now read files from "sulfate_sim_200508/".  Now read data for both
 !        GCAP and GEOS grids (bmy, 8/16/05)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (5 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -5396,11 +5464,12 @@
       USE GRID_MOD,      ONLY : GET_XMID, GET_YMID, GET_AREA_CM2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TIME_MOD,      ONLY : GET_YEAR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+      USE TRACER_MOD,    ONLY : XNUMOL
       USE TRACERID_MOD,  ONLY : IDTSO2, IDTSO4
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_O3"    ! XNUMOL, FSCALYR
+#     include "CMN_O3"    ! FSCALYR
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH, NSEASON
@@ -6016,7 +6085,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_SHIP_SO2 reads in ship SO2 emissions. 
-!  (bec, qli, 10/01/03, 10/3/05)
+!  (bec, qli, 10/01/03, 10/25/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -6027,6 +6096,7 @@
 !  (2 ) Now read files from "sulfate_sim_200508/".  Now read data for both 
 !        GCAP and GEOS grids. (bmy, 8/16/05)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (4 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -6034,11 +6104,15 @@
       USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
       USE GRID_MOD,      ONLY : GET_AREA_CM2
+      USE TRACER_MOD,    ONLY : XNUMOL
       USE TRACERID_MOD,  ONLY : IDTSO2
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"     ! Size parameters 
-#     include "CMN_O3"       ! XNUMOL
+#     include "CMN_SIZE"      ! Size parameters 
+!-------------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"       ! XNUMOL
+!-------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)    :: THISMONTH

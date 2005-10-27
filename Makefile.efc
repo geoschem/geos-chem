@@ -1,6 +1,6 @@
-# $Id: Makefile.efc,v 1.21 2005/10/20 14:03:10 bmy Exp $
+# $Id: Makefile.efc,v 1.22 2005/10/27 13:59:46 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for LINUX/EFC compiler (bmy, Mon Aug 22 15:39:51 2005)
+# GEOS-CHEM Makefile for LINUX/EFC compiler (bmy, Thu Oct 20 16:19:31 2005)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -92,7 +92,8 @@ sunparam.o                \
 tcorr.o                   \
 tropopause.o              \
 update.o                  \
-xltmmp.o                  
+xltmmp.o                  \
+xtra_read_mod.o           
 
 FJ =                      \
 BLKSLV.o                  \
@@ -135,9 +136,11 @@ file_mod.o                \
 grid_mod.o                \
 time_mod.o                \
 bpch2_mod.o               \
+regrid_1x1_mod.o          \
 pressure_mod.o            \
 transfer_mod.o            \
 tropopause_mod.o          \
+lai_mod.o                 \
 tracerid_mod.o            \
 benchmark_mod.o           \
 comode_mod.o              \
@@ -172,12 +175,15 @@ aircraft_nox_mod.o        \
 biofuel_mod.o             \
 biomass_mod.o             \
 c2h6_mod.o                \
-carbon_mod.o              \
 ch3i_mod.o                \
 a3_read_mod.o             \
 a6_read_mod.o             \
 i6_read_mod.o             \
+phis_read_mod.o           \
 gwet_read_mod.o           \
+xtra_read_mod.o           \
+megan_mod.o               \
+carbon_mod.o              \
 lightning_nox_mod.o       \
 optdepth_mod.o            \
 planeflight_mod.o         \
@@ -332,10 +338,12 @@ jsparse.o                  : jsparse.f                  CMN_SIZE define.h comode
 julday_mod.o               : julday_mod.f               
 jv_index.o                 : jv_index.f                 cmn_fj.h CMN_SIZE define.h comode.h 
 ksparse.o                  : ksparse.f                  CMN_SIZE define.h comode.h 
-lightning_nox_mod.o        : lightning_nox_mod.f        CMN_DIAG CMN_GCTM CMN_NOX CMN_SIZE define.h 
+lai_mod.o                  : lai_mod.f                  CMN_SIZE define.h 
+lightning_nox_mod.o        : lightning_nox_mod.f        CMN_DIAG CMN_GCTM CMN_NOX CMN_SIZE define.h define.h 
 logical_mod.o              : logical_mod.f              
 lump.o                     : lump.f                     CMN_SIZE define.h comode.h 
 main.o                     : main.f                     CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h comode.h 
+megan_mod.o                : megan_mod.f                CMN_GCTM CMN_SIZE define.h 
 mercury_mod.o              : mercury_mod.f              CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h 
 ndxx_setup.o               : ndxx_setup.f               CMN_DIAG CMN_SIZE define.h 
 ocean_mercury_mod.o        : ocean_mercury_mod.f        CMN_DEP CMN_SIZE define.h 
@@ -363,6 +371,7 @@ rdsoil.o                   : rdsoil.f                   CMN_SIZE define.h commso
 readchem.o                 : readchem.f                 CMN_SIZE define.h comode.h 
 reader.o                   : reader.f                   CMN_GCTM CMN_SIZE define.h comode.h 
 readlai.o                  : readlai.f                  CMN_DEP CMN_SIZE define.h CMN_VEL 
+regrid_1x1_mod.o           : regrid_1x1_mod.f           CMN_SIZE define.h CMN_GCTM
 restart_mod.o              : restart_mod.f              CMN_SIZE define.h 
 rpmares_mod.o              : rpmares_mod.f              CMN_SIZE define.h 
 ruralbox.o                 : ruralbox.f                 CMN_SIZE define.h comode.h 
@@ -408,6 +417,7 @@ update.o                   : update.f                   CMN_SIZE define.h comode
 uvalbedo_mod.o             : uvalbedo_mod.f             CMN_SIZE define.h 
 wetscav_mod.o              : wetscav_mod.f              CMN_DIAG CMN_SIZE define.h 
 xltmmp.o                   : xltmmp.f                   CMN_SIZE define.h 
+xtra_read_mod.o            : xtra_read_mod.f            CMN_DIAG CMN_SIZE define.h 
 
 #==============================================================================
 #  C-language routines

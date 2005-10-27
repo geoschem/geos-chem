@@ -1,10 +1,10 @@
-! $Id: gamap_mod.f,v 1.7 2005/10/20 14:03:26 bmy Exp $
+! $Id: gamap_mod.f,v 1.8 2005/10/27 13:59:57 bmy Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
 !  Module GAMAP_MOD contains routines to create GAMAP "tracerinfo.dat" and
 !  "diaginfo.dat" files which are customized to each particular GEOS-CHEM
-!  simulation. (bmy, 5/3/05, 10/3/05)
+!  simulation. (bmy, 5/3/05, 10/20/05)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -66,6 +66,7 @@
 !  (2 ) Added ND09 diagnostic for HCN/CH3CN simulation. (bmy, 6/30/05)
 !  (3 ) Added ND04 diagnostic for CO2 simulation (bmy, 7/25/05)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (5 ) Add MBO to ND46 diagnostic (tmf, bmy, 10/20/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -625,7 +626,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_GAMAP allocates and initializes all module variables.  
-!  (bmy, 4/22/05, 10/3/05)
+!  (bmy, 4/22/05, 10/20/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -639,6 +640,7 @@
 !        diagnostic.  Now references ND04 from "diag04_mod.f. 
 !        (pns, bmy, 7/25/05)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (5 ) Now save MBO as tracer #5 for ND46 (tmf, bmy, 10/20/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2084,7 +2086,7 @@
       IF ( ND46 > 0 ) THEN 
 
          ! Number of tracers
-         NTRAC(46) = 4
+         NTRAC(46) = 5
 
          ! Loop over tracers
          DO T = 1, NTRAC(46)
@@ -2102,7 +2104,10 @@
                   MOLC(T,46) = 3
                CASE( 4 )
                   NAME(T,46) = 'MONOT'
-                  MOLC(T,46) = 3
+                  MOLC(T,46) = 10
+               CASE( 5 )
+                  NAME(T,46) = 'MBO'
+                  MOLC(T,46) = 5
                CASE DEFAULT
                   ! Nothing
             END SELECT

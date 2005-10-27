@@ -1,4 +1,4 @@
-! $Id: lump.f,v 1.3 2004/09/21 18:04:15 bmy Exp $
+! $Id: lump.f,v 1.4 2005/10/27 14:00:00 bmy Exp $
       SUBROUTINE LUMP( NTRACER, XNUMOL, STT )
 !
 !******************************************************************************
@@ -32,10 +32,6 @@
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NTRACER
-      !------------------------------------------------------------
-      !REAL*8,  INTENT(IN)    :: XNUMOL(NNPAR)
-      !REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NNPAR)      
-      !------------------------------------------------------------
       REAL*8,  INTENT(IN)    :: XNUMOL(NTRACER)
       REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NTRACER)   
 

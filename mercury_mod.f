@@ -1,9 +1,9 @@
-! $Id: mercury_mod.f,v 1.6 2005/10/20 14:03:34 bmy Exp $
+! $Id: mercury_mod.f,v 1.7 2005/10/27 14:00:01 bmy Exp $
       MODULE MERCURY_MOD
 !
 !******************************************************************************
 !  Module MERCURY_MOD contains variables and routines for the GEOS-CHEM 
-!  mercury simulation. (eck, bmy, 12/14/04, 10/3/05)
+!  mercury simulation. (eck, bmy, 12/14/04, 10/25/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -124,6 +124,7 @@
 !        COMPUTE_FEMIS. (bmy, 2/15/05)
 !  (3 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (5 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -303,7 +304,7 @@
 !  Subroutine CHEM_Hg0_Hg2 is the chemistry subroutine for the oxidation/
 !  reduction of Hg0/Hg(II).  For tracers with dry deposition, the loss rate 
 !  of dry dep is combined in the chemistry loss term. 
-!  (eck, bmy, 12/6/04, 2/24/05)
+!  (eck, bmy, 12/6/04, 10/25/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -330,20 +331,24 @@
 !  (2 ) Now references GET_FRAC_UNDER_PBLTOP from "pbl_mix_mod.f".  Now
 !        performs drydep for all levels in the PBL.  Changed Kred to 2.1e-10
 !        on advice of Noelle Eckley Selin. (bmy, 2/24/05)
+!  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : T, AD
-      USE DIAG03_MOD,   ONLY : AD03_Hg2_Hg0, AD03_Hg2_O3,
-     &                         AD03_Hg2_OH,  LD03,  ND03
+      USE DIAG03_MOD,   ONLY : AD03_Hg2_Hg0, AD03_Hg2_O3
+      USE DIAG03_MOD,   ONLY : AD03_Hg2_OH,  LD03,  ND03
       USE LOGICAL_MOD,  ONLY : LSPLIT
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE TRACER_MOD,   ONLY : STT
+      USE TRACER_MOD,   ONLY : STT,    XNUMOL
       USE TRACERID_MOD, ONLY : IDTHg0, IDTHg2
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_O3"       ! XNUMOL
+!-----------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"       ! XNUMOL
+!-----------------------------------------------
 
       ! Arguments
       REAL*8, INTENT(IN)    :: V_DEP_Hg2(IIPAR,JJPAR)
@@ -825,7 +830,7 @@
 !
 !******************************************************************************
 !  Subroutine RXN_Hg0_DRYD computes the new concentration of Hg(II) from the
-!  converted Hg(0) plus the drydep of Hg(II). (eck, bmy, 12/14/04, 2/24/05)
+!  converted Hg(0) plus the drydep of Hg(II). (eck, bmy, 12/14/04, 10/25/05)
 ! 
 !  Arguments as Input:
 !  ============================================================================
@@ -843,16 +848,20 @@
 !         routines in "ocean_mercury_mod.f". (sas, bmy, 1/19/05)
 !  (2  ) Remove references to "diag_mod.f" and "CMN_DIAG".  Now save drydep
 !         fluxes into T44 array. (bmy, 2/24/05)
+!  (3  ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE GRID_MOD,          ONLY : GET_AREA_CM2
       USE OCEAN_MERCURY_MOD, ONLY : ADD_Hg2_DD
-      USE TRACER_MOD,        ONLY : STT
+      USE TRACER_MOD,        ONLY : STT, XNUMOL
       USE TRACERID_MOD,      ONLY : IDTHg2
 
 #     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_O3"      ! XNUMOL
+!---------------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"      ! XNUMOL
+!---------------------------------------------------
 #     include "CMN_DIAG"    ! ND44
 
       ! Arguments
@@ -984,7 +993,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_HgP is the chemistry subroutine for HgP (particulate
-!  mercury.  HgP is lost via dry deposition. (eck, bmy, 12/7/04, 2/24/05)
+!  mercury.  HgP is lost via dry deposition. (eck, bmy, 12/7/04, 10/25/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -994,6 +1003,7 @@
 !  (1 ) Removed references to AD44 and "CMN_DIAG".  Now compute drydep for all
 !        levels within the PBL.  Now references ND03, LD03 from "diag03_mod.f".
 !        (bmy, 2/24/05)
+!  (2 ) Now references XNUMOL & XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! Refernces to F90 modules
@@ -1002,12 +1012,15 @@
       USE LOGICAL_MOD,  ONLY : LSPLIT
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
       USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTHGP,    IDTHGP_NA,
-     &                         IDTHGP_EU, IDTHGP_AS, IDTHGP_RW
+      USE TRACER_MOD,   ONLY : STT,       XNUMOL
+      USE TRACERID_MOD, ONLY : IDTHGP,    IDTHGP_na
+      USE TRACERID_MOD, ONLY : IDTHGP_eu, IDTHGP_as, IDTHGP_rw
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_O3"    ! XNUMOL
+!---------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"    ! XNUMOL
+!---------------------------------------------
 
       ! Arguments
       REAL*8, INTENT(IN) :: V_DEP_HgP(IIPAR,JJPAR)
@@ -1082,7 +1095,7 @@
 !******************************************************************************
 !  Subroutine RXN_Hg0_DRYD computes the new concentration of HgP 
 !  after dry deposition.  ND44 diagnostics are also archived. 
-!  (eck, bmy, 12/14/04, 2/24/05)
+!  (eck, bmy, 12/14/04, 10/25/05)
 ! 
 !  Arguments as Input:
 !  ============================================================================
@@ -1094,15 +1107,19 @@
 !  NOTES:
 !  (1  ) Remove references to "diag_mod.f" and "CMN_DIAG".  Now save drydep
 !         fluxes into T44 array. (bmy, 2/24/05)
+!  (2  ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE TRACER_MOD,   ONLY : STT
+      USE TRACER_MOD,   ONLY : STT, XNUMOL
       USE TRACERID_MOD, ONLY : IDTHGP
      
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_O3"       ! XNUMOL
+!------------------------------------------------
+! Prior to 10/25/05:
+!#     include "CMN_O3"       ! XNUMOL
+!------------------------------------------------
 #     include "CMN_DIAG"     ! ND44 
 
       ! Arguments
@@ -2495,4 +2512,5 @@
 
 !------------------------------------------------------------------------------
 
+      ! End of module
       END MODULE MERCURY_MOD

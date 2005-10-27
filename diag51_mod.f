@@ -1,11 +1,11 @@
-! $Id: diag51_mod.f,v 1.19 2005/10/20 14:03:21 bmy Exp $
+! $Id: diag51_mod.f,v 1.20 2005/10/27 13:59:54 bmy Exp $
       MODULE DIAG51_MOD
 !
 !******************************************************************************
 !  Module DIAG51_MOD contains variables and routines to generate save 
 !  timeseries data where the local time is between two user-defined limits. 
 !  This facilitates comparisons with morning or afternoon-passing satellites
-!  such as GOME. (amf, bey, bdf, pip, bmy, 11/30/00, 10/3/05)
+!  such as GOME. (amf, bey, bdf, pip, bmy, 11/30/00, 10/25/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -107,6 +107,7 @@
 !        both GCAP and GEOS grids.  (bmy, 6/28/05)
 !  (8 ) Bug fix: do not save SLP if it's not allocated (bmy, 8/2/05)
 !  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (10) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -282,7 +283,7 @@
 !
 !******************************************************************************
 !  Subroutine ACCUMULATE_DIAG51 accumulates tracers into the Q array. 
-!  (bmy, 8/20/02, 10/3/05)
+!  (bmy, 8/20/02, 10/25/05)
 !
 !  NOTES:
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
@@ -303,6 +304,7 @@
 !        both GCAP and GEOS grids.  (bmy, 6/28/05)
 !  (7 ) Now do not save SLP data if it is not allocated (bmy, 8/2/05)
 !  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (9 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -314,6 +316,7 @@
       USE TIME_MOD,     ONLY : GET_ELAPSED_MIN, GET_TS_CHEM 
       USE TIME_MOD,     ONLY : TIMESTAMP_STRING
       USE TRACER_MOD,   ONLY : STT, TCVV, ITS_A_FULLCHEM_SIM, N_TRACERS
+      USE TRACER_MOD,   ONLY : XNUMOLAIR
       USE TRACERID_MOD, ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
       USE TRACERID_MOD, ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
       USE TRACERID_MOD, ONLY : IDTR4N2, IDTSALA, IDTSALC 
