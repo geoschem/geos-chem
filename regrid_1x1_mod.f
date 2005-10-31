@@ -1,4 +1,4 @@
-! $Id: regrid_1x1_mod.f,v 1.1 2005/10/27 14:00:02 bmy Exp $
+! $Id: regrid_1x1_mod.f,v 1.2 2005/10/31 18:19:34 bmy Exp $
       MODULE REGRID_1x1_MOD
 !
 !******************************************************************************
@@ -441,6 +441,8 @@
          CASE ( 'factor'       )
             IS_CONC = .TRUE.
          CASE ( 'm2/m2'        )
+            IS_CONC = .TRUE.
+         CASE ( 'cm2/cm2'      )
             IS_CONC = .TRUE.
          CASE ( 'DU'           )
             IS_CONC = .TRUE.

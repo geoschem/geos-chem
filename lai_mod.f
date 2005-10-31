@@ -1,4 +1,4 @@
-! $Id: lai_mod.f,v 1.1 2005/10/27 13:59:59 bmy Exp $
+! $Id: lai_mod.f,v 1.2 2005/10/31 18:19:24 bmy Exp $
       MODULE LAI_MOD
 !
 !******************************************************************************
@@ -77,9 +77,10 @@
 !        and modified for the standard code by May Fu (11/2004).
 !******************************************************************************
 !
-      USE BPCH2_MOD,     ONLY : GET_TAU0, READ_BPCH2, GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+      USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2, GET_RES_EXT
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
+      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
+      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
     
       IMPLICIT NONE
 
@@ -90,7 +91,7 @@
 
       ! Local variables
       INTEGER                :: I, J, K, INDEX, MMM, PMM, IJLOOP
-      REAL*4                 :: ARRAY(IGLOB,JGLOB,1)
+      REAL*4                 :: ARRAY(I1x1,J1x1,1)
       REAL*8                 :: TAU0
       CHARACTER(LEN=255)     :: FILENAME
 
@@ -108,9 +109,8 @@
       !------------------------------------
       
       ! Filename
-      FILENAME = TRIM( DATA_DIR )                               // 
-     &           'leaf_area_index_200412/avhrrlai.global.geos.' // 
-     &           GET_RES_EXT() // '.2000'
+      FILENAME = TRIM( DATA_DIR_1x1 ) // 
+     &           'leaf_area_index_200412/avhrrlai.global.geos.1x1.2000'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -119,13 +119,13 @@
       ! Get TAU0 value
       TAU0 = GET_TAU0( MM, 1, 2000 )
 
-      ! Read data
+      ! Read 1x1 LAI data [cm2/cm2]
       CALL READ_BPCH2( FILENAME, 'AVHRR', 1,  
-     &                 TAU0,      IGLOB,  JGLOB,    
+     &                 TAU0,      I1x1,   J1x1,    
      &                 1,         ARRAY,  QUIET=.TRUE. )
 
-      ! Cast to REAL*8 and resize if necessary
-      CALL TRANSFER_2D( ARRAY(:,:,1), MISOLAI )
+      ! Regrid from 1x1 to current grid resolution
+      CALL DO_REGRID_1x1( 'cm2/cm2', ARRAY, MISOLAI )
 
       !------------------------------------
       ! Read next month's lai at (I,J) 
@@ -133,37 +133,37 @@
 
       ! MMM is next month
       MMM = MM + 1
-      IF (MMM == 13) MMM = 1
+      IF ( MMM == 13 ) MMM = 1
 
       ! TAU0 for 1st day of next month
       TAU0 = GET_TAU0( MMM, 1, 2000 ) 
       
       ! Read data
-      CALL READ_BPCH2( FILENAME, 'AVHRR',  1,  
-     &                 TAU0,      IGLOB,   JGLOB,    
-     &                 1,         ARRAY,   QUIET=.TRUE. )
+      CALL READ_BPCH2( FILENAME, 'AVHRR', 1,  
+     &                 TAU0,      I1x1,   J1x1,    
+     &                 1,         ARRAY,  QUIET=.TRUE. )
 
-      ! Cast to REAL*8
-      CALL TRANSFER_2D( ARRAY(:,:,1), NMISOLAI )
+      ! Regrid from 1x1 to current grid resolution
+      CALL DO_REGRID_1x1( 'cm2/cm2', ARRAY, NMISOLAI )
 
       !------------------------------------
-      ! Read next month's lai at (I,J) 
+      ! Read previous month's lai at (I,J) 
       !------------------------------------
 
       ! PMM is previous month
       PMM = MM - 1
-      IF (PMM == 0) PMM = 12
+      IF ( PMM == 0 ) PMM = 12
 
       ! TAU0 for 1st day of previous month
       TAU0 = GET_TAU0( PMM, 1, 2000 ) 
       
       ! Read data
       CALL READ_BPCH2( FILENAME, 'AVHRR', 1,  
-     &                 TAU0,      IGLOB,  JGLOB,    
+     &                 TAU0,      I1x1,   J1x1,    
      &                 1,         ARRAY,  QUIET=.TRUE. )
 
-      ! Cast to REAL*8 and resize if necessary
-      CALL TRANSFER_2D( ARRAY(:,:,1), PMISOLAI )
+      ! Regrid from 1x1 to current grid resolution
+      CALL DO_REGRID_1x1( 'cm2/cm2', ARRAY, PMISOLAI )
 
       ! Return to calling program
       END SUBROUTINE READISOLAI
