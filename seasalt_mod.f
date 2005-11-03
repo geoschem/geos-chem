@@ -1,4 +1,4 @@
-! $Id: seasalt_mod.f,v 1.8 2005/10/27 14:00:03 bmy Exp $
+! $Id: seasalt_mod.f,v 1.9 2005/11/03 17:50:36 bmy Exp $
       MODULE SEASALT_MOD
 !
 !******************************************************************************
@@ -228,10 +228,6 @@
 #     include "CMN_SIZE"      ! Size parameters
 #     include "CMN_GCTM"      ! g0
 #     include "CMN_DIAG"      ! ND44
-!------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"        ! XNUMOL
-!------------------------------------------
 
       ! Argumetns
       INTEGER, INTENT(IN)    :: N
@@ -445,10 +441,6 @@
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_GCTM"     ! g0
 #     include "CMN_DIAG"     ! ND44
-!-------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"       ! XNUMOL
-!-------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)    :: N
@@ -641,10 +633,6 @@
       USE TRACER_MOD,    ONLY : SALA_REDGE_um, SALC_REDGE_um, XNUMOL
 
 #     include "CMN_SIZE"      ! Size parameters
-!--------------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"        ! XNUMOL
-!--------------------------------------------------
 #     include "CMN_DIAG"      ! ND44, ND08
 #     include "CMN_GCTM"      ! PI
 

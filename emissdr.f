@@ -1,4 +1,4 @@
-! $Id: emissdr.f,v 1.10 2005/10/27 13:59:56 bmy Exp $
+! $Id: emissdr.f,v 1.11 2005/11/03 17:50:27 bmy Exp $
       SUBROUTINE EMISSDR
 !
 !******************************************************************************
@@ -83,7 +83,7 @@
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN"          ! IEBD1, IEBD2, JEBD1, JEBD2
 #     include "CMN_DIAG"     ! Diagnostic arrays and switches
-#     include "CMN_O3"       ! Emissions arrays, XNUMOL
+#     include "CMN_O3"       ! Emissions arrays
 #     include "CMN_NOX"      ! GEMISNOX, GEMISNOX2
 #     include "CMN_MONOT"    ! Monoterpenes
 #     include "comode.h"     ! IVERT?
@@ -235,23 +235,6 @@
 !
             ! Temperature
             TMMP  = XLTMMP(I,J,IJLOOP)
-
-            !--------------------------------------------------------------
-            ! Prior to 10/20/05:
-            ! Now use GEIA or MEGAN, depending on user preferences
-            ! (tmf, bmy, 10/20/05)
-            !! Monoterpenes 
-            !EMMO  = EMMONOT( IJLOOP, TMMP, XNUMOL_C )
-            !
-            !! Isoprene
-            !EMIS  = EMISOP( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C )
-            !
-            !! Methyl Butenol (MBO)
-            !EMMB  = EMISOP_MB( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C )
-            !
-            !! Isoprene emissions from grasslands
-            !GRASS = EMISOP_GRASS( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C) 
-            !--------------------------------------------------------------
             
             IF ( LMEGAN ) THEN
 
@@ -331,14 +314,6 @@
             IF ( IDTISOP /= 0 ) THEN
                EMISRR(I,J,IDEISOP) = EMISRR(I,J,IDEISOP) + 
      &                               ( EMIS / DTSRCE )
-
-               !----------------------------------------------------
-               ! Prior to 10/25/05:
-               ! This is now obsolete (bmy, 10/25/05)
-               !!- bey - for ND48 time serie archive 
-               !! EMISRR48 has units [atoms C/cm2/s]
-               !EMISRR48(I,J) = EMIS / ( DTSRCE * AREA_CM2 )
-               !----------------------------------------------------
             ENDIF
 !------------------------------------------------------------------------------
 !

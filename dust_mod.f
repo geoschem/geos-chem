@@ -1,4 +1,4 @@
-! $Id: dust_mod.f,v 1.8 2005/10/27 13:59:55 bmy Exp $
+! $Id: dust_mod.f,v 1.9 2005/11/03 17:50:26 bmy Exp $
       MODULE DUST_MOD
 !
 !******************************************************************************
@@ -199,10 +199,6 @@
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_GCTM"     ! g0
 #     include "CMN_DIAG"     ! ND44
-!-------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"       ! XNUMOL
-!-------------------------------------------
 
       ! Arguments
       REAL*8, INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)
@@ -398,10 +394,6 @@
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! ND44
-!-----------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"       ! XNUMOL
-!-----------------------------------------------
 
       ! Arguments
       REAL*8, INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)

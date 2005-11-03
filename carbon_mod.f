@@ -1,4 +1,4 @@
- ! $Id: carbon_mod.f,v 1.14 2005/10/27 13:59:50 bmy Exp $
+ ! $Id: carbon_mod.f,v 1.15 2005/11/03 17:50:23 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
@@ -380,10 +380,6 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
 #     include "CMN_SIZE"     ! Size parameters
-!-----------------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"       ! XNUMOL
-!-----------------------------------------------------
 #     include "CMN_DIAG"     ! ND44, ND07, LD07
 
       ! Arguments
@@ -553,10 +549,6 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
 #     include "CMN_SIZE"     ! Size parameters
-!------------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"       ! XNUMOL
-!------------------------------------------------
 #     include "CMN_DIAG"     ! ND44
 
       ! Arguments
@@ -731,10 +723,6 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
 #     include "CMN_SIZE"     ! Size parameters
-!-----------------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"       ! XNUMOL
-!-----------------------------------------------------
 #     include "CMN_DIAG"     ! ND44, ND07, LD07
 
       ! Arguments
@@ -905,10 +893,6 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
 #     include "CMN_SIZE"     ! Size parameters
-!------------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"       ! XNUMOL
-!------------------------------------------------
 #     include "CMN_DIAG"     ! ND44
 
       ! Arguments
@@ -2242,10 +2226,6 @@ c
       USE TRACER_MOD,   ONLY : XNUMOL
 
 #     include "CMN_SIZE"     ! Size parameters
-!---------------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"       ! XNUMOL
-!---------------------------------------------------
 #     include "CMN_DIAG"     ! ND44
 
       ! Arguments
@@ -2707,13 +2687,6 @@ c
 
              ! Surface temperature [K]
             TMMP           = XLTMMP(I,J,IJLOOP)
-
-            !----------------------------------------------------------------
-            ! Prior to 10/20/05:
-            ! Now get EMMONOT from either MEGAN or GEIA (tmf, bmy, 10/20/05)
-            !! EMMO = [kg C/box/time-step] from monoterpenes
-            !EMMO           = EMMONOT( IJLOOP, TMMP, 1.d0 )
-            !----------------------------------------------------------------
 
             ! Get monoterpenes from MEGAN or GEIA [kg C/box]
             IF ( LMEGAN ) THEN
@@ -4066,10 +4039,6 @@ c
       USE TRACERID_MOD,  ONLY : IDO3
 
 #     include "CMN_SIZE"  ! Size parameters
-!-----------------------------------------------
-! Prior to 
-!#     include "CMN_O3"    ! XNUMOLAIR
-!-----------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L

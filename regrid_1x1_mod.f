@@ -1,4 +1,4 @@
-! $Id: regrid_1x1_mod.f,v 1.2 2005/10/31 18:19:34 bmy Exp $
+! $Id: regrid_1x1_mod.f,v 1.3 2005/11/03 17:50:35 bmy Exp $
       MODULE REGRID_1x1_MOD
 !
 !******************************************************************************
@@ -431,6 +431,8 @@
          CASE ( 'molec C/cm2/s')
             IS_CONC = .TRUE.
          CASE ( 'atom C/cm2/s' )
+            IS_CONC = .TRUE.
+         CASE ( 'atoms C/cm2/s' )
             IS_CONC = .TRUE.
          CASE ( 's-1'          )
             IS_CONC = .TRUE.

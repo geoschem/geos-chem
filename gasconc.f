@@ -1,4 +1,4 @@
-! $Id: gasconc.f,v 1.7 2005/10/20 14:03:27 bmy Exp $
+! $Id: gasconc.f,v 1.8 2005/11/03 17:50:29 bmy Exp $
       SUBROUTINE GASCONC( FIRSTCHEM, NTRACER, STT, XNUMOL, FRCLND )
 !
 !******************************************************************************
@@ -23,24 +23,19 @@
       ! References to F90 modules 
       USE COMODE_MOD,     ONLY : ABSHUM, AIRDENS, CSPEC,  IXSAVE
       USE COMODE_MOD,     ONLY : IYSAVE, IZSAVE,  PRESS3, T3
-      !----------------------------------------------------------
-      ! Prior to 10/3/05:
-      ! This reference is now obsolete (bmy, 10/3/05)
-      !USE TRACERID_MOD
-      !----------------------------------------------------------
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
       
       IMPLICIT NONE
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "comode.h"     ! SMVGEAR II arrays
+#     include "CMN_SIZE"       ! Size parameters
+#     include "comode.h"       ! SMVGEAR II arrays
 
       ! Arguments
-      LOGICAL, INTENT(IN)    :: FIRSTCHEM
-      INTEGER, INTENT(IN)    :: NTRACER
-      REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NTRACER)
-      REAL*8,  INTENT(IN)    :: XNUMOL(NTRACER)
-      REAL*8,  INTENT(IN)    :: FRCLND(IIPAR,JJPAR)
+      LOGICAL, INTENT(IN)     :: FIRSTCHEM
+      INTEGER, INTENT(IN)     :: NTRACER
+      REAL*8,  INTENT(INOUT)  :: STT(IIPAR,JJPAR,LLPAR,NTRACER)
+      REAL*8,  INTENT(IN)     :: XNUMOL(NTRACER)
+      REAL*8,  INTENT(IN)     :: FRCLND(IIPAR,JJPAR)
 C
 C *********************************************************************
 C ************       WRITTEN BY MARK JACOBSON (1991-4)     ************

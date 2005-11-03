@@ -1,4 +1,4 @@
-! $Id: biofuel_mod.f,v 1.6 2005/10/20 14:03:13 bmy Exp $
+! $Id: biofuel_mod.f,v 1.7 2005/11/03 17:50:21 bmy Exp $
       MODULE BIOFUEL_MOD
 !
 !******************************************************************************
@@ -168,10 +168,6 @@
       USE EPA_NEI_MOD,   ONLY : GET_EPA_BIOFUEL, GET_USA_MASK
       USE LOGICAL_MOD,   ONLY : LNEI99
       USE TIME_MOD,      ONLY : GET_DAY_OF_WEEK
-      !----------------------------------------------------------------
-      ! Prior to 10/3/05:
-      !USE TRACER_MOD
-      !----------------------------------------------------------------
       USE TRACERID_MOD,  ONLY : IDBFCO,  IDBFNOX, IDTACET, IDTALD2
       USE TRACERID_MOD,  ONLY : IDTALK4, IDTC2H6, IDTC3H8, IDTCH2O 
       USE TRACERID_MOD,  ONLY : IDTCO,   IDTMEK,  IDTNOX,  IDTPRPE 
@@ -703,10 +699,6 @@
       ! References to F90 modules
       USE ERROR_MOD,    ONLY : ALLOC_ERR
       USE LOGICAL_MOD,  ONLY : LBIOFUEL
-      !------------------------------------------
-      ! Prior to 10/3/05
-      !USE TRACERID_MOD
-      !------------------------------------------
 
 #     include "CMN_SIZE"  ! Size parameters, etc
 

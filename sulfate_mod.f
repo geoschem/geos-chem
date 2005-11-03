@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.19 2005/10/27 14:00:04 bmy Exp $
+! $Id: sulfate_mod.f,v 1.20 2005/11/03 17:50:36 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -628,13 +628,8 @@
 #     include "CMN_SIZE"      ! Size parameters
 #     include "CMN_GCTM"      ! g0
 #     include "CMN_DIAG"      ! ND44
-!------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"        ! XNUMOL
-!------------------------------------------
 
-
-      ! Argumetns
+      ! Arguments
       INTEGER, INTENT(IN)    :: N
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
 
@@ -886,10 +881,6 @@
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
 #     include "CMN_SIZE"     ! Size parameters
-!--------------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"       ! XNUMOL
-!--------------------------------------------------
 #     include "CMN_GCTM"     ! AIRMW
 #     include "CMN_DIAG"     ! ND05, LD05
 
@@ -1139,10 +1130,6 @@
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
  
 #     include "cmn_fj.h"       ! IPAR, JPAR, LPAR, CMN_SIZE
-!------------------------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"         ! XNUMOL
-!------------------------------------------------------------
 #     include "CMN_GCTM"       ! AIRMW
 #     include "CMN_DIAG"       ! ND44
       
@@ -1390,10 +1377,6 @@
 
 #     include "CMN_SIZE"    ! Size parameters
 #     include "CMN_GCTM"    ! AIRMW
-!-------------------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"      ! XNUMOL
-!-------------------------------------------------------
 #     include "CMN_DIAG"    ! LD05, ND05, ND44
 
       ! Local variables
@@ -1829,9 +1812,6 @@
       USE ISOROPIA_MOD,    ONLY : GET_GNO3
 
 #     include "CMN_SIZE"  ! Size parameters
-!--------------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"    ! XNUMOLAIR
 !---------------------------------------------------------------
 ! DIAGNOSTIC -- leave commented out for now (bec, bmy, 4/13/05)
 !#     include "CMN_DIAG"  ! ND19
@@ -2392,10 +2372,6 @@
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
 #     include "CMN_SIZE"     ! Size parameters
-!--------------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"       ! XNUMOL
-!--------------------------------------------------
 #     include "CMN_DIAG"     ! ND44
 
       ! Local variables
@@ -2819,10 +2795,6 @@
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_GCTM"     ! AIRMW
-!-------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"       ! XNUMOL
-!-------------------------------------------
 #     include "CMN_DIAG"     ! ND44
 
       ! Local variables
@@ -2987,10 +2959,6 @@
       USE TRACERID_MOD, ONLY : IDTNH3
 
 #     include "CMN_SIZE"     ! Size parameters
-!--------------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"       ! XNUMOL
-!--------------------------------------------------
 #     include "CMN_DIAG"     ! ND44
 
       ! Local variables
@@ -3145,10 +3113,6 @@
       USE TRACERID_MOD, ONLY : IDTNH4
 
 #     include "CMN_SIZE"  ! Size parameters
-!---------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"    ! XNUMOL
-!---------------------------------------------
 #     include "CMN_DIAG"  ! ND44
 
       ! Local variables
@@ -3289,10 +3253,6 @@
       USE TRACERID_MOD, ONLY : IDTNH4aq
 
 #     include "CMN_SIZE"  ! Size parameters
-!-----------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"    ! XNUMOL
-!-----------------------------------------------
 #     include "CMN_DIAG"  ! ND44
 
       ! Local variables
@@ -3448,10 +3408,6 @@
       USE TRACERID_MOD, ONLY : IDTNIT, IDTNITs
 
 #     include "CMN_SIZE"     ! Size parameters
-!--------------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"       ! XNUMOL
-!--------------------------------------------------
 #     include "CMN_DIAG"     ! ND44
 
       ! Local variables
@@ -4032,10 +3988,6 @@
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! ND13, LD13 (for now)
 #     include "CMN_GCTM"     ! SCALE_HEIGHT
-!-------------------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"       ! XNUMOL
-!-------------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NSEASON
@@ -4450,10 +4402,6 @@
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! ND13 (for now)
 #     include "CMN_GCTM"     ! SCALE_HEIGHT
-!--------------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"       ! XNUMOL
-!--------------------------------------------------
 
       ! Arguments      
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -4685,10 +4633,6 @@
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! ND13
 #     include "CMN_GCTM"     ! SCALE_HEIGHT
-!-----------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"       ! XNUMOL
-!-----------------------------------------------
       
       ! Argumetns
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -5190,10 +5134,6 @@
       USE TRACERID_MOD, ONLY : IDO3
 
 #     include "CMN_SIZE"     ! Size parameters
-!-----------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"       ! XNUMOLAIR
-!-----------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)   :: I, J, L
@@ -6109,10 +6049,6 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"      ! Size parameters 
-!-------------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"       ! XNUMOL
-!-------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)    :: THISMONTH

@@ -1,4 +1,4 @@
-! $Id: biomass_mod.f,v 1.10 2005/10/20 14:03:14 bmy Exp $
+! $Id: biomass_mod.f,v 1.11 2005/11/03 17:50:22 bmy Exp $
       MODULE BIOMASS_MOD
 !
 !******************************************************************************
@@ -1461,10 +1461,6 @@
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE LOGICAL_MOD, ONLY : LBIOMASS
-      !----------------------------------------------------
-      ! Prior to 10/3/05:
-      !USE TRACERID_MOD
-      !----------------------------------------------------
 
 #     include "CMN_SIZE"  ! Size parameters, etc
 

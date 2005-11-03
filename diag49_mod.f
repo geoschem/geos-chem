@@ -1,4 +1,4 @@
-! $Id: diag49_mod.f,v 1.11 2005/10/27 13:59:53 bmy Exp $
+! $Id: diag49_mod.f,v 1.12 2005/11/03 17:50:25 bmy Exp $
       MODULE DIAG49_MOD
 !
 !******************************************************************************
@@ -142,7 +142,7 @@
 !******************************************************************************
 !  Subroutine DIAG49 produces time series (instantaneous fields) for a 
 !  geographical domain from the information read in timeseries.dat.  Output 
-!  will be in binary punch (BPCH) format. (bey, bmy, rvm, 4/9/99, 6/24/05)
+!  will be in binary punch (BPCH) format. (bey, bmy, rvm, 4/9/99, 11/1/05)
 !
 !  NOTES:
 !  (1 ) Now bundled into "diag49_mod.f".  Now reference STT from 
@@ -158,7 +158,8 @@
 !  (5 ) Remove references to TRCOFFSET because it is always zero (bmy, 6/24/05)
 !  (6 ) Now do not save SLP data if it is not allocated (bmy, 8/2/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (8 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
+!  (8 ) Now references XNUMOLAIR from "tracer_mod.f".  Bug fix: now must sum
+!        aerosol OD's over all RH bins.  Also zero Q array. (bmy, 11/1/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -258,6 +259,9 @@
 
          ! ND49 tracer number
          N = ND49_TRACERS(W)
+
+         ! Zero summing array
+         Q = 0d0
 
          ! Test by tracer number
          IF ( N <= N_TRACERS ) THEN
@@ -613,7 +617,11 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = ODAER(I,J,L,R) * SCALE400nm
+                  !------------------------------------------
+                  ! Prior to 10/31/05:
+                  !Q(X,Y,K) = ODAER(I,J,L,R) * SCALE400nm
+                  !------------------------------------------
+                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,R) * SCALE400nm )
                ENDDO
                ENDDO
                ENDDO
@@ -647,7 +655,11 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = ODAER(I,J,L,H) * SCALE400nm
+                  !------------------------------------------
+                  ! Prior to 10/31/05:
+                  !Q(X,Y,K) = ODAER(I,J,L,H) * SCALE400nm
+                  !------------------------------------------
+                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALE400nm )
                ENDDO
                ENDDO
                ENDDO
@@ -681,7 +693,11 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = ODAER(I,J,L,H) * SCALE400nm
+                  !------------------------------------------
+                  ! Prior to 10/31/05:
+                  !Q(X,Y,K) = ODAER(I,J,L,H) * SCALE400nm
+                  !------------------------------------------
+                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALE400nm )
                ENDDO
                ENDDO
                ENDDO
@@ -715,7 +731,11 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = ODAER(I,J,L,H) * SCALE400nm
+                  !-----------------------------------------
+                  ! Prior to 10/31/05:
+                  !Q(X,Y,K) = ODAER(I,J,L,H) * SCALE400nm
+                  !-----------------------------------------
+                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALE400nm )
                ENDDO
                ENDDO
                ENDDO
@@ -749,7 +769,11 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = ODAER(I,J,L,H) * SCALE400nm
+                  !------------------------------------------
+                  ! Prior to 10/31/05:
+                  !Q(X,Y,K) = ODAER(I,J,L,H) * SCALE400nm
+                  !------------------------------------------
+                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALE400nm )
                ENDDO
                ENDDO
                ENDDO

@@ -1,9 +1,9 @@
-! $Id: isoropia_mod.f,v 1.4 2005/10/20 14:03:32 bmy Exp $
+! $Id: isoropia_mod.f,v 1.5 2005/11/03 17:50:31 bmy Exp $
       MODULE ISOROPIA_MOD
 !
 !******************************************************************************
 !  Module ISOROPIA_MOD contains the routines from the ISORROPIA package, which
-!  performs aerosol thermodynamical equilibrium (bec, bmy, 4/12/05, 8/22/05)
+!  performs aerosol thermodynamical equilibrium (bec, bmy, 4/12/05, 11/2/05)
 !
 !  NOTE: ISORROPIA is Greek for "equilibrium", in case you were wondering. :-)
 !
@@ -186,6 +186,9 @@
 !  
 !  NOTES:
 !  (1 ) Now references "tropopause_mod.f" (bmy, 8/22/05)
+!  (2 ) Remove duplicate declaration of variables, and declaration of local
+!        variables that were in "isoropia.h".  This is necessary to compile
+!        with the LINUX/IFORT (v9) compiler. (bmy, 11/1/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1224,7 +1227,12 @@
       INTEGER           :: K,  IRH
       REAL*8            :: IC, GII, GI0, XX, T0T
 !      REAL*8            :: TEMP, RH
-      REAL*8            :: TCF, DRMI2, DRMI3, G130, G13I, COEF
+!-------------------------------------------------------------------
+! Prior to 11/1/05:
+! DRMI2, DRMI3 is already defined in ISOROPIA.h
+!      REAL*8            :: TCF, DRMI2, DRMI3, G130, G13I, COEF
+!-------------------------------------------------------------------
+      REAL*8            :: TCF, G130, G13I, COEF
       REAL*8, PARAMETER :: LN10 = 2.3025851D0
       REAL*8, PARAMETER :: T0   = 298.15D0
 
@@ -1723,8 +1731,12 @@ CCC      ENDIF
 !
 #     include "isoropia.h" 
 
-      ! Local variables
-      REAL*8 :: A1, CHI1, CHI2, BB, CC, DIAK, PSI, XK42
+      ! Local variables 
+      !---------------------------------------------------
+      ! Prior to 11/1/05:
+      !REAL*8 :: A1, CHI1, CHI2, BB, CC, DIAK, PSI, XK42
+      !---------------------------------------------------
+      REAL*8 :: A1, CHI1, CHI2, BB, CC, DIAK, PSI
 
       !=================================================================
       ! CALCNH3 begins here!
@@ -2541,7 +2553,11 @@ CCC      ENDIF
 !      REAL*8             :: TEMP
 !      INTEGER            :: I, J
       INTEGER            :: K, M
-      REAL*8             :: MPL, XIJ, YJI, ERROU, ERRIN, IONIC
+      !--------------------------------------------------------------
+      ! Prior to 11/1/05:
+      !REAL*8             :: MPL, XIJ, YJI, ERROU, ERRIN, IONIC
+      !--------------------------------------------------------------
+      REAL*8             :: MPL, XIJ, YJI, ERROU, ERRIN
 
       !=================================================================
       ! CALCACT begins here!
@@ -2845,7 +2861,11 @@ CCC      ENDIF
       REAL*8 :: IONIC, Q, SION, ZIP, BI
 
       ! Local variables
-      REAL*8 :: B, C, XX, BI
+      !-------------------------
+      ! Prior to 11/1/05:
+      !REAL*8 :: B, C, XX, BI
+      !-------------------------
+      REAL*8 :: B, C, XX
 
       !=================================================================
       ! MKBI begins here!
@@ -3907,7 +3927,11 @@ CCC      ENDIF
       ! Local variables
       INTEGER, PARAMETER :: MAXIT=100
       INTEGER, PARAMETER :: NDIV=5
-      INTEGER            :: ISLV, I, K1, K2
+      !--------------------------------------------
+      ! Prior to 11/1/05:
+      !INTEGER            :: ISLV, I, K1, K2
+      !--------------------------------------------
+      INTEGER            :: I, K1, K2
       REAL*8,  PARAMETER :: ZERO=0.0D0
       REAL*8,  PARAMETER :: EPS=1.0D-15
       REAL*8             :: X1, Y1, DX, X2, Y2, Y3, X3
@@ -5513,7 +5537,11 @@ CCC      ENDIF
 
 
       ! Local variables
-      REAL*8 :: X, Y, CLC
+      !-----------------------
+      ! Prior to 11/1/05:
+      !REAL*8 :: X, Y, CLC
+      !-----------------------
+      REAL*8 :: X, Y
 
       !=================================================================
       ! CALCB1 begins here! 
@@ -9739,7 +9767,10 @@ C
 
       ! Local varaibles
       INTEGER :: K
-      REAL*8  :: DRMI2
+      !----------------------
+      ! Prior to 11/1/05:
+      !REAL*8  :: DRMI2
+      !----------------------
 
       !=================================================================
       ! CALCI2 begins here!
@@ -10046,7 +10077,10 @@ C
 
       ! Local variables
       INTEGER :: K
-      REAL*8  :: DRMI3
+      !-----------------------
+      ! Prior to 11/1/05:
+      !REAL*8  :: DRMI3
+      !-----------------------
 
       !=================================================================
       ! CALCI3 begins here!

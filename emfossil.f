@@ -1,9 +1,9 @@
-! $Id: emfossil.f,v 1.6 2005/10/27 13:59:56 bmy Exp $
+! $Id: emfossil.f,v 1.7 2005/11/03 17:50:27 bmy Exp $
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
-!*****************************************************************************
+!******************************************************************************
 !  Subroutine EMFOSSIL emits fossil fuels into the EMISRR and EMISRRN 
-!  arrays, which are then passed to SMVGEAR. (bmy, 4/19/99, 10/25/05)
+!  arrays, which are then passed to SMVGEAR. (bmy, 4/19/99, 11/1/05)
 !
 !  Arguments as input:
 !  ========================================================================
@@ -40,36 +40,42 @@
 !        out if this is a weekday or weekend. (bmy, 7/6/05)
 !  (18) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (19) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!*****************************************************************************
+!  (20) Now apply EMEP European emissions if necessary.  Remove reference
+!        to CMN, it's now obsolete. (bdf, bmy, 11/1/05)
+!******************************************************************************
 !          
       ! References to F90 modules
-      USE DIAG_MOD,     ONLY : AD29, AD32_an, AD36
-      USE EPA_NEI_MOD,  ONLY : GET_EPA_ANTHRO, GET_USA_MASK
+      USE DIAG_MOD,     ONLY : AD29, AD32_an,   AD36
+      USE EMEP_MOD,     ONLY : GET_EMEP_ANTHRO, GET_EUROPE_MASK
+      USE EPA_NEI_MOD,  ONLY : GET_EPA_ANTHRO,  GET_USA_MASK
       USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,  ONLY : LNEI99
-      USE TIME_MOD,     ONLY : GET_TS_EMIS, GET_DAY_OF_WEEK
+      USE LOGICAL_MOD,  ONLY : LNEI99,          LEMEP
+      USE TIME_MOD,     ONLY : GET_TS_EMIS,     GET_DAY_OF_WEEK
       USE TRACER_MOD,   ONLY : XNUMOL
-      USE TRACERID_MOD, ONLY : IDENOX, IDEOX, IDTCO
+      USE TRACERID_MOD, ONLY : IDENOX, IDEOX,   IDTCO
   
       IMPLICIT NONE
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! STT, many other variables
-#     include "CMN_DIAG"  ! Diagnostic switches & arrays
-#     include "CMN_O3"    ! EMISR, EMISRR, etc...
-#     include "comode.h"  ! IHOUR
+#     include "CMN_SIZE"     ! Size parameters
+!----------------------------------------------------------
+! Prior to 11/1/05:
+!#     include "CMN"         ! STT, many other variables
+!----------------------------------------------------------
+#     include "CMN_DIAG"     ! Diagnostic switches & arrays
+#     include "CMN_O3"       ! EMISR, EMISRR, etc...
+#     include "comode.h"     ! IHOUR
 
       ! Arguments
-      INTEGER, INTENT(IN) :: I, J, N, NN, IREF, JREF, JSCEN
+      INTEGER, INTENT(IN)   :: I, J, N, NN, IREF, JREF, JSCEN
 
       ! Local Variables & external functions
-      LOGICAL             :: WEEKDAY
-      INTEGER             :: L, LL, K, DOW
-      REAL*8              :: TODX, DTSRCE, AREA_CM2           
-      REAL*8              :: EMX(NOXLEVELS)  
-      REAL*8              :: XEMISR
-      REAL*8              :: XEMISRN(NOXLEVELS)
-      REAL*8              :: EPA_NEI
+      LOGICAL               :: WEEKDAY
+      INTEGER               :: L, LL, K, DOW
+      REAL*8                :: TODX, DTSRCE, AREA_CM2           
+      REAL*8                :: EMX(NOXLEVELS)  
+      REAL*8                :: XEMISR
+      REAL*8                :: XEMISRN(NOXLEVELS)
+      REAL*8                :: EPA_NEI, EMEP
 
       !=================================================================
       ! EMFOSSIL begins here!
@@ -137,8 +143,38 @@
                   EMX(LL) = 0d0                   
                   
                ENDIF
-            
+
             ENDIF
+
+            !-----------------------------------------------------------
+            ! Get NOx from EMEP inventory over Europe 
+            !-----------------------------------------------------------
+
+            ! If we are over the European region ...
+            IF ( LEMEP .and. GET_EUROPE_MASK( I, J ) > 0d0 ) THEN 
+            
+               ! Get EMEP emissions for NOx (and apply time-of-day factor)
+               EMEP = GET_EMEP_ANTHRO( I, J, NN )
+               EMEP = EMEP * TODX
+            
+               IF ( LL == 1 ) THEN
+            
+                  ! Replace GEIA with EMEP emissions at surface
+                  EMX(LL) = EMEP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+            
+               ELSE 
+            
+                  ! Zero GEIA emissions in the 2nd level 
+                  ! where the EMEP emissions are nonzero
+                  EMX(LL) = 0d0                   
+                  
+               ENDIF
+
+            ENDIF
+
+            !-----------------------------------------------------------
+            ! Store in EMISRRN array and archive diagnostics
+            !-----------------------------------------------------------
 
             ! EMISRRN [molec/box/s] is referenced by LL
             EMISRRN(I,J,LL) = EMISRRN(I,J,LL) +
@@ -196,6 +232,33 @@
 
          ENDIF
 
+         !--------------------------------------------------------------
+         ! Get CO & Hydrocarbons from EMEP inventory over Europe
+         !--------------------------------------------------------------
+
+         ! If we are over the European region ...
+         IF ( LEMEP .and. GET_EUROPE_MASK( I, J ) > 0d0 ) THEN
+         
+            ! Get EMEP emissions 
+            EMEP = GET_EMEP_ANTHRO( I, J, NN )
+         
+            ! -1 indicates tracer NN does not have EMEP emissions
+            IF ( EMEP > 0d0 ) THEN
+
+               ! Apply time-of-day factor
+               EMEP   = EMEP * TODX
+
+               ! Convert from molec/cm2/s to kg/box/timestep in order
+               ! to be in the proper units for EMISRR array
+               EMX(1) = EMEP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+
+            ENDIF
+
+         ENDIF
+
+         !--------------------------------------------------------------
+         ! Store in EMISRR array and archive diagnostics
+         !--------------------------------------------------------------
          EMISRR(I,J,N) = EMX(1) * XNUMOL(NN) / DTSRCE
 
          ! ND29 = CO source diagnostic... 

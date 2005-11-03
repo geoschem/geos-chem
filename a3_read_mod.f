@@ -1,4 +1,4 @@
-! $Id: a3_read_mod.f,v 1.11 2005/10/27 13:59:49 bmy Exp $
+! $Id: a3_read_mod.f,v 1.12 2005/11/03 17:50:21 bmy Exp $
       MODULE A3_READ_MOD
 !
 !******************************************************************************
@@ -337,10 +337,6 @@
       INTEGER, INTENT(IN)    :: NYMD, NHMS
 
       ! Local variables
-      !-------------------------------------
-      ! Prior to 10/24/05:
-      !LOGICAL                :: DO_OPEN
-      !-------------------------------------
       LOGICAL                :: IT_EXISTS
       INTEGER                :: IOS
       CHARACTER(LEN=8)       :: IDENT

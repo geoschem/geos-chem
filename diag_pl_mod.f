@@ -1,4 +1,4 @@
-! $Id: diag_pl_mod.f,v 1.6 2005/10/27 13:59:55 bmy Exp $
+! $Id: diag_pl_mod.f,v 1.7 2005/11/03 17:50:25 bmy Exp $
       MODULE DIAG_PL_MOD
 !
 !******************************************************************************
@@ -648,18 +648,14 @@
       USE TRACER_MOD,    ONLY : STT,           XNUMOL
       USE TRACERID_MOD,  ONLY : IDTOX
 
-#     include "CMN_SIZE"  ! Size parameters
-!----------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"    ! XNUMOL
-!----------------------------------------------
+#     include "CMN_SIZE"      ! Size parameters
 
       ! Local variables
-      LOGICAL, SAVE     :: FIRST = .TRUE.
-      LOGICAL           :: DO_WRITE
-      INTEGER           :: I, J, L, N
-      REAL*8            :: P_Ox, L_Ox
-      CHARACTER(LEN=16) :: STAMP 
+      LOGICAL, SAVE          :: FIRST = .TRUE.
+      LOGICAL                :: DO_WRITE
+      INTEGER                :: I, J, L, N
+      REAL*8                 :: P_Ox, L_Ox
+      CHARACTER(LEN=16)      :: STAMP 
 
       !=================================================================
       ! DIAG20 begins here!

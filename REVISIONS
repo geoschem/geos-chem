@@ -1,130 +1,68 @@
-REVISIONS (v7-03-05)  
-bmy, 25 Oct 2005
+REVISIONS (v7-03-06)  
+bmy, 02 Nov 2005
 
 
-New in v7-03-05:
+New in v7-03-06:
 -------------------------------------------------------------------------------
 
-get_ct_xtra		-- Returns value of CT_XTRA counter 
-("time_mod.f")
-
-lai_mod.f		-- Module for AVHRR LAI variables
-
-megan_mod.f		-- Module for MEGAN biogenic emissions
-
-regrid_1x1_mod.f        -- Module which regrids 1x1 data to other grids
-
-set_ct_xtra		-- Increments CT_XTRA counter 
-("time_mod.f")
-
-xtra_read_mod.f		-- Module for reading GEOS-3 "xtra" met fields
+emep_mod.f		-- Module for reading EMEP European anthro emissions
 
 
 
-Removed in v7-03-05:
+Removed in v7-03-06:
 -------------------------------------------------------------------------------
 
+phis_read_mod.f		-- This is now obsolete
 
 
 
-Changed from v7-03-04:
+Changed from v7-03-05:
 -------------------------------------------------------------------------------
 
-biogenic_oc		-- Now can use MEGAN biogenic emissions
-("carbon_mod.f")
+chem_hcn_ch3cn		-- Bug fix: remove duplicate declaration of KTMP
+("hcn_ch3cn_mod.f")
 
-cleanup.f		-- Now calls CLEANUP_LAI from "lai_mod.f"
-			-- Now calls CLEANUP_MEGAN from "megan_mod.f"
-			-- Now calls CLEANUP_REGRID_1x1 from "regrid_1x1_mod.f"
+cleanup.f		-- Now calls CLEANUP_EMEP from "emep_mod.f"
 
-cleanup_tracer		-- Now deallocate XNUMOL
-("tracer_mod.f")
+diag49			-- Bug fix: now must sum aerosol OD's over all RH bins
+("diag49_mod.f")	-- Also zero the Q array
 
-close_files		-- Also close IU_XT
-("file_mod.f")
+do_emissions		-- Now references EMISS_EMEP from "emep_mod.f"
+("emissions_mod.f")
 
-CMN_DIAG		-- Set PD46 to 5
+do_gcap_convect		-- Shut off scavenging in shallow convection for GCAP
+("convection_mod.f")
 
-CMN_O3			-- Removed FO3, FNO2, FNO, these are now obsolete
-			-- Removed EMISRR48, this is now obsolete
-			-- Removed OZCOL, this is now obsolete
+emfossil.f		-- Now apply EMEP European emissions if necessary
+			-- Remove reference to CMN, it's now obsolete.
 
-CMN_SIZE		-- Now add I1x1=360 and J1x1=181 parameters for data 
-			   on the 1x1 GEOS grid
+file_ex_c		-- Intel IFORT v9 compiler requires use of the 
+("file_mod.f")		   DIRECTORY keyword to INQUIRE for checking 
+			   existence of directories
 
-diag3.f			-- Added MBO as tracer #5 in ND46 diagnostic
+ioerror			-- Modifications for Linux/IFORT Intel v9 compiler,
+("file_mod.f")             now do not call gerror() OS function
 
-directory_mod.f		-- Added DATA_DIR_1x1 
+isoropia_mod.f		-- Remove duplicate declaration of variables, and 
+			   declaration of local variables that were in 
+			   "isoropia.h".  This is necessary to compile
+			   with the LINUX/IFORT (v9) compiler.
 
-emissdr.f		-- Now can use MEGAN inventory for biogenic VOCs
-			-- Now references "megan_mod.f" 
-
-file_mod.f		-- Added IU_XT for GEOS3 XTRA met fields files 
-			   for MEGAN 
-
-get_4x5_bc		-- Rename arguments to avoid conflict w/ I1x1, 
-("tpcore_bc_mod.f")	   J1x1 parameters in CMN_SIZE.
-
-gwet_read_mod.f		-- Updated comments
-
-init_dao		-- Now also add TSKIN for GEOS-3
-("dao_mod.f")
-
-init_gamap		-- Now save MBO as tracer #5 for ND46
-("gamap_mod.f")
-
-init_input		-- Now also initialize LMEGAN switch
-("input_mod.f")
-
-init_tracer		-- Now allocate XNUMOL
-("tracer_mod.f")
-
-initialize.f		-- Now resets SET_CT_XTRA at the beginning of the run
-
-logical_mod.f		-- Added LMEGAN switch for MEGAN biogenics
-
-planeflight		-- Now computes column AOD's and AOD's below plane
-("planeflight_mod.f")	-- Now scales AOD's to 400nm
-
-read_emissions_menu	-- Now read LMEGAN -- switch for MEGAN biogenics 
-("input_mod.f")
-
-read_variables		-- Now computes column AOD's and AOD's below plane
-("planeflight_mod.f")
-
-set_timesteps		-- Also zero CT_XTRA
+its_a_new_year		-- Bug fix: Need month & day to be 1 
 ("time_mod.f")
 
-time_mod.f		-- Added counter variable & routines for XTRA fields
+logical_mod.f		-- Added LEMEP switch to toggle EMEP anthro emissions
 
-tracer_mod.f		-- Now added XNUMOL, XNUMOLAIR 
+main.f			-- Remove reference to "CMN_O3", it's not needed here
+			-- Remove reference to "comode.h", it's not needed here
 
-validate_directories	-- Now references DATA_DIR_1x1 from directory_mod.f
+read_emissions_menu	-- Now read LEMEP switch for EMEP emissions
 ("input_mod.f")
 
----
-anthroems.f		-- Now use TRACER_MW_KG ("tracer_mod.f") instead
-epa_nei_mod.f		   of FMOL ("CMN_O3"), in preparation for ESMF
+read_tropopause		-- Simplify counting of # of tropospheric boxes
+("tropopause_mod.f")
 
----
-CO_strat_pl.f		-- Now reference XNUMOLAIR from "tracer_mod.f"
-carbon_mod.f		   instead of from "CMN_O3", in preparation for ESMF
-diag1.f
-diag48_mod.f
-diag49_mod.f
-diag50_mod.f
-diag51_mod.f
-input_mod.f
-schem.f
-sulfate_mod.f
-upbdflx_mod.f
-
----
-carbon_mod.f		-- Now reference XNUMOL from "tracer_mod.f" instead 
-chemdr.f		   of from "CMN_O3", in preparation for ESMF
-dust_mod.f
-emfossil.f
-mercury_mod.f
-sulfate_mod.f
-tagged_ox_mod.f
-
+upbdflx_noy		-- Now reference GET_MIN_TPAUSE_LEVEL from 
+("upbdflx_mod.f")	   "tropopause_mod.f"
+			-- Now replace reference to LPAUSE with 
+			   ITS_IN_THE_STRAT from "tropopause_mod.f"

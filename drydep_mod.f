@@ -1,4 +1,4 @@
-! $Id: drydep_mod.f,v 1.22 2005/10/20 14:03:22 bmy Exp $
+! $Id: drydep_mod.f,v 1.23 2005/11/03 17:50:25 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
@@ -277,10 +277,6 @@
       USE DAO_MOD,      ONLY : AD, ALBD, BXHEIGHT, SUNCOS
       USE ERROR_MOD,    ONLY : DEBUG_MSG
       USE LOGICAL_MOD,  ONLY : LPRT
-      !------------------------------------------
-      ! Prior to 10/3/05:
-      !USE TRACERID_MOD
-      !------------------------------------------
 
 #     include "CMN_SIZE" ! Size parameters
 #     include "CMN_DIAG" ! ND44

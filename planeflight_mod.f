@@ -1,4 +1,4 @@
-! $Id: planeflight_mod.f,v 1.17 2005/10/27 14:00:02 bmy Exp $
+! $Id: planeflight_mod.f,v 1.18 2005/11/03 17:50:35 bmy Exp $
       MODULE PLANEFLIGHT_MOD
 !
 !******************************************************************************
@@ -1099,10 +1099,6 @@
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
 #     include "CMN_SIZE"   ! Size parameters
-!--------------------------------------------------
-! Prior to 8/22/05:
-!#     include "CMN"        ! LPAUSE
-!--------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)  :: IND
@@ -1142,14 +1138,6 @@
       ! Error check: L must be 1 or higher
       IF ( L == 0 ) L = 1
 
-      !----------------------------------------------------------------------
-      ! Prior to 8/22/05:
-      !!=================================================================
-      !! L <  LPAUSE(I,J) is a TROPOSPHERIC  box -- we do chem there
-      !! L >= LPAUSE(I,J) is a STRATOSPHERIC box -- no chem is done
-      !!=================================================================
-      !IF ( L < LPAUSE(I,J) ) THEN 
-      !----------------------------------------------------------------------
       !=================================================================
       ! We only do full-chemistry in the troposphere
       !=================================================================

@@ -1,4 +1,4 @@
-! $Id: epa_nei_mod.f,v 1.5 2005/10/27 13:59:56 bmy Exp $
+! $Id: epa_nei_mod.f,v 1.6 2005/11/03 17:50:28 bmy Exp $
       MODULE EPA_NEI_MOD
 !
 !******************************************************************************
@@ -618,10 +618,6 @@
       USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
 #     include "CMN_SIZE"  ! Size parameters
-!-----------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"    ! FMOL
-!-----------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -690,21 +686,6 @@
       F_NH3   = 0d0 
 
       ! Prevent array out of bounds error for undefined tracers
-      !-----------------------------------------------------------
-      ! Prior to 10/25/05:
-      !IF ( IDTNOX  > 0 ) F_NOX  = FMOL(IDTNOX )
-      !IF ( IDTCO   > 0 ) F_CO   = FMOL(IDTCO  )
-      !IF ( IDTALK4 > 0 ) F_ALK4 = FMOL(IDTALK4)
-      !IF ( IDTACET > 0 ) F_ACET = FMOL(IDTACET)
-      !IF ( IDTMEK  > 0 ) F_MEK  = FMOL(IDTMEK )
-      !IF ( IDTPRPE > 0 ) F_PRPE = FMOL(IDTPRPE)
-      !IF ( IDTC2H6 > 0 ) F_C2H6 = FMOL(IDTC2H6)
-      !IF ( IDTC3H8 > 0 ) F_C3H8 = FMOL(IDTC3H8)
-      !IF ( IDTCH2O > 0 ) F_CH2O = FMOL(IDTCH2O)
-      !IF ( IDTSO2  > 0 ) F_SO2  = FMOL(IDTSO2 )
-      !IF ( IDTSO4  > 0 ) F_SO4  = FMOL(IDTSO4 )
-      !IF ( IDTNH3  > 0 ) F_NH3  = FMOL(IDTNH3 )
-      !-----------------------------------------------------------
       IF ( IDTNOX  > 0 ) F_NOX  = TRACER_MW_KG(IDTNOX )
       IF ( IDTCO   > 0 ) F_CO   = TRACER_MW_KG(IDTCO  )
       IF ( IDTALK4 > 0 ) F_ALK4 = TRACER_MW_KG(IDTALK4)
@@ -829,10 +810,6 @@
       USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
 #     include "CMN_SIZE"  ! Size parameters
-!-------------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"    ! FMOL
-!-------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -901,21 +878,6 @@
       F_NH3   = 0d0 
 
       ! Prevent array out of bounds error for undefined tracers
-      !-------------------------------------------------------------
-      ! Prior to 10/25/05:
-      !IF ( IDTNOX  > 0 ) F_NOX  = FMOL(IDTNOX )
-      !IF ( IDTCO   > 0 ) F_CO   = FMOL(IDTCO  )
-      !IF ( IDTALK4 > 0 ) F_ALK4 = FMOL(IDTALK4)
-      !IF ( IDTACET > 0 ) F_ACET = FMOL(IDTACET)
-      !IF ( IDTMEK  > 0 ) F_MEK  = FMOL(IDTMEK )
-      !IF ( IDTPRPE > 0 ) F_PRPE = FMOL(IDTPRPE)
-      !IF ( IDTC2H6 > 0 ) F_C2H6 = FMOL(IDTC2H6)
-      !IF ( IDTC3H8 > 0 ) F_C3H8 = FMOL(IDTC3H8)
-      !IF ( IDTCH2O > 0 ) F_CH2O = FMOL(IDTCH2O)
-      !IF ( IDTSO2  > 0 ) F_SO2  = FMOL(IDTSO2 )
-      !IF ( IDTSO4  > 0 ) F_SO4  = FMOL(IDTSO4 )
-      !IF ( IDTNH3  > 0 ) F_NH3  = FMOL(IDTNH3 )
-      !-------------------------------------------------------------
       IF ( IDTNOX  > 0 ) F_NOX  = TRACER_MW_KG(IDTNOX )
       IF ( IDTCO   > 0 ) F_CO   = TRACER_MW_KG(IDTCO  )
       IF ( IDTALK4 > 0 ) F_ALK4 = TRACER_MW_KG(IDTALK4)

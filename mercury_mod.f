@@ -1,4 +1,4 @@
-! $Id: mercury_mod.f,v 1.7 2005/10/27 14:00:01 bmy Exp $
+! $Id: mercury_mod.f,v 1.8 2005/11/03 17:50:33 bmy Exp $
       MODULE MERCURY_MOD
 !
 !******************************************************************************
@@ -345,10 +345,6 @@
       USE TRACERID_MOD, ONLY : IDTHg0, IDTHg2
 
 #     include "CMN_SIZE"     ! Size parameters
-!-----------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"       ! XNUMOL
-!-----------------------------------------------
 
       ! Arguments
       REAL*8, INTENT(IN)    :: V_DEP_Hg2(IIPAR,JJPAR)
@@ -858,10 +854,6 @@
       USE TRACERID_MOD,      ONLY : IDTHg2
 
 #     include "CMN_SIZE"    ! Size parameters
-!---------------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"      ! XNUMOL
-!---------------------------------------------------
 #     include "CMN_DIAG"    ! ND44
 
       ! Arguments
@@ -1017,10 +1009,6 @@
       USE TRACERID_MOD, ONLY : IDTHGP_eu, IDTHGP_as, IDTHGP_rw
 
 #     include "CMN_SIZE"  ! Size parameters
-!---------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"    ! XNUMOL
-!---------------------------------------------
 
       ! Arguments
       REAL*8, INTENT(IN) :: V_DEP_HgP(IIPAR,JJPAR)
@@ -1116,10 +1104,6 @@
       USE TRACERID_MOD, ONLY : IDTHGP
      
 #     include "CMN_SIZE"     ! Size parameters
-!------------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"       ! XNUMOL
-!------------------------------------------------
 #     include "CMN_DIAG"     ! ND44 
 
       ! Arguments

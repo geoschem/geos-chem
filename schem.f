@@ -1,4 +1,4 @@
-! $Id: schem.f,v 1.8 2005/10/27 14:00:03 bmy Exp $
+! $Id: schem.f,v 1.9 2005/11/03 17:50:35 bmy Exp $
       SUBROUTINE SCHEM
 !
 !******************************************************************************
@@ -83,10 +83,6 @@
       IMPLICIT NONE
 
 #     include "CMN_SIZE"        ! Size parameters
-!--------------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"          ! XNUMOLAIR
-!--------------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE             :: FIRST = .TRUE.

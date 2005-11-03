@@ -1,9 +1,9 @@
-! $Id: hcn_ch3cn_mod.f,v 1.8 2005/10/20 14:03:30 bmy Exp $
+! $Id: hcn_ch3cn_mod.f,v 1.9 2005/11/03 17:50:29 bmy Exp $
       MODULE HCN_CH3CN_MOD
 !
 !******************************************************************************
 !  Module HCN_CH3CN_MOD contains variables and routines that are used for the 
-!  geographically tagged HCN/CH3CN simulation. (qli, xyp, bmy, 8/16/05,10/3/05)
+!  geographically tagged HCN/CH3CN simulation. (qli, xyp, bmy, 8/16/05,11/2/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -72,6 +72,8 @@
 !  NOTES:
 !  (1 ) Now use Nightingale et al [2000b] formulation for KL (bmy, 8/16/05)
 !  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (3 ) Remove duplicate variable declarations for Linux IFORT v9 compiler
+!        (bmy, 11/2/05)
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -466,7 +468,8 @@
       SUBROUTINE CHEM_HCN_CH3CN( N_TRACERS, STT )
 !
 !******************************************************************************
-! HCN/CH3CN loss due to reaction with OH and ocean uptake.
+!  Subroutine CHEM_HCN_CH3CN computes the loss of HCN and CH3CN due to 
+!  reaction with OH and ocean uptake. (xyp, bmy, 8/16/05, 11/2/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -474,6 +477,7 @@
 !
 !  NOTES:
 !  (1 ) Now use Nightingale et al [2000b] formulation for KL (bmy, 8/16/05)
+!  (2 ) Bug fix: remove duplicate declaration of KTMP (bmy, 11/2/05)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -496,8 +500,8 @@
       LOGICAL, SAVE          :: FIRST = .TRUE.
       INTEGER                :: I,      J,    L,    N,     NN,  N_MAX
       REAL*8                 :: K0,     K1,   KTMP, KRATE, TMP, DTCHEM
-      REAL*8                 :: KTMP,   H,    U,    TC,    SC,  KL
-      REAL*8                 :: KG,     KKG,  CL,   SR,    CG,  FLUX
+      REAL*8                 :: H,      U,    TC,   SC,    KL,  KG
+      REAL*8                 :: KKG,    CL,   SR,   CG,    FLUX
       REAL*8                 :: ACM2,   AMT_LOST,   OCEAN_HCN
       REAL*8                 :: FOCEAN, OCEAN_CH3CN
 

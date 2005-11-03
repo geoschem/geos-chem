@@ -1,9 +1,9 @@
-! $Id: upbdflx_mod.f,v 1.14 2005/10/27 14:00:07 bmy Exp $
+! $Id: upbdflx_mod.f,v 1.15 2005/11/03 17:50:39 bmy Exp $
       MODULE UPBDFLX_MOD
 !
 !******************************************************************************
 !  Module UPBDFLX_MOD contains subroutines which impose stratospheric boundary
-!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 10/25/05)
+!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 11/1/05)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -23,9 +23,10 @@
 !  (1 ) bpch2_mod.f    : Module containing routines for binary punch file I/O
 !  (2 ) error_mod.f    : Module containing NaN and other error check routines
 !  (3 ) logical_mod.f  : Module containing GEOS-CHEM logical switches
-!  (4 ) tracer_mod.f   : Module containing GEOS-CHEM tracer array STT etc.
-!  (5 ) tracerid_mod.f : Module containing pointers to tracers & emissions
-!  (6 ) pressure_mod.f : Module containing routines to compute P(I,J,L)
+!  (4 ) pressure_mod.f : Module containing routines to compute P(I,J,L)
+!  (5 ) tracer_mod.f   : Module containing GEOS-CHEM tracer array STT etc.
+!  (6 ) tracerid_mod.f : Module containing pointers to tracers & emissions
+!  (7 ) tropopause_mod.f : Module w/ routines to read ann mean tropopause
 !
 !  NOTES: 
 !  (1 ) Routine "upbdflx_noy" now correctly reprocessed P(NOy) files from
@@ -54,6 +55,7 @@
 !  (17) Bug fix for COMPAQ compiler.  Now supports 1x125 grid. (bmy, 12/1/04)
 !  (18) Now supports GEOS-5 and GCAP grids (swu, bmy, 5/25/05)
 !  (19) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (20) Now references "tropopause_mod.f" (bmy, 11/1/05)
 !******************************************************************************
 !      
       IMPLICIT NONE
@@ -448,7 +450,7 @@
 !  Subroutine UPBDFLX_NOY imposes NOy (NOx + HNO3) upper boundary condition
 !  in the stratosphere. The production rates for NOy are provided by Dylan
 !  Jones, along with NOx and HNO3 concentrations. 
-!  (qli, rvm, mje, bmy, 12/22/99, 10/3/05)
+!  (qli, rvm, mje, bmy, 12/22/99, 11/1/05)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -497,25 +499,28 @@
 !        from "directory_mod.f". (bmy, 7/20/04)
 !  (18) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (19) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
+!  (20) Now references ITS_A_NEW_MONTH from "time_mod.f". Now reference 
+!        GET_MIN_TPAUSE_LEVEL from "tropopause_mod.f".  Now replace reference 
+!        to LPAUSE with ITS_IN_THE_STRAT from "tropopause_mod.f" (bmy, 11/1/05)
 !******************************************************************************
 !      
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE DAO_MOD,       ONLY : AD
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : ERROR_STOP    
-      USE TRACERID_MOD,  ONLY : IDTNOX,       IDTHNO3
-      USE TIME_MOD,      ONLY : GET_TS_DYN,   GET_MONTH
-      USE TRACER_MOD,    ONLY : STT,          XNUMOLAIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_ZONAL
+      USE BPCH2_MOD,      ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,      ONLY : GET_TAU0,     READ_BPCH2
+      USE DAO_MOD,        ONLY : AD
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR
+      USE ERROR_MOD,      ONLY : ERROR_STOP    
+      USE TRACERID_MOD,   ONLY : IDTNOX,       IDTHNO3
+      USE TIME_MOD,       ONLY : GET_TS_DYN,   GET_MONTH
+      USE TIME_MOD,       ONLY : ITS_A_NEW_MONTH
+      USE TRACER_MOD,     ONLY : STT,          XNUMOLAIR
+      USE TRANSFER_MOD,   ONLY : TRANSFER_ZONAL
+      USE TROPOPAUSE_MOD, ONLY : GET_MIN_TPAUSE_LEVEL
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN"        ! LPAUSE
-!------------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"     ! XNUMOLAIR
-!------------------------------------------------
+!-
+!#     include "CMN"        ! LPAUSE
 
       ! Arguments
       INTEGER, INTENT(IN)  :: IFLAG
@@ -564,10 +569,17 @@
       !=================================================================
       IF ( IFLAG == 1 ) THEN
 
-         IF ( GET_MONTH() /= LASTMONTH ) THEN
+         !-------------------------------------------
+         ! Prior to 11/1/05:
+         !IF ( GET_MONTH() /= LASTMONTH ) THEN
+         !-------------------------------------------
+         IF ( ITS_A_NEW_MONTH() ) THEN
 
-            ! Save the current month 
-            LASTMONTH = GET_MONTH()
+            !-----------------------------
+            ! Prior to 11/1/05:
+            !! Save the current month 
+            !LASTMONTH = GET_MONTH()
+            !-----------------------------
 
             ! TAU value corresponding to the beginning of this month
             XTAU = GET_TAU0( GET_MONTH(), 1, 1985 ) 
@@ -718,7 +730,11 @@
          !==============================================================
 
          ! Minimum value of LPAUSE
-         LMIN = MINVAL( LPAUSE  )
+         !----------------------------------------
+         ! Prior to 11/1/05:
+         !LMIN = MINVAL( LPAUSE  )
+         !----------------------------------------
+         LMIN = GET_MIN_TPAUSE_LEVEL()
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -732,8 +748,12 @@
          DO I = 1,    IIPAR
 
             ! Skip over tropospheric boxes
-            IF ( L >= LPAUSE(I,J) ) THEN
-  
+            !-----------------------------------------------
+            ! Prior to 11/1/05:
+            !IF ( L >= LPAUSE(I,J) ) THEN
+            !-----------------------------------------------
+            IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN 
+
                ! PNOY = P(NOy) converted from [v/v/s] to [v/v] 
                PNOY = STRATPNOY(J,L) * DTDYN 
 
@@ -784,7 +804,11 @@
       ELSE IF ( IFLAG == 2 ) THEN
 
          ! Minimum value of LPAUSE
-         LMIN = MINVAL( LPAUSE  )
+         !-------------------------------------
+         ! Prior to 11/1/05:
+         !LMIN = MINVAL( LPAUSE  )
+         !-------------------------------------
+         LMIN = GET_MIN_TPAUSE_LEVEL()
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -795,7 +819,11 @@
          DO I = 1,    IIPAR
 
             ! Skip over tropospheric boxes
-            IF ( L >= LPAUSE(I,J) ) THEN
+            !---------------------------------------------
+            ! Prior to 11/1/05:
+            !IF ( L >= LPAUSE(I,J) ) THEN
+            !---------------------------------------------
+            IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
 
                ! Compute the new total [NOy] by summing up [NOx] + [HNO3]
                PNOY = STT(I,J,L,IDTNOX) + STT(I,J,L,IDTHNO3)

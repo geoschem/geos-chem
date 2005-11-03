@@ -1,4 +1,4 @@
-! $Id: dao_mod.f,v 1.14 2005/10/27 13:59:51 bmy Exp $
+! $Id: dao_mod.f,v 1.15 2005/11/03 17:50:24 bmy Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
@@ -1885,10 +1885,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TS' )
       TS = 0d0
 
-!-----------------------------
-! Prior to 10/20/05:
-!#if   defined( GEOS_4 )
-!-----------------------------
 #if   defined( GEOS_3 ) || defined( GEOS_4 )
 
       ! TSKIN is only defined for GEOS-4

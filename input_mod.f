@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.19 2005/10/27 13:59:58 bmy Exp $
+! $Id: input_mod.f,v 1.20 2005/11/03 17:50:30 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS_CHEM input file at the start of the run
 !  and passes the information to several other GEOS-CHEM F90 modules.
-!  (bmy, 7/20/04, 10/25/05)
+!  (bmy, 7/20/04, 11/1/05)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -101,6 +101,7 @@
 !  (7 ) Now read LMEGAN switch for MEGAN biogenics.  Now read variable
 !        DATA_DIR_1x1 for 1x1 emissions files, etc.  Now reference XNUMOL and
 !        XNUMOLAIR from "tracer_mod.f" (tmf, bmy, 10/25/05) 
+!  (8 ) Now read LEMEP switch for EMEP emissions (bdf, bmy, 11/1/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -691,10 +692,6 @@
       USE TRACERID_MOD,      ONLY : TRACERID
 
 #     include "CMN_SIZE"  ! Size parameters
-!-----------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"    ! XNUMOL, XNUMOLAIR
-!-----------------------------------------------
 
       ! Local variables
       INTEGER            :: N,  T,  C
@@ -748,30 +745,9 @@
          ! Ratio of MW air / MW tracer 
          TCVV(T)         = 28.97d0 / TRACER_MW_G(T)
 
-         !---------------------------------
-         ! Define quantities from "CMN_O3" 
-         ! for backwards compatibility
-         !---------------------------------
-
-         !----------------------------------------------------------------
-         ! Prior to 10/25/05:
-         ! This is now a PARAMETER in "tracer_mod.f" (bmy, 10/25/05)
-         !! Molecules air / kg air
-         !IF ( T == 1 ) THEN
-         !   XNUMOLAIR    = 6.022d+23 / 28.9644d-3
-         !ENDIF
-         !----------------------------------------------------------------
-
          ! Molecules tracer / kg tracer
          XNUMOL(T)       = 6.022d+23 / TRACER_MW_KG(T)
          
-         !----------------------------------------------------------------
-         ! Prior to 10/25/05:
-         ! FMOL is now obsolete, use TRACER_MW_KG instead (bmy, 10/25/05)
-         !! Molecular weight [kg/mole]
-         !FMOL(T)         = TRACER_MW_KG(T)
-         !----------------------------------------------------------------
-
          !----------------------------------------------------
          ! If this is a family tracer, get member species
          !---------------------------------------------------- 
@@ -1226,13 +1202,14 @@
 !
 !******************************************************************************
 !  Subroutine READ_EMISSIONS_MENU reads the EMISSIONS MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 10/20/05)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 11/1/05)
 !
 !  NOTES:
 !  (1 ) Now read LNEI99 -- switch for EPA/NEI99 emissions (bmy, 11/5/04)
 !  (2 ) Now read LAVHRRLAI-switch for using AVHRR-derived LAI (bmy, 12/20/04)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Now read LMEGAN -- switch for MEGAN biogenics (tmf, bmy, 10/20/05)
+!  (5 ) Now read LEMEP -- switch for EMEP emissions (bdf, bmy, 11/1/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1241,7 +1218,7 @@
       USE LOGICAL_MOD, ONLY : LBIOFUEL, LBIOGENIC, LBIOMASS,  LBIONOX   
       USE LOGICAL_MOD, ONLY : LEMIS,    LFOSSIL,   LLIGHTNOX, LMONOT    
       USE LOGICAL_MOD, ONLY : LNEI99,   LSHIPSO2,  LSOILNOX,  LTOMSAI   
-      USE LOGICAL_MOD, ONLY : LWOODCO,  LMEGAN
+      USE LOGICAL_MOD, ONLY : LWOODCO,  LMEGAN,    LEMEP
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
 
 #     include "CMN_SIZE"    ! Size parameters
@@ -1277,59 +1254,63 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:4' )
       READ( SUBSTRS(1:N), * ) FSCALYR
 
-      ! Include biofuel emissions?
+      ! Include EMEP (Europe) anthro emissions
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:5' )
+      READ( SUBSTRS(1:N), * ) LEMEP
+
+      ! Include biofuel emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:6' )
       READ( SUBSTRS(1:N), * ) LBIOFUEL
 
       ! Include biogenic emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:6' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:7' )
       READ( SUBSTRS(1:N), * ) LBIOGENIC
 
       ! Use MEGAN biogenic emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:7' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:8' )
       READ( SUBSTRS(1:N), * ) LMEGAN
 
       ! Include biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:8' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:9' )
       READ( SUBSTRS(1:N), * ) LBIOMASS
 
       ! Seasonal biomass?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:9' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:10' )
       READ( SUBSTRS(1:N), * ) LBBSEA
 
       ! Scaled to TOMSAI?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:10' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:11' )
       READ( SUBSTRS(1:N), * ) LTOMSAI
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:11' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:12' )
 
       ! Use aircraft NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:12' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:13' )
       READ( SUBSTRS(1:N), * ) LAIRNOX
 
       ! Use lightning NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:13' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:14' )
       READ( SUBSTRS(1:N), * ) LLIGHTNOX
 
       ! Use soil NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:14' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:15' )
       READ( SUBSTRS(1:N), * ) LSOILNOX
 
       ! Use ship SO2 emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:15' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:16' )
       READ( SUBSTRS(1:N), * ) LSHIPSO2
 
       ! Use EPA/NEI99 emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:16' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:17' )
       READ( SUBSTRS(1:N), * ) LNEI99
 
       ! Use AVHRR-derived LAI fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:17' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:18' )
       READ( SUBSTRS(1:N), * ) LAVHRRLAI
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:18' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:19' )
 
       !=================================================================
       ! Error check logical flags
@@ -1359,6 +1340,7 @@
       WRITE( 6, 110     ) 'Emissions timestep [min]    : ', TS_EMIS
       WRITE( 6, 100     ) 'Turn on ANTHRO emissions    : ', LANTHRO
       WRITE( 6, 110     ) 'ANTHRO scale factor year    : ', FSCALYR
+      WRITE( 6, 100     ) 'Use EMEP anthro emissions   : ', LEMEP
       WRITE( 6, 100     ) 'Turn on BIOFUEL emissions?  : ', LFOSSIL
       WRITE( 6, 100     ) 'Turn on BIOGENIC emissions? : ', LBIOGENIC
       WRITE( 6, 100     ) 'Use MEGAN biogenic emissions: ', LMEGAN
@@ -1868,11 +1850,6 @@
       USE BIOMASS_MOD,  ONLY : NBIOTRCE
       USE BIOFUEL_MOD,  ONLY : NBFTRACE
       USE BPCH2_MOD,    ONLY : OPEN_BPCH2_FOR_WRITE
-      !---------------------------------------------------------------
-      ! Prior to 10/3/05:
-      ! Comment this reference out, it is not necessary (bmy, 10/3/05)
-      !USE DIAG_MOD
-      !---------------------------------------------------------------
       USE DIAG03_MOD,   ONLY : ND03,      PD03,      INIT_DIAG03
       USE DIAG04_MOD,   ONLY : ND04,      PD04,      INIT_DIAG04
       USE DIAG41_MOD,   ONLY : ND41,      PD41,      INIT_DIAG41

@@ -1,9 +1,9 @@
-! $Id: time_mod.f,v 1.17 2005/10/31 18:19:13 bmy Exp $
+! $Id: time_mod.f,v 1.18 2005/11/03 17:50:38 bmy Exp $
       MODULE TIME_MOD
 !
 !******************************************************************************
 !  TIME_MOD contains GEOS-CHEM date and time variables and timesteps, and 
-!  routines for accessing them. (bmy, 6/21/00, 10/20/05) 
+!  routines for accessing them. (bmy, 6/21/00, 11/1/05) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -172,6 +172,7 @@
 !        for GCAP and GEOS-5 met fields. (swu, bmy, 5/3/05)
 !  (20) GCAP/GISS met fields don't have leap years (swu, bmy, 8/29/05)
 !  (21) Added counter variable & routines for XTRA fields (tmf, bmy, 10/20/05)
+!  (22) Bug fix in ITS_A_NEW_YEAR (bmy, 11/1/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -2385,6 +2386,7 @@
 !  for setting flags for reading in data. (bmy, 4/1/04)
 !
 !  NOTES:
+!  (1 ) Bug fix: Need month & day to be 1 (bmy, 11/1/05)
 !******************************************************************************
 !
       ! Function value

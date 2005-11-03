@@ -1,10 +1,10 @@
-! $Id: convection_mod.f,v 1.11 2005/10/20 14:03:17 bmy Exp $
+! $Id: convection_mod.f,v 1.12 2005/11/03 17:50:24 bmy Exp $
       MODULE CONVECTION_MOD
 !
 !******************************************************************************
 !  Module CONVECTION_MOD contains routines which select the proper convection
 !  code for GEOS-1, GEOS-STRAT, GEOS-3, or GEOS-4 met field data sets. 
-!  (bmy, 6/28/03, 10/3/05)
+!  (bmy, 6/28/03, 11/1/05)
 !
 !  Module Routines:
 !  ============================================================================
@@ -40,6 +40,7 @@
 !        off code from DO_CONVECTION, in order to implement GCAP convection
 !        in a much cleaner way. (swu, bmy, 5/25/05)
 !  (6 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (7 ) Shut off scavenging in shallow convection for GCAP (swu, bmy, 11/1/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -281,7 +282,9 @@
 !  NOTES:
 !  (1 ) Now use array masks to flip arrays vertically in call to GCAP_CONVECT
 !        (bmy, 5/25/05)
-!*****************************************************************************
+!  (2 ) Shut off scavenging in shallow convection for GCAP below 700 hPa
+!        (swu, bmy, 11/1/05)
+!******************************************************************************
 !     
       ! References to F90 modules
       USE DAO_MOD,          ONLY : DETRAINE, DETRAINN, DNDE
@@ -292,7 +295,7 @@
       USE LOGICAL_MOD,      ONLY : LPRT
       USE TIME_MOD,         ONLY : GET_TS_CONV
       USE TRACER_MOD,       ONLY : N_TRACERS, STT, TCVV
-      USE PRESSURE_MOD,     ONLY : GET_PEDGE
+      USE PRESSURE_MOD,     ONLY : GET_PEDGE, GET_PCENTER
       USE WETSCAV_MOD,      ONLY : COMPUTE_F
 
 #     include "CMN_SIZE"         ! Size parameters
@@ -351,6 +354,10 @@
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
+
+            ! Shut off scavenging in shallow convection for GCAP
+            ! (swu, bmy, 11/1/05)
+            IF ( GET_PCENTER( I, J, L ) > 700d0 ) F(I,J,L,N) = 0d0
 
             ! ND37 diagnostic: store fraction of tracer 
             ! lost in moist convective updrafts ("MC-FRC-$")

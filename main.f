@@ -1,5 +1,13 @@
-C $Id: main.f,v 1.29 2005/10/27 14:00:00 bmy Exp $
+C $Id: main.f,v 1.30 2005/11/03 17:50:33 bmy Exp $
 C $Log: main.f,v $
+C Revision 1.30  2005/11/03 17:50:33  bmy
+C GEOS-CHEM v7-03-06, includes the following modifications:
+C - Added code to read EMEP European anthropogenic emissions
+C - Added code modifications for Intel v9 "ifort" compiler
+C - Bug fixes for AOD output in planeflight & timeseries diagnostics
+C - Turn off scavenging in shallow convection for GCAP simulation
+C - Remove obsolete common block variables
+C
 C Revision 1.29  2005/10/27 14:00:00  bmy
 C GEOS-CHEM v7-03-05, includes the following modifications:
 C - Added code to read MEGAN biogenic emissions
@@ -238,8 +246,11 @@ C
 #     include "CMN_SIZE"          ! Size parameters
 #     include "CMN_DIAG"          ! Diagnostic switches, NJDAY
 #     include "CMN_GCTM"          ! Physical constants
-#     include "CMN_O3"            ! FMOL,  SAVEOH
-#     include "comode.h"          ! CSAVE, IDEMS
+!------------------------------------------------------------------
+! Prior to 11/1/05:
+!#     include "CMN_O3"            ! FMOL,  SAVEOH
+!#     include "comode.h"          ! CSAVE, IDEMS
+!------------------------------------------------------------------
 
       ! Local variables
       LOGICAL            :: FIRST = .TRUE.

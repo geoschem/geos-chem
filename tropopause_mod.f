@@ -1,9 +1,9 @@
-! $Id: tropopause_mod.f,v 1.2 2005/10/20 14:03:45 bmy Exp $
+! $Id: tropopause_mod.f,v 1.3 2005/11/03 17:50:39 bmy Exp $
       MODULE TROPOPAUSE_MOD
 !
 !******************************************************************************
 !  Module TROPOPAUSE_MOD contains routines and variables for reading and
-!  returning the value of the annual mean tropopause. (bmy, 8/15/05, 10/3/05)
+!  returning the value of the annual mean tropopause. (bmy, 8/15/05, 11/1/05)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -31,6 +31,7 @@
 !
 !  NOTES:
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (2 ) Simplify counting of tropospheric boxes (bmy, 11/1/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -74,7 +75,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_TROPOPAUSE reads in the annual mean tropopause. 
-!  (qli, bmy, 12/13/99, 10/3/05)
+!  (qli, bmy, 12/13/99, 11/1/05)
 !
 !  NOTES:
 !  (1 ) Call READ_BPCH2 to read in the annual mean tropopause data
@@ -101,6 +102,7 @@
 !  (12) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (13) Now bundled into "tropopause_mod.f' (bmy, 2/10/05)
 !  (14) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (15) Simplify counting of # of tropospheric boxes (bmy, 11/1/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -200,10 +202,14 @@
 
       !=================================================================
       ! Write the number of tropopsheric and stratospheric boxes.
-      ! Recall that tropospheric boxes extend up to TROPOPAUSE - 1, so 
-      ! we have to subtract 1 for each box from the sum of TROPOPAUSE.
+      ! Recall that tropospheric boxes extend up to TROPOPAUSE - 1.
       !=================================================================
-      COUNT = SUM( TROPOPAUSE ) - ( IIPAR * JJPAR )
+      !-----------------------------------------------------------
+      ! Prior to 11/1/05:
+      ! Simplify counting of tropopause boxes (bmy, 11/1/05)
+      !COUNT = SUM( TROPOPAUSE ) - ( IIPAR * JJPAR )
+      !-----------------------------------------------------------
+      COUNT = SUM( TROPOPAUSE - 1 )
 
       WRITE( 6, 140 ) COUNT
  140  FORMAT( '     - READ_TROPOPAUSE: # of tropopsheric boxes:  ', i8 )
@@ -241,7 +247,7 @@
       FUNCTION GET_MIN_TPAUSE_LEVEL() RESULT( L_MIN )
 !
 !******************************************************************************
-!  Function GET_MIN_TROP_LEVEL returns GEOS-CHEM level at the lowest extent
+!  Function GET_MIN_TPAUSE_LEVEL returns GEOS-CHEM level at the lowest extent
 !  of the annual mean tropopause. (bmy, 2/10/05)
 !
 !  NOTES:

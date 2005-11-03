@@ -1,4 +1,4 @@
-! $Id: CMN_O3,v 1.2 2005/10/27 13:59:45 bmy Exp $
+! $Id: CMN_O3,v 1.3 2005/11/03 17:50:17 bmy Exp $
 
 !-----COMMON BLOCKS FOR ANTHRO EMISSIONS (via SMVGEAR!)-----
 !
@@ -13,21 +13,6 @@
 ! NOTE: Now NEMPARA = max no. of anthropogenic emissions
 !           NEMPARB = max no. of biogenic emissions
 !
-!------------------------------------------------------------------------
-! Prior to 10/25/05:
-! These is now obsolete.  XNUMOL, XNUMOLAIR are now in tracer_mod.f
-! (bmy, 10/25/05)
-! XNUMOL    = molec / kg tracer
-! XNUMOLAIR = molec / kg air
-! FMOL      = mol. wt. of tracer                                     
-!     REAL*8          XNUMOL,        XNUMOLAIR, FMOL
-!     COMMON /CCHMRY/ XNUMOL(NNPAR), XNUMOLAIR, FMOL(NNPAR)
-!
-!! OZCOL = column ozone in Dobson Units
-!      REAL*8          OZCOL
-!      COMMON /CCHMR2/ OZCOL(15,12)
-!------------------------------------------------------------------------
-
 ! Rural Emissions: EMISRN = NOx (1:NOXLEVELS), EMISR = all other tracers
 ! Total Emissions: EMISTN = NOx (1:NOXLEVELS), EMIST = all other tracers
       REAL*8 EMISR, EMISRN, EMIST, EMISTN
@@ -43,16 +28,11 @@
      &   EMISRR (IIPAR,JJPAR,2:NEMPARA+NEMPARB),                        &
      &   EMISRRN(IIPAR,JJPAR,NOXEXTENT        )
  
-!-------------------------------------------------
-! Prior to 10/25/05:
-! This is now obsolete
-!! bey for archive ND48
-!      REAL*8 EMISRR48
-!      COMMON /EMIS3/ EMISRR48(IIPAR,JJPAR)
-!-------------------------------------------------
-
 ! Arrays to read emissions from updated merge file : 
 !        NOx, CO, PRPE, C3H8, ALK4, C2H6, ACET, MEK
+! NOTE: ALD2 is not emitted in GEIA so we don't need an array for
+!       it below...but it is emitted in EMEP.  It will be saved
+!       into the EMISRR array for SMVGEAR. (bdf, bmy, 11/1/05)
       REAL*4 EMISTNOX,EMISTCO,EMISTETHE,EMISTPRPE,EMISTC2H6,            &
      &       EMISTC3H8,EMISTALK4,EMISTACET,EMISTMEK,EMISTSOX
       COMMON/EMIS4/                                                     &
@@ -61,7 +41,6 @@
      &  EMISTC3H8(IGLOB,JGLOB    ), EMISTALK4(IGLOB,JGLOB    ),         &
      &  EMISTC2H6(IGLOB,JGLOB    ), EMISTSOX (IGLOB,JGLOB,4,2),         &
      &  EMISTACET(IGLOB,JGLOB    ), EMISTMEK (IGLOB,JGLOB    )
-
 
 ! Time of day and weekday/weekend scale factors
 ! NOTE: Now SCNR89 is (3,3) because of the weekday scale factor!!!
@@ -76,14 +55,6 @@
 ! FLIQCO2 = yearly scale factors based on Liquid Fuel CO2 emissions
       REAL*4          FTOTCO2,              FLIQCO2
       COMMON /FSCAL2/ FTOTCO2(IGLOB,JGLOB), FLIQCO2(IGLOB,JGLOB)
-
-!--------------------------------------------------------
-! Prior to 10/25/05:
-! These arrays are now obsolete (bmy, 10/25/05)
-!! Arrays to store fractions of O3, O2, NO
-!      REAL*8       FO3,    FNO2,    FNO
-!      COMMON /O3C/ FO3(5), FNO2(5), FNO(5)
-!--------------------------------------------------------
 
 ! FRACO3, FRACNO          = fractions of O3, NO
 ! SAVEOH, SAVENO, SAVENO3 = array to save OH, NO, & NO3 fields 

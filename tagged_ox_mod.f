@@ -1,4 +1,4 @@
-! $Id: tagged_ox_mod.f,v 1.13 2005/10/27 14:00:05 bmy Exp $
+! $Id: tagged_ox_mod.f,v 1.14 2005/11/03 17:50:38 bmy Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
@@ -414,10 +414,6 @@
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN_DIAG"  ! ND44, ND65
-!-----------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"    ! XNUMOL
-!-----------------------------------------------
 
       ! Local variables
       LOGICAL, SAVE     :: FIRST   = .TRUE.
