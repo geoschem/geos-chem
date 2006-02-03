@@ -1,11 +1,11 @@
-! $Id: lightning_nox_mod.f,v 1.7 2005/10/20 14:03:33 bmy Exp $
+! $Id: lightning_nox_mod.f,v 1.8 2006/02/03 17:00:27 bmy Exp $
       MODULE LIGHTNING_NOX_MOD
 !
 !******************************************************************************
 !  Module LIGHTNING_NOX_MOD contains variables and routines for emitting NOx
 !  from lightning into the atmosphere.  Original code comes from the old 
 !  GISS-II CTM's of Yuhang Wang, Gerry Gardner, & Larry Horowitz.  Cleaned 
-!  up for inclusion into GEOS-CHEM. (bmy, 4/14/04, 10/3/05)
+!  up for inclusion into GEOS-CHEM. (bmy, 4/14/04, 2/1/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -51,6 +51,7 @@
 !  (3 ) Now suppress lightning where ice is on the ground.  Added MET_SCALE
 !        variable and GET_MET_FIELD_SCALE function. (bmy, 8/25/05)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (4a) BUG FIX PATCH: Fix minor bug for NA Nested grid (bmy, 2/1/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -782,7 +783,11 @@
       !%%% Figure this out later %%%
       SCALE = 1d0
 
-#elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_CH )
+!----------------------------------------------------------------------------
+!%%% BUG FIX PATCH: fix typo .. NESTED_CH should be NESTED_NA (bmy, 2/1/06)
+!#elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_CH )
+!----------------------------------------------------------------------------
+#elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_NA )
 
       !%%% Figure this out later %%%
       SCALE = 1d0

@@ -1,10 +1,10 @@
-! $Id: biofuel_mod.f,v 1.7 2005/11/03 17:50:21 bmy Exp $
+! $Id: biofuel_mod.f,v 1.8 2006/02/03 17:00:23 bmy Exp $
       MODULE BIOFUEL_MOD
 !
 !******************************************************************************
 !  Module BIOFUEL_MOD contains arrays and routines to compute yearly
 !  biofuel emissions for NOx, CO, ALK4, ACET, MEK, ALD2, PRPE, C3H8, 
-!  CH2O, and C2H6 (bmy, 9/12/00, 10/3/05)
+!  CH2O, and C2H6 (bmy, 9/12/00, 2/1/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -67,6 +67,8 @@
 !  (14) Now references "time_mod.f" and "epa_nei_mod.f" (bmy, 11/5/04)
 !  (15) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
 !  (16) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (16a) BUG FIX PATCH: Rewrite IF statements to avoid seg fault errors
+!         when LNEI99 is turned off (bmy, 2/1/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -156,6 +158,8 @@
 !  (18) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
 !  (19) Now make sure all USE statements are USE, ONLY.  Eliminate reference 
 !        to TRACER_MOD, it's obsolete (bmy, 10/3/05)
+!  (19a) BUG FIX PATCH: Rewrite IF statements to avoid seg fault errors
+!         when LNEI99 is turned off (bmy, 2/1/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -486,18 +490,30 @@
             ! Overwrite biofuels w/ EPA/NEI emissions over the USA
             !-----------------------------------------------------------
             
-            ! If we are over the USA ...
-            IF ( LNEI99 .and. GET_USA_MASK( I, J ) > 0d0 ) THEN
-               
-               ! Get GEOS-CHEM tracer number
-               NN      = BFTRACE(N)
+            !------------------------------------------------------------------
+            !%%% BUG FIX PATCH: Split the code below into 2 IF statements
+            !%%% in order to avoid seg fault errors when LNEI99 is turned off
+            !%%% (bmy, 2/1/06)
+            !! If we are over the USA ...
+            !IF ( LNEI99 .and. GET_USA_MASK( I, J ) > 0d0 ) THEN
+            !------------------------------------------------------------------
+            
+            ! If EPA/NEI99 emissions are turned on ...
+            IF ( LNEI99 ) THEN
 
-               ! Get EPA/NEI biofuel [molec/cm2/s or atoms C/cm2/s]
-               EPA_NEI = GET_EPA_BIOFUEL( I, J, NN, WEEKDAY )
+               ! If we are over the USA ...
+               IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
+            
+                  ! Get GEOS-CHEM tracer number
+                  NN      = BFTRACE(N)
 
-               ! Convert [molec/cm2/s] to [molec/cm3/s]
-               BIOFUEL(N,I,J) = EPA_NEI / BXHEIGHT_CM
+                  ! Get EPA/NEI biofuel [molec/cm2/s or atoms C/cm2/s]
+                  EPA_NEI = GET_EPA_BIOFUEL( I, J, NN, WEEKDAY )
 
+                  ! Convert [molec/cm2/s] to [molec/cm3/s]
+                  BIOFUEL(N,I,J) = EPA_NEI / BXHEIGHT_CM
+
+               ENDIF
             ENDIF
 
             ! ND34 -- archive biofuel burning species [molec/cm2/s]

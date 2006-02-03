@@ -1,9 +1,9 @@
-! $Id: emfossil.f,v 1.7 2005/11/03 17:50:27 bmy Exp $
+! $Id: emfossil.f,v 1.8 2006/02/03 17:00:25 bmy Exp $
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
 !******************************************************************************
 !  Subroutine EMFOSSIL emits fossil fuels into the EMISRR and EMISRRN 
-!  arrays, which are then passed to SMVGEAR. (bmy, 4/19/99, 11/1/05)
+!  arrays, which are then passed to SMVGEAR. (bmy, 4/19/99, 2/1/06)
 !
 !  Arguments as input:
 !  ========================================================================
@@ -42,6 +42,8 @@
 !  (19) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (20) Now apply EMEP European emissions if necessary.  Remove reference
 !        to CMN, it's now obsolete. (bdf, bmy, 11/1/05)
+!  (20a) BUG FIX PATCH: rewrite IF statements to avoid seg fault errors when
+!         LEMEP and LNEI99 are turned off. (bmy, 2/1/06)
 !******************************************************************************
 !          
       ! References to F90 modules
@@ -124,52 +126,59 @@
             ! Get NOx from EPA/NEI inventory over the USA 
             !-----------------------------------------------------------
 
-            ! If we are over the USA ...
-            IF ( LNEI99 .and. GET_USA_MASK( I, J ) > 0d0 ) THEN 
-            
-               ! Get EPA emissions for NOx (and apply time-of-day factor)
-               EPA_NEI = GET_EPA_ANTHRO( I, J, NN, WEEKDAY )
-               EPA_NEI = EPA_NEI * TODX
-            
-               IF ( LL == 1 ) THEN
-            
-                  ! Replace GEIA with EPA/NEI emissions at surface
-                  EMX(LL) = EPA_NEI * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
-            
-               ELSE 
-            
-                  ! Zero GEIA emissions in the 2nd level 
-                  ! where the EPA/NEI emissions are nonzero
-                  EMX(LL) = 0d0                   
-                  
-               ENDIF
+            ! If we are using EPA/NEI emissions
+            IF ( LNEI99 ) THEN
 
+               ! If we are over the USA ...               
+               IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN 
+            
+                  ! Get EPA emissions for NOx (and apply time-of-day factor)
+                  EPA_NEI = GET_EPA_ANTHRO( I, J, NN, WEEKDAY )
+                  EPA_NEI = EPA_NEI * TODX
+            
+                  IF ( LL == 1 ) THEN
+                  
+                     ! Replace GEIA with EPA/NEI emissions at surface
+                     EMX(LL) = EPA_NEI * 
+     &                         ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+            
+                  ELSE 
+            
+                     ! Zero GEIA emissions in the 2nd level 
+                     ! where the EPA/NEI emissions are nonzero
+                     EMX(LL) = 0d0                   
+                  
+                  ENDIF
+               ENDIF
             ENDIF
 
             !-----------------------------------------------------------
             ! Get NOx from EMEP inventory over Europe 
             !-----------------------------------------------------------
 
-            ! If we are over the European region ...
-            IF ( LEMEP .and. GET_EUROPE_MASK( I, J ) > 0d0 ) THEN 
-            
-               ! Get EMEP emissions for NOx (and apply time-of-day factor)
-               EMEP = GET_EMEP_ANTHRO( I, J, NN )
-               EMEP = EMEP * TODX
-            
-               IF ( LL == 1 ) THEN
-            
-                  ! Replace GEIA with EMEP emissions at surface
-                  EMX(LL) = EMEP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
-            
-               ELSE 
-            
-                  ! Zero GEIA emissions in the 2nd level 
-                  ! where the EMEP emissions are nonzero
-                  EMX(LL) = 0d0                   
-                  
-               ENDIF
+            ! If we are using EMEP ...
+            IF ( LEMEP ) THEN
 
+               ! If we are over the European region ...
+               IF ( GET_EUROPE_MASK( I, J ) > 0d0 ) THEN 
+
+                  ! Get EMEP emissions for NOx (and apply time-of-day factor)
+                  EMEP = GET_EMEP_ANTHRO( I, J, NN )
+                  EMEP = EMEP * TODX
+
+                  IF ( LL == 1 ) THEN
+            
+                     ! Replace GEIA with EMEP emissions at surface
+                     EMX(LL) = EMEP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+                  
+                  ELSE 
+            
+                     ! Zero GEIA emissions in the 2nd level 
+                     ! where the EMEP emissions are nonzero
+                     EMX(LL) = 0d0                   
+                  
+                  ENDIF
+               ENDIF
             ENDIF
 
             !-----------------------------------------------------------
@@ -219,41 +228,48 @@
          ! Get CO & Hydrocarbons from EPA/NEI inventory over the USA 
          !--------------------------------------------------------------
 
-         ! If we are over the USA ...
-         IF ( LNEI99 .and. GET_USA_MASK( I, J ) > 0d0 ) THEN
-         
-            ! Get EPA/NEI emissions (and apply time-of-day factor)
-            EPA_NEI = GET_EPA_ANTHRO( I, J, NN, WEEKDAY )
-            EPA_NEI = EPA_NEI * TODX
-         
-            ! Convert from molec/cm2/s to kg/box/timestep in order
-            ! to be in the proper units for EMISRR array
-            EMX(1)  = EPA_NEI * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+         ! If we are using EPA/NEI99 emissions ...
+         IF ( LNEI99 ) THEN
 
+            ! If we are over the USA ...
+            IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
+         
+               ! Get EPA/NEI emissions (and apply time-of-day factor)
+               EPA_NEI = GET_EPA_ANTHRO( I, J, NN, WEEKDAY )
+               EPA_NEI = EPA_NEI * TODX
+         
+               ! Convert from molec/cm2/s to kg/box/timestep in order
+               ! to be in the proper units for EMISRR array
+               EMX(1)  = EPA_NEI * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+
+            ENDIF
          ENDIF
 
          !--------------------------------------------------------------
          ! Get CO & Hydrocarbons from EMEP inventory over Europe
          !--------------------------------------------------------------
 
-         ! If we are over the European region ...
-         IF ( LEMEP .and. GET_EUROPE_MASK( I, J ) > 0d0 ) THEN
+         ! If we are using EMEP emissions ...
+         IF ( LEMEP ) THEN
+
+            ! If we are over the European region ...
+            IF ( GET_EUROPE_MASK( I, J ) > 0d0 ) THEN
          
-            ! Get EMEP emissions 
-            EMEP = GET_EMEP_ANTHRO( I, J, NN )
+               ! Get EMEP emissions 
+               EMEP = GET_EMEP_ANTHRO( I, J, NN )
          
-            ! -1 indicates tracer NN does not have EMEP emissions
-            IF ( EMEP > 0d0 ) THEN
+               ! -1 indicates tracer NN does not have EMEP emissions
+               IF ( EMEP > 0d0 ) THEN
 
-               ! Apply time-of-day factor
-               EMEP   = EMEP * TODX
+                  ! Apply time-of-day factor
+                  EMEP   = EMEP * TODX
 
-               ! Convert from molec/cm2/s to kg/box/timestep in order
-               ! to be in the proper units for EMISRR array
-               EMX(1) = EMEP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+                  ! Convert from molec/cm2/s to kg/box/timestep in order
+                  ! to be in the proper units for EMISRR array
+                  EMX(1) = EMEP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
 
+               ENDIF
             ENDIF
-
          ENDIF
 
          !--------------------------------------------------------------

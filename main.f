@@ -1,5 +1,11 @@
-C $Id: main.f,v 1.30 2005/11/03 17:50:33 bmy Exp $
+C $Id: main.f,v 1.31 2006/02/03 17:00:27 bmy Exp $
 C $Log: main.f,v $
+C Revision 1.31  2006/02/03 17:00:27  bmy
+C GEOS-CHEM v7-03-06, includes the following modifications:
+C - Bug fix software patch applied to fix minor typos & other errors
+C - Updated Makefiles to remove typos
+C - Re-added code ("gcap_read_mod.f") to read GCAP PHIS, LWI_GISS fields
+C
 C Revision 1.30  2005/11/03 17:50:33  bmy
 C GEOS-CHEM v7-03-06, includes the following modifications:
 C - Added code to read EMEP European anthropogenic emissions
@@ -181,6 +187,9 @@ C
       USE FILE_MOD,          ONLY : IU_ND48,         IU_SMV2LOG    
       USE FILE_MOD,          ONLY : CLOSE_FILES
       USE GLOBAL_CH4_MOD,    ONLY : INIT_GLOBAL_CH4, CH4_AVGTP
+      USE GCAP_READ_MOD,     ONLY : GET_GCAP_FIELDS
+      USE GCAP_READ_MOD,     ONLY : OPEN_GCAP_FIELDS
+      USE GCAP_READ_MOD,     ONLY : UNZIP_GCAP_FIELDS
       USE GWET_READ_MOD,     ONLY : GET_GWET_FIELDS
       USE GWET_READ_MOD,     ONLY : OPEN_GWET_FIELDS
       USE GWET_READ_MOD,     ONLY : UNZIP_GWET_FIELDS
@@ -330,6 +339,11 @@ C
          IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE )
 #endif
 
+#if   defined( GCAP )
+         ! Unzip GCAP PHIS field (if necessary)
+         CALL UNZIP_GCAP_FIELDS( ZTYPE )
+#endif
+
          !---------------------
          ! Unzip in foreground
          !---------------------
@@ -347,6 +361,12 @@ C
          IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE, GET_NYMDb() )
          IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE, GET_NYMDb() )
 #endif
+
+#if   defined( GCAP )
+         ! Unzip GCAP PHIS field (if necessary)
+         CALL UNZIP_GCAP_FIELDS( ZTYPE )
+#endif
+
       ENDIF
       
       !=================================================================
@@ -384,6 +404,17 @@ C
          DATE = GET_FIRST_A3_TIME()
          CALL OPEN_XTRA_FIELDS( DATE(1), DATE(2) )
          CALL GET_XTRA_FIELDS(  DATE(1), DATE(2) ) 
+      ENDIF
+#endif
+
+#if   defined( GCAP )
+      ! Read GCAP PHIS and LWI fields (if necessary)
+      CALL OPEN_GCAP_FIELDS
+      CALL GET_GCAP_FIELDS
+
+      ! Remove temporary file (if necessary)
+      IF ( LUNZIP ) THEN
+         CALL UNZIP_GCAP_FIELDS( 'remove date' )
       ENDIF
 #endif
 
@@ -938,6 +969,12 @@ C
          IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE )
          IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE )
 #endif
+
+#if   defined( GCAP )
+         ! Remove GCAP PHIS field (if necessary)
+         CALL UNZIP_GCAP_FIELDS( ZTYPE )
+#endif
+
       ENDIF
 
       ! Print the mass-weighted mean OH concentration (if applicable)

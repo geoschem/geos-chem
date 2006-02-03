@@ -1,9 +1,9 @@
-! $Id: drydep_mod.f,v 1.23 2005/11/03 17:50:25 bmy Exp $
+! $Id: drydep_mod.f,v 1.24 2006/02/03 17:00:24 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
 !  Module DRYDEP_MOD contains variables and routines for the GEOS-CHEM dry
-!  deposition scheme. (bmy, 1/27/03, 10/3/05)
+!  deposition scheme. (bmy, 1/27/03, 2/1/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -139,6 +139,7 @@
 !        (bec, bmy, 4/13/05)
 !  (17) Now modified for GEOS-5 and GCAP met fields (bmy, 5/25/05)
 !  (18) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (18a) BUG FIX PATCH: increase MAXDEP from 35 to 37 (bmy, 2/1/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -170,7 +171,11 @@
       !=================================================================
 
       ! Parameters
-      INTEGER, PARAMETER   :: MAXDEP    = 35
+      !-----------------------------------------------------------------
+      !%%% BUG FIX PATCH: Increase MAXDEP from 35 to 37 (bmy, 2/1/06)
+      !INTEGER, PARAMETER   :: MAXDEP    = 35
+      !-----------------------------------------------------------------
+      INTEGER, PARAMETER   :: MAXDEP    = 37
       INTEGER, PARAMETER   :: NNTYPE    = 15     ! NTYPE    from "CMN_SIZE"
       INTEGER, PARAMETER   :: NNPOLY    = 20     ! NPOLY    from "CMN_SIZE"
       INTEGER, PARAMETER   :: NNVEGTYPE = 74     ! NVEGTYPE from "CMN_SIZE"

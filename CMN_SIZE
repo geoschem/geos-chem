@@ -1,4 +1,4 @@
-! $Id: CMN_SIZE,v 1.15 2005/10/27 13:59:45 bmy Exp $
+! $Id: CMN_SIZE,v 1.16 2006/02/03 17:00:20 bmy Exp $
       !=======================================================================
       ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01,10/24/05)
       !
@@ -402,7 +402,7 @@
       ! NEMPARA = max number of anthropogenic emission species
       ! NEMPARB = max number of biogenic      emission species
       !=================================================================
-      INTEGER, PARAMETER :: NNPAR   = 50
+      INTEGER, PARAMETER :: NNPAR   = 52
       INTEGER, PARAMETER :: NEMPARA = 10
       INTEGER, PARAMETER :: NEMPARB = 1
 

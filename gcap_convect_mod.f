@@ -1,10 +1,10 @@
-! $Id: gcap_convect_mod.f,v 1.2 2005/09/02 15:17:12 bmy Exp $
+! $Id: gcap_convect_mod.f,v 1.3 2006/02/03 17:00:25 bmy Exp $
       MODULE GCAP_CONVECT_MOD
 !
 !******************************************************************************
 !  Module GCAP_CONVECT_MOD contains routines (originally from GISS) which
 !  perform shallow and deep convection for the GCAP met fields.  This module
-!  was based on FVDAS_CONVECT_MOD. (swu, bmy, 6/9/05)
+!  was based on FVDAS_CONVECT_MOD. (swu, bmy, 6/9/05, 12/13/05)
 !  
 !  Module Variables:
 !  ============================================================================
@@ -25,6 +25,7 @@
 !  (1 ) pressure_mod.f     : Module containing routines to compute P(I,J,L)
 !
 !  NOTES:  
+!  (1 ) Rewrote parallel loops to avoid problems w/ OpenMP (bmy, 12/13/05)
 !******************************************************************************
 !  
       IMPLICIT NONE
@@ -63,8 +64,8 @@
 !
 !******************************************************************************
 !  Subroutine GCAP_CONVECT is the convection driver routine for GEOS-4/fvDAS
-!  met fields.  It calls both HACK and ZHANG/MCFARLANE convection schemes.
-!  (swu, bmy, 6/9/05)
+!  met fields.  It calls the ZHANG/MCFARLANE convection scheme.
+!  (swu, bmy, 6/9/05, 12/13/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -97,19 +98,23 @@
 !  (8 ) MX     (INTEGER)  : Index of cloud top for each column
 !
 !  NOTES:
+!  (1 ) Rewrote parallel loops so that we pass entire arrays to the various
+!        subroutines instead of array slices such as (:,J,:).  This can cause
+!        problems with OpenMP for some compilers. (bmy, 12/13/05)
 !******************************************************************************
 !
 
 #     include "CMN_SIZE"      ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN)    :: NSTEP, NTRACE             
-      INTEGER, INTENT(IN)    :: INDEXSOL(NTRACE) 
       REAL*8,  INTENT(IN)    :: TDT                
       REAL*8,  INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NTRACE)          
+      INTEGER, INTENT(IN)    :: NTRACE 
       REAL*8,  INTENT(IN)    :: DP(IIPAR,JJPAR,LLPAR)     
+      INTEGER, INTENT(IN)    :: NSTEP
       REAL*8,  INTENT(IN)    :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
       REAL*8,  INTENT(IN)    :: TCVV(NTRACE)
+      INTEGER, INTENT(IN)    :: INDEXSOL(NTRACE) 
       REAL*8,  INTENT(IN)    :: UPDE(IIPAR,JJPAR,LLPAR)     
       REAL*8,  INTENT(IN)    :: DNDE(IIPAR,JJPAR,LLPAR)     
       REAL*8,  INTENT(IN)    :: ENTRAIN(IIPAR,JJPAR,LLPAR)
@@ -119,15 +124,12 @@
       REAL*8,  INTENT(IN)    :: DETRAINN(IIPAR,JJPAR,LLPAR)
 
       ! Local variables
-      INTEGER                :: J, I, L, N
+      INTEGER                :: I, J, L, N, LENGATH, ISTEP
       INTEGER                :: JT(IIPAR)
       INTEGER                :: MX(IIPAR)
       INTEGER                :: IDEEP(IIPAR)
       INTEGER                :: IL1G=1
       INTEGER                :: IL2G=JJPAR
-      INTEGER                :: LENGATH, istep
-      REAL*8                 :: QTMP(IIPAR,LLPAR,NTRACE)
-      REAL*8                 :: FTMP(IIPAR,LLPAR,NTRACE)
       REAL*8                 :: DPG(IIPAR,LLPAR)
       REAL*8                 :: ED(IIPAR,LLPAR)
       REAL*8                 :: UPDEG(IIPAR,LLPAR)
@@ -139,7 +141,7 @@
       REAL*8                 :: DNDNG(IIPAR,LLPAR)
       REAL*8                 :: DETRAINNG(IIPAR,LLPAR)
       REAL*8                 :: TOTALDNDNG(IIPAR,LLPAR)
-      REAL*8                 :: ENTRAINN(IIPAR,LLPAR)
+      REAL*8                 :: ENTRAINN(IIPAR,JJPAR,LLPAR)
       REAL*8                 :: ENTRAINNG(IIPAR,LLPAR)
 
       !=================================================================
@@ -147,52 +149,38 @@
       !=================================================================
 
       ! Fake entrainment in non-entraining plumes (swu, bmy, 6/9/05)
-      ENTRAINN(:,:) = 0d0
-
+      ENTRAINN = 0d0
+ 
       ! Loop over latitudes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,         J,          L,      N,     QTMP      )      
-!$OMP+PRIVATE( FTMP,      ISTEP,      UPDEG,  DNDEG, DETRAINEG )
+!$OMP+PRIVATE( J,         ISTEP,      UPDEG,  DNDEG, DETRAINEG )
 !$OMP+PRIVATE( ENTRAING,  TOTALDNDEG, DPG,    JT,    MX        )
 !$OMP+PRIVATE( IDEEP,     LENGATH,    UPDNG,  DNDNG, DETRAINNG )
 !$OMP+PRIVATE( ENTRAINNG, TOTALDNDNG                           )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
          
-         ! Save latitude slice of STT into Q
-         DO N = 1, NTRACE
-         DO L = 1, LLPAR
-         DO I = 1, IIPAR
-            QTMP(I,L,N) = Q(I,J,L,N)
-            FTMP(I,L,N) = FRACIS(I,J,L,N)
-         ENDDO
-         ENDDO
-         ENDDO
-
          !----------------------------
          ! Entraining convection
          !---------------------------- 
 
          ! Set up convection fields
-         CALL ARCONVTRAN( NSTEP,        DP(:,J,:),       UPDE(:,J,:),
-     &                    DNDE(:,J,:),  DETRAINE(:,J,:), ENTRAIN(:,J,:),   
-     &                    UPDEG,        DNDEG,           DETRAINEG, 
-     &                    ENTRAING,     TOTALDNDEG,      DPG,           
-     &                    JT,           MX,              IDEEP, 
-     &                    LENGATH   )
+         CALL ARCONVTRAN(  J,          NSTEP,     DP,        UPDE,  
+     &                     DNDE,       DETRAINE,  ENTRAIN,   UPDEG, 
+     &                     DNDEG,      DETRAINEG, ENTRAING,  TOTALDNDEG, 
+     &                     DPG,        JT,        MX,        IDEEP,    
+     &                     LENGATH )
 
          ! Internal convection steps
          DO ISTEP = 1, NSTEP 
 
             ! Do the convection
-            CALL CONVTRAN( QTMP,        NTRACE,          UPDEG,  
-     &                     DNDEG,       DETRAINEG,       ENTRAING,         
-     &                     TOTALDNDEG,  DPG,             JT,          
-     &                     MX,          IDEEP,           
-     &                     1,           LENGATH,         NSTEP,
-     &                     0.5D0*TDT,   FTMP,            TCVV,        
-     &                     INDEXSOL,    J ) 
+            CALL CONVTRAN( J,          NTRACE,    Q,         
+     &                     UPDEG,      DNDEG,     DETRAINEG, ENTRAING,  
+     &                     TOTALDNDEG, DPG,       JT,        MX,        
+     &                     IDEEP,      1,         LENGATH,   NSTEP,     
+     &                     0.5D0*TDT,  FRACIS,    TCVV,      INDEXSOL ) 
 
          ENDDO 
 
@@ -201,35 +189,24 @@
          !---------------------------- 
 
          ! Set up convection fields
-         CALL ARCONVTRAN( NSTEP,        DP(:,J,:),       UPDN(:,J,:),
-     &                    DNDN(:,J,:),  DETRAINN(:,J,:), ENTRAINN(:,:),   
-     &                    UPDNG,        DNDNG,           DETRAINNG,  
-     &                    ENTRAINNG,    TOTALDNDNG,      DPG,           
-     &                    JT,           MX,              IDEEP, 
-     &                    LENGATH   )
+         CALL ARCONVTRAN(  J,          NSTEP,     DP,        UPDN,  
+     &                     DNDN,       DETRAINN,  ENTRAINN,  UPDNG, 
+     &                     DNDNG,      DETRAINNG, ENTRAINNG, TOTALDNDNG, 
+     &                     DPG,        JT,        MX,        IDEEP,  
+     &                     LENGATH )
 
          ! Loop over internal convection timesteps
          DO ISTEP = 1, NSTEP  
 
             ! Do the convection
-            CALL CONVTRAN( QTMP,        NTRACE,          UPDNG,  
-     &                     DNDNG,       DETRAINNG,       ENTRAINNG,         
-     &                     TOTALDNDNG,  DPG,              
-     &                     JT,          MX,              IDEEP, 
-     &                     1,           LENGATH,         NSTEP, 
-     &                     0.5D0*TDT,   FTMP,            TCVV,        
-     &                     INDEXSOL,    J ) 
+            CALL CONVTRAN( J,          NTRACE,    Q,          
+     &                     UPDNG,      DNDNG,     DETRAINNG, ENTRAINNG, 
+     &                     TOTALDNDNG, DPG,       JT,        MX,         
+     &                     IDEEP,      1,         LENGATH,   NSTEP, 
+     &                     0.5D0*TDT,  FRACIS,    TCVV,      INDEXSOL ) 
 
          ENDDO
 
-         ! Store latitude slice back into STT
-         DO N = 1, NTRACE
-         DO L = 1, LLPAR
-         DO I = 1, IIPAR
-            Q(I,J,L,N) = QTMP(I,L,N) 
-         ENDDO
-         ENDDO
-         ENDDO
       ENDDO 
 !$OMP END PARALLEL DO
 
@@ -238,10 +215,10 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE ARCONVTRAN( NSTEP, DP,  MU,       MD, 
-     &                       DU,    EU,  MUG,      MDG,   
-     &                       DUG,   EUG, TOTALMDG, DPG,   
-     &                       JTG,   JBG, IDEEP,    LENGATH )
+      SUBROUTINE ARCONVTRAN( J,     NSTEP,    DP,  MU,  MD, 
+     &                       DU,    EU,       MUG, MDG, DUG,   
+     &                       EUG,   TOTALMDG, DPG, JTG, JBG, 
+     &                       IDEEP, LENGATH )
 !
 !******************************************************************************
 !  Subroutine ARCONVTRAN sets up the convective transport using archived mass
@@ -249,52 +226,57 @@
 !    (1) Gather mass flux arrays.
 !    (2) Calc the mass fluxes that are determined by mass balance.
 !    (3) Determine top and bottom of convection.
-!  (pjr, dsa, bmy, 6/26/03)
+!  (pjr, dsa, bmy, 6/26/03, 12/13/05)
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) NSTEP   (INTEGER) : Time step index
-!  (2 ) DP      (REAL*8 ) : Delta pressure between interfaces [Pa]     Pa
-!  (3 ) MU      (REAL*8 ) : Mass flux up                      [kg/m2/s]Pa/s
-!  (4 ) MD      (REAL*8 ) : Mass flux down                    [kg/m2/s]Pa/s
-!  (5 ) EU      (REAL*8 ) : Mass entraining from updraft      [1/s]    Pa/s
+!  (1 ) J       (INTEGER) : GEOS-CHEM latitude index          [unitless]
+!  (2 ) NSTEP   (INTEGER) : Time step index
+!  (3 ) DP      (REAL*8 ) : Delta pressure between interfaces [Pa      ]     
+!  (4 ) MU      (REAL*8 ) : Mass flux up                      [kg/m2/s ]
+!  (5 ) MD      (REAL*8 ) : Mass flux down                    [kg/m2/s ]
+!  (6 ) EU      (REAL*8 ) : Mass entraining from updraft      [1/s     ]    
 !
 !  Arguments as Output:
 !  ============================================================================
-!  (6 ) MUG     (REAL*8 ) : Gathered mu                                Pa/s
-!  (7 ) MDG     (REAL*8 ) : Gathered md                                Pa/s
-!  (8 ) DUG     (REAL*8 ) : Mass detraining from updraft (gathered)    Pa/S
-!  (9 ) EUG     (REAL*8 ) : Gathered eu                                Pa/S
-!  (10) EDG     (REAL*8 ) : Mass entraining from downdraft (gathered)  Pa/s
-!  (11) DPG     (REAL*8 ) : Gathered                                   Pa
-!  (12) DSUBCLD (REAL*8 ) : Delta pressure from cloud base to sfc (gathered)
-!  (13) JTG     (INTEGER) : ??
-!  (14) JBG     (INTEGER) : ??
-!  (15) IDEEP   (INTEGER) : ??
-!  (16) LENGATH (INTEGER) : ??
+!  (7 ) MUG     (REAL*8 ) : Gathered mu                                Pa/s
+!  (8 ) MDG     (REAL*8 ) : Gathered md                                Pa/s
+!  (9 ) DUG     (REAL*8 ) : Mass detraining from updraft (gathered)    Pa/S
+!  (10) EUG     (REAL*8 ) : Gathered eu                                Pa/S
+!  (11) EDG     (REAL*8 ) : Mass entraining from downdraft (gathered)  Pa/s
+!  (12) DPG     (REAL*8 ) : Gathered                                   Pa
+!  (13) DSUBCLD (REAL*8 ) : Delta pressure from cloud base to sfc (gathered)
+!  (14) JTG     (INTEGER) : Cloud top layer for columns undergoing conv.
+!  (15) JBG     (INTEGER) : Cloud bottom layer for columns undergoing conv.
+!  (16) IDEEP   (INTEGER) : Index of longitudes where deep conv. happens
+!  (17) LENGATH (INTEGER) : Length of gathered arrays
 !
 !  NOTES:
+!  (1 ) Now dimension DP, MU, MD, DU, EU as (IIPAR,JJPAR,LLPAR) to avoid seg 
+!        fault error in OpenMP.  Also now pass the GEOS-CHEM latitude index J 
+!        via the argument list.  Add comments. (bmy, 12/13/05)
 !******************************************************************************
 !
-#     include "CMN_SIZE" ! Size parameters
+#     include "CMN_SIZE"    ! Size parameters
       
       ! Arguments
+      INTEGER, INTENT(IN)  :: J
       INTEGER, INTENT(IN)  :: NSTEP
-      INTEGER, INTENT(OUT) :: JTG(IIPAR)
-      INTEGER, INTENT(OUT) :: JBG(IIPAR)
-      INTEGER, INTENT(OUT) :: IDEEP(IIPAR)
-      INTEGER, INTENT(OUT) :: LENGATH
-      REAL*8,  INTENT(IN)  :: DP(IIPAR,LLPAR) 
-      REAL*8,  INTENT(IN)  :: MU(IIPAR,LLPAR)
-      REAL*8,  INTENT(IN)  :: MD(IIPAR,LLPAR)
-      REAL*8,  INTENT(IN)  :: DU(IIPAR,LLPAR)
-      REAL*8,  INTENT(IN)  :: EU(IIPAR,LLPAR) 
+      REAL*8,  INTENT(IN)  :: DP(IIPAR,JJPAR,LLPAR) 
+      REAL*8,  INTENT(IN)  :: MU(IIPAR,JJPAR,LLPAR)
+      REAL*8,  INTENT(IN)  :: MD(IIPAR,JJPAR,LLPAR)
+      REAL*8,  INTENT(IN)  :: DU(IIPAR,JJPAR,LLPAR)
+      REAL*8,  INTENT(IN)  :: EU(IIPAR,JJPAR,LLPAR) 
       REAL*8,  INTENT(OUT) :: MUG(IIPAR,LLPAR)
       REAL*8,  INTENT(OUT) :: MDG(IIPAR,LLPAR)
       REAL*8,  INTENT(OUT) :: DUG(IIPAR,LLPAR)      
       REAL*8,  INTENT(OUT) :: EUG(IIPAR,LLPAR)
-      REAL*8,  INTENT(OUT) :: totalMDG(IIPAR,LLPAR)
+      REAL*8,  INTENT(OUT) :: TOTALMDG(IIPAR,LLPAR)
       REAL*8,  INTENT(OUT) :: DPG(IIPAR,LLPAR)
+      INTEGER, INTENT(OUT) :: JTG(IIPAR)
+      INTEGER, INTENT(OUT) :: JBG(IIPAR)
+      INTEGER, INTENT(OUT) :: IDEEP(IIPAR)
+      INTEGER, INTENT(OUT) :: LENGATH
 
       ! Local variables
       INTEGER              :: I, K, LENPOS 
@@ -314,14 +296,14 @@
 
       DO K = 1, LLPAR
       DO I = 1, IIPAR
-         SUM(I) = SUM(I) + MU(I,K)
+         SUM(I) = SUM(I) + MU(I,J,K)
 
          ! Calculate totalMD --- all the downdrafts coming downstairs
          IF ( K == 1 ) THEN 
-            TOTALMD(I,K) = MD(I,K)
+            TOTALMD(I,K) = MD(I,J,K)
          ELSE 
-            TOTALMD(I,K) = TOTALMD(I,K-1) + MD(I,K)
-         Endif
+            TOTALMD(I,K) = TOTALMD(I,K-1) + MD(I,J,K)
+         ENDIF
 
       ENDDO
       ENDDO
@@ -336,11 +318,11 @@
       !=================================================================
       DO K = 1, LLPAR
       DO I = 1, LENGATH
-         DPG(I,K)      = DP(IDEEP(I),K)    !Pa
-         MUG(I,K)      = MU(IDEEP(I),K)    !Pa/s
-         MDG(I,K)      = MD(IDEEP(I),K) 
-         EUG(I,K)      = EU(IDEEP(I),K)    
-         DUG(I,K)      = DU(IDEEP(I),K) 
+         DPG(I,K)      = DP(IDEEP(I),J,K)    !Pa
+         MUG(I,K)      = MU(IDEEP(I),J,K)    !Pa/s
+         MDG(I,K)      = MD(IDEEP(I),J,K) 
+         EUG(I,K)      = EU(IDEEP(I),J,K)    
+         DUG(I,K)      = DU(IDEEP(I),J,K) 
          TOTALMDG(I,K) = TOTALMD(IDEEP(I),K) !!!=sum( MD(ideep(I),1:K) )
       ENDDO
       ENDDO
@@ -359,7 +341,7 @@
          
          DO I = 1, LENPOS    
             JTG(INDEX(I)) = MIN( K-1, JTG(INDEX(I)) )
-            JBG(INDEX(I)) = MAX( K, JBG(INDEX(I)) )
+            JBG(INDEX(I)) = MAX( K,   JBG(INDEX(I)) )
          ENDDO
       ENDDO
 
@@ -368,11 +350,10 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CONVTRAN( Q,    NTRACE,   MU,         MD,       
-     &                     DU,   EU,       TOTALMD,    DP,    
-     &                     JT,   MX,       IDEEP,      IL1G,     
-     &                     IL2G, NSTEP,    DELT,       FRACIS, 
-     &                     TCVV, INDEXSOL, LATI_INDEX ) 
+      SUBROUTINE CONVTRAN( J,    NTRACE, Q,       MU,     MD,       
+     &                     DU,   EU,     TOTALMD, DP,     JT,   
+     &                     MX,   IDEEP,  IL1G,    IL2G,   NSTEP,         
+     &                     DELT, FRACIS, TCVV,    INDEXSOL ) 
 !
 !******************************************************************************
 !  Subroutine CONVTRAN applies the convective transport of trace species
@@ -381,23 +362,26 @@
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) Q       (REAL*8 ) : Tracer concentrations including moisture [v/v]
-!  (2 ) NTRACE  (INTEGER) : Number of tracers to transport           [unitless]
-!  (3 ) MU      (REAL*8 ) : Mass flux up                             Pa/s
-!  (4 ) MD      (REAL*8 ) : Mass flux down                           Pa/s
-!  (5 ) DU      (REAL*8 ) : Mass detraining from updraft             Pa/s
-!  (6 ) EU      (REAL*8 ) : Mass entraining from updraft             Pa/s
-!  (7 ) ED      (REAL*8 ) : Mass entraining from downdraft           Pa/s
-!  (8 ) DP      (REAL*8 ) : Delta pressure between interfaces        Pa
-!  (9 ) DSUBCLD (REAL*8 ) : Delta pressure from cloud base to sfc
-!  (10) JT      (INTEGER) : Index of cloud top for each column
-!  (11) MX      (INTEGER) : Index of cloud top for each column
-!  (12) IDEEP   (INTEGER) : Gathering array
-!  (13) IL1G    (INTEGER) : Gathered min lon indices over which to operate
-!  (14) IL2G    (INTEGER) : Gathered max lon indices over which to operate
-!  (15) NSTEP   (INTEGER) : Time step index
-!  (16) DELT    (REAL*8 ) : Time step
-!  (17) FRACIS  (REAL*8 ) : Fraction of tracer that is insoluble
+!  (1 ) J        (INTEGER) : GEOS-CHEM latitude index
+!  (2 ) NTRACE   (INTEGER) : Number of tracers to transport         [unitless]
+!  (3 ) Q        (REAL*8 ) : Tracer conc. including moisture        [v/v     ]
+!  (4 ) MU       (REAL*8 ) : Mass flux up                           [Pa/s    ]
+!  (5 ) MD       (REAL*8 ) : Mass flux down                         [Pa/s    ]
+!  (6 ) DU       (REAL*8 ) : Mass detraining from updraft           [Pa/s    ]
+!  (7 ) EU       (REAL*8 ) : Mass entraining from updraft           [Pa/s    ]
+!  (8 ) ED       (REAL*8 ) : Mass entraining from downdraft         [Pa/s    ]
+!  (9 ) DP       (REAL*8 ) : Delta pressure between interfaces      [Pa      ]
+!  (10) DSUBCLD  (REAL*8 ) : Delta pressure from cloud base to sfc
+!  (11) JT       (INTEGER) : Index of cloud top for each column
+!  (12) MX       (INTEGER) : Index of cloud top for each column
+!  (13) IDEEP    (INTEGER) : Gathering array
+!  (14) IL1G     (INTEGER) : Gathered min lon indices over which to operate
+!  (15) IL2G     (INTEGER) : Gathered max lon indices over which to operate
+!  (16) NSTEP    (INTEGER) : Time step index
+!  (17) DELT     (REAL*8 ) : Time step
+!  (18) FRACIS   (REAL*8 ) : Fraction of tracer that is insoluble
+!  (19) TCVV     (REAL*8 ) : Ratio of air mass / tracer mass 
+!  (20) INDEXSOL (INTEGER) : Index array of soluble tracer numbers
 !
 !  Arguments as Output:
 !  ============================================================================
@@ -420,6 +404,9 @@
 !  (13) SMALL   (REAL*8 ) : A small number
 !
 !  NOTES:
+!  (1 ) Now dimension Q and FRACIS of size (IIPAR,JJPAR,LLPAR,NTRACE), in 
+!        order to avoid seg faults on Linux/IFORT compiler.  Also renamed
+!        GEOS-CHEM latitude index LATI_INDEX to J. (bmy, 12/12/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -432,29 +419,29 @@
 #     include "CMN_DIAG" 
   
       ! Arguments
+      INTEGER, INTENT(IN)    :: J
       INTEGER, INTENT(IN)    :: NTRACE             
+      REAL*8,  INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NTRACE)  
+      REAL*8,  INTENT(IN)    :: MU(IIPAR,LLPAR)      
+      REAL*8,  INTENT(IN)    :: MD(IIPAR,LLPAR)      
+      REAL*8,  INTENT(IN)    :: DU(IIPAR,LLPAR)      
+      REAL*8,  INTENT(IN)    :: EU(IIPAR,LLPAR)      
+      REAL*8,  INTENT(IN)    :: TOTALMD(IIPAR,LLPAR)      
+      REAL*8,  INTENT(IN)    :: DP(IIPAR,LLPAR)      
       INTEGER, INTENT(IN)    :: JT(IIPAR)          
       INTEGER, INTENT(IN)    :: MX(IIPAR)          
       INTEGER, INTENT(IN)    :: IDEEP(IIPAR)       
       INTEGER, INTENT(IN)    :: IL1G               
       INTEGER, INTENT(IN)    :: IL2G               
       INTEGER, INTENT(IN)    :: NSTEP               
-      INTEGER, INTENT(IN)    :: INDEXSOL(NTRACE)
-      INTEGER, INTENT(IN)    :: LATI_INDEX
-      REAL*8,  INTENT(INOUT) :: Q(IIPAR,LLPAR,NTRACE)  
-      REAL*8,  INTENT(IN)    :: MU(IIPAR,LLPAR)      
-      REAL*8,  INTENT(IN)    :: MD(IIPAR,LLPAR)      
-      REAL*8,  INTENT(IN)    :: DU(IIPAR,LLPAR)      
-      REAL*8,  INTENT(IN)    :: EU(IIPAR,LLPAR)      
-      REAL*8,  INTENT(IN)    :: totalMD(IIPAR,LLPAR)      
-      REAL*8,  INTENT(IN)    :: DP(IIPAR,LLPAR)      
       REAL*8,  INTENT(IN)    :: DELT                
-      REAL*8,  INTENT(IN)    :: FRACIS(IIPAR,LLPAR,NTRACE) 
+      REAL*8,  INTENT(IN)    :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
       REAL*8,  INTENT(IN)    :: TCVV(NTRACE)
+      INTEGER, INTENT(IN)    :: INDEXSOL(NTRACE)
 
       ! Local variables
       INTEGER                :: I,     K,      KBM,     KK,     KKP1
-      INTEGER                :: KM1,   KP1,    KTM,     M,  istep
+      INTEGER                :: KM1,   KP1,    KTM,     M,      ISTEP
       INTEGER                :: II,    JJ,     LL,      NN
       REAL*8                 :: CABV,  CBEL,   CDIFR,   CD2,    DENOM
       REAL*8                 :: SMALL, MBSTH,  MUPDUDP, MINC,   MAXC
@@ -465,8 +452,8 @@
       REAL*8                 :: FISG(IIPAR,LLPAR)     
       REAL*8                 :: CONU(IIPAR,LLPAR)     
       REAL*8                 :: DCONDT(IIPAR,LLPAR)   
-      REAL*8                 :: AREA_M2,        DELTAP
-      REAL*8                 :: TRC_BFCONVTRAN, TRC_AFCONVTRAN
+      REAL*8                 :: AREA_M2,           DELTAP
+      REAL*8                 :: TRC_BFCONVTRAN,    TRC_AFCONVTRAN
       REAL*8                 :: PLUMEIN, PLUMEOUT, PLUMECHANGE
 
       !=================================================================
@@ -495,8 +482,8 @@
          ! Gather up the tracer and set tend to zero
          DO K = 1,    LLPAR
          DO I = IL1G, IL2G
-            CMIX(I,K) = Q(IDEEP(I),K,M)
-            FISG(I,K) = FRACIS(IDEEP(I),K,M)
+            CMIX(I,K) = Q(IDEEP(I),J,K,M)
+            FISG(I,K) = FRACIS(IDEEP(I),J,K,M)
          ENDDO
          ENDDO
 
@@ -698,7 +685,7 @@
  
                   ! Grid box indices 
                   II = IDEEP(I)
-                  JJ = LATI_INDEX
+                  JJ = J
                   LL = LLPAR - K + 1
 
                   ! Grid box surface area [m2] 
@@ -713,12 +700,12 @@
                ENDIF
 
                IF ( ND14 > 0 ) THEN 
-                  II = IDEEP (I)
-                  JJ = LATI_INDEX
+                  II = IDEEP(I)
+                  JJ = J
                   LL = LLPAR - K + 1
                   
                   ! Grid box surface area [m2]
-                  AREA_M2 = GET_AREA_M2( jj ) 
+                  AREA_M2 = GET_AREA_M2( JJ ) 
 
                   CONVFLUP(II,JJ,LL,M) = CONVFLUP(II,JJ,LL,M)  
      &              + MU(I,K) * AREA_M2  * (CONU(I,K)-CMIX(I,KM1))
@@ -795,7 +782,7 @@
                   QN = 0D0
                ENDIF            
 
-               Q(IDEEP(I),K,M) = QN
+               Q(IDEEP(I),J,K,M) = QN
             ENDDO   
          ENDDO      
          
@@ -844,4 +831,5 @@
 
 !------------------------------------------------------------------------------
 
+      ! End of module
       END MODULE GCAP_CONVECT_MOD

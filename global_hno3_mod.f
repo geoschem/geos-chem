@@ -1,4 +1,4 @@
-! $Id: global_hno3_mod.f,v 1.7 2005/10/20 14:03:28 bmy Exp $
+! $Id: global_hno3_mod.f,v 1.8 2006/02/03 17:00:26 bmy Exp $
       MODULE GLOBAL_HNO3_MOD
 !
 !******************************************************************************
@@ -194,9 +194,9 @@
 
 #else
  
-     ! If LLPAR is not 30 levels then stop with error
-     CALL ERROR_STOP( 'Must use 30 levels for offline aerosol sim!',
-    &                 'GET_GLOBAL_HNO3 ("global_hno3_mod.f!")' )
+      ! If LLPAR is not 30 levels then stop with error
+      CALL ERROR_STOP( 'Must use 30 levels for offline aerosol sim!',
+     &                 'GET_GLOBAL_HNO3 ("global_hno3_mod.f!")' )
 
 #endif
 

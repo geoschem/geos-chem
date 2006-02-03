@@ -1,6 +1,6 @@
-# $Id: Makefile.pgi,v 1.18 2005/11/03 17:50:19 bmy Exp $
+# $Id: Makefile.pgi,v 1.19 2006/02/03 17:00:21 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for LINUX/PGI (bmy, Thu Oct 27 10:42:08 2005)
+# GEOS-CHEM Makefile for LINUX/PGI (bmy, Thu Feb  2 16:00:33 2006)
 #
 # NOTE: If you want to run the 2 x 2.5 GEOS-CHEM model, then try adding
 #       -Bstatic to the F90 compilation line.  It appears that setting 
@@ -77,7 +77,6 @@ rdsoil.o                  \
 readchem.o                \
 reader.o                  \
 readlai.o                 \
-regrid_1x1_mod.o          \
 ruralbox.o                \
 schem.o                   \
 setbase.o                 \
@@ -96,8 +95,7 @@ sunparam.o                \
 tcorr.o                   \
 tropopause.o              \
 update.o                  \
-xltmmp.o                  \
-xtra_read_mod.o           
+xltmmp.o                  
 
 FJ =                      \
 BLKSLV.o                  \
@@ -184,6 +182,7 @@ ch3i_mod.o                \
 a3_read_mod.o             \
 a6_read_mod.o             \
 i6_read_mod.o             \
+gcap_read_mod.o           \
 gwet_read_mod.o           \
 xtra_read_mod.o           \
 megan_mod.o               \
@@ -223,7 +222,7 @@ input_mod.o
 #=============================================================================
 #  Executable with FAST-J (default)
 #=============================================================================
-geos          : $(MODS) $(OBJS) $(OBJSc) $(FJ) Makefile.pgi
+geos          : $(MODS) $(OBJS) $(OBJSc) $(FJ)
 		$(F90)  $(MODS) $(OBJS)  $(OBJSc) $(FJ) -o geos
 
 #==============================================================================
@@ -319,6 +318,7 @@ fyrno3.o                   : fyrno3.f
 gamap_mod.o                : gamap_mod.f                CMN_DIAG CMN_SIZE define.h 
 gasconc.o                  : gasconc.f                  CMN_SIZE define.h comode.h 
 gcap_convect_mod.o         : gcap_convect_mod.f         CMN_DIAG CMN_SIZE define.h 
+gcap_read_mod.o            : gcap_read_mod.f            CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 geia_mod.o                 : geia_mod.f                 CMN_SIZE define.h 
 getalt.o                   : getalt.f                   CMN CMN_SIZE define.h comode.h 
 getifsun.o                 : getifsun.f                 CMN_SIZE define.h comode.h 
@@ -347,7 +347,7 @@ lai_mod.o                  : lai_mod.f                  CMN_SIZE define.h
 lightning_nox_mod.o        : lightning_nox_mod.f        CMN_DIAG CMN_GCTM CMN_NOX CMN_SIZE define.h define.h 
 logical_mod.o              : logical_mod.f              
 lump.o                     : lump.f                     CMN_SIZE define.h comode.h 
-main.o                     : main.f                     CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h comode.h 
+main.o                     : main.f                     CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 megan_mod.o                : megan_mod.f                CMN_GCTM CMN_SIZE define.h 
 mercury_mod.o              : mercury_mod.f              CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 ndxx_setup.o               : ndxx_setup.f               CMN_DIAG CMN_SIZE define.h 
@@ -357,7 +357,6 @@ optdepth_mod.o             : optdepth_mod.f             CMN_DIAG CMN_SIZE define
 partition.o                : partition.f                CMN_SIZE define.h comode.h 
 pbl_mix_mod.o              : pbl_mix_mod.f              CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 pderiv.o                   : pderiv.f                   CMN_SIZE define.h comode.h 
-phis_read_mod.o            : phis_read_mod.f            CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 photoj.o                   : photoj.f                   cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 physproc.o                 : physproc.f                 CMN_SIZE define.h comode.h 
 pjc_pfix_mod.o             : pjc_pfix_mod.f             CMN CMN_GCTM CMN_SIZE define.h 
@@ -417,7 +416,7 @@ transport_mod.o            : transport_mod.f            CMN CMN_DIAG CMN_GCTM CM
 tropopause.o               : tropopause.f               CMN CMN_DIAG CMN_SIZE define.h 
 tropopause_mod.o           : tropopause_mod.f           CMN CMN_SIZE define.h 
 unix_cmds_mod.o            : unix_cmds_mod.f            
-upbdflx_mod.o              : upbdflx_mod.f              CMN CMN_GCTM CMN_SIZE define.h 
+upbdflx_mod.o              : upbdflx_mod.f              CMN_GCTM CMN_SIZE define.h 
 update.o                   : update.f                   CMN_SIZE define.h comode.h 
 uvalbedo_mod.o             : uvalbedo_mod.f             CMN_SIZE define.h 
 wetscav_mod.o              : wetscav_mod.f              CMN_DIAG CMN_SIZE define.h 

@@ -1,9 +1,9 @@
-! $Id: a6_read_mod.f,v 1.13 2005/10/20 14:03:12 bmy Exp $
+! $Id: a6_read_mod.f,v 1.14 2006/02/03 17:00:22 bmy Exp $
       MODULE A6_READ_MOD
 !
 !******************************************************************************
 !  Module A6_READ_MOD contains subroutines that unzip, open, and read
-!  GEOS-CHEM A-6 (avg 6-hour) met fields from disk. (bmy, 6/19/03, 10/3/05)
+!  GEOS-CHEM A-6 (avg 6-hour) met fields from disk. (bmy, 6/19/03, 2/1/06)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -45,6 +45,7 @@
 !  (9 ) Now modified for GEOS-5 and GCAP met fields.  Added MAKE_GCAP_CLDFRC
 !        routine. (swu, bmy, 5/25/05)
 !  (10) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (10a) BUG FIX PATCH: Fix typo for ND66 diagnostic (bmy, 2/1/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -862,7 +863,7 @@
 !
 !*****************************************************************************
 !  Subroutine READ_A6 reads A-6 (avg 6-hr) met fields from disk. 
-!  (bmy, 6/5/98, 5/25/05)
+!  (bmy, 6/5/98, 2/1/06)
 ! 
 !  Arguments as input:
 !  ===========================================================================
@@ -905,6 +906,7 @@
 !  (4 ) Now modified for GEOS-5 and GCAP fields.  Added DETRAINE, 
 !        DETRAINN, DNDE, DNDN, ENTRAIN, UPDE, UPDN as optional arguments.
 !        Now references "CMN_DIAG". (swu, bmy, 5/25/05)
+!  (4a) BUG FIX PATCH: Fix typo in ND66 diagnostic (bmy, 2/1/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1506,7 +1508,11 @@
       
          ! GEOS-4 cloud mass flux
          IF ( PRESENT( ZMMU ) ) THEN
-            AD66(:,:,1:LD66,5) = AD66(:,:,1:LD66,5) + CLDMAS(:,:,1:LD66)
+            !--------------------------------------------------------------
+            !%%% BUG FIX PATCH: Replace CLDMAS typo w/ ZMMU (bmy, 2/1/06)
+            !AD66(:,:,1:LD66,5) = AD66(:,:,1:LD66,5) + CLDMAS(:,:,1:LD66)
+            !--------------------------------------------------------------
+            AD66(:,:,1:LD66,5) = AD66(:,:,1:LD66,5) + ZMMU(:,:,1:LD66)
          ENDIF
       
          ! GCAP cloud mass flux 

@@ -1,11 +1,11 @@
-! $Id: fvdas_convect_mod.f,v 1.8 2005/10/20 14:03:26 bmy Exp $
+! $Id: fvdas_convect_mod.f,v 1.9 2006/02/03 17:00:25 bmy Exp $
       MODULE FVDAS_CONVECT_MOD
 !
 !******************************************************************************
 !  Module FVDAS_CONVECT_MOD contains routines (originally from NCAR) which 
 !  perform shallow and deep convection for the GEOS-4/fvDAS met fields.  
 !  These routines account for shallow and deep convection, plus updrafts 
-!  and downdrafts.  (pjr, dsa, bmy, 6/26/03, 1/21/05)
+!  and downdrafts.  (pjr, dsa, bmy, 6/26/03, 12/13/05)
 !  
 !  Module Variables:
 !  ============================================================================
@@ -37,6 +37,7 @@
 !  (2 ) Now prevent FTMP, QTMP arrays from being held PRIVATE w/in the
 !        parallel loop in routine DO_CONVECTION (bmy, 7/20/04)
 !  (3 ) Now pass wet-scavenged Hg2 to "ocean_mercury_mod.f" (sas, bmy, 1/21/05)
+!  (4 ) Rewrote parallel loops to avoid problems w/ OpenMP (bmy, 12/13/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -150,7 +151,7 @@
 !******************************************************************************
 !  Subroutine FVDAS_CONVECT is the convection driver routine for GEOS-4/fvDAS
 !  met fields.  It calls both HACK and ZHANG/MCFARLANE convection schemes.
-!  (pjr, dsa, bmy, 6/26/03, 10/18/05)
+!  (pjr, dsa, bmy, 6/26/03, 12/13/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -197,9 +198,12 @@
 !        for some reason the code dies if large arrays (QTMP, FTMP) are held
 !        PRIVATE in parallel loops. (bmy, 7/20/04)
 !  (3 ) Added LINUX_IFORT switch for Intel v8/v9 compilers (bmy, 10/18/05)
+!  (4 ) Rewrote parallel loops so that we pass entire arrays to the various
+!        subroutines instead of array slices such as (:,J,:).  This can cause
+!        problems with OpenMP for some compilers. (bmy, 12/13/05)
 !******************************************************************************
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "CMN_SIZE"      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NSTEP, NTRACE             
@@ -217,8 +221,7 @@
       REAL*8,  INTENT(IN)    :: TCVV(NTRACE)
 
       ! Local variables
-      INTEGER                :: I, J, L, N
-      INTEGER                :: LENGATH, ISTEP
+      INTEGER                :: I, J, L, N, LENGATH, ISTEP
       INTEGER                :: JT(IIPAR)
       INTEGER                :: MX(IIPAR)
       INTEGER                :: IDEEP(IIPAR)
@@ -229,41 +232,26 @@
       REAL*8                 :: EUG(IIPAR,LLPAR)
       REAL*8                 :: MDG(IIPAR,LLPAR)
       REAL*8                 :: MUG(IIPAR,LLPAR)
-      REAL*8                 :: QTMP(IIPAR,LLPAR,NTRACE)
-      REAL*8                 :: FTMP(IIPAR,LLPAR,NTRACE)
 
       !=================================================================
       ! FVDAS_CONVECT begins here!
       !=================================================================
 
-#if   defined( LINUX_IFC ) || defined( LINUX_EFC ) || defined( LINUX_IFORT )
-
-      !=================================================================
-      ! INTEL FORTRAN COMPILER -- Linux Boxes, Altix, or Altix 350
-      !
-      ! For some reason the code dies w/ an error on Altix 350 when
-      ! large arrays are held PRIVATE w/in the parallel loop.  We have
-      ! rewritten the code to eliminate holding QTMP and FTMP PRIVATE.
-      ! This works on both Altix and Altix 350. (bmy, 7/20/04)
-      !=================================================================
-
+      ! Loop over latitudes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,   J,   L,   N,       ISTEP, MUG, MDG,   DUG     )
-!$OMP+PRIVATE( EUG, EDG, DPG, DSUBCLD, JT,    MX,  IDEEP, LENGATH )
+!$OMP+PRIVATE( J,       MUG, MDG, DUG,   EUG,     EDG,  DPG )
+!$OMP+PRIVATE( DSUBCLD, JT,  MX,  IDEEP, LENGATH, ISTEP     )
 !$OMP+SCHEDULE( DYNAMIC )
-
-      ! Loop over latitudes
       DO J = 1, JJPAR
 
          ! Gather mass flux arrays, compute mass fluxes, and determine top
          ! and bottom of Z&M convection.  LENGATH = # of longitudes in the
          ! band I=1,IIPAR where deep convection happens at latitude J.
-         CALL ARCONVTRAN( DP(:,J,:),  MU(:,J,:),  MD(:,J,:),  
-     &                    EU(:,J,:),  MUG,        MDG,         
-     &                    DUG,        EUG,        EDG,          
-     &                    DPG,        DSUBCLD,    JT,          
-     &                    MX,         IDEEP,      LENGATH )
+         CALL ARCONVTRAN( J,   DP,  MU,    MD,      
+     &                    EU,  MUG, MDG,   DUG, 
+     &                    EUG, EDG, DPG,   DSUBCLD, 
+     &                    JT,  MX,  IDEEP, LENGATH )
 
          ! Loop over internal convection timestep
          DO ISTEP = 1, NSTEP 
@@ -271,133 +259,51 @@
             !-----------------------------------
             ! ZHANG/MCFARLANE (deep) convection 
             !-----------------------------------
+
+            ! Only call CONVTRAN where convection happens
+            ! (i.e. at latitudes where LENGATH > 0)
             IF ( LENGATH > 0 ) THEN
-
-               ! Only call CONVTRAN where convection happens
-               ! (i.e. at latitudes where LENGATH > 0)
-               CALL CONVTRAN( NTRACE,     Q(:,J,:,:),      MUG,      
-     &                        MDG,        DUG,             EUG,     
-     &                        EDG,        DPG,             DSUBCLD, 
-     &                        JT,         MX,              IDEEP,    
-     &                        1,          LENGATH,         NSTEP,    
-     &                        0.5D0*TDT,  FRACIS(:,J,:,:), TCVV,    
-     &                        INDEXSOL,   J )
-
+               CALL CONVTRAN( J,     NTRACE,    Q,      MUG,  MDG,      
+     &                        DUG,   EUG,       EDG,    DPG,  DSUBCLD,  
+     &                        JT,    MX,        IDEEP,  1,    LENGATH, 
+     &                        NSTEP, 0.5D0*TDT, FRACIS, TCVV, INDEXSOL )
             ENDIF
 
             !-----------------------------------
             ! HACK (shallow) convection                   
             !-----------------------------------
-            CALL HACK_CONV( TDT,         RPDEL(:,J,:), ETA(:,J,:),  
-     &                      BETA(:,J,:), NTRACE,       Q(:,J,:,:) )            
-
+            CALL HACK_CONV( J, TDT, RPDEL, ETA, BETA, NTRACE, Q ) 
+ 
          ENDDO 
 
       ENDDO
 !$OMP END PARALLEL DO
-
-#else
-
-      !=================================================================
-      ! SGI_MIPS and OTHER COMPILERS (Origin or Power Challenges
-      !
-      ! For some reason the code dies on SGI if we try to use the 
-      ! above fix.  Therefore we will copy latitude slices of Q and 
-      ! FRACIS into the QTMP and FTMP arrays, which are held PRIVATE
-      ! in the parallel loop. (bmy, 7/20/04)
-      !=================================================================
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,   J,   L,   N,   ISTEP,   QTMP, FTMP, MUG,   MDG     )
-!$OMP+PRIVATE( DUG, EUG, EDG, DPG, DSUBCLD, JT,   MX,   IDEEP, LENGATH )
-!$OMP+SCHEDULE( DYNAMIC )
-
-      ! Loop over latitudes
-      DO J = 1, JJPAR
-
-         ! Save lat slices of Q & FRACIS into QTMP & FTMP
-         DO N = 1, NTRACE
-         DO L = 1, LLPAR
-         DO I = 1, IIPAR
-            QTMP(I,L,N) = Q(I,J,L,N)
-            FTMP(I,L,N) = FRACIS(I,J,L,N)
-         ENDDO
-         ENDDO
-         ENDDO
-
-         ! Gather mass flux arrays, compute mass fluxes, and determine top
-         ! and bottom of Z&M convection.  LENGATH = # of longitudes in the
-         ! band I=1,IIPAR where deep convection happens at latitude J.
-         CALL ARCONVTRAN( DP(:,J,:),  MU(:,J,:),  MD(:,J,:),  
-     &                    EU(:,J,:),  MUG,        MDG,         
-     &                    DUG,        EUG,        EDG,          
-     &                    DPG,        DSUBCLD,    JT,          
-     &                    MX,         IDEEP,      LENGATH )
-
-         ! Loop over internal convection timestep
-         DO ISTEP = 1, NSTEP 
-               
-            !-----------------------------------
-            ! ZHANG/MCFARLANE (deep) convection 
-            !-----------------------------------
-            IF ( LENGATH > 0 ) THEN
-
-               ! Only call CONVTRAN where convection happens
-               ! (i.e. at latitudes where LENGATH > 0)
-               CALL CONVTRAN( NTRACE,  QTMP,    MUG,      MDG,         
-     &                        DUG,     EUG,     EDG,      DPG,            
-     &                        DSUBCLD, JT,      MX,       IDEEP,    
-     &                        1,       LENGATH, NSTEP,    0.5D0*TDT,   
-     &                        FTMP,    TCVV,    INDEXSOL, J )
-            ENDIF
-
-            !-----------------------------------
-            ! HACK (shallow) convection                   
-            !-----------------------------------
-            CALL HACK_CONV( TDT,         RPDEL(:,J,:), ETA(:,J,:),  
-     &                      BETA(:,J,:), NTRACE,       QTMP )
-
-         ENDDO 
-
-         ! Save latitude slice QTMP back into global Q array
-         DO N = 1, NTRACE
-         DO L = 1, LLPAR
-         DO I = 1, IIPAR
-            Q(I,J,L,N) = QTMP(I,L,N)
-         ENDDO
-         ENDDO
-         ENDDO
-
-      ENDDO
-!$OMP END PARALLEL DO
-
-#endif
 
       ! Return to calling program
       END SUBROUTINE FVDAS_CONVECT
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE HACK_CONV( TDT, RPDEL, ETA, BETA, NTRACE, Q )
+      SUBROUTINE HACK_CONV( J, TDT, RPDEL, ETA, BETA, NTRACE, Q )
 !
 !******************************************************************************
 !  Subroutine HACK_CONV computes the convective mass flux adjustment to all 
 !  tracers using the convective mass fluxes and overshoot parameters for the 
-!  Hack scheme. (pjr, dsa, bmy, 6/26/03)
+!  Hack scheme. (pjr, dsa, bmy, 6/26/03, 12/13/05)
 ! 
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) TDT    (REAL*8)  : 2 delta-t                              [s)
-!  (2 ) RPDEL  (REAL*8)  : Reciprocal of pressure-thickness array [1/hPa]
-!  (3 ) ETA    (REAL*8)  : GMAO Hack convective mass flux (HKETA) [kg/m2/s]
-!  (4 ) BETA   (REAL*8)  : GMAO Hack overshoot parameter (HKBETA) [unitless]
-!  (5 ) NTRACE (INTEGER) : Number of tracers in the Q array       [unitless]
-!  (6 ) Q      (REAL*8)  : Tracer concentrations                  [v/v]    
+!  (1 ) J      (INTEGER) : GEOS-CHEM Latitude index               [unitless]
+!  (2 ) TDT    (REAL*8)  : 2 delta-t                              [s       ]
+!  (3 ) RPDEL  (REAL*8)  : Reciprocal of pressure-thickness array [1/hPa   ]
+!  (4 ) ETA    (REAL*8)  : GMAO Hack convective mass flux (HKETA) [kg/m2/s ]
+!  (5 ) BETA   (REAL*8)  : GMAO Hack overshoot parameter (HKBETA) [unitless]
+!  (6 ) NTRACE (INTEGER) : Number of tracers in the Q array       [unitless]
+!  (7 ) Q      (REAL*8)  : Tracer concentrations                  [v/v     ]   
 !  
 !  Arguments as Output:
 !  ============================================================================
-!  (6 ) Q     (REAL*8)   : Modified tracer concentrations         [v/v]       
+!  (7 ) Q      (REAL*8)  : Modified tracer concentrations         [v/v     ]
 !
 !  Important Local Variables:
 !  ============================================================================
@@ -418,17 +324,21 @@
 !  NOTES:
 !  (1 ) Updated comments.  Added NTRACE as an argument.  Now also force 
 !        double-precision with the "D" exponents.  (bmy, 6/26/03)
+!  (2 ) Now pass J via the arg list.  Now dimension RPDEL, ETA, BETA, and Q
+!        with and make all input arrays dimensioned
+!        with (IIPAR,JJPAR,LLPAR,...) to avoid seg fault error in OpenMP
+!        on certain platforms.
 !******************************************************************************
 !
-#     include "CMN_SIZE"    ! Size parameters
+#     include "CMN_SIZE"      ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN)    :: NTRACE
+      INTEGER, INTENT(IN)    :: J, NTRACE
       REAL*8,  INTENT(IN)    :: TDT
-      REAL*8,  INTENT(IN)    :: RPDEL(IIPAR,LLPAR)
-      REAL*8,  INTENT(IN)    :: ETA(IIPAR,LLPAR)
-      REAL*8,  INTENT(IN)    :: BETA(IIPAR,LLPAR)
-      REAL*8,  INTENT(INOUT) :: Q(IIPAR,LLPAR,NTRACE)
+      REAL*8,  INTENT(IN)    :: RPDEL(IIPAR,JJPAR,LLPAR)
+      REAL*8,  INTENT(IN)    :: ETA(IIPAR,JJPAR,LLPAR)
+      REAL*8,  INTENT(IN)    :: BETA(IIPAR,JJPAR,LLPAR)
+      REAL*8,  INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NTRACE)
 
       ! Local variables
       INTEGER                :: I, II, K, LEN1, M
@@ -467,8 +377,8 @@
       DO 70 K = LLPAR-1, LIMCNV+1, -1
          LEN1 = 0
          DO I = 1, IIPAR
-            IF ( ETA(I,K) /= 0.0 ) THEN
-               ETAGDT(I)   = ETA(I,K) * GRAV * TDT *0.01d0  ![hPa]
+            IF ( ETA(I,J,K) /= 0.0 ) THEN
+               ETAGDT(I)   = ETA(I,J,K) * GRAV * TDT *0.01d0  ![hPa]
                LEN1        = LEN1 + 1
                INDX1(LEN1) = I
             ELSE
@@ -497,15 +407,15 @@
                ! If any of the reported values of the constituent is 
                ! negative in the three adjacent levels, nothing will 
                ! be done to the profile.  Skip to next longitude.
-               IF ( ( Q(I,K+1,M) < 0.0 )  .OR. 
-     &              ( Q(I,K,M)   < 0.0 )  .OR.
-     &              ( Q(I,K-1,M) < 0.0 ) ) GOTO 40
+               IF ( ( Q(I,J,K+1,M) < 0.0 )  .OR. 
+     &              ( Q(I,J,K,M)   < 0.0 )  .OR.
+     &              ( Q(I,J,K-1,M) < 0.0 ) ) GOTO 40
 
                ! Specify constituent interface values (linear interpolation)
-               CMRH(I,K  ) = 0.5d0 *( Q(I,K-1,M) + Q(I,K  ,M) )
-               CMRH(I,K+1) = 0.5d0 *( Q(I,K  ,M) + Q(I,K+1,M) )
-               
-               CMRC(I) = Q(I,K+1,M)
+               CMRH(I,K  ) = 0.5d0 *( Q(I,J,K-1,M) + Q(I,J,K  ,M) )
+               CMRH(I,K+1) = 0.5d0 *( Q(I,J,K  ,M) + Q(I,J,K+1,M) )
+              
+               CMRC(I) = Q(I,J,K+1,M)
 
                ! Determine fluxes, flux divergence => changes due to 
                ! convection.  Logic must be included to avoid producing 
@@ -513,40 +423,41 @@
                ! assumptions about profiles.  Tendency is modified (reduced) 
                ! when pending disaster detected.
                BOTFLX   = ETAGDT(I)*(CMRC(I) - CMRH(I,K+1))*ADJFAC
-               TOPFLX   = BETA(I,K)*ETAGDT(I)*(CMRC(I)-CMRH(I,K))*ADJFAC
-               DCMR1(I) = -BOTFLX*RPDEL(I,K+1)
+               TOPFLX   = BETA(I,J,K)*ETAGDT(I)*
+     &                    (CMRC(I)-CMRH(I,K))*ADJFAC
+               DCMR1(I) = -BOTFLX*RPDEL(I,J,K+1)
                EFAC1    = 1.0d0
                EFAC2    = 1.0d0
                EFAC3    = 1.0d0
                
-               IF ( Q(I,K+1,M)+DCMR1(I) < 0.0 ) THEN
-                  EFAC1 = MAX(TINYALT,ABS(Q(I,K+1,M)/DCMR1(I)) - EPS)
+               IF ( Q(I,J,K+1,M)+DCMR1(I) < 0.0 ) THEN
+                  EFAC1 = MAX(TINYALT,ABS(Q(I,J,K+1,M)/DCMR1(I)) - EPS)
                ENDIF
 
                IF ( EFAC1 == TINYALT .OR. EFAC1 > 1.0 ) EFAC1 = 0.0D0
-               DCMR1(I) = -EFAC1*BOTFLX*RPDEL(I,K+1)
-               DCMR2(I) = (EFAC1*BOTFLX - TOPFLX)*RPDEL(I,K)
+               DCMR1(I) = -EFAC1*BOTFLX*RPDEL(I,J,K+1)
+               DCMR2(I) = (EFAC1*BOTFLX - TOPFLX)*RPDEL(I,J,K)
                
-               IF ( Q(I,K,M)+DCMR2(I) < 0.0 ) THEN
-                  EFAC2 = MAX(TINYALT,ABS(Q(I,K  ,M)/DCMR2(I)) - EPS)
+               IF ( Q(I,J,K,M)+DCMR2(I) < 0.0 ) THEN
+                  EFAC2 = MAX(TINYALT,ABS(Q(I,J,K,M)/DCMR2(I)) - EPS)
                ENDIF
                
                IF ( EFAC2 == TINYALT .OR. EFAC2 > 1.0 ) EFAC2 = 0.0D0
-               DCMR2(I) = (EFAC1*BOTFLX - EFAC2*TOPFLX)*RPDEL(I,K)
-               DCMR3(I) = EFAC2*TOPFLX*RPDEL(I,K-1)
+               DCMR2(I) = (EFAC1*BOTFLX - EFAC2*TOPFLX)*RPDEL(I,J,K)
+               DCMR3(I) = EFAC2*TOPFLX*RPDEL(I,J,K-1)
 
-               IF ( Q(I,K-1,M)+DCMR3(I) < 0.0 ) THEN
-                  EFAC3 = MAX(TINYALT,ABS(Q(I,K-1,M)/DCMR3(I)) - EPS)
+               IF ( Q(I,J,K-1,M)+DCMR3(I) < 0.0 ) THEN
+                  EFAC3 = MAX(TINYALT,ABS(Q(I,J,K-1,M)/DCMR3(I)) - EPS)
                ENDIF
 
                IF ( EFAC3 == TINYALT .OR. EFAC3 > 1.0 ) EFAC3 = 0.0D0
                EFAC3    = MIN(EFAC2,EFAC3)
-               DCMR2(I) = (EFAC1*BOTFLX - EFAC3*TOPFLX)*RPDEL(I,K)
-               DCMR3(I) = EFAC3*TOPFLX*RPDEL(I,K-1)
+               DCMR2(I) = (EFAC1*BOTFLX - EFAC3*TOPFLX)*RPDEL(I,J,K)
+               DCMR3(I) = EFAC3*TOPFLX*RPDEL(I,J,K-1)
                
-               Q(I,K+1,M) = Q(I,K+1,M) + DCMR1(I)
-               Q(I,K  ,M) = Q(I,K  ,M) + DCMR2(I)
-               Q(I,K-1,M) = Q(I,K-1,M) + DCMR3(I)
+               Q(I,J,K+1,M) = Q(I,J,K+1,M) + DCMR1(I)
+               Q(I,J,K  ,M) = Q(I,J,K  ,M) + DCMR2(I)
+               Q(I,J,K-1,M) = Q(I,J,K-1,M) + DCMR3(I)
  40         CONTINUE
  50      CONTINUE
  70   CONTINUE
@@ -556,9 +467,10 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE ARCONVTRAN( DP,      MU,  MD,  EU,    MUG, 
-     &                       MDG,     DUG, EUG, EDG,   DPG,   
-     &                       DSUBCLD, JTG, JBG, IDEEP, LENGATH )
+      SUBROUTINE ARCONVTRAN( J,   DP,  MU,    MD,  
+     &                       EU,  MUG, MDG,   DUG, 
+     &                       EUG, EDG, DPG,   DSUBCLD, 
+     &                       JTG, JBG, IDEEP, LENGATH )
 !
 !******************************************************************************
 !  Subroutine ARCONVTRAN sets up the convective transport using archived mass
@@ -566,46 +478,47 @@
 !    (1) Gather mass flux arrays.
 !    (2) Calc the mass fluxes that are determined by mass balance.
 !    (3) Determine top and bottom of convection.
-!  (pjr, dsa, swu, bmy, 6/26/03, 1/21/04)
+!  (pjr, dsa, swu, bmy, 6/26/03, 12/13/05)
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) DP      (REAL*8 ) : Delta pressure between interfaces [Pa]     Pa
-!  (2 ) MU      (REAL*8 ) : Mass flux up                      [kg/m2/s]Pa/s
-!  (3 ) MD      (REAL*8 ) : Mass flux down                    [kg/m2/s]Pa/s
-!  (4 ) EU      (REAL*8 ) : Mass entraining from updraft      [1/s]    Pa/s
+!  (1 ) J       (INTEGER) : GEOS-CHEM latitude index          [unitless]
+!  (2 ) DP      (REAL*8 ) : Delta pressure between interfaces [Pa      ]      
+!  (3 ) MU      (REAL*8 ) : Mass flux up                      [kg/m2/s ] 
+!  (4 ) MD      (REAL*8 ) : Mass flux down                    [kg/m2/s ] 
+!  (5 ) EU      (REAL*8 ) : Mass entraining from updraft      [1/s     ]     
 !
 !  Arguments as Output:
 !  ============================================================================
-!  (5 ) MUG     (REAL*8 ) : Gathered mu (lon-alt array)
-!  (6 ) MDG     (REAL*8 ) : Gathered md (lon-alt array)
-!  (7 ) DUG     (REAL*8 ) : Mass detraining from updraft (lon-alt array)
-!  (8 ) EUG     (REAL*8 ) : Gathered eu (lon-alt array)
-!  (9 ) EDG     (REAL*8 ) : Mass entraining from downdraft (lon-alt array)
-!  (10) DPG     (REAL*8 ) : Gathered .01*dp (lon-alt array)
-!  (11) DSUBCLD (REAL*8 ) : Delta pressure from cloud base to sfc (lon-alt arr)
-!  (12) JTG     (INTEGER) : Cloud top layer for columns undergoing conv.
-!  (13) JBG     (INTEGER) : Cloud bottom layer for columns undergoing conv.
-!  (14) IDEEP   (INTEGER) : Index of longitudes where deep conv. happens
-!  (15) LENGATH (INTEGER) : Length of gathered arrays
+!  (6 ) MUG     (REAL*8 ) : Gathered mu (lon-alt array)
+!  (7 ) MDG     (REAL*8 ) : Gathered md (lon-alt array)
+!  (8 ) DUG     (REAL*8 ) : Mass detraining from updraft (lon-alt array)
+!  (9 ) EUG     (REAL*8 ) : Gathered eu (lon-alt array)
+!  (10) EDG     (REAL*8 ) : Mass entraining from downdraft (lon-alt array)
+!  (11) DPG     (REAL*8 ) : Gathered .01*dp (lon-alt array)
+!  (12) DSUBCLD (REAL*8 ) : Delta pressure from cloud base to sfc (lon-alt arr)
+!  (13) JTG     (INTEGER) : Cloud top layer for columns undergoing conv.
+!  (14) JBG     (INTEGER) : Cloud bottom layer for columns undergoing conv.
+!  (15) IDEEP   (INTEGER) : Index of longitudes where deep conv. happens
+!  (16) LENGATH (INTEGER) : Length of gathered arrays
 ! 
 !  NOTES:
 !  (1 ) Removed NSTEP from arg list; it's not used.  Also zero arrays in order
 !        to prevent them from being filled with compiler junk for latitudes
 !        where no convection occurs at all. (bmy, 1/21/04)
+!  (2 ) Now dimension DP, MU, MD, EU as (IIPAR,JJPAR,LLPAR) to avoid seg fault
+!        error in OpenMP.  Also now pass the GEOS-CHEM latitude index J via
+!        the argument list. (bmy, 12/13/05)
 !******************************************************************************
 !
 #     include "CMN_SIZE"   ! Size parameters
       
       ! Arguments
-      INTEGER, INTENT(OUT) :: JTG(IIPAR)
-      INTEGER, INTENT(OUT) :: JBG(IIPAR)
-      INTEGER, INTENT(OUT) :: IDEEP(IIPAR)
-      INTEGER, INTENT(OUT) :: LENGATH
-      REAL*8,  INTENT(IN)  :: DP(IIPAR,LLPAR) 
-      REAL*8,  INTENT(IN)  :: MU(IIPAR,LLPAR)
-      REAL*8,  INTENT(IN)  :: MD(IIPAR,LLPAR) 
-      REAL*8,  INTENT(IN)  :: EU(IIPAR,LLPAR) 
+      INTEGER, INTENT(IN)  :: J 
+      REAL*8,  INTENT(IN)  :: DP(IIPAR,JJPAR,LLPAR) 
+      REAL*8,  INTENT(IN)  :: MU(IIPAR,JJPAR,LLPAR)
+      REAL*8,  INTENT(IN)  :: MD(IIPAR,JJPAR,LLPAR) 
+      REAL*8,  INTENT(IN)  :: EU(IIPAR,JJPAR,LLPAR) 
       REAL*8,  INTENT(OUT) :: MUG(IIPAR,LLPAR)
       REAL*8,  INTENT(OUT) :: MDG(IIPAR,LLPAR)
       REAL*8,  INTENT(OUT) :: DUG(IIPAR,LLPAR)      
@@ -613,6 +526,10 @@
       REAL*8,  INTENT(OUT) :: EDG(IIPAR,LLPAR)
       REAL*8,  INTENT(OUT) :: DPG(IIPAR,LLPAR)
       REAL*8,  INTENT(OUT) :: DSUBCLD(IIPAR)   
+      INTEGER, INTENT(OUT) :: JTG(IIPAR)
+      INTEGER, INTENT(OUT) :: JBG(IIPAR)
+      INTEGER, INTENT(OUT) :: IDEEP(IIPAR)
+      INTEGER, INTENT(OUT) :: LENGATH
 
       ! Local variables
       INTEGER              :: I, K, LENPOS 
@@ -644,7 +561,7 @@
       ! Sum all upward mass fluxes in the longitude band I=1,IIPAR
       DO K = 1, LLPAR
       DO I = 1, IIPAR
-         SUM(I) = SUM(I) + MU(I,K)
+         SUM(I) = SUM(I) + MU(I,J,K)
       ENDDO
       ENDDO
 
@@ -660,11 +577,17 @@
       !=================================================================
       DO K = 1, LLPAR
       DO I = 1, LENGATH
-         DPG(I,K)  = 0.01d0 * DP(IDEEP(I),K)              !convert Pa->hPa
+
+         ! Convert Pa->hPa
+         DPG(I,K)  = 0.01d0 * DP(IDEEP(I),J,K)  
          RDPG(I,K) = 1.d0 / DPG(I,K)
-         MUG(I,K)  = MU(IDEEP(I),K) *  0.01d0             !convert Pa/s->hPa/s
-         MDG(I,K)  = MD(IDEEP(I),K) *  0.01d0
-         EUG(I,K)  = EU(IDEEP(I),K) *  0.01d0 * RDPG(I,K) !convert Pa/s->1/s
+
+         ! Convert Pa/s->hPa/s
+         MUG(I,K)  = MU(IDEEP(I),J,K) *  0.01d0           
+         MDG(I,K)  = MD(IDEEP(I),J,K) *  0.01d0
+
+         ! Convert Pa/s->1/s
+         EUG(I,K)  = EU(IDEEP(I),J,K) *  0.01d0 * RDPG(I,K) 
       ENDDO
       ENDDO
 
@@ -730,39 +653,42 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CONVTRAN( NTRACE, Q,      MU,   MD,       DU,
-     &                     EU,     ED,     DP,   DSUBCLD,  JT,   
-     &                     MX,     IDEEP,  IL1G, IL2G,     NSTEP,   
-     &                     DELT,   FRACIS, TCVV, INDEXSOL, LATI_INDEX)
+      SUBROUTINE CONVTRAN( J,     NTRACE, Q,      MU,   MD,       
+     &                     DU,    EU,     ED,     DP,   DSUBCLD,  
+     &                     JT,    MX,     IDEEP,  IL1G, IL2G,     
+     &                     NSTEP, DELT,   FRACIS, TCVV, INDEXSOL )
 !
 !******************************************************************************
 !  Subroutine CONVTRAN applies the convective transport of trace species
 !  (assuming moist mixing ratio) using the ZHANG/MCFARLANE convection scheme. 
-!  (pjr, dsa, bmy, 6/26/03, 1/21/05)
+!  (pjr, dsa, bmy, 6/26/03, 12/13/05)
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) NTRACE  (INTEGER) : Number of tracers to transport           [unitless]
-!  (2 ) Q       (REAL*8 ) : Tracer concentrations including moisture [v/v]
-!  (3 ) MU      (REAL*8 ) : Mass flux up                             hPa/s
-!  (4 ) MD      (REAL*8 ) : Mass flux down                           hPa/s
-!  (5 ) DU      (REAL*8 ) : Mass detraining from updraft             1/s
-!  (6 ) EU      (REAL*8 ) : Mass entraining from updraft             1/s
-!  (7 ) ED      (REAL*8 ) : Mass entraining from downdraft           1/s
-!  (8 ) DP      (REAL*8 ) : Delta pressure between interfaces
-!  (9 ) DSUBCLD (REAL*8 ) : Delta pressure from cloud base to sfc
-!  (10) JT      (INTEGER) : Index of cloud top for each column
-!  (11) MX      (INTEGER) : Index of cloud top for each column
-!  (12) IDEEP   (INTEGER) : Gathering array
-!  (13) IL1G    (INTEGER) : Gathered min lon indices over which to operate
-!  (14) IL2G    (INTEGER) : Gathered max lon indices over which to operate
-!  (15) NSTEP   (INTEGER) : Time step index
-!  (16) DELT    (REAL*8 ) : Time step
-!  (17) FRACIS  (REAL*8 ) : Fraction of tracer that is insoluble
+!  (1 ) J        (INTEGER) : GEOS-CHEM latitude index              [unitless]
+!  (2 ) NTRACE   (INTEGER) : Number of tracers to transport        [unitless]
+!  (3 ) Q        (REAL*8 ) : Tracer conc. including moisture       [v/v     ]
+!  (4 ) MU       (REAL*8 ) : Mass flux up                          [hPa/s   ]
+!  (5 ) MD       (REAL*8 ) : Mass flux down                        [hPa/s   ]
+!  (6 ) DU       (REAL*8 ) : Mass detraining from updraft          [1/s     ]
+!  (7 ) EU       (REAL*8 ) : Mass entraining from updraft          [1/s     ]
+!  (8 ) ED       (REAL*8 ) : Mass entraining from downdraft        [1/s     ]
+!  (9 ) DP       (REAL*8 ) : Delta pressure between interfaces
+!  (10) DSUBCLD  (REAL*8 ) : Delta pressure from cloud base to sfc
+!  (11) JT       (INTEGER) : Index of cloud top for each column
+!  (12) MX       (INTEGER) : Index of cloud top for each column
+!  (13) IDEEP    (INTEGER) : Gathering array
+!  (14) IL1G     (INTEGER) : Gathered min lon indices over which to operate
+!  (15) IL2G     (INTEGER) : Gathered max lon indices over which to operate
+!  (16) NSTEP    (INTEGER) : Time step index
+!  (17) DELT     (REAL*8 ) : Time step
+!  (18) FRACIS   (REAL*8 ) : Fraction of tracer that is insoluble
+!  (19) TCVV     (REAL*8 ) : Ratio of air mass / tracer mass 
+!  (20) INDEXSOL (INTEGER) : Index array of soluble tracer numbers
 !
 !  Arguments as Output:
 !  ============================================================================
-!  (2 ) Q       (REAL*8 ) : Contains modified tracer mixing ratios [v/v]
+!  (3 ) Q       (REAL*8 ) : Contains modified tracer mixing ratios [v/v]
 !
 !  Important Local Variables:
 !  ============================================================================
@@ -787,6 +713,9 @@
 !        arg list. (swu, bmy, 1/21/04)
 !  (2 ) Now pass Hg2 that is wet scavenged to "ocean_mercury_mod.f" for
 !        computation of mercury fluxes (sas, bmy, 1/21/05)
+!  (3 ) Now dimension Q and FRACIS of size (IIPAR,JJPAR,LLPAR,NTRACE), in 
+!        order to avoid seg faults with OpenMP.  Also renamed GEOS-CHEM 
+!        latitude index LATI_INDEX to J. (bmy, 12/12/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -795,45 +724,46 @@
       USE OCEAN_MERCURY_MOD, ONLY : ADD_Hg2_WD
       USE TRACERID_MOD,      ONLY : IDTHg2
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND38 LD38
+#     include "CMN_SIZE"          ! Size parameters
+#     include "CMN_DIAG"          ! ND38, LD38
 
       ! Arguments
-      INTEGER, INTENT(IN)    :: NTRACE             
-      INTEGER, INTENT(IN)    :: JT(IIPAR)          
-      INTEGER, INTENT(IN)    :: MX(IIPAR)          
-      INTEGER, INTENT(IN)    :: IDEEP(IIPAR)       
-      INTEGER, INTENT(IN)    :: IL1G               
-      INTEGER, INTENT(IN)    :: IL2G               
-      INTEGER, INTENT(IN)    :: NSTEP               
-      REAL*8,  INTENT(INOUT) :: Q(IIPAR,LLPAR,NTRACE)  
-      REAL*8,  INTENT(IN)    :: MU(IIPAR,LLPAR)      
-      REAL*8,  INTENT(IN)    :: MD(IIPAR,LLPAR)      
-      REAL*8,  INTENT(IN)    :: DU(IIPAR,LLPAR)      
-      REAL*8,  INTENT(IN)    :: EU(IIPAR,LLPAR)      
-      REAL*8,  INTENT(IN)    :: ED(IIPAR,LLPAR)      
-      REAL*8,  INTENT(IN)    :: DP(IIPAR,LLPAR)      
-      REAL*8,  INTENT(IN)    :: DSUBCLD(IIPAR)      
-      REAL*8,  INTENT(IN)    :: DELT                
-      REAL*8,  INTENT(IN)    :: FRACIS(IIPAR,LLPAR,NTRACE) 
-      REAL*8,  INTENT(IN)    :: TCVV(NTRACE)
-      INTEGER, INTENT(IN)    :: INDEXSOL(NTRACE)
-      INTEGER, INTENT(IN)    :: LATI_INDEX
+      INTEGER, INTENT(IN)        :: J
+      INTEGER, INTENT(IN)        :: NTRACE  
+      REAL*8,  INTENT(INOUT)     :: Q(IIPAR,JJPAR,LLPAR,NTRACE)  
+      REAL*8,  INTENT(IN)        :: MU(IIPAR,LLPAR)      
+      REAL*8,  INTENT(IN)        :: MD(IIPAR,LLPAR)      
+      REAL*8,  INTENT(IN)        :: DU(IIPAR,LLPAR)      
+      REAL*8,  INTENT(IN)        :: EU(IIPAR,LLPAR)      
+      REAL*8,  INTENT(IN)        :: ED(IIPAR,LLPAR)      
+      REAL*8,  INTENT(IN)        :: DP(IIPAR,LLPAR)      
+      REAL*8,  INTENT(IN)        :: DSUBCLD(IIPAR)      
+      INTEGER, INTENT(IN)        :: JT(IIPAR)          
+      INTEGER, INTENT(IN)        :: MX(IIPAR)          
+      INTEGER, INTENT(IN)        :: IDEEP(IIPAR)       
+      INTEGER, INTENT(IN)        :: IL1G               
+      INTEGER, INTENT(IN)        :: IL2G 
+      INTEGER, INTENT(IN)        :: NSTEP               
+      REAL*8,  INTENT(IN)        :: DELT                
+      REAL*8,  INTENT(IN)        :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
+      REAL*8,  INTENT(IN)        :: TCVV(NTRACE)
+      INTEGER, INTENT(IN)        :: INDEXSOL(NTRACE)
 
       ! Local variables
-      INTEGER                :: I,     K,      KBM,     KK,     KKP1
-      INTEGER                :: KM1,   KP1,    KTM,     M,      ISTEP
-      INTEGER                :: II,    JJ,     LL,      NN
-      REAL*8                 :: CABV,  CBEL,   CDIFR,   CD2,    DENOM
-      REAL*8                 :: SMALL, MBSTH,  MUPDUDP, MINC,   MAXC
-      REAL*8                 :: QN,    FLUXIN, FLUXOUT, NETFLUX             
-      REAL*8                 :: CHAT(IIPAR,LLPAR)     
-      REAL*8                 :: COND(IIPAR,LLPAR)     
-      REAL*8                 :: CMIX(IIPAR,LLPAR)     
-      REAL*8                 :: FISG(IIPAR,LLPAR)     
-      REAL*8                 :: CONU(IIPAR,LLPAR)     
-      REAL*8                 :: DCONDT(IIPAR,LLPAR)   
-      REAL*8                 :: AREA_M2, WET_Hg2
+      INTEGER                    :: II,      JJ,      LL,      NN
+      INTEGER                    :: I,       K,       KBM,     KK     
+      INTEGER                    :: KKP1,    KM1,     KP1,     KTM     
+      INTEGER                    :: M,       ISTEP
+      REAL*8                     :: CABV,    CBEL,    CDIFR,   CD2
+      REAL*8                     :: DENOM,   SMALL,   MBSTH,   MUPDUDP
+      REAL*8                     :: MINC,    MAXC,    QN,      FLUXIN
+      REAL*8                     :: FLUXOUT, NETFLUX, AREA_M2, WET_Hg2     
+      REAL*8                     :: CHAT(IIPAR,LLPAR)     
+      REAL*8                     :: COND(IIPAR,LLPAR)     
+      REAL*8                     :: CMIX(IIPAR,LLPAR)     
+      REAL*8                     :: FISG(IIPAR,LLPAR)     
+      REAL*8                     :: CONU(IIPAR,LLPAR)     
+      REAL*8                     :: DCONDT(IIPAR,LLPAR)   
 
       !=================================================================
       ! CONVTRAN begins here!
@@ -861,9 +791,9 @@
          ! Gather up the tracer and set tend to zero
          DO K = 1,    LLPAR
          DO I = IL1G, IL2G
-            CMIX(I,K) = Q(IDEEP(I),K,M)
+            CMIX(I,K) = Q(IDEEP(I),J,K,M)
             IF ( CMIX(I,K) < 4.d0*SMALLEST ) CMIX(I,K) = 0D0
-            FISG(I,K) = FRACIS(IDEEP(I),K,M)
+            FISG(I,K) = FRACIS(IDEEP(I),J,K,M)
          ENDDO
          ENDDO
 
@@ -1025,7 +955,7 @@
 
                   ! GEOS-CHEM lon, lat, alt indices
                   II = IDEEP(I)
-                  JJ = LATI_INDEX
+                  JJ = J
                   LL = LLPAR - K + 1
                   
                   ! Only save up to LD38 vertical levels
@@ -1054,7 +984,7 @@
 
                   ! GEOS-CHEM lon & lat indices
                   II      = IDEEP(I)
-                  JJ      = LATI_INDEX
+                  JJ      = J
 
                   ! Grid box surface area [m2] 
                   AREA_M2 = GET_AREA_M2( JJ )
@@ -1065,7 +995,7 @@
      &                      TCVV(M)   * DELT 
 
                   ! Pass to "ocean_mercury_mod.f"
-                  CALL ADD_Hg2_WD( II, JJ, WET_Hg2 )
+                  CALL ADD_Hg2_WD( II, J, WET_Hg2 )
                ENDIF
 
                NETFLUX = FLUXIN - FLUXOUT
@@ -1130,7 +1060,7 @@
                   QN = 0d0
                ENDIF            
 
-               Q(IDEEP(I),K,M) = QN
+               Q(IDEEP(I),J,K,M) = QN
             ENDDO 
          ENDDO    
 
@@ -1201,4 +1131,5 @@
 
 !------------------------------------------------------------------------------
 
+      ! End of module
       END MODULE FVDAS_CONVECT_MOD
