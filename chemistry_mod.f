@@ -1,4 +1,4 @@
-! $Id: chemistry_mod.f,v 1.20 2006/03/17 15:30:36 bmy Exp $
+! $Id: chemistry_mod.f,v 1.21 2006/03/17 15:59:38 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
@@ -369,8 +369,12 @@
          !---------------------------------
          ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
 
+            !-------------------------------------------
+            ! Prior to 3/16/06:
+            ! Now call this from main.f (bmy, 3/16/06)
             ! Get relative humidity
-            CALL MAKE_RH    
+            !!CALL MAKE_RH    
+            !-------------------------------------------
 
             ! Do Hg chemistry
             CALL CHEMMERCURY
