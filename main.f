@@ -1,5 +1,10 @@
-C $Id: main.f,v 1.31 2006/02/03 17:00:27 bmy Exp $
+C $Id: main.f,v 1.32 2006/03/17 15:30:37 bmy Exp $
 C $Log: main.f,v $
+C Revision 1.32  2006/03/17 15:30:37  bmy
+C
+C Now call MAKE_RH from main.f instead of from chemistry_mod.f,
+C so that RH will be defined for dry deposition (bec, bmy, 3/16/06)
+C
 C Revision 1.31  2006/02/03 17:00:27  bmy
 C GEOS-CHEM v7-03-06, includes the following modifications:
 C - Bug fix software patch applied to fix minor typos & other errors
@@ -180,6 +185,7 @@ C
       USE DAO_MOD,           ONLY : SUNCOS,          SUNCOSB
       USE DAO_MOD,           ONLY : INIT_DAO
       USE DAO_MOD,           ONLY : INTERP
+      USE DAO_MOD,           ONLY : MAKE_RH
       USE DRYDEP_MOD,        ONLY : DO_DRYDEP
       USE EMISSIONS_MOD,     ONLY : DO_EMISSIONS
       USE ERROR_MOD,         ONLY : DEBUG_MSG
@@ -759,6 +765,10 @@ C
             IF ( LUPBD .and. ITS_A_FULLCHEM_SIM() ) THEN
                CALL UPBDFLX_NOY( 2 )
             ENDIF
+
+            ! Get relative humidity
+            ! (after recomputing pressure quantities)
+            CALL MAKE_RH
 
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport

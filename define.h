@@ -1,4 +1,4 @@
-! $Id: define.h,v 1.36 2006/02/03 17:00:23 bmy Exp $
+! $Id: define.h,v 1.37 2006/03/17 15:30:37 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
@@ -101,10 +101,10 @@
 !==============================================================================
 
 !----- Model types -----
-#define GCAP        'GCAP'
+!#define GCAP        'GCAP'
 !#define GEOS_1      'GEOS_1'       
 !#define GEOS_STRAT  'GEOS_STRAT'
-!#define GEOS_3      'GEOS_3'
+#define GEOS_3      'GEOS_3'
 !#define GEOS_4      'GEOS_4'
 !#define GEOS_5      'GEOS_5'
 
@@ -115,7 +115,7 @@
 !#define GRID1x125   'GRID1x125'
 !#define GRID2x25    'GRID2x25'
 #define GRID4x5     'GRID4x5'
-!#define GRID30LEV   'GRID30LEV'
+#define GRID30LEV   'GRID30LEV'
 
 !----- Compilers -----
 !#define COMPAQ      'COMPAQ'

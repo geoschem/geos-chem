@@ -1,9 +1,9 @@
-! $Id: chemistry_mod.f,v 1.19 2005/10/20 14:03:16 bmy Exp $
+! $Id: chemistry_mod.f,v 1.20 2006/03/17 15:30:36 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
 !  Module CHEMISTRY_MOD is used to call the proper chemistry subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 10/3/05)
+!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 3/16/06)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -49,6 +49,7 @@
 !  (11) Now call CHEM_HCN_CH3CN from "hcn_ch3cn_mod.f".  Also remove all
 !        references to the obsolete CO-OH param simulation. (xyp, bmy, 6/24/05)
 !  (12) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (13) Now we call MAKE_RH from "main.f" (bmy, 3/16/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -108,7 +109,11 @@
       USE CARBON_MOD,      ONLY : CHEMCARBON
       USE CH3I_MOD,        ONLY : CHEMCH3I
       USE DAO_MOD,         ONLY : CLDF,    CLMOSW, CLROSW, DELP
-      USE DAO_MOD,         ONLY : MAKE_RH, OPTDEP, OPTD,   T
+      !-------------------------------------------------------------
+      ! Prior to 3/16/06:
+      !USE DAO_MOD,         ONLY : MAKE_RH, OPTDEP, OPTD,   T
+      !-------------------------------------------------------------
+      USE DAO_MOD,         ONLY : OPTDEP, OPTD,   T
       USE DRYDEP_MOD,      ONLY : DRYFLX, DRYFLXRnPbBe
       USE DUST_MOD,        ONLY : CHEMDUST, RDUST_ONLINE
       USE ERROR_MOD,       ONLY : DEBUG_MSG
@@ -189,9 +194,13 @@
 
             ! Also do sulfate chemistry
             IF ( LSULF ) THEN
-
-               ! Get relative humidity
-               CALL MAKE_RH
+               
+               !--------------------------------------------
+               ! Prior to 3/16/06:
+               ! Now call this from main.f (bmy, 3/16/06)
+               !! Get relative humidity
+               !CALL MAKE_RH
+               !--------------------------------------------
 
                ! Do sulfate chemistry
                CALL CHEMSULFATE
@@ -233,8 +242,12 @@
          !---------------------------------
          ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
 
-            ! Get relative humidity
-            CALL MAKE_RH
+            !--------------------------------------------
+            ! Prior to 3/16/06:
+            ! Now call this from main.f (bmy, 3/16/06)
+            !! Get relative humidity
+            !CALL MAKE_RH
+            !--------------------------------------------
 
             ! Define loop index and other SMVGEAR arrays
             ! N_TROP, the # of trop boxes, is returned
