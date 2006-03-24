@@ -1,4 +1,4 @@
-! $Id: define.h,v 1.37 2006/03/17 15:30:37 bmy Exp $
+! $Id: define.h,v 1.38 2006/03/24 20:22:42 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
@@ -111,7 +111,7 @@
 !----- Grid sizes -----
 !#define GRID1x1     'GRID1x1'
 !#define NESTED_CH   'NESTED_CH'
-!#define NESTED_NA   'NESTED_NA'
+!#define NESTED_NA   'NESTED_NAd'
 !#define GRID1x125   'GRID1x125'
 !#define GRID2x25    'GRID2x25'
 #define GRID4x5     'GRID4x5'

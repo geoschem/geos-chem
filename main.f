@@ -1,120 +1,123 @@
-C $Id: main.f,v 1.32 2006/03/17 15:30:37 bmy Exp $
-C $Log: main.f,v $
-C Revision 1.32  2006/03/17 15:30:37  bmy
-C
-C Now call MAKE_RH from main.f instead of from chemistry_mod.f,
-C so that RH will be defined for dry deposition (bec, bmy, 3/16/06)
-C
-C Revision 1.31  2006/02/03 17:00:27  bmy
-C GEOS-CHEM v7-03-06, includes the following modifications:
-C - Bug fix software patch applied to fix minor typos & other errors
-C - Updated Makefiles to remove typos
-C - Re-added code ("gcap_read_mod.f") to read GCAP PHIS, LWI_GISS fields
-C
-C Revision 1.30  2005/11/03 17:50:33  bmy
-C GEOS-CHEM v7-03-06, includes the following modifications:
-C - Added code to read EMEP European anthropogenic emissions
-C - Added code modifications for Intel v9 "ifort" compiler
-C - Bug fixes for AOD output in planeflight & timeseries diagnostics
-C - Turn off scavenging in shallow convection for GCAP simulation
-C - Remove obsolete common block variables
-C
-C Revision 1.29  2005/10/27 14:00:00  bmy
-C GEOS-CHEM v7-03-05, includes the following modifications:
-C - Added code to read MEGAN biogenic emissions
-C - Added code to read AVHRR LAI for MEGAN
-C - Added code to read GEOS-3 "XTRA" met fields (PARDF, PARDR, SNOW)
-C - Added code to regrid data from GEOS 1x1 grid to current grid
-C - Snow depth is now used in GEOS-3 for dust emissions
-C - Removed obsolete common blocks
-C - Now reference XNUMOL, XNUMOLAIR from "tracer_mod.f"
-C - Now save column AOD's and AOD's below plane in "planeflight_mod.f"
-C
-C Revision 1.28  2005/10/20 14:03:34  bmy
-C GEOS-CHEM v7-03-04, includes the following modifications:
-C - Added LINUX_IFORT switch for Intel v8/v9 compiler
-C - Make sure all module USE commands are USE, ONLY (for ESMF)
-C - Eliminated obsolete references to include files and modules
-C - Bug fix for COMPAQ; declare IRMA, IRMB threadprivate in "comode.h"
-C
-C Revision 1.27  2005/09/02 15:17:18  bmy
-C GEOS-CHEM v7-03-03, includes the following modifications:
-C - Further modifications for GCAP
-C - Land/water/ice boxes now flagged correctly
-C - Rescaling of lightning NOx, suppress lightning over polar regions
-C - Suppress DMS, sea salt emissions where ice is on the surface
-C - Now use Nightingale et al 2000b formulation for sea-air exchange
-C - Contains CO2 simulation (further work may be needed)
-C - Offline aerosol simulation now reads from updated oxidant, etc files
-C - Removed references to common-block variables
-C - Removed obsolete code
-C
-C Revision 1.26  2005/06/27 19:41:47  bmy
-C GEOS-CHEM v7-03-02, includes the following modifications:
-C - Added code for GCAP and GEOS-5 met fields
-C - Added code for tagged HCN & CH3CN simulation
-C - Removed obsolete routines (SLOW-J and CO-OH parameterization)
-C
-C Revision 1.23  2005/05/09 14:33:59  bmy
-C GEOS-CHEM v7-03-01, includes the following modifications:
-C - Now contains ISORROPIA code for aerosol thermodynamic equilibrium
-C - Now added two extra tracers (SO4 and NIT in sea-salt aerosols)
-C - Now allows for hygroscopic growth of aerosols (not dust) in dry deposition
-C - Now writes customized "diaginfo.dat" and "tracerinfo.dat" for GAMAP
-C - ND48, ND49, ND50, ND51 timeseries diagnostics now save grid box height
-C - GEOS-3/GEOS-4 3-D cloud fraction has been added to ND21 diagnostic
-C
-C Revision 1.22  2005/03/29 15:52:43  bmy
-C GEOS-CHEM v7-02-04, includes the following modifications:
-C - Centralized PBL mixing routines into "pbl_mix_mod.f"
-C - GEOS-4 LNOx and ISOP are now scaled to the same values as GEOS-3
-C - Updated mercury simulation according to latest reduction constant
-C - Ocean sinking term of` mercury is now 2.03E6 kg/yr (cf. S. Strode)
-C - Parallelized dry deposition routine DEPVEL (in "drydep_mod.f")
-C - Now uses analytic function for sat vap pressure of water (E_ICE)
-C - ND40 planeflight diag now looks for a new flight track file each day
-C - Now looks for files on disk in a platform-independent way
-C - Fixed minor bugs; updated comments
-C
-C Revision 1.21  2005/02/10 19:53:26  bmy
-C GEOS-CHEM v7-02-03, includes the following modifications:
-C - Added online ocean fluxes of Hg0 in "ocean_mercury_mod.f"
-C - Updated "mercury_mod.f" with new drydep & reduction formulations
-C - Added phase transition of crystalline sulfur tracers
-C - Bug fix: offline AOD diagnostics give identical results as online AOD's
-C - Now can use interannual or seasonal biomass for SO2, NH4, BCPO, OCPO
-C - Fixed minor bugs and removed obsolete code
-C
-C Revision 1.20  2004/12/16 16:52:45  bmy
-C GEOS-CHEM v7-02-02, includes the following modifications:
-C - Now uses leaf area indices derived from AVHRR data (cf May Fu)
-C - Now can perform offline tagged Hg simulation (cf Noelle Eckley)
-C - Fixed minor bugs and removed obsolete code
-C
-C Revision 1.19  2004/12/02 21:48:38  bmy
-C GEOS-CHEM v7-02-01, includes the following modifications:
-C - Can now toggle EPA/NEI99 emissions over the USA on/off
-C - Now overwrite N.Am. with Cooke/RJP emissions in "carbon_mod.f"
-C - Now read carbon aerosol emissions from carbon_200411 subdirectory
-C - Added C-preprocessor switches for 1 x 1 nested grids in "define.h"
-C - Added C-preprocessor switch for GEOS-4 1 x 1.25 grid in "define.h"
-C - Several other minor bug fixes
-C
-C Revision 1.18  2004/10/15 20:16:41  bmy
-C GEOS-CHEM v7-01-01, includes the following modifications:
-C - Brand new user GEOS-CHEM user interface with new "input.geos" file
-C - ND48, ND49, ND50, ND51 timeseries diagnostics rewritten for consistency
-C - Bundled code for Mean OH diagnostic into "diag_oh_mod.f"
-C - Bundled code for ND65, ND20 diagnostics into "diag_pl_mod.f"
-C - Aerosol Opt Depths for FAST-J, Hetchem are now computed in "aerosol_mod.f"
-C - Now use inquiry functions (in "tracer_mod.f") to test for simulation type
-C - Dust & Aerosol Opt Depths now scaled to 400 nm in ND21 diag & timeseries
-C - Rewrote parallel loops to facilitate parallelization on Altix and Altix-2
-C - All GEOS-CHEM logical switches are now contained w/in "logical_mod.f"
-C - All GEOS-CHEM directories are now contained w/in "directory_mod.f"
-C - All Unix zipping commands are now bundled into "tracer_mod.f"
-C - Deleted lots of obsolete code; updated comments
-C
+! $Id: main.f,v 1.33 2006/03/24 20:22:53 bmy Exp $
+! $Log: main.f,v $
+! Revision 1.33  2006/03/24 20:22:53  bmy
+! GEOS-CHEM v7-04-01, includes the following modifications:
+! - Updates to new Hg simulation (eck, cdh, sas)
+! - Changed Reynold's # criterion for aerodyn smooth surfaces in drydep
+! - Standardized several bug fixes implemented in v7-03-06 patch
+! - Bug fix: Now call MAKE_RH from "main.f" to avoid problems in drydep
+! - Removed obsolete code
+!
+! Revision 1.31  2006/02/03 17:00:27  bmy
+! GEOS-CHEM v7-03-06, includes the following modifications:
+! - Bug fix software patch applied to fix minor typos & other errors
+! - Updated Makefiles to remove typos
+! - Re-added code ("gcap_read_mod.f") to read GCAP PHIS, LWI_GISS fields
+!
+! Revision 1.30  2005/11/03 17:50:33  bmy
+! GEOS-CHEM v7-03-06, includes the following modifications:
+! - Added code to read EMEP European anthropogenic emissions
+! - Added code modifications for Intel v9 "ifort" compiler
+! - Bug fixes for AOD output in planeflight & timeseries diagnostics
+! - Turn off scavenging in shallow convection for GCAP simulation
+! - Remove obsolete common block variables
+!
+! Revision 1.29  2005/10/27 14:00:00  bmy
+! GEOS-CHEM v7-03-05, includes the following modifications:
+! - Added code to read MEGAN biogenic emissions
+! - Added code to read AVHRR LAI for MEGAN
+! - Added code to read GEOS-3 "XTRA" met fields (PARDF, PARDR, SNOW)
+! - Added code to regrid data from GEOS 1x1 grid to current grid
+! - Snow depth is now used in GEOS-3 for dust emissions
+! - Removed obsolete common blocks
+! - Now reference XNUMOL, XNUMOLAIR from "tracer_mod.f"
+! - Now save column AOD's and AOD's below plane in "planeflight_mod.f"
+!
+! Revision 1.28  2005/10/20 14:03:34  bmy
+! GEOS-CHEM v7-03-04, includes the following modifications:
+! - Added LINUX_IFORT switch for Intel v8/v9 compiler
+! - Make sure all module USE commands are USE, ONLY (for ESMF)
+! - Eliminated obsolete references to include files and modules
+! - Bug fix for COMPAQ; declare IRMA, IRMB threadprivate in "comode.h"
+!
+! Revision 1.27  2005/09/02 15:17:18  bmy
+! GEOS-CHEM v7-03-03, includes the following modifications:
+! - Further modifications for GCAP
+! - Land/water/ice boxes now flagged correctly
+! - Rescaling of lightning NOx, suppress lightning over polar regions
+! - Suppress DMS, sea salt emissions where ice is on the surface
+! - Now use Nightingale et al 2000b formulation for sea-air exchange
+! - Contains CO2 simulation (further work may be needed)
+! - Offline aerosol simulation now reads from updated oxidant, etc files
+! - Removed references to common-block variables
+! - Removed obsolete code
+!
+! Revision 1.26  2005/06/27 19:41:47  bmy
+! GEOS-CHEM v7-03-02, includes the following modifications:
+! - Added code for GCAP and GEOS-5 met fields
+! - Added code for tagged HCN & CH3CN simulation
+! - Removed obsolete routines (SLOW-J and CO-OH parameterization)
+!
+! Revision 1.23  2005/05/09 14:33:59  bmy
+! GEOS-CHEM v7-03-01, includes the following modifications:
+! - Now contains ISORROPIA code for aerosol thermodynamic equilibrium
+! - Now added two extra tracers (SO4 and NIT in sea-salt aerosols)
+! - Now allows for hygroscopic growth of aerosols (not dust) in dry deposition
+! - Now writes customized "diaginfo.dat" and "tracerinfo.dat" for GAMAP
+! - ND48, ND49, ND50, ND51 timeseries diagnostics now save grid box height
+! - GEOS-3/GEOS-4 3-D cloud fraction has been added to ND21 diagnostic
+!
+! Revision 1.22  2005/03/29 15:52:43  bmy
+! GEOS-CHEM v7-02-04, includes the following modifications:
+! - Centralized PBL mixing routines into "pbl_mix_mod.f"
+! - GEOS-4 LNOx and ISOP are now scaled to the same values as GEOS-3
+! - Updated mercury simulation according to latest reduction constant
+! - Ocean sinking term of` mercury is now 2.03E6 kg/yr (cf. S. Strode)
+! - Parallelized dry deposition routine DEPVEL (in "drydep_mod.f")
+! - Now uses analytic function for sat vap pressure of water (E_ICE)
+! - ND40 planeflight diag now looks for a new flight track file each day
+! - Now looks for files on disk in a platform-independent way
+! - Fixed minor bugs; updated comments
+!
+! Revision 1.21  2005/02/10 19:53:26  bmy
+! GEOS-CHEM v7-02-03, includes the following modifications:
+! - Added online ocean fluxes of Hg0 in "ocean_mercury_mod.f"
+! - Updated "mercury_mod.f" with new drydep & reduction formulations
+! - Added phase transition of crystalline sulfur tracers
+! - Bug fix: offline AOD diagnostics give identical results as online AOD's
+! - Now can use interannual or seasonal biomass for SO2, NH4, BCPO, OCPO
+! - Fixed minor bugs and removed obsolete code
+!
+! Revision 1.20  2004/12/16 16:52:45  bmy
+! GEOS-CHEM v7-02-02, includes the following modifications:
+! - Now uses leaf area indices derived from AVHRR data (cf May Fu)
+! - Now can perform offline tagged Hg simulation (cf Noelle Eckley)
+! - Fixed minor bugs and removed obsolete code
+!
+! Revision 1.19  2004/12/02 21:48:38  bmy
+! GEOS-CHEM v7-02-01, includes the following modifications:
+! - Can now toggle EPA/NEI99 emissions over the USA on/off
+! - Now overwrite N.Am. with Cooke/RJP emissions in "carbon_mod.f"
+! - Now read carbon aerosol emissions from carbon_200411 subdirectory
+! - Added C-preprocessor switches for 1 x 1 nested grids in "define.h"
+! - Added C-preprocessor switch for GEOS-4 1 x 1.25 grid in "define.h"
+! - Several other minor bug fixes
+!
+! Revision 1.18  2004/10/15 20:16:41  bmy
+! GEOS-CHEM v7-01-01, includes the following modifications:
+! - Brand new user GEOS-CHEM user interface with new "input.geos" file
+! - ND48, ND49, ND50, ND51 timeseries diagnostics rewritten for consistency
+! - Bundled code for Mean OH diagnostic into "diag_oh_mod.f"
+! - Bundled code for ND65, ND20 diagnostics into "diag_pl_mod.f"
+! - Aerosol Opt Depths for FAST-J, Hetchem are now computed in "aerosol_mod.f"
+! - Now use inquiry functions (in "tracer_mod.f") to test for simulation type
+! - Dust & Aerosol Opt Depths now scaled to 400 nm in ND21 diag & timeseries
+! - Rewrote parallel loops to facilitate parallelization on Altix and Altix-2
+! - All GEOS-CHEM logical switches are now contained w/in "logical_mod.f"
+! - All GEOS-CHEM directories are now contained w/in "directory_mod.f"
+! - All Unix zipping commands are now bundled into "tracer_mod.f"
+! - Deleted lots of obsolete code; updated comments
+!
       PROGRAM GEOS_CHEM
 ! 
 !******************************************************************************
@@ -183,8 +186,6 @@ C
       USE DAO_MOD,           ONLY : PS2,             PSC2          
       USE DAO_MOD,           ONLY : T,               TS            
       USE DAO_MOD,           ONLY : SUNCOS,          SUNCOSB
-      USE DAO_MOD,           ONLY : INIT_DAO
-      USE DAO_MOD,           ONLY : INTERP
       USE DAO_MOD,           ONLY : MAKE_RH
       USE DRYDEP_MOD,        ONLY : DO_DRYDEP
       USE EMISSIONS_MOD,     ONLY : DO_EMISSIONS
@@ -209,11 +210,14 @@ C
       USE LOGICAL_MOD,       ONLY : LEMIS,     LCHEM, LUNZIP,  LDUST
       USE LOGICAL_MOD,       ONLY : LLIGHTNOX, LPRT,  LSTDRUN, LSVGLB
       USE LOGICAL_MOD,       ONLY : LWAIT,     LTRAN, LUPBD,   LCONV
-      USE LOGICAL_MOD,       ONLY : LWETD,     LTURB, LDRYD,   LMEGAN     
+      USE LOGICAL_MOD,       ONLY : LWETD,     LTURB, LDRYD,   LMEGAN  
+      USE LOGICAL_MOD,       ONLY : LDYNOCEAN
       USE MEGAN_MOD,         ONLY : INIT_MEGAN
       USE MEGAN_MOD,         ONLY : UPDATE_T_15_AVG
       USE MEGAN_MOD,         ONLY : UPDATE_T_DAY
       USE PBL_MIX_MOD,       ONLY : DO_PBL_MIX
+      USE OCEAN_MERCURY_MOD, ONLY : MAKE_OCEAN_Hg_RESTART
+      USE OCEAN_MERCURY_MOD, ONLY : READ_OCEAN_Hg_RESTART
       USE PLANEFLIGHT_MOD,   ONLY : PLANEFLIGHT
       USE PLANEFLIGHT_MOD,   ONLY : SETUP_PLANEFLIGHT 
       USE PRESSURE_MOD,      ONLY : INIT_PRESSURE
@@ -245,6 +249,7 @@ C
       USE TRACER_MOD,        ONLY : ITS_AN_AEROSOL_SIM
       USE TRACER_MOD,        ONLY : ITS_A_CH4_SIM
       USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
       USE TRANSPORT_MOD,     ONLY : DO_TRANSPORT
       USE TROPOPAUSE_MOD,    ONLY : READ_TROPOPAUSE
       USE RESTART_MOD,       ONLY : MAKE_RESTART_FILE, READ_RESTART_FILE
@@ -261,11 +266,6 @@ C
 #     include "CMN_SIZE"          ! Size parameters
 #     include "CMN_DIAG"          ! Diagnostic switches, NJDAY
 #     include "CMN_GCTM"          ! Physical constants
-!------------------------------------------------------------------
-! Prior to 11/1/05:
-!#     include "CMN_O3"            ! FMOL,  SAVEOH
-!#     include "comode.h"          ! CSAVE, IDEMS
-!------------------------------------------------------------------
 
       ! Local variables
       LOGICAL            :: FIRST = .TRUE.
@@ -273,6 +273,10 @@ C
       INTEGER            :: I,           IOS,   J,         K,      L
       INTEGER            :: N,           JDAY,  NDIAGTIME, N_DYN
       INTEGER            :: N_DYN_STEPS, NSECb, N_STEP,    DATE(2)
+      INTEGER            :: YEAR,        MONTH, DAY,       DAY_OF_YEAR
+      INTEGER            :: SEASON,      NYMD,  NYMDb,     NHMS
+      INTEGER            :: ELAPSED_SEC, NHMSb
+      REAL*8             :: TAU,         TAUb         
       CHARACTER(LEN=255) :: ZTYPE
 
       !=================================================================
@@ -288,24 +292,30 @@ C
 
       ! Read input file and call init routines from other modules
       CALL READ_INPUT_FILE 
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_INPUT_FILE' )
 
       ! Initialize met field arrays from "dao_mod.f"
       CALL INIT_DAO
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_DAO' )
 
       ! Initialize diagnostic arrays and counters
       CALL INITIALIZE( 2 )
       CALL INITIALIZE( 3 )
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INITIALIZE' )
 
       ! Initialize the new hybrid pressure module.  Define Ap and Bp.
       CALL INIT_PRESSURE
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_PRESSURE' )
 
       ! Read annual mean tropopause
       CALL READ_TROPOPAUSE
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_TROPOPAUSE' )
 
       ! Initialize allocatable SMVGEAR arrays
       IF ( LEMIS .or. LCHEM ) THEN
          IF ( ITS_A_FULLCHEM_SIM() ) CALL INIT_COMODE
          IF ( ITS_AN_AEROSOL_SIM() ) CALL INIT_COMODE
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_COMODE' )
       ENDIF
          
       ! Allocate arrays from "global_ch4_mod.f" for CH4 run 
@@ -316,11 +326,20 @@ C
          CALL INIT_MEGAN
          CALL INITIALIZE( 2 )
          CALL INITIALIZE( 3 )
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_MEGAN' )
       ENDIF
 
       ! Local flag for reading XTRA fields for GEOS-3
       !LXTRA = ( LDUST .or. LMEGAN )
       LXTRA = LMEGAN
+
+      ! Define time variables for use below
+      NHMS  = GET_NHMS()
+      NHMSb = GET_NHMSb()
+      NYMD  = GET_NYMD()
+      NYMDb = GET_NYMDb()
+      TAU   = GET_TAU()
+      TAUb  = GET_TAUb()
 
       !=================================================================
       !   ***** U N Z I P   M E T   F I E L D S  @ start of run *****
@@ -358,14 +377,14 @@ C
          ZTYPE = 'unzip foreground'
 
          ! Unzip A-3, A-6, I-6 files for START of run
-         CALL UNZIP_A3_FIELDS( ZTYPE, GET_NYMDb() )
-         CALL UNZIP_A6_FIELDS( ZTYPE, GET_NYMDb() )
-         CALL UNZIP_I6_FIELDS( ZTYPE, GET_NYMDb() )
+         CALL UNZIP_A3_FIELDS( ZTYPE, NYMDb )
+         CALL UNZIP_A6_FIELDS( ZTYPE, NYMDb )
+         CALL UNZIP_I6_FIELDS( ZTYPE, NYMDb )
 
 #if   defined( GEOS_3 )
          ! Unzip GEOS-3 GWET and XTRA fields for START of run
-         IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE, GET_NYMDb() )
-         IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE, GET_NYMDb() )
+         IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE, NYMDb )
+         IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE, NYMDb )
 #endif
 
 #if   defined( GCAP )
@@ -373,6 +392,8 @@ C
          CALL UNZIP_GCAP_FIELDS( ZTYPE )
 #endif
 
+         !### Debug output
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a UNZIP' )
       ENDIF
       
       !=================================================================
@@ -382,20 +403,26 @@ C
       ! Open and read A-3 fields
       DATE = GET_FIRST_A3_TIME()
       CALL OPEN_A3_FIELDS( DATE(1), DATE(2) )
-      CALL GET_A3_FIELDS(  DATE(1), DATE(2) ) 
+      CALL GET_A3_FIELDS(  DATE(1), DATE(2) )
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A3 TIME' )
 
       ! For MEGAN biogenics, update hourly temps w/in 15-day window
-      IF ( LMEGAN ) CALL UPDATE_T_DAY
+      IF ( LMEGAN ) THEN
+         CALL UPDATE_T_DAY
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: UPDATE T_DAY' )
+      ENDIF
 
       ! Open & read A-6 fields
       DATE = GET_FIRST_A6_TIME()
       CALL OPEN_A6_FIELDS( DATE(1), DATE(2) ) 
       CALL GET_A6_FIELDS(  DATE(1), DATE(2) )      
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A6 TIME' )
 
       ! Open & read I-6 fields
-      DATE = (/ GET_NYMD(), GET_NHMS() /)
+      DATE = (/ NYMD, NHMS /)
       CALL OPEN_I6_FIELDS(  DATE(1), DATE(2) )
       CALL GET_I6_FIELDS_1( DATE(1), DATE(2) )
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
       
 #if   defined( GEOS_3 )
       ! Open & read GEOS-3 GWET fields
@@ -403,6 +430,7 @@ C
          DATE = GET_FIRST_A3_TIME()
          CALL OPEN_GWET_FIELDS( DATE(1), DATE(2) )
          CALL GET_GWET_FIELDS(  DATE(1), DATE(2) ) 
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st GWET TIME' )
       ENDIF
 
       ! Open & read GEOS-3 XTRA fields
@@ -410,6 +438,18 @@ C
          DATE = GET_FIRST_A3_TIME()
          CALL OPEN_XTRA_FIELDS( DATE(1), DATE(2) )
          CALL GET_XTRA_FIELDS(  DATE(1), DATE(2) ) 
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st XTRA TIME' )
+      ENDIF
+#endif
+
+#if   defined( GCAP )
+      ! Read GCAP PHIS and LWI fields (if necessary)
+      CALL OPEN_GCAP_FIELDS
+      CALL GET_GCAP_FIELDS
+
+      ! Remove temporary file (if necessary)
+      IF ( LUNZIP ) THEN
+         CALL UNZIP_GCAP_FIELDS( 'remove date' )
       ENDIF
 #endif
 
@@ -426,27 +466,40 @@ C
 
       ! Compute avg surface pressure near polar caps
       CALL AVGPOLE( PS1 )
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a AVGPOLE' )
 
       ! Call AIRQNT to compute air mass quantities from PS1
       CALL SET_FLOATING_PRESSURE( PS1 )
       CALL AIRQNT
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a AIRQNT' )
 
       ! Compute lightning NOx emissions [molec/box/6h]
-      IF ( LLIGHTNOX ) CALL LIGHTNING( T, CLDTOPS )
+      IF ( LLIGHTNOX ) THEN
+         CALL LIGHTNING( T, CLDTOPS )
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a LIGHTNING' )
+      ENDIF
 
       ! Read land types and fractions from "vegtype.global"
       CALL RDLAND   
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a RDLAND' )
 
       ! Initialize PBL quantities but do not do mixing
       CALL DO_PBL_MIX( .FALSE. )
-
-      !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
 
       !=================================================================
       !       *****  I N I T I A L   C O N D I T I O N S *****
       !=================================================================
-      CALL READ_RESTART_FILE( GET_NYMDb(), GET_NHMSb() )
+
+      ! Read initial tracer conditions
+      CALL READ_RESTART_FILE( NYMDb, NHMSb )
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
+
+      ! Read ocean Hg initial conditions (if necessary)
+      IF ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN ) THEN
+         CALL READ_OCEAN_Hg_RESTART( NYMDb, NHMSb )
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_OCEAN_RESTART' )
+      ENDIF
 
       ! Save initial tracer masses to disk for benchmark runs
       IF ( LSTDRUN ) CALL STDRUN( LBEGIN=.TRUE. )
@@ -486,13 +539,24 @@ C
          CALL SET_CURRENT_TIME
          CALL PRINT_CURRENT_TIME
 
+         ! Set time variables for dynamic loop
+         !DAY         = GET_DAY()
+         DAY_OF_YEAR = GET_DAY_OF_YEAR()
+         ELAPSED_SEC = GET_ELAPSED_SEC()
+         MONTH       = GET_MONTH()
+         NHMS        = GET_NHMS()
+         NYMD        = GET_NYMD()
+         TAU         = GET_TAU()
+         YEAR        = GET_YEAR()
+         SEASON      = GET_SEASON()
+
          !==============================================================
          !   ***** W R I T E   D I A G N O S T I C   F I L E S *****
          !==============================================================
          IF ( ITS_TIME_FOR_BPCH() ) THEN
 
             ! Set time at end of diagnostic timestep
-            CALL SET_DIAGe( GET_TAU() )
+            CALL SET_DIAGe( TAU )
 
             ! Write bpch file
             CALL DIAG3  
@@ -504,8 +568,15 @@ C
             !      ***** W R I T E   R E S T A R T   F I L E *****
             !===========================================================
             IF ( LSVGLB ) THEN
-               CALL MAKE_RESTART_FILE( GET_NYMD(), GET_NHMS() )
+
+               ! Make atmospheric restart file
+               CALL MAKE_RESTART_FILE( NYMD, NHMS, TAU )
                   
+               ! Make ocean mercury restart file
+               IF ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN ) THEN
+                  CALL MAKE_OCEAN_Hg_RESTART( NYMD, NHMS, TAU )
+               ENDIF
+
                !### Debug
                IF ( LPRT ) THEN
                   CALL DEBUG_MSG( '### MAIN: a MAKE_RESTART_FILE' )
@@ -513,7 +584,7 @@ C
             ENDIF
 
             ! Set time at beginning of next diagnostic timestep
-            CALL SET_DIAGb( GET_TAU() )
+            CALL SET_DIAGb( TAU )
 
             !===========================================================
             !        ***** Z E R O   D I A G N O S T I C S *****
@@ -561,21 +632,18 @@ C
          !===============================================================
          IF ( LUNZIP .and. ITS_TIME_FOR_DEL() ) THEN
 
-            ! Get the current date
-            DATE(1) = GET_NYMD()
-
             ! Type of operation
-            ZTYPE   = 'remove date'
+            ZTYPE = 'remove date'
 
             ! Remove A-3, A-6, and I-6 files only for the current date
-            CALL UNZIP_A3_FIELDS( ZTYPE, DATE(1) )
-            CALL UNZIP_A6_FIELDS( ZTYPE, DATE(1) )
-            CALL UNZIP_I6_FIELDS( ZTYPE, DATE(1) )
+            CALL UNZIP_A3_FIELDS( ZTYPE, NYMD )
+            CALL UNZIP_A6_FIELDS( ZTYPE, NYMD )
+            CALL UNZIP_I6_FIELDS( ZTYPE, NYMD )
 
 #if   defined( GEOS_3 )
             ! Remove GEOS-3 GWET & XTRA fields only for the current date
-            IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE, DATE(1) )
-            IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE, DATE(1) )
+            IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE, NYMD )
+            IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE, NYMD )
 #endif
          ENDIF   
 
@@ -648,13 +716,13 @@ C
 
          ! UV albedoes
          IF ( LCHEM .and. ITS_A_NEW_MONTH() ) THEN
-            CALL READ_UVALBEDO( GET_MONTH() )
+            CALL READ_UVALBEDO( MONTH )
          ENDIF
 
          ! Fossil fuel emissions (SMVGEAR)
          IF ( ITS_A_FULLCHEM_SIM() ) THEN
             IF ( LEMIS .and. ITS_A_NEW_SEASON() ) THEN
-               CALL ANTHROEMS( GET_SEASON() )
+               CALL ANTHROEMS( SEASON )
             ENDIF
          ENDIF
 
@@ -664,13 +732,13 @@ C
          IF ( ITS_A_NEW_DAY() ) THEN 
 
             ! Read leaf-area index (needed for drydep)
-            CALL RDLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
+            CALL RDLAI( DAY_OF_YEAR, MONTH )
 
             ! For MEGAN biogenics ...
             IF ( LMEGAN ) THEN
 
                ! Read AVHRR daily leaf-area-index
-               CALL RDISOLAI( GET_DAY_OF_YEAR(), GET_MONTH() )
+               CALL RDISOLAI( DAY_OF_YEAR, MONTH )
 
                ! Compute 15-day average temperature for MEGAN
                CALL UPDATE_T_15_AVG
@@ -693,7 +761,7 @@ C
          
          ! Interpolate I-6 fields to current dynamic timestep, 
          ! based on their values at NSEC and NSEC+N_DYN
-         CALL INTERP( NSECb, GET_ELAPSED_SEC(), N_DYN )         
+         CALL INTERP( NSECb, ELAPSED_SEC, N_DYN )         
          
          ! If we are not doing transport, then make sure that
          ! the floating pressure is set to PSC2 (bdf, bmy, 8/22/02)
@@ -703,14 +771,13 @@ C
          CALL AIRQNT
          
          ! Compute the cosine of the solar zenith angle at each grid box
-         CALL COSSZA( GET_DAY_OF_YEAR(), GET_NHMSb(), 
-     &                GET_ELAPSED_SEC(), SUNCOS )
+         CALL COSSZA( DAY_OF_YEAR, NHMSb, ELAPSED_SEC, SUNCOS )
          
          ! For SMVGEAR II, we also need to compute SUNCOS at
          ! the end of this chemistry timestep (bdf, bmy, 4/1/03)
          IF ( LCHEM .and. ITS_A_FULLCHEM_SIM() ) THEN
-            CALL COSSZA( GET_DAY_OF_YEAR(), GET_NHMSb(), 
-     &                   GET_ELAPSED_SEC()+GET_TS_CHEM()*60, SUNCOSB )
+            CALL COSSZA( DAY_OF_YEAR,                  NHMSb, 
+     &                   ELAPSED_SEC+GET_TS_CHEM()*60, SUNCOSB )
          ENDIF
 
          ! Compute tropopause height for ND55 diagnostic
@@ -719,14 +786,14 @@ C
 #if   defined( GEOS_STRAT )
          ! For GEOS-STRAT, if U10M and V10M are missing, compute 
          ! the resultant wind speed at 10 meters (bmy, 6/27/00)
-         CALL GET_WIND10M( GET_NYMD() )
+         CALL GET_WIND10M( NYMD )
 
 #elif defined( GEOS_3 )
          ! 1998 GEOS-3 carries the ground temperature and not the air
          ! temperature -- thus TS will be 2-3 K too high.  As a quick fix, 
          ! copy the temperature at the first sigma level into TS. 
          ! (mje, bnd, bmy, 7/3/01)
-         IF ( GET_YEAR() == 1998 ) TS(:,:) = T(:,:,1)
+         IF ( YEAR == 1998 ) TS(:,:) = T(:,:,1)
 #endif
 
          ! Update dynamic timestep
@@ -766,7 +833,7 @@ C
                CALL UPBDFLX_NOY( 2 )
             ENDIF
 
-            ! Get relative humidity
+            ! Get relative humidity 
             ! (after recomputing pressure quantities)
             CALL MAKE_RH
 

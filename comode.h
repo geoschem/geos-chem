@@ -1,4 +1,4 @@
-! $Id: comode.h,v 1.14 2005/10/20 14:03:17 bmy Exp $
+! $Id: comode.h,v 1.15 2006/03/24 20:22:42 bmy Exp $
 !
 !******************************************************************************
 !  Header file COMODE contains common blocks and variables for SMVGEAR II.
@@ -457,11 +457,6 @@ C
      5  NCEQUAT(NMTRATE,  ICS),  NOLDFNEW(NMTRATE, ICS),
      6  NEWFOLD(NMTRATE*2,ICS),  NKONER(  NMTRATE, ICS),
      7  NKTWOR( NMTRATE,  ICS),  NKTHRR(  NMTRATE, ICS),
-!------------------------------------------------------------------------------
-! Prior to 10/17/05:
-! For COMPAQ, put IRMA, IRMB in /INMTRATE2/ (Q. Liang, bmy, 10/17/05)
-!     8  IRMA(   NMTRATE      ),  IRMB(    NMTRATE     ),
-!------------------------------------------------------------------------------
      9  KCRR(   NMTRATE,  ICS),  LSKIP(   MXRATE,  ICS),
      1  IRMC(   NMTRATE      ),  JPHOTNK( NMTRATE, ICS),
      2  IUSED(  MXRATE,   ICS)

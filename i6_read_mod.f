@@ -1,4 +1,4 @@
-! $Id: i6_read_mod.f,v 1.10 2005/10/20 14:03:30 bmy Exp $
+! $Id: i6_read_mod.f,v 1.11 2006/03/24 20:22:49 bmy Exp $
       MODULE I6_READ_MOD
 !
 !******************************************************************************
@@ -90,7 +90,6 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
       USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_1_DIR 
       USE DIRECTORY_MOD, ONLY : GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR 

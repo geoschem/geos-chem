@@ -1,9 +1,9 @@
-! $Id: time_mod.f,v 1.18 2005/11/03 17:50:38 bmy Exp $
+! $Id: time_mod.f,v 1.19 2006/03/24 20:22:58 bmy Exp $
       MODULE TIME_MOD
 !
 !******************************************************************************
 !  TIME_MOD contains GEOS-CHEM date and time variables and timesteps, and 
-!  routines for accessing them. (bmy, 6/21/00, 11/1/05) 
+!  routines for accessing them. (bmy, 6/21/00, 3/15/06) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -57,75 +57,72 @@
 !  (12) SET_CT_A3         : Increments/resets the A-3 fields timestep counter
 !  (13) SET_CT_A6         : Increments/resets the A-6 fields timestep counte
 !  (14) SET_CT_I6         : Increments/resets the I-6 fields timestep counter
-!  (14a) SET_CT_XTRA      : Increments/resets the I-6 fields timestep counter
-!  (15) SET_ELAPSED_MIN   : Updates the elapsed minutes since the start of run
-!  (16) GET_JD            : Returns Astronomical Julian Date for NYMD, NHMS
-!  (17) GET_ELAPSED_MIN   : Returns the elapsed minutes since the start of run
-!  (18) GET_ELAPSED_SEC   : Returns the elapsed seconds since the start of run 
-!  (19) GET_NYMDb         : Returns the YYYYMMDD at the beginning of the run
-!  (20) GET_NHMSb         : Returns the HHMMSS   at the beginning of the run
-!  (21) GET_NYMDe         : Returns the YYYYMMDD at the end of the run
-!  (22) GET_NHMSe         : Returns the HHMMSS   at the end of the run
-!  (23) GET_NYMD          : Returns the YYYYMMDD at the current time
-!  (24) GET_NHMS          : Returns the HHMMSS   at the current time
-!  (25) GET_NDIAGTIME     : Returns NDIAGTIME (time of day to write bpch file)
-!  (26) GET_TIME_AHEAD    : Returns the YYYYMMDD, HHMMSS for N_MINS from now
-!  (27) GET_MONTH         : Returns the current month (1-12)
-!  (28) GET_DAY           : Returns the current day of month (1-31)
-!  (29) GET_YEAR          : Returns the current year (YYYY)
-!  (30) GET_HOUR          : Returns the current hour (0-23)
-!  (31) GET_MINUTE        : Returns the current minute (0-59)
-!  (32) GET_SECOND        : Returns the current second (0-59)
-!  (33) GET_DAY_OF_YEAR   : Returns the current day of the year (0-366)
-!  (34) GET_DAY_OF_WEEK   : Returns the current day of the week (0-6)
-!  (35) GET_GMT           : Returns the current GMT (0.0 - 23.999)
-!  (36) GET_TAU           : Returns the current TAU value (hrs since 1/1/1985)
-!  (37) GET_TAUb          : Returns TAU value at beginning of GEOS-CHEM run
-!  (38) GET_TAUe          : Returns TAU value at end of GEOS-CHEM run
-!  (39) GET_DIAGb         : Returns TAU value at start of diagnostic interval
-!  (40) GET_DIAGe         : Returns TAU value at end of diagnostic interval
-!  (41) GET_LOCALTIME     : Returns local time for a grid box (0.0 - 23.999)
-!  (42) GET_SEASON        : Returns season flag (1=DJF, 2=MAM, 3=JJA, 4=SON)
-!  (43) GET_TS_CHEM       : Returns chemistry timestep in minutes
-!  (44) GET_TS_CONV       : Returns convection timestep in minutes
-!  (45) GET_TS_DIAG       : Returns diagnostic timestep in minutes
-!  (46) GET_TS_DYN        : Returns dynamic timestep in minutes
-!  (47) GET_TS_EMIS       : Returns emissions timestep in minutes
-!  (48) GET_TS_UNIT       : Returns unit conversion timestep in minutes
-!  (49) GET_CT_CHEM       : Returns # of chemistry timesteps already executed
-!  (50) GET_CT_CONV       : Returns # of convection timesteps already executed
-!  (51) GET_CT_DYN        : Returns # of dynamic timesteps already executed
-!  (52) GET_CT_EMIS       : Returns # of emission timesteps already executed
-!  (53) GET_CT_A3         : Returns # of times A-3 fields have been read in
-!  (54) GET_CT_A6         : Returns # of times A-6 fields have been read in
-!  (55) GET_CT_I6         : Returns # of times I-6 fields have been read in
-!  (56a) GET_CT_XTRA      : Returns # of times I-6 fields have been read in
-!  (56) GET_A3_TIME       : Returns YYYYMMDD and HHMMSS for the A-3 fields
-!  (57) GET_A6_TIME       : Returns YYYYMMDD and HHMMSS for the A-6 fields
-!  (58) GET_I6_TIME       : Returns YYYYMMDD and HHMMSS for the I-6 fields
-!  (59) GET_FIRST_A3_TIME : Returns YYYYMMDD and HHMMSS for the first A-3 read
-!  (60) GET_FIRST_A3_TIME : Returns YYYYMMDD and HHMMSS for the first A-6 read
-!  (61) ITS_TIME_FOR_CHEM : Returns TRUE if it is time to do chemistry
-!  (62) ITS_TIME_FOR_CONV : Returns TRUE if it is time to do convection
-!  (63) ITS_TIME_FOR_DYN  : Returns TRUE if it is time to do dynamics
-!  (64) ITS_TIME_FOR_EMIS : Returns TRUE if it is time to do emissions
-!  (65) ITS_TIME_FOR_UNIT : Returns TRUE if it is time to do unit conversions
-!  (66) ITS_TIME_FOR_DIAG : Returns TRUE if it is time to write diagnostics
-!  (67) ITS_TIME_FOR_A3   : Returns TRUE if it is time to read in A-3 fields
-!  (68) ITS_TIME_FOR_A6   : Returns TRUE if it is time to read in A-6 fields
-!  (69) ITS_TIME_FOR_I6   : Returns TRUE if it is time to read in I-6 fields
-!  (70) ITS_TIME_FOR_UNZIP: Returns TRUE if it is the end of the run
-!  (71) ITS_TIME_FOR_DEL  : Returns TRUE if it is time to delete temp files
-!  (72) ITS_TIME_FOR_EXIT : Returns TRUE if it is the end of the run
-!  (73) ITS_A_LEAPYEAR    : Returns TRUE if the current year is a leapyear
-!  (74) ITS_A_NEW_YEAR    : Returns TRUE if it's a new year
-!  (75) ITS_A_NEW_MONTH   : Returns TRUE if it's a new month
-!  (76) ITS_A_NEW_DAY     : Returns TRUE if it's a new day
-!  (77) ITS_A_NEW_SEASON  : Returns TRUE if it's a new season
-!  (78) NYMD_Y2K          : Returns YYMMDD or YYYYMMDD for the proper data set
-!  (79) NYMD6_2_NYMD8     : Converts a 6-digit YYMMDD number into YYYYMMDD
-!  (80) NYMD_STRING       : ** deprecated, kept for backwards compatibility **
-!  (81) DATE_STRING       : Returns a date string in YYMMDD or YYYYMMDD format
+!  (15) SET_CT_XTRA      : Increments/resets the I-6 fields timestep counter
+!  (16) SET_ELAPSED_MIN   : Updates the elapsed minutes since the start of run
+!  (17) GET_JD            : Returns Astronomical Julian Date for NYMD, NHMS
+!  (18) GET_ELAPSED_MIN   : Returns the elapsed minutes since the start of run
+!  (19) GET_ELAPSED_SEC   : Returns the elapsed seconds since the start of run 
+!  (20) GET_NYMDb         : Returns the YYYYMMDD at the beginning of the run
+!  (21) GET_NHMSb         : Returns the HHMMSS   at the beginning of the run
+!  (22) GET_NYMDe         : Returns the YYYYMMDD at the end of the run
+!  (23) GET_NHMSe         : Returns the HHMMSS   at the end of the run
+!  (24) GET_NYMD          : Returns the YYYYMMDD at the current time
+!  (25) GET_NHMS          : Returns the HHMMSS   at the current time
+!  (26) GET_NDIAGTIME     : Returns NDIAGTIME (time of day to write bpch file)
+!  (27) GET_TIME_AHEAD    : Returns the YYYYMMDD, HHMMSS for N_MINS from now
+!  (28) GET_MONTH         : Returns the current month (1-12)
+!  (29) GET_DAY           : Returns the current day of month (1-31)
+!  (30) GET_YEAR          : Returns the current year (YYYY)
+!  (31) GET_HOUR          : Returns the current hour (0-23)
+!  (32) GET_MINUTE        : Returns the current minute (0-59)
+!  (33) GET_SECOND        : Returns the current second (0-59)
+!  (34) GET_DAY_OF_YEAR   : Returns the current day of the year (0-366)
+!  (35) GET_DAY_OF_WEEK   : Returns the current day of the week (0-6)
+!  (36) GET_GMT           : Returns the current GMT (0.0 - 23.999)
+!  (37) GET_TAU           : Returns the current TAU value (hrs since 1/1/1985)
+!  (38) GET_TAUb          : Returns TAU value at beginning of GEOS-CHEM run
+!  (39) GET_TAUe          : Returns TAU value at end of GEOS-CHEM run
+!  (40) GET_DIAGb         : Returns TAU value at start of diagnostic interval
+!  (41) GET_DIAGe         : Returns TAU value at end of diagnostic interval
+!  (42) GET_LOCALTIME     : Returns local time for a grid box (0.0 - 23.999)
+!  (43) GET_SEASON        : Returns season flag (1=DJF, 2=MAM, 3=JJA, 4=SON)
+!  (44) GET_TS_CHEM       : Returns chemistry timestep in minutes
+!  (45) GET_TS_CONV       : Returns convection timestep in minutes
+!  (46) GET_TS_DIAG       : Returns diagnostic timestep in minutes
+!  (47) GET_TS_DYN        : Returns dynamic timestep in minutes
+!  (48) GET_TS_EMIS       : Returns emissions timestep in minutes
+!  (49) GET_TS_UNIT       : Returns unit conversion timestep in minutes
+!  (50) GET_CT_CHEM       : Returns # of chemistry timesteps already executed
+!  (51) GET_CT_CONV       : Returns # of convection timesteps already executed
+!  (52) GET_CT_DYN        : Returns # of dynamic timesteps already executed
+!  (53) GET_CT_EMIS       : Returns # of emission timesteps already executed
+!  (54) GET_CT_A3         : Returns # of times A-3 fields have been read in
+!  (55) GET_CT_A6         : Returns # of times A-6 fields have been read in
+!  (56) GET_CT_I6         : Returns # of times I-6 fields have been read in
+!  (57) GET_CT_XTRA      : Returns # of times I-6 fields have been read in
+!  (58) GET_A3_TIME       : Returns YYYYMMDD and HHMMSS for the A-3 fields
+!  (59) GET_A6_TIME       : Returns YYYYMMDD and HHMMSS for the A-6 fields
+!  (60) GET_I6_TIME       : Returns YYYYMMDD and HHMMSS for the I-6 fields
+!  (61) GET_FIRST_A3_TIME : Returns YYYYMMDD and HHMMSS for the first A-3 read
+!  (62) GET_FIRST_A3_TIME : Returns YYYYMMDD and HHMMSS for the first A-6 read
+!  (63) ITS_TIME_FOR_CHEM : Returns TRUE if it is time to do chemistry
+!  (64) ITS_TIME_FOR_CONV : Returns TRUE if it is time to do convection
+!  (65) ITS_TIME_FOR_DYN  : Returns TRUE if it is time to do dynamics
+!  (66) ITS_TIME_FOR_EMIS : Returns TRUE if it is time to do emissions
+!  (67) ITS_TIME_FOR_UNIT : Returns TRUE if it is time to do unit conversions
+!  (68) ITS_TIME_FOR_DIAG : Returns TRUE if it is time to write diagnostics
+!  (69) ITS_TIME_FOR_A3   : Returns TRUE if it is time to read in A-3 fields
+!  (71) ITS_TIME_FOR_A6   : Returns TRUE if it is time to read in A-6 fields
+!  (72) ITS_TIME_FOR_I6   : Returns TRUE if it is time to read in I-6 fields
+!  (73) ITS_TIME_FOR_UNZIP: Returns TRUE if it is the end of the run
+!  (74) ITS_TIME_FOR_DEL  : Returns TRUE if it is time to delete temp files
+!  (75) ITS_TIME_FOR_EXIT : Returns TRUE if it is the end of the run
+!  (76) ITS_A_LEAPYEAR    : Returns TRUE if the current year is a leapyear
+!  (77) ITS_A_NEW_YEAR    : Returns TRUE if it's a new year
+!  (78) ITS_A_NEW_MONTH   : Returns TRUE if it's a new month
+!  (79) ITS_MIDMONTH      : Returns TRUE if it's 0 GMT on the 16th of the month
+!  (80) ITS_A_NEW_DAY     : Returns TRUE if it's a new day
+!  (81) ITS_A_NEW_SEASON  : Returns TRUE if it's a new season
 !  (82) TIMESTAMP_STRING  : Returns a string "YYYY/MM/DD HH:MM:SS"
 !  (83) PRINT_CURRENT_TIME: Prints date time in YYYY/MM/DD, HH:MM:SS format
 !  (84) YMD_EXTRACT       : Extracts YYYY, MM, DD from a YYYYMMDD format number
@@ -173,6 +170,9 @@
 !  (20) GCAP/GISS met fields don't have leap years (swu, bmy, 8/29/05)
 !  (21) Added counter variable & routines for XTRA fields (tmf, bmy, 10/20/05)
 !  (22) Bug fix in ITS_A_NEW_YEAR (bmy, 11/1/05)
+!  (23) Added function ITS_MIDMONTH.  Also removed obsolete functions
+!        NYMD_Y2K, NYMD6_2_NYMD8, NYMD_STRING, DATE_STRING. 
+!        (sas, cdh, bmy, 12/15/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -2457,6 +2457,30 @@
 
 !------------------------------------------------------------------------------
 
+      FUNCTION ITS_MIDMONTH() RESULT( IS_MIDMONTH )
+!
+!******************************************************************************
+!  Function ITS_MIDMONTH returns TRUE if it's the middle of a month
+!  -sas 10/10/05
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Function value
+      LOGICAL :: IS_MIDMONTH
+      
+      !=================================================================
+      ! ITS_MIDMONTH begins here!
+      !=================================================================
+
+      ! Test for the 16th of the month at 0 GMT
+      IS_MIDMONTH = ( DAY == 16 .and. NHMS == 000000 )
+
+      ! Return to calling program
+      END FUNCTION ITS_MIDMONTH
+
+!------------------------------------------------------------------------------
+
       FUNCTION ITS_A_NEW_DAY( ) RESULT( IS_NEW_DAY )
 !
 !******************************************************************************
@@ -2557,222 +2581,224 @@
       END SUBROUTINE PRINT_CURRENT_TIME
 
 !------------------------------------------------------------------------------
-
-      FUNCTION NYMD_Y2K( NYMD ) RESULT( NYMD_TMP )
+! Prior to 3/15/06:
+! These subroutines are all obsolete (bmy, 3/15/06)
 !
-!******************************************************************************
-!  NYMD_Y2K returns the proper form of NYMD for GEOS-1, GEOS-STRAT, 
-!  GEOS-2, or GEOS-3 data. (bmy, 6/21/00, 11/21/01)
-!                                                                          
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NYMD : 8 digit value for the current Year/month/date (YYYYMMDD)
+!      FUNCTION NYMD_Y2K( NYMD ) RESULT( NYMD_TMP )
+!!
+!!******************************************************************************
+!!  NYMD_Y2K returns the proper form of NYMD for GEOS-1, GEOS-STRAT, 
+!!  GEOS-2, or GEOS-3 data. (bmy, 6/21/00, 11/21/01)
+!!                                                                          
+!!  Arguments as Input:
+!!  ============================================================================
+!!  (1 ) NYMD : 8 digit value for the current Year/month/date (YYYYMMDD)
+!!
+!!  NOTES:
+!!  (1 ) GEOS-1     runs from 1985 to 1995, so return a 6-digit YYMMDD value.
+!!  (2 ) GEOS-STRAT runs from 1995 to 1997, so return a 6-digit YYMMDD value.
+!!  (3 ) GEOS-2     must be Y2K compliant, so return an 8-digit YYYYMMDD value.
+!!  (4 ) GEOS-3     must be Y2K compliant, so return an 8-digit YYYYMMDD value.
+!!  (5 ) Updated comments (bmy, 9/4/01)
+!!  (6 ) Use #else condition for met fields other than GEOS-1 or GEOS-STRAT.
+!!        (bmy, 11/21/01)
+!!******************************************************************************
+!!
+!      ! Reference C-preprocessor switches
+!#     include "define.h"
 !
-!  NOTES:
-!  (1 ) GEOS-1     runs from 1985 to 1995, so return a 6-digit YYMMDD value.
-!  (2 ) GEOS-STRAT runs from 1995 to 1997, so return a 6-digit YYMMDD value.
-!  (3 ) GEOS-2     must be Y2K compliant, so return an 8-digit YYYYMMDD value.
-!  (4 ) GEOS-3     must be Y2K compliant, so return an 8-digit YYYYMMDD value.
-!  (5 ) Updated comments (bmy, 9/4/01)
-!  (6 ) Use #else condition for met fields other than GEOS-1 or GEOS-STRAT.
-!        (bmy, 11/21/01)
-!******************************************************************************
+!      ! Arguments
+!      INTEGER, INTENT(IN) :: NYMD
+!      
+!      ! NYMD_TMP is the return value of the function
+!      INTEGER             :: NYMD_TMP
 !
-      ! Reference C-preprocessor switches
-#     include "define.h"
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: NYMD
-      
-      ! NYMD_TMP is the return value of the function
-      INTEGER             :: NYMD_TMP
-
-      !=================================================================
-      ! NYMD_Y2K begins here!
-      ! 
-      ! Return the proper value of NYMD for the given data set.
-      !=================================================================
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-      NYMD_TMP = NYMD - 19000000
-
-#else
-      NYMD_TMP = NYMD
-
-#endif
-
-      ! Return to calling program
-      END FUNCTION NYMD_Y2K
-
+!      !=================================================================
+!      ! NYMD_Y2K begins here!
+!      ! 
+!      ! Return the proper value of NYMD for the given data set.
+!      !=================================================================
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!      NYMD_TMP = NYMD - 19000000
+!
+!#else
+!      NYMD_TMP = NYMD
+!
+!#endif
+!
+!      ! Return to calling program
+!      END FUNCTION NYMD_Y2K
+!
 !------------------------------------------------------------------------------
-
-      FUNCTION NYMD6_2_NYMD8( NYMD ) RESULT( NYMD_TMP )
 !
-!******************************************************************************
-!  Function NYMD6_2_NYMD8 converts a 6-digit YYMMDD string to a 
-!  Y2K-compliant 8-digit YYYYMMDD string.  (bmy, 7/17/00, 9/4/01)
+!      FUNCTION NYMD6_2_NYMD8( NYMD ) RESULT( NYMD_TMP )
+!!
+!!******************************************************************************
+!!  Function NYMD6_2_NYMD8 converts a 6-digit YYMMDD string to a 
+!!  Y2K-compliant 8-digit YYYYMMDD string.  (bmy, 7/17/00, 9/4/01)
+!!
+!!  Arguments as Input:
+!!  ============================================================================
+!!  (1 ) NYMD : 6 digit value for the current Year/month/date (YYYYMMDD)
+!!
+!!  NOTES:
+!!  (1 ) NYMD6_2_NYMD8 operates regardless of which data set we are using.
+!!  (2 ) Small bug fix -- replace <= by >= in middle IF clause (bmy, 8/29/00)
+!!  (3 ) Updated comments (bmy, 9/4/01)
+!!******************************************************************************
+!!
+!      ! Arguments
+!      INTEGER, INTENT(IN) :: NYMD
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NYMD : 6 digit value for the current Year/month/date (YYYYMMDD)
+!      ! Return value of the function
+!      INTEGER             :: NYMD_TMP
 !
-!  NOTES:
-!  (1 ) NYMD6_2_NYMD8 operates regardless of which data set we are using.
-!  (2 ) Small bug fix -- replace <= by >= in middle IF clause (bmy, 8/29/00)
-!  (3 ) Updated comments (bmy, 9/4/01)
-!******************************************************************************
+!      !=================================================================
+!      ! NYMD_Y2K begins here!
+!      ! 
+!      ! If NYMD is lies between 850101 and 991231, then this denotes
+!      ! the century 1900.  Otherwise, we are in the century 2000.  
+!      !
+!      ! If NYMD is already an 8 digit number, return it as is.
+!      !=================================================================
+!      IF ( NYMD >= 850101 .and. NYMD <= 991231 ) THEN
+!         NYMD_TMP = NYMD + 19000000
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: NYMD
-
-      ! Return value of the function
-      INTEGER             :: NYMD_TMP
-
-      !=================================================================
-      ! NYMD_Y2K begins here!
-      ! 
-      ! If NYMD is lies between 850101 and 991231, then this denotes
-      ! the century 1900.  Otherwise, we are in the century 2000.  
-      !
-      ! If NYMD is already an 8 digit number, return it as is.
-      !=================================================================
-      IF ( NYMD >= 850101 .and. NYMD <= 991231 ) THEN
-         NYMD_TMP = NYMD + 19000000
-
-      ELSE IF ( NYMD >= 000000 .and. NYMD < 850101 ) THEN
-         NYMD_TMP = NYMD + 20000000 
-
-      ELSE IF ( NYMD > 19000000 ) THEN
-         NYMD_TMP = NYMD
-
-      ENDIF
-      
-      ! Return to calling program
-      END FUNCTION NYMD6_2_NYMD8
-
-!------------------------------------------------------------------------------
-
-      FUNCTION NYMD_STRING( NYMD ) RESULT( NYMD_STR )
+!      ELSE IF ( NYMD >= 000000 .and. NYMD < 850101 ) THEN
+!         NYMD_TMP = NYMD + 20000000 
 !
-!******************************************************************************
-!  NYMD_STRING returns a string variable of NYMD for GEOS-1, 
-!  GEOS-STRAT, GEOS-2, or GEOS-3 data. (bmy, 6/21/00)
-!                                                                          
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NYMD : 8 digit value for the current Year/month/date (YYYYMMDD)
+!      ELSE IF ( NYMD > 19000000 ) THEN
+!         NYMD_TMP = NYMD
 !
-!  NOTES:
-!  (1 ) GEOS-1     runs from 1985 to 1995, so return a 6-char YYMMDD string.
-!  (2 ) GEOS-STRAT runs from 1995 to 1997, so return a 6-char YYMMDD string.
-!  (3 ) GEOS-2     must be Y2K compliant, so return an 8-char YYYYMMDD string.
-!  (4 ) GEOS-3     must be Y2K compliant, so return an 8-char YYYYMMDD string.
-!  (5 ) Updated comments (bmy, 9/4/01)
-!  (6 ) Use #else condition for met fields other than GEOS-1 or GEOS-STRAT.
-!        (bmy, 11/21/01)
-!******************************************************************************
-!     
-      ! Reference C-preprocessor switches
-#     include "define.h"
-      
-      ! Arguments
-      INTEGER, INTENT(IN) :: NYMD
-
-      ! Local Variables
-      INTEGER             :: NYMD_TMP
-
-      ! NYMD_STR holds the return value of the function
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-      CHARACTER(LEN=6)    :: NYMD_STR
-
-#else
-      CHARACTER(LEN=8)    :: NYMD_STR
-
-#endif
-
-      !=================================================================
-      ! NYMD_STRING begins here!
-      ! 
-      ! Call NYMD_TMP to return the proper form of NYMD
-      !
-      ! Write NYMD_TMP to string variable NYMD_STR, which will be
-      ! either 6 characters or 8 characters long, depending on 
-      ! the data set being used (see above).
-      !=================================================================      
-      NYMD_TMP = NYMD_Y2K( NYMD )
-
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-      WRITE ( NYMD_STR, '(i6)' ) NYMD_TMP
-
-#else
-      WRITE ( NYMD_STR, '(i8)' ) NYMD_TMP
-
-#endif
-
-      ! Return to calling program
-      END FUNCTION NYMD_STRING
-
-!------------------------------------------------------------------------------
-
-      FUNCTION DATE_STRING() RESULT( DATE_STR )
+!      ENDIF
+!      
+!      ! Return to calling program
+!      END FUNCTION NYMD6_2_NYMD8
 !
-!******************************************************************************
-!  DATE_STRING returns a string variable for the current date: YYMMDD 
-!  for GEOS-1 or GEOS-STRAT and YYYYMMDD for GEOS-3 or GEOS-4. 
-!  (bmy, 2/5/03, 12/2/03)
-!                                                                          
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NYMD : 8 digit value for the current Year/month/date (YYYYMMDD)
+!!------------------------------------------------------------------------------
 !
-!  NOTES:
-!  (1 ) Adapted from routine NYMD_STRING (bmy, 2/5/03)
-!  (2 ) Bug fix for GEOS-1/GEOS-S: print YEAR-1900 for 2 digits (bmy, 5/15/03)
-!  (3 ) Bug fix for Linux: use ENCODE statement to convert number to string 
-!        instead of a F90 internal read. (bmy, 9/29/03)
-!  (4 ) Renamed LINUX to LINUX_PGI (bmy, 12/2/03)
-!******************************************************************************
-!     
-      ! Reference C-preprocessor switches
-#     include "define.h"
-      
-      !=================================================================
-      ! DATE_STRING begins here!
-      !=================================================================
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-
-      !-----------------------
-      ! Write YYMMDD format
-      !-----------------------
-      CHARACTER(LEN=6) :: DATE_STR
-      
-      ! Use ENCODE statement for PGI/F90 on Linux, or a regular 
-      ! F90 internal read for other platforms (bmy, 9/29/03)
-#if   defined( LINUX_PGI ) 
-      ENCODE( 6, '(3i2.2)', DATE_STR ) YEAR-1900, MONTH, DAY
-#else
-      WRITE( DATE_STR, '(3i2.2)' ) YEAR-1900, MONTH, DAY
-#endif
-
-#else
-
-      !-----------------------
-      ! Write YYYYMMDD format
-      !-----------------------
-      CHARACTER(LEN=8) :: DATE_STR
-
-      ! Use ENCODE statement for PGI/F90 on Linux, or a regular 
-      ! F90 internal read for other platforms (bmy, 9/29/03)
-#if   defined( LINUX_PGI ) 
-      ENCODE( 8, '(i4.4,2i2.2)', DATE_STR ) YEAR, MONTH, DAY
-#else
-      WRITE( DATE_STR, '(i4.4,2i2.2)' ) YEAR, MONTH, DAY
-#endif
-
-#endif
-
-      ! Return to calling program
-      END FUNCTION DATE_STRING
-
+!      FUNCTION NYMD_STRING( NYMD ) RESULT( NYMD_STR )
+!!
+!!******************************************************************************
+!!  NYMD_STRING returns a string variable of NYMD for GEOS-1, 
+!!  GEOS-STRAT, GEOS-2, or GEOS-3 data. (bmy, 6/21/00)
+!!                                                                          
+!!  Arguments as Input:
+!!  ============================================================================
+!!  (1 ) NYMD : 8 digit value for the current Year/month/date (YYYYMMDD)
+!!
+!!  NOTES:
+!!  (1 ) GEOS-1     runs from 1985 to 1995, so return a 6-char YYMMDD string.
+!!  (2 ) GEOS-STRAT runs from 1995 to 1997, so return a 6-char YYMMDD string.
+!!  (3 ) GEOS-2     must be Y2K compliant, so return an 8-char YYYYMMDD string.
+!!  (4 ) GEOS-3     must be Y2K compliant, so return an 8-char YYYYMMDD string.
+!!  (5 ) Updated comments (bmy, 9/4/01)
+!!  (6 ) Use #else condition for met fields other than GEOS-1 or GEOS-STRAT.
+!!        (bmy, 11/21/01)
+!!******************************************************************************
+!!     
+!      ! Reference C-preprocessor switches
+!#     include "define.h"
+!      
+!      ! Arguments
+!      INTEGER, INTENT(IN) :: NYMD
+!
+!      ! Local Variables
+!      INTEGER             :: NYMD_TMP
+!
+!      ! NYMD_STR holds the return value of the function
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!      CHARACTER(LEN=6)    :: NYMD_STR
+!
+!#else
+!      CHARACTER(LEN=8)    :: NYMD_STR
+!
+!#endif
+!
+!      !=================================================================
+!      ! NYMD_STRING begins here!
+!      ! 
+!      ! Call NYMD_TMP to return the proper form of NYMD
+!      !
+!      ! Write NYMD_TMP to string variable NYMD_STR, which will be
+!      ! either 6 characters or 8 characters long, depending on 
+!      ! the data set being used (see above).
+!      !=================================================================      
+!      NYMD_TMP = NYMD_Y2K( NYMD )
+!
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!      WRITE ( NYMD_STR, '(i6)' ) NYMD_TMP
+!
+!#else
+!      WRITE ( NYMD_STR, '(i8)' ) NYMD_TMP
+!
+!#endif
+!
+!      ! Return to calling program
+!      END FUNCTION NYMD_STRING
+!
+!!------------------------------------------------------------------------------
+!
+!      FUNCTION DATE_STRING() RESULT( DATE_STR )
+!!
+!!******************************************************************************
+!!  DATE_STRING returns a string variable for the current date: YYMMDD 
+!!  for GEOS-1 or GEOS-STRAT and YYYYMMDD for GEOS-3 or GEOS-4. 
+!!  (bmy, 2/5/03, 12/2/03)
+!!                                                                          
+!!  Arguments as Input:
+!!  ============================================================================
+!!  (1 ) NYMD : 8 digit value for the current Year/month/date (YYYYMMDD)
+!!
+!!  NOTES:
+!!  (1 ) Adapted from routine NYMD_STRING (bmy, 2/5/03)
+!!  (2 ) Bug fix for GEOS-1/GEOS-S: print YEAR-1900 for 2 digits (bmy, 5/15/03)
+!!  (3 ) Bug fix for Linux: use ENCODE statement to convert number to string 
+!!        instead of a F90 internal read. (bmy, 9/29/03)
+!!  (4 ) Renamed LINUX to LINUX_PGI (bmy, 12/2/03)
+!!******************************************************************************
+!!     
+!      ! Reference C-preprocessor switches
+!#     include "define.h"
+!      
+!      !=================================================================
+!      ! DATE_STRING begins here!
+!      !=================================================================
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!
+!      !-----------------------
+!      ! Write YYMMDD format
+!      !-----------------------
+!      CHARACTER(LEN=6) :: DATE_STR
+!      
+!      ! Use ENCODE statement for PGI/F90 on Linux, or a regular 
+!      ! F90 internal read for other platforms (bmy, 9/29/03)
+!#if   defined( LINUX_PGI ) 
+!      ENCODE( 6, '(3i2.2)', DATE_STR ) YEAR-1900, MONTH, DAY
+!#else
+!      WRITE( DATE_STR, '(3i2.2)' ) YEAR-1900, MONTH, DAY
+!#endif
+!
+!#else
+!
+!      !-----------------------
+!      ! Write YYYYMMDD format
+!      !-----------------------
+!      CHARACTER(LEN=8) :: DATE_STR
+!
+!      ! Use ENCODE statement for PGI/F90 on Linux, or a regular 
+!      ! F90 internal read for other platforms (bmy, 9/29/03)
+!#if   defined( LINUX_PGI ) 
+!      ENCODE( 8, '(i4.4,2i2.2)', DATE_STR ) YEAR, MONTH, DAY
+!#else
+!      WRITE( DATE_STR, '(i4.4,2i2.2)' ) YEAR, MONTH, DAY
+!#endif
+!
+!#endif
+!
+!      ! Return to calling program
+!      END FUNCTION DATE_STRING
+!
 !------------------------------------------------------------------------------
 
       FUNCTION TIMESTAMP_STRING( YYYYMMDD, HHMMSS ) RESULT( TIME_STR )

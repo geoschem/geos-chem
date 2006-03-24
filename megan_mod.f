@@ -1,10 +1,10 @@
-! $Id: megan_mod.f,v 1.1 2005/10/27 14:00:01 bmy Exp $
+! $Id: megan_mod.f,v 1.2 2006/03/24 20:22:54 bmy Exp $
       MODULE MEGAN_MOD
 !
 !******************************************************************************
 !  Module MEGAN_MOD contains variables and routines specifying the 
 !  algorithms that control the MEGAN inventory of biogenic emissions.
-!  (dsa, tmf, bmy, 11/17/04, 10/24/05)
+!  (dsa, tmf, bmy, 11/17/04, 12/6/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -101,6 +101,7 @@
 !        distinguished from TSKIN. (tmf, 11/20/2004)
 !  (3 ) In GEOS4, the TS used here are the T2M in the A3 files, read in 
 !        'a3_read_mod.f'. 
+!  (4 ) Bug fix: change #if block to also cover GCAP met fields (bmy, 12/6/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1532,9 +1533,10 @@
 !
 !******************************************************************************
 !  Subroutine INIT_MEGAN allocates and initializes the T_DAY, T_15,  
-!  T_15_AVG, and AEF_* arrays. (dsa, tmf, bmy, 10/24/05)
+!  T_15_AVG, and AEF_* arrays. (dsa, tmf, bmy, 10/24/05, 12/6/05)
 !
 !  NOTES:
+!  (1 ) Change the logic in the #if block for G4AHEAD. (bmy, 12/6/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1609,24 +1611,43 @@
       ! Astronomical Julian Date of the A3 file at start of run
       JD_T15b   = GET_JD( NYMD_T15b, NHMS_T15b )
 
-#if   defined( GEOS_4 ) 
+!---------------------------------------------------------------------------
+! Prior to 12/6/05:
+! Change the logic in the #if block (bmy, 12/6/05)
+!#if   defined( GEOS_4 )
+!
+!      ! For GEOS4, the A-3 fields are timestamped by the center of 
+!      ! the 3-hr period: 01:30Z, 04:30Z, 07:30Z, 10:30Z, 
+!      ! 13:30Z, 16:30Z, 19:30Z, 22:30Z
+!      G4AHEAD   = 13000
+!
+!#else
+!      
+!      ! For GEOS-1, GEOS-STRAT, GEOS-3, the A-3 fields are timestamped 
+!      ! by ending time: 00Z, 03Z, 06Z, 09Z, 12Z, 15Z, 18Z, 21Z.  
+!      G4AHEAD   = 0
+!
+!#endif
+!---------------------------------------------------------------------------
+
+#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+
+      ! For GEOS-1, GEOS-STRAT, GEOS-3, the A-3 fields are timestamped 
+      ! by ending time: 00Z, 03Z, 06Z, 09Z, 12Z, 15Z, 18Z, 21Z.  
+      G4AHEAD   = 0
+
+#else
 
       ! For GEOS4, the A-3 fields are timestamped by the center of 
       ! the 3-hr period: 01:30Z, 04:30Z, 07:30Z, 10:30Z, 
       ! 13:30Z, 16:30Z, 19:30Z, 22:30Z
       G4AHEAD   = 13000
 
-#else
-      
-      ! For GEOS-1, GEOS-STRAT, GEOS-3, the A-3 fields are timestamped 
-      ! by ending time: 00Z, 03Z, 06Z, 09Z, 12Z, 15Z, 18Z, 21Z.  
-      G4AHEAD   = 0
-
 #endif
 
       ! Remove any leftover A-3 files in temp dir (if necessary)
       IF ( LUNZIP ) THEN
-         CALL UNZIP_A3_FIELDS(  'remove all' )
+         CALL UNZIP_A3_FIELDS( 'remove all' )
       ENDIF
 
       ! Loop over 15 days
@@ -1646,10 +1667,6 @@
          ! Loop over 3h periods during day
          DO J = 0, 7
 
-!            ! Echo info
-!            WRITE( 6, 100 ) 30000*J + G4AHEAD
-! 100        FORMAT( '     - INIT_MEGAN: Archving T_DAY Hour = ', i6.6 )
-            
             ! Open A-3 fields
             CALL OPEN_A3_FIELDS( NYMD_T15, 30000*J + G4AHEAD )
 

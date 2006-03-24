@@ -1,10 +1,10 @@
-! $Id: convection_mod.f,v 1.12 2005/11/03 17:50:24 bmy Exp $
+! $Id: convection_mod.f,v 1.13 2006/03/24 20:22:42 bmy Exp $
       MODULE CONVECTION_MOD
 !
 !******************************************************************************
 !  Module CONVECTION_MOD contains routines which select the proper convection
 !  code for GEOS-1, GEOS-STRAT, GEOS-3, or GEOS-4 met field data sets. 
-!  (bmy, 6/28/03, 11/1/05)
+!  (bmy, 6/28/03, 1/6/06)
 !
 !  Module Routines:
 !  ============================================================================
@@ -41,6 +41,7 @@
 !        in a much cleaner way. (swu, bmy, 5/25/05)
 !  (6 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (7 ) Shut off scavenging in shallow convection for GCAP (swu, bmy, 11/1/05)
+!  (8 ) Modified for tagged Hg simulation (cdh, bmy, 1/6/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -240,7 +241,7 @@
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-!
+
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_G4_CONV: a DP, RPDEL' )
    
@@ -572,6 +573,8 @@
 !  (14) Now references both "ocean_mercury_mod.f" and "tracerid_mod.f".
 !        Now call ADD_Hg2_WD from "ocean_mercury_mod.f" to pass the amt of Hg2
 !        lost by wet scavenging (sas, bmy, 1/19/05)
+!  (15) Now references IS_Hg2 from "tracerid_mod.f".  Now pass tracer # IC
+!        to ADD_Hg2_WD. (cdh, bmy, 1/6/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -582,7 +585,7 @@
       USE PRESSURE_MOD,      ONLY : GET_BP
       USE TIME_MOD,          ONLY : GET_TS_CONV
       USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
-      USE TRACERID_MOD,      ONLY : IDTHg2
+      USE TRACERID_MOD,      ONLY : IS_Hg2
       USE WETSCAV_MOD,       ONLY : COMPUTE_F
 
       IMPLICIT NONE
@@ -1000,9 +1003,9 @@
                      ! Pass the amount of Hg2 lost in wet scavenging
                      ! [kg] to "ocean_mercury_mod.f" via ADD_Hg2_WET.
                      ! We must also divide by DNS, the # of internal 
-                     ! timesteps. (sas, bmy, 1/19/05)
+                     ! timesteps. (sas, bmy, 1/19/05, 1/6/06)
                      !=================================================
-                     IF ( IS_Hg .and. IC == IDTHg2 ) THEN
+                     IF ( IS_Hg .and. IS_Hg2( IC ) ) THEN
 
                         ! Wet scavenged Hg(II) in [kg/s]
                         WET_Hg2 = ( T0 * AREA_M2 ) / ( TCVV(IC) * DNS )
@@ -1011,7 +1014,7 @@
                         WET_Hg2 = WET_Hg2 * NDT 
 
                         ! Pass to "ocean_mercury_mod.f"
-                        CALL ADD_Hg2_WD( I, J, WET_Hg2 )
+                        CALL ADD_Hg2_WD( I, J, IC, WET_Hg2 )
                      ENDIF
 
                   !=====================================================

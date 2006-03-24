@@ -1,68 +1,345 @@
-REVISIONS (v7-03-06)  
-bmy, 02 Nov 2005
+REVISIONS (v7-04-01)  
+bmy, 16 Mar 2006
 
 
-New in v7-03-06:
+New in v7-04-01:
 -------------------------------------------------------------------------------
 
-emep_mod.f		-- Module for reading EMEP European anthro emissions
+check_data_blocks	-- Checks to see if we have multiple/missing data
+("ocean_mercury_mod.f")    blocks in an ocean Hg restart file
 
+check_dimensions	-- Checks dimensions when reading ocean Hg restart file
+("ocean_mercury_mod.f")
 
+check_atmos_mercury	-- Error check subroutine for Hg0, Hg2 tracers
+("ocean_mercury_mod.f")
 
-Removed in v7-03-06:
--------------------------------------------------------------------------------
+check_ocean_mercury	-- Error check subroutine for Hg0aq, Hg2aq ocean Hg
+("ocean_mercury_mod.f")
 
-phis_read_mod.f		-- This is now obsolete
+check_ocean_fluxes	-- Error check subroutine for DD_Hg2, WD_Hg2 fluxes
+("ocean_mercury_mod.f")
 
+gcap_read_mod.f		-- Module for reading GCAP PHIS and LWI_GISS fields
 
+get_mld_for_next_month  -- Returns ocean mixed layer depth
+("ocean_mercury_mod.f")
 
-Changed from v7-03-05:
--------------------------------------------------------------------------------
+get_Hg0_cat		-- Returns the Hg0 category # given the tracer #
+("tracerid_mod.f")
 
-chem_hcn_ch3cn		-- Bug fix: remove duplicate declaration of KTMP
-("hcn_ch3cn_mod.f")
+get_Hg0_cat		-- Returns the Hg0 category # given the tracer #
+("tracerid_mod.f")
 
-cleanup.f		-- Now calls CLEANUP_EMEP from "emep_mod.f"
+ifort_errmsg.f		-- Function which returns an error message that
+			   corresponds to an error number from IOSTAT or
+			   STAT for the IFORT v9 compiler.
 
-diag49			-- Bug fix: now must sum aerosol OD's over all RH bins
-("diag49_mod.f")	-- Also zero the Q array
+is_Hg0			-- Returns TRUE if tracer number N corresponds	
+("tracerid_mod.f") 	   to a total or tagged Hg0 tracer
 
-do_emissions		-- Now references EMISS_EMEP from "emep_mod.f"
-("emissions_mod.f")
+is_Hg2			-- Returns TRUE if tracer number N corresponds	
+("tracerid_mod.f") 	   to a total or tagged Hg2 tracer
 
-do_gcap_convect		-- Shut off scavenging in shallow convection for GCAP
-("convection_mod.f")
+is_Hgp			-- Returns TRUE if tracer number N corresponds
+("tracerid_mod.f   	   to a total or tagged HgP tracer
 
-emfossil.f		-- Now apply EMEP European emissions if necessary
-			-- Remove reference to CMN, it's now obsolete.
+its_midmonth		-- Function that returns TRUE if it's the middle
+("time_mod.f")		   of a month (0 GMT on the 16th of the month)
 
-file_ex_c		-- Intel IFORT v9 compiler requires use of the 
-("file_mod.f")		   DIRECTORY keyword to INQUIRE for checking 
-			   existence of directories
+make_ocean_hg_restart	-- Writes a new restart file w/ ocean Hg tracers
+("ocean_mercury_mod.f")
 
-ioerror			-- Modifications for Linux/IFORT Intel v9 compiler,
-("file_mod.f")             now do not call gerror() OS function
+mld_adjustment		-- Entrains new water when mixed layer depth deepens
+("ocean_mercury_mod.f")    and conserves concentration (leaves mass behind) 
+			   when mixed layer shoals
 
-isoropia_mod.f		-- Remove duplicate declaration of variables, and 
-			   declaration of local variables that were in 
-			   "isoropia.h".  This is necessary to compile
-			   with the LINUX/IFORT (v9) compiler.
-
-its_a_new_year		-- Bug fix: Need month & day to be 1 
-("time_mod.f")
-
-logical_mod.f		-- Added LEMEP switch to toggle EMEP anthro emissions
-
-main.f			-- Remove reference to "CMN_O3", it's not needed here
-			-- Remove reference to "comode.h", it's not needed here
-
-read_emissions_menu	-- Now read LEMEP switch for EMEP emissions
+read_mercury_menu	-- Reads section of input.geos for Hg simulation
 ("input_mod.f")
 
-read_tropopause		-- Simplify counting of # of tropospheric boxes
-("tropopause_mod.f")
+read_ocean_hg_restart 	-- Reads restart file w/ ocean Hg tracers
+("ocean_mercury_mod.f")
 
-upbdflx_noy		-- Now reference GET_MIN_TPAUSE_LEVEL from 
-("upbdflx_mod.f")	   "tropopause_mod.f"
-			-- Now replace reference to LPAUSE with 
-			   ITS_IN_THE_STRAT from "tropopause_mod.f"
+
+
+Removed in v7-04-01:
+-------------------------------------------------------------------------------
+
+date_string		-- Now obsolete
+("time_mod.f")
+
+nymd_y2k		-- Now obsolete
+("time_mod.f")
+
+nymd6_2_nymd8		-- Now obsolete
+("time_mod.f")
+
+nymd_string		-- Now obsolete
+("time_mod.f")
+
+tracerid_mod.f		-- Removed IDTHg0, IDTHg2, IDTHgP, and tagged
+			   IDTHg0_xx, IDTHg2_xx, IDTHgP_xx flags
+
+
+
+Changed from v7-03-06:
+-------------------------------------------------------------------------------
+
+add_Hg2_dd		-- DD_Hg2 is now a 3-D array
+("ocean_mercury_mod.f") -- Also pass N via the argument list
+			-- Now call GET_Hg2_CAT to return the Hg category #
+
+add_Hg2_wd		-- WD_Hg2 is now a 3-D array
+("ocean_mercury_mod.f") -- Also pass N via the argument list
+			-- Now call GET_Hg2_CAT to return the Hg category #
+
+alloc_err		-- Call special error msg function for IFORT compiler
+("error_mod.f")
+
+arconvtran		-- Now dimension DP, MU, MD, EU as (IIPAR,JJPAR,LLPAR)
+("fvdas_convect_mod.f")    to avoid seg fault error in OpenMP
+			-- Also now pass the GEOS-CHEM latitude index J via
+			   the argument list.
+
+arconvtran		-- Now dimension DP, MU, MD, DU, EU as 
+("gcap_convect_mod.f")	   (IIPAR,JJPAR,LLPAR) to avoid seg fault error in 
+			   OpenMP  
+			-- Also now pass the GEOS-CHEM latitude index J via 
+			   the argument list
+			-- Added comments
+
+biofuel_burn		-- Rewrite IF statements to avoid seg fault errors 
+("biofuel_mod.f")	   when LNEI99 is turned off
+
+chem_Hg0_Hg2		-- Changed K_HG_OH to 5.9d-14
+("mercury_mod.f")	-- Changed KRED to 16.8d-10
+			-- Added KSALT = 3.8d-5
+			-- Prevent divide-by-zero errors
+			-- Also modified for updated ocean mercury module
+			-- Updated some constants
+
+chem_HgP		-- Now use ID_HgP index array from "tracerid_mod.f" 
+("mercury_mod.f")
+
+chemmercury		-- Bug fix: Set T44 to 0e0 for single precision
+("mercury_mod.f")	-- Now allow for zero dry deposition velocity
+			-- Now call INIT_MERCURY from "input_mod.f"
+
+chemsulfate		-- Remove reference to MAKE_RH, it's not needed here
+("sulfate_mod.f")
+
+CMN_SIZE		-- Increased NNPAR to 52
+
+compute_f		-- Make sure to deplete H2O2s the same as SO2s
+("wetscav_mod.f")	-- Also change Henry's law constant for Hg2 to 1.0d+14
+			-- Now use functions IS_Hg2 and IS_HgP to determine if
+			   a tracer is an Hg2 or HgP tagged tracer. 
+
+convtran		-- Now dimension Q and FRACIS of size 
+("fvdas_convect_mod.f")	   (IIPAR,JJPAR,LLPAR,NTRACE), in order to avoid seg 
+			   faults with OpenMP.  
+			-- Renamed GEOS-CHEM latitude index LATI_INDEX to J
+			-- Now references ITS_A_MERCURY_SIM from "tracer_mod.f"
+			-- Now references IS_Hg2 from "tracerid_mod.f
+			-- Now do not call ADD_Hg2_WD if we are not using the 
+			   dynamic online ocean model
+			-- Now references LDYNOCEAN from "logical_mod.f"
+
+convtran		-- Now dimension Q and FRACIS of size 
+("gcap_convect_mod.f")	   (IIPAR,JJPAR,LLPAR,NTRACE), in order to avoid seg 
+			   faults with OPenM Linux/IFORT compiler
+			-- Renamed GEOS-CHEM latitude index LATI_INDEX to J
+			-- Added comments
+
+define_tagged_hg	-- Now only define AN_Hg0, AN_Hg2, AN_HgP
+("mercury_mod.f")	-- Now use ID_Hg0, ID_Hg2, and ID_HgP index arrays 
+			   from "tracerid_mod.f"
+
+depvel			-- Change Reynold's # criterion from 1 to 0.1
+("drydep_mod.f")
+
+diag03_mod.f		-- Change PD03=13 to PD03=15
+
+diag3.f			-- Removed duplicate variable declarations
+			-- Now remove restriction on printing out cloud mass 
+			   flux in GEOS-4 for the ND66 diagnostic 
+
+do_chemistry		-- Comment out calls to MAKE_RH, this is now
+("chemistry_mod.f")	   done in "main.f"
+
+drydep_mod.f		-- Increased MAXDEP from 35 to 37, in order to
+			   account for SO4s and NITs
+
+emfossil.f		-- Rewrite IF statements to avoid seg fault 	
+			   errors when LEMEP and LNEI99 are turned off. 
+
+emissmercury		-- Now modified for new ocean mercury module
+("mercury_mod.f")
+
+fvdas_convect		-- Rewrote parallel loops so that we pass entire 
+("fvdas_convect_mod.f")    arrays to the various subroutines instead of array 
+			   slices such as (:,J,:).  This can cause problems 
+			   with OpenMP for some compilers.
+			-- Now uses ID_Hg2 from "tracerinfo.dat" instead
+			   of the old IDTHg2.
+
+gcap_convect		-- Rewrote parallel loops so that we pass entire 
+("gcap_convect_mod.f")	   arrays to the various subroutines instead of array 
+			   slices such as (:,J,:).  This can cause problems 
+			   with OpenMP for some compilers.
+
+get_a3_fields		-- Bug fix: replace RADSWG in call to READ_A3 
+("a3_read_mod.f")	   for GCAP met fields
+
+get_global_o3		-- Tracer number for O3 is now 51
+("global_o3_mod.f")	-- Also need to call TRANSFER_3D_TROP since the new 
+			   O3 data file only goes up to LLTROP
+
+hack_conv		-- Now pass J via the arg list
+("fvdas_convect_mod.f")	-- Now dimension RPDEL, ETA, BETA, and Q with and make
+			   all input arrays dimensioned w/ (IIPAR,JJPAR,LLPAR)
+			   to avoid seg fault error in OpenMP on certain 
+			   platforms.
+
+init_drydep		-- Now set Henry's law constant to 1.0d+14 for Hg2
+("drydep_mod.f")	-- Now use ID_Hg2, ID_HgP, and ID_Hg_tot from 
+			   "tracerid_mod.f" 
+
+init_gamap		-- Now add categories CV-FLX-$, TURBMC-$, EW-FLX-$, 
+("gamap_mod.f")		   NS-FLX-$, UP-FLX-$ which had been inadvertently 
+			   omitted  
+			-- Also add OCEAN-HG category
+			-- Rewrote do loop and case statement to add 
+			   new diagnostics to ND03
+			-- Now make Hg units "pptv", not "ppbv"
+
+init_megan		-- Change the logic in the #if block for G4AHEAD
+("megan_mod.f")
+
+init_mercury		-- EHg0_an, EHg2_an, EHgP_an are now 2-D arrays 
+("mercury_mod.f")	-- Now modified for updated ocean mercury module
+      			-- Now called from "input_mod.f"
+			-- For now, comment out IF ( ND44 > 0 ) so that 
+			   MERCURY MENU can be placed above the DIAGNOSTIC 
+			   MENU in "input.geos"
+
+init_ocean_mercury	-- Now called from "input_mod.f"
+("ocean_mercury_mod.f")	-- Now pass Hg_RST_FILE and USE_CHECKS via arg list
+
+ioerror			-- Now call IFORT_ERRMSG to get the IFORT error
+("file_mod.f")		   messages (for Intel v8/v9 compiler)
+
+lightning_nox_mod.f	-- Fix typo for NESTED_NA C-preprocessor switch
+
+logical_mod.f		-- Added LDYNOCEAN switch for online ocean Hg model
+
+main.f			-- Now use local variables to hold the values 
+			   returned by various time inquiry functions
+			   within the dynamic time loop
+			-- Added more ND70 debug print statements
+			-- Now calls routines GET_GCAP_FIELDS, 
+			   OPEN_GCAP_FIELDS, and UNZIP_GCAP_FIELDS from
+			   "gcap_read_mod.f" to read GCAP PHIS and LWI_GISS
+			   met fields.
+			-- Removed duplicate variable declarations
+			-- Now call MAKE_RH after transport to compute the
+			   relative humidity.  This is done in after the
+			   air mass quantities are recomputed after transport.
+
+make_restart_file	-- Add TAU to the argument list
+("restart_mod.f")
+
+mercury_readyr		-- Now read anthro emissions on GEOS 1x1 grid in 
+("mercury_mod.f")	   DATA_1x1_DIR
+			-- Also keep 2x25 and 4x5 files together in 
+			   DATA_1x1_DIR
+			-- Also now use new land re-emissions files from 
+			   Noelle Selin
+
+ndxx_setup.f		-- Removed duplicate variable declarations
+
+nfcldmx			-- Now references IS_Hg2 from "tracerid_mod.f"
+("convection_mod.f")	-- Now pass tracer # IC to ADD_Hg2_WD.
+
+ocean_mercury_flux    	-- Rewritten to include Sarah Strode's latest ocean 
+("ocean_mercury_mod.f")	   Hg model code
+
+ocean_mercury_read	-- Modified for S. Strode's latest ocean Hg code
+("ocean_mercury_mod.f") -- Now read files from DATA_DIR_1x1/mercury_200511
+
+open_bc_file		-- DATE_STRING is now obsolete; use EXPAND_DATE instead
+("tpcore_bc_mod.f")
+
+rainout			-- Change Henry's law constant for Hg2 to 1.0d+14
+("wetscav_mod.f")	-- Now use functions IS_Hg2 and IS_HgP to determine if
+			   a tracer is a tagged Hg2 or HgP tracer.
+
+read_a3			-- Fixed typo in the ND67 diagnostic for RADSWG
+("a3_read_mod.f")
+
+read_a6			-- Bug fix in ND66 diagnostic for GEOS-4
+("a6_read_mod.f")
+
+read_restart_file	-- Updated comments
+("restart_mod.f")
+
+read_sst		-- Now read int'annual SST data on the GEOS 1x1 grid
+("sulfate_mod.f")
+
+read_nd48_menu		-- Bug fix: ND48 stations should now be read correctly
+("input_mod.f")
+
+read_tracer_menu	-- Now move call to INIT_OCEAN_MERCURY to 
+("input_mod.f")		   READ_MERCURY_MENU
+
+rxn_Hg0_Hg2		-- Changed equation to reflect reduction rxn
+("mercury_mod.f")
+
+rxn_Hg2_dryd		-- Now add E_SALT to account for uptake by sea salt
+("mercury_mod.f")	-- Now references IS_WATER from "dao_mod.f"
+			-- Now uses ID_Hg2 and ID_Hg_tot from "tracerid_mod.f"
+			-- Now references LDYNOCEAN from "logical_mod.f"
+			-- Now do not call ADD_Hg2_DD if we are not using 
+			   the dynamic ocean module
+
+rxn_HgP_dryd		-- Now uses ID_HgP and ID_Hg_tot from "tracerid_mod.f"
+("mercury_mod.f")
+
+src_dust_dead		-- SNOW is in mm H2O, divide by 1000 to get m H2O
+("dust_mod.f")
+
+srcHg0			-- EHg0_an is now a 2-D array 
+("mercury_mod.f")	-- Modified for new ocean mercury module
+			-- Now use ID_Hg0 index array from "tracerid_mod.f"
+
+srcHg2			-- EHg0_an is now a 2-D array 
+("mercury_mod.f")	-- Now use ID_Hg2 index array from "tracerid_mod.f".
+
+srcHgP			-- EHg0_an is now a 2-D array 
+("mercury_mod.f")	-- Now use ID_HgP index array from "tracerid_mod.f"
+
+total_anthro_tg		-- Now only print totals for defined tracers;
+("emep_mod.f")             other totals will be printed as zeroes
+
+tracerid		-- Add alternate names for tagged Hg tracers
+("tracerid_mod.f")	-- Also define ocean mercury flux categories
+
+washout			-- Bug fix: Deplete H2O2s the same as SO2s
+("wetscav_mod.f")	-- Also change Henry's law constant for Hg2 to 1.0d+14
+			-- Now use functions IS_Hg2 and IS_HgP to determine if
+			   a tracer is a tagged Hg0 or HgP tracer.
+
+wetdep			-- Now use function IS_Hg2 to determine if a tracer 
+("wetscav_mod.f") 	   is a tagged Hg2 tracer.
+			-- Now also pass N to ADD_Hg2_WD
+			-- Now references LDYNOCEAN from "logical_mod.f"
+			-- Now do not call ADD_Hg2_WD if we are not using 
+			   the dynamic ocean model
+
+wetdepid		-- Now use IS_Hg2 and IS_HgP to determine if a tracer  
+("wetscav_mod.f")	   is a tagged Hg2 or HgP tracer
+
+write_diag03		-- Add HgC ocean mass and converted to colloidal 
+("diag03_mod.f")	   to ND03 diagnostic
+			-- The units of the Kw and conversion terms in ND03 
+			   should be kg and not divided by the scale factor

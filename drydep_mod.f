@@ -1,4 +1,4 @@
-! $Id: drydep_mod.f,v 1.24 2006/02/03 17:00:24 bmy Exp $
+! $Id: drydep_mod.f,v 1.25 2006/03/24 20:22:45 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
@@ -139,7 +139,9 @@
 !        (bec, bmy, 4/13/05)
 !  (17) Now modified for GEOS-5 and GCAP met fields (bmy, 5/25/05)
 !  (18) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (18a) BUG FIX PATCH: increase MAXDEP from 35 to 37 (bmy, 2/1/06)
+!  (19) Now change Reynold's # criterion from 1 to 0.1 in DEPVEL.  Also 
+!        change Henry's law constant for Hg2.  Also increase MAXDEP from
+!        35 to 37. (eck, djj, bmy, 2/1/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -171,7 +173,8 @@
       !=================================================================
 
       ! Parameters
-      !-----------------------------------------------------------------
+      !-------------------------------------------------------
+      ! Prior to 1/27/06:
       !%%% BUG FIX PATCH: Increase MAXDEP from 35 to 37 (bmy, 2/1/06)
       !INTEGER, PARAMETER   :: MAXDEP    = 35
       !-----------------------------------------------------------------
@@ -902,6 +905,7 @@ C**                             aerosol tracers.  DUST aerosol tracers do
 C**                             not grow hygroscopically.  Added RHB as
 C**                             an input argument.
 C** Version 3.9    5/25/05  -- Now restore GISS-specific code for GCAP model
+C** Version 3.9.1  11/17/05 -- change Reynolds # criterion from 1 to 0.1
 C
 C***********************************************************************
 C   Changes from Version 3.2 to Version 3.3:                         ***
@@ -1555,7 +1559,14 @@ C  Oceans & Atmos., 83, C6, 2977-2980). Also refer to Brutsaert's book,
 C  P.125. We used to use the criterion "REYNO > 10" for aerodynamically
 C  rough surface and now change to "REYNO > 1". (hyl, 10/15/99)
 C  
-            IF (REYNO .LT. 1.0D0) GOTO 220
+C  11/17/05: D. J. Jacob says to change the criterion for aerodynamically
+C  rough surface to REYNO > 0.1 (eck, djj, bmy, 11/17/05)
+            !---------------------------------------------------------------
+            ! Prior to 11/17/05:
+            ! Lower Reynold's # criterion to 0.1 (eck, djj, bmy, 11/17/05)
+            !IF (REYNO .LT. 1.0D0) GOTO 220
+            !---------------------------------------------------------------
+            IF ( REYNO < 0.1d0 ) GOTO 220
 
 C...aerodynamically rough surface.
 C*                                 
@@ -2636,7 +2647,7 @@ C** Load array DVEL
 !
 !******************************************************************************
 !  Subroutine INIT_DRYDEP initializes certain variables for the GEOS-CHEM
-!  dry deposition subroutines. (bmy, 11/19/02, 10/3/05)
+!  dry deposition subroutines. (bmy, 11/19/02, 1/9/06)
 !
 !  NOTES:
 !  (1 ) Added N2O5 as a drydep tracer, w/ the same drydep velocity as
@@ -2653,11 +2664,14 @@ C** Load array DVEL
 !  (7 ) Remove reference to PBLFRAC array -- it's obsolete (bmy, 2/22/05)
 !  (8 ) Included SO4s, NITs tracers (bec, bmy, 4/13/05)
 !  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (10) Now set Henry's law constant to 1.0d+14 for Hg2.  Now use ID_Hg2, 
+!        ID_HgP, and ID_Hg_tot from "tracerid_mod.f" (eck, cdh, bmy, 1/9/06)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,    ONLY : ALLOC_ERR
       USE LOGICAL_MOD,  ONLY : LDRYD
+      USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM
       USE TRACER_MOD,   ONLY : N_TRACERS, SALA_REDGE_um, SALC_REDGE_um
       USE TRACERID_MOD, ONLY : IDTPB,     IDTBE7,        IDTNOX
       USE TRACERID_MOD, ONLY : IDTOX,     IDTPAN,        IDTHNO3 
@@ -2674,16 +2688,20 @@ C** Load array DVEL
       USE TRACERID_MOD, ONLY : IDTSOA1,   IDTSOA2,       IDTSOA3 
       USE TRACERID_MOD, ONLY : IDTDST1,   IDTDST2,       IDTDST3 
       USE TRACERID_MOD, ONLY : IDTDST4,   IDTSALA,       IDTSALC 
-      USE TRACERID_MOD, ONLY : IDTHG2,    IDTHGP  
+      USE TRACERID_MOD, ONLY : ID_Hg2,    ID_HgP,        ID_Hg_tot
 
 #     include "CMN_SIZE"  ! Size parameters
 
       ! Local variables
+      LOGICAL :: IS_Hg
       INTEGER :: AS, N
 
       !=================================================================
       ! INIT_DRYDEP begins here!
       !=================================================================
+
+      ! Is this a mercury simulation?
+      IS_Hg      = ITS_A_MERCURY_SIM()
 
       ! Zero variables
       DRYDNO2    = 0
@@ -3252,20 +3270,25 @@ C** Load array DVEL
          !----------------------------------
 
          ! Hg2 -- Divalent Mercury
-         ELSE IF ( N == IDTHG2 ) THEN
+         ELSE IF ( IS_Hg .and. N == ID_Hg2(ID_Hg_tot) ) THEN
             NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTHG2
+            NTRAIND(NUMDEP) = ID_Hg2(ID_Hg_tot)
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'Hg2'
-            HSTAR(NUMDEP)   = 1.4d6
+            !--------------------------------
+            ! Prior to 11/17/05:
+            ! Increase Henry's law constant 
+            !HSTAR(NUMDEP)   = 1.4d6
+            !--------------------------------
+            HSTAR(NUMDEP)   = 1.0d+14
             F0(NUMDEP)      = 0.0d0
             XMW(NUMDEP)     = 201d-3
             AIROSOL(NUMDEP) = .FALSE. 
 
          ! HgP -- Particulate Mercury
-         ELSE IF ( N == IDTHGP ) THEN
+         ELSE IF ( IS_Hg .and. N == ID_HgP(ID_Hg_tot) ) THEN
             NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTHGP
+            NTRAIND(NUMDEP) = ID_HgP(ID_Hg_tot)
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'HgP'
             HSTAR(NUMDEP)   = 0.0d0

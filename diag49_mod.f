@@ -1,4 +1,4 @@
-! $Id: diag49_mod.f,v 1.12 2005/11/03 17:50:25 bmy Exp $
+! $Id: diag49_mod.f,v 1.13 2006/03/24 20:22:44 bmy Exp $
       MODULE DIAG49_MOD
 !
 !******************************************************************************
@@ -169,7 +169,11 @@
       USE DAO_MOD,      ONLY : T,       UWND,   VWND
       USE FILE_MOD,     ONLY : IU_ND49
       USE GRID_MOD,     ONLY : GET_XOFFSET,        GET_YOFFSET
-      USE TIME_MOD,     ONLY : DATE_STRING,        EXPAND_DATE
+      !-------------------------------------------------------------
+      ! Prior to 3/16/06:
+      !USE TIME_MOD,     ONLY : DATE_STRING,        EXPAND_DATE
+      !-------------------------------------------------------------
+      USE TIME_MOD,     ONLY : EXPAND_DATE
       USE TIME_MOD,     ONLY : GET_NYMD,           GET_NHMS
       USE TIME_MOD,     ONLY : GET_TAU,            GET_HOUR
       USE TIME_MOD,     ONLY : ITS_A_NEW_DAY,      TIMESTAMP_STRING
@@ -617,10 +621,6 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  !------------------------------------------
-                  ! Prior to 10/31/05:
-                  !Q(X,Y,K) = ODAER(I,J,L,R) * SCALE400nm
-                  !------------------------------------------
                   Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,R) * SCALE400nm )
                ENDDO
                ENDDO
@@ -655,10 +655,6 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  !------------------------------------------
-                  ! Prior to 10/31/05:
-                  !Q(X,Y,K) = ODAER(I,J,L,H) * SCALE400nm
-                  !------------------------------------------
                   Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALE400nm )
                ENDDO
                ENDDO
@@ -693,10 +689,6 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  !------------------------------------------
-                  ! Prior to 10/31/05:
-                  !Q(X,Y,K) = ODAER(I,J,L,H) * SCALE400nm
-                  !------------------------------------------
                   Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALE400nm )
                ENDDO
                ENDDO
@@ -731,10 +723,6 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  !-----------------------------------------
-                  ! Prior to 10/31/05:
-                  !Q(X,Y,K) = ODAER(I,J,L,H) * SCALE400nm
-                  !-----------------------------------------
                   Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALE400nm )
                ENDDO
                ENDDO
@@ -769,10 +757,6 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  !------------------------------------------
-                  ! Prior to 10/31/05:
-                  !Q(X,Y,K) = ODAER(I,J,L,H) * SCALE400nm
-                  !------------------------------------------
                   Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALE400nm )
                ENDDO
                ENDDO

@@ -1,9 +1,9 @@
-! $Id: a3_read_mod.f,v 1.12 2005/11/03 17:50:21 bmy Exp $
+! $Id: a3_read_mod.f,v 1.13 2006/03/24 20:22:39 bmy Exp $
       MODULE A3_READ_MOD
 !
 !******************************************************************************
 !  Module A3_READ_MOD contains routines that unzip, open, and read the
-!  GEOS-CHEM A-3 (avg 3-hour) met fields from disk. (bmy, 6/23/03, 10/3/05)
+!  GEOS-CHEM A-3 (avg 3-hour) met fields from disk. (bmy, 6/23/03, 2/9/06)
 ! 
 !  Module Routines:
 !  =========================================================================
@@ -39,6 +39,7 @@
 !  (5 ) Now references FILE_EXISTS from "file_mod.f" (bmy, 3/23/05)
 !  (6 ) Now modified for GEOS-5 and GCAP met fields (bmy, 5/25/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (8 ) Fixed typos for GCAP fields and ND67 diagnostics (bmy, 2/9/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -459,6 +460,8 @@
 !        CLDFRC to the CLDFRC array (instead of CFRAC).  Now get RADLWG, 
 !        SNOW arrays.  Also updated comments. (bmy, 12/9/03)
 !  (2 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
+!  (3 ) Bug fix: replace RADSWG in call to READ_A3 for GCAP met fields.
+!        (bmy, 2/9/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -553,16 +556,16 @@
       !================================================================
       ! For GCAP, read the following fields:
       !
-      !    ALBEDO, MOLENGTH, OICE, PBL,   PREACC, PRECON, 
-      !    SNICE,  TS,       U10M, USTAR, V10M,
+      !    ALBEDO, MOLENGTH, OICE, PBL,  PREACC, PRECON, 
+      !    RADSWG, SNICE,    TS,   U10M, USTAR,  V10M
       !
       ! NOTES: 
       !================================================================
       CALL READ_A3( NYMD=NYMD,     NHMS=NHMS,     
      &              ALBEDO=ALBD,   MOLENGTH=MOLENGTH, OICE=OICE,       
      &              PBL=PBL,       PREACC=PREACC,     PRECON=PRECON,   
-     &              SNICE=SNICE,   TS=TS,             U10M=U10M,       
-     &              USTAR=USTAR,   V10M=V10M  )
+     &              RADSWG=RADSWG, SNICE=SNICE,       TS=TS,             
+     &              U10M=U10M,     USTAR=USTAR,       V10M=V10M  )
 
 #endif
 
@@ -717,7 +720,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_A3 reads GEOS A-3 (3-hr avg) fields from disk.
-!  (bmy, 5/8/98, 5/25/05)
+!  (bmy, 5/8/98, 2/9/06)
 ! 
 !  Arguments as input:
 !  ============================================================================
@@ -756,6 +759,7 @@
 !        and SNOW arrays via the arg list.  Now skip over LAI. (bmy, 12/9/03)
 !  (3 ) Now modified for GEOS-5 and GCAP met fields.  Added GCAP MOLENGTH,
 !        SNICE, OICE optional arguments. (swu, bmy, 5/25/05)
+!  (4 ) Fixed typo in the ND67 diagnostic for RADSWG (swu, bmy, 2/9/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1178,7 +1182,12 @@
       !=================================================================
       IF ( ND67 > 0 ) THEN
          IF ( PRESENT( HFLUX   ) ) AD67(:,:,1 ) = AD67(:,:,1 ) + HFLUX
-         IF ( PRESENT( RADSWG  ) ) AD67(:,:,1 ) = AD67(:,:,2 ) + RADSWG
+         !-----------------------------------------------------------------
+         ! Prior to 2/9/06:
+         ! Bug fix: AD67(:,:,1) should be AD67(:,:,2) (swu, bmy, 2/9/06)
+         !IF ( PRESENT( RADSWG  ) ) AD67(:,:,1 ) = AD67(:,:,2 ) + RADSWG
+         !-----------------------------------------------------------------
+         IF ( PRESENT( RADSWG  ) ) AD67(:,:,2 ) = AD67(:,:,2 ) + RADSWG
          IF ( PRESENT( PREACC  ) ) AD67(:,:,3 ) = AD67(:,:,3 ) + PREACC
          IF ( PRESENT( PRECON  ) ) AD67(:,:,4 ) = AD67(:,:,4 ) + PRECON
          IF ( PRESENT( TS      ) ) AD67(:,:,5 ) = AD67(:,:,5 ) + TS

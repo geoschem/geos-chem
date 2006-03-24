@@ -1,10 +1,10 @@
-! $Id: restart_mod.f,v 1.11 2005/10/20 14:03:37 bmy Exp $
+! $Id: restart_mod.f,v 1.12 2006/03/24 20:22:56 bmy Exp $
       MODULE RESTART_MOD
 !
 !******************************************************************************
 !  Module RESTART_MOD contains variables and routines which are used to read
 !  and write GEOS-CHEM restart files, which contain tracer concentrations
-!  in [v/v] mixing ratio. (bmy, 6/25/02, 10/3/05)
+!  in [v/v] mixing ratio. (bmy, 6/25/02, 12/16/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -47,6 +47,7 @@
 !  (8 ) Removed obsolete routines TRUE_TRACER_INDEX and COPY_DATA_FOR_CO_OH
 !        (bmy, 6/28/05)
 !  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (10) Now pass TAU via the arg list in MAKE_RESTART_FILE (bmy, 12/15/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -77,16 +78,17 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE MAKE_RESTART_FILE( YYYYMMDD, HHMMSS )
+      SUBROUTINE MAKE_RESTART_FILE( YYYYMMDD, HHMMSS, TAU )
 !
 !******************************************************************************
 !  Subroutine MAKE_RESTART_FILE creates GEOS-CHEM restart files of tracer 
-!  mixing ratios (v/v), in binary punch file format. (bmy, 5/27/99, 10/3/05)
+!  mixing ratios (v/v), in binary punch file format. (bmy, 5/27/99, 12/16/05)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) YYYYMMDD : Year-Month-Date 
 !  (2 ) HHMMSS   :  and Hour-Min-Sec for which to create a restart file       
+!  (3 ) TAU      : GEOS-CHEM TAU value corresponding to YYYYMMDD, HHMMSS
 !
 !  NOTES:
 !  (1 ) Now use function NYMD_STRING from "time_mod.f" to generate a
@@ -112,6 +114,7 @@
 !        from "bpch2_mod.f" to get the HALFPOLAR flag value for GEOS or GCAP 
 !        grids. (bmy, 6/28/05)
 !  (11) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (12) Add TAU to the argument list (bmy, 12/16/05)
 !******************************************************************************
 !     
       ! References to F90 modules
@@ -122,13 +125,18 @@
       USE FILE_MOD,    ONLY : IU_RST,        IOERROR
       USE GRID_MOD,    ONLY : GET_XOFFSET,   GET_YOFFSET
       USE LOGICAL_MOD, ONLY : LPRT
-      USE TIME_MOD,    ONLY : EXPAND_DATE,   GET_TAU
+      !------------------------------------------------------------
+      ! Prior to 12/16/05:
+      !USE TIME_MOD,    ONLY : EXPAND_DATE,   GET_TAU
+      !------------------------------------------------------------
+      USE TIME_MOD,    ONLY : EXPAND_DATE
       USE TRACER_MOD,  ONLY : STT,           N_TRACERS,  TCVV
 
 #     include "CMN_SIZE"   ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: YYYYMMDD, HHMMSS
+      REAL*8,  INTENT(IN)  :: TAU
 
       ! Local Variables      
       INTEGER              :: I,    I0, IOS, J,  J0, L, N
@@ -209,7 +217,12 @@
          ! and store in temporary variable TRACER
          CALL BPCH2( IU_RST,    MODELNAME, LONRES,    LATRES,    
      &               HALFPOLAR, CENTER180, CATEGORY,  N,
-     &               UNIT,      GET_TAU(), GET_TAU(), RESERVED,   
+!-------------------------------------------------------------------------
+! Prior to 12/16/05:
+! Now pass TAU from the argument list (bmy, 12/16/05)
+!     &               UNIT,      GET_TAU(), GET_TAU(), RESERVED,   
+!-------------------------------------------------------------------------
+     &               UNIT,      TAU,       TAU,       RESERVED,   
      &               IIPAR,     JJPAR,     LLPAR,     I0+1,            
      &               J0+1,      1,         TRACER )
       ENDDO  
@@ -229,27 +242,13 @@
 !
 !******************************************************************************
 !  Subroutine READ_RESTART_FILE initializes GEOS-CHEM tracer concentrations 
-!  from a restart file (binary punch file format) (bmy, 5/27/99, 6/24/05)
+!  from a restart file (binary punch file format) (bmy, 5/27/99, 12/16/05)
 !
 !  Arguments as input:
 !  ============================================================================
 !  (1 ) YYYYMMDD : Year-Month-Day 
 !  (2 ) HHMMSS   :  and Hour-Min-Sec for which to read restart file
 !
-!  Passed via F90 module dao_mod.f:
-!  ============================================================================
-!  (1 ) AD     : Air mass array (kg)       dim=(IIPAR,JJPAR,NNPAR) 
-!
-!  Passed via CMN:
-!  ============================================================================
-!  (1 ) TAU    : TAU value (elapsed hours) at start of diagnostic interval
-!  (2 ) STT    : Tracer array (kg)         dim=(IIPAR,JJPAR,LLPAR,NNPAR)
-!  (3 ) TCVV   : Air MW / Tracer MW array, dim=(NNPAR)
-!
-!  Passed via CMN_DIAG:
-!  ============================================================================
-!  (1 ) TRCOFFSET : Offset for special tracers (like Rn, HCN, etc)
-! 
 !  NOTES:
 !  (1 ) Now check that N = NTRACER - TRCOFFSET is valid.  
 !        Also reorganize some print statements  (bmy, 10/25/99)
@@ -279,6 +278,7 @@
 !  (19) Remove code for obsolete CO-OH simulation.  Also remove references
 !        to CMN_DIAG and TRCOFFSET.   Change tracer name format string to A10.
 !        (bmy, 6/24/05)
+!  (20) Updated comments (bmy, 12/16/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -564,54 +564,6 @@
       ! Return to calling program
       END SUBROUTINE CHECK_DIMENSIONS
 
-!------------------------------------------------------------------------------
-!
-!      FUNCTION TRUE_TRACER_INDEX( NTRACER ) RESULT( N )
-!!
-!!******************************************************************************
-!!  Function TRUE_TRACER_INDEX returns the "true" index for CTM tracers; that
-!!  is, the tracer number minus the GAMAP "special chemistry" offset.
-!!  (bmy, 6/25/02, 10/15/02)
-!!
-!!  NOTES:
-!!  (1 ) Added to "restart_mod.f".  Also now use F90 intrinsic REPEAT to
-!!        write a long line of "="'s to the screen. (bmy, 6/25/02)
-!!  (2 ) Now reference GEOS_CHEM_STOP from "error_mod.f", which frees all
-!!        allocated memory before stopping the run. (bmy, 10/15/02)
-!!******************************************************************************
-!!
-!      ! References to F90 modules
-!      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-!
-!#     include "CMN_SIZE"  ! Size parameters
-!#     include "CMN_DIAG"  ! TRCOFFSET
-!
-!      ! Arguments
-!      INTEGER, INTENT(IN) :: NTRACER
-!      
-!      ! Return value
-!      INTEGER             :: N
-!
-!      !=================================================================
-!      ! TRUE_TRACER_INDEX begins here!
-!      !=================================================================
-!
-!      ! Subtract TRCOFFSET from NTRACER -- TRCOFFSET is used
-!      ! by GAMAP to distinguish special chemistry routines
-!      N = NTRACER - TRCOFFSET
-!
-!      ! Stop with error message if N is out of range
-!      IF ( N < 1 ) THEN 
-!         WRITE( 6, '(a)' ) 'NTRACER - TRCOFFSET is less than 1!'
-!         WRITE( 6, '(a)' ) 'Please double-check the value of NSRCX!'
-!         WRITE( 6, '(a)' ) 'STOP in TRUE_TRACER_INDEX (restart_mod.f)'
-!         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-!         CALL GEOS_CHEM_STOP
-!      ENDIF
-!
-!      ! Return to calling program
-!      END FUNCTION TRUE_TRACER_INDEX
-!
 !------------------------------------------------------------------------------
      
       SUBROUTINE COPY_STT( NTRACER, TRACER, NCOUNT )

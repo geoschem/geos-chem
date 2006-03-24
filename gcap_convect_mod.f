@@ -1,4 +1,4 @@
-! $Id: gcap_convect_mod.f,v 1.3 2006/02/03 17:00:25 bmy Exp $
+! $Id: gcap_convect_mod.f,v 1.4 2006/03/24 20:22:48 bmy Exp $
       MODULE GCAP_CONVECT_MOD
 !
 !******************************************************************************
@@ -107,6 +107,7 @@
 #     include "CMN_SIZE"      ! Size parameters
 
       ! Arguments
+      INTEGER, INTENT(IN)    :: NTRACE 
       REAL*8,  INTENT(IN)    :: TDT                
       REAL*8,  INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NTRACE)          
       INTEGER, INTENT(IN)    :: NTRACE 
@@ -358,7 +359,7 @@
 !******************************************************************************
 !  Subroutine CONVTRAN applies the convective transport of trace species
 !  (assuming moist mixing ratio) using the ZHANG/MCFARLANE convection scheme. 
-!  (swu, bmy, 6/9/05)
+!  (swu, bmy, 6/9/05, 12/13/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -405,8 +406,8 @@
 !
 !  NOTES:
 !  (1 ) Now dimension Q and FRACIS of size (IIPAR,JJPAR,LLPAR,NTRACE), in 
-!        order to avoid seg faults on Linux/IFORT compiler.  Also renamed
-!        GEOS-CHEM latitude index LATI_INDEX to J. (bmy, 12/12/05)
+!        order to avoid seg faults with OpenMP.  Also renamed GEOS-CHEM 
+!        latitude index LATI_INDEX to J.  Added comments. (bmy, 12/13/05)
 !******************************************************************************
 !
       ! References to F90 modules

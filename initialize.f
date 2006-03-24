@@ -1,4 +1,4 @@
-! $Id: initialize.f,v 1.17 2005/10/27 13:59:58 bmy Exp $
+! $Id: initialize.f,v 1.18 2006/03/24 20:22:50 bmy Exp $
       SUBROUTINE INITIALIZE( IFLAG )
 !
 !******************************************************************************
@@ -177,13 +177,13 @@
       USE DIAG_MOD,    ONLY : AD21_cr,     AD22,        LTJV
       USE DIAG_MOD,    ONLY : CTJV,        MASSFLEW,    MASSFLNS
       USE DIAG_MOD,    ONLY : MASSFLUP,    AD28,        AD29
-      USE DIAG_MOD,    ONLY : AD30,        AD30,        AD31
+      USE DIAG_MOD,    ONLY : AD30,        AD31
       USE DIAG_MOD,    ONLY : AD32_ac,     AD32_an,     AD32_bb
       USE DIAG_MOD,    ONLY : AD32_bf,     AD32_fe,     AD32_li
       USE DIAG_MOD,    ONLY : AD32_so,     AD32_ub,     AD33
       USE DIAG_MOD,    ONLY : AD34,        AD35,        AD36
       USE DIAG_MOD,    ONLY : AD37,        AD38,        AD39
-      USE DIAG_MOD,    ONLY : AD43,        AD43,        LTNO
+      USE DIAG_MOD,    ONLY : AD43,        LTNO
       USE DIAG_MOD,    ONLY : CTNO,        LTOH,        CTOH
       USE DIAG_MOD,    ONLY : LTHO2,       CTHO2,       LTNO2
       USE DIAG_MOD,    ONLY : CTNO2,       LTNO3,       CTNO3

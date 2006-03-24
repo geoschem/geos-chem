@@ -1,11 +1,11 @@
-! $Id: fvdas_convect_mod.f,v 1.9 2006/02/03 17:00:25 bmy Exp $
+! $Id: fvdas_convect_mod.f,v 1.10 2006/03/24 20:22:47 bmy Exp $
       MODULE FVDAS_CONVECT_MOD
 !
 !******************************************************************************
 !  Module FVDAS_CONVECT_MOD contains routines (originally from NCAR) which 
 !  perform shallow and deep convection for the GEOS-4/fvDAS met fields.  
 !  These routines account for shallow and deep convection, plus updrafts 
-!  and downdrafts.  (pjr, dsa, bmy, 6/26/03, 12/13/05)
+!  and downdrafts.  (pjr, dsa, bmy, 6/26/03, 2/1/06)
 !  
 !  Module Variables:
 !  ============================================================================
@@ -37,7 +37,8 @@
 !  (2 ) Now prevent FTMP, QTMP arrays from being held PRIVATE w/in the
 !        parallel loop in routine DO_CONVECTION (bmy, 7/20/04)
 !  (3 ) Now pass wet-scavenged Hg2 to "ocean_mercury_mod.f" (sas, bmy, 1/21/05)
-!  (4 ) Rewrote parallel loops to avoid problems w/ OpenMP (bmy, 12/13/05)
+!  (4 ) Rewrote parallel loops to avoid problems w/ OpenMP.  Also modified
+!        for updated Hg simulation. (cdh, bmy, 2/1/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -715,14 +716,20 @@
 !        computation of mercury fluxes (sas, bmy, 1/21/05)
 !  (3 ) Now dimension Q and FRACIS of size (IIPAR,JJPAR,LLPAR,NTRACE), in 
 !        order to avoid seg faults with OpenMP.  Also renamed GEOS-CHEM 
-!        latitude index LATI_INDEX to J. (bmy, 12/12/05)
+!        latitude index LATI_INDEX to J.  Now references ITS_A_MERCURY_SIM 
+!        from "tracer_mod.f". Now references IS_Hg2 from "tracerid_mod.f.
+!        Now do not call ADD_Hg2_WD if we are not using the dynamic online
+!        ocean model.  Now references LDYNOCEAN from "logical_mod.f".
+!        (cdh, bmy, 2/27/06)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIAG_MOD,          ONLY : AD38 
       USE GRID_MOD,          ONLY : GET_AREA_M2
+      USE LOGICAL_MOD,       ONLY : LDYNOCEAN
       USE OCEAN_MERCURY_MOD, ONLY : ADD_Hg2_WD
-      USE TRACERID_MOD,      ONLY : IDTHg2
+      USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
+      USE TRACERID_MOD,      ONLY : IS_Hg2
 
 #     include "CMN_SIZE"          ! Size parameters
 #     include "CMN_DIAG"          ! ND38, LD38
@@ -750,6 +757,7 @@
       INTEGER, INTENT(IN)        :: INDEXSOL(NTRACE)
 
       ! Local variables
+      LOGICAL                    :: IS_Hg
       INTEGER                    :: II,      JJ,      LL,      NN
       INTEGER                    :: I,       K,       KBM,     KK     
       INTEGER                    :: KKP1,    KM1,     KP1,     KTM     
@@ -768,6 +776,9 @@
       !=================================================================
       ! CONVTRAN begins here!
       !=================================================================
+
+      ! Is this a mercury simulation with dynamic ocean model?
+      IS_Hg = ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN )
 
       ! A small number
       SMALL = 1.d-36
@@ -979,8 +990,12 @@
                ! NOTE: DELT is already divided by NSTEP (as passed from
                ! the calling program) so we don't have to divide by
                ! it here, as is done above for ND38. (sas, bmy, 1/21/05)
+               !
+               ! ALSO NOTE: Do not do this computation if we are not
+               ! using the online dynamic ocean (i.e. if LDYNOCEAN=F).
+               ! (bmy, 2/27/06)
                !========================================================
-               IF ( M == IDTHg2 ) THEN
+               IF ( IS_Hg .and. IS_Hg2( M ) ) THEN
 
                   ! GEOS-CHEM lon & lat indices
                   II      = IDEEP(I)
@@ -995,7 +1010,7 @@
      &                      TCVV(M)   * DELT 
 
                   ! Pass to "ocean_mercury_mod.f"
-                  CALL ADD_Hg2_WD( II, J, WET_Hg2 )
+                  CALL ADD_Hg2_WD( II, J, M, WET_Hg2 )
                ENDIF
 
                NETFLUX = FLUXIN - FLUXOUT

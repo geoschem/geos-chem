@@ -1,9 +1,9 @@
-! $Id: ndxx_setup.f,v 1.21 2005/10/20 14:03:35 bmy Exp $
+! $Id: ndxx_setup.f,v 1.22 2006/03/24 20:22:55 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
 !  NDXX_SETUP dynamically allocates memory for certain diagnostic arrays that 
-!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 8/18/05)
+!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 2/6/06)
 !
 !  This allows us to reduce the amount of memory that needs to be declared 
 !  globally.  We only allocate memory for arrays if the corresponding 
@@ -117,6 +117,7 @@
 !  (54) Now use PD05=10 to dimension AD05 array (bmy, 4/13/05)
 !  (55) Now also allocates AD09 and AD09_em (bmy, 6/27/05)
 !  (56) Now allocates AD30 (bmy, 8/18/05)
+!  (57) Removed duplicate variable declarations (bmy, 2/6/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -137,13 +138,13 @@
       USE DIAG_MOD,        ONLY : AD21_cr,     AD22,        LTJV
       USE DIAG_MOD,        ONLY : CTJV,        MASSFLEW,    MASSFLNS
       USE DIAG_MOD,        ONLY : MASSFLUP,    AD28,        AD29
-      USE DIAG_MOD,        ONLY : AD30,        AD30,        AD31
+      USE DIAG_MOD,        ONLY : AD30,        AD31
       USE DIAG_MOD,        ONLY : AD32_ac,     AD32_an,     AD32_bb
       USE DIAG_MOD,        ONLY : AD32_bf,     AD32_fe,     AD32_li
       USE DIAG_MOD,        ONLY : AD32_so,     AD32_ub,     AD33
       USE DIAG_MOD,        ONLY : AD34,        AD35,        AD36
       USE DIAG_MOD,        ONLY : AD37,        AD38,        AD39
-      USE DIAG_MOD,        ONLY : AD43,        AD43,        LTNO
+      USE DIAG_MOD,        ONLY : AD43,        LTNO
       USE DIAG_MOD,        ONLY : CTNO,        LTOH,        CTOH
       USE DIAG_MOD,        ONLY : LTHO2,       CTHO2,       LTNO2
       USE DIAG_MOD,        ONLY : CTNO2,       LTNO3,       CTNO3

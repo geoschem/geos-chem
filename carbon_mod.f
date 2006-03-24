@@ -1,4 +1,4 @@
- ! $Id: carbon_mod.f,v 1.15 2005/11/03 17:50:23 bmy Exp $
+ ! $Id: carbon_mod.f,v 1.16 2006/03/24 20:22:40 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
@@ -2666,7 +2666,7 @@ c
          CALL RDMONOT( GMONOT  )
          CALL SETBASE( CONVERT, GMONOT )
 
-         ! Reset first-time flag
+         ! Resety first-time flag
          FIRST = .FALSE.
       ENDIF
 

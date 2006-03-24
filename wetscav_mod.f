@@ -1,9 +1,9 @@
-! $Id: wetscav_mod.f,v 1.19 2005/10/20 14:03:46 bmy Exp $
+! $Id: wetscav_mod.f,v 1.20 2006/03/24 20:23:00 bmy Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
 !  Module WETSCAV_MOD contains arrays for used in the wet scavenging of
-!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 10/3/05)
+!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 1/6/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -114,6 +114,8 @@
 !  (19) Added SO4s, NITs.  Increased NSOLMAX to 31.  Also block out 
 !        parallel loop in WETDEP for SGI MIPS compiler. (bec, bmy, 5/5/05)
 !  (20) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (21) Bug fixes: do not over-deplete H2O2s.  Also include updates for
+!        tagged Hg simulation. (dkh, rjp, eck, cdh, bmy, 1/6/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -514,7 +516,7 @@
 !
 !******************************************************************************
 !  Subroutine COMPUTE_F computes F, the fraction of soluble tracer lost by 
-!  scavenging in convective cloud updrafts. (hyl, bmy, djj, 2/23/00, 10/3/05)
+!  scavenging in convective cloud updrafts. (hyl, bmy, djj, 2/23/00, 1/6/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -572,6 +574,10 @@
 !        statement by combining branches for aerosols. (cas, bmy, 12/20/04)
 !  (17) Updated for SO4s, NITs (bec, bmy, 4/25/05)
 !  (18) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (19) Bug fix: Now do not over-deplete H2O2s.  Also change Henry's law
+!        constant for Hg2 to 1.0d+14. Now use functions IS_Hg2 and IS_HgP to 
+!        determine if a tracer is an Hg2 or HgP tagged tracer. 
+!        (dkh, rjp, eck, cdh, bmy, 1/6/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -585,13 +591,17 @@
       USE TRACERID_MOD, ONLY : IDTDST2,   IDTDST3,   IDTDST4, IDTSALA 
       USE TRACERID_MOD, ONLY : IDTSALC,   IDTALPH,   IDTLIMO, IDTALCO 
       USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,   IDTSOG3, IDTSOA1 
-      USE TRACERID_MOD, ONLY : IDTSOA2,   IDTSOA3,   IDTHG2,  IDTHG2_na 
-      USE TRACERID_MOD, ONLY : IDTHG2_eu, IDTHG2_as, IDTHG2_rw
-      USE TRACERID_MOD, ONLY : IDTHG2_oc, IDTHG2_ln, IDTHG2_nt 
-      USE TRACERID_MOD, ONLY : IDTHGP,    IDTHGP_na, IDTHGP_eu
-      USE TRACERID_MOD, ONLY : IDTHGP_as, IDTHGP_rw, IDTHGP_oc 
-      USE TRACERID_MOD, ONLY : IDTHGP_ln, IDTHGP_nt 
-
+      !--------------------------------------------------------------------
+      ! Prior to 1/6/06:
+      !USE TRACERID_MOD, ONLY : IDTSOA2,   IDTSOA3,   IDTHG2,  IDTHG2_na 
+      !USE TRACERID_MOD, ONLY : IDTHG2_eu, IDTHG2_as, IDTHG2_rw
+      !USE TRACERID_MOD, ONLY : IDTHG2_oc, IDTHG2_ln, IDTHG2_nt 
+      !USE TRACERID_MOD, ONLY : IDTHGP,    IDTHGP_na, IDTHGP_eu
+      !USE TRACERID_MOD, ONLY : IDTHGP_as, IDTHGP_rw, IDTHGP_oc 
+      !USE TRACERID_MOD, ONLY : IDTHGP_ln, IDTHGP_nt 
+      !--------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDTSOA2,   IDTSOA3,   IS_Hg2,  IS_HgP
+      
 #     include "CMN_SIZE"    ! Size parameters
 
       ! Arguments
@@ -817,20 +827,45 @@
          DO L = 2, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-                
-            IF ( ( H2O2s(I,J,L) < SO2s(I,J,L) ) .AND. 
-     &           ( SO2s(I,J,L)  > EPSILON     ) ) THEN
 
-               ! Compute F
-               F(I,J,L)     = F(I,J,L) * ( H2O2s(I,J,L)/SO2s(I,J,L) )
-               H2O2s(I,J,L) = 0d0
+!------------------------------------------------------------------------------
+! Prior to 11/17/05:
+! This over-depeletes H2O2s.  Needs to take into account that only
+! F * SO2s is lost. (dkh, rjp, bmy, 11/17/05)
+!            IF ( ( H2O2s(I,J,L) < SO2s(I,J,L) ) .AND. 
+!     &           ( SO2s(I,J,L)  > EPSILON     ) ) THEN
+!
+!               ! Compute F
+!               F(I,J,L)     = F(I,J,L) * ( H2O2s(I,J,L)/SO2s(I,J,L) )
+!               H2O2s(I,J,L) = 0d0
+!
+!            ELSE
+!                  
+!               ! Update H2O2
+!               H2O2s(I,J,L) = H2O2s(I,J,L) - SO2s(I,J,L)
+!               H2O2s(I,J,L) = MAX( H2O2s(I,J,L), EPSILON )
+!
+!            ENDIF
+!------------------------------------------------------------------------------
 
-            ELSE
-                  
-               ! Update H2O2
-               H2O2s(I,J,L) = H2O2s(I,J,L) - SO2s(I,J,L)
+            ! Make sure to deplete H2O2s the same as SO2s. 
+            ! (dkh, rjp, bmy, 11/17/05)
+            IF ( SO2s(I,J,L) > EPSILON ) THEN
+       
+               ! Limit F
+               SO2LOSS      = MIN( H2O2s(I,J,L), SO2s(I,J,L) )
+               F(I,J,L)     = F(I,J,L) * SO2LOSS / SO2s(I,J,L)
+               F(I,J,L)     = MAX(F(I,J,L), 0d0)
+        
+               ! Update saved H2O2 concentration
+               H2O2s(I,J,L) = H2O2s(I,J,L) - ( SO2s(I,J,L) * F(I,J,L) )
                H2O2s(I,J,L) = MAX( H2O2s(I,J,L), EPSILON )
+        
+            ELSE
 
+               ! Set F = 0 if SO2s < EPSILON (dkh, rjp, bmy, 11/17/05) 
+               F(I,J,L)     = 0d0
+        
             ENDIF
 
             ! Update SO2
@@ -1193,10 +1228,15 @@
       !-------------------------------
       ! Hg2 (liquid phase only)
       !-------------------------------
-      ELSE IF ( N == IDTHg2    .or. N == IDTHg2_NA  .or. 
-     &          N == IDTHg2_EU .or. N == IDTHg2_AS  .or.
-     &          N == IDTHg2_RW .or. N == IDTHg2_OC  .or.
-     &          N == IDTHg2_LN .or. N == IDTHg2_NT ) THEN
+!---------------------------------------------------------------------------
+! Prior to 1/6/06:
+! Now call IS_Hg2 to determine if N is a Hg2 tracer (cdh, bmy, 1/6/06)
+!      ELSE IF ( N == IDTHg2    .or. N == IDTHg2_NA  .or. 
+!     &          N == IDTHg2_EU .or. N == IDTHg2_AS  .or.
+!     &          N == IDTHg2_RW .or. N == IDTHg2_OC  .or.
+!     &          N == IDTHg2_LN .or. N == IDTHg2_NT ) THEN
+!---------------------------------------------------------------------------
+      ELSE IF ( IS_Hg2( N ) ) THEN
          
          ! No scavenging at the surface
          F(:,:,1) = 0d0
@@ -1210,7 +1250,12 @@
             ! the appropriate parameters for Henry's law
             ! (Refs: INSERT HERE)
             !
-            CALL COMPUTE_L2G( 1.4d6,    -8.4d3, 
+            !----------------------------------------------------------------
+            ! Prior to 11/17/05:
+            ! Change Henry's law constant to 1.0d+14  (eck, bmy, 11/17/05) 
+            !CALL COMPUTE_L2G( 1.4d6,    -8.4d3, 
+            !----------------------------------------------------------------
+            CALL COMPUTE_L2G( 1.0d+14, -8.4d3, 
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of HgCl2 in liquid phase 
@@ -1247,10 +1292,15 @@
       !-------------------------------
       ! HgP (treat like aerosol)
       !-------------------------------
-      ELSE IF ( N == IDTHgP    .or. N == IDTHgP_NA  .or. 
-     &          N == IDTHgP_EU .or. N == IDTHgP_AS  .or.
-     &          N == IDTHgP_RW .or. N == IDTHgP_OC  .or.
-     &          N == IDTHgP_LN .or. N == IDTHgP_NT ) THEN
+!------------------------------------------------------------------------
+! Prior to 1/6/06:
+! Now use function IS_HgP to test if it is a HgP tracer (bmy, 1/6/06)
+!      ELSE IF ( N == IDTHgP    .or. N == IDTHgP_NA  .or. 
+!     &          N == IDTHgP_EU .or. N == IDTHgP_AS  .or.
+!     &          N == IDTHgP_RW .or. N == IDTHgP_OC  .or.
+!     &          N == IDTHgP_LN .or. N == IDTHgP_NT ) THEN
+!-------------------------------------------------------------------------
+      ELSE IF ( IS_HgP( N ) ) THEN
 
          CALL F_AEROSOL( KC, F ) 
          ISOL = GET_ISOL( N )
@@ -1405,7 +1455,7 @@
 !
 !******************************************************************************
 !  Subroutine RAINOUT computes RAINFRAC, the fraction of soluble tracer
-!  lost to rainout events in precipitation. (djj, bmy, 2/28/00, 10/3/05)
+!  lost to rainout events in precipitation. (djj, bmy, 2/28/00, 1/6/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1448,6 +1498,9 @@
 !        statement by grouping blocks together. (cas, bmy, 12/20/04)
 !  (12) Updated for SO4s, NITs (bec, bmy, 4/25/05)
 !  (13) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (14) Change Henry's law constant for Hg2 to 1.0d+14.  Now use functions
+!        IS_Hg2 and IS_HgP to determine if the tracer is a tagged Hg0 or
+!        HgP tracer. (eck, cdh, bmy, 1/6/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1462,12 +1515,16 @@
       USE TRACERID_MOD, ONLY : IDTDST2,   IDTDST3,   IDTDST4, IDTSALA 
       USE TRACERID_MOD, ONLY : IDTSALC,   IDTALPH,   IDTLIMO, IDTALCO 
       USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,   IDTSOG3, IDTSOA1 
-      USE TRACERID_MOD, ONLY : IDTSOA2,   IDTSOA3,   IDTHG2,  IDTHG2_na 
-      USE TRACERID_MOD, ONLY : IDTHG2_eu, IDTHG2_as, IDTHG2_rw
-      USE TRACERID_MOD, ONLY : IDTHG2_oc, IDTHG2_ln, IDTHG2_nt 
-      USE TRACERID_MOD, ONLY : IDTHGP,    IDTHGP_na, IDTHGP_eu
-      USE TRACERID_MOD, ONLY : IDTHGP_as, IDTHGP_rw, IDTHGP_oc 
-      USE TRACERID_MOD, ONLY : IDTHGP_ln, IDTHGP_nt 
+      !--------------------------------------------------------------------
+      ! Prior to 1/6/06:
+      !USE TRACERID_MOD, ONLY : IDTSOA2,   IDTSOA3,   IDTHG2,  IDTHG2_na 
+      !USE TRACERID_MOD, ONLY : IDTHG2_eu, IDTHG2_as, IDTHG2_rw
+      !USE TRACERID_MOD, ONLY : IDTHG2_oc, IDTHG2_ln, IDTHG2_nt 
+      !USE TRACERID_MOD, ONLY : IDTHGP,    IDTHGP_na, IDTHGP_eu
+      !USE TRACERID_MOD, ONLY : IDTHGP_as, IDTHGP_rw, IDTHGP_oc 
+      !USE TRACERID_MOD, ONLY : IDTHGP_ln, IDTHGP_nt 
+      !--------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDTSOA2,   IDTSOA3,   IS_Hg2,  IS_HgP
 
       IMPLICIT NONE
 
@@ -1896,20 +1953,28 @@
          RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
          RAINFRAC = RAINFRAC * 0.8d0
 
-
       !------------------------------
       ! Hg2 (liquid phase only)
       !------------------------------
-      ELSE IF ( N == IDTHg2    .or. N == IDTHg2_NA  .or. 
-     &          N == IDTHg2_EU .or. N == IDTHg2_AS  .or.
-     &          N == IDTHg2_RW .or. N == IDTHg2_OC  .or.
-     &          N == IDTHg2_LN .or. N == IDTHg2_NT ) THEN
-
+!----------------------------------------------------------------------------
+! Prior to 1/6/06:
+! Now use IS_Hg2 to determine if N is a Hg2 tracer (cdh, bmy, 1/6/06)
+!      ELSE IF ( N == IDTHg2    .or. N == IDTHg2_NA  .or. 
+!     &          N == IDTHg2_EU .or. N == IDTHg2_AS  .or.
+!     &          N == IDTHg2_RW .or. N == IDTHg2_OC  .or.
+!     &          N == IDTHg2_LN .or. N == IDTHg2_NT ) THEN
+!----------------------------------------------------------------------------
+      ELSE IF ( IS_Hg2( N ) ) THEN 
          ! Compute liquid to gas ratio for HgCl2, using
          ! the appropriate parameters for Henry's law
          ! (Refs: INSERT HERE)
          !
-         CALL COMPUTE_L2G( 1.4d6,    -8.4d3, 
+         !-------------------------------------------------------------
+         ! Prior to 11/17/05:
+         ! Change Henry's law constant to 1.0d+14 (eck, bmy, 11/17/05)
+         !CALL COMPUTE_L2G( 1.4d6,    -8.4d3, 
+         !-------------------------------------------------------------
+         CALL COMPUTE_L2G( 1.0d+14, -8.4d3, 
      &                     T(I,J,L), CLDLIQ(I,J,L), L2G )
          
          ! Fraction of HgCl2 in liquid phase
@@ -1933,10 +1998,15 @@
       !------------------------------
       ! HgP (treat like aerosol)
       !------------------------------
-      ELSE IF ( N == IDTHgP    .or. N == IDTHgP_NA  .or. 
-     &          N == IDTHgP_EU .or. N == IDTHgP_AS  .or.
-     &          N == IDTHgP_RW .or. N == IDTHgP_OC  .or.
-     &          N == IDTHgP_LN .or. N == IDTHgP_NT ) THEN
+!----------------------------------------------------------------------------
+! Prior to 1/6/06: 
+! Now use IS_HgP to determine if N is a HgP tracer (bmy, 1/6/06)
+!      ELSE IF ( N == IDTHgP    .or. N == IDTHgP_NA  .or. 
+!     &          N == IDTHgP_EU .or. N == IDTHgP_AS  .or.
+!     &          N == IDTHgP_RW .or. N == IDTHgP_OC  .or.
+!     &          N == IDTHgP_LN .or. N == IDTHgP_NT ) THEN
+!----------------------------------------------------------------------------
+      ELSE IF ( IS_HgP( N ) ) THEN
          RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
       !------------------------------
@@ -1992,7 +2062,7 @@
 !
 !******************************************************************************
 !  Subroutine WASHOUT computes WASHFRAC, the fraction of soluble tracer
-!  lost to washout events in precipitation. (djj, bmy, 2/28/00, 10/3/05)
+!  lost to washout events in precipitation. (djj, bmy, 2/28/00, 1/6/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -2041,6 +2111,10 @@
 !        statement by grouping blocks together (cas, bmy, 12/20/04)
 !  (14) Updated for SO4s, NITs (bec, bmy, 4/25/05)
 !  (15) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (16) Bug fix: Deplete H2O2s the same as SO2s.  Also change Henry's law
+!        constant for Hg2 to 1.0d+14. Now use functions IS_Hg2 and IS_HgP to 
+!        determine if a tracer is a tagged Hg0 or HgP tracer.
+!        (dkh, rjp, eck, cdh, bmy, 1/6/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2055,12 +2129,16 @@
       USE TRACERID_MOD, ONLY : IDTDST2,   IDTDST3,   IDTDST4, IDTSALA 
       USE TRACERID_MOD, ONLY : IDTSALC,   IDTALPH,   IDTLIMO, IDTALCO 
       USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,   IDTSOG3, IDTSOA1 
-      USE TRACERID_MOD, ONLY : IDTSOA2,   IDTSOA3,   IDTHG2,  IDTHG2_na 
-      USE TRACERID_MOD, ONLY : IDTHG2_eu, IDTHG2_as, IDTHG2_rw
-      USE TRACERID_MOD, ONLY : IDTHG2_oc, IDTHG2_ln, IDTHG2_nt 
-      USE TRACERID_MOD, ONLY : IDTHGP,    IDTHGP_na, IDTHGP_eu
-      USE TRACERID_MOD, ONLY : IDTHGP_as, IDTHGP_rw, IDTHGP_oc 
-      USE TRACERID_MOD, ONLY : IDTHGP_ln, IDTHGP_nt 
+      !----------------------------------------------------------------------
+      ! Prior to 1/6/06:
+      !USE TRACERID_MOD, ONLY : IDTSOA2,   IDTSOA3,   IDTHG2,  IDTHG2_na 
+      !USE TRACERID_MOD, ONLY : IDTHG2_eu, IDTHG2_as, IDTHG2_rw
+      !USE TRACERID_MOD, ONLY : IDTHG2_oc, IDTHG2_ln, IDTHG2_nt 
+      !USE TRACERID_MOD, ONLY : IDTHGP,    IDTHGP_na, IDTHGP_eu
+      !USE TRACERID_MOD, ONLY : IDTHGP_as, IDTHGP_rw, IDTHGP_oc 
+      !USE TRACERID_MOD, ONLY : IDTHGP_ln, IDTHGP_nt 
+      !----------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDTSOA2,   IDTSOA3,   IS_Hg2,  IS_HgP
 
 #     include "CMN_SIZE"   ! Size parameters
 
@@ -2152,14 +2230,23 @@
             WASHFRAC = SO2LOSS * WASHFRAC / SO2s(I,J,L)
             WASHFRAC = MAX( WASHFRAC, 0d0 )
          
-            ! Update saved H2O2 concentration
-            IF ( SO2s(I,J,L) < H2O2s(I,J,L) ) THEN
-               H2O2s(I,J,L) = H2O2s(I,J,L) - SO2s(I,J,L)
-               H2O2s(I,J,L) = MAX( H2O2s(I,J,L), EPSILON )
-            ELSE
-               H2O2s(I,J,L) = 0.d0
-            ENDIF
+            !----------------------------------------------------------------
+            ! Prior to 11/17/05:
+            ! This over-depletes H2O2s.  Needs to take into account that 
+            ! only WASHFRAC * SO2s is lost (dkh, rjp, bmy, 11/17/05)
+            !! Update saved H2O2 concentration
+            !IF ( SO2s(I,J,L) < H2O2s(I,J,L) ) THEN
+            !   H2O2s(I,J,L) = H2O2s(I,J,L) - SO2s(I,J,L)
+            !   H2O2s(I,J,L) = MAX( H2O2s(I,J,L), EPSILON )
+            !ELSE
+            !   H2O2s(I,J,L) = 0.d0
+            !ENDIF
+            !----------------------------------------------------------------
          
+            ! Deplete H2O2s the same as SO2s (dkh, rjp, bmy, 11/17/05)
+            H2O2s(I,J,L) = H2O2s(I,J,L) - ( SO2s(I,J,L) * WASHFRAC )
+            H2O2s(I,J,L) = MAX( H2O2s(I,J,L), EPSILON )
+
          ELSE
             WASHFRAC = 0d0
          
@@ -2276,21 +2363,36 @@
       !------------------------------
       ! Hg2 (liquid & gas phases)
       !------------------------------
-      ELSE IF ( N == IDTHG2    .or. N == IDTHG2_NA  .or. 
-     &          N == IDTHG2_EU .or. N == IDTHG2_AS  .or.
-     &          N == IDTHG2_RW .or. N == IDTHG2_OC  .or.
-     &          N == IDTHG2_LN .or. N == IDTHG2_NT ) THEN        
+!---------------------------------------------------------------------------
+! Prior to 1/6/06:
+! Now use IS_Hg2 to determine if N is a Hg2 tracer (bmy, 1/6/06)
+!      ELSE IF ( N == IDTHG2    .or. N == IDTHG2_na  .or. 
+!     &          N == IDTHG2_eu .or. N == IDTHG2_as  .or.
+!     &          N == IDTHG2_rw .or. N == IDTHG2_oc  .or.
+!     &          N == IDTHG2_ln .or. N == IDTHG2_nt ) THEN        
+!---------------------------------------------------------------------------
+      ELSE IF ( IS_Hg2( N ) ) THEN
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 1.4d6, -8.4d3, PP, DT, 
-     &                                F,      DZ,    TK, K_WASH )
+         !--------------------------------------------------------------
+         ! Prior to 11/17/05:
+         ! Change Henry's law constant to 1.0d+14 (eck, bmy, 11/17/05)
+         !WASHFRAC = WASHFRAC_LIQ_GAS( 1.4d6, -8.4d3, PP, DT, 
+         !--------------------------------------------------------------
+         WASHFRAC = WASHFRAC_LIQ_GAS( 1.0d+14, -8.4d3, PP, DT, 
+     &                                F,        DZ,    TK, K_WASH )
 
       !------------------------------
       ! HgP (treat like aerosol) 
       !------------------------------
-      ELSE IF ( N == IDTHgP    .or. N == IDTHgP_NA  .or. 
-     &          N == IDTHgP_EU .or. N == IDTHgP_AS  .or.
-     &          N == IDTHgP_RW .or. N == IDTHgP_OC  .or.
-     &          N == IDTHgP_LN .or. N == IDTHgP_NT ) THEN
+!--------------------------------------------------------------------------
+! Prior to 1/6/06:
+! Now use IS_HgP to determine if N is a HgP tracer (cdh, bmy, 1/6/06)
+!      ELSE IF ( N == IDTHgP    .or. N == IDTHgP_na  .or. 
+!     &          N == IDTHgP_eu .or. N == IDTHgP_as  .or.
+!     &          N == IDTHgP_rw .or. N == IDTHgP_oc  .or.
+!     &          N == IDTHgP_ln .or. N == IDTHgP_nt ) THEN
+!--------------------------------------------------------------------------
+      ELSE IF ( IS_HgP( N ) ) THEN 
          AER      = .TRUE.
          WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
@@ -2424,7 +2526,7 @@
 !******************************************************************************
 !  Subroutine WETDEP computes the downward mass flux of tracer due to washout 
 !  and rainout of aerosols and soluble tracers in a column.  The timestep is 
-!  the dynamic timestep. (hyl, bey, bmy, djj, 4/2/99, 5/5/05)
+!  the dynamic timestep. (hyl, bey, bmy, djj, 4/2/99, 1/6/06)
 !
 !  The precip fields through the bottom of each level are indexed as follows:
 !
@@ -2522,6 +2624,10 @@
 !        analytical expression. (bmy, 2/23/05)
 !  (19) Block out parallel loop with #ifdef statements for SGI_MIPS compiler.
 !        For some reason this causes an error. (bmy, 5/5/05)
+!  (20) Now use function IS_Hg2 to determine if a tracer is a tagged Hg2 
+!        tracer.  Now also pass N to ADD_Hg2_WD.  Now references LDYNOCEAN
+!        from "logical_mod.f".  Now do not call ADD_Hg2_WD if we are not
+!        using the dynamic ocean model. (eck, sas, cdh, bmy, 2/27/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2529,10 +2635,11 @@
       USE DIAG_MOD,          ONLY : AD16, AD17, AD18
       USE DIAG_MOD,          ONLY : CT16, CT17, CT18, AD39 
       USE ERROR_MOD,         ONLY : GEOS_CHEM_STOP, IT_IS_NAN
+      USE LOGICAL_MOD,       ONLY : LDYNOCEAN
       USE OCEAN_MERCURY_MOD, ONLY : ADD_Hg2_WD
       USE TIME_MOD,          ONLY : GET_TS_DYN
-      USE TRACER_MOD,        ONLY : STT
-      USE TRACERID_MOD,      ONLY : IDTSO2, IDTSO4, IDTHg2
+      USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM, STT
+      USE TRACERID_MOD,      ONLY : IDTSO2, IDTSO4, IS_Hg2
       
       IMPLICIT NONE
 
@@ -2544,6 +2651,7 @@
 
       ! Local Variables
       LOGICAL, SAVE       :: FIRST = .TRUE.
+      LOGICAL             :: IS_Hg
       LOGICAL             :: AER
 
       INTEGER             :: I, IDX, J, L, N, NN
@@ -2565,8 +2673,11 @@
       ! (1)  I n i t i a l i z e   V a r i a b l e s
       !=================================================================
 
+      ! Is this a mercury simulation with dynamic online ocean?
+      IS_Hg = ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN )
+
       ! Dynamic timestep [s]
-      DT = GET_TS_DYN() * 60d0
+      DT    = GET_TS_DYN() * 60d0
       
       ! Select index for diagnostic arrays -- will archive either
       ! large-scale or convective rainout/washout fractions
@@ -2881,10 +2992,10 @@
                      WETLOSS = STT(I,J,L,N) * RAINFRAC
 
                      ! For the mercury simulation, we need to archive the
-                     ! amt of Hg2 [kg] that is scavenged out of the column
-                     ! (sas, bmy, 1/19/05)
-                     IF ( N == IDTHg2 ) THEN
-                        CALL ADD_Hg2_WD( I, J, WETLOSS )
+                     ! amt of Hg2 [kg] that is scavenged out of the column.
+                     ! Also for tagged Hg2. (sas, cdh, bmy, 1/6/06)
+                     IF ( IS_Hg .and. IS_Hg2( N ) ) THEN
+                        CALL ADD_Hg2_WD( I, J, N, WETLOSS )
                      ENDIF
 
                      ! Subtract the rainout loss in grid box (I,J,L) from STT
@@ -3111,10 +3222,10 @@
                         DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
 
                         ! For the mercury simulation, we need to archive the
-                        ! amt of Hg2 [kg] that is scavenged out of the column
-                        ! (sas, bmy, 1/19/05)
-                        IF ( N == IDTHg2 ) THEN
-                           CALL ADD_Hg2_WD( I, J, WETLOSS )
+                        ! amt of Hg2 [kg] that is scavenged out of the column.
+                        ! Also for tagged Hg2. (sas, cdh, bmy, 1/6/06)
+                        IF ( IS_Hg .and. IS_Hg2( N ) ) THEN
+                           CALL ADD_Hg2_WD( I, J, N, WETLOSS )
                         ENDIF
 
                         ! ND18 diagnostic...we don't have to divide the
@@ -3175,10 +3286,10 @@
                   WETLOSS = -DSTT(NN,L+1,I,J)
 
                   ! For the mercury simulation, we need to archive the
-                  ! amt of Hg2 [kg] that is scavenged out of the column
-                  ! (sas, bmy, 1/19/05)
-                  IF ( N == IDTHg2 ) THEN
-                     CALL ADD_Hg2_WD( I, J, WETLOSS )
+                  ! amt of Hg2 [kg] that is scavenged out of the column.
+                  ! Also for tagged Hg2. (sas, cdh, bmy, 1/6/06)
+                  IF ( IS_Hg .and. IS_Hg2( N ) ) THEN
+                     CALL ADD_Hg2_WD( I, J, N, WETLOSS )
                   ENDIF
 
                   ! All of the rained-out tracer coming from grid box
@@ -3291,10 +3402,10 @@
                   STT(I,J,L,N) = STT(I,J,L,N) - WETLOSS     
               
                   ! For the mercury simulation, we need to archive the
-                  ! amt of Hg2 [kg] that is scavenged out of the column
-                  ! (sas, bmy, 1/19/05)
-                  IF ( N == IDTHg2 ) THEN
-                     CALL ADD_Hg2_WD( I, J, WETLOSS )
+                  ! amt of Hg2 [kg] that is scavenged out of the column.
+                  ! Also for tagged Hg2. (sas, cdh, bmy, 1/6/06)
+                  IF ( IS_Hg .and. IS_Hg2( N ) ) THEN
+                     CALL ADD_Hg2_WD( I, J, N, WETLOSS )
                   ENDIF
 
                   ! ND18 diagnostic...LS and conv washout fractions [unitless]
@@ -3564,7 +3675,7 @@
 !
 !******************************************************************************
 !  Subroutine WETDEPID sets up the index array of soluble tracers used in
-!  the WETDEP routine above (bmy, 11/8/02, 10/3/05)
+!  the WETDEP routine above (bmy, 11/8/02, 1/6/06)
 ! 
 !  NOTES:
 !  (1 ) Now references "tracerid_mod.f".  Also references "CMN" in order to
@@ -3579,6 +3690,8 @@
 !  (7 ) Updated for AS, AHS, LET, NH4aq, SO4aq (cas, bmy, 12/20/04)
 !  (8 ) Updated for SO4s, NITs (bec, bmy, 4/25/05)
 !  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (10) Now use IS_Hg2 and IS_HgP to determine if a tracer is a tagged Hg2
+!        or HgP tracer (bmy, 1/6/06)
 !******************************************************************************
 !
       ! References To F90 modules
@@ -3593,12 +3706,16 @@
       USE TRACERID_MOD, ONLY : IDTDST2,   IDTDST3,   IDTDST4, IDTSALA 
       USE TRACERID_MOD, ONLY : IDTSALC,   IDTALPH,   IDTLIMO, IDTALCO 
       USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,   IDTSOG3, IDTSOA1 
-      USE TRACERID_MOD, ONLY : IDTSOA2,   IDTSOA3,   IDTHG2,  IDTHG2_na 
-      USE TRACERID_MOD, ONLY : IDTHG2_eu, IDTHG2_as, IDTHG2_rw
-      USE TRACERID_MOD, ONLY : IDTHG2_oc, IDTHG2_ln, IDTHG2_nt 
-      USE TRACERID_MOD, ONLY : IDTHGP,    IDTHGP_na, IDTHGP_eu
-      USE TRACERID_MOD, ONLY : IDTHGP_as, IDTHGP_rw, IDTHGP_oc 
-      USE TRACERID_MOD, ONLY : IDTHGP_ln, IDTHGP_nt 
+      !----------------------------------------------------------------------
+      ! Prior to 1/6/05:
+      !USE TRACERID_MOD, ONLY : IDTSOA2,   IDTSOA3,   IDTHG2,  IDTHG2_na 
+      !USE TRACERID_MOD, ONLY : IDTHG2_eu, IDTHG2_as, IDTHG2_rw
+      !USE TRACERID_MOD, ONLY : IDTHG2_oc, IDTHG2_ln, IDTHG2_nt 
+      !USE TRACERID_MOD, ONLY : IDTHGP,    IDTHGP_na, IDTHGP_eu
+      !USE TRACERID_MOD, ONLY : IDTHGP_as, IDTHGP_rw, IDTHGP_oc 
+      !USE TRACERID_MOD, ONLY : IDTHGP_ln, IDTHGP_nt 
+      !----------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDTSOA2,   IDTSOA3,   IS_Hg2,  IS_HgP
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -3791,69 +3908,81 @@
          !-----------------------------
          ! Total and tagged Hg tracers 
          !-----------------------------
-         ELSE IF ( N == IDTHg2 ) THEN
+         !---------------------------------------------------------------
+         ! Prior to 1/6/06:
+         ! Use IS_Hg2 and IS_HgP to determine if a tracer is
+         ! a total or tagged Hg2 or HgP tracer (cdh, bmy, 1/6/06)
+         !ELSE IF ( N == IDTHg2 ) THEN
+         !   NSOL         = NSOL + 1
+         !   IDWETD(NSOL) = IDTHg2
+         !
+         !ELSE IF ( N == IDTHgP ) THEN 
+         !   NSOL         = NSOL + 1
+         !   IDWETD(NSOL) = IDTHgP
+         !
+         !ELSE IF ( N == IDTHg2_NA ) THEN
+         !   NSOL         = NSOL + 1
+         !   IDWETD(NSOL) = IDTHg2_NA
+         !
+         !ELSE IF ( N == IDTHg2_EU ) THEN
+         !   NSOL         = NSOL + 1
+         !   IDWETD(NSOL) = IDTHg2_EU
+         !
+         !ELSE IF ( N == IDTHg2_AS ) THEN
+         !   NSOL         = NSOL + 1
+         !   IDWETD(NSOL) = IDTHg2_AS
+         !
+         !ELSE IF ( N == IDTHg2_RW ) THEN
+         !   NSOL         = NSOL + 1
+         !   IDWETD(NSOL) = IDTHg2_RW
+         !
+         !ELSE IF ( N == IDTHg2_OC ) THEN
+         !   NSOL         = NSOL + 1
+         !   IDWETD(NSOL) = IDTHg2_OC
+         !
+         !ELSE IF ( N == IDTHg2_LN ) THEN
+         !   NSOL         = NSOL + 1
+         !   IDWETD(NSOL) = IDTHg2_LN
+         !
+         !ELSE IF ( N == IDTHg2_NT ) THEN
+         !   NSOL         = NSOL + 1
+         !   IDWETD(NSOL) = IDTHg2_NT
+         !
+         !ELSE IF ( N == IDTHgP_NA ) THEN
+         !   NSOL         = NSOL + 1
+         !   IDWETD(NSOL) = IDTHgP_NA
+         !
+         !ELSE IF ( N == IDTHgP_EU ) THEN
+         !   NSOL         = NSOL + 1
+         !   IDWETD(NSOL) = IDTHgP_EU
+         !
+         !ELSE IF ( N == IDTHgP_AS ) THEN
+         !   NSOL         = NSOL + 1
+         !   IDWETD(NSOL) = IDTHgP_AS
+         !
+         !ELSE IF ( N == IDTHgP_RW ) THEN
+         !   NSOL         = NSOL + 1
+         !   IDWETD(NSOL) = IDTHgP_RW
+         !
+         !ELSE IF ( N == IDTHgP_OC ) THEN
+         !   NSOL         = NSOL + 1
+         !   IDWETD(NSOL) = IDTHgP_OC
+         !
+         !ELSE IF ( N == IDTHgP_LN ) THEN
+         !   NSOL         = NSOL + 1
+         !   IDWETD(NSOL) = IDTHgP_LN
+         !
+         !ELSE IF ( N == IDTHgP_NT ) THEN
+         !   NSOL         = NSOL + 1
+         !   IDWETD(NSOL) = IDTHgP_NT
+         !---------------------------------------------------------------
+         ELSE IF ( IS_Hg2( N ) ) THEN
             NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTHg2
+            IDWETD(NSOL) = N
 
-         ELSE IF ( N == IDTHgP ) THEN 
+         ELSE IF ( IS_HgP( N ) ) THEN
             NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTHgP
-
-         ELSE IF ( N == IDTHg2_NA ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTHg2_NA
-
-         ELSE IF ( N == IDTHg2_EU ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTHg2_EU
-
-         ELSE IF ( N == IDTHg2_AS ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTHg2_AS
-
-         ELSE IF ( N == IDTHg2_RW ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTHg2_RW
-
-         ELSE IF ( N == IDTHg2_OC ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTHg2_OC
-
-         ELSE IF ( N == IDTHg2_LN ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTHg2_LN
-
-         ELSE IF ( N == IDTHg2_NT ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTHg2_NT
-
-         ELSE IF ( N == IDTHgP_NA ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTHgP_NA
-
-         ELSE IF ( N == IDTHgP_EU ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTHgP_EU
-
-         ELSE IF ( N == IDTHgP_AS ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTHgP_AS
-
-         ELSE IF ( N == IDTHgP_RW ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTHgP_RW
-
-         ELSE IF ( N == IDTHgP_OC ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTHgP_OC
-
-         ELSE IF ( N == IDTHgP_LN ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTHgP_LN
-
-         ELSE IF ( N == IDTHgP_NT ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTHgP_NT
+            IDWETD(NSOL) = N
 
          ENDIF
       ENDDO

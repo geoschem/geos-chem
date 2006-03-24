@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.28 2005/10/27 13:59:52 bmy Exp $
+! $Id: diag3.f,v 1.29 2006/03/24 20:22:43 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out diagnostics to the BINARY format punch file 
-!  (bmy, bey, mgs, rvm, 5/27/99, 10/20/05)
+!  (bmy, bey, mgs, rvm, 5/27/99, 3/14/06)
 !
 !  NOTES: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
@@ -66,6 +66,9 @@
 !        to LWI array. (bmy, 8/18/05)
 !  (62) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (63) Added MBO as tracer #5 in ND46 diagnostic (tmf, bmy, 10/20/05)
+!  (64) Removed duplicate variable declarations.  Now remove restriction on 
+!        printing out cloud mass flux in GEOS-4 for the ND66 diagnostic. 
+!        (bmy, 3/14/06)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -87,13 +90,13 @@
       USE DIAG_MOD,     ONLY : AD21_cr,     AD22,        LTJV
       USE DIAG_MOD,     ONLY : CTJV,        MASSFLEW,    MASSFLNS
       USE DIAG_MOD,     ONLY : MASSFLUP,    AD28,        AD29
-      USE DIAG_MOD,     ONLY : AD30,        AD30,        AD31
+      USE DIAG_MOD,     ONLY : AD30,        AD31
       USE DIAG_MOD,     ONLY : AD32_ac,     AD32_an,     AD32_bb
       USE DIAG_MOD,     ONLY : AD32_bf,     AD32_fe,     AD32_li
       USE DIAG_MOD,     ONLY : AD32_so,     AD32_ub,     AD33
       USE DIAG_MOD,     ONLY : AD34,        AD35,        AD36
       USE DIAG_MOD,     ONLY : AD37,        AD38,        AD39
-      USE DIAG_MOD,     ONLY : AD43,        AD43,        LTNO
+      USE DIAG_MOD,     ONLY : AD43,        LTNO
       USE DIAG_MOD,     ONLY : CTNO,        LTOH,        CTOH
       USE DIAG_MOD,     ONLY : LTHO2,       CTHO2,       LTNO2
       USE DIAG_MOD,     ONLY : CTNO2,       LTNO3,       CTNO3
@@ -2634,12 +2637,18 @@
 #endif
                   UNIT   = 'g/kg'
 
-#if   !defined( GEOS_4 ) 
+!-----------------------------
+! Prior to 3/14/06:
+!#if   !defined( GEOS_4 ) 
+!-----------------------------
                ! CLDMAS
                CASE( 5 )
                   SCALEX = SCALE_A6
                   UNIT   = 'kg/m2/s'
-#endif
+!-----------------------------
+! Prior to 3/14/06:
+!#endif
+!-----------------------------
 
                CASE DEFAULT
                   CYCLE

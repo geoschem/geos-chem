@@ -1,9 +1,9 @@
-! $Id: logical_mod.f,v 1.6 2005/11/03 17:50:33 bmy Exp $
+! $Id: logical_mod.f,v 1.7 2006/03/24 20:22:53 bmy Exp $
       MODULE LOGICAL_MOD
 !
 !******************************************************************************
 !  Module LOGICAL_MOD contains all of the logical switches used by GEOS-CHEM.
-!  (bmy, 7/9/04, 11/1/05)
+!  (bmy, 7/9/04, 2/24/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -50,12 +50,14 @@
 !  (41) LWETD     (LOGICAL) : ON/OFF switch for WET DEPOSITION 
 !  (42) LWINDO    (LOGICAL) : ON/OFF switch for WINDOW TRANSPORT (usually 1x1)
 !  (43) LWOODCO   (LOGICAL) : ON/OFF switch for BIOFUEL EMISSIONS
+!  (44) LDYNOCEAN (LOGICAL) : ON/OFF switch for OCEAN MERCURY MODULE
 !
 !  NOTES:
 !  (1 ) Added LNEI99 switch to toggle EPA/NEI emissions (bmy, 11/5/04)
 !  (2 ) Added LAVHRRLAI switch to toggle AVHRR LAI fields (bmy, 12/20/04)
 !  (3 ) Added LMEGAN switch to toggle MEGAN biogenics (tmf, bmy, 10/20/05)
 !  (4 ) Added LEMEP switch to toggle EMEP anthro emissions (bdf, bmy, 11/1/05)
+!  (5 ) Added LDYNOCEAN switch for online ocean Hg model (bmy, 2/24/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -135,6 +137,9 @@
 
       ! Wet convection
       LOGICAL :: LWETD  
+
+      ! Dynamic ocean mercury model
+      LOGICAL :: LDYNOCEAN
 
       ! End of module
       END MODULE LOGICAL_MOD

@@ -1,8 +1,8 @@
-! $Id: error_mod.f,v 1.9 2005/10/20 14:03:25 bmy Exp $
+! $Id: error_mod.f,v 1.10 2006/03/24 20:22:46 bmy Exp $
       MODULE ERROR_MOD
 !
 !******************************************************************************
-!  Module ERROR_MOD contains error checking routines. (bmy, 3/8/01, 10/18/05)
+!  Module ERROR_MOD contains error checking routines. (bmy, 3/8/01, 11/30/05)
 !
 !  Module Routines:
 !  ===========================================================================
@@ -52,6 +52,7 @@
 !  (13) Do not flush buffer for LINUX_EFC in ERROR_STOP (bmy, 4/6/04)
 !  (14) Move CHECK_STT routine to "tracer_mod.f" (bmy, 7/20/04)
 !  (15) Added LINUX_IFORT switch for Intel v8 and v9 compilers (bmy, 10/18/05)
+!  (16) Now print IFORT error messages for Intel v8/v9 compiler (bmy, 11/30/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -604,11 +605,11 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE ALLOC_ERR( ARRAYNAME )
+      SUBROUTINE ALLOC_ERR( ARRAYNAME, AS )
 !
 !******************************************************************************
 !  Subroutine ALLOC_ERR prints an error message if there is not enough
-!  memory to allocate a particular allocatable array. (bmy, 6/26/00, 10/15/02)
+!  memory to allocate a particular allocatable array. (bmy, 6/26/00, 11/30/05)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -617,21 +618,56 @@
 !  NOTES:
 !  (1 ) Split off from "ndxx_setup.f" into a separate routine (bmy, 6/26/00)
 !  (2 ) Added to "error_mod.f" (bmy, 10/15/02)
+!  (3 ) Call special error msg function for IFORT compiler (bmy, 11/30/05)
 !******************************************************************************
 !
+#     include "define.h"
+
       ! Arguments
-      CHARACTER(LEN=*), INTENT(IN) :: ARRAYNAME
+      CHARACTER(LEN=*),  INTENT(IN) :: ARRAYNAME
+      INTEGER, OPTIONAL, INTENT(IN) :: AS
 
       ! Local variables
-      CHARACTER(LEN=255)           :: ERRMSG
+      CHARACTER(LEN=255)            :: ERRMSG
 
       !=================================================================
       ! ALLOC_ERR begins here!
       !=================================================================
 
+#if   defined( LINUX_IFORT )
+     
+      !-----------------------
+      ! Linux/IFORT compiler 
+      !-----------------------
+ 
+      ! More local variables
+      CHARACTER(LEN=255) :: IFORT_ERRMSG, MSG
+
       ! Define error message
       ERRMSG = 'Allocation error in array: ' // TRIM( ARRAYNAME )
-      
+
+      ! If we have passed the allocation status argument ...
+      IF ( PRESENT( AS ) ) THEN 
+
+         ! Get IFORT error message
+         MSG = IFORT_ERRMSG( AS )
+
+         ! Append IFORT error message 
+         ERRMSG = TRIM( ERRMSG ) // ' :: ' // TRIM( MSG ) 
+
+      ENDIF
+
+#else
+
+      !-----------------------
+      ! All other compilers
+      !-----------------------
+
+      ! Define error message
+      ERRMSG = 'Allocation error in array: ' // TRIM( ARRAYNAME )
+    
+#endif
+ 
       ! Print error message, deallocate memory, and stop the run
       CALL ERROR_STOP( ERRMSG, 'alloc_err.f' )
       

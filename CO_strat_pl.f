@@ -1,4 +1,4 @@
-! $Id: CO_strat_pl.f,v 1.6 2005/10/27 13:59:46 bmy Exp $
+! $Id: CO_strat_pl.f,v 1.7 2006/03/24 20:22:36 bmy Exp $
       SUBROUTINE CO_STRAT_PL( COPROD, COLOSS )
 !
 !******************************************************************************
@@ -38,10 +38,6 @@
       IMPLICIT NONE
      
 #     include "CMN_SIZE"   ! Size parameters
-!--------------------------------------------------
-! Prior to 10/25/05:
-!#     include "CMN_O3"     ! XNUMOLAIR
-!--------------------------------------------------
 
       ! Arguments
       REAL*4,  INTENT(IN) :: COPROD(JJPAR,LLPAR)

@@ -1,4 +1,4 @@
-! $Id: emfossil.f,v 1.8 2006/02/03 17:00:25 bmy Exp $
+! $Id: emfossil.f,v 1.9 2006/03/24 20:22:46 bmy Exp $
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
 !******************************************************************************
@@ -42,8 +42,8 @@
 !  (19) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (20) Now apply EMEP European emissions if necessary.  Remove reference
 !        to CMN, it's now obsolete. (bdf, bmy, 11/1/05)
-!  (20a) BUG FIX PATCH: rewrite IF statements to avoid seg fault errors when
-!         LEMEP and LNEI99 are turned off. (bmy, 2/1/06)
+!  (21) Rewrite IF statements to avoid seg fault errors when LEMEP and LNEI99 
+!        are turned off. (bmy, 2/1/06)
 !******************************************************************************
 !          
       ! References to F90 modules
@@ -59,10 +59,6 @@
       IMPLICIT NONE
 
 #     include "CMN_SIZE"     ! Size parameters
-!----------------------------------------------------------
-! Prior to 11/1/05:
-!#     include "CMN"         ! STT, many other variables
-!----------------------------------------------------------
 #     include "CMN_DIAG"     ! Diagnostic switches & arrays
 #     include "CMN_O3"       ! EMISR, EMISRR, etc...
 #     include "comode.h"     ! IHOUR

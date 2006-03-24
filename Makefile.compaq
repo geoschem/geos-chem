@@ -1,6 +1,6 @@
-# $Id: Makefile.compaq,v 1.31 2006/02/03 17:00:20 bmy Exp $
+# $Id: Makefile.compaq,v 1.32 2006/03/24 20:22:36 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for COMPAQ/Alpha (bmy, Thu Feb  2 16:00:27 2006)
+# GEOS-CHEM Makefile for COMPAQ/Alpha (bmy, Fri Feb 17 11:55:49 2006)
 #
 # NOTE: For GEOS-CHEM v5-07-08, we must compile everything -fast except 
 #       "calcrate.f", which must be compiled -O2.  (hamid, bmy, 10/10/03)
@@ -52,9 +52,6 @@ fyrno3.o                  \
 gasconc.o                 \
 getalt.o                  \
 getifsun.o                \
-hpsort_int.o              \
-humeff.o                  \
-hunt.o                    \
 initialize.o              \
 jsparse.o                 \
 ksparse.o                 \
@@ -330,10 +327,10 @@ global_oh_mod.o            : global_oh_mod.f            CMN_SIZE define.h
 grid_mod.o                 : grid_mod.f                 CMN_GCTM CMN_SIZE define.h 
 gwet_read_mod.o            : gwet_read_mod.f            CMN_DIAG CMN_SIZE define.h 
 hcn_ch3cn_mod.o            : hcn_ch3cn_mod.f            CMN_DEP CMN_DIAG CMN_SIZE define.h 
-hpsort_int.o               : hpsort_int.f               
 humeff.o                   : humeff.f                   
 hunt.o                     : hunt.f                     
 i6_read_mod.o              : i6_read_mod.f              CMN_DIAG CMN_SIZE define.h 
+ifort_errmsg.o             : ifort_errmsg.f             
 initialize.o               : initialize.f               CMN_DIAG CMN_SIZE define.h 
 inphot.o                   : inphot.f                   cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 input_mod.o                : input_mod.f                CMN CMN_DIAG CMN_O3 CMN_SIZE define.h define.h 

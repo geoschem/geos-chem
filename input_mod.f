@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.20 2005/11/03 17:50:30 bmy Exp $
+! $Id: input_mod.f,v 1.21 2006/03/24 20:22:50 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS_CHEM input file at the start of the run
 !  and passes the information to several other GEOS-CHEM F90 modules.
-!  (bmy, 7/20/04, 11/1/05)
+!  (bmy, 7/20/04, 3/6/06)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -102,6 +102,8 @@
 !        DATA_DIR_1x1 for 1x1 emissions files, etc.  Now reference XNUMOL and
 !        XNUMOLAIR from "tracer_mod.f" (tmf, bmy, 10/25/05) 
 !  (8 ) Now read LEMEP switch for EMEP emissions (bdf, bmy, 11/1/05)
+!  (9 ) Now added MERCURY MENU section.  Also fixed bug in READ_ND48_MENU.
+!        (eck, cdh, bmy, 3/6/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -280,7 +282,10 @@
 
          ELSE IF ( INDEX( LINE, 'BENCHMARK MENU'   ) > 0 ) THEN 
             CALL READ_BENCHMARK_MENU
-                                                  
+              
+         ELSE IF ( INDEX( LINE, 'MERCURY MENU'     ) > 0 ) THEN 
+            CALL READ_MERCURY_MENU
+                                    
          ELSE IF ( INDEX( LINE, 'END OF FILE'      ) > 0 ) THEN 
             EXIT
 
@@ -662,7 +667,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_TRACER_MENU reads the TRACER MENU section of the 
-!  GEOS-CHEM input file (bmy, 7/20/04, 10/3/05)
+!  GEOS-CHEM input file (bmy, 7/20/04, 2/24/06)
 !
 !  NOTES:
 !  (1 ) Now set LSPLIT correctly for Tagged Hg simulation (eck, bmy, 12/13/04)
@@ -670,6 +675,7 @@
 !  (3 ) Now set LSPLIT correctly for Tagged HCN/CH3CN sim (xyp, bmy, 6/30/05)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Now reference XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
+!  (6 ) Now move call to INIT_OCEAN_MERCURY to READ_MERCURY_MENU (bmy, 2/24/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -890,9 +896,6 @@
          ! Need Hg0, Hg2, HgP for tagged Mercury
          LSPLIT = ( N_TRACERS > 3 )
 
-         ! Also initialize ocean flux module
-         CALL INIT_OCEAN_MERCURY
-
       ELSE IF ( ITS_A_HCN_SIM() ) THEN
 
          ! Need HCN, CH3CN for HCN simulation
@@ -914,6 +917,13 @@
 
       ! Set counter
       CT1 = CT1 + 1
+
+      !--------------------------------------------------------
+      ! Prior to 2/24/06:
+      ! Now move this to READ_MERCURY_MENU (bmy, 2/24/06)
+      !! Also init ocean mercury flux module (after TRACERID)
+      !IF ( ITS_A_MERCURY_SIM() ) CALL INIT_OCEAN_MERCURY
+      !--------------------------------------------------------
 
       ! Return to calling program
       END SUBROUTINE READ_TRACER_MENU
@@ -2605,15 +2615,16 @@
       ! Return to calling program
       END SUBROUTINE READ_PLANEFLIGHT_MENU
 
-!-----------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 
       SUBROUTINE READ_ND48_MENU
 !
 !******************************************************************************
 !  Subroutine READ_ND48_MENU reads the ND48 MENU section of the GEOS-CHEM 
-!  input file. (bmy, 7/20/04)
+!  input file. (bmy, 7/20/04, 3/6/06)
 !
 !  NOTES:
+!  (1 ) Bug fix: ND48 stations should now be read correctly. (bmy, 3/6/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2622,7 +2633,7 @@
 
       ! Local variables
       LOGICAL            :: DO_ND48
-      INTEGER            :: N
+      INTEGER            :: N, S
       INTEGER            :: FREQ
       INTEGER            :: N_STA
       INTEGER            :: IARR(ND48_MAX_STATIONS)
@@ -2631,11 +2642,12 @@
       INTEGER            :: NARR(ND48_MAX_STATIONS)
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG
       CHARACTER(LEN=255) :: FILE
+      CHARACTER(LEN=10)  :: C
 
       !=================================================================
       ! READ_ND48_MENU begins here!
       !=================================================================
-
+      
       ! Error check
       IF ( CT1 /= 2 ) THEN 
          MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
@@ -2657,14 +2669,20 @@
       ! Number of stations 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nd48_menu:4' )
       READ( SUBSTRS(1:N), * ) N_STA
+
+      ! Initialize
+      IARR(:) = 0
+      JARR(:) = 0
+      LARR(:) = 0
+      NARR(:) = 0
       
       ! Read individual stations
-      DO N = 1, N_STA
+      DO S = 1, N_STA
          CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 'read_nd48_menu:5' )
-         READ( SUBSTRS(1), * ) IARR(N) 
-         READ( SUBSTRS(2), * ) JARR(N) 
-         READ( SUBSTRS(3), * ) LARR(N) 
-         READ( SUBSTRS(4), * ) NARR(N) 
+         READ( SUBSTRS(1), * ) IARR(S) 
+         READ( SUBSTRS(2), * ) JARR(S)
+         READ( SUBSTRS(3), * ) LARR(S) 
+         READ( SUBSTRS(4), * ) NARR(S) 
       ENDDO
 
       !=================================================================
@@ -2676,8 +2694,8 @@
       WRITE( 6, 110     ) 'ND48 timeseries file name   : ', TRIM( FILE )
       WRITE( 6, 120     ) 'ND48 save frequency [min]   : ', FREQ
 
-      DO N = 1, N_STA
-         WRITE( 6, 130 ) N, IARR(N), JARR(N), LARR(N), NARR(N) 
+      DO S = 1, N_STA
+         WRITE( 6, 130 ) S, IARR(S), JARR(S), LARR(S), NARR(S) 
       ENDDO
 
       ! FORMAT statements
@@ -3517,6 +3535,84 @@
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE READ_MERCURY_MENU
+!
+!******************************************************************************
+!  Subroutine READ_MERCURY_MENU reads the BENCHMARK MENU section of 
+!  the GEOS-CHEM input file. (bmy, 2/24/06)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE LOGICAL_MOD,       ONLY : LDYNOCEAN
+      USE MERCURY_MOD,       ONLY : INIT_MERCURY
+      USE OCEAN_MERCURY_MOD, ONLY : INIT_OCEAN_MERCURY
+      USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
+ 
+      ! Local variables
+      LOGICAL                    :: USE_CHECKS
+      INTEGER                    :: ANTHRO_Hg_YEAR,  N 
+      CHARACTER(LEN=255)         :: SUBSTRS(MAXDIM), Hg_RST_FILE
+
+      !=================================================================
+      ! READ_MERCURY_MENU begins here!
+      !=================================================================
+
+      ! Year for anthro Hg emissions
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:1' )
+      READ( SUBSTRS(1:N), * ) ANTHRO_Hg_YEAR
+
+      ! Use dynamic ocean model?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:2' )
+      READ( SUBSTRS(1:N), * ) USE_CHECKS
+
+      ! Use dynamic ocean model?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:3' )
+      READ( SUBSTRS(1:N), * ) LDYNOCEAN
+
+      ! Name of ocean restart file
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:4' )
+      READ( SUBSTRS(1:N), '(a)' ) Hg_RST_FILE
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:5' )
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+      WRITE( 6, '(/,a)' ) 'MERCURY MENU'
+      WRITE( 6, '(  a)' ) '------------'
+      WRITE( 6, 100     ) 'Anthro Hg emissions year    : ', 
+     &                     ANTHRO_Hg_YEAR
+      WRITE( 6, 110     ) 'Error check tag & total Hg? : ', USE_CHECKS
+      WRITE( 6, 110     ) 'Use dynamic ocean Hg model? : ', LDYNOCEAN
+      WRITE( 6, 120     ) 'Ocean Hg restart file       : ',
+     &                     TRIM( Hg_RST_FILE )
+
+      ! FORMAT statements
+ 100  FORMAT( A, I4  )
+ 110  FORMAT( A, L5  )
+ 120  FORMAT( A, A   )
+    
+      ! If we are performing a Hg simulation ...
+      IF ( ITS_A_MERCURY_SIM() ) THEN 
+
+         ! Initialize "mercury_mod.f"
+         CALL INIT_MERCURY( ANTHRO_Hg_YEAR )
+
+         ! Initialize "ocean_mercury_mod.f"
+         IF ( LDYNOCEAN ) THEN
+            CALL INIT_OCEAN_MERCURY( Hg_RST_FILE, USE_CHECKS )
+         ENDIF
+
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE READ_MERCURY_MENU
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE VALIDATE_DIRECTORIES
 !
 !******************************************************************************
@@ -3875,7 +3971,7 @@
       USE LOGICAL_MOD,   ONLY : LTPFV,      LUPBD,      LWINDO     
       USE LOGICAL_MOD,   ONLY : LUNZIP,     LWAIT,      LTURB      
       USE LOGICAL_MOD,   ONLY : LSVGLB,     LSPLIT,     LWETD 
-      USE LOGICAL_MOD,   ONLY : LMEGAN
+      USE LOGICAL_MOD,   ONLY : LMEGAN,     LDYNOCEAN
 
       !=================================================================
       ! INIT_INPUT begins here!
@@ -3940,6 +4036,7 @@
       LSVGLB     = .FALSE.
       LSPLIT     = .FALSE.
       LWETD      = .FALSE.
+      LDYNOCEAN  = .FALSE.
 
       ! Initialize counters
       CT1        = 0

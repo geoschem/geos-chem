@@ -1,10 +1,10 @@
-! $Id: file_mod.f,v 1.10 2005/11/03 17:50:28 bmy Exp $
+! $Id: file_mod.f,v 1.11 2006/03/24 20:22:47 bmy Exp $
       MODULE FILE_MOD
 !
 !******************************************************************************
 !  Module FILE_MOD contains file unit numbers, as well as file I/O routines
 !  for GEOS-CHEM.  FILE_MOD keeps all of the I/O unit numbers in a single
-!  location for convenient access. (bmy, 7/1/02, 11/2/05)
+!  location for convenient access. (bmy, 7/1/02, 11/30/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -56,6 +56,7 @@
 !  (10) Added LINUX_IFORT switch for Intel v8 & v9 compilers (bmy, 10/18/05)
 !  (11) Added IU_XT for GEOS3 XTRA met fields files for MEGAN (tmf, 10/20/05)
 !  (12) Extra modification for Intel v9 compiler (bmy, 11/2/05)
+!  (13) Now print IFORT error messages (bmy, 11/30/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -116,7 +117,7 @@
 !******************************************************************************
 !  Subroutine IOERRROR prints out I/O error messages.  The error number, 
 !  file unit, location, and a brief description will be printed, and 
-!  program execution will be halted. (bmy, 5/28/99, 11/2/05)
+!  program execution will be halted. (bmy, 5/28/99, 11/30/05)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -142,6 +143,7 @@
 !        and added LINUX_EFC. (bmy, 12/2/03)
 !  (7 ) Now don't flush the buffer for LINUX_EFC (bmy, 4/23/04)
 !  (8 ) Modifications for Linux/IFORT Intel v9 compiler (bmy, 11/2/05)
+!  (9 ) Now call IFORT_ERRMSG to get the IFORT error messages (bmy, 11/30/05)
 !******************************************************************************
 !  
       ! References to F90 modules
@@ -161,7 +163,7 @@
       CHARACTER(LEN=255)           :: EXPLAIN_CMD
 
       ! External functions
-      CHARACTER(LEN=255), EXTERNAL :: GERROR
+      CHARACTER(LEN=255), EXTERNAL :: GERROR, IFORT_ERRMSG
 
       !=================================================================
       ! IOERROR begins here!
@@ -239,6 +241,20 @@
       ! Print error message to std output
       WRITE( 6, 120 ) TRIM( ERROR_MSG )
  120  FORMAT( /, 'Error: ', a )
+
+#elif defined( LINUX_IFORT ) 
+
+      !=================================================================
+      ! For LINUX platform w/ IFORT v8/v9 compiler:
+      ! Call IFORT_ERRMSG to get the error number and message
+      !=================================================================
+
+      ! Get an error msg corresponding to this error number
+      ERROR_MSG = IFORT_ERRMSG( ERROR_NUM )
+
+      ! Print error message to std output
+      WRITE( 6, 120 ) ERROR_NUM, TRIM( ERROR_MSG )
+ 120  FORMAT( /, 'Error ', i4, ': ', a )
 
 #elif defined( SPARC ) 
 

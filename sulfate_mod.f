@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.20 2005/11/03 17:50:36 bmy Exp $
+! $Id: sulfate_mod.f,v 1.21 2006/03/24 20:22:56 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 10/25/05)
+!  (rjp, bdf, bmy, 6/22/00, 11/17/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -197,6 +197,7 @@
 !        (bmy, 8/22/05)
 !  (30) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (31) Now references XNUMOL & XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
+!  (32) Now read int'annual SST data on GEOS 1x1 grid (bmy, 11/17/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -408,7 +409,7 @@
 !  Subroutine CHEMSULFATE is the interface between the GEOS-CHEM main program
 !  and the sulfate chemistry routines.  The user has the option of running
 !  a coupled chemistry-aerosols simulation or an offline aerosol simulation.
-!  (rjp, bdf, bmy, 5/31/00, 10/3/05)
+!  (rjp, bdf, bmy, 5/31/00, 3/16/06)
 !
 !  NOTES:
 !  (1 ) Now reference all arguments except FIRSTCHEM and RH from either F90 
@@ -432,11 +433,16 @@
 !        INIT_SULFATE. (bmy, 12/21/04)
 !  (6 ) Now handle gravitational settling of SO4s, NITs (bec, bmy, 4/13/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (8 ) Remove reference to MAKE_RH, it's not needed here (bmy, 3/16/06)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,        ONLY : AD,     AIRDEN,  CLDF
-      USE DAO_MOD,        ONLY : SUNCOS, MAKE_RH, CONVERT_UNITS
+      !--------------------------------------------------------------
+      ! Prior to 3/16/06
+      !USE DAO_MOD,        ONLY : SUNCOS, MAKE_RH, CONVERT_UNITS
+      !--------------------------------------------------------------
+      USE DAO_MOD,        ONLY : SUNCOS, CONVERT_UNITS
       USE DRYDEP_MOD,     ONLY : DEPSAV
       USE ERROR_MOD,      ONLY : DEBUG_MSG
       USE GLOBAL_OH_MOD,  ONLY : GET_GLOBAL_OH
@@ -5620,7 +5626,7 @@
 !
 !***************************************************************************** 
 !  Subroutine READ_SST reads monthly mean sea surface temperatures.
-!  (rjp, bdf, bmy, 9/18/02, 10/3/05)
+!  (rjp, bdf, bmy, 9/18/02, 11/17/05)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -5635,24 +5641,32 @@
 !        climatological SST data.  Now read data for both GCAP and GEOS 
 !        grids (bmy, 8/16/05) 
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (6 ) Now read int'annual SST data on the GEOS 1x1 grid (bmy, 11/17/05)
 !*****************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+      USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR,        DATA_DIR_1x1
+      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
+      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"      ! Size parameters
+#     include "CMN_SIZE"       ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN)    :: THISMONTH, THISYEAR
+      INTEGER, INTENT(IN)     :: THISMONTH, THISYEAR
       
       ! Local variables
-      REAL*4                 :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8                 :: XTAU
-      CHARACTER(LEN=4)       :: SYEAR
-      CHARACTER(LEN=255)     :: FILENAME
+      !----------------------------------------------------
+      ! Prior to 11/17/05:
+      ! We now read SST's on the 1x1 grid (bmy, 11/17/05)
+      !REAL*4                  :: ARRAY(IGLOB,JGLOB,1)
+      !----------------------------------------------------
+      REAL*4                  :: ARRAY(IGLOB,JGLOB,1)
+      REAL*4                  :: ARRAY1(I1x1,J1x1,1)
+      REAL*8                  :: XTAU
+      CHARACTER(LEN=4)        :: SYEAR
+      CHARACTER(LEN=255)      :: FILENAME
 
       !==================================================================
       ! READ_SST begins here!
@@ -5670,10 +5684,16 @@
          WRITE( SYEAR, '(i4)' ) THISYEAR
 
          ! File name
-         FILENAME = TRIM( DATA_DIR )  // 
-     &              'SST_200508/SST.' // GET_NAME_EXT_2D() // 
-     &              '.'               // GET_RES_EXT()     //
-     &              '.'               // SYEAR
+!--------------------------------------------------------------------
+! Prior to 11/17/05:
+! Now read SST data on the 1x1 grid (bmy, 11/17/05)
+!         FILENAME = TRIM( DATA_DIR )  // 
+!     &              'SST_200508/SST.' // GET_NAME_EXT_2D() // 
+!     &              '.'               // GET_RES_EXT()     //
+!     &              '.'               // SYEAR
+!--------------------------------------------------------------------
+         FILENAME = TRIM( DATA_DIR_1x1 )       // 
+     &              'SST_200508/SST.geos.1x1.' // SYEAR
 
          ! Echo output
          WRITE( 6, 100 ) TRIM( FILENAME )  
@@ -5682,13 +5702,25 @@
          ! TAU value (use this year)
          XTAU = GET_TAU0( THISMONTH, 1, THISYEAR )
 
-         ! Read sea surface temperature [K]
-         CALL READ_BPCH2( FILENAME, 'GMAO-2D',     69, 
-     &                    XTAU,      IGLOB,        JGLOB,     
-     &                    1,         ARRAY(:,:,1), QUIET=.TRUE. ) 
+!----------------------------------------------------------------------
+! Prior to 11/17/05:
+! We now read files on the GEOS 1x1 grid (bmy, 11/17/05)
+!         ! Read sea surface temperature [K]
+!         CALL READ_BPCH2( FILENAME, 'GMAO-2D',     69, 
+!     &                    XTAU,      IGLOB,        JGLOB,     
+!     &                    1,         ARRAY(:,:,1), QUIET=.TRUE. ) 
+!
+!         ! Cast from REAL*4 to REAL*8 
+!         CALL TRANSFER_2D( ARRAY(:,:,1), SSTEMP )
+!----------------------------------------------------------------------
 
-         ! Cast from REAL*4 to REAL*8 
-         CALL TRANSFER_2D( ARRAY(:,:,1), SSTEMP )
+         ! Read sea surface temperature [K]
+         CALL READ_BPCH2( FILENAME, 'GMAO-2D',      69, 
+     &                    XTAU,      I1x1,          J1x1,     
+     &                    1,         ARRAY1(:,:,1), QUIET=.TRUE. ) 
+
+         ! Regrid from 1x1 and cast to REAL*8
+         CALL DO_REGRID_1x1( 'K', ARRAY1, SSTEMP )
 
       ELSE
 

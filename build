@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# $Id: build,v 1.8 2005/11/03 17:50:22 bmy Exp $
+# $Id: build,v 1.9 2006/03/24 20:22:40 bmy Exp $
 
 =head1 NAME
 
@@ -33,6 +33,7 @@ main        : Driver program
 
 bmy, 04 Dec 2002 - INITIAL VERSION
 bmy, 03 Nov 2005 - Modified for Intel "ifort" compiler
+bmy, 29 Nov 2005 - Now use "and" instead of double ampersands
 
 =head1 AUTHOR
 
@@ -116,6 +117,7 @@ sub main() {
   #
   # NOTES:
   # (1 ) Need to set system variables for Intel IFORT compiler (bmy, 11/3/05)
+  # (2 ) Now use "and" to avoid conflict w/ the sub mit command (bmy, 11/18/05)
   #==========================================================================
 
   # Local variables
@@ -133,7 +135,7 @@ sub main() {
     print "Compiling $target in $makeFile\n";
 
     # Need to set system variables for Intel IFORT compiler (bmy, 11/3/05)
-    if ( $makeFile =~ "ifort" && !( $target =~ "clean" ) ) 
+    if ( $makeFile =~ "ifort" and !( $target =~ "clean" ) ) 
        { qx( source /usr/local/bin/ifortvars.sh; make $target -f $makeFile ); }
     else
        { qx( make $target -f $makeFile ); }  

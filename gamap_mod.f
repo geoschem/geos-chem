@@ -1,10 +1,10 @@
-! $Id: gamap_mod.f,v 1.8 2005/10/27 13:59:57 bmy Exp $
+! $Id: gamap_mod.f,v 1.9 2006/03/24 20:22:47 bmy Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
 !  Module GAMAP_MOD contains routines to create GAMAP "tracerinfo.dat" and
 !  "diaginfo.dat" files which are customized to each particular GEOS-CHEM
-!  simulation. (bmy, 5/3/05, 10/20/05)
+!  simulation. (bmy, 5/3/05, 3/14/06)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -67,6 +67,7 @@
 !  (3 ) Added ND04 diagnostic for CO2 simulation (bmy, 7/25/05)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Add MBO to ND46 diagnostic (tmf, bmy, 10/20/05)
+!  (6 ) Updated for tagged Hg simulation (cdh, bmy, 1/9/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -626,7 +627,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_GAMAP allocates and initializes all module variables.  
-!  (bmy, 4/22/05, 10/20/05)
+!  (bmy, 4/22/05, 3/14/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -641,6 +642,12 @@
 !        (pns, bmy, 7/25/05)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Now save MBO as tracer #5 for ND46 (tmf, bmy, 10/20/05)
+!  (6 ) Now add categories CV-FLX-$, TURBMC-$, EW-FLX-$, NS-FLX-$, UP-FLX-$
+!        which had been inadvertently omitted.  Also add OCEAN-HG category.
+!        Rewrote do loop and case statement to add new diagnostics to ND03. 
+!        Now make units of Hg tracers "pptv", not "ppbv".  Now remove 
+!        restriction on printing out cloud mass flux in GEOS-4 for the ND66 
+!        diagnostic. (cdh, bmy, 3/14/06) 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -968,6 +975,31 @@
       OFFSET(N)   = SPACING * 4
 
       N           = N + 1
+      CATEGORY(N) = 'CV-FLX-$'
+      DESCRIPT(N) = 'Upward flux from wet conv'
+      OFFSET(N)   = SPACING * 4
+
+      N           = N + 1
+      CATEGORY(N) = 'TURBMC-$'
+      DESCRIPT(N) = 'Upward flux from PBL mixing'
+      OFFSET(N)   = SPACING * 4
+
+      N           = N + 1
+      CATEGORY(N) = 'EW-FLX-$'
+      DESCRIPT(N) = 'E/W transport flux'
+      OFFSET(N)   = SPACING * 4
+
+      N           = N + 1
+      CATEGORY(N) = 'NS-FLX-$'
+      DESCRIPT(N) = 'N/S transport flux'
+      OFFSET(N)   = SPACING * 4
+
+      N           = N + 1
+      CATEGORY(N) = 'UP-FLX-$'
+      DESCRIPT(N) = 'Up/down transport flux'
+      OFFSET(N)   = SPACING * 4
+
+      N           = N + 1
       CATEGORY(N) = 'PS-PTOP'
       DESCRIPT(N) = 'GEOS PS - PTOP'
       OFFSET(N)   = SPACING * 10 
@@ -1192,6 +1224,11 @@
       DESCRIPT(N) = 'CO2 fluxes'
       OFFSET(N)   = SPACING * 40
 
+      N           = N + 1
+      CATEGORY(N) = 'OCEAN-HG'
+      DESCRIPT(N) = 'Oceanic Hg emissions'
+      OFFSET(N)   = SPACING * 41
+
       ! Number of categories
       NCATS = N
 
@@ -1243,6 +1280,11 @@
             END SELECT
          ENDIF
 
+         ! For mercury, print as pptv (bmy, 1/24/06)
+         IF ( ITS_A_MERCURY_SIM() ) THEN
+            UNIT(T,45)  = 'pptv'
+            SCALE(T,45) = 1.0e+12
+         ENDIF
       ENDDO
 
       ! Number of ND45 tracers 
@@ -1266,87 +1308,102 @@
 
       !-------------------------------------
       ! Hg source, production & loss (ND03)
+      !
+      ! Updated for tagged Hg simulation
+      ! (cdh, bmy, 1/9/06)
       !-------------------------------------
       IF ( ND03 > 0 ) THEN
          
          ! Number of tracers
-         NTRAC(03) = 13
+         NTRAC(03) = 15 + N_TRACERS
 
-         ! Loop over tracers: HG-SRCE
-         DO T = 1, NTRAC(03)-3
+         ! Loop over tracers for HG-SRCE, PL-HG2-$, OCEAN-HG
+         DO T = 1, NTRAC(03)
 
             ! Define quantities
             UNIT (T,03) = 'kg'
-            INDEX(T,03) = T + ( SPACING * 34 )
             MOLC (T,03) = 1
             MWT  (T,03) = 201e-3
             SCALE(T,03) = 1e0
 
-            ! Get name, long-name
+            ! Get name, long-name, index, and new units
             SELECT CASE( T )
                CASE( 1  )
                   NAME (T,03) = 'Hg0_an'
                   FNAME(T,03) = 'Anthro elemental Hg'
+                  INDEX(T,03) = T + ( SPACING * 34 )
                CASE( 2  )
                   NAME (T,03) = 'Hg0_aq'
                   FNAME(T,03) = 'Ocean mass of elemental Hg'
+                  INDEX(T,03) = T + ( SPACING * 34 )
                CASE( 3  )
                   NAME (T,03) = 'Hg0_oc'
                   FNAME(T,03) = 'Ocean-emitted elemental Hg'
+                  INDEX(T,03) = T + ( SPACING * 34 )
                CASE( 4  )
                   NAME (T,03) = 'Hg0_ln'
                   FNAME(T,03) = 'Land re-emitted elemental Hg'
+                  INDEX(T,03) = T + ( SPACING * 34 )
                CASE( 5  )
                   NAME (T,03) = 'Hg0_na'
                   FNAME(T,03) = 'Natural land source'
+                  INDEX(T,03) = T + ( SPACING * 34 )
                CASE( 6  )
                   NAME (T,03) = 'Hg2_an'
                   FNAME(T,03) = 'Anthro divalent Hg'
+                  INDEX(T,03) = T + ( SPACING * 34 )
                CASE( 7  )
                   NAME (T,03) = 'Hg2_aq'
                   FNAME(T,03) = 'Ocean mass of divalent Hg'
+                  INDEX(T,03) = T + ( SPACING * 34 )
                CASE( 8  )
                   NAME (T,03) = 'Hg2_sk'
                   FNAME(T,03) = 'Mass of Hg2 sunk in ocean'
+                  INDEX(T,03) = T + ( SPACING * 34 )
                CASE( 9  )
                   NAME (T,03) = 'HgP_an'
                   FNAME(T,03) = 'Anthro particulate Hg'
+                  INDEX(T,03) = T + ( SPACING * 34 )
                CASE( 10 )
                   NAME (T,03) = 'KwHg'
                   FNAME(T,03) = 'Henry''s Law exchange constant'
                   UNIT (T,03) = 'cm/h'
+                  INDEX(T,03) = T + ( SPACING * 34 )
                   MWT  (T,03) = 0e0
-               CASE DEFAULT
-                  ! Nothing
-            END SELECT
-         ENDDO
-
-         ! Loop over tracers: PL-HG2-$
-         DO T = NTRAC(03)-2, NTRAC(03)
-
-            ! Get name, long-name, tracer number
-            SELECT CASE( T )
                CASE( 11 )
+                  NAME (T,03) = 'HgC'
+                  FNAME(T,03) = 'Hg in Colloidal phase'
+                  INDEX(T,03) = T + ( SPACING * 34 )
+               CASE( 12 )
+                  NAME (T,03) = 'Hg_to_C'
+                  FNAME(T,03) = 'Hg converted to colloidal'
+                  UNIT (T,03) = 'kg/m2/s'
+                  INDEX(T,03) = T + ( SPACING * 34 )
+               CASE( 13 )
                   NAME (T,03) = 'Hg2_Hg0'
                   FNAME(T,03) = 'Prod of Hg2 from Hg0'
-                  INDEX(T,03) = ( T - 10 ) + ( SPACING * 35 )
-               CASE( 12 )
+                  INDEX(T,03) = ( T - 12 ) + ( SPACING * 35 )
+               CASE( 14 )
                   NAME (T,03) = 'Hg2_OH'
                   FNAME(T,03) = 'Prod of Hg2 from OH'
-                  INDEX(T,03) = ( T - 10 ) + ( SPACING * 35 )
-               CASE( 13 )
+                  INDEX(T,03) = ( T - 12 ) + ( SPACING * 35 )
+               CASE( 15 )
                   NAME (T,03) = 'Hg2_O3'
                   FNAME(T,03) = 'Prod of Hg2 from O3'
-                  INDEX(T,03) = ( T - 10 ) + ( SPACING * 35 )
+                  INDEX(T,03) = ( T - 12 ) + ( SPACING * 35 )
+               CASE ( 16: )
+                  NAME (T,03) = TRACER_NAME(T-15)
+
+                  ! Tracer 3 should be "HgC" instead of "HgP"
+                  IF ( TRIM( NAME(T,03) ) == 'HgP' ) THEN
+                     NAME(T,03) = 'HgC'
+                  ENDIF
+
+                  FNAME(T,03) = 'Oceanic ' // TRIM( NAME(T,03) )
+                  INDEX(T,03) = ( T - 15 ) + ( SPACING * 41 )
                CASE DEFAULT
                   ! Nothing
             END SELECT
-
-            ! Define the rest of the quantities
-            UNIT (T,03) = 'kg'
-            MOLC (T,03) = 1
-            MWT  (T,03) = 201e-3
-            SCALE(T,03) = 1e0
          ENDDO
       ENDIF
 
@@ -2335,7 +2392,11 @@
       IF ( ND66 > 0 ) THEN 
 
          ! Number of tracers
-         NTRAC(66) = 4
+         !-----------------------
+         ! Prior to 3/14/06:
+         !NTRAC(66) = 4
+         !-----------------------
+         NTRAC(66) = 5
 
          ! Loop over tracers
          DO T = 1, NTRAC(66)
@@ -2354,11 +2415,17 @@
                CASE( 4 )
                   NAME(T,66) = 'SPHU'
                   UNIT(T,66) = 'g/kg'
-#if   !defined( GEOS4 )
+!----------------------------------------
+! Prior to 3/14/06:
+!#if   !defined( GEOS4 )
+!----------------------------------------
                CASE( 5 )
                   NAME(T,66) = 'CLDMAS'
                   UNIT(T,66) = 'kg/m2/s'
-#endif
+!-----------------------------------------
+! Prior to 3/14/06:
+!#endif
+!-----------------------------------------
                CASE DEFAULT
                   ! Nothing
             END SELECT

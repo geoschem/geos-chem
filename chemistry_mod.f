@@ -1,4 +1,4 @@
-! $Id: chemistry_mod.f,v 1.21 2006/03/17 15:59:38 bmy Exp $
+! $Id: chemistry_mod.f,v 1.22 2006/03/24 20:22:41 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
@@ -49,7 +49,7 @@
 !  (11) Now call CHEM_HCN_CH3CN from "hcn_ch3cn_mod.f".  Also remove all
 !        references to the obsolete CO-OH param simulation. (xyp, bmy, 6/24/05)
 !  (12) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (13) Now we call MAKE_RH from "main.f" (bmy, 3/16/06)
+!  (13) Now call MAKE_RH from "main.f" (bmy, 3/16/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -66,7 +66,7 @@
 !******************************************************************************
 !  Subroutine DO_CHEMISTRY is the driver routine which calls the appropriate
 !  chemistry subroutine for the various GEOS-CHEM simulations. 
-!  (bmy, 2/11/03, 10/3/05)
+!  (bmy, 2/11/03, 3/16/06)
 !
 !  NOTES:
 !  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this
@@ -99,6 +99,7 @@
 !        "hcn_ch3cn_mod.f".  Also remove allreferences to the obsolete 
 !         CO-OH param simulation. (xyp, bmy, 6/23/05)
 !  (12) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (13) Now call MAKE_RH from "main.f" (bmy, 3/16/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -109,11 +110,12 @@
       USE CARBON_MOD,      ONLY : CHEMCARBON
       USE CH3I_MOD,        ONLY : CHEMCH3I
       USE DAO_MOD,         ONLY : CLDF,    CLMOSW, CLROSW, DELP
-      !-------------------------------------------------------------
+      !--------------------------------------------------------------
       ! Prior to 3/16/06:
+      ! Remove MAKE_RH, it's obsolete (bmy, 3/16/06)
       !USE DAO_MOD,         ONLY : MAKE_RH, OPTDEP, OPTD,   T
-      !-------------------------------------------------------------
-      USE DAO_MOD,         ONLY : OPTDEP, OPTD,   T
+      !--------------------------------------------------------------
+      USE DAO_MOD,         ONLY : OPTDEP,  OPTD,   T
       USE DRYDEP_MOD,      ONLY : DRYFLX, DRYFLXRnPbBe
       USE DUST_MOD,        ONLY : CHEMDUST, RDUST_ONLINE
       USE ERROR_MOD,       ONLY : DEBUG_MSG
@@ -194,10 +196,10 @@
 
             ! Also do sulfate chemistry
             IF ( LSULF ) THEN
-               
+
                !--------------------------------------------
                ! Prior to 3/16/06:
-               ! Now call this from main.f (bmy, 3/16/06)
+               ! This is now done in main.f (bmy, 3/16/06)
                !! Get relative humidity
                !CALL MAKE_RH
                !--------------------------------------------
@@ -242,12 +244,12 @@
          !---------------------------------
          ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
 
-            !--------------------------------------------
+            !-------------------------------------------
             ! Prior to 3/16/06:
-            ! Now call this from main.f (bmy, 3/16/06)
+            ! This is now done in main.f (bmy, 3/16/06)
             !! Get relative humidity
             !CALL MAKE_RH
-            !--------------------------------------------
+            !-------------------------------------------
 
             ! Define loop index and other SMVGEAR arrays
             ! N_TROP, the # of trop boxes, is returned
@@ -369,12 +371,12 @@
          !---------------------------------
          ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
 
-            !-------------------------------------------
+            !---------------------------------------------
             ! Prior to 3/16/06:
-            ! Now call this from main.f (bmy, 3/16/06)
-            ! Get relative humidity
-            !!CALL MAKE_RH    
-            !-------------------------------------------
+            ! Now call this from "main.f" (bmy, 3/16/06)
+            !! Get relative humidity
+            !CALL MAKE_RH    
+            !---------------------------------------------
 
             ! Do Hg chemistry
             CALL CHEMMERCURY

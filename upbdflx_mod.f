@@ -1,4 +1,4 @@
-! $Id: upbdflx_mod.f,v 1.15 2005/11/03 17:50:39 bmy Exp $
+! $Id: upbdflx_mod.f,v 1.16 2006/03/24 20:22:59 bmy Exp $
       MODULE UPBDFLX_MOD
 !
 !******************************************************************************
@@ -569,17 +569,7 @@
       !=================================================================
       IF ( IFLAG == 1 ) THEN
 
-         !-------------------------------------------
-         ! Prior to 11/1/05:
-         !IF ( GET_MONTH() /= LASTMONTH ) THEN
-         !-------------------------------------------
          IF ( ITS_A_NEW_MONTH() ) THEN
-
-            !-----------------------------
-            ! Prior to 11/1/05:
-            !! Save the current month 
-            !LASTMONTH = GET_MONTH()
-            !-----------------------------
 
             ! TAU value corresponding to the beginning of this month
             XTAU = GET_TAU0( GET_MONTH(), 1, 1985 ) 
@@ -730,10 +720,6 @@
          !==============================================================
 
          ! Minimum value of LPAUSE
-         !----------------------------------------
-         ! Prior to 11/1/05:
-         !LMIN = MINVAL( LPAUSE  )
-         !----------------------------------------
          LMIN = GET_MIN_TPAUSE_LEVEL()
 
 !$OMP PARALLEL DO
@@ -748,10 +734,6 @@
          DO I = 1,    IIPAR
 
             ! Skip over tropospheric boxes
-            !-----------------------------------------------
-            ! Prior to 11/1/05:
-            !IF ( L >= LPAUSE(I,J) ) THEN
-            !-----------------------------------------------
             IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN 
 
                ! PNOY = P(NOy) converted from [v/v/s] to [v/v] 
@@ -804,10 +786,6 @@
       ELSE IF ( IFLAG == 2 ) THEN
 
          ! Minimum value of LPAUSE
-         !-------------------------------------
-         ! Prior to 11/1/05:
-         !LMIN = MINVAL( LPAUSE  )
-         !-------------------------------------
          LMIN = GET_MIN_TPAUSE_LEVEL()
 
 !$OMP PARALLEL DO
@@ -819,10 +797,6 @@
          DO I = 1,    IIPAR
 
             ! Skip over tropospheric boxes
-            !---------------------------------------------
-            ! Prior to 11/1/05:
-            !IF ( L >= LPAUSE(I,J) ) THEN
-            !---------------------------------------------
             IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
 
                ! Compute the new total [NOy] by summing up [NOx] + [HNO3]

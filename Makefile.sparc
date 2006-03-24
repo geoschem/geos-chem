@@ -1,6 +1,6 @@
-# $Id: Makefile.sparc,v 1.30 2006/02/03 17:00:22 bmy Exp $
+# $Id: Makefile.sparc,v 1.31 2006/03/24 20:22:38 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for SUN/Sparc (bmy, Thu Feb  2 16:00:40 2006)
+# GEOS-CHEM Makefile for SUN/Sparc (bmy, Fri Feb 17 11:56:02 2006)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -45,9 +45,6 @@ fyrno3.o                  \
 gasconc.o                 \
 getalt.o                  \
 getifsun.o                \
-hpsort_int.o              \
-humeff.o                  \
-hunt.o                    \
 initialize.o              \
 jsparse.o                 \
 ksparse.o                 \
@@ -323,10 +320,10 @@ global_oh_mod.o            : global_oh_mod.F            CMN_SIZE define.h
 grid_mod.o                 : grid_mod.F                 CMN_GCTM CMN_SIZE define.h 
 gwet_read_mod.o            : gwet_read_mod.F            CMN_DIAG CMN_SIZE define.h 
 hcn_ch3cn_mod.o            : hcn_ch3cn_mod.F            CMN_DEP CMN_DIAG CMN_SIZE define.h 
-hpsort_int.o               : hpsort_int.F               
 humeff.o                   : humeff.F                   
 hunt.o                     : hunt.F                     
 i6_read_mod.o              : i6_read_mod.F              CMN_DIAG CMN_SIZE define.h 
+ifort_errmsg.o             : ifort_errmsg.F             
 initialize.o               : initialize.F               CMN_DIAG CMN_SIZE define.h 
 inphot.o                   : inphot.F                   cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 input_mod.o                : input_mod.F                CMN CMN_DIAG CMN_O3 CMN_SIZE define.h define.h 

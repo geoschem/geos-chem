@@ -1,10 +1,11 @@
-! $Id: emep_mod.f,v 1.1 2005/11/03 17:50:27 bmy Exp $
+! $Id: emep_mod.f,v 1.2 2006/03/24 20:22:46 bmy Exp $
       MODULE EMEP_MOD
 !
 !******************************************************************************
 !  Module EMEP_MOD contains variables and routines to read the EMEP European 
 !  anthropogenic emission inventory for CO, NOz, and some NMVOCs.  The EMEP 
-!  files come from Marion Auvray and Isabelle Bey at EPFL. (bdf, bmy, 11/1/05)
+!  files come from Marion Auvray and Isabelle Bey at EPFL. 
+!  (bdf, bmy, 11/1/05, 2/6/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -44,6 +45,7 @@
 !        J. Geophys. Res., 110, D11303, doi: 10.1029/2004JD005503, 2005.
 !
 !  NOTES: 
+!  (1 ) Now only print totals for defined tracers (bmy, 2/6/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -343,7 +345,7 @@
 !******************************************************************************
 !  Subroutine TOTAL_ANTHRO_TG prints the amount of EPA/NEI anthropogenic
 !  emissions that are emitted each month in Tg or Tg C. 
-!  (rch, bmy, 11/10/04, 10/25/05)
+!  (rch, bmy, 11/10/04, 2/6/06)
 !  
 !  Arguments as Input:
 !  ============================================================================
@@ -354,13 +356,10 @@
 !  (7  ) NSEASON  (INTEGER) : Number of the season, for seasonal NOx/SOX
 !
 !  NOTES:
-!  (1) Scale factors were determined by Jennifer Logan (jal@io.harvard.edu),
-!      Bryan Duncan (bnd@io.harvard.edu), and Daniel Jacob (djj@io.harvard.edu)
-!  (2) Now replace DXYP(J)*1d4 with routine GET_AREA_CM2 from "grid_mod.f".
-!       (bmy, 2/4/03)
-!  (3) Prevent out of bounds error when tracers are undefined (bmy, 1/25/05)
-!  (4) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (5) Now replace FMOL with TRACER_MW_KG (bmy, 10/25/05) 
+!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (2 ) Now replace FMOL with TRACER_MW_KG (bmy, 10/25/05) 
+!  (3 ) Now only print totals of defined tracers; other totals will be
+!        printed as zeroes. (bmy, 2/6/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -376,7 +375,8 @@
 
       ! Local variables
       INTEGER               :: I, J
-      REAL*8                :: A, NOX, CO, ALK4, MEK, ALD2, PRPE, C2H6
+      REAL*8                :: A,   B(7), NOX,  CO,  ALK4
+      REAL*8                :: MEK, ALD2, PRPE, C2H6
       CHARACTER(LEN=3)      :: UNIT
 
       !=================================================================
@@ -391,6 +391,17 @@
       !----------------
       ! Sum emissions
       !----------------
+      
+      ! Define conversion factors for kg/molec
+      ! (Undefined tracers will be zero)
+      B(:) = 0d0
+      IF ( IDTNOx  > 0 ) B(1) = 1d0 / ( 6.0225d23 / 14d-3 )  ! Tg N
+      IF ( IDTCO   > 0 ) B(2) = 1d0 / XNUMOL(IDTCO  )
+      IF ( IDTALK4 > 0 ) B(3) = 1d0 / XNUMOL(IDTALK4)
+      IF ( IDTMEK  > 0 ) B(4) = 1d0 / XNUMOL(IDTMEK )
+      IF ( IDTALD2 > 0 ) B(5) = 1d0 / XNUMOL(IDTALD2)
+      IF ( IDTPRPE > 0 ) B(6) = 1d0 / XNUMOL(IDTPRPE)
+      IF ( IDTC2H6 > 0 ) B(7) = 1d0 / XNUMOL(IDTC2H6)
 
       ! Summing variables
       NOX      = 0d0   
@@ -412,14 +423,24 @@
          DO I = 1, IIPAR
 
             ! Sum emissions (list NOx as Tg N)
-            NOX  = NOX  + EMEP_NOX (I,J) * A / ( 6.0225d23 / 14d-3 )
-            CO   = CO   + EMEP_CO  (I,J) * A / XNUMOL(IDTCO  )
-            ALK4 = ALK4 + EMEP_ALK4(I,J) * A / XNUMOL(IDTALK4)
-            MEK  = MEK  + EMEP_MEK (I,J) * A / XNUMOL(IDTMEK )
-            ALD2 = ALD2 + EMEP_ALD2(I,J) * A / XNUMOL(IDTALD2)
-            PRPE = PRPE + EMEP_PRPE(I,J) * A / XNUMOL(IDTPRPE)
-            C2H6 = C2H6 + EMEP_C2H6(I,J) * A / XNUMOL(IDTC2H6)
-
+            !--------------------------------------------------------------
+            ! Prior to 2/6/06:
+            ! Now set sums of undefined tracers to zero (bmy, 2/6/06)
+            !NOX  = NOX  + EMEP_NOX (I,J) * A / ( 6.0225d23 / 14d-3 )
+            !CO   = CO   + EMEP_CO  (I,J) * A / XNUMOL(IDTCO  )
+            !ALK4 = ALK4 + EMEP_ALK4(I,J) * A / XNUMOL(IDTALK4)
+            !MEK  = MEK  + EMEP_MEK (I,J) * A / XNUMOL(IDTMEK )
+            !ALD2 = ALD2 + EMEP_ALD2(I,J) * A / XNUMOL(IDTALD2)
+            !PRPE = PRPE + EMEP_PRPE(I,J) * A / XNUMOL(IDTPRPE)
+            !C2H6 = C2H6 + EMEP_C2H6(I,J) * A / XNUMOL(IDTC2H6)
+            !--------------------------------------------------------------
+            NOX  = NOX  + EMEP_NOX (I,J) * A * B(1)
+            CO   = CO   + EMEP_CO  (I,J) * A * B(2) 
+            ALK4 = ALK4 + EMEP_ALK4(I,J) * A * B(3) 
+            MEK  = MEK  + EMEP_MEK (I,J) * A * B(4) 
+            ALD2 = ALD2 + EMEP_ALD2(I,J) * A * B(5) 
+            PRPE = PRPE + EMEP_PRPE(I,J) * A * B(6) 
+            C2H6 = C2H6 + EMEP_C2H6(I,J) * A * B(7) 
          ENDDO
       ENDDO
  

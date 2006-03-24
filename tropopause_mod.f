@@ -1,4 +1,4 @@
-! $Id: tropopause_mod.f,v 1.3 2005/11/03 17:50:39 bmy Exp $
+! $Id: tropopause_mod.f,v 1.4 2006/03/24 20:22:59 bmy Exp $
       MODULE TROPOPAUSE_MOD
 !
 !******************************************************************************
@@ -204,11 +204,6 @@
       ! Write the number of tropopsheric and stratospheric boxes.
       ! Recall that tropospheric boxes extend up to TROPOPAUSE - 1.
       !=================================================================
-      !-----------------------------------------------------------
-      ! Prior to 11/1/05:
-      ! Simplify counting of tropopause boxes (bmy, 11/1/05)
-      !COUNT = SUM( TROPOPAUSE ) - ( IIPAR * JJPAR )
-      !-----------------------------------------------------------
       COUNT = SUM( TROPOPAUSE - 1 )
 
       WRITE( 6, 140 ) COUNT

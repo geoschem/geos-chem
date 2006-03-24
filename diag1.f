@@ -1,4 +1,4 @@
-! $Id: diag1.f,v 1.9 2005/10/27 13:59:52 bmy Exp $
+! $Id: diag1.f,v 1.10 2006/03/24 20:22:43 bmy Exp $
       SUBROUTINE DIAG1 
 !
 !******************************************************************************
@@ -316,10 +316,10 @@
 !*****************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : AD,  AIRDEN, AVGW,     BXHEIGHT, 
-     &                         PBL, IS_ICE, IS_WATER, IS_LAND
-      USE DIAG_MOD,     ONLY : AD30, AD31, AD33, AD35, AD45, 
-     &                         AD47, AD67, AD68, AD69, LTOTH
+      USE DAO_MOD,      ONLY : AD,  AIRDEN, AVGW,     BXHEIGHT 
+      USE DAO_MOD,      ONLY : PBL, IS_ICE, IS_WATER, IS_LAND
+      USE DIAG_MOD,     ONLY : AD30, AD31, AD33, AD35, AD45 
+      USE DIAG_MOD,     ONLY : AD47, AD67, AD68, AD69, LTOTH
       USE GRID_MOD,     ONLY : GET_AREA_M2
       USE PRESSURE_MOD, ONLY : GET_PEDGE
       USE TRACER_MOD,   ONLY : N_TRACERS, STT, TCVV, ITS_A_FULLCHEM_SIM

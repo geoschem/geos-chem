@@ -1,4 +1,4 @@
-! $Id: lightning_nox_mod.f,v 1.8 2006/02/03 17:00:27 bmy Exp $
+! $Id: lightning_nox_mod.f,v 1.9 2006/03/24 20:22:52 bmy Exp $
       MODULE LIGHTNING_NOX_MOD
 !
 !******************************************************************************
@@ -51,7 +51,7 @@
 !  (3 ) Now suppress lightning where ice is on the ground.  Added MET_SCALE
 !        variable and GET_MET_FIELD_SCALE function. (bmy, 8/25/05)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (4a) BUG FIX PATCH: Fix minor bug for NA Nested grid (bmy, 2/1/06)
+!  (5 ) Fixed typo for N. American nested grid (bmy, 2/1/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -783,10 +783,11 @@
       !%%% Figure this out later %%%
       SCALE = 1d0
 
-!----------------------------------------------------------------------------
-!%%% BUG FIX PATCH: fix typo .. NESTED_CH should be NESTED_NA (bmy, 2/1/06)
+!------------------------------------------------------------------------------
+! Prior to 2/1/06:
+! Fix typo: NESTED_CH should read NESTED_NA (bmy, 2/1/06)
 !#elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_CH )
-!----------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 #elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_NA )
 
       !%%% Figure this out later %%%

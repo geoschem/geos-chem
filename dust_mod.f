@@ -1,9 +1,9 @@
-! $Id: dust_mod.f,v 1.9 2005/11/03 17:50:26 bmy Exp $
+! $Id: dust_mod.f,v 1.10 2006/03/24 20:22:45 bmy Exp $
       MODULE DUST_MOD
 !
 !******************************************************************************
 !  Module DUST_MOD contains routines for computing dust aerosol emissions,
-!  chemistry, and optical depths. (rjp, tdf, bmy, 4/14/04, 10/25/05)
+!  chemistry, and optical depths. (rjp, tdf, bmy, 4/14/04, 11/18/05)
 !
 !  Module Variables:
 !  ============================================================================
@@ -51,6 +51,7 @@
 !        Added comments. (bmy, 7/2/04)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  (5 ) Bug fix in snow height computation (bmy, 11/18/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -536,7 +537,7 @@
 !******************************************************************************
 !  Subroutine SRC_DUST_DEAD is the DEAD model dust emission scheme, 
 !  alternative to Ginoux scheme.  Increments the TC array with emissions 
-!  from the DEAD model.  (tdf, bmy, 4/8/04, 10/3/05)
+!  from the DEAD model.  (tdf, bmy, 4/8/04, 11/18/05)
 !
 !  Input:
 !         SRCE_FUNK Source function                               (-)
@@ -566,6 +567,7 @@
 !  (2 ) Bug fix: DSRC needs to be held PRIVATE (bmy, 4/14/04)
 !  (3 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (5 ) Bug fix: It should be SNOW/1d3 not SNOW*1d3 (tdf, bmy, 11/18/05)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -729,7 +731,13 @@
             ORO(I)         = OROGRAPHY(I,J) 
 
             ! Snow height [m H2O]
-            SNW_HGT_LQD(I) = SNOW(I,J) * 1d3
+            !----------------------------------------------------
+            ! Prior to 11/18/05: 
+            ! SNOW is in mm H2O, divide by 1000 to get meters
+            ! (tdf, bmy, 11/18/05)
+            !SNW_HGT_LQD(I) = SNOW(I,J) * 1d3
+            !----------------------------------------------------
+            SNW_HGT_LQD(I) = SNOW(I,J) / 1000d0
 
             ! Dust tracer and increments
             DO N = 1, NDSTBIN

@@ -1,10 +1,10 @@
-! $Id: tpcore_bc_mod.f,v 1.10 2005/11/03 17:50:39 bmy Exp $
+! $Id: tpcore_bc_mod.f,v 1.11 2006/03/24 20:22:58 bmy Exp $
       MODULE TPCORE_BC_MOD
 !
 !******************************************************************************
 !  Module TPCORE_BC_MOD contains modules and variables which are needed to
 !  save and read TPCORE nested-grid boundary conditions to/from disk.
-!  (yxw, bmy, 3/4/03, 10/24/05)
+!  (yxw, bmy, 3/4/03, 3/15/06)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -131,6 +131,7 @@
 !  (3 ) Now get HALFPOLAR for GEOS or GCAP grids (bmy, 6/28/05)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Rename arguments in GET_4x5_BC to avoid name conflict (bmy, 10/24/05)
+!  (6 ) Now use EXPAND_DATE instead of obsolete DATE_STRING (bmy, 3/15/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -207,7 +208,7 @@
 !******************************************************************************
 !  Subroutine OPEN_BC_FILE opens the file which contains boundary conditions
 !  saved from the coarse-grid WINDOW REGION for either reading or writing.
-!  (bmy, 3/7/03, 10/3/05)
+!  (bmy, 3/7/03, 3/15/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -218,6 +219,7 @@
 !  (1 ) Now use ITS_A_NEW_DAY from "time_mod.f".  Now references TPBC_DIR
 !        from "directory_mod.f" (bmy, 7/20/04)
 !  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (3 ) DATE_STRING is now obsolete; use EXPAND_DATE instead (bmy, 3/15/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -225,7 +227,12 @@
       USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_READ
       USE DIRECTORY_MOD, ONLY : TPBC_DIR
       USE FILE_MOD,      ONLY : IU_BC
-      USE TIME_MOD,      ONLY : DATE_STRING, ITS_A_NEW_DAY
+      !---------------------------------------------------------------------
+      ! Prior to 3/15/06:
+      ! DATE_STRING is now obsolete; use EXPAND_DATE instead (bmy, 3/15/06)
+      !USE TIME_MOD,      ONLY : DATE_STRING, ITS_A_NEW_DAY
+      !---------------------------------------------------------------------
+      USE TIME_MOD,      ONLY : EXPAND_DATE, GET_NYMD, ITS_A_NEW_DAY
 
       ! Arguments
       LOGICAL, INTENT(IN), OPTIONAL :: FOR_READ, FOR_WRITE
@@ -241,8 +248,16 @@
       IF ( ITS_A_NEW_DAY() ) THEN
          
          ! File name for BC's
-         FILENAME = TRIM( TPBC_DIR ) // 'BC.' // DATE_STRING()
+         !---------------------------------------------------------------------
+         ! Prior to 3/15/06:
+         ! DATE_STRING is now obsolete; use EXPAND_DATE instead (bmy, 3/15/06)
+         !FILENAME = TRIM( TPBC_DIR ) // 'BC.' // DATE_STRING()
+         !---------------------------------------------------------------------
+         FILENAME = TRIM( TPBC_DIR ) // 'BC.YYYYMMDD'
          
+         ! Replace YYYYMMDD with the actual date
+         CALL EXPAND_DATE( FILENAME, GET_NYMD(), 000000 )
+
          ! Echo file name to stdout
          WRITE( 6, 100 ) TRIM( FILENAME )
  100     FORMAT( '     - OPEN_BC_FILE: Opening ', a )

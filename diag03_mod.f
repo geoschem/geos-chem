@@ -1,9 +1,9 @@
-! $Id: diag03_mod.f,v 1.5 2005/10/20 14:03:18 bmy Exp $
+! $Id: diag03_mod.f,v 1.6 2006/03/24 20:22:43 bmy Exp $
       MODULE DIAG03_MOD
 !
 !******************************************************************************
 !  Module DIAG03_MOD contains arrays and routines for archiving the ND03
-!  diagnostic -- Hg emissions, mass, and production. (bmy, 1/21/05, 10/3/05) 
+!  diagnostic -- Hg emissions, mass, and production. (bmy, 1/21/05, 2/24/06) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -36,6 +36,7 @@
 !  NOTES:
 !  (1 ) Updated for GCAP grid (bmy, 6/28/05)
 !  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (3 ) Add 2 extra diagnostics to ND03. Set PD03=15.  (cdh, bmy, 12/15/05)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -54,7 +55,7 @@
 
       ! Scalars
       INTEGER              :: ND03, LD03
-      INTEGER, PARAMETER   :: PD03 = 13
+      INTEGER, PARAMETER   :: PD03 = 15
 
       ! Arrays
       REAL*4,  ALLOCATABLE :: AD03(:,:,:)
@@ -123,7 +124,7 @@
 !
 !******************************************************************************
 !  Subroutine WRITE_DIAG03 writes the ND03 diagnostic arrays to the binary
-!  punch file at the proper time. (bmy, 1/21/05, 10/3/05)
+!  punch file at the proper time. (bmy, 1/21/05, 2/24/06)
 !
 !   # : Field    : Description                     : Units    : Scale factor
 !  --------------------------------------------------------------------------
@@ -145,6 +146,9 @@
 !  (1 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
 !        value for GEOS or GCAP grids. (bmy, 6/28/05)
 !  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (3 ) Add HgC ocean mass and converted to colloidal to ND03 diagnostic.
+!        The units of the Kw and conversion terms in ND03 should be kg
+!        and not divided by the scale factor. (cdh, sas, bmy, 2/26/02)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -227,10 +231,20 @@
             ! #8: Hg2 sinking loss rate
             !--------------------------------
             CATEGORY          = 'HG-SRCE'
-            UNIT              = 'kg/m2/s'
+            !----------------------------------------------------------------
+            ! Prior to 2/24/06:
+            ! Sarah Strode says this should be kg (bmy, 2/24/06)
+            !UNIT              = 'kg/m2/s'
+            !----------------------------------------------------------------
+            UNIT              = 'kg'
             LMAX              = 1
             NN                = N
-            ARRAY(:,:,1)      = AD03(:,:,N) / SCALE
+            !----------------------------------------------------------------
+            ! Prior to 2/24/06:
+            ! Sarah Strode says we don't need to divide here (bmy, 2/24/06)
+            !ARRAY(:,:,1)      = AD03(:,:,N) / SCALE
+            !----------------------------------------------------------------
+            ARRAY(:,:,1)      = AD03(:,:,N)
 
          ELSE IF ( N == 10 ) THEN
                
@@ -247,18 +261,58 @@
          ELSE IF ( N == 11 ) THEN
 
             !--------------------------------
-            ! #10: Prod of Hg(II) from Hg(0)
+            ! #11: Hg(C) ocean mass
+            !--------------------------------
+            CATEGORY          = 'HG-SRCE'
+            UNIT              = 'kg'
+            LMAX              = 1
+            NN                = N
+            ARRAY(:,:,1)      = AD03(:,:,N) / SCALE
+
+         ELSE IF ( N == 12 ) THEN
+
+            !--------------------------------
+            ! #12: Converted to colloidal
+            !--------------------------------
+            CATEGORY          = 'HG-SRCE'
+            !----------------------------------------------------------------
+            ! Prior to 2/24/06:
+            ! Sarah Strode says this should be kg (bmy, 2/24/06)
+            !UNIT              = 'kg/m2/s'
+            !----------------------------------------------------------------
+            UNIT              = 'kg'
+            LMAX              = 1
+            NN                = N
+            !----------------------------------------------------------------
+            ! Prior to 2/24/06:
+            ! Sarah Strode says we don't need to divide here (bmy, 2/24/06)
+            !ARRAY(:,:,1)      = AD03(:,:,N) / SCALE
+            !----------------------------------------------------------------
+            ARRAY(:,:,1)      = AD03(:,:,N)
+
+         !-----------------------------
+         ! Prior to 12/15/05:
+         !ELSE IF ( N == 11 ) THEN
+         !-----------------------------
+         ELSE IF ( N == 13 ) THEN
+
+            !--------------------------------
+            ! #13: Prod of Hg(II) from Hg(0)
             !--------------------------------
             CATEGORY          = 'PL-HG2-$'
             UNIT              = 'kg'
             LMAX              = LD03
             NN                = 1
             ARRAY(:,:,1:LMAX) = AD03_Hg2_Hg0(:,:,1:LMAX)
-                  
-         ELSE IF ( N == 12 ) THEN
+         
+         !------------------------------
+         ! Prior to 12/15/05:
+         !ELSE IF ( N == 12 ) THEN
+         !------------------------------
+         ELSE IF ( N == 14 ) THEN
 
             !--------------------------------
-            ! #11: Prod of Hg(II) from OH
+            ! #14: Prod of Hg(II) from OH
             !--------------------------------
             CATEGORY          = 'PL-HG2-$'
             UNIT              = 'kg'
@@ -266,10 +320,14 @@
             NN                = 2
             ARRAY(:,:,1:LMAX) = AD03_Hg2_OH(:,:,1:LMAX)
 
-         ELSE IF ( N == 13 ) THEN
+         !-----------------------------
+         ! Prior to 12/15/05:
+         !ELSE IF ( N == 13 ) THEN
+         !-----------------------------
+         ELSE IF ( N == 15 ) THEN
 
             !--------------------------------
-            ! #12: Prod of Hg(II) from O3
+            ! #15: Prod of Hg(II) from O3
             !--------------------------------
             CATEGORY          = 'PL-HG2-$'
             UNIT              = 'kg'

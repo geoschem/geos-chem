@@ -1,10 +1,10 @@
-! $Id: tracerid_mod.f,v 1.12 2005/10/20 14:03:44 bmy Exp $
+! $Id: tracerid_mod.f,v 1.13 2006/03/24 20:22:59 bmy Exp $
       MODULE TRACERID_MOD
 !
 !******************************************************************************
 !  Module TRACERID_MOD contains variables which point to SMVGEAR species,
 !  CTM Tracers, Biomass species, and biofuel species located within various
-!  GEOS-CHEM arrays. (bmy, 11/12/02, 10/3/05)
+!  GEOS-CHEM arrays. (bmy, 11/12/02, 1/5/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -113,9 +113,6 @@
 !  (103) IDTDST4   (INTEGER) : DST4  index w/in STT array ("tracer_mod.f")
 !  (104) IDTSALA   (INTEGER) : SALA  index w/in STT array ("tracer_mod.f")
 !  (105) IDTSALC   (INTEGER) : SALC  index w/in STT array ("tracer_mod.f")
-!  (106) IDTHG0    (INTEGER) : Hg0   index w/in STT array ("tracer_mod.f")
-!  (107) IDTHG2    (INTEGER) : Hg2   index w/in STT array ("tracer_mod.f")
-!  (108) IDTHGP    (INTEGER) : HgP   index w/in STT array ("tracer_mod.f")
 !  (109) IDENOX    (INTEGER) : NOx   index w/in EMISRRN array ("CMN_O3")  
 !  (110) IDEOX     (INTEGER) : Ox    index w/in EMISRR  array ("CMN_O3")  
 !  (111) IDECO     (INTEGER) : CO    index w/in EMISRR  array ("CMN_O3")     
@@ -151,7 +148,6 @@
 !  (141) IDBFC3H8  (INTEGER) : NOx  index w/in BIOFUEL array (biofuel_mod.f)
 !  (142) IDBFCH2O  (INTEGER) : NOx  index w/in BIOFUEL array (biofuel_mod.f)
 !  (143) IDBFC2H6  (INTEGER) : NOx  index w/in BIOFUEL array (biofuel_mod.f)   
-!  Plus 21 flags for tagged Hg tracers
 !
 !  Module Routines:
 !  ============================================================================
@@ -177,6 +173,8 @@
 !  (9 ) Added IDTAS, IDTAHS, IDTLET, IDTNH4aq, IDTSO4aq (cas, bmy, 12/20/04)
 !  (10) Added IDTSO4s, IDTNITs
 !  (11) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (12) Added functions IS_Hg0, IS_Hg2, IS_HgP.  Also now use index arrays
+!        ID_Hg0, ID_Hg2, ID_HgP for tagged Hg tracers.  (cdh, bmy, 1/5/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -215,14 +213,12 @@
       INTEGER            :: IDTHg2,  IDTHgP,   IDTAS,   IDTAHS,  IDTLET
       INTEGER            :: IDTNH4aq,IDTSO4aq, IDTSO4s, IDTNITs
 
-      ! Extra tracer ID's for tagged mercury simulation
-      ! (we need these or else the wetdep code won't work)
-      INTEGER            :: IDTHg0_NA, IDTHg0_EU, IDTHg0_AS, IDTHg0_RW
-      INTEGER            :: IDTHg0_OC, IDTHg0_LN, IDTHg0_NT
-      INTEGER            :: IDTHg2_NA, IDTHg2_EU, IDTHg2_AS, IDTHg2_RW
-      INTEGER            :: IDTHg2_OC, IDTHg2_LN, IDTHg2_NT
-      INTEGER            :: IDTHgP_NA, IDTHgP_EU, IDTHgP_AS, IDTHgP_RW
-      INTEGER            :: IDTHgP_OC, IDTHgP_LN, IDTHgP_NT
+      ! For tagged Hg simulation
+      INTEGER              :: N_Hg_CATS
+      INTEGER, ALLOCATABLE :: ID_Hg0(:),  ID_Hg2(:), ID_HgP(:)
+      INTEGER              :: ID_Hg_tot,  ID_Hg_na,  ID_Hg_eu 
+      INTEGER              :: ID_Hg_as,   ID_Hg_rw,  ID_Hg_oc
+      INTEGER              :: ID_Hg_ln,   ID_Hg_nt
 
       ! GEOS-CHEM emission ID's
       INTEGER            :: IDENOX,  IDEOX,    IDECO,   IDEPRPE, IDEC3H8
@@ -247,7 +243,7 @@
 !******************************************************************************
 !  Subroutine TRACERID reads the "tracer.dat" file and determines which
 !  tracers, emission species, biomass burning species, and biofuel burning
-!  species are turned on/off. (bmy, 3/16/01, 10/3/05)
+!  species are turned on/off. (bmy, 3/16/01, 12/15/05)
 !
 !  NOTES:
 !  (1 ) Original code from Loretta's version of the GISS-II model.  Now we
@@ -267,20 +263,24 @@
 !        (cas, bmy, 1/26/05)
 !  (9 ) Added IDTSO4s and IDTNITs (bec, bmy, 4/13/05)
 !  (10) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (11) Add alternate names for tagged Hg tracers.  Also define ocean mercury 
+!        flux categories.  Now references LSPLIT from "logical_mod.f".
+!        (cdh, bmy, 12/15/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE CHARPAK_MOD, ONLY : TRANUC
+      USE LOGICAL_MOD, ONLY : LSPLIT
       USE TRACER_MOD,  ONLY : ITS_A_C2H6_SIM,  ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,  ONLY : ITS_A_TAGCO_SIM, N_TRACERS
-      USE TRACER_MOD,  ONLY : TRACER_NAME
+      USE TRACER_MOD,  ONLY : ITS_A_TAGCO_SIM, ITS_A_MERCURY_SIM
+      USE TRACER_MOD,  ONLY : N_TRACERS,       TRACER_NAME
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "comode.h"  ! IDEMS
+#     include "CMN_SIZE"    ! Size parameters
+#     include "comode.h"    ! IDEMS
 
       ! Local variables
-      INTEGER           :: N, COUNT
-      CHARACTER(LEN=14) :: NAME
+      INTEGER              :: N, COUNT, COUNT_Hg0, COUNT_Hg2, COUNT_HgP
+      CHARACTER(LEN=14)    :: NAME
       
       !=================================================================
       ! TRACERID begins here!
@@ -289,11 +289,14 @@
       !       will get rid of this as time allows (bmy, 11/12/02)
       !=================================================================
 
-      ! Zero all ID #'s
+      ! Zero all ID #'s and allocate Hg index arrays (if necessary)
       CALL INIT_TRACERID
       
-      ! Initialize counter
-      COUNT = 0
+      ! Initialize counters
+      COUNT     = 0
+      COUNT_Hg0 = 0
+      COUNT_Hg2 = 0
+      COUNT_HgP = 0
 
       !=================================================================
       ! Assign tracer, biomass, biofuel, and anthro emission ID's
@@ -578,79 +581,112 @@
 
             !--------------------------------
             ! Total & tagged mercury tracers 
-            ! (eck, bmy, 12/14/04)
+            ! (eck, cdh, bmy, 12/15/05)
             !--------------------------------
             CASE ( 'HG0' )
-               IDTHG0   = N
- 
+               COUNT_Hg0         = COUNT_Hg0 + 1              
+               ID_Hg_tot         = COUNT_Hg0
+               IDTHg0            = N
+               ID_Hg0(COUNT_Hg0) = N
+
             CASE ( 'HG2' )
-               IDTHG2   = N
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
 
             CASE ( 'HGP' )
-               IDTHGP   = N
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
 
-            CASE ( 'HG0_AN_NA' )
-               IDTHG0_NA = N
+            CASE ( 'HG0_AN_NA', 'HG0_AN' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_na          = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
 
-            CASE ( 'HG0_AN_EU' )
-               IDTHG0_EU = N
+            CASE ( 'HG0_AN_EU', 'HG0_AE' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_eu          = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
 
-            CASE ( 'HG0_AN_AS' )
-               IDTHG0_AS = N
+            CASE ( 'HG0_AN_AS', 'HG0_AA' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_as          = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
 
-            CASE ( 'HG0_AN_RW' )
-               IDTHG0_RW = N
+            CASE ( 'HG0_AN_RW', 'HG0_AR' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_rw          = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
 
             CASE ( 'HG0_OC' )
-               IDTHG0_OC = N
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_oc          = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
 
             CASE ( 'HG0_LN' )
-               IDTHG0_LN = N
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_ln          = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
 
             CASE ( 'HG0_NT' )
-               IDTHG0_NT = N
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_nt          = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
 
-            CASE ( 'HG2_AN_NA' )
-               IDTHG2_NA = N
+            CASE ( 'HG2_AN_NA', 'HG2_AN' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
 
-            CASE ( 'HG2_AN_EU' )
-               IDTHG2_EU = N
+            CASE ( 'HG2_AN_EU', 'HG2_AE' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
 
-            CASE ( 'HG2_AN_AS' )
-               IDTHG2_AS = N
+            CASE ( 'HG2_AN_AS', 'HG2_AA' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
 
-            CASE ( 'HG2_AN_RW' )
-               IDTHG2_RW = N
+            CASE ( 'HG2_AN_RW', 'HG2_AR' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
 
             CASE ( 'HG2_OC' )
-               IDTHG2_OC = N
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
 
             CASE ( 'HG2_LN' )
-               IDTHG2_LN = N
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
 
             CASE ( 'HG2_NT' )
-               IDTHG2_NT = N
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
 
-            CASE ( 'HGP_AN_NA' )
-               IDTHGP_NA = N
+            CASE ( 'HGP_AN_NA', 'HGP_AN' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
 
-            CASE ( 'HGP_AN_EU' )
-               IDTHGP_EU = N
+            CASE ( 'HGP_AN_EU', 'HGP_AE' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
 
-            CASE ( 'HGP_AN_AS' )
-               IDTHGP_AS = N
+            CASE ( 'HGP_AN_AS', 'HGP_AA' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
 
-            CASE ( 'HGP_AN_RW' )
-               IDTHGP_RW = N
+            CASE ( 'HGP_AN_RW', 'HGP_AR' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
 
             CASE ( 'HGP_OC' )
-               IDTHGP_OC = N
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
 
             CASE ( 'HGP_LN' )
-               IDTHGP_LN = N
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
 
             CASE ( 'HGP_NT' )
-               IDTHGP_NT = N
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
 
             CASE DEFAULT
                ! Nothing
@@ -876,10 +912,291 @@
     
 !------------------------------------------------------------------------------
 
+      FUNCTION IS_Hg0( N ) RESULT( IT_IS_Hg0 )
+!
+!******************************************************************************
+!  Function IS_Hg0 returns TRUE if tracer N is a total or tagged Hg0 tracer.
+!  (cdh, bmy, 12/15/05)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) N (INTEGER) : GEOS-CHEM tracer number
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Arguments
+      INTEGER, INTENT(IN) :: N
+
+      ! Local variables
+      LOGICAL             :: IT_IS_Hg0
+      INTEGER             :: C
+
+      !=================================================================
+      ! IS_Hg0 begins here!
+      !=================================================================
+
+      ! Initialize
+      IT_IS_Hg0 = .FALSE.
+
+      ! Loop over Hg0 categories
+      DO C = 1, N_Hg_CATS
+         
+         ! Exit with TRUE if corresponds to an Hg0 tracer
+         IF ( N == ID_Hg0(C) ) THEN
+            IT_IS_Hg0 = .TRUE.
+            EXIT
+         ENDIF
+
+      ENDDO
+
+      ! Return to calling program
+      END FUNCTION IS_Hg0
+
+!------------------------------------------------------------------------------
+
+      FUNCTION IS_Hg2( N ) RESULT( IT_IS_Hg2 )
+!
+!******************************************************************************
+!  Function IS_Hg2 returns TRUE if tracer N is a total or tagged Hg2 tracer.
+!  (cdh, bmy, 12/15/05)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) N (INTEGER) : GEOS-CHEM tracer number
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Arguments
+      INTEGER, INTENT(IN) :: N
+
+      ! Local variables
+      LOGICAL             :: IT_IS_Hg2
+      INTEGER             :: C
+
+      !=================================================================
+      ! IS_Hg2 begins here!
+      !=================================================================
+
+      ! Initialize
+      IT_IS_Hg2 = .FALSE.
+
+      ! Loop over Hg2 categories
+      DO C = 1, N_Hg_CATS
+         
+         ! Exit with TRUE if corresponds to an Hg2 tracer
+         IF ( N == ID_Hg2(C) ) THEN
+            IT_IS_Hg2 = .TRUE.
+            EXIT
+         ENDIF
+
+      ENDDO
+
+      ! Return to calling program
+      END FUNCTION IS_Hg2
+
+!------------------------------------------------------------------------------
+
+      FUNCTION IS_HgP( N ) RESULT( IT_IS_HgP )
+!
+!******************************************************************************
+!  Function IS_HgP returns TRUE if tracer N is a total or tagged HgP tracer.
+!  (cdh, bmy, 12/15/05)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) N (INTEGER) : GEOS-CHEM tracer number
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Arguments
+      INTEGER, INTENT(IN) :: N
+
+      ! Local variables
+      LOGICAL             :: IT_IS_HgP
+      INTEGER             :: C
+
+      !=================================================================
+      ! IS_HgP begins here!
+      !=================================================================
+
+      ! Initialize
+      IT_IS_HgP = .FALSE.
+
+      ! Loop over Hg2 categories
+      DO C = 1, N_Hg_CATS
+         
+         ! Exit with TRUE if corresponds to an HgP tracer
+         IF ( N == ID_HgP(C) ) THEN
+            IT_IS_HgP = .TRUE.
+            EXIT
+         ENDIF
+
+      ENDDO
+
+      ! Return to calling program
+      END FUNCTION IS_HgP
+
+!------------------------------------------------------------------------------
+
+      FUNCTION GET_Hg0_CAT( N ) RESULT( NN )
+!
+!******************************************************************************
+!  Function GET_Hg0_CAT the Hg0 category number given the tracer number. 
+!  (eck, sas, cdh, bmy, 1/6/05)
+!
+!  Arguments as Input:
+!  ----------------------------------------------------------------------------
+!  (1 ) N (INTEGER) : GEOS-CHEM tracer number
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Arguments
+      INTEGER, INTENT(IN) :: N
+      
+      ! Function value
+      INTEGER             :: NN
+
+      !=================================================================
+      ! GET_Hg2_CAT begins here!
+      !=================================================================
+
+      ! Pick the Hg2 category number from the tracer number
+      IF ( N == ID_Hg0(ID_Hg_tot) ) THEN 
+
+         ! Total
+         NN = ID_Hg_tot
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_na) ) THEN 
+
+         ! Anthro North America
+         NN = ID_Hg_na
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_eu) ) THEN 
+
+         ! Anthro Europe
+         NN = ID_Hg_eu
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_as) ) THEN 
+
+         ! Anthro Asia
+         NN = ID_Hg_as
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_rw) ) THEN 
+
+         ! Anthro Rest of World
+         NN = ID_Hg_rw
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_oc) ) THEN 
+
+         ! Oceans
+         NN = ID_Hg_oc
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_ln) ) THEN 
+
+         ! Land re-emission
+         NN = ID_Hg_ln
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_nt) ) THEN 
+
+         ! Natural source
+         NN = ID_Hg_nt
+
+      ELSE
+
+         ! Invalid category
+         NN = -1
+
+      ENDIF
+
+      ! Return to calling program
+      END FUNCTION GET_Hg0_CAT
+
+!------------------------------------------------------------------------------
+
+      FUNCTION GET_Hg2_CAT( N ) RESULT( NN )
+!
+!******************************************************************************
+!  Function GET_Hg2_CAT the Hg2 category number (i.e. index for DD_Hg2 and
+!  WD_Hg2) given the tracer number. (eck, sas, cdh, bmy, 1/6/05)
+!
+!  Arguments as Input:
+!  ----------------------------------------------------------------------------
+!  (1 ) N (INTEGER) : GEOS-CHEM tracer number
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Arguments
+      INTEGER, INTENT(IN) :: N
+      
+      ! Function value
+      INTEGER             :: NN
+
+      !=================================================================
+      ! GET_Hg2_CAT begins here!
+      !=================================================================
+
+      ! Pick the Hg2 category number from the tracer number
+      IF ( N == ID_Hg2(ID_Hg_tot) ) THEN 
+
+         ! Total
+         NN = ID_Hg_tot
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_na) ) THEN 
+
+         ! Anthro North America
+         NN = ID_Hg_na
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_eu) ) THEN 
+
+         ! Anthro Europe
+         NN = ID_Hg_eu
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_as) ) THEN 
+
+         ! Anthro Asia
+         NN = ID_Hg_as
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_rw) ) THEN 
+
+         ! Anthro Rest of World
+         NN = ID_Hg_rw
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_oc) ) THEN 
+
+         ! Oceans
+         NN = ID_Hg_oc
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_ln) ) THEN 
+
+         ! Land re-emission
+         NN = ID_Hg_ln
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_nt) ) THEN 
+
+         ! Natural source
+         NN = ID_Hg_nt
+
+      ELSE
+
+         ! Invalid category
+         NN = -1
+
+      ENDIF
+
+      ! Return to calling program
+      END FUNCTION GET_Hg2_CAT
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE INIT_TRACERID
 !
 !******************************************************************************
-!  Subroutine INIT_TRACERID zeroes module variables. (bmy, 11/12/02, 12/20/04)
+!  Subroutine INIT_TRACERID zeroes module variables. (bmy, 11/12/02, 12/15/05
 !
 !  NOTES:
 !  (1 ) Now also zero IDDMS, IDSO2, IDSO4, IDMSA (rjp, bmy, 3/23/03)
@@ -888,8 +1205,17 @@
 !  (4 ) Now zero extra flags for SOA tracers (rjp, bmy, 7/13/04)
 !  (5 ) Now zero IDTHG0, IDTHG2, IDTHGP + tagged Hg's (eck, bmy, 12/7/04)
 !  (6 ) Now zero IDTAS, IDTAHS, IDTLET, IDTNH4aq, IDTSO4aq (cas, bmy, 12/20/04)
+!  (7 ) Now allocate ID_Hg0, ID_Hg2, ID_HgP (bmy, 12/16/05)
 !******************************************************************************
 !
+      ! References to F90 modules
+      USE ERROR_MOD,   ONLY : ALLOC_ERR
+      USE LOGICAL_MOD, ONLY : LSPLIT
+      USE TRACER_MOD,  ONLY : ITS_A_MERCURY_SIM
+      
+      ! Local variables
+      INTEGER              :: AS
+
       ! SMVGEAR species ID #'s
       IDO3      = 0
       IDNO2     = 0
@@ -994,26 +1320,7 @@
       IDTRN     = 0
       IDTPB     = 0
       IDTBE7    = 0
-      IDTHG0    = 0
-      IDTHG2    = 0
-      IDTHGP    = 0
 
-      ! GEOS-CHEM Tagged Hg tracers
-      IDTHG2_NA = 0 
-      IDTHG2_EU = 0 
-      IDTHG2_AS = 0 
-      IDTHG2_RW = 0
-      IDTHG2_OC = 0 
-      IDTHG2_LN = 0 
-      IDTHG2_NT = 0
-      IDTHGP_NA = 0 
-      IDTHGP_EU = 0 
-      IDTHGP_AS = 0 
-      IDTHGP_RW = 0
-      IDTHGP_OC = 0 
-      IDTHGP_LN = 0 
-      IDTHGP_NT = 0
-      
       ! GEOS-CHEM Emission ID #'s
       NEMANTHRO = 0
       NEMBIOG   = 0
@@ -1054,9 +1361,69 @@
       IDBFCH2O  = 0
       IDBFC2H6  = 0
 
+      !-----------------------------------
+      ! Initialize tagged Hg index arrays
+      !-----------------------------------
+      IF ( ITS_A_MERCURY_SIM() ) THEN
+
+         ! Initialize category flags
+         ID_Hg_tot = 0
+         ID_Hg_na  = 0
+         ID_Hg_eu  = 0
+         ID_Hg_as  = 0
+         ID_Hg_rw  = 0
+         ID_Hg_oc  = 0
+         ID_Hg_ln  = 0
+         ID_Hg_nt  = 0
+
+         ! Number of Hg categories
+         IF ( LSPLIT ) THEN
+            N_Hg_CATS = 8
+         ELSE
+            N_Hg_CATS = 1
+         ENDIF
+
+         ! Index array for Hg0 tracers
+         ALLOCATE( ID_Hg0( N_Hg_CATS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ID_Hg0' )
+         ID_Hg0 = 0
+
+         ! Index array for Hg2 tracers
+         ALLOCATE( ID_Hg2( N_Hg_CATS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ID_Hg2' )
+         ID_Hg2 = 0
+
+         ! Index array for HgP tracers
+         ALLOCATE( ID_HgP( N_Hg_CATS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ID_HgP' )
+         ID_HgP = 0
+
+      ENDIF
+
       ! Return to calling program
       END SUBROUTINE INIT_TRACERID
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE CLEANUP_TRACERID
+!
+!******************************************************************************
+!  Subroutine CLEANUP_TRACERID deallocates all module arrays (bmy, 12/16/05)
+!
+!  NOTES:
+!******************************************************************************
+!      
+      !=================================================================
+      ! CLEANUP_TRACERID begins here!
+      !=================================================================
+      IF ( ALLOCATED( ID_Hg0 ) ) DEALLOCATE( ID_Hg0 )
+      IF ( ALLOCATED( ID_Hg2 ) ) DEALLOCATE( ID_Hg2 )
+      IF ( ALLOCATED( ID_HgP ) ) DEALLOCATE( ID_HgP )
+      
+      ! Return to calling program
+      END SUBROUTINE CLEANUP_TRACERID
+
+!------------------------------------------------------------------------------
+
+      ! End of module
       END MODULE TRACERID_MOD
