@@ -1,5 +1,5 @@
 REVISIONS (v7-04-01)  
-bmy, 16 Mar 2006
+bmy, 29 Mar 2006
 
 
 New in v7-04-01:
@@ -200,6 +200,9 @@ hack_conv		-- Now pass J via the arg list
 			   all input arrays dimensioned w/ (IIPAR,JJPAR,LLPAR)
 			   to avoid seg fault error in OpenMP on certain 
 			   platforms.
+			-- Rewrote DO loops and changed 1-D arrays into 
+			   scalars in order to improve optimization, 
+			   particularly for the Intel IFORT v9 compiler.
 
 init_drydep		-- Now set Henry's law constant to 1.0d+14 for Hg2
 ("drydep_mod.f")	-- Now use ID_Hg2, ID_HgP, and ID_Hg_tot from 
@@ -311,12 +314,15 @@ src_dust_dead		-- SNOW is in mm H2O, divide by 1000 to get m H2O
 srcHg0			-- EHg0_an is now a 2-D array 
 ("mercury_mod.f")	-- Modified for new ocean mercury module
 			-- Now use ID_Hg0 index array from "tracerid_mod.f"
+			-- Now make sure STT does not underflow
 
 srcHg2			-- EHg0_an is now a 2-D array 
 ("mercury_mod.f")	-- Now use ID_Hg2 index array from "tracerid_mod.f".
+			-- Now make sure STT does not underflow
 
 srcHgP			-- EHg0_an is now a 2-D array 
 ("mercury_mod.f")	-- Now use ID_HgP index array from "tracerid_mod.f"
+			-- Now make sure STT does not underflow
 
 total_anthro_tg		-- Now only print totals for defined tracers;
 ("emep_mod.f")             other totals will be printed as zeroes

@@ -1,10 +1,10 @@
-! $Id: ocean_mercury_mod.f,v 1.7 2006/03/24 20:22:55 bmy Exp $
+! $Id: ocean_mercury_mod.f,v 1.8 2006/03/29 15:41:30 bmy Exp $
       MODULE OCEAN_MERCURY_MOD
 !
 !******************************************************************************
 !  Module OCEAN_MERCURY_MOD contains variables and routines needed to compute
 !  the oceanic flux of mercury.  Original code by Sarah Strode at UWA/Seattle.
-!  (sas, bmy, 1/21/05, 3/20/06)
+!  (sas, bmy, 1/21/05, 3/28/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -89,7 +89,7 @@
 !  (1 ) Modified ocean flux w/ Sarah's new Ks value (sas, bmy, 2/24/05)
 !  (2 ) Now get HALFPOLAR for GCAP or GEOS grids (bmy, 6/28/05)
 !  (3 ) Now can read data for both GCAP or GEOS grids (bmy, 8/16/05)
-!  (4 ) Include updates from S. Strode and C. Holmes (cdh, sas, bmy, 3/20/06)
+!  (4 ) Include updates from S. Strode and C. Holmes (cdh, sas, bmy, 3/28/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -120,10 +120,11 @@
       CHARACTER(LEN=255)   :: Hg_RST_FILE
 
       ! Parameters
-      REAL*4,  PARAMETER   :: MAX_RELERR =  5.0d-2
-      REAL*4,  PARAMETER   :: MAX_ABSERR =  5.0d-3
-      REAL*4,  PARAMETER   :: MAX_FLXERR =  5.0d-1 
-      REAL*8,  PARAMETER   :: CDEEP(3)   =  (/ 6d-11, 5d-10, 5d-10 /) 
+      REAL*4,  PARAMETER   :: MAX_RELERR = 5.0d-2
+      REAL*4,  PARAMETER   :: MAX_ABSERR = 5.0d-3
+      REAL*4,  PARAMETER   :: MAX_FLXERR = 5.0d-1 
+      REAL*8,  PARAMETER   :: CDEEP(3)   = (/ 6d-11, 5d-10, 5d-10 /) 
+      REAL*8,  PARAMETER   :: SMALLNUM   = 1d-32
 
       ! Arrays
       REAL*8,  ALLOCATABLE :: DD_Hg2(:,:,:)
@@ -151,7 +152,7 @@
 !******************************************************************************
 !  Subroutine ADD_Hg2_WD computes the amount of Hg(II) dry deposited 
 !  out of the atmosphere into the column array DD_Hg2. 
-!  (sas, cdh, bmy, 1/19/05, 1/9/06)
+!  (sas, cdh, bmy, 1/19/05, 3/28/06)
 ! 
 !  Arguments as Input:
 !  ============================================================================
@@ -162,7 +163,7 @@
 !
 !  NOTES:
 !  (1 ) DD_Hg2 is now a 3-D array.  Also pass N via the argument list. Now 
-!        call GET_Hg2_CAT to return the Hg category #. (cdh, bmy, 1/9/06)
+!        call GET_Hg2_CAT to return the Hg category #. (cdh, bmy, 3/28/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -198,7 +199,7 @@
 !******************************************************************************
 !  Subroutine ADD_Hg2_WD computes the amount of Hg(II) wet scavenged 
 !  out of the atmosphere into the column array WD_Hg2. 
-!  (sas, cdh, bmy, 1/19/05, 1/9/06)
+!  (sas, cdh, bmy, 1/19/05, 3/28/06)
 ! 
 !  Arguments as Input:
 !  ============================================================================
@@ -209,7 +210,7 @@
 !
 !  NOTES:
 !  (1 ) DD_Hg2 is now a 3-D array.  Also pass N via the argument list. Now 
-!        call GET_Hg2_CAT to return the Hg category #. (cdh, bmy, 1/9/06)
+!        call GET_Hg2_CAT to return the Hg category #. (cdh, bmy, 3/28/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -243,7 +244,7 @@
 !
 !******************************************************************************
 !  Subroutine OCEAN_MERCURY_FLUX calculates emissions of Hg(0) from 
-!  the ocean in [kg/s].  (sas, bmy, 1/19/05, 1/9/06)
+!  the ocean in [kg/s].  (sas, bmy, 1/19/05, 3/28/06)
 !
 !  NOTE: The emitted flux may be negative when ocean conc. is very low. 
 !    
@@ -255,7 +256,7 @@
 !  (1 ) Change Ks to make ocean flux for 2001 = 2.03e6 kg/year.
 !        (sas, bmy, 2/24/05)
 !  (2 ) Rewritten to include Sarah Strode's latest ocean Hg model code.
-!        (sas, cdh, bmy, 1/9/06)
+!        (sas, cdh, bmy, 3/28/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -388,9 +389,9 @@
       !--------------------------------------------------------------
       ! Determine Ks (sinking term) [unitless]
       !--------------------------------------------------------------
-      ! Prior to 2/24/05
+      ! Prior to 3/28/06:
       ! Change Ks to make ocean flux for 2001 = 2.03e6 kg/year.
-      ! (sas, bmy, 2/24/05)
+      ! (sas, bmy, 3/28/06)
       !Ks     = 8.4d-7 * DTSRCE 
       !--------------------------------------------------------------
 #if   defined( GEOS_4 )
@@ -408,15 +409,6 @@
       DIFFUSION(1) = 5.0d-5 * 3.0d-12 * MHg * DTSRCE  
       DIFFUSION(2) = 5.0d-5 * 5.0d-12 * MHg * DTSRCE
       DIFFUSION(3) = 5.0d-5 * 5.0d-12 * MHg * DTSRCE
-
-!### Debug output
-!      ! Write Ocean masses to log file
-!      WRITE( 6, 101) SUM( Hg0aq(:,:,ID_Hg_tot) ), 
-!     &               SUM( Hg2aq(:,:,ID_Hg_tot) ),
-!     &               SUM( HgC                  )
-
- 101  FORMAT( '     - TOTAL OCEAN MASS: ',
-     &        'Hg0 ', ES9.2, ' |  Hg2 ', ES9.2, ' |  HgC ', ES9.2 )
 
       ! Loop over latitudes
 !$OMP PARALLEL DO
@@ -719,7 +711,10 @@
                ! Remove amt of Hg(0) that is leaving the ocean [kg]
                !--------------------------------------------------------
                Hg0aq(I,J,NN) = Hg0aq(I,J,NN) - ( FLUX(I,J,NN) * DTSRCE ) 
-               
+
+               ! Make sure Hg0aq does not underflow (cdh, bmy, 3/28/06)
+               Hg0aq(I,J,NN) = MAX( Hg0aq(I,J,NN), SMALLNUM )
+
             ENDDO   
 
             !-----------------------------------------------------------
@@ -787,7 +782,7 @@
 !  Subroutine OCEAN_MERCURY_READ reads in the mixed layer depth, net primary 
 !  productivity, upwelling and radiation climatology for each month.  
 !  This is needed for the ocean flux computation. 
-!  (sas, cdh, bmy, 1/20/05, 1/9/06)
+!  (sas, cdh, bmy, 1/20/05, 3/28/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -795,7 +790,7 @@
 !
 !  NOTES:
 !  (1 ) Modified for S. Strode's latest ocean Hg code.  Now read files
-!        from DATA_DIR_1x1/mercury_200511. (sas, cdh, bmy, 1/9/06)
+!        from DATA_DIR_1x1/mercury_200511. (sas, cdh, bmy, 3/28/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -907,14 +902,14 @@
 !
 !******************************************************************************
 !  Subroutine GET_MLD_FOR_NEXT_MONTH reads the mixed-layer depth (MLD) 
-!  values for the next month. (sas, cdh, bmy, 1/9/06)
+!  values for the next month. (sas, cdh, bmy, 3/28/06)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) THISMONTH (INTEGER) : Current month number (1-12)
 !
 !  NOTES:
-!  (1 ) Now read files from DATA_DIR_1x1/mercury_200511 (bmy, 1/9/06)
+!  (1 ) Now read files from DATA_DIR_1x1/mercury_200511 (bmy, 3/28/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -979,7 +974,7 @@
 !******************************************************************************
 !  Subroutine MLD_ADJUSTMENT entrains new water when mixed layer depth deepens
 !  and conserves concentration (leaves mass behind) when mixed layer shoals.
-!  (sas, cdh, bmy, 4/18/05, 1/9/06)
+!  (sas, cdh, bmy, 4/18/05, 3/28/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1100,7 +1095,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_OCEAN_Hg_RESTART initializes GEOS-CHEM oceanic mercury 
-!  tracer masses from a restart file. (sas, cdh, bmy, 1/9/06)
+!  tracer masses from a restart file. (sas, cdh, bmy, 3/28/06)
 !
 !  Arguments as input:
 !  ============================================================================
@@ -1319,7 +1314,7 @@
 !
 !******************************************************************************
 !  Subroutine CHECK_DIMENSIONS makes sure that the dimensions of the Hg 
-!  restart file extend to cover the entire grid. (sas, cdh, bmy, 12/16/05)
+!  restart file extend to cover the entire grid. (sas, cdh, bmy, 3/28/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1381,7 +1376,7 @@
 !
 !******************************************************************************
 !  Subroutine CHECK_DATA_BLOCKS checks to see if we have multiple or 
-!  missing data blocks for a given tracer. (sas, cdh, bmy, 1/9/06)
+!  missing data blocks for a given tracer. (sas, cdh, bmy, 3/28/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1440,7 +1435,7 @@
 !
 !******************************************************************************
 !  Subroutine MAKE_OCEAN_Hg_RESTART writes an ocean mercury restart file.
-!  (sas, cdh, bmy, 1/9/06)
+!  (sas, cdh, bmy, 3/28/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1589,7 +1584,7 @@
 !******************************************************************************
 !  Subroutine CHECK_ATMOS_MERCURY tests whether the total and tagged tracers 
 !  the GEOS-CHEM tracer array STT sum properly within each grid box.
-!  (cdh, bmy, 2/24/06)
+!  (cdh, bmy, 3/28/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1775,7 +1770,7 @@
 !
 !******************************************************************************
 !  Subroutine CHECK_TAGGED_HG_OC tests whether tagged tracers in Hg0aq and
-!  Hg2aq add properly within each grid box. (cdh, bmy, 2/24/06)
+!  Hg2aq add properly within each grid box. (cdh, bmy, 3/28/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1885,7 +1880,7 @@
 !
 !******************************************************************************
 !  Subroutine CHECK_OCEAN_FLUXES tests whether the drydep and wetdep fluxes in
-!  DD_Hg2 and WD_Hg2 sum together in each grid box. (cdh, bmy, 3/20/06)
+!  DD_Hg2 and WD_Hg2 sum together in each grid box. (cdh, bmy, 3/28/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -2092,7 +2087,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_OCEAN_MERCURY allocates and zeroes module arrays.  
-!  (sas, cdh, bmy, 1/19/05, 2/27/06)
+!  (sas, cdh, bmy, 1/19/05, 3/28/06)
 !
 !  NOTES:
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
@@ -2179,14 +2174,14 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_OCEAN_MERCURY deallocates all arrays.  
-!  (sas, cdh, bmy, 1/20/05, 1/9/06)
+!  (sas, cdh, bmy, 1/20/05, 3/28/06)
 !  
 !  NOTES:
 !  (1 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
 !        value for GEOS or GCAP grids. (bmy, 6/28/05)
 !  (2 ) Now just deallocate arrays.  We have moved the writing of the Hg
 !        restart file to MAKE_OCEAN_Hg_RESTART.  Now also deallocate HgC, dMLD
-!        and MLDav arrays. (sas, cdh, bmy, 1/9/06)
+!        and MLDav arrays. (sas, cdh, bmy, 3/28/06)
 !******************************************************************************
 !
       !=================================================================

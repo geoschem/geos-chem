@@ -1,9 +1,9 @@
-! $Id: mercury_mod.f,v 1.9 2006/03/24 20:22:54 bmy Exp $
+! $Id: mercury_mod.f,v 1.10 2006/03/29 15:41:29 bmy Exp $
       MODULE MERCURY_MOD
 !
 !******************************************************************************
 !  Module MERCURY_MOD contains variables and routines for the GEOS-CHEM 
-!  mercury simulation. (eck, bmy, 12/14/04, 3/16/06)
+!  mercury simulation. (eck, bmy, 12/14/04, 3/28/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -123,7 +123,7 @@
 !  (3 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!  (6 ) Various updates added for tagged Hg sim. (eck, sas, cdh, bmy, 3/16/06)
+!  (6 ) Various updates added for tagged Hg sim. (eck, sas, cdh, bmy, 3/28/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -148,8 +148,8 @@
 
       ! Scalars 
       !-----------------------------------------------
-      ! Prior to 2/24/06:
-      ! This is now in "logical_mod.f" (bmy, 2/24/06)
+      ! Prior to 3/28/06:
+      ! This is now in "logical_mod.f" (bmy, 3/28/06)
       !LOGICAL              :: LDYNOCEAN
       !-----------------------------------------------
       INTEGER              :: ANTHRO_Hg_YEAR
@@ -186,7 +186,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEMMERCURY is the driver routine for mercury chemistry
-!  in the GEOS-CHEM module. (eck, bmy, 12/6/04, 1/9/06)
+!  in the GEOS-CHEM module. (eck, bmy, 12/6/04, 3/28/06)
 !
 !  NOTES:
 !  (1 ) Now references routine GET_PBL_MAX_L from "pbl_mix_mod.f".  Now
@@ -195,7 +195,7 @@
 !        (bmy, 2/24/05)
 !  (2 ) Bug fix: Set T44 to 0e0 for single precision.  Now allow for zero
 !        dry deposition velocity.  Now call INIT_MERCURY from "input_mod.f"
-!        (bmy, 2/24/06)
+!        (bmy, 3/28/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -221,8 +221,8 @@
       !=================================================================
 
       !-----------------------------------------------------------------------
-      ! Prior to 2/24/06:
-      ! Now call INIT_MERCURY from "input_mod.f" (bmy, 2/24/06)
+      ! Prior to 3/28/06:
+      ! Now call INIT_MERCURY from "input_mod.f" (bmy, 3/28/06)
       !! First-time initialization
       !IF ( FIRST ) THEN
       !
@@ -411,8 +411,8 @@
 
       ! K for reaction Hg2 + OH in cm3 s-1 
       !-------------------------------------------------
-      ! Prior to 1/9/06:
-      ! Update value (eck, bmy, 3/16/06)
+      ! Prior to 3/28/06:
+      ! Update value (eck, bmy, 3/28/06)
       !REAL*8, PARAMETER     :: K_HG_OH = 8.7d-14
       !-------------------------------------------------
       REAL*8, PARAMETER     :: K_HG_OH = 7.8d-14
@@ -426,13 +426,13 @@
       ! K for reduction (scaled to budget and OH conc)
       ! eck may change this later
       !-------------------------------------------------
-      ! Prior to 1/9/06:
-      ! Update value (eck, bmy, 3/16/06)
+      ! Prior to 3/28/06:
+      ! Update value (eck, bmy, 3/28/06)
       !REAL*8, PARAMETER     :: Kred    = 2.1d-10
       !-------------------------------------------------
       REAL*8, PARAMETER     :: Kred    = 8.4d-10
      
-      ! K for sea salt (eck, bmy, 1/9/06)
+      ! K for sea salt (eck, bmy, 3/28/06)
       REAL*8, PARAMETER     :: KSalt   = 3.8d-5
 
       ! External functions
@@ -555,7 +555,7 @@
 
                ! Conversion of total Hg(0) --> Hg(II) 
 !--------------------------------------------------------------------------
-! Prior to 2/17/06:  
+! Prior to 3/28/06:  
 ! cdh modification 
 !               CALL RXN_Hg0_Hg2( I,          J,          L,     
 !     &                           ID_Hg0(NN), ID_Hg2(NN), RKT, 
@@ -593,7 +593,7 @@
          ! Compute Hg(II) production from OH and O3 rxns for diagnostic
          !==============================================================
          !------------------------------------------
-         ! Prior to 2/16/06: 
+         ! Prior to 3/28/06: 
          ! cdh modification
          !IF ( LOST_Hg0(ID_Hg_tot) > 0d0 ) THEN
          !------------------------------------------
@@ -603,11 +603,11 @@
             ! They are messed up a little since adding the reduction 
             ! reaction haven't fixed them yet. (eck, 12/7/04)
             !----------------------------------------------------------------
-            ! Prior to 1/9/06:
+            ! Prior to 3/28/06:
             ! Rewrite code below to prevent underflow in ND03 diagnostic
             ! Also note LOST_Hg0_O3 and LOST_Hg0_OH are set to zero at the
             ! top of the loop and will remain so, unless reset below.
-            ! (bmy, 1/9/06)
+            ! (bmy, 3/28/06)
             !! Define new k's here to avoid NaN error in denominator.
             !! (eck, 12/7/04)
             !NK1         = MAX( K1, SMALLNUM )
@@ -625,7 +625,7 @@
 
                ! Production of Hg(II) from O3 rxn [kg]
                !-------------------------------------------------------------
-               ! Prior to 2/16/06:
+               ! Prior to 3/28/06:
                ! cdh modification
                !LOST_Hg0_O3 = ( K1 / ( K1 + K2 ) ) * LOST_Hg0(ID_Hg_tot)
                !-------------------------------------------------------------
@@ -633,7 +633,7 @@
 
                ! Production of Hg(II) from OH rxn [kg]
                !-------------------------------------------------------------
-               ! Prior to 2/16/06:
+               ! Prior to 3/28/06:
                ! cdh modification
                !LOST_Hg0_OH = ( K2 / ( K1 + K2 ) ) * LOST_Hg0(ID_Hg_tot)
                !-------------------------------------------------------------
@@ -745,7 +745,7 @@
 !******************************************************************************
 !  Subroutine RXN_Hg0_Hg2 computes the conversion of Hg(0) to Hg(II) via
 !  an aqueous chemistry reduction reaction.  The formula used below is a s
-!  solution of the 2-box model equation. (eck, bmy, 12/14/04, 2/17/06)
+!  solution of the 2-box model equation. (eck, bmy, 12/14/04, 3/28/06)
 ! 
 !  Arguments as Input:
 !  ============================================================================
@@ -762,7 +762,7 @@
 !
 !  NOTES:
 !  (1  ) Changed equation to reflect reduction rxn.  Also modified to output
-!         the gross oxidation flux. (eck, cdh, bmy, 2/17/06)
+!         the gross oxidation flux. (eck, cdh, bmy, 3/28/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -874,7 +874,7 @@
 !
 !******************************************************************************
 !  Subroutine RXN_Hg2_DRYD computes the new concentration of Hg(II) from the
-!  converted Hg(0) plus the drydep of Hg(II). (eck, bmy, 12/14/04, 2/27/06)
+!  converted Hg(0) plus the drydep of Hg(II). (eck, bmy, 12/14/04, 3/28/06)
 ! 
 !  Arguments as Input:
 !  ============================================================================
@@ -898,7 +898,7 @@
 !         IS_WATER from "dao_mod.f".  Now uses ID_Hg2 and ID_Hg_tot from
 !         "tracerid_mod.f".  Now references LDYNOCEAN from "logical_mod.f".
 !         Now do not call ADD_Hg2_DD if we are not using the dynamic ocean
-!         module. (eck, cdh, bmy, 2/27/06)
+!         module. (eck, cdh, bmy, 3/28/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -971,9 +971,9 @@
 
       ! Archive Hg(II) lost to drydep [kg] for the ocean mercury flux routines
       ! in "ocean_mercury_mod.f" if necessary.  Do not call ADD_Hg2_DD if the 
-      ! dynamic ocean model is turned off. (sas, bmy, 2/27/06)
+      ! dynamic ocean model is turned off. (sas, bmy, 3/28/06)
       !---------------------------------------------------------------------
-      ! Prior to 2/27/06:
+      ! Prior to 3/28/06:
       !IF ( IS_Hg2(N) ) CALL ADD_Hg2_DD( I, J, N, DRYDEP )
       !---------------------------------------------------------------------
       IF ( IS_Hg2(N) .and. LDYNOCEAN ) THEN
@@ -1052,7 +1052,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_HgP is the chemistry subroutine for HgP (particulate
-!  mercury.  HgP is lost via dry deposition. (eck, bmy, 12/7/04, 1/9/06)
+!  mercury.  HgP is lost via dry deposition. (eck, bmy, 12/7/04, 3/28/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1136,7 +1136,7 @@
 !******************************************************************************
 !  Subroutine RXN_Hg0_DRYD computes the new concentration of HgP 
 !  after dry deposition.  ND44 diagnostics are also archived. 
-!  (eck, bmy, 12/14/04, 1/9/06)
+!  (eck, bmy, 12/14/04, 3/28/06)
 ! 
 !  Arguments as Input:
 !  ============================================================================
@@ -1149,7 +1149,7 @@
 !  (1  ) Remove references to "diag_mod.f" and "CMN_DIAG".  Now save drydep
 !         fluxes into T44 array. (bmy, 2/24/05)
 !  (2  ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!  (3  ) Now uses ID_HgP and ID_Hg_tot from "tracerid_mod.f" (cdh, bmy, 1/9/06)
+!  (3  ) Now uses ID_HgP and ID_Hg_tot from "tracerid_mod.f" (cdh, bmy,3/28/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1209,7 +1209,7 @@
 !
 !******************************************************************************
 !  Subroutine EMISSMERCURY is the driver routine for mercury emissions.
-!  (eck, bmy, 12/7/04, 2/24/06)
+!  (eck, bmy, 12/7/04, 3/28/06)
 ! 
 !  NOTES:
 !  (1 ) Now call OCEAN_MERCURY_FLUX from "ocean_mercury_mod.f" to compute 
@@ -1217,7 +1217,7 @@
 !        (sas, bmy, 1/20/05)
 !  (2 ) Now no longer call COMPUTE_FEMIS, since we can get the same information
 !        from routine GET_FRAC_OF_PBL in "pbl_mix_mod.f" (bmy, 2/22/05)
-!  (3 ) Now modified for new ocean mercury module. (cdh, sas, bmy, 2/24/06)
+!  (3 ) Now modified for new ocean mercury module. (cdh, sas, bmy, 3/28/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1241,8 +1241,8 @@
       IF ( FIRST ) THEN
 
          !-------------------------------------------------
-         ! Prior to 2/24/06:
-         ! Now call this from "input_mod.f" (bmy, 2/24/06)
+         ! Prior to 3/28/06:
+         ! Now call this from "input_mod.f" (bmy, 3/28/06)
          !! Allocate arrays (if not done before)
          !CALL INIT_MERCURY
          !-------------------------------------------------
@@ -1286,7 +1286,7 @@
 !******************************************************************************
 !  Subroutine SRCHg0 is the subroutine for Hg(0) emissions.  
 !  Emissions of Hg(0) will be distributed throughout the boundary layer. 
-!  (eck, cdh, bmy, 1/21/05, 1/9/06)
+!  (eck, cdh, bmy, 1/21/05, 3/28/06)
 ! 
 !  Arguments as Input/Output:
 !  ============================================================================
@@ -1297,7 +1297,8 @@
 !  (2 ) Now references GET_FRAC_OF_PBL and GET_PBL_MAX_L from "pbl_mix_mod.f".
 !        Remove reference to FEMIS. (bmy, 2/22/05)
 !  (3 ) EHg0_an is now a 2-D array.  Modified for new ocean mercury module.
-!        Now use ID_Hg0 index array from "tracerid_mod.f" (cdh, bmy, 1/9/06).
+!        Now use ID_Hg0 index array from "tracerid_mod.f".  Now make sure
+!        STT does not underflow. (cdh, bmy, 3/28/06)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -1343,6 +1344,7 @@
 
          !==============================================================
          ! Partition Hg0 throughout PBL; store into STT [kg]
+         ! Now make sure STT does not underflow (cdh, bmy, 3/28/06)
          !==============================================================
 
          ! Loop up to max PBL level
@@ -1371,16 +1373,19 @@
                N            = AN_Hg0(I,J)
                E_Hg         = F_OF_PBL     * T_Hg_an
                STT(I,J,L,N) = STT(I,J,L,N) + ( E_Hg * DTSRCE )
+               STT(I,J,L,N) = MAX( STT(I,J,L,N), SMALLNUM )
 
                ! Land re-emissions of Hg0
                N            = ID_Hg0(ID_Hg_ln)
                E_Hg         = F_OF_PBL     * EHg0_ln(I,J)
                STT(I,J,L,N) = STT(I,J,L,N) + ( E_Hg * DTSRCE ) 
+               STT(I,J,L,N) = MAX( STT(I,J,L,N), SMALLNUM )
 
                ! Natural land sources of Hg0
                N            = ID_Hg0(ID_Hg_nt)
                E_Hg         = F_OF_PBL     * EHg0_nt(I,J)
                STT(I,J,L,N) = STT(I,J,L,N) + ( E_Hg * DTSRCE )
+               STT(I,J,L,N) = MAX( STT(I,J,L,N), SMALLNUM )
 
                !--------------------
                ! Ocean re-emissions
@@ -1390,36 +1395,43 @@
                N            = ID_Hg0(ID_Hg_na)
                E_Hg         = F_OF_PBL     * EHg0_oc(I,J,ID_Hg_na)
                STT(I,J,L,N) = STT(I,J,L,N) + ( E_Hg * DTSRCE )
+               STT(I,J,L,N) = MAX( STT(I,J,L,N), SMALLNUM )
 
                ! Anthro re-emission from ocean in EUROPE
                N            = ID_Hg0(ID_Hg_eu)
                E_Hg         = F_OF_PBL     * EHg0_oc(I,J,ID_Hg_eu)
                STT(I,J,L,N) = STT(I,J,L,N) + ( E_Hg * DTSRCE )
+               STT(I,J,L,N) = MAX( STT(I,J,L,N), SMALLNUM )
 
                ! Anthro re-emission from ocean in ASIA
                N            = ID_Hg0(ID_Hg_as)
                E_Hg         = F_OF_PBL     * EHg0_oc(I,J,ID_Hg_as)
                STT(I,J,L,N) = STT(I,J,L,N) + ( E_Hg * DTSRCE )
+               STT(I,J,L,N) = MAX( STT(I,J,L,N), SMALLNUM )
 
                ! Anthro re-emission from ocean in REST OF WORLD
                N            = ID_Hg0(ID_Hg_rw)
                E_Hg         = F_OF_PBL     * EHg0_oc(I,J,ID_Hg_rw)
                STT(I,J,L,N) = STT(I,J,L,N) + ( E_Hg * DTSRCE )
+               STT(I,J,L,N) = MAX( STT(I,J,L,N), SMALLNUM )
 
                ! Re-emission from ocean in OCEAN 
                N            = ID_Hg0(ID_Hg_oc)
                E_Hg         = F_OF_PBL     * EHg0_oc(I,J,ID_Hg_oc)
                STT(I,J,L,N) = STT(I,J,L,N) + ( E_Hg * DTSRCE )
+               STT(I,J,L,N) = MAX( STT(I,J,L,N), SMALLNUM )
 
                ! Re-emission from ocean in LAND REEMISSION
                N            = ID_Hg0(ID_Hg_ln)
                E_Hg         = F_OF_PBL     * EHg0_oc(I,J,ID_Hg_ln)
                STT(I,J,L,N) = STT(I,J,L,N) + ( E_Hg * DTSRCE )
+               STT(I,J,L,N) = MAX( STT(I,J,L,N), SMALLNUM )
 
                ! Re-emission from ocean in NATURAL
                N            = ID_Hg0(ID_Hg_nt)
                E_Hg         = F_OF_PBL     * EHg0_oc(I,J,ID_Hg_nt)
                STT(I,J,L,N) = STT(I,J,L,N) + ( E_Hg * DTSRCE )
+               STT(I,J,L,N) = MAX( STT(I,J,L,N), SMALLNUM )
                
             ENDIF
          ENDDO
@@ -1449,7 +1461,7 @@
 !******************************************************************************
 !  Subroutine SRCHg2 is the subroutine for Hg(II) emissions.  
 !  Emissions of Hg(II) will be distributed throughout the boundary layer. 
-!  (eck, bmy, 12/7/04, 1/9/06)
+!  (eck, bmy, 12/7/04, 3/28/06)
 ! 
 !  Arguments as Input/Output:
 !  ============================================================================
@@ -1460,7 +1472,8 @@
 !  (2 ) Now references GET_FRAC_OF_PBL and GET_PBL_MAX_L from "pbl_mix_mod.f".
 !        Remove reference to FEMIS. (bmy, 2/22/05)
 !  (3 ) EHg2_an is now a 2-D array.  Now use ID_Hg2 index array from 
-!        "tracerid_mod.f". (eck, cdh, bmy, 1/9/06)
+!        "tracerid_mod.f".  Now make sure STT does not underflow.
+!        (eck, cdh, bmy, 3/28/06)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -1509,6 +1522,7 @@
             !---------------------------
             N               = ID_Hg2(ID_Hg_tot)
             STT(I,J,L,N)    = STT(I,J,L,N) + E_Hg
+            STT(I,J,L,N)    = MAX( STT(I,J,L,N), SMALLNUM )
 
             !---------------------------
             ! Tagged anthro Hg(II) [kg]
@@ -1516,6 +1530,7 @@
             IF ( LSPLIT ) THEN 
                N            = AN_Hg2(I,J)
                STT(I,J,L,N) = STT(I,J,L,N) + E_Hg
+               STT(I,J,L,N) = MAX( STT(I,J,L,N), SMALLNUM )
             ENDIF
          ENDDO
             
@@ -1539,7 +1554,7 @@
 !******************************************************************************
 !  Subroutine SRCHgP is the subroutine for HgP emissions.  
 !  Emissions of HgP will be distributed throughout the boundary layer. 
-!  (eck, bmy, 12/7/04, 1/9/06)
+!  (eck, bmy, 12/7/04, 3/28/06)
 ! 
 !  Arguments as Input/Output:
 !  ============================================================================
@@ -1550,7 +1565,8 @@
 !  (2 ) Now references GET_FRAC_OF_PBL and GET_PBL_MAX_L from "pbl_mix_mod.f".
 !        Remove reference to FEMIS. (bmy, 2/22/05)
 !  (3 ) EHgP_an is now a 2-D array.  Now use ID_HgP index array from 
-!        "tracerid_mod.f". (eck, cdh, bmy, 1/9/06) 
+!        "tracerid_mod.f".  Now make sure STT does not underflow. 
+!        (eck, cdh, bmy, 3/28/06) 
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -1598,6 +1614,7 @@
             !------------------------
             N               = ID_HgP(ID_Hg_tot)
             STT(I,J,L,N)    = STT(I,J,L,N) + E_Hg
+            STT(I,J,L,N)    = MAX( STT(I,J,L,N), SMALLNUM )
 
             !------------------------
             ! Tagged anthro HgP [kg]
@@ -1605,6 +1622,7 @@
             IF ( LSPLIT ) THEN
                N            = AN_HgP(I,J)
                STT(I,J,L,N) = STT(I,J,L,N) + E_Hg
+               STT(I,J,L,N) = MAX( STT(I,J,L,N), SMALLNUM )
             ENDIF
          ENDDO
 
@@ -1628,7 +1646,7 @@
 !
 !******************************************************************************
 !  Subroutine MERCURY_READYR reads the year-invariant emissions for Mercury
-!  from anthropogenic, ocean, and land sources. (eck, bmy, 12/6/04, 3/16/06)
+!  from anthropogenic, ocean, and land sources. (eck, bmy, 12/6/04, 3/28/06)
 !  
 !  NOTES:
 !  (1 ) Now read data from mercury_200501 subdirectory.  Now compute oceanic 
@@ -1638,7 +1656,7 @@
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Now read anthro emissions on GEOS 1x1 grid in DATA_1x1_DIR.  Also
 !        keep 2x25 and 4x5 files together in DATA_1x1_DIR.  Also now use new
-!        land re-emissions files from Noelle Selin. (eck, bmy, 3/16/06)
+!        land re-emissions files from Noelle Selin. (eck, bmy, 3/28/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1757,8 +1775,8 @@
       ! Filename for re-emitted anthropogenic mercury
       FILENAME = TRIM( DATA_DIR_1x1 ) // 
 !-----------------------------------------------------------------------------
-! Prior to 3/14/06:
-! Now use better land-re-emissions files from Noelle (bmy, 3/16/06)
+! Prior to 3/28/06:
+! Now use better land-re-emissions files from Noelle (bmy, 3/28/06)
 !     &           'mercury_200511/Hg_land.' // GET_NAME_EXT_2D() //
 !     &           '.'                       // GET_RES_EXT()   
 !-----------------------------------------------------------------------------
@@ -1776,11 +1794,21 @@
       ! Cast to REAL*8 and resize
       CALL TRANSFER_2D( ARRAY(:,:,1), EHg0_ln )
 
-      ! Quick fix: change total amt from 2000 to 1500
-      EHg0_ln = EHg0_ln * 0.75d0
-      
-      ! Convert from [kg/yr] to [kg/s]
-      EHg0_ln = EHg0_ln / SEC_PER_YR
+      !----------------------------------------------------------------
+      ! Prior to 3/28/06:
+      ! We no longer need to multiply land re-emissions by 0.75 
+      ! (eck, bmy, 3/28/06)
+      !! Quick fix: change total amt from 2000 to 1500
+      !EHg0_ln = EHg0_ln * 0.75d0
+      !----------------------------------------------------------------
+      ! Prior to 3/28/06:
+      ! Now need to convert from [Mg/yr] to [kg/s] (eck, bmy, 3/28/06)
+      !! Convert from [kg/yr] to [kg/s]
+      !EHg0_ln = EHg0_ln / SEC_PER_YR
+      !----------------------------------------------------------------
+
+      ! Convert from [Mg/yr] to [kg/s]
+      EHg0_ln = EHg0_ln * 1000d0 / SEC_PER_YR 
 
       !=================================================================
       ! Read annual emissions of Hg(0) from natural land sources [kg/s]
@@ -2237,11 +2265,11 @@
 !  anthropogenic (by geographic region) Hg0, Hg2, and HgP.  The position of 
 !  Hg2 and HgP in the DEPSAV array is also computed for future use.  This 
 !  routine only has to be called once at the start of the simulation. 
-!  (eck, cdh, bmy, 12/15/04, 1/9/06)
+!  (eck, cdh, bmy, 12/15/04, 3/28/06)
 !
 !  NOTES:
 !  (1 ) Now only define AN_Hg0, AN_Hg2, AN_HgP.  Now use ID_Hg0, ID_Hg2, and
-!        ID_HgP index arrays from "tracerid_mod.f". (eck, cdh, bmy, 1/9/06)
+!        ID_HgP index arrays from "tracerid_mod.f". (eck, cdh, bmy, 3/28/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2361,14 +2389,14 @@
 !
 !******************************************************************************
 !  Subroutine INIT_MERCURY allocates and zeroes all module arrays.
-!  (eck, cdh, sas, bmy, 12/2/04, 1/9/06)
+!  (eck, cdh, sas, bmy, 12/2/04, 3/28/06)
 !  
 !  NOTES:
 !  (1 ) Removed reference to FEMIS array.  Now also allocates and zeroes
 !        the T44 array.  Added reference to CMN_DIAG.  Now references 
 !        N_TRACERS from "tracer_mod.f". (bmy, 2/24/05)
 !  (2 ) EHg0_an, EHg2_an, EHgP_an are now 2-D arrays.  Now modified for 
-!        updated ocean mercury module. (eck, cdh, sas, bmy, 1/9/06)
+!        updated ocean mercury module. (eck, cdh, sas, bmy, 3/28/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2505,7 +2533,7 @@
 
          ! Temporary array for ND44 diagnosti
          !----------------------------------------------------------------
-         ! Prior to 2/27/06:
+         ! Prior to 3/28/06:
          ! For now, comment this out so that MERCURY MENU can be placed
          ! above the DIAGNOSTIC MENU in "input.geos" (bmy, 2/27/06)
          !IF ( ND44 > 0 ) THEN
@@ -2514,7 +2542,7 @@
             IF ( AS /= 0 ) CALL ALLOC_ERR( 'T44' )
             T44 = 0e0
          !----------------------------------------------------------------
-         ! Prior to 2/27/06:
+         ! Prior to 3/28/06:
          ! For now, comment this out so that MERCURY MENU can be placed
          ! above the DIAGNOSTIC MENU in "input.geos" (bmy, 2/27/06)
          !ENDIF

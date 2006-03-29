@@ -1,4 +1,4 @@
-! $Id: gcap_convect_mod.f,v 1.4 2006/03/24 20:22:48 bmy Exp $
+! $Id: gcap_convect_mod.f,v 1.5 2006/03/29 15:41:29 bmy Exp $
       MODULE GCAP_CONVECT_MOD
 !
 !******************************************************************************
@@ -110,7 +110,6 @@
       INTEGER, INTENT(IN)    :: NTRACE 
       REAL*8,  INTENT(IN)    :: TDT                
       REAL*8,  INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NTRACE)          
-      INTEGER, INTENT(IN)    :: NTRACE 
       REAL*8,  INTENT(IN)    :: DP(IIPAR,JJPAR,LLPAR)     
       INTEGER, INTENT(IN)    :: NSTEP
       REAL*8,  INTENT(IN)    :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 

@@ -1,11 +1,11 @@
-! $Id: fvdas_convect_mod.f,v 1.10 2006/03/24 20:22:47 bmy Exp $
+! $Id: fvdas_convect_mod.f,v 1.11 2006/03/29 15:41:28 bmy Exp $
       MODULE FVDAS_CONVECT_MOD
 !
 !******************************************************************************
 !  Module FVDAS_CONVECT_MOD contains routines (originally from NCAR) which 
 !  perform shallow and deep convection for the GEOS-4/fvDAS met fields.  
 !  These routines account for shallow and deep convection, plus updrafts 
-!  and downdrafts.  (pjr, dsa, bmy, 6/26/03, 2/1/06)
+!  and downdrafts.  (pjr, dsa, bmy, 6/26/03, 3/28/06)
 !  
 !  Module Variables:
 !  ============================================================================
@@ -39,6 +39,7 @@
 !  (3 ) Now pass wet-scavenged Hg2 to "ocean_mercury_mod.f" (sas, bmy, 1/21/05)
 !  (4 ) Rewrote parallel loops to avoid problems w/ OpenMP.  Also modified
 !        for updated Hg simulation. (cdh, bmy, 2/1/06)
+!  (5 ) Rewrote DO loops in HACK_CONV for better optmization (bmy, 3/28/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -284,13 +285,199 @@
       END SUBROUTINE FVDAS_CONVECT
 
 !------------------------------------------------------------------------------
+! Prior to 3/28/06:
+! Rewrite DO loops for optimization, especially for Intel IFORT v9
+! compiler. (bmy, 3/28/06)
+!
+!      SUBROUTINE HACK_CONV( J, TDT, RPDEL, ETA, BETA, NTRACE, Q )
+!!
+!!******************************************************************************
+!!  Subroutine HACK_CONV computes the convective mass flux adjustment to all 
+!!  tracers using the convective mass fluxes and overshoot parameters for the 
+!!  Hack scheme. (pjr, dsa, bmy, 6/26/03, 12/13/05)
+!! 
+!!  Arguments as Input:
+!!  ============================================================================
+!!  (1 ) J      (INTEGER) : GEOS-CHEM Latitude index               [unitless]
+!!  (2 ) TDT    (REAL*8)  : 2 delta-t                              [s       ]
+!!  (3 ) RPDEL  (REAL*8)  : Reciprocal of pressure-thickness array [1/hPa   ]
+!!  (4 ) ETA    (REAL*8)  : GMAO Hack convective mass flux (HKETA) [kg/m2/s ]
+!!  (5 ) BETA   (REAL*8)  : GMAO Hack overshoot parameter (HKBETA) [unitless]
+!!  (6 ) NTRACE (INTEGER) : Number of tracers in the Q array       [unitless]
+!!  (7 ) Q      (REAL*8)  : Tracer concentrations                  [v/v     ]   
+!!  
+!!  Arguments as Output:
+!!  ============================================================================
+!!  (7 ) Q      (REAL*8)  : Modified tracer concentrations         [v/v     ]
+!!
+!!  Important Local Variables:
+!!  ============================================================================
+!!  (1 ) INDX1  (INTEGER) : Longitude indices for condition true
+!!  (2 ) ADJFAC (REAL*8 ) : Adjustment factor (relaxation related)
+!!  (3 ) BOTFLX (REAL*8 ) : Bottom constituent mixing ratio flux
+!!  (4 ) CMRC   (REAL*8 ) : constituent mix rat ("in-cloud")
+!!  (5 ) CMRH   (REAL*8 ) : interface constituent mixing ratio 
+!!  (6 ) DCMR1  (REAL*8 ) : Q convective change (lower lvl)
+!!  (7 ) DCMR2  (REAL*8 ) : Q convective change (mid level)
+!!  (8 ) DCMR3  (REAL*8 ) : Q convective change (upper lvl)
+!!  (9 ) EFAC1  (REAL*8 ) : Ratio q to convectively induced chg (btm lvl)
+!!  (10) EFAC2  (REAL*8 ) : Ratio q to convectively induced chg (mid lvl)
+!!  (11) EFAC3  (REAL*8 ) : Ratio q to convectively induced chg (top lvl)
+!!  (12) ETAGDT (REAL*8 ) : ETA * GRAV * DT
+!!  (13) TOPFLX (REAL*8 ) : Top constituent mixing ratio flux
+!!
+!!  NOTES:
+!!  (1 ) Updated comments.  Added NTRACE as an argument.  Now also force 
+!!        double-precision with the "D" exponents.  (bmy, 6/26/03)
+!!  (2 ) Now pass J via the arg list.  Now dimension RPDEL, ETA, BETA, and Q
+!!        with and make all input arrays dimensioned
+!!        with (IIPAR,JJPAR,LLPAR,...) to avoid seg fault error in OpenMP
+!!        on certain platforms.
+!!******************************************************************************
+!!
+!#     include "CMN_SIZE"      ! Size parameters
+!
+!      ! Arguments
+!      INTEGER, INTENT(IN)    :: J, NTRACE
+!      REAL*8,  INTENT(IN)    :: TDT
+!      REAL*8,  INTENT(IN)    :: RPDEL(IIPAR,JJPAR,LLPAR)
+!      REAL*8,  INTENT(IN)    :: ETA(IIPAR,JJPAR,LLPAR)
+!      REAL*8,  INTENT(IN)    :: BETA(IIPAR,JJPAR,LLPAR)
+!      REAL*8,  INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NTRACE)
+!
+!      ! Local variables
+!      INTEGER                :: I, II, K, LEN1, M
+!      INTEGER                :: INDX1(IIPAR)
+!      REAL*8                 :: ADJFAC, BOTFLX, TOPFLX              
+!      REAL*8                 :: EFAC1,  EFAC2,  EFAC3
+!      REAL*8                 :: CMRC(IIPAR)         
+!      REAL*8                 :: CMRH(IIPAR,LLPAR+1)   
+!      REAL*8                 :: DCMR1(IIPAR)        
+!      REAL*8                 :: DCMR2(IIPAR)        
+!      REAL*8                 :: DCMR3(IIPAR)        
+!      REAL*8                 :: ETAGDT(IIPAR)      
+!
+!      !=================================================================
+!      ! HACK_CONV begins here!
+!      !
+!      ! Ensure that characteristic adjustment time scale (cmftau) 
+!      ! assumed in estimate of eta isn't smaller than model time scale 
+!      ! (tdt).  The time over which the convection is assumed to act 
+!      ! (the adjustment time scale) can be applied with each application 
+!      ! of the three-level cloud model, or applied to the column 
+!      ! tendencies after a "hard" adjustment (i.e., on a 2-delta t 
+!      ! time scale) is evaluated
+!      !=================================================================
+!      IF ( RLXCLM ) THEN
+!         ADJFAC = TDT / ( MAX( TDT, CMFTAU ) )
+!      ELSE
+!         ADJFAC = 1.0D0
+!      ENDIF
+!
+!      !=================================================================
+!      ! Begin moist convective mass flux adjustment procedure. 
+!      ! The formalism ensures that negative cloud liquid water can 
+!      ! never occur.
+!      !=================================================================
+!      DO 70 K = LLPAR-1, LIMCNV+1, -1
+!         LEN1 = 0
+!         DO I = 1, IIPAR
+!            IF ( ETA(I,J,K) /= 0.0 ) THEN
+!               ETAGDT(I)   = ETA(I,J,K) * GRAV * TDT *0.01d0  ![hPa]
+!               LEN1        = LEN1 + 1
+!               INDX1(LEN1) = I
+!            ELSE
+!               ETAGDT(I)   = 0.0d0
+!            ENDIF
+!         ENDDO
+!         
+!         ! Skip to next level
+!         IF ( LEN1 <= 0 ) GOTO 70
+!
+!         !==============================================================
+!         ! Next, convectively modify passive constituents.  For now, 
+!         ! when applying relaxation time scale to thermal fields after 
+!         ! entire column has undergone convective overturning, 
+!         ! constituents will be mixed using a "relaxed" value of the mass
+!         ! flux determined above.  Although this will be inconsistent 
+!         ! with the treatment of the thermal fields, it's computationally 
+!         ! much cheaper, no more-or-less justifiable, and consistent with 
+!         ! how the history tape mass fluxes would be used in an off-line 
+!         ! mode (i.e., using an off-line transport model)
+!         !==============================================================
+!         DO 50 M = 1, NTRACE
+!            DO 40 II = 1, LEN1
+!               I = INDX1(II)
+!
+!               ! If any of the reported values of the constituent is 
+!               ! negative in the three adjacent levels, nothing will 
+!               ! be done to the profile.  Skip to next longitude.
+!               IF ( ( Q(I,J,K+1,M) < 0.0 )  .OR. 
+!     &              ( Q(I,J,K,M)   < 0.0 )  .OR.
+!     &              ( Q(I,J,K-1,M) < 0.0 ) ) GOTO 40
+!
+!               ! Specify constituent interface values (linear interpolation)
+!               CMRH(I,K  ) = 0.5d0 *( Q(I,J,K-1,M) + Q(I,J,K  ,M) )
+!               CMRH(I,K+1) = 0.5d0 *( Q(I,J,K  ,M) + Q(I,J,K+1,M) )
+!              
+!               CMRC(I) = Q(I,J,K+1,M)
+!
+!               ! Determine fluxes, flux divergence => changes due to 
+!               ! convection.  Logic must be included to avoid producing 
+!               ! negative values. A bit messy since there are no a priori 
+!               ! assumptions about profiles.  Tendency is modified (reduced) 
+!               ! when pending disaster detected.
+!               BOTFLX   = ETAGDT(I)*(CMRC(I) - CMRH(I,K+1))*ADJFAC
+!               TOPFLX   = BETA(I,J,K)*ETAGDT(I)*
+!     &                    (CMRC(I)-CMRH(I,K))*ADJFAC
+!               DCMR1(I) = -BOTFLX*RPDEL(I,J,K+1)
+!               EFAC1    = 1.0d0
+!               EFAC2    = 1.0d0
+!               EFAC3    = 1.0d0
+!               
+!               IF ( Q(I,J,K+1,M)+DCMR1(I) < 0.0 ) THEN
+!                  EFAC1 = MAX(TINYALT,ABS(Q(I,J,K+1,M)/DCMR1(I)) - EPS)
+!               ENDIF
+!
+!               IF ( EFAC1 == TINYALT .OR. EFAC1 > 1.0 ) EFAC1 = 0.0D0
+!               DCMR1(I) = -EFAC1*BOTFLX*RPDEL(I,J,K+1)
+!               DCMR2(I) = (EFAC1*BOTFLX - TOPFLX)*RPDEL(I,J,K)
+!               
+!               IF ( Q(I,J,K,M)+DCMR2(I) < 0.0 ) THEN
+!                  EFAC2 = MAX(TINYALT,ABS(Q(I,J,K,M)/DCMR2(I)) - EPS)
+!               ENDIF
+!               
+!               IF ( EFAC2 == TINYALT .OR. EFAC2 > 1.0 ) EFAC2 = 0.0D0
+!               DCMR2(I) = (EFAC1*BOTFLX - EFAC2*TOPFLX)*RPDEL(I,J,K)
+!               DCMR3(I) = EFAC2*TOPFLX*RPDEL(I,J,K-1)
+!
+!               IF ( Q(I,J,K-1,M)+DCMR3(I) < 0.0 ) THEN
+!                  EFAC3 = MAX(TINYALT,ABS(Q(I,J,K-1,M)/DCMR3(I)) - EPS)
+!               ENDIF
+!
+!               IF ( EFAC3 == TINYALT .OR. EFAC3 > 1.0 ) EFAC3 = 0.0D0
+!               EFAC3    = MIN(EFAC2,EFAC3)
+!               DCMR2(I) = (EFAC1*BOTFLX - EFAC3*TOPFLX)*RPDEL(I,J,K)
+!               DCMR3(I) = EFAC3*TOPFLX*RPDEL(I,J,K-1)
+!               
+!               Q(I,J,K+1,M) = Q(I,J,K+1,M) + DCMR1(I)
+!               Q(I,J,K  ,M) = Q(I,J,K  ,M) + DCMR2(I)
+!               Q(I,J,K-1,M) = Q(I,J,K-1,M) + DCMR3(I)
+! 40         CONTINUE
+! 50      CONTINUE
+! 70   CONTINUE
+!      
+!      ! Return to calling program
+!      END SUBROUTINE HACK_CONV
+!
+!------------------------------------------------------------------------------
 
       SUBROUTINE HACK_CONV( J, TDT, RPDEL, ETA, BETA, NTRACE, Q )
 !
 !******************************************************************************
 !  Subroutine HACK_CONV computes the convective mass flux adjustment to all 
 !  tracers using the convective mass fluxes and overshoot parameters for the 
-!  Hack scheme. (pjr, dsa, bmy, 6/26/03, 12/13/05)
+!  Hack scheme. (pjr, dsa, bmy, 6/26/03, 3/28/06)
 ! 
 !  Arguments as Input:
 !  ============================================================================
@@ -308,19 +495,18 @@
 !
 !  Important Local Variables:
 !  ============================================================================
-!  (1 ) INDX1  (INTEGER) : Longitude indices for condition true
-!  (2 ) ADJFAC (REAL*8 ) : Adjustment factor (relaxation related)
-!  (3 ) BOTFLX (REAL*8 ) : Bottom constituent mixing ratio flux
-!  (4 ) CMRC   (REAL*8 ) : constituent mix rat ("in-cloud")
-!  (5 ) CMRH   (REAL*8 ) : interface constituent mixing ratio 
-!  (6 ) DCMR1  (REAL*8 ) : Q convective change (lower lvl)
-!  (7 ) DCMR2  (REAL*8 ) : Q convective change (mid level)
-!  (8 ) DCMR3  (REAL*8 ) : Q convective change (upper lvl)
-!  (9 ) EFAC1  (REAL*8 ) : Ratio q to convectively induced chg (btm lvl)
-!  (10) EFAC2  (REAL*8 ) : Ratio q to convectively induced chg (mid lvl)
-!  (11) EFAC3  (REAL*8 ) : Ratio q to convectively induced chg (top lvl)
-!  (12) ETAGDT (REAL*8 ) : ETA * GRAV * DT
-!  (13) TOPFLX (REAL*8 ) : Top constituent mixing ratio flux
+!  (1 ) ADJFAC (REAL*8 ) : Adjustment factor (relaxation related)
+!  (2 ) BOTFLX (REAL*8 ) : Bottom constituent mixing ratio flux
+!  (3 ) CMRC   (REAL*8 ) : Constituent mixing ratio ("in-cloud")
+!  (4 ) CMRH   (REAL*8 ) : Interface constituent mixing ratio 
+!  (5 ) DCMR1  (REAL*8 ) : Q convective change (lower level)
+!  (6 ) DCMR2  (REAL*8 ) : Q convective change (mid level)
+!  (7 ) DCMR3  (REAL*8 ) : Q convective change (upper level)
+!  (8 ) EFAC1  (REAL*8 ) : Ratio q to convectively induced change (bot level)
+!  (9 ) EFAC2  (REAL*8 ) : Ratio q to convectively induced change (mid level)
+!  (10) EFAC3  (REAL*8 ) : Ratio q to convectively induced change (top level)
+!  (11) ETAGDT (REAL*8 ) : ETA * GRAV * DT
+!  (12) TOPFLX (REAL*8 ) : Top constituent mixing ratio flux
 !
 !  NOTES:
 !  (1 ) Updated comments.  Added NTRACE as an argument.  Now also force 
@@ -329,6 +515,9 @@
 !        with and make all input arrays dimensioned
 !        with (IIPAR,JJPAR,LLPAR,...) to avoid seg fault error in OpenMP
 !        on certain platforms.
+!  (3 ) Rewrote DO loops and changed 1-D arrays into scalars in order to
+!        improve optimization, particularly for the Intel IFORT v9 compiler.
+!        (bmy, 3/28/06)
 !******************************************************************************
 !
 #     include "CMN_SIZE"      ! Size parameters
@@ -342,19 +531,14 @@
       REAL*8,  INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NTRACE)
 
       ! Local variables
-      INTEGER                :: I, II, K, LEN1, M
-      INTEGER                :: INDX1(IIPAR)
+      INTEGER                :: I,      K,      M
       REAL*8                 :: ADJFAC, BOTFLX, TOPFLX              
       REAL*8                 :: EFAC1,  EFAC2,  EFAC3
-      REAL*8                 :: CMRC(IIPAR)         
-      REAL*8                 :: CMRH(IIPAR,LLPAR+1)   
-      REAL*8                 :: DCMR1(IIPAR)        
-      REAL*8                 :: DCMR2(IIPAR)        
-      REAL*8                 :: DCMR3(IIPAR)        
-      REAL*8                 :: ETAGDT(IIPAR)      
+      REAL*8                 :: CMRC,   DCMR1,  DCMR2        
+      REAL*8                 :: DCMR3,  ETAGDT, CMRH(IIPAR,LLPAR+1)   
 
       !=================================================================
-      ! HACK_CONV begins here!
+      ! HACK_CONV begins here! 
       !
       ! Ensure that characteristic adjustment time scale (cmftau) 
       ! assumed in estimate of eta isn't smaller than model time scale 
@@ -362,34 +546,52 @@
       ! (the adjustment time scale) can be applied with each application 
       ! of the three-level cloud model, or applied to the column 
       ! tendencies after a "hard" adjustment (i.e., on a 2-delta t 
-      ! time scale) is evaluated
+      ! time scale) is evaluated     
       !=================================================================
       IF ( RLXCLM ) THEN
          ADJFAC = TDT / ( MAX( TDT, CMFTAU ) )
       ELSE
-         ADJFAC = 1.0D0
+         ADJFAC = 1d0
       ENDIF
 
       !=================================================================
       ! Begin moist convective mass flux adjustment procedure. 
       ! The formalism ensures that negative cloud liquid water can 
       ! never occur.
+      !
+      ! Rewrote DO loops and changed 1-D arrays into scalars in order
+      ! to optimization, esp. for Intel IFORT compiler. (bmy, 3/28/06)
       !=================================================================
-      DO 70 K = LLPAR-1, LIMCNV+1, -1
-         LEN1 = 0
-         DO I = 1, IIPAR
-            IF ( ETA(I,J,K) /= 0.0 ) THEN
-               ETAGDT(I)   = ETA(I,J,K) * GRAV * TDT *0.01d0  ![hPa]
-               LEN1        = LEN1 + 1
-               INDX1(LEN1) = I
-            ELSE
-               ETAGDT(I)   = 0.0d0
-            ENDIF
-         ENDDO
-         
-         ! Skip to next level
-         IF ( LEN1 <= 0 ) GOTO 70
+      
+      ! Loop over tracers
+      DO M = 1, NTRACE
 
+         ! Initialize
+         CMRH(:,:) = 0d0
+
+      ! Loop over levels and longitudes
+      DO K = LLPAR-1, LIMCNV+1, -1
+      DO I = 1,       IIPAR
+
+         ! Initialize
+         ETAGDT    = 0d0
+         CMRC      = 0d0
+         BOTFLX    = 0d0
+         TOPFLX    = 0d0
+         EFAC1     = 0d0
+         EFAC2     = 0d0
+         EFAC3     = 0d0
+         DCMR1     = 0d0
+         DCMR2     = 0d0
+         DCMR3     = 0d0
+         
+         ! Only proceed for boxes with nonzero mass flux
+         IF ( ETA(I,J,K) > 0d0 ) THEN
+            ETAGDT = ETA(I,J,K) * GRAV * TDT * 0.01d0   ![hPa]
+         ELSE
+            CYCLE
+         ENDIF
+         
          !==============================================================
          ! Next, convectively modify passive constituents.  For now, 
          ! when applying relaxation time scale to thermal fields after 
@@ -401,67 +603,67 @@
          ! how the history tape mass fluxes would be used in an off-line 
          ! mode (i.e., using an off-line transport model)
          !==============================================================
-         DO 50 M = 1, NTRACE
-            DO 40 II = 1, LEN1
-               I = INDX1(II)
 
-               ! If any of the reported values of the constituent is 
-               ! negative in the three adjacent levels, nothing will 
-               ! be done to the profile.  Skip to next longitude.
-               IF ( ( Q(I,J,K+1,M) < 0.0 )  .OR. 
-     &              ( Q(I,J,K,M)   < 0.0 )  .OR.
-     &              ( Q(I,J,K-1,M) < 0.0 ) ) GOTO 40
-
-               ! Specify constituent interface values (linear interpolation)
-               CMRH(I,K  ) = 0.5d0 *( Q(I,J,K-1,M) + Q(I,J,K  ,M) )
-               CMRH(I,K+1) = 0.5d0 *( Q(I,J,K  ,M) + Q(I,J,K+1,M) )
+         ! If any of the reported values of the constituent is 
+         ! negative in the three adjacent levels, nothing will 
+         ! be done to the profile.  Skip to next longitude.
+         IF ( ( Q(I,J,K+1,M) < 0d0 )  .OR. 
+     &        ( Q(I,J,K,  M) < 0d0 )  .OR.
+     &        ( Q(I,J,K-1,M) < 0d0 ) ) CYCLE
+         
+         ! Specify constituent interface values (linear interpolation)
+         CMRH(I,K  ) = 0.5d0 *( Q(I,J,K-1,M) + Q(I,J,K  ,M) )
+         CMRH(I,K+1) = 0.5d0 *( Q(I,J,K  ,M) + Q(I,J,K+1,M) )
               
-               CMRC(I) = Q(I,J,K+1,M)
+         ! In-cloud mixing ratio
+         CMRC        = Q(I,J,K+1,M)
 
-               ! Determine fluxes, flux divergence => changes due to 
-               ! convection.  Logic must be included to avoid producing 
-               ! negative values. A bit messy since there are no a priori 
-               ! assumptions about profiles.  Tendency is modified (reduced) 
-               ! when pending disaster detected.
-               BOTFLX   = ETAGDT(I)*(CMRC(I) - CMRH(I,K+1))*ADJFAC
-               TOPFLX   = BETA(I,J,K)*ETAGDT(I)*
-     &                    (CMRC(I)-CMRH(I,K))*ADJFAC
-               DCMR1(I) = -BOTFLX*RPDEL(I,J,K+1)
-               EFAC1    = 1.0d0
-               EFAC2    = 1.0d0
-               EFAC3    = 1.0d0
+         ! Determine fluxes, flux divergence => changes due to convection.  
+         ! Logic must be included to avoid producing negative values. 
+         ! A bit messy since there are no a priori assumptions about profiles.
+         ! Tendency is modified (reduced) when pending disaster detected.
+         BOTFLX = ETAGDT * ( CMRC - CMRH(I,K+1) ) * ADJFAC
+         TOPFLX = BETA(I,J,K) * ETAGDT * ( CMRC - CMRH(I,K) ) * ADJFAC
+         DCMR1  = -BOTFLX * RPDEL(I,J,K+1)
+         EFAC1  = 1.0d0
+         EFAC2  = 1.0d0
+         EFAC3  = 1.0d0
                
-               IF ( Q(I,J,K+1,M)+DCMR1(I) < 0.0 ) THEN
-                  EFAC1 = MAX(TINYALT,ABS(Q(I,J,K+1,M)/DCMR1(I)) - EPS)
-               ENDIF
+         ! K+1th level
+         IF ( Q(I,J,K+1,M) + DCMR1 < 0d0 ) THEN
+            EFAC1 = MAX( TINYALT, ABS( Q(I,J,K+1,M) / DCMR1 ) - EPS )
+         ENDIF
 
-               IF ( EFAC1 == TINYALT .OR. EFAC1 > 1.0 ) EFAC1 = 0.0D0
-               DCMR1(I) = -EFAC1*BOTFLX*RPDEL(I,J,K+1)
-               DCMR2(I) = (EFAC1*BOTFLX - TOPFLX)*RPDEL(I,J,K)
+         IF ( EFAC1 == TINYALT .or. EFAC1 > 1d0 ) EFAC1 = 0d0
+         DCMR1 =  -EFAC1 * BOTFLX            * RPDEL(I,J,K+1)
+         DCMR2 = ( EFAC1 * BOTFLX - TOPFLX ) * RPDEL(I,J,K)
                
-               IF ( Q(I,J,K,M)+DCMR2(I) < 0.0 ) THEN
-                  EFAC2 = MAX(TINYALT,ABS(Q(I,J,K,M)/DCMR2(I)) - EPS)
-               ENDIF
+         ! Kth level
+         IF ( Q(I,J,K,M) + DCMR2 < 0d0 ) THEN
+            EFAC2 = MAX( TINYALT, ABS( Q(I,J,K,M) / DCMR2 ) - EPS )
+         ENDIF
                
-               IF ( EFAC2 == TINYALT .OR. EFAC2 > 1.0 ) EFAC2 = 0.0D0
-               DCMR2(I) = (EFAC1*BOTFLX - EFAC2*TOPFLX)*RPDEL(I,J,K)
-               DCMR3(I) = EFAC2*TOPFLX*RPDEL(I,J,K-1)
+         IF ( EFAC2 == TINYALT .or. EFAC2 > 1d0 ) EFAC2 = 0d0
+         DCMR2 = ( EFAC1 * BOTFLX - EFAC2 * TOPFLX ) * RPDEL(I,J,K)
+         DCMR3 =                    EFAC2 * TOPFLX   * RPDEL(I,J,K-1)
+         
+         ! K-1th level
+         IF ( Q(I,J,K-1,M) + DCMR3 < 0d0 ) THEN
+            EFAC3 = MAX( TINYALT, ABS( Q(I,J,K-1,M) / DCMR3 ) - EPS )
+         ENDIF
 
-               IF ( Q(I,J,K-1,M)+DCMR3(I) < 0.0 ) THEN
-                  EFAC3 = MAX(TINYALT,ABS(Q(I,J,K-1,M)/DCMR3(I)) - EPS)
-               ENDIF
-
-               IF ( EFAC3 == TINYALT .OR. EFAC3 > 1.0 ) EFAC3 = 0.0D0
-               EFAC3    = MIN(EFAC2,EFAC3)
-               DCMR2(I) = (EFAC1*BOTFLX - EFAC3*TOPFLX)*RPDEL(I,J,K)
-               DCMR3(I) = EFAC3*TOPFLX*RPDEL(I,J,K-1)
+         IF ( EFAC3 == TINYALT .or. EFAC3 > 1d0 ) EFAC3 = 0d0
+         EFAC3 = MIN( EFAC2, EFAC3 )
+         DCMR2 = ( EFAC1 * BOTFLX - EFAC3 * TOPFLX ) * RPDEL(I,J,K)
+         DCMR3 =                    EFAC3 * TOPFLX   * RPDEL(I,J,K-1)
                
-               Q(I,J,K+1,M) = Q(I,J,K+1,M) + DCMR1(I)
-               Q(I,J,K  ,M) = Q(I,J,K  ,M) + DCMR2(I)
-               Q(I,J,K-1,M) = Q(I,J,K-1,M) + DCMR3(I)
- 40         CONTINUE
- 50      CONTINUE
- 70   CONTINUE
+         ! Save back into tracer array (levels K+1, K, K-1)
+         Q(I,J,K+1,M) = Q(I,J,K+1,M) + DCMR1
+         Q(I,J,K  ,M) = Q(I,J,K  ,M) + DCMR2
+         Q(I,J,K-1,M) = Q(I,J,K-1,M) + DCMR3
+      ENDDO
+      ENDDO
+      ENDDO
       
       ! Return to calling program
       END SUBROUTINE HACK_CONV
