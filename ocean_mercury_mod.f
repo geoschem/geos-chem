@@ -1,4 +1,4 @@
-! $Id: ocean_mercury_mod.f,v 1.8 2006/03/29 15:41:30 bmy Exp $
+! $Id: ocean_mercury_mod.f,v 1.9 2006/03/29 19:50:19 bmy Exp $
       MODULE OCEAN_MERCURY_MOD
 !
 !******************************************************************************
@@ -401,7 +401,12 @@
 #endif  
 
       ! Hg2 --> colloidal conversion rate
-      Kc = 3.1d-22 * DTSRCE    
+      !--------------------------------------------------------------------
+      ! Prior to 3/28/06:
+      ! Change coefficient based on new ocean tuning (sas, bmy, 3/28/06) 
+      !Kc = 3.1d-22 * DTSRCE    
+      !--------------------------------------------------------------------
+      Kc = 7.5d-22 * DTSRCE    
 
       ! Diffused mass of (Hg0, Hg2, HgC) across thermocline [kg/m2/timestep]
       ! Based on a fixed gradient at the thermocline
@@ -461,9 +466,15 @@
             !--------------------------------------------------------
 
             ! For Daily RADSWG fields
-            K1     = 3.1D-24 * DTSRCE * NPP(I,J) * RADSWG(I,J)
-     &             * A_M2 * FRAC_O !for Reed ScHg               
-               
+!--------------------------------------------------------------------------
+! Prior to 3/28/06:
+! Change coefficient based on new ocean tuning (sas, bmy, 3/28/06)
+!            K1     = 3.1D-24 * DTSRCE * NPP(I,J) * RADSWG(I,J)
+!     &                       * A_M2   * FRAC_O !for Reed ScHg               
+!--------------------------------------------------------------------------
+            K1     = 6.1D-24 * DTSRCE * NPP(I,J) * RADSWG(I,J)
+     &                       * A_M2   * FRAC_O                 !for Reed ScHg 
+
             ! Surface air temperature in both [K] and [C]
             ! (Use as surrogate for SST, cap at freezing point)
             TK     = MAX( TS(I,J), 273.15d0 )
