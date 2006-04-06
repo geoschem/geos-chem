@@ -1,4 +1,4 @@
-! $Id: diag03_mod.f,v 1.9 2006/04/06 20:59:50 bmy Exp $
+! $Id: diag03_mod.f,v 1.10 2006/04/06 21:30:52 bmy Exp $
       MODULE DIAG03_MOD
 !
 !******************************************************************************
@@ -355,12 +355,13 @@
             
             !--------------------------------
             ! #16: Loss of Hg(II) from SS
+            ! NOTE: implement this better later
             !--------------------------------
             CATEGORY          = 'PL-HG2-$'
             UNIT              = 'kg'
             LMAX              = N_Hg_CATS
             NN                = 4
-            ARRAY(:,:,1:LMAX) = AD03_Hg2_O3(:,:,1:LMAX)
+            ARRAY(:,:,1:LMAX) = AD03_Hg2_SS(:,:,1:LMAX)
          
          ELSE 
 
