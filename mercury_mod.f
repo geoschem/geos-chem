@@ -1,4 +1,4 @@
-! $Id: mercury_mod.f,v 1.11 2006/04/06 20:39:31 bmy Exp $
+! $Id: mercury_mod.f,v 1.12 2006/04/06 21:08:56 bmy Exp $
       MODULE MERCURY_MOD
 !
 !******************************************************************************
@@ -381,8 +381,8 @@
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : T, AD
-      USE DIAG03_MOD,   ONLY : AD03_Hg2_Hg0, AD03_Hg2_O3
-      USE DIAG03_MOD,   ONLY : AD03_Hg2_OH,  LD03,  ND03
+      USE DIAG03_MOD,   ONLY : AD03_Hg2_Hg0, AD03_Hg2_O3, AD03_Hg2_OH
+      USE DIAG03_MOD,   ONLY : AD03_Hg2_SS,  LD03,        ND03
       USE LOGICAL_MOD,  ONLY : LSPLIT
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,     ONLY : GET_TS_CHEM
@@ -934,7 +934,8 @@
 
       ! Local variables
       INTEGER                    :: NN
-      REAL*8                     :: AREA_CM2, DRYDEP, OLD_Hg2, NEW_Hg2
+      REAL*8                     :: AREA_CM2, DRYDEP,  OLD_Hg2
+      REAL*8                     :: NEW_Hg2,  TEMP_Hg2
 
       !=================================================================
       ! RXN_Hg2_DRYD begins here!
