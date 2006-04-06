@@ -1,5 +1,5 @@
 REVISIONS (v7-04-01)  
-bmy, 29 Mar 2006
+bmy, 06 Apr 2006
 
 
 New in v7-04-01:
@@ -128,6 +128,9 @@ chemmercury		-- Bug fix: Set T44 to 0e0 for single precision
 chemsulfate		-- Remove reference to MAKE_RH, it's not needed here
 ("sulfate_mod.f")
 
+cleanup_diag03		-- Now deallocates AD03_Hg2_SS array
+("diag03_mod.f")
+
 CMN_SIZE		-- Increased NNPAR to 52
 
 compute_f		-- Make sure to deplete H2O2s the same as SO2s
@@ -226,6 +229,9 @@ init_mercury		-- EHg0_an, EHg2_an, EHgP_an are now 2-D arrays
 			   MERCURY MENU can be placed above the DIAGNOSTIC 
 			   MENU in "input.geos"
 
+init_diag03		-- Now allocates AD03_Hg2_SS array
+("diag03_mod.f")
+
 init_ocean_mercury	-- Now called from "input_mod.f"
 ("ocean_mercury_mod.f")	-- Now pass Hg_RST_FILE and USE_CHECKS via arg list
 
@@ -304,6 +310,7 @@ rxn_Hg2_dryd		-- Now add E_SALT to account for uptake by sea salt
 			-- Now references LDYNOCEAN from "logical_mod.f"
 			-- Now do not call ADD_Hg2_DD if we are not using 
 			   the dynamic ocean module
+			-- Now also return LOST_SS via arg list
 
 rxn_HgP_dryd		-- Now uses ID_HgP and ID_Hg_tot from "tracerid_mod.f"
 ("mercury_mod.f")
@@ -349,3 +356,6 @@ write_diag03		-- Add HgC ocean mass and converted to colloidal
 ("diag03_mod.f")	   to ND03 diagnostic
 			-- The units of the Kw and conversion terms in ND03 
 			   should be kg and not divided by the scale factor
+
+zero_diag03		-- Now references N_Hg_CATS from "tracerid_mod.f"
+("diag03_mod.f")	-- Now zero AD03_Hg2_SS array
