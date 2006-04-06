@@ -1,4 +1,4 @@
-! $Id: define.h,v 1.39 2006/03/29 15:41:28 bmy Exp $
+! $Id: define.h,v 1.40 2006/04/06 20:39:30 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
@@ -104,8 +104,8 @@
 !#define GCAP        'GCAP'
 !#define GEOS_1      'GEOS_1'       
 !#define GEOS_STRAT  'GEOS_STRAT'
-#define GEOS_3      'GEOS_3'
-!define GEOS_4      'GEOS_4'
+!#define GEOS_3      'GEOS_3'
+#define GEOS_4      'GEOS_4'
 !#define GEOS_5      'GEOS_5'
 
 !----- Grid sizes -----

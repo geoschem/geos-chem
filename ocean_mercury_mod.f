@@ -1,10 +1,10 @@
-! $Id: ocean_mercury_mod.f,v 1.9 2006/03/29 19:50:19 bmy Exp $
+! $Id: ocean_mercury_mod.f,v 1.10 2006/04/06 20:39:31 bmy Exp $
       MODULE OCEAN_MERCURY_MOD
 !
 !******************************************************************************
 !  Module OCEAN_MERCURY_MOD contains variables and routines needed to compute
 !  the oceanic flux of mercury.  Original code by Sarah Strode at UWA/Seattle.
-!  (sas, bmy, 1/21/05, 3/28/06)
+!  (sas, bmy, 1/21/05, 4/6/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -89,7 +89,7 @@
 !  (1 ) Modified ocean flux w/ Sarah's new Ks value (sas, bmy, 2/24/05)
 !  (2 ) Now get HALFPOLAR for GCAP or GEOS grids (bmy, 6/28/05)
 !  (3 ) Now can read data for both GCAP or GEOS grids (bmy, 8/16/05)
-!  (4 ) Include updates from S. Strode and C. Holmes (cdh, sas, bmy, 3/28/06)
+!  (4 ) Include updates from S. Strode and C. Holmes (cdh, sas, bmy, 4/6/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -244,7 +244,7 @@
 !
 !******************************************************************************
 !  Subroutine OCEAN_MERCURY_FLUX calculates emissions of Hg(0) from 
-!  the ocean in [kg/s].  (sas, bmy, 1/19/05, 3/28/06)
+!  the ocean in [kg/s].  (sas, bmy, 1/19/05, 4/6/06)
 !
 !  NOTE: The emitted flux may be negative when ocean conc. is very low. 
 !    
@@ -256,7 +256,7 @@
 !  (1 ) Change Ks to make ocean flux for 2001 = 2.03e6 kg/year.
 !        (sas, bmy, 2/24/05)
 !  (2 ) Rewritten to include Sarah Strode's latest ocean Hg model code.
-!        (sas, cdh, bmy, 3/28/06)
+!        (sas, cdh, bmy, 4/6/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -395,18 +395,18 @@
       !Ks     = 8.4d-7 * DTSRCE 
       !--------------------------------------------------------------
 #if   defined( GEOS_4 )
-      Ks = 7.7d-21 * DTSRCE 
+      Ks = 1.2d-21 * DTSRCE 
 #else 
       Ks = 5.2d-8  * DTSRCE
 #endif  
 
       ! Hg2 --> colloidal conversion rate
       !--------------------------------------------------------------------
-      ! Prior to 3/28/06:
-      ! Change coefficient based on new ocean tuning (sas, bmy, 3/28/06) 
+      ! Prior to 4/6/06:
+      ! Change coefficient based on new ocean tuning (sas, bmy, 4/6/06) 
       !Kc = 3.1d-22 * DTSRCE    
       !--------------------------------------------------------------------
-      Kc = 7.5d-22 * DTSRCE    
+      Kc = 6.8d-22 * DTSRCE    
 
       ! Diffused mass of (Hg0, Hg2, HgC) across thermocline [kg/m2/timestep]
       ! Based on a fixed gradient at the thermocline
