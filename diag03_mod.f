@@ -1,4 +1,4 @@
-! $Id: diag03_mod.f,v 1.7 2006/04/06 20:39:30 bmy Exp $
+! $Id: diag03_mod.f,v 1.8 2006/04/06 20:49:50 bmy Exp $
       MODULE DIAG03_MOD
 !
 !******************************************************************************
@@ -171,20 +171,20 @@
       USE FILE_MOD,     ONLY : IU_BPCH
       USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,     ONLY : GET_CT_EMIS, GET_DIAGb,  GET_DIAGe
-      USE TRACERID_MOD, ONLY : N_Hg2_CATS
+      USE TRACERID_MOD, ONLY : N_Hg_CATS
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! TINDEX
+#     include "CMN_SIZE"     ! Size parameters
+#     include "CMN_DIAG"     ! TINDEX
 
       ! Local variables
-      INTEGER            :: CENTER180, HALFPOLAR,   IFIRST
-      INTEGER            :: JFIRST,    LFIRST,      LMAX
-      INTEGER            :: M,         N,           NN
-      REAL*4             :: ARRAY(IIPAR,JJPAR,LLPAR)
-      REAL*4             :: LONRES,    LATRES
-      REAL*8             :: DIAGb,     DIAGe,       SCALE
-      CHARACTER(LEN=20)  :: MODELNAME 
-      CHARACTER(LEN=40)  :: CATEGORY,  RESERVED,    UNIT
+      INTEGER               :: CENTER180, HALFPOLAR,   IFIRST
+      INTEGER               :: JFIRST,    LFIRST,      LMAX
+      INTEGER               :: M,         N,           NN
+      REAL*4                :: ARRAY(IIPAR,JJPAR,LLPAR)
+      REAL*4                :: LONRES,    LATRES
+      REAL*8                :: DIAGb,     DIAGe,       SCALE
+      CHARACTER(LEN=20)     :: MODELNAME 
+      CHARACTER(LEN=40)     :: CATEGORY,  RESERVED,    UNIT
 
       !=================================================================
       ! WRITE_DIAG03 begins here!
