@@ -1,4 +1,4 @@
-! $Id: diag03_mod.f,v 1.8 2006/04/06 20:49:50 bmy Exp $
+! $Id: diag03_mod.f,v 1.9 2006/04/06 20:59:50 bmy Exp $
       MODULE DIAG03_MOD
 !
 !******************************************************************************
@@ -119,7 +119,7 @@
             ENDDO
 
             DO N = 1, N_Hg_CATS
-               AD03_Hg2_SS(I,J,N)
+               AD03_Hg2_SS(I,J,N) = 0e0
             ENDDO
          ENDIF
       ENDDO
@@ -394,7 +394,8 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD, ONLY : ALLOC_ERR
+      USE ERROR_MOD,    ONLY : ALLOC_ERR
+      USE TRACERID_MOD, ONLY : N_Hg_CATS
    
 #     include "CMN_SIZE" 
 
