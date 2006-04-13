@@ -1,4 +1,4 @@
-! $Id: mercury_mod.f,v 1.12 2006/04/06 21:08:56 bmy Exp $
+! $Id: mercury_mod.f,v 1.13 2006/04/13 13:48:07 bmy Exp $
       MODULE MERCURY_MOD
 !
 !******************************************************************************
@@ -412,12 +412,7 @@
       REAL*8, PARAMETER     :: K       = 3.0d-20
 
       ! K for reaction Hg2 + OH in cm3 s-1 
-      !-------------------------------------------------
-      ! Prior to 4/6/06:
-      ! Update value (eck, bmy, 4/6/06)
-      !REAL*8, PARAMETER     :: K_HG_OH = 8.7d-14
-      !-------------------------------------------------
-      REAL*8, PARAMETER     :: K_HG_OH = 7.8d-14
+      REAL*8, PARAMETER     :: K_HG_OH = 8.7d-14
 
       ! Henry's Law constant for Hg2
       REAL*8, PARAMETER     :: HL      = 1.4d6
