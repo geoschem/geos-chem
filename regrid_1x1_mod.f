@@ -1,9 +1,9 @@
-! $Id: regrid_1x1_mod.f,v 1.3 2005/11/03 17:50:35 bmy Exp $
+! $Id: regrid_1x1_mod.f,v 1.4 2006/04/13 14:00:05 bmy Exp $
       MODULE REGRID_1x1_MOD
 !
 !******************************************************************************
 !  Module REGRID_1x1_MOD does online regridding of data on the GEOS-CHEM
-!  1x1 grid to 1x1, 2x25, or 4x5 GEOS/GCAP grids. (bdf, bmy, 10/24/05)
+!  1x1 grid to 1x1, 2x25, or 4x5 GEOS/GCAP grids. (bdf, bmy, 10/24/05, 4/13/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -1195,6 +1195,8 @@
 !  (7 ) OUT (REAL*8 ) : Array containing output data on GEOS-CHEM 2x25 grid
 !
 !  NOTES:
+!  (1 ) Fixed typo: J should be J1 in "4 contrib boxes at poles" section.
+!        (bmy, 4/13/06)
 !******************************************************************************
 !
       ! Arguments
@@ -1269,7 +1271,12 @@
                OUT(I,J2,L) = 0.25d0  *      IN( W,       J1,   L )   + 
      &                       0.125d0 *      IN( W,       J1-1, L )   +
      &                                 SUM( IN( W+1:E-1, J1,   L ) ) +
-     &                       0.5d0   * SUM( IN( W+1:E-1, J-1,  L ) ) +
+!-----------------------------------------------------------------------------
+! Prior to 4/13/06:
+! Bug fix: J should be J1 (bmy, 4/13/06)
+!     &                       0.5d0   * SUM( IN( W+1:E-1, J-1,  L ) ) +
+!-----------------------------------------------------------------------------
+     &                       0.5d0   * SUM( IN( W+1:E-1, J1-1, L ) ) +
      &                       0.25d0  *      IN( E,       J1,   L )   +
      &                       0.125d0 *      IN( E,       J1-1, L )
             ENDIF
