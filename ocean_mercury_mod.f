@@ -1,10 +1,10 @@
-! $Id: ocean_mercury_mod.f,v 1.10 2006/04/06 20:39:31 bmy Exp $
+! $Id: ocean_mercury_mod.f,v 1.11 2006/04/17 17:02:31 bmy Exp $
       MODULE OCEAN_MERCURY_MOD
 !
 !******************************************************************************
 !  Module OCEAN_MERCURY_MOD contains variables and routines needed to compute
 !  the oceanic flux of mercury.  Original code by Sarah Strode at UWA/Seattle.
-!  (sas, bmy, 1/21/05, 4/6/06)
+!  (sas, bmy, 1/21/05, 4/17/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -244,9 +244,11 @@
 !
 !******************************************************************************
 !  Subroutine OCEAN_MERCURY_FLUX calculates emissions of Hg(0) from 
-!  the ocean in [kg/s].  (sas, bmy, 1/19/05, 4/6/06)
+!  the ocean in [kg/s].  (sas, bmy, 1/19/05, 4/17/06)
 !
 !  NOTE: The emitted flux may be negative when ocean conc. is very low. 
+!
+!  ALSO NOTE: The ocean flux is tuned to GEOS-4 met fields. (sas, 4/17/06)
 !    
 !  Arguments as Output
 !  ============================================================================
@@ -394,19 +396,24 @@
       ! (sas, bmy, 3/28/06)
       !Ks     = 8.4d-7 * DTSRCE 
       !--------------------------------------------------------------
-#if   defined( GEOS_4 )
-      Ks = 1.2d-21 * DTSRCE 
-#else 
-      Ks = 5.2d-8  * DTSRCE
-#endif  
+!---------------------------------
+! Prior to 4/17/06:
+!#if   defined( GEOS_4 )
+!      Ks = 1.2d-21 * DTSRCE 
+!#else 
+!      Ks = 5.2d-8  * DTSRCE
+!#endif  
+!---------------------------------
+      Ks = 1.0d-21 * DTSRCE 
+
 
       ! Hg2 --> colloidal conversion rate
       !--------------------------------------------------------------------
-      ! Prior to 4/6/06:
-      ! Change coefficient based on new ocean tuning (sas, bmy, 4/6/06) 
+      ! Prior to 4/17/06:
+      ! Change coefficient based on new ocean tuning (sas, bmy, 4/17/06) 
       !Kc = 3.1d-22 * DTSRCE    
       !--------------------------------------------------------------------
-      Kc = 6.8d-22 * DTSRCE    
+      Kc = 6.9d-22 * DTSRCE    
 
       ! Diffused mass of (Hg0, Hg2, HgC) across thermocline [kg/m2/timestep]
       ! Based on a fixed gradient at the thermocline
