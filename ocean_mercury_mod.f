@@ -1,4 +1,4 @@
-! $Id: ocean_mercury_mod.f,v 1.11 2006/04/17 17:02:31 bmy Exp $
+! $Id: ocean_mercury_mod.f,v 1.12 2006/04/17 19:51:10 bmy Exp $
       MODULE OCEAN_MERCURY_MOD
 !
 !******************************************************************************
@@ -248,7 +248,8 @@
 !
 !  NOTE: The emitted flux may be negative when ocean conc. is very low. 
 !
-!  ALSO NOTE: The ocean flux is tuned to GEOS-4 met fields. (sas, 4/17/06)
+!  ALSO NOTE: The ocean flux was tuned with GEOS-4 4x5 met fields.  We also
+!  now account for the smaller grid size if using GEOS-4 2x25 met fields.
 !    
 !  Arguments as Output
 !  ============================================================================
@@ -258,7 +259,7 @@
 !  (1 ) Change Ks to make ocean flux for 2001 = 2.03e6 kg/year.
 !        (sas, bmy, 2/24/05)
 !  (2 ) Rewritten to include Sarah Strode's latest ocean Hg model code.
-!        (sas, cdh, bmy, 4/6/06)
+!        Also now accounts for 2x25 grid. (sas, cdh, bmy, 4/6/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -388,32 +389,20 @@
       ! Emission timestep [s]
       DTSRCE = GET_TS_EMIS() * 60d0
 
-      !--------------------------------------------------------------
       ! Determine Ks (sinking term) [unitless]
-      !--------------------------------------------------------------
-      ! Prior to 3/28/06:
-      ! Change Ks to make ocean flux for 2001 = 2.03e6 kg/year.
-      ! (sas, bmy, 3/28/06)
-      !Ks     = 8.4d-7 * DTSRCE 
-      !--------------------------------------------------------------
-!---------------------------------
-! Prior to 4/17/06:
-!#if   defined( GEOS_4 )
-!      Ks = 1.2d-21 * DTSRCE 
-!#else 
-!      Ks = 5.2d-8  * DTSRCE
-!#endif  
-!---------------------------------
-      Ks = 1.0d-21 * DTSRCE 
-
+      ! NOTE: This constant was tuned using the GEOS-4 4x5 met fields
+      Ks     = 1.0d-21 * DTSRCE 
 
       ! Hg2 --> colloidal conversion rate
-      !--------------------------------------------------------------------
-      ! Prior to 4/17/06:
-      ! Change coefficient based on new ocean tuning (sas, bmy, 4/17/06) 
-      !Kc = 3.1d-22 * DTSRCE    
-      !--------------------------------------------------------------------
-      Kc = 6.9d-22 * DTSRCE    
+      ! NOTE: This constant was tuned using the GEOS-4 4x5 met fields
+      Kc     = 6.9d-22 * DTSRCE    
+
+#if   defined( GRID2x25 ) 
+      ! If we are using the 2x25 grid, then multiply Ks and Kc by 4
+      ! to account for the smaller grid size (sas, bmy, 4/17/06) 
+      Ks     = Ks * 4d0
+      Kc     = Kc * 4d0
+#endif
 
       ! Diffused mass of (Hg0, Hg2, HgC) across thermocline [kg/m2/timestep]
       ! Based on a fixed gradient at the thermocline
@@ -473,14 +462,15 @@
             !--------------------------------------------------------
 
             ! For Daily RADSWG fields
-!--------------------------------------------------------------------------
-! Prior to 3/28/06:
-! Change coefficient based on new ocean tuning (sas, bmy, 3/28/06)
-!            K1     = 3.1D-24 * DTSRCE * NPP(I,J) * RADSWG(I,J)
-!     &                       * A_M2   * FRAC_O !for Reed ScHg               
-!--------------------------------------------------------------------------
+            ! NOTE: This constant was tuned using GEOS-4 4x5 met fields!
             K1     = 6.1D-24 * DTSRCE * NPP(I,J) * RADSWG(I,J)
      &                       * A_M2   * FRAC_O                 !for Reed ScHg 
+
+#if   defined( GRID2x25 ) 
+            ! If we are using the 2x25 grid, then multiply K1 by 4
+            ! to account for the smaller grid size (sas, bmy, 4/17/06) 
+            K1     = K1 * 4d0
+#endif
 
             ! Surface air temperature in both [K] and [C]
             ! (Use as surrogate for SST, cap at freezing point)
