@@ -1,4 +1,4 @@
-# $Id: Makefile.pgi,v 1.22 2006/04/21 19:03:07 bmy Exp $
+# $Id: Makefile.pgi,v 1.23 2006/04/21 19:43:51 bmy Exp $
 #=============================================================================
 # GEOS-CHEM Makefile for LINUX/PGI (bmy, Fri Apr 21 14:52:15 2006)
 #
@@ -373,7 +373,6 @@ readchem.o                 : readchem.f                 CMN_SIZE define.h comode
 reader.o                   : reader.f                   CMN_GCTM CMN_SIZE define.h comode.h 
 readlai.o                  : readlai.f                  CMN_DEP CMN_SIZE define.h CMN_VEL 
 regrid_1x1_mod.o           : regrid_1x1_mod.f           CMN_GCTM CMN_SIZE define.h 
-regrid_1x1_mod.o           : regrid_1x1_mod.f_bmy           CMN_GCTM CMN_SIZE define.h 
 restart_mod.o              : restart_mod.f              CMN_SIZE define.h 
 rpmares_mod.o              : rpmares_mod.f              CMN_SIZE define.h 
 ruralbox.o                 : ruralbox.f                 CMN_SIZE define.h comode.h 

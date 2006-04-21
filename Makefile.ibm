@@ -1,4 +1,4 @@
-# $Id: Makefile.ibm,v 1.32 2006/04/21 19:03:06 bmy Exp $
+# $Id: Makefile.ibm,v 1.33 2006/04/21 19:43:51 bmy Exp $
 #=============================================================================
 # Makefile for GEOS-CHEM on IBM AIX: (gcc, Mon Feb 03 11:56:55 2003)
 #=============================================================================
@@ -371,7 +371,6 @@ readchem.o                 : readchem.f                 CMN_SIZE define.h comode
 reader.o                   : reader.f                   CMN_GCTM CMN_SIZE define.h comode.h 
 readlai.o                  : readlai.f                  CMN_DEP CMN_SIZE define.h CMN_VEL 
 regrid_1x1_mod.o           : regrid_1x1_mod.f           CMN_GCTM CMN_SIZE define.h 
-regrid_1x1_mod.o           : regrid_1x1_mod.f_bmy           CMN_GCTM CMN_SIZE define.h 
 restart_mod.o              : restart_mod.f              CMN_SIZE define.h 
 rpmares_mod.o              : rpmares_mod.f              CMN_SIZE define.h 
 ruralbox.o                 : ruralbox.f                 CMN_SIZE define.h comode.h 
