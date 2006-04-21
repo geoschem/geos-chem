@@ -1,4 +1,4 @@
-! $Id: emissdr.f,v 1.11 2005/11/03 17:50:27 bmy Exp $
+! $Id: emissdr.f,v 1.12 2006/04/21 15:39:58 bmy Exp $
       SUBROUTINE EMISSDR
 !
 !******************************************************************************
@@ -61,7 +61,10 @@
       USE ACETONE_MOD,       ONLY : READ_JO1D,     READ_RESP
       USE AIRCRAFT_NOX_MOD,  ONLY : AIREMISS
       USE BIOFUEL_MOD,       ONLY : BIOFUEL_BURN
-      USE BIOMASS_MOD,       ONLY : BIOBURN
+      !---------------------------------------------------------------------
+      ! Prior to 3/30/06:
+      !USE BIOMASS_MOD,       ONLY : BIOBURN
+      !---------------------------------------------------------------------
       USE DAO_MOD,           ONLY : PARDF,         PARDR,     SUNCOS        
       USE DIAG_MOD,          ONLY : AD29,          AD46
       USE GRID_MOD,          ONLY : GET_AREA_CM2
@@ -223,9 +226,10 @@
 !
             IF ( LAIRNOX .AND. I == 1 .AND. J == 1 ) CALL AIREMISS
 !-----------------------------------------------------------------------------
-! BIOMASS BURNING emissions NOx [molecules/cm3/s]
-!
-            IF ( LBIONOX .AND. I == 1 .AND. J == 1 ) CALL BIOBURN
+! Prior to 3/28/06:
+!! BIOMASS BURNING emissions NOx [molecules/cm3/s]
+!!
+!            IF ( LBIONOX .AND. I == 1 .AND. J == 1 ) CALL BIOBURN
 !-----------------------------------------------------------------------------
 ! NOx AND CO from biofuel combustion [kg/box]  
 !

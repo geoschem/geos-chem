@@ -1,6 +1,6 @@
-# $Id: Makefile.sparc,v 1.31 2006/03/24 20:22:38 bmy Exp $
+# $Id: Makefile.sparc,v 1.32 2006/04/21 15:39:49 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for SUN/Sparc (bmy, Fri Feb 17 11:56:02 2006)
+# GEOS-CHEM Makefile for SUN/Sparc (bmy, Thu Mar 30 11:00:37 2006)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -23,7 +23,6 @@ backsub.o                 \
 biofit.o                  \
 boxvl.o                   \
 calcrate.o                \
-chem.o                    \
 chemdr.o                  \
 cleanup.o                 \
 decomp.o                  \
@@ -43,7 +42,6 @@ fertadd.o                 \
 findmon.o                 \
 fyrno3.o                  \
 gasconc.o                 \
-getalt.o                  \
 getifsun.o                \
 initialize.o              \
 jsparse.o                 \
@@ -151,6 +149,7 @@ ocean_mercury_mod.o       \
 drydep_mod.o              \
 emep_mod.o                \
 epa_nei_mod.o             \
+gfed2_biomass_mod.o       \
 geia_mod.o                \
 global_ch4_mod.o          \
 global_hno3_mod.o         \
@@ -211,7 +210,7 @@ input_mod.o
 #=============================================================================
 #  Executable with FAST-J (default)
 #=============================================================================
-geos          : $(MODS) $(OBJS) $(FJ)
+geos          : $(MODS) $(OBJS) $(FJ)   Makefile.sparc
 		$(F90)  $(MODS) $(OBJS) $(FJ) -o geos
 
 #==============================================================================
@@ -311,6 +310,7 @@ gcap_read_mod.o            : gcap_read_mod.F            CMN_DIAG CMN_GCTM CMN_SI
 geia_mod.o                 : geia_mod.F                 CMN_SIZE define.h 
 getalt.o                   : getalt.F                   CMN CMN_SIZE define.h comode.h 
 getifsun.o                 : getifsun.F                 CMN_SIZE define.h comode.h 
+gfed2_biomass_mod.o        : gfed2_biomass_mod.F        CMN_GCTM CMN_SIZE define.h 
 global_ch4_mod.o           : global_ch4_mod.F           CMN CMN_DIAG CMN_SIZE define.h 
 global_hno3_mod.o          : global_hno3_mod.F          CMN_SIZE define.h 
 global_no3_mod.o           : global_no3_mod.F           CMN_SIZE define.h 
@@ -320,8 +320,6 @@ global_oh_mod.o            : global_oh_mod.F            CMN_SIZE define.h
 grid_mod.o                 : grid_mod.F                 CMN_GCTM CMN_SIZE define.h 
 gwet_read_mod.o            : gwet_read_mod.F            CMN_DIAG CMN_SIZE define.h 
 hcn_ch3cn_mod.o            : hcn_ch3cn_mod.F            CMN_DEP CMN_DIAG CMN_SIZE define.h 
-humeff.o                   : humeff.F                   
-hunt.o                     : hunt.F                     
 i6_read_mod.o              : i6_read_mod.F              CMN_DIAG CMN_SIZE define.h 
 ifort_errmsg.o             : ifort_errmsg.F             
 initialize.o               : initialize.F               CMN_DIAG CMN_SIZE define.h 

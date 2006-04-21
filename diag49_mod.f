@@ -1,4 +1,4 @@
-! $Id: diag49_mod.f,v 1.13 2006/03/24 20:22:44 bmy Exp $
+! $Id: diag49_mod.f,v 1.14 2006/04/21 15:39:55 bmy Exp $
       MODULE DIAG49_MOD
 !
 !******************************************************************************
@@ -169,10 +169,6 @@
       USE DAO_MOD,      ONLY : T,       UWND,   VWND
       USE FILE_MOD,     ONLY : IU_ND49
       USE GRID_MOD,     ONLY : GET_XOFFSET,        GET_YOFFSET
-      !-------------------------------------------------------------
-      ! Prior to 3/16/06:
-      !USE TIME_MOD,     ONLY : DATE_STRING,        EXPAND_DATE
-      !-------------------------------------------------------------
       USE TIME_MOD,     ONLY : EXPAND_DATE
       USE TIME_MOD,     ONLY : GET_NYMD,           GET_NHMS
       USE TIME_MOD,     ONLY : GET_TAU,            GET_HOUR

@@ -1,9 +1,9 @@
-! $Id: tagged_co_mod.f,v 1.10 2005/10/20 14:03:41 bmy Exp $
+! $Id: tagged_co_mod.f,v 1.11 2006/04/21 15:40:09 bmy Exp $
       MODULE TAGGED_CO_MOD
 !
 !******************************************************************************
 !  Module TAGGED_CO_MOD contains variables and routines used for the 
-!  geographically tagged CO simulation. (bmy, 7/28/00, 8/22/05)
+!  geographically tagged CO simulation. (bmy, 7/28/00, 4/5/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -119,6 +119,7 @@
 !  (25) Fixed bug in CHEM_TAGGED_CO (bmy, 3/7/05)
 !  (26) Now reads data from both GEOS and GCAP grids.  Now also references
 !        "tropopause_mod.f". (bmy, 8/16/05)
+!  (27) Now modified for new "biomass_mod.f" (bmy, 4/5/06)
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -398,11 +399,16 @@
 !        "logical_mod.f".  Now reference STT from "tracer_mod.f".  Now replace
 !        IJLOOP_CO w/ an analytic function. (bmy, 7/20/04)
 !  (18) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (19) Now modified for the new "biomass_mod.f" (bmy, 4/5/06)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BIOFUEL_MOD,  ONLY : BIOFUEL,     BIOFUEL_BURN
-      USE BIOMASS_MOD,  ONLY : BURNEMIS,    BIOBURN
+      !----------------------------------------------------------------
+      ! Prior to 4/5/06:
+      !USE BIOMASS_MOD,  ONLY : BURNEMIS,    BIOBURN
+      !----------------------------------------------------------------
+      USE BIOMASS_MOD,  ONLY : BIOMASS,     IDBCO
       USE DAO_MOD,      ONLY : SUNCOS
       USE DIAG_MOD,     ONLY : AD29,        AD46
       USE GEIA_MOD,     ONLY : GET_IHOUR,   GET_DAY_INDEX, READ_GEIA
@@ -608,7 +614,11 @@
       !      (bmy, 1/3/01)
       !=================================================================
       IF ( LBIOMASS ) THEN
-         CALL BIOBURN
+         !--------------------------------------------------------------
+         ! Prior to 4/5/06:
+         ! This is now called from "emissions_mod.f" (bmy, 4/5/06)
+         !CALL BIOBURN
+         !--------------------------------------------------------------
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -617,8 +627,13 @@
          DO I = 1, IIPAR
 
             ! Convert [molec CO/cm3/s] to [kg CO] and store in E_CO
-            E_CO = ( BURNEMIS(IDBCO,I,J) / XNUMOL_CO ) *
-     &             ( BOXVL(I,J,1)        * DTSRCE    ) 
+!------------------------------------------------------------------------
+! Prior to 4/5/06:
+!            E_CO = ( BURNEMIS(IDBCO,I,J) / XNUMOL_CO ) *
+!     &             ( BOXVL(I,J,1)        * DTSRCE    ) 
+!------------------------------------------------------------------------
+            E_CO = ( BIOMASS(I,J,IDBCO) / XNUMOL_CO ) *
+     &             ( BOXVL(I,J,1)       * DTSRCE    ) 
 
             ! Add biomass burning to tracer #1 -- total CO [kg CO]
             STT(I,J,1,1) = STT(I,J,1,1) + E_CO

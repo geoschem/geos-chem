@@ -1,4 +1,4 @@
-! $Id: mercury_mod.f,v 1.13 2006/04/13 13:48:07 bmy Exp $
+! $Id: mercury_mod.f,v 1.14 2006/04/21 15:40:03 bmy Exp $
       MODULE MERCURY_MOD
 !
 !******************************************************************************
@@ -27,7 +27,7 @@
 !  (17) ANTHRO_Hg_YEAR(INT): Anthropogenic Hg emissions year (1995 or 2000)
 !
 !  Module Routines:
-!  ============================================================================
+!  ===========================================================================
 !  (1 ) CHEMMERCURY        : Chemistry routine for Hg
 !  (2 ) CHEM_Hg0_Hg2       : Chemistry for Hg0, Hg2 and drydep of Hg2
 !  (3 ) RXN_Hg0_Hg2        : Conversion of Hg(0) --> Hg(II) via reduction rxn
@@ -147,11 +147,6 @@
       !=================================================================
 
       ! Scalars 
-      !-----------------------------------------------
-      ! Prior to 4/6/06:
-      ! This is now in "logical_mod.f" (bmy, 4/6/06)
-      !LOGICAL              :: LDYNOCEAN
-      !-----------------------------------------------
       INTEGER              :: ANTHRO_Hg_YEAR
       INTEGER              :: DRYHg2
       INTEGER              :: DRYHgP
@@ -218,23 +213,7 @@
 
       !=================================================================
       ! CHEMMERCURY begins here!
-      !=================================================================
-
-      !-----------------------------------------------------------------------
-      ! Prior to 4/6/06:
-      ! Now call INIT_MERCURY from "input_mod.f" (bmy, 4/6/06)
-      !! First-time initialization
-      !IF ( FIRST ) THEN
       !
-      !   ! Allocate arrays & locate drydep indices (if not already done)
-      !   !CALL INIT_MERCURY
-      !
-      !   ! Reset first-time flag
-      !   FIRST = .FALSE.
-      !ENDIF
-      !-----------------------------------------------------------------------
-
-      !=================================================================
       ! Read monthly mean OH and O3 fields
       !=================================================================
       IF ( ITS_A_NEW_MONTH() ) THEN 
@@ -421,12 +400,6 @@
       REAL*8, PARAMETER     :: R       = 8.2d-2
 
       ! K for reduction (scaled to budget and OH conc)
-      ! eck may change this later
-      !-------------------------------------------------
-      ! Prior to 4/6/06:
-      ! Update value (eck, bmy, 4/6/06)
-      !REAL*8, PARAMETER     :: Kred    = 2.1d-10
-      !-------------------------------------------------
       REAL*8, PARAMETER     :: Kred    = 8.4d-10
      
       ! K for sea salt (eck, bmy, 4/6/06)
@@ -553,13 +526,6 @@
             DO NN = 1, N_Hg_CATS
 
                ! Conversion of total Hg(0) --> Hg(II) 
-!--------------------------------------------------------------------------
-! Prior to 4/6/06:  
-! cdh modification 
-!               CALL RXN_Hg0_Hg2( I,          J,          L,     
-!     &                           ID_Hg0(NN), ID_Hg2(NN), RKT, 
-!     &                           E_RKT,      Kr_Kt,      LOST_Hg0(NN) )
-!--------------------------------------------------------------------------
                CALL RXN_Hg0_Hg2( I,            J,          L,     
      &                           ID_Hg0(NN),   ID_Hg2(NN), RKT, 
      &                           E_RKT,        Kr_Kt,      Kt,
@@ -590,52 +556,20 @@
             
          !==============================================================
          ! Compute Hg(II) production from OH and O3 rxns for diagnostic
+         !
+         ! This is for the diagnostics OH and O3 prod of Hg(II).
+         ! They are messed up a little since adding the reduction 
+         ! reaction haven't fixed them yet. (eck, 12/7/04)
          !==============================================================
-         !------------------------------------------
-         ! Prior to 4/6/06: 
-         ! cdh modification
-         !IF ( LOST_Hg0(ID_Hg_tot) > 0d0 ) THEN
-         !------------------------------------------
          IF ( Ox_Hg0(ID_Hg_tot) > 0d0 ) THEN
          
-            ! This is for the diagnostics OH and O3 prod of Hg(II).
-            ! They are messed up a little since adding the reduction 
-            ! reaction haven't fixed them yet. (eck, 12/7/04)
-            !----------------------------------------------------------------
-            ! Prior to 4/6/06:
-            ! Rewrite code below to prevent underflow in ND03 diagnostic
-            ! Also note LOST_Hg0_O3 and LOST_Hg0_OH are set to zero at the
-            ! top of the loop and will remain so, unless reset below.
-            ! (bmy, 4/6/06)
-            !! Define new k's here to avoid NaN error in denominator.
-            !! (eck, 12/7/04)
-            !NK1         = MAX( K1, SMALLNUM )
-            !NK2         = MAX( K2, SMALLNUM )
-            !
-            ! Production of Hg(II) from O3 rxn [kg]
-            !LOST_Hg0_O3 = ( NK1 / ( NK1 + NK2 ) ) * LOST_Hg0(ID_Hg_tot)
-            !
-            ! Production of Hg(II) from OH rxn [kg]
-            !LOST_Hg0_OH = ( NK2 / ( NK1 + NK2 ) ) * LOST_Hg0(ID_Hg_tot)
-            !----------------------------------------------------------------
-
             ! Avoid division by zero
             IF ( ( K1 + K2 ) > 0d0 ) THEN
 
                ! Production of Hg(II) from O3 rxn [kg]
-               !-------------------------------------------------------------
-               ! Prior to 4/6/06:
-               ! cdh modification
-               !LOST_Hg0_O3 = ( K1 / ( K1 + K2 ) ) * LOST_Hg0(ID_Hg_tot)
-               !-------------------------------------------------------------
                LOST_Hg0_O3 = ( K1 / ( K1 + K2 ) ) * Ox_Hg0(ID_Hg_tot)
 
                ! Production of Hg(II) from OH rxn [kg]
-               !-------------------------------------------------------------
-               ! Prior to 4/6/06:
-               ! cdh modification
-               !LOST_Hg0_OH = ( K2 / ( K1 + K2 ) ) * LOST_Hg0(ID_Hg_tot)
-               !-------------------------------------------------------------
                LOST_Hg0_OH = ( K2 / ( K1 + K2 ) ) * Ox_Hg0(ID_Hg_tot)
 
             ENDIF
@@ -998,11 +932,6 @@
 
       ! Archive Hg(II) lost to drydep [kg] for the ocean mercury flux routines
       ! in "ocean_mercury_mod.f" if necessary.  Do not call ADD_Hg2_DD if the 
-      ! dynamic ocean model is turned off. (sas, bmy, 4/6/06)
-      !---------------------------------------------------------------------
-      ! Prior to 4/6/06:
-      !IF ( IS_Hg2(N) ) CALL ADD_Hg2_DD( I, J, N, DRYDEP )
-      !---------------------------------------------------------------------
       IF ( IS_Hg2(N) .and. LDYNOCEAN ) THEN
          CALL ADD_Hg2_DD( I, J, N, DRYDEP )
       ENDIF
@@ -1266,13 +1195,6 @@
 
       ! First-time initialization
       IF ( FIRST ) THEN
-
-         !-------------------------------------------------
-         ! Prior to 4/6/06:
-         ! Now call this from "input_mod.f" (bmy, 4/6/06)
-         !! Allocate arrays (if not done before)
-         !CALL INIT_MERCURY
-         !-------------------------------------------------
 
          ! Read anthro, ocean, land emissions of Hg from disk
          CALL MERCURY_READYR
@@ -1800,15 +1722,9 @@
       XTAU     = GET_TAU0( 1, 1, 1985 )
 
       ! Filename for re-emitted anthropogenic mercury
-      FILENAME = TRIM( DATA_DIR_1x1 ) // 
-!-----------------------------------------------------------------------------
-! Prior to 4/6/06:
-! Now use better land-re-emissions files from Noelle (bmy, 4/6/06)
-!     &           'mercury_200511/Hg_land.' // GET_NAME_EXT_2D() //
-!     &           '.'                       // GET_RES_EXT()   
-!-----------------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR_1x1 )                 // 
      &           'mercury_200511/Hg_land_reemission.' // 
-     &            GET_NAME_EXT_2D()   // '.' // GET_RES_EXT()   
+     &            GET_NAME_EXT_2D() // '.' // GET_RES_EXT()   
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1820,19 +1736,6 @@
 
       ! Cast to REAL*8 and resize
       CALL TRANSFER_2D( ARRAY(:,:,1), EHg0_ln )
-
-      !----------------------------------------------------------------
-      ! Prior to 4/6/06:
-      ! We no longer need to multiply land re-emissions by 0.75 
-      ! (eck, bmy, 4/6/06)
-      !! Quick fix: change total amt from 2000 to 1500
-      !EHg0_ln = EHg0_ln * 0.75d0
-      !----------------------------------------------------------------
-      ! Prior to 4/6/06:
-      ! Now need to convert from [Mg/yr] to [kg/s] (eck, bmy, 4/6/06)
-      !! Convert from [kg/yr] to [kg/s]
-      !EHg0_ln = EHg0_ln / SEC_PER_YR
-      !----------------------------------------------------------------
 
       ! Convert from [Mg/yr] to [kg/s]
       EHg0_ln = EHg0_ln * 1000d0 / SEC_PER_YR 
@@ -2451,13 +2354,6 @@
       ! Return if we have already allocated arrays
       IF ( IS_INIT ) RETURN
 
-      !---------------------------------------------
-      ! Prior to 2/24/06
-      ! This is now in "logical_mod.f"
-      !! For now, define dynamic ocean flag here
-      !LDYNOCEAN = .FALSE.
-      !---------------------------------------------
-
       ! Anthropogenic Hg emissions year
       ANTHRO_Hg_YEAR = THIS_ANTHRO_Hg_YEAR
 
@@ -2558,7 +2454,7 @@
             END SELECT
          ENDDO
 
-         ! Temporary array for ND44 diagnosti
+         ! Temporary array for ND44 diagnostic
          !----------------------------------------------------------------
          ! Prior to 4/6/06:
          ! For now, comment this out so that MERCURY MENU can be placed

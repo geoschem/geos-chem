@@ -1,9 +1,9 @@
-! $Id: hcn_ch3cn_mod.f,v 1.9 2005/11/03 17:50:29 bmy Exp $
+! $Id: hcn_ch3cn_mod.f,v 1.10 2006/04/21 15:40:00 bmy Exp $
       MODULE HCN_CH3CN_MOD
 !
 !******************************************************************************
 !  Module HCN_CH3CN_MOD contains variables and routines that are used for the 
-!  geographically tagged HCN/CH3CN simulation. (qli, xyp, bmy, 8/16/05,11/2/05)
+!  geographically tagged HCN/CH3CN simulation. (qli, xyp, bmy, 8/16/05, 4/5/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -28,18 +28,18 @@
 !  (5 ) INIT_HCN_CH3CN    : Allocates and initializes module arrays
 !  (6 ) CLEANUP_HCN_CH3CN : Deallocates module arrays
 !
-!  GEOS-CHEM modules referenced by hcn_ch3cn_mod.f
+!  GEOS-Chem modules referenced by hcn_ch3cn_mod.f
 !  ============================================================================
 !  (1 ) biomass_mod.f     : Module w/ routines to read biomass emissions
 !  (2 ) bpch2_mod.f       : Module w/ routines for binary punch file I/O
 !  (3 ) dao_mod.f         : Module w/ arrays for DAO met fields!
-!  (4 ) diag_mod.f        : Module w/ GEOS-CHEM diagnostic arrays
-!  (5 ) directory_mod.f   : Module w/ GEOS-CHEM data & met field dirs
+!  (4 ) diag_mod.f        : Module w/ GEOS-Chem diagnostic arrays
+!  (5 ) directory_mod.f   : Module w/ GEOS-Chem data & met field dirs
 !  (6 ) geia_mod.f        : Module w/ routines to read anthro emissions
 !  (7 ) global_oh_mod.f   : Module w/ routines to read 3-D OH field
 !  (8 ) grid_mod.f        : Module w/ horizontal grid information
 !  (9 ) global_oh_mod.f   : Module w/ routines to read 3-D OH field
-!  (10) logical_mod.f     : Module w/ GEOS-CHEM logical switches
+!  (10) logical_mod.f     : Module w/ GEOS-Chem logical switches
 !  (11) pbl_mix_mod.f     : Module w/ routines for PBL height & mixing
 !  (12) time_mod.f        : Module w/ routines for computing time & date
 !  (13) tracerid_mod.f    : Module w/ pointers to tracers & emissions
@@ -74,6 +74,7 @@
 !  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (3 ) Remove duplicate variable declarations for Linux IFORT v9 compiler
 !        (bmy, 11/2/05)
+!  (4 ) Now modified for new "biomass_mod.f" (bmy, 4/5/06)
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -267,7 +268,7 @@
 !
 !******************************************************************************
 !  Subroutine EMISS_HCN_CH3CN reads in CO emissions and scale them to get
-!  HCN/CH3CN emissions for the tagged HCN/CH3CN run. (bmy, 8/16/05, 10/3/05)
+!  HCN/CH3CN emissions for the tagged HCN/CH3CN run. (bmy, 8/16/05, 4/5/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -276,10 +277,15 @@
 !
 !  NOTES:
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (2 ) Now modified for new "biomass_mod.f" (bmy, 4/5/06)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BIOMASS_MOD,   ONLY : BURNEMIS,        BIOBURN
+      !---------------------------------------------------------
+      ! Prior to 4/5/06:
+      !USE BIOMASS_MOD,   ONLY : BURNEMIS,        BIOBURN
+      !---------------------------------------------------------
+      USE BIOMASS_MOD,   ONLY : BIOMASS,         IDBCO
       USE GEIA_MOD,      ONLY : GET_DAY_INDEX,   GET_IHOUR
       USE GRID_MOD,      ONLY : GET_AREA_CM2
       USE DIAG_MOD,      ONLY : AD09_em
@@ -338,7 +344,11 @@
       !=================================================================
       ! Process biomass burning/domestic fossil fuel HCN/CH3CN emissions
       !=================================================================
-      CALL BIOBURN
+      !-----------------------------------------------------------------
+      ! Prior to 4/5/06:
+      ! This is now called in "emissions_mod.f" (bmy, 4/5/06)
+      !CALL BIOBURN
+      !-----------------------------------------------------------------
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -355,7 +365,11 @@
          !-----------------------------------------------------------------
 
          ! Convert [molec CO/cm3/s] to [molec CO/cm2/s]
-         E_CObb = BURNEMIS(IDBCO,I,J) * BOXVL(I,J,1) / ACM2
+         !-----------------------------------------------------------
+         ! Prior to 4/5/06:
+         !E_CObb = BURNEMIS(IDBCO,I,J) * BOXVL(I,J,1) / ACM2
+         !-----------------------------------------------------------
+         E_CObb = BIOMASS(I,J,IDBCO) * BOXVL(I,J,1) / ACM2
 
          ! ND09: biomass burning HCN/CH3CN emissions [molec/cm2/s]
          IF ( ND09 > 0 ) THEN

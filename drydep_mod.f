@@ -1,9 +1,9 @@
-! $Id: drydep_mod.f,v 1.25 2006/03/24 20:22:45 bmy Exp $
+! $Id: drydep_mod.f,v 1.26 2006/04/21 15:39:56 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
 !  Module DRYDEP_MOD contains variables and routines for the GEOS-CHEM dry
-!  deposition scheme. (bmy, 1/27/03, 2/1/06)
+!  deposition scheme. (bmy, 1/27/03, 4/17/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -142,6 +142,7 @@
 !  (19) Now change Reynold's # criterion from 1 to 0.1 in DEPVEL.  Also 
 !        change Henry's law constant for Hg2.  Also increase MAXDEP from
 !        35 to 37. (eck, djj, bmy, 2/1/06)
+!  (20) Bug fix in INIT_DRYDEP (bmy, 4/17/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -173,11 +174,6 @@
       !=================================================================
 
       ! Parameters
-      !-------------------------------------------------------
-      ! Prior to 1/27/06:
-      !%%% BUG FIX PATCH: Increase MAXDEP from 35 to 37 (bmy, 2/1/06)
-      !INTEGER, PARAMETER   :: MAXDEP    = 35
-      !-----------------------------------------------------------------
       INTEGER, PARAMETER   :: MAXDEP    = 37
       INTEGER, PARAMETER   :: NNTYPE    = 15     ! NTYPE    from "CMN_SIZE"
       INTEGER, PARAMETER   :: NNPOLY    = 20     ! NPOLY    from "CMN_SIZE"
@@ -1297,28 +1293,6 @@ C  canopy reduction factor for soil emissions.
 C** get surface deposition velocity for aerosols if needed;
 C** equations (15)-(17) of Walcek et al. [1986]
  155           IF (.NOT. AIROSOL(K)) GOTO 160
-!------------------------------------------------------------------------------
-! Prior to 4/1/04:
-! Only do this section for non-dust tracers (rjp, tdf, bmy, 4/1/04)
-!               VDS = 0.002D0*USTAR(IJLOOP)
-!               IF (OBK(IJLOOP) .LT. 0.0D0) THEN
-!                  VDS = VDS*(1.D0+(-300.D0/OBK(IJLOOP))**0.6667D0)
-!               ENDIF
-!C***                               
-!               IF ( OBK(IJLOOP) .EQ. 0.0D0 )
-!     c              WRITE(6,156) OBK(IJLOOP),IJLOOP,LDT
-! 156           FORMAT(1X,'OBK(IJLOOP)=',E11.2,1X,' IJLOOP =',I4,
-!     c              1X,'LDT=',I3/) 
-!               CZH  = ZH(IJLOOP)/OBK(IJLOOP)
-!               IF (CZH.LT.-30.0D0) VDS = 0.0009D0*USTAR(IJLOOP)*
-!     x                             (-CZH)**0.6667D0
-!C*                                 
-!C*    Set VDS to be less than VDSMAX (entry in input file divided by 1.D4)
-!C*    VDSMAX is taken from Table 2 of Walcek et al. [1986].
-!C*    Invert to get corresponding R
-!
-!               RSURFC(K,LDT) = 1.D0/MIN(VDS, DBLE(IVSMAX(II))/1.D4)
-!------------------------------------------------------------------------------
 
               !===========================================================
               ! The difference between sea-salt and dust tracers below
@@ -1561,11 +1535,6 @@ C  rough surface and now change to "REYNO > 1". (hyl, 10/15/99)
 C  
 C  11/17/05: D. J. Jacob says to change the criterion for aerodynamically
 C  rough surface to REYNO > 0.1 (eck, djj, bmy, 11/17/05)
-            !---------------------------------------------------------------
-            ! Prior to 11/17/05:
-            ! Lower Reynold's # criterion to 0.1 (eck, djj, bmy, 11/17/05)
-            !IF (REYNO .LT. 1.0D0) GOTO 220
-            !---------------------------------------------------------------
             IF ( REYNO < 0.1d0 ) GOTO 220
 
 C...aerodynamically rough surface.
@@ -1618,26 +1587,6 @@ C** cited on p. 16,476 of Jacob et al. [1992]
                C1X(K) = RA + RB + RSURFC(K,LDT)
  215        CONTINUE
             GOTO 240
-!-----------------------------------------------------------------------------
-! Prior to 5/8/00:
-! 220          CONTINUE 
-!C** ... aerodynamically smooth surface
-!              DO 230 K = 1,NUMDEP 
-!                 IF (.NOT.LDEP(K)) GOTO 230
-!
-!C...Simply specify a large C1X(K) for aerosols because C1X(K) = Ra + (Rb+Rs)
-!C   where Rb is large over aerodynamically smooth surface. Here do not 
-!C   calculate Ra and Rs for aerosols since Rb is large anyway. (hyl,10/15/99)
-!                  IF ( AIROSOL(K) ) THEN
-!                     C1X(K) = 1.D4 
-!                  ELSE
-!                     RA = (1.D0/CKUSTR)
-!     *               *(LOG(CZ*CKUSTR/DIFFG(TEMPK,PRESS,XMW(K))) - SIH)
-!                     C1X(K) = RA + RSURFC(K,LDT)
-!                  ENDIF 
-!
-! 230          CONTINUE
-!-----------------------------------------------------------------------------
  220        CONTINUE 
 C** ... aerodynamically smooth surface
 C** BUG FIX -- suppress drydep over smooth surfaces by setting Ra to a large
@@ -2665,7 +2614,9 @@ C** Load array DVEL
 !  (8 ) Included SO4s, NITs tracers (bec, bmy, 4/13/05)
 !  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (10) Now set Henry's law constant to 1.0d+14 for Hg2.  Now use ID_Hg2, 
-!        ID_HgP, and ID_Hg_tot from "tracerid_mod.f" (eck, cdh, bmy, 1/9/06)
+!        ID_HgP, and ID_Hg_tot from "tracerid_mod.f".  Bug fix: split up
+!        compound IF statements into separate 2 IF statements for ID_Hg2, 
+!        ID_HgP to avoid seg faults. (eck, cdh, bmy, 4/17/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3269,33 +3220,57 @@ C** Load array DVEL
          ! Mercury tracers
          !----------------------------------
 
+!------------------------------------------------------------------------------
+! Prior to 4/17/06:
+! Split up into 2 IF statements to avoid seg fault (bmy, 4/17/06)
+!         ! Hg2 -- Divalent Mercury
+!         ELSE IF ( IS_Hg .and. N == ID_Hg2(ID_Hg_tot) ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = ID_Hg2(ID_Hg_tot)
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'Hg2'
+!            HSTAR(NUMDEP)   = 1.0d+14
+!            F0(NUMDEP)      = 0.0d0
+!            XMW(NUMDEP)     = 201d-3
+!            AIROSOL(NUMDEP) = .FALSE. 
+!
+!         ! HgP -- Particulate Mercury
+!         ELSE IF ( IS_Hg .and. N == ID_HgP(ID_Hg_tot) ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = ID_HgP(ID_Hg_tot)
+!            NDVZIND(NUMDEP) = NUMDEP
+!            DEPNAME(NUMDEP) = 'HgP'
+!            HSTAR(NUMDEP)   = 0.0d0
+!            F0(NUMDEP)      = 0.0d0
+!            XMW(NUMDEP)     = 201d-3
+!            AIROSOL(NUMDEP) = .TRUE. 
+!-----------------------------------------------------------------------------
+
          ! Hg2 -- Divalent Mercury
-         ELSE IF ( IS_Hg .and. N == ID_Hg2(ID_Hg_tot) ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = ID_Hg2(ID_Hg_tot)
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'Hg2'
-            !--------------------------------
-            ! Prior to 11/17/05:
-            ! Increase Henry's law constant 
-            !HSTAR(NUMDEP)   = 1.4d6
-            !--------------------------------
-            HSTAR(NUMDEP)   = 1.0d+14
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 201d-3
-            AIROSOL(NUMDEP) = .FALSE. 
+         ELSE IF ( IS_Hg ) THEN
+            IF ( N == ID_Hg2(ID_Hg_tot) ) THEN
+               NUMDEP          = NUMDEP + 1
+               NTRAIND(NUMDEP) = ID_Hg2(ID_Hg_tot)
+               NDVZIND(NUMDEP) = NUMDEP
+               DEPNAME(NUMDEP) = 'Hg2'
+               HSTAR(NUMDEP)   = 1.0d+14
+               F0(NUMDEP)      = 0.0d0
+               XMW(NUMDEP)     = 201d-3
+               AIROSOL(NUMDEP) = .FALSE. 
+            ENDIF
 
          ! HgP -- Particulate Mercury
-         ELSE IF ( IS_Hg .and. N == ID_HgP(ID_Hg_tot) ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = ID_HgP(ID_Hg_tot)
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'HgP'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 201d-3
-            AIROSOL(NUMDEP) = .TRUE. 
-
+         ELSE IF ( IS_Hg ) THEN
+            IF ( N == ID_HgP(ID_Hg_tot) ) THEN
+               NUMDEP          = NUMDEP + 1
+               NTRAIND(NUMDEP) = ID_HgP(ID_Hg_tot)
+               NDVZIND(NUMDEP) = NUMDEP
+               DEPNAME(NUMDEP) = 'HgP'
+               HSTAR(NUMDEP)   = 0.0d0
+               F0(NUMDEP)      = 0.0d0
+               XMW(NUMDEP)     = 201d-3
+               AIROSOL(NUMDEP) = .TRUE. 
+            ENDIF
          ENDIF
       ENDDO
       

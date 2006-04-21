@@ -1,4 +1,4 @@
-! $Id: dust_mod.f,v 1.10 2006/03/24 20:22:45 bmy Exp $
+! $Id: dust_mod.f,v 1.11 2006/04/21 15:39:57 bmy Exp $
       MODULE DUST_MOD
 !
 !******************************************************************************
@@ -731,12 +731,6 @@
             ORO(I)         = OROGRAPHY(I,J) 
 
             ! Snow height [m H2O]
-            !----------------------------------------------------
-            ! Prior to 11/18/05: 
-            ! SNOW is in mm H2O, divide by 1000 to get meters
-            ! (tdf, bmy, 11/18/05)
-            !SNW_HGT_LQD(I) = SNOW(I,J) * 1d3
-            !----------------------------------------------------
             SNW_HGT_LQD(I) = SNOW(I,J) / 1000d0
 
             ! Dust tracer and increments

@@ -1,9 +1,9 @@
-! $Id: cleanup.f,v 1.14 2005/11/03 17:50:23 bmy Exp $
+! $Id: cleanup.f,v 1.15 2006/04/21 15:39:54 bmy Exp $
       SUBROUTINE CLEANUP
 !
 !******************************************************************************
 !  Subroutine CLEANUP deallocates the memory assigned to dynamic allocatable 
-!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 11/1/05)
+!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 4/5/06)
 !
 !  NOTES:
 !  (1 ) CLEANUP is written in Fixed-Format F90.
@@ -67,6 +67,7 @@
 !        "megan_mod.f" and CLEANUP_REGRID_1x1 from "regrid_1x1_mod.f"
 !        (tmf, bdf, bmy, 10/24/05)
 !  (33) Now calls CLEANUP_EMEP from "emep_mod.f" (bdf, bmy, 11/1/05)
+!  (34) Now calls CLEANUP_GC_BIOMASS and CLEANUP_GFED2_BIOMASS (bmy, 4/5/06)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -94,6 +95,8 @@
       USE EMEP_MOD,          ONLY : CLEANUP_EMEP
       USE EPA_NEI_MOD,       ONLY : CLEANUP_EPA_NEI
       USE ERROR_MOD,         ONLY : DEBUG_MSG
+      USE GC_BIOMASS_MOD,    ONLY : CLEANUP_GC_BIOMASS
+      USE GFED2_BIOMASS_MOD, ONLY : CLEANUP_GFED2_BIOMASS
       USE GLOBAL_CH4_MOD,    ONLY : CLEANUP_GLOBAL_CH4
       USE GLOBAL_HNO3_MOD,   ONLY : CLEANUP_GLOBAL_HNO3
       USE GLOBAL_NO3_MOD,    ONLY : CLEANUP_GLOBAL_NO3
@@ -155,6 +158,8 @@
       CALL CLEANUP_DUST
       CALL CLEANUP_EMEP
       CALL CLEANUP_EPA_NEI
+      CALL CLEANUP_GC_BIOMASS
+      CALL CLEANUP_GFED2_BIOMASS
       CALL CLEANUP_GLOBAL_CH4
       CALL CLEANUP_GLOBAL_HNO3
       CALL CLEANUP_GLOBAL_NO3

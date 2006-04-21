@@ -1,9 +1,9 @@
-! $Id: ndxx_setup.f,v 1.22 2006/03/24 20:22:55 bmy Exp $
+! $Id: ndxx_setup.f,v 1.23 2006/04/21 15:40:04 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
 !  NDXX_SETUP dynamically allocates memory for certain diagnostic arrays that 
-!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 2/6/06)
+!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 4/5/06)
 !
 !  This allows us to reduce the amount of memory that needs to be declared 
 !  globally.  We only allocate memory for arrays if the corresponding 
@@ -118,10 +118,15 @@
 !  (55) Now also allocates AD09 and AD09_em (bmy, 6/27/05)
 !  (56) Now allocates AD30 (bmy, 8/18/05)
 !  (57) Removed duplicate variable declarations (bmy, 2/6/06)
+!  (58) Now remove NBIOTRCE; it's obsolete.  Replace w/ NBIOMAX (bmy, 4/5/06)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BIOMASS_MOD,     ONLY : NBIOTRCE
+      !-----------------------------------------
+      ! Prior to 3/30/06:
+      !USE BIOMASS_MOD,     ONLY : NBIOTRCE
+      !-----------------------------------------
+      USE BIOMASS_MOD,     ONLY : NBIOMAX
       USE BIOFUEL_MOD,     ONLY : NBFTRACE
       USE DIAG_MOD,        ONLY : AD01,        AD02,        AD05    
       USE DIAG_MOD,        ONLY : AD06,        AD07,        AD07_BC
@@ -553,7 +558,11 @@
       !       --> uses AD28 array (allocatable)
       !=================================================================
       IF ( ND28 > 0 ) THEN
-         ALLOCATE( AD28( IIPAR, JJPAR, NBIOTRCE ), STAT=AS )
+         !-------------------------------------------------------
+         ! Prior to 3/30/06:
+         !ALLOCATE( AD28( IIPAR, JJPAR, NBIOTRCE ), STAT=AS )
+         !-------------------------------------------------------
+         ALLOCATE( AD28( IIPAR, JJPAR, NBIOMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD28' )
       ENDIF
 

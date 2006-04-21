@@ -1,28 +1,32 @@
-! $Id: regrid_1x1_mod.f,v 1.4 2006/04/13 14:00:05 bmy Exp $
+! $Id: regrid_1x1_mod.f,v 1.5 2006/04/21 15:40:06 bmy Exp $
       MODULE REGRID_1x1_MOD
 !
 !******************************************************************************
-!  Module REGRID_1x1_MOD does online regridding of data on the GEOS-CHEM
-!  1x1 grid to 1x1, 2x25, or 4x5 GEOS/GCAP grids. (bdf, bmy, 10/24/05, 4/13/06)
+!  Module REGRID_1x1_MOD does online regridding of data on the GEOS-CHEM 1x1 
+!  grid to 1x1, 2x25, or 4x5 GEOS/GCAP grids. (bdf, bmy, 10/24/05, 4/18/06)
 !
 !  Module Variables:
 !  ============================================================================
-!  (1 ) A1x1 (REAL*8)           : Surface areas of 1x1 GEOS-CHEM grid 
+!  (1 ) A1x1      (REAL*8)      : Surface areas [m2] of 1x1 GEOS-Chem grid 
+!  (2 ) A_GEN_1x1 (REAL*8)      : Surface areas [m2] of 1x1 GENERIC   grid 
 !
 !  Module Routines:
 !  ============================================================================
-!  (1 ) DO_REGRID_1x1_R4        : Passes REAL*4 input to DO_THE_REGRIDDING
-!  (2 ) DO_REGRID_1x1_R8        : Passes REAL*8 input to DO_THE_REGRIDDING
-!  (3 ) DO_THE_REGRIDDING       : Driver routine for regridding from 1x1
-!  (4 ) ITS_CONCENTRATION_DATA  : Returns TRUE if it's concentration data
-!  (5 ) REGRID_CONC_TO_4x5_GCAP : Regrids conc data from GEOS 1x1 -> GCAP 4x5
-!  (6 ) REGRID_MASS_TO_4x5_GCAP : Regrids mass data from GEOS 1x1 -> GCAP 4x5
-!  (7 ) REGRID_CONC_TO_4x5      : Regrids conc data from GEOS 1x1 -> GEOS 4x5
-!  (8 ) REGRID_MASS_TO_4x5      : Regrids mass data from GEOS 1x1 -> GEOS 4x5
-!  (9 ) REGRID_CONC_TO_2x25     : Regrids conc data from GEOS 1x1 -> GEOS 2x25
-!  (10) REGRID_MASS_TO_2x25     : Regrids mass data from GEOS 1x1 -> GEOS 2x25
-!  (11) INIT_REGRID_1x1         : Initializes all module variables
-!  (12) CLEANUP_REGRID_1x1      : STUB PROGRAM -- for later use
+!  (1 ) DO_REGRID_G2G_1x1       : Regrids GENERIC 1x1 to GEOS-Chem 1x1 GRID
+!  (2 ) DO_REGRID_1x1_R4        : Passes 3D, REAL*4 array to DO_THE_REGRIDDING
+!  (3 ) DO_REGRID_1x1_R4_2D     : Passes 2D, REAL*4 array to DO_THE_REGRIDDING
+!  (4 ) DO_REGRID_1x1_R8        : Passes 3D, REAL*8 array to DO_THE_REGRIDDING
+!  (5 ) DO_REGRID_1x1_R8_2D     : Passes 2D, REAL*8 input to DO_THE_REGRIDDING
+!  (6 ) DO_THE_REGRIDDING       : Driver routine for regridding from 1x1
+!  (7 ) ITS_CONCENTRATION_DATA  : Returns TRUE if it's concentration data
+!  (8 ) REGRID_CONC_TO_4x5_GCAP : Regrids conc data from GEOS 1x1 -> GCAP 4x5
+!  (9 ) REGRID_MASS_TO_4x5_GCAP : Regrids mass data from GEOS 1x1 -> GCAP 4x5
+!  (10) REGRID_CONC_TO_4x5      : Regrids conc data from GEOS 1x1 -> GEOS 4x5
+!  (11) REGRID_MASS_TO_4x5      : 7Regrids mass data from GEOS 1x1 -> GEOS 4x5
+!  (12) REGRID_CONC_TO_2x25     : Regrids conc data from GEOS 1x1 -> GEOS 2x25
+!  (13) REGRID_MASS_TO_2x25     : Regrids mass data from GEOS 1x1 -> GEOS 2x25
+!  (14) INIT_REGRID_1x1         : Initializes all module variables
+!  (15) CLEANUP_REGRID_1x1      : Deallocates all module variables
 ! 
 !  GEOS-CHEM modules referenced by "regrid_1x1_mod.f"
 !  ============================================================================
@@ -30,6 +34,8 @@
 !  (2 ) grid_mod.f              : Module w/ horizontal grid information
 !
 !  NOTES:  
+!  (1 ) Added DO_REGRID_G2G_1x1 to regrid from GENERIC 1x1 to GEOS 1x1 grid.
+!        (psk, bmy, 4/18/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -45,6 +51,7 @@
       ! ... except these routines
       PUBLIC :: CLEANUP_REGRID_1x1
       PUBLIC :: DO_REGRID_1x1
+      PUBLIC :: DO_REGRID_G2G_1x1
 
       !=================================================================
       ! MODULE VARIABLES 
@@ -52,6 +59,7 @@
 
       ! Arrays
       REAL*8, ALLOCATABLE :: A1x1(:)
+      REAL*8, ALLOCATABLE :: A_GEN_1x1(:)
 
       !=================================================================
       ! MODULE INTERFACES -- "bind" two or more routines with different
@@ -71,11 +79,153 @@
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE DO_REGRID_G2G_1x1( GEN1x1, GEOS1x1, PER_UNIT_AREA )
+!
+!******************************************************************************
+!  Subroutine DO_REGRID_G2G_1x1 regrids 2-D data on the GENERIC 1x1
+!  grid (1st box edged at -180, -90) to the GEOS-Chem 1x1 grid. 
+!  (psk, bmy, 4/5/06)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) GEN1x1        (REAL*4 ) : Data array on the GENERIC 1x1 grid
+!  (3 ) PER_UNIT_AREA (LOGICAL) : OPTIONAL -- set to denote data per m2 or cm2 
+!
+!  Arguments as Output:
+!  ============================================================================
+!  (2 ) GEOS1x1       (REAL*4 ) : Data array on the GEOS 1x1 grid
+! 
+!  NOTES:
+!******************************************************************************
+!
+#     include "CMN_SIZE"             ! Size parameters
+#     include "CMN_GCTM"             ! Physical constants
+
+      ! Arguments
+      LOGICAL, INTENT(IN), OPTIONAL :: PER_UNIT_AREA
+      REAL*8,  INTENT(IN)           :: GEN1x1(I1x1,J1x1-1)
+      REAL*8,  INTENT(OUT)          :: GEOS1x1(I1x1,J1x1)
+
+      ! Local variables
+      LOGICAL, SAVE                 :: FIRST = .TRUE.
+      LOGICAL                       :: ITS_PER_UNIT_AREA
+      INTEGER                       :: I, J, IX, JX, IE(2), JE(2)
+      REAL*8                        :: RE_cm, LAT, DLAT2
+      REAL*8                        :: A_GEN(J1x1-1)
+      REAL*8                        :: A_GEOS(J1x1)
+
+      !=================================================================
+      ! DO_REGRID_G2G_1x1 begins here!      
+      !=================================================================
+
+      ! Initialize on first call (if necessary)
+      IF ( FIRST ) THEN
+         CALL INIT_REGRID_1x1
+         FIRST = .FALSE.
+      ENDIF
+
+      ! Save value of UNIT_AREA to local variable
+      IF ( PRESENT( PER_UNIT_AREA ) ) THEN
+         ITS_PER_UNIT_AREA = PER_UNIT_AREA 
+      ELSE
+         ITS_PER_UNIT_AREA = .FALSE.
+      ENDIF
+
+      ! Surface area on generic grid [m2]
+      A_GEN(:)  = A_GEN_1x1(:)
+
+      ! Surface area on GEOS-Chem grid [m2]
+      A_GEOS(:) = A1x1(:)
+
+      !-----------------------------------
+      ! Regrid quantity in mass units
+      ! from GENERIC to GEOS-Chem grid
+      !-----------------------------------
+     
+      ! Loop over GEOS-Chem latitudes
+      DO J = 1, J1x1
+
+         ! Set limits
+         JE(1) = J - 1
+         JE(2) = J
+
+         ! Special case for South Pole
+         IF ( J == 1 ) THEN
+            JE(1) = 1
+            JE(2) = 1
+         ENDIF
+
+         ! Special case for North Pole
+         IF ( J == J1x1 ) THEN
+            JE(1) = J1x1-1
+            JE(2) = J1x1-1
+         ENDIF
+
+         ! Loop over GEOS-CHEM longitudes
+         DO I = 1, I1x1
+
+            ! Zero quantity on GEOS-CHEM 1x1 GRID
+            GEOS1x1(I,J) = 0d0
+
+            ! Set limits
+            IE(1) = I - 1
+            IE(2) = I
+
+            ! Date line
+            IF ( I == 1 ) THEN
+               IE(1) = I1x1
+               IE(2) = 1
+            ENDIF
+                
+            ! Save into GEOS 1x1 grid
+            IF ( ITS_PER_UNIT_AREA ) THEN
+
+               ! Data on GENERIC 1x1 grid is per unit area
+               ! We have to multiply by the generic grid area (A_GEN)
+               DO JX = 1, 2
+               DO IX = 1, 2
+                  GEOS1x1(I,J) = GEOS1x1(I,J) +
+     &               0.25d0 * GEN1x1( IE(IX), JE(JX) ) * A_GEN( JE(JX) )
+               ENDDO 
+               ENDDO
+
+            ELSE
+
+               ! Data on GENERIC 1x1 grid is a mass quantity
+               ! We do not have to multiply by the generic grid area
+               DO JX = 1, 2
+               DO IX = 1, 2
+                  GEOS1x1(I,J) = GEOS1x1(I,J) +
+     &               0.25d0 * GEN1x1( IE(IX), JE(JX) ) 
+               ENDDO 
+               ENDDO 
+
+            ENDIF
+
+         ENDDO
+      ENDDO
+
+      ! If the data on the GENERIC 1x1 grid is per unit area...we also
+      ! want to return data on the GEOS 1x1 grid as per unit area.
+      ! Thus, we have to divide by the GEOS 1x1 area (A_GEOS).
+      IF ( ITS_PER_UNIT_AREA ) THEN
+         DO J = 1, J1x1
+         DO I = 1, I1x1
+            GEOS1x1(I,J) = GEOS1x1(I,J) / A_GEOS(J)
+         ENDDO
+         ENDDO
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE DO_REGRID_G2G_1x1
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE DO_REGRID_1x1_R4( L1x1, UNIT, INDATA, OUTDATA )
 !
 !******************************************************************************
 !  Subroutine DO_REGRID_1x1_R4 is a wrapper routine for DO_THE_REGRIDDING.
-!  It takes a REAL*4 array as input and saves a 3-D REAL*8 array as output. 
+!  It takes a REAL*4 array as input and returns a 3-D REAL*8 array as output. 
 !  (bdf, bmy, 10/24/05)
 !
 !  Arguments as Input:
@@ -115,7 +265,7 @@
 !
 !******************************************************************************
 !  Subroutine DO_REGRID_1x1_R8 is a wrapper routine for DO_THE_REGRIDDING.
-!  It takes a REAL*8 array as input and saves a 3-D REAL*8 array as output.
+!  It takes a REAL*8 array as input and returns a 3-D REAL*8 array as output.
 !  (bdf, bmy, 10/24/05)
 !
 !  Arguments as Input:
@@ -276,7 +426,7 @@
       ! DO_REGRID_1x1 begins here!
       !=================================================================
 
-      ! First-time initialization
+      ! Initialize on first call (if necessary)
       IF ( FIRST ) THEN
          CALL INIT_REGRID_1x1
          FIRST = .FALSE.
@@ -868,7 +1018,6 @@
 
          ENDDO 
          ENDDO  
-
       ENDDO 
 !$OMP END PARALLEL DO
 
@@ -1196,7 +1345,7 @@
 !
 !  NOTES:
 !  (1 ) Fixed typo: J should be J1 in "4 contrib boxes at poles" section.
-!        (bmy, 4/13/06)
+!        (bmy, 4/18/06)
 !******************************************************************************
 !
       ! Arguments
@@ -1272,8 +1421,8 @@
      &                       0.125d0 *      IN( W,       J1-1, L )   +
      &                                 SUM( IN( W+1:E-1, J1,   L ) ) +
 !-----------------------------------------------------------------------------
-! Prior to 4/13/06:
-! Bug fix: J should be J1 (bmy, 4/13/06)
+! Prior to 4/18/06:
+! Bug fix: J should be J1 (bmy, 4/18/06)
 !     &                       0.5d0   * SUM( IN( W+1:E-1, J-1,  L ) ) +
 !-----------------------------------------------------------------------------
      &                       0.5d0   * SUM( IN( W+1:E-1, J1-1, L ) ) +
@@ -1351,9 +1500,11 @@
       SUBROUTINE INIT_REGRID_1x1
 !
 !******************************************************************************
-!  Subroutine INIT_REGRID_1x1 initializes module arrays (bdf, bmy, 10/24/05)
+!  Subroutine INIT_REGRID_1x1 initializes module arrays 
+!  (bdf, bmy, 10/24/05, 4/18/06)
 !
 !  NOTES:
+!  (1 ) Now exit if we have already initialized (bmy, 4/18/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1363,6 +1514,7 @@
 #     include "CMN_GCTM"  ! Physical constants
 
       ! Local variables
+      LOGICAL, SAVE      :: IS_INIT = .FALSE.
       INTEGER            :: AS, J
       REAL*8             :: S,  N, RLAT, YEDGE(J1x1+1)
 
@@ -1370,13 +1522,24 @@
       ! INIT_REGRID_1x1 begins here!
       !=================================================================
 
+      ! Return if we have already initialized
+      IF ( IS_INIT ) RETURN
+
+      !---------------------------------------
+      ! Surface area on GEOS-Chem 1x1 grid
+      ! Uses same algorithm from "grid_mod.f"
+      !---------------------------------------
+
       ! Allocate array
       ALLOCATE( A1x1( J1x1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'A1x1' )
 
+      ! Initialize
+      YEDGE(:) = 0d0
+
       ! 1x1 latitude edges
       DO J = 2, J1x1
-         YEDGE(J) = -90.5d0 + (J-1)
+         YEDGE(J) = -90.5d0 + ( J - 1 )
       ENDDO
 
       ! Special cases at poles
@@ -1394,9 +1557,43 @@
          ! S to N extent of grid box [unitless]
          RLAT    = SIN( N ) - SIN( S )
 
-         ! 1x1 surface area (see "grid_mod." for algorithm
+         ! 1x1 surface area [m2] (see "grid_mod.f" for algorithm)
          A1x1(J) = 2d0 * PI * Re * Re / DBLE( I1x1 ) * RLAT
       ENDDO
+
+      !---------------------------------------
+      ! Surface area on GENERIC 1x1 grid
+      ! Uses same algorithm from "grid_mod.f"
+      !---------------------------------------
+
+      ! Initialize
+      YEDGE(:) = 0d0
+
+      ! Allocate array
+      ALLOCATE( A_GEN_1x1( J1x1-1 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'A_GEN_1x1' )
+
+      ! 1x1 latitude edges
+      DO J = 1, J1x1
+         YEDGE(J) = -90d0 + ( J - 1 )
+      ENDDO
+
+      ! Compute 1x1 surface area
+      DO J = 1, J1x1-1
+
+         ! Lat at S and N edges of 1x1 box [radians]
+         S            = PI_180 * YEDGE(J  )
+         N            = PI_180 * YEDGE(J+1) 
+
+         ! S to N extent of grid box [unitless]
+         RLAT         = SIN( N ) - SIN( S )
+
+         ! 1x1 surface area [m2] (see "grid_mod.f" for algorithm)
+         A_GEN_1x1(J) = 2d0 * PI * Re * Re / DBLE( I1x1 ) * RLAT
+      ENDDO
+
+      ! We have now initialized
+      IS_INIT = .TRUE.
 
       ! Return to calling program
       END SUBROUTINE INIT_REGRID_1x1
@@ -1415,7 +1612,8 @@
       !=================================================================
       ! CLEANUP_REGRID_1x1 begins here!
       !=================================================================
-      IF ( ALLOCATED( A1x1 ) ) DEALLOCATE( A1x1 )
+      IF ( ALLOCATED( A1x1      ) ) DEALLOCATE( A1x1 )
+      IF ( ALLOCATED( A_GEN_1x1 ) ) DEALLOCATE( A_GEN_1x1 )
 
       ! Return to calling program 
       END SUBROUTINE CLEANUP_REGRID_1x1

@@ -1,4 +1,4 @@
-! $Id: tpcore_bc_mod.f,v 1.11 2006/03/24 20:22:58 bmy Exp $
+! $Id: tpcore_bc_mod.f,v 1.12 2006/04/21 15:40:11 bmy Exp $
       MODULE TPCORE_BC_MOD
 !
 !******************************************************************************
@@ -227,11 +227,6 @@
       USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_READ
       USE DIRECTORY_MOD, ONLY : TPBC_DIR
       USE FILE_MOD,      ONLY : IU_BC
-      !---------------------------------------------------------------------
-      ! Prior to 3/15/06:
-      ! DATE_STRING is now obsolete; use EXPAND_DATE instead (bmy, 3/15/06)
-      !USE TIME_MOD,      ONLY : DATE_STRING, ITS_A_NEW_DAY
-      !---------------------------------------------------------------------
       USE TIME_MOD,      ONLY : EXPAND_DATE, GET_NYMD, ITS_A_NEW_DAY
 
       ! Arguments
@@ -248,11 +243,6 @@
       IF ( ITS_A_NEW_DAY() ) THEN
          
          ! File name for BC's
-         !---------------------------------------------------------------------
-         ! Prior to 3/15/06:
-         ! DATE_STRING is now obsolete; use EXPAND_DATE instead (bmy, 3/15/06)
-         !FILENAME = TRIM( TPBC_DIR ) // 'BC.' // DATE_STRING()
-         !---------------------------------------------------------------------
          FILENAME = TRIM( TPBC_DIR ) // 'BC.YYYYMMDD'
          
          ! Replace YYYYMMDD with the actual date

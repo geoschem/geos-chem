@@ -1,10 +1,10 @@
-! $Id: tracerid_mod.f,v 1.13 2006/03/24 20:22:59 bmy Exp $
+! $Id: tracerid_mod.f,v 1.14 2006/04/21 15:40:12 bmy Exp $
       MODULE TRACERID_MOD
 !
 !******************************************************************************
 !  Module TRACERID_MOD contains variables which point to SMVGEAR species,
 !  CTM Tracers, Biomass species, and biofuel species located within various
-!  GEOS-CHEM arrays. (bmy, 11/12/02, 1/5/06)
+!  GEOS-CHEM arrays. (bmy, 11/12/02, 4/5/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -127,15 +127,6 @@
 !  (120) IDECH2O   (INTEGER) : CH2O  index w/in EMISRR  array ("CMN_O3")     
 !  (121) NEMBIOG   (INTEGER) : # of biogenic emission species for SMVGEAR
 !  (122) NEMANTHRO (INTEGER) : # of anthro   emission species for SMVGEAR
-!  (123) IDBNOX    (INTEGER) : NOx  index w/in BURNEMIS array (biomass_mod.f)
-!  (124) IDBCO     (INTEGER) : CO   index w/in BURNEMIS array (biomass_mod.f)
-!  (125) IDBC2H6   (INTEGER) : C2H6 index w/in BURNEMIS array (biomass_mod.f)
-!  (126) IDBPRPE   (INTEGER) : PRPE index w/in BURNEMIS array (biomass_mod.f)
-!  (127) IDBACET   (INTEGER) : ACET index w/in BURNEMIS array (biomass_mod.f)
-!  (128) IDBMEK    (INTEGER) : MEK  index w/in BURNEMIS array (biomass_mod.f)
-!  (129) IDBC3H8   (INTEGER) : C3H8 index w/in BURNEMIS array (biomass_mod.f)
-!  (139) IDBALD2   (INTEGER) : ALD2 index w/in BURNEMIS array (biomass_mod.f)
-!  (131) IDBCH2O   (INTEGER) : CH2O index w/in BURNEMIS array (biomass_mod.f)
 !  (132) IDBFPRPE  (INTEGER) : PRPE index w/in BURNEMIS array (biofuel_mod.f)
 !  (133) IDBALK4   (INTEGER) : ALD4 index w/in BURNEMIS array (biomass_mod.f)
 !  (134) IDBFNOX   (INTEGER) : NOx  index w/in BIOFUEL array (biofuel_mod.f)
@@ -155,7 +146,7 @@
 !  (2 ) SETTRACE      : Defines ID numbers for species in SMVGEAR mechanism
 !  (3 ) INIT_TRACERID : Zeroes all module variables
 !
-!  GEOS-CHEM modules referenced by biomass_mod.f
+!  GEOS-CHEM modules referenced by tracerid_mod.f
 !  ============================================================================
 !  (1 ) charpak_mod.f : Module containing string handling routines
 !  (2 ) error_mod.f   : Module containing I/O error and NaN check routines
@@ -175,6 +166,7 @@
 !  (11) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (12) Added functions IS_Hg0, IS_Hg2, IS_HgP.  Also now use index arrays
 !        ID_Hg0, ID_Hg2, ID_HgP for tagged Hg tracers.  (cdh, bmy, 1/5/06)
+!  (13) Remove IDBxxxx biomass flags; these aren't needed. (bmy, 4/5/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -225,9 +217,13 @@
       INTEGER            :: IDEALK4, IDEC2H6,  IDEISOP, IDEACET, IDEMEK
       INTEGER            :: IDEALD2, IDECH2O,  NEMBIOG, NEMANTHRO
 
-      ! GEOS-CHEM biomass burning ID's
-      INTEGER            :: IDBNOX,  IDBCO,    IDBC2H6, IDBPRPE, IDBACET
-      INTEGER            :: IDBMEK,  IDBC3H8,  IDBALD2, IDBCH2O, IDBALK4 
+      !----------------------------------------------------------------------
+      ! Prior to 4/5/06:
+      ! These are now obsolete (bmy, 4/5/06)
+      !! GEOS-CHEM biomass burning ID's
+      !INTEGER            :: IDBNOX,  IDBCO,    IDBC2H6, IDBPRPE, IDBACET
+      !INTEGER            :: IDBMEK,  IDBC3H8,  IDBALD2, IDBCH2O, IDBALK4 
+      !----------------------------------------------------------------------
 
       ! GEOS-CHEM biofuel ID's
       INTEGER            :: IDBFNOX,  IDBFCO,   IDBFALK4, IDBFACET 
@@ -243,7 +239,7 @@
 !******************************************************************************
 !  Subroutine TRACERID reads the "tracer.dat" file and determines which
 !  tracers, emission species, biomass burning species, and biofuel burning
-!  species are turned on/off. (bmy, 3/16/01, 12/15/05)
+!  species are turned on/off. (bmy, 3/16/01, 4/5/06)
 !
 !  NOTES:
 !  (1 ) Original code from Loretta's version of the GISS-II model.  Now we
@@ -266,6 +262,7 @@
 !  (11) Add alternate names for tagged Hg tracers.  Also define ocean mercury 
 !        flux categories.  Now references LSPLIT from "logical_mod.f".
 !        (cdh, bmy, 12/15/05)
+!  (12) Now remove IDBxxx biomass flags (bmy, 4/5/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -317,7 +314,10 @@
             CASE ( 'NOX' )
                COUNT    = COUNT + 1
                IDTNOX   = N
-               IDBNOX   = COUNT
+               !-----------------------
+               ! Prior to 4/5/06:
+               !IDBNOX   = COUNT
+               !-----------------------
                IDBFNOX  = COUNT
 
             CASE ( 'OX' )
@@ -329,7 +329,10 @@
             CASE ( 'CO' )
                COUNT    = COUNT + 1
                IDTCO    = N
-               IDBCO    = COUNT
+               !-----------------------
+               ! Prior to 4/5/06:
+               !IDBCO    = COUNT
+               !-----------------------
                IDBFCO   = COUNT
 
                ! Special case: Tagged CO
@@ -344,7 +347,10 @@
             CASE ( 'ALK4' )
                COUNT    = COUNT + 1
                IDTALK4  = N
-               IDBALK4  = COUNT
+               !-----------------------
+               ! Prior to 4/5/06:
+               !IDBALK4  = COUNT
+               !-----------------------
                IDBFALK4 = COUNT
 
             CASE ( 'ISOP' )
@@ -359,19 +365,28 @@
             CASE ( 'ACET' )
                COUNT    = COUNT + 1
                IDTACET  = N
-               IDBACET  = COUNT
+               !-----------------------
+               ! Prior to 4/5/06
+               !IDBACET  = COUNT
+               !-----------------------
                IDBFACET = COUNT
 
             CASE ( 'MEK' )
                COUNT    = COUNT + 1
                IDTMEK   = N
-               IDBMEK   = COUNT
+               !-----------------------
+               ! Prior to 4/5/06
+               !IDBMEK   = COUNT
+               !-----------------------
                IDBFMEK  = COUNT
 
             CASE ( 'ALD2' )
                COUNT    = COUNT + 1
                IDTALD2  = N
-               IDBALD2  = COUNT
+               !-----------------------
+               ! Prior to 4/5/06
+               !IDBALD2  = COUNT
+               !-----------------------
                IDBFALD2 = COUNT
 
             CASE ( 'RCHO' )
@@ -395,25 +410,37 @@
             CASE ( 'PRPE' )
                COUNT    = COUNT + 1
                IDTPRPE  = N
-               IDBPRPE  = COUNT
+               !-----------------------
+               ! Prior to 4/5/06:
+               !IDBPRPE  = COUNT
+               !-----------------------
                IDBFPRPE = COUNT
 
             CASE ( 'C3H8' )
                COUNT    = COUNT + 1
                IDTC3H8  = N
-               IDBC3H8  = COUNT
+               !-----------------------
+               ! Prior to 4/5/06
+               !IDBC3H8  = COUNT
+               !-----------------------
                IDBFC3H8 = COUNT
 
             CASE ( 'CH2O' )
                COUNT    = COUNT + 1
                IDTCH2O  = N
-               IDBCH2O  = COUNT
+               !-----------------------
+               ! Prior to 4/5/06:
+               !IDBCH2O  = COUNT
+               !-----------------------
                IDBFCH2O = COUNT
 
             CASE ( 'C2H6' )
                COUNT    = COUNT + 1
                IDTC2H6  = N
-               IDBC2H6  = COUNT
+               !-----------------------
+               ! Prior to 4/5/06:
+               !IDBC2H6  = COUNT
+               !-----------------------
                IDBFC2H6 = COUNT
 
                ! Special case: tagged C2H6
@@ -567,7 +594,10 @@
             CASE ( 'CH3I' )
                COUNT    = COUNT + 1
                IDTCO    = 1
-               IDBCO    = COUNT
+               !---------------------
+               ! Prior to 4/5/06:
+               !IDBCO    = COUNT
+               !---------------------
                IDBFCO   = COUNT
                EXIT
 
@@ -575,7 +605,10 @@
             CASE ( 'HCN' )
                COUNT    = COUNT + 1
                IDTCO    = 1
-               IDBCO    = COUNT
+               !---------------------
+               ! Prior to 4/5/06:
+               !IDBCO    = COUNT
+               !---------------------
                IDBFCO   = COUNT
                EXIT
 
@@ -1337,17 +1370,20 @@
       IDEISOP   = 0
       IDECH2O   = 0 
       
-      ! GEOS-CHEM Biomass ID #'s 
-      IDBNOX    = 0
-      IDBCO     = 0
-      IDBALK4   = 0
-      IDBACET   = 0
-      IDBMEK    = 0
-      IDBALD2   = 0
-      IDBPRPE   = 0 
-      IDBC3H8   = 0
-      IDBCH2O   = 0
-      IDBC2H6   = 0
+      !--------------------------------
+      ! Prior to 4/5/06:
+      !! GEOS-CHEM Biomass ID #'s 
+      !IDBNOX    = 0
+      !IDBCO     = 0
+      !IDBALK4   = 0
+      !IDBACET   = 0
+      !IDBMEK    = 0
+      !IDBALD2   = 0
+      !IDBPRPE   = 0 
+      !IDBC3H8   = 0
+      !IDBCH2O   = 0
+      !IDBC2H6   = 0
+      !--------------------------------
       
       ! GEOS-CHEM Biofuel ID #'s
       IDBFNOX   = 0

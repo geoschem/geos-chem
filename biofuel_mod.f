@@ -1,4 +1,4 @@
-! $Id: biofuel_mod.f,v 1.9 2006/03/24 20:22:40 bmy Exp $
+! $Id: biofuel_mod.f,v 1.10 2006/04/21 15:39:50 bmy Exp $
       MODULE BIOFUEL_MOD
 !
 !******************************************************************************
@@ -28,7 +28,7 @@
 !  (2 ) dao_mod.f       : Module containing DAO met field arrays
 !  (3 ) diag_mod.f      : Module containing GEOS-CHEM diagnostic arrays
 !  (4 ) directory_mod.f : Module containing GEOS-CHEM data & met field dirs
-!  (5 ) epa_nei_mod.f     : Module containing routines to read EPA/NEI99 data
+!  (5 ) epa_nei_mod.f   : Module containing routines to read EPA/NEI99 data
 !  (6 ) error_mod.f     : Module containing NaN and other error check routines
 !  (7 ) logical_mod.f   : Module containing GEOS-CHEM logical switches
 !  (8 ) tracer_mod.f    : Module containing GEOS-CHEM tracer array etc.
@@ -490,14 +490,6 @@
             ! Overwrite biofuels w/ EPA/NEI emissions over the USA
             !-----------------------------------------------------------
             
-            !------------------------------------------------------------
-            ! Prior to 2/1/06:
-            ! Separate code below into 2 IF statements to avoid seg 
-            ! fault errors when LNEI99 is false (bmy, 2/1/06)
-            !! If we are over the USA ...
-            !IF ( LNEI99 .and. GET_USA_MASK( I, J ) > 0d0 ) THEN
-            !------------------------------------------------------------
-
             ! If EPA/NEI99 emissions are turned on....
             IF ( LNEI99 ) THEN
 

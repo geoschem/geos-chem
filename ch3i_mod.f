@@ -1,9 +1,9 @@
-! $Id: ch3i_mod.f,v 1.7 2005/10/20 14:03:16 bmy Exp $
+! $Id: ch3i_mod.f,v 1.8 2006/04/21 15:39:52 bmy Exp $
       MODULE CH3I_MOD
 !
 !******************************************************************************
 !  Module CH3I_MOD contains emissions and chemistry routines for the CH3I
-!  (Methyl Iodide) simulation. (bmy, 1/23/02, 10/3/05)
+!  (Methyl Iodide) simulation. (bmy, 1/23/02, 4/5/06)
 !
 !  Module Routines:
 !  ============================================================================
@@ -322,11 +322,16 @@
 !        GET_GMT, GET_TS_EMIS from the new "time_mod.f". (bmy, 2/10/03)
 !  (31) Now reference STT & N_TRACERS from "tracer_mod.f".  Now reference
 !        LEMIS from "logical_mod.f". (bmy, 7/20/04)
+!  (32) Now modified for new "biomass_mod.f" (bmy, 4/5/06)
 !******************************************************************************
 !
       ! Reference to F90 modules
       USE BIOFUEL_MOD,  ONLY : BIOFUEL,   BIOFUEL_BURN
-      USE BIOMASS_MOD,  ONLY : BURNEMIS,  BIOBURN
+      !-------------------------------------------------------
+      ! Prior to 4/5/06:
+      !USE BIOMASS_MOD,  ONLY : BURNEMIS,  BIOBURN
+      !-------------------------------------------------------
+      USE BIOMASS_MOD,  ONLY : BIOMASS,   IDBCO
       USE DAO_MOD,      ONLY : AIRVOL,    BXHEIGHT, TS
       USE DIAG_MOD,     ONLY : AD29,      AD36
       USE GRID_MOD,     ONLY : GET_AREA_M2
@@ -722,13 +727,16 @@
       !                   * grid box volume      
       !=================================================================
  
-      ! Make sure CO is a biomass burning tracer
-      IF ( IDBCO == 0 ) THEN
-         CALL ERROR_STOP( 'IDBCO=0, check "tracer.dat"', 'EMISSCH3I' )
-      ENDIF
-
-      ! Call BIOBURN from "biomass_mod.f
-      CALL BIOBURN
+      !---------------------------------------------------------------------
+      ! Prior to 4/5/06:
+      !! Make sure CO is a biomass burning tracer
+      !IF ( IDBCO == 0 ) THEN
+      !   CALL ERROR_STOP( 'IDBCO=0, check "tracer.dat"', 'EMISSCH3I' )
+      !ENDIF
+      !
+      !! Call BIOBURN from "biomass_mod.f
+      !CALL BIOBURN
+      !---------------------------------------------------------------------
 
       ! Convert biomass CO into biomass CH3I
       N = 2
@@ -737,7 +745,11 @@
       DO I = 1, IIPAR
 
          ! Get emission flux in kg/cm3/time step
-         FLUX = ECH3I * BURNEMIS(IDBCO,I,J)
+         !--------------------------------------------------
+         ! Prior to 4/5/06:
+         !FLUX = ECH3I * BURNEMIS(IDBCO,I,J)
+         !--------------------------------------------------
+         FLUX = ECH3I * BIOMASS(I,J,IDBCO)
          FLUX = FLUX * 1.0D-3 * FMOL_CH3I * XMOL * DTSRCE
 
          ! Add to diagnostic array as kg/m2/time step

@@ -1,9 +1,9 @@
-! $Id: chemdr.f,v 1.17 2005/10/27 13:59:51 bmy Exp $
+! $Id: chemdr.f,v 1.18 2006/04/21 15:39:53 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
 !  Subroutine CHEMDR is the driver subroutine for full chemistry w/ SMVGEAR.
-!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 10/25/05)
+!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 4/10/06)
 !
 !  Important input variables from "dao_mod.f" and "uvalbedo_mod.f":
 !  ============================================================================
@@ -23,12 +23,6 @@
 !  PRESS       : Pressure                                   [Pa]
 !  TMPK        : Temperature                                [K]
 !  ABSHUM      : Absolute humidity                          [molec/cm3]
-!  ALT         : Altitude                                   [cm]
-!  SURFALT     : Surface altitude                           [m]
-!  TOTO3       : Total ozone column                         [molec/cm3]
-!  CLOUDS      : Albedos at 2-km intervals from 0 to 20-km  
-!  IDXAIR      : Index for standard temperature profile
-!  IDXO3       : Index for standard ozone profile
 !  CSPEC       : Initial species concentrations             [molec/cm3]
 !
 !  Important output variables in "comode.h" etc.
@@ -142,7 +136,10 @@
 !  (24) Now remove LPAUSE from the arg list to "ruralbox.f" and "gasconc.f".
 !        (bmy, 8/22/05)
 !  (25) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (26) Now references XNUMOL & XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)! 
+!  (26) Now references XNUMOL & XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
+!  (27) Remove more obsolete SLOW-J code references.  Also now move function
+!        calls from subroutine "chem.f" into "chemdr.f".  Remove obsolete
+!        arguments from call to RURALBOX. (bmy, 4/10/06) 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -166,25 +163,30 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! IEBD1, IEBD2, etc.
-#     include "CMN_O3"    ! EMISRRN, EMISRR
-#     include "CMN_NOX"   ! SLBASE
-#     include "comode.h"  ! SMVGEAR variables
-#     include "CMN_DEP"   ! FRCLND
-#     include "CMN_DIAG"  ! ND40
+#     include "CMN_SIZE"        ! Size parameters
+#     include "CMN"             ! IEBD1, IEBD2, etc.
+#     include "CMN_O3"          ! EMISRRN, EMISRR
+#     include "CMN_NOX"         ! SLBASE
+#     include "comode.h"        ! SMVGEAR variables
+#     include "CMN_DEP"         ! FRCLND
+#     include "CMN_DIAG"        ! ND40
 
       ! Local variables
-      LOGICAL, SAVE       :: FIRSTCHEM = .TRUE.
-      INTEGER, SAVE       :: CH4_YEAR  = -1
-      INTEGER             :: I, J, JLOOP, L, NPTS, N, MONTH, YEAR
-      INTEGER             :: IDXAIR(JJPAR)
-      INTEGER             :: IDXO3(JJPAR)
-      REAL*8              :: XWETRAT, HUMEFF, ROVMG
-      REAL*8              :: ALT(MAXIJ,IVERT) 
-      REAL*8              :: SURFALT(MAXIJ)
-      REAL*8              :: TOTO3(JJPAR)
-      REAL*8              :: CLOUDS(MAXIJ,11)
+      LOGICAL, SAVE            :: FIRSTCHEM = .TRUE.
+      INTEGER, SAVE            :: CH4_YEAR  = -1
+      INTEGER                  :: I, J, JLOOP, L, NPTS, N, MONTH, YEAR
+      !---------------------------------------------------------------
+      ! Prior to 4/10/06:
+      ! These were only needed for SLOW-J photolysis (bmy, 4/10/06)
+      !INTEGER             :: IDXAIR(JJPAR)
+      !INTEGER             :: IDXO3(JJPAR)
+      !REAL*8              :: XWETRAT, HUMEFF, ROVMG
+      !REAL*8              :: ALT(MAXIJ,IVERT) 
+      !REAL*8              :: SURFALT(MAXIJ
+      !REAL*8              :: TOTO3(JJPAR)
+      !REAL*8              :: CLOUDS(MAXIJ,11)
+      !REAL*8              :: XWETRAT, HUMEFF
+      !---------------------------------------------------------------
 
       !=================================================================
       ! CHEMDR begins here!
@@ -198,8 +200,8 @@
       NPVERT = NVERT + IPLUME
 
       ! Get month and year
-      MONTH = GET_MONTH()
-      YEAR  = GET_YEAR()
+      MONTH  = GET_MONTH()
+      YEAR   = GET_YEAR()
 
       !=================================================================
       ! Compute AVGW, the mixing ratio of water vapor
@@ -211,7 +213,7 @@
       !=================================================================
       IF ( FIRSTCHEM ) THEN
          
-         ! Read from data files m.dat and tracer.dat
+         ! Read from data file mglob.dat
          CALL READER( FIRSTCHEM )
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after READER' )
 
@@ -220,21 +222,25 @@
          NCS = NCSURBAN
       ENDIF
 
-      !=================================================================
-      ! For SLOW-J photolysis only: 
-      ! Call JVALUEIN which reads in parameters for J-value calculation.  
-      ! JVALUEIN reads O3DU from the file "o3du.dat"
-      !=================================================================
-#if   defined( LSLOWJ )
-      IF ( FIRSTCHEM ) CALL JVALUEIN            
-      IF ( LPRT      ) CALL DEBUG_MSG( '### CHEMDR: after JVALUEIN' )
-#endif
-
-      !=================================================================      
-      ! Call GETALT, which GETS THE ALTITUDE   
-      !=================================================================
-      CALL GETALT( ALT, SURFALT, ROVMG )
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after GETALT' ) 
+!------------------------------------------------------------------------------
+! Prior to 4/10/06:
+! Remove this section, it was only needed for SLOW-J photolysis (bmy, 4/10/06)
+!      !=================================================================
+!      ! For SLOW-J photolysis only: 
+!      ! Call JVALUEIN which reads in parameters for J-value calculation.  
+!      ! JVALUEIN reads O3DU from the file "o3du.dat"
+!      !=================================================================
+!#if   defined( LSLOWJ )
+!      IF ( FIRSTCHEM ) CALL JVALUEIN            
+!      IF ( LPRT      ) CALL DEBUG_MSG( '### CHEMDR: after JVALUEIN' )
+!#endif
+!
+!      !=================================================================      
+!      ! Call GETALT, which GETS THE ALTITUDE   
+!      !=================================================================
+!      CALL GETALT( ALT, SURFALT, ROVMG )
+!      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after GETALT' ) 
+!------------------------------------------------------------------------------
 
       !=================================================================      
       ! Call RURALBOX, which defines tropospheric boxes to be sent to
@@ -242,31 +248,38 @@
       !=================================================================      
 
       ! Redefine NTLOOP since READER defines it initially (bmy, 9/28/04)
-      NLOOP       = NLAT  * NLONG
-      NTLOOP      = NLOOP * NVERT
+      NLOOP  = NLAT  * NLONG
+      NTLOOP = NLOOP * NVERT
 
-      CALL RURALBOX( AD,     T,      AVGW,   ALT,   ALBD,  
-     &               SUNCOS, CLOUDS, LEMBED, IEBD1, IEBD2, 
-     &               JEBD1,  JEBD2 )
+!----------------------------------------------------------------------------
+! Prior to 4/10/06:
+! Remove obsolete arguments (bmy, 4/10/06)
+!      CALL RURALBOX( AD,     T,      AVGW,   ALT,   ALBD,  
+!     &               SUNCOS, CLOUDS, LEMBED, IEBD1, IEBD2, 
+!     &               JEBD1,  JEBD2 )
+!----------------------------------------------------------------------------
+      CALL RURALBOX( AD,     T,     AVGW,  ALBD,  SUNCOS, 
+     &               LEMBED, IEBD1, IEBD2, JEBD1, JEBD2 )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after RURALBOX' ) 
 
-      !=================================================================      
-      ! For SLOW-J Photolysis only: 
-      ! Call GETTOTO3, which gets the total ozone column 
-      !=================================================================      
-#if   defined( LSLOWJ )
-      CALL GETTOTO3( TOTO3, IDXAIR, IDXO3 )
+!-----------------------------------------------------------------------------
+! Prior to 4/10/06:
+! Remove this section, it was only needed for SLOW-J photolysis (bmy, 4/10/06)
+!      !=================================================================      
+!      ! For SLOW-J Photolysis only: 
+!      ! Call GETTOTO3, which gets the total ozone column 
+!      !=================================================================      
+!#if   defined( LSLOWJ )
+!      CALL GETTOTO3( TOTO3, IDXAIR, IDXO3 )
+!
+!      !### Debug
+!      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after GETTOTO3' )
+!#endif
+!-----------------------------------------------------------------------------
 
-      !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after GETTOTO3' )
-#endif
-
-      !=================================================================
-      ! NTTLOOP is the total number of tropospheric grid boxes.
-      ! SMVGEAR will do chemistry in all NTTLOOP grid boxes.
-      !=================================================================
+      ! Reset NTTLOOP, the # of tropospheric grid boxes
       NTTLOOP = NTLOOP
 
       !=================================================================
@@ -278,12 +291,16 @@
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SETMODEL' )
 
+      !=================================================================
       ! Do the following only on the first call ...
+      !=================================================================
       IF ( FIRSTCHEM ) THEN
 
-         !==============================================================
-         ! Call READCHEM -- the setup routine for gas-phase chemistry
-         !==============================================================
+         !---------------------------------
+         ! Initialize chemistry mechanism
+         !---------------------------------
+
+         ! Read "globchem.dat" chemistry mechanism
          CALL READCHEM
 
          ! Set NCS=NCSURBAN here since we have defined our tropospheric
@@ -293,13 +310,15 @@
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after READCHEM' )
 
-         !==============================================================
-         ! If CH4 is a SMVGEAR II species, then call GET_GLOBAL_CH4
-         ! to return the globally-varying CH4 conc. as a function of
-         ! year and latitude bin.  (ICH4 is defined in READCHEM.)
-         ! (bnd, bmy, 7/1/03)
-         !==============================================================
+         !---------------------------------
+         ! Set global concentration of CH4
+         !---------------------------------
          IF ( ICH4 > 0 .and. ( CH4_YEAR /= GET_YEAR() ) ) THEN
+
+            ! If CH4 is a SMVGEAR II species, then call GET_GLOBAL_CH4
+            ! to return the globally-varying CH4 conc. as a function of
+            ! year and latitude bin.  (ICH4 is defined in READCHEM.)
+            ! (bnd, bmy, 7/1/03)
 
             ! Get CH4 [ppbv] in 4 latitude bins for each year
             CALL GET_GLOBAL_CH4( GET_YEAR(), .TRUE., C3090S, 
@@ -309,34 +328,31 @@
             CH4_YEAR = GET_YEAR()
          ENDIF
 
-         !==============================================================
-         ! If using Fast-J initialize it - must be after chemset 
-         ! Pass ALL variables via argument list, except PTOP, which
-         ! is declared as a parameter in "CMN_SIZE" (bmy, 2/10/00)
-         !==============================================================
+         !-------------------------------
+         ! Initialize FAST-J photolysis
+         !-------------------------------
          CALL INPHOT( LLTROP, NPHOT ) 
-
+         
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after INPHOT' )        
 
-         !==============================================================
-         ! Call SETTRACE which flags certain chemical species
-         !==============================================================
+         !-------------------------------
+         ! Flag certain chemical species
+         !-------------------------------
          CALL SETTRACE
 
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SETTRACE' )
 
-         !==============================================================
-         ! Call SETEMDEP which flags emission and dry deposition 
-         ! reactions (read from chem.dat)
-         !==============================================================
+         !-------------------------------
+         ! Flag emission & drydep rxns
+         !-------------------------------
          CALL SETEMDEP( N_TRACERS )
 
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SETEMDEP' )
 
-      ENDIF ! IF (FIRSTCHEM)
+      ENDIF
 
       !=================================================================
       ! At the beginning of each new day, call SETUP_PLANEFLIGHT
@@ -370,8 +386,6 @@
 
       !=================================================================  
       ! Call SETEMIS which sets emission rates REMIS 
-      ! SETEMIS now references BURNEMIS, BIOTRCE, NBIOTRCE,
-      ! and BIOFUEL from F90 module "biomass_mod.f" (bmy, 9/12/00)
       !=================================================================
       CALL SETEMIS( EMISRR, EMISRRN )
       
@@ -406,17 +420,46 @@
 
       NPTS = NTTLOOP
 
+!-----------------------------------------------------------------------------
+! Prior to 4/10/06:
+! Now move subroutine calls from "chem.f" to "chemdr.f" below.
+! Make "chem.f" obsolete. (bmy, 4/10/06)
+!      !=================================================================
+!      ! Call CHEM which PERFORMS GAS-PHASE CHEMISTRY. 
+!      !=================================================================
+!      CALL CHEM( FIRSTCHEM, NPTS,  SUNCOS, SUNCOSB, CLOUDS, ALT,
+!     &           SURFALT,   TOTO3, IDXAIR, IDXO3,   OPTD,   UVALBEDO )
+!-----------------------------------------------------------------------------
+!
+      ! At present, we are only doing tropospheric chemistry, which 
+      ! for the moment we are storing in SMVGEAR II's "urban" slot
+      NCS = NCSURBAN
+
       !=================================================================
-      ! Call CHEM which PERFORMS GAS-PHASE CHEMISTRY. 
+      ! Call photolysis routine to compute J-Values
       !=================================================================
-      CALL CHEM( FIRSTCHEM, NPTS,  SUNCOS, SUNCOSB, CLOUDS, ALT,
-     &           SURFALT,   TOTO3, IDXAIR, IDXO3,   OPTD,   UVALBEDO )
+      CALL FAST_J( SUNCOS, OPTD, UVALBEDO )              
+
+      !================================================================
+      ! Call chemistry routines
+      !================================================================
+
+      ! PHYSPROC calls both CALCRATE, which computes rxn rates 
+      ! and SMVGEAR, which is the chemistry solver
+      CALL PHYSPROC( SUNCOS, SUNCOSB )
+      
+      !### Debug
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after PHYSPROC' )
+
+      ! SCHEM applies a simplified strat chemistry in order
+      ! to prevent stuff from building up in the stratosphere
+      CALL SCHEM
 
       !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after CHEM' )
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SCHEM' )
 
       !=================================================================
-      ! Call LUMP which lumps the species together
+      ! Call LUMP which lumps the species together after chemistry
       !=================================================================
       CALL LUMP( N_TRACERS, XNUMOL, STT )
 

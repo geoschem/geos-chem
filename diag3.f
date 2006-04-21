@@ -1,4 +1,4 @@
-! $Id: diag3.f,v 1.29 2006/03/24 20:22:43 bmy Exp $
+! $Id: diag3.f,v 1.30 2006/04/21 15:39:55 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
@@ -1589,7 +1589,7 @@
             NN = N
             
             ARRAY(:,:,1) = AD28(:,:,M) / SCALESRCE
-            
+
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
@@ -2637,18 +2637,10 @@
 #endif
                   UNIT   = 'g/kg'
 
-!-----------------------------
-! Prior to 3/14/06:
-!#if   !defined( GEOS_4 ) 
-!-----------------------------
                ! CLDMAS
                CASE( 5 )
                   SCALEX = SCALE_A6
                   UNIT   = 'kg/m2/s'
-!-----------------------------
-! Prior to 3/14/06:
-!#endif
-!-----------------------------
 
                CASE DEFAULT
                   CYCLE

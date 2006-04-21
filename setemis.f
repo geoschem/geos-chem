@@ -1,10 +1,10 @@
-! $Id: setemis.f,v 1.7 2005/10/20 14:03:39 bmy Exp $
+! $Id: setemis.f,v 1.8 2006/04/21 15:40:07 bmy Exp $
       SUBROUTINE SETEMIS( EMISRR, EMISRRN )
 !
 !******************************************************************************
 !  Subroutine SETEMIS places emissions computed from GEOS-CHEM 
 !  subroutines into arrays for SMVGEAR II chemistry. 
-!  (lwh, jyl, gmg, djj, bdf, bmy, 6/8/98, 10/3/05)
+!  (lwh, jyl, gmg, djj, bdf, bmy, 6/8/98, 4/5/06)
 !
 !  SETEMIS converts from units of [molec tracer/box/s] to units of
 !  [molec chemical species/cm3/s], and stores in the REMIS array.  For
@@ -84,11 +84,17 @@
 !        reference to CMN, it's obsolete.  Now references GET_TPAUSE_LEVEL
 !        from "tropopause_mod.f" (bmy, 8/22/05)
 !  (25) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (26) Now updated for new "biomass_mod.f" (bmy, 4/5/06)
 !******************************************************************************
 !
       ! References to F90 modules 
       USE BIOFUEL_MOD,    ONLY : BIOFUEL,     BFTRACE, NBFTRACE
-      USE BIOMASS_MOD,    ONLY : BURNEMIS,    BIOTRCE, NBIOTRCE
+      !-----------------------------------------------------------------
+      ! Prior to 4/5/06:
+      ! BURNEMIS is now BIOMASS, NBIOTRCE is obsolete (bmy, 4/5/06)
+      !USE BIOMASS_MOD,    ONLY : BURNEMIS,    BIOTRCE, NBIOTRCE
+      !-----------------------------------------------------------------
+      USE BIOMASS_MOD,    ONLY : BIOMASS,     BIOTRCE, NBIOMAX
       USE COMODE_MOD,     ONLY : JLOP,        REMIS,   VOLUME
       USE DIAG_MOD,       ONLY : AD12
       USE PBL_MIX_MOD,    ONLY : GET_PBL_TOP_L
@@ -132,8 +138,13 @@
          ! We have to search for the biomass burning species in 
          ! BIOTRCE with the same CTM tracer number NN as in IDEMS
          NBB = 0
-         IF ( ALLOCATED( BURNEMIS ) ) THEN 
-            DO I = 1, NBIOTRCE
+         !-------------------------------------------
+         ! Prior to 4/5/06:
+         !IF ( ALLOCATED( BURNEMIS ) ) THEN 
+         !   DO I = 1, NBIOTRCE
+         !-------------------------------------------
+         IF ( ALLOCATED( BIOMASS ) ) THEN 
+            DO I = 1, NBIOMAX
                IF ( BIOTRCE(I) == NN ) THEN 
                   NBB = I
 #if   defined( COMPAQ )
@@ -339,7 +350,11 @@
                      ! DELTPRES/TOTPRES goes into level L, since that is the 
                      ! fraction of the boundary layer occupied by level L.  
                      ! Store in EMIS_BL.
-                     EMIS_BL  = ( BURNEMIS(NBB,I,J)  *
+                     !-----------------------------------------------------
+                     ! Prior to 4/5/06:
+                     !EMIS_BL  = ( BURNEMIS(NBB,I,J)  *
+                     !-----------------------------------------------------
+                     EMIS_BL  = ( BIOMASS(I,J,NBB)  *
      &                            VOLUME( JLOP(I,J,1) ) / COEF1  ) *
      &                            ( DELTPRES / TOTPRES )
 

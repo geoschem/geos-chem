@@ -1,4 +1,4 @@
-! $Id: chemistry_mod.f,v 1.22 2006/03/24 20:22:41 bmy Exp $
+! $Id: chemistry_mod.f,v 1.23 2006/04/21 15:39:53 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
@@ -110,11 +110,6 @@
       USE CARBON_MOD,      ONLY : CHEMCARBON
       USE CH3I_MOD,        ONLY : CHEMCH3I
       USE DAO_MOD,         ONLY : CLDF,    CLMOSW, CLROSW, DELP
-      !--------------------------------------------------------------
-      ! Prior to 3/16/06:
-      ! Remove MAKE_RH, it's obsolete (bmy, 3/16/06)
-      !USE DAO_MOD,         ONLY : MAKE_RH, OPTDEP, OPTD,   T
-      !--------------------------------------------------------------
       USE DAO_MOD,         ONLY : OPTDEP,  OPTD,   T
       USE DRYDEP_MOD,      ONLY : DRYFLX, DRYFLXRnPbBe
       USE DUST_MOD,        ONLY : CHEMDUST, RDUST_ONLINE
@@ -197,13 +192,6 @@
             ! Also do sulfate chemistry
             IF ( LSULF ) THEN
 
-               !--------------------------------------------
-               ! Prior to 3/16/06:
-               ! This is now done in main.f (bmy, 3/16/06)
-               !! Get relative humidity
-               !CALL MAKE_RH
-               !--------------------------------------------
-
                ! Do sulfate chemistry
                CALL CHEMSULFATE
 
@@ -243,13 +231,6 @@
          ! Offline aerosol simulation
          !---------------------------------
          ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
-
-            !-------------------------------------------
-            ! Prior to 3/16/06:
-            ! This is now done in main.f (bmy, 3/16/06)
-            !! Get relative humidity
-            !CALL MAKE_RH
-            !-------------------------------------------
 
             ! Define loop index and other SMVGEAR arrays
             ! N_TROP, the # of trop boxes, is returned
@@ -370,13 +351,6 @@
          ! Mercury
          !---------------------------------
          ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
-
-            !---------------------------------------------
-            ! Prior to 3/16/06:
-            ! Now call this from "main.f" (bmy, 3/16/06)
-            !! Get relative humidity
-            !CALL MAKE_RH    
-            !---------------------------------------------
 
             ! Do Hg chemistry
             CALL CHEMMERCURY

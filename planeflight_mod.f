@@ -1,4 +1,4 @@
-! $Id: planeflight_mod.f,v 1.18 2005/11/03 17:50:35 bmy Exp $
+! $Id: planeflight_mod.f,v 1.19 2006/04/21 15:40:04 bmy Exp $
       MODULE PLANEFLIGHT_MOD
 !
 !******************************************************************************
@@ -47,7 +47,7 @@
 !  (10) INIT_PLANEFLIGHT        : Gets # of species, points; allocates arrays
 !  (11) CLEANUP_PLANEFLIGHT     : Deallocates all allocated arrays
 !
-!  GEOS-CHEM modules referenced by biomass_mod.f
+!  GEOS-CHEM modules referenced by planeflight_mod.f
 !  ============================================================================
 !  (1 ) bpch2_mod.f             : Module w/ routines for binary punch file I/O
 !  (2 ) error_mod.f             : Module w/ NaN and other error check routines

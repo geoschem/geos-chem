@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.21 2006/03/24 20:22:50 bmy Exp $
+! $Id: input_mod.f,v 1.22 2006/04/21 15:40:01 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS_CHEM input file at the start of the run
 !  and passes the information to several other GEOS-CHEM F90 modules.
-!  (bmy, 7/20/04, 3/6/06)
+!  (bmy, 7/20/04, 4/5/06)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -104,6 +104,7 @@
 !  (8 ) Now read LEMEP switch for EMEP emissions (bdf, bmy, 11/1/05)
 !  (9 ) Now added MERCURY MENU section.  Also fixed bug in READ_ND48_MENU.
 !        (eck, cdh, bmy, 3/6/06)
+!  (10) Now read LGFED2BB switch for GFED2 biomass emissions (bmy, 4/5/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -667,7 +668,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_TRACER_MENU reads the TRACER MENU section of the 
-!  GEOS-CHEM input file (bmy, 7/20/04, 2/24/06)
+!  GEOS-CHEM input file (bmy, 7/20/04, 4/5/06)
 !
 !  NOTES:
 !  (1 ) Now set LSPLIT correctly for Tagged Hg simulation (eck, bmy, 12/13/04)
@@ -675,12 +676,15 @@
 !  (3 ) Now set LSPLIT correctly for Tagged HCN/CH3CN sim (xyp, bmy, 6/30/05)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Now reference XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
-!  (6 ) Now move call to INIT_OCEAN_MERCURY to READ_MERCURY_MENU (bmy, 2/24/06)
+!  (6 ) Now move call to INIT_OCEAN_MERCURY to READ_MERCURY_MENU (bmy, 2/24/06)!  (7 ) Now do not call SET_BIOTRCE anymore; it's obsolete (bmy, 4/5/06)
 !******************************************************************************
 !
       ! References to F90 modules
       USE CHARPAK_MOD,       ONLY : ISDIGIT
-      USE BIOMASS_MOD,       ONLY : SET_BIOTRCE
+      !------------------------------------------------------
+      ! Prior to 4/5/06:
+      !USE BIOMASS_MOD,       ONLY : SET_BIOTRCE
+      !------------------------------------------------------
       USE BIOFUEL_MOD,       ONLY : SET_BFTRACE
       USE ERROR_MOD,         ONLY : ALLOC_ERR, ERROR_STOP
       USE LOGICAL_MOD,       ONLY : LSPLIT
@@ -909,21 +913,18 @@
       ! Set up tracer flags
       CALL TRACERID
 
-      ! Set NBIOTRCE in "biomass_mod.f"
-      CALL SET_BIOTRCE
+      !----------------------------------------------------------------
+      ! Prior to 4/5/06:
+      ! This is no longer necessary (bmy, 4/5/06)
+      !! Set NBIOTRCE in "biomass_mod.f"
+      !CALL SET_BIOTRCE
+      !----------------------------------------------------------------
 
       ! Set NBFTRACE in "biofuel_mod.f"
       CALL SET_BFTRACE
 
       ! Set counter
       CT1 = CT1 + 1
-
-      !--------------------------------------------------------
-      ! Prior to 2/24/06:
-      ! Now move this to READ_MERCURY_MENU (bmy, 2/24/06)
-      !! Also init ocean mercury flux module (after TRACERID)
-      !IF ( ITS_A_MERCURY_SIM() ) CALL INIT_OCEAN_MERCURY
-      !--------------------------------------------------------
 
       ! Return to calling program
       END SUBROUTINE READ_TRACER_MENU
@@ -1212,7 +1213,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_EMISSIONS_MENU reads the EMISSIONS MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 11/1/05)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 4/5/06)
 !
 !  NOTES:
 !  (1 ) Now read LNEI99 -- switch for EPA/NEI99 emissions (bmy, 11/5/04)
@@ -1220,6 +1221,7 @@
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Now read LMEGAN -- switch for MEGAN biogenics (tmf, bmy, 10/20/05)
 !  (5 ) Now read LEMEP -- switch for EMEP emissions (bdf, bmy, 11/1/05)
+!  (6 ) Now read LGFED2BB -- switch for GFED2 biomass emissions (bmy, 4/5/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1228,7 +1230,7 @@
       USE LOGICAL_MOD, ONLY : LBIOFUEL, LBIOGENIC, LBIOMASS,  LBIONOX   
       USE LOGICAL_MOD, ONLY : LEMIS,    LFOSSIL,   LLIGHTNOX, LMONOT    
       USE LOGICAL_MOD, ONLY : LNEI99,   LSHIPSO2,  LSOILNOX,  LTOMSAI   
-      USE LOGICAL_MOD, ONLY : LWOODCO,  LMEGAN,    LEMEP
+      USE LOGICAL_MOD, ONLY : LWOODCO,  LMEGAN,    LEMEP,     LGFED2BB
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
 
 #     include "CMN_SIZE"    ! Size parameters
@@ -1292,47 +1294,54 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:11' )
       READ( SUBSTRS(1:N), * ) LTOMSAI
 
-      ! Separator line
+      ! Use GFED2 biomass emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:12' )
+      READ( SUBSTRS(1:N), * ) LGFED2BB
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:13' )
 
       ! Use aircraft NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:13' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:14' )
       READ( SUBSTRS(1:N), * ) LAIRNOX
 
       ! Use lightning NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:14' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:15' )
       READ( SUBSTRS(1:N), * ) LLIGHTNOX
 
       ! Use soil NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:15' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:16' )
       READ( SUBSTRS(1:N), * ) LSOILNOX
 
       ! Use ship SO2 emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:16' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:17' )
       READ( SUBSTRS(1:N), * ) LSHIPSO2
 
       ! Use EPA/NEI99 emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:17' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:18' )
       READ( SUBSTRS(1:N), * ) LNEI99
 
       ! Use AVHRR-derived LAI fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:18' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:19' )
       READ( SUBSTRS(1:N), * ) LAVHRRLAI
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:19' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:20' )
 
       !=================================================================
       ! Error check logical flags
       !=================================================================
 
       ! Define these flags for backwards compatibility
-      LFOSSIL = LANTHRO
-      LWOODCO = LBIOFUEL
-      LBIONOX = LBIOMASS
+      LFOSSIL      = LANTHRO
+      LWOODCO      = LBIOFUEL
+      LBIONOX      = LBIOMASS
 
       ! Set LMEGAN=F if emissions are turned off
-      LMEGAN  = ( LMEGAN .and. LEMIS )
+      LMEGAN       = ( LMEGAN   .and. LEMIS )
+
+      ! Set LGFED2BB=F if emissions are turned off
+      LGFED2BB     = ( LGFED2BB .and. LEMIS )
       
       ! Turn off full-chem only switches 
       IF ( .not. ITS_A_FULLCHEM_SIM() ) THEN
@@ -1357,6 +1366,7 @@
       WRITE( 6, 100     ) 'Turn on BIOMASS EMISSIONS   : ', LBIOMASS
       WRITE( 6, 100     ) 'Use seasonal BIOMASS emiss? : ', LBBSEA
       WRITE( 6, 100     ) 'Scale BIOMASS to TOMS-AI?   : ', LTOMSAI
+      WRITE( 6, 100     ) 'Use GFED2 BIOMASS emissions?: ', LGFED2BB
       WRITE( 6, 100     ) 'Turn on LIGHTNING NOx?      : ', LLIGHTNOX
       WRITE( 6, 100     ) 'Turn on AIRCRAFT NOx?       : ', LAIRNOX
       WRITE( 6, 100     ) 'Turn on SOIL NOx?           : ', LSOILNOX
@@ -1840,7 +1850,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_DIAGNOSTIC_MENU reads the DIAGNOSTIC MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 10/3/05)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 4/5/06)
 !
 !  NOTES:
 !  (1 ) Now reference IU_BPCH from "file_mod.f" and OPEN_BPCH2_FOR_WRITE
@@ -1854,10 +1864,15 @@
 !  (4 ) Now references "diag04_mod.f" (bmy, 7/26/05)
 !  (5 ) Now make sure all USE statements are USE, ONLY.  Also remove reference
 !        to DIAG_MOD, it's not needed. (bmy, 10/3/05)
+!  (6 ) Now remove reference to NBIOTRCE; Replace w/ NBIOMAX. (bmy, 4/5/06)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BIOMASS_MOD,  ONLY : NBIOTRCE
+      !---------------------------------------------------------
+      ! Prior to 4/5/06:
+      !USE BIOMASS_MOD,  ONLY : NBIOTRCE
+      !---------------------------------------------------------
+      USE BIOMASS_MOD,  ONLY : NBIOMAX
       USE BIOFUEL_MOD,  ONLY : NBFTRACE
       USE BPCH2_MOD,    ONLY : OPEN_BPCH2_FOR_WRITE
       USE DIAG03_MOD,   ONLY : ND03,      PD03,      INIT_DIAG03
@@ -2114,7 +2129,11 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:29' )
       READ( SUBSTRS(1), * ) ND28
       IF ( .not. LBIOMASS ) ND28 = 0
-      CALL SET_TINDEX( 28, ND28, SUBSTRS(2:N), N-1, NBIOTRCE )
+      !---------------------------------------------------------------
+      ! Prior to 4/5/06:
+      !CALL SET_TINDEX( 28, ND28, SUBSTRS(2:N), N-1, NBIOTRCE )
+      !---------------------------------------------------------------
+      CALL SET_TINDEX( 28, ND28, SUBSTRS(2:N), N-1, NBIOMAX )
 
       !--------------------------
       ! ND29: CO sources
@@ -3942,20 +3961,22 @@
 !
 !******************************************************************************
 !  Subroutine INIT_INPUT initializes all variables from "directory_mod.f" and
-!  "logical_mod.f" for safety's sake. (bmy, 7/20/04, 10/20/05)
+!  "logical_mod.f" for safety's sake. (bmy, 7/20/04, 4/5/06)
 !
 !  NOTES:
 !  (1 ) Now also initialize LNEI99 from "logical_mod.f" (bmy, 11/5/04)
 !  (2 ) Now also initialize LAVHRRLAI from "logical_mod.f" (bmy, 12/20/04)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Now also initialize LMEGAN switch (tmf, bmy, 10/20/05)
+!  (5 ) Now also initialize LEMEP, LGFED2BB switches and DATA_DIR_1x1
+!        directory (bmy, 4/5/06)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : DATA_DIR,   GEOS_1_DIR, GEOS_S_DIR 
       USE DIRECTORY_MOD, ONLY : GEOS_3_DIR, GEOS_4_DIR, TEMP_DIR   
       USE DIRECTORY_MOD, ONLY : RUN_DIR,    OH_DIR,     O3PL_DIR   
-      USE DIRECTORY_MOD, ONLY : TPBC_DIR
+      USE DIRECTORY_MOD, ONLY : TPBC_DIR,   DATA_DIR_1x1
       USE LOGICAL_MOD,   ONLY : LATEQ,      LAVHRRLAI,  LCARB      
       USE LOGICAL_MOD,   ONLY : LDEAD,      LDUST,      LSULF      
       USE LOGICAL_MOD,   ONLY : LSOA,       LSSALT,     LCHEM      
@@ -3971,77 +3992,81 @@
       USE LOGICAL_MOD,   ONLY : LTPFV,      LUPBD,      LWINDO     
       USE LOGICAL_MOD,   ONLY : LUNZIP,     LWAIT,      LTURB      
       USE LOGICAL_MOD,   ONLY : LSVGLB,     LSPLIT,     LWETD 
-      USE LOGICAL_MOD,   ONLY : LMEGAN,     LDYNOCEAN
+      USE LOGICAL_MOD,   ONLY : LMEGAN,     LDYNOCEAN,  LEMEP
+      USE LOGICAL_MOD,   ONLY : LGFED2BB
 
       !=================================================================
       ! INIT_INPUT begins here!
       !=================================================================
 
       ! Initialize directories
-      DATA_DIR   = ''
-      GEOS_1_DIR = ''
-      GEOS_S_DIR = ''
-      GEOS_3_DIR = ''
-      GEOS_4_DIR = ''
-      TEMP_DIR   = ''
-      RUN_DIR    = ''
-      OH_DIR     = ''
-      O3PL_DIR   = ''
-      TPBC_DIR   = ''
+      DATA_DIR     = ''
+      DATA_DIR_1x1 = ''
+      GEOS_1_DIR   = ''
+      GEOS_S_DIR   = ''
+      GEOS_3_DIR   = ''
+      GEOS_4_DIR   = ''
+      TEMP_DIR     = ''
+      RUN_DIR      = ''
+      OH_DIR       = ''
+      O3PL_DIR     = ''
+      TPBC_DIR     = ''
 
       ! Initialize logicals
-      LATEQ      = .FALSE.
-      LAVHRRLAI  = .FALSE.
-      LCARB      = .FALSE.
-      LDEAD      = .FALSE.
-      LDUST      = .FALSE.
-      LSULF      = .FALSE.
-      LSOA       = .FALSE.
-      LSSALT     = .FALSE.
-      LCHEM      = .FALSE.
-      LEMBED     = .FALSE.
-      LCONV      = .FALSE.
-      LDBUG      = .FALSE.
-      LDIAG      = .FALSE.
-      LPRT       = .FALSE.
-      LSTDRUN    = .FALSE.
-      LDRYD      = .FALSE.
-      LAIRNOX    = .FALSE.
-      LANTHRO    = .FALSE.
-      LBIONOX    = .FALSE.
-      LBIOMASS   = .FALSE.
-      LBIOFUEL   = .FALSE.
-      LBIOGENIC  = .FALSE.
-      LBBSEA     = .FALSE.
-      LEMIS      = .FALSE.
-      LFFNOX     = .FALSE.
-      LFOSSIL    = .FALSE.
-      LLIGHTNOX  = .FALSE.
-      LMEGAN     = .FALSE.
-      LMONOT     = .FALSE.
-      LNEI99     = .FALSE.
-      LSHIPSO2   = .FALSE.
-      LSOILNOX   = .FALSE.
-      LTOMSAI    = .FALSE.
-      LWOODCO    = .FALSE.
-      LFILL      = .FALSE.
-      LMFCT      = .FALSE.
-      LTRAN      = .FALSE.
-      LTPFV      = .FALSE.
-      LUPBD      = .FALSE.
-      LWINDO     = .FALSE.
-      LUNZIP     = .FALSE.
-      LWAIT      = .FALSE.
-      LTURB      = .FALSE.
-      LSVGLB     = .FALSE.
-      LSPLIT     = .FALSE.
-      LWETD      = .FALSE.
-      LDYNOCEAN  = .FALSE.
+      LATEQ        = .FALSE.
+      LAVHRRLAI    = .FALSE.
+      LCARB        = .FALSE.
+      LDEAD        = .FALSE.
+      LDUST        = .FALSE.
+      LSULF        = .FALSE.
+      LSOA         = .FALSE.
+      LSSALT       = .FALSE.
+      LCHEM        = .FALSE.
+      LEMBED       = .FALSE.
+      LCONV        = .FALSE.
+      LDBUG        = .FALSE.
+      LDIAG        = .FALSE.
+      LPRT         = .FALSE.
+      LSTDRUN      = .FALSE.
+      LDRYD        = .FALSE.
+      LAIRNOX      = .FALSE.
+      LANTHRO      = .FALSE.
+      LBIONOX      = .FALSE.
+      LBIOMASS     = .FALSE.
+      LBIOFUEL     = .FALSE.
+      LBIOGENIC    = .FALSE.
+      LBBSEA       = .FALSE.
+      LDYNOCEAN    = .FALSE.
+      LEMEP        = .FALSE.
+      LEMIS        = .FALSE.
+      LFFNOX       = .FALSE.
+      LFOSSIL      = .FALSE.
+      LGFED2BB     = .FALSE.
+      LLIGHTNOX    = .FALSE.
+      LMEGAN       = .FALSE.
+      LMONOT       = .FALSE.
+      LNEI99       = .FALSE.
+      LSHIPSO2     = .FALSE.
+      LSOILNOX     = .FALSE.
+      LTOMSAI      = .FALSE.
+      LWOODCO      = .FALSE.
+      LFILL        = .FALSE.
+      LMFCT        = .FALSE.
+      LTRAN        = .FALSE.
+      LTPFV        = .FALSE.
+      LUPBD        = .FALSE.
+      LWINDO       = .FALSE.
+      LUNZIP       = .FALSE.
+      LWAIT        = .FALSE.
+      LTURB        = .FALSE.
+      LSVGLB       = .FALSE.
+      LSPLIT       = .FALSE.
+      LWETD        = .FALSE.
 
       ! Initialize counters
-      CT1        = 0
-      CT2        = 0
-      CT3        = 0
+      CT1          = 0
+      CT2          = 0
+      CT3          = 0
 
       ! Return to calling program
       END SUBROUTINE INIT_INPUT

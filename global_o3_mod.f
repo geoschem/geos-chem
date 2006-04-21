@@ -1,4 +1,4 @@
-! $Id: global_o3_mod.f,v 1.6 2006/03/24 20:22:48 bmy Exp $
+! $Id: global_o3_mod.f,v 1.7 2006/04/21 15:40:00 bmy Exp $
       MODULE GLOBAL_O3_MOD
 !
 !******************************************************************************
@@ -89,11 +89,6 @@
       INTEGER, INTENT(IN)  :: THISMONTH
 
       ! Local variables
-      !-----------------------------------------------------
-      ! Prior to 12/1/05:
-      !INTEGER              :: I, J, L
-      !REAL*4               :: ARRAY(IGLOB,JGLOB,LGLOB)
-      !-----------------------------------------------------
       REAL*4               :: ARRAY(IGLOB,JGLOB,LLTROP)
       REAL*8               :: XTAU
       CHARACTER(LEN=255)   :: FILENAME
@@ -125,20 +120,11 @@
       XTAU = GET_TAU0( THISMONTH, 1, 1985 )
  
       ! Read O3 data (v/v) from the binary punch file (tracer #51)
-      !----------------------------------------------------------------
-      ! Prior to 11/18/05:
-      ! O3 is now tracer #51 in the new file (bmy, 12/1/05)
-      !CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 32,     
-      !----------------------------------------------------------------
       CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 51,     
      &                 XTAU,      IGLOB,     JGLOB,     
      &                 LLTROP,    ARRAY,     QUIET=.TRUE. )
       
       ! Assign data from ARRAY to the module variable O3
-      !-----------------------------------------------------
-      ! Prior to 12/1/05:
-      !CALL TRANSFER_3D( ARRAY, O3 )
-      !-----------------------------------------------------
       CALL TRANSFER_3D_TROP( ARRAY, O3 )
 
       ! Return to calling program
@@ -168,11 +154,6 @@
       !=================================================================
       ! INIT_GLOBAL_O3 begins here!
       !=================================================================
-      !----------------------------------------------------
-      ! Prior to 12/1/05:
-      ! New file is only tropospheric (bmy, 12/1/05)
-      !ALLOCATE( O3( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      !----------------------------------------------------
       ALLOCATE( O3( IIPAR, JJPAR, LLTROP ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'O3' )
       O3 = 0d0

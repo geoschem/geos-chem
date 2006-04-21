@@ -1,8 +1,8 @@
-! $Id: comode.h,v 1.15 2006/03/24 20:22:42 bmy Exp $
+! $Id: comode.h,v 1.16 2006/04/21 15:39:54 bmy Exp $
 !
 !******************************************************************************
 !  Header file COMODE contains common blocks and variables for SMVGEAR II.
-!  (M. Jacobson 1997; bdf, bmy, 4/23/03, 10/17/05)
+!  (M. Jacobson 1997; bdf, bmy, 4/23/03, 3/29/06)
 !
 !  NOTES:
 !  (1 ) Removed many commented-out common blocks not needed for GEOS-CHEM.
@@ -45,6 +45,9 @@
 !  (9 ) Remove obsolete LGEOSCO and FULLCHEM Cpp switches (bmy, 6/24/05)
 !  (10) For COMPAQ, put IRMA, IRMB in /INMTRATE2/ common block.  For COMPAQ, 
 !        also declare /INMTRATE2/ THREADPRIVATE. (Q. Liang, bmy, 10/17/05)
+!  (11) Now remove AVG, BOLTG, RGAS, SCDAY, BK, EIGHTDPI, RSTARG, WTAIR,
+!        ONEPI, CONSVAP, SMAL1, SMAL2, SMAL3 from common blocks and declare 
+!        these as parameters. (bec, bmy, 3/29/06)
 !******************************************************************************
 !
 C         CCCCCCC  OOOOOOO  M     M  OOOOOOO  DDDDDD   EEEEEEE 
@@ -214,13 +217,60 @@ C *********************************************************************
 C *           SET REAL AND INTEGER NON-ARRAY VARIABLES                *
 C *********************************************************************
 C
-      REAL*8  ::         AVG,       BOLTG,     RGAS
-      REAL*8  ::         SCDAY,     BK,        EIGHTDPI  
-      REAL*8  ::         RSTARG,    WTAIR,     ONEPI
-      COMMON /BSCPARM/   AVG,       BOLTG,     RGAS, 
-     &                   SCDAY,     BK,        EIGHTDPI,  
-     &                   RSTARG,    WTAIR,     ONEPI
-                         
+!-----------------------------------------------------------------------------
+! Prior to 3/29/06:
+! Now remove these physical constants from the common block and make
+! them parameters.  This way they will be defined before the first call
+! to "reader.f"...this is needed for the offline aerosol run.
+! (bec, bmy, 3/29/06)
+!      REAL*8  ::         AVG,       BOLTG,     RGAS
+!      REAL*8  ::         SCDAY,     BK,        EIGHTDPI  
+!      REAL*8  ::         RSTARG,    WTAIR,     ONEPI
+!      COMMON /BSCPARM/   AVG,       BOLTG,     RGAS, 
+!     &                   SCDAY,     BK,        EIGHTDPI,  
+!     &                   RSTARG,    WTAIR,     ONEPI
+!-----------------------------------------------------------------------------
+      !---------------------------------------------------------------
+      ! Physical constants 
+      ! (now make these PARAMETERS instead of COMMON block variables)
+      !---------------------------------------------------------------
+
+      ! Avogadro's #
+      REAL*8, PARAMETER :: AVG      = 6.02252d+23
+
+      ! Boltzmann's constant [erg/K]
+      REAL*8, PARAMETER :: BK       = 1.38054d-16
+      REAL*8, PARAMETER :: BOLTG    = 1.38054d-16
+
+      ! Condensation vapor pressure ?????? 
+      REAL*8, PARAMETER :: CONSVAP  = 6.1078d+03 / BOLTG
+      
+      ! PI (same value as in CMN_GCTM) and related quantities
+      REAL*8, PARAMETER :: ONEPI    = 3.14159265358979323d0 
+      REAL*8, PARAMETER :: EIGHTDPI = 8.d0 / ONEPI
+
+      ! Gas constant [erg/K/mole]
+      REAL*8, PARAMETER :: RGAS     = BOLTG * AVG
+      
+      ! Universal gas constant [g/cm2/s2/mole/K]
+      REAL*8, PARAMETER :: RSTARG   = 8.31450d+07
+
+      ! Seconds per day
+      REAL*8, PARAMETER :: SCDAY    = 86400.0d0
+
+      ! Molecular weight of air 
+      REAL*8, PARAMETER :: WTAIR    = 28.966d0
+     
+      !---------------------------------------------------------------
+      ! Small number tolerances
+      ! (now make these PARAMETERS instead of COMMON block variables)
+      !---------------------------------------------------------------
+      
+      REAL*8, PARAMETER :: SMAL1    = 1d-06 
+      REAL*8, PARAMETER :: SMAL2    = 1.0d-99
+      REAL*8, PARAMETER :: SMAL3    = 1d-50
+
+
       INTEGER ::         NLAT,      NLONG,     NLAYER,    NVERT
       INTEGER ::         NLOOP,     NTLOOP,    KULOOP,    NTSPECGAS
       INTEGER ::         NMASBAL,   KSLOOP,    NTLOOPUSE, NPVERT
@@ -262,12 +312,22 @@ C
      &                   LXOUT,     LYOUT,     LLOOP,     LLOOP2,    
      &                   LZOUT
 
-      REAL*8  ::         TINTERVAL,  CHEMINTV,  TIME,      CONSVAP
-      REAL*8  ::         OXYCONS,    HMAXNIT,   SMAL1,     SMAL2
-      REAL*8  ::         SMAL3,      FRACDEC
-      COMMON /XYGRID/    TINTERVAL,  CHEMINTV,  TIME,      CONSVAP, 
-     &                   OXYCONS,    HMAXNIT,   SMAL1,     SMAL2,  
-     &                   SMAL3,      FRACDEC
+!-----------------------------------------------------------------------------
+! Prior to 3/29/06:
+! Remove CONSVAP, SMAL1, SMAL2, SMAL3 from the common block, because these
+! are now declared as PARAMETERS.  They are either physical constants or
+! error tolerances, which do not change. (bec, bmy, 3/29/06)
+!      REAL*8  ::         TINTERVAL,  CHEMINTV,  TIME,      CONSVAP
+!      REAL*8  ::         OXYCONS,    HMAXNIT,   SMAL1,     SMAL2
+!      REAL*8  ::         SMAL3,      FRACDEC
+!      COMMON /XYGRID/    TINTERVAL,  CHEMINTV,  TIME,      CONSVAP, 
+!     &                   OXYCONS,    HMAXNIT,   SMAL1,     SMAL2,  
+!     &                   SMAL3,      FRACDEC
+!-----------------------------------------------------------------------------
+      REAL*8  ::         TINTERVAL,  CHEMINTV,  TIME,      OXYCONS
+      REAL*8  ::         HMAXNIT,    FRACDEC
+      COMMON /XYGRID/    TINTERVAL,  CHEMINTV,  TIME,      OXYCONS,    
+     &                   HMAXNIT,    FRACDEC
 C
       INTEGER ::         IHOUR,       NCS,       NBLOCKS,   IRCHEM
       INTEGER ::         NCSGAS,      NCSURBAN,  NCSTROP,   NCSSTRAT

@@ -1,29 +1,29 @@
-! $Id: ruralbox.f,v 1.4 2005/10/20 14:03:38 bmy Exp $
-      SUBROUTINE RURALBOX( AD,     T,      AVGW,   ALT,   ALBD,  
-     &                     SUNCOS, CLOUDS, LEMBED, IEBD1, IEBD2,  
-     &                     JEBD1,  JEBD2 )
+! $Id: ruralbox.f,v 1.5 2006/04/21 15:40:07 bmy Exp $
+!-----------------------------------------------------------------------------
+!      SUBROUTINE RURALBOX( AD,     T,      AVGW,   ALT,   ALBD,  
+!     &                     SUNCOS, CLOUDS, LEMBED, IEBD1, IEBD2,  
+!     &                     JEBD1,  JEBD2 )
+!-----------------------------------------------------------------------------
+      SUBROUTINE RURALBOX( AD,     T,     AVGW,  ALBD,  SUNCOS, 
+     &                     LEMBED, IEBD1, IEBD2, JEBD1, JEBD2 )
 !
 !******************************************************************************
 !  Subroutine RURALBOX computes which boxes are tropospheric and which
 !  are stratospheric.  SMVGEAR arrays are initialized with quantities from 
-!  tropospheric boxes.  (amf, bey, ljm, lwh, gmg, bdf, bmy, 7/16/01, 8/22/05)
+!  tropospheric boxes.  (amf, bey, ljm, lwh, gmg, bdf, bmy, 7/16/01, 4/10/06)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) AD     (REAL*8 ) : Array for dry air mass               [   kg   ]
 !  (2 ) T      (REAL*8 ) : Array for grid box temperatures      [   K    ]
 !  (3 ) AVGW   (REAL*8 ) : Array for mixing ratio of water      [  v/v   ]
-!  (4 ) ALT    (REAL*8 ) : Array for altitudes above ground     [   cm   ]
-!  (5 ) ALBD   (REAL*8 ) : Array for visible albedo             [unitless]
-!  (6 ) SUNCOS (REAL*8 ) : Array for COS( Solar Zenith Angle )  [unitless]
-!  (7 ) CLOUDS (REAL*8 ) : Array for SLOWJ cloud reflectivities [unitless]
-!  (8 ) NSKIPL (INTEGER) : Obsolete: # of tropospheric levels   [unitless]
-!  (9 ) LEMBED (LOGICAL) : Switch for embedded chemistry region [ T or F ]
-!  (10) IEBD1  (INTEGER) : Lon: lower right corner }  of the    [unitless] 
-!  (11) IEBD2  (INTEGER) : Lon: upper left  corner } embedded   [unitless]
-!  (12) JEBD1  (INTEGER) : Lat: lower right corner } chemistry  [unitless]
-!  (13) JEBD2  (INTEGER) : Lat: upper left  corner }  region    [unitless]
-!  (14) LPAUSE (INTEGER) : Array for annual mean tropopause     [ levels ]
+!  (4 ) ALBD   (REAL*8 ) : Array for visible albedo             [unitless]
+!  (5 ) SUNCOS (REAL*8 ) : Array for COS( Solar Zenith Angle )  [unitless]
+!  (6 ) LEMBED (LOGICAL) : Switch for embedded chemistry region [ T or F ]
+!  (7 ) IEBD1  (INTEGER) : Lon: lower right corner }  of the    [unitless] 
+!  (8 ) IEBD2  (INTEGER) : Lon: upper left  corner } embedded   [unitless]
+!  (9 ) JEBD1  (INTEGER) : Lat: lower right corner } chemistry  [unitless]
+!  (10) JEBD2  (INTEGER) : Lat: upper left  corner }  region    [unitless]
 !
 !  NOTES:
 !  (1 ) Remove PTOP from the arg list.  PTOP is now a parameter
@@ -52,6 +52,7 @@
 !  (13) Now reference ITS_IN_THE_TROP and ITS_IN_THE_STRAT from 
 !        "tropopause_mod.f" to diagnose trop & strat boxes.  Also remove
 !        LPAUSE from the arg list (bmy, 8/22/05)
+!  (14) Remove ALT and CLOUDS from arg list -- they are obsolete (bmy, 4/10/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -62,25 +63,33 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "comode.h"     ! NPVERT
+#     include "CMN_SIZE"       ! Size parameters
+#     include "comode.h"       ! NPVERT
 
-      LOGICAL, INTENT(IN)    :: LEMBED 
-      INTEGER, INTENT(IN)    :: IEBD1, IEBD2, JEBD1, JEBD2
-      REAL*8,  INTENT(IN)    :: AD(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN)    :: T(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN)    :: AVGW(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN)    :: ALT(MAXIJ,NPVERT)
-      REAL*8,  INTENT(IN)    :: ALBD(IIPAR,JJPAR)
-      REAL*8,  INTENT(IN)    :: SUNCOS(MAXIJ)
-      REAL*8,  INTENT(INOUT) :: CLOUDS(MAXIJ,11)
+      LOGICAL, INTENT(IN)     :: LEMBED 
+      INTEGER, INTENT(IN)     :: IEBD1, IEBD2, JEBD1, JEBD2
+      REAL*8,  INTENT(IN)     :: AD(IIPAR,JJPAR,LLPAR)
+      REAL*8,  INTENT(IN)     :: T(IIPAR,JJPAR,LLPAR)
+      REAL*8,  INTENT(IN)     :: AVGW(IIPAR,JJPAR,LLPAR)
+      !---------------------------------------------------
+      ! Prior to 4/10/06:
+      ! ALT is now obsolete (bmy, 4/10/06)
+      !REAL*8,  INTENT(IN)     :: ALT(MAXIJ,NPVERT)
+      !---------------------------------------------------
+      REAL*8,  INTENT(IN)     :: ALBD(IIPAR,JJPAR)
+      REAL*8,  INTENT(IN)     :: SUNCOS(MAXIJ)
+      !---------------------------------------------------
+      ! Prior to 4/10/06:
+      ! CLOUDS is now obsolete (bmy, 4/10/06)
+      !REAL*8,  INTENT(INOUT)  :: CLOUDS(MAXIJ,11)
+      !---------------------------------------------------
 
       ! Local variables      
-      LOGICAL                :: LDEBUG
-      INTEGER                :: I, J, L, JLOOP, IJLOOP, LL
+      LOGICAL                 :: LDEBUG
+      INTEGER                 :: I, J, L, JLOOP, IJLOOP, LL
 
       ! External functions
-      REAL*8,  EXTERNAL      :: BOXVL
+      REAL*8,  EXTERNAL       :: BOXVL
 
       !=================================================================
       ! RURALBOX begins here!

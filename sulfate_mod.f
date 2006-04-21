@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.21 2006/03/24 20:22:56 bmy Exp $
+! $Id: sulfate_mod.f,v 1.22 2006/04/21 15:40:07 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 11/17/05)
+!  (rjp, bdf, bmy, 6/22/00, 3/29/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -198,6 +198,7 @@
 !  (30) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (31) Now references XNUMOL & XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !  (32) Now read int'annual SST data on GEOS 1x1 grid (bmy, 11/17/05)
+!  (33) Bug fix for offline aerosol sim in SEASALT_CHEM (bec, bmy, 3/29/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -438,10 +439,6 @@
 !
       ! References to F90 modules
       USE DAO_MOD,        ONLY : AD,     AIRDEN,  CLDF
-      !--------------------------------------------------------------
-      ! Prior to 3/16/06
-      !USE DAO_MOD,        ONLY : SUNCOS, MAKE_RH, CONVERT_UNITS
-      !--------------------------------------------------------------
       USE DAO_MOD,        ONLY : SUNCOS, CONVERT_UNITS
       USE DRYDEP_MOD,     ONLY : DEPSAV
       USE ERROR_MOD,      ONLY : DEBUG_MSG
@@ -1764,7 +1761,7 @@
 !
 !******************************************************************************
 !  Function SEASALT_CHEM computes SO4 formed from S(IV) + O3 on seasalt 
-!  aerosols as a function of seasalt alkalinity. (bec, bmy, 4/13/05, 10/25/05)
+!  aerosols as a function of seasalt alkalinity. (bec, bmy, 4/13/05, 3/29/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1797,6 +1794,8 @@
 !
 !  NOTES:
 !  (1 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
+!  (2 ) Bug fix: now avoid seg fault error if IDTHNO3 is zero, as it would
+!        be for an offline aerosol simulation. (bmy, 3/29/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1852,7 +1851,8 @@
       REAL*8               :: HNO3_EQ_C,   L6A,        L6C   
       REAL*8               :: C_FLUX_A,    C_FLUX_C,   C_FLUX
       REAL*8               :: HNO3_ss,     HNO3_kg
-      REAL*8,  PARAMETER   :: MINDAT = 1.0d-20 
+      REAL*8,  PARAMETER   :: MINDAT    = 1.0d-20 
+      REAL*8,  PARAMETER   :: TCVV_HNO3 = 28.97d0 / 63.0d0 
 
       !=================================================================
       ! SEASALT_CHEM begins here!
@@ -2072,11 +2072,30 @@
       !IF ( ND09 > 0 ) AD09(I,J,L,3) = AD09(I,J,L,3) + TITR_HNO3
       !----------------------------------------------------------------------
 
-      !HNO3 lost [eq/timestep] converted back to [v/v/timestep]
-      HNO3_ss      = TITR_HNO3 * 0.063 * TCVV(IDTHNO3)/AD(I,J,L)
+      !----------------------------------------------------------------------
+      ! Prior to 3/29/06:
+      ! Bug fix: make this work for both fullchem/coupled aerosol simulations 
+      ! as well as for offline aerosol simulations (bec, bmy, 3/29/06)
+      !!HNO3 lost [eq/timestep] converted back to [v/v/timestep]
+      !HNO3_ss      = TITR_HNO3 * 0.063 * TCVV(IDTHNO3)/AD(I,J,L)
+      !
+      !IF ( IDTHNO3 > 0 ) THEN
+      !   STT(I,J,L,IDTHNO3) = MAX( HNO3_vv - HNO3_ss, MINDAT )
+      !ENDIF
+      !----------------------------------------------------------------------
 
+      ! HNO3 lost [eq/timestep] converted back to [v/v/timestep]
       IF ( IDTHNO3 > 0 ) THEN
+
+         ! Coupled sim: IDTHNO3 is defined, so use it
+         HNO3_ss = TITR_HNO3 * 0.063 * TCVV(IDTHNO3) / AD(I,J,L)
          STT(I,J,L,IDTHNO3) = MAX( HNO3_vv - HNO3_ss, MINDAT )
+
+      ELSE
+
+         ! Offline aerosol sim: IDTHNO3 isn't defined, use TCVV_HNO3
+         HNO3_ss = TITR_HNO3 * 0.063 * TCVV_HNO3 / AD(I,J,L)
+
       ENDIF
 
       ! NITS produced converted from [eq/timestep] to [v/v/timestep] 
@@ -5657,11 +5676,6 @@
       INTEGER, INTENT(IN)     :: THISMONTH, THISYEAR
       
       ! Local variables
-      !----------------------------------------------------
-      ! Prior to 11/17/05:
-      ! We now read SST's on the 1x1 grid (bmy, 11/17/05)
-      !REAL*4                  :: ARRAY(IGLOB,JGLOB,1)
-      !----------------------------------------------------
       REAL*4                  :: ARRAY(IGLOB,JGLOB,1)
       REAL*4                  :: ARRAY1(I1x1,J1x1,1)
       REAL*8                  :: XTAU
@@ -5684,14 +5698,6 @@
          WRITE( SYEAR, '(i4)' ) THISYEAR
 
          ! File name
-!--------------------------------------------------------------------
-! Prior to 11/17/05:
-! Now read SST data on the 1x1 grid (bmy, 11/17/05)
-!         FILENAME = TRIM( DATA_DIR )  // 
-!     &              'SST_200508/SST.' // GET_NAME_EXT_2D() // 
-!     &              '.'               // GET_RES_EXT()     //
-!     &              '.'               // SYEAR
-!--------------------------------------------------------------------
          FILENAME = TRIM( DATA_DIR_1x1 )       // 
      &              'SST_200508/SST.geos.1x1.' // SYEAR
 
@@ -5701,18 +5707,6 @@
 
          ! TAU value (use this year)
          XTAU = GET_TAU0( THISMONTH, 1, THISYEAR )
-
-!----------------------------------------------------------------------
-! Prior to 11/17/05:
-! We now read files on the GEOS 1x1 grid (bmy, 11/17/05)
-!         ! Read sea surface temperature [K]
-!         CALL READ_BPCH2( FILENAME, 'GMAO-2D',     69, 
-!     &                    XTAU,      IGLOB,        JGLOB,     
-!     &                    1,         ARRAY(:,:,1), QUIET=.TRUE. ) 
-!
-!         ! Cast from REAL*4 to REAL*8 
-!         CALL TRANSFER_2D( ARRAY(:,:,1), SSTEMP )
-!----------------------------------------------------------------------
 
          ! Read sea surface temperature [K]
          CALL READ_BPCH2( FILENAME, 'GMAO-2D',      69, 

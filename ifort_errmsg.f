@@ -1,3 +1,4 @@
+! $Id: ifort_errmsg.f,v 1.2 2006/04/21 15:40:01 bmy Exp $
       FUNCTION IFORT_ERRMSG( ERROR_NUM ) RESULT( MSG )
 !
 !******************************************************************************
@@ -23,7 +24,7 @@
       CHARACTER(LEN=255)  :: MSG
 
       !=================================================================
-      ! IFORT_IO_ERRMSG begins here!
+      ! IFORT_ERRMSG begins here!
       !=================================================================
 
       ! Select a error message based on the error codes 

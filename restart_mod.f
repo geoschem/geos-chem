@@ -1,4 +1,4 @@
-! $Id: restart_mod.f,v 1.12 2006/03/24 20:22:56 bmy Exp $
+! $Id: restart_mod.f,v 1.13 2006/04/21 15:40:06 bmy Exp $
       MODULE RESTART_MOD
 !
 !******************************************************************************
@@ -125,10 +125,6 @@
       USE FILE_MOD,    ONLY : IU_RST,        IOERROR
       USE GRID_MOD,    ONLY : GET_XOFFSET,   GET_YOFFSET
       USE LOGICAL_MOD, ONLY : LPRT
-      !------------------------------------------------------------
-      ! Prior to 12/16/05:
-      !USE TIME_MOD,    ONLY : EXPAND_DATE,   GET_TAU
-      !------------------------------------------------------------
       USE TIME_MOD,    ONLY : EXPAND_DATE
       USE TRACER_MOD,  ONLY : STT,           N_TRACERS,  TCVV
 
@@ -217,11 +213,6 @@
          ! and store in temporary variable TRACER
          CALL BPCH2( IU_RST,    MODELNAME, LONRES,    LATRES,    
      &               HALFPOLAR, CENTER180, CATEGORY,  N,
-!-------------------------------------------------------------------------
-! Prior to 12/16/05:
-! Now pass TAU from the argument list (bmy, 12/16/05)
-!     &               UNIT,      GET_TAU(), GET_TAU(), RESERVED,   
-!-------------------------------------------------------------------------
      &               UNIT,      TAU,       TAU,       RESERVED,   
      &               IIPAR,     JJPAR,     LLPAR,     I0+1,            
      &               J0+1,      1,         TRACER )

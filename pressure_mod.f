@@ -1,4 +1,4 @@
-! $Id: pressure_mod.f,v 1.9 2005/09/02 15:17:20 bmy Exp $
+! $Id: pressure_mod.f,v 1.10 2006/04/21 15:40:05 bmy Exp $
       MODULE PRESSURE_MOD
 !
 !******************************************************************************
@@ -43,7 +43,7 @@
 !  (5 ) INIT_PRESSURE         : Allocates and zeroes all module arrays
 !  (6 ) CLEANUP_PRESSURE      : Deallocates all module arrays
 !
-!  GEOS-CHEM modules referenced by biomass_mod.f
+!  GEOS-CHEM modules referenced by pressure_mod.f
 !  ============================================================================
 !  (1 ) error_mod.f    : Module containing I/O error and NaN check routines
 !

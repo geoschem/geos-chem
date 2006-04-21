@@ -1,9 +1,9 @@
-! $Id: c2h6_mod.f,v 1.4 2005/10/20 14:03:14 bmy Exp $
+! $Id: c2h6_mod.f,v 1.5 2006/04/21 15:39:51 bmy Exp $
       MODULE C2H6_MOD
 !
 !******************************************************************************
 !  Module C2H6_MOD contains variables and routines used for the tagged 
-!  C2H6 (ethane) simulation. (xyp, qli, bmy, 7/28/01, 10/3/05)
+!  C2H6 (ethane) simulation. (xyp, qli, bmy, 7/28/01, 4/5/06)
 !
 !  Setting LSPLIT = T in "input.geos" will run with the following tracers:
 !     (1) Total C2H6
@@ -26,7 +26,7 @@
 !  (2 ) CHEMC2H6        : Routine that performs chemistry for C2H6 tracers
 !  (3 ) INIT_NGAS
 ! 
-!  GEOS-CHEM modules referenced by c2h6_mod.f
+!  GEOS-Chem modules referenced by "c2h6_mod.f"
 !  ============================================================================
 !  (1 ) biofuel_mod.f   : Module containing routines to read biofuel emissions
 !  (2 ) biomass_mod.f   : Module containing routines to read biomass emissions
@@ -51,6 +51,7 @@
 !  (5 ) Now references "directory_mod.f", "logical_mod.f", and "tracer_mod.f".
 !        (bmy, 7/20/04)
 !  (6 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (7 ) Now modified 
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -89,7 +90,7 @@
 !
 !******************************************************************************
 !  Subroutine EMISSC2H6 reads in C2H6 emissions for the Tagged C2H6 run.
-!  (xyp, qli, bmy, 7/21/00, 10/3/05)
+!  (xyp, qli, bmy, 7/21/00, 4/5/06)
 !
 !  NOTES:
 !  (1 ) BURNEMIS and BIOFUEL are now dimensioned with IIPAR,JJPAR instead of
@@ -109,11 +110,16 @@
 !        Replace LFOSSIL with LANTHRO (bmy, 7/20/04)
 !  (6 ) Now make sure all USE statements are USE, ONLY.  Also eliminate 
 !        reference to BPCH2_MOD, it's obsolete. (bmy, 10/3/05)
+!  (7 ) Now modified for new "biomass_mod.f" (bmy, 4/5/06)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BIOMASS_MOD,   ONLY : BURNEMIS,     BIOBURN
-      USE BIOFUEL_MOD,   ONLY : BIOFUEL,      BIOFUEL_BURN
+      !------------------------------------------------------------------
+      ! Prior to 4/5/06:
+      !USE BIOMASS_MOD,   ONLY : BURNEMIS,     BIOBURN
+      !------------------------------------------------------------------
+      USE BIOMASS_MOD,   ONLY : BIOMASS, IDBC2H6
+      USE BIOFUEL_MOD,   ONLY : BIOFUEL, BIOFUEL_BURN
       USE DIAG_MOD,      ONLY : AD36
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE GEIA_MOD,      ONLY : READ_C3H8_C2H6_NGAS, TOTAL_FOSSIL_TG
@@ -163,8 +169,12 @@
       !=================================================================
       IF ( LBIOMASS ) THEN
 
-         ! Get biomass burning emissions (and update ND28 diagnostic)
-         CALL BIOBURN
+         !------------------------------------------------------------------
+         ! Prior to 4/5/06:
+         ! This is now called from "emissions_mod.f" (bmy, 4/5/06)
+         !! Get biomass burning emissions (and update ND28 diagnostic)
+         !CALL BIOBURN
+         !------------------------------------------------------------------
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -173,7 +183,12 @@
          DO I = 1, IIPAR
  
             ! Convert [molec C/cm3/s] to [kg C2H6] and store in E_C2H6
-            E_C2H6_BB = BURNEMIS(IDBC2H6,I,J) / 2.0d0 / 
+!---------------------------------------------------------------------------
+! Prior to 4/5/06:
+!            E_C2H6_BB = BURNEMIS(IDBC2H6,I,J) / 2.0d0 / 
+!     &                  XNUMOL_C2H6 * BOXVL(I,J,1) * DTSRCE  
+!---------------------------------------------------------------------------
+            E_C2H6_BB = BIOMASS(I,J,IDBC2H6)       / 2.0d0  / 
      &                  XNUMOL_C2H6 * BOXVL(I,J,1) * DTSRCE  
 
             ! Add BB C2H6 to tracer #1 -- total C2H6 [kg C2H6]
@@ -428,6 +443,8 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_C2H6 deallocates the natural gas C2H6 emission array.
+!
+!  NOTES:
 !******************************************************************************
 !
       IF ( ALLOCATED( NGASC2H6 ) ) DEALLOCATE( NGASC2H6 )

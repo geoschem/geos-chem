@@ -1,4 +1,4 @@
-! $Id: lightning_nox_mod.f,v 1.9 2006/03/24 20:22:52 bmy Exp $
+! $Id: lightning_nox_mod.f,v 1.10 2006/04/21 15:40:02 bmy Exp $
       MODULE LIGHTNING_NOX_MOD
 !
 !******************************************************************************
@@ -783,11 +783,6 @@
       !%%% Figure this out later %%%
       SCALE = 1d0
 
-!------------------------------------------------------------------------------
-! Prior to 2/1/06:
-! Fix typo: NESTED_CH should read NESTED_NA (bmy, 2/1/06)
-!#elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_CH )
-!------------------------------------------------------------------------------
 #elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_NA )
 
       !%%% Figure this out later %%%

@@ -1,4 +1,4 @@
-! $Id: chem.f,v 1.5 2005/09/02 15:16:59 bmy Exp $
+! $Id: chem.f,v 1.6 2006/04/21 15:39:53 bmy Exp $
       SUBROUTINE CHEM( FIRSTCHEM, NPTS,     SUNCOS,  SUNCOSB, 
      &                 CLOUDS,    ALT,      SURFALT, TOTO3, 
      &                 IDXAIR,    IDXO3,    OPTD,    UVALBEDO  )
@@ -40,16 +40,24 @@
 #     include "comode.h"     ! SMVGEAR II arrays
 
       ! Arguments
-      LOGICAL, INTENT(INOUT) :: FIRSTCHEM
-      INTEGER, INTENT(IN)    :: NPTS
-      INTEGER, INTENT(IN)    :: IDXAIR(NLAT)
-      INTEGER, INTENT(IN)    :: IDXO3(NLAT)
+      !-----------------------------------------------------------------
+      ! Prior to 4/10/06:
+      ! Remove obsolete arguments (bmy, 4/10/06)
+      !LOGICAL, INTENT(INOUT) :: FIRSTCHEM
+      !INTEGER, INTENT(IN)    :: NPTS
+      !INTEGER, INTENT(IN)    :: IDXAIR(NLAT)
+      !INTEGER, INTENT(IN)    :: IDXO3(NLAT)
+      !-----------------------------------------------------------------
       REAL*8,  INTENT(IN)    :: SUNCOS(MAXIJ)
       REAL*8,  INTENT(IN)    :: SUNCOSB(MAXIJ)
-      REAL*8,  INTENT(IN)    :: CLOUDS(MAXIJ,11)
-      REAL*8,  INTENT(IN)    :: ALT(MAXIJ,NPVERT)
-      REAL*8,  INTENT(IN)    :: SURFALT(MAXIJ)
-      REAL*8,  INTENT(IN)    :: TOTO3(NLAT)
+      !-----------------------------------------------------------------
+      ! Prior to 4/10/06:
+      ! Remove obsolete arguments (bmy, 4/10/06)
+      !REAL*8,  INTENT(IN)    :: CLOUDS(MAXIJ,11)
+      !REAL*8,  INTENT(IN)    :: ALT(MAXIJ,NPVERT)
+      !REAL*8,  INTENT(IN)    :: SURFALT(MAXIJ)
+      !REAL*8,  INTENT(IN)    :: TOTO3(NLAT)
+      !-----------------------------------------------------------------
       REAL*8,  INTENT(IN)    :: UVALBEDO(IIPAR,JJPAR)
       REAL*8,  INTENT(IN)    :: OPTD(LLPAR,IIPAR,JJPAR)                   
 

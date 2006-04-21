@@ -1,4 +1,4 @@
-! $Id: aerosol_mod.f,v 1.6 2005/10/20 14:03:13 bmy Exp $
+! $Id: aerosol_mod.f,v 1.7 2006/04/21 15:39:50 bmy Exp $
       MODULE AEROSOL_MOD
 !
 !******************************************************************************
@@ -113,7 +113,7 @@
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "comode.h"  ! AD, WTAIR, other SMVGEAR variables
+#     include "comode.h"  ! AD, AVG, WTAIR, other SMVGEAR variables
 
       ! Argumetns
       INTEGER, INTENT(OUT) :: N_TROP

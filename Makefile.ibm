@@ -1,4 +1,4 @@
-# $Id: Makefile.ibm,v 1.30 2006/03/24 20:22:37 bmy Exp $
+# $Id: Makefile.ibm,v 1.31 2006/04/21 15:39:47 bmy Exp $
 #=============================================================================
 # Makefile for GEOS-CHEM on IBM AIX: (gcc, Mon Feb 03 11:56:55 2003)
 #=============================================================================
@@ -156,6 +156,7 @@ ocean_mercury_mod.o       \
 drydep_mod.o              \
 emep_mod.o                \
 epa_nei_mod.o             \
+gfed2_biomass_mod.o       \
 geia_mod.o                \
 global_ch4_mod.o          \
 global_hno3_mod.o         \
@@ -317,6 +318,7 @@ gcap_read_mod.o            : gcap_read_mod.f            CMN_DIAG CMN_GCTM CMN_SI
 geia_mod.o                 : geia_mod.f                 CMN_SIZE define.h 
 getalt.o                   : getalt.f                   CMN CMN_SIZE define.h comode.h 
 getifsun.o                 : getifsun.f                 CMN_SIZE define.h comode.h 
+gfed2_biomass_mod.o        : gfed2_biomass_mod.f        CMN_GCTM CMN_SIZE define.h 
 global_ch4_mod.o           : global_ch4_mod.f           CMN CMN_DIAG CMN_SIZE define.h 
 global_hno3_mod.o          : global_hno3_mod.f          CMN_SIZE define.h 
 global_no3_mod.o           : global_no3_mod.f           CMN_SIZE define.h 
@@ -326,8 +328,6 @@ global_oh_mod.o            : global_oh_mod.f            CMN_SIZE define.h
 grid_mod.o                 : grid_mod.f                 CMN_GCTM CMN_SIZE define.h 
 gwet_read_mod.o            : gwet_read_mod.f            CMN_DIAG CMN_SIZE define.h 
 hcn_ch3cn_mod.o            : hcn_ch3cn_mod.f            CMN_DEP CMN_DIAG CMN_SIZE define.h 
-humeff.o                   : humeff.f                   
-hunt.o                     : hunt.f                     
 i6_read_mod.o              : i6_read_mod.f              CMN_DIAG CMN_SIZE define.h 
 ifort_errmsg.o             : ifort_errmsg.f             
 initialize.o               : initialize.f               CMN_DIAG CMN_SIZE define.h 

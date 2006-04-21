@@ -1,8 +1,8 @@
-! $Id: error_mod.f,v 1.10 2006/03/24 20:22:46 bmy Exp $
+! $Id: error_mod.f,v 1.11 2006/04/21 15:39:58 bmy Exp $
       MODULE ERROR_MOD
 !
 !******************************************************************************
-!  Module ERROR_MOD contains error checking routines. (bmy, 3/8/01, 11/30/05)
+!  Module ERROR_MOD contains error checking routines. (bmy, 3/8/01, 4/10/06)
 !
 !  Module Routines:
 !  ===========================================================================
@@ -53,6 +53,7 @@
 !  (14) Move CHECK_STT routine to "tracer_mod.f" (bmy, 7/20/04)
 !  (15) Added LINUX_IFORT switch for Intel v8 and v9 compilers (bmy, 10/18/05)
 !  (16) Now print IFORT error messages for Intel v8/v9 compiler (bmy, 11/30/05)
+!  (17) Cosmetic change in DEBUG_MSG (bmy, 4/10/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -681,7 +682,7 @@
 !******************************************************************************
 !  Subroutine DEBUG_MSG prints a message to the stdout buffer and flushes.
 !  This is useful for determining the exact location where errors occur.
-!  (bmy, 1/7/02, 4/6/04)
+!  (bmy, 1/7/02, 4/10/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -692,6 +693,7 @@
 !  (2 ) Renamed from "paftop.f" to "debug_msg.f" (bmy, 1/7/02)
 !  (3 ) Bundled into "error_mod.f" (bmy, 11/22/02)
 !  (4 ) Now do not FLUSH the buffer for EFC compiler (bmy, 4/6/04)
+!  (5 ) Now add a little space for debug output (bmy, 4/10/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -704,8 +706,13 @@
       !=================================================================
       ! DEBUG_MSG begins here!
       !================================================================= 
-      WRITE( 6, '(a)' ) MESSAGE
- 
+      !---------------------------------------
+      ! Prior to 4/10/06:
+      ! Add a little space for debug output
+      !WRITE( 6, '(a)' ) MESSAGE
+      !---------------------------------------
+      WRITE( 6, '(5x,a)' ) MESSAGE
+
       ! Call FLUSH routine to flush the output buffer
 #if   !defined( LINUX_EFC )
       CALL FLUSH( 6 )

@@ -1,4 +1,4 @@
-! $Id: tagged_ox_mod.f,v 1.14 2005/11/03 17:50:38 bmy Exp $
+! $Id: tagged_ox_mod.f,v 1.15 2006/04/21 15:40:10 bmy Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
@@ -24,7 +24,7 @@
 !  (5 ) INIT_TAGGED_OX     : Allocates and zeroes all module arrays
 !  (6 ) CLEANUP_TAGGED_OX  : Deallocates all module arrays
 !
-!  GEOS-CHEM modules referenced by biomass_mod.f
+!  GEOS-CHEM modules referenced by tagged_ox_mod.f
 !  ============================================================================
 !  (1 ) bpch2_mod.f        : Module w/ routines for binary punch file I/O
 !  (2 ) dao_mod.f          : Module w/ arrays for DAO met fields

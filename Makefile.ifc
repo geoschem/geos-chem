@@ -1,6 +1,6 @@
-# $Id: Makefile.ifc,v 1.24 2006/03/24 20:22:37 bmy Exp $
+# $Id: Makefile.ifc,v 1.25 2006/04/21 15:39:47 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for LINUX/IFC compiler (bmy, Fri Feb 17 11:56:16 2006)
+# GEOS-CHEM Makefile for LINUX/IFC compiler (bmy, Thu Mar 30 11:00:49 2006)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -28,7 +28,6 @@ backsub.o                 \
 biofit.o                  \
 boxvl.o                   \
 calcrate.o                \
-chem.o                    \
 chemdr.o                  \
 cleanup.o                 \
 decomp.o                  \
@@ -48,7 +47,6 @@ fertadd.o                 \
 findmon.o                 \
 fyrno3.o                  \
 gasconc.o                 \
-getalt.o                  \
 getifsun.o                \
 initialize.o              \
 jsparse.o                 \
@@ -156,6 +154,7 @@ ocean_mercury_mod.o       \
 drydep_mod.o              \
 emep_mod.o                \
 epa_nei_mod.o             \
+gfed2_biomass_mod.o       \
 geia_mod.o                \
 global_ch4_mod.o          \
 global_hno3_mod.o         \
@@ -216,7 +215,7 @@ input_mod.o
 #=============================================================================
 #  Executable with FAST-J (default)
 #=============================================================================
-geos 	      : $(MODS) $(OBJS) $(OBJSc) $(FJ)
+geos 	      : $(MODS) $(OBJS) $(OBJSc) $(FJ) 
 		$(F90)  $(MODS) $(OBJS)  $(OBJSc) $(FJ) -o geos
 
 #==============================================================================
@@ -316,6 +315,7 @@ gcap_read_mod.o            : gcap_read_mod.f            CMN_DIAG CMN_GCTM CMN_SI
 geia_mod.o                 : geia_mod.f                 CMN_SIZE define.h 
 getalt.o                   : getalt.f                   CMN CMN_SIZE define.h comode.h 
 getifsun.o                 : getifsun.f                 CMN_SIZE define.h comode.h 
+gfed2_biomass_mod.o        : gfed2_biomass_mod.f        CMN_GCTM CMN_SIZE define.h 
 global_ch4_mod.o           : global_ch4_mod.f           CMN CMN_DIAG CMN_SIZE define.h 
 global_hno3_mod.o          : global_hno3_mod.f          CMN_SIZE define.h 
 global_no3_mod.o           : global_no3_mod.f           CMN_SIZE define.h 
@@ -325,8 +325,6 @@ global_oh_mod.o            : global_oh_mod.f            CMN_SIZE define.h
 grid_mod.o                 : grid_mod.f                 CMN_GCTM CMN_SIZE define.h 
 gwet_read_mod.o            : gwet_read_mod.f            CMN_DIAG CMN_SIZE define.h 
 hcn_ch3cn_mod.o            : hcn_ch3cn_mod.f            CMN_DEP CMN_DIAG CMN_SIZE define.h 
-humeff.o                   : humeff.f                   
-hunt.o                     : hunt.f                     
 i6_read_mod.o              : i6_read_mod.f              CMN_DIAG CMN_SIZE define.h 
 ifort_errmsg.o             : ifort_errmsg.f             
 initialize.o               : initialize.f               CMN_DIAG CMN_SIZE define.h 

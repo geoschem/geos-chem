@@ -1,4 +1,4 @@
-! $Id: emep_mod.f,v 1.2 2006/03/24 20:22:46 bmy Exp $
+! $Id: emep_mod.f,v 1.3 2006/04/21 15:39:58 bmy Exp $
       MODULE EMEP_MOD
 !
 !******************************************************************************
@@ -423,17 +423,6 @@
          DO I = 1, IIPAR
 
             ! Sum emissions (list NOx as Tg N)
-            !--------------------------------------------------------------
-            ! Prior to 2/6/06:
-            ! Now set sums of undefined tracers to zero (bmy, 2/6/06)
-            !NOX  = NOX  + EMEP_NOX (I,J) * A / ( 6.0225d23 / 14d-3 )
-            !CO   = CO   + EMEP_CO  (I,J) * A / XNUMOL(IDTCO  )
-            !ALK4 = ALK4 + EMEP_ALK4(I,J) * A / XNUMOL(IDTALK4)
-            !MEK  = MEK  + EMEP_MEK (I,J) * A / XNUMOL(IDTMEK )
-            !ALD2 = ALD2 + EMEP_ALD2(I,J) * A / XNUMOL(IDTALD2)
-            !PRPE = PRPE + EMEP_PRPE(I,J) * A / XNUMOL(IDTPRPE)
-            !C2H6 = C2H6 + EMEP_C2H6(I,J) * A / XNUMOL(IDTC2H6)
-            !--------------------------------------------------------------
             NOX  = NOX  + EMEP_NOX (I,J) * A * B(1)
             CO   = CO   + EMEP_CO  (I,J) * A * B(2) 
             ALK4 = ALK4 + EMEP_ALK4(I,J) * A * B(3) 

@@ -1,9 +1,9 @@
-! $Id: grid_mod.f,v 1.6 2005/09/02 15:17:13 bmy Exp $
+! $Id: grid_mod.f,v 1.7 2006/04/21 15:40:00 bmy Exp $
       MODULE GRID_MOD
 !
 !******************************************************************************
 !  Module GRID_MOD contains variables and routines which are used to specify 
-!  the parameters of a GEOS-CHEM horizontal grid. (bmy, 3/11/03, 5/24/05)
+!  the parameters of a GEOS-CHEM horizontal grid. (bmy, 3/11/03, 4/20/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -57,6 +57,7 @@
 !  (1 ) Fixed typos in "grid_mod.f" (bmy, 4/28/03)
 !  (2 ) Added routine GET_BOUNDING_BOX.  Now define 1x125 grid. (bmy, 12/1/04)
 !  (3 ) Modified for GCAP 4x5 horizontal grid (swu, bmy, 5/24/05)
+!  (4 ) Added comments re: surface area derivation (bmy, 4/20/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -98,13 +99,14 @@
 !
 !******************************************************************************
 !  Subroutine COMPUTE_GRID initializes the longitude, latitude and surface 
-!  area arrays. (bmy, 3/11/03, 5/24/05)
+!  area arrays. (bmy, 3/11/03, 4/20/06)
 !
 !  NOTES:
 !  (1 ) Added fancy output (bmy, 4/26/04)
 !  (2 ) Suppress some output lines (bmy, 7/20/04)
 !  (3 ) Now also support 1 x 1.25 grid (bmy, 12/1/04)
 !  (4 ) Now modified for GCAP 4x5 horizontal grid (swu, bmy, 5/24/05)
+!  (5 ) Added comments re: surface area derivation (bmy, 4/20/06)
 !******************************************************************************
 !
 #     include "CMN_SIZE"  ! Size parameters
@@ -127,7 +129,6 @@
 
       !=================================================================
       ! Compute latitude centers & edges (algorithm from old "input.f")
-      ! Now save to global-sized arrays for the sake of iterating
       !=================================================================
       FMID  = 0.5d0 * DBLE( JJGLOB + 1 )
       FEDGE = 0.5d0 * DBLE( JJGLOB + 2 )
@@ -174,7 +175,6 @@
 
       !=================================================================
       ! Compute longitude centers & edges (algorithm from old "input.f")
-      ! Now save to global-sized arrays for the sake of iterating
       !=================================================================      
       XMID_G(1)  = -180d0
       XEDGE_G(1) = XMID_G(1) - ( DISIZE / 2d0 )
@@ -188,16 +188,80 @@
       ENDDO
       
       !=================================================================
-      ! Compute surface areas (algorithm from old "input.f")
-      ! Now save to global-sized arrays for the sake of iterating
+      ! Compute grid box surface areas (algorithm from old "input.f")
+      !
+      ! The surface area of a grid box is derived as follows:
+      ! 
+      !    Area = dx * dy
+      !
+      ! Where:
+      !
+      !    dx is the arc length of the box in longitude
+      !    dy is the arc length of the box in latitude
+      !  
+      ! Which are computed as:
+      !  
+      !    dx = r * delta-longitude
+      !       = ( Re * cos[ YMID[J] ] ) * ( 2 * PI / IIGLOB )
+      !
+      !    dy = r * delta-latitude
+      !       = Re * ( YEDGE[J+1] - YEDGE[J] )
+      !  
+      ! Where:
+      !    
+      !    Re         is the radius of the earth
+      !    YMID[J]    is the latitude at the center of box J
+      !    YEDGE[J+1] is the latitude at the N. Edge of box J
+      !    YEDGE[J]   is the latitude at the S. Edge of box J
+      !
+      ! So, the surface area is thus:
+      ! 
+      !    Area = ( Re * cos( YMID[J] ) * ( 2 * PI / IIGLOB ) *
+      !             Re * ( YEDGE[J+1] - YEDGE[J] )
+      !
+      !    2*PI*Re^2    {                                            }      
+      ! = ----------- * { cos( YMID[J] ) * ( YEDGE[J+1] - YEDGE[J] ) }
+      !     IIGLOB      {                                            }
+      !
+      ! And, by using the trigonometric identity:
+      !
+      !    d sin(x) = cos x * dx
+      !
+      ! The following term:
+      !
+      !    cos( YMID[J] ) * ( YEDGE[J+1] - YEDGE[J] ) 
+      !
+      ! May also be written as a difference of sines:
+      !
+      !    sin( YEDGE[J+1] ) - sin( YEDGE[J] ) 
+      ! 
+      ! So the final formula for surface area of a grid box is:
+      ! 
+      !            2*PI*Re^2    {                                     }
+      !    Area = ----------- * { sin( YEDGE[J+1] ) - sin( YEDGE[J] ) }
+      !              IIGLOB     {                                     }
+      !
+      !
+      ! NOTES:
+      ! (1) The formula with sines is more numerically stable, and will 
+      !      yield identical global total surface areas for all grids.
+      ! (2) The units are determined by the radius of the earth Re.
+      !      if you use Re [m], then surface area will be in [m2], or
+      !      if you use Re [cm], then surface area will be in [cm2], etc.
+      ! (3) The grid box surface areas only depend on latitude, as they
+      !      are symmetric in longitude.  To compute the global surface
+      !      area, multiply the surface area arrays below by the number
+      !      of longitudes (e.g. IIGLOB).
+      !
+      ! (bmy, 4/20/06)
       !=================================================================  
       DO J = 1, JJGLOB
 
-         ! Area in m2 (symmetric in longitude)
+         ! Grid box surface areas [m2]
          AREA_M2_G(J) = 2d0 * PI * Re * Re / DBLE( IIGLOB ) *
      &                  ( SIN( YEDGE_R_G(J+1) ) - SIN( YEDGE_R_G(J) ) ) 
 
-         ! Area in cm2 (symmetric in longitude)
+         ! Grid box surface areas [cm2]
          AREA_CM2_G(J) = AREA_M2_G(J) * 1d4
 
       ENDDO

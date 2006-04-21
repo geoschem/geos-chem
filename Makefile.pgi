@@ -1,6 +1,6 @@
-# $Id: Makefile.pgi,v 1.20 2006/03/24 20:22:38 bmy Exp $
+# $Id: Makefile.pgi,v 1.21 2006/04/21 15:39:48 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for LINUX/PGI (bmy, Fri Feb 17 11:55:55 2006)
+# GEOS-CHEM Makefile for LINUX/PGI (bmy, Thu Mar 30 11:00:30 2006)
 #
 # NOTE: If you want to run the 2 x 2.5 GEOS-CHEM model, then try adding
 #       -Bstatic to the F90 compilation line.  It appears that setting 
@@ -31,7 +31,6 @@ backsub.o                 \
 biofit.o                  \
 boxvl.o                   \
 calcrate.o                \
-chem.o                    \
 chemdr.o                  \
 cleanup.o                 \
 decomp.o                  \
@@ -51,7 +50,6 @@ fertadd.o                 \
 findmon.o                 \
 fyrno3.o                  \
 gasconc.o                 \
-getalt.o                  \
 getifsun.o                \
 initialize.o              \
 jsparse.o                 \
@@ -159,6 +157,7 @@ ocean_mercury_mod.o       \
 drydep_mod.o              \
 emep_mod.o                \
 epa_nei_mod.o             \
+gfed2_biomass_mod.o       \
 geia_mod.o                \
 global_ch4_mod.o          \
 global_hno3_mod.o         \
@@ -319,6 +318,7 @@ gcap_read_mod.o            : gcap_read_mod.f            CMN_DIAG CMN_GCTM CMN_SI
 geia_mod.o                 : geia_mod.f                 CMN_SIZE define.h 
 getalt.o                   : getalt.f                   CMN CMN_SIZE define.h comode.h 
 getifsun.o                 : getifsun.f                 CMN_SIZE define.h comode.h 
+gfed2_biomass_mod.o        : gfed2_biomass_mod.f        CMN_GCTM CMN_SIZE define.h 
 global_ch4_mod.o           : global_ch4_mod.f           CMN CMN_DIAG CMN_SIZE define.h 
 global_hno3_mod.o          : global_hno3_mod.f          CMN_SIZE define.h 
 global_no3_mod.o           : global_no3_mod.f           CMN_SIZE define.h 
@@ -328,8 +328,6 @@ global_oh_mod.o            : global_oh_mod.f            CMN_SIZE define.h
 grid_mod.o                 : grid_mod.f                 CMN_GCTM CMN_SIZE define.h 
 gwet_read_mod.o            : gwet_read_mod.f            CMN_DIAG CMN_SIZE define.h 
 hcn_ch3cn_mod.o            : hcn_ch3cn_mod.f            CMN_DEP CMN_DIAG CMN_SIZE define.h 
-humeff.o                   : humeff.f                   
-hunt.o                     : hunt.f                     
 i6_read_mod.o              : i6_read_mod.f              CMN_DIAG CMN_SIZE define.h 
 ifort_errmsg.o             : ifort_errmsg.f             
 initialize.o               : initialize.f               CMN_DIAG CMN_SIZE define.h 

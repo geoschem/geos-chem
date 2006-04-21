@@ -1,4 +1,4 @@
-! $Id: rpmares_mod.f,v 1.6 2005/10/20 14:03:38 bmy Exp $
+! $Id: rpmares_mod.f,v 1.7 2006/04/21 15:40:06 bmy Exp $
       MODULE RPMARES_MOD
 !
 !******************************************************************************
@@ -23,7 +23,7 @@
 !  (10) INIT_RPMARES    : Initializes and allocates all module arrays
 !  (11) CLEANUP_RPMARES : Deallocates all module arrays
 !
-!  GEOS-CHEM modules referenced by biomass_mod.f
+!  GEOS-CHEM modules referenced by rpmares_mod.f
 !  ============================================================================
 !  (1 ) dao_mod.f       : Module containing arrays for DAO met fields
 !  (2 ) error_mod.f     : Module containing NaN and other error check routines

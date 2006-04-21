@@ -1,4 +1,4 @@
-C $Id: optdepth_mod.f,v 1.4 2005/09/02 15:17:19 bmy Exp $
+! $Id: optdepth_mod.f,v 1.5 2006/04/21 15:40:04 bmy Exp $
       MODULE OPTDEPTH_MOD
 !
 !******************************************************************************
@@ -14,7 +14,7 @@ C $Id: optdepth_mod.f,v 1.4 2005/09/02 15:17:19 bmy Exp $
 !  ============================================================================
 !  (1 ) OPTDEPTH       : Connects routines OD_GEOS1_GEOSS, OD_GEOS2_GEOS3
 !
-!  GEOS-CHEM modules referenced by biomass_mod.f
+!  GEOS-CHEM modules referenced by optdepth_mod.f
 !  ============================================================================
 !  (1 ) diag_mod.f     : Module containing GEOS-CHEM diagnostic arrays
 !

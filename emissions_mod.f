@@ -1,9 +1,9 @@
-! $Id: emissions_mod.f,v 1.15 2005/11/03 17:50:28 bmy Exp $
+! $Id: emissions_mod.f,v 1.16 2006/04/21 15:39:58 bmy Exp $
       MODULE EMISSIONS_MOD
 !
 !******************************************************************************
 !  Module EMISSIONS_MOD is used to call the proper emissions subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 2/11/03, 11/1/05)
+!  for the various GEOS-CHEM simulations. (bmy, 2/11/03, 3/30/06)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -44,6 +44,7 @@
 !  (9 ) Remove code for the obsolete CO-OH param simulation (bmy, 6/24/05)
 !  (10) Now references "co2_mod.f" (pns, bmy, 7/25/05)
 !  (11) Now references "emep_mod.f" (bdf, bmy, 10/1/05)
+!  (12) Now references "gfed2_biomass_mod.f" (bmy, 3/30/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -60,7 +61,7 @@
 !******************************************************************************
 !  Subroutine DO_EMISSIONS is the driver routine which calls the appropriate
 !  emissions subroutine for the various GEOS-CHEM simulations. 
-!  (bmy, 2/11/03, 11/1/05)
+!  (bmy, 2/11/03, 3/30/06)
 !
 !  NOTES:
 !  (1 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
@@ -81,9 +82,13 @@
 !        references to the obsolete CO-OH param simulation. (xyp, bmy, 6/23/05)
 !  (11) Now call EMISSCO2 from "co2_mod.f" (pns, bmy, 7/25/05)
 !  (12) Now references EMISS_EMEP from "emep_mod.f" (bdf, bmy, 11/1/05)
+!  (13) Now call GFED2_COMPUTE_BIOMASS to read 1x1 biomass emissions and
+!        regrid to the model resolution once per month. (bmy, 3/30/06)
 !******************************************************************************
 !
       ! References to F90 modules
+      USE BIOMASS_MOD,    ONLY : NBIOMAX
+      USE BIOMASS_MOD,    ONLY : COMPUTE_BIOMASS_EMISSIONS
       USE C2H6_MOD,       ONLY : EMISSC2H6
       USE CARBON_MOD,     ONLY : EMISSCARBON
       USE CH3I_MOD,       ONLY : EMISSCH3I
@@ -95,20 +100,36 @@
       USE GLOBAL_CH4_MOD, ONLY : EMISSCH4
       USE HCN_CH3CN_MOD,  ONLY : EMISS_HCN_CH3CN
       USE Kr85_MOD,       ONLY : EMISSKr85
-      USE LOGICAL_MOD
+      USE LOGICAL_MOD        
       USE MERCURY_MOD,    ONLY : EMISSMERCURY
       USE RnPbBe_MOD,     ONLY : EMISSRnPbBe
       USE SEASALT_MOD,    ONLY : EMISSSEASALT
       USE SULFATE_MOD,    ONLY : EMISSSULFATE 
+      USE TIME_MOD,       ONLY : GET_MONTH,       GET_YEAR
       USE TIME_MOD,       ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
-      USE TRACER_MOD
+      USE TRACER_MOD         
       USE TAGGED_CO_MOD,  ONLY : EMISS_TAGGED_CO
 
-#     include "CMN_SIZE"       ! Size parameters
+#     include "CMN_SIZE"          ! Size parameters
+
+      ! Local Variables
+      INTEGER                    :: MONTH, YEAR
+      REAL*8                     :: BIOMASS(IIPAR,JJPAR,NBIOMAX)
 
       !=================================================================
       ! DO_EMISSIONS begins here!
       !=================================================================
+
+      ! Get year and month
+      YEAR  = GET_YEAR()
+      MONTH = GET_MONTH()
+
+      ! Get biomass burning emissions for use below
+      IF ( LBIOMASS ) THEN
+         CALL COMPUTE_BIOMASS_EMISSIONS( YEAR, MONTH )
+      ENDIF
+         
+      ! Test by simulation type
       IF ( ITS_A_FULLCHEM_SIM() ) THEN
 
          !--------------------
@@ -160,6 +181,8 @@
          !--------------------
          ! CH3I
          !--------------------
+
+         ! Emit CH3I
          CALL EMISSCH3I
 
       ELSE IF ( ITS_A_HCN_SIM() ) THEN
@@ -181,7 +204,7 @@
          ! Read EPA (Europe) emissions once per year
          IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) CALL EMISS_EMEP
 
-         ! Tagged CO
+         ! Emit tagged CO
          CALL EMISS_TAGGED_CO
 
       ELSE IF ( ITS_A_C2H6_SIM() ) THEN
@@ -189,6 +212,8 @@
          !--------------------
          ! C2H6
          !--------------------
+
+         ! Emit C2H6
          CALL EMISSC2H6
 
       ELSE IF ( ITS_A_CH4_SIM() ) THEN

@@ -1,9 +1,9 @@
-! $Id: logical_mod.f,v 1.7 2006/03/24 20:22:53 bmy Exp $
+! $Id: logical_mod.f,v 1.8 2006/04/21 15:40:02 bmy Exp $
       MODULE LOGICAL_MOD
 !
 !******************************************************************************
 !  Module LOGICAL_MOD contains all of the logical switches used by GEOS-CHEM.
-!  (bmy, 7/9/04, 2/24/06)
+!  (bmy, 7/9/04, 4/5/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -51,6 +51,7 @@
 !  (42) LWINDO    (LOGICAL) : ON/OFF switch for WINDOW TRANSPORT (usually 1x1)
 !  (43) LWOODCO   (LOGICAL) : ON/OFF switch for BIOFUEL EMISSIONS
 !  (44) LDYNOCEAN (LOGICAL) : ON/OFF switch for OCEAN MERCURY MODULE
+!  (45) LGFED2BB  (LOGICAL) : ON/OFF switch for GFED2 BIOMASS BURNING 
 !
 !  NOTES:
 !  (1 ) Added LNEI99 switch to toggle EPA/NEI emissions (bmy, 11/5/04)
@@ -58,6 +59,7 @@
 !  (3 ) Added LMEGAN switch to toggle MEGAN biogenics (tmf, bmy, 10/20/05)
 !  (4 ) Added LEMEP switch to toggle EMEP anthro emissions (bdf, bmy, 11/1/05)
 !  (5 ) Added LDYNOCEAN switch for online ocean Hg model (bmy, 2/24/06)
+!  (6 ) Added LGFED2BB switch for GFED2 BIOMASS BURNING (bmy, 4/5/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -113,6 +115,7 @@
       LOGICAL :: LTOMSAI
       LOGICAL :: LWOODCO    ! <-- deprecated: replace w/ LBIOFUEL soon
       LOGICAL :: LAVHRRLAI
+      LOGICAL :: LGFED2BB
 
       ! Transport and strat BC's
       LOGICAL :: LFILL

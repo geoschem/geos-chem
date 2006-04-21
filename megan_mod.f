@@ -1,4 +1,4 @@
-! $Id: megan_mod.f,v 1.2 2006/03/24 20:22:54 bmy Exp $
+! $Id: megan_mod.f,v 1.3 2006/04/21 15:40:03 bmy Exp $
       MODULE MEGAN_MOD
 !
 !******************************************************************************
@@ -1610,25 +1610,6 @@
 
       ! Astronomical Julian Date of the A3 file at start of run
       JD_T15b   = GET_JD( NYMD_T15b, NHMS_T15b )
-
-!---------------------------------------------------------------------------
-! Prior to 12/6/05:
-! Change the logic in the #if block (bmy, 12/6/05)
-!#if   defined( GEOS_4 )
-!
-!      ! For GEOS4, the A-3 fields are timestamped by the center of 
-!      ! the 3-hr period: 01:30Z, 04:30Z, 07:30Z, 10:30Z, 
-!      ! 13:30Z, 16:30Z, 19:30Z, 22:30Z
-!      G4AHEAD   = 13000
-!
-!#else
-!      
-!      ! For GEOS-1, GEOS-STRAT, GEOS-3, the A-3 fields are timestamped 
-!      ! by ending time: 00Z, 03Z, 06Z, 09Z, 12Z, 15Z, 18Z, 21Z.  
-!      G4AHEAD   = 0
-!
-!#endif
-!---------------------------------------------------------------------------
 
 #if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
 

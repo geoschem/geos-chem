@@ -1,10 +1,10 @@
- ! $Id: carbon_mod.f,v 1.16 2006/03/24 20:22:40 bmy Exp $
+ ! $Id: carbon_mod.f,v 1.17 2006/04/21 15:39:51 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
 !  Module CARBON_MOD contains arrays and routines for performing a 
 !  carbonaceous aerosol simulation.  Original code taken from Mian Chin's 
-!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 10/25/05)
+!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 4/11/06)
 !
 !  4 Aerosol species : Organic and Black carbon 
 !                    : hydrophilic (soluble) and hydrophobic of each
@@ -134,6 +134,7 @@
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (8 ) Now references "megan_mod.f".  Also now references XNUMOL and 
 !        XNUMOLAIR from "tracer_mod.f" (tmf, bmy, 10/25/05)
+!  (9 ) Bug fix for GCAP in BIOGENIC_OC (bmy, 4/11/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -2608,7 +2609,7 @@ c
 !
 !******************************************************************************
 !  Subroutine BIOGENIC_OC emits secondary organic carbon aerosols.
-!  Also modified for SOA tracers. (rjp, bmy, 4/1/04, 10/20/05)
+!  Also modified for SOA tracers. (rjp, bmy, 4/1/04, 4/11/06)
 !
 !  Terpene emissions as a source of OC:  TERP.GEIA90.a1.2x2.5.*
 !  Assuming 10% yield of OC(hydrophilic) from terpene emission.
@@ -2619,6 +2620,7 @@ c
 !        from "logical_mod.f". (bmy, 7/20/04)
 !  (3 ) Now reads data from "carbon_200411" subdir of DATA_DIR (bmy, 11/15/04)
 !  (4 ) Now can use MEGAN biogenic emissions (tmf, bmy, 10/20/05)
+!  (5 ) For GCAP, need to use GET_NAME_EXT_2D in NVOC file name (bmy, 4/11/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2722,8 +2724,15 @@ c
             XTAU  = GET_TAU0( THISMONTH, 1, 1990 )
 
             ! Filename for carbon aerosol from fossil fuel use
-            FILENAME = TRIM( DATA_DIR ) //
-     &                 'carbon_200411/NVOC.geos.' // GET_RES_EXT()
+!----------------------------------------------------------------------------
+! Prior to 4/11/06:
+! For GCAP, need to use GET_NAME_EXT_2D in NVOC file name (swu, bmy, 4/11/06)
+!            FILENAME = TRIM( DATA_DIR ) //
+!     &                 'carbon_200411/NVOC.geos.' // GET_RES_EXT()
+!----------------------------------------------------------------------------
+            FILENAME = TRIM( DATA_DIR )      //
+     &                 'carbon_200411/NVOC.' // GET_NAME_EXT_2D() //
+     &                 '.'                   // GET_RES_EXT()
 
             ! Echo info
             WRITE( 6, 100 ) TRIM( FILENAME )
