@@ -1,6 +1,6 @@
-# $Id: Makefile.ifort,v 1.6 2006/04/21 15:39:48 bmy Exp $
+# $Id: Makefile.ifort,v 1.7 2006/04/21 19:03:06 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for LINUX/IFORT compiler (bmy, Thu Mar 30 11:01:02 2006)
+# GEOS-CHEM Makefile for LINUX/IFORT compiler (bmy, Fri Apr 21 14:52:47 2006)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -29,6 +29,7 @@ backsub.o                 \
 biofit.o                  \
 boxvl.o                   \
 calcrate.o                \
+chem.o                    \
 chemdr.o                  \
 cleanup.o                 \
 decomp.o                  \
@@ -256,7 +257,7 @@ backsub.o                  : backsub.f                  CMN_SIZE define.h comode
 benchmark_mod.o            : benchmark_mod.f            CMN_SIZE define.h 
 biofit.o                   : biofit.f                   CMN_DEP CMN_SIZE define.h 
 biofuel_mod.o              : biofuel_mod.f              CMN_DIAG CMN_SIZE define.h 
-biomass_mod.o              : biomass_mod.f              CMN_DIAG CMN_SIZE define.h
+biomass_mod.o              : biomass_mod.f              CMN_DIAG CMN_SIZE define.h 
 boxvl.o                    : boxvl.f                    
 bpch2_mod.o                : bpch2_mod.f                CMN_SIZE define.h define.h 
 c2h6_mod.o                 : c2h6_mod.f                 CMN CMN_DIAG CMN_O3 CMN_SIZE define.h 
@@ -312,13 +313,12 @@ fvdas_convect_mod.o        : fvdas_convect_mod.f        CMN_DIAG CMN_SIZE define
 fyrno3.o                   : fyrno3.f                   
 gamap_mod.o                : gamap_mod.f                CMN_DIAG CMN_SIZE define.h 
 gasconc.o                  : gasconc.f                  CMN_SIZE define.h comode.h 
+gc_biomass_mod.o           : gc_biomass_mod.f           CMN_SIZE define.h 
 gcap_convect_mod.o         : gcap_convect_mod.f         CMN_DIAG CMN_SIZE define.h 
 gcap_read_mod.o            : gcap_read_mod.f            CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 geia_mod.o                 : geia_mod.f                 CMN_SIZE define.h 
-getalt.o                   : getalt.f                   CMN CMN_SIZE define.h comode.h 
 getifsun.o                 : getifsun.f                 CMN_SIZE define.h comode.h 
-gc_biomass_mod.o           : gc_biomass_mod.f              CMN_DIAG CMN_SIZE define.h 
-gfed2_biomass_mod.o        : gfed2_biomass_mod.f        CMN_GCTM CMN_SIZE define.h 
+gfed2_biomass_mod.o        : gfed2_biomass_mod.f        CMN_SIZE define.h 
 global_ch4_mod.o           : global_ch4_mod.f           CMN CMN_DIAG CMN_SIZE define.h 
 global_hno3_mod.o          : global_hno3_mod.f          CMN_SIZE define.h 
 global_no3_mod.o           : global_no3_mod.f           CMN_SIZE define.h 
@@ -371,6 +371,7 @@ readchem.o                 : readchem.f                 CMN_SIZE define.h comode
 reader.o                   : reader.f                   CMN_GCTM CMN_SIZE define.h comode.h 
 readlai.o                  : readlai.f                  CMN_DEP CMN_SIZE define.h CMN_VEL 
 regrid_1x1_mod.o           : regrid_1x1_mod.f           CMN_GCTM CMN_SIZE define.h 
+regrid_1x1_mod.o           : regrid_1x1_mod.f_bmy           CMN_GCTM CMN_SIZE define.h 
 restart_mod.o              : restart_mod.f              CMN_SIZE define.h 
 rpmares_mod.o              : rpmares_mod.f              CMN_SIZE define.h 
 ruralbox.o                 : ruralbox.f                 CMN_SIZE define.h comode.h 

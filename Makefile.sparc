@@ -1,6 +1,6 @@
-# $Id: Makefile.sparc,v 1.32 2006/04/21 15:39:49 bmy Exp $
+# $Id: Makefile.sparc,v 1.33 2006/04/21 19:03:07 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for SUN/Sparc (bmy, Thu Mar 30 11:00:37 2006)
+# GEOS-CHEM Makefile for SUN/Sparc (bmy, Fri Apr 21 14:52:21 2006)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -23,6 +23,7 @@ backsub.o                 \
 biofit.o                  \
 boxvl.o                   \
 calcrate.o                \
+chem.o                    \
 chemdr.o                  \
 cleanup.o                 \
 decomp.o                  \
@@ -149,7 +150,6 @@ ocean_mercury_mod.o       \
 drydep_mod.o              \
 emep_mod.o                \
 epa_nei_mod.o             \
-gfed2_biomass_mod.o       \
 geia_mod.o                \
 global_ch4_mod.o          \
 global_hno3_mod.o         \
@@ -164,6 +164,8 @@ acetone_mod.o             \
 aerosol_mod.o             \
 aircraft_nox_mod.o        \
 biofuel_mod.o             \
+gc_biomass_mod.o          \
+gfed2_biomass_mod.o       \
 biomass_mod.o             \
 c2h6_mod.o                \
 ch3i_mod.o                \
@@ -305,12 +307,12 @@ fvdas_convect_mod.o        : fvdas_convect_mod.F        CMN_DIAG CMN_SIZE define
 fyrno3.o                   : fyrno3.F                   
 gamap_mod.o                : gamap_mod.F                CMN_DIAG CMN_SIZE define.h 
 gasconc.o                  : gasconc.F                  CMN_SIZE define.h comode.h 
+gc_biomass_mod.o           : gc_biomass_mod.F           CMN_SIZE define.h 
 gcap_convect_mod.o         : gcap_convect_mod.F         CMN_DIAG CMN_SIZE define.h 
 gcap_read_mod.o            : gcap_read_mod.F            CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 geia_mod.o                 : geia_mod.F                 CMN_SIZE define.h 
-getalt.o                   : getalt.F                   CMN CMN_SIZE define.h comode.h 
 getifsun.o                 : getifsun.F                 CMN_SIZE define.h comode.h 
-gfed2_biomass_mod.o        : gfed2_biomass_mod.F        CMN_GCTM CMN_SIZE define.h 
+gfed2_biomass_mod.o        : gfed2_biomass_mod.F        CMN_SIZE define.h 
 global_ch4_mod.o           : global_ch4_mod.F           CMN CMN_DIAG CMN_SIZE define.h 
 global_hno3_mod.o          : global_hno3_mod.F          CMN_SIZE define.h 
 global_no3_mod.o           : global_no3_mod.F           CMN_SIZE define.h 
@@ -363,6 +365,7 @@ readchem.o                 : readchem.F                 CMN_SIZE define.h comode
 reader.o                   : reader.F                   CMN_GCTM CMN_SIZE define.h comode.h 
 readlai.o                  : readlai.F                  CMN_DEP CMN_SIZE define.h CMN_VEL 
 regrid_1x1_mod.o           : regrid_1x1_mod.F           CMN_GCTM CMN_SIZE define.h 
+regrid_1x1_mod.o           : regrid_1x1_mod.F_bmy           CMN_GCTM CMN_SIZE define.h 
 restart_mod.o              : restart_mod.F              CMN_SIZE define.h 
 rpmares_mod.o              : rpmares_mod.F              CMN_SIZE define.h 
 ruralbox.o                 : ruralbox.F                 CMN_SIZE define.h comode.h 
