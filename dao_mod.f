@@ -1,10 +1,10 @@
-! $Id: dao_mod.f,v 1.15 2005/11/03 17:50:24 bmy Exp $
+! $Id: dao_mod.f,v 1.16 2006/05/15 17:52:46 bmy Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
 !  Module DAO_MOD contains both arrays that hold DAO met fields, as well as
 !  subroutines that compute, interpolate, or otherwise process DAO met field 
-!  data. (bmy, 6/27/00, 10/20/05)
+!  data. (bmy, 6/27/00, 5/9/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -14,7 +14,7 @@
 !  (1 ) ALBD1    (REAL*8 ) : Sfc albedo at start of 6h step      [unitless]
 !  (2 ) ALBD2    (REAL*8 ) : Sfc albedo at end   of 6h step      [unitless]
 !  (3 ) ALBD     (REAL*8 ) : Interpolated surface albedo         [unitless] 
-!  (4 ) LWI      (INTEGER) : Land-Water flags                    [unitless]
+!  (4 ) LWI      (REAL*8 ) : Land-Water flags                    [unitless]
 !  (5 ) PS1      (REAL*8 ) : Sfc pressure at start of 6h  step   [hPa]
 !  (6 ) PS2      (REAL*8 ) : Sfc pressure at end   of 6h  step   [hPa] 
 !  (7 ) PSC2     (REAL*8 ) : Sfc pressure at end   of dyn step   [hPa]
@@ -169,6 +169,7 @@
 !  (22) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !  (23) Now allocate SNOW and GWET for GCAP (bmy, 8/17/05)
 !  (24) Now also add TSKIN for GEOS-3 (tmf, bmy, 10/20/05)
+!  (25) Modifications for near-land formulation (ltm, bmy, 5/9/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -178,7 +179,12 @@
       !=================================================================
 
       ! I-6 met fields
-      INTEGER, ALLOCATABLE :: LWI(:,:)
+      !---------------------------------------
+      ! Prior to 5/9/06:
+      ! LWI is now REAL*8 (ltm, bmy, 5/9/06)
+      !INTEGER, ALLOCATABLE :: LWI(:,:)
+      !---------------------------------------
+      REAL*8,  ALLOCATABLE :: LWI(:,:)
       REAL*8,  ALLOCATABLE :: ALBD1(:,:)
       REAL*8,  ALLOCATABLE :: ALBD2(:,:)
       REAL*8,  ALLOCATABLE :: ALBD (:,:)
@@ -627,7 +633,7 @@
 !
 !******************************************************************************
 !  Function IS_LAND returns TRUE if surface grid box (I,J) is a land box.
-!  (bmy, 6/26/00, 8/10/05)
+!  (bmy, 6/26/00, 5/9/06)
 !
 !  Arguments as Input
 !  ===========================================================================
@@ -651,6 +657,7 @@
 !  (6 ) Added code to determine land boxes for GEOS-4 (bmy, 6/18/03)
 !  (7 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !  (8 ) Now return TRUE only for land boxes (w/ no ice) (bmy, 8/10/05)
+!  (9 ) Now use NINT to round LWI for GEOS-4/GEOS-5 (ltm, bmy, 5/9/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -675,7 +682,6 @@
 
       ! LWI(I,J) = 2 is a land box
       LAND = ( LWI(I,J) == 2 )
-
 
 #elif defined( GEOS_3 )
 
@@ -702,7 +708,12 @@
       !---------------------
 
       ! LWI=1 and ALBEDO less than 69.5% is a LAND box 
-      LAND = ( LWI(I,J) == 1 .and. ALBD(I,J) < 0.695d0 )
+      !---------------------------------------------------------
+      ! Prior to 5/9/06:
+      ! LWI is REAL*8; use NINT to round LWI (ltm, bmy, 5/9/06)
+      !LAND = ( LWI(I,J) == 1 .and. ALBD(I,J) < 0.695d0 )
+      !---------------------------------------------------------
+      LAND = ( NINT( LWI(I,J) ) == 1 .and. ALBD(I,J) < 0.695d0 )
 
 #elif defined( GCAP )
 
@@ -725,7 +736,7 @@
 !
 !******************************************************************************
 !  Function IS_WATER returns TRUE if surface grid box (I,J) is an ocean 
-!  or an ocean-ice box.  (bmy, 6/26/00, 8/10/05)
+!  or an ocean-ice box.  (bmy, 6/26/00, 5/9/06)
 !
 !  Arguments as Input
 !  ===========================================================================
@@ -749,6 +760,7 @@
 !  (6 ) Added code to determine water boxes for GEOS-4 (bmy, 6/18/03)
 !  (7 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !  (8 ) Now remove test for sea ice (bmy, 8/10/05)
+!  (9 ) Now use NINT to round LWI for GEOS-4/GEOS-5 (ltm, bmy, 5/9/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -799,7 +811,12 @@
       !----------------------
 
       ! LWI=0 and ALBEDO less than 69.5% is a water box 
-      WATER = ( LWI(I,J) == 0 .and. ALBD(I,J) < 0.695d0 )
+      !----------------------------------------------------------------
+      ! Prior to 5/9/06:
+      ! LWI is now REAL*8; use NINT to round LWI (ltm, bmy, 5/9/06)
+      !WATER = ( LWI(I,J) == 0 .and. ALBD(I,J) < 0.695d0 )
+      !----------------------------------------------------------------
+      WATER = ( NINT( LWI(I,J) ) == 0 .and. ALBD(I,J) < 0.695d0 )
 
 #elif defined( GCAP )
 
@@ -871,7 +888,12 @@
       !---------------------  
 
       ! LWI=2 or ALBEDO > 69.5% is ice
-      ICE = ( LWI(I,J) == 2 .or. ALBD(I,J) >= 0.695d0 )
+      !------------------------------------------------------------
+      ! Prior to 5/9/06:
+      ! LWI is now REAL*8; use NINT to round LWI (ltm, bmy, 5/9/06)
+      !ICE = ( LWI(I,J) == 2 .or. ALBD(I,J) >= 0.695d0 )
+      !------------------------------------------------------------
+      ICE = ( NINT( LWI(I,J) ) == 2 .or. ALBD(I,J) >= 0.695d0 )
 
 #elif defined( GCAP )
 
@@ -886,6 +908,98 @@
 
       ! Return to calling program
       END FUNCTION IS_ICE
+
+!------------------------------------------------------------------------------
+
+      FUNCTION IS_NEAR( I, J, THRESH, NEIGHBOR ) RESULT ( NEAR )
+!
+!******************************************************************************
+!  Function IS_NEAR returns TRUE if surface grid box (I,J) contains any land
+!  above a certain threshold (THRESH) or any of the adjacent boxes up to
+!  NEIGHBOR boxes away contain land.  Typical for GEOS-4; THRESH = 0.2, and 
+!  NEIGHBOR = 1.  (rch, ltm, bmy, 5/9/06)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) I        (INTEGER) : GEOS-Chem longitude index
+!  (2 ) J        (INTEGER) : GEOS-Chem latitude index
+!  (3 ) THRESH   (REAL*8 ) : LWI threshold for near-land 
+!  (4 ) NEIGHBOR (INTEGER) : # of neighbor boxes on each side to consider
+! 
+!  NOTES:
+!******************************************************************************
+!
+#     include "CMN_SIZE"   ! Size parameters
+
+      ! Arguments
+      INTEGER, INTENT(IN) :: I, J, NEIGHBOR
+      REAL*8,  INTENT(IN) :: THRESH
+
+      ! Return variable
+      LOGICAL             :: NEAR
+
+      ! Local variables
+      INTEGER             :: NS, EW, LONGI, LATJ
+
+      !=================================================================
+      ! IS_NEAR begins here!
+      !=================================================================
+
+      ! Initialize
+      NEAR = .FALSE.
+
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) 
+
+      !-------------------------------------------------------
+      ! NOTE: we have to be careful -- the LWI values 
+      ! are different for each met field!!! 
+      !
+      ! For now, only compute near-land for GEOS-4 & GEOS-5.
+      !
+      ! (rch, ltm, bmy, 5/9/06)
+      !-------------------------------------------------------
+
+      ! Loop over neighbor lat positions
+      DO NS = -NEIGHBOR, NEIGHBOR
+
+         ! Lat index of neighbor box
+         LATJ = J + NS
+
+         ! Special handling near poles
+         IF ( LATJ < 1 .or. LATJ > JJPAR ) CYCLE
+
+         ! Loop over neighbor lon positions
+         DO EW = -NEIGHBOR, NEIGHBOR
+
+            ! Lon index of neighbor box
+            LONGI = I + EW
+
+            ! Special handling near date line
+            IF ( LONGI < 1     ) LONGI = LONGI + IIPAR 
+            IF ( LONGI > IIPAR ) LONGI = LONGI - IIPAR
+
+            ! If this neighbor box has land above the threshold,
+            ! then set NEAR=T and break out of the loop
+            IF ( LWI (LONGI,LATJ) >  THRESH   .and.
+     &           LWI (LONGI,LATJ) <= 1d0      .and.
+     &           ALBD(LONGI,LATJ) <  0.695d0 ) THEN
+
+               ! We are in a near-land box
+               NEAR = .TRUE.
+
+               ! Break out of loop
+               GOTO 999
+            ENDIF
+         ENDDO
+      ENDDO
+
+      ! Exit
+ 999  CONTINUE
+
+#endif
+
+      ! Return to calling program
+      END FUNCTION IS_NEAR
 
 !------------------------------------------------------------------------------
 

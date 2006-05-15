@@ -1,8 +1,8 @@
-! $Id: initialize.f,v 1.18 2006/03/24 20:22:50 bmy Exp $
+! $Id: initialize.f,v 1.19 2006/05/15 17:52:49 bmy Exp $
       SUBROUTINE INITIALIZE( IFLAG )
 !
 !******************************************************************************
-!  Subroutine INITIALIZE (bmy, 6/15/98, 10/20/05) does the following:
+!  Subroutine INITIALIZE (bmy, 6/15/98, 5/5/06) does the following:
 !     (1) Zeroes globally defined GEOS-CHEM variables.
 !     (2) Zeroes accumulating diagnostic arrays.
 !     (3) Resets certain year/month/day and counter variables used 
@@ -159,6 +159,7 @@
 !        reference to "CMN" and XTRA2.  Now zeroes AD30 array (bmy, 8/18/05)
 !  (34) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (35) Now resets SET_CT_XTRA at the beginning of the run. (tmf, 10/20/05)
+!  (36) Now references ND56, ZERO_DIAG56 from "diag56_mod.f" (ltm, bmy, 5/5/06)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -194,6 +195,7 @@
       USE DIAG03_MOD,  ONLY : ND03,        ZERO_DIAG03
       USE DIAG04_MOD,  ONLY : ND04,        ZERO_DIAG04
       USE DIAG41_MOD,  ONLY : ND41,        ZERO_DIAG41
+      USE DIAG56_MOD,  ONLY : ND56,        ZERO_DIAG56
       USE DIAG_PL_MOD, ONLY : AD65,        FAM_PL
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE LOGICAL_MOD, ONLY : LCRYST
@@ -201,11 +203,11 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! NDxx flags
+#     include "CMN_SIZE"    ! Size parameters
+#     include "CMN_DIAG"    ! NDxx flags
 
       ! Arguments 
-      INTEGER, INTENT(IN) :: IFLAG
+      INTEGER, INTENT(IN)  :: IFLAG
  
       !=================================================================
       ! INITIALIZE begins here!
@@ -324,6 +326,11 @@
          ! For ND41 - afternoon PBL heights (bmy, 2/17/05)
          IF ( ND41 > 0 ) THEN
             CALL ZERO_DIAG41
+         ENDIF
+
+         ! For ND56 - lightning flash rates (bmy, 5/5/06)
+         IF ( ND56 > 0 ) THEN
+            CALL ZERO_DIAG56
          ENDIF
 
          ! For ND65 -- Chemical production & loss (bmy, 12/5/00)

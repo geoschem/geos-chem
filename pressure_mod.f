@@ -1,11 +1,11 @@
-! $Id: pressure_mod.f,v 1.10 2006/04/21 15:40:05 bmy Exp $
+! $Id: pressure_mod.f,v 1.11 2006/05/15 17:52:53 bmy Exp $
       MODULE PRESSURE_MOD
 !
 !******************************************************************************
 !  Module PRESSURE_MOD contains variables and routines which specify the grid 
 !  box pressures for both hybrid or pure-sigma models.  This is necessary
 !  for running GEOS-CHEM with the new GEOS-4/fvDAS meteorological fields.
-!  (dsa, bmy, 8/27/02, 5/24/05)
+!  (dsa, bmy, 8/27/02, 4/25/06)
 !
 !  The Hybrid ETA-coordinate (dsa, 8/27/02, 4/14/04)
 !  ============================================================================
@@ -55,6 +55,7 @@
 !  (5 ) Modifications for 30L and 55L GEOS-4 grids (bmy, 11/3/03)
 !  (6 ) Added parallel DO-loop in SET_FLOATING_PRESSURE (bmy, 4/14/04)
 !  (7 ) Modified for GCAP and GEOS-5 grids (swu, bmy, 5/24/05)
+!  (8 ) Removed obsolete reference to "CMN" (bmy, 4/25/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -246,7 +247,7 @@
 !
 !******************************************************************************
 !  Function GET_PEDGE returns the pressure at the bottom edge of level L.
-!  (dsa, bmy, 8/20/02, 6/19/03)
+!  (dsa, bmy, 8/20/02, 4/25/06)
 ! 
 !  Arguments as Input:
 !  ============================================================================
@@ -255,10 +256,14 @@
 !
 !  NOTES:
 !  (1 ) Updated format string for fvDAS (bmy, 6/19/03)
+!  (2 ) Removed reference to "CMN", it's obsolete (bmy, 4/25/06)
 !******************************************************************************
 !
 #     include "CMN_SIZE"   ! Size parameters
-#     include "CMN"        ! SIG
+!------------------------------------------------
+! Prior to 4/25/06:
+!#     include "CMN"        ! SIG
+!------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L     

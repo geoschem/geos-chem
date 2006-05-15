@@ -1,6 +1,6 @@
-# $Id: Makefile.ifort,v 1.8 2006/04/21 19:43:51 bmy Exp $
+# $Id: Makefile.ifort,v 1.9 2006/05/15 17:52:43 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for LINUX/IFORT compiler (bmy, Fri Apr 21 14:52:47 2006)
+# GEOS-CHEM Makefile for LINUX/IFORT compiler (bmy, Wed May 10 13:32:13 2006)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -29,7 +29,6 @@ backsub.o                 \
 biofit.o                  \
 boxvl.o                   \
 calcrate.o                \
-chem.o                    \
 chemdr.o                  \
 cleanup.o                 \
 decomp.o                  \
@@ -150,6 +149,7 @@ diag48_mod.o              \
 diag49_mod.o              \
 diag50_mod.o              \
 diag51_mod.o              \
+diag56_mod.o              \
 diag_oh_mod.o             \
 diag_pl_mod.o             \
 ocean_mercury_mod.o       \
@@ -184,6 +184,7 @@ xtra_read_mod.o           \
 megan_mod.o               \
 carbon_mod.o              \
 lightning_nox_mod.o       \
+lightning_nox_nl_mod.o    \
 optdepth_mod.o            \
 planeflight_mod.o         \
 restart_mod.o             \
@@ -265,7 +266,6 @@ calcrate.o                 : calcrate.f                 CMN CMN_DIAG CMN_SIZE de
 carbon_mod.o               : carbon_mod.f               CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h 
 ch3i_mod.o                 : ch3i_mod.f                 CMN_DEP CMN_DIAG CMN_SIZE define.h comode.h 
 charpak_mod.o              : charpak_mod.f              
-chem.o                     : chem.f                     CMN_SIZE define.h comode.h 
 chemdr.o                   : chemdr.f                   CMN CMN_DEP CMN_DIAG CMN_NOX CMN_O3 CMN_SIZE define.h comode.h 
 chemistry_mod.o            : chemistry_mod.f            CMN_DIAG CMN_SIZE define.h comode.h 
 cleanup.o                  : cleanup.f                  
@@ -283,6 +283,7 @@ diag48_mod.o               : diag48_mod.f               CMN_GCTM CMN_O3 CMN_SIZE
 diag49_mod.o               : diag49_mod.f               CMN_GCTM CMN_O3 CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 diag50_mod.o               : diag50_mod.f               CMN_GCTM CMN_O3 CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 diag51_mod.o               : diag51_mod.f               CMN_GCTM CMN_O3 CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h jv_cmn.h 
+diag56_mod.o               : diag56_mod.f               CMN_DIAG CMN_SIZE define.h 
 diag_2pm.o                 : diag_2pm.f                 CMN_DIAG CMN_SIZE define.h 
 diag_mod.o                 : diag_mod.f                 
 diag_oh_mod.o              : diag_oh_mod.f              CMN_SIZE define.h comode.h 
@@ -339,7 +340,8 @@ julday_mod.o               : julday_mod.f
 jv_index.o                 : jv_index.f                 cmn_fj.h CMN_SIZE define.h comode.h 
 ksparse.o                  : ksparse.f                  CMN_SIZE define.h comode.h 
 lai_mod.o                  : lai_mod.f                  CMN_SIZE define.h 
-lightning_nox_mod.o        : lightning_nox_mod.f        CMN_DIAG CMN_GCTM CMN_NOX CMN_SIZE define.h define.h 
+lightning_nox_mod.o        : lightning_nox_mod.f        CMN_DIAG CMN_GCTM CMN_NOX CMN_SIZE define.h 
+lightning_nox_nl_mod.o     : lightning_nox_nl_mod.f     CMN_DIAG CMN_GCTM CMN_NOX CMN_SIZE define.h 
 logical_mod.o              : logical_mod.f              
 lump.o                     : lump.f                     CMN_SIZE define.h comode.h 
 main.o                     : main.f                     CMN_DIAG CMN_GCTM CMN_SIZE define.h 
@@ -357,7 +359,7 @@ physproc.o                 : physproc.f                 CMN_SIZE define.h comode
 pjc_pfix_mod.o             : pjc_pfix_mod.f             CMN CMN_GCTM CMN_SIZE define.h 
 planeflight_mod.o          : planeflight_mod.f          CMN_DIAG CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h comode.h jv_cmn.h 
 precipfrac.o               : precipfrac.f               CMN_SIZE define.h 
-pressure_mod.o             : pressure_mod.f             CMN CMN_SIZE define.h 
+pressure_mod.o             : pressure_mod.f             CMN_SIZE define.h 
 pulsing.o                  : pulsing.f                  CMN_SIZE define.h commsoil.h 
 rd_js.o                    : rd_js.f                    cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 rd_prof.o                  : rd_prof.f                  cmn_fj.h CMN_SIZE define.h jv_cmn.h 

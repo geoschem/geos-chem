@@ -1,10 +1,10 @@
-! $Id: gamap_mod.f,v 1.11 2006/04/21 15:39:59 bmy Exp $
+! $Id: gamap_mod.f,v 1.12 2006/05/15 17:52:48 bmy Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
 !  Module GAMAP_MOD contains routines to create GAMAP "tracerinfo.dat" and
 !  "diaginfo.dat" files which are customized to each particular GEOS-CHEM
-!  simulation. (bmy, 5/3/05, 4/6/06)
+!  simulation. (bmy, 5/3/05, 5/5/06)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -68,6 +68,7 @@
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Add MBO to ND46 diagnostic (tmf, bmy, 10/20/05)
 !  (6 ) Updated for tagged Hg simulation (cdh, bmy, 4/6/06)
+!  (7 ) Updated for ND56 lightning flash diagnostics (ltm, bmy, 5/5/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -627,7 +628,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_GAMAP allocates and initializes all module variables.  
-!  (bmy, 4/22/05, 4/6/06)
+!  (bmy, 4/22/05, 5/5/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -647,7 +648,8 @@
 !        Rewrote do loop and case statement to add new diagnostics to ND03. 
 !        Now make units of Hg tracers "pptv", not "ppbv".  Now remove 
 !        restriction on printing out cloud mass flux in GEOS-4 for the ND66 
-!        diagnostic.  Added new sea salt category. (cdh, eck, bmy, 4/6/06) 
+!        diagnostic.  Added new sea salt category. (cdh, eck, bmy, 4/6/06)
+!  (7 ) Now references ND56 from "diag56_mod.f" (ltm, bmy, 5/5/06) 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -658,6 +660,7 @@
       USE DIAG49_MOD,   ONLY : DO_SAVE_DIAG49
       USE DIAG50_MOD,   ONLY : DO_SAVE_DIAG50
       USE DIAG51_MOD,   ONLY : DO_SAVE_DIAG51
+      USE DIAG56_MOD,   ONLY : ND56
       USE DIAG_PL_MOD,  ONLY : DO_SAVE_PL,  GET_NFAM
       USE DIAG_PL_MOD,  ONLY : GET_FAM_MWT, GET_FAM_NAME
       USE DRYDEP_MOD,   ONLY : DEPNAME,     NUMDEP,    NTRAIND
@@ -1228,6 +1231,11 @@
       CATEGORY(N) = 'OCEAN-HG'
       DESCRIPT(N) = 'Oceanic Hg emissions'
       OFFSET(N)   = SPACING * 41
+
+      N           = N + 1
+      CATEGORY(N) = 'LFLASH-$'
+      DESCRIPT(N) = 'Lightning flash rates'
+      OFFSET(N)   = SPACING * 42
 
       ! Number of categories
       NCATS = N
@@ -2361,6 +2369,41 @@
             MOLC (T,55) = 1
             MWT  (T,55) = 0e0
             SCALE(T,55) = 1e0
+         ENDDO
+      ENDIF
+
+      !-------------------------------------      
+      ! Lightning flash rates (ND56)
+      !-------------------------------------      
+      IF ( ND56 > 0 ) THEN 
+
+         ! Number of tracers
+         NTRAC(56) = 3
+
+         ! Loop over tracers
+         DO T = 1, NTRAC(56)
+
+            ! Get name and long name for each met field
+            SELECT CASE( T )
+               CASE( 1 )
+                  NAME (T,56) = 'L-RATE'
+                  FNAME(T,56) = 'Total lightning flash rate'
+               CASE( 2 )
+                  NAME (T,56) = 'IC-RATE'
+                  FNAME(T,56) = 'Intra-cloud flash rate'
+               CASE( 3 )
+                  NAME (T,56) = 'CG-RATE'
+                  FNAME(T,56) = 'Cloud-ground flash rate'
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT
+
+            ! Define the rest of the quantities
+            UNIT (T,56) = 'flashes/min/km2'
+            INDEX(T,56) = T + ( SPACING * 42 )
+            MOLC (T,56) = 1
+            MWT  (T,56) = 0e0
+            SCALE(T,56) = 1e0
          ENDDO
       ENDIF
 

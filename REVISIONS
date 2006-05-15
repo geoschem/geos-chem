@@ -1,111 +1,85 @@
-REVISIONS (v7-04-02)  
-bmy, 20 Apr 2006
+REVISIONS (v7-04-03)  
+bmy, 11 May 2006
 
 
-New in v7-04-02:
+New in v7-04-03:
 -------------------------------------------------------------------------------
 
-gc_biomass_mod.f	-- Renamed from "biomass_mod.f"
+diag56_mod.f		-- Diagnostic module for lightning flash rates
 
-gfed2_biomass_mod.f	-- Module which contains routines for reading the
-			   GFED2 biomass burning emissions 
+is_near			-- Tests if the grid box is a near-land box (i.e.
+("dao_mod.f")              if it contains at least a certain % of land and/or
+	                   if one of its nearest neighbors is a land box
 
-do_regrid_g2g_1x1	-- Regrids from GENERIC 1x1 grid to GEOS-Chem 1x1 grid
-("regrid_1x1_mod.f")
+lightning_nox_nl_mod.f  -- Module for updated lightning NOx routines
+                           using near-land formulation, as well as
+			   one of CTH, MFLUX, PRECON parameterizations
 
 
 
-Removed in v7-04-02:
+Removed in v7-04-03:
 -------------------------------------------------------------------------------
 
-chem.f			-- Now moved subroutine calls from this routine
-			   into "chemdr.f"
-
-tracerid_mod.f		-- Removed IDBNOX, IDBCO, IDBC2H6, IDBPRPE, IDBACET
-                           IDBMEK, IDBC3H8, IDBALD2, IDBCH2O, IDBALK4
 
 
 
-Changed from v7-04-01:
+Changed from v7-04-02:
 -------------------------------------------------------------------------------
 
-biogenic_oc		-- For GCAP, need to use GET_NAME_EXT_2D in NVOC 
-("carbon_mod.f")	   file name
+cleanup.f		-- Now calls CLEANUP_DIAG56 from "diag56_mod.f" 
+			   and CLEANUP_LIGHTNING_NOX_NL from 
+			   "lightning_nox_nl_mod.f"
 
-chemdr.f		-- Remove more obsolete SLOW-J code references
-			-- Also now move function calls from subroutine 
-			   "chem.f" into "chemdr.f"
-			-- Remove obsolete arguments from call to RURALBOX
+cleanup_sulfate		-- Bug fix: now deallocate PSO4_ss, PNITs 
+("sulfate_mod.f")
 
-cleanup.f		-- Now calls CLEANUP_GC_BIOMASS and 
-		           CLEANUP_GFED2_BIOMASS
+diag3.f			-- References ND56, WRITE_DIAG56 from "diag56_mod.f" 
 
-comode.h		-- Now remove AVG, BOLTG, RGAS, SCDAY, BK, EIGHTDPI, 
-			   RSTARG, WTAIR, ONEPI, CONSVAP, SMAL1, SMAL2, SMAL3
-			   from common blocks and declare these as parameters
+emissdr.f		-- NOTE: Temporary kludge: For GEOS-4 we want to use 
+			   the new near-land lightning formulation.  But for 
+			   the time being, we must keep the existing lightning
+			   for other met field types.  This means that for
+		           GEOS-4 we have to call EMLIGHTNING_NL but for
+			   the other met fields we call EMLIGHTNING.
 
-compute_grid		-- Added comments about surface area derivation
-("grid_mod.f")
+get_i6_time		-- Bug fix for GCAP: skip over Feb 29th (no leapyears)
+("time_mod.f")
 
-debug_msg		-- Now add a little space for debug output
-("error_mod.f")
+get_pcenter		-- Removed reference to "CMN", it's obsolete
+("pressure_mod.f")
 
-do_emissions		-- Now call GFED2_COMPUTE_BIOMASS to read 1x1 biomass 
-("emissions_mod.f")	   emissions and regrid to the model resolution once 
-			   per month
+initialize.f		-- Now references ND56, ZERO_DIAG56 from "diag56_mod.f"
 
-emissc2h6		-- Now modified for new "biomass_mod.f"
-("c2h6_mod.f")
+is_last_day_good	-- Now call ITS_A_LEAPYEAR with FORCE=.TRUE. to 
+("input_mod.f")		   always return whether the year Y would be a leap
+			   year, regardless of met field type.
 
-emissch3i		-- Now modified for new "biomass_mod.f"
-("ch3i_mod.f")
+its_a_leapyear		-- Now add FORCE argument to force ITS_A_LEAPYEAR to
+("time_mod.f")		   return a value instead of just returning with FALSE
+			   for the GCAP met fields
 
-emiss_hcn_ch3cn		-- Now modified for new "biomass_mod.f"
-("hcn_ch3cn_mod.f")
+its_time_for_bpch	-- Now call ITS_A_LEAPYEAR with FORCE=.TRUE.
+("main.f")		   to be compatible with GEOS or GCAP met fields
 
-emiss_tagged_co		-- Now modified for new "biomass_mod.f"
-("tagged_co_mod.f")
+logical_mod.f		-- Added LCTH, LMFLUX, LPRECON for lightning options
 
-gc_compute_biomass	-- This was originally BIOBURN in "biomass_mod.f"
-("gc_biomass_mod.f")
+main.f			-- NOTE: Temporary kludge: For GEOS-4 we want to use 
+			   the new near-land lightning formulation.  But for 
+			   the time being, we must keep the existing lightning
+			   for other met field types.  This means that we 
+			   must call LIGHTNING_NL for GEOS-4 to use the new
+			   near land formulation, and call LIGHTNING for
+       			   the other met field types.
 
-init_drydep		-- Bug fix: split up compound IF statements into 
-("drydep_mod.f")           separate 2 IF statements for ID_Hg2, ID_HgP to 
-			   avoid seg faults
+read_diagnostic_menu	-- Now reference ND56, PD56, INIT_DIAG56 from 
+("input_mod.f")            "diag56_mod.f"
 
-init_input		-- Now also initialize LEMEP, LGFED2BB switches
-("input_mod.f")
+read_emissions_menu	-- Now read LOTDLIS, LCTH, LMFLUX, LPRECON for 
+("emissions_mod.f")        lightning options
+			-- For now, always set LOTDLIS=T.  We have not
+			   yet implemented the alternative option.
 
-logical_mod.f		-- Added LGFED2BB switch for GFED2 BIOMASS BURNING
+set_current_time	-- Now references "define.h"
+("time_mod.f")		-- Now add special handling to skip from Feb 28th to 
+			   Mar 1st for GCAP model.
 
-ndxx_setup.f		-- Now remove NBIOTRCE; it's obsolete.  
-			   Replace w/ NBIOMAX
-
-read_biomass		-- Now make BIOMASS array argument (I,J,N) ordered 
-("biomass_mod.f")	   instead of (N,I,J)
-			-- Also now read all NBIOMAX species
-
-read_diagnostic_menu	-- Now remove reference to NBIOTRCE; Replace w/ NBIOMAX
-("input_mod.f")
-
-read_emissions_menu	-- Now read LGFED2BB -- switch for GFED2 biomass 
-("input_mod.f")		   emissions and DATA_DIR_1x1 directory
-
-reader.f		-- Physical constants and some error tolerances are 
-			   now defined as parameters in "comode.h".  In this 
-			   way, their values will be defined before the first 
-			   call to READER for the offline aerosol simulation 
-
-read_tracer_menu        -- Now do not call SET_BIOTRCE anymore; it's obsolete
-("input_mod.f")
-
-ruralbox.f		-- Remove ALT and CLOUDS from arg list,
-			   they are obsolete
-
-seasalt_chem		-- Bug fix: now avoid seg fault error if IDTHNO3 is 
-("sulfate_mod.f")	   zero, as it would be for an offline aerosol sim
-
-setemis.f		-- Now updated for new "biomass_mod.f"
-
-tracerid		-- Now remove IDBxxx biomass flags
-("tracerid_mod.f")

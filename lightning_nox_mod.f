@@ -1,4 +1,4 @@
-! $Id: lightning_nox_mod.f,v 1.10 2006/04/21 15:40:02 bmy Exp $
+! $Id: lightning_nox_mod.f,v 1.11 2006/05/15 17:52:51 bmy Exp $
       MODULE LIGHTNING_NOX_MOD
 !
 !******************************************************************************
@@ -170,9 +170,10 @@
 !******************************************************************************
 !      
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : BXHEIGHT, IS_ICE
-      USE GRID_MOD,     ONLY : GET_YMID
+      USE DAO_MOD,      ONLY : BXHEIGHT,  IS_ICE
+      USE GRID_MOD,     ONLY : GET_YMID,  GET_AREA_M2
       USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
+      USE DIAG56_MOD,   ONLY : AD56,      ND56
       
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_GCTM"     ! Physical constants
@@ -188,6 +189,7 @@
       REAL*8                :: HCHARGE, H0, XIGCRATIO, FLASHRATE
       REAL*8                :: X, RATE, TSUM, Z1, Z2, TOTAL, YMID
       REAL*8                :: VERTPROF(LLPAR)
+      REAL*8                :: RATE_SAVE
 
       !=================================================================
       ! LIGHTNING begins here!
@@ -384,6 +386,25 @@
             X     = 1d0 / ( 1d0 + XIGCRATIO )
             TOTAL = RFLASH * ( ( (1 - X) * CICG * Z2 ) + ( X * Z1 ) ) * 
      &              (FLASHRATE * 60) * FLASHSCALE
+
+            !------------------
+            ! ND56 diagnostic
+            !------------------
+            IF ( ND56 > 0 .and. RATE > 0d0 ) THEN
+
+               ! Lightning flashes per 6h per km2
+               RATE_SAVE   = RATE / ( GET_AREA_M2( J ) ) * 1d6
+
+               ! Total lightning flash rate
+               AD56(I,J,1) = AD56(I,J,1) + RATE_SAVE
+               
+               ! Intra-cloud flash rate
+               AD56(I,J,2) = AD56(I,J,2) + ( RATE_SAVE * ( 1d0 - X ) )
+               
+               ! Cloud-ground flash rate
+               AD56(I,J,3) = AD56(I,J,3) + ( RATE_SAVE * X )
+
+            ENDIF
 
             ! If there's lightning w/in the column ...
             IF ( TOTAL > 0d0 ) THEN

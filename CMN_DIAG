@@ -1,4 +1,4 @@
-! $Id: CMN_DIAG,v 1.16 2005/10/27 13:59:45 bmy Exp $
+! $Id: CMN_DIAG,v 1.17 2006/05/15 17:52:41 bmy Exp $
 ! 
 ! NOTES:
 ! (1 ) Changed RCS ID tag comment character from "C" to "!" to allow freeform
@@ -96,7 +96,10 @@
       INTEGER, PARAMETER :: PD53=0            
       INTEGER, PARAMETER :: PD54=0           
       INTEGER, PARAMETER :: PD55=3
-      INTEGER, PARAMETER :: PD56=0            
+      !-----------------------------------------------
+      ! Prior to 5/5/06:
+      !INTEGER, PARAMETER :: PD56=0            
+      !-----------------------------------------------
       INTEGER, PARAMETER :: PD57=0           
       INTEGER, PARAMETER :: PD58=0
       INTEGER, PARAMETER :: PD59=0            
@@ -138,7 +141,11 @@
      &   ND21, ND22, ND23, ND24, ND25, ND26, ND27, ND28, ND29, ND30,     
      &   ND31, ND32, ND33, ND34, ND35, ND36, ND37, ND38, ND39, ND40,     
      &         ND42, ND43, ND44, ND45, ND46, ND47, ND48, ND49, ND50,    
-     &   ND51, ND52, ND53, ND54, ND55, ND56, ND57, ND58, ND59, ND60,     
+!-------------------------------------------------------------------------
+! Prior to 5/5/06:
+!     &   ND51, ND52, ND53, ND54, ND55, ND56, ND57, ND58, ND59, ND60,     
+!-------------------------------------------------------------------------
+     &   ND51, ND52, ND53, ND54, ND55,       ND57, ND58, ND59, ND60,     
      &   ND61, ND62, ND63, ND64, ND65, ND66, ND67, ND68, ND69, ND70,     
      &   ND71, ND72, ND73, ND74, ND75
 
@@ -148,7 +155,11 @@
      &   ND21, ND22, ND23, ND24, ND25, ND26, ND27, ND28, ND29, ND30,     
      &   ND31, ND32, ND33, ND34, ND35, ND36, ND37, ND38, ND39, ND40,     
      &         ND42, ND43, ND44, ND45, ND46, ND47, ND48, ND49, ND50,    
-     &   ND51, ND52, ND53, ND54, ND55, ND56, ND57, ND58, ND59, ND60,     
+!-------------------------------------------------------------------------
+! Prior to 5/5/06:
+!     &   ND51, ND52, ND53, ND54, ND55, ND56, ND57, ND58, ND59, ND60,    
+!-------------------------------------------------------------------------
+     &   ND51, ND52, ND53, ND54, ND55,       ND57, ND58, ND59, ND60,     
      &   ND61, ND62, ND63, ND64, ND65, ND66, ND67, ND68, ND69, ND70,     
      &   ND71, ND72, ND73, ND74, ND75
 !----------------------------------------------------------------------------

@@ -1,9 +1,9 @@
-! $Id: time_mod.f,v 1.20 2006/04/21 15:40:10 bmy Exp $
+! $Id: time_mod.f,v 1.21 2006/05/15 17:52:55 bmy Exp $
       MODULE TIME_MOD
 !
 !******************************************************************************
 !  TIME_MOD contains GEOS-CHEM date and time variables and timesteps, and 
-!  routines for accessing them. (bmy, 6/21/00, 3/15/06) 
+!  routines for accessing them. (bmy, 6/21/00, 4/24/06) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -99,7 +99,7 @@
 !  (54) GET_CT_A3         : Returns # of times A-3 fields have been read in
 !  (55) GET_CT_A6         : Returns # of times A-6 fields have been read in
 !  (56) GET_CT_I6         : Returns # of times I-6 fields have been read in
-!  (57) GET_CT_XTRA      : Returns # of times I-6 fields have been read in
+!  (57) GET_CT_XTRA       : Returns # of times I-6 fields have been read in
 !  (58) GET_A3_TIME       : Returns YYYYMMDD and HHMMSS for the A-3 fields
 !  (59) GET_A6_TIME       : Returns YYYYMMDD and HHMMSS for the A-6 fields
 !  (60) GET_I6_TIME       : Returns YYYYMMDD and HHMMSS for the I-6 fields
@@ -173,6 +173,8 @@
 !  (23) Added function ITS_MIDMONTH.  Also removed obsolete functions
 !        NYMD_Y2K, NYMD6_2_NYMD8, NYMD_STRING, DATE_STRING. 
 !        (sas, cdh, bmy, 12/15/05)
+!  (24) GCAP bug fix: There are no leapyears, so transition from 2/28 to 3/1,
+!        skipping 2/29 for all years. (swu, bmy, 4/24/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -238,19 +240,24 @@
 !******************************************************************************
 !  Subroutine SET_CURRENT_TIME takes in the elapsed time in minutes since the 
 !  start of a GEOS-CHEM simulation and sets the GEOS-CHEM time variables 
-!  accordingly. (bmy, 2/5/03)
+!  accordingly. (bmy, 2/5/03, 4/24/06)
 !
 !  NOTES:
 !  (1 ) GCAP/GISS fields don't have leap years, so if JULDAY says it's 
 !        Feb 29th, reset MONTH, DAY, JD1 to Mar 1st. (swu, bmy, 8/29/05)
+!  (2 ) Now references "define.h".  Now add special handling to skip from
+!        Feb 28th to Mar 1st for GCAP model. (swu, bmy, 4/24/06)
 !******************************************************************************
 !
       ! References to F90 modules
       USE JULDAY_MOD, ONLY : JULDAY, CALDATE
 
+#     include "define.h"
+
       ! Local variables
-      REAL*4 :: TMP
-      REAL*8 :: JD0, JD1
+      LOGICAL :: IS_LEAPYEAR
+      REAL*4  :: TMP
+      REAL*8  :: JD0, JD1, JD_JAN_1
       
       !=================================================================
       ! SET_CURRENT_TIME begins here!
@@ -260,25 +267,37 @@
       JD0 = GET_JD( NYMDb, NHMSb )
 
       ! JD1: Astronomical Julian Date at current time
-      JD1  = JD0 + ( DBLE( ELAPSED_MIN ) / 1440d0 )
-
-#if   defined( GCAP )
-
-      ! GCAP/GISS fields don't have leap years, so if JULDAY says it's 
-      ! Feb 29th, reset MONTH, DAY, JD1 to Mar 1st. (swu, bmy, 8/29/05)
-      IF ( MONTH == 2 .and. DAY == 29 ) THEN
-         MONTH = 3
-         DAY   = 1
-         JD1   = JD1 + 1.0d0
-      ENDIF 
-
-#endif
+      JD1 = JD0 + ( DBLE( ELAPSED_MIN ) / 1440d0 )
 
       ! Call CALDATE to compute the current YYYYMMDD and HHMMSS
       CALL CALDATE( JD1, NYMD, NHMS )
 
       ! Extract current year, month, day from NYMD
       CALL YMD_EXTRACT( NYMD, YEAR, MONTH, DAY )
+
+#if   defined( GCAP ) 
+
+      !-------------------------------
+      ! GCAP met fields: no leapyears
+      !-------------------------------
+
+      ! Special handling for leap years 
+      IF ( ITS_A_LEAPYEAR( YEAR, FORCE=.TRUE. ) ) THEN
+
+         ! Get Astronomical Julian Date on Jan 0th of this year
+         JD_JAN_1 = GET_JD( YEAR*10000 + 0101, 000000 )
+         
+         ! Skip directly from Feb 28 to Mar 1st 
+         IF ( JD1 - JD_JAN_1 >= 59d0 ) JD1 = JD1 + 1d0
+         
+         ! Call CALDATE to recompute YYYYMMDD and HHMMSS
+         CALL CALDATE( JD1, NYMD, NHMS )
+
+         ! Extract current year, month, day from NYMD
+         CALL YMD_EXTRACT( NYMD, YEAR, MONTH, DAY )
+      ENDIF
+         
+#endif
 
       ! Extract current hour, minute, second from NHMS
       CALL YMD_EXTRACT( NHMS, HOUR, MINUTE, SECOND )
@@ -1114,7 +1133,7 @@
 
       ! Astronomical Julian Date at current time + N_MINS
       JD = GET_JD( NYMD, NHMS ) + ( N_MINS / 1440d0 )
- 
+
       ! Call CALDATE to compute the current YYYYMMDD and HHMMSS
       CALL CALDATE( JD, DATE(1), DATE(2) )
 
@@ -1856,7 +1875,7 @@
       DATE = GET_TIME_AHEAD( 180 )      
 
 #else
-      
+
       ! For GEOS-4, GEOS-5, or GCAP data: The A-3 fields are timestamped 
       ! by center time.  Therefore, the difference between the actual time 
       ! when the fields are read and the A-3 timestamp time is 90 minutes.
@@ -1903,9 +1922,10 @@
 !******************************************************************************
 !  Function GET_I6_TIME returns the correct YYYYMMDD and HHMMSS values
 !  that are needed to read in the next instantaneous 6-hour (I-6) fields. 
-!  (bmy, 3/21/03)
+!  (bmy, 3/21/03, 4/24/06)
 !
 !  NOTES:
+!  (1 ) Bug fix for GCAP: skip over Feb 29th (no leapyears). (bmy, 4/24/06)
 !******************************************************************************
 !
       ! Arguments
@@ -1915,9 +1935,27 @@
       ! GET_I6_TIME begins here!
       !=================================================================
 
+#if   defined( GCAP ) 
+
+      !-------------------------------
+      ! GCAP met fields: no leapyears
+      !-------------------------------
+
+      ! If 18 GMT on Feb 28th, the next I-6 time is 0 GMT on Mar 1st
+      IF ( MONTH == 2 .and. DAY == 28 .and. HOUR == 18 ) THEN
+         DATE = (/ ( YEAR * 10000 ) + 0301, 000000 /)
+         RETURN
+      ENDIF
+
+#endif
+
+      !-------------------------------
+      ! GEOS met fields: w/ leapyears
+      !-------------------------------
+
       ! We need to read in the I-6 fields 6h (360 mins) ahead of time
       DATE = GET_TIME_AHEAD( 360 )
-      
+
       ! Return to calling program
       END FUNCTION GET_I6_TIME
 
@@ -2307,24 +2345,34 @@
 
 !------------------------------------------------------------------------------
 
-      FUNCTION ITS_A_LEAPYEAR( YEAR_IN ) RESULT( IS_LEAPYEAR )
+      FUNCTION ITS_A_LEAPYEAR( YEAR_IN, FORCE ) RESULT( IS_LEAPYEAR )
 !
 !******************************************************************************
 !  Function ITS_A_LEAPYEAR tests to see if a year is really a leapyear. 
-!  (bmy, 3/17/99, 8/29/05)
+!  (bmy, 3/17/99, 4/24/06)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) YEAR_IN (INTEGER) : (OPTIONAL) Specify a year to test for leapyear
+!  (2 ) FORCE   (LOGICAL) : (OPTIONAL) Do not exit if using GCAP met fields  
 !
 !  NOTES: 
 !  (1 ) Now remove YEAR from ARG list; use the module variable (bmy, 3/21/03)
 !  (2 ) Now add YEAR_IN as an optional argument.  If YEAR_IN is not passed,
 !        then test if the current year is a leapyear (bmy, 9/25/03)
 !  (3 ) Now always return FALSE for GCAP (swu, bmy, 8/29/05)
+!  (4 ) Now add FORCE argument to force ITS_A_LEAPYEAR to return a value
+!        instead of just returning with FALSE for the GCAP met fields.
+!        (swu, bmy, 4/24/06)
 !******************************************************************************
 !
       ! Arguments
       INTEGER, INTENT(IN), OPTIONAL :: YEAR_IN
+      LOGICAL, INTENT(IN), OPTIONAL :: FORCE
       
       ! Local variables
       INTEGER                       :: THISYEAR
+      LOGICAL                       :: THISFORCE
 
       ! Function value
       LOGICAL                       :: IS_LEAPYEAR
@@ -2339,6 +2387,13 @@
          THISYEAR = YEAR_IN
       ELSE
          THISYEAR = YEAR
+      ENDIF
+
+      ! If FORCE is passed, use that value, otherwise default to .FALSE.
+      IF ( PRESENT( FORCE ) ) THEN
+         THISFORCE = FORCE
+      ELSE
+         THISFORCE = .FALSE.
       ENDIF
 
       !=================================================================
@@ -2359,8 +2414,19 @@
       IS_LEAPYEAR = .FALSE.
 
 #if   defined( GCAP )
+      !-----------------------------------------------------------------------
+      ! Prior to 4/24/06:
       ! For GCAP/GISS met fields, there are no leap years (swu, bmy, 8/29/05)
-      RETURN
+      !RETURN
+      !-----------------------------------------------------------------------
+
+      ! For GCAP met fields, there are no leap years.  However, sometimes
+      ! we need to test to see if it would be a leap year so that we can
+      ! tell the GEOS-Chem timing functions to skip past Feb 29th.  If 
+      ! argument FORCE=T, then return the value of IS_LEAPYEAR to the
+      ! calling program (bmy, 4/24/06)
+      IF ( .not. THISFORCE ) RETURN
+
 #endif
 
       IF ( MOD( THISYEAR, 4 ) == 0 ) THEN

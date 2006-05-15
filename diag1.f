@@ -1,4 +1,4 @@
-! $Id: diag1.f,v 1.10 2006/03/24 20:22:43 bmy Exp $
+! $Id: diag1.f,v 1.11 2006/05/15 17:52:46 bmy Exp $
       SUBROUTINE DIAG1 
 !
 !******************************************************************************
@@ -317,7 +317,7 @@
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AD,  AIRDEN, AVGW,     BXHEIGHT 
-      USE DAO_MOD,      ONLY : PBL, IS_ICE, IS_WATER, IS_LAND
+      USE DAO_MOD,      ONLY : PBL, IS_ICE, IS_WATER, IS_LAND, IS_NEAR
       USE DIAG_MOD,     ONLY : AD30, AD31, AD33, AD35, AD45 
       USE DIAG_MOD,     ONLY : AD47, AD67, AD68, AD69, LTOTH
       USE GRID_MOD,     ONLY : GET_AREA_M2
@@ -375,6 +375,7 @@
          DO I = 1, IIPAR
             IF ( IS_WATER( I, J ) ) AD30(I,J) = AD30(I,J) + 0e0
             IF ( IS_LAND ( I, J ) ) AD30(I,J) = AD30(I,J) + 1e0
+            !IF ( IS_NEAR ( I, J, 0.2d0,1 )) AD30(I,J) = AD30(I,J) + 1e0
             IF ( IS_ICE  ( I, J ) ) AD30(I,J) = AD30(I,J) + 2e0
          ENDDO
          ENDDO

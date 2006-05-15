@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.22 2006/04/21 15:40:01 bmy Exp $
+! $Id: input_mod.f,v 1.23 2006/05/15 17:52:50 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS_CHEM input file at the start of the run
 !  and passes the information to several other GEOS-CHEM F90 modules.
-!  (bmy, 7/20/04, 4/5/06)
+!  (bmy, 7/20/04, 5/10/06)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -105,6 +105,8 @@
 !  (9 ) Now added MERCURY MENU section.  Also fixed bug in READ_ND48_MENU.
 !        (eck, cdh, bmy, 3/6/06)
 !  (10) Now read LGFED2BB switch for GFED2 biomass emissions (bmy, 4/5/06)
+!  (11) Bug fix for GCAP in IS_LAST_DAY_GOOD.  Also now read LCTH, LMFLUX,
+!        LPRECON in READ_EMISSIONS_MENU. (bmy, 5/10/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -153,8 +155,7 @@
 !
 !  NOTES:
 !  (1 ) Now call DO_GAMAP from "gamap_mod.f" to create "diaginfo.dat" and
-!        "tracerinfo.dat" files after all diagnostic menus have been read in
-!        
+!        "tracerinfo.dat" files after all diagnostic menus have been read in  
 !******************************************************************************
 !
       ! References to F90 modules
@@ -681,10 +682,6 @@
 !
       ! References to F90 modules
       USE CHARPAK_MOD,       ONLY : ISDIGIT
-      !------------------------------------------------------
-      ! Prior to 4/5/06:
-      !USE BIOMASS_MOD,       ONLY : SET_BIOTRCE
-      !------------------------------------------------------
       USE BIOFUEL_MOD,       ONLY : SET_BFTRACE
       USE ERROR_MOD,         ONLY : ALLOC_ERR, ERROR_STOP
       USE LOGICAL_MOD,       ONLY : LSPLIT
@@ -912,13 +909,6 @@
 
       ! Set up tracer flags
       CALL TRACERID
-
-      !----------------------------------------------------------------
-      ! Prior to 4/5/06:
-      ! This is no longer necessary (bmy, 4/5/06)
-      !! Set NBIOTRCE in "biomass_mod.f"
-      !CALL SET_BIOTRCE
-      !----------------------------------------------------------------
 
       ! Set NBFTRACE in "biofuel_mod.f"
       CALL SET_BFTRACE
@@ -1213,7 +1203,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_EMISSIONS_MENU reads the EMISSIONS MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 4/5/06)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 5/10/06)
 !
 !  NOTES:
 !  (1 ) Now read LNEI99 -- switch for EPA/NEI99 emissions (bmy, 11/5/04)
@@ -1222,6 +1212,8 @@
 !  (4 ) Now read LMEGAN -- switch for MEGAN biogenics (tmf, bmy, 10/20/05)
 !  (5 ) Now read LEMEP -- switch for EMEP emissions (bdf, bmy, 11/1/05)
 !  (6 ) Now read LGFED2BB -- switch for GFED2 biomass emissions (bmy, 4/5/06)
+!  (7 ) Now read LOTDLIS, LCTH, LMFLUX, LPRECON for lightning options 
+!        (bmy, 5/10/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1231,6 +1223,7 @@
       USE LOGICAL_MOD, ONLY : LEMIS,    LFOSSIL,   LLIGHTNOX, LMONOT    
       USE LOGICAL_MOD, ONLY : LNEI99,   LSHIPSO2,  LSOILNOX,  LTOMSAI   
       USE LOGICAL_MOD, ONLY : LWOODCO,  LMEGAN,    LEMEP,     LGFED2BB
+      USE LOGICAL_MOD, ONLY : LOTDLIS,  LCTH,      LMFLUX,    LPRECON
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
 
 #     include "CMN_SIZE"    ! Size parameters
@@ -1309,24 +1302,40 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:15' )
       READ( SUBSTRS(1:N), * ) LLIGHTNOX
 
+      ! Use OTD-LIS scale factors for lighting flash rates
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:17' )
+      READ( SUBSTRS(1:N), * ) LOTDLIS
+
+      ! Use Cloud-top-height (CTH) lightning parameterization
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:18' )
+      READ( SUBSTRS(1:N), * ) LCTH
+
+      ! Use Mass-flux (MFLUX) lightning parameterization
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:19' )
+      READ( SUBSTRS(1:N), * ) LMFLUX
+
+      ! Use Convective precip (PRECON) lightning parameterization
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:20' )
+      READ( SUBSTRS(1:N), * ) LPRECON
+
       ! Use soil NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:16' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:21' )
       READ( SUBSTRS(1:N), * ) LSOILNOX
 
       ! Use ship SO2 emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:17' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:22' )
       READ( SUBSTRS(1:N), * ) LSHIPSO2
 
       ! Use EPA/NEI99 emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:18' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:23' )
       READ( SUBSTRS(1:N), * ) LNEI99
 
       ! Use AVHRR-derived LAI fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:19' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:24' )
       READ( SUBSTRS(1:N), * ) LAVHRRLAI
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:20' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:23' )
 
       !=================================================================
       ! Error check logical flags
@@ -1350,6 +1359,20 @@
          LSOILNOX  = .FALSE.
       ENDIF
       
+      ! Error check lightning switches
+      IF ( LLIGHTNOX ) THEN
+
+         ! Kludge: for now set LOTDLIS=T.  We have not yet implemented
+         ! the alternative option. (ltm, bmy, 5/10/06)
+         LOTDLIS = .TRUE.
+
+         ! Make sure one of LCTH, LMFLUX, LPRECON is selected
+         IF ( .not. LCTH .and. .not. LMFLUX .and. .not. LPRECON ) THEN
+            CALL ERROR_STOP( 'One of LCTH, LMFLUX, LPRECON must be T!',
+     &                       'READ_EMISSIONS_MENU ("input_mod.f")' )
+         ENDIF
+      ENDIF
+
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -1368,6 +1391,10 @@
       WRITE( 6, 100     ) 'Scale BIOMASS to TOMS-AI?   : ', LTOMSAI
       WRITE( 6, 100     ) 'Use GFED2 BIOMASS emissions?: ', LGFED2BB
       WRITE( 6, 100     ) 'Turn on LIGHTNING NOx?      : ', LLIGHTNOX
+      WRITE( 6, 100     ) 'Use OTD-LIS scale factors?  : ', LOTDLIS
+      WRITE( 6, 100     ) 'Use CTH LIGHTNING Param?    : ', LCTH
+      WRITE( 6, 100     ) 'Use MFLUX LIGHTNING Param?  : ', LMFLUX
+      WRITE( 6, 100     ) 'Use PRECON LIGHTNING Param? : ', LPRECON
       WRITE( 6, 100     ) 'Turn on AIRCRAFT NOx?       : ', LAIRNOX
       WRITE( 6, 100     ) 'Turn on SOIL NOx?           : ', LSOILNOX
       WRITE( 6, 100     ) 'Turn on SHIP SO2 EMISSIONS? : ', LSHIPSO2
@@ -1450,7 +1477,7 @@
  120  FORMAT( A, 2I5 )
 
       ! Return to calling program
-      END SUBROUTINE READ_CHEMISTRY_MENU
+      END SUBROUTINE READ_CHEMISTRY_MENU  
 
 !------------------------------------------------------------------------------
 
@@ -1850,7 +1877,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_DIAGNOSTIC_MENU reads the DIAGNOSTIC MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 4/5/06)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 5/10/06)
 !
 !  NOTES:
 !  (1 ) Now reference IU_BPCH from "file_mod.f" and OPEN_BPCH2_FOR_WRITE
@@ -1865,19 +1892,18 @@
 !  (5 ) Now make sure all USE statements are USE, ONLY.  Also remove reference
 !        to DIAG_MOD, it's not needed. (bmy, 10/3/05)
 !  (6 ) Now remove reference to NBIOTRCE; Replace w/ NBIOMAX. (bmy, 4/5/06)
+!  (7 ) Now reference ND56, PD56, INIT_DIAG56 from "diag56_mod.f" 
+!        (bmy, 5/10/06)
 !******************************************************************************
 !
       ! References to F90 modules
-      !---------------------------------------------------------
-      ! Prior to 4/5/06:
-      !USE BIOMASS_MOD,  ONLY : NBIOTRCE
-      !---------------------------------------------------------
       USE BIOMASS_MOD,  ONLY : NBIOMAX
       USE BIOFUEL_MOD,  ONLY : NBFTRACE
       USE BPCH2_MOD,    ONLY : OPEN_BPCH2_FOR_WRITE
       USE DIAG03_MOD,   ONLY : ND03,      PD03,      INIT_DIAG03
       USE DIAG04_MOD,   ONLY : ND04,      PD04,      INIT_DIAG04
       USE DIAG41_MOD,   ONLY : ND41,      PD41,      INIT_DIAG41
+      USE DIAG56_MOD,   ONLY : ND56,      PD56,      INIT_DIAG56
       USE DIAG_OH_MOD,  ONLY : INIT_DIAG_OH
       USE DRYDEP_MOD,   ONLY : NUMDEP
       USE ERROR_MOD,    ONLY : ERROR_STOP
@@ -1893,12 +1919,12 @@
       USE TRACERID_MOD, ONLY : NEMANTHRO
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_NMAX
 
-#     include "CMN_SIZE" ! Size parameters
-#     include "CMN_DIAG" 
+#     include "CMN_SIZE"     ! Size parameters
+#     include "CMN_DIAG"     ! NDxx flags
 
       ! Local variables
-      INTEGER            :: M, N, N_MAX, N_TMP
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOCATION
+      INTEGER               :: M, N, N_MAX, N_TMP
+      CHARACTER(LEN=255)    :: SUBSTRS(MAXDIM), MSG, LOCATION
 
       !=================================================================
       ! READ_DIAGNOSTIC_MENU begins here!
@@ -2129,10 +2155,6 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:29' )
       READ( SUBSTRS(1), * ) ND28
       IF ( .not. LBIOMASS ) ND28 = 0
-      !---------------------------------------------------------------
-      ! Prior to 4/5/06:
-      !CALL SET_TINDEX( 28, ND28, SUBSTRS(2:N), N-1, NBIOTRCE )
-      !---------------------------------------------------------------
       CALL SET_TINDEX( 28, ND28, SUBSTRS(2:N), N-1, NBIOMAX )
 
       !--------------------------
@@ -2315,7 +2337,7 @@
       CALL SET_TINDEX( 55, ND55, SUBSTRS(2:N), N-1, PD55 )
 
       !--------------------------
-      ! ND56: Free
+      ! ND56: Lightning flashes
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:55' )
       READ( SUBSTRS(1), * ) ND56
@@ -2424,6 +2446,7 @@
       CALL INIT_DIAG03
       CALL INIT_DIAG04
       CALL INIT_DIAG41
+      CALL INIT_DIAG56
       CALL NDXX_SETUP
 
       ! Enable Mean OH (or CH3CCl3) diag for runs which need it
@@ -3908,10 +3931,13 @@
 !
 !******************************************************************************
 !  Suborutine IS_LAST_DAY_GOOD tests to see if there is output scheduled on 
-!  the last day of the run.  (bmy, 1/11/05)
+!  the last day of the run.  (bmy, 1/11/05, 4/24/06)
 !
 !  NOTES:
 !  (1 ) Moved to "input_mod.f" from "main.f" (bmy, 1/11/05)
+!  (2 ) Now call ITS_A_LEAPYEAR with FORCE=.TRUE. to always return whether
+!        the year Y would be a leap year, regardless of met field type.
+!        (swu, bmy, 4/24/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3923,6 +3949,7 @@
 #     include "CMN_DIAG"   ! NJDAY
 
       ! Local variables
+      LOGICAL             :: IS_LEAPYEAR
       INTEGER             :: NYMDe, Y, M, D, LASTDAY
       REAL*8              :: JD, JD0
 
@@ -3942,7 +3969,7 @@
       LASTDAY = JD - JD0
 
       ! Skip past the element of NJDAY for Feb 29, if necessary
-      IF ( .not. ITS_A_LEAPYEAR( Y ) .and. LASTDAY > 59 ) THEN
+      IF ( .not. ITS_A_LEAPYEAR( Y, .TRUE. ) .and. LASTDAY > 59 ) THEN
          LASTDAY = LASTDAY + 1
       ENDIF
 

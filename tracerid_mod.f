@@ -1,4 +1,4 @@
-! $Id: tracerid_mod.f,v 1.14 2006/04/21 15:40:12 bmy Exp $
+! $Id: tracerid_mod.f,v 1.15 2006/05/15 17:52:56 bmy Exp $
       MODULE TRACERID_MOD
 !
 !******************************************************************************
@@ -217,14 +217,6 @@
       INTEGER            :: IDEALK4, IDEC2H6,  IDEISOP, IDEACET, IDEMEK
       INTEGER            :: IDEALD2, IDECH2O,  NEMBIOG, NEMANTHRO
 
-      !----------------------------------------------------------------------
-      ! Prior to 4/5/06:
-      ! These are now obsolete (bmy, 4/5/06)
-      !! GEOS-CHEM biomass burning ID's
-      !INTEGER            :: IDBNOX,  IDBCO,    IDBC2H6, IDBPRPE, IDBACET
-      !INTEGER            :: IDBMEK,  IDBC3H8,  IDBALD2, IDBCH2O, IDBALK4 
-      !----------------------------------------------------------------------
-
       ! GEOS-CHEM biofuel ID's
       INTEGER            :: IDBFNOX,  IDBFCO,   IDBFALK4, IDBFACET 
       INTEGER            :: IDBFMEK,  IDBFALD2, IDBFPRPE, IDBFC3H8
@@ -314,10 +306,6 @@
             CASE ( 'NOX' )
                COUNT    = COUNT + 1
                IDTNOX   = N
-               !-----------------------
-               ! Prior to 4/5/06:
-               !IDBNOX   = COUNT
-               !-----------------------
                IDBFNOX  = COUNT
 
             CASE ( 'OX' )
@@ -329,10 +317,6 @@
             CASE ( 'CO' )
                COUNT    = COUNT + 1
                IDTCO    = N
-               !-----------------------
-               ! Prior to 4/5/06:
-               !IDBCO    = COUNT
-               !-----------------------
                IDBFCO   = COUNT
 
                ! Special case: Tagged CO
@@ -347,10 +331,6 @@
             CASE ( 'ALK4' )
                COUNT    = COUNT + 1
                IDTALK4  = N
-               !-----------------------
-               ! Prior to 4/5/06:
-               !IDBALK4  = COUNT
-               !-----------------------
                IDBFALK4 = COUNT
 
             CASE ( 'ISOP' )
@@ -365,28 +345,16 @@
             CASE ( 'ACET' )
                COUNT    = COUNT + 1
                IDTACET  = N
-               !-----------------------
-               ! Prior to 4/5/06
-               !IDBACET  = COUNT
-               !-----------------------
                IDBFACET = COUNT
 
             CASE ( 'MEK' )
                COUNT    = COUNT + 1
                IDTMEK   = N
-               !-----------------------
-               ! Prior to 4/5/06
-               !IDBMEK   = COUNT
-               !-----------------------
                IDBFMEK  = COUNT
 
             CASE ( 'ALD2' )
                COUNT    = COUNT + 1
                IDTALD2  = N
-               !-----------------------
-               ! Prior to 4/5/06
-               !IDBALD2  = COUNT
-               !-----------------------
                IDBFALD2 = COUNT
 
             CASE ( 'RCHO' )
@@ -410,37 +378,21 @@
             CASE ( 'PRPE' )
                COUNT    = COUNT + 1
                IDTPRPE  = N
-               !-----------------------
-               ! Prior to 4/5/06:
-               !IDBPRPE  = COUNT
-               !-----------------------
                IDBFPRPE = COUNT
 
             CASE ( 'C3H8' )
                COUNT    = COUNT + 1
                IDTC3H8  = N
-               !-----------------------
-               ! Prior to 4/5/06
-               !IDBC3H8  = COUNT
-               !-----------------------
                IDBFC3H8 = COUNT
 
             CASE ( 'CH2O' )
                COUNT    = COUNT + 1
                IDTCH2O  = N
-               !-----------------------
-               ! Prior to 4/5/06:
-               !IDBCH2O  = COUNT
-               !-----------------------
                IDBFCH2O = COUNT
 
             CASE ( 'C2H6' )
                COUNT    = COUNT + 1
                IDTC2H6  = N
-               !-----------------------
-               ! Prior to 4/5/06:
-               !IDBC2H6  = COUNT
-               !-----------------------
                IDBFC2H6 = COUNT
 
                ! Special case: tagged C2H6
@@ -605,10 +557,6 @@
             CASE ( 'HCN' )
                COUNT    = COUNT + 1
                IDTCO    = 1
-               !---------------------
-               ! Prior to 4/5/06:
-               !IDBCO    = COUNT
-               !---------------------
                IDBFCO   = COUNT
                EXIT
 
@@ -1369,21 +1317,6 @@
       IDEALD2   = 0
       IDEISOP   = 0
       IDECH2O   = 0 
-      
-      !--------------------------------
-      ! Prior to 4/5/06:
-      !! GEOS-CHEM Biomass ID #'s 
-      !IDBNOX    = 0
-      !IDBCO     = 0
-      !IDBALK4   = 0
-      !IDBACET   = 0
-      !IDBMEK    = 0
-      !IDBALD2   = 0
-      !IDBPRPE   = 0 
-      !IDBC3H8   = 0
-      !IDBCH2O   = 0
-      !IDBC2H6   = 0
-      !--------------------------------
       
       ! GEOS-CHEM Biofuel ID #'s
       IDBFNOX   = 0

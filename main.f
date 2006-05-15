@@ -1,5 +1,14 @@
-! $Id: main.f,v 1.33 2006/03/24 20:22:53 bmy Exp $
+! $Id: main.f,v 1.34 2006/05/15 17:52:52 bmy Exp $
 ! $Log: main.f,v $
+! Revision 1.34  2006/05/15 17:52:52  bmy
+! GEOS-Chem v7-04-03, includes the following modifications:
+! - Added near-land formulation for lightning
+! - Now can use CTH, MFLUX, PRECON params for lightning
+!   (NOTE: new lightning is only applied for GEOS-4 for time being)
+! - Added ND56 diagnostic for lightning flash rates
+! - Fixed Feb 28 -> Mar 1 transition for GCAP (i.e. no leap years)
+! - Other minor bug fixes
+!
 ! Revision 1.33  2006/03/24 20:22:53  bmy
 ! GEOS-CHEM v7-04-01, includes the following modifications:
 ! - Updates to new Hg simulation (eck, cdh, sas)
@@ -133,31 +142,26 @@
 !                 (formerly known as the Harvard-GEOS model)
 !           for 4 x 5, 2 x 2.5 global grids and 1 x 1 nested grids
 !
-!       Contact: Bob Yantosca, Harvard University (bmy@io.harvard.edu)
+!       Contact: Bob Yantosca, Harvard University (bmy@io.as.harvard.edu)
 !                                                                     
 !******************************************************************************
 !
-!  See the GEOS-CHEM User's Guide:
+!  See the GEOS-Chem Web Site:
 !
-!    www-as.harvard.edu/chemistry/trop/geos/documentation/geos_chem_index.html
+!     http://www.as.harvard.edu/chemistry/trop/geos/
+!
+!  and  the GEOS-CHEM User's Guide:
+!
+!     http://www.as.harvard.edu/chemistry/trop/geos/doc/man/
 !
 !  for the most up-to-date GEOS-CHEM documentation on the following topics:
 !
-!    - installation, compilation, and execution
-!    - coding practice and style
-!    - input files and met field data files
-!    - horizontal and vertical resolution
-!    - modification history
+!     - installation, compilation, and execution
+!     - coding practice and style
+!     - input files and met field data files
+!     - horizontal and vertical resolution
+!     - modification history
 !
-!******************************************************************************
-!
-!  Types of GEOS-CHEM Simulations:
-!  ===========================================================================
-!  (1 ) Rn-Pb-Be                        (6 ) Tagged Ox
-!  (2 ) CH3I                            (7 ) Tagged CO
-!  (3 ) NOx-Ox-HC (w/ or w/o aerosols)  (8 ) C2H6   
-!  (4 ) HCN-CH3CN                       (9 ) CH4
-!  (5 ) CO w/ parameterized OH          (10) Offline sulfate aerosols
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -207,6 +211,12 @@
       USE INPUT_MOD,         ONLY : READ_INPUT_FILE
       USE LAI_MOD,           ONLY : RDISOLAI
       USE LIGHTNING_NOX_MOD, ONLY : LIGHTNING
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% NOTE: Temporary kludge: For GEOS-4 we want to use the new near-land
+      !%%% lightning formulation.  But for the time being, we must keep the 
+      !%%% existing lightning for other met field types. (ltm, bmy, 5/10/06)
+      USE LIGHTNING_NOX_NL_MOD, ONLY : LIGHTNING_NL
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       USE LOGICAL_MOD,       ONLY : LEMIS,     LCHEM, LUNZIP,  LDUST
       USE LOGICAL_MOD,       ONLY : LLIGHTNOX, LPRT,  LSTDRUN, LSVGLB
       USE LOGICAL_MOD,       ONLY : LWAIT,     LTRAN, LUPBD,   LCONV
@@ -475,7 +485,22 @@
 
       ! Compute lightning NOx emissions [molec/box/6h]
       IF ( LLIGHTNOX ) THEN
+
+         !------------------------------
+         ! Prior to 5/10/06:
+         !CALL LIGHTNING( T, CLDTOPS )
+         !------------------------------
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: Temporary kludge: For GEOS-4 we want to use the new near-land 
+!%%% lightning formulation.  But for the time being, we must keep the existing
+!%%% lightning for other met field types. (ltm, bmy, 5/10/06)
+#if   defined( GEOS_4 )
+         CALL LIGHTNING_NL
+#else
          CALL LIGHTNING( T, CLDTOPS )
+#endif
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a LIGHTNING' )
       ENDIF
 
@@ -554,7 +579,7 @@
          !   ***** W R I T E   D I A G N O S T I C   F I L E S *****
          !==============================================================
          IF ( ITS_TIME_FOR_BPCH() ) THEN
-
+            
             ! Set time at end of diagnostic timestep
             CALL SET_DIAGe( TAU )
 
@@ -691,7 +716,22 @@
 
             ! Since CLDTOPS is an A-6 field, update the
             ! lightning NOx emissions [molec/box/6h]
-            IF ( LLIGHTNOX ) CALL LIGHTNING( T, CLDTOPS )
+            !-----------------------------------------------
+            ! Prior to 5/10/06:
+            !IF ( LLIGHTNOX ) CALL LIGHTNING( T, CLDTOPS )
+            !-----------------------------------------------              
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: Temporary kludge: For GEOS-4 we want to use the new near-land 
+!%%% lightning formulation.  But for the time being, we must keep the 
+!%%% existing lightning for other met field types. (ltm, bmy, 5/10/06)
+            IF ( LLIGHTNOX ) THEN
+#if   defined( GEOS_4 )
+               CALL LIGHTNING_NL
+#else 
+               CALL LIGHTNING( T, CLDTOPS )
+#endif
+            ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          ENDIF
 
          !==============================================================
@@ -1222,7 +1262,7 @@
 
       ! Look up appropriate value of NJDAY array.  We may need to add a
       ! day to skip past the Feb 29 element of NJDAY for non-leap-years.
-      IF ( .not. ITS_A_LEAPYEAR()  .and. TODAY > 59 ) THEN
+      IF ( .not. ITS_A_LEAPYEAR( FORCE=.TRUE. ) .and. TODAY > 59 ) THEN
          THIS_NJDAY = NJDAY( TODAY + 1 ) 
       ELSE
          THIS_NJDAY = NJDAY( TODAY )

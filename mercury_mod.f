@@ -1,4 +1,4 @@
-! $Id: mercury_mod.f,v 1.14 2006/04/21 15:40:03 bmy Exp $
+! $Id: mercury_mod.f,v 1.15 2006/05/15 17:52:53 bmy Exp $
       MODULE MERCURY_MOD
 !
 !******************************************************************************
@@ -902,11 +902,6 @@
       ENDIF
 
       ! Also account for uptake of Hg(II) by sea salt aerosol
-      !-----------------------------------------------------------------
-      ! Prior to 4/6/06:
-      ! Now return LOST_SS for diagnostic (eck, bmy, 4/6/06)
-      !IF ( IS_WATER( I, J ) ) NEW_Hg2 = NEW_Hg2 * E_SALT
-      !-----------------------------------------------------------------
       IF ( IS_WATER( I, J ) ) THEN
          TEMP_Hg2  = NEW_Hg2 * E_SALT
       ELSE

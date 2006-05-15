@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.30 2006/04/21 15:39:55 bmy Exp $
+! $Id: diag3.f,v 1.31 2006/05/15 17:52:47 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out diagnostics to the BINARY format punch file 
-!  (bmy, bey, mgs, rvm, 5/27/99, 3/14/06)
+!  (bmy, bey, mgs, rvm, 5/27/99, 5/5/06)
 !
 !  NOTES: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
@@ -69,6 +69,7 @@
 !  (64) Removed duplicate variable declarations.  Now remove restriction on 
 !        printing out cloud mass flux in GEOS-4 for the ND66 diagnostic. 
 !        (bmy, 3/14/06)
+!  (65) References ND56, WRITE_DIAG56 from "diag56_mod.f" (ltm, bmy, 5/5/06)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -107,6 +108,7 @@
       USE DIAG03_MOD,   ONLY : ND03,        WRITE_DIAG03
       USE DIAG04_MOD,   ONLY : ND04,        WRITE_DIAG04
       USE DIAG41_MOD,   ONLY : ND41,        WRITE_DIAG41
+      USE DIAG56_MOD,   ONLY : ND56,        WRITE_DIAG56
       USE DIAG_PL_MOD,  ONLY : AD65
       USE DRYDEP_MOD,   ONLY : NUMDEP,      NTRAIND
       USE FILE_MOD,     ONLY : IU_BPCH
@@ -2472,6 +2474,12 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF
+!
+!******************************************************************************
+!  ND56: Lightning flash rate diagnostics (ltm, bmy, 5/5/06))
+!******************************************************************************
+!
+      IF ( ND56 > 0 ) CALL WRITE_DIAG56
 !
 !*****************************************************************************
 !  ND62: I-J Instantaneous Column Maps for Tracers (molec/cm^2)  

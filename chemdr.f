@@ -1,4 +1,4 @@
-! $Id: chemdr.f,v 1.18 2006/04/21 15:39:53 bmy Exp $
+! $Id: chemdr.f,v 1.19 2006/05/15 17:52:45 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
@@ -175,18 +175,6 @@
       LOGICAL, SAVE            :: FIRSTCHEM = .TRUE.
       INTEGER, SAVE            :: CH4_YEAR  = -1
       INTEGER                  :: I, J, JLOOP, L, NPTS, N, MONTH, YEAR
-      !---------------------------------------------------------------
-      ! Prior to 4/10/06:
-      ! These were only needed for SLOW-J photolysis (bmy, 4/10/06)
-      !INTEGER             :: IDXAIR(JJPAR)
-      !INTEGER             :: IDXO3(JJPAR)
-      !REAL*8              :: XWETRAT, HUMEFF, ROVMG
-      !REAL*8              :: ALT(MAXIJ,IVERT) 
-      !REAL*8              :: SURFALT(MAXIJ
-      !REAL*8              :: TOTO3(JJPAR)
-      !REAL*8              :: CLOUDS(MAXIJ,11)
-      !REAL*8              :: XWETRAT, HUMEFF
-      !---------------------------------------------------------------
 
       !=================================================================
       ! CHEMDR begins here!
@@ -222,26 +210,6 @@
          NCS = NCSURBAN
       ENDIF
 
-!------------------------------------------------------------------------------
-! Prior to 4/10/06:
-! Remove this section, it was only needed for SLOW-J photolysis (bmy, 4/10/06)
-!      !=================================================================
-!      ! For SLOW-J photolysis only: 
-!      ! Call JVALUEIN which reads in parameters for J-value calculation.  
-!      ! JVALUEIN reads O3DU from the file "o3du.dat"
-!      !=================================================================
-!#if   defined( LSLOWJ )
-!      IF ( FIRSTCHEM ) CALL JVALUEIN            
-!      IF ( LPRT      ) CALL DEBUG_MSG( '### CHEMDR: after JVALUEIN' )
-!#endif
-!
-!      !=================================================================      
-!      ! Call GETALT, which GETS THE ALTITUDE   
-!      !=================================================================
-!      CALL GETALT( ALT, SURFALT, ROVMG )
-!      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after GETALT' ) 
-!------------------------------------------------------------------------------
-
       !=================================================================      
       ! Call RURALBOX, which defines tropospheric boxes to be sent to
       ! the SMVGEAR solver, as well as setting up some SMVGEAR arrays.
@@ -251,33 +219,11 @@
       NLOOP  = NLAT  * NLONG
       NTLOOP = NLOOP * NVERT
 
-!----------------------------------------------------------------------------
-! Prior to 4/10/06:
-! Remove obsolete arguments (bmy, 4/10/06)
-!      CALL RURALBOX( AD,     T,      AVGW,   ALT,   ALBD,  
-!     &               SUNCOS, CLOUDS, LEMBED, IEBD1, IEBD2, 
-!     &               JEBD1,  JEBD2 )
-!----------------------------------------------------------------------------
       CALL RURALBOX( AD,     T,     AVGW,  ALBD,  SUNCOS, 
      &               LEMBED, IEBD1, IEBD2, JEBD1, JEBD2 )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after RURALBOX' ) 
-
-!-----------------------------------------------------------------------------
-! Prior to 4/10/06:
-! Remove this section, it was only needed for SLOW-J photolysis (bmy, 4/10/06)
-!      !=================================================================      
-!      ! For SLOW-J Photolysis only: 
-!      ! Call GETTOTO3, which gets the total ozone column 
-!      !=================================================================      
-!#if   defined( LSLOWJ )
-!      CALL GETTOTO3( TOTO3, IDXAIR, IDXO3 )
-!
-!      !### Debug
-!      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after GETTOTO3' )
-!#endif
-!-----------------------------------------------------------------------------
 
       ! Reset NTTLOOP, the # of tropospheric grid boxes
       NTTLOOP = NTLOOP
@@ -420,17 +366,6 @@
 
       NPTS = NTTLOOP
 
-!-----------------------------------------------------------------------------
-! Prior to 4/10/06:
-! Now move subroutine calls from "chem.f" to "chemdr.f" below.
-! Make "chem.f" obsolete. (bmy, 4/10/06)
-!      !=================================================================
-!      ! Call CHEM which PERFORMS GAS-PHASE CHEMISTRY. 
-!      !=================================================================
-!      CALL CHEM( FIRSTCHEM, NPTS,  SUNCOS, SUNCOSB, CLOUDS, ALT,
-!     &           SURFALT,   TOTO3, IDXAIR, IDXO3,   OPTD,   UVALBEDO )
-!-----------------------------------------------------------------------------
-!
       ! At present, we are only doing tropospheric chemistry, which 
       ! for the moment we are storing in SMVGEAR II's "urban" slot
       NCS = NCSURBAN

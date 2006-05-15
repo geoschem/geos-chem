@@ -1,10 +1,10 @@
-! $Id: i6_read_mod.f,v 1.11 2006/03/24 20:22:49 bmy Exp $
+! $Id: i6_read_mod.f,v 1.12 2006/05/15 17:52:49 bmy Exp $
       MODULE I6_READ_MOD
 !
 !******************************************************************************
 !  Module I6_READ_MOD contains subroutines that unzip, open, and read
 !  GEOS-CHEM I-6 (instantaneous 6-hr) met fields from disk. 
-!  (bmy, 6/23/03, 10/3/05)
+!  (bmy, 6/23/03, 5/9/06)
 ! 
 !  Module Routines:
 !  =========================================================================
@@ -40,6 +40,7 @@
 !  (7 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !  (8 ) Now account for GEOS-4 coastal boxes in LWI properly (bmy, 8/10/05)
 !  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (10) Now make LWI REAL*8 for near-land formulation (ltm, bmy, 5/9/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -642,7 +643,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_I6 reads GEOS-CHEM I-6 (inst. 6-hr) met fields from disk.
-!  (bmy, 5/8/98, 8/10/05)
+!  (bmy, 5/8/98, 5/9/06)
 ! 
 !  Arguments as Input:
 !  ===========================================================================
@@ -666,6 +667,8 @@
 !  (2 ) Now use function TIMESTAMP_STRING from "time_mod.f" for formatted 
 !        date/time output. (bmy, 10/28/03)
 !  (3 ) Round up to account for GEOS-4 coastal boxes properly (bmy, 8/10/05)
+!  (4 ) For near-land formulation: (a) make LWI a REAL*8 and (b) do not round 
+!        up LWI for GEOS-4 meteorology (ltm, bmy, 5/9/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -674,12 +677,17 @@
       USE TIME_MOD,     ONLY : SET_CT_I6,   TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_2D, TRANSFER_3D
 
-#     include "CMN_SIZE"
-#     include "CMN_DIAG"
+#     include "CMN_SIZE"     ! Size parameters
+#     include "CMN_DIAG"     ! NDxx flags
 
       ! Arguments
       INTEGER, INTENT(IN)            :: NYMD, NHMS
-      INTEGER, INTENT(OUT), OPTIONAL :: LWI  (IIPAR,JJPAR      )    
+      !--------------------------------------------------------------
+      ! Prior to 5/9/06:
+      ! Make LWI REAL*8 for near-land formulation (ltm, bmy, 5/9/06)
+      !INTEGER, INTENT(OUT), OPTIONAL :: LWI  (IIPAR,JJPAR      )    
+      !--------------------------------------------------------------
+      REAL*8,  INTENT(OUT), OPTIONAL :: LWI  (IIPAR,JJPAR      )    
       REAL*8,  INTENT(OUT), OPTIONAL :: ALBD (IIPAR,JJPAR      )  
       REAL*8,  INTENT(OUT), OPTIONAL :: PS   (IIPAR,JJPAR      )     
       REAL*8,  INTENT(OUT), OPTIONAL :: SLP  (IIPAR,JJPAR      )      
@@ -757,12 +765,16 @@
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
 
-#if   defined( GEOS_4 ) 
-                  ! Round up in order to account for GEOS-4 coastal
-                  ! boxes properly. (bmy, 8/10/05)
-                  Q2 = INT( Q2 + 0.5 )
-#endif
-
+!--------------------------------------------------------------------------
+! Prior to 5/9/06:
+! Now do not round up, do this in dao_mod instead (ltm, bmy, 5/9/06)
+!#if   defined( GEOS_4 ) 
+!                  ! Round up in order to account for GEOS-4 coastal
+!                  ! boxes properly. (bmy, 8/10/05)
+!                  Q2 = INT( Q2 + 0.5 )
+!#endif
+!--------------------------------------------------------------------------
+                  
                   IF ( PRESENT( LWI ) ) CALL TRANSFER_2D( Q2, LWI )
                   NFOUND = NFOUND + 1
                ENDIF

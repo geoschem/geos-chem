@@ -1,10 +1,10 @@
-! $Id: emissdr.f,v 1.12 2006/04/21 15:39:58 bmy Exp $
+! $Id: emissdr.f,v 1.13 2006/05/15 17:52:48 bmy Exp $
       SUBROUTINE EMISSDR
 !
 !******************************************************************************
 !  Subroutine EMISSDR computes emissions for the full chemistry simulation
 !  (NSRCX == 3).  Emissions are stored in GEMISNOX and EMISRR arrays, 
-!  which are then passed to the SMVGEAR subroutines (bmy, 10/8/98, 10/25/05)
+!  which are then passed to the SMVGEAR subroutines (bmy, 10/8/98, 5/10/06)
 !
 !  NOTES:
 !  (1 ) Now accounts for seasonal NOx emissions, and multi-level NOx 
@@ -54,6 +54,9 @@
 !  (23) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (24) Now can use MEGAN inventory for biogenic VOCs.  Now references
 !        "megan_mod.f" (bmy, tmf, 10/25/05)
+!  (25) Now call EMLIGHTNING_NL from "lightning_nox_nl_mod.f" for GEOS-4 so
+!        that we can use the new near-land lightning formulation. 
+!        (ltm, bmy, 5/11/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -61,15 +64,15 @@
       USE ACETONE_MOD,       ONLY : READ_JO1D,     READ_RESP
       USE AIRCRAFT_NOX_MOD,  ONLY : AIREMISS
       USE BIOFUEL_MOD,       ONLY : BIOFUEL_BURN
-      !---------------------------------------------------------------------
-      ! Prior to 3/30/06:
-      !USE BIOMASS_MOD,       ONLY : BIOBURN
-      !---------------------------------------------------------------------
       USE DAO_MOD,           ONLY : PARDF,         PARDR,     SUNCOS        
       USE DIAG_MOD,          ONLY : AD29,          AD46
       USE GRID_MOD,          ONLY : GET_AREA_CM2
       USE GRID_MOD,          ONLY : GET_XOFFSET,   GET_YOFFSET
       USE LIGHTNING_NOX_MOD, ONLY : EMLIGHTNING
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% Note: add this for GEOS-4 for the time being (ltm, bmy, 5/11/06)
+      USE LIGHTNING_NOX_NL_MOD, ONLY : EMLIGHTNING_NL
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       USE LOGICAL_MOD,       ONLY : LANTHRO,       LLIGHTNOX, LSOILNOX  
       USE LOGICAL_MOD,       ONLY : LAIRNOX,       LBIONOX,   LWOODCO   
       USE LOGICAL_MOD,       ONLY : LMEGAN
@@ -214,7 +217,16 @@
 !-----------------------------------------------------------------------------
 ! LIGHTNING EMISSIONS NOX [molecules/cm3/s]
 !
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: Temporary kludge: For GEOS-4 we want to use the new near-land
+!%%% lightning formulation.  But for the time being, we must keep the 
+!%%% existing lightning for other met field types. (ltm, bmy, 5/10/06)
+#if   defined( GEOS_4 )
+            IF ( LLIGHTNOX ) CALL EMLIGHTNING_NL( I, J )
+#else
             IF ( LLIGHTNOX ) CALL EMLIGHTNING( I, J )
+#endif
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !-----------------------------------------------------------------------------
 ! SOIL EMISSIONS NOX [molecules/cm3/s]
 ! Now have to pass SUNCOS to SOILNOXEMS and SOILCRF (bmy, 10/20/99)
@@ -225,11 +237,6 @@
 ! AIRCRAFT emissions NOx [molecules/cm3/s]
 !
             IF ( LAIRNOX .AND. I == 1 .AND. J == 1 ) CALL AIREMISS
-!-----------------------------------------------------------------------------
-! Prior to 3/28/06:
-!! BIOMASS BURNING emissions NOx [molecules/cm3/s]
-!!
-!            IF ( LBIONOX .AND. I == 1 .AND. J == 1 ) CALL BIOBURN
 !-----------------------------------------------------------------------------
 ! NOx AND CO from biofuel combustion [kg/box]  
 !

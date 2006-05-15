@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.22 2006/04/21 15:40:07 bmy Exp $
+! $Id: sulfate_mod.f,v 1.23 2006/05/15 17:52:54 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -6966,7 +6966,7 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_SULFATE deallocates all previously allocated arrays 
-!  for sulfate emissions -- call at the end of the run (bmy, 6/1/00, 7/20/04)
+!  for sulfate emissions -- call at the end of the run (bmy, 6/1/00, 5/3/06)
 ! 
 !  NOTES:
 !  (1 ) Now also deallocates IJSURF. (bmy, 11/12/02)
@@ -6974,6 +6974,7 @@
 !  (3 ) Now also deallocates COSZM (rjp, bmy, 3/30/04)
 !  (4 ) Now also deallocates ESO4_sh (bec, bmy, 5/20/04)
 !  (5 ) Now remove IJSURF (bmy, 7/20/04)
+!  (6 ) Bug fix: now deallocate PSO4_ss, PNITs (bmy, 5/3/06)
 !******************************************************************************
 ! 
       !=================================================================
@@ -7007,8 +7008,10 @@
       IF ( ALLOCATED( O3m       ) ) DEALLOCATE( O3m       )
       IF ( ALLOCATED( PH2O2m    ) ) DEALLOCATE( PH2O2m    )
       IF ( ALLOCATED( PMSA_DMS  ) ) DEALLOCATE( PMSA_DMS  )
+      IF ( ALLOCATED( PNITs     ) ) DEALLOCATE( PNITs     )
       IF ( ALLOCATED( PSO2_DMS  ) ) DEALLOCATE( PSO2_DMS  )
       IF ( ALLOCATED( PSO4_SO2  ) ) DEALLOCATE( PSO4_SO2  )
+      IF ( ALLOCATED( PSO4_ss   ) ) DEALLOCATE( PSO4_ss   )
       IF ( ALLOCATED( SOx_SCALE ) ) DEALLOCATE( SOx_SCALE )
       IF ( ALLOCATED( SSTEMP    ) ) DEALLOCATE( SSTEMP    )
       IF ( ALLOCATED( TCOSZ     ) ) DEALLOCATE( TCOSZ     )
