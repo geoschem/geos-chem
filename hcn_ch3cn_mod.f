@@ -1,4 +1,4 @@
-! $Id: hcn_ch3cn_mod.f,v 1.11 2006/05/26 17:45:22 bmy Exp $
+! $Id: hcn_ch3cn_mod.f,v 1.12 2006/05/26 19:08:11 bmy Exp $
       MODULE HCN_CH3CN_MOD
 !
 !******************************************************************************
@@ -288,7 +288,10 @@
       USE LOGICAL_MOD,   ONLY : LSPLIT
       USE PBL_MIX_MOD,   ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE TIME_MOD,      ONLY : GET_MONTH,       GET_TS_CHEM,  GET_TAU
-      USE TRACERID_MOD,  ONLY : IDBCO
+      !----------------------------------
+      ! Prior to 5/26/06:
+      !USE TRACERID_MOD,  ONLY : IDBCO
+      !----------------------------------
       
 #     include "CMN_SIZE"      ! Size parameters
 #     include "CMN_DIAG"      ! ND09

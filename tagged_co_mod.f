@@ -1,4 +1,4 @@
-! $Id: tagged_co_mod.f,v 1.12 2006/05/26 17:45:28 bmy Exp $
+! $Id: tagged_co_mod.f,v 1.13 2006/05/26 19:08:12 bmy Exp $
       MODULE TAGGED_CO_MOD
 !
 !******************************************************************************
@@ -415,7 +415,11 @@
       USE TIME_MOD,     ONLY : GET_MONTH,   GET_TAU 
       USE TIME_MOD,     ONLY : GET_YEAR,    GET_TS_EMIS  
       USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDBCO,       IDBFCO
+      !------------------------------------------------------
+      ! Prior to 5/26/06:
+      !USE TRACERID_MOD, ONLY : IDBCO,       IDBFCO
+      !------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDBFCO
       
       IMPLICIT NONE
 

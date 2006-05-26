@@ -1,4 +1,4 @@
-! $Id: define.h,v 1.41 2006/04/21 15:39:54 bmy Exp $
+! $Id: define.h,v 1.42 2006/05/26 19:08:11 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
@@ -123,8 +123,8 @@
 !#define LINUX_PGI   'LINUX_PGI'
 !#define LINUX_IFC   'LINUX_IFC'
 !#define LINUX_EFC   'LINUX_EFC'
-!#define LINUX_IFORT 'LINUX_IFORT'
-#define SGI_MIPS    'SGI_MIPS'
+#define LINUX_IFORT 'LINUX_IFORT'
+!#define SGI_MIPS    'SGI_MIPS'
 !#define SPARC       'SPARC'
 
 !==============================================================================
