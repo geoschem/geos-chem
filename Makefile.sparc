@@ -1,6 +1,6 @@
-# $Id: Makefile.sparc,v 1.35 2006/05/15 17:52:44 bmy Exp $
+# $Id: Makefile.sparc,v 1.36 2006/05/26 17:45:13 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for SUN/Sparc (bmy, Wed May 10 13:31:47 2006)
+# GEOS-CHEM Makefile for SUN/Sparc (bmy, Mon May 22 10:13:27 2006)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -30,7 +30,6 @@ diag1.o                   \
 diag3.o                   \
 diag_2pm.o                \
 diagoh.o                  \
-diffg.o                   \
 emf_scale.o               \
 emfossil.o                \
 emisop.o                  \
@@ -139,6 +138,7 @@ pbl_mix_mod.o             \
 diag03_mod.o              \
 diag04_mod.o              \
 diag41_mod.o              \
+diag42_mod.o              \
 diag48_mod.o              \
 diag49_mod.o              \
 diag50_mod.o              \
@@ -273,6 +273,7 @@ diag04_mod.o               : diag04_mod.F               CMN_DIAG CMN_SIZE define
 diag1.o                    : diag1.F                    CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h 
 diag3.o                    : diag3.F                    CMN CMN_DIAG CMN_O3 CMN_SIZE define.h comode.h 
 diag41_mod.o               : diag41_mod.F               CMN_DIAG CMN_SIZE define.h 
+diag42_mod.o               : diag42_mod.F               CMN_DIAG CMN_SIZE define.h 
 diag48_mod.o               : diag48_mod.F               CMN_GCTM CMN_O3 CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 diag49_mod.o               : diag49_mod.F               CMN_GCTM CMN_O3 CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 diag50_mod.o               : diag50_mod.F               CMN_GCTM CMN_O3 CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h jv_cmn.h 
@@ -335,7 +336,7 @@ jv_index.o                 : jv_index.F                 cmn_fj.h CMN_SIZE define
 ksparse.o                  : ksparse.F                  CMN_SIZE define.h comode.h 
 lai_mod.o                  : lai_mod.F                  CMN_SIZE define.h 
 lightning_nox_mod.o        : lightning_nox_mod.F        CMN_DIAG CMN_GCTM CMN_NOX CMN_SIZE define.h define.h 
-lightning_nox_nl_mod.o     : lightning_nox_nl_mod.F     CMN_DIAG CMN_GCTM CMN_NOX CMN_SIZE define.h define.h 
+lightning_nox_nl_mod.o     : lightning_nox_nl_mod.F     CMN_DIAG CMN_GCTM CMN_NOX CMN_SIZE define.h 
 logical_mod.o              : logical_mod.F              
 lump.o                     : lump.F                     CMN_SIZE define.h comode.h 
 main.o                     : main.F                     CMN_DIAG CMN_GCTM CMN_SIZE define.h 

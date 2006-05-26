@@ -1,9 +1,9 @@
-! $Id: wetscav_mod.f,v 1.21 2006/04/21 15:40:12 bmy Exp $
+! $Id: wetscav_mod.f,v 1.22 2006/05/26 17:45:30 bmy Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
 !  Module WETSCAV_MOD contains arrays for used in the wet scavenging of
-!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 1/6/06)
+!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 5/24/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -116,6 +116,8 @@
 !  (20) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (21) Bug fixes: do not over-deplete H2O2s.  Also include updates for
 !        tagged Hg simulation. (dkh, rjp, eck, cdh, bmy, 1/6/06)
+!  (22) Now wet deposit SOG4, SOA4. Remove unnecessary variables in WETDEP.
+!        (dkh, bmy, 5/18/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -144,8 +146,20 @@
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
-      INTEGER, PARAMETER   :: NSOLMAX = 31
+
+      ! Parameters
+      !-----------------------------------------------
+      ! Prior to 5/18/06:
+      ! Increase to 33 for SOG4, SOA4 (bmy, 5/18/06)
+      !INTEGER, PARAMETER   :: NSOLMAX = 31
+      !-----------------------------------------------
+      INTEGER, PARAMETER   :: NSOLMAX = 33
+      REAL*8,  PARAMETER   :: EPSILON = 1d-32
+
+      ! Scalars
       INTEGER              :: NSOL 
+
+      ! Arrays
       INTEGER              :: IDWETD(NSOLMAX)
       REAL*8,  ALLOCATABLE :: Vud(:,:)
       REAL*8,  ALLOCATABLE :: C_H2O(:,:,:)
@@ -155,7 +169,6 @@
       REAL*8,  ALLOCATABLE :: QQ(:,:,:)
       REAL*8,  ALLOCATABLE :: H2O2s(:,:,:)
       REAL*8,  ALLOCATABLE :: SO2s(:,:,:)
-      REAL*8,  PARAMETER   :: EPSILON = 1d-32
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -516,7 +529,7 @@
 !
 !******************************************************************************
 !  Subroutine COMPUTE_F computes F, the fraction of soluble tracer lost by 
-!  scavenging in convective cloud updrafts. (hyl, bmy, djj, 2/23/00, 1/6/06)
+!  scavenging in convective cloud updrafts. (hyl, bmy, djj, 2/23/00, 5/18/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -578,20 +591,22 @@
 !        constant for Hg2 to 1.0d+14. Now use functions IS_Hg2 and IS_HgP to 
 !        determine if a tracer is an Hg2 or HgP tagged tracer. 
 !        (dkh, rjp, eck, cdh, bmy, 1/6/06)
+!  (20) Updated for SOG4 and SOA4 (dkh, bmy, 5/18/06)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : BXHEIGHT, T
-      USE TRACERID_MOD, ONLY : IDTPB,     IDTBE7,    IDTHNO3, IDTH2O2 
-      USE TRACERID_MOD, ONLY : IDTCH2O,   IDTMP,     IDTSO2,  IDTSO4  
-      USE TRACERID_MOD, ONLY : IDTSO4s,   IDTSO4aq,  IDTMSA,  IDTNH3   
-      USE TRACERID_MOD, ONLY : IDTNH4,    IDTNH4aq,  IDTNIT,  IDTNITs  
-      USE TRACERID_MOD, ONLY : IDTAS,     IDTAHS,    IDTLET,  IDTBCPI 
-      USE TRACERID_MOD, ONLY : IDTOCPI,   IDTBCPO,   IDTOCPO, IDTDST1 
-      USE TRACERID_MOD, ONLY : IDTDST2,   IDTDST3,   IDTDST4, IDTSALA 
-      USE TRACERID_MOD, ONLY : IDTSALC,   IDTALPH,   IDTLIMO, IDTALCO 
-      USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,   IDTSOG3, IDTSOA1 
-      USE TRACERID_MOD, ONLY : IDTSOA2,   IDTSOA3,   IS_Hg2,  IS_HgP
+      USE TRACERID_MOD, ONLY : IDTPB,    IDTBE7,   IDTHNO3, IDTH2O2 
+      USE TRACERID_MOD, ONLY : IDTCH2O,  IDTMP,    IDTSO2,  IDTSO4  
+      USE TRACERID_MOD, ONLY : IDTSO4s,  IDTSO4aq, IDTMSA,  IDTNH3   
+      USE TRACERID_MOD, ONLY : IDTNH4,   IDTNH4aq, IDTNIT,  IDTNITs  
+      USE TRACERID_MOD, ONLY : IDTAS,    IDTAHS,   IDTLET,  IDTBCPI 
+      USE TRACERID_MOD, ONLY : IDTOCPI,  IDTBCPO,  IDTOCPO, IDTDST1 
+      USE TRACERID_MOD, ONLY : IDTDST2,  IDTDST3,  IDTDST4, IDTSALA 
+      USE TRACERID_MOD, ONLY : IDTSALC,  IDTALPH,  IDTLIMO, IDTALCO 
+      USE TRACERID_MOD, ONLY : IDTSOG1,  IDTSOG2,  IDTSOG3, IDTSOG4
+      USE TRACERID_MOD, ONLY : IDTSOA1,  IDTSOA2,  IDTSOA3, IDTSOA4
+      USE TRACERID_MOD, ONLY : IS_Hg2,   IS_HgP
       
 #     include "CMN_SIZE"    ! Size parameters
 
@@ -1127,9 +1142,15 @@
          ISOL = GET_ISOL( N )
 
       !-----------------------------------
-      ! SOG[1,2,3] (liquid phase only)
+      ! SOG[1,2,3,4] (liquid phase only)
       !-----------------------------------
-      ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2 .or. N == IDTSOG3 ) THEN
+      !---------------------------------------------------------------------
+      ! Prior to 5/18/06:
+      ! Now add SOG4, SOA4 (bmy, 5/18/06)
+      !ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2 .or. N == IDTSOG3 ) THEN
+      !---------------------------------------------------------------------
+      ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2  .or. 
+     &          N == IDTSOG3 .or. N == IDTSOG4 ) THEN
 
          ! No scavenging at the surface
          F(:,:,1) = 0d0
@@ -1179,10 +1200,16 @@
          ISOL = GET_ISOL( N )
 
       !------------------------------------------
-      ! SOA[1,2,3] (aerosol)
+      ! SOA[1,2,3,4] (aerosol)
       ! Scavenging efficiency for SOA is 0.8
       !------------------------------------------
-      ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2 .or. N == IDTSOA3 ) THEN
+      !---------------------------------------------------------------------
+      ! Prior to 5/18/06:
+      ! Now added SOA4 (dkh, bmy, 5/18/06)
+      !ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2 .or. N == IDTSOA3 ) THEN
+      !---------------------------------------------------------------------
+      ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
+     &          N == IDTSOA3 .or. N == IDTSOA4 ) THEN
          CALL F_AEROSOL( KC, F )
 
          DO L = 2, LLPAR
@@ -1405,7 +1432,7 @@
 !
 !******************************************************************************
 !  Subroutine RAINOUT computes RAINFRAC, the fraction of soluble tracer
-!  lost to rainout events in precipitation. (djj, bmy, 2/28/00, 1/6/06)
+!  lost to rainout events in precipitation. (djj, bmy, 2/28/00, 5/18/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1451,21 +1478,23 @@
 !  (14) Change Henry's law constant for Hg2 to 1.0d+14.  Now use functions
 !        IS_Hg2 and IS_HgP to determine if the tracer is a tagged Hg0 or
 !        HgP tracer. (eck, cdh, bmy, 1/6/06)
+!  (15) Updated for SOG4 and SOA4 (dkh, bmy, 5/18/06)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,     ONLY : T
-      USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE TRACERID_MOD, ONLY : IDTPB,     IDTBE7,    IDTHNO3, IDTH2O2 
-      USE TRACERID_MOD, ONLY : IDTCH2O,   IDTMP,     IDTSO2,  IDTSO4  
-      USE TRACERID_MOD, ONLY : IDTSO4s,   IDTSO4aq,  IDTMSA,  IDTNH3   
-      USE TRACERID_MOD, ONLY : IDTNH4,    IDTNH4aq,  IDTNIT,  IDTNITs  
-      USE TRACERID_MOD, ONLY : IDTAS,     IDTAHS,    IDTLET,  IDTBCPI 
-      USE TRACERID_MOD, ONLY : IDTOCPI,   IDTBCPO,   IDTOCPO, IDTDST1 
-      USE TRACERID_MOD, ONLY : IDTDST2,   IDTDST3,   IDTDST4, IDTSALA 
-      USE TRACERID_MOD, ONLY : IDTSALC,   IDTALPH,   IDTLIMO, IDTALCO 
-      USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,   IDTSOG3, IDTSOA1 
-      USE TRACERID_MOD, ONLY : IDTSOA2,   IDTSOA3,   IS_Hg2,  IS_HgP
+      USE DAO_MOD,      ONLY : T
+      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE TRACERID_MOD, ONLY : IDTPB,   IDTBE7,   IDTHNO3, IDTH2O2 
+      USE TRACERID_MOD, ONLY : IDTCH2O, IDTMP,    IDTSO2,  IDTSO4  
+      USE TRACERID_MOD, ONLY : IDTSO4s, IDTSO4aq, IDTMSA,  IDTNH3   
+      USE TRACERID_MOD, ONLY : IDTNH4,  IDTNH4aq, IDTNIT,  IDTNITs  
+      USE TRACERID_MOD, ONLY : IDTAS,   IDTAHS,   IDTLET,  IDTBCPI 
+      USE TRACERID_MOD, ONLY : IDTOCPI, IDTBCPO,  IDTOCPO, IDTDST1 
+      USE TRACERID_MOD, ONLY : IDTDST2, IDTDST3,  IDTDST4, IDTSALA 
+      USE TRACERID_MOD, ONLY : IDTSALC, IDTALPH,  IDTLIMO, IDTALCO 
+      USE TRACERID_MOD, ONLY : IDTSOG1, IDTSOG2,  IDTSOG3, IDTSOG4
+      USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2,  IDTSOA3, IDTSOA4
+      USE TRACERID_MOD, ONLY : IS_Hg2,  IS_HgP
 
       IMPLICIT NONE
 
@@ -1854,9 +1883,15 @@
          RAINFRAC = GET_RAINFRAC( K, F, DT )
 
       !----------------------------------
-      ! SOG[1,2,3] (liquid phase only)
+      ! SOG[1,2,3,4] (liquid phase only)
       !----------------------------------
-      ELSE IF ( N == IDTSOG1 .OR. N == IDTSOG2 .OR. N == IDTSOG3 ) THEN
+      !---------------------------------------------------------------------
+      ! Prior to 5/18/06:
+      ! Now add SOG4 (dkh, bmy, 5/18/06)
+      !ELSE IF ( N == IDTSOG1 .OR. N == IDTSOG2 .OR. N == IDTSOG3 ) THEN
+      !---------------------------------------------------------------------
+      ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2  .or. 
+     &          N == IDTSOG3 .or. N == IDTSOG4 ) THEN
 
          ! Compute liquid to gas ratio for GAS1, using
          ! the appropriate parameters for Henry's law
@@ -1887,10 +1922,16 @@
          RAINFRAC = GET_RAINFRAC( K, F, DT )
 
       !--------------------------------------
-      ! SOA[1,2,3] (aerosol)
+      ! SOA[1,2,3,4] (aerosol)
       ! Scavenging efficiency for SOA is 0.8
       !--------------------------------------
-      ELSE IF ( N == IDTSOA1 .OR. N == IDTSOA2 .OR. N == IDTSOA3 ) THEN
+      !----------------------------------------------------------------------
+      ! Prior to 5/18/06:
+      ! Now add SOA4 (dkh, bmy, 5/18/06)
+      !ELSE IF ( N == IDTSOA1 .OR. N == IDTSOA2 .OR. N == IDTSOA3 ) THEN
+      !----------------------------------------------------------------------
+      ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
+     &          N == IDTSOA3 .or. N == IDTSOA4 ) THEN
          RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
          RAINFRAC = RAINFRAC * 0.8d0
 
@@ -1982,7 +2023,7 @@
 !
 !******************************************************************************
 !  Subroutine WASHOUT computes WASHFRAC, the fraction of soluble tracer
-!  lost to washout events in precipitation. (djj, bmy, 2/28/00, 1/6/06)
+!  lost to washout events in precipitation. (djj, bmy, 2/28/00, 5/18/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -2035,21 +2076,23 @@
 !        constant for Hg2 to 1.0d+14. Now use functions IS_Hg2 and IS_HgP to 
 !        determine if a tracer is a tagged Hg0 or HgP tracer.
 !        (dkh, rjp, eck, cdh, bmy, 1/6/06)
+!  (17) Updated for SOG4 and SOA4 (bmy, 5/18/06)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : BXHEIGHT, T
       USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE TRACERID_MOD, ONLY : IDTPB,     IDTBE7,    IDTHNO3, IDTH2O2 
-      USE TRACERID_MOD, ONLY : IDTCH2O,   IDTMP,     IDTSO2,  IDTSO4  
-      USE TRACERID_MOD, ONLY : IDTSO4s,   IDTSO4aq,  IDTMSA,  IDTNH3   
-      USE TRACERID_MOD, ONLY : IDTNH4,    IDTNH4aq,  IDTNIT,  IDTNITs  
-      USE TRACERID_MOD, ONLY : IDTAS,     IDTAHS,    IDTLET,  IDTBCPI 
-      USE TRACERID_MOD, ONLY : IDTOCPI,   IDTBCPO,   IDTOCPO, IDTDST1 
-      USE TRACERID_MOD, ONLY : IDTDST2,   IDTDST3,   IDTDST4, IDTSALA 
-      USE TRACERID_MOD, ONLY : IDTSALC,   IDTALPH,   IDTLIMO, IDTALCO 
-      USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,   IDTSOG3, IDTSOA1 
-      USE TRACERID_MOD, ONLY : IDTSOA2,   IDTSOA3,   IS_Hg2,  IS_HgP
+      USE TRACERID_MOD, ONLY : IDTPB,    IDTBE7,   IDTHNO3, IDTH2O2 
+      USE TRACERID_MOD, ONLY : IDTCH2O,  IDTMP,    IDTSO2,  IDTSO4  
+      USE TRACERID_MOD, ONLY : IDTSO4s,  IDTSO4aq, IDTMSA,  IDTNH3   
+      USE TRACERID_MOD, ONLY : IDTNH4,   IDTNH4aq, IDTNIT,  IDTNITs  
+      USE TRACERID_MOD, ONLY : IDTAS,    IDTAHS,   IDTLET,  IDTBCPI 
+      USE TRACERID_MOD, ONLY : IDTOCPI,  IDTBCPO,  IDTOCPO, IDTDST1 
+      USE TRACERID_MOD, ONLY : IDTDST2,  IDTDST3,  IDTDST4, IDTSALA 
+      USE TRACERID_MOD, ONLY : IDTSALC,  IDTALPH,  IDTLIMO, IDTALCO 
+      USE TRACERID_MOD, ONLY : IDTSOG1,  IDTSOG2,  IDTSOG3, IDTSOG4
+      USE TRACERID_MOD, ONLY : IDTSOA1,  IDTSOA2,  IDTSOA3, IDTSOA4
+      USE TRACERID_MOD, ONLY : IS_Hg2,   IS_HgP
 
 #     include "CMN_SIZE"   ! Size parameters
 
@@ -2244,9 +2287,15 @@
      &                                F,     DZ,   TK, K_WASH )
 
       !---------------------------------
-      ! SOG[1,2,3] (liquid & gas phases)
+      ! SOG[1,2,3,4] (liq & gas phases)
       !---------------------------------
-      ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2 .or. N == IDTSOG3 ) THEN
+      !-------------------------------------------------------------------
+      ! Prior to 5/18/06:
+      ! Now add SOG4 (dkh, bmy, 5/18/06)
+      !ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2 .or. N == IDTSOG3 ) THEN
+      !-------------------------------------------------------------------
+      ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2  .or. 
+     &          N == IDTSOG3 .or. N == IDTSOG4 ) THEN
          AER      = .FALSE.
          WASHFRAC = WASHFRAC_LIQ_GAS( 1.0d5, -6.039d3, PP, DT, 
      &                                F,      DZ,      TK, K_WASH )
@@ -2254,7 +2303,13 @@
       !------------------------------
       ! SOA[1,2,3] (aerosol)
       !------------------------------
-      ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2 .or. N == IDTSOA3 ) THEN
+      !-------------------------------------------------------------------
+      ! Prior to 5/18/06:
+      ! Now add SOA4 (dkh, bmy, 5/18/06)
+      !ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2 .or. N == IDTSOA3 ) THEN
+      !-------------------------------------------------------------------
+      ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
+     &          N == IDTSOA3 .or. N == IDTSOA4 ) THEN
          AER      = .TRUE.
          WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
@@ -2403,7 +2458,7 @@
 !******************************************************************************
 !  Subroutine WETDEP computes the downward mass flux of tracer due to washout 
 !  and rainout of aerosols and soluble tracers in a column.  The timestep is 
-!  the dynamic timestep. (hyl, bey, bmy, djj, 4/2/99, 1/6/06)
+!  the dynamic timestep. (hyl, bey, bmy, djj, 4/2/99, 5/24/06)
 !
 !  The precip fields through the bottom of each level are indexed as follows:
 !
@@ -2505,6 +2560,8 @@
 !        tracer.  Now also pass N to ADD_Hg2_WD.  Now references LDYNOCEAN
 !        from "logical_mod.f".  Now do not call ADD_Hg2_WD if we are not
 !        using the dynamic ocean model. (eck, sas, cdh, bmy, 2/27/06)
+!  (21) Eliminate unnecessary variables XDSTT, L_PLUS_W.  Also zero all 
+!        unused variables for each grid box. (bmy, 5/24/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2537,8 +2594,13 @@
       REAL*8              :: K,     K_MIN,  K_RAIN,    RAINFRAC
       REAL*8              :: F,     FTOP,   F_PRIME,   WASHFRAC
       REAL*8              :: LOST,  GAINED, MASS_WASH, MASS_NOWASH
-      REAL*8              :: ALPHA, ALPHA2, WETLOSS,   L_PLUS_W
-      REAL*8              :: XDSTT, TMP
+      !-----------------------------------------------------------
+      ! Prior to 5/24/06:
+      ! Remove L_PLUS_W and XDSTT (bmy, 5/24/06)
+      !REAL*8              :: ALPHA, ALPHA2, WETLOSS,   L_PLUS_W
+      !REAL*8              :: XDSTT, TMP
+      !-----------------------------------------------------------
+      REAL*8              :: ALPHA, ALPHA2, WETLOSS,   TMP
 
       ! DSTT is the accumulator array of rained-out 
       ! soluble tracer for a given (I,J) column
@@ -2577,7 +2639,7 @@
 !$OMP+PRIVATE( ALPHA2,  F,           F_PRIME,   GAINED,   K_RAIN   )
 !$OMP+PRIVATE( LOST,    MASS_NOWASH, MASS_WASH, RAINFRAC, WASHFRAC )
 !$OMP+PRIVATE( WETLOSS, L,           Q,         NN,       N        )
-!$OMP+PRIVATE( XDSTT,   QDOWN,       AER,       TMP                )
+!$OMP+PRIVATE( QDOWN,   AER,         TMP                           )
 !$OMP+SCHEDULE( DYNAMIC )
 #endif
       DO J = 1, JJPAR
@@ -2673,6 +2735,8 @@
          GAINED      = 0d0
          K_RAIN      = 0d0
          LOST        = 0d0
+         Q           = 0d0
+         QDOWN       = 0d0
          MASS_NOWASH = 0d0
          MASS_WASH   = 0d0
          RAINFRAC    = 0d0
@@ -2745,8 +2809,13 @@
 
                   ! ND39 diag - save rainout losses in [kg/s]
                   IF ( ND39 > 0 .and. L <= LD39 ) THEN
-                     XDSTT          = WETLOSS / DT
-                     AD39(I,J,L,NN) = AD39(I,J,L,NN) + XDSTT
+                     !------------------------------------------------
+                     ! Prior to 5/24/06:
+                     ! Remove XDSTT (bmy, 5/24/06)
+                     !XDSTT          = WETLOSS / DT
+                     !AD39(I,J,L,NN) = AD39(I,J,L,NN) + XDSTT
+                     !------------------------------------------------
+                     AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
                   ENDIF
 
                   ! Negative tracer...call subroutine SAFETY
@@ -2818,6 +2887,8 @@
             LOST        = 0d0
             MASS_NOWASH = 0d0
             MASS_WASH   = 0d0
+            Q           = 0d0
+            QDOWN       = 0d0
             RAINFRAC    = 0d0
             WASHFRAC    = 0d0
             WETLOSS     = 0d0
@@ -2894,8 +2965,13 @@
 
                      ! ND39 diag -- save rainout losses in [kg/s]
                      IF ( ND39 > 0 .and. L <= LD39 ) THEN
-                        XDSTT          = WETLOSS / DT
-                        AD39(I,J,L,NN) = AD39(I,J,L,NN) + XDSTT
+                        !------------------------------------------------
+                        ! Prior to 5/24/06:
+                        ! Remove XDSTT (bmy, 5/24/06)
+                        !XDSTT          = WETLOSS / DT
+                        !AD39(I,J,L,NN) = AD39(I,J,L,NN) + XDSTT
+                        !------------------------------------------------
+                        AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
                      ENDIF
 
                      ! Negative tracer...call subroutine SAFETY
@@ -3115,8 +3191,13 @@
 
                      ! ND39 diag -- save rainout losses in [kg/s]
                      IF ( ND39 > 0 .and. L <= LD39 ) THEN
-                        XDSTT          = WETLOSS / DT
-                        AD39(I,J,L,NN) = AD39(I,J,L,NN) + XDSTT
+                        !------------------------------------------------
+                        ! Prior to 5/24/06:
+                        ! Remove XDSTT (bmy, 5/24/06)
+                        !XDSTT          = WETLOSS / DT
+                        !AD39(I,J,L,NN) = AD39(I,J,L,NN) + XDSTT
+                        !------------------------------------------------
+                        AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
                      ENDIF
   
                      ! Negative tracer...call subroutine SAFETY
@@ -3185,8 +3266,13 @@
                   
                   ! ND39 diag -- save rainout losses in [kg/s]
                   IF ( ND39 > 0 .and. L <= LD39 ) THEN
-                     XDSTT          = WETLOSS / DT
-                     AD39(I,J,L,NN) = AD39(I,J,L,NN) + XDSTT
+                     !------------------------------------------------
+                     ! Prior to 5/24/06:
+                     ! Remove XDSTT (bmy, 5/24/06)
+                     !XDSTT          = WETLOSS / DT
+                     !AD39(I,J,L,NN) = AD39(I,J,L,NN) + XDSTT
+                     !------------------------------------------------
+                     AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
                   ENDIF
 
                   ! Negative tracer...call subroutine SAFETY
@@ -3225,6 +3311,8 @@
          LOST        = 0d0
          MASS_NOWASH = 0d0
          MASS_WASH   = 0d0
+         Q           = 0d0
+         QDOWN       = 0d0
          RAINFRAC    = 0d0
          WASHFRAC    = 0d0
          WETLOSS     = 0d0
@@ -3301,8 +3389,13 @@
 
                   ! ND39 diag -- save washout loss in [kg/s]
                   IF ( ND39 > 0 .and. L <= LD39 ) THEN
-                     XDSTT          = WETLOSS / DT
-                     AD39(I,J,L,NN) = AD39(I,J,L,NN) + XDSTT
+                     !------------------------------------------------
+                     ! Prior to 5/24/06:
+                     ! Remove XDSTT (bmy, 5/24/06)
+                     !XDSTT          = WETLOSS / DT
+                     !AD39(I,J,L,NN) = AD39(I,J,L,NN) + XDSTT
+                     !------------------------------------------------
+                     AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
                   ENDIF
 
                   !-----------------------------------------------------
@@ -3552,7 +3645,7 @@
 !
 !******************************************************************************
 !  Subroutine WETDEPID sets up the index array of soluble tracers used in
-!  the WETDEP routine above (bmy, 11/8/02, 1/6/06)
+!  the WETDEP routine above (bmy, 11/8/02, 5/18/06)
 ! 
 !  NOTES:
 !  (1 ) Now references "tracerid_mod.f".  Also references "CMN" in order to
@@ -3569,6 +3662,7 @@
 !  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (10) Now use IS_Hg2 and IS_HgP to determine if a tracer is a tagged Hg2
 !        or HgP tracer (bmy, 1/6/06)
+!  (11) Now added SOG4 and SOA4 (dkh, bmy, 5/18/06)
 !******************************************************************************
 !
       ! References To F90 modules
@@ -3582,8 +3676,9 @@
       USE TRACERID_MOD, ONLY : IDTOCPI,   IDTBCPO,   IDTOCPO, IDTDST1 
       USE TRACERID_MOD, ONLY : IDTDST2,   IDTDST3,   IDTDST4, IDTSALA 
       USE TRACERID_MOD, ONLY : IDTSALC,   IDTALPH,   IDTLIMO, IDTALCO 
-      USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,   IDTSOG3, IDTSOA1 
-      USE TRACERID_MOD, ONLY : IDTSOA2,   IDTSOA3,   IS_Hg2,  IS_HgP
+      USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,   IDTSOG3, IDTSOG4
+      USE TRACERID_MOD, ONLY : IDTSOA1,   IDTSOA2,   IDTSOA3, IDTSOA4
+      USE TRACERID_MOD, ONLY : IS_Hg2,    IS_HgP
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -3731,6 +3826,10 @@
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTSOG3
 
+         ELSE IF ( N == IDTSOG4 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTSOG4
+
          ELSE IF ( N == IDTSOA1 ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTSOA1
@@ -3742,6 +3841,10 @@
          ELSE IF ( N == IDTSOA3 ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTSOA3
+
+         ELSE IF ( N == IDTSOA4 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTSOA4
 
          !-----------------------------
          ! Dust aerosol tracers
@@ -3822,7 +3925,7 @@
 !******************************************************************************
 !  Function GET_WETDEP_NMAX returns the maximum number of soluble tracers
 !  for a given type of simulation.  Primarily used for allocation of 
-!  diagnostic arrays. (bmy, 12/2/02, 4/25/05)
+!  diagnostic arrays. (bmy, 12/2/02, 5/18/06)
 !
 !  NOTES:
 !  (1 ) Modified to include carbon & dust aerosol tracers (rjp, bmy, 4/5/04)
@@ -3834,6 +3937,7 @@
 !  (5 ) Modified to include mercury aerosol tracers (eck, bmy, 12/14/04)
 !  (6 ) Modified for AS, AHS, LET, NH4aq, SO4aq (cas, bmy, 12/20/04)
 !  (7 ) Modified for SO4s, NITs (bec, bmy, 4/25/05)
+!  (8 ) Modified for SOG4, SOA4 (dkh, bmy, 5/18/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3863,7 +3967,12 @@
          IF ( LSSALT )   NMAX = NMAX + 2        ! plus 2 seasalts
 
          IF ( LSOA ) THEN
-            IF ( LCARB ) NMAX = NMAX + 13       ! carbon + SOA aerosols
+            !----------------------------------------------------------------
+            ! Prior to 5/18/06:
+            ! Now add SOG4, SOA4 (dkh, bmy, 5/18/06)
+            !IF ( LCARB ) NMAX = NMAX + 13       ! carbon + SOA aerosols
+            !----------------------------------------------------------------
+            IF ( LCARB ) NMAX = NMAX + 15       ! carbon + SOA aerosols
          ELSE                                 
             IF ( LCARB ) NMAX = NMAX + 4        ! just carbon aerosols
          ENDIF
@@ -3880,7 +3989,12 @@
          IF ( LSSALT )   NMAX = NMAX + 2        ! plus 2 seasalts
 
          IF ( LSOA ) THEN
-            IF ( LCARB ) NMAX = NMAX + 13       ! carbon + SOA aerosols
+            !-----------------------------------------------------------------
+            ! Prior to 5/18/06:
+            ! Now add SOG4, SOA4 (dkh, bmy, 5/18/06)
+            !IF ( LCARB ) NMAX = NMAX + 13       ! carbon + SOA aerosols
+            !-----------------------------------------------------------------
+            IF ( LCARB ) NMAX = NMAX + 15       ! carbon + SOA aerosols
          ELSE
             IF ( LCARB ) NMAX = NMAX + 4        ! just carbon aerosols
          ENDIF

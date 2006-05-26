@@ -1,4 +1,4 @@
-! $Id: tagged_co_mod.f,v 1.11 2006/04/21 15:40:09 bmy Exp $
+! $Id: tagged_co_mod.f,v 1.12 2006/05/26 17:45:28 bmy Exp $
       MODULE TAGGED_CO_MOD
 !
 !******************************************************************************
@@ -404,10 +404,6 @@
 !
       ! References to F90 modules
       USE BIOFUEL_MOD,  ONLY : BIOFUEL,     BIOFUEL_BURN
-      !----------------------------------------------------------------
-      ! Prior to 4/5/06:
-      !USE BIOMASS_MOD,  ONLY : BURNEMIS,    BIOBURN
-      !----------------------------------------------------------------
       USE BIOMASS_MOD,  ONLY : BIOMASS,     IDBCO
       USE DAO_MOD,      ONLY : SUNCOS
       USE DIAG_MOD,     ONLY : AD29,        AD46
@@ -614,12 +610,6 @@
       !      (bmy, 1/3/01)
       !=================================================================
       IF ( LBIOMASS ) THEN
-         !--------------------------------------------------------------
-         ! Prior to 4/5/06:
-         ! This is now called from "emissions_mod.f" (bmy, 4/5/06)
-         !CALL BIOBURN
-         !--------------------------------------------------------------
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( E_CO, I, J, N )
@@ -627,11 +617,6 @@
          DO I = 1, IIPAR
 
             ! Convert [molec CO/cm3/s] to [kg CO] and store in E_CO
-!------------------------------------------------------------------------
-! Prior to 4/5/06:
-!            E_CO = ( BURNEMIS(IDBCO,I,J) / XNUMOL_CO ) *
-!     &             ( BOXVL(I,J,1)        * DTSRCE    ) 
-!------------------------------------------------------------------------
             E_CO = ( BIOMASS(I,J,IDBCO) / XNUMOL_CO ) *
      &             ( BOXVL(I,J,1)       * DTSRCE    ) 
 

@@ -1,9 +1,9 @@
-! $Id: drydep_mod.f,v 1.26 2006/04/21 15:39:56 bmy Exp $
+! $Id: drydep_mod.f,v 1.27 2006/05/26 17:45:19 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
 !  Module DRYDEP_MOD contains variables and routines for the GEOS-CHEM dry
-!  deposition scheme. (bmy, 1/27/03, 4/17/06)
+!  deposition scheme. (bmy, 1/27/03, 5/24/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -49,12 +49,13 @@
 !  (4 ) DRYFLX             : Applies drydep losses from SMVGEAR to tracer array
 !  (5 ) DRYFLXRnPbBe       : Applies drydep losses to 210Pb and 7Be 
 !  (6 ) DEPVEL             : Computes dry deposition velocities (by D. Jacob)
-!  (7 ) MODIN              : Reads inputs for DEPVEL from "drydep.table"
-!  (8 ) RDDRYCF            : Reads drydep polynomial coeffs from "drydep.coef"
-!  (9 ) AERO_SFCRSI        : Computes dust sfc resistance ff Seinfeld et al 86
-!  (10) AERO_SFCRSII       : Conputes dust sfc resistance ff Zhang et al 2001
-!  (11) INIT_DRYDEP        : Initializes and allocates module arrays
-!  (12) CLEANUP_DRYDEP     : Deallocates module arrays
+!  (7 ) DIFFG              : Computes diffusion coefficient for a gas
+!  (8 ) MODIN              : Reads inputs for DEPVEL from "drydep.table"
+!  (9 ) RDDRYCF            : Reads drydep polynomial coeffs from "drydep.coef"
+!  (10) AERO_SFCRSI        : Computes dust sfc resistance ff Seinfeld et al 86
+!  (11) AERO_SFCRSII       : Conputes dust sfc resistance ff Zhang et al 2001
+!  (12) INIT_DRYDEP        : Initializes and allocates module arrays
+!  (13) CLEANUP_DRYDEP     : Deallocates module arrays
 !
 !  GEOS-CHEM modules referenced by "drydep_mod.f":
 !  ============================================================================
@@ -143,6 +144,8 @@
 !        change Henry's law constant for Hg2.  Also increase MAXDEP from
 !        35 to 37. (eck, djj, bmy, 2/1/06)
 !  (20) Bug fix in INIT_DRYDEP (bmy, 4/17/06)
+!  (21) Now bundle function DIFFG into "drydep_mod.f".  Also updated for SOG4
+!        and SOA4 tracers.  Bug fix in INIT_DRYDEP. (dkh, bmy, 5/24/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -174,7 +177,12 @@
       !=================================================================
 
       ! Parameters
-      INTEGER, PARAMETER   :: MAXDEP    = 37
+      !----------------------------------------------------------
+      ! Prior to 5/24/06:
+      ! Now increase to 39 for SOG4, SOA4 (dkh, bmy, 5/24/06)
+      !INTEGER, PARAMETER   :: MAXDEP    = 37
+      !----------------------------------------------------------
+      INTEGER, PARAMETER   :: MAXDEP    = 39
       INTEGER, PARAMETER   :: NNTYPE    = 15     ! NTYPE    from "CMN_SIZE"
       INTEGER, PARAMETER   :: NNPOLY    = 20     ! NPOLY    from "CMN_SIZE"
       INTEGER, PARAMETER   :: NNVEGTYPE = 74     ! NVEGTYPE from "CMN_SIZE"
@@ -1675,6 +1683,74 @@ C** Load array DVEL
 
 !------------------------------------------------------------------------------
 
+      FUNCTION DIFFG( TK, PRESS, XM ) RESULT( DIFF_G )
+!
+!******************************************************************************
+!  Function DIFFG calculates the molecular diffusivity [m2/s] in air for a
+!  gas X of molecular weight XM [kg] at temperature TK [K] and 
+!  pressure PRESS [Pa].  (bmy, 5/16/06)
+!
+!  We specify the molecular weight of air (XMAIR) and the hard-sphere molecular
+!  radii of air (RADAIR) and of the diffusing gas (RADX).  The molecular
+!  radius of air is given in a Table on p. 479 of Levine [1988].  The Table
+!  also gives radii for some other molecules.  Rather than requesting the user
+!  to supply a molecular radius we specify here a generic value of 2.E-10 m for
+!  all molecules, which is good enough in terms of calculating the diffusivity
+!  as long as molecule is not too big.
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) TK    (REAL*8) : Temperature [K]
+!  (2 ) PRESS (REAL*8) : Pressure [Pa]
+!  (3 ) XM    (REAL*8) : Molecular weight of gas [kg]
+!
+!  NOTES:
+!  (1 ) Originally was a standalone function; now bundled into drydep_mod.f.
+!        Also now force REAL*8 precision with D exponents.  Now use F90
+!        style syntax and updated comments. (bmy, 5/16/06)
+!******************************************************************************
+!
+      ! Arguments
+      REAL*8, INTENT(IN) :: TK
+      REAL*8, INTENT(IN) :: PRESS
+      REAL*8, INTENT(IN) :: XM
+
+      ! Local variables
+      REAL*8             :: AIRDEN, Z, DIAM, FRPATH, SPEED, DIFF_G    
+      REAL*8, PARAMETER  :: XMAIR  = 28.8d-3 
+      REAL*8, PARAMETER  :: RADAIR = 1.2d-10
+      REAL*8, PARAMETER  :: PI     = 3.1415926535897932d0
+      REAL*8, PARAMETER  :: RADX   = 1.5d-10
+      REAL*8, PARAMETER  :: RGAS   = 8.32d0
+      REAL*8, PARAMETER  :: AVOGAD = 6.023d23
+
+      !=================================================================
+      ! DIFFG begins here!
+      !=================================================================
+
+      ! Air density
+      AIRDEN = ( PRESS * AVOGAD ) / ( RGAS * TK )
+
+      ! DIAM is the collision diameter for gas X with air.
+      DIAM   = RADX + RADAIR
+
+      ! Calculate the mean free path for gas X in air: 
+      ! eq. 8.5 of Seinfeld [1986];
+      Z      = XM  / XMAIR
+      FRPATH = 1d0 /( PI * SQRT( 1d0 + Z ) * AIRDEN*( DIAM**2 ) )
+
+      ! Calculate average speed of gas X; eq. 15.47 of Levine [1988]
+      SPEED  = SQRT( 8d0 * RGAS * TK / ( PI * XM ) )
+
+      ! Calculate diffusion coefficient of gas X in air; 
+      ! eq. 8.9 of Seinfeld [1986]
+      DIFF_G = ( 3d0 * PI / 32d0 ) * ( 1d0 + Z ) * FRPATH * SPEED
+
+      ! Return to calling program
+      END FUNCTION DIFFG
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE MODIN
 !
 !******************************************************************************
@@ -2596,7 +2672,7 @@ C** Load array DVEL
 !
 !******************************************************************************
 !  Subroutine INIT_DRYDEP initializes certain variables for the GEOS-CHEM
-!  dry deposition subroutines. (bmy, 11/19/02, 1/9/06)
+!  dry deposition subroutines. (bmy, 11/19/02, 5/24/06)
 !
 !  NOTES:
 !  (1 ) Added N2O5 as a drydep tracer, w/ the same drydep velocity as
@@ -2617,6 +2693,8 @@ C** Load array DVEL
 !        ID_HgP, and ID_Hg_tot from "tracerid_mod.f".  Bug fix: split up
 !        compound IF statements into separate 2 IF statements for ID_Hg2, 
 !        ID_HgP to avoid seg faults. (eck, cdh, bmy, 4/17/06)
+!  (11) Now also initialize SOG4, SOA4 drydep species.  Bug fix: Remove 2nd
+!        "IF ( IS_Hg ) THEN" statement. (dkh, bmy, 5/24/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2635,11 +2713,21 @@ C** Load array DVEL
       USE TRACERID_MOD, ONLY : IDTSO4aq,  IDTNH4aq,      IDTBCPI 
       USE TRACERID_MOD, ONLY : IDTOCPI,   IDTBCPO,       IDTOCPO 
       USE TRACERID_MOD, ONLY : IDTALPH,   IDTLIMO,       IDTALCO 
+      !------------------------------------------------------------------
+      ! Prior to 5/24/06:
+      ! Now add IDTSOG4, IDTSOA4 (dkh, bmy, 5/24/06)
+      !USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,       IDTSOG3 
+      !USE TRACERID_MOD, ONLY : IDTSOA1,   IDTSOA2,       IDTSOA3 
+      !USE TRACERID_MOD, ONLY : IDTDST1,   IDTDST2,       IDTDST3 
+      !USE TRACERID_MOD, ONLY : IDTDST4,   IDTSALA,       IDTSALC 
+      !USE TRACERID_MOD, ONLY : ID_Hg2,    ID_HgP,        ID_Hg_tot
+      !------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,       IDTSOG3 
-      USE TRACERID_MOD, ONLY : IDTSOA1,   IDTSOA2,       IDTSOA3 
-      USE TRACERID_MOD, ONLY : IDTDST1,   IDTDST2,       IDTDST3 
-      USE TRACERID_MOD, ONLY : IDTDST4,   IDTSALA,       IDTSALC 
-      USE TRACERID_MOD, ONLY : ID_Hg2,    ID_HgP,        ID_Hg_tot
+      USE TRACERID_MOD, ONLY : IDTSOG4,   IDTSOA1,       IDTSOA2       
+      USE TRACERID_MOD, ONLY : IDTSOA3,   IDTSOA4,       IDTDST1
+      USE TRACERID_MOD, ONLY : IDTDST2,   IDTDST3,       IDTDST4
+      USE TRACERID_MOD, ONLY : IDTSALA,   IDTSALC,       Id_Hg2
+      USE TRACERID_MOD, ONLY : ID_HgP,    ID_Hg_tot
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -3095,6 +3183,17 @@ C** Load array DVEL
             XMW(NUMDEP)     = 220d-3
             AIROSOL(NUMDEP) = .FALSE.
 
+         ! SOG4
+         ELSE IF ( N == IDTSOG4 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTSOG4
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'SOG4'
+            HSTAR(NUMDEP)   = 1d5
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 130d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
          ! SOA1
          ELSE IF ( N == IDTSOA1 ) THEN
             NUMDEP          = NUMDEP + 1
@@ -3126,6 +3225,17 @@ C** Load array DVEL
             HSTAR(NUMDEP)   = 0d0
             F0(NUMDEP)      = 0d0
             XMW(NUMDEP)     = 220d-3
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! SOA4
+         ELSE IF ( N == IDTSOA4 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTSOA3
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'SOA4'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 130d-3
             AIROSOL(NUMDEP) = .TRUE.
 
          !----------------------------------
@@ -3220,32 +3330,6 @@ C** Load array DVEL
          ! Mercury tracers
          !----------------------------------
 
-!------------------------------------------------------------------------------
-! Prior to 4/17/06:
-! Split up into 2 IF statements to avoid seg fault (bmy, 4/17/06)
-!         ! Hg2 -- Divalent Mercury
-!         ELSE IF ( IS_Hg .and. N == ID_Hg2(ID_Hg_tot) ) THEN
-!            NUMDEP          = NUMDEP + 1
-!            NTRAIND(NUMDEP) = ID_Hg2(ID_Hg_tot)
-!            NDVZIND(NUMDEP) = NUMDEP
-!            DEPNAME(NUMDEP) = 'Hg2'
-!            HSTAR(NUMDEP)   = 1.0d+14
-!            F0(NUMDEP)      = 0.0d0
-!            XMW(NUMDEP)     = 201d-3
-!            AIROSOL(NUMDEP) = .FALSE. 
-!
-!         ! HgP -- Particulate Mercury
-!         ELSE IF ( IS_Hg .and. N == ID_HgP(ID_Hg_tot) ) THEN
-!            NUMDEP          = NUMDEP + 1
-!            NTRAIND(NUMDEP) = ID_HgP(ID_Hg_tot)
-!            NDVZIND(NUMDEP) = NUMDEP
-!            DEPNAME(NUMDEP) = 'HgP'
-!            HSTAR(NUMDEP)   = 0.0d0
-!            F0(NUMDEP)      = 0.0d0
-!            XMW(NUMDEP)     = 201d-3
-!            AIROSOL(NUMDEP) = .TRUE. 
-!-----------------------------------------------------------------------------
-
          ! Hg2 -- Divalent Mercury
          ELSE IF ( IS_Hg ) THEN
             IF ( N == ID_Hg2(ID_Hg_tot) ) THEN
@@ -3259,8 +3343,12 @@ C** Load array DVEL
                AIROSOL(NUMDEP) = .FALSE. 
             ENDIF
 
-         ! HgP -- Particulate Mercury
-         ELSE IF ( IS_Hg ) THEN
+         !-----------------------------------------------------
+         ! Prior to 5/24/06:
+         ! Remove IF statement, it's unnecessary (bmy, 5/24/06)
+         !! HgP -- Particulate Mercury
+         !ELSE IF ( IS_Hg ) THEN
+         !-----------------------------------------------------
             IF ( N == ID_HgP(ID_Hg_tot) ) THEN
                NUMDEP          = NUMDEP + 1
                NTRAIND(NUMDEP) = ID_HgP(ID_Hg_tot)

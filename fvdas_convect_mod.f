@@ -1,11 +1,11 @@
-! $Id: fvdas_convect_mod.f,v 1.12 2006/04/21 15:39:59 bmy Exp $
+! $Id: fvdas_convect_mod.f,v 1.13 2006/05/26 17:45:21 bmy Exp $
       MODULE FVDAS_CONVECT_MOD
 !
 !******************************************************************************
 !  Module FVDAS_CONVECT_MOD contains routines (originally from NCAR) which 
 !  perform shallow and deep convection for the GEOS-4/fvDAS met fields.  
 !  These routines account for shallow and deep convection, plus updrafts 
-!  and downdrafts.  (pjr, dsa, bmy, 6/26/03, 4/17/06)
+!  and downdrafts.  (pjr, dsa, bmy, 6/26/03, 5/24/06)
 !  
 !  Module Variables:
 !  ============================================================================
@@ -41,6 +41,7 @@
 !        for updated Hg simulation. (cdh, bmy, 2/1/06)
 !  (5 ) Rewrote DO loops in HACK_CONV for better optmization (bmy, 3/28/06)
 !  (6 ) Split up Hg2 IF statement into 2 separate statements (bmy, 4/17/06)
+!  (7 ) Minor fix in ND38 diagnostic: replace 1 w/ 1d0 (bmy, 5/24/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -679,7 +680,7 @@
 !******************************************************************************
 !  Subroutine CONVTRAN applies the convective transport of trace species
 !  (assuming moist mixing ratio) using the ZHANG/MCFARLANE convection scheme. 
-!  (pjr, dsa, bmy, 6/26/03, 4/17/06)
+!  (pjr, dsa, bmy, 6/26/03, 5/24/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -740,6 +741,7 @@
 !        (cdh, bmy, 2/27/06)
 !  (4 ) Split Hg2 IF statement into 2 IF statements so as to avoid seg faults.
 !        (bmy, 4/17/06)
+!  (5 ) Replace 1 with 1d0 in ND38 diagnostic (bmy, 5/24/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -996,8 +998,13 @@
 
                      ! Save loss in [kg/s]
                      AD38(II,JJ,LL,NN) = AD38(II,JJ,LL,NN) +
-     &                    MU(I,KP1)   * AREA_M2     * 100d0         / 
-     &                    GRAV        * CONU(I,KP1) * (1-FISG(I,K)) / 
+     &                    MU(I,KP1)   * AREA_M2     * 100d0           / 
+!-----------------------------------------------------------------------------
+! Prior to 5/24/06:
+! Replace 1 with 1d0 (bmy, 5/24/06)
+!     &                    GRAV        * CONU(I,KP1) * (1-FISG(I,K))   / 
+!-----------------------------------------------------------------------------
+     &                    GRAV        * CONU(I,KP1) * (1d0-FISG(I,K)) / 
      &                    TCVV(M)     / FLOAT(NSTEP)
                   ENDIF
                ENDIF
@@ -1014,28 +1021,6 @@
                ! using the online dynamic ocean (i.e. if LDYNOCEAN=F).
                ! (bmy, 2/27/06)
                !========================================================
-!----------------------------------------------------------------------------
-! Prior to 4/17/06:
-! Split up into 2 IF statements so as to avoid seg faults.  IS_Hg2 is an
-! allocatable array but is only allocaed for Hg simulations. (bmy, 4/17/06)
-!               IF ( IS_Hg .and. IS_Hg2( M ) ) THEN
-!
-!                  ! GEOS-CHEM lon & lat indices
-!                  II      = IDEEP(I)
-!                  JJ      = J
-!
-!                  ! Grid box surface area [m2] 
-!                  AREA_M2 = GET_AREA_M2( JJ )
-!
-!                  ! Hg2 wet-scavenged out of the column [kg]
-!                  WET_Hg2 = MU(I,KP1) * AREA_M2     * 100d0         / 
-!     &                      GRAV      * CONU(I,KP1) * (1-FISG(I,K)) /
-!     &                      TCVV(M)   * DELT 
-!
-!                  ! Pass to "ocean_mercury_mod.f"
-!                  CALL ADD_Hg2_WD( II, J, M, WET_Hg2 )
-!               ENDIF
-!----------------------------------------------------------------------------
 
                ! If this is a Hg simulation ...
                IF ( IS_Hg ) THEN
@@ -1052,7 +1037,12 @@
 
                      ! Hg2 wet-scavenged out of the column [kg]
                      WET_Hg2 = MU(I,KP1) * AREA_M2     * 100d0         / 
-     &                         GRAV      * CONU(I,KP1) * (1-FISG(I,K)) /
+!----------------------------------------------------------------------------
+! Prior to 5/24/06:
+! Replace 1 with 1d0 (bmy, 5/24/06)
+!     &                         GRAV      * CONU(I,KP1) * (1-FISG(I,K)) /
+!----------------------------------------------------------------------------
+     &                         GRAV      * CONU(I,KP1) *(1d0-FISG(I,K))/
      &                         TCVV(M)   * DELT 
 
                      ! Pass to "ocean_mercury_mod.f"

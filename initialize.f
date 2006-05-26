@@ -1,8 +1,8 @@
-! $Id: initialize.f,v 1.19 2006/05/15 17:52:49 bmy Exp $
+! $Id: initialize.f,v 1.20 2006/05/26 17:45:23 bmy Exp $
       SUBROUTINE INITIALIZE( IFLAG )
 !
 !******************************************************************************
-!  Subroutine INITIALIZE (bmy, 6/15/98, 5/5/06) does the following:
+!  Subroutine INITIALIZE (bmy, 6/15/98, 5/22/06) does the following:
 !     (1) Zeroes globally defined GEOS-CHEM variables.
 !     (2) Zeroes accumulating diagnostic arrays.
 !     (3) Resets certain year/month/day and counter variables used 
@@ -160,6 +160,7 @@
 !  (34) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (35) Now resets SET_CT_XTRA at the beginning of the run. (tmf, 10/20/05)
 !  (36) Now references ND56, ZERO_DIAG56 from "diag56_mod.f" (ltm, bmy, 5/5/06)
+!  (37) Now references ND42, ZERO_DIAG42 from "diag42_mod.f" (dkh, bmy,5/22/06)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -195,6 +196,7 @@
       USE DIAG03_MOD,  ONLY : ND03,        ZERO_DIAG03
       USE DIAG04_MOD,  ONLY : ND04,        ZERO_DIAG04
       USE DIAG41_MOD,  ONLY : ND41,        ZERO_DIAG41
+      USE DIAG42_MOD,  ONLY : ND42,        ZERO_DIAG42
       USE DIAG56_MOD,  ONLY : ND56,        ZERO_DIAG56
       USE DIAG_PL_MOD, ONLY : AD65,        FAM_PL
       USE ERROR_MOD,   ONLY : ERROR_STOP
@@ -326,6 +328,11 @@
          ! For ND41 - afternoon PBL heights (bmy, 2/17/05)
          IF ( ND41 > 0 ) THEN
             CALL ZERO_DIAG41
+         ENDIF
+
+         ! For ND42 - SOA concentrations (dkh, bmy, 5/22/06)
+         IF ( ND41 > 0 ) THEN
+            CALL ZERO_DIAG42
          ENDIF
 
          ! For ND56 - lightning flash rates (bmy, 5/5/06)

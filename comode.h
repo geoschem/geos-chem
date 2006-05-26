@@ -1,4 +1,4 @@
-! $Id: comode.h,v 1.16 2006/04/21 15:39:54 bmy Exp $
+! $Id: comode.h,v 1.17 2006/05/26 17:45:16 bmy Exp $
 !
 !******************************************************************************
 !  Header file COMODE contains common blocks and variables for SMVGEAR II.
@@ -217,19 +217,6 @@ C *********************************************************************
 C *           SET REAL AND INTEGER NON-ARRAY VARIABLES                *
 C *********************************************************************
 C
-!-----------------------------------------------------------------------------
-! Prior to 3/29/06:
-! Now remove these physical constants from the common block and make
-! them parameters.  This way they will be defined before the first call
-! to "reader.f"...this is needed for the offline aerosol run.
-! (bec, bmy, 3/29/06)
-!      REAL*8  ::         AVG,       BOLTG,     RGAS
-!      REAL*8  ::         SCDAY,     BK,        EIGHTDPI  
-!      REAL*8  ::         RSTARG,    WTAIR,     ONEPI
-!      COMMON /BSCPARM/   AVG,       BOLTG,     RGAS, 
-!     &                   SCDAY,     BK,        EIGHTDPI,  
-!     &                   RSTARG,    WTAIR,     ONEPI
-!-----------------------------------------------------------------------------
       !---------------------------------------------------------------
       ! Physical constants 
       ! (now make these PARAMETERS instead of COMMON block variables)
@@ -312,18 +299,6 @@ C
      &                   LXOUT,     LYOUT,     LLOOP,     LLOOP2,    
      &                   LZOUT
 
-!-----------------------------------------------------------------------------
-! Prior to 3/29/06:
-! Remove CONSVAP, SMAL1, SMAL2, SMAL3 from the common block, because these
-! are now declared as PARAMETERS.  They are either physical constants or
-! error tolerances, which do not change. (bec, bmy, 3/29/06)
-!      REAL*8  ::         TINTERVAL,  CHEMINTV,  TIME,      CONSVAP
-!      REAL*8  ::         OXYCONS,    HMAXNIT,   SMAL1,     SMAL2
-!      REAL*8  ::         SMAL3,      FRACDEC
-!      COMMON /XYGRID/    TINTERVAL,  CHEMINTV,  TIME,      CONSVAP, 
-!     &                   OXYCONS,    HMAXNIT,   SMAL1,     SMAL2,  
-!     &                   SMAL3,      FRACDEC
-!-----------------------------------------------------------------------------
       REAL*8  ::         TINTERVAL,  CHEMINTV,  TIME,      OXYCONS
       REAL*8  ::         HMAXNIT,    FRACDEC
       COMMON /XYGRID/    TINTERVAL,  CHEMINTV,  TIME,      OXYCONS,    

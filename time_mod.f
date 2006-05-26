@@ -1,4 +1,4 @@
-! $Id: time_mod.f,v 1.21 2006/05/15 17:52:55 bmy Exp $
+! $Id: time_mod.f,v 1.22 2006/05/26 17:45:29 bmy Exp $
       MODULE TIME_MOD
 !
 !******************************************************************************
@@ -2414,19 +2414,12 @@
       IS_LEAPYEAR = .FALSE.
 
 #if   defined( GCAP )
-      !-----------------------------------------------------------------------
-      ! Prior to 4/24/06:
-      ! For GCAP/GISS met fields, there are no leap years (swu, bmy, 8/29/05)
-      !RETURN
-      !-----------------------------------------------------------------------
-
       ! For GCAP met fields, there are no leap years.  However, sometimes
       ! we need to test to see if it would be a leap year so that we can
       ! tell the GEOS-Chem timing functions to skip past Feb 29th.  If 
       ! argument FORCE=T, then return the value of IS_LEAPYEAR to the
       ! calling program (bmy, 4/24/06)
       IF ( .not. THISFORCE ) RETURN
-
 #endif
 
       IF ( MOD( THISYEAR, 4 ) == 0 ) THEN

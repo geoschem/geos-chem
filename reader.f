@@ -1,4 +1,4 @@
-! $Id: reader.f,v 1.8 2006/04/21 15:40:05 bmy Exp $
+! $Id: reader.f,v 1.9 2006/05/26 17:45:25 bmy Exp $
       SUBROUTINE READER( FIRSTCHEM )
 !
 !******************************************************************************
@@ -293,21 +293,6 @@ C           1 ERG = 1 DYNE-CM = 10**-7 J
 C           1 ATM = 1.013 BAR = 10**5 PA. 1PA = 1 N M-2 = 10 DYNES CM-2.
 C SCDAY   = SECONDS PER DAY
 C
-      !------------------------------------------------------------------------
-      ! Prior to 3/29/06:
-      ! These are now parameters in "comode.h", and have been removed
-      ! from common blocks. (bec, bmy, 3/29/06)
-      !! Now force double-precision values with the "D" exponent (bmy, 4/1/03)
-      !ONEPI       = PI
-      !RSTARG      = 8.31450d+07
-      !BOLTG       = 1.38054d-16
-      !AVG         = 6.02252d+23
-      !WTAIR       = AIRMW
-      !SCDAY       = 86400.0d0
-      !RGAS        = BOLTG   * AVG
-      !EIGHTDPI    = 8.d0    / ONEPI
-      !CONSVAP     = 6.1078D+03 / BOLTG
-      !------------------------------------------------------------------------
 C
       NMASBAL     = 9 
       NAMEMB(  1) = 'SULFUR ATOMS'
@@ -319,34 +304,6 @@ C
       NAMEMB(  7) = 'FLOURINE ATOMS'
       NAMEMB(  8) = 'HYDROGEN ATOMS'
       NAMEMB(  9) = 'OXYGEN ATOMS'
-!-----------------------------------------------------------------------------
-! Prior to 3/29/06:
-! These are now parameters in "comode.h", and have been removed from 
-! common blocks. (bec, bmy, 3/29/06) 
-!C
-!C *********************************************************************
-!C *               DEFINE SMALL AND LARGE VALUES                       *
-!C *********************************************************************
-!C
-!C EPSILON  = THE LOWEST NUMBER DIFFERENT FROM 1 ON A CRAY MACHINE.
-!C
-!      SMAL1      = 1d-06 
-!      SMAL2      = 1.0d-99
-!      SMAL3      = 1d-50
-!C
-!C *********************************************************************
-!C *                    DEFINE SOME FIXED PARAMETERS                   *
-!C *********************************************************************
-!C
-!C BK      = BOLTZMANN'S CONSTANT, ERG (DEG K)**-1
-!C AVG     = AVOGADRO'S NUMBER,MOL**-1
-!C WTAIR   = MOLECULAR WEIGHT OF AIR;
-!C REARTHC = RADIUS OF EARTH * PI / 180
-!C
-!      BK      =   1.38054D-16
-!      AVG     =   6.02252D+23
-!      WTAIR   =   28.966d0
-!-----------------------------------------------------------------------------
 C
 C *********************************************************************
 C

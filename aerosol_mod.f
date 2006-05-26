@@ -1,10 +1,10 @@
-! $Id: aerosol_mod.f,v 1.7 2006/04/21 15:39:50 bmy Exp $
+! $Id: aerosol_mod.f,v 1.8 2006/05/26 17:45:14 bmy Exp $
       MODULE AEROSOL_MOD
 !
 !******************************************************************************
 !  Module AEROSOL_MOD contains variables and routines for computing optical
 !  properties for aerosols which are needed for both the FAST-J photolysis
-!  and ND21 optical depth diagnostics.  (bmy, 7/20/04, 10/3/05)
+!  and ND21 optical depth diagnostics.  (bmy, 7/20/04, 5/18/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -46,6 +46,7 @@
 !         AEROSOL_RURALBOX, using the same algorithm as in "gasconc.f".
 !         (bmy, 1/27/05)
 !  (3 ) Now references "tropopause_mod.f" (bmy, 8/22/05)
+!  (4 ) Now add contribution of SOA4 into Hydrophilic OC (dkh, bmy, 5/18/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -264,7 +265,7 @@
 !  Subroutine AEROSOL_CONC computes aerosol concentrations in kg/m3 from
 !  the tracer mass in kg in the STT array.  These are needed to compute
 !  optical properties for photolysis and for the optical depth diagnostics.
-!  (bmy, 7/20/04, 10/3/05)
+!  (bmy, 7/20/04, 5/18/06)
 !  
 !  This code was originally included in "chemdr.f", but the same computation 
 !  also needs to be done for offline aerosol simulations.  Therefore, we have 
@@ -273,6 +274,7 @@
 !
 !  NOTES:
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (2 ) Now add contribution from SOA4 into Hydrophilic OC (dkh, bmy, 5/18/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -282,7 +284,8 @@
       USE TRACERID_MOD, ONLY : IDTBCPI, IDTBCPO, IDTDST1, IDTDST2
       USE TRACERID_MOD, ONLY : IDTDST3, IDTDST4, IDTNH4,  IDTNIT  
       USE TRACERID_MOD, ONLY : IDTOCPO, IDTOCPI, IDTSALA, IDTSALC 
-      USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSO4  
+      USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
+      USE TRACERID_MOD, ONLY : IDTSO4  
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -367,7 +370,13 @@
                OCPI(I,J,L) = ( STT(I,J,L,IDTOCPI) * OCF 
      &                     +   STT(I,J,L,IDTSOA1)
      &                     +   STT(I,J,L,IDTSOA2)
-     &                     +   STT(I,J,L,IDTSOA3)  ) / AIRVOL(I,J,L)
+!-----------------------------------------------------------------------------
+! Prior to 5/18/05:
+! Also add contribution from SOA4 (dkh, bmy, 5/18/06)
+!     &                     +   STT(I,J,L,IDTSOA3)  ) / AIRVOL(I,J,L)
+!-----------------------------------------------------------------------------
+     &                     +   STT(I,J,L,IDTSOA3)
+     &                     +   STT(I,J,L,IDTSOA4) ) / AIRVOL(I,J,L)
  
             ELSE
 

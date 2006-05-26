@@ -1,9 +1,9 @@
-! $Id: chemistry_mod.f,v 1.23 2006/04/21 15:39:53 bmy Exp $
+! $Id: chemistry_mod.f,v 1.24 2006/05/26 17:45:16 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
 !  Module CHEMISTRY_MOD is used to call the proper chemistry subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 3/16/06)
+!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 5/22/06)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -50,6 +50,7 @@
 !        references to the obsolete CO-OH param simulation. (xyp, bmy, 6/24/05)
 !  (12) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (13) Now call MAKE_RH from "main.f" (bmy, 3/16/06)
+!  (14) Updated for SOA from isoprene (dkh, bmy, 5/22/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -66,7 +67,7 @@
 !******************************************************************************
 !  Subroutine DO_CHEMISTRY is the driver routine which calls the appropriate
 !  chemistry subroutine for the various GEOS-CHEM simulations. 
-!  (bmy, 2/11/03, 3/16/06)
+!  (bmy, 2/11/03, 5/22/06)
 !
 !  NOTES:
 !  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this
@@ -100,6 +101,7 @@
 !         CO-OH param simulation. (xyp, bmy, 6/23/05)
 !  (12) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (13) Now call MAKE_RH from "main.f" (bmy, 3/16/06)
+!  (14) Now define ISOP_PRIOR for new SOA from ISOP scheme (dkh, bmy, 5/22/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -119,7 +121,7 @@
       USE ISOROPIA_MOD,    ONLY : DO_ISOROPIA
       USE Kr85_MOD,        ONLY : CHEMKr85
       USE LOGICAL_MOD,     ONLY : LCARB, LCHEM,  LCRYST, LDUST
-      USE LOGICAL_MOD,     ONLY : LPRT,  LSSALT, LSULF  
+      USE LOGICAL_MOD,     ONLY : LPRT,  LSSALT, LSULF,  LSOA
       USE MERCURY_MOD,     ONLY : CHEMMERCURY
       USE OPTDEPTH_MOD,    ONLY : OPTDEPTH
       USE RnPbBe_MOD,      ONLY : CHEMRnPbBe
@@ -141,7 +143,7 @@
       USE TRACER_MOD,      ONLY : ITS_A_TAGOX_SIM
       USE TRACER_MOD,      ONLY : ITS_AN_AEROSOL_SIM
       USE TRACER_MOD,      ONLY : ITS_NOT_COPARAM_OR_CH4
-      USE TRACERID_MOD,    ONLY : IDTACET
+      USE TRACERID_MOD,    ONLY : IDTACET, IDTISOP
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN_DIAG"  ! NDxx flags
@@ -150,6 +152,7 @@
       ! Local variables
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: N_TROP
+      REAL*8        :: ISOP_PRIOR(IIPAR,JJPAR,LLTROP)
 
       !=================================================================
       ! DO_CHEMISTRY begins here!
@@ -183,6 +186,15 @@
          !---------------------------------
          IF ( ITS_A_FULLCHEM_SIM() ) THEN 
 
+            ! Save a copy of ISOP concentrations before chemistry, 
+            ! which is needed in the computation of SOA from ISOP.
+            ! (dkh, bmy, 5/22/06)
+            IF ( LSOA .and. IDTISOP > 0 ) THEN
+               ISOP_PRIOR(:,:,:) = STT(:,:,1:LLTROP,IDTISOP)
+            ELSE
+               ISOP_PRIOR(:,:,:) = 0d0
+            ENDIF
+
             ! Call SMVGEAR routines
             CALL CHEMDR
 
@@ -210,8 +222,13 @@
                
             ENDIF
 
-             ! Do carbonaceous aerosol chemistry
-            IF ( LCARB ) CALL CHEMCARBON
+            ! Do carbonaceous aerosol chemistry
+            !-------------------------------------------------------
+            ! Prior to 5/22/06:
+            ! Now pass ISOP_PRIOR to CHEMCARBON (dkh, bmy, 5/22/06)
+            !IF ( LCARB ) CALL CHEMCARBON
+            !-------------------------------------------------------
+            IF ( LCARB ) CALL CHEMCARBON( ISOP_PRIOR )
 
             ! Do dust aerosol chemistry
             IF ( LDUST ) CALL CHEMDUST
@@ -287,7 +304,16 @@
             ENDIF
                
             !*** CARBON AND 2NDARY ORGANIC AEROSOLS ***
-            IF ( LCARB ) CALL CHEMCARBON
+            !-----------------------------------------------
+            ! Prior to 5/22/06:
+            ! Offline aerosol run does not have ISOP,
+            ! so set ISOP_PRIOR to zero (dkh, bmy, 5/22/06)
+            !IF ( LCARB ) CALL CHEMCARBON
+            !-----------------------------------------------
+            IF ( LCARB ) THEN
+               ISOP_PRIOR(:,:,:) = 0d0
+               CALL CHEMCARBON( ISOP_PRIOR )
+            ENDIF
 
             !*** MINERAL DUST AEROSOLS ***
             IF ( LDUST ) THEN 

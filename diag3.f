@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.31 2006/05/15 17:52:47 bmy Exp $
+! $Id: diag3.f,v 1.32 2006/05/26 17:45:18 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out diagnostics to the BINARY format punch file 
-!  (bmy, bey, mgs, rvm, 5/27/99, 5/5/06)
+!  (bmy, bey, mgs, rvm, 5/27/99, 5/22/06)
 !
 !  NOTES: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
@@ -70,6 +70,8 @@
 !        printing out cloud mass flux in GEOS-4 for the ND66 diagnostic. 
 !        (bmy, 3/14/06)
 !  (65) References ND56, WRITE_DIAG56 from "diag56_mod.f" (ltm, bmy, 5/5/06)
+!  (66) Now remove TRCOFFSET; it's obsolete.  References ND42, WRITE_DIAG42 
+!        from "diag42_mod.f" (dkh, bmy, 5/22/06)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -108,6 +110,7 @@
       USE DIAG03_MOD,   ONLY : ND03,        WRITE_DIAG03
       USE DIAG04_MOD,   ONLY : ND04,        WRITE_DIAG04
       USE DIAG41_MOD,   ONLY : ND41,        WRITE_DIAG41
+      USE DIAG42_MOD,   ONLY : ND42,        WRITE_DIAG42
       USE DIAG56_MOD,   ONLY : ND56,        WRITE_DIAG56
       USE DIAG_PL_MOD,  ONLY : AD65
       USE DRYDEP_MOD,   ONLY : NUMDEP,      NTRAIND
@@ -565,8 +568,7 @@
             ! SOA Production from NVOC oxidation [kg]
             ! 1:ALPH+LIMO+TERP, 2:ALCO, 3:SESQ
             !-----------------------------------------------
-            CATEGORY     = 'PL-OC=$'
-            SCALEX       = 1.d0
+            CATEGORY = 'PL-OC=$'
 
             DO N = 1, 3
 
@@ -575,7 +577,7 @@
                IF ( N == 3 ) NN = IDTSOA3
 
                DO L = 1, LD07
-                  ARRAY(:,:,L) = AD07_HC(:,:,L,N) / SCALEX
+                  ARRAY(:,:,L) = AD07_HC(:,:,L,N)
                ENDDO
 
                CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -2112,6 +2114,12 @@
       IF ( ND41 > 0 ) CALL WRITE_DIAG41
 !
 !******************************************************************************
+!  ND42: SOA concentrations [ug/m3]
+!******************************************************************************
+!
+      IF ( ND42 > 0 ) CALL WRITE_DIAG42
+!
+!******************************************************************************
 !  ND42: Free diagnostic as of 11/24/99
 !
 !  ND43: Chemical production of OH and NO
@@ -2502,7 +2510,11 @@
          DO M = 1, TMAX(62)
             N  = TINDEX(62,M)
             IF ( N > N_TRACERS ) CYCLE
-            NN = N + TRCOFFSET
+            !--------------------------------------
+            ! Prior to 5/22/06:
+            !NN = N + TRCOFFSET
+            !--------------------------------------
+            NN = N
 
             DO J = 1, JJPAR
 

@@ -1,85 +1,122 @@
-REVISIONS (v7-04-03)  
-bmy, 11 May 2006
+REVISIONS (v7-04-04)  
+bmy, 26 May 2006
 
 
-New in v7-04-03:
+New in v7-04-04:
 -------------------------------------------------------------------------------
 
-diag56_mod.f		-- Diagnostic module for lightning flash rates
+diag42_mod.f		-- Module w/ routines for archiving ND42 SOA diagnostic
 
-is_near			-- Tests if the grid box is a near-land box (i.e.
-("dao_mod.f")              if it contains at least a certain % of land and/or
-	                   if one of its nearest neighbors is a land box
-
-lightning_nox_nl_mod.f  -- Module for updated lightning NOx routines
-                           using near-land formulation, as well as
-			   one of CTH, MFLUX, PRECON parameterizations
+diffg			-- Now bundled into "drydep_mod.f"
+("drydep_mod.f")
 
 
 
-Removed in v7-04-03:
+Removed in v7-04-04:
 -------------------------------------------------------------------------------
 
+diffg.f			-- Now bundled into "drydep_mod.f", because the only
+			   routine that calls it is DEPVEL
 
 
 
-Changed from v7-04-02:
+Changed from v7-04-03:
 -------------------------------------------------------------------------------
 
-cleanup.f		-- Now calls CLEANUP_DIAG56 from "diag56_mod.f" 
-			   and CLEANUP_LIGHTNING_NOX_NL from 
-			   "lightning_nox_nl_mod.f"
+aerosol_conc		-- Now add contribution from SOA4 into Hydrophilic OC
+("aerosol_mod.f")
 
-cleanup_sulfate		-- Bug fix: now deallocate PSO4_ss, PNITs 
+CMN_DIAG		-- Remove reference to TRCOFFSET
+
+CMN_SIZE		-- Increase NNPAR to 54
+
+chemcarbon		-- Now updated for SOA production from ISOP
+("carbon_mod.f")	-- Now pass ISOP_PRIOR via the arg list
+
+chemdust		-- Now only do dry deposition if LDRYD = T
+("dust_mod.f")
+
+chem_nvoc		-- Updated for SOA from isoprene
+("carbon_mod.f")	-- Now pass ISOP_P via the arg list
+
+chemseasalt		-- Now only call DRY_DEPOSITION if LDRYD=T 
+("seasalt_mod.f")
+
+chem_nit		-- Rearrange error check to avoid SEG FAULTS
 ("sulfate_mod.f")
 
-diag3.f			-- References ND56, WRITE_DIAG56 from "diag56_mod.f" 
+chem_so4		-- Rearrange error check to avoid SEG FAULTS
+("sulfate_mod.f")
 
-emissdr.f		-- NOTE: Temporary kludge: For GEOS-4 we want to use 
-			   the new near-land lightning formulation.  But for 
-			   the time being, we must keep the existing lightning
-			   for other met field types.  This means that for
-		           GEOS-4 we have to call EMLIGHTNING_NL but for
-			   the other met fields we call EMLIGHTNING.
+compute_f		-- Updated for SOG4 and SOA4 
+("wetscav_mod.f")
 
-get_i6_time		-- Bug fix for GCAP: skip over Feb 29th (no leapyears)
-("time_mod.f")
+convtran		-- Replace 1 with 1d0 in ND38 diagnostic
+("fvdas_convect_mod.f")
 
-get_pcenter		-- Removed reference to "CMN", it's obsolete
-("pressure_mod.f")
+diag3.f			-- Now remove TRCOFFSET; it's obsolete
 
-initialize.f		-- Now references ND56, ZERO_DIAG56 from "diag56_mod.f"
+do_chemistry		-- Now define ISOP_PRIOR for new SOA from ISOP scheme
+("chemistry_mod.f")	  
 
-is_last_day_good	-- Now call ITS_A_LEAPYEAR with FORCE=.TRUE. to 
-("input_mod.f")		   always return whether the year Y would be a leap
-			   year, regardless of met field type.
+drydep_mod.f		-- Increase MAXDEP to 39 for addition of SOG4, SOA4
 
-its_a_leapyear		-- Now add FORCE argument to force ITS_A_LEAPYEAR to
-("time_mod.f")		   return a value instead of just returning with FALSE
-			   for the GCAP met fields
+get_wetdep_nmax		-- Modified for SOG4, SOA4
+("wetscav_mod.f")
 
-its_time_for_bpch	-- Now call ITS_A_LEAPYEAR with FORCE=.TRUE.
-("main.f")		   to be compatible with GEOS or GCAP met fields
+init_drydep	      	-- Now also initialize SOG4, SOA4 drydep species
+("drydep_mod.f")	-- Bug fix, remove 2nd "IF ( IS_Hg ) THEN" statement
 
-logical_mod.f		-- Added LCTH, LMFLUX, LPRECON for lightning options
+init_gamap		-- Now references ND42 from "diag42_mod.f"
+("gamap_mod.f")		-- Also updated for extra SOA tracers in ND07 diag
 
-main.f			-- NOTE: Temporary kludge: For GEOS-4 we want to use 
-			   the new near-land lightning formulation.  But for 
-			   the time being, we must keep the existing lightning
-			   for other met field types.  This means that we 
-			   must call LIGHTNING_NL for GEOS-4 to use the new
-			   near land formulation, and call LIGHTNING for
-       			   the other met field types.
+initialize.f		-- Now references ND42, ZERO_DIAG42 from "diag42_mod.f"
 
-read_diagnostic_menu	-- Now reference ND56, PD56, INIT_DIAG56 from 
-("input_mod.f")            "diag56_mod.f"
+init_sulfate		-- Initialize drydep flags outside of IF block
+("sulfate_mod.f")
 
-read_emissions_menu	-- Now read LOTDLIS, LCTH, LMFLUX, LPRECON for 
-("emissions_mod.f")        lightning options
-			-- For now, always set LOTDLIS=T.  We have not
-			   yet implemented the alternative option.
+init_tracerid		-- Now zero IDTSOG4, IDTSOA4
+("tracerid_mod.f")
 
-set_current_time	-- Now references "define.h"
-("time_mod.f")		-- Now add special handling to skip from Feb 28th to 
-			   Mar 1st for GCAP model.
+is_near			-- Modified for GCAP and GEOS-3 met fields
+("dao_mod.f")
 
+ndxx_setup.f		-- Now remove TRCOFFSET; it's obsolete
+
+rainout			-- Updated for SOG4 and SOA4 
+("wetscav_mod.f")
+
+read_diagnostic_menu	-- Now reference ND42, PD42, INIT_DIAG42 from 
+("input_mod.f")		   "diag42_mod.f"
+
+soa_chemistry		-- Now modified for SOG4, SOA4 -- products of 
+("carbon_mod.f")	   oxidation by isoprene
+			-- Now pass ISOP_PRIOR via the arg list
+
+soa_lump		-- Updated for SOG4, SOA4
+("carbon_mod.f")
+
+soa_para		-- Add parameters for isoprene
+("carbon_mod.f")	-- Define a reference temperature at 295 K
+			-- Now use ITS_IN_THE_TROP to determine if we 
+			   are in a tropospheric grid box
+			-- Now pass II, JJ, LL via the argument list
+
+soa_partition		-- Updated for SOG4, SOA4
+("carbon_mod.f")	
+
+tracerid		-- Now look for IDTSOG4 and IDTSOA4
+("tracerid_mod.f")
+
+tracerid_mod.f		-- Add IDTSOG4 and IDTSOA4
+
+washout			-- Updated for SOG4 and SOA4 
+("wetscav_mod.f")
+
+wetdep			-- Eliminate unnecessary variables XDSTT, L_PLUS_W  
+("wetscav_mod.f")	-- Also zero all unused variables for each grid box
+
+wetdepid		-- Now added SOG4 and SOA4
+("wetscav_mod.f")
+
+wetscav_mod.f		-- Now set NSOLMAX=33 for SOG4, SOA4 

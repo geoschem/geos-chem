@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.23 2006/05/15 17:52:54 bmy Exp $
+! $Id: sulfate_mod.f,v 1.24 2006/05/26 17:45:27 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 3/29/06)
+!  (rjp, bdf, bmy, 6/22/00, 5/23/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -199,6 +199,7 @@
 !  (31) Now references XNUMOL & XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !  (32) Now read int'annual SST data on GEOS 1x1 grid (bmy, 11/17/05)
 !  (33) Bug fix for offline aerosol sim in SEASALT_CHEM (bec, bmy, 3/29/06)
+!  (34) Bug fix in INIT_DRYDEP (bmy, 5/23/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -2072,18 +2073,6 @@
       !IF ( ND09 > 0 ) AD09(I,J,L,3) = AD09(I,J,L,3) + TITR_HNO3
       !----------------------------------------------------------------------
 
-      !----------------------------------------------------------------------
-      ! Prior to 3/29/06:
-      ! Bug fix: make this work for both fullchem/coupled aerosol simulations 
-      ! as well as for offline aerosol simulations (bec, bmy, 3/29/06)
-      !!HNO3 lost [eq/timestep] converted back to [v/v/timestep]
-      !HNO3_ss      = TITR_HNO3 * 0.063 * TCVV(IDTHNO3)/AD(I,J,L)
-      !
-      !IF ( IDTHNO3 > 0 ) THEN
-      !   STT(I,J,L,IDTHNO3) = MAX( HNO3_vv - HNO3_ss, MINDAT )
-      !ENDIF
-      !----------------------------------------------------------------------
-
       ! HNO3 lost [eq/timestep] converted back to [v/v/timestep]
       IF ( IDTHNO3 > 0 ) THEN
 
@@ -2345,7 +2334,7 @@
 !  Subroutine CHEM_SO4 is the SO4 chemistry subroutine from Mian Chin's GOCART
 !  model, modified for the GEOS-CHEM model.  Now also modified to account
 !  for production of crystalline & aqueous sulfur tracers. 
-!  (rjp, bdf, cas, bmy, 5/31/00, 10/25/05) 
+!  (rjp, bdf, cas, bmy, 5/31/00, 5/23/06) 
 !                                                                          
 !  Module Variables Used:
 !  ============================================================================
@@ -2381,6 +2370,7 @@
 !  (9 )  Now remove reference to CMN, it's obsolete.  Now reference 
 !         ITS_IN_THE_STRAT from "tropopause_mod.f" (bmy, 8/22/05)
 !  (10) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  (11) Rearrange error check to avoid SEG FAULTS (bmy, 5/23/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2412,7 +2402,13 @@
       !=================================================================
 
       ! Return if tracers are not defined
-      IF ( IDTSO4 + DRYSO4 + IDTSO4s + DRYSO4s == 0 ) RETURN
+      !--------------------------------------------------------
+      ! Prior to 5/23/06:
+      ! Rearrange IF block to avoid seg fault (bmy, 5/23/06)
+      !IF ( IDTSO4 + DRYSO4 + IDTSO4s + DRYSO4s == 0 ) RETURN
+      !--------------------------------------------------------
+      IF ( IDTSO4 == 0 .or. IDTSO4s == 0 ) RETURN
+      IF ( DRYSO4 == 0 .or. DRYSO4s == 0 ) RETURN
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
@@ -3395,7 +3391,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_NIT removes SULFUR NITRATES (NIT) from the surface 
-!  via dry deposition. (rjp, bdf, bmy, 1/2/02, 4/13/05)  
+!  via dry deposition. (rjp, bdf, bmy, 1/2/02, 5/23/06)  
 !                                                                          
 !  Reaction List:
 !  ============================================================================
@@ -3419,6 +3415,7 @@
 !        "pbl_mix_mod.f".  Also reference GET_PBL_MAX_L from "pbl_mix_mod.f"
 !        Vertical DO-loops can run up to PBL_MAX and not LLTROP. (bmy, 2/22/05)
 !  (8 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  (9 ) Rearrange error check to avoid SEG FAULTS (bmy, 5/23/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3447,7 +3444,12 @@
       !=================================================================
 
       ! Return if tracers are not defined
-      IF ( IDTNIT + DRYNIT + IDTNITs + DRYNITs == 0 ) RETURN
+      !---------------------------------------------------------
+      ! Prior to 5/23/06:
+      !IF ( IDTNIT + DRYNIT + IDTNITs + DRYNITs == 0 ) RETURN
+      !---------------------------------------------------------
+      IF ( IDTNIT == 0 .or. IDTNITs == 0 ) RETURN
+      IF ( DRYNIT == 0 .or. DRYNITs == 0 ) RETURN
 
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM = GET_TS_CHEM() * 60d0 
@@ -6697,7 +6699,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_SULFATE initializes and zeros all allocatable arrays
-!  declared in "sulfate_mod.f" (bmy, 6/2/00, 4/13/05)
+!  declared in "sulfate_mod.f" (bmy, 6/2/00, 5/23/06)
 !
 !  NOTES:
 !  (1 ) Only allocate some arrays for the standalone simulation (NSRCX==10).
@@ -6715,6 +6717,7 @@
 !        Now reference LDRYD from "logical_mod.f".  Updated for AS, AHS, LET, 
 !        SO4aq, NH4aq. (bmy, 1/6/06)
 !  (8 ) Now allocates PSO4_ss, PNITs (bec, bmy, 4/13/05)
+!  (9 ) Initialize drydep flags outside of IF block (bmy, 5/23/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -6898,23 +6901,44 @@
       !================================================================
       ! Find drydep species in the DEPSAV array
       !=================================================================
+
+      ! Initialize flags
+      DRYH2O2  = 0
+      DRYSO2   = 0
+      DRYSO4   = 0
+      DRYSO4s  = 0
+      DRYMSA   = 0
+      DRYNH3   = 0
+      DRYNH4   = 0
+      DRYNIT   = 0
+      DRYSO4s  = 0
+      DRYAS    = 0
+      DRYAHS   = 0
+      DRYLET   = 0
+      DRYSO4aq = 0
+      DRYNH4aq = 0  
+
       IF ( LDRYD ) THEN
          
-         ! Initialize flags
-         DRYH2O2  = 0
-         DRYSO2   = 0
-         DRYSO4   = 0
-         DRYSO4s  = 0
-         DRYMSA   = 0
-         DRYNH3   = 0
-         DRYNH4   = 0
-         DRYNIT   = 0
-         DRYSO4s  = 0
-         DRYAS    = 0
-         DRYAHS   = 0
-         DRYLET   = 0
-         DRYSO4aq = 0
-         DRYNH4aq = 0         
+         !-------------------------------------------------------------------
+         ! Prior to 5/23/06:
+         ! Initialize everything to zero outside of IF block (bmy, 5/23/06)
+         !! Initialize flags
+         !DRYH2O2  = 0
+         !DRYSO2   = 0
+         !DRYSO4   = 0
+         !DRYSO4s  = 0
+         !DRYMSA   = 0
+         !DRYNH3   = 0
+         !DRYNH4   = 0
+         !DRYNIT   = 0
+         !DRYSO4s  = 0
+         !DRYAS    = 0
+         !DRYAHS   = 0
+         !DRYLET   = 0
+         !DRYSO4aq = 0
+         !DRYNH4aq = 0         
+         !--------------------------------------------------------------------
          
          ! Locate position of each tracer in DEPSAV
          DO N = 1, NUMDEP

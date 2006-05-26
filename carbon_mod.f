@@ -1,10 +1,10 @@
- ! $Id: carbon_mod.f,v 1.17 2006/04/21 15:39:51 bmy Exp $
+! $Id: carbon_mod.f,v 1.18 2006/05/26 17:45:15 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
 !  Module CARBON_MOD contains arrays and routines for performing a 
 !  carbonaceous aerosol simulation.  Original code taken from Mian Chin's 
-!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 4/11/06)
+!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 5/22/06)
 !
 !  4 Aerosol species : Organic and Black carbon 
 !                    : hydrophilic (soluble) and hydrophobic of each
@@ -135,6 +135,7 @@
 !  (8 ) Now references "megan_mod.f".  Also now references XNUMOL and 
 !        XNUMOLAIR from "tracer_mod.f" (tmf, bmy, 10/25/05)
 !  (9 ) Bug fix for GCAP in BIOGENIC_OC (bmy, 4/11/06)
+!  (10) Updated for SOA production from ISOP (dkh, bmy, 5/22/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -158,16 +159,17 @@
 
       ! Scalars
       LOGICAL             :: USE_MONTHLY_BIOB = .TRUE.
-
-      INTEGER, PARAMETER  :: MHC              = 5  
-      INTEGER, PARAMETER  :: NPROD            = 3  
       INTEGER             :: DRYBCPI, DRYOCPI, DRYBCPO, DRYOCPO
       INTEGER             :: DRYALPH, DRYLIMO, DRYALCO
-      INTEGER             :: DRYSOG1, DRYSOG2, DRYSOG3
-      INTEGER             :: DRYSOA1, DRYSOA2, DRYSOA3
+      INTEGER             :: DRYSOG1, DRYSOG2, DRYSOG3, DRYSOG4
+      INTEGER             :: DRYSOA1, DRYSOA2, DRYSOA3, DRYSOA4
       INTEGER             :: I1_NA,   J1_NA
       INTEGER             :: I2_NA,   J2_NA
-      REAL*8,  PARAMETER  :: SMALLNUM         = 1d-20
+
+      ! Parameters
+      INTEGER, PARAMETER  :: MHC      = 6
+      INTEGER, PARAMETER  :: NPROD    = 3  
+      REAL*8,  PARAMETER  :: SMALLNUM = 1d-20
 
       ! Arrays
       REAL*8, ALLOCATABLE :: ANTH_BLKC(:,:,:)
@@ -205,13 +207,17 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CHEMCARBON
+      !----------------------------
+      ! Prior to 5/22/06:
+      !SUBROUTINE CHEMCARBON
+      !----------------------------
+      SUBROUTINE CHEMCARBON( ISOP_PRIOR )
 !
 !******************************************************************************
 !  Subroutine CHEMCARBON is the interface between the GEOS-CHEM main 
 !  program and the carbon aerosol chemistry routines that calculates
 !  dry deposition, chemical conversion between hydrophilic and 
-!  hydrophobic, and SOA production. (rjp, bmy, 4/1/04, 10/3/05)
+!  hydrophobic, and SOA production. (rjp, bmy, 4/1/04, 5/22/06)
 !
 !  NOTES:
 !  (1 ) Added code from the Caltech group for SOA chemistry.  Also now 
@@ -222,6 +228,8 @@
 !  (3 ) Now reference LSOA, LEMIS, LPRT from "logical_mod.f".  Now reference
 !        STT and ITS_AN_AEROSOL_SIM from "tracer_mod.f" (bmy, 7/20/04)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (5 ) Now updated for SOA production from ISOP.  Now pass ISOP_PRIOR via
+!        the arg list. (dkh, bmy, 5/22/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -235,11 +243,14 @@
       USE TRACER_MOD,     ONLY : STT, ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,   ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_SIZE"       ! Size parameters
+
+      ! Arguments
+      REAL*8, INTENT(IN)       :: ISOP_PRIOR(IIPAR,JJPAR,LLTROP)
 
       ! Local variables
-      LOGICAL, SAVE :: FIRSTCHEM = .TRUE.
-      INTEGER       :: N, THISMONTH
+      LOGICAL, SAVE            :: FIRSTCHEM = .TRUE.
+      INTEGER                  :: N, THISMONTH
 
       !=================================================================
       ! CHEMCARBON begins here!
@@ -274,12 +285,16 @@
                   DRYSOG2 = N
                CASE ( 'SOG3' )
                   DRYSOG3 = N
+               CASE ( 'SOG4' )
+                  DRYSOG4 = N
                CASE ( 'SOA1' )
                   DRYSOA1 = N
                CASE ( 'SOA2' )
                   DRYSOA2 = N
                CASE ( 'SOA3' )
                   DRYSOA3 = N
+               CASE ( 'SOA4' )
+                  DRYSOA4 = N
                CASE DEFAULT
                   ! Nothing
             END SELECT        
@@ -343,9 +358,13 @@
          ENDIF
 
          ! Compute SOA chemistry
-         CALL SOA_CHEMISTRY
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_SOA' )
-
+         !-------------------------------------------------------------
+         ! Prior to 5/22/06:
+         ! Now pass ISOP from prior timestep (dkh, bmy, 5/22/06)
+         !CALL SOA_CHEMISTRY
+         !-------------------------------------------------------------
+         CALL SOA_CHEMISTRY( ISOP_PRIOR )
+         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
       ENDIF
 
       ! Return to calling program
@@ -1039,12 +1058,16 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOA_CHEMISTRY
+      !------------------------------------------
+      ! Prior to 5/22/06:
+      !SUBROUTINE SOA_CHEMISTRY
+      !------------------------------------------
+      SUBROUTINE SOA_CHEMISTRY( ISOP_PRIOR )
 !
 !******************************************************************************
 !  Subroutine SOA_CHEMISTRY performs SOA formation.  This code is from the
 !  Caltech group (Hong Liao, Serena Chung, et al) and was modified for 
-!  GEOS-CHEM. (rjp, bmy, 7/8/04, 7/20/04)
+!  GEOS-CHEM. (rjp, bmy, 7/8/04, 5/22/06)
 !
 !  Procedure:
 !  ============================================================================
@@ -1055,7 +1078,7 @@
 !  (5 ) get T0M gas products
 !  (6 ) equilibrium calculation
 !
-!  There are total of 37 tracers considered in this routine:
+!  There are total of 42 tracers considered in this routine:
 !
 !  4 classes of primary carbonaceous aerosols:  
 !     BCPI = Hydrophilic black carbon
@@ -1063,29 +1086,35 @@
 !     BCPO = Hydrophobic black carbon
 !     OCPO = Hydrophobic organic carbon
 !
-!  5 reactive biogenic hydrocarbon groups (NVOC):
+!  6 reactive biogenic hydrocarbon groups (NVOC):
 !     ALPH = a-pinene, b-pinene, sabinene, carene, terpenoid ketones
 !     LIMO = limonene
 !     TERP = a-terpinene, r-terpinene, terpinolene
 !     ALCO = myrcene, terpenoid alcohols, ocimene
 !     SESQ = sesquiterpenes
+!     ISOP = Isoprene
 !
 !  NOTE: TERP and SESQ are not tracers because of their high reactivity
 !
-!  28 organic oxidation products by O3+OH and NO3: 
+!  32 organic oxidation products by O3+OH and NO3: 
 !     6 ( 3 gases + 3 aerosols ) from each of first four NVOC  = 24 
 !     4 ( 2 gases + 2 aerosols ) from sesquiterpenes oxidation = 4
+!     4 ( 2 gases + 2 aerosols ) from isoprene oxidation       = 4
 !
 !  NOTE: We aggregate these into 6 tracers according to HC classes
 !     SOG1 = lump of gas products of first three (ALPH+LIMO+TERP) HC oxidation.
 !     SOG2 = gas product of ALCO oxidation
 !     SOG3 = gas product of SESQ oxidation 
+!     SOG4 = gas product of ISOP oxidation
 !     SOA1 = lump of aerosol products of first 3 (ALPH+LIMO+TERP) HC oxidation.
 !     SOA2 = aerosol product of ALCO oxidation
 !     SOA3 = aerosol product of SESQ oxidation 
+!     SOA4 = aerosol product of ISOP oxidation
 !
 !  NOTES:
 !  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
+!  (2 ) Now modified for SOG4, SOA4 -- products of oxidation by isoprene.
+!        Now pass ISOP_PRIOR via the arg list. (dkh, bmy, 5/22/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1095,21 +1124,28 @@
       USE TRACER_MOD,   ONLY : STT 
       USE TRACERID_MOD, ONLY : IDTALCO, IDTALPH, IDTLIMO, IDTOCPI
       USE TRACERID_MOD, ONLY : IDTOCPO, IDTSOA1, IDTSOA2, IDTSOA3
-      USE TRACERID_MOD, ONLY : IDTSOG1, IDTSOG2, IDTSOG3
+      USE TRACERID_MOD, ONLY : IDTSOA4, IDTSOG1, IDTSOG2, IDTSOG3
+      USE TRACERID_MOD, ONLY : IDTSOG4
       USE TIME_MOD,     ONLY : GET_TS_CHEM, GET_MONTH
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44
 
+      ! Arguments
+      REAL*8, INTENT(IN)    :: ISOP_PRIOR(IIPAR,JJPAR,LLTROP)
+
       ! Local variables
-      INTEGER :: I,        J,    L,     N,     JHC,  IPR
-      REAL*8  :: RTEMP,    VOL,  FAC,   MPOC,  MNEW, MSOA_OLD
-      REAL*8  :: MPRODUCT, CAIR, LOWER, UPPER, TOL,  VALUE
-      REAL*8  :: KO3(MHC), KOH(MHC), KNO3(MHC)
-      REAL*8  :: ALPHA(NPROD,MHC),   KOM(NPROD,MHC)
-      REAL*8  :: GM0(NPROD,MHC),     AM0(NPROD,MHC)
-      REAL*8  :: ORG_AER(NPROD,MHC), ORG_GAS(NPROD,MHC)
+      INTEGER               :: I,        J,        L,        N    
+      INTEGER               :: JHC,      IPR
+      REAL*8                :: RTEMP,    VOL,      FAC,      MPOC 
+      REAL*8                :: MNEW,     MSOA_OLD, MPRODUCT, CAIR
+      REAL*8                :: LOWER,    UPPER,    TOL,      VALUE
+      REAL*8                :: ISOP_P
+      REAL*8                :: KO3(MHC), KOH(MHC), KNO3(MHC)
+      REAL*8                :: ALPHA(NPROD,MHC),   KOM(NPROD,MHC)
+      REAL*8                :: GM0(NPROD,MHC),     AM0(NPROD,MHC)
+      REAL*8                :: ORG_AER(NPROD,MHC), ORG_GAS(NPROD,MHC)
 
       !=================================================================
       ! SOA_CHEMISTRY begins here!
@@ -1119,32 +1155,45 @@
 !$OMP+PRIVATE( I,        J,        L,     JHC,   IPR,   GM0,  AM0  )
 !$OMP+PRIVATE( VOL,      FAC,      RTEMP, KO3,   KOH,   KNO3, CAIR )
 !$OMP+PRIVATE( MPRODUCT, MSOA_OLD, VALUE, UPPER, LOWER, MNEW, TOL  )
-!$OMP+PRIVATE( ORG_AER,  ORG_GAS,  ALPHA, KOM,   MPOC              )
+!$OMP+PRIVATE( ORG_AER,  ORG_GAS,  ALPHA, KOM,   MPOC,  ISOP_P     )
       DO L = 1, LLTROP
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Volume of grid box [m3]
-         VOL   = AIRVOL(I,J,L)    
+         VOL    = AIRVOL(I,J,L)    
 
          ! conversion factor from kg to ug/m3
-         FAC   = 1.D9 / VOL       
+         FAC    = 1.D9 / VOL       
 
          ! air conc. in kg/m3
-         CAIR  = AD(I,J,L) / VOL  
+         CAIR   = AD(I,J,L) / VOL  
 
          ! Temperature [K]
-         RTEMP = T(I,J,L)         
+         RTEMP  = T(I,J,L)         
+
+         ! Isoprene from prior timestep [kg]
+         ISOP_P = ISOP_PRIOR(I,J,L)
 
          ! Get SOA yield parameters
-         CALL SOA_PARA( RTEMP, KO3, KOH, KNO3, ALPHA, KOM )
+         !---------------------------------------------------------------
+         ! Prior to 5/22/06:
+         ! Now pass I, J, L to SOA_PARA (dkh, bmy, 5/22/06)
+         !CALL SOA_PARA( RTEMP, KO3, KOH, KNO3, ALPHA, KOM )
+         !---------------------------------------------------------------
+         CALL SOA_PARA( I, J, L, RTEMP, KO3, KOH, KNO3, ALPHA, KOM )
 
          ! Partition mass of gas & aerosol tracers 
          ! according to 5 VOC classes & 3 oxidants
          CALL SOA_PARTITION( I, J, L, GM0, AM0 )
 
          ! Compute oxidation of hydrocarbons by O3, OH, NO3
-         CALL CHEM_NVOC( I, J, L, KO3, KOH, KNO3, ALPHA, GM0 )
+         !---------------------------------------------------------------
+         ! Prior to 5/22/06:
+         ! Now pass ISOP from prior timestep (dkh, bmy, 5/22/06)
+         !CALL CHEM_NVOC( I, J, L, KO3, KOH, KNO3, ALPHA, GM0 )
+         !---------------------------------------------------------------
+         CALL CHEM_NVOC( I, J, L, KO3, KOH, KNO3, ALPHA, ISOP_P, GM0 )
 
          !==============================================================
          ! Equilibrium calculation between GAS (SOG) and Aerosol (SOA)
@@ -1282,9 +1331,11 @@
       CALL SOA_DEPO( STT(:,:,:,IDTSOG1), DRYSOG1, IDTSOG1 )
       CALL SOA_DEPO( STT(:,:,:,IDTSOG2), DRYSOG2, IDTSOG2 )
       CALL SOA_DEPO( STT(:,:,:,IDTSOG3), DRYSOG3, IDTSOG3 )
+      CALL SOA_DEPO( STT(:,:,:,IDTSOG4), DRYSOG4, IDTSOG4 )
       CALL SOA_DEPO( STT(:,:,:,IDTSOA1), DRYSOA1, IDTSOA1 )
       CALL SOA_DEPO( STT(:,:,:,IDTSOA2), DRYSOA2, IDTSOA2 )
       CALL SOA_DEPO( STT(:,:,:,IDTSOA3), DRYSOA3, IDTSOA3 )
+      CALL SOA_DEPO( STT(:,:,:,IDTSOA4), DRYSOA4, IDTSOA4 )
 
       ! Return to calling program
       END SUBROUTINE SOA_CHEMISTRY
@@ -1597,7 +1648,8 @@ c
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOA_PARA( TEMP, KO3, KOH, KNO3, RALPHA, KOM )
+      SUBROUTINE SOA_PARA( II,  JJ,  LL,   TEMP, 
+     &                     KO3, KOH, KNO3, RALPHA, KOM )
 !
 !******************************************************************************
 !  Subroutine SOA_PARA gves mass-based stoichiometric coefficients for semi-
@@ -1608,56 +1660,74 @@ c
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) TEMP   (REAL*8) : Temperature [k]
+!  (1 ) II     (INTEGER) : GEOS-Chem longitude index 
+!  (2 ) JJ     (INTEGER) : GEOS-Chem latitude index
+!  (3 ) LL     (INTEGER) : GEOS-Chem altitude index
+!  (4 ) TEMP   (REAL*8 ) : Temperature [k]
 !
 !  Arguments as Output:
 !  ============================================================================
-!  (2 ) KO3    (REAL*8) : Rxn rate for HC oxidation by O3         [cm3/molec/s]
-!  (3 ) KOH    (REAL*8) : Rxn rate for HC oxidation by OH         [cm3/molec/s]
-!  (4 ) KNO3   (REAL*8) : Rxn rate for HC oxidation by NO3        [cm3/molec/s]
-!  (5 ) RALPHA (REAL*8) : Mass-based stoichiometric coefficients  [unitless]
-!  (6 ) KOM    (REAL*8) : Equilibrium gas-aerosol partition coeff [m3/ug]
+!  (5 ) KO3    (REAL*8 ) : Rxn rate for HC oxidation by O3        [cm3/molec/s]
+!  (6 ) KOH    (REAL*8 ) : Rxn rate for HC oxidation by OH        [cm3/molec/s]
+!  (7 ) KNO3   (REAL*8 ) : Rxn rate for HC oxidation by NO3       [cm3/molec/s]
+!  (8 ) RALPHA (REAL*8 ) : Mass-based stoichiometric coefficients  [unitless]
+!  (9 ) KOM    (REAL*8 ) : Equilibrium gas-aerosol partition coeff [m3/ug]
 !
 !  References:
 !  ============================================================================
 !  PHOTO-OXIDATION RATE CONSTANTS OF ORGANICS come from:
-!   (1) Atkinson, el al., Int. J. Chem.Kinet., 27: 941-955 (1995)
-!   (2) Shu and Atkinson, JGR 100: 7275-7281 (1995)
-!   (3) Atkinson, J. Phys. Chem. Ref. Data 26: 215-290 (1997)   
-!   (4) Some are reproduced in Table 1 of Griffin, et al., JGR 104: 3555-3567
-!   (5) Chung and Seinfeld (2002)
+!  (1 ) Atkinson, el al., Int. J. Chem.Kinet., 27: 941-955 (1995)
+!  (2 ) Shu and Atkinson, JGR 100: 7275-7281 (1995)
+!  (3 ) Atkinson, J. Phys. Chem. Ref. Data 26: 215-290 (1997)   
+!  (4 ) Some are reproduced in Table 1 of Griffin, et al., JGR 104: 3555-3567
+!  (5 ) Chung and Seinfeld (2002)
 !
 !  ACTIVATION ENERGIES come from:
-!   (6) Atkinson, R. (1994) Gas-Phase Tropospheric Chemistry of Organic 
+!  (6 ) Atkinson, R. (1994) Gas-Phase Tropospheric Chemistry of Organic 
 !        Compounds.  J. Phys. Chem. Ref. Data, Monograph No.2, 1-216. 
-!   (7) They are also reproduced in Tables B.9 and B.10 of Seinfeld and 
+!  (7 ) They are also reproduced in Tables B.9 and B.10 of Seinfeld and 
 !        Pandis (1988).
 !  
+!  PARAMETERS FOR ISOPRENE:
+!  (8 ) Kroll et al., GRL, 109, L18808 (2005)
+!  (9 ) Kroll et al., Environ Sci Tech, in press (2006)
+!  (10) Henze and Seinfeld, GRL, submitted (2006)
+!
 !  NOTES:
 !  (1 ) Now use temporary variables TMP1, TMP2, TMP3 to pre-store the values
 !        of exponential terms outside of DO-loops (bmy, 7/8/04)
+!  (2 ) Add parameters for isoprene.  Now include grid cell location in
+!        subroutine arguments.  Define a reference temperature at 295.
+!        Now use ITS_IN_THE_TROP to determine if we are in a tropospheric
+!        grid box.  Now pass II, JJ, LL via the argument list.
+!        (dkh, bmy, 5/22/06)
 !******************************************************************************
 !
+      ! References to F90 modules
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+
       ! Arguments
-      REAL*8, INTENT(IN)  :: TEMP
-      REAL*8, INTENT(OUT) :: KO3(MHC), KOH(MHC), KNO3(MHC)
-      REAL*8, INTENT(OUT) :: RALPHA(NPROD,MHC), KOM(NPROD,MHC)
+      INTEGER, INTENT(IN)  :: II, JJ, LL
+      REAL*8,  INTENT(IN)  :: TEMP
+      REAL*8,  INTENT(OUT) :: KO3(MHC), KOH(MHC), KNO3(MHC)
+      REAL*8,  INTENT(OUT) :: RALPHA(NPROD,MHC), KOM(NPROD,MHC)
 
       ! Local variables
-      INTEGER             :: IPR,  JHC,  J
-      REAL*8              :: TMP1, TMP2, TMP3, OVER
+      INTEGER              :: IPR,  JHC,  J
+      REAL*8               :: TMP1, TMP2, TMP3, OVER
 
       ! Activation Energy/R [K] for O3, OH, NO3 (see Refs #6-7)
-      REAL*8, PARAMETER   :: ACT_O3     =  732.0d0   
-      REAL*8, PARAMETER   :: ACT_OH     = -400.0d0   
-      REAL*8, PARAMETER   :: ACT_NO3    = -490.0d0   
+      REAL*8, PARAMETER    :: ACT_O3     =  732.0d0   
+      REAL*8, PARAMETER    :: ACT_OH     = -400.0d0   
+      REAL*8, PARAMETER    :: ACT_NO3    = -490.0d0   
 
       ! Heat of vaporization (from CRC Handbook of Chemistry & Physics)
-      REAL*8, PARAMETER   :: HEAT_VAPOR = 5.d3     
+      REAL*8, PARAMETER    :: HEAT_VAPOR = 5.d3     
 
       ! Reciprocal reference temperatures at 298K and 310K
-      REAL*8, PARAMETER   :: REF298     = 1d0 / 298d0
-      REAL*8, PARAMETER   :: REF310     = 1d0 / 310d0
+      REAL*8, PARAMETER    :: REF295     = 1d0 / 295d0
+      REAL*8, PARAMETER    :: REF298     = 1d0 / 298d0
+      REAL*8, PARAMETER    :: REF310     = 1d0 / 310d0
 
       !=================================================================
       ! SOA_PARA begins here!
@@ -1703,6 +1773,19 @@ c
          KNO3(JHC) = KNO3(JHC) * TMP3
       ENDDO
 
+      ! If we are in the troposphere, then calculate ISOP oxidation rates
+      ! If we are in the stratosphere, set ISOP oxidation rates to zero
+      ! (dkh, bmy, 5/22/06)
+      IF ( ITS_IN_THE_TROP( II, JJ, LL ) ) THEN
+         KO3(6)  = 1.05d-14 * EXP(-2000.d0 / TEMP )
+         KOH(6)  = 2.70d-11 * EXP( 390.d0 / TEMP )
+         KNO3(6) = 3.03d-12 * EXP(-446.d0 / TEMP )
+      ELSE
+         KO3(6)  = 0d0
+         KOH(6)  = 0d0
+         KNO3(6) = 0d0
+      ENDIF
+
       !=================================================================
       ! SOA YIELD PARAMETERS
       ! 
@@ -1718,6 +1801,14 @@ c
       !
       ! For the aromatics, the data are from
       ! (8) Odum, et al., Science 276: 96-99 (1997).
+      !
+      ! Isoprene (dkh, bmy, 5/22/06)
+      ! Unlike the other species, we consider oxidation by purely OH. 
+      ! CHEM_NVOC has been adjusted accordingly. There's probably 
+      ! significant SOA formed from NO3 oxidation, but we don't know 
+      ! enough to include that yet.  Data for the high NOX and low NOX 
+      ! parameters are given in Kroll 05 and Kroll 06, respectively.  
+      ! The paramters for low NOX are given in Table 1 of Henze 06.
       !=================================================================
 
       ! Average of ALPHA-PINENE, BETA-PINENE, SABINENE, D3-CARENE
@@ -1749,6 +1840,22 @@ c
       ! Using BETA-PINENE for all species for NO3 oxidation
       ! Data from Table 4 of Griffin, et al., JGR 104 (D3): 3555-3567 (1999)
       RALPHA(3,:) = 1.d0           
+
+      ! Using BETA-PINENE for all species for NO3 oxidation
+      ! Data from Table 4 of Griffin, et al., JGR 104 (D3): 3555-3567 (1999)
+      RALPHA(3,:) = 1.d0           
+
+      ! Here we define some alphas for isoprene (dkh, bmy, 5/22/06)
+
+      ! high NOX  [Kroll et al, 2005]
+      !RALPHA(1,6) = 0.264d0
+      !RALPHA(2,6) = 0.0173d0
+      !RALPHA(3,6) = 0d0
+
+      ! low NOX   [Kroll et al, 2006; Henze and Seinfeld, 2006]
+      RALPHA(1,6) = 0.232d0
+      RALPHA(2,6) = 0.0288d0
+      RALPHA(3,6) = 0d0
 
       !=================================================================
       ! Equilibrium gas-particle partition coefficients of 
@@ -1782,6 +1889,19 @@ c
       ! NOT APPLICABLE -- using BETA-PINENE for all species
       ! Data from Table 4 of Griffin, et al., JGR 104 (D3): 3555-3567 (1999)
       KOM(3,:) = 0.0163d0
+
+      ! Again, for isoprene we only consider two products, 
+      ! both from OH oxidation. (dkh, bmy, 5/22/06)
+
+      ! High NOX
+      !KOM(1,6) = 0.00115d0
+      !KOM(2,6) = 1.52d0
+      !KOM(3,6) = 0d0
+
+      ! Low NOX
+      KOM(1,6) = 0.00862d0
+      KOM(2,6) = 1.62d0
+      KOM(3,6) = 0d0
                            
       !=================================================================
       ! Temperature Adjustments of KOM
@@ -1796,11 +1916,39 @@ c
       ! Compute the heat-of-vaporization exponential term outside the DO loop
       TMP2 = EXP( HEAT_VAPOR * ( OVER - REF310 ) )
 
+      !---------------------------------------------------------------------
+      ! Prior to 5/22/06:
+      ! Separate handling for ISOP (dkh, bmy, 5/22/06)
+      !! Multiply KOM by the temperature and heat-of-vaporization terms
+      !DO JHC = 1, 5
+      !DO IPR = 1, 3
+      !   KOM(IPR,JHC) = KOM(IPR,JHC) * TMP1 * TMP2
+      !ENDDO
+      !ENDDO
+      !---------------------------------------------------------------------
+
       ! Multiply KOM by the temperature and heat-of-vaporization terms
-      DO JHC = 1, 5
+      DO JHC = 1, 5 
       DO IPR = 1, 3
          KOM(IPR,JHC) = KOM(IPR,JHC) * TMP1 * TMP2
       ENDDO
+      ENDDO
+
+      !--------------------------------------------------------
+      ! For isoprene products, reference temperature is 295 K. 
+      ! (dkh, bmy, 5/22/06)
+      !--------------------------------------------------------
+
+      ! Divide TEMP by 295K outside the DO loop
+      TMP1 = ( TEMP / 295.D0 )
+
+      ! Compute the heat-of-vaporization exponential term outside the DO loop
+      TMP2 = EXP( HEAT_VAPOR * ( OVER - REF295 ) )
+
+      ! Multiply KOM by the temperature and heat-of-vaporization terms
+      JHC = 6
+      DO IPR = 1, 3
+         KOM(IPR,JHC) = KOM(IPR,JHC) * TMP1 * TMP2
       ENDDO
 
       ! Return to calling program
@@ -1808,22 +1956,28 @@ c
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CHEM_NVOC( I, J, L, KO3, KOH, KNO3, ALPHA, GM0 )
+      !---------------------------------------------------------------
+      ! Prior to 5/22/06:
+      !SUBROUTINE CHEM_NVOC( I, J, L, KO3, KOH, KNO3, ALPHA, GM0 )
+      !---------------------------------------------------------------
+      SUBROUTINE CHEM_NVOC( I,   J,    L,     KO3,  
+     &                      KOH, KNO3, ALPHA, ISOP_P, GM0 )
 !
 !******************************************************************************
 !  Subroutine CHEM_NVOC computes the oxidation of Hydrocarbon by O3, OH, and 
 !  NO3.  This comes from the Caltech group (Hong Liao, Serena Chung, et al)
-!  and was incorporated into GEOS-CHEM. (rjp, bmy, 7/6/04, 10/3/05)
+!  and was incorporated into GEOS-CHEM. (rjp, bmy, 7/6/04, 5/22/06)
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) I     (INTEGER) : GEOS-CHEM longitude index
-!  (2 ) J     (INTEGER) : GEOS-CHEM latitude index
-!  (3 ) L     (INTEGER) : GEOS-CHEM altitude index
-!  (4 ) KO3   (REAL*8 ) : Rxn rate for HC oxidation by O3        [cm3/molec/s]
-!  (5 ) KOH   (REAL*8 ) : Rxn rate for HC oxidation by OH        [cm3/molec/s]
-!  (6 ) KNO3  (REAL*8 ) : Rxn rate for HC oxidation by NO3       [cm3/molec/s]
-!  (7 ) ALPHA (REAL*8 ) : Mass-based stoichiometric coefficients [unitless]  
+!  (1 ) I      (INTEGER) : GEOS-CHEM longitude index
+!  (2 ) J      (INTEGER) : GEOS-CHEM latitude index
+!  (3 ) L      (INTEGER) : GEOS-CHEM altitude index
+!  (4 ) KO3    (REAL*8 ) : Rxn rate for HC oxidation by O3        [cm3/molec/s]
+!  (5 ) KOH    (REAL*8 ) : Rxn rate for HC oxidation by OH        [cm3/molec/s]
+!  (6 ) KNO3   (REAL*8 ) : Rxn rate for HC oxidation by NO3       [cm3/molec/s]
+!  (7 ) ALPHA  (REAL*8 ) : Mass-based stoichiometric coefficients [unitless]  
+!  (8 ) ISOP_P (REAL*8 ) : ISOP from prior model timestep         [kg]
 !
 !  Arguments as Output:
 !  ============================================================================
@@ -1832,16 +1986,19 @@ c
 !  NOTES:
 !  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (3 ) Updated for SOA from isoprene.  Now pass ISOP_P via the arg list.
+!        (dkh, bmy, 5/22/06)
 !******************************************************************************
 !
       ! References to F90 kmodules
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTALCO,     IDTALPH,  IDTLIMO
-      USE TIME_MOD,     ONLY : GET_TS_CHEM, GET_MONTH
+      USE TRACER_MOD,    ONLY : STT
+      USE TRACERID_MOD,  ONLY : IDTALCO,     IDTALPH,  IDTLIMO
+      USE TIME_MOD,      ONLY : GET_TS_CHEM, GET_MONTH
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "CMN_SIZE"      ! Size parameters
 
       INTEGER, INTENT(IN)    :: I, J, L
+      REAL*8,  INTENT(IN)    :: ISOP_P
       REAL*8,  INTENT(IN)    :: KO3(MHC), KOH(MHC), KNO3(MHC)
       REAL*8,  INTENT(IN)    :: ALPHA(NPROD,MHC)
       REAL*8,  INTENT(INOUT) :: GM0(NPROD,MHC)
@@ -1864,12 +2021,13 @@ c
       TTNO3   = GET_NO3( I, J, L )
       TTO3    = GET_O3(  I, J, L ) 
 
-      ! 5 classes NVOC concentrations followed by 4 primary species
+      ! 6 classes NVOC concentrations followed by 4 primary species
       NMVOC(1) = STT(I,J,L,IDTALPH)
       NMVOC(2) = STT(I,J,L,IDTLIMO)
       NMVOC(3) = ORVC_TERP(I,J,L)
       NMVOC(4) = STT(I,J,L,IDTALCO)
       NMVOC(5) = ORVC_SESQ(I,J,L)
+      NMVOC(6) = ISOP_P
 
       ! Initialize DELHC so that the values from the previous
       ! time step are not carried over.
@@ -1905,11 +2063,33 @@ c
     
          ! VOC change by photooxidation of NO3 [kg]
          DELHC(3) = DNO3
-                          
-         !Individual Gas-Phase Products:
-         DO IPR = 1, NPROD
-            GM0(IPR,JHC) = GM0(IPR,JHC) + ALPHA(IPR,JHC) * DELHC(IPR) 
-         ENDDO
+          
+         !----------------------------------------------------------------
+         ! Prior to 5/22/06:
+         !!Individual Gas-Phase Products:
+         !DO IPR = 1, NPROD
+         !   GM0(IPR,JHC) = GM0(IPR,JHC) + ALPHA(IPR,JHC) * DELHC(IPR) 
+         !ENDDO
+         !----------------------------------------------------------------
+
+         ! Individual Gas-Phase Products:
+         IF ( JHC <= 5 ) THEN
+
+            ! Lump OH and O3 oxidation for HC 1-5
+            DO IPR = 1, NPROD
+               GM0(IPR,JHC) = GM0(IPR,JHC) + ALPHA(IPR,JHC) * DELHC(IPR)
+            ENDDO
+   
+         ELSE
+
+            ! Consider only OH oxidation for isoprene.  Also convert 
+            ! from mass of carbon to mass of isoprene. (dkh, bmy, 5/22/06)
+            DO IPR = 1, 3
+               GM0(IPR,JHC) = GM0(IPR,JHC) + ALPHA(IPR,JHC) * DOH
+     &                                     * 68d0           / 60d0 
+            ENDDO
+         ENDIF
+
       ENDDO                     
 
       !=================================================================
@@ -1921,6 +2101,20 @@ c
       STT(I,J,L,IDTALCO) = MAX( NMVOC(4), 1.D-32 )
       ORVC_SESQ(I,J,L)   = MAX( NMVOC(5), 1.D-32 )
 
+      ! Do not overwrite STT(I,J,L,IDTISOP) here.  However, this would be 
+      ! a good place to compare the amount of ISOP reacted as computed here
+      ! vs in the full chemistry.  (dkh, bmy, 5/22/06)
+      !
+      ! In general, there are a few cells in which we underestimate
+      ! isoprene oxidation by calculating this reaction offline.
+      !
+      !IF ( ABS( 1 - NMVOC(6) / STT(I,J,L,IDTISOP)) .gt. 10 ) THEN
+      !   print*, 'ISOP from carbon = ', NMVOC(6)
+      !   print*, 'ISOP from SMVG   = ', STT(I,J,L,IDTISOP)
+      !   print*, ' at ', I, J, L
+      !   print*, ' with OH ', OHMC
+      !ENDIF
+
       ! Return to calling program
       END SUBROUTINE CHEM_NVOC
 
@@ -1931,7 +2125,7 @@ c
 !******************************************************************************
 !  Subroutine SOA_PARTITION partitions the mass of gas and aerosol 
 !  tracers according to five Hydrocarbon species and three oxidants.
-!  (rjp, bmy, 7/7/04, 10/3/05)
+!  (rjp, bmy, 7/7/04, 5/22/06)
 !
 !  NOTE: GPROD and APROD are mass ratios of individual oxidation 
 !        products of gas/aerosol to the sum of all. 
@@ -1950,12 +2144,13 @@ c
 !  NOTES:
 !  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (3 ) Updated for SOG4, SOA4 (bmy, 5/22/06)
 !******************************************************************************
 !
       ! Refrences to F90 modules
       USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3
-      USE TRACERID_MOD, ONLY : IDTSOG1, IDTSOG2, IDTSOG3
+      USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
+      USE TRACERID_MOD, ONLY : IDTSOG1, IDTSOG2, IDTSOG3, IDTSOG4
 
 #     include "CMN_SIZE"     ! Size parameters
 
@@ -2001,6 +2196,13 @@ c
          GM0(IPR,JHC) = STT(I,J,L,IDTSOG3) * GPROD(I,J,L,IPR,JHC)
          AM0(IPR,JHC) = STT(I,J,L,IDTSOA3) * APROD(I,J,L,IPR,JHC)
       ENDDO
+
+      ! Isoprene
+      JHC = 6
+      DO IPR = 1, NPROD
+         GM0(IPR,JHC) = STT(I,J,L,IDTSOG4) * GPROD(I,J,L,IPR,JHC)
+         AM0(IPR,JHC) = STT(I,J,L,IDTSOA4) * APROD(I,J,L,IPR,JHC)
+      ENDDO
       
       ! Return to calling program
       END SUBROUTINE SOA_PARTITION
@@ -2011,7 +2213,7 @@ c
 !
 !******************************************************************************
 !  Subroutine SOA_LUMP returns the organic gas and aerosol back to the
-!  STT array.  (rjp, bmy, 7/7/04, 10/3/05)
+!  STT array.  (rjp, bmy, 7/7/04, 5/22/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -2026,13 +2228,14 @@ c
 !  (2 ) Bug fix: make sure L <= LD07 before saving into AD07 array, or else
 !        we will get an out-of-bounds error. (bmy, 3/4/05)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (4 ) Updated for SOG4, SOA4 (dkh, bmy, 5/22/06)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIAG_MOD,     ONLY : AD07_HC 
       USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3
-      USE TRACERID_MOD, ONLY : IDTSOG1, IDTSOG2, IDTSOG3
+      USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
+      USE TRACERID_MOD, ONLY : IDTSOG1, IDTSOG2, IDTSOG3, IDTSOG4
 
 #     include "CMN_SIZE"    ! Size parameters
 #     include "CMN_DIAG"    ! ND44, ND07, LD07
@@ -2191,6 +2394,52 @@ c
       ! for SESQTERPENE by OH + O3
       GPROD(I,J,L,2,JHC) = 0.D0
       APROD(I,J,L,2,JHC) = 0.D0
+
+
+      !=================================================================
+      ! Lump of products of sixth Hydrocarbon class (ISOP) 
+      ! (dkh, bmy, 5/22/06)
+      !=================================================================
+      JHC     = 6
+      GASMASS = 0D0
+      AERMASS = 0D0
+
+      DO IPR = 1, NPROD
+         GASMASS = GASMASS + GM0(IPR,JHC)
+         AERMASS = AERMASS + AM0(IPR,JHC)
+      ENDDO
+
+      !---------------------------
+      ! SOA4 net Production (kg)
+      !---------------------------
+
+      IF ( ND07 > 0 .and. L <= LD07 ) THEN
+         AD07_HC(I,J,L,4) = AD07_HC(I,J,L,4)
+     &                    + ( AERMASS - STT(I,J,L,IDTSOA4) )
+      ENDIF
+
+      STT(I,J,L,IDTSOG4) = MAX( GASMASS, 1.D-32 )
+      STT(I,J,L,IDTSOA4) = MAX( AERMASS, 1.D-32 )
+
+      IF ( STT(I,J,L,IDTSOG4) > 1.0E-6 ) THEN
+         DO IPR = 1, NPROD
+            GPROD(I,J,L,IPR,JHC) = GM0(IPR,JHC) / STT(I,J,L,IDTSOG4)
+         ENDDO
+      ELSE
+         DO IPR = 1, NPROD
+            GPROD(I,J,L,IPR,JHC) = 1.d0   ! only one product
+         ENDDO
+      ENDIF
+
+      IF ( STT(I,J,L,IDTSOA4) > 1.0E-6 ) THEN
+         DO IPR = 1, NPROD
+            APROD(I,J,L,IPR,JHC) = AM0(IPR,JHC) / STT(I,J,L,IDTSOA4)
+         ENDDO
+      ELSE
+         DO IPR = 1, NPROD
+            GPROD(I,J,L,IPR,JHC) = 1.d0
+         ENDDO
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE SOA_LUMP
@@ -2724,12 +2973,6 @@ c
             XTAU  = GET_TAU0( THISMONTH, 1, 1990 )
 
             ! Filename for carbon aerosol from fossil fuel use
-!----------------------------------------------------------------------------
-! Prior to 4/11/06:
-! For GCAP, need to use GET_NAME_EXT_2D in NVOC file name (swu, bmy, 4/11/06)
-!            FILENAME = TRIM( DATA_DIR ) //
-!     &                 'carbon_200411/NVOC.geos.' // GET_RES_EXT()
-!----------------------------------------------------------------------------
             FILENAME = TRIM( DATA_DIR )      //
      &                 'carbon_200411/NVOC.' // GET_NAME_EXT_2D() //
      &                 '.'                   // GET_RES_EXT()

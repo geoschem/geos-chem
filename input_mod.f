@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.23 2006/05/15 17:52:50 bmy Exp $
+! $Id: input_mod.f,v 1.24 2006/05/26 17:45:23 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS_CHEM input file at the start of the run
 !  and passes the information to several other GEOS-CHEM F90 modules.
-!  (bmy, 7/20/04, 5/10/06)
+!  (bmy, 7/20/04, 5/22/06)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -107,6 +107,7 @@
 !  (10) Now read LGFED2BB switch for GFED2 biomass emissions (bmy, 4/5/06)
 !  (11) Bug fix for GCAP in IS_LAST_DAY_GOOD.  Also now read LCTH, LMFLUX,
 !        LPRECON in READ_EMISSIONS_MENU. (bmy, 5/10/06)
+!  (12) Updated for ND42 SOA concentration diagnostic (dkh, bmy, 5/22/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1877,7 +1878,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_DIAGNOSTIC_MENU reads the DIAGNOSTIC MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 5/10/06)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 5/22/06)
 !
 !  NOTES:
 !  (1 ) Now reference IU_BPCH from "file_mod.f" and OPEN_BPCH2_FOR_WRITE
@@ -1894,6 +1895,8 @@
 !  (6 ) Now remove reference to NBIOTRCE; Replace w/ NBIOMAX. (bmy, 4/5/06)
 !  (7 ) Now reference ND56, PD56, INIT_DIAG56 from "diag56_mod.f" 
 !        (bmy, 5/10/06)
+!  (8 ) Now reference ND42, PD42, INIT_DIAG42 from "diag42_mod.f"
+!        (dkh, bmy, 5/22/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1903,6 +1906,7 @@
       USE DIAG03_MOD,   ONLY : ND03,      PD03,      INIT_DIAG03
       USE DIAG04_MOD,   ONLY : ND04,      PD04,      INIT_DIAG04
       USE DIAG41_MOD,   ONLY : ND41,      PD41,      INIT_DIAG41
+      USE DIAG42_MOD,   ONLY : ND42,      PD42,      INIT_DIAG42
       USE DIAG56_MOD,   ONLY : ND56,      PD56,      INIT_DIAG56
       USE DIAG_OH_MOD,  ONLY : INIT_DIAG_OH
       USE DRYDEP_MOD,   ONLY : NUMDEP
@@ -2248,7 +2252,7 @@
       CALL SET_TINDEX( 41, ND41, SUBSTRS(2:N), N-1, PD41 )
 
       !--------------------------
-      ! ND42: Free
+      ! ND42: SOA concentrations
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:42' )
       READ( SUBSTRS(1), * ) ND42
@@ -2446,6 +2450,7 @@
       CALL INIT_DIAG03
       CALL INIT_DIAG04
       CALL INIT_DIAG41
+      CALL INIT_DIAG42
       CALL INIT_DIAG56
       CALL NDXX_SETUP
 

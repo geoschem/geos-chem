@@ -1,4 +1,4 @@
-! $Id: tracerid_mod.f,v 1.15 2006/05/15 17:52:56 bmy Exp $
+! $Id: tracerid_mod.f,v 1.16 2006/05/26 17:45:29 bmy Exp $
       MODULE TRACERID_MOD
 !
 !******************************************************************************
@@ -167,6 +167,7 @@
 !  (12) Added functions IS_Hg0, IS_Hg2, IS_HgP.  Also now use index arrays
 !        ID_Hg0, ID_Hg2, ID_HgP for tagged Hg tracers.  (cdh, bmy, 1/5/06)
 !  (13) Remove IDBxxxx biomass flags; these aren't needed. (bmy, 4/5/06)
+!  (14) Add IDTSOG4 and IDTSOA4 (dkh, bmy, 5/18/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -200,10 +201,18 @@
       INTEGER            :: IDTNH4,  IDTNIT,   IDTRN,   IDTPB,   IDTBE7
       INTEGER            :: IDTBCPI, IDTBCPO,  IDTOCPI, IDTOCPO, IDTDST1
       INTEGER            :: IDTDST2, IDTDST3,  IDTDST4, IDTSALA, IDTSALC
-      INTEGER            :: IDTALPH, IDTLIMO,  IDTALCO, IDTSOG1, IDTSOG2  
-      INTEGER            :: IDTSOG3, IDTSOA1,  IDTSOA2, IDTSOA3, IDTHG0
-      INTEGER            :: IDTHg2,  IDTHgP,   IDTAS,   IDTAHS,  IDTLET
-      INTEGER            :: IDTNH4aq,IDTSO4aq, IDTSO4s, IDTNITs
+      INTEGER            :: IDTALPH, IDTLIMO,  IDTALCO, IDTSOG1, IDTSOG2 
+      !---------------------------------------------------------------------
+      ! Prior to 5/18/06:
+      ! Add IDTSOG4 and IDTSOA4 (dkh, bmy, 5/18/06)
+      !INTEGER            :: IDTSOG3, IDTSOA1,  IDTSOA2, IDTSOA3, IDTHG0
+      !INTEGER            :: IDTHg2,  IDTHgP,   IDTAS,   IDTAHS,  IDTLET
+      !INTEGER            :: IDTNH4aq,IDTSO4aq, IDTSO4s, IDTNITs
+      !---------------------------------------------------------------------
+      INTEGER            :: IDTSOG3, IDTSOG4,  IDTSOA1, IDTSOA2, IDTSOA3
+      INTEGER            :: IDTSOA4, IDTHG0,   IDTHg2,  IDTHgP,  IDTAS
+      INTEGER            :: IDTAHS,  IDTLET,   IDTNH4aq,IDTSO4aq,IDTSO4s
+      INTEGER            :: IDTNITs
 
       ! For tagged Hg simulation
       INTEGER              :: N_Hg_CATS
@@ -255,6 +264,7 @@
 !        flux categories.  Now references LSPLIT from "logical_mod.f".
 !        (cdh, bmy, 12/15/05)
 !  (12) Now remove IDBxxx biomass flags (bmy, 4/5/06)
+!  (13) Now look for IDTSOG4 and IDTSOA4 (bmy, 5/18/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -493,6 +503,9 @@
             CASE ( 'SOG3' )
                IDTSOG3  = N
 
+            CASE ( 'SOG4' )
+               IDTSOG4  = N
+
             CASE ( 'SOA1' )
                IDTSOA1  = N
 
@@ -501,6 +514,9 @@
 
             CASE ( 'SOA3' )
                IDTSOA3  = N
+
+            CASE ( 'SOA4' )
+               IDTSOA4  = N
 
             !--------------------------------
             ! Mineral dust aerosols
@@ -546,10 +562,6 @@
             CASE ( 'CH3I' )
                COUNT    = COUNT + 1
                IDTCO    = 1
-               !---------------------
-               ! Prior to 4/5/06:
-               !IDBCO    = COUNT
-               !---------------------
                IDBFCO   = COUNT
                EXIT
 
@@ -1187,6 +1199,7 @@
 !  (5 ) Now zero IDTHG0, IDTHG2, IDTHGP + tagged Hg's (eck, bmy, 12/7/04)
 !  (6 ) Now zero IDTAS, IDTAHS, IDTLET, IDTNH4aq, IDTSO4aq (cas, bmy, 12/20/04)
 !  (7 ) Now allocate ID_Hg0, ID_Hg2, ID_HgP (bmy, 12/16/05)
+!  (8 ) Now zero IDTSOG4, IDTSOA4 (dkh, bmy, 5/18/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1289,9 +1302,11 @@
       IDTSOG1   = 0
       IDTSOG2   = 0
       IDTSOG3   = 0
+      IDTSOG4   = 0
       IDTSOA1   = 0
       IDTSOA2   = 0
       IDTSOA3   = 0
+      IDTSOA4   = 0
       IDTDST1   = 0
       IDTDST2   = 0
       IDTDST3   = 0

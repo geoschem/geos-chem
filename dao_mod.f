@@ -1,10 +1,10 @@
-! $Id: dao_mod.f,v 1.16 2006/05/15 17:52:46 bmy Exp $
+! $Id: dao_mod.f,v 1.17 2006/05/26 17:45:17 bmy Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
 !  Module DAO_MOD contains both arrays that hold DAO met fields, as well as
 !  subroutines that compute, interpolate, or otherwise process DAO met field 
-!  data. (bmy, 6/27/00, 5/9/06)
+!  data. (bmy, 6/27/00, 5/16/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -169,7 +169,7 @@
 !  (22) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !  (23) Now allocate SNOW and GWET for GCAP (bmy, 8/17/05)
 !  (24) Now also add TSKIN for GEOS-3 (tmf, bmy, 10/20/05)
-!  (25) Modifications for near-land formulation (ltm, bmy, 5/9/06)
+!  (25) Modifications for near-land formulation (ltm, bmy, 5/16/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -179,11 +179,6 @@
       !=================================================================
 
       ! I-6 met fields
-      !---------------------------------------
-      ! Prior to 5/9/06:
-      ! LWI is now REAL*8 (ltm, bmy, 5/9/06)
-      !INTEGER, ALLOCATABLE :: LWI(:,:)
-      !---------------------------------------
       REAL*8,  ALLOCATABLE :: LWI(:,:)
       REAL*8,  ALLOCATABLE :: ALBD1(:,:)
       REAL*8,  ALLOCATABLE :: ALBD2(:,:)
@@ -708,11 +703,6 @@
       !---------------------
 
       ! LWI=1 and ALBEDO less than 69.5% is a LAND box 
-      !---------------------------------------------------------
-      ! Prior to 5/9/06:
-      ! LWI is REAL*8; use NINT to round LWI (ltm, bmy, 5/9/06)
-      !LAND = ( LWI(I,J) == 1 .and. ALBD(I,J) < 0.695d0 )
-      !---------------------------------------------------------
       LAND = ( NINT( LWI(I,J) ) == 1 .and. ALBD(I,J) < 0.695d0 )
 
 #elif defined( GCAP )
@@ -723,7 +713,7 @@
 
       ! It's a land box if 50% or more of the box is covered by 
       ! land and less than 50% of the box is covered by ice
-      LAND = ( LWI_GISS(I,J) > = 0.5d0 .and. SNICE(I,J) < 0.5d0 )
+      LAND = ( LWI_GISS(I,J) >= 0.5d0 .and. SNICE(I,J) < 0.5d0 )
     
 #endif
 
@@ -811,11 +801,6 @@
       !----------------------
 
       ! LWI=0 and ALBEDO less than 69.5% is a water box 
-      !----------------------------------------------------------------
-      ! Prior to 5/9/06:
-      ! LWI is now REAL*8; use NINT to round LWI (ltm, bmy, 5/9/06)
-      !WATER = ( LWI(I,J) == 0 .and. ALBD(I,J) < 0.695d0 )
-      !----------------------------------------------------------------
       WATER = ( NINT( LWI(I,J) ) == 0 .and. ALBD(I,J) < 0.695d0 )
 
 #elif defined( GCAP )
@@ -888,11 +873,6 @@
       !---------------------  
 
       ! LWI=2 or ALBEDO > 69.5% is ice
-      !------------------------------------------------------------
-      ! Prior to 5/9/06:
-      ! LWI is now REAL*8; use NINT to round LWI (ltm, bmy, 5/9/06)
-      !ICE = ( LWI(I,J) == 2 .or. ALBD(I,J) >= 0.695d0 )
-      !------------------------------------------------------------
       ICE = ( NINT( LWI(I,J) ) == 2 .or. ALBD(I,J) >= 0.695d0 )
 
 #elif defined( GCAP )
@@ -916,8 +896,13 @@
 !******************************************************************************
 !  Function IS_NEAR returns TRUE if surface grid box (I,J) contains any land
 !  above a certain threshold (THRESH) or any of the adjacent boxes up to
-!  NEIGHBOR boxes away contain land.  Typical for GEOS-4; THRESH = 0.2, and 
-!  NEIGHBOR = 1.  (rch, ltm, bmy, 5/9/06)
+!  NEIGHBOR boxes away contain land.  (rch, ltm, bmy, 5/9/06, 5/16/06)
+!
+!  Typical values for:
+!     GCAP   : THRESH =  0.2, NEIGHBOR = 1
+!     GEOS-3 : THRESH = 80.0, NEIGHBOR = 1
+!     GEOS-4 : THRESH =  0.2, NEIGHBOR = 1
+!     GEOS-5 : THRESH =  0.2, NEIGHBOR = 1
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -927,6 +912,7 @@
 !  (4 ) NEIGHBOR (INTEGER) : # of neighbor boxes on each side to consider
 ! 
 !  NOTES:
+!  (1 ) Modified for GCAP and GEOS-3 met fields (bmy, 5/16/06)
 !******************************************************************************
 !
 #     include "CMN_SIZE"   ! Size parameters
@@ -948,16 +934,10 @@
       ! Initialize
       NEAR = .FALSE.
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) 
-
-      !-------------------------------------------------------
-      ! NOTE: we have to be careful -- the LWI values 
-      ! are different for each met field!!! 
-      !
-      ! For now, only compute near-land for GEOS-4 & GEOS-5.
-      !
-      ! (rch, ltm, bmy, 5/9/06)
-      !-------------------------------------------------------
+#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+      ! For now, return if GEOS-1 or GEOS-STRAT
+      RETURN
+#endif
 
       ! Loop over neighbor lat positions
       DO NS = -NEIGHBOR, NEIGHBOR
@@ -977,12 +957,61 @@
             ! Special handling near date line
             IF ( LONGI < 1     ) LONGI = LONGI + IIPAR 
             IF ( LONGI > IIPAR ) LONGI = LONGI - IIPAR
+            
+            ! If it's an ice box, skip to next neighbor
+            IF ( IS_ICE( LONGI, LATJ ) ) CYCLE
 
-            ! If this neighbor box has land above the threshold,
-            ! then set NEAR=T and break out of the loop
-            IF ( LWI (LONGI,LATJ) >  THRESH   .and.
-     &           LWI (LONGI,LATJ) <= 1d0      .and.
-     &           ALBD(LONGI,LATJ) <  0.695d0 ) THEN
+#if   defined( GCAP ) 
+
+            !---------------------------------------------------
+            ! GCAP met fields
+            !
+            ! LWI_GISS = 0.0 means that the box is all water
+            ! LWI_GISS = 1.0 means that the box is all land
+            !
+            ! with fractional values at land-water boundaries
+            !
+            ! It's near-land if THRESH <= LWI_GISS <= 1.0 
+            !---------------------------------------------------
+            IF ( LWI_GISS(LONGI,LATJ) >  THRESH .and.
+     &           LWI_GISS(LONGI,LATJ) <= 1.0d0 ) THEN
+
+#elif defined( GEOS_3 )
+
+            !---------------------------------------------------
+            ! GEOS-3 met fields
+            !
+            ! LWI < 10 is land
+            ! LWI = 101 is water
+            !
+            ! with fractional values at land-water boundaries
+            !
+            ! Therefore if you pick a threshold value such
+            ! as 80, then everything with LWI < THRESH is 
+            ! sure to be a land box.
+            !
+            ! It's near land if LWI < THRESH.
+            !---------------------------------------------------
+            IF ( LWI(LONGI,LATJ) < THRESH ) THEN 
+
+#elif defined( GEOS_4 ) || defined( GEOS_5 ) 
+
+            !---------------------------------------------------
+            ! GEOS-4 or GEOS-5 met fields
+            !
+            ! LWI = 0.0 is ocean
+            ! LWI = 1.0 is land
+            ! LWI = 2.0 is ice 
+            !
+            ! with fractional values at land-water, land-ice,
+            ! and water-ice boundaries.
+            !
+            ! It's near-land if THRESH <= LWI <= 1.0 
+            !---------------------------------------------------
+            IF ( LWI(LONGI,LATJ) >  THRESH  .and.
+     &           LWI(LONGI,LATJ) <= 1d0    ) THEN
+
+#endif
 
                ! We are in a near-land box
                NEAR = .TRUE.
@@ -995,8 +1024,6 @@
 
       ! Exit
  999  CONTINUE
-
-#endif
 
       ! Return to calling program
       END FUNCTION IS_NEAR

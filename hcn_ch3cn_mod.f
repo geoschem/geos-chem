@@ -1,4 +1,4 @@
-! $Id: hcn_ch3cn_mod.f,v 1.10 2006/04/21 15:40:00 bmy Exp $
+! $Id: hcn_ch3cn_mod.f,v 1.11 2006/05/26 17:45:22 bmy Exp $
       MODULE HCN_CH3CN_MOD
 !
 !******************************************************************************
@@ -281,10 +281,6 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      !---------------------------------------------------------
-      ! Prior to 4/5/06:
-      !USE BIOMASS_MOD,   ONLY : BURNEMIS,        BIOBURN
-      !---------------------------------------------------------
       USE BIOMASS_MOD,   ONLY : BIOMASS,         IDBCO
       USE GEIA_MOD,      ONLY : GET_DAY_INDEX,   GET_IHOUR
       USE GRID_MOD,      ONLY : GET_AREA_CM2
@@ -344,11 +340,6 @@
       !=================================================================
       ! Process biomass burning/domestic fossil fuel HCN/CH3CN emissions
       !=================================================================
-      !-----------------------------------------------------------------
-      ! Prior to 4/5/06:
-      ! This is now called in "emissions_mod.f" (bmy, 4/5/06)
-      !CALL BIOBURN
-      !-----------------------------------------------------------------
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -365,10 +356,6 @@
          !-----------------------------------------------------------------
 
          ! Convert [molec CO/cm3/s] to [molec CO/cm2/s]
-         !-----------------------------------------------------------
-         ! Prior to 4/5/06:
-         !E_CObb = BURNEMIS(IDBCO,I,J) * BOXVL(I,J,1) / ACM2
-         !-----------------------------------------------------------
          E_CObb = BIOMASS(I,J,IDBCO) * BOXVL(I,J,1) / ACM2
 
          ! ND09: biomass burning HCN/CH3CN emissions [molec/cm2/s]

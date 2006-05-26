@@ -1,9 +1,9 @@
-! $Id: dust_mod.f,v 1.11 2006/04/21 15:39:57 bmy Exp $
+! $Id: dust_mod.f,v 1.12 2006/05/26 17:45:20 bmy Exp $
       MODULE DUST_MOD
 !
 !******************************************************************************
 !  Module DUST_MOD contains routines for computing dust aerosol emissions,
-!  chemistry, and optical depths. (rjp, tdf, bmy, 4/14/04, 11/18/05)
+!  chemistry, and optical depths. (rjp, tdf, bmy, 4/14/04, 5/23/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -52,6 +52,7 @@
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (5 ) Bug fix in snow height computation (bmy, 11/18/05)
+!  (6 ) Now only do drydep if LDRYD=T (bmy, 5/23/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -92,17 +93,18 @@
 !******************************************************************************
 !  Subroutine CHEMDUST is the interface between the GEOS-CHEM main program and
 !  the dust chemistry routines that mostly calculates dust dry deposition.
-!  (tdf, bmy, 3/30/04)
+!  (tdf, bmy, 3/30/04, 5/23/06)
 !
 !  NOTES:
 !  (1 ) Now references STT from "tracer_mod.f" and LDUST from "logical_mod.f"
 !        (bmy, 7/20/04)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (6 ) Now only do dry deposition if LDRYD = T (bmy, 5/23/06)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE LOGICAL_MOD,  ONLY : LDUST
+      USE LOGICAL_MOD,  ONLY : LDRYD,   LDUST
       USE DRYDEP_MOD,   ONLY : DEPNAME, NUMDEP
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
@@ -166,7 +168,9 @@
       CALL DRY_SETTLING(   STT(:,:,:,IDTDST1:IDTDST4) )
 
       ! Dust deposition
-      CALL DRY_DEPOSITION( STT(:,:,:,IDTDST1:IDTDST4) )
+      IF ( LDRYD ) THEN
+         CALL DRY_DEPOSITION( STT(:,:,:,IDTDST1:IDTDST4) )
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE CHEMDUST

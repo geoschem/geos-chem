@@ -1,4 +1,4 @@
-! $Id: setemis.f,v 1.8 2006/04/21 15:40:07 bmy Exp $
+! $Id: setemis.f,v 1.9 2006/05/26 17:45:26 bmy Exp $
       SUBROUTINE SETEMIS( EMISRR, EMISRRN )
 !
 !******************************************************************************
@@ -89,11 +89,6 @@
 !
       ! References to F90 modules 
       USE BIOFUEL_MOD,    ONLY : BIOFUEL,     BFTRACE, NBFTRACE
-      !-----------------------------------------------------------------
-      ! Prior to 4/5/06:
-      ! BURNEMIS is now BIOMASS, NBIOTRCE is obsolete (bmy, 4/5/06)
-      !USE BIOMASS_MOD,    ONLY : BURNEMIS,    BIOTRCE, NBIOTRCE
-      !-----------------------------------------------------------------
       USE BIOMASS_MOD,    ONLY : BIOMASS,     BIOTRCE, NBIOMAX
       USE COMODE_MOD,     ONLY : JLOP,        REMIS,   VOLUME
       USE DIAG_MOD,       ONLY : AD12
@@ -138,11 +133,6 @@
          ! We have to search for the biomass burning species in 
          ! BIOTRCE with the same CTM tracer number NN as in IDEMS
          NBB = 0
-         !-------------------------------------------
-         ! Prior to 4/5/06:
-         !IF ( ALLOCATED( BURNEMIS ) ) THEN 
-         !   DO I = 1, NBIOTRCE
-         !-------------------------------------------
          IF ( ALLOCATED( BIOMASS ) ) THEN 
             DO I = 1, NBIOMAX
                IF ( BIOTRCE(I) == NN ) THEN 
@@ -350,10 +340,6 @@
                      ! DELTPRES/TOTPRES goes into level L, since that is the 
                      ! fraction of the boundary layer occupied by level L.  
                      ! Store in EMIS_BL.
-                     !-----------------------------------------------------
-                     ! Prior to 4/5/06:
-                     !EMIS_BL  = ( BURNEMIS(NBB,I,J)  *
-                     !-----------------------------------------------------
                      EMIS_BL  = ( BIOMASS(I,J,NBB)  *
      &                            VOLUME( JLOP(I,J,1) ) / COEF1  ) *
      &                            ( DELTPRES / TOTPRES )

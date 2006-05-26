@@ -1,11 +1,11 @@
-! $Id: seasalt_mod.f,v 1.9 2005/11/03 17:50:36 bmy Exp $
+! $Id: seasalt_mod.f,v 1.10 2006/05/26 17:45:26 bmy Exp $
       MODULE SEASALT_MOD
 !
 !******************************************************************************
 !  Module SEASALT_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline seasalt aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (bec, rjp, bmy, 6/22/00, 10/25/05)
+!  (bec, rjp, bmy, 6/22/00, 5/23/06)
 !
 !  Seasalt aerosol species: (1) Accumulation mode (usually 0.1 -  0.5 um)
 !                           (2) Coarse mode       (usually 0.5 - 10.0 um)
@@ -70,6 +70,7 @@
 !  (3 ) Now references "pbl_mix_mod.f" (bmy, 2/22/05)
 !  (4 ) Added routine GET_ALK to account for alkalinity. (bec, bmy, 4/13/05)
 !  (5 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  (6 ) Now only call dry deposition routine if LDRYD=T (bec, bmy, 5/23/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -119,17 +120,18 @@
 !******************************************************************************
 !  Subroutine CHEMSEASALT is the interface between the GEOS-CHEM main program 
 !  and the seasalt chemistry routines that mostly calculates seasalt dry 
-!  deposition (rjp, bmy, 1/24/02, 7/20/04)
+!  deposition (rjp, bmy, 1/24/02, 5/23/06)
 !
 !  NOTES:
 !  (1 ) Now reference STT from "tracer_mod.f".  Now references LPRT from
 !        "logical_mod.f" (bmy, 7/20/04)
+!  (2 ) Now only call DRY_DEPOSITION if LDRYD=T (bec, bmy, 5/23/06)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DRYDEP_MOD,   ONLY : DEPNAME, NUMDEP
       USE ERROR_MOD,    ONLY : DEBUG_MSG
-      USE LOGICAL_MOD,  ONLY : LPRT
+      USE LOGICAL_MOD,  ONLY : LPRT,    LDRYD
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
 
@@ -177,8 +179,10 @@
       CALL WET_SETTLING( STT(:,:,:,IDTSALA), 1 )
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
 
-      CALL DRY_DEPOSITION( STT(:,:,:,IDTSALA), 1 )
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Accum' )
+      IF ( LDRYD ) THEN
+         CALL DRY_DEPOSITION( STT(:,:,:,IDTSALA), 1 )
+         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Accum' )
+      ENDIF
 
       !-------------------
       ! Coarse mode
@@ -186,8 +190,10 @@
       CALL WET_SETTLING( STT(:,:,:,IDTSALC), 2 )
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
 
-      CALL DRY_DEPOSITION( STT(:,:,:,IDTSALC), 2 )
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Coarse' )
+      IF ( LDRYD ) THEN
+         CALL DRY_DEPOSITION( STT(:,:,:,IDTSALC), 2 )
+         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Coarse')
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE CHEMSEASALT

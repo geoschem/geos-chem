@@ -1,10 +1,10 @@
-! $Id: gamap_mod.f,v 1.12 2006/05/15 17:52:48 bmy Exp $
+! $Id: gamap_mod.f,v 1.13 2006/05/26 17:45:21 bmy Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
 !  Module GAMAP_MOD contains routines to create GAMAP "tracerinfo.dat" and
 !  "diaginfo.dat" files which are customized to each particular GEOS-CHEM
-!  simulation. (bmy, 5/3/05, 5/5/06)
+!  simulation. (bmy, 5/3/05, 5/22/06)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -69,6 +69,7 @@
 !  (5 ) Add MBO to ND46 diagnostic (tmf, bmy, 10/20/05)
 !  (6 ) Updated for tagged Hg simulation (cdh, bmy, 4/6/06)
 !  (7 ) Updated for ND56 lightning flash diagnostics (ltm, bmy, 5/5/06)
+!  (8 ) Updated for ND42 SOA concentration diagnostics (dkh, bmy, 5/22/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -88,8 +89,12 @@
       ! MODULE VARIABLES
       !=================================================================
 
-      ! For "diaginfo.dat"    
-      INTEGER,           PARAMETER   :: MAXCAT    = 100
+      ! For "diaginfo.dat"
+      !------------------------------------------------------
+      ! Prior to 5/22/06:
+      !INTEGER,           PARAMETER   :: MAXCAT    = 100
+      !------------------------------------------------------
+      INTEGER,           PARAMETER   :: MAXCAT    = 150
       INTEGER,           PARAMETER   :: SPACING   = 1000
       INTEGER                        :: NCATS
       INTEGER,           ALLOCATABLE :: OFFSET(:)
@@ -254,9 +259,10 @@
 !
 !******************************************************************************
 !  Subroutine CREATE_TINFO writes information about tracers to a customized
-!  "tracerinfo.dat" file. (bmy, 4/21/05)
+!  "tracerinfo.dat" file. (bmy, 4/21/05, 5/22/06)
 !
 !  NOTES:
+!  (1 ) Now write out tracers in ug/m3 (dkh, bmy, 5/22/06)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -444,7 +450,7 @@
      &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
       ENDDO
 
-! Implement this when we have aerosol microphysics, perhaps (bmy, 4/28/05)
+! Add this later on (bmy, 5/22/06)
 !      !------------------------------
 !      ! 500: Tracers [ug/m3]
 !      !------------------------------
@@ -650,12 +656,15 @@
 !        restriction on printing out cloud mass flux in GEOS-4 for the ND66 
 !        diagnostic.  Added new sea salt category. (cdh, eck, bmy, 4/6/06)
 !  (7 ) Now references ND56 from "diag56_mod.f" (ltm, bmy, 5/5/06) 
+!  (8 ) Now references ND42 from "diag42_mod.f".  Also updated for extra SOA
+!        tracers in ND07 diagnostic. (dkh, bmy, 5/22/06)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIAG03_MOD,   ONLY : ND03
       USE DIAG04_MOD,   ONLY : ND04
       USE DIAG41_MOD,   ONLY : ND41
+      USE DIAG42_MOD,   ONLY : ND42
       USE DIAG48_MOD,   ONLY : DO_SAVE_DIAG48
       USE DIAG49_MOD,   ONLY : DO_SAVE_DIAG49
       USE DIAG50_MOD,   ONLY : DO_SAVE_DIAG50
@@ -665,13 +674,15 @@
       USE DIAG_PL_MOD,  ONLY : GET_FAM_MWT, GET_FAM_NAME
       USE DRYDEP_MOD,   ONLY : DEPNAME,     NUMDEP,    NTRAIND
       USE ERROR_MOD,    ONLY : ALLOC_ERR
+      USE LOGICAL_MOD,  ONLY : LSOA
       USE TIME_MOD,     ONLY : EXPAND_DATE, GET_NHMSb, GET_NYMDb
       USE TRACER_MOD,   ONLY : ITS_A_CH3I_SIM,   ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,   ONLY : ITS_A_HCN_SIM,    ITS_A_MERCURY_SIM
       USE TRACER_MOD,   ONLY : ITS_A_RnPbBe_SIM, ITS_A_TAGOX_SIM
       USE TRACER_MOD,   ONLY : N_TRACERS,        TRACER_COEFF
       USE TRACER_MOD,   ONLY : TRACER_MW_KG,     TRACER_NAME
-      USE TRACERID_MOD, ONLY : IDTBCPI, IDTOCPI
+      USE TRACERID_MOD, ONLY : IDTBCPI, IDTOCPI, IDTALPH, IDTLIMO
+      USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD, GET_WETDEP_NSOL
 
 #     include "CMN_SIZE"    ! Size parameters
@@ -1168,6 +1179,31 @@
       OFFSET(N)   = SPACING * 33
 
       N           = N + 1
+      CATEGORY(N) = 'OC-ALPH'
+      DESCRIPT(N) = 'Biogenic ALPH emission'
+      OFFSET(N)   = SPACING * 33
+
+      N           = N + 1
+      CATEGORY(N) = 'OC-LIMO'
+      DESCRIPT(N) = 'Biogenic ALPH emission'
+      OFFSET(N)   = SPACING * 33
+
+      N           = N + 1
+      CATEGORY(N) = 'OC-TERP'
+      DESCRIPT(N) = 'Biogenic TERP emission'
+      OFFSET(N)   = SPACING * 33
+
+      N           = N + 1
+      CATEGORY(N) = 'OC-ALCO'
+      DESCRIPT(N) = 'Biogenic ALCO emission'
+      OFFSET(N)   = SPACING * 33
+
+      N           = N + 1
+      CATEGORY(N) = 'OC-SESQ'
+      DESCRIPT(N) = 'Biogenic SESQ emission'
+      OFFSET(N)   = SPACING * 33
+
+      N           = N + 1
       CATEGORY(N) = 'PL-BC=$'
       DESCRIPT(N) = 'H-philic from H-phobic BC'
       OFFSET(N)   = SPACING * 33
@@ -1236,6 +1272,11 @@
       CATEGORY(N) = 'LFLASH-$'
       DESCRIPT(N) = 'Lightning flash rates'
       OFFSET(N)   = SPACING * 42
+
+      N           = N + 1
+      CATEGORY(N) = 'IJ-SOA-$'
+      DESCRIPT(N) = 'SOA concentrations'
+      OFFSET(N)   = SPACING * 43
 
       ! Number of categories
       NCATS = N
@@ -1538,12 +1579,20 @@
       ENDIF
 
       !-------------------------------------
-      ! Carbon aerosol emissions (ND06)
+      ! Carbon aerosol emissions (ND07)
       !-------------------------------------
       IF ( ND07 > 0 ) THEN
 
          ! Number of tracers
-         NTRAC(07) = 2
+         !-----------------------
+         ! Prior to 5/22/06
+         !NTRAC(07) = 2
+         !-----------------------
+         IF ( LSOA ) THEN
+            NTRAC(07) = 10
+         ELSE
+            NTRAC(07) = 2
+         ENDIF
 
          ! Loop over tracers
          DO T = 1, NTRAC(07)
@@ -1558,6 +1607,39 @@
                   NAME (T,07) = 'ORGC'
                   FNAME(T,07) = 'Organic Carbon'
                   INDEX(T,07) = IDTOCPI + ( SPACING * 33 )
+               CASE( 3 )
+                  NAME (T,07) = 'ALPH'
+                  FNAME(T,07) = 'Alpha-Pinene'
+                  INDEX(T,07) = IDTALPH + ( SPACING * 33 )
+               CASE( 4 )
+                  NAME (T,07) = 'LIMO'
+                  FNAME(T,07) = 'Limonene'
+                  INDEX(T,07) = IDTLIMO + ( SPACING * 33 )
+               CASE( 5 )
+                  NAME (T,07) = 'TERP'
+                  FNAME(T,07) = 'Terpenes'
+                  INDEX(T,07) = IDTLIMO + 1 + ( SPACING * 33 )
+               CASE( 6 )
+                  NAME (T,07) = 'ALCO'
+                  FNAME(T,07) = 'Alcohols'
+                  INDEX(T,07) = IDTLIMO + 2 + ( SPACING * 33 )
+               CASE( 7 )
+                  NAME (T,07) = 'SESQ'
+                  FNAME(T,07) = 'Sesqterpene'
+                  INDEX(T,07) = IDTLIMO + 3 + ( SPACING * 33 )
+               CASE( 8 )
+                  NAME (T,07) = 'SOA1'
+                  FNAME(T,07) = 'Aer prods of ALPH+LIMO+TERP ox'
+                  INDEX(T,07) = IDTSOA1 + ( SPACING * 33 )
+               CASE( 9 )
+                  NAME (T,07) = 'SOA2'
+                  FNAME(T,07) = 'Aerosol prod of ALCO ox'
+                  INDEX(T,07) = IDTSOA2 + ( SPACING * 33 )
+               CASE( 10 )
+                  NAME (T,07) = 'SOA3'
+                  FNAME(T,07) = 'Aerosol prod of SESQ ox'
+                  INDEX(T,07) = IDTSOA3 + ( SPACING * 33 )
+
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -2028,6 +2110,70 @@
          ENDDO
       ENDIF
 
+      !-------------------------------------      
+      ! SOA concentrations (ND42)
+      !-------------------------------------    
+      IF ( ND42 > 0 ) THEN
+
+         ! Number of tracers
+         NTRAC(42) = 8
+
+         ! Loop over tracers
+         DO T = 1, NTRAC(42)
+
+            ! Get name, long name, unit, and mol wt for each field
+            SELECT CASE( T )
+               CASE( 1 )
+                  NAME (T,42) = 'SOA1'
+                  FNAME(T,42) = 'Aer prods of ALPH+LIMO+TERP ox'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 150e-3
+               CASE( 2 )
+                  NAME (T,42) = 'SOA2'
+                  FNAME(T,42) = 'Aerosol prod of ALCO ox'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 160e-3
+               CASE( 3 )
+                  NAME (T,42) = 'SOA3'
+                  FNAME(T,42) = 'Aerosol prod of SESQ ox'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 220e-3
+               CASE( 4 )
+                  NAME (T,42) = 'SOA4'
+                  FNAME(T,42) = 'Aerosol prod of ISOP ox'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 130e-3
+               CASE( 5 )
+                  NAME (T,42) = 'SOA1-3'
+                  FNAME(T,42) = 'SOA1 + SOA2 + SOA3'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 177d-3
+               CASE( 6 )
+                  NAME (T,42) = 'SOA1-4'
+                  FNAME(T,42) = 'SOA1 + SOA2 + SOA3 + SOA4'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 165e-3
+               CASE( 7 )
+                  NAME (T,42) = 'sumOC'
+                  FNAME(T,42) = 'Sum of organic carbon'
+                  UNIT (T,42) = 'ug C/m3'
+                  MWT  (T,42) = 12e-3
+               CASE( 8 )
+                  NAME (T,42) = 'sumOCstp'
+                  FNAME(T,42) = 'Sum of organic carbon @ STP'
+                  UNIT (T,42) = 'ug C/sm3'
+                  MWT  (T,42) = 12e-3
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT
+
+            ! Define the rest of the quantities
+            INDEX(T,42) = T + ( SPACING * 43 )
+            MOLC (T,42) = 1
+            SCALE(T,42) = 1e0
+         ENDDO
+      ENDIF
+      
       !-------------------------------------      
       ! Chemically-produced OH, etc (ND43)
       !-------------------------------------      

@@ -1,9 +1,4 @@
-! $Id: ruralbox.f,v 1.5 2006/04/21 15:40:07 bmy Exp $
-!-----------------------------------------------------------------------------
-!      SUBROUTINE RURALBOX( AD,     T,      AVGW,   ALT,   ALBD,  
-!     &                     SUNCOS, CLOUDS, LEMBED, IEBD1, IEBD2,  
-!     &                     JEBD1,  JEBD2 )
-!-----------------------------------------------------------------------------
+! $Id: ruralbox.f,v 1.6 2006/05/26 17:45:26 bmy Exp $
       SUBROUTINE RURALBOX( AD,     T,     AVGW,  ALBD,  SUNCOS, 
      &                     LEMBED, IEBD1, IEBD2, JEBD1, JEBD2 )
 !
@@ -71,18 +66,8 @@
       REAL*8,  INTENT(IN)     :: AD(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(IN)     :: T(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(IN)     :: AVGW(IIPAR,JJPAR,LLPAR)
-      !---------------------------------------------------
-      ! Prior to 4/10/06:
-      ! ALT is now obsolete (bmy, 4/10/06)
-      !REAL*8,  INTENT(IN)     :: ALT(MAXIJ,NPVERT)
-      !---------------------------------------------------
       REAL*8,  INTENT(IN)     :: ALBD(IIPAR,JJPAR)
       REAL*8,  INTENT(IN)     :: SUNCOS(MAXIJ)
-      !---------------------------------------------------
-      ! Prior to 4/10/06:
-      ! CLOUDS is now obsolete (bmy, 4/10/06)
-      !REAL*8,  INTENT(INOUT)  :: CLOUDS(MAXIJ,11)
-      !---------------------------------------------------
 
       ! Local variables      
       LOGICAL                 :: LDEBUG

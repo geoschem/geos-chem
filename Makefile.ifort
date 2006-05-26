@@ -1,11 +1,11 @@
-# $Id: Makefile.ifort,v 1.9 2006/05/15 17:52:43 bmy Exp $
+# $Id: Makefile.ifort,v 1.10 2006/05/26 17:45:12 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for LINUX/IFORT compiler (bmy, Wed May 10 13:32:13 2006)
+# GEOS-CHEM Makefile for LINUX/IFORT compiler (bmy, Mon May 22 10:13:52 2006)
 #=============================================================================
 SHELL = /bin/sh
 
 # IFORT compilation options
-FFLAGS = -cpp -w -O2 -auto -noalign -convert big_endian
+FFLAGS = -cpp -w -O2 -auto -noalign -convert big_endian -traceback
 
 # Compile command -- multiprocessor
 F90 = ifort $(FFLAGS) -openmp -Dmultitask
@@ -36,7 +36,6 @@ diag1.o                   \
 diag3.o                   \
 diag_2pm.o                \
 diagoh.o                  \
-diffg.o                   \
 emf_scale.o               \
 emfossil.o                \
 emisop.o                  \
@@ -145,6 +144,7 @@ pbl_mix_mod.o             \
 diag03_mod.o              \
 diag04_mod.o              \
 diag41_mod.o              \
+diag42_mod.o              \
 diag48_mod.o              \
 diag49_mod.o              \
 diag50_mod.o              \
@@ -279,6 +279,7 @@ diag04_mod.o               : diag04_mod.f               CMN_DIAG CMN_SIZE define
 diag1.o                    : diag1.f                    CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h 
 diag3.o                    : diag3.f                    CMN CMN_DIAG CMN_O3 CMN_SIZE define.h comode.h 
 diag41_mod.o               : diag41_mod.f               CMN_DIAG CMN_SIZE define.h 
+diag42_mod.o               : diag42_mod.f               CMN_DIAG CMN_SIZE define.h 
 diag48_mod.o               : diag48_mod.f               CMN_GCTM CMN_O3 CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 diag49_mod.o               : diag49_mod.f               CMN_GCTM CMN_O3 CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 diag50_mod.o               : diag50_mod.f               CMN_GCTM CMN_O3 CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h jv_cmn.h 
@@ -340,7 +341,7 @@ julday_mod.o               : julday_mod.f
 jv_index.o                 : jv_index.f                 cmn_fj.h CMN_SIZE define.h comode.h 
 ksparse.o                  : ksparse.f                  CMN_SIZE define.h comode.h 
 lai_mod.o                  : lai_mod.f                  CMN_SIZE define.h 
-lightning_nox_mod.o        : lightning_nox_mod.f        CMN_DIAG CMN_GCTM CMN_NOX CMN_SIZE define.h 
+lightning_nox_mod.o        : lightning_nox_mod.f        CMN_DIAG CMN_GCTM CMN_NOX CMN_SIZE define.h define.h 
 lightning_nox_nl_mod.o     : lightning_nox_nl_mod.f     CMN_DIAG CMN_GCTM CMN_NOX CMN_SIZE define.h 
 logical_mod.o              : logical_mod.f              
 lump.o                     : lump.f                     CMN_SIZE define.h comode.h 
@@ -393,6 +394,7 @@ soiltemp.o                 : soiltemp.f                 CMN_SIZE define.h commso
 soiltype.o                 : soiltype.f                 CMN_SIZE define.h commsoil.h 
 subfun.o                   : subfun.f                   CMN_SIZE define.h comode.h 
 sulfate_mod.o              : sulfate_mod.f              CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h 
+	$(F90) -c -CB $*.f
 sunparam.o                 : sunparam.f                 
 tagged_co_mod.o            : tagged_co_mod.f            CMN_DIAG CMN_O3 CMN_SIZE define.h 
 tagged_ox_mod.o            : tagged_ox_mod.f            CMN_DIAG CMN_GCTM CMN_SIZE define.h 

@@ -1,5 +1,11 @@
-! $Id: main.f,v 1.34 2006/05/15 17:52:52 bmy Exp $
+! $Id: main.f,v 1.35 2006/05/26 17:45:24 bmy Exp $
 ! $Log: main.f,v $
+! Revision 1.35  2006/05/26 17:45:24  bmy
+! GEOS-Chem v7-04-04, includes the following modifications:
+! - Now updated for SOA production from ISOP (cf D. Henze)
+! - Now archive SOA concentrations in [ug/m3] ("diag42_mod.f")
+! - Other minor bug fixes
+!
 ! Revision 1.34  2006/05/15 17:52:52  bmy
 ! GEOS-Chem v7-04-03, includes the following modifications:
 ! - Added near-land formulation for lightning
@@ -177,6 +183,7 @@
       USE COMODE_MOD,        ONLY : INIT_COMODE
       USE DIAG_MOD,          ONLY : DIAGCHLORO
       USE DIAG41_MOD,        ONLY : DIAG41,          ND41
+      USE DIAG42_MOD,        ONLY : DIAG42,          ND42
       USE DIAG48_MOD,        ONLY : DIAG48,          ITS_TIME_FOR_DIAG48
       USE DIAG49_MOD,        ONLY : DIAG49,          ITS_TIME_FOR_DIAG49
       USE DIAG50_MOD,        ONLY : DIAG50,          DO_SAVE_DIAG50
@@ -221,7 +228,7 @@
       USE LOGICAL_MOD,       ONLY : LLIGHTNOX, LPRT,  LSTDRUN, LSVGLB
       USE LOGICAL_MOD,       ONLY : LWAIT,     LTRAN, LUPBD,   LCONV
       USE LOGICAL_MOD,       ONLY : LWETD,     LTURB, LDRYD,   LMEGAN  
-      USE LOGICAL_MOD,       ONLY : LDYNOCEAN
+      USE LOGICAL_MOD,       ONLY : LDYNOCEAN, LSOA
       USE MEGAN_MOD,         ONLY : INIT_MEGAN
       USE MEGAN_MOD,         ONLY : UPDATE_T_15_AVG
       USE MEGAN_MOD,         ONLY : UPDATE_T_DAY
@@ -930,6 +937,9 @@
             ! ND41: save PBL height in 1200-1600 LT (amf)
             ! (for comparison w/ Holzworth, 1967)
             IF ( ND41 > 0 ) CALL DIAG41
+
+            ! ND42: SOA concentrations [ug/m3]
+            IF ( ND42 > 0 ) CALL DIAG42
 
             !### Debug
             IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a DIAGNOSTICS' )

@@ -1,4 +1,4 @@
-! $Id: ndxx_setup.f,v 1.23 2006/04/21 15:40:04 bmy Exp $
+! $Id: ndxx_setup.f,v 1.24 2006/05/26 17:45:24 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
@@ -119,13 +119,10 @@
 !  (56) Now allocates AD30 (bmy, 8/18/05)
 !  (57) Removed duplicate variable declarations (bmy, 2/6/06)
 !  (58) Now remove NBIOTRCE; it's obsolete.  Replace w/ NBIOMAX (bmy, 4/5/06)
+!  (59) Now remove TRCOFFSET; it's obsolete (bmy, 5/16/06)
 !******************************************************************************
 !
       ! References to F90 modules
-      !-----------------------------------------
-      ! Prior to 3/30/06:
-      !USE BIOMASS_MOD,     ONLY : NBIOTRCE
-      !-----------------------------------------
       USE BIOMASS_MOD,     ONLY : NBIOMAX
       USE BIOFUEL_MOD,     ONLY : NBFTRACE
       USE DIAG_MOD,        ONLY : AD01,        AD02,        AD05    
@@ -160,7 +157,7 @@
       USE DIAG_OH_MOD,     ONLY : INIT_DIAG_OH
       USE DRYDEP_MOD,      ONLY : NUMDEP
       USE ERROR_MOD,       ONLY : ALLOC_ERR,   ERROR_STOP
-      USE LOGICAL_MOD,     ONLY : LDUST, LCARB, LSSALT, LCRYST 
+      USE LOGICAL_MOD,     ONLY : LDUST, LCARB, LSSALT, LCRYST, LDRYD
       USE PLANEFLIGHT_MOD, ONLY : SETUP_PLANEFLIGHT
       USE TRACER_MOD,      ONLY : ITS_A_CH3I_SIM
       USE TRACER_MOD,      ONLY : ITS_A_FULLCHEM_SIM
@@ -211,14 +208,18 @@
       LD66 = 1
       LD68 = 1
 
-      !=================================================================
-      ! Define TRCOFFSET for "alternate chemistry" runs
-      ! TRCOFFSET will be used to offset punch file tracer indices
-      !=================================================================
-
-      ! Make TRCOFFSET = 0 since we now write out both "diaginfo.dat" 
-      ! and "tracerinfo.dat" files for GAMAP (bmy, 4/20/05)
-      TRCOFFSET = 0
+      !----------------------------------------------------------------------
+      ! Prior to 5/16/06:
+      ! Remove TRCOFFSET, it's now obsolete (bmy, 5/16/06)
+      !!=================================================================
+      !! Define TRCOFFSET for "alternate chemistry" runs
+      !! TRCOFFSET will be used to offset punch file tracer indices
+      !!=================================================================
+      !
+      !! Make TRCOFFSET = 0 since we now write out both "diaginfo.dat" 
+      !! and "tracerinfo.dat" files for GAMAP (bmy, 4/20/05)
+      !TRCOFFSET = 0
+      !----------------------------------------------------------------------
 
       !=================================================================
       ! ND01: Rn, Pb, Be emissions
@@ -558,10 +559,6 @@
       !       --> uses AD28 array (allocatable)
       !=================================================================
       IF ( ND28 > 0 ) THEN
-         !-------------------------------------------------------
-         ! Prior to 3/30/06:
-         !ALLOCATE( AD28( IIPAR, JJPAR, NBIOTRCE ), STAT=AS )
-         !-------------------------------------------------------
          ALLOCATE( AD28( IIPAR, JJPAR, NBIOMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD28' )
       ENDIF
@@ -791,6 +788,11 @@
       ! ND44: Drydep fluxes [s-1] and drydep velocities [cm/s]
       !       --> uses AD44 arrays (allocatable)
       !=================================================================
+
+      ! Turn off ND44 if drydep is turned off
+      IF ( .not. LDRYD ) ND44 = 0
+
+      ! Allocate arrays for ND44
       IF ( ND44 > 0 ) THEN
 
          ! Get number of tracers for ND44
@@ -804,7 +806,7 @@
          ALLOCATE( AD44( IIPAR, JJPAR, NMAX, 2 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD44' )
       ENDIF
-
+      
       !=================================================================
       ! ND45: Tracer concentrations [v/v] between HR1_OTH and HR2_OTH
       !       --> uses AD45 array (allocatable)
@@ -821,7 +823,7 @@
          ! Locations where LT is between HR1_OTH and HR2_OTH
          ALLOCATE( LTOTH( IIPAR, JJPAR ), STAT=AS )
          IF ( AS > 0 ) CALL ALLOC_ERR( 'LTOTH' )
-
+    
          ! Number of times LT is between HR1_OTH and HR2_OTH
          ALLOCATE( CTOTH( IIPAR, JJPAR ), STAT=AS )
          IF ( AS > 0 ) CALL ALLOC_ERR( 'CTOTH' )

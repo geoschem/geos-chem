@@ -1,4 +1,4 @@
-! $Id: ch3i_mod.f,v 1.8 2006/04/21 15:39:52 bmy Exp $
+! $Id: ch3i_mod.f,v 1.9 2006/05/26 17:45:16 bmy Exp $
       MODULE CH3I_MOD
 !
 !******************************************************************************
@@ -327,10 +327,6 @@
 !
       ! Reference to F90 modules
       USE BIOFUEL_MOD,  ONLY : BIOFUEL,   BIOFUEL_BURN
-      !-------------------------------------------------------
-      ! Prior to 4/5/06:
-      !USE BIOMASS_MOD,  ONLY : BURNEMIS,  BIOBURN
-      !-------------------------------------------------------
       USE BIOMASS_MOD,  ONLY : BIOMASS,   IDBCO
       USE DAO_MOD,      ONLY : AIRVOL,    BXHEIGHT, TS
       USE DIAG_MOD,     ONLY : AD29,      AD36
@@ -727,17 +723,6 @@
       !                   * grid box volume      
       !=================================================================
  
-      !---------------------------------------------------------------------
-      ! Prior to 4/5/06:
-      !! Make sure CO is a biomass burning tracer
-      !IF ( IDBCO == 0 ) THEN
-      !   CALL ERROR_STOP( 'IDBCO=0, check "tracer.dat"', 'EMISSCH3I' )
-      !ENDIF
-      !
-      !! Call BIOBURN from "biomass_mod.f
-      !CALL BIOBURN
-      !---------------------------------------------------------------------
-
       ! Convert biomass CO into biomass CH3I
       N = 2
       L = 1
@@ -745,10 +730,6 @@
       DO I = 1, IIPAR
 
          ! Get emission flux in kg/cm3/time step
-         !--------------------------------------------------
-         ! Prior to 4/5/06:
-         !FLUX = ECH3I * BURNEMIS(IDBCO,I,J)
-         !--------------------------------------------------
          FLUX = ECH3I * BIOMASS(I,J,IDBCO)
          FLUX = FLUX * 1.0D-3 * FMOL_CH3I * XMOL * DTSRCE
 

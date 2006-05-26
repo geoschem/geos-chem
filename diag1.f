@@ -1,4 +1,4 @@
-! $Id: diag1.f,v 1.11 2006/05/15 17:52:46 bmy Exp $
+! $Id: diag1.f,v 1.12 2006/05/26 17:45:17 bmy Exp $
       SUBROUTINE DIAG1 
 !
 !******************************************************************************
@@ -373,10 +373,20 @@
 !$OMP+PRIVATE( I, J )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            IF ( IS_WATER( I, J ) ) AD30(I,J) = AD30(I,J) + 0e0
-            IF ( IS_LAND ( I, J ) ) AD30(I,J) = AD30(I,J) + 1e0
-            !IF ( IS_NEAR ( I, J, 0.2d0,1 )) AD30(I,J) = AD30(I,J) + 1e0
-            IF ( IS_ICE  ( I, J ) ) AD30(I,J) = AD30(I,J) + 2e0
+            !IF ( IS_WATER( I, J ) ) AD30(I,J) = AD30(I,J) + 0e0
+            !!IF ( IS_LAND ( I, J ) ) AD30(I,J) = AD30(I,J) + 1e0
+            !IF ( IS_NEAR ( I, J, 0.3d0,1 )) AD30(I,J) = AD30(I,J) + 1e0
+            !IF ( IS_ICE  ( I, J ) ) AD30(I,J) = AD30(I,J) + 2e0
+
+            ! Same logic as in FLASHES
+            IF ( IS_NEAR( I, J, 80d0,1 ) ) THEN
+               AD30(I,J) = AD30(I,J) + 1e0
+            ELSE IF (       IS_WATER( I, J          )  .and. 
+     &                .not. IS_NEAR(  I, J, 80d0, 1 ) ) THEN
+               AD30(I,J) = AD30(I,J) + 0d0
+            ELSE IF ( IS_ICE(I,J) ) THEN
+               AD30(I,J) = AD30(I,J) + 2e0
+            ENDIF
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO

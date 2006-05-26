@@ -1,4 +1,4 @@
-! $Id: c2h6_mod.f,v 1.5 2006/04/21 15:39:51 bmy Exp $
+! $Id: c2h6_mod.f,v 1.6 2006/05/26 17:45:14 bmy Exp $
       MODULE C2H6_MOD
 !
 !******************************************************************************
@@ -114,10 +114,6 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      !------------------------------------------------------------------
-      ! Prior to 4/5/06:
-      !USE BIOMASS_MOD,   ONLY : BURNEMIS,     BIOBURN
-      !------------------------------------------------------------------
       USE BIOMASS_MOD,   ONLY : BIOMASS, IDBC2H6
       USE BIOFUEL_MOD,   ONLY : BIOFUEL, BIOFUEL_BURN
       USE DIAG_MOD,      ONLY : AD36
@@ -169,13 +165,6 @@
       !=================================================================
       IF ( LBIOMASS ) THEN
 
-         !------------------------------------------------------------------
-         ! Prior to 4/5/06:
-         ! This is now called from "emissions_mod.f" (bmy, 4/5/06)
-         !! Get biomass burning emissions (and update ND28 diagnostic)
-         !CALL BIOBURN
-         !------------------------------------------------------------------
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, E_C2H6_BB )
@@ -183,11 +172,6 @@
          DO I = 1, IIPAR
  
             ! Convert [molec C/cm3/s] to [kg C2H6] and store in E_C2H6
-!---------------------------------------------------------------------------
-! Prior to 4/5/06:
-!            E_C2H6_BB = BURNEMIS(IDBC2H6,I,J) / 2.0d0 / 
-!     &                  XNUMOL_C2H6 * BOXVL(I,J,1) * DTSRCE  
-!---------------------------------------------------------------------------
             E_C2H6_BB = BIOMASS(I,J,IDBC2H6)       / 2.0d0  / 
      &                  XNUMOL_C2H6 * BOXVL(I,J,1) * DTSRCE  
 

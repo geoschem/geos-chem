@@ -1,4 +1,4 @@
-! $Id: i6_read_mod.f,v 1.12 2006/05/15 17:52:49 bmy Exp $
+! $Id: i6_read_mod.f,v 1.13 2006/05/26 17:45:22 bmy Exp $
       MODULE I6_READ_MOD
 !
 !******************************************************************************
@@ -682,11 +682,6 @@
 
       ! Arguments
       INTEGER, INTENT(IN)            :: NYMD, NHMS
-      !--------------------------------------------------------------
-      ! Prior to 5/9/06:
-      ! Make LWI REAL*8 for near-land formulation (ltm, bmy, 5/9/06)
-      !INTEGER, INTENT(OUT), OPTIONAL :: LWI  (IIPAR,JJPAR      )    
-      !--------------------------------------------------------------
       REAL*8,  INTENT(OUT), OPTIONAL :: LWI  (IIPAR,JJPAR      )    
       REAL*8,  INTENT(OUT), OPTIONAL :: ALBD (IIPAR,JJPAR      )  
       REAL*8,  INTENT(OUT), OPTIONAL :: PS   (IIPAR,JJPAR      )     
@@ -764,17 +759,6 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:3' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-
-!--------------------------------------------------------------------------
-! Prior to 5/9/06:
-! Now do not round up, do this in dao_mod instead (ltm, bmy, 5/9/06)
-!#if   defined( GEOS_4 ) 
-!                  ! Round up in order to account for GEOS-4 coastal
-!                  ! boxes properly. (bmy, 8/10/05)
-!                  Q2 = INT( Q2 + 0.5 )
-!#endif
-!--------------------------------------------------------------------------
-                  
                   IF ( PRESENT( LWI ) ) CALL TRANSFER_2D( Q2, LWI )
                   NFOUND = NFOUND + 1
                ENDIF

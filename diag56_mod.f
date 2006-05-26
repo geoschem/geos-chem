@@ -1,4 +1,4 @@
-! $Id: diag56_mod.f,v 1.1 2006/05/15 17:52:48 bmy Exp $
+! $Id: diag56_mod.f,v 1.2 2006/05/26 17:45:19 bmy Exp $
       MODULE DIAG56_MOD
 !
 !******************************************************************************
@@ -7,7 +7,7 @@
 !
 !  Module Variables:
 !  ============================================================================
-!  (1 ) AD56 (REAL*4)  : Array for Hg emissions & ocean masses 
+!  (1 ) AD56 (REAL*4)  : Diagnostic array for lightning flash rates
 !
 !  Module Routines:
 !  ============================================================================
@@ -99,7 +99,6 @@
       USE FILE_MOD,     ONLY : IU_BPCH
       USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,     ONLY : GET_CT_EMIS, GET_DIAGb,  GET_DIAGe
-      USE TRACERID_MOD, ONLY : N_Hg_CATS
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! TINDEX

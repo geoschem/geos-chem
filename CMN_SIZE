@@ -1,6 +1,6 @@
-! $Id: CMN_SIZE,v 1.17 2006/03/24 20:22:36 bmy Exp $
+! $Id: CMN_SIZE,v 1.18 2006/05/26 17:45:11 bmy Exp $
       !=======================================================================
-      ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 12/6/05)
+      ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 5/22/06)
       !
       ! NOTES:
       ! (1 ) Now set LLTROP = 20 for GEOS-3 (bmy, 4/12/01)
@@ -41,6 +41,7 @@
       ! (21) Now add I1x1 and J1x1 parameters for data on the 1x1 GEOS
       !       grid. (bmy, 10/24/05)
       ! (22) Increase NNPAR to 52 (bmy, 12/6/05)
+      ! (23) Increase NNPAR to 54 (dkh, bmy, 5/22/06)
       !=======================================================================
 
       ! C Preprocessor #define statements for conditional compilation
@@ -403,7 +404,11 @@
       ! NEMPARA = max number of anthropogenic emission species
       ! NEMPARB = max number of biogenic      emission species
       !=================================================================
-      INTEGER, PARAMETER :: NNPAR   = 52
+      !--------------------------------------
+      ! Prior to 5/22/06:
+      !INTEGER, PARAMETER :: NNPAR   = 52
+      !--------------------------------------
+      INTEGER, PARAMETER :: NNPAR   = 54
       INTEGER, PARAMETER :: NEMPARA = 10
       INTEGER, PARAMETER :: NEMPARB = 1
 
