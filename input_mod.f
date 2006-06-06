@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.25 2006/06/06 14:26:06 bmy Exp $
+! $Id: input_mod.f,v 1.26 2006/06/06 14:38:39 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -1136,7 +1136,7 @@
       ! Error check 2dy ORG AEROSOLS
       !---------------------------------
       I = IDTALPH + IDTLIMO + IDTALCO + 
-     &    IDTSOG1 + IDTSOG2 + IDTSOG3 + IDGSOG4 + 
+     &    IDTSOG1 + IDTSOG2 + IDTSOG3 + IDTSOG4 + 
      &    IDTSOA1 + IDTSOA2 + IDTSOA3 + IDTSOA4
 
       IF ( LSOA ) THEN
