@@ -1,10 +1,10 @@
-! $Id: biofuel_mod.f,v 1.10 2006/04/21 15:39:50 bmy Exp $
+! $Id: biofuel_mod.f,v 1.11 2006/06/06 14:25:56 bmy Exp $
       MODULE BIOFUEL_MOD
 !
 !******************************************************************************
 !  Module BIOFUEL_MOD contains arrays and routines to compute yearly
 !  biofuel emissions for NOx, CO, ALK4, ACET, MEK, ALD2, PRPE, C3H8, 
-!  CH2O, and C2H6 (bmy, 9/12/00, 2/1/06)
+!  CH2O, and C2H6. (bmy, 9/12/00, 5/30/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -15,25 +15,26 @@
 !
 !  Module Routines:
 !  ============================================================================
-!  (1 ) BIOFUEL_BURN       : reads data from disk & computes biofuel emissions
-!  (2 ) SCALE_BIOFUEL_CO   : scales biofuel CO to account for VOC oxidation
-!  (3 ) SCALE_BIOFUEL_ACET : scales biofuel ACET to match a posteriori source
-!  (4 ) SET_BFTRACE        : Initializes NBFTRACE counter and BFTRACE array
-!  (5 ) INIT_BIOFUEL       : initializes the BIOFUEL array
-!  (6 ) CLEANUP_BIOFUEL    : deallocates the BIOFUEL array
+!  (1 ) BIOFUEL_BURN       : Reads data from disk & computes biofuel emissions
+!  (2 ) SCALE_BIOFUEL_CO   : Scales biofuel CO to account for VOC oxidation
+!  (3 ) SCALE_BIOFUEL_ACET : Scales biofuel ACET to match a posteriori source
+!  (4 ) SCALE_FUTURE       : Applies future scale factors to biofuel emissions
+!  (5 ) SET_BFTRACE        : Initializes NBFTRACE counter and BFTRACE array
+!  (6 ) INIT_BIOFUEL       : Initializes the BIOFUEL array
+!  (7 ) CLEANUP_BIOFUEL    : Deallocates the BIOFUEL array
 !
 !  GEOS-CHEM modules referenced by biofuel_mod.f
 !  ============================================================================
-!  (1 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
-!  (2 ) dao_mod.f       : Module containing DAO met field arrays
-!  (3 ) diag_mod.f      : Module containing GEOS-CHEM diagnostic arrays
-!  (4 ) directory_mod.f : Module containing GEOS-CHEM data & met field dirs
-!  (5 ) epa_nei_mod.f   : Module containing routines to read EPA/NEI99 data
-!  (6 ) error_mod.f     : Module containing NaN and other error check routines
-!  (7 ) logical_mod.f   : Module containing GEOS-CHEM logical switches
-!  (8 ) tracer_mod.f    : Module containing GEOS-CHEM tracer array etc.
-!  (9 ) tracerid_mod.f  : Module containing pointers to tracers & emissions 
-!  (10) transfer_mod.f  : Module containing routines to cast & resize arrays
+!  (1 ) bpch2_mod.f        : Module w/ routines for binary punch file I/O
+!  (2 ) dao_mod.f          : Module w/ DAO met field arrays
+!  (3 ) diag_mod.f         : Module w/ GEOS-CHEM diagnostic arrays
+!  (4 ) directory_mod.f    : Module w/ GEOS-CHEM data & met field dirs
+!  (5 ) epa_nei_mod.f      : Module w/ routines to read EPA/NEI99 data
+!  (6 ) error_mod.f        : Module w/ NaN and other error check routines
+!  (7 ) logical_mod.f      : Module w/ GEOS-CHEM logical switches
+!  (8 ) tracer_mod.f       : Module w/ GEOS-CHEM tracer array etc.
+!  (9 ) tracerid_mod.f     : Module w/ pointers to tracers & emissions 
+!  (10) transfer_mod.f     : Module w/ routines to cast & resize arrays
 !
 !  NOTES:
 !  (1 ) Now account for extra production of CO from VOC's for Tagged CO
@@ -69,6 +70,8 @@
 !  (16) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (17) Rewrite IF statements to avoid seg fault errors when LNEI99 is turned 
 !        off (bmy, 2/1/06)
+!  (18) Modified for IPCC future emissions scale factors.  Added private
+!        routine SCALE_FUTURE. (swu, bmy, 5/30/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -78,13 +81,31 @@
       ! and routines from being seen outside "biofuel_mod.f"
       !=================================================================
 
-      ! PRIVATE module variables
-      PRIVATE BIOFUEL_KG
+      !----------------------------------
+      ! Prior to 5/30/06:
+      !! PRIVATE module variables
+      !PRIVATE BIOFUEL_KG
+      !
+      !! PRIVATE module routines
+      !PRIVATE SCALE_BIOFUEL_CO   
+      !PRIVATE SCALE_BIOFUEL_ACET 
+      !PRIVATE INIT_BIOFUEL      
+      !----------------------------------
 
-      ! PRIVATE module routines
-      PRIVATE SCALE_BIOFUEL_CO   
-      PRIVATE SCALE_BIOFUEL_ACET 
-      PRIVATE INIT_BIOFUEL      
+      ! Make everything PRIVATE ...
+      PRIVATE
+
+      ! ... except these variables ...
+      PUBLIC :: NBFMAX
+      PUBLIC :: NBFTRACE
+      PUBLIC :: BFTRACE
+      PUBLIC :: BIOFUEL
+
+      ! ... and these routines
+      PUBLIC :: BIOFUEL_BURN
+      PUBLIC :: CLEANUP_BIOFUEL
+      PUBLIC :: INIT_BIOFUEL
+      PUBLIC :: SET_BFTRACE
 
       !=================================================================     
       ! MODULE VARIABLES
@@ -109,7 +130,7 @@
 !******************************************************************************
 !  Subroutine BIOFUEL_BURN computes the yearly biofuel burning emissions
 !  and also archives them into GEOS-CHEM diagnostics. 
-!  (rvm, acs, bnd, bmy, 9/12/00, 2/1/06)
+!  (rvm, acs, bnd, bmy, 9/12/00, 5/30/06)
 !
 !  Biofuel emissions are based on estimates by Rose Yevich and Jennifer
 !  Logan (reference TBA).
@@ -160,46 +181,47 @@
 !        to TRACER_MOD, it's obsolete (bmy, 10/3/05)
 !  (20) Rewrite IF statements to avoid seg fault errors when LNEI99 is turned 
 !        off (bmy, 2/1/06)
+!  (21) Now references LFUTURE from "logical_mod.f".  
 !******************************************************************************
 !
       ! References to F90 modules
-      !USE BPCH2_MOD
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE DAO_MOD,       ONLY : BXHEIGHT
-      USE DIAG_MOD,      ONLY : AD29, AD32_bf, AD34
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE EPA_NEI_MOD,   ONLY : GET_EPA_BIOFUEL, GET_USA_MASK
-      USE LOGICAL_MOD,   ONLY : LNEI99
-      USE TIME_MOD,      ONLY : GET_DAY_OF_WEEK
-      USE TRACERID_MOD,  ONLY : IDBFCO,  IDBFNOX, IDTACET, IDTALD2
-      USE TRACERID_MOD,  ONLY : IDTALK4, IDTC2H6, IDTC3H8, IDTCH2O 
-      USE TRACERID_MOD,  ONLY : IDTCO,   IDTMEK,  IDTNOX,  IDTPRPE 
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+      USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D,  GET_RES_EXT
+      USE BPCH2_MOD,            ONLY : GET_TAU0,         READ_BPCH2
+      USE DAO_MOD,              ONLY : BXHEIGHT
+      USE DIAG_MOD,             ONLY : AD29,    AD32_bf, AD34
+      USE DIRECTORY_MOD,        ONLY : DATA_DIR
+      USE EPA_NEI_MOD,          ONLY : GET_EPA_BIOFUEL,  GET_USA_MASK
+      USE LOGICAL_MOD,          ONLY : LFUTURE, LNEI99
+      USE TIME_MOD,             ONLY : GET_DAY_OF_WEEK
+      USE TRACERID_MOD,         ONLY : IDBFCO,  IDBFNOX, IDTACET
+      USE TRACERID_MOD,         ONLY : IDTALD2, IDTALK4, IDTC2H6
+      USE TRACERID_MOD,         ONLY : IDTC3H8, IDTCH2O, IDTCO
+      USE TRACERID_MOD,         ONLY : IDTMEK,  IDTNOX,  IDTPRPE 
+      USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
       IMPLICIT NONE
       
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! ND29, ND32, ND34
+#     include "CMN_SIZE"             ! Size parameters
+#     include "CMN_DIAG"             ! ND29, ND32, ND34
       
       ! Local variables
-      LOGICAL            :: WEEKDAY
-      LOGICAL, SAVE      :: FIRST = .TRUE.
-      LOGICAL, SAVE      :: DO_ND29, DO_ND32, DO_ND34
-      INTEGER            :: AS, I, J, N, NN, DAY_NUM
-      REAL*4             :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8,  SAVE      :: MOLWT(NBFMAX)
-      REAL*8             :: TOTAL, BXHEIGHT_CM, EPA_NEI
-      CHARACTER(LEN=255) :: FILENAME 
+      LOGICAL                       :: WEEKDAY
+      LOGICAL, SAVE                 :: FIRST = .TRUE.
+      LOGICAL, SAVE                 :: DO_ND29, DO_ND32, DO_ND34
+      INTEGER                       :: AS, I, J, N, NN, DAY_NUM
+      REAL*4                        :: ARRAY(IGLOB,JGLOB,1)
+      REAL*8,  SAVE                 :: MOLWT(NBFMAX)
+      REAL*8                        :: TOTAL, BXHEIGHT_CM, EPA_NEI
+      CHARACTER(LEN=255)            :: FILENAME 
       
       ! External functions
-      REAL*8, EXTERNAL   :: BOXVL
+      REAL*8,  EXTERNAL             :: BOXVL
 
       !=================================================================
       !   B i o f u e l   B u r n i n g   B e g i n s   H e r e !!
-      !
-      ! Do the following on the first call to BIOFUEL_BURN... 
       !=================================================================
+
+      ! First-time initialization
       IF ( FIRST ) THEN
 
          ! Allocate and zero the BIOFUEL array 
@@ -264,6 +286,10 @@
             ! Test for each tracer
             IF ( NN == IDTNOX ) THEN
 
+               !----------------
+               ! Biofuel NOx
+               !----------------
+
                ! Read biofuel NOx emissions in [kg/box/yr] -- tracer #1
                CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 1 , 
      &                          0d0,       IGLOB,     JGLOB,     
@@ -272,6 +298,11 @@
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
                CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
                
+               ! Compute future NOx emissions (if necessary)
+               IF ( LFUTURE ) THEN
+                  CALL SCALE_FUTURE( 'NOxbf', BIOFUEL_KG(N,:,:) )
+               ENDIF
+
                ! Compute total of biofuel NOx
                TOTAL = SUM( BIOFUEL_KG(N,:,:) ) * 1d-9
                WRITE( 6, 120 ) 'NOx ', TOTAL, '[Tg  /yr]'
@@ -280,6 +311,10 @@
                MOLWT(N) = 46d-3
 
             ELSE IF ( NN == IDTCO ) THEN
+
+               !----------------
+               ! Biofuel CO
+               !----------------
 
                ! Read biofuel CO emissions in [kg/box/yr] -- tracer #4
                CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 4, 
@@ -292,6 +327,11 @@
                ! Scale CO to account for oxidation of extra VOC's
                CALL SCALE_BIOFUEL_CO( BIOFUEL_KG(N,:,:) )
                
+               ! Compute future CO emissions (if necessary)
+               IF ( LFUTURE ) THEN
+                  CALL SCALE_FUTURE( 'CObf', BIOFUEL_KG(N,:,:) )
+               ENDIF
+
                ! Print total CO
                TOTAL = SUM( BIOFUEL_KG(N,:,:) ) * 1d-9
                WRITE( 6, 120 ) 'CO  ', TOTAL, '[Tg  /yr]'
@@ -301,6 +341,10 @@
 
             ELSE IF ( NN == IDTALK4 ) THEN
 
+               !----------------
+               ! Biofuel ALK4
+               !----------------
+
                ! Read biofuel ALK4 emissions in [kg/box/yr] -- tracer #5
                CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 5, 
      &                          0d0,       IGLOB,     JGLOB,     
@@ -308,6 +352,11 @@
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
                CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+
+               ! Compute future ALK4 emissions (if necessary)
+               IF ( LFUTURE ) THEN
+                  CALL SCALE_FUTURE( 'VOCbf', BIOFUEL_KG(N,:,:) )
+               ENDIF
 
                ! Compute total ALK4
                TOTAL = SUM( BIOFUEL_KG(N,:,:) ) * 1d-9
@@ -317,6 +366,10 @@
                MOLWT(N) = 12d-3
 
             ELSE IF ( NN == IDTACET ) THEN
+
+               !----------------
+               ! Biofuel ACET
+               !----------------
 
                ! Read biofuel ACET emissions in [kg/box/yr] -- tracer #9
                CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 9, 
@@ -329,6 +382,11 @@
                ! Scale to match a posteriori source (bdf, bmy, 9/10/01)
                CALL SCALE_BIOFUEL_ACET( BIOFUEL_KG(N,:,:) )
 
+               ! Compute future ACET emissions (if necessary)
+               IF ( LFUTURE ) THEN
+                  CALL SCALE_FUTURE( 'VOCbf', BIOFUEL_KG(N,:,:) )
+               ENDIF
+
                ! Compute total ACET
                TOTAL = SUM( BIOFUEL_KG(N,:,:) ) * 1d-9
                WRITE( 6, 120 ) 'ACET', TOTAL, '[Tg C/yr]'
@@ -338,6 +396,10 @@
 
             ELSE IF ( NN == IDTMEK ) THEN
 
+               !----------------
+               ! Biofuel MEK
+               !----------------
+
                ! Read biofuel MEK emissions in [kg/box/yr] -- tracer #10
                CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 10, 
      &                          0d0,       IGLOB,     JGLOB,      
@@ -345,6 +407,11 @@
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
                CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+
+               ! Compute future MEK emissions (if necessary)
+               IF ( LFUTURE ) THEN
+                  CALL SCALE_FUTURE( 'VOCbf', BIOFUEL_KG(N,:,:) )
+               ENDIF
 
                ! Compute total MEK
                TOTAL = SUM( BIOFUEL_KG(N,:,:) ) * 1d-9
@@ -355,6 +422,10 @@
 
             ELSE IF ( NN == IDTALD2 ) THEN
 
+               !----------------
+               ! Biofuel ALD2
+               !----------------
+
                ! Read biofuel ALD2 emissions in [kg/box/yr] -- tracer #11
                CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 11, 
      &                          0d0,       IGLOB,     JGLOB,      
@@ -362,6 +433,11 @@
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
                CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+
+               ! Compute future ALD2 emissions (if necessary)
+               IF ( LFUTURE ) THEN
+                  CALL SCALE_FUTURE( 'VOCbf', BIOFUEL_KG(N,:,:) )
+               ENDIF
 
                ! Compute total ALD2
                TOTAL = SUM( BIOFUEL_KG(N,:,:) ) * 1d-9
@@ -372,6 +448,10 @@
 
             ELSE IF ( NN == IDTPRPE ) THEN
 
+               !----------------
+               ! Biofuel PRPE
+               !----------------
+
                ! Read biofuel PRPE emissions in [kg/box/yr] -- tracer #18
                CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 18, 
      &                          0d0,       IGLOB,     JGLOB,      
@@ -379,6 +459,11 @@
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
                CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+
+               ! Compute future PRPE emissions (if necessary)
+               IF ( LFUTURE ) THEN
+                  CALL SCALE_FUTURE( 'VOCbf', BIOFUEL_KG(N,:,:) )
+               ENDIF
 
                ! Compute total PRPE
                TOTAL = SUM( BIOFUEL_KG(N,:,:) ) * 1d-9
@@ -389,6 +474,10 @@
 
             ELSE IF ( NN == IDTC3H8 ) THEN
 
+               !----------------
+               ! Biofuel C3H8
+               !----------------
+
                ! Read biofuel C3H8 emissions in [kg/box/yr] -- tracer #19
                CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 19, 
      &                          0d0,       IGLOB,     JGLOB,      
@@ -396,6 +485,11 @@
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
                CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+
+               ! Compute future C3H8 emissions (if necessary)
+               IF ( LFUTURE ) THEN
+                  CALL SCALE_FUTURE( 'VOCbf', BIOFUEL_KG(N,:,:) )
+               ENDIF
 
                ! Compute total C3H8
                TOTAL = SUM( BIOFUEL_KG(N,:,:) ) * 1d-9
@@ -406,6 +500,10 @@
 
             ELSE IF ( NN == IDTCH2O ) THEN
 
+               !----------------
+               ! Biofuel CH2O
+               !----------------
+
                ! Read biofuel CH2O emissions in [kg/box/yr] -- tracer #20
                CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 20, 
      &                          0d0,       IGLOB,     JGLOB,      
@@ -413,6 +511,11 @@
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
                CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+
+               ! Compute future CH2O emissions (if necessary)
+               IF ( LFUTURE ) THEN
+                  CALL SCALE_FUTURE( 'VOCbf', BIOFUEL_KG(N,:,:) )
+               ENDIF
 
                ! Compute total CH2O
                TOTAL = SUM( BIOFUEL_KG(N,:,:) ) * 1d-9
@@ -430,6 +533,11 @@
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
                CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+
+               ! Compute future C2H6 emissions (if necessary)
+               IF ( LFUTURE ) THEN
+                  CALL SCALE_FUTURE( 'VOCbf', BIOFUEL_KG(N,:,:) )
+               ENDIF 
 
                ! Compute total C2H6
                TOTAL = SUM( BIOFUEL_KG(N,:,:) ) * 1d-9
@@ -626,6 +734,85 @@
         
       ! Return to calling program  
       END SUBROUTINE SCALE_BIOFUEL_ACET
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE SCALE_FUTURE( NAME, BF )
+!
+!******************************************************************************
+!  Subroutine SCALE_FUTURE applies the IPCC future emissions scale factors
+!  to the biofuel emisisons in order to compute the future biofuel emissions
+!  for NOx, CO, and VOC's (swu, bmy, 5/30/06)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) NAME (CHARACTER) : Denotes type of scale factor to use (e.g. NOx)
+!  (2 ) BF   (REAL*8   ) : Array w/ biomass burning emisisons [molec/cm2]
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_CObf
+      USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_NOxbf
+      USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_VOCbf
+
+#     include "CMN_SIZE"               ! Size parameters
+
+      ! Arguments
+      REAL*8,           INTENT(INOUT) :: BF(IIPAR,JJPAR)
+      CHARACTER(LEN=*), INTENT(IN)    :: NAME
+
+      ! Local variables
+      INTEGER                         :: I, J
+      
+      !=================================================================
+      ! SCALE_FUTURE begins here!
+      !=================================================================
+
+      IF ( NAME == 'NOxbf' ) THEN
+
+         ! Compute future NOx emissions
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            BF(I,J) = BF(I,J) * GET_FUTURE_SCALE_NOxbf( I, J )
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+
+      ELSE IF ( NAME == 'CObf' ) THEN
+
+         ! Compute future CO emissions 
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            BF(I,J) = BF(I,J) * GET_FUTURE_SCALE_CObf( I, J )
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+         
+      ELSE
+
+         ! Compute future hydrocarbon emissions
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            BF(I,J) = BF(I,J) * GET_FUTURE_SCALE_VOCbf( I, J )
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE SCALE_FUTURE
 
 !------------------------------------------------------------------------------
 

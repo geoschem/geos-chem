@@ -1,4 +1,4 @@
-! $Id: wetscav_mod.f,v 1.22 2006/05/26 17:45:30 bmy Exp $
+! $Id: wetscav_mod.f,v 1.23 2006/06/06 14:26:11 bmy Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
@@ -148,11 +148,6 @@
       !=================================================================
 
       ! Parameters
-      !-----------------------------------------------
-      ! Prior to 5/18/06:
-      ! Increase to 33 for SOG4, SOA4 (bmy, 5/18/06)
-      !INTEGER, PARAMETER   :: NSOLMAX = 31
-      !-----------------------------------------------
       INTEGER, PARAMETER   :: NSOLMAX = 33
       REAL*8,  PARAMETER   :: EPSILON = 1d-32
 
@@ -1144,11 +1139,6 @@
       !-----------------------------------
       ! SOG[1,2,3,4] (liquid phase only)
       !-----------------------------------
-      !---------------------------------------------------------------------
-      ! Prior to 5/18/06:
-      ! Now add SOG4, SOA4 (bmy, 5/18/06)
-      !ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2 .or. N == IDTSOG3 ) THEN
-      !---------------------------------------------------------------------
       ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2  .or. 
      &          N == IDTSOG3 .or. N == IDTSOG4 ) THEN
 
@@ -1203,11 +1193,6 @@
       ! SOA[1,2,3,4] (aerosol)
       ! Scavenging efficiency for SOA is 0.8
       !------------------------------------------
-      !---------------------------------------------------------------------
-      ! Prior to 5/18/06:
-      ! Now added SOA4 (dkh, bmy, 5/18/06)
-      !ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2 .or. N == IDTSOA3 ) THEN
-      !---------------------------------------------------------------------
       ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
      &          N == IDTSOA3 .or. N == IDTSOA4 ) THEN
          CALL F_AEROSOL( KC, F )
@@ -1885,11 +1870,6 @@
       !----------------------------------
       ! SOG[1,2,3,4] (liquid phase only)
       !----------------------------------
-      !---------------------------------------------------------------------
-      ! Prior to 5/18/06:
-      ! Now add SOG4 (dkh, bmy, 5/18/06)
-      !ELSE IF ( N == IDTSOG1 .OR. N == IDTSOG2 .OR. N == IDTSOG3 ) THEN
-      !---------------------------------------------------------------------
       ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2  .or. 
      &          N == IDTSOG3 .or. N == IDTSOG4 ) THEN
 
@@ -1925,11 +1905,6 @@
       ! SOA[1,2,3,4] (aerosol)
       ! Scavenging efficiency for SOA is 0.8
       !--------------------------------------
-      !----------------------------------------------------------------------
-      ! Prior to 5/18/06:
-      ! Now add SOA4 (dkh, bmy, 5/18/06)
-      !ELSE IF ( N == IDTSOA1 .OR. N == IDTSOA2 .OR. N == IDTSOA3 ) THEN
-      !----------------------------------------------------------------------
       ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
      &          N == IDTSOA3 .or. N == IDTSOA4 ) THEN
          RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
@@ -2289,11 +2264,6 @@
       !---------------------------------
       ! SOG[1,2,3,4] (liq & gas phases)
       !---------------------------------
-      !-------------------------------------------------------------------
-      ! Prior to 5/18/06:
-      ! Now add SOG4 (dkh, bmy, 5/18/06)
-      !ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2 .or. N == IDTSOG3 ) THEN
-      !-------------------------------------------------------------------
       ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2  .or. 
      &          N == IDTSOG3 .or. N == IDTSOG4 ) THEN
          AER      = .FALSE.
@@ -2303,11 +2273,6 @@
       !------------------------------
       ! SOA[1,2,3] (aerosol)
       !------------------------------
-      !-------------------------------------------------------------------
-      ! Prior to 5/18/06:
-      ! Now add SOA4 (dkh, bmy, 5/18/06)
-      !ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2 .or. N == IDTSOA3 ) THEN
-      !-------------------------------------------------------------------
       ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
      &          N == IDTSOA3 .or. N == IDTSOA4 ) THEN
          AER      = .TRUE.
@@ -2594,12 +2559,6 @@
       REAL*8              :: K,     K_MIN,  K_RAIN,    RAINFRAC
       REAL*8              :: F,     FTOP,   F_PRIME,   WASHFRAC
       REAL*8              :: LOST,  GAINED, MASS_WASH, MASS_NOWASH
-      !-----------------------------------------------------------
-      ! Prior to 5/24/06:
-      ! Remove L_PLUS_W and XDSTT (bmy, 5/24/06)
-      !REAL*8              :: ALPHA, ALPHA2, WETLOSS,   L_PLUS_W
-      !REAL*8              :: XDSTT, TMP
-      !-----------------------------------------------------------
       REAL*8              :: ALPHA, ALPHA2, WETLOSS,   TMP
 
       ! DSTT is the accumulator array of rained-out 
@@ -2809,12 +2768,6 @@
 
                   ! ND39 diag - save rainout losses in [kg/s]
                   IF ( ND39 > 0 .and. L <= LD39 ) THEN
-                     !------------------------------------------------
-                     ! Prior to 5/24/06:
-                     ! Remove XDSTT (bmy, 5/24/06)
-                     !XDSTT          = WETLOSS / DT
-                     !AD39(I,J,L,NN) = AD39(I,J,L,NN) + XDSTT
-                     !------------------------------------------------
                      AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
                   ENDIF
 
@@ -2965,12 +2918,6 @@
 
                      ! ND39 diag -- save rainout losses in [kg/s]
                      IF ( ND39 > 0 .and. L <= LD39 ) THEN
-                        !------------------------------------------------
-                        ! Prior to 5/24/06:
-                        ! Remove XDSTT (bmy, 5/24/06)
-                        !XDSTT          = WETLOSS / DT
-                        !AD39(I,J,L,NN) = AD39(I,J,L,NN) + XDSTT
-                        !------------------------------------------------
                         AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
                      ENDIF
 
@@ -3191,12 +3138,6 @@
 
                      ! ND39 diag -- save rainout losses in [kg/s]
                      IF ( ND39 > 0 .and. L <= LD39 ) THEN
-                        !------------------------------------------------
-                        ! Prior to 5/24/06:
-                        ! Remove XDSTT (bmy, 5/24/06)
-                        !XDSTT          = WETLOSS / DT
-                        !AD39(I,J,L,NN) = AD39(I,J,L,NN) + XDSTT
-                        !------------------------------------------------
                         AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
                      ENDIF
   
@@ -3266,12 +3207,6 @@
                   
                   ! ND39 diag -- save rainout losses in [kg/s]
                   IF ( ND39 > 0 .and. L <= LD39 ) THEN
-                     !------------------------------------------------
-                     ! Prior to 5/24/06:
-                     ! Remove XDSTT (bmy, 5/24/06)
-                     !XDSTT          = WETLOSS / DT
-                     !AD39(I,J,L,NN) = AD39(I,J,L,NN) + XDSTT
-                     !------------------------------------------------
                      AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
                   ENDIF
 
@@ -3389,12 +3324,6 @@
 
                   ! ND39 diag -- save washout loss in [kg/s]
                   IF ( ND39 > 0 .and. L <= LD39 ) THEN
-                     !------------------------------------------------
-                     ! Prior to 5/24/06:
-                     ! Remove XDSTT (bmy, 5/24/06)
-                     !XDSTT          = WETLOSS / DT
-                     !AD39(I,J,L,NN) = AD39(I,J,L,NN) + XDSTT
-                     !------------------------------------------------
                      AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
                   ENDIF
 
@@ -3967,11 +3896,6 @@
          IF ( LSSALT )   NMAX = NMAX + 2        ! plus 2 seasalts
 
          IF ( LSOA ) THEN
-            !----------------------------------------------------------------
-            ! Prior to 5/18/06:
-            ! Now add SOG4, SOA4 (dkh, bmy, 5/18/06)
-            !IF ( LCARB ) NMAX = NMAX + 13       ! carbon + SOA aerosols
-            !----------------------------------------------------------------
             IF ( LCARB ) NMAX = NMAX + 15       ! carbon + SOA aerosols
          ELSE                                 
             IF ( LCARB ) NMAX = NMAX + 4        ! just carbon aerosols
@@ -3989,11 +3913,6 @@
          IF ( LSSALT )   NMAX = NMAX + 2        ! plus 2 seasalts
 
          IF ( LSOA ) THEN
-            !-----------------------------------------------------------------
-            ! Prior to 5/18/06:
-            ! Now add SOG4, SOA4 (dkh, bmy, 5/18/06)
-            !IF ( LCARB ) NMAX = NMAX + 13       ! carbon + SOA aerosols
-            !-----------------------------------------------------------------
             IF ( LCARB ) NMAX = NMAX + 15       ! carbon + SOA aerosols
          ELSE
             IF ( LCARB ) NMAX = NMAX + 4        ! just carbon aerosols

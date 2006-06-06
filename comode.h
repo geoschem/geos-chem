@@ -1,8 +1,8 @@
-! $Id: comode.h,v 1.17 2006/05/26 17:45:16 bmy Exp $
+! $Id: comode.h,v 1.18 2006/06/06 14:25:59 bmy Exp $
 !
 !******************************************************************************
 !  Header file COMODE contains common blocks and variables for SMVGEAR II.
-!  (M. Jacobson 1997; bdf, bmy, 4/23/03, 3/29/06)
+!  (M. Jacobson 1997; bdf, bmy, 4/23/03, 6/1/06)
 !
 !  NOTES:
 !  (1 ) Removed many commented-out common blocks not needed for GEOS-CHEM.
@@ -48,6 +48,7 @@
 !  (11) Now remove AVG, BOLTG, RGAS, SCDAY, BK, EIGHTDPI, RSTARG, WTAIR,
 !        ONEPI, CONSVAP, SMAL1, SMAL2, SMAL3 from common blocks and declare 
 !        these as parameters. (bec, bmy, 3/29/06)
+!  (12) Added ILISOPOH, the index of ISOP lost to OH (dkh, bmy, 6/1/06)
 !******************************************************************************
 !
 C         CCCCCCC  OOOOOOO  M     M  OOOOOOO  DDDDDD   EEEEEEE 
@@ -389,6 +390,10 @@ C
       ! Added for interannually-varying Methane (bnd, bmy, 7/1/03)
       REAL*8  ::         C3090S,      C0030S,    C0030N,   C3090N
       COMMON /SPECIE3/   C3090S,      C0030S,    C0030N,   C3090N
+
+      ! Added for tracking oxidation of ISOP by OH (dkh, bmy, 6/1/06)
+      INTEGER ::         ILISOPOH
+      COMMON /SPECIE4/   ILISOPOH
 
       INTEGER ::         IOUT,        KGLC,      KCPD,     IO93
       COMMON /FILES/     IOUT,        KGLC,      KCPD,     IO93

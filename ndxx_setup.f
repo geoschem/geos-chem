@@ -1,4 +1,4 @@
-! $Id: ndxx_setup.f,v 1.24 2006/05/26 17:45:24 bmy Exp $
+! $Id: ndxx_setup.f,v 1.25 2006/06/06 14:26:07 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
@@ -207,19 +207,6 @@
       LD65 = 1
       LD66 = 1
       LD68 = 1
-
-      !----------------------------------------------------------------------
-      ! Prior to 5/16/06:
-      ! Remove TRCOFFSET, it's now obsolete (bmy, 5/16/06)
-      !!=================================================================
-      !! Define TRCOFFSET for "alternate chemistry" runs
-      !! TRCOFFSET will be used to offset punch file tracer indices
-      !!=================================================================
-      !
-      !! Make TRCOFFSET = 0 since we now write out both "diaginfo.dat" 
-      !! and "tracerinfo.dat" files for GAMAP (bmy, 4/20/05)
-      !TRCOFFSET = 0
-      !----------------------------------------------------------------------
 
       !=================================================================
       ! ND01: Rn, Pb, Be emissions

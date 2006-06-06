@@ -1,9 +1,9 @@
-! $Id: chemdr.f,v 1.19 2006/05/15 17:52:45 bmy Exp $
+! $Id: chemdr.f,v 1.20 2006/06/06 14:25:58 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
 !  Subroutine CHEMDR is the driver subroutine for full chemistry w/ SMVGEAR.
-!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 4/10/06)
+!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 6/1/06)
 !
 !  Important input variables from "dao_mod.f" and "uvalbedo_mod.f":
 !  ============================================================================
@@ -140,6 +140,8 @@
 !  (27) Remove more obsolete SLOW-J code references.  Also now move function
 !        calls from subroutine "chem.f" into "chemdr.f".  Remove obsolete
 !        arguments from call to RURALBOX. (bmy, 4/10/06) 
+!  (28) Remove reference to "global_ch4_mod.f".  Add error check for LISOPOH
+!        when using the online SOA tracers. (dkh, bmy, 6/1/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -151,10 +153,14 @@
       USE DIAG_OH_MOD,     ONLY : DO_DIAG_OH
       USE DIAG_PL_MOD,     ONLY : DO_DIAG_PL
       USE DUST_MOD,        ONLY : RDUST_ONLINE, RDUST_OFFLINE
-      USE ERROR_MOD,       ONLY : DEBUG_MSG
-      USE GLOBAL_CH4_MOD,  ONLY : GET_GLOBAL_CH4
+      USE ERROR_MOD,       ONLY : DEBUG_MSG,    ERROR_STOP
+      !---------------------------------------------------------------
+      ! Prior to 5/30/06:
+      !USE GLOBAL_CH4_MOD,  ONLY : GET_GLOBAL_CH4
+      !---------------------------------------------------------------
       USE LOGICAL_MOD,     ONLY : LCARB,        LDUST,     LEMBED
       USE LOGICAL_MOD,     ONLY : LPRT,         LSSALT,    LSULF  
+      USE LOGICAL_MOD,     ONLY : LSOA
       USE PLANEFLIGHT_MOD, ONLY : SETUP_PLANEFLIGHT
       USE TIME_MOD,        ONLY : GET_MONTH,    GET_YEAR,  ITS_A_NEW_DAY
       USE TRACER_MOD,      ONLY : STT,          N_TRACERS, XNUMOL
@@ -255,6 +261,14 @@
 
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after READCHEM' )
+
+         !---------------------------------
+         ! Check for LISOPOH for SOA
+         !---------------------------------
+         IF ( LSOA .and. ILISOPOH == 0 ) THEN
+            CALL ERROR_STOP( 'LISOPOH needs to be defined for SOA!',
+     &                       'chemdr.f' )
+         ENDIF
 
          !---------------------------------
          ! Set global concentration of CH4

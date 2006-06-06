@@ -1,5 +1,11 @@
-! $Id: main.f,v 1.35 2006/05/26 17:45:24 bmy Exp $
+! $Id: main.f,v 1.36 2006/06/06 14:26:07 bmy Exp $
 ! $Log: main.f,v $
+! Revision 1.36  2006/06/06 14:26:07  bmy
+! GEOS-Chem v7-04-05, includes the following modifications:
+! - Now gets ISOP that has reacted w/ OH from SMVGEAR (cf. D. Henze)
+! - Incorporated IPCC future emission scale factors (cf. S. Wu)
+! - Other minor bug fixes
+!
 ! Revision 1.35  2006/05/26 17:45:24  bmy
 ! GEOS-Chem v7-04-04, includes the following modifications:
 ! - Now updated for SOA production from ISOP (cf D. Henze)
@@ -492,11 +498,6 @@
 
       ! Compute lightning NOx emissions [molec/box/6h]
       IF ( LLIGHTNOX ) THEN
-
-         !------------------------------
-         ! Prior to 5/10/06:
-         !CALL LIGHTNING( T, CLDTOPS )
-         !------------------------------
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% NOTE: Temporary kludge: For GEOS-4 we want to use the new near-land 
 !%%% lightning formulation.  But for the time being, we must keep the existing
@@ -723,10 +724,6 @@
 
             ! Since CLDTOPS is an A-6 field, update the
             ! lightning NOx emissions [molec/box/6h]
-            !-----------------------------------------------
-            ! Prior to 5/10/06:
-            !IF ( LLIGHTNOX ) CALL LIGHTNING( T, CLDTOPS )
-            !-----------------------------------------------              
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% NOTE: Temporary kludge: For GEOS-4 we want to use the new near-land 
 !%%% lightning formulation.  But for the time being, we must keep the 

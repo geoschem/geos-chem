@@ -1,9 +1,9 @@
-! $Id: gfed2_biomass_mod.f,v 1.1 2006/04/21 18:49:20 bmy Exp $
+! $Id: gfed2_biomass_mod.f,v 1.2 2006/06/06 14:26:04 bmy Exp $
       MODULE GFED2_BIOMASS_MOD
 !
 !******************************************************************************
 !  Module GFED2_BIOMASS_MOD contains variables and routines to compute the
-!  GFED2 biomass burning emissions. (psk, bmy, 4/20/06)
+!  GFED2 biomass burning emissions. (psk, bmy, 4/20/06, 5/30/06)
 !
 !  Monthly emissions of C are read from disk and then multiplied by the 
 !  appropriate emission factors to produce biomass burning emissions on a 
@@ -47,18 +47,21 @@
 !  Module Routines:
 !  ============================================================================
 !  (1 ) GFED2_COMPUTE_BIOMASS     : Computes biomass emissions once per month
-!  (2 ) INIT_GFED2_BIOMASS        : Initializes arrays and reads startup data
-!  (3 ) CLEANUP_GFED2_BIOMASS     : Deallocates all module arrays
+!  (2 ) GFED2_SCALE_FUTURE        : Applies IPCC future scale factors to GFED2
+!  (3 ) GFED2_TOTAL_Tg            : Totals GFED2 biomass emissions [Tg/month]
+!  (4 ) INIT_GFED2_BIOMASS        : Initializes arrays and reads startup data
+!  (5 ) CLEANUP_GFED2_BIOMASS     : Deallocates all module arrays
 !
 !  GEOS-Chem modules referenced by "gfed2_biomass_mod.f":
 !  ============================================================================
-!  (1 ) bpch2_mod.f      : Module w/ routines for binary punch file I/O
-!  (2 ) directory_mod.f  : Module w/ GEOS-CHEM data & met field dirs
-!  (3 ) error_mod.f      : Module w/ error and NaN check routines
-!  (4 ) file_mod.f       : Module w/ file unit numbers and error checks
-!  (5 ) grid_mod.f       : Module w/ horizontal grid information
-!  (6 ) time_mod.f       : Module w/ routines for computing time & date
-!  (7 ) regrid_1x1_mod.f : Module w/ routines for regrid 1x1 data
+!  (1 ) bpch2_mod.f            : Module w/ routines for binary punch file I/O
+!  (2 ) directory_mod.f        : Module w/ GEOS-CHEM data & met field dirs
+!  (3 ) error_mod.f            : Module w/ error and NaN check routines
+!  (4 ) file_mod.f             : Module w/ file unit numbers and error checks
+!  (5 ) future_emissions_mod.f : Module w/ routines for IPCC future emissions
+!  (6 ) grid_mod.f             : Module w/ horizontal grid information
+!  (7 ) time_mod.f             : Module w/ routines for computing time & date
+!  (8 ) regrid_1x1_mod.f       : Module w/ routines for regrid 1x1 data
 !
 !  References:
 !  ============================================================================
@@ -75,6 +78,7 @@
 !        http://sheba.geo.vu.nl/~gwerf/pubs/VanderWerfEA2005ACPD.pdf
 !
 !  NOTES:
+!  (1 ) Added private routine GFED2_SCALE_FUTURE (swu, bmy, 5/30/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -124,7 +128,7 @@
 !
 !******************************************************************************
 !  Subroutine GFED2_COMPUTE_BIOMASS computes the monthly GFED2 biomass burning
-!  emissions for a given year and month. (psk, bmy, 4/20/06)
+!  emissions for a given year and month. (psk, bmy, 4/20/06, 5/30/06)
 !
 !  This routine only has to be called on the first day of each month.
 !
@@ -134,11 +138,15 @@
 !  (2 ) THIS_MM   (INTEGER) : Current month (1-12)
 !
 !  NOTES:
+!  (1 ) Now references LFUTURE from "logical_mod.f".  Now call private routine
+!        GFED2_SCALE_FUTURE to compute future biomass emissions, if necessary. 
+!        (swu, bmy, 5/30/06)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,      ONLY : READ_BPCH2,    GET_TAU0
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
+      USE LOGICAL_MOD,    ONLY : LFUTURE
       USE TIME_MOD,       ONLY : EXPAND_DATE
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
       
@@ -316,6 +324,11 @@
       !###! Print totals on 1x1 generic, 1x1 geos, & output grids
       !###CALL GFED2_DEBUG_PRINT( BIOM_GEN_1x1, BIOM_GEOS_1x1, BIOM_OUT )
 
+      ! Compute future biomass emissions (if necessary)
+      IF ( LFUTURE ) THEN
+         CALL GFED2_SCALE_FUTURE( BIOM_OUT )
+      ENDIF
+
       ! Print totals in Tg/month
       CALL GFED2_TOTAL_Tg( THIS_YYYY, THIS_MM, BIOM_OUT )
 
@@ -327,6 +340,72 @@
 
       ! Return to calling program
       END SUBROUTINE GFED2_COMPUTE_BIOMASS
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE GFED2_SCALE_FUTURE( BB )
+!
+!******************************************************************************
+!  Subroutine GFED2_SCALE_FUTURE applies the IPCC future emissions scale 
+!  factors to the GFED2 biomass burning emisisons in order to compute the 
+!  future emissions of biomass burning for NOx, CO, and VOC's.  
+!  (swu, bmy, 5/30/06)
+!
+!  Arguments as Input/Output:
+!  ============================================================================
+!  (1 ) BB (REAL*8   ) : Array w/ biomass burning emisisons [molec/cm2]
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_CObb
+      USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_NOxbb
+      USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_VOCbb
+
+#     include "CMN_SIZE"               ! Size parameters
+
+      ! Arguments
+      REAL*8,           INTENT(INOUT) :: BB(IIPAR,JJPAR,N_SPEC)
+
+      ! Local variables
+      INTEGER                         :: I, J, N
+      
+      !=================================================================
+      ! GFED2_SCALE_FUTURE begins here!
+      !=================================================================
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, N )
+      DO N = 1, N_SPEC
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR 
+
+         IF ( N == IDBNOx ) THEN
+
+            ! Future biomass NOx [molec/cm2]
+            BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_NOxbb( I, J )
+
+         ELSE IF ( N == IDBCO ) THEN
+
+            ! Future biomass CO [molec/cm2]
+            BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_CObb( I, J )
+
+         ELSE
+
+            ! Future biomass Hydrocarbons [atoms C/cm2]
+            BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_VOCbb( I, J )
+
+         ENDIF
+         
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Return to calling program
+      END SUBROUTINE GFED2_SCALE_FUTURE
 
 !------------------------------------------------------------------------------
 

@@ -1,11 +1,11 @@
-! $Id: emep_mod.f,v 1.3 2006/04/21 15:39:58 bmy Exp $
+! $Id: emep_mod.f,v 1.4 2006/06/06 14:26:01 bmy Exp $
       MODULE EMEP_MOD
 !
 !******************************************************************************
 !  Module EMEP_MOD contains variables and routines to read the EMEP European 
 !  anthropogenic emission inventory for CO, NOz, and some NMVOCs.  The EMEP 
 !  files come from Marion Auvray and Isabelle Bey at EPFL. 
-!  (bdf, bmy, 11/1/05, 2/6/06)
+!  (bdf, bmy, 11/1/05, 5/30/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -17,8 +17,9 @@
 !  (1 ) GET_EUROPE_MASK        : Gets the value of the Europe mask at (I,J) 
 !  (2 ) GET_EMEP_ANTHRO        : Gets emissions at (I,J) for EMEP species 
 !  (3 ) EMISS_EMEP             : Reads EMEP emissions from disk once per year
-!  (4 ) INIT_EMEP              : Allocates and zeroes module arrays
-!  (5 ) CLEANUP_EMEP           : Dealocates module arrays
+!  (4 ) EMEP_SCALE_FUTURE      : Applies IPCC future scale factors to EMEP
+!  (5 ) INIT_EMEP              : Allocates and zeroes module arrays
+!  (6 ) CLEANUP_EMEP           : Dealocates module arrays
 !
 !  GEOS-CHEM modules referenced by "emep_mod.f"
 !  ============================================================================
@@ -26,11 +27,12 @@
 !  (2 ) directory_mod.f        : Module w/ GEOS-CHEM data & met field dirs
 !  (3 ) error_mod.f            : Module w/ I/O error and NaN check routines
 !  (4 ) file_mod.f             : Module w/ file unit numbers and error checks
-!  (5 ) grid_mod.f             : Module w/ horizontal grid information
-!  (6 ) logical_mod.f          : Module w/ GEOS-CHEM logical switches
-!  (7 ) regrid_1x1_mod.f       : Module w/ routines to regrid 1x1 data  
-!  (8 ) time_mod.f             : Module w/ routines for computing time & date
-!  (9 ) tracerid_mod.f         : Module w/ pointers to tracers & emissions  
+!  (5 ) future_emissions_mod.f : Module w/ routines for IPCC future emissions
+!  (6 ) grid_mod.f             : Module w/ horizontal grid information
+!  (7 ) logical_mod.f          : Module w/ GEOS-CHEM logical switches
+!  (8 ) regrid_1x1_mod.f       : Module w/ routines to regrid 1x1 data  
+!  (9 ) time_mod.f             : Module w/ routines for computing time & date
+!  (10) tracerid_mod.f         : Module w/ pointers to tracers & emissions  
 !
 !  References:
 !  ============================================================================
@@ -46,6 +48,7 @@
 !
 !  NOTES: 
 !  (1 ) Now only print totals for defined tracers (bmy, 2/6/06)
+!  (2 ) Now modified for IPCC future emissions (swu, bmy, 5/30/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -189,16 +192,20 @@
       SUBROUTINE EMISS_EMEP
 !
 !******************************************************************************
-!  Subroutine EMISS_EMEP reads the EMEP emission fields at 1x1 resolution
-!  and regrids them to the current model resolution (bdf, bmy, 11/1/05)
+!  Subroutine EMISS_EMEP reads the EMEP emission fields at 1x1 
+!  resolution and regrids them to the current model resolution.
+!  (bdf, bmy, 11/1/05, 5/30/06)
 !
 !  NOTES:
+!  (1 ) Modified for IPCC future emissions.  Now references LFUTURE from
+!        "logical_mod.f". (bmy, 5/30/06)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,      ONLY : GET_TAU0,     OPEN_BPCH2_FOR_READ
       USE FILE_MOD,       ONLY : IU_FILE,      IOERROR
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1 
+      USE LOGICAL_MOD,    ONLY : LFUTURE
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
       USE TIME_MOD,       ONLY : EXPAND_DATE,  GET_YEAR
 
@@ -280,7 +287,7 @@
          ! Error check
          IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'emiss_emep:3' )
 
-         ! Read data
+         ! Read data [molec/cm2/s] or [atoms C/cm2/s]
          READ( IU_FILE, IOSTAT=IOS ) 
      &        ( ( ( ARRAY(I,J,L), I=1,NI ), J=1,NJ ), L=1,NL )
 
@@ -290,31 +297,31 @@
          ! Regrid data from 1x1
          SELECT CASE ( NTRACER )
 
-            ! NOx
+            ! NOx [molec/cm2/s]
             CASE( 1  )
                CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_NOx  )
 
-            ! CO
+            ! CO [molec/cm2/s]
             CASE( 4  )
                CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_CO   )
 
-            ! ALK4
+            ! ALK4 [atoms C/cm2/s]
             CASE( 5  )
                CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_ALK4 )
 
-            ! MEK
+            ! MEK [atoms C/cm2/s]
             CASE( 10 )
                CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_MEK  )
 
-            ! ALD2
+            ! ALD2 [atoms C/cm2/s]
             CASE( 11 )
                CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_ALD2 )
 
-            ! PRPE
+            ! PRPE [atoms C/cm2/s]
             CASE( 18 )
                CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_PRPE )
 
-            ! C2H6
+            ! C2H6 [atoms C/cm2/s]
             CASE( 21 )
                CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_C2H6 )
 
@@ -329,6 +336,13 @@
       CLOSE( IU_FILE )
 
       !=================================================================
+      ! Compute IPCC future emissions (if necessary)
+      !=================================================================
+      IF ( LFUTURE ) THEN 
+         CALL EMEP_SCALE_FUTURE
+      ENDIF
+
+      !=================================================================
       ! Print emission totals
       !=================================================================
 
@@ -337,6 +351,75 @@
 
       ! Return to calling program
       END SUBROUTINE EMISS_EMEP
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE EMEP_SCALE_FUTURE
+!
+!******************************************************************************
+!  Subroutine EMEP_SCALE_FUTURE applies the IPCC future scale factors to 
+!  the EMEP anthropogenic emissions. (swu, bmy, 5/30/06)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_ALK4ff
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_C2H6ff
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_COff
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxff
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_PRPEff
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_TONEff
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_VOCff
+
+#     include "CMN_SIZE"             ! Size parameters
+
+      ! Local variables
+      INTEGER                       :: I, J
+
+      !=================================================================
+      ! EMEP_SCALE_FUTURE begins here!
+      !=================================================================
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Future NOx [molec/cm2/s]
+         EMEP_NOx(I,J)  = EMEP_NOx(I,J)                   * 
+     &                    GET_FUTURE_SCALE_NOxff( I, J )
+
+         ! Future CO [molec/cm2/s]
+         EMEP_CO(I,J)   = EMEP_CO(I,J)                    *
+     &                    GET_FUTURE_SCALE_COff( I, J )
+
+         ! Future ALK4 [atoms C/cm2/s]
+         EMEP_ALK4(I,J) = EMEP_ALK4(I,J)                  *
+     &                    GET_FUTURE_SCALE_ALK4ff( I, J )
+         
+         ! Future MEK [atoms C/cm2/s]
+         EMEP_MEK(I,J)  = EMEP_MEK(I,J)                   *
+     &                    GET_FUTURE_SCALE_TONEff( I, J )     
+
+         ! Future ALD2 [atoms C/cm2/s]
+         EMEP_ALD2(I,J) = EMEP_ALD2(I,J)                  *
+     &                    GET_FUTURE_SCALE_VOCff( I, J )
+     
+         ! Future PRPE [atoms C/cm2/s]
+         EMEP_PRPE(I,J) = EMEP_PRPE(I,J)                  *
+     &                    GET_FUTURE_SCALE_PRPEff( I, J )
+
+         ! Future C2H6 [atoms C/cm2/s]
+         EMEP_C2H6(I,J) = EMEP_C2H6(I,J)                  *
+     &                    GET_FUTURE_SCALE_C2H6ff( I, J )
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Return to calling program
+      END SUBROUTINE EMEP_SCALE_FUTURE
 
 !------------------------------------------------------------------------------
 

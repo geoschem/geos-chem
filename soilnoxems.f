@@ -1,9 +1,9 @@
-! $Id: soilnoxems.f,v 1.3 2004/03/24 20:52:32 bmy Exp $
+! $Id: soilnoxems.f,v 1.4 2006/06/06 14:26:08 bmy Exp $
       SUBROUTINE SOILNOXEMS( SUNCOS )
 !
 !******************************************************************************
 !  Subroutine SOILNOXEMS computes the emission of soil and fertilizer NOx
-!  for the GEOS-CHEM model. (yhw, gmg, djj, 8/94; bdf, bmy, 2/11/03)
+!  for the GEOS-CHEM model. (yhw, gmg, djj, 8/94; bdf, bmy, 5/30/06)
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) SUNCOS (REAL*8)     : Array for COSINE( solar zenith angle ) [unitless]
@@ -49,35 +49,45 @@
 !        variables.  Now use functions GET_XOFFSET and GET_YOFFSET from
 !        "grid_mod.f". (bmy, 2/11/03)
 !  (7 ) Need to pass SUNCOS to SOILCRF when computing FERTDIAG. (bmy, 10/14/03)
+!  (8 ) Now references LFUTURE from "logical_mod.f" and GET_FUTURE_SCALE_NOxft
+!        from "future_emissions_mod.f".  Now compute future emissions of NOx
+!        from soils if necessary. (swu, bmy, 5/30/06)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,  ONLY : BXHEIGHT
-      USE DIAG_MOD, ONLY : AD32_fe,     AD32_so
-      USE GRID_MOD, ONLY : GET_XOFFSET, GET_YOFFSET
+      USE DAO_MOD,              ONLY : BXHEIGHT
+      USE DIAG_MOD,             ONLY : AD32_fe,     AD32_so
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxft
+      USE GRID_MOD,             ONLY : GET_XOFFSET, GET_YOFFSET
+      USE LOGICAL_MOD,          ONLY : LFUTURE
 
       IMPLICIT NONE
  
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN"        ! STT, many other variables
-#     include "CMN_DIAG"   ! Diagnostic switches & arrays
-#     include "CMN_NOX"    ! GEMISNOX2
-#     include "CMN_DEP"    ! CANOPYNOX
-#     include "commsoil.h" ! Soil pulsing & wetness variables
+#     include "CMN_SIZE"             ! Size parameters
+!---------------------------------------------------------------------------
+! Prior to 5/30/06:
+!#     include "CMN"                  ! STT, many other variables
+!---------------------------------------------------------------------------
+#     include "CMN_DIAG"             ! Diagnostic switches & arrays
+#     include "CMN_NOX"              ! GEMISNOX2
+#     include "CMN_DEP"              ! CANOPYNOX
+#     include "commsoil.h"           ! Soil pulsing & wetness variables
 
       ! Arguments
-      REAL*8, INTENT(IN) :: SUNCOS(MAXIJ)
+      REAL*8, INTENT(IN)            :: SUNCOS(MAXIJ)
 
       ! Local variables
-      INTEGER            :: I,    J,       M,      III,    NN  
-      INTEGER            :: K,    IREF,    JREF,   IJLOOP, L
-      INTEGER            :: KBL,  JLOP(IIPAR,JJPAR,1), I0, J0
-      REAL*8             :: TMMP, WINDSQR, RPULSE, ZBL,    DUM
-      REAL*8             :: FERTDIAG(IIPAR,JJPAR)
+      INTEGER                       :: I,    J,       M,      III,    NN  
+      INTEGER                       :: K,    IREF,    JREF,   IJLOOP, L
+      INTEGER                       :: KBL,  JLOP(IIPAR,JJPAR,1), I0, J0
+      REAL*8                        :: TMMP, WINDSQR, RPULSE, ZBL,   DUM
+      REAL*8                        :: FERTDIAG(IIPAR,JJPAR), FUT_SCL
 
+      
       ! External functions
-      REAL*8, EXTERNAL   :: BOXVL,    FERTADD, PULSING,  SFCWINDSQR 
-      REAL*8, EXTERNAL   :: SOILBASE, SOILCRF, SOILTEMP, XLTMMP
+      REAL*8, EXTERNAL              :: BOXVL,      FERTADD,  PULSING
+      REAL*8, EXTERNAL              :: SFCWINDSQR, SOILBASE, SOILCRF
+      REAL*8, EXTERNAL              :: SOILTEMP,   XLTMMP
 
       !=================================================================
       ! SOILNOXEMS begins here!
@@ -131,15 +141,22 @@
 
                ! SOILNOX contains soil NOx emissions in [molec NOx/cm2/s]
                SOILNOX(I,J) = SOILNOX(I,J)+ (SOILTEMP(I,J,M,NN,TMMP)*
-     *              SOILBASE(I,J,M,NN,RPULSE) + FERTADD(J,M,NN))
-     *              *(1.D0-SOILCRF(I,J,IREF,JREF,IJLOOP,M,NN,K,
-     *              WINDSQR,SUNCOS))*DBLE(IUSE(IREF,JREF,K))/1000.D0
+     &              SOILBASE(I,J,M,NN,RPULSE) + FERTADD(J,M,NN))
+     &              *(1.D0-SOILCRF(I,J,IREF,JREF,IJLOOP,M,NN,K,
+     &              WINDSQR,SUNCOS))*DBLE(IUSE(IREF,JREF,K))/1000.D0
 
                ! Archive fertilizer for ND32 diagnostic (bey)
                FERTDIAG(I,J) = FERTDIAG(I,J) + FERTADD(J,M,NN)
      &              *(1.D0-SOILCRF(I,J,IREF,JREF,IJLOOP,M,NN,K,
      &              WINDSQR,SUNCOS))*DBLE(IUSE(IREF,JREF,K))/1000.D0
             ENDDO
+
+            ! Compute future soil NOx emissions (if necessary)
+            IF ( LFUTURE ) THEN
+               FUT_SCL       = GET_FUTURE_SCALE_NOXft( I, J ) 
+               SOILNOX(I,J)  = SOILNOX(I,J)  * FUT_SCL
+               FERTDIAG(I,J) = FERTDIAG(I,J) * FUT_SCL
+            ENDIF
          ENDIF
 
          ! Skip if there are no soil NOx emissions

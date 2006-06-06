@@ -1,10 +1,10 @@
-! $Id: epa_nei_mod.f,v 1.6 2005/11/03 17:50:28 bmy Exp $
+! $Id: epa_nei_mod.f,v 1.7 2006/06/06 14:26:01 bmy Exp $
       MODULE EPA_NEI_MOD
 !
 !******************************************************************************
 !  Module EPA_NEI_MOD contains variables and routines to read the
 !  weekday/weekend emissions from the EPA/NEI emissions inventory.
-!  (rch, bmy, 11/10/04, 10/25/05)
+!  (rch, bmy, 11/10/04, 5/30/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -73,13 +73,14 @@
 !
 !  GEOS-CHEM modules referenced by epa_nei_mod.f
 !  ============================================================================
-!  (1 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
-!  (2 ) directory_mod.f : Module containing GEOS-CHEM met field and data dirs
-!  (3 ) error_mod.f     : Module containing I/O error and NaN check routines
-!  (3 ) file_mod.f      : Module containing file unit numbers and error checks
-!  (4 ) logical_mod.f   : 
-!  (5 ) time_mod.f      : Module containing routines for computing time & date
-!  (6 ) transfer_mod.f  : Module containing routines to cast & resize arrays
+!  (1 ) bpch2_mod.f            : Module w/ routines for binary punch file I/O
+!  (2 ) directory_mod.f        : Module w/ GEOS-CHEM met field and data dirs
+!  (3 ) error_mod.f            : Module w/ I/O error and NaN check routines
+!  (3 ) file_mod.f             : Module w/ file unit numbers and error checks
+!  (4 ) future_emissions_mod.f : Module w/ routines for IPCC future emissions
+!  (5 ) logical_mod.f          : Module w/ GEOS-Chem logical switches
+!  (6 ) time_mod.f             : Module w/ routines for computing time & date
+!  (7 ) transfer_mod.f         : Module w/ routines to cast & resize arrays
 !
 !  NOTES:
 !  (1 ) Prevent out of bounds errors in routines TOTAL_ANTHRO_TG and 
@@ -87,6 +88,7 @@
 !  (2 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Now replace FMOL with TRACER_MW_KG (bmy, 10/25/05) 
+!  (5 ) Now modified for IPCC future emissions (swu, bmy, 5/30/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -180,23 +182,44 @@
 !
 !******************************************************************************
 !  Subroutine EMISS_EPA_NEI reads all EPA emissions from disk at the start
-!  of a new month. (rch, bmy, 11/10/04, 8/16/05)
+!  of a new month. (rch, bmy, 11/10/04, 5/30/06)
 !
 !  NOTES:
 !  (1 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
+!  (2 ) Modified for IPCC future emissions (swu, bmy, 5/30/06)
 !******************************************************************************
 !                               
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TIME_MOD,      ONLY : EXPAND_DATE,     GET_MONTH
+      USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE DIRECTORY_MOD,        ONLY : DATA_DIR
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_ALK4ff  
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_C2H6ff
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_C3H8ff
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_CObf  
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_COff  
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NH3an 
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NH3bf
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxbf
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxff 
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_PRPEff
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2bf
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_TONEff  
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_VOCbf
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_VOCff
+      USE LOGICAL_MOD,          ONLY : LFUTURE
+      USE TIME_MOD,             ONLY : EXPAND_DATE,     GET_MONTH
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "CMN_SIZE"             ! Size parameters
 
       ! Local variables
-      LOGICAL, SAVE       :: FIRST = .TRUE.
-      INTEGER             :: I, J, THISMONTH, YYYYMMDD
-      CHARACTER(LEN=255)  :: FILENAME
+      LOGICAL, SAVE                 :: FIRST = .TRUE.
+      INTEGER                       :: I, J, THISMONTH, YYYYMMDD
+      REAL*8                        :: ALK4ff, C2H6ff, C3H8ff, COff
+      REAL*8                        :: NH3an,  NOxff,  PRPEff, SO2ff
+      REAL*8                        :: TONEff, VOCff,  CObf,   NH3bf
+      REAL*8                        :: NOxbf,  SO2bf,  VOCbf 
+      CHARACTER(LEN=255)            :: FILENAME
 
       !=================================================================
       ! EMISS_EPA_NEI begins here!
@@ -309,7 +332,10 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
+!$OMP+PRIVATE( I,     J,     ALK4ff, C2H6ff, C3H8ff, COff  )
+!$OMP+PRIVATE( NH3an, NOxff, PRPEff, SO2ff,  TONEff, VOCff )         
+!$OMP+PRIVATE( CObf,  NH3bf, NOxbf,  SO2bf,  VOCbf         )
+!$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -369,6 +395,86 @@
          EPA_WE_BF_SO4 (I,J) = EPA_WE_BF_SO4 (I,J) * USA_MASK(I,J)
          EPA_WE_BF_NH3 (I,J) = EPA_WE_BF_NH3 (I,J) * USA_MASK(I,J)
 
+         !----------------------------------------------
+         ! Compute IPCC future emissions (if necessary)
+         !----------------------------------------------
+         IF ( LFUTURE .and. USA_MASK(I,J) > 0d0 ) THEN
+
+            ! Future anthro scale factors
+            ALK4ff = GET_FUTURE_SCALE_ALK4ff( I, J )
+            C2H6ff = GET_FUTURE_SCALE_C2H6ff( I, J )
+            C3H8ff = GET_FUTURE_SCALE_C3H8ff( I, J )
+            COff   = GET_FUTURE_SCALE_COff(   I, J )
+            NH3an  = GET_FUTURE_SCALE_NH3an(  I, J )
+            NOxff  = GET_FUTURE_SCALE_NOxff(  I, J )
+            PRPEff = GET_FUTURE_SCALE_PRPEff( I, J )
+            TONEff = GET_FUTURE_SCALE_TONEff( I, J )
+            SO2ff  = GET_FUTURE_SCALE_SO2ff(  I, J )
+            VOCff  = GET_FUTURE_SCALE_VOCff(  I, J )
+
+            ! Future biofuel scale factors            
+            CObf   = GET_FUTURE_SCALE_CObf(   I, J )
+            NH3bf  = GET_FUTURE_SCALE_NH3bf(  I, J )
+            NOxbf  = GET_FUTURE_SCALE_NOXbf(  I, J )
+            SO2bf  = GET_FUTURE_SCALE_SO2bf(  I, J )
+            VOCbf  = GET_FUTURE_SCALE_VOCbf(  I, J )
+
+            ! Future weekday avg anthro
+            EPA_WD_AN_NOX (I,J) = EPA_WD_AN_NOX (I,J) * NOxff
+            EPA_WD_AN_CO  (I,J) = EPA_WD_AN_CO  (I,J) * COff
+            EPA_WD_AN_ALK4(I,J) = EPA_WD_AN_ALK4(I,J) * ALK4ff
+            EPA_WD_AN_ACET(I,J) = EPA_WD_AN_ACET(I,J) * TONEff
+            EPA_WD_AN_MEK (I,J) = EPA_WD_AN_MEK (I,J) * TONEff
+            EPA_WD_AN_PRPE(I,J) = EPA_WD_AN_PRPE(I,J) * PRPEff
+            EPA_WD_AN_C3H8(I,J) = EPA_WD_AN_C3H8(I,J) * C3H8ff 
+            EPA_WD_AN_CH2O(I,J) = EPA_WD_AN_CH2O(I,J) * VOCff
+            EPA_WD_AN_C2H6(I,J) = EPA_WD_AN_C2H6(I,J) * C2H6ff
+            EPA_WD_AN_SO2 (I,J) = EPA_WD_AN_SO2 (I,J) * SO2ff
+            EPA_WD_AN_SO4 (I,J) = EPA_WD_AN_SO4 (I,J) * SO2ff
+            EPA_WD_AN_NH3 (I,J) = EPA_WD_AN_NH3 (I,J) * NH3an 
+                             
+            ! Weekend avg anthro     
+            EPA_WE_AN_NOX (I,J) = EPA_WE_AN_NOX (I,J) * NOxff
+            EPA_WE_AN_CO  (I,J) = EPA_WE_AN_CO  (I,J) * COff
+            EPA_WE_AN_ALK4(I,J) = EPA_WE_AN_ALK4(I,J) * ALK4ff
+            EPA_WE_AN_ACET(I,J) = EPA_WE_AN_ACET(I,J) * TONEff
+            EPA_WE_AN_MEK (I,J) = EPA_WE_AN_MEK (I,J) * TONEff
+            EPA_WE_AN_PRPE(I,J) = EPA_WE_AN_PRPE(I,J) * PRPEff
+            EPA_WE_AN_C3H8(I,J) = EPA_WE_AN_C3H8(I,J) * C3H8ff
+            EPA_WE_AN_CH2O(I,J) = EPA_WE_AN_CH2O(I,J) * VOCff
+            EPA_WE_AN_C2H6(I,J) = EPA_WE_AN_C2H6(I,J) * C2H6ff 
+            EPA_WE_AN_SO2 (I,J) = EPA_WE_AN_SO2 (I,J) * SO2ff
+            EPA_WE_AN_SO4 (I,J) = EPA_WE_AN_SO4 (I,J) * SO2ff
+            EPA_WE_AN_NH3 (I,J) = EPA_WE_AN_NH3 (I,J) * NH3an 
+                              
+            ! Weekday avg biofuel    
+            EPA_WD_BF_NOX (I,J) = EPA_WD_BF_NOX (I,J) * NOxbf
+            EPA_WD_BF_CO  (I,J) = EPA_WD_BF_CO  (I,J) * CObf
+            EPA_WD_BF_ALK4(I,J) = EPA_WD_BF_ALK4(I,J) * VOCbf
+            EPA_WD_BF_ACET(I,J) = EPA_WD_BF_ACET(I,J) * VOCbf
+            EPA_WD_BF_MEK (I,J) = EPA_WD_BF_MEK (I,J) * VOCbf
+            EPA_WD_BF_PRPE(I,J) = EPA_WD_BF_PRPE(I,J) * VOCbf 
+            EPA_WD_BF_C3H8(I,J) = EPA_WD_BF_C3H8(I,J) * VOCbf 
+            EPA_WD_BF_CH2O(I,J) = EPA_WD_BF_CH2O(I,J) * VOCbf     
+            EPA_WD_BF_C2H6(I,J) = EPA_WD_BF_C2H6(I,J) * VOCbf 
+            EPA_WD_BF_SO2 (I,J) = EPA_WD_BF_SO2 (I,J) * SO2bf 
+            EPA_WD_BF_SO4 (I,J) = EPA_WD_BF_SO4 (I,J) * SO2bf
+            EPA_WD_BF_NH3 (I,J) = EPA_WD_BF_NH3 (I,J) * NH3bf
+            
+            ! Weekend avg biofuel    
+            EPA_WE_BF_NOX (I,J) = EPA_WE_BF_NOX (I,J) * NOxbf
+            EPA_WE_BF_CO  (I,J) = EPA_WE_BF_CO  (I,J) * CObf
+            EPA_WE_BF_ALK4(I,J) = EPA_WE_BF_ALK4(I,J) * VOCbf 
+            EPA_WE_BF_ACET(I,J) = EPA_WE_BF_ACET(I,J) * VOCbf 
+            EPA_WE_BF_MEK (I,J) = EPA_WE_BF_MEK (I,J) * VOCbf 
+            EPA_WE_BF_PRPE(I,J) = EPA_WE_BF_PRPE(I,J) * VOCbf   
+            EPA_WE_BF_C3H8(I,J) = EPA_WE_BF_C3H8(I,J) * VOCbf 
+            EPA_WE_BF_CH2O(I,J) = EPA_WE_BF_CH2O(I,J) * VOCbf 
+            EPA_WE_BF_C2H6(I,J) = EPA_WE_BF_C2H6(I,J) * VOCbf 
+            EPA_WE_BF_SO2 (I,J) = EPA_WE_BF_SO2 (I,J) * SO2bf
+            EPA_WE_BF_SO4 (I,J) = EPA_WE_BF_SO4 (I,J) * SO2bf
+            EPA_WE_BF_NH3 (I,J) = EPA_WE_BF_NH3 (I,J) * NH3bf
+         ENDIF
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO

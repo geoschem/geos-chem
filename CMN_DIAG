@@ -1,4 +1,4 @@
-! $Id: CMN_DIAG,v 1.18 2006/05/26 17:45:10 bmy Exp $
+! $Id: CMN_DIAG,v 1.19 2006/06/06 14:25:52 bmy Exp $
 ! 
 ! NOTES:
 ! (1 ) Changed RCS ID tag comment character from "C" to "!" to allow freeform
@@ -83,11 +83,6 @@
       INTEGER, PARAMETER :: PD38=4 
       INTEGER, PARAMETER :: PD39=4            
       INTEGER, PARAMETER :: PD40=4       
-      !-------------------------------------------------------
-      ! Prior to 5/18/06:
-      ! This is now defined in "diag42_mod.f" (bmy, 5/18/06)
-      !INTEGER, PARAMETER :: PD42=0           
-      !--------------------------------------------------------
       INTEGER, PARAMETER :: PD43=5           
       INTEGER, PARAMETER :: PD44=30
       INTEGER, PARAMETER :: PD45=NNPAR+1      
@@ -141,11 +136,6 @@
      &   ND11, ND12, ND13, ND14, ND15, ND16, ND17, ND18, ND19, ND20,        
      &   ND21, ND22, ND23, ND24, ND25, ND26, ND27, ND28, ND29, ND30,     
      &   ND31, ND32, ND33, ND34, ND35, ND36, ND37, ND38, ND39, ND40,     
-!------------------------------------------------------------------------
-! Prior to 5/18/06:
-! Remove ND42, this is now in diag42_mod.f (dkh, bmy, 5/18/06)
-!     &         ND42, ND43, ND44, ND45, ND46, ND47, ND48, ND49, ND50,    
-!------------------------------------------------------------------------
      &               ND43, ND44, ND45, ND46, ND47, ND48, ND49, ND50,    
      &   ND51, ND52, ND53, ND54, ND55,       ND57, ND58, ND59, ND60,     
      &   ND61, ND62, ND63, ND64, ND65, ND66, ND67, ND68, ND69, ND70,     
@@ -156,21 +146,10 @@
      &   ND11, ND12, ND13, ND14, ND15, ND16, ND17, ND18, ND19, ND20,      
      &   ND21, ND22, ND23, ND24, ND25, ND26, ND27, ND28, ND29, ND30,     
      &   ND31, ND32, ND33, ND34, ND35, ND36, ND37, ND38, ND39, ND40,    
-!------------------------------------------------------------------------ 
-! Prior to 5/18/06:
-! Remove ND42 -- this is now in "diag42_mod.f" (bmy, 5/18/06)
-!     &         ND42, ND43, ND44, ND45, ND46, ND47, ND48, ND49, ND50,    
-!------------------------------------------------------------------------ 
      &               ND43, ND44, ND45, ND46, ND47, ND48, ND49, ND50,    
      &   ND51, ND52, ND53, ND54, ND55,       ND57, ND58, ND59, ND60,     
      &   ND61, ND62, ND63, ND64, ND65, ND66, ND67, ND68, ND69, ND70,     
      &   ND71, ND72, ND73, ND74, ND75
-!----------------------------------------------------------------------------
-! Prior to 5/18/06:
-! TRCOFFSET is now obsolete, so remove (bmy, 5/18/06)
-!! Tracer offset for "alternate chemistries" (bmy, 3/15/99)
-!      INTEGER ::      TRCOFFSET
-!      COMMON /TRCBLK/ TRCOFFSET
 !----------------------------------------------------------------------------
 ! Variables for printing out selected tracers in diagnostic output
       INTEGER, PARAMETER :: MAX_DIAG   = 70

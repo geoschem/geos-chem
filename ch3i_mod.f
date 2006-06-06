@@ -1,4 +1,4 @@
-! $Id: ch3i_mod.f,v 1.10 2006/05/26 19:08:11 bmy Exp $
+! $Id: ch3i_mod.f,v 1.11 2006/06/06 14:25:58 bmy Exp $
       MODULE CH3I_MOD
 !
 !******************************************************************************
@@ -336,10 +336,6 @@
       USE TIME_MOD,     ONLY : GET_DAY,   GET_GMT,
      &                         GET_MONTH, GET_TS_EMIS
       USE TRACER_MOD,   ONLY : STT,       N_TRACERS
-      !---------------------------------------------
-      ! Prior to 5/26/06:
-      !USE TRACERID_MOD, ONLY : IDBCO,     IDBFCO
-      !---------------------------------------------
       USE TRACERID_MOD, ONLY : IDBFCO
 
 

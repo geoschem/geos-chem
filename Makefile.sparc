@@ -1,6 +1,6 @@
-# $Id: Makefile.sparc,v 1.36 2006/05/26 17:45:13 bmy Exp $
+# $Id: Makefile.sparc,v 1.37 2006/06/06 14:25:55 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for SUN/Sparc (bmy, Mon May 22 10:13:27 2006)
+# GEOS-CHEM Makefile for SUN/Sparc (bmy, Wed May 31 10:19:47 2006)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -41,6 +41,7 @@ fertadd.o                 \
 findmon.o                 \
 fyrno3.o                  \
 gasconc.o                 \
+get_global_ch4.o          \
 getifsun.o                \
 initialize.o              \
 jsparse.o                 \
@@ -127,6 +128,7 @@ bpch2_mod.o               \
 regrid_1x1_mod.o          \
 pressure_mod.o            \
 transfer_mod.o            \
+future_emissions_mod.o    \
 tropopause_mod.o          \
 lai_mod.o                 \
 tracerid_mod.o            \
@@ -213,7 +215,7 @@ input_mod.o
 #=============================================================================
 #  Executable with FAST-J (default)
 #=============================================================================
-geos          : $(MODS) $(OBJS) $(FJ)   Makefile.sparc
+geos          : $(MODS) $(OBJS) $(FJ)
 		$(F90)  $(MODS) $(OBJS) $(FJ) -o geos
 
 #==============================================================================
@@ -246,7 +248,7 @@ acetone_mod.o              : acetone_mod.F              CMN_DEP CMN_DIAG CMN_MON
 aerosol_mod.o              : aerosol_mod.F              CMN_DIAG CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h comode.h jv_cmn.h 
 aircraft_nox_mod.o         : aircraft_nox_mod.F         CMN CMN_DIAG CMN_NOX CMN_SIZE define.h 
 airmas.o                   : airmas.F                   
-anthroems.o                : anthroems.F                CMN CMN_O3 CMN_SIZE define.h comode.h 
+anthroems.o                : anthroems.F                CMN_O3 CMN_SIZE define.h comode.h 
 arsl1k.o                   : arsl1k.F                   
 backsub.o                  : backsub.F                  CMN_SIZE define.h comode.h 
 benchmark_mod.o            : benchmark_mod.F            CMN_SIZE define.h 
@@ -284,7 +286,6 @@ diag_mod.o                 : diag_mod.F
 diag_oh_mod.o              : diag_oh_mod.F              CMN_SIZE define.h comode.h 
 diag_pl_mod.o              : diag_pl_mod.F              CMN_DIAG CMN_SIZE define.h comode.h 
 diagoh.o                   : diagoh.F                   CMN_DIAG CMN_O3 CMN_SIZE define.h 
-diffg.o                    : diffg.F                    
 directory_mod.o            : directory_mod.F            
 drydep_mod.o               : drydep_mod.F               CMN_DEP CMN_DIAG CMN_GCTM CMN_SIZE define.h CMN_VEL commsoil.h comode.h 
 dust_dead_mod.o            : dust_dead_mod.F            CMN_GCTM CMN_SIZE define.h 
@@ -305,6 +306,7 @@ fertadd.o                  : fertadd.F                  CMN_SIZE define.h commso
 file_mod.o                 : file_mod.F                 define.h 
 findmon.o                  : findmon.F                  
 fjfunc.o                   : fjfunc.F                   cmn_fj.h CMN_SIZE define.h 
+future_emissions_mod.o     : future_emissions_mod.F     CMN_SIZE define.h 
 fvdas_convect_mod.o        : fvdas_convect_mod.F        CMN_DIAG CMN_SIZE define.h 
 fyrno3.o                   : fyrno3.F                   
 gamap_mod.o                : gamap_mod.F                CMN_DIAG CMN_SIZE define.h 
@@ -313,6 +315,7 @@ gc_biomass_mod.o           : gc_biomass_mod.F           CMN_SIZE define.h
 gcap_convect_mod.o         : gcap_convect_mod.F         CMN_DIAG CMN_SIZE define.h 
 gcap_read_mod.o            : gcap_read_mod.F            CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 geia_mod.o                 : geia_mod.F                 CMN_SIZE define.h 
+get_global_ch4.o           : get_global_ch4.F           
 getifsun.o                 : getifsun.F                 CMN_SIZE define.h comode.h 
 gfed2_biomass_mod.o        : gfed2_biomass_mod.F        CMN_SIZE define.h 
 global_ch4_mod.o           : global_ch4_mod.F           CMN CMN_DIAG CMN_SIZE define.h 
@@ -383,7 +386,7 @@ sfcwindsqr.o               : sfcwindsqr.F               CMN_SIZE define.h
 smvgear.o                  : smvgear.F                  CMN_SIZE define.h comode.h 
 soilbase.o                 : soilbase.F                 CMN_SIZE define.h commsoil.h 
 soilcrf.o                  : soilcrf.F                  CMN_DEP CMN_SIZE define.h commsoil.h 
-soilnoxems.o               : soilnoxems.F               CMN CMN_DEP CMN_DIAG CMN_NOX CMN_SIZE define.h commsoil.h 
+soilnoxems.o               : soilnoxems.F               CMN_DEP CMN_DIAG CMN_NOX CMN_SIZE define.h commsoil.h 
 soiltemp.o                 : soiltemp.F                 CMN_SIZE define.h commsoil.h 
 soiltype.o                 : soiltype.F                 CMN_SIZE define.h commsoil.h 
 subfun.o                   : subfun.F                   CMN_SIZE define.h comode.h 

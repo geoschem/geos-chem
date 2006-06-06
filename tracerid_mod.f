@@ -1,4 +1,4 @@
-! $Id: tracerid_mod.f,v 1.16 2006/05/26 17:45:29 bmy Exp $
+! $Id: tracerid_mod.f,v 1.17 2006/06/06 14:26:11 bmy Exp $
       MODULE TRACERID_MOD
 !
 !******************************************************************************
@@ -202,13 +202,6 @@
       INTEGER            :: IDTBCPI, IDTBCPO,  IDTOCPI, IDTOCPO, IDTDST1
       INTEGER            :: IDTDST2, IDTDST3,  IDTDST4, IDTSALA, IDTSALC
       INTEGER            :: IDTALPH, IDTLIMO,  IDTALCO, IDTSOG1, IDTSOG2 
-      !---------------------------------------------------------------------
-      ! Prior to 5/18/06:
-      ! Add IDTSOG4 and IDTSOA4 (dkh, bmy, 5/18/06)
-      !INTEGER            :: IDTSOG3, IDTSOA1,  IDTSOA2, IDTSOA3, IDTHG0
-      !INTEGER            :: IDTHg2,  IDTHgP,   IDTAS,   IDTAHS,  IDTLET
-      !INTEGER            :: IDTNH4aq,IDTSO4aq, IDTSO4s, IDTNITs
-      !---------------------------------------------------------------------
       INTEGER            :: IDTSOG3, IDTSOG4,  IDTSOA1, IDTSOA2, IDTSOA3
       INTEGER            :: IDTSOA4, IDTHG0,   IDTHg2,  IDTHgP,  IDTAS
       INTEGER            :: IDTAHS,  IDTLET,   IDTNH4aq,IDTSO4aq,IDTSO4s

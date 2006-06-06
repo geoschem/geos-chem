@@ -1,4 +1,4 @@
-! $Id: c2h6_mod.f,v 1.7 2006/05/26 18:27:22 bmy Exp $
+! $Id: c2h6_mod.f,v 1.8 2006/06/06 14:25:56 bmy Exp $
       MODULE C2H6_MOD
 !
 !******************************************************************************
@@ -123,10 +123,6 @@
       USE LOGICAL_MOD,   ONLY : LSPLIT, LBIOMASS, LBIOFUEL, LANTHRO
       USE TIME_MOD,      ONLY : GET_MONTH, GET_TS_EMIS
       USE TRACER_MOD,    ONLY : STT
-      !------------------------------------------------------
-      ! Prior to 5/26/06:
-      !USE TRACERID_MOD,  ONLY : IDBC2H6, IDBFC2H6, IDEC2H6
-      !------------------------------------------------------
       USE TRACERID_MOD,  ONLY : IDBFC2H6, IDEC2H6
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 

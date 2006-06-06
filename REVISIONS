@@ -1,122 +1,115 @@
-REVISIONS (v7-04-04)  
-bmy, 26 May 2006
+REVISIONS (v7-04-05)  
+bmy, 02 Jun 2006
 
 
-New in v7-04-04:
+New in v7-04-05:
 -------------------------------------------------------------------------------
 
-diag42_mod.f		-- Module w/ routines for archiving ND42 SOA diagnostic
+get_doh			-- Returns ISOP that is lost to rxn w/ OH 
+("carbon_mod.f")
 
-diffg			-- Now bundled into "drydep_mod.f"
-("drydep_mod.f")
+gfed2_scale_future	-- Applies IPCC future emission scale factors to 
+("gfed2_biomass_mod.f")	   GFED2 biomass burning
+
+future_emissions_mod.f	-- Module containing arrays and routines to apply
+			   the IPCC future emissions scale factors (A1 & B1
+		  	   for years 2030 and 2050).  NOTE: This is only 
+			   implemented for GCAP at the present time.
+
+read_future_menu	-- Subroutine READ_FUTURE_MENU reads the FUTURE MENU 
+("input_mod.f")		   section of the GEOS-Chem input file; this defines 
+			   IPCC future emissions options.
+
+scale_future		-- Applies IPCC future emission scale factors to 
+("gc_biomass_mod.f")	   the default (Duncan et al) GEOS-Chem biomass
+			   burning emissions
+
+scale_future		-- Applies IPCC future emission scale factors to 
+("biofuel_mod.f")	   the GEOS-Chem biofuel emissions
 
 
 
-Removed in v7-04-04:
+Removed in v7-04-05:
 -------------------------------------------------------------------------------
 
-diffg.f			-- Now bundled into "drydep_mod.f", because the only
-			   routine that calls it is DEPVEL
+get_global_ch4		-- Split off from module "global_ch4_mod.f"
+("global_ch4_mod.f")	   into a standalone file
 
 
 
-Changed from v7-04-03:
+Changed from v7-04-04:
 -------------------------------------------------------------------------------
 
-aerosol_conc		-- Now add contribution from SOA4 into Hydrophilic OC
-("aerosol_mod.f")
+anthro_carb_tbond	-- Now compute future emissions of BC and OC 
+("carbon_mod.f")	   if necessary	
 
-CMN_DIAG		-- Remove reference to TRCOFFSET
+anthro_carb_cooke	-- Now compute future emissions of BC and OC 
+("carbon_mod.f")	   if necessary	
+       	
+anthroems.f		-- Modified for IPCC future emissions scale factors
 
-CMN_SIZE		-- Increase NNPAR to 54
+biofuel_burn		-- Now references LFUTURE from "logical_mod.f"
+("biofuel_mod.f")	-- Now call private routine SCALE_FUTURE to compute 
+			   future biomass emissions, if necessary.
+
+biomass_carb_geos	-- Now compute future emissions of BC & OC 
+("carbon_mod.f")	   if necessary
+
+biomass_carb_tbond	-- Now compute future emissions of BC & OC 
+("carbon_mod.f")	   if necessary
 
 chemcarbon		-- Now updated for SOA production from ISOP
-("carbon_mod.f")	-- Now pass ISOP_PRIOR via the arg list
+("carbon_mod.f")
 
-chemdust		-- Now only do dry deposition if LDRYD = T
-("dust_mod.f")
+chemdr.f		-- Remove reference to "global_ch4_mod.f"
+			-- Add error check for LISOPOH when using the 
+			   online SOA tracers
 
-chem_nvoc		-- Updated for SOA from isoprene
-("carbon_mod.f")	-- Now pass ISOP_P via the arg list
+chem_nvoc		-- Updated for SOA from isoprene.  
+("carbon_mod.f")	-- Now calls GET_DOH
 
-chemseasalt		-- Now only call DRY_DEPOSITION if LDRYD=T 
-("seasalt_mod.f")
+chem_tagged_co		-- Remove reference to "global_ch4_mod.f"
+("tagged_co_mod.f")
 
-chem_nit		-- Rearrange error check to avoid SEG FAULTS
+comode.h		-- Added ILISOPOH to track oxidation of ISOP by OH
+
+gasconc.f		-- Zero out isoprene oxidation counter species
+
+get_global_ch4.f	-- Split off from module "global_ch4_mod.f"
+			-- Updated for IPCC future emissions scenarios
+
+init_input		-- Now also intitialize LFUTURE
+("input_mod.f")
+
+logical_mod.f		-- Added LFUTURE switch
+
+gfed2_compute_biomass	-- Now references LFUTURE from "logical_mod.f"
+("gfed2_biomass_mod.f")	-- Now call private routine SCALE_FUTURE to compute 
+			   future biomass emissions, if necessary.
+
+read_anthro_nh3		-- Now compute future emissions, if necessary
 ("sulfate_mod.f")
 
-chem_so4		-- Rearrange error check to avoid SEG FAULTS
+read_anthro_sox		-- Now computes future SOx emissions
 ("sulfate_mod.f")
 
-compute_f		-- Updated for SOG4 and SOA4 
-("wetscav_mod.f")
+read_biomass		-- Now refrerences LFUTURE from "logical_mod.f"
+("gc_biomass_mod.f")	-- Also now calls private routine SCALE_FUTURE to 
+			   compute the future biomass emissions.
 
-convtran		-- Replace 1 with 1d0 in ND38 diagnostic
-("fvdas_convect_mod.f")
+read_biomass_nh3	-- Now compute future NH3bb and NH3bf emissions,
+("sulfate_mod.f")          if necessary
 
-diag3.f			-- Now remove TRCOFFSET; it's obsolete
-
-do_chemistry		-- Now define ISOP_PRIOR for new SOA from ISOP scheme
-("chemistry_mod.f")	  
-
-drydep_mod.f		-- Increase MAXDEP to 39 for addition of SOG4, SOA4
-
-get_wetdep_nmax		-- Modified for SOG4, SOA4
-("wetscav_mod.f")
-
-init_drydep	      	-- Now also initialize SOG4, SOA4 drydep species
-("drydep_mod.f")	-- Bug fix, remove 2nd "IF ( IS_Hg ) THEN" statement
-
-init_gamap		-- Now references ND42 from "diag42_mod.f"
-("gamap_mod.f")		-- Also updated for extra SOA tracers in ND07 diag
-
-initialize.f		-- Now references ND42, ZERO_DIAG42 from "diag42_mod.f"
-
-init_sulfate		-- Initialize drydep flags outside of IF block
+read_biomass_so2	-- Now computes future SOx emissions
 ("sulfate_mod.f")
 
-init_tracerid		-- Now zero IDTSOG4, IDTSOA4
-("tracerid_mod.f")
-
-is_near			-- Modified for GCAP and GEOS-3 met fields
-("dao_mod.f")
-
-ndxx_setup.f		-- Now remove TRCOFFSET; it's obsolete
-
-rainout			-- Updated for SOG4 and SOA4 
-("wetscav_mod.f")
-
-read_diagnostic_menu	-- Now reference ND42, PD42, INIT_DIAG42 from 
-("input_mod.f")		   "diag42_mod.f"
+readchem.f		-- Now look up ILISOPOH, the index of ISOP lost to OH
 
 soa_chemistry		-- Now modified for SOG4, SOA4 -- products of 
 ("carbon_mod.f")	   oxidation by isoprene
-			-- Now pass ISOP_PRIOR via the arg list
 
-soa_lump		-- Updated for SOG4, SOA4
-("carbon_mod.f")
+soilnoxems.f		-- Now references LFUTURE from "logical_mod.f" and 
+			   GET_FUTURE_SCALE_NOxft from "future_emissions_mod.f"
+			-- Now compute future emissions of NOx from soils
+			   if necessary
 
-soa_para		-- Add parameters for isoprene
-("carbon_mod.f")	-- Define a reference temperature at 295 K
-			-- Now use ITS_IN_THE_TROP to determine if we 
-			   are in a tropospheric grid box
-			-- Now pass II, JJ, LL via the argument list
-
-soa_partition		-- Updated for SOG4, SOA4
-("carbon_mod.f")	
-
-tracerid		-- Now look for IDTSOG4 and IDTSOA4
-("tracerid_mod.f")
-
-tracerid_mod.f		-- Add IDTSOG4 and IDTSOA4
-
-washout			-- Updated for SOG4 and SOA4 
-("wetscav_mod.f")
-
-wetdep			-- Eliminate unnecessary variables XDSTT, L_PLUS_W  
-("wetscav_mod.f")	-- Also zero all unused variables for each grid box
-
-wetdepid		-- Now added SOG4 and SOA4
-("wetscav_mod.f")
-
-wetscav_mod.f		-- Now set NSOLMAX=33 for SOG4, SOA4 

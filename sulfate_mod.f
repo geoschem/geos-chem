@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.24 2006/05/26 17:45:27 bmy Exp $
+! $Id: sulfate_mod.f,v 1.25 2006/06/06 14:26:09 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -2402,11 +2402,6 @@
       !=================================================================
 
       ! Return if tracers are not defined
-      !--------------------------------------------------------
-      ! Prior to 5/23/06:
-      ! Rearrange IF block to avoid seg fault (bmy, 5/23/06)
-      !IF ( IDTSO4 + DRYSO4 + IDTSO4s + DRYSO4s == 0 ) RETURN
-      !--------------------------------------------------------
       IF ( IDTSO4 == 0 .or. IDTSO4s == 0 ) RETURN
       IF ( DRYSO4 == 0 .or. DRYSO4s == 0 ) RETURN
 
@@ -3444,10 +3439,6 @@
       !=================================================================
 
       ! Return if tracers are not defined
-      !---------------------------------------------------------
-      ! Prior to 5/23/06:
-      !IF ( IDTNIT + DRYNIT + IDTNITs + DRYNITs == 0 ) RETURN
-      !---------------------------------------------------------
       IF ( IDTNIT == 0 .or. IDTNITs == 0 ) RETURN
       IF ( DRYNIT == 0 .or. DRYNITs == 0 ) RETURN
 
@@ -5405,7 +5396,7 @@
 !******************************************************************************
 !  Suborutine READ_ANTHRO_SOx reads the anthropogenic SOx from disk, 
 !  and partitions it into anthropogenic SO2 and SO4. 
-!  (rjp, bdf, bmy, 9/20/02, 10/3/05)
+!  (rjp, bdf, bmy, 9/20/02, 5/30/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -5423,32 +5414,36 @@
 !        GCAP and GEOS grids (bmy, 8/16/05)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  (6 ) Now computes future SOx emissions (swu, bmy, 5/30/06)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE GRID_MOD,      ONLY : GET_XMID, GET_YMID, GET_AREA_CM2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TIME_MOD,      ONLY : GET_YEAR
-      USE TRACER_MOD,    ONLY : XNUMOL
-      USE TRACERID_MOD,  ONLY : IDTSO2, IDTSO4
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+      USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
+      USE GRID_MOD,             ONLY : GET_XMID,        GET_YMID
+      USE GRID_MOD,             ONLY : GET_AREA_CM2
+      USE DIRECTORY_MOD,        ONLY : DATA_DIR
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
+      USE LOGICAL_MOD,          ONLY : LFUTURE
+      USE TIME_MOD,             ONLY : GET_YEAR
+      USE TRACER_MOD,           ONLY : XNUMOL
+      USE TRACERID_MOD,         ONLY : IDTSO2, IDTSO4
+      USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_O3"    ! FSCALYR
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: THISMONTH, NSEASON
-
-      ! Local variables
-      INTEGER             :: I, J, L, IX, JX, IOS
-      INTEGER, SAVE       :: LASTYEAR = -99
-      REAL*4              :: E_SOx(IGLOB,JGLOB,2)
-      REAL*4              :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8              :: XTAU, Fe, X, Y, AREA_CM2
-      CHARACTER(LEN=4)    :: SYEAR
-      CHARACTER(LEN=255)  :: FILENAME
+#     include "CMN_SIZE"             ! Size parameters
+#     include "CMN_O3"               ! FSCALYR
+                                    
+      ! Arguments                   
+      INTEGER, INTENT(IN)           :: THISMONTH, NSEASON
+                                    
+      ! Local variables             
+      INTEGER                       :: I, J, L, IX, JX, IOS
+      INTEGER, SAVE                 :: LASTYEAR = -99
+      REAL*4                        :: E_SOx(IGLOB,JGLOB,2)
+      REAL*4                        :: ARRAY(IGLOB,JGLOB,1)
+      REAL*8                        :: XTAU, Fe, X, Y, AREA_CM2
+      CHARACTER(LEN=4)              :: SYEAR
+      CHARACTER(LEN=255)            :: FILENAME
 
       !=================================================================
       ! Read SOx emissions [molec SOx/cm2/s] 
@@ -5543,6 +5538,12 @@
 
             ! First scale SOx to the given fossil fuel year
             E_SOx(I,J,L) = E_SOx(I,J,L) * SOx_SCALE(I,J)
+            
+            ! Compute future SOx emissions (if necessary)
+            IF ( LFUTURE ) THEN
+               E_SOx(I,J,L) = E_SOx(I,J,L)                  * 
+     &                        GET_FUTURE_SCALE_SO2ff( I, J )
+            ENDIF
 
             ! Compute SO4/SOx fraction for EUROPE
             IF ( ( X >= -12.5 .and. X <= 60.0 )  .and. 
@@ -5755,7 +5756,7 @@
 !******************************************************************************
 !  Subroutine READ_BIOMASS_SO2 reads monthly mean biomass burning 
 !  emissions for SO2.  SOx is read in, and converted to SO2. 
-!  (rjp, bdf, bmy, 1/16/03, 10/3/05)
+!  (rjp, bdf, bmy, 1/16/03, 5/30/06)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -5776,35 +5777,39 @@
 !        it by mole fraction from CO. (rjp, bmy, 1/11/05)
 !  (6 ) Now read data for both GCAP and GEOS grids (bmy, 8/16/05) 
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (8 ) Now computes future biomass emissions, if necessary (swu, bmy, 5/30/06)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE GRID_MOD,      ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,   ONLY : LBBSEA
-      USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR,  GET_MONTH
-      USE TIME_MOD,      ONLY : GET_TAU,         GET_YEAR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+      USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
+      USE DIRECTORY_MOD,        ONLY : DATA_DIR
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2bb
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2bf
+      USE GRID_MOD,             ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,          ONLY : LBBSEA,          LFUTURE
+      USE TIME_MOD,             ONLY : ITS_A_LEAPYEAR,  GET_MONTH
+      USE TIME_MOD,             ONLY : GET_TAU,         GET_YEAR
+      USE TRANSFER_MOD,         ONLY : TRANSFER_2D
       
-#     include "CMN_SIZE"  ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: THISMONTH
-
-      ! Local variables
-      INTEGER             :: I, J, THISYEAR
-      REAL*4              :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8              :: BIOCO(IIPAR,JJPAR)
-      REAL*8              :: XTAU, AREA_CM2, TIME
-      CHARACTER(LEN=4  )  :: CYEAR
-      CHARACTER(LEN=255)  :: FILENAME
-
-      ! Days per month
-      REAL*8              :: NMDAY(12) = (/ 31d0, 28d0, 31d0, 30d0,
-     &                                      31d0, 30d0, 31d0, 31d0, 
-     &                                      30d0, 31d0, 30d0, 31d0 /)
+#     include "CMN_SIZE"             ! Size parameters
+                                    
+      ! Arguments                   
+      INTEGER, INTENT(IN)           :: THISMONTH
+                                    
+      ! Local variables             
+      INTEGER                       :: I, J, THISYEAR
+      REAL*4                        :: ARRAY(IGLOB,JGLOB,1)
+      REAL*8                        :: BIOCO(IIPAR,JJPAR)
+      REAL*8                        :: XTAU, AREA_CM2, TIME
+      CHARACTER(LEN=4  )            :: CYEAR
+      CHARACTER(LEN=255)            :: FILENAME
+                                    
+      ! Days per month              
+      REAL*8                        :: NMDAY(12) = (/31d0, 28d0, 31d0, 
+     &                                               30d0, 31d0, 30d0, 
+     &                                               31d0, 31d0, 30d0, 
+     &                                               31d0, 30d0, 31d0/)
 
       !=================================================================
       ! READ_BIOMASS_SO2 begins here!
@@ -5898,11 +5903,19 @@
       ! Cast from REAL*4 to REAL*8
       CALL TRANSFER_2D( ARRAY(:,:,1), BIOCO )
 
-      ! Convert from [kg CO/box/yr] to [kg SO2/box/s]
+      ! Loop over grid boxes
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+
+         ! Convert biofuel SO2 from [kg CO/box/yr] to [kg SO2/box/s]
          ESO2_bf(I,J) = ( BIOCO(I,J) * 64d-3 * 0.0015d0 /
      &                    ( 28D-3 * 86400.d0 * 365.25d0 ) )
+
+         ! Apply future emissions to biomass & biofuel SO2, if necessary
+         IF ( LFUTURE ) THEN
+            ESO2_bb(I,J) = ESO2_bb(I,J) * GET_FUTURE_SCALE_SO2bb( I, J ) 
+            ESO2_bf(I,J) = ESO2_bf(I,J) * GET_FUTURE_SCALE_SO2bf( I, J )
+         ENDIF
       ENDDO
       ENDDO
 
@@ -6141,7 +6154,7 @@
 !******************************************************************************
 !  Subroutine READ_ANTHRO_NH3 reads the monthly mean anthropogenic 
 !  NH3 emissions from disk and converts to [kg NH3/box/s]. 
-!  (rjp, bdf, bmy, 9/20/02, 10/3/05)
+!  (rjp, bdf, bmy, 9/20/02, 5/30/06)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -6158,28 +6171,31 @@
 !  (5 ) Now read files from "sulfate_sim_200508/". Now read data for both 
 !        GCAP and GEOS grids. (bmy, 8/16/05)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (6 ) Now compute future emissions, if necessary (swu, bmy, 5/30/06)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+      USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
+      USE DIRECTORY_MOD,        ONLY : DATA_DIR
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NH3an
+      USE LOGICAL_MOD,          ONLY : LFUTURE
+      USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_SIZE"             ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN) :: THISMONTH
+      INTEGER, INTENT(IN)           :: THISMONTH
 
       ! Local variables
-      LOGICAL             :: WEEKDAY
-      INTEGER             :: I, J, DAY_NUM
-      REAL*4              :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8              :: AREA_CM2, EPA_NEI, XTAU
+      LOGICAL                       :: WEEKDAY
+      INTEGER                       :: I, J, DAY_NUM
+      REAL*4                        :: ARRAY(IGLOB,JGLOB,1)
+      REAL*8                        :: AREA_CM2, EPA_NEI, XTAU
       REAL*8              :: NMDAY(12) = (/ 31d0, 28d0, 31d0, 30d0,
      &                                      31d0, 30d0, 31d0, 31d0, 
      &                                      30d0, 31d0, 30d0, 31d0 /)
-      CHARACTER(LEN=255)  :: FILENAME
+      CHARACTER(LEN=255)            :: FILENAME
 
       !=================================================================
       ! READ_ANTHRO_NH3 begins here!
@@ -6205,9 +6221,30 @@
       ! Cast from REAL*4 to REAL*8
       CALL TRANSFER_2D( ARRAY(:,:,1), ENH3_an )
 
-      ! Convert from [kg N/box/mon] to [kg NH3/box/s]
-      ENH3_an = ENH3_an * ( 17.d0 / 14.d0 ) 
-     &        / ( NMDAY(THISMONTH) * 86400.d0 ) 
+!-------------------------------------------------------------
+! Prior to 5/30/06:
+!      ! Convert from [kg N/box/mon] to [kg NH3/box/s]
+!      ENH3_an = ENH3_an * ( 17.d0 / 14.d0 ) 
+!     &        / ( NMDAY(THISMONTH) * 86400.d0 ) 
+!-------------------------------------------------------------
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Convert from [kg N/box/mon] to [kg NH3/box/s]
+         ENH3_an(I,J) = ENH3_an(I,J) * ( 17.d0 / 14.d0 ) 
+     &                / ( NMDAY(THISMONTH) * 86400.d0 )
+
+         ! Compute future NH3an emissions, if necessary
+         IF ( LFUTURE ) THEN
+            ENH3_an(I,J) = ENH3_an(I,J) * GET_FUTURE_SCALE_NH3an( I, J )
+         ENDIF
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
       ! Return to calling program
       END SUBROUTINE READ_ANTHRO_NH3
@@ -6291,7 +6328,7 @@
 !******************************************************************************
 !  Subroutine READ_BIOMASS_NH3 reads the monthly mean biomass NH3 
 !  and biofuel emissions from disk and converts to [kg NH3/box/s]. 
-!  (rjp, bdf, bmy, 9/20/02, 10/3/05)
+!  (rjp, bdf, bmy, 9/20/02, 5/30/06)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -6323,29 +6360,33 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE GRID_MOD,      ONLY : GET_AREA_M2
-      USE LOGICAL_MOD,   ONLY : LBBSEA
-      USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR, GET_MONTH, 
-     &                          GET_TAU,        GET_YEAR    
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+      USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
+      USE DIRECTORY_MOD,        ONLY : DATA_DIR
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NH3bb
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NH3bf
+      USE LOGICAL_MOD,          ONLY : LFUTURE
+      USE GRID_MOD,             ONLY : GET_AREA_M2
+      USE LOGICAL_MOD,          ONLY : LBBSEA
+      USE TIME_MOD,             ONLY : ITS_A_LEAPYEAR, GET_MONTH 
+      USE TIME_MOD,             ONLY : GET_TAU,        GET_YEAR    
+      USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_SIZE"             ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN) :: THISMONTH
+      INTEGER, INTENT(IN)           :: THISMONTH
 
       ! Local variables
-      INTEGER             :: I, J, THISYEAR
-      REAL*4              :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8              :: XTAU, DMASS, AREA_M2, TAU, TIME
-      REAL*8              :: NMDAY(12) = (/ 31d0, 28d0, 31d0, 30d0,
-     &                                      31d0, 30d0, 31d0, 31d0, 
-     &                                      30d0, 31d0, 30d0, 31d0 /)
-      CHARACTER(LEN=4  )  :: CYEAR
-      CHARACTER(LEN=255)  :: FILENAME
+      INTEGER                       :: I, J, THISYEAR
+      REAL*4                        :: ARRAY(IGLOB,JGLOB,1)
+      REAL*8                        :: XTAU, DMASS, AREA_M2, TAU, TIME
+      REAL*8                        :: NMDAY(12) = (/31d0, 28d0, 31d0, 
+     &                                               30d0, 31d0, 30d0, 
+     &                                               31d0, 31d0, 30d0, 
+     &                                               31d0, 30d0, 31d0/)
+      CHARACTER(LEN=4  )            :: CYEAR
+      CHARACTER(LEN=255)            :: FILENAME
 
       !=================================================================
       ! READ_BIOMASS_NH3 begins here!
@@ -6443,7 +6484,19 @@
 
       ! Store NH3 in ENH3_bf array [kg NH3/box/s]
       ENH3_bf = ENH3_bf / ( NMDAY(THISMONTH) * 86400.d0 )
- 
+
+      !=================================================================
+      ! Compute IPCC future emissions (if necessary)
+      !=================================================================
+      IF ( LFUTURE ) THEN
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            ENH3_bb(I,J) = ENH3_bb(I,J) * GET_FUTURE_SCALE_NH3bb( I, J )
+            ENH3_bf(I,J) = ENH3_bf(I,J) * GET_FUTURE_SCALE_NH3bf( I, J )
+         ENDDO
+         ENDDO
+      ENDIF
+      
       ! Return to calling program
       END SUBROUTINE READ_BIOMASS_NH3
 
@@ -6919,26 +6972,6 @@
       DRYNH4aq = 0  
 
       IF ( LDRYD ) THEN
-         
-         !-------------------------------------------------------------------
-         ! Prior to 5/23/06:
-         ! Initialize everything to zero outside of IF block (bmy, 5/23/06)
-         !! Initialize flags
-         !DRYH2O2  = 0
-         !DRYSO2   = 0
-         !DRYSO4   = 0
-         !DRYSO4s  = 0
-         !DRYMSA   = 0
-         !DRYNH3   = 0
-         !DRYNH4   = 0
-         !DRYNIT   = 0
-         !DRYSO4s  = 0
-         !DRYAS    = 0
-         !DRYAHS   = 0
-         !DRYLET   = 0
-         !DRYSO4aq = 0
-         !DRYNH4aq = 0         
-         !--------------------------------------------------------------------
          
          ! Locate position of each tracer in DEPSAV
          DO N = 1, NUMDEP

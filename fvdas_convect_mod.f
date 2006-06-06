@@ -1,4 +1,4 @@
-! $Id: fvdas_convect_mod.f,v 1.13 2006/05/26 17:45:21 bmy Exp $
+! $Id: fvdas_convect_mod.f,v 1.14 2006/06/06 14:26:02 bmy Exp $
       MODULE FVDAS_CONVECT_MOD
 !
 !******************************************************************************
@@ -999,11 +999,6 @@
                      ! Save loss in [kg/s]
                      AD38(II,JJ,LL,NN) = AD38(II,JJ,LL,NN) +
      &                    MU(I,KP1)   * AREA_M2     * 100d0           / 
-!-----------------------------------------------------------------------------
-! Prior to 5/24/06:
-! Replace 1 with 1d0 (bmy, 5/24/06)
-!     &                    GRAV        * CONU(I,KP1) * (1-FISG(I,K))   / 
-!-----------------------------------------------------------------------------
      &                    GRAV        * CONU(I,KP1) * (1d0-FISG(I,K)) / 
      &                    TCVV(M)     / FLOAT(NSTEP)
                   ENDIF
@@ -1037,11 +1032,6 @@
 
                      ! Hg2 wet-scavenged out of the column [kg]
                      WET_Hg2 = MU(I,KP1) * AREA_M2     * 100d0         / 
-!----------------------------------------------------------------------------
-! Prior to 5/24/06:
-! Replace 1 with 1d0 (bmy, 5/24/06)
-!     &                         GRAV      * CONU(I,KP1) * (1-FISG(I,K)) /
-!----------------------------------------------------------------------------
      &                         GRAV      * CONU(I,KP1) *(1d0-FISG(I,K))/
      &                         TCVV(M)   * DELT 
 

@@ -1,9 +1,9 @@
-! $Id: logical_mod.f,v 1.9 2006/05/15 17:52:52 bmy Exp $
+! $Id: logical_mod.f,v 1.10 2006/06/06 14:26:06 bmy Exp $
       MODULE LOGICAL_MOD
 !
 !******************************************************************************
 !  Module LOGICAL_MOD contains all of the logical switches used by GEOS-CHEM.
-!  (bmy, 7/9/04, 5/5/06)
+!  (bmy, 7/9/04, 5/30/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -64,6 +64,7 @@
 !  (5 ) Added LDYNOCEAN switch for online ocean Hg model (bmy, 2/24/06)
 !  (6 ) Added LGFED2BB switch for GFED2 BIOMASS BURNING (bmy, 4/5/06)
 !  (7 ) Added LCTH, LMFLUX, LPRECON for lightning options (ltm, bmy, 5/5/06)
+!  (8 ) Added LFUTURE (swu, bmy, 5/30/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -124,6 +125,7 @@
       LOGICAL :: LWOODCO    ! <-- deprecated: replace w/ LBIOFUEL soon
       LOGICAL :: LAVHRRLAI
       LOGICAL :: LGFED2BB
+      LOGICAL :: LFUTURE
 
       ! Transport and strat BC's
       LOGICAL :: LFILL

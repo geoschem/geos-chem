@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.24 2006/05/26 17:45:23 bmy Exp $
+! $Id: input_mod.f,v 1.25 2006/06/06 14:26:06 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS_CHEM input file at the start of the run
 !  and passes the information to several other GEOS-CHEM F90 modules.
-!  (bmy, 7/20/04, 5/22/06)
+!  (bmy, 7/20/04, 6/1/06)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -24,31 +24,32 @@
 !  (1 ) READ_INPUT_FILE       : Driver routine for reading GEOS-CHEM input file
 !  (2 ) READ_ONE_LINE         : Reads one line at a time
 !  (3 ) SPLIT_ONE_LINE        : Splits one line into substrings (by spaces)
-!  (4 ) READ_SIMULATION_MENU  : Reads the GEOS-CHEM simulation menu
-!  (4 ) READ_TRACER_MENU      : Reads the GEOS-CHEM tracer menu
-!  (6 ) READ_AEROSOL_MENU     : Reads the GEOS-CHEM aerosol menu
-!  (7 ) READ_EMISSIONS_MENU   : Reads the GEOS-CHEM emission menu
-!  (8 ) READ_CHEMISTRY_MENU   : Reads the GEOS-CHEM chemistry menu
-!  (9 ) READ_TRANSPORT_MENU   : Reads the GEOS-CHEM transport menu
-!  (10) READ_CONVECTION_MENU  : Reads the GEOS-CHEM convection menu
-!  (11) READ_DEPOSITION_MENU  : Reads the GEOS-CHEM deposition menu
-!  (12) READ_OUTPUT_MENU      : Reads the GEOS-CHEM output menu
-!  (13) READ_DIAGNOSTIC_MENU  : Reads the GEOS-CHEM diagnostic menu
-!  (14) SET_TINDEX            : Defines which tracers to print to the BPCH file
-!  (15) READ_ND49_MENU        : Reads the GEOS-CHEM ND49 timeseries menu
-!  (16) READ_ND50_MENU        : Reads the GEOS-CHEM ND50 timeseries menu
-!  (17) READ_ND51_MENU        : Reads the GEOS-CHEM ND51 timeseries menu
-!  (18) READ_PROD_LOSS_MENU   : Reads the GEOS-CHEM ND65 timeseries menu
-!  (19) READ_UNIX_CMDS_MENU   : Reads the GEOS-CHEM unix commands menu
-!  (20) READ_NESTED_GRID_MENU : Reads the GEOS-CHEM nested grid menu
-!  (21) READ_ARCHIVED_OH_MENU : logs/log.v7-02-04.0840930
-!  (22) READ_O3PL_MENU        : Reads the GEOS-CHEM O3 P/L menu
-!  (23) READ_BENCHMARK_MENU   : Reads the GEOS-CHEM benchmark cmds menu
-!  (24) VALIDATE_DIRECTORIES  : Makes sure all given directories are valid
-!  (25) CHECK_DIRECTORY       : Checks a single directory for errors
-!  (26) CHECK_TIME_STEPS      : Sets the GEOS_CHEM timesteps
-!  (27) IS_LAST_DAY_GOOD      : Makes sure we have output on last day of run
-!  (28) INIT_INPUT            : Initializes directory & logical variables
+!  (4 ) READ_SIMULATION_MENU  : Reads the GEOS-Chem simulation menu
+!  (4 ) READ_TRACER_MENU      : Reads the GEOS-Chem tracer menu
+!  (6 ) READ_AEROSOL_MENU     : Reads the GEOS-Chem aerosol menu
+!  (7 ) READ_EMISSIONS_MENU   : Reads the GEOS-Chem emission menu
+!  (8 ) READ_FUTURE_MENU      : Reads the GEOS-Chem future emissions menu
+!  (9 ) READ_CHEMISTRY_MENU   : Reads the GEOS-Chem chemistry menu
+!  (10) READ_TRANSPORT_MENU   : Reads the GEOS-Chem transport menu
+!  (11) READ_CONVECTION_MENU  : Reads the GEOS-Chem convection menu
+!  (12) READ_DEPOSITION_MENU  : Reads the GEOS-Chem deposition menu
+!  (13) READ_OUTPUT_MENU      : Reads the GEOS-Chem output menu
+!  (14) READ_DIAGNOSTIC_MENU  : Reads the GEOS-Chem diagnostic menu
+!  (15) SET_TINDEX            : Defines which tracers to print to the BPCH file
+!  (16) READ_ND49_MENU        : Reads the GEOS-Chem ND49 timeseries menu
+!  (17) READ_ND50_MENU        : Reads the GEOS-Chem ND50 timeseries menu
+!  (18) READ_ND51_MENU        : Reads the GEOS-Chem ND51 timeseries menu
+!  (19) READ_PROD_LOSS_MENU   : Reads the GEOS-Chem ND65 timeseries menu
+!  (20) READ_UNIX_CMDS_MENU   : Reads the GEOS-Chem unix commands menu
+!  (21) READ_NESTED_GRID_MENU : Reads the GEOS-Chem nested grid menu
+!  (22) READ_ARCHIVED_OH_MENU : Reads the GEOS-Chem archived OH menu
+!  (23) READ_O3PL_MENU        : Reads the GEOS-CHEM O3 P/L menu
+!  (24) READ_BENCHMARK_MENU   : Reads the GEOS-CHEM benchmark cmds menu
+!  (25) VALIDATE_DIRECTORIES  : Makes sure all given directories are valid
+!  (26) CHECK_DIRECTORY       : Checks a single directory for errors
+!  (27) CHECK_TIME_STEPS      : Sets the GEOS_CHEM timesteps
+!  (28) IS_LAST_DAY_GOOD      : Makes sure we have output on last day of run
+!  (29) INIT_INPUT            : Initializes directory & logical variables
 !
 !  GEOS-CHEM modules referenced by "input_mod.f"
 !  ============================================================================
@@ -69,20 +70,21 @@
 !  (15) drydep_mod.f          : Module w/ GEOS-CHEM drydep routines
 !  (16) error_mod.f           : Module w/ I/O error and NaN check routines
 !  (17) file_mod.f            : Module w/ file unit numbers and error checks
-!  (18) grid_mod.f            : Module w/ horizontal grid information
-!  (19) logical_mod.f         : Module w/ GEOS-CHEM logical switches
-!  (20) ocean_mercury_mod.f   : Module w/ routines for ocean flux of Hg0
-!  (21) planeflight_mod.f     : Module w/ routines for flight track diag
-!  (22) pressure_mod.f        : Module w/ routines to compute P(I,J,L)
-!  (23) restart_mod.f         : Module w/ routines for restart file I/O
-!  (24) time_mod.f            : Module w/ routines for computing time & date
-!  (25) tpcore_bc_mod.f       : Module w/ routines to read/write TPCORE BC's
-!  (26) tracer_mod.f          : Module w/ GEOS-CHEM tracer array STT etc.
-!  (27) tracerid_mod.f        : Module w/ pointers to tracers & emissions  
-!  (28) transport_mod.f       : Module w/ driver routine for TPCORE 
-!  (29) unix_cmds_mod.f       : Module w/ Unix commands for unzipping etc
-!  (30) upbdflx_mod.f         : Module w/ routines for strat O3, NOy BC's
-!  (31) wetscav_mod.f         : Module w/ routines for wetdep/scavenging
+!  (19) future_emissions_mod.f: Module w/ routines for IPCC future scale facs
+!  (20) grid_mod.f            : Module w/ horizontal grid information
+!  (21) logical_mod.f         : Module w/ GEOS-CHEM logical switches
+!  (22) ocean_mercury_mod.f   : Module w/ routines for ocean flux of Hg0
+!  (23) planeflight_mod.f     : Module w/ routines for flight track diag
+!  (24) pressure_mod.f        : Module w/ routines to compute P(I,J,L)
+!  (25) restart_mod.f         : Module w/ routines for restart file I/O
+!  (26) time_mod.f            : Module w/ routines for computing time & date
+!  (27) tpcore_bc_mod.f       : Module w/ routines to read/write TPCORE BC's
+!  (28) tracer_mod.f          : Module w/ GEOS-CHEM tracer array STT etc.
+!  (29) tracerid_mod.f        : Module w/ pointers to tracers & emissions  
+!  (30) transport_mod.f       : Module w/ driver routine for TPCORE 
+!  (31) unix_cmds_mod.f       : Module w/ Unix commands for unzipping etc
+!  (32) upbdflx_mod.f         : Module w/ routines for strat O3, NOy BC's
+!  (33) wetscav_mod.f         : Module w/ routines for wetdep/scavenging
 !
 !  NOTES:
 !  (1 ) Now references LSOA in READ_AEROSOL_MENU (bmy, 9/28/04)
@@ -108,6 +110,7 @@
 !  (11) Bug fix for GCAP in IS_LAST_DAY_GOOD.  Also now read LCTH, LMFLUX,
 !        LPRECON in READ_EMISSIONS_MENU. (bmy, 5/10/06)
 !  (12) Updated for ND42 SOA concentration diagnostic (dkh, bmy, 5/22/06)
+!  (13) Modified for future emissions (swu, bmy, 6/1/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -231,7 +234,10 @@
 
          ELSE IF ( INDEX( LINE, 'EMISSIONS MENU'   ) > 0 ) THEN
             CALL READ_EMISSIONS_MENU              
-                                                  
+
+         ELSE IF ( INDEX( LINE, 'FUTURE MENU'      ) > 0 ) THEN
+            CALL READ_FUTURE_MENU 
+                                                        
          ELSE IF ( INDEX( LINE, 'CHEMISTRY MENU'   ) > 0 ) THEN
             CALL READ_CHEMISTRY_MENU              
                                                   
@@ -926,7 +932,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_AEROSOL_MENU reads the AEROSOL MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 10/3/05)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 6/1/06)
 !
 !  NOTES:
 !  (1 ) Now reference LSOA (bmy, 9/28/04)
@@ -937,6 +943,7 @@
 !  (4 ) Now also require LSSALT=T when LSULF=T, since we now compute the 
 !        production of SO4 and NIT w/in the seasalt aerosol (bec, bmy, 4/13/05)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (6 ) Now update error check for SOG4, SOA4 (dkh, bmy, 6/1/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -951,9 +958,10 @@
       USE TRACERID_MOD, ONLY : IDTAS,    IDTAHS,   IDTLET,  IDTNH4aq 
       USE TRACERID_MOD, ONLY : IDTSO4aq, IDTBCPO,  IDTBCPI, IDTOCPO 
       USE TRACERID_MOD, ONLY : IDTOCPI,  IDTALPH,  IDTLIMO, IDTALCO 
-      USE TRACERID_MOD, ONLY : IDTSOG1,  IDTSOG2,  IDTSOG3, IDTSOA1 
-      USE TRACERID_MOD, ONLY : IDTSOA2,  IDTSOA3,  IDTDST1, IDTDST2 
-      USE TRACERID_MOD, ONLY : IDTDST3,  IDTDST4,  IDTSALA, IDTSALC 
+      USE TRACERID_MOD, ONLY : IDTSOG1,  IDTSOG2,  IDTSOG3, IDTSOG4
+      USE TRACERID_MOD, ONLY : IDTSOA1,  IDTSOA2,  IDTSOA3, IDTSOA4
+      USE TRACERID_MOD, ONLY : IDTDST1,  IDTDST2,  IDTDST3, IDTDST4
+      USE TRACERID_MOD, ONLY : IDTSALA,  IDTSALC 
 
       ! Local variables
       INTEGER            :: N, T, I
@@ -1127,8 +1135,9 @@
       !---------------------------------
       ! Error check 2dy ORG AEROSOLS
       !---------------------------------
-      I = IDTALPH + IDTLIMO + IDTALCO + IDTSOG1 + 
-     &    IDTSOG2 + IDTSOG3 + IDTSOA1 + IDTSOA2 + IDTSOA3
+      I = IDTALPH + IDTLIMO + IDTALCO + 
+     &    IDTSOG1 + IDTSOG2 + IDTSOG3 + IDGSOG4 + 
+     &    IDTSOA1 + IDTSOA2 + IDTSOA3 + IDTSOA4
 
       IF ( LSOA ) THEN
          IF ( I == 0 ) THEN
@@ -1408,6 +1417,83 @@
 
       ! Return to calling program
       END SUBROUTINE READ_EMISSIONS_MENU
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE READ_FUTURE_MENU
+!
+!******************************************************************************
+!  Subroutine READ_FUTURE_MENU reads the FUTURE MENU section of the GEOS-Chem 
+!  input file; this defines IPCC future emissions options. (swu, bmy, 6/1/06)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE FUTURE_EMISSIONS_MOD, ONLY : DO_FUTURE_EMISSIONS
+      USE LOGICAL_MOD,          ONLY : LFUTURE
+ 
+#     include "define.h"             ! C-preprocessor switches
+
+      ! Local variables
+      INTEGER                       :: N
+      INTEGER                       :: FUTURE_YEAR 
+      CHARACTER(LEN=255)            :: FUTURE_SCEN
+      CHARACTER(LEN=255)            :: SUBSTRS(MAXDIM)
+
+      !=================================================================
+      ! READ_FUTURE_MENU begins here!
+      !=================================================================
+
+      ! Use IPCC future emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_future_menu:1' )
+      READ( SUBSTRS(1:N), * ) LFUTURE
+
+      ! Future emission year
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_future_menu:2' )
+      READ( SUBSTRS(1:N), * ) FUTURE_YEAR
+
+      ! Future emission scenario
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_future_menu:3' )
+      READ( SUBSTRS(1:N), '(a)' ) FUTURE_SCEN
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_future_menu:4' )
+
+#if   !defined( GCAP )
+      !### TEMPORARY KLUDGE: right now, future emissions are only defined
+      !### for the GCAP met fields.  Set LFUTURE=F for other met fields
+      !### for the time being.  We will implement the future emissions for
+      !### other met fields at a later date. (swu, bmy, 6/1/06)
+      LFUTURE = .FALSE. 
+#endif
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+      WRITE( 6, '(/,a)' ) 'FUTURE MENU'
+      WRITE( 6, '(  a)' ) '-----------'
+      WRITE( 6, 100     ) 'Use IPCC future emissions   : ', LFUTURE
+      WRITE( 6, 110     ) 'Future emissions for year   : ', FUTURE_YEAR 
+      WRITE( 6, 120     ) 'Future emissions scenario   : ',  
+     &                     TRIM( FUTURE_SCEN )
+
+      ! FORMAT statements
+ 100  FORMAT( A, L5  )
+ 110  FORMAT( A, I4  )
+ 120  FORMAT( A, A   )
+    
+      !=================================================================
+      ! Call setup routines from other F90 modules
+      !=================================================================
+
+      ! Initialize
+      IF ( LFUTURE ) THEN
+         CALL DO_FUTURE_EMISSIONS( FUTURE_YEAR, TRIM( FUTURE_SCEN ) )
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE READ_FUTURE_MENU
 
 !------------------------------------------------------------------------------
 
@@ -3993,7 +4079,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_INPUT initializes all variables from "directory_mod.f" and
-!  "logical_mod.f" for safety's sake. (bmy, 7/20/04, 4/5/06)
+!  "logical_mod.f" for safety's sake. (bmy, 7/20/04, 6/1/06)
 !
 !  NOTES:
 !  (1 ) Now also initialize LNEI99 from "logical_mod.f" (bmy, 11/5/04)
@@ -4002,6 +4088,7 @@
 !  (4 ) Now also initialize LMEGAN switch (tmf, bmy, 10/20/05)
 !  (5 ) Now also initialize LEMEP, LGFED2BB switches and DATA_DIR_1x1
 !        directory (bmy, 4/5/06)
+!  (6 ) Now also intitialize LFUTURE (swu, bmy, 6/1/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4025,7 +4112,7 @@
       USE LOGICAL_MOD,   ONLY : LUNZIP,     LWAIT,      LTURB      
       USE LOGICAL_MOD,   ONLY : LSVGLB,     LSPLIT,     LWETD 
       USE LOGICAL_MOD,   ONLY : LMEGAN,     LDYNOCEAN,  LEMEP
-      USE LOGICAL_MOD,   ONLY : LGFED2BB
+      USE LOGICAL_MOD,   ONLY : LGFED2BB,   LFUTURE
 
       !=================================================================
       ! INIT_INPUT begins here!
@@ -4073,6 +4160,7 @@
       LEMIS        = .FALSE.
       LFFNOX       = .FALSE.
       LFOSSIL      = .FALSE.
+      LFUTURE      = .FALSE.
       LGFED2BB     = .FALSE.
       LLIGHTNOX    = .FALSE.
       LMEGAN       = .FALSE.

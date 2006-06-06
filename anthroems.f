@@ -1,10 +1,10 @@
-! $Id: anthroems.f,v 1.5 2005/11/03 17:50:21 bmy Exp $
+! $Id: anthroems.f,v 1.6 2006/06/06 14:25:56 bmy Exp $
       SUBROUTINE ANTHROEMS( NSEASON )
 !
 !******************************************************************************
 !  Subroutine ANTHROEMS reads anthropogenic tracers for each season.
 !  NOx emissions at levels other than the surface are now accounted for.
-!  (bmy, 6/4/98, 10/25/05)
+!  (bmy, 6/4/98, 5/30/06)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -83,41 +83,59 @@
 !        GET_YEAR, GET_SEASON from "time_mod.f". (bmy, 2/11/03)
 !  (26) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (27) Now replace FMOL with TRACER_MW_KG (bmy, 10/25/05)
+!  (28) Modified for IPCC future emissions scale factors (swu, bmy, 5/30/06)
 !******************************************************************************
 !      
       ! References to F90 modules
-      USE GEIA_MOD,     ONLY : READ_GEIA,    READ_C3H8_C2H6_NGAS
-      USE GEIA_MOD,     ONLY : READ_LIQCO2,  READ_TODX
-      USE GEIA_MOD,     ONLY : READ_TOTCO2,  TOTAL_FOSSIL_TG
-      USE GRID_MOD,     ONLY : GET_AREA_CM2, GET_XOFFSET, GET_YOFFSET
-      USE TIME_MOD,     ONLY : GET_TS_EMIS,  GET_YEAR,    GET_SEASON
-      USE TRACER_MOD,   ONLY : TRACER_MW_KG
-      USE TRACERID_MOD, ONLY : IDEACET,      IDEALK4,     IDEC2H6
-      USE TRACERID_MOD, ONLY : IDEC3H8,      IDECO,       IDEMEK
-      USE TRACERID_MOD, ONLY : IDENOX,       IDEPRPE,     NEMANTHRO
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_ALK4ff
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_C2H6ff
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_C3H8ff
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_COff  
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxff 
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_PRPEff
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_TONEff
+      USE GEIA_MOD,             ONLY : READ_GEIA,    READ_C3H8_C2H6_NGAS
+      USE GEIA_MOD,             ONLY : READ_LIQCO2,  READ_TODX
+      USE GEIA_MOD,             ONLY : READ_TOTCO2,  TOTAL_FOSSIL_TG
+      USE GRID_MOD,             ONLY : GET_AREA_CM2, GET_XOFFSET
+      USE GRID_MOD,             ONLY : GET_YOFFSET
+      USE LOGICAL_MOD,          ONLY : LFUTURE
+      USE TIME_MOD,             ONLY : GET_TS_EMIS,  GET_YEAR
+      USE TIME_MOD,             ONLY : GET_SEASON
+      USE TRACER_MOD,           ONLY : TRACER_MW_KG
+      USE TRACERID_MOD,         ONLY : IDEACET,      IDEALK4
+      USE TRACERID_MOD,         ONLY : IDEC2H6,      IDEC3H8
+      USE TRACERID_MOD,         ONLY : IDECO,        IDEMEK
+      USE TRACERID_MOD,         ONLY : IDENOX,       IDEPRPE
+      USE TRACERID_MOD,         ONLY : NEMANTHRO
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! STT, NSRCX
-#     include "CMN_O3"    ! EMIST, EMISR, EMISRR, etc.
-#     include "comode.h"  ! IDEMS
+#     include "CMN_SIZE"             ! Size parameters
+!-------------------------------------------------------------------------
+! Prior to 5/30/06:
+! Remove CMN, it's obsolete now (swu, bmy, 5/30/06)
+!#     include "CMN"                  ! STT, NSRCX
+!-------------------------------------------------------------------------
+#     include "CMN_O3"               ! EMIST, EMISR, EMISRR, etc.
+#     include "comode.h"             ! IDEMS
 
       ! Arguments
-      INTEGER, INTENT(IN) :: NSEASON
+      INTEGER, INTENT(IN)           :: NSEASON
       
       ! Local Variables
-      LOGICAL, SAVE       :: FIRST = .TRUE.
-      INTEGER             :: SCALEYEAR
-      INTEGER, SAVE       :: LASTYEAR
-      INTEGER             :: I, I0, IREF, J, J0, JREF, K, L, LL, N, NN 
-      REAL*8              :: DTSRCE, AREA_CM2
+      LOGICAL, SAVE                 :: FIRST = .TRUE.
+      INTEGER                       :: SCALEYEAR
+      INTEGER, SAVE                 :: LASTYEAR
+      INTEGER                       :: I, I0,  IREF, J, J0, JREF
+      INTEGER                       :: K, L,   LL,   N, NN 
+      REAL*8                        :: DTSRCE, AREA_CM2
 
       !=================================================================
       ! ANTHROEMS begins here!
-      !
-      ! Echo JYEAR and NSEASON to the standard output
       !=================================================================
+
+      ! Echo info
       WRITE( 6, '(a)' ) REPEAT( '=', 79 ) 
       WRITE( 6, '(a)' ) 'A N T H R O P O G E N I C   E M I S S I O N S'
       WRITE( 6, '(a)' )
@@ -128,8 +146,8 @@
       DTSRCE = GET_TS_EMIS() * 60d0
 
       ! Get nested-grid offsets
-      I0 = GET_XOFFSET()
-      J0 = GET_YOFFSET()
+      I0     = GET_XOFFSET()
+      J0     = GET_YOFFSET()
 
       !=================================================================
       ! If FSCALYR < 0 then use this year (JYEAR) for the scaling 
@@ -181,6 +199,53 @@
          ! as computed by Yaping Xiao (xyp@io.harvard.edu)
          CALL READ_C3H8_C2H6_NGAS( E_C3H8=EMISTC3H8, E_C2H6=EMISTC2H6 )
 
+         !============================================================== 
+         ! Apply IPCC future scale factors to emissions (if necessary)
+         !==============================================================
+         IF ( LFUTURE ) THEN
+
+            ! Loop over grid boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+
+               ! Future CO [molec/cm2/s]
+               EMISTCO(I,J)      = EMISTCO(I,J)                    *
+     &                             GET_FUTURE_SCALE_COff( I, J )
+
+               ! Future C2H6 [atoms C/cm2/s]
+               EMISTC2H6(I,J)    = EMISTC2H6(I,J)                  *
+     &                             GET_FUTURE_SCALE_C2H6ff( I, J )
+
+               ! Future C3H8 emissions [atoms C/cm2/s]
+               EMISTC3H8(I,J)    = EMISTC3H8(I,J)                  * 
+     &                             GET_FUTURE_SCALE_C3H8ff( I, J )
+
+               ! Future ALK4 [atoms C/cm2/s]
+               EMISTALK4(I,J)    = EMISTALK4(I,J)                  * 
+     &                             GET_FUTURE_SCALE_ALK4ff( I, J )
+
+               ! Future PRPE [atoms C/cm2/s]
+               EMISTPRPE(I,J)    = EMISTPRPE(I,J)                  *
+     &                             GET_FUTURE_SCALE_PRPEff( I, J )
+
+               ! Future ACET [atoms C/cm2/s]
+               EMISTACET(I,J)    = EMISTACET(I,J)                  * 
+     &                             GET_FUTURE_SCALE_TONEff( I, J )
+
+               ! Future MEK [atoms C/cm2/s]
+               EMISTMEK(I,J)     = EMISTMEK(I,J)                   * 
+     &                             GET_FUTURE_SCALE_TONEff( I, J )
+
+               ! Future NOx [molec/cm2/s]
+               EMISTNOX(I,J,:,:) = EMISTNOX(I,J,:,:)               *
+     &                             GET_FUTURE_SCALE_NOxff( I, J )
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+         ENDIF
       ENDIF
 
       !================================================================= 

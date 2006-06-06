@@ -1,4 +1,4 @@
-! $Id: tagged_co_mod.f,v 1.13 2006/05/26 19:08:12 bmy Exp $
+! $Id: tagged_co_mod.f,v 1.14 2006/06/06 14:26:10 bmy Exp $
       MODULE TAGGED_CO_MOD
 !
 !******************************************************************************
@@ -49,13 +49,12 @@
 !  (9 ) geia_mod         : Module w/ routines to read anthro emissions
 !  (10) global_oh_mod.f  : Module w/ routines to read 3-D OH field
 !  (11) global_nox_mod.f : Module w/ routines to read 3-D NOx field
-!  (12) global_ch4_mod.f : Module w/ routines to read 3-D CH4 field
-!  (13) grid_mod.f       : Module w/ horizontal grid information
-!  (14) logical_mod.f    : Module w/ GEOS-CHEM logical switches
-!  (15) pressure_mod.f   : Module w/ routines to compute P(I,J,L)
-!  (16) time_mod.f       : Module w/ routines for computing time & date
-!  (17) tracer_mod.f     : Module w/ GEOS-CHEM tracer array STT etc.
-!  (18) tropopause_mod.f : Module w/ routines to read ann mean tropopause
+!  (12) grid_mod.f       : Module w/ horizontal grid information
+!  (13) logical_mod.f    : Module w/ GEOS-CHEM logical switches
+!  (14) pressure_mod.f   : Module w/ routines to compute P(I,J,L)
+!  (15) time_mod.f       : Module w/ routines for computing time & date
+!  (16) tracer_mod.f     : Module w/ GEOS-CHEM tracer array STT etc.
+!  (17) tropopause_mod.f : Module w/ routines to read ann mean tropopause
 ! 
 !  Tagged CO Tracers (you can modify these as needs be!)
 !  ============================================================================
@@ -415,10 +414,6 @@
       USE TIME_MOD,     ONLY : GET_MONTH,   GET_TAU 
       USE TIME_MOD,     ONLY : GET_YEAR,    GET_TS_EMIS  
       USE TRACER_MOD,   ONLY : STT
-      !------------------------------------------------------
-      ! Prior to 5/26/06:
-      !USE TRACERID_MOD, ONLY : IDBCO,       IDBFCO
-      !------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDBFCO
       
       IMPLICIT NONE
@@ -754,7 +749,7 @@
 !******************************************************************************
 !  Subroutine CHEM_TAGGED_CO performs CO chemistry on geographically
 !  "tagged" CO tracers.  Loss is via reaction with OH. 
-!  (qli, bnd, bdf, bmy, 10/19/99, 10/3/05)
+!  (qli, bnd, bdf, bmy, 10/19/99, 5/31/06)
 !
 !  NOTES:
 !  (1 ) Now do chemistry all the way to the model top. 
@@ -799,6 +794,7 @@
 !  (18) Now references ITS_IN_THE_STRAT from "tropopause_mod.f".  Now remove
 !        reference to "CMN", it's obsolete. (bmy, 8/22/05)
 !  (19) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (20) Remove reference to "global_ch4_mod.f" (bmy, 5/31/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -806,7 +802,10 @@
       USE DIAG_PL_MOD,    ONLY : AD65
       USE ERROR_MOD,      ONLY : CHECK_VALUE
       USE GLOBAL_OH_MOD,  ONLY : GET_GLOBAL_OH,   OH
-      USE GLOBAL_CH4_MOD, ONLY : GET_GLOBAL_CH4
+      !--------------------------------------------------------------
+      ! Prior to 5/31/06:
+      !USE GLOBAL_CH4_MOD, ONLY : GET_GLOBAL_CH4
+      !--------------------------------------------------------------
       USE GLOBAL_NOX_MOD, ONLY : GET_GLOBAL_NOX,  BNOX
       USE GRID_MOD,       ONLY : GET_YMID
       USE LOGICAL_MOD,    ONLY : LSPLIT

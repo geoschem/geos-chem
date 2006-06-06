@@ -1,4 +1,4 @@
-! $Id: drydep_mod.f,v 1.27 2006/05/26 17:45:19 bmy Exp $
+! $Id: drydep_mod.f,v 1.28 2006/06/06 14:26:00 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
@@ -177,11 +177,6 @@
       !=================================================================
 
       ! Parameters
-      !----------------------------------------------------------
-      ! Prior to 5/24/06:
-      ! Now increase to 39 for SOG4, SOA4 (dkh, bmy, 5/24/06)
-      !INTEGER, PARAMETER   :: MAXDEP    = 37
-      !----------------------------------------------------------
       INTEGER, PARAMETER   :: MAXDEP    = 39
       INTEGER, PARAMETER   :: NNTYPE    = 15     ! NTYPE    from "CMN_SIZE"
       INTEGER, PARAMETER   :: NNPOLY    = 20     ! NPOLY    from "CMN_SIZE"
@@ -2713,15 +2708,6 @@ C** Load array DVEL
       USE TRACERID_MOD, ONLY : IDTSO4aq,  IDTNH4aq,      IDTBCPI 
       USE TRACERID_MOD, ONLY : IDTOCPI,   IDTBCPO,       IDTOCPO 
       USE TRACERID_MOD, ONLY : IDTALPH,   IDTLIMO,       IDTALCO 
-      !------------------------------------------------------------------
-      ! Prior to 5/24/06:
-      ! Now add IDTSOG4, IDTSOA4 (dkh, bmy, 5/24/06)
-      !USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,       IDTSOG3 
-      !USE TRACERID_MOD, ONLY : IDTSOA1,   IDTSOA2,       IDTSOA3 
-      !USE TRACERID_MOD, ONLY : IDTDST1,   IDTDST2,       IDTDST3 
-      !USE TRACERID_MOD, ONLY : IDTDST4,   IDTSALA,       IDTSALC 
-      !USE TRACERID_MOD, ONLY : ID_Hg2,    ID_HgP,        ID_Hg_tot
-      !------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,       IDTSOG3 
       USE TRACERID_MOD, ONLY : IDTSOG4,   IDTSOA1,       IDTSOA2       
       USE TRACERID_MOD, ONLY : IDTSOA3,   IDTSOA4,       IDTDST1
@@ -3343,12 +3329,6 @@ C** Load array DVEL
                AIROSOL(NUMDEP) = .FALSE. 
             ENDIF
 
-         !-----------------------------------------------------
-         ! Prior to 5/24/06:
-         ! Remove IF statement, it's unnecessary (bmy, 5/24/06)
-         !! HgP -- Particulate Mercury
-         !ELSE IF ( IS_Hg ) THEN
-         !-----------------------------------------------------
             IF ( N == ID_HgP(ID_Hg_tot) ) THEN
                NUMDEP          = NUMDEP + 1
                NTRAIND(NUMDEP) = ID_HgP(ID_Hg_tot)

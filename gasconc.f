@@ -1,9 +1,9 @@
-! $Id: gasconc.f,v 1.8 2005/11/03 17:50:29 bmy Exp $
+! $Id: gasconc.f,v 1.9 2006/06/06 14:26:03 bmy Exp $
       SUBROUTINE GASCONC( FIRSTCHEM, NTRACER, STT, XNUMOL, FRCLND )
 !
 !******************************************************************************
 !  Subroutine GASCONC initializes gas concentrations for SMVGEAR II.
-!  (M. Jacobson 1997; bdf, bmy, 4/18/03, 10/3/05)
+!  (M. Jacobson 1997; bdf, bmy, 4/18/03, 6/1/06)
 !
 !  NOTES:
 !  (1 ) Now reference ABSHUM, AIRDENS, CSPEC, IXSAVE, IYSAVE, IZSAVE,  
@@ -18,6 +18,7 @@
 !        from "tropopause_mod.f". (bmy, 8/22/05)
 !  (5 ) Now make sure all USE statements are USE, ONLY.  Also remove 
 !        reference to TRACERID_MOD, it's not needed. (bmy, 10/3/05)
+!  (6 ) Now zero out the isoprene oxidation counter species (dkh, bmy, 6/1/06)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -261,6 +262,19 @@ C
       ENDIF
  999  format(E10.3)
 
+C
+C *********************************************************************
+C *           ZERO OUT ISOPRENE OXIDATION COUNTER SPECIES
+C *                     (dkh, bmy, 6/1/06)  
+C *********************************************************************
+C LISOPOH  = Dummy variable for tracking loss of isoprene due to rxn w/ OH
+C ILISOPOH = Location of LISOPOH in CSPEC 
+C
+      IF ( ILISOPOH > 0 ) THEN
+         DO JLOOP = 1, NTLOOP
+            CSPEC(JLOOP,ILISOPOH) = 0d0
+         ENDDO
+      ENDIF 
 C
 C *********************************************************************
 C *             SUM UP INITIAL GAS MASSES OVER ENTIRE GRID            *

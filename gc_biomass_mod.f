@@ -1,10 +1,10 @@
-! $Id: gc_biomass_mod.f,v 1.1 2006/04/21 18:49:19 bmy Exp $
+! $Id: gc_biomass_mod.f,v 1.2 2006/06/06 14:26:04 bmy Exp $
       MODULE GC_BIOMASS_MOD
 !
 !******************************************************************************
 !  Module GC_BIOMASS_MOD contains arrays and routines to compute monthly
 !  biomass burning emissions for NOx, CO, ALK4, ACET, MEK, ALD2, PRPE, 
-!  C3H8, CH2O, C2H6, CH4, and CH3I. (bmy, 9/11/00, 4/5/06)
+!  C3H8, CH2O, C2H6, CH4, and CH3I. (bmy, 9/11/00, 5/30/06)
 !
 !  NOTE: These biomass emissions are based on Bryan Duncan.
 !
@@ -18,13 +18,14 @@
 !
 !  Module Routines:
 !  ============================================================================
-!  (1 ) GC_COMPUTE_BIOMASS : reads data from disk & computes biomass emissions
-!  (2 ) READ_BIOMASS       : reads biomass burning data from binary punch file
-!  (3 ) SCALE_BIOMASS_CO   : applies scale factors to CO for VOC oxidation
-!  (4 ) SCALE_BIOMASS_ACET : applies scale factors to ACET 
-!  (5 ) TOTAL_BIOMASS_TG   : prints monthly biomass emission totals in [Tg (C)]
-!  (6 ) ADJUST_TO_TOMSAI   : wrapper for subroutine TOMSAI
-!  (7 ) TOMSAI             : adjusts BB for interannual var'bilty w/ TOMS data
+!  (1 ) GC_COMPUTE_BIOMASS : Reads data from disk & computes biomass emissions
+!  (2 ) READ_BIOMASS       : Reads biomass burning data from binary punch file
+!  (3 ) SCALE_BIOMASS_CO   : Applies scale factors to CO for VOC oxidation
+!  (4 ) SCALE_BIOMASS_ACET : Applies scale factors to ACET 
+!  (5 ) SCALE_FUTURE       : Applies future scale factors to biomass emissions
+!  (6 ) TOTAL_BIOMASS_TG   : prints monthly biomass emission totals in [Tg (C)]
+!  (7 ) ADJUST_TO_TOMSAI   : wrapper for subroutine TOMSAI
+!  (8 ) TOMSAI             : adjusts BB for interannual var'bilty w/ TOMS data
 !  (9 ) CLEANUP_BIOMASS    : deallocates BURNEMIS, BIOTRCE
 !
 !  GEOS-CHEM modules referenced by "gc_biomass_mod.f"
@@ -146,6 +147,8 @@
 !  (30) Renamed to "gc_biomass_mod.f", so that we can use either these
 !        "default" biomass emissions or GFED2 biomass emissions.  Cleaned up
 !        a lot of obsolete stuff. (bmy, 4/5/06)
+!  (31) Modified for IPCC future emissions scale factors.  Added private 
+!        routine SCALE_FUTURE. (swu, bmy, 5/30/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -266,6 +269,7 @@
       USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE LOGICAL_MOD,   ONLY : LBBSEA,          LTOMSAI
+      USE LOGICAL_MOD,   ONLY : LFUTURE
       USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR,  GET_TAU
 
 #     include "CMN_SIZE"      ! Size parameters
@@ -519,7 +523,7 @@
 !******************************************************************************
 !  Subroutine READ_BIOMASS reads the biomass burning emissions from disk
 !  in units of [molec/cm2/month] (or [atoms C/cm2/month] for hydrocarbons). 
-!  (bmy, 9/25/00, 4/5/06)
+!  (bmy, 9/25/00, 5/30/06)
 !      
 !  Arguments as Input:
 !  ============================================================================
@@ -554,12 +558,16 @@
 !  (12) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (13) Now make BIOMASS array argument (I,J,N) ordered instead of (N,I,J).
 !        Also now read all NBIOMAX species.  (bmy, 4/5/06)
+!  (14) Now refrerences LFUTURE from "logical_mod.f".  Also now calls private
+!        routine SCALE_FUTURE to compute the future biomass emissions.
+!        (swu, bmy, 5/30/06)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,            ONLY : READ_BPCH2
+      USE LOGICAL_MOD,          ONLY : LFUTURE
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
-
+     
 #     include "CMN_SIZE"             ! Size parameters
 
       ! Arguments
@@ -600,12 +608,12 @@
             ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
             CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,N) )
 
+            ! Compute future NOx emissions (if necessary)
+            IF ( LFUTURE ) THEN
+               CALL SCALE_FUTURE( 'NOxbb', BIOMASS(:,:,N) )
+            ENDIF
+
             ! NOX -- print totals in [Tg/month]
-            !---------------------------------------------------------
-            ! Prior to 4/5/06:
-            ! Now report NOx as Tg N instead of Tg NOx
-            !CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 46d-3, 'NOx' )
-            !---------------------------------------------------------
             CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 14d-3, 'NOx' )
 
          ELSE IF ( N == 2 ) THEN
@@ -623,8 +631,14 @@
             CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,N) )
 
             ! CO -- scale to account for oxidation of extra VOC's
-            ! also print totals in [Tg/month]
             CALL SCALE_BIOMASS_CO( BIOMASS(:,:,N)              )
+
+            ! Compute future NOx emissions (if necessary)
+            IF ( LFUTURE ) THEN
+               CALL SCALE_FUTURE( 'CObb', BIOMASS(:,:,N) )
+            ENDIF
+
+            ! Print totals in [Tg/month]
             CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 28d-3, 'CO' )
 
          ELSE IF ( N == 3 ) THEN
@@ -640,6 +654,11 @@
 
             ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
             CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,N) )
+
+            ! Compute future ALK4 emissions (if necessary)
+            IF ( LFUTURE ) THEN
+               CALL SCALE_FUTURE( 'VOCbb', BIOMASS(:,:,N) )
+            ENDIF
 
             ! ALK4 -- print totals in [Tg C/month]
             CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 12d-3, 'ALK4' )
@@ -664,6 +683,11 @@
             ! Scale to yearly value for biogenic acetone (bdf, bmy, 7/23/01)
             CALL SCALE_BIOMASS_ACET( BIOMASS(:,:,N) )
 
+            ! Compute future ACET emissions (if necessary)
+            IF ( LFUTURE ) THEN
+               CALL SCALE_FUTURE( 'VOCbb', BIOMASS(:,:,N) )
+            ENDIF
+
             ! Print totals in [Tg C/month]
             CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 12d-3, 'ACET' )
 
@@ -680,6 +704,11 @@
 
             ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
             CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,N) )
+
+            ! Compute future MEK emissions (if necessary)
+            IF ( LFUTURE ) THEN
+               CALL SCALE_FUTURE( 'VOCbb', BIOMASS(:,:,N) )
+            ENDIF
 
             ! MEK -- print totals in [Tg C/month]
             CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 12d-3, 'MEK' )
@@ -698,6 +727,11 @@
             ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
             CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,N) )
 
+            ! Compute future ALD2 emissions (if necessary)
+            IF ( LFUTURE ) THEN
+               CALL SCALE_FUTURE( 'VOCbb', BIOMASS(:,:,N) )
+            ENDIF
+
             ! ALD2 -- print totals in [Tg C/month]
             CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 12d-3, 'ALD2' )
 
@@ -714,6 +748,11 @@
 
             ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
             CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,N) )
+
+            ! Compute future PRPE emissions (if necessary)
+            IF ( LFUTURE ) THEN
+               CALL SCALE_FUTURE( 'VOCbb', BIOMASS(:,:,N) )
+            ENDIF
 
             ! PRPE -- convert from [molec/cm2/month] to [molec C/cm2/month]
             ! Print totals in [Tg C/month]
@@ -736,6 +775,11 @@
             ! C3H8 -- convert from [molec/cm2/month] to [molec C/cm2/month] 
             BIOMASS(:,:,N) = BIOMASS(:,:,N) * 3d0 
 
+            ! Compute future C3H8 emissions (if necessary)
+            IF ( LFUTURE ) THEN
+               CALL SCALE_FUTURE( 'VOCbb', BIOMASS(:,:,N) )
+            ENDIF
+
             ! Print totals in [Tg C]
             CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 12d-3, 'C3H8' )
 
@@ -752,6 +796,11 @@
 
             ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
             CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,N) )
+
+            ! Compute future CH2O emissions (if necessary)
+            IF ( LFUTURE ) THEN
+               CALL SCALE_FUTURE( 'VOCbb', BIOMASS(:,:,N) )
+            ENDIF
 
             ! CH2O -- print totals in [Tg C/month]
             CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 30d-3, 'CH2O' )
@@ -772,6 +821,11 @@
 
             ! C2H6 --convert from [molec/cm2/month] to [molec C/cm2/month]
             BIOMASS(:,:,N) = BIOMASS(:,:,N) * 2d0 
+
+            ! Compute future C2H6 emissions (if necessary)
+            IF ( LFUTURE ) THEN
+               CALL SCALE_FUTURE( 'VOCbb', BIOMASS(:,:,N) )
+            ENDIF
 
             ! Print totals in [Tg C]
             CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 12d-3, 'C2H6' )
@@ -881,6 +935,85 @@
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE SCALE_FUTURE( NAME, BB )
+!
+!******************************************************************************
+!  Subroutine SCALE_FUTURE applies the IPCC future emissions scale factors
+!  to the biomass burning emisisons to compute the future emissions of biomass
+!  burning for NOx, CO, and VOC's.  (swu, bmy, 5/30/06)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) NAME (CHARACTER) : Denotes type of scale factor to use (e.g. NOx)
+!  (2 ) BB   (REAL*8   ) : Array w/ biomass burning emissions [molec/cm2]
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_CObb
+      USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_NOxbb
+      USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_VOCbb
+
+#     include "CMN_SIZE"               ! Size parameters
+
+      ! Arguments
+      REAL*8,           INTENT(INOUT) :: BB(IIPAR,JJPAR)
+      CHARACTER(LEN=*), INTENT(IN)    :: NAME
+
+      ! Local variables
+      INTEGER                         :: I, J
+      
+      !=================================================================
+      ! SCALE_FUTURE begins here!
+      !=================================================================
+
+      IF ( NAME == 'NOxbb' ) THEN
+
+         ! Compute future NOx emissions
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            BB(I,J) = BB(I,J) * GET_FUTURE_SCALE_NOxbb( I, J )
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+
+      ELSE IF ( NAME == 'CObb' ) THEN
+
+         ! Compute future CO emissions 
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            BB(I,J) = BB(I,J) * GET_FUTURE_SCALE_CObb( I, J )
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+         
+      ELSE
+
+         ! Compute future hydrocarbon emissions
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            BB(I,J) = BB(I,J) * GET_FUTURE_SCALE_VOCbb( I, J )
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE SCALE_FUTURE
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE TOTAL_BIOMASS_TG( BBARRAY, MOLWT, NAME )
 !
 !******************************************************************************
@@ -936,14 +1069,6 @@
       ENDDO
      
       ! Define unit string
-      !------------------------------------------------------------------
-      ! Prior to 4/5/06:
-      !IF ( NAME == 'NOx' .or. NAME == 'CO' .or. NAME == 'CH2O' ) THEN
-      !   UNIT = '[Tg  ]'
-      !ELSE
-      !   UNIT = '[Tg C]'
-      !ENDIF
-      !------------------------------------------------------------------
       SELECT CASE( NAME )
          CASE( 'NOx' )
             UNIT = '[Tg N]'

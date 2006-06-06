@@ -1,10 +1,10 @@
-! $Id: readchem.f,v 1.8 2004/09/21 18:04:17 bmy Exp $
+! $Id: readchem.f,v 1.9 2006/06/06 14:26:08 bmy Exp $
       SUBROUTINE READCHEM 
 !
 !******************************************************************************
 !  Subroutine READCHEM reads species names, chemical rxns, and photolysis 
 !  reactions from the "globchem.dat" chemistry mechanism file for SMVGEAR II.  
-!  (M. Jacobson 1997; bdf, bmy, 5/9/03, 7/20/04)
+!  (M. Jacobson 1997; bdf, bmy, 5/9/03, 6/1/06)
 !
 !  NOTES:
 !  (1 ) Added space in FORMAT strings for more products.  Also now references
@@ -22,6 +22,7 @@
 !        "comode.h".  Remove reference to IPORD. (bmy, 7/16/03)
 !  (4 ) Now flag the N2O5 hydrolysis rxn for later use. (mje, bmy, 8/7/03)
 !  (5 ) Now references SETJFAM & SETPL from "diag_pl_mod.f" (bmy, 7/20/04)
+!  (6 ) Now look up ILISOPOH, the index of ISOP lost to OH (dkh, bmy, 6/1/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -400,7 +401,7 @@ C
  23   FORMAT('SPECIES FOR THIS RUN.  PHYSICAL CONSTS AND BOUNDARY', 
      1 ' CONDITIONS ALSO GIVEN.')
  22   FORMAT( 'NBR', 1X, 'NAME', 12X, 'MW', 1X, 'BKGAS(VMRAT)' )
- 24   FORMAT(I3,1X,A14,F7.2,1PE9.2)
+ 24   FORMAT(I3,1X,   A14,F7.2,1PE9.2)
  28   FORMAT(/'INACTIVE SPECIES FOR THIS RUN ARE:'//4(1X,A14))
  31   FORMAT(/'THE DEAD SPECIES FOR THIS RUN ARE:'//4(1X,A14)) 
  98   FORMAT('WEIGHTS AND SPECIES FOR MASS BALANCE EQUATION # ',A14)
@@ -411,19 +412,22 @@ C *  SEARCH FOR SPECIFIC SPECIES NUMBERS USED IN OTHER SUBROUTINES    *
 C *********************************************************************
 C
       ! Initialize for safety's sake (bmy, 7/7/03)
-      IOXYGEN = 0
-      IH2O    = 0
-      ICH4    = 0
+      IOXYGEN  = 0
+      IH2O     = 0
+      ICH4     = 0
+      ILISOPOH =0
 
-      ! Locate positions of O2, H2O, CH4 in CSPEC array (bmy, 7/7/03)
+      ! Locate positions of O2, H2O, CH4, LISOPOH in CSPEC array
       DO I = 1, NTSPECGAS
          SELECT CASE ( TRIM( NAMEGAS(I) ) )
-            CASE( 'O2'  )
-               IOXYGEN = I
-            CASE( 'H2O' )
-               IH2O    = I
-            CASE( 'CH4' )
-               ICH4    = I
+            CASE( 'O2'      )
+               IOXYGEN  = I
+            CASE( 'H2O'     )
+               IH2O     = I
+            CASE( 'CH4'     )
+               ICH4     = I
+            CASE( 'LISOPOH' )
+               ILISOPOH = I
             CASE DEFAULT
                ! Nothing
          END SELECT

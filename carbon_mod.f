@@ -1,10 +1,10 @@
-! $Id: carbon_mod.f,v 1.18 2006/05/26 17:45:15 bmy Exp $
+! $Id: carbon_mod.f,v 1.19 2006/06/06 14:25:57 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
 !  Module CARBON_MOD contains arrays and routines for performing a 
 !  carbonaceous aerosol simulation.  Original code taken from Mian Chin's 
-!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 5/22/06)
+!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 6/1/06)
 !
 !  4 Aerosol species : Organic and Black carbon 
 !                    : hydrophilic (soluble) and hydrophobic of each
@@ -13,7 +13,7 @@
 !  by Chung and Seinfeld [2002] and Hong Liao from John Seinfeld's group 
 !  at Caltech was taken and further modified accordingly (rjp, bmy, 7/15/04)
 !  This simulation introduces additional following species:
-!     ALPH, LIMO, ALCO, SOA1, SOA2, SOA3, SOG1, SOG2, SOG3
+!     ALPH, LIMO, ALCO, SOA1, SOA2, SOA3, SOA4, SOG1, SOG2, SOG3, SOG4
 !
 !  Module Variables:
 !  ============================================================================
@@ -90,8 +90,9 @@
 !  (22) GET_OH             : Returns monthly-mean OH conc.  at grid box (I,J,L)
 !  (23) GET_NO3            : Returns monthly-mean O3 conc.  at grid box (I,J,L)
 !  (24) GET_O3             : Returns monthly-mean NO3 conc. at grid box (I,J,L)
-!  (25) INIT_CARBON        : Allocates and zeroes all module arrays
-!  (26) CLEANUP_CARBON     : Deallocates all module arrays
+!  (25) GET_DOH            : Returns ISOP lost to rxn w/ OH at grid box (I,J,L)
+!  (26) INIT_CARBON        : Allocates and zeroes all module arrays
+!  (27) CLEANUP_CARBON     : Deallocates all module arrays
 !
 !  NOTE: Choose either (16) or (17) for ANTHROPOGENIC emission
 !        Choose either (18) or (19) for BIOMASS BURNING emission.
@@ -136,6 +137,8 @@
 !        XNUMOLAIR from "tracer_mod.f" (tmf, bmy, 10/25/05)
 !  (9 ) Bug fix for GCAP in BIOGENIC_OC (bmy, 4/11/06)
 !  (10) Updated for SOA production from ISOP (dkh, bmy, 5/22/06)
+!  (11) Updated for IPCC future emission scale factors.  Also added function
+!        GET_DOH to return ISOP that has reacted w/ OH. (swu, dkh, bmy, 6/1/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -207,17 +210,13 @@
 
 !------------------------------------------------------------------------------
 
-      !----------------------------
-      ! Prior to 5/22/06:
-      !SUBROUTINE CHEMCARBON
-      !----------------------------
-      SUBROUTINE CHEMCARBON( ISOP_PRIOR )
+      SUBROUTINE CHEMCARBON
 !
 !******************************************************************************
-!  Subroutine CHEMCARBON is the interface between the GEOS-CHEM main 
-!  program and the carbon aerosol chemistry routines that calculates
-!  dry deposition, chemical conversion between hydrophilic and 
-!  hydrophobic, and SOA production. (rjp, bmy, 4/1/04, 5/22/06)
+!  Subroutine CHEMCARBON is the interface between the GEOS-CHEM main program 
+!  and the carbon aerosol chemistry routines that calculates dry deposition, 
+!  chemical conversion between hydrophilic and hydrophobic, and SOA production.
+!  (rjp, bmy, 4/1/04, 6/1/06)
 !
 !  NOTES:
 !  (1 ) Added code from the Caltech group for SOA chemistry.  Also now 
@@ -228,8 +227,7 @@
 !  (3 ) Now reference LSOA, LEMIS, LPRT from "logical_mod.f".  Now reference
 !        STT and ITS_AN_AEROSOL_SIM from "tracer_mod.f" (bmy, 7/20/04)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (5 ) Now updated for SOA production from ISOP.  Now pass ISOP_PRIOR via
-!        the arg list. (dkh, bmy, 5/22/06)
+!  (5 ) Now updated for SOA production from ISOP. (dkh, bmy, 6/1/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -241,16 +239,14 @@
       USE LOGICAL_MOD,    ONLY : LSOA, LEMIS, LPRT
       USE TIME_MOD,       ONLY : GET_MONTH, ITS_A_NEW_MONTH
       USE TRACER_MOD,     ONLY : STT, ITS_AN_AEROSOL_SIM
-      USE TRACERID_MOD,   ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
+      USE TRACERID_MOD,   ONLY : IDTBCPI, IDTBCPO, IDTOCPI
+      USE TRACERID_MOD,   ONLY : IDTOCPO, IDTSOG4, IDTSOA4
 
 #     include "CMN_SIZE"       ! Size parameters
 
-      ! Arguments
-      REAL*8, INTENT(IN)       :: ISOP_PRIOR(IIPAR,JJPAR,LLTROP)
-
       ! Local variables
-      LOGICAL, SAVE            :: FIRSTCHEM = .TRUE.
-      INTEGER                  :: N, THISMONTH
+      LOGICAL, SAVE           :: FIRSTCHEM = .TRUE.
+      INTEGER                 :: N, THISMONTH
 
       !=================================================================
       ! CHEMCARBON begins here!
@@ -300,6 +296,16 @@
             END SELECT        
          ENDDO
 
+         ! Zero SOG4 and SOA4 (SOA from ISOP in gas & aerosol form)
+         ! for offline aerosol simulations.  Eventually we should have
+         ! archived isoprene oxidation fields available for offline
+         ! simulations but for now we just set them to zero. 
+         ! (dkh, bmy, 6/1/06)
+         IF ( ITS_AN_AEROSOL_SIM() ) THEN
+            STT(:,:,:,IDTSOG4) = 0d0
+            STT(:,:,:,IDTSOA4) = 0d0
+         ENDIF
+         
          ! Reset first-time flag
          FIRSTCHEM = .FALSE.
       ENDIF
@@ -358,12 +364,7 @@
          ENDIF
 
          ! Compute SOA chemistry
-         !-------------------------------------------------------------
-         ! Prior to 5/22/06:
-         ! Now pass ISOP from prior timestep (dkh, bmy, 5/22/06)
-         !CALL SOA_CHEMISTRY
-         !-------------------------------------------------------------
-         CALL SOA_CHEMISTRY( ISOP_PRIOR )
+         CALL SOA_CHEMISTRY
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
       ENDIF
 
@@ -1058,16 +1059,12 @@
 
 !------------------------------------------------------------------------------
 
-      !------------------------------------------
-      ! Prior to 5/22/06:
-      !SUBROUTINE SOA_CHEMISTRY
-      !------------------------------------------
-      SUBROUTINE SOA_CHEMISTRY( ISOP_PRIOR )
+      SUBROUTINE SOA_CHEMISTRY
 !
 !******************************************************************************
 !  Subroutine SOA_CHEMISTRY performs SOA formation.  This code is from the
 !  Caltech group (Hong Liao, Serena Chung, et al) and was modified for 
-!  GEOS-CHEM. (rjp, bmy, 7/8/04, 5/22/06)
+!  GEOS-CHEM. (rjp, bmy, 7/8/04, 6/1/06)
 !
 !  Procedure:
 !  ============================================================================
@@ -1114,7 +1111,7 @@
 !  NOTES:
 !  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !  (2 ) Now modified for SOG4, SOA4 -- products of oxidation by isoprene.
-!        Now pass ISOP_PRIOR via the arg list. (dkh, bmy, 5/22/06)
+!        (dkh, bmy, 6/1/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1132,16 +1129,12 @@
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44
 
-      ! Arguments
-      REAL*8, INTENT(IN)    :: ISOP_PRIOR(IIPAR,JJPAR,LLTROP)
-
       ! Local variables
       INTEGER               :: I,        J,        L,        N    
       INTEGER               :: JHC,      IPR
       REAL*8                :: RTEMP,    VOL,      FAC,      MPOC 
       REAL*8                :: MNEW,     MSOA_OLD, MPRODUCT, CAIR
       REAL*8                :: LOWER,    UPPER,    TOL,      VALUE
-      REAL*8                :: ISOP_P
       REAL*8                :: KO3(MHC), KOH(MHC), KNO3(MHC)
       REAL*8                :: ALPHA(NPROD,MHC),   KOM(NPROD,MHC)
       REAL*8                :: GM0(NPROD,MHC),     AM0(NPROD,MHC)
@@ -1155,7 +1148,7 @@
 !$OMP+PRIVATE( I,        J,        L,     JHC,   IPR,   GM0,  AM0  )
 !$OMP+PRIVATE( VOL,      FAC,      RTEMP, KO3,   KOH,   KNO3, CAIR )
 !$OMP+PRIVATE( MPRODUCT, MSOA_OLD, VALUE, UPPER, LOWER, MNEW, TOL  )
-!$OMP+PRIVATE( ORG_AER,  ORG_GAS,  ALPHA, KOM,   MPOC,  ISOP_P     )
+!$OMP+PRIVATE( ORG_AER,  ORG_GAS,  ALPHA, KOM,   MPOC              )
       DO L = 1, LLTROP
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -1172,15 +1165,7 @@
          ! Temperature [K]
          RTEMP  = T(I,J,L)         
 
-         ! Isoprene from prior timestep [kg]
-         ISOP_P = ISOP_PRIOR(I,J,L)
-
          ! Get SOA yield parameters
-         !---------------------------------------------------------------
-         ! Prior to 5/22/06:
-         ! Now pass I, J, L to SOA_PARA (dkh, bmy, 5/22/06)
-         !CALL SOA_PARA( RTEMP, KO3, KOH, KNO3, ALPHA, KOM )
-         !---------------------------------------------------------------
          CALL SOA_PARA( I, J, L, RTEMP, KO3, KOH, KNO3, ALPHA, KOM )
 
          ! Partition mass of gas & aerosol tracers 
@@ -1188,12 +1173,7 @@
          CALL SOA_PARTITION( I, J, L, GM0, AM0 )
 
          ! Compute oxidation of hydrocarbons by O3, OH, NO3
-         !---------------------------------------------------------------
-         ! Prior to 5/22/06:
-         ! Now pass ISOP from prior timestep (dkh, bmy, 5/22/06)
-         !CALL CHEM_NVOC( I, J, L, KO3, KOH, KNO3, ALPHA, GM0 )
-         !---------------------------------------------------------------
-         CALL CHEM_NVOC( I, J, L, KO3, KOH, KNO3, ALPHA, ISOP_P, GM0 )
+         CALL CHEM_NVOC( I, J, L, KO3, KOH, KNO3, ALPHA, GM0 )
 
          !==============================================================
          ! Equilibrium calculation between GAS (SOG) and Aerosol (SOA)
@@ -1916,17 +1896,6 @@ c
       ! Compute the heat-of-vaporization exponential term outside the DO loop
       TMP2 = EXP( HEAT_VAPOR * ( OVER - REF310 ) )
 
-      !---------------------------------------------------------------------
-      ! Prior to 5/22/06:
-      ! Separate handling for ISOP (dkh, bmy, 5/22/06)
-      !! Multiply KOM by the temperature and heat-of-vaporization terms
-      !DO JHC = 1, 5
-      !DO IPR = 1, 3
-      !   KOM(IPR,JHC) = KOM(IPR,JHC) * TMP1 * TMP2
-      !ENDDO
-      !ENDDO
-      !---------------------------------------------------------------------
-
       ! Multiply KOM by the temperature and heat-of-vaporization terms
       DO JHC = 1, 5 
       DO IPR = 1, 3
@@ -1956,28 +1925,22 @@ c
 
 !------------------------------------------------------------------------------
 
-      !---------------------------------------------------------------
-      ! Prior to 5/22/06:
-      !SUBROUTINE CHEM_NVOC( I, J, L, KO3, KOH, KNO3, ALPHA, GM0 )
-      !---------------------------------------------------------------
-      SUBROUTINE CHEM_NVOC( I,   J,    L,     KO3,  
-     &                      KOH, KNO3, ALPHA, ISOP_P, GM0 )
+      SUBROUTINE CHEM_NVOC( I, J, L, KO3, KOH, KNO3, ALPHA, GM0 )
 !
 !******************************************************************************
 !  Subroutine CHEM_NVOC computes the oxidation of Hydrocarbon by O3, OH, and 
 !  NO3.  This comes from the Caltech group (Hong Liao, Serena Chung, et al)
-!  and was incorporated into GEOS-CHEM. (rjp, bmy, 7/6/04, 5/22/06)
+!  and was incorporated into GEOS-CHEM. (rjp, bmy, 7/6/04, 6/1/06)
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) I      (INTEGER) : GEOS-CHEM longitude index
-!  (2 ) J      (INTEGER) : GEOS-CHEM latitude index
-!  (3 ) L      (INTEGER) : GEOS-CHEM altitude index
+!  (1 ) I      (INTEGER) : GEOS-Chem longitude index
+!  (2 ) J      (INTEGER) : GEOS-Chem latitude index
+!  (3 ) L      (INTEGER) : GEOS-Chem altitude index
 !  (4 ) KO3    (REAL*8 ) : Rxn rate for HC oxidation by O3        [cm3/molec/s]
 !  (5 ) KOH    (REAL*8 ) : Rxn rate for HC oxidation by OH        [cm3/molec/s]
 !  (6 ) KNO3   (REAL*8 ) : Rxn rate for HC oxidation by NO3       [cm3/molec/s]
 !  (7 ) ALPHA  (REAL*8 ) : Mass-based stoichiometric coefficients [unitless]  
-!  (8 ) ISOP_P (REAL*8 ) : ISOP from prior model timestep         [kg]
 !
 !  Arguments as Output:
 !  ============================================================================
@@ -1986,8 +1949,7 @@ c
 !  NOTES:
 !  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (3 ) Updated for SOA from isoprene.  Now pass ISOP_P via the arg list.
-!        (dkh, bmy, 5/22/06)
+!  (3 ) Updated for SOA from isoprene.  Now calls GET_DOH. (dkh, bmy, 6/1/06)
 !******************************************************************************
 !
       ! References to F90 kmodules
@@ -1997,13 +1959,13 @@ c
 
 #     include "CMN_SIZE"      ! Size parameters
 
+      ! Arguments
       INTEGER, INTENT(IN)    :: I, J, L
-      REAL*8,  INTENT(IN)    :: ISOP_P
       REAL*8,  INTENT(IN)    :: KO3(MHC), KOH(MHC), KNO3(MHC)
       REAL*8,  INTENT(IN)    :: ALPHA(NPROD,MHC)
       REAL*8,  INTENT(INOUT) :: GM0(NPROD,MHC)
 
-      ! LOCAL VARIABLES
+      ! Local variables
       INTEGER                :: JHC, IPR
       REAL*8                 :: DELHC(NPROD), CHANGE(MHC), NMVOC(MHC)
       REAL*8                 :: OHMC, TTNO3, TTO3, DTCHEM, RK
@@ -2027,7 +1989,6 @@ c
       NMVOC(3) = ORVC_TERP(I,J,L)
       NMVOC(4) = STT(I,J,L,IDTALCO)
       NMVOC(5) = ORVC_SESQ(I,J,L)
-      NMVOC(6) = ISOP_P
 
       ! Initialize DELHC so that the values from the previous
       ! time step are not carried over.
@@ -2037,50 +1998,54 @@ c
       ! Change in NVOC concentration due to photooxidation [kg]
       !=================================================================
       DO JHC = 1, MHC
-         RK          = KO3(JHC)*TTO3 + KOH(JHC)*OHMC + KNO3(JHC)*TTNO3
-         CHANGE(JHC) = NMVOC(JHC) * ( 1.D0 - DEXP( -RK * DTCHEM ) )
 
-         ! In case that the biogenic hydrocarbon is the limiting reactant
-         IF ( CHANGE(JHC) >= NMVOC(JHC) ) CHANGE(JHC) = NMVOC(JHC)
-      
-         ! NMVOC concentration after oxidation reactions
-         NMVOC(JHC) = NMVOC(JHC) - CHANGE(JHC)
-
-         IF( CHANGE(JHC) > 1.D-16 ) THEN
-            OVER  = 1.D0 / RK
-            DO3   = CHANGE(JHC) * KO3(JHC)  * TTO3  * OVER ![=]KG
-            DOH   = CHANGE(JHC) * KOH(JHC)  * OHMC  * OVER ![=]KG
-            DNO3  = CHANGE(JHC) * KNO3(JHC) * TTNO3 * OVER ![=]KG
-         ELSE
-            DO3   = 0.D0
-            DOH   = 0.D0
-            DNO3  = 0.D0
-         ENDIF
-                  
-         ! VOC change by photooxidation of O3 and OH [kg]
-         DELHC(1) =  DO3 + DOH 
-         DELHC(2) =  DO3 + DOH 
-    
-         ! VOC change by photooxidation of NO3 [kg]
-         DELHC(3) = DNO3
-          
-         !----------------------------------------------------------------
-         ! Prior to 5/22/06:
-         !!Individual Gas-Phase Products:
-         !DO IPR = 1, NPROD
-         !   GM0(IPR,JHC) = GM0(IPR,JHC) + ALPHA(IPR,JHC) * DELHC(IPR) 
-         !ENDDO
-         !----------------------------------------------------------------
-
-         ! Individual Gas-Phase Products:
          IF ( JHC <= 5 ) THEN
 
+            !-------------------------------
+            ! Individual gas-phase products
+            !-------------------------------
+
+            RK          = KO3(JHC)*TTO3 + KOH(JHC)*OHMC
+     &                  + KNO3(JHC)*TTNO3
+            CHANGE(JHC) = NMVOC(JHC) * ( 1.D0 - DEXP( -RK * DTCHEM ) )
+
+            ! In case that the biogenic hydrocarbon is the limiting reactant
+            IF ( CHANGE(JHC) >= NMVOC(JHC) ) CHANGE(JHC) = NMVOC(JHC)
+      
+            ! NMVOC concentration after oxidation reactions
+            NMVOC(JHC) = NMVOC(JHC) - CHANGE(JHC)
+
+            IF( CHANGE(JHC) > 1.D-16 ) THEN
+               OVER  = 1.D0 / RK
+               DO3   = CHANGE(JHC) * KO3(JHC)  * TTO3  * OVER ![kg]
+               DOH   = CHANGE(JHC) * KOH(JHC)  * OHMC  * OVER ![kg]
+               DNO3  = CHANGE(JHC) * KNO3(JHC) * TTNO3 * OVER ![kg]
+            ELSE
+               DO3   = 0.D0
+               DOH   = 0.D0
+               DNO3  = 0.D0
+            ENDIF
+                  
+            ! VOC change by photooxidation of O3 and OH [kg]
+            DELHC(1) =  DO3 + DOH 
+            DELHC(2) =  DO3 + DOH 
+    
+            ! VOC change by photooxidation of NO3 [kg]
+            DELHC(3) = DNO3
+          
             ! Lump OH and O3 oxidation for HC 1-5
             DO IPR = 1, NPROD
                GM0(IPR,JHC) = GM0(IPR,JHC) + ALPHA(IPR,JHC) * DELHC(IPR)
             ENDDO
-   
+      
          ELSE
+
+            !-------------------------------
+            ! SOA from ISOPRENE
+            !-------------------------------
+
+            ! Get ISOP lost to rxn with OH [kg]
+            DOH = GET_DOH( I, J, L )
 
             ! Consider only OH oxidation for isoprene.  Also convert 
             ! from mass of carbon to mass of isoprene. (dkh, bmy, 5/22/06)
@@ -2100,20 +2065,6 @@ c
       ORVC_TERP(I,J,L)   = MAX( NMVOC(3), 1.D-32 )
       STT(I,J,L,IDTALCO) = MAX( NMVOC(4), 1.D-32 )
       ORVC_SESQ(I,J,L)   = MAX( NMVOC(5), 1.D-32 )
-
-      ! Do not overwrite STT(I,J,L,IDTISOP) here.  However, this would be 
-      ! a good place to compare the amount of ISOP reacted as computed here
-      ! vs in the full chemistry.  (dkh, bmy, 5/22/06)
-      !
-      ! In general, there are a few cells in which we underestimate
-      ! isoprene oxidation by calculating this reaction offline.
-      !
-      !IF ( ABS( 1 - NMVOC(6) / STT(I,J,L,IDTISOP)) .gt. 10 ) THEN
-      !   print*, 'ISOP from carbon = ', NMVOC(6)
-      !   print*, 'ISOP from SMVG   = ', STT(I,J,L,IDTISOP)
-      !   print*, ' at ', I, J, L
-      !   print*, ' with OH ', OHMC
-      !ENDIF
 
       ! Return to calling program
       END SUBROUTINE CHEM_NVOC
@@ -3090,7 +3041,7 @@ c
 !  Subroutine ANTHRO_CARB_TBOND computes annual mean anthropogenic and 
 !  biofuel emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC 
 !  CARBON.  It also separates these into HYDROPHILIC and HYDROPHOBIC 
-!  fractions. (rjp, bmy, 4/2/04, 8/16/05)
+!  fractions. (rjp, bmy, 4/2/04, 5/30/06)
 !
 !  Emissions data comes from the Bond et al [2004] inventory and has units
 !  of [kg C/yr].  This will be converted to [kg C/timestep] below.
@@ -3102,29 +3053,35 @@ c
 !  (1 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (2 ) Now read data from "carbon_200411" subdir of DATA_DIR (bmy, 11/15/04)
 !  (3 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
+!  (4 ) Now compute future emissions of BC,OC if necessary. (swu, bmy, 5/30/06)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TIME_MOD,      ONLY : GET_TS_EMIS
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+      USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
+      USE DIRECTORY_MOD,        ONLY : DATA_DIR
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCbf
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCff
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCbf
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCff
+      USE LOGICAL_MOD,          ONLY : LFUTURE
+      USE TIME_MOD,             ONLY : GET_TS_EMIS
+      USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"      ! Size parameters
+#     include "CMN_SIZE"             ! Size parameters
 
       ! Local variables
-      INTEGER                :: I, J
-      REAL*4                 :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8                 :: XTAU, STEPS_PER_YR
-      REAL*8                 :: FD2D(IIPAR,JJPAR)
-      CHARACTER(LEN=255)     :: FILENAME
+      INTEGER                       :: I, J
+      REAL*4                        :: ARRAY(IGLOB,JGLOB,1)
+      REAL*8                        :: XTAU, STEPS_PER_YR, FUT_SCL
+      REAL*8                        :: FD2D(IIPAR,JJPAR)
+      CHARACTER(LEN=255)            :: FILENAME
 
       ! Hydrophilic fraction of BLACK CARBON (aka ELEMENTAL CARBON)
-      REAL*8, PARAMETER      :: FHB = 0.2d0
+      REAL*8, PARAMETER             :: FHB = 0.2d0
 
       ! Hydrophilic fraction of ORGANIC CARBON 
-      REAL*8, PARAMETER      :: FHO = 0.5d0 
+      REAL*8, PARAMETER             :: FHO = 0.5d0 
 
       !=================================================================
       ! ANTHRO_CARB_TBOND begins here!
@@ -3161,7 +3118,7 @@ c
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
+!$OMP+PRIVATE( I, J, FUT_SCL )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
          
@@ -3171,6 +3128,12 @@ c
          ! Hydrophobic BLACK CARBON from anthropogenics [kg C/timestep]
          ANTH_BLKC(I,J,2) = ( 1.d0 - FHB ) * FD2D(I,J) / STEPS_PER_YR
         
+         ! Compute future emissions of BLACK CARBON (if necessary)
+         IF ( LFUTURE ) THEN
+            FUT_SCL          = GET_FUTURE_SCALE_BCff( I, J )
+            ANTH_BLKC(I,J,1) = ANTH_BLKC(I,J,1) * FUT_SCL
+            ANTH_BLKC(I,J,2) = ANTH_BLKC(I,J,2) * FUT_SCL
+         ENDIF
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -3189,7 +3152,7 @@ c
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
+!$OMP+PRIVATE( I, J, FUT_SCL )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -3199,6 +3162,12 @@ c
          ! Hydrophobic ORGANIC CARBON from anthropogenics [kgC/timestep]
          ANTH_ORGC(I,J,2) = ( 1.d0 - FHO ) * FD2D(I,J) / STEPS_PER_YR
 
+         ! Compute future emissions of ORGANIC CARBON (if necessary)
+         IF ( LFUTURE ) THEN
+            FUT_SCL          = GET_FUTURE_SCALE_OCff( I, J )
+            ANTH_ORGC(I,J,1) = ANTH_ORGC(I,J,1) * FUT_SCL
+            ANTH_ORGC(I,J,2) = ANTH_ORGC(I,J,2) * FUT_SCL
+         ENDIF
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -3228,7 +3197,7 @@ c
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
+!$OMP+PRIVATE( I, J, FUT_SCL )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -3238,6 +3207,12 @@ c
          ! Hydrophobic BLACK CARBON from biofuels [kg C/timestep]
          BIOF_BLKC(I,J,2) = ( 1.d0 - FHB ) * FD2D(I,J) / STEPS_PER_YR
 
+         ! Compute future emissions of BLACK CARBON (if necessary)
+         IF ( LFUTURE ) THEN
+            FUT_SCL          = GET_FUTURE_SCALE_BCbf( I, J )
+            BIOF_BLKC(I,J,1) = BIOF_BLKC(I,J,1) * FUT_SCL
+            BIOF_BLKC(I,J,2) = BIOF_BLKC(I,J,2) * FUT_SCL
+         ENDIF
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -3266,6 +3241,12 @@ c
          ! Hydrophobic ORGANIC CARBON from biofuels [kg C/timestep]
          BIOF_ORGC(I,J,2) = ( 1.d0 - FHO ) * FD2D(I,J) / STEPS_PER_YR
 
+         ! Compute future emissions of BLACK CARBON (if necessary)
+         IF ( LFUTURE ) THEN
+            FUT_SCL          = GET_FUTURE_SCALE_OCbf( I, J )
+            BIOF_ORGC(I,J,1) = BIOF_ORGC(I,J,1) * FUT_SCL
+            BIOF_ORGC(I,J,2) = BIOF_ORGC(I,J,2) * FUT_SCL
+         ENDIF          
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -3281,7 +3262,7 @@ c
 !  Subroutine ANTHRO_CARB_COOKE computes monthly mean anthropogenic and 
 !  biofuel emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC 
 !  CARBON.  It also separates these into HYDROPHILIC and HYDROPHOBIC 
-!  fractions. (rjp, bmy, 4/2/04, 8/16/05)
+!  fractions. (rjp, bmy, 4/2/04, 5/30/06)
 !
 !  Emissions data comes from the Cooke et al. [1999] inventory and 
 !  seasonality imposed by Park et al. [2003].  The data has units of 
@@ -3296,32 +3277,38 @@ c
 !        Cooke/RJP emissions over the North American region (i.e. the region
 !        bounded by indices I1_NA, J1_NA, I2_NA, J2_NA).  (rjp, bmy, 12/1/04)
 !  (3 ) Now can read data from both GEOS and GCAP grids (bmy, 8/16/05)
+!  (4 ) Now compute future emissions of BC,OC if necessary. (swu, bmy, 5/30/06)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TIME_MOD,      ONLY : GET_TS_EMIS
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+      USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
+      USE DIRECTORY_MOD,        ONLY : DATA_DIR
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCbf
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCff
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCbf
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCff
+      USE LOGICAL_MOD,          ONLY : LFUTURE
+      USE TIME_MOD,             ONLY : GET_TS_EMIS
+      USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"
+#     include "CMN_SIZE"             ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN) :: THISMONTH
+      INTEGER, INTENT(IN)           :: THISMONTH
 
       ! Local variables
-      INTEGER             :: I, J
-      REAL*4              :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8              :: XTAU, STEPS_PER_MON
-      REAL*8              :: FD2D(IIPAR,JJPAR)
-      CHARACTER(LEN=255)  :: FILENAME
+      INTEGER                       :: I, J
+      REAL*4                        :: ARRAY(IGLOB,JGLOB,1)
+      REAL*8                        :: XTAU, STEPS_PER_MON, FUT_SCL
+      REAL*8                        :: FD2D(IIPAR,JJPAR)
+      CHARACTER(LEN=255)            :: FILENAME
 
       ! Hydrophilic fraction of BLACK CARBON aerosol
-      REAL*8, PARAMETER   :: FHB = 0.2d0
+      REAL*8, PARAMETER             :: FHB = 0.2d0
 
       ! Hydrophilic fraction of ORGANIC CARBON aerosol
-      REAL*8, PARAMETER   :: FHO = 0.5d0
+      REAL*8, PARAMETER             :: FHO = 0.5d0
 
       !=================================================================
       ! ANTHRO_CARB_COOKE begins here!
@@ -3372,6 +3359,13 @@ c
 
          ! Hydrophobic BLACK CARBON from anthropogenics [kg C/timestep]
          ANTH_BLKC(I,J,2) = ( 1.d0 - FHB ) * FD2D(I,J) / STEPS_PER_MON
+
+         ! Compute future emissions of BLACK CARBON (if necessary)
+         IF ( LFUTURE ) THEN
+            FUT_SCL          = GET_FUTURE_SCALE_BCff( I, J )
+            ANTH_BLKC(I,J,1) = ANTH_BLKC(I,J,1) * FUT_SCL
+            ANTH_BLKC(I,J,2) = ANTH_BLKC(I,J,2) * FUT_SCL
+         ENDIF
       ENDDO
       ENDDO
 
@@ -3399,6 +3393,13 @@ c
 
          ! Hydrophobic ORGANIC CARBON from anthropogenics [kg C/timestep]
          ANTH_ORGC(I,J,2) = ( 1.d0 - FHO ) * FD2D(I,J) / STEPS_PER_MON
+
+         ! Compute future emissions of ORGANIC CARBON (if necessary)
+         IF ( LFUTURE ) THEN
+            FUT_SCL          = GET_FUTURE_SCALE_OCff( I, J )
+            ANTH_ORGC(I,J,1) = ANTH_ORGC(I,J,1) * FUT_SCL
+            ANTH_ORGC(I,J,2) = ANTH_ORGC(I,J,2) * FUT_SCL
+         ENDIF
       ENDDO
       ENDDO
 
@@ -3440,6 +3441,12 @@ c
          ! Hydrophobic BLACK CARBON from biofuels [kg C/timestep]
          BIOF_BLKC(I,J,2) = ( 1.d0 - FHB ) * FD2D(I,J) / STEPS_PER_MON
 
+         ! Compute future emissions of BLACK CARBON (if necessary)
+         IF ( LFUTURE ) THEN
+            FUT_SCL          = GET_FUTURE_SCALE_BCbf( I, J )
+            BIOF_BLKC(I,J,1) = BIOF_BLKC(I,J,1) * FUT_SCL
+            BIOF_BLKC(I,J,2) = BIOF_BLKC(I,J,2) * FUT_SCL
+         ENDIF
       ENDDO
       ENDDO
 
@@ -3471,6 +3478,12 @@ c
          ! Hydrophobic ORGANIC CARBON from biofuels [kg C/timestep]
          BIOF_ORGC(I,J,2) = ( 1.d0 - FHO ) * FD2D(I,J) / STEPS_PER_MON
 
+         ! Compute future emissions of BLACK CARBON (if necessary)
+         IF ( LFUTURE ) THEN
+            FUT_SCL          = GET_FUTURE_SCALE_OCbf( I, J )
+            BIOF_ORGC(I,J,1) = BIOF_ORGC(I,J,1) * FUT_SCL
+            BIOF_ORGC(I,J,2) = BIOF_ORGC(I,J,2) * FUT_SCL
+         ENDIF
       ENDDO
       ENDDO
 
@@ -3485,7 +3498,7 @@ c
 !  Subroutine BIOMASS_CARB_TBOND computes annual mean biomass burning 
 !  emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC CARBON.  
 !  It also separates these into HYDROPHILIC and HYDROPHOBIC fractions. 
-!  (rjp, bmy, 4/2/04, 8/16/05)
+!  (rjp, bmy, 4/2/04, 5/30/06)
 !
 !  Emissions data comes from the Bond et al [2004] inventory and has units
 !  of [kg C/yr].  This will be converted to [kg C/timestep] below.
@@ -3497,27 +3510,31 @@ c
 !  (1 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (2 ) Now read data from "carbon_200411" subdir of DATA_DIR (bmy, 11/15/04)
 !  (3 ) Now can read from both GEOS and GCAP grids (bmy, 8/16/05)
+!  (4 ) Now compute future emissions of BC,OC if necessary (swu, bmy, 5/30/06)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TIME_MOD,      ONLY : GET_TS_EMIS
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+      USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
+      USE DIRECTORY_MOD,        ONLY : DATA_DIR
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCbb
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCbb
+      USE LOGICAL_MOD,          ONLY : LFUTURE
+      USE TIME_MOD,             ONLY : GET_TS_EMIS
+      USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"   ! Size parameters 
+#     include "CMN_SIZE"             ! Size parameters 
 
       ! Local variables
-      INTEGER             :: I, J
-      REAL*4              :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8              :: XTAU, STEPS_PER_YR     
-      REAL*8              :: FD2D(IIPAR,JJPAR)
-      CHARACTER(LEN=255)  :: FILENAME
+      INTEGER                       :: I, J
+      REAL*4                        :: ARRAY(IGLOB,JGLOB,1)
+      REAL*8                        :: XTAU, STEPS_PER_YR, FUT_SCL
+      REAL*8                        :: FD2D(IIPAR,JJPAR)
+      CHARACTER(LEN=255)            :: FILENAME
 
       ! Hydrophilic fraction of carbonaceous aerosols
-      REAL*8, PARAMETER   :: FHB = 0.2d0
-      REAL*8, PARAMETER   :: FHO = 0.5d0
+      REAL*8, PARAMETER             :: FHB = 0.2d0
+      REAL*8, PARAMETER             :: FHO = 0.5d0
 
       !=================================================================
       ! BIOMASS_CARB_TBOND begins here!
@@ -3553,7 +3570,7 @@ c
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
+!$OMP+PRIVATE( I, J, FUT_SCL )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
          
@@ -3563,6 +3580,12 @@ c
          ! Hydrophobic BLACK CARBON from biomass [kg C/timestep]
          BIOB_BLKC(I,J,2) = ( 1.d0 - FHB ) * FD2D(I,J) / STEPS_PER_YR
 
+         ! Compute future emissions of BLACK CARBON (if necessary)
+         IF ( LFUTURE ) THEN
+            FUT_SCL          = GET_FUTURE_SCALE_BCbb( I, J )
+            BIOB_BLKC(I,J,1) = BIOB_BLKC(I,J,1) * FUT_SCL
+            BIOB_BLKC(I,J,2) = BIOB_BLKC(I,J,2) * FUT_SCL
+         ENDIF
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -3581,7 +3604,7 @@ c
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
+!$OMP+PRIVATE( I, J, FUT_SCL )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
          
@@ -3591,6 +3614,12 @@ c
          ! Hydrophobic ORGANIC CARBON from biomass [kg C/timestep]
          BIOB_ORGC(I,J,2) = ( 1.d0 - FHO ) * FD2D(I,J) / STEPS_PER_YR
 
+         ! Compute future emissions of ORGANIC CARBON (if necessary)
+         IF ( LFUTURE ) THEN
+            FUT_SCL          = GET_FUTURE_SCALE_OCbb( I, J )
+            BIOB_ORGC(I,J,1) = BIOB_ORGC(I,J,1) * FUT_SCL
+            BIOB_ORGC(I,J,2) = BIOB_ORGC(I,J,2) * FUT_SCL
+         ENDIF
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -3606,7 +3635,7 @@ c
 !  Subroutine BIOMASS_CARB_GEOS computes monthly mean biomass burning 
 !  emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC CARBON.  
 !  It also separates these into HYDROPHILIC and HYDROPHOBIC fractions. 
-!  (rjp, bmy, 4/2/04, 7/20/04, 8/16/05)
+!  (rjp, bmy, 4/2/04, 5/30/06)
 !
 !  Emissions data comes from the Duncan et al. [2001] inventory and has units
 !  of [kg C/month].  This will be converted to [kg C/timestep] below.
@@ -3621,44 +3650,47 @@ c
 !  (3 ) Now read BCPO, OCPO biomass burning data directly from files instead
 !        of computing from emission factors. (rjp, bmy, 1/11/05)
 !  (4 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
+!  (5 ) Now compute future emissions of BC,OC if necessary (swu, bmy, 5/30/06)
 !******************************************************************************
 !
 !      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE GRID_MOD,      ONLY : GET_AREA_M2
-      USE LOGICAL_MOD,   ONLY : LBBSEA
-      USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR,  GET_MONTH 
-      USE TIME_MOD,      ONLY : GET_TAU,         GET_YEAR 
-      USE TIME_MOD,      ONLY : GET_TS_EMIS
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+      USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
+      USE DIRECTORY_MOD,        ONLY : DATA_DIR
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCbb
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCbb
+      USE GRID_MOD,             ONLY : GET_AREA_M2
+      USE LOGICAL_MOD,          ONLY : LBBSEA,          LFUTURE
+      USE TIME_MOD,             ONLY : ITS_A_LEAPYEAR,  GET_MONTH 
+      USE TIME_MOD,             ONLY : GET_TAU,         GET_YEAR 
+      USE TIME_MOD,             ONLY : GET_TS_EMIS
+      USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"      ! Size parameters
+#     include "CMN_SIZE"             ! Size parameters
 
       !-------------------
       ! Arguments
       !-------------------
-      INTEGER, INTENT(IN) :: THISMONTH
+      INTEGER, INTENT(IN)           :: THISMONTH
 
       !-------------------
       ! Local variables
       !-------------------
 
       ! Hydrophilic fraction of BLACK CARBON
-      REAL*8, PARAMETER   :: FHB = 0.2d0
+      REAL*8, PARAMETER             :: FHB = 0.2d0
 
       ! Hydrophilic fraction of ORGANIC CARBON
-      REAL*8, PARAMETER   :: FHO = 0.5d0 
-
-      INTEGER             :: I, J, THISYEAR
-      REAL*4              :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8              :: FD2D_BC(IIPAR,JJPAR)
-      REAL*8              :: FD2D_OC(IIPAR,JJPAR)
-      REAL*8              :: XTAU, BIOBC, BIOOC, TAU
-      REAL*8              :: STEPS_PER_MON, AREA_M2
-      CHARACTER(LEN=4  )  :: CYEAR
-      CHARACTER(LEN=255)  :: BC_FILE, OC_FILE
+      REAL*8, PARAMETER             :: FHO = 0.5d0 
+                                    
+      INTEGER                       :: I, J, THISYEAR
+      REAL*4                        :: ARRAY(IGLOB,JGLOB,1)
+      REAL*8                        :: FD2D_BC(IIPAR,JJPAR)
+      REAL*8                        :: FD2D_OC(IIPAR,JJPAR)
+      REAL*8                        :: XTAU, BIOBC, BIOOC, TAU
+      REAL*8                        :: STEPS_PER_MON, AREA_M2, FUT_SCL
+      CHARACTER(LEN=4  )            :: CYEAR
+      CHARACTER(LEN=255)            :: BC_FILE, OC_FILE
 
       !=================================================================
       ! BIOMASS_CARB_GEOS begins here!
@@ -3756,7 +3788,7 @@ c
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, BIOBC, BIOOC )
+!$OMP+PRIVATE( I, J, BIOBC, BIOOC, FUT_SCL )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -3776,6 +3808,20 @@ c
          ! Hydrophobic ORGANIC CARBON from biomass [kg C/timestep]
          BIOB_ORGC(I,J,2) = ( 1.D0 - FHO ) * BIOOC
 
+         ! Compute future emissions (if necessary)
+         IF ( LFUTURE ) THEN
+            
+            ! Future BLACK CARBON emissions
+            FUT_SCL          = GET_FUTURE_SCALE_BCbb( I, J )
+            BIOB_BLKC(I,J,1) = BIOB_BLKC(I,J,1) * FUT_SCL
+            BIOB_BLKC(I,J,2) = BIOB_BLKC(I,J,2) * FUT_SCL
+            
+            ! Future ORGANIC CARBON emissions
+            FUT_SCL          = GET_FUTURE_SCALE_OCbb( I, J )
+            BIOB_ORGC(I,J,1) = BIOB_ORGC(I,J,1) * FUT_SCL
+            BIOB_ORGC(I,J,2) = BIOB_ORGC(I,J,2) * FUT_SCL
+ 
+        ENDIF
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO  
@@ -4133,7 +4179,8 @@ c
          !---------------------
          ! Invalid sim type!
          !---------------------        
-         CALL ERROR_STOP( 'Invalid NSRCX!', 'GET_OH (sulfate_mod.f)')
+         CALL ERROR_STOP( 'Invalid Simulation Type!', 
+     &                    'GET_OH ("carbon_mod.f")' )
 
       ENDIF
 
@@ -4255,7 +4302,8 @@ c
          !----------------------
          ! Invalid sim type!
          !----------------------       
-         CALL ERROR_STOP( 'Invalid NSRCX!','GET_NO3 (sulfate_mod.f)')
+         CALL ERROR_STOP( 'Invalid Simulation Type!',
+     &                    'GET_NO3 ("carbon_mod.f")' )
 
       ENDIF
 
@@ -4365,12 +4413,108 @@ c
          !--------------------
          ! Invalid sim type!
          !--------------------
-         CALL ERROR_STOP( 'Invalid NSRCX!', 'GET_O3 (sulfate_mod.f)')
+         CALL ERROR_STOP( 'Invalid Simulation Type!', 
+     &                     'GET_O3 ("carbon_mod.f")' )
 
       ENDIF
 
       ! Return to calling program
       END FUNCTION GET_O3
+
+!------------------------------------------------------------------------------
+
+      FUNCTION GET_DOH( I, J, L ) RESULT( DOH )
+!
+!******************************************************************************
+!  Function GET_DOH returns the amount of isoprene [kg] that has reacted with 
+!  OH during the last chemistry time step. (dkh, bmy, 6/01/06)  
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1-3) I, J, L (INTEGER) : Grid box indices for lon, lat, vertical level
+!
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE COMODE_MOD,    ONLY : CSPEC, JLOP, VOLUME
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
+      USE TRACER_MOD,    ONLY : XNUMOL,             TRACER_COEFF
+      USE TRACERID_MOD,  ONLY : IDTISOP
+
+#     include "CMN_SIZE"      ! Size parameters
+#     include "comode.h"      ! ILISOPOH   (dkh, 05/29/06)  
+
+      ! Arguments
+      INTEGER, INTENT(IN)    :: I, J, L
+
+      ! Function returns 
+      REAL*8                 :: DOH
+
+      ! Local variables
+      INTEGER                :: JLOOP
+
+      !=================================================================
+      ! GET_DOH begins here!
+      !=================================================================
+
+      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+
+         !--------------------
+         ! Coupled simulation
+         !--------------------
+
+         ! Get 1-D index from current 3-D position
+         JLOOP = JLOP(I,J,L)
+
+         ! Test if we are in the troposphere
+         IF ( JLOOP > 0 ) THEN 
+ 
+            !-----------------------------------------------------------
+            ! Get DOH from CSPEC [molec/cm3] and 
+            ! convert to [kg C isop / box]
+            ! 
+            ! CSPEC(JLOOP,ILISOPOH)    : molec isop (lost to OH) / cm3
+            !  XNUMOL(IDTISOP)         : atom C / kg C isop
+            !  TRACER_COEFF(IDTISOP,1) : atom C / molec isop
+            !  VOLUME                  : cm3 / box
+            !-----------------------------------------------------------
+            DOH = CSPEC(JLOOP,ILISOPOH)   * 
+     &            VOLUME(JLOOP)           * 
+     &            TRACER_COEFF(IDTISOP,1) / 
+     &            XNUMOL(IDTISOP) 
+ 
+         ELSE
+
+            ! Otherwise set DOH=0
+            DOH = 0d0
+ 
+         ENDIF
+
+      ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+
+         !--------------------
+         ! Offline simulation
+         !--------------------   
+
+         ! ISOP from OH not is yet supported for
+         ! offline aerosol simulations, set DOH=0
+         DOH = 0d0
+
+      ELSE
+
+         !--------------------
+         ! Invalid sim type!
+         !--------------------
+         CALL ERROR_STOP( 'Invalid simulation type!', 
+     &                    'GET_DOH ("carbon_mod.f")' )
+
+      ENDIF 
+
+      ! Return to calling program
+      END FUNCTION GET_DOH
 
 !------------------------------------------------------------------------------
 
@@ -4602,4 +4746,5 @@ c
 
 !------------------------------------------------------------------------------
 
+      ! End of module
       END MODULE CARBON_MOD
