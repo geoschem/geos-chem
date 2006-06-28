@@ -1,4 +1,4 @@
-! $Id: chemdr.f,v 1.20 2006/06/06 14:25:58 bmy Exp $
+! $Id: chemdr.f,v 1.21 2006/06/28 17:26:48 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
@@ -154,10 +154,6 @@
       USE DIAG_PL_MOD,     ONLY : DO_DIAG_PL
       USE DUST_MOD,        ONLY : RDUST_ONLINE, RDUST_OFFLINE
       USE ERROR_MOD,       ONLY : DEBUG_MSG,    ERROR_STOP
-      !---------------------------------------------------------------
-      ! Prior to 5/30/06:
-      !USE GLOBAL_CH4_MOD,  ONLY : GET_GLOBAL_CH4
-      !---------------------------------------------------------------
       USE LOGICAL_MOD,     ONLY : LCARB,        LDUST,     LEMBED
       USE LOGICAL_MOD,     ONLY : LPRT,         LSSALT,    LSULF  
       USE LOGICAL_MOD,     ONLY : LSOA

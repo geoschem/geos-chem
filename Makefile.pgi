@@ -1,6 +1,7 @@
-# $Id: Makefile.pgi,v 1.26 2006/06/06 14:25:54 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for LINUX/PGI (bmy, Wed May 31 10:19:40 2006)
+# $Id: Makefile.pgi,v 1.27 2006/06/28 17:26:44 bmy Exp $
+#
+# GEOS-Chem Makefile for LINUX/PGI (bmy, Mon Jun 26 16:00:07 2006)
 #
 # NOTE: If you want to run the 2 x 2.5 GEOS-CHEM model, then try adding
 #       -Bstatic to the F90 compilation line.  It appears that setting 
@@ -158,6 +159,7 @@ diag_oh_mod.o             \
 diag_pl_mod.o             \
 ocean_mercury_mod.o       \
 drydep_mod.o              \
+bravo_mod.o               \
 emep_mod.o                \
 epa_nei_mod.o             \
 geia_mod.o                \
@@ -265,9 +267,10 @@ biofuel_mod.o              : biofuel_mod.f              CMN_DIAG CMN_SIZE define
 biomass_mod.o              : biomass_mod.f              CMN_DIAG CMN_SIZE define.h 
 boxvl.o                    : boxvl.f                    
 bpch2_mod.o                : bpch2_mod.f                CMN_SIZE define.h define.h 
+bravo_mod.o                : bravo_mod.f                CMN_SIZE define.h 
 c2h6_mod.o                 : c2h6_mod.f                 CMN CMN_DIAG CMN_O3 CMN_SIZE define.h 
 calcrate.o                 : calcrate.f                 CMN CMN_DIAG CMN_SIZE define.h comode.h 
-carbon_mod.o               : carbon_mod.f               CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h 
+carbon_mod.o               : carbon_mod.f               CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h comode.h 
 ch3i_mod.o                 : ch3i_mod.f                 CMN_DEP CMN_DIAG CMN_SIZE define.h comode.h 
 charpak_mod.o              : charpak_mod.f              
 chemdr.o                   : chemdr.f                   CMN CMN_DEP CMN_DIAG CMN_NOX CMN_O3 CMN_SIZE define.h comode.h 
@@ -436,7 +439,7 @@ linux_err.o                : linux_err.c
 #  Other Makefile Commands
 #=============================================================================
 clean:
-	rm -f *.o *.mod geos geos_sj geosco
+	rm -rf *.o *.mod geos rii_files
 
 .SUFFIXES: .f .F .f90 .F90
 .f.o:                   ; $(F90) -c $*.f

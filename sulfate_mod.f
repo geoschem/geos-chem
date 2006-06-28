@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.25 2006/06/06 14:26:09 bmy Exp $
+! $Id: sulfate_mod.f,v 1.26 2006/06/28 17:26:53 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 5/23/06)
+!  (rjp, bdf, bmy, 6/22/00, 6/26/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -112,29 +112,30 @@
 !  GEOS-CHEM modules referenced by sulfate_mod.f
 !  ============================================================================
 !  (1 ) bpch2_mod.f       : Module w/ routines for binary pch file I/O
-!  (2 ) comode_mod.f      : Module w/ SMVGEAR allocatable arrays
-!  (3 ) dao_mod.f         : Module w/ DAO met field arrays
-!  (4 ) diag_mod.f        : Module w/ GEOS-CHEM diagnostic arrays
-!  (5 ) directory_mod.f   : Module w/ GEOS-CHEM data & met field dirs
-!  (6 ) drydep_mod.f      : Module w/ GEOS-CHEM dry deposition routines
-!  (7 ) epa_nei_mod.f     : Module w/ routines to read EPA/NEI99 data
-!  (8 ) error_mod.f       : Module w/ NaN, other error check routines
-!  (9 ) file_mod.f        : Module w/ file unit numbers & error checks
-!  (10) grid_mod.f        : Module w/ horizontal grid information
-!  (11) global_no3_mod.f  : Module w/ routines to read 3-D NO3 field
-!  (12) global_oh_mod.f   : Module w/ routines to read 3-D OH field
-!  (13) isoropia_mod.f    : Module w/ ISORROPIA routines for aer thermodyn eq
-!  (14) logical_mod.f     : Module w/ GEOS-CHEM logical switches
-!  (15) pbl_mix_mod.f     : Module w/ routines for PBL height & mixing
-!  (16) pressure_mod.f    : Module w/ routines to compute P(I,J,L)
-!  (17) seasalt_mod.f     : Module w/ routines for seasalt chemistry
-!  (18) time_mod.f        : Module w/ routines to compute time & date
-!  (19) tracer_mod.f      : Module w/ GEOS-CHEM tracer array STT etc.
-!  (20) tracerid_mod.f    : Module w/ pointers to tracers & emissions
-!  (21) transfer_mod.f    : Module w/ routines to cast & resize arrays
-!  (22) tropopause_mod.f  : Module w/ routines to read ann mean tropopause
-!  (23) uvalbedo_mod.f    : Module w/ UV albedo array and reader
-!  (24) wetscav_mod.f     : Module w/ routines for wetdep & scavenging
+!  (2 ) bravo_mod.f       : Module w/ routines to read BRAVO emissions data
+!  (3 ) comode_mod.f      : Module w/ SMVGEAR allocatable arrays
+!  (4 ) dao_mod.f         : Module w/ DAO met field arrays
+!  (5 ) diag_mod.f        : Module w/ GEOS-Chem diagnostic arrays
+!  (6 ) directory_mod.f   : Module w/ GEOS-Chem data & met field dirs
+!  (7 ) drydep_mod.f      : Module w/ GEOS-Chem dry deposition routines
+!  (8 ) epa_nei_mod.f     : Module w/ routines to read EPA/NEI99 data
+!  (9 ) error_mod.f       : Module w/ NaN, other error check routines
+!  (10) file_mod.f        : Module w/ file unit numbers & error checks
+!  (11) grid_mod.f        : Module w/ horizontal grid information
+!  (12) global_no3_mod.f  : Module w/ routines to read 3-D NO3 field
+!  (13) global_oh_mod.f   : Module w/ routines to read 3-D OH field
+!  (14) isoropia_mod.f    : Module w/ ISORROPIA routines for aer thermodyn eq
+!  (15) logical_mod.f     : Module w/ GEOS-Chem logical switches
+!  (16) pbl_mix_mod.f     : Module w/ routines for PBL height & mixing
+!  (17) pressure_mod.f    : Module w/ routines to compute P(I,J,L)
+!  (18) seasalt_mod.f     : Module w/ routines for seasalt chemistry
+!  (19) time_mod.f        : Module w/ routines to compute time & date
+!  (20) tracer_mod.f      : Module w/ GEOS-Chem tracer array STT etc.
+!  (21) tracerid_mod.f    : Module w/ pointers to tracers & emissions
+!  (22) transfer_mod.f    : Module w/ routines to cast & resize arrays
+!  (23) tropopause_mod.f  : Module w/ routines to read ann mean tropopause
+!  (24) uvalbedo_mod.f    : Module w/ UV albedo array and reader
+!  (25) wetscav_mod.f     : Module w/ routines for wetdep & scavenging
 !
 !  References:
 !  ============================================================================
@@ -200,6 +201,7 @@
 !  (32) Now read int'annual SST data on GEOS 1x1 grid (bmy, 11/17/05)
 !  (33) Bug fix for offline aerosol sim in SEASALT_CHEM (bec, bmy, 3/29/06)
 !  (34) Bug fix in INIT_DRYDEP (bmy, 5/23/06)
+!  (35) Now references "bravo_mod.f" (rjp, kfb, bmy, 6/26/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -3956,7 +3958,7 @@
 !
 !******************************************************************************
 !  Subroutine SRCSO2 (originally from Mian Chin) computes SO2 emissons from 
-!  aircraft, biomass, and anthro sources. (rjp, bdf, bmy, 6/2/00, 10/25/05)
+!  aircraft, biomass, and anthro sources. (rjp, bdf, bmy, 6/2/00, 6/26/06)
 !
 !  Arguments as Input/Output:
 !  ===========================================================================
@@ -3985,20 +3987,24 @@
 !        and GET_PBL_TOP_L from "pbl_mix_mod.f".  Removed reference to header
 !        file CMN. (bmy, 2/22/05)
 !  (8 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  (9 ) Now references GET_BRAVO_ANTHRO and GET_BRAVO_MASK from "bravo_mod.f" 
+!        for BRAVO Mexican emissions. (rjp, kfb, bmy, 6/26/06)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
-      USE DIAG_MOD,     ONLY : AD13_SO2_an, AD13_SO2_ac, AD13_SO2_bb
-      USE DIAG_MOD,     ONLY : AD13_SO2_nv, AD13_SO2_ev, AD13_SO2_bf
+      USE BRAVO_MOD,    ONLY : GET_BRAVO_ANTHRO, GET_BRAVO_MASK
+      USE DIAG_MOD,     ONLY : AD13_SO2_an,      AD13_SO2_ac
+      USE DIAG_MOD,     ONLY : AD13_SO2_bb,      AD13_SO2_nv
+      USE DIAG_MOD,     ONLY : AD13_SO2_ev,      AD13_SO2_bf
       USE DIAG_MOD,     ONLY : AD13_SO2_sh
       USE DAO_MOD,      ONLY : BXHEIGHT, PBL
-      USE EPA_NEI_MOD,  ONLY : GET_EPA_ANTHRO, GET_EPA_BIOFUEL
+      USE EPA_NEI_MOD,  ONLY : GET_EPA_ANTHRO,   GET_EPA_BIOFUEL
       USE EPA_NEI_MOD,  ONLY : GET_USA_MASK
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,  ONLY : LNEI99, LSHIPSO2
-      USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
-      USE TIME_MOD,     ONLY : GET_TS_EMIS, GET_DAY_OF_YEAR 
+      USE LOGICAL_MOD,  ONLY : LBRAVO, LNEI99,   LSHIPSO2
+      USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL,  GET_PBL_TOP_L
+      USE TIME_MOD,     ONLY : GET_TS_EMIS,      GET_DAY_OF_YEAR 
       USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTSO2
@@ -4019,7 +4025,7 @@
       REAL*8                 :: DTSRCE,      HGHT,      SO2SRC
       REAL*8                 :: SLAB,        SLAB1
       REAL*8                 :: TSO2,        FEMIS
-      REAL*8                 :: AREA_CM2,    EPA_AN,    EPA_BF
+      REAL*8                 :: AREA_CM2,    AN,        BF
       REAL*8                 :: SO2an(IIPAR,JJPAR,2)
       REAL*8                 :: SO2bf(IIPAR,JJPAR)
 
@@ -4183,37 +4189,43 @@
       ENDIF  
 
       !=================================================================
-      ! Overwrite USA w/ EPA/NEI99 SO4 emissions (if necessary)
-      ! Store emissions into local arrays SO2an, SO2bf 
+      ! Overwrite USA    w/ EPA/NEI99 (anthro+biofuel) SO2 emissions 
+      ! Overwrite MEXICO w/ BRAVO     (anthro only   ) SO2 emissions
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, AREA_CM2, EPA_AN, EPA_BF )
+!$OMP+PRIVATE( I, J, AREA_CM2, AN, BF )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
+
+         ! Initialize
+         AN       = 0d0
+         BF       = 0d0
 
          ! Grid box surface area [cm2]
          AREA_CM2 = GET_AREA_CM2(J)
 
          DO I = 1, IIPAR
          
-            ! If we are using EPA/NEI99 emissions
+            !-----------------------------------------------------------
+            ! If we are using EPA/NEI99 (anthro + biofuel) ...
+            !-----------------------------------------------------------
             IF ( LNEI99 ) THEN
 
                ! If we are over the USA ...
                IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
             
-                  ! Read SO2 emissions in [molec/cm2/s]
-                  EPA_AN       = GET_EPA_ANTHRO( I, J, IDTSO2, WEEKDAY )
-                  EPA_BF       = GET_EPA_BIOFUEL(I, J, IDTSO2, WEEKDAY )
+                  ! Read EPA/NEI99 SO2 emissions in [molec/cm2/s]
+                  AN           = GET_EPA_ANTHRO( I, J, IDTSO2, WEEKDAY )
+                  BF           = GET_EPA_BIOFUEL(I, J, IDTSO2, WEEKDAY )
                
                   ! Convert anthro SO2 from [molec/cm2/s] to [kg/box/s] 
                   ! Place all anthro SO2 into surface layer
-                  SO2an(I,J,1) = EPA_AN * AREA_CM2 / XNUMOL(IDTSO2)
+                  SO2an(I,J,1) = AN * AREA_CM2 / XNUMOL(IDTSO2)
                   SO2an(I,J,2) = 0d0
                
                   ! Convert anthro SO2 from [molec/cm2/s] to [kg/box/s] 
-                  SO2bf(I,J)   = EPA_BF * AREA_CM2 / XNUMOL(IDTSO2)
+                  SO2bf(I,J)   = BF * AREA_CM2 / XNUMOL(IDTSO2)
 
                ELSE
 
@@ -4229,6 +4241,41 @@
              
                ! If we are not using EPA/NEI99 emissions, then just copy 
                ! ESO2_an and ESO2_bf into local arrays (bmy, 11/16/04)
+               SO2an(I,J,1) = ESO2_an(I,J,1)
+               SO2an(I,J,2) = ESO2_an(I,J,2)
+               SO2bf(I,J)   = ESO2_bf(I,J)
+
+            ENDIF
+
+            !-----------------------------------------------------------
+            ! If we are using BRAVO emissions over Mexico ...
+            !-----------------------------------------------------------
+            IF ( LBRAVO ) THEN
+
+               ! If we are over Mexico ...
+               IF ( GET_BRAVO_MASK( I, J ) > 0d0 ) THEN
+            
+                  ! Read BRAVO SO2 emissions in [molec/cm2/s]
+                  AN           = GET_BRAVO_ANTHRO( I, J, IDTSO2 )
+               
+                  ! Convert anthro SO2 from [molec/cm2/s] to [kg/box/s] 
+                  ! Place all anthro SO2 into surface layer
+                  SO2an(I,J,1) = AN * AREA_CM2 / XNUMOL(IDTSO2)
+                  SO2an(I,J,2) = 0d0
+
+               ELSE
+
+                  ! If we are not over MEXICO, then just use 
+                  ! the regular emissions from ESO2_an
+                  SO2an(I,J,1) = ESO2_an(I,J,1)
+                  SO2an(I,J,2) = ESO2_an(I,J,2)
+        
+               ENDIF
+
+            ELSE
+             
+               ! If we are not using BRAVO emissions, then just copy 
+               ! ESO2_an and ESO2_bf into local arrays
                SO2an(I,J,1) = ESO2_an(I,J,1)
                SO2an(I,J,2) = ESO2_an(I,J,2)
                SO2bf(I,J)   = ESO2_bf(I,J)
@@ -6220,13 +6267,6 @@
 
       ! Cast from REAL*4 to REAL*8
       CALL TRANSFER_2D( ARRAY(:,:,1), ENH3_an )
-
-!-------------------------------------------------------------
-! Prior to 5/30/06:
-!      ! Convert from [kg N/box/mon] to [kg NH3/box/s]
-!      ENH3_an = ENH3_an * ( 17.d0 / 14.d0 ) 
-!     &        / ( NMDAY(THISMONTH) * 86400.d0 ) 
-!-------------------------------------------------------------
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )

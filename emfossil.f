@@ -1,9 +1,9 @@
-! $Id: emfossil.f,v 1.9 2006/03/24 20:22:46 bmy Exp $
+! $Id: emfossil.f,v 1.10 2006/06/28 17:26:50 bmy Exp $
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
 !******************************************************************************
 !  Subroutine EMFOSSIL emits fossil fuels into the EMISRR and EMISRRN 
-!  arrays, which are then passed to SMVGEAR. (bmy, 4/19/99, 2/1/06)
+!  arrays, which are then passed to SMVGEAR. (bmy, 4/19/99, 6/26/06)
 !
 !  Arguments as input:
 !  ========================================================================
@@ -44,17 +44,19 @@
 !        to CMN, it's now obsolete. (bdf, bmy, 11/1/05)
 !  (21) Rewrite IF statements to avoid seg fault errors when LEMEP and LNEI99 
 !        are turned off. (bmy, 2/1/06)
+!  (22) Now apply BRAVO Mexican emissions if necessary (rjp, kfb, bmy, 6/26/06)
 !******************************************************************************
 !          
       ! References to F90 modules
-      USE DIAG_MOD,     ONLY : AD29, AD32_an,   AD36
-      USE EMEP_MOD,     ONLY : GET_EMEP_ANTHRO, GET_EUROPE_MASK
-      USE EPA_NEI_MOD,  ONLY : GET_EPA_ANTHRO,  GET_USA_MASK
+      USE BRAVO_MOD,    ONLY : GET_BRAVO_ANTHRO, GET_BRAVO_MASK
+      USE DIAG_MOD,     ONLY : AD29,   AD32_an,  AD36
+      USE EMEP_MOD,     ONLY : GET_EMEP_ANTHRO,  GET_EUROPE_MASK
+      USE EPA_NEI_MOD,  ONLY : GET_EPA_ANTHRO,   GET_USA_MASK
       USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,  ONLY : LNEI99,          LEMEP
-      USE TIME_MOD,     ONLY : GET_TS_EMIS,     GET_DAY_OF_WEEK
+      USE LOGICAL_MOD,  ONLY : LBRAVO, LEMEP,    LNEI99 
+      USE TIME_MOD,     ONLY : GET_TS_EMIS,      GET_DAY_OF_WEEK
       USE TRACER_MOD,   ONLY : XNUMOL
-      USE TRACERID_MOD, ONLY : IDENOX, IDEOX,   IDTCO
+      USE TRACERID_MOD, ONLY : IDENOX, IDEOX,    IDTCO
   
       IMPLICIT NONE
 
@@ -73,7 +75,7 @@
       REAL*8                :: EMX(NOXLEVELS)  
       REAL*8                :: XEMISR
       REAL*8                :: XEMISRN(NOXLEVELS)
-      REAL*8                :: EPA_NEI, EMEP
+      REAL*8                :: BRAVO, EPA_NEI, EMEP
 
       !=================================================================
       ! EMFOSSIL begins here!
@@ -178,6 +180,34 @@
             ENDIF
 
             !-----------------------------------------------------------
+            ! Get NOx from BRAVO inventory over MEXICO
+            !-----------------------------------------------------------
+
+            ! If we are using BRAVO ...
+            IF ( LBRAVO ) THEN
+
+               ! If we are over the Mexican region ...
+               IF ( GET_BRAVO_MASK( I, J ) > 0d0 ) THEN 
+
+                  ! Get BRAVO emissions for NOx (and apply time-of-day factor)
+                  BRAVO = GET_BRAVO_ANTHRO( I, J, NN ) * TODX
+
+                  IF ( LL == 1 ) THEN
+            
+                     ! Replace GEIA with BRAVO emissions at surface
+                     EMX(LL) = BRAVO * ( DTSRCE*AREA_CM2 ) / XNUMOL(NN) 
+                  
+                  ELSE 
+            
+                     ! Zero GEIA emissions in the 2nd level 
+                     ! where the BRAVO emissions are nonzero
+                     EMX(LL) = 0d0                   
+                  
+                  ENDIF
+               ENDIF
+            ENDIF
+
+            !-----------------------------------------------------------
             ! Store in EMISRRN array and archive diagnostics
             !-----------------------------------------------------------
 
@@ -214,7 +244,7 @@
             TODX = TODH(IHOUR)
          ENDIF
 
-         EMX(1)        = TODX * EMISR(IREF,JREF,N) 
+         EMX(1) = TODX * EMISR(IREF,JREF,N) 
 
          ! Enhance CO production by 2%, to account for CO
          ! production from anthropogenic VOC's (bnd, bmy, 4/26/01)
@@ -263,6 +293,33 @@
                   ! Convert from molec/cm2/s to kg/box/timestep in order
                   ! to be in the proper units for EMISRR array
                   EMX(1) = EMEP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+
+               ENDIF
+            ENDIF
+         ENDIF
+
+         !--------------------------------------------------------------
+         ! Get CO from BRAVO inventory over Europe
+         !--------------------------------------------------------------
+
+         ! If we are using BRAVO emissions ...
+         IF ( LBRAVO ) THEN
+
+            ! If we are over the Mexican region ...
+            IF ( GET_BRAVO_MASK( I, J ) > 0d0 ) THEN
+         
+               ! Get BRAVO emissions 
+               BRAVO = GET_BRAVO_ANTHRO( I, J, NN )
+         
+               ! -1 indicates tracer NN does not have BRAVO emissions
+               IF ( BRAVO > 0d0 ) THEN
+
+                  ! Apply time-of-day factor
+                  BRAVO  = BRAVO * TODX
+
+                  ! Convert from molec/cm2/s to kg/box/timestep in order
+                  ! to be in the proper units for EMISRR array
+                  EMX(1) = BRAVO * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
 
                ENDIF
             ENDIF

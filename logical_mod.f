@@ -1,9 +1,9 @@
-! $Id: logical_mod.f,v 1.10 2006/06/06 14:26:06 bmy Exp $
+! $Id: logical_mod.f,v 1.11 2006/06/28 17:26:52 bmy Exp $
       MODULE LOGICAL_MOD
 !
 !******************************************************************************
 !  Module LOGICAL_MOD contains all of the logical switches used by GEOS-CHEM.
-!  (bmy, 7/9/04, 5/30/06)
+!  (bmy, 7/9/04, 6/26/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -65,6 +65,7 @@
 !  (6 ) Added LGFED2BB switch for GFED2 BIOMASS BURNING (bmy, 4/5/06)
 !  (7 ) Added LCTH, LMFLUX, LPRECON for lightning options (ltm, bmy, 5/5/06)
 !  (8 ) Added LFUTURE (swu, bmy, 5/30/06)
+!  (9 ) Added LBRAVO (rjp, kfb, bmy, 6/26/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -102,11 +103,12 @@
       ! Emissions
       LOGICAL :: LAIRNOX
       LOGICAL :: LANTHRO 
+      LOGICAL :: LBBSEA
       LOGICAL :: LBIONOX    ! <-- deprecated: replace w/ LBIOMASS soon
       LOGICAL :: LBIOMASS 
       LOGICAL :: LBIOFUEL
       LOGICAL :: LBIOGENIC
-      LOGICAL :: LBBSEA
+      LOGICAL :: LBRAVO
       LOGICAL :: LEMEP
       LOGICAL :: LEMIS  
       LOGICAL :: LFFNOX                 

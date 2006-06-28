@@ -1,9 +1,9 @@
-! $Id: emissions_mod.f,v 1.16 2006/04/21 15:39:58 bmy Exp $
+! $Id: emissions_mod.f,v 1.17 2006/06/28 17:26:50 bmy Exp $
       MODULE EMISSIONS_MOD
 !
 !******************************************************************************
 !  Module EMISSIONS_MOD is used to call the proper emissions subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 2/11/03, 3/30/06)
+!  for the various GEOS-CHEM simulations. (bmy, 2/11/03, 6/26/06)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -11,25 +11,26 @@
 !
 !  GEOS-CHEM modules referenced by emissions_mod.f
 !  ============================================================================
-!  (1 ) c2h6_mod.f       : Module w/ routines for C2H6 chemistry
-!  (2 ) carbon_mod.f     : Module w/ routines for carbon arsl emissions
-!  (3 ) ch3i_mod.f       : Module w/ routines for CH3I chemistry
-!  (4 ) co2_mod.f        : Module w/ routines for CO2 chemistry
-!  (5 ) dust_mod.f       : Module w/ routines for dust aerosol emissions
-!  (6 ) emep_mod.f       : Module w/ routines to read EMEP (Europe) emissions
-!  (7 ) epa_nei_mod.f    : Module w/ routines to read EPA/NEI99 (USA) emissions
-!  (8 ) error_mod.f      : Module w/ NaN and other error checks
-!  (9 ) global_ch4_mod.f : Module w/ routines for CH4 emissions
-!  (10) hcn_ch3cn_mod.f  : Module w/ routines for HCN and CH3CN emissions 
-!  (11) Kr85_mod.f       : Module w/ routines for Kr85 emissions
-!  (12) logical_mod.f    : Module w/ GEOS-CHEM logical switches
-!  (13) mercury_mod.f    : Module w/ routines for mercury chemistry
-!  (14) RnPbBe_mod.f     : Module w/ routines for Rn-Pb-Be emissions
-!  (15) tagged_co_mod.f  : Module w/ routines for Tagged CO emissions
-!  (16) time_mod.f       : Module w/ routines to compute date & time
-!  (17) tracer_mod.f     : Module w/ GEOS-CHEM tracer array STT etc.
-!  (18) seasalt_mod.f    : Module w/ routines for seasalt emissions
-!  (19) sulfate_mod.f    : Module w/ routines for sulfate emissions
+!  (1 ) bravo_mod.f      :
+!  (2 ) c2h6_mod.f       : Module w/ routines for C2H6 chemistry
+!  (3 ) carbon_mod.f     : Module w/ routines for carbon arsl emissions
+!  (4 ) ch3i_mod.f       : Module w/ routines for CH3I chemistry
+!  (5 ) co2_mod.f        : Module w/ routines for CO2 chemistry
+!  (6 ) dust_mod.f       : Module w/ routines for dust aerosol emissions
+!  (7 ) emep_mod.f       : Module w/ routines to read EMEP (Europe) emissions
+!  (8 ) epa_nei_mod.f    : Module w/ routines to read EPA/NEI99 (USA) emissions
+!  (9 ) error_mod.f      : Module w/ NaN and other error checks
+!  (10) global_ch4_mod.f : Module w/ routines for CH4 emissions
+!  (11) hcn_ch3cn_mod.f  : Module w/ routines for HCN and CH3CN emissions 
+!  (12) Kr85_mod.f       : Module w/ routines for Kr85 emissions
+!  (13) logical_mod.f    : Module w/ GEOS-CHEM logical switches
+!  (14) mercury_mod.f    : Module w/ routines for mercury chemistry
+!  (15) RnPbBe_mod.f     : Module w/ routines for Rn-Pb-Be emissions
+!  (16) tagged_co_mod.f  : Module w/ routines for Tagged CO emissions
+!  (17) time_mod.f       : Module w/ routines to compute date & time
+!  (18) tracer_mod.f     : Module w/ GEOS-CHEM tracer array STT etc.
+!  (19) seasalt_mod.f    : Module w/ routines for seasalt emissions
+!  (20) sulfate_mod.f    : Module w/ routines for sulfate emissions
 !
 !  NOTES:
 !  (1 ) Now references DEBUG_MSG from "error_mod.f"
@@ -45,6 +46,7 @@
 !  (10) Now references "co2_mod.f" (pns, bmy, 7/25/05)
 !  (11) Now references "emep_mod.f" (bdf, bmy, 10/1/05)
 !  (12) Now references "gfed2_biomass_mod.f" (bmy, 3/30/06)
+!  (13) Now references "bravo_mod.f" (rjp, kfb, bmy, 6/26/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -61,7 +63,7 @@
 !******************************************************************************
 !  Subroutine DO_EMISSIONS is the driver routine which calls the appropriate
 !  emissions subroutine for the various GEOS-CHEM simulations. 
-!  (bmy, 2/11/03, 3/30/06)
+!  (bmy, 2/11/03, 6/26/06)
 !
 !  NOTES:
 !  (1 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
@@ -84,11 +86,13 @@
 !  (12) Now references EMISS_EMEP from "emep_mod.f" (bdf, bmy, 11/1/05)
 !  (13) Now call GFED2_COMPUTE_BIOMASS to read 1x1 biomass emissions and
 !        regrid to the model resolution once per month. (bmy, 3/30/06)
+!  (14) Now references EMISS_BRAVO from "bravo_mod.f" (rjp, kfb, bmy, 6/26/06)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BIOMASS_MOD,    ONLY : NBIOMAX
       USE BIOMASS_MOD,    ONLY : COMPUTE_BIOMASS_EMISSIONS
+      USE BRAVO_MOD,      ONLY : EMISS_BRAVO
       USE C2H6_MOD,       ONLY : EMISSC2H6
       USE CARBON_MOD,     ONLY : EMISSCARBON
       USE CH3I_MOD,       ONLY : EMISSCH3I
@@ -139,6 +143,9 @@
          ! Read EPA/NEI99 (USA) emissions once per month
          IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
 
+         ! Read BRAVO (Mexico) emissions once per year
+         IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) CALL EMISS_BRAVO
+
          ! Read EMEP (Europe) emissions once per year
          IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) CALL EMISS_EMEP
 
@@ -159,6 +166,9 @@
 
          ! Read EPA/NEI99 emissions once per month
          IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
+
+         ! Read BRAVO (Mexico) emissions once per year
+         IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) CALL EMISS_BRAVO
 
          ! Read EMEP (Europe) emissions once per year
          IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) CALL EMISS_EMEP
@@ -200,6 +210,9 @@
 
          ! Read EPA (USA) emissions once per month
          IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
+
+         ! Read BRAVO (Mexico) emissions once per year
+         IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) CALL EMISS_BRAVO
 
          ! Read EPA (Europe) emissions once per year
          IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) CALL EMISS_EMEP

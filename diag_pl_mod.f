@@ -1,4 +1,4 @@
-! $Id: diag_pl_mod.f,v 1.7 2005/11/03 17:50:25 bmy Exp $
+! $Id: diag_pl_mod.f,v 1.8 2006/06/28 17:26:48 bmy Exp $
       MODULE DIAG_PL_MOD
 !
 !******************************************************************************
@@ -543,7 +543,7 @@
       SUBROUTINE DO_DIAG_PL 
 !
 !*****************************************************************************
-!  Subroutine PLSAVE saves info on production and loss of families 
+!  Subroutine DO_DIAG_PL saves info on production and loss of families 
 !  into the FAM_PL diagnostic array. (bey, bmy, 3/16/00, 7/20/04)
 !
 !  NOTES:
@@ -560,7 +560,7 @@
       INTEGER :: I, J, L, JLOOP, N
 
       !=================================================================
-      ! PLSAVE begins here!
+      ! DO_DIAG_PL begins here!
       !
       ! If ND65 is turned on, then archive P-L for specified families 
       ! and store in the AD65 array.  

@@ -1,4 +1,4 @@
-! $Id: anthroems.f,v 1.6 2006/06/06 14:25:56 bmy Exp $
+! $Id: anthroems.f,v 1.7 2006/06/28 17:26:47 bmy Exp $
       SUBROUTINE ANTHROEMS( NSEASON )
 !
 !******************************************************************************
@@ -112,11 +112,6 @@
       IMPLICIT NONE
 
 #     include "CMN_SIZE"             ! Size parameters
-!-------------------------------------------------------------------------
-! Prior to 5/30/06:
-! Remove CMN, it's obsolete now (swu, bmy, 5/30/06)
-!#     include "CMN"                  ! STT, NSRCX
-!-------------------------------------------------------------------------
 #     include "CMN_O3"               ! EMIST, EMISR, EMISRR, etc.
 #     include "comode.h"             ! IDEMS
 

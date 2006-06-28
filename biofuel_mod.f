@@ -1,4 +1,4 @@
-! $Id: biofuel_mod.f,v 1.11 2006/06/06 14:25:56 bmy Exp $
+! $Id: biofuel_mod.f,v 1.12 2006/06/28 17:26:47 bmy Exp $
       MODULE BIOFUEL_MOD
 !
 !******************************************************************************
@@ -80,17 +80,6 @@
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
       ! and routines from being seen outside "biofuel_mod.f"
       !=================================================================
-
-      !----------------------------------
-      ! Prior to 5/30/06:
-      !! PRIVATE module variables
-      !PRIVATE BIOFUEL_KG
-      !
-      !! PRIVATE module routines
-      !PRIVATE SCALE_BIOFUEL_CO   
-      !PRIVATE SCALE_BIOFUEL_ACET 
-      !PRIVATE INIT_BIOFUEL      
-      !----------------------------------
 
       ! Make everything PRIVATE ...
       PRIVATE

@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.26 2006/06/06 14:38:39 bmy Exp $
+! $Id: input_mod.f,v 1.27 2006/06/28 17:26:51 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS_CHEM input file at the start of the run
 !  and passes the information to several other GEOS-CHEM F90 modules.
-!  (bmy, 7/20/04, 6/1/06)
+!  (bmy, 7/20/04, 6/26/06)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -111,6 +111,7 @@
 !        LPRECON in READ_EMISSIONS_MENU. (bmy, 5/10/06)
 !  (12) Updated for ND42 SOA concentration diagnostic (dkh, bmy, 5/22/06)
 !  (13) Modified for future emissions (swu, bmy, 6/1/06)
+!  (14) Modified for BRAVO emissions (rjp, kfb, bmy, 6/26/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1213,7 +1214,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_EMISSIONS_MENU reads the EMISSIONS MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 5/10/06)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 6/26/06)
 !
 !  NOTES:
 !  (1 ) Now read LNEI99 -- switch for EPA/NEI99 emissions (bmy, 11/5/04)
@@ -1224,6 +1225,7 @@
 !  (6 ) Now read LGFED2BB -- switch for GFED2 biomass emissions (bmy, 4/5/06)
 !  (7 ) Now read LOTDLIS, LCTH, LMFLUX, LPRECON for lightning options 
 !        (bmy, 5/10/06)
+!  (8 ) Now read LBRAVO for BRAVO Mexican emissions (rjp, kfb, bmy, 6/26/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1234,6 +1236,7 @@
       USE LOGICAL_MOD, ONLY : LNEI99,   LSHIPSO2,  LSOILNOX,  LTOMSAI   
       USE LOGICAL_MOD, ONLY : LWOODCO,  LMEGAN,    LEMEP,     LGFED2BB
       USE LOGICAL_MOD, ONLY : LOTDLIS,  LCTH,      LMFLUX,    LPRECON
+      USE LOGICAL_MOD, ONLY : LBRAVO
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
 
 #     include "CMN_SIZE"    ! Size parameters
@@ -1273,43 +1276,47 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:5' )
       READ( SUBSTRS(1:N), * ) LEMEP
 
-      ! Include biofuel emissions?
+      ! Include BRAVO (Mexico) anthro emissions
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:6' )
+      READ( SUBSTRS(1:N), * ) LBRAVO
+
+      ! Include biofuel emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:7' )
       READ( SUBSTRS(1:N), * ) LBIOFUEL
 
       ! Include biogenic emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:7' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:8' )
       READ( SUBSTRS(1:N), * ) LBIOGENIC
 
       ! Use MEGAN biogenic emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:8' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:9' )
       READ( SUBSTRS(1:N), * ) LMEGAN
 
       ! Include biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:9' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:10' )
       READ( SUBSTRS(1:N), * ) LBIOMASS
 
       ! Seasonal biomass?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:10' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:11' )
       READ( SUBSTRS(1:N), * ) LBBSEA
 
       ! Scaled to TOMSAI?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:11' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:12' )
       READ( SUBSTRS(1:N), * ) LTOMSAI
 
       ! Use GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:12' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:13' )
       READ( SUBSTRS(1:N), * ) LGFED2BB
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:13' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:14' )
 
       ! Use aircraft NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:14' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:15' )
       READ( SUBSTRS(1:N), * ) LAIRNOX
 
       ! Use lightning NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:15' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:16' )
       READ( SUBSTRS(1:N), * ) LLIGHTNOX
 
       ! Use OTD-LIS scale factors for lighting flash rates
@@ -1393,6 +1400,7 @@
       WRITE( 6, 100     ) 'Turn on ANTHRO emissions    : ', LANTHRO
       WRITE( 6, 110     ) 'ANTHRO scale factor year    : ', FSCALYR
       WRITE( 6, 100     ) 'Use EMEP anthro emissions   : ', LEMEP
+      WRITE( 6, 100     ) 'Use BRAVO anthro emissions  : ', LBRAVO
       WRITE( 6, 100     ) 'Turn on BIOFUEL emissions?  : ', LFOSSIL
       WRITE( 6, 100     ) 'Turn on BIOGENIC emissions? : ', LBIOGENIC
       WRITE( 6, 100     ) 'Use MEGAN biogenic emissions: ', LMEGAN

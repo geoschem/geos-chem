@@ -1,11 +1,11 @@
-! $Id: fvdas_convect_mod.f,v 1.14 2006/06/06 14:26:02 bmy Exp $
+! $Id: fvdas_convect_mod.f,v 1.15 2006/06/28 17:26:50 bmy Exp $
       MODULE FVDAS_CONVECT_MOD
 !
 !******************************************************************************
 !  Module FVDAS_CONVECT_MOD contains routines (originally from NCAR) which 
 !  perform shallow and deep convection for the GEOS-4/fvDAS met fields.  
 !  These routines account for shallow and deep convection, plus updrafts 
-!  and downdrafts.  (pjr, dsa, bmy, 6/26/03, 5/24/06)
+!  and downdrafts.  (pjr, dsa, bmy, 6/26/03, 6/27/06)
 !  
 !  Module Variables:
 !  ============================================================================
@@ -42,6 +42,9 @@
 !  (5 ) Rewrote DO loops in HACK_CONV for better optmization (bmy, 3/28/06)
 !  (6 ) Split up Hg2 IF statement into 2 separate statements (bmy, 4/17/06)
 !  (7 ) Minor fix in ND38 diagnostic: replace 1 w/ 1d0 (bmy, 5/24/06)
+!  (8 ) Updated for ND14 diagnostic.  Now treat "negative" detrainment as 
+!        entrainment, which will better conserve mixing ratio in convection.
+!        (swu, bmy, 6/27/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -70,9 +73,9 @@
       REAL*8,  PARAMETER :: CMFTAU   = 3600.d0
       REAL*8,  PARAMETER :: EPS      = 1.0d-13   
       REAL*8,  PARAMETER :: GRAV     = 9.8d0
-      REAL*8,  PARAMETER :: SMALLEST = TINY(1D0)
+      REAL*8,  PARAMETER :: SMALLEST = TINY(1d0)
       REAL*8,  PARAMETER :: TINYALT  = 1.0d-36       
-      REAL*8,  PARAMETER :: TINYNUM  = 2*EPSILON(1D0)
+      REAL*8,  PARAMETER :: TINYNUM  = 2*EPSILON(1d0)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -176,21 +179,21 @@
 !
 !  Arguments as Output:
 !  ============================================================================
-!  (3 ) Q      (REAL*8 ) : Modified tracer array                 [v/v]
+!  (3 ) Q       (REAL*8 ) : Modified tracer array                [v/v]
 ! 
 !  Important Local Variables:
 !  ============================================================================
-!  (1 ) LENGATH(INTEGER)  : Number of lons where deep conv. happens at lat=J
-!  (2 ) IDEEP  (INTEGER)  : Lon indices where deep convection happens at lat=J
-!  (3 ) JT     (INTEGER)  : Cloud top layer for columns undergoing conv.
-!  (4 ) MX     (INTEGER)  : Cloud bottom layer for columns undergoing conv.
-!  (5 ) DSUBCLD(REAL*8 )  : Delta pressure from cloud base to sfc
-!  (6 ) DU     (REAL*8 )  : Mass detraining from updraft (lon-alt array)
-!  (7 ) ED     (REAL*8 )  : Mass entraining from downdraft (lon-alt array)
-!  (8 ) DPG    (REAL*8 )  : gathered .01*dp (lon-alt array)
-!  (8 ) EUG    (REAL*8 )  : gathered eu (lon-alt array) 
-!  (9 ) MUG    (REAL*8 )  : gathered mu (lon-alt array)   
-!  (10) MDG    (REAL*8 )  : gathered md (lon-alt array)
+!  (1 ) LENGATH (INTEGER) : Number of lons where deep conv. happens at lat=J
+!  (2 ) IDEEP   (INTEGER) : Lon indices where deep convection happens at lat=J
+!  (3 ) JT      (INTEGER) : Cloud top layer for columns undergoing conv.
+!  (4 ) MX      (INTEGER) : Cloud bottom layer for columns undergoing conv.
+!  (5 ) DSUBCLD (REAL*8 ) : Delta pressure from cloud base to sfc
+!  (6 ) DU      (REAL*8 ) : Mass detraining from updraft (lon-alt array)
+!  (7 ) ED      (REAL*8 ) : Mass entraining from downdraft (lon-alt array)
+!  (8 ) DPG     (REAL*8 ) : gathered .01*dp (lon-alt array)
+!  (8 ) EUG     (REAL*8 ) : gathered eu (lon-alt array) 
+!  (9 ) MUG     (REAL*8 ) : gathered mu (lon-alt array)   
+!  (10) MDG     (REAL*8 ) : gathered md (lon-alt array)
 !
 !  NOTES:
 !  (1 ) Added TCVV and INDEXSOL to the arg list and in the call to CONVTRAN.  
@@ -298,16 +301,16 @@
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) J      (INTEGER) : GEOS-CHEM Latitude index               [unitless]
-!  (2 ) TDT    (REAL*8)  : 2 delta-t                              [s       ]
-!  (3 ) RPDEL  (REAL*8)  : Reciprocal of pressure-thickness array [1/hPa   ]
-!  (4 ) ETA    (REAL*8)  : GMAO Hack convective mass flux (HKETA) [kg/m2/s ]
-!  (5 ) BETA   (REAL*8)  : GMAO Hack overshoot parameter (HKBETA) [unitless]
+!  (2 ) TDT    (REAL*8 ) : 2 delta-t                              [s       ]
+!  (3 ) RPDEL  (REAL*8 ) : Reciprocal of pressure-thickness array [1/hPa   ]
+!  (4 ) ETA    (REAL*8 ) : GMAO Hack convective mass flux (HKETA) [kg/m2/s ]
+!  (5 ) BETA   (REAL*8 ) : GMAO Hack overshoot parameter (HKBETA) [unitless]
 !  (6 ) NTRACE (INTEGER) : Number of tracers in the Q array       [unitless]
-!  (7 ) Q      (REAL*8)  : Tracer concentrations                  [v/v     ]   
+!  (7 ) Q      (REAL*8 ) : Tracer concentrations                  [v/v     ]   
 !  
 !  Arguments as Output:
 !  ============================================================================
-!  (7 ) Q      (REAL*8)  : Modified tracer concentrations         [v/v     ]
+!  (7 ) Q      (REAL*8 ) : Modified tracer concentrations         [v/v     ]
 !
 !  Important Local Variables:
 !  ============================================================================
@@ -497,7 +500,7 @@
 !    (1) Gather mass flux arrays.
 !    (2) Calc the mass fluxes that are determined by mass balance.
 !    (3) Determine top and bottom of convection.
-!  (pjr, dsa, swu, bmy, 6/26/03, 12/13/05)
+!  (pjr, dsa, swu, bmy, 6/26/03, 6/27/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -528,9 +531,11 @@
 !  (2 ) Now dimension DP, MU, MD, EU as (IIPAR,JJPAR,LLPAR) to avoid seg fault
 !        error in OpenMP.  Also now pass the GEOS-CHEM latitude index J via
 !        the argument list. (bmy, 12/13/05)
+!  (3 ) Now treat "negative detrainment" as entrainment, which will better 
+!        conserve mixing ratio (swu, bmy, 6/27/06)
 !******************************************************************************
 !
-#     include "CMN_SIZE"   ! Size parameters
+#     include "CMN_SIZE"    ! Size parameters
       
       ! Arguments
       INTEGER, INTENT(IN)  :: J 
@@ -625,11 +630,16 @@
          EDG(I,LLPAR) = 0.0d0
       ENDDO
 
-      DO K = 1, LLPAR
-      DO I = 1, LENGATH
-         IF ( DUG(I,K) < 1.d-7*EUG(I,K) ) DUG(I,K) = 0.0d0
-      ENDDO
-      ENDDO
+      !-----------------------------------------------------------------------
+      ! Prior to 6/27/06:
+      ! Now treat "negative detrainment" as entrainment, which will
+      ! better conserve mixing ratio (swu, bmy, 6/27/06)
+      !DO K = 1, LLPAR
+      !DO I = 1, LENGATH
+      !   IF ( DUG(I,K) < 1.d-7*EUG(I,K) ) DUG(I,K) = 0.0d0
+      !ENDDO
+      !ENDDO
+      !-----------------------------------------------------------------------
 
       !=================================================================
       ! Find top and bottom layers with updrafts.
@@ -680,7 +690,7 @@
 !******************************************************************************
 !  Subroutine CONVTRAN applies the convective transport of trace species
 !  (assuming moist mixing ratio) using the ZHANG/MCFARLANE convection scheme. 
-!  (pjr, dsa, bmy, 6/26/03, 5/24/06)
+!  (pjr, dsa, bmy, 6/26/03, 6/27/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -707,24 +717,24 @@
 !
 !  Arguments as Output:
 !  ============================================================================
-!  (3 ) Q       (REAL*8 ) : Contains modified tracer mixing ratios [v/v]
+!  (3 ) Q       (REAL*8 )  : Contains modified tracer mixing ratios [v/v]
 !
 !  Important Local Variables:
 !  ============================================================================
-!  (1 ) CABV    (REAL*8 ) : Mixing ratio of constituent above
-!  (2 ) CBEL    (REAL*8 ) : Mix ratio of constituent beloqw
-!  (3 ) CDIFR   (REAL*8 ) : Normalized diff between cabv and cbel
-!  (4 ) CHAT    (REAL*8 ) : Mix ratio in env at interfaces
-!  (5 ) CMIX    (REAL*8 ) : Gathered tracer array 
-!  (6 ) COND    (REAL*8 ) : Mix ratio in downdraft at interfaces
-!  (7 ) CONU    (REAL*8 ) : Mix ratio in updraft at interfaces
-!  (8 ) DCONDT  (REAL*8 ) : Gathered tend array 
-!  (9 ) FISG    (REAL*8 ) : gathered insoluble fraction of tracer
-!  (10) KBM     (INTEGER) : Highest altitude index of cloud base [unitless]
-!  (11) KTM     (INTEGER) : Hightet altitude index of cloud top  [unitless]
-!  (12) MBSTH   (REAL*8 ) : Threshold for mass fluxes
-!  (13) SMALL   (REAL*8 ) : A small number
-!
+!  (1 ) CABV    (REAL*8 )  : Mixing ratio of constituent above
+!  (2 ) CBEL    (REAL*8 )  : Mix ratio of constituent beloqw
+!  (3 ) CDIFR   (REAL*8 )  : Normalized diff between cabv and cbel
+!  (4 ) CHAT    (REAL*8 )  : Mix ratio in env at interfaces
+!  (5 ) CMIX    (REAL*8 )  : Gathered tracer array 
+!  (6 ) COND    (REAL*8 )  : Mix ratio in downdraft at interfaces
+!  (7 ) CONU    (REAL*8 )  : Mix ratio in updraft at interfaces
+!  (8 ) DCONDT  (REAL*8 )  : Gathered tend array 
+!  (9 ) FISG    (REAL*8 )  : gathered insoluble fraction of tracer
+!  (10) KBM     (INTEGER)  : Highest altitude index of cloud base [unitless]
+!  (11) KTM     (INTEGER)  : Hightet altitude index of cloud top  [unitless]
+!  (12) MBSTH   (REAL*8 )  : Threshold for mass fluxes
+!  (13) SMALL   (REAL*8 )  : A small number
+! 
 !  NOTES:
 !  (1 ) Added references to "diag_mod.f", "grid_mod.f", and "CMN_DIAG.  
 !        Also added TCVV and INDEXSOL as arguments.  Now only save LD38
@@ -742,10 +752,13 @@
 !  (4 ) Split Hg2 IF statement into 2 IF statements so as to avoid seg faults.
 !        (bmy, 4/17/06)
 !  (5 ) Replace 1 with 1d0 in ND38 diagnostic (bmy, 5/24/06)
+!  (6 ) Updated for ND14 diagnostic (swu, bmy, 6/12/06)
+!  (7 ) Now treat "negative detrainment" as entrainment, which will better 
+!        conserve mixing ratio (swu, bmy, 6/27/06)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD,          ONLY : AD38 
+      USE DIAG_MOD,          ONLY : AD38, CONVFLUP 
       USE GRID_MOD,          ONLY : GET_AREA_M2
       USE LOGICAL_MOD,       ONLY : LDYNOCEAN
       USE OCEAN_MERCURY_MOD, ONLY : ADD_Hg2_WD
@@ -753,7 +766,7 @@
       USE TRACERID_MOD,      ONLY : IS_Hg2
 
 #     include "CMN_SIZE"          ! Size parameters
-#     include "CMN_DIAG"          ! ND38, LD38
+#     include "CMN_DIAG"          ! ND38, LD38, ND14, LD14
 
       ! Arguments
       INTEGER, INTENT(IN)        :: J
@@ -786,7 +799,8 @@
       REAL*8                     :: CABV,    CBEL,    CDIFR,   CD2
       REAL*8                     :: DENOM,   SMALL,   MBSTH,   MUPDUDP
       REAL*8                     :: MINC,    MAXC,    QN,      FLUXIN
-      REAL*8                     :: FLUXOUT, NETFLUX, AREA_M2, WET_Hg2     
+      REAL*8                     :: D_NSTEP, FLUXOUT, NETFLUX, AREA_M2
+      REAL*8                     :: WET_Hg2, PLUMEIN     
       REAL*8                     :: CHAT(IIPAR,LLPAR)     
       REAL*8                     :: COND(IIPAR,LLPAR)     
       REAL*8                     :: CMIX(IIPAR,LLPAR)     
@@ -799,13 +813,16 @@
       !=================================================================
 
       ! Is this a mercury simulation with dynamic ocean model?
-      IS_Hg = ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN )
+      IS_Hg   = ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN )
 
       ! A small number
-      SMALL = 1.d-36
+      SMALL   = 1.d-36
 
       ! Threshold below which we treat the mass fluxes as zero (in mb/s)
-      MBSTH = 1.d-15
+      MBSTH   = 1.d-15
+
+      ! Convert NSTEP to REAL*8 for use below
+      D_NSTEP = NSTEP
 
       !=================================================================
       ! Find the highest level top and bottom levels of convection
@@ -889,15 +906,33 @@
          DO I = IL1G, IL2G
             MUPDUDP = MU(I,KK) + DU(I,KK) * DP(I,KK)
 
-            IF ( MUPDUDP > MBSTH ) THEN
-               CONU(I,KK) = ( EU(I,KK)*CMIX(I,KK)*DP(I,KK) ) 
-     &                 /MUPDUDP  
-            ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 6/27/06:
+! Modifications to better conserve mixing ratio (swu, bmy, 6/27/06)
+!            IF ( MUPDUDP > MBSTH ) THEN
+!               CONU(I,KK) = ( EU(I,KK)*CMIX(I,KK)*DP(I,KK) ) 
+!     &                 /MUPDUDP  
+!            ENDIF
+!
+!            IF ( MD(I,K) < -MBSTH ) THEN
+!               COND(I,K) =  (-ED(I,KM1)*CMIX(I,KM1)*DP(I,KM1))
+!     &                      /MD(I,K) 
+!            ENDIF
+!-----------------------------------------------------------------------------
 
-            IF ( MD(I,K) < -MBSTH ) THEN
-               COND(I,K) =  (-ED(I,KM1)*CMIX(I,KM1)*DP(I,KM1))
-     &                      /MD(I,K) 
+            ! Layer LLPAR (ground layer) CLOUD does not have updraft
+            ! entering, so assume tracer mixing ratio is same as
+            ! the environment (swu, bmy, 6/27/06)
+            IF ( MUPDUDP > MBSTH ) THEN
+               CONU(I,KK) = CMIX(I,KK)
             ENDIF
+            
+            ! MD(I,2) is the downdraft entering from layer 2 from 
+            ! layer 1 (model top layer); assumed to have the same
+            ! mixing ratio as the environment (swu, bmy, 6/27/06)
+            IF ( MD(I,K) < -MBSTH ) THEN
+               COND(I,K) = CMIX(I,KM1)
+            ENDIF 
          ENDDO
 
          !==============================================================
@@ -906,12 +941,59 @@
          DO KK = LLPAR-1,1,-1
             KKP1 = MIN( LLPAR, KK+1 )
 
-            DO I = IL1G,IL2G
-               MUPDUDP = MU(I,KK) + DU(I,KK) * DP(I,KK)
-                IF ( MUPDUDP > MBSTH ) THEN
-                  CONU(I,KK) = (MU(I,KKP1)*CONU(I,KKP1) *FISG(I,KK)
-     &                         +EU(I,KK)*CMIX(I,KK)*DP(I,KK)
-     &                         )/MUPDUDP 
+!------------------------------------------------------------------------------
+! Prior to 6/27/06:
+! Modifications to better conserve mixing ratio (swu, bmy, 6/27/06)
+!            DO I = IL1G,IL2G
+!               MUPDUDP = MU(I,KK) + DU(I,KK) * DP(I,KK)
+!                IF ( MUPDUDP > MBSTH ) THEN
+!                  CONU(I,KK) = (MU(I,KKP1)*CONU(I,KKP1) *FISG(I,KK)
+!     &                         +EU(I7,KK)*CMIX(I,KK)*DP(I,KK)
+!     &                         )/MUPDUDP 
+!               ENDIF
+!            ENDDO
+!------------------------------------------------------------------------------
+
+            DO I = IL1G, IL2G
+
+               ! Test for "negative detrainment"
+               IF ( DU(I,KK) < 0d0 ) THEN
+
+                  !-----------------------------------------------------
+                  ! If negative DU (detrainment) happens, which implies 
+                  ! that the input metfields are not well constrained 
+                  ! and EU is inaccurate, we apply the correction by 
+                  ! treating the negative detrainment as extra 
+                  ! entrainment. (swu, bmy, 06/27/06)
+                  !-----------------------------------------------------
+                  
+                  ! Air mass flux going into layer KK of the CLOUD
+                  PLUMEIN = MU(I,KKP1) + ( EU(I,KK) * DP(I,KK) )
+     &                                 - ( DU(I,KK) * DP(I,KK) )
+
+                  ! Compute concentration
+                  IF ( PLUMEIN > MBSTH ) THEN
+                     CONU(I,KK) = ( MU(I,KKP1)*CONU(I,KKP1)*FISG(I,KK)
+     &                          +   EU(I,KK)  *CMIX(I,KK)  *DP(I,KK)
+     &                          -   DU(I,KK)  *CMIX(I,KK)  *DP(I,KK)  )
+     &                          /   PLUMEIN
+                  ENDIF             
+
+               ELSE    
+
+                  !-----------------------------------------------------
+                  ! Normal condition; so just mix up EU and MU   
+                  !-----------------------------------------------------
+
+                  ! Air mass flux going into layer KK of the CLOUD
+                  PLUMEIN = MU(I,KKP1) + ( EU(I,KK) * DP(I,KK) )
+
+                  ! Compute concentration
+                  IF ( PLUMEIN > MBSTH ) THEN
+                     CONU(I,KK) = ( MU(I,KKP1)*CONU(I,KKP1)*FISG(I,KK)
+     &                          +   EU(I,KK)  *CMIX(I,KK)  *DP(I,KK)  )
+     &                          / PLUMEIN
+                  ENDIF
                ENDIF
             ENDDO
          ENDDO
@@ -974,8 +1056,105 @@
 !------------------------------------------------------------------------------
 
                !========================================================
+               ! ND14 Diagnostic: net upward flux of tracer [kg/s] in 
+               ! cloud convection ("CV-FLX-$") (swu, bmy, 6/12/06) 
+               ! 
+               ! The ND14 diagnostic consists of 4 terms (T1..T4):
+               ! -------------------------------------------------------
+               ! 
+               ! T1: + Mass flux going upward from level K --> K-1 
+               !       (notice that the vertical levels are flipped)
+               !
+               ! T2: - Mass flux going downward from level K-1 --> K
+               !       due to large scale subsidence
+               !
+               ! T3: - Mass flux going downward from level K-1 --> K 
+               !       associated with the downdraft plume
+               !
+               ! T4: + Mass flux going up from level K --> K-1 due 
+               !       to enviromental compensation for the downdraft. 
+               !
+               ! These terms are computed as follows:
+               ! -------------------------------------------------------
+               !
+               ! AIRFLUX:  MU(I,K) * AREA_M2 * 100 / GRAV  
+               !            = air mass (upward) flux in kg/s
+               !
+               ! T1:      +AIRFLUX * CONU(I,K)   * TCVV(M) 
+               !            = tracer mass upward flux [kg/s]
+               !
+               ! T2:      -AIRFLUX * CMIX(I,K-1) * TCVV(M) 
+               !            = subsidence of tracer [kg/s]
+               !
+               ! T3:      -AIRFLUX * CMIX(I,K)   * TCVV(M)
+               !            = downdraft flux of tracer [kg/s]
+               !
+               ! T4:      +AIRFLUX * COND(I,K-1) * TCVV(M)
+               !            = compensatory upward tracer flux [kg/s] 
+               !
+               ! Where:
+               !
+               ! MU       = Grid box surface area       [hPa/s   ] 
+               ! AREA_M2  = Mixing ratio in updraft     [m2      ]
+               ! CONU     = Mixing ratio in updraft     [v/v     ]
+               ! COND     = Mixing ratio in downdraft   [v/v     ]
+               ! CMIX     = Gathered tracer array       [v/v     ]
+               ! GRAV     = Acceleration due to gravity [m/s2    ]
+               ! TCVV     = Ratio: MW air / MW tracer   [unitless]
+               ! D_NSTEP  = # of convection timesteps   [unitless]
+               !
+               ! Dividing by the number of time steps within each 
+               ! convection step is simply accounting for the scale 
+               ! factors (SCALECONV) in diag3.f.
+               !========================================================
+
+               ! Only save ND14 if it's turned on
+               IF ( ND14 > 0 ) THEN 
+
+                  ! GEOS-Chem lon, lat, alt indices
+                  II = IDEEP(I)
+                  JJ = J
+                  LL = LLPAR - K + 1
+
+                  ! Grid box surface area [m]
+                  AREA_M2 = GET_AREA_M2( JJ ) 
+
+                  ! Only save from levels 1..LD14 
+                  IF ( LL < LD14 ) THEN
+
+                     ! Net upward convective flux [kg/s]
+                     CONVFLUP(II,JJ,LL,M) = CONVFLUP(II,JJ,LL,M)  
+
+                        ! Terms T1 + T2
+     &                + MU(I,K)   * ( AREA_M2   * 100d0               )
+     &                            * ( CONU(I,K) - CMIX(I,KM1)         )
+     &                            / ( GRAV      * TCVV(M)   * D_NSTEP )
+
+                        ! Terms T3 + T4
+     &                - MD(I,KM1) * ( AREA_M2   * 100d0               ) 
+     &                            * ( CMIX(I,K) - COND(I,KM1)         ) 
+     &                            / ( GRAV      * TCVV(M)   * D_NSTEP )
+                  ENDIF
+               ENDIF 
+
+               !========================================================
                ! ND38 Diagnostic: loss of soluble tracer [kg/s] to
-               ! convective rainout ("WETDCV-$") (swu, bmy, 12/17/03) 
+               ! convective rainout ("WETDCV-$") (swu, bmy, 12/17/03)
+               !
+               ! The loss of soluble tracer is given by (cf ND14):
+               !
+               !   MU(I,K+1) * AREA_M2 * 100 / GRAV  
+               !      = Air mass (upward) flux from level K+1 -> K
+               !        (Note that vertical levels are reversed)
+               !
+               ! * CONU(I,K+1) * TCVV(M) * ( 1 - FISG(I,K ) 
+               !      = Tracer mass upward from level K+1 -> K [kg/s]
+               !
+               ! Where:
+               !
+               ! CONU(I,K+1)   = Tracer in mass flux from K+1 -> K
+               ! 1 - FISG(I,K) = Fraction of tracer lost in convective
+               !                  updraft going from level K+1 -> K
                !========================================================
 
                ! Soluble tracer index
@@ -1000,7 +1179,12 @@
                      AD38(II,JJ,LL,NN) = AD38(II,JJ,LL,NN) +
      &                    MU(I,KP1)   * AREA_M2     * 100d0           / 
      &                    GRAV        * CONU(I,KP1) * (1d0-FISG(I,K)) / 
-     &                    TCVV(M)     / FLOAT(NSTEP)
+!--------------------------------------------------------------------------
+! Prior to 6/12/06:
+! Now use D_NSTEP as double precision (swu, bmy, 6/12/06)
+!     &                    TCVV(M)     / FLOAT(NSTEP)
+!--------------------------------------------------------------------------
+     &                    TCVV(M)     / D_NSTEP
                   ENDIF
                ENDIF
 

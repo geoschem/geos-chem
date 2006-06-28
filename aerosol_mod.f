@@ -1,4 +1,4 @@
-! $Id: aerosol_mod.f,v 1.8 2006/05/26 17:45:14 bmy Exp $
+! $Id: aerosol_mod.f,v 1.9 2006/06/28 17:26:46 bmy Exp $
       MODULE AEROSOL_MOD
 !
 !******************************************************************************
@@ -370,11 +370,6 @@
                OCPI(I,J,L) = ( STT(I,J,L,IDTOCPI) * OCF 
      &                     +   STT(I,J,L,IDTSOA1)
      &                     +   STT(I,J,L,IDTSOA2)
-!-----------------------------------------------------------------------------
-! Prior to 5/18/05:
-! Also add contribution from SOA4 (dkh, bmy, 5/18/06)
-!     &                     +   STT(I,J,L,IDTSOA3)  ) / AIRVOL(I,J,L)
-!-----------------------------------------------------------------------------
      &                     +   STT(I,J,L,IDTSOA3)
      &                     +   STT(I,J,L,IDTSOA4) ) / AIRVOL(I,J,L)
  

@@ -1,4 +1,4 @@
-! $Id: soilnoxems.f,v 1.4 2006/06/06 14:26:08 bmy Exp $
+! $Id: soilnoxems.f,v 1.5 2006/06/28 17:26:53 bmy Exp $
       SUBROUTINE SOILNOXEMS( SUNCOS )
 !
 !******************************************************************************
@@ -64,10 +64,6 @@
       IMPLICIT NONE
  
 #     include "CMN_SIZE"             ! Size parameters
-!---------------------------------------------------------------------------
-! Prior to 5/30/06:
-!#     include "CMN"                  ! STT, many other variables
-!---------------------------------------------------------------------------
 #     include "CMN_DIAG"             ! Diagnostic switches & arrays
 #     include "CMN_NOX"              ! GEMISNOX2
 #     include "CMN_DEP"              ! CANOPYNOX

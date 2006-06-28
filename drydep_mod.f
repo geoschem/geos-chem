@@ -1,9 +1,9 @@
-! $Id: drydep_mod.f,v 1.28 2006/06/06 14:26:00 bmy Exp $
+! $Id: drydep_mod.f,v 1.29 2006/06/28 17:26:49 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
 !  Module DRYDEP_MOD contains variables and routines for the GEOS-CHEM dry
-!  deposition scheme. (bmy, 1/27/03, 5/24/06)
+!  deposition scheme. (bmy, 1/27/03, 6/23/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -146,6 +146,7 @@
 !  (20) Bug fix in INIT_DRYDEP (bmy, 4/17/06)
 !  (21) Now bundle function DIFFG into "drydep_mod.f".  Also updated for SOG4
 !        and SOA4 tracers.  Bug fix in INIT_DRYDEP. (dkh, bmy, 5/24/06)
+!  (22) Fix typo in INIT_DRYDEP (dkh, bmy, 6/23/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -2667,7 +2668,7 @@ C** Load array DVEL
 !
 !******************************************************************************
 !  Subroutine INIT_DRYDEP initializes certain variables for the GEOS-CHEM
-!  dry deposition subroutines. (bmy, 11/19/02, 5/24/06)
+!  dry deposition subroutines. (bmy, 11/19/02, 6/23/06)
 !
 !  NOTES:
 !  (1 ) Added N2O5 as a drydep tracer, w/ the same drydep velocity as
@@ -2690,6 +2691,7 @@ C** Load array DVEL
 !        ID_HgP to avoid seg faults. (eck, cdh, bmy, 4/17/06)
 !  (11) Now also initialize SOG4, SOA4 drydep species.  Bug fix: Remove 2nd
 !        "IF ( IS_Hg ) THEN" statement. (dkh, bmy, 5/24/06)
+!  (12) Bug fix: fix TYPO in IF block for IDTSOA4 (dkh, bmy, 6/23/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3216,7 +3218,12 @@ C** Load array DVEL
          ! SOA4
          ELSE IF ( N == IDTSOA4 ) THEN
             NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTSOA3
+            !------------------------------------------------
+            ! Prior to 6/23/06:
+            ! Fix typo, should be IDTSOA4 (dkh, bmy, 6/23/06)
+            !NTRAIND(NUMDEP) = IDTSOA3
+            !------------------------------------------------
+            NTRAIND(NUMDEP) = IDTSOA4
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'SOA4'
             HSTAR(NUMDEP)   = 0d0

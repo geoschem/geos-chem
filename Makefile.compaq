@@ -1,6 +1,7 @@
-# $Id: Makefile.compaq,v 1.38 2006/06/06 14:25:53 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for COMPAQ/Alpha (bmy, Wed May 31 10:19:34 2006)
+# $Id: Makefile.compaq,v 1.39 2006/06/28 17:26:43 bmy Exp $
+#
+# GEOS-Chem Makefile for COMPAQ/Alpha (bmy, Mon Jun 26 16:00:01 2006)
 #
 # NOTE: For GEOS-CHEM v5-07-08, we must compile everything -fast except 
 #       "calcrate.f", which must be compiled -O2.  (hamid, bmy, 10/10/03)
@@ -157,6 +158,7 @@ diag_oh_mod.o             \
 diag_pl_mod.o             \
 ocean_mercury_mod.o       \
 drydep_mod.o              \
+bravo_mod.o               \
 emep_mod.o                \
 epa_nei_mod.o             \
 geia_mod.o                \
@@ -264,9 +266,10 @@ biofuel_mod.o              : biofuel_mod.f              CMN_DIAG CMN_SIZE define
 biomass_mod.o              : biomass_mod.f              CMN_DIAG CMN_SIZE define.h 
 boxvl.o                    : boxvl.f                    
 bpch2_mod.o                : bpch2_mod.f                CMN_SIZE define.h define.h 
+bravo_mod.o                : bravo_mod.f                CMN_SIZE define.h 
 c2h6_mod.o                 : c2h6_mod.f                 CMN CMN_DIAG CMN_O3 CMN_SIZE define.h 
 calcrate.o                 : calcrate.f                 CMN CMN_DIAG CMN_SIZE define.h comode.h 
-carbon_mod.o               : carbon_mod.f               CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h 
+carbon_mod.o               : carbon_mod.f               CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h comode.h 
 ch3i_mod.o                 : ch3i_mod.f                 CMN_DEP CMN_DIAG CMN_SIZE define.h comode.h 
 charpak_mod.o              : charpak_mod.f              
 chemdr.o                   : chemdr.f                   CMN CMN_DEP CMN_DIAG CMN_NOX CMN_O3 CMN_SIZE define.h comode.h 
@@ -429,7 +432,7 @@ xtra_read_mod.o            : xtra_read_mod.f            CMN_DIAG CMN_SIZE define
 #  Other Makefile Commands
 #=============================================================================
 clean:
-	rm -f *.o *.mod geos geos_sj geosco geoscof
+	rm -rf *.o *.mod geos rii_files
 
 .SUFFIXES: .f .F .f90 .F90
 .f.o:                   ; $(F90) $(Fopt) -c $*.f

@@ -1,115 +1,61 @@
-REVISIONS (v7-04-05)  
-bmy, 02 Jun 2006
+REVISIONS (v7-04-06)  
+bmy, 27 Jun 2006
 
 
-New in v7-04-05:
+New in v7-04-06:
 -------------------------------------------------------------------------------
 
-get_doh			-- Returns ISOP that is lost to rxn w/ OH 
-("carbon_mod.f")
-
-gfed2_scale_future	-- Applies IPCC future emission scale factors to 
-("gfed2_biomass_mod.f")	   GFED2 biomass burning
-
-future_emissions_mod.f	-- Module containing arrays and routines to apply
-			   the IPCC future emissions scale factors (A1 & B1
-		  	   for years 2030 and 2050).  NOTE: This is only 
-			   implemented for GCAP at the present time.
-
-read_future_menu	-- Subroutine READ_FUTURE_MENU reads the FUTURE MENU 
-("input_mod.f")		   section of the GEOS-Chem input file; this defines 
-			   IPCC future emissions options.
-
-scale_future		-- Applies IPCC future emission scale factors to 
-("gc_biomass_mod.f")	   the default (Duncan et al) GEOS-Chem biomass
-			   burning emissions
-
-scale_future		-- Applies IPCC future emission scale factors to 
-("biofuel_mod.f")	   the GEOS-Chem biofuel emissions
+bravo_mod.f		-- Module for computing BRAVO Mexican anthro emissions
 
 
 
-Removed in v7-04-05:
+Removed in v7-04-06:
 -------------------------------------------------------------------------------
 
-get_global_ch4		-- Split off from module "global_ch4_mod.f"
-("global_ch4_mod.f")	   into a standalone file
 
 
 
-Changed from v7-04-04:
+Changed from v7-04-05:
 -------------------------------------------------------------------------------
 
-anthro_carb_tbond	-- Now compute future emissions of BC and OC 
-("carbon_mod.f")	   if necessary	
+arconvtran		-- Now treat "negative detrainment" as entrainment, 
+("fvdas_convect_mod.f")	   which will better conserve mixing ratio
 
-anthro_carb_cooke	-- Now compute future emissions of BC and OC 
-("carbon_mod.f")	   if necessary	
-       	
-anthroems.f		-- Modified for IPCC future emissions scale factors
+convtran		-- Updated for ND14 diagnostic
+("fvdas_convect_mod.f") -- Now treat "negative detrainment" as entrainment, 
+			   which will better conserve mixing ratio
 
-biofuel_burn		-- Now references LFUTURE from "logical_mod.f"
-("biofuel_mod.f")	-- Now call private routine SCALE_FUTURE to compute 
-			   future biomass emissions, if necessary.
+do_emissions		-- Now references EMISS_BRAVO from "bravo_mod.f"
+("emissions_mod.f")
 
-biomass_carb_geos	-- Now compute future emissions of BC & OC 
-("carbon_mod.f")	   if necessary
+do_global_transport	-- Now do flipping of arrays in call to TPCORE_FVDAS
+("transport_mod.f")
 
-biomass_carb_tbond	-- Now compute future emissions of BC & OC 
-("carbon_mod.f")	   if necessary
+emfossil.f		-- Now apply BRAVO Mexican emissions if necessary
 
-chemcarbon		-- Now updated for SOA production from ISOP
-("carbon_mod.f")
+init_drydep		-- Bug fix: fix TYPO in IF block for IDTSOA4
+("drydep_mod.f")
 
-chemdr.f		-- Remove reference to "global_ch4_mod.f"
-			-- Add error check for LISOPOH when using the 
-			   online SOA tracers
+logical_mod.f		-- Added LBRAVO
 
-chem_nvoc		-- Updated for SOA from isoprene.  
-("carbon_mod.f")	-- Now calls GET_DOH
-
-chem_tagged_co		-- Remove reference to "global_ch4_mod.f"
-("tagged_co_mod.f")
-
-comode.h		-- Added ILISOPOH to track oxidation of ISOP by OH
-
-gasconc.f		-- Zero out isoprene oxidation counter species
-
-get_global_ch4.f	-- Split off from module "global_ch4_mod.f"
-			-- Updated for IPCC future emissions scenarios
-
-init_input		-- Now also intitialize LFUTURE
+read_emissions_menu	-- Now read LBRAVO for BRAVO Mexican emissions
 ("input_mod.f")
 
-logical_mod.f		-- Added LFUTURE switch
+srcso2			-- Now references GET_BRAVO_ANTHRO and GET_BRAVO_MASK 
+("sulfate_mod.f")          from "bravo_mod.f" for BRAVO Mexican emissions
 
-gfed2_compute_biomass	-- Now references LFUTURE from "logical_mod.f"
-("gfed2_biomass_mod.f")	-- Now call private routine SCALE_FUTURE to compute 
-			   future biomass emissions, if necessary.
 
-read_anthro_nh3		-- Now compute future emissions, if necessary
-("sulfate_mod.f")
 
-read_anthro_sox		-- Now computes future SOx emissions
-("sulfate_mod.f")
+Updates to Files in the Run Directory:
+-------------------------------------------------------------------------------
 
-read_biomass		-- Now refrerences LFUTURE from "logical_mod.f"
-("gc_biomass_mod.f")	-- Also now calls private routine SCALE_FUTURE to 
-			   compute the future biomass emissions.
+globchem.dat		-- Now set the rxn HO2 --> 0.5 H2O2 (uptake of HO2
+			   on aerosols to be inactive in the SMVGEAR mechanism.
+			   Bastien Sauvage says there is better agreement in 
+			   the tropics this way.
+			-- From v7-04-05: added LISOPOH to get the amount of
+			   ISOP that reacts with OH.
 
-read_biomass_nh3	-- Now compute future NH3bb and NH3bf emissions,
-("sulfate_mod.f")          if necessary
-
-read_biomass_so2	-- Now computes future SOx emissions
-("sulfate_mod.f")
-
-readchem.f		-- Now look up ILISOPOH, the index of ISOP lost to OH
-
-soa_chemistry		-- Now modified for SOG4, SOA4 -- products of 
-("carbon_mod.f")	   oxidation by isoprene
-
-soilnoxems.f		-- Now references LFUTURE from "logical_mod.f" and 
-			   GET_FUTURE_SCALE_NOxft from "future_emissions_mod.f"
-			-- Now compute future emissions of NOx from soils
-			   if necessary
-
+input.geos		-- Added "Use BRAVO Emissions?" line for logical
+			   switch LBRAVO.  This turns BRAVO Mexican emissions
+			   on/off.

@@ -1,5 +1,12 @@
-! $Id: main.f,v 1.36 2006/06/06 14:26:07 bmy Exp $
+! $Id: main.f,v 1.37 2006/06/28 17:26:52 bmy Exp $
 ! $Log: main.f,v $
+! Revision 1.37  2006/06/28 17:26:52  bmy
+! GEOS-Chem v7-04-06, includes the following modifications:
+! - Now add BRAVO emissions (NOx, CO, SO2) over N. Mexico
+! - Turn off HO2 uptake by aerosols in SMVGEAR mechanism
+! - Bug fix: GEOS-4 convection now conserves mixing ratio
+! - Other minor bug fixes & improvements
+!
 ! Revision 1.36  2006/06/06 14:26:07  bmy
 ! GEOS-Chem v7-04-05, includes the following modifications:
 ! - Now gets ISOP that has reacted w/ OH from SMVGEAR (cf. D. Henze)
@@ -28,116 +35,6 @@
 ! - Standardized several bug fixes implemented in v7-03-06 patch
 ! - Bug fix: Now call MAKE_RH from "main.f" to avoid problems in drydep
 ! - Removed obsolete code
-!
-! Revision 1.31  2006/02/03 17:00:27  bmy
-! GEOS-CHEM v7-03-06, includes the following modifications:
-! - Bug fix software patch applied to fix minor typos & other errors
-! - Updated Makefiles to remove typos
-! - Re-added code ("gcap_read_mod.f") to read GCAP PHIS, LWI_GISS fields
-!
-! Revision 1.30  2005/11/03 17:50:33  bmy
-! GEOS-CHEM v7-03-06, includes the following modifications:
-! - Added code to read EMEP European anthropogenic emissions
-! - Added code modifications for Intel v9 "ifort" compiler
-! - Bug fixes for AOD output in planeflight & timeseries diagnostics
-! - Turn off scavenging in shallow convection for GCAP simulation
-! - Remove obsolete common block variables
-!
-! Revision 1.29  2005/10/27 14:00:00  bmy
-! GEOS-CHEM v7-03-05, includes the following modifications:
-! - Added code to read MEGAN biogenic emissions
-! - Added code to read AVHRR LAI for MEGAN
-! - Added code to read GEOS-3 "XTRA" met fields (PARDF, PARDR, SNOW)
-! - Added code to regrid data from GEOS 1x1 grid to current grid
-! - Snow depth is now used in GEOS-3 for dust emissions
-! - Removed obsolete common blocks
-! - Now reference XNUMOL, XNUMOLAIR from "tracer_mod.f"
-! - Now save column AOD's and AOD's below plane in "planeflight_mod.f"
-!
-! Revision 1.28  2005/10/20 14:03:34  bmy
-! GEOS-CHEM v7-03-04, includes the following modifications:
-! - Added LINUX_IFORT switch for Intel v8/v9 compiler
-! - Make sure all module USE commands are USE, ONLY (for ESMF)
-! - Eliminated obsolete references to include files and modules
-! - Bug fix for COMPAQ; declare IRMA, IRMB threadprivate in "comode.h"
-!
-! Revision 1.27  2005/09/02 15:17:18  bmy
-! GEOS-CHEM v7-03-03, includes the following modifications:
-! - Further modifications for GCAP
-! - Land/water/ice boxes now flagged correctly
-! - Rescaling of lightning NOx, suppress lightning over polar regions
-! - Suppress DMS, sea salt emissions where ice is on the surface
-! - Now use Nightingale et al 2000b formulation for sea-air exchange
-! - Contains CO2 simulation (further work may be needed)
-! - Offline aerosol simulation now reads from updated oxidant, etc files
-! - Removed references to common-block variables
-! - Removed obsolete code
-!
-! Revision 1.26  2005/06/27 19:41:47  bmy
-! GEOS-CHEM v7-03-02, includes the following modifications:
-! - Added code for GCAP and GEOS-5 met fields
-! - Added code for tagged HCN & CH3CN simulation
-! - Removed obsolete routines (SLOW-J and CO-OH parameterization)
-!
-! Revision 1.23  2005/05/09 14:33:59  bmy
-! GEOS-CHEM v7-03-01, includes the following modifications:
-! - Now contains ISORROPIA code for aerosol thermodynamic equilibrium
-! - Now added two extra tracers (SO4 and NIT in sea-salt aerosols)
-! - Now allows for hygroscopic growth of aerosols (not dust) in dry deposition
-! - Now writes customized "diaginfo.dat" and "tracerinfo.dat" for GAMAP
-! - ND48, ND49, ND50, ND51 timeseries diagnostics now save grid box height
-! - GEOS-3/GEOS-4 3-D cloud fraction has been added to ND21 diagnostic
-!
-! Revision 1.22  2005/03/29 15:52:43  bmy
-! GEOS-CHEM v7-02-04, includes the following modifications:
-! - Centralized PBL mixing routines into "pbl_mix_mod.f"
-! - GEOS-4 LNOx and ISOP are now scaled to the same values as GEOS-3
-! - Updated mercury simulation according to latest reduction constant
-! - Ocean sinking term of` mercury is now 2.03E6 kg/yr (cf. S. Strode)
-! - Parallelized dry deposition routine DEPVEL (in "drydep_mod.f")
-! - Now uses analytic function for sat vap pressure of water (E_ICE)
-! - ND40 planeflight diag now looks for a new flight track file each day
-! - Now looks for files on disk in a platform-independent way
-! - Fixed minor bugs; updated comments
-!
-! Revision 1.21  2005/02/10 19:53:26  bmy
-! GEOS-CHEM v7-02-03, includes the following modifications:
-! - Added online ocean fluxes of Hg0 in "ocean_mercury_mod.f"
-! - Updated "mercury_mod.f" with new drydep & reduction formulations
-! - Added phase transition of crystalline sulfur tracers
-! - Bug fix: offline AOD diagnostics give identical results as online AOD's
-! - Now can use interannual or seasonal biomass for SO2, NH4, BCPO, OCPO
-! - Fixed minor bugs and removed obsolete code
-!
-! Revision 1.20  2004/12/16 16:52:45  bmy
-! GEOS-CHEM v7-02-02, includes the following modifications:
-! - Now uses leaf area indices derived from AVHRR data (cf May Fu)
-! - Now can perform offline tagged Hg simulation (cf Noelle Eckley)
-! - Fixed minor bugs and removed obsolete code
-!
-! Revision 1.19  2004/12/02 21:48:38  bmy
-! GEOS-CHEM v7-02-01, includes the following modifications:
-! - Can now toggle EPA/NEI99 emissions over the USA on/off
-! - Now overwrite N.Am. with Cooke/RJP emissions in "carbon_mod.f"
-! - Now read carbon aerosol emissions from carbon_200411 subdirectory
-! - Added C-preprocessor switches for 1 x 1 nested grids in "define.h"
-! - Added C-preprocessor switch for GEOS-4 1 x 1.25 grid in "define.h"
-! - Several other minor bug fixes
-!
-! Revision 1.18  2004/10/15 20:16:41  bmy
-! GEOS-CHEM v7-01-01, includes the following modifications:
-! - Brand new user GEOS-CHEM user interface with new "input.geos" file
-! - ND48, ND49, ND50, ND51 timeseries diagnostics rewritten for consistency
-! - Bundled code for Mean OH diagnostic into "diag_oh_mod.f"
-! - Bundled code for ND65, ND20 diagnostics into "diag_pl_mod.f"
-! - Aerosol Opt Depths for FAST-J, Hetchem are now computed in "aerosol_mod.f"
-! - Now use inquiry functions (in "tracer_mod.f") to test for simulation type
-! - Dust & Aerosol Opt Depths now scaled to 400 nm in ND21 diag & timeseries
-! - Rewrote parallel loops to facilitate parallelization on Altix and Altix-2
-! - All GEOS-CHEM logical switches are now contained w/in "logical_mod.f"
-! - All GEOS-CHEM directories are now contained w/in "directory_mod.f"
-! - All Unix zipping commands are now bundled into "tracer_mod.f"
-! - Deleted lots of obsolete code; updated comments
 !
       PROGRAM GEOS_CHEM
 ! 

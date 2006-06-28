@@ -1,6 +1,7 @@
-# $Id: Makefile.sparc,v 1.37 2006/06/06 14:25:55 bmy Exp $
 #=============================================================================
-# GEOS-CHEM Makefile for SUN/Sparc (bmy, Wed May 31 10:19:47 2006)
+# $Id: Makefile.sparc,v 1.38 2006/06/28 17:26:45 bmy Exp $
+#
+# GEOS-Chem Makefile for SUN/Sparc (bmy, Mon Jun 26 16:00:14 2006)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -150,6 +151,7 @@ diag_oh_mod.o             \
 diag_pl_mod.o             \
 ocean_mercury_mod.o       \
 drydep_mod.o              \
+bravo_mod.o               \
 emep_mod.o                \
 epa_nei_mod.o             \
 geia_mod.o                \
@@ -257,9 +259,10 @@ biofuel_mod.o              : biofuel_mod.F              CMN_DIAG CMN_SIZE define
 biomass_mod.o              : biomass_mod.F              CMN_DIAG CMN_SIZE define.h 
 boxvl.o                    : boxvl.F                    
 bpch2_mod.o                : bpch2_mod.F                CMN_SIZE define.h define.h 
+bravo_mod.o                : bravo_mod.F                CMN_SIZE define.h 
 c2h6_mod.o                 : c2h6_mod.F                 CMN CMN_DIAG CMN_O3 CMN_SIZE define.h 
 calcrate.o                 : calcrate.F                 CMN CMN_DIAG CMN_SIZE define.h comode.h 
-carbon_mod.o               : carbon_mod.F               CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h 
+carbon_mod.o               : carbon_mod.F               CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h comode.h 
 ch3i_mod.o                 : ch3i_mod.F                 CMN_DEP CMN_DIAG CMN_SIZE define.h comode.h 
 charpak_mod.o              : charpak_mod.F              
 chemdr.o                   : chemdr.F                   CMN CMN_DEP CMN_DIAG CMN_NOX CMN_O3 CMN_SIZE define.h comode.h 

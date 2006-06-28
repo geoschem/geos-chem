@@ -1,4 +1,4 @@
-! $Id: tagged_co_mod.f,v 1.14 2006/06/06 14:26:10 bmy Exp $
+! $Id: tagged_co_mod.f,v 1.15 2006/06/28 17:26:55 bmy Exp $
       MODULE TAGGED_CO_MOD
 !
 !******************************************************************************
@@ -802,10 +802,6 @@
       USE DIAG_PL_MOD,    ONLY : AD65
       USE ERROR_MOD,      ONLY : CHECK_VALUE
       USE GLOBAL_OH_MOD,  ONLY : GET_GLOBAL_OH,   OH
-      !--------------------------------------------------------------
-      ! Prior to 5/31/06:
-      !USE GLOBAL_CH4_MOD, ONLY : GET_GLOBAL_CH4
-      !--------------------------------------------------------------
       USE GLOBAL_NOX_MOD, ONLY : GET_GLOBAL_NOX,  BNOX
       USE GRID_MOD,       ONLY : GET_YMID
       USE LOGICAL_MOD,    ONLY : LSPLIT

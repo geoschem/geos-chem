@@ -1,6 +1,7 @@
-# $Id: Makefile.ibm,v 1.36 2006/06/06 14:25:53 bmy Exp $
 #=============================================================================
-# Makefile for GEOS-CHEM on IBM AIX: (gcc, Mon Feb 03 11:56:55 2003)
+# $Id: Makefile.ibm,v 1.37 2006/06/28 17:26:43 bmy Exp $
+#
+# Makefile for GEOS-Chem on IBM AIX: (gcc, Mon Feb 03 11:56:55 2003)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -155,6 +156,7 @@ diag_oh_mod.o             \
 diag_pl_mod.o             \
 ocean_mercury_mod.o       \
 drydep_mod.o              \
+bravo_mod.o               \
 emep_mod.o                \
 epa_nei_mod.o             \
 geia_mod.o                \
@@ -263,9 +265,10 @@ biofuel_mod.o              : biofuel_mod.f              CMN_DIAG CMN_SIZE define
 biomass_mod.o              : biomass_mod.f              CMN_DIAG CMN_SIZE define.h 
 boxvl.o                    : boxvl.f                    
 bpch2_mod.o                : bpch2_mod.f                CMN_SIZE define.h define.h 
+bravo_mod.o                : bravo_mod.f                CMN_SIZE define.h 
 c2h6_mod.o                 : c2h6_mod.f                 CMN CMN_DIAG CMN_O3 CMN_SIZE define.h 
 calcrate.o                 : calcrate.f                 CMN CMN_DIAG CMN_SIZE define.h comode.h 
-carbon_mod.o               : carbon_mod.f               CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h 
+carbon_mod.o               : carbon_mod.f               CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h comode.h 
 ch3i_mod.o                 : ch3i_mod.f                 CMN_DEP CMN_DIAG CMN_SIZE define.h comode.h 
 charpak_mod.o              : charpak_mod.f              
 chemdr.o                   : chemdr.f                   CMN CMN_DEP CMN_DIAG CMN_NOX CMN_O3 CMN_SIZE define.h comode.h 
