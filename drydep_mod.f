@@ -1,4 +1,4 @@
-! $Id: drydep_mod.f,v 1.29 2006/06/28 17:26:49 bmy Exp $
+! $Id: drydep_mod.f,v 1.30 2006/07/14 18:36:45 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
@@ -1067,7 +1067,11 @@ C***********************************************************************
       REAL*8  XMWH2O,DAIR,TEMPK,TEMPC
       INTEGER IOLSON,II,IW
       INTEGER K,IJLOOP,LDT
-      REAL*8  RCLX,RIXX,BIOFIT,DIFFG
+      !----------------------------------
+      ! Prior to 7/10/06:
+      !REAL*8  RCLX,RIXX,BIOFIT,DIFFG
+      !----------------------------------
+      REAL*8  RCLX,RIXX,BIOFIT
       REAL*8  PRESS
       DATA PRESS /1.5D5/
 C
@@ -3218,11 +3222,6 @@ C** Load array DVEL
          ! SOA4
          ELSE IF ( N == IDTSOA4 ) THEN
             NUMDEP          = NUMDEP + 1
-            !------------------------------------------------
-            ! Prior to 6/23/06:
-            ! Fix typo, should be IDTSOA4 (dkh, bmy, 6/23/06)
-            !NTRAIND(NUMDEP) = IDTSOA3
-            !------------------------------------------------
             NTRAIND(NUMDEP) = IDTSOA4
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'SOA4'

@@ -1,4 +1,4 @@
-! $Id: wetscav_mod.f,v 1.23 2006/06/06 14:26:11 bmy Exp $
+! $Id: wetscav_mod.f,v 1.24 2006/07/14 18:36:53 bmy Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
@@ -3083,6 +3083,8 @@
                         ! DSTT.  Also add the amount of tracer coming down
                         ! from grid box (I,J,L+1) that does NOT re-evaporate.
                         DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
+                        ! Maybe it should be this ????
+                        !DSTT(NN,L,I,J) = LOST + WETLOSS
 
                         ! ND18 diagnostic...divide washout fraction by F
                         IF ( ND18 > 0 .and. L <= LD18 ) THEN

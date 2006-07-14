@@ -1,10 +1,10 @@
-! $Id: partition.f,v 1.6 2005/10/20 14:03:36 bmy Exp $
+! $Id: partition.f,v 1.7 2006/07/14 18:36:50 bmy Exp $
       SUBROUTINE PARTITION( NTRACER, STT, XNUMOL ) 
 !
 !******************************************************************************
 !  Subroutine PARTITION separates GEOS-CHEM tracers into its individual
 !  constituent chemistry species before each SMVGEAR chemistry timestep.
-!  (bdf, bmy, 4/1/03, 10/3/05)
+!  (bdf, bmy, 4/1/03, 7/14/06)
 ! 
 !  Arguments as Input:
 !  ============================================================================
@@ -22,6 +22,7 @@
 !  (2 ) Add OpenMP parallelization commands (bmy, 8/1/03)
 !  (3 ) Now dimension args XNUMOL, STT w/ NTRACER and not NNPAR (bmy, 7/20/04)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (5 ) Resize CSAVE to save local memory, for SUN compiler. (bmy, 7/14/06)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -47,7 +48,12 @@
       INTEGER                :: CSAVEID_JJ(IGAS)
       INTEGER                :: CS, IDNUM, AS  
       REAL*8                 :: CONCTMP, CONCNOX, SUM, SUM1
-      REAL*8                 :: CSAVE( ITLOOP, IGAS )
+      !---------------------------------------------------------------------
+      ! Prior to 7/14/06:
+      ! Resize CSAVE to save local memory, for SUN compiler (bmy, 7/14/06)
+      !REAL*8                 :: CSAVE( ITLOOP, IGAS )
+      !---------------------------------------------------------------------
+      REAL*8                 :: CSAVE( ITLOOP, NTRACER )
       
       !=================================================================
       ! PARTITION begins here!

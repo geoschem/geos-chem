@@ -1,9 +1,9 @@
-! $Id: cleanup.f,v 1.16 2006/05/15 17:52:45 bmy Exp $
+! $Id: cleanup.f,v 1.17 2006/07/14 18:36:45 bmy Exp $
       SUBROUTINE CLEANUP
 !
 !******************************************************************************
 !  Subroutine CLEANUP deallocates the memory assigned to dynamic allocatable 
-!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 5/10/06)
+!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 7/6/06)
 !
 !  NOTES:
 !  (1 ) CLEANUP is written in Fixed-Format F90.
@@ -71,6 +71,8 @@
 !  (35) Now calls CLEANUP_DIAG56 from "diag56_mod.f" and
 !        CLEANUP_LIGHTNING_NOX_NL from "lightning_nox_nl_mod.f"
 !        (ltm, bmy, 5/5/06)
+!  (36) Now references CLEANUP_BRAVO from "bravo_mod.f" and CLEANUP_EDGAR
+!        from "edgar_mod.f" (bmy, 7/6/06)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -79,6 +81,7 @@
       USE AIRCRAFT_NOX_MOD,     ONLY : CLEANUP_AIRCRAFT_NOX
       USE BIOMASS_MOD,          ONLY : CLEANUP_BIOMASS
       USE BIOFUEL_MOD,          ONLY : CLEANUP_BIOFUEL
+      USE BRAVO_MOD,            ONLY : CLEANUP_BRAVO
       USE C2H6_MOD,             ONLY : CLEANUP_C2H6
       USE CARBON_MOD,           ONLY : CLEANUP_CARBON
       USE CO2_MOD,              ONLY : CLEANUP_CO2
@@ -95,6 +98,7 @@
       USE DRYDEP_MOD,           ONLY : CLEANUP_DRYDEP
       USE DUST_MOD,             ONLY : CLEANUP_DUST
       USE DUST_DEAD_MOD,        ONLY : CLEANUP_DUST_DEAD
+      USE EDGAR_MOD,            ONLY : CLEANUP_EDGAR
       USE EMEP_MOD,             ONLY : CLEANUP_EMEP
       USE EPA_NEI_MOD,          ONLY : CLEANUP_EPA_NEI
       USE ERROR_MOD,            ONLY : DEBUG_MSG
@@ -144,6 +148,7 @@
       CALL CLEANUP_AIRCRAFT_NOX
       CALL CLEANUP_BIOMASS
       CALL CLEANUP_BIOFUEL
+      CALL CLEANUP_BRAVO
       CALL CLEANUP_C2H6
       CALL CLEANUP_CARBON
       CALL CLEANUP_CO2
@@ -160,6 +165,7 @@
       CALL CLEANUP_DRYDEP
       CALL CLEANUP_DUST_DEAD
       CALL CLEANUP_DUST
+      CALL CLEANUP_EDGAR
       CALL CLEANUP_EMEP
       CALL CLEANUP_EPA_NEI
       CALL CLEANUP_GC_BIOMASS

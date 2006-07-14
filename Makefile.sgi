@@ -1,7 +1,7 @@
 #=============================================================================
-# $Id: Makefile.sgi,v 1.44 2006/06/28 17:26:45 bmy Exp $
+# $Id: Makefile.sgi,v 1.45 2006/07/14 18:36:44 bmy Exp $
 #
-# GEOS-Chem Makefile for SGI/Origin (bmy, Mon Jun 26 15:59:53 2006)
+# GEOS-Chem Makefile for SGI/Origin (bmy, Fri Jul 14 13:53:13 2006)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -151,6 +151,7 @@ diag_pl_mod.o             \
 ocean_mercury_mod.o       \
 drydep_mod.o              \
 bravo_mod.o               \
+edgar_mod.o               \
 emep_mod.o                \
 epa_nei_mod.o             \
 geia_mod.o                \
@@ -293,6 +294,7 @@ directory_mod.o            : directory_mod.f
 drydep_mod.o               : drydep_mod.f               CMN_DEP CMN_DIAG CMN_GCTM CMN_SIZE define.h CMN_VEL commsoil.h comode.h 
 dust_dead_mod.o            : dust_dead_mod.f            CMN_GCTM CMN_SIZE define.h 
 dust_mod.o                 : dust_mod.f                 CMN_DIAG CMN_GCTM CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h comode.h jv_cmn.h 
+edgar_mod.o                : edgar_mod.f                CMN_SIZE define.h 
 emep_mod.o                 : emep_mod.f                 CMN_SIZE define.h 
 emf_scale.o                : emf_scale.f                CMN_O3 CMN_SIZE define.h comode.h 
 emfossil.o                 : emfossil.f                 CMN_DIAG CMN_O3 CMN_SIZE define.h comode.h 

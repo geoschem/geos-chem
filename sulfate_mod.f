@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.26 2006/06/28 17:26:53 bmy Exp $
+! $Id: sulfate_mod.f,v 1.27 2006/07/14 18:36:50 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -39,7 +39,7 @@
 !  (28) ESO2_bb    (REAL*8 ) : SO2 biomass burning emissions    [kg SO2/box/s]
 !  (29) ESO2_bf    (REAL*8 ) : SO2 biofuel burning emissions    [kg SO2/box/s]
 !  (30) ESO2_sh    (REAL*8 ) : SO2 ship emissions               [kg SO2/box/s]
-!  (31) ESO4_an    (REAL*8 ) : SO4 anthropogenic emissions      [kg SO2/box/s]
+!  (31) ESO4_an    (REAL*8 ) : SO4 anthropogenic emissions      [kg SO4/box/s]
 !  (32) JH2O2      (REAL*8 ) : Monthly mean J(H2O2) values      [s-1]
 !  (33) O3m        (REAL*8 ) : Monthly mean O3 concentration    [v/v]
 !  (34) PH2O2m     (REAL*8 ) : Monthly mean P(H2O2)             [molec/cm3/s]
@@ -5443,7 +5443,7 @@
 !******************************************************************************
 !  Suborutine READ_ANTHRO_SOx reads the anthropogenic SOx from disk, 
 !  and partitions it into anthropogenic SO2 and SO4. 
-!  (rjp, bdf, bmy, 9/20/02, 5/30/06)
+!  (rjp, bdf, bmy, 9/20/02, 7/14/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -5462,16 +5462,18 @@
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (6 ) Now computes future SOx emissions (swu, bmy, 5/30/06)
+!  (7 ) Now can read either EDGAR or GEIA emissions (avd, bmy, 7/14/06)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
+      USE DIRECTORY_MOD,        ONLY : DATA_DIR
+      USE EDGAR_MOD,            ONLY : GET_EDGAR_ANTH_SO2
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
       USE GRID_MOD,             ONLY : GET_XMID,        GET_YMID
       USE GRID_MOD,             ONLY : GET_AREA_CM2
-      USE DIRECTORY_MOD,        ONLY : DATA_DIR
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
-      USE LOGICAL_MOD,          ONLY : LFUTURE
+      USE LOGICAL_MOD,          ONLY : LFUTURE,         LEDGARSOx
       USE TIME_MOD,             ONLY : GET_YEAR
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTSO2, IDTSO4
@@ -5489,138 +5491,211 @@
       REAL*4                        :: E_SOx(IGLOB,JGLOB,2)
       REAL*4                        :: ARRAY(IGLOB,JGLOB,1)
       REAL*8                        :: XTAU, Fe, X, Y, AREA_CM2
+      REAL*8                        :: EDG_SO2
       CHARACTER(LEN=4)              :: SYEAR
       CHARACTER(LEN=255)            :: FILENAME
 
       !=================================================================
-      ! Read SOx emissions [molec SOx/cm2/s] 
+      ! READ_ANTHRO_SOx begins here!
       !=================================================================
 
-      ! Define filename
-      FILENAME = TRIM( DATA_DIR )                          //
-     &           'fossil_200104/merge_nobiofuels.'         //
-     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT() 
+      IF ( LEDGARSOx ) THEN
+
+         !==============================================================
+         ! Use EDGAR SOx emissions
+         !
+         ! Partition SOx into SO2 and SO4, according to the following
+         ! fractions (cf Chin et al, 2000):
+         ! 
+         ! Europe     [ 36N-78N,  12.5W-60.0E ]:  5.0% of SOx is SO4
+         !                                       95.0% of SOx is SO2   
+         !
+         ! N. America [ 26N-74N, 167.5W-52.5W ]:  1.4% of SOx is SO4
+         !                                       98.6% of SOx is SO2
+         !
+         ! Everywhere else:                       3.0% of SOx is SO4
+         !                                       97.0% of SOx is SO2
+         !==============================================================
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, X, Y, EDG_SO2, Fe ) 
+
+         ! Loop over latitudes
+         DO J = 1, JJPAR
+
+            ! Latitude [degrees]
+            Y = GET_YMID( J )
+
+            ! Loop over longitudes
+            DO I = 1, IIPAR
+
+               ! Longitude [degrees]
+               X  = GET_XMID( I )
+
+               ! Get EDGAR SO2 emissions [kg/s]
+               ! NOTE: Future emissions are already applied!
+               EDG_SO2 = GET_EDGAR_ANTH_SO2( I, J, KG_S=.TRUE. ) 
+
+               ! Compute SO4/SOx fraction for EUROPE
+               IF ( ( X >= -12.5 .and. X <= 60.0 )  .and.
+     &              ( Y >=  36.0 .and. Y <= 78.0 ) ) THEN
+                  Fe = 0.05d0
+
+               ! Compute SO4/SOx fraction for NORTH AMERICA
+               ELSE IF ( ( X >= -167.5 .and. X <= -52.5 )  .and.
+     &                   ( Y >=   26.0 .and. Y <=  74.0 ) ) THEN
+                  Fe = 0.014d0
+
+               ! Compute SO4/SOx fraction for EVERYWHERE ELSE
+               ELSE
+                  Fe = 0.03d0
+
+               ENDIF
+
+               ! Store SO2 emission [kg SO2/s]
+               ESO2_an(I,J,1) = EDG_SO2
+               ESO4_an(I,J,2) = 0d0
+
+               ! Compute SO4 from SO2 [kg SO4/s]
+               ESO4_an(I,J,1) = EDG_SO2 * Fe / ( 1.d0 - Fe )
+               ESO4_an(I,J,2) = 0d0
+            ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+
+      ELSE
+
+         !==============================================================
+         ! Use GEIA SOx emissions
+         !==============================================================
+
+         ! Define filename
+         FILENAME = TRIM( DATA_DIR )                          //
+     &              'fossil_200104/merge_nobiofuels.'         //
+     &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT() 
      
-      ! Echo output
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_ANTHRO_SOx: Reading ', a )
-
-      ! Pick the right TAU value for the given season
-      ! Seasons: 1=DJF, 2=MAM, 3=JJA, 4=SON
-      SELECT CASE ( NSEASON )
-         CASE ( 1 )
-            XTAU = -744d0
-         CASE ( 2 )
-            XTAU = 1416d0
-         CASE ( 3 )
-            XTAU = 3624d0
-         CASE ( 4 )
-            XTAU = 5832d0
-      END SELECT
-
-      ! Read anthropogenic SOx [molec/cm2/s] 
-      CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 27, 
-     &                 XTAU,      IGLOB,     JGLOB,     
-     &                 2,         E_SOx,     QUIET=.TRUE. )
-
-      !=================================================================
-      ! Read in yearly SO2 scale factors here
-      ! (For now we only have 1998, deal w/ other years later)
-      !=================================================================
-      IF ( LASTYEAR < 0 ) THEN
-
-         ! put in SOX scale year here (hardwired to 1998 for now)
-         SYEAR    = '1998'
-         FILENAME = TRIM( DATA_DIR )                    // 
-     &              'sulfate_sim_200508/scalefoss.SOx.' //  
-     &              GET_RES_EXT()  // '.' // SYEAR
-        
          ! Echo output
          WRITE( 6, 100 ) TRIM( FILENAME )
+ 100     FORMAT( '     - READ_ANTHRO_SOx: Reading ', a )
 
-         ! Get TAU value (use Jan 1, 1998 for scale factors)
-         XTAU = GET_TAU0( 1, 1, 1998 )
+         ! Pick the right TAU value for the given season
+         ! Seasons: 1=DJF, 2=MAM, 3=JJA, 4=SON
+         SELECT CASE ( NSEASON )
+            CASE ( 1 )
+               XTAU = -744d0
+            CASE ( 2 )
+               XTAU = 1416d0
+            CASE ( 3 )
+               XTAU = 3624d0
+            CASE ( 4 )
+               XTAU = 5832d0
+         END SELECT
 
          ! Read anthropogenic SOx [molec/cm2/s] 
-         CALL READ_BPCH2( FILENAME, 'SCALFOSS', 3, 
+         CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 27, 
      &                    XTAU,      IGLOB,     JGLOB,     
-     &                    1,         ARRAY,     QUIET=.TRUE. )
+     &                    2,         E_SOx,     QUIET=.TRUE. )
 
-         ! Cast from REAL*4 to REAL*8
-         CALL TRANSFER_2D( ARRAY(:,:,1), SOx_SCALE )
+         !=================================================================
+         ! Read in yearly SO2 scale factors here
+         ! (For now we only have 1998, deal w/ other years later)
+         !=================================================================
+         IF ( LASTYEAR < 0 ) THEN
+
+            ! put in SOX scale year here (hardwired to 1998 for now)
+            SYEAR    = '1998'
+            FILENAME = TRIM( DATA_DIR )                    // 
+     &                 'sulfate_sim_200508/scalefoss.SOx.' //  
+     &                 GET_RES_EXT()  // '.' // SYEAR
+        
+            ! Echo output
+            WRITE( 6, 100 ) TRIM( FILENAME )
+
+            ! Get TAU value (use Jan 1, 1998 for scale factors)
+            XTAU = GET_TAU0( 1, 1, 1998 )
+
+            ! Read anthropogenic SOx [molec/cm2/s] 
+            CALL READ_BPCH2( FILENAME, 'SCALFOSS', 3, 
+     &                       XTAU,      IGLOB,     JGLOB,     
+     &                       1,         ARRAY,     QUIET=.TRUE. )
+
+            ! Cast from REAL*4 to REAL*8
+            CALL TRANSFER_2D( ARRAY(:,:,1), SOx_SCALE )
          
-         ! Reset LASTYEAR
-         LASTYEAR = GET_YEAR()
-      ENDIF
+            ! Reset LASTYEAR
+            LASTYEAR = GET_YEAR()
+         ENDIF
 
-      !=================================================================
-      ! Partition SOx into SO2 and SO4, according to the following
-      ! fractions (cf Chin et al, 2000):
-      ! 
-      ! Europe     [ 36N-78N,  12.5W-60.0E ]:  5.0% of SOx is SO4
-      !                                       95.0% of SOx is SO2   
-      !
-      ! N. America [ 26N-74N, 167.5W-52.5W ]:  1.4% of SOx is SO4
-      !                                       98.6% of SOx is SO2
-      !
-      ! Everywhere else:                       3.0% of SOx is SO4
-      !                                       97.0% of SOx is SO2
-      !=================================================================
+         !==============================================================
+         ! Partition SOx into SO2 and SO4, according to the following
+         ! fractions (cf Chin et al, 2000):
+         ! 
+         ! Europe     [ 36N-78N,  12.5W-60.0E ]:  5.0% of SOx is SO4
+         !                                       95.0% of SOx is SO2   
+         !
+         ! N. America [ 26N-74N, 167.5W-52.5W ]:  1.4% of SOx is SO4
+         !                                       98.6% of SOx is SO2
+         !
+         ! Everywhere else:                       3.0% of SOx is SO4
+         !                                       97.0% of SOx is SO2
+         !==============================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, AREA_CM2, Y, X, Fe )
-      DO L = 1, 2
-      DO J = 1, JJPAR
+         DO L = 1, 2
+         DO J = 1, JJPAR
 
-         ! Grid box surface area [cm2]
-         AREA_CM2 = GET_AREA_CM2( J )
+            ! Grid box surface area [cm2]
+            AREA_CM2 = GET_AREA_CM2( J )
 
-         ! Latitude [degrees]
-         Y = GET_YMID( J )
+            ! Latitude [degrees]
+            Y = GET_YMID( J )
 
-         DO I = 1, IIPAR
+            DO I = 1, IIPAR
 
-            ! Longitude [degrees]  
-            X = GET_XMID( I )
+               ! Longitude [degrees]  
+               X = GET_XMID( I )
 
-            ! First scale SOx to the given fossil fuel year
-            E_SOx(I,J,L) = E_SOx(I,J,L) * SOx_SCALE(I,J)
+               ! First scale SOx to the given fossil fuel year
+               E_SOx(I,J,L) = E_SOx(I,J,L) * SOx_SCALE(I,J)
             
-            ! Compute future SOx emissions (if necessary)
-            IF ( LFUTURE ) THEN
-               E_SOx(I,J,L) = E_SOx(I,J,L)                  * 
-     &                        GET_FUTURE_SCALE_SO2ff( I, J )
-            ENDIF
+               ! Compute future SOx emissions (if necessary)
+               IF ( LFUTURE ) THEN
+                  E_SOx(I,J,L) = E_SOx(I,J,L)                  * 
+     &                           GET_FUTURE_SCALE_SO2ff( I, J )
+               ENDIF
 
-            ! Compute SO4/SOx fraction for EUROPE
-            IF ( ( X >= -12.5 .and. X <= 60.0 )  .and. 
-     &           ( Y >=  36.0 .and. Y <= 78.0 ) ) THEN
-               Fe = 0.05d0
+               ! Compute SO4/SOx fraction for EUROPE
+               IF ( ( X >= -12.5 .and. X <= 60.0 )  .and. 
+     &              ( Y >=  36.0 .and. Y <= 78.0 ) ) THEN
+                  Fe = 0.05d0
 
-            ! Compute SO4/SOx fraction for NORTH AMERICA
-            ELSE IF ( ( X >= -167.5 .and. X <= -52.5 )  .and.   
-     &                ( Y >=   26.0 .and. Y <=  74.0 ) ) THEN
-               Fe = 0.014d0
+               ! Compute SO4/SOx fraction for NORTH AMERICA
+               ELSE IF ( ( X >= -167.5 .and. X <= -52.5 )  .and.   
+     &                   ( Y >=   26.0 .and. Y <=  74.0 ) ) THEN
+                  Fe = 0.014d0
  
-            ! Compute SO4/SOx fraction for EVERYWHERE ELSE
-            ELSE
-               Fe = 0.03d0
+               ! Compute SO4/SOx fraction for EVERYWHERE ELSE
+               ELSE
+                  Fe = 0.03d0
              
-            ENDIF
+               ENDIF
          
-            ! Compute SO2 (tracer #2) from SOx
-            ! Convert from [molec SOx/cm2/s] to [kg SO2/box/s]
-            ESO2_an(I,J,L) = E_SOx(I,J,L) * ( 1.d0 - Fe ) * 
-     &                       AREA_CM2 / XNUMOL(IDTSO2)            
+               ! Compute SO2 (tracer #2) from SOx
+               ! Convert from [molec SOx/cm2/s] to [kg SO2/box/s]
+               ESO2_an(I,J,L) = E_SOx(I,J,L) * ( 1.d0 - Fe ) * 
+     &                          AREA_CM2 / XNUMOL(IDTSO2)            
 
-            ! Compute SO4 (tracer #3) from SOx
-            ! Convert from [molec SOx/cm2/s] to [kg SO4/box/s]
-            ESO4_an(I,J,L) = E_SOx(I,J,L) * Fe *
-     &                       AREA_CM2 / XNUMOL(IDTSO4)
+               !      Compute SO4 (tracer #3) from SOx
+               ! Convert from [molec SOx/cm2/s] to [kg SO4/box/s]
+               ESO4_an(I,J,L) = E_SOx(I,J,L) * Fe *
+     &                          AREA_CM2 / XNUMOL(IDTSO4)
+            ENDDO
          ENDDO
-      ENDDO
-      ENDDO
+         ENDDO
 !$OMP END PARALLEL DO
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE READ_ANTHRO_SOx
@@ -6112,8 +6187,8 @@
       SUBROUTINE READ_SHIP_SO2( THISMONTH )
 !
 !******************************************************************************
-!  Subroutine READ_SHIP_SO2 reads in ship SO2 emissions. 
-!  (bec, qli, 10/01/03, 10/25/05)
+!  Subroutine READ_SHIP_SO2 reads in ship SO2 emissions, from either Corbett
+!  et al or EDGAR inventories. (bec, qli, 10/01/03, 7/14/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -6125,71 +6200,127 @@
 !        GCAP and GEOS grids. (bmy, 8/16/05)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  (5 ) Now get EDGAR ship SO2 emissions if necessary.  Also apply future
+!        emissions scale factors to the default Corbett et al ship emissions.
+!        (avd, bmy, 7/14/06)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR 
-      USE GRID_MOD,      ONLY : GET_AREA_CM2
-      USE TRACER_MOD,    ONLY : XNUMOL
-      USE TRACERID_MOD,  ONLY : IDTSO2
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+      USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
+      USE DIRECTORY_MOD,        ONLY : DATA_DIR 
+      USE EDGAR_MOD,            ONLY : GET_EDGAR_SHIP_SO2
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
+      USE GRID_MOD,             ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,          ONLY : LEDGARSHIP,      LFUTURE
+      USE TRACER_MOD,           ONLY : XNUMOL
+      USE TRACERID_MOD,         ONLY : IDTSO2
+      USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"      ! Size parameters 
+#     include "CMN_SIZE"             ! Size parameters 
 
       ! Arguments
-      INTEGER, INTENT(IN)    :: THISMONTH
+      INTEGER, INTENT(IN)           :: THISMONTH
 
       ! Local variables
-      INTEGER                :: I, J
-      REAL*4                 :: ARRAY(IGLOB,JGLOB,1)
-      REAL*4                 :: SHIPSO2(IIPAR,JJPAR)
-      REAL*8                 :: XTAU, AREA_CM2
-      CHARACTER (LEN=255)    :: FILENAME
+      INTEGER                       :: I, J
+      REAL*4                        :: ARRAY(IGLOB,JGLOB,1)
+      REAL*4                        :: SHIPSO2(IIPAR,JJPAR)
+      REAL*8                        :: XTAU, AREA_CM2
+      CHARACTER (LEN=255)           :: FILENAME
 
       !=================================================================
       ! READ_SHIP_SO2 begins here!
       !=================================================================
+!---------------------------------------------------------------------------
+! Prior to 7/14/06:
+! Now also get EDGAR ship SO2 emissions (bmy, 7/14/06)
+!      ! Filename
+!      FILENAME = TRIM( DATA_DIR )              // 
+!     &           'sulfate_sim_200508/shipSOx.' // GET_NAME_EXT_2D() //
+!     &           '.'                           // GET_RES_EXT()
+!
+!      ! Echo some information to the standard output
+!      WRITE( 6, 110 ) TRIM( FILENAME )
+! 110  FORMAT( '     - READ_SHIP_SO2 ', a )
+!
+!      ! TAU value at the beginning of this month
+!      XTAU = GET_TAU0( THISMONTH, 1, 1985 )
+!      
+!      ! Read in this month's ship SO2 emissions
+!      CALL READ_BPCH2( FILENAME, 'SO2-SHIP',     26,  
+!     &                 XTAU,      IIPAR,         JJPAR, 
+!     &                 1,         ARRAY(:,:,1),  QUIET=.TRUE. )
+!
+!      ! Cast from REAL*4 to REAL*8
+!      CALL TRANSFER_2D( ARRAY(:,:,1), SHIPSO2 )
+!---------------------------------------------------------------------------
 
-      ! Filename
-      FILENAME = TRIM( DATA_DIR )              // 
+      IF ( LEDGARSHIP ) THEN 
+
+         !----------------------------------------
+         ! Use EDGAR ship SO2 emissions
+         !----------------------------------------
+
+         ! Get EDGAR ship SO2 [kg SO2/box/s]
+         ! NOTE: Future emissions have already been applied! 
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            ESO2_sh(I,J) = GET_EDGAR_SHIP_SO2( I, J, KG_S=.TRUE. )
+         ENDDO 
+         ENDDO
+!$OMP END PARALLEL DO
+
+      ELSE
+
+         !----------------------------------------
+         ! Use Corbett et al ship SO2 emissions
+         !----------------------------------------
+
+         ! Filename
+         FILENAME = TRIM( DATA_DIR )           // 
      &           'sulfate_sim_200508/shipSOx.' // GET_NAME_EXT_2D() //
      &           '.'                           // GET_RES_EXT()
 
-      ! Echo some information to the standard output
-      WRITE( 6, 110 ) TRIM( FILENAME )
- 110  FORMAT( '     - READ_SHIP_SO2 ', a )
-
-      ! TAU value at the beginning of this month
-      XTAU = GET_TAU0( THISMONTH, 1, 1985 )
+         ! Echo some information to the standard output
+         WRITE( 6, 110 ) TRIM( FILENAME )
+ 110     FORMAT( '     - READ_SHIP_SO2 ', a )
       
-      ! Read in this month's ship SO2 emissions
-      CALL READ_BPCH2( FILENAME, 'SO2-SHIP',     26,  
-     &                 XTAU,      IIPAR,         JJPAR, 
-     &                 1,         ARRAY(:,:,1),  QUIET=.TRUE. )
+         ! TAU value at the beginning of this month
+         XTAU = GET_TAU0( THISMONTH, 1, 1985 )
+      
+         ! Read in this month's ship SO2 emissions [molec SO2/cm2/s]
+         CALL READ_BPCH2( FILENAME, 'SO2-SHIP',     26,  
+     &                    XTAU,      IIPAR,         JJPAR, 
+     &                    1,         ARRAY(:,:,1),  QUIET=.TRUE. )
 
-      ! Cast from REAL*4 to REAL*8
-      CALL TRANSFER_2D( ARRAY(:,:,1), SHIPSO2 )
+         ! Cast from REAL*4 to REAL*8
+         CALL TRANSFER_2D( ARRAY(:,:,1), SHIPSO2 )
 
-      !=================================================================
-      ! Convert ship SO2 from [molec SO2/cm2/s] to [kg SO2/box/s]
-      !=================================================================
+         ! Loop over latitudes
+         DO J = 1, JJPAR
 
-      ! Loop over latitudes
-      DO J = 1, JJPAR
+            ! Grid box surface area [cm2]
+            AREA_CM2 = GET_AREA_CM2( J )
 
-         ! Grid box surface area [cm2]
-         AREA_CM2 = GET_AREA_CM2( J )
-
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+            ! Loop over longitudes
+            DO I = 1, IIPAR
             
-            ! Convert to [kg SO2/box/s]
-            ESO2_sh(I,J) = SHIPSO2(I,J) * AREA_CM2 / XNUMOL(IDTSO2)
+               ! Convert [molec SO2/cm2/s] to [kg SO2/box/s]
+               ESO2_sh(I,J) = SHIPSO2(I,J) * AREA_CM2 / XNUMOL(IDTSO2)
               
-         ENDDO 
-      ENDDO
+               ! Apply future emissions (if necessary)
+               IF ( LFUTURE ) THEN
+                   ESO2_sh(I,J) = ESO2_sh(I,J) *
+     &                            GET_FUTURE_SCALE_SO2ff( I, J ) 
+               ENDIF
+            ENDDO 
+         ENDDO
+
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE READ_SHIP_SO2

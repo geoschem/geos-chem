@@ -1,61 +1,53 @@
-REVISIONS (v7-04-06)  
-bmy, 27 Jun 2006
+REVISIONS (v7-04-07)  
+bmy, 14 Jul 2006
 
 
-New in v7-04-06:
+New in v7-04-07:
 -------------------------------------------------------------------------------
 
-bravo_mod.f		-- Module for computing BRAVO Mexican anthro emissions
+edgar_mod.f		-- Module to compute emissions of NOx, CO, SOX
+			   from the EDGAR emissions inventory
 
 
 
-Removed in v7-04-06:
+Removed in v7-04-07:
 -------------------------------------------------------------------------------
 
 
 
 
-Changed from v7-04-05:
+Changed from v7-04-06:
 -------------------------------------------------------------------------------
 
-arconvtran		-- Now treat "negative detrainment" as entrainment, 
-("fvdas_convect_mod.f")	   which will better conserve mixing ratio
+cleanup.f		-- Now references CLEANUP_BRAVO from "bravo_mod.f"
+			-- Now references CLEANUP_EDGAR from "edgar_mod.f"
 
-convtran		-- Updated for ND14 diagnostic
-("fvdas_convect_mod.f") -- Now treat "negative detrainment" as entrainment, 
-			   which will better conserve mixing ratio
-
-do_emissions		-- Now references EMISS_BRAVO from "bravo_mod.f"
-("emissions_mod.f")
-
-do_global_transport	-- Now do flipping of arrays in call to TPCORE_FVDAS
+do_global_transport	-- Rewrote some parallel loops for the SUN compiler
 ("transport_mod.f")
 
-emfossil.f		-- Now apply BRAVO Mexican emissions if necessary
+emfossil.f		-- Now apply EDGAR emissions if necessary
+			-- Also now only do the the EDGAR, EPA, EMEP, and
+  			   BRAVO function calls in the LL=1 block.
 
-init_drydep		-- Bug fix: fix TYPO in IF block for IDTSOA4
-("drydep_mod.f")
+init_input		-- Now reference the EDGAR logical switches from 
+("input_mod.f")		   "logical_mod.f"
 
-logical_mod.f		-- Added LBRAVO
+isoropia.h 		-- Rename the /GAS/ common block to /GAS1/, because 
+			   there are variables named GAS within 
+			   "isoropia_mod.f".  This avoids namespace confusion, 
+                           which may cause some compilers to choke.
 
-read_emissions_menu	-- Now read LBRAVO for BRAVO Mexican emissions
+logical_mod.f		-- Added LEDGAR, LEDGARNOx, LEDGARCO, LEDGARSHIP, 
+			   LEDGARSOx switches for EDGAR emissions
+
+partition.f		-- Resize CSAVE to save local memory, for SUN compiler
+
+read_anthro_sox		-- Now can read either EDGAR or GEIA emissions
+("sulfate_mod.f")
+
+read_emissions_menu	-- Now read LEDGAR for EDGAR emissions
 ("input_mod.f")
 
-srcso2			-- Now references GET_BRAVO_ANTHRO and GET_BRAVO_MASK 
-("sulfate_mod.f")          from "bravo_mod.f" for BRAVO Mexican emissions
-
-
-
-Updates to Files in the Run Directory:
--------------------------------------------------------------------------------
-
-globchem.dat		-- Now set the rxn HO2 --> 0.5 H2O2 (uptake of HO2
-			   on aerosols to be inactive in the SMVGEAR mechanism.
-			   Bastien Sauvage says there is better agreement in 
-			   the tropics this way.
-			-- From v7-04-05: added LISOPOH to get the amount of
-			   ISOP that reacts with OH.
-
-input.geos		-- Added "Use BRAVO Emissions?" line for logical
-			   switch LBRAVO.  This turns BRAVO Mexican emissions
-			   on/off.
+read_ship_so2		-- Now get EDGAR ship SO2 emissions if necessary 
+("sulfate_mod.f")	-- Also apply future emissions scale factors to the 
+ 			   default Corbett et al ship emissions

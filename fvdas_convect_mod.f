@@ -1,4 +1,4 @@
-! $Id: fvdas_convect_mod.f,v 1.15 2006/06/28 17:26:50 bmy Exp $
+! $Id: fvdas_convect_mod.f,v 1.16 2006/07/14 18:36:47 bmy Exp $
       MODULE FVDAS_CONVECT_MOD
 !
 !******************************************************************************
@@ -630,17 +630,6 @@
          EDG(I,LLPAR) = 0.0d0
       ENDDO
 
-      !-----------------------------------------------------------------------
-      ! Prior to 6/27/06:
-      ! Now treat "negative detrainment" as entrainment, which will
-      ! better conserve mixing ratio (swu, bmy, 6/27/06)
-      !DO K = 1, LLPAR
-      !DO I = 1, LENGATH
-      !   IF ( DUG(I,K) < 1.d-7*EUG(I,K) ) DUG(I,K) = 0.0d0
-      !ENDDO
-      !ENDDO
-      !-----------------------------------------------------------------------
-
       !=================================================================
       ! Find top and bottom layers with updrafts.
       !=================================================================
@@ -906,20 +895,6 @@
          DO I = IL1G, IL2G
             MUPDUDP = MU(I,KK) + DU(I,KK) * DP(I,KK)
 
-!-----------------------------------------------------------------------------
-! Prior to 6/27/06:
-! Modifications to better conserve mixing ratio (swu, bmy, 6/27/06)
-!            IF ( MUPDUDP > MBSTH ) THEN
-!               CONU(I,KK) = ( EU(I,KK)*CMIX(I,KK)*DP(I,KK) ) 
-!     &                 /MUPDUDP  
-!            ENDIF
-!
-!            IF ( MD(I,K) < -MBSTH ) THEN
-!               COND(I,K) =  (-ED(I,KM1)*CMIX(I,KM1)*DP(I,KM1))
-!     &                      /MD(I,K) 
-!            ENDIF
-!-----------------------------------------------------------------------------
-
             ! Layer LLPAR (ground layer) CLOUD does not have updraft
             ! entering, so assume tracer mixing ratio is same as
             ! the environment (swu, bmy, 6/27/06)
@@ -940,19 +915,6 @@
          !==============================================================
          DO KK = LLPAR-1,1,-1
             KKP1 = MIN( LLPAR, KK+1 )
-
-!------------------------------------------------------------------------------
-! Prior to 6/27/06:
-! Modifications to better conserve mixing ratio (swu, bmy, 6/27/06)
-!            DO I = IL1G,IL2G
-!               MUPDUDP = MU(I,KK) + DU(I,KK) * DP(I,KK)
-!                IF ( MUPDUDP > MBSTH ) THEN
-!                  CONU(I,KK) = (MU(I,KKP1)*CONU(I,KKP1) *FISG(I,KK)
-!     &                         +EU(I7,KK)*CMIX(I,KK)*DP(I,KK)
-!     &                         )/MUPDUDP 
-!               ENDIF
-!            ENDDO
-!------------------------------------------------------------------------------
 
             DO I = IL1G, IL2G
 
@@ -1179,11 +1141,6 @@
                      AD38(II,JJ,LL,NN) = AD38(II,JJ,LL,NN) +
      &                    MU(I,KP1)   * AREA_M2     * 100d0           / 
      &                    GRAV        * CONU(I,KP1) * (1d0-FISG(I,K)) / 
-!--------------------------------------------------------------------------
-! Prior to 6/12/06:
-! Now use D_NSTEP as double precision (swu, bmy, 6/12/06)
-!     &                    TCVV(M)     / FLOAT(NSTEP)
-!--------------------------------------------------------------------------
      &                    TCVV(M)     / D_NSTEP
                   ENDIF
                ENDIF

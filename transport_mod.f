@@ -1,10 +1,10 @@
-! $Id: transport_mod.f,v 1.11 2006/06/28 17:26:55 bmy Exp $
+! $Id: transport_mod.f,v 1.12 2006/07/14 18:36:53 bmy Exp $
       MODULE TRANSPORT_MOD
 !
 !******************************************************************************
 !  Module TRANSPORT_MOD is used to call the proper version of TPCORE for
 !  GEOS-1, GEOS-STRAT, GEOS-3 or GEOS-4 nested-grid or global simulations.
-!  (yxw, bmy, 3/10/03, 6/16/06)
+!  (yxw, bmy, 3/10/03, 7/12/06)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -64,6 +64,7 @@
 !  (8 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (10) Now flip arrays in call to TPCORE_FVDAS (bmy, 6/16/06)
+!  (11) Added modifications for SUN compiler (bmy, 7/12/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -150,7 +151,7 @@
 !******************************************************************************
 !  Subroutine DO_TRANSPORT is the driver routine for the proper TPCORE 
 !  program for GEOS-1, GEOS-STRAT, GEOS-3 or GEOS-4 global simulations. 
-!  (bdf, bmy, 3/10/03, 10/3/05)
+!  (bdf, bmy, 3/10/03, 7/12/06)
 ! 
 !  NOTES:
 !  (1 ) Now references routine TPCORE_FVDAS from "tpcore_fvdas_mod.f90".
@@ -178,6 +179,7 @@
 !        and GCAP met fields. (swu, bmy, 5/25/05)
 !  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (9 ) Now do flipping of arrays in call to TPCORE_FVDAS (bmy, 6/16/06)
+!  (10) Rewrote some parallel loops for the SUN compiler (bmy, 7/14/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -207,7 +209,13 @@
       REAL*8              :: P_TP2(IIPAR,JJPAR)
       REAL*8              :: P_TEMP(IIPAR,JJPAR)
       REAL*8              :: TR_A(IIPAR,JJPAR,LLPAR)
-      REAL*8              :: TR_B(IIPAR,JJPAR,LLPAR,NNPAR)
+      !---------------------------------------------------------------------
+      ! Prior to 7/12/06:
+      ! Dimension with N_TRACERS instead of NNPAR for SUN compiler
+      ! (bmy, 7/12/06)
+      !REAL*8              :: TR_B(IIPAR,JJPAR,LLPAR,NNPAR)
+      !---------------------------------------------------------------------
+      REAL*8              :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS)
       REAL*8              :: UTMP(IIPAR,JJPAR,LLPAR)
       REAL*8              :: VTMP(IIPAR,JJPAR,LLPAR)
       REAL*8              :: WW(IIPAR,JJPAR,LLPAR) 
@@ -355,27 +363,59 @@
          ! Use GEOS-4/fvDAS version of TPCORE
          ! (compatible with GEOS-3, GEOS-4, or GCAP winds)
          !==============================================================
-         DO N = 1, N_TRACERS
+!-----------------------------------------------------------------------------
+! Prior to 7/12/06:
+! Rewrite DO-loops for SUN compiler (bmy, 7/12/06)
+!         DO N = 1, N_TRACERS
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!!$OMP+SCHEDULE( DYNAMIC )
+!            DO L = 1, LLPAR
+!            DO J = 1, JJPAR
+!            DO I = 1, IIPAR
+!
+!               ! Airmass [kg] before transport
+!               IF ( N == 1 ) THEN
+!                  AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J) )
+!               ENDIF
+!
+!               ! Tracer mass [kg] before transport
+!               TR_B(I,J,L,N) = STT(I,J,L,N) * AD_B(I,J,L) / TCVV(N)
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
+!         ENDDO
+!-----------------------------------------------------------------------------
+
+         ! Airmass [kg] before transport
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-!$OMP+SCHEDULE( DYNAMIC )
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-
-               ! Airmass [kg] before transport
-               IF ( N == 1 ) THEN
-                  AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J) )
-               ENDIF
-
-               ! Tracer mass [kg] before transport
-               TR_B(I,J,L,N) = STT(I,J,L,N) * AD_B(I,J,L) / TCVV(N)
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J) )
          ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+
+         ! Tracer mass [kg] before transport
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N )
+         DO N = 1, N_TRACERS
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            TR_B(I,J,L,N) = STT(I,J,L,N) * AD_B(I,J,L) / TCVV(N)
+         ENDDO
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
 
          !----------------------------
          ! Apply pressure fixer 
@@ -407,50 +447,11 @@
          ! Store winds in UTMP, VTMP to preserve UWND, VWND for diagnostics
          UTMP(:,:,1:LLPAR) = UWND(:,:,LLPAR:1:-1)
          VTMP(:,:,1:LLPAR) = VWND(:,:,LLPAR:1:-1)
-         !--------------------------------------------------------------------
-         ! Prior to 6/15/06:
-         ! We can now flip the arrays directly in the call to TPCORE_FVDAS
-         ! (bmy, 6/15/06)
-         !XMASS(:,:,1:LLPAR)   = XMASS(:,:,LLPAR:1:-1)
-         !YMASS(:,:,1:LLPAR)   = YMASS(:,:,LLPAR:1:-1)
-         !STT  (:,:,1:LLPAR,:) = STT  (:,:,LLPAR:1:-1,:)
-         !
-         !! Also flip MASSFLEW (bdf, bmy, 9/28/04)         
-         !IF ( ND24 > 0 ) THEN
-         !   MASSFLEW(:,:,1:LLPAR,:) = MASSFLEW(:,:,LLPAR:1:-1,:)
-         !ENDIF
-         !
-         !! Also flip MASSFLNS (bdf, bmy, 9/28/04)
-         !IF ( ND25 > 0 ) THEN
-         !   MASSFLNS(:,:,1:LLPAR,:) = MASSFLNS(:,:,LLPAR:1:-1,:)
-         !ENDIF
-         !
-         !! Also flip MASSFLUP (bdf, bmy, 9/28/04)
-         !IF ( ND26 > 0 ) THEN
-         !   MASSFLUP(:,:,1:LLPAR,:) = MASSFLUP(:,:,LLPAR:1:-1,:)
-         !ENDIF
-         !
-         !!----------------------------
-         !! Call transport code
-         !!----------------------------
-         !---------------------------------------------------------------------
 
          ! GEOS-4/fvDAS transport (the output pressure is P_TEMP)
          ! NOTE: P_TP1 and P_TP2 must be consistent with the definition
          ! of Ap and Bp.  For GEOS-4, P_TP1 and P_TP2 must be the "true"
          ! surface pressure, but for GEOS-3, they must be ( Psurface -PTOP ).  
-!------------------------------------------------------------------------------
-! Prior to 6/12/06:
-! We can now flip arrays in the call to TPCORE_FVDAS (bmy, 6/15/06)
-!         CALL TPCORE_FVDAS( D_DYN,    Re,        IIPAR,    JJPAR,
-!     &                      LLPAR,    JFIRST,    JLAST,    NG,
-!     &                      MG,       N_TRACERS, Ap,       Bp,
-!     &                      UTMP,     VTMP,      P_TP1,    P_TP2,
-!     &                      P_TEMP,   STT,       IORD,     JORD,   
-!     &                      KORD,     N_ADJ,     XMASS,    YMASS,
-!     &                      MASSFLEW, MASSFLNS,  MASSFLUP, A_M2,
-!     &                      TCVV,     ND24,      ND25,     ND26 )
-!------------------------------------------------------------------------------
          CALL TPCORE_FVDAS( D_DYN,    Re,        IIPAR,    JJPAR,
      &                      LLPAR,    JFIRST,    JLAST,    NG,
      &                      MG,       N_TRACERS, Ap,       Bp,
@@ -484,32 +485,6 @@
          CALL SET_FLOATING_PRESSURE( P_TP2 + PTOP )
 
 #endif
-
-         !--------------------------------------------------------------------
-         ! Prior to 6/15/06:
-         ! We can now flip arrays in the call to TPCORE_FVDAS (bmy, 6/15/06)
-         !!----------------------------
-         !! Re-flip arrays in vertical
-         !!----------------------------
-         !
-         !! Re-Flip STT in the vertical dimension
-         !STT(:,:,1:LLPAR,:) = STT(:,:,LLPAR:1:-1,:)
-         !
-         !! Also re-flip MASSFLEW (bdf, bmy, 9/28/04)         
-         !IF ( ND24 > 0 ) THEN
-         !   MASSFLEW(:,:,1:LLPAR,:) = MASSFLEW(:,:,LLPAR:1:-1,:)
-         !ENDIF
-         !
-         !! Also re-flip MASSFLNS (bdf, bmy, 9/28/04)
-         !IF ( ND25 > 0 ) THEN
-         !   MASSFLNS(:,:,1:LLPAR,:) = MASSFLNS(:,:,LLPAR:1:-1,:)
-         !ENDIF
-         !
-         !! Also re-flip MASSFLUP (bdf, bmy, 9/28/04)
-         !IF ( ND26 > 0 ) THEN
-         !   MASSFLUP(:,:,1:LLPAR,:) = MASSFLUP(:,:,LLPAR:1:-1,:)
-         !ENDIF
-         !--------------------------------------------------------------------
 
          ! Adjust tracer to correct residual non-conservation of mass
          DO N = 1, N_TRACERS

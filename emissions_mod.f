@@ -1,9 +1,9 @@
-! $Id: emissions_mod.f,v 1.17 2006/06/28 17:26:50 bmy Exp $
+! $Id: emissions_mod.f,v 1.18 2006/07/14 18:36:47 bmy Exp $
       MODULE EMISSIONS_MOD
 !
 !******************************************************************************
 !  Module EMISSIONS_MOD is used to call the proper emissions subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 2/11/03, 6/26/06)
+!  for the various GEOS-CHEM simulations. (bmy, 2/11/03, 7/6/06)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -47,6 +47,7 @@
 !  (11) Now references "emep_mod.f" (bdf, bmy, 10/1/05)
 !  (12) Now references "gfed2_biomass_mod.f" (bmy, 3/30/06)
 !  (13) Now references "bravo_mod.f" (rjp, kfb, bmy, 6/26/06)
+!  (14) Now references "edgar_mod.f" (avd, bmy, 7/6/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -63,7 +64,7 @@
 !******************************************************************************
 !  Subroutine DO_EMISSIONS is the driver routine which calls the appropriate
 !  emissions subroutine for the various GEOS-CHEM simulations. 
-!  (bmy, 2/11/03, 6/26/06)
+!  (bmy, 2/11/03, 7/6/06)
 !
 !  NOTES:
 !  (1 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
@@ -87,6 +88,7 @@
 !  (13) Now call GFED2_COMPUTE_BIOMASS to read 1x1 biomass emissions and
 !        regrid to the model resolution once per month. (bmy, 3/30/06)
 !  (14) Now references EMISS_BRAVO from "bravo_mod.f" (rjp, kfb, bmy, 6/26/06)
+!  (15) Now references EMISS_EDGAR from "edgar_mod.f" (avd, bmy, 7/6/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -98,6 +100,7 @@
       USE CH3I_MOD,       ONLY : EMISSCH3I
       USE CO2_MOD,        ONLY : EMISSCO2
       USE DUST_MOD,       ONLY : EMISSDUST
+      USE EDGAR_MOD,      ONLY : EMISS_EDGAR
       USE EMEP_MOD,       ONLY : EMISS_EMEP
       USE EPA_NEI_MOD,    ONLY : EMISS_EPA_NEI
       USE ERROR_MOD,      ONLY : DEBUG_MSG
@@ -140,6 +143,11 @@
          ! NOx-Ox-HC-aerosol
          !--------------------
 
+         ! Read EDGAR emissions once per month
+         IF ( LEDGAR .and. ITS_A_NEW_MONTH() ) THEN
+            CALL EMISS_EDGAR( YEAR, MONTH )
+         ENDIF
+
          ! Read EPA/NEI99 (USA) emissions once per month
          IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
 
@@ -163,6 +171,11 @@
          !--------------------
          ! Offline aerosol
          !--------------------
+
+         ! Read EDGAR emissions once per month
+         IF ( LEDGAR .and. ITS_A_NEW_MONTH() ) THEN
+            CALL EMISS_EDGAR( YEAR, MONTH )
+         ENDIF
 
          ! Read EPA/NEI99 emissions once per month
          IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
@@ -207,6 +220,11 @@
          !--------------------
          ! Tagged CO
          !--------------------
+
+         ! Read EDGAR emissions once per month
+         IF ( LEDGAR .and. ITS_A_NEW_MONTH() ) THEN
+            CALL EMISS_EDGAR( YEAR, MONTH )
+         ENDIF
 
          ! Read EPA (USA) emissions once per month
          IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI

@@ -1,10 +1,10 @@
-! $Id: isoropia.h,v 1.1 2005/05/09 17:41:52 bmy Exp $
+! $Id: isoropia.h,v 1.2 2006/07/14 18:36:49 bmy Exp $
 !
 !******************************************************************************
 !  Header file "isoropia.h" contains common block declarations for the 
 !  ISORROPIA code.  We had to keep these common blocks so that we could
 !  declare these as THREADPRIVATE for the OpenMP parallel loop in
-!  routine AERO_THERMO in "isoropia_mod.f". (bec, bmy, 3/7/05) 
+!  routine AERO_THERMO in "isoropia_mod.f". (bec, bmy, 3/7/05, 6/28/06) 
 !
 !  Assume all common blocks are THREADPRIVATE unless otherwise specified.
 !  All parameters are specified in MODULE section of "isoropia_mod.f".
@@ -25,6 +25,9 @@
 !        remove old F77-style IMPLICIT typing.  Also removed some variables
 !        which are constants and declared them as PARAMETERS w/in the
 !        "isoropia_mod.f". (bmy, 3/7/05)
+!  (2 ) Rename the /GAS/ common block to /GAS1/, because there are variables
+!        named GAS within "isoropia_mod.f".  This avoids namespace confusion, 
+!        which may cause some compilers to choke. (psk, bmy, 6/28/06)
 !******************************************************************************
 !
       !=================================================================
@@ -111,7 +114,12 @@
       !=================================================================
 
       REAL*8             :: GNH3, GHNO3, GHCL 
-      COMMON /GAS/          GNH3, GHNO3, GHCL 
+      !-----------------------------------------------------------
+      ! Prior to 6/28/06:
+      ! Rename to avoid namespace confusion (psk, bmy, 6/28/06)
+      !COMMON /GAS/          GNH3, GHNO3, GHCL 
+      !-----------------------------------------------------------
+      COMMON /GAS1/         GNH3, GHNO3, GHCL 
 
       !=================================================================
       ! Equilibrium constants
@@ -169,7 +177,12 @@
 !$OMP THREADPRIVATE( /EROR0/ )
 !$OMP THREADPRIVATE( /EROR1/ )
 !$OMP THREADPRIVATE( /EROR2/ )
-!$OMP THREADPRIVATE( /GAS/   )
+!--------------------------------------------------------------
+! Prior to 6/28/06:
+! Rename to avoid namespace confusion (psk, bmy, 6/28/06)
+!!$OMP THREADPRIVATE( /GAS/  )
+!--------------------------------------------------------------
+!$OMP THREADPRIVATE( /GAS1/  )
 !$OMP THREADPRIVATE( /INPT2/ )
 !$OMP THREADPRIVATE( /IONS0/ )
 !$OMP THREADPRIVATE( /IONS2/ )

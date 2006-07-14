@@ -1,9 +1,9 @@
-! $Id: logical_mod.f,v 1.11 2006/06/28 17:26:52 bmy Exp $
+! $Id: logical_mod.f,v 1.12 2006/07/14 18:36:49 bmy Exp $
       MODULE LOGICAL_MOD
 !
 !******************************************************************************
 !  Module LOGICAL_MOD contains all of the logical switches used by GEOS-CHEM.
-!  (bmy, 7/9/04, 6/26/06)
+!  (bmy, 7/9/04, 7/6/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -55,6 +55,12 @@
 !  (46) LWOODCO   (LOGICAL) : ON/OFF switch for BIOFUEL EMISSIONS
 !  (47) LDYNOCEAN (LOGICAL) : ON/OFF switch for OCEAN MERCURY MODULE
 !  (48) LGFED2BB  (LOGICAL) : ON/OFF switch for GFED2 BIOMASS BURNING 
+!  (49) LBRAVO    (LOGICAL) : ON/OFF switch for BRAVO EMISSIONS
+!  (50) LEDGAR    (LOGICAL) : ON/OFF switch for EDGAR emissions
+!  (51) LEDGARNOx (LOGICAL) : ON/OFF switch for EDGAR NOx emissions
+!  (52) LEDGARCO  (LOGICAL) : ON/OFF switch for EDGAR CO emissions
+!  (53) LEDGARSHIP(LOGICAL) : ON/OFF switch for EDGAR ship exhaust emissions
+!  (54) LEDGARSOx (LOGICAL) : ON/OFF switch for EDGAR SOx emissions
 !
 !  NOTES:
 !  (1 ) Added LNEI99 switch to toggle EPA/NEI emissions (bmy, 11/5/04)
@@ -66,6 +72,8 @@
 !  (7 ) Added LCTH, LMFLUX, LPRECON for lightning options (ltm, bmy, 5/5/06)
 !  (8 ) Added LFUTURE (swu, bmy, 5/30/06)
 !  (9 ) Added LBRAVO (rjp, kfb, bmy, 6/26/06)
+!  (10) Added LEDGAR, LEDGARNOx, LEDGARCO, LEDGARSHIP, LEDGARSOx switches
+!        for EDGAR emissions (avd, bmy, 7/6/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -109,6 +117,11 @@
       LOGICAL :: LBIOFUEL
       LOGICAL :: LBIOGENIC
       LOGICAL :: LBRAVO
+      LOGICAL :: LEDGAR
+      LOGICAL :: LEDGARNOx
+      LOGICAL :: LEDGARCO
+      LOGICAL :: LEDGARSHIP
+      LOGICAL :: LEDGARSOx
       LOGICAL :: LEMEP
       LOGICAL :: LEMIS  
       LOGICAL :: LFFNOX                 

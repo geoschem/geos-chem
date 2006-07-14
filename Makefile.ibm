@@ -1,5 +1,5 @@
 #=============================================================================
-# $Id: Makefile.ibm,v 1.37 2006/06/28 17:26:43 bmy Exp $
+# $Id: Makefile.ibm,v 1.38 2006/07/14 18:36:42 bmy Exp $
 #
 # Makefile for GEOS-Chem on IBM AIX: (gcc, Mon Feb 03 11:56:55 2003)
 #=============================================================================
@@ -157,6 +157,7 @@ diag_pl_mod.o             \
 ocean_mercury_mod.o       \
 drydep_mod.o              \
 bravo_mod.o               \
+edgar_mod.o               \
 emep_mod.o                \
 epa_nei_mod.o             \
 geia_mod.o                \
@@ -218,6 +219,7 @@ chemistry_mod.o           \
 emissions_mod.o           \
 gamap_mod.o               \
 input_mod.o
+
 
 #=============================================================================
 #  Executable with FAST-J (default)
@@ -299,6 +301,7 @@ directory_mod.o            : directory_mod.f
 drydep_mod.o               : drydep_mod.f               CMN_DEP CMN_DIAG CMN_GCTM CMN_SIZE define.h CMN_VEL commsoil.h comode.h 
 dust_dead_mod.o            : dust_dead_mod.f            CMN_GCTM CMN_SIZE define.h 
 dust_mod.o                 : dust_mod.f                 CMN_DIAG CMN_GCTM CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h comode.h jv_cmn.h 
+edgar_mod.o                : edgar_mod.f                CMN_SIZE define.h 
 emep_mod.o                 : emep_mod.f                 CMN_SIZE define.h 
 emf_scale.o                : emf_scale.f                CMN_O3 CMN_SIZE define.h comode.h 
 emfossil.o                 : emfossil.f                 CMN_DIAG CMN_O3 CMN_SIZE define.h comode.h 

@@ -1,9 +1,9 @@
-! $Id: emfossil.f,v 1.10 2006/06/28 17:26:50 bmy Exp $
+! $Id: emfossil.f,v 1.11 2006/07/14 18:36:46 bmy Exp $
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
 !******************************************************************************
 !  Subroutine EMFOSSIL emits fossil fuels into the EMISRR and EMISRRN 
-!  arrays, which are then passed to SMVGEAR. (bmy, 4/19/99, 6/26/06)
+!  arrays, which are then passed to SMVGEAR. (bmy, 4/19/99, 7/10/06)
 !
 !  Arguments as input:
 !  ========================================================================
@@ -45,16 +45,23 @@
 !  (21) Rewrite IF statements to avoid seg fault errors when LEMEP and LNEI99 
 !        are turned off. (bmy, 2/1/06)
 !  (22) Now apply BRAVO Mexican emissions if necessary (rjp, kfb, bmy, 6/26/06)
+!  (23) Now apply EDGAR emissions if necessary.  Also now only do the the 
+!        EDGAR, EPA, EMEP, and BRAVO function calls in the LL=1 block.
+!        (avd, bmy, 7/10/06)
 !******************************************************************************
 !          
       ! References to F90 modules
       USE BRAVO_MOD,    ONLY : GET_BRAVO_ANTHRO, GET_BRAVO_MASK
       USE DIAG_MOD,     ONLY : AD29,   AD32_an,  AD36
+      USE EDGAR_MOD,    ONLY : GET_EDGAR_CO,     GET_EDGAR_NOx
+      USE EDGAR_MOD,    ONLY : GET_EDGAR_TODN
       USE EMEP_MOD,     ONLY : GET_EMEP_ANTHRO,  GET_EUROPE_MASK
       USE EPA_NEI_MOD,  ONLY : GET_EPA_ANTHRO,   GET_USA_MASK
       USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,  ONLY : LBRAVO, LEMEP,    LNEI99 
+      USE LOGICAL_MOD,  ONLY : LBRAVO, LEMEP,    LNEI99
+      USE LOGICAL_MOD,  ONLY : LEDGARNOx,        LEDGARCO
       USE TIME_MOD,     ONLY : GET_TS_EMIS,      GET_DAY_OF_WEEK
+      USE TIME_MOD,     ONLY : GET_HOUR
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDENOX, IDEOX,    IDTCO
   
@@ -70,12 +77,12 @@
 
       ! Local Variables & external functions
       LOGICAL               :: WEEKDAY
-      INTEGER               :: L, LL, K, DOW
+      INTEGER               :: L, LL, K, DOW, HOUR
       REAL*8                :: TODX, DTSRCE, AREA_CM2           
       REAL*8                :: EMX(NOXLEVELS)  
       REAL*8                :: XEMISR
       REAL*8                :: XEMISRN(NOXLEVELS)
-      REAL*8                :: BRAVO, EPA_NEI, EMEP
+      REAL*8                :: BRAVO, EPA_NEI, EMEP, EDGAR
 
       !=================================================================
       ! EMFOSSIL begins here!
@@ -86,6 +93,9 @@
 
       ! Surface area of grid box
       AREA_CM2 = GET_AREA_CM2( J )
+
+      ! GMT hour of day
+      HOUR     = GET_HOUR()
 
       ! Flag for weekday or weekend for NEI emissions
       DOW      = GET_DAY_OF_WEEK()
@@ -121,6 +131,33 @@
             EMX(LL)  = TODX * EMISRN(IREF,JREF,LL)
 
             !-----------------------------------------------------------
+            ! Get NOx from the EDGAR inventory (global)
+            !-----------------------------------------------------------
+
+            ! If we are using EPA/NEI emissions
+            IF ( LEDGARNOx ) THEN
+
+               ! Put all emissions into 1st level
+               IF ( LL == 1 ) THEN
+
+                  ! Get EDGAR emissions for NOx [molec/cm2/s]
+                  EDGAR   = GET_EDGAR_NOx( I, J, MOLEC_CM2_S=.TRUE. )
+
+                  ! Apply EDGAR time-of-day factor
+                  EDGAR   = EDGAR * GET_EDGAR_TODN( I, J, HOUR )
+
+                  ! Replace GEIA with EPA/NEI emissions at surface
+                  EMX(LL) = EDGAR * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+            
+               ELSE 
+            
+                  ! Zero EDGAR emissions in the 2nd level 
+                  EMX(LL) = 0d0                   
+                  
+               ENDIF
+            ENDIF
+
+            !-----------------------------------------------------------
             ! Get NOx from EPA/NEI inventory over the USA 
             !-----------------------------------------------------------
 
@@ -130,19 +167,29 @@
                ! If we are over the USA ...               
                IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN 
             
-                  ! Get EPA emissions for NOx (and apply time-of-day factor)
-                  EPA_NEI = GET_EPA_ANTHRO( I, J, NN, WEEKDAY )
-                  EPA_NEI = EPA_NEI * TODX
+                  !-----------------------------------------------------------
+                  ! Prior to 7/10/06:
+                  ! Move this down into the LL==1 block (bmy, 7/10/06)
+                  !! Get EPA emissions for NOx (and apply time-of-day factor)
+                  !EPA_NEI = GET_EPA_ANTHRO( I, J, NN, WEEKDAY )
+                  !EPA_NEI = EPA_NEI * TODX
+                  !-----------------------------------------------------------
             
                   IF ( LL == 1 ) THEN
                   
+                     ! Get EPA emissions for NOx 
+                     EPA_NEI = GET_EPA_ANTHRO( I, J, NN, WEEKDAY )
+
+                     ! Apply time-of-day factor
+                     EPA_NEI = EPA_NEI * TODX
+
                      ! Replace GEIA with EPA/NEI emissions at surface
                      EMX(LL) = EPA_NEI * 
      &                         ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
             
                   ELSE 
             
-                     ! Zero GEIA emissions in the 2nd level 
+                     ! Zer   o GEIA emissions in the 2nd level 
                      ! where the EPA/NEI emissions are nonzero
                      EMX(LL) = 0d0                   
                   
@@ -160,12 +207,22 @@
                ! If we are over the European region ...
                IF ( GET_EUROPE_MASK( I, J ) > 0d0 ) THEN 
 
-                  ! Get EMEP emissions for NOx (and apply time-of-day factor)
-                  EMEP = GET_EMEP_ANTHRO( I, J, NN )
-                  EMEP = EMEP * TODX
+                  !-----------------------------------------------------------
+                  ! Prior to 7/10/06:
+                  ! Move this down into the LL==1 block (bmy, 7/10/06)
+                  !! Get EMEP emissions for NOx (and apply time-of-day factor)
+                  !EMEP = GET_EMEP_ANTHRO( I, J, NN )
+                  !EMEP = EMEP * TODX
+                  !-----------------------------------------------------------
 
                   IF ( LL == 1 ) THEN
             
+                     ! Get EMEP emissions for NOx 
+                     EMEP    = GET_EMEP_ANTHRO( I, J, NN )
+
+                     ! Apply time-of-day factor
+                     EMEP    = EMEP * TODX
+
                      ! Replace GEIA with EMEP emissions at surface
                      EMX(LL) = EMEP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
                   
@@ -189,11 +246,19 @@
                ! If we are over the Mexican region ...
                IF ( GET_BRAVO_MASK( I, J ) > 0d0 ) THEN 
 
-                  ! Get BRAVO emissions for NOx (and apply time-of-day factor)
-                  BRAVO = GET_BRAVO_ANTHRO( I, J, NN ) * TODX
+                  !------------------------------------------------------------
+                  ! Prior to 7/10/06:
+                  ! Move this down into the LL=1 block (bmy, 7/10/06)
+                  !! Get BRAVO emissions for NOx (and apply time-of-day factor)
+                  !BRAVO = GET_BRAVO_ANTHRO( I, J, NN ) * TODX
+                  !------------------------------------------------------------
 
                   IF ( LL == 1 ) THEN
-            
+
+                     ! Get BRAVO emissions for NOx 
+                     ! (and apply time-of-day factor)
+                     BRAVO   = GET_BRAVO_ANTHRO( I, J, NN ) * TODX
+
                      ! Replace GEIA with BRAVO emissions at surface
                      EMX(LL) = BRAVO * ( DTSRCE*AREA_CM2 ) / XNUMOL(NN) 
                   
@@ -249,6 +314,25 @@
          ! Enhance CO production by 2%, to account for CO
          ! production from anthropogenic VOC's (bnd, bmy, 4/26/01)
          IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.02d0
+
+         !--------------------------------------------------------------
+         ! Get CO emissions from the EDGAR inventory (global)
+         !--------------------------------------------------------------
+
+         ! If we are using EDGAR CO
+         IF ( LEDGARCO ) THEN
+         
+            ! Get EDGAR CO
+            EDGAR  = GET_EDGAR_CO( I, J, MOLEC_CM2_S=.TRUE. )
+
+            ! Apply time of day factor
+            EDGAR  = EDGAR * TODX
+         
+            ! Convert from molec/cm2/s to kg/box/timestep in order
+            ! to be in the proper units for EMISRR array
+            EMX(1) = EDGAR * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+
+         ENDIF
 
          !--------------------------------------------------------------
          ! Get CO & Hydrocarbons from EPA/NEI inventory over the USA 
