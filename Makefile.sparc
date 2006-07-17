@@ -1,5 +1,5 @@
 #=============================================================================
-# $Id: Makefile.sparc,v 1.39 2006/07/14 18:36:44 bmy Exp $
+# $Id: Makefile.sparc,v 1.40 2006/07/17 17:07:13 bmy Exp $
 #
 # GEOS-Chem Makefile for Sun Studio and Sun/SPARC compilers, including
 # compilation options for both SPARC v9 and AMD/Opteron chipsets
@@ -409,11 +409,11 @@ time_mod.o                 : time_mod.f                 define.h
 toms_mod.o                 : toms_mod.f                 CMN_SIZE define.h 
 tpcore_bc_mod.o            : tpcore_bc_mod.f            CMN CMN_SIZE define.h 
 tpcore_fvdas_mod.o         : tpcore_fvdas_mod.f90         
-	$(F90) -c -xtypemap=real:64 $*.F90
+	$(F90) -c -xtypemap=real:64 $*.f90
 tpcore_mod.o               : tpcore_mod.f               CMN_DIAG CMN_GCTM CMN_SIZE define.h define.h 
 	$(F90) -c -xtypemap=real:64 $*.f
 tpcore_window_mod.o        : tpcore_window_mod.f        CMN_DIAG CMN_GCTM CMN_SIZE define.h define.h 
-	$(F90) -c -xtypemap=real:64 $*.F
+	$(F90) -c -xtypemap=real:64 $*.f
 tracer_mod.o               : tracer_mod.f               CMN_SIZE define.h 
 tracerid_mod.o             : tracerid_mod.f             CMN_SIZE define.h comode.h 
 transfer_mod.o             : transfer_mod.f             CMN_SIZE define.h 
