@@ -1,10 +1,10 @@
-! $Id: gamap_mod.f,v 1.14 2006/06/06 14:26:03 bmy Exp $
+! $Id: gamap_mod.f,v 1.15 2006/07/26 15:32:11 bmy Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
 !  Module GAMAP_MOD contains routines to create GAMAP "tracerinfo.dat" and
 !  "diaginfo.dat" files which are customized to each particular GEOS-CHEM
-!  simulation. (bmy, 5/3/05, 5/22/06)
+!  simulation. (bmy, 5/3/05, 7/25/06)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -70,6 +70,7 @@
 !  (6 ) Updated for tagged Hg simulation (cdh, bmy, 4/6/06)
 !  (7 ) Updated for ND56 lightning flash diagnostics (ltm, bmy, 5/5/06)
 !  (8 ) Updated for ND42 SOA concentration diagnostics (dkh, bmy, 5/22/06)
+!  (9 ) Updated for ND36 CH3I simulation diagnostics (bmy, 7/25/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -165,7 +166,7 @@
 
       ! Deallocate variables
       CALL CLEANUP_GAMAP
-     
+
       ! Return to calling program
       END SUBROUTINE DO_GAMAP
 
@@ -630,7 +631,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_GAMAP allocates and initializes all module variables.  
-!  (bmy, 4/22/05, 5/5/06)
+!  (bmy, 4/22/05, 7/25/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -654,6 +655,7 @@
 !  (7 ) Now references ND56 from "diag56_mod.f" (ltm, bmy, 5/5/06) 
 !  (8 ) Now references ND42 from "diag42_mod.f".  Also updated for extra SOA
 !        tracers in ND07 diagnostic. (dkh, bmy, 5/22/06)
+!  (9 ) Updated ND36 for CH3I simulation (bmy, 7/25/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -678,7 +680,7 @@
       USE TRACER_MOD,   ONLY : N_TRACERS,        TRACER_COEFF
       USE TRACER_MOD,   ONLY : TRACER_MW_KG,     TRACER_NAME
       USE TRACERID_MOD, ONLY : IDTBCPI, IDTOCPI, IDTALPH, IDTLIMO
-      USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3
+      USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, NEMANTHRO
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD, GET_WETDEP_NSOL
 
 #     include "CMN_SIZE"    ! Size parameters
@@ -834,10 +836,13 @@
       DESCRIPT(N) = 'Instantaneous columns'
       OFFSET(N)   = SPACING * 2
 
-      N           = N + 1
-      CATEGORY(N) = 'CH3ISRCE'
-      DESCRIPT(N) = 'CH3I emissions'
-      OFFSET(N)   = SPACING * 3
+      !-------------------------------------
+      ! Prior to 7/25/06:
+      !N           = N + 1
+      !CATEGORY(N) = 'CH3ISRCE'
+      !DESCRIPT(N) = 'CH3I emissions'
+      !OFFSET(N)   = SPACING * 3
+      !-------------------------------------
 
       N           = N + 1
       CATEGORY(N) = 'CV-FLX-$'
@@ -1273,6 +1278,11 @@
       CATEGORY(N) = 'IJ-SOA-$'
       DESCRIPT(N) = 'SOA concentrations'
       OFFSET(N)   = SPACING * 43
+
+      N           = N + 1
+      CATEGORY(N) = 'CH3ISRCE'
+      DESCRIPT(N) = 'CH3I emissions'
+7      OFFSET(N)   = SPACING * 44
 
       ! Number of categories
       NCATS = N
@@ -2067,6 +2077,39 @@
          MOLC (T,31) = 1
          MWT  (T,31) = 0e0
          SCALE(T,31) = 1e0
+      ENDIF
+
+      !-------------------------------------      
+      ! CH3I emissions sources (ND36)
+      !-------------------------------------      
+      IF ( ND36 > 0 .and. ITS_A_CH3I_SIM() ) THEN
+
+         ! Number of tracers
+         NTRAC(36) = NEMANTHRO
+
+         ! The first few are tracers
+         DO T = 1, NTRAC(36)
+            IF ( T <= N_TRACERS ) THEN
+               NAME (T,36) = TRACER_NAME(T)
+               FNAME(T,36) = TRIM( NAME(T,36) ) // ' tracer'
+            ELSE IF ( T == 6 ) THEN
+               NAME (T,36) = 'CH3Iof'
+               FNAME(T,36) = 'CH3I ocean flux??'
+            ELSE IF ( T == 7 ) THEN
+               NAME (T,36) = 'CH3Igf'
+               FNAME(T,36) = 'CH3I gas flux??'
+            ELSE IF ( T == 8 ) THEN
+               NAME (T,36) = 'CH3Itf'
+               FNAME(T,36) = 'CH3I total flux??'
+            ENDIF
+
+            ! Define other quantities
+            MOLC (T,36) = 1
+            SCALE(T,36) = 1e0
+            INDEX(T,36) = T + ( SPACING * 44 )
+            MWT  (T,36) = 141.9e-3
+            UNIT (T,36) = 'ng/m2/s'
+         ENDDO
       ENDIF
 
       !-------------------------------------      

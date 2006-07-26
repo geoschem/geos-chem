@@ -1,10 +1,10 @@
-! $Id: tracerid_mod.f,v 1.17 2006/06/06 14:26:11 bmy Exp $
+! $Id: tracerid_mod.f,v 1.18 2006/07/26 15:32:13 bmy Exp $
       MODULE TRACERID_MOD
 !
 !******************************************************************************
 !  Module TRACERID_MOD contains variables which point to SMVGEAR species,
 !  CTM Tracers, Biomass species, and biofuel species located within various
-!  GEOS-CHEM arrays. (bmy, 11/12/02, 4/5/06)
+!  GEOS-CHEM arrays. (bmy, 11/12/02, 7/25/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -168,6 +168,7 @@
 !        ID_Hg0, ID_Hg2, ID_HgP for tagged Hg tracers.  (cdh, bmy, 1/5/06)
 !  (13) Remove IDBxxxx biomass flags; these aren't needed. (bmy, 4/5/06)
 !  (14) Add IDTSOG4 and IDTSOA4 (dkh, bmy, 5/18/06)
+!  (15) Minor fixes for CH3I simulation (bmy, 7/25/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -258,6 +259,7 @@
 !        (cdh, bmy, 12/15/05)
 !  (12) Now remove IDBxxx biomass flags (bmy, 4/5/06)
 !  (13) Now look for IDTSOG4 and IDTSOA4 (bmy, 5/18/06)
+!  (14) Minor fixes for CH3I simulation (bmy, 7/25/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -552,10 +554,16 @@
             !--------------------------------
 
             ! Special case: CH3I needs CO biomass/biofuel
-            CASE ( 'CH3I' )
+            !-----------------------------------------------
+            ! Prior to 7/25/06:
+            ! Minor fixes for CH3I simulation (bmy, 7/25/06)
+            !CASE ( 'CH3I' )
+            !-----------------------------------------------
+            CASE ( 'CH3I', 'CH3IOC' )
                COUNT    = COUNT + 1
                IDTCO    = 1
                IDBFCO   = COUNT
+               NEMANTHRO= 8      ! Reset NEMANTHRO here too (bmy, 7/25/06)
                EXIT
 
             ! Special case: HCN needs CO biomass/biofuel

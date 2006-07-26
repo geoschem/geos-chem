@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.33 2006/06/06 14:25:59 bmy Exp $
+! $Id: diag3.f,v 1.34 2006/07/26 15:32:10 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out diagnostics to the BINARY format punch file 
-!  (bmy, bey, mgs, rvm, 5/27/99, 5/22/06)
+!  (bmy, bey, mgs, rvm, 5/27/99, 7/25/06)
 !
 !  NOTES: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
@@ -72,6 +72,7 @@
 !  (65) References ND56, WRITE_DIAG56 from "diag56_mod.f" (ltm, bmy, 5/5/06)
 !  (66) Now remove TRCOFFSET; it's obsolete.  References ND42, WRITE_DIAG42 
 !        from "diag42_mod.f" (dkh, bmy, 5/22/06)
+!  (67) Updated ND36 diagnostic for CH3I (bmy, 7/25/06)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -1962,35 +1963,51 @@
 !  (4) For a CH3I run, make sure that the tracer number N is not larger
 !       than NTRACE (bmy, 4/9/99) 
 !  (5) ND36 now uses the AD36 array instead of AIJ. (bmy, 3/16/00)
+!  (6) Rewritten for clarity; also fixed for CH3I (bmy, 7/25/06)
 !******************************************************************************
 !                     
       IF ( ND36 > 0 ) THEN
 
-         IF ( ITS_A_CH3I_SIM() ) THEN
-            CATEGORY = 'CH3ISRCE'
-            UNIT     = 'ng/m2/s'
-         ELSE 
-            CATEGORY = 'ANTHSRCE'
-            UNIT     = '' 
-         ENDIF
+         !------------------------------------
+         ! Prior to 7/25/06:
+         ! Rewrite for clarity (bmy, 7/25/06)
+         !IF ( ITS_A_CH3I_SIM() ) THEN
+         !   CATEGORY = 'CH3ISRCE'
+         !   UNIT     = 'ng/m2/s'
+         !ELSE 
+         !   CATEGORY = 'ANTHSRCE'
+         !   UNIT     = '' 
+         !ENDIF
+         !------------------------------------
 
+         ! Loop over # of tracers
          DO M = 1, TMAX(36)
+            
+            ! Get the tracer #
             N  = TINDEX(36,M)
-               
+
+            ! Define quantities for CH3I or fullchem
             IF ( ITS_A_CH3I_SIM() ) THEN
-               MM = N
+               CATEGORY = 'CH3ISRCE'
+               UNIT     = 'ng/m2/s'
                IF ( N > NEMANTHRO ) CYCLE 
             ELSE 
-               MM = M
+               CATEGORY = 'ANTHSRCE'
+               UNIT     = ''
                IF ( .not. ANY( IDEMS == N ) ) CYCLE               
-               N  = IDEMS(M)
+               N        = IDEMS(M)
             ENDIF
 
             ! Tracer number
             NN = N
 
             ! Divide by seconds
-            ARRAY(:,:,1) = AD36(:,:,MM) / SECONDS
+            !-----------------------------------------
+            ! Prior to 7/25/06:
+            ! Rewrite for clarity (bmy, 7/25/06)
+            !ARRAY(:,:,1) = AD36(:,:,MM) / SECONDS
+            !-----------------------------------------
+            ARRAY(:,:,1) = AD36(:,:,M) / SECONDS
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    

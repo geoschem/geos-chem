@@ -1,10 +1,10 @@
-! $Id: anthroems.f,v 1.7 2006/06/28 17:26:47 bmy Exp $
+! $Id: anthroems.f,v 1.8 2006/07/26 15:32:10 bmy Exp $
       SUBROUTINE ANTHROEMS( NSEASON )
 !
 !******************************************************************************
 !  Subroutine ANTHROEMS reads anthropogenic tracers for each season.
 !  NOx emissions at levels other than the surface are now accounted for.
-!  (bmy, 6/4/98, 5/30/06)
+!  (bmy, 6/4/98, 7/18/06)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -84,6 +84,7 @@
 !  (26) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (27) Now replace FMOL with TRACER_MW_KG (bmy, 10/25/05)
 !  (28) Modified for IPCC future emissions scale factors (swu, bmy, 5/30/06)
+!  (29) Extend max value for FSCALYR to 2002 (bmy, 7/18/06)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -153,7 +154,12 @@
       ! latest year for which we have data from CDIAC. (bmy, 1/13/03)
       !=================================================================
       IF ( FSCALYR < 0 ) THEN
-         SCALEYEAR = MIN( GET_YEAR(), 1998 )
+         !---------------------------------------
+         ! Prior to 7/18/06:
+         ! Extend to year 2002 (bmy, 7/18/06)
+         !SCALEYEAR = MIN( GET_YEAR(), 1998 )
+         !---------------------------------------
+         SCALEYEAR = MIN( GET_YEAR(), 2002 )
       ELSE
          SCALEYEAR = FSCALYR
       ENDIF

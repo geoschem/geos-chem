@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.28 2006/07/14 18:36:48 bmy Exp $
+! $Id: input_mod.f,v 1.29 2006/07/26 15:32:12 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -2027,7 +2027,8 @@
       USE TRACER_MOD,   ONLY : N_TRACERS
       USE TRACER_MOD,   ONLY : ITS_A_CO2_SIM,        ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM,    ITS_A_RnPbBe_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_TAGOX_SIM,      SALA_REDGE_um
+      USE TRACER_MOD,   ONLY : ITS_A_TAGOX_SIM,      ITS_A_CH3I_SIM
+      USE TRACER_MOD,   ONLY : SALA_REDGE_um
       USE TRACERID_MOD, ONLY : NEMANTHRO
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_NMAX
 
@@ -2324,7 +2325,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:37' )
       READ( SUBSTRS(1), * ) ND36
-      CALL SET_TINDEX( 36, ND36, SUBSTRS(2:N), N-1, NEMANTHRO )
+      CALL SET_TINDEX( 36, ND36, SUBSTRS(2:N), N-1, NEMANTHRO )      
 
       !--------------------------
       ! ND37: Updraft scav frac

@@ -1,5 +1,5 @@
 REVISIONS (v7-04-07)  
-bmy, 14 Jul 2006
+bmy, 25 Jul 2006
 
 
 New in v7-04-07:
@@ -19,8 +19,15 @@ Removed in v7-04-07:
 Changed from v7-04-06:
 -------------------------------------------------------------------------------
 
+anthroems.f		-- Extend max value for FSCALYR to 2002 
+
 cleanup.f		-- Now references CLEANUP_BRAVO from "bravo_mod.f"
 			-- Now references CLEANUP_EDGAR from "edgar_mod.f"
+
+compute_f		-- Bug fix: now use separate conversion factors for 
+("wetscav_mod.f")	   H2O2 and NH3
+
+diag3.f			-- Updated ND36 diagnostic for CH3I
 
 do_global_transport	-- Rewrote some parallel loops for the SUN compiler
 ("transport_mod.f")
@@ -28,6 +35,9 @@ do_global_transport	-- Rewrote some parallel loops for the SUN compiler
 emfossil.f		-- Now apply EDGAR emissions if necessary
 			-- Also now only do the the EDGAR, EPA, EMEP, and
   			   BRAVO function calls in the LL=1 block.
+
+init_gamap		-- Updated for ND36 CH3I simulation diagnostics
+("gamap_mod.f")
 
 init_input		-- Now reference the EDGAR logical switches from 
 ("input_mod.f")		   "logical_mod.f"
@@ -51,3 +61,6 @@ read_emissions_menu	-- Now read LEDGAR for EDGAR emissions
 read_ship_so2		-- Now get EDGAR ship SO2 emissions if necessary 
 ("sulfate_mod.f")	-- Also apply future emissions scale factors to the 
  			   default Corbett et al ship emissions
+
+tracerid		-- Minor fixes for CH3I simulation
+("tracerid_mod.f")

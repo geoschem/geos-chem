@@ -1,9 +1,9 @@
-! $Id: wetscav_mod.f,v 1.24 2006/07/14 18:36:53 bmy Exp $
+! $Id: wetscav_mod.f,v 1.25 2006/07/26 15:32:14 bmy Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
 !  Module WETSCAV_MOD contains arrays for used in the wet scavenging of
-!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 5/24/06)
+!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 7/26/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -118,6 +118,7 @@
 !        tagged Hg simulation. (dkh, rjp, eck, cdh, bmy, 1/6/06)
 !  (22) Now wet deposit SOG4, SOA4. Remove unnecessary variables in WETDEP.
 !        (dkh, bmy, 5/18/06)
+!  (23) Bug fixes in COMPUTE_F (bmy, 7/26/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -524,7 +525,7 @@
 !
 !******************************************************************************
 !  Subroutine COMPUTE_F computes F, the fraction of soluble tracer lost by 
-!  scavenging in convective cloud updrafts. (hyl, bmy, djj, 2/23/00, 5/18/06)
+!  scavenging in convective cloud updrafts. (hyl, bmy, djj, 2/23/00, 7/26/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -587,6 +588,8 @@
 !        determine if a tracer is an Hg2 or HgP tagged tracer. 
 !        (dkh, rjp, eck, cdh, bmy, 1/6/06)
 !  (20) Updated for SOG4 and SOA4 (dkh, bmy, 5/18/06)
+!  (21) Bug fix: now use separate conversion factors for H2O2 and NH3.
+!        (havala, bmy, 7/26/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -615,10 +618,17 @@
       REAL*8               :: L2G, I2G, C_TOT, F_L, F_I, K, TMP, SO2LOSS
 
       ! Kc is the conversion rate from cloud condensate to precip [s^-1]
-      REAL*8, PARAMETER    :: KC   = 5d-3
+      REAL*8, PARAMETER    :: KC        = 5d-3
 
-      ! CONV = 0.6 * SQRT( 1.9 ), used for the ice to gas ratio for H2O2
-      REAL*8, PARAMETER    :: CONV = 8.27042925126d-1
+      ! CONV_H2O2 = 0.6 * SQRT( 1.9 ), used for the ice to gas ratio for H2O2
+      ! 0.6 is ( sticking  coeff H2O2  / sticking  coeff  water )
+      ! 1.9 is ( molecular weight H2O2 / molecular weight water )
+      REAL*8, PARAMETER    :: CONV_H2O2 = 8.27042925126d-1
+
+      ! CONV_NH3 = 0.6 * SQRT( 0.9 ), used for the ice to gas ratio for NH3
+      ! 0.6 is ( sticking  coeff  NH3 / sticking  coeff  water )
+      ! 0.9 is ( molecular weight NH3 / molecular weight water )
+      REAL*8, PARAMETER    :: CONV_NH3  = 5.69209978831d-1
 
       !=================================================================
       ! COMPUTE_F begins here!
@@ -657,7 +667,12 @@
             ! Compute ice to gas ratio for H2O2 by co-condensation
             ! (Eq. 9, Jacob et al, 2000)
             IF ( C_H2O(I,J,L) > 0d0 ) THEN 
-               I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * CONV
+               !---------------------------------------------------------
+               ! Prior to 7/26/06:
+               ! Now use CONV_H2O2 (havala, bmy, 7/26/06)
+               !I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * CONV
+               !---------------------------------------------------------
+               I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * CONV_H2O2
             ELSE
                I2G = 0d0
             ENDIF
@@ -889,7 +904,12 @@
             ! Compute ice to gas ratio for NH3 by co-condensation
             ! (Eq. 9, Jacob et al, 2000)
             IF ( C_H2O(I,J,L) > 0d0 ) THEN 
-               I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * CONV
+               !-----------------------------------------------------
+               ! Prior to 7/26/06:
+               ! Now use CONV_NH3 (bmy, 7/26/06)
+               !I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * CONV
+               !-----------------------------------------------------
+               I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * CONV_NH3
             ELSE
                I2G = 0d0
             ENDIF
