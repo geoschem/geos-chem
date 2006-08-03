@@ -1,10 +1,10 @@
-! $Id: carbon_mod.f,v 1.19 2006/06/06 14:25:57 bmy Exp $
+! $Id: carbon_mod.f,v 1.20 2006/08/03 19:57:44 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
 !  Module CARBON_MOD contains arrays and routines for performing a 
 !  carbonaceous aerosol simulation.  Original code taken from Mian Chin's 
-!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 6/1/06)
+!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 8/3/06)
 !
 !  4 Aerosol species : Organic and Black carbon 
 !                    : hydrophilic (soluble) and hydrophobic of each
@@ -139,6 +139,7 @@
 !  (10) Updated for SOA production from ISOP (dkh, bmy, 5/22/06)
 !  (11) Updated for IPCC future emission scale factors.  Also added function
 !        GET_DOH to return ISOP that has reacted w/ OH. (swu, dkh, bmy, 6/1/06)
+!  (12) Now add SOG condensation onto SO4, NH4, NIT (rjp, bmy, 8/3/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1064,7 +1065,7 @@
 !******************************************************************************
 !  Subroutine SOA_CHEMISTRY performs SOA formation.  This code is from the
 !  Caltech group (Hong Liao, Serena Chung, et al) and was modified for 
-!  GEOS-CHEM. (rjp, bmy, 7/8/04, 6/1/06)
+!  GEOS-CHEM. (rjp, bmy, 7/8/04, 8/3/06)
 !
 !  Procedure:
 !  ============================================================================
@@ -1112,6 +1113,8 @@
 !  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !  (2 ) Now modified for SOG4, SOA4 -- products of oxidation by isoprene.
 !        (dkh, bmy, 6/1/06)
+!  (3 ) Now consider SOG condensation onto SO4, NH4, NIT aerosols (if SO4,
+!        NH4, NIT are defined as tracers). (rjp, bmy, 8/3/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1122,7 +1125,11 @@
       USE TRACERID_MOD, ONLY : IDTALCO, IDTALPH, IDTLIMO, IDTOCPI
       USE TRACERID_MOD, ONLY : IDTOCPO, IDTSOA1, IDTSOA2, IDTSOA3
       USE TRACERID_MOD, ONLY : IDTSOA4, IDTSOG1, IDTSOG2, IDTSOG3
-      USE TRACERID_MOD, ONLY : IDTSOG4
+      !------------------------------------------------------------
+      ! Prior to 8/3/06:
+      !USE TRACERID_MOD, ONLY : IDTSOG4
+      !------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDTSOG4, IDTSO4,  IDTNH4,  IDTNIT
       USE TIME_MOD,     ONLY : GET_TS_CHEM, GET_MONTH
 
 #     include "CMN_SIZE"     ! Size parameters
@@ -1205,11 +1212,86 @@
          ENDDO
          ENDDO
                 
-         ! Primary organic aerosol concentrations [ug/m3]
-         ! We carry carbon mass only in STT arry and here multiply 1.4
-         ! to account for the mass of other chemical component attached.
-         MPOC = (STT(I,J,L,IDTOCPI) + STT(I,J,L,IDTOCPO)) * FAC
-         MPOC = MPOC * 1.4D0
+         !----------------------------------------------------------------
+         ! Prior to 8/3/06:
+         ! Now consider condensation of SOG onto seed aerosols, thus
+         ! update the algorithm below. (rjp, bmy, 8/3/06)
+         !
+         !! Primary organic aerosol concentrations [ug/m3]
+         !! We carry carbon mass only in STT arry and here multiply 1.4
+         !! to account for the mass of other chemical component attached.
+         !MPOC = (STT(I,J,L,IDTOCPI) + STT(I,J,L,IDTOCPO)) * FAC
+         !MPOC = MPOC * 1.4D0
+         !----------------------------------------------------------------
+
+         IF ( IDTSO4 > 0 .and. IDTNH4 > 0 .and. IDTNIT > 0 ) THEN
+
+            !-----------------------------------------------------------
+            ! Condensation of SOG onto seed aerosols (rjp, bmy, 8/3/06)
+            !
+            ! If SO4, NH4, and NIT are defined tracers in this run
+            ! (i.e. as in full-chemistry simulations), then:
+            !  
+            ! (1) Compute the condensation of SOG on seed aerosols 
+            !     including preexisting OC and inorganic aerosols
+            !
+            ! (2) Use higher ratio (2.1) of molecular weight of 
+            !     organic mass per carbon mass accounting for non-carbon 
+            !     components attached to OC [Turpin and Lim, 2001]
+            !
+            ! NOTE...The remaining question is:
+            !
+            !     Do we have to include other types of aerosols such 
+            !     as dust, sea salt, and aerosol water which should be 
+            !     available in ISORROPIA?
+            !
+            ! I think that aerosol water is valuable information for 
+            ! this and also AOD computation so at least we need to 
+            ! archive it if including it as a tracer is too expensive.
+            ! (Rokjin Park, 8/3/06)
+            !-----------------------------------------------------------
+
+            ! First compute SOG condensation onto OC aerosol
+            MPOC = ( STT(I,J,L,IDTOCPI) + STT(I,J,L,IDTOCPO) ) * FAC
+            MPOC = MPOC * 2.1d0
+
+            ! Then compute SOG condensation onto SO4, NH4, NIT aerosols
+            MPOC = MPOC + ( STT(I,J,L,IDTSO4) + 
+     &                      STT(I,J,L,IDTNH4) + 
+     &                      STT(I,J,L,IDTNIT) ) * FAC
+
+         ELSE
+
+            !-----------------------------------------------------------
+            ! If SO4, NIT, and NH3 are all undefined for this run, 
+            ! then we will omit SOG condensation onto these aerosols 
+            ! (at least for the time being).
+            !
+            ! We carry carbon mass only in STT array and here multiply 
+            ! by the ratio (2.1) of molecular weight of organic mass
+            ! per carbon mass.  This ratio accounts for non-carbon 
+            ! components attached to OC [Turpin and Lim, 2001].
+            !
+            ! %%% NOTE: Ideally we should read in offline monthly    %%%
+            ! %%% mean concentrations of SO4, NH4, NIT, and then use %%%
+            ! %%% these to compute SOG condensation.  Implement this %%%
+            ! %%% later.                                             %%%
+            ! %%%                                                    %%%
+            ! %%% For the time being, GEOS-Chem users are STRONGLY   %%%
+            ! %%% encouraged to include sulfate aerosol and 2dary    %%%
+            ! %%% organic aerosol tracers in offline carbon aerosol  %%%
+            ! %%% simulations.  Without these extra aerosol tracers, %%%
+            ! %%% the carbon aerosol simulation alone may under-     %%%
+            ! %%% estimate SOA formation.                            %%%
+            !
+            ! (rjp, bmy, 8/3/06)
+            !-----------------------------------------------------------
+ 
+            ! Compute SOG condensation onto OC aerosol
+            MPOC = ( STT(I,J,L,IDTOCPI) + STT(I,J,L,IDTOCPO) ) * FAC
+            MPOC = MPOC * 2.1d0
+
+         ENDIF
 
          !==============================================================
          ! Solve for MNEW by solving for SOA=0

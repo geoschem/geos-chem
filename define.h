@@ -1,31 +1,33 @@
-! $Id: define.h,v 1.45 2006/08/03 17:37:37 bmy Exp $
+! $Id: define.h,v 1.46 2006/08/03 19:57:45 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
 !  used to include or exclude certain sections of code.  
-!  (bmy, bdf, 1/30/98, 10/18/05)
+!  (bmy, bdf, 1/30/98, 8/3/06)
 !
 !  List of "Switches"
 !  ===========================================================================
-!  (1 ) GEOS_1     : Enables code for GEOS-1 met fields & chemistry
-!  (2 ) GEOS_STRAT : Enables code for GEOS-STRAT met fields & chemistry
-!  (3 ) GEOS_3     : Enables code for GEOS-3 met fields & chemistry
-!  (4 ) GEOS_4     : Enables code for GEOS-4 met fields & chemistry
-!  (5 ) A_LLK_03   : Enables code for GEOS-4 Version 3 data ("a_llk_03")
-!  (6 ) GRID30LEV  : Enables code for 30-level GEOS-3 or GEOS-4 grid
-!  (7 ) GRID1x1    : Enables code for 1 x 1   GLOBAL        GRID
-!  (8 ) NESTED_CH  : Enables code for 1 x 1   CHINA  NESTED GRID
-!  (9 ) NESTED_NA  : Enables code for 1 x 1   N. AM. NESTED GRID
-!  (10) GRID2x25   : Enables code for 2 x 2.5 GLOBAL        GRID
-!  (11) GRID4x5    : Enables code for 4 x 5   GLOBAL        GRID 
-!  (12) COMPAQ     : Enables code for Alpha w/ COMPAQ/HP Alpha compiler
-!  (13) IBM_AIX    : Enables code for IBM/AIX compiler
-!  (14) LINUX_PGI  : Enables code for Linux w/ PGI compiler
-!  (15) LINUX_IFC  : Enables code for Linux w/ 32-bit Intel v7 Fortran compiler
-!  (16) LINUX_EFC  : Enables code for Linux w/ 64-bit Intel v7 Fortran compiler
-!  (17) LINUX_IFORT: Enables code for Linux v8 or v9 compiler
-!  (18) SGI_MIPS   : Enables code for SGI Origin w/ MIPS compiler
-!  (19) SPARC      : Enables code for Sun w/ SPARC compiler
+!  (1 ) GCAP       : Enables code for GCAP met fields & chemistry
+!  (2 ) GEOS_1     : Enables code for GEOS-1 met fields & chemistry
+!  (3 ) GEOS_STRAT : Enables code for GEOS-STRAT met fields & chemistry
+!  (4 ) GEOS_3     : Enables code for GEOS-3 met fields & chemistry
+!  (5 ) GEOS_4     : Enables code for GEOS-4 met fields & chemistry
+!  (6 ) GEOS_5     : Enables code for GEOS-5 met fields & chemistry
+!  (7 ) GRID30LEV  : Enables code for 30-level GEOS-3 or GEOS-4 grid
+!  (8 ) GRID1x1    : Enables code for 1 x 1   GLOBAL        GRID
+!  (9 ) NESTED_CH  : Enables code for 1 x 1   CHINA  NESTED GRID
+!  (10) NESTED_NA  : Enables code for 1 x 1   N. AM. NESTED GRID
+!  (11) GRID1x125  :
+!  (12) GRID2x25   : Enables code for 2 x 2.5 GLOBAL        GRID
+!  (13) GRID4x5    : Enables code for 4 x 5   GLOBAL        GRID 
+!  (14) COMPAQ     : Enables code for Alpha w/ COMPAQ/HP Alpha compiler
+!  (15) IBM_AIX    : Enables code for IBM/AIX compiler
+!  (16) LINUX_PGI  : Enables code for Linux w/ PGI compiler
+!  (17) LINUX_IFC  : Enables code for Linux w/ 32-bit Intel v7 Fortran compiler
+!  (18) LINUX_EFC  : Enables code for Linux w/ 64-bit Intel v7 Fortran compiler
+!  (19) LINUX_IFORT: Enables code for Linux v8 or v9 compiler
+!  (20) SGI_MIPS   : Enables code for SGI Origin w/ MIPS compiler
+!  (21) SPARC      : Enables code for Sun w/ SPARC compiler
 ! 
 !  NOTES:
 !  (1 ) "define.h" is #include'd at the top of CMN_SIZE.  All subroutines
@@ -104,8 +106,8 @@
 !#define GCAP        'GCAP'
 !#define GEOS_1      'GEOS_1'       
 !#define GEOS_STRAT  'GEOS_STRAT'
-!#define GEOS_3      'GEOS_3'
-#define GEOS_4      'GEOS_4'
+#define GEOS_3      'GEOS_3'
+!#define GEOS_4      'GEOS_4'
 !#define GEOS_5      'GEOS_5'
 
 !----- Grid sizes -----

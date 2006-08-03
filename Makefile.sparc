@@ -1,5 +1,5 @@
 #=============================================================================
-# $Id: Makefile.sparc,v 1.40 2006/07/17 17:07:13 bmy Exp $
+# $Id: Makefile.sparc,v 1.41 2006/08/03 19:57:43 bmy Exp $
 #
 # GEOS-Chem Makefile for Sun Studio and Sun/SPARC compilers, including
 # compilation options for both SPARC v9 and AMD/Opteron chipsets
@@ -320,6 +320,7 @@ future_emissions_mod.o     : future_emissions_mod.f     CMN_SIZE define.h
 fvdas_convect_mod.o        : fvdas_convect_mod.f        CMN_DIAG CMN_SIZE define.h 
 fyrno3.o                   : fyrno3.f                   
 gamap_mod.o                : gamap_mod.f                CMN_DIAG CMN_SIZE define.h 
+	$(F90) -c -O3 -openmp=none $*.f
 gasconc.o                  : gasconc.f                  CMN_SIZE define.h comode.h 
 gc_biomass_mod.o           : gc_biomass_mod.f           CMN_SIZE define.h 
 gcap_convect_mod.o         : gcap_convect_mod.f         CMN_DIAG CMN_SIZE define.h 

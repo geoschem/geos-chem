@@ -1,5 +1,5 @@
 REVISIONS (v7-04-07)  
-bmy, 25 Jul 2006
+bmy, 03 Aug 2006
 
 
 New in v7-04-07:
@@ -8,11 +8,21 @@ New in v7-04-07:
 edgar_mod.f		-- Module to compute emissions of NOx, CO, SOX
 			   from the EDGAR emissions inventory
 
+regrid_conc_to_1x125	-- New routine to regrid concentration data from
+("regrid_1x1_mod.f")	   the GEOS 1x1 GRID to the GEOS 1 x 1.25 GRID.
+
+
+regrid_mass_to_1x125	-- New routine to regrid mass data from
+("regrid_1x1_mod.f")	   the GEOS 1x1 GRID to the GEOS 1 x 1.25 GRID.
+
 
 
 Removed in v7-04-07:
 -------------------------------------------------------------------------------
 
+f2f			-- Script to convert *.f files to *.F files.  This
+		           is no longer needed, as the Sun compiler can be
+			   forced to apply the C-Preprocessor to *.f files.
 
 
 
@@ -61,6 +71,9 @@ read_emissions_menu	-- Now read LEDGAR for EDGAR emissions
 read_ship_so2		-- Now get EDGAR ship SO2 emissions if necessary 
 ("sulfate_mod.f")	-- Also apply future emissions scale factors to the 
  			   default Corbett et al ship emissions
+
+soa_chemistry		-- Now consider SOG condensation onto SO4, NH4, NIT 
+("carbon_mod.f")	   aerosols (if SO4, NH4, NIT are defined as tracers)
 
 tracerid		-- Minor fixes for CH3I simulation
 ("tracerid_mod.f")
