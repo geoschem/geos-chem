@@ -1,4 +1,4 @@
-! $Id: edgar_mod.f,v 1.1 2006/07/17 17:07:13 bmy Exp $
+! $Id: edgar_mod.f,v 1.2 2006/08/03 17:37:37 bmy Exp $
       MODULE EDGAR_MOD
 !
 !******************************************************************************
@@ -317,17 +317,16 @@
 
       !----------------------------------
       ! Scale NOx from 2000 -> this year
-      ! (for now limit to 1998-2002)
       !----------------------------------
  
-      ! Scaling from year 2000 
+      ! Skip scaling if it's 2000
       IF ( YEAR /= 2000 ) THEN
 
          ! Scale factor file
          NAME     = 'NOxScalar-YYYY-2000'
 
          ! YYYYMMDD date
-         YYYYMMDD = ( MAX( MIN( YEAR, 2002 ), 1998 ) * 10000 ) + 0101 
+         YYYYMMDD = ( MAX( MIN( YEAR, 2002 ), 1985 ) * 10000 ) + 0101 
 
          ! Replace YYYY with year 
          CALL EXPAND_DATE( NAME, YYYYMMDD, 000000 )
@@ -337,37 +336,12 @@
 
       ENDIF 
 
-      !----------------------------------
-      ! For years prior to 1998, do 
-      ! further scaling to current year
-      !----------------------------------
-
-      ! Further scaling from year 1998
-      IF ( YEAR < 1998 ) THEN
-
-         ! Pre-1998 scale factor file
-         NAME     = 'NOxScalar-YYYY-1998'
-
-         ! YYYYMMDD date
-         YYYYMMDD = ( YEAR * 10000 ) + 0101
-
-         ! Replace YYYY with year 
-         CALL EXPAND_DATE( NAME, YYYYMMDD, 000000 )
-
-         ! Read pre-1998 NOx scale file
-         CALL READ_EDGAR_SCALE( NAME, 71, YEAR, GEOS_1x1(:,:,1) )
-
-         ! Multiply NOx scale factors by pre-1998 scale factors
-         SC_NOx_1x1(:,:) = SC_NOx_1x1(:,:) * GEOS_1x1(:,:,1)
-
-      ENDIF
-
-      !----------------------------------
-      ! Scale NOx and regrid
-      !----------------------------------
-
       ! Apply scale factors at 1x1
       GEOS_1x1(:,:,1) = E_NOx_1x1(:,:) * SC_NOx_1x1(:,:)
+
+      !----------------------------------
+      ! Do the regridding
+      !----------------------------------
 
       ! Regrid NOx emissions to current model resolution [kg/yr]
       CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, E_NOx )
@@ -769,7 +743,7 @@
 
       ! Initialize
       GEOS_1x1(:,:,:) = 0e0
-      SC_CO_1x1(:,:)  = 1d0
+      SC_CO_1x1(:,:)  = 1e0
 
       !----------------------------------
       ! Read CO data from disk
@@ -780,17 +754,16 @@
 
       !----------------------------------
       ! Scale CO from 2000 -> this year
-      ! (for now limit to 1998-2002)
       !----------------------------------
 
-      ! Scaling from year 2000 
+      ! Skip scaling if it's 2000
       IF ( YEAR /= 2000 ) THEN
 
          ! Scale factor file
          NAME     = 'COScalar-YYYY-2000'
 
          ! YYYYMMDD date
-         YYYYMMDD = ( MAX( MIN( YEAR, 2002 ), 1998 ) * 10000 ) + 0101 
+         YYYYMMDD = ( MAX( MIN( YEAR, 2002 ), 1985 ) * 10000 ) + 0101 
 
          ! Replace YYYY with year 
          CALL EXPAND_DATE( NAME, YYYYMMDD, 000000 )
@@ -800,37 +773,12 @@
 
       ENDIF
 
-      !----------------------------------
-      ! For years prior to 1998, do 
-      ! further scaling to current year
-      !----------------------------------
-
-      ! Further scaling from year 1998
-      IF ( YEAR < 1998 ) THEN
-
-         ! Pre-1998 scale factor file
-         NAME     = 'COScalar-YYYY-1998'
-
-         ! YYYYMMDD date
-         YYYYMMDD = ( YEAR * 10000 ) + 0101
-
-         ! Replace YYYY with year 
-         CALL EXPAND_DATE( NAME, YYYYMMDD, 000000 )
-
-         ! Read pre-1998 CO scale file
-         CALL READ_EDGAR_SCALE( NAME, 71, YEAR, GEOS_1x1(:,:,1) )
-
-         ! Multiply CO scale factors by pre-1998 scale factors
-         SC_CO_1x1(:,:) = SC_CO_1x1(:,:) * GEOS_1x1(:,:,1)
-
-      ENDIF
-
-      !----------------------------------
-      ! Scale CO and regrid
-      !----------------------------------
-
       ! Apply scale factors at 1x1
       GEOS_1x1(:,:,1) = E_CO_1x1(:,:) * SC_CO_1x1(:,:)
+
+      !----------------------------------
+      ! Do the regridding
+      !----------------------------------
 
       ! Regrid CO emissions to current model resolution [kg/yr]
       CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, E_CO )
@@ -1008,10 +956,9 @@
 
       !----------------------------------
       ! Scale SO2 from 2000 -> this year
-      ! (for now limit to 1998-2002)
       !----------------------------------
 
-      ! Scaling from year 2000
+      ! Skip scaling if it's 2000
       IF ( YEAR /= 2000 ) THEN
 
          ! Scale factor file
@@ -1023,39 +970,10 @@
          ! Replace YYYY with year 
          CALL EXPAND_DATE( NAME, YYYYMMDD, 000000 )
 
-         ! Read NOx scale file
+         ! Read SO2 scale file
          CALL READ_EDGAR_SCALE( NAME, 73, 2000, SC_SO2_1x1 )
 
       ENDIF 
-
-      !--------------------------------------------------------------------
-      ! NOTE: for now we only go back to 1998 for SO2, so comment this out
-      ! Maybe re-implement this later on. (avd, bmy, 7/14/06)
-      !!----------------------------------
-      !! For years prior to 1998, do 
-      !! further scaling to current year
-      !!----------------------------------
-      !
-      !! Further scaling from year 1998
-      !IF ( YEAR < 1998 ) THEN
-      !
-      !   ! Pre-1998 scale factor file
-      !   NAME     = 'SOxScalar-YYYY-1998'
-      !
-      !   ! YYYYMMDD date
-      !   YYYYMMDD = ( YEAR * 10000 ) + 0101
-      !
-      !   ! Replace YYYY with year 
-      !   CALL EXPAND_DATE( NAME, YYYYMMDD, 000000 )
-      !
-      !   ! Read pre-1998 NOx scale file
-      !   CALL READ_EDGAR_SCALE( NAME, 73, GEOS_1x1(:,:,1) )
-      !
-      !   ! Multiply NOx scale factors by pre-1998 scale factors
-      !   SC_SO2_1x1(:,:) = SC_SO2_1x1(:,:) * GEOS_1x1(:,:,1)
-      !
-      !ENDIF
-      !--------------------------------------------------------------------
 
       !----------------------------------
       ! Scale anthro SO2 and regrid

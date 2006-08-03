@@ -1,9 +1,9 @@
-! $Id: regrid_1x1_mod.f,v 1.6 2006/05/26 17:45:25 bmy Exp $
+! $Id: regrid_1x1_mod.f,v 1.7 2006/08/03 17:37:38 bmy Exp $
       MODULE REGRID_1x1_MOD
 !
 !******************************************************************************
-!  Module REGRID_1x1_MOD does online regridding of data on the GEOS-CHEM 1x1 
-!  grid to 1x1, 2x25, or 4x5 GEOS/GCAP grids. (bdf, bmy, 10/24/05, 4/18/06)
+!  Module REGRID_1x1_MOD does online regridding of data on the GEOS-Chem 1x1 
+!  grid to 1x1, 2x25, or 4x5 GEOS/GCAP grids. (bdf, bmy, 10/24/05, 8/2/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -22,13 +22,15 @@
 !  (8 ) REGRID_CONC_TO_4x5_GCAP : Regrids conc data from GEOS 1x1 -> GCAP 4x5
 !  (9 ) REGRID_MASS_TO_4x5_GCAP : Regrids mass data from GEOS 1x1 -> GCAP 4x5
 !  (10) REGRID_CONC_TO_4x5      : Regrids conc data from GEOS 1x1 -> GEOS 4x5
-!  (11) REGRID_MASS_TO_4x5      : 7Regrids mass data from GEOS 1x1 -> GEOS 4x5
+!  (11) REGRID_MASS_TO_4x5      : Regrids mass data from GEOS 1x1 -> GEOS 4x5
 !  (12) REGRID_CONC_TO_2x25     : Regrids conc data from GEOS 1x1 -> GEOS 2x25
 !  (13) REGRID_MASS_TO_2x25     : Regrids mass data from GEOS 1x1 -> GEOS 2x25
-!  (14) INIT_REGRID_1x1         : Initializes all module variables
-!  (15) CLEANUP_REGRID_1x1      : Deallocates all module variables
+!  (14) REGRID_CONC_TO_1x125    : Regrids conc data from GEOS 1x1 -> GEOS 1x125
+!  (15) REGRID_MASS_TO_1x125    : Regrids mass data from GEOS 1x1 -> GEOS 1x125
+!  (16) INIT_REGRID_1x1         : Initializes all module variables
+!  (17) CLEANUP_REGRID_1x1      : Deallocates all module variables
 ! 
-!  GEOS-CHEM modules referenced by "regrid_1x1_mod.f"
+!  GEOS-Chem modules referenced by "regrid_1x1_mod.f"
 !  ============================================================================
 !  (1 ) charpak_mod.f           : Module w/ string handling routines
 !  (2 ) grid_mod.f              : Module w/ horizontal grid information
@@ -36,6 +38,8 @@
 !  NOTES:  
 !  (1 ) Added DO_REGRID_G2G_1x1 to regrid from GENERIC 1x1 to GEOS 1x1 grid.
 !        (psk, bmy, 4/18/06)
+!  (2 ) Added routines REGRID_CONC_TO_1x125 and REGRID_MASS_TO_1x125 to regrid
+!        1x1 data to the GEOS-Chem 1x1.25 grid. (bdf, bmy, 8/2/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -161,10 +165,10 @@
             JE(2) = J1x1-1
          ENDIF
 
-         ! Loop over GEOS-CHEM longitudes
+         ! Loop over GEOS-Chem longitudes
          DO I = 1, I1x1
 
-            ! Zero quantity on GEOS-CHEM 1x1 GRID
+            ! Zero quantity on GEOS-Chem 1x1 GRID
             GEOS1x1(I,J) = 0d0
 
             ! Set limits
@@ -395,7 +399,7 @@
 !
 !******************************************************************************
 !  Subroutine DO_THE_REGRIDDING is the driver routine for the regridding from 
-!  the GEOS-CHEM 1x1 grid to other CTM grids. (bmy, 10/24/05)
+!  the GEOS-Chem 1x1 grid to other CTM grids. (bmy, 10/24/05, 8/2/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -408,6 +412,7 @@
 !  (4 ) OUTDATA (REAL*8  ) : Output data array 
 !
 !  NOTES:
+!  (1 ) Added #if block for 1 x 1.25 grid (bdf, bmy, 8/2/06)
 !******************************************************************************
 !
 #     include "CMN_SIZE"             ! Size parameters
@@ -492,6 +497,26 @@
          ! Regrid mass field to 4x5
          CALL REGRID_MASS_TO_2x25( I1x1,  J1x1, L1x1, INDATA,
      &                             IIPAR, JJPAR,      OUTDATA )
+
+      ENDIF
+
+#elif defined( GRID1x125 )
+
+      !--------------------------------------------
+      ! Regrid GEOS 1x1 grid to GEOS 1x1.25 GRID
+      !--------------------------------------------
+
+      IF ( IS_CONC ) THEN
+
+         ! Regrid concentration field to 1x125
+         CALL REGRID_CONC_TO_1X125( I1x1,  J1x1,  L1x1, INDATA,
+     &                              IIPAR, JJPAR,       OUTDATA )
+
+      ELSE
+
+         ! Regrid mass field to 1x125
+         CALL REGRID_MASS_TO_1X125( I1x1,  J1x1,  L1x1, INDATA,
+     &                              IIPAR, JJPAR,       OUTDATA )
 
       ENDIF
 
@@ -652,14 +677,14 @@
 !
 !******************************************************************************
 !  Subroutine REGRID_CONC_TO_4x5_GCAP regrids concentration data from the 
-!  GEOS-CHEM 1x1 grid to the GEOS_CHEM 4x5 GCAP grid. (bdf, bmy, 10/24/05)
+!  GEOS-Chem 1x1 grid to the GEOS-Chem 4x5 GCAP grid. (bdf, bmy, 10/24/05)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) I1  (INTEGER) : 1x1 longitude dimension of IN array
 !  (2 ) J1  (INTEGER) : 1x1 latitude  dimension of IN array
 !  (3 ) L1  (INTEGER) : 1x1 altitude  dimension of IN array
-!  (4 ) IN  (REAL*8 ) : Array containing input data on GEOS-CHEM 1x1 grid
+!  (4 ) IN  (REAL*8 ) : Array containing input data on GEOS-Chem 1x1 grid
 !  (5 ) I4  (INTEGER) : 4x5 longitude dimension of OUT array
 !  (6 ) J4  (INTEGER) : 4x5 latitude  dimension of OUT array
 !
@@ -786,20 +811,20 @@
 !
 !******************************************************************************
 !  Subroutine REGRID_MASS_TO_4x5_GCAP regrids mass data from the 
-!  GEOS-CHEM 1x1 grid to the GEOS_CHEM 4x5 GCAP grid. (bdf, bmy, 10/24/05)
+!  GEOS-Chem 1x1 grid to the GEOS-Chem 4x5 GCAP grid. (bdf, bmy, 10/24/05)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) I1  (INTEGER) : 1x1 longitude dimension of IN array
 !  (2 ) J1  (INTEGER) : 1x1 latitude  dimension of IN array
 !  (3 ) L1  (INTEGER) : 1x1 altitude  dimension of IN array
-!  (4 ) IN  (REAL*8 ) : Array containing input data on GEOS-CHEM 1x1 grid
+!  (4 ) IN  (REAL*8 ) : Array containing input data on GEOS-Chem 1x1 grid
 !  (5 ) I4  (INTEGER) : 4x5 longitude dimension of OUT array
 !  (6 ) J4  (INTEGER) : 4x5 latitude  dimension of OUT array
 !
 !  Arguments as Output:
 !  ============================================================================
-!  (7 ) OUT (REAL*8 ) : Array containing output data on GEOS-CHEM 4x5 grid
+!  (7 ) OUT (REAL*8 ) : Array containing output data on GEOS-Chem 4x5 grid
 !
 !  NOTES:
 !******************************************************************************
@@ -905,20 +930,20 @@
 !
 !******************************************************************************
 !  Subroutine REGRID_CONC_TO_4x5 regrids concentration data from the 
-!  GEOS-CHEM 1x1 grid to the GEOS_CHEM 4x5 grid. (bdf, bmy, 10/24/05)
+!  GEOS-Chem 1x1 grid to the GEOS_CHEM 4x5 grid. (bdf, bmy, 10/24/05)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) I1  (INTEGER) : 1x1 longitude dimension of IN array
 !  (2 ) J1  (INTEGER) : 1x1 latitude  dimension of IN array
 !  (3 ) L1  (INTEGER) : 1x1 altitude  dimension of IN array
-!  (4 ) IN  (REAL*8 ) : Array containing input data on GEOS-CHEM 1x1 grid
+!  (4 ) IN  (REAL*8 ) : Array containing input data on GEOS-Chem 1x1 grid
 !  (5 ) I4  (INTEGER) : 4x5 longitude dimension of OUT array
 !  (6 ) J4  (INTEGER) : 4x5 latitude  dimension of OUT array
 !
 !  Arguments as Output:
 !  ============================================================================
-!  (7 ) OUT (REAL*8 ) : Array containing output data on GEOS-CHEM 4x5 grid
+!  (7 ) OUT (REAL*8 ) : Array containing output data on GEOS-Chem 4x5 grid
 !
 !  NOTES:
 !******************************************************************************
@@ -1029,7 +1054,7 @@
       SUBROUTINE REGRID_MASS_TO_4x5( I1, J1, L1, IN, I4, J4, OUT )
 !
 !******************************************************************************
-!  Subroutine REGRID_MASS_TO_4x5 regrids mass data from the GEOS-CHEM 1x1 
+!  Subroutine REGRID_MASS_TO_4x5 regrids mass data from the GEOS-Chem 1x1 
 !  grid to the GEOS_CHEM 4x5 grid. (bdf, bmy, 10/24/05)
 !
 !  Arguments as Input:
@@ -1037,13 +1062,13 @@
 !  (1 ) I1  (INTEGER) : 1x1 longitude dimension of IN array
 !  (2 ) J1  (INTEGER) : 1x1 latitude  dimension of IN array
 !  (3 ) L1  (INTEGER) : 1x1 altitude  dimension of IN array
-!  (4 ) IN  (REAL*8 ) : Array containing input data on GEOS-CHEM 1x1 grid
+!  (4 ) IN  (REAL*8 ) : Array containing input data on GEOS-Chem 1x1 grid
 !  (5 ) I4  (INTEGER) : 4x5 longitude dimension of OUT array
 !  (6 ) J4  (INTEGER) : 4x5 latitude  dimension of OUT array
 !
 !  Arguments as Output:
 !  ============================================================================
-!  (7 ) OUT (REAL*8 ) : Array containing output data on GEOS-CHEM 4x5 grid
+!  (7 ) OUT (REAL*8 ) : Array containing output data on GEOS-Chem 4x5 grid
 !
 !  NOTES:
 !******************************************************************************
@@ -1133,20 +1158,20 @@
 !
 !******************************************************************************
 !  Subroutine REGRID_CONC_TO_2x25 regrids concentration data from the 
-!  GEOS-CHEM 1x1 grid to the GEOS_CHEM 2x25 grid. (bdf, bmy, 10/24/05)
+!  GEOS-Chem 1x1 grid to the GEOS_CHEM 2x25 grid. (bdf, bmy, 10/24/05)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) I1  (INTEGER) : 1x1  longitude dimension of IN array
 !  (2 ) J1  (INTEGER) : 1x1  latitude  dimension of IN array
 !  (3 ) L1  (INTEGER) : 1x1  altitude  dimension of IN array
-!  (4 ) IN  (REAL*8 ) : Array containing input data on GEOS-CHEM 1x1 grid
+!  (4 ) IN  (REAL*8 ) : Array containing input data on GEOS-Chem 1x1 grid
 !  (5 ) I2  (INTEGER) : 2x25 longitude dimension of OUT array
 !  (6 ) J2  (INTEGER) : 2x25 latitude  dimension of OUT array
 !
 !  Arguments as Output:
 !  ============================================================================
-!  (7 ) OUT (REAL*8 ) : Array containing output data on GEOS-CHEM 2x25 grid
+!  (7 ) OUT (REAL*8 ) : Array containing output data on GEOS-Chem 2x25 grid
 !
 !  NOTES:
 !******************************************************************************
@@ -1327,7 +1352,7 @@
       SUBROUTINE REGRID_MASS_TO_2x25( I1, J1, L1, IN, I2, J2, OUT )
 !
 !******************************************************************************
-!  Subroutine REGRID_CONC_TO_2x25 regrids mass data from the GEOS-CHEM 1x1 
+!  Subroutine REGRID_CONC_TO_2x25 regrids mass data from the GEOS-Chem 1x1 
 !  grid to the GEOS_CHEM 2x25 grid. (bdf, bmy, 10/24/05)
 !
 !  Arguments as Input:
@@ -1335,13 +1360,13 @@
 !  (1 ) I1  (INTEGER) : 1x1  longitude dimension of IN array
 !  (2 ) J1  (INTEGER) : 1x1  latitude  dimension of IN array
 !  (3 ) L1  (INTEGER) : 1x1  altitude  dimension of IN array
-!  (4 ) IN  (REAL*8 ) : Array containing input data on GEOS-CHEM 1x1 grid
+!  (4 ) IN  (REAL*8 ) : Array containing input data on GEOS-Chem 1x1 grid
 !  (5 ) I2  (INTEGER) : 2x25 longitude dimension of OUT array
 !  (6 ) J2  (INTEGER) : 2x25 latitude  dimension of OUT array
 !
 !  Arguments as Output:
 !  ============================================================================
-!  (7 ) OUT (REAL*8 ) : Array containing output data on GEOS-CHEM 2x25 grid
+!  (7 ) OUT (REAL*8 ) : Array containing output data on GEOS-Chem 2x25 grid
 !
 !  NOTES:
 !  (1 ) Fixed typo: J should be J1 in "4 contrib boxes at poles" section.
@@ -1489,6 +1514,238 @@
 
       ! Return to calling program
       END SUBROUTINE REGRID_MASS_TO_2x25
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE REGRID_CONC_TO_1x125( I1, J1, L1, IN, I2, J2, OUT )
+!
+!******************************************************************************
+!  Subroutine REGRID_CONC_TO_1x125 regrids conc data from the GEOS-Chem 
+!  1x1 grid to the GEOS_CHEM 1x125 grid. (bdf, bmy, 8/2/06)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) I1  (INTEGER) : 1x1  longitude dimension of IN array
+!  (2 ) J1  (INTEGER) : 1x1  latitude  dimension of IN array
+!  (3 ) L1  (INTEGER) : 1x1  altitude  dimension of IN array
+!  (4 ) IN  (REAL*8 ) : Array containing input data on GEOS-Chem 1x1 grid
+!  (5 ) I2  (INTEGER) : 1x125 longitude dimension of OUT array
+!  (6 ) J2  (INTEGER) : 1x125 latitude  dimension of OUT array
+!
+!  Arguments as Output:
+!  ============================================================================
+!  (7 ) OUT (REAL*8 ) : Array containing output data on GEOS-Chem 1x125 grid
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE GRID_MOD,    ONLY : GET_AREA_M2
+
+      ! Arguments
+      INTEGER, INTENT(IN)  :: I1, J1, L1, I2, J2
+      REAL*8,  INTENT(IN)  :: IN(I1,J1,L1)
+      REAL*8,  INTENT(OUT) :: OUT(I2,J2,L1)
+
+      ! Local variables
+      INTEGER              :: I, J, L, W, E, C, OFFSET, PLACE
+      REAL*8               :: M_TOT
+
+      !=================================================================
+      ! REGRID_CONC_TO_1x125 begins here!
+      !=================================================================
+
+      ! Loop over levels
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, OFFSET, W, C, E, PLACE, M_TOT )
+      DO L = 1, L1
+
+         ! Poles can be done at same time, no latitude differences
+         DO J = 1, J2
+         DO I = 1, I2
+
+            ! 1x1 offset.  there is 1 extra 1x1 box for every 4 1x125 boxes
+            OFFSET = FLOOR( ( I - 1 ) / 4d0 )
+
+            ! West, center, east longitude indices
+            W      = I - 1 + OFFSET
+            C      = I     + OFFSET
+            E      = I + 1 + OFFSET
+
+            ! Special handling 
+            IF ( W == 0 ) W = 360
+
+            ! There are 4 possible cases for overlap
+            PLACE  = MOD( ( I - 1 ), 4 )
+
+            !-----------------------------------------------------------
+            ! Pick the right case for the overlap
+            !
+            ! Because there is no difference in the latitude coordinates
+            ! between 1x1 and 1x1.25 grids, the concentration ratio is: 
+            !
+            !    [ area(1x1) / (1.24 or 1.26)*area(1x1) ]
+            ! 
+            ! The 1.24 or 1.26 depends on how much overlap the 1x125 
+            ! grid has with the 1x1 grid.  
+            !-----------------------------------------------------------
+
+            SELECT CASE ( PLACE )
+
+               !----------------------------------------------
+               ! CASE 0: 1x1 and 1x125 are centered the same
+               !----------------------------------------------
+               CASE( 0 )
+                  M_TOT = 0.12d0 * IN(W,J,L) + 
+     &                             IN(C,J,L) + 
+     &                    0.12d0 * IN(E,J,L)
+               
+                  ! Overlap factor for CASE 0 is 1.24
+                  OUT(I,J,L) = M_TOT / 1.24d0
+
+               !----------------------------------------------
+               ! CASE 1: one to the right of a centered box
+               !----------------------------------------------
+               CASE ( 1 )
+                  M_TOT = 0.88d0 * IN(C,J,L) +
+     &                    0.38d0 * IN(E,J,L)  
+
+                  ! Overlap factor for CASE 1 is 1.26
+                  OUT(I,J,L) = M_TOT / 1.26d0
+
+               !----------------------------------------------
+               ! CASE 2: 1x1 and 1x125 are edged the same
+               !----------------------------------------------
+               CASE ( 2 )
+                  M_TOT = 0.62d0 * IN(C,J,L) +
+     &                    0.62d0 * IN(E,J,L)
+
+                  ! Overlap factor for CASE 2 is 1.24
+                  OUT(I,J,L) = M_TOT / 1.24d0
+
+               !----------------------------------------------
+               ! CASE 3: one to the left of a centered box
+               !----------------------------------------------
+               CASE ( 3 )
+                  M_TOT = 0.38d0 * IN(C,J,L) +
+     &                    0.88d0 * IN(E,J,L)
+
+                  ! Overlap factor for CASE 3 is 1.26
+                  OUT(I,J,L) = M_TOT / 1.26d0
+
+            END SELECT
+         ENDDO
+         ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Return to calling program
+      END SUBROUTINE REGRID_CONC_TO_1x125
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE REGRID_MASS_TO_1x125( I1, J1, L1, IN, I2, J2, OUT )
+!
+!******************************************************************************
+!  Subroutine REGRID_MASS_TO_1x125 regrids mass data from the 
+!  GEOS-Chem 1x1 grid to the GEOS-Chem 1x125 grid. (bdf, bmy, 8/2/06)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) I1  (INTEGER) : 1x1  longitude dimension of IN array
+!  (2 ) J1  (INTEGER) : 1x1  latitude  dimension of IN array
+!  (3 ) L1  (INTEGER) : 1x1  altitude  dimension of IN array
+!  (4 ) IN  (REAL*8 ) : Array containing input data on GEOS-Chem 1x1 grid
+!  (5 ) I2  (INTEGER) : 1x125 longitude dimension of OUT array
+!  (6 ) J2  (INTEGER) : 1x125 latitude  dimension of OUT array
+!
+!  Arguments as Output:
+!  ============================================================================
+!  (7 ) OUT (REAL*8 ) : Array containing output data on GEOS-Chem 1x125 grid
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE GRID_MOD, ONLY : GET_AREA_M2
+
+      ! Arguments
+      INTEGER, INTENT(IN)  :: I1, J1, L1, I2, J2
+      REAL*8,  INTENT(IN)  :: IN(I1,J1,L1)
+      REAL*8,  INTENT(OUT) :: OUT(I2,J2,L1)
+
+      ! Local variables
+      INTEGER              :: I, J, L, W, E, C, OFFSET, PLACE
+      REAL*8               :: M_TOT
+
+      !=================================================================
+      ! REGRID_MASS_TO_1x125 begins here!
+      !=================================================================
+
+      ! Loop over levels
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, OFFSET, W, C, E, PLACE )
+      DO L = 1, L1
+
+         ! Poles can be done at same time, no latitude differences
+         DO J = 1, J2
+         DO I = 1, I2
+
+            ! 1x1 offset.  there is 1 extra 1x1 box for every 4 1x125 boxes
+            OFFSET = FLOOR( ( I - 1 ) / 4d0 )
+
+            ! West, center, east longitude indices
+            W      = I - 1 + OFFSET
+            C      = I     + OFFSET
+            E      = I + 1 + OFFSET
+
+            ! Special handling
+            IF ( W == 0 ) W = 360
+
+            ! There are 4 possible casses for overlap
+            PLACE = MOD( ( I -1 ), 4 )
+
+            SELECT CASE ( PLACE )
+
+               !----------------------------------------------
+               ! CASE 0: 1x1 and 1x125 are centered the same
+               !----------------------------------------------
+               CASE( 0 )
+                  OUT(I,J,L) = 0.12d0 * IN(W,J,L) + 
+     &                                  IN(C,J,L) + 
+     &                         0.12d0 * IN(E,J,L)
+               
+               !----------------------------------------------
+               ! CASE 1: one to the right of a centered box
+               !----------------------------------------------
+               CASE ( 1 )
+                  OUT(I,J,L) = 0.88d0 * IN(C,J,L) +
+     &                         0.38d0 * IN(E,J,L)
+
+               !----------------------------------------------
+               ! CASE 2: 1x1 and 1x125 are edged the same
+               !----------------------------------------------
+               CASE ( 2 )
+                  OUT(I,J,L) = 0.62d0 * IN(C,J,L) +
+     &                         0.62d0 * IN(E,J,L)
+
+               !----------------------------------------------
+               ! CASE 3: one to the left of a centered box
+               !----------------------------------------------
+               CASE ( 3 )
+                  OUT(I,J,L) = 0.38d0 * IN(C,J,L) +
+     &                         0.88d0 * IN(E,J,L)
+
+            END SELECT
+         ENDDO
+         ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Return to calling program
+      END SUBROUTINE REGRID_MASS_TO_1x125
 
 !------------------------------------------------------------------------------
 
