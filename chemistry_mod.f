@@ -1,9 +1,9 @@
-! $Id: chemistry_mod.f,v 1.25 2006/06/06 14:25:58 bmy Exp $
+! $Id: chemistry_mod.f,v 1.26 2006/08/14 17:58:01 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
 !  Module CHEMISTRY_MOD is used to call the proper chemistry subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 6/1/06)
+!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 8/4/06)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -52,6 +52,7 @@
 !  (12) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (13) Now call MAKE_RH from "main.f" (bmy, 3/16/06)
 !  (14) Updated for SOA from isoprene (dkh, bmy, 6/1/06)
+!  (15) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -68,7 +69,7 @@
 !******************************************************************************
 !  Subroutine DO_CHEMISTRY is the driver routine which calls the appropriate
 !  chemistry subroutine for the various GEOS-CHEM simulations. 
-!  (bmy, 2/11/03, 6/1/06)
+!  (bmy, 2/11/03, 8/4/06)
 !
 !  NOTES:
 !  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this
@@ -103,6 +104,7 @@
 !  (12) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (13) Now call MAKE_RH from "main.f" (bmy, 3/16/06)
 !  (14) Removed ISOP_PRIOR as a local variable (dkh, bmy, 6/1/06)
+!  (15) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -158,23 +160,31 @@
       ! DO_CHEMISTRY begins here!
       !=================================================================
 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!-----------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!
+!      ! Compute optical depths (except for CO-OH run)
+!      ! GEOS-1/GEOS-STRAT: compute from T, CLMO, CLRO, DELP
+!      IF ( ITS_NOT_COPARAM_OR_CH4() ) THEN
+!         CALL OPTDEPTH( LLPAR, CLMOSW, CLROSW, DELP, T, OPTD )
+!      ENDIF
+!
+!#elif defined( GEOS_3 ) || defined( GEOS_4 ) || defined( GCAP )
+!
+!      ! Compute optical depths (except for CO-OH run)
+!      ! GEOS-2/GEOS-3: Copy OPTDEP to OPTD, also archive diagnostics
+!      IF ( ITS_NOT_COPARAM_OR_CH4() ) THEN
+!         CALL OPTDEPTH( LLPAR, CLDF, OPTDEP, OPTD )
+!      ENDIF
+!#endif 
+!-----------------------------------------------------------------------------
 
-      ! Compute optical depths (except for CO-OH run)
-      ! GEOS-1/GEOS-STRAT: compute from T, CLMO, CLRO, DELP
-      IF ( ITS_NOT_COPARAM_OR_CH4() ) THEN
-         CALL OPTDEPTH( LLPAR, CLMOSW, CLROSW, DELP, T, OPTD )
-      ENDIF
-
-#elif defined( GEOS_3 ) || defined( GEOS_4 ) || defined( GCAP )
-
-      ! Compute optical depths (except for CO-OH run)
-      ! GEOS-2/GEOS-3: Copy OPTDEP to OPTD, also archive diagnostics
-      IF ( ITS_NOT_COPARAM_OR_CH4() ) THEN
+      ! Compute optical depths (except for CH4 simulation)
+      IF ( .not. ITS_A_CH4_SIM() ) THEN
          CALL OPTDEPTH( LLPAR, CLDF, OPTDEP, OPTD )
       ENDIF
-#endif 
-
 
       !=================================================================
       ! If LCHEM=T then call the chemistry subroutines

@@ -1,10 +1,10 @@
-! $Id: file_mod.f,v 1.11 2006/03/24 20:22:47 bmy Exp $
+! $Id: file_mod.f,v 1.12 2006/08/14 17:58:06 bmy Exp $
       MODULE FILE_MOD
 !
 !******************************************************************************
 !  Module FILE_MOD contains file unit numbers, as well as file I/O routines
 !  for GEOS-CHEM.  FILE_MOD keeps all of the I/O unit numbers in a single
-!  location for convenient access. (bmy, 7/1/02, 11/30/05)
+!  location for convenient access. (bmy, 7/1/02, 8/4/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -57,6 +57,7 @@
 !  (11) Added IU_XT for GEOS3 XTRA met fields files for MEGAN (tmf, 10/20/05)
 !  (12) Extra modification for Intel v9 compiler (bmy, 11/2/05)
 !  (13) Now print IFORT error messages (bmy, 11/30/05)
+!  (14) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -117,7 +118,7 @@
 !******************************************************************************
 !  Subroutine IOERRROR prints out I/O error messages.  The error number, 
 !  file unit, location, and a brief description will be printed, and 
-!  program execution will be halted. (bmy, 5/28/99, 11/30/05)
+!  program execution will be halted. (bmy, 5/28/99, 8/4/06)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -144,6 +145,7 @@
 !  (7 ) Now don't flush the buffer for LINUX_EFC (bmy, 4/23/04)
 !  (8 ) Modifications for Linux/IFORT Intel v9 compiler (bmy, 11/2/05)
 !  (9 ) Now call IFORT_ERRMSG to get the IFORT error messages (bmy, 11/30/05)
+!  (10) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
 !******************************************************************************
 !  
       ! References to F90 modules
@@ -229,10 +231,16 @@
       WRITE( 6, 120 ) TRIM( ERROR_MSG )
  120  FORMAT( /, 'Error: ', a )
 
-#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC )
+!-----------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for LINUX_IFC & LINUX_EFC compilers
+!#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC )
+!-----------------------------------------------------------------------------
+#elif defined( LINUX_PGI )
 
       !=================================================================
-      ! For LINUX platform: call gerror() to get the I/O error msg
+      ! For LINUX platform w/ PGI compiler
+      ! Call gerror() to get the I/O error msg
       !=================================================================
 
       ! GERROR returns ERROR_MSG corresponding to ERROR_NUM 
@@ -443,5 +451,6 @@
       END SUBROUTINE CLOSE_FILES
 
 !------------------------------------------------------------------------------
-
+      
+      ! End of module
       END MODULE FILE_MOD

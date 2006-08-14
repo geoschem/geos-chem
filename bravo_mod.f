@@ -1,10 +1,10 @@
-! $Id: bravo_mod.f,v 1.1 2006/06/28 17:26:47 bmy Exp $
+! $Id: bravo_mod.f,v 1.2 2006/08/14 17:58:01 bmy Exp $
       MODULE BRAVO_MOD
 !
 !******************************************************************************
 !  Module BRAVO_MOD contains variables and routines to read the BRAVO 
 !  Mexican anthropogenic emission inventory for NOx, CO, and SO2. 
-!  (rjp, kfb, bmy, 6/22/06)
+!  (rjp, kfb, bmy, 6/22/06, 8/9/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -41,6 +41,7 @@
 !        Research Institute, 2003.
 !
 !  NOTES: 
+!  (1 ) Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -162,10 +163,12 @@
       SUBROUTINE EMISS_BRAVO
 !
 !******************************************************************************
-!  Subroutine EMISS_BRAVO reads the BRAVO emission fields at 1x1 resolution 
-!  and regrids them to the current model resolution. (rjp, kfb, bmy, 6/22/06)
+!  Subroutine EMISS_BRAVO reads the BRAVO emission fields at 1x1 
+!  resolution and regrids them to the current model resolution. 
+!  (rjp, kfb, bmy, 6/22/06, 8/9/06)
 !
 !  NOTES:
+!  (1 ) Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -222,7 +225,12 @@
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
       ! Regrid NOx [molec/cm2/s] to GEOS 1x1 GRID
-      CALL DO_REGRID_G2G_1x1( GEN_1x1, GEOS_1x1(:,:,1), .TRUE. )
+      !----------------------------------------------------------------------
+      ! Prior to 8/9/06:
+      ! Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
+      !CALL DO_REGRID_G2G_1x1( GEN_1x1, GEOS_1x1(:,:,1), .TRUE. )
+      !----------------------------------------------------------------------
+      CALL DO_REGRID_G2G_1x1( 'molec/cm2/s', GEN_1x1, GEOS_1x1(:,:,1) )
 
       ! Regrid NOx [molec/cm2/s] to current model resolution
       CALL DO_REGRID_1x1( 'molec/cm2/s', GEOS_1x1, BRAVO_NOx )
@@ -247,7 +255,12 @@
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
       ! Regrid CO [molec/cm2/s] to GEOS 1x1 GRID
-      CALL DO_REGRID_G2G_1x1( GEN_1x1, GEOS_1x1(:,:,1), .TRUE. )
+      !-------------------------------------------------------------------
+      ! Prior to 8/9/06:
+      ! Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
+      !CALL DO_REGRID_G2G_1x1( GEN_1x1, GEOS_1x1(:,:,1), .TRUE. )
+      !-------------------------------------------------------------------
+      CALL DO_REGRID_G2G_1x1( 'molec/cm2/s', GEN_1x1, GEOS_1x1(:,:,1) )
 
       ! Regrid CO [molec/cm2/s] to current model resolution
       CALL DO_REGRID_1x1( 'molec/cm2/s', GEOS_1x1, BRAVO_CO )
@@ -272,7 +285,12 @@
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
       ! Regrid SO2 [molec/cm2/s] to GEOS 1x1 GRID
-      CALL DO_REGRID_G2G_1x1( GEN_1x1, GEOS_1x1(:,:,1), .TRUE. )
+      !-------------------------------------------------------------------
+      ! Prior to 8/9/06:
+      ! Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
+      !CALL DO_REGRID_G2G_1x1( GEN_1x1, GEOS_1x1(:,:,1), .TRUE. )
+      !-------------------------------------------------------------------
+      CALL DO_REGRID_G2G_1x1( 'molec/cm2/s', GEN_1x1, GEOS_1x1(:,:,1) )
 
       ! Regrid SO2 [molec/cm2/s] to current model resolution
       CALL DO_REGRID_1x1( 'molec/cm2/s', GEOS_1x1, BRAVO_SO2 )
@@ -429,9 +447,10 @@
 !******************************************************************************
 !  Subroutine READ_BRAVO_MASK reads the Mexico mask from disk.  The Mexico
 !  mask is the fraction of the grid box (I,J) which lies w/in the BRAVO
-!  Mexican emissions region. (rjp, kfb, bmy, 6/22/06)
+!  Mexican emissions region. (rjp, kfb, bmy, 6/22/06, 8/9/06)
 !
 !  NOTES:
+!  (1 ) Now pass UNIT to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -474,7 +493,12 @@
       GEN_1x1(:,:) = ARRAY(:,:,1) 
 
       ! Regrid from GENERIC 1x1 GRID to GEOS 1x1 GRID
-      CALL DO_REGRID_G2G_1x1( GEN_1x1, GEOS_1x1(:,:,1) )
+      !--------------------------------------------------------------------
+      ! Prior to 8/9/06:
+      ! Now pass UNIT to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
+      !CALL DO_REGRID_G2G_1x1( GEN_1x1, GEOS_1x1(:,:,1) )
+      !--------------------------------------------------------------------
+      CALL DO_REGRID_G2G_1x1( 'unitless', GEN_1x1, GEOS_1x1(:,:,1) )
       
       ! Regrid from GEOS 1x1 GRID to current model resolution
       CALL DO_REGRID_1x1( 'unitless', GEOS_1x1, BRAVO_MASK )

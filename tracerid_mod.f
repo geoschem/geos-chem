@@ -1,4 +1,4 @@
-! $Id: tracerid_mod.f,v 1.18 2006/07/26 15:32:13 bmy Exp $
+! $Id: tracerid_mod.f,v 1.19 2006/08/14 17:58:19 bmy Exp $
       MODULE TRACERID_MOD
 !
 !******************************************************************************
@@ -554,11 +554,6 @@
             !--------------------------------
 
             ! Special case: CH3I needs CO biomass/biofuel
-            !-----------------------------------------------
-            ! Prior to 7/25/06:
-            ! Minor fixes for CH3I simulation (bmy, 7/25/06)
-            !CASE ( 'CH3I' )
-            !-----------------------------------------------
             CASE ( 'CH3I', 'CH3IOC' )
                COUNT    = COUNT + 1
                IDTCO    = 1

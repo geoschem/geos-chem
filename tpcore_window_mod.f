@@ -1,9 +1,9 @@
-! $Id: tpcore_window_mod.f,v 1.9 2006/04/21 15:40:11 bmy Exp $
+! $Id: tpcore_window_mod.f,v 1.10 2006/08/14 17:58:18 bmy Exp $
       MODULE TPCORE_WINDOW_MOD
 !
 !******************************************************************************
 !  Module TPCORE_MOD contains the TPCORE transport subroutine package by
-!  S-J Lin, version 7.1. (yxw, bmy, 12/2/03, 10/18/05)
+!  S-J Lin, version 7.1. (yxw, bmy, 12/2/03, 8/4/06)
 !  
 !  Module routines:
 !  ============================================================================
@@ -540,10 +540,14 @@ C****6***0*********0*********0*********0*********0*********0**********72
       WRITE( 6, '(a)' ) 'for COMPAQ/HP RISC Alpha machines'
 #elif defined( LINUX_PGI )
       WRITE( 6, '(a)' ) 'for Linux environment w/ PGI compiler'
-#elif defined( LINUX_IFC )
-      WRITE( 6, '(a)' ) 'for Linux environment w/ Intel IFC compiler'
-#elif defined( LINUX_EFC )
-      WRITE( 6, '(a)' ) 'for Linux environment w/ Intel EFC compiler'
+!----------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
+!#elif defined( LINUX_IFC )
+!      WRITE( 6, '(a)' ) 'for Linux environment w/ Intel IFC compiler'
+!#elif defined( LINUX_EFC )
+!      WRITE( 6, '(a)' ) 'for Linux environment w/ Intel EFC compiler'
+!----------------------------------------------------------------------------
 #elif defined( LINUX_IFORT )
       WRITE( 6, '(a)' ) 'for Linux environment w/ Intel IFORT compiler'
 #elif defined( SPARC )

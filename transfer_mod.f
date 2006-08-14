@@ -1,11 +1,11 @@
-! $Id: transfer_mod.f,v 1.4 2005/09/02 15:17:28 bmy Exp $
+! $Id: transfer_mod.f,v 1.5 2006/08/14 17:58:19 bmy Exp $
       MODULE TRANSFER_MOD
 !
 !******************************************************************************
 !  Module TRANSFER_MOD contains routines used to copy data from REAL*4 to
 !  REAL*8 arrays after being read from disk.  Also, regridding of GEOS-3
 !  vertical levels from 48 levels to 30 levels will be done if necessary.
-!  (mje, bmy, 9/27/01, 6/7/05)
+!  (mje, bmy, 9/27/01, 8/4/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -71,6 +71,7 @@
 !  (13) Added code to regrid GEOS-4 from 55 --> 30 levels.  Renamed module
 !        variable SIGE_IN to EDGE_IN. (mje, bmy, 10/31/03)
 !  (14) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/24/05)
+!  (15) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -138,7 +139,7 @@
 !  Function GET_L_COPY returns the value L_COPY, which is the number
 !  of vertical levels to copy from a REAL*4 array to a REAL*8 array.  
 !  Levels above L_COPY will be vertically regridded, if necessary. 
-!  (bmy, 6/18/03, 5/24/05)
+!  (bmy, 6/18/03, 8/4/06)
 !
 !               { LGLOB, for GCAP
 !               { LGLOB, for GEOS-1
@@ -152,6 +153,7 @@
 !  (1 ) Add value of L_COPY for GEOS-4/fvDAS (6/18/03)
 !  (2 ) Add LCOPY = 19 for GEOS-4 if regridding (bmy, 10/31/03)
 !  (3 ) Now modified for GEOS-5 and GCAP met fields (bmy, 5/24/05)
+!  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
 #     include "CMN_SIZE"
@@ -159,17 +161,22 @@
       ! Function return variable
       INTEGER :: L_COPY
 
-#if   defined( GEOS_1 ) 
-
-      ! Copy all vertical levels for GEOS-1
-      L_COPY = LGLOB
-
-#elif defined( GEOS_STRAT )
-
-      ! Copy all vertical levels for GEOS-STRAT
-      L_COPY = LGLOB
-
-#elif defined( GEOS_3 )
+!-------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) 
+!
+!      ! Copy all vertical levels for GEOS-1
+!      L_COPY = LGLOB
+!
+!#elif defined( GEOS_STRAT )
+!
+!      ! Copy all vertical levels for GEOS-STRAT
+!      L_COPY = LGLOB
+!
+!#elif defined( GEOS_3 )
+!-------------------------------------------------------------------------
+#if   defined( GEOS_3 )
 
       ! For GEOS-3, only regrid if LLPAR does not equal LGLOB 
       IF ( LLPAR == LGLOB ) THEN

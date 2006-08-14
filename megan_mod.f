@@ -1,22 +1,22 @@
-! $Id: megan_mod.f,v 1.3 2006/04/21 15:40:03 bmy Exp $
+! $Id: megan_mod.f,v 1.4 2006/08/14 17:58:11 bmy Exp $
       MODULE MEGAN_MOD
 !
 !******************************************************************************
 !  Module MEGAN_MOD contains variables and routines specifying the 
 !  algorithms that control the MEGAN inventory of biogenic emissions.
-!  (dsa, tmf, bmy, 11/17/04, 12/6/05)
+!  (dsa, tmf, bmy, 11/17/04, 8/4/06)
 !
 !  Module Variables:
 !  ============================================================================
-!  (1 ) T_DAY    (R(MAXIJ,DAY_DIM) : TS at each gridbox for last 8 3h periods
-!  (2 ) T_15     (MAXIJ,NUM_DAYS) : Average daily TS over past NUM_DAYS days
+!  (1 ) T_DAY(R(MAXIJ,DAY_DIM): TS at each gridbox for last 8 3h periods
+!  (2 ) T_15(MAXIJ,NUM_DAYS)  : Average daily TS over past NUM_DAYS days
 !  (3 ) T_15_AVG (MAXIJ)      : 24h average TS over past NUM_DAYS days 
 !  (4 ) DAY_DIM               : number 3h periods in a day
 !  (5 ) NUM_DAYS              : Number days in averaging periods
-!  (6 ) AEF_ISOP(MAXIJ)      : Annual emission factor for isoprene
-!  (7 ) AEF_MONOT(MAXIJ)     : Annual emission factor for monoterpenes
-!  (8 ) AEF_MBO(MAXIJ)       : Annual emission factor for methyl butenol
-!  (9 ) AEF_OVOC(MAXIJ)      : Annual emission factor for other biogenic VOCs
+!  (6 ) AEF_ISOP(MAXIJ)       : Annual emission factor for isoprene
+!  (7 ) AEF_MONOT(MAXIJ)      : Annual emission factor for monoterpenes
+!  (8 ) AEF_MBO(MAXIJ)        : Annual emission factor for methyl butenol
+!  (9 ) AEF_OVOC(MAXIJ)       : Annual emission factor for other biogenic VOCs
 !
 !  Module Routines:
 !  ============================================================================
@@ -102,6 +102,7 @@
 !  (3 ) In GEOS4, the TS used here are the T2M in the A3 files, read in 
 !        'a3_read_mod.f'. 
 !  (4 ) Bug fix: change #if block to also cover GCAP met fields (bmy, 12/6/05)
+!  (5 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1611,7 +1612,12 @@
       ! Astronomical Julian Date of the A3 file at start of run
       JD_T15b   = GET_JD( NYMD_T15b, NHMS_T15b )
 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!-------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!-------------------------------------------------------------------------
+#if   defined( GEOS_3 )
 
       ! For GEOS-1, GEOS-STRAT, GEOS-3, the A-3 fields are timestamped 
       ! by ending time: 00Z, 03Z, 06Z, 09Z, 12Z, 15Z, 18Z, 21Z.  

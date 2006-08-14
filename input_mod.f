@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.29 2006/07/26 15:32:12 bmy Exp $
+! $Id: input_mod.f,v 1.30 2006/08/14 17:58:09 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS_CHEM input file at the start of the run
 !  and passes the information to several other GEOS-CHEM F90 modules.
-!  (bmy, 7/20/04, 7/11/06)
+!  (bmy, 7/20/04, 8/10/06)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -112,6 +112,8 @@
 !  (12) Updated for ND42 SOA concentration diagnostic (dkh, bmy, 5/22/06)
 !  (13) Modified for future emissions (swu, bmy, 6/1/06)
 !  (14) Modified for BRAVO emissions (rjp, kfb, bmy, 6/26/06)
+!  (15) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (15) Modified 
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -3774,12 +3776,13 @@
 !******************************************************************************
 !  Subroutine VALIDATE_DIRECTORIES makes sure that each of the directories
 !  that we have read from the GEOS-CHEM input file are valid.  Also, trailing
-!  separator characters will be added. (bmy, 7/20/04, 10/24/05)
+!  separator characters will be added. (bmy, 7/20/04, 8/4/06)
 !
 !  NOTES:
 !  (1 ) Now make sure all USE statements are USE, ONLY.  Now also validate
 !        GCAP and GEOS-5 directories. (bmy, 10/3/05)
 !  (2 ) Now references DATA_DIR_1x1 from directory_mod.f (bmy, 10/24/05)
+!  (3 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3821,35 +3824,40 @@
          CALL CHECK_DIRECTORY( TPBC_DIR )
       ENDIF
 
-#if   defined( GEOS_1 )
-
-      ! Check GEOS-1 met field directory (starting date)
-      DIR = GEOS_1_DIR
-      CALL EXPAND_DATE( DIR, NYMDb, 000000 )
-      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( DIR )
-
-      ! Check GEOS-1 met field directory (ending date)
-      DIR = GEOS_1_DIR
-      CALL EXPAND_DATE( DIR, NYMDe, 000000 )
-      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( DIR )
-
-#elif defined( GEOS_STRAT )
-
-      ! Check GEOS-STRAT met field directory (starting date)
-      DIR = GEOS_S_DIR
-      CALL EXPAND_DATE( DIR, NYMDb, 000000 )
-      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( DIR )
-
-      ! Check GEOS-STRAT met field directory (ending date)
-      DIR = GEOS_S_DIR
-      CALL EXPAND_DATE( DIR, NYMDe, 000000 )
-      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( DIR )
-
-#elif defined( GEOS_3 )
+!----------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 )
+!
+!      ! Check GEOS-1 met field directory (starting date)
+!      DIR = GEOS_1_DIR
+!      CALL EXPAND_DATE( DIR, NYMDb, 000000 )
+!      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
+!      CALL CHECK_DIRECTORY( DIR )
+!
+!      ! Check GEOS-1 met field directory (ending date)
+!      DIR = GEOS_1_DIR
+!      CALL EXPAND_DATE( DIR, NYMDe, 000000 )
+!      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
+!      CALL CHECK_DIRECTORY( DIR )
+!
+!#elif defined( GEOS_STRAT )
+!
+!      ! Check GEOS-STRAT met field directory (starting date)
+!      DIR = GEOS_S_DIR
+!      CALL EXPAND_DATE( DIR, NYMDb, 000000 )
+!      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
+!      CALL CHECK_DIRECTORY( DIR )
+!
+!      ! Check GEOS-STRAT met field directory (ending date)
+!      DIR = GEOS_S_DIR
+!      CALL EXPAND_DATE( DIR, NYMDe, 000000 )
+!      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
+!      CALL CHECK_DIRECTORY( DIR )
+!
+!#elif defined( GEOS_3 )
+!----------------------------------------------------------------------
+#if   defined( GEOS_3 )
 
       ! Check GEOS-3 met field directory (starting date)
       DIR = GEOS_3_DIR

@@ -1,4 +1,4 @@
-! $Id: wetscav_mod.f,v 1.25 2006/07/26 15:32:14 bmy Exp $
+! $Id: wetscav_mod.f,v 1.26 2006/08/14 17:58:21 bmy Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
@@ -667,11 +667,6 @@
             ! Compute ice to gas ratio for H2O2 by co-condensation
             ! (Eq. 9, Jacob et al, 2000)
             IF ( C_H2O(I,J,L) > 0d0 ) THEN 
-               !---------------------------------------------------------
-               ! Prior to 7/26/06:
-               ! Now use CONV_H2O2 (havala, bmy, 7/26/06)
-               !I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * CONV
-               !---------------------------------------------------------
                I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * CONV_H2O2
             ELSE
                I2G = 0d0
@@ -904,11 +899,6 @@
             ! Compute ice to gas ratio for NH3 by co-condensation
             ! (Eq. 9, Jacob et al, 2000)
             IF ( C_H2O(I,J,L) > 0d0 ) THEN 
-               !-----------------------------------------------------
-               ! Prior to 7/26/06:
-               ! Now use CONV_NH3 (bmy, 7/26/06)
-               !I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * CONV
-               !-----------------------------------------------------
                I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * CONV_NH3
             ELSE
                I2G = 0d0

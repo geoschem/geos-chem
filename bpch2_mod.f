@@ -1,9 +1,9 @@
-! $Id: bpch2_mod.f,v 1.8 2005/09/02 15:16:57 bmy Exp $
+! $Id: bpch2_mod.f,v 1.9 2006/08/14 17:58:01 bmy Exp $
       MODULE BPCH2_MOD
 !
 !******************************************************************************
 !  Module BPCH2_MOD contains the routines used to read data from and write
-!  data to binary punch (BPCH) file format (v. 2.0). (bmy, 6/28/00, 8/16/05)
+!  data to binary punch (BPCH) file format (v. 2.0). (bmy, 6/28/00, 8/4/06)
 !
 !  Module Routines:
 !  ============================================================================
@@ -25,9 +25,9 @@
 !
 !  GEOS-CHEM modules referenced by bpch2_mod.f
 !  ============================================================================
-!  (1 ) error_mod.f         : Contains NaN and other error-check routines
-!  (2 ) file_mod.f          : Contains file unit numbers and error checks
-!  (3 ) julday_mod.f        : Contains astronomical Julian date routines
+!  (1 ) error_mod.f         : Module w/ NaN and other error-check routines
+!  (2 ) file_mod.f          : Module w/ file unit numbers and error checks
+!  (3 ) julday_mod.f        : Module w/ astronomical Julian date routines
 !
 !  NOTES:
 !  (1 ) Added routine GET_TAU0 (bmy, 7/20/00)
@@ -63,6 +63,7 @@
 !        GET_HALFPOLAR. (bmy, 6/28/05)
 !  (30) Added GET_NAME_EXT_2D to get filename extension for files which do
 !        not contain any vertical information (bmy, 8/16/05)
+!  (31) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -550,7 +551,7 @@
 !******************************************************************************
 !  Function GET_MODELNAME returns the proper value of MODELNAME for GEOS-1,
 !  GEOS-STRAT, GEOS-2, or GEOS-3 data.  MODELNAME is written to the binary
-!  punch file and is used by the GAMAP package. (bmy, 6/22/00, 5/24/05)
+!  punch file and is used by the GAMAP package. (bmy, 6/22/00, 8/4/06)
 !
 !  NOTES:
 !  (1 ) Now use special model name for GEOS-3 w/ 30 layers (bmy, 10/9/01)
@@ -559,6 +560,7 @@
 !        switch "GRID30LEV" instead of IF statements. (bmy, 11/3/03)
 !  (4 ) Updated for GCAP and GEOS-5 met fields.  Rearranged coding for
 !        simplicity. (swu, bmy, 5/24/05)
+!  (5 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
 #     include "CMN_SIZE"
@@ -570,13 +572,18 @@
       ! GET_MODELNAME begins here!
       !=================================================================
 
-#if   defined( GEOS_1 ) 
-      MODELNAME = 'GEOS1'
-     
-#elif defined( GEOS_STRAT ) 
-      MODELNAME = 'GEOS_STRAT'
-
-#elif defined( GEOS_3 ) && defined( GRID30LEV )
+!--------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) 
+!      MODELNAME = 'GEOS1'
+!     
+!#elif defined( GEOS_STRAT ) 
+!      MODELNAME = 'GEOS_STRAT'
+!
+!#elif defined( GEOS_3 ) && defined( GRID30LEV )
+!---------------------------------------------------------------------
+#if   defined( GEOS_3 ) && defined( GRID30LEV )
       MODELNAME = 'GEOS3_30L'
 
 #elif defined( GEOS_3 )
@@ -608,26 +615,32 @@
 !
 !******************************************************************************
 !  Function GET_NAME_EXT returns the proper filename extension for CTM
-!  model name (i.e. "geos1", "geoss", "geos3", "geos4", "geos5", or "gcap").  
-!  (bmy, 6/28/00, 5/24/05)
+!  model name (i.e. "geos3", "geos4", "geos5", or "gcap").  
+!  (bmy, 6/28/00, 8/4/06)
 !  
 !  NOTES:
 !  (1 ) Added name string for GEOS-4/fvDAS model type (bmy, 11/20/01)
 !  (2 ) Remove obsolete "geos2" model name strning (bmy, 11/3/03)
 !  (3 ) Modified for GCAP and GEOS-5 met fields (bmy, 5/24/05)
+!  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
 #     include "define.h"
 
-#if   defined( GEOS_1 ) 
-      CHARACTER(LEN=5) :: NAME_EXT
-      NAME_EXT = 'geos1'
-     
-#elif defined( GEOS_STRAT ) 
-      CHARACTER(LEN=5) :: NAME_EXT
-      NAME_EXT = 'geoss'
-
-#elif defined( GEOS_3 )
+!---------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) 
+!      CHARACTER(LEN=5) :: NAME_EXT
+!      NAME_EXT = 'geos1'
+!     
+!#elif defined( GEOS_STRAT ) 
+!      CHARACTER(LEN=5) :: NAME_EXT
+!      NAME_EXT = 'geoss'
+!
+!#elif defined( GEOS_3 )
+!---------------------------------------------------------------------
+#if   defined( GEOS_3 )
       CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'geos3'
 
@@ -851,4 +864,5 @@
 
 !------------------------------------------------------------------------------
 
+      ! End of module
       END MODULE BPCH2_MOD

@@ -1,9 +1,9 @@
-! $Id: reader.f,v 1.9 2006/05/26 17:45:25 bmy Exp $
+! $Id: reader.f,v 1.10 2006/08/14 17:58:13 bmy Exp $
       SUBROUTINE READER( FIRSTCHEM )
 !
 !******************************************************************************
 !  Subroutine READER reads on/off switches and other settings for SMVGEAR II.
-!  (M. Jacobson 1997; bdf, bmy, 4/18/03, 3/29/06)
+!  (M. Jacobson 1997; bdf, bmy, 4/18/03, 8/9/06)
 !
 !  NOTES:
 !  (1 ) Now force double-precision values with the "D" exponent.  Also use
@@ -24,6 +24,8 @@
 !        parameters in "comode.h".  In this way, their values will be defined 
 !        before the first call to READER for the offline aerosol simulation. 
 !        (bec, bmy, 3/29/06)
+!  (5 ) Increase max # of products that a reaction can have from 12 to 14.  
+!        This coincides w/ the new globchem.dat. (bmy, 8/9/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -540,7 +542,13 @@ C *********************************************************************
 C
       NMREAC         = 3
       NALLREAC       = 4 
-      NMPROD         = 12  
+      !--------------------------------------------------------------------
+      ! Prior to 8/9/06:
+      ! Increase max # of products that a reaction can have from 12 
+      ! to 14.  This coincides w/ the new globchem.dat. (bmy, 8/9/06)
+      !NMPROD         = 12  
+      !--------------------------------------------------------------------
+      NMPROD         = 14
       NPRODLO        = NALLREAC + 1 
       NPRODHI        = NALLREAC + NMPROD
       IFDID          = 0

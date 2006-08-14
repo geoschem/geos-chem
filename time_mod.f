@@ -1,9 +1,9 @@
-! $Id: time_mod.f,v 1.22 2006/05/26 17:45:29 bmy Exp $
+! $Id: time_mod.f,v 1.23 2006/08/14 17:58:16 bmy Exp $
       MODULE TIME_MOD
 !
 !******************************************************************************
 !  TIME_MOD contains GEOS-CHEM date and time variables and timesteps, and 
-!  routines for accessing them. (bmy, 6/21/00, 4/24/06) 
+!  routines for accessing them. (bmy, 6/21/00, 8/4/06) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -175,6 +175,7 @@
 !        (sas, cdh, bmy, 12/15/05)
 !  (24) GCAP bug fix: There are no leapyears, so transition from 2/28 to 3/1,
 !        skipping 2/29 for all years. (swu, bmy, 4/24/06)
+!  (25) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1850,12 +1851,13 @@
 !******************************************************************************
 !  Function GET_A3_TIME returns the correct YYYYMMDD and HHMMSS values
 !  that are needed to read in the next average 3-hour (A-3) fields. 
-!  (bmy, 3/21/03, 5/24/05)
+!  (bmy, 3/21/03, 8/4/06)
 !
 !  NOTES:
 !  (1 ) Now return proper time for GEOS-4/fvDAS fields (bmy, 6/19/03)
 !  (2 ) Remove reference to FIRST variable (bmy, 12/10/04)
 !  (3 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
+!  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
 #     include "define.h"
@@ -1867,7 +1869,12 @@
       ! GET_A3_TIME begins here!
       !=================================================================
 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!--------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!--------------------------------------------------------------------------
+#if   defined( GEOS_3 )
 
       ! For GEOS-1, GEOS-STRAT, GEOS-3, the A-3 fields are timestamped 
       ! by ending time.  Therefore, the difference between the actual time
@@ -1966,10 +1973,11 @@
 !******************************************************************************
 !  Function GET_FIRST_A3_TIME returns the correct YYYYMMDD and HHMMSS 
 !  values the first time that A-3 fields are read in from disk. 
-!  (bmy, 6/26/03, 5/24/05)
+!  (bmy, 6/26/03, 8/4/06)
 !
 !  NOTES:
-!  (1 ) Now modified for GCAP and GEOS-5 data (swu, bmy, 5/24/05)
+!  (1 ) Now modified for GCAP and GEOS-5 data (swu, bmy, 5/24/05) 
+!  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
 #     include "define.h"
@@ -1981,7 +1989,12 @@
       ! GET_FIRST_A3_TIME begins here!
       !=================================================================
 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!--------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!--------------------------------------------------------------------------
+#if   defined( GEOS_3 )
 
       ! For GEOS-1, GEOS-STRAT, GEOS-3: Return the current date/time
       DATE = (/ NYMD, NHMS /)

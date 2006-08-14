@@ -1,13 +1,13 @@
-! $Id: gwet_read_mod.f,v 1.8 2005/10/27 13:59:58 bmy Exp $
+! $Id: gwet_read_mod.f,v 1.9 2006/08/14 17:58:08 bmy Exp $
       MODULE GWET_READ_MOD
 !
 !******************************************************************************
 !  Module GWET_READ_MOD contains routines that unzip, open, and 
 !  read the GEOS-CHEM GWET (avg 3-hour) met fields from disk. 
-!  (tdf, bmy, 3/30/04, 10/24/05)
+!  (tdf, bmy, 3/30/04, 8/4/06)
 !
 !  NOTE: GWET fields are included in GEOS-4 met data, so we only need this
-!        module to read GWET data from other GMAO data sets. (bmy, 3/30/04)
+!        module to read GWET data from the GEOS-3 data sets. (bmy, 3/30/04)
 ! 
 !  Module Routines:
 !  =========================================================================
@@ -38,6 +38,7 @@
 !        "unix_cmds_mod.f" (bmy, 7/20/04)
 !  (3 ) Now references FILE_EXISTS from "file_mod.f" (bmy, 3/23/05)
 !  (4 ) Updated comments (bmy, 10/24/05)
+!  (5 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -63,7 +64,7 @@
 !  Subroutine UNZIP_GWET_FIELDS invokes a FORTRAN system call to uncompress
 !  GEOS-CHEM GWET met field files and store the uncompressed data in a 
 !  temporary directory, where GEOS-CHEM can read them.  The original data 
-!  files are not disturbed.  (tdf, bmy, 3/30/04, 7/20/04)
+!  files are not disturbed.  (tdf, bmy, 3/30/04, 8/4/06)
 !
 !  Arguments as input:
 !  ============================================================================
@@ -77,12 +78,17 @@
 !  (3 ) Now reference "directory_mod.f" and "unix_cmds_mod.f". Now prevent 
 !        EXPAND_DATE from overwriting directory paths with Y/M/D tokens in 
 !        them (bmy, 7/20/04)
+!  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GEOS_1_DIR, GEOS_S_DIR
-      USE DIRECTORY_MOD, ONLY : GEOS_3_DIR, TEMP_DIR
+      !------------------------------------------------------------------
+      ! Prior to 8/4/06:
+      !USE DIRECTORY_MOD, ONLY : DATA_DIR,   GEOS_1_DIR, GEOS_S_DIR
+      !USE DIRECTORY_MOD, ONLY : GEOS_3_DIR, TEMP_DIR
+      !------------------------------------------------------------------
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GEOS_3_DIR, TEMP_DIR
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE TIME_MOD,      ONLY : EXPAND_DATE
       USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD 
@@ -104,26 +110,33 @@
       ! UNZIP_GWET_FIELDS begins here!
       !=================================================================
       IF ( PRESENT( NYMD ) ) THEN
-     
-#if   defined( GEOS_1 )
-
-         ! String w/ date & resolution
-         GEOS_DIR = TRIM( GEOS_1_DIR )
-         GWET_STR = 'YYMMDD.gwet.' // GET_RES_EXT() 
-
-#elif defined( GEOS_STRAT )
-
-         ! String w/ date & resolution
-         GEOS_DIR = TRIM( GEOS_S_DIR )
-         GWET_STR = 'YYMMDD.gwet.' // GET_RES_EXT() 
-
-#elif defined( GEOS_3 )
+ 
+!-------------------------------------------------------------------------- 
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 )
+!
+!         ! String w/ date & resolution
+!         GEOS_DIR = TRIM( GEOS_1_DIR )
+!         GWET_STR = 'YYMMDD.gwet.' // GET_RES_EXT() 
+!
+!#elif defined( GEOS_STRAT )
+!
+!         ! String w/ date & resolution
+!         GEOS_DIR = TRIM( GEOS_S_DIR )
+!         GWET_STR = 'YYMMDD.gwet.' // GET_RES_EXT() 
+!
+!#elif defined( GEOS_3 )
+!--------------------------------------------------------------------------    
 
          ! String w/ date & resolution
          GEOS_DIR = TRIM( GEOS_3_DIR )
          GWET_STR = 'YYYYMMDD.gwet.' // GET_RES_EXT() 
 
-#endif
+!------------------
+! Prior to 8/4/06:
+!#endif
+!------------------
 
          ! Replace date tokens
          CALL EXPAND_DATE( GEOS_DIR, NYMD, 000000 )
@@ -260,7 +273,7 @@
 !
 !******************************************************************************
 !  Subroutine OPEN_gwet_FIELDS opens the A-3 met fields file for date NYMD 
-!  and time NHMS. (tdf, bmy, 3/30/04, 3/23/05)
+!  and time NHMS. (tdf, bmy, 3/30/04, 8/4/06)
 !  
 !  Arguments as Input:
 !  ===========================================================================
@@ -274,15 +287,21 @@
 !        from overwriting Y/M/D tokens in directory paths. (bmy, 7/20/04)
 !  (3 ) Now use FILE_EXISTS from "file_mod.f" to determine if file unit 
 !        IU_GWET refers to a valid file on disk (bmy, 3/23/05)
+!  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !      
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GEOS_1_DIR, GEOS_S_DIR
-      USE DIRECTORY_MOD, ONLY : GEOS_3_DIR, TEMP_DIR
+      !-------------------------------------------------------------------
+      ! Prior to 8/4/06:
+      ! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+      !USE DIRECTORY_MOD, ONLY : DATA_DIR,   GEOS_1_DIR, GEOS_S_DIR
+      !USE DIRECTORY_MOD, ONLY : GEOS_3_DIR, TEMP_DIR
+      !-------------------------------------------------------------------
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GEOS_3_DIR, TEMP_DIR
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE LOGICAL_MOD,   ONLY : LUNZIP
-      USE FILE_MOD,      ONLY : IU_GWET, IOERROR, FILE_EXISTS
+      USE FILE_MOD,      ONLY : IU_GWET,    IOERROR,    FILE_EXISTS
       USE TIME_MOD,      ONLY : EXPAND_DATE
 
 #     include "CMN_SIZE"      ! Size parameters
@@ -306,25 +325,32 @@
       ! Open A-3 fields at the proper time, or on the first call
       IF ( DO_OPEN_GWET( NYMD, NHMS ) ) THEN
 
-#if   defined( GEOS_1 ) 
-
-         ! Strings for directory & filename
-         GEOS_DIR  = TRIM( GEOS_1_DIR )
-         GWET_FILE = 'YYMMDD.gwet.'   // GET_RES_EXT()
-
-#elif defined( GEOS_STRAT )
-
-         ! Strings for directory & filename
-         GEOS_DIR  = TRIM( GEOS_S_DIR )
-         GWET_FILE = 'YYMMDD.gwet.'   // GET_RES_EXT()
-
-#elif defined( GEOS_3 )
+!----------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) 
+!
+!         ! Strings for directory & filename
+!         GEOS_DIR  = TRIM( GEOS_1_DIR )
+!         GWET_FILE = 'YYMMDD.gwet.'   // GET_RES_EXT()
+!
+!#elif defined( GEOS_STRAT )
+!
+!         ! Strings for directory & filename
+!         GEOS_DIR  = TRIM( GEOS_S_DIR )
+!         GWET_FILE = 'YYMMDD.gwet.'   // GET_RES_EXT()
+!
+!#elif defined( GEOS_3 )
+!----------------------------------------------------------------------
 
          ! String w/ date and resolution
          GEOS_DIR  = TRIM( GEOS_3_DIR )
          GWET_FILE = 'YYYYMMDD.gwet.' // GET_RES_EXT()
 
-#endif
+!-------------------
+! Prior to 8/4/06:
+!#endif
+!-------------------
 
          ! Replace date tokens
          CALL EXPAND_DATE( GEOS_DIR,  NYMD, NHMS )
@@ -426,40 +452,45 @@
 !******************************************************************************
 !  Function CHECK_TIME checks to see if the timestamp of the GWET field just
 !  read from disk matches the current time.  If so, then it's time to return
-!  the GWET field to the calling program. (tdf, bmy, 3/30/04)
+!  the GWET field to the calling program. (tdf, bmy, 3/30/04, 8/4/06)
 !  
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) XYMD (REAL*4 or INTEGER) : (YY)YYMMDD timestamp for A-3 field in file
-!  (2 ) XHMS (REAL*4 or INTEGER) : HHMMSS     timestamp for A-3 field in file
-!  (3 ) NYMD (INTEGER          ) : YYYYMMDD   at which A-3 field is to be read
-!  (4 ) NHMS (INTEGER          ) : HHMMSS     at which A-3 field is to be read
+!  (1 ) XYMD (INTEGER) : YYYYMMDD timestamp for A-3 field in file
+!  (2 ) XHMS (INTEGER) : HHMMSS   timestamp for A-3 field in file
+!  (3 ) NYMD (INTEGER) : YYYYMMDD  at which A-3 field is to be read
+!  (4 ) NHMS (INTEGER) : HHMMSS    at which A-3 field is to be read
 !
 !  NOTES:
 !  (1 ) Adapted from "a3_read_mod.f" (bmy, 3/30/04)
+!  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
 #     include "CMN_SIZE"
 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-
-      ! Arguments
-      REAL*4,  INTENT(IN) :: XYMD, XHMS 
-      INTEGER, INTENT(IN) :: NYMD, NHMS
-
-      ! Function value
-      LOGICAL             :: ITS_TIME
-
-      !=================================================================
-      ! GEOS-1 and GEOS-STRAT: XYMD and XHMS are REAL*4
-      !=================================================================
-      IF ( INT(XYMD) == NYMD-19000000 .AND. INT(XHMS) == NHMS ) THEN
-         ITS_TIME = .TRUE.
-      ELSE
-         ITS_TIME = .FALSE.
-      ENDIF
-
-#else
+!-----------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!
+!      ! Arguments
+!      REAL*4,  INTENT(IN) :: XYMD, XHMS 
+!      INTEGER, INTENT(IN) :: NYMD, NHMS
+!
+!      ! Function value
+!      LOGICAL             :: ITS_TIME
+!
+!      !=================================================================
+!      ! GEOS-1 and GEOS-STRAT: XYMD and XHMS are REAL*4
+!      !=================================================================
+!      IF ( INT(XYMD) == NYMD-19000000 .AND. INT(XHMS) == NHMS ) THEN
+!         ITS_TIME = .TRUE.
+!      ELSE
+!         ITS_TIME = .FALSE.
+!      ENDIF
+!
+!#else
+!-----------------------------------------------------------------------------
 
       ! Arguments 
       INTEGER, INTENT(IN) :: XYMD, XHMS, NYMD, NHMS
@@ -468,7 +499,7 @@
       LOGICAL             :: ITS_TIME
 
       !=================================================================
-      ! GEOS-3, GEOS-4: XYMD and XHMS are integers
+      ! CHECK_TIME begins here!
       !=================================================================
       IF ( XYMD == NYMD .AND. XHMS == NHMS ) THEN
          ITS_TIME = .TRUE.
@@ -476,7 +507,10 @@
          ITS_TIME = .FALSE.
       ENDIF
 
-#endif
+!----------------------
+! Prior to 8/4/06:
+!#endif
+!----------------------
 
       ! Return to calling program
       END FUNCTION CHECK_TIME
@@ -487,7 +521,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_GWET reads GEOS GWET (3-hr avg) fields from disk.
-!  (tdf, bmy, 3/30/04)
+!  (tdf, bmy, 3/30/04, 8/4/06)
 ! 
 !  Arguments as input:
 !  ============================================================================
@@ -496,10 +530,11 @@
 !
 !  Arguments as Output:
 !  ============================================================================
-!  (1 ) GWET : (2-D) GMAO topsoil wetness                   [unitless]
+!  (1 ) GWET : (2-D) GMAO topsoil wetness [unitless]
 !
 !  NOTES:
 !  (1 ) Adapted from "a3_read_mod.f" (tdf, bmy, 3/30/04)
+!  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -522,13 +557,18 @@
       CHARACTER(LEN=8)               :: NAME
       CHARACTER(LEN=16)              :: STAMP
 
-      ! XYMD, XHMS must be REAL*4 for GEOS-1, GEOS-STRAT
-      ! but INTEGER for GEOS-3 and GEOS-4 (bmy, 6/23/03)
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-      REAL*4                         :: XYMD, XHMS 
-#else
+!--------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!      ! XYMD, XHMS must be REAL*4 for GEOS-1, GEOS-STRAT
+!      ! but INTEGER for GEOS-3 and GEOS-4 (bmy, 6/23/03)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!      REAL*4                         :: XYMD, XHMS 
+!#else
+!      INTEGER                        :: XYMD, XHMS
+!#endif
+!--------------------------------------------------------------------------
       INTEGER                        :: XYMD, XHMS
-#endif
 
       !=================================================================
       ! READ_gwet begins here!      

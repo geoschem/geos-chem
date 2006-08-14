@@ -1,4 +1,4 @@
-! $Id: isoropia.h,v 1.2 2006/07/14 18:36:49 bmy Exp $
+! $Id: isoropia.h,v 1.3 2006/08/14 17:58:10 bmy Exp $
 !
 !******************************************************************************
 !  Header file "isoropia.h" contains common block declarations for the 
@@ -114,11 +114,6 @@
       !=================================================================
 
       REAL*8             :: GNH3, GHNO3, GHCL 
-      !-----------------------------------------------------------
-      ! Prior to 6/28/06:
-      ! Rename to avoid namespace confusion (psk, bmy, 6/28/06)
-      !COMMON /GAS/          GNH3, GHNO3, GHCL 
-      !-----------------------------------------------------------
       COMMON /GAS1/         GNH3, GHNO3, GHCL 
 
       !=================================================================
@@ -177,11 +172,6 @@
 !$OMP THREADPRIVATE( /EROR0/ )
 !$OMP THREADPRIVATE( /EROR1/ )
 !$OMP THREADPRIVATE( /EROR2/ )
-!--------------------------------------------------------------
-! Prior to 6/28/06:
-! Rename to avoid namespace confusion (psk, bmy, 6/28/06)
-!!$OMP THREADPRIVATE( /GAS/  )
-!--------------------------------------------------------------
 !$OMP THREADPRIVATE( /GAS1/  )
 !$OMP THREADPRIVATE( /INPT2/ )
 !$OMP THREADPRIVATE( /IONS0/ )

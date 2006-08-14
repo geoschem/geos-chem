@@ -1,10 +1,10 @@
-! $Id: pbl_mix_mod.f,v 1.4 2005/10/20 14:03:36 bmy Exp $
+! $Id: pbl_mix_mod.f,v 1.5 2006/08/14 17:58:12 bmy Exp $
       MODULE PBL_MIX_MOD
 !
 !******************************************************************************
 !  Module PBL_MIX_MOD contains routines and variables used to compute the
 !  planetary boundary layer (PBL) height and to mix tracers underneath the 
-!  PBL top. (bmy, 2/11/05, 8/30/05)
+!  PBL top. (bmy, 2/11/05, 8/4/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -43,6 +43,7 @@
 !  NOTES:
 !  (1 ) Now modified for GCAP and GEOS-5 met fields (bmy, 5/24/05)
 !  (2 ) Remove reference to "CMN" and XTRA2. (bmy, 8/30/05)
+!  (3 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -141,13 +142,14 @@
 !
 !******************************************************************************
 !  Subroutine COMPUTE_PBL_HEIGHT computes the PBL height and other related
-!  quantities. (bmy, 2/15/05, 8/30/05)
+!  quantities. (bmy, 2/15/05, 8/4/06)
 !
 !  NOTES:
 !  (1 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !  (2 ) Remove reference to "CMN" and XTRA2 -- they're obsolete.  Also do not
 !        force BLTOP, BLTHIK to minimum values for GEOS-STRAT met fields.
 !        (bmy, 8/30/05)
+!  (3 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -184,23 +186,31 @@
             P(L) = GET_PEDGE(I,J,L+1)
          ENDDO
 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!----------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!----------------------------------------------------------------------------
+#if   defined( GEOS_3 )
 
          !----------------------------------------------
-         ! GEOS-1, GEOS-STRAT, GEOS-3:
-         ! Find PBL top and thickness [hPa]
+         ! GEOS-3: Find PBL top and thickness [hPa]
          !----------------------------------------------
 
          ! BLTOP = pressure at PBL top
          ! PBL is in [hPa], so subtract it from surface pressure [hPa]
          BLTOP  = P(0) - PBL(I,J)
 
-#if   defined( GEOS_STRAT )
-
-         ! BLTHIK is PBL thickness [hPa]
-         BLTHIK = PBL(I,J)
-
-#else
+!--------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_STRAT )
+!
+!         ! BLTHIK is PBL thickness [hPa]
+!         BLTHIK = PBL(I,J)
+!
+!#else
+!--------------------------------------------------------------------
 
          ! BLTHIK is PBL thickness [hPa]
          BLTHIK = MAX( PBL(I,J), 1d0 )
@@ -210,8 +220,11 @@
          ! propagating throughout the code. (bmy, 3/7/01)
          IF ( PBL(I,J) < 1d-5 ) BLTOP  = P(0) - 2d0
 
-#endif
-
+!---------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#endif
+!---------------------------------------------------------------------
 
 #else
 

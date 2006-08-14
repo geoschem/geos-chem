@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.34 2006/07/26 15:32:10 bmy Exp $
+! $Id: diag3.f,v 1.35 2006/08/14 17:58:03 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out diagnostics to the BINARY format punch file 
-!  (bmy, bey, mgs, rvm, 5/27/99, 7/25/06)
+!  (bmy, bey, mgs, rvm, 5/27/99, 8/4/06)
 !
 !  NOTES: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
@@ -73,6 +73,7 @@
 !  (66) Now remove TRCOFFSET; it's obsolete.  References ND42, WRITE_DIAG42 
 !        from "diag42_mod.f" (dkh, bmy, 5/22/06)
 !  (67) Updated ND36 diagnostic for CH3I (bmy, 7/25/06)
+!  (68) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -1968,18 +1969,6 @@
 !                     
       IF ( ND36 > 0 ) THEN
 
-         !------------------------------------
-         ! Prior to 7/25/06:
-         ! Rewrite for clarity (bmy, 7/25/06)
-         !IF ( ITS_A_CH3I_SIM() ) THEN
-         !   CATEGORY = 'CH3ISRCE'
-         !   UNIT     = 'ng/m2/s'
-         !ELSE 
-         !   CATEGORY = 'ANTHSRCE'
-         !   UNIT     = '' 
-         !ENDIF
-         !------------------------------------
-
          ! Loop over # of tracers
          DO M = 1, TMAX(36)
             
@@ -2002,11 +1991,6 @@
             NN = N
 
             ! Divide by seconds
-            !-----------------------------------------
-            ! Prior to 7/25/06:
-            ! Rewrite for clarity (bmy, 7/25/06)
-            !ARRAY(:,:,1) = AD36(:,:,MM) / SECONDS
-            !-----------------------------------------
             ARRAY(:,:,1) = AD36(:,:,M) / SECONDS
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -2645,7 +2629,11 @@
 
                ! UWND, VWND
                CASE ( 1,2 )
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!--------------------------------------------------------------------------
+! Prior to 8/4/06:
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!--------------------------------------------------------------------------
+#if   defined( GEOS_3 )
                   SCALEX = SCALE_I6
 #else
                   SCALEX = SCALE_A6
@@ -2654,7 +2642,11 @@
 
                ! TMPU
                CASE ( 3 )
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!---------------------------------------------------------------------------
+! Prior to 8/4/06:
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!---------------------------------------------------------------------------
+#if   defined( GEOS_3 )
                   SCALEX = SCALE_I6
 #else
                   SCALEX = SCALE_A6
@@ -2663,7 +2655,11 @@
 
                ! SPHU
                CASE ( 4 )
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!----------------------------------------------------------------------------
+! Prior to 8/4/06:
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!----------------------------------------------------------------------------
+#if   defined( GEOS_3 )
                   SCALEX = SCALE_I6
 #else
                   SCALEX = SCALE_A6
@@ -2756,7 +2752,11 @@
                   SCALEX = SCALE_A3
                   UNIT   = 'unitless'
 
-#if   defined( GEOS_STRAT ) || defined( GCAP )
+!---------------------------------------------------
+! Prior to 8/4/06:
+!#if   defined( GEOS_STRAT ) || defined( GCAP )
+!---------------------------------------------------
+#if   defined( GCAP )
                   ! CLDFRC is a 6-hr field in GCAP, GEOS-STRAT 
                   ! (swu, bmy, 6/9/05)
                   SCALEX = SCALE_A6

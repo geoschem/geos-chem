@@ -1,10 +1,10 @@
-! $Id: readchem.f,v 1.9 2006/06/06 14:26:08 bmy Exp $
+! $Id: readchem.f,v 1.10 2006/08/14 17:58:12 bmy Exp $
       SUBROUTINE READCHEM 
 !
 !******************************************************************************
-!  Subroutine READCHEM reads species names, chemical rxns, and photolysis 
+!  Subroutine READCHEM reads species 2names, chemical rxns, and photolysis 
 !  reactions from the "globchem.dat" chemistry mechanism file for SMVGEAR II.  
-!  (M. Jacobson 1997; bdf, bmy, 5/9/03, 6/1/06)
+!  (M. Jacobson 1997; bdf, bmy, 5/9/03, 8/9/06)
 !
 !  NOTES:
 !  (1 ) Added space in FORMAT strings for more products.  Also now references
@@ -23,6 +23,7 @@
 !  (4 ) Now flag the N2O5 hydrolysis rxn for later use. (mje, bmy, 8/7/03)
 !  (5 ) Now references SETJFAM & SETPL from "diag_pl_mod.f" (bmy, 7/20/04)
 !  (6 ) Now look up ILISOPOH, the index of ISOP lost to OH (dkh, bmy, 6/1/06)
+!  (7 ) Increase FORMAT 510 so that it has space for 14 products (bmy, 8/9/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -954,8 +955,14 @@ C
      1       'DELIMETER ',A2,' HAD INCORRECT # OF REACTIONS ',I5)
  450  FORMAT('READCHEM: ORD# REACT ',I3,' CANT HAVE COEFF > 1')
  470  FORMAT('READCHEM: SURFACE REACTION ',I5,'HAS THREE REACTANTS ')
+!------------------------------------------------------------------------------
+! Prior to 8/9/06:
+! Increase FORMAT string to 14 products (bmy, 8/9/06)
+! 510  FORMAT(I3,1X,ES7.1,1X,ES7.1,I6,1X,0PF3.2,1X,
+!     1       A6,2(A1,A6),11(A1,0PF3.1,A6))  
+!------------------------------------------------------------------------------
  510  FORMAT(I3,1X,ES7.1,1X,ES7.1,I6,1X,0PF3.2,1X,
-     1       A6,2(A1,A6),11(A1,0PF3.1,A6))  
+     1       A6,2(A1,A6),14(A1,0PF3.1,A6))  
  520  FORMAT( 'KINETIC REACTIONS FOR ', A,' CHEMISTRY',/,   
      1        'RATE CONSTANTS HAVE FORM K = A * (300/T)**B * EXP(C/T).')
  521  FORMAT( 'NMBR   A       B     C     Fv       REACTION' )
@@ -1137,5 +1144,6 @@ C *********************************************************************
 C *******************   END OF SUBROUTINE READCHEM   ****************** 
 C *********************************************************************
 C     
+
       RETURN
       END SUBROUTINE READCHEM

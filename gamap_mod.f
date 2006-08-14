@@ -1,10 +1,10 @@
-! $Id: gamap_mod.f,v 1.15 2006/07/26 15:32:11 bmy Exp $
+! $Id: gamap_mod.f,v 1.16 2006/08/14 17:58:07 bmy Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
 !  Module GAMAP_MOD contains routines to create GAMAP "tracerinfo.dat" and
 !  "diaginfo.dat" files which are customized to each particular GEOS-CHEM
-!  simulation. (bmy, 5/3/05, 7/25/06)
+!  simulation. (bmy, 5/3/05, 8/4/06)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -71,6 +71,7 @@
 !  (7 ) Updated for ND56 lightning flash diagnostics (ltm, bmy, 5/5/06)
 !  (8 ) Updated for ND42 SOA concentration diagnostics (dkh, bmy, 5/22/06)
 !  (9 ) Updated for ND36 CH3I simulation diagnostics (bmy, 7/25/06)
+!  (10) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -631,7 +632,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_GAMAP allocates and initializes all module variables.  
-!  (bmy, 4/22/05, 7/25/06)
+!  (bmy, 4/22/05, 8/4/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -656,6 +657,7 @@
 !  (8 ) Now references ND42 from "diag42_mod.f".  Also updated for extra SOA
 !        tracers in ND07 diagnostic. (dkh, bmy, 5/22/06)
 !  (9 ) Updated ND36 for CH3I simulation (bmy, 7/25/06)
+!  (10) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -835,14 +837,6 @@
       CATEGORY(N) = 'INST_COL'
       DESCRIPT(N) = 'Instantaneous columns'
       OFFSET(N)   = SPACING * 2
-
-      !-------------------------------------
-      ! Prior to 7/25/06:
-      !N           = N + 1
-      !CATEGORY(N) = 'CH3ISRCE'
-      !DESCRIPT(N) = 'CH3I emissions'
-      !OFFSET(N)   = SPACING * 3
-      !-------------------------------------
 
       N           = N + 1
       CATEGORY(N) = 'CV-FLX-$'
@@ -1855,21 +1849,28 @@
                CASE( 1  )
                   NAME (T,21) = 'OPTD'
                   FNAME(T,21) = 'Cloud optical depth'
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-               CASE( 2  )
-                  ! GEOS-1, GEOS-STRAT: CLMO
-                  NAME (T,21) = 'CLMO'
-                  FNAME(T,21) = 'Max overlap cloud frc'
-               CASE( 3  )
-                  ! GEOS-1, GEOS-STRAT: CLRO
-                  NAME (T,21) = 'CLRO'
-                  FNAME(T,21) = 'Random overlap cloud frc'
-#else
+!----------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!               CASE( 2  )
+!                  ! GEOS-1, GEOS-STRAT: CLMO
+!                  NAME (T,21) = 'CLMO'
+!                  FNAME(T,21) = 'Max overlap cloud frc'
+!               CASE( 3  )
+!                  ! GEOS-1, GEOS-STRAT: CLRO
+!                  NAME (T,21) = 'CLRO'
+!                  FNAME(T,21) = 'Random overlap cloud frc'
+!#else
+!----------------------------------------------------------------------
                CASE( 2  )
                   ! GEOS-3, GEOS-4: CLDTOT
                   NAME (T,21) = 'CLDTOT'
                   FNAME(T,21) = '3-D cloud frc'
-#endif
+!-----------------------
+! Prior to 8/4/06:
+!#endif
+!-----------------------
                CASE( 4  )
                   NAME (T,21) = 'OPD'
                   FNAME(T,21) = 'Mineral dust opt depth'

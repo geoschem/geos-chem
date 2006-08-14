@@ -1,4 +1,4 @@
-! $Id: partition.f,v 1.7 2006/07/14 18:36:50 bmy Exp $
+! $Id: partition.f,v 1.8 2006/08/14 17:58:12 bmy Exp $
       SUBROUTINE PARTITION( NTRACER, STT, XNUMOL ) 
 !
 !******************************************************************************
@@ -48,11 +48,6 @@
       INTEGER                :: CSAVEID_JJ(IGAS)
       INTEGER                :: CS, IDNUM, AS  
       REAL*8                 :: CONCTMP, CONCNOX, SUM, SUM1
-      !---------------------------------------------------------------------
-      ! Prior to 7/14/06:
-      ! Resize CSAVE to save local memory, for SUN compiler (bmy, 7/14/06)
-      !REAL*8                 :: CSAVE( ITLOOP, IGAS )
-      !---------------------------------------------------------------------
       REAL*8                 :: CSAVE( ITLOOP, NTRACER )
       
       !=================================================================

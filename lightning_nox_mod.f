@@ -1,11 +1,11 @@
-! $Id: lightning_nox_mod.f,v 1.11 2006/05/15 17:52:51 bmy Exp $
+! $Id: lightning_nox_mod.f,v 1.12 2006/08/14 17:58:10 bmy Exp $
       MODULE LIGHTNING_NOX_MOD
 !
 !******************************************************************************
 !  Module LIGHTNING_NOX_MOD contains variables and routines for emitting NOx
 !  from lightning into the atmosphere.  Original code comes from the old 
 !  GISS-II CTM's of Yuhang Wang, Gerry Gardner, & Larry Horowitz.  Cleaned 
-!  up for inclusion into GEOS-CHEM. (bmy, 4/14/04, 2/1/06)
+!  up for inclusion into GEOS-CHEM. (bmy, 4/14/04, 8/4/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -52,6 +52,7 @@
 !        variable and GET_MET_FIELD_SCALE function. (bmy, 8/25/05)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Fixed typo for N. American nested grid (bmy, 2/1/06)
+!  (6 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -441,7 +442,7 @@
 !******************************************************************************
 !  Subroutine LIGHTDIST reads in the CDF used to partition the 
 !  column lightning NOx into the GEOS-CHEM vertical layers. 
-!  (yhw, 1997; mje, bmy, 9/18/02, 7/20/04)
+!  (yhw, 1997; mje, bmy, 9/18/02, 8/4/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -476,6 +477,7 @@
 !  (6 ) Now bundled into "lightning_mod.f".  CDF's are now read w/in
 !        routine INIT_LIGHTNING to allow parallelization (bmy, 4/14/04)
 !  (7 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  (8 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -531,42 +533,46 @@
          RETURN
       ENDIF
 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!------------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!
+!      !=================================================================
+!      ! For GEOS-1 and GEOS-STRAT only:
+!      !
+!      ! Use the PDF for this type of lightning to partition the total
+!      ! column lightning into the GEOS-3 vertical layers
+!      !=================================================================
+!
+!      ZHEIGHT = 0.
+!
+!      ! Compute the height [km] at the top of each vertical level.
+!      ! Look up the cumulative fraction of NOx for each vertical level
+!      DO L = 1, LTOP-1
+!         ZHEIGHT = ZHEIGHT + BXHEIGHT(I,J,L)
+!         FRAC(L) = PROFILE( NINT( ( ZHEIGHT / H0 ) * 100. ), MTYPE )
+!      ENDDO
+!
+!      ! If there is any lightning NOx yet to be partitioned out,
+!      ! then place that in the level where the cloud top occurs.
+!      FRAC(LTOP) = 1.
+!         
+!      ! Convert from cumulative fraction to fraction for each level
+!      DO L = LTOP, 2, -1
+!         FRAC(L) = FRAC(L) - FRAC(L-1)
+!      ENDDO
+!
+!      ! Partition lightning NOx by layer into VERTPROF
+!      DO L = 1, LTOP
+!         VERTPROF(L) = ( FRAC(L) * TOTAL )
+!      ENDDO
+!
+!#else
+!------------------------------------------------------------------------------
 
       !=================================================================
-      ! For GEOS-1 and GEOS-STRAT only:
-      !
-      ! Use the PDF for this type of lightning to partition the total
-      ! column lightning into the GEOS-3 vertical layers
-      !=================================================================
-
-      ZHEIGHT = 0.
-
-      ! Compute the height [km] at the top of each vertical level.
-      ! Look up the cumulative fraction of NOx for each vertical level
-      DO L = 1, LTOP-1
-         ZHEIGHT = ZHEIGHT + BXHEIGHT(I,J,L)
-         FRAC(L) = PROFILE( NINT( ( ZHEIGHT / H0 ) * 100. ), MTYPE )
-      ENDDO
-
-      ! If there is any lightning NOx yet to be partitioned out,
-      ! then place that in the level where the cloud top occurs.
-      FRAC(LTOP) = 1.
-         
-      ! Convert from cumulative fraction to fraction for each level
-      DO L = LTOP, 2, -1
-         FRAC(L) = FRAC(L) - FRAC(L-1)
-      ENDDO
-
-      ! Partition lightning NOx by layer into VERTPROF
-      DO L = 1, LTOP
-         VERTPROF(L) = ( FRAC(L) * TOTAL )
-      ENDDO
-
-#else
-
-      !=================================================================
-      ! For all other met field types (GEOS-3, GEOS-4, GEOS-5, ... )
+      ! For all met field types: GEOS-3, GEOS-4, GEOS-5, GCAP
       !
       ! Use the CDF for this type of lightning to partition the total
       ! column lightning into the GEOS-3 vertical layers.
@@ -590,7 +596,10 @@
          VERTPROF(L) = ( FRAC(L) * TOTAL )
       ENDDO
 
-#endif 
+!------------------
+! Prior to 8/4/06:
+!#endif 
+!-----------------
 
       ! Return to calling program
       END SUBROUTINE LIGHTDIST
@@ -746,9 +755,10 @@
 !******************************************************************************
 !  Function GET_MET_FIELD_SCALE returns a met-field dependent scale factor
 !  which is to be applied to the LNOx emissions in order to bring the total
-!  to a specified value.  (bmy, 8/25/05)
+!  to a specified value.  (bmy, 8/25/05, 8/4/06)
 !
 !  NOTES:
+!  (1 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
 #     include "define.h"
@@ -809,27 +819,31 @@
       !%%% Figure this out later %%%
       SCALE = 1d0
 
-#elif defined( GEOS_STRAT ) && defined( GRID4x5 )
-
-      ! GEOS-STRAT 4x5 1997 produces 5.9220 Tg N/yr w/o any further scaling. 
-      SCALE = 1d0  
-
-#elif defined( GEOS_STRAT ) && defined( GRID2x25 )
-
-      ! GEOS-STRAT 2x25 1997 produces 12.0636 Tg N/yr w/o any further scaling. 
-      ! Scale this to 5.9220 Tg N/yr to match the 4x5 total. (bmy, 8/30/05)
-      SCALE = 5.9220d0 / 12.0636d0
-
-#elif defined( GEOS_1 ) && defined( GRID4x5 )
-
-      ! GEOS-1 4x5 1994 produces 6.7645 Tg N/yr w/o any further scaling.
-      SCALE = 1d0
-
-#elif defined( GEOS_1 ) && defined( GRID2x25 )
-
-      ! GEOS-1 2x25 1994 produces 13.0084 Tg N/yr w/o any further scaling.
-      ! Scale this to 6.7645 Tg N/yr to match the 4x5 total. (bmy, 8/30/05)
-      SCALE = 6.7645d0 / 13.0084d0 
+!------------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#elif defined( GEOS_STRAT ) && defined( GRID4x5 )
+!
+!      ! GEOS-STRAT 4x5 1997 produces 5.9220 Tg N/yr w/o any further scaling. 
+!      SCALE = 1d0  
+!
+!#elif defined( GEOS_STRAT ) && defined( GRID2x25 )
+!
+!      ! GEOS-STRAT 2x25 1997 produces 12.0636 Tg N/yr w/o any further scaling.
+!      ! Scale this to 5.9220 Tg N/yr to match the 4x5 total. (bmy, 8/30/05)
+!      SCALE = 5.9220d0 / 12.0636d0
+!
+!#elif defined( GEOS_1 ) && defined( GRID4x5 )
+!
+!      ! GEOS-1 4x5 1994 produces 6.7645 Tg N/yr w/o any further scaling.
+!      SCALE = 1d0
+!
+!#elif defined( GEOS_1 ) && defined( GRID2x25 )
+!
+!      ! GEOS-1 2x25 1994 produces 13.0084 Tg N/yr w/o any further scaling.
+!      ! Scale this to 6.7645 Tg N/yr to match the 4x5 total. (bmy, 8/30/05)
+!      SCALE = 6.7645d0 / 13.0084d0 
+!------------------------------------------------------------------------------
 
 #endif
 
@@ -871,11 +885,16 @@
       MET_SCALE = GET_MET_FIELD_SCALE()
 
       ! NNLIGHT is the number of points for the lightning PDF's
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-      NNLIGHT = 100
-#else
+!-------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!      NNLIGHT = 100
+!#else
+!      NNLIGHT = 3200
+!#endif
+!-------------------------------------------------------------------
       NNLIGHT = 3200
-#endif
 
       ! Allocate PROFILE
       ALLOCATE( PROFILE( NNLIGHT, NLTYPE ), STAT=AS )
@@ -887,46 +906,50 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLBASE' )
       SLBASE = 0d0
 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-
-      !=================================================================
-      ! Read lightning CDF data for GEOS-1, GEOS-STRAT
-      !
-      ! Here we read in the original Pickering CDF's for NNLIGHT=3
-      ! different types of lightning: tropical marine, tropical 
-      ! continental, and midlatitude continental.  The vertical 
-      ! resolution of the CDF's in the file read in below is 0.16 km. 
-      !=================================================================
-
-      ! Define filename for GEOS-1, GEOS-STRAT PDF file
-      FILENAME = TRIM( DATA_DIR ) // 
-     &           'lightning_NOx_200203/light_dist.dat'        
-
-      ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - INIT_LIGHTNING: Reading ', a )
-
-      ! Open file containing lightning CDF data
-      OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
-      IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'lightdist:3' )
-
-      ! For GEOS-1, GEOS-STRAT: Read 1 header line
-      READ( IU_FILE, *, IOSTAT=IOS )
-      IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'lightdist:4' )
-
-         ! For GEOS-1, GEOS-STRAT: Read data
-      DO III = 1, NNLIGHT
-         READ( IU_FILE,*,IOSTAT=IOS ) ( PROFILE(III,JJJ), JJJ=1,NLTYPE )
-         IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'lightdist:5' )
-      ENDDO
-
-      ! Close file
-      CLOSE( IU_FILE )
-
-#else
+!------------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!
+!      !=================================================================
+!      ! Read lightning CDF data for GEOS-1, GEOS-STRAT
+!      !
+!      ! Here we read in the original Pickering CDF's for NNLIGHT=3
+!      ! different types of lightning: tropical marine, tropical 
+!      ! continental, and midlatitude continental.  The vertical 
+!      ! resolution of the CDF's in the file read in below is 0.16 km. 
+!      !=================================================================
+!
+!      ! Define filename for GEOS-1, GEOS-STRAT PDF file
+!      FILENAME = TRIM( DATA_DIR ) // 
+!     &           'lightning_NOx_200203/light_dist.dat'        
+!
+!      ! Echo info
+!      WRITE( 6, 100 ) TRIM( FILENAME )
+! 100  FORMAT( '     - INIT_LIGHTNING: Reading ', a )
+!
+!      ! Open file containing lightning CDF data
+!      OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
+!      IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'lightdist:3' )
+!
+!      ! For GEOS-1, GEOS-STRAT: Read 1 header line
+!      READ( IU_FILE, *, IOSTAT=IOS )
+!      IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'lightdist:4' )
+!
+!         ! For GEOS-1, GEOS-STRAT: Read data
+!      DO III = 1, NNLIGHT
+!         READ( IU_FILE,*,IOSTAT=IOS ) ( PROFILE(III,JJJ), JJJ=1,NLTYPE )
+!         IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'lightdist:5' )
+!      ENDDO
+!
+!      ! Close file
+!      CLOSE( IU_FILE )
+!
+!#else
+!------------------------------------------------------------------------------
          
       !=================================================================
-      ! Read lightning CDF data for GEOS-3, GEOS-4 and higher
+      ! Read lightning CDF data for GEOS-3, GEOS-4, GEOS-5, GCAP
       ! 
       ! NOTE: Since the GEOS-3 vertical grid has a much finer
       ! resolution near the surface than do the GEOS-1 or GEOS-STRAT
@@ -962,7 +985,10 @@
       ! Close file
       CLOSE( IU_FILE )
 
-#endif
+!--------------------
+! Prior to 8/4/06:
+!#endif
+!--------------------
 
       ! Return to calling program
       END SUBROUTINE INIT_LIGHTNING_NOX

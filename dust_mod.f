@@ -1,9 +1,9 @@
-! $Id: dust_mod.f,v 1.12 2006/05/26 17:45:20 bmy Exp $
+! $Id: dust_mod.f,v 1.13 2006/08/14 17:58:05 bmy Exp $
       MODULE DUST_MOD
 !
 !******************************************************************************
 !  Module DUST_MOD contains routines for computing dust aerosol emissions,
-!  chemistry, and optical depths. (rjp, tdf, bmy, 4/14/04, 5/23/06)
+!  chemistry, and optical depths. (rjp, tdf, bmy, 4/14/04, 8/4/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -53,6 +53,7 @@
 !  (4 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (5 ) Bug fix in snow height computation (bmy, 11/18/05)
 !  (6 ) Now only do drydep if LDRYD=T (bmy, 5/23/06)
+!  (7 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1196,7 +1197,7 @@
 !******************************************************************************
 !  Subroutine RDUST_OFFLINE reads global mineral dust concentrations as 
 !  determined by P. Ginoux.  Calculates dust optical depth at each level for 
-!  the FAST-J routine "set_prof.f". (rvm, bmy, 9/30/00, 10/3/05)
+!  the FAST-J routine "set_prof.f". (rvm, bmy, 9/30/00, 8/4/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1249,6 +1250,7 @@
 !  (19) Now references DATA_DIR from "directory_mod.f".  Now parallelize over 
 !        the L-dimension for ND21 diagnostic. (bmy, 7/20/04)
 !  (20) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (21) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1295,44 +1297,52 @@
          ! Use the "generic" year 1985
          XTAU = GET_TAU0( THISMONTH, 1, 1985 )
          
-#if   defined( GEOS_STRAT )
+!-----------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_STRAT )
+!
+!         ! Select proper dust file name for GEOS-STRAT (1996 or 1997 data)
+!         SELECT CASE ( THISYEAR )
+!
+!            ! GEOS-STRAT -- 1996 dust fields from P. Ginoux
+!            ! Since GEOS-STRAT covers Dec 1995, use the 1996 file as a
+!            ! proxy.  1995 dust data doesn't exist (rvm, bmy, 1/2/02)
+!            CASE ( 1995, 1996 )
+!               FILENAME = TRIM( DATA_DIR ) // 'dust_200203/dust.' //
+!     &                    GET_NAME_EXT()   // '.'                 // 
+!     &                    GET_RES_EXT()    // '.1996'
+!
+!            ! GEOS-STRAT -- 1997 dust fields from P. Ginoux
+!            CASE ( 1997 )
+!               FILENAME = TRIM( DATA_DIR ) // 'dust_200203/dust.' //
+!     &                    GET_NAME_EXT()   // '.'                 // 
+!     &                    GET_RES_EXT()    // '.1997'
+!
+!               ! KLUDGE -- there isn't dust data for December 1997, so 
+!               ! just use November's data for December (bnd, bmy, 6/30/03)
+!               IF ( THISMONTH == 12 ) THEN
+!                  XTAU = GET_TAU0( 11, 1, 1985 )
+!               ENDIF
+!
+!            ! Error: THISYEAR is outside valid range for GEOS-STRAT
+!            CASE DEFAULT
+!               CALL ERROR_STOP( 'Invalid GEOS-STRAT year!', 'rdust.f' )
+!
+!         END SELECT
+!
+!#else
+!-----------------------------------------------------------------------------
 
-         ! Select proper dust file name for GEOS-STRAT (1996 or 1997 data)
-         SELECT CASE ( THISYEAR )
-
-            ! GEOS-STRAT -- 1996 dust fields from P. Ginoux
-            ! Since GEOS-STRAT covers Dec 1995, use the 1996 file as a
-            ! proxy.  1995 dust data doesn't exist (rvm, bmy, 1/2/02)
-            CASE ( 1995, 1996 )
-               FILENAME = TRIM( DATA_DIR ) // 'dust_200203/dust.' //
-     &                    GET_NAME_EXT()   // '.'                 // 
-     &                    GET_RES_EXT()    // '.1996'
-
-            ! GEOS-STRAT -- 1997 dust fields from P. Ginoux
-            CASE ( 1997 )
-               FILENAME = TRIM( DATA_DIR ) // 'dust_200203/dust.' //
-     &                    GET_NAME_EXT()   // '.'                 // 
-     &                    GET_RES_EXT()    // '.1997'
-
-               ! KLUDGE -- there isn't dust data for December 1997, so 
-               ! just use November's data for December (bnd, bmy, 6/30/03)
-               IF ( THISMONTH == 12 ) THEN
-                  XTAU = GET_TAU0( 11, 1, 1985 )
-               ENDIF
-
-            ! Error: THISYEAR is outside valid range for GEOS-STRAT
-            CASE DEFAULT
-               CALL ERROR_STOP( 'Invalid GEOS-STRAT year!', 'rdust.f' )
-
-         END SELECT
-
-#else
          ! Select proper dust file name for GEOS-1, GEOS-3, or GEOS-4
          FILENAME = TRIM( DATA_DIR ) // 'dust_200203/dust.' //
      &              GET_NAME_EXT()   // '.'                 // 
      &              GET_RES_EXT()
 
-#endif
+!-----------------------
+! Prior to 8/4/06:
+!#endif
+!-----------------------
 
          ! Echo filename
          WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1556,4 +1566,5 @@
 
 !------------------------------------------------------------------------------
 
+      ! End of module
       END MODULE DUST_MOD

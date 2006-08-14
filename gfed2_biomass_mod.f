@@ -1,9 +1,9 @@
-! $Id: gfed2_biomass_mod.f,v 1.2 2006/06/06 14:26:04 bmy Exp $
+! $Id: gfed2_biomass_mod.f,v 1.3 2006/08/14 17:58:07 bmy Exp $
       MODULE GFED2_BIOMASS_MOD
 !
 !******************************************************************************
 !  Module GFED2_BIOMASS_MOD contains variables and routines to compute the
-!  GFED2 biomass burning emissions. (psk, bmy, 4/20/06, 5/30/06)
+!  GFED2 biomass burning emissions. (psk, bmy, 4/20/06, 8/9/06)
 !
 !  Monthly emissions of C are read from disk and then multiplied by the 
 !  appropriate emission factors to produce biomass burning emissions on a 
@@ -79,6 +79,7 @@
 !
 !  NOTES:
 !  (1 ) Added private routine GFED2_SCALE_FUTURE (swu, bmy, 5/30/06)
+!  (2 ) Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -128,7 +129,7 @@
 !
 !******************************************************************************
 !  Subroutine GFED2_COMPUTE_BIOMASS computes the monthly GFED2 biomass burning
-!  emissions for a given year and month. (psk, bmy, 4/20/06, 5/30/06)
+!  emissions for a given year and month. (psk, bmy, 4/20/06, 8/9/06)
 !
 !  This routine only has to be called on the first day of each month.
 !
@@ -141,6 +142,7 @@
 !  (1 ) Now references LFUTURE from "logical_mod.f".  Now call private routine
 !        GFED2_SCALE_FUTURE to compute future biomass emissions, if necessary. 
 !        (swu, bmy, 5/30/06)
+!  (2 ) Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -310,9 +312,16 @@
 !$OMP END PARALLEL DO
 
          ! Regrid each species from GENERIC 1x1 GRID to GEOS-Chem 1x1 GRID
-         CALL DO_REGRID_G2G_1x1( BIOM_GEN_1x1(:,:,N), 
-     &                           BIOM_GEOS_1x1(:,:,N),
-     &                           PER_UNIT_AREA=.TRUE. )
+!----------------------------------------------------------------------------
+! Prior to 8/9/06:
+! Now pass the unit to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
+!         CALL DO_REGRID_G2G_1x1( BIOM_GEN_1x1(:,:,N), 
+!     &                           BIOM_GEOS_1x1(:,:,N),
+!     &                           PER_UNIT_AREA=.TRUE. )
+!----------------------------------------------------------------------------
+         CALL DO_REGRID_G2G_1x1( 'molec/cm2',
+     &                            BIOM_GEN_1x1(:,:,N), 
+     &                            BIOM_GEOS_1x1(:,:,N) )
       ENDDO
 
       ! Regrid from GEOS 1x1 grid to current grid.  (The unit 'molec/cm2' 

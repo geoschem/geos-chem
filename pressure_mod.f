@@ -1,11 +1,11 @@
-! $Id: pressure_mod.f,v 1.12 2006/06/06 14:26:08 bmy Exp $
+! $Id: pressure_mod.f,v 1.13 2006/08/14 17:58:12 bmy Exp $
       MODULE PRESSURE_MOD
 !
 !******************************************************************************
 !  Module PRESSURE_MOD contains variables and routines which specify the grid 
 !  box pressures for both hybrid or pure-sigma models.  This is necessary
 !  for running GEOS-CHEM with the new GEOS-4/fvDAS meteorological fields.
-!  (dsa, bmy, 8/27/02, 4/25/06)
+!  (dsa, bmy, 8/27/02, 8/4/06)
 !
 !  The Hybrid ETA-coordinate (dsa, 8/27/02, 4/14/04)
 !  ============================================================================
@@ -45,7 +45,7 @@
 !
 !  GEOS-CHEM modules referenced by pressure_mod.f
 !  ============================================================================
-!  (1 ) error_mod.f    : Module containing I/O error and NaN check routines
+!  (1 ) error_mod.f           : Module w/ I/O error and NaN check routines
 !
 !  NOTES:
 !  (1 ) Be sure to check PFLT for NaN or Infinities (bmy, 8/27/02)
@@ -56,6 +56,7 @@
 !  (6 ) Added parallel DO-loop in SET_FLOATING_PRESSURE (bmy, 4/14/04)
 !  (7 ) Modified for GCAP and GEOS-5 grids (swu, bmy, 5/24/05)
 !  (8 ) Removed obsolete reference to "CMN" (bmy, 4/25/06)
+!  (9 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -450,39 +451,43 @@
        
 #endif  
 
-#elif defined( GEOS_STRAT )
-
-      !=================================================================
-      ! GEOS-STRAT vertical coordinates (26 levels)
-      !=================================================================
-
-      ! AP [hPa] is just PTOP for a pure-sigma grid
-      AP = PTOP
-
-      ! BP [unitless] is just SIGE for a pure-sigma grid
-      BP = (/ 1.d0, 0.987871d0, 0.954730d0, 0.905120d0, 0.845000d0, 
-     &              0.780000d0, 0.710000d0, 0.639000d0, 0.570000d0, 
-     &              0.503000d0, 0.440000d0, 0.380000d0, 0.325000d0, 
-     &              0.278000d0, 0.237954d0, 0.202593d0, 0.171495d0, 
-     &              0.144267d0, 0.121347d0, 0.102098d0, 0.085972d0, 
-     &              0.072493d0, 0.061252d0, 0.051896d0, 0.037692d0, 
-     &              0.019958d0, 0.000000d0 /)
-
-#elif defined( GEOS_1 )
-
-      !=================================================================
-      ! GEOS-1 vertical coordinates (20 levels)
-      !=================================================================
-
-      ! AP [hPa] is just PTOP for a pure-sigma model
-      AP = PTOP
-
-      ! BP [unitless] is just SIGE for a pure-sigma grid
-      BP = (/ 1.d0, 0.987871d0, 0.954730d0, 0.905120d0, 0.843153d0, 
-     &              0.772512d0, 0.696448d0, 0.617779d0, 0.539000d0, 
-     &              0.462000d0, 0.387500d0, 0.316500d0, 0.251000d0, 
-     &              0.194500d0, 0.149800d0, 0.114600d0, 0.085500d0, 
-     &              0.060500d0, 0.039000d0, 0.019000d0, 0.000000d0 /)
+!-----------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#elif defined( GEOS_STRAT )
+!
+!      !=================================================================
+!      ! GEOS-STRAT vertical coordinates (26 levels)
+!      !=================================================================
+!
+!      ! AP [hPa] is just PTOP for a pure-sigma grid
+!      AP = PTOP
+!
+!      ! BP [unitless] is just SIGE for a pure-sigma grid
+!      BP = (/ 1.d0, 0.987871d0, 0.954730d0, 0.905120d0, 0.845000d0, 
+!     &              0.780000d0, 0.710000d0, 0.639000d0, 0.570000d0, 
+!     &              0.503000d0, 0.440000d0, 0.380000d0, 0.325000d0, 
+!     &              0.278000d0, 0.237954d0, 0.202593d0, 0.171495d0, 
+!     &              0.144267d0, 0.121347d0, 0.102098d0, 0.085972d0, 
+!     &              0.072493d0, 0.061252d0, 0.051896d0, 0.037692d0, 
+!     &              0.019958d0, 0.000000d0 /)
+!
+!#elif defined( GEOS_1 )
+!
+!      !=================================================================
+!      ! GEOS-1 vertical coordinates (20 levels)
+!      !=================================================================
+!
+!      ! AP [hPa] is just PTOP for a pure-sigma model
+!      AP = PTOP
+!
+!      ! BP [unitless] is just SIGE for a pure-sigma grid
+!      BP = (/ 1.d0, 0.987871d0, 0.954730d0, 0.905120d0, 0.843153d0, 
+!     &              0.772512d0, 0.696448d0, 0.617779d0, 0.539000d0, 
+!     &              0.462000d0, 0.387500d0, 0.316500d0, 0.251000d0, 
+!     &              0.194500d0, 0.149800d0, 0.114600d0, 0.085500d0, 
+!     &              0.060500d0, 0.039000d0, 0.019000d0, 0.000000d0 /)
+!-----------------------------------------------------------------------------
 
 #elif defined( GCAP )
 

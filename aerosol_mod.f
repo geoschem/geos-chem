@@ -1,10 +1,10 @@
-! $Id: aerosol_mod.f,v 1.9 2006/06/28 17:26:46 bmy Exp $
+! $Id: aerosol_mod.f,v 1.10 2006/08/14 17:58:00 bmy Exp $
       MODULE AEROSOL_MOD
 !
 !******************************************************************************
 !  Module AEROSOL_MOD contains variables and routines for computing optical
 !  properties for aerosols which are needed for both the FAST-J photolysis
-!  and ND21 optical depth diagnostics.  (bmy, 7/20/04, 5/18/06)
+!  and ND21 optical depth diagnostics.  (bmy, 7/20/04, 8/4/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -47,6 +47,7 @@
 !         (bmy, 1/27/05)
 !  (3 ) Now references "tropopause_mod.f" (bmy, 8/22/05)
 !  (4 ) Now add contribution of SOA4 into Hydrophilic OC (dkh, bmy, 5/18/06)
+!  (5 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -596,57 +597,64 @@
       ! For full-chemistry runs w/ offline fields, define filename
       !=================================================================
       IF ( DO_READ_DATA ) THEN
-      
-#if   defined( GEOS_STRAT )
+   
+!-----------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_STRAT )
+!
+!         ! Select proper dust file name
+!         ! Get TAU0 value used to index the punch file
+!         SELECT CASE ( THISYEAR )
+!           
+!            ! GEOS-STRAT -- 1996 dust fields from P. Ginoux
+!            ! Use 1996 fields as a proxy for December 1995
+!            CASE ( 1995, 1996 )
+!               FILENAME = TRIM( DATA_DIR )    // 
+!     &              'aerosol_200106/aerosol.' //
+!     &              GET_NAME_EXT() // '.'     // 
+!     &              GET_RES_EXT()  // '.1996'
+!
+!               XTAU = GET_TAU0( THISMONTH, 1, 1996 )
+!
+!            ! GEOS-STRAT -- 1997 dust fields from P. Ginoux
+!            CASE ( 1997 )
+!               FILENAME = TRIM( DATA_DIR )    // 
+!     &              'aerosol_200106/aerosol.' //
+!     &              GET_NAME_EXT() // '.'     // 
+!     &              GET_RES_EXT()  // '.1997'
+!               
+!               XTAU = GET_TAU0( THISMONTH, 1, 1997 )
+!           
+!            ! 1995, 1996, 1997 are the only valid GEOS-STRAT years
+!            CASE DEFAULT
+!               CALL ERROR_STOP( 'Invalid GEOS-STRAT year!', 'rdaer.f' )
+!
+!         END SELECT
+!
+!#elif defined( GEOS_1 )
+!
+!         ! Filename for GEOS-1
+!         FILENAME = TRIM( DATA_DIR ) // 'aerosol_200106/aerosol.' // 
+!     &              GET_NAME_EXT()   // '.' // GET_RES_EXT()
+!
+!         ! Use the "generic" year 1990
+!         XTAU = GET_TAU0( THISMONTH, 1, 1990 )
+!
+!#else 
+!-----------------------------------------------------------------------------
 
-         ! Select proper dust file name
-         ! Get TAU0 value used to index the punch file
-         SELECT CASE ( THISYEAR )
-           
-            ! GEOS-STRAT -- 1996 dust fields from P. Ginoux
-            ! Use 1996 fields as a proxy for December 1995
-            CASE ( 1995, 1996 )
-               FILENAME = TRIM( DATA_DIR )    // 
-     &              'aerosol_200106/aerosol.' //
-     &              GET_NAME_EXT() // '.'     // 
-     &              GET_RES_EXT()  // '.1996'
-
-               XTAU = GET_TAU0( THISMONTH, 1, 1996 )
-
-            ! GEOS-STRAT -- 1997 dust fields from P. Ginoux
-            CASE ( 1997 )
-               FILENAME = TRIM( DATA_DIR )    // 
-     &              'aerosol_200106/aerosol.' //
-     &              GET_NAME_EXT() // '.'     // 
-     &              GET_RES_EXT()  // '.1997'
-               
-               XTAU = GET_TAU0( THISMONTH, 1, 1997 )
-           
-            ! 1995, 1996, 1997 are the only valid GEOS-STRAT years
-            CASE DEFAULT
-               CALL ERROR_STOP( 'Invalid GEOS-STRAT year!', 'rdaer.f' )
-
-         END SELECT
-
-#elif defined( GEOS_1 )
-
-         ! Filename for GEOS-1
-         FILENAME = TRIM( DATA_DIR ) // 'aerosol_200106/aerosol.' // 
-     &              GET_NAME_EXT()   // '.' // GET_RES_EXT()
-
-         ! Use the "generic" year 1990
-         XTAU = GET_TAU0( THISMONTH, 1, 1990 )
-
-#else 
-
-         ! Filename for GEOS-3 or GEOS-4
+         ! Filename
          FILENAME = TRIM( DATA_DIR ) // 'aerosol_200106/aerosol.' // 
      &              GET_NAME_EXT()   // '.' // GET_RES_EXT()
 
          ! Use the "generic" year 1996
          XTAU = GET_TAU0( THISMONTH, 1, 1996 )
 
-#endif
+!-----------------------
+! Prior to 8/4/06:
+!#endif
+!-----------------------
 
       ENDIF
 

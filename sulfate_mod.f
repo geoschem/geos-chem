@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.27 2006/07/14 18:36:50 bmy Exp $
+! $Id: sulfate_mod.f,v 1.28 2006/08/14 17:58:14 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -6232,30 +6232,8 @@
       !=================================================================
       ! READ_SHIP_SO2 begins here!
       !=================================================================
-!---------------------------------------------------------------------------
-! Prior to 7/14/06:
-! Now also get EDGAR ship SO2 emissions (bmy, 7/14/06)
-!      ! Filename
-!      FILENAME = TRIM( DATA_DIR )              // 
-!     &           'sulfate_sim_200508/shipSOx.' // GET_NAME_EXT_2D() //
-!     &           '.'                           // GET_RES_EXT()
-!
-!      ! Echo some information to the standard output
-!      WRITE( 6, 110 ) TRIM( FILENAME )
-! 110  FORMAT( '     - READ_SHIP_SO2 ', a )
-!
-!      ! TAU value at the beginning of this month
-!      XTAU = GET_TAU0( THISMONTH, 1, 1985 )
-!      
-!      ! Read in this month's ship SO2 emissions
-!      CALL READ_BPCH2( FILENAME, 'SO2-SHIP',     26,  
-!     &                 XTAU,      IIPAR,         JJPAR, 
-!     &                 1,         ARRAY(:,:,1),  QUIET=.TRUE. )
-!
-!      ! Cast from REAL*4 to REAL*8
-!      CALL TRANSFER_2D( ARRAY(:,:,1), SHIPSO2 )
-!---------------------------------------------------------------------------
 
+      ! Test for EDGAR ship emissions
       IF ( LEDGARSHIP ) THEN 
 
          !----------------------------------------

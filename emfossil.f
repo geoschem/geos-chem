@@ -1,4 +1,4 @@
-! $Id: emfossil.f,v 1.11 2006/07/14 18:36:46 bmy Exp $
+! $Id: emfossil.f,v 1.12 2006/08/14 17:58:06 bmy Exp $
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
 !******************************************************************************
@@ -167,14 +167,6 @@
                ! If we are over the USA ...               
                IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN 
             
-                  !-----------------------------------------------------------
-                  ! Prior to 7/10/06:
-                  ! Move this down into the LL==1 block (bmy, 7/10/06)
-                  !! Get EPA emissions for NOx (and apply time-of-day factor)
-                  !EPA_NEI = GET_EPA_ANTHRO( I, J, NN, WEEKDAY )
-                  !EPA_NEI = EPA_NEI * TODX
-                  !-----------------------------------------------------------
-            
                   IF ( LL == 1 ) THEN
                   
                      ! Get EPA emissions for NOx 
@@ -207,14 +199,6 @@
                ! If we are over the European region ...
                IF ( GET_EUROPE_MASK( I, J ) > 0d0 ) THEN 
 
-                  !-----------------------------------------------------------
-                  ! Prior to 7/10/06:
-                  ! Move this down into the LL==1 block (bmy, 7/10/06)
-                  !! Get EMEP emissions for NOx (and apply time-of-day factor)
-                  !EMEP = GET_EMEP_ANTHRO( I, J, NN )
-                  !EMEP = EMEP * TODX
-                  !-----------------------------------------------------------
-
                   IF ( LL == 1 ) THEN
             
                      ! Get EMEP emissions for NOx 
@@ -245,13 +229,6 @@
 
                ! If we are over the Mexican region ...
                IF ( GET_BRAVO_MASK( I, J ) > 0d0 ) THEN 
-
-                  !------------------------------------------------------------
-                  ! Prior to 7/10/06:
-                  ! Move this down into the LL=1 block (bmy, 7/10/06)
-                  !! Get BRAVO emissions for NOx (and apply time-of-day factor)
-                  !BRAVO = GET_BRAVO_ANTHRO( I, J, NN ) * TODX
-                  !------------------------------------------------------------
 
                   IF ( LL == 1 ) THEN
 

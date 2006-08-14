@@ -1,6 +1,6 @@
-! $Id: CMN_SIZE,v 1.19 2006/06/06 14:25:53 bmy Exp $
+! $Id: CMN_SIZE,v 1.20 2006/08/14 17:57:56 bmy Exp $
       !=======================================================================
-      ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 5/22/06)
+      ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 8/4/06)
       !
       ! NOTES:
       ! (1 ) Now set LLTROP = 20 for GEOS-3 (bmy, 4/12/01)
@@ -42,6 +42,7 @@
       !       grid. (bmy, 10/24/05)
       ! (22) Increase NNPAR to 52 (bmy, 12/6/05)
       ! (23) Increase NNPAR to 54 (dkh, bmy, 5/22/06)
+      ! (24) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
       !=======================================================================
 
       ! C Preprocessor #define statements for conditional compilation
@@ -103,73 +104,77 @@
 
       REAL*8,  PARAMETER :: PTOP   = 0.002d0
 
-#elif defined( GEOS_1 ) && defined( GRID4x5 ) 
-
-      !--------------------
-      ! GEOS-1 4 x 5
-      !--------------------
-      INTEGER, PARAMETER :: IGLOB  = 72
-      INTEGER, PARAMETER :: JGLOB  = 46
-      INTEGER, PARAMETER :: LGLOB  = 20
-
-      INTEGER, PARAMETER :: IIPAR  = IGLOB
-      INTEGER, PARAMETER :: JJPAR  = JGLOB
-      INTEGER, PARAMETER :: LLPAR  = LGLOB
-
-      INTEGER, PARAMETER :: LLTROP = 16
-
-      REAL*8,  PARAMETER :: PTOP   = 10d0
-
-#elif defined( GEOS_1 ) && defined( GRID2x25 )
-
-      !--------------------
-      ! GEOS-1 2 x 2.5
-      !--------------------
-      INTEGER, PARAMETER :: IGLOB  = 144
-      INTEGER, PARAMETER :: JGLOB  = 91
-      INTEGER, PARAMETER :: LGLOB  = 20
-
-      INTEGER, PARAMETER :: IIPAR  = IGLOB
-      INTEGER, PARAMETER :: JJPAR  = JGLOB
-      INTEGER, PARAMETER :: LLPAR  = LGLOB
-
-      INTEGER, PARAMETER :: LLTROP = 16
-
-      REAL*8,  PARAMETER :: PTOP   = 10d0
-
-#elif defined( GEOS_STRAT ) && defined( GRID4x5 )
-
-      !--------------------
-      ! GEOS-STRAT 4 x 5
-      !--------------------
-      INTEGER, PARAMETER :: IGLOB  = 72
-      INTEGER, PARAMETER :: JGLOB  = 46
-      INTEGER, PARAMETER :: LGLOB  = 26      
-
-      INTEGER, PARAMETER :: IIPAR  = IGLOB
-      INTEGER, PARAMETER :: JJPAR  = JGLOB
-      INTEGER, PARAMETER :: LLPAR  = LGLOB
-
-      INTEGER, PARAMETER :: LLTROP = 19
-
-      REAL*8,  PARAMETER :: PTOP   = 0.1d0
-
-#elif defined( GEOS_STRAT ) && defined( GRID2x25 )
-
-      !--------------------
-      ! GEOS-STRAT 2 x 2.5
-      !--------------------
-      INTEGER, PARAMETER :: IGLOB  = 144
-      INTEGER, PARAMETER :: JGLOB  = 91
-      INTEGER, PARAMETER :: LGLOB  = 26            
-
-      INTEGER, PARAMETER :: IIPAR  = IGLOB
-      INTEGER, PARAMETER :: JJPAR  = JGLOB
-      INTEGER, PARAMETER :: LLPAR  = LGLOB
-
-      INTEGER, PARAMETER :: LLTROP = 19
-
-      REAL*8,  PARAMETER :: PTOP   = 0.1d0
+!------------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#elif defined( GEOS_1 ) && defined( GRID4x5 ) 
+!
+!      !--------------------
+!      ! GEOS-1 4 x 5
+!      !--------------------
+!      INTEGER, PARAMETER :: IGLOB  = 72
+!      INTEGER, PARAMETER :: JGLOB  = 46
+!      INTEGER, PARAMETER :: LGLOB  = 20
+!
+!      INTEGER, PARAMETER :: IIPAR  = IGLOB
+!      INTEGER, PARAMETER :: JJPAR  = JGLOB
+!      INTEGER, PARAMETER :: LLPAR  = LGLOB
+!
+!      INTEGER, PARAMETER :: LLTROP = 16
+!
+!      REAL*8,  PARAMETER :: PTOP   = 10d0
+!
+!#elif defined( GEOS_1 ) && defined( GRID2x25 )
+!
+!      !--------------------
+!      ! GEOS-1 2 x 2.5
+!      !--------------------
+!      INTEGER, PARAMETER :: IGLOB  = 144
+!      INTEGER, PARAMETER :: JGLOB  = 91
+!      INTEGER, PARAMETER :: LGLOB  = 20
+!
+!      INTEGER, PARAMETER :: IIPAR  = IGLOB
+!      INTEGER, PARAMETER :: JJPAR  = JGLOB
+!      INTEGER, PARAMETER :: LLPAR  = LGLOB
+!
+!      INTEGER, PARAMETER :: LLTROP = 16
+!
+!      REAL*8,  PARAMETER :: PTOP   = 10d0
+!
+!#elif defined( GEOS_STRAT ) && defined( GRID4x5 )
+!
+!      !--------------------
+!      ! GEOS-STRAT 4 x 5
+!      !--------------------
+!      INTEGER, PARAMETER :: IGLOB  = 72
+!      INTEGER, PARAMETER :: JGLOB  = 46
+!      INTEGER, PARAMETER :: LGLOB  = 26      
+!
+!      INTEGER, PARAMETER :: IIPAR  = IGLOB
+!      INTEGER, PARAMETER :: JJPAR  = JGLOB
+!      INTEGER, PARAMETER :: LLPAR  = LGLOB
+!
+!      INTEGER, PARAMETER :: LLTROP = 19
+!
+!      REAL*8,  PARAMETER :: PTOP   = 0.1d0
+!
+!#elif defined( GEOS_STRAT ) && defined( GRID2x25 )
+!
+!      !--------------------
+!      ! GEOS-STRAT 2 x 2.5
+!      !--------------------
+!      INTEGER, PARAMETER :: IGLOB  = 144
+!      INTEGER, PARAMETER :: JGLOB  = 91
+!      INTEGER, PARAMETER :: LGLOB  = 26            
+!
+!      INTEGER, PARAMETER :: IIPAR  = IGLOB
+!      INTEGER, PARAMETER :: JJPAR  = JGLOB
+!      INTEGER, PARAMETER :: LLPAR  = LGLOB
+!
+!      INTEGER, PARAMETER :: LLTROP = 19
+!
+!      REAL*8,  PARAMETER :: PTOP   = 0.1d0
+!------------------------------------------------------------------------------
 
 #elif defined( GEOS_3 ) && defined( GRID4x5 )
 

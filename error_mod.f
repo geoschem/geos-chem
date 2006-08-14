@@ -1,8 +1,8 @@
-! $Id: error_mod.f,v 1.12 2006/05/26 17:45:21 bmy Exp $
+! $Id: error_mod.f,v 1.13 2006/08/14 17:58:06 bmy Exp $
       MODULE ERROR_MOD
 !
 !******************************************************************************
-!  Module ERROR_MOD contains error checking routines. (bmy, 3/8/01, 4/10/06)
+!  Module ERROR_MOD contains error checking routines. (bmy, 3/8/01, 8/4/06)
 !
 !  Module Routines:
 !  ===========================================================================
@@ -54,6 +54,7 @@
 !  (15) Added LINUX_IFORT switch for Intel v8 and v9 compilers (bmy, 10/18/05)
 !  (16) Now print IFORT error messages for Intel v8/v9 compiler (bmy, 11/30/05)
 !  (17) Cosmetic change in DEBUG_MSG (bmy, 4/10/06)
+!  (18) Remove support for LINUX_IFC and LINUX_EFC compilers (bmy, 8/4/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -99,7 +100,7 @@
 !
 !******************************************************************************
 !  Module NAN_FLOAT returns TRUE if a REAL*4 number is equal to the IEEE NaN 
-!  (Not-a-Number) flag.  Returns FALSE otherwise. (bmy, 3/8/01, 10/18/05)
+!  (Not-a-Number) flag.  Returns FALSE otherwise. (bmy, 3/8/01, 8/4/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -116,6 +117,7 @@
 !  (6 ) Renamed SGI to SGI_MIPS, LINUX to LINUX_PGI, INTEL_FC to INTEL_IFC,
 !        and added LINUX_EFC. (bmy, 12/2/03)
 !  (7 ) Added LINUX_IFORT switch for Intel v8 and v9 compilers (bmy, 10/18/05)
+!  (8 ) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
 !******************************************************************************
 !
 #     include "define.h" ! C-preprocessor switches
@@ -139,7 +141,12 @@
 #elif defined( COMPAQ )
       IT_IS_A_NAN = ISNAN( VALUE )         
 
-#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC ) || defined( LINUX_IFORT )
+!--------------------------------------------------------------------------
+! Prior to 8/4/06:
+! 
+!#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC ) || defined( LINUX_IFORT )
+!--------------------------------------------------------------------------
+#elif defined( LINUX_IFORT ) || defined( LINUX_PGI )
 
       ! Declare IS_NAN as an external function
       INTEGER, EXTERNAL  :: IS_NAN
@@ -159,10 +166,10 @@
 
 #elif defined( IBM_AIX )
 
-       ! For IBM/AIX platform
-       IF ( IEEE_SUPPORT_DATATYPE( VALUE ) ) THEN
-          IT_IS_A_NAN = IEEE_IS_NAN( VALUE )
-       ENDIF
+      ! For IBM/AIX platform
+      IF ( IEEE_SUPPORT_DATATYPE( VALUE ) ) THEN
+         IT_IS_A_NAN = IEEE_IS_NAN( VALUE )
+      ENDIF
 
 #endif
 
@@ -175,7 +182,7 @@
 !
 !******************************************************************************
 !  Module NAN_DBLE returns TRUE if a REAL*8 number is equal to the IEEE NaN 
-! (Not-a-Number) flag.  Returns FALSE otherwise. (bmy, 3/8/01, 10/18/05)
+! (Not-a-Number) flag.  Returns FALSE otherwise. (bmy, 3/8/01, 8/4/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -192,6 +199,7 @@
 !  (6 ) Renamed SGI to SGI_MIPS, LINUX to LINUX_PGI, INTEL_FC to INTEL_IFC,
 !        and added LINUX_EFC. (bmy, 12/2/03)
 !  (7 ) Added LINUX_IFORT switch for Intel v8 and v9 compilers (bmy, 10/18/05)
+!  (8 ) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
 !******************************************************************************
 !
 #     include "define.h" ! C-preprocessor switches
@@ -215,7 +223,11 @@
 #elif defined( COMPAQ )
       IT_IS_A_NAN = ISNAN( VALUE )         
 
-#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC ) || defined( LINUX_IFORT )
+!---------------------------------------------------------------------------
+! Prior to 8/4/06:
+!#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC ) || defined( LINUX_IFORT )
+!---------------------------------------------------------------------------
+#elif defined( LINUX_IFORT ) || defined( LINUX_PGI )
 
       ! Declare IS_NAN as an external function
       INTEGER, EXTERNAL  :: IS_NAN
@@ -235,9 +247,9 @@
 #elif defined( IBM_AIX )
 
        ! For IBM/AIX platform
-       IF ( IEEE_SUPPORT_DATATYPE( VALUE ) ) THEN
-          IT_IS_A_NAN = IEEE_IS_NAN( VALUE )
-       ENDIF
+      IF ( IEEE_SUPPORT_DATATYPE( VALUE ) ) THEN
+         IT_IS_A_NAN = IEEE_IS_NAN( VALUE )
+      ENDIF
 
 #endif
 
@@ -250,7 +262,7 @@
 !
 !******************************************************************************
 !  Module FINITE_FLOAT returns TRUE if a REAL*4 number is equal to the 
-!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 10/18/05)
+!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 8/4/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -268,7 +280,8 @@
 !  (7 ) Renamed SGI to SGI_MIPS, LINUX to LINUX_PGI, INTEL_FC to INTEL_IFC,
 !        and added LINUX_EFC. (bmy, 12/2/03)
 !  (8 ) Added LINUX_IFORT switch for Intel v8 and v9 compilers (bmy, 10/18/05)
-!*****************************************************************************
+!  (9 ) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
+!******************************************************************************
 !
 #     include "define.h" ! C-preprocessor switches
 
@@ -299,7 +312,12 @@
          IT_IS_A_FINITE = .TRUE.
       ENDIF
 
-#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC ) || defined( LINUX_IFORT )
+!---------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
+!#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC ) || defined( LINUX_IFORT )
+!---------------------------------------------------------------------------
+#elif  defined( LINUX_IFORT ) || defined( LINUX_PGI ) 
 
       ! Declare IS_FINITE as an external function
       INTEGER, EXTERNAL :: IS_FINITE
@@ -335,7 +353,7 @@
 !
 !*****************************************************************************
 !  Module FINITE_DBLE returns TRUE if a REAL*8 number is equal to the 
-!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 10/18/05)
+!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 8/4/06)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -353,7 +371,8 @@
 !  (7 ) Renamed SGI to SGI_MIPS, LINUX to LINUX_PGI, INTEL_FC to INTEL_IFC,
 !        and added LINUX_EFC. (bmy, 12/2/03)
 !  (8 ) Added LINUX_IFORT switch for Intel v8 and v9 compilers (bmy, 10/18/05)
-!*****************************************************************************
+!  (9 ) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
+!******************************************************************************
 !
 #     include "define.h" ! C-preprocessor switches
 
@@ -383,7 +402,11 @@
          IT_IS_A_FINITE = .TRUE.
       ENDIF
 
-#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC ) || defined( LINUX_IFORT )
+!-------------------------------------------------------------------------
+! Prior to 8/4/06:
+!#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC ) || defined( LINUX_IFORT )
+!-------------------------------------------------------------------------
+#elif defined( LINUX_IFORT ) || defined( LINUX_PGI )
 
       ! Declare IS_FINITE as an external function
       INTEGER, EXTERNAL :: IS_FINITE
@@ -682,7 +705,7 @@
 !******************************************************************************
 !  Subroutine DEBUG_MSG prints a message to the stdout buffer and flushes.
 !  This is useful for determining the exact location where errors occur.
-!  (bmy, 1/7/02, 4/10/06)
+!  (bmy, 1/7/02, 8/4/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -694,6 +717,7 @@
 !  (3 ) Bundled into "error_mod.f" (bmy, 11/22/02)
 !  (4 ) Now do not FLUSH the buffer for EFC compiler (bmy, 4/6/04)
 !  (5 ) Now add a little space for debug output (bmy, 4/10/06)
+!  (6 ) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -709,9 +733,13 @@
       WRITE( 6, '(5x,a)' ) MESSAGE
 
       ! Call FLUSH routine to flush the output buffer
-#if   !defined( LINUX_EFC )
+!------------------------------------------------------------------------
+! Prior to 8/4/06:
+!#if   !defined( LINUX_EFC )
+!      CALL FLUSH( 6 )
+!#endif
+!------------------------------------------------------------------------
       CALL FLUSH( 6 )
-#endif
 
       ! Return to calling program
       END SUBROUTINE DEBUG_MSG

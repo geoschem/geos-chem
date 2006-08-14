@@ -1,9 +1,9 @@
-! $Id: acetone_mod.f,v 1.6 2005/10/20 14:03:12 bmy Exp $
+! $Id: acetone_mod.f,v 1.7 2006/08/14 17:58:00 bmy Exp $
       MODULE ACETONE_MOD
 !
 !******************************************************************************
 !  F90 module ACETONE_MOD contains subroutines to emit the biogenic flux of
-!  acetone into the full chemistry simulation (bdf, bmy, 9/18/01, 10/3/05)
+!  acetone into the full chemistry simulation (bdf, bmy, 9/18/01, 8/4/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -21,11 +21,11 @@
 !
 !  GEOS-CHEM modules referenced by acetone_mod.f
 !  ============================================================================
-!  (1 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
-!  (2 ) diag_mod.f      : Module containing GEOS-CHEM diagnostic arrays
-!  (3 ) directory_mod.f : Module containing GEOS-CHEM data & met field dirs
-!  (4 ) dao_mod.f       : Module containing arrays for DAO met fields
-!  (5 ) error_mod.f     : Module containing NaN and other error check routines
+!  (1 ) bpch2_mod.f       : Module w/ routines for binary punch file I/O
+!  (2 ) diag_mod.f        : Module w/ GEOS-CHEM diagnostic arrays
+!  (3 ) directory_mod.f   : Module w/ GEOS-CHEM data & met field dirs
+!  (4 ) dao_mod.f         : Module w/ arrays for DAO met fields
+!  (5 ) error_mod.f       : Module w/ NaN and other error check routines
 !
 !  Reference:
 !  ============================================================================
@@ -62,6 +62,7 @@
 !  (16) Now can read data from GEOS and GCAP grids.  Also now use Nightingale
 !        et al 2000b formulation for piston velocity KL. (swu, bmy, 8/16/05)
 !  (17) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (18) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -289,7 +290,7 @@
 !
 !******************************************************************************
 !  Subroutine OCEAN_SOURCE_ACET specifies the ocean source of acetone.
-!  (bdf, bmy, 9/12/01, 8/16/05)
+!  (bdf, bmy, 9/12/01, 8/4/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -328,6 +329,7 @@
 !  (11) Added space in #ifdef block for GEOS-4 x 1x125 grid (bmy, 12/1/04)
 !  (12) Now use Nightingale et al 2000b formulation for piston velocity KL.
 !        (swu, bmy, 8/16/05)
+!  (13) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -414,15 +416,19 @@
       ! GEOS-3 1 x 1 (accounts for 1x1 surface area)
       REAL*8, PARAMETER :: SCALE_FACTOR = 0.05d0
 
-#elif defined( GEOS_STRAT ) && defined( GRID2x25 )
-
-      ! GEOS-STRAT 2 x 2.5 (accounts for 2x2.5 surface area)
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.25d0
-
-#elif defined( GEOS_1 ) && defined( GRID2x25 )
-      
-      ! GEOS-1 2 x 2.5 (accounts for 2x2.5 surface area)
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.25d0
+!----------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#elif defined( GEOS_STRAT ) && defined( GRID2x25 )
+!
+!      ! GEOS-STRAT 2 x 2.5 (accounts for 2x2.5 surface area)
+!      REAL*8, PARAMETER :: SCALE_FACTOR = 0.25d0
+!
+!#elif defined( GEOS_1 ) && defined( GRID2x25 )
+!      
+!      ! GEOS-1 2 x 2.5 (accounts for 2x2.5 surface area)
+!      REAL*8, PARAMETER :: SCALE_FACTOR = 0.25d0
+!----------------------------------------------------------------------
 
 #else
       

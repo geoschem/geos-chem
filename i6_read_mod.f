@@ -1,10 +1,10 @@
-! $Id: i6_read_mod.f,v 1.13 2006/05/26 17:45:22 bmy Exp $
+! $Id: i6_read_mod.f,v 1.14 2006/08/14 17:58:08 bmy Exp $
       MODULE I6_READ_MOD
 !
 !******************************************************************************
 !  Module I6_READ_MOD contains subroutines that unzip, open, and read
 !  GEOS-CHEM I-6 (instantaneous 6-hr) met fields from disk. 
-!  (bmy, 6/23/03, 5/9/06)
+!  (bmy, 6/23/03, 8/4/06)
 ! 
 !  Module Routines:
 !  =========================================================================
@@ -41,6 +41,7 @@
 !  (8 ) Now account for GEOS-4 coastal boxes in LWI properly (bmy, 8/10/05)
 !  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (10) Now make LWI REAL*8 for near-land formulation (ltm, bmy, 5/9/06)
+!  (11) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -72,7 +73,7 @@
 !  Subroutine UNZIP_I6_FIELDS invokes a FORTRAN system call to uncompress
 !  GEOS-CHEM I-6 met field files and store the uncompressed data in a 
 !  temporary directory, where GEOS-CHEM can read them.  The original data 
-!  files are not disturbed.  (bmy, bdf, 6/15/98, 10/3/05)
+!  files are not disturbed.  (bmy, bdf, 6/15/98, 8/4/06)
 !
 !  Arguments as input:
 !  ============================================================================
@@ -88,13 +89,19 @@
 !        them (bmy, 7/20/04)
 !  (4 ) Now modified for GEOS-5 and GCAP met fields
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (6 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_1_DIR 
-      USE DIRECTORY_MOD, ONLY : GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR 
-      USE DIRECTORY_MOD, ONLY : GEOS_5_DIR, TEMP_DIR 
+      !-----------------------------------------------------------------
+      ! Prior to 8/4/06:
+      !USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_1_DIR 
+      !USE DIRECTORY_MOD, ONLY : GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR 
+      !USE DIRECTORY_MOD, ONLY : GEOS_5_DIR, TEMP_DIR 
+      !-----------------------------------------------------------------
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_3_DIR 
+      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE TIME_MOD,      ONLY : EXPAND_DATE
       USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD 
@@ -116,20 +123,25 @@
       ! UNZIP_MET_FIELDS begins here!
       !=================================================================
       IF ( PRESENT( NYMD ) ) THEN
-      
-#if   defined( GEOS_1 )
 
-         ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_1_DIR )
-         I6_STR   = 'YYMMDD.i6.'   // GET_RES_EXT() 
-
-#elif defined( GEOS_STRAT )
-
-         ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_S_DIR )
-         I6_STR   = 'YYMMDD.i6.'   // GET_RES_EXT() 
-
-#elif defined( GEOS_3 )
+!-----------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 )
+!
+!         ! Strings for directory & filename
+!         GEOS_DIR = TRIM( GEOS_1_DIR )
+!         I6_STR   = 'YYMMDD.i6.'   // GET_RES_EXT() 
+!
+!#elif defined( GEOS_STRAT )
+!
+!         ! Strings for directory & filename
+!         GEOS_DIR = TRIM( GEOS_S_DIR )
+!         I6_STR   = 'YYMMDD.i6.'   // GET_RES_EXT() 
+!
+!#elif defined( GEOS_3 )
+!-----------------------------------------------------------------------------
+#if   defined( GEOS_3 )
 
          ! Strings for directory & filename
          GEOS_DIR = TRIM( GEOS_3_DIR )
@@ -234,7 +246,7 @@
 !
 !******************************************************************************
 !  Subroutine OPEN_I6_FIELDS opens the I-6 met fields file for date NYMD and 
-!  time NHMS. (bmy, bdf, 6/15/98, 10/3/05)
+!  time NHMS. (bmy, bdf, 6/15/98, 8/4/06)
 !  
 !  Arguments as input:
 !  ===========================================================================
@@ -252,13 +264,19 @@
 !        refers to a valid file on disk (bmy, 3/23/05
 !  (6 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (8 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !      
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_1_DIR 
-      USE DIRECTORY_MOD, ONLY : GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR 
-      USE DIRECTORY_MOD, ONLY : GEOS_5_DIR, TEMP_DIR 
+      !------------------------------------------------------------------
+      ! Prior to 8/4/06:
+      !USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_1_DIR 
+      !USE DIRECTORY_MOD, ONLY : GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR 
+      !USE DIRECTORY_MOD, ONLY : GEOS_5_DIR, TEMP_DIR 
+      !------------------------------------------------------------------
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_3_DIR 
+      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE LOGICAL_MOD,   ONLY : LUNZIP
       USE FILE_MOD,      ONLY : IU_I6, IOERROR, FILE_EXISTS
@@ -285,19 +303,24 @@
       ! Open the A-3 file 0 GMT of each day, or on the first call
       IF ( NHMS == 000000 .or. FIRST ) THEN
 
-#if   defined( GEOS_1 ) 
-
-         ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_1_DIR )
-         I6_FILE  = 'YYMMDD.i6.'   // GET_RES_EXT()
-
-#elif defined( GEOS_STRAT )
-
-         ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_S_DIR )
-         I6_FILE  = 'YYMMDD.i6.'   // GET_RES_EXT()
-
-#elif defined( GEOS_3 )
+!-------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields
+!#if   defined( GEOS_1 ) 
+!
+!         ! Strings for directory & filename
+!         GEOS_DIR = TRIM( GEOS_1_DIR )
+!         I6_FILE  = 'YYMMDD.i6.'   // GET_RES_EXT()
+!
+!#elif defined( GEOS_STRAT )
+!
+!         ! Strings for directory & filename
+!         GEOS_DIR = TRIM( GEOS_S_DIR )
+!         I6_FILE  = 'YYMMDD.i6.'   // GET_RES_EXT()
+!
+!#elif defined( GEOS_3 )
+!-------------------------------------------------------------------------
+#if   defined( GEOS_3 )
 
          ! Strings for directory & filename
          GEOS_DIR = TRIM( GEOS_3_DIR )
@@ -385,7 +408,7 @@
 !  Subroutine GET_I6_FIELDS_1 is a wrapper for routine READ_I6.  This routine
 !  calls READ_I6 properly for reading I-6 fields from GEOS-1, GEOS-STRAT, 
 !  GEOS-3, or GEOS-4 met data sets at the START of a GEOS-CHEM run. 
-!  (bmy, 6/23/03, 5/25/05)
+!  (bmy, 6/23/03, 8/4/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -394,6 +417,7 @@
 !
 !  NOTES:
 !  (1 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
+!  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -403,20 +427,24 @@
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS 
 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-
-      !=================================================================
-      ! GEOS-1 and GEOS-STRAT: 
-      ! read PS1, ALBD1, LWI, UWND1, VWND1, TMPU1, SPHU1    
-      !=================================================================
-      CALL READ_I6( NYMD=NYMD,  NHMS=NHMS,  ALBD=ALBD1,   
-     &              LWI=LWI,    PS=PS1,     SPHU=SPHU1, 
-     &              TMPU=TMPU1, UWND=UWND1, VWND=VWND1 )   
-
-      ! Initialize T with TMPU1
-      T = TMPU1
-
-#elif defined( GEOS_3 )
+!-----------------------------------------------------------------------------
+! Prior to 8/4/06:
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!
+!      !=================================================================
+!      ! GEOS-1 and GEOS-STRAT: 
+!      ! read PS1, ALBD1, LWI, UWND1, VWND1, TMPU1, SPHU1    
+!      !=================================================================
+!      CALL READ_I6( NYMD=NYMD,  NHMS=NHMS,  ALBD=ALBD1,   
+!     &              LWI=LWI,    PS=PS1,     SPHU=SPHU1, 
+!     &              TMPU=TMPU1, UWND=UWND1, VWND=VWND1 )   
+!
+!      ! Initialize T with TMPU1
+!      T = TMPU1
+!
+!#elif defined( GEOS_3 )
+!-----------------------------------------------------------------------------
+#if   defined( GEOS_3 )
 
       !=================================================================
       ! GEOS-3:
@@ -457,7 +485,7 @@
 !  Subroutine GET_I6_FIELDS_2 is a wrapper for routine READ_I6.  This routine
 !  calls READ_I6 properly for reading I-6 fields from GEOS-1, GEOS-STRAT, 
 !  GEOS-3, or GEOS-4 met data sets every 6 hours during a GEOS-CHEM run. 
-!  (bmy, 6/23/03, 5/25/05)
+!  (bmy, 6/23/03, 8/4/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -466,6 +494,7 @@
 !
 !  NOTES:
 !  (1 ) Now modified for GEOS-5 and GCAP met fields
+!  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -475,17 +504,22 @@
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS 
 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-
-      !=================================================================
-      ! GEOS-1 and GEOS-STRAT: 
-      ! read PS1, ALBD1, LWI, UWND1, VWND1, TMPU1, SPHU1    
-      !=================================================================
-      CALL READ_I6( NYMD=NYMD,  NHMS=NHMS,  ALBD=ALBD2,   
-     &              LWI=LWI,    PS=PS2,     SPHU=SPHU2, 
-     &              TMPU=TMPU2, UWND=UWND2, VWND=VWND2 )   
-
-#elif defined( GEOS_3 )
+!------------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!
+!      !=================================================================
+!      ! GEOS-1 and GEOS-STRAT: 
+!      ! read PS1, ALBD1, LWI, UWND1, VWND1, TMPU1, SPHU1    
+!      !=================================================================
+!      CALL READ_I6( NYMD=NYMD,  NHMS=NHMS,  ALBD=ALBD2,   
+!     &              LWI=LWI,    PS=PS2,     SPHU=SPHU2, 
+!     &              TMPU=TMPU2, UWND=UWND2, VWND=VWND2 )   
+!
+!#elif defined( GEOS_3 )
+!------------------------------------------------------------------------------
+#if   defined( GEOS_3 )
 
       !=================================================================
       ! GEOS-3:
@@ -520,7 +554,7 @@
 !
 !******************************************************************************
 !  Function GET_N_I6 returns the number of I-6 fields per met data set
-!  (GEOS-1, GEOS-STRAT, GEOS-3, GEOS-4). (bmy, 6/23/03, 5/25/05) 
+!  (GEOS-1, GEOS-STRAT, GEOS-3, GEOS-4). (bmy, 6/23/03, 8/4/06) 
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -528,6 +562,7 @@
 !
 !  NOTES:
 !  (1 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/25/05)
+!  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
 #     include "CMN_SIZE" 
@@ -542,12 +577,17 @@
       ! GET_N_I6 begins here!
       !=================================================================
 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-
-      ! GEOS-1 and GEOS-STRAT have 7 I-6 fields
-      N_I6 = 7
-
-#elif defined( GEOS_3 ) 
+!-------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!
+!      ! GEOS-1 and GEOS-STRAT have 7 I-6 fields
+!      N_I6 = 7
+!
+!#elif defined( GEOS_3 ) 
+!-------------------------------------------------------------------
+#if   defined( GEOS_3 ) 
       
       ! N_I6 is a function of year for GEOS-3
       SELECT CASE ( NYMD / 10000 ) 
@@ -581,39 +621,44 @@
 !******************************************************************************
 !  Function CHECK_TIME checks to see if the timestamp of the A-3 field just
 !  read from disk matches the current time.  If so, then it's time to return
-!  the A-3 field to the calling program. (bmy, 6/23/03)
+!  the A-3 field to the calling program. (bmy, 6/23/03, 8/4/06)
 !  
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) XYMD (REAL*4 or INTEGER) : (YY)YYMMDD timestamp for A-3 field in file
-!  (2 ) XHMS (REAL*4 or INTEGER) : HHMMSS     timestamp for A-3 field in file
-!  (3 ) NYMD (INTEGER          ) : YYYYMMDD   at which A-3 field is to be read
-!  (4 ) NHMS (INTEGER          ) : HHMMSS     at which A-3 field is to be read
+!  (1 ) XYMD (INTEGER) : YYYYMMDD timestamp for A-3 field in file
+!  (2 ) XHMS (INTEGER) : HHMMSS   timestamp for A-3 field in file
+!  (3 ) NYMD (INTEGER) : YYYYMMDD at which A-3 field is to be read
+!  (4 ) NHMS (INTEGER) : HHMMSS   at which A-3 field is to be read
 !
 !  NOTES:
+!  (1 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
 #     include "CMN_SIZE"
 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-
-      ! Arguments
-      REAL*4,  INTENT(IN) :: XYMD, XHMS 
-      INTEGER, INTENT(IN) :: NYMD, NHMS
-
-      ! Function value
-      LOGICAL             :: ITS_TIME
-
-      !=================================================================
-      ! GEOS-1 and GEOS-STRAT: XYMD and XHMS are REAL*4
-      !=================================================================
-      IF ( INT(XYMD) == NYMD-19000000 .AND. INT(XHMS) == NHMS ) THEN
-         ITS_TIME = .TRUE.
-      ELSE
-         ITS_TIME = .FALSE.
-      ENDIF
-
-#else
+!-----------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!
+!      ! Arguments
+!      REAL*4,  INTENT(IN) :: XYMD, XHMS 
+!      INTEGER, INTENT(IN) :: NYMD, NHMS
+!
+!      ! Function value
+!      LOGICAL             :: ITS_TIME
+!
+!      !=================================================================
+!      ! GEOS-1 and GEOS-STRAT: XYMD and XHMS are REAL*4
+!      !=================================================================
+!      IF ( INT(XYMD) == NYMD-19000000 .AND. INT(XHMS) == NHMS ) THEN
+!         ITS_TIME = .TRUE.
+!      ELSE
+!         ITS_TIME = .FALSE.
+!      ENDIF
+!
+!#else
+!-----------------------------------------------------------------------------
 
       ! Arguments 
       INTEGER, INTENT(IN) :: XYMD, XHMS, NYMD, NHMS
@@ -622,7 +667,7 @@
       LOGICAL             :: ITS_TIME
 
       !=================================================================
-      ! GEOS-3, GEOS-4: XYMD and XHMS are integers
+      ! CHECK_TIME begins here!
       !=================================================================
       IF ( XYMD == NYMD .AND. XHMS == NHMS ) THEN
          ITS_TIME = .TRUE.
@@ -630,7 +675,10 @@
          ITS_TIME = .FALSE.
       ENDIF
 
-#endif
+!-----------------------
+! Prior to 8/4/06:
+!#endif
+!-----------------------
 
       ! Return to calling program
       END FUNCTION CHECK_TIME
@@ -643,7 +691,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_I6 reads GEOS-CHEM I-6 (inst. 6-hr) met fields from disk.
-!  (bmy, 5/8/98, 5/9/06)
+!  (bmy, 5/8/98, 8/4/06)
 ! 
 !  Arguments as Input:
 !  ===========================================================================
@@ -669,6 +717,7 @@
 !  (3 ) Round up to account for GEOS-4 coastal boxes properly (bmy, 8/10/05)
 !  (4 ) For near-land formulation: (a) make LWI a REAL*8 and (b) do not round 
 !        up LWI for GEOS-4 meteorology (ltm, bmy, 5/9/06)
+!  (5 ) Remove support for GEOS-1 and GEOS-STRAT met fields
 !******************************************************************************
 !
       ! References to F90 modules
@@ -699,13 +748,18 @@
       CHARACTER(LEN=8)               :: NAME
       CHARACTER(LEN=16)              :: STAMP
 
-      ! XYMD, XHMS must be REAL*4 for GEOS-1 and GEOS-STRAT
-      ! but INTEGER for GEOS-3 and GEOS-4 (bmy, 6/23/03)
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-      REAL*4                         :: XYMD, XHMS
-#else
+!-----------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields
+!      ! XYMD, XHMS must be REAL*4 for GEOS-1 and GEOS-STRAT
+!      ! but INTEGER for GEOS-3 and GEOS-4 (bmy, 6/23/03)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!      REAL*4                         :: XYMD, XHMS
+!#else
+!      INTEGER                        :: XYMD, XHMS
+!#endif
+!-----------------------------------------------------------------------
       INTEGER                        :: XYMD, XHMS
-#endif
 
       !=================================================================
       ! READ_I6 begins here!
@@ -947,13 +1001,12 @@
       !=================================================================
       IF ( ND67 > 0 ) THEN 
 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
-
-         ! ALBEDO is an I-6 field only for GEOS-1, GEOS-S, GEOS-3
+!--------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!--------------------------------------------------------------------------
          IF( PRESENT( ALBD  ) ) AD67(:,:,14) = AD67(:,:,14) + ALBD
-
-#endif
-
          IF( PRESENT( TROPP ) ) AD67(:,:,17) = AD67(:,:,17) + TROPP
          IF( PRESENT( SLP   ) ) AD67(:,:,18) = AD67(:,:,18) + SLP
       ENDIF 
@@ -1007,4 +1060,5 @@
 
 !------------------------------------------------------------------------------
 
+      ! End of module
       END MODULE I6_READ_MOD

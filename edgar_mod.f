@@ -1,9 +1,10 @@
-! $Id: edgar_mod.f,v 1.2 2006/08/03 17:37:37 bmy Exp $
+! $Id: edgar_mod.f,v 1.3 2006/08/14 17:58:05 bmy Exp $
       MODULE EDGAR_MOD
 !
 !******************************************************************************
 !  Module EDGAR_MOD contains variables and routines to read anthropogenic 
-!  emissions from the EDGAR inventory for NOx, CO and SO2. (avd, bmy, 7/14/06)
+!  emissions from the EDGAR inventory for NOx, CO and SO2. 
+!  (avd, bmy, 7/14/06, 8/9/06)
 !
 !  Module Routines:
 !  ============================================================================
@@ -41,6 +42,7 @@
 !  (9 ) time_mod.f            : Module w/ routines for computing time and date
 !
 !  NOTES:
+!  (1 ) Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -356,7 +358,8 @@
 !******************************************************************************
 !  Subroutine READ_EDGAR_NOx reads EDGAR NOx emissions for the various sectors
 !  and returns total and hourly emissions.  The EDGAR emissions are on the 
-!  GENERIC 1x1 GRID and are regridded to the GEOS 1x1 grid. (avd, bmy, 7/14/06)
+!  GENERIC 1x1 GRID and are regridded to the GEOS 1x1 grid. 
+!  (avd, bmy, 7/14/06, 8/9/06)
 !
 !  Arguments as Output:
 !  ============================================================================
@@ -364,6 +367,7 @@
 !  (2 ) E_HRLY_1x1 (REAL*8 ) : Hourly NOx on GEOS 1x1 grid [kg NO2/season]
 !
 !  NOTES:
+!  (1 ) Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -615,12 +619,25 @@
       ! Regrid from GENERIC 1x1 grid to GEOS 1x1 grid
       !-----------------------------------------------------------------
 
-      ! Total NOx [kg NO2/season]
-      CALL DO_REGRID_G2G_1x1( T_1x1, E_1x1 )
+      !----------------------------------------------------------------------
+      ! Prior to 8/9/06:
+      ! Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
+      !! Total NOx [kg NO2/season]
+      !CALL DO_REGRID_G2G_1x1( T_1x1, E_1x1 )
+      !
+      !! Hourly NOx [kg NO2/season]
+      !DO H = 1, N_HOURS
+      !   CALL DO_REGRID_G2G_1x1( T_HRLY_1x1(:,:,H), E_HRLY_1x1(:,:,H) )
+      !ENDDO
+      !----------------------------------------------------------------------
 
+      ! Total NOx [kg NO2/season]
+      CALL DO_REGRID_G2G_1x1( 'kg/season', T_1x1, E_1x1 )
+      
       ! Hourly NOx [kg NO2/season]
       DO H = 1, N_HOURS
-         CALL DO_REGRID_G2G_1x1( T_HRLY_1x1(:,:,H), E_HRLY_1x1(:,:,H) )
+         CALL DO_REGRID_G2G_1x1( 'kg/season', T_HRLY_1x1(:,:,H), 
+     &                                        E_HRLY_1x1(:,:,H) )
       ENDDO
 
       ! Return to calling program
@@ -793,13 +810,15 @@
 !******************************************************************************
 !  Subroutine READ_EDGAR_CO reads EDGAR CO emissions for the various sectors
 !  and returns total and hourly emissions.  The EDGAR emissions are on the 
-!  GENERIC 1x1 GRID and are regridded to the GEOS 1x1 grid. (avd, bmy, 7/14/06)
+!  GENERIC 1x1 GRID and are regridded to the GEOS 1x1 grid. 
+!  (avd, bmy, 7/14/06, 8/9/06)
 !
 !  Arguments as Output:
 !  ============================================================================
 !  (1 ) E_CO_1x1 (REAL*4) : Total EDGAR CO emissions on GEOS 1x1 grid [kg/yr]
 !
-!  NOTES:
+!  NOTES:      
+!  (1 ) Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -887,7 +906,12 @@
       !------------------------------------------------
 
       ! Total CO [kg/yr] 
-      CALL DO_REGRID_G2G_1x1( T_CO_1x1, E_CO_1x1 )
+      !-------------------------------------------------------------
+      ! Prior to 8/9/06:
+      ! Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
+      !CALL DO_REGRID_G2G_1x1( T_CO_1x1, E_CO_1x1 )
+      !-------------------------------------------------------------
+      CALL DO_REGRID_G2G_1x1( 'kg/yr', T_CO_1x1, E_CO_1x1 )
 
       ! Return to calling program
       END SUBROUTINE READ_EDGAR_CO
@@ -1013,14 +1037,15 @@
 !  Subroutine READ_EDGAR_SO2 reads EDGAR SO2 emissions for the various sectors
 !  and returns both anthropogenic SO2 emissions and ship exhaust SO2 emissions.
 !  The EDGAR emissions are on the GENERIC 1x1 GRID and are regridded to the 
-!  GEOS 1x1 GRID. (avd, bmy, 7/14/06)
+!  GEOS 1x1 GRID. (avd, bmy, 7/14/06, 8/9/06)
 !
 !  Arguments as Output:
 !  ============================================================================
 !  (1 ) E_SO2_1x1      (REAL*8) : EDGAR anth SO2 on GEOS 1x1 GRID [kg/season]
 !  (2 ) E_SO2_SHIP_1x1 (REAL*8) : EDGAR ship SO2 on GEOS 1x1 GRID [kg/season]
 !
-!  NOTES:!
+!  NOTES:
+!  (1 ) Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -1134,11 +1159,22 @@
       ! Regrid SO2 from GENERIC 1x1 GRID to GEOS 1x1 GRID
       !-----------------------------------------------------------------
 
+      !----------------------------------------------------------------------
+      ! Prior to 8/9/06:
+      ! Now pass the unit string to DO_REGRID_G2G_1x1
+      !! Anthro SO2 [kg/season]
+      !CALL DO_REGRID_G2G_1x1( T_SO2_1x1, E_SO2_1x1 )
+      !
+      !! Ship SO2 [kg/season] 
+      !CALL DO_REGRID_G2G_1x1( T_SO2_SHIP_1x1, E_SO2_SHIP_1x1 )
+      !----------------------------------------------------------------------
+
       ! Anthro SO2 [kg/season]
-      CALL DO_REGRID_G2G_1x1( T_SO2_1x1, E_SO2_1x1 )
+      CALL DO_REGRID_G2G_1x1( 'kg/season', T_SO2_1x1, E_SO2_1x1 )
 
       ! Ship SO2 [kg/season] 
-      CALL DO_REGRID_G2G_1x1( T_SO2_SHIP_1x1, E_SO2_SHIP_1x1 )
+      CALL DO_REGRID_G2G_1x1( 'kg/season', T_SO2_SHIP_1x1, 
+     &                                     E_SO2_SHIP_1x1 )
 
       !-----------------------------------------------------------------
       ! Force a monthly variation onto the anthropogenic SO2 emissions

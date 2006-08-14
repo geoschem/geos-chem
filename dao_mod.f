@@ -1,10 +1,10 @@
-! $Id: dao_mod.f,v 1.17 2006/05/26 17:45:17 bmy Exp $
+! $Id: dao_mod.f,v 1.18 2006/08/14 17:58:02 bmy Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
 !  Module DAO_MOD contains both arrays that hold DAO met fields, as well as
 !  subroutines that compute, interpolate, or otherwise process DAO met field 
-!  data. (bmy, 6/27/00, 5/16/06)
+!  data. (bmy, 6/27/00, 8/4/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -67,8 +67,7 @@
 !  (48) U10M     (REAL*8 ) : Zonal wind at 10 m altitude         [m/s]
 !  (59) USTAR    (REAL*8 ) : Friction velocity                   [m/s]
 !  (50) V10M     (REAL*8 ) : Meridional wind at 10 m altitude    [m/s]
-!  (51) WIND_10M (REAL*8 ) : Wind speed @ 10 m for GEOS-STRAT    [m/s]
-!  (52) Z0       (REAL*8 ) : Roughness height                    [m]
+!  (51) Z0       (REAL*8 ) : Roughness height                    [m]
 !
 !  GCAP-specific met fields (taken from GISS model):
 !  ----------------------------------------------------------------------------
@@ -96,10 +95,6 @@
 !  (70) RH       (REAL*8 ) : Relative humidity                   [%]
 !  (71) SUNCOS   (REAL*8 ) : COSINE( solar zenith angle )        [unitless]
 !  (72) SUNCOSB  (REAL*8 ) : COSINE( SZA ) at next chem time     [unitless]
-!
-!  Other variables:
-!  ----------------
-!  (73) USE_WIND_10M (LOGICAL) : Flag to denote if make_wind10m.f is called 
 !
 !  Module Routines:
 !  ============================================================================
@@ -170,6 +165,7 @@
 !  (23) Now allocate SNOW and GWET for GCAP (bmy, 8/17/05)
 !  (24) Now also add TSKIN for GEOS-3 (tmf, bmy, 10/20/05)
 !  (25) Modifications for near-land formulation (ltm, bmy, 5/16/06)
+!  (26) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -219,7 +215,11 @@
       REAL*8,  ALLOCATABLE :: ZMMU(:,:,:)
 
       ! A-3 met fields
-      LOGICAL              :: USE_WIND_10M   ! Internal flag
+      !-------------------------------------------------------------------
+      ! Prior to 8/4/06:
+      ! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+      !LOGICAL              :: USE_WIND_10M   ! Internal flag
+      !-------------------------------------------------------------------
       REAL*8,  ALLOCATABLE :: CLDFRC(:,:)
       REAL*8,  ALLOCATABLE :: GWETTOP(:,:)
       REAL*8,  ALLOCATABLE :: HFLUX(:,:)
@@ -236,7 +236,11 @@
       REAL*8,  ALLOCATABLE :: U10M(:,:)
       REAL*8,  ALLOCATABLE :: USTAR(:,:)  
       REAL*8,  ALLOCATABLE :: V10M(:,:)
-      REAL*8,  ALLOCATABLE :: WIND_10M(:,:)
+      !--------------------------------------------------------------------
+      ! Prior to 8/4/06:
+      ! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+      !REAL*8,  ALLOCATABLE :: WIND_10M(:,:)
+      !--------------------------------------------------------------------
       REAL*8,  ALLOCATABLE :: Z0(:,:)
 
       ! GCAP-specific met fields
@@ -506,7 +510,7 @@
 !******************************************************************************
 !  Subroutine INTERP linearly interpolates GEOS-CHEM I-6 fields (winds, 
 !  surface pressure, temperature, surface albedo, specific humidity) to the 
-!  current dynamic timestep. (bdf, bmy, 1/30/98, 5/25/05)
+!  current dynamic timestep. (bdf, bmy, 1/30/98, 8/4/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -544,6 +548,7 @@
 !        compute TM and TC2 values.  Renamed NTIME to NTIME1 and NTIME1 to
 !        NTIME0.  Updated comments. (bmy, 6/19/03)
 !  (13) Now modified for GEOS-5 and GCAP met fields. (swu, bmy, 5/25/05)
+!  (14) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !     
 #     include "CMN_SIZE"   ! Size parameters
@@ -571,7 +576,12 @@
       ! Fraction of 6h timestep elapsed at the end of this dyn timestep
       TC2 = ( D_NTIME1 + D_NTDT     - D_NTIME0 ) / D_NDT 
 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!----------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!----------------------------------------------------------------------------
+#if   defined( GEOS_3 )
 
       !=================================================================
       ! For GEOS-1, GEOS-S, GEOS-3 met fields:
@@ -628,7 +638,7 @@
 !
 !******************************************************************************
 !  Function IS_LAND returns TRUE if surface grid box (I,J) is a land box.
-!  (bmy, 6/26/00, 5/9/06)
+!  (bmy, 6/26/00, 8/4/06)
 !
 !  Arguments as Input
 !  ===========================================================================
@@ -653,6 +663,7 @@
 !  (7 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !  (8 ) Now return TRUE only for land boxes (w/ no ice) (bmy, 8/10/05)
 !  (9 ) Now use NINT to round LWI for GEOS-4/GEOS-5 (ltm, bmy, 5/9/06)
+!  (10) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -669,16 +680,21 @@
       !=================================================================
       ! IS_LAND begins here!
       !=================================================================
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-
-      !---------------------
-      ! GEOS-1 & GEOS-STRAT
-      !---------------------
-
-      ! LWI(I,J) = 2 is a land box
-      LAND = ( LWI(I,J) == 2 )
-
-#elif defined( GEOS_3 )
+!-------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!
+!      !---------------------
+!      ! GEOS-1 & GEOS-STRAT
+!      !---------------------
+!
+!      ! LWI(I,J) = 2 is a land box
+!      LAND = ( LWI(I,J) == 2 )
+!
+!#elif defined( GEOS_3 )
+!-------------------------------------------------------------------------
+#if   defined( GEOS_3 )
 
       !---------------------
       ! GEOS-3
@@ -726,7 +742,7 @@
 !
 !******************************************************************************
 !  Function IS_WATER returns TRUE if surface grid box (I,J) is an ocean 
-!  or an ocean-ice box.  (bmy, 6/26/00, 5/9/06)
+!  or an ocean-ice box.  (bmy, 6/26/00, 8/4/06)
 !
 !  Arguments as Input
 !  ===========================================================================
@@ -751,6 +767,7 @@
 !  (7 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !  (8 ) Now remove test for sea ice (bmy, 8/10/05)
 !  (9 ) Now use NINT to round LWI for GEOS-4/GEOS-5 (ltm, bmy, 5/9/06)
+!  (10) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -767,16 +784,21 @@
       !=================================================================
       ! IS_WATER begins here!
       !=================================================================
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-
-      !---------------------
-      ! GEOS-1 & GEOS-STRAT
-      !---------------------
-
-      ! LWI(I,J) = 1 is an ocean box
-      WATER = ( LWI(I,J) == 1 )
-
-#elif defined( GEOS_3 )
+!---------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!
+!      !---------------------
+!      ! GEOS-1 & GEOS-STRAT
+!      !---------------------
+!
+!      ! LWI(I,J) = 1 is an ocean box
+!      WATER = ( LWI(I,J) == 1 )
+!
+!#elif defined( GEOS_3 )
+!---------------------------------------------------------------------------
+#if   defined( GEOS_3 )
       
       !---------------------
       ! GEOS-3 
@@ -824,13 +846,14 @@
 !
 !******************************************************************************
 !  Function IS_ICE returns TRUE if surface grid box (I,J) contains either
-!  land-ice or sea-ice. (bmy, 8/9/05)
+!  land-ice or sea-ice. (bmy, 8/9/05, 8/4/06)
 !
 !  Arguments as Input
 !  ===========================================================================
 !  (1-2) I, J : Longitude and latitude indices of the grid box
 !
 !  NOTES:
+!  (1 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -847,16 +870,20 @@
       !=================================================================
       ! IS_WATER begins here!
       !=================================================================
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-
-      !---------------------
-      ! GEOS-1 & GEOS-STRAT
-      !---------------------
-
-      ! LWI > 2 is an ice box
-      ICE = ( LWI(I,J) > 2 )
-
-#elif defined( GEOS_3 )
+!-----------------------------------------------------------------------
+! Prior to 8/4/06:
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!
+!      !---------------------
+!      ! GEOS-1 & GEOS-STRAT
+!      !---------------------
+!
+!      ! LWI > 2 is an ice box
+!      ICE = ( LWI(I,J) > 2 )
+!
+!#elif defined( GEOS_3 )
+!-----------------------------------------------------------------------
+#if   defined( GEOS_3 )
 
       !---------------------
       ! GEOS-3
@@ -896,7 +923,7 @@
 !******************************************************************************
 !  Function IS_NEAR returns TRUE if surface grid box (I,J) contains any land
 !  above a certain threshold (THRESH) or any of the adjacent boxes up to
-!  NEIGHBOR boxes away contain land.  (rch, ltm, bmy, 5/9/06, 5/16/06)
+!  NEIGHBOR boxes away contain land.  (rch, ltm, bmy, 5/9/06, 8/4/06)
 !
 !  Typical values for:
 !     GCAP   : THRESH =  0.2, NEIGHBOR = 1
@@ -913,6 +940,7 @@
 ! 
 !  NOTES:
 !  (1 ) Modified for GCAP and GEOS-3 met fields (bmy, 5/16/06)
+!  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
 #     include "CMN_SIZE"   ! Size parameters
@@ -934,10 +962,14 @@
       ! Initialize
       NEAR = .FALSE.
 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-      ! For now, return if GEOS-1 or GEOS-STRAT
-      RETURN
-#endif
+!------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
+!      ! For now, return if GEOS-1 or GEOS-STRAT
+!      RETURN
+!#endif
+!------------------------------------------------------------------------
 
       ! Loop over neighbor lat positions
       DO NS = -NEIGHBOR, NEIGHBOR
@@ -1166,96 +1198,97 @@
       END SUBROUTINE MAKE_RH
 
 !------------------------------------------------------------------------------
-
-      SUBROUTINE MAKE_WIND10M( UWND, VWND, BXHEIGHT, Z0 )
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!      SUBROUTINE MAKE_WIND10M( UWND, VWND, BXHEIGHT, Z0 )
+!!
+!!*****************************************************************************
+!!  Subroutine MAKE_WIND10M (bmy, 3/17/99, 12/9/03) creates the wind speed 
+!!  at 10 meters altitude from GEOS-STRAT wind vectors at the center of the 
+!!  first sigma level.  This is necessary since GEOS-STRAT does not store 
+!!  U10M and V10M wind fields, as does GEOS-1.  
+!!
+!!  Arguments as input:
+!!  ==========================================================================
+!!  (1) UWND(IIPAR,JJPAR) : DAO U-wind for first sigma level ( m/s )
+!!  (2) VWND(IIPAR,JJPAR) : DAO V-wind for first sigma level ( m/s )
+!!  (3) Z0  (MAXIJ      ) : DAO roughness heights            ( m   )
+!!
+!!  Passed via common blocks
+!!  ==========================================================================
+!!  (1) BXHEIGHT(IIPAR,JJPAR,LLPAR) : Height of each grid box       ( m   )
+!!  (2) WIND_10M(IIPAR,JJPAR      ) : Resultant wind speed at 10 m  ( m/s )
+!!
+!!  NOTES:
+!!  (1 ) Cosmetic changes (bmy, 10/13/99, 4/19/00)
+!!  (2 ) Now check for NaN's.  Also bracket the body of this subroutine 
+!!        by an #if defined( GEOS_STRAT ) statement. (bmy, 4/27/00)
+!!  (3 ) Added BXHEIGHT to the argument list.  Also added this routine to 
+!!        "dao_mod.f"  (bmy, 6/23/00)
+!!  (4 ) Updated comments (bmy, 4/4/01)
+!!  (5 ) Now references routine CHECK_VALUE from "error_mod.f" (bmy, 7/16/01)
+!!  (6 ) Now make Z0 a 2-D array (bmy, 12/9/03)
+!!*****************************************************************************
+!!
+!      ! References to F90 modules
+!      USE ERROR_MOD, ONLY : CHECK_VALUE
 !
-!******************************************************************************
-!  Subroutine MAKE_WIND10M (bmy, 3/17/99, 12/9/03) creates the wind speed 
-!  at 10 meters altitude from GEOS-STRAT wind vectors at the center of the 
-!  first sigma level.  This is necessary since GEOS-STRAT does not store 
-!  U10M and V10M wind fields, as does GEOS-1.  
+!      IMPLICIT NONE
 !
-!  Arguments as input:
-!  ==========================================================================
-!  (1) UWND(IIPAR,JJPAR) : DAO U-wind for first sigma level ( m/s )
-!  (2) VWND(IIPAR,JJPAR) : DAO V-wind for first sigma level ( m/s )
-!  (3) Z0  (MAXIJ      ) : DAO roughness heights            ( m   )
+!#     include "CMN_SIZE"  ! Size parameters  
 !
-!  Passed via common blocks
-!  ==========================================================================
-!  (1) BXHEIGHT(IIPAR,JJPAR,LLPAR) : Height of each grid box       ( m   )
-!  (2) WIND_10M(IIPAR,JJPAR      ) : Resultant wind speed at 10 m  ( m/s )
+!      ! Arguments
+!      REAL*8, INTENT(IN) :: UWND(IIPAR,JJPAR)
+!      REAL*8, INTENT(IN) :: VWND(IIPAR,JJPAR)
+!      REAL*8, INTENT(IN) :: BXHEIGHT(IIPAR,JJPAR)
+!      REAL*8, INTENT(IN) :: Z0(IIPAR,JJPAR)
 !
-!  NOTES:
-!  (1 ) Cosmetic changes (bmy, 10/13/99, 4/19/00)
-!  (2 ) Now check for NaN's.  Also bracket the body of this subroutine 
-!        by an #if defined( GEOS_STRAT ) statement. (bmy, 4/27/00)
-!  (3 ) Added BXHEIGHT to the argument list.  Also added this routine to 
-!        "dao_mod.f"  (bmy, 6/23/00)
-!  (4 ) Updated comments (bmy, 4/4/01)
-!  (5 ) Now references routine CHECK_VALUE from "error_mod.f" (bmy, 7/16/01)
-!  (6 ) Now make Z0 a 2-D array (bmy, 12/9/03)
-!******************************************************************************
+!      ! Local variables
+!      REAL*8             :: WIND_50M, NUMER, DENOM
+!      INTEGER            :: I,        J,     IJLOOP
 !
-      ! References to F90 modules
-      USE ERROR_MOD, ONLY : CHECK_VALUE
-
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"  ! Size parameters  
-
-      ! Arguments
-      REAL*8, INTENT(IN) :: UWND(IIPAR,JJPAR)
-      REAL*8, INTENT(IN) :: VWND(IIPAR,JJPAR)
-      REAL*8, INTENT(IN) :: BXHEIGHT(IIPAR,JJPAR)
-      REAL*8, INTENT(IN) :: Z0(IIPAR,JJPAR)
-
-      ! Local variables
-      REAL*8             :: WIND_50M, NUMER, DENOM
-      INTEGER            :: I,        J,     IJLOOP
-
-      !=================================================================
-      ! MAKE_WIND10M begins here!!
-      !
-      ! For each surface grid box (I,J), compute the wind speed at 
-      ! h(I,J) = BXHEIGHT(I,J,1) / 2.  This will be approx 50 m for 
-      ! most grid boxes.
-      !  
-      ! Then knowing the wind speed at h, compute the wind speed 
-      ! at 10 m, using the log law:
-      !
-      !           U( 10 m )       ln( 10 m / Z0 )
-      !           ---------   =  ----------------
-      !           U( h    )       ln(  h   / Z0 ) 
-      !
-      ! Where Z0 is the DAO roughness height in meters. 
-      !=================================================================
-#if   defined( GEOS_STRAT )
-      IJLOOP = 0
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-          
-         ! Wind speed at ~50 meters
-         WIND_50M      = SQRT( UWND(I,J)**2 + VWND(I,J)**2 )
-
-         ! Numerator and denominator of the log law expressions
-         NUMER         = LOG( 10d0 / Z0(I,J) )  
-         DENOM         = LOG( ( BXHEIGHT(I,J) / 2.0d0 ) / Z0(I,J) ) 
-
-         ! Wind speed at 10 m
-         WIND_10M(I,J) = WIND_50M * ( NUMER / DENOM )
-
-         ! Now call CHECK_VALUE to make sure that WIND_10M
-         ! is not a NaN or an infinity (bmy, 7/16/01)
-         CALL CHECK_VALUE( WIND_10M(I,J), (/I,J,0,0/), 
-     &                     'WIND_10M',    'at MAKE_WIND10m (dao_mod)' )
-      ENDDO
-      ENDDO
-#endif
-
-      ! Return to calling program
-      END SUBROUTINE MAKE_WIND10M
-
+!      !=================================================================
+!      ! MAKE_WIND10M begins here!!
+!      !
+!      ! For each surface grid box (I,J), compute the wind speed at 
+!      ! h(I,J) = BXHEIGHT(I,J,1) / 2.  This will be approx 50 m for 
+!      ! most grid boxes.
+!      !  
+!      ! Then knowing the wind speed at h, compute the wind speed 
+!      ! at 10 m, using the log law:
+!      !
+!      !           U( 10 m )       ln( 10 m / Z0 )
+!      !           ---------   =  ----------------
+!      !           U( h    )       ln(  h   / Z0 ) 
+!      !
+!      ! Where Z0 is the DAO roughness height in meters. 
+!      !=================================================================
+!#if   defined( GEOS_STRAT )
+!      IJLOOP = 0
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!          
+!         ! Wind speed at ~50 meters
+!         WIND_50M      = SQRT( UWND(I,J)**2 + VWND(I,J)**2 )
+!
+!         ! Numerator and denominator of the log law expressions
+!         NUMER         = LOG( 10d0 / Z0(I,J) )  
+!         DENOM         = LOG( ( BXHEIGHT(I,J) / 2.0d0 ) / Z0(I,J) ) 
+!
+!         ! Wind speed at 10 m
+!         WIND_10M(I,J) = WIND_50M * ( NUMER / DENOM )
+!
+!         ! Now call CHECK_VALUE to make sure that WIND_10M
+!         ! is not a NaN or an infinity (bmy, 7/16/01)
+!         CALL CHECK_VALUE( WIND_10M(I,J), (/I,J,0,0/), 
+!     &                     'WIND_10M',    'at MAKE_WIND10m (dao_mod)' )
+!      ENDDO
+!      ENDDO
+!#endif
+!
+!      ! Return to calling program
+!      END SUBROUTINE MAKE_WIND10M
+!
 !------------------------------------------------------------------------------
 
       FUNCTION GET_OBK( I, J ) RESULT( OBK )
@@ -1629,10 +1662,11 @@
 !******************************************************************************
 !  Subroutine COPY_I6_FIELDS copies the I-6 fields at the end of a 6-hr 
 !  timestep.  The I-6 fields at the end of a given 6-hr timestep become the
-!  fields at the beginning of the next 6-hr timestep. (bmy, 4/13/04)
+!  fields at the beginning of the next 6-hr timestep. (bmy, 4/13/04, 8/4/06)
 !
 !  NOTES:
 !  (1 ) Added parallel DO-loops (bmy, 4/13/04)
+!  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 ! 
 #     include "CMN_SIZE" ! Size parameters
@@ -1653,7 +1687,12 @@
          ! Copy surface pressure
          PS1(I,J)   = PS2(I,J) 
 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!-----------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!-----------------------------------------------------------------------------
+#if   defined( GEOS_3 )
          ! Also copy surface albedo (GEOS-1, GEOS-S, GEOS-3 only)
          ALBD1(I,J) = ALBD2(I,J)  
 #endif
@@ -1661,7 +1700,12 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!-----------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!-----------------------------------------------------------------------------
+#if   defined( GEOS_3 )
 
       !=================================================================
       ! GEOS-1, GEOS-S, GEOS-3: UWND, VWND, SPHU, TMPU are I-6 fields
@@ -1693,7 +1737,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_DAO allocates memory for all allocatable module arrays. 
-!  (bmy, 6/26/00, 6/24/05)
+!  (bmy, 6/26/00, 8/4/06)
 !
 !  NOTES:
 !  (1 ) Now allocate AVGW for either NSRCX == 3 or NSRCX == 5 (bmy, 9/24/01)
@@ -1724,6 +1768,7 @@
 !        simulations. (bmy, 6/24/05)
 !  (14) Now allocate SNOW and GWETTOP for GCAP (bmy, 8/17/05)
 !  (15) Now also add TSKIN for GEOS-3 (bmy, 10/20/05)
+!  (16) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1752,7 +1797,12 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRVOL' )
       AIRVOL = 0d0
       
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!-----------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!-----------------------------------------------------------------------------
+#if   defined( GEOS_3 )
 
       ! ALBD1 is only defined for GEOS-1, GEOS-S, GEOS-3
       ALLOCATE( ALBD1( IIPAR, JJPAR ), STAT=AS )
@@ -1790,7 +1840,12 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
       CLDFRC = 0d0
 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!-----------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!-----------------------------------------------------------------------------
+#if   defined( GEOS_3 )
 
       ! CLDMAS is only defined for GEOS-1, GEOS-S, GEOS-3
       ALLOCATE( CLDMAS( IIPAR, JJPAR, LLPAR ), STAT=AS )
@@ -1803,25 +1858,34 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDTOPS' )
       CLDTOPS = 0
 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) 
-
-      ! CLMOSW is only defined for GEOS-1 and GEOS-STRAT data sets
-      ALLOCATE( CLMOSW( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLMOSW' )
-      CLMOSW = 0d0
-
-      ! CLROSW is only defined for GEOS-1 and GEOS-STRAT data sets
-      ALLOCATE( CLROSW( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLROSW' )
-      CLROSW = 0d0
-
-#endif
+!-----------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) 
+!
+!      ! CLMOSW is only defined for GEOS-1 and GEOS-STRAT data sets
+!      ALLOCATE( CLMOSW( LLPAR, IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLMOSW' )
+!      CLMOSW = 0d0
+!
+!      ! CLROSW is only defined for GEOS-1 and GEOS-STRAT data sets
+!      ALLOCATE( CLROSW( LLPAR, IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLROSW' )
+!      CLROSW = 0d0
+!
+!#endif
+!-----------------------------------------------------------------------------
 
       ALLOCATE( DELP( LLPAR, IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DELP' )
       DELP = 0d0
 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!-----------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!-----------------------------------------------------------------------------
+#if   defined( GEOS_3 )
 
       ! DTRAIN is only defined for GEOS-1, GEOS-S, GEOS-3
       ALLOCATE( DTRAIN( IIPAR, JJPAR, LLPAR ), STAT=AS )
@@ -1890,14 +1954,14 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTD' )
       OPTD = 0d0
 
-#if   defined( GEOS_3 ) || defined( GEOS_4 ) 
+#if   defined( GEOS_3 ) || defined( GEOS_4 ) || defined( GCAP )
 
-      ! PARDF is only defined for GEOS_3 or GEOS-4
+      ! PARDF is only defined for GEOS_3, GEOS-4, GCAP
       ALLOCATE( PARDF( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF' )
       PARDF = 0d0
 
-      ! PARDR is only defined for GEOS-3 or GEOS-4
+      ! PARDR is only defined for GEOS-3, GEOS-4, GCAP
       ALLOCATE( PARDR( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR' )
       PARDR = 0d0
@@ -1943,7 +2007,7 @@
 
 #if   defined( GEOS_3 ) || defined( GEOS_4 ) || defined( GCAP )
 
-      ! SLP is only defined for GEOS-3 and GEOS-4
+      ! SLP is only defined for GEOS-3, GEOS-4, GCAP
       ALLOCATE( SLP( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLP' )
       SLP = 0d0      
@@ -1965,8 +2029,13 @@
       SNOW = 0d0
 
 #endif
-   
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+
+!-------------------------------------------------------------------------   
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!-------------------------------------------------------------------------   
+#if   defined( GEOS_3 )
 
       ! SPHU1 is only defined for GEOS-1, GEOS-S, GEOS-3
       ALLOCATE( SPHU1( IIPAR, JJPAR, LLPAR ), STAT=AS )
@@ -1999,7 +2068,12 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
       T = 0d0
 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!------------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!------------------------------------------------------------------------------
+#if   defined( GEOS_3 )
 
       ! TMPU is only defined for GEOS-1, GEOS-S, GEOS-3
       ALLOCATE( TMPU1( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
@@ -2043,7 +2117,12 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'USTAR' )
       USTAR = 0d0
 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!-----------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!-----------------------------------------------------------------------------
+#if   defined( GEOS_3 )
 
       ! UWND1 is only defined for GEOS-1, GEOS-S, GEOS-3
       ALLOCATE( UWND1( IIPAR, JJPAR, LLPAR ), STAT=AS )
@@ -2065,7 +2144,12 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'V10M' )
       V10M = 0d0
 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!-----------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!-----------------------------------------------------------------------------
+#if   defined( GEOS_3 )
 
       ! VWND1 is only defined for GEOS-1, GEOS-S, GEOS-3
       ALLOCATE( VWND1( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
@@ -2083,14 +2167,18 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND' )
       VWND = 0d0
 
-#if   defined( GEOS_STRAT )
-
-      ! WIND_10M is only defined for GEOS-STRAT
-      ALLOCATE( WIND_10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'WIND_10M' )
-      WIND_10M = 0d0
-
-#endif
+!--------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields
+!#if   defined( GEOS_STRAT )
+!
+!      ! WIND_10M is only defined for GEOS-STRAT
+!      ALLOCATE( WIND_10M( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'WIND_10M' )
+!      WIND_10M = 0d0
+!
+!#endif
+!--------------------------------------------------------------
 
       ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
@@ -2200,6 +2288,7 @@
 !        for GEOS-4/fvDAS. (bmy, 6/25/03)
 !  (11) Now deallocate CLDFRC, RADLWG, RADSWG, SNOW arrays (bmy, 12/9/03)
 !  (12) Now deallocate GCAP met fields (bmy, 5/25/05)
+!  (13) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       !=================================================================
@@ -2274,7 +2363,11 @@
       IF ( ALLOCATED( VWND     ) ) DEALLOCATE( VWND     )
       IF ( ALLOCATED( VWND1    ) ) DEALLOCATE( VWND1    )
       IF ( ALLOCATED( VWND2    ) ) DEALLOCATE( VWND2    )
-      IF ( ALLOCATED( WIND_10M ) ) DEALLOCATE( WIND_10M )
+      !-------------------------------------------------------------------
+      ! Prior to 8/4/06:
+      ! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+      !IF ( ALLOCATED( WIND_10M ) ) DEALLOCATE( WIND_10M )
+      !-------------------------------------------------------------------
       IF ( ALLOCATED( Z0       ) ) DEALLOCATE( Z0       )
       IF ( ALLOCATED( ZMEU     ) ) DEALLOCATE( ZMEU     )
       IF ( ALLOCATED( ZMMD     ) ) DEALLOCATE( ZMMD     )

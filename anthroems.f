@@ -1,4 +1,4 @@
-! $Id: anthroems.f,v 1.8 2006/07/26 15:32:10 bmy Exp $
+! $Id: anthroems.f,v 1.9 2006/08/14 17:58:00 bmy Exp $
       SUBROUTINE ANTHROEMS( NSEASON )
 !
 !******************************************************************************
@@ -154,11 +154,6 @@
       ! latest year for which we have data from CDIAC. (bmy, 1/13/03)
       !=================================================================
       IF ( FSCALYR < 0 ) THEN
-         !---------------------------------------
-         ! Prior to 7/18/06:
-         ! Extend to year 2002 (bmy, 7/18/06)
-         !SCALEYEAR = MIN( GET_YEAR(), 1998 )
-         !---------------------------------------
          SCALEYEAR = MIN( GET_YEAR(), 2002 )
       ELSE
          SCALEYEAR = FSCALYR

@@ -1,5 +1,11 @@
-! $Id: main.f,v 1.37 2006/06/28 17:26:52 bmy Exp $
+! $Id: main.f,v 1.38 2006/08/14 17:58:10 bmy Exp $
 ! $Log: main.f,v $
+! Revision 1.38  2006/08/14 17:58:10  bmy
+! GEOS-Chem v7-04-08, includes the following modifications:
+! - Now add David Streets' emissions for China & SE Asia
+! - Removed support for GEOS-1 and GEOS-STRAT met fields
+! - Removed support for LINUX_IFC and LINUX_EFC compilers
+!
 ! Revision 1.37  2006/06/28 17:26:52  bmy
 ! GEOS-Chem v7-04-06, includes the following modifications:
 ! - Now add BRAVO emissions (NOx, CO, SO2) over N. Mexico
@@ -724,12 +730,18 @@
          ! Compute tropopause height for ND55 diagnostic
          IF ( ND55 > 0 ) CALL TROPOPAUSE
 
-#if   defined( GEOS_STRAT )
-         ! For GEOS-STRAT, if U10M and V10M are missing, compute 
-         ! the resultant wind speed at 10 meters (bmy, 6/27/00)
-         CALL GET_WIND10M( NYMD )
+!---------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_STRAT )
+!         ! For GEOS-STRAT, if U10M and V10M are missing, compute 
+!         ! the resultant wind speed at 10 meters (bmy, 6/27/00)
+!         CALL GET_WIND10M( NYMD )
+!
+!#elif defined( GEOS_3 )
+!---------------------------------------------------------------------------
+#if   defined( GEOS_3 )
 
-#elif defined( GEOS_3 )
          ! 1998 GEOS-3 carries the ground temperature and not the air
          ! temperature -- thus TS will be 2-3 K too high.  As a quick fix, 
          ! copy the temperature at the first sigma level into TS. 
@@ -1091,10 +1103,14 @@
       WRITE( 6, '(a)' ) 'Created w/ IBM-AIX compiler'
 #elif defined( LINUX_PGI )
       WRITE( 6, '(a)' ) 'Created w/ LINUX/PGI compiler'
-#elif defined( LINUX_IFC )
-      WRITE( 6, '(a)' ) 'Created w/ LINUX/IFC (32-bit) compiler'
-#elif defined( LINUX_EFC )
-      WRITE( 6, '(a)' ) 'Created w/ LINUX/EFC (64-bit) compiler'
+!---------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for LINUX_IFC and LINUX_EFC compilers (bmy, 8/4/06)
+!#elif defined( LINUX_IFC )
+!      WRITE( 6, '(a)' ) 'Created w/ LINUX/IFC (32-bit) compiler'
+!#elif defined( LINUX_EFC )
+!      WRITE( 6, '(a)' ) 'Created w/ LINUX/EFC (64-bit) compiler'
+!---------------------------------------------------------------------------
 #elif defined( LINUX_IFORT )
       WRITE( 6, '(a)' ) 'Created w/ LINUX/IFORT (64-bit) compiler'
 #elif defined( SGI_MIPS  )
@@ -1106,11 +1122,16 @@
       !-----------------------
       ! Print met field info
       !-----------------------
-#if   defined( GEOS_1     )
-      WRITE( 6, '(a)' ) 'Using GEOS-1 met fields' 
-#elif defined( GEOS_STRAT )
-      WRITE( 6, '(a)' ) 'Using GEOS-STRAT met fields'
-#elif defined( GEOS_3     )
+!---------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1     )
+!      WRITE( 6, '(a)' ) 'Using GEOS-1 met fields' 
+!#elif defined( GEOS_STRAT )
+!      WRITE( 6, '(a)' ) 'Using GEOS-STRAT met fields'
+!#elif defined( GEOS_3     )
+!---------------------------------------------------------------------
+#if   defined( GEOS_3     )
       WRITE( 6, '(a)' ) 'Using GEOS-3 met fields'
 #elif defined( GEOS_4     )
       WRITE( 6, '(a)' ) 'Using GEOS-4/fvDAS met fields'
@@ -1183,39 +1204,41 @@
       END FUNCTION ITS_TIME_FOR_BPCH
 
 !------------------------------------------------------------------------------
-
-      SUBROUTINE GET_WIND10M( NYMD )
-
-      !=================================================================
-      ! Internal Subroutine GET_WIND10M is a wrapper for routine
-      ! MAKE_WIND10M (from "dao_mod.f").  
-      !=================================================================
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: NYMD 
-
-      !=================================================================
-      ! GEOS-STRAT winds prior to 13 Feb 1997 do not contain U10M and
-      ! V10M fields.  Call MAKE_WIND10M to compute these fields from 
-      ! the existing values of UWND, VWND, BXHEIGHT, and Z0.
-      !
-      ! Also set logical flag USE_WIND_10M to let SFCWINDSQR know that 
-      ! the U10M and V10M fields are missing and had to be constructed 
-      ! by MAKE_WIND10M. (bmy, 6/27/00)
-      !=================================================================
-#if   defined( GEOS_STRAT )
-      IF ( NYMD < 19970213 ) THEN
-         CALL MAKE_WIND10M( UWND=UWND(:,:,1),         VWND=VWND(:,:,1), 
-     &                      BXHEIGHT=BXHEIGHT(:,:,1), Z0=Z0 )
-         USE_WIND_10M = .TRUE.
-      ELSE
-         USE_WIND_10M = .FALSE.
-      ENDIF
-#endif
-      
-      ! Return to MAIN program
-      END SUBROUTINE GET_WIND10M
-
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!
+!      SUBROUTINE GET_WIND10M( NYMD )
+!
+!      !=================================================================
+!      ! Internal Subroutine GET_WIND10M is a wrapper for routine
+!      ! MAKE_WIND10M (from "dao_mod.f").  
+!      !=================================================================
+!
+!      ! Arguments
+!      INTEGER, INTENT(IN) :: NYMD 
+!
+!      !=================================================================
+!      ! GEOS-STRAT winds prior to 13 Feb 1997 do not contain U10M and
+!      ! V10M fields.  Call MAKE_WIND10M to compute these fields from 
+!      ! the existing values of UWND, VWND, BXHEIGHT, and Z0.
+!      !
+!      ! Also set logical flag USE_WIND_10M to let SFCWINDSQR know that 
+!      ! the U10M and V10M fields are missing and had to be constructed 
+!      ! by MAKE_WIND10M. (bmy, 6/27/00)
+!      !=================================================================
+!#if   defined( GEOS_STRAT )
+!      IF ( NYMD < 19970213 ) THEN
+!         CALL MAKE_WIND10M( UWND=UWND(:,:,1),         VWND=VWND(:,:,1), 
+!     &                      BXHEIGHT=BXHEIGHT(:,:,1), Z0=Z0 )
+!         USE_WIND_10M = .TRUE.
+!      ELSE
+!         USE_WIND_10M = .FALSE.
+!      ENDIF
+!#endif
+!      
+!      ! Return to MAIN program
+!      END SUBROUTINE GET_WIND10M
+!
 !-----------------------------------------------------------------------------
 
       SUBROUTINE CTM_FLUSH
@@ -1286,7 +1309,11 @@
       USE DAO_MOD, ONLY : TMPU1,    TMPU2,   T,        TROPP,  TS       
       USE DAO_MOD, ONLY : TSKIN,    U10M,    USTAR,    UWND1,  UWND2     
       USE DAO_MOD, ONLY : UWND,     V10M,    VWND1,    VWND2,  VWND     
-      USE DAO_MOD, ONLY : WIND_10M, Z0,      ZMEU,     ZMMD,   ZMMU     
+      !----------------------------------------------------------------
+      ! Prior to 8/4/06:
+      !USE DAO_MOD, ONLY : WIND_10M, Z0,      ZMEU,     ZMMD,   ZMMU   
+      !----------------------------------------------------------------  
+      USE DAO_MOD, ONLY : Z0,       ZMEU,    ZMMD,     ZMMU     
 
       ! Local variables
       INTEGER :: I, J, L, IJ
@@ -1359,7 +1386,10 @@
       IF ( ALLOCATED( VWND1    ) ) PRINT*, 'VWND1   : ', VWND1(I,J,L) 
       IF ( ALLOCATED( VWND2    ) ) PRINT*, 'VWND2   : ', VWND2(I,J,L) 
       IF ( ALLOCATED( VWND     ) ) PRINT*, 'VWND    : ', VWND(I,J,L) 
-      IF ( ALLOCATED( WIND_10M ) ) PRINT*, 'WIND_10M: ', WIND_10M(I,J) 
+      !------------------------------------------------------------------
+      ! Prior to 8/4/06:
+      !IF ( ALLOCATED( WIND_10M ) ) PRINT*, 'WIND_10M: ', WIND_10M(I,J) 
+      !------------------------------------------------------------------
       IF ( ALLOCATED( Z0       ) ) PRINT*, 'Z0      : ', Z0(I,J) 
       IF ( ALLOCATED( ZMEU     ) ) PRINT*, 'ZMEU    : ', ZMEU(I,J,L) 
       IF ( ALLOCATED( ZMMD     ) ) PRINT*, 'ZMMD    : ', ZMMD(I,J,L) 

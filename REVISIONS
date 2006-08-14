@@ -1,79 +1,252 @@
-REVISIONS (v7-04-07)  
-bmy, 03 Aug 2006
+REVISIONS (v7-04-08)  
+bmy, 14 Aug 2006
 
 
-New in v7-04-07:
+New in v7-04-08:
 -------------------------------------------------------------------------------
 
-edgar_mod.f		-- Module to compute emissions of NOx, CO, SOX
-			   from the EDGAR emissions inventory
-
-regrid_conc_to_1x125	-- New routine to regrid concentration data from
-("regrid_1x1_mod.f")	   the GEOS 1x1 GRID to the GEOS 1 x 1.25 GRID.
-
-
-regrid_mass_to_1x125	-- New routine to regrid mass data from
-("regrid_1x1_mod.f")	   the GEOS 1x1 GRID to the GEOS 1 x 1.25 GRID.
+streets_anthro_mod.f	-- Module containing routines to emit David Streets'
+			   anthropogenic emissions over China & SE Asia
 
 
 
-Removed in v7-04-07:
+Removed in v7-04-08:
 -------------------------------------------------------------------------------
 
-f2f			-- Script to convert *.f files to *.F files.  This
-		           is no longer needed, as the Sun compiler can be
-			   forced to apply the C-Preprocessor to *.f files.
+make_cldfrc		-- This was only for GEOS-STRAT, which is now removed 
+("a6_read_mod.f")
+
+make_wind10m		-- This was only for GEOS-STRAT, which is now removed 
+("dao_mod.f")
+
+od_geos1_geoss		-- This was only for GEOS-STRAT, which is now removed 
+("optdepth_mod")
 
 
 
-Changed from v7-04-06:
+Changed from v7-04-08:
 -------------------------------------------------------------------------------
 
-anthroems.f		-- Extend max value for FSCALYR to 2002 
+check_time		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("a3_read_mod.f")
 
-cleanup.f		-- Now references CLEANUP_BRAVO from "bravo_mod.f"
-			-- Now references CLEANUP_EDGAR from "edgar_mod.f"
+check_time		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("a6_read_mod.f")
 
-compute_f		-- Bug fix: now use separate conversion factors for 
-("wetscav_mod.f")	   H2O2 and NH3
+check_time		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("gwet_read_mod.f")
 
-diag3.f			-- Updated ND36 diagnostic for CH3I
+check_time		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("i6_read_mod.f")
 
-do_global_transport	-- Rewrote some parallel loops for the SUN compiler
-("transport_mod.f")
+cleanup_dao		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("dao_mod.f")
 
-emfossil.f		-- Now apply EDGAR emissions if necessary
-			-- Also now only do the the EDGAR, EPA, EMEP, and
-  			   BRAVO function calls in the LL=1 block.
+compute_pbl_height	-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("pbl_mix_mod.f")
 
-init_gamap		-- Updated for ND36 CH3I simulation diagnostics
+copy_i6_fields		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("dao_mod.f")
+
+correct_ste		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("RnPbBe_mod.f")
+
+debug_msg		-- Remove support for LINUX_IFC & LINUX_EFC compilers
+("error_mod.f")
+
+define.h		-- Removed GEOS_1, GEOS_STRAT, LINUX_IFC, LINUX_EFC
+
+diag1.f			-- Remove support for GEOS-1 and GEOS-STRAT met fields
+
+diag3.f			-- Remove support for GEOS-1 and GEOS-STRAT met fields
+
+do_chemistry		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("chemistry_mod.f")
+
+do_open_a3		-- Reverse the logic of the #if block
+("a3_read_mod.f")
+
+do_regrid_g2g_1x1	-- Now pass UNIT via the arg list and pass that to 
+("regrid_1x1_mod.f")	   ITS_CONCENTRATION_DATA to determine if the data to 
+			   be regridded is concentration data or mass data.  
+			   This is now consistent with routine DO_REGRID_1x1.
+
+emiss_bravo		-- Now pass the unit string to DO_REGRID_G2G_1x1 
+("bravo_mod.f")
+
+finite_dble		-- Remove support for LINUX_IFC & LINUX_EFC compilers
+("error_mod.f")
+
+finite_float		-- Remove support for LINUX_IFC & LINUX_EFC compilers
+("error_mod.f")
+
+get_a3_time		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("time_mod.f")
+
+get_first_a3_time	-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("time_mod.f")
+
+get_a3_fields		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("a3_read_mod.f")
+
+get_a6_fields		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("a6_read_mod.f")
+
+get_i6_fields_1		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("i6_read_mod.f")
+
+get_i6_fields_2		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("i6_read_mod.f")
+
+get_l_copy		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("transfer_mod.f")
+
+get_modelname		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("bpch2_mod.f")
+
+get_n_a3		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("a3_read_mod.f")
+
+get_n_a6		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("a6_read_mod.f")
+
+get_n_i6		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("i6_read_mod.f")
+
+get_name_ext		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("bpch2_mod.f")
+
+get_met_field_scale	-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("lightning_nox_mod.f")
+
+get_regional_pox	-- Remove support for GEOS-1 and GEOS-STRAT met fields 
+("tagged_ox_mod.f")
+
+gfed2_compute_biomass	-- Now pass the unit string to DO_REGRID_G2G_1x1
+("gfed2_biomass_mod.f")
+
+init_lightning_nox	-- Remove support for GEOS-1 and GEOS-STRAT met fields 
+("lightning_nox_mod.f")
+
+init_dao		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("dao_mod.f")
+
+init_gamap		-- Remove support for GEOS-1 and GEOS-STRAT met fields
 ("gamap_mod.f")
 
-init_input		-- Now reference the EDGAR logical switches from 
-("input_mod.f")		   "logical_mod.f"
+init_pressure		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("pressure_mod.f")
 
-isoropia.h 		-- Rename the /GAS/ common block to /GAS1/, because 
-			   there are variables named GAS within 
-			   "isoropia_mod.f".  This avoids namespace confusion, 
-                           which may cause some compilers to choke.
+interp			-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("dao_mod.f")
 
-logical_mod.f		-- Added LEDGAR, LEDGARNOx, LEDGARCO, LEDGARSHIP, 
-			   LEDGARSOx switches for EDGAR emissions
+ioerror			-- Remove support for LINUX_IFC & LINUX_EFC compilers
+("file_mod.f")
 
-partition.f		-- Resize CSAVE to save local memory, for SUN compiler
+is_ice			-- Remove support for GEOS-1 and GEOS-STRAT met fields 
+("dao_mod.f)
 
-read_anthro_sox		-- Now can read either EDGAR or GEIA emissions
-("sulfate_mod.f")
+is_land			-- Remove support for GEOS-1 and GEOS-STRAT met fields 
+("dao_mod.f)
 
-read_emissions_menu	-- Now read LEDGAR for EDGAR emissions
+is_water		-- Remove support for GEOS-1 and GEOS-STRAT met fields 
+("dao_mod.f)
+
+its_concentration_data	-- Added kg/s, kg/month, kg/season to CASE statement
+("regrid_1x1_mod.f")
+
+lightdist		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("lightning_nox_mod.f")
+
+main.f			-- Remove support for LINUX_IFC & LINUX_EFC compilers
+			-- Remove support for GEOS-1 and GEOS-STRAT met fields
+
+nan_dble		-- Remove support for LINUX_IFC & LINUX_EFC compilers
+("error_mod.f")
+
+nan_float		-- Remove support for LINUX_IFC & LINUX_EFC compilers
+("error_mod.f")
+
+ocean_source_acet	-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("acetone_mod.f")
+
+open_a3_fields		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("a3_read_mod.f")
+
+open_a6_fields		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("i6_read_mod.f")
+
+open_gwet_fields	-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("gwet_read_mod.f")
+
+open_i6_fields		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("i6_read_mod.f")
+
+rdaer			-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("aerosol_mod.f")
+
+rdust_offline		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("dust_mod.f")
+
+read_a3			-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("a3_read_mod.f")
+
+read_a6			-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("a6_read_mod.f")
+
+read_bravo_mask		-- Now pass the unit string to DO_REGRID_G2G_1x1
+("edgar_mod.f")
+
+readchem.f		-- Increase FORMAT 510 so that it has space for 
+			   14 products
+
+read_edgar_co		-- Now pass the unit string to DO_REGRID_G2G_1x1
+("edgar_mod.f")
+
+read_edgar_nox		-- Now pass the unit string to DO_REGRID_G2G_1x1
+("edgar_mod.f")
+
+read_edgar_so2		-- Now pass the unit string to DO_REGRID_G2G_1x1
+("edgar_mod.f")
+
+read_gwet		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("gwet_read_mod.f")
+
+read_i6			-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("i6_read_mod.f")
+
+reader.f		-- Increase max # of products (NMPROD) that a reaction
+                           can have from 12 to 14.  This coincides w/ the new 
+                           globchem.dat. 
+
+sfcwindsqr.f		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+			-- Also remove call to CHECK_VALUE.
+
+tpcore			-- Remove support for LINUX_IFC & LINUX_EFC compilers 
+("tpcore_mod.f")
+
+tpcore_window		-- Remove support for LINUX_IFC & LINUX_EFC compilers 
+("tpcore_window_mod.f")
+
+tropopause.f		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+
+unzip_a3_fields		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("a3_read_mod.f")
+
+unzip_a6_fields		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("a6_read_mod.f")
+
+unzip_gwet_fields	-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("gwet_read_mod.f")
+
+unzip_i6_fields		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("i6_read_mod.f")
+
+upbdflx_noy		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("upbdflx_mod.f")
+
+upbdflx_o3		-- Remove support for GEOS-1 and GEOS-STRAT met fields
+("upbdflx_mod.f")
+
+validate_directories	-- Remove support for GEOS-1 and GEOS-STRAT met fields
 ("input_mod.f")
-
-read_ship_so2		-- Now get EDGAR ship SO2 emissions if necessary 
-("sulfate_mod.f")	-- Also apply future emissions scale factors to the 
- 			   default Corbett et al ship emissions
-
-soa_chemistry		-- Now consider SOG condensation onto SO4, NH4, NIT 
-("carbon_mod.f")	   aerosols (if SO4, NH4, NIT are defined as tracers)
-
-tracerid		-- Minor fixes for CH3I simulation
-("tracerid_mod.f")

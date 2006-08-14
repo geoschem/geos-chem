@@ -1,4 +1,4 @@
-! $Id: transport_mod.f,v 1.12 2006/07/14 18:36:53 bmy Exp $
+! $Id: transport_mod.f,v 1.13 2006/08/14 17:58:20 bmy Exp $
       MODULE TRANSPORT_MOD
 !
 !******************************************************************************
@@ -209,12 +209,6 @@
       REAL*8              :: P_TP2(IIPAR,JJPAR)
       REAL*8              :: P_TEMP(IIPAR,JJPAR)
       REAL*8              :: TR_A(IIPAR,JJPAR,LLPAR)
-      !---------------------------------------------------------------------
-      ! Prior to 7/12/06:
-      ! Dimension with N_TRACERS instead of NNPAR for SUN compiler
-      ! (bmy, 7/12/06)
-      !REAL*8              :: TR_B(IIPAR,JJPAR,LLPAR,NNPAR)
-      !---------------------------------------------------------------------
       REAL*8              :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS)
       REAL*8              :: UTMP(IIPAR,JJPAR,LLPAR)
       REAL*8              :: VTMP(IIPAR,JJPAR,LLPAR)
@@ -363,31 +357,6 @@
          ! Use GEOS-4/fvDAS version of TPCORE
          ! (compatible with GEOS-3, GEOS-4, or GCAP winds)
          !==============================================================
-!-----------------------------------------------------------------------------
-! Prior to 7/12/06:
-! Rewrite DO-loops for SUN compiler (bmy, 7/12/06)
-!         DO N = 1, N_TRACERS
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
-!!$OMP+SCHEDULE( DYNAMIC )
-!            DO L = 1, LLPAR
-!            DO J = 1, JJPAR
-!            DO I = 1, IIPAR
-!
-!               ! Airmass [kg] before transport
-!               IF ( N == 1 ) THEN
-!                  AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J) )
-!               ENDIF
-!
-!               ! Tracer mass [kg] before transport
-!               TR_B(I,J,L,N) = STT(I,J,L,N) * AD_B(I,J,L) / TCVV(N)
-!            ENDDO
-!            ENDDO
-!            ENDDO
-!!$OMP END PARALLEL DO
-!         ENDDO
-!-----------------------------------------------------------------------------
 
          ! Airmass [kg] before transport
 !$OMP PARALLEL DO

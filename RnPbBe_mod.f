@@ -1,9 +1,9 @@
-! $Id: RnPbBe_mod.f,v 1.8 2005/10/20 14:03:11 bmy Exp $
+! $Id: RnPbBe_mod.f,v 1.9 2006/08/14 17:57:58 bmy Exp $
       MODULE RnPbBe_MOD
 !
 !******************************************************************************
 !  Module RnPbBe_MOD contains variables and routines used for the 
-!  222Rn-210Pb-7Be simulation. (hyl, swu, bmy, 6/14/01, 8/15/05)
+!  222Rn-210Pb-7Be simulation. (hyl, swu, bmy, 6/14/01, 8/4/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -70,6 +70,7 @@
 !        (bmy, 7/20/04)
 !  (14) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
 !  (15) Now references "tropopause_mod.f"
+!  (16) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -189,7 +190,7 @@
 !******************************************************************************
 !  Subroutine CORRECT_STE reduces the emission of 210Pb and/or 7Be in the
 !  stratosphere, to correct for too fast STE in the GEOS-CHEM model.
-!  (hyl, bmy, 8/7/02, 5/24/05)
+!  (hyl, bmy, 8/7/02, 8/4/06)
 !
 !  Arguments as Input/Output:
 !  ============================================================================
@@ -197,6 +198,7 @@
 !
 !  NOTES:
 !  (1 ) Now updated for GCAP met fields (swu, bmy, 5/24/05)
+!  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
 #     include "define.h"    ! Switches
@@ -209,13 +211,18 @@
       !
       ! Correction factors were computed by Hongyu Liu (hyl, 8/6/02)
       !=================================================================
-#if   defined( GEOS_1 )
-      EMISSION = EMISSION / 3.0d0 
-         
-#elif defined( GEOS_STRAT )
-      EMISSION = EMISSION / 2.5d0 
-
-#elif defined( GEOS_3 )
+!---------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 )
+!      EMISSION = EMISSION / 3.0d0 
+!         
+!#elif defined( GEOS_STRAT )
+!      EMISSION = EMISSION / 2.5d0 
+!
+!#elif defined( GEOS_3 )
+!----------------------------------------------------------------------
+#if   defined( GEOS_3 )
       EMISSION = EMISSION / 3.5d0 
 
 #elif defined( GEOS_4 )

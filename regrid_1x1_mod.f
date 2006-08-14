@@ -1,9 +1,9 @@
-! $Id: regrid_1x1_mod.f,v 1.7 2006/08/03 17:37:38 bmy Exp $
+! $Id: regrid_1x1_mod.f,v 1.8 2006/08/14 17:58:13 bmy Exp $
       MODULE REGRID_1x1_MOD
 !
 !******************************************************************************
 !  Module REGRID_1x1_MOD does online regridding of data on the GEOS-Chem 1x1 
-!  grid to 1x1, 2x25, or 4x5 GEOS/GCAP grids. (bdf, bmy, 10/24/05, 8/2/06)
+!  grid to 1x1, 2x25, or 4x5 GEOS/GCAP grids. (bdf, bmy, 10/24/05, 8/9/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -40,6 +40,7 @@
 !        (psk, bmy, 4/18/06)
 !  (2 ) Added routines REGRID_CONC_TO_1x125 and REGRID_MASS_TO_1x125 to regrid
 !        1x1 data to the GEOS-Chem 1x1.25 grid. (bdf, bmy, 8/2/06)
+!  (3 ) DO_REGRID_G2G_1x1 now takes UNIT via the arg list (bmy, 8/9/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -83,32 +84,47 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE DO_REGRID_G2G_1x1( GEN1x1, GEOS1x1, PER_UNIT_AREA )
+      !-----------------------------------------------------------------
+      ! Prior to 8/9/06:
+      ! Now pass UNIT via the arg list (bmy, 8/9/06)
+      !SUBROUTINE DO_REGRID_G2G_1x1( GEN1x1, GEOS1x1, PER_UNIT_AREA )
+      !-----------------------------------------------------------------
+      SUBROUTINE DO_REGRID_G2G_1x1( UNIT, GEN1x1, GEOS1x1 )
 !
 !******************************************************************************
 !  Subroutine DO_REGRID_G2G_1x1 regrids 2-D data on the GENERIC 1x1
 !  grid (1st box edged at -180, -90) to the GEOS-Chem 1x1 grid. 
-!  (psk, bmy, 4/5/06)
+!  (psk, bmy, 4/5/06, 8/9/06)
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) GEN1x1        (REAL*4 ) : Data array on the GENERIC 1x1 grid
-!  (3 ) PER_UNIT_AREA (LOGICAL) : OPTIONAL -- set to denote data per m2 or cm2 
+!  (1 ) UNIT    (CHARACTER) : Unit of the data to be regridded 
+!  (2 ) GEN1x1  (REAL*4   ) : Data array on the GENERIC 1x1 grid
 !
 !  Arguments as Output:
 !  ============================================================================
-!  (2 ) GEOS1x1       (REAL*4 ) : Data array on the GEOS 1x1 grid
+!  (3 ) GEOS1x1 (REAL*4   ) : Data array on the GEOS 1x1 grid
 ! 
 !  NOTES:
+!  (1 ) Now pass UNIT via the arg list and pass that to ITS_CONCENTRATION_DATA
+!        to determine if the data to be regridded is concentration data
+!        or mass data.  This is now consistent with routine DO_REGRID_1x1.
+!        (bmy, 8/9/06)
 !******************************************************************************
 !
 #     include "CMN_SIZE"             ! Size parameters
 #     include "CMN_GCTM"             ! Physical constants
 
       ! Arguments
-      LOGICAL, INTENT(IN), OPTIONAL :: PER_UNIT_AREA
-      REAL*8,  INTENT(IN)           :: GEN1x1(I1x1,J1x1-1)
-      REAL*8,  INTENT(OUT)          :: GEOS1x1(I1x1,J1x1)
+      !-------------------------------------------------------------
+      ! Prior to 8/9/06:
+      ! Now use ITS_CONCENTRATION_DATA to determine if the data
+      ! needs to be handled per unit area (bmy, 8/9/06)
+      !LOGICAL, INTENT(IN), OPTIONAL :: PER_UNIT_AREA
+      !-------------------------------------------------------------
+      CHARACTER(LEN=*), INTENT(IN)  :: UNIT
+      REAL*8,           INTENT(IN)  :: GEN1x1(I1x1,J1x1-1)
+      REAL*8,           INTENT(OUT) :: GEOS1x1(I1x1,J1x1)
 
       ! Local variables
       LOGICAL, SAVE                 :: FIRST = .TRUE.
@@ -128,12 +144,20 @@
          FIRST = .FALSE.
       ENDIF
 
-      ! Save value of UNIT_AREA to local variable
-      IF ( PRESENT( PER_UNIT_AREA ) ) THEN
-         ITS_PER_UNIT_AREA = PER_UNIT_AREA 
-      ELSE
-         ITS_PER_UNIT_AREA = .FALSE.
-      ENDIF
+      !-----------------------------------------------------
+      ! Prior to 8/9/06:
+      ! Now use function ITS_CONCENTRATION_DATA to determine
+      ! if the data is concentration or mass (bmy, 8/9/06)
+      !! Save value of UNIT_AREA to local variable
+      !IF ( PRESENT( PER_UNIT_AREA ) ) THEN
+      !   ITS_PER_UNIT_AREA = PER_UNIT_AREA 
+      !ELSE
+      !   ITS_PER_UNIT_AREA = .FALSE.
+      !ENDIF
+      !-----------------------------------------------------
+
+      ! Is this concentration data?  
+      ITS_PER_UNIT_AREA = ITS_CONCENTRATION_DATA( UNIT )
 
       ! Surface area on generic grid [m2]
       A_GEN(:)  = A_GEN_1x1(:)
@@ -561,12 +585,14 @@
 !******************************************************************************
 !  Subroutine ITS_CONCENTRATION_DATA returns TRUE if UNIT is a concentration
 !  (i.e. is per unit area such as molec/cm2/s or is a ratio such as kg/kg).
+!  (bmy, 10/24/05, 8/9/06)
 !  
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) UNIT (CHAR*(*)) : String with unit of data
 !
 !  NOTES:
+!  (1 ) Added kg/s, kg/month, kg/season to CASE statement (bmy, 8/9/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -632,6 +658,12 @@
 
          ! Mass units
          CASE ( 'kg'           )
+            IS_CONC = .FALSE.
+         CASE ( 'kg/s'         )
+            IS_CONC = .FALSE.
+         CASE ( 'kg/month'     )
+            IS_CONC = .FALSE.
+         CASE ( 'kg/season'    )
             IS_CONC = .FALSE.
          CASE ( 'kg/yr'        )
             IS_CONC = .FALSE.

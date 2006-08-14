@@ -1,9 +1,9 @@
-! $Id: tropopause.f,v 1.3 2004/12/02 21:48:41 bmy Exp $
+! $Id: tropopause.f,v 1.4 2006/08/14 17:58:20 bmy Exp $
       SUBROUTINE TROPOPAUSE
 !
 !******************************************************************************
 !  Subroutine TROPOPAUSE defines the tropopause layer in terms of temperature 
-!  lapse rates. (hyl, bmy, 11/30/99, 6/18/03)
+!  lapse rates. (hyl, bmy, 11/30/99, 8/4/06)
 !
 !  NOTES:
 !  (1 ) Make sure the DO-loops go in the order L-J-I, wherever possible.
@@ -26,6 +26,7 @@
 !  (11) Now uses routine GET_YMID from "grid_mod.f" to compute grid box 
 !        latitude. (bmy, 2/3/03)
 !  (12) Add proper polar tropopause level for GEOS-4 (bmy, 6/18/03)
+!  (13) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       ! References to F90 modules.
@@ -218,13 +219,16 @@
 
              ! Select the proper polar tropopause level 
              ! for GEOS-1 or GEOS-STRAT or GEOS-3 (bmy, 5/20/02)
-#if   defined( GEOS_1 )               
-               LTPAUSE(1,1) = 11
-
-#elif defined( GEOS_STRAT )
-               LTPAUSE(1,1) = 13
-
-#elif defined( GEOS_3 )
+!------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT (bmy, 8/4/06)
+!#if   defined( GEOS_1 )               
+!               LTPAUSE(1,1) = 11
+!#elif defined( GEOS_STRAT )
+!               LTPAUSE(1,1) = 13
+!#elif defined( GEOS_3 )
+!-------------------------------------------------------------------------
+#if defined( GEOS_3 )
                LTPAUSE(1,1) = 16
 
 #elif defined( GEOS_4 )

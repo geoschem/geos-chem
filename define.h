@@ -1,33 +1,29 @@
-! $Id: define.h,v 1.46 2006/08/03 19:57:45 bmy Exp $
+! $Id: define.h,v 1.47 2006/08/14 17:58:02 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
 !  used to include or exclude certain sections of code.  
-!  (bmy, bdf, 1/30/98, 8/3/06)
+!  (bmy, bdf, 1/30/98, 8/4/06)
 !
 !  List of "Switches"
 !  ===========================================================================
-!  (1 ) GCAP       : Enables code for GCAP met fields & chemistry
-!  (2 ) GEOS_1     : Enables code for GEOS-1 met fields & chemistry
-!  (3 ) GEOS_STRAT : Enables code for GEOS-STRAT met fields & chemistry
-!  (4 ) GEOS_3     : Enables code for GEOS-3 met fields & chemistry
-!  (5 ) GEOS_4     : Enables code for GEOS-4 met fields & chemistry
-!  (6 ) GEOS_5     : Enables code for GEOS-5 met fields & chemistry
-!  (7 ) GRID30LEV  : Enables code for 30-level GEOS-3 or GEOS-4 grid
-!  (8 ) GRID1x1    : Enables code for 1 x 1   GLOBAL        GRID
-!  (9 ) NESTED_CH  : Enables code for 1 x 1   CHINA  NESTED GRID
-!  (10) NESTED_NA  : Enables code for 1 x 1   N. AM. NESTED GRID
-!  (11) GRID1x125  :
-!  (12) GRID2x25   : Enables code for 2 x 2.5 GLOBAL        GRID
-!  (13) GRID4x5    : Enables code for 4 x 5   GLOBAL        GRID 
-!  (14) COMPAQ     : Enables code for Alpha w/ COMPAQ/HP Alpha compiler
-!  (15) IBM_AIX    : Enables code for IBM/AIX compiler
-!  (16) LINUX_PGI  : Enables code for Linux w/ PGI compiler
-!  (17) LINUX_IFC  : Enables code for Linux w/ 32-bit Intel v7 Fortran compiler
-!  (18) LINUX_EFC  : Enables code for Linux w/ 64-bit Intel v7 Fortran compiler
-!  (19) LINUX_IFORT: Enables code for Linux v8 or v9 compiler
-!  (20) SGI_MIPS   : Enables code for SGI Origin w/ MIPS compiler
-!  (21) SPARC      : Enables code for Sun w/ SPARC compiler
+!  (1 ) GCAP       : Enables code for GCAP   met fields & chemistry
+!  (2 ) GEOS_3     : Enables code for GEOS-3 met fields & chemistry
+!  (3 ) GEOS_4     : Enables code for GEOS-4 met fields & chemistry
+!  (4 ) GEOS_5     : Enables code for GEOS-5 met fields & chemistry
+!  (5 ) GRID30LEV  : Enables code for 30-level GEOS-3 or GEOS-4 grid
+!  (6 ) GRID1x1    : Enables code for 1 x 1    GLOBAL        GRID
+!  (7 ) NESTED_CH  : Enables code for 1 x 1    CHINA  NESTED GRID
+!  (8 ) NESTED_NA  : Enables code for 1 x 1    N. AM. NESTED GRID
+!  (9 ) GRID1x125  : Enables code for 1 x 1.25 GLOBAL       GRID
+!  (10) GRID2x25   : Enables code for 2 x 2.5  GLOBAL        GRID
+!  (11) GRID4x5    : Enables code for 4 x 5    GLOBAL        GRID 
+!  (12) COMPAQ     : Enables code for Alpha w/ COMPAQ/HP Alpha compiler
+!  (13) IBM_AIX    : Enables code for IBM/AIX compiler
+!  (14) LINUX_PGI  : Enables code for Linux w/ PGI compiler
+!  (15) LINUX_IFORT: Enables code for Linux v8 or v9 "IFORT" compiler
+!  (16) SGI_MIPS   : Enables code for SGI Origin w/ MIPS compiler
+!  (17) SPARC      : Enables code for Sun w/ SPARC compiler
 ! 
 !  NOTES:
 !  (1 ) "define.h" is #include'd at the top of CMN_SIZE.  All subroutines
@@ -69,14 +65,13 @@
 !        (bmy, 6/23/05)
 !  (21) Added LINUX_IFORT switch to delineate Intel compilers v8 or v9 
 !        from v7. (bmy, 10/18/05)
+!  (22) Removed GEOS_1, GEOS_STRAT, LINUX_IFC, LINUX_EFC (bmy, 8/4/06)
 !******************************************************************************
 !
 !==============================================================================
 ! Undefine all "switches" so that they cannot be accidentally reset  
 !==============================================================================
 #undef GCAP
-#undef GEOS_1
-#undef GEOS_STRAT
 #undef GEOS_3
 #undef GEOS_4
 #undef GEOS_5
@@ -90,8 +85,6 @@
 #undef COMPAQ
 #undef IBM_AIX
 #undef LINUX_PGI
-#undef LINUX_IFC
-#undef LINUX_EFC
 #undef LINUX_IFORT
 #undef SGI_MIPS
 #undef SPARC
@@ -104,8 +97,6 @@
 
 !----- Model types -----
 !#define GCAP        'GCAP'
-!#define GEOS_1      'GEOS_1'       
-!#define GEOS_STRAT  'GEOS_STRAT'
 #define GEOS_3      'GEOS_3'
 !#define GEOS_4      'GEOS_4'
 !#define GEOS_5      'GEOS_5'
@@ -123,8 +114,6 @@
 !#define COMPAQ      'COMPAQ'
 !#define IBM_AIX     'IBM_AIX'
 !#define LINUX_PGI   'LINUX_PGI'
-!#define LINUX_IFC   'LINUX_IFC'
-!#define LINUX_EFC   'LINUX_EFC'
 #define LINUX_IFORT 'LINUX_IFORT'
 !#define SGI_MIPS    'SGI_MIPS'
 !#define SPARC       'SPARC'
@@ -132,15 +121,15 @@
 !==============================================================================
 ! Force a compile error if GEOS_1, GEOS_STRAT, GEOS_3, GEOS_4 are undefined 
 !==============================================================================
-#if !defined( GEOS_1 ) && !defined( GEOS_STRAT ) && !defined( GEOS_3 ) && !defined( GEOS_4 ) && !defined( GEOS_5 ) && !defined( GCAP )
-#error "ERROR: GEOS_1, GEOS_STRAT, GEOS_3, GEOS_4, GEOS_5, and GCAP"
+#if !defined(GEOS_3) && !defined(GEOS_4) && !defined(GEOS_5) && !defined(GCAP)
+#error "ERROR: GEOS_STRAT, GEOS_3, GEOS_4, GEOS_5, and GCAP"
 #error "are ALL undefined in header file define.h"
 #endif
 
 !==============================================================================
 ! Force a compile error if GRID1x1, GRID2x25, and GRID4x5 are all undefined 
 !==============================================================================
-#if !defined( GRID2x25 ) && !defined( GRID4x5 ) && !defined( GRID1x125 ) && !defined( GRID1x1 )
+#if !defined(GRID2x25) && !defined(GRID4x5) && !defined(GRID1x125) && !defined(GRID1x1)
 #error "ERROR: GRID4x5, GRID2x25, GRID1x125, and GRID1x1"
 #error "are ALL undefined in header file define.h"
 #endif
@@ -148,8 +137,7 @@
 !==============================================================================
 ! Force a compile  error if all compiler switches are undefined
 !==============================================================================
-#if !defined(COMPAQ) && !defined(IBM_AIX) && !defined(LINUX_PGI) && !defined(LINUX_IFC) && !defined(LINUX_EFC) && !defined(LINUX_IFORT) && !defined(SGI_MIPS) && ! defined(SPARC)
-#error "ERROR: One of COMPAQ, IBM_AIX, LINUX_PGI,"
-#error "LINUX_IFC, LINUX_EFC, LINUX_IFORT, SGI_MIPS, SPARC"
-#error "needs to be defined in header file define.h"
+#if !defined(COMPAQ) && !defined(IBM_AIX) && !defined(LINUX_PGI) && !defined(LINUX_IFORT) && !defined(SGI_MIPS) && !defined(SPARC)
+#error "ERROR: One of COMPAQ, IBM_AIX, LINUX_PGI, LINUX_IFORT,"
+#error "SGI_MIPS, SPARC must be defined in header file define.h"
 #endif

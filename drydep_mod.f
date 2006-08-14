@@ -1,4 +1,4 @@
-! $Id: drydep_mod.f,v 1.30 2006/07/14 18:36:45 bmy Exp $
+! $Id: drydep_mod.f,v 1.31 2006/08/14 17:58:04 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
@@ -1067,10 +1067,6 @@ C***********************************************************************
       REAL*8  XMWH2O,DAIR,TEMPK,TEMPC
       INTEGER IOLSON,II,IW
       INTEGER K,IJLOOP,LDT
-      !----------------------------------
-      ! Prior to 7/10/06:
-      !REAL*8  RCLX,RIXX,BIOFIT,DIFFG
-      !----------------------------------
       REAL*8  RCLX,RIXX,BIOFIT
       REAL*8  PRESS
       DATA PRESS /1.5D5/

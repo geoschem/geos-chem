@@ -1,9 +1,9 @@
-! $Id: tpcore_mod.f,v 1.7 2005/10/20 14:03:42 bmy Exp $
+! $Id: tpcore_mod.f,v 1.8 2006/08/14 17:58:17 bmy Exp $
       MODULE TPCORE_MOD
 !
 !******************************************************************************
 !  Module TPCORE_MOD contains the TPCORE transport subroutine package by
-!  S-J Lin, version 7.1. (bmy, 7/16/01, 10/18/05)
+!  S-J Lin, version 7.1. (bmy, 7/16/01, 8/4/06)
 !
 !  Module Routines:
 !  ============================================================================
@@ -73,6 +73,7 @@
 !  (14) Remove obsolete code for CO-OH parameterization (bmy, 6/24/05)
 !  (15) Bug fix in DIAG_FLUX: now dimension FX, FX properly (bmy, 7/21/05)
 !  (16) Now print output for IFORT compiler in "tpcore" (bmy, 10/18/05)
+!  (17) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
 !******************************************************************************
 !
       !=================================================================
@@ -447,10 +448,14 @@ C****6***0*********0*********0*********0*********0*********0**********72
       WRITE( 6, '(a)' ) 'for COMPAQ/HP RISC Alpha machines'
 #elif defined( LINUX_PGI )
       WRITE( 6, '(a)' ) 'for Linux environment w/ PGI compiler'
-#elif defined( LINUX_IFC )
-      WRITE( 6, '(a)' ) 'for Linux environment w/ Intel IFC compiler'
-#elif defined( LINUX_EFC )
-      WRITE( 6, '(a)' ) 'for Linux environment w/ Intel EFC compiler'
+!----------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
+!#elif defined( LINUX_IFC )
+!      WRITE( 6, '(a)' ) 'for Linux environment w/ Intel IFC compiler'
+!#elif defined( LINUX_EFC )
+!      WRITE( 6, '(a)' ) 'for Linux environment w/ Intel EFC compiler'
+!----------------------------------------------------------------------------
 #elif defined( LINUX_IFORT )
       WRITE( 6, '(a)' ) 'for Linux environment w/ Intel IFORT compiler'
 #elif defined( SPARC )

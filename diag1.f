@@ -1,9 +1,9 @@
-! $Id: diag1.f,v 1.12 2006/05/26 17:45:17 bmy Exp $
+! $Id: diag1.f,v 1.13 2006/08/14 17:58:03 bmy Exp $
       SUBROUTINE DIAG1 
 !
 !******************************************************************************
 !  Subroutine DIAG1 accumulates diagnostic quantities every NDIAG minutes
-!  (bmy, bey, 6/16/98, 10/25/05)
+!  (bmy, bey, 6/16/98, 8/4/06)
 !
 !  NOTES:
 !  (1 ) This subroutine was reconstructed from gmg's version of (10/10/97)
@@ -48,6 +48,7 @@
 !  (23) Fixed ND67 PS-PBL for GCAP and GEOS-5 met fields (swu, bmy, 6/9/05)
 !  (24) Now archive ND30 diagnostic for land/water/ice flags (bmy, 8/18/05)
 !  (25) Now reference XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  (26) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !  List of GEOS-CHEM Diagnostics (bmy, 10/25/05)
 !
@@ -373,10 +374,6 @@
 !$OMP+PRIVATE( I, J )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            !IF ( IS_WATER( I, J ) ) AD30(I,J) = AD30(I,J) + 0e0
-            !!IF ( IS_LAND ( I, J ) ) AD30(I,J) = AD30(I,J) + 1e0
-            !IF ( IS_NEAR ( I, J, 0.3d0,1 )) AD30(I,J) = AD30(I,J) + 1e0
-            !IF ( IS_ICE  ( I, J ) ) AD30(I,J) = AD30(I,J) + 2e0
 
             ! Same logic as in FLASHES
             IF ( IS_NEAR( I, J, 80d0,1 ) ) THEN
@@ -525,7 +522,12 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!----------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
+!----------------------------------------------------------------------------
+#if   defined( GEOS_3 )
 
             ! PBL is in [hPa], subtract from PSurface
             AD67(I,J,13) = AD67(I,J,13) + GET_PEDGE(I,J,1) - PBL(I,J) 

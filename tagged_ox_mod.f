@@ -1,10 +1,10 @@
-! $Id: tagged_ox_mod.f,v 1.15 2006/04/21 15:40:10 bmy Exp $
+! $Id: tagged_ox_mod.f,v 1.16 2006/08/14 17:58:16 bmy Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
 !  Module TAGGED_OX_MOD contains variables and routines to perform a tagged Ox
 !  simulation.  P(Ox) and L(Ox) rates need to be archived from a full chemistry
-!  simulation before you can run w/ Tagged Ox. (amf,rch,bmy, 8/20/03, 10/25/05)
+!  simulation before you can run w/ Tagged Ox. (amf,rch,bmy, 8/20/03, 8/4/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -47,6 +47,7 @@
 !  (6 ) Now reference "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (8 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  (9 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -191,7 +192,7 @@
 !******************************************************************************
 !  Subroutine GET_REGIONAL_POX returns the P(Ox) for each of the tagged Ox 
 !  tracers. Tagged Ox tracers are defined by both geographic location and 
-!  altitude. (amf, rch, bmy, 8/19/03, 8/22/05)
+!  altitude. (amf, rch, bmy, 8/19/03, 8/4/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -209,6 +210,7 @@
 !        between PBL, MT, and UT regions (amf, rch, bmy, 5/27/04)
 !  (4 ) Now references ITS_IN_THE_TROP from "tropopause_mod.f".  Now remove
 !        reference to "CMN", it's obsolete. (bmy, 8/22/05)
+!  (5 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -217,23 +219,23 @@
       USE TIME_MOD,       ONLY : GET_TS_CHEM
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_GCTM"  ! SCALE_HEIGHT
+#     include "CMN_SIZE"       ! Size parameters
+#     include "CMN_GCTM"       ! SCALE_HEIGHT
 
       ! Arguments
-      INTEGER, INTENT(IN)  :: I, J, L
-      REAL*8,  INTENT(OUT) :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
+      INTEGER, INTENT(IN)     :: I, J, L
+      REAL*8,  INTENT(OUT)    :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
 
       ! Local variables
-      LOGICAL              :: ITS_IN_TROP, ITS_IN_PBL, ITS_IN_MT
-      LOGICAL              :: ITS_IN_UT,   ITS_IN_NH,  ITS_IN_ATL
-      LOGICAL              :: ITS_IN_PAC,  ITS_IN_AS,  ITS_IN_EUR
-      LOGICAL              :: ITS_IN_NAM,  ITS_IN_NAF, ITS_IN_USA
-      INTEGER              :: PBLTOP,      MTTOP
-      REAL*8               :: PPROD,       X,          Y
+      LOGICAL                 :: ITS_IN_TROP, ITS_IN_PBL, ITS_IN_MT
+      LOGICAL                 :: ITS_IN_UT,   ITS_IN_NH,  ITS_IN_ATL
+      LOGICAL                 :: ITS_IN_PAC,  ITS_IN_AS,  ITS_IN_EUR
+      LOGICAL                 :: ITS_IN_NAM,  ITS_IN_NAF, ITS_IN_USA
+      INTEGER                 :: PBLTOP,      MTTOP
+      REAL*8                  :: PPROD,       X,          Y
       
       ! External functions
-      REAL*8, EXTERNAL     :: BOXVL
+      REAL*8, EXTERNAL        :: BOXVL
 
       !=================================================================
       ! GET_REGIONAL_POX begins here!
@@ -259,13 +261,18 @@
 
       ! PBLTOP is the model level at ~ 750 hPa
       ! MTTOP  is the model level at ~ 350 hPa
-#if   defined( GEOS_1 )
-      PBLTOP = 6
-      MTTOP  = 11
-#elif defined( GEOS_STRAT ) 
-      PBLTOP = 6
-      MTTOP  = 12
-#elif defined( GEOS_3 ) 
+!------------------------------------------------------------------------
+! Prior to 8/4/06:
+! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!#if   defined( GEOS_1 )
+!      PBLTOP = 6
+!      MTTOP  = 11
+!#elif defined( GEOS_STRAT ) 
+!      PBLTOP = 6
+!      MTTOP  = 12
+!#elif defined( GEOS_3 ) 
+!------------------------------------------------------------------------
+#if   defined( GEOS_3 ) 
       PBLTOP = 10
       MTTOP  = 16
 #elif defined( GEOS_4 )
