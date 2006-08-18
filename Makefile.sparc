@@ -1,9 +1,9 @@
 #=============================================================================
-# $Id: Makefile.sparc,v 1.41 2006/08/03 19:57:43 bmy Exp $
+# $Id: Makefile.sparc,v 1.42 2006/08/18 20:32:36 bmy Exp $
 #
 # GEOS-Chem Makefile for Sun Studio and Sun/SPARC compilers, including
 # compilation options for both SPARC v9 and AMD/Opteron chipsets
-# (bmy, Fri Jul 14 13:53:33 2006)
+# (bmy, Thu Aug 17 12:30:01 2006)
 #=============================================================================
 SHELL  = /bin/sh
 
@@ -160,6 +160,7 @@ bravo_mod.o               \
 edgar_mod.o               \
 emep_mod.o                \
 epa_nei_mod.o             \
+streets_anthro_mod.o      \
 geia_mod.o                \
 global_ch4_mod.o          \
 global_hno3_mod.o         \
@@ -400,6 +401,7 @@ soilcrf.o                  : soilcrf.f                  CMN_DEP CMN_SIZE define.
 soilnoxems.o               : soilnoxems.f               CMN_DEP CMN_DIAG CMN_NOX CMN_SIZE define.h commsoil.h 
 soiltemp.o                 : soiltemp.f                 CMN_SIZE define.h commsoil.h 
 soiltype.o                 : soiltype.f                 CMN_SIZE define.h commsoil.h 
+streets_anthro_mod.o       : streets_anthro_mod.f       CMN_SIZE define.h 
 subfun.o                   : subfun.f                   CMN_SIZE define.h comode.h 
 sulfate_mod.o              : sulfate_mod.f              CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h 
 sunparam.o                 : sunparam.f                 

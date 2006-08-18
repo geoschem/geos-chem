@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.28 2006/08/14 17:58:14 bmy Exp $
+! $Id: sulfate_mod.f,v 1.29 2006/08/18 20:32:39 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 6/26/06)
+!  (rjp, bdf, bmy, 6/22/00, 8/17/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -111,31 +111,33 @@
 !
 !  GEOS-CHEM modules referenced by sulfate_mod.f
 !  ============================================================================
-!  (1 ) bpch2_mod.f       : Module w/ routines for binary pch file I/O
-!  (2 ) bravo_mod.f       : Module w/ routines to read BRAVO emissions data
-!  (3 ) comode_mod.f      : Module w/ SMVGEAR allocatable arrays
-!  (4 ) dao_mod.f         : Module w/ DAO met field arrays
-!  (5 ) diag_mod.f        : Module w/ GEOS-Chem diagnostic arrays
-!  (6 ) directory_mod.f   : Module w/ GEOS-Chem data & met field dirs
-!  (7 ) drydep_mod.f      : Module w/ GEOS-Chem dry deposition routines
-!  (8 ) epa_nei_mod.f     : Module w/ routines to read EPA/NEI99 data
-!  (9 ) error_mod.f       : Module w/ NaN, other error check routines
-!  (10) file_mod.f        : Module w/ file unit numbers & error checks
-!  (11) grid_mod.f        : Module w/ horizontal grid information
-!  (12) global_no3_mod.f  : Module w/ routines to read 3-D NO3 field
-!  (13) global_oh_mod.f   : Module w/ routines to read 3-D OH field
-!  (14) isoropia_mod.f    : Module w/ ISORROPIA routines for aer thermodyn eq
-!  (15) logical_mod.f     : Module w/ GEOS-Chem logical switches
-!  (16) pbl_mix_mod.f     : Module w/ routines for PBL height & mixing
-!  (17) pressure_mod.f    : Module w/ routines to compute P(I,J,L)
-!  (18) seasalt_mod.f     : Module w/ routines for seasalt chemistry
-!  (19) time_mod.f        : Module w/ routines to compute time & date
-!  (20) tracer_mod.f      : Module w/ GEOS-Chem tracer array STT etc.
-!  (21) tracerid_mod.f    : Module w/ pointers to tracers & emissions
-!  (22) transfer_mod.f    : Module w/ routines to cast & resize arrays
-!  (23) tropopause_mod.f  : Module w/ routines to read ann mean tropopause
-!  (24) uvalbedo_mod.f    : Module w/ UV albedo array and reader
-!  (25) wetscav_mod.f     : Module w/ routines for wetdep & scavenging
+!  (1 ) bpch2_mod.f            : Module w/ routines for binary pch file I/O
+!  (2 ) bravo_mod.f            : Module w/ routines to read BRAVO emissions
+!  (3 ) comode_mod.f           : Module w/ SMVGEAR allocatable arrays
+!  (4 ) dao_mod.f              : Module w/ DAO met field arrays
+!  (5 ) diag_mod.f             : Module w/ GEOS-Chem diagnostic arrays
+!  (6 ) directory_mod.f        : Module w/ GEOS-Chem data & met field dirs
+!  (7 ) drydep_mod.f           : Module w/ GEOS-Chem dry deposition routines
+!  (8 ) epa_nei_mod.f          : Module w/ routines to read EPA/NEI99 data
+!  (9 ) error_mod.f            : Module w/ NaN, other error check routines
+!  (10) file_mod.f             : Module w/ file unit numbers & error checks
+!  (11) future_emissions_mod.f : Module w/ routines for IPCC future emissions
+!  (12) grid_mod.f             : Module w/ horizontal grid information
+!  (13) global_no3_mod.f       : Module w/ routines to read 3-D NO3 field
+!  (14) global_oh_mod.f        : Module w/ routines to read 3-D OH field
+!  (15) isoropia_mod.f         : Module w/ ISORROPIA routines for aer thermo eq
+!  (16) logical_mod.f          : Module w/ GEOS-Chem logical switches
+!  (17) pbl_mix_mod.f          : Module w/ routines for PBL height & mixing
+!  (18) pressure_mod.f         : Module w/ routines to compute P(I,J,L)
+!  (19) seasalt_mod.f          : Module w/ routines for seasalt chemistry
+!  (20) streets_anthro_mod.f   : Module w/ routines for David Streets' emiss
+!  (21) time_mod.f             : Module w/ routines to compute time & date
+!  (22) tracer_mod.f           : Module w/ GEOS-Chem tracer array STT etc.
+!  (23) tracerid_mod.f         : Module w/ pointers to tracers & emissions
+!  (24) transfer_mod.f         : Module w/ routines to cast & resize arrays
+!  (25) tropopause_mod.f       : Module w/ routines to read ann mean tropopause
+!  (26) uvalbedo_mod.f         : Module w/ UV albedo array and reader
+!  (27) wetscav_mod.f          : Module w/ routines for wetdep & scavenging
 !
 !  References:
 !  ============================================================================
@@ -202,6 +204,7 @@
 !  (33) Bug fix for offline aerosol sim in SEASALT_CHEM (bec, bmy, 3/29/06)
 !  (34) Bug fix in INIT_DRYDEP (bmy, 5/23/06)
 !  (35) Now references "bravo_mod.f" (rjp, kfb, bmy, 6/26/06)
+!  (36) Now references "streets_anthro_mod.f" (yxw, bmy, 8/17/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -5443,7 +5446,7 @@
 !******************************************************************************
 !  Suborutine READ_ANTHRO_SOx reads the anthropogenic SOx from disk, 
 !  and partitions it into anthropogenic SO2 and SO4. 
-!  (rjp, bdf, bmy, 9/20/02, 7/14/06)
+!  (rjp, bdf, bmy, 9/20/02, 8/17/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -5463,6 +5466,7 @@
 !  (5 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (6 ) Now computes future SOx emissions (swu, bmy, 5/30/06)
 !  (7 ) Now can read either EDGAR or GEIA emissions (avd, bmy, 7/14/06)
+!  (8 ) Now overwrite David Streets' SO2, if necessary (yxw, bmy, 8/14/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -5474,6 +5478,9 @@
       USE GRID_MOD,             ONLY : GET_XMID,        GET_YMID
       USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,          ONLY : LFUTURE,         LEDGARSOx
+      USE LOGICAL_MOD,          ONLY : LSTREETS
+      USE STREETS_ANTHRO_MOD,   ONLY : GET_SE_ASIA_MASK
+      USE STREETS_ANTHRO_MOD,   ONLY : GET_STREETS_ANTHRO
       USE TIME_MOD,             ONLY : GET_YEAR
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTSO2, IDTSO4
@@ -5536,6 +5543,18 @@
                ! Get EDGAR SO2 emissions [kg/s]
                ! NOTE: Future emissions are already applied!
                EDG_SO2 = GET_EDGAR_ANTH_SO2( I, J, KG_S=.TRUE. ) 
+
+               ! If we are using David Streets' emissions ...
+               IF ( LSTREETS ) THEN
+
+                  ! If we are over the SE Asia region ...
+                  IF ( GET_SE_ASIA_MASK( I, J ) > 0d0 ) THEN
+
+                     ! Overwrite EDGAR SO2 w/ David Streets' [kg SO2/s]
+                     EDG_SO2 = GET_STREETS_ANTHRO( I,  J, 
+     &                                             26, KG_S=.TRUE. )
+                  ENDIF
+               ENDIF
 
                ! Compute SO4/SOx fraction for EUROPE
                IF ( ( X >= -12.5 .and. X <= 60.0 )  .and.
@@ -5687,7 +5706,23 @@
                ESO2_an(I,J,L) = E_SOx(I,J,L) * ( 1.d0 - Fe ) * 
      &                          AREA_CM2 / XNUMOL(IDTSO2)            
 
-               !      Compute SO4 (tracer #3) from SOx
+               ! If we are using David Streets' emissions
+               IF ( LSTREETS ) THEN
+
+                  ! If we are over the SE Asia region
+                  IF ( GET_SE_ASIA_MASK( I, J ) > 0d0 ) THEN
+
+                     ! Overwrite GEIA SO2 w/ David Streets' SO2 [kg SO2/s]
+                     ESO2_an(I,J,1) = GET_STREETS_ANTHRO( I, J, 26, 
+     &                                                    KG_S=.TRUE. )
+
+                     ! Zero 2nd level of emissions
+                     ESO2_an(I,J,2) = 0d0
+
+                  ENDIF
+               ENDIF
+
+               ! Compute SO4 (tracer #3) from SOx
                ! Convert from [molec SOx/cm2/s] to [kg SO4/box/s]
                ESO4_an(I,J,L) = E_SOx(I,J,L) * Fe *
      &                          AREA_CM2 / XNUMOL(IDTSO4)
@@ -6310,7 +6345,7 @@
 !******************************************************************************
 !  Subroutine READ_ANTHRO_NH3 reads the monthly mean anthropogenic 
 !  NH3 emissions from disk and converts to [kg NH3/box/s]. 
-!  (rjp, bdf, bmy, 9/20/02, 5/30/06)
+!  (rjp, bdf, bmy, 9/20/02, 8/17/06)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -6328,6 +6363,7 @@
 !        GCAP and GEOS grids. (bmy, 8/16/05)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Now compute future emissions, if necessary (swu, bmy, 5/30/06)
+!  (7 ) Now overwrite w/ David Streets' NH3, if necessary (yxw, bmy, 8/17/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -6335,7 +6371,9 @@
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,        ONLY : DATA_DIR
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NH3an
-      USE LOGICAL_MOD,          ONLY : LFUTURE
+      USE LOGICAL_MOD,          ONLY : LFUTURE,         LSTREETS
+      USE STREETS_ANTHRO_MOD,   ONLY : GET_SE_ASIA_MASK
+      USE STREETS_ANTHRO_MOD,   ONLY : GET_STREETS_ANTHRO
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"             ! Size parameters
@@ -6386,6 +6424,17 @@
          ! Convert from [kg N/box/mon] to [kg NH3/box/s]
          ENH3_an(I,J) = ENH3_an(I,J) * ( 17.d0 / 14.d0 ) 
      &                / ( NMDAY(THISMONTH) * 86400.d0 )
+
+         ! If we are using David Streets' emissions ...
+         IF ( LSTREETS ) THEN
+
+            ! If we are over the SE Asia region ...
+            IF ( GET_SE_ASIA_MASK( I, J ) > 0d0  ) THEN
+
+               ! Overwrite with David Streets emissions [kg NH3/s]
+               ENH3_an(I,J) = GET_STREETS_ANTHRO( I, J, 30, KG_S=.TRUE.)
+            ENDIF
+         ENDIF
 
          ! Compute future NH3an emissions, if necessary
          IF ( LFUTURE ) THEN

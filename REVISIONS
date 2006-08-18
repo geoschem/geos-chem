@@ -1,5 +1,7 @@
 REVISIONS (v7-04-08)  
-bmy, 14 Aug 2006
+14 Aug 2006
+Philippe Le Sager (phs@io.as.harvard.edu) and
+Bob Yantosca      (bmy@io.as.harvard.edu)
 
 
 New in v7-04-08:
@@ -24,7 +26,7 @@ od_geos1_geoss		-- This was only for GEOS-STRAT, which is now removed
 
 
 
-Changed from v7-04-08:
+Changed from v7-04-07:
 -------------------------------------------------------------------------------
 
 check_time		-- Remove support for GEOS-1 and GEOS-STRAT met fields
@@ -63,6 +65,9 @@ diag3.f			-- Remove support for GEOS-1 and GEOS-STRAT met fields
 do_chemistry		-- Remove support for GEOS-1 and GEOS-STRAT met fields
 ("chemistry_mod.f")
 
+do_emissions		-- Now references EMISS_STREETS_ANTHRO from 
+("streets_anthro_mod.f")   "streets_anthro_mod.f"
+
 do_open_a3		-- Reverse the logic of the #if block
 ("a3_read_mod.f")
 
@@ -70,6 +75,11 @@ do_regrid_g2g_1x1	-- Now pass UNIT via the arg list and pass that to
 ("regrid_1x1_mod.f")	   ITS_CONCENTRATION_DATA to determine if the data to 
 			   be regridded is concentration data or mass data.  
 			   This is now consistent with routine DO_REGRID_1x1.
+
+emfossil.f		-- Now do BRAVO emissions before EPA/NEI99 emissions
+			   in order to avoid zero emissions in some boxes
+			-- Now add David Streets emissions for NOx over
+			   SE Asia and CO over just China
 
 emiss_bravo		-- Now pass the unit string to DO_REGRID_G2G_1x1 
 ("bravo_mod.f")
@@ -158,6 +168,8 @@ its_concentration_data	-- Added kg/s, kg/month, kg/season to CASE statement
 lightdist		-- Remove support for GEOS-1 and GEOS-STRAT met fields
 ("lightning_nox_mod.f")
 
+logical_mod.f		-- Added LSTREETS for David Streets' emissions
+
 main.f			-- Remove support for LINUX_IFC & LINUX_EFC compilers
 			-- Remove support for GEOS-1 and GEOS-STRAT met fields
 
@@ -200,6 +212,12 @@ read_bravo_mask		-- Now pass the unit string to DO_REGRID_G2G_1x1
 readchem.f		-- Increase FORMAT 510 so that it has space for 
 			   14 products
 
+read_anthro_nh3		-- Now overwrite w/ David Streets' NH3, if necessary 
+("sulfate_mod.f")
+
+read_anthro_sox		-- Now overwrite w/ David Streets' SO2, if necessary 
+("sulfate_mod.f")
+
 read_edgar_co		-- Now pass the unit string to DO_REGRID_G2G_1x1
 ("edgar_mod.f")
 
@@ -208,6 +226,9 @@ read_edgar_nox		-- Now pass the unit string to DO_REGRID_G2G_1x1
 
 read_edgar_so2		-- Now pass the unit string to DO_REGRID_G2G_1x1
 ("edgar_mod.f")
+
+read_emissions_menu	-- Now read LSTREETS for David Streets' emissions
+("input_mod.f")
 
 read_gwet		-- Remove support for GEOS-1 and GEOS-STRAT met fields
 ("gwet_read_mod.f")

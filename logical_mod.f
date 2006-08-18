@@ -1,9 +1,9 @@
-! $Id: logical_mod.f,v 1.12 2006/07/14 18:36:49 bmy Exp $
+! $Id: logical_mod.f,v 1.13 2006/08/18 20:32:39 bmy Exp $
       MODULE LOGICAL_MOD
 !
 !******************************************************************************
 !  Module LOGICAL_MOD contains all of the logical switches used by GEOS-CHEM.
-!  (bmy, 7/9/04, 7/6/06)
+!  (bmy, 7/9/04, 8/17/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -61,6 +61,7 @@
 !  (52) LEDGARCO  (LOGICAL) : ON/OFF switch for EDGAR CO emissions
 !  (53) LEDGARSHIP(LOGICAL) : ON/OFF switch for EDGAR ship exhaust emissions
 !  (54) LEDGARSOx (LOGICAL) : ON/OFF switch for EDGAR SOx emissions
+!  (55) LSTREETS  (LOGICAL) : ON/OFF switch for David Streets' emissions
 !
 !  NOTES:
 !  (1 ) Added LNEI99 switch to toggle EPA/NEI emissions (bmy, 11/5/04)
@@ -74,6 +75,7 @@
 !  (9 ) Added LBRAVO (rjp, kfb, bmy, 6/26/06)
 !  (10) Added LEDGAR, LEDGARNOx, LEDGARCO, LEDGARSHIP, LEDGARSOx switches
 !        for EDGAR emissions (avd, bmy, 7/6/06)
+!  (11) Added LSTREETS for David Streets' emissions (bmy, 8/17/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -126,6 +128,7 @@
       LOGICAL :: LEMIS  
       LOGICAL :: LFFNOX                 
       LOGICAL :: LFOSSIL    ! <-- deprecated: replace w/ LANTHRO soon
+      LOGICAL :: LSTREETS
       LOGICAL :: LLIGHTNOX
       LOGICAL :: LOTDLIS
       LOGICAL :: LCTH

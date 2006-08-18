@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.30 2006/08/14 17:58:09 bmy Exp $
+! $Id: input_mod.f,v 1.31 2006/08/18 20:32:38 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS_CHEM input file at the start of the run
 !  and passes the information to several other GEOS-CHEM F90 modules.
-!  (bmy, 7/20/04, 8/10/06)
+!  (bmy, 7/20/04, 8/17/06)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -112,8 +112,8 @@
 !  (12) Updated for ND42 SOA concentration diagnostic (dkh, bmy, 5/22/06)
 !  (13) Modified for future emissions (swu, bmy, 6/1/06)
 !  (14) Modified for BRAVO emissions (rjp, kfb, bmy, 6/26/06)
-!  (15) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (15) Modified 
+!  (15) Remove support for GEOS-1 and GEOS-STRAT met fields.  Also modified 
+!        for David Streets' emissions. (bmy, 8/17/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1216,7 +1216,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_EMISSIONS_MENU reads the EMISSIONS MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 7/11/06)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 8/17/06)
 !
 !  NOTES:
 !  (1 ) Now read LNEI99 -- switch for EPA/NEI99 emissions (bmy, 11/5/04)
@@ -1229,18 +1229,19 @@
 !        (bmy, 5/10/06)
 !  (8 ) Now read LBRAVO for BRAVO Mexican emissions (rjp, kfb, bmy, 6/26/06)
 !  (9 ) Now read LEDGAR for EDGAR emissions (avd, bmy, 7/11/06)
+!  (10) Now read LSTREETS for David Streets' emissions (bmy, 8/17/06)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE LOGICAL_MOD, ONLY : LAIRNOX,   LANTHRO,   LAVHRRLAI, LBBSEA    
-      USE LOGICAL_MOD, ONLY : LBIOFUEL,  LBIOGENIC, LBIOMASS,  LBIONOX   
-      USE LOGICAL_MOD, ONLY : LEMIS,     LFOSSIL,   LLIGHTNOX, LMONOT    
-      USE LOGICAL_MOD, ONLY : LNEI99,    LSHIPSO2,  LSOILNOX,  LTOMSAI   
-      USE LOGICAL_MOD, ONLY : LWOODCO,   LMEGAN,    LEMEP,     LGFED2BB
-      USE LOGICAL_MOD, ONLY : LOTDLIS,   LCTH,      LMFLUX,    LPRECON
-      USE LOGICAL_MOD, ONLY : LBRAVO,    LEDGAR,    LEDGARNOx, LEDGARCO
-      USE LOGICAL_MOD, ONLY : LEDGARSOx, LEDGARSHIP
+      USE LOGICAL_MOD, ONLY : LAIRNOX,   LANTHRO,    LAVHRRLAI, LBBSEA    
+      USE LOGICAL_MOD, ONLY : LBIOFUEL,  LBIOGENIC,  LBIOMASS,  LBIONOX   
+      USE LOGICAL_MOD, ONLY : LEMIS,     LFOSSIL,    LLIGHTNOX, LMONOT    
+      USE LOGICAL_MOD, ONLY : LNEI99,    LSHIPSO2,   LSOILNOX,  LTOMSAI   
+      USE LOGICAL_MOD, ONLY : LWOODCO,   LMEGAN,     LEMEP,     LGFED2BB
+      USE LOGICAL_MOD, ONLY : LOTDLIS,   LCTH,       LMFLUX,    LPRECON
+      USE LOGICAL_MOD, ONLY : LBRAVO,    LEDGAR,     LEDGARNOx, LEDGARCO
+      USE LOGICAL_MOD, ONLY : LEDGARSOx, LEDGARSHIP, LSTREETS
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
 
 #     include "CMN_SIZE"    ! Size parameters
@@ -1276,91 +1277,95 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:4' )
       READ( SUBSTRS(1:N), * ) FSCALYR
 
-      ! Include EMEP (Europe) anthro emissions
+      ! Include EMEP (Europe) anthro emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:5' )
       READ( SUBSTRS(1:N), * ) LEMEP
 
-      ! Include BRAVO (Mexico) anthro emissions
+      ! Include BRAVO (Mexico) anthro emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:6' )
       READ( SUBSTRS(1:N), * ) LBRAVO
 
-      ! Include EDGAR anthro emissions
+      ! Include EDGAR anthro emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:7' )
       READ( SUBSTRS(1:N), * ) LEDGAR
 
-      ! Include biofuel emissions?
+      ! Include David Streets anthro emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:8' )
+      READ( SUBSTRS(1:N), * ) LSTREETS
+
+      ! Include biofuel emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:9' )
       READ( SUBSTRS(1:N), * ) LBIOFUEL
 
       ! Include biogenic emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:9' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:10' )
       READ( SUBSTRS(1:N), * ) LBIOGENIC
 
       ! Use MEGAN biogenic emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:10' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:11' )
       READ( SUBSTRS(1:N), * ) LMEGAN
 
       ! Include biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:11' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:12' )
       READ( SUBSTRS(1:N), * ) LBIOMASS
 
       ! Seasonal biomass?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:12' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:13' )
       READ( SUBSTRS(1:N), * ) LBBSEA
 
       ! Scaled to TOMSAI?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:13' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:14' )
       READ( SUBSTRS(1:N), * ) LTOMSAI
 
       ! Use GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:14' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:15' )
       READ( SUBSTRS(1:N), * ) LGFED2BB
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:15' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:16' )
 
       ! Use aircraft NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:16' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:17' )
       READ( SUBSTRS(1:N), * ) LAIRNOX
 
       ! Use lightning NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:17' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:18' )
       READ( SUBSTRS(1:N), * ) LLIGHTNOX
 
       ! Use OTD-LIS scale factors for lighting flash rates
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:18' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:19' )
       READ( SUBSTRS(1:N), * ) LOTDLIS
 
       ! Use Cloud-top-height (CTH) lightning parameterization
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:19' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:20' )
       READ( SUBSTRS(1:N), * ) LCTH
 
       ! Use Mass-flux (MFLUX) lightning parameterization
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:20' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:21' )
       READ( SUBSTRS(1:N), * ) LMFLUX
 
       ! Use Convective precip (PRECON) lightning parameterization
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:21' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:22' )
       READ( SUBSTRS(1:N), * ) LPRECON
 
       ! Use soil NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:22' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:23' )
       READ( SUBSTRS(1:N), * ) LSOILNOX
 
       ! Use ship SO2 emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:23' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:24' )
       READ( SUBSTRS(1:N), * ) LSHIPSO2
 
       ! Use EPA/NEI99 emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:24' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:25' )
       READ( SUBSTRS(1:N), * ) LNEI99
 
       ! Use AVHRR-derived LAI fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:25' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:26' )
       READ( SUBSTRS(1:N), * ) LAVHRRLAI
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:26' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:27' )
 
       !=================================================================
       ! Error check logical flags

@@ -1,9 +1,9 @@
-! $Id: emissions_mod.f,v 1.18 2006/07/14 18:36:47 bmy Exp $
+! $Id: emissions_mod.f,v 1.19 2006/08/18 20:32:37 bmy Exp $
       MODULE EMISSIONS_MOD
 !
 !******************************************************************************
 !  Module EMISSIONS_MOD is used to call the proper emissions subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 2/11/03, 7/6/06)
+!  for the various GEOS-CHEM simulations. (bmy, 2/11/03, 8/17/06)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -48,6 +48,7 @@
 !  (12) Now references "gfed2_biomass_mod.f" (bmy, 3/30/06)
 !  (13) Now references "bravo_mod.f" (rjp, kfb, bmy, 6/26/06)
 !  (14) Now references "edgar_mod.f" (avd, bmy, 7/6/06)
+!  (15) Now references "streets_anthro_mod.f" (yxw, bmy, 8/18/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -64,7 +65,7 @@
 !******************************************************************************
 !  Subroutine DO_EMISSIONS is the driver routine which calls the appropriate
 !  emissions subroutine for the various GEOS-CHEM simulations. 
-!  (bmy, 2/11/03, 7/6/06)
+!  (bmy, 2/11/03, 8/17/06)
 !
 !  NOTES:
 !  (1 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
@@ -89,39 +90,42 @@
 !        regrid to the model resolution once per month. (bmy, 3/30/06)
 !  (14) Now references EMISS_BRAVO from "bravo_mod.f" (rjp, kfb, bmy, 6/26/06)
 !  (15) Now references EMISS_EDGAR from "edgar_mod.f" (avd, bmy, 7/6/06)
+!  (16) Now references EMISS_STREETS_ANTHRO from "streets_anthro_mod.f"
+!        (yxw, bmy, 8/17/06)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BIOMASS_MOD,    ONLY : NBIOMAX
-      USE BIOMASS_MOD,    ONLY : COMPUTE_BIOMASS_EMISSIONS
-      USE BRAVO_MOD,      ONLY : EMISS_BRAVO
-      USE C2H6_MOD,       ONLY : EMISSC2H6
-      USE CARBON_MOD,     ONLY : EMISSCARBON
-      USE CH3I_MOD,       ONLY : EMISSCH3I
-      USE CO2_MOD,        ONLY : EMISSCO2
-      USE DUST_MOD,       ONLY : EMISSDUST
-      USE EDGAR_MOD,      ONLY : EMISS_EDGAR
-      USE EMEP_MOD,       ONLY : EMISS_EMEP
-      USE EPA_NEI_MOD,    ONLY : EMISS_EPA_NEI
-      USE ERROR_MOD,      ONLY : DEBUG_MSG
-      USE GLOBAL_CH4_MOD, ONLY : EMISSCH4
-      USE HCN_CH3CN_MOD,  ONLY : EMISS_HCN_CH3CN
-      USE Kr85_MOD,       ONLY : EMISSKr85
-      USE LOGICAL_MOD        
-      USE MERCURY_MOD,    ONLY : EMISSMERCURY
-      USE RnPbBe_MOD,     ONLY : EMISSRnPbBe
-      USE SEASALT_MOD,    ONLY : EMISSSEASALT
-      USE SULFATE_MOD,    ONLY : EMISSSULFATE 
-      USE TIME_MOD,       ONLY : GET_MONTH,       GET_YEAR
-      USE TIME_MOD,       ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
-      USE TRACER_MOD         
-      USE TAGGED_CO_MOD,  ONLY : EMISS_TAGGED_CO
+      USE BIOMASS_MOD,        ONLY : NBIOMAX
+      USE BIOMASS_MOD,        ONLY : COMPUTE_BIOMASS_EMISSIONS
+      USE BRAVO_MOD,          ONLY : EMISS_BRAVO
+      USE C2H6_MOD,           ONLY : EMISSC2H6
+      USE CARBON_MOD,         ONLY : EMISSCARBON
+      USE CH3I_MOD,           ONLY : EMISSCH3I
+      USE CO2_MOD,            ONLY : EMISSCO2
+      USE DUST_MOD,           ONLY : EMISSDUST
+      USE EDGAR_MOD,          ONLY : EMISS_EDGAR
+      USE EMEP_MOD,           ONLY : EMISS_EMEP
+      USE EPA_NEI_MOD,        ONLY : EMISS_EPA_NEI
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GLOBAL_CH4_MOD,     ONLY : EMISSCH4
+      USE HCN_CH3CN_MOD,      ONLY : EMISS_HCN_CH3CN
+      USE Kr85_MOD,           ONLY : EMISSKr85
+      USE LOGICAL_MOD            
+      USE MERCURY_MOD,        ONLY : EMISSMERCURY
+      USE RnPbBe_MOD,         ONLY : EMISSRnPbBe
+      USE SEASALT_MOD,        ONLY : EMISSSEASALT
+      USE STREETS_ANTHRO_MOD, ONLY : EMISS_STREETS_ANTHRO
+      USE SULFATE_MOD,        ONLY : EMISSSULFATE 
+      USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
+      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
+      USE TRACER_MOD             
+      USE TAGGED_CO_MOD,      ONLY : EMISS_TAGGED_CO
 
-#     include "CMN_SIZE"          ! Size parameters
+#     include "CMN_SIZE"           ! Size parameters
 
       ! Local Variables
-      INTEGER                    :: MONTH, YEAR
-      REAL*8                     :: BIOMASS(IIPAR,JJPAR,NBIOMAX)
+      INTEGER                     :: MONTH, YEAR
+      REAL*8                      :: BIOMASS(IIPAR,JJPAR,NBIOMAX)
 
       !=================================================================
       ! DO_EMISSIONS begins here!
@@ -142,6 +146,11 @@
          !--------------------
          ! NOx-Ox-HC-aerosol
          !--------------------
+
+         ! Read David Streets' emisisons over China / SE ASia
+         IF ( LSTREETS .and. ITS_A_NEW_YEAR() ) THEN
+            CALL EMISS_STREETS_ANTHRO
+         ENDIF
 
          ! Read EDGAR emissions once per month
          IF ( LEDGAR .and. ITS_A_NEW_MONTH() ) THEN
@@ -171,6 +180,11 @@
          !--------------------
          ! Offline aerosol
          !--------------------
+
+         ! Read David Streets' emisisons over China / SE ASia
+         IF ( LSTREETS .and. ITS_A_NEW_YEAR() ) THEN
+            CALL EMISS_STREETS_ANTHRO
+         ENDIF
 
          ! Read EDGAR emissions once per month
          IF ( LEDGAR .and. ITS_A_NEW_MONTH() ) THEN
@@ -221,6 +235,11 @@
          ! Tagged CO
          !--------------------
 
+         ! Read David Streets' emisisons over China / SE ASia
+         IF ( LSTREETS .and. ITS_A_NEW_YEAR() ) THEN
+            CALL EMISS_STREETS_ANTHRO
+         ENDIF
+
          ! Read EDGAR emissions once per month
          IF ( LEDGAR .and. ITS_A_NEW_MONTH() ) THEN
             CALL EMISS_EDGAR( YEAR, MONTH )
@@ -252,6 +271,13 @@
          !--------------------
          ! CH4
          !--------------------
+
+         ! Read David Streets' emisisons over China / SE ASia
+         IF ( LSTREETS .and. ITS_A_NEW_YEAR() ) THEN
+            CALL EMISS_STREETS_ANTHRO
+         ENDIF
+
+         ! Emit CH4
          CALL EMISSCH4
 
       ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
@@ -266,6 +292,13 @@
          !--------------------
          ! CO2
          !--------------------
+
+         ! Read David Streets' emisisons over China / SE ASia
+         IF ( LSTREETS .and. ITS_A_NEW_YEAR() ) THEN
+            CALL EMISS_STREETS_ANTHRO
+         ENDIF
+
+         ! Emit CO2
          CALL EMISSCO2
 
       ENDIF
