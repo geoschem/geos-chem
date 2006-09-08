@@ -1,4 +1,4 @@
-! $Id: carbon_mod.f,v 1.20 2006/08/03 19:57:44 bmy Exp $
+! $Id: carbon_mod.f,v 1.21 2006/09/08 19:20:51 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
@@ -1125,10 +1125,6 @@
       USE TRACERID_MOD, ONLY : IDTALCO, IDTALPH, IDTLIMO, IDTOCPI
       USE TRACERID_MOD, ONLY : IDTOCPO, IDTSOA1, IDTSOA2, IDTSOA3
       USE TRACERID_MOD, ONLY : IDTSOA4, IDTSOG1, IDTSOG2, IDTSOG3
-      !------------------------------------------------------------
-      ! Prior to 8/3/06:
-      !USE TRACERID_MOD, ONLY : IDTSOG4
-      !------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTSOG4, IDTSO4,  IDTNH4,  IDTNIT
       USE TIME_MOD,     ONLY : GET_TS_CHEM, GET_MONTH
 
@@ -1212,18 +1208,6 @@
          ENDDO
          ENDDO
                 
-         !----------------------------------------------------------------
-         ! Prior to 8/3/06:
-         ! Now consider condensation of SOG onto seed aerosols, thus
-         ! update the algorithm below. (rjp, bmy, 8/3/06)
-         !
-         !! Primary organic aerosol concentrations [ug/m3]
-         !! We carry carbon mass only in STT arry and here multiply 1.4
-         !! to account for the mass of other chemical component attached.
-         !MPOC = (STT(I,J,L,IDTOCPI) + STT(I,J,L,IDTOCPO)) * FAC
-         !MPOC = MPOC * 1.4D0
-         !----------------------------------------------------------------
-
          IF ( IDTSO4 > 0 .and. IDTNH4 > 0 .and. IDTNIT > 0 ) THEN
 
             !-----------------------------------------------------------

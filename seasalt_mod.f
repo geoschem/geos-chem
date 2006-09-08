@@ -1,11 +1,11 @@
-! $Id: seasalt_mod.f,v 1.10 2006/05/26 17:45:26 bmy Exp $
+! $Id: seasalt_mod.f,v 1.11 2006/09/08 19:21:03 bmy Exp $
       MODULE SEASALT_MOD
 !
 !******************************************************************************
 !  Module SEASALT_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline seasalt aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (bec, rjp, bmy, 6/22/00, 5/23/06)
+!  (bec, rjp, bmy, 6/22/00, 9/7/06)
 !
 !  Seasalt aerosol species: (1) Accumulation mode (usually 0.1 -  0.5 um)
 !                           (2) Coarse mode       (usually 0.5 - 10.0 um)
@@ -71,6 +71,8 @@
 !  (4 ) Added routine GET_ALK to account for alkalinity. (bec, bmy, 4/13/05)
 !  (5 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (6 ) Now only call dry deposition routine if LDRYD=T (bec, bmy, 5/23/06)
+!  (7 ) Remove unused variables from GET_ALK.  Also fixed variable declaration
+!        bug in WET_SETTLING. (bec, bmy, 9/5/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -106,7 +108,7 @@
       REAL*8,  ALLOCATABLE :: SRC_N(:,:)   
       REAL*8,  ALLOCATABLE :: ALK_EMIS(:,:,:,:)
       REAL*8,  ALLOCATABLE :: N_DENS(:,:,:,:)    
-      REAL*8               :: SS_DEN(NSALT)    = (/2200.d0, 2200.d0  /)
+      REAL*8               :: SS_DEN(NSALT)    = (/ 2200.d0, 2200.d0 /)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -147,6 +149,9 @@
 
       ! First-time initialization
       IF ( FIRST ) THEN
+
+         ! Initialize (if necessary)
+         CALL INIT_SEASALT
 
          ! Find drydep species in DEPSAV
          DO N = 1, NUMDEP
@@ -204,7 +209,7 @@
 !
 !******************************************************************************
 !  Subroutine WET_SETTLING performs wet settling of sea salt.
-!  (bec, rjp, bmy, 4/20/04, 10/25/05)
+!  (bec, rjp, bmy, 4/20/04, 9/7/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -219,6 +224,7 @@
 !  (1 ) Now references SALA_REDGE_um and SALC_REDGE_um from "tracer_mod.f"
 !        (bmy, 7/20/04)
 !  (2 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  (3 ) Bug fix: DTCHEM has to be REAL*8, not integer. (bmy, 9/7/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -240,13 +246,18 @@
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
 
       ! Local variables
-      INTEGER                :: I,      J,     L,        DTCHEM
+      !---------------------------------------------------------------
+      ! Prior to 9/7/06:
+      ! DTCHEM has to be REAL*8, not integer (bmy, 9/7/06) 
+      !INTEGER                :: I,      J,     L,        DTCHEM
+      !---------------------------------------------------------------
+      INTEGER                :: I,      J,     L
       REAL*8                 :: DELZ,   DELZ1, REFF,     DEN
       REAL*8                 :: P,      DP,    PDP,      TEMP        
       REAL*8                 :: CONST,  SLIP,  VISC,     FAC1
       REAL*8                 :: FAC2,   FLUX,  AREA_CM2, RHB
       REAL*8                 :: RCM,    RWET,  RATIO_R,  RHO
-      REAL*8                 :: TOT1,   TOT2
+      REAL*8                 :: TOT1,   TOT2,  DTCHEM
       REAL*8                 :: VTS(LLPAR)  
       REAL*8                 :: TC0(LLPAR)
       
@@ -259,7 +270,7 @@
       !=================================================================
       ! WET_SETTLING begins here!
       !=================================================================
-
+      
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
 
@@ -840,12 +851,13 @@
 !******************************************************************************
 !  Function GET_ALK returns the seasalt alkalinity emitted at each timestep to
 !  sulfate_mod.f for chemistry on seasalt aerosols.
-!  (bec, 12/7/04)
+!  (bec, 12/7/04, 9/5/06)
 ! 
 !  Arguments as Input:
 !  ============================================================================
 !
 !  NOTES:
+!  (1 ) Becky Alexander says we can remove AREA1, AREA2 (bec, bmy, 9/5/06)
 !******************************************************************************
 !
       USE DAO_MOD,      ONLY : AD, RH
@@ -861,7 +873,12 @@
  
       REAL*8,  PARAMETER :: PI = 3.14159265
       REAL*8             :: N1, N2, Kt
-      REAL*8             :: AREA1, AREA2, HGF, ALK
+      !--------------------------------------------------------------------
+      ! Prior to 9/5/06:
+      ! Becky Alexander says we don't need AREA1, AREA2 (bmy, 9/5/06)
+      !REAL*8             :: AREA1, AREA2, HGF, ALK
+      !--------------------------------------------------------------------
+      REAL*8             :: HGF, ALK
       REAL*8             :: RAD1, RAD2, RAD3
       REAL*8             :: term1a, term2a, term3a
       REAL*8             :: term1b, term2b, term3b
@@ -889,8 +906,12 @@
       KT2   = 0.D0
       KT1N  = 0.D0
       KT2N  = 0.D0
-      AREA1 = 0.D0
-      AREA2 = 0.D0
+      !-----------------------------------------------------------------
+      ! Prior to 9/5/06:
+      ! Becky Alexander says we don't need these anymore (bmy, 9/5/06)
+      !AREA1 = 0.D0
+      !AREA2 = 0.D0
+      !-----------------------------------------------------------------
       N1    = 0.D0
       N2    = 0.D0
 
@@ -942,8 +963,12 @@
          ! SO2 uptake onto fine particles 
          !----------------------------------
 
-         ! surface area of fine sea-salt aerosols [cm2 cm-3]
-         AREA1 = 4.d0*PI*N1*(((RAD2**3)/3.d0)-((RAD1**3)/3.d0))
+         !--------------------------------------------------------------------
+         ! Prior to 9/5/06:
+         ! Becky Alexander says we don't need this anymore (bmy, 9/5/06)
+         !! surface area of fine sea-salt aerosols [cm2 cm-3]
+         !AREA1 = 4.d0*PI*N1*(((RAD2**3)/3.d0)-((RAD1**3)/3.d0))
+         !--------------------------------------------------------------------
 
 	 ! calculate gas-to-particle rate constant for uptake of 
 	 ! SO2 onto fine sea-salt aerosols [Jacob, 2000] analytical solution
@@ -961,8 +986,12 @@
          ! SO2 uptake onto coarse particles 
          !----------------------------------
          
-         ! surface area of coarse sea-salt aerosols
-         AREA2  = 4.d0*PI*N2*(((RAD3**3)/3.d0)-((RAD2**3)/3.d0))
+         !--------------------------------------------------------------------
+         ! Prior to 9/5/06:
+         ! Becky Alexander says we don't need this anymore (bmy, 9/5/06)
+         !! surface area of coarse sea-salt aerosols
+         !AREA2  = 4.d0*PI*N2*(((RAD3**3)/3.d0)-((RAD2**3)/3.d0))
+         !--------------------------------------------------------------------
 
 	 ! calculate gas-to-particle rate constant for uptake of 
 	 ! SO2 onto coarse sea-salt aerosols [Jacob, 2000] analytical solution
@@ -1057,23 +1086,23 @@
       REDGE = 0d0
 
       ALLOCATE( RMID( NR_MAX, NSALT ), STAT=AS )
-      IF ( AS /=0 ) CALL ALLOC_ERR( 'RMID' )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RMID' )
       RMID = 0d0
 
       ALLOCATE( SRC( NR_MAX, NSALT ), STAT=AS )
-      IF ( AS /=0 ) CALL ALLOC_ERR( 'SRC' )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRC' )
       SRC = 0d0
 
       ALLOCATE( SRC_N( NR_MAX, NSALT ), STAT=AS )
-      IF ( AS /=0 ) CALL ALLOC_ERR( 'SRC_N' )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRC_N' )
       SRC_N = 0d0
 
       ALLOCATE( ALK_EMIS( IIPAR, JJPAR, LLTROP, NSALT ), STAT=AS )
-      IF ( AS /=0 ) CALL ALLOC_ERR( 'ALK_EMIS' )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALK_EMIS' )
       ALK_EMIS = 0d0
 
       ALLOCATE( N_DENS( IIPAR, JJPAR, LLTROP, NSALT ), STAT=AS )
-      IF ( AS /=0 ) CALL ALLOC_ERR( 'N_DENS' )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'N_DENS' )
       N_DENS = 0d0
 
       ! Reset IS_INIT
@@ -1109,4 +1138,5 @@
 
 !------------------------------------------------------------------------------
 
+      ! End of module
       END MODULE SEASALT_MOD

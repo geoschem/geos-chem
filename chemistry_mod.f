@@ -1,4 +1,4 @@
-! $Id: chemistry_mod.f,v 1.26 2006/08/14 17:58:01 bmy Exp $
+! $Id: chemistry_mod.f,v 1.27 2006/09/08 19:20:52 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
@@ -8,7 +8,6 @@
 !  Module Routines:
 !  ============================================================================
 !  (1 ) DO_CHEMISTRY       : Driver which calls various chemistry routines
-!  (2 ) GET_ISOPOH         : Returns amt of ISOP lost by rxn with OH 
 !
 !  GEOS-CHEM modules referenced by chemistry_mod.f
 !  ============================================================================
@@ -114,7 +113,7 @@
       USE C2H6_MOD,        ONLY : CHEMC2H6
       USE CARBON_MOD,      ONLY : CHEMCARBON
       USE CH3I_MOD,        ONLY : CHEMCH3I
-      USE DAO_MOD,         ONLY : CLDF,    CLMOSW, CLROSW, DELP
+      USE DAO_MOD,         ONLY : CLDF,    DELP
       USE DAO_MOD,         ONLY : OPTDEP,  OPTD,   T
       USE DRYDEP_MOD,      ONLY : DRYFLX, DRYFLXRnPbBe
       USE DUST_MOD,        ONLY : CHEMDUST, RDUST_ONLINE
@@ -159,27 +158,6 @@
       !=================================================================
       ! DO_CHEMISTRY begins here!
       !=================================================================
-
-!-----------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-!
-!      ! Compute optical depths (except for CO-OH run)
-!      ! GEOS-1/GEOS-STRAT: compute from T, CLMO, CLRO, DELP
-!      IF ( ITS_NOT_COPARAM_OR_CH4() ) THEN
-!         CALL OPTDEPTH( LLPAR, CLMOSW, CLROSW, DELP, T, OPTD )
-!      ENDIF
-!
-!#elif defined( GEOS_3 ) || defined( GEOS_4 ) || defined( GCAP )
-!
-!      ! Compute optical depths (except for CO-OH run)
-!      ! GEOS-2/GEOS-3: Copy OPTDEP to OPTD, also archive diagnostics
-!      IF ( ITS_NOT_COPARAM_OR_CH4() ) THEN
-!         CALL OPTDEPTH( LLPAR, CLDF, OPTDEP, OPTD )
-!      ENDIF
-!#endif 
-!-----------------------------------------------------------------------------
 
       ! Compute optical depths (except for CH4 simulation)
       IF ( .not. ITS_A_CH4_SIM() ) THEN

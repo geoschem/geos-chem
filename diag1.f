@@ -1,4 +1,4 @@
-! $Id: diag1.f,v 1.13 2006/08/14 17:58:03 bmy Exp $
+! $Id: diag1.f,v 1.14 2006/09/08 19:20:53 bmy Exp $
       SUBROUTINE DIAG1 
 !
 !******************************************************************************
@@ -522,11 +522,6 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-!----------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
-!----------------------------------------------------------------------------
 #if   defined( GEOS_3 )
 
             ! PBL is in [hPa], subtract from PSurface

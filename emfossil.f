@@ -1,12 +1,12 @@
-! $Id: emfossil.f,v 1.13 2006/08/18 20:32:37 bmy Exp $
+! $Id: emfossil.f,v 1.14 2006/09/08 19:20:56 bmy Exp $
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
 !******************************************************************************
 !  Subroutine EMFOSSIL emits fossil fuels into the EMISRR and EMISRRN 
-!  arrays, which are then passed to SMVGEAR. (bmy, 4/19/99, 8/17/06)
+!  arrays, which are then passed to SMVGEAR. (bmy, 4/19/99, 9/5/06)
 !
 !  Arguments as input:
-!  ========================================================================
+!  ============================================================================
 !  (1-2) I, J       : longitude and latitude indices
 !  (3-4) N, NN      : Emission index and tracer index
 !  (5-6) IREF, JREF : Offset indices I+I0 and J+J0
@@ -51,6 +51,8 @@
 !  (24) Now do BRAVO emissions before EPA/NEI99 emissions in order to avoid 
 !        zero emissions in some boxes.  Now add David Streets emissions for 
 !        NOx over SE Asia and CO over just China (yxw, bmy, 8/17/06)
+!  (25) Bug fix: Now only execute EDGAR CO block if the tracer is CO.
+!        (bmy, 9/5/06)
 !******************************************************************************
 !          
       ! References to F90 modules
@@ -163,42 +165,6 @@
                   
                ENDIF
             ENDIF
-
-!------------------------------------------------------------------------------
-! Prior to 8/17/06:
-! Move EPA/NEI emissions to after BRAVO emissions (bmy, 8/17/06)
-!            !-----------------------------------------------------------
-!            ! Get NOx from EPA/NEI inventory over the USA 
-!            !-----------------------------------------------------------
-!
-!            ! If we are using EPA/NEI emissions
-!            IF ( LNEI99 ) THEN
-!
-!               ! If we are over the USA ...               
-!               IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN 
-!            
-!                  IF ( LL == 1 ) THEN
-!                  
-!                     ! Get EPA emissions for NOx 
-!                     EPA_NEI = GET_EPA_ANTHRO( I, J, NN, WEEKDAY )
-!
-!                     ! Apply time-of-day factor
-!                     EPA_NEI = EPA_NEI * TODX
-!
-!                     ! Replace GEIA with EPA/NEI emissions at surface
-!                     EMX(LL) = EPA_NEI * 
-!     &                         ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
-!            
-!                  ELSE 
-!            
-!                     ! Zero GEIA emissions in the 2nd level 
-!                     ! where the EPA/NEI emissions are nonzero
-!                     EMX(LL) = 0d0                   
-!                  
-!                  ENDIF
-!               ENDIF
-!            ENDIF
-!------------------------------------------------------------------------------
 
             !-----------------------------------------------------------
             ! Get NOx from EMEP inventory over Europe 
@@ -372,8 +338,13 @@
          ! Get CO emissions from the EDGAR inventory (global)
          !--------------------------------------------------------------
 
-         ! If we are using EDGAR CO
-         IF ( LEDGARCO ) THEN
+         ! If we are using EDGAR CO ...
+         !--------------------------------------------------------------
+         ! Prior to 9/5/06:
+         ! Bug fix: only execute this block if it is CO (bmy, 9/5/06)
+         !IF ( LEDGARCO ) THEN
+         !--------------------------------------------------------------
+         IF ( NN == IDTCO .and. LEDGARCO ) THEN
          
             ! Get EDGAR CO
             EDGAR  = GET_EDGAR_CO( I, J, MOLEC_CM2_S=.TRUE. )
@@ -386,31 +357,6 @@
             EMX(1) = EDGAR * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
 
          ENDIF
-
-         !--------------------------------------------------------------------
-         ! Prior to 8/18/06:
-         ! Move this to below BRAVO emissions (bmy, 8/16/06)
-         !!--------------------------------------------------------------
-         !! Get CO & Hydrocarbons from EPA/NEI inventory over the USA 
-         !!--------------------------------------------------------------
-         !
-         !! If we are using EPA/NEI99 emissions ...
-         !IF ( LNEI99 ) THEN
-         !
-         !   ! If we are over the USA ...
-         !   IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
-         !
-         !      ! Get EPA/NEI emissions (and apply time-of-day factor)
-         !      EPA_NEI = GET_EPA_ANTHRO( I, J, NN, WEEKDAY )
-         !      EPA_NEI = EPA_NEI * TODX
-         !
-         !      ! Convert from molec/cm2/s to kg/box/timestep in order
-         !      ! to be in the proper units for EMISRR array
-         !      EMX(1)  = EPA_NEI * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
-         !
-         !   ENDIF
-         !ENDIF
-         !--------------------------------------------------------------------
 
          !--------------------------------------------------------------
          ! Get CO & Hydrocarbons from EMEP inventory over Europe

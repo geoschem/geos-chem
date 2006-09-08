@@ -1,4 +1,4 @@
-! $Id: bravo_mod.f,v 1.2 2006/08/14 17:58:01 bmy Exp $
+! $Id: bravo_mod.f,v 1.3 2006/09/08 19:20:51 bmy Exp $
       MODULE BRAVO_MOD
 !
 !******************************************************************************
@@ -225,11 +225,6 @@
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
       ! Regrid NOx [molec/cm2/s] to GEOS 1x1 GRID
-      !----------------------------------------------------------------------
-      ! Prior to 8/9/06:
-      ! Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
-      !CALL DO_REGRID_G2G_1x1( GEN_1x1, GEOS_1x1(:,:,1), .TRUE. )
-      !----------------------------------------------------------------------
       CALL DO_REGRID_G2G_1x1( 'molec/cm2/s', GEN_1x1, GEOS_1x1(:,:,1) )
 
       ! Regrid NOx [molec/cm2/s] to current model resolution
@@ -255,11 +250,6 @@
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
       ! Regrid CO [molec/cm2/s] to GEOS 1x1 GRID
-      !-------------------------------------------------------------------
-      ! Prior to 8/9/06:
-      ! Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
-      !CALL DO_REGRID_G2G_1x1( GEN_1x1, GEOS_1x1(:,:,1), .TRUE. )
-      !-------------------------------------------------------------------
       CALL DO_REGRID_G2G_1x1( 'molec/cm2/s', GEN_1x1, GEOS_1x1(:,:,1) )
 
       ! Regrid CO [molec/cm2/s] to current model resolution
@@ -285,11 +275,6 @@
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
       ! Regrid SO2 [molec/cm2/s] to GEOS 1x1 GRID
-      !-------------------------------------------------------------------
-      ! Prior to 8/9/06:
-      ! Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
-      !CALL DO_REGRID_G2G_1x1( GEN_1x1, GEOS_1x1(:,:,1), .TRUE. )
-      !-------------------------------------------------------------------
       CALL DO_REGRID_G2G_1x1( 'molec/cm2/s', GEN_1x1, GEOS_1x1(:,:,1) )
 
       ! Regrid SO2 [molec/cm2/s] to current model resolution
@@ -493,11 +478,6 @@
       GEN_1x1(:,:) = ARRAY(:,:,1) 
 
       ! Regrid from GENERIC 1x1 GRID to GEOS 1x1 GRID
-      !--------------------------------------------------------------------
-      ! Prior to 8/9/06:
-      ! Now pass UNIT to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
-      !CALL DO_REGRID_G2G_1x1( GEN_1x1, GEOS_1x1(:,:,1) )
-      !--------------------------------------------------------------------
       CALL DO_REGRID_G2G_1x1( 'unitless', GEN_1x1, GEOS_1x1(:,:,1) )
       
       ! Regrid from GEOS 1x1 GRID to current model resolution

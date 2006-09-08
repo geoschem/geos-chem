@@ -1,4 +1,4 @@
-! $Id: edgar_mod.f,v 1.3 2006/08/14 17:58:05 bmy Exp $
+! $Id: edgar_mod.f,v 1.4 2006/09/08 19:20:55 bmy Exp $
       MODULE EDGAR_MOD
 !
 !******************************************************************************
@@ -619,18 +619,6 @@
       ! Regrid from GENERIC 1x1 grid to GEOS 1x1 grid
       !-----------------------------------------------------------------
 
-      !----------------------------------------------------------------------
-      ! Prior to 8/9/06:
-      ! Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
-      !! Total NOx [kg NO2/season]
-      !CALL DO_REGRID_G2G_1x1( T_1x1, E_1x1 )
-      !
-      !! Hourly NOx [kg NO2/season]
-      !DO H = 1, N_HOURS
-      !   CALL DO_REGRID_G2G_1x1( T_HRLY_1x1(:,:,H), E_HRLY_1x1(:,:,H) )
-      !ENDDO
-      !----------------------------------------------------------------------
-
       ! Total NOx [kg NO2/season]
       CALL DO_REGRID_G2G_1x1( 'kg/season', T_1x1, E_1x1 )
       
@@ -906,11 +894,6 @@
       !------------------------------------------------
 
       ! Total CO [kg/yr] 
-      !-------------------------------------------------------------
-      ! Prior to 8/9/06:
-      ! Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
-      !CALL DO_REGRID_G2G_1x1( T_CO_1x1, E_CO_1x1 )
-      !-------------------------------------------------------------
       CALL DO_REGRID_G2G_1x1( 'kg/yr', T_CO_1x1, E_CO_1x1 )
 
       ! Return to calling program
@@ -1158,16 +1141,6 @@
       !-----------------------------------------------------------------
       ! Regrid SO2 from GENERIC 1x1 GRID to GEOS 1x1 GRID
       !-----------------------------------------------------------------
-
-      !----------------------------------------------------------------------
-      ! Prior to 8/9/06:
-      ! Now pass the unit string to DO_REGRID_G2G_1x1
-      !! Anthro SO2 [kg/season]
-      !CALL DO_REGRID_G2G_1x1( T_SO2_1x1, E_SO2_1x1 )
-      !
-      !! Ship SO2 [kg/season] 
-      !CALL DO_REGRID_G2G_1x1( T_SO2_SHIP_1x1, E_SO2_SHIP_1x1 )
-      !----------------------------------------------------------------------
 
       ! Anthro SO2 [kg/season]
       CALL DO_REGRID_G2G_1x1( 'kg/season', T_SO2_1x1, E_SO2_1x1 )

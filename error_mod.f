@@ -1,4 +1,4 @@
-! $Id: error_mod.f,v 1.13 2006/08/14 17:58:06 bmy Exp $
+! $Id: error_mod.f,v 1.14 2006/09/08 19:20:56 bmy Exp $
       MODULE ERROR_MOD
 !
 !******************************************************************************
@@ -141,11 +141,6 @@
 #elif defined( COMPAQ )
       IT_IS_A_NAN = ISNAN( VALUE )         
 
-!--------------------------------------------------------------------------
-! Prior to 8/4/06:
-! 
-!#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC ) || defined( LINUX_IFORT )
-!--------------------------------------------------------------------------
 #elif defined( LINUX_IFORT ) || defined( LINUX_PGI )
 
       ! Declare IS_NAN as an external function
@@ -223,10 +218,6 @@
 #elif defined( COMPAQ )
       IT_IS_A_NAN = ISNAN( VALUE )         
 
-!---------------------------------------------------------------------------
-! Prior to 8/4/06:
-!#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC ) || defined( LINUX_IFORT )
-!---------------------------------------------------------------------------
 #elif defined( LINUX_IFORT ) || defined( LINUX_PGI )
 
       ! Declare IS_NAN as an external function
@@ -312,11 +303,6 @@
          IT_IS_A_FINITE = .TRUE.
       ENDIF
 
-!---------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
-!#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC ) || defined( LINUX_IFORT )
-!---------------------------------------------------------------------------
 #elif  defined( LINUX_IFORT ) || defined( LINUX_PGI ) 
 
       ! Declare IS_FINITE as an external function
@@ -402,10 +388,6 @@
          IT_IS_A_FINITE = .TRUE.
       ENDIF
 
-!-------------------------------------------------------------------------
-! Prior to 8/4/06:
-!#elif defined( LINUX_PGI ) || defined( LINUX_IFC ) || defined( LINUX_EFC ) || defined( LINUX_IFORT )
-!-------------------------------------------------------------------------
 #elif defined( LINUX_IFORT ) || defined( LINUX_PGI )
 
       ! Declare IS_FINITE as an external function
@@ -733,12 +715,6 @@
       WRITE( 6, '(5x,a)' ) MESSAGE
 
       ! Call FLUSH routine to flush the output buffer
-!------------------------------------------------------------------------
-! Prior to 8/4/06:
-!#if   !defined( LINUX_EFC )
-!      CALL FLUSH( 6 )
-!#endif
-!------------------------------------------------------------------------
       CALL FLUSH( 6 )
 
       ! Return to calling program
@@ -746,4 +722,5 @@
 
 !------------------------------------------------------------------------------
 
+      ! End of module
       END MODULE ERROR_MOD

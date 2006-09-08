@@ -1,9 +1,9 @@
-! $Id: diag42_mod.f,v 1.1 2006/05/26 17:45:18 bmy Exp $
+! $Id: diag42_mod.f,v 1.2 2006/09/08 19:20:54 bmy Exp $
       MODULE DIAG42_MOD
 !
 !******************************************************************************
 !  Module DIAG42_MOD contains arrays and routines for archiving the ND42
-!  diagnostic -- secondary organic aerosols [ug/m3]. (dkh, bmy, 5/22/06) 
+!  diagnostic -- secondary organic aerosols [ug/m3]. (dkh,bmy,5/22/06,9/5/06) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -27,6 +27,8 @@
 !  (6 ) time_mod.f     : Module w/ routines to compute date & time
 !
 !  NOTES:
+!  (1 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
+!        (bmy, 9/5/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -192,7 +194,7 @@
 !
 !******************************************************************************
 !  Subroutine WRITE_DIAG03 writes the ND03 diagnostic arrays to the binary
-!  punch file at the proper time. (bmy, 5/22/06)
+!  punch file at the proper time. (bmy, 5/22/06, 9/5/06)
 !
 !   # : Field    : Description                 : Units    : Scale factor
 !  -----------------------------------------------------------------------
@@ -206,6 +208,8 @@
 !  (8 ) IJ-SOA-$ : Sum of all Org Carbon @ STP : ug C/sm3 : SCALE_OTH
 !
 !  NOTES:
+!  (1 ) Replace TINY(1d0) with 1d-32 to avoid problems  on SUN 4100 platform
+!        (bmy, 9/5/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -252,7 +256,8 @@
       MODELNAME = GET_MODELNAME()
       RESERVED  = ''
       !SCALE     = FLOAT( CTOTH ) + TINY( 1d0 )
-      SCALE     = DBLE( GET_CT_DYN() ) + TINY( 1d0 )
+      !SCALE     = DBLE( GET_CT_DYN() ) + TINY( 1d0 )
+      SCALE     = DBLE( GET_CT_DYN() ) + TINY( 1e0 )
 
       !=================================================================
       ! Write data to the bpch file

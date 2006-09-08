@@ -1,9 +1,9 @@
-! $Id: diag04_mod.f,v 1.2 2005/10/20 14:03:18 bmy Exp $
+! $Id: diag04_mod.f,v 1.3 2006/09/08 19:20:53 bmy Exp $
       MODULE DIAG04_MOD
 !
 !******************************************************************************
 !  Module DIAG04_MOD contains arrays and routines for archiving the ND04
-!  diagnostic -- CO2 emissions and fluxes (bmy, 7/26/05, 10/3/05) 
+!  diagnostic -- CO2 emissions and fluxes (bmy, 7/26/05, 9/5/06) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -26,6 +26,8 @@
 !
 !  NOTES:
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (2 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
+!        (bmy, 9/5/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -83,7 +85,7 @@
 !
 !******************************************************************************
 !  Subroutine WRITE_DIAG03 writes the ND03 diagnostic arrays to the binary
-!  punch file at the proper time. (bmy, 7/26/05, 10/3/05)
+!  punch file at the proper time. (bmy, 7/26/05, 9/3/06)
 !
 !   # : Field     : Description                  : Units       : Scale factor
 !  --------------------------------------------------------------------------
@@ -96,6 +98,8 @@
 !
 !  NOTES:
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (2 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
+!        (bmy, 9/5/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -135,7 +139,11 @@
       LONRES    = DISIZE
       MODELNAME = GET_MODELNAME()
       RESERVED  = ''
-      SCALE     = DBLE( GET_CT_EMIS() ) + TINY( 1d0 )
+      !-----------------------------------------------------
+      ! Prior to 9/5/06:
+      !SCALE     = DBLE( GET_CT_EMIS() ) + TINY( 1d0 )
+      !-----------------------------------------------------
+      SCALE     = DBLE( GET_CT_EMIS() ) + 1d-32
 
       !=================================================================
       ! Write data to the bpch file

@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.31 2006/08/18 20:32:38 bmy Exp $
+! $Id: input_mod.f,v 1.32 2006/09/08 19:20:59 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -3829,39 +3829,6 @@
          CALL CHECK_DIRECTORY( TPBC_DIR )
       ENDIF
 
-!----------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 )
-!
-!      ! Check GEOS-1 met field directory (starting date)
-!      DIR = GEOS_1_DIR
-!      CALL EXPAND_DATE( DIR, NYMDb, 000000 )
-!      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
-!      CALL CHECK_DIRECTORY( DIR )
-!
-!      ! Check GEOS-1 met field directory (ending date)
-!      DIR = GEOS_1_DIR
-!      CALL EXPAND_DATE( DIR, NYMDe, 000000 )
-!      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
-!      CALL CHECK_DIRECTORY( DIR )
-!
-!#elif defined( GEOS_STRAT )
-!
-!      ! Check GEOS-STRAT met field directory (starting date)
-!      DIR = GEOS_S_DIR
-!      CALL EXPAND_DATE( DIR, NYMDb, 000000 )
-!      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
-!      CALL CHECK_DIRECTORY( DIR )
-!
-!      ! Check GEOS-STRAT met field directory (ending date)
-!      DIR = GEOS_S_DIR
-!      CALL EXPAND_DATE( DIR, NYMDe, 000000 )
-!      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
-!      CALL CHECK_DIRECTORY( DIR )
-!
-!#elif defined( GEOS_3 )
-!----------------------------------------------------------------------
 #if   defined( GEOS_3 )
 
       ! Check GEOS-3 met field directory (starting date)

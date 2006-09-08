@@ -1,4 +1,4 @@
-! $Id: transfer_mod.f,v 1.5 2006/08/14 17:58:19 bmy Exp $
+! $Id: transfer_mod.f,v 1.6 2006/09/08 19:21:06 bmy Exp $
       MODULE TRANSFER_MOD
 !
 !******************************************************************************
@@ -161,21 +161,6 @@
       ! Function return variable
       INTEGER :: L_COPY
 
-!-------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 ) 
-!
-!      ! Copy all vertical levels for GEOS-1
-!      L_COPY = LGLOB
-!
-!#elif defined( GEOS_STRAT )
-!
-!      ! Copy all vertical levels for GEOS-STRAT
-!      L_COPY = LGLOB
-!
-!#elif defined( GEOS_3 )
-!-------------------------------------------------------------------------
 #if   defined( GEOS_3 )
 
       ! For GEOS-3, only regrid if LLPAR does not equal LGLOB 

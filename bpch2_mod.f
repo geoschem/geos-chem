@@ -1,4 +1,4 @@
-! $Id: bpch2_mod.f,v 1.9 2006/08/14 17:58:01 bmy Exp $
+! $Id: bpch2_mod.f,v 1.10 2006/09/08 19:20:51 bmy Exp $
       MODULE BPCH2_MOD
 !
 !******************************************************************************
@@ -572,17 +572,6 @@
       ! GET_MODELNAME begins here!
       !=================================================================
 
-!--------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 ) 
-!      MODELNAME = 'GEOS1'
-!     
-!#elif defined( GEOS_STRAT ) 
-!      MODELNAME = 'GEOS_STRAT'
-!
-!#elif defined( GEOS_3 ) && defined( GRID30LEV )
-!---------------------------------------------------------------------
 #if   defined( GEOS_3 ) && defined( GRID30LEV )
       MODELNAME = 'GEOS3_30L'
 
@@ -627,19 +616,6 @@
 !
 #     include "define.h"
 
-!---------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 ) 
-!      CHARACTER(LEN=5) :: NAME_EXT
-!      NAME_EXT = 'geos1'
-!     
-!#elif defined( GEOS_STRAT ) 
-!      CHARACTER(LEN=5) :: NAME_EXT
-!      NAME_EXT = 'geoss'
-!
-!#elif defined( GEOS_3 )
-!---------------------------------------------------------------------
 #if   defined( GEOS_3 )
       CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'geos3'

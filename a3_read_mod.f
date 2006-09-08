@@ -1,4 +1,4 @@
-! $Id: a3_read_mod.f,v 1.15 2006/08/14 17:57:58 bmy Exp $
+! $Id: a3_read_mod.f,v 1.16 2006/09/08 19:20:49 bmy Exp $
       MODULE A3_READ_MOD
 !
 !******************************************************************************
@@ -93,13 +93,6 @@
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      !-------------------------------------------------------------------
-      ! Prior to 8/4/06:
-      ! Remove support for GEOS-1 and GEOS-STRAT met fields
-      !USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_1_DIR 
-      !USE DIRECTORY_MOD, ONLY : GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR 
-      !USE DIRECTORY_MOD, ONLY : GEOS_5_DIR, TEMP_DIR 
-      !-------------------------------------------------------------------
       USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_3_DIR 
       USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
       USE ERROR_MOD,     ONLY : ERROR_STOP
@@ -124,23 +117,6 @@
       !=================================================================
       IF ( PRESENT( NYMD ) ) THEN
 
-!-----------------------------------------------------------------------      
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 )
-!
-!         ! Strings for directory & filename
-!         GEOS_DIR = TRIM( GEOS_1_DIR )
-!         A3_STR   = 'YYMMDD.a3.'   // GET_RES_EXT() 
-!
-!#elif defined( GEOS_STRAT )
-!
-!         ! Strings for directory & filename
-!         GEOS_DIR = TRIM( GEOS_S_DIR )
-!         A3_STR   = 'YYMMDD.a3.'   // GET_RES_EXT()     
-!
-!#elif defined( GEOS_3 )
-!-----------------------------------------------------------------------      
 #if   defined( GEOS_3 )
 
          ! Strings for directory & filename
@@ -280,28 +256,6 @@
          GOTO 999
       ENDIF
 
-!----------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Reverse the logic of the #if block (bmy, 8/4/06)
-!#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( GCAP )
-!
-!      ! Open A-3 file if it's 01:30 GMT,  or on the first call
-!      IF ( NHMS == 013000 .or. FIRST ) THEN
-!         DO_OPEN = .TRUE. 
-!         GOTO 999
-!      ENDIF
-!
-!#else
-!
-!      ! Open A-3 file if it's 00:00 GMT, or on the first call
-!      IF ( NHMS == 000000 .or. FIRST ) THEN
-!         DO_OPEN = .TRUE. 
-!         GOTO 999
-!      ENDIF
-!
-!#endif
-!----------------------------------------------------------------------------
-
 #if   defined( GEOS_3 ) 
 
       ! Open A-3 file if it's 00:00 GMT, or on the first call
@@ -360,12 +314,6 @@
 !      
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      !---------------------------------------------------------------
-      ! Prior to 8/4/06:
-      !USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_1_DIR 
-      !USE DIRECTORY_MOD, ONLY : GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR 
-      !USE DIRECTORY_MOD, ONLY : GEOS_5_DIR, TEMP_DIR 
-      !---------------------------------------------------------------
       USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_3_DIR 
       USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
       USE LOGICAL_MOD,   ONLY : LUNZIP
@@ -393,23 +341,6 @@
       ! Open A-3 fields at the proper time, or on the first call
       IF ( DO_OPEN_A3( NYMD, NHMS ) ) THEN
 
-!-----------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 ) 
-!
-!         ! Strings for directory & filename
-!         GEOS_DIR = TRIM( GEOS_1_DIR )
-!         A3_FILE  = 'YYMMDD.a3.' // GET_RES_EXT()
-!
-!#elif defined( GEOS_STRAT )
-!
-!         ! Strings for directory & filename
-!         GEOS_DIR = TRIM( GEOS_S_DIR )
-!         A3_FILE  = 'YYMMDD.a3.' // GET_RES_EXT()
-!
-!#elif defined( GEOS_3 )
-!-----------------------------------------------------------------------------
 #if   defined( GEOS_3 )
 
          ! Strings for directory & filename
@@ -537,11 +468,6 @@
          RETURN
       ENDIF
 
-!--------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 ) || defined( GEOS_3 ) 
-!--------------------------------------------------------------------------
 #if   defined( GEOS_3 ) 
 
       !=================================================================
@@ -554,37 +480,6 @@
      &              PRECON=PRECON, RADSWG=RADSWG, TS=TS,
      &              U10M=U10M,     USTAR=USTAR,   V10M=V10M, 
      &              Z0=Z0 )              
-
-!-----------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#elif defined( GEOS_STRAT )
-!
-!      !=================================================================
-!      ! For GEOS-STRAT, always read the following fields:
-!      !    HFLUX, RADSWG, PREACC, PRECON, USTAR, Z0, PBL   
-!      !
-!      ! Prior to 13 Feb 1997, U10M and V10M were not archived in the 
-!      ! GEOS-STRAT data.  If U10M and V10M are available, read them. 
-!      !=================================================================
-!      IF ( NYMD < 19970213 ) THEN
-!
-!         ! Prior to 13 Feb 1997, read 7 A-3 fields
-!         CALL READ_A3( NYMD=NYMD,     NHMS=NHMS,     HFLUX=HFLUX,   
-!     &                 PBL=PBL,       PREACC=PREACC, PRECON=PRECON, 
-!     &                 RADSWG=RADSWG, TS=TS,         USTAR=USTAR,
-!     &                 Z0=Z0 )  
-!
-!      ELSE
-!         
-!         ! On or after 13 Feb 1997, read 9 A-3 fields
-!         CALL READ_A3( NYMD=NYMD,     NHMS=NHMS,     HFLUX=HFLUX,   
-!     &                 PBL=PBL,       PREACC=PREACC, PRECON=PRECON, 
-!     &                 RADSWG=RADSWG, TS=TS,         U10M=U10M,
-!     &                 USTAR=USTAR,   V10M=V10M,     Z0=Z0 )         
-! 
-!      ENDIF
-!-----------------------------------------------------------------------------
 
 #elif defined( GEOS_4 ) || defined( GEOS_5 )
 
@@ -662,26 +557,6 @@
       !=================================================================
       ! GET_N_A3 begins here!
       !=================================================================
-!-----------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 ) 
-!
-!      ! GEOS-1 always has 12 A-3 fields per file. 
-!      N_A3 = 12
-!
-!#elif defined( GEOS_STRAT )
-!
-!      ! GEOS-STRAT before   13 Feb 1997 has 9  A-3 fields per file
-!      ! GEOS-STRAT on/after 13 Feb 1997 has 11 A-3 fields per file
-!      IF ( NYMD < 19970213 ) THEN
-!         N_A3 = 9
-!      ELSE
-!         N_A3 = 11
-!      ENDIF
-!
-!#elif defined( GEOS_3 )
-!-----------------------------------------------------------------------------
 #if   defined( GEOS_3 )
 
       ! GEOS-3 for 1998, 1999 has 14 A-3 fields per file
@@ -732,30 +607,6 @@
 !
 #     include "CMN_SIZE"
 
-!-----------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-!
-!      ! Arguments
-!      REAL*4,  INTENT(IN) :: XYMD, XHMS 
-!      INTEGER, INTENT(IN) :: NYMD, NHMS
-!
-!      ! Function value
-!      LOGICAL             :: ITS_TIME
-!
-!      !=================================================================
-!      ! GEOS-1 and GEOS-STRAT: XYMD and XHMS are REAL*4
-!      !=================================================================
-!      IF ( INT(XYMD) == NYMD-19000000 .AND. INT(XHMS) == NHMS ) THEN
-!         ITS_TIME = .TRUE.
-!      ELSE
-!         ITS_TIME = .FALSE.
-!      ENDIF
-!
-!#else
-!-----------------------------------------------------------------------------
-
       ! Arguments 
       INTEGER, INTENT(IN) :: XYMD, XHMS, NYMD, NHMS
       
@@ -770,11 +621,6 @@
       ELSE
          ITS_TIME = .FALSE.
       ENDIF
-
-!----------------------
-! Prior to 8/4/06:
-!#endif
-!----------------------
 
       ! Return to calling program
       END FUNCTION CHECK_TIME
@@ -872,18 +718,6 @@
       REAL*4                         :: Q2(IGLOB,JGLOB)
       CHARACTER(LEN=8)               :: NAME
       CHARACTER(LEN=16)              :: STAMP
-
-!-----------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!      ! XYMD, XHMS must be REAL*4 for GEOS-1, GEOS-STRAT
-!      ! but INTEGER for GEOS-3 and GEOS-4 (bmy, 6/23/03)
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-!      REAL*4                         :: XYMD, XHMS 
-!#else
-!      INTEGER                        :: XYMD, XHMS
-!#endif
-!-----------------------------------------------------------------------------
       INTEGER                        :: XYMD, XHMS
 
       !=================================================================

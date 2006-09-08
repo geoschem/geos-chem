@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.35 2006/08/14 17:58:03 bmy Exp $
+! $Id: diag3.f,v 1.36 2006/09/08 19:20:53 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out diagnostics to the BINARY format punch file 
-!  (bmy, bey, mgs, rvm, 5/27/99, 8/4/06)
+!  (bmy, bey, mgs, rvm, 5/27/99, 9/5/06)
 !
 !  NOTES: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
@@ -74,6 +74,8 @@
 !        from "diag42_mod.f" (dkh, bmy, 5/22/06)
 !  (67) Updated ND36 diagnostic for CH3I (bmy, 7/25/06)
 !  (68) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (69) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
+!        (bmy, 9/5/06)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -175,7 +177,7 @@
 !  DIAG3 begins here!
 !
 !  Define scale factors for division.  
-!  Add a small number (e.g. 1d-20) to prevent division by zero errors.
+!  Add a small number (e.g. 1d-32) to prevent division by zero errors.
 !******************************************************************************
 !
       ! Now use counter variables from "time_mod.f" (bmy, 3/27/03)
@@ -183,13 +185,25 @@
       DIAGe     = GET_DIAGe()
       SECONDS   = ( DIAGe - DIAGb ) * 3600d0
       SCALED    = 1d0
-      SCALEDYN  = DBLE( GET_CT_DYN()  ) + TINY( 1d0 )
-      SCALECONV = DBLE( GET_CT_CONV() ) + TINY( 1d0 )
-      SCALESRCE = DBLE( GET_CT_EMIS() ) + TINY( 1d0 )
-      SCALECHEM = DBLE( GET_CT_CHEM() ) + TINY( 1d0 )
-      SCALE_A3  = DBLE( GET_CT_A3()   ) + TINY( 1d0 )
-      SCALE_A6  = DBLE( GET_CT_A6()   ) + TINY( 1d0 )
-      SCALE_I6  = DBLE( GET_CT_I6()   ) + TINY( 1d0 )
+      !----------------------------------------------------------------------
+      ! Prior to 9/5/06:
+      ! Replace TINY(1d0) with 1d-32 to avoid problems on SUN (bmy, 9/5/06)
+      !SCALEDYN  = DBLE( GET_CT_DYN()  ) + TINY( 1d0 )
+      !SCALECONV = DBLE( GET_CT_CONV() ) + TINY( 1d0 )
+      !SCALESRCE = DBLE( GET_CT_EMIS() ) + TINY( 1d0 )
+      !SCALECHEM = DBLE( GET_CT_CHEM() ) + TINY( 1d0 )
+      !SCALE_A3  = DBLE( GET_CT_A3()   ) + TINY( 1d0 )
+      !SCALE_A6  = DBLE( GET_CT_A6()   ) + TINY( 1d0 )
+      !SCALE_I6  = DBLE( GET_CT_I6()   ) + TINY( 1d0 )
+      !----------------------------------------------------------------------
+      SCALEDYN  = DBLE( GET_CT_DYN()  ) + 1d-32
+      SCALECONV = DBLE( GET_CT_CONV() ) + 1d-32
+      SCALESRCE = DBLE( GET_CT_EMIS() ) + 1d-32
+      SCALECHEM = DBLE( GET_CT_CHEM() ) + 1d-32
+      SCALE_A3  = DBLE( GET_CT_A3()   ) + 1d-32
+      SCALE_A6  = DBLE( GET_CT_A6()   ) + 1d-32
+      SCALE_I6  = DBLE( GET_CT_I6()   ) + 1d-32
+
 !
 !******************************************************************************
 !  Setup for binary punch file:
@@ -2629,10 +2643,6 @@
 
                ! UWND, VWND
                CASE ( 1,2 )
-!--------------------------------------------------------------------------
-! Prior to 8/4/06:
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
-!--------------------------------------------------------------------------
 #if   defined( GEOS_3 )
                   SCALEX = SCALE_I6
 #else
@@ -2642,10 +2652,6 @@
 
                ! TMPU
                CASE ( 3 )
-!---------------------------------------------------------------------------
-! Prior to 8/4/06:
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
-!---------------------------------------------------------------------------
 #if   defined( GEOS_3 )
                   SCALEX = SCALE_I6
 #else
@@ -2655,10 +2661,6 @@
 
                ! SPHU
                CASE ( 4 )
-!----------------------------------------------------------------------------
-! Prior to 8/4/06:
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
-!----------------------------------------------------------------------------
 #if   defined( GEOS_3 )
                   SCALEX = SCALE_I6
 #else
@@ -2752,10 +2754,6 @@
                   SCALEX = SCALE_A3
                   UNIT   = 'unitless'
 
-!---------------------------------------------------
-! Prior to 8/4/06:
-!#if   defined( GEOS_STRAT ) || defined( GCAP )
-!---------------------------------------------------
 #if   defined( GCAP )
                   ! CLDFRC is a 6-hr field in GCAP, GEOS-STRAT 
                   ! (swu, bmy, 6/9/05)

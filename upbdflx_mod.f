@@ -1,4 +1,4 @@
-! $Id: upbdflx_mod.f,v 1.17 2006/08/14 17:58:20 bmy Exp $
+! $Id: upbdflx_mod.f,v 1.18 2006/09/08 19:21:07 bmy Exp $
       MODULE UPBDFLX_MOD
 !
 !******************************************************************************
@@ -278,25 +278,6 @@
       !                                     be the default)
       !  (2) IORD = 5, JORD = 5, KORD = 7 
       !=================================================================
-!-----------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT (bmy, 8/4/06)
-!#if   defined( GEOS_1 )
-!
-!      ! These are only guesses.  As of 12/5/00, the GEOS1 flux has not 
-!      ! been tested in TPCORE v7.1.  Since the GEOS1 stratosphere is 
-!      ! only 6/7 as large as the GEOS_STRAT stratosphere, the ozone 
-!      ! production per unit mass should be larger in GEOS1 (bey, rvm, qli)
-!      PO3_vmr = 4.9d-14                                  ! 3,3,7
-!
-!#elif defined( GEOS_STRAT )
-!
-!      ! The O3 flux has been tested better in GEOS-STRAT (bmy, 12/5/00)
-!      PO3_vmr = 4.2d-14                                  ! 3,3,7
-!      IF ( IORD + JORD + KORD == 17 ) PO3_vmr = 4.07d-14 ! 5,5,7
-!
-!#elif defined( GEOS_3 )
-!-----------------------------------------------------------------------------
 #if defined( GEOS_3 )
 
       PO3_vmr = 5.14d-14                                 ! 3,3,7
@@ -581,19 +562,6 @@
      &                  'pnoy_200106/pnoy_nox_hno3.' //
      &                  GET_NAME_EXT()   // '.'      // GET_RES_EXT()
 
-!----------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1, GEOS-STRAT (bmy, 8/4/06)
-!            !===========================================================
-!            !### KLUDGE -- for now, read properly regridded P(NOy) 
-!            !### file for GEOS-STRAT grid.  This will become part
-!            !### of the standard code later. (qli, rvm, bmy, 12/6/00)
-!            !===========================================================
-!#if   defined( GEOS_STRAT )
-!            FILENAME = TRIM( FILENAME ) // '.rvm'
-!#endif
-!----------------------------------------------------------------------------
-
             ! Echo filename to stdout
             WRITE( 6, 100 ) TRIM( FILENAME )
  100        FORMAT( '     - UPBDFLX_NOY: Reading ', a )
@@ -606,23 +574,6 @@
             ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR)
             CALL TRANSFER_ZONAL( ARRAY(1,:,:), STRATPNOY )
 
-!-----------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1, GEOS-STRAT (bmy, 8/4/06)
-!            !===========================================================
-!            ! rvm (12/02/00) scale PNOy for new tpcore flags 337F for
-!            ! the GEOS-STRAT model.  This is a crude fix to prevent too 
-!            ! much NOy flux from mass generation in the stratosphere.
-!            ! This fix should yield a NOy flux of 0.55 Tg N/yr.
-!            !
-!            ! CAVEAT: The flux might not be correct for the 2 x 2.5
-!            ! model, should test this later on. (rvm, bmy, 12/12/00)
-!            !===========================================================
-!#if   defined( GEOS_STRAT )
-!            STRATPNOY(:,:) = STRATPNOY(:,:) * 0.7e0 
-!#endif
-!-----------------------------------------------------------------------------
-            
             ! [HNO3] in [v/v] is stored as tracer #2
             CALL READ_BPCH2( FILENAME, 'PNOY-L=$', 2,     
      &                       XTAU,      1,         JGLOB,     
@@ -646,36 +597,6 @@
 
             ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR)
             CALL TRANSFER_ZONAL( ARRAY(1,:,:), STRATNO2 )
-
-!------------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1, GEOS-STRAT (bmy, 8/4/06)
-!            !===========================================================
-!            ! P(NOy) above 10mb is stored in a separate file for 
-!            ! GEOS-1 grid.  Do not add this for the GEOS-STRAT grid.
-!            ! (qli, rvm, bmy, 12/6/00)
-!            !===========================================================
-!#if   defined( GEOS_1 )
-!
-!            ! File containing P(NOy) above 10 mb
-!            ! Now read corrected file from pnoy_200106/ subdir (bmy, 6/28/01)
-!            FILENAME2 = TRIM( DATA_DIR )               // 
-!     &                  'pnoy_200106/pnoy_above_10mb.' //
-!     &                  GET_NAME_EXT()   // '.'        // GET_RES_EXT()
-!
-!            ! Write file name to stdout
-!            WRITE( 6, 100 ) TRIM( FILENAME )
-!
-!            ! P(NOy) in [molec/cm3/s] above 10mb 
-!            ! is stored as tracer #6 in a separate file
-!            CALL READ_BPCH2( FILENAME2, 'PNOY-L=$', 6, 
-!     &                       XTAU,       1,         JGLOB,     
-!     &                       1,          ARRAY,     QUIET=.TRUE. )
-!
-!            SPNOY10mb(:) = ARRAY(1,:,1)
-!
-!#endif
-!------------------------------------------------------------------------------
 
             !===========================================================
             ! XRATIO is the ratio ( [NO] + [NO2] ) / [NOy],
@@ -738,13 +659,6 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, PNOY )
-!-----------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1, GEOS-STRAT (bmy, 8/4/06)
-!#if   defined( GEOS_1 )
-!!$OMP+PRIVATE( AIRDENS )
-!#endif
-!-----------------------------------------------------
 !$OMP+SCHEDULE( DYNAMIC )
          DO L = LMIN, LLPAR
          DO J = 1,    JJPAR
@@ -755,27 +669,6 @@
 
                ! PNOY = P(NOy) converted from [v/v/s] to [v/v] 
                PNOY = STRATPNOY(J,L) * DTDYN 
-
-!------------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1, GEOS-STRAT (bmy, 8/4/06)
-!#if   defined( GEOS_1 )
-!               !========================================================
-!               ! Top level -- dump P(NOy) above 10 mb here
-!               ! AIRDENS   has units of [molec/cm3  ]
-!               ! SPNOY10mb has units of [molec/cm3/s]
-!               ! Convert SPNOY10mb to [v/v] and add to PNOY
-!               !
-!               ! NOTE: We only have to do this for GEOS-1 grid, since 
-!               ! GEOS-STRAT, GEOS-2 and GEOS-3 grids extend well above 
-!               ! 10 mb. (qli, rvm, bmy, 12/6/00)
-!               !========================================================
-!               IF ( L == LLPAR ) THEN 
-!                  AIRDENS = AD(I,J,L) * XNUMOLAIR / BOXVL(I,J,L)
-!                  PNOY    = PNOY + ( SPNOY10mb(J) * DTDYN / AIRDENS )
-!               ENDIF
-!#endif
-!------------------------------------------------------------------------------
 
                ! Add [NOx] and [HNO3] to PNOY.
                ! PNOY is now the total [NOy] concentration

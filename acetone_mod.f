@@ -1,4 +1,4 @@
-! $Id: acetone_mod.f,v 1.7 2006/08/14 17:58:00 bmy Exp $
+! $Id: acetone_mod.f,v 1.8 2006/09/08 19:20:50 bmy Exp $
       MODULE ACETONE_MOD
 !
 !******************************************************************************
@@ -415,20 +415,6 @@
 
       ! GEOS-3 1 x 1 (accounts for 1x1 surface area)
       REAL*8, PARAMETER :: SCALE_FACTOR = 0.05d0
-
-!----------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#elif defined( GEOS_STRAT ) && defined( GRID2x25 )
-!
-!      ! GEOS-STRAT 2 x 2.5 (accounts for 2x2.5 surface area)
-!      REAL*8, PARAMETER :: SCALE_FACTOR = 0.25d0
-!
-!#elif defined( GEOS_1 ) && defined( GRID2x25 )
-!      
-!      ! GEOS-1 2 x 2.5 (accounts for 2x2.5 surface area)
-!      REAL*8, PARAMETER :: SCALE_FACTOR = 0.25d0
-!----------------------------------------------------------------------
 
 #else
       

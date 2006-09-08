@@ -1,4 +1,4 @@
-! $Id: tagged_ox_mod.f,v 1.16 2006/08/14 17:58:16 bmy Exp $
+! $Id: tagged_ox_mod.f,v 1.17 2006/09/08 19:21:04 bmy Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
@@ -261,17 +261,6 @@
 
       ! PBLTOP is the model level at ~ 750 hPa
       ! MTTOP  is the model level at ~ 350 hPa
-!------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 )
-!      PBLTOP = 6
-!      MTTOP  = 11
-!#elif defined( GEOS_STRAT ) 
-!      PBLTOP = 6
-!      MTTOP  = 12
-!#elif defined( GEOS_3 ) 
-!------------------------------------------------------------------------
 #if   defined( GEOS_3 ) 
       PBLTOP = 10
       MTTOP  = 16

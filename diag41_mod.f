@@ -1,9 +1,9 @@
-! $Id: diag41_mod.f,v 1.4 2005/10/20 14:03:19 bmy Exp $
+! $Id: diag41_mod.f,v 1.5 2006/09/08 19:20:54 bmy Exp $
       MODULE DIAG41_MOD
 !
 !******************************************************************************
 !  Module DIAG41_MOD contains arrays and routines for archiving the ND41
-!  diagnostic -- Afternoon PBL heights. (bmy, 2/17/05, 10/3/05) 
+!  diagnostic -- Afternoon PBL heights. (bmy, 2/17/05, 9/5/06) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -30,6 +30,8 @@
 !  NOTES:
 !  (1 ) Updated for GCAP grid (bmy, 6/28/05)
 !  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (3 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
+!        (bmy, 9/5/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -124,6 +126,8 @@
 !  (1 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
 !        value for GEOS or GCAP grids. (bmy, 6/28/05)
 !  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (3 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
+!        (bmy, 9/5/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -165,7 +169,11 @@
       LONRES    = DISIZE
       MODELNAME = GET_MODELNAME()
       RESERVED  = ''
-      EPS       = TINY( 1d0 )
+      !-------------------------------
+      ! Prior to 9/5/06
+      !EPS       = TINY( 1d0 )
+      !-------------------------------
+      EPS       = 1d-32
          
       !=================================================================
       ! Write data to the bpch file

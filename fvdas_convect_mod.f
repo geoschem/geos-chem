@@ -1,11 +1,11 @@
-! $Id: fvdas_convect_mod.f,v 1.16 2006/07/14 18:36:47 bmy Exp $
+! $Id: fvdas_convect_mod.f,v 1.17 2006/09/08 19:20:57 bmy Exp $
       MODULE FVDAS_CONVECT_MOD
 !
 !******************************************************************************
 !  Module FVDAS_CONVECT_MOD contains routines (originally from NCAR) which 
 !  perform shallow and deep convection for the GEOS-4/fvDAS met fields.  
 !  These routines account for shallow and deep convection, plus updrafts 
-!  and downdrafts.  (pjr, dsa, bmy, 6/26/03, 6/27/06)
+!  and downdrafts.  (pjr, dsa, bmy, 6/26/03, 9/5/06)
 !  
 !  Module Variables:
 !  ============================================================================
@@ -15,7 +15,7 @@
 !  (4 ) EPS      (REAL*8 ) : A very small number [unitless]
 !  (5 ) GRAV     (REAL*8 ) : Gravitational constant [m/s2]
 !  (6 ) SMALLEST (REAL*8 ) : The smallest double-precision number 
-!  (7 ) TINYNUM  (REAL*8 ) : 2 times the machine epsilon for dble-precision
+!  (7 ) TINYNUM  (REAL*8 ) : 2 times EPS
 !  (8 ) TINYALT  (REAL*8 ) : arbitrary small num used in transport estimates
 !
 !  Module Routines:
@@ -45,6 +45,8 @@
 !  (8 ) Updated for ND14 diagnostic.  Now treat "negative" detrainment as 
 !        entrainment, which will better conserve mixing ratio in convection.
 !        (swu, bmy, 6/27/06)
+!  (9 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
+!        (bmy, 9/5/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -73,9 +75,17 @@
       REAL*8,  PARAMETER :: CMFTAU   = 3600.d0
       REAL*8,  PARAMETER :: EPS      = 1.0d-13   
       REAL*8,  PARAMETER :: GRAV     = 9.8d0
-      REAL*8,  PARAMETER :: SMALLEST = TINY(1d0)
+      !---------------------------------------------------
+      ! Prior to 9/5/06:
+      !REAL*8,  PARAMETER :: SMALLEST = TINY(1d0)
+      !---------------------------------------------------
+      REAL*8,  PARAMETER :: SMALLEST = 1.0d-32
       REAL*8,  PARAMETER :: TINYALT  = 1.0d-36       
-      REAL*8,  PARAMETER :: TINYNUM  = 2*EPSILON(1d0)
+      !---------------------------------------------------
+      ! Prior to 9/5/06:
+      !REAL*8,  PARAMETER :: TINYNUM  = 2*EPSILON(1d0)
+      !---------------------------------------------------
+      REAL*8,  PARAMETER :: TINYNUM  = 2*SMALLEST
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 

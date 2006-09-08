@@ -1,9 +1,9 @@
-! $Id: a6_read_mod.f,v 1.16 2006/08/14 17:57:59 bmy Exp $
+! $Id: a6_read_mod.f,v 1.17 2006/09/08 19:20:49 bmy Exp $
       MODULE A6_READ_MOD
 !
 !******************************************************************************
 !  Module A6_READ_MOD contains subroutines that unzip, open, and read
-!  GEOS-CHEM A-6 (avg 6-hour) met fields from disk. (bmy, 6/19/03, 8/4/06)
+!  GEOS-CHEM A-6 (avg 6-hour) met fields from disk. (bmy, 6/19/03, 9/8/06)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -46,6 +46,7 @@
 !  (10) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (11) Bug fix in ND66 diagnostic for ZMMU (bmy, 2/1/06)
 !  (12) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (13) Now set negative Q (i.e. SPHU)to a small positive # (bmy, 9/8/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -98,12 +99,6 @@
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      !-------------------------------------------------------------------
-      ! Prior to 8/4/06:
-      !USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_1_DIR 
-      !USE DIRECTORY_MOD, ONLY : GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR 
-      !USE DIRECTORY_MOD, ONLY : GEOS_5_DIR, TEMP_DIR 
-      !-------------------------------------------------------------------
       USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_3_DIR 
       USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
       USE ERROR_MOD,     ONLY : ERROR_STOP
@@ -128,23 +123,6 @@
       !=================================================================
       IF ( PRESENT( NYMD ) ) THEN
 
-!----------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields
-!#if   defined( GEOS_1 )
-!
-!         ! Strings for directory & filename
-!         GEOS_DIR = TRIM( GEOS_1_DIR )
-!         A6_STR   = 'YYMMDD.a6.'   // GET_RES_EXT() 
-!
-!#elif defined( GEOS_STRAT )
-!
-!         ! Strings for directory & filename
-!         GEOS_DIR = TRIM( GEOS_S_DIR )
-!         A6_STR   = 'YYMMDD.a6.'   // GET_RES_EXT() 
-!
-!#elif defined( GEOS_3 )
-!----------------------------------------------------------------------------
 #if   defined( GEOS_3 )
 
          ! Strings for directory & filename
@@ -344,12 +322,6 @@
 !      
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      !-----------------------------------------------------------------
-      ! Prior to 8/4/06:
-      !USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_1_DIR 
-      !USE DIRECTORY_MOD, ONLY : GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR 
-      !USE DIRECTORY_MOD, ONLY : GEOS_5_DIR, TEMP_DIR 
-      !-----------------------------------------------------------------
       USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_3_DIR 
       USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
       USE ERROR_MOD,     ONLY : ERROR_STOP
@@ -378,23 +350,6 @@
       ! Open A-6 file at the proper time, or on the first call
       IF ( DO_OPEN_A6( NYMD, NHMS ) ) THEN
 
-!---------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 ) 
-!
-!         ! Strings for directory & filename
-!         GEOS_DIR = TRIM( GEOS_1_DIR )
-!         A6_FILE  = 'YYMMDD.a6.'   // GET_RES_EXT()
-!
-!#elif defined( GEOS_STRAT )
-!
-!         ! Strings for directory & filename
-!         GEOS_DIR = TRIM( GEOS_S_DIR )
-!         A6_FILE  = 'YYMMDD.a6.'   // GET_RES_EXT()
-!
-!#elif defined( GEOS_3 )
-!---------------------------------------------------------------------------
 #if   defined( GEOS_3 )
 
          ! Strings for directory & filename
@@ -495,11 +450,12 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD, ONLY : CLDF,    CLDFRC,   CLDMAS,   CLMOSW, CLROSW, 
-     &                    CLDTOPS, DETRAINE, DETRAINN, DNDE,   DNDN,
-     &                    DTRAIN,  ENTRAIN,  HKBETA,   HKETA,  MOISTQ, 
-     &                    OPTDEP,  SPHU,     T,        UPDE,   UPDN,
-     &                    UWND,    VWND,     ZMEU,     ZMMD,   ZMMU
+      USE DAO_MOD, ONLY : CLDF,     CLDFRC,   CLDMAS,  CLDTOPS 
+      USE DAO_MOD, ONLY : DETRAINE, DETRAINN, DNDE,    DNDN
+      USE DAO_MOD, ONLY : DTRAIN,   ENTRAIN,  HKBETA,  HKETA  
+      USE DAO_MOD, ONLY : MOISTQ,   OPTDEP,   SPHU,    T      
+      USE DAO_MOD, ONLY : UPDE,     UPDN,     UWND,    VWND
+      USE DAO_MOD, ONLY : ZMEU,     ZMMD,     ZMMU
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -521,35 +477,6 @@
          RETURN
       ENDIF
 
-!-----------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 )
-!
-!      !=================================================================
-!      ! GEOS-1: read CLDF, CLDMAS, CLMO, CLRO, DTRAIN, MOISTQ
-!      !         and compute CLDTOPS
-!      !=================================================================
-!      CALL READ_A6( NYMD=NYMD,     NHMS=NHMS,       CLDF=CLDF,             
-!     &              CLDMAS=CLDMAS, CLDTOPS=CLDTOPS, CLMOLW=CLMOSW, 
-!     &              CLROLW=CLROSW, DTRAIN=DTRAIN,   MOISTQ=MOISTQ ) 
-!
-!#elif defined( GEOS_STRAT )
-!
-!      !=================================================================
-!      ! GEOS-S: read CLDF, CLDMAS, CLDTOPS, CLMO, CLRO, DTRAIN, MOISTQ
-!      !         and compute CLDTOPS
-!      !=================================================================
-!      CALL READ_A6( NYMD=NYMD,     NHMS=NHMS,       CLDF=CLDF,             
-!     &              CLDMAS=CLDMAS, CLDTOPS=CLDTOPS, CLMOLW=CLMOSW, 
-!     &              CLROLW=CLROSW, DTRAIN=DTRAIN,   MOISTQ=MOISTQ ) 
-!
-!      ! Construct the 2-D CFRAC field from CLMO and CLRO
-!      ! since this field is missing from GEOS-STRAT data
-!      CALL MAKE_CLDFRC( CLMOSW, CLROSW, CLDFRC )
-!
-!#elif defined( GEOS_3 ) 
-!-----------------------------------------------------------------------------
 #if   defined( GEOS_3 ) 
 
       !=================================================================      
@@ -602,115 +529,6 @@
       ! Return to calling program
       END SUBROUTINE GET_A6_FIELDS
 
-!------------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!      SUBROUTINE MAKE_CLDFRC( CLMOSW, CLROSW, CLDFRC )
-!!
-!!*****************************************************************************
-!!  Subroutine MAKE_CLDFRC constructs the GMAO CLDFRC field from the 
-!!  GEOS-STRAT CLMOSW and CLROSW fields. (bmy, 3/17/99, 12/9/03) 
-!!
-!!  Arguments as Input:
-!!  ===========================================================================
-!!  (1) CLMOSW (REAL*8) : GMAO Maximum Overlap Cloud Fraction Field
-!!  (2) CLROSW (REAL*8) : GMAO Random  Overlap Cloud Fraction Field
-!!
-!!  Arguments as Output:
-!!  ===========================================================================
-!!  (3) CLDFRC (REAL*8) : GMAO Column Cloud Fraction
-!!
-!!  NOTES:
-!!  (1 ) CLDFRC is not archived for GEOS-STRAT data, so we must compute it
-!!        from the CLMO and CLRO cloud fraction fields. (bmy, 6/26/00)
-!!  (2 ) CLDFRC is dimensioned (MAXIJ = IIPAR*JJPAR) for compatibility with
-!!        the Harvard dry deposition subroutines (bmy, 6/26/00)
-!!  (3 ) Save CLDFRC to ND67 diagnostic (bmy, 6/28/00)
-!!  (4 ) Updated comments (bmy, 4/4/01)
-!!  (5 ) Replaced all instances of IM with IIPAR and JM with JJPAR, in order
-!!        to prevent namespace confusion for the new TPCORE (bmy, 6/25/02)
-!!  (6 ) Moved from "dao_mod.f" to "a6_read_mod.f" (bmy, 6/19/03)
-!!  (7 ) CLDFRC is now a 2-D array (bmy, 12/9/03)
-!!*****************************************************************************
-!!
-!      ! Reference to F90 modules
-!      USE DIAG_MOD, ONLY : AD67
-!
-!#     include "CMN_SIZE"
-!#     include "CMN_DIAG"
-!
-!      ! Arguments
-!      REAL*8, INTENT(IN)  :: CLMOSW(LLPAR,IIPAR,JJPAR)
-!      REAL*8, INTENT(IN)  :: CLROSW(LLPAR,IIPAR,JJPAR)
-!      REAL*8, INTENT(OUT) :: CLDFRC(IIPAR,JJPAR)
-!
-!      ! Local variables
-!      INTEGER             :: I, J, L
-!      REAL*8              :: C1, C2
-!
-!      !=================================================================
-!      ! MAKE_CLDFRC begins here!!!
-!      !
-!      ! Compute CLDFRC value for each location (I,J)
-!      !
-!      ! NOTES:
-!      ! (1) CLDFRC = the fractional cloud cover as seen from the 
-!      !     surface looking up, that is, along a vertical line of sight
-!      !     extending from the surface through the top of the atmosphere. 
-!      !
-!      !     The maximum overlap clear sky probability computed along 
-!      !     a line of sight from a grid box (I,J,L=1) at the surface to
-!      !     a grid box (I,J,L=LLPAR) at the top of the atmosphere is:
-!      ! 
-!      !         C1 = 1 - (maximum of CLRO(L,I,J)), L = 1, LLPAR
-!      !
-!      !     The random overlap clear sky probability computed along 
-!      !     a line of sight from a grid box (I,J,L=1) at the surface to 
-!      !     a grid box (I,J,L=LLPAR) at the top of the atmosphere is:
-!      !         
-!      !         C2 = product of (1 - CLRO(L,I,J)), L = 1, LLPAR
-!      !
-!      !     Thus the fractional cloud cover as seen from grid box (I,J,L=1)
-!      !     at the surface looking up is:
-!      !
-!      !         CLDFRC( @ L, I, J ) = 1.0 - (C1 * C2)
-!      !
-!      !     CLDFRC is used by the Harvard CTM dry deposition routines.
-!      !
-!      ! (2) In GEOS-1 and GEOS-STRAT, CLMOLW=CLMOSW and CLROLW=CLROSW.
-!      !=================================================================
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!         C1 = CLMOSW(1,I,J)       
-!         C2 = 1.0d0 - CLROSW(1,I,J) 
-!
-!         DO L = 2, LLPAR
-!            IF ( CLMOSW(L,I,J) > CLMOSW(L-1,I,J) ) THEN
-!               C1 = CLMOSW(L,I,J)
-!            ENDIF
-!
-!            C2 = C2 * ( 1.0d0 - CLROSW(L,I,J) )
-!         ENDDO
-!
-!         C1          = 1.0d0 - C1
-!         CLDFRC(I,J) = 1.0d0 - (C1 * C2)
-!      ENDDO
-!      ENDDO
-!      
-!      !=================================================================
-!      ! ND67 diagnostic -- save CLDFRC as tracer #10
-!      !=================================================================
-!      IF ( ND67 > 0 ) THEN
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!            AD67(I,J,10) = AD67(I,J,10) + CLDFRC(I,J)
-!         ENDDO
-!         ENDDO
-!      ENDIF
-!
-!      ! Return to calling program
-!      END SUBROUTINE MAKE_CLDFRC
-!
 !------------------------------------------------------------------------------
 
       SUBROUTINE MAKE_GCAP_CLDFRC( CLDF, CLDFRC )
@@ -795,15 +613,6 @@
       !=================================================================
       ! GET_N_A6 begins here!
       !=================================================================
-!-------------------------------------------------------------------------
-! Prior to 8/4/06:
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-!
-!      ! GEOS-1 and GEOS-STRAT have 5 A-6 fields
-!      N_A6 = 5
-!
-!#elif defined( GEOS_3 )
-!-------------------------------------------------------------------------
 #if   defined( GEOS_3 )
 
       ! GEOS-3 has 6 A-6 fields
@@ -846,30 +655,6 @@
 !
 #     include "CMN_SIZE"
 
-!-----------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-!
-!      ! Arguments
-!      REAL*4,  INTENT(IN) :: XYMD, XHMS 
-!      INTEGER, INTENT(IN) :: NYMD, NHMS
-!
-!      ! Function value
-!      LOGICAL             :: ITS_TIME
-!
-!      !=================================================================
-!      ! GEOS-1 and GEOS-STRAT: XYMD and XHMS are REAL*4
-!      !=================================================================
-!      IF ( INT(XYMD) == NYMD-19000000 .AND. INT(XHMS) == NHMS ) THEN
-!         ITS_TIME = .TRUE.
-!      ELSE
-!         ITS_TIME = .FALSE.
-!      ENDIF
-!
-!#else
-!-----------------------------------------------------------------------------
-
       ! Arguments 
       INTEGER, INTENT(IN) :: XYMD, XHMS, NYMD, NHMS
       
@@ -884,11 +669,6 @@
       ELSE
          ITS_TIME = .FALSE.
       ENDIF
-
-!---------------------------
-! Prior to 8/4/06:
-!#endif
-!---------------------------
 
       ! Return to calling program
       END FUNCTION CHECK_TIME
@@ -905,7 +685,7 @@
 !
 !*****************************************************************************
 !  Subroutine READ_A6 reads A-6 (avg 6-hr) met fields from disk. 
-!  (bmy, 6/5/98, 8/4/06)
+!  (bmy, 6/5/98, 9/8/06)
 ! 
 !  Arguments as input:
 !  ===========================================================================
@@ -950,6 +730,8 @@
 !        Now references "CMN_DIAG". (swu, bmy, 5/25/05)
 !  (5 ) Bug fix in ND66 diagnostic for GEOS-4 (bmy, 2/1/06)
 !  (6 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (7 ) Now set negative SPHU to a small positive # (1d-32) instead of zero, 
+!        so as not to blow up logarithms (bmy, 9/8/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -998,18 +780,6 @@
       REAL*8                         :: CLDTOT(LLPAR,IIPAR,JJPAR)
       CHARACTER(LEN=8)               :: NAME
       CHARACTER(LEN=16)              :: STAMP
-
-!---------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!      ! XYMD, XHMS must be REAL*4 for GEOS-1 and GEOS-STRAT
-!      ! but INTEGER for GEOS-3 and GEOS-4 (bmy, 6/19/03)
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-!      REAL*4                         :: XYMD, XHMS
-!#else
-!      INTEGER                        :: XYMD, XHMS
-!#endif
-!---------------------------------------------------------------------------
       INTEGER                        :: XYMD, XHMS
 
       !=================================================================
@@ -1244,6 +1014,11 @@
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( Q ) ) CALL TRANSFER_3D( Q3, Q )
                   NFOUND = NFOUND + 1 
+
+                  ! NOTE: Now set negative Q to a small positive # 
+                  ! instead of zero, so as not to blow up logarithms
+                  ! (bmy, 9/8/06)
+                  WHERE ( Q < 0d0 ) Q = 1d-32
                ENDIF
 
             !--------------------------------
@@ -1464,44 +1239,11 @@
 
 #endif
 
-!----------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!      !=================================================================
-!      ! CLDF(IIPAR,JJPAR,LLPAR), is the DAO total cloud fraction.
-!      ! 
-!      ! For GEOS-1 and GEOS-STRAT, CLDF is computed from the CLMO and
-!      ! CLRO cloud fraction fields as follows:
-!      !     
-!      ! The total clear sky probability at grid box (I,J,L) is:  
-!      !                                                                       
-!      !       ( 1 - CLMO(I,J,L) ) * ( 1 - CLRO(I,J,L) ),            
-!      !                                                             
-!      ! thus the total cloudy-sky probability (cloud fraction) is:
-!      !                                                                       
-!      !       1 - ( 1 - CLMO(I,J,L) ) * ( 1 - CLRO(I,J,L) ).   
-!      !
-!      ! For GEOS-3 and GEOS-4, CLDF is read directly from disk 
-!      ! as the CLDTOT met field from the loop above.
-!      !=================================================================
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-!      IF ( PRESENT( CLDF ) ) THEN
-!         CLDF = 1d0 - ( ( 1d0 - CLMOLW ) * ( 1d0 - CLROLW ) )
-!      ENDIF
-!
-!#else
-!----------------------------------------------------------------------------
-
       ! For GEOS-3 and GEOS-4, CLDF is read directly from disk 
       ! as the CLDTOT met field from the loop above.
       IF ( PRESENT( CLDF ) ) THEN
          CLDF = CLDTOT
       ENDIF
-
-!------------------------
-! Prior to 8/4/06:
-!#endif
-!------------------------
 
       !=================================================================
       ! For 1998 GEOS-3 fields only, create OPTDEPTH = TAUCLD * CLDTOT

@@ -1,4 +1,4 @@
-! $Id: pbl_mix_mod.f,v 1.5 2006/08/14 17:58:12 bmy Exp $
+! $Id: pbl_mix_mod.f,v 1.6 2006/09/08 19:21:01 bmy Exp $
       MODULE PBL_MIX_MOD
 !
 !******************************************************************************
@@ -186,11 +186,6 @@
             P(L) = GET_PEDGE(I,J,L+1)
          ENDDO
 
-!----------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
-!----------------------------------------------------------------------------
 #if   defined( GEOS_3 )
 
          !----------------------------------------------
@@ -201,17 +196,6 @@
          ! PBL is in [hPa], so subtract it from surface pressure [hPa]
          BLTOP  = P(0) - PBL(I,J)
 
-!--------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_STRAT )
-!
-!         ! BLTHIK is PBL thickness [hPa]
-!         BLTHIK = PBL(I,J)
-!
-!#else
-!--------------------------------------------------------------------
-
          ! BLTHIK is PBL thickness [hPa]
          BLTHIK = MAX( PBL(I,J), 1d0 )
  
@@ -219,12 +203,6 @@
          ! a PBL depth of 2 mb.  This will prevent NaN's from
          ! propagating throughout the code. (bmy, 3/7/01)
          IF ( PBL(I,J) < 1d-5 ) BLTOP  = P(0) - 2d0
-
-!---------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#endif
-!---------------------------------------------------------------------
 
 #else
 

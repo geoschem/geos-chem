@@ -1,10 +1,10 @@
-! $Id: i6_read_mod.f,v 1.14 2006/08/14 17:58:08 bmy Exp $
+! $Id: i6_read_mod.f,v 1.15 2006/09/08 19:20:59 bmy Exp $
       MODULE I6_READ_MOD
 !
 !******************************************************************************
 !  Module I6_READ_MOD contains subroutines that unzip, open, and read
 !  GEOS-CHEM I-6 (instantaneous 6-hr) met fields from disk. 
-!  (bmy, 6/23/03, 8/4/06)
+!  (bmy, 6/23/03, 9/8/06)
 ! 
 !  Module Routines:
 !  =========================================================================
@@ -42,6 +42,7 @@
 !  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (10) Now make LWI REAL*8 for near-land formulation (ltm, bmy, 5/9/06)
 !  (11) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (12) Now set negative SPHU to a very small positive # (bmy, 9/8/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -94,12 +95,6 @@
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      !-----------------------------------------------------------------
-      ! Prior to 8/4/06:
-      !USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_1_DIR 
-      !USE DIRECTORY_MOD, ONLY : GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR 
-      !USE DIRECTORY_MOD, ONLY : GEOS_5_DIR, TEMP_DIR 
-      !-----------------------------------------------------------------
       USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_3_DIR 
       USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
       USE ERROR_MOD,     ONLY : ERROR_STOP
@@ -124,23 +119,6 @@
       !=================================================================
       IF ( PRESENT( NYMD ) ) THEN
 
-!-----------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 )
-!
-!         ! Strings for directory & filename
-!         GEOS_DIR = TRIM( GEOS_1_DIR )
-!         I6_STR   = 'YYMMDD.i6.'   // GET_RES_EXT() 
-!
-!#elif defined( GEOS_STRAT )
-!
-!         ! Strings for directory & filename
-!         GEOS_DIR = TRIM( GEOS_S_DIR )
-!         I6_STR   = 'YYMMDD.i6.'   // GET_RES_EXT() 
-!
-!#elif defined( GEOS_3 )
-!-----------------------------------------------------------------------------
 #if   defined( GEOS_3 )
 
          ! Strings for directory & filename
@@ -269,12 +247,6 @@
 !      
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      !------------------------------------------------------------------
-      ! Prior to 8/4/06:
-      !USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_1_DIR 
-      !USE DIRECTORY_MOD, ONLY : GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR 
-      !USE DIRECTORY_MOD, ONLY : GEOS_5_DIR, TEMP_DIR 
-      !------------------------------------------------------------------
       USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_3_DIR 
       USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
       USE ERROR_MOD,     ONLY : ERROR_STOP
@@ -303,23 +275,6 @@
       ! Open the A-3 file 0 GMT of each day, or on the first call
       IF ( NHMS == 000000 .or. FIRST ) THEN
 
-!-------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields
-!#if   defined( GEOS_1 ) 
-!
-!         ! Strings for directory & filename
-!         GEOS_DIR = TRIM( GEOS_1_DIR )
-!         I6_FILE  = 'YYMMDD.i6.'   // GET_RES_EXT()
-!
-!#elif defined( GEOS_STRAT )
-!
-!         ! Strings for directory & filename
-!         GEOS_DIR = TRIM( GEOS_S_DIR )
-!         I6_FILE  = 'YYMMDD.i6.'   // GET_RES_EXT()
-!
-!#elif defined( GEOS_3 )
-!-------------------------------------------------------------------------
 #if   defined( GEOS_3 )
 
          ! Strings for directory & filename
@@ -427,23 +382,6 @@
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS 
 
-!-----------------------------------------------------------------------------
-! Prior to 8/4/06:
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-!
-!      !=================================================================
-!      ! GEOS-1 and GEOS-STRAT: 
-!      ! read PS1, ALBD1, LWI, UWND1, VWND1, TMPU1, SPHU1    
-!      !=================================================================
-!      CALL READ_I6( NYMD=NYMD,  NHMS=NHMS,  ALBD=ALBD1,   
-!     &              LWI=LWI,    PS=PS1,     SPHU=SPHU1, 
-!     &              TMPU=TMPU1, UWND=UWND1, VWND=VWND1 )   
-!
-!      ! Initialize T with TMPU1
-!      T = TMPU1
-!
-!#elif defined( GEOS_3 )
-!-----------------------------------------------------------------------------
 #if   defined( GEOS_3 )
 
       !=================================================================
@@ -504,21 +442,6 @@
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS 
 
-!------------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-!
-!      !=================================================================
-!      ! GEOS-1 and GEOS-STRAT: 
-!      ! read PS1, ALBD1, LWI, UWND1, VWND1, TMPU1, SPHU1    
-!      !=================================================================
-!      CALL READ_I6( NYMD=NYMD,  NHMS=NHMS,  ALBD=ALBD2,   
-!     &              LWI=LWI,    PS=PS2,     SPHU=SPHU2, 
-!     &              TMPU=TMPU2, UWND=UWND2, VWND=VWND2 )   
-!
-!#elif defined( GEOS_3 )
-!------------------------------------------------------------------------------
 #if   defined( GEOS_3 )
 
       !=================================================================
@@ -577,16 +500,6 @@
       ! GET_N_I6 begins here!
       !=================================================================
 
-!-------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-!
-!      ! GEOS-1 and GEOS-STRAT have 7 I-6 fields
-!      N_I6 = 7
-!
-!#elif defined( GEOS_3 ) 
-!-------------------------------------------------------------------
 #if   defined( GEOS_3 ) 
       
       ! N_I6 is a function of year for GEOS-3
@@ -636,30 +549,6 @@
 !
 #     include "CMN_SIZE"
 
-!-----------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-!
-!      ! Arguments
-!      REAL*4,  INTENT(IN) :: XYMD, XHMS 
-!      INTEGER, INTENT(IN) :: NYMD, NHMS
-!
-!      ! Function value
-!      LOGICAL             :: ITS_TIME
-!
-!      !=================================================================
-!      ! GEOS-1 and GEOS-STRAT: XYMD and XHMS are REAL*4
-!      !=================================================================
-!      IF ( INT(XYMD) == NYMD-19000000 .AND. INT(XHMS) == NHMS ) THEN
-!         ITS_TIME = .TRUE.
-!      ELSE
-!         ITS_TIME = .FALSE.
-!      ENDIF
-!
-!#else
-!-----------------------------------------------------------------------------
-
       ! Arguments 
       INTEGER, INTENT(IN) :: XYMD, XHMS, NYMD, NHMS
       
@@ -674,11 +563,6 @@
       ELSE
          ITS_TIME = .FALSE.
       ENDIF
-
-!-----------------------
-! Prior to 8/4/06:
-!#endif
-!-----------------------
 
       ! Return to calling program
       END FUNCTION CHECK_TIME
@@ -717,7 +601,9 @@
 !  (3 ) Round up to account for GEOS-4 coastal boxes properly (bmy, 8/10/05)
 !  (4 ) For near-land formulation: (a) make LWI a REAL*8 and (b) do not round 
 !        up LWI for GEOS-4 meteorology (ltm, bmy, 5/9/06)
-!  (5 ) Remove support for GEOS-1 and GEOS-STRAT met fields
+!  (5 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (6 ) Now set negative SPHU to a small positive number (1d-32) instead of 
+!        zero, so as not to blow up logarithms (bmy, 9/8/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -747,18 +633,6 @@
       REAL*4                         :: Q3(IGLOB,JGLOB,LGLOB)
       CHARACTER(LEN=8)               :: NAME
       CHARACTER(LEN=16)              :: STAMP
-
-!-----------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields
-!      ! XYMD, XHMS must be REAL*4 for GEOS-1 and GEOS-STRAT
-!      ! but INTEGER for GEOS-3 and GEOS-4 (bmy, 6/23/03)
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-!      REAL*4                         :: XYMD, XHMS
-!#else
-!      INTEGER                        :: XYMD, XHMS
-!#endif
-!-----------------------------------------------------------------------
       INTEGER                        :: XYMD, XHMS
 
       !=================================================================
@@ -854,15 +728,22 @@
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( SPHU ) ) CALL TRANSFER_3D( Q3, SPHU )
                   !=====================================================
-                  ! There seems to be a problem with the GEOS-1 SPHU 
-                  ! files as read in from disk...negative numbers can 
-                  ! exist near the poles.  This is definitely a problem 
-                  ! with the original 2 x 2.5 files, and is not due to 
-                  ! the regridding process.  If a negative number is 
-                  ! found in a polar box, set it to zero 
-                  ! (bmy, 3/29/99, 6/23/00)
-                  !
-                  WHERE ( SPHU < 0.0 ) SPHU = 0d0
+                  !-------------------------------------------------------
+                  !! Prior to 9/8/06:
+                  !! There seems to be a problem with the GEOS-1 SPHU 
+                  !! files as read in from disk...negative numbers can 
+                  !! exist near the poles.  This is definitely a problem 
+                  !! with the original 2 x 2.5 files, and is not due to 
+                  !! the regridding process.  If a negative number is 
+                  !! found in a polar box, set it to zero 
+                  !! (bmy, 3/29/99, 6/23/00)
+                  !!
+                  !!WHERE ( SPHU < 0.0 ) SPHU = 0d0
+                  !-------------------------------------------------------
+                  ! NOTE: Now set negative SPHU to a small positive # 
+                  ! instead of zero, so as not to blow up logarithms
+                  ! (bmy, 9/8/06)
+                  WHERE ( SPHU < 0d0 ) SPHU = 1d-32
                   !=====================================================
                   NFOUND = NFOUND + 1
                ENDIF
@@ -1000,12 +881,6 @@
       ! (18) SLP    : Sea Level pressure                 [hPa]
       !=================================================================
       IF ( ND67 > 0 ) THEN 
-
-!--------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
-!--------------------------------------------------------------------------
          IF( PRESENT( ALBD  ) ) AD67(:,:,14) = AD67(:,:,14) + ALBD
          IF( PRESENT( TROPP ) ) AD67(:,:,17) = AD67(:,:,17) + TROPP
          IF( PRESENT( SLP   ) ) AD67(:,:,18) = AD67(:,:,18) + SLP

@@ -1,4 +1,4 @@
-! $Id: readchem.f,v 1.10 2006/08/14 17:58:12 bmy Exp $
+! $Id: readchem.f,v 1.11 2006/09/08 19:21:02 bmy Exp $
       SUBROUTINE READCHEM 
 !
 !******************************************************************************
@@ -955,12 +955,6 @@ C
      1       'DELIMETER ',A2,' HAD INCORRECT # OF REACTIONS ',I5)
  450  FORMAT('READCHEM: ORD# REACT ',I3,' CANT HAVE COEFF > 1')
  470  FORMAT('READCHEM: SURFACE REACTION ',I5,'HAS THREE REACTANTS ')
-!------------------------------------------------------------------------------
-! Prior to 8/9/06:
-! Increase FORMAT string to 14 products (bmy, 8/9/06)
-! 510  FORMAT(I3,1X,ES7.1,1X,ES7.1,I6,1X,0PF3.2,1X,
-!     1       A6,2(A1,A6),11(A1,0PF3.1,A6))  
-!------------------------------------------------------------------------------
  510  FORMAT(I3,1X,ES7.1,1X,ES7.1,I6,1X,0PF3.2,1X,
      1       A6,2(A1,A6),14(A1,0PF3.1,A6))  
  520  FORMAT( 'KINETIC REACTIONS FOR ', A,' CHEMISTRY',/,   

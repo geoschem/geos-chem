@@ -1,4 +1,4 @@
-! $Id: time_mod.f,v 1.23 2006/08/14 17:58:16 bmy Exp $
+! $Id: time_mod.f,v 1.24 2006/09/08 19:21:05 bmy Exp $
       MODULE TIME_MOD
 !
 !******************************************************************************
@@ -1869,11 +1869,6 @@
       ! GET_A3_TIME begins here!
       !=================================================================
 
-!--------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
-!--------------------------------------------------------------------------
 #if   defined( GEOS_3 )
 
       ! For GEOS-1, GEOS-STRAT, GEOS-3, the A-3 fields are timestamped 
@@ -1988,12 +1983,6 @@
       !=================================================================
       ! GET_FIRST_A3_TIME begins here!
       !=================================================================
-
-!--------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
-!--------------------------------------------------------------------------
 #if   defined( GEOS_3 )
 
       ! For GEOS-1, GEOS-STRAT, GEOS-3: Return the current date/time

@@ -1,5 +1,12 @@
-! $Id: main.f,v 1.38 2006/08/14 17:58:10 bmy Exp $
+! $Id: main.f,v 1.39 2006/09/08 19:21:00 bmy Exp $
 ! $Log: main.f,v $
+! Revision 1.39  2006/09/08 19:21:00  bmy
+! GEOS-Chem v7-04-09, includes the following modifications:
+! - Updated CO for David Streets (2001 for China, 2000 elsewhere)
+! - Now reset negative SPHU to a very small positive #
+! - Remove use of TINY(1d0) to avoid NaN's on SUN platform
+! - Minor bug fixes and deleted obsolete code
+!
 ! Revision 1.38  2006/08/14 17:58:10  bmy
 ! GEOS-Chem v7-04-08, includes the following modifications:
 ! - Now add David Streets' emissions for China & SE Asia
@@ -730,16 +737,6 @@
          ! Compute tropopause height for ND55 diagnostic
          IF ( ND55 > 0 ) CALL TROPOPAUSE
 
-!---------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_STRAT )
-!         ! For GEOS-STRAT, if U10M and V10M are missing, compute 
-!         ! the resultant wind speed at 10 meters (bmy, 6/27/00)
-!         CALL GET_WIND10M( NYMD )
-!
-!#elif defined( GEOS_3 )
-!---------------------------------------------------------------------------
 #if   defined( GEOS_3 )
 
          ! 1998 GEOS-3 carries the ground temperature and not the air
@@ -1103,14 +1100,6 @@
       WRITE( 6, '(a)' ) 'Created w/ IBM-AIX compiler'
 #elif defined( LINUX_PGI )
       WRITE( 6, '(a)' ) 'Created w/ LINUX/PGI compiler'
-!---------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for LINUX_IFC and LINUX_EFC compilers (bmy, 8/4/06)
-!#elif defined( LINUX_IFC )
-!      WRITE( 6, '(a)' ) 'Created w/ LINUX/IFC (32-bit) compiler'
-!#elif defined( LINUX_EFC )
-!      WRITE( 6, '(a)' ) 'Created w/ LINUX/EFC (64-bit) compiler'
-!---------------------------------------------------------------------------
 #elif defined( LINUX_IFORT )
       WRITE( 6, '(a)' ) 'Created w/ LINUX/IFORT (64-bit) compiler'
 #elif defined( SGI_MIPS  )
@@ -1122,15 +1111,6 @@
       !-----------------------
       ! Print met field info
       !-----------------------
-!---------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1     )
-!      WRITE( 6, '(a)' ) 'Using GEOS-1 met fields' 
-!#elif defined( GEOS_STRAT )
-!      WRITE( 6, '(a)' ) 'Using GEOS-STRAT met fields'
-!#elif defined( GEOS_3     )
-!---------------------------------------------------------------------
 #if   defined( GEOS_3     )
       WRITE( 6, '(a)' ) 'Using GEOS-3 met fields'
 #elif defined( GEOS_4     )
@@ -1203,42 +1183,6 @@
       ! Return to calling program
       END FUNCTION ITS_TIME_FOR_BPCH
 
-!------------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!
-!      SUBROUTINE GET_WIND10M( NYMD )
-!
-!      !=================================================================
-!      ! Internal Subroutine GET_WIND10M is a wrapper for routine
-!      ! MAKE_WIND10M (from "dao_mod.f").  
-!      !=================================================================
-!
-!      ! Arguments
-!      INTEGER, INTENT(IN) :: NYMD 
-!
-!      !=================================================================
-!      ! GEOS-STRAT winds prior to 13 Feb 1997 do not contain U10M and
-!      ! V10M fields.  Call MAKE_WIND10M to compute these fields from 
-!      ! the existing values of UWND, VWND, BXHEIGHT, and Z0.
-!      !
-!      ! Also set logical flag USE_WIND_10M to let SFCWINDSQR know that 
-!      ! the U10M and V10M fields are missing and had to be constructed 
-!      ! by MAKE_WIND10M. (bmy, 6/27/00)
-!      !=================================================================
-!#if   defined( GEOS_STRAT )
-!      IF ( NYMD < 19970213 ) THEN
-!         CALL MAKE_WIND10M( UWND=UWND(:,:,1),         VWND=VWND(:,:,1), 
-!     &                      BXHEIGHT=BXHEIGHT(:,:,1), Z0=Z0 )
-!         USE_WIND_10M = .TRUE.
-!      ELSE
-!         USE_WIND_10M = .FALSE.
-!      ENDIF
-!#endif
-!      
-!      ! Return to MAIN program
-!      END SUBROUTINE GET_WIND10M
-!
 !-----------------------------------------------------------------------------
 
       SUBROUTINE CTM_FLUSH
@@ -1300,7 +1244,7 @@
       ! References to F90 modules
       USE DAO_MOD, ONLY : AD,       AIRDEN,  AIRVOL,   ALBD1,  ALBD2
       USE DAO_MOD, ONLY : ALBD,     AVGW,    BXHEIGHT, CLDFRC, CLDF     
-      USE DAO_MOD, ONLY : CLDMAS,   CLDTOPS, CLMOSW,   CLROSW, DELP     
+      USE DAO_MOD, ONLY : CLDMAS,   CLDTOPS, DELP     
       USE DAO_MOD, ONLY : DTRAIN,   GWETTOP, HFLUX,    HKBETA, HKETA     
       USE DAO_MOD, ONLY : LWI,      MOISTQ,  OPTD,     OPTDEP, PBL      
       USE DAO_MOD, ONLY : PREACC,   PRECON,  PS1,      PS2,    PSC2     
@@ -1309,10 +1253,6 @@
       USE DAO_MOD, ONLY : TMPU1,    TMPU2,   T,        TROPP,  TS       
       USE DAO_MOD, ONLY : TSKIN,    U10M,    USTAR,    UWND1,  UWND2     
       USE DAO_MOD, ONLY : UWND,     V10M,    VWND1,    VWND2,  VWND     
-      !----------------------------------------------------------------
-      ! Prior to 8/4/06:
-      !USE DAO_MOD, ONLY : WIND_10M, Z0,      ZMEU,     ZMMD,   ZMMU   
-      !----------------------------------------------------------------  
       USE DAO_MOD, ONLY : Z0,       ZMEU,    ZMMD,     ZMMU     
 
       ! Local variables
@@ -1343,8 +1283,6 @@
       IF ( ALLOCATED( CLDF     ) ) PRINT*, 'CLDF    : ', CLDF(L,I,J) 
       IF ( ALLOCATED( CLDMAS   ) ) PRINT*, 'CLDMAS  : ', CLDMAS(I,J,L) 
       IF ( ALLOCATED( CLDTOPS  ) ) PRINT*, 'CLDTOPS : ', CLDTOPS(I,J) 
-      IF ( ALLOCATED( CLMOSW   ) ) PRINT*, 'CLMOSW  : ', CLMOSW(L,I,J) 
-      IF ( ALLOCATED( CLROSW   ) ) PRINT*, 'CLROSW  : ', CLROSW(L,I,J) 
       IF ( ALLOCATED( DELP     ) ) PRINT*, 'DELP    : ', DELP(L,I,J) 
       IF ( ALLOCATED( DTRAIN   ) ) PRINT*, 'DTRAIN  : ', DTRAIN(I,J,L) 
       IF ( ALLOCATED( GWETTOP  ) ) PRINT*, 'GWETTOP : ', GWETTOP(I,J) 
@@ -1386,10 +1324,6 @@
       IF ( ALLOCATED( VWND1    ) ) PRINT*, 'VWND1   : ', VWND1(I,J,L) 
       IF ( ALLOCATED( VWND2    ) ) PRINT*, 'VWND2   : ', VWND2(I,J,L) 
       IF ( ALLOCATED( VWND     ) ) PRINT*, 'VWND    : ', VWND(I,J,L) 
-      !------------------------------------------------------------------
-      ! Prior to 8/4/06:
-      !IF ( ALLOCATED( WIND_10M ) ) PRINT*, 'WIND_10M: ', WIND_10M(I,J) 
-      !------------------------------------------------------------------
       IF ( ALLOCATED( Z0       ) ) PRINT*, 'Z0      : ', Z0(I,J) 
       IF ( ALLOCATED( ZMEU     ) ) PRINT*, 'ZMEU    : ', ZMEU(I,J,L) 
       IF ( ALLOCATED( ZMMD     ) ) PRINT*, 'ZMMD    : ', ZMMD(I,J,L) 

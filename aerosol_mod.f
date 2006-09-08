@@ -1,4 +1,4 @@
-! $Id: aerosol_mod.f,v 1.10 2006/08/14 17:58:00 bmy Exp $
+! $Id: aerosol_mod.f,v 1.11 2006/09/08 19:20:50 bmy Exp $
       MODULE AEROSOL_MOD
 !
 !******************************************************************************
@@ -598,63 +598,12 @@
       !=================================================================
       IF ( DO_READ_DATA ) THEN
    
-!-----------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_STRAT )
-!
-!         ! Select proper dust file name
-!         ! Get TAU0 value used to index the punch file
-!         SELECT CASE ( THISYEAR )
-!           
-!            ! GEOS-STRAT -- 1996 dust fields from P. Ginoux
-!            ! Use 1996 fields as a proxy for December 1995
-!            CASE ( 1995, 1996 )
-!               FILENAME = TRIM( DATA_DIR )    // 
-!     &              'aerosol_200106/aerosol.' //
-!     &              GET_NAME_EXT() // '.'     // 
-!     &              GET_RES_EXT()  // '.1996'
-!
-!               XTAU = GET_TAU0( THISMONTH, 1, 1996 )
-!
-!            ! GEOS-STRAT -- 1997 dust fields from P. Ginoux
-!            CASE ( 1997 )
-!               FILENAME = TRIM( DATA_DIR )    // 
-!     &              'aerosol_200106/aerosol.' //
-!     &              GET_NAME_EXT() // '.'     // 
-!     &              GET_RES_EXT()  // '.1997'
-!               
-!               XTAU = GET_TAU0( THISMONTH, 1, 1997 )
-!           
-!            ! 1995, 1996, 1997 are the only valid GEOS-STRAT years
-!            CASE DEFAULT
-!               CALL ERROR_STOP( 'Invalid GEOS-STRAT year!', 'rdaer.f' )
-!
-!         END SELECT
-!
-!#elif defined( GEOS_1 )
-!
-!         ! Filename for GEOS-1
-!         FILENAME = TRIM( DATA_DIR ) // 'aerosol_200106/aerosol.' // 
-!     &              GET_NAME_EXT()   // '.' // GET_RES_EXT()
-!
-!         ! Use the "generic" year 1990
-!         XTAU = GET_TAU0( THISMONTH, 1, 1990 )
-!
-!#else 
-!-----------------------------------------------------------------------------
-
          ! Filename
          FILENAME = TRIM( DATA_DIR ) // 'aerosol_200106/aerosol.' // 
      &              GET_NAME_EXT()   // '.' // GET_RES_EXT()
 
          ! Use the "generic" year 1996
          XTAU = GET_TAU0( THISMONTH, 1, 1996 )
-
-!-----------------------
-! Prior to 8/4/06:
-!#endif
-!-----------------------
 
       ENDIF
 

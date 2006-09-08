@@ -1,4 +1,4 @@
-! $Id: gfed2_biomass_mod.f,v 1.3 2006/08/14 17:58:07 bmy Exp $
+! $Id: gfed2_biomass_mod.f,v 1.4 2006/09/08 19:20:58 bmy Exp $
       MODULE GFED2_BIOMASS_MOD
 !
 !******************************************************************************
@@ -312,13 +312,6 @@
 !$OMP END PARALLEL DO
 
          ! Regrid each species from GENERIC 1x1 GRID to GEOS-Chem 1x1 GRID
-!----------------------------------------------------------------------------
-! Prior to 8/9/06:
-! Now pass the unit to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
-!         CALL DO_REGRID_G2G_1x1( BIOM_GEN_1x1(:,:,N), 
-!     &                           BIOM_GEOS_1x1(:,:,N),
-!     &                           PER_UNIT_AREA=.TRUE. )
-!----------------------------------------------------------------------------
          CALL DO_REGRID_G2G_1x1( 'molec/cm2',
      &                            BIOM_GEN_1x1(:,:,N), 
      &                            BIOM_GEOS_1x1(:,:,N) )

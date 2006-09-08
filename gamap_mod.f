@@ -1,4 +1,4 @@
-! $Id: gamap_mod.f,v 1.16 2006/08/14 17:58:07 bmy Exp $
+! $Id: gamap_mod.f,v 1.17 2006/09/08 19:20:57 bmy Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
@@ -1849,28 +1849,10 @@
                CASE( 1  )
                   NAME (T,21) = 'OPTD'
                   FNAME(T,21) = 'Cloud optical depth'
-!----------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-!               CASE( 2  )
-!                  ! GEOS-1, GEOS-STRAT: CLMO
-!                  NAME (T,21) = 'CLMO'
-!                  FNAME(T,21) = 'Max overlap cloud frc'
-!               CASE( 3  )
-!                  ! GEOS-1, GEOS-STRAT: CLRO
-!                  NAME (T,21) = 'CLRO'
-!                  FNAME(T,21) = 'Random overlap cloud frc'
-!#else
-!----------------------------------------------------------------------
                CASE( 2  )
                   ! GEOS-3, GEOS-4: CLDTOT
                   NAME (T,21) = 'CLDTOT'
                   FNAME(T,21) = '3-D cloud frc'
-!-----------------------
-! Prior to 8/4/06:
-!#endif
-!-----------------------
                CASE( 4  )
                   NAME (T,21) = 'OPD'
                   FNAME(T,21) = 'Mineral dust opt depth'

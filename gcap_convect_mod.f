@@ -1,16 +1,16 @@
-! $Id: gcap_convect_mod.f,v 1.5 2006/03/29 15:41:29 bmy Exp $
+! $Id: gcap_convect_mod.f,v 1.6 2006/09/08 19:20:58 bmy Exp $
       MODULE GCAP_CONVECT_MOD
 !
 !******************************************************************************
 !  Module GCAP_CONVECT_MOD contains routines (originally from GISS) which
 !  perform shallow and deep convection for the GCAP met fields.  This module
-!  was based on FVDAS_CONVECT_MOD. (swu, bmy, 6/9/05, 12/13/05)
+!  was based on FVDAS_CONVECT_MOD. (swu, bmy, 6/9/05, 9/5/06)
 !  
 !  Module Variables:
 !  ============================================================================
 !  (1 ) GRAV     (REAL*8 ) : Gravitational constant [m/s2]
-!  (2 ) SMALLEST (REAL*8 ) : The smallest double-precision number 
-!  (3 ) TINYNUM  (REAL*8 ) : 2 times the machine epsilon for dble-precision
+!  (2 ) SMALLEST (REAL*8 ) : A very small double-precision number 
+!  (3 ) TINYNUM  (REAL*8 ) : 2 times the SMALLEST
 !
 !  Module Routines:
 !  ============================================================================
@@ -26,6 +26,8 @@
 !
 !  NOTES:  
 !  (1 ) Rewrote parallel loops to avoid problems w/ OpenMP (bmy, 12/13/05)
+!  (2 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
+!        (bmy, 9/5/06)
 !******************************************************************************
 !  
       IMPLICIT NONE
@@ -47,8 +49,13 @@
 
       ! Constants
       REAL*8,  PARAMETER :: GRAV     = 9.8d0
-      REAL*8,  PARAMETER :: SMALLEST = TINY(1D0)
-      REAL*8,  PARAMETER :: TINYNUM  = 2*EPSILON(1D0)
+      !-----------------------------------------------------
+      ! Prior to 9/5/06:
+      !REAL*8,  PARAMETER :: SMALLEST = TINY(1D0)
+      !REAL*8,  PARAMETER :: TINYNUM  = 2*EPSILON(1D0)
+      !-----------------------------------------------------
+      REAL*8,  PARAMETER :: SMALLEST = 1d-32
+      REAL*8,  PARAMETER :: TINYNUM  = 2*SMALLEST
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 

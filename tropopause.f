@@ -1,4 +1,4 @@
-! $Id: tropopause.f,v 1.4 2006/08/14 17:58:20 bmy Exp $
+! $Id: tropopause.f,v 1.5 2006/09/08 19:21:07 bmy Exp $
       SUBROUTINE TROPOPAUSE
 !
 !******************************************************************************
@@ -218,16 +218,7 @@
             ELSE IF ( J == 1 ) THEN
 
              ! Select the proper polar tropopause level 
-             ! for GEOS-1 or GEOS-STRAT or GEOS-3 (bmy, 5/20/02)
-!------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT (bmy, 8/4/06)
-!#if   defined( GEOS_1 )               
-!               LTPAUSE(1,1) = 11
-!#elif defined( GEOS_STRAT )
-!               LTPAUSE(1,1) = 13
-!#elif defined( GEOS_3 )
-!-------------------------------------------------------------------------
+             ! for GEOS-3 or GEOS-4 (bmy, 5/20/02)
 #if defined( GEOS_3 )
                LTPAUSE(1,1) = 16
 

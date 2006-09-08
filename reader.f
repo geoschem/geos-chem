@@ -1,4 +1,4 @@
-! $Id: reader.f,v 1.10 2006/08/14 17:58:13 bmy Exp $
+! $Id: reader.f,v 1.11 2006/09/08 19:21:02 bmy Exp $
       SUBROUTINE READER( FIRSTCHEM )
 !
 !******************************************************************************
@@ -542,12 +542,6 @@ C *********************************************************************
 C
       NMREAC         = 3
       NALLREAC       = 4 
-      !--------------------------------------------------------------------
-      ! Prior to 8/9/06:
-      ! Increase max # of products that a reaction can have from 12 
-      ! to 14.  This coincides w/ the new globchem.dat. (bmy, 8/9/06)
-      !NMPROD         = 12  
-      !--------------------------------------------------------------------
       NMPROD         = 14
       NPRODLO        = NALLREAC + 1 
       NPRODHI        = NALLREAC + NMPROD

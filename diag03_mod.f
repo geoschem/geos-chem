@@ -1,9 +1,9 @@
-! $Id: diag03_mod.f,v 1.11 2006/04/21 15:39:54 bmy Exp $
+! $Id: diag03_mod.f,v 1.12 2006/09/08 19:20:53 bmy Exp $
       MODULE DIAG03_MOD
 !
 !******************************************************************************
 !  Module DIAG03_MOD contains arrays and routines for archiving the ND03
-!  diagnostic -- Hg emissions, mass, and production. (bmy, 1/21/05, 4/6/06) 
+!  diagnostic -- Hg emissions, mass, and production. (bmy, 1/21/05, 9/5/06) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -38,6 +38,8 @@
 !  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (3 ) Add 2 extra diagnostics to ND03. Set PD03=15.  (cdh, bmy, 12/15/05)
 !  (4 ) Add loss of Hg2 by sea salt (eck, bmy, 4/6/06)
+!  (5 ) Replace TINY(1d0) w/ 1d-32 to avoid problems on SUN 4100 platform
+!        (bmy, 9/5/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -164,6 +166,8 @@
 !  (3 ) Add HgC ocean mass and converted to colloidal to ND03 diagnostic.
 !        The units of the Kw and conversion terms in ND03 should be kg
 !        and not divided by the scale factor. (cdh, sas, bmy, 2/26/02)
+!  (4 ) Replace TINY(1d0) w/ 1d-32 to avoid problems on SUN 4100 platform
+!        (bmy, 9/5/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -205,7 +209,11 @@
       LONRES    = DISIZE
       MODELNAME = GET_MODELNAME()
       RESERVED  = ''
-      SCALE     = DBLE( GET_CT_EMIS() ) + TINY( 1d0 )
+      !-----------------------------------------------------------------
+      ! Prior to 9/5/06:
+      !SCALE     = DBLE( GET_CT_EMIS() ) + TINY( 1d0 )
+      !-----------------------------------------------------------------
+      SCALE     = DBLE( GET_CT_EMIS() ) + 1d-32
          
       !=================================================================
       ! Write data to the bpch file

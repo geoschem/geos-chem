@@ -1,22 +1,23 @@
-! $Id: streets_anthro_mod.f,v 1.2 2006/08/18 20:32:39 bmy Exp $
+! $Id: streets_anthro_mod.f,v 1.3 2006/09/08 19:21:04 bmy Exp $
       MODULE STREETS_ANTHRO_MOD
 !
 !******************************************************************************
 !  Module STREETS_ANTHRO_MOD contains variables and routines to read the 
 !  David Streets et al Asian anthropogenic emissions for NOx and CO. 
-!  (yxw, bmy, 8/16/06)
+!  (yxw, bmy, 8/16/06, 9/5/06)
 !
 !  Module Variables:
 !  ============================================================================
-!  (1 ) A_CM2        (REAL*8)  : Array for grid box surface area [cm2]
-!  (2 ) MASK_CHINA   (REAL*8)  : Mask for the China region (for 2001 CO)
-!  (3 ) MASK_SE_ASIA (REAL*8)  : Mask for the SE Asia region (for 2000 emiss.)
-!  (4 ) NOx          (REAL*8)  : Streets anthro NOx emissions [kg/yr]
-!  (5 ) CO           (REAL*8)  : Streets anthro CO  emissions [kg/yr]
-!  (6 ) SO2          (REAL*8)  : Streets anthro SO2 emissions [kg/yr]
-!  (7 ) NH3          (REAL*8)  : Streets anthro NH3 emissions [kg/yr]          
-!  (8 ) CO2          (REAL*8)  : Streets anthro CO2 emissions [kg/yr]
-!  (9 ) CH4          (REAL*8)  : Streets anthro CH4 emissions [kg/yr]
+!  (1 ) A_CM2          (REAL*8 ) : Array for grid box surface area [cm2]
+!  (2 ) MASK_CHINA_1x1 (INTEGER) : Mask for the China region at 1x1 
+!  (2 ) MASK_CHINA     (REAL*8)  : Mask for the China region (for 2001 CO)
+!  (3 ) MASK_SE_ASIA   (REAL*8)  : Mask for the SE Asia region (for 2000 emiss)
+!  (4 ) NOx            (REAL*8)  : Streets anthro NOx emissions [kg/yr]
+!  (5 ) CO             (REAL*8)  : Streets anthro CO  emissions [kg/yr]
+!  (6 ) SO2            (REAL*8)  : Streets anthro SO2 emissions [kg/yr]
+!  (7 ) NH3            (REAL*8)  : Streets anthro NH3 emissions [kg/yr]       
+!  (8 ) CO2            (REAL*8)  : Streets anthro CO2 emissions [kg/yr]
+!  (9 ) CH4            (REAL*8)  : Streets anthro CH4 emissions [kg/yr]
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -55,6 +56,8 @@
 !        doi:10.1029/2002JD003093, 2003.
 !  
 !  NOTES: 
+!  (1 ) Modification: Now use 2001 CO over China, and 2000 CO over countries
+!        other than China in the larger SE Asia region. (yxw, bmy, 9/5/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -79,6 +82,7 @@
       !=================================================================
 
       ! Arrays
+      INTEGER, ALLOCATABLE :: MASK_CHINA_1x1(:,:)
       REAL*8,  ALLOCATABLE :: A_CM2(:)
       REAL*8,  ALLOCATABLE :: MASK_CHINA(:,:)
       REAL*8,  ALLOCATABLE :: MASK_SE_ASIA(:,:)
@@ -288,9 +292,10 @@
 !******************************************************************************
 !  Subroutine EMISS_STREETS_ANTHRO reads the David Streets et al emission 
 !  fields at 1x1 resolution and regrids them to the current model resolution.
-!  (bmy, 8/16/06)
+!  (bmy, 8/16/06, 9/5/06)
 !
 !  NOTES:
+!  (1 ) Overwrite 2000 SE Asia CO with 2001 CO over China (bmy, 9/5/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -304,9 +309,11 @@
 
       ! Local variables
       LOGICAL, SAVE           :: FIRST = .TRUE.
+      INTEGER                 :: I, J
       REAL*4                  :: ARRAY(I1x1,J1x1-1,1)
       REAL*8                  :: GEN_1x1(I1x1,J1x1-1)
       REAL*8                  :: GEOS_1x1(I1x1,J1x1,1)
+      REAL*8                  :: TMP(I1x1,J1x1-1)
       REAL*8                  :: TAU2000, TAU2001
       CHARACTER(LEN=255)      :: FILENAME
 
@@ -410,10 +417,55 @@
          CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, NOx )
 
          !--------------------------
-         ! Read CO and regrid
+         ! Read 2000 CO (SE Asia)
          !--------------------------
 
-         ! File name
+!------------------------------------------------------------------------------
+! Prior to 9/5/06:
+! Now read 2000 CO over Asia, and rewrite that w/ 2001 CO over China
+! (yxw, bmy, 9/5/06)
+!         ! File name
+!         FILENAME  = TRIM( DATA_DIR_1x1 ) // 
+!     &               'Streets_200607/Streets_CO_FF_2001.generic.1x1'
+!
+!         ! Echo info
+!         WRITE( 6, 100 ) TRIM( FILENAME )
+!
+!         ! Read data [unitless]
+!         CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 4, 
+!     &                    TAU2001,   I1x1,      J1x1-1,     
+!     &                    1,         ARRAY,     QUIET=.TRUE. ) 
+!
+!         ! Cast to REAL*8 before regridding
+!         GEN_1x1(:,:) = ARRAY(:,:,1)
+!
+!         ! Regrid from GENERIC 1x1 GRID to GEOS 1x1 GRID
+!         CALL DO_REGRID_G2G_1x1( 'kg/yr', GEN_1x1, GEOS_1x1(:,:,1) )
+!
+!         ! Regrid from GEOS 1x1 GRID to current model resolution
+!         CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, CO )
+!------------------------------------------------------------------------------
+
+         ! File name for 2000 CO over SE Asia
+         FILENAME  = TRIM( DATA_DIR_1x1 ) // 
+     &               'Streets_200607/Streets_CO_FF_2000.generic.1x1'
+
+         ! Echo info
+         WRITE( 6, 100 ) TRIM( FILENAME )
+
+         ! Read data [unitless]
+         CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 4, 
+     &                    TAU2000,   I1x1,      J1x1-1,     
+     &                    1,         ARRAY,     QUIET=.TRUE. ) 
+
+         ! Cast to REAL*8 before regridding
+         GEN_1x1(:,:) = ARRAY(:,:,1)
+
+         !--------------------------
+         ! Read 2001 CO (China)
+         !--------------------------
+
+         ! File name for 2001 CO over China only
          FILENAME  = TRIM( DATA_DIR_1x1 ) // 
      &               'Streets_200607/Streets_CO_FF_2001.generic.1x1'
 
@@ -426,7 +478,20 @@
      &                    1,         ARRAY,     QUIET=.TRUE. ) 
 
          ! Cast to REAL*8 before regridding
-         GEN_1x1(:,:) = ARRAY(:,:,1)
+         TMP(:,:) = ARRAY(:,:,1)
+
+         !--------------------------
+         ! Overwrite China & regrid
+         !--------------------------
+
+         ! Replace SE Asia CO for 2000 with China CO for 2001
+         DO J = 1, J1x1-1
+         DO I = 1, I1x1
+            IF ( MASK_CHINA_1x1(I,J) > 0 ) THEN
+               GEN_1x1(I,J) = TMP(I,J)
+            ENDIF
+         ENDDO
+         ENDDO
 
          ! Regrid from GENERIC 1x1 GRID to GEOS 1x1 GRID
          CALL DO_REGRID_G2G_1x1( 'kg/yr', GEN_1x1, GEOS_1x1(:,:,1) )
@@ -649,10 +714,11 @@
       SUBROUTINE READ_STREETS_MASKS
 !
 !******************************************************************************
-!  Subroutine READ_STREETS_MASKS reads and regrids the China and SE Asia
-!  masks that define the David Streets' emission regions (bmy, 8/16/06)
+!  Subroutine READ_STREETS_MASKS reads and regrids the China and SE Asia masks
+!  that define the David Streets' emission regions (bmy, 8/16/06, 9/5/06)
 !
 !  NOTES:
+!  (1 ) Now also save 1x1 CHINA MASK for use in other routines. (bmy, 9/5/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -691,6 +757,9 @@
 
       ! Cast to REAL*8 before regridding
       GEN_1x1(:,:) = ARRAY(:,:,1)
+
+      ! Save the 1x1 China mask for future use
+      MASK_CHINA_1x1(:,:) = GEN_1x1(:,:)
 
       ! Regrid from GENERIC 1x1 GRID to GEOS 1x1 GRID
       CALL DO_REGRID_G2G_1x1( 'unitless', GEN_1x1, GEOS_1x1(:,:,1) )
@@ -732,9 +801,10 @@
 !
 !******************************************************************************
 !  Subroutine INIT_STREETS_ANTHRO allocates and zeroes all module arrays.
-!  (bmy, 8/16/06) 
+!  (bmy, 8/16/06, 9/5/06) 
 !
 !  NOTES:
+!  (1 ) Now allocate MASK_CHINA_1x1 (bmy, 9/5/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -799,6 +869,10 @@
       ! Read & Regrid masks for Streets' emissions
       !---------------------------------------------------
 
+      ALLOCATE( MASK_CHINA_1x1( I1x1, J1x1-1 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASK_CHINA_1x1' )
+      MASK_CHINA_1x1 = 0
+
       ALLOCATE( MASK_CHINA( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASK_CHINA' )
       MASK_CHINA = 0d0
@@ -818,23 +892,26 @@
       SUBROUTINE CLEANUP_STREETS_ANTHRO
 !
 !******************************************************************************
-!  Subroutine CLEANUP_STREETS deallocates all module arrays (bmy, 8/16/06)
+!  Subroutine CLEANUP_STREETS deallocates all module arrays 
+!  (bmy, 8/16/06, 9/5/06)
 !
 !  NOTES:
+!  (1 ) Now deallocate MASK_CHINA_1x1 (bmy, 9/5/06)
 !******************************************************************************
 !
       !=================================================================
       ! CLEANUP_STREETS begins here!
       !=================================================================
-      IF ( ALLOCATED( A_CM2        ) ) DEALLOCATE( A_CM2        )
-      IF ( ALLOCATED( MASK_CHINA   ) ) DEALLOCATE( MASK_CHINA   ) 
-      IF ( ALLOCATED( MASK_SE_ASIA ) ) DEALLOCATE( MASK_SE_ASIA )
-      IF ( ALLOCATED( NOx          ) ) DEALLOCATE( NOx          )
-      IF ( ALLOCATED( CO           ) ) DEALLOCATE( CO           )
-      IF ( ALLOCATED( SO2          ) ) DEALLOCATE( SO2          )
-      IF ( ALLOCATED( NH3          ) ) DEALLOCATE( NH3          )
-      IF ( ALLOCATED( CH4          ) ) DEALLOCATE( CH4          )
-      IF ( ALLOCATED( CO2          ) ) DEALLOCATE( CO2          )
+      IF ( ALLOCATED( A_CM2          ) ) DEALLOCATE( A_CM2          )
+      IF ( ALLOCATED( MASK_CHINA_1x1 ) ) DEALLOCATE( MASK_CHINA_1x1 ) 
+      IF ( ALLOCATED( MASK_CHINA     ) ) DEALLOCATE( MASK_CHINA     ) 
+      IF ( ALLOCATED( MASK_SE_ASIA   ) ) DEALLOCATE( MASK_SE_ASIA   )
+      IF ( ALLOCATED( NOx            ) ) DEALLOCATE( NOx            )
+      IF ( ALLOCATED( CO             ) ) DEALLOCATE( CO             )
+      IF ( ALLOCATED( SO2            ) ) DEALLOCATE( SO2            )
+      IF ( ALLOCATED( NH3            ) ) DEALLOCATE( NH3            )
+      IF ( ALLOCATED( CH4            ) ) DEALLOCATE( CH4            )
+      IF ( ALLOCATED( CO2            ) ) DEALLOCATE( CO2            )
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_STREETS_ANTHRO

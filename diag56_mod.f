@@ -1,9 +1,9 @@
-! $Id: diag56_mod.f,v 1.2 2006/05/26 17:45:19 bmy Exp $
+! $Id: diag56_mod.f,v 1.3 2006/09/08 19:20:55 bmy Exp $
       MODULE DIAG56_MOD
 !
 !******************************************************************************
 !  Module DIAG56_MOD contains arrays and routines for archiving the ND56
-!  diagnostic -- lightning flash rates. (bmy, 5/11/06) 
+!  diagnostic -- lightning flash rates. (bmy, 5/11/06, 9/5/06) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -25,6 +25,8 @@
 !  (5 ) time_mod.f     : Module w/ routines to compute date & time
 !
 !  NOTES:
+!  (1 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
+!        (bmy, 9/5/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -83,7 +85,7 @@
 !
 !******************************************************************************
 !  Subroutine WRITE_DIAG03 writes the ND03 diagnostic arrays to the binary
-!  punch file at the proper time. (bmy, 5/11/06)
+!  punch file at the proper time. (bmy, 5/11/06, 9/5/06)
 !
 !   # : Field    : Description              : Units          : Scale factor
 !  --------------------------------------------------------------------------
@@ -92,6 +94,8 @@
 !  (3 ) LFLASH-$ : Cloud-ground flash rate  : flashes/min/km2 : SCALE_A6
 !
 !  NOTES:
+!  (1 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
+!        (bmy, 9/5/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -131,7 +135,11 @@
       LONRES    = DISIZE
       MODELNAME = GET_MODELNAME()
       RESERVED  = ''
-      SCALE     = DBLE( GET_CT_EMIS() ) + TINY( 1d0 )
+      !------------------------------------------------------
+      ! Prior to 9/5/06:
+      !SCALE     = DBLE( GET_CT_EMIS() ) + TINY( 1d0 )
+      !------------------------------------------------------
+      SCALE     = DBLE( GET_CT_EMIS() ) + 1d-32
          
       !=================================================================
       ! Write data to the bpch file

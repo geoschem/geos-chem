@@ -1,4 +1,4 @@
-! $Id: RnPbBe_mod.f,v 1.9 2006/08/14 17:57:58 bmy Exp $
+! $Id: RnPbBe_mod.f,v 1.10 2006/09/08 19:20:49 bmy Exp $
       MODULE RnPbBe_MOD
 !
 !******************************************************************************
@@ -211,17 +211,6 @@
       !
       ! Correction factors were computed by Hongyu Liu (hyl, 8/6/02)
       !=================================================================
-!---------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 )
-!      EMISSION = EMISSION / 3.0d0 
-!         
-!#elif defined( GEOS_STRAT )
-!      EMISSION = EMISSION / 2.5d0 
-!
-!#elif defined( GEOS_3 )
-!----------------------------------------------------------------------
 #if   defined( GEOS_3 )
       EMISSION = EMISSION / 3.5d0 
 

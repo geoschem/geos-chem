@@ -1,4 +1,4 @@
-! $Id: regrid_1x1_mod.f,v 1.8 2006/08/14 17:58:13 bmy Exp $
+! $Id: regrid_1x1_mod.f,v 1.9 2006/09/08 19:21:03 bmy Exp $
       MODULE REGRID_1x1_MOD
 !
 !******************************************************************************
@@ -84,11 +84,6 @@
 
 !------------------------------------------------------------------------------
 
-      !-----------------------------------------------------------------
-      ! Prior to 8/9/06:
-      ! Now pass UNIT via the arg list (bmy, 8/9/06)
-      !SUBROUTINE DO_REGRID_G2G_1x1( GEN1x1, GEOS1x1, PER_UNIT_AREA )
-      !-----------------------------------------------------------------
       SUBROUTINE DO_REGRID_G2G_1x1( UNIT, GEN1x1, GEOS1x1 )
 !
 !******************************************************************************
@@ -116,12 +111,6 @@
 #     include "CMN_GCTM"             ! Physical constants
 
       ! Arguments
-      !-------------------------------------------------------------
-      ! Prior to 8/9/06:
-      ! Now use ITS_CONCENTRATION_DATA to determine if the data
-      ! needs to be handled per unit area (bmy, 8/9/06)
-      !LOGICAL, INTENT(IN), OPTIONAL :: PER_UNIT_AREA
-      !-------------------------------------------------------------
       CHARACTER(LEN=*), INTENT(IN)  :: UNIT
       REAL*8,           INTENT(IN)  :: GEN1x1(I1x1,J1x1-1)
       REAL*8,           INTENT(OUT) :: GEOS1x1(I1x1,J1x1)
@@ -143,18 +132,6 @@
          CALL INIT_REGRID_1x1
          FIRST = .FALSE.
       ENDIF
-
-      !-----------------------------------------------------
-      ! Prior to 8/9/06:
-      ! Now use function ITS_CONCENTRATION_DATA to determine
-      ! if the data is concentration or mass (bmy, 8/9/06)
-      !! Save value of UNIT_AREA to local variable
-      !IF ( PRESENT( PER_UNIT_AREA ) ) THEN
-      !   ITS_PER_UNIT_AREA = PER_UNIT_AREA 
-      !ELSE
-      !   ITS_PER_UNIT_AREA = .FALSE.
-      !ENDIF
-      !-----------------------------------------------------
 
       ! Is this concentration data?  
       ITS_PER_UNIT_AREA = ITS_CONCENTRATION_DATA( UNIT )

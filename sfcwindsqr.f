@@ -1,4 +1,4 @@
-! $Id: sfcwindsqr.f,v 1.2 2006/08/14 17:58:14 bmy Exp $
+! $Id: sfcwindsqr.f,v 1.3 2006/09/08 19:21:04 bmy Exp $
       REAL*8 FUNCTION SFCWINDSQR( I, J ) 
 !
 !******************************************************************************
@@ -32,12 +32,6 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      !--------------------------------------------------------------------
-      ! Prior to 8/4/06:
-      ! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-      !USE DAO_MOD,   ONLY : U10M, V10M, WIND_10M, USE_WIND_10M
-      !USE ERROR_MOD, ONLY : CHECK_VALUE
-      !--------------------------------------------------------------------
       USE DAO_MOD,   ONLY : U10M, V10M
 
       IMPLICIT NONE
@@ -50,42 +44,9 @@
       !=================================================================
       ! SFCWINDSQR begins here!!
       !=================================================================
-!-----------------------------------------------------------------------------
-! Prior to 8/4/06:
-!      ! If using GEOS-STRAT fields, then square the value of 
-!      ! WIND_10M as computed from the instantaneous U and V winds 
-!      ! in MAKE_WIND10M.
-!      !
-!      ! Otherwise (i.e. for GEOS-1, GEOS-2, and GEOS-3 met data), 
-!      ! square the U10M and V10M wind vectors and take that as the 
-!      ! surface wind speed.
-!      !=================================================================
-!#if   defined ( GEOS_STRAT )
-!      IF ( USE_WIND_10M ) THEN
-!         SFCWINDSQR = WIND_10M(I,J)**2
-!      ELSE
-!         SFCWINDSQR = U10M(I,J)**2 + V10M(I,J)**2
-!      ENDIF
-!
-!#else
-!      SFCWINDSQR = U10M(I,J)**2 + V10M(I,J)**2
-!
-!#endif
-!-----------------------------------------------------------------------------
 
       ! Take the 10m wind speed squared as sfc wind speed squared
       SFCWINDSQR = U10M(I,J)**2 + V10M(I,J)**2
-
-!------------------------------------------------------------------------
-! Prior to 8/4/06:
-! We don't need the error check because SFCWINDSQR should now always be
-! positive definite.  This was needed for the GEOS-STRAT wind speed,
-! which was computed from the surface UWND/VWND and then interpolated
-! using the 10m log law. (bmy, 8/4/06)
-!      ! Now check for NaN or Infinity (bmy, 7/16/01)
-!      CALL CHECK_VALUE( SFCWINDSQR, (/I,J,0,0/), 
-!     &                 'SFCWINDSQR', 'at sfcwindsqr.f' )
-!------------------------------------------------------------------------
 
       ! Return to calling program
       END FUNCTION SFCWINDSQR

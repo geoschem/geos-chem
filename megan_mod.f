@@ -1,4 +1,4 @@
-! $Id: megan_mod.f,v 1.4 2006/08/14 17:58:11 bmy Exp $
+! $Id: megan_mod.f,v 1.5 2006/09/08 19:21:01 bmy Exp $
       MODULE MEGAN_MOD
 !
 !******************************************************************************
@@ -1612,11 +1612,6 @@
       ! Astronomical Julian Date of the A3 file at start of run
       JD_T15b   = GET_JD( NYMD_T15b, NHMS_T15b )
 
-!-------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT ) || defined( GEOS_3 )
-!-------------------------------------------------------------------------
 #if   defined( GEOS_3 )
 
       ! For GEOS-1, GEOS-STRAT, GEOS-3, the A-3 fields are timestamped 

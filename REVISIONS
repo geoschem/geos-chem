@@ -1,273 +1,70 @@
-REVISIONS (v7-04-08)  
-14 Aug 2006
+REVISIONS (v7-04-09)  
+08 Sep 2006
 Philippe Le Sager (phs@io.as.harvard.edu) and
 Bob Yantosca      (bmy@io.as.harvard.edu)
 
 
-New in v7-04-08:
+New in v7-04-09:
 -------------------------------------------------------------------------------
 
-streets_anthro_mod.f	-- Module containing routines to emit David Streets'
-			   anthropogenic emissions over China & SE Asia
 
 
-
-Removed in v7-04-08:
+Removed in v7-04-09:
 -------------------------------------------------------------------------------
 
-make_cldfrc		-- This was only for GEOS-STRAT, which is now removed 
-("a6_read_mod.f")
-
-make_wind10m		-- This was only for GEOS-STRAT, which is now removed 
-("dao_mod.f")
-
-od_geos1_geoss		-- This was only for GEOS-STRAT, which is now removed 
-("optdepth_mod")
 
 
-
-Changed from v7-04-07:
+Changed in v7-04-08:
 -------------------------------------------------------------------------------
 
-check_time		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("a3_read_mod.f")
+cleanup_streets_anthro  -- Now deallocate MASK_CHINA_1x1
+("streets_anthro_mod.f")
 
-check_time		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("a6_read_mod.f")
+diag3.f			-- Replace TINY(1d0) with 1d-32 to avoid problems 
+			   on SUN 4100 platform
 
-check_time		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("gwet_read_mod.f")
+emfossil.f		-- Bug fix: Now only execute EDGAR CO block if the 
+			   tracer is CO
 
-check_time		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("i6_read_mod.f")
+emiss_streets_anthro	-- Overwrite 2000 SE Asia CO with 2001 CO over China 
+("streets_anthro_mod.f")
 
-cleanup_dao		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("dao_mod.f")
+fvdas_convect_mod.f	-- Replace TINY(1d0) with 1d-32 to avoid problems 
+			   on SUN 4100 platform
 
-compute_pbl_height	-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("pbl_mix_mod.f")
+gcap_convect_mod.f	-- Replace TINY(1d0) with 1d-32 to avoid problems 
+			   on SUN 4100 platform
 
-copy_i6_fields		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("dao_mod.f")
+get_alk			-- Becky Alexander says we can remove AREA1, AREA2
+("seasalt_mod.f")
 
-correct_ste		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("RnPbBe_mod.f")
+init_streets_anthro	-- Now allocate MASK_CHINA_1x1
+("streets_anthro_mod.f")
 
-debug_msg		-- Remove support for LINUX_IFC & LINUX_EFC compilers
-("error_mod.f")
+read_a6			-- Now set negative SPHU to a small positive number 
+("a6_read_mod.f")          instead of zero, so as not to blow up logarithms 
 
-define.h		-- Removed GEOS_1, GEOS_STRAT, LINUX_IFC, LINUX_EFC
+read_i6			-- Now set negative SPHU to a small positive number 
+("i6_read_mod.f")          instead of zero, so as not to blow up logarithms 
 
-diag1.f			-- Remove support for GEOS-1 and GEOS-STRAT met fields
+read_streets_masks	-- Now also save 1x1 CHINA MASK for use in other 
+("streets_anthro_mod.f")   routines
 
-diag3.f			-- Remove support for GEOS-1 and GEOS-STRAT met fields
+wet_settling		-- Bug fix: DTCHEM has to be REAL*8, not integer
+("seasalt_mod.f")	   
 
-do_chemistry		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("chemistry_mod.f")
+write_diag03		-- Replace TINY(1d0) with 1d-32 to avoid problems 
+("diag03_mod.f")	   on SUN 4100 platform
 
-do_emissions		-- Now references EMISS_STREETS_ANTHRO from 
-("streets_anthro_mod.f")   "streets_anthro_mod.f"
+write_diag04		-- Replace TINY(1d0) with 1d-32 to avoid problems 
+("diag03_mod.f")	   on SUN 4100 platform
 
-do_open_a3		-- Reverse the logic of the #if block
-("a3_read_mod.f")
+write_diag41		-- Replace TINY(1d0) with 1d-32 to avoid problems 
+("diag41_mod.f")	   on SUN 4100 platform
 
-do_regrid_g2g_1x1	-- Now pass UNIT via the arg list and pass that to 
-("regrid_1x1_mod.f")	   ITS_CONCENTRATION_DATA to determine if the data to 
-			   be regridded is concentration data or mass data.  
-			   This is now consistent with routine DO_REGRID_1x1.
+write_diag42		-- Replace TINY(1d0) with 1d-32 to avoid problems 
+("diag42_mod.f")	   on SUN 4100 platform
 
-emfossil.f		-- Now do BRAVO emissions before EPA/NEI99 emissions
-			   in order to avoid zero emissions in some boxes
-			-- Now add David Streets emissions for NOx over
-			   SE Asia and CO over just China
+write_diag56		-- Replace TINY(1d0) with 1d-32 to avoid problems 
+("diag56_mod.f")	   on SUN 4100 platform
 
-emiss_bravo		-- Now pass the unit string to DO_REGRID_G2G_1x1 
-("bravo_mod.f")
-
-finite_dble		-- Remove support for LINUX_IFC & LINUX_EFC compilers
-("error_mod.f")
-
-finite_float		-- Remove support for LINUX_IFC & LINUX_EFC compilers
-("error_mod.f")
-
-get_a3_time		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("time_mod.f")
-
-get_first_a3_time	-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("time_mod.f")
-
-get_a3_fields		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("a3_read_mod.f")
-
-get_a6_fields		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("a6_read_mod.f")
-
-get_i6_fields_1		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("i6_read_mod.f")
-
-get_i6_fields_2		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("i6_read_mod.f")
-
-get_l_copy		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("transfer_mod.f")
-
-get_modelname		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("bpch2_mod.f")
-
-get_n_a3		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("a3_read_mod.f")
-
-get_n_a6		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("a6_read_mod.f")
-
-get_n_i6		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("i6_read_mod.f")
-
-get_name_ext		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("bpch2_mod.f")
-
-get_met_field_scale	-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("lightning_nox_mod.f")
-
-get_regional_pox	-- Remove support for GEOS-1 and GEOS-STRAT met fields 
-("tagged_ox_mod.f")
-
-gfed2_compute_biomass	-- Now pass the unit string to DO_REGRID_G2G_1x1
-("gfed2_biomass_mod.f")
-
-init_lightning_nox	-- Remove support for GEOS-1 and GEOS-STRAT met fields 
-("lightning_nox_mod.f")
-
-init_dao		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("dao_mod.f")
-
-init_gamap		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("gamap_mod.f")
-
-init_pressure		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("pressure_mod.f")
-
-interp			-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("dao_mod.f")
-
-ioerror			-- Remove support for LINUX_IFC & LINUX_EFC compilers
-("file_mod.f")
-
-is_ice			-- Remove support for GEOS-1 and GEOS-STRAT met fields 
-("dao_mod.f)
-
-is_land			-- Remove support for GEOS-1 and GEOS-STRAT met fields 
-("dao_mod.f)
-
-is_water		-- Remove support for GEOS-1 and GEOS-STRAT met fields 
-("dao_mod.f)
-
-its_concentration_data	-- Added kg/s, kg/month, kg/season to CASE statement
-("regrid_1x1_mod.f")
-
-lightdist		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("lightning_nox_mod.f")
-
-logical_mod.f		-- Added LSTREETS for David Streets' emissions
-
-main.f			-- Remove support for LINUX_IFC & LINUX_EFC compilers
-			-- Remove support for GEOS-1 and GEOS-STRAT met fields
-
-nan_dble		-- Remove support for LINUX_IFC & LINUX_EFC compilers
-("error_mod.f")
-
-nan_float		-- Remove support for LINUX_IFC & LINUX_EFC compilers
-("error_mod.f")
-
-ocean_source_acet	-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("acetone_mod.f")
-
-open_a3_fields		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("a3_read_mod.f")
-
-open_a6_fields		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("i6_read_mod.f")
-
-open_gwet_fields	-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("gwet_read_mod.f")
-
-open_i6_fields		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("i6_read_mod.f")
-
-rdaer			-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("aerosol_mod.f")
-
-rdust_offline		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("dust_mod.f")
-
-read_a3			-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("a3_read_mod.f")
-
-read_a6			-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("a6_read_mod.f")
-
-read_bravo_mask		-- Now pass the unit string to DO_REGRID_G2G_1x1
-("edgar_mod.f")
-
-readchem.f		-- Increase FORMAT 510 so that it has space for 
-			   14 products
-
-read_anthro_nh3		-- Now overwrite w/ David Streets' NH3, if necessary 
-("sulfate_mod.f")
-
-read_anthro_sox		-- Now overwrite w/ David Streets' SO2, if necessary 
-("sulfate_mod.f")
-
-read_edgar_co		-- Now pass the unit string to DO_REGRID_G2G_1x1
-("edgar_mod.f")
-
-read_edgar_nox		-- Now pass the unit string to DO_REGRID_G2G_1x1
-("edgar_mod.f")
-
-read_edgar_so2		-- Now pass the unit string to DO_REGRID_G2G_1x1
-("edgar_mod.f")
-
-read_emissions_menu	-- Now read LSTREETS for David Streets' emissions
-("input_mod.f")
-
-read_gwet		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("gwet_read_mod.f")
-
-read_i6			-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("i6_read_mod.f")
-
-reader.f		-- Increase max # of products (NMPROD) that a reaction
-                           can have from 12 to 14.  This coincides w/ the new 
-                           globchem.dat. 
-
-sfcwindsqr.f		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-			-- Also remove call to CHECK_VALUE.
-
-tpcore			-- Remove support for LINUX_IFC & LINUX_EFC compilers 
-("tpcore_mod.f")
-
-tpcore_window		-- Remove support for LINUX_IFC & LINUX_EFC compilers 
-("tpcore_window_mod.f")
-
-tropopause.f		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-
-unzip_a3_fields		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("a3_read_mod.f")
-
-unzip_a6_fields		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("a6_read_mod.f")
-
-unzip_gwet_fields	-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("gwet_read_mod.f")
-
-unzip_i6_fields		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("i6_read_mod.f")
-
-upbdflx_noy		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("upbdflx_mod.f")
-
-upbdflx_o3		-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("upbdflx_mod.f")
-
-validate_directories	-- Remove support for GEOS-1 and GEOS-STRAT met fields
-("input_mod.f")

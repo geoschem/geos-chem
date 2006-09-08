@@ -1,4 +1,4 @@
-! $Id: gwet_read_mod.f,v 1.9 2006/08/14 17:58:08 bmy Exp $
+! $Id: gwet_read_mod.f,v 1.10 2006/09/08 19:20:58 bmy Exp $
       MODULE GWET_READ_MOD
 !
 !******************************************************************************
@@ -83,11 +83,6 @@
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      !------------------------------------------------------------------
-      ! Prior to 8/4/06:
-      !USE DIRECTORY_MOD, ONLY : DATA_DIR,   GEOS_1_DIR, GEOS_S_DIR
-      !USE DIRECTORY_MOD, ONLY : GEOS_3_DIR, TEMP_DIR
-      !------------------------------------------------------------------
       USE DIRECTORY_MOD, ONLY : DATA_DIR,   GEOS_3_DIR, TEMP_DIR
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE TIME_MOD,      ONLY : EXPAND_DATE
@@ -111,32 +106,9 @@
       !=================================================================
       IF ( PRESENT( NYMD ) ) THEN
  
-!-------------------------------------------------------------------------- 
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 )
-!
-!         ! String w/ date & resolution
-!         GEOS_DIR = TRIM( GEOS_1_DIR )
-!         GWET_STR = 'YYMMDD.gwet.' // GET_RES_EXT() 
-!
-!#elif defined( GEOS_STRAT )
-!
-!         ! String w/ date & resolution
-!         GEOS_DIR = TRIM( GEOS_S_DIR )
-!         GWET_STR = 'YYMMDD.gwet.' // GET_RES_EXT() 
-!
-!#elif defined( GEOS_3 )
-!--------------------------------------------------------------------------    
-
          ! String w/ date & resolution
          GEOS_DIR = TRIM( GEOS_3_DIR )
          GWET_STR = 'YYYYMMDD.gwet.' // GET_RES_EXT() 
-
-!------------------
-! Prior to 8/4/06:
-!#endif
-!------------------
 
          ! Replace date tokens
          CALL EXPAND_DATE( GEOS_DIR, NYMD, 000000 )
@@ -292,12 +264,6 @@
 !      
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      !-------------------------------------------------------------------
-      ! Prior to 8/4/06:
-      ! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-      !USE DIRECTORY_MOD, ONLY : DATA_DIR,   GEOS_1_DIR, GEOS_S_DIR
-      !USE DIRECTORY_MOD, ONLY : GEOS_3_DIR, TEMP_DIR
-      !-------------------------------------------------------------------
       USE DIRECTORY_MOD, ONLY : DATA_DIR,   GEOS_3_DIR, TEMP_DIR
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE LOGICAL_MOD,   ONLY : LUNZIP
@@ -325,32 +291,9 @@
       ! Open A-3 fields at the proper time, or on the first call
       IF ( DO_OPEN_GWET( NYMD, NHMS ) ) THEN
 
-!----------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 ) 
-!
-!         ! Strings for directory & filename
-!         GEOS_DIR  = TRIM( GEOS_1_DIR )
-!         GWET_FILE = 'YYMMDD.gwet.'   // GET_RES_EXT()
-!
-!#elif defined( GEOS_STRAT )
-!
-!         ! Strings for directory & filename
-!         GEOS_DIR  = TRIM( GEOS_S_DIR )
-!         GWET_FILE = 'YYMMDD.gwet.'   // GET_RES_EXT()
-!
-!#elif defined( GEOS_3 )
-!----------------------------------------------------------------------
-
          ! String w/ date and resolution
          GEOS_DIR  = TRIM( GEOS_3_DIR )
          GWET_FILE = 'YYYYMMDD.gwet.' // GET_RES_EXT()
-
-!-------------------
-! Prior to 8/4/06:
-!#endif
-!-------------------
 
          ! Replace date tokens
          CALL EXPAND_DATE( GEOS_DIR,  NYMD, NHMS )
@@ -468,30 +411,6 @@
 !
 #     include "CMN_SIZE"
 
-!-----------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-!
-!      ! Arguments
-!      REAL*4,  INTENT(IN) :: XYMD, XHMS 
-!      INTEGER, INTENT(IN) :: NYMD, NHMS
-!
-!      ! Function value
-!      LOGICAL             :: ITS_TIME
-!
-!      !=================================================================
-!      ! GEOS-1 and GEOS-STRAT: XYMD and XHMS are REAL*4
-!      !=================================================================
-!      IF ( INT(XYMD) == NYMD-19000000 .AND. INT(XHMS) == NHMS ) THEN
-!         ITS_TIME = .TRUE.
-!      ELSE
-!         ITS_TIME = .FALSE.
-!      ENDIF
-!
-!#else
-!-----------------------------------------------------------------------------
-
       ! Arguments 
       INTEGER, INTENT(IN) :: XYMD, XHMS, NYMD, NHMS
       
@@ -506,11 +425,6 @@
       ELSE
          ITS_TIME = .FALSE.
       ENDIF
-
-!----------------------
-! Prior to 8/4/06:
-!#endif
-!----------------------
 
       ! Return to calling program
       END FUNCTION CHECK_TIME
@@ -556,18 +470,6 @@
       REAL*4                         :: Q2(IGLOB,JGLOB)
       CHARACTER(LEN=8)               :: NAME
       CHARACTER(LEN=16)              :: STAMP
-
-!--------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!      ! XYMD, XHMS must be REAL*4 for GEOS-1, GEOS-STRAT
-!      ! but INTEGER for GEOS-3 and GEOS-4 (bmy, 6/23/03)
-!#if   defined( GEOS_1 ) || defined( GEOS_STRAT )
-!      REAL*4                         :: XYMD, XHMS 
-!#else
-!      INTEGER                        :: XYMD, XHMS
-!#endif
-!--------------------------------------------------------------------------
       INTEGER                        :: XYMD, XHMS
 
       !=================================================================

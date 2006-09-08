@@ -1,4 +1,4 @@
-! $Id: dust_mod.f,v 1.13 2006/08/14 17:58:05 bmy Exp $
+! $Id: dust_mod.f,v 1.14 2006/09/08 19:20:55 bmy Exp $
       MODULE DUST_MOD
 !
 !******************************************************************************
@@ -1297,52 +1297,10 @@
          ! Use the "generic" year 1985
          XTAU = GET_TAU0( THISMONTH, 1, 1985 )
          
-!-----------------------------------------------------------------------------
-! Prior to 8/4/06:
-! Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!#if   defined( GEOS_STRAT )
-!
-!         ! Select proper dust file name for GEOS-STRAT (1996 or 1997 data)
-!         SELECT CASE ( THISYEAR )
-!
-!            ! GEOS-STRAT -- 1996 dust fields from P. Ginoux
-!            ! Since GEOS-STRAT covers Dec 1995, use the 1996 file as a
-!            ! proxy.  1995 dust data doesn't exist (rvm, bmy, 1/2/02)
-!            CASE ( 1995, 1996 )
-!               FILENAME = TRIM( DATA_DIR ) // 'dust_200203/dust.' //
-!     &                    GET_NAME_EXT()   // '.'                 // 
-!     &                    GET_RES_EXT()    // '.1996'
-!
-!            ! GEOS-STRAT -- 1997 dust fields from P. Ginoux
-!            CASE ( 1997 )
-!               FILENAME = TRIM( DATA_DIR ) // 'dust_200203/dust.' //
-!     &                    GET_NAME_EXT()   // '.'                 // 
-!     &                    GET_RES_EXT()    // '.1997'
-!
-!               ! KLUDGE -- there isn't dust data for December 1997, so 
-!               ! just use November's data for December (bnd, bmy, 6/30/03)
-!               IF ( THISMONTH == 12 ) THEN
-!                  XTAU = GET_TAU0( 11, 1, 1985 )
-!               ENDIF
-!
-!            ! Error: THISYEAR is outside valid range for GEOS-STRAT
-!            CASE DEFAULT
-!               CALL ERROR_STOP( 'Invalid GEOS-STRAT year!', 'rdust.f' )
-!
-!         END SELECT
-!
-!#else
-!-----------------------------------------------------------------------------
-
          ! Select proper dust file name for GEOS-1, GEOS-3, or GEOS-4
          FILENAME = TRIM( DATA_DIR ) // 'dust_200203/dust.' //
      &              GET_NAME_EXT()   // '.'                 // 
      &              GET_RES_EXT()
-
-!-----------------------
-! Prior to 8/4/06:
-!#endif
-!-----------------------
 
          ! Echo filename
          WRITE( 6, 100 ) TRIM( FILENAME )

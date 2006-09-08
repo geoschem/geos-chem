@@ -1,5 +1,5 @@
 #=============================================================================
-# $Id: Makefile.sparc,v 1.42 2006/08/18 20:32:36 bmy Exp $
+# $Id: Makefile.sparc,v 1.43 2006/09/08 19:20:48 bmy Exp $
 #
 # GEOS-Chem Makefile for Sun Studio and Sun/SPARC compilers, including
 # compilation options for both SPARC v9 and AMD/Opteron chipsets
@@ -7,9 +7,9 @@
 #=============================================================================
 SHELL  = /bin/sh
 
-# Sun X4100/AMD Opteron options (use this for terra.as.harvard.edu)
-FFLAGS = -fpp -stackvar -O4 -xfilebyteorder=big16:%all \
--xtarget=opteron -xchip=opteron -xarch=amd64
+# Sun X4100/AMD Opteron options 
+FFLAGS = -fpp -fast -stackvar -xfilebyteorder=big16:%all\
+-xtarget=opteron -xchip=opteron -xarch=sse2
 
 # Sun SPARC v9 compilation options
 #FFLAGS = f90 -fpp -O4 -xarch=v9 
@@ -321,7 +321,7 @@ future_emissions_mod.o     : future_emissions_mod.f     CMN_SIZE define.h
 fvdas_convect_mod.o        : fvdas_convect_mod.f        CMN_DIAG CMN_SIZE define.h 
 fyrno3.o                   : fyrno3.f                   
 gamap_mod.o                : gamap_mod.f                CMN_DIAG CMN_SIZE define.h 
-	$(F90) -c -O3 -openmp=none $*.f
+	f90 -fpp -c -stackvar -O0 -xfilebyteorder=big16:%all -xtarget=opteron -xchip=opteron -xarch=sse2 $*.f
 gasconc.o                  : gasconc.f                  CMN_SIZE define.h comode.h 
 gc_biomass_mod.o           : gc_biomass_mod.f           CMN_SIZE define.h 
 gcap_convect_mod.o         : gcap_convect_mod.f         CMN_DIAG CMN_SIZE define.h 
