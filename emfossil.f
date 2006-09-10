@@ -1,9 +1,9 @@
-! $Id: emfossil.f,v 1.14 2006/09/08 19:20:56 bmy Exp $
+! $Id: emfossil.f,v 1.15 2006/09/10 14:57:54 bmy Exp $
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
 !******************************************************************************
 !  Subroutine EMFOSSIL emits fossil fuels into the EMISRR and EMISRRN 
-!  arrays, which are then passed to SMVGEAR. (bmy, 4/19/99, 9/5/06)
+!  arrays, which are then passed to SMVGEAR. (bmy, 4/19/99, 9/8/06)
 !
 !  Arguments as input:
 !  ============================================================================
@@ -52,7 +52,7 @@
 !        zero emissions in some boxes.  Now add David Streets emissions for 
 !        NOx over SE Asia and CO over just China (yxw, bmy, 8/17/06)
 !  (25) Bug fix: Now only execute EDGAR CO block if the tracer is CO.
-!        (bmy, 9/5/06)
+!        Also, David Streets' CO is now applied over SE ASIA. (bmy, 9/8/06)
 !******************************************************************************
 !          
       ! References to F90 modules
@@ -66,7 +66,10 @@
       USE LOGICAL_MOD,        ONLY : LBRAVO, LEMEP,    LNEI99
       USE LOGICAL_MOD,        ONLY : LEDGARNOx,        LEDGARCO
       USE LOGICAL_MOD,        ONLY : LSTREETS
-      USE STREETS_ANTHRO_MOD, ONLY : GET_CHINA_MASK
+      !------------------------------------------------
+      ! Prior to 9/8/06:
+      !USE STREETS_ANTHRO_MOD, ONLY : GET_CHINA_MASK
+      !------------------------------------------------
       USE STREETS_ANTHRO_MOD, ONLY : GET_SE_ASIA_MASK
       USE STREETS_ANTHRO_MOD, ONLY : GET_STREETS_ANTHRO
       USE TIME_MOD,           ONLY : GET_TS_EMIS,      GET_DAY_OF_WEEK
@@ -441,7 +444,12 @@
          IF ( LSTREETS ) THEN
 
             ! If we are over the China region ...
-            IF ( GET_CHINA_MASK( I, J ) > 0d0 ) THEN
+            !---------------------------------------------------------------
+            ! Prior to 9/8/06:
+            ! CO is now defined over the whole SE Asia region (bmy, 9/8/06)
+            !IF ( GET_CHINA_MASK( I, J ) > 0d0 ) THEN
+            !---------------------------------------------------------------
+            IF ( GET_SE_ASIA_MASK( I, J ) > 0d0 ) THEN
          
                ! Get BRAVO emissions 
                STREETS = GET_STREETS_ANTHRO( I, J, NN, 
