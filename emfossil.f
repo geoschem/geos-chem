@@ -1,4 +1,4 @@
-! $Id: emfossil.f,v 1.15 2006/09/10 14:57:54 bmy Exp $
+! $Id: emfossil.f,v 1.16 2006/09/11 14:12:43 bmy Exp $
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
 !******************************************************************************
@@ -441,7 +441,7 @@
          !--------------------------------------------------------------
 
          ! If we are using David Streets' emissions ...
-         IF ( LSTREETS ) THEN
+         IF ( NN == IDTCO .and. LSTREETS ) THEN
 
             ! If we are over the China region ...
             !---------------------------------------------------------------
@@ -451,7 +451,7 @@
             !---------------------------------------------------------------
             IF ( GET_SE_ASIA_MASK( I, J ) > 0d0 ) THEN
          
-               ! Get BRAVO emissions 
+               ! Get STREETS emissions 
                STREETS = GET_STREETS_ANTHRO( I, J, NN, 
      &                                       MOLEC_CM2_S=.TRUE. )
          
