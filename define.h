@@ -1,4 +1,4 @@
-! $Id: define.h,v 1.47 2006/08/14 17:58:02 bmy Exp $
+! $Id: define.h,v 1.48 2006/09/11 14:12:43 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
@@ -97,8 +97,8 @@
 
 !----- Model types -----
 !#define GCAP        'GCAP'
-#define GEOS_3      'GEOS_3'
-!#define GEOS_4      'GEOS_4'
+!#define GEOS_3      'GEOS_3'
+#define GEOS_4      'GEOS_4'
 !#define GEOS_5      'GEOS_5'
 
 !----- Grid sizes -----
@@ -106,17 +106,17 @@
 !#define NESTED_CH   'NESTED_CH'
 !#define NESTED_NA   'NESTED_NAd'
 !#define GRID1x125   'GRID1x125'
-!#define GRID2x25    'GRID2x25'
-#define GRID4x5     'GRID4x5'
+#define GRID2x25    'GRID2x25'
+!#define GRID4x5     'GRID4x5'
 #define GRID30LEV   'GRID30LEV'
 
 !----- Compilers -----
 !#define COMPAQ      'COMPAQ'
 !#define IBM_AIX     'IBM_AIX'
 !#define LINUX_PGI   'LINUX_PGI'
-#define LINUX_IFORT 'LINUX_IFORT'
+!#define LINUX_IFORT 'LINUX_IFORT'
 !#define SGI_MIPS    'SGI_MIPS'
-!#define SPARC       'SPARC'
+#define SPARC       'SPARC'
 
 !==============================================================================
 ! Force a compile error if GEOS_1, GEOS_STRAT, GEOS_3, GEOS_4 are undefined 

@@ -1,4 +1,4 @@
-! $Id: emfossil.f,v 1.16 2006/09/11 14:12:43 bmy Exp $
+! $Id: emfossil.f,v 1.17 2006/09/11 14:13:48 bmy Exp $
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
 !******************************************************************************
@@ -441,7 +441,7 @@
          !--------------------------------------------------------------
 
          ! If we are using David Streets' emissions ...
-         IF ( NN == IDTCO .and. LSTREETS ) THEN
+         IF ( LSTREETS ) THEN
 
             ! If we are over the China region ...
             !---------------------------------------------------------------
