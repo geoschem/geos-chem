@@ -1,4 +1,4 @@
-! $Id: carbon_mod.f,v 1.21 2006/09/08 19:20:51 bmy Exp $
+! $Id: carbon_mod.f,v 1.22 2006/09/14 14:22:12 phs Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
@@ -303,8 +303,10 @@
          ! simulations but for now we just set them to zero. 
          ! (dkh, bmy, 6/1/06)
          IF ( ITS_AN_AEROSOL_SIM() ) THEN
+            IF ( IDTSOG4 .NE. 0 ) THEN   ! temp fix for aerosol w/ 20 tracers simulation (phs)
             STT(:,:,:,IDTSOG4) = 0d0
             STT(:,:,:,IDTSOA4) = 0d0
+            ENDIF
          ENDIF
          
          ! Reset first-time flag

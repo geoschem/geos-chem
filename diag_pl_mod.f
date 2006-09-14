@@ -1,4 +1,4 @@
-! $Id: diag_pl_mod.f,v 1.8 2006/06/28 17:26:48 bmy Exp $
+! $Id: diag_pl_mod.f,v 1.9 2006/09/14 14:22:14 phs Exp $
       MODULE DIAG_PL_MOD
 !
 !******************************************************************************
@@ -856,7 +856,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLTROP
+      DO L = 1, LLTROP_FIX   ! replace LLTROP for offline simulation
       DO J = 1, JJPAR
       DO I = 1, IIPAR
          ARRAY(I,J,L) = PL24H(I,J,L,1)
@@ -872,8 +872,10 @@
       CALL BPCH2( IU_ND20,   MODELNAME, LONRES,    LATRES,    
      &            HALFPOLAR, CENTER180, CATEGORY,  1,           
      &            UNIT,      TAU0,      TAU1,      RESERVED,  
-     &            IIPAR,     JJPAR,     LLTROP,    IFIRST,
-     &            JFIRST,    LFIRST,    ARRAY  )
+     &            IIPAR,     JJPAR,     LLTROP_FIX,    IFIRST,
+     &            JFIRST,    LFIRST,    ARRAY(:,:,1:LLTROP_FIX)  )
+!     &            IIPAR,     JJPAR,     LLTROP,    IFIRST,
+!     &            JFIRST,    LFIRST,    ARRAY  )
 
       !=================================================================
       ! Save L(O3) to disk
@@ -883,7 +885,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLTROP
+      DO L = 1, LLTROP_FIX   ! replace LLTROP for offline simulation
       DO J = 1, JJPAR
       DO I = 1, IIPAR
          ARRAY(I,J,L) = PL24H(I,J,L,2)
@@ -899,8 +901,10 @@
       CALL BPCH2( IU_ND20,   MODELNAME, LONRES,    LATRES,    
      &            HALFPOLAR, CENTER180, CATEGORY,  2,           
      &            UNIT,      TAU0,      TAU1,      RESERVED,  
-     &            IIPAR,     JJPAR,     LLTROP,    IFIRST,
-     &            JFIRST,    LFIRST,    ARRAY  )
+     &            IIPAR,     JJPAR,     LLTROP_FIX,    IFIRST,
+     &            JFIRST,    LFIRST,    ARRAY(:,:,1:LLTROP_FIX)  )
+!     &            IIPAR,     JJPAR,     LLTROP,    IFIRST,
+!     &            JFIRST,    LFIRST,    ARRAY  )
 
       ! Close BPCH file
       CLOSE( IU_ND20 )

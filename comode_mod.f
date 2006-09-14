@@ -1,4 +1,4 @@
-! $Id: comode_mod.f,v 1.4 2004/12/02 21:48:34 bmy Exp $
+! $Id: comode_mod.f,v 1.5 2006/09/14 14:22:13 phs Exp $
       MODULE COMODE_MOD
 !
 !******************************************************************************
@@ -11,9 +11,10 @@
 !  
 !  Module Variables:
 !  ============================================================================
-!  (1 ) ABSHUM   : array for absolute humidity [H2O molec/cm3]
-!  (2 ) AIRDENS  : array for air density [molec/cm3]
-!  (3 ) CSPEC    : array of chemical species concentration [molec/cm3]
+!  (1 ) ABSHUM     : array for absolute humidity [H2O molec/cm3]
+!  (2 ) AIRDENS    : array for air density [molec/cm3]
+!  (3 ) CSPEC      : array of chemical species concentration [molec/cm3]
+!  (3a) CSPEC_FULL : array of chemical species for full potential troposphere
 !  (4 ) CSUMA    : array for time of sunrise/sunset, measured from midnight [s]
 !  (5 ) CSUMC    : array for temporary storage 
 !  (6 ) ERADIUS  : array for aerosol or dust radii [cm]
@@ -60,6 +61,7 @@
       REAL*8,  ALLOCATABLE :: ABSHUM(:) 
       REAL*8,  ALLOCATABLE :: AIRDENS(:) 
       REAL*8,  ALLOCATABLE :: CSPEC(:,:)
+      REAL*8,  ALLOCATABLE :: CSPEC_FULL(:,:,:,:)
       REAL*8,  ALLOCATABLE :: CSUMA(:) 
       REAL*8,  ALLOCATABLE :: CSUMC(:) 
       REAL*8,  ALLOCATABLE :: ERADIUS(:,:)
@@ -126,7 +128,11 @@
          ALLOCATE( CSPEC( ITLOOP, IGAS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSPEC' )
          CSPEC = 0d0
-      
+
+         ALLOCATE( CSPEC_FULL( ILONG, ILAT, IPVERT, IGAS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSPEC_FULL' )
+         CSPEC_FULL = 0d0
+
          ALLOCATE( CSUMA( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSUMA' )
          CSUMA = 0d0
@@ -239,22 +245,23 @@
       !=================================================================
       ! CLEANUP_COMODE begins here!
       !=================================================================
-      IF ( ALLOCATED( ABSHUM  ) ) DEALLOCATE( ABSHUM  )
-      IF ( ALLOCATED( AIRDENS ) ) DEALLOCATE( AIRDENS )
-      IF ( ALLOCATED( CSPEC   ) ) DEALLOCATE( CSPEC   )
-      IF ( ALLOCATED( CSUMA   ) ) DEALLOCATE( CSUMA   )
-      IF ( ALLOCATED( CSUMC   ) ) DEALLOCATE( CSUMC   )
-      IF ( ALLOCATED( ERADIUS ) ) DEALLOCATE( ERADIUS )
-      IF ( ALLOCATED( ERRMX2  ) ) DEALLOCATE( ERRMX2  )
-      IF ( ALLOCATED( IXSAVE  ) ) DEALLOCATE( IXSAVE  )
-      IF ( ALLOCATED( IYSAVE  ) ) DEALLOCATE( IYSAVE  )
-      IF ( ALLOCATED( IZSAVE  ) ) DEALLOCATE( IZSAVE  )
-      IF ( ALLOCATED( JLOP    ) ) DEALLOCATE( JLOP    )
-      IF ( ALLOCATED( PRESS3  ) ) DEALLOCATE( PRESS3  )     
-      IF ( ALLOCATED( REMIS   ) ) DEALLOCATE( REMIS   )
-      IF ( ALLOCATED( T3      ) ) DEALLOCATE( T3      )     
-      IF ( ALLOCATED( TAREA   ) ) DEALLOCATE( TAREA   )
-      IF ( ALLOCATED( VOLUME  ) ) DEALLOCATE( VOLUME  )  
+      IF ( ALLOCATED( ABSHUM     ) ) DEALLOCATE( ABSHUM  )
+      IF ( ALLOCATED( AIRDENS    ) ) DEALLOCATE( AIRDENS )
+      IF ( ALLOCATED( CSPEC      ) ) DEALLOCATE( CSPEC   )
+      IF ( ALLOCATED( CSPEC_FULL ) ) DEALLOCATE( CSPEC_FULL)
+      IF ( ALLOCATED( CSUMA      ) ) DEALLOCATE( CSUMA   )
+      IF ( ALLOCATED( CSUMC      ) ) DEALLOCATE( CSUMC   )
+      IF ( ALLOCATED( ERADIUS    ) ) DEALLOCATE( ERADIUS )
+      IF ( ALLOCATED( ERRMX2     ) ) DEALLOCATE( ERRMX2  )
+      IF ( ALLOCATED( IXSAVE     ) ) DEALLOCATE( IXSAVE  )
+      IF ( ALLOCATED( IYSAVE     ) ) DEALLOCATE( IYSAVE  )
+      IF ( ALLOCATED( IZSAVE     ) ) DEALLOCATE( IZSAVE  )
+      IF ( ALLOCATED( JLOP       ) ) DEALLOCATE( JLOP    )
+      IF ( ALLOCATED( PRESS3     ) ) DEALLOCATE( PRESS3  )     
+      IF ( ALLOCATED( REMIS      ) ) DEALLOCATE( REMIS   )
+      IF ( ALLOCATED( T3         ) ) DEALLOCATE( T3      )     
+      IF ( ALLOCATED( TAREA      ) ) DEALLOCATE( TAREA   )
+      IF ( ALLOCATED( VOLUME     ) ) DEALLOCATE( VOLUME  )  
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_COMODE

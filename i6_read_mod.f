@@ -1,4 +1,4 @@
-! $Id: i6_read_mod.f,v 1.15 2006/09/08 19:20:59 bmy Exp $
+! $Id: i6_read_mod.f,v 1.16 2006/09/14 14:22:15 phs Exp $
       MODULE I6_READ_MOD
 !
 !******************************************************************************
@@ -27,7 +27,8 @@
 !  (7 ) file_mod.f      : Module containing file unit #'s and error checks
 !  (8 ) time_mod.f      : Module containing routines for computing time & date
 !  (9 ) transfer_mod.f  : Module containing routines to cast & resize arrays
-!  (10) unix_cmds_mod.f : Module containing Unix commands for unzipping etc.
+!  (10) tropopause_mod.f: Module containing routines for tropopause (only for variable one here)
+!  (11) unix_cmds_mod.f : Module containing Unix commands for unzipping etc.
 !
 !  NOTES:
 !  (1 ) Adapted from "dao_read_mod.f" (bmy, 6/23/03)
@@ -43,6 +44,8 @@
 !  (10) Now make LWI REAL*8 for near-land formulation (ltm, bmy, 5/9/06)
 !  (11) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (12) Now set negative SPHU to a very small positive # (bmy, 9/8/06)
+!  (13) Now read TROPP files for GEOS-4, and check tropopause level 
+!       in case of a variable tropopause (phs, bmy, bdf, 9/12/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -251,7 +254,7 @@
       USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE LOGICAL_MOD,   ONLY : LUNZIP
-      USE FILE_MOD,      ONLY : IU_I6, IOERROR, FILE_EXISTS
+      USE FILE_MOD,      ONLY : IU_I6, IOERROR, FILE_EXISTS, IU_TP
       USE TIME_MOD,      ONLY : EXPAND_DATE
 
 #     include "CMN_SIZE"      ! Size parameters
@@ -265,7 +268,7 @@
       INTEGER                :: IOS, IUNIT
       CHARACTER(LEN=8)       :: IDENT
       CHARACTER(LEN=255)     :: GEOS_DIR
-      CHARACTER(LEN=255)     :: I6_FILE
+      CHARACTER(LEN=255)     :: I6_FILE, TP_FILE
       CHARACTER(LEN=255)     :: PATH
 
       !=================================================================
@@ -286,6 +289,7 @@
          ! Strings for directory & filename
          GEOS_DIR = TRIM( GEOS_4_DIR )
          I6_FILE  = 'YYYYMMDD.i6.' // GET_RES_EXT()
+         TP_FILE  = 'YYYYMMDD.tropp.' //  GET_RES_EXT()
 
 #elif defined( GEOS_5 )
 
@@ -350,6 +354,55 @@
 
 #endif
 
+#if   defined( GEOS_4 ) 
+
+         ! ALSO NEED TO OPEN THE TROPOPAUSE PRESSURE FILE
+
+         ! Replace date tokens
+         CALL EXPAND_DATE( TP_FILE, NYMD, NHMS )
+
+         ! If unzipping, open GEOS-1 file in TEMP dir
+         ! If not unzipping, open GEOS-1 file in DATA dir
+         IF ( LUNZIP ) THEN
+            PATH = TRIM( TEMP_DIR ) // TRIM( TP_FILE )
+         ELSE
+            PATH = TRIM( DATA_DIR ) // 
+     &             TRIM( GEOS_DIR ) // TRIM( TP_FILE )
+         ENDIF
+
+         ! Close previously opened A-3 file
+         CLOSE( IU_TP )
+
+         ! Make sure the file unit is valid before we open it 
+         IF ( .not. FILE_EXISTS( IU_TP ) ) THEN 
+            CALL ERROR_STOP( 'Could not find TROPP file!', 
+     &                       'OPEN_I6_FIELDS (i6_read_mod.f)' )
+         ENDIF
+
+         ! Open the file
+         OPEN( UNIT   = IU_TP,         FILE   = TRIM( PATH ),
+     &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
+     &         FORM   = 'UNFORMATTED', IOSTAT = IOS )
+               
+         IF ( IOS /= 0 ) THEN
+            CALL IOERROR( IOS, IU_TP, 'open_i6_fields:3' )
+         ENDIF
+
+         ! Echo info
+         WRITE( 6, 100 ) TRIM( PATH )
+         
+         ! Set the proper first-time-flag false
+         FIRST = .FALSE.
+
+         ! Skip past the ident string
+         READ( IU_TP, IOSTAT=IOS ) IDENT
+
+         IF ( IOS /= 0 ) THEN
+            CALL IOERROR( IOS, IU_I6, 'open_i6_fields:4' )
+         ENDIF
+
+#endif
+
       ENDIF
 
       ! Return to calling program
@@ -401,7 +454,8 @@
       !=================================================================
       ! GEOS-4 & GEOS-5 read LWI, PS1, SLP
       !=================================================================
-      CALL READ_I6( NYMD=NYMD, NHMS=NHMS, LWI=LWI, PS=PS1, SLP=SLP )
+      CALL READ_I6( NYMD=NYMD, NHMS=NHMS, LWI=LWI, PS=PS1, SLP=SLP,
+     &              TROPP=TROPP)
 
 #elif defined( GCAP )
 
@@ -458,7 +512,8 @@
       !=================================================================
       ! GEOS-4: read LWI, PS2, SLP
       !=================================================================
-      CALL READ_I6( NYMD=NYMD, NHMS=NHMS, LWI=LWI, PS=PS2, SLP=SLP )
+      CALL READ_I6( NYMD=NYMD, NHMS=NHMS, LWI=LWI, PS=PS2, SLP=SLP,
+     &              TROPP=TROPP)
 
 #elif defined( GCAP )
 
@@ -604,13 +659,16 @@
 !  (5 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (6 ) Now set negative SPHU to a small positive number (1d-32) instead of 
 !        zero, so as not to blow up logarithms (bmy, 9/8/06)
+!  (7 ) Now read TROPP files for GEOS-4 (phs, bmy, bdf, 9/12/06)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD,     ONLY : AD66,        AD67
-      USE FILE_MOD,     ONLY : IOERROR,     IU_I6
-      USE TIME_MOD,     ONLY : SET_CT_I6,   TIMESTAMP_STRING
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D, TRANSFER_3D
+      USE DIAG_MOD,       ONLY : AD66,            AD67
+      USE FILE_MOD,       ONLY : IOERROR,         IU_I6, IU_TP
+      USE LOGICAL_MOD,    ONLY : LVARTROP
+      USE TIME_MOD,       ONLY : SET_CT_I6,       TIMESTAMP_STRING
+      USE TRANSFER_MOD,   ONLY : TRANSFER_2D,     TRANSFER_3D
+      USE TROPOPAUSE_MOD, ONLY : CHECK_VAR_TROP
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! NDxx flags
@@ -628,11 +686,12 @@
       REAL*8,  INTENT(OUT), OPTIONAL :: VWND (IIPAR,JJPAR,LLPAR)    
 
       ! Local Variables
-      INTEGER                        :: IOS, NFOUND, N_I6
+      INTEGER                        :: IOS, NFOUND, N_I6      
       REAL*4                         :: Q2(IGLOB,JGLOB)
       REAL*4                         :: Q3(IGLOB,JGLOB,LGLOB)
       CHARACTER(LEN=8)               :: NAME
       CHARACTER(LEN=16)              :: STAMP
+      CHARACTER(LEN=255)             :: FILENAME, I6_FILE !for var. tropopause
       INTEGER                        :: XYMD, XHMS
 
       !=================================================================
@@ -844,6 +903,88 @@
          ENDIF
       ENDDO
 
+
+      !======== CASE OF VARIABLE TROPOPAUSE ======================
+      ! (i ) We need to read TROPP from offline files in case of GEOS-4.
+      ! (ii) We also need to check on LLTROP and set LMIN and LMAX
+      !      since this is not done with READ_TROPOPAUSE anymore.
+      !===========================================================
+      IF ( LVARTROP ) THEN
+
+#if   defined( GEOS_4 )
+
+         !=================================================================
+         ! Read TROPP for GEOS_4 from separate offline files
+         !=================================================================
+
+         NFOUND = 0   ! need reset because dealing with new file
+
+         DO 
+            ! I-6 field name
+            READ( IU_TP, IOSTAT=IOS ) NAME
+
+            ! IOS < 0: End-of-file, but make sure we have 
+            ! found all I-6 fields before exiting loop (only 4 here)!
+            IF ( IOS < 0 ) THEN
+               CALL I6_CHECK( NFOUND, 1 )
+               EXIT
+            ENDIF
+
+            ! IOS > 0: True I/O error, stop w/ error msg
+            IF ( IOS > 0 ) CALL IOERROR( IOS, IU_TP, 'read_i6:13' )
+
+            ! CASE statement for met fields
+            SELECT CASE ( TRIM( NAME ) )
+
+            !--------------------------------
+            ! TROPP: tropopause pressure (GEOS-4)
+            !--------------------------------
+            CASE ( 'TROPP' ) 
+               READ( IU_TP, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_TP, 'read_i6:14')
+
+               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+                  IF ( PRESENT( TROPP ) ) CALL TRANSFER_2D( Q2, TROPP )
+                  NFOUND = NFOUND + 1
+               ENDIF
+            
+            CASE DEFAULT 
+               ! Nothing
+
+            END SELECT
+
+            !==========================================================
+            ! If we have found the one field for this time, then exit 
+            ! the loop. Otherwise, go to the next iteration.
+            !==========================================================
+            IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) .AND. 
+     &           NFOUND == 1 ) THEN
+               STAMP = TIMESTAMP_STRING( NYMD, NHMS )
+               WRITE( 6, 230 ) NFOUND, STAMP
+ 230           FORMAT( '     - Found all ', i3, 
+     &                 ' TROPP met fields for ', a )
+
+               EXIT
+            ENDIF
+         ENDDO
+
+#endif
+
+!         ! Testing:
+!         write( 6, 220 ) MINVAL( TROPP ), MAXVAL( TROPP ) 
+! 220     FORMAT( ' CHECKING TROPP: MIN=', f10.3 , ' MAX=', f10.3 )
+
+
+         ! Check LLTROP and setting LMIN, LMAX, and LPAUSE
+         ! Here we assume that optional output argument TROPP
+         ! is the variable defined in dao_mod.f
+         CALL CHECK_VAR_TROP
+
+      ENDIF
+      !======== END CASE OF VARIABLE TROPOPAUSE ================
+
+
+
       ! Increment KDI6FLDS -- this is the # of times READ_I6 is called. 
       CALL SET_CT_I6( INCREMENT=.TRUE. )
 
@@ -923,7 +1064,7 @@
  120     FORMAT( 'There are ', i2, ' fields but only ', i2 ,
      &           ' were found!' )
 
-         WRITE( 6, '(a)' ) '### STOP in I6_CHECK (dao_read_mod.f)'
+         WRITE( 6, '(a)' ) '### STOP in I6_CHECK (i6_read_mod.f)'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
          ! Deallocate arrays and stop (bmy, 10/15/02)

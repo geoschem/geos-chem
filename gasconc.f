@@ -1,4 +1,4 @@
-! $Id: gasconc.f,v 1.9 2006/06/06 14:26:03 bmy Exp $
+! $Id: gasconc.f,v 1.10 2006/09/14 14:22:15 phs Exp $
       SUBROUTINE GASCONC( FIRSTCHEM, NTRACER, STT, XNUMOL, FRCLND )
 !
 !******************************************************************************
@@ -19,12 +19,19 @@
 !  (5 ) Now make sure all USE statements are USE, ONLY.  Also remove 
 !        reference to TRACERID_MOD, it's not needed. (bmy, 10/3/05)
 !  (6 ) Now zero out the isoprene oxidation counter species (dkh, bmy, 6/1/06)
+!  (7 ) Now take care of  variable tropopause case (bdf, phs, 8/21/06)
 !******************************************************************************
 !
       ! References to F90 modules 
       USE COMODE_MOD,     ONLY : ABSHUM, AIRDENS, CSPEC,  IXSAVE
-      USE COMODE_MOD,     ONLY : IYSAVE, IZSAVE,  PRESS3, T3
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+      USE COMODE_MOD,     ONLY : IYSAVE, IZSAVE,  PRESS3, T3,
+     &                           CSPEC_FULL
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP, COPY_FULL_TROP,
+     &                           SAVE_FULL_TROP
+      USE LOGICAL_MOD,    ONLY : LVARTROP
+      USE DAO_MOD,        ONLY : T
+      USE PRESSURE_MOD,   ONLY : GET_PCENTER
+
       
       IMPLICIT NONE
 
@@ -74,7 +81,7 @@ C
       REAL*8  :: PMBCEN,PBELOW,PABOVE,ALNPRES,PS,ALNCONC,AVMIX,S1CON
       REAL*8  :: S2CON,GRCONC1,GRCONC2,GRCONC3,SUMRMS,SUMFRACS,QNEW
       REAL*8  :: QACC,FRACDIF,FRACABS,AVGERR,RMSCUR
-      REAL*8  :: TK,CONSEXP,VPRESH2O
+      REAL*8  :: TK,CONSEXP,VPRESH2O,CONST
 
       !=================================================================
       ! GASCONC begins here!
@@ -116,13 +123,20 @@ C
             !===========================================================
             IF ( NAMEGAS(JGAS) == 'MOH' ) THEN
 
-               ! Loop over all grid boxes sent to SMVGEAR
-               DO JLOOP = 1, NTLOOP
+             ! Loop over all potential tropospheric boxes
+             DO IX = 1, IIPAR
+             DO IY = 1, JJPAR
+             DO IZ = 1, LLTROP
 
-                  ! Convert 1-D grid box index to 3-D indices
-                  IX = IXSAVE(JLOOP)
-                  IY = IYSAVE(JLOOP)
-                  IZ = IZSAVE(JLOOP)
+                CONST = GET_PCENTER(IX,IY,IZ)*1000D0/(T(IX,IY,IZ)*BK)
+
+!======= prior 09/12 ==========================
+!               DO JLOOP = 1, NTLOOP
+!                  ! Convert 1-D grid box index to 3-D indices
+!                  IX = IXSAVE(JLOOP)
+!                  IY = IYSAVE(JLOOP)
+!                  IZ = IZSAVE(JLOOP)
+!=================== ==========================
 
                   !------------------------------
                   ! Test for altitude
@@ -136,67 +150,86 @@ C
                      IF ( FRCLND(IX,IY) >= 0.5 ) THEN
 
                         ! Continental boundary layer: 2 ppbv MOH
-                        CSPEC(JLOOP,JGAS) =
-     &                     2.000d-9 * PRESS3(JLOOP) / ( T3(JLOOP) * BK )
+                      CSPEC_FULL(IX,IY,IZ,JGAS) = 2.000d-9 * CONST
+
+                           !======= prior 09/12 ==========================
+!     &                     2.000d-9 * PRESS3(JLOOP) / ( T3(JLOOP) * BK )
+                           !=============================================
 
                         ! Make sure MOH conc. is not negative (SMAL2 = 1d-99)
-                        CSPEC(JLOOP,JGAS) = MAX(CSPEC(JLOOP,JGAS),SMAL2)
+                      CSPEC_FULL(IX,IY,IZ,JGAS) = 
+     &                     MAX(CSPEC_FULL(IX,IY,IZ,JGAS),SMAL2)
 
-                     ELSE
+                   ELSE
 
                         ! Marine boundary layer: 0.9 ppbv MOH
-                        CSPEC(JLOOP,JGAS) =
-     &                     0.900d-9 * PRESS3(JLOOP) / ( T3(JLOOP) * BK )
+                      CSPEC_FULL(IX,IY,IZ,JGAS) = 0.900d-9 * CONST
+
+                           !======= prior 09/12 ==========================
+!     &                     0.900d-9 * PRESS3(JLOOP) / ( T3(JLOOP) * BK )
+                           !==============================================
 
                         ! Make sure MOH conc. is not negative (SMAL2 = 1d-99)
-                        CSPEC(JLOOP,JGAS) = MAX(CSPEC(JLOOP,JGAS),SMAL2)
+                      CSPEC_FULL(IX,IY,IZ,JGAS) = 
+     &                     MAX(CSPEC_FULL(IX,IY,IZ,JGAS),SMAL2)
+                   ENDIF
 
-                     ENDIF
-
-                  ELSE
+                ELSE
 
                      !---------------------------
                      ! Test for troposphere
                      !---------------------------
-                     IF ( ITS_IN_THE_TROP( IX, IY, IZ ) ) THEN
+                   IF ( ITS_IN_THE_TROP( IX, IY, IZ ) ) THEN
 
                         ! Free troposphere: 0.6 ppbv MOH
-                        CSPEC(JLOOP,JGAS) =
-     &                     0.600d-9 * PRESS3(JLOOP) / ( T3(JLOOP) * BK )
+                      CSPEC_FULL(IX,IY,IZ,JGAS) = 0.600d-9 * CONST
 
                         ! Make sure MOH conc. is not negative (SMAL2 = 1d-99)
-                        CSPEC(JLOOP,JGAS) = MAX(CSPEC(JLOOP,JGAS),SMAL2)
+                      CSPEC_FULL(IX,IY,IZ,JGAS) = 
+     &                     MAX(CSPEC_FULL(IX,IY,IZ,JGAS),SMAL2)
 
-                     ELSE
+                   ELSE
 
                         ! Stratosphere: set MOH conc. to SMAL2 = 1d-99
-                        CSPEC(JLOOP,JGAS) = SMAL2
-
-                     ENDIF
-                  ENDIF
-               ENDDO
+                      CSPEC_FULL(IX,IY,IZ,JGAS) = SMAL2
+                   ENDIF
+                ENDIF
+             ENDDO
+             ENDDO
+             ENDDO
             ELSE
 
                !========================================================
                ! Set default initial conc. for species other than
                ! Methanol (MOH) in mixing ratios units
                !========================================================
-               DO 26 JLOOP = 1, NTLOOP
 
+!               DO 26 JLOOP = 1, NTLOOP
+             DO IX = 1, IIPAR
+             DO IY = 1, JJPAR
+             DO IZ = 1, LLTROP
+
+                CONST = GET_PCENTER(IX,IY,IZ)*1000D0/(T(IX,IY,IZ)*BK)
                   ! Copy default background conc. from "globchem.dat" to CSPEC
-                  CSPEC(JLOOP,JGAS) = QBKCHEM(JGAS,NCS)*
-     &                 PRESS3(JLOOP)/(T3(JLOOP)* BK)
+                CSPEC_FULL(IX,IY,IZ,JGAS) = QBKCHEM(JGAS,NCS)* CONST
 
                   ! Make sure concentration is not negative (SMAL2 = 1d-99)
-                  CSPEC(JLOOP,JGAS) = MAX(CSPEC(JLOOP,JGAS),SMAL2)
+                  CSPEC_FULL(IX,IY,IZ,JGAS) = 
+     &               MAX(CSPEC_FULL(IX,IY,IZ,JGAS),SMAL2)
 
                   ! For emission species, don't do unit conversion
                   IF (NAMEGAS(JGAS).EQ.'EMISSION')
-     &                 CSPEC(JLOOP,JGAS) = QBKCHEM(JGAS,NCS)
- 26            CONTINUE
+     &                 CSPEC_FULL(IX,IY,IZ,JGAS) = QBKCHEM(JGAS,NCS)
+               ENDDO
+               ENDDO
+               ENDDO
             ENDIF
  28      CONTINUE
       ENDIF                     !(FIRSTCHEM)
+
+! copies the chemical species in CSPEC from full (potential troposphere) 
+!  into current variable troposphere
+      CALL COPY_FULL_TROP
 
 C  ********************************************************************
 C  *            Update starting concentrations for plumes             *

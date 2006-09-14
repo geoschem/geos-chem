@@ -1,4 +1,4 @@
-! $Id: aerosol_mod.f,v 1.11 2006/09/08 19:20:50 bmy Exp $
+! $Id: aerosol_mod.f,v 1.12 2006/09/14 14:22:11 phs Exp $
       MODULE AEROSOL_MOD
 !
 !******************************************************************************
@@ -48,6 +48,7 @@
 !  (3 ) Now references "tropopause_mod.f" (bmy, 8/22/05)
 !  (4 ) Now add contribution of SOA4 into Hydrophilic OC (dkh, bmy, 5/18/06)
 !  (5 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (6 ) Add support for variable tropopause (bdf, phs, 8/21/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -113,6 +114,7 @@
       USE COMODE_MOD,     ONLY : IYSAVE, IZSAVE,  JLOP       
       USE DAO_MOD,        ONLY : AD,     AVGW,    MAKE_AVGW, T
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+      USE LOGICAL_MOD,    ONLY : LVARTROP
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "comode.h"  ! AD, AVG, WTAIR, other SMVGEAR variables
@@ -143,7 +145,9 @@
       !=================================================================
       ! Pre-save SMVGEAR loop indices on the first call
       !=================================================================
-      IF ( FIRST ) THEN
+
+      ! bdf-phs: must do it everytime with a variable tropopause
+      IF ( FIRST .or. LVARTROP ) THEN
 
          ! Initialize 1-D index
          JLOOP  = 0
@@ -179,6 +183,7 @@
 
          ! JLOOP is now the number of boxes w/in GEOS-CHEM's annual mean 
          ! tropopause.  Copy to SAVEd variable N_TROP_BOXES.
+         write(6,*) '  in aerosol ruralbox, val of trop boxes: ', jloop
          N_TROP_BOXES = JLOOP
 
          ! Set NTLOOP, NTTLOOP here.  Howeve, we will have to reset these

@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.32 2006/09/08 19:20:59 bmy Exp $
+! $Id: input_mod.f,v 1.33 2006/09/14 14:22:16 phs Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -114,6 +114,7 @@
 !  (14) Modified for BRAVO emissions (rjp, kfb, bmy, 6/26/06)
 !  (15) Remove support for GEOS-1 and GEOS-STRAT met fields.  Also modified 
 !        for David Streets' emissions. (bmy, 8/17/06)
+!  (16) Modified for variable tropopause (phs, 8/21/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -493,6 +494,7 @@
 !  (2 ) Now read GEOS_5_DIR and GCAP_DIR from input.geos (swu, bmy, 5/25/05)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Now references DATA_DIR_1x1 for 1x1 emissions files (bmy, 10/24/05)
+!  (5 ) Now read switch for using variable tropopause or not (phs, 8/21/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -502,6 +504,7 @@
       USE DIRECTORY_MOD, ONLY : TEMP_DIR   
       USE GRID_MOD,      ONLY : SET_XOFFSET, SET_YOFFSET,  COMPUTE_GRID
       USE LOGICAL_MOD,   ONLY : LSVGLB,      LUNZIP,       LWAIT
+      USE LOGICAL_MOD,   ONLY : LVARTROP
       USE RESTART_MOD,   ONLY : SET_RESTART
       USE TIME_MOD,      ONLY : SET_BEGIN_TIME,   SET_END_TIME 
       USE TIME_MOD,      ONLY : SET_CURRENT_TIME, SET_DIAGb
@@ -588,12 +591,16 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:17' )
       READ( SUBSTRS(1:N), *     ) LWAIT
 
+      ! Variable Tropopause
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:18' )
+      READ( SUBSTRS(1:N), * ) LVARTROP
+
       ! I0, J0
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:18' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:19' )
       READ( SUBSTRS(1:N), * ) I0, J0
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:19' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:20' )
 
       !=================================================================
       ! Print to screen
@@ -629,6 +636,7 @@
      &                     TRIM( OUT_RST_FILE )
       WRITE( 6, 120     ) 'Unzip met fields?           : ', LUNZIP
       WRITE( 6, 120     ) 'Wait for met fields?        : ', LWAIT
+      WRITE( 6, 120     ) 'Use variable tropopause?    : ', LVARTROP
       WRITE( 6, 130     ) 'Global offsets I0, J0       : ', I0, J0
 
       ! Format statements
@@ -4094,6 +4102,7 @@
 !  (6 ) Now also intitialize LFUTURE (swu, bmy, 6/1/06)
 !  (7 ) Now reference the EDGAR logical switches from "logical_mod.f"
 !        (avd, bmy, 7/11/06)
+!  (8 ) Now initialize the LVARTROP switch (phs, 8/21/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4119,7 +4128,7 @@
       USE LOGICAL_MOD,   ONLY : LMEGAN,     LDYNOCEAN,  LEMEP
       USE LOGICAL_MOD,   ONLY : LGFED2BB,   LFUTURE,    LEDGAR
       USE LOGICAL_MOD,   ONLY : LEDGARNOx,  LEDGARCO,   LEDGARSHIP
-      USE LOGICAL_MOD,   ONLY : LEDGARSOx
+      USE LOGICAL_MOD,   ONLY : LEDGARSOx,  LVARTROP
       
       !=================================================================
       ! INIT_INPUT begins here!
@@ -4194,6 +4203,7 @@
       LSVGLB       = .FALSE.
       LSPLIT       = .FALSE.
       LWETD        = .FALSE.
+      LVARTROP     = .FALSE.
 
       ! Initialize counters
       CT1          = 0

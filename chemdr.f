@@ -1,4 +1,4 @@
-! $Id: chemdr.f,v 1.21 2006/06/28 17:26:48 bmy Exp $
+! $Id: chemdr.f,v 1.22 2006/09/14 14:22:13 phs Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
@@ -142,6 +142,7 @@
 !        arguments from call to RURALBOX. (bmy, 4/10/06) 
 !  (28) Remove reference to "global_ch4_mod.f".  Add error check for LISOPOH
 !        when using the online SOA tracers. (dkh, bmy, 6/1/06)
+!  (29) Now support variable tropopause (bdf, phs, 8/21/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -156,11 +157,12 @@
       USE ERROR_MOD,       ONLY : DEBUG_MSG,    ERROR_STOP
       USE LOGICAL_MOD,     ONLY : LCARB,        LDUST,     LEMBED
       USE LOGICAL_MOD,     ONLY : LPRT,         LSSALT,    LSULF  
-      USE LOGICAL_MOD,     ONLY : LSOA
+      USE LOGICAL_MOD,     ONLY : LSOA,         LVARTROP
       USE PLANEFLIGHT_MOD, ONLY : SETUP_PLANEFLIGHT
       USE TIME_MOD,        ONLY : GET_MONTH,    GET_YEAR,  ITS_A_NEW_DAY
       USE TRACER_MOD,      ONLY : STT,          N_TRACERS, XNUMOL
       USE TRACERID_MOD,    ONLY : IDTNOX,       IDTOX,     SETTRACE
+      USE TROPOPAUSE_MOD,  ONLY : SAVE_FULL_TROP
       USE UVALBEDO_MOD,    ONLY : UVALBEDO
 
       IMPLICIT NONE
@@ -407,6 +409,11 @@
       ! Call LUMP which lumps the species together after chemistry
       !=================================================================
       CALL LUMP( N_TRACERS, XNUMOL, STT )
+
+      ! saves the chemical species in CSPEC from variable current troposphere
+      ! into an array for the full potential troposphere -bdf
+c      IF ( LVARTROP ) CALL SAVE_FULL_TROP
+      CALL SAVE_FULL_TROP
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after LUMP' )

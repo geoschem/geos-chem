@@ -1,4 +1,4 @@
-! $Id: dao_mod.f,v 1.19 2006/09/08 19:20:52 bmy Exp $
+! $Id: dao_mod.f,v 1.20 2006/09/14 14:22:13 phs Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
@@ -537,8 +537,12 @@
 !        NTIME0.  Updated comments. (bmy, 6/19/03)
 !  (13) Now modified for GEOS-5 and GCAP met fields. (swu, bmy, 5/25/05)
 !  (14) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (15) Now interpolate TROPP, only if variable tropopause is used (phs, 9/12/06)
 !******************************************************************************
-!     
+!
+      ! References to F90 modules
+      USE LOGICAL_MOD, ONLY : LVARTROP
+     
 #     include "CMN_SIZE"   ! Size parameters
 
       ! Arguments
@@ -581,11 +585,13 @@
          IF ( L == 1 ) THEN
             
             ! Pressures: at start, midpt, and end of dyn timestep
-            PSC2(I,J) = PS1(I,J)   + ( PS2(I,J) - PS1(I,J) ) * TC2 
-
+            PSC2(I,J)  = PS1(I,J)   + ( PS2(I,J) - PS1(I,J) ) * TC2 
+            IF ( LVARTROP ) 
+     &      TROPP(I,J) = TROPP(I,J) + ( TROPP(I,J) - TROPP(I,J) ) * TC2
+  
             ! Albedo: at midpt of dyn timestep
             ALBD(I,J) = ALBD1(I,J) + ( ALBD2(I,J) - ALBD1(I,J) ) * TM
-  
+
          ENDIF
          
          ! 3D Variables: at midpt of dyn timestep
@@ -606,7 +612,9 @@
       !=================================================================
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         PSC2(I,J) = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
+         PSC2(I,J)  = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
+         IF ( LVARTROP ) 
+     &   TROPP(I,J) = TROPP(I,J) + ( TROPP(I,J) - TROPP(I,J) ) * TC2
       ENDDO
       ENDDO
 

@@ -1,4 +1,4 @@
-! $Id: global_o3_mod.f,v 1.7 2006/04/21 15:40:00 bmy Exp $
+! $Id: global_o3_mod.f,v 1.8 2006/09/14 14:22:15 phs Exp $
       MODULE GLOBAL_O3_MOD
 !
 !******************************************************************************
@@ -120,9 +120,14 @@
       XTAU = GET_TAU0( THISMONTH, 1, 1985 )
  
       ! Read O3 data (v/v) from the binary punch file (tracer #51)
+      ! Limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
+      ! tropopause. This is backward compatibility with 
+      ! offline data set.
       CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 51,     
-     &                 XTAU,      IGLOB,     JGLOB,     
-     &                 LLTROP,    ARRAY,     QUIET=.TRUE. )
+     &     XTAU,        IGLOB,                    JGLOB,      
+     &     LLTROP_FIX,  ARRAY(:,:,1:LLTROP_FIX),  QUIET=.TRUE. )
+!     &                 XTAU,      IGLOB,     JGLOB,     
+!     &                 LLTROP,    ARRAY,     QUIET=.TRUE. )
       
       ! Assign data from ARRAY to the module variable O3
       CALL TRANSFER_3D_TROP( ARRAY, O3 )

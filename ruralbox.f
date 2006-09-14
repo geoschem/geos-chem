@@ -1,4 +1,4 @@
-! $Id: ruralbox.f,v 1.6 2006/05/26 17:45:26 bmy Exp $
+! $Id: ruralbox.f,v 1.7 2006/09/14 14:22:17 phs Exp $
       SUBROUTINE RURALBOX( AD,     T,     AVGW,  ALBD,  SUNCOS, 
      &                     LEMBED, IEBD1, IEBD2, JEBD1, JEBD2 )
 !
@@ -54,7 +54,8 @@
       USE COMODE_MOD,     ONLY : ABSHUM, AIRDENS, IXSAVE, IYSAVE, 
      &                           IZSAVE, JLOP,    PRESS3, T3,  VOLUME 
       USE PRESSURE_MOD,   ONLY : GET_PCENTER, GET_PEDGE
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT, ITS_IN_THE_TROP
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT, ITS_IN_THE_TROP,
+     &                           GET_TPAUSE_LEVEL
 
       IMPLICIT NONE
 
@@ -76,6 +77,12 @@
       ! External functions
       REAL*8,  EXTERNAL       :: BOXVL
 
+      ! testing variables for variable tropopause
+      real*8  :: temp(iipar,jjpar,llpar)
+      logical :: templ
+
+
+      temp = 0
       !=================================================================
       ! RURALBOX begins here!
       !=================================================================
@@ -106,6 +113,17 @@
 
             IF ( IGLOBCHEM <= 0 ) THEN
 
+! === testing === BDF
+!               if (i .eq. 30) then
+!                  temp(i,j,1) = dble(get_tpause_level(i,j))
+!                  write(6,*) i,j, 'val of last trop box: ', temp(i,j,1)
+!                  templ = its_in_the_trop(i,j,l)
+!                  write(6,*) '     ', l, 'trop: ', templ
+!                  templ = its_in_the_strat(i,j,l)
+!                  write(6,*) '     ', l, 'strat: ', templ
+!               endif
+! === end testing === BDF
+
                !=======================================================
                ! Skip over strat boxes
                !=======================================================
@@ -115,6 +133,8 @@
                JLOOP          = JLOOP + 1
                JLOP(I,J,L)    = JLOOP
 
+               ! test jlop for variable chem
+               temp(i,j,l) = dble(jloop)
             ELSE
 
                !=======================================================
@@ -166,6 +186,12 @@
             IYSAVE(JLOOP)  = J
             IZSAVE(JLOOP)  = L                              
 
+! === testing === BDF
+!            if (i .eq. 18 .and. j .eq. 23 .and. l .eq. 19) then
+!               write(6,*) 'using offending box'
+!            endif
+! === end testing === BDF
+
             ! get box volume [cm3]
             VOLUME(JLOOP)  = BOXVL(I, J, L)
 
@@ -190,6 +216,13 @@
          ! NIJLOOP is the number of surface boxes
          IF ( L == 1 ) NIJLOOP = JLOOP
       ENDDO
+
+
+! === testing === BDF
+      write(6,*) '  in ruralbox, number of tropospheric boxes: ', jloop
+!      call flush(6)
+!      call write_fields3(temp,'jloptest')
+! === testing === BDF
 
       ! NTLOOP is the number of total tropospheric boxes
       NTLOOP = JLOOP

@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.29 2006/08/18 20:32:39 bmy Exp $
+! $Id: sulfate_mod.f,v 1.30 2006/09/14 14:22:18 phs Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -1197,9 +1197,14 @@
          XTAU = GET_TAU0( GET_MONTH(), 1, 1985 )
 	
          ! Read J(H2O2) [s-1]  from disk (only up to tropopause)
+         ! limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
+         ! tropopause. This is backward compatibility with 
+         ! offline data set.
          CALL READ_BPCH2( FILENAME, 'JV-MAP-$', 3,      
-     &                    XTAU,      IGLOB,     JGLOB,      
-     &                    LLTROP,    ARRAY,     QUIET=.TRUE. )
+     &     XTAU,        IGLOB,                    JGLOB,      
+     &     LLTROP_FIX,  ARRAY(:,:,1:LLTROP_FIX),  QUIET=.TRUE. )
+!     &                    XTAU,      IGLOB,     JGLOB,      
+!     &                    LLTROP,    ARRAY,     QUIET=.TRUE. )
 
 
 
@@ -6760,8 +6765,13 @@
 
       ! Read data
       CALL READ_BPCH2( FILENAME, 'PORL-L=$', 5,     
-     &                 XTAU,      IGLOB,     JGLOB,     
-     &                 LLTROP,    ARRAY,     QUIET=.TRUE. )
+      ! limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
+      ! tropopause. This is backward compatibility with 
+      ! offline data set.
+     &     XTAU,        IGLOB,                    JGLOB,      
+     &     LLTROP_FIX,  ARRAY(:,:,1:LLTROP_FIX),  QUIET=.TRUE. )
+!     &                 XTAU,      IGLOB,     JGLOB,     
+!     &                 LLTROP,    ARRAY,     QUIET=.TRUE. )
 
       ! Cast to REAL*8 and resize if necessary
       CALL TRANSFER_3D_TROP( ARRAY, PH2O2m )
@@ -6777,9 +6787,14 @@
       WRITE( 6, 100 ) TRIM( FILENAME )
 
       ! Read data
+      ! limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
+      ! tropopause. This is backward compatibility with 
+      ! offline data set.
       CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 51,     
-     &                 XTAU,      IGLOB,     JGLOB,     
-     &                 LLTROP,    ARRAY,     QUIET=.TRUE. )
+     &     XTAU,        IGLOB,                    JGLOB,      
+     &     LLTROP_FIX,  ARRAY(:,:,1:LLTROP_FIX),  QUIET=.TRUE. )
+!     &                 XTAU,      IGLOB,     JGLOB,     
+!     &                 LLTROP,    ARRAY,     QUIET=.TRUE. )
 
       ! Cast to REAL*8 and resize if necessary
       CALL TRANSFER_3D_TROP( ARRAY, O3m ) 

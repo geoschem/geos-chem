@@ -1,5 +1,5 @@
 #=============================================================================
-# $Id: Makefile.sparc,v 1.43 2006/09/08 19:20:48 bmy Exp $
+# $Id: Makefile.sparc,v 1.44 2006/09/14 14:22:10 phs Exp $
 #
 # GEOS-Chem Makefile for Sun Studio and Sun/SPARC compilers, including
 # compilation options for both SPARC v9 and AMD/Opteron chipsets
@@ -135,13 +135,13 @@ regrid_1x1_mod.o          \
 pressure_mod.o            \
 transfer_mod.o            \
 future_emissions_mod.o    \
-tropopause_mod.o          \
 lai_mod.o                 \
 tracerid_mod.o            \
 benchmark_mod.o           \
 comode_mod.o              \
 diag_mod.o                \
 dao_mod.o                 \
+tropopause_mod.o          \
 pbl_mix_mod.o             \
 diag03_mod.o              \
 diag04_mod.o              \
@@ -422,7 +422,7 @@ tracerid_mod.o             : tracerid_mod.f             CMN_SIZE define.h comode
 transfer_mod.o             : transfer_mod.f             CMN_SIZE define.h 
 transport_mod.o            : transport_mod.f            CMN CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 tropopause.o               : tropopause.f               CMN CMN_DIAG CMN_SIZE define.h 
-tropopause_mod.o           : tropopause_mod.f           CMN CMN_SIZE define.h 
+tropopause_mod.o           : tropopause_mod.f           CMN CMN_SIZE define.h comode.h
 unix_cmds_mod.o            : unix_cmds_mod.f            
 upbdflx_mod.o              : upbdflx_mod.f              CMN_GCTM CMN_SIZE define.h 
 update.o                   : update.f                   CMN_SIZE define.h comode.h 

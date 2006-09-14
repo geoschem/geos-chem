@@ -1,4 +1,4 @@
-! $Id: file_mod.f,v 1.13 2006/09/08 19:20:56 bmy Exp $
+! $Id: file_mod.f,v 1.14 2006/09/14 14:22:14 phs Exp $
       MODULE FILE_MOD
 !
 !******************************************************************************
@@ -88,6 +88,7 @@
       INTEGER, PARAMETER :: IU_PLANE   = 18
       INTEGER, PARAMETER :: IU_BC      = 19
       INTEGER, PARAMETER :: IU_FILE    = 65
+      INTEGER, PARAMETER :: IU_TP      = 69
       INTEGER, PARAMETER :: IU_PH      = 70
       INTEGER, PARAMETER :: IU_I6      = 71
       INTEGER, PARAMETER :: IU_A6      = 72
@@ -433,6 +434,7 @@
       CLOSE( IU_BC      )
       CLOSE( IU_FILE    )
       CLOSE( IU_PH      )
+      CLOSE( IU_TP      )
       CLOSE( IU_I6      )
       CLOSE( IU_A6      )
       CLOSE( IU_A3      )

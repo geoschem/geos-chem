@@ -1,4 +1,4 @@
-! $Id: global_no3_mod.f,v 1.6 2005/10/20 14:03:28 bmy Exp $
+! $Id: global_no3_mod.f,v 1.7 2006/09/14 14:22:15 phs Exp $
       MODULE GLOBAL_NO3_MOD
 !
 !******************************************************************************
@@ -126,11 +126,17 @@
  
       ! Read NO3 data from the binary punch file (tracer #5)
       ! NOTE: NO3 data is only defined w/in the tropopause
+      !   Limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
+      !   tropopause. This is backward compatibility with 
+      !   offline data set.
       CALL READ_BPCH2( FILENAME, 'CHEM-L=$', 5,     
-     &                 XTAU,      IGLOB,     JGLOB,      
-     &                 LLTROP,    ARRAY,     QUIET=.TRUE. )
+     &     XTAU,        IGLOB,                    JGLOB,      
+     &     LLTROP_FIX,  ARRAY(:,:,1:LLTROP_FIX),  QUIET=.TRUE. )
+!     &                 XTAU,      IGLOB,     JGLOB,      
+!     &                 LLTROP,    ARRAY,     QUIET=.TRUE. )
 
       ! Assign data from ARRAY to the module variable H2O2
+      ! Levels between LLTROP_FIX and LLROP are 0
       CALL TRANSFER_3D_TROP( ARRAY, NO3 )
 
       ! Return to calling program

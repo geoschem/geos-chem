@@ -1,4 +1,4 @@
-! $Id: logical_mod.f,v 1.13 2006/08/18 20:32:39 bmy Exp $
+! $Id: logical_mod.f,v 1.14 2006/09/14 14:22:17 phs Exp $
       MODULE LOGICAL_MOD
 !
 !******************************************************************************
@@ -62,6 +62,7 @@
 !  (53) LEDGARSHIP(LOGICAL) : ON/OFF switch for EDGAR ship exhaust emissions
 !  (54) LEDGARSOx (LOGICAL) : ON/OFF switch for EDGAR SOx emissions
 !  (55) LSTREETS  (LOGICAL) : ON/OFF switch for David Streets' emissions
+!  (56) LVARTROP  (LOGICAL) : ON/OFF switch for Variable Tropopause
 !
 !  NOTES:
 !  (1 ) Added LNEI99 switch to toggle EPA/NEI emissions (bmy, 11/5/04)
@@ -76,6 +77,7 @@
 !  (10) Added LEDGAR, LEDGARNOx, LEDGARCO, LEDGARSHIP, LEDGARSOx switches
 !        for EDGAR emissions (avd, bmy, 7/6/06)
 !  (11) Added LSTREETS for David Streets' emissions (bmy, 8/17/06)
+!  (12) Added LVARTROP for variable tropopause (phs, 8/21/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -165,6 +167,9 @@
 
       ! Tagged simulations
       LOGICAL :: LSPLIT 
+
+      ! Variable Tropopause
+      LOGICAL :: LVARTROP
 
       ! Wet convection
       LOGICAL :: LWETD  

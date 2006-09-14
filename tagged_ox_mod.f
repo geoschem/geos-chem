@@ -1,4 +1,4 @@
-! $Id: tagged_ox_mod.f,v 1.17 2006/09/08 19:21:04 bmy Exp $
+! $Id: tagged_ox_mod.f,v 1.18 2006/09/14 14:22:19 phs Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
@@ -129,6 +129,7 @@
 !  (1 ) Updated from the old routine "chemo3_split.f" (rch, bmy, 8/20/03)
 !  (2 ) Now references O3PL_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (4 ) Use LLTROP_FIX to limit array size to case of non-variable tropopause (phs, 9/12/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -165,9 +166,12 @@
       !=================================================================
       ! Read P(O3) [kg/cm3/s]
       !=================================================================
+      ! limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
+      ! tropopause. This is backward compatibility with 
+      ! offline data set.
       CALL READ_BPCH2( FILENAME, 'PORL-L=$', 1,      
-     &                 XTAU,     IGLOB,      JGLOB,      
-     &                 LLTROP,   ARRAY,      QUIET=.TRUE. )
+     &     XTAU,        IGLOB,                    JGLOB,      
+     &     LLTROP_FIX,  ARRAY(:,:,1:LLTROP_FIX),  QUIET=.TRUE. )
 
       ! Cast from REAL*4 to REAL*8 
       CALL TRANSFER_3D_TROP( ARRAY, P24H )
@@ -176,8 +180,8 @@
       ! Read L(O3) [1/cm3/s]
       !=================================================================
       CALL READ_BPCH2( FILENAME, 'PORL-L=$', 2,      
-     &                 XTAU,      IGLOB,     JGLOB,      
-     &                 LLTROP,    ARRAY,     QUIET=.TRUE. )
+     &     XTAU,        IGLOB,                    JGLOB,      
+     &     LLTROP_FIX,  ARRAY(:,:,1:LLTROP_FIX),  QUIET=.TRUE. )
 
       ! Cast from REAL*4 to REAL*8 
       CALL TRANSFER_3D_TROP( ARRAY, L24H )

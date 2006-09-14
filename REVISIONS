@@ -1,70 +1,43 @@
-REVISIONS (v7-04-09)  
-08 Sep 2006
+REVISIONS (v7-04-10)  
+13 Sep 2006
 Philippe Le Sager (phs@io.as.harvard.edu) and
 Bob Yantosca      (bmy@io.as.harvard.edu)
 
 
-New in v7-04-09:
+New in v7-04-10:
 -------------------------------------------------------------------------------
 
 
 
-Removed in v7-04-09:
+Removed in v7-04-10:
 -------------------------------------------------------------------------------
 
 
 
-Changed in v7-04-08:
+Changed in v7-04-09:
 -------------------------------------------------------------------------------
 
-cleanup_streets_anthro  -- Now deallocate MASK_CHINA_1x1
-("streets_anthro_mod.f")
 
-diag3.f			-- Replace TINY(1d0) with 1d-32 to avoid problems 
-			   on SUN 4100 platform
+CMN_SIZE		-- Added variable tropopause case
 
-emfossil.f		-- Bug fix: Now only execute EDGAR CO block if the 
-			   tracer is CO
+aerosol_mod.f		-- Add support for variable tropopause
 
-emiss_streets_anthro	-- Overwrite 2000 SE Asia CO with 2001 CO over China 
-("streets_anthro_mod.f")
+carbon_mod.f		-- temp fix for aerosol w/ 20 tracers
 
-fvdas_convect_mod.f	-- Replace TINY(1d0) with 1d-32 to avoid problems 
-			   on SUN 4100 platform
+chemdr.f		-- Add support for variable tropopause
 
-gcap_convect_mod.f	-- Replace TINY(1d0) with 1d-32 to avoid problems 
-			   on SUN 4100 platform
+dao_mod.f		-- Now interpolate TROPP, only if variable 
+		           tropopause is used
 
-get_alk			-- Becky Alexander says we can remove AREA1, AREA2
-("seasalt_mod.f")
+input_mod.f		-- Modified for variable tropopause
 
-init_streets_anthro	-- Now allocate MASK_CHINA_1x1
-("streets_anthro_mod.f")
+logical_mod.f		-- Added LVARTROP for variable tropopause
 
-read_a6			-- Now set negative SPHU to a small positive number 
-("a6_read_mod.f")          instead of zero, so as not to blow up logarithms 
+setemis.f		-- Added LVARTROP for variable tropopause
 
-read_i6			-- Now set negative SPHU to a small positive number 
-("i6_read_mod.f")          instead of zero, so as not to blow up logarithms 
+tagged_ox_mod.f		-- Use LLTROP_FIX to limit array size to case of 
+			   non-variable tropopause
 
-read_streets_masks	-- Now also save 1x1 CHINA MASK for use in other 
-("streets_anthro_mod.f")   routines
-
-wet_settling		-- Bug fix: DTCHEM has to be REAL*8, not integer
-("seasalt_mod.f")	   
-
-write_diag03		-- Replace TINY(1d0) with 1d-32 to avoid problems 
-("diag03_mod.f")	   on SUN 4100 platform
-
-write_diag04		-- Replace TINY(1d0) with 1d-32 to avoid problems 
-("diag03_mod.f")	   on SUN 4100 platform
-
-write_diag41		-- Replace TINY(1d0) with 1d-32 to avoid problems 
-("diag41_mod.f")	   on SUN 4100 platform
-
-write_diag42		-- Replace TINY(1d0) with 1d-32 to avoid problems 
-("diag42_mod.f")	   on SUN 4100 platform
-
-write_diag56		-- Replace TINY(1d0) with 1d-32 to avoid problems 
-("diag56_mod.f")	   on SUN 4100 platform
-
+tropopause_mod.f	-- Modified for variable tropopause
+			-- call GET_SPECIES_CONCENTRATION
+			-- call SAVE_SPECIES CONCENTRATION

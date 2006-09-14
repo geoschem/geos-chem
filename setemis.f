@@ -1,4 +1,4 @@
-! $Id: setemis.f,v 1.9 2006/05/26 17:45:26 bmy Exp $
+! $Id: setemis.f,v 1.10 2006/09/14 14:22:18 phs Exp $
       SUBROUTINE SETEMIS( EMISRR, EMISRRN )
 !
 !******************************************************************************
@@ -85,6 +85,8 @@
 !        from "tropopause_mod.f" (bmy, 8/22/05)
 !  (25) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (26) Now updated for new "biomass_mod.f" (bmy, 4/5/06)
+!  (27) Now account for the different definition of tropopause in case 
+!        of variable tropopause (bdf, phs, 8/21/06)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -92,6 +94,7 @@
       USE BIOMASS_MOD,    ONLY : BIOMASS,     BIOTRCE, NBIOMAX
       USE COMODE_MOD,     ONLY : JLOP,        REMIS,   VOLUME
       USE DIAG_MOD,       ONLY : AD12
+      USE LOGICAL_MOD,    ONLY : LVARTROP
       USE PBL_MIX_MOD,    ONLY : GET_PBL_TOP_L
       USE PRESSURE_MOD,   ONLY : GET_PEDGE
       USE TRACERID_MOD,   ONLY : CTRMB,       IDEMIS,  IDENOX
@@ -267,7 +270,15 @@
                ! Aircraft and Lightning NOx [molec/cm3/s]
                ! Distribute emissions in the troposphere
                !========================================================
-               LTROP = GET_TPAUSE_LEVEL( I, J ) - 1
+
+               ! bdf - variable tropopause is a tropospheric box
+               IF ( LVARTROP ) THEN 
+                  LTROP = GET_TPAUSE_LEVEL( I, J ) 
+               ELSE
+                  LTROP = GET_TPAUSE_LEVEL( I, J ) - 1
+               ENDIF
+
+
                DO L = 1, LTROP 
                   JLOOP   = JLOP(I,J,L)
                   EMIS_BL = 0d0

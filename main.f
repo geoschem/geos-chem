@@ -1,5 +1,9 @@
-! $Id: main.f,v 1.39 2006/09/08 19:21:00 bmy Exp $
+! $Id: main.f,v 1.40 2006/09/14 14:22:17 phs Exp $
 ! $Log: main.f,v $
+! Revision 1.40  2006/09/14 14:22:17  phs
+! GEOS-Chem v7-04-10, includes the following modifications:
+! - Variable tropopause code added
+!
 ! Revision 1.39  2006/09/08 19:21:00  bmy
 ! GEOS-Chem v7-04-09, includes the following modifications:
 ! - Updated CO for David Streets (2001 for China, 2000 elsewhere)
@@ -144,7 +148,7 @@
       USE LOGICAL_MOD,       ONLY : LLIGHTNOX, LPRT,  LSTDRUN, LSVGLB
       USE LOGICAL_MOD,       ONLY : LWAIT,     LTRAN, LUPBD,   LCONV
       USE LOGICAL_MOD,       ONLY : LWETD,     LTURB, LDRYD,   LMEGAN  
-      USE LOGICAL_MOD,       ONLY : LDYNOCEAN, LSOA
+      USE LOGICAL_MOD,       ONLY : LDYNOCEAN, LSOA,  LVARTROP
       USE MEGAN_MOD,         ONLY : INIT_MEGAN
       USE MEGAN_MOD,         ONLY : UPDATE_T_15_AVG
       USE MEGAN_MOD,         ONLY : UPDATE_T_DAY
@@ -240,9 +244,12 @@
       CALL INIT_PRESSURE
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_PRESSURE' )
 
-      ! Read annual mean tropopause
-      CALL READ_TROPOPAUSE
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_TROPOPAUSE' )
+      ! Read annual mean tropopause if not a variable tropopause
+      ! bdf: read_tropopause is obsolete with variable tropopause
+      IF ( .not. LVARTROP ) THEN
+         CALL READ_TROPOPAUSE
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_TROPOPAUSE' )
+      ENDIF
 
       ! Initialize allocatable SMVGEAR arrays
       IF ( LEMIS .or. LCHEM ) THEN
