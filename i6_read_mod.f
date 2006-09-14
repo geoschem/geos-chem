@@ -1,10 +1,10 @@
-! $Id: i6_read_mod.f,v 1.16 2006/09/14 14:22:15 phs Exp $
+! $Id: i6_read_mod.f,v 1.17 2006/09/14 17:03:45 bmy Exp $
       MODULE I6_READ_MOD
 !
 !******************************************************************************
 !  Module I6_READ_MOD contains subroutines that unzip, open, and read
 !  GEOS-CHEM I-6 (instantaneous 6-hr) met fields from disk. 
-!  (bmy, 6/23/03, 9/8/06)
+!  (bmy, 6/23/03, 9/14/06)
 ! 
 !  Module Routines:
 !  =========================================================================
@@ -27,7 +27,8 @@
 !  (7 ) file_mod.f      : Module containing file unit #'s and error checks
 !  (8 ) time_mod.f      : Module containing routines for computing time & date
 !  (9 ) transfer_mod.f  : Module containing routines to cast & resize arrays
-!  (10) tropopause_mod.f: Module containing routines for tropopause (only for variable one here)
+!  (10) tropopause_mod.f: Module containing routines for tropopause (only for 
+!                         variable one here)
 !  (11) unix_cmds_mod.f : Module containing Unix commands for unzipping etc.
 !
 !  NOTES:
@@ -45,7 +46,7 @@
 !  (11) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (12) Now set negative SPHU to a very small positive # (bmy, 9/8/06)
 !  (13) Now read TROPP files for GEOS-4, and check tropopause level 
-!       in case of a variable tropopause (phs, bmy, bdf, 9/12/06)
+!       in case of a variable tropopause (phs, bmy, bdf, 9/14/06)
 !******************************************************************************
 !
       IMPLICIT NONE

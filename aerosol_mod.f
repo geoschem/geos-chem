@@ -1,10 +1,10 @@
-! $Id: aerosol_mod.f,v 1.12 2006/09/14 14:22:11 phs Exp $
+! $Id: aerosol_mod.f,v 1.13 2006/09/14 17:03:43 bmy Exp $
       MODULE AEROSOL_MOD
 !
 !******************************************************************************
 !  Module AEROSOL_MOD contains variables and routines for computing optical
 !  properties for aerosols which are needed for both the FAST-J photolysis
-!  and ND21 optical depth diagnostics.  (bmy, 7/20/04, 8/4/06)
+!  and ND21 optical depth diagnostics.  (bmy, 7/20/04, 9/14/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -48,7 +48,7 @@
 !  (3 ) Now references "tropopause_mod.f" (bmy, 8/22/05)
 !  (4 ) Now add contribution of SOA4 into Hydrophilic OC (dkh, bmy, 5/18/06)
 !  (5 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (6 ) Add support for variable tropopause (bdf, phs, 8/21/06)
+!  (6 ) Add support for variable tropopause (bdf, phs, 9/14/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -94,7 +94,7 @@
 !******************************************************************************
 !  Subroutine AEROSOL_RURALBOX computes quantities that are needed by RDAER.
 !  This mimics the call to RURALBOX, which is only done for fullchem runs.
-!  (bmy, 9/28/04, 10/3/05)
+!  (bmy, 9/28/04, 9/14/06)
 !
 !  Arguments as Output:
 !  ============================================================================
@@ -107,6 +107,7 @@
 !  (2 ) Now references ITS_IN_THE_TROP from "tropopause_mod.f" to diagnose
 !        boxes w/in the troposphere. (bmy, 8/22/05)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (4 ) Modified for variable tropopause (phs, bdf, 9/14/06)
 !******************************************************************************
 !
       ! References to F90 modules

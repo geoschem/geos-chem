@@ -1,10 +1,10 @@
-! $Id: setemis.f,v 1.10 2006/09/14 14:22:18 phs Exp $
+! $Id: setemis.f,v 1.11 2006/09/14 17:03:46 bmy Exp $
       SUBROUTINE SETEMIS( EMISRR, EMISRRN )
 !
 !******************************************************************************
 !  Subroutine SETEMIS places emissions computed from GEOS-CHEM 
 !  subroutines into arrays for SMVGEAR II chemistry. 
-!  (lwh, jyl, gmg, djj, bdf, bmy, 6/8/98, 4/5/06)
+!  (lwh, jyl, gmg, djj, bdf, bmy, 6/8/98, 9/14/06)
 !
 !  SETEMIS converts from units of [molec tracer/box/s] to units of
 !  [molec chemical species/cm3/s], and stores in the REMIS array.  For
@@ -86,7 +86,7 @@
 !  (25) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (26) Now updated for new "biomass_mod.f" (bmy, 4/5/06)
 !  (27) Now account for the different definition of tropopause in case 
-!        of variable tropopause (bdf, phs, 8/21/06)
+!        of variable tropopause (bdf, phs, 9/14/06)
 !******************************************************************************
 !
       ! References to F90 modules 

@@ -1,5 +1,5 @@
 REVISIONS (v7-04-10)  
-13 Sep 2006
+14 Sep 2006
 Philippe Le Sager (phs@io.as.harvard.edu) and
 Bob Yantosca      (bmy@io.as.harvard.edu)
 
@@ -7,6 +7,15 @@ Bob Yantosca      (bmy@io.as.harvard.edu)
 New in v7-04-10:
 -------------------------------------------------------------------------------
 
+copy_full_trop		-- Copies concentrations from 3-D save array to 
+("tropopause_mod.f")	   the SMVGEAR CSPEC 1-D array
+
+save_full_trop		-- Saves concentrations to 3-D save array from 
+("tropopause_mod.f")	   the SMVGEAR CSPEC 1-D array
+
+check_var_trop		-- Checks to see that the troposphere is w/in 
+("tropopause_mod.f")	   array limits
+			      
 
 
 Removed in v7-04-10:
@@ -17,23 +26,43 @@ Removed in v7-04-10:
 Changed in v7-04-09:
 -------------------------------------------------------------------------------
 
-
 CMN_SIZE		-- Added variable tropopause case
 
-aerosol_mod.f		-- Add support for variable tropopause
+aerosol_ruralbox	-- Add support for variable tropopause
+("aerosol_mod.f")
 
-carbon_mod.f		-- temp fix for aerosol w/ 20 tracers
+chemcarbon		-- temp fix for aerosol w/ 20 tracers
+("carbon_mod.f")
 
 chemdr.f		-- Add support for variable tropopause
 
-dao_mod.f		-- Now interpolate TROPP, only if variable 
-		           tropopause is used
+interp			-- Now interpolate TROPP, only if variable tropopause 
+("dao_mod.f")   	   is used 
 
-input_mod.f		-- Modified for variable tropopause
+gasconc.f		-- Now take care of variable tropopause case
+
+init_input		-- Now initialize the LVARTROP switch
+("input_mod.f")
+
+its_in_the_trop		-- Modified for variable tropopause
+("tropopause_mod.f")
+
+its_in_the_strat	-- Modified for variable tropopause
+("tropopause_mod.f")
 
 logical_mod.f		-- Added LVARTROP for variable tropopause
 
-setemis.f		-- Added LVARTROP for variable tropopause
+setemis.f		-- Now account for the different definition of 
+			   tropopause in case of variable tropopause
+
+read_i6			-- Now read TROPP files for GEOS-4
+("i6_read_mod.f")
+
+read_pox_lox		-- Use LLTROP_FIX to limit array size to case of 
+("tagged_ox_mod.f")	   non-variable tropopause 
+
+read_simulation_menu	-- Now read switch for using variable tropopause or not
+("input_mod.f")
 
 tagged_ox_mod.f		-- Use LLTROP_FIX to limit array size to case of 
 			   non-variable tropopause

@@ -1,9 +1,9 @@
-! $Id: tropopause_mod.f,v 1.5 2006/09/14 14:22:20 phs Exp $
+! $Id: tropopause_mod.f,v 1.6 2006/09/14 17:03:47 bmy Exp $
       MODULE TROPOPAUSE_MOD
 !
 !******************************************************************************
 !  Module TROPOPAUSE_MOD contains routines and variables for reading and
-!  returning the value of the annual mean tropopause. (bmy, 8/15/05, 11/1/05)
+!  returning the value of the annual mean tropopause. (bmy, 8/15/05, 9/14/06)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -41,10 +41,10 @@
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (2 ) Simplify counting of tropospheric boxes (bmy, 11/1/05)
 !  (3 ) Added case of variable tropopause.
-!       The definition of tropopause is different in the two cases.
-!       The tropopause is part of the troposphere in the case of a  variable 
-!       troposphere. LMAX, LMIN are the min and max extend of the troposphere
-!       in that case.  (bdf, phs, 08/22/06)
+!        The definition of tropopause is different in the two cases.
+!        The tropopause is part of the troposphere in the case of a  variable 
+!        troposphere. LMAX, LMIN are the min and max extend of the troposphere
+!        in that case.  (bdf, phs, 9/14/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -85,20 +85,21 @@
       !=================================================================
       CONTAINS
 
-
+!------------------------------------------------------------------------------
 
       SUBROUTINE COPY_FULL_TROP
 !
 !******************************************************************************
-!  Subroutine COPY_FULL_TROP takes the saved full troposphere and copies chemical species
-!     into the current troposphere that will be used in SMVGEAR for this timestep
+!  Subroutine COPY_FULL_TROP takes the saved full troposphere and copies 
+!  chemical species into the current troposphere that will be used in SMVGEAR 
+!  for this timestep
 !
-!   ROUTINE NEEDED BECAUSE WITH VARIABLE TROPOPAUSE 
-!   JLOOP WILL NOT ALWAYS REFER TO THE SAME (I,J,L) BOX
+!  ROUTINE NEEDED BECAUSE WITH VARIABLE TROPOPAUSE 
+!  JLOOP WILL NOT ALWAYS REFER TO THE SAME (I,J,L) BOX
 !
 !  NOTES:
-!   (1) Very similar to a get_properties of an object. Should probably
-!       be in COMODE_MOD.F, and called GET_SPECIES_CONCENTRATION (phs)
+!  (1 ) Very similar to a get_properties of an object. Should probably
+!        be in COMODE_MOD.F, and called GET_SPECIES_CONCENTRATION (phs)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -114,37 +115,43 @@
       INTEGER :: JGAS, JLOOP, IX, IY, IZ
       INTEGER :: LOCATION(4)
 
+      !=================================================================
+      ! COPY_FULL_TROP begins here!
+      !=================================================================
 
-      DO JGAS = 1, NTSPEC(NCS)
+      ! Loop over species and 1-D grid boxes
+      DO JGAS  = 1, NTSPEC(NCS)
       DO JLOOP = 1, NTLOOP
 
+         ! 3-D array indices
          IX = IXSAVE(JLOOP)
          IY = IYSAVE(JLOOP)
          IZ = IZSAVE(JLOOP)
 
+         ! Copy from 3-D array
          CSPEC(JLOOP,JGAS) = CSPEC_FULL(IX,IY,IZ,JGAS)
 
       ENDDO
       ENDDO
 
+      ! Return to calling program
       END SUBROUTINE COPY_FULL_TROP
 
-
 !------------------------------------------------------------------------------
-
 
       SUBROUTINE SAVE_FULL_TROP
 !
 !******************************************************************************
-!  Subroutine SAVE_FULL_TROP takes the current troposphere and copies chemical species
-!     into the full troposphere that will be used in SMVGEAR for this timestep
+!  Subroutine SAVE_FULL_TROP takes the current troposphere and copies chemical
+!  species into the full troposphere that will be used in SMVGEAR for this 
+!  timestep
 !
-!   ROUTINE NEEDED BECAUSE WITH VARIABLE TROPOPAUSE 
-!   JLOOP WILL NOT ALWAYS REFER TO THE SAME (I,J,L) BOX
+!  ROUTINE NEEDED BECAUSE WITH VARIABLE TROPOPAUSE 
+!  JLOOP WILL NOT ALWAYS REFER TO THE SAME (I,J,L) BOX
 !
 !  NOTES:
-!   (1) Very similar to a set_properties of an object. Should probably
-!       be in COMODE_MOD.F, and called SAVE_SPECIES_CONCENTRATION (phs)
+!  (1 ) Very similar to a set_properties of an object. Should probably
+!        be in COMODE_MOD.F, and called SAVE_SPECIES_CONCENTRATION (phs)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -159,18 +166,26 @@
       ! Local variables
       INTEGER :: JGAS, JLOOP, IX, IY, IZ
 
+      !=================================================================
+      ! SAVE_FULL_TROP begins here!
+      !=================================================================
 
+      ! Loop over species and 1-D grid boxes
       DO JGAS = 1, NTSPEC(NCS)
-         DO JLOOP = 1, NTLOOP
+      DO JLOOP = 1, NTLOOP
 
-            IX = IXSAVE(JLOOP)
-            IY = IYSAVE(JLOOP)
-            IZ = IZSAVE(JLOOP)
+         ! 3-D array indices
+         IX = IXSAVE(JLOOP)
+         IY = IYSAVE(JLOOP)
+         IZ = IZSAVE(JLOOP)
 
-            CSPEC_FULL(IX,IY,IZ,JGAS) = CSPEC(JLOOP,JGAS)
-         ENDDO
+         ! Save in 3-D array
+         CSPEC_FULL(IX,IY,IZ,JGAS) = CSPEC(JLOOP,JGAS)
+
+      ENDDO
       ENDDO
 
+      ! Return to calling program
       END SUBROUTINE SAVE_FULL_TROP
 
 !------------------------------------------------------------------------------
@@ -179,8 +194,8 @@
 !
 !******************************************************************************
 !  Subroutine CHECK_VAR_TROP checks that the entire variable troposphere is
-!   included in the 1..LLTROP range, and set the LMIN and LMAX to current
-!   min and max tropopause. (phs, 24/8/06)
+!  included in the 1..LLTROP range, and set the LMIN and LMAX to current
+!  min and max tropopause. (phs, 24/8/06)
 !
 !  NOTES:
 !   (1 )  
@@ -197,6 +212,9 @@
       INTEGER            :: I, J
       REAL*8             :: TPAUSE_LEV(IIPAR,JJPAR)
 
+      !=================================================================
+      ! CHECK_VAR_TROP begins here!
+      !=================================================================
 
       ! set LMIN and LMAX to current min and max tropopause
       DO I = 1, IIPAR
@@ -221,7 +239,7 @@
          CALL GEOS_CHEM_STOP
       ENDIF
 
-
+      ! Return to calling program
       END SUBROUTINE CHECK_VAR_TROP
 
 !------------------------------------------------------------------------------
@@ -498,7 +516,7 @@
 !
 !******************************************************************************
 !  Function ITS_IN_THE_TROP returns TRUE if grid box (I,J,L) lies within
-!  the troposphere, or FALSE otherwise. (bmy, 2/10/05)
+!  the troposphere, or FALSE otherwise. (phs, bmy, 2/10/05, 9/14/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -507,33 +525,38 @@
 !  (3 ) L (INTEGER) : GEOS-CHEM level     index
 !
 !  NOTES:
+!  (1 ) Modified for variable tropopause (phs, 9/14/06)
 !******************************************************************************
 !
-      USE DAO_MOD,       ONLY : TROPP, PSC2
-      USE LOGICAL_MOD,   ONLY : LVARTROP
-      USE PRESSURE_MOD,  ONLY : GET_PEDGE
+      ! References to F90 modules
+      USE DAO_MOD,      ONLY : TROPP, PSC2
+      USE LOGICAL_MOD,  ONLY : LVARTROP
+      USE PRESSURE_MOD, ONLY : GET_PEDGE
 
       ! Arguments
-      INTEGER, INTENT(IN) :: I, J, L
+      INTEGER, INTENT(IN)   :: I, J, L
 
       ! Local variables
-      REAL*8              :: PRESS_BEDGE
+      REAL*8                :: PRESS_BEDGE
 
       ! Return value
-      LOGICAL             :: IS_TROP
+      LOGICAL               :: IS_TROP
 
       !=================================================================
       ! ITS_IN_THE_TROP begins here
       !=================================================================
       IF ( LVARTROP ) THEN
 
+         ! Get bottom pressure edge
          PRESS_BEDGE = GET_PEDGE(I,J,L)
 
-         IS_TROP = ( PRESS_BEDGE > TROPP(I,J) )
+         ! Check against actual tropopause pressure
+         IS_TROP     = ( PRESS_BEDGE > TROPP(I,J) )
 
       ELSE
          
-         IS_TROP = ( L < TROPOPAUSE(I,J) ) 
+         ! Check against annual mean tropopause
+         IS_TROP     = ( L < TROPOPAUSE(I,J) ) 
 
       ENDIF
 
@@ -546,7 +569,7 @@
 !
 !******************************************************************************
 !  Function ITS_IN_THE_STRAT returns TRUE if grid box (I,J,L) lies within
-!  the stratosphere, or FALSE otherwise. (bmy, 2/10/05)
+!  the stratosphere, or FALSE otherwise. (phs, bmy, 2/10/05, 9/14/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -555,9 +578,10 @@
 !  (3 ) L (INTEGER) : GEOS-CHEM level     index
 !
 !  NOTES:
+!  (1 ) Modified for variable tropopause (phs, 9/14/06)
 !******************************************************************************
 !
-
+      ! References to F90 modules
       USE DAO_MOD,       ONLY : TROPP, PSC2
       USE LOGICAL_MOD,   ONLY : LVARTROP
       USE PRESSURE_MOD,  ONLY : GET_PEDGE
@@ -576,13 +600,16 @@
       !=================================================================
       IF ( LVARTROP ) THEN
 
+         ! Get bottom pressure edge
          PRESS_BEDGE = GET_PEDGE(I,J,L)
          
-         IS_STRAT = ( PRESS_BEDGE <= TROPP(I,J) )
+         ! Test against actual tropopause pressure
+         IS_STRAT    = ( PRESS_BEDGE <= TROPP(I,J) )
 
       ELSE
 
-         IS_STRAT = ( L >= TROPOPAUSE(I,J) )
+         ! Test against annual mean tropopause
+         IS_STRAT    = ( L >= TROPOPAUSE(I,J) )
 
       ENDIF
 

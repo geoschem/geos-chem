@@ -1,10 +1,10 @@
-! $Id: carbon_mod.f,v 1.22 2006/09/14 14:22:12 phs Exp $
+! $Id: carbon_mod.f,v 1.23 2006/09/14 17:03:43 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
 !  Module CARBON_MOD contains arrays and routines for performing a 
 !  carbonaceous aerosol simulation.  Original code taken from Mian Chin's 
-!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 8/3/06)
+!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 9/14/06)
 !
 !  4 Aerosol species : Organic and Black carbon 
 !                    : hydrophilic (soluble) and hydrophobic of each
@@ -140,6 +140,7 @@
 !  (11) Updated for IPCC future emission scale factors.  Also added function
 !        GET_DOH to return ISOP that has reacted w/ OH. (swu, dkh, bmy, 6/1/06)
 !  (12) Now add SOG condensation onto SO4, NH4, NIT (rjp, bmy, 8/3/06)
+!  (13) Minor fix for 20 carbon tracers (phs, 9/14/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -217,7 +218,7 @@
 !  Subroutine CHEMCARBON is the interface between the GEOS-CHEM main program 
 !  and the carbon aerosol chemistry routines that calculates dry deposition, 
 !  chemical conversion between hydrophilic and hydrophobic, and SOA production.
-!  (rjp, bmy, 4/1/04, 6/1/06)
+!  (rjp, bmy, 4/1/04, 9/14/06)
 !
 !  NOTES:
 !  (1 ) Added code from the Caltech group for SOA chemistry.  Also now 
@@ -229,6 +230,7 @@
 !        STT and ITS_AN_AEROSOL_SIM from "tracer_mod.f" (bmy, 7/20/04)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Now updated for SOA production from ISOP. (dkh, bmy, 6/1/06)
+!  (6 ) Bug fix for aerosol sim w/ 20 tracers (phs, 9/14/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -303,9 +305,11 @@
          ! simulations but for now we just set them to zero. 
          ! (dkh, bmy, 6/1/06)
          IF ( ITS_AN_AEROSOL_SIM() ) THEN
-            IF ( IDTSOG4 .NE. 0 ) THEN   ! temp fix for aerosol w/ 20 tracers simulation (phs)
-            STT(:,:,:,IDTSOG4) = 0d0
-            STT(:,:,:,IDTSOA4) = 0d0
+
+            ! temp fix for aerosol w/ 20 tracers simulation (phs)
+            IF ( IDTSOG4 .NE. 0 ) THEN   
+               STT(:,:,:,IDTSOG4) = 0d0
+               STT(:,:,:,IDTSOA4) = 0d0
             ENDIF
          ENDIF
          

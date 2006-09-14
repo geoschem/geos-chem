@@ -1,10 +1,10 @@
-! $Id: tagged_ox_mod.f,v 1.18 2006/09/14 14:22:19 phs Exp $
+! $Id: tagged_ox_mod.f,v 1.19 2006/09/14 17:03:46 bmy Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
 !  Module TAGGED_OX_MOD contains variables and routines to perform a tagged Ox
 !  simulation.  P(Ox) and L(Ox) rates need to be archived from a full chemistry
-!  simulation before you can run w/ Tagged Ox. (amf,rch,bmy, 8/20/03, 8/4/06)
+!  simulation before you can run w/ Tagged Ox. (amf,rch,bmy, 8/20/03, 9/14/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -48,6 +48,7 @@
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (8 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (9 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (10) Modified for variable tropopause (phs, bmy, 9/14/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -123,13 +124,14 @@
 !
 !******************************************************************************
 !  Subroutine READ_POX_LOX reads previously-archived Ox production & loss 
-!  rates from binary punch file format. (bmy, 8/20/03, 10/3/05)
+!  rates from binary punch file format. (bmy, 8/20/03, 9/14/06)
 ! 
 !  NOTES:
 !  (1 ) Updated from the old routine "chemo3_split.f" (rch, bmy, 8/20/03)
 !  (2 ) Now references O3PL_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (4 ) Use LLTROP_FIX to limit array size to case of non-variable tropopause (phs, 9/12/06)
+!  (4 ) Use LLTROP_FIX to limit array size to case of non-variable tropopause 
+!        (phs, 9/12/06)
 !******************************************************************************
 !
       ! References to F90 modules

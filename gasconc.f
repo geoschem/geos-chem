@@ -1,9 +1,9 @@
-! $Id: gasconc.f,v 1.10 2006/09/14 14:22:15 phs Exp $
+! $Id: gasconc.f,v 1.11 2006/09/14 17:03:44 bmy Exp $
       SUBROUTINE GASCONC( FIRSTCHEM, NTRACER, STT, XNUMOL, FRCLND )
 !
 !******************************************************************************
 !  Subroutine GASCONC initializes gas concentrations for SMVGEAR II.
-!  (M. Jacobson 1997; bdf, bmy, 4/18/03, 6/1/06)
+!  (M. Jacobson 1997; bdf, bmy, 4/18/03, 9/14/06)
 !
 !  NOTES:
 !  (1 ) Now reference ABSHUM, AIRDENS, CSPEC, IXSAVE, IYSAVE, IZSAVE,  
@@ -19,7 +19,7 @@
 !  (5 ) Now make sure all USE statements are USE, ONLY.  Also remove 
 !        reference to TRACERID_MOD, it's not needed. (bmy, 10/3/05)
 !  (6 ) Now zero out the isoprene oxidation counter species (dkh, bmy, 6/1/06)
-!  (7 ) Now take care of  variable tropopause case (bdf, phs, 8/21/06)
+!  (7 ) Now take care of variable tropopause case (bdf, phs, 9/14/06)
 !******************************************************************************
 !
       ! References to F90 modules 

@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.33 2006/09/14 14:22:16 phs Exp $
+! $Id: input_mod.f,v 1.34 2006/09/14 17:03:45 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS_CHEM input file at the start of the run
 !  and passes the information to several other GEOS-CHEM F90 modules.
-!  (bmy, 7/20/04, 8/17/06)
+!  (bmy, 7/20/04, 9/14/06)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -114,7 +114,7 @@
 !  (14) Modified for BRAVO emissions (rjp, kfb, bmy, 6/26/06)
 !  (15) Remove support for GEOS-1 and GEOS-STRAT met fields.  Also modified 
 !        for David Streets' emissions. (bmy, 8/17/06)
-!  (16) Modified for variable tropopause (phs, 8/21/06)
+!  (16) Modified for variable tropopause (phs, 9/14/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -487,14 +487,14 @@
 !
 !******************************************************************************
 !  Subroutine READ_SIMULATION_MENU reads the SIMULATION MENU section of 
-!  the GEOS-CHEM input file (bmy, 7/20/04, 10/24/05)
+!  the GEOS-CHEM input file (bmy, 7/20/04, 9/14/06)
 !
 !  NOTES:
 !  (1 ) Bug fix: Read LSVGLB w/ the * format and not w/ '(a)'. (bmy, 2/23/05)
 !  (2 ) Now read GEOS_5_DIR and GCAP_DIR from input.geos (swu, bmy, 5/25/05)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Now references DATA_DIR_1x1 for 1x1 emissions files (bmy, 10/24/05)
-!  (5 ) Now read switch for using variable tropopause or not (phs, 8/21/06)
+!  (5 ) Now read switch for using variable tropopause or not (phs, 9/14/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -593,11 +593,11 @@
 
       ! Variable Tropopause
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:18' )
-      READ( SUBSTRS(1:N), * ) LVARTROP
+      READ( SUBSTRS(1:N), *     ) LVARTROP
 
       ! I0, J0
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:19' )
-      READ( SUBSTRS(1:N), * ) I0, J0
+      READ( SUBSTRS(1:N), *     ) I0, J0
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:20' )
@@ -4090,7 +4090,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_INPUT initializes all variables from "directory_mod.f" and
-!  "logical_mod.f" for safety's sake. (bmy, 7/20/04, 6/1/06)
+!  "logical_mod.f" for safety's sake. (bmy, 7/20/04, 9/14/06)
 !
 !  NOTES:
 !  (1 ) Now also initialize LNEI99 from "logical_mod.f" (bmy, 11/5/04)
@@ -4102,7 +4102,7 @@
 !  (6 ) Now also intitialize LFUTURE (swu, bmy, 6/1/06)
 !  (7 ) Now reference the EDGAR logical switches from "logical_mod.f"
 !        (avd, bmy, 7/11/06)
-!  (8 ) Now initialize the LVARTROP switch (phs, 8/21/06)
+!  (8 ) Now initialize the LVARTROP switch (phs, 9/14/06)
 !******************************************************************************
 !
       ! References to F90 modules

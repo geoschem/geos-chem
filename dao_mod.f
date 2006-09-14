@@ -1,10 +1,10 @@
-! $Id: dao_mod.f,v 1.20 2006/09/14 14:22:13 phs Exp $
+! $Id: dao_mod.f,v 1.21 2006/09/14 17:03:44 bmy Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
 !  Module DAO_MOD contains both arrays that hold DAO met fields, as well as
 !  subroutines that compute, interpolate, or otherwise process DAO met field 
-!  data. (bmy, 6/27/00, 8/4/06)
+!  data. (bmy, 6/27/00, 9/14/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -166,6 +166,7 @@
 !  (24) Now also add TSKIN for GEOS-3 (tmf, bmy, 10/20/05)
 !  (25) Modifications for near-land formulation (ltm, bmy, 5/16/06)
 !  (26) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (26) Modified for variable tropopause (phs, bdf, 9/14/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -498,7 +499,7 @@
 !******************************************************************************
 !  Subroutine INTERP linearly interpolates GEOS-CHEM I-6 fields (winds, 
 !  surface pressure, temperature, surface albedo, specific humidity) to the 
-!  current dynamic timestep. (bdf, bmy, 1/30/98, 8/4/06)
+!  current dynamic timestep. (bdf, bmy, 1/30/98, 9/14/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -537,13 +538,14 @@
 !        NTIME0.  Updated comments. (bmy, 6/19/03)
 !  (13) Now modified for GEOS-5 and GCAP met fields. (swu, bmy, 5/25/05)
 !  (14) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (15) Now interpolate TROPP, only if variable tropopause is used (phs, 9/12/06)
+!  (15) Now interpolate TROPP, only if variable tropopause is used 
+!        (phs, 9/12/06)
 !******************************************************************************
 !
       ! References to F90 modules
       USE LOGICAL_MOD, ONLY : LVARTROP
      
-#     include "CMN_SIZE"   ! Size parameters
+#     include "CMN_SIZE"    ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: NTIME0, NTIME1, NTDT  
