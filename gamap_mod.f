@@ -1,4 +1,4 @@
-! $Id: gamap_mod.f,v 1.17 2006/09/08 19:20:57 bmy Exp $
+! $Id: gamap_mod.f,v 1.18 2006/10/16 20:44:31 phs Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
@@ -72,6 +72,9 @@
 !  (8 ) Updated for ND42 SOA concentration diagnostics (dkh, bmy, 5/22/06)
 !  (9 ) Updated for ND36 CH3I simulation diagnostics (bmy, 7/25/06)
 !  (10) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (11) Added TIME-TPS category, which has tracer TIMETROP and offset 
+!       45*spacing, for fractional time in the troposphere, i.e., 
+!       diagnostic ND54 (phs, 9/25/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1277,6 +1280,11 @@
       CATEGORY(N) = 'CH3ISRCE'
       DESCRIPT(N) = 'CH3I emissions'
 7      OFFSET(N)   = SPACING * 44
+
+      N           = N + 1
+      CATEGORY(N) = 'TIME-TPS'
+      DESCRIPT(N) = 'Fraction of time in troposhere'
+      OFFSET(N)   = SPACING * 45
 
       ! Number of categories
       NCATS = N
@@ -2497,6 +2505,21 @@
             END SELECT
 
          ENDDO
+      ENDIF
+
+      !-------------------------------------      
+      ! Time in the troposphere (ND54)
+      !-------------------------------------      
+      IF ( ND54 > 0 ) THEN
+         T           = 1
+         NTRAC(54)   = T
+         NAME (T,54) = 'TIMETROP'
+         FNAME(T,54) = 'Time in the troposphere'
+         UNIT (T,54) = 'unitless'
+         INDEX(T,54) = T + ( SPACING * 45 )
+         MOLC (T,54) = 1
+         MWT  (T,54) = 0e0
+         SCALE(T,54) = 1e0
       ENDIF
 
       !-------------------------------------      

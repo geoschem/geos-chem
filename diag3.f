@@ -1,4 +1,4 @@
-! $Id: diag3.f,v 1.36 2006/09/08 19:20:53 bmy Exp $
+! $Id: diag3.f,v 1.37 2006/10/16 20:44:30 phs Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
@@ -76,6 +76,7 @@
 !  (68) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (69) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
 !        (bmy, 9/5/06)
+!  (70) Now write diag 54 (time in the troposphere) if asked for (9/22/06)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -109,6 +110,7 @@
       USE DIAG_MOD,     ONLY : CTNO2,       LTNO3,       CTNO3
       USE DIAG_MOD,     ONLY : AD44,        AD45,        LTOTH
       USE DIAG_MOD,     ONLY : CTOTH,       AD46,        AD47
+      USE DIAG_MOD,     ONLY : AD54
       USE DIAG_MOD,     ONLY : AD55,        AD66,        AD67
       USE DIAG_MOD,     ONLY : AD68,        AD69
       USE DIAG03_MOD,   ONLY : ND03,        WRITE_DIAG03
@@ -203,6 +205,14 @@
       SCALE_A3  = DBLE( GET_CT_A3()   ) + 1d-32
       SCALE_A6  = DBLE( GET_CT_A6()   ) + 1d-32
       SCALE_I6  = DBLE( GET_CT_I6()   ) + 1d-32
+
+      write(6,*) 'SCALEDYN  = ',SCALEDYN
+      write(6,*) 'SCALECONV = ',SCALECONV
+      write(6,*) 'SCALESRCE = ',SCALESRCE
+      write(6,*) 'SCALECHEM = ',SCALECHEM
+      write(6,*) 'SCALE_A3  = ',SCALE_A3
+      write(6,*) 'SCALE_A6  = ',SCALE_A6
+      write(6,*) 'SCALE_I6  = ',SCALE_I6
 
 !
 !******************************************************************************
@@ -2458,6 +2468,29 @@
      &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD47) )
             ENDIF
          ENDDO
+      ENDIF
+!
+!******************************************************************************
+!  ND54: Time-in-the-Troposphere diagnostic
+!
+!   # : Field   : Description                 : Units     : Scale Factor
+!  ---------------------------------------------------------------------------
+!  (1) TIME-TPS : Time spend in troposphere   : fraction  : SCALEDYN
+!******************************************************************************
+!
+      IF ( ND54 > 0 ) THEN
+         CATEGORY = 'TIME-TPS'
+         UNIT = 'unitless'
+
+         DO L = 1, LD54
+            ARRAY(:,:,L) = AD54(:,:,L) / SCALEDYN
+         ENDDO
+
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, 1,    
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &               IIPAR,     JJPAR,     LD54,     IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD54) )
       ENDIF
 !
 !******************************************************************************

@@ -1,4 +1,4 @@
-! $Id: diag_mod.f,v 1.16 2005/09/02 15:17:07 bmy Exp $
+! $Id: diag_mod.f,v 1.17 2006/10/16 20:44:31 phs Exp $
       MODULE DIAG_MOD 
 !
 !******************************************************************************
@@ -51,6 +51,7 @@
 !  (22) Removed AD41 and AFTTOT arrays; they're obsolete (bmy, 2/17/05)
 !  (23) Added AD09, AD09_em arrays for HCN/CH3CN simulation (xyp, bmy, 6/27/05)
 !  (24) Added AD30 array for land/water/ice output (bmy, 8/18/05)
+!  (60) Added AD54 array for time spend in the troposphere (phs, 9/22/06)
 !******************************************************************************
 !     
       !=================================================================
@@ -212,7 +213,7 @@
       INTEGER, ALLOCATABLE :: LTOTH(:,:)
       INTEGER, ALLOCATABLE :: CTOTH(:,:)
 
-      ! For ND45 -- Tracer concentration diagnostic
+      ! For ND46 -- Tracer concentration diagnostic
       REAL*4,  ALLOCATABLE :: AD46(:,:,:)      
 
       ! For ND47 -- 24-h tracer concentration diagnostic
@@ -220,6 +221,9 @@
 
       ! Dynamically allocatable array -- local only to DIAG50.F
       REAL*8,  ALLOCATABLE :: STT_TEMPO2(:,:,:,:)
+
+      ! For ND54 -- tropopause diagnostics
+      REAL*4,  ALLOCATABLE :: AD54(:,:,:)
 
       ! For ND55 -- tropopause diagnostics
       REAL*4,  ALLOCATABLE :: AD55(:,:,:)
@@ -327,6 +331,7 @@
       IF ( ALLOCATED( AD45        ) ) DEALLOCATE( AD45        )
       IF ( ALLOCATED( AD46        ) ) DEALLOCATE( AD46        )
       IF ( ALLOCATED( AD47        ) ) DEALLOCATE( AD47        )
+      IF ( ALLOCATED( AD54        ) ) DEALLOCATE( AD54        )
       IF ( ALLOCATED( AD55        ) ) DEALLOCATE( AD55        )
       IF ( ALLOCATED( AD66        ) ) DEALLOCATE( AD66        )
       IF ( ALLOCATED( AD68        ) ) DEALLOCATE( AD68        )

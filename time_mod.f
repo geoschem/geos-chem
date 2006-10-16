@@ -1,4 +1,4 @@
-! $Id: time_mod.f,v 1.24 2006/09/08 19:21:05 bmy Exp $
+! $Id: time_mod.f,v 1.25 2006/10/16 20:44:35 phs Exp $
       MODULE TIME_MOD
 !
 !******************************************************************************
@@ -176,6 +176,7 @@
 !  (24) GCAP bug fix: There are no leapyears, so transition from 2/28 to 3/1,
 !        skipping 2/29 for all years. (swu, bmy, 4/24/06)
 !  (25) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (26) Fix bug for case of GCAP fields in SET_CURRENT_TIME (phs, 9/27/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -248,6 +249,8 @@
 !        Feb 29th, reset MONTH, DAY, JD1 to Mar 1st. (swu, bmy, 8/29/05)
 !  (2 ) Now references "define.h".  Now add special handling to skip from
 !        Feb 28th to Mar 1st for GCAP model. (swu, bmy, 4/24/06)
+!  (3 ) Fix bug in case of GCAP fields for runs that start during leap year
+!       and after February 29 (phs, 9/27/06)  
 !******************************************************************************
 !
       ! References to F90 modules
@@ -289,7 +292,8 @@
          JD_JAN_1 = GET_JD( YEAR*10000 + 0101, 000000 )
          
          ! Skip directly from Feb 28 to Mar 1st 
-         IF ( JD1 - JD_JAN_1 >= 59d0 ) JD1 = JD1 + 1d0
+         IF ( ( JD1 - JD_JAN_1 >= 59d0 ).and.
+     &        ( JD0 - JD_JAN_1 <= 59d0 ) ) JD1 = JD1 + 1d0
          
          ! Call CALDATE to recompute YYYYMMDD and HHMMSS
          CALL CALDATE( JD1, NYMD, NHMS )

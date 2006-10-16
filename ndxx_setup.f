@@ -1,4 +1,4 @@
-! $Id: ndxx_setup.f,v 1.25 2006/06/06 14:26:07 bmy Exp $
+! $Id: ndxx_setup.f,v 1.26 2006/10/16 20:44:35 phs Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
@@ -120,6 +120,7 @@
 !  (57) Removed duplicate variable declarations (bmy, 2/6/06)
 !  (58) Now remove NBIOTRCE; it's obsolete.  Replace w/ NBIOMAX (bmy, 4/5/06)
 !  (59) Now remove TRCOFFSET; it's obsolete (bmy, 5/16/06)
+!  (60) Added the ND54 for time spend in the troposphere (phs, 9/22/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -152,6 +153,7 @@
       USE DIAG_MOD,        ONLY : CTNO2,       LTNO3,       CTNO3
       USE DIAG_MOD,        ONLY : AD44,        AD45,        LTOTH
       USE DIAG_MOD,        ONLY : CTOTH,       AD46,        AD47
+      USE DIAG_MOD,        ONLY : AD54
       USE DIAG_MOD,        ONLY : AD55,        AD66,        AD67
       USE DIAG_MOD,        ONLY : AD68,        AD69
       USE DIAG_OH_MOD,     ONLY : INIT_DIAG_OH
@@ -203,6 +205,7 @@
       LD43 = 1
       LD45 = 1
       LD47 = 1
+      LD54 = 1
       LD64 = 1
       LD65 = 1
       LD66 = 1
@@ -229,7 +232,7 @@
       ENDIF
 
       !=================================================================
-      ! ND04: Free diagnostic
+      ! ND04: CO2 source - see ??
       ! 
       ! ND05: Sulfate Prod/loss
       !=================================================================
@@ -711,7 +714,7 @@
       ENDIF
 
       !=================================================================
-      ! ND42: Free diagnostic
+      ! ND42: SOA concentration
       !
       ! ND43: Chemical diagnostics: OH [molec/cm3/s] and NO [v/v]
       !       --> uses AD43 array (allocatable)
@@ -843,8 +846,19 @@
       ENDIF
 
       !=================================================================
-      ! ND52 - ND54: Free diagnostics
-      ! 
+      ! ND52 - ND53: Free diagnostics
+      !
+      ! ND54 - Time spend in the troposphere
+      !        --> uses AD54 array (allocatable)
+      !=================================================================
+      IF ( ND54 > 0 ) THEN
+         LD54 = MIN( ND54, LLTROP)
+
+         ALLOCATE( AD54( IIPAR, JJPAR, LD54 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD54' )
+      ENDIF
+
+      !=================================================================
       ! ND55: Tropopause diagnostics [level, height, and pressure]
       !       --> uses AD55 array (allocatable)
       !=================================================================

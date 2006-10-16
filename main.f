@@ -1,8 +1,15 @@
-! $Id: main.f,v 1.40 2006/09/14 14:22:17 phs Exp $
+! $Id: main.f,v 1.41 2006/10/16 20:44:34 phs Exp $
 ! $Log: main.f,v $
+! Revision 1.41  2006/10/16 20:44:34  phs
+! GEOS-Chem v7-04-11, includes the following modifications:
+! - Added diagnostic for Time in the Troposphere
+! - Fix interpolation of TROPP
+!
 ! Revision 1.40  2006/09/14 14:22:17  phs
 ! GEOS-Chem v7-04-10, includes the following modifications:
 ! - Variable tropopause code added
+! - For offline simulations you must switch off (set to F)
+!   the variable tropopause option in the input.geos file.
 !
 ! Revision 1.39  2006/09/08 19:21:00  bmy
 ! GEOS-Chem v7-04-09, includes the following modifications:
@@ -188,7 +195,7 @@
       USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
       USE TRANSPORT_MOD,     ONLY : DO_TRANSPORT
-      USE TROPOPAUSE_MOD,    ONLY : READ_TROPOPAUSE
+      USE TROPOPAUSE_MOD,    ONLY : READ_TROPOPAUSE, CHECK_VAR_TROP
       USE RESTART_MOD,       ONLY : MAKE_RESTART_FILE, READ_RESTART_FILE
       USE UPBDFLX_MOD,       ONLY : DO_UPBDFLX,        UPBDFLX_NOY
       USE UVALBEDO_MOD,      ONLY : READ_UVALBEDO
@@ -245,7 +252,7 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_PRESSURE' )
 
       ! Read annual mean tropopause if not a variable tropopause
-      ! bdf: read_tropopause is obsolete with variable tropopause
+      ! read_tropopause is obsolete with variable tropopause
       IF ( .not. LVARTROP ) THEN
          CALL READ_TROPOPAUSE
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_TROPOPAUSE' )
@@ -722,7 +729,13 @@
          
          ! Interpolate I-6 fields to current dynamic timestep, 
          ! based on their values at NSEC and NSEC+N_DYN
-         CALL INTERP( NSECb, ELAPSED_SEC, N_DYN )         
+         CALL INTERP( NSECb, ELAPSED_SEC, N_DYN )
+
+         ! Case of variable tropopause:
+         ! Check LLTROP and set LMIN, LMAX, and LPAUSE
+         ! since this is not done with READ_TROPOPAUSE anymore.
+         ! (Need to double-check that LMIN, Lmax are not used before-phs) 
+         IF ( LVARTROP ) CALL CHECK_VAR_TROP
          
          ! If we are not doing transport, then make sure that
          ! the floating pressure is set to PSC2 (bdf, bmy, 8/22/02)

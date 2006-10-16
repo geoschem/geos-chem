@@ -1,4 +1,4 @@
-! $Id: CMN_SIZE,v 1.22 2006/09/14 14:22:08 phs Exp $
+! $Id: CMN_SIZE,v 1.23 2006/10/16 20:44:26 phs Exp $
       !=======================================================================
       ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 8/4/06)
       !
@@ -44,6 +44,8 @@
       ! (23) Increase NNPAR to 54 (dkh, bmy, 5/22/06)
       ! (24) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
       ! (25) Added variable tropopause case (bmy, phs, bdf, 8/21/06)
+      ! (26) Set LLTROP to level of first box entirely above 20km for GEOS-3 
+      !      and GEOS-4 (phS, 9/14/06)
       !=======================================================================
 
       ! C Preprocessor #define statements for conditional compilation
@@ -119,12 +121,13 @@
 
 #if   defined( GRID30LEV )
       INTEGER, PARAMETER :: LLPAR  = 30     ! 30 levels
+      INTEGER, PARAMETER :: LLTROP = 24       
 #else
       INTEGER, PARAMETER :: LLPAR  = LGLOB  ! 48 levels
+      INTEGER, PARAMETER :: LLTROP = 25       
 #endif
 
       INTEGER, PARAMETER :: LLTROP_FIX = 20 ! FOR OFFLINE SIMULATIONS
-      INTEGER, PARAMETER :: LLTROP = 25       
 
       REAL*8,  PARAMETER :: PTOP   = 0.01d0
 
@@ -142,12 +145,13 @@
 
 #if   defined( GRID30LEV )
       INTEGER, PARAMETER :: LLPAR  = 30     ! 30 levels
+      INTEGER, PARAMETER :: LLTROP = 24       
 #else
       INTEGER, PARAMETER :: LLPAR  = LGLOB  ! 48 levels
+      INTEGER, PARAMETER :: LLTROP = 25       
 #endif 
 
       INTEGER, PARAMETER :: LLTROP_FIX = 20 ! FOR OFFLINE SIMULATIONS
-      INTEGER, PARAMETER :: LLTROP = 25       
 
       REAL*8,  PARAMETER :: PTOP   = 0.01d0
 
@@ -185,12 +189,13 @@
 
 #if   defined( GRID30LEV )
       INTEGER, PARAMETER :: LLPAR  = 30     ! 30 levels
+      INTEGER, PARAMETER :: LLTROP = 24       
 #else
       INTEGER, PARAMETER :: LLPAR  = LGLOB  ! 48 levels
+      INTEGER, PARAMETER :: LLTROP = 25       
 #endif
 
       INTEGER, PARAMETER :: LLTROP_FIX = 20 ! FOR OFFLINE SIMULATIONS
-      INTEGER, PARAMETER :: LLTROP = 25       
 
       REAL*8,  PARAMETER :: PTOP   = 0.01d0
 
@@ -208,12 +213,13 @@
 
 #if   defined( GRID30LEV ) 
       INTEGER, PARAMETER :: LLPAR  = 30     ! 30 levels
+      INTEGER, PARAMETER :: LLTROP = 22       
 #else
       INTEGER, PARAMETER :: LLPAR  = LGLOB  ! 55 levels
+      INTEGER, PARAMETER :: LLTROP = 23       
 #endif
 
       INTEGER, PARAMETER :: LLTROP_FIX = 17 ! FOR OFFLINE SIMULATIONS
-      INTEGER, PARAMETER :: LLTROP = 20     !
 
       REAL*8,  PARAMETER :: PTOP   = 0.01d0
 
@@ -231,12 +237,13 @@
 
 #if   defined( GRID30LEV )
       INTEGER, PARAMETER :: LLPAR  = 30     ! 30 levels
+      INTEGER, PARAMETER :: LLTROP = 22
 #else 
       INTEGER, PARAMETER :: LLPAR  = LGLOB  ! 55 levels
+      INTEGER, PARAMETER :: LLTROP = 23
 #endif
 
       INTEGER, PARAMETER :: LLTROP_FIX = 17 ! FOR OFFLINE SIMULATIONS
-      INTEGER, PARAMETER :: LLTROP = 20
 
       REAL*8,  PARAMETER :: PTOP   = 0.01d0
 
@@ -254,12 +261,13 @@
 
 #if   defined( GRID30LEV )
       INTEGER, PARAMETER :: LLPAR  = 30     ! 30 levels
+      INTEGER, PARAMETER :: LLTROP = 22
 #else 
       INTEGER, PARAMETER :: LLPAR  = LGLOB  ! 55 levels
+      INTEGER, PARAMETER :: LLTROP = 23
 #endif
 
       INTEGER, PARAMETER :: LLTROP_FIX = 17 ! FOR OFFLINE SIMULATIONS
-      INTEGER, PARAMETER :: LLTROP = 20
 
       REAL*8,  PARAMETER :: PTOP   = 0.01d0
 
@@ -282,7 +290,7 @@
 #endif
 
       INTEGER, PARAMETER :: LLTROP_FIX = 17 ! FOR OFFLINE SIMULATIONS - Need to check this
-      INTEGER, PARAMETER :: LLTROP = 20     ! Need to check this
+      INTEGER, PARAMETER :: LLTROP = 23     ! Need to check this
 
       REAL*8,  PARAMETER :: PTOP   = 0.01d0
 
@@ -305,7 +313,7 @@
 #endif
 
       INTEGER, PARAMETER :: LLTROP_FIX = 17 ! FOR OFFLINE SIMULATIONS - Need to check this
-      INTEGER, PARAMETER :: LLTROP = 17     ! Need to check this
+      INTEGER, PARAMETER :: LLTROP = 23     ! Need to check this
 
       REAL*8,  PARAMETER :: PTOP   = 0.01d0
 
@@ -328,7 +336,7 @@
 #endif
 
       INTEGER, PARAMETER :: LLTROP_FIX = 17 ! FOR OFFLINE SIMULATIONS - Need to check this
-      INTEGER, PARAMETER :: LLTROP = 17     ! Need to check this!
+      INTEGER, PARAMETER :: LLTROP = 23     ! Need to check this!
 
       REAL*8,  PARAMETER :: PTOP   = 0.01d0
 

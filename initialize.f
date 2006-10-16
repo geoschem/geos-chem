@@ -1,4 +1,4 @@
-! $Id: initialize.f,v 1.20 2006/05/26 17:45:23 bmy Exp $
+! $Id: initialize.f,v 1.21 2006/10/16 20:44:33 phs Exp $
       SUBROUTINE INITIALIZE( IFLAG )
 !
 !******************************************************************************
@@ -69,14 +69,15 @@
 !  (39) AD45        : ND45 array -- tracer concentrations
 !  (40) AD47        : ND47 array -- 24-h avg'd tracer conc.
 !  (41) TCOBOX      : ND48 array -- station time series
-!  (42) AD55        : ND55 array -- tropopause quantities
-!  (43) AD65        : ND65 array -- chemical prod & loss
-!  (44) FAMPL       : ND65 array -- accumulator for chemical prod & loss
-!  (45) AD66        : ND66 array -- DAO 3-D fields
-!  (46) AD67        : ND67 array -- DAO surface fields
-!  (47) AD68        : ND68 array -- boxheights, air mass, water vapor, 
+!  (42) AD54        : ND54 array -- time in the troposphere (fraction)
+!  (43) AD55        : ND55 array -- tropopause quantities
+!  (44) AD65        : ND65 array -- chemical prod & loss
+!  (45) FAMPL       : ND65 array -- accumulator for chemical prod & loss
+!  (46) AD66        : ND66 array -- DAO 3-D fields
+!  (47) AD67        : ND67 array -- DAO surface fields
+!  (48) AD68        : ND68 array -- boxheights, air mass, water vapor, 
 !                                   Air number density 
-!  (48) AD69        : ND69 array -- surface areas
+!  (49) AD69        : ND69 array -- surface areas
 !
 !  Scalars & Counter variables passed via COMMON blocks
 !  ============================================================================
@@ -161,6 +162,7 @@
 !  (35) Now resets SET_CT_XTRA at the beginning of the run. (tmf, 10/20/05)
 !  (36) Now references ND56, ZERO_DIAG56 from "diag56_mod.f" (ltm, bmy, 5/5/06)
 !  (37) Now references ND42, ZERO_DIAG42 from "diag42_mod.f" (dkh, bmy,5/22/06)
+!  (38) take care of AD54 (time in the troposphere diagnostic) (phs, 9/22/06)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -191,6 +193,7 @@
       USE DIAG_MOD,    ONLY : CTNO2,       LTNO3,       CTNO3
       USE DIAG_MOD,    ONLY : AD44,        AD45,        LTOTH
       USE DIAG_MOD,    ONLY : CTOTH,       AD46,        AD47
+      USE DIAG_MOD,    ONLY : AD54
       USE DIAG_MOD,    ONLY : AD55,        AD66,        AD67
       USE DIAG_MOD,    ONLY : AD68,        AD69
       USE DIAG03_MOD,  ONLY : ND03,        ZERO_DIAG03
@@ -259,6 +262,7 @@
          IF ( ND45 > 0 ) AD45     = 0e0
          IF ( ND46 > 0 ) AD46     = 0e0
          IF ( ND47 > 0 ) AD47     = 0e0
+         IF ( ND54 > 0 ) AD54     = 0e0
          IF ( ND55 > 0 ) AD55     = 0e0
          IF ( ND66 > 0 ) AD66     = 0e0
          IF ( ND67 > 0 ) AD67     = 0e0

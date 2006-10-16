@@ -1,4 +1,4 @@
-! $Id: gasconc.f,v 1.11 2006/09/14 17:03:44 bmy Exp $
+! $Id: gasconc.f,v 1.12 2006/10/16 20:44:32 phs Exp $
       SUBROUTINE GASCONC( FIRSTCHEM, NTRACER, STT, XNUMOL, FRCLND )
 !
 !******************************************************************************
@@ -229,7 +229,7 @@ C
 
 ! copies the chemical species in CSPEC from full (potential troposphere) 
 !  into current variable troposphere
-      CALL COPY_FULL_TROP
+      IF (LVARTROP.OR.FIRSTCHEM) CALL COPY_FULL_TROP
 
 C  ********************************************************************
 C  *            Update starting concentrations for plumes             *

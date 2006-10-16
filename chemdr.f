@@ -1,4 +1,4 @@
-! $Id: chemdr.f,v 1.22 2006/09/14 14:22:13 phs Exp $
+! $Id: chemdr.f,v 1.23 2006/10/16 20:44:28 phs Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
@@ -412,8 +412,8 @@
 
       ! saves the chemical species in CSPEC from variable current troposphere
       ! into an array for the full potential troposphere -bdf
-c      IF ( LVARTROP ) CALL SAVE_FULL_TROP
-      CALL SAVE_FULL_TROP
+      IF ( LVARTROP ) CALL SAVE_FULL_TROP
+c      CALL SAVE_FULL_TROP
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after LUMP' )

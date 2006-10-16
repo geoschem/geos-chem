@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.34 2006/09/14 17:03:45 bmy Exp $
+! $Id: input_mod.f,v 1.35 2006/10/16 20:44:33 phs Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -115,6 +115,7 @@
 !  (15) Remove support for GEOS-1 and GEOS-STRAT met fields.  Also modified 
 !        for David Streets' emissions. (bmy, 8/17/06)
 !  (16) Modified for variable tropopause (phs, 9/14/06)
+!  (17) Now read if Time Spent in Troposphere is wanted (phs, 9/22/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -2451,11 +2452,11 @@
       CALL SET_TINDEX( 53, ND53, SUBSTRS(2:N), N-1, N_TRACERS )
 
       !--------------------------
-      ! ND54: Free
+      ! ND54: Time in troposphere
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:53' )
       READ( SUBSTRS(1), * ) ND54
-      CALL SET_TINDEX( 54, ND54, SUBSTRS(2:N), N-1, N_TRACERS )
+      CALL SET_TINDEX( 54, ND54, SUBSTRS(2:N), N-1, 1 )
 
       !--------------------------
       ! ND55: Tropopause diags

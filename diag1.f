@@ -1,4 +1,4 @@
-! $Id: diag1.f,v 1.14 2006/09/08 19:20:53 bmy Exp $
+! $Id: diag1.f,v 1.15 2006/10/16 20:44:29 phs Exp $
       SUBROUTINE DIAG1 
 !
 !******************************************************************************
@@ -49,6 +49,7 @@
 !  (24) Now archive ND30 diagnostic for land/water/ice flags (bmy, 8/18/05)
 !  (25) Now reference XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (26) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (27) Added count for time in the troposphere - array AD54 (phs, 9/22/06)
 !******************************************************************************
 !  List of GEOS-CHEM Diagnostics (bmy, 10/25/05)
 !
@@ -256,7 +257,8 @@
 !
 !  ND52   ----    Free Diagnostic  
 !  ND53   ----    Free Diagnostic 
-!  ND54   ----    Free Diagnostic 
+!
+!  ND54 (I,J,L)   Time in troposphere (fraction of total time) unitless
 !
 !  ND55           TROPOPAUSE DIAGNOSTICS
 !       (I,J)      Tropopause level number                     unitless
@@ -317,15 +319,17 @@
 !*****************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : AD,  AIRDEN, AVGW,     BXHEIGHT 
-      USE DAO_MOD,      ONLY : PBL, IS_ICE, IS_WATER, IS_LAND, IS_NEAR
-      USE DIAG_MOD,     ONLY : AD30, AD31, AD33, AD35, AD45 
-      USE DIAG_MOD,     ONLY : AD47, AD67, AD68, AD69, LTOTH
-      USE GRID_MOD,     ONLY : GET_AREA_M2
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE TRACER_MOD,   ONLY : N_TRACERS, STT, TCVV, ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,   ONLY : XNUMOLAIR
-      USE TRACERID_MOD, ONLY : IDTOX
+      USE DAO_MOD,        ONLY : AD,  AIRDEN, AVGW,     BXHEIGHT 
+      USE DAO_MOD,        ONLY : PBL, IS_ICE, IS_WATER, IS_LAND, IS_NEAR
+      USE DIAG_MOD,       ONLY : AD30, AD31, AD33, AD35, AD45, AD54 
+      USE DIAG_MOD,       ONLY : AD47, AD67, AD68, AD69, LTOTH
+      USE GRID_MOD,       ONLY : GET_AREA_M2
+      USE PRESSURE_MOD,   ONLY : GET_PEDGE
+      USE TRACER_MOD,     ONLY : N_TRACERS, STT, TCVV, 
+     &                           ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,     ONLY : XNUMOLAIR
+      USE TRACERID_MOD,   ONLY : IDTOX
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
       IMPLICIT NONE
 
@@ -514,6 +518,23 @@
          ENDDO 
 !$OMP END PARALLEL DO   
       ENDIF
+
+      !================================================================= 
+      ! ND54: Count time the box was tropospheric
+      !================================================================= 
+      IF ( ND54 > 0 ) THEN
+
+            DO L = 1, LD54
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               IF ( ITS_IN_THE_TROP(I,J,L) )
+     &              AD54(I,J,L) = AD54(I,J,L) + 1.
+            ENDDO   
+            ENDDO
+            ENDDO
+            
+      ENDIF
+          
           
       !=================================================================  
       ! ND67: Store PBL top pressure [hPa]

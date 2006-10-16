@@ -1,4 +1,4 @@
-! $Id: a6_read_mod.f,v 1.17 2006/09/08 19:20:49 bmy Exp $
+! $Id: a6_read_mod.f,v 1.18 2006/10/16 20:44:27 phs Exp $
       MODULE A6_READ_MOD
 !
 !******************************************************************************
@@ -488,7 +488,7 @@
      &              DTRAIN=DTRAIN, MOISTQ=MOISTQ, OPTDEPTH=OPTDEP )
 
 #elif defined( GEOS_4 ) || defined( GEOS_5 )
-
+      write(6,*)'get in'
       !=================================================================      
       ! GEOS-4 : read CLDF, HKBETA, HKETA, MOISTQ, OPTDEP, SPHU
       ! GEOS-5 :      TMPU, UWND,   VWND,  ZMEU,   ZMMD,   ZMMU
@@ -499,7 +499,7 @@
      &              MOISTQ=MOISTQ, OPTDEPTH=OPTDEP, Q=SPHU,        
      &              T=T,           U=UWND,          V=VWND,        
      &              ZMEU=ZMEU,     ZMMD=ZMMD,       ZMMU=ZMMU ) 
-
+      write(6,*)'get out'
 #elif defined( GCAP ) 
 
       !=================================================================

@@ -1,4 +1,4 @@
-! $Id: CMN_DIAG,v 1.19 2006/06/06 14:25:52 bmy Exp $
+! $Id: CMN_DIAG,v 1.20 2006/10/16 20:44:26 phs Exp $
 ! 
 ! NOTES:
 ! (1 ) Changed RCS ID tag comment character from "C" to "!" to allow freeform
@@ -15,6 +15,7 @@
 ! (7 ) Rename MAXDIAG to MAX_DIAG and MAXTRACER to MAX_TRACER in order to
 !       avoid name conflicts with "gamap_mod.f" (bmy, 5/3/05)
 ! (8 ) Remove reference to TRCOFFSET (bmy, 5/16/06)
+! (9 ) Added multi level LD54 to common CDIAG1 (phs, 9/22/06)
 !----------------------------------------------------------------------------
 ! Parameters for the diagnostic arrays (for ease of use)
 !
@@ -120,15 +121,16 @@
 ! Variables for the number of levels in multi-level diagnostics  
 ! Removed LD03 -- this is now in diag03_mod.f (bmy, 1/21/05)
 ! Added LD09 (bmy, 6/27/05)
+! Added LD54 (phs, 9/22/06)
       INTEGER                                                           
      &   LD12, LD13, LD14, LD15, LD16, LD17, LD18, LD21, LD22, LD24,    
-     &   LD25, LD26, LD37, LD38, LD39, LD43, LD45, LD47, LD64, LD65,    
-     &   LD66, LD68, LD01, LD02, LD05, LD07, LD09
+     &   LD25, LD26, LD37, LD38, LD39, LD43, LD45, LD47, LD54, LD64,
+     &   LD65, LD66, LD68, LD01, LD02, LD05, LD07, LD09
 
       COMMON /CDIAG1/                                                   
      &   LD12, LD13, LD14, LD15, LD16, LD17, LD18, LD21, LD22, LD24,    
-     &   LD25, LD26, LD37, LD38, LD39, LD43, LD45, LD47, LD64, LD65,    
-     &   LD66, LD68, LD01, LD02, LD05, LD07, LD09
+     &   LD25, LD26, LD37, LD38, LD39, LD43, LD45, LD47, LD54, LD64,
+     &   LD65, LD66, LD68, LD01, LD02, LD05, LD07, LD09
 !----------------------------------------------------------------------------
 ! NDxx diagnostic flags
       INTEGER                                                           

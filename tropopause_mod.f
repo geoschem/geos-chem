@@ -1,4 +1,4 @@
-! $Id: tropopause_mod.f,v 1.6 2006/09/14 17:03:47 bmy Exp $
+! $Id: tropopause_mod.f,v 1.7 2006/10/16 20:44:36 phs Exp $
       MODULE TROPOPAUSE_MOD
 !
 !******************************************************************************
@@ -198,7 +198,7 @@
 !  min and max tropopause. (phs, 24/8/06)
 !
 !  NOTES:
-!   (1 )  
+!   (1 ) LLTROP is set at the first level entirely above 20 km (phs, 9/29/06)
 !******************************************************************************
 !
       ! Reference to F90 modules 

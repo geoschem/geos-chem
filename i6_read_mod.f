@@ -1,4 +1,4 @@
-! $Id: i6_read_mod.f,v 1.17 2006/09/14 17:03:45 bmy Exp $
+! $Id: i6_read_mod.f,v 1.18 2006/10/16 20:44:32 phs Exp $
       MODULE I6_READ_MOD
 !
 !******************************************************************************
@@ -430,8 +430,8 @@
 !******************************************************************************
 !      
       ! References to F90 modules
-      USE DAO_MOD, ONLY : ALBD1, LWI,   PS1,   SLP,   SPHU1, 
-     &                    T,     TMPU1, TROPP, UWND1, VWND1
+      USE DAO_MOD, ONLY : ALBD1, LWI,   PS1,    SLP,   SPHU1, 
+     &                    T,     TMPU1, TROPP1, UWND1, VWND1
 
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS 
@@ -443,9 +443,9 @@
       ! read PS1, ALBD1, LWI, SLP, TROPP, UWND1, VWND1, TMPU1, SPHU1     
       !=================================================================
       CALL READ_I6( NYMD=NYMD,    NHMS=NHMS,   
-     &              PS=PS1,       ALBD=ALBD1,   LWI=LWI,    
-     &              SLP=SLP,      TROPP=TROPP,  UWND=UWND1,  
-     &              VWND=VWND1,   TMPU=TMPU1,   SPHU=SPHU1 ) 
+     &              PS=PS1,       ALBD=ALBD1,    LWI=LWI,    
+     &              SLP=SLP,      TROPP=TROPP1,  UWND=UWND1,  
+     &              VWND=VWND1,   TMPU=TMPU1,    SPHU=SPHU1 ) 
 
       ! Initialize T with TMPU1
       T = TMPU1
@@ -456,7 +456,7 @@
       ! GEOS-4 & GEOS-5 read LWI, PS1, SLP
       !=================================================================
       CALL READ_I6( NYMD=NYMD, NHMS=NHMS, LWI=LWI, PS=PS1, SLP=SLP,
-     &              TROPP=TROPP)
+     &              TROPP=TROPP1)
 
 #elif defined( GCAP )
 
@@ -491,8 +491,8 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD, ONLY : ALBD2, LWI,   PS2,   SLP, 
-     &                    SPHU2, TMPU2, TROPP, UWND2, VWND2
+      USE DAO_MOD, ONLY : ALBD2, LWI,   PS2,    SLP, 
+     &                    SPHU2, TMPU2, TROPP2, UWND2, VWND2
 
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS 
@@ -504,9 +504,9 @@
       ! read PS2, ALBD2, LWI, SLP, TROPP, UWND2, VWND2, TMPU2, SPHU2     
       !=================================================================
       CALL READ_I6( NYMD=NYMD,    NHMS=NHMS,   
-     &              PS=PS2,       ALBD=ALBD2,   LWI=LWI,    
-     &              SLP=SLP,      TROPP=TROPP,  UWND=UWND2,  
-     &              VWND=VWND2,   TMPU=TMPU2,   SPHU=SPHU2 ) 
+     &              PS=PS2,       ALBD=ALBD2,    LWI=LWI,    
+     &              SLP=SLP,      TROPP=TROPP2,  UWND=UWND2,  
+     &              VWND=VWND2,   TMPU=TMPU2,    SPHU=SPHU2 ) 
 
 #elif defined( GEOS_4 ) || defined( GEOS_5 )
 
@@ -514,7 +514,7 @@
       ! GEOS-4: read LWI, PS2, SLP
       !=================================================================
       CALL READ_I6( NYMD=NYMD, NHMS=NHMS, LWI=LWI, PS=PS2, SLP=SLP,
-     &              TROPP=TROPP)
+     &              TROPP=TROPP2)
 
 #elif defined( GCAP )
 
@@ -906,17 +906,11 @@
 
 
       !======== CASE OF VARIABLE TROPOPAUSE ======================
-      ! (i ) We need to read TROPP from offline files in case of GEOS-4.
-      ! (ii) We also need to check on LLTROP and set LMIN and LMAX
-      !      since this is not done with READ_TROPOPAUSE anymore.
+      ! We need to read TROPP from offline files in case of GEOS-4.
       !===========================================================
       IF ( LVARTROP ) THEN
 
 #if   defined( GEOS_4 )
-
-         !=================================================================
-         ! Read TROPP for GEOS_4 from separate offline files
-         !=================================================================
 
          NFOUND = 0   ! need reset because dealing with new file
 
@@ -975,11 +969,6 @@
 !         write( 6, 220 ) MINVAL( TROPP ), MAXVAL( TROPP ) 
 ! 220     FORMAT( ' CHECKING TROPP: MIN=', f10.3 , ' MAX=', f10.3 )
 
-
-         ! Check LLTROP and setting LMIN, LMAX, and LPAUSE
-         ! Here we assume that optional output argument TROPP
-         ! is the variable defined in dao_mod.f
-         CALL CHECK_VAR_TROP
 
       ENDIF
       !======== END CASE OF VARIABLE TROPOPAUSE ================

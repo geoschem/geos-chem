@@ -1,4 +1,4 @@
-! $Id: dao_mod.f,v 1.21 2006/09/14 17:03:44 bmy Exp $
+! $Id: dao_mod.f,v 1.22 2006/10/16 20:44:28 phs Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
@@ -25,49 +25,51 @@
 !  (12) TMPU1    (REAL*8 ) : Temperature at start of 6h step     [K]
 !  (13) TMPU2    (REAL*8 ) : Temperature at end   of 6h step     [K]
 !  (14) T        (REAL*8 ) : Interpolated temperature            [K]  
-!  (15) TROPP    (REAL*8 ) : Tropopause pressure (GEOS-3)        [hPa]      
-!  (16) UWND1    (REAL*8 ) : Zonal wind at start of 6h step      [m/s]
-!  (17) UWND2    (REAL*8 ) : Zonal wind at end   of 6h step      [m/s]
-!  (18) UWND     (REAL*8 ) : Interpolated zonal wind             [m/s]
-!  (19) VWND1    (REAL*8 ) : Meridional wind at start of 6h step [m/s]
-!  (20) VWND2    (REAL*8 ) : Meridional wind at end of 6h step   [m/s]
-!  (21) VWND     (REAL*8 ) : Interpolated meridional wind        [m/s]
+!  (15) TROPP1   (REAL*8 ) : Tropopause pressure at start        [hPa]      
+!  (16) TROPP2   (REAL*8 ) : Tropopause pressure at end of step  [hPa]      
+!  (17) TROPP    (REAL*8 ) : Interpolated tropopause pressure    [hPa]      
+!  (18) UWND1    (REAL*8 ) : Zonal wind at start of 6h step      [m/s]
+!  (19) UWND2    (REAL*8 ) : Zonal wind at end   of 6h step      [m/s]
+!  (20) UWND     (REAL*8 ) : Interpolated zonal wind             [m/s]
+!  (21) VWND1    (REAL*8 ) : Meridional wind at start of 6h step [m/s]
+!  (22) VWND2    (REAL*8 ) : Meridional wind at end of 6h step   [m/s]
+!  (23) VWND     (REAL*8 ) : Interpolated meridional wind        [m/s]
 !
 !  GEOS-CHEM 6-hr average cloud fields (a.k.a. "A-6 fields"):  
 !  ----------------------------------------------------------------------------
-!  (22) CLDTOPS  (INTEGER) : Cloud top height level              [unitless]
-!  (23) CLDMAS   (REAL*8 ) : Cloud mass flux                     [kg/m2/600s]
-!  (24) DTRAIN   (REAL*8 ) : Cloud detrainment                   [kg/m2/600s]
-!  (25) HKBETA   (REAL*8 ) : GEOS-4 Hack overshoot parameter     [unitless]
-!  (26) HKETA    (REAL*8 ) : GEOS-4 Hack convective mass flux    [kg/m2/s]
-!  (27) MOISTQ   (REAL*8 ) : Tendency of SPHU field          [g H2O/kg air/day]
-!  (28) CLMOSW   (REAL*8 ) : GEOS-1 max overlap cloud fraction   [unitless]
-!  (29) CLROSW   (REAL*8 ) : GEOS-1 random overlap cloud frac.   [unitless]
-!  (30) CLDF     (REAL*8 ) : Total 3-D cloud fraction            [unitless]
-!  (31) OPTDEP   (REAL*8 ) : GEOS-3 grid box optical depth       [unitless]
-!  (32) OPTD     (REAL*8 ) : Grid box optical depth (all grids)  [unitless]
-!  (33) ZMEU     (REAL*8 ) : GEOS-4 Z&M updraft entrainment      [Pa/s]
-!  (34) ZMMD     (REAL*8 ) : GEOS-4 Z&M downdraft mass flux      [Pa/s]
-!  (35) ZMMU     (REAL*8 ) : GEOS-4 Z&M updraft mass flux        [Pa/s]
+!  (24) CLDTOPS  (INTEGER) : Cloud top height level              [unitless]
+!  (25) CLDMAS   (REAL*8 ) : Cloud mass flux                     [kg/m2/600s]
+!  (26) DTRAIN   (REAL*8 ) : Cloud detrainment                   [kg/m2/600s]
+!  (27) HKBETA   (REAL*8 ) : GEOS-4 Hack overshoot parameter     [unitless]
+!  (28) HKETA    (REAL*8 ) : GEOS-4 Hack convective mass flux    [kg/m2/s]
+!  (29) MOISTQ   (REAL*8 ) : Tendency of SPHU field          [g H2O/kg air/day]
+!  (30) CLMOSW   (REAL*8 ) : GEOS-1 max overlap cloud fraction   [unitless]
+!  (31) CLROSW   (REAL*8 ) : GEOS-1 random overlap cloud frac.   [unitless]
+!  (32) CLDF     (REAL*8 ) : Total 3-D cloud fraction            [unitless]
+!  (33) OPTDEP   (REAL*8 ) : GEOS-3 grid box optical depth       [unitless]
+!  (34) OPTD     (REAL*8 ) : Grid box optical depth (all grids)  [unitless]
+!  (35) ZMEU     (REAL*8 ) : GEOS-4 Z&M updraft entrainment      [Pa/s]
+!  (36) ZMMD     (REAL*8 ) : GEOS-4 Z&M downdraft mass flux      [Pa/s]
+!  (37) ZMMU     (REAL*8 ) : GEOS-4 Z&M updraft mass flux        [Pa/s]
 ! 
 !  GEOS-CHEM 3-hr surface fields (a.k.a. "A-3 fields"):
 !  ----------------------------------------------------------------------------
-!  (36) GWETTOP  (REAL*8 ) : GEOS-4 topsoil wetness              
-!  (37) HFLUX    (REAL*8 ) : Sensible heat flux                  [W/m2]
-!  (38) PARDF    (REAL*8 ) : Photosyn active diffuse radiation   [W/m2]
-!  (39) PARDR    (REAL*8 ) : Photosyn active direct radiation    [W/m2]
-!  (40) PBL      (REAL*8 ) : Mixed layer depth                   [hPa]
-!  (41) PREACC   (REAL*8 ) : Total precip at the ground          [mm H2O/day]
-!  (42) PRECON   (REAL*8 ) : Convective precip at the ground     [mm H2O/day]
-!  (43) RADLWG   (REAL*8 ) : Net upward LW rad at the ground     [W/m2]
-!  (44) RADSWG   (REAL*8 ) : Net downward SW rad at the ground   [W/m2]
-!  (45) SNOW     (REAL*8 ) : Snow cover (H2O equivalent)         [mm H2O]
-!  (46) TS       (REAL*8 ) : Surface air temperature             [K]
-!  (47) TSKIN    (REAL*8 ) : Surface ground/sea surface temp     [K]
-!  (48) U10M     (REAL*8 ) : Zonal wind at 10 m altitude         [m/s]
-!  (59) USTAR    (REAL*8 ) : Friction velocity                   [m/s]
-!  (50) V10M     (REAL*8 ) : Meridional wind at 10 m altitude    [m/s]
-!  (51) Z0       (REAL*8 ) : Roughness height                    [m]
+!  (38) GWETTOP  (REAL*8 ) : GEOS-4 topsoil wetness              
+!  (39) HFLUX    (REAL*8 ) : Sensible heat flux                  [W/m2]
+!  (40) PARDF    (REAL*8 ) : Photosyn active diffuse radiation   [W/m2]
+!  (41) PARDR    (REAL*8 ) : Photosyn active direct radiation    [W/m2]
+!  (42) PBL      (REAL*8 ) : Mixed layer depth                   [hPa]
+!  (43) PREACC   (REAL*8 ) : Total precip at the ground          [mm H2O/day]
+!  (44) PRECON   (REAL*8 ) : Convective precip at the ground     [mm H2O/day]
+!  (45) RADLWG   (REAL*8 ) : Net upward LW rad at the ground     [W/m2]
+!  (46) RADSWG   (REAL*8 ) : Net downward SW rad at the ground   [W/m2]
+!  (47) SNOW     (REAL*8 ) : Snow cover (H2O equivalent)         [mm H2O]
+!  (48) TS       (REAL*8 ) : Surface air temperature             [K]
+!  (49) TSKIN    (REAL*8 ) : Surface ground/sea surface temp     [K]
+!  (50) U10M     (REAL*8 ) : Zonal wind at 10 m altitude         [m/s]
+!  (51) USTAR    (REAL*8 ) : Friction velocity                   [m/s]
+!  (52) V10M     (REAL*8 ) : Meridional wind at 10 m altitude    [m/s]
+!  (53) Z0       (REAL*8 ) : Roughness height                    [m]
 !
 !  GCAP-specific met fields (taken from GISS model):
 !  ----------------------------------------------------------------------------
@@ -192,6 +194,8 @@
       REAL*8,  ALLOCATABLE :: TMPU2(:,:,:)
       REAL*8,  ALLOCATABLE :: T(:,:,:)
       REAL*8,  ALLOCATABLE :: TROPP(:,:)
+      REAL*8,  ALLOCATABLE :: TROPP1(:,:)
+      REAL*8,  ALLOCATABLE :: TROPP2(:,:)
       REAL*8,  ALLOCATABLE :: UWND(:,:,:)
       REAL*8,  ALLOCATABLE :: UWND1(:,:,:)
       REAL*8,  ALLOCATABLE :: UWND2(:,:,:)
@@ -588,11 +592,13 @@
             
             ! Pressures: at start, midpt, and end of dyn timestep
             PSC2(I,J)  = PS1(I,J)   + ( PS2(I,J) - PS1(I,J) ) * TC2 
-            IF ( LVARTROP ) 
-     &      TROPP(I,J) = TROPP(I,J) + ( TROPP(I,J) - TROPP(I,J) ) * TC2
   
             ! Albedo: at midpt of dyn timestep
             ALBD(I,J) = ALBD1(I,J) + ( ALBD2(I,J) - ALBD1(I,J) ) * TM
+
+            ! Tropopause pressure at midpt
+            IF ( LVARTROP ) TROPP(I,J) = TROPP1(I,J) 
+     &           + ( TROPP2(I,J) - TROPP1(I,J) ) * TM
 
          ENDIF
          
@@ -611,12 +617,17 @@
       !=================================================================
       ! For GEOS-4, GEOS-5, GCAP met fields:
       ! Interpolate PSC2 only (pressure at end of dyn timestep)
+      ! and TROPP (10/11/06 phs)
       !=================================================================
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+
          PSC2(I,J)  = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
-         IF ( LVARTROP ) 
-     &   TROPP(I,J) = TROPP(I,J) + ( TROPP(I,J) - TROPP(I,J) ) * TC2
+
+         ! Tropopause pressure at midpt
+         IF ( LVARTROP ) TROPP(I,J) = TROPP1(I,J) 
+     &        + ( TROPP2(I,J) - TROPP1(I,J) ) * TM
+
       ENDDO
       ENDDO
 
@@ -1518,6 +1529,7 @@
 !  NOTES:
 !  (1 ) Added parallel DO-loops (bmy, 4/13/04)
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (3 ) Added TROPP (phs 11/10/06)
 !******************************************************************************
 ! 
 #     include "CMN_SIZE" ! Size parameters
@@ -1537,6 +1549,9 @@
 
          ! Copy surface pressure
          PS1(I,J)   = PS2(I,J) 
+
+         ! Tropopause pressure
+         TROPP2(I,J) = TROPP1(I,J)
 
 #if   defined( GEOS_3 )
          ! Also copy surface albedo (GEOS-1, GEOS-S, GEOS-3 only)
@@ -1892,6 +1907,16 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP' )
       TROPP = 0d0
 
+      ! TROPP1 is only defined for GEOS-3, GEOS-4, or GCAP
+      ALLOCATE( TROPP1( IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP1' )
+      TROPP1 = 0d0
+
+      ! TROPP2 is only defined for GEOS-3, GEOS-4, or GCAP
+      ALLOCATE( TROPP2( IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP2' )
+      TROPP2 = 0d0
+
 #endif
 
       ALLOCATE( TS( IIPAR, JJPAR ), STAT=AS )
@@ -2123,6 +2148,8 @@
       IF ( ALLOCATED( TMPU1    ) ) DEALLOCATE( TMPU1    )
       IF ( ALLOCATED( TMPU2    ) ) DEALLOCATE( TMPU2    )
       IF ( ALLOCATED( TROPP    ) ) DEALLOCATE( TROPP    )
+      IF ( ALLOCATED( TROPP1   ) ) DEALLOCATE( TROPP1   )
+      IF ( ALLOCATED( TROPP2   ) ) DEALLOCATE( TROPP2   )
       IF ( ALLOCATED( TS       ) ) DEALLOCATE( TS       )
       IF ( ALLOCATED( TSKIN    ) ) DEALLOCATE( TSKIN    )
       IF ( ALLOCATED( U10M     ) ) DEALLOCATE( U10M     )
