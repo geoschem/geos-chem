@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.30 2006/09/14 14:22:18 phs Exp $
+! $Id: sulfate_mod.f,v 1.31 2006/10/17 17:51:17 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 8/17/06)
+!  (rjp, bdf, bmy, 6/22/00, 9/27/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -111,33 +111,34 @@
 !
 !  GEOS-CHEM modules referenced by sulfate_mod.f
 !  ============================================================================
-!  (1 ) bpch2_mod.f            : Module w/ routines for binary pch file I/O
-!  (2 ) bravo_mod.f            : Module w/ routines to read BRAVO emissions
-!  (3 ) comode_mod.f           : Module w/ SMVGEAR allocatable arrays
-!  (4 ) dao_mod.f              : Module w/ DAO met field arrays
-!  (5 ) diag_mod.f             : Module w/ GEOS-Chem diagnostic arrays
-!  (6 ) directory_mod.f        : Module w/ GEOS-Chem data & met field dirs
-!  (7 ) drydep_mod.f           : Module w/ GEOS-Chem dry deposition routines
-!  (8 ) epa_nei_mod.f          : Module w/ routines to read EPA/NEI99 data
-!  (9 ) error_mod.f            : Module w/ NaN, other error check routines
-!  (10) file_mod.f             : Module w/ file unit numbers & error checks
-!  (11) future_emissions_mod.f : Module w/ routines for IPCC future emissions
-!  (12) grid_mod.f             : Module w/ horizontal grid information
-!  (13) global_no3_mod.f       : Module w/ routines to read 3-D NO3 field
-!  (14) global_oh_mod.f        : Module w/ routines to read 3-D OH field
-!  (15) isoropia_mod.f         : Module w/ ISORROPIA routines for aer thermo eq
-!  (16) logical_mod.f          : Module w/ GEOS-Chem logical switches
-!  (17) pbl_mix_mod.f          : Module w/ routines for PBL height & mixing
-!  (18) pressure_mod.f         : Module w/ routines to compute P(I,J,L)
-!  (19) seasalt_mod.f          : Module w/ routines for seasalt chemistry
-!  (20) streets_anthro_mod.f   : Module w/ routines for David Streets' emiss
-!  (21) time_mod.f             : Module w/ routines to compute time & date
-!  (22) tracer_mod.f           : Module w/ GEOS-Chem tracer array STT etc.
-!  (23) tracerid_mod.f         : Module w/ pointers to tracers & emissions
-!  (24) transfer_mod.f         : Module w/ routines to cast & resize arrays
-!  (25) tropopause_mod.f       : Module w/ routines to read ann mean tropopause
-!  (26) uvalbedo_mod.f         : Module w/ UV albedo array and reader
-!  (27) wetscav_mod.f          : Module w/ routines for wetdep & scavenging
+!  (1 ) biomass_mod.f          : Module w/ routines for biomass burning
+!  (2 ) bpch2_mod.f            : Module w/ routines for binary pch file I/O
+!  (3 ) bravo_mod.f            : Module w/ routines to read BRAVO emissions
+!  (4 ) comode_mod.f           : Module w/ SMVGEAR allocatable arrays
+!  (5 ) dao_mod.f              : Module w/ DAO met field arrays
+!  (6 ) diag_mod.f             : Module w/ GEOS-Chem diagnostic arrays
+!  (7 ) directory_mod.f        : Module w/ GEOS-Chem data & met field dirs
+!  (8 ) drydep_mod.f           : Module w/ GEOS-Chem dry deposition routines
+!  (9 ) epa_nei_mod.f          : Module w/ routines to read EPA/NEI99 data
+!  (10) error_mod.f            : Module w/ NaN, other error check routines
+!  (11) file_mod.f             : Module w/ file unit numbers & error checks
+!  (12) future_emissions_mod.f : Module w/ routines for IPCC future emissions
+!  (13) grid_mod.f             : Module w/ horizontal grid information
+!  (14) global_no3_mod.f       : Module w/ routines to read 3-D NO3 field
+!  (15) global_oh_mod.f        : Module w/ routines to read 3-D OH field
+!  (16) isoropia_mod.f         : Module w/ ISORROPIA routines for aer thermo eq
+!  (17) logical_mod.f          : Module w/ GEOS-Chem logical switches
+!  (18) pbl_mix_mod.f          : Module w/ routines for PBL height & mixing
+!  (19) pressure_mod.f         : Module w/ routines to compute P(I,J,L)
+!  (20) seasalt_mod.f          : Module w/ routines for seasalt chemistry
+!  (21) streets_anthro_mod.f   : Module w/ routines for David Streets' emiss
+!  (22) time_mod.f             : Module w/ routines to compute time & date
+!  (23) tracer_mod.f           : Module w/ GEOS-Chem tracer array STT etc.
+!  (24) tracerid_mod.f         : Module w/ pointers to tracers & emissions
+!  (25) transfer_mod.f         : Module w/ routines to cast & resize arrays
+!  (26) tropopause_mod.f       : Module w/ routines to read ann mean tropopause
+!  (27) uvalbedo_mod.f         : Module w/ UV albedo array and reader
+!  (28) wetscav_mod.f          : Module w/ routines for wetdep & scavenging
 !
 !  References:
 !  ============================================================================
@@ -205,6 +206,7 @@
 !  (34) Bug fix in INIT_DRYDEP (bmy, 5/23/06)
 !  (35) Now references "bravo_mod.f" (rjp, kfb, bmy, 6/26/06)
 !  (36) Now references "streets_anthro_mod.f" (yxw, bmy, 8/17/06)
+!  (37) Now references "biomass_mod.f" (bmy, 9/27/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -5918,7 +5920,7 @@
 !******************************************************************************
 !  Subroutine READ_BIOMASS_SO2 reads monthly mean biomass burning 
 !  emissions for SO2.  SOx is read in, and converted to SO2. 
-!  (rjp, bdf, bmy, 1/16/03, 5/30/06)
+!  (rjp, bdf, bmy, 1/16/03, 9/27/06)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -5940,18 +5942,35 @@
 !  (6 ) Now read data for both GCAP and GEOS grids (bmy, 8/16/05) 
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (8 ) Now computes future biomass emissions, if necessary (swu, bmy, 5/30/06)
+!  (9 ) Now only read the biofuel, we have moved the biomass-reading code
+!        to "gc_biomass_mod.f" for compatibility with GFED2 biomass emissions
+!        (bmy, 9/27/06)
 !******************************************************************************
 !
       ! References to F90 modules
+      USE BIOMASS_MOD,          ONLY : BIOMASS,         IDBSO2
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,        ONLY : DATA_DIR
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2bb
+      !-------------------------------------------------------------------
+      ! Prior to 9/27/06:
+      !USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2bb
+      !-------------------------------------------------------------------
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2bf
       USE GRID_MOD,             ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,          ONLY : LBBSEA,          LFUTURE
-      USE TIME_MOD,             ONLY : ITS_A_LEAPYEAR,  GET_MONTH
-      USE TIME_MOD,             ONLY : GET_TAU,         GET_YEAR
+      !-------------------------------------------------------------------
+      ! Prior to 9/27/06:
+      !USE LOGICAL_MOD,          ONLY : LBBSEA,          LFUTURE
+      !-------------------------------------------------------------------
+      USE LOGICAL_MOD,          ONLY : LFUTURE
+      !-------------------------------------------------------------------
+      ! Prior to 9/27/06:
+      !USE TIME_MOD,             ONLY : ITS_A_LEAPYEAR,  GET_MONTH
+      !USE TIME_MOD,             ONLY : GET_TAU,         GET_YEAR
+      !-------------------------------------------------------------------
+      USE TIME_MOD,             ONLY : ITS_A_LEAPYEAR
+      USE TRACER_MOD,           ONLY : XNUMOL
+      USE TRACERID_MOD,         ONLY : IDTSO2
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
       
 #     include "CMN_SIZE"             ! Size parameters
@@ -5963,83 +5982,88 @@
       INTEGER                       :: I, J, THISYEAR
       REAL*4                        :: ARRAY(IGLOB,JGLOB,1)
       REAL*8                        :: BIOCO(IIPAR,JJPAR)
-      REAL*8                        :: XTAU, AREA_CM2, TIME
+      REAL*8                        :: CONV, XTAU
       CHARACTER(LEN=4  )            :: CYEAR
       CHARACTER(LEN=255)            :: FILENAME
                                     
       ! Days per month              
-      REAL*8                        :: NMDAY(12) = (/31d0, 28d0, 31d0, 
-     &                                               30d0, 31d0, 30d0, 
-     &                                               31d0, 31d0, 30d0, 
-     &                                               31d0, 30d0, 31d0/)
+      REAL*8 :: NMDAY(12) = (/ 31d0, 28d0, 31d0, 30d0, 31d0, 30d0, 
+     &                         31d0, 31d0, 30d0, 31d0, 30d0, 31d0/)
 
       !=================================================================
       ! READ_BIOMASS_SO2 begins here!
       !=================================================================
-      IF ( THISMONTH == 2 ) THEN
-         IF( ITS_A_LEAPYEAR() ) THEN
-            NMDAY(2) = 29
-         ELSE
-            NMDAY(2) = 28
-         ENDIF
-      ENDIF
 
-      ! TIME = conversion from [molec/cm2/month] to [molec/cm2/s]
-      TIME = ( DBLE( NMDAY(THISMONTH) ) * 86400d0 )
-
-      ! Get current year
-      THISYEAR = GET_YEAR()
-
-      ! Create a string for the 4-digit year
-      WRITE( CYEAR, '(i4)' ) THISYEAR
-
-      ! Use seasonal or interannual emisisons?
-      IF ( LBBSEA ) THEN
-
-         !-----------------------------------------
-         ! Use seasonal biomass emissions
-         !-----------------------------------------
-
-         ! File name for seasonal BB emissions
-         FILENAME = TRIM( DATA_DIR )                         //
-     &              'biomass_200110/SO2.bioburn.seasonal.'   //
-     &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
-
-         ! Get TAU0 value (use generic year 1985)
-         XTAU = GET_TAU0( THISMONTH, 1, 1985 )      
-
-      ELSE
-
-         !-----------------------------------------
-         ! Use interannual biomass emissions for
-         ! years between 1996 and 2002
-         !-----------------------------------------
-
-         ! File name for interannual biomass burning emissions
-         FILENAME = TRIM( DATA_DIR )                          // 
-     &              'biomass_200110/SO2.bioburn.interannual.' // 
-     &              GET_NAME_EXT_2D() // '.'                  //
-     &              GET_RES_EXT()     // '.'                  // CYEAR
-
-         ! Use TAU0 value at start of this month to index punch file
-         XTAU = GET_TAU0( THISMONTH, 1, THISYEAR )
-    
-      ENDIF
-
-      ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_BIOMASS_SO2: Reading ', a )
-
-      ! Read SO2 emission data [kg/mon]
-      CALL READ_BPCH2( FILENAME, 'BIOBSRCE',     26, 
-     &                 XTAU,      IGLOB,         JGLOB,     
-     &                 1,         ARRAY(:,:,1),  QUIET=.TRUE. )
-
-      ! Cast to REAL*8 and resize
-      CALL TRANSFER_2D ( ARRAY(:,:,1), ESO2_bb )
-
-      ! Convert from [kg SO2/box/month] to [kg SO2/box/s]
-      ESO2_bb = ESO2_bb / TIME     
+!------------------------------------------------------------------------------
+! Prior to 9/27/06:
+! We now read default biomass emissions in "gc_biomass_mod.f" (bmy, 9/27/06)
+!
+!      ! Test for leap year
+!      IF ( THISMONTH == 2 ) THEN
+!         IF( ITS_A_LEAPYEAR() ) THEN
+!            NMDAY(2) = 29d0
+!         ELSE
+!            NMDAY(2) = 28d0
+!         ENDIF
+!      ENDIF
+!
+!      ! TIME = conversion from [molec/cm2/month] to [molec/cm2/s]
+!      TIME = ( DBLE( NMDAY(THISMONTH) ) * 86400d0 )
+!      
+!      ! Get current year
+!      THISYEAR = GET_YEAR()
+!
+!      ! Create a string for the 4-digit year
+!      WRITE( CYEAR, '(i4)' ) THISYEAR
+!
+!      ! Use seasonal or interannual emisisons?
+!      IF ( LBBSEA ) THEN
+!
+!         !-----------------------------------------
+!         ! Use seasonal biomass emissions
+!         !-----------------------------------------
+!
+!         ! File name for seasonal BB emissions
+!         FILENAME = TRIM( DATA_DIR )                         //
+!     &              'biomass_200110/SO2.bioburn.seasonal.'   //
+!     &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+!
+!         ! Get TAU0 value (use generic year 1985)
+!         XTAU = GET_TAU0( THISMONTH, 1, 1985 )      
+!
+!      ELSE
+!
+!         !-----------------------------------------
+!         ! Use interannual biomass emissions for
+!         ! years between 1996 and 2002
+!         !-----------------------------------------
+!
+!         ! File name for interannual biomass burning emissions
+!         FILENAME = TRIM( DATA_DIR )                          // 
+!     &              'biomass_200110/SO2.bioburn.interannual.' // 
+!     &              GET_NAME_EXT_2D() // '.'                  //
+!     &              GET_RES_EXT()     // '.'                  // CYEAR
+!
+!         ! Use TAU0 value at start of this month to index punch file
+!         XTAU = GET_TAU0( THISMONTH, 1, THISYEAR )
+!    
+!      ENDIF
+!
+!      ! Echo info
+!      WRITE( 6, 100 ) TRIM( FILENAME )
+! 100  FORMAT( '     - READ_BIOMASS_SO2: Reading ', a )
+!
+!      ! Read SO2 emission data [kg/mon]
+!      CALL READ_BPCH2( FILENAME, 'BIOBSRCE',     26, 
+!     &                 XTAU,      IGLOB,         JGLOB,     
+!     &                 1,         ARRAY(:,:,1),  QUIET=.TRUE. )
+!
+!      ! Cast to REAL*8 and resize
+!      CALL TRANSFER_2D ( ARRAY(:,:,1), ESO2_bb )
+!
+!      ! Convert from [kg SO2/box/month] to [kg SO2/box/s]
+!      ESO2_bb = ESO2_bb / TIME     
+!------------------------------------------------------------------------------
 
       !=================================================================
       ! Compute biofuel SO2 from biofuel CO.  Use a molar 
@@ -6052,7 +6076,9 @@
      &           'biofuel_200202/biofuel.' // GET_NAME_EXT_2D() //
      &           '.'                       // GET_RES_EXT()
 
+      ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
+ 100  FORMAT( '     - READ_BIOMASS_SO2: Reading ', a )
 
       ! Get TAU0 value (use generic year 1985)
       XTAU = GET_TAU0( 1, 1, 1985 )
@@ -6065,21 +6091,44 @@
       ! Cast from REAL*4 to REAL*8
       CALL TRANSFER_2D( ARRAY(:,:,1), BIOCO )
 
-      ! Loop over grid boxes
+      !=================================================================
+      ! Unit conversion to [kg SO2/s]
+      !=================================================================
+  
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, CONV )
+
+      ! Loop over longitudes
       DO J = 1, JJPAR
-      DO I = 1, IIPAR
 
-         ! Convert biofuel SO2 from [kg CO/box/yr] to [kg SO2/box/s]
-         ESO2_bf(I,J) = ( BIOCO(I,J) * 64d-3 * 0.0015d0 /
-     &                    ( 28D-3 * 86400.d0 * 365.25d0 ) )
+         ! Conversion factor for [cm2 * kg/molec]
+         CONV = GET_AREA_CM2( J ) / XNUMOL(IDTSO2)
 
-         ! Apply future emissions to biomass & biofuel SO2, if necessary
-         IF ( LFUTURE ) THEN
-            ESO2_bb(I,J) = ESO2_bb(I,J) * GET_FUTURE_SCALE_SO2bb( I, J ) 
-            ESO2_bf(I,J) = ESO2_bf(I,J) * GET_FUTURE_SCALE_SO2bf( I, J )
-         ENDIF
+         ! Loop over latitudes
+         DO I = 1, IIPAR
+
+            ! Convert biomass SO2 from [molec SO2/cm2/s] -> [kg SO2/s] 
+            ! NOTE: Future scale has already been applied by this point
+            ESO2_bb(I,J) = BIOMASS(I,J,IDBSO2) * CONV
+
+            ! Convert biofuel SO2 from [kg CO/yr] to [kg SO2/s]
+            ESO2_bf(I,J) = ( BIOCO(I,J) * 64d-3 * 0.0015d0 /
+     &                     ( 28d-3 * 86400.d0 * 365.25d0 ) )
+
+            ! Apply future emissions to biofuel SO2, if necessary
+            IF ( LFUTURE ) THEN
+               !-------------------------------------------------------------
+               ! Prior to 9/27/06:
+               ! SO2 biomass already has future scale applied (bmy, 9/27/06)
+               !ESO2_bb(I,J) = ESO2_bb(I,J) * GET_FUTURE_SCALE_SO2bb( I, J ) 
+               !-------------------------------------------------------------
+               ESO2_bf(I,J) = ESO2_bf(I,J) * 
+     &                        GET_FUTURE_SCALE_SO2bf( I, J )
+            ENDIF
+         ENDDO
       ENDDO
-      ENDDO
+!$OMP END PARALLEL DO
 
       ! Return to calling program
       END SUBROUTINE READ_BIOMASS_SO2
@@ -6531,7 +6580,7 @@
 !******************************************************************************
 !  Subroutine READ_BIOMASS_NH3 reads the monthly mean biomass NH3 
 !  and biofuel emissions from disk and converts to [kg NH3/box/s]. 
-!  (rjp, bdf, bmy, 9/20/02, 5/30/06)
+!  (rjp, bdf, bmy, 9/20/02, 9/27/06)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -6560,19 +6609,36 @@
 !  (8 ) Now read files from "sulfate_sim_200508/".  Now read data for both 
 !        GCAP and GEOS grids. (bmy, 8/16/05)
 !  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (10) Now only read the biofuel, we have moved the biomass-reading code to 
+!        "gc_biomass_mod.f" for compatibility with GFED2 biomass emissions
+!        (bmy, 9/27/06)
 !******************************************************************************
 !
       ! References to F90 modules
+      USE BIOMASS_MOD,          ONLY : BIOMASS,         IDBNH3
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,        ONLY : DATA_DIR
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NH3bb
+      !-----------------------------------------------------------------
+      ! Prior to 9/27/06:
+      !USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NH3bb
+      !-----------------------------------------------------------------
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NH3bf
       USE LOGICAL_MOD,          ONLY : LFUTURE
-      USE GRID_MOD,             ONLY : GET_AREA_M2
-      USE LOGICAL_MOD,          ONLY : LBBSEA
-      USE TIME_MOD,             ONLY : ITS_A_LEAPYEAR, GET_MONTH 
-      USE TIME_MOD,             ONLY : GET_TAU,        GET_YEAR    
+      !-----------------------------------------------------------------
+      ! Prior to 9/27/06:
+      !USE GRID_MOD,             ONLY : GET_AREA_M2
+      !USE LOGICAL_MOD,          ONLY : LBBSEA
+      !-----------------------------------------------------------------
+      USE GRID_MOD,             ONLY : GET_AREA_CM2
+      !-----------------------------------------------------------------
+      ! Prior to 9/27/06:
+      !USE TIME_MOD,             ONLY : ITS_A_LEAPYEAR, GET_MONTH 
+      !USE TIME_MOD,             ONLY : GET_TAU,        GET_YEAR    
+      !-----------------------------------------------------------------
+      USE TIME_MOD,             ONLY : ITS_A_LEAPYEAR
+      USE TRACER_MOD,           ONLY : XNUMOL
+      USE TRACERID_MOD,         ONLY : IDTNH3
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"             ! Size parameters
@@ -6583,7 +6649,11 @@
       ! Local variables
       INTEGER                       :: I, J, THISYEAR
       REAL*4                        :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8                        :: XTAU, DMASS, AREA_M2, TAU, TIME
+      !-------------------------------------------------------------------
+      ! Prior to 9/27/06:
+      !REAL*8                        :: XTAU, DMASS, AREA_M2, TAU, TIME
+      !-------------------------------------------------------------------
+      REAL*8                        :: XTAU, DMASS, CONV
       REAL*8                        :: NMDAY(12) = (/31d0, 28d0, 31d0, 
      &                                               30d0, 31d0, 30d0, 
      &                                               31d0, 31d0, 30d0, 
@@ -6594,73 +6664,79 @@
       !=================================================================
       ! READ_BIOMASS_NH3 begins here!
       !=================================================================
-      IF ( THISMONTH == 2 ) THEN
-         IF( ITS_A_LEAPYEAR() ) THEN
-            NMDAY(2) = 29
-         ELSE
-            NMDAY(2) = 28
-         ENDIF
-      ENDIF
 
-      ! Conversion from [molec/cm2/month] to [molec/cm2/s]
-      TIME = NMDAY(THISMONTH) * 86400d0
-
-      ! Get current year
-      THISYEAR = GET_YEAR()
-
-      ! Create a string for the 4-digit year
-      WRITE( CYEAR, '(i4)' ) THISYEAR
-
-      ! Current TAU value
-      TAU = GET_TAU()
-
-      ! Use seasonal or interannual emisisons?
-      IF ( LBBSEA ) THEN
-
-         !-----------------------------------------
-         ! Use seasonal biomass emissions
-         !-----------------------------------------
-
-         ! File name for seasonal BB emissions
-         FILENAME = TRIM( DATA_DIR )                         // 
-     &              'biomass_200110/NH3.bioburn.seasonal.'   //
-     &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
-
-         ! Get TAU0 value (use generic year 1985)
-         XTAU = GET_TAU0( THISMONTH, 1, 1985 )      
-
-      ELSE
-
-         !-----------------------------------------
-         ! Use interannual biomass emissions for
-         ! years between 1996 and 2002 
-         !-----------------------------------------
-    
-         ! File name for interannual biomass burning emissions
-         FILENAME = TRIM( DATA_DIR )                          // 
-     &              'biomass_200110/NH3.bioburn.interannual.' // 
-     &              GET_NAME_EXT_2D() // '.'                  //
-     &              GET_RES_EXT()     // '.'                  // CYEAR
-
-         ! Use TAU0 value on 1st day of this month to index bpch file
-         XTAU = GET_TAU0( THISMONTH, 1, THISYEAR )
-   
-      ENDIF
-
-      ! Echo filename
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_BIOMASS_NH3: Reading ', a )
-
-      ! Read NH3 emission data [kg/mon] as tracer 29
-      CALL READ_BPCH2( FILENAME, 'BIOBSRCE',    29, 
-     &                 XTAU,      IGLOB,        JGLOB,      
-     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
-
-      ! Cast from REAL*4 to REAL*8 and resize if necessary
-      CALL TRANSFER_2D( ARRAY(:,:,1), ENH3_bb )
-
-      ! Convert from [kg NH3/box/month] to [kg NH3/box/s]
-      ENH3_bb = ENH3_bb / TIME     
+!-----------------------------------------------------------------------------
+! Prior to 9/27/06:
+! This has now been moved to gc_biomass_mod.f (bmy, 9/27/06)
+!
+!      IF ( THISMONTH == 2 ) THEN
+!         IF( ITS_A_LEAPYEAR() ) THEN
+!            NMDAY(2) = 29
+!         ELSE
+!            NMDAY(2) = 28
+!         ENDIF
+!      ENDIF
+!
+!      ! Conversion from [molec/cm2/month] to [molec/cm2/s]
+!      TIME = NMDAY(THISMONTH) * 86400d0
+!
+!      ! Get current year
+!      THISYEAR = GET_YEAR()
+!
+!      ! Create a string for the 4-digit year
+!      WRITE( CYEAR, '(i4)' ) THISYEAR
+!
+!      ! Current TAU value
+!      TAU = GET_TAU()
+!
+!      ! Use seasonal or interannual emisisons?
+!      IF ( LBBSEA ) THEN
+!
+!         !-----------------------------------------
+!         ! Use seasonal biomass emissions
+!         !-----------------------------------------
+!
+!         ! File name for seasonal BB emissions
+!         FILENAME = TRIM( DATA_DIR )                         // 
+!     &              'biomass_200110/NH3.bioburn.seasonal.'   //
+!     &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+!
+!         ! Get TAU0 value (use generic year 1985)
+!         XTAU = GET_TAU0( THISMONTH, 1, 1985 )      
+!
+!      ELSE
+!
+!         !-----------------------------------------
+!         ! Use interannual biomass emissions for
+!         ! years between 1996 and 2002 
+!         !-----------------------------------------
+!    
+!         ! File name for interannual biomass burning emissions
+!         FILENAME = TRIM( DATA_DIR )                          // 
+!     &              'biomass_200110/NH3.bioburn.interannual.' // 
+!     &              GET_NAME_EXT_2D() // '.'                  //
+!     &              GET_RES_EXT()     // '.'                  // CYEAR
+!
+!         ! Use TAU0 value on 1st day of this month to index bpch file
+!         XTAU = GET_TAU0( THISMONTH, 1, THISYEAR )
+!   
+!      ENDIF
+!
+!      ! Echo filename
+!      WRITE( 6, 100 ) TRIM( FILENAME )
+! 100  FORMAT( '     - READ_BIOMASS_NH3: Reading ', a )
+!
+!      ! Read NH3 emission data [kg/mon] as tracer 29
+!      CALL READ_BPCH2( FILENAME, 'BIOBSRCE',    29, 
+!     &                 XTAU,      IGLOB,        JGLOB,      
+!     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
+!
+!      ! Cast from REAL*4 to REAL*8 and resize if necessary
+!      CALL TRANSFER_2D( ARRAY(:,:,1), ENH3_bb )
+!
+!      ! Convert from [kg NH3/box/month] to [kg NH3/box/s]
+!      ENH3_bb = ENH3_bb / TIME     
+!-----------------------------------------------------------------------------
 
       !=================================================================
       ! Read NH3 biofuel emissions
@@ -6673,6 +6749,7 @@
    
       ! Echo output
       WRITE( 6, 100 ) TRIM( FILENAME )
+ 100  FORMAT( '     - READ_BIOMASS_NH3: Reading ', a )
 
       ! Get TAU0 value for 1998
       XTAU  = GET_TAU0( THISMONTH, 1, 1998 )
@@ -6688,17 +6765,50 @@
       ! Store NH3 in ENH3_bf array [kg NH3/box/s]
       ENH3_bf = ENH3_bf / ( NMDAY(THISMONTH) * 86400.d0 )
 
+      !-----------------------------------------------------------------------
+      ! Prior to 9/27/06:
+      !!=================================================================
+      !! Compute IPCC future emissions (if necessary)
+      !!=================================================================
+      !IF ( LFUTURE ) THEN
+      !   DO J = 1, JJPAR
+      !   DO I = 1, IIPAR
+      !      ENH3_bb(I,J) = ENH3_bb(I,J) * GET_FUTURE_SCALE_NH3bb( I, J )
+      !      ENH3_bf(I,J) = ENH3_bf(I,J) * GET_FUTURE_SCALE_NH3bf( I, J )
+      !   ENDDO
+      !   ENDDO
+      !ENDIF
+      !-----------------------------------------------------------------------
+
       !=================================================================
-      ! Compute IPCC future emissions (if necessary)
+      ! Convert units and apply IPCC future emissions (if necessary)
       !=================================================================
-      IF ( LFUTURE ) THEN
-         DO J = 1, JJPAR
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, CONV )
+
+      ! Loop over latitudes
+      DO J = 1, JJPAR
+ 
+         ! Conversion factor for [cm2 * kg/molec]
+         CONV = GET_AREA_CM2( J ) / XNUMOL(IDTNH3)
+
+         ! Loop over longitudes
          DO I = 1, IIPAR
-            ENH3_bb(I,J) = ENH3_bb(I,J) * GET_FUTURE_SCALE_NH3bb( I, J )
-            ENH3_bf(I,J) = ENH3_bf(I,J) * GET_FUTURE_SCALE_NH3bf( I, J )
+
+            ! Convert biomass NH3 from [molec NH3/cm2/s] -> [kg NH3/s]
+            ! NOTE: Future scale is applied by this point (if necessary)
+            ENH3_bb(I,J) = BIOMASS(I,J,IDBNH3) * CONV
+
+            ! Scale biofuel NH3 to IPCC future scenario (if necessary)
+            IF ( LFUTURE ) THEN
+               ENH3_bf(I,J) = ENH3_bf(I,J) * 
+     &                        GET_FUTURE_SCALE_NH3bf( I, J )
+            ENDIF
          ENDDO
-         ENDDO
-      ENDIF
+      ENDDO
+!$OMP END PARALLEL DO
       
       ! Return to calling program
       END SUBROUTINE READ_BIOMASS_NH3

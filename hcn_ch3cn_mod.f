@@ -1,9 +1,9 @@
-! $Id: hcn_ch3cn_mod.f,v 1.13 2006/06/06 14:26:05 bmy Exp $
+! $Id: hcn_ch3cn_mod.f,v 1.14 2006/10/17 17:51:12 bmy Exp $
       MODULE HCN_CH3CN_MOD
 !
 !******************************************************************************
 !  Module HCN_CH3CN_MOD contains variables and routines that are used for the 
-!  geographically tagged HCN/CH3CN simulation. (qli, xyp, bmy, 8/16/05, 4/5/06)
+!  geographically tagged HCN/CH3CN simulation. (qli, xyp, bmy, 8/16/05,9/27/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -75,6 +75,8 @@
 !  (3 ) Remove duplicate variable declarations for Linux IFORT v9 compiler
 !        (bmy, 11/2/05)
 !  (4 ) Now modified for new "biomass_mod.f" (bmy, 4/5/06)
+!  (5 ) BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of 
+!        [molec CO/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -268,7 +270,7 @@
 !
 !******************************************************************************
 !  Subroutine EMISS_HCN_CH3CN reads in CO emissions and scale them to get
-!  HCN/CH3CN emissions for the tagged HCN/CH3CN run. (bmy, 8/16/05, 4/5/06)
+!  HCN/CH3CN emissions for the tagged HCN/CH3CN run. (bmy, 8/16/05, 9/27/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -278,6 +280,8 @@
 !  NOTES:
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (2 ) Now modified for new "biomass_mod.f" (bmy, 4/5/06)
+!  (3 ) BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of 
+!        [molec CO/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -354,8 +358,14 @@
          ! (1) Process biomass burning HCN/CH3CN emissions
          !-----------------------------------------------------------------
 
-         ! Convert [molec CO/cm3/s] to [molec CO/cm2/s]
-         E_CObb = BIOMASS(I,J,IDBCO) * BOXVL(I,J,1) / ACM2
+         !---------------------------------------------------------
+         ! Prior to 9/27/06:
+         !! Convert [molec CO/cm3/s] to [molec CO/cm2/s]
+         !E_CObb = BIOMASS(I,J,IDBCO) * BOXVL(I,J,1) / ACM2
+         !---------------------------------------------------------
+         
+         ! Get CO biomass burning [molec CO/cm2/s]
+         E_CObb = BIOMASS(I,J,IDBCO)
 
          ! ND09: biomass burning HCN/CH3CN emissions [molec/cm2/s]
          IF ( ND09 > 0 ) THEN

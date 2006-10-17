@@ -1,4 +1,4 @@
-! $Id: diag3.f,v 1.37 2006/10/16 20:44:30 phs Exp $
+! $Id: diag3.f,v 1.38 2006/10/17 17:51:10 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
@@ -76,7 +76,7 @@
 !  (68) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (69) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
 !        (bmy, 9/5/06)
-!  (70) Now write diag 54 (time in the troposphere) if asked for (9/22/06)
+!  (70) Now write diag 54 (time in the troposphere) if asked for (phs, 9/22/06)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -1591,15 +1591,19 @@
 !
 !   # : Field : Description   : Units            : Scale factor
 !  --------------------------------------------------------------------------
-!  (1 ) NOx   : NOx           : molec NOx /cm2/s : SCALESRCE
-!  (4 ) CO    : CO            : molec CO  /cm2/s : SCALESRCE
-!  (9 ) ACET  : Acetone       : atoms C   /cm2/s : SCALESRCE
-!  (10) MEK   : Ketones(>C3)  : atoms C   /cm2/s : SCALESRCE
-!  (11) ALD2  : Acetaldehyde  : atoms C   /cm2/s : SCALESRCE
-!  (18) PRPE  : Propene       : atoms C   /cm2/s : SCALESRCE
-!  (19) C3H8  : Propane       : atoms C   /cm2/s : SCALESRCE
-!  (20) C2HO  : Formaldehyde  : molec CH2O/cm2/s : SCALESRCE
-!  (21) C2H6  : Ethane        : atoms C   /cm2/s : SCALESRCE
+!  (1 ) NOx   : NOx            : molec NOx /cm2/s : SCALESRCE
+!  (4 ) CO    : CO             : molec CO  /cm2/s : SCALESRCE
+!  (9 ) ACET  : Acetone        : atoms C   /cm2/s : SCALESRCE
+!  (10) MEK   : Ketones(>C3)   : atoms C   /cm2/s : SCALESRCE
+!  (11) ALD2  : Acetaldehyde   : atoms C   /cm2/s : SCALESRCE
+!  (18) PRPE  : Propene        : atoms C   /cm2/s : SCALESRCE
+!  (19) C3H8  : Propane        : atoms C   /cm2/s : SCALESRCE
+!  (20) C2HO  : Formaldehyde   : molec CH2O/cm2/s : SCALESRCE
+!  (21) C2H6  : Ethane         : atoms C   /cm2/s : SCALESRCE
+!  (26) SO2   : Sulfur dioxide : molec SO2 /cm2/s : SCALESRCE
+!  (30) NH3   : Ammonia        : molec NH3 /cm2/s : SCALESRCE
+!  (34) BCPO  : Black carbon   : atoms C   /cm2/s : SCALESRCE
+!  (35) OCPO  : Organic carbon : atoms C   /cm2/s : SCALESRCE
 !
 !  NOTES:
 !  (1) Use the F90 intrinsic "ANY" function to make sure that N 

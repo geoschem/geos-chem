@@ -1,10 +1,10 @@
-! $Id: jv_index.f,v 1.2 2003/07/08 15:32:16 bmy Exp $
+! $Id: jv_index.f,v 1.3 2006/10/17 17:51:14 bmy Exp $
       SUBROUTINE JV_INDEX
 !
 !******************************************************************************
 !  Subroutine JV_INDEX computes the mapping between the CTM indices
 !  (from "chem.dat") for J-values to the FAST-J indices (from "ratj.d")
-!  for J-values.  (bmy, 10/5/98, 4/8/03)
+!  for J-values.  (bmy, 10/5/98, 10/16/06)
 !
 !  NOTES:
 !  (1 ) Assumes the ordering of a species with several branches in 
@@ -12,6 +12,7 @@
 !  (2 ) Updated comments, cosmetic changes (bmy, 11/15/01)
 !  (3 ) NAMESPEC is now NAMEGAS for SMVGEAR II.   We don't need to reference 
 !        CMN anymore. Now loop from NCS = 1..NCSGAS (bdf, bmy, 4/8/03)
+!  (4 ) Now reset NCS to NCSURBAN after loop (dbm, bmy, 10/16/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -71,6 +72,9 @@
          ENDDO
       ENDDO  
       ENDDO
+
+      ! Reset NCS to NCSURBAN for safety's sake (bmy, 10/16/06)
+      NCS = NCSURBAN
 
       ! Return to calling program      
       END SUBROUTINE JV_INDEX

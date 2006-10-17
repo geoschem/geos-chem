@@ -1,9 +1,9 @@
-! $Id: ndxx_setup.f,v 1.26 2006/10/16 20:44:35 phs Exp $
+! $Id: ndxx_setup.f,v 1.27 2006/10/17 17:51:15 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
 !  NDXX_SETUP dynamically allocates memory for certain diagnostic arrays that 
-!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 4/5/06)
+!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 10/17/06)
 !
 !  This allows us to reduce the amount of memory that needs to be declared 
 !  globally.  We only allocate memory for arrays if the corresponding 
@@ -120,7 +120,7 @@
 !  (57) Removed duplicate variable declarations (bmy, 2/6/06)
 !  (58) Now remove NBIOTRCE; it's obsolete.  Replace w/ NBIOMAX (bmy, 4/5/06)
 !  (59) Now remove TRCOFFSET; it's obsolete (bmy, 5/16/06)
-!  (60) Added the ND54 for time spend in the troposphere (phs, 9/22/06)
+!  (60) Added the ND54 for time spend in the troposphere (phs, 10/17/06)
 !******************************************************************************
 !
       ! References to F90 modules

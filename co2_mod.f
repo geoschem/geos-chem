@@ -1,9 +1,9 @@
-! $Id: co2_mod.f,v 1.2 2005/10/20 14:03:17 bmy Exp $
+! $Id: co2_mod.f,v 1.3 2006/10/17 17:51:09 bmy Exp $
       MODULE CO2_MOD
 !
 !******************************************************************************
 !  Module CO2_MOD contains variables and routines used for the CO2 simulation.
-!  (pns, bmy, 8/16/05, 10/3/05) 
+!  (pns, bmy, 8/16/05, 9/27/06) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -38,16 +38,17 @@
 !
 !  GEOS-CHEM modules referenced by "co2_mod.f"
 !  ============================================================================
-!  (1 ) bpch2_mod.f            : Module w/ routines for binary punch file I/O
-!  (2 ) diag04_mod.f           : Module w/ routines for CO2 diagnostics
-!  (3 ) directory_mod.f        : Module w/ GEOS-CHEM data & met field dirs
-!  (4 ) error_mod.f            : Module w/ I/O error and NaN check routines
-!  (5 ) file_mod.f             : Module w/ file unit numbers and error checks
-!  (6 ) grid_mod.f             : Module w/ horizontal grid information
-!  (7 ) logical_mod.f          : Module w/ GEOS-CHEM logical switches
-!  (8 ) time_mod.f             : Module w/ routines for computing time & date
-!  (9 ) tracer_mod.f           : Module w/ GEOS-CHEM tracer array STT etc.
-!  (10) transfer_mod.f         : Module w/ routines to cast & resize arrays 
+!  (1 ) biomass_mod.f          : Module w/ routines for biomass burning
+!  (2 ) bpch2_mod.f            : Module w/ routines for binary punch file I/O
+!  (3 ) diag04_mod.f           : Module w/ routines for CO2 diagnostics
+!  (4 ) directory_mod.f        : Module w/ GEOS-CHEM data & met field dirs
+!  (5 ) error_mod.f            : Module w/ I/O error and NaN check routines
+!  (6 ) file_mod.f             : Module w/ file unit numbers and error checks
+!  (7 ) grid_mod.f             : Module w/ horizontal grid information
+!  (8 ) logical_mod.f          : Module w/ GEOS-CHEM logical switches
+!  (9 ) time_mod.f             : Module w/ routines for computing time & date
+!  (10) tracer_mod.f           : Module w/ GEOS-CHEM tracer array STT etc.
+!  (11) transfer_mod.f         : Module w/ routines to cast & resize arrays 
 !
 !  CO2 tracers:
 !  ============================================================================
@@ -78,6 +79,7 @@
 !
 !  NOTES: 
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (2 ) Now references biomass_mod.f (bmy, 9/27/06)
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -132,16 +134,20 @@
 !
 !******************************************************************************
 !  Subroutine EMISSCO2 is the driver routine for CO2 emissions. 
-!  (pns, bmy, 8/16/05, 10/3/05)
+!  (pns, bmy, 8/16/05, 9/27/06)
 !
 !  The initial condition for CO2 has to be at least 50 ppm or higher or else
 !  the balanced biosphere fluxes will make STT negative. (pns, bmy, 8/16/05)
 !
 !  NOTES:
-!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (2 ) We now get CO2 biomass emissions from biomass_mod.f.  This allows us 
+!        to use either GFED2 or default Duncan et al biomass emissions. 
+!        (bmy, 9/27/06)
 !******************************************************************************
 !
       ! References to F90 modules
+      USE BIOMASS_MOD,   ONLY : BIOMASS,       IDBCO2
       USE DIAG04_MOD,    ONLY : AD04,          ND04
       USE GRID_MOD,      ONLY : GET_AREA_CM2
       USE TIME_MOD,      ONLY : GET_DAY,       GET_DAY_OF_YEAR
@@ -188,10 +194,14 @@
       MONTH  = GET_MONTH()
       YEAR   = GET_YEAR()
 
-      ! Read monthly-mean biomass burning emissions
-      IF ( LBIOBRNCO2 .and. ITS_A_NEW_MONTH() ) THEN 
-         CALL READ_MONTH_BIOBRN_CO2( MONTH, YEAR )
-      ENDIF
+      !-----------------------------------------------------------------
+      ! Prior to 9/27/06:
+      ! Biomass CO2 is now handled in "biomass_mod.f" (bmy, 9/27/06)
+      !! Read monthly-mean biomass burning emissions
+      !IF ( LBIOBRNCO2 .and. ITS_A_NEW_MONTH() ) THEN 
+      !   CALL READ_MONTH_BIOBRN_CO2( MONTH, YEAR )
+      !ENDIF
+      !-----------------------------------------------------------------
 
       ! Check if Balanced Biosphere emissions are required  
       IF ( LBIOCO2 ) THEN  
@@ -307,7 +317,14 @@
          IF ( LBIOBRNCO2 ) THEN
 
             ! Biomass burning emissions [molec/cm2/s]
-            E_CO2          = EMBIOBRNCO2(I,J)
+            !------------------------------------------------------
+            ! Prior to 9/27/06:
+            ! We now get CO2 biomass emissions from biomass_mod.f.
+            ! This allows us to use either GFED2 or default
+            ! Duncan et Al biomass emissions. (bmy, 9/27/06)
+            !E_CO2          = EMBIOBRNCO2(I,J)
+            !------------------------------------------------------
+            E_CO2          = BIOMASS(I,J,IDBCO2)
 
             ! ND04 diag: Biomass burning CO2 [molec/cm2/s]
             IF ( ND04 > 0 ) THEN
@@ -770,121 +787,122 @@
       END SUBROUTINE READ_BBIO_DIURNALCYCLE
 
 !------------------------------------------------------------------------------
-
-       SUBROUTINE READ_MONTH_BIOBRN_CO2( MONTH, YEAR ) 
+! Prior to 9/27/06:
+! This has been moved to "gc_biomass_mod.f" (bmy, 9/27/06)
+!       SUBROUTINE READ_MONTH_BIOBRN_CO2( MONTH, YEAR ) 
+!!
+!!*****************************************************************************
+!!  Subroutine READ_MONTH_BIOBRN_CO2 reads in monthly values of CO for biomass 
+!!  burning from a binary punch file. (pns, bmy, 8/16/05, 10/3/05)
+!!
+!!  Arguments as Input:
+!!  ===========================================================================
+!!  (1 ) MONTH (INTEGER) : Current month of year (1-12)
+!!  (2 ) YEAR  (INTEGER) : Current year (e.g. 1990)
+!!
+!!  NOTES:
+!!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!!*****************************************************************************
+!!
+!      ! References to F90 modules
+!      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+!      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
+!      USE DIRECTORY_MOD, ONLY : DATA_DIR
+!      USE LOGICAL_MOD,   ONLY : LBBSEA
+!      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 !
-!******************************************************************************
-!  Subroutine READ_MONTH_BIOBRN_CO2 reads in monthly values of CO for biomass 
-!  burning from a binary punch file. (pns, bmy, 8/16/05, 10/3/05)
+!#     include "CMN_SIZE"  ! Size parameters
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) MONTH (INTEGER) : Current month of year (1-12)
-!  (2 ) YEAR  (INTEGER) : Current year (e.g. 1990)
+!      ! Arguments
+!      INTEGER, INTENT(IN) :: MONTH, YEAR
 !
-!  NOTES:
-!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!******************************************************************************
+!      ! Local variables
+!      INTEGER             :: I, J
+!      REAL*4              :: ARRAY(IGLOB,JGLOB,1)
+!      REAL*8              :: EMFACTCO2CO, TAU, TIME
+!      CHARACTER(LEN=4)    :: SYEAR
+!      CHARACTER(LEN=255)  :: FILENAME
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE LOGICAL_MOD,   ONLY : LBBSEA
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-
-#     include "CMN_SIZE"  ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: MONTH, YEAR
-
-      ! Local variables
-      INTEGER             :: I, J
-      REAL*4              :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8              :: EMFACTCO2CO, TAU, TIME
-      CHARACTER(LEN=4)    :: SYEAR
-      CHARACTER(LEN=255)  :: FILENAME
-
-      ! MONTHDATES = number of days per month
-      INTEGER             :: MONTHDATES(12) = (/ 31, 28, 31, 30,
-     &                                           31, 30, 31, 31,
-     &                                           30, 31, 30, 31 /)
-
-      !=================================================================
-      ! READ_MONTH_BIOBRN_CO2 begins here!
-      !=================================================================
-
-      ! Currently calculate CO2 emissions as a function of CO emissions
-      ! from biomass burning.   Set Emission factor (CO2 to CO)
-      ! Calculation based on global totals of 
-      !   5524.7  Tg dry matter (of which 45% is carbon)
-      !    438.08 Tg CO (of which 187.75 Tg is carbon), and 
-      !     32.6  Tg C of other species 
-      !Refs : Staudt et al., Rose Yevich tables
-      !Check with Rose Yevich for most recent estimates on emission factors 
-      EMFACTCO2CO = 12.068d0
-
-      ! TIME = conversion from [molec/cm2/month] to [molec/cm2/s]
-      TIME        = ( DBLE( MONTHDATES( MONTH ) ) * 86400d0 )
-
-      ! Test for climatological or interannual emissions
-      IF ( LBBSEA ) THEN
-
-         !--------------------------------------
-         ! Climatological biomass emissions
-         !--------------------------------------
-         
-         ! TAU value for this month of "generic" year 1985
-         TAU      = GET_TAU0( MONTH, 1, 1985 )
-
-         ! Name of climatological biomass burning file
-         FILENAME = TRIM( DATA_DIR )                   //
-     &              'biomass_200110/bioburn.seasonal.' // 
-     &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
-
-      ELSE
-
-         !--------------------------------------
-         ! Interannual biomass emissions
-         !--------------------------------------
-
-         ! Make a string for YEAR
-         WRITE( SYEAR, '(i4)' ) YEAR 
-
-         ! TAU value for the given month of this year
-         TAU      = GET_TAU0( MONTH, 1, YEAR )
-
-         ! Name of interannual biomass burning file
-         FILENAME = TRIM( DATA_DIR )                      //
-     &              'biomass_200110/bioburn.interannual.' // 
-     &              GET_NAME_EXT_2D() // '.'              //
-     &              GET_RES_EXT()     // '.'              // SYEAR 
-
-      ENDIF
-
-      ! Initialize ARRAY
-      ARRAY = 0e0
-
-      ! Read CO biomass emissions [molec CO/cm2/month]
-      CALL READ_BPCH2( FILENAME, 'BIOBSRCE', 4, 
-     &                 TAU,       IGLOB,     JGLOB,     
-     &                 1,         ARRAY,     QUIET=.TRUE. )
-
-      ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
-      CALL TRANSFER_2D( ARRAY(:,:,1), EMBIOBRNCO2 )
-
-      ! Convert from [molec CO/cm2/month] to [molec CO2/cm2/month]
-      EMBIOBRNCO2 = EMBIOBRNCO2 * EMFACTCO2CO
-
-      ! Print total CO2 biomass in Tg
-      CALL TOTAL_BIOMASS_TG( EMBIOBRNCO2, 44d-3, 'CO2' )
-
-      ! Convert from [molec CO2/cm2/month] to [molec CO2/cm2/s]
-      EMBIOBRNCO2 = EMBIOBRNCO2 / TIME
-
-      ! Return to calling program
-      END SUBROUTINE READ_MONTH_BIOBRN_CO2 
-
+!      ! MONTHDATES = number of days per month
+!      INTEGER             :: MONTHDATES(12) = (/ 31, 28, 31, 30,
+!     &                                           31, 30, 31, 31,
+!     &                                           30, 31, 30, 31 /)
+!
+!      !=================================================================
+!      ! READ_MONTH_BIOBRN_CO2 begins here!
+!      !=================================================================
+!
+!      ! Currently calculate CO2 emissions as a function of CO emissions
+!      ! from biomass burning.   Set Emission factor (CO2 to CO)
+!      ! Calculation based on global totals of 
+!      !   5524.7  Tg dry matter (of which 45% is carbon)
+!      !    438.08 Tg CO (of which 187.75 Tg is carbon), and 
+!      !     32.6  Tg C of other species 
+!      !Refs : Staudt et al., Rose Yevich tables
+!      !Check with Rose Yevich for most recent estimates on emission factors 
+!      EMFACTCO2CO = 12.068d0
+!
+!      ! TIME = conversion from [molec/cm2/month] to [molec/cm2/s]
+!      TIME        = ( DBLE( MONTHDATES( MONTH ) ) * 86400d0 )
+!
+!      ! Test for climatological or interannual emissions
+!      IF ( LBBSEA ) THEN
+!
+!         !--------------------------------------
+!         ! Climatological biomass emissions
+!         !--------------------------------------
+!         
+!         ! TAU value for this month of "generic" year 1985
+!         TAU      = GET_TAU0( MONTH, 1, 1985 )
+!
+!         ! Name of climatological biomass burning file
+!         FILENAME = TRIM( DATA_DIR )                   //
+!     &              'biomass_200110/bioburn.seasonal.' // 
+!     &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+!
+!      ELSE
+!
+!         !--------------------------------------
+!         ! Interannual biomass emissions
+!         !--------------------------------------
+!
+!         ! Make a string for YEAR
+!         WRITE( SYEAR, '(i4)' ) YEAR 
+!
+!         ! TAU value for the given month of this year
+!         TAU      = GET_TAU0( MONTH, 1, YEAR )
+!
+!         ! Name of interannual biomass burning file
+!         FILENAME = TRIM( DATA_DIR )                      //
+!     &              'biomass_200110/bioburn.interannual.' // 
+!     &              GET_NAME_EXT_2D() // '.'              //
+!     &              GET_RES_EXT()     // '.'              // SYEAR 
+!
+!      ENDIF
+!
+!      ! Initialize ARRAY
+!      ARRAY = 0e0
+!
+!      ! Read CO biomass emissions [molec CO/cm2/month]
+!      CALL READ_BPCH2( FILENAME, 'BIOBSRCE', 4, 
+!     &                 TAU,       IGLOB,     JGLOB,     
+!     &                 1,         ARRAY,     QUIET=.TRUE. )
+!
+!      ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
+!      CALL TRANSFER_2D( ARRAY(:,:,1), EMBIOBRNCO2 )
+!
+!      ! Convert from [molec CO/cm2/month] to [molec CO2/cm2/month]
+!      EMBIOBRNCO2 = EMBIOBRNCO2 * EMFACTCO2CO
+!
+!      ! Print total CO2 biomass in Tg
+!      CALL TOTAL_BIOMASS_TG( EMBIOBRNCO2, 44d-3, 'CO2' )
+!
+!      ! Convert from [molec CO2/cm2/month] to [molec CO2/cm2/s]
+!      EMBIOBRNCO2 = EMBIOBRNCO2 / TIME
+!
+!      ! Return to calling program
+!      END SUBROUTINE READ_MONTH_BIOBRN_CO2 
+!
 !------------------------------------------------------------------------------
 
       SUBROUTINE TOTAL_BIOMASS_TG( BBARRAY, MOLWT, NAME )

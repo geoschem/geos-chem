@@ -1,9 +1,9 @@
-! $Id: a3_read_mod.f,v 1.16 2006/09/08 19:20:49 bmy Exp $
+! $Id: a3_read_mod.f,v 1.17 2006/10/17 17:51:06 bmy Exp $
       MODULE A3_READ_MOD
 !
 !******************************************************************************
 !  Module A3_READ_MOD contains routines that unzip, open, and read the
-!  GEOS-CHEM A-3 (avg 3-hour) met fields from disk. (bmy, 6/23/03, 8/4/06)
+!  GEOS-Chem A-3 (avg 3-hour) met fields from disk. (bmy, 6/23/03, 10/4/06)
 ! 
 !  Module Routines:
 !  =========================================================================
@@ -41,6 +41,7 @@
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (8 ) Fixed typos for GCAP fields and ND67 diagnostics (bmy, 2/9/06)
 !  (9 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (10) Now read PARDF, PARDR for GCAP met fields (swu, bmy, 10/4/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -440,13 +441,14 @@
 !  (3 ) Bug fix: replace RADSWG in call to READ_A3 for GCAP met fields.
 !        (bmy, 2/9/06)
 !  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (5 ) Now read PARDF, PARDR for GCAP met fields (swu, bmy, 10/4/06)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD, ONLY : ALBD,   CLDFRC, GWETTOP, HFLUX,  MOLENGTH,
-     &                    OICE,   PARDF,  PARDR,   PBL,    PREACC, 
-     &                    PRECON, RADLWG, RADSWG,  SNICE,  SNOW,  
-     &                    TS,     TSKIN,  U10M,    USTAR,  V10M,  Z0
+      USE DAO_MOD, ONLY : ALBD,   CLDFRC, GWETTOP, HFLUX,  MOLENGTH
+      USE DAO_MOD, ONLY : OICE,   PARDF,  PARDR,   PBL,    PREACC 
+      USE DAO_MOD, ONLY : PRECON, RADLWG, RADSWG,  SNICE,  SNOW  
+      USE DAO_MOD, ONLY : TS,     TSKIN,  U10M,    USTAR,  V10M,  Z0
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -507,16 +509,17 @@
       !================================================================
       ! For GCAP, read the following fields:
       !
-      !    ALBEDO, MOLENGTH, OICE, PBL,  PREACC, PRECON, 
-      !    RADSWG, SNICE,    TS,   U10M, USTAR,  V10M
+      !    ALBEDO, MOLENGTH, OICE,  PARDF, PARDR, PBL,   PREACC, 
+      !    PRECON, RADSWG,   SNICE, TS,    U10M,  USTAR, V10M
       !
       ! NOTES: 
       !================================================================
       CALL READ_A3( NYMD=NYMD,     NHMS=NHMS,     
      &              ALBEDO=ALBD,   MOLENGTH=MOLENGTH, OICE=OICE,       
-     &              PBL=PBL,       PREACC=PREACC,     PRECON=PRECON,   
-     &              RADSWG=RADSWG, SNICE=SNICE,       TS=TS,             
-     &              U10M=U10M,     USTAR=USTAR,       V10M=V10M  )
+     &              PARDF=PARDF,   PARDR=PARDR,       PBL=PBL,       
+     &              PREACC=PREACC, PRECON=PRECON,     RADSWG=RADSWG, 
+     &              SNICE=SNICE,   TS=TS,             U10M=U10M,     
+     &              USTAR=USTAR,   V10M=V10M  )
 
 #endif
 
@@ -533,7 +536,7 @@
 !
 !******************************************************************************
 !  Function GET_N_A3 returns the number of A-3 fields per met data set
-!  (bmy, 6/23/03, 8/4/06) 
+!  (bmy, 6/23/03, 10/4/06) 
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -544,6 +547,7 @@
 !        (bmy, 12/9/03)
 !  (2 ) Now modified for GEOS-5 and GCAP met fields (bmy, 5/25/05)
 !  (3 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (4 ) Increase # of fields for GCAP from 12 to 16 (swu, bmy, 10/4/06)
 !******************************************************************************
 !
 #     include "CMN_SIZE"   ! Size parameters
@@ -577,8 +581,12 @@
 
 #elif defined( GCAP )
       
-      ! GCAP has 12 fields
-      N_A3 = 12
+      !-----------------------
+      ! Prior to 10/4/06
+      !! GCAP has 12 fields
+      !N_A3 = 12
+      !-----------------------
+      N_A3 = 16
 
 #endif
 
@@ -636,7 +644,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_A3 reads GEOS A-3 (3-hr avg) fields from disk.
-!  (bmy, 5/8/98, 8/4/06)
+!  (bmy, 5/8/98, 10/4/06)
 ! 
 !  Arguments as input:
 !  ============================================================================
@@ -677,6 +685,7 @@
 !        SNICE, OICE optional arguments. (swu, bmy, 5/25/05)
 !  (4 ) Fixed typo in the ND67 diagnostic for RADSWG (swu, bmy, 2/9/06)
 !  (5 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (6 ) Add "PARDIF", "PARDIR" to case statement for GCAP (swu, bmy, 10/4/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -827,7 +836,11 @@
             !--------------------------------
             ! PARDF: photosyn active diff rad
             !--------------------------------
-            CASE ( 'PARDF' )
+            !--------------------------
+            ! Prior to 10/4/06:
+            !CASE ( 'PARDF' )
+            !--------------------------
+            CASE ( 'PARDF', 'PARDIF' )
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:8' )
              
@@ -839,7 +852,11 @@
             !--------------------------------
             ! PARDR: photosyn active dir rad
             !--------------------------------
-            CASE ( 'PARDR' )
+            !--------------------------
+            ! Prior to 10/4/06:
+            !CASE ( 'PARDR' )
+            !--------------------------
+            CASE ( 'PARDR', 'PARDIR' )
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:9' )
              

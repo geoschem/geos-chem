@@ -1,4 +1,4 @@
-! $Id: commsoil.h,v 1.3 2005/06/22 20:49:59 bmy Exp $
+! $Id: commsoil.h,v 1.4 2006/10/17 17:51:10 bmy Exp $
 !
 !**********************************************************************
 !                                                                     *
@@ -19,6 +19,7 @@
 !       files. Updated comments, cosmetic changes. (bmy, 6/25/02)
 ! (3 ) Now use cpp switches to define 1x1 parameters.  Also added
 !       space in the #ifdef block for the 1x125 grid (bmy, 12/1/04)
+! (4 ) Bug fix: 2681 should be 2861 in NLAND (bmy, 9/22/06)
 !**********************************************************************
 !
 ! header file for soil NOx emissions
@@ -41,11 +42,15 @@
 
 #elif defined( GRID1x1 )
 
-      ! There are 2681  land points for the CHINA nested grid
+      ! There are 2861  land points for the CHINA nested grid
       ! There are 2118  land points for the N. AMERICA nested grid
       ! There are 17174 land points for the global grid
 #if   defined( NESTED_CH )
-      PARAMETER( NLAND=2681, NPULSE=3 ) 
+      !-------------------------------------
+      ! Prior to 9/22/06:
+      !PARAMETER( NLAND=2681, NPULSE=3 ) 
+      !-------------------------------------
+      PARAMETER( NLAND=2861, NPULSE=3 ) 
 #elif defined( NESTED_NA )
       PARAMETER( NLAND=2118, NPULSE=3 )
 #else   

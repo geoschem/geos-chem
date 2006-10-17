@@ -1,9 +1,9 @@
-! $Id: chemdr.f,v 1.23 2006/10/16 20:44:28 phs Exp $
+! $Id: chemdr.f,v 1.24 2006/10/17 17:51:09 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
 !  Subroutine CHEMDR is the driver subroutine for full chemistry w/ SMVGEAR.
-!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 6/1/06)
+!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 10/3/06)
 !
 !  Important input variables from "dao_mod.f" and "uvalbedo_mod.f":
 !  ============================================================================
@@ -142,7 +142,7 @@
 !        arguments from call to RURALBOX. (bmy, 4/10/06) 
 !  (28) Remove reference to "global_ch4_mod.f".  Add error check for LISOPOH
 !        when using the online SOA tracers. (dkh, bmy, 6/1/06)
-!  (29) Now support variable tropopause (bdf, phs, 8/21/06)
+!  (29) Now support variable tropopause (bdf, phs, bmy, 10/3/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -410,13 +410,21 @@
       !=================================================================
       CALL LUMP( N_TRACERS, XNUMOL, STT )
 
-      ! saves the chemical species in CSPEC from variable current troposphere
-      ! into an array for the full potential troposphere -bdf
-      IF ( LVARTROP ) CALL SAVE_FULL_TROP
-c      CALL SAVE_FULL_TROP
-
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after LUMP' )
+
+      !=================================================================
+      ! Copy the chemical species from CSPEC (actual troposphere) to
+      ! CSPEC_FULL (potential troposphere) array.  We only need to do 
+      ! this if the variable troposphere is turned on. 
+      ! (bdf, phs, bmy, 10/3/06)
+      !=================================================================
+      IF ( LVARTROP ) THEN
+         CALL SAVE_FULL_TROP
+
+         !### Debug
+         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SAVE_FULL_TROP')
+      ENDIF
 
       !=================================================================
       ! Call OHSAVE which saves info on OZONE, OH, AND NO concentrations 

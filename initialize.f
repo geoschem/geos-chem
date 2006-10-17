@@ -1,8 +1,8 @@
-! $Id: initialize.f,v 1.21 2006/10/16 20:44:33 phs Exp $
+! $Id: initialize.f,v 1.22 2006/10/17 17:51:13 bmy Exp $
       SUBROUTINE INITIALIZE( IFLAG )
 !
 !******************************************************************************
-!  Subroutine INITIALIZE (bmy, 6/15/98, 5/22/06) does the following:
+!  Subroutine INITIALIZE (bmy, 6/15/98, 10/17/06) does the following:
 !     (1) Zeroes globally defined GEOS-CHEM variables.
 !     (2) Zeroes accumulating diagnostic arrays.
 !     (3) Resets certain year/month/day and counter variables used 
@@ -162,7 +162,7 @@
 !  (35) Now resets SET_CT_XTRA at the beginning of the run. (tmf, 10/20/05)
 !  (36) Now references ND56, ZERO_DIAG56 from "diag56_mod.f" (ltm, bmy, 5/5/06)
 !  (37) Now references ND42, ZERO_DIAG42 from "diag42_mod.f" (dkh, bmy,5/22/06)
-!  (38) take care of AD54 (time in the troposphere diagnostic) (phs, 9/22/06)
+!  (38) take care of AD54 (time in the troposphere diagnostic) (phs, 10/17/06)
 !******************************************************************************
 ! 
       ! References to F90 modules

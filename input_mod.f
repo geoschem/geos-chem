@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.35 2006/10/16 20:44:33 phs Exp $
+! $Id: input_mod.f,v 1.36 2006/10/17 17:51:13 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS_CHEM input file at the start of the run
 !  and passes the information to several other GEOS-CHEM F90 modules.
-!  (bmy, 7/20/04, 9/14/06)
+!  (bmy, 7/20/04, 10/17/06)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -114,8 +114,9 @@
 !  (14) Modified for BRAVO emissions (rjp, kfb, bmy, 6/26/06)
 !  (15) Remove support for GEOS-1 and GEOS-STRAT met fields.  Also modified 
 !        for David Streets' emissions. (bmy, 8/17/06)
-!  (16) Modified for variable tropopause (phs, 9/14/06)
-!  (17) Now read if Time Spent in Troposphere is wanted (phs, 9/22/06)
+!  (16) Modified for variable tropopause.  Also set dimension of ND28 diag
+!        for GFED2 or default biomass burning.  Now read if Time Spent in 
+!        Troposphere is wanted (phs, bmy, 10/17/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -2021,6 +2022,7 @@
 !        (bmy, 5/10/06)
 !  (8 ) Now reference ND42, PD42, INIT_DIAG42 from "diag42_mod.f"
 !        (dkh, bmy, 5/22/06)
+!  (9 ) Now set max dimension for GFED2 or default biomass (bmy, 9/22/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2038,7 +2040,7 @@
       USE FILE_MOD,     ONLY : IU_BPCH
       USE LOGICAL_MOD,  ONLY : LBIOMASS,  LBIOFUEL,  LCARB, LCONV    
       USE LOGICAL_MOD,  ONLY : LDRYD,     LDUST,     LPRT,  LSULF    
-      USE LOGICAL_MOD,  ONLY : LSSALT,    LTURB,     LWETD    
+      USE LOGICAL_MOD,  ONLY : LSSALT,    LTURB,     LWETD, LGFED2BB  
       USE TIME_MOD,     ONLY : GET_NYMDb, GET_NHMSb, EXPAND_DATE
       USE TRACER_MOD,   ONLY : N_TRACERS
       USE TRACER_MOD,   ONLY : ITS_A_CO2_SIM,        ITS_A_FULLCHEM_SIM

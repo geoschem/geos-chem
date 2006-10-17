@@ -1,11 +1,11 @@
-! $Id: planeflight_mod.f,v 1.19 2006/04/21 15:40:04 bmy Exp $
+! $Id: planeflight_mod.f,v 1.20 2006/10/17 17:51:15 bmy Exp $
       MODULE PLANEFLIGHT_MOD
 !
 !******************************************************************************
 !  Module PLANEFLIGHT_MOD contains variables and routines which are used to
-!  "fly" a plane through the GEOS-CHEM model simulation.  This is useful for
+!  "fly" a plane through the GEOS-Chem model simulation.  This is useful for
 !  comparing model results with aircraft observations. 
-!  (mje, bmy, 7/30/02, 10/25/05)
+!  (mje, bmy, 7/30/02, 10/16/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -47,14 +47,14 @@
 !  (10) INIT_PLANEFLIGHT        : Gets # of species, points; allocates arrays
 !  (11) CLEANUP_PLANEFLIGHT     : Deallocates all allocated arrays
 !
-!  GEOS-CHEM modules referenced by planeflight_mod.f
+!  GEOS-Chem modules referenced by planeflight_mod.f
 !  ============================================================================
 !  (1 ) bpch2_mod.f             : Module w/ routines for binary punch file I/O
 !  (2 ) error_mod.f             : Module w/ NaN and other error check routines
 !  (3 ) file_mod.f              : Module w/ file unit numbers and error checks
 !  (4 ) pressure_mod.f          : Module w/ routines to compute P(I,J,L)
 !  (5 ) time_mod.f              : Module w/ routines to compute date & time
-!  (6 ) tracer_mod.f            : Module w/ GEOS-CHEM tracer array STT etc.
+!  (6 ) tracer_mod.f            : Module w/ GEOS-Chem tracer array STT etc.
 !
 !  NOTES:
 !  (1 ) Now references "pressure_mod.f" (dsa, bdf, bmy, 8/21/02)
@@ -79,6 +79,7 @@
 !  (14) Minor bug fix in ARCHIVE_RXNS_FOR_PF (bmy, 5/20/05)
 !  (15) Now split AOD's into column AOD's and AOD's below plane.  Also scale
 !        AOD's to 400nm. (bmy, 10/25/05)
+!  (16) Bug fixes in READ_VARIABLES (bmy, 10/16/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -163,7 +164,7 @@
 !  we have to reference the SMVGEAR rxn rate and species numbers.
 !
 !  For non-SMVGEAR simulations, the call to SETUP_PLANEFLIGHT can be made
-!  at the start of the GEOS-CHEM run (in "ndxx_setup.f" or similar routine).
+!  at the start of the GEOS-Chem run (in "ndxx_setup.f" or similar routine).
 !
 !  NOTES:
 !  (1 ) Rename from "plane.dat" to "plane.log", since "*.dat" implies an input
@@ -288,9 +289,9 @@
 !
 !******************************************************************************
 !  Subroutine READ_VARIABLES reads the list of variables (SMVGEAR species,
-!  SMVGEAR rxn rates, DAO met fields, or GEOS-CHEM tracers) to be printed
+!  SMVGEAR rxn rates, GMAO met fields, or GEOS-Chem tracers) to be printed
 !  out and sorts the information into the appropriate module variables.
-!  (mje, bmy, 7/30/02, 10/24/05)
+!  (mje, bmy, 7/30/02, 10/16/06)
 !
 !  NOTES:
 !  (1 ) Now references GEOS_CHEM_STOP from "error_mod.f", which frees all
@@ -305,6 +306,9 @@
 !        (bmy, 7/20/04)
 !  (8 ) Bug fix: extract tracer # when reading rxn rates (bmy, 1/7/05)
 !  (9 ) Now computes column AOD's and AOD's below plane (bmy, 10/24/05)
+!  (10) We need to trim NAMEGAS before comparing to LINE so that comparisons 
+!        for species like "O3" will work.  Also set NCS=NCSURBAN at the top
+!        of the subroutine, to avoid out of bounds error. (dbm, bmy, 10/16/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -323,6 +327,9 @@
       !=================================================================
       ! READ_VARIABLES begins here!
       !=================================================================
+
+      ! Reset NCS to NCSURBAN for safety's sake (dbm, bmy, 10/16/06)
+      NCS = NCSURBAN
 
       ! Test if this is a fullchem run
       IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
@@ -500,7 +507,13 @@
                   ! Loop over all SMVGEAR species -- 
                   ! match w/ species as read from disk
                   DO M = 1, NSPEC(NCS)
-                     IF ( NAMEGAS(M) == TRIM( LINE ) ) THEN
+                     !-------------------------------------------------------
+                     ! Prior to 10/11/06:
+                     ! We need to trim NAMEGAS before comparing, so that
+                     ! comparisons for species like "O3" will work.
+                     !IF ( NAMEGAS(M) == TRIM( LINE ) ) THEN
+                     !-------------------------------------------------------
+                     IF ( TRIM( NAMEGAS(M) ) == TRIM( LINE ) ) THEN
                         PVAR(N) = M
                         EXIT
                      ENDIF
@@ -1352,7 +1365,7 @@
 !
 !******************************************************************************
 !  Subroutine SET_PLANEFLIGHT is used to pass values read in from the 
-!  GEOS-CHEM input file to "planeflight_mod.f" (bmy, 7/20/04)
+!  GEOS-Chem input file to "planeflight_mod.f" (bmy, 7/20/04)
 !
 !  Arguments as Input:
 !  ============================================================================

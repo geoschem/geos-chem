@@ -1,51 +1,237 @@
-REVISIONS (v7-04-11)  
-16 Oct 2006
+REVISIONS (v7-04-10)  
+17 Oct 2006
 Philippe Le Sager (phs@io.as.harvard.edu) and
 Bob Yantosca      (bmy@io.as.harvard.edu)
 
 
-Changed in v7-04-11:
+New in v7-04-10:
 -------------------------------------------------------------------------------
 
-gamap_mod.f             -- add the diagnostic TIME-TPS, tracer name TIMETROP
-                           for ND54>0 (TIME in the TroPoSphere).
+copy_full_trop		-- Copies concentrations from 3-D save array to 
+("tropopause_mod.f")	   the SMVGEAR CSPEC 1-D array
 
-initialise.f            -- reset AD54 after writing to bpch
+save_full_trop		-- Saves concentrations to 3-D save array from 
+("tropopause_mod.f")	   the SMVGEAR CSPEC 1-D array
 
-diag1.f                 -- accumulate AD54 at each dynamic time step
+check_var_trop		-- Checks to see that the troposphere is w/in 
+("tropopause_mod.f")	   array limits
+			      
+gc_read_biomass_bcoc	-- Moved code to read Duncan et al 2001 BC and OC
+("gc_biomass_mod.f")       biomass from "carbon_mod.f" to here
 
-diag3.f                 -- output ND54 to bpch. Uses the dynamic time scale for
-                           scaling AD54. Uses diagnostic name TIME-TPS for ND54
+gc_read_biomass_co2	-- Moved code to read Duncan et al 2001 CO biomass
+("gc_biomass_mod.f")       and convert it to CO2 from "co2_mod.f" to here
+
+gc_read_biomass_nh3	-- Moved code to read Duncan et al 2001 NH3 biomass
+("gc_biomass_mod.f")       from "carbon_mod.f" to here
+
+gc_read_biomass_so2	-- Moved code to read Duncan et al 2001 SO2 biomass
+("gc_biomass_mod.f")       from "carbon_mod.f" to here
+
+init_diaginfo		-- Initializes the CATEGORY, DESCRIPT, and OFFSET
+("gamap_mod.f")            variables, which are used to define the 
+                           "diaginfo.dat" file
+
+init_tracerinfo		-- initializes the NAME, FNAME, MWT, MOLC, INDEX,
+("gamap_mod.f")            MOLC, UNIT arrays which are used to define the 
+                           "tracerinfo.dat" file.
+			-- Bug fix: write out 26 tracers for ND48, ND49, 
+			   ND50, ND51 timeseries.
+
+
+Removed in v7-04-10:
+-------------------------------------------------------------------------------
+
+read_month_biobrn_co2	-- Moved to "gc_biomass_mod.f" and renamed to
+("co2_mod.f")		   GC_READ_BIOMASS_CO2
+
+
+
+Changed in v7-04-10:
+-------------------------------------------------------------------------------
+
+aerosol_ruralbox	-- Add support for variable tropopause
+("aerosol_mod.f")
+
+biomass_carb_geos	-- Now get biomass emissions from the BIOMASS array 
+("carbon_mod.f")           of "biomass_mod.f", which will contain either 
+			   GFED2 or default emissions
+			-- Also movefile-reading code to gc_biomass_mod.f
+
+biomass_mod.f		-- Rewrote so that all 15 biomass species (from 
+			   either GFED2 or Duncan et al 2001) are contained 
+			   in the BIOMASS array
+			-- Also removed the BIOMASS_SAVE array because we no 
+			   longer need to convert the data to [molec/cm3/s] on
+			   each timestep
+
+chemcarbon		-- temp fix for aerosol w/ 20 tracers
+("carbon_mod.f")
+
+chemdr.f		-- Add support for variable tropopause
+
+cleanup_biomass		-- Now remove BIOMASS_SAVE array, it's redundant
+("biomass_mod.f")
 
 CMN_DIAG                -- declare LD54 and put it into multilevel common block
 
-diag_mod.f              -- define and cleanup AD54
+CMN_SIZE		-- Added variable tropopause case
 
-ndxx_setup.f            -- allocate array AD54 if diagnostic ND54 is asked for
+commsoil.h		-- Bug fix: 2681 should be 2861 in NLAND
 
-tropopause.f            -- now provide correct tropopause diagnostic
-                           (ND55) for all simualtions
-
-set_current_time        -- fix bug for runs starting after Feb 29
-(time_mod.f)               during leap year, and using GCAP met fields
-
-
-i6_read_mod.f           -- modify TROPP reading for interpolation
-                        -- suppres call to CHECK_VAR_TROP
+compute_biomass_emissions -- Now store all biomass species in BIOMASS, 
+("biomass_mod.f")            from GFED2 or Duncan et al 2001
+			  -- Also remove obsolete BIOMASS_SAVE array
 
 dao_mod.f               -- define TROPP1 and 2 for interpolation, correct 
                            routine interp
 
+diag1.f                 -- accumulate AD54 at each dynamic time step
+
+diag3.f                 -- output ND54 to bpch. Uses the dynamic time scale 
+		           for scaling AD54. Uses diagnostic name TIME-TPS 
+                           for ND54
+
+diag_mod.f              -- define and cleanup AD54
+
+emisscarbon		-- Now remove THISMONTH from the arg list to 
+("carbon_mod.f")           BIOMASS_CARB_GEOS
+
+emissc2h6		-- BIOMASS(:,:,IDB2H6) from "biomass_mod.f" is now 
+("tagged_co_mod.f")        in units of [atoms C/cm2/s].  Adjust unit 
+	                   conversion accordingly.
+
+emissch3i		-- BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in 
+("ch3i_mod.f")		   units of [molec CO/cm2/s].  Adjust unit conversion 
+	                   accordingly.
+
+emissco2		-- We now get CO2 biomass emissions from 
+("co2_mod.f")              biomass_mod.f.  This allows us to use either GFED2 
+	                   or default Duncan et al biomass emissions. 
+
+emiss_hcn_ch3cn		-- BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now 
+("hcn_ch3cn_mod.f")        in units of [molec CO/cm2/s].  Adjust unit 
+	                   conversion accordingly.
+
+emiss_tagged_co		-- BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now 
+("tagged_co_mod.f")        in units of [molec CO/cm2/s].  Adjust unit 
+	                   conversion accordingly.
+
+gamap_mod.f             -- add the diagnostic TIME-TPS, tracer name TIMETROP
+                           for ND54>0 (TIME in the TroPoSphere).
+
+gasconc.f		-- Now take care of variable tropopause case
+			-- Also set NCS=NCSURBAN (=1) instead of hardwiring it
+
+get_a3_fields		-- Now read PARDF, PARDR for GCAP met fields
+("a3_read_mod.f")
+
+get_n_a3		-- Increase # of fields for GCAP from 12 to 16 
+("a3_read_mod.f")
+
+gfed2_compute_biomass	-- 2005 is now the last year of available data
+("gfed2_biomass_mod.f")
+
+
+gfed2_scale_future	-- Now scale to IPCC future scenario for BC, OC, SO2, 
+("gfed2_biomass_mod.f")    NH3 emissions
+
+i6_read_mod.f           -- modify TROPP reading for interpolation
+                        -- suppres call to CHECK_VAR_TROP
+
+init_biomass		-- Now set BIOTRCE for 15 biomass species
+("biomass_mod.f")       -- Now remove BIOMASS_SAVE array, it's redundant
+
+init_gamap		-- Split code into INIT_DIAGINFO, INIT_TRACERINFO for 
+("gamap_mod.f")            clarity 
+			-- Also now declare biomass burning emissions w/ 
+			   offset of 45000 in INIT_TRACERINFO
+			-- Also now declare time in troposphere diagnostics w/ 
+			   offset of 46000 in INIT_TRACERINFO
+
+initialize.f            -- reset AD54 after writing to bpch
+
+interp			-- Now interpolate TROPP, only if variable tropopause 
+("dao_mod.f")   	   is used 
+
+init_gfed2_biomass	-- Now initialize for BC, OC, SO2, NH3, CO2 
+("gfed2_biomass_mod.f")
+
+init_input		-- Now initialize the LVARTROP switch
+("input_mod.f")
+
+its_in_the_trop		-- Modified for variable tropopause
+("tropopause_mod.f")
+
+its_in_the_strat	-- Modified for variable tropopause
+("tropopause_mod.f")
+
+jv_index.f		-- Now reset NCS to NCSURBAN after loop
+
+logical_mod.f		-- Added LVARTROP for variable tropopause
+
 main.f                  -- added call to CHECK_VAR_TROP
 
+ndxx_setup.f		-- Now allocate AD28 for GFED2 or default biomass
+	                -- allocate array AD54 if diagnostic ND54 is asked for
 
+set_current_time       	-- Further bug fix to skip over Feb 29th in GCAP
+("time_mod.f")
 
-New in v7-04-11:
--------------------------------------------------------------------------------
+setemis.f		-- Now account for the different definition of 
+			   tropopause in case of variable tropopause
+			-- The BIOMASS array from "biomass_mod.f" is now in 
+			   units of [molec/cm2/s].  Adjust unit conversion 
+		           accordingly.
+			-- Also replace NBIOMAX with NBIOMAX_GAS, since 
+			   aerosol biomass is handled elsewhere
 
-n/a
+soa_lump		-- Typo fix: GPROD should be APROD in a couple places
+("carbon_mod.f")
 
-Removed in v7-04-11:
--------------------------------------------------------------------------------
+read_a3			-- Add "PARDIF", "PARDIR" to case statement for GCAP 
+("a3_read_mod.f")
 
-n/a
+read_biomass_nh3	-- Now only read the biofuel, we have moved the 
+("sulfate_mod.f")	   biomass-reading code to "gc_biomass_mod.f" for 
+			   compatibility with GFED2 biomass emissions
+
+read_biomass_so2	-- Now only read the biofuel, we have moved the 
+("sulfate_mod.f")	   biomass-reading code to "gc_biomass_mod.f" for 
+			   compatibility with GFED2 biomass emissions
+
+reader.f		-- At the end of this subroutine, now set NCS=NCSURBAN
+			   (=1) instead of hardwiring it
+
+read_diagnostic_menu	-- Now set max dimension for GFED2 or default biomass
+("input_mod.f")
+
+read_i6			-- Now read TROPP files for GEOS-4
+("i6_read_mod.f")
+
+read_pox_lox		-- Use LLTROP_FIX to limit array size to case of 
+("tagged_ox_mod.f")	   non-variable tropopause 
+
+read_simulation_menu	-- Now read switch for using variable tropopause or not
+("input_mod.f")
+
+read_toms		-- Now always use 2002 TOMS O3 data for GCAP
+("toms_mod.f")
+
+read_variables		-- We need to trim NAMEGAS before comparing to LINE 
+("planeflight_mod.f")      so that comparisons for species like "O3" will work
+			-- Also set NCS=NCSURBAN at the top of the subroutine,
+			   to avoid out of bounds error
+
+soilnoxems.f		-- Bug fix: future emissions only need to be applied 
+	                   the fertilizer term in the NOx emissions below
+
+tagged_ox_mod.f		-- Use LLTROP_FIX to limit array size to case of 
+			   non-variable tropopause
+
+tropopause.f            -- now provide correct tropopause diagnostic
+                           (ND55) for all simualtions
+
+tropopause_mod.f	-- Modified for variable tropopause
+			-- call GET_SPECIES_CONCENTRATION
+			-- call SAVE_SPECIES CONCENTRATION

@@ -1,9 +1,9 @@
-! $Id: gasconc.f,v 1.12 2006/10/16 20:44:32 phs Exp $
+! $Id: gasconc.f,v 1.13 2006/10/17 17:51:11 bmy Exp $
       SUBROUTINE GASCONC( FIRSTCHEM, NTRACER, STT, XNUMOL, FRCLND )
 !
 !******************************************************************************
 !  Subroutine GASCONC initializes gas concentrations for SMVGEAR II.
-!  (M. Jacobson 1997; bdf, bmy, 4/18/03, 9/14/06)
+!  (M. Jacobson 1997; bdf, bmy, 4/18/03, 10/16/06)
 !
 !  NOTES:
 !  (1 ) Now reference ABSHUM, AIRDENS, CSPEC, IXSAVE, IYSAVE, IZSAVE,  
@@ -19,19 +19,19 @@
 !  (5 ) Now make sure all USE statements are USE, ONLY.  Also remove 
 !        reference to TRACERID_MOD, it's not needed. (bmy, 10/3/05)
 !  (6 ) Now zero out the isoprene oxidation counter species (dkh, bmy, 6/1/06)
-!  (7 ) Now take care of variable tropopause case (bdf, phs, 9/14/06)
+!  (7 ) Now take care of variable tropopause case.  Also set NCS=NCSURBAN
+!        (=1) instead of hardwiring it. (bdf, phs, 10/16/06)
 !******************************************************************************
 !
       ! References to F90 modules 
       USE COMODE_MOD,     ONLY : ABSHUM, AIRDENS, CSPEC,  IXSAVE
-      USE COMODE_MOD,     ONLY : IYSAVE, IZSAVE,  PRESS3, T3,
-     &                           CSPEC_FULL
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP, COPY_FULL_TROP,
-     &                           SAVE_FULL_TROP
+      USE COMODE_MOD,     ONLY : IYSAVE, IZSAVE,  PRESS3, T3
+      USE COMODE_MOD,     ONLY : CSPEC_FULL
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP, COPY_FULL_TROP
+      USE TROPOPAUSE_MOD, ONLY : SAVE_FULL_TROP
       USE LOGICAL_MOD,    ONLY : LVARTROP
       USE DAO_MOD,        ONLY : T
       USE PRESSURE_MOD,   ONLY : GET_PCENTER
-
       
       IMPLICIT NONE
 
@@ -86,7 +86,15 @@ C
       !=================================================================
       ! GASCONC begins here!
       !=================================================================
-      NCS = 1
+
+      !-----------------------
+      ! Prior to 10/16/06:
+      !NCS = 1
+      !-----------------------
+
+      ! Set NCS=NCSURBAN here since we have defined our tropospheric
+      ! chemistry mechanism in the urban slot of SMVGEAR II
+      NCS = NCSURBAN
 
       !=================================================================
       ! First time through here, copy initial conditions from QBKCHEM
@@ -123,13 +131,21 @@ C
             !===========================================================
             IF ( NAMEGAS(JGAS) == 'MOH' ) THEN
 
-             ! Loop over all potential tropospheric boxes
-             DO IX = 1, IIPAR
-             DO IY = 1, JJPAR
-             DO IZ = 1, LLTROP
+               ! Loop over all potential tropospheric boxes
+               !-------------------------------------------------
+               ! Prior to 10/3/06:
+               ! Make DO-loops go in the right order
+               !DO IX = 1, IIPAR
+               !DO IY = 1, JJPAR
+               !DO IZ = 1, LLTROP
+               !-------------------------------------------------
+               DO IZ = 1, LLTROP
+               DO IY = 1, JJPAR
+               DO IX = 1, IIPAR
 
-                CONST = GET_PCENTER(IX,IY,IZ)*1000D0/(T(IX,IY,IZ)*BK)
-
+                  ! Conversion factor
+                  CONST = GET_PCENTER(IX,IY,IZ)*1000D0/(T(IX,IY,IZ)*BK)
+                
 !======= prior 09/12 ==========================
 !               DO JLOOP = 1, NTLOOP
 !                  ! Convert 1-D grid box index to 3-D indices
@@ -149,54 +165,55 @@ C
                      !---------------------------
                      IF ( FRCLND(IX,IY) >= 0.5 ) THEN
 
-                        ! Continental boundary layer: 2 ppbv MOH
-                      CSPEC_FULL(IX,IY,IZ,JGAS) = 2.000d-9 * CONST
+                         ! Continental boundary layer: 2 ppbv MOH
+                        CSPEC_FULL(IX,IY,IZ,JGAS) = 2.000d-9 * CONST
 
-                           !======= prior 09/12 ==========================
-!     &                     2.000d-9 * PRESS3(JLOOP) / ( T3(JLOOP) * BK )
-                           !=============================================
+                        !======= prior 09/12 ==========================
+!     &                  2.000d-9 * PRESS3(JLOOP) / ( T3(JLOOP) * BK )
+                        !=============================================
 
                         ! Make sure MOH conc. is not negative (SMAL2 = 1d-99)
-                      CSPEC_FULL(IX,IY,IZ,JGAS) = 
-     &                     MAX(CSPEC_FULL(IX,IY,IZ,JGAS),SMAL2)
+                        CSPEC_FULL(IX,IY,IZ,JGAS) = 
+     &                       MAX(CSPEC_FULL(IX,IY,IZ,JGAS),SMAL2)
 
-                   ELSE
+                     ELSE
 
                         ! Marine boundary layer: 0.9 ppbv MOH
-                      CSPEC_FULL(IX,IY,IZ,JGAS) = 0.900d-9 * CONST
+                        CSPEC_FULL(IX,IY,IZ,JGAS) = 0.900d-9 * CONST
 
-                           !======= prior 09/12 ==========================
-!     &                     0.900d-9 * PRESS3(JLOOP) / ( T3(JLOOP) * BK )
-                           !==============================================
+                        !======= prior 09/12 ==========================
+!     &                  0.900d-9 * PRESS3(JLOOP) / ( T3(JLOOP) * BK )
+                        !==============================================
 
                         ! Make sure MOH conc. is not negative (SMAL2 = 1d-99)
-                      CSPEC_FULL(IX,IY,IZ,JGAS) = 
-     &                     MAX(CSPEC_FULL(IX,IY,IZ,JGAS),SMAL2)
-                   ENDIF
+                        CSPEC_FULL(IX,IY,IZ,JGAS) = 
+     &                       MAX(CSPEC_FULL(IX,IY,IZ,JGAS),SMAL2)
+                     ENDIF
 
-                ELSE
+                  ELSE
 
                      !---------------------------
                      ! Test for troposphere
                      !---------------------------
-                   IF ( ITS_IN_THE_TROP( IX, IY, IZ ) ) THEN
-
+                     IF ( ITS_IN_THE_TROP( IX, IY, IZ ) ) THEN
+                      
                         ! Free troposphere: 0.6 ppbv MOH
-                      CSPEC_FULL(IX,IY,IZ,JGAS) = 0.600d-9 * CONST
+                        CSPEC_FULL(IX,IY,IZ,JGAS) = 0.600d-9 * CONST
 
                         ! Make sure MOH conc. is not negative (SMAL2 = 1d-99)
-                      CSPEC_FULL(IX,IY,IZ,JGAS) = 
-     &                     MAX(CSPEC_FULL(IX,IY,IZ,JGAS),SMAL2)
+                        CSPEC_FULL(IX,IY,IZ,JGAS) = 
+     &                       MAX(CSPEC_FULL(IX,IY,IZ,JGAS),SMAL2)
 
-                   ELSE
+                     ELSE
 
                         ! Stratosphere: set MOH conc. to SMAL2 = 1d-99
-                      CSPEC_FULL(IX,IY,IZ,JGAS) = SMAL2
-                   ENDIF
-                ENDIF
-             ENDDO
-             ENDDO
-             ENDDO
+                        CSPEC_FULL(IX,IY,IZ,JGAS) = SMAL2
+                     ENDIF
+                  ENDIF
+               ENDDO
+               ENDDO
+               ENDDO
+
             ELSE
 
                !========================================================
@@ -204,32 +221,44 @@ C
                ! Methanol (MOH) in mixing ratios units
                !========================================================
 
-!               DO 26 JLOOP = 1, NTLOOP
-             DO IX = 1, IIPAR
-             DO IY = 1, JJPAR
-             DO IZ = 1, LLTROP
+               !DO 26 JLOOP = 1, NTLOOP
+               !---------------------------------------
+               ! Prior to 10/3/06:
+               ! Make DO-loops go in the right order
+               !DO IX = 1, IIPAR
+               !DO IY = 1, JJPAR
+               !DO IZ = 1, LLTROP
+               !----------------------------------------
+               DO IZ = 1, LLTROP         
+               DO IY = 1, JJPAR
+               DO IX = 1, IIPAR
 
-                CONST = GET_PCENTER(IX,IY,IZ)*1000D0/(T(IX,IY,IZ)*BK)
+                  ! Conversion factor
+                  CONST = GET_PCENTER(IX,IY,IZ)*1000D0/(T(IX,IY,IZ)*BK)
+                
                   ! Copy default background conc. from "globchem.dat" to CSPEC
-                CSPEC_FULL(IX,IY,IZ,JGAS) = QBKCHEM(JGAS,NCS)* CONST
+                  CSPEC_FULL(IX,IY,IZ,JGAS) = QBKCHEM(JGAS,NCS)* CONST
 
                   ! Make sure concentration is not negative (SMAL2 = 1d-99)
                   CSPEC_FULL(IX,IY,IZ,JGAS) = 
-     &               MAX(CSPEC_FULL(IX,IY,IZ,JGAS),SMAL2)
+     &                 MAX(CSPEC_FULL(IX,IY,IZ,JGAS),SMAL2)
 
                   ! For emission species, don't do unit conversion
-                  IF (NAMEGAS(JGAS).EQ.'EMISSION')
-     &                 CSPEC_FULL(IX,IY,IZ,JGAS) = QBKCHEM(JGAS,NCS)
+                  IF (NAMEGAS(JGAS).EQ.'EMISSION') THEN
+                     CSPEC_FULL(IX,IY,IZ,JGAS) = QBKCHEM(JGAS,NCS)
+                  ENDIF
                ENDDO
                ENDDO
                ENDDO
             ENDIF
  28      CONTINUE
-      ENDIF                     !(FIRSTCHEM)
-
-! copies the chemical species in CSPEC from full (potential troposphere) 
-!  into current variable troposphere
-      IF (LVARTROP.OR.FIRSTCHEM) CALL COPY_FULL_TROP
+      ENDIF        !(FIRSTCHEM)
+      
+      ! If it's the first chemistry timestep then we need to copy the
+      ! concentrations from CSPEC_FULL into CSPEC.  We also need to do
+      ! this on subsequent chemistry timesteps if the variable tropopause
+      ! is turned on. (bdf, phs, bmy, 10/3/06)
+      IF ( LVARTROP .or. FIRSTCHEM ) CALL COPY_FULL_TROP
 
 C  ********************************************************************
 C  *            Update starting concentrations for plumes             *
@@ -247,8 +276,17 @@ C *********************************************************************
 C *              zero out dry deposition counter species              *
 C *********************************************************************
 
-      ! NCS should equal 1 for drydep, only happens in first layer.
-      NCS = 1
+      !-------------------------------------------------------------------
+      ! Prior to 10/16/06:
+      ! Now set NCS = NCSURBAN (=1) (dbm, bmy, 10/16/06)
+      !! NCS should equal 1 for drydep, only happens in first layer.
+      !NCS = 1
+      !-------------------------------------------------------------------
+
+      ! Set NCS=NCSURBAN here since we have defined our tropospheric
+      ! chemistry mechanism in the urban slot of SMVGEAR II
+      NCS = NCSURBAN
+
       DO 130 N = 1,NDRYDEP(NCS)
          NK = NTDEP(N)
          IF (NK.EQ.0) GOTO 130

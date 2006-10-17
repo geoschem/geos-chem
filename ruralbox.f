@@ -1,4 +1,4 @@
-! $Id: ruralbox.f,v 1.7 2006/09/14 14:22:17 phs Exp $
+! $Id: ruralbox.f,v 1.8 2006/10/17 17:51:16 bmy Exp $
       SUBROUTINE RURALBOX( AD,     T,     AVGW,  ALBD,  SUNCOS, 
      &                     LEMBED, IEBD1, IEBD2, JEBD1, JEBD2 )
 !
@@ -77,12 +77,11 @@
       ! External functions
       REAL*8,  EXTERNAL       :: BOXVL
 
-      ! testing variables for variable tropopause
-      real*8  :: temp(iipar,jjpar,llpar)
-      logical :: templ
+      !! testing variables for variable tropopause
+      !real*8  :: temp(iipar,jjpar,llpar)
+      !logical :: templ
+      !temp = 0
 
-
-      temp = 0
       !=================================================================
       ! RURALBOX begins here!
       !=================================================================
@@ -134,7 +133,7 @@
                JLOP(I,J,L)    = JLOOP
 
                ! test jlop for variable chem
-               temp(i,j,l) = dble(jloop)
+               !temp(i,j,l) = dble(jloop)
             ELSE
 
                !=======================================================
@@ -219,7 +218,7 @@
 
 
 ! === testing === BDF
-      write(6,*) '  in ruralbox, number of tropospheric boxes: ', jloop
+!      write(6,*) '  in ruralbox, number of tropospheric boxes: ', jloop
 !      call flush(6)
 !      call write_fields3(temp,'jloptest')
 ! === testing === BDF

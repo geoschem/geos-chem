@@ -1,4 +1,4 @@
-! $Id: c2h6_mod.f,v 1.8 2006/06/06 14:25:56 bmy Exp $
+! $Id: c2h6_mod.f,v 1.9 2006/10/17 17:51:07 bmy Exp $
       MODULE C2H6_MOD
 !
 !******************************************************************************
@@ -111,6 +111,8 @@
 !  (6 ) Now make sure all USE statements are USE, ONLY.  Also eliminate 
 !        reference to BPCH2_MOD, it's obsolete. (bmy, 10/3/05)
 !  (7 ) Now modified for new "biomass_mod.f" (bmy, 4/5/06)
+!  (8 ) BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of 
+!        [atoms C/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -167,22 +169,38 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, E_C2H6_BB )
+!$OMP+PRIVATE( I, J, AREA_CM2, E_C2H6_BB )
+
+         ! Loop over latitudes
          DO J = 1, JJPAR
-         DO I = 1, IIPAR
+
+            ! Grid box area [cm2]
+            AREA_CM2 = GET_AREA_CM2( J )
+            
+            ! Loop over longitudes
+            DO I = 1, IIPAR
  
-            ! Convert [molec C/cm3/s] to [kg C2H6] and store in E_C2H6
-            E_C2H6_BB = BIOMASS(I,J,IDBC2H6)       / 2.0d0  / 
-     &                  XNUMOL_C2H6 * BOXVL(I,J,1) * DTSRCE  
+!-----------------------------------------------------------------------------
+! Prior to 9/27/06:
+! BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of [atoms C/cm2/s]. 
+! Adjust unit conversion accordingly. (bmy, 9/27/06) 
+!            ! Convert [molec C/cm3/s] to [kg C2H6] and store in E_C2H6
+!            E_C2H6_BB = BIOMASS(I,J,IDBC2H6)       / 2.0d0  / 
+!     &                  XNUMOL_C2H6 * BOXVL(I,J,1) * DTSRCE  
+!-----------------------------------------------------------------------------
 
-            ! Add BB C2H6 to tracer #1 -- total C2H6 [kg C2H6]
-            STT(I,J,1,1) = STT(I,J,1,1) + E_C2H6_BB  
+               ! Convert [atoms C/cm2/s] to [kg C2H6] and store in E_C2H6
+               E_C2H6_BB = BIOMASS(I,J,IDBC2H6)   / 2.0d0  / 
+     &                     XNUMOL_C2H6 * AREA_CM2 * DTSRCE  
 
-            ! Add BB C2H6 to tracer #2 -- BB C2H6
-            IF ( LSPLIT ) THEN
-               STT(I,J,1,2) = STT(I,J,1,2) + E_C2H6_BB 
-            ENDIF
-         ENDDO
+               ! Add BB C2H6 to tracer #1 -- total C2H6 [kg C2H6]
+               STT(I,J,1,1) = STT(I,J,1,1) + E_C2H6_BB  
+
+               ! Add BB C2H6 to tracer #2 -- BB C2H6
+               IF ( LSPLIT ) THEN
+                  STT(I,J,1,2) = STT(I,J,1,2) + E_C2H6_BB 
+               ENDIF
+            ENDDO
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF

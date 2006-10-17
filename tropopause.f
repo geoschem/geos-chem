@@ -1,9 +1,9 @@
-! $Id: tropopause.f,v 1.6 2006/10/16 20:44:36 phs Exp $
+! $Id: tropopause.f,v 1.7 2006/10/17 17:51:20 bmy Exp $
       SUBROUTINE TROPOPAUSE
 !
 !******************************************************************************
 !  Subroutine TROPOPAUSE defines the tropopause layer in terms of temperature 
-!  lapse rates. (hyl, bmy, 11/30/99, 8/4/06)
+!  lapse rates. (hyl, bmy, 11/30/99, 10/17/06)
 !
 !  NOTES:
 !  (1 ) Make sure the DO-loops go in the order L-J-I, wherever possible.
@@ -27,7 +27,7 @@
 !        latitude. (bmy, 2/3/03)
 !  (12) Add proper polar tropopause level for GEOS-4 (bmy, 6/18/03)
 !  (13) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (14) Get tropopause level from TROPOPAUSE_MOD.F routines (phs, 9/22/06)
+!  (14) Get tropopause level from TROPOPAUSE_MOD.F routines (phs, 10/17/06)
 !******************************************************************************
 !
       ! References to F90 modules.

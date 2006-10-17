@@ -1,9 +1,9 @@
-! $Id: time_mod.f,v 1.25 2006/10/16 20:44:35 phs Exp $
+! $Id: time_mod.f,v 1.26 2006/10/17 17:51:19 bmy Exp $
       MODULE TIME_MOD
 !
 !******************************************************************************
 !  TIME_MOD contains GEOS-CHEM date and time variables and timesteps, and 
-!  routines for accessing them. (bmy, 6/21/00, 8/4/06) 
+!  routines for accessing them. (bmy, 6/21/00, 10/3/06) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -176,7 +176,7 @@
 !  (24) GCAP bug fix: There are no leapyears, so transition from 2/28 to 3/1,
 !        skipping 2/29 for all years. (swu, bmy, 4/24/06)
 !  (25) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (26) Fix bug for case of GCAP fields in SET_CURRENT_TIME (phs, 9/27/06)
+!  (26) Further bug fix to skip over Feb 29th in GCAP (phs, bmy, 10/3/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -242,7 +242,7 @@
 !******************************************************************************
 !  Subroutine SET_CURRENT_TIME takes in the elapsed time in minutes since the 
 !  start of a GEOS-CHEM simulation and sets the GEOS-CHEM time variables 
-!  accordingly. (bmy, 2/5/03, 4/24/06)
+!  accordingly. (bmy, 2/5/03, 10/3/06)
 !
 !  NOTES:
 !  (1 ) GCAP/GISS fields don't have leap years, so if JULDAY says it's 
@@ -292,9 +292,16 @@
          JD_JAN_1 = GET_JD( YEAR*10000 + 0101, 000000 )
          
          ! Skip directly from Feb 28 to Mar 1st 
-         IF ( ( JD1 - JD_JAN_1 >= 59d0 ).and.
-     &        ( JD0 - JD_JAN_1 <= 59d0 ) ) JD1 = JD1 + 1d0
-         
+         !------------------------------------------------------------
+         ! Prior to 10/3/06:
+         ! Bug fix for GCAP to skip leapyears properly (phs, 10/3/06)
+         !IF ( JD1 - JD_JAN_1 >= 59d0 ) JD1 = JD1 + 1d0
+         !------------------------------------------------------------     
+         IF (  ( JD1 - JD_JAN_1 >= 59d0 )  .and.
+     &         ( JD0 - JD_JAN_1 <= 59d0 ) ) THEN
+            JD1 = JD1 + 1d0
+         ENDIF
+
          ! Call CALDATE to recompute YYYYMMDD and HHMMSS
          CALL CALDATE( JD1, NYMD, NHMS )
 

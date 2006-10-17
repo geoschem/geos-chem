@@ -1,9 +1,9 @@
-! $Id: reader.f,v 1.11 2006/09/08 19:21:02 bmy Exp $
+! $Id: reader.f,v 1.12 2006/10/17 17:51:16 bmy Exp $
       SUBROUTINE READER( FIRSTCHEM )
 !
 !******************************************************************************
 !  Subroutine READER reads on/off switches and other settings for SMVGEAR II.
-!  (M. Jacobson 1997; bdf, bmy, 4/18/03, 8/9/06)
+!  (M. Jacobson 1997; bdf, bmy, 4/18/03, 10/16/06)
 !
 !  NOTES:
 !  (1 ) Now force double-precision values with the "D" exponent.  Also use
@@ -26,6 +26,8 @@
 !        (bec, bmy, 3/29/06)
 !  (5 ) Increase max # of products that a reaction can have from 12 to 14.  
 !        This coincides w/ the new globchem.dat. (bmy, 8/9/06)
+!  (6 ) At the end of this subrouitne, now set NCS=NCSURBAN (=1) instead of 
+!        hardwiring it. (dbm, bmy, 10/16/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -750,6 +752,10 @@ C
  773    CONTINUE
  774   CONTINUE
  775  CONTINUE
+
+      ! Set NCS=NCSURBAN here since we have defined our tropospheric
+      ! chemistry mechanism in the urban slot of SMVGEAR II
+      NCS = NCSURBAN
 C
 C *********************************************************************
 C ********************** END OF SUBROUTINE READER *********************

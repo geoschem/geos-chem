@@ -1,4 +1,4 @@
-! $Id: tropopause_mod.f,v 1.7 2006/10/16 20:44:36 phs Exp $
+! $Id: tropopause_mod.f,v 1.8 2006/10/17 17:51:20 bmy Exp $
       MODULE TROPOPAUSE_MOD
 !
 !******************************************************************************
@@ -92,7 +92,7 @@
 !******************************************************************************
 !  Subroutine COPY_FULL_TROP takes the saved full troposphere and copies 
 !  chemical species into the current troposphere that will be used in SMVGEAR 
-!  for this timestep
+!  for this timestep. (phs, bmy, 9/14/06)
 !
 !  ROUTINE NEEDED BECAUSE WITH VARIABLE TROPOPAUSE 
 !  JLOOP WILL NOT ALWAYS REFER TO THE SAME (I,J,L) BOX
@@ -119,20 +119,27 @@
       ! COPY_FULL_TROP begins here!
       !=================================================================
 
-      ! Loop over species and 1-D grid boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( JGAS, JLOOP, IX, IY, IZ )
+
+      ! Loop over species
       DO JGAS  = 1, NTSPEC(NCS)
-      DO JLOOP = 1, NTLOOP
 
-         ! 3-D array indices
-         IX = IXSAVE(JLOOP)
-         IY = IYSAVE(JLOOP)
-         IZ = IZSAVE(JLOOP)
+         ! Loop over 1-D grid boxes
+         DO JLOOP = 1, NTLOOP
 
-         ! Copy from 3-D array
-         CSPEC(JLOOP,JGAS) = CSPEC_FULL(IX,IY,IZ,JGAS)
+            ! 3-D array indices
+            IX = IXSAVE(JLOOP)
+            IY = IYSAVE(JLOOP)
+            IZ = IZSAVE(JLOOP)
+            
+            ! Copy from 3-D array
+            CSPEC(JLOOP,JGAS) = CSPEC_FULL(IX,IY,IZ,JGAS)
 
+         ENDDO
       ENDDO
-      ENDDO
+!$OMP END PARALLEL DO
 
       ! Return to calling program
       END SUBROUTINE COPY_FULL_TROP
@@ -144,7 +151,7 @@
 !******************************************************************************
 !  Subroutine SAVE_FULL_TROP takes the current troposphere and copies chemical
 !  species into the full troposphere that will be used in SMVGEAR for this 
-!  timestep
+!  timestep. (phs, bmy, 9/14/06)
 !
 !  ROUTINE NEEDED BECAUSE WITH VARIABLE TROPOPAUSE 
 !  JLOOP WILL NOT ALWAYS REFER TO THE SAME (I,J,L) BOX
@@ -170,20 +177,27 @@
       ! SAVE_FULL_TROP begins here!
       !=================================================================
 
-      ! Loop over species and 1-D grid boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( JGAS, JLOOP, IX, IY, IZ )
+
+      ! Loop over species
       DO JGAS = 1, NTSPEC(NCS)
-      DO JLOOP = 1, NTLOOP
 
-         ! 3-D array indices
-         IX = IXSAVE(JLOOP)
-         IY = IYSAVE(JLOOP)
-         IZ = IZSAVE(JLOOP)
+         ! Loop over 1-D grid boxes
+         DO JLOOP = 1, NTLOOP
 
-         ! Save in 3-D array
-         CSPEC_FULL(IX,IY,IZ,JGAS) = CSPEC(JLOOP,JGAS)
+            ! 3-D array indices
+            IX = IXSAVE(JLOOP)
+            IY = IYSAVE(JLOOP)
+            IZ = IZSAVE(JLOOP)
 
+            ! Save in 3-D array
+            CSPEC_FULL(IX,IY,IZ,JGAS) = CSPEC(JLOOP,JGAS)
+
+         ENDDO
       ENDDO
-      ENDDO
+!$OMP END PARALLEL DO
 
       ! Return to calling program
       END SUBROUTINE SAVE_FULL_TROP
@@ -217,10 +231,16 @@
       !=================================================================
 
       ! set LMIN and LMAX to current min and max tropopause
+      !------------------------------------------------------
+      ! Prior to 10/3/06:
+      ! Make the DO loops go the right way (bmy, 10/3/06)
+      !DO I = 1, IIPAR
+      !   DO J = 1, JJPAR
+      !------------------------------------------------------
+      DO J = 1, JJPAR
       DO I = 1, IIPAR
-         DO J = 1, JJPAR
-            TPAUSE_LEV(I,J) = GET_TPAUSE_LEVEL(I,J)
-         ENDDO
+         TPAUSE_LEV(I,J) = GET_TPAUSE_LEVEL(I,J)
+      ENDDO
       ENDDO
 
       LMIN = MINVAL( TPAUSE_LEV )

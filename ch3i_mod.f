@@ -1,9 +1,9 @@
-! $Id: ch3i_mod.f,v 1.11 2006/06/06 14:25:58 bmy Exp $
+! $Id: ch3i_mod.f,v 1.12 2006/10/17 17:51:08 bmy Exp $
       MODULE CH3I_MOD
 !
 !******************************************************************************
 !  Module CH3I_MOD contains emissions and chemistry routines for the CH3I
-!  (Methyl Iodide) simulation. (bmy, 1/23/02, 4/5/06)
+!  (Methyl Iodide) simulation. (bmy, 1/23/02, 9/27/06)
 !
 !  Module Routines:
 !  ============================================================================
@@ -53,6 +53,8 @@
 !  (10) Now can read data for both GEOS and GCAP grids.  Now use Nightingale
 !        et al formulation for piston velocity Kw. (bmy, 8/16/05)
 !  (11) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (12) BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of 
+!        [molec CO/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -232,7 +234,7 @@
       SUBROUTINE EMISSCH3I
 !
 !******************************************************************************
-!  Subroutine EMISSCH3I (mgs, bmy, 11/23/98, 7/20/04) specifies methyl 
+!  Subroutine EMISSCH3I (mgs, bmy, 11/23/98, 9/27/06) specifies methyl 
 !  iodide (CH3I) emissions from the following sources:
 !
 !    Ocean: use correlation of surface water CH3I with net ocean
@@ -323,6 +325,8 @@
 !  (31) Now reference STT & N_TRACERS from "tracer_mod.f".  Now reference
 !        LEMIS from "logical_mod.f". (bmy, 7/20/04)
 !  (32) Now modified for new "biomass_mod.f" (bmy, 4/5/06)
+!  (33) BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of 
+!        [molec CO/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -730,13 +734,25 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
+         ! Grid box height [cm]
+         BXHEIGHT_CM = BXHEIGHT(I,J,L) * 100d0
+
+         !-----------------------------------------------------------------
          ! Get emission flux in kg/cm3/time step
-         FLUX = ECH3I * BIOMASS(I,J,IDBCO)
+         !FLUX = ECH3I * BIOMASS(I,J,IDBCO)
+         !-----------------------------------------------------------------
+
+         ! Convert [molec/cm2/s] to [kg/cm3/timestep]
+         FLUX = ECH3I * BIOMASS(I,J,IDBCO) / BXHEIGHT_CM
          FLUX = FLUX * 1.0D-3 * FMOL_CH3I * XMOL * DTSRCE
 
          ! Add to diagnostic array as kg/m2/time step
          IF ( ND36 > 0 ) THEN
-            BXHEIGHT_CM     = BXHEIGHT(I,J,L) * 100d0
+            !--------------------------------------------
+            ! Prior to 9/27/06:
+            ! This is now computed above (bmy, 9/27/06)
+            !BXHEIGHT_CM     = BXHEIGHT(I,J,L) * 100d0
+            !--------------------------------------------
             AD36(I,J,N) = AD36(I,J,N) + FLUX*BXHEIGHT_CM*1.0D4*1.0D+12
          ENDIF
 

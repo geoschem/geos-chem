@@ -1,10 +1,10 @@
-! $Id: toms_mod.f,v 1.4 2005/10/20 14:03:42 bmy Exp $
+! $Id: toms_mod.f,v 1.5 2006/10/17 17:51:20 bmy Exp $
       MODULE TOMS_MOD
 !
 !******************************************************************************
 !  Module TOMS_MOD contains variables and routines for reading the EP-TOMS
 !  O3 column data from disk (for use w/ the FAST-J photolysis routines).
-!  (mje, bmy, 7/14/03, 10/3/05)
+!  (mje, bmy, 7/14/03, 10/3/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -30,6 +30,7 @@
 !  (1 ) Now references "directory_mod.f" (bmy, 7/20/04)
 !  (2 ) Now can read files for GEOS or GCAP grids (bmy, 8/16/05)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (4 ) Now always use 2002 TOMS O3 data for GCAP (swu, bmy, 10/3/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -55,7 +56,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_TOMS reads in TOMS O3 column data from a binary punch
-!  file for the given grid, month and year. (mje, bmy 12/10/02, 10/3/05)
+!  file for the given grid, month and year. (mje, bmy 12/10/02, 10/3/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -70,6 +71,7 @@
 !  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (3 ) Now can read files for GEOS or GCAP grids (bmy, 8/16/05)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (5 ) Now always use 2002 TOMS O3 data for GCAP (swu, bmy, 10/3/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -87,7 +89,7 @@
 
       ! Local Variables
       LOGICAL             :: FIRST = .TRUE.
-      INTEGER             :: YYYYMMDD
+      INTEGER             :: YYYYMMDD, YEAR
       REAL*4              :: ARRAY(IGLOB,JGLOB,1)
       REAL*8              :: XTAU
       CHARACTER(LEN=255)  :: FILENAME
@@ -102,12 +104,21 @@
          FIRST = .FALSE.
       ENDIF
 
+      ! Always use 2002 data for GCAP
+#if   defined ( GCAP )
+      YEAR = 2002
+#else 
+      YEAR = THISYEAR
+#endif
+
       !=================================================================
       ! TOMS O3 column data currently exists between 1997 and 2002.  
       ! For other years, set data arrays to -999 (missing data flag)
       ! and then return to the calling program.
       !=================================================================
-      IF ( THISYEAR < 1997 .or. THISYEAR > 2002 ) THEN
+
+      ! Test if data exists
+      IF ( YEAR < 1997 .or. YEAR > 2002 ) THEN
 
          ! Set to "missing data" value
          TOMS   = -999
@@ -115,7 +126,7 @@
          DTOMS2 = -999
 
          ! Echo info
-         WRITE( 6, 100 ) THISYEAR
+         WRITE( 6, 100 ) YEAR
  100     FORMAT( '     - READ_TOMS: TOMS data for the year ', i4, 
      &           ' does not exist!' )
 
@@ -128,16 +139,16 @@
       !=================================================================
 
       ! Get TAU0 value for first day of the MONTH 
-      XTAU = GET_TAU0( THISMONTH, 1, THISYEAR )
+      XTAU     = GET_TAU0( THISMONTH, 1, YEAR )
 
+      ! Create YYYYMMDD value
+      YYYYMMDD = ( YEAR * 10000 ) + ( THISMONTH * 100 ) + 01
+     
       ! Define filename
       FILENAME = TRIM( DATA_DIR )               // 
      &           'TOMS_200307/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
      &           '.'                            // GET_RES_EXT()
 
-      ! Create YYYYMMDD value
-      YYYYMMDD = ( THISYEAR * 10000 ) + ( THISMONTH * 100 ) + 01
-      
       ! Replace YYYY token with current year
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
 

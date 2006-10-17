@@ -1,10 +1,10 @@
-! $Id: gamap_mod.f,v 1.18 2006/10/16 20:44:31 phs Exp $
+! $Id: gamap_mod.f,v 1.19 2006/10/17 17:51:11 bmy Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
 !  Module GAMAP_MOD contains routines to create GAMAP "tracerinfo.dat" and
-!  "diaginfo.dat" files which are customized to each particular GEOS-CHEM
-!  simulation. (bmy, 5/3/05, 8/4/06)
+!  "diaginfo.dat" files which are customized to each particular GEOS-Chem
+!  simulation. (bmy, 5/3/05, 10/17/06)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -36,8 +36,10 @@
 !  (3 ) CREATE_TINFO         : Writes customized "tracerinfo.dat" file
 !  (4 ) WRITE_TINFO          : Writes one line to disk for "tracerinfo.dat" 
 !  (5 ) WRITE_SEPARATOR      : Writes separator blocks to "tracerinfo.dat"
-!  (6 ) INIT_GAMAP           : Allocates and initializes all module arrays
-!  (7 ) CLEANUP_GAMAP        : Deallocates all module arrays
+!  (6 ) INIT_DIAGINFO        : Initializes arrays for diaginfo.dat file
+!  (7 ) INIT_TRACERINFO      : Initializes arrays for tracerinfo.dat file
+!  (8 ) INIT_GAMAP           : Allocates and initializes all module arrays
+!  (9 ) CLEANUP_GAMAP        : Deallocates all module arrays
 !
 !  GEOS-CHEM modules referenced by "gamap_mod.f"
 !  ============================================================================
@@ -72,9 +74,9 @@
 !  (8 ) Updated for ND42 SOA concentration diagnostics (dkh, bmy, 5/22/06)
 !  (9 ) Updated for ND36 CH3I simulation diagnostics (bmy, 7/25/06)
 !  (10) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (11) Added TIME-TPS category, which has tracer TIMETROP and offset 
-!       45*spacing, for fractional time in the troposphere, i.e., 
-!       diagnostic ND54 (phs, 9/25/06)
+!  (11) Add routines INIT_DIAGINFO, INIT_TRACERINFO for clarity.  Added new
+!        entries for biomass burning (ND28) and time in tropopshere (ND54)
+!        in INIT_DIAGINFO and INIT_TRACERINFO. (phs, bmy, 10/17/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -631,139 +633,23 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE INIT_GAMAP( DIAGINFO, TRACERINFO )
+      SUBROUTINE INIT_DIAGINFO
 !
 !******************************************************************************
-!  Subroutine INIT_GAMAP allocates and initializes all module variables.  
-!  (bmy, 4/22/05, 8/4/06)
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) DIAGINFO   (CHARACTER) : Path name of the GAMAP "diaginfo.dat"   file
-!  (2 ) TRACERINFO (CHARACTER) : Path name of the GAMAP "tracerinfo.dat" file
+!  Subroutine INIT_DIAGINFO initializes the CATEGORY, DESCRIPT, and OFFSET
+!  variables, which are used to define the "diaginfo.dat" file (bmy, 10/17/06)
 !
 !  NOTES:
-!  (1 ) Now add proper UNIT & SCALE for Rn/Pb/Be simulations (bmy, 5/11/05)
-!  (2 ) Added HCN & CH3CN source & sink info for ND09 (bmy, 6/27/05)
-!  (3 ) Bug fix: removed duplicate category names.  Updated for CO2-SRCE 
-!        diagnostic.  Now references ND04 from "diag04_mod.f. 
-!        (pns, bmy, 7/25/05)
-!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (5 ) Now save MBO as tracer #5 for ND46 (tmf, bmy, 10/20/05)
-!  (6 ) Now add categories CV-FLX-$, TURBMC-$, EW-FLX-$, NS-FLX-$, UP-FLX-$
-!        which had been inadvertently omitted.  Also add OCEAN-HG category.
-!        Rewrote do loop and case statement to add new diagnostics to ND03. 
-!        Now make units of Hg tracers "pptv", not "ppbv".  Now remove 
-!        restriction on printing out cloud mass flux in GEOS-4 for the ND66 
-!        diagnostic.  Added new sea salt category. (cdh, eck, bmy, 4/6/06)
-!  (7 ) Now references ND56 from "diag56_mod.f" (ltm, bmy, 5/5/06) 
-!  (8 ) Now references ND42 from "diag42_mod.f".  Also updated for extra SOA
-!        tracers in ND07 diagnostic. (dkh, bmy, 5/22/06)
-!  (9 ) Updated ND36 for CH3I simulation (bmy, 7/25/06)
-!  (10) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (1 ) Split this code off from INIT_GAMAP, for clarity.  Now declare biomass
+!        burning emissions w/ offset of 45000.  Now declare time in the 
+!        troposphere diagnostic with offset of 46000. (phs, bmy, 10/17/06)
 !******************************************************************************
 !
-      ! References to F90 modules
-      USE DIAG03_MOD,   ONLY : ND03
-      USE DIAG04_MOD,   ONLY : ND04
-      USE DIAG41_MOD,   ONLY : ND41
-      USE DIAG42_MOD,   ONLY : ND42
-      USE DIAG48_MOD,   ONLY : DO_SAVE_DIAG48
-      USE DIAG49_MOD,   ONLY : DO_SAVE_DIAG49
-      USE DIAG50_MOD,   ONLY : DO_SAVE_DIAG50
-      USE DIAG51_MOD,   ONLY : DO_SAVE_DIAG51
-      USE DIAG56_MOD,   ONLY : ND56
-      USE DIAG_PL_MOD,  ONLY : DO_SAVE_PL,  GET_NFAM
-      USE DIAG_PL_MOD,  ONLY : GET_FAM_MWT, GET_FAM_NAME
-      USE DRYDEP_MOD,   ONLY : DEPNAME,     NUMDEP,    NTRAIND
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
-      USE LOGICAL_MOD,  ONLY : LSOA
-      USE TIME_MOD,     ONLY : EXPAND_DATE, GET_NHMSb, GET_NYMDb
-      USE TRACER_MOD,   ONLY : ITS_A_CH3I_SIM,   ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_HCN_SIM,    ITS_A_MERCURY_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_RnPbBe_SIM, ITS_A_TAGOX_SIM
-      USE TRACER_MOD,   ONLY : N_TRACERS,        TRACER_COEFF
-      USE TRACER_MOD,   ONLY : TRACER_MW_KG,     TRACER_NAME
-      USE TRACERID_MOD, ONLY : IDTBCPI, IDTOCPI, IDTALPH, IDTLIMO
-      USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, NEMANTHRO
-      USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD, GET_WETDEP_NSOL
-
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_DIAG"    ! NDxx flags
-
-      ! Arguments
-      CHARACTER(LEN=255), INTENT(IN) :: DIAGINFO  
-      CHARACTER(LEN=255), INTENT(IN) :: TRACERINFO
-
-      ! Local variables
-      INTEGER                        :: AS, N, NN, NYMDb, NHMSb, T
+      ! Local variables 
+      INTEGER :: N
 
       !=================================================================
-      ! INIT_GAMAP begins here!
-      !=================================================================
-
-      ! Save from arguments to module variables
-      DFILE = DIAGINFO
-      TFILE = TRACERINFO
-
-      ! Get starting date & time
-      NYMDb = GET_NYMDb()
-      NHMSb = GET_NHMSb()
- 
-      ! Replace any date/time tokens in the file names
-      CALL EXPAND_DATE( DFILE, NYMDb, NHMSb )
-      CALL EXPAND_DATE( TFILE, NYMDb, NHMSb )
-
-      !=================================================================
-      ! Allocate module arrays
-      !=================================================================
-
-      ALLOCATE( OFFSET( MAXCAT ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OFFSET' )
-      OFFSET = 0
-
-      ALLOCATE( CATEGORY( MAXCAT ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CATEGORY' )
-      CATEGORY = ''
-
-      ALLOCATE( DESCRIPT( MAXCAT ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DESCRIPT' )
-      DESCRIPT = ''
-
-      ALLOCATE( NTRAC( MAXDIAG ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NTRAC' )
-      NTRAC = 0
-
-      ALLOCATE( INDEX( MAXTRACER, MAXDIAG ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'INDEX' )      
-      INDEX = 0
-
-      ALLOCATE( MOLC( MAXTRACER, MAXDIAG ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOLC' )      
-      MOLC = 0
-
-      ALLOCATE( MWT( MAXTRACER, MAXDIAG ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MWT' )      
-      MWT = 0.0
-
-      ALLOCATE( SCALE( MAXTRACER, MAXDIAG ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SCALE' )      
-      SCALE = 0.0
-
-      ALLOCATE( NAME( MAXTRACER, MAXDIAG ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NAME' )      
-      NAME = ''
-
-      ALLOCATE( FNAME( MAXTRACER, MAXDIAG ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FNAME' )      
-      FNAME = ''
-
-      ALLOCATE( UNIT( MAXTRACER, MAXDIAG ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UNIT' )      
-      UNIT = ''
-
-      !=================================================================
-      ! Initialize for "diaginfo.dat": Add new categories as necessary
+      ! INIT_DIAGINFO begins here!
       !=================================================================
 
       N           = 1
@@ -771,7 +657,7 @@
       DESCRIPT(N) = 'Tracer concentration'
       OFFSET(N)   = SPACING * 0
 
-      N              = N + 1
+      N           = N + 1
       CATEGORY(N) = 'IJ-24H-$'
       DESCRIPT(N) = '24-hr avg tracer conc.'
       OFFSET(N)   = SPACING * 0
@@ -786,10 +672,14 @@
       DESCRIPT(N) = 'Anthropogenic emissions'
       OFFSET(N)   = SPACING * 1
 
-      N           = N + 1
-      CATEGORY(N) = 'BIOBSRCE'
-      DESCRIPT(N) = 'Biomass emissions'
-      OFFSET(N)   = SPACING * 1
+      !-----------------------------------------------------------
+      ! Prior to 9/28/06:
+      ! Now make a separate category for BIOBSRCE (bmy, 9/28/06)
+      !N           = N + 1
+      !CATEGORY(N) = 'BIOBSRCE'
+      !DESCRIPT(N) = 'Biomass emissions'
+      !OFFSET(N)   = SPACING * 1
+      !-----------------------------------------------------------
 
       N           = N + 1
       CATEGORY(N) = 'BIOFSRCE'
@@ -1279,18 +1169,72 @@
       N           = N + 1
       CATEGORY(N) = 'CH3ISRCE'
       DESCRIPT(N) = 'CH3I emissions'
-7      OFFSET(N)   = SPACING * 44
+      OFFSET(N)   = SPACING * 44
+
+      N           = N + 1
+      CATEGORY(N) = 'BIOBSRCE'
+      DESCRIPT(N) = 'Biomass emissions'
+      OFFSET(N)   = SPACING * 45
 
       N           = N + 1
       CATEGORY(N) = 'TIME-TPS'
-      DESCRIPT(N) = 'Fraction of time in troposhere'
-      OFFSET(N)   = SPACING * 45
+      DESCRIPT(N) = 'Fraction of time in troposphere'
+      OFFSET(N)   = SPACING * 46
 
       ! Number of categories
       NCATS = N
+      
+      ! Return to calling program
+      END SUBROUTINE INIT_DIAGINFO
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE INIT_TRACERINFO
+!
+!******************************************************************************
+!  Subroutine INIT_TRACERINFO initializes the NAME, FNAME, MWT, MOLC, INDEX,
+!  MOLC, UNIT arrays which are used to define the "tracerinfo.dat" file.
+!  (bmy, 10/17/06)
+!
+!  NOTES:
+!  (1 ) Split this code off from INIT_GAMAP, for clarity.  Also now declare
+!        biomass burning emissions w/ offset of 45000.  Bug fix: write out
+!        26 tracers for ND48, ND49, ND50, ND51 timeseries.  Also define
+!        ND54 diagnostic with offset of 46000. (bmy, 10/17/06)
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE DIAG03_MOD,   ONLY : ND03
+      USE DIAG04_MOD,   ONLY : ND04
+      USE DIAG41_MOD,   ONLY : ND41
+      USE DIAG42_MOD,   ONLY : ND42
+      USE DIAG48_MOD,   ONLY : DO_SAVE_DIAG48
+      USE DIAG49_MOD,   ONLY : DO_SAVE_DIAG49
+      USE DIAG50_MOD,   ONLY : DO_SAVE_DIAG50
+      USE DIAG51_MOD,   ONLY : DO_SAVE_DIAG51
+      USE DIAG56_MOD,   ONLY : ND56
+      USE DIAG_PL_MOD,  ONLY : DO_SAVE_PL,  GET_NFAM
+      USE DIAG_PL_MOD,  ONLY : GET_FAM_MWT, GET_FAM_NAME
+      USE DRYDEP_MOD,   ONLY : DEPNAME,     NUMDEP,    NTRAIND
+      USE LOGICAL_MOD,  ONLY : LSOA
+      USE TRACER_MOD,   ONLY : ITS_A_CO2_SIM
+      USE TRACER_MOD,   ONLY : ITS_A_CH3I_SIM,   ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,   ONLY : ITS_A_HCN_SIM,    ITS_A_MERCURY_SIM
+      USE TRACER_MOD,   ONLY : ITS_A_RnPbBe_SIM, ITS_A_TAGOX_SIM
+      USE TRACER_MOD,   ONLY : N_TRACERS,        TRACER_COEFF
+      USE TRACER_MOD,   ONLY : TRACER_MW_KG,     TRACER_NAME
+      USE TRACERID_MOD, ONLY : IDTBCPI, IDTOCPI, IDTALPH, IDTLIMO
+      USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, NEMANTHRO
+      USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD, GET_WETDEP_NSOL
+
+#     include "CMN_SIZE"     ! Size parameters
+#     include "CMN_DIAG"     ! NDxx flags
+
+      ! Local variables
+      INTEGER               :: N, NN, NYMDb, NHMSb, T
 
       !=================================================================
-      ! Initialize for "tracerinfo.dat": Add new tracers as necessary
+      ! INIT_TRACERINFO begins here!
       !=================================================================
 
       !----------------------------------
@@ -2000,6 +1944,138 @@
       ENDIF
 
       !-------------------------------------      
+      ! Biomass emissions (ND28)
+      !-------------------------------------
+      IF ( ND28 > 0 ) THEN
+
+         IF ( ITS_A_CO2_SIM() ) THEN
+
+            !---------------------------
+            ! CO2 simulation only
+            !---------------------------
+
+            ! Number of tracers
+            NTRAC(28) = 1
+            
+            ! Define quantities
+            NAME (T,28) = 'CO2'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = 1 + ( SPACING * 45 )
+            MWT  (T,28) = 44e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'molec/cm2/s'
+            SCALE(T,28) = 1e0
+
+         ELSE
+
+            !---------------------------
+            ! Full-chemistry simulation
+            !---------------------------
+
+            ! Number of tracers
+            NTRAC(28) = 14
+
+            ! Loop over tracers
+            DO T = 1, NTRAC(28)
+
+               ! Case statement
+               SELECT CASE( T )
+                  CASE( 1  )
+                     NAME (T,28) = 'NOx'
+                     INDEX(T,28) = 1 + ( SPACING * 45 )
+                     MWT  (T,28) = 14e-3
+                     MOLC (T,28) = 1
+                     UNIT (T,28) = 'molec/cm2/s'
+                  CASE( 2  )
+                     NAME (T,28) = 'CO'
+                     INDEX(T,28) = 4 + ( SPACING * 45 )
+                     MWT  (T,28) = 28e-3
+                     MOLC (T,28) = 1
+                     UNIT (T,28) = 'molec/cm2/s'
+                  CASE( 3  )
+                     NAME (T,28) = 'ALK4'
+                     INDEX(T,28) = 5 + ( SPACING * 45 )
+                     MWT  (T,28) = 12e-3
+                     MOLC (T,28) = 4
+                     UNIT (T,28) = 'atoms C/cm2/s'
+                  CASE( 4  )
+                     NAME (T,28) = 'ACET'
+                     INDEX(T,28) = 9 + ( SPACING * 45 )
+                     MWT  (T,28) = 12e-3
+                     MOLC (T,28) = 3
+                     UNIT (T,28) = 'atoms C/cm2/s'
+                  CASE( 5  )
+                     NAME (T,28) = 'MEK'
+                     INDEX(T,28) = 10 + ( SPACING * 45 )
+                     MWT  (T,28) = 12e-3
+                     MOLC (T,28) = 4
+                     UNIT (T,28) = 'atoms C/cm2/s'
+                  CASE( 6  )
+                     NAME (T,28) = 'ALD2'
+                     INDEX(T,28) = 11 + ( SPACING * 45 )
+                     MWT  (T,28) = 12e-3
+                     MOLC (T,28) = 3
+                     UNIT (T,28) = 'atoms C/cm2/s'
+                  CASE( 7  )
+                     NAME (T,28) = 'PRPE'
+                     INDEX(T,28) = 18 + ( SPACING * 45 )
+                     MWT  (T,28) = 12e-3
+                     MOLC (T,28) = 3
+                     UNIT (T,28) = 'atoms C/cm2/s'
+                  CASE( 8  )
+                     NAME (T,28) = 'C3H8'
+                     INDEX(T,28) = 19 + ( SPACING * 45 )
+                     MWT  (T,28) = 12e-3
+                     MOLC (T,28) = 3
+                     UNIT (T,28) = 'atoms C/cm2/s'
+                  CASE( 9  )
+                     NAME (T,28) = 'CH2O'
+                     INDEX(T,28) = 20 + ( SPACING * 45 )
+                     MWT  (T,28) = 30e-3
+                     MOLC (T,28) = 1
+                     UNIT (T,28) = 'molec/cm2/s'
+                  CASE( 10 )
+                     NAME (T,28) = 'C2H6'
+                     INDEX(T,28) = 21 + ( SPACING * 45 )
+                     MWT  (T,28) = 12e-3
+                     MOLC (T,28) = 2
+                     UNIT (T,28) = 'atoms C/cm2/s'
+                  CASE( 11 )
+                     NAME (T,28) = 'SO2'
+                     INDEX(T,28) = 26 + ( SPACING * 45 )
+                     MWT  (T,28) = 32e-3
+                     MOLC (T,28) = 1
+                     UNIT (T,28) = 'atoms S/cm2/s'
+                  CASE( 12 )
+                     NAME (T,28) = 'NH3'
+                     INDEX(T,28) = 30 + ( SPACING * 45 )
+                     MWT  (T,28) = 17e-3
+                     MOLC (T,28) = 1
+                     UNIT (T,28) = 'molec/cm2/s'
+                  CASE( 13 )
+                     NAME (T,28) = 'BC'
+                     INDEX(T,28) = 34 + ( SPACING * 45 )
+                     MWT  (T,28) = 12e-3
+                     MOLC (T,28) = 1
+                     UNIT (T,28) = 'atoms C/cm2/s'
+                  CASE( 14 )
+                     NAME (T,28) = 'OC'
+                     INDEX(T,28) = 35 + ( SPACING * 45 )
+                     MWT  (T,28) = 12e-3
+                     MOLC (T,28) = 1
+                     UNIT (T,28) = 'atoms C/cm2/s'
+                  CASE DEFAULT
+                     ! Nothing
+               END SELECT
+
+               ! Define other quantities
+               FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+               SCALE(T,28) = 1e0
+            ENDDO
+         ENDIF
+      ENDIF
+
+      !-------------------------------------      
       ! CO emissions (ND29)
       !-------------------------------------
       IF ( ND29 > 0 ) THEN
@@ -2369,7 +2445,12 @@
      &     DO_SAVE_DIAG50 .or. DO_SAVE_DIAG51 ) THEN 
 
          ! Number of tracers
-         NTRAC(48) = 4
+         !------------------------------------------------------
+         ! Prior to 9/28/06:
+         ! Bug fix: Need to write out 26 tracers (bmy, 9/28/06)
+         !NTRAC(48) = 4
+         !------------------------------------------------------
+         NTRAC(48) = 26
 
          ! Loop over tracers
          DO T = 1, NTRAC(48)
@@ -2516,7 +2597,7 @@
          NAME (T,54) = 'TIMETROP'
          FNAME(T,54) = 'Time in the troposphere'
          UNIT (T,54) = 'unitless'
-         INDEX(T,54) = T + ( SPACING * 45 )
+         INDEX(T,54) = T + ( SPACING * 46 )
          MOLC (T,54) = 1
          MWT  (T,54) = 0e0
          SCALE(T,54) = 1e0
@@ -2813,6 +2894,160 @@
          MWT  (T,69) = 0e0
          SCALE(T,69) = 1e0
       ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE INIT_TRACERINFO
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE INIT_GAMAP( DIAGINFO, TRACERINFO )
+!
+!******************************************************************************
+!  Subroutine INIT_GAMAP allocates and initializes all module variables.  
+!  (bmy, 4/22/05, 8/4/06)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) DIAGINFO   (CHARACTER) : Path name of the GAMAP "diaginfo.dat"   file
+!  (2 ) TRACERINFO (CHARACTER) : Path name of the GAMAP "tracerinfo.dat" file
+!
+!  NOTES:
+!  (1 ) Now add proper UNIT & SCALE for Rn/Pb/Be simulations (bmy, 5/11/05)
+!  (2 ) Added HCN & CH3CN source & sink info for ND09 (bmy, 6/27/05)
+!  (3 ) Bug fix: removed duplicate category names.  Updated for CO2-SRCE 
+!        diagnostic.  Now references ND04 from "diag04_mod.f. 
+!        (pns, bmy, 7/25/05)
+!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (5 ) Now save MBO as tracer #5 for ND46 (tmf, bmy, 10/20/05)
+!  (6 ) Now add categories CV-FLX-$, TURBMC-$, EW-FLX-$, NS-FLX-$, UP-FLX-$
+!        which had been inadvertently omitted.  Also add OCEAN-HG category.
+!        Rewrote do loop and case statement to add new diagnostics to ND03. 
+!        Now make units of Hg tracers "pptv", not "ppbv".  Now remove 
+!        restriction on printing out cloud mass flux in GEOS-4 for the ND66 
+!        diagnostic.  Added new sea salt category. (cdh, eck, bmy, 4/6/06)
+!  (7 ) Now references ND56 from "diag56_mod.f" (ltm, bmy, 5/5/06) 
+!  (8 ) Now references ND42 from "diag42_mod.f".  Also updated for extra SOA
+!        tracers in ND07 diagnostic. (dkh, bmy, 5/22/06)
+!  (9 ) Updated ND36 for CH3I simulation (bmy, 7/25/06)
+!  (10) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (11) Split into INIT_DIAGINFO, INIT_TRACERINFO for clarity (bmy, 9/28/06)
+!******************************************************************************
+!
+      ! References to F90 modules
+      !-----------------------------------------------------------------------
+      ! Prior to 9/28/06:
+      ! These can be moved into INIT_DIAGINFO (bmy, 9/28/06)
+      !USE BIOMASS_MOD,  ONLY : NBIOMAX
+      !USE DIAG03_MOD,   ONLY : ND03
+      !USE DIAG04_MOD,   ONLY : ND04
+      !USE DIAG41_MOD,   ONLY : ND41
+      !USE DIAG42_MOD,   ONLY : ND42
+      !USE DIAG48_MOD,   ONLY : DO_SAVE_DIAG48
+      !USE DIAG49_MOD,   ONLY : DO_SAVE_DIAG49
+      !USE DIAG50_MOD,   ONLY : DO_SAVE_DIAG50
+      !USE DIAG51_MOD,   ONLY : DO_SAVE_DIAG51
+      !USE DIAG56_MOD,   ONLY : ND56
+      !USE DIAG_PL_MOD,  ONLY : DO_SAVE_PL,  GET_NFAM
+      !USE DIAG_PL_MOD,  ONLY : GET_FAM_MWT, GET_FAM_NAME
+      !USE DRYDEP_MOD,   ONLY : DEPNAME,     NUMDEP,    NTRAIND
+      !USE ERROR_MOD,    ONLY : ALLOC_ERR
+      !USE LOGICAL_MOD,  ONLY : LSOA
+      !USE TIME_MOD,     ONLY : EXPAND_DATE, GET_NHMSb, GET_NYMDb
+      !USE TRACER_MOD,   ONLY : ITS_A_CH3I_SIM,   ITS_A_FULLCHEM_SIM
+      !USE TRACER_MOD,   ONLY : ITS_A_HCN_SIM,    ITS_A_MERCURY_SIM
+      !USE TRACER_MOD,   ONLY : ITS_A_RnPbBe_SIM, ITS_A_TAGOX_SIM
+      !USE TRACER_MOD,   ONLY : N_TRACERS,        TRACER_COEFF
+      !USE TRACER_MOD,   ONLY : TRACER_MW_KG,     TRACER_NAME
+      !USE TRACERID_MOD, ONLY : IDTBCPI, IDTOCPI, IDTALPH, IDTLIMO
+      !USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, NEMANTHRO
+      !USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD, GET_WETDEP_NSOL
+      !-----------------------------------------------------------------------
+      USE ERROR_MOD,   ONLY : ALLOC_ERR
+      USE TIME_MOD,    ONLY : EXPAND_DATE, GET_NHMSb, GET_NYMDb
+
+#     include "CMN_SIZE"    ! Size parameters
+#     include "CMN_DIAG"    ! NDxx flags
+
+      ! Arguments
+      CHARACTER(LEN=255), INTENT(IN) :: DIAGINFO  
+      CHARACTER(LEN=255), INTENT(IN) :: TRACERINFO
+
+      ! Local variables
+      INTEGER                        :: AS, NYMDb, NHMSb
+
+      !=================================================================
+      ! INIT_GAMAP begins here!
+      !=================================================================
+
+      ! Save from arguments to module variables
+      DFILE = DIAGINFO
+      TFILE = TRACERINFO
+
+      ! Get starting date & time
+      NYMDb = GET_NYMDb()
+      NHMSb = GET_NHMSb()
+ 
+      ! Replace any date/time tokens in the file names
+      CALL EXPAND_DATE( DFILE, NYMDb, NHMSb )
+      CALL EXPAND_DATE( TFILE, NYMDb, NHMSb )
+
+      !=================================================================
+      ! Allocate module arrays
+      !=================================================================
+
+      ALLOCATE( OFFSET( MAXCAT ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OFFSET' )
+      OFFSET = 0
+
+      ALLOCATE( CATEGORY( MAXCAT ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CATEGORY' )
+      CATEGORY = ''
+
+      ALLOCATE( DESCRIPT( MAXCAT ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DESCRIPT' )
+      DESCRIPT = ''
+
+      ALLOCATE( NTRAC( MAXDIAG ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NTRAC' )
+      NTRAC = 0
+
+      ALLOCATE( INDEX( MAXTRACER, MAXDIAG ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'INDEX' )      
+      INDEX = 0
+
+      ALLOCATE( MOLC( MAXTRACER, MAXDIAG ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOLC' )      
+      MOLC = 0
+
+      ALLOCATE( MWT( MAXTRACER, MAXDIAG ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MWT' )      
+      MWT = 0.0
+
+      ALLOCATE( SCALE( MAXTRACER, MAXDIAG ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SCALE' )      
+      SCALE = 0.0
+
+      ALLOCATE( NAME( MAXTRACER, MAXDIAG ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NAME' )      
+      NAME = ''
+
+      ALLOCATE( FNAME( MAXTRACER, MAXDIAG ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FNAME' )      
+      FNAME = ''
+
+      ALLOCATE( UNIT( MAXTRACER, MAXDIAG ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UNIT' )      
+      UNIT = ''
+
+      !=================================================================
+      ! Initialize arrays for "diaginfo.dat" & "tracerinfo.dat" files
+      !=================================================================
+
+      ! Initialize arrays for "diaginfo.dat"
+      CALL INIT_DIAGINFO
+
+      ! Initialize arrays for "tracerinfo.dat"
+      CALL INIT_TRACERINFO
 
       ! Return to calling program
       END SUBROUTINE INIT_GAMAP

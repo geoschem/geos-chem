@@ -1,9 +1,9 @@
-! $Id: tagged_co_mod.f,v 1.15 2006/06/28 17:26:55 bmy Exp $
+! $Id: tagged_co_mod.f,v 1.16 2006/10/17 17:51:18 bmy Exp $
       MODULE TAGGED_CO_MOD
 !
 !******************************************************************************
 !  Module TAGGED_CO_MOD contains variables and routines used for the 
-!  geographically tagged CO simulation. (bmy, 7/28/00, 4/5/06)
+!  geographically tagged CO simulation. (bmy, 7/28/00, 9/27/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -119,6 +119,8 @@
 !  (26) Now reads data from both GEOS and GCAP grids.  Now also references
 !        "tropopause_mod.f". (bmy, 8/16/05)
 !  (27) Now modified for new "biomass_mod.f" (bmy, 4/5/06)
+!  (28) BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of 
+!        [molec CO/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -399,6 +401,8 @@
 !        IJLOOP_CO w/ an analytic function. (bmy, 7/20/04)
 !  (18) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (19) Now modified for the new "biomass_mod.f" (bmy, 4/5/06)
+!  (20) BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of 
+!        [molec CO/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -592,14 +596,17 @@
 
       !=================================================================
       ! Process biomass burning CO emissions, stored in array
-      ! BURNEMIS(IDBCO,:,:) which has units of [molec/cm3/s]
+      ! BIOMASS(:,:,IDBCO) which has units of [molec/cm2/s]
       !
-      ! Biomass burning emissions are enhanced by 16.4% within the
-      ! routines of "biomass_mod.f".  This accounts for production 
-      ! of CO from oxidation of certain VOC's, which are not explicitly
-      ! carried by GEOS-CHEM as biomass burning species.  The scaling
-      ! needs to be done in "biomass_mod.f" so that the diagnostics 
-      ! will archive the correct emissions. (bmy, 6/8/01)
+      ! The default Duncan et al 2001 biomass burning emissions are 
+      ! enhanced by 16.4% within the routines of "gc_biomass_mod.f".  
+      ! This accounts for production of CO from oxidation of certain 
+      ! VOC's, which are not explicitly carried by GEOS-Chem as biomass 
+      ! burning species.  The scaling needs to be done in "biomass_mod.f"
+      ! so that the diagnostics will archive the correct emissions. 
+      ! (bmy, 6/8/01, 9/27/06)
+      !
+      ! GFED2 CO biomass burning emissions are not scaled any further.
       !
       ! NOTES:
       ! (1) Some forest fires generate strong convection columns.  
@@ -609,15 +616,31 @@
       !      (bmy, 1/3/01)
       !=================================================================
       IF ( LBIOMASS ) THEN
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( E_CO, I, J, N )
+!$OMP+PRIVATE( E_CO, I, J, N, AREA_CM2 )
+
+         ! Loop over latitudes
          DO J = 1, JJPAR
+
+            ! Grid box surface area [cm2]
+            AREA_CM2 = GET_AREA_CM2( J )
+
+         ! Loop over longitudes
          DO I = 1, IIPAR
 
-            ! Convert [molec CO/cm3/s] to [kg CO] and store in E_CO
+!-----------------------------------------------------------------------------
+! Prior to 9/27/06:
+! Biomass emissions are now [molec CO/cm2/s] (bmy, 9/27/06)
+!            ! Convert [molec CO/cm3/s] to [kg CO] and store in E_CO
+!            E_CO = ( BIOMASS(I,J,IDBCO) / XNUMOL_CO ) *
+!     &             ( BOXVL(I,J,1)       * DTSRCE    ) 
+!-----------------------------------------------------------------------------
+
+            ! Convert [molec CO/cm2/s] to [kg CO] and store in E_CO
             E_CO = ( BIOMASS(I,J,IDBCO) / XNUMOL_CO ) *
-     &             ( BOXVL(I,J,1)       * DTSRCE    ) 
+     &             ( AREA_CM2           * DTSRCE    ) 
 
             ! Add biomass burning to tracer #1 -- total CO [kg CO]
             STT(I,J,1,1) = STT(I,J,1,1) + E_CO

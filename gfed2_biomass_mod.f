@@ -1,28 +1,26 @@
-! $Id: gfed2_biomass_mod.f,v 1.4 2006/09/08 19:20:58 bmy Exp $
+! $Id: gfed2_biomass_mod.f,v 1.5 2006/10/17 17:51:12 bmy Exp $
       MODULE GFED2_BIOMASS_MOD
 !
 !******************************************************************************
 !  Module GFED2_BIOMASS_MOD contains variables and routines to compute the
-!  GFED2 biomass burning emissions. (psk, bmy, 4/20/06, 8/9/06)
+!  GFED2 biomass burning emissions. (psk, bmy, 4/20/06, 10/16/06)
 !
 !  Monthly emissions of C are read from disk and then multiplied by the 
 !  appropriate emission factors to produce biomass burning emissions on a 
 !  "generic" 1x1 grid.  The emissions are then regridded to the current 
 !  GEOS-Chem or GCAP grid (1x1, 2x25, or 4x5).
 !
-!  GFED2 biomass burning emissions are computed for the following 
-!  gas-phase species:
+!  GFED2 biomass burning emissions are computed for the following gas-phase 
+!  and aerosol-phase species:
 !
-!     (1 ) NOx  [  molec/cm2/s] 
-!     (2 ) CO   [  molec/cm2/s]                
-!     (3 ) ALK4 [atoms C/cm2/s]   
-!     (4 ) ACET [atoms C/cm2/s]   
-!     (5 ) MEK  [atoms C/cm2/s]   
-!     (6 ) ALD2 [atoms C/cm2/s]   
-!     (7 ) PRPE [atoms C/cm2/s]   
+!     (1 ) NOx  [  molec/cm2/s]     (9 ) CH2O [  molec/cm2/s]
+!     (2 ) CO   [  molec/cm2/s]     (10) C2H6 [atoms C/cm2/s]                  
+!     (3 ) ALK4 [atoms C/cm2/s]     (11) SO2  [  molec/cm2/s]    
+!     (4 ) ACET [atoms C/cm2/s]     (12) NH3  [  molec/cm2/s]    
+!     (5 ) MEK  [atoms C/cm2/s]     (13) BC   [atoms C/cm2/s]  
+!     (6 ) ALD2 [atoms C/cm2/s]     (14) OC   [atoms C/cm2/s]     
+!     (7 ) PRPE [atoms C/cm2/s]     (15) CO2  [  molec/cm2/s]
 !     (8 ) C3H8 [atoms C/cm2/s]   
-!     (9 ) CH2O [  molec/cm2/s]   
-!     (10) C2H6 [atoms C/cm2/s]   
 !
 !  Module Variables:
 !  ============================================================================
@@ -36,6 +34,11 @@
 !  (8 ) IDBC3H8         (INTEGER) : Local index for C3H8 in BIOM_OUT array
 !  (9 ) IDBCH2O         (INTEGER) : Local index for CH2O in BIOM_OUT array
 !  (10) IDBC2H6         (INTEGER) : Local index for C2H6 in BIOM_OUT array
+!  (11) IDBSO2          (INTEGER) : Local index for SO2  in BIOM_OUT array
+!  (12) IDBNH3          (INTEGER) : Local index for NH3  in BIOM_OUT array
+!  (13) IDBBC           (INTEGER) : Local index for BC   in BIOM_OUT array
+!  (14) IDBOC           (INTEGER) : Local index for OC   in BIOM_OUT array
+!  (15) IDBCO2          (INTEGER) : Local index for CO2  in BIOM_OUT array
 !  (11) SECONDS         (REAL*8 ) : Number of seconds in the current month
 !  (12) N_EMFAC         (INTEGER) : Number of emission factors per species
 !  (13) N_SPEC          (INTEGER) : Number of species
@@ -80,6 +83,8 @@
 !  NOTES:
 !  (1 ) Added private routine GFED2_SCALE_FUTURE (swu, bmy, 5/30/06)
 !  (2 ) Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
+!  (3 ) Added BC, OC, SO2, NH3, CO2 species.  Also now can read 2005 GFED2
+!        C emissions from disk. (rjp, yxw, bmy, 9/25/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -104,12 +109,13 @@
       INTEGER                       :: IDBNOx,  IDBCO,   IDBALK4
       INTEGER                       :: IDBACET, IDBMEK,  IDBALD2
       INTEGER                       :: IDBPRPE, IDBC3H8, IDBCH2O
-      INTEGER                       :: IDBC2H6
+      INTEGER                       :: IDBC2H6, IDBBC,   IDBOC
+      INTEGER                       :: IDBSO2,  IDBNH3,  IDBCO2
       REAL*8                        :: SECONDS
 
       ! Parameters
       INTEGER,          PARAMETER   :: N_EMFAC = 3
-      INTEGER,          PARAMETER   :: N_SPEC  = 10 
+      INTEGER,          PARAMETER   :: N_SPEC  = 15
 
       ! Arrays
       INTEGER,          ALLOCATABLE :: VEG_GEN_1x1(:,:)
@@ -129,7 +135,7 @@
 !
 !******************************************************************************
 !  Subroutine GFED2_COMPUTE_BIOMASS computes the monthly GFED2 biomass burning
-!  emissions for a given year and month. (psk, bmy, 4/20/06, 8/9/06)
+!  emissions for a given year and month. (psk, bmy, 4/20/06, 10/16/06)
 !
 !  This routine only has to be called on the first day of each month.
 !
@@ -143,6 +149,7 @@
 !        GFED2_SCALE_FUTURE to compute future biomass emissions, if necessary. 
 !        (swu, bmy, 5/30/06)
 !  (2 ) Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
+!  (3 ) 2005 is now the last year of available data (bmy, 10/16/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -198,11 +205,21 @@
  110     FORMAT( 'YEAR < 1997; Using GFED2 biomass for 1997!' )
       ENDIF
 
-      ! 2004 is currently the last year of available data
-      IF ( YYYY > 2004 ) THEN
-         YYYY = 2004
+!--------------------------------------------------------------------------
+! Prior to 10/16/06:
+! We now have GFED2 data up to 2005 (bmy, 10/16/06)
+!      ! 2004 is currently the last year of available data
+!      IF ( YYYY > 2004 ) THEN
+!         YYYY = 2004
+!         WRITE( 6, 120 ) 
+! 120     FORMAT( 'YEAR > 2004; Using GFED2 biomass for 2004!' )
+!      ENDIF
+!---------------------------------------------------------------------------
+      ! 2005 is currently the last year of available data
+      IF ( YYYY > 2005 ) THEN
+         YYYY = 2005
          WRITE( 6, 120 ) 
- 120     FORMAT( 'YEAR > 2004; Using GFED2 biomass for 2004!' )
+ 120     FORMAT( 'YEAR > 2005; Using GFED2 biomass for 2005!' )
       ENDIF
 
       !=================================================================
@@ -273,8 +290,9 @@
       ! [molec/cm2/month] or [atoms C/cm2/month]
       !
       ! Units:
-      !  [  molec/cm2/month] : NOx,  CO,   CH2O 
-      !  [atoms C/cm2/month] : ALK4, ACET, MEK, ALD2, PRPE  C3H8, C2H6
+      !  [  molec/cm2/month] : NOx,  CO,   CH2O, SO2,  NH3,  CO2
+      !  [atoms C/cm2/month] : ALK4, ACET, MEK,  ALD2, PRPE, C3H8, 
+      !                        C2H6, BC,   OC
       !=================================================================
 
       ! Loop over biomass species
@@ -322,10 +340,6 @@
       CALL DO_REGRID_1x1( N_SPEC,       'molec/cm2', 
      &                    BIOM_GEOS_1x1, BIOM_OUT ) 
 
-      !### Debug
-      !###! Print totals on 1x1 generic, 1x1 geos, & output grids
-      !###CALL GFED2_DEBUG_PRINT( BIOM_GEN_1x1, BIOM_GEOS_1x1, BIOM_OUT )
-
       ! Compute future biomass emissions (if necessary)
       IF ( LFUTURE ) THEN
          CALL GFED2_SCALE_FUTURE( BIOM_OUT )
@@ -351,19 +365,25 @@
 !  Subroutine GFED2_SCALE_FUTURE applies the IPCC future emissions scale 
 !  factors to the GFED2 biomass burning emisisons in order to compute the 
 !  future emissions of biomass burning for NOx, CO, and VOC's.  
-!  (swu, bmy, 5/30/06)
+!  (swu, bmy, 5/30/06, 9/25/06)
 !
 !  Arguments as Input/Output:
 !  ============================================================================
-!  (1 ) BB (REAL*8   ) : Array w/ biomass burning emisisons [molec/cm2]
+!  (1 ) BB (REAL*8) : Array w/ biomass burning emisisons [molec/cm2]
 !
 !  NOTES:
+!  (1 ) Now scale to IPCC future scenario for BC, OC, SO2, NH3 (bmy, 9/25/03)
 !******************************************************************************
 !
       ! References to F90 modules
+      USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_BCbb
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_CObb
+      USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_NH3bb
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_NOxbb
+      USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_OCbb
+      USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_SO2bb
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_VOCbb
+      USE TRACER_MOD,             ONLY : ITS_A_CO2_SIM       
 
 #     include "CMN_SIZE"               ! Size parameters
 
@@ -371,19 +391,26 @@
       REAL*8,           INTENT(INOUT) :: BB(IIPAR,JJPAR,N_SPEC)
 
       ! Local variables
+      LOGICAL                         :: ITS_CO2
       INTEGER                         :: I, J, N
       
       !=================================================================
       ! GFED2_SCALE_FUTURE begins here!
       !=================================================================
 
+      ! Test if it's a CO2 simulation outside of the loop
+      ITS_CO2 = ITS_A_CO2_SIM()
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, N )
+
+      ! Loop over species and grid boxes
       DO N = 1, N_SPEC
       DO J = 1, JJPAR
       DO I = 1, IIPAR 
 
+         ! Scale each species to IPCC future scenario
          IF ( N == IDBNOx ) THEN
 
             ! Future biomass NOx [molec/cm2]
@@ -393,6 +420,30 @@
 
             ! Future biomass CO [molec/cm2]
             BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_CObb( I, J )
+
+         ELSE IF ( N == IDBSO2 ) THEN
+
+            ! Future biomass SO2 [molec/cm2]
+            BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_SO2bb( I, J )
+
+         ELSE IF ( N == IDBNH3 ) THEN
+
+            ! Future biomass NH3 [molec/cm2]
+            BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_NH3bb( I, J )
+
+         ELSE IF ( N == IDBBC ) THEN
+
+            ! Future biomass BC [molec/cm2]
+            BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_BCbb( I, J )
+
+         ELSE IF ( N == IDBOC ) THEN
+
+            ! Future biomass OC [molec/cm2]
+            BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_OCbb( I, J )
+
+         ELSE IF ( ITS_CO2 ) THEN
+
+            ! Nothing
 
          ELSE
 
@@ -481,9 +532,10 @@
 !******************************************************************************
 !  Subroutine INIT_GFED2_BIOMASS allocates all module arrays.  It also reads
 !  the emission factors and vegetation map files at the start of a GEOS-Chem
-!  simulation. (psk, bmy, 4/20/06)
+!  simulation. (psk, bmy, 4/20/06, 9/25/06)
 !
 !  NOTES:
+!  (1 ) Now initialize for BC, OC, SO2, NH3, CO2 (bmy, 9/25/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -537,7 +589,7 @@
      &           'GFED2_200601/GFED2_emission_factors.txt'
 
       ! Open emission factor file (ASCII format)
-      OPEN( IU_FILE, file=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
+      OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'init_gfed2:1' )
 
       ! Skip header lines
@@ -596,16 +648,21 @@
       IDBC3H8 = 0
       IDBCH2O = 0
       IDBC2H6 = 0
+      IDBBC   = 0
+      IDBOC   = 0
+      IDBSO2  = 0
+      IDBNH3  = 0
+      IDBCO2  = 0
  
       ! Save species # in IDBxxxx flags for future reference
       ! and also initialize arrays for mol wts and units
       DO N = 1, N_SPEC
-         SELECT CASE ( GFED2_SPEC_NAME(N) ) 
-            CASE( 'NOx ' )
+         SELECT CASE ( TRIM( GFED2_SPEC_NAME(N) ) ) 
+            CASE( 'NOx'  )
                IDBNOx              = N
                GFED2_SPEC_MOLWT(N) = 14d-3
                GFED2_SPEC_UNIT(N)  = '[Tg N]'
-            CASE( 'CO  ' )
+            CASE( 'CO'   )
                IDBCO               = N
                GFED2_SPEC_MOLWT(N) = 28d-3
                GFED2_SPEC_UNIT(N)  = '[Tg  ]'
@@ -617,7 +674,7 @@
                IDBACET = N
                GFED2_SPEC_MOLWT(N) = 12d-3
                GFED2_SPEC_UNIT(N)  = '[Tg C]'
-            CASE( 'MEK ' )
+            CASE( 'MEK'  )
                IDBMEK  = N
                GFED2_SPEC_MOLWT(N) = 12d-3
                GFED2_SPEC_UNIT(N)  = '[Tg C]'
@@ -641,6 +698,26 @@
                IDBC2H6 = N
                GFED2_SPEC_MOLWT(N) = 12d-3
                GFED2_SPEC_UNIT(N)  = '[Tg C]'
+            CASE( 'SO2'  )
+               IDBBC = N
+               GFED2_SPEC_MOLWT(N) = 64d-3
+               GFED2_SPEC_UNIT(N)  = '[Tg  ]'
+            CASE( 'NH3'  )
+               IDBBC = N
+               GFED2_SPEC_MOLWT(N) = 17d-3
+               GFED2_SPEC_UNIT(N)  = '[Tg  ]'
+            CASE( 'BC'   ) 
+               IDBBC = N
+               GFED2_SPEC_MOLWT(N) = 12d-3
+               GFED2_SPEC_UNIT(N)  = '[Tg C]'
+            CASE( 'OC'   )
+               IDBBC = N
+               GFED2_SPEC_MOLWT(N) = 12d-3
+               GFED2_SPEC_UNIT(N)  = '[Tg C]'
+            CASE( 'CO2'  )
+               IDBBC = N
+               GFED2_SPEC_MOLWT(N) = 44d-3
+               GFED2_SPEC_UNIT(N)  = '[Tg  ]'
             CASE DEFAULT
                ! Nothing
          END SELECT
@@ -671,199 +748,6 @@
       ! Return to calling program
       END SUBROUTINE CLEANUP_GFED2_BIOMASS
 
-!------------------------------------------------------------------------------
-! This routine is for debugging only: uncomment it & recompile (bmy, 4/20/06)
-!
-!      SUBROUTINE GFED2_DEBUG_PRINT( GEN_1x1, GEOS_1x1, OUT )
-!!
-!!*****************************************************************************
-!!  Subroutine PRINT_TOTALS prints monthly and cumulative totals of the GFED2 
-!!  biomass burning emissions on the GENERIC 1x1 grid, the GEOS 1x1 grid, and 
-!!  the current output grid (e.g. 2x25, 4x5). (bmy, 4/20/06)
-!!
-!!  Arguments as Input:
-!!  ===========================================================================
-!!  (1 ) GEN_1x1  (REAL*8) : Array of biomass burning on GENERIC   1x1    grid
-!!  (2 ) GEOS_1x1 (REAL*8) : Array of biomass burning on GEOS-Chem 1x1    grid
-!!  (3 ) OUT      (REAL*8) : Array of biomass burning on GEOS-Chem output grid
-!!  
-!!  NOTES:
-!!*****************************************************************************
-!!
-!      ! References to F90 modules
-!      USE GRID_MOD, ONLY : GET_AREA_CM2 
-!      USE TIME_MOD, ONLY : ITS_A_NEW_YEAR
-!
-!#     include "CMN_SIZE" ! Size parameters
-!#     include "CMN_GCTM" ! Re 
-!
-!      ! Local variables
-!      INTEGER           :: I,        J,       N,      AS
-!      REAL*8            :: SS,       NN,      Re_cm,  RLAT
-!      REAL*8            :: SUM_GEOS, SUM_GEN, SUM_OUT
-!      REAL*8            :: A_GEN(J1x1-1)
-!      REAL*8            :: A_GEOS(J1x1)
-!      REAL*8            :: GEN_1x1(I1x1,J1x1-1,N_SPEC)
-!      REAL*8            :: GEOS_1x1(I1x1,J1x1,N_SPEC)
-!      REAL*8            :: OUT(IIPAR,JJPAR,N_SPEC)
-!      REAL*8            :: XNUMOL(N_SPEC)
-!      REAL*8            :: YEDGE(J1x1+1)
-!      REAL*8, SAVE      :: CUM_GEOS(N_SPEC)
-!      REAL*8, SAVE      :: CUM_GEN(N_SPEC)
-!      REAL*8, SAVE      :: CUM_OUT(N_SPEC)
-!
-!      !=================================================================
-!      ! GFED2_DEBUG_PRINT begins here!      
-!      !=================================================================
-!
-!      ! Zero cumulative totals once per year
-!      IF ( ITS_A_NEW_YEAR() ) THEN
-!         CUM_GEN  = 0d0
-!         CUM_GEOS = 0d0
-!         CUM_OUT  = 0d0
-!      ENDIF
-!
-!      ! Radius of the earth [cm]
-!      Re_cm       = Re * 100d0
-!
-!      ! XNUMOL: factor to convert from molecules to Tg
-!      XNUMOL(1)   = 14d-3 / 6.0225d23 * 1d-9  ! NOx
-!      XNUMOL(2)   = 28d-3 / 6.0225d23 * 1d-9  ! CO
-!      XNUMOL(3)   = 12d-3 / 6.0225d23 * 1d-9  ! ALK4
-!      XNUMOL(4)   = 12d-3 / 6.0225d23 * 1d-9  ! ACET
-!      XNUMOL(5)   = 12d-3 / 6.0225d23 * 1d-9  ! MEK
-!      XNUMOL(6)   = 12d-3 / 6.0225d23 * 1d-9  ! ALD2
-!      XNUMOL(7)   = 12d-3 / 6.0225d23 * 1d-9  ! PRPE
-!      XNUMOL(8)   = 12d-3 / 6.0225d23 * 1d-9  ! C3H8
-!      XNUMOL(9)   = 30d-3 / 6.0225d23 * 1d-9  ! C2HO
-!      XNUMOL(10)  = 12d-3 / 6.0225d23 * 1d-9  ! C2H6
-! 
-!      !---------------------------------------
-!      ! Surface area on GEOS-Chem 1x1 grid
-!      ! Uses same algorithm from "grid_mod.f"
-!      !---------------------------------------
-!
-!      ! Initialize
-!      YEDGE(:)      = 0d0
-!
-!      ! 1x1 latitude edges
-!      DO J = 2, J1x1
-!         YEDGE(J)   = -90.5d0 + ( J - 1 )
-!      ENDDO
-!
-!      ! Special cases at poles
-!      YEDGE(1)      = -90.0d0
-!      YEDGE(2)      = -89.5d0
-!      YEDGE(J1x1+1) =  90.0d0
-!
-!      ! Compute 1x1 surface area
-!      DO J = 1, J1x1
-!
-!         ! Lat at S and N edges of 1x1 box [radians]
-!         SS         = PI_180 * YEDGE(J  )
-!         NN         = PI_180 * YEDGE(J+1) 
-!
-!         ! S to N extent of grid box [unitless]
-!         RLAT       = SIN( NN ) - SIN( SS )
-!
-!         ! 1x1 surface area [m2] (see "grid_mod.f" for algorithm)
-!         A_GEOS(J)  = 2d0 * PI * Re_cm**2 / DBLE( I1x1 ) * RLAT
-!      ENDDO
-!
-!      !---------------------------------------
-!      ! Surface area on GENERIC 1x1 grid
-!      ! Uses same algorithm from "grid_mod.f"
-!      !---------------------------------------
-!
-!      ! Initialize
-!      YEDGE(:)    = 0d0
-!
-!      ! 1x1 latitude edges
-!      DO J = 1, J1x1
-!         YEDGE(J) = -90d0 + ( J - 1 )
-!      ENDDO
-!
-!      ! Compute 1x1 surface area
-!      DO J = 1, J1x1-1
-!
-!         ! Lat at S and N edges of 1x1 box [radians]
-!         SS       = PI_180 * YEDGE(J  )
-!         NN       = PI_180 * YEDGE(J+1) 
-!
-!         ! S to N extent of grid box [unitless]
-!         RLAT     = SIN( NN ) - SIN( SS )
-!
-!         ! GENERIC GRID 1x1 surface area [cm2]
-!         A_GEN(J) = 2d0 * PI * Re_cm**2 / DBLE( I1x1 ) * RLAT
-!      ENDDO  
-!
-!      !---------------------------------------
-!      ! Compute sums in molec (or atoms C)
-!      ! as well as in Tg (or Tg C)
-!      !---------------------------------------
-!
-!      ! echo inf
-!      PRINT*, 'MONTHLY TOTALS'
-!      PRINT*, 'SPECIES, GEN1x1, GEOS1x1, GEOS_OUT [molec and Tg]'
-!
-!      ! Loop over # of species
-!      DO N = 1, N_SPEC
-!
-!         ! Sum on generic grid
-!         SUM_GEN = 0d0
-!         DO J = 1, J1x1-1
-!         DO I = 1, I1x1
-!            SUM_GEN = SUM_GEN + ( GEN_1x1(I,J,N) * A_GEN(J)  )
-!         ENDDO
-!         ENDDO
-!
-!         ! Sum on GEOS grid
-!         SUM_GEOS = 0d0
-!         DO J = 1, J1x1
-!         DO I = 1, I1x1
-!            SUM_GEOS = SUM_GEOS + ( GEOS_1x1(I,J,N) * A_GEOS(J) )
-!         ENDDO
-!         ENDDO
-!
-!         ! Sum on current grid (e.g. GEOS-4x5)
-!         SUM_OUT = 0d0
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!            SUM_OUT = SUM_OUT + ( OUT(I,J,N) * GET_AREA_CM2(J)  )
-!         ENDDO
-!         ENDDO
-!
-!         ! Update cumulative totals 
-!         CUM_GEN(N)  = CUM_GEN(N)  + SUM_GEN
-!         CUM_GEOS(N) = CUM_GEOS(N) + SUM_GEOS
-!         CUM_OUT(N)  = CUM_OUT(N)  + SUM_OUT
-!
-!         ! Print sums in molecules and in Tg
-!         WRITE( 6, '(a4, 2x, 3(es13.6,1x,f10.3,3x))' ) 
-!     &     GFED2_SPEC_NAME(N), SUM_GEN,  SUM_GEN  * XNUMOL(N),
-!     &                         SUM_GEOS, SUM_GEOS * XNUMOL(N),
-!     &                         SUM_OUT,  SUM_OUT  * XNUMOL(N)
-!      ENDDO
-!
-!      ! Echo info
-!      PRINT*    
-!      PRINT*, 'CUMULATIVE TOTALS!'
-!      PRINT*, 'SPECIES, GEN1x1, GEOS1x1, GEOS_OUT [molec and Tg]'
-!
-!      ! Also print cumulative totals [molec and Tg]
-!      DO N = 1, N_SPEC
-!         WRITE( 6, '(a4, 2x, 3(es13.6,1x,f10.3,3x))' ) 
-!     &     GFED2_SPEC_NAME(N), CUM_GEN(N),  CUM_GEN(N)  * XNUMOL(N),
-!     &                         CUM_GEOS(N), CUM_GEOS(N) * XNUMOL(N),
-!     &                         CUM_OUT(N),  CUM_OUT(N)  * XNUMOL(N)
-!      ENDDO
-!
-!      ! Echo info
-!      PRINT*
-!
-!      ! Return to calling program
-!      END SUBROUTINE GFED2_DEBUG_PRINT
-!
 !------------------------------------------------------------------------------
 
       ! End of module 

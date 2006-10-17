@@ -1,17 +1,14 @@
-! $Id: main.f,v 1.41 2006/10/16 20:44:34 phs Exp $
+! $Id: main.f,v 1.42 2006/10/17 17:51:14 bmy Exp $
 ! $Log: main.f,v $
-! Revision 1.41  2006/10/16 20:44:34  phs
-! GEOS-Chem v7-04-11, includes the following modifications:
-! - Added diagnostic for Time in the Troposphere
-! - Fix interpolation of TROPP
-!
-! Revision 1.40  2006/09/14 14:22:17  phs
+! Revision 1.42  2006/10/17 17:51:14  bmy
 ! GEOS-Chem v7-04-10, includes the following modifications:
-! - Variable tropopause code added
-! - For offline simulations you must switch off (set to F)
-!   the variable tropopause option in the input.geos file.
+! - Includes variable tropopause with ND54 diagnostic
+! - Added GFED2 biomass emissions for SO2, NH3, BC, OC, CO2
+! - Rewrote default biomass emissions routines for clarity
+! - Updates for GCAP: future emissions, met-field reading, TOMS-O3
+! - Bug fix in planeflight_mod.f: set NCS variable correctly
+! - Bug fix in SOA_LUMP; other minor bug fixes
 !
-! Revision 1.39  2006/09/08 19:21:00  bmy
 ! GEOS-Chem v7-04-09, includes the following modifications:
 ! - Updated CO for David Streets (2001 for China, 2000 elsewhere)
 ! - Now reset negative SPHU to a very small positive #
