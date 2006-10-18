@@ -1,5 +1,5 @@
 REVISIONS (v7-04-10)  
-17 Oct 2006
+18 Oct 2006
 Philippe Le Sager (phs@io.as.harvard.edu) and
 Bob Yantosca      (bmy@io.as.harvard.edu)
 
@@ -37,6 +37,10 @@ init_tracerinfo		-- initializes the NAME, FNAME, MWT, MOLC, INDEX,
                            "tracerinfo.dat" file.
 			-- Bug fix: write out 26 tracers for ND48, ND49, 
 			   ND50, ND51 timeseries.
+
+read_europe_mask	-- Reads and regrids the European mask used for
+("emep_mod.f")		   EMEP emissions from disk.
+
 
 
 Removed in v7-04-10:
@@ -156,6 +160,10 @@ interp			-- Now interpolate TROPP, only if variable tropopause
 
 init_gfed2_biomass	-- Now initialize for BC, OC, SO2, NH3, CO2 
 ("gfed2_biomass_mod.f")
+
+init_emep		-- Now call READ_EUROPE_MASK to read & regrid 
+("emep_mod.f")             EUROPE_MASK from disk instead of just defining 
+			   it as a rectangular box
 
 init_input		-- Now initialize the LVARTROP switch
 ("input_mod.f")

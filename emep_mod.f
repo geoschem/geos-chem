@@ -1,11 +1,11 @@
-! $Id: emep_mod.f,v 1.4 2006/06/06 14:26:01 bmy Exp $
+! $Id: emep_mod.f,v 1.5 2006/10/18 20:07:24 bmy Exp $
       MODULE EMEP_MOD
 !
 !******************************************************************************
 !  Module EMEP_MOD contains variables and routines to read the EMEP European 
 !  anthropogenic emission inventory for CO, NOz, and some NMVOCs.  The EMEP 
 !  files come from Marion Auvray and Isabelle Bey at EPFL. 
-!  (bdf, bmy, 11/1/05, 5/30/06)
+!  (bdf, bmy, 11/1/05, 10/18/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -18,8 +18,9 @@
 !  (2 ) GET_EMEP_ANTHRO        : Gets emissions at (I,J) for EMEP species 
 !  (3 ) EMISS_EMEP             : Reads EMEP emissions from disk once per year
 !  (4 ) EMEP_SCALE_FUTURE      : Applies IPCC future scale factors to EMEP
-!  (5 ) INIT_EMEP              : Allocates and zeroes module arrays
-!  (6 ) CLEANUP_EMEP           : Dealocates module arrays
+!  (5 ) READ_EUROPE_MASK       : Reads the Europe mask for EMEP emissions
+!  (6 ) INIT_EMEP              : Allocates and zeroes module arrays
+!  (7 ) CLEANUP_EMEP           : Dealocates module arrays
 !
 !  GEOS-CHEM modules referenced by "emep_mod.f"
 !  ============================================================================
@@ -539,13 +540,63 @@
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE READ_EUROPE_MASK
+!
+!******************************************************************************
+!  Subroutine READ_EUROPE_MASK reads and regrids the Europe mask for the
+!  EMEP anthropogenic emissions. (bmy, 10/18/06)
+!
+!  NOTES:
+!  (1 ) Now read the Europe mask from a disk file instead of defining it as 
+!        a rectangular box (bmy, 10/18/06)
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE BPCH2_MOD,      ONLY : READ_BPCH2
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
+      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
+
+#     include "CMN_SIZE"       ! Size parameters
+
+      ! Local variables
+      REAL*4                  :: ARRAY(I1x1,J1x1,1)
+      CHARACTER(LEN=255)      :: FILENAME
+
+      !=================================================================
+      ! READ_EUROPE_MASK begins here!
+      !=================================================================
+
+      ! File name
+      FILENAME  = TRIM( DATA_DIR_1x1 ) // 
+     &            'EMEP_200510/EMEP_mask.geos.1x1'
+
+      ! Echo info
+      WRITE( 6, 100 ) TRIM( FILENAME )
+ 100  FORMAT( '     - READ_EUROPE_MASK: Reading ', a )
+
+      ! Read data [unitless]
+      CALL READ_BPCH2( FILENAME, 'LANDMAP', 2, 
+     &                 0d0,       I1x1,     J1x1,     
+     &                 1,         ARRAY,    QUIET=.TRUE. ) 
+
+      ! Regrid from GEOS 1x1 GRID to current model resolution
+      CALL DO_REGRID_1x1( 'unitless', ARRAY, EUROPE_MASK )
+
+      ! Return to calling program
+      END SUBROUTINE READ_EUROPE_MASK
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE INIT_EMEP
 !
 !******************************************************************************
-!  Subroutine INIT_EMEP allocates and zeroes EMEP module arrays, and also
-!  creates the mask which defines the European region (bdf, bmy, 11/1/01) 
+!  Subroutine INIT_EMEP allocates and zeroes EMEP module arrays, and 
+!  also creates the mask which defines the European region.
+!  (bdf, bmy, 11/1/05, 10/18/06) 
 !
 !  NOTES:
+!  (1 ) Now call READ_EUROPE_MASK to read & regrid EUROPE_MASK from disk 
+!        instead of just defining it as a rectangular box. (bmy, 10/18/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -600,30 +651,39 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EUROPE_MASK' )
       EUROPE_MASK = 0d0
 
-      !--------------------------------
-      ! Make Europe mask, w/ corners
-      ! (40E, 30N) and (45W, 74N)
-      !--------------------------------
+!------------------------------------------------------------------------------
+! Prior to 10/18/06:
+! Now read the Europe mask from a disk file instead of defining it as a box,
+! this ought to prevent the "gap" problem when overwriting the NOx and CO
+! data on top of EDGAR emissions. (bmy, 10/18/06)
+!      !--------------------------------
+!      ! Make Europe mask, w/ corners
+!      ! (40E, 30N) and (45W, 74N)
+!      !--------------------------------
+!
+!      ! Loop over latitudes
+!      DO J = 1, JJPAR
+!         
+!         ! Grid box lat [degrees]
+!         Y = GET_YMID( J )
+!
+!         ! Loop over longitudes
+!         DO I = 1, IIPAR
+!            
+!            ! Grid box lon [degrees]
+!            X = GET_XMID( I )
+!
+!            ! Set EUROPE_MASK=1 for boxes w/in the European region
+!            IF ( ( X >= -40d0 .and. X <= 45d0 )  .and. 
+!     &           ( Y >=  30d0 .and. Y <= 74d0 ) ) THEN
+!               EUROPE_MASK(I,J) = 1d0
+!            ENDIF
+!         ENDDO
+!      ENDDO
+!------------------------------------------------------------------------------
 
-      ! Loop over latitudes
-      DO J = 1, JJPAR
-         
-         ! Grid box lat [degrees]
-         Y = GET_YMID( J )
-
-         ! Loop over longitudes
-         DO I = 1, IIPAR
-            
-            ! Grid box lon [degrees]
-            X = GET_XMID( I )
-
-            ! Set EUROPE_MASK=1 for boxes w/in the European region
-            IF ( ( X >= -40d0 .and. X <= 45d0 )  .and. 
-     &           ( Y >=  30d0 .and. Y <= 74d0 ) ) THEN
-               EUROPE_MASK(I,J) = 1d0
-            ENDIF
-         ENDDO
-      ENDDO
+      ! Read and regrid the European mask
+      CALL READ_EUROPE_MASK
 
       ! Return to calling program
       END SUBROUTINE INIT_EMEP
@@ -633,7 +693,7 @@
       SUBROUTINE CLEANUP_EMEP
 !
 !******************************************************************************
-!  Subroutine CLEANUP_EMEP deallocates all module arrays 
+!  Subroutine CLEANUP_EMEP deallocates all module arrays (bmy, 11/1/05)
 !
 !  NOTES:
 !******************************************************************************

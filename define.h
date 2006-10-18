@@ -1,4 +1,4 @@
-! $Id: define.h,v 1.50 2006/10/16 20:44:29 phs Exp $
+! $Id: define.h,v 1.51 2006/10/18 20:07:23 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
@@ -114,8 +114,8 @@
 !#define COMPAQ      'COMPAQ'
 !#define IBM_AIX     'IBM_AIX'
 !#define LINUX_PGI   'LINUX_PGI'
-!#define LINUX_IFORT 'LINUX_IFORT'
-#define SGI_MIPS    'SGI_MIPS'
+#define LINUX_IFORT 'LINUX_IFORT'
+!#define SGI_MIPS    'SGI_MIPS'
 !#define SPARC       'SPARC'
 
 !==============================================================================
