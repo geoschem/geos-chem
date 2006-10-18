@@ -1,4 +1,4 @@
-! $Id: diag3.f,v 1.38 2006/10/17 17:51:10 bmy Exp $
+! $Id: diag3.f,v 1.39 2006/10/18 15:49:18 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
@@ -205,15 +205,6 @@
       SCALE_A3  = DBLE( GET_CT_A3()   ) + 1d-32
       SCALE_A6  = DBLE( GET_CT_A6()   ) + 1d-32
       SCALE_I6  = DBLE( GET_CT_I6()   ) + 1d-32
-
-      write(6,*) 'SCALEDYN  = ',SCALEDYN
-      write(6,*) 'SCALECONV = ',SCALECONV
-      write(6,*) 'SCALESRCE = ',SCALESRCE
-      write(6,*) 'SCALECHEM = ',SCALECHEM
-      write(6,*) 'SCALE_A3  = ',SCALE_A3
-      write(6,*) 'SCALE_A6  = ',SCALE_A6
-      write(6,*) 'SCALE_I6  = ',SCALE_I6
-
 !
 !******************************************************************************
 !  Setup for binary punch file:
