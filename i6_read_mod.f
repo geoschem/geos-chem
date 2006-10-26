@@ -1,4 +1,4 @@
-! $Id: i6_read_mod.f,v 1.18 2006/10/16 20:44:32 phs Exp $
+! $Id: i6_read_mod.f,v 1.19 2006/10/26 16:09:47 bmy Exp $
       MODULE I6_READ_MOD
 !
 !******************************************************************************
@@ -228,7 +228,7 @@
 !
 !******************************************************************************
 !  Subroutine OPEN_I6_FIELDS opens the I-6 met fields file for date NYMD and 
-!  time NHMS. (bmy, bdf, 6/15/98, 8/4/06)
+!  time NHMS. (bmy, bdf, 6/15/98, 9/14/06)
 !  
 !  Arguments as input:
 !  ===========================================================================
@@ -247,6 +247,7 @@
 !  (6 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (8 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (9 ) Updated for variable tropopause (phs, bmy, 9/14/06)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -254,7 +255,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_3_DIR 
       USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
       USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE LOGICAL_MOD,   ONLY : LUNZIP
+      USE LOGICAL_MOD,   ONLY : LUNZIP, LVARTROP
       USE FILE_MOD,      ONLY : IU_I6, IOERROR, FILE_EXISTS, IU_TP
       USE TIME_MOD,      ONLY : EXPAND_DATE
 
@@ -357,51 +358,56 @@
 
 #if   defined( GEOS_4 ) 
 
-         ! ALSO NEED TO OPEN THE TROPOPAUSE PRESSURE FILE
+         ! Test if variable tropopause is turned on
+         IF ( LVARTROP ) THEN
 
-         ! Replace date tokens
-         CALL EXPAND_DATE( TP_FILE, NYMD, NHMS )
+            !===========================================================
+            ! ALSO NEED TO OPEN THE TROPOPAUSE PRESSURE FILE
+            !===========================================================
 
-         ! If unzipping, open GEOS-1 file in TEMP dir
-         ! If not unzipping, open GEOS-1 file in DATA dir
-         IF ( LUNZIP ) THEN
-            PATH = TRIM( TEMP_DIR ) // TRIM( TP_FILE )
-         ELSE
-            PATH = TRIM( DATA_DIR ) // 
-     &             TRIM( GEOS_DIR ) // TRIM( TP_FILE )
-         ENDIF
+            ! Replace date tokens
+            CALL EXPAND_DATE( TP_FILE, NYMD, NHMS )
 
-         ! Close previously opened A-3 file
-         CLOSE( IU_TP )
+            ! If unzipping, open GEOS-1 file in TEMP dir
+            ! If not unzipping, open GEOS-1 file in DATA dir
+            IF ( LUNZIP ) THEN
+               PATH = TRIM( TEMP_DIR ) // TRIM( TP_FILE )
+            ELSE
+               PATH = TRIM( DATA_DIR ) // 
+     &              TRIM( GEOS_DIR ) // TRIM( TP_FILE )
+            ENDIF
 
-         ! Make sure the file unit is valid before we open it 
-         IF ( .not. FILE_EXISTS( IU_TP ) ) THEN 
-            CALL ERROR_STOP( 'Could not find TROPP file!', 
-     &                       'OPEN_I6_FIELDS (i6_read_mod.f)' )
-         ENDIF
+            ! Close previously opened A-3 file
+            CLOSE( IU_TP )
 
-         ! Open the file
-         OPEN( UNIT   = IU_TP,         FILE   = TRIM( PATH ),
-     &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
-     &         FORM   = 'UNFORMATTED', IOSTAT = IOS )
+            ! Make sure the file unit is valid before we open it 
+            IF ( .not. FILE_EXISTS( IU_TP ) ) THEN 
+               CALL ERROR_STOP( 'Could not find TROPP file!', 
+     &                          'OPEN_I6_FIELDS (i6_read_mod.f)' )
+            ENDIF
+
+            ! Open the file
+            OPEN( UNIT   = IU_TP,         FILE   = TRIM( PATH ),
+     &            STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
+     &            FORM   = 'UNFORMATTED', IOSTAT = IOS )
                
-         IF ( IOS /= 0 ) THEN
-            CALL IOERROR( IOS, IU_TP, 'open_i6_fields:3' )
-         ENDIF
+            IF ( IOS /= 0 ) THEN
+               CALL IOERROR( IOS, IU_TP, 'open_i6_fields:3' )
+            ENDIF
 
-         ! Echo info
-         WRITE( 6, 100 ) TRIM( PATH )
+            ! Echo info
+            WRITE( 6, 100 ) TRIM( PATH )
          
-         ! Set the proper first-time-flag false
-         FIRST = .FALSE.
+            ! Set the proper first-time-flag false
+            FIRST = .FALSE.
 
-         ! Skip past the ident string
-         READ( IU_TP, IOSTAT=IOS ) IDENT
+            ! Skip past the ident string
+            READ( IU_TP, IOSTAT=IOS ) IDENT
 
-         IF ( IOS /= 0 ) THEN
-            CALL IOERROR( IOS, IU_I6, 'open_i6_fields:4' )
+            IF ( IOS /= 0 ) THEN
+               CALL IOERROR( IOS, IU_I6, 'open_i6_fields:4' )
+            ENDIF
          ENDIF
-
 #endif
 
       ENDIF
@@ -788,18 +794,6 @@
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( SPHU ) ) CALL TRANSFER_3D( Q3, SPHU )
                   !=====================================================
-                  !-------------------------------------------------------
-                  !! Prior to 9/8/06:
-                  !! There seems to be a problem with the GEOS-1 SPHU 
-                  !! files as read in from disk...negative numbers can 
-                  !! exist near the poles.  This is definitely a problem 
-                  !! with the original 2 x 2.5 files, and is not due to 
-                  !! the regridding process.  If a negative number is 
-                  !! found in a polar box, set it to zero 
-                  !! (bmy, 3/29/99, 6/23/00)
-                  !!
-                  !!WHERE ( SPHU < 0.0 ) SPHU = 0d0
-                  !-------------------------------------------------------
                   ! NOTE: Now set negative SPHU to a small positive # 
                   ! instead of zero, so as not to blow up logarithms
                   ! (bmy, 9/8/06)
