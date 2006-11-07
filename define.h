@@ -1,4 +1,4 @@
-! $Id: define.h,v 1.51 2006/10/18 20:07:23 bmy Exp $
+! $Id: define.h,v 1.52 2006/11/07 19:01:57 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
@@ -114,9 +114,9 @@
 !#define COMPAQ      'COMPAQ'
 !#define IBM_AIX     'IBM_AIX'
 !#define LINUX_PGI   'LINUX_PGI'
-#define LINUX_IFORT 'LINUX_IFORT'
+!#define LINUX_IFORT 'LINUX_IFORT'
 !#define SGI_MIPS    'SGI_MIPS'
-!#define SPARC       'SPARC'
+#define SPARC       'SPARC'
 
 !==============================================================================
 ! Force a compile error if GEOS_1, GEOS_STRAT, GEOS_3, GEOS_4 are undefined 

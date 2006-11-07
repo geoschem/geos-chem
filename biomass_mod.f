@@ -1,4 +1,4 @@
-! $Id: biomass_mod.f,v 1.13 2006/10/17 17:51:07 bmy Exp $
+! $Id: biomass_mod.f,v 1.14 2006/11/07 19:01:54 bmy Exp $
       MODULE BIOMASS_MOD
 !
 !******************************************************************************
@@ -121,15 +121,6 @@
       ! Arrays
       INTEGER              :: BIOTRCE(NBIOMAX)
       REAL*8,  ALLOCATABLE :: BIOMASS(:,:,:)
-      !-------------------------------------------------------------------
-      ! Prior to 9/28/06:
-      ! BIOMASS_SAVE is redundant now.  We only used to keep this here
-      ! because we had to preserve biomass in [molec/cm2/s] locally, so
-      ! that we could compute [molec/cm3/s] on each timestep.  But now
-      ! we no longer do that unit conversion, so get rid of this array.
-      ! (bmy, 9/28/06)
-      !REAL*8,  ALLOCATABLE :: BIOMASS_SAVE(:,:,:)
-      !-------------------------------------------------------------------
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -340,14 +331,6 @@
          ALLOCATE( BIOMASS( IIPAR, JJPAR, NBIOMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOMASS' )
          BIOMASS = 0d0
-         
-         !-------------------------------------------------------------------
-         ! Prior to 9/28/06:
-         !! Allocate array to hold monthly biomass emissions
-         !ALLOCATE( BIOMASS_SAVE( IIPAR, JJPAR, NBIOMAX ), STAT=AS )
-         !IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOMASS_SAVE' )
-         !BIOMASS_SAVE = 0d0
-         !-------------------------------------------------------------------
 
       ENDIF
       
@@ -370,10 +353,6 @@
       ! CLEANUP_BIOMASS begins here!
       !=================================================================
       IF ( ALLOCATED( BIOMASS ) ) DEALLOCATE( BIOMASS )
-      !----------------------------------------------------------------------
-      ! Prior to 9/28/06:
-      !IF ( ALLOCATED( BIOMASS_SAVE ) ) DEALLOCATE( BIOMASS_SAVE )      
-      !----------------------------------------------------------------------
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_BIOMASS

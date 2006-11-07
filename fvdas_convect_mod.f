@@ -1,4 +1,4 @@
-! $Id: fvdas_convect_mod.f,v 1.17 2006/09/08 19:20:57 bmy Exp $
+! $Id: fvdas_convect_mod.f,v 1.18 2006/11/07 19:01:59 bmy Exp $
       MODULE FVDAS_CONVECT_MOD
 !
 !******************************************************************************
@@ -75,16 +75,8 @@
       REAL*8,  PARAMETER :: CMFTAU   = 3600.d0
       REAL*8,  PARAMETER :: EPS      = 1.0d-13   
       REAL*8,  PARAMETER :: GRAV     = 9.8d0
-      !---------------------------------------------------
-      ! Prior to 9/5/06:
-      !REAL*8,  PARAMETER :: SMALLEST = TINY(1d0)
-      !---------------------------------------------------
       REAL*8,  PARAMETER :: SMALLEST = 1.0d-32
       REAL*8,  PARAMETER :: TINYALT  = 1.0d-36       
-      !---------------------------------------------------
-      ! Prior to 9/5/06:
-      !REAL*8,  PARAMETER :: TINYNUM  = 2*EPSILON(1d0)
-      !---------------------------------------------------
       REAL*8,  PARAMETER :: TINYNUM  = 2*SMALLEST
 
       !=================================================================

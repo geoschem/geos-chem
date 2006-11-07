@@ -1,4 +1,4 @@
-! $Id: setemis.f,v 1.12 2006/10/17 17:51:16 bmy Exp $
+! $Id: setemis.f,v 1.13 2006/11/07 19:02:03 bmy Exp $
       SUBROUTINE SETEMIS( EMISRR, EMISRRN )
 !
 !******************************************************************************
@@ -94,13 +94,6 @@
 !
       ! References to F90 modules 
       USE BIOFUEL_MOD,    ONLY : BIOFUEL,     BFTRACE, NBFTRACE
-      !----------------------------------------------------------------------
-      ! Prior to 9/27/06:
-      ! Now reference NBIOMAX_GAS instead of NBIOMAX, so that we only loop
-      ! over the gas-phase species.  Aerosol biomass is handled elsewhere.
-      ! (bmy, 9/27/06)
-      !USE BIOMASS_MOD,    ONLY : BIOMASS,     BIOTRCE, NBIOMAX
-      !----------------------------------------------------------------------
       USE BIOMASS_MOD,    ONLY : BIOMASS,     BIOTRCE, NBIOMAX_GAS
       USE COMODE_MOD,     ONLY : JLOP,        REMIS,   VOLUME
       USE COMODE_MOD,     ONLY : IYSAVE
@@ -150,11 +143,6 @@
          ! BIOTRCE with the same CTM tracer number NN as in IDEMS
          NBB = 0
          IF ( ALLOCATED( BIOMASS ) ) THEN 
-            !---------------------------------------------------------------
-            ! Prior to 9/27/06:
-            ! Use NBIOMAX_GAS=10 instead of NBIOMAX=15 (bmy, 9/27/060
-            !DO I = 1, NBIOMAX
-            !---------------------------------------------------------------
             DO I = 1, NBIOMAX_GAS
                IF ( BIOTRCE(I) == NN ) THEN 
                   NBB = I
@@ -359,25 +347,6 @@
                      ! Thickness of level L [mb]
                      DELTPRES = GET_PEDGE(I,J,L) - GET_PEDGE(I,J,L+1)
  
-!------------------------------------------------------------------------------
-! Prior to 9/27/06:
-! The BIOMASS array from "biomass_mod.f" is now in units of [molec CO/cm2/s].
-! Adjust unit conversion accordingly. (bmy, 9/27/06)
-!                     ! Biomass burning is in [molec/cm3/s], so we need to 
-!                     ! multiply by VOLUME(JLOP(I,J,1)) to convert it to 
-!                     ! [molec/box/s], VOLUME(JLOP(I,J,1)) is the volume in cm3
-!                     ! of the surface grid box (I,J,1).  Then we need to 
-!                     ! divide that by COEF1 to convert from 
-!                     ! [molec tracer/box/s] to [molec species/cm3/s].
-!                     ! Of the total biomass burning emissions, the fraction 
-!                     ! DELTPRES/TOTPRES goes into level L, since that is the 
-!                     ! fraction of the boundary layer occupied by level L.  
-!                     ! Store in EMIS_BL.
-!                     EMIS_BL  = ( BIOMASS(I,J,NBB)  *
-!     &                            VOLUME( JLOP(I,J,1) ) / COEF1  ) *
-!     &                            ( DELTPRES / TOTPRES )
-!------------------------------------------------------------------------------
-                           
                      ! Grid box area [cm2]
                      A_CM2    = GET_AREA_CM2( IYSAVE(JLOOP) )
                

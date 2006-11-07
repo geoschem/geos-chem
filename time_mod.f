@@ -1,4 +1,4 @@
-! $Id: time_mod.f,v 1.26 2006/10/17 17:51:19 bmy Exp $
+! $Id: time_mod.f,v 1.27 2006/11/07 19:02:07 bmy Exp $
       MODULE TIME_MOD
 !
 !******************************************************************************
@@ -292,11 +292,6 @@
          JD_JAN_1 = GET_JD( YEAR*10000 + 0101, 000000 )
          
          ! Skip directly from Feb 28 to Mar 1st 
-         !------------------------------------------------------------
-         ! Prior to 10/3/06:
-         ! Bug fix for GCAP to skip leapyears properly (phs, 10/3/06)
-         !IF ( JD1 - JD_JAN_1 >= 59d0 ) JD1 = JD1 + 1d0
-         !------------------------------------------------------------     
          IF (  ( JD1 - JD_JAN_1 >= 59d0 )  .and.
      &         ( JD0 - JD_JAN_1 <= 59d0 ) ) THEN
             JD1 = JD1 + 1d0

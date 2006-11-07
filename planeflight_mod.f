@@ -1,4 +1,4 @@
-! $Id: planeflight_mod.f,v 1.20 2006/10/17 17:51:15 bmy Exp $
+! $Id: planeflight_mod.f,v 1.21 2006/11/07 19:02:02 bmy Exp $
       MODULE PLANEFLIGHT_MOD
 !
 !******************************************************************************
@@ -507,12 +507,6 @@
                   ! Loop over all SMVGEAR species -- 
                   ! match w/ species as read from disk
                   DO M = 1, NSPEC(NCS)
-                     !-------------------------------------------------------
-                     ! Prior to 10/11/06:
-                     ! We need to trim NAMEGAS before comparing, so that
-                     ! comparisons for species like "O3" will work.
-                     !IF ( NAMEGAS(M) == TRIM( LINE ) ) THEN
-                     !-------------------------------------------------------
                      IF ( TRIM( NAMEGAS(M) ) == TRIM( LINE ) ) THEN
                         PVAR(N) = M
                         EXIT

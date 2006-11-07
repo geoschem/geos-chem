@@ -1,4 +1,4 @@
-! $Id: tagged_co_mod.f,v 1.16 2006/10/17 17:51:18 bmy Exp $
+! $Id: tagged_co_mod.f,v 1.17 2006/11/07 19:02:06 bmy Exp $
       MODULE TAGGED_CO_MOD
 !
 !******************************************************************************
@@ -629,14 +629,6 @@
 
          ! Loop over longitudes
          DO I = 1, IIPAR
-
-!-----------------------------------------------------------------------------
-! Prior to 9/27/06:
-! Biomass emissions are now [molec CO/cm2/s] (bmy, 9/27/06)
-!            ! Convert [molec CO/cm3/s] to [kg CO] and store in E_CO
-!            E_CO = ( BIOMASS(I,J,IDBCO) / XNUMOL_CO ) *
-!     &             ( BOXVL(I,J,1)       * DTSRCE    ) 
-!-----------------------------------------------------------------------------
 
             ! Convert [molec CO/cm2/s] to [kg CO] and store in E_CO
             E_CO = ( BIOMASS(I,J,IDBCO) / XNUMOL_CO ) *

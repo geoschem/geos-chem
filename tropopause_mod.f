@@ -1,4 +1,4 @@
-! $Id: tropopause_mod.f,v 1.8 2006/10/17 17:51:20 bmy Exp $
+! $Id: tropopause_mod.f,v 1.9 2006/11/07 19:02:08 bmy Exp $
       MODULE TROPOPAUSE_MOD
 !
 !******************************************************************************
@@ -231,12 +231,6 @@
       !=================================================================
 
       ! set LMIN and LMAX to current min and max tropopause
-      !------------------------------------------------------
-      ! Prior to 10/3/06:
-      ! Make the DO loops go the right way (bmy, 10/3/06)
-      !DO I = 1, IIPAR
-      !   DO J = 1, JJPAR
-      !------------------------------------------------------
       DO J = 1, JJPAR
       DO I = 1, IIPAR
          TPAUSE_LEV(I,J) = GET_TPAUSE_LEVEL(I,J)

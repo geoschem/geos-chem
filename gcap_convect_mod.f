@@ -1,4 +1,4 @@
-! $Id: gcap_convect_mod.f,v 1.6 2006/09/08 19:20:58 bmy Exp $
+! $Id: gcap_convect_mod.f,v 1.7 2006/11/07 19:02:01 bmy Exp $
       MODULE GCAP_CONVECT_MOD
 !
 !******************************************************************************
@@ -49,11 +49,6 @@
 
       ! Constants
       REAL*8,  PARAMETER :: GRAV     = 9.8d0
-      !-----------------------------------------------------
-      ! Prior to 9/5/06:
-      !REAL*8,  PARAMETER :: SMALLEST = TINY(1D0)
-      !REAL*8,  PARAMETER :: TINYNUM  = 2*EPSILON(1D0)
-      !-----------------------------------------------------
       REAL*8,  PARAMETER :: SMALLEST = 1d-32
       REAL*8,  PARAMETER :: TINYNUM  = 2*SMALLEST
 

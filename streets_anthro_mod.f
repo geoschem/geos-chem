@@ -1,4 +1,4 @@
-! $Id: streets_anthro_mod.f,v 1.3 2006/09/08 19:21:04 bmy Exp $
+! $Id: streets_anthro_mod.f,v 1.4 2006/11/07 19:02:04 bmy Exp $
       MODULE STREETS_ANTHRO_MOD
 !
 !******************************************************************************
@@ -419,32 +419,6 @@
          !--------------------------
          ! Read 2000 CO (SE Asia)
          !--------------------------
-
-!------------------------------------------------------------------------------
-! Prior to 9/5/06:
-! Now read 2000 CO over Asia, and rewrite that w/ 2001 CO over China
-! (yxw, bmy, 9/5/06)
-!         ! File name
-!         FILENAME  = TRIM( DATA_DIR_1x1 ) // 
-!     &               'Streets_200607/Streets_CO_FF_2001.generic.1x1'
-!
-!         ! Echo info
-!         WRITE( 6, 100 ) TRIM( FILENAME )
-!
-!         ! Read data [unitless]
-!         CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 4, 
-!     &                    TAU2001,   I1x1,      J1x1-1,     
-!     &                    1,         ARRAY,     QUIET=.TRUE. ) 
-!
-!         ! Cast to REAL*8 before regridding
-!         GEN_1x1(:,:) = ARRAY(:,:,1)
-!
-!         ! Regrid from GENERIC 1x1 GRID to GEOS 1x1 GRID
-!         CALL DO_REGRID_G2G_1x1( 'kg/yr', GEN_1x1, GEOS_1x1(:,:,1) )
-!
-!         ! Regrid from GEOS 1x1 GRID to current model resolution
-!         CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, CO )
-!------------------------------------------------------------------------------
 
          ! File name for 2000 CO over SE Asia
          FILENAME  = TRIM( DATA_DIR_1x1 ) // 

@@ -1,4 +1,4 @@
-! $Id: seasalt_mod.f,v 1.11 2006/09/08 19:21:03 bmy Exp $
+! $Id: seasalt_mod.f,v 1.12 2006/11/07 19:02:03 bmy Exp $
       MODULE SEASALT_MOD
 !
 !******************************************************************************
@@ -246,11 +246,6 @@
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
 
       ! Local variables
-      !---------------------------------------------------------------
-      ! Prior to 9/7/06:
-      ! DTCHEM has to be REAL*8, not integer (bmy, 9/7/06) 
-      !INTEGER                :: I,      J,     L,        DTCHEM
-      !---------------------------------------------------------------
       INTEGER                :: I,      J,     L
       REAL*8                 :: DELZ,   DELZ1, REFF,     DEN
       REAL*8                 :: P,      DP,    PDP,      TEMP        
@@ -873,11 +868,6 @@
  
       REAL*8,  PARAMETER :: PI = 3.14159265
       REAL*8             :: N1, N2, Kt
-      !--------------------------------------------------------------------
-      ! Prior to 9/5/06:
-      ! Becky Alexander says we don't need AREA1, AREA2 (bmy, 9/5/06)
-      !REAL*8             :: AREA1, AREA2, HGF, ALK
-      !--------------------------------------------------------------------
       REAL*8             :: HGF, ALK
       REAL*8             :: RAD1, RAD2, RAD3
       REAL*8             :: term1a, term2a, term3a
@@ -906,12 +896,6 @@
       KT2   = 0.D0
       KT1N  = 0.D0
       KT2N  = 0.D0
-      !-----------------------------------------------------------------
-      ! Prior to 9/5/06:
-      ! Becky Alexander says we don't need these anymore (bmy, 9/5/06)
-      !AREA1 = 0.D0
-      !AREA2 = 0.D0
-      !-----------------------------------------------------------------
       N1    = 0.D0
       N2    = 0.D0
 
@@ -963,13 +947,6 @@
          ! SO2 uptake onto fine particles 
          !----------------------------------
 
-         !--------------------------------------------------------------------
-         ! Prior to 9/5/06:
-         ! Becky Alexander says we don't need this anymore (bmy, 9/5/06)
-         !! surface area of fine sea-salt aerosols [cm2 cm-3]
-         !AREA1 = 4.d0*PI*N1*(((RAD2**3)/3.d0)-((RAD1**3)/3.d0))
-         !--------------------------------------------------------------------
-
 	 ! calculate gas-to-particle rate constant for uptake of 
 	 ! SO2 onto fine sea-salt aerosols [Jacob, 2000] analytical solution
          CONST1 = 4.D0/(V*GAMMA_SO2)
@@ -986,13 +963,6 @@
          ! SO2 uptake onto coarse particles 
          !----------------------------------
          
-         !--------------------------------------------------------------------
-         ! Prior to 9/5/06:
-         ! Becky Alexander says we don't need this anymore (bmy, 9/5/06)
-         !! surface area of coarse sea-salt aerosols
-         !AREA2  = 4.d0*PI*N2*(((RAD3**3)/3.d0)-((RAD2**3)/3.d0))
-         !--------------------------------------------------------------------
-
 	 ! calculate gas-to-particle rate constant for uptake of 
 	 ! SO2 onto coarse sea-salt aerosols [Jacob, 2000] analytical solution
          CONST2 = 4.D0/(V*GAMMA_SO2)

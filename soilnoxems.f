@@ -1,4 +1,4 @@
-! $Id: soilnoxems.f,v 1.6 2006/10/17 17:51:17 bmy Exp $
+! $Id: soilnoxems.f,v 1.7 2006/11/07 19:02:03 bmy Exp $
       SUBROUTINE SOILNOXEMS( SUNCOS )
 !
 !******************************************************************************
@@ -138,21 +138,6 @@
             DO K = 1, IREG(IREF,JREF)
                NN = NCONSOIL(ILAND(IREF,JREF,K)+1)
 
-!---------------------------------------------------------------------------
-! Prior to 10/4/06:
-! Now also add in future scale here (bmy, 10/4/06)
-!               ! SOILNOX contains soil NOx emissions in [molec NOx/cm2/s]
-!               SOILNOX(I,J) = SOILNOX(I,J)+ (SOILTEMP(I,J,M,NN,TMMP)*
-!     &              SOILBASE(I,J,M,NN,RPULSE) + FERTADD(J,M,NN))
-!     &              *(1.D0-SOILCRF(I,J,IREF,JREF,IJLOOP,M,NN,K,
-!     &              WINDSQR,SUNCOS))*DBLE(IUSE(IREF,JREF,K))/1000.D0
-!
-!               ! Archive fertilizer for ND32 diagnostic (bey)
-!               FERTDIAG(I,J) = FERTDIAG(I,J) + FERTADD(J,M,NN)
-!     &              *(1.D0-SOILCRF(I,J,IREF,JREF,IJLOOP,M,NN,K,
-!     &              WINDSQR,SUNCOS))*DBLE(IUSE(IREF,JREF,K))/1000.D0
-!---------------------------------------------------------------------------
-
                ! IPCC future emission scenario for NOx from fertilizers
                IF ( LFUTURE ) THEN
                   FUT_SCL = GET_FUTURE_SCALE_NOXft( I, J )
@@ -173,18 +158,6 @@
      &             *(1.D0-SOILCRF(I,J,IREF,JREF,IJLOOP,M,NN,K,
      &              WINDSQR,SUNCOS))*DBLE(IUSE(IREF,JREF,K))/1000.D0
             ENDDO
-
-            !----------------------------------------------------------------
-            ! Prior to 10/4/06:
-            ! Now compute the future scale above to avoid multiple 
-            ! applications on multiple timesteps (swu, bmy, 10/4/06)
-            !! Compute future soil NOx emissions (if necessary)
-            !IF ( LFUTURE ) THEN
-            !   FUT_SCL       = GET_FUTURE_SCALE_NOXft( I, J ) 
-            !   SOILNOX(I,J)  = SOILNOX(I,J)  * FUT_SCL
-            !   FERTDIAG(I,J) = FERTDIAG(I,J) * FUT_SCL
-            !ENDIF
-            !----------------------------------------------------------------
          ENDIF
 
          ! Skip if there are no soil NOx emissions

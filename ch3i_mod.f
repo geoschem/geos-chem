@@ -1,4 +1,4 @@
-! $Id: ch3i_mod.f,v 1.12 2006/10/17 17:51:08 bmy Exp $
+! $Id: ch3i_mod.f,v 1.13 2006/11/07 19:01:56 bmy Exp $
       MODULE CH3I_MOD
 !
 !******************************************************************************
@@ -748,11 +748,6 @@
 
          ! Add to diagnostic array as kg/m2/time step
          IF ( ND36 > 0 ) THEN
-            !--------------------------------------------
-            ! Prior to 9/27/06:
-            ! This is now computed above (bmy, 9/27/06)
-            !BXHEIGHT_CM     = BXHEIGHT(I,J,L) * 100d0
-            !--------------------------------------------
             AD36(I,J,N) = AD36(I,J,N) + FLUX*BXHEIGHT_CM*1.0D4*1.0D+12
          ENDIF
 

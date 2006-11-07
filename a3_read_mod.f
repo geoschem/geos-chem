@@ -1,4 +1,4 @@
-! $Id: a3_read_mod.f,v 1.17 2006/10/17 17:51:06 bmy Exp $
+! $Id: a3_read_mod.f,v 1.18 2006/11/07 19:01:54 bmy Exp $
       MODULE A3_READ_MOD
 !
 !******************************************************************************
@@ -581,11 +581,7 @@
 
 #elif defined( GCAP )
       
-      !-----------------------
-      ! Prior to 10/4/06
-      !! GCAP has 12 fields
-      !N_A3 = 12
-      !-----------------------
+      ! GCAP has 16 fields
       N_A3 = 16
 
 #endif
@@ -836,10 +832,6 @@
             !--------------------------------
             ! PARDF: photosyn active diff rad
             !--------------------------------
-            !--------------------------
-            ! Prior to 10/4/06:
-            !CASE ( 'PARDF' )
-            !--------------------------
             CASE ( 'PARDF', 'PARDIF' )
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:8' )
@@ -852,10 +844,6 @@
             !--------------------------------
             ! PARDR: photosyn active dir rad
             !--------------------------------
-            !--------------------------
-            ! Prior to 10/4/06:
-            !CASE ( 'PARDR' )
-            !--------------------------
             CASE ( 'PARDR', 'PARDIR' )
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:9' )

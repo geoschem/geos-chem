@@ -1,4 +1,4 @@
-! $Id: gfed2_biomass_mod.f,v 1.5 2006/10/17 17:51:12 bmy Exp $
+! $Id: gfed2_biomass_mod.f,v 1.6 2006/11/07 19:02:01 bmy Exp $
       MODULE GFED2_BIOMASS_MOD
 !
 !******************************************************************************
@@ -205,16 +205,6 @@
  110     FORMAT( 'YEAR < 1997; Using GFED2 biomass for 1997!' )
       ENDIF
 
-!--------------------------------------------------------------------------
-! Prior to 10/16/06:
-! We now have GFED2 data up to 2005 (bmy, 10/16/06)
-!      ! 2004 is currently the last year of available data
-!      IF ( YYYY > 2004 ) THEN
-!         YYYY = 2004
-!         WRITE( 6, 120 ) 
-! 120     FORMAT( 'YEAR > 2004; Using GFED2 biomass for 2004!' )
-!      ENDIF
-!---------------------------------------------------------------------------
       ! 2005 is currently the last year of available data
       IF ( YYYY > 2005 ) THEN
          YYYY = 2005

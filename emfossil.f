@@ -1,4 +1,4 @@
-! $Id: emfossil.f,v 1.17 2006/09/11 14:13:48 bmy Exp $
+! $Id: emfossil.f,v 1.18 2006/11/07 19:01:59 bmy Exp $
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
 !******************************************************************************
@@ -66,10 +66,6 @@
       USE LOGICAL_MOD,        ONLY : LBRAVO, LEMEP,    LNEI99
       USE LOGICAL_MOD,        ONLY : LEDGARNOx,        LEDGARCO
       USE LOGICAL_MOD,        ONLY : LSTREETS
-      !------------------------------------------------
-      ! Prior to 9/8/06:
-      !USE STREETS_ANTHRO_MOD, ONLY : GET_CHINA_MASK
-      !------------------------------------------------
       USE STREETS_ANTHRO_MOD, ONLY : GET_SE_ASIA_MASK
       USE STREETS_ANTHRO_MOD, ONLY : GET_STREETS_ANTHRO
       USE TIME_MOD,           ONLY : GET_TS_EMIS,      GET_DAY_OF_WEEK
@@ -342,11 +338,6 @@
          !--------------------------------------------------------------
 
          ! If we are using EDGAR CO ...
-         !--------------------------------------------------------------
-         ! Prior to 9/5/06:
-         ! Bug fix: only execute this block if it is CO (bmy, 9/5/06)
-         !IF ( LEDGARCO ) THEN
-         !--------------------------------------------------------------
          IF ( NN == IDTCO .and. LEDGARCO ) THEN
          
             ! Get EDGAR CO
@@ -444,11 +435,6 @@
          IF ( LSTREETS ) THEN
 
             ! If we are over the China region ...
-            !---------------------------------------------------------------
-            ! Prior to 9/8/06:
-            ! CO is now defined over the whole SE Asia region (bmy, 9/8/06)
-            !IF ( GET_CHINA_MASK( I, J ) > 0d0 ) THEN
-            !---------------------------------------------------------------
             IF ( GET_SE_ASIA_MASK( I, J ) > 0d0 ) THEN
          
                ! Get STREETS emissions 

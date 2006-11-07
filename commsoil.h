@@ -1,4 +1,4 @@
-! $Id: commsoil.h,v 1.4 2006/10/17 17:51:10 bmy Exp $
+! $Id: commsoil.h,v 1.5 2006/11/07 19:01:57 bmy Exp $
 !
 !**********************************************************************
 !                                                                     *
@@ -46,10 +46,6 @@
       ! There are 2118  land points for the N. AMERICA nested grid
       ! There are 17174 land points for the global grid
 #if   defined( NESTED_CH )
-      !-------------------------------------
-      ! Prior to 9/22/06:
-      !PARAMETER( NLAND=2681, NPULSE=3 ) 
-      !-------------------------------------
       PARAMETER( NLAND=2861, NPULSE=3 ) 
 #elif defined( NESTED_NA )
       PARAMETER( NLAND=2118, NPULSE=3 )

@@ -1,4 +1,4 @@
-! $Id: lightning_nox_nl_mod.f,v 1.1 2006/05/15 17:52:51 bmy Exp $
+! $Id: lightning_nox_nl_mod.f,v 1.2 2006/11/07 19:02:02 bmy Exp $
       MODULE LIGHTNING_NOX_NL_MOD
 !
 !******************************************************************************
@@ -7,7 +7,11 @@
 !  GISS-II CTM's of Yuhang Wang, Gerry Gardner, & Larry Horowitz.  Overhauled 
 !  for updated parameterization schemes: CTH, MFLUX and PRECON.  Now also
 !  uses the near-land formulation (i.e. offshore boxes also get treated as
-!  if they were land boxes).  (ltm, bmy, 4/14/04, 5/10/06)  
+!  if they were land boxes).  (ltm, bmy, 4/14/04, 11/7/06)  
+!
+!  NOTE: The OTD/LIS regional scaling for MFLUX and PRECON convective schemes 
+!        have not yet been implemented.  Will add this in sometime later.
+!        (rch, bmy, 11/7/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -33,9 +37,10 @@
 !  (5 ) FLASHES_PRECON           : Computes flash rate via PRECON scheme
 !  (6 ) READ_OTD_LIS_SCALE       : Reads OTD-LIS scale factors from disk
 !  (7 ) GET_OTD_LIS_SCALE        : Returns OTD-LIS scale factors at (I,J)
-!  (8 ) EMLIGHTNING_NL           : Saves lightning NOx into GEMISNOX array
-!  (9 ) INIT_LIGHTNING_NOX_NL    : Zeroes module arrays and reads CDF data
-!  (10) CLEANUP_LIGHTNING_NOX_NL : Deallocates all module arrays
+!  (8 ) INTERANNUAL_SCALE        : Scales 4x5 total to 2x25 total for each year
+!  (9 ) EMLIGHTNING_NL           : Saves lightning NOx into GEMISNOX array
+!  (10) INIT_LIGHTNING_NOX_NL    : Zeroes module arrays and reads CDF data
+!  (11) CLEANUP_LIGHTNING_NOX_NL : Deallocates all module arrays
 !
 !  GEOS-CHEM modules referenced by lightning_nox_mod.f
 !  ============================================================================
@@ -56,6 +61,7 @@
 !  NOTES:
 !  (1 ) Based on "lightning_nox_mod.f", but updated for near-land formulation
 !        and for CTH, MFLUX, PRECON parameterizations (ltm, bmy, 5/10/06)
+!  (2 ) Added function INTERANNUAL_SCALE (rch, bmy, 11/7/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -119,6 +125,8 @@
 !  (2 ) Y. H. Wang   (1997), Paper I, submitted to JGR
 !
 !  NOTES:
+!  (1 ) Now apply the interannual scale for 4x5, so that the 4x5 total
+!        emissions will equal the 2x25 total for each year. (rch, bmy, 11/7/06)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -127,7 +135,7 @@
       USE GRID_MOD,     ONLY : GET_YMID,  GET_AREA_M2
       USE LOGICAL_MOD,  ONLY : LCTH,      LMFLUX,     LOTDLIS,  LPRECON
       USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
-      USE TIME_MOD,     ONLY : GET_MONTH
+      USE TIME_MOD,     ONLY : GET_MONTH, GET_YEAR
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_GCTM"     ! Physical constants
@@ -137,14 +145,15 @@
       INTEGER, SAVE         :: LASTMONTH = -1
       INTEGER               :: I,         J,           L,        LCHARGE
       INTEGER               :: LMAX,      LTOP,        LBOTTOM,  L_MFLUX
-      INTEGER               :: MONTH
+      INTEGER               :: MONTH,     YEAR
       REAL*8                :: A_KM2,     A_M2,        CC,       DLNP     
       REAL*8                :: DZ,        FLASHRATE,   H0,       HBOTTOM
       REAL*8                :: HCHARGE,   IC_CG_RATIO, MFLUX,    P1
       REAL*8                :: P2,        P3,          RAIN,     RATE
       REAL*8                :: RATE_SAVE, REGSCALE,    T1,       T2
       REAL*8                :: TOTAL,     TOTAL_CG,    TOTAL_IC, X       
-      REAL*8                :: YMID,      Z_IC,        Z_CG,     ZUP        
+      REAL*8                :: YMID,      Z_IC,        Z_CG,     ZUP
+      REAL*8                :: YEARLY_SCALE
       REAL*8                :: VERTPROF(LLPAR)
 
       !=================================================================
@@ -163,6 +172,9 @@
       ! Get current month
       MONTH = GET_MONTH()
 
+      ! Get current year
+      YEAR  = GET_YEAR()
+
       ! Read OTD-LIS scaling once per month.  NOTE: test against LASTMONTH 
       ! because ITS_A_NEW_MONTH is only TRUE at 0 GMT on the 1st day of the
       ! current month. (ltm, bmy, 5/10/06)
@@ -171,8 +183,18 @@
          LASTMONTH = MONTH
       ENDIF
 
+      ! Get scale factor which will bring the 4x5 lightning totals
+      ! to the same value as the 2x25 totals for a given year
+      ! (If not running on 2x25, then the scale factor = 1)
+      YEARLY_SCALE = INTERANNUAL_SCALE( YEAR )
+
       ! Array containing molecules NOx / grid box / 6h. 
-      SLBASE(:,:,:) = 0d0
+      !------------------------------------------------------------------
+      ! Prior to 11/6/06:
+      ! More efficient to write this w/o the (:,:,:) (bmy, 11/6/06)
+      !SLBASE(:,:,:) = 0d0
+      !------------------------------------------------------------------
+      SLBASE = 0d0
 
       !=================================================================
       ! Compute lightning emissions for each (I,J) column
@@ -576,7 +598,8 @@
             ENDIF
 
             ! Apply scale factor to total NOx [molec/6h]
-            TOTAL    = TOTAL * REGSCALE
+            ! Also scale 4 x 5 to same as 2 x 2.5 totals
+            TOTAL    = TOTAL * REGSCALE * YEARLY_SCALE
 
             !-----------------------------------------------------------
             ! (5a) ND56 diagnostic: store flash rates [flashes/min/km2]
@@ -1419,6 +1442,100 @@
 
       ! Return to calling function
       END FUNCTION GET_OTD_LIS_SCALE
+
+!------------------------------------------------------------------------------
+
+      FUNCTION INTERANNUAL_SCALE( YEAR ) RESULT( SCALE )
+!
+!******************************************************************************
+!  Function INTERANNUAL_SCALE returns the scale factor that will bring the
+!  4 x 5 GEOS-4 lightning emissions to the same total that we get at 2 x 2.5.
+!  (rch, bmy, 11/6/06)
+!
+!  BACKGROUND: The OTD/LIS scaling is just a regional scale factor.  It does 
+!  not change the yearly lightning emissions total.  When we run GEOS-Chem at 
+!  2 x 2.5, the near-land lightning algorithm produces close to 6 Tg, without
+!  need for further scaling.  However, when we run the 
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) YEAR (INTEGER) : Current year
+!
+!  NOTES:
+!******************************************************************************
+!     
+      ! Arguments
+      INTEGER, INTENT(IN) :: YEAR
+
+      ! Local variables
+      REAL*8              :: SCALE
+
+      !=================================================================
+      ! INTERANNUAL_SCALE begins here!
+      !=================================================================
+
+#if   defined( GEOS_4 ) && defined( GRID4x5 )
+
+      ! Pick the right scale factor for each year.  Scale so that 
+      ! the 4x5 total equals the 2 x 2.5 total for the same year.
+      SELECT CASE ( YEAR )
+         CASE( 2006 )
+            !SCALE = 
+         CASE( 2005 )
+            SCALE = 5.3908d0 / 2.2450d0 
+         CASE( 2004 )
+            SCALE = 4.9766d0 / 2.0816d0
+         CASE( 2003 )
+            SCALE = 5.3230d0 / 2.2175d0
+         CASE( 2002 )
+            !SCALE =
+         CASE( 2001 )
+            !SCALE =
+         CASE( 2000 )
+            !SCALE =
+         CASE( 1999 )
+            !SCALE =
+         CASE( 1998 )
+            !SCALE = 
+         CASE( 1997 )
+            !SCALE =
+         CASE( 1996 )
+            !SCALE =
+         CASE( 1995 )
+            !SCALE = 
+         CASE( 1994 )
+            !SCALE =
+         CASE( 1993 )
+            !SCALE = 
+         CASE( 1992 )
+            !SCALE = 
+         CASE( 1991 )
+            !SCALE =
+         CASE( 1990 )
+            !SCALE =
+         CASE( 1989 )
+            !SCALE =
+         CASE( 1988 )
+            !SCALE =
+         CASE( 1987 )
+            !SCALE =
+         CASE( 1986 )
+            !SCALE =
+         CASE( 1985 )
+            !SCALE =
+         CASE DEFAULT
+            SCALE = 1d0
+      END SELECT
+     
+#else
+
+      ! Default scale is 1
+      SCALE = 1d0
+
+#endif
+
+      ! Return to calling program
+      END FUNCTION INTERANNUAL_SCALE
 
 !------------------------------------------------------------------------------
 

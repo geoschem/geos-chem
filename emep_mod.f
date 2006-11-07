@@ -1,4 +1,4 @@
-! $Id: emep_mod.f,v 1.5 2006/10/18 20:07:24 bmy Exp $
+! $Id: emep_mod.f,v 1.6 2006/11/07 19:01:59 bmy Exp $
       MODULE EMEP_MOD
 !
 !******************************************************************************
@@ -650,37 +650,6 @@
       ALLOCATE( EUROPE_MASK( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EUROPE_MASK' )
       EUROPE_MASK = 0d0
-
-!------------------------------------------------------------------------------
-! Prior to 10/18/06:
-! Now read the Europe mask from a disk file instead of defining it as a box,
-! this ought to prevent the "gap" problem when overwriting the NOx and CO
-! data on top of EDGAR emissions. (bmy, 10/18/06)
-!      !--------------------------------
-!      ! Make Europe mask, w/ corners
-!      ! (40E, 30N) and (45W, 74N)
-!      !--------------------------------
-!
-!      ! Loop over latitudes
-!      DO J = 1, JJPAR
-!         
-!         ! Grid box lat [degrees]
-!         Y = GET_YMID( J )
-!
-!         ! Loop over longitudes
-!         DO I = 1, IIPAR
-!            
-!            ! Grid box lon [degrees]
-!            X = GET_XMID( I )
-!
-!            ! Set EUROPE_MASK=1 for boxes w/in the European region
-!            IF ( ( X >= -40d0 .and. X <= 45d0 )  .and. 
-!     &           ( Y >=  30d0 .and. Y <= 74d0 ) ) THEN
-!               EUROPE_MASK(I,J) = 1d0
-!            ENDIF
-!         ENDDO
-!      ENDDO
-!------------------------------------------------------------------------------
 
       ! Read and regrid the European mask
       CALL READ_EUROPE_MASK

@@ -1,4 +1,4 @@
-! $Id: c2h6_mod.f,v 1.9 2006/10/17 17:51:07 bmy Exp $
+! $Id: c2h6_mod.f,v 1.10 2006/11/07 19:01:55 bmy Exp $
       MODULE C2H6_MOD
 !
 !******************************************************************************
@@ -180,15 +180,6 @@
             ! Loop over longitudes
             DO I = 1, IIPAR
  
-!-----------------------------------------------------------------------------
-! Prior to 9/27/06:
-! BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of [atoms C/cm2/s]. 
-! Adjust unit conversion accordingly. (bmy, 9/27/06) 
-!            ! Convert [molec C/cm3/s] to [kg C2H6] and store in E_C2H6
-!            E_C2H6_BB = BIOMASS(I,J,IDBC2H6)       / 2.0d0  / 
-!     &                  XNUMOL_C2H6 * BOXVL(I,J,1) * DTSRCE  
-!-----------------------------------------------------------------------------
-
                ! Convert [atoms C/cm2/s] to [kg C2H6] and store in E_C2H6
                E_C2H6_BB = BIOMASS(I,J,IDBC2H6)   / 2.0d0  / 
      &                     XNUMOL_C2H6 * AREA_CM2 * DTSRCE  

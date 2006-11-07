@@ -1,4 +1,4 @@
-! $Id: gamap_mod.f,v 1.19 2006/10/17 17:51:11 bmy Exp $
+! $Id: gamap_mod.f,v 1.20 2006/11/07 19:02:00 bmy Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
@@ -671,15 +671,6 @@
       CATEGORY(N) = 'ANTHSRCE'
       DESCRIPT(N) = 'Anthropogenic emissions'
       OFFSET(N)   = SPACING * 1
-
-      !-----------------------------------------------------------
-      ! Prior to 9/28/06:
-      ! Now make a separate category for BIOBSRCE (bmy, 9/28/06)
-      !N           = N + 1
-      !CATEGORY(N) = 'BIOBSRCE'
-      !DESCRIPT(N) = 'Biomass emissions'
-      !OFFSET(N)   = SPACING * 1
-      !-----------------------------------------------------------
 
       N           = N + 1
       CATEGORY(N) = 'BIOFSRCE'
@@ -2445,11 +2436,6 @@
      &     DO_SAVE_DIAG50 .or. DO_SAVE_DIAG51 ) THEN 
 
          ! Number of tracers
-         !------------------------------------------------------
-         ! Prior to 9/28/06:
-         ! Bug fix: Need to write out 26 tracers (bmy, 9/28/06)
-         !NTRAC(48) = 4
-         !------------------------------------------------------
          NTRAC(48) = 26
 
          ! Loop over tracers
@@ -2934,34 +2920,6 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      !-----------------------------------------------------------------------
-      ! Prior to 9/28/06:
-      ! These can be moved into INIT_DIAGINFO (bmy, 9/28/06)
-      !USE BIOMASS_MOD,  ONLY : NBIOMAX
-      !USE DIAG03_MOD,   ONLY : ND03
-      !USE DIAG04_MOD,   ONLY : ND04
-      !USE DIAG41_MOD,   ONLY : ND41
-      !USE DIAG42_MOD,   ONLY : ND42
-      !USE DIAG48_MOD,   ONLY : DO_SAVE_DIAG48
-      !USE DIAG49_MOD,   ONLY : DO_SAVE_DIAG49
-      !USE DIAG50_MOD,   ONLY : DO_SAVE_DIAG50
-      !USE DIAG51_MOD,   ONLY : DO_SAVE_DIAG51
-      !USE DIAG56_MOD,   ONLY : ND56
-      !USE DIAG_PL_MOD,  ONLY : DO_SAVE_PL,  GET_NFAM
-      !USE DIAG_PL_MOD,  ONLY : GET_FAM_MWT, GET_FAM_NAME
-      !USE DRYDEP_MOD,   ONLY : DEPNAME,     NUMDEP,    NTRAIND
-      !USE ERROR_MOD,    ONLY : ALLOC_ERR
-      !USE LOGICAL_MOD,  ONLY : LSOA
-      !USE TIME_MOD,     ONLY : EXPAND_DATE, GET_NHMSb, GET_NYMDb
-      !USE TRACER_MOD,   ONLY : ITS_A_CH3I_SIM,   ITS_A_FULLCHEM_SIM
-      !USE TRACER_MOD,   ONLY : ITS_A_HCN_SIM,    ITS_A_MERCURY_SIM
-      !USE TRACER_MOD,   ONLY : ITS_A_RnPbBe_SIM, ITS_A_TAGOX_SIM
-      !USE TRACER_MOD,   ONLY : N_TRACERS,        TRACER_COEFF
-      !USE TRACER_MOD,   ONLY : TRACER_MW_KG,     TRACER_NAME
-      !USE TRACERID_MOD, ONLY : IDTBCPI, IDTOCPI, IDTALPH, IDTLIMO
-      !USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, NEMANTHRO
-      !USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD, GET_WETDEP_NSOL
-      !-----------------------------------------------------------------------
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE TIME_MOD,    ONLY : EXPAND_DATE, GET_NHMSb, GET_NYMDb
 

@@ -1,4 +1,4 @@
-! $Id: diag3.f,v 1.39 2006/10/18 15:49:18 bmy Exp $
+! $Id: diag3.f,v 1.40 2006/11/07 19:01:58 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
@@ -187,17 +187,6 @@
       DIAGe     = GET_DIAGe()
       SECONDS   = ( DIAGe - DIAGb ) * 3600d0
       SCALED    = 1d0
-      !----------------------------------------------------------------------
-      ! Prior to 9/5/06:
-      ! Replace TINY(1d0) with 1d-32 to avoid problems on SUN (bmy, 9/5/06)
-      !SCALEDYN  = DBLE( GET_CT_DYN()  ) + TINY( 1d0 )
-      !SCALECONV = DBLE( GET_CT_CONV() ) + TINY( 1d0 )
-      !SCALESRCE = DBLE( GET_CT_EMIS() ) + TINY( 1d0 )
-      !SCALECHEM = DBLE( GET_CT_CHEM() ) + TINY( 1d0 )
-      !SCALE_A3  = DBLE( GET_CT_A3()   ) + TINY( 1d0 )
-      !SCALE_A6  = DBLE( GET_CT_A6()   ) + TINY( 1d0 )
-      !SCALE_I6  = DBLE( GET_CT_I6()   ) + TINY( 1d0 )
-      !----------------------------------------------------------------------
       SCALEDYN  = DBLE( GET_CT_DYN()  ) + 1d-32
       SCALECONV = DBLE( GET_CT_CONV() ) + 1d-32
       SCALESRCE = DBLE( GET_CT_EMIS() ) + 1d-32

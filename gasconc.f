@@ -1,4 +1,4 @@
-! $Id: gasconc.f,v 1.13 2006/10/17 17:51:11 bmy Exp $
+! $Id: gasconc.f,v 1.14 2006/11/07 19:02:01 bmy Exp $
       SUBROUTINE GASCONC( FIRSTCHEM, NTRACER, STT, XNUMOL, FRCLND )
 !
 !******************************************************************************
@@ -87,11 +87,6 @@ C
       ! GASCONC begins here!
       !=================================================================
 
-      !-----------------------
-      ! Prior to 10/16/06:
-      !NCS = 1
-      !-----------------------
-
       ! Set NCS=NCSURBAN here since we have defined our tropospheric
       ! chemistry mechanism in the urban slot of SMVGEAR II
       NCS = NCSURBAN
@@ -132,13 +127,6 @@ C
             IF ( NAMEGAS(JGAS) == 'MOH' ) THEN
 
                ! Loop over all potential tropospheric boxes
-               !-------------------------------------------------
-               ! Prior to 10/3/06:
-               ! Make DO-loops go in the right order
-               !DO IX = 1, IIPAR
-               !DO IY = 1, JJPAR
-               !DO IZ = 1, LLTROP
-               !-------------------------------------------------
                DO IZ = 1, LLTROP
                DO IY = 1, JJPAR
                DO IX = 1, IIPAR
@@ -146,14 +134,6 @@ C
                   ! Conversion factor
                   CONST = GET_PCENTER(IX,IY,IZ)*1000D0/(T(IX,IY,IZ)*BK)
                 
-!======= prior 09/12 ==========================
-!               DO JLOOP = 1, NTLOOP
-!                  ! Convert 1-D grid box index to 3-D indices
-!                  IX = IXSAVE(JLOOP)
-!                  IY = IYSAVE(JLOOP)
-!                  IZ = IZSAVE(JLOOP)
-!=================== ==========================
-
                   !------------------------------
                   ! Test for altitude
                   ! IZ < 9 is always in the trop.
@@ -168,10 +148,6 @@ C
                          ! Continental boundary layer: 2 ppbv MOH
                         CSPEC_FULL(IX,IY,IZ,JGAS) = 2.000d-9 * CONST
 
-                        !======= prior 09/12 ==========================
-!     &                  2.000d-9 * PRESS3(JLOOP) / ( T3(JLOOP) * BK )
-                        !=============================================
-
                         ! Make sure MOH conc. is not negative (SMAL2 = 1d-99)
                         CSPEC_FULL(IX,IY,IZ,JGAS) = 
      &                       MAX(CSPEC_FULL(IX,IY,IZ,JGAS),SMAL2)
@@ -180,10 +156,6 @@ C
 
                         ! Marine boundary layer: 0.9 ppbv MOH
                         CSPEC_FULL(IX,IY,IZ,JGAS) = 0.900d-9 * CONST
-
-                        !======= prior 09/12 ==========================
-!     &                  0.900d-9 * PRESS3(JLOOP) / ( T3(JLOOP) * BK )
-                        !==============================================
 
                         ! Make sure MOH conc. is not negative (SMAL2 = 1d-99)
                         CSPEC_FULL(IX,IY,IZ,JGAS) = 
@@ -221,14 +193,6 @@ C
                ! Methanol (MOH) in mixing ratios units
                !========================================================
 
-               !DO 26 JLOOP = 1, NTLOOP
-               !---------------------------------------
-               ! Prior to 10/3/06:
-               ! Make DO-loops go in the right order
-               !DO IX = 1, IIPAR
-               !DO IY = 1, JJPAR
-               !DO IZ = 1, LLTROP
-               !----------------------------------------
                DO IZ = 1, LLTROP         
                DO IY = 1, JJPAR
                DO IX = 1, IIPAR
@@ -275,13 +239,6 @@ C
 C *********************************************************************
 C *              zero out dry deposition counter species              *
 C *********************************************************************
-
-      !-------------------------------------------------------------------
-      ! Prior to 10/16/06:
-      ! Now set NCS = NCSURBAN (=1) (dbm, bmy, 10/16/06)
-      !! NCS should equal 1 for drydep, only happens in first layer.
-      !NCS = 1
-      !-------------------------------------------------------------------
 
       ! Set NCS=NCSURBAN here since we have defined our tropospheric
       ! chemistry mechanism in the urban slot of SMVGEAR II
