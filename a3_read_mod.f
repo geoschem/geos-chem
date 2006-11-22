@@ -1,4 +1,4 @@
-! $Id: a3_read_mod.f,v 1.18 2006/11/07 19:01:54 bmy Exp $
+! $Id: a3_read_mod.f,v 1.19 2006/11/22 18:30:43 phs Exp $
       MODULE A3_READ_MOD
 !
 !******************************************************************************
@@ -442,6 +442,7 @@
 !        (bmy, 2/9/06)
 !  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (5 ) Now read PARDF, PARDR for GCAP met fields (swu, bmy, 10/4/06)
+!  (6 ) Now read SNOW and GETWETTOP for GCAP met fields (swu, phs, 11/15/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -509,17 +510,22 @@
       !================================================================
       ! For GCAP, read the following fields:
       !
-      !    ALBEDO, MOLENGTH, OICE,  PARDF, PARDR, PBL,   PREACC, 
-      !    PRECON, RADSWG,   SNICE, TS,    U10M,  USTAR, V10M
+      !    ALBEDO, GETWETTOP, MOLENGTH, OICE,  PARDF, PARDR, PBL,
+      !    PREACC, PRECON,    RADSWG,   SNICE, SNOW,  TS,    U10M,  
+      !    USTAR,  V10M
       !
       ! NOTES: 
       !================================================================
       CALL READ_A3( NYMD=NYMD,     NHMS=NHMS,     
-     &              ALBEDO=ALBD,   MOLENGTH=MOLENGTH, OICE=OICE,       
-     &              PARDF=PARDF,   PARDR=PARDR,       PBL=PBL,       
-     &              PREACC=PREACC, PRECON=PRECON,     RADSWG=RADSWG, 
-     &              SNICE=SNICE,   TS=TS,             U10M=U10M,     
-     &              USTAR=USTAR,   V10M=V10M  )
+     &              ALBEDO=ALBD,   GWETTOP=GWETTOP,   MOLENGTH=MOLENGTH,      
+     &              OICE=OICE,     PARDF=PARDF,       PARDR=PARDR,
+     &              PBL=PBL,       PREACC=PREACC,     PRECON=PRECON,
+     &              RADSWG=RADSWG, SNICE=SNICE,       SNOW=SNOW, 
+     &              TS=TS,         U10M=U10M,         USTAR=USTAR,
+     &              V10M=V10M  )
+
+      ! Convert [m] to [mm]
+      SNOW = SNOW*1000.D0
 
 #endif
 
@@ -782,7 +788,7 @@
             !--------------------------------
             ! GWETTOP: topsoil wetness 
             !--------------------------------
-            CASE ( 'GWETTOP' ) 
+            CASE ( 'GWETTOP', 'SOIL' ) 
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:4' )
 
@@ -940,7 +946,7 @@
             !--------------------------------
             ! SNOW: snow depth (H2O equiv.)
             !--------------------------------
-            CASE ( 'SNOW' )
+            CASE ( 'SNOW', 'SNOWD' )
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:17' )
              

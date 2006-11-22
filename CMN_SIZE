@@ -1,4 +1,4 @@
-! $Id: CMN_SIZE,v 1.23 2006/10/16 20:44:26 phs Exp $
+! $Id: CMN_SIZE,v 1.24 2006/11/22 18:30:43 phs Exp $
       !=======================================================================
       ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 8/4/06)
       !
@@ -76,14 +76,16 @@
       !=================================================================
       ! GRID PARAMETERS
       !
-      ! IGLOB  = global longitude dimension
-      ! JGLOB  = global latitude dimension
-      ! LGLOB  = max number of sigma levels 
-      ! IIPAR  = window longitude dimension
-      ! JJPAR  = window latitude dimension
-      ! LLPAR  = window vertical dimension
-      ! LLTROP = number of tropospheric levels 
-      ! PTOP   = model top pressure (mb)
+      ! IGLOB      = global longitude dimension
+      ! JGLOB      = global latitude dimension
+      ! LGLOB      = max number of sigma levels 
+      ! IIPAR      = window longitude dimension
+      ! JJPAR      = window latitude dimension
+      ! LLPAR      = window vertical dimension
+      ! LLTROP     = maximum number of tropospheric levels for variable
+      !              tropopause
+      ! LLTROP_FIX = number of tropospheric levels for offline simulations
+      ! PTOP       = model top pressure (mb)
       !
       ! Most of the time, GEOS-CHEM is used for global simulations.
       ! In this case, then IIPAR=IGLOB, JJPAR=JGLOB, LLPAR=LGLOB.
@@ -103,7 +105,8 @@
       INTEGER, PARAMETER :: JJPAR  = JGLOB
       INTEGER, PARAMETER :: LLPAR  = LGLOB
 
-      INTEGER, PARAMETER :: LLTROP = 12     
+      INTEGER, PARAMETER :: LLTROP     = 12  ! to determine correctly
+      INTEGER, PARAMETER :: LLTROP_FIX = 12
 
       REAL*8,  PARAMETER :: PTOP   = 0.002d0
 

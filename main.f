@@ -1,5 +1,25 @@
-! $Id: main.f,v 1.42 2006/10/17 17:51:14 bmy Exp $
+! $Id: main.f,v 1.43 2006/11/22 18:30:44 phs Exp $
 ! $Log: main.f,v $
+! Revision 1.43  2006/11/22 18:30:44  phs
+! Modified - 11/2006, phs
+!
+!        CMN_SIZE      : now define lltrop_fix for GCAP. It is needed
+!                        although variable tropopause is not available
+!                        in GCAP.
+!
+!        a3_read_mod.f : added SNOW and GETWETTOP fields for GCAP
+!
+!        dao_mod.f     : fix minor bug that inverted TROPP1 and TROPP2
+!
+!        main.f        : remove duplicate call for unzip in GCAP case
+!
+!        sulfate_mod.f : temporary fix (data need regridding) for GCAP
+!                        read_aircraft_so2
+!
+!        time_mod.f    : fix leap year problem in get_time_ahead for GCAP
+!
+!        transport_mod.f : fix mismatched indices for embedded chemistry
+!
 ! Revision 1.42  2006/10/17 17:51:14  bmy
 ! GEOS-Chem v7-04-10, includes the following modifications:
 ! - Includes variable tropopause with ND54 diagnostic
@@ -383,17 +403,6 @@
          CALL OPEN_XTRA_FIELDS( DATE(1), DATE(2) )
          CALL GET_XTRA_FIELDS(  DATE(1), DATE(2) ) 
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st XTRA TIME' )
-      ENDIF
-#endif
-
-#if   defined( GCAP )
-      ! Read GCAP PHIS and LWI fields (if necessary)
-      CALL OPEN_GCAP_FIELDS
-      CALL GET_GCAP_FIELDS
-
-      ! Remove temporary file (if necessary)
-      IF ( LUNZIP ) THEN
-         CALL UNZIP_GCAP_FIELDS( 'remove date' )
       ENDIF
 #endif
 

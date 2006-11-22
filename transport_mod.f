@@ -1,4 +1,4 @@
-! $Id: transport_mod.f,v 1.13 2006/08/14 17:58:20 bmy Exp $
+! $Id: transport_mod.f,v 1.14 2006/11/22 18:30:47 phs Exp $
       MODULE TRANSPORT_MOD
 !
 !******************************************************************************
@@ -180,6 +180,7 @@
 !  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (9 ) Now do flipping of arrays in call to TPCORE_FVDAS (bmy, 6/16/06)
 !  (10) Rewrote some parallel loops for the SUN compiler (bmy, 7/14/06)
+!  (11) Fix setting of boundary conditions (phs, 11/13/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -248,11 +249,11 @@
             !-------------------------
             DO J = 1, JJPAR
                IF ( IEBD1 > 1 ) THEN
-                  STT_I1(J,L,N) = STT(IEBD1-1,J,L,N)
+                  STT_J1(J,L,N) = STT(IEBD1-1,J,L,N)
                ENDIF
          
                IF ( IEBD2 < IIPAR ) THEN
-                  STT_I2(J,L,N) = STT(IEBD2+1,J,L,N)
+                  STT_J2(J,L,N) = STT(IEBD2+1,J,L,N)
                ENDIF
             ENDDO
 
@@ -261,11 +262,11 @@
             !-------------------------
             DO I = 1, IIPAR              
                IF ( JEBD1 > 1  ) THEN
-                  STT_J1(I,L,N) = STT(I,JEBD1-1,L,N)
+                  STT_I1(I,L,N) = STT(I,JEBD1-1,L,N)
                ENDIF
          
                IF ( JEBD2 < JJPAR ) THEN
-                  STT_J2(I,L,N) = STT(I,JEBD2+1,L,N)
+                  STT_I2(I,L,N) = STT(I,JEBD2+1,L,N)
                ENDIF
             ENDDO
          ENDDO
@@ -545,11 +546,11 @@
             !-------------------------
             DO J = 1, JJPAR
                IF ( IEBD1 > 1  ) THEN
-                  STT(IEBD1-1,J,L,N) = STT_I1(J,L,N)
+                  STT(IEBD1-1,J,L,N) = STT_J1(J,L,N)
                ENDIF
          
                IF ( IEBD2 < IIPAR ) THEN
-                  STT(IEBD2+1,J,L,N) = STT_I2(J,L,N)
+                  STT(IEBD2+1,J,L,N) = STT_J2(J,L,N)
                ENDIF
             ENDDO
 
@@ -558,11 +559,11 @@
             !-------------------------
             DO I = 1, IIPAR
                IF ( JEBD1 > 1  ) THEN
-                  STT(I,JEBD1-1,L,N) = STT_J1(I,L,N)
+                  STT(I,JEBD1-1,L,N) = STT_I1(I,L,N)
                ENDIF
                
                IF ( JEBD2 < JJPAR ) THEN
-                  STT(I,JEBD2+1,L,N) = STT_J2(I,L,N)
+                  STT(I,JEBD2+1,L,N) = STT_I2(I,L,N)
                ENDIF
             ENDDO
 

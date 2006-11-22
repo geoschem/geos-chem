@@ -1,4 +1,4 @@
-! $Id: dao_mod.f,v 1.22 2006/10/16 20:44:28 phs Exp $
+! $Id: dao_mod.f,v 1.23 2006/11/22 18:30:44 phs Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
@@ -1551,7 +1551,7 @@
          PS1(I,J)   = PS2(I,J) 
 
          ! Tropopause pressure
-         TROPP2(I,J) = TROPP1(I,J)
+         TROPP1(I,J) = TROPP2(I,J)
 
 #if   defined( GEOS_3 )
          ! Also copy surface albedo (GEOS-1, GEOS-S, GEOS-3 only)

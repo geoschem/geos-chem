@@ -1,4 +1,4 @@
-! $Id: time_mod.f,v 1.27 2006/11/07 19:02:07 bmy Exp $
+! $Id: time_mod.f,v 1.28 2006/11/22 18:30:47 phs Exp $
       MODULE TIME_MOD
 !
 !******************************************************************************
@@ -1121,7 +1121,7 @@
 !  ============================================================================
 !  (1 ) N_MINS (INTEGER) : Minutes ahead of time to compute YYYYMMDD,HHMMSS
 ! 
-!  NOTES:
+!  NOTES: Added leap year case for GCAP (11/21/06, phs)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1131,7 +1131,7 @@
       INTEGER, INTENT(IN) :: N_MINS
 
       ! Local variables
-      INTEGER             :: DATE(2)
+      INTEGER             :: DATE(2), THISYEAR, THISMONTH, THISDAY
       REAL*8              :: JD
 
       !=================================================================
@@ -1143,6 +1143,23 @@
 
       ! Call CALDATE to compute the current YYYYMMDD and HHMMSS
       CALL CALDATE( JD, DATE(1), DATE(2) )
+
+
+#if   defined( GCAP ) 
+
+      !-------------------------------
+      ! GCAP met fields: no leapyears
+      !-------------------------------
+
+      ! Extract current year, month, day from DATE(1)
+      CALL YMD_EXTRACT( DATE(1), THISYEAR, THISMONTH, THISDAY )
+
+      ! Special handling for leap years 
+      IF ( ITS_A_LEAPYEAR( THISYEAR, FORCE=.TRUE. )  .AND. 
+     &     THISMONTH == 2 .AND. THISDAY == 29  )
+     &     DATE(1) = ( THISYEAR * 10000 ) + 0301
+         
+#endif
 
       ! Return to calling program
       END FUNCTION GET_TIME_AHEAD

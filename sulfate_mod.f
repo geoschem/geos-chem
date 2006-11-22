@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.32 2006/11/07 19:02:04 bmy Exp $
+! $Id: sulfate_mod.f,v 1.33 2006/11/22 18:30:45 phs Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -6137,6 +6137,10 @@
          IF ( IOS > 0 ) THEN
             CALL IOERROR( IOS, IU_FILE, 'read_aircraft_so2:3' )
          ENDIF
+
+         ! fix for GCAP (11/17/06, phs)
+         ! because for GCAP, JGLOB is 45
+         if ( J == 46 ) CYCLE
 
          ! Unit conversion: [kg Fuel/box/day] -> [kg SO2/box/s]
          ! Assuming an emission index of 1.0, 
