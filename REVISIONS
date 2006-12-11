@@ -1,5 +1,5 @@
 REVISIONS (v7-04-11)  
-07 Nov 2006
+07 Dec 2006
 Philippe Le Sager (phs@io.as.harvard.edu) and
 Bob Yantosca      (bmy@io.as.harvard.edu)
 
@@ -7,8 +7,26 @@ Bob Yantosca      (bmy@io.as.harvard.edu)
 New in v7-04-11:
 -------------------------------------------------------------------------------
 
-interannual_scale   	   -- Scales the 4x5 lightning NOx emissions to the
-("lightning_nox_nl_mod.f")    same total as the 2x25 emissions for each year.
+get_flash_scale_cth	   -- Function GET_FLASH_SCALE_CTH returns a met-field 
+("lightning_nox_nl_mod.f")    dependent scale factor (for the CTH 
+	                      parameterization) which is to be applied to the 
+		              lightning NOx emissions in order to bring the 
+		              total to a specified value of 6 Tg N/yr.
+
+get_flash_scale_mflux	   -- Function GET_FLASH_SCALE_CTH returns a met-field 
+("lightning_nox_nl_mod.f")    dependent scale factor (for the CTH 
+	                      parameterization) which is to be applied to the 
+		              lightning NOx emissions in order to bring the 
+		              total to a specified value of 6 Tg N/yr.
+
+get_flash_scale_precon	   -- Function GET_FLASH_SCALE_CTH returns a met-field 
+("lightning_nox_nl_mod.f")    dependent scale factor (for the CTH 
+	                      parameterization) which is to be applied to the 
+		              lightning NOx emissions in order to bring the 
+		              total to a specified value of 6 Tg N/yr.
+
+get_ic_cg_ratio		   -- Split off from FLASHES_CTH, FLASHES_MFLUX, 
+("lightning_nox_nl_mod.f")    FLASHES_PRECON into this separate function
 
 
 
@@ -23,9 +41,83 @@ Changed in v7-04-11:
 biomass_carb_geos   	   -- Prevent seg fault error when LBIOMASS=F
 ("carbon_mod.f")
 
-lightning_nl		   -- Now apply the interannual scale for 4x5, 
-("lightning_nox_nl_mod.f")    so that the 4x5 total emissions will equal the 
-                              2x25 total for each year
+cleanup_lightning_nox_nl   -- Rename OTDSCALE to OTD_REDIST
+("lightning_nox_nl_mod.f")
+
+CMN_SIZE		   -- Bug fix: set LLTROP_FIX = LLPAR for GCAP
+
+do_global_transport	   -- Bug fix: now index STT_I1, STT_J1, STT_I2, 
+("transport_mod.f")           STT_J2 correctly
+
+flashes_cth		   -- Remove CCTHICK, IC_CG_RATIO as arguments
+("lightning_nox_nl_mod.f") -- Remove computation of IC_CG_RATIO and move that 
+			      to GET_IC_CG_RATIO
+
+flashes_mflux		   -- Remove CCTHICK as an argument
+("lightning_nox_nl_mod.f") -- Change IC_CG_RATIO to an input argument
+		           -- Remove computation of IC_CG_RATIO and move that 
+			      to GET_IC_CG_RATIO
+
+flashes_precon		   -- Remove CCTHICK as an argument
+("lightning_nox_nl_mod.f") -- Change IC_CG_RATIO to an input argument
+		           -- Remove computation of IC_CG_RATIO and move that 
+			      to GET_IC_CG_RATIO.
+
+get_a3_fields		   -- Now read SNOW and GWETTOP for GCAP met fields
+("a3_read_mod.f")
+
+get_otd_lis_scale	   -- Renamed function name to GET_OTD_LIS_REDIST 
+("lightning_nox_nl_mod.f") -- Renamed variable OTDSCALE to OTD_REDIST
+
+get_lwc			   -- Now also add a case for T > 293 to the IF 
+("mercury_mod.f")             statement
+
+get_time_ahead		   -- leap year fix for gcap
+("time_mod.f")
+
+init_diag49		   -- Now allow ND49_IMIN to be equal to ND49_IMAX and
+("diag49_mod.f")              ND49_JMIN to be equal to ND49_JMAX.  This will 
+			      allow us to save out lon or lat transects. 
+
+init_diag50		   -- Now allow ND50_IMIN to be equal to ND50_IMAX and
+("diag50_mod.f")              ND50_JMIN to be equal to ND50_JMAX.  This will 
+			      allow us to save out lon or lat transects. 
+
+init_diag51		   -- Now allow ND51_IMIN to be equal to ND51_IMAX and
+("diag51_mod.f")              ND51_JMIN to be equal to ND51_JMAX.  This will 
+			      allow us to save out lon or lat transects. 
+
+init_lightning_nox_nl	   -- Rename OTDSCALE to OTD_REDIST
+("lightning_nox_nl_mod.f") -- Now call GET_FLASH_SCALE_CTH,
+	                      GET_FLASH_SCALE_MFLUX, GET_FLASH_SCALE_PRECON 
+			      depending on the type of lightning param used
+			   -- Updated comments
+
+lightdist		   -- Added extra safety check for pathological boxes
+("lightning_nox_nl_mod.f")
+
+lightning_nl		   -- Now recompute the cold cloud thickness according
+("lightning_nox_nl_mod.f")    to updated formula from Lee Murray
+			   -- Rearranged argument lists to routines 
+			      FLASHES_CTH, FLASHES_MFLUX, FLASHES_PRECON. 
+			   -- Now call READ_OTD_LIS_REDIST.
+			   -- Now apply FLASH_SCALE to scale the total 
+			      lightning NOx to 6 Tg N/yr.
+			   -- Now apply OTD/LIS or other lightning 
+			      redistribution to the ND56 diagnostic
+			   -- Updated comments accordingly
+			   
+lightning_nox_nl_mod.f	   -- Now move computation of IC/CG flash ratio out of
+		              routines FLASHES_CTH, FLASHES_MFLUX, 
+	                      FLASHES_PRECON, and into routine GET_IC_CG_RATIO
+			      Set module variable E_IC_CG = 1 according to 
+	                      Allen & Pickering [2002].
+			   -- Rename OTDSCALE to OTD_REDIST to reflect that 
+	                      this is a redistribution
+			   -- Now scale lightning to 6 Tg N/yr for both 
+			      2x25 and 4x5
+
+main.f			   -- Fixed typos for GCAP
 
 read_biomass_nh3	   -- Prevent seg fault error when LBIOMASS=F
 ("sulfate_mod.f")
@@ -33,4 +125,12 @@ read_biomass_nh3	   -- Prevent seg fault error when LBIOMASS=F
 read_biomass_so2	   -- Now prevent seg fault if BIOMASS emissions are 
 ("sulfate_mod.f")	      turned off
 
+read_emissions_menu	   -- Kludge: Reset LMFLUX or LPRECON to LCTH, as the 
+("input_mod.f")               MFLUX and PRECON lightning schemes have not yet
+			      been implemented
 
+read_otd_lis_redist	   -- Change CTH scale filename from "v0" to "v1"
+("lightning_NOx_nl_mod.f") -- Renamed from "read_otd_lis_scale"
+
+seasalt_chem		   -- Fixed typo in FALK_A_SO2 equation: C_FLUX_C  
+("sulfate_mod.f")             should be C_FLUX_A.

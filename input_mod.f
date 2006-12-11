@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.36 2006/10/17 17:51:13 bmy Exp $
+! $Id: input_mod.f,v 1.37 2006/12/11 19:37:50 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -1240,6 +1240,8 @@
 !  (8 ) Now read LBRAVO for BRAVO Mexican emissions (rjp, kfb, bmy, 6/26/06)
 !  (9 ) Now read LEDGAR for EDGAR emissions (avd, bmy, 7/11/06)
 !  (10) Now read LSTREETS for David Streets' emissions (bmy, 8/17/06)
+!  (11) Kludge: Reset LMFLUX or LPRECON to LCTH, as the MFLUX and PRECON
+!        lightning schemes have not yet been implemented (bmy, 11/27/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1413,6 +1415,22 @@
          ! Kludge: for now set LOTDLIS=T.  We have not yet implemented
          ! the alternative option. (ltm, bmy, 5/10/06)
          LOTDLIS = .TRUE.
+
+         ! Kludge: for now, reset LMFLUX to LCTH, as the MFLUX
+         ! lightning schemes has not been implemented (bmy, 11/27/06)
+         IF ( LMFLUX ) THEN
+            LMFLUX  = .FALSE.
+            LCTH    = .TRUE.
+            WRITE( 6, '(a)' ) 'KLUDGE: Selecting CTH lightning param!'
+         ENDIF
+
+         ! Kludge: for now, reset LPRECON to LCTH, as the MFLUX
+         ! lightning schemes has not been implemented (bmy, 11/27/06)
+         IF ( LPRECON ) THEN
+            LPRECON = .FALSE.
+            LCTH    = .TRUE.
+            WRITE( 6, '(a)' ) 'KLUDGE: Selecting CTH lightning param!'
+         ENDIF
 
          ! Make sure one of LCTH, LMFLUX, LPRECON is selected
          IF ( .not. LCTH .and. .not. LMFLUX .and. .not. LPRECON ) THEN

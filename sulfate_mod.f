@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.33 2006/11/22 18:30:45 phs Exp $
+! $Id: sulfate_mod.f,v 1.34 2006/12/11 19:37:53 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 11/3/06)
+!  (rjp, bdf, bmy, 6/22/00, 12/8/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -208,6 +208,7 @@
 !  (36) Now references "streets_anthro_mod.f" (yxw, bmy, 8/17/06)
 !  (37) Now references "biomass_mod.f" (bmy, 9/27/06)
 !  (38) Now prevent seg fault error in READ_BIOMASS_SO2 (bmy, 11/3/06)
+!  (39) Bug fix in SEASALT_CHEM (havala, bec, bmy, 12/8/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1775,7 +1776,7 @@
 !
 !******************************************************************************
 !  Function SEASALT_CHEM computes SO4 formed from S(IV) + O3 on seasalt 
-!  aerosols as a function of seasalt alkalinity. (bec, bmy, 4/13/05, 3/29/06)
+!  aerosols as a function of seasalt alkalinity. (bec, bmy, 4/13/05, 12/8/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1810,6 +1811,8 @@
 !  (1 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !  (2 ) Bug fix: now avoid seg fault error if IDTHNO3 is zero, as it would
 !        be for an offline aerosol simulation. (bmy, 3/29/06)
+!  (3 ) Fixed typo in FALK_A_SO2 equation: C_FLUX_C should be C_FLUX_A.
+!        (havala, bec, bmy, 12/8/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1985,7 +1988,12 @@
       IF ( TOT_FLUX_A > EQ1 ) THEN
 
 	 ! Fraction of alkalinity available for each acid
-	 FALK_A_SO2  = C_FLUX_C / TOT_FLUX_A
+         !-------------------------------------------------------------------
+         ! Prior to 12/8/06:
+         ! Fix typo: C_FLUX_C should be C_FLUX_A (havala, bec, bmy, 12/8/06)
+         !FALK_A_SO2  = C_FLUX_C / TOT_FLUX_A
+         !-------------------------------------------------------------------
+         FALK_A_SO2  = C_FLUX_A / TOT_FLUX_A
 	 FALK_A_HNO3 = N_FLUX_A / TOT_FLUX_A
          FALK_A_SO2  = MAX( FALK_A_SO2, MINDAT )
 	 FALK_A_HNO3 = MAX( FALK_A_HNO3, MINDAT )
@@ -6138,9 +6146,15 @@
             CALL IOERROR( IOS, IU_FILE, 'read_aircraft_so2:3' )
          ENDIF
 
+         !----------------------------------------------------------
+         ! Prior to 12/11/06:
+         ! NOTE: This should not be used, as we now have new files
+         ! for aircraft SOx made especially for GCAP
+         ! (phs, bmy, 12/8/06)
          ! fix for GCAP (11/17/06, phs)
          ! because for GCAP, JGLOB is 45
-         if ( J == 46 ) CYCLE
+         !if ( J == 46 ) CYCLE
+         !----------------------------------------------------------
 
          ! Unit conversion: [kg Fuel/box/day] -> [kg SO2/box/s]
          ! Assuming an emission index of 1.0, 

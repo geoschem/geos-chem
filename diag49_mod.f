@@ -1,9 +1,9 @@
-! $Id: diag49_mod.f,v 1.14 2006/04/21 15:39:55 bmy Exp $
+! $Id: diag49_mod.f,v 1.15 2006/12/11 19:37:49 bmy Exp $
       MODULE DIAG49_MOD
 !
 !******************************************************************************
 !  Module DIAG49_MOD contains variables and routines to save out 3-D 
-!  timeseries output to disk (bmy, 7/20/04, 10/25/05)
+!  timeseries output to disk (bmy, 7/20/04, 11/30/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -90,6 +90,7 @@
 !  (5 ) Bug fix: do not save SLP if it's not allocated (bmy, 8/2/05)
 !  (6 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (7 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
+!  (8 ) Modified INIT_DIAG49 to save out transects (cdh, bmy, 11/30/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1135,7 +1136,7 @@
 !******************************************************************************
 !  Subroutine INIT_DIAG49 allocates and zeroes all module arrays.  
 !  It also gets values for module variables from "input_mod.f". 
-!  (bmy, 7/20/04, 6/28/05)
+!  (bmy, 7/20/04, 11/30/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1155,6 +1156,9 @@
 !  (1 ) Now get I0 and J0 correctly for nested grid simulations (bmy, 11/9/04)
 !  (2 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
 !        value for GEOS or GCAP grids. (bmy, 6/28/05)
+!  (3 ) Now allow ND49_IMIN to be equal to ND49_IMAX and ND49_JMIN to be
+!        equal to ND49_JMAX.  This will allow us to save out longitude
+!        or latitude transects.  (cdh, bmy, 11/30/06)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -1229,7 +1233,13 @@
 
       ! Compute longitude limits to write to disk 
       ! Also handle wrapping around the date line
-      IF ( ND49_IMAX > ND49_IMIN ) THEN
+      !-----------------------------------------------------------------
+      ! Prior to 11/30/06:
+      ! This allows us to set ND49_IMIN=ND49_IMAX, so that we can save 
+      ! out a single longitude transect (cdh, bmy, 11/30/06)
+      !IF ( ND49_IMAX > ND49_IMIN ) THEN
+      !-----------------------------------------------------------------
+      IF ( ND49_IMAX >= ND49_IMIN ) THEN
          ND49_NI = ( ND49_IMAX - ND49_IMIN ) + 1
       ELSE 
          ND49_NI = ( IIPAR - ND49_IMIN ) + 1 + ND49_IMAX
@@ -1256,7 +1266,13 @@
       ENDIF
 
       ! Compute latitude limits to write to disk (bey, bmy, 3/16/99)
-      IF ( ND49_JMAX > ND49_JMIN ) THEN
+      !------------------------------------------------------------------
+      ! Prior to 11/30/06:
+      ! This allows us to set ND49_JMIN=ND49_JMAX, so that we can save 
+      ! out a single latitude transect (cdh, bmy, 11/30/06)
+      !IF ( ND49_JMAX > ND49_JMIN ) THEN
+      !------------------------------------------------------------------
+      IF ( ND49_JMAX >= ND49_JMIN ) THEN      
          ND49_NJ = ( ND49_JMAX - ND49_JMIN ) + 1
       ELSE
          CALL ERROR_STOP( 'ND49_JMAX < ND49_JMIN!', LOCATION )

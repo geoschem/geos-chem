@@ -1,4 +1,4 @@
-! $Id: lightning_nox_nl_mod.f,v 1.2 2006/11/07 19:02:02 bmy Exp $
+! $Id: lightning_nox_nl_mod.f,v 1.3 2006/12/11 19:37:51 bmy Exp $
       MODULE LIGHTNING_NOX_NL_MOD
 !
 !******************************************************************************
@@ -7,26 +7,29 @@
 !  GISS-II CTM's of Yuhang Wang, Gerry Gardner, & Larry Horowitz.  Overhauled 
 !  for updated parameterization schemes: CTH, MFLUX and PRECON.  Now also
 !  uses the near-land formulation (i.e. offshore boxes also get treated as
-!  if they were land boxes).  (ltm, bmy, 4/14/04, 11/7/06)  
+!  if they were land boxes).  (ltm, rch, bmy, 4/14/04, 12/11/06)  
 !
-!  NOTE: The OTD/LIS regional scaling for MFLUX and PRECON convective schemes 
-!        have not yet been implemented.  Will add this in sometime later.
-!        (rch, bmy, 11/7/06)
+!  NOTE: The OTD/LIS regional redistribution for MFLUX and PRECON lightning
+!  parameterizations have not yet been implemented.  These parameterizations
+!  do not yield realistic results with the GEOS-4 meteorology.  We will try
+!  to implement them for GEOS-5 at a later time. (rch, ltm, bmy, 12/11/06)
 !
 !  Module Variables:
 !  ============================================================================
-!  (1 ) NL_NBOR    (INTEGER)     : # of neighbor boxes to check for near-land 
-!  (2 ) NL_THRESH  (REAL*8 )     : LWI threshold for near-land criterion
-!  (3 ) NNLIGHT    (INTEGER)     : # of vertical points in lightning CDF's
-!  (4 ) NLTYPE     (INTEGER)     : Types of lightning to consider
-!  (5 ) PROFILE    (REAL*8 )     : Array to hold lightning CDF's read from disk
-!  (6 ) SLBASE     (REAL*8 )     : Array to hold NOx lightning emissions
-!  (7 ) RFLASH     (REAL*8 )     : NOx molec/flash/meter (based on 4 Tg N/y)
-!  (8 ) E_IC_CG    (REAL*8 )     : Inter-Cloud/Cloud-Ground frequency ratio
-!  (9 ) T_NEG_BOT  (REAL*8 )     : Temp at bottom of neg. charge layer = 273 K
-!  (10) T_NEG_CTR  (REAL*8 )     : Temp at center of neg. charge layer = 258 K
-!  (11) T_NEG_TOP  (REAL*8 )     : Temp at top    of neg. charge layer = 233 K
-!  (12) FLASHSCALE (REAL*8 )     : Scaling factor for lightning to 6 Tg N/yr
+!  (1 ) NL_NBOR     (INTEGER)    : # of neighbor boxes to check for near-land 
+!  (2 ) NL_THRESH   (REAL*8 )    : LWI threshold for near-land criterion
+!  (3 ) NNLIGHT     (INTEGER)    : # of vertical points in lightning CDF's
+!  (4 ) NLTYPE      (INTEGER)    : Types of lightning to consider
+!  (5 ) PROFILE     (REAL*8 )    : Array to hold lightning CDF's read from disk
+!  (6 ) SLBASE      (REAL*8 )    : Array to hold NOx lightning emissions
+!  (7 ) OTD_REDIST  (REAL*8 )    : Array to hold OTD/LIS redistribution
+!  (8 ) RFLASH      (REAL*8 )    : NOx molec/flash/meter (based on 4 Tg N/y)
+!  (9 ) E_IC_CG     (REAL*8 )    : Inter-Cloud/Cloud-Ground frequency ratio
+!  (10) T_NEG_BOT   (REAL*8 )    : Temp at bottom of neg. charge layer = 273 K
+!  (11) T_NEG_CTR   (REAL*8 )    : Temp at center of neg. charge layer = 258 K
+!  (12) T_NEG_TOP   (REAL*8 )    : Temp at top    of neg. charge layer = 233 K
+!  (13) AREA_30N    (REAL*8 )    : Grid box surface area at 30 N [m2]
+!  (14) FLASH_SCALE (REAL*8 )    : Scaling factor for lightning to 6 Tg N/yr
 !
 !  Module Routines:
 !  ============================================================================
@@ -35,33 +38,45 @@
 !  (3 ) FLASHES_CTH              : Computes flash rate via CTH scheme
 !  (4 ) FLASHES_MFLUX            : Computes flash rate via MFLUX scheme
 !  (5 ) FLASHES_PRECON           : Computes flash rate via PRECON scheme
-!  (6 ) READ_OTD_LIS_SCALE       : Reads OTD-LIS scale factors from disk
-!  (7 ) GET_OTD_LIS_SCALE        : Returns OTD-LIS scale factors at (I,J)
-!  (8 ) INTERANNUAL_SCALE        : Scales 4x5 total to 2x25 total for each year
+!  (6 ) GET_IC_CG_RATIO          : Gets inter-cloud/cloud-ground flash ratio 
+!  (7 ) READ_OTD_LIS_REDIST      : Reads OTD-LIS redistribution from disk
+!  (8 ) GET_OTD_LIS_REDIST       : Returns OTD-LIS redistribution at (I,J)
 !  (9 ) EMLIGHTNING_NL           : Saves lightning NOx into GEMISNOX array
-!  (10) INIT_LIGHTNING_NOX_NL    : Zeroes module arrays and reads CDF data
-!  (11) CLEANUP_LIGHTNING_NOX_NL : Deallocates all module arrays
+!  (10) GET_FLASH_SCALE_CTH      : Returns CTH scaling factor to 6 Tg N/yr
+!  (11) GET_FLASH_SCALE_MFLUX    : Returns MFLUX scaling factor to 6 Tg N/yr
+!  (12) GET_FLASH_SCALE_PRECON   : Returns PRECON scaling factor to 6 Tg N/yr
+!  (13) INIT_LIGHTNING_NOX_NL    : Zeroes module arrays and reads CDF data
+!  (14) CLEANUP_LIGHTNING_NOX_NL : Deallocates all module arrays
 !
 !  GEOS-CHEM modules referenced by lightning_nox_mod.f
 !  ============================================================================
-!  (1 ) dao_mod.f                : Module w/ arrays for DAO met fields
-!  (2 ) diag_mod.f               : Module w/ GEOS-Chem diagnostic arrays
-!  (3 ) directory_mod.f          : Module w/ GEOS-Chem data & metfld dirs
-!  (4 ) error_mod.f              : Module w/ I/O error and NaN check routines
-!  (5 ) file_mod.f               : Module w/ file unit numbers and error checks
-!  (6 ) grid_mod.f               : Module w/ horizontal grid information
-!  (7 ) pressure_mod.f           : Module w/ routines to compute P(I,J,L)
+!  (1 ) bpch2_mod.f              : Module w/ routines for binary punch file I/O
+!  (2 ) dao_mod.f                : Module w/ arrays for DAO met fields
+!  (3 ) diag_mod.f               : Module w/ GEOS-Chem diagnostic arrays
+!  (4 ) directory_mod.f          : Module w/ GEOS-Chem data & metfld dirs
+!  (5 ) error_mod.f              : Module w/ I/O error and NaN check routines
+!  (6 ) file_mod.f               : Module w/ file unit numbers and error checks
+!  (7 ) grid_mod.f               : Module w/ horizontal grid information
+!  (8 ) logical_mod.f            : Module w/ GEOS-Chem logical switches
+!  (9 ) pressure_mod.f           : Module w/ routines to compute P(I,J,L)
+!  (10) transfer_mod.f           : Module w/ routines to cast & resize arrays
 !
 !  References:
 !  ============================================================================
-!  (1  ) Price & Rind (1992), JGR, vol. 97, 9919-9933.
-!  (2  ) Price & Rind (1994), M. Weather Rev, vol. 122, 1930-1939.
-!  (3  ) ADD IN OTHER PAPERS
+!  (1 ) Price & Rind (1992), JGR, vol. 97, 9919-9933.
+!  (2 ) Price & Rind (1994), M. Weather Rev, vol. 122, 1930-1939.
+!  (3 ) Allen & Pickering (2002), JGR, vol. 107, NO. D23, 4711, 
+!        doi:10.1029/2002JD002066
 !
 !  NOTES:
 !  (1 ) Based on "lightning_nox_mod.f", but updated for near-land formulation
 !        and for CTH, MFLUX, PRECON parameterizations (ltm, bmy, 5/10/06)
-!  (2 ) Added function INTERANNUAL_SCALE (rch, bmy, 11/7/06)
+!  (2 ) Now move computation of IC/CG flash ratio out of routines FLASHES_CTH, 
+!        FLASHES_MFLUX, FLASHES_PRECON, and into routine GET_IC_CG_RATIO.
+!        Added a fix in LIGHTDIST for pathological grid boxes.  Set E_IC_CG=1 
+!        according to Allen & Pickering [2002].  Rename OTDSCALE to OTD_REDIST
+!        to reflect that this is a redistribution.  Now scale lightning to
+!        6 Tg N/yr for both 2x25 and 4x5. (rch, ltm, bmy, 12/11/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -88,10 +103,11 @@
       INTEGER              :: NL_NBOR  
       REAL*8               :: NL_THRESH
       REAL*8               :: AREA_30N
+      REAL*8               :: FLASH_SCALE
 
       ! Parameters
       INTEGER, PARAMETER   :: NLTYPE    = 3
-      REAL*8,  PARAMETER   :: E_IC_CG   = 1d0 / 3d0
+      REAL*8,  PARAMETER   :: E_IC_CG   = 1d0
       REAL*8,  PARAMETER   :: RFLASH    = 2.073d22
       REAL*8,  PARAMETER   :: T_NEG_BOT = 273.0d0    !   0 C 
       REAL*8,  PARAMETER   :: T_NEG_CTR = 258.0d0    ! -15 C
@@ -100,7 +116,7 @@
       ! Arrays
       REAL*8,  ALLOCATABLE :: PROFILE(:,:)
       REAL*8,  ALLOCATABLE :: SLBASE(:,:,:)
-      REAL*8,  ALLOCATABLE :: OTDSCALE(:,:)
+      REAL*8,  ALLOCATABLE :: OTD_REDIST(:,:)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -115,18 +131,17 @@
 !  Subroutine LIGHTNING_NL uses Price & Rind's formulation for computing
 !  NOx emission from lightning.  This has been modified to use the near-land
 !  formulation (i.e. offshore boxes get treated as if they were land boxes).
-!  (ltm, bmy, 5/10/06)
+!  (ltm, bmy, 5/10/06, 12/11/06)
 !
 !  Output Lightning NOX [molec/cm3/s] is stored in the GEMISNOX array.
 !
-!  References:
-!  ============================================================================
-!  (1 ) Price & Rind (1992), JGR, vol 97, 9913.
-!  (2 ) Y. H. Wang   (1997), Paper I, submitted to JGR
-!
 !  NOTES:
-!  (1 ) Now apply the interannual scale for 4x5, so that the 4x5 total
-!        emissions will equal the 2x25 total for each year. (rch, bmy, 11/7/06)
+!  (1 ) Now recompute the cold cloud thickness according to updated formula 
+!        from Lee Murray.  Rearranged argument lists to routines FLASHES_CTH, 
+!        FLASHES_MFLUX, FLASHES_PRECON.  Now call READ_OTD_LIS_REDIST.
+!        Updated comments accordingly.  Now apply FLASH_SCALE to scale the
+!        total lightning NOx to 6 Tg N/yr.  Now apply OTD/LIS or other 
+!        lightning redistribution to the ND56 diag. (rch, ltm, bmy, 12/11/06)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -135,7 +150,7 @@
       USE GRID_MOD,     ONLY : GET_YMID,  GET_AREA_M2
       USE LOGICAL_MOD,  ONLY : LCTH,      LMFLUX,     LOTDLIS,  LPRECON
       USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
-      USE TIME_MOD,     ONLY : GET_MONTH, GET_YEAR
+      USE TIME_MOD,     ONLY : GET_MONTH
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_GCTM"     ! Physical constants
@@ -153,7 +168,6 @@
       REAL*8                :: RATE_SAVE, REGSCALE,    T1,       T2
       REAL*8                :: TOTAL,     TOTAL_CG,    TOTAL_IC, X       
       REAL*8                :: YMID,      Z_IC,        Z_CG,     ZUP
-      REAL*8                :: YEARLY_SCALE
       REAL*8                :: VERTPROF(LLPAR)
 
       !=================================================================
@@ -172,28 +186,15 @@
       ! Get current month
       MONTH = GET_MONTH()
 
-      ! Get current year
-      YEAR  = GET_YEAR()
-
       ! Read OTD-LIS scaling once per month.  NOTE: test against LASTMONTH 
       ! because ITS_A_NEW_MONTH is only TRUE at 0 GMT on the 1st day of the
       ! current month. (ltm, bmy, 5/10/06)
       IF ( MONTH /= LASTMONTH ) THEN
-         CALL READ_OTD_LIS_SCALE( MONTH )
+         CALL READ_OTD_LIS_REDIST( MONTH )
          LASTMONTH = MONTH
       ENDIF
 
-      ! Get scale factor which will bring the 4x5 lightning totals
-      ! to the same value as the 2x25 totals for a given year
-      ! (If not running on 2x25, then the scale factor = 1)
-      YEARLY_SCALE = INTERANNUAL_SCALE( YEAR )
-
       ! Array containing molecules NOx / grid box / 6h. 
-      !------------------------------------------------------------------
-      ! Prior to 11/6/06:
-      ! More efficient to write this w/o the (:,:,:) (bmy, 11/6/06)
-      !SLBASE(:,:,:) = 0d0
-      !------------------------------------------------------------------
       SLBASE = 0d0
 
       !=================================================================
@@ -254,7 +255,7 @@
             ! in the column, so there will be no lightning events,
             ! and we go to the next (I,J) box.
             !
-            ! (ltm, bmy, 5/10/06)
+            ! (ltm, bmy, 5/10/06, 12/11/06)
             !===========================================================
 
             ! Find negative charge layer
@@ -282,12 +283,15 @@
             ! boxes (I,J,LCHARGE-1) and (I,J,LCHARGE)
             T1   = T(I,J,LCHARGE-1)
             T2   = T(I,J,LCHARGE  )
-         
-            ! DZ is the height [m] from the center of box (I,J,LCHARGE-1) 
-            ! to the negative charge layer.  Therefore, DZ may be found in 
-            ! either the (LCHARGE)th sigma layer or the (LCHARGE-1)th layer.
+ 
+            ! DZ is the height [m] from the center of box (I,J,LCHARGE-1)
+            ! to the negative charge layer.  It may be found in either
+            ! the (LCHARGE)th sigma layer or the (LCHARGE-1)th layer.
+            ! We use the hypsometric eqn to find the distance between
+            ! the center of (LCHARGE)th and (LCHARGE-1)th boxes, then
+            ! assume a linear temp distribution to scale between the two.
             DLNP = LOG( P1 / P2 ) / ( T1 - T2 ) * ( T1 - T_NEG_CTR )
-            DZ   = Rdg0 * ( (T1 + T2) / 2d0 ) * DLNP
+            DZ   = Rdg0 * ( ( T1 + T2 ) / 2d0 ) * DLNP
 
             ! Pressure [hPa] at the bottom edge of box (I,J,LCHARGE),
             ! or, equivalently, the top edge of box (I,J,LCHARGE-1).
@@ -337,7 +341,7 @@
             ! unable to create the necessary dipole.  Therefore, if 
             ! T(I,J,LTOP) >= -40 C, go to the next (I,J) location. 
             !
-            ! (ltm, bmy, 5/10/06)
+            ! (ltm, bmy, 5/10/06, 12/11/06)
             !===========================================================
 
             ! Cloud top level
@@ -376,7 +380,7 @@
             ! NOTE: If no temperature in the column is above 0 C, it 
             ! moves on to the next (I,J) box as before with the -15 C.
             !
-            ! (ltm, bmy, 5/10/06)
+            ! (ltm, bmy, 5/10/06, 12/11/06)
             !===========================================================
 
             ! Find the level where T = 0 C
@@ -404,12 +408,15 @@
             ! boxes (I,J,LBOTTOM-1) and (I,J,LBOTTOM)
             T1   = T(I,J,LBOTTOM-1)
             T2   = T(I,J,LBOTTOM  )
-         
-            ! DZ is the height [m] from the center of box (I,J,LBOTTOM-1) 
-            ! to where it is 0C.  Therefore, DZ may be found in either
-            ! the (LBOTTOM)th layer or the (LBOTTOM-1)th layer.
+       
+            ! DZ is the height [m] from the center of box (I,J,LCHARGE-1)
+            ! to the negative charge layer.  It may be found in either
+            ! the (LCHARGE)th sigma layer or the (LCHARGE-1)th layer.
+            ! We use the hypsometric eqn to find the distance between
+            ! the center of (LCHARGE)th and (LCHARGE-1)th boxes, then
+            ! assume a linear temp distribution to scale between the two.
             DLNP = LOG( P1 / P2 ) / ( T1 - T2 ) * ( T1 - T_NEG_BOT )
-            DZ   = Rdg0 * ( (T1 + T2) / 2d0 ) * DLNP
+            DZ   = Rdg0 * ( ( T1 + T2 ) / 2d0 ) * DLNP
 
             ! Pressure [hPa] at the bottom edge of box (I,J,LBOTTOM),
             ! or, equivalently, the top edge of box (I,J,BOTTOM-1).
@@ -417,7 +424,7 @@
 
             ! Height [m] from the center of grid box (I,J,LBOTTOM-1) 
             ! to the top edge of grid box (I,J,LBOTTOM-1)
-            ZUP  = Rdg0 * T1 * LOG( P1 /P3 )
+            ZUP  = Rdg0 * T1 * LOG( P1 / P3 )
 
             !-----------------------------------------------------------
             ! (3b) HBOTTOM is the height of the 0 C layer above the 
@@ -438,39 +445,52 @@
                HBOTTOM = ( BXHEIGHT(I,J,LBOTTOM) - ZUP ) + DZ
             ENDIF
   
-            ! Cold cloud thickness is difference of cloud top height (H0)
-            ! and the height to the bottom.
-            CC = H0 - HBOTTOM
+            ! Cold cloud thickness is difference of cloud top 
+            ! height (H0) and the height to the bottom.
+            CC = H0 - SUM( BXHEIGHT(I,J,1:LBOTTOM-1) ) - HBOTTOM 
 
             !===========================================================
-            ! (4) COMPUTE LIGHTNING FLASH RATES
+            ! (4) COMPUTE IC/CG FLASH_RATIO FROM COLD-CLOUD DEPTH
             !
-            ! Get lightning flash rate and the ratio of intra-cloud
-            ! flashes to cloud-ground flashes via one of these 
-            ! parameterizations:
+            ! This is necessary as an input for the MFLUX and PRECON
+            ! parameterizations, as well as for determining the fraction 
+            ! of LNOX generated by either type of flash, and will
+            ! eventually be used for separate vertical distributions
+            ! when they become available.  (ltm, bmy, 12/11/06)
+            !===========================================================
+			
+            ! Get Inter-Cloud/Cloud-Ground flash ratio [unitless]
+            IC_CG_RATIO = GET_IC_CG_RATIO( CC )
+
+            !===========================================================
+            ! (5) COMPUTE LIGHTNING FLASH RATES
+            !
+            ! Now that we have computed the the ratio of intra-cloud
+            ! flashes to cloud-ground flashes, compute the lightning
+            ! flash rate via one of these parameterizations:
             !
             ! (a) Cloud top height (CTH)
             ! (b) Mass flux (MFLUX)
             ! (c) Convective Precpitation (PRECON)
             ! 
-            ! (ltm, bmy, 5/10/06)
+            ! (ltm, bmy, 5/10/06, 12/11/06)
             !===========================================================
 
             IF ( LCTH ) THEN
 
                !--------------------------------------------------------
-               ! (4a) CLOUD TOP HEIGHT PARAMETERIZATION (all met fields)
+               ! (5a) CLOUD TOP HEIGHT PARAMETERIZATION (all met fields)
                !
                ! Based on Price & Rind (1992).
                !--------------------------------------------------------
 
                ! Get lightning flash rate per minute and IC/CG ratio
-               CALL FLASHES_CTH( I, J, H0, CC, FLASHRATE, IC_CG_RATIO )
+               CALL FLASHES_CTH( I, J, H0, FLASHRATE )
 
             ELSE IF ( LMFLUX ) THEN
 
                !--------------------------------------------------------
-               ! (4b) MFLUX PARAMETERIZATION (GEOS-4 only)
+               ! (5b) MFLUX PARAMETERIZATION (GEOS-4 only)
                !
                ! Call FLASHES_MFLUX to return the # of lightning 
                ! flashes per minute.  ZMMU has to be converted from 
@@ -498,26 +518,24 @@
                MFLUX   = ZMMU( I, J, L_MFLUX ) * 60.0d0 / g0
 
                ! Get lightning flash rate per minute and IC/CG ratio
-               CALL FLASHES_MFLUX( I,  J,         MFLUX, 
-     &                             CC, FLASHRATE, IC_CG_RATIO )
+               CALL FLASHES_MFLUX( I, J, MFLUX, IC_CG_RATIO, FLASHRATE )
 
             ELSE IF ( LPRECON ) THEN
 
                !--------------------------------------------------------
-               ! (4c) PRECON PARAMETERIZATION (all met fields)
+               ! (5c) PRECON PARAMETERIZATION (all met fields)
                !--------------------------------------------------------
 
                ! Convective precip [mm H2O/day]
                RAIN = PRECON( I, J )
 
                ! Get lightning flash rate per minute and IC/CG ratio
-               CALL FLASHES_PRECON( I,  J,         RAIN, 
-     &                              CC, FLASHRATE, IC_CG_RATIO )
+               CALL FLASHES_PRECON( I, J, RAIN, IC_CG_RATIO, FLASHRATE )
                
             ENDIF
 
             !===========================================================
-            ! (5) COMPUTE TOTAL NOx AND PARTITION INTO VERTICAL LAYERS
+            ! (6) COMPUTE TOTAL NOx AND PARTITION INTO VERTICAL LAYERS
             ! 
             ! Compute the total NOx produced from lightning in the 
             ! (I,J) column.  This is computed by:
@@ -561,9 +579,10 @@
             !    Total = IC + CG
             !
             ! We have assumed that the intra-cloud lightning flashes
-            ! only produce 1/3rd as much NOx as the cloud-ground 
-            ! flashes.  Therefore we have multiplied the IC formula 
-            ! by the IC/CG energy ratio, E_IC_CG = 1/3.
+            ! produce the same amount of NOx as the cloud-ground 
+            ! flashes (cf. Allen and Pickering, 2002).  Therefore we 
+            ! have multiplied the IC formula by the IC/CG energy ratio, 
+            ! E_IC_CG = 1.0.
             !
             ! After we compute the total lighting released in the
             ! column, we also do the following operations:
@@ -575,7 +594,7 @@
             ! boxes within the column with a Ken Pickering probability 
             ! distribution function (see comments below).
             !
-            ! (ltm, bmy, 5/10/06)
+            ! (ltm, bmy, 5/10/06, 12/11/06)
             !===========================================================
 
             ! Convert [flashes/min] to [flashes/6h]
@@ -589,25 +608,35 @@
             TOTAL_CG = RFLASH   * RATE *         X   * Z_CG
             TOTAL    = TOTAL_IC + TOTAL_CG 
 
-            ! Get OTD-LIS or other scale factor
+            ! Get OTD-LIS or other regional redistribution factor
             ! NOTE: For now, LOTDLIS is always TRUE (ltm, bmy, 5/10/06)
             IF ( LOTDLIS ) THEN
-               REGSCALE = GET_OTD_LIS_SCALE( I, J )
+               REGSCALE = GET_OTD_LIS_REDIST( I, J )
             ELSE
-               !REGSCALE = GET_xxxxSCALE(
+               !REGSCALE = GET_xxxxREDIST(
             ENDIF
 
-            ! Apply scale factor to total NOx [molec/6h]
-            ! Also scale 4 x 5 to same as 2 x 2.5 totals
-            TOTAL    = TOTAL * REGSCALE * YEARLY_SCALE
+            ! Apply OTD-LIS or other redistribution so that the flashes 
+            ! occur in the right place. TOTAL = total NOx [molec/6h]
+            TOTAL    = TOTAL * REGSCALE
+
+            ! Scale total lightning NOx to 6 Tg N/yr, accounting for
+            ! differences from met fields & resolution (ltm, bmy, 12/11/06)
+            TOTAL    = TOTAL * FLASH_SCALE
 
             !-----------------------------------------------------------
-            ! (5a) ND56 diagnostic: store flash rates [flashes/min/km2]
+            ! (6a) ND56 diagnostic: store flash rates [flashes/min/km2]
             !-----------------------------------------------------------
             IF ( ND56 > 0 .and. RATE > 0d0 ) THEN
 
                ! Lightning flashes per minute per km2
-               RATE_SAVE   = FLASHRATE / A_KM2
+               !--------------------------------------------------------
+               ! Prior to 12/11/06:
+               ! Multiply FLASHRATE by the re-distribution of lightning 
+               ! flashes from OTD/LIS or other (ltm, bmy, 12/11/06)
+               !RATE_SAVE   = FLASHRATE / A_KM2
+               !--------------------------------------------------------
+               RATE_SAVE   = ( FLASHRATE / A_KM2 ) * REGSCALE
 
                ! Store total, IC, and CG flash rates in AD56
                AD56(I,J,1) = AD56(I,J,1) +   RATE_SAVE
@@ -617,7 +646,7 @@
             ENDIF
 
             !-----------------------------------------------------------
-            ! (5b) LIGHTDIST computes the lightning distribution from 
+            ! (6b) LIGHTDIST computes the lightning distribution from 
             ! the ground to the convective cloud top using cumulative
             ! distribution functions for ocean flashes, tropical land
             ! flashes, and non-tropical land flashes, as specified by
@@ -627,8 +656,8 @@
             ! If there's lightning w/in the column ...
             IF ( TOTAL > 0d0 ) THEN
 
-               ! Partition the column total NOx from lightning into
-               ! the vertical using Pickering PDF functions
+               ! Partition the column total NOx [molec/6h] from lightning 
+               ! into the vertical using Pickering PDF functions
                CALL LIGHTDIST( I, J, LTOP, H0, YMID, TOTAL, VERTPROF )
 
                ! Add vertically partitioned NOx into SLBASE array
@@ -650,7 +679,7 @@
 !******************************************************************************
 !  Subroutine LIGHTDIST reads in the CDF used to partition the 
 !  column lightning NOx into the GEOS-CHEM vertical layers. 
-!  (yhw, 1997; mje, ltm, bmy, 9/18/02, 5/10/06)
+!  (yhw, 1997; mje, ltm, bmy, 9/18/02, 12/11/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -686,6 +715,7 @@
 !        routine INIT_LIGHTNING to allow parallelization (bmy, 4/14/04)
 !  (7 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (8 ) Now uses near-land formulation (ltm, bmy, 5/10/06)
+!  (9 ) Added extra safety check for pathological boxes (bmy, 12/11/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -713,9 +743,8 @@
       !=================================================================
 
       ! Initialize 
-      DO L = 1, LLPAR
-         VERTPROF(L) = 0d0
-      ENDDO
+      MTYPE    = 0
+      VERTPROF = 0d0
 
       !=================================================================
       ! Test whether location (I,J) is continental, marine, or snow/ice
@@ -770,7 +799,7 @@
          !------------------------------
          ! Ocean box (not near-land)
          !------------------------------
-
+    
          ! Marine lightning
          MTYPE = 1
 
@@ -785,9 +814,12 @@
 
       ENDIF
 
+      ! Extra safety check for pathological grid boxes (bmy, 11/29/06)
+      IF ( MTYPE == 0 ) RETURN
+
       !=================================================================
       ! Use the CDF for this type of lightning to partition the total
-      ! column lightning into the GEOS-3 vertical layers.
+      ! column lightning into the GEOS-3, GEOS-4, or GEOS-5 layers
       !=================================================================
       ZHEIGHT = 0.0
 
@@ -813,45 +845,45 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE FLASHES_CTH( I,       J,         HEIGHT, 
-     &                        CCTHICK, FLASHRATE, IC_CG_RATIO )
+      SUBROUTINE FLASHES_CTH( I, J, HEIGHT, FLASHRATE )
 !
 !******************************************************************************
 !  Subroutine FLASHES_CTH determines the rate of lightning flashes per minute
 !  based on the height of convective cloud tops, and the intra-cloud to 
-!  cloud-ground strike ratio.  (ltm, bmy, 5/10/06)
+!  cloud-ground strike ratio.  (ltm, bmy, 5/10/06, 12/11/06)
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1-2) I, J        : GEOS-CHEM longitude & latitude indices
+!  (1-2) I, J        : GEOS-Chem longitude & latitude indices
 !  (3  ) HEIGHT      : Height of convective cloud tops [m]
-!  (4  ) CCTHICK     : Cold cloud thickness (dist. from 0C to cloud top) [m]
 ! 
 !  Arguments as Output:
 !  ============================================================================
-!  (5  ) FLASHRATE   : Lightning flash rate [flashes/minute]
-!  (6  ) IC_CG_RATIO : Intercloud (IC) flashes / Cloud-Ground (CG) flashes
+!  (4  ) FLASHRATE   : Lightning flash rate [flashes/minute]
 !
 !  NOTES:
-!  (1 ) Subroutine renamed from FLASHES (ltm, bmy, 5/10/06)
+!  (1  ) Subroutine renamed from FLASHES (ltm, bmy, 5/10/06)
+!  (2  ) Remove CCTHICK, IC_CG_RATIO as arguments.  Remove computation of
+!         IC_CG_RATIO and move that to GET_IC_CG_RATIO. (ltm, bmy, 12/11/06)
 !******************************************************************************
-!
+! 
+#     include "define.h"
+
       ! References to F90 Modules
       USE DAO_MOD, ONLY     : IS_ICE, IS_NEAR, IS_WATER
 
       ! Arguments
-      INTEGER, INTENT(IN)  :: I,            J
-      REAL*8,  INTENT(IN)  :: HEIGHT,       CCTHICK
-      REAL*8,  INTENT(OUT) :: FLASHRATE,    IC_CG_RATIO
+      INTEGER, INTENT(IN)  :: I, J
+      REAL*8,  INTENT(IN)  :: HEIGHT
+      REAL*8,  INTENT(OUT) :: FLASHRATE
 
       ! Local Variables
       LOGICAL              :: ITS_NEAR_LAND
-      REAL*8               :: CC,           F_CG
 
       !================================================================
       ! FLASHES_CTH begins here!
       !
-      ! (1) COMPUTE LIGHTNING FLASH RATE / MINUTE
+      ! COMPUTE LIGHTNING FLASH RATE / MINUTE
       !
       ! Price & Rind (1992) give the following parameterizations for
       ! lightning flash rates as a function of convective cloud top
@@ -875,18 +907,18 @@
       !
       ! We suppress lightning where the surface is mostly ice.  
       !
-      ! (ltm, bmy, 5/10/06)
+      ! (ltm, bmy, 5/10/06, 12/11/06)
       !================================================================
 
       ! Test if the box is a land box or a near-land box
       ITS_NEAR_LAND = IS_NEAR( I, J, NL_THRESH, NL_NBOR )
-      
+     
       ! Test for land type
       IF ( ITS_NEAR_LAND ) THEN
 
          ! Flashes/min over near-land boxes: treat as land
          FLASHRATE   = 3.44d-5 * ( ( HEIGHT * 1d-3 )**4.9d0  )
-       
+
       ELSE IF ( IS_WATER( I, J ) .and.  ( .not. ITS_NEAR_LAND ) ) THEN
 
          ! Flashes/min over water (not near-land): treat as water
@@ -894,97 +926,38 @@
 
       ELSE IF ( IS_ICE( I, J ) ) THEN
 
-         ! Suppress lightning over snow/ice and return
+         ! Suppress lightning over snow/ice
          FLASHRATE   = 0d0
-         IC_CG_RATIO = 0d0
-         RETURN
 
       ENDIF
 
-      !================================================================
-      ! (2) COMPUTE INTRA-CLOUD / CLOUD-GROUND FLASH RATIO 
-      !
-      ! Price & Rind (1993) also compute the ratio of Cloud-Ground 
-      ! to Total Flashes by the parameterization:
-      !
-      ! For 5.5 < dz < 14:
-      !
-      !     f_CG = 1 / ( ( A*dz^4 + B*dz^3 + C*dz^2 + D*dz + E ) + 1 )
-      !
-      ! For dz > 14:
-      !
-      !     f_CG = 0.02
-      !                                        
-      ! Where:
-      !
-      ! (1) dz is the depth [km] of the cloud above the freezing 
-      !     level.  The cold-cloud thickness (dz) is the depth of the 
-      !     layer between the cloud top and the center of the highest
-      !     layer for which the temperature exceeds 273 K. The  
-      !     cold-cloud thickness is set to 5.5 km at grid points where
-      !     it is less than 5.5 km.
-      !
-      ! (2) The polynomial coefficients are:
-      !        A =0.021,  B=-0.648,  C=7.493,  D=-36.54,  E=63.09
-      !
-      ! 
-      ! Note: f_IC = 1 - f_CG
-      ! 
-      ! And hence,
-      !
-      !     IC_CG_RATIO = ( 1 - f_CG ) / f_CG
-      !=====================================================================
-
-      ! Convert cold cloud thickness from [m] to [km] (min value: 5.5 km)
-      CC = MAX( CCTHICK * 1d-3, 5.5 )
-
-      ! Compute cloud-ground flash ratio as described above
-      IF ( CCTHICK > 14d0 ) THEN
-
-         ! Constant value above 14 km
-         F_CG = 0.02d0
-
-      ELSE
-
-         ! First create the polynomial expression
-         F_CG = 63.09d0 + CC * ( -36.54d0  +
-     &                    CC * (   7.493d0 + 
-     &                    CC * (  -0.648d0 +
-     &                    CC * (   0.021d0 ) ) ) )
-
-         ! Then put it in the denominator
-         F_CG = 1d0 / ( F_CG + 1d0 )                  
-
-      ENDIF
-
-      ! Intra-cloud / cloud-ground flash ratio
-      IC_CG_RATIO = ( 1d0 - F_CG ) / F_CG
-       
       ! Return to calling program
       END SUBROUTINE FLASHES_CTH
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE FLASHES_MFLUX( I,       J,         MFLUX, 
-     &                          CCTHICK, FLASHRATE, IC_CG_RATIO )
+      SUBROUTINE FLASHES_MFLUX( I, J, MFLUX, IC_CG_RATIO, FLASHRATE )
 !
 !******************************************************************************
 !  Subroutine FLASHES_MFLUX determines the rate of lightning flashes per
 !  minute, based on the upward cloud mass flux [kg m^-2 min^-1] at 0.44 sigma,
-!  and the intra-cloud to cloud-ground strike ratio. (ltm, bmy, 5/10/06)
+!  and the intra-cloud to cloud-ground strike ratio. 
+!  (ltm, bmy, 5/10/06, 12/11/06)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1-2) I, J        : GEOS-CHEM longitude & latitude indices
 !  (3  ) HEIGHT      : Height of convective cloud tops [m]
-!  (4  ) CCTHICK     : Cold cloud thickness (dist. from 0C to cloud top) [m]
+!  (4  ) IC_CG_RATIO : Intra-cloud / cloud-ground flash ratio [unitless]
 ! 
 !  Arguments as Output:
 !  ============================================================================
 !  (5  ) FLASHRATE   : Total lightning flash rate [flashes/minute]
-!  (6  ) IC_CG_RATIO : Intercloud (IC) flashes / Cloud-Ground (CG) flashes
 !
 !  NOTES:
+!  (1 ) Remove CCTHICK as an argument.  Now change IC_CG_RATIO to an input
+!        argument.  Remove computation of IC_CG_RATIO and move that to 
+!        GET_IC_CG_RATIO. (ltm, bmy, 12/11/06)
 !******************************************************************************
 !
       ! References to F90 Modules
@@ -992,13 +965,13 @@
       USE GRID_MOD,    ONLY : GET_AREA_M2
 
       ! Arguments
-      INTEGER, INTENT(IN)  :: I,         J
-      REAL*8,  INTENT(IN)  :: MFLUX,     CCTHICK 
-      REAL*8,  INTENT(OUT) :: FLASHRATE, IC_CG_RATIO
+      INTEGER, INTENT(IN)  :: I, J
+      REAL*8,  INTENT(IN)  :: MFLUX
+      REAL*8,  INTENT(IN)  :: IC_CG_RATIO
+      REAL*8,  INTENT(OUT) :: FLASHRATE
 
       ! Local Variables
-      REAL*8               :: CC,        F_CG
-      REAL*8               :: LF_CG,     MF
+      REAL*8               :: F_CG, LF_CG, MF
 
       !=================================================================
       ! FLASHES_MFLUX begins here!
@@ -1009,7 +982,6 @@
 
          ! Suppress lightning near poles
          FLASHRATE   = 0d0
-         IC_CG_RATIO = 0d0
 
       ELSE
 
@@ -1056,67 +1028,15 @@
          LF_CG = LF_CG * ( GET_AREA_M2( J ) / AREA_30N )
          
          !==============================================================
-         ! (2) COMPUTE INTRA-CLOUD / CLOUD-GROUND FLASH RATIO 
-         !
-         ! Price & Rind (1993) also compute the ratio of Cloud-Ground 
-         ! to Total Flashes by the parameterization:
-         !
-         ! For 5.5 < dz < 14:
-         !
-         !     f_CG = 1 / (( A*dz^4 + B*dz^3 + C*dz^2 + D*dz + E ) + 1 )
-         !
-         ! For dz > 14:
-         !
-         !     f_CG = 0.02
-         !                                        
-         ! Where:
-         !
-         ! (1) dz is the depth [km] of the cloud above the freezing 
-         !     level.  The cold-cloud thickness (dz) is the depth of 
-         !     the layer between the cloud top and the center of the 
-         !     highest layer for which the temperature exceeds 273 K. 
-         !     The cold-cloud thickness is set to 5.5 km at grid points 
-         !     where it is less than 5.5 km.
-         !
-         ! (2) The polynomial coefficients are:
-         !        A=0.021,  B=-0.648,  C=7.493,  D=-36.54,  E=63.09
-         !
-         ! 
-         ! Note: f_IC = 1 - f_CG
-         ! 
-         ! And hence,
-         !
-         !     IC_CG_RATIO = ( 1 - f_CG ) / f_CG
-         !=====================================================================
+         ! (2) COMPUTE TOTAL FLASHRATE FROM IC/CG RATIO
+         !==============================================================
 
-         ! Convert cold cloud thickness from [m] to [km] (min value: 5.5 km)
-         CC = MAX( CCTHICK * 1d-3, 5.5 )
+         ! Cloud-ground flash rate [flashes/min]
+	 F_CG        = 1d0 / ( 1d0 + IC_CG_RATIO )
 
-         ! Compute cloud-ground flash ratio as described above
-         IF ( CCTHICK > 14d0 ) THEN
-
-            ! Constant value above 14 km
-            F_CG = 0.02d0
-
-         ELSE
-
-            ! First create the polynomial expression
-            F_CG = 63.09d0 + CC * ( -36.54d0  +
-     &                       CC * (   7.493d0 + 
-     &                       CC * (  -0.648d0 +
-     &                       CC * (   0.021d0 ) ) ) )
-
-            ! Then put it in the denominator
-            F_CG = 1d0 / ( F_CG + 1d0 )
-                  
-         ENDIF
-
-         ! Divide the cloud-ground flash rate by the fraction of 
-         ! cloud-ground/total flashes to get the total flash rate
+	 ! Divide the CG flash rate by the fraction of CG/total flashes
+         ! to get the total flash rate in [flashes/min]
          FLASHRATE   = LF_CG / F_CG
- 
-         ! Intra-Cloud / Cloud-Ground flash ratio
-         IC_CG_RATIO = ( 1d0 - F_CG ) / F_CG
          
       ENDIF
 
@@ -1125,41 +1045,43 @@
 
 !-----------------------------------------------------------------------------
 
-      SUBROUTINE FLASHES_PRECON( I,       J,         RAIN, 
-     &                           CCTHICK, FLASHRATE, IC_CG_RATIO )
+      SUBROUTINE FLASHES_PRECON( I, J, RAIN, IC_CG_RATIO, FLASHRATE )
 !
 !****************************************************************************
 !  Subroutine FLASHES_PRECON determines the rate of lightning flashes per
 !  minute, based on the rate of surface-level convective precipitation, 
-!  and the intra-cloud to cloud-ground strike ratio.  (ltm, bmy, 5/10/06)
+!  and the intra-cloud to cloud-ground strike ratio.  
+!  (ltm, bmy, 5/10/06, 12/11/06)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1-2) I, J        : GEOS-CHEM longitude & latitude indices
 !  (3  ) HEIGHT      : Height of convective cloud tops [m]
-!  (4  ) CCTHICK     : Cold cloud thickness (dist. from 0C to cloud top) [m]
+!  (4  ) IC_CG_RATIO : Inter-Cloud (IC) flashes / Cloud-Ground (CG) flashes
 ! 
 !  Arguments as Output:
 !  ============================================================================
 !  (5  ) FLASHRATE   : Total lightning flash rate [flashes/minute]
-!  (6  ) IC_CG_RATIO : Intercloud (IC) flashes / Cloud-Ground (CG) flashes
 !
 !  NOTES:
-!****************************************************************************
+!  (1 ) Remove CCTHICK as an argument.  Now change IC_CG_RATIO to an input
+!        argument.  Remove computation of IC_CG_RATIO and move that to 
+!        GET_IC_CG_RATIO. (ltm, bmy, 12/11/06)
+!******************************************************************************
 !
       ! References to F90 Modules
       USE DAO_MOD,     ONLY : IS_NEAR, IS_ICE, IS_WATER
       USE GRID_MOD,    ONLY : GET_AREA_M2
 
       ! Arguments
-      INTEGER, INTENT(IN)  :: I,            J
-      REAL*8,  INTENT(IN)  :: RAIN,         CCTHICK
-      REAL*8,  INTENT(OUT) :: FLASHRATE,    IC_CG_RATIO
+      INTEGER, INTENT(IN)  :: I, J
+      REAL*8,  INTENT(IN)  :: RAIN
+      REAL*8,  INTENT(IN)  :: IC_CG_RATIO
+      REAL*8,  INTENT(OUT) :: FLASHRATE
 
       ! Local Variables
       LOGICAL              :: ITS_NEAR_LAND 
-      REAL*8               :: CC,           F_CG
-      REAL*8               :: LF_CG,        PR
+      REAL*8               :: F_CG, LF_CG, PR
 
       !=================================================================
       ! FLASHES_PRECON begins here!
@@ -1242,10 +1164,10 @@
          !---------------------------
 
          ! First make the polynomial
-         LF_CG = 5.23d-02 + CC * ( -4.80d-02 +
-     &                      CC * (  5.45d-03 +
-     &                      CC * (  3.68d-05 +
-     &                      CC * ( -2.42d-07 ) ) ) )
+         LF_CG = 5.23d-02 + PR * ( -4.80d-02 +
+     &                      PR * (  5.45d-03 +
+     &                      PR * (  3.68d-05 +
+     &                      PR * ( -2.42d-07 ) ) ) )
 
          ! Then normalize it by the area the box at 30N
          LF_CG = LF_CG * ( GET_AREA_M2( J ) / AREA_30N )
@@ -1256,17 +1178,63 @@
          ! Snow/ice box (e.g. poles)
          !---------------------------
 
-         ! Suppress lightning
+         ! Suppress lightning over poles
          FLASHRATE   = 0d0
-         IC_CG_RATIO = 0d0
-         RETURN
 
       ENDIF
 
-      !==============================================================
-      ! (2) COMPUTE INTRA-CLOUD / CLOUD-GROUND FLASH RATIO 
+      !=================================================================
+      ! (2) COMPUTE TOTAL FLASHRATE FROM IC/CG RATIO
+      !=================================================================
+
+      ! Cloud-ground flash rate [flashes/min]
+      F_CG        = 1d0 / ( 1d0 + IC_CG_RATIO )
+
+      ! Divide the CG flash rate by the fraction of CG/total flashes
+      ! to get the total flash rate in [flashes/min]
+      FLASHRATE   = LF_CG / F_CG
+
+      ! Return to calling program
+      END SUBROUTINE FLASHES_PRECON
+
+!------------------------------------------------------------------------------
+
+      FUNCTION GET_IC_CG_RATIO( CCTHICK ) RESULT( IC_CG_RATIO )
+!
+!******************************************************************************
+!  Function GET_IC_CG_RATIO calculates the Intra-Cloud (IC) and Cloud-to-
+!  Ground (CG) lightning flash ratio based on the method of Price and Rind 
+!  1993, which is calculated from the cold-cloud depth (CCTHICK).
+!  (ltm, bmy, 12/11/06)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) CCTHICK     (REAL*8) : Cold-Cloud Thickness [m]
+! 
+!  Arguments as Output:
+!  ============================================================================
+!  (2 ) IC_CG_RATIO (REAL*8) : IC / CG flash ratio  [unitless]
+!
+!  NOTES:
+!  (1 ) Split off from FLASHES_CTH, FLASHES_MFLUX, FLASHES_PRECON into this
+!        separate function (ltm, bmy, 12/11/06)
+!******************************************************************************
+!
+      ! Arguments
+      REAL*8,  INTENT(IN)  :: CCTHICK
+
+      ! Local Variables
+      REAL*8               :: CC, F_CG
+
+      ! Function value
+      REAL*8               :: IC_CG_RATIO
+
+      !=================================================================
+      ! GET_IC_CG_RATIO begins here!
       !
-      ! Price & Rind (1993) also compute the ratio of Cloud-Ground 
+      ! COMPUTE INTRA-CLOUD / CLOUD-GROUND FLASH RATIO 
+      !
+      ! Price & Rind (1993) compute the ratio of Cloud-Ground 
       ! to Total Flashes by the parameterization:
       !
       ! For 5.5 < dz < 14:
@@ -1295,13 +1263,26 @@
       ! And hence,
       !
       !     IC_CG_RATIO = ( 1 - f_CG ) / f_CG
+      !
+      !
+      ! IC_CG_RATIO is passed back to routine the LIGHTNING_NL, where
+      ! it is passed to FLASHES_MFLUX and FLASHES_PRECON.  In these
+      ! routines, the fraction of total lightning flashes that are 
+      ! cloud-ground (CG) flashes is computed by:
+      ! 
+      !     F_CG        = 1d0 / ( 1d0 + IC_CG_RATIO )
+      !
+      ! and the fraction of the total lightning flashes that are
+      ! intra-cloud (IC) flashes is computed by:
+      !
+      !     F_IC        = 1d0 - 1d0 / ( 1d0 + IC_CG_RATIO )
       !=====================================================================
 
       ! Convert cold cloud thickness from [m] to [km] (min value: 5.5 km)
       CC = MAX( CCTHICK * 1d-3, 5.5 )
 
       ! Compute cloud-ground flash ratio as described above
-      IF ( CCTHICK > 14d0 ) THEN
+      IF ( CC > 14d0 ) THEN
 
          ! Constant value above 14 km
          F_CG = 0.02d0
@@ -1319,30 +1300,28 @@
                   
       ENDIF
 
-      ! Divide the cloud-ground flash rate by the fraction of 
-      ! cloud-ground/total flashes to get the total flash rate
-      FLASHRATE   = LF_CG / F_CG
-
       ! Intra-Cloud / Cloud-Ground flash ratio
       IC_CG_RATIO = ( 1d0 - F_CG ) / F_CG
 
       ! Return to calling program
-      END SUBROUTINE FLASHES_PRECON
+      END FUNCTION GET_IC_CG_RATIO
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE READ_OTD_LIS_SCALE( MONTH )
+      SUBROUTINE READ_OTD_LIS_REDIST( MONTH )
 !
 !******************************************************************************
-!  Subroutine READ_OTD_LIS_SCALE reads in monthly scaling factors in order to 
+!  Subroutine READ_OTD_LIS_REDIST reads in monthly factors in order to 
 !  redistribute GEOS-Chem flash rates according the OTD-LIS climatological 
-!  distribution. (ltm, bmy, 5/10/06)
+!  distribution. (ltm, bmy, 5/10/06, 12/11/06)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) MONTH (INTEGER) : Current month (1-12)
 !
 !  NOTES:
+!  (1 ) Change CTH filename from "v0" to "v1". Renamed to GET_OTD_LIS_REDIST 
+!        (lth, bmy, 12/11/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1363,27 +1342,27 @@
       CHARACTER(LEN=255)     :: FILENAME
 
       !=================================================================
-      ! READ_OTDLISSCALE begins here!
+      ! READ_OTD_LIS_REDIST begins here!
       !=================================================================
 
       ! Get file name
       IF ( LCTH ) THEN
 
          ! OTD-LIS scale factor file for CTH
-         FILENAME = 'OTD-LIS-Scale.CTH.v0.'    // GET_NAME_EXT() //
+         FILENAME = 'OTD-LIS-Redist.CTH.v1.'   // GET_NAME_EXT() //
      &              '.'                        // GET_RES_EXT()
 
       ELSE IF ( LMFLUX ) THEN
 
          ! OTD-LIS scale factor file for MFLUX
          ! Filename for MFLUX regional scaling
-         FILENAME = 'OTD-LIS-Scale.MFLUX.v0.'  // GET_NAME_EXT() //
+         FILENAME = 'OTD-LIS-Redist.MFLUX.v0.'  // GET_NAME_EXT() //
      &              '.'                        // GET_RES_EXT()
 
       ELSE IF ( LPRECON ) THEN
 
          ! OTD-LIS scale factor file for PRECON
-         FILENAME = 'OTD-LIS-Scale.PRECON.v0.' // GET_NAME_EXT() //
+         FILENAME = 'OTD-LIS-Redist.PRECON.v0.' // GET_NAME_EXT() //
      &              '.'                        // GET_RES_EXT()
 
       ENDIF
@@ -1394,7 +1373,7 @@
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_OTD_LIS_SCALE: Reading ', a )
+ 100  FORMAT( '     - READ_OTD_LIS_REDIST: Reading ', a )
 
       ! Use "generic" year 1985 for time indexing
       TAU0 = GET_TAU0( MONTH, 1, 1985 ) 
@@ -1405,19 +1384,20 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )  
 
       ! Cast to REAL*8 and resize if necessary
-      CALL TRANSFER_2D( ARRAY(:,:,1), OTDSCALE )
+      CALL TRANSFER_2D( ARRAY(:,:,1), OTD_REDIST )
 
       ! Return to calling program 
-      END SUBROUTINE READ_OTD_LIS_SCALE
+      END SUBROUTINE READ_OTD_LIS_REDIST
 
 !------------------------------------------------------------------------------
 
-      FUNCTION GET_OTD_LIS_SCALE( I, J ) RESULT( SCALE )
+      FUNCTION GET_OTD_LIS_REDIST( I, J ) RESULT( SCALE )
 !
 !******************************************************************************
-!  Function GET_OTDLISSCALE returns the OTD/LIS regional scaling factor,
-!  which must be applied to the total lightning NOx w/in a column.  This is
-!  based on the method of Line Jourdain at JPL. (rch, ltm, bmy, 5/10/06)
+!  Function GET_OTD_LIS_REDIST returns the OTD/LIS regional redistribution
+!  factor, which must be applied to the total lightning NOx w/in a column.  
+!  This is based on the method of Line Jourdain at JPL. 
+!  (rch, ltm, bmy, 5/10/06, 12/11/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1425,6 +1405,8 @@
 !  (2 ) J (INTEGER) : GEOS-Chem latitude  index
 !  
 !  NOTES:
+!  (1 ) Renamed function name to GET_OTD_LIS_REDIST.  Renamed variable 
+!        OTDSCALE to OTD_REDIST. (bmy, 12/11/06)
 !******************************************************************************
 !
       ! Arguments
@@ -1434,108 +1416,14 @@
       REAL*8              :: SCALE
 
       !=================================================================
-      ! GET_OTDLISSCALE begins here!
+      ! GET_OTD_LIS_REDIST begins here!
       !=================================================================
 
       ! Return scale factor
-      SCALE = OTDSCALE(I,J)
+      SCALE = OTD_REDIST(I,J)
 
       ! Return to calling function
-      END FUNCTION GET_OTD_LIS_SCALE
-
-!------------------------------------------------------------------------------
-
-      FUNCTION INTERANNUAL_SCALE( YEAR ) RESULT( SCALE )
-!
-!******************************************************************************
-!  Function INTERANNUAL_SCALE returns the scale factor that will bring the
-!  4 x 5 GEOS-4 lightning emissions to the same total that we get at 2 x 2.5.
-!  (rch, bmy, 11/6/06)
-!
-!  BACKGROUND: The OTD/LIS scaling is just a regional scale factor.  It does 
-!  not change the yearly lightning emissions total.  When we run GEOS-Chem at 
-!  2 x 2.5, the near-land lightning algorithm produces close to 6 Tg, without
-!  need for further scaling.  However, when we run the 
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) YEAR (INTEGER) : Current year
-!
-!  NOTES:
-!******************************************************************************
-!     
-      ! Arguments
-      INTEGER, INTENT(IN) :: YEAR
-
-      ! Local variables
-      REAL*8              :: SCALE
-
-      !=================================================================
-      ! INTERANNUAL_SCALE begins here!
-      !=================================================================
-
-#if   defined( GEOS_4 ) && defined( GRID4x5 )
-
-      ! Pick the right scale factor for each year.  Scale so that 
-      ! the 4x5 total equals the 2 x 2.5 total for the same year.
-      SELECT CASE ( YEAR )
-         CASE( 2006 )
-            !SCALE = 
-         CASE( 2005 )
-            SCALE = 5.3908d0 / 2.2450d0 
-         CASE( 2004 )
-            SCALE = 4.9766d0 / 2.0816d0
-         CASE( 2003 )
-            SCALE = 5.3230d0 / 2.2175d0
-         CASE( 2002 )
-            !SCALE =
-         CASE( 2001 )
-            !SCALE =
-         CASE( 2000 )
-            !SCALE =
-         CASE( 1999 )
-            !SCALE =
-         CASE( 1998 )
-            !SCALE = 
-         CASE( 1997 )
-            !SCALE =
-         CASE( 1996 )
-            !SCALE =
-         CASE( 1995 )
-            !SCALE = 
-         CASE( 1994 )
-            !SCALE =
-         CASE( 1993 )
-            !SCALE = 
-         CASE( 1992 )
-            !SCALE = 
-         CASE( 1991 )
-            !SCALE =
-         CASE( 1990 )
-            !SCALE =
-         CASE( 1989 )
-            !SCALE =
-         CASE( 1988 )
-            !SCALE =
-         CASE( 1987 )
-            !SCALE =
-         CASE( 1986 )
-            !SCALE =
-         CASE( 1985 )
-            !SCALE =
-         CASE DEFAULT
-            SCALE = 1d0
-      END SELECT
-     
-#else
-
-      ! Default scale is 1
-      SCALE = 1d0
-
-#endif
-
-      ! Return to calling program
-      END FUNCTION INTERANNUAL_SCALE
+      END FUNCTION GET_OTD_LIS_REDIST
 
 !------------------------------------------------------------------------------
 
@@ -1596,12 +1484,217 @@
 
 !------------------------------------------------------------------------------
 
+      FUNCTION GET_FLASH_SCALE_CTH() RESULT( SCALE )
+!
+!******************************************************************************
+!  Function GET_FLASH_SCALE_CTH (ltm, bmy, 12/11/06) returns a met-field 
+!  dependent scale factor (for the CTH parameterization) which is to be 
+!  applied to the lightning NOx emissions in order to bring the total to a 
+!  specified value of 6 Tg N/yr.  
+!
+!  NOTES:
+!******************************************************************************
+!
+#     include "define.h"
+
+      ! Local variables
+      REAL*8 :: SCALE
+	  
+      !=================================================================
+      ! GET_FLASH_SCALE_CTH begins here!
+      !=================================================================
+
+#if   defined( GCAP )
+
+      ! Needs defining
+      SCALE = 1d0
+
+#elif defined( GEOS_4 ) && defined( GRID4x5 ) 
+
+      ! GEOS-4 2x2.5 2003-2005 produces a total of 19.1802 Tg N without
+      ! any further scaling.  This results in an average of 6.3934 Tg N/yr.
+      ! Scale the average down to 6 Tg N/yr. (ltm, bmy, 12/07/06)
+      SCALE = 6.0d0 / 6.3934d0
+
+#elif defined( GEOS_4 ) && defined( GRID2x25 )
+
+      ! GEOS-4 2x2.5 2003-2005 produces a total of 46.3124 Tg N without
+      ! any further scaling.  This results in an average of 15.4375 Tg N/yr.
+      ! Scale the average down to 6 Tg N/yr. (ltm, bmy, 12/07/06)
+      SCALE = 6.0d0 / 15.4375d0
+	  
+#elif defined( GEOS_4 ) && defined( GRID1x125 )
+
+      ! Needs defining
+      SCALE = 1.0d0
+	  
+#elif defined( GEOS_3 ) && defined( GRID4x5 )
+
+      ! Needs defining
+      SCALE = 1.0d0
+	  	 
+#elif defined( GEOS_3 ) && defined( GRID2x25 )
+
+      ! Needs defining
+      SCALE = 1.0d0
+	  
+#elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_CH )
+
+      ! Needs defining
+      SCALE = 1.0d0
+	  
+#elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_NA )
+
+      ! Needs defining
+      SCALE = 1.0d0
+
+#endif
+
+      ! Return to calling program
+      END FUNCTION GET_FLASH_SCALE_CTH
+
+!------------------------------------------------------------------------------
+
+      FUNCTION GET_FLASH_SCALE_MFLUX() RESULT( SCALE )
+!
+!******************************************************************************
+!  Function GET_FLASH_SCALE_MFLUX (ltm, bmy, 12/11/06) returns a met-field 
+!  dependent scale factor (for the MFLUX parameterization) which is to be 
+!  applied to the lightning NOx emissions in order to bring the total to a 
+!  specified value of 6 Tg N/yr.  
+!
+!  NOTES: FACTORS YET TO BE DETERMINED
+!******************************************************************************
+!
+#     include "define.h"
+
+      ! Local variables
+      REAL*8 :: SCALE
+	  
+      !=================================================================
+      ! GET_FLASH_SCALE_MFLUX begins here!
+      !=================================================================
+
+#if   defined( GCAP )
+
+      ! Needs defining
+      SCALE = 1.0d0
+
+#elif defined( GEOS_4 ) && defined( GRID4x5 ) 
+
+      ! Needs defining
+      SCALE = 1.0d0
+
+#elif defined( GEOS_4 ) && defined( GRID2x25 )
+
+      ! Needs defining
+      SCALE = 1.0d0
+	  
+#elif defined( GEOS_4 ) && defined( GRID1x125 )
+
+      ! Needs defining
+      SCALE = 1.0d0
+	  
+#elif defined( GEOS_3 ) && defined( GRID4x5 )
+
+      ! Needs defining
+      SCALE = 1.0d0
+	  	  
+#elif defined( GEOS_3 ) && defined( GRID2x25 )
+
+      ! Needs defining
+      SCALE = 1.0d0
+	  
+#elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_CH )
+
+      ! Needs defining
+      SCALE = 1.0d0
+	  
+#elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_NA )
+
+      ! Needs defining
+      SCALE = 1.0d0
+
+#endif
+
+      ! Return to calling program
+      END FUNCTION GET_FLASH_SCALE_MFLUX
+
+!------------------------------------------------------------------------------
+
+      FUNCTION GET_FLASH_SCALE_PRECON() RESULT( SCALE )
+!
+!******************************************************************************
+!  Function GET_FLASH_SCALE_PRECON (ltm, bmy, 12/11/06) returns a met-field 
+!  dependent scale factor (for the PRECON parameterization) which is to be 
+!  applied to the lightning NOx emissions in order to bring the total to a 
+!  specified value of 6 Tg N/yr.  
+!
+!  NOTES: FACTORS YET TO BE DETERMINED
+!******************************************************************************
+!
+#     include "define.h"
+
+      ! Local variables
+      REAL*8 :: SCALE
+	  
+      !=================================================================
+      ! GET_FLASH_SCALE_PRECON begins here!
+      !=================================================================
+
+#if   defined( GCAP )
+
+      ! Needs defining
+      SCALE = 1.0d0
+
+#elif defined( GEOS_4 ) && defined( GRID4x5 ) 
+
+      ! Needs defining
+      SCALE = 1.0d0
+
+#elif defined( GEOS_4 ) && defined( GRID2x25 )
+
+      ! Needs defining
+      SCALE = 1.0d0
+	  
+#elif defined( GEOS_4 ) && defined( GRID1x125 )
+
+      ! Needs defining
+      SCALE = 1.0d0
+	  
+#elif defined( GEOS_3 ) && defined( GRID4x5 )
+
+      ! Needs defining
+      SCALE = 1.0d0
+	  	  
+#elif defined( GEOS_3 ) && defined( GRID2x25 )
+
+      ! Needs defining
+      SCALE = 1.0d0
+	  
+#elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_CH )
+
+      ! Needs defining
+      SCALE = 1.0d0
+	  
+#elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_NA )
+
+      ! Needs defining
+      SCALE = 1.0d0
+
+#endif
+
+      ! Return to calling program
+      END FUNCTION GET_FLASH_SCALE_PRECON
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE INIT_LIGHTNING_NOX_NL
 !
 !******************************************************************************
-!  Subroutine INIT_LIGHTNING_NOX allocates all module arrays.  It also reads 
+!  Subroutine INIT_LIGHTNING_NOX_NL allocates all module arrays.  It also reads 
 !  the lightning CDF data from disk before the first lightning timestep. 
-!  (bmy, 4/14/04, 5/10/06)
+!  (bmy, 4/14/04, 12/11/06)
 !
 !  NOTES:
 !  (1 ) Now reference DATA_DIR from "directory_mod.f"
@@ -1609,6 +1702,9 @@
 !        each met field type and grid resolution (bmy, 8/25/05)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Now get the box area at 30N for MFLUX, PRECON (lth, bmy, 5/10/06)
+!  (5 ) Rename OTDSCALE to OTD_REDIST.  Now call GET_FLASH_SCALE_CTH,
+!        GET_FLASH_SCALE_MFLUX, GET_FLASH_SCALE_PRECON depending on the type
+!        of lightning param used.  Updated comments. (ltm, bmy, 12/11/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1616,7 +1712,8 @@
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE FILE_MOD,      ONLY : IOERROR,   IU_FILE
       USE GRID_MOD,      ONLY : GET_YEDGE, GET_AREA_M2
-      USE LOGICAL_MOD,   ONLY : LMFLUX,    LOTDLIS,    LPRECON
+      USE LOGICAL_MOD,   ONLY : LCTH,      LMFLUX
+      USE LOGICAL_MOD,   ONLY : LPRECON,   LOTDLIS
 
 #     include "CMN_SIZE"      ! Size parameters
   
@@ -1632,6 +1729,18 @@
       !------------------
       ! Define variables
       !------------------
+
+      ! Get overall scaling factor.  Dependent on grid resolution and
+      ! parameterization type, will return an appropriate value for 
+      ! FLASH_SCALE that will the total amount of LNOx to our best 
+      ! estimate of 6 Tg N/yr. (ltm, bmy, 12/11/06)
+      IF ( LCTH ) THEN
+         FLASH_SCALE = GET_FLASH_SCALE_CTH()
+      ELSE IF ( LMFLUX ) THEN
+         FLASH_SCALE = GET_FLASH_SCALE_MFLUX()
+      ELSE IF ( LPRECON ) THEN
+         FLASH_SCALE = GET_FLASH_SCALE_PRECON()
+      ENDIF
 
       ! NNLIGHT is the number of points for the lightning PDF's
       NNLIGHT = 3200
@@ -1684,21 +1793,20 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLBASE' )
       SLBASE = 0d0
 
-      ! Allocate OTDSCALE
+      ! Allocate OTD_REDIST
       IF ( LOTDLIS ) THEN
-         ALLOCATE( OTDSCALE( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'OTDSCALE' )
-         OTDSCALE = 0d0
+         ALLOCATE( OTD_REDIST( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'OTD_REDIST' )
+         OTD_REDIST = 0d0
       ENDIF
 
       !=================================================================
       ! Read lightning CDF for GEOS-3, GEOS-4, GEOS-5, GCAP met data
       ! 
-      ! NOTE: Since the GEOS-3 vertical grid has a much finer
-      ! resolution near the surface than do the GEOS-1 or GEOS-STRAT
-      ! grids, we had to interpolate the Pickering CDF's to a much
-      ! finer mesh, with 3200 points instead of 100.  This was done
-      ! by Mat Evans (mje@io.harvard.edu).  The vertical resolution
+      ! NOTE: Since some of these vertical grids have a fine vertical
+      ! resolution near the surface, we had to interpolate Ken
+      ! Pickering CDF's to a much finer mesh, with 3200 points instead 
+      ! of 100.  This was done by Mat Evans.  The vertical resolution
       ! of the CDF's in the file read in below is 0.05 km. 
       !=================================================================
 
@@ -1737,18 +1845,19 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_LIGHTNING_NOX deallocates all module arrays. 
-!  (bmy, 4/14/04, 5/10/06)
+!  (bmy, 4/14/04, 12/11/06)
 !
 !  NOTES:
 !  (1 ) Now deallocates OTDSCALE (ltm, bmy, 5/10/06)
+!  (2 ) Rename OTDSCALE to OTD_REDIST (bmy, 12/11/06)
 !******************************************************************************
 !
       !=================================================================
       ! CLEANUP_LIGHTNING_NOX begins here!
       !=================================================================
-      IF ( ALLOCATED( PROFILE  ) ) DEALLOCATE( PROFILE  )
-      IF ( ALLOCATED( SLBASE   ) ) DEALLOCATE( SLBASE   )
-      IF ( ALLOCATED( OTDSCALE ) ) DEALLOCATE( OTDSCALE )
+      IF ( ALLOCATED( PROFILE    ) ) DEALLOCATE( PROFILE    )
+      IF ( ALLOCATED( SLBASE     ) ) DEALLOCATE( SLBASE     )
+      IF ( ALLOCATED( OTD_REDIST ) ) DEALLOCATE( OTD_REDIST )
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_LIGHTNING_NOX_NL

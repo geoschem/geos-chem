@@ -1,4 +1,4 @@
-! $Id: CMN_SIZE,v 1.24 2006/11/22 18:30:43 phs Exp $
+! $Id: CMN_SIZE,v 1.25 2006/12/11 19:37:47 bmy Exp $
       !=======================================================================
       ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 8/4/06)
       !
@@ -46,6 +46,7 @@
       ! (25) Added variable tropopause case (bmy, phs, bdf, 8/21/06)
       ! (26) Set LLTROP to level of first box entirely above 20km for GEOS-3 
       !      and GEOS-4 (phS, 9/14/06)
+      ! (27) Bug fix: set LLTROP_FIX = LLPAR for GCAP (bmy, 11/29/06)
       !=======================================================================
 
       ! C Preprocessor #define statements for conditional compilation
@@ -97,66 +98,68 @@
       !--------------------
       ! GCAP 4 x 5
       !--------------------
-      INTEGER, PARAMETER :: IGLOB  = 72
-      INTEGER, PARAMETER :: JGLOB  = 45
-      INTEGER, PARAMETER :: LGLOB  = 23
+      INTEGER, PARAMETER :: IGLOB      = 72
+      INTEGER, PARAMETER :: JGLOB      = 45
+      INTEGER, PARAMETER :: LGLOB      = 23
 
-      INTEGER, PARAMETER :: IIPAR  = IGLOB
-      INTEGER, PARAMETER :: JJPAR  = JGLOB
-      INTEGER, PARAMETER :: LLPAR  = LGLOB
+      INTEGER, PARAMETER :: IIPAR      = IGLOB
+      INTEGER, PARAMETER :: JJPAR      = JGLOB
+      INTEGER, PARAMETER :: LLPAR      = LGLOB
 
-      INTEGER, PARAMETER :: LLTROP     = 12  ! to determine correctly
-      INTEGER, PARAMETER :: LLTROP_FIX = 12
+      INTEGER, PARAMETER :: LLTROP     = 12   
+      INTEGER, PARAMETER :: LLTROP_FIX = LLTROP     
 
-      REAL*8,  PARAMETER :: PTOP   = 0.002d0
+      REAL*8,  PARAMETER :: PTOP       = 0.002d0
 
 #elif defined( GEOS_3 ) && defined( GRID4x5 )
 
       !--------------------
       ! GEOS-3 4 x 5
       !--------------------
-      INTEGER, PARAMETER :: IGLOB  = 72
-      INTEGER, PARAMETER :: JGLOB  = 46
-      INTEGER, PARAMETER :: LGLOB  = 48            
+      INTEGER, PARAMETER :: IGLOB      = 72
+      INTEGER, PARAMETER :: JGLOB      = 46
+      INTEGER, PARAMETER :: LGLOB      = 48            
 
-      INTEGER, PARAMETER :: IIPAR  = IGLOB
-      INTEGER, PARAMETER :: JJPAR  = JGLOB
+      INTEGER, PARAMETER :: IIPAR      = IGLOB
+      INTEGER, PARAMETER :: JJPAR      = JGLOB
 
 #if   defined( GRID30LEV )
-      INTEGER, PARAMETER :: LLPAR  = 30     ! 30 levels
-      INTEGER, PARAMETER :: LLTROP = 24       
+      INTEGER, PARAMETER :: LLPAR      = 30     ! 30 levels
+      INTEGER, PARAMETER :: LLTROP     = 24       
 #else
-      INTEGER, PARAMETER :: LLPAR  = LGLOB  ! 48 levels
-      INTEGER, PARAMETER :: LLTROP = 25       
+      INTEGER, PARAMETER :: LLPAR      = LGLOB  ! 48 levels
+      INTEGER, PARAMETER :: LLTROP     = 25       
 #endif
 
-      INTEGER, PARAMETER :: LLTROP_FIX = 20 ! FOR OFFLINE SIMULATIONS
+      ! Set this so that we read data in correctly for offline sims
+      INTEGER, PARAMETER :: LLTROP_FIX = 20 
 
-      REAL*8,  PARAMETER :: PTOP   = 0.01d0
+      REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
 #elif defined( GEOS_3 ) && defined( GRID2x25 )
 
       !--------------------
       ! GEOS-3 2 x 2.5
       !--------------------
-      INTEGER, PARAMETER :: IGLOB  = 144
-      INTEGER, PARAMETER :: JGLOB  = 91
-      INTEGER, PARAMETER :: LGLOB  = 48            
+      INTEGER, PARAMETER :: IGLOB      = 144
+      INTEGER, PARAMETER :: JGLOB      = 91
+      INTEGER, PARAMETER :: LGLOB      = 48            
 
-      INTEGER, PARAMETER :: IIPAR  = IGLOB
-      INTEGER, PARAMETER :: JJPAR  = JGLOB
+      INTEGER, PARAMETER :: IIPAR      = IGLOB
+      INTEGER, PARAMETER :: JJPAR      = JGLOB
 
 #if   defined( GRID30LEV )
-      INTEGER, PARAMETER :: LLPAR  = 30     ! 30 levels
-      INTEGER, PARAMETER :: LLTROP = 24       
+      INTEGER, PARAMETER :: LLPAR      = 30     ! 30 levels
+      INTEGER, PARAMETER :: LLTROP     = 24       
 #else
-      INTEGER, PARAMETER :: LLPAR  = LGLOB  ! 48 levels
-      INTEGER, PARAMETER :: LLTROP = 25       
+      INTEGER, PARAMETER :: LLPAR      = LGLOB  ! 48 levels
+      INTEGER, PARAMETER :: LLTROP     = 25       
 #endif 
 
-      INTEGER, PARAMETER :: LLTROP_FIX = 20 ! FOR OFFLINE SIMULATIONS
+      ! Set this so that we read data in correctly for offline sims
+      INTEGER, PARAMETER :: LLTROP_FIX = 20
 
-      REAL*8,  PARAMETER :: PTOP   = 0.01d0
+      REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
 #elif defined( GEOS_3 ) && defined( GRID1x1 )
 
@@ -167,189 +170,199 @@
 #if   defined( NESTED_CH )
 
       ! Parameters for the 1x1 CHINA NESTED GRID
-      INTEGER, PARAMETER :: IGLOB  = 81
-      INTEGER, PARAMETER :: JGLOB  = 67
-      INTEGER, PARAMETER :: LGLOB  = 48           
+      INTEGER, PARAMETER :: IGLOB      = 81
+      INTEGER, PARAMETER :: JGLOB      = 67
+      INTEGER, PARAMETER :: LGLOB      = 48           
 
 #elif defined( NESTED_NA )
 
       ! Parameters for the 1x1 NORTH AMERICA NESTED GRID
-      INTEGER, PARAMETER :: IGLOB  = 101   
-      INTEGER, PARAMETER :: JGLOB  = 51    
-      INTEGER, PARAMETER :: LGLOB  = 48    
+      INTEGER, PARAMETER :: IGLOB      = 101   
+      INTEGER, PARAMETER :: JGLOB      = 51    
+      INTEGER, PARAMETER :: LGLOB      = 48    
 
 #else
 
       ! Parameters for the 1x1 GLOBAL GRID
-      INTEGER, PARAMETER :: IGLOB  = 360
-      INTEGER, PARAMETER :: JGLOB  = 181
-      INTEGER, PARAMETER :: LGLOB  = 48                 
+      INTEGER, PARAMETER :: IGLOB      = 360
+      INTEGER, PARAMETER :: JGLOB      = 181
+      INTEGER, PARAMETER :: LGLOB      = 48                 
 
 #endif
 
-      INTEGER, PARAMETER :: IIPAR  = IGLOB
-      INTEGER, PARAMETER :: JJPAR  = JGLOB
+      INTEGER, PARAMETER :: IIPAR      = IGLOB
+      INTEGER, PARAMETER :: JJPAR      = JGLOB
 
 #if   defined( GRID30LEV )
-      INTEGER, PARAMETER :: LLPAR  = 30     ! 30 levels
-      INTEGER, PARAMETER :: LLTROP = 24       
+      INTEGER, PARAMETER :: LLPAR      = 30     ! 30 levels
+      INTEGER, PARAMETER :: LLTROP     = 24       
 #else
-      INTEGER, PARAMETER :: LLPAR  = LGLOB  ! 48 levels
-      INTEGER, PARAMETER :: LLTROP = 25       
+      INTEGER, PARAMETER :: LLPAR      = LGLOB  ! 48 levels
+      INTEGER, PARAMETER :: LLTROP     = 25       
 #endif
 
-      INTEGER, PARAMETER :: LLTROP_FIX = 20 ! FOR OFFLINE SIMULATIONS
+      ! Set this so that we read data in correctly for offline sims
+      INTEGER, PARAMETER :: LLTROP_FIX = 20
 
-      REAL*8,  PARAMETER :: PTOP   = 0.01d0
+      REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
 #elif defined( GEOS_4 ) && defined( GRID4x5 )
 
       !--------------------
       ! GEOS-4 4 x 5
       !--------------------
-      INTEGER, PARAMETER :: IGLOB  = 72
-      INTEGER, PARAMETER :: JGLOB  = 46
-      INTEGER, PARAMETER :: LGLOB  = 55           
+      INTEGER, PARAMETER :: IGLOB      = 72
+      INTEGER, PARAMETER :: JGLOB      = 46
+      INTEGER, PARAMETER :: LGLOB      = 55           
 
-      INTEGER, PARAMETER :: IIPAR  = IGLOB
-      INTEGER, PARAMETER :: JJPAR  = JGLOB
+      INTEGER, PARAMETER :: IIPAR      = IGLOB
+      INTEGER, PARAMETER :: JJPAR      = JGLOB
 
 #if   defined( GRID30LEV ) 
-      INTEGER, PARAMETER :: LLPAR  = 30     ! 30 levels
-      INTEGER, PARAMETER :: LLTROP = 22       
+      INTEGER, PARAMETER :: LLPAR      = 30     ! 30 levels
+      INTEGER, PARAMETER :: LLTROP     = 22       
 #else
-      INTEGER, PARAMETER :: LLPAR  = LGLOB  ! 55 levels
-      INTEGER, PARAMETER :: LLTROP = 23       
+      INTEGER, PARAMETER :: LLPAR      = LGLOB  ! 55 levels
+      INTEGER, PARAMETER :: LLTROP     = 23       
 #endif
 
-      INTEGER, PARAMETER :: LLTROP_FIX = 17 ! FOR OFFLINE SIMULATIONS
+      ! Set this so that we read data in correctly for offline sims
+      INTEGER, PARAMETER :: LLTROP_FIX = 17
 
-      REAL*8,  PARAMETER :: PTOP   = 0.01d0
+      REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
 #elif defined( GEOS_4 ) && defined( GRID2x25 )
 
       !--------------------
       ! GEOS-4 2 x 2.5
       !--------------------
-      INTEGER, PARAMETER :: IGLOB  = 144
-      INTEGER, PARAMETER :: JGLOB  = 91
-      INTEGER, PARAMETER :: LGLOB  = 55
+      INTEGER, PARAMETER :: IGLOB      = 144
+      INTEGER, PARAMETER :: JGLOB      = 91
+      INTEGER, PARAMETER :: LGLOB      = 55
 
-      INTEGER, PARAMETER :: IIPAR  = IGLOB
-      INTEGER, PARAMETER :: JJPAR  = JGLOB
+      INTEGER, PARAMETER :: IIPAR      = IGLOB
+      INTEGER, PARAMETER :: JJPAR      = JGLOB
 
 #if   defined( GRID30LEV )
-      INTEGER, PARAMETER :: LLPAR  = 30     ! 30 levels
-      INTEGER, PARAMETER :: LLTROP = 22
+      INTEGER, PARAMETER :: LLPAR      = 30     ! 30 levels
+      INTEGER, PARAMETER :: LLTROP     = 22
 #else 
-      INTEGER, PARAMETER :: LLPAR  = LGLOB  ! 55 levels
-      INTEGER, PARAMETER :: LLTROP = 23
+      INTEGER, PARAMETER :: LLPAR      = LGLOB  ! 55 levels
+      INTEGER, PARAMETER :: LLTROP     = 23
 #endif
 
-      INTEGER, PARAMETER :: LLTROP_FIX = 17 ! FOR OFFLINE SIMULATIONS
+      ! Set this so that we read data in correctly for offline sims
+      INTEGER, PARAMETER :: LLTROP_FIX = 17
 
-      REAL*8,  PARAMETER :: PTOP   = 0.01d0
+      REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
 #elif defined( GEOS_4 ) && defined( GRID1x125 )
 
       !--------------------
       ! GEOS-4 1 x 1.2.5
       !--------------------
-      INTEGER, PARAMETER :: IGLOB  = 288
-      INTEGER, PARAMETER :: JGLOB  = 181
-      INTEGER, PARAMETER :: LGLOB  = 55
+      INTEGER, PARAMETER :: IGLOB      = 288
+      INTEGER, PARAMETER :: JGLOB      = 181
+      INTEGER, PARAMETER :: LGLOB      = 55
 
-      INTEGER, PARAMETER :: IIPAR  = IGLOB
-      INTEGER, PARAMETER :: JJPAR  = JGLOB
+      INTEGER, PARAMETER :: IIPAR      = IGLOB
+      INTEGER, PARAMETER :: JJPAR      = JGLOB
 
 #if   defined( GRID30LEV )
-      INTEGER, PARAMETER :: LLPAR  = 30     ! 30 levels
-      INTEGER, PARAMETER :: LLTROP = 22
+      INTEGER, PARAMETER :: LLPAR      = 30     ! 30 levels
+      INTEGER, PARAMETER :: LLTROP     = 22
 #else 
-      INTEGER, PARAMETER :: LLPAR  = LGLOB  ! 55 levels
-      INTEGER, PARAMETER :: LLTROP = 23
+      INTEGER, PARAMETER :: LLPAR      = LGLOB  ! 55 levels
+      INTEGER, PARAMETER :: LLTROP     = 23
 #endif
 
-      INTEGER, PARAMETER :: LLTROP_FIX = 17 ! FOR OFFLINE SIMULATIONS
+      ! Set this so that we read data in correctly for offline sims
+      INTEGER, PARAMETER :: LLTROP_FIX = 17
 
-      REAL*8,  PARAMETER :: PTOP   = 0.01d0
+      REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
 #elif defined( GEOS_5 ) && defined( GRID4x5 )
 
       !--------------------
       ! GEOS-5 4 x 5
       !--------------------
-      INTEGER, PARAMETER :: IGLOB  = 72
-      INTEGER, PARAMETER :: JGLOB  = 46
-      INTEGER, PARAMETER :: LGLOB  = 55           
+      INTEGER, PARAMETER :: IGLOB      = 72
+      INTEGER, PARAMETER :: JGLOB      = 46
+      INTEGER, PARAMETER :: LGLOB      = 55           
 
-      INTEGER, PARAMETER :: IIPAR  = IGLOB
-      INTEGER, PARAMETER :: JJPAR  = JGLOB
+      INTEGER, PARAMETER :: IIPAR      = IGLOB
+      INTEGER, PARAMETER :: JJPAR      = JGLOB
 
 #if   defined( GRID30LEV ) 
-      INTEGER, PARAMETER :: LLPAR  = 30     ! 30 levels
+      INTEGER, PARAMETER :: LLPAR      = 30     ! 30 levels
 #else
-      INTEGER, PARAMETER :: LLPAR  = LGLOB  ! 55 levels
+      INTEGER, PARAMETER :: LLPAR      = LGLOB  ! 55 levels
 #endif
 
-      INTEGER, PARAMETER :: LLTROP_FIX = 17 ! FOR OFFLINE SIMULATIONS - Need to check this
-      INTEGER, PARAMETER :: LLTROP = 23     ! Need to check this
+      ! Set this so that we read data in correctly for offline sims
+      ! NEED TO CHECK THIS
+      INTEGER, PARAMETER :: LLTROP_FIX = 17 
+      INTEGER, PARAMETER :: LLTROP     = 23
 
-      REAL*8,  PARAMETER :: PTOP   = 0.01d0
+      REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
 #elif defined( GEOS_5 ) && defined( GRID2x25 )
 
       !--------------------
       ! GEOS-5 2 x 2.5
       !--------------------
-      INTEGER, PARAMETER :: IGLOB  = 144
-      INTEGER, PARAMETER :: JGLOB  = 91
-      INTEGER, PARAMETER :: LGLOB  = 55
+      INTEGER, PARAMETER :: IGLOB      = 144
+      INTEGER, PARAMETER :: JGLOB      = 91
+      INTEGER, PARAMETER :: LGLOB      = 55
 
-      INTEGER, PARAMETER :: IIPAR  = IGLOB
-      INTEGER, PARAMETER :: JJPAR  = JGLOB
+      INTEGER, PARAMETER :: IIPAR      = IGLOB
+      INTEGER, PARAMETER :: JJPAR      = JGLOB
 
 #if   defined( GRID30LEV )
-      INTEGER, PARAMETER :: LLPAR  = 30     ! 30 levels
+      INTEGER, PARAMETER :: LLPAR      = 30     ! 30 levels
 #else 
-      INTEGER, PARAMETER :: LLPAR  = LGLOB  ! 55 levels
+      INTEGER, PARAMETER :: LLPAR      = LGLOB  ! 55 levels
 #endif
 
-      INTEGER, PARAMETER :: LLTROP_FIX = 17 ! FOR OFFLINE SIMULATIONS - Need to check this
-      INTEGER, PARAMETER :: LLTROP = 23     ! Need to check this
+      ! Set this so that we read data in correctly for offline sims
+      ! NEED TO CHECK THIS
+      INTEGER, PARAMETER :: LLTROP_FIX = 17 
+      INTEGER, PARAMETER :: LLTROP     = 23     
 
-      REAL*8,  PARAMETER :: PTOP   = 0.01d0
+      REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
 #elif defined( GEOS_5 ) && defined( GRID1x125 )
 
       !--------------------
       ! GEOS-5 1 x 1.25
       !--------------------
-      INTEGER, PARAMETER :: IGLOB  = 288
-      INTEGER, PARAMETER :: JGLOB  = 181
-      INTEGER, PARAMETER :: LGLOB  = 55
+      INTEGER, PARAMETER :: IGLOB      = 288
+      INTEGER, PARAMETER :: JGLOB      = 181
+      INTEGER, PARAMETER :: LGLOB      = 55
 
-      INTEGER, PARAMETER :: IIPAR  = IGLOB
-      INTEGER, PARAMETER :: JJPAR  = JGLOB
+      INTEGER, PARAMETER :: IIPAR      = IGLOB
+      INTEGER, PARAMETER :: JJPAR      = JGLOB
 
 #if   defined( GRID30LEV )
-      INTEGER, PARAMETER :: LLPAR  = 30     ! 30 levels
+      INTEGER, PARAMETER :: LLPAR      = 30     ! 30 levels
 #else 
-      INTEGER, PARAMETER :: LLPAR  = LGLOB  ! 55 levels
+      INTEGER, PARAMETER :: LLPAR      = LGLOB  ! 55 levels
 #endif
+      ! Set this so that we read data in correctly for offline sims
+      ! NEED TO CHECK THIS
 
-      INTEGER, PARAMETER :: LLTROP_FIX = 17 ! FOR OFFLINE SIMULATIONS - Need to check this
-      INTEGER, PARAMETER :: LLTROP = 23     ! Need to check this!
+      INTEGER, PARAMETER :: LLTROP_FIX = 17 
+      INTEGER, PARAMETER :: LLTROP     = 23     
 
-      REAL*8,  PARAMETER :: PTOP   = 0.01d0
+      REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
 #endif
 
       !--------------------
       ! For GEOS 1x1 files
       !--------------------
-      INTEGER, PARAMETER :: I1x1   = 360
-      INTEGER, PARAMETER :: J1x1   = 181
+      INTEGER, PARAMETER :: I1x1    = 360
+      INTEGER, PARAMETER :: J1x1    = 181
 
       !=================================================================
       ! TRACER & EMISSION SPECIES PARAMETERS

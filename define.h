@@ -1,4 +1,4 @@
-! $Id: define.h,v 1.52 2006/11/07 19:01:57 bmy Exp $
+! $Id: define.h,v 1.53 2006/12/11 19:37:48 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
@@ -15,7 +15,7 @@
 !  (6 ) GRID1x1    : Enables code for 1 x 1    GLOBAL        GRID
 !  (7 ) NESTED_CH  : Enables code for 1 x 1    CHINA  NESTED GRID
 !  (8 ) NESTED_NA  : Enables code for 1 x 1    N. AM. NESTED GRID
-!  (9 ) GRID1x125  : Enables code for 1 x 1.25 GLOBAL       GRID
+!  (9 ) GRID1x125  : Enables code for 1 x 1.25 GLOBAL        GRID
 !  (10) GRID2x25   : Enables code for 2 x 2.5  GLOBAL        GRID
 !  (11) GRID4x5    : Enables code for 4 x 5    GLOBAL        GRID 
 !  (12) COMPAQ     : Enables code for Alpha w/ COMPAQ/HP Alpha compiler
@@ -23,7 +23,7 @@
 !  (14) LINUX_PGI  : Enables code for Linux w/ PGI compiler
 !  (15) LINUX_IFORT: Enables code for Linux v8 or v9 "IFORT" compiler
 !  (16) SGI_MIPS   : Enables code for SGI Origin w/ MIPS compiler
-!  (17) SPARC      : Enables code for Sun w/ SPARC compiler
+!  (17) SPARC      : Enables code for Sun w/ SPARC or Sun Studio compiler
 ! 
 !  NOTES:
 !  (1 ) "define.h" is #include'd at the top of CMN_SIZE.  All subroutines
@@ -123,7 +123,7 @@
 !==============================================================================
 #if !defined(GEOS_3) && !defined(GEOS_4) && !defined(GEOS_5) && !defined(GCAP)
 #error "ERROR: GEOS_STRAT, GEOS_3, GEOS_4, GEOS_5, and GCAP"
-#error "are ALL undefined in header file define.h"
+#error "are ALL und efined in header file define.h"
 #endif
 
 !==============================================================================

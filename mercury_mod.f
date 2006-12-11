@@ -1,9 +1,9 @@
-! $Id: mercury_mod.f,v 1.15 2006/05/15 17:52:53 bmy Exp $
+! $Id: mercury_mod.f,v 1.16 2006/12/11 19:37:52 bmy Exp $
       MODULE MERCURY_MOD
 !
 !******************************************************************************
 !  Module MERCURY_MOD contains variables and routines for the GEOS-CHEM 
-!  mercury simulation. (eck, bmy, 12/14/04, 4/6/06)
+!  mercury simulation. (eck, bmy, 12/14/04, 12/1/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -124,6 +124,7 @@
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (6 ) Various updates added for tagged Hg sim. (eck, sas, cdh, bmy, 4/6/06)
+!  (7 ) Updated IF statement in GET_LWC (cdh, bmy, 12/1/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1829,13 +1830,14 @@
 !
 !******************************************************************************
 !  Function GET_LWC returns the cloud liquid water content at a GEOS-CHEM
-!  grid box as a function of temperature. (rjp, bmy, 10/31/02, 12/7/04)
+!  grid box as a function of temperature. (rjp, bmy, 10/31/02, 12/1/06)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) T (REAL*8) : Temperature value at a GEOS-CHEM grid box [K]
 !
 !  NOTES:
+!  (1 ) Now also add a case for T > 293 to the IF statement (cdh, bmy, 12/1/06)
 !******************************************************************************
 !
       ! Arguments
@@ -1849,7 +1851,15 @@
       !=================================================================
 
       ! Compute Liquid water content in [g/m3]
-      IF ( T >= 280.d0 .AND. T <= 293.d0 ) THEN
+      !-------------------------------------------------------
+      ! Prior to 12/1/06:
+      ! Now also add a case for T > 293 (cdh, bmy, 12/1/06)
+      !IF ( T >= 280.d0 .AND. T <= 293.d0 ) THEN
+      !-------------------------------------------------------
+      IF ( T > 293d0 ) THEN    
+         LWC = 0.2d0           
+
+      ELSE IF ( T >= 280.d0 .AND. T <= 293.d0 ) THEN
          LWC = 0.32d0 - 0.0060d0 * ( T - 273.D0 ) 
  
       ELSE IF ( T >= 248.d0 .AND. T < 280.d0 ) THEN

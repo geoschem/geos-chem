@@ -1,4 +1,4 @@
-! $Id: dao_mod.f,v 1.23 2006/11/22 18:30:44 phs Exp $
+! $Id: dao_mod.f,v 1.24 2006/12/11 19:37:48 bmy Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
@@ -597,8 +597,10 @@
             ALBD(I,J) = ALBD1(I,J) + ( ALBD2(I,J) - ALBD1(I,J) ) * TM
 
             ! Tropopause pressure at midpt
-            IF ( LVARTROP ) TROPP(I,J) = TROPP1(I,J) 
-     &           + ( TROPP2(I,J) - TROPP1(I,J) ) * TM
+            IF ( LVARTROP ) THEN
+               TROPP(I,J) = TROPP1(I,J) 
+     &                    + ( TROPP2(I,J) - TROPP1(I,J) ) * TM
+            ENDIF
 
          ENDIF
          
@@ -625,8 +627,10 @@
          PSC2(I,J)  = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
 
          ! Tropopause pressure at midpt
-         IF ( LVARTROP ) TROPP(I,J) = TROPP1(I,J) 
-     &        + ( TROPP2(I,J) - TROPP1(I,J) ) * TM
+         IF ( LVARTROP ) THEN
+            TROPP(I,J) = TROPP1(I,J) 
+     &                 + ( TROPP2(I,J) - TROPP1(I,J) ) * TM
+         ENDIF
 
       ENDDO
       ENDDO

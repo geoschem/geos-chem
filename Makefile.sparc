@@ -1,5 +1,5 @@
 #=============================================================================
-# $Id: Makefile.sparc,v 1.44 2006/09/14 14:22:10 phs Exp $
+# $Id: Makefile.sparc,v 1.45 2006/12/11 19:37:47 bmy Exp $
 #
 # GEOS-Chem Makefile for Sun Studio and Sun/SPARC compilers, including
 # compilation options for both SPARC v9 and AMD/Opteron chipsets
@@ -351,7 +351,7 @@ jv_index.o                 : jv_index.f                 cmn_fj.h CMN_SIZE define
 ksparse.o                  : ksparse.f                  CMN_SIZE define.h comode.h 
 lai_mod.o                  : lai_mod.f                  CMN_SIZE define.h 
 lightning_nox_mod.o        : lightning_nox_mod.f        CMN_DIAG CMN_GCTM CMN_NOX CMN_SIZE define.h define.h 
-lightning_nox_nl_mod.o     : lightning_nox_nl_mod.f     CMN_DIAG CMN_GCTM CMN_NOX CMN_SIZE define.h 
+lightning_nox_nl_mod.o     : lightning_nox_nl_mod.f     CMN_DIAG CMN_GCTM CMN_NOX CMN_SIZE define.h
 logical_mod.o              : logical_mod.f              
 lump.o                     : lump.f                     CMN_SIZE define.h comode.h 
 main.o                     : main.f                     CMN_DIAG CMN_GCTM CMN_SIZE define.h 

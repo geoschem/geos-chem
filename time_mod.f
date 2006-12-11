@@ -1,4 +1,4 @@
-! $Id: time_mod.f,v 1.28 2006/11/22 18:30:47 phs Exp $
+! $Id: time_mod.f,v 1.29 2006/12/11 19:37:54 bmy Exp $
       MODULE TIME_MOD
 !
 !******************************************************************************
@@ -1115,17 +1115,20 @@
 !******************************************************************************
 !  Function GET_3h_AHEAD returns to the calling program a 2-element vector
 !  containing the YYYYMMDD and HHMMSS values at the current time plus N_MINS
-!   minutes. (bmy, 3/21/03)
+!   minutes. (bmy, 3/21/03, 12/8/06)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) N_MINS (INTEGER) : Minutes ahead of time to compute YYYYMMDD,HHMMSS
 ! 
-!  NOTES: Added leap year case for GCAP (11/21/06, phs)
+!  NOTES:
+!  (1 ) Bug fix for GCAP leap year case (phs, bmy, 12/8/06)
 !******************************************************************************
 !
       ! References to F90 modules
       USE JULDAY_MOD, ONLY : CALDATE
+
+#     include "define.h"   ! C-preprocessor flags
 
       ! Arguments
       INTEGER, INTENT(IN) :: N_MINS
@@ -1144,8 +1147,7 @@
       ! Call CALDATE to compute the current YYYYMMDD and HHMMSS
       CALL CALDATE( JD, DATE(1), DATE(2) )
 
-
-#if   defined( GCAP ) 
+#if   defined( GCAP )
 
       !-------------------------------
       ! GCAP met fields: no leapyears
@@ -1154,11 +1156,13 @@
       ! Extract current year, month, day from DATE(1)
       CALL YMD_EXTRACT( DATE(1), THISYEAR, THISMONTH, THISDAY )
 
-      ! Special handling for leap years 
-      IF ( ITS_A_LEAPYEAR( THISYEAR, FORCE=.TRUE. )  .AND. 
-     &     THISMONTH == 2 .AND. THISDAY == 29  )
-     &     DATE(1) = ( THISYEAR * 10000 ) + 0301
-         
+      ! Special handling for leap years
+      IF ( ITS_A_LEAPYEAR( THISYEAR, FORCE=.TRUE. )  .AND.
+     &     THISMONTH == 2                            .AND.
+     &     THISDAY   == 29 ) THEN 
+           DATE(1) = ( THISYEAR * 10000 ) + 0301
+        ENDIF
+
 #endif
 
       ! Return to calling program

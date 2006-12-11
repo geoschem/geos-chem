@@ -1,9 +1,9 @@
-! $Id: diag50_mod.f,v 1.12 2005/10/27 13:59:54 bmy Exp $
+! $Id: diag50_mod.f,v 1.13 2006/12/11 19:37:49 bmy Exp $
       MODULE DIAG50_MOD
 !
 !******************************************************************************
 !  Module DIAG50_MOD contains variables and routines to generate 24-hour 
-!  average timeseries data. (amf, bey, bdf, pip, bmy, 11/30/00, 10/25/05)
+!  average timeseries data. (amf, bey, bdf, pip, bmy, 11/30/00, 11/30/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -102,6 +102,7 @@
 !        both GCAP and GEOS grids. (bmy, 6/24/05)
 !  (8 ) Bug fix: don't save SLP unless it is allocated (bmy, 8/2/05)
 !  (9 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
+!  (10) Modified INIT_DIAG49 to save out transects (cdh, bmy, 11/30/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1129,7 +1130,7 @@
 !******************************************************************************
 !  Subroutine INIT_DIAG50 allocates and zeroes all module arrays.  
 !  It also gets values for module variables from "input_mod.f". 
-!  (bmy, 7/20/04, 6/28/05)
+!  (bmy, 7/20/04, 11/30/06)
 ! 
 !  Arguments as Input:
 !  ============================================================================
@@ -1148,6 +1149,9 @@
 !  (1 ) Now get I0 and J0 correctly for nested grid simulations (bmy, 11/9/04)
 !  (2 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
 !        value for GEOS or GCAP grids. (bmy, 6/28/05)
+!  (3 ) Now allow ND50_IMIN to be equal to ND50_IMAX and ND50_JMIN to be
+!        equal to ND50_JMAX.  This will allow us to save out longitude
+!        or latitude transects.  (cdh, bmy, 11/30/06)
 !******************************************************************************
 !    
       ! References to F90 modules
@@ -1223,7 +1227,13 @@
 
       ! Compute longitude limits to write to disk 
       ! Also handle wrapping around the date line
-      IF ( ND50_IMAX > ND50_IMIN ) THEN
+      !-----------------------------------------------------------------
+      ! Prior to 11/30/06:
+      ! This allows us to set ND50_IMIN=ND50_IMAX, so that we can save 
+      ! out a single longitude transect (cdh, bmy, 11/30/06)
+      !IF ( ND50_IMAX > ND50_IMIN ) THEN
+      !-----------------------------------------------------------------
+      IF ( ND50_IMAX >= ND50_IMIN ) THEN
          ND50_NI = ( ND50_IMAX - ND50_IMIN ) + 1
       ELSE 
          ND50_NI = ( IIPAR - ND50_IMIN ) + 1 + ND50_IMAX
@@ -1250,7 +1260,13 @@
       ENDIF
 
       ! Compute latitude limits to write to disk (bey, bmy, 3/16/99)
-      IF ( ND50_JMAX > ND50_JMIN ) THEN
+      !------------------------------------------------------------------
+      ! Prior to 11/30/06:
+      ! This allows us to set ND50_JMIN=ND50_JMAX, so that we can save 
+      ! out a single latitude transect (cdh, bmy, 11/30/06)
+      !IF ( ND50_JMAX > ND50_JMIN ) THEN
+      !------------------------------------------------------------------
+      IF ( ND50_JMAX >= ND50_JMIN ) THEN
          ND50_NJ = ( ND50_JMAX - ND50_JMIN ) + 1
       ELSE
          CALL ERROR_STOP( 'ND50_JMAX < ND50_JMIN!', LOCATION )

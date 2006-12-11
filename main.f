@@ -1,24 +1,18 @@
-! $Id: main.f,v 1.43 2006/11/22 18:30:44 phs Exp $
+! $Id: main.f,v 1.44 2006/12/11 19:37:51 bmy Exp $
 ! $Log: main.f,v $
-! Revision 1.43  2006/11/22 18:30:44  phs
-! Modified - 11/2006, phs
-!
-!        CMN_SIZE      : now define lltrop_fix for GCAP. It is needed
-!                        although variable tropopause is not available
-!                        in GCAP.
-!
-!        a3_read_mod.f : added SNOW and GETWETTOP fields for GCAP
-!
-!        dao_mod.f     : fix minor bug that inverted TROPP1 and TROPP2
-!
-!        main.f        : remove duplicate call for unzip in GCAP case
-!
-!        sulfate_mod.f : temporary fix (data need regridding) for GCAP
-!                        read_aircraft_so2
-!
-!        time_mod.f    : fix leap year problem in get_time_ahead for GCAP
-!
-!        transport_mod.f : fix mismatched indices for embedded chemistry
+! Revision 1.44  2006/12/11 19:37:51  bmy
+! GEOS-Chem v7-04-11, includes the following modifications:
+! - Fixed near-land lightning; now scale 2x25, 4x5 to 6 Tg N/yr (ltm,bmy)
+! - Now allow ND49, ND50, ND51 to save transects of a single lon or lat (bmy)
+! - Add case for T > 293K to routine GET_LWC in "mercury_mod.f" (cdh,bmy)
+! - Bug fix: correct indices for embedded chemistry in "transport_mod.f" (phs)
+! - Bug fix: correct typo in SEASALT_CHEM routine in "sulfate_mod.f" (bmy)
+! - Now prevent seg fault errors when LBIOMASS=F (bmy)
+! - Now fixed minor bug that inverted TROPP1 and TROPP2 (phs)
+! - CMN_SIZE: now define LLTROP_FIX for GCAP. (phs)
+! - a3_read_mod.f : added SNOW and GETWETTOP fields for GCAP (phs)
+! - main.f: remove duplicate call for unzip in GCAP case (phs)
+! - time_mod.f: fix leap year problem in get_time_ahead for GCAP (phs)
 !
 ! Revision 1.42  2006/10/17 17:51:14  bmy
 ! GEOS-Chem v7-04-10, includes the following modifications:
@@ -503,7 +497,6 @@
          CALL PRINT_CURRENT_TIME
 
          ! Set time variables for dynamic loop
-         !DAY         = GET_DAY()
          DAY_OF_YEAR = GET_DAY_OF_YEAR()
          ELAPSED_SEC = GET_ELAPSED_SEC()
          MONTH       = GET_MONTH()
@@ -512,6 +505,9 @@
          TAU         = GET_TAU()
          YEAR        = GET_YEAR()
          SEASON      = GET_SEASON()
+
+         !### Debug
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a SET_CURRENT_TIME' )
 
          !==============================================================
          !   ***** W R I T E   D I A G N O S T I C   F I L E S *****
@@ -992,6 +988,8 @@
 
          ! Increment elapsed time
          CALL SET_ELAPSED_MIN
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after SET_ELAPSED_MIN' )
+          
       ENDDO
 
       !=================================================================
@@ -1001,6 +999,7 @@
       !        the fields at the beginning of the next timestep
       !=================================================================
       CALL COPY_I6_FIELDS
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after COPY_I6_FIELDS' )
 
       ENDDO
 
