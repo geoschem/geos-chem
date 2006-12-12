@@ -1,11 +1,11 @@
-! $Id: planeflight_mod.f,v 1.21 2006/11/07 19:02:02 bmy Exp $
+! $Id: planeflight_mod.f,v 1.22 2006/12/12 15:07:51 bmy Exp $
       MODULE PLANEFLIGHT_MOD
 !
 !******************************************************************************
 !  Module PLANEFLIGHT_MOD contains variables and routines which are used to
 !  "fly" a plane through the GEOS-Chem model simulation.  This is useful for
 !  comparing model results with aircraft observations. 
-!  (mje, bmy, 7/30/02, 10/16/06)
+!  (mje, bmy, 7/30/02, 12/12/06)
 !
 !  Module Variables:
 !  ============================================================================
@@ -80,6 +80,7 @@
 !  (15) Now split AOD's into column AOD's and AOD's below plane.  Also scale
 !        AOD's to 400nm. (bmy, 10/25/05)
 !  (16) Bug fixes in READ_VARIABLES (bmy, 10/16/06)
+!  (17) Bug fix in PLANEFLIGHT (cdh, bmy, 12/12/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -761,7 +762,7 @@
 !
 !******************************************************************************
 !  Subroutine PLANEFLIGHT saves concentrations to disk at locations 
-!  corresponding to a flight track (mje, bmy, 7/8/02, 3/25/04)
+!  corresponding to a flight track (mje, bmy, 7/8/02, 12/12/06)
 !
 !  NOTES:
 !  (1 ) Now reference AD from "dao_mod.f".  Now references GEOS_CHEM_STOP from
@@ -778,6 +779,8 @@
 !  (7 ) Now return if DO_PF = .FALSE. (bmy, 3/24/05)
 !  (8 ) Now compute column AOD's and AOD's below plane.  Also now scale
 !        AOD's to 400nm. (bmy, 10/24/05)
+!  (9 ) Bug fix: exit if PTAU(M) == PTAUE, so that we write out on the next !
+!        planeflight timestep (cdh, bmy, 12/12/06)
 !******************************************************************************
 !
       ! Reference to F90 modules 
@@ -840,7 +843,13 @@
          !==============================================================
          ! We have already found all of the plane points...
          !==============================================================
-         ELSE IF ( PTAU(M) > PTAUE ) THEN
+         !--------------------------------------------------------------
+         ! Prior to 12/12/06:
+         ! Bug fix: exit if PTAU(M) == PTAUE, so that we write out on
+         ! the next planeflight timestep (cdh, bmy, 12/12/06)
+         !ELSE IF ( PTAU(M) > PTAUE ) THEN
+         !--------------------------------------------------------------
+         ELSE IF ( PTAU(M) >= PTAUE ) THEN
 
             ! Exit this loop and the subroutine
             EXIT
@@ -907,7 +916,7 @@
                   CASE ( 1002 ) 
                      
                      ! Only archive where SMVGEAR chem is done
-                     ! Code skaloooched from "calcrate.f"
+                     ! Code skalooched from "calcrate.f"
                      IF ( PCHEM ) THEN
                         TK       = T3(JLOOP)
                         CONSEXP  = 17.2693882d0 * 
