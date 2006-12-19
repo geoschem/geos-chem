@@ -1,11 +1,11 @@
-! $Id: fvdas_convect_mod.f,v 1.18 2006/11/07 19:01:59 bmy Exp $
+! $Id: fvdas_convect_mod.f,v 1.19 2006/12/19 21:28:33 bmy Exp $
       MODULE FVDAS_CONVECT_MOD
 !
 !******************************************************************************
 !  Module FVDAS_CONVECT_MOD contains routines (originally from NCAR) which 
 !  perform shallow and deep convection for the GEOS-4/fvDAS met fields.  
 !  These routines account for shallow and deep convection, plus updrafts 
-!  and downdrafts.  (pjr, dsa, bmy, 6/26/03, 9/5/06)
+!  and downdrafts.  (pjr, dsa, bmy, 6/26/03, 12/19/06)
 !  
 !  Module Variables:
 !  ============================================================================
@@ -47,6 +47,8 @@
 !        (swu, bmy, 6/27/06)
 !  (9 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
 !        (bmy, 9/5/06)
+!  (10) Bug fix in CONVTRAN to avoid div potential div by zero.  Make SMALLEST
+!        = 1d-60 to avoid problems (bmy, 12/19/06)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -75,7 +77,12 @@
       REAL*8,  PARAMETER :: CMFTAU   = 3600.d0
       REAL*8,  PARAMETER :: EPS      = 1.0d-13   
       REAL*8,  PARAMETER :: GRAV     = 9.8d0
-      REAL*8,  PARAMETER :: SMALLEST = 1.0d-32
+      !-------------------------------------------------------
+      ! Prior to 12/19/06:
+      ! Make SMALLEST smaller (bmy, 12/19/06)
+      !REAL*8,  PARAMETER :: SMALLEST = 1.0d-32
+      !-------------------------------------------------------
+      REAL*8,  PARAMETER :: SMALLEST = 1.0d-60
       REAL*8,  PARAMETER :: TINYALT  = 1.0d-36       
       REAL*8,  PARAMETER :: TINYNUM  = 2*SMALLEST
 
@@ -681,7 +688,7 @@
 !******************************************************************************
 !  Subroutine CONVTRAN applies the convective transport of trace species
 !  (assuming moist mixing ratio) using the ZHANG/MCFARLANE convection scheme. 
-!  (pjr, dsa, bmy, 6/26/03, 6/27/06)
+!  (pjr, dsa, bmy, 6/26/03, 12/19/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -746,6 +753,7 @@
 !  (6 ) Updated for ND14 diagnostic (swu, bmy, 6/12/06)
 !  (7 ) Now treat "negative detrainment" as entrainment, which will better 
 !        conserve mixing ratio (swu, bmy, 6/27/06)
+!  (8 ) Bug fix: avoid div by zero in formula for CHAT (bmy, 12/19/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -868,9 +876,23 @@
                   CABV = MAX( CMIX(I,KM1), MAXC*TINYNUM, SMALLEST )
                   CBEL = MAX( CMIX(I,K),   MAXC*TINYNUM, SMALLEST )
 
-                  CHAT(I,K) = LOG( CABV / CBEL)
-     &                       /   ( CABV - CBEL)
-     &                       *     CABV * CBEL
+!-----------------------------------------------------------------
+! Prior to 12/19/06:
+! Avoid division by zero (bmy, 12/19/06)
+!                  CHAT(I,K) = LOG( CABV / CBEL)
+!     &                       /   ( CABV - CBEL)
+!     &                       *     CABV * CBEL
+!-----------------------------------------------------------------
+
+                  ! If CABV-CBEL is zero then set CHAT=SMALLEST
+                  ! so that we avoid div by zero (bmy, 12/19/06) 
+                  IF ( ABS( CABV - CBEL ) > 0d0 ) THEN
+                     CHAT(I,K) = LOG( CABV / CBEL )
+     &                         /    ( CABV - CBEL )
+     &                         *      CABV * CBEL
+                  ELSE
+                     CHAT(I,K) = SMALLEST
+                  ENDIF
 
                ELSE             
 

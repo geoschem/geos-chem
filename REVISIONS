@@ -46,6 +46,12 @@ cleanup_lightning_nox_nl   -- Rename OTDSCALE to OTD_REDIST
 
 CMN_SIZE		   -- Bug fix: set LLTROP_FIX = LLPAR for GCAP
 
+convtran		   -- Bug fix: avoid div by zero in formula for CHAT
+("gcap_convect_mod.f")
+
+convtran		   -- Bug fix: avoid div by zero in formula for CHAT
+("fvdas_convect_mod.f")
+
 do_global_transport	   -- Bug fix: now index STT_I1, STT_J1, STT_I2, 
 ("transport_mod.f")           STT_J2 correctly
 
@@ -62,6 +68,13 @@ flashes_precon		   -- Remove CCTHICK as an argument
 ("lightning_nox_nl_mod.f") -- Change IC_CG_RATIO to an input argument
 		           -- Remove computation of IC_CG_RATIO and move that 
 			      to GET_IC_CG_RATIO.
+
+fvdas_convect_mod.f        -- Make SMALLEST = 1d-60 to avoid problems
+
+gcap_convect		   -- Now don't call CONVTRAN if LENGATH=0
+("gcap_convect_mod.f")
+
+gcap_convect_mod.f         -- Make SMALLEST = 1d-60 to avoid problems
 
 get_a3_fields		   -- Now read SNOW and GWETTOP for GCAP met fields
 ("a3_read_mod.f")

@@ -1,10 +1,10 @@
-! $Id: gcap_convect_mod.f,v 1.7 2006/11/07 19:02:01 bmy Exp $
+! $Id: gcap_convect_mod.f,v 1.8 2006/12/19 21:28:38 bmy Exp $
       MODULE GCAP_CONVECT_MOD
 !
 !******************************************************************************
 !  Module GCAP_CONVECT_MOD contains routines (originally from GISS) which
 !  perform shallow and deep convection for the GCAP met fields.  This module
-!  was based on FVDAS_CONVECT_MOD. (swu, bmy, 6/9/05, 9/5/06)
+!  was based on FVDAS_CONVECT_MOD. (swu, bmy, 6/9/05, 12/19/06)
 !  
 !  Module Variables:
 !  ============================================================================
@@ -28,6 +28,8 @@
 !  (1 ) Rewrote parallel loops to avoid problems w/ OpenMP (bmy, 12/13/05)
 !  (2 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
 !        (bmy, 9/5/06)
+!  (3 ) More bug fixes for SUN 4100 platform.  Make SMALLEST = 1d-60 to avoid 
+!        problems (bmy, 12/19/06)
 !******************************************************************************
 !  
       IMPLICIT NONE
@@ -49,7 +51,12 @@
 
       ! Constants
       REAL*8,  PARAMETER :: GRAV     = 9.8d0
-      REAL*8,  PARAMETER :: SMALLEST = 1d-32
+      !----------------------------------------------
+      ! Prior to 12/19/06:
+      ! Make SMALLEST smaller (bmy, 12/19/06)
+      !REAL*8,  PARAMETER :: SMALLEST = 1d-32
+      !----------------------------------------------
+      REAL*8,  PARAMETER :: SMALLEST = 1d-60
       REAL*8,  PARAMETER :: TINYNUM  = 2*SMALLEST
 
       !=================================================================
@@ -67,7 +74,7 @@
 !******************************************************************************
 !  Subroutine GCAP_CONVECT is the convection driver routine for GEOS-4/fvDAS
 !  met fields.  It calls the ZHANG/MCFARLANE convection scheme.
-!  (swu, bmy, 6/9/05, 12/13/05)
+!  (swu, bmy, 6/9/05, 12/19/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -103,6 +110,7 @@
 !  (1 ) Rewrote parallel loops so that we pass entire arrays to the various
 !        subroutines instead of array slices such as (:,J,:).  This can cause
 !        problems with OpenMP for some compilers. (bmy, 12/13/05)
+!  (2 ) Now don't call CONVTRAN if LENGATH=0 (bmy, 12/19/06)
 !******************************************************************************
 !
 
@@ -177,12 +185,14 @@
          ! Internal convection steps
          DO ISTEP = 1, NSTEP 
 
-            ! Do the convection
-            CALL CONVTRAN( J,          NTRACE,    Q,         
-     &                     UPDEG,      DNDEG,     DETRAINEG, ENTRAING,  
-     &                     TOTALDNDEG, DPG,       JT,        MX,        
-     &                     IDEEP,      1,         LENGATH,   NSTEP,     
-     &                     0.5D0*TDT,  FRACIS,    TCVV,      INDEXSOL ) 
+            ! If there are nonzero fields at this J, do the convection
+            IF ( LENGATH > 0 ) THEN
+               CALL CONVTRAN( J,          NTRACE, Q,         
+     &                        UPDEG,      DNDEG,  DETRAINEG, ENTRAING,  
+     &                        TOTALDNDEG, DPG,    JT,        MX,        
+     &                        IDEEP,      1,      LENGATH,   NSTEP,     
+     &                        0.5D0*TDT,  FRACIS, TCVV,      INDEXSOL ) 
+            ENDIF
 
          ENDDO 
 
@@ -200,12 +210,14 @@
          ! Loop over internal convection timesteps
          DO ISTEP = 1, NSTEP  
 
-            ! Do the convection
-            CALL CONVTRAN( J,          NTRACE,    Q,          
-     &                     UPDNG,      DNDNG,     DETRAINNG, ENTRAINNG, 
-     &                     TOTALDNDNG, DPG,       JT,        MX,         
-     &                     IDEEP,      1,         LENGATH,   NSTEP, 
-     &                     0.5D0*TDT,  FRACIS,    TCVV,      INDEXSOL ) 
+            !  If there are nonzero fields at this J, do the convection
+            IF ( LENGATH > 0 ) THEN
+               CALL CONVTRAN( J,          NTRACE, Q,          
+     &                        UPDNG,      DNDNG,  DETRAINNG, ENTRAINNG, 
+     &                        TOTALDNDNG, DPG,    JT,        MX,         
+     &                        IDEEP,      1,      LENGATH,   NSTEP, 
+     &                        0.5D0*TDT,  FRACIS, TCVV,      INDEXSOL ) 
+            ENDIF
 
          ENDDO
 
@@ -360,7 +372,7 @@
 !******************************************************************************
 !  Subroutine CONVTRAN applies the convective transport of trace species
 !  (assuming moist mixing ratio) using the ZHANG/MCFARLANE convection scheme. 
-!  (swu, bmy, 6/9/05, 12/13/05)
+!  (swu, bmy, 6/9/05, 12/19/06)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -409,6 +421,7 @@
 !  (1 ) Now dimension Q and FRACIS of size (IIPAR,JJPAR,LLPAR,NTRACE), in 
 !        order to avoid seg faults with OpenMP.  Also renamed GEOS-CHEM 
 !        latitude index LATI_INDEX to J.  Added comments. (bmy, 12/13/05)
+!  (2 ) Bug fix: avoid div by zero in formula for CHAT (bmy, 12/19/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -497,6 +510,7 @@
             KM1 = MAX(1,K-1)
 
             DO I = IL1G, IL2G
+
                MINC = MIN( CMIX(I,KM1), CMIX(I,K) )
                MAXC = MAX( CMIX(I,KM1), CMIX(I,K) )
 
@@ -513,14 +527,29 @@
                   CABV = MAX( CMIX(I,KM1), MAXC*TINYNUM, SMALLEST )
                   CBEL = MAX( CMIX(I,K),   MAXC*TINYNUM, SMALLEST )
 
-                  CHAT(I,K) = LOG( CABV / CBEL)
-     &                       /   ( CABV - CBEL)
-     &                       *     CABV * CBEL
+!---------------------------------------------------------------------------
+! Prior to 12/19/06:
+! We need to prevent division by zero, if CABV-CBEL=0 (bmy, 12/19/06)
+!                  CHAT(I,K) = LOG( CABV / CBEL)
+!     &                       /   ( CABV - CBEL)
+!     &                       *     CABV * CBEL
+!----------------------------------------------------------------------------
+
+                  ! If CABV-CBEL is zero then set CHAT=SMALLEST
+                  ! so that we avoid div by zero (bmy, 12/19/06) 
+                  IF ( ABS( CABV - CBEL ) > 0d0 ) THEN
+                     CHAT(I,K) = LOG( CABV / CBEL )
+     &                         /    ( CABV - CBEL )
+     &                         *      CABV * CBEL
+                  ELSE
+                     CHAT(I,K) = SMALLEST
+                  ENDIF
 
                ELSE             
 
-                  ! Small diff, so just arithmetic mean
+                  ! If CDFIR <= 1d6, just use arithmetic mean
                   CHAT(I,K) = 0.5d0 * ( CMIX(I,K) + CMIX(I,KM1) )
+
                ENDIF
 
                ! Provisional up and down draft values
@@ -550,7 +579,7 @@
                 COND(I,K) = 0.5d0 * ( CMIX(I,KM1) + CONU(I,KM1) )
             ENDIF
          ENDDO
-         
+
          !==============================================================
          ! Updraft from bottom to top
          !==============================================================
@@ -581,7 +610,7 @@
                IF ( CONU(I,KK) < 0.0D0 ) THEN
                   WRITE(6,*) 'Warning! negative conu!!!', conu(I,KK)
                   CALL FLUSH(6)
-               !Else if ( conu(i,KK) > 1.0e-10 ) then
+               !ELSE IF ( CONU(I,KK) > 1.0e-10 ) THEN
                !    write(6,*) 'Warning! Too big conu!!!', conu(I,KK)
                !    call flush(6)
                ENDIF
@@ -595,6 +624,7 @@
             KM1 = MAX( 1, K-1 )
 
             DO I = IL1G, IL2G
+
                IF ( TOTALMD(I,K) < -MBSTH ) THEN
                   IF ( MD(I,K) < -MBSTH ) THEN
                      COND(I,K) = ( TOTALMD(I,KM1)*COND(I,KM1) 
@@ -602,13 +632,13 @@
      $                  / TOTALMD(I,K)
                   ELSE
                      COND(I,K) = COND(I,KM1)
-                  ENDIF
+                 ENDIF
                ENDIF
                
                IF ( COND(I,K) < 0.0D0 ) THEN
                   WRITE(6,*) 'WARNING! negative cond!!!', cond(I,K)
                   CALL FLUSH(6)
-                !Else if ( cond(i,K) > 1.0e-10 ) then
+                !ELSE IF ( COND(I,K) > 1.0e-10 ) THEN
                 !   write(6,*) 'Warning! Too big cond!!!', cond(I,K)
                 !   call flush(6)
                ENDIF
@@ -655,27 +685,27 @@
      &                    - TOTALMD(I,KM1) * CMIX(I,K)
                ENDIF
 
-!!!!!!!!!!!!!!!!!!backup: also works OK !!!!!!!!!!!!!!!!!!!!!!!
-!              FLUXIN =  MU(I,KP1)* CONU(I,KP1) 
-!     $                +  MU(I,K)  * 0.5d0*(CHAT(I,K)+CMIX(I,KM1)) 
-!     $                -  MD(I,K)  * COND(I,K)   
-!     $                -  MD(I,KP1)* 0.5d0*(CHAT(I,KP1)+CMIX(I,KP1))
-!
-!               FLUXOUT = MU(I,K)   * CONU(I,K)     
-!     $                 + MU(I,KP1) * 0.5d0*(CHAT(I,KP1)+CMIX(I,K))
-!     $                 - MD(I,KP1) * COND(I,KP1) 
-!     $                 - MD(I,K)   * 0.5d0*(CHAT(I,K)+CMIX(I,K))
-!
-!               FLUXIN =  MU(I,KP1)* CONU(I,KP1) 
-!     $                +  MU(I,K)  * CHAT(I,K)
-!     $                -  MD(I,K)  * COND(I,K)   
-!     $                -  MD(I,KP1)* CHAT(I,KP1)
-!
-!               FLUXOUT = MU(I,K)   * CONU(I,K)     
-!     $                 + MU(I,KP1) * CHAT(I,KP1)
-!     $                 - MD(I,KP1) * COND(I,KP1) 
-!     $                 - MD(I,K)   * CHAT(I,K)
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!backup: also works OK !!!!!!!!!!!!!!!!!!!!!!!
+!!              FLUXIN =  MU(I,KP1)* CONU(I,KP1) 
+!!     $                +  MU(I,K)  * 0.5d0*(CHAT(I,K)+CMIX(I,KM1)) 
+!!     $                -  MD(I,K)  * COND(I,K)   
+!!     $                -  MD(I,KP1)* 0.5d0*(CHAT(I,KP1)+CMIX(I,KP1))
+!!
+!!               FLUXOUT = MU(I,K)   * CONU(I,K)     
+!!     $                 + MU(I,KP1) * 0.5d0*(CHAT(I,KP1)+CMIX(I,K))
+!!     $                 - MD(I,KP1) * COND(I,KP1) 
+!!     $                 - MD(I,K)   * 0.5d0*(CHAT(I,K)+CMIX(I,K))
+!!
+!!               FLUXIN =  MU(I,KP1)* CONU(I,KP1) 
+!!     $                +  MU(I,K)  * CHAT(I,K)
+!!     $                -  MD(I,K)  * COND(I,K)   
+!!     $                -  MD(I,KP1)* CHAT(I,KP1)
+!!
+!!               FLUXOUT = MU(I,K)   * CONU(I,K)     
+!!     $                 + MU(I,KP1) * CHAT(I,KP1)
+!!     $                 - MD(I,KP1) * COND(I,KP1) 
+!!     $                 - MD(I,K)   * CHAT(I,K)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
                !==================================================
                ! ND38 Diagnostic: loss of soluble tracer to wet
@@ -727,7 +757,7 @@
 
                DCONDT(I,K)= NETFLUX/DP(I,K) !AD(IDEEP(I),lati_index,llpar+1-k)
             ENDDO               !I
-         Enddo                  !K
+         ENDDO                  !K
 
 
          DO K = KBM, LLPAR             
