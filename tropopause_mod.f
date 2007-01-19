@@ -1,9 +1,9 @@
-! $Id: tropopause_mod.f,v 1.9 2006/11/07 19:02:08 bmy Exp $
+! $Id: tropopause_mod.f,v 1.10 2007/01/19 15:07:48 bmy Exp $
       MODULE TROPOPAUSE_MOD
 !
 !******************************************************************************
 !  Module TROPOPAUSE_MOD contains routines and variables for reading and
-!  returning the value of the annual mean tropopause. (bmy, 8/15/05, 9/14/06)
+!  returning the value of the annual mean tropopause. (bmy, 8/15/05, 1/19/07)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -44,7 +44,7 @@
 !        The definition of tropopause is different in the two cases.
 !        The tropopause is part of the troposphere in the case of a  variable 
 !        troposphere. LMAX, LMIN are the min and max extend of the troposphere
-!        in that case.  (bdf, phs, 9/14/06)
+!        in that case.  (bdf, phs, 1/19/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -209,10 +209,11 @@
 !******************************************************************************
 !  Subroutine CHECK_VAR_TROP checks that the entire variable troposphere is
 !  included in the 1..LLTROP range, and set the LMIN and LMAX to current
-!  min and max tropopause. (phs, 24/8/06)
+!  min and max tropopause. (phs, 8/24/06, 1/19/07)
 !
 !  NOTES:
-!   (1 ) LLTROP is set at the first level entirely above 20 km (phs, 9/29/06)
+!  (1 ) LLTROP is set at the first level entirely above 20 km (phs, 9/29/06)
+!  (2 ) Fix LPAUSE for CH4 chemistry (phs, 1/19/07)
 !******************************************************************************
 !
       ! Reference to F90 modules 
@@ -241,10 +242,15 @@
       LMAX = MAXVAL( TPAUSE_LEV )
 
       !### For backwards compatibility during transition (still needed??)
-      LPAUSE = TPAUSE_LEV
+      !-----------------------------------
+      ! Prior to 1/19/07:
+      !LPAUSE = TPAUSE_LEV
+      !-----------------------------------
+      !### LPAUSE is still used by CH4 chemistry and ND27 (phs, 1/19/07)
+      LPAUSE = TPAUSE_LEV - 1
 
       ! check to be sure LLTROP is large enough.
-      IF (LLTROP < LMAX ) THEN
+      IF ( LLTROP < LMAX ) THEN
          WRITE( 6, '(a)' ) 'CHECK_VAR_TROP: LLTROP is set too low!' 
          WRITE( 6, 10   ) LMAX, LLTROP
  10      FORMAT( 'MAX TROPOSPHERE LEVEL = ', i3, ' and LLTROP = ', i3 )
