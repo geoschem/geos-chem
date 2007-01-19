@@ -1,10 +1,10 @@
-! $Id: tagged_ox_mod.f,v 1.19 2006/09/14 17:03:46 bmy Exp $
+! $Id: tagged_ox_mod.f,v 1.20 2007/01/19 14:53:31 bmy Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
 !  Module TAGGED_OX_MOD contains variables and routines to perform a tagged Ox
 !  simulation.  P(Ox) and L(Ox) rates need to be archived from a full chemistry
-!  simulation before you can run w/ Tagged Ox. (amf,rch,bmy, 8/20/03, 9/14/06)
+!  simulation before you can run w/ Tagged Ox. (amf,rch,bmy, 8/20/03, 1/19/07)
 !
 !  Module Variables:
 !  ============================================================================
@@ -48,7 +48,7 @@
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (8 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (9 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (10) Modified for variable tropopause (phs, bmy, 9/14/06)
+!  (10) Modified for variable tropopause (phs, bmy, 1/19/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -124,14 +124,14 @@
 !
 !******************************************************************************
 !  Subroutine READ_POX_LOX reads previously-archived Ox production & loss 
-!  rates from binary punch file format. (bmy, 8/20/03, 9/14/06)
+!  rates from binary punch file format. (bmy, 8/20/03, 1/19/07)
 ! 
 !  NOTES:
 !  (1 ) Updated from the old routine "chemo3_split.f" (rch, bmy, 8/20/03)
 !  (2 ) Now references O3PL_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (4 ) Use LLTROP_FIX to limit array size to case of non-variable tropopause 
-!        (phs, 9/12/06)
+!  (4 ) Use LLTROP_FIX to limit array size to case of non-variable tropopause.
+!        Also zero ARRAY to avoid numerical problems (phs, 1/19/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -168,9 +168,13 @@
       !=================================================================
       ! Read P(O3) [kg/cm3/s]
       !=================================================================
-      ! limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
-      ! tropopause. This is backward compatibility with 
-      ! offline data set.
+
+      ! Avoid arithmetic problem with random data between LLTROP_FIX
+      ! and LLTROP.  Fill ARRAY to zero. (phs, 1/19/07)
+      ARRAY = 0e0
+
+      ! Limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
+      ! tropopause. This is backward compatibility with offline data set.
       CALL READ_BPCH2( FILENAME, 'PORL-L=$', 1,      
      &     XTAU,        IGLOB,                    JGLOB,      
      &     LLTROP_FIX,  ARRAY(:,:,1:LLTROP_FIX),  QUIET=.TRUE. )
@@ -198,7 +202,7 @@
 !******************************************************************************
 !  Subroutine GET_REGIONAL_POX returns the P(Ox) for each of the tagged Ox 
 !  tracers. Tagged Ox tracers are defined by both geographic location and 
-!  altitude. (amf, rch, bmy, 8/19/03, 8/4/06)
+!  altitude. (amf, rch, bmy, 8/19/03, 1/19/07)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -217,6 +221,7 @@
 !  (4 ) Now references ITS_IN_THE_TROP from "tropopause_mod.f".  Now remove
 !        reference to "CMN", it's obsolete. (bmy, 8/22/05)
 !  (5 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (6 ) Resize the PP array from LLTROP to LLTROP_FIX (phs, 1/19/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -230,7 +235,12 @@
 
       ! Arguments
       INTEGER, INTENT(IN)     :: I, J, L
-      REAL*8,  INTENT(OUT)    :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
+      !-------------------------------------------------------------------
+      ! Prior to 1/19/07:
+      ! Change LLTROP to LLTROP_FIX (phs, 1/19/07)
+      !REAL*8,  INTENT(OUT)    :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
+      !-------------------------------------------------------------------
+      REAL*8,  INTENT(OUT)    :: PP(IIPAR,JJPAR,LLTROP_FIX,N_TAGGED)
 
       ! Local variables
       LOGICAL                 :: ITS_IN_TROP, ITS_IN_PBL, ITS_IN_MT
@@ -380,7 +390,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_TAGGED_OX performs chemistry for several Ox tracers which
-!  are tagged by geographic and altitude regions. (rch, bmy, 8/20/03, 2/17/05)
+!  are tagged by geographic and altitude regions. (rch, bmy, 8/20/03, 1/19/07)
 ! 
 !  NOTES:
 !  (1 ) Updated from the old routine "chemo3_split.f" (rch, bmy, 8/20/03)
@@ -397,6 +407,8 @@
 !  (6 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP
 !        from "pbl_mix_mod.f".  Now only sum ND44 diagnostic up to the
 !        maximum tropopsheric level. (bmy, 2/17/05)
+!  (7 ) Resize PP, ND44_TMP arrays from LLTROP to LLTROP_FIX.  Now only loop 
+!        up to LLTROP_FIX (phs, 1/19/07) 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -421,8 +433,14 @@
       LOGICAL, SAVE     :: FIRST   = .TRUE.
       INTEGER, SAVE     :: LASTDAY = -1
       INTEGER           :: I, J, L, N
-      REAL*8            :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
-      REAL*8            :: ND44_TMP(IIPAR,JJPAR,LLTROP)
+      !-----------------------------------------------------------
+      ! Prior to 1/19/07:
+      ! Resize arrays from LLTROP to LLTROP_FIX (phs, 1/19/07)
+      !REAL*8            :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
+      !REAL*8            :: ND44_TMP(IIPAR,JJPAR,LLTROP)
+      !-----------------------------------------------------------
+      REAL*8            :: PP(IIPAR,JJPAR,LLTROP_FIX,N_TAGGED)
+      REAL*8            :: ND44_TMP(IIPAR,JJPAR,LLTROP_FIX)
       REAL*8            :: DTCHEM,  FREQ,    FLUX
       REAL*8            :: LL,      PL,      Ox_0
       REAL*8            :: Ox_LOST, PBL_MAX, F_UNDER_TOP
@@ -492,7 +510,12 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, LL, PL, FREQ, Ox_0, Ox_LOST, FLUX, F_UNDER_TOP )  
 !$OMP+SCHEDULE( DYNAMIC )
-         DO L = 1, LLTROP
+         !-----------------------------------------------
+         ! Prior to 1/1907:
+         ! Now only loop up to LLTROP_FIX (phs, 1/19/07)
+         !DO L = 1, LLTROP
+         !-----------------------------------------------
+         DO L = 1, LLTROP_FIX
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
