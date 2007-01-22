@@ -1,4 +1,4 @@
-! $Id: diag_mod.f,v 1.17 2006/10/16 20:44:31 phs Exp $
+! $Id: diag_mod.f,v 1.18 2007/01/22 17:32:24 bmy Exp $
       MODULE DIAG_MOD 
 !
 !******************************************************************************
@@ -51,7 +51,9 @@
 !  (22) Removed AD41 and AFTTOT arrays; they're obsolete (bmy, 2/17/05)
 !  (23) Added AD09, AD09_em arrays for HCN/CH3CN simulation (xyp, bmy, 6/27/05)
 !  (24) Added AD30 array for land/water/ice output (bmy, 8/18/05)
-!  (60) Added AD54 array for time spend in the troposphere (phs, 9/22/06)
+!  (25) Added AD54 array for time spend in the troposphere (phs, 9/22/06)
+!  (26) Added CTO3 counter. Convert ND43 counter arrays from 2D to 3D, for
+!        the variable tropopause. (phs, 1/19/07)
 !******************************************************************************
 !     
       !=================================================================
@@ -194,16 +196,30 @@
 
       ! For ND43 -- OH, NO, NO2, HO2 chemical diagnostics
       REAL*4,  ALLOCATABLE :: AD43(:,:,:,:)      
+      !----------------------------------------------------------------------
+      ! Prior to 1/19/07:
+      ! Make the CT* counter arrays 3-D, for variable trop (phs, 1/19/07)
+      !INTEGER, ALLOCATABLE :: LTNO(:,:)
+      !INTEGER, ALLOCATABLE :: CTNO(:,:)
+      !INTEGER, ALLOCATABLE :: LTOH(:,:)
+      !INTEGER, ALLOCATABLE :: CTOH(:,:)
+      !INTEGER, ALLOCATABLE :: LTNO2(:,:)
+      !INTEGER, ALLOCATABLE :: CTNO2(:,:)
+      !INTEGER, ALLOCATABLE :: LTHO2(:,:)
+      !INTEGER, ALLOCATABLE :: CTHO2(:,:)
+      !INTEGER, ALLOCATABLE :: LTNO3(:,:)
+      !INTEGER, ALLOCATABLE :: CTNO3(:,:)
+      !----------------------------------------------------------------------
       INTEGER, ALLOCATABLE :: LTNO(:,:)
-      INTEGER, ALLOCATABLE :: CTNO(:,:)
+      INTEGER, ALLOCATABLE :: CTNO(:,:,:)
       INTEGER, ALLOCATABLE :: LTOH(:,:)
-      INTEGER, ALLOCATABLE :: CTOH(:,:)
+      INTEGER, ALLOCATABLE :: CTOH(:,:,:)
       INTEGER, ALLOCATABLE :: LTNO2(:,:)
-      INTEGER, ALLOCATABLE :: CTNO2(:,:)
+      INTEGER, ALLOCATABLE :: CTNO2(:,:,:)
       INTEGER, ALLOCATABLE :: LTHO2(:,:)
-      INTEGER, ALLOCATABLE :: CTHO2(:,:)
+      INTEGER, ALLOCATABLE :: CTHO2(:,:,:)
       INTEGER, ALLOCATABLE :: LTNO3(:,:)
-      INTEGER, ALLOCATABLE :: CTNO3(:,:)
+      INTEGER, ALLOCATABLE :: CTNO3(:,:,:)
 
       ! For ND44 -- Dry deposition fluxes & velocities
       REAL*4,  ALLOCATABLE :: AD44(:,:,:,:)
@@ -212,6 +228,7 @@
       REAL*4,  ALLOCATABLE :: AD45(:,:,:,:)      
       INTEGER, ALLOCATABLE :: LTOTH(:,:)
       INTEGER, ALLOCATABLE :: CTOTH(:,:)
+      INTEGER, ALLOCATABLE :: CTO3(:,:,:)
 
       ! For ND46 -- Tracer concentration diagnostic
       REAL*4,  ALLOCATABLE :: AD46(:,:,:)      
@@ -251,7 +268,7 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_DIAG deallocates all module arrays.
-!  (bmy, 12/13/02, 8/18/05)
+!  (bmy, 12/13/02, 1/19/07)
 !
 !  NOTES:
 !  (1 ) Now also deallocate AD13_NH3_an, AD13_NH3_bb, AD13_NH3_bf arrays
@@ -270,6 +287,7 @@
 !  (11) Removed AD41 and AFTTOT arrays; they're obsolete (bmy, 2/17/05)
 !  (12) Now also deallocate AD09 and AD09_em (bmy, 6/27/05)
 !  (13) Now deallocate AD30 (bmy, 8/18/05)
+!  (14) Now deallocate CTO3 array (phs, 1/19/07)
 !******************************************************************************
 !
       !=================================================================
@@ -342,6 +360,7 @@
       IF ( ALLOCATED( CT18        ) ) DEALLOCATE( CT18        )
       IF ( ALLOCATED( CTJV        ) ) DEALLOCATE( CTJV        )
       IF ( ALLOCATED( CTNO        ) ) DEALLOCATE( CTNO        )
+      IF ( ALLOCATED( CTO3        ) ) DEALLOCATE( CTO3        )
       IF ( ALLOCATED( CTOH        ) ) DEALLOCATE( CTOH        )
       IF ( ALLOCATED( CTNO2       ) ) DEALLOCATE( CTNO2       )
       IF ( ALLOCATED( CTNO3       ) ) DEALLOCATE( CTNO3       )

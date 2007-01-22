@@ -1,9 +1,9 @@
-! $Id: ndxx_setup.f,v 1.27 2006/10/17 17:51:15 bmy Exp $
+! $Id: ndxx_setup.f,v 1.28 2007/01/22 17:32:26 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
 !  NDXX_SETUP dynamically allocates memory for certain diagnostic arrays that 
-!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 10/17/06)
+!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 1/19/07)
 !
 !  This allows us to reduce the amount of memory that needs to be declared 
 !  globally.  We only allocate memory for arrays if the corresponding 
@@ -121,6 +121,7 @@
 !  (58) Now remove NBIOTRCE; it's obsolete.  Replace w/ NBIOMAX (bmy, 4/5/06)
 !  (59) Now remove TRCOFFSET; it's obsolete (bmy, 5/16/06)
 !  (60) Added the ND54 for time spend in the troposphere (phs, 10/17/06)
+!  (61) Now allocate ND43 and ND45 counter arrays as 3-D (phs, 1/19/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -155,7 +156,7 @@
       USE DIAG_MOD,        ONLY : CTOTH,       AD46,        AD47
       USE DIAG_MOD,        ONLY : AD54
       USE DIAG_MOD,        ONLY : AD55,        AD66,        AD67
-      USE DIAG_MOD,        ONLY : AD68,        AD69
+      USE DIAG_MOD,        ONLY : AD68,        AD69,        CTO3
       USE DIAG_OH_MOD,     ONLY : INIT_DIAG_OH
       USE DRYDEP_MOD,      ONLY : NUMDEP
       USE ERROR_MOD,       ONLY : ALLOC_ERR,   ERROR_STOP
@@ -738,7 +739,11 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTNO' )
          
          ! Number of times LT was between HR1_NO and HR2_NO
-         ALLOCATE( CTNO( IIPAR, JJPAR ), STAT=AS )
+         !----------------------------------------------------------------
+         ! Prior to 1/19/07:
+         !ALLOCATE( CTNO( IIPAR, JJPAR ), STAT=AS )
+         !----------------------------------------------------------------
+         ALLOCATE( CTNO( IIPAR, JJPAR, LD43 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTNO' )
 
          ! Locations where LT is between HR1_OH and HR2_OH
@@ -746,7 +751,11 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTOH' )
 
          ! Locations where LT is between HR1_OH and HR2_OH
-         ALLOCATE( CTOH( IIPAR, JJPAR ), STAT=AS )
+         !----------------------------------------------------------------
+         ! Prior to 1/19/07:
+         !ALLOCATE( CTOH( IIPAR, JJPAR ), STAT=AS )
+         !----------------------------------------------------------------
+         ALLOCATE( CTOH( IIPAR, JJPAR, LD43 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTOH' )
 
          ! Locations where LT is between HR1_OH and HR2_OH
@@ -754,7 +763,12 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTHO2' )
 
          ! Locations where LT is between HR1_OH and HR2_OH
-         ALLOCATE( CTHO2( IIPAR, JJPAR ), STAT=AS )
+         !----------------------------------------------------------------
+         ! Prior to 1/19/07:
+         !ALLOCATE( CTHO2( IIPAR, JJPAR ), STAT=AS )
+         !----------------------------------------------------------------
+         ALLOCATE( CTHO2( IIPAR, JJPAR, LD43 ), STAT=AS )
+
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTHO2' )
 
          ! Locations where LT is between HR1_OH and HR2_OH
@@ -762,7 +776,11 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTHO2' )
 
          ! Locations where LT is between HR1_OH and HR2_OH
-         ALLOCATE( CTNO2( IIPAR, JJPAR ), STAT=AS )
+         !----------------------------------------------------------------
+         ! Prior to 1/19/07:
+         !ALLOCATE( CTNO2( IIPAR, JJPAR ), STAT=AS )
+         !----------------------------------------------------------------
+         ALLOCATE( CTNO2( IIPAR, JJPAR, LD43 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTHO2' )
 
          ! Locations where LT is between HR1_OH and HR2_OH
@@ -770,7 +788,11 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTHO2' )
 
          ! Locations where LT is between HR1_OH and HR2_OH
-         ALLOCATE( CTNO3( IIPAR, JJPAR ), STAT=AS )
+         !----------------------------------------------------------------
+         ! Prior to 1/19/07:
+         !ALLOCATE( CTNO3( IIPAR, JJPAR ), STAT=AS )
+         !----------------------------------------------------------------
+         ALLOCATE( CTNO3( IIPAR, JJPAR, LD43 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTHO2' )
       ENDIF
 
@@ -817,6 +839,11 @@
          ! Number of times LT is between HR1_OTH and HR2_OTH
          ALLOCATE( CTOTH( IIPAR, JJPAR ), STAT=AS )
          IF ( AS > 0 ) CALL ALLOC_ERR( 'CTOTH' )
+
+         ! Number of times LT is between HR1_OTH and HR2_OTH
+         ! and box is in the troposphere 
+         ALLOCATE( CTO3( IIPAR, JJPAR, LD45 ), STAT=AS )
+         IF ( AS > 0 ) CALL ALLOC_ERR( 'CTO3' )
       ENDIF
 
       !=================================================================

@@ -1,14 +1,15 @@
-! $Id: diag50_mod.f,v 1.13 2006/12/11 19:37:49 bmy Exp $
+! $Id: diag50_mod.f,v 1.14 2007/01/22 17:32:23 bmy Exp $
       MODULE DIAG50_MOD
 !
 !******************************************************************************
 !  Module DIAG50_MOD contains variables and routines to generate 24-hour 
-!  average timeseries data. (amf, bey, bdf, pip, bmy, 11/30/00, 11/30/06)
+!  average timeseries data. (amf, bey, bdf, pip, bmy, 11/30/00, 1/19/07)
 !
 !  Module Variables:
 !  ============================================================================
 !  (1 ) COUNT            (INTEGER ) : Counter of timesteps per day
 !  (2 ) COUNT_CHEM       (INTEGER ) : Counter of chemistry timesteps per day
+!  (2b) COUNT_CHEM3D     (INTEGER ) : Counter of fullchem steps under T-pause
 !  (3 ) DO_SAVE_DIAG50   (LOGICAL ) : Flag to turn on DIAG50 timseries
 !  (4 ) I0               (INTEGER ) : Lon offset between global & nested grid
 !  (5 ) J0               (INTEGER ) : Lat offset between global & nested grid
@@ -103,6 +104,7 @@
 !  (8 ) Bug fix: don't save SLP unless it is allocated (bmy, 8/2/05)
 !  (9 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !  (10) Modified INIT_DIAG49 to save out transects (cdh, bmy, 11/30/06)
+!  (11) Now use 3D timestep counter for full chem in the trop (phs, 1/19/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -149,6 +151,7 @@
 
       ! Arrays
       REAL*8,  ALLOCATABLE :: Q(:,:,:,:)
+      INTEGER, ALLOCATABLE :: COUNT_CHEM3D(:,:,:)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -186,7 +189,7 @@
 !
 !******************************************************************************
 !  Subroutine ACCUMULATE_DIAG50 accumulates tracers into the Q array. 
-!  (bmy, 8/20/02, 10/3/05)
+!  (bmy, 8/20/02, 1/19/07)
 !
 !  NOTES:
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
@@ -208,21 +211,24 @@
 !  (7 ) Now do not save SLP data if it is not allocated (bmy, 8/2/05)
 !  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (9 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
+!  (10) Now account for time spent in the trop for non-tracers (phs, 1/19/07)
 !******************************************************************************
 !
       ! Reference to F90 modules
-      USE DAO_MOD,      ONLY : AD,      AIRDEN, BXHEIGHT, CLDF
-      USE DAO_MOD,      ONLY : CLDTOPS, OPTD,   RH,       T 
-      USE DAO_MOD,      ONLY : UWND,    VWND,   SLP
-      USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L, GET_PBL_TOP_m
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE TIME_MOD,     ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
-      USE TIME_MOD,     ONLY : TIMESTAMP_STRING
-      USE TRACER_MOD,   ONLY : STT, TCVV, ITS_A_FULLCHEM_SIM, N_TRACERS
-      USE TRACER_MOD,   ONLY : XNUMOLAIR
-      USE TRACERID_MOD, ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
-      USE TRACERID_MOD, ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
-      USE TRACERID_MOD, ONLY : IDTR4N2, IDTSALA, IDTSALC 
+      USE DAO_MOD,        ONLY : AD,      AIRDEN, BXHEIGHT, CLDF
+      USE DAO_MOD,        ONLY : CLDTOPS, OPTD,   RH,       T 
+      USE DAO_MOD,        ONLY : UWND,    VWND,   SLP
+      USE PBL_MIX_MOD,    ONLY : GET_PBL_TOP_L, GET_PBL_TOP_m
+      USE PRESSURE_MOD,   ONLY : GET_PEDGE
+      USE TIME_MOD,       ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
+      USE TIME_MOD,       ONLY : TIMESTAMP_STRING
+      USE TRACER_MOD,     ONLY : STT, TCVV, ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,     ONLY : N_TRACERS
+      USE TRACER_MOD,     ONLY : XNUMOLAIR
+      USE TRACERID_MOD,   ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
+      USE TRACERID_MOD,   ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
+      USE TRACERID_MOD,   ONLY : IDTR4N2, IDTSALA, IDTSALC 
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
 #     include "cmn_fj.h"  ! includes CMN_SIZE
 #     include "jv_cmn.h"  ! ODAER
@@ -280,8 +286,40 @@
 
       ! Increment chemistry timestep counter
       IF ( IS_CHEM ) COUNT_CHEM = COUNT_CHEM + 1
+      
+      ! Also increment 3-D counter for boxes in the tropopause
+      IF ( IS_FULLCHEM ) THEN
+         
+         ! Loop over levels
+!$OMP PARALLEL DO 
+!$OMP+DEFAULT( SHARED ) 
+!$OMP+PRIVATE( X, Y, K, I, J, L )
+!$OMP+SCHEDULE( DYNAMIC )
+         DO K = 1, ND50_NL
+            L = LOFF + K
 
+         ! Loop over latitudes 
+         DO Y = 1, ND50_NJ
+            J = JOFF + Y
+
+         ! Loop over longitudes
+         DO X = 1, ND50_NI
+            I = GET_I( X )
+
+            ! Only increment if we are in the trop
+            IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
+               COUNT_CHEM3D(X,Y,K) = COUNT_CHEM3D(X,Y,K) + 1
+            ENDIF
+
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+      ENDIF
+
+      !-----------------------
       ! Accumulate quantities
+      !-----------------------
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( W, N, X, Y, K, I, J, L, TMP, H, R, SCALE400nm ) 
@@ -660,7 +698,7 @@
 !
 !******************************************************************************
 !  Subroutine WRITE_DIAG50 computes the 24-hr time-average of quantities
-!  and saves to bpch file format. (bmy, 12/1/00, 10/3/05)  
+!  and saves to bpch file format. (bmy, 12/1/00, 1/19/07)  
 !
 !  NOTES:
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
@@ -674,6 +712,7 @@
 !        as tracer #79. (bmy, 4/20/05)
 !  (5 ) Remove references to TRCOFFSET because it's always zero (bmy, 6/24/05)
 !  (6 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (7 ) DIVISOR is now a 3-D array.  Now zero COUNT_CHEM3D. (phs, 1/19/07)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -689,7 +728,11 @@
 #     include "CMN_SIZE"  ! Size Parameters
 
       ! Local variables
-      INTEGER            :: DIVISOR
+      !-------------------------------------------------------------------
+      ! Prior to 1/19/07:
+      !INTEGER            :: DIVISOR
+      !-------------------------------------------------------------------
+      INTEGER            :: DIVISOR(ND50_NI,ND50_NJ,ND50_NL)
       INTEGER            :: I,    J,     L,   W, N  
       INTEGER            :: GMNL, GMTRC, IOS, X, Y, K
       CHARACTER(LEN=16)  :: STAMP
@@ -731,15 +774,26 @@
 
          ! Pick the proper divisor, depending on whether or not the
          ! species in question is archived only each chem timestep
-         IF ( ND50_TRACERS(W) == 71 .or. ND50_TRACERS(W) == 72  .or. 
-     &        ND50_TRACERS(W) == 74 .or. ND50_TRACERS(W) == 75  .or.
-     &        ND50_TRACERS(W) == 82 .or. ND50_TRACERS(W) == 83  .or.
-     &        ND50_TRACERS(W) == 84 .or. ND50_TRACERS(W) == 85  .or.
-     &        ND50_TRACERS(W) == 86 .or. ND50_TRACERS(W) == 87 ) THEN
-            DIVISOR = COUNT_CHEM
-         ELSE
-            DIVISOR = COUNT
-         ENDIF
+!--------------------------------------------------------------------------
+! Prior to 1/19/07:
+!         IF ( ND50_TRACERS(W) == 71 .or. ND50_TRACERS(W) == 72  .or. 
+!     &        ND50_TRACERS(W) == 74 .or. ND50_TRACERS(W) == 75  .or.
+!     &        ND50_TRACERS(W) == 82 .or. ND50_TRACERS(W) == 83  .or.
+!     &        ND50_TRACERS(W) == 84 .or. ND50_TRACERS(W) == 85  .or.
+!     &        ND50_TRACERS(W) == 86 .or. ND50_TRACERS(W) == 87 ) THEN
+!            DIVISOR = COUNT_CHEM
+!         ELSE
+!            DIVISOR = COUNT
+!         ENDIF
+!--------------------------------------------------------------------------
+         SELECT CASE ( ND50_TRACERS(W) )
+            CASE( 71, 72, 74, 75 )
+               DIVISOR = COUNT_CHEM3D
+            CASE( 82:87 )
+               DIVISOR = COUNT_CHEM
+            CASE DEFAULT
+               DIVISOR = COUNT
+         END SELECT
 
          ! Loop over grid boxes
          DO K = 1, ND50_NL
@@ -747,8 +801,14 @@
          DO X = 1, ND50_NI
 
             ! Avoid division by zero
-            IF ( DIVISOR > 0 ) THEN
-               Q(X,Y,K,W) = Q(X,Y,K,W) / DIVISOR
+            !------------------------------------------------
+            ! Prior to 1/19/07:
+            ! DIVISOR is now a 3-D array (phs, 1/19/07)
+            !IF ( DIVISOR > 0 ) THEN
+            !   Q(X,Y,K,W) = Q(X,Y,K,W) / DIVISOR
+            !------------------------------------------------
+            IF ( DIVISOR(X,Y,K) > 0 ) THEN
+               Q(X,Y,K,W) = Q(X,Y,K,W) / DIVISOR(X,Y,K)
             ELSE
                Q(X,Y,K,W) = 0d0
             ENDIF
@@ -1065,8 +1125,9 @@
       TAU0       = GET_TAU() + ( GET_TS_DYN() / 60d0 )
 
       ! Zero counters
-      COUNT      = 0
-      COUNT_CHEM = 0
+      COUNT        = 0
+      COUNT_CHEM   = 0
+      COUNT_CHEM3D = 0
       
       ! Zero accumulating array
 !$OMP PARALLEL DO 
@@ -1130,7 +1191,7 @@
 !******************************************************************************
 !  Subroutine INIT_DIAG50 allocates and zeroes all module arrays.  
 !  It also gets values for module variables from "input_mod.f". 
-!  (bmy, 7/20/04, 11/30/06)
+!  (bmy, 7/20/04, 1/19/07)
 ! 
 !  Arguments as Input:
 !  ============================================================================
@@ -1151,7 +1212,8 @@
 !        value for GEOS or GCAP grids. (bmy, 6/28/05)
 !  (3 ) Now allow ND50_IMIN to be equal to ND50_IMAX and ND50_JMIN to be
 !        equal to ND50_JMAX.  This will allow us to save out longitude
-!        or latitude transects.  (cdh, bmy, 11/30/06)
+!        or latitude transects.  Now allocate COUNT_CHEM3D array.
+!        (cdh, phs, 1/19/07)
 !******************************************************************************
 !    
       ! References to F90 modules
@@ -1321,7 +1383,12 @@
       ! Accumulator array
       ALLOCATE( Q( ND50_NI, ND50_NJ, ND50_NL, ND50_N_TRACERS), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'Q' )
-      Q(:,:,:,:) = 0d0
+      Q = 0d0
+
+      ! 3-D full chemistry timestep counter in troposphere
+      ALLOCATE( COUNT_CHEM3D( ND50_NI, ND50_NJ, ND50_NL ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'COUNT_CHEM3D' )
+      COUNT_CHEM3D = 0d0
 
       ! Return to calling program
       END SUBROUTINE INIT_DIAG50
@@ -1332,15 +1399,17 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_DIAG50 deallocates all module arrays. 
-!  (bmy, 11/29/00, 7/20/04)
+!  (bmy, 11/29/00, 1/19/07)
 !
 !  NOTES:
+!  (1 ) Now deallocate COUNT_CHEM3D (phs, 1/19/07)
 !******************************************************************************
 ! 
       !=================================================================
       ! CLEANUP_DIAG50 begins here!
       !=================================================================
-      IF ( ALLOCATED( Q ) ) DEALLOCATE( Q )
+      IF ( ALLOCATED( Q            ) ) DEALLOCATE( Q            )
+      IF ( ALLOCATED( COUNT_CHEM3D ) ) DEALLOCATE( COUNT_CHEM3D )
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_DIAG50

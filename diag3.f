@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.40 2006/11/07 19:01:58 bmy Exp $
+! $Id: diag3.f,v 1.41 2007/01/22 17:32:22 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out diagnostics to the BINARY format punch file 
-!  (bmy, bey, mgs, rvm, 5/27/99, 9/5/06)
+!  (bmy, bey, mgs, rvm, 5/27/99, 1/19/07)
 !
 !  NOTES: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
@@ -77,6 +77,7 @@
 !  (69) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
 !        (bmy, 9/5/06)
 !  (70) Now write diag 54 (time in the troposphere) if asked for (phs, 9/22/06)
+!  (71) Now use new time counters for ND43 & ND45 (phs, 1/19/07)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -110,7 +111,7 @@
       USE DIAG_MOD,     ONLY : CTNO2,       LTNO3,       CTNO3
       USE DIAG_MOD,     ONLY : AD44,        AD45,        LTOTH
       USE DIAG_MOD,     ONLY : CTOTH,       AD46,        AD47
-      USE DIAG_MOD,     ONLY : AD54
+      USE DIAG_MOD,     ONLY : AD54,        CTO3
       USE DIAG_MOD,     ONLY : AD55,        AD66,        AD67
       USE DIAG_MOD,     ONLY : AD68,        AD69
       USE DIAG03_MOD,   ONLY : ND03,        WRITE_DIAG03
@@ -159,6 +160,7 @@
       INTEGER            :: N, NN, NMAX, NTEST
       INTEGER            :: IE, IN, IS, IW, ITEMP(3)
       REAL*8             :: SCALE_TMP(IIPAR,JJPAR)
+      REAL*8             :: SCALE_TMP3D(IIPAR,JJPAR,LD45)
       REAL*8             :: SCALE_I6,  SCALE_A6,  SCALE_A3,  SCALED    
       REAL*8             :: SCALEDYN,  SCALECONV, SCALESRCE, SCALECHEM 
       REAL*8             :: SCALEX,    SECONDS,   PMASS,     PRESSX
@@ -2148,6 +2150,8 @@
 !       than .OR. (jsw, bmy, 12/5/00)
 !  (3) Added HO2, NO2 to ND43 (rvm, bmy, 2/27/02)
 !  (4) Added NO3 to ND43 (bmy, 1/16/03)
+!  (5) Now uses 3D counters (phs, 1/19/07)
+!  (6) Now assume that LD43 can't be higher than LD45 (phs, 1/19/07)
 !******************************************************************************
 !
       IF ( ND43 > 0 .and. ITS_A_FULLCHEM_SIM() ) THEN
@@ -2162,28 +2166,48 @@
 
                ! OH
                CASE ( 1 )
-                  SCALE_TMP(:,:) = FLOAT( CTOH ) + 1d-20
-                  UNIT           = 'molec/cm3'
+                  !--------------------------------------------------------
+                  ! Prior to 1/19/07:
+                  !SCALE_TMP(:,:) = FLOAT( CTOH ) + 1d-20
+                  !--------------------------------------------------------
+                  SCALE_TMP3D(:,:,1:LD43) = FLOAT( CTOH ) + 1d-20
+                  UNIT                    = 'molec/cm3'
                   
                ! NO
                CASE ( 2 ) 
-                  SCALE_TMP(:,:) = FLOAT( CTNO ) + 1d-20
-                  UNIT           = 'v/v'
+                  !--------------------------------------------------------
+                  ! Prior to 1/19/07:
+                  !SCALE_TMP(:,:) = FLOAT( CTNO ) + 1d-20
+                  !--------------------------------------------------------
+                  SCALE_TMP3D(:,:,1:LD43) = FLOAT( CTNO ) + 1d-20
+                  UNIT                    = 'v/v'
 
                ! HO2 (rvm, bmy, 2/27/02)
                CASE ( 3 ) 
-                  SCALE_TMP(:,:) = FLOAT( CTHO2 ) + 1d-20
-                  UNIT           = 'v/v'
+                  !--------------------------------------------------------
+                  ! Prior to 1/19/07:
+                  !SCALE_TMP(:,:) = FLOAT( CTHO2 ) + 1d-20
+                  !--------------------------------------------------------
+                  SCALE_TMP3D(:,:,1:LD43) = FLOAT( CTHO2 ) + 1d-20
+                  UNIT                    = 'v/v'
 
                ! NO2 (rvm, bmy, 2/27/02)
                CASE ( 4 ) 
-                  SCALE_TMP(:,:) = FLOAT( CTNO2 ) + 1d-20
-                  UNIT           = 'v/v'
+                  !--------------------------------------------------------
+                  ! Prior to 1/19/07:
+                  !SCALE_TMP(:,:) = FLOAT( CTNO2 ) + 1d-20
+                  !--------------------------------------------------------
+                  SCALE_TMP3D(:,:,1:LD43) = FLOAT( CTNO2 ) + 1d-20
+                  UNIT                    = 'v/v'
 
                ! NO3 (rjp, bmy, 1/16/03)
                CASE ( 5 )
-                  SCALE_TMP(:,:) = FLOAT( CTNO3 ) + 1d-20
-                  UNIT           = 'v/v'
+                  !--------------------------------------------------------
+                  ! Prior to 1/19/07:
+                  !SCALE_TMP(:,:) = FLOAT( CTNO3 ) + 1d-20
+                  !--------------------------------------------------------
+                  SCALE_TMP3D(:,:,1:LD43) = FLOAT( CTNO3 ) + 1d-20
+                  UNIT                    = 'v/v'
 
                CASE DEFAULT
                   CYCLE
@@ -2319,12 +2343,14 @@
 !  NOTES:
 !  (1) For NSRCX == 3 (NOx-Ox-HC run), store pure O3 with index NTRACE+1.
 !  (2) Now store pure O3 as NNPAR+1 (now tracer #32). (bmy, 1/10/03)
+!  (3) Now uses CTO3 instead of CTOH for pure O3 (phs, 1/19/07)
 !******************************************************************************
 !
       IF ( ND45 > 0 ) THEN
-         CATEGORY  = 'IJ-AVG-$'
-         SCALE_TMP = FLOAT( CTOTH ) + 1d-20
-         UNIT = ''   
+         CATEGORY    = 'IJ-AVG-$'
+         SCALE_TMP   = FLOAT( CTOTH ) + 1d-20
+         SCALE_TMP3D = FLOAT( CTO3  ) + 1d-20
+         UNIT        = ''   
 
          DO M = 1, TMAX(45)
             N  = TINDEX(45,M)
@@ -2345,7 +2371,12 @@
             IF ( ITS_A_FULLCHEM_SIM() .and. NN == IDTOX ) THEN 
                DO L = 1, LD45
                   ARRAY(:,:,L) =
-     &                 AD45(:,:,L,N_TRACERS+1) / SCALE_TMP(:,:)
+!----------------------------------------------------------------------
+! Prior to 1/19/07:
+! Now use SCALE_TMP3D for pure O3 (phs, 1/19/07)
+!     &                 AD45(:,:,L,N_TRACERS+1) / SCALE_TMP(:,:)
+!----------------------------------------------------------------------
+     &                 AD45(:,:,L,N_TRACERS+1) / SCALE_TMP3D(:,:,L)
                ENDDO
                   
                NN = N_TRACERS + 1

@@ -1,4 +1,4 @@
-! $Id: ohsave.f,v 1.5 2005/10/20 14:03:36 bmy Exp $
+! $Id: ohsave.f,v 1.6 2007/01/22 17:32:26 bmy Exp $
       SUBROUTINE OHSAVE( N_TRACERS, XNUMOL,  STT,    FRACO3,  
      &                   FRACNO,    FRACNO2, SAVEOH, SAVEHO2, 
      &                   SAVENO,    SAVENO2, SAVENO3 )
@@ -6,7 +6,7 @@
 !******************************************************************************
 !  Subroutine OHSAVE stores the concentrations of OH, HO2, NO, NO2, and NO3
 !  for the ND43 diagnostic.  Also the O3/Ox, NO/NOx and NO2/NOx fractions
-!  are computed and returned to the calling program. (bmy, 2/27/02, 10/3/05) 
+!  are computed and returned to the calling program. (bmy, 2/27/02, 1/19/07) 
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -41,6 +41,9 @@
 !        Now dimension args XNUMOL, STT w/ N_TRACERS and not NNPAR. 
 !        (bmy, 7/20/04)
 !  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (9 ) Reset FRAC* and SAVE* arrays, so that we don't carry dubious data
+!        over from boxes that used to be in the tropopause but aren't anymore.
+!        (phs, 1/19/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -72,12 +75,25 @@
       REAL*8              :: TEMPOX, TEMPNOX  !, KCLO, XLOSS, XOHMASS
 
       !=================================================================
-      ! DIAGOH begins here!
+      ! OHSAVE begins here!
       !
       ! Save info on ozone, OH, and NO concentrations
       ! for consistency with the old method of doing O3, we'll archive
       ! the fraction O3/Ox, and the fraction NO/NOx
       !=================================================================
+
+      ! Reset because of variable tropopause.  Ensure that data for boxes 
+      ! that once were in the troposphere, and are not anymore, do not
+      ! carry dubious data over. (phs, 1/19/07)
+      FRACO3  = 0d0
+      FRACNO  = 0d0
+      FRACNO2 = 0d0
+      SAVEOH  = 0d0
+      SAVEHO2 = 0d0
+      SAVENO  = 0d0
+      SAVENO2 = 0d0
+      SAVENO3 = 0d0
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, JLOOP, TEMPOX, TEMPNOX )

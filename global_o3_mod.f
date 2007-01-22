@@ -1,10 +1,10 @@
-! $Id: global_o3_mod.f,v 1.8 2006/09/14 14:22:15 phs Exp $
+! $Id: global_o3_mod.f,v 1.9 2007/01/22 17:32:25 bmy Exp $
       MODULE GLOBAL_O3_MOD
 !
 !******************************************************************************
 !  Module GLOBAL_O3_MOD contains variables and routines for reading the
 !  global monthly mean O3 concentration from disk.  These are needed for the 
-!  offline sulfate/aerosol simulation. (rjp, bmy, 3/27/03, 12/1/05)
+!  offline sulfate/aerosol simulation. (rjp, bmy, 3/27/03, 1/19/07)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -28,6 +28,8 @@
 !  (2 ) Now reads O3 data from "sulfate_sim_200508/offline" dir (bmy, 8/30/05)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Bug fixes in GET_GLOBAL_O3 (bmy, 12/1/05)
+!  (5 ) Now reads O3 from MERGE files, which include stratospheric O3 from
+!        COMBO, for GEOS-3 and GEOS-4 met fields (phs, 1/19/07)
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -59,7 +61,7 @@
 !******************************************************************************
 !  Subroutine GET_GLOBAL_O3 reads monthly mean O3 data fields.  
 !  These are needed for simulations such as offline sulfate/aerosol. 
-!  (bmy, 3/23/03, 11/18/05)
+!  (bmy, 3/23/03, 1/19/07)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -73,13 +75,19 @@
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Tracer number for O3 is now 51.  Also need to call TRANSFER_3D_TROP
 !        since the new O3 data file only goes up to LLTROP. (bmy, 11/18/05)
+!  (7 ) Modified to include stratospheric O3 -- Requires access to new
+!        MERGE.O3* files. (phs, 1/19/07)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
+      !-------------------------------------------
+      ! Prior to 1/19/07:
+      !USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
+      !-------------------------------------------
+      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
 
       IMPLICIT NONE
 
@@ -89,7 +97,11 @@
       INTEGER, INTENT(IN)  :: THISMONTH
 
       ! Local variables
-      REAL*4               :: ARRAY(IGLOB,JGLOB,LLTROP)
+      !----------------------------------------------------
+      ! Prior to 1/19/07:
+      !REAL*4               :: ARRAY(IGLOB,JGLOB,LLTROP)
+      !----------------------------------------------------
+      REAL*4               :: ARRAY(IGLOB,JGLOB,LGLOB)
       REAL*8               :: XTAU
       CHARACTER(LEN=255)   :: FILENAME
 
@@ -106,10 +118,28 @@
          FIRST = .FALSE.
       ENDIF
 
-      ! File name
-      FILENAME = TRIM( DATA_DIR ) // 
-     &           'sulfate_sim_200508/offline/O3.' // GET_NAME_EXT() // 
-     &           '.'                              // GET_RES_EXT()
+!----------------------------------------------------------------------------
+! Prior to 1/19/07:
+!      ! File name
+!      FILENAME = TRIM( DATA_DIR ) // 
+!     &           'sulfate_sim_200508/offline/O3.' // GET_NAME_EXT() // 
+!     &           '.'                              // GET_RES_EXT()
+!----------------------------------------------------------------------------
+
+#if   defined( GRID30LEV )
+
+      ! Filename for 30-level model
+      FILENAME = TRIM( DATA_DIR )                           // 
+     &           'sulfate_sim_200508/offline/MERGE.O3.30L.' // 
+     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+
+#else
+      ! Filename for full vertical grid
+      FILENAME = TRIM( DATA_DIR )                           // 
+     &           'sulfate_sim_200508/offline/MERGE.O3.'     // 
+     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+
+#endif
 
       ! Echo some information to the standard output
       WRITE( 6, 110 ) TRIM( FILENAME )
@@ -119,18 +149,29 @@
       ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
       XTAU = GET_TAU0( THISMONTH, 1, 1985 )
  
+!-----------------------------------------------------------------------------
+! Prior to 1/19/07:
+!      ! Read O3 data (v/v) from the binary punch file (tracer #51)
+!      ! Limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
+!      ! tropopause. This is backward compatibility with 
+!      ! offline data set.
+!      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 51,     
+!     &     XTAU,        IGLOB,                    JGLOB,      
+!     &     LLTROP_FIX,  ARRAY(:,:,1:LLTROP_FIX),  QUIET=.TRUE. )
+!!     &                 XTAU,      IGLOB,     JGLOB,     
+!!     &                 LLTROP,    ARRAY,     QUIET=.TRUE. )
+!      
+!      ! Assign data from ARRAY to the module variable O3
+!      CALL TRANSFER_3D_TROP( ARRAY, O3 )
+!------------------------------------------------------------------------------
+ 
       ! Read O3 data (v/v) from the binary punch file (tracer #51)
-      ! Limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
-      ! tropopause. This is backward compatibility with 
-      ! offline data set.
       CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 51,     
-     &     XTAU,        IGLOB,                    JGLOB,      
-     &     LLTROP_FIX,  ARRAY(:,:,1:LLTROP_FIX),  QUIET=.TRUE. )
-!     &                 XTAU,      IGLOB,     JGLOB,     
-!     &                 LLTROP,    ARRAY,     QUIET=.TRUE. )
-      
+     &                 XTAU,      IGLOB,     JGLOB,      
+     &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
+
       ! Assign data from ARRAY to the module variable O3
-      CALL TRANSFER_3D_TROP( ARRAY, O3 )
+      CALL TRANSFER_3D( ARRAY, O3 )
 
       ! Return to calling program
       END SUBROUTINE GET_GLOBAL_O3
@@ -141,11 +182,12 @@
 !
 !******************************************************************************
 !  Subroutine INIT_GLOBAL_O3 allocates the O3 module array.
-!  (bmy, 7/13/04, 12/1/05)
+!  (bmy, 7/13/04, 1/19/07)
 !
 !  NOTES:
 !  (1 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 7/13/04)
 !  (2 ) Now dimension O3 with LLTROP (bmy, 12/1/05)
+!  (3 ) Now dimension O3 with LLPAR (phs, 1/19/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -159,7 +201,11 @@
       !=================================================================
       ! INIT_GLOBAL_O3 begins here!
       !=================================================================
-      ALLOCATE( O3( IIPAR, JJPAR, LLTROP ), STAT=AS )
+      !-----------------------------------------------------
+      ! Prior to 1/19/07:
+      !ALLOCATE( O3( IIPAR, JJPAR, LLTROP ), STAT=AS )
+      !-----------------------------------------------------
+      ALLOCATE( O3( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'O3' )
       O3 = 0d0
 

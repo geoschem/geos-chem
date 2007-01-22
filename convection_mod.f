@@ -1,10 +1,10 @@
-! $Id: convection_mod.f,v 1.13 2006/03/24 20:22:42 bmy Exp $
+! $Id: convection_mod.f,v 1.14 2007/01/22 17:32:21 bmy Exp $
       MODULE CONVECTION_MOD
 !
 !******************************************************************************
 !  Module CONVECTION_MOD contains routines which select the proper convection
 !  code for GEOS-1, GEOS-STRAT, GEOS-3, or GEOS-4 met field data sets. 
-!  (bmy, 6/28/03, 1/6/06)
+!  (bmy, 6/28/03, 1/19/07)
 !
 !  Module Routines:
 !  ============================================================================
@@ -42,6 +42,7 @@
 !  (6 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (7 ) Shut off scavenging in shallow convection for GCAP (swu, bmy, 11/1/05)
 !  (8 ) Modified for tagged Hg simulation (cdh, bmy, 1/6/06)
+!  (9 ) Bug fix: now only call ADD_Hg2_WD if LDYNOCEAN=T (phs, 1/19/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -575,12 +576,14 @@
 !        lost by wet scavenging (sas, bmy, 1/19/05)
 !  (15) Now references IS_Hg2 from "tracerid_mod.f".  Now pass tracer # IC
 !        to ADD_Hg2_WD. (cdh, bmy, 1/6/06)
+!  (16) Bug fix: now only call ADD_Hg2_WD if LDYNOCEAN=T (phs, 1/19/07)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,           ONLY : AD,   CLDMAS, DTRN=>DTRAIN
       USE DIAG_MOD,          ONLY : AD37, AD38,   CONVFLUP
       USE GRID_MOD,          ONLY : GET_AREA_M2
+      USE LOGICAL_MOD,       ONLY : LDYNOCEAN
       USE OCEAN_MERCURY_MOD, ONLY : ADD_Hg2_WD
       USE PRESSURE_MOD,      ONLY : GET_BP
       USE TIME_MOD,          ONLY : GET_TS_CONV
@@ -655,7 +658,12 @@
          ENDDO
 
          ! Flag to denote if this is a mercury simulation (sas, bmy, 1/19/05)
-         IS_Hg = ITS_A_MERCURY_SIM()
+         !------------------------------------------------------------
+         ! Prior to 1/19/07:
+         ! Add LDYNOCEAN=T to the criteria for IS_Hg (phs, 1/19/07)
+         !IS_Hg = ITS_A_MERCURY_SIM()
+         !------------------------------------------------------------
+         IS_Hg = ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN )
 
          ! Reset first time flag
          FIRST = .FALSE.

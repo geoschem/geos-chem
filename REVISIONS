@@ -1,5 +1,5 @@
 REVISIONS (v7-04-11)  
-07 Dec 2006
+22 Jan 2006
 Philippe Le Sager (phs@io.as.harvard.edu) and
 Bob Yantosca      (bmy@io.as.harvard.edu)
 
@@ -38,8 +38,29 @@ Removed in v7-04-11:
 Changed in v7-04-11:
 -------------------------------------------------------------------------------
 
+accumulate_diag50	   -- Now account for time spent in the trop for 
+("diag50_mod.f")              non-tracers (COUNT_CHEM3D)
+
+accumulate_diag51	   -- Now account for time spent in the trop for 
+("diag51_mod.f")              non-tracers (COUNT_CHEM3D)
+
 biomass_carb_geos   	   -- Prevent seg fault error when LBIOMASS=F
 ("carbon_mod.f")
+
+check_var_trop		   -- Fix LPAUSE for CH4 chemistry
+("tropopause_mod.f")
+
+chem_tagged_ox		   -- Resize PP, ND44_TMP from LLTROP to LLTROP_FIX 
+("tagged_ox_mod.f")        -- Now only loop up to LLTROP_FIX   
+
+cleanup_diag		   -- Now deallocate CTO3 array
+("diag_mod.f")
+
+cleanup_diag50		   -- Now deallocate COUNT_CHEM3D
+("diag50_mod.f")
+
+cleanup_diag51		   -- Also deallocate COUNT_CHEM3D
+("diag51_mod.f")
 
 cleanup_lightning_nox_nl   -- Rename OTDSCALE to OTD_REDIST
 ("lightning_nox_nl_mod.f")
@@ -51,6 +72,18 @@ convtran		   -- Bug fix: avoid div by zero in formula for CHAT
 
 convtran		   -- Bug fix: avoid div by zero in formula for CHAT
 ("fvdas_convect_mod.f")
+
+diag20 			   -- Now use LLTROP_FIX instead of LLTROP
+
+
+diag_2pm.f		   -- Now account for the time spent in the 
+                              troposphere for ND43 and ND45 pure O3
+
+diag3.f			   -- Now use new time counters for ND43 & ND45
+
+diag_mod.f		   -- Added CTO3 counter
+                           -- Convert ND43 counter arrays from 2D to 3D, for
+                              the variable tropopause
 
 do_global_transport	   -- Bug fix: now index STT_I1, STT_J1, STT_I2, 
 ("transport_mod.f")           STT_J2 correctly
@@ -71,6 +104,9 @@ flashes_precon		   -- Remove CCTHICK as an argument
 
 fvdas_convect_mod.f        -- Make SMALLEST = 1d-60 to avoid problems
 
+get_o3			   -- Now also read stratospheric O3
+("mercury_mod.f")
+
 gcap_convect		   -- Now don't call CONVTRAN if LENGATH=0
 ("gcap_convect_mod.f")
 
@@ -79,11 +115,20 @@ gcap_convect_mod.f         -- Make SMALLEST = 1d-60 to avoid problems
 get_a3_fields		   -- Now read SNOW and GWETTOP for GCAP met fields
 ("a3_read_mod.f")
 
-get_otd_lis_scale	   -- Renamed function name to GET_OTD_LIS_REDIST 
-("lightning_nox_nl_mod.f") -- Renamed variable OTDSCALE to OTD_REDIST
+get_global_no3		   -- Now zero local variable ARRAY
+("global_no3_mod.f")
+
+get_global_o3		   -- Modified to include stratospheric O3; requires 
+("global_o3_mod.f")           access to new MERGE.O3* files
 
 get_lwc			   -- Now also add a case for T > 293 to the IF 
 ("mercury_mod.f")             statement
+
+get_otd_lis_scale	   -- Renamed function name to GET_OTD_LIS_REDIST 
+("lightning_nox_nl_mod.f") -- Renamed variable OTDSCALE to OTD_REDIST
+
+get_regional_pox	   -- Resize the PP array from LLTROP to LLTROP_FIX 
+("tagged_ox_mod.f")
 
 get_time_ahead		   -- leap year fix for gcap
 ("time_mod.f")
@@ -95,10 +140,17 @@ init_diag49		   -- Now allow ND49_IMIN to be equal to ND49_IMAX and
 init_diag50		   -- Now allow ND50_IMIN to be equal to ND50_IMAX and
 ("diag50_mod.f")              ND50_JMIN to be equal to ND50_JMAX.  This will 
 			      allow us to save out lon or lat transects. 
+			   -- Now allocate COUNT_CHEM3D array
 
 init_diag51		   -- Now allow ND51_IMIN to be equal to ND51_IMAX and
 ("diag51_mod.f")              ND51_JMIN to be equal to ND51_JMAX.  This will 
 			      allow us to save out lon or lat transects. 
+			   -- Allocate COUNT_CHEM3D
+
+init_global_o3		   -- Now dimension O3 with LLPAR
+("global_o3_mod.f")
+
+initialize.f		   -- Now also zero CTO3 array
 
 init_lightning_nox_nl	   -- Rename OTDSCALE to OTD_REDIST
 ("lightning_nox_nl_mod.f") -- Now call GET_FLASH_SCALE_CTH,
@@ -132,6 +184,15 @@ lightning_nox_nl_mod.f	   -- Now move computation of IC/CG flash ratio out of
 
 main.f			   -- Fixed typos for GCAP
 
+ndxx_setup.f               -- Now allocate ND43 and ND45 counter arrays as 3-D
+
+nfcldmx			   -- Bug fix: now only call ADD_Hg2_WD if LDYNOCEAN=T
+("convection_mod.f")
+
+ohsave.f	  	   -- Reset FRAC* and SAVE* arrays, so that we don't 
+                              carry dubious data over from boxes that used to 
+                              be in the tropopause but aren't anymore.
+
 read_biomass_nh3	   -- Prevent seg fault error when LBIOMASS=F
 ("sulfate_mod.f")
 
@@ -145,5 +206,17 @@ read_emissions_menu	   -- Kludge: Reset LMFLUX or LPRECON to LCTH, as the
 read_otd_lis_redist	   -- Change CTH scale filename from "v0" to "v1"
 ("lightning_NOx_nl_mod.f") -- Renamed from "read_otd_lis_scale"
 
+read_pox_lox		   -- Use LLTROP_FIX to limit array size to case of
+("tagged_ox_mod.f")           non-variable tropopause
+                           -- Also zero ARRAY to avoid numerical problems
+
 seasalt_chem		   -- Fixed typo in FALK_A_SO2 equation: C_FLUX_C  
 ("sulfate_mod.f")             should be C_FLUX_A.
+
+write_diag50		   -- DIVISOR is now a 3-D array
+("diag50_mod.f")	   -- Now zero COUNT_CHEM3D
+
+write_diag51		   -- DIVISOR is now a 3-D array
+("diag51_mod.f")	   -- Now zero COUNT_CHEM3D
+			   -- Now use CASE statement instead of IF statements
+	

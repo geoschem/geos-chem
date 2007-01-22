@@ -1,10 +1,10 @@
-! $Id: diag_pl_mod.f,v 1.9 2006/09/14 14:22:14 phs Exp $
+! $Id: diag_pl_mod.f,v 1.10 2007/01/22 17:32:24 bmy Exp $
       MODULE DIAG_PL_MOD
 !
 !******************************************************************************
 !  Module DIAG_PL_MOD contains variables and routines which are used to 
 !  compute the production and loss of chemical families in SMVGEAR chemistry.
-!  (bmy, 7/20/04, 10/25/05)
+!  (bmy, 7/20/04, 1/22/07)
 !
 !  Module Variables:
 !  ============================================================================
@@ -63,6 +63,7 @@
 !  (3 ) Added functions GET_NFAM, GET_FAM_MWT, GET_FAM_NAME (bmy, 5/2/05)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  (6 ) Bug fix in DIAG20 (phs, 1/22/07)
 !******************************************************************************
 !      
       IMPLICIT NONE
@@ -620,7 +621,7 @@
 !******************************************************************************
 !  Subroutine DIAG20 computes production and loss rates of O3, and 
 !  then calls subroutine WRITE20 to save the these rates to disk. 
-!  (bey, bmy, 6/9/99, 10/25/05)
+!  (bey, bmy, 6/9/99, 1/22/07)
 !
 !  By saving, the production and loss rates from a full-chemistry run,
 !  a user can use these archived rates to perform a quick O3 chemistry
@@ -636,7 +637,8 @@
 !        chemistry timestep is the start of a new day.  Remove reference
 !        to GET_TAUe and GET_TS_CHEM.  Now archive P(Ox) and L(Ox) first
 !        and then test if we have to save the file to disk. (bmy, 3/3/05)
-!  (31) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  (4 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  (5 ) Now use LLTROP_FIX instead of LLTROP (phs, 1/22/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -695,7 +697,11 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, P_Ox, L_Ox )
-      DO L = 1, LLTROP
+      !----------------------------------
+      ! Prior to 1/22/07:
+      !DO L = 1, LLTROP
+      !----------------------------------
+      DO L = 1, LLTROP_FIX
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -741,7 +747,11 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
          DO N = 1, 2
-         DO L = 1, LLTROP
+         !------------------------------------
+         ! Prior to 1/22/07:
+         !DO L = 1, LLTROP
+         !------------------------------------
+         DO L = 1, LLTROP_FIX
          DO J = 1, JJPAR
          DO I = 1, IIPAR
             PL24H(I,J,L,N) = PL24H(I,J,L,N) / COUNT

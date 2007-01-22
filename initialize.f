@@ -1,8 +1,8 @@
-! $Id: initialize.f,v 1.22 2006/10/17 17:51:13 bmy Exp $
+! $Id: initialize.f,v 1.23 2007/01/22 17:32:25 bmy Exp $
       SUBROUTINE INITIALIZE( IFLAG )
 !
 !******************************************************************************
-!  Subroutine INITIALIZE (bmy, 6/15/98, 10/17/06) does the following:
+!  Subroutine INITIALIZE (bmy, 6/15/98, 1/19/07) does the following:
 !     (1) Zeroes globally defined GEOS-CHEM variables.
 !     (2) Zeroes accumulating diagnostic arrays.
 !     (3) Resets certain year/month/day and counter variables used 
@@ -163,6 +163,7 @@
 !  (36) Now references ND56, ZERO_DIAG56 from "diag56_mod.f" (ltm, bmy, 5/5/06)
 !  (37) Now references ND42, ZERO_DIAG42 from "diag42_mod.f" (dkh, bmy,5/22/06)
 !  (38) take care of AD54 (time in the troposphere diagnostic) (phs, 10/17/06)
+!  (39) Now also zero CTO3 array (phs, 1/19/07)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -193,7 +194,7 @@
       USE DIAG_MOD,    ONLY : CTNO2,       LTNO3,       CTNO3
       USE DIAG_MOD,    ONLY : AD44,        AD45,        LTOTH
       USE DIAG_MOD,    ONLY : CTOTH,       AD46,        AD47
-      USE DIAG_MOD,    ONLY : AD54
+      USE DIAG_MOD,    ONLY : AD54,        CTO3
       USE DIAG_MOD,    ONLY : AD55,        AD66,        AD67
       USE DIAG_MOD,    ONLY : AD68,        AD69
       USE DIAG03_MOD,  ONLY : ND03,        ZERO_DIAG03
@@ -380,6 +381,7 @@
          IF ( ND43 > 0 ) CTNO   = 0
          IF ( ND43 > 0 ) CTOH   = 0
          IF ( ND45 > 0 ) CTOTH  = 0
+         IF ( ND45 > 0 ) CTO3   = 0
          IF ( ND43 > 0 ) CTNO2  = 0
          IF ( ND43 > 0 ) CTHO2  = 0
          IF ( ND43 > 0 ) CTNO3  = 0

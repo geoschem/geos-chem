@@ -1,9 +1,9 @@
-! $Id: mercury_mod.f,v 1.16 2006/12/11 19:37:52 bmy Exp $
+! $Id: mercury_mod.f,v 1.17 2007/01/22 17:32:25 bmy Exp $
       MODULE MERCURY_MOD
 !
 !******************************************************************************
 !  Module MERCURY_MOD contains variables and routines for the GEOS-CHEM 
-!  mercury simulation. (eck, bmy, 12/14/04, 12/1/06)
+!  mercury simulation. (eck, bmy, 12/14/04, 1/19/07)
 !
 !  Module Variables:
 !  ============================================================================
@@ -125,6 +125,7 @@
 !  (5 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (6 ) Various updates added for tagged Hg sim. (eck, sas, cdh, bmy, 4/6/06)
 !  (7 ) Updated IF statement in GET_LWC (cdh, bmy, 12/1/06)
+!  (8 ) Modified GET_O3 to read trop+strat O3 at all levels (phs, 1/19/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1945,7 +1946,7 @@
 !
 !******************************************************************************
 !  Function GET_O3 returns monthly mean O3 for offline sulfate aerosol
-!  simulations. (bmy, 12/16/02)
+!  simulations. (bmy, 12/16/02, 1/19/07)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1954,6 +1955,7 @@
 !  NOTES:
 !  (1 ) We assume SETTRACE has been called to define IDO3. (bmy, 12/16/02)
 !  (2 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
+!  (3 ) Now also read stratospheric O3 (phs, 1/19/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1975,14 +1977,22 @@
       ! GET_O3 begins here!
       !=================================================================
 
-      ! Get tropospheric O3 [v/v] for this gridbox & month
-      ! and convert to [molec/cm3] (eck, 12/2/04)
-      IF ( L <= LLTROP ) THEN
-         O3_MOLEC_CM3 = O3(I,J,L) * ( 6.022d23 / 28.97d-3 ) * 
-     &                  AD(I,J,L)  /  BOXVL(I,J,L)
-      ELSE
-         O3_MOLEC_CM3 = 0d0
-      ENDIF
+!---------------------------------------------------------------------------
+! Prior to 1/19/07:
+! Now read both trop & strat O3 (phs, 1/19/07)
+!      ! Get tropospheric O3 [v/v] for this gridbox & month
+!      ! and convert to [molec/cm3] (eck, 12/2/04)
+!      IF ( L <= LLTROP ) THEN
+!         O3_MOLEC_CM3 = O3(I,J,L) * ( 6.022d23 / 28.97d-3 ) * 
+!     &                  AD(I,J,L)  /  BOXVL(I,J,L)
+!      ELSE
+!         O3_MOLEC_CM3 = 0d0
+!      ENDIF
+!---------------------------------------------------------------------------
+
+      ! Get O3 [v/v] for this gridbox & month & convert to [molec/cm3]
+      O3_MOLEC_CM3 = O3(I,J,L) * ( 6.022d23 / 28.97d-3 ) * 
+     &               AD(I,J,L)  /  BOXVL(I,J,L)
 
       ! Return to calling program
       END FUNCTION GET_O3

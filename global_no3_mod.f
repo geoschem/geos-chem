@@ -1,10 +1,10 @@
-! $Id: global_no3_mod.f,v 1.7 2006/09/14 14:22:15 phs Exp $
+! $Id: global_no3_mod.f,v 1.8 2007/01/22 17:32:24 bmy Exp $
       MODULE GLOBAL_NO3_MOD
 !
 !******************************************************************************
 !  Module GLOBAL_NO3_MOD contains variables and routines for reading the
 !  global monthly mean NO3 concentration from disk.  These are needed for the 
-!  offline sulfate/aerosol simulation. (bmy, 10/15/02, 10/3/05)
+!  offline sulfate/aerosol simulation. (bmy, 10/15/02, 1/22/07)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -31,6 +31,7 @@
 !  (5 ) Now suppress output from READ_BPCH2 with QUIET=T (bmy, 1/14/05)
 !  (6 ) Now read from "sulfate_sim_200508/offline" directory (bmy, 8/1/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (8 ) Bug fix: now zero ARRAY (phs, 1/22/07)
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -62,7 +63,7 @@
 !******************************************************************************
 !  Subroutine GET_GLOBAL_NO3 reads monthly mean NO3 data fields.  These 
 !  are needed for simulations such as offline sulfate/aerosol. 
-!  (bmy, 10/15/02, 10/3/05)
+!  (bmy, 10/15/02, 1/22/07)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -78,6 +79,7 @@
 !        up to LLTROP levels.  Now reference TRANSFER_3D_TROP from 
 !        "transfer_mod.f". (bmy, 8/1/05)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (6 ) Now zero local variable ARRAY (phs, 1/22/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -123,17 +125,19 @@
       ! Get the TAU0 value for the start of the given month
       ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
       XTAU = GET_TAU0( THISMONTH, 1, 1985 )
+
+      ! Zero ARRAY so that we avoid random data between 
+      ! levels LLTROP_FIX and LLTROP (phs, 1/22/07)
+      ARRAY = 0e0
  
       ! Read NO3 data from the binary punch file (tracer #5)
-      ! NOTE: NO3 data is only defined w/in the tropopause
-      !   Limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
-      !   tropopause. This is backward compatibility with 
-      !   offline data set.
-      CALL READ_BPCH2( FILENAME, 'CHEM-L=$', 5,     
-     &     XTAU,        IGLOB,                    JGLOB,      
-     &     LLTROP_FIX,  ARRAY(:,:,1:LLTROP_FIX),  QUIET=.TRUE. )
-!     &                 XTAU,      IGLOB,     JGLOB,      
-!     &                 LLTROP,    ARRAY,     QUIET=.TRUE. )
+      ! NOTE: NO3 data is only defined w/in the tropopause, so set the 3rd
+      ! dim of ARRAY to LLTROP_FIX (i.e, case of annual mean tropopause). 
+      ! This is backward compatibility with offline data set. (phs, 1/22/07)
+      CALL READ_BPCH2( 
+     &         FILENAME,   'CHEM-L=$',                5,     
+     &         XTAU,        IGLOB,                    JGLOB,      
+     &         LLTROP_FIX,  ARRAY(:,:,1:LLTROP_FIX),  QUIET=.TRUE. )
 
       ! Assign data from ARRAY to the module variable H2O2
       ! Levels between LLTROP_FIX and LLROP are 0
