@@ -1,11 +1,11 @@
-! $Id: diag51_mod.f,v 1.22 2007/01/22 17:32:23 bmy Exp $
+! $Id: diag51_mod.f,v 1.23 2007/01/24 18:22:22 bmy Exp $
       MODULE DIAG51_MOD
 !
 !******************************************************************************
 !  Module DIAG51_MOD contains variables and routines to generate save 
 !  timeseries data where the local time is between two user-defined limits. 
 !  This facilitates comparisons with morning or afternoon-passing satellites
-!  such as GOME. (amf, bey, bdf, pip, bmy, 11/30/00, 1/22/07)
+!  such as GOME. (amf, bey, bdf, pip, bmy, 11/30/00, 1/24/07)
 !
 !  Module Variables:
 !  ============================================================================
@@ -13,35 +13,36 @@
 !  (2 ) GOOD             (INTEGER ) : Array denoting grid boxes w/in LT limits
 !  (3 ) GOOD_CT          (INTEGER ) : # of "good" times per grid box
 !  (4 ) GOOD_CT_CHEM     (INTEGER ) : # of "good" chemistry timesteps
-!  (5 ) ND51_HR_WRITE    (INTEGER ) : Hour at which to save to disk
-!  (6 ) I0               (INTEGER ) : Offset between global & nested grid
-!  (7 ) J0               (INTEGER ) : Offset between global & nested grid
-!  (8 ) IOFF             (INTEGER ) : Longitude offset
-!  (9 ) JOFF             (INTEGER ) : Latitude offset
-!  (10) LOFF             (INTEGER ) : Altitude offset
-!  (11) ND51_HR1         (REAL*8  ) : Starting hour of user-defined LT interval
-!  (12) ND51_HR2         (REAL*8  ) : Ending hour of user-defined LT interval
-!  (13) ND51_IMIN        (INTEGER ) : Minimum latitude  index for DIAG51 region
-!  (14) ND51_IMAX        (INTEGER ) : Maximum latitude  index for DIAG51 region
-!  (15) ND51_JMIN        (INTEGER ) : Minimum longitude index for DIAG51 region
-!  (16) ND51_JMAX        (INTEGER ) : Maximum longitude index for DIAG51 region
-!  (17) ND51_LMIN        (INTEGER ) : Minimum altitude  index for DIAG51 region
-!  (18) ND51_LMAX        (INTEGER ) : Minimum latitude  index for DIAG51 region
-!  (19) ND51_NI          (INTEGER ) : Number of longitudes in DIAG51 region 
-!  (20) ND51_NJ          (INTEGER ) : Number of latitudes  in DIAG51 region
-!  (21) ND51_NL          (INTEGER ) : Number of levels     in DIAG51 region
-!  (22) ND51_N_TRACERS   (INTEGER ) : Number of tracers for DIAG51
-!  (23) ND51_OUTPUT_FILE (CHAR*255) : Name of bpch file w  timeseries data
-!  (24) ND51_TRACERS     (INTEGER ) : Array of DIAG51 tracer numbers
-!  (25) Q                (REAL*8  ) : Accumulator array for various quantities
-!  (26) TAU0             (REAL*8  ) : Starting TAU used to index the bpch file
-!  (27) TAU1             (REAL*8  ) : Ending TAU used to index the bpch file
-!  (28) HALFPOLAR        (INTEGER ) : Used for bpch file output
-!  (29) CENTER180        (INTEGER ) : Used for bpch file output
-!  (30) LONRES           (REAL*4  ) : Used for bpch file output
-!  (31) LATRES           (REAL*4  ) : Used for bpch file output
-!  (32) MODELNAME        (CHAR*20 ) : Used for bpch file output
-!  (33) RESERVED         (CHAR*40 ) : Used for bpch file output
+!  (5 ) COUNT_CHEM3D     (INTEGER ) : Counter for 3D chemistry boxes
+!  (6 ) ND51_HR_WRITE    (INTEGER ) : Hour at which to save to disk
+!  (7 ) I0               (INTEGER ) : Offset between global & nested grid
+!  (8 ) J0               (INTEGER ) : Offset between global & nested grid
+!  (9 ) IOFF             (INTEGER ) : Longitude offset
+!  (10) JOFF             (INTEGER ) : Latitude offset
+!  (11) LOFF             (INTEGER ) : Altitude offset
+!  (12) ND51_HR1         (REAL*8  ) : Starting hour of user-defined LT interval
+!  (13) ND51_HR2         (REAL*8  ) : Ending hour of user-defined LT interval
+!  (14) ND51_IMIN        (INTEGER ) : Minimum latitude  index for DIAG51 region
+!  (15) ND51_IMAX        (INTEGER ) : Maximum latitude  index for DIAG51 region
+!  (16) ND51_JMIN        (INTEGER ) : Minimum longitude index for DIAG51 region
+!  (17) ND51_JMAX        (INTEGER ) : Maximum longitude index for DIAG51 region
+!  (18) ND51_LMIN        (INTEGER ) : Minimum altitude  index for DIAG51 region
+!  (19) ND51_LMAX        (INTEGER ) : Minimum latitude  index for DIAG51 region
+!  (20) ND51_NI          (INTEGER ) : Number of longitudes in DIAG51 region 
+!  (21) ND51_NJ          (INTEGER ) : Number of latitudes  in DIAG51 region
+!  (22) ND51_NL          (INTEGER ) : Number of levels     in DIAG51 region
+!  (23) ND51_N_TRACERS   (INTEGER ) : Number of tracers for DIAG51
+!  (24) ND51_OUTPUT_FILE (CHAR*255) : Name of bpch file w  timeseries data
+!  (25) ND51_TRACERS     (INTEGER ) : Array of DIAG51 tracer numbers
+!  (26) Q                (REAL*8  ) : Accumulator array for various quantities
+!  (27) TAU0             (REAL*8  ) : Starting TAU used to index the bpch file
+!  (28) TAU1             (REAL*8  ) : Ending TAU used to index the bpch file
+!  (29) HALFPOLAR        (INTEGER ) : Used for bpch file output
+!  (30) CENTER180        (INTEGER ) : Used for bpch file output
+!  (31) LONRES           (REAL*4  ) : Used for bpch file output
+!  (32) LATRES           (REAL*4  ) : Used for bpch file output
+!  (33) MODELNAME        (CHAR*20 ) : Used for bpch file output
+!  (34) RESERVED         (CHAR*40 ) : Used for bpch file output
 !
 !  Module Procedures:
 !  ============================================================================
@@ -109,7 +110,7 @@
 !  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (10) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !  (11) Modified INIT_DIAG51 to save out transects (cdh, bmy, 11/30/06)
-!  (12) Now use 3D timestep counter for full chem in the trop (phs, 1/22/07)
+!  (12) Now use 3D timestep counter for full chem in the trop (phs, 1/24/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -286,7 +287,7 @@
 !
 !******************************************************************************
 !  Subroutine ACCUMULATE_DIAG51 accumulates tracers into the Q array. 
-!  (bmy, 8/20/02, 1/22/07)
+!  (bmy, 8/20/02, 1/24/07)
 !
 !  NOTES:
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
@@ -308,7 +309,7 @@
 !  (7 ) Now do not save SLP data if it is not allocated (bmy, 8/2/05)
 !  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (9 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
-!  (10) Now account for time spent in the trop for non-tracers (phs, 1/22/07)
+!  (10) Now account for time spent in the trop for non-tracers (phs, 1/24/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -393,7 +394,7 @@
 
 
       ! Also increment 3-D counter for boxes in the tropopause
-      IF ( IS_FULLCHEM ) THEN
+      IF ( IS_FULLCHEM .and. IS_CHEM ) THEN
          
          ! Loop over levels
 !$OMP PARALLEL DO 
@@ -413,7 +414,7 @@
 
             ! Only increment if we are in the trop
             IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
-               COUNT_CHEM3D(X,Y,K) = COUNT_CHEM3D(X,Y,K) + 1
+               COUNT_CHEM3D(X,Y,K) = COUNT_CHEM3D(X,Y,K) + GOOD(I)
             ENDIF
 
          ENDDO
@@ -849,7 +850,7 @@
 !  Subroutine WRITE_DIAG51 computes the time-average of quantities between
 !  local time limits ND51_HR1 and ND51_HR2 and writes them to a bpch file.
 !  Arrays and counters are also zeroed for the next diagnostic interval.
-!  (bmy, 12/1/00, 1/22/07)  
+!  (bmy, 12/1/00, 1/24/07)  
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -870,7 +871,8 @@
 !  (5 ) Remove references to TRCOFFSET because it's always zero (bmy, 6/24/05)
 !  (6 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (7 ) DIVISOR is now a 3-D array.  Now zero COUNT_CHEM3D.  Now use CASE
-!        statement instead of IF statements. (phs, 1/22/07)
+!        statement instead of IF statements.  Now zero counter arrays with
+!        array broadcast assignments. (phs, 1/24/07)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -889,7 +891,7 @@
 
       ! Local variables
       !-----------------------------------
-      ! Prior to 1/22/07:
+      ! Prior to 1/24/07:
       !LOGICAL            :: IS_CHEM
       !-----------------------------------
       INTEGER            :: I,   J,  L,  W, N, GMNL, GMTRC
@@ -929,7 +931,7 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !--------------------------------------------
-! Prior to 1/22/07:
+! Prior to 1/24/07:
 !!$OMP+PRIVATE( X, Y, K, W, IS_CHEM )
 !--------------------------------------------
 !$OMP+PRIVATE( X, Y, K, W )
@@ -937,7 +939,7 @@
       DO W = 1, ND51_N_TRACERS
  
 !------------------------------------------------------------------------------
-! Prior to 1/22/07:        
+! Prior to 1/24/07:        
 !         ! Set a flag to denote tracers which are only
 !         ! accumulated on every chemistry timestep
 !         IS_CHEM = ( ND51_TRACERS(W) == 71 .or. 
@@ -958,7 +960,7 @@
          DO X = 1, ND51_NI
 
 !------------------------------------------------------------------------------
-! Prior to 1/22/07:
+! Prior to 1/24/07:
 !            IF ( IS_CHEM ) THEN 
 !
 !               ! Avoid division by zero for tracers
@@ -1333,27 +1335,39 @@
       ! Set STARTING TAU for the next bpch write
       TAU0 = TAU_W
 
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( X, Y, K, W )
-      DO W = 1, ND51_N_TRACERS
-      DO K = 1, ND51_NL
-      DO Y = 1, ND51_NJ
-      DO X = 1, ND51_NI
+!----------------------------------------------------------------------
+! Prior to 1/24/07:
+! Now zero arrays with broadcast assignment statements (bmy, 1/24/07)
+!!$OMP PARALLEL DO 
+!!$OMP+DEFAULT( SHARED ) 
+!!$OMP+PRIVATE( X, Y, K, W )
+!      DO W = 1, ND51_N_TRACERS
+!      DO K = 1, ND51_NL
+!      DO Y = 1, ND51_NJ
+!      DO X = 1, ND51_NI
+!
+!         ! Zero accumulating array for tracer
+!         Q(X,Y,K,W) = 0d0
+!
+!         ! Zero counters
+!         IF ( W == 1 .and. K == 1 ) THEN
+!            GOOD_CT(X)      = 0
+!            GOOD_CT_CHEM(X) = 0
+!         ENDIF
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!------------------------------------------------------------------------
 
-         ! Zero accumulating array for tracer
-         Q(X,Y,K,W) = 0d0
+      ! Zero accumulating array for tracer
+      Q            = 0d0
 
-         ! Zero counters
-         IF ( W == 1 .and. K == 1 ) THEN
-            GOOD_CT(X)      = 0
-            GOOD_CT_CHEM(X) = 0
-         ENDIF
-      ENDDO
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+      ! Zero counter arrays
+      COUNT_CHEM3D = 0d0
+      GOOD_CT      = 0d0
+      GOOD_CT_CHEM = 0d0
 
       ! Return to calling program
       END SUBROUTINE WRITE_DIAG51
@@ -1430,7 +1444,7 @@
 !        value for GEOS or GCAP grids. (bmy, 6/28/05)
 !  (4 ) Now allow ND51_IMIN to be equal to ND51_IMAX and ND51_JMIN to be
 !        equal to ND51_JMAX.  This will allow us to save out longitude or
-!        latitude transects.  Allocate COUNT_CHEM3D. (cdh, bmy, phs, 1/22/07)
+!        latitude transects.  Allocate COUNT_CHEM3D. (cdh, bmy, phs, 1/24/07)
 !******************************************************************************
 !    
       ! References to F90 modules
@@ -1623,7 +1637,7 @@
       ! Accumulating array
       ALLOCATE( COUNT_CHEM3D( ND51_NI, ND51_NJ, ND51_NL ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'COUNT_CHEM3D' )
-      COUNT_CHEM3D = 0d0
+      COUNT_CHEM3D = 0
 
       ! Return to calling program
       END SUBROUTINE INIT_DIAG51
@@ -1634,11 +1648,11 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_DIAG51 deallocates all module arrays. 
-!  (bmy, 11/29/00, 1/22/07)
+!  (bmy, 11/29/00, 1/24/07)
 !
 !  NOTES:
 !  (1 ) Now deallocate GOOD_CT_CHEM (bmy, 10/25/04)
-!  (2 ) Also deallocate COUNT_CHEM3D (phs, 1/22/07)
+!  (2 ) Also deallocate COUNT_CHEM3D (phs, 1/24/07)
 !******************************************************************************
 ! 
       !=================================================================

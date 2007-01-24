@@ -1,9 +1,9 @@
-! $Id: diag1.f,v 1.15 2006/10/16 20:44:29 phs Exp $
+! $Id: diag1.f,v 1.16 2007/01/24 18:22:21 bmy Exp $
       SUBROUTINE DIAG1 
 !
 !******************************************************************************
 !  Subroutine DIAG1 accumulates diagnostic quantities every NDIAG minutes
-!  (bmy, bey, 6/16/98, 8/4/06)
+!  (bmy, bey, 6/16/98, 1/24/07)
 !
 !  NOTES:
 !  (1 ) This subroutine was reconstructed from gmg's version of (10/10/97)
@@ -50,6 +50,7 @@
 !  (25) Now reference XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (26) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (27) Added count for time in the troposphere - array AD54 (phs, 9/22/06)
+!  (28) Now only archive O3 in ND45 and ND47 at chem timsteps (phs, 1/24/07)
 !******************************************************************************
 !  List of GEOS-CHEM Diagnostics (bmy, 10/25/05)
 !
@@ -325,8 +326,9 @@
       USE DIAG_MOD,       ONLY : AD47, AD67, AD68, AD69, LTOTH
       USE GRID_MOD,       ONLY : GET_AREA_M2
       USE PRESSURE_MOD,   ONLY : GET_PEDGE
-      USE TRACER_MOD,     ONLY : N_TRACERS, STT, TCVV, 
-     &                           ITS_A_FULLCHEM_SIM
+      USE TIME_MOD,       ONLY : ITS_TIME_FOR_CHEM
+      USE TRACER_MOD,     ONLY : N_TRACERS, STT, TCVV
+      USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,     ONLY : XNUMOLAIR
       USE TRACERID_MOD,   ONLY : IDTOX
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
@@ -339,7 +341,7 @@
 #     include "CMN_GCTM"  ! Physical constants
 
       ! Local variables
-      LOGICAL            :: AVGW_ALLOCATED, IS_FULLCHEM
+      LOGICAL            :: AVGW_ALLOCATED, IS_FULLCHEM, IS_CHEM
       INTEGER            :: I, J, K, L, N, NN, IREF, JREF, LN45
       REAL*8             :: FDTT, XLOCTM, AREA_M2
       REAL*8             :: STT_VV(IIPAR,JJPAR,LLPAR,N_TRACERS)
@@ -350,6 +352,7 @@
       
       ! Is it a fullchem run?
       IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
+      IS_CHEM     = ITS_TIME_FOR_CHEM()
       
       ! Compute conc. in mixing ratio for ND35, ND45, ND47 diagnostics 
       IF ( ND35 > 0 .or. ND45 > 0 .or. ND47 > 0 ) THEN
@@ -472,7 +475,8 @@
             ENDDO
             ENDDO
 
-            IF ( N == IDTOX .and. IS_FULLCHEM ) THEN
+            ! NOTE: Only update on chem timesteps (phs, 1/24/07)
+            IF ( N == IDTOX .and. IS_FULLCHEM .and. IS_CHEM ) THEN
                DO L = 1, LD45
                DO J = 1, JJPAR
                DO I = 1, IIPAR
@@ -505,7 +509,8 @@
             ENDDO
             ENDDO
             
-            IF ( N == IDTOX .and. IS_FULLCHEM ) THEN
+            ! NOTE: Only update on chem timesteps (phs, 1/24/07)
+            IF ( N == IDTOX .and. IS_FULLCHEM .and. IS_CHEM ) THEN
                DO L = 1, LD47
                DO J = 1, JJPAR
                DO I = 1, IIPAR

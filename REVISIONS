@@ -1,5 +1,5 @@
 REVISIONS (v7-04-11)  
-22 Jan 2006
+24 Jan 2006
 Philippe Le Sager (phs@io.as.harvard.edu) and
 Bob Yantosca      (bmy@io.as.harvard.edu)
 
@@ -73,13 +73,20 @@ convtran		   -- Bug fix: avoid div by zero in formula for CHAT
 convtran		   -- Bug fix: avoid div by zero in formula for CHAT
 ("fvdas_convect_mod.f")
 
+diag1.f			   -- Now only archive pure O3 in ND45 and ND47 at 
+			      chemistry timesteps
+
 diag20 			   -- Now use LLTROP_FIX instead of LLTROP
 
 
 diag_2pm.f		   -- Now account for the time spent in the 
                               troposphere for ND43 and ND45 pure O3
+			   -- Now only accumulate counter for 3D pure O3 in 
+			      ND45 if it's a chemistry timestep.
 
 diag3.f			   -- Now use new time counters for ND43 & ND45
+			   -- Now averages ND47 between 0 and 24 UT.  
+			   -- Replace SCALEDYN with CTOH and CTO3 for ND47
 
 diag_mod.f		   -- Added CTO3 counter
                            -- Convert ND43 counter arrays from 2D to 3D, for
@@ -213,10 +220,15 @@ read_pox_lox		   -- Use LLTROP_FIX to limit array size to case of
 seasalt_chem		   -- Fixed typo in FALK_A_SO2 equation: C_FLUX_C  
 ("sulfate_mod.f")             should be C_FLUX_A.
 
+src_dust_dead		   -- Updated output statement
+("dust_mod.f")
+
 write_diag50		   -- DIVISOR is now a 3-D array
 ("diag50_mod.f")	   -- Now zero COUNT_CHEM3D
+			   -- Now zero Q array with array assignment statement
 
 write_diag51		   -- DIVISOR is now a 3-D array
 ("diag51_mod.f")	   -- Now zero COUNT_CHEM3D
 			   -- Now use CASE statement instead of IF statements
+			   -- Now zero counter arrays with array assignments
 	

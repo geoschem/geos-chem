@@ -1,6 +1,6 @@
-! $Id: main.f,v 1.44 2006/12/11 19:37:51 bmy Exp $
+! $Id: main.f,v 1.45 2007/01/24 18:22:23 bmy Exp $
 ! $Log: main.f,v $
-! Revision 1.44  2006/12/11 19:37:51  bmy
+! Revision 1.45  2007/01/24 18:22:23  bmy
 ! GEOS-Chem v7-04-11, includes the following modifications:
 ! - Fixed near-land lightning; now scale 2x25, 4x5 to 6 Tg N/yr (ltm,bmy)
 ! - Now allow ND49, ND50, ND51 to save transects of a single lon or lat (bmy)
@@ -13,6 +13,8 @@
 ! - a3_read_mod.f : added SNOW and GETWETTOP fields for GCAP (phs)
 ! - main.f: remove duplicate call for unzip in GCAP case (phs)
 ! - time_mod.f: fix leap year problem in get_time_ahead for GCAP (phs)
+! - extra fixes for the variable tropopause (phs)
+! - minor diagnostic updates (phs)
 !
 ! Revision 1.42  2006/10/17 17:51:14  bmy
 ! GEOS-Chem v7-04-10, includes the following modifications:

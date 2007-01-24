@@ -1,9 +1,9 @@
-! $Id: diag50_mod.f,v 1.14 2007/01/22 17:32:23 bmy Exp $
+! $Id: diag50_mod.f,v 1.15 2007/01/24 18:22:22 bmy Exp $
       MODULE DIAG50_MOD
 !
 !******************************************************************************
 !  Module DIAG50_MOD contains variables and routines to generate 24-hour 
-!  average timeseries data. (amf, bey, bdf, pip, bmy, 11/30/00, 1/19/07)
+!  average timeseries data. (amf, bey, bdf, pip, bmy, 11/30/00, 1/24/07)
 !
 !  Module Variables:
 !  ============================================================================
@@ -104,7 +104,7 @@
 !  (8 ) Bug fix: don't save SLP unless it is allocated (bmy, 8/2/05)
 !  (9 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !  (10) Modified INIT_DIAG49 to save out transects (cdh, bmy, 11/30/06)
-!  (11) Now use 3D timestep counter for full chem in the trop (phs, 1/19/07)
+!  (11) Now use 3D timestep counter for full chem in the trop (phs, 1/24/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -189,7 +189,7 @@
 !
 !******************************************************************************
 !  Subroutine ACCUMULATE_DIAG50 accumulates tracers into the Q array. 
-!  (bmy, 8/20/02, 1/19/07)
+!  (bmy, 8/20/02, 1/24/07)
 !
 !  NOTES:
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
@@ -211,7 +211,7 @@
 !  (7 ) Now do not save SLP data if it is not allocated (bmy, 8/2/05)
 !  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (9 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
-!  (10) Now account for time spent in the trop for non-tracers (phs, 1/19/07)
+!  (10) Now account for time spent in the trop for non-tracers (phs, 1/24/07)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -288,7 +288,7 @@
       IF ( IS_CHEM ) COUNT_CHEM = COUNT_CHEM + 1
       
       ! Also increment 3-D counter for boxes in the tropopause
-      IF ( IS_FULLCHEM ) THEN
+      IF ( IS_FULLCHEM .and. IS_CHEM ) THEN
          
          ! Loop over levels
 !$OMP PARALLEL DO 
@@ -698,7 +698,7 @@
 !
 !******************************************************************************
 !  Subroutine WRITE_DIAG50 computes the 24-hr time-average of quantities
-!  and saves to bpch file format. (bmy, 12/1/00, 1/19/07)  
+!  and saves to bpch file format. (bmy, 12/1/00, 1/24/07)  
 !
 !  NOTES:
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
@@ -712,7 +712,8 @@
 !        as tracer #79. (bmy, 4/20/05)
 !  (5 ) Remove references to TRCOFFSET because it's always zero (bmy, 6/24/05)
 !  (6 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (7 ) DIVISOR is now a 3-D array.  Now zero COUNT_CHEM3D. (phs, 1/19/07)
+!  (7 ) DIVISOR is now a 3-D array.  Now zero COUNT_CHEM3D.  Now zero Q
+!        array with array assignment statement. (phs, 1/24/07)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -729,7 +730,7 @@
 
       ! Local variables
       !-------------------------------------------------------------------
-      ! Prior to 1/19/07:
+      ! Prior to 1/24/07:
       !INTEGER            :: DIVISOR
       !-------------------------------------------------------------------
       INTEGER            :: DIVISOR(ND50_NI,ND50_NJ,ND50_NL)
@@ -775,7 +776,7 @@
          ! Pick the proper divisor, depending on whether or not the
          ! species in question is archived only each chem timestep
 !--------------------------------------------------------------------------
-! Prior to 1/19/07:
+! Prior to 1/24/07:
 !         IF ( ND50_TRACERS(W) == 71 .or. ND50_TRACERS(W) == 72  .or. 
 !     &        ND50_TRACERS(W) == 74 .or. ND50_TRACERS(W) == 75  .or.
 !     &        ND50_TRACERS(W) == 82 .or. ND50_TRACERS(W) == 83  .or.
@@ -802,13 +803,13 @@
 
             ! Avoid division by zero
             !------------------------------------------------
-            ! Prior to 1/19/07:
-            ! DIVISOR is now a 3-D array (phs, 1/19/07)
+            ! Prior to 1/24/07:
+            ! DIVISOR is now a 3-D array (phs, 1/24/07)
             !IF ( DIVISOR > 0 ) THEN
             !   Q(X,Y,K,W) = Q(X,Y,K,W) / DIVISOR
             !------------------------------------------------
             IF ( DIVISOR(X,Y,K) > 0 ) THEN
-               Q(X,Y,K,W) = Q(X,Y,K,W) / DIVISOR(X,Y,K)
+               Q(X,Y,K,W) = Q(X,Y,K,W) / DBLE( DIVISOR(X,Y,K) )
             ELSE
                Q(X,Y,K,W) = 0d0
             ENDIF
@@ -1127,22 +1128,28 @@
       ! Zero counters
       COUNT        = 0
       COUNT_CHEM   = 0
-      COUNT_CHEM3D = 0
+      COUNT_CHEM3D = 0  
       
       ! Zero accumulating array
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( X, Y, K, W )
-      DO W = 1, ND50_N_TRACERS
-      DO K = 1, ND50_NL
-      DO Y = 1, ND50_NJ
-      DO X = 1, ND50_NI
-         Q(X,Y,K,W) = 0d0
-      ENDDO
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+      Q            = 0d0
+!-----------------------------------------------------------------
+! Prior to 1/24/07:
+! Now zero Q array with array assignment statement (bmy, 1/24/07)
+!!$OMP PARALLEL DO 
+!!$OMP+DEFAULT( SHARED ) 
+!!$OMP+PRIVATE( X, Y, K, W )
+!      DO W = 1, ND50_N_TRACERS
+!      DO K = 1, ND50_NL
+!      DO Y = 1, ND50_NJ
+!      DO X = 1, ND50_NI
+!         Q(X,Y,K,W) = 0d0
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!-----------------------------------------------------------------
+      
       
       ! Return to calling program
       END SUBROUTINE WRITE_DIAG50
@@ -1191,7 +1198,7 @@
 !******************************************************************************
 !  Subroutine INIT_DIAG50 allocates and zeroes all module arrays.  
 !  It also gets values for module variables from "input_mod.f". 
-!  (bmy, 7/20/04, 1/19/07)
+!  (bmy, 7/20/04, 1/24/07)
 ! 
 !  Arguments as Input:
 !  ============================================================================
@@ -1213,7 +1220,7 @@
 !  (3 ) Now allow ND50_IMIN to be equal to ND50_IMAX and ND50_JMIN to be
 !        equal to ND50_JMAX.  This will allow us to save out longitude
 !        or latitude transects.  Now allocate COUNT_CHEM3D array.
-!        (cdh, phs, 1/19/07)
+!        (cdh, phs, 1/24/07)
 !******************************************************************************
 !    
       ! References to F90 modules
@@ -1399,10 +1406,10 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_DIAG50 deallocates all module arrays. 
-!  (bmy, 11/29/00, 1/19/07)
+!  (bmy, 11/29/00, 1/24/07)
 !
 !  NOTES:
-!  (1 ) Now deallocate COUNT_CHEM3D (phs, 1/19/07)
+!  (1 ) Now deallocate COUNT_CHEM3D (phs, 1/24/07)
 !******************************************************************************
 ! 
       !=================================================================

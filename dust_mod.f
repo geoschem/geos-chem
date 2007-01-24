@@ -1,9 +1,9 @@
-! $Id: dust_mod.f,v 1.14 2006/09/08 19:20:55 bmy Exp $
+! $Id: dust_mod.f,v 1.15 2007/01/24 18:22:23 bmy Exp $
       MODULE DUST_MOD
 !
 !******************************************************************************
 !  Module DUST_MOD contains routines for computing dust aerosol emissions,
-!  chemistry, and optical depths. (rjp, tdf, bmy, 4/14/04, 8/4/06)
+!  chemistry, and optical depths. (rjp, tdf, bmy, 4/14/04, 1/23/07)
 !
 !  Module Variables:
 !  ============================================================================
@@ -54,6 +54,7 @@
 !  (5 ) Bug fix in snow height computation (bmy, 11/18/05)
 !  (6 ) Now only do drydep if LDRYD=T (bmy, 5/23/06)
 !  (7 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (8 ) Updated output print statement in SRC_DUST_DEAD (bmy, 1/23/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -542,7 +543,7 @@
 !******************************************************************************
 !  Subroutine SRC_DUST_DEAD is the DEAD model dust emission scheme, 
 !  alternative to Ginoux scheme.  Increments the TC array with emissions 
-!  from the DEAD model.  (tdf, bmy, 4/8/04, 11/18/05)
+!  from the DEAD model.  (tdf, bmy, 4/8/04, 1/23/07)
 !
 !  Input:
 !         SRCE_FUNK Source function                               (-)
@@ -573,6 +574,7 @@
 !  (3 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Bug fix: It should be SNOW/1d3 not SNOW*1d3 (tdf, bmy, 11/18/05)
+!  (6 ) Updated output statement (bmy, 1/23/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -672,7 +674,12 @@
  100     FORMAT( 'D E A D   D U S T   M O B I L I Z A T I O N'         )
  110     FORMAT( 'Routines from DEAD model by Charlie Zender et al'    )
  120     FORMAT( 'Modified for GEOS-CHEM by D. Fairlie and R. Yantosca')
- 130     FORMAT( 'Last Modification Date: 4/6/04'                      )
+!----------------------------------------------------------------------------
+! Prior to 1/23/07:
+! Update output statement (bmy, 1/23/07)
+! 130     FORMAT( 'Last Modification Date: 4/6/04'                      )
+!----------------------------------------------------------------------------
+ 130     FORMAT( 'Last Modification Date: 1/23/07'                     )
 
          ! Read fields for DEAD that are time-invariant
          CALL GET_TIME_INVARIANT_DATA

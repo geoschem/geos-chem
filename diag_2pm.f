@@ -1,8 +1,8 @@
-! $Id: diag_2pm.f,v 1.4 2007/01/22 17:32:23 bmy Exp $
+! $Id: diag_2pm.f,v 1.5 2007/01/24 18:22:23 bmy Exp $
       SUBROUTINE DIAG_2PM
 !
 !*****************************************************************************
-!  Subroutine DIAG_2PM (bmy, 3/26/99, 1/19/07) constructs the diagnostic 
+!  Subroutine DIAG_2PM (bmy, 3/26/99, 1/24/07) constructs the diagnostic 
 !  flag arrays : 
 !      LTJV  : J-values           (ND22)
 !      LTOH  : OH concentrations  (ND43)
@@ -25,7 +25,8 @@
 !        ITS_TIME_FOR_CHEM, ITS_TIME_FOR_DYN from "time_mod.f" (bmy, 2/11/03)
 !  (4 ) Now rewritten using a parallel DO-loop (bmy, 7/20/04)
 !  (5 ) Now account for the time spent in the troposphere for ND43 and ND45
-!        pure O3 (phs, 1/19/07)
+!        pure O3.  Now only accumulate counter for 3D pure O3 in ND45 if
+!        it's a chemistry timestep. (phs, 1/24/07)
 !*****************************************************************************
 !     
       ! References to F90 modules
@@ -42,7 +43,7 @@
 #     include "CMN_DIAG"   ! HR_OH1, HR_OH2, etc.
 
       ! Local variables
-      LOGICAL             :: IS_ND22, IS_ND43, IS_ND45
+      LOGICAL             :: IS_ND22, IS_ND43, IS_ND45, IS_ND45_O3
       INTEGER             :: I,       J,       L
       REAL*8              :: LT(IIPAR)
 
@@ -51,9 +52,10 @@
       !=================================================================
 
       ! Set logical flags
-      IS_ND22 = ( ND22 > 0 .and. ITS_TIME_FOR_CHEM() )
-      IS_ND45 = ( ND45 > 0 .and. ITS_TIME_FOR_DYN()  )
-      IS_ND43 = ( ND43 > 0 .and. ITS_TIME_FOR_CHEM() )
+      IS_ND22    = ( ND22 > 0 .and. ITS_TIME_FOR_CHEM() )
+      IS_ND45_O3 = (                ITS_TIME_FOR_CHEM() )
+      IS_ND45    = ( ND45 > 0 .and. ITS_TIME_FOR_DYN()  )
+      IS_ND43    = ( ND43 > 0 .and. ITS_TIME_FOR_CHEM() )
 
       ! Pre-compute local time 
       DO I = 1, IIPAR
@@ -76,9 +78,9 @@
                LTOTH(I,J) = 1
                CTOTH(I,J) = CTOTH(I,J) + 1
                
-               ! Counter for # of O3 boxes in the troposphere (phs, 1/19/07)
+               ! Counter for # of O3 boxes in the troposphere (phs, 1/24/07)
                DO L = 1, LD45
-                  IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
+                  IF ( IS_ND45_O3 .and. ITS_IN_THE_TROP( I, J, L )) THEN
                      CTO3(I,J,L) = CTO3(I,J,L) + 1
                   ENDIF
                ENDDO
@@ -113,16 +115,16 @@
             IF ( LT(I) >= HR1_NO .and. LT(I) <= HR2_NO ) THEN 
                LTNO(I,J)  = 1
                !---------------------------------
-               ! Prior to 1/19/07:
+               ! Prior to 1/24/07:
                !CTNO(I,J)  = CTNO(I,J) + 1
                !---------------------------------
                LTNO2(I,J) = 1
                !--------------------------------- 
-               ! Prior to 1/19/07:
+               ! Prior to 1/24/07:
                !CTNO2(I,J) = CTNO2(I,J) + 1
                !--------------------------------- 
                
-               ! Counters for # of NO, NO2 boxes in the trop (phs, 1/19/07)
+               ! Counters for # of NO, NO2 boxes in the trop (phs, 1/24/07)
                DO L = 1, LD43
                   IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
                      CTNO(I,J,L)  = CTNO(I,J,L)  + 1
@@ -141,21 +143,21 @@
             IF ( LT(I) >= HR1_OH .and. LT(I) <= HR2_OH ) THEN  
                LTOH(I,J)  = 1
                !------------------------------------------
-               ! Prior to 1/19/07:
+               ! Prior to 1/24/07:
                !CTOH(I,J)  = CTOH(I,J) + 1
                !------------------------------------------
                LTHO2(I,J) = 1
                !------------------------------------------
-               ! Prior to 1/19/07:
+               ! Prior to 1/24/07:
                !CTHO2(I,J) = CTHO2(I,J) + 1
                !------------------------------------------
                LTNO3(I,J) = 1
                !------------------------------------------
-               ! Prior to 1/19/07:
+               ! Prior to 1/24/07:
                !CTNO3(I,J) = CTNO3(I,J) + 1
                !------------------------------------------
 
-               ! Counters for # of OH,HO2,NO3 boxes in the trop (phs, 1/19/07)
+               ! Counters for # of OH,HO2,NO3 boxes in the trop (phs, 1/24/07)
                DO L = 1, LD43 
                   IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
                      CTOH(I,J,L)  = CTOH(I,J,L)  + 1
