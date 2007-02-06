@@ -1,5 +1,22 @@
-! $Id: main.f,v 1.45 2007/01/24 18:22:23 bmy Exp $
+! $Id: main.f,v 1.46 2007/02/06 17:40:07 bmy Exp $
 ! $Log: main.f,v $
+! Revision 1.46  2007/02/06 17:40:07  bmy
+! GEOS-Chem v7-04-11, includes the following modifications:
+! - Fixed near-land lightning; now scale 2x25, 4x5 to 6 Tg N/yr (ltm,bmy)
+! - Now allow ND49, ND50, ND51 to save transects of a single lon or lat (bmy)
+! - Add case for T > 293K to routine GET_LWC in "mercury_mod.f" (cdh,bmy)
+! - Bug fix: correct indices for embedded chemistry in "transport_mod.f" (phs)
+! - Bug fix: correct typo in SEASALT_CHEM routine in "sulfate_mod.f" (bmy)
+! - Now prevent seg fault errors when LBIOMASS=F (bmy)
+! - Now fixed minor bug that inverted TROPP1 and TROPP2 (phs)
+! - CMN_SIZE: now define LLTROP_FIX for GCAP. (phs)
+! - a3_read_mod.f : added SNOW and GETWETTOP fields for GCAP (phs)
+! - main.f: remove duplicate call for unzip in GCAP case (phs)
+! - time_mod.f: fix leap year problem in get_time_ahead for GCAP (phs)
+! - extra fixes for the variable tropopause (phs)
+! - minor diagnostic updates (phs)
+! - now save SOA quantities GPROD & APROD to restart files (tmf, havala, bmy)
+!
 ! Revision 1.45  2007/01/24 18:22:23  bmy
 ! GEOS-Chem v7-04-11, includes the following modifications:
 ! - Fixed near-land lightning; now scale 2x25, 4x5 to 6 Tg N/yr (ltm,bmy)
@@ -118,6 +135,7 @@
       USE A6_READ_MOD,       ONLY : OPEN_A6_FIELDS
       USE A6_READ_MOD,       ONLY : UNZIP_A6_FIELDS
       USE BENCHMARK_MOD,     ONLY : STDRUN
+      USE CARBON_MOD,        ONLY : WRITE_GPROD_APROD
       USE CHEMISTRY_MOD,     ONLY : DO_CHEMISTRY
       USE CONVECTION_MOD,    ONLY : DO_CONVECTION
       USE COMODE_MOD,        ONLY : INIT_COMODE
@@ -197,6 +215,7 @@
       USE TIME_MOD,          ONLY : ITS_TIME_FOR_DIAG,ITS_TIME_FOR_DYN
       USE TIME_MOD,          ONLY : ITS_TIME_FOR_EMIS,ITS_TIME_FOR_EXIT
       USE TIME_MOD,          ONLY : ITS_TIME_FOR_UNIT,ITS_TIME_FOR_UNZIP
+      USE TIME_MOD,          ONLY : ITS_TIME_FOR_BPCH
       USE TIME_MOD,          ONLY : SET_CT_CONV,      SET_CT_DYN
       USE TIME_MOD,          ONLY : SET_CT_EMIS,      SET_CT_CHEM
       USE TIME_MOD,          ONLY : SET_DIAGb,        SET_DIAGe
@@ -526,7 +545,7 @@
             CALL CTM_FLUSH
 
             !===========================================================
-            !      ***** W R I T E   R E S T A R T   F I L E *****
+            !    *****  W R I T E   R E S T A R T   F I L E S  *****
             !===========================================================
             IF ( LSVGLB ) THEN
 
@@ -536,6 +555,11 @@
                ! Make ocean mercury restart file
                IF ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN ) THEN
                   CALL MAKE_OCEAN_Hg_RESTART( NYMD, NHMS, TAU )
+               ENDIF
+
+               ! Save SOA quantities GPROD & APROD
+               IF ( LSOA .and. LCHEM ) THEN 
+                  CALL WRITE_GPROD_APROD( NYMD, NHMS, TAU )
                ENDIF
 
                !### Debug
@@ -1159,57 +1183,59 @@
       END SUBROUTINE DISPLAY_GRID_AND_MODEL
 
 !-----------------------------------------------------------------------------
-
-      FUNCTION ITS_TIME_FOR_BPCH() RESULT( DO_BPCH )
-
-      !=================================================================
-      ! Internal function ITS_TIME_FOR_BPCH returns TRUE if it is time
-      ! to write to the binary punch file and FALSE otherwise.
-      !=================================================================
-
-      ! Local variables
-      INTEGER :: TODAY, THIS_NJDAY, NHMS, NDIAGTIME
-      
-      ! Function value
-      LOGICAL :: DO_BPCH
-
-      !=================================================================
-      ! ITS_TIME_FOR_BPCH begins here!
-      !================================================================= 
-      
-      ! Return FALSE if it's the first timestep
-      IF ( GET_TAU() == GET_TAUb() ) THEN
-         DO_BPCH = .FALSE.
-         RETURN
-      ENDIF
-
-      ! Current day of year
-      TODAY     = GET_DAY_OF_YEAR()
-
-      ! Current time of day
-      NHMS      = GET_NHMS()
-
-      ! Time of day to write bpch files to disk
-      NDIAGTIME = GET_NDIAGTIME()
-
-      ! Look up appropriate value of NJDAY array.  We may need to add a
-      ! day to skip past the Feb 29 element of NJDAY for non-leap-years.
-      IF ( .not. ITS_A_LEAPYEAR( FORCE=.TRUE. ) .and. TODAY > 59 ) THEN
-         THIS_NJDAY = NJDAY( TODAY + 1 ) 
-      ELSE
-         THIS_NJDAY = NJDAY( TODAY )
-      ENDIF
-
-      ! Test if this is the day & time to write to the BPCH file!
-      IF ( ( THIS_NJDAY > 0 ) .and. NHMS == NDIAGTIME ) THEN
-         DO_BPCH = .TRUE.
-      ELSE
-         DO_BPCH = .FALSE.
-      ENDIF
-
-      ! Return to calling program
-      END FUNCTION ITS_TIME_FOR_BPCH
-
+! Prior to 2/2/07:
+! Move this to "time_mod.f" (bmy, 2/2/07)
+!
+!      FUNCTION ITS_TIME_FOR_BPCH() RESULT( DO_BPCH )
+!
+!      !=================================================================
+!      ! Internal function ITS_TIME_FOR_BPCH returns TRUE if it is time
+!      ! to write to the binary punch file and FALSE otherwise.
+!      !=================================================================
+!
+!      ! Local variables
+!      INTEGER :: TODAY, THIS_NJDAY, NHMS, NDIAGTIME
+!      
+!      ! Function value
+!      LOGICAL :: DO_BPCH
+!
+!      !=================================================================
+!      ! ITS_TIME_FOR_BPCH begins here!
+!      !================================================================= 
+!      
+!      ! Return FALSE if it's the first timestep
+!      IF ( GET_TAU() == GET_TAUb() ) THEN
+!         DO_BPCH = .FALSE.
+!         RETURN
+!      ENDIF
+!
+!      ! Current day of year
+!      TODAY     = GET_DAY_OF_YEAR()
+!
+!      ! Current time of day
+!      NHMS      = GET_NHMS()
+!
+!      ! Time of day to write bpch files to disk
+!      NDIAGTIME = GET_NDIAGTIME()
+!
+!      ! Look up appropriate value of NJDAY array.  We may need to add a
+!      ! day to skip past the Feb 29 element of NJDAY for non-leap-years.
+!      IF ( .not. ITS_A_LEAPYEAR( FORCE=.TRUE. ) .and. TODAY > 59 ) THEN
+!         THIS_NJDAY = NJDAY( TODAY + 1 ) 
+!      ELSE
+!         THIS_NJDAY = NJDAY( TODAY )
+!      ENDIF
+!
+!      ! Test if this is the day & time to write to the BPCH file!
+!      IF ( ( THIS_NJDAY > 0 ) .and. NHMS == NDIAGTIME ) THEN
+!         DO_BPCH = .TRUE.
+!      ELSE
+!         DO_BPCH = .FALSE.
+!      ENDIF
+!
+!      ! Return to calling program
+!      END FUNCTION ITS_TIME_FOR_BPCH
+!
 !-----------------------------------------------------------------------------
 
       SUBROUTINE CTM_FLUSH

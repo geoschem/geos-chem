@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.37 2006/12/11 19:37:50 bmy Exp $
+! $Id: input_mod.f,v 1.38 2007/02/06 17:40:06 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
-!  Module INPUT_MOD reads the GEOS_CHEM input file at the start of the run
-!  and passes the information to several other GEOS-CHEM F90 modules.
-!  (bmy, 7/20/04, 10/17/06)
+!  Module INPUT_MOD reads the GEOS-Chem input file at the start of the run
+!  and passes the information to several other GEOS-Chem F90 modules.
+!  (bmy, 7/20/04, 1/31/07)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -117,6 +117,7 @@
 !  (16) Modified for variable tropopause.  Also set dimension of ND28 diag
 !        for GFED2 or default biomass burning.  Now read if Time Spent in 
 !        Troposphere is wanted (phs, bmy, 10/17/06)
+!  (17) Now modified for OTD-LIS local redistribution (bmy, 1/31/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -269,7 +270,7 @@
             CALL READ_PLANEFLIGHT_MENU             
                                                   
          ELSE IF ( INDEX( LINE, 'ND48 MENU'        ) > 0 ) THEN
-            CALL READ_ND48_MENU                   
+            CALL READ_ND48_MENU                  
 
          ELSE IF ( INDEX( LINE, 'ND49 MENU'        ) > 0 ) THEN
             CALL READ_ND49_MENU                   
@@ -1226,7 +1227,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_EMISSIONS_MENU reads the EMISSIONS MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 8/17/06)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 1/31/07)
 !
 !  NOTES:
 !  (1 ) Now read LNEI99 -- switch for EPA/NEI99 emissions (bmy, 11/5/04)
@@ -1241,19 +1242,22 @@
 !  (9 ) Now read LEDGAR for EDGAR emissions (avd, bmy, 7/11/06)
 !  (10) Now read LSTREETS for David Streets' emissions (bmy, 8/17/06)
 !  (11) Kludge: Reset LMFLUX or LPRECON to LCTH, as the MFLUX and PRECON
-!        lightning schemes have not yet been implemented (bmy, 11/27/06)
+!        lightning schemes have not yet been implemented.  Rename LOTDLIS
+!        to LOTDREG.  Also read LOTDLOC for the OTD-LIS local redistribution
+!        of lightning flashes (cf B. Sauvage).  Make sure LOTDREG and 
+!        LOTDLOC are not both turned on at the same time. (bmy, 1/31/07)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE LOGICAL_MOD, ONLY : LAIRNOX,   LANTHRO,    LAVHRRLAI, LBBSEA    
-      USE LOGICAL_MOD, ONLY : LBIOFUEL,  LBIOGENIC,  LBIOMASS,  LBIONOX   
-      USE LOGICAL_MOD, ONLY : LEMIS,     LFOSSIL,    LLIGHTNOX, LMONOT    
-      USE LOGICAL_MOD, ONLY : LNEI99,    LSHIPSO2,   LSOILNOX,  LTOMSAI   
-      USE LOGICAL_MOD, ONLY : LWOODCO,   LMEGAN,     LEMEP,     LGFED2BB
-      USE LOGICAL_MOD, ONLY : LOTDLIS,   LCTH,       LMFLUX,    LPRECON
-      USE LOGICAL_MOD, ONLY : LBRAVO,    LEDGAR,     LEDGARNOx, LEDGARCO
-      USE LOGICAL_MOD, ONLY : LEDGARSOx, LEDGARSHIP, LSTREETS
+      USE LOGICAL_MOD, ONLY : LAIRNOX,   LANTHRO,   LAVHRRLAI, LBBSEA    
+      USE LOGICAL_MOD, ONLY : LBIOFUEL,  LBIOGENIC, LBIOMASS,  LBIONOX   
+      USE LOGICAL_MOD, ONLY : LEMIS,     LFOSSIL,   LLIGHTNOX, LMONOT    
+      USE LOGICAL_MOD, ONLY : LNEI99,    LSHIPSO2,  LSOILNOX,  LTOMSAI   
+      USE LOGICAL_MOD, ONLY : LWOODCO,   LMEGAN,    LEMEP,     LGFED2BB
+      USE LOGICAL_MOD, ONLY : LOTDREG,   LOTDLOC,   LCTH,      LMFLUX
+      USE LOGICAL_MOD, ONLY : LPRECON,   LBRAVO,    LEDGAR,    LEDGARNOx 
+      USE LOGICAL_MOD, ONLY : LEDGARCO,  LEDGARSOx, LEDGARSHIP, LSTREETS
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
 
 #     include "CMN_SIZE"    ! Size parameters
@@ -1344,40 +1348,44 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:18' )
       READ( SUBSTRS(1:N), * ) LLIGHTNOX
 
-      ! Use OTD-LIS scale factors for lighting flash rates
+      ! Use OTD-LIS redistribution for lighting flash rates
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:19' )
-      READ( SUBSTRS(1:N), * ) LOTDLIS
+      READ( SUBSTRS(1:N), * ) LOTDREG
+
+      ! Use local redistribution (cf. B. Sauvage) for lighting flash rates
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:20' )
+      READ( SUBSTRS(1:N), * ) LOTDLOC
 
       ! Use Cloud-top-height (CTH) lightning parameterization
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:20' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:21' )
       READ( SUBSTRS(1:N), * ) LCTH
 
       ! Use Mass-flux (MFLUX) lightning parameterization
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:21' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:22' )
       READ( SUBSTRS(1:N), * ) LMFLUX
 
       ! Use Convective precip (PRECON) lightning parameterization
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:22' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:23' )
       READ( SUBSTRS(1:N), * ) LPRECON
 
       ! Use soil NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:23' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:24' )
       READ( SUBSTRS(1:N), * ) LSOILNOX
 
       ! Use ship SO2 emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:24' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:25' )
       READ( SUBSTRS(1:N), * ) LSHIPSO2
 
       ! Use EPA/NEI99 emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:25' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:26' )
       READ( SUBSTRS(1:N), * ) LNEI99
 
       ! Use AVHRR-derived LAI fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:26' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:27' )
       READ( SUBSTRS(1:N), * ) LAVHRRLAI
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:27' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:28' )
 
       !=================================================================
       ! Error check logical flags
@@ -1412,9 +1420,20 @@
       ! Error check lightning switches
       IF ( LLIGHTNOX ) THEN
 
-         ! Kludge: for now set LOTDLIS=T.  We have not yet implemented
-         ! the alternative option. (ltm, bmy, 5/10/06)
-         LOTDLIS = .TRUE.
+         !-----------------------------------------------------------------
+         ! Prior to 1/26/07:
+         ! Remove this hardwire (bmy, 1/26/07) 
+         !! Kludge: for now set LOTDLIS=T.  We have not yet implemented
+         !! the alternative option. (ltm, bmy, 5/10/06)
+         !LOTDLIS = .TRUE.
+         !-----------------------------------------------------------------
+
+         ! Make sure people don't set both LOTDLIS=T and LLOCRED=T
+         IF ( LOTDREG .and. LOTDLOC ) THEN
+            CALL ERROR_STOP( 
+     &         'LOTDREG, LOTDLOC cannot both be turned on!', 
+     &         'READ_EMISSIONS_MENU ("input_mod.f")' )
+         ENDIF
 
          ! Kludge: for now, reset LMFLUX to LCTH, as the MFLUX
          ! lightning schemes has not been implemented (bmy, 11/27/06)
@@ -1458,7 +1477,8 @@
       WRITE( 6, 100     ) 'Scale BIOMASS to TOMS-AI?   : ', LTOMSAI
       WRITE( 6, 100     ) 'Use GFED2 BIOMASS emissions?: ', LGFED2BB
       WRITE( 6, 100     ) 'Turn on LIGHTNING NOx?      : ', LLIGHTNOX
-      WRITE( 6, 100     ) 'Use OTD-LIS scale factors?  : ', LOTDLIS
+      WRITE( 6, 100     ) 'Use OTD-LIS regional redist : ', LOTDREG
+      WRITE( 6, 100     ) 'Use OTD-LIS local redist?   : ', LOTDLOC
       WRITE( 6, 100     ) 'Use CTH LIGHTNING Param?    : ', LCTH
       WRITE( 6, 100     ) 'Use MFLUX LIGHTNING Param?  : ', LMFLUX
       WRITE( 6, 100     ) 'Use PRECON LIGHTNING Param? : ', LPRECON
@@ -4111,7 +4131,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_INPUT initializes all variables from "directory_mod.f" and
-!  "logical_mod.f" for safety's sake. (bmy, 7/20/04, 9/14/06)
+!  "logical_mod.f" for safety's sake. (bmy, 7/20/04, 1/31/07)
 !
 !  NOTES:
 !  (1 ) Now also initialize LNEI99 from "logical_mod.f" (bmy, 11/5/04)
@@ -4124,6 +4144,7 @@
 !  (7 ) Now reference the EDGAR logical switches from "logical_mod.f"
 !        (avd, bmy, 7/11/06)
 !  (8 ) Now initialize the LVARTROP switch (phs, 9/14/06)
+!  (9 ) Now initialize LOTDREG, LOTDLOC, LCTH, LMFLUX, LPRECON (bmy, 1/31/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4149,7 +4170,9 @@
       USE LOGICAL_MOD,   ONLY : LMEGAN,     LDYNOCEAN,  LEMEP
       USE LOGICAL_MOD,   ONLY : LGFED2BB,   LFUTURE,    LEDGAR
       USE LOGICAL_MOD,   ONLY : LEDGARNOx,  LEDGARCO,   LEDGARSHIP
-      USE LOGICAL_MOD,   ONLY : LEDGARSOx,  LVARTROP
+      USE LOGICAL_MOD,   ONLY : LEDGARSOx,  LVARTROP,   LOTDREG
+      USE LOGICAL_MOD,   ONLY : LOTDLOC,    LCTH,       LMFLUX
+      USE LOGICAL_MOD,   ONLY : LPRECON
       
       !=================================================================
       ! INIT_INPUT begins here!
@@ -4192,6 +4215,7 @@
       LBIOFUEL     = .FALSE.
       LBIOGENIC    = .FALSE.
       LBBSEA       = .FALSE.
+      LCTH         = .FALSE.
       LDYNOCEAN    = .FALSE.
       LEMEP        = .FALSE.
       LEMIS        = .FALSE.
@@ -4206,8 +4230,12 @@
       LGFED2BB     = .FALSE.
       LLIGHTNOX    = .FALSE.
       LMEGAN       = .FALSE.
+      LMFLUX       = .FALSE.
       LMONOT       = .FALSE.
       LNEI99       = .FALSE.
+      LOTDLOC      = .FALSE.
+      LOTDREG      = .FALSE.
+      LPRECON      = .FALSE.
       LSHIPSO2     = .FALSE.
       LSOILNOX     = .FALSE.
       LTOMSAI      = .FALSE.

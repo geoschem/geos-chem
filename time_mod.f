@@ -1,9 +1,9 @@
-! $Id: time_mod.f,v 1.29 2006/12/11 19:37:54 bmy Exp $
+! $Id: time_mod.f,v 1.30 2007/02/06 17:40:08 bmy Exp $
       MODULE TIME_MOD
 !
 !******************************************************************************
 !  TIME_MOD contains GEOS-CHEM date and time variables and timesteps, and 
-!  routines for accessing them. (bmy, 6/21/00, 10/3/06) 
+!  routines for accessing them. (bmy, 6/21/00, 2/2/07) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -117,18 +117,19 @@
 !  (73) ITS_TIME_FOR_UNZIP: Returns TRUE if it is the end of the run
 !  (74) ITS_TIME_FOR_DEL  : Returns TRUE if it is time to delete temp files
 !  (75) ITS_TIME_FOR_EXIT : Returns TRUE if it is the end of the run
-!  (76) ITS_A_LEAPYEAR    : Returns TRUE if the current year is a leapyear
-!  (77) ITS_A_NEW_YEAR    : Returns TRUE if it's a new year
-!  (78) ITS_A_NEW_MONTH   : Returns TRUE if it's a new month
-!  (79) ITS_MIDMONTH      : Returns TRUE if it's 0 GMT on the 16th of the month
-!  (80) ITS_A_NEW_DAY     : Returns TRUE if it's a new day
-!  (81) ITS_A_NEW_SEASON  : Returns TRUE if it's a new season
-!  (82) TIMESTAMP_STRING  : Returns a string "YYYY/MM/DD HH:MM:SS"
-!  (83) PRINT_CURRENT_TIME: Prints date time in YYYY/MM/DD, HH:MM:SS format
-!  (84) YMD_EXTRACT       : Extracts YYYY, MM, DD from a YYYYMMDD format number
-!  (85) EXPAND_DATE       : Replaces date/time tokens w/ actual values
-!  (86) SYSTEM_DATE_TIME  : Returns the system date and time
-!  (87) SYSTEM_TIMESTAMP  : Returns a string with the system date and time
+!  (76) ITS_TIME_FOR_BPCH : Returns TRUE if it's time to write bpch output
+!  (77) ITS_A_LEAPYEAR    : Returns TRUE if the current year is a leapyear
+!  (78) ITS_A_NEW_YEAR    : Returns TRUE if it's a new year
+!  (79) ITS_A_NEW_MONTH   : Returns TRUE if it's a new month
+!  (80) ITS_MIDMONTH      : Returns TRUE if it's 0 GMT on the 16th of the month
+!  (81) ITS_A_NEW_DAY     : Returns TRUE if it's a new day
+!  (82) ITS_A_NEW_SEASON  : Returns TRUE if it's a new season
+!  (83) TIMESTAMP_STRING  : Returns a string "YYYY/MM/DD HH:MM:SS"
+!  (84) PRINT_CURRENT_TIME: Prints date time in YYYY/MM/DD, HH:MM:SS format
+!  (85) YMD_EXTRACT       : Extracts YYYY, MM, DD from a YYYYMMDD format number
+!  (86) EXPAND_DATE       : Replaces date/time tokens w/ actual values
+!  (87) SYSTEM_DATE_TIME  : Returns the system date and time
+!  (88) SYSTEM_TIMESTAMP  : Returns a string with the system date and time
 !
 !  GEOS-CHEM modules referenced by time_mod.f
 !  ============================================================================
@@ -177,6 +178,7 @@
 !        skipping 2/29 for all years. (swu, bmy, 4/24/06)
 !  (25) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (26) Further bug fix to skip over Feb 29th in GCAP (phs, bmy, 10/3/06)
+!  (27) Moved ITS_TIME_FOR_BPCH here from "main.f" (bmy, 2/2/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -2371,6 +2373,55 @@
 
       ! Return to calling program
       END FUNCTION ITS_TIME_FOR_EXIT
+
+!------------------------------------------------------------------------------
+
+      FUNCTION ITS_TIME_FOR_BPCH() RESULT( DO_BPCH )
+!
+!******************************************************************************
+!  Function ITS_TIME_FOR_BPCH returns true if it's time to write output
+!  to the bpch file. (bmy, 2/2/07)
+!
+!  NOTES:
+!******************************************************************************
+!
+#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_DIAG"  ! NJDAY
+
+      ! Local variables
+      INTEGER            :: DOY, THIS_NJDAY
+      LOGICAL            :: DO_BPCH
+
+      !=================================================================
+      ! ITS_TIME_FOR_BPCH begins here!
+      !================================================================= 
+
+      ! Return FALSE if it's the first timestep
+      IF ( TAU == TAUb ) THEN
+         DO_BPCH = .FALSE.
+         RETURN
+      ENDIF
+
+      ! Day of year (0..365 or 0..366 leapyears)
+      DOY = DAY_OF_YEAR
+
+      ! Look up appropriate value of NJDAY array.  We may need to add a
+      ! day to skip past the Feb 29 element of NJDAY for non-leap-years.
+      IF ( .not. ITS_A_LEAPYEAR( FORCE=.TRUE. ) .and. DOY > 59 ) THEN
+         THIS_NJDAY = NJDAY( DOY + 1 ) 
+      ELSE
+         THIS_NJDAY = NJDAY( DOY )
+      ENDIF
+
+      ! Test if this is the day & time to write to the BPCH file!
+      IF ( ( THIS_NJDAY > 0 ) .and. NHMS == NDIAGTIME ) THEN
+         DO_BPCH = .TRUE.
+      ELSE
+         DO_BPCH = .FALSE.
+      ENDIF
+
+      ! Return to calling program
+      END FUNCTION ITS_TIME_FOR_BPCH
 
 !------------------------------------------------------------------------------
 

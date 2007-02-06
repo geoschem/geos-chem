@@ -1,9 +1,9 @@
-! $Id: logical_mod.f,v 1.14 2006/09/14 14:22:17 phs Exp $
+! $Id: logical_mod.f,v 1.15 2007/02/06 17:40:07 bmy Exp $
       MODULE LOGICAL_MOD
 !
 !******************************************************************************
 !  Module LOGICAL_MOD contains all of the logical switches used by GEOS-CHEM.
-!  (bmy, 7/9/04, 8/17/06)
+!  (bmy, 7/9/04, 1/31/07)
 !
 !  Module Variables:
 !  ============================================================================
@@ -63,6 +63,8 @@
 !  (54) LEDGARSOx (LOGICAL) : ON/OFF switch for EDGAR SOx emissions
 !  (55) LSTREETS  (LOGICAL) : ON/OFF switch for David Streets' emissions
 !  (56) LVARTROP  (LOGICAL) : ON/OFF switch for Variable Tropopause
+!  (57) LOTDREG   (LOGICAL) : ON/OFF switch for OTD-LIS regional redistribution
+!  (57) LOTDLOC   (LOGICAL) : ON/OFF switch for OTD-LIS local    redistribution
 !
 !  NOTES:
 !  (1 ) Added LNEI99 switch to toggle EPA/NEI emissions (bmy, 11/5/04)
@@ -78,6 +80,8 @@
 !        for EDGAR emissions (avd, bmy, 7/6/06)
 !  (11) Added LSTREETS for David Streets' emissions (bmy, 8/17/06)
 !  (12) Added LVARTROP for variable tropopause (phs, 8/21/06)
+!  (13) Added LOTDREG, LOTDLOC for regional or local OTD-LIS redistribution
+!        of lightning flashes. (bmy, 1/31/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -132,7 +136,8 @@
       LOGICAL :: LFOSSIL    ! <-- deprecated: replace w/ LANTHRO soon
       LOGICAL :: LSTREETS
       LOGICAL :: LLIGHTNOX
-      LOGICAL :: LOTDLIS
+      LOGICAL :: LOTDREG
+      LOGICAL :: LOTDLOC
       LOGICAL :: LCTH
       LOGICAL :: LMFLUX
       LOGICAL :: LPRECON

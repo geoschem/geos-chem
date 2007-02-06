@@ -1,4 +1,4 @@
-! $Id: lightning_nox_nl_mod.f,v 1.3 2006/12/11 19:37:51 bmy Exp $
+! $Id: lightning_nox_nl_mod.f,v 1.4 2007/02/06 17:40:07 bmy Exp $
       MODULE LIGHTNING_NOX_NL_MOD
 !
 !******************************************************************************
@@ -7,29 +7,30 @@
 !  GISS-II CTM's of Yuhang Wang, Gerry Gardner, & Larry Horowitz.  Overhauled 
 !  for updated parameterization schemes: CTH, MFLUX and PRECON.  Now also
 !  uses the near-land formulation (i.e. offshore boxes also get treated as
-!  if they were land boxes).  (ltm, rch, bmy, 4/14/04, 12/11/06)  
+!  if they were land boxes).  (ltm, rch, bmy, 4/14/04, 1/31/07)  
 !
 !  NOTE: The OTD/LIS regional redistribution for MFLUX and PRECON lightning
 !  parameterizations have not yet been implemented.  These parameterizations
 !  do not yield realistic results with the GEOS-4 meteorology.  We will try
-!  to implement them for GEOS-5 at a later time. (rch, ltm, bmy, 12/11/06)
+!  to implement them for GEOS-5 at a later time. (rch, ltm, bmy, 1/31/07)
 !
 !  Module Variables:
 !  ============================================================================
-!  (1 ) NL_NBOR     (INTEGER)    : # of neighbor boxes to check for near-land 
-!  (2 ) NL_THRESH   (REAL*8 )    : LWI threshold for near-land criterion
-!  (3 ) NNLIGHT     (INTEGER)    : # of vertical points in lightning CDF's
-!  (4 ) NLTYPE      (INTEGER)    : Types of lightning to consider
-!  (5 ) PROFILE     (REAL*8 )    : Array to hold lightning CDF's read from disk
-!  (6 ) SLBASE      (REAL*8 )    : Array to hold NOx lightning emissions
-!  (7 ) OTD_REDIST  (REAL*8 )    : Array to hold OTD/LIS redistribution
-!  (8 ) RFLASH      (REAL*8 )    : NOx molec/flash/meter (based on 4 Tg N/y)
-!  (9 ) E_IC_CG     (REAL*8 )    : Inter-Cloud/Cloud-Ground frequency ratio
-!  (10) T_NEG_BOT   (REAL*8 )    : Temp at bottom of neg. charge layer = 273 K
-!  (11) T_NEG_CTR   (REAL*8 )    : Temp at center of neg. charge layer = 258 K
-!  (12) T_NEG_TOP   (REAL*8 )    : Temp at top    of neg. charge layer = 233 K
-!  (13) AREA_30N    (REAL*8 )    : Grid box surface area at 30 N [m2]
-!  (14) FLASH_SCALE (REAL*8 )    : Scaling factor for lightning to 6 Tg N/yr
+!  (1 ) NL_NBOR        (INTEGER) : # of neighbor boxes to check for near-land 
+!  (2 ) NL_THRESH      (REAL*8 ) : LWI threshold for near-land criterion
+!  (3 ) NNLIGHT        (INTEGER) : # of vertical points in lightning CDF's
+!  (4 ) NLTYPE         (INTEGER) : Types of lightning to consider
+!  (5 ) PROFILE        (REAL*8 ) : Array to hold lightning CDF's read from disk
+!  (6 ) SLBASE         (REAL*8 ) : Array to hold NOx lightning emissions
+!  (7 ) OTD_LOC_REDIST (REAL*8 ) : Array to hold OTD/LIS local redist values
+!  (8 ) OTD_LOC_REDIST (REAL*8 ) : Array to hold OTD/LIS regional redist values
+!  (9 ) RFLASH         (REAL*8 ) : NOx molec/flash/meter (based on 4 Tg N/y)
+!  (10) E_IC_CG        (REAL*8 ) : Inter-Cloud/Cloud-Ground frequency ratio
+!  (11) T_NEG_BOT      (REAL*8 ) : Temp at bottom of neg. charge layer = 273 K
+!  (12) T_NEG_CTR      (REAL*8 ) : Temp at center of neg. charge layer = 258 K
+!  (13) T_NEG_TOP      (REAL*8 ) : Temp at top    of neg. charge layer = 233 K
+!  (14) AREA_30N       (REAL*8 ) : Grid box surface area at 30 N [m2]
+!  (15) FLASH_SCALE    (REAL*8 ) : Scaling factor for lightning to 6 Tg N/yr
 !
 !  Module Routines:
 !  ============================================================================
@@ -39,8 +40,8 @@
 !  (4 ) FLASHES_MFLUX            : Computes flash rate via MFLUX scheme
 !  (5 ) FLASHES_PRECON           : Computes flash rate via PRECON scheme
 !  (6 ) GET_IC_CG_RATIO          : Gets inter-cloud/cloud-ground flash ratio 
-!  (7 ) READ_OTD_LIS_REDIST      : Reads OTD-LIS redistribution from disk
-!  (8 ) GET_OTD_LIS_REDIST       : Returns OTD-LIS redistribution at (I,J)
+!  (7 ) READ_REGIONAL_REDIST     : Reads OTD-LIS regional redistrib. factors
+!  (8 ) READ_LOCAL_REDIST        : Reads OTD-LIS local redistrib. factors
 !  (9 ) EMLIGHTNING_NL           : Saves lightning NOx into GEMISNOX array
 !  (10) GET_FLASH_SCALE_CTH      : Returns CTH scaling factor to 6 Tg N/yr
 !  (11) GET_FLASH_SCALE_MFLUX    : Returns MFLUX scaling factor to 6 Tg N/yr
@@ -74,9 +75,12 @@
 !  (2 ) Now move computation of IC/CG flash ratio out of routines FLASHES_CTH, 
 !        FLASHES_MFLUX, FLASHES_PRECON, and into routine GET_IC_CG_RATIO.
 !        Added a fix in LIGHTDIST for pathological grid boxes.  Set E_IC_CG=1 
-!        according to Allen & Pickering [2002].  Rename OTDSCALE to OTD_REDIST
-!        to reflect that this is a redistribution.  Now scale lightning to
-!        6 Tg N/yr for both 2x25 and 4x5. (rch, ltm, bmy, 12/11/06)
+!        according to Allen & Pickering [2002].  Rename OTDSCALE array to
+!        OTD_REG_REDIST, and also add OTD_LOC_REDIST array.  Now scale 
+!        lightning to 6 Tg N/yr for both 2x25 and 4x5.  Rename routine
+!        GET_OTD_LIS_REDIST to GET_REGIONAL_REDIST.  Add similar routine
+!        GET_LOCAL_REDIST.  Removed GET_OTD_LOCAL_REDIST.  
+!        (rch, ltm, bmy, 1/31/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -116,7 +120,8 @@
       ! Arrays
       REAL*8,  ALLOCATABLE :: PROFILE(:,:)
       REAL*8,  ALLOCATABLE :: SLBASE(:,:,:)
-      REAL*8,  ALLOCATABLE :: OTD_REDIST(:,:)
+      REAL*8,  ALLOCATABLE :: OTD_REG_REDIST(:,:)
+      REAL*8,  ALLOCATABLE :: OTD_LOC_REDIST(:,:)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -131,41 +136,45 @@
 !  Subroutine LIGHTNING_NL uses Price & Rind's formulation for computing
 !  NOx emission from lightning.  This has been modified to use the near-land
 !  formulation (i.e. offshore boxes get treated as if they were land boxes).
-!  (ltm, bmy, 5/10/06, 12/11/06)
+!  (ltm, bmy, 5/10/06, 1/31/07)
 !
 !  Output Lightning NOX [molec/cm3/s] is stored in the GEMISNOX array.
 !
 !  NOTES:
 !  (1 ) Now recompute the cold cloud thickness according to updated formula 
 !        from Lee Murray.  Rearranged argument lists to routines FLASHES_CTH, 
-!        FLASHES_MFLUX, FLASHES_PRECON.  Now call READ_OTD_LIS_REDIST.
-!        Updated comments accordingly.  Now apply FLASH_SCALE to scale the
-!        total lightning NOx to 6 Tg N/yr.  Now apply OTD/LIS or other 
-!        lightning redistribution to the ND56 diag. (rch, ltm, bmy, 12/11/06)
+!        FLASHES_MFLUX, FLASHES_PRECON.  Now call READ_REGIONAL_REDIST and
+!        READ_LOCAL_REDIST. Updated comments accordingly.  Now apply 
+!        FLASH_SCALE to scale the total lightning NOx to 6 Tg N/yr.  Now apply
+!        OTD/LIS regional or local redistribution (cf. B. Sauvage) to the ND56 
+!        diagnostic. lightning redistribution to the ND56 diag.  Renamed
+!        REGSCALE variable to REDIST. (rch, ltm, bmy, 1/31/07)
 !******************************************************************************
 !      
       ! References to F90 modules
       USE DAO_MOD,      ONLY : BXHEIGHT,  CLDTOPS,    PRECON,   T, ZMMU
       USE DIAG56_MOD,   ONLY : AD56,      ND56
       USE GRID_MOD,     ONLY : GET_YMID,  GET_AREA_M2
-      USE LOGICAL_MOD,  ONLY : LCTH,      LMFLUX,     LOTDLIS,  LPRECON
+      USE LOGICAL_MOD,  ONLY : LCTH,      LMFLUX,     LOTDLOC
+      USE LOGICAL_MOD,  ONLY : LOTDREG,   LPRECON
       USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
-      USE TIME_MOD,     ONLY : GET_MONTH
+      USE TIME_MOD,     ONLY : GET_MONTH, GET_SEASON
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_GCTM"     ! Physical constants
 
       ! Local variables
-      LOGICAL, SAVE         :: FIRST     = .TRUE.
-      INTEGER, SAVE         :: LASTMONTH = -1
+      LOGICAL, SAVE         :: FIRST      = .TRUE.
+      INTEGER, SAVE         :: LASTMONTH  = -1
+      INTEGER, SAVE         :: LASTSEASON = -1
       INTEGER               :: I,         J,           L,        LCHARGE
       INTEGER               :: LMAX,      LTOP,        LBOTTOM,  L_MFLUX
-      INTEGER               :: MONTH,     YEAR
+      INTEGER               :: MONTH,     SEASON,      YEAR
       REAL*8                :: A_KM2,     A_M2,        CC,       DLNP     
       REAL*8                :: DZ,        FLASHRATE,   H0,       HBOTTOM
       REAL*8                :: HCHARGE,   IC_CG_RATIO, MFLUX,    P1
       REAL*8                :: P2,        P3,          RAIN,     RATE
-      REAL*8                :: RATE_SAVE, REGSCALE,    T1,       T2
+      REAL*8                :: RATE_SAVE, REDIST,      T1,       T2
       REAL*8                :: TOTAL,     TOTAL_CG,    TOTAL_IC, X       
       REAL*8                :: YMID,      Z_IC,        Z_CG,     ZUP
       REAL*8                :: VERTPROF(LLPAR)
@@ -181,17 +190,30 @@
       ENDIF
 
       ! LMAX: the highest L-level to look for lightning (usually LLPAR-1)
-      LMAX  = LLPAR - 1
+      LMAX   = LLPAR - 1
 
       ! Get current month
-      MONTH = GET_MONTH()
+      MONTH  = GET_MONTH()
 
-      ! Read OTD-LIS scaling once per month.  NOTE: test against LASTMONTH 
-      ! because ITS_A_NEW_MONTH is only TRUE at 0 GMT on the 1st day of the
-      ! current month. (ltm, bmy, 5/10/06)
-      IF ( MONTH /= LASTMONTH ) THEN
-         CALL READ_OTD_LIS_REDIST( MONTH )
-         LASTMONTH = MONTH
+      ! Get current season
+      SEASON = GET_SEASON()
+
+      IF ( LOTDREG ) THEN
+         
+         ! OTD-LIS regional redistribution: read monthly scale factors
+         IF ( MONTH /= LASTMONTH ) THEN
+            CALL READ_REGIONAL_REDIST( MONTH )
+            LASTMONTH = MONTH
+         ENDIF
+
+      ELSE IF ( LOTDLOC ) THEN
+
+         ! OTD-LIS local redistribution: read seasonal scale factors
+         IF ( SEASON /= LASTSEASON ) THEN
+            CALL READ_LOCAL_REDIST( SEASON )
+            LASTSEASON = SEASON
+         ENDIF
+
       ENDIF
 
       ! Array containing molecules NOx / grid box / 6h. 
@@ -203,14 +225,14 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,        J,         L,       A_M2,      A_KM2       )
-!$OMP+PRIVATE( YMID,     LCHARGE,   P1,      P2,        T1          )
-!$OMP+PRIVATE( T2,       DLNP,      DZ,      P3,        ZUP         )
-!$OMP+PRIVATE( HCHARGE,  LTOP,      H0,      Z_CG,      Z_IC        )
-!$OMP+PRIVATE( LBOTTOM,  HBOTTOM,   CC,      FLASHRATE, IC_CG_RATIO )
-!$OMP+PRIVATE( L_MFLUX,  MFLUX,     RAIN,    RATE,      X           ) 
-!$OMP+PRIVATE( TOTAL_IC, TOTAL_CG,  TOTAL,   REGSCALE,  RATE_SAVE   )
-!$OMP+PRIVATE( VERTPROF                                             )
+!$OMP+PRIVATE( I,        J,        L,     A_M2,      A_KM2       )
+!$OMP+PRIVATE( YMID,     LCHARGE,  P1,    P2,        T1          )
+!$OMP+PRIVATE( T2,       DLNP,     DZ,    P3,        ZUP         )
+!$OMP+PRIVATE( HCHARGE,  LTOP,     H0,    Z_CG,      Z_IC        )
+!$OMP+PRIVATE( LBOTTOM,  HBOTTOM,  CC,    FLASHRATE, IC_CG_RATIO )
+!$OMP+PRIVATE( L_MFLUX,  MFLUX,    RAIN,  RATE,      X           ) 
+!$OMP+PRIVATE( TOTAL_IC, TOTAL_CG, TOTAL, REDIST,    RATE_SAVE   )
+!$OMP+PRIVATE( VERTPROF                                          )
 !$OMP+SCHEDULE( DYNAMIC )
 
       ! Loop over latitudes
@@ -232,7 +254,7 @@
             CC       = 0d0
             HCHARGE  = 0d0
             HBOTTOM  = 0d0
-            REGSCALE = 0d0
+            REDIST   = 0d0
             TOTAL    = 0d0
             TOTAL_IC = 0d0
             TOTAL_CG = 0d0
@@ -608,21 +630,32 @@
             TOTAL_CG = RFLASH   * RATE *         X   * Z_CG
             TOTAL    = TOTAL_IC + TOTAL_CG 
 
-            ! Get OTD-LIS or other regional redistribution factor
-            ! NOTE: For now, LOTDLIS is always TRUE (ltm, bmy, 5/10/06)
-            IF ( LOTDLIS ) THEN
-               REGSCALE = GET_OTD_LIS_REDIST( I, J )
+            ! Get factors for OTD-LIS regional redistribution, OTD-LIS local
+            ! redistribution, or no redistribution.  Redistribution makes sure 
+            ! that the flashes appear in the proper place geographically.
+            ! (ltm, bmy, 1/31/07)
+            IF ( LOTDREG ) THEN
+               REDIST = OTD_REG_REDIST(I,J)
+            ELSE IF ( LOTDLOC ) THEN
+               REDIST = OTD_LOC_REDIST(I,J)
             ELSE
-               !REGSCALE = GET_xxxxREDIST(
+               REDIST = 1d0
             ENDIF
 
-            ! Apply OTD-LIS or other redistribution so that the flashes 
-            ! occur in the right place. TOTAL = total NOx [molec/6h]
-            TOTAL    = TOTAL * REGSCALE
+            ! Apply regional or local OTD-LIS redistribution so that the 
+            ! flashes occur in the right place. TOTAL = total NOx [molec/6h]
+            TOTAL    = TOTAL * REDIST
 
+            !%%% NOTE: THIS FLASH_SCALE HAS BEEN DEVELOPED     %%%
+            !%%%       FOR THE OTD-LIS REGIONAL REDISTRIBUTION %%%
+            !%%%       YOU SHOULD COMMENT IT OUT FOR LOTDLOC   %%% 
+            !%%%       UNTIL WE HAVE A CHANCE TO DO MORE TESTS %%%
+            !%%%       (bmy, 2/1/07)                           %%%
             ! Scale total lightning NOx to 6 Tg N/yr, accounting for
             ! differences from met fields & resolution (ltm, bmy, 12/11/06)
+            IF ( LOTDREG ) THEN  !%%% BMY TEMP MODIFICATION
             TOTAL    = TOTAL * FLASH_SCALE
+            ENDIF                !%%% BMY TEMP MODIFICATION
 
             !-----------------------------------------------------------
             ! (6a) ND56 diagnostic: store flash rates [flashes/min/km2]
@@ -630,13 +663,7 @@
             IF ( ND56 > 0 .and. RATE > 0d0 ) THEN
 
                ! Lightning flashes per minute per km2
-               !--------------------------------------------------------
-               ! Prior to 12/11/06:
-               ! Multiply FLASHRATE by the re-distribution of lightning 
-               ! flashes from OTD/LIS or other (ltm, bmy, 12/11/06)
-               !RATE_SAVE   = FLASHRATE / A_KM2
-               !--------------------------------------------------------
-               RATE_SAVE   = ( FLASHRATE / A_KM2 ) * REGSCALE
+               RATE_SAVE   = ( FLASHRATE / A_KM2 ) * REDIST
 
                ! Store total, IC, and CG flash rates in AD56
                AD56(I,J,1) = AD56(I,J,1) +   RATE_SAVE
@@ -1308,20 +1335,20 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE READ_OTD_LIS_REDIST( MONTH )
+      SUBROUTINE READ_REGIONAL_REDIST( MONTH )
 !
 !******************************************************************************
-!  Subroutine READ_OTD_LIS_REDIST reads in monthly factors in order to 
+!  Subroutine READ_REGIONAL_REDIST reads in monthly factors in order to 
 !  redistribute GEOS-Chem flash rates according the OTD-LIS climatological 
-!  distribution. (ltm, bmy, 5/10/06, 12/11/06)
+!  regional redistribution method. (ltm, bmy, 5/10/06, 1/31/07)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) MONTH (INTEGER) : Current month (1-12)
 !
 !  NOTES:
-!  (1 ) Change CTH filename from "v0" to "v1". Renamed to GET_OTD_LIS_REDIST 
-!        (lth, bmy, 12/11/06)
+!  (1 ) Change CTH filename from "v0" to "v1". Renamed to READ_REGIONAL_REDIST.
+!        (lth, bmy, 1/31/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1348,22 +1375,21 @@
       ! Get file name
       IF ( LCTH ) THEN
 
-         ! OTD-LIS scale factor file for CTH
-         FILENAME = 'OTD-LIS-Redist.CTH.v1.'   // GET_NAME_EXT() //
-     &              '.'                        // GET_RES_EXT()
+         ! OTD-LIS regional file for CTH parameterization
+         FILENAME = 'OTD-LIS-Regional-Redist.CTH.v1.'   // 
+     &               GET_NAME_EXT() // '.' // GET_RES_EXT()
 
       ELSE IF ( LMFLUX ) THEN
 
-         ! OTD-LIS scale factor file for MFLUX
-         ! Filename for MFLUX regional scaling
-         FILENAME = 'OTD-LIS-Redist.MFLUX.v0.'  // GET_NAME_EXT() //
-     &              '.'                        // GET_RES_EXT()
+         ! OTD-LIS regional file for MFLUX parameterization
+         FILENAME = 'OTD-LIS-Regional-Redist.MFLUX.v1.'  // 
+     &               GET_NAME_EXT() // '.' // GET_RES_EXT()
 
       ELSE IF ( LPRECON ) THEN
 
-         ! OTD-LIS scale factor file for PRECON
-         FILENAME = 'OTD-LIS-Redist.PRECON.v0.' // GET_NAME_EXT() //
-     &              '.'                        // GET_RES_EXT()
+         ! OTD-LIS regional file for PRECON parameterization
+         FILENAME = 'OTD-LIS-Regional-Redist.PRECON.v1.' // 
+     &               GET_NAME_EXT() // '.' // GET_RES_EXT()
 
       ENDIF
       
@@ -1373,57 +1399,112 @@
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_OTD_LIS_REDIST: Reading ', a )
+ 100  FORMAT( '     - READ_REGIONAL_REDIST: Reading ', a )
 
       ! Use "generic" year 1985 for time indexing
       TAU0 = GET_TAU0( MONTH, 1, 1985 ) 
 
       ! Read data
-      CALL READ_BPCH2( FILENAME, 'OTD-LIS',  1, 
+      CALL READ_BPCH2( FILENAME, 'OTD-REG',  1, 
      &                 TAU0,      IGLOB,     JGLOB,     
      &                 1,         ARRAY,     QUIET=.TRUE. )  
 
       ! Cast to REAL*8 and resize if necessary
-      CALL TRANSFER_2D( ARRAY(:,:,1), OTD_REDIST )
+      CALL TRANSFER_2D( ARRAY(:,:,1), OTD_REG_REDIST )
 
       ! Return to calling program 
-      END SUBROUTINE READ_OTD_LIS_REDIST
+      END SUBROUTINE READ_REGIONAL_REDIST
 
 !------------------------------------------------------------------------------
 
-      FUNCTION GET_OTD_LIS_REDIST( I, J ) RESULT( SCALE )
+      SUBROUTINE READ_LOCAL_REDIST( SEASON )
 !
 !******************************************************************************
-!  Function GET_OTD_LIS_REDIST returns the OTD/LIS regional redistribution
-!  factor, which must be applied to the total lightning NOx w/in a column.  
-!  This is based on the method of Line Jourdain at JPL. 
-!  (rch, ltm, bmy, 5/10/06, 12/11/06)
+!  Subroutine READ_LOCAL_REDIST reads in seasonal factors in order to 
+!  redistribute GEOS-Chem flash rates according the "local redistribution"
+!  method of Bastien Sauvage.  This helps to make sure that the lightning
+!  flashes occur according to the distribution of observed convection.
+!  (bastien, bmy, 1/26/07)
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) I (INTEGER) : GEOS-Chem longitude index
-!  (2 ) J (INTEGER) : GEOS-Chem latitude  index
-!  
+!  (1 ) SEASON (INTEGER) : Current season (1=DJF, 2=MAM, 3=JJA, 4=SON)
+!
 !  NOTES:
-!  (1 ) Renamed function name to GET_OTD_LIS_REDIST.  Renamed variable 
-!        OTDSCALE to OTD_REDIST. (bmy, 12/11/06)
 !******************************************************************************
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: I, J
-      
+      ! References to F90 modules
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE ERROR_MOD,     ONLY : ALLOC_ERR
+      USE LOGICAL_MOD,   ONLY : LCTH,         LMFLUX,     LPRECON
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+
+#     include "CMN_SIZE"      ! Size parameters
+
+      INTEGER, INTENT(IN)    :: SEASON
+
       ! Local variables
-      REAL*8              :: SCALE
+      REAL*4                 :: ARRAY(IGLOB,JGLOB,1)
+      REAL*8                 :: TAU0
+      CHARACTER(LEN=255)     :: FILENAME
 
       !=================================================================
-      ! GET_OTD_LIS_REDIST begins here!
+      ! READ_LOCAL_REDIST begins here!
       !=================================================================
 
-      ! Return scale factor
-      SCALE = OTD_REDIST(I,J)
+      ! Get file name
+      IF ( LCTH ) THEN
 
-      ! Return to calling function
-      END FUNCTION GET_OTD_LIS_REDIST
+         ! OTD-LIS Local file for CTH parameterization
+         FILENAME = 'OTD-LIS-Local-Redist.CTH.v1.' // 
+     &               GET_NAME_EXT() // '.'  // GET_RES_EXT()
+
+      ELSE IF ( LMFLUX ) THEN
+
+         ! OTD-LIS Local file for MFLUX parameterization
+         FILENAME = 'OTD-LIS-Local-Redist.MFLUX.v1.'  // 
+     &               GET_NAME_EXT() // '.' // GET_RES_EXT()
+
+      ELSE IF ( LPRECON ) THEN
+
+         ! OTD-LIS local file for PRECON parameterization
+         FILENAME = 'OTD-LIS-Local-Redist.PRECON.v1.' // 
+     &               GET_NAME_EXT() // '.' // GET_RES_EXT()
+
+      ENDIF
+      
+      ! Prefix directory to file name
+      FILENAME = TRIM( DATA_DIR )        // 
+     &           'lightning_NOx_200605/' // TRIM( FILENAME ) 
+
+      ! Echo info
+      WRITE( 6, 100 ) TRIM( FILENAME )
+ 100  FORMAT( '     - READ_LOCAL_REDIST: Reading ', a )
+
+      ! Get TAU0 depending on the season (generic year 1985)
+      SELECT CASE( SEASON )
+         CASE( 1 )
+            TAU0 = -744d0
+         CASE( 2 )
+            TAU0 = 1416d0
+         CASE( 3 )
+            TAU0 = 3624d0
+         CASE( 4 )
+            TAU0 = 5832d0
+      END SELECT
+
+      ! Read data
+      CALL READ_BPCH2( FILENAME, 'OTD-LOC',  1, 
+     &                 TAU0,      IGLOB,     JGLOB,     
+     &                 1,         ARRAY,     QUIET=.TRUE. )  
+   
+      ! Cast to REAL*8 and resize if necessary
+      CALL TRANSFER_2D( ARRAY(:,:,1), OTD_LOC_REDIST )
+
+      ! Return to calling program 
+      END SUBROUTINE READ_LOCAL_REDIST
 
 !------------------------------------------------------------------------------
 
@@ -1511,6 +1592,7 @@
 
 #elif defined( GEOS_4 ) && defined( GRID4x5 ) 
 
+      !%%% NOTE: This SCALE was computed for OTD-LIS regional redist %%%
       ! GEOS-4 2x2.5 2003-2005 produces a total of 19.1802 Tg N without
       ! any further scaling.  This results in an average of 6.3934 Tg N/yr.
       ! Scale the average down to 6 Tg N/yr. (ltm, bmy, 12/07/06)
@@ -1518,6 +1600,7 @@
 
 #elif defined( GEOS_4 ) && defined( GRID2x25 )
 
+      !%%% NOTE: This SCALE was computed for OTD-LIS regional redist %%%
       ! GEOS-4 2x2.5 2003-2005 produces a total of 46.3124 Tg N without
       ! any further scaling.  This results in an average of 15.4375 Tg N/yr.
       ! Scale the average down to 6 Tg N/yr. (ltm, bmy, 12/07/06)
@@ -1692,9 +1775,9 @@
       SUBROUTINE INIT_LIGHTNING_NOX_NL
 !
 !******************************************************************************
-!  Subroutine INIT_LIGHTNING_NOX_NL allocates all module arrays.  It also reads 
-!  the lightning CDF data from disk before the first lightning timestep. 
-!  (bmy, 4/14/04, 12/11/06)
+!  Subroutine INIT_LIGHTNING_NOX_NL allocates all module arrays.  It also 
+!  reads the lightning CDF data from disk before the first lightning timestep. 
+!  (bmy, 4/14/04, 1/31/07)
 !
 !  NOTES:
 !  (1 ) Now reference DATA_DIR from "directory_mod.f"
@@ -1702,9 +1785,10 @@
 !        each met field type and grid resolution (bmy, 8/25/05)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Now get the box area at 30N for MFLUX, PRECON (lth, bmy, 5/10/06)
-!  (5 ) Rename OTDSCALE to OTD_REDIST.  Now call GET_FLASH_SCALE_CTH,
-!        GET_FLASH_SCALE_MFLUX, GET_FLASH_SCALE_PRECON depending on the type
-!        of lightning param used.  Updated comments. (ltm, bmy, 12/11/06)
+!  (5 ) Rename OTDSCALE to OTD_REG_REDIST.  Also add similar array 
+!        OTD_LOC_REDIST.  Now call GET_FLASH_SCALE_CTH, GET_FLASH_SCALE_MFLUX,
+!        GET_FLASH_SCALE_PRECON depending on the type of lightning param used.
+!        Updated comments.  (ltm, bmy, 1/31/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1713,7 +1797,7 @@
       USE FILE_MOD,      ONLY : IOERROR,   IU_FILE
       USE GRID_MOD,      ONLY : GET_YEDGE, GET_AREA_M2
       USE LOGICAL_MOD,   ONLY : LCTH,      LMFLUX
-      USE LOGICAL_MOD,   ONLY : LPRECON,   LOTDLIS
+      USE LOGICAL_MOD,   ONLY : LPRECON,   LOTDLOC,   LOTDREG
 
 #     include "CMN_SIZE"      ! Size parameters
   
@@ -1793,11 +1877,20 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLBASE' )
       SLBASE = 0d0
 
-      ! Allocate OTD_REDIST
-      IF ( LOTDLIS ) THEN
-         ALLOCATE( OTD_REDIST( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'OTD_REDIST' )
-         OTD_REDIST = 0d0
+      IF ( LOTDREG ) THEN
+
+         ! Array for OTD-LIS regional redistribution factors
+         ALLOCATE( OTD_REG_REDIST( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'OTD_REG_REDIST' )
+         OTD_REG_REDIST = 0d0
+
+      ELSE IF ( LOTDLOC ) THEN
+
+         ! Array for OTD-LIS local redistribution factors
+         ALLOCATE( OTD_LOC_REDIST( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'OTD_LOC_REDIST' )
+         OTD_LOC_REDIST = 0d0
+
       ENDIF
 
       !=================================================================
@@ -1845,19 +1938,21 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_LIGHTNING_NOX deallocates all module arrays. 
-!  (bmy, 4/14/04, 12/11/06)
+!  (bmy, 4/14/04, 1/31/07)
 !
 !  NOTES:
 !  (1 ) Now deallocates OTDSCALE (ltm, bmy, 5/10/06)
-!  (2 ) Rename OTDSCALE to OTD_REDIST (bmy, 12/11/06)
+!  (2 ) Rename OTDSCALE to OTD_REG_REDIST.  Now deallocate OTD_LOC_REDIST.
+!        (bmy, 1/31/07)
 !******************************************************************************
 !
       !=================================================================
       ! CLEANUP_LIGHTNING_NOX begins here!
       !=================================================================
-      IF ( ALLOCATED( PROFILE    ) ) DEALLOCATE( PROFILE    )
-      IF ( ALLOCATED( SLBASE     ) ) DEALLOCATE( SLBASE     )
-      IF ( ALLOCATED( OTD_REDIST ) ) DEALLOCATE( OTD_REDIST )
+      IF ( ALLOCATED( PROFILE        ) ) DEALLOCATE( PROFILE        )
+      IF ( ALLOCATED( SLBASE         ) ) DEALLOCATE( SLBASE         )
+      IF ( ALLOCATED( OTD_REG_REDIST ) ) DEALLOCATE( OTD_REG_REDIST )
+      IF ( ALLOCATED( OTD_LOC_REDIST ) ) DEALLOCATE( OTD_LOC_REDIST )
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_LIGHTNING_NOX_NL

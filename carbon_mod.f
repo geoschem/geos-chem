@@ -1,10 +1,10 @@
-! $Id: carbon_mod.f,v 1.25 2006/11/07 19:01:55 bmy Exp $
+! $Id: carbon_mod.f,v 1.26 2007/02/06 17:40:02 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
 !  Module CARBON_MOD contains arrays and routines for performing a 
 !  carbonaceous aerosol simulation.  Original code taken from Mian Chin's 
-!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 11/3/06)
+!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 2/6/07)
 !
 !  4 Aerosol species : Organic and Black carbon 
 !                    : hydrophilic (soluble) and hydrophobic of each
@@ -145,6 +145,8 @@
 !        standardize treatment of GFED2 or default BB emissions.  Also applied
 !        a typo fix in SOA_LUMP. (tmf, bmy, 10/16/06)
 !  (15) Prevent seg fault error in BIOMASS_CARB_GEOS (bmy, 11/3/06)
+!  (16) Corrected typos in SOA_LUMP.  Now also save GPROD and APROD to disk
+!        for each new diagnostic interval. (dkh, tmv, havala, bmy, 2/6/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -159,8 +161,9 @@
 
       ! ... except these routines
       PUBLIC :: CHEMCARBON
-      PUBLIC :: EMISSCARBON
       PUBLIC :: CLEANUP_CARBON
+      PUBLIC :: EMISSCARBON
+      PUBLIC :: WRITE_GPROD_APROD
 
       !=================================================================
       ! MODULE VARIABLES
@@ -1124,7 +1127,7 @@
 !  (2 ) Now modified for SOG4, SOA4 -- products of oxidation by isoprene.
 !        (dkh, bmy, 6/1/06)
 !  (3 ) Now consider SOG condensation onto SO4, NH4, NIT aerosols (if SO4,
-!        NH4, NIT are defined as tracers). (rjp, bmy, 8/3/06)
+!        NH4, NIT are defined as tracers). (rjp, bmy, 8/3/06) 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1136,13 +1139,15 @@
       USE TRACERID_MOD, ONLY : IDTOCPO, IDTSOA1, IDTSOA2, IDTSOA3
       USE TRACERID_MOD, ONLY : IDTSOA4, IDTSOG1, IDTSOG2, IDTSOG3
       USE TRACERID_MOD, ONLY : IDTSOG4, IDTSO4,  IDTNH4,  IDTNIT
-      USE TIME_MOD,     ONLY : GET_TS_CHEM, GET_MONTH
+      USE TIME_MOD,     ONLY : GET_TS_CHEM,      GET_MONTH
+      USE TIME_MOD,     ONLY : ITS_TIME_FOR_BPCH
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_O3"       ! XNUMOL
 #     include "CMN_DIAG"     ! ND44
 
       ! Local variables
+      LOGICAL, SAVE         :: FIRST = .TRUE.
       INTEGER               :: I,        J,        L,        N    
       INTEGER               :: JHC,      IPR
       REAL*8                :: RTEMP,    VOL,      FAC,      MPOC 
@@ -2240,7 +2245,7 @@ c
 !
 !******************************************************************************
 !  Subroutine SOA_LUMP returns the organic gas and aerosol back to the
-!  STT array.  (rjp, bmy, 7/7/04, 10/16/06)
+!  STT array.  (rjp, bmy, 7/7/04, 2/6/07)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -2257,6 +2262,8 @@ c
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Updated for SOG4, SOA4 (dkh, bmy, 5/22/06)
 !  (5 ) Typo fix: GPROD should be APROD in a couple places (tmf, bmy, 10/16/06)
+!  (6 ) Bug fix: For SOA4, GPROD and APROD should have default values of 0.5,
+!        instead of 1.0 (dkh, bmy, 2/6/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2455,7 +2462,13 @@ c
          ENDDO
       ELSE
          DO IPR = 1, NPROD
-            GPROD(I,J,L,IPR,JHC) = 1.d0   ! only one product
+            !----------------------------------------------------
+            ! Prior to 2/6/07:
+            ! Daven Henze says that the default value for GPROD 
+            ! should be 0.5, not 1.0 (dkh, bmy, 2/6/07)
+            !GPROD(I,J,L,IPR,JHC) = 1.d0   ! only one product
+            !----------------------------------------------------
+            GPROD(I,J,L,IPR,JHC) = 0.5d0   ! only one product
          ENDDO
       ENDIF
 
@@ -2465,7 +2478,13 @@ c
          ENDDO
       ELSE
          DO IPR = 1, NPROD
-            APROD(I,J,L,IPR,JHC) = 1.d0
+            !----------------------------------------------------
+            ! Prior to 2/6/07:
+            ! Daven Henze says that the default value for GPROD 
+            ! should be 0.5, not 1.0 (dkh, bmy, 2/6/07)
+            !APROD(I,J,L,IPR,JHC) = 1.d0
+            !----------------------------------------------------
+            APROD(I,J,L,IPR,JHC) = 0.5d0
          ENDDO
       ENDIF
 
@@ -4511,11 +4530,202 @@ c
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE WRITE_GPROD_APROD( YYYYMMDD, HHMMSS, TAU )
+!
+!******************************************************************************
+!  Subroutine WRITE_GPROD_APROD writes the SOA quantities GPROD and APROD to 
+!  disk at the start of a new diagnostic interval. (tmf, havala, bmy, 2/6/07)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) YYYYMMDD (INTEGER) : YYYY/MM/DD value at which to write file
+!  (2 ) HHMMSS   (INTEGER) : hh:mm:ss value at which to write file
+!  (3 ) TAU      (REAL*8 ) : TAU value corresponding to YYYYMMDD, HHMMSS
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE BPCH2_MOD,  ONLY : BPCH2,         GET_MODELNAME
+      USE BPCH2_MOD,  ONLY : GET_HALFPOLAR, OPEN_BPCH2_FOR_WRITE
+      USE FILE_MOD,   ONLY : IU_FILE
+      USE GRID_MOD,   ONLY : GET_XOFFSET,   GET_YOFFSET
+      USE TIME_MOD,   ONLY : EXPAND_DATE
+
+#     include "CMN_SIZE"   ! Size parameters
+
+      ! Arguments
+      INTEGER, INTENT(IN) :: YYYYMMDD, HHMMSS
+      REAL*8,  INTENT(IN) :: TAU
+
+      ! Local variables
+      INTEGER             :: HALFPOLAR
+      INTEGER, PARAMETER  :: CENTER180 = 1
+      INTEGER             :: YYYYMMDD, HHMMSS, I0, IPR, J0, JHC, N
+      REAL*4              :: LONRES,   LATRES
+      REAL*4              :: ARRAY(IIPAR,JJPAR,LLPAR)
+      REAL*8              :: TAU
+      CHARACTER(LEN=20)   :: MODELNAME
+      CHARACTER(LEN=40)   :: CATEGORY
+      CHARACTER(LEN=40)   :: UNIT     
+      CHARACTER(LEN=40)   :: RESERVED = ''
+      CHARACTER(LEN=80)   :: TITLE 
+      CHARACTER(LEN=255)  :: FILENAME
+
+      !=================================================================
+      ! WRITE_GPROD_APROD begins here
+      !=================================================================
+      
+      ! Define variables for binary punch file
+      FILENAME  = 'restart_gprod_aprod.YYYYMMDDhh'
+      TITLE     = 'GEOS-Chem SOA restart file: GPROD & APROD'
+      UNIT      = 'kg/kg'
+      LONRES    = DISIZE
+      LATRES    = DJSIZE
+      MODELNAME = GET_MODELNAME()
+      HALFPOLAR = GET_HALFPOLAR()
+      I0        = GET_XOFFSET( GLOBAL=.TRUE. )
+      J0        = GET_YOFFSET( GLOBAL=.TRUE. )
+      
+      ! Replace date & time tokens in FILENAME
+      CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
+
+      ! Open restart file for output
+      CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME, TITLE )
+
+      ! Loop over VOC classes and products
+      DO JHC = 1, MHC 
+      DO IPR = 1, NPROD
+
+         ! Tracer number
+         N = ( JHC - 1 ) * NPROD + IPR
+
+         !----------------------
+         ! Write GPROD to file
+         !----------------------
+         
+         ! Initialize
+         CATEGORY = 'IJ-GPROD'
+         ARRAY    = GPROD(:,:,:,IPR,JHC)
+
+         ! Write to disk
+         CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,    
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT,      TAU,       TAU,      RESERVED,   
+     &               IIPAR,     JJPAR,     LLPAR,    I0+1,            
+     &               J0+1,      1,         ARRAY )
+
+         !----------------------
+         ! Write APROD to file 
+         !----------------------
+
+         ! Initialize
+         CATEGORY = 'IJ-APROD'
+         ARRAY    = APROD(:,:,:,IPR,JHC)
+
+         ! Write to disk
+         CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,    
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT,      TAU,       TAU,      RESERVED,   
+     &               IIPAR,     JJPAR,     LLPAR,    I0+1,            
+     &               J0+1,      1,         ARRAY )
+
+      ENDDO
+      ENDDO
+
+      ! Close file
+      CLOSE( IU_FILE )
+
+      ! Return to calling program
+      END SUBROUTINE WRITE_GPROD_APROD
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE READ_GPROD_APROD( YYYYMMDD, HHMMSS, TAU )
+!
+!******************************************************************************
+!  Subroutine READ_GPROD_APROD writes the SOA quantities GPROD and APROD from 
+!  disk at the start of a new diagnostic interval. (tmf, havala, bmy, 2/6/07)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) YYYYMMDD (INTEGER) : YYYY/MM/DD value at which to write file
+!  (2 ) HHMMSS   (INTEGER) : hh:mm:ss value at which to write file
+!  (3 ) TAU      (REAL*8 ) : TAU value corresponding to YYYYMMDD, HHMMSS
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE BPCH2_MOD,  ONLY : READ_BPCH2
+      USE FILE_MOD,   ONLY : IU_FILE
+      USE TIME_MOD,   ONLY : EXPAND_DATE
+
+#     include "CMN_SIZE"   ! Size parameters      
+
+      ! Arguments
+      INTEGER, INTENT(IN) :: YYYYMMDD, HHMMSS
+      REAL*8,  INTENT(IN) :: TAU
+
+      ! Local variables
+      INTEGER             :: IPR, JHC, N
+      REAL*4              :: ARRAY(IIPAR,JJPAR,LLPAR)
+      CHARACTER(LEN=255)  :: FILENAME
+
+      !=================================================================
+      ! READ_GPROD_APROD begins here!
+      !=================================================================
+
+      ! File name
+      FILENAME = 'restart_gprod_aprod.YYYYMMDDhh'
+
+      ! Replace date & time tokens in FILENAME
+      CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
+
+      ! Loop over VOC classes and products
+      DO JHC = 1, MHC 
+      DO IPR = 1, NPROD
+
+         ! Tracer number
+         N = ( JHC - 1 ) * NPROD + IPR
+
+         !-----------------------
+         ! Read GPROD from file
+         !-----------------------
+
+         ! Read data
+         CALL READ_BPCH2( FILENAME, 'IJ-GPROD', N, 
+     &                    TAU,       IIPAR,     JJPAR,     
+     &                    LLPAR,     ARRAY,     QUIET=.TRUE. ) 
+
+         ! Cast to REAL*8
+         GPROD(:,:,:,IPR,JHC) = ARRAY
+
+         !-----------------------
+         ! Read APROD from file
+         !-----------------------
+
+         ! Read data
+         CALL READ_BPCH2( FILENAME, 'IJ-APROD', N, 
+     &                    TAU,       IIPAR,     JJPAR,     
+     &                    LLPAR,     ARRAY,     QUIET=.TRUE. ) 
+
+         ! Cast to REAL*8
+         APROD(:,:,:,IPR,JHC) = ARRAY
+
+      ENDDO
+      ENDDO
+
+      ! Return to calling program
+      END SUBROUTINE READ_GPROD_APROD
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE INIT_CARBON
 !
 !******************************************************************************
 !  Subroutine INIT_CARBON initializes all module arrays. 
-!  (rjp, bmy, 4/1/04, 12/1/04)
+!  (rjp, bmy, 4/1/04, 2/6/07)
 !
 !  NOTES:
 !  (1 ) Also added arrays for secondary organic aerosols (rjp, bmy, 7/8/04)
@@ -4523,19 +4733,22 @@ c
 !  (3 ) Now reference LSOA from "logical_mod.f" not CMN_SETUP.  Now call
 !        GET_BOUNDING_BOX from "grid_mod.f" to compute the indices I1_NA,
 !        I2_NA, J1_NA, J2_NA which define the N. America region. (bmy, 12/1/04)
+!  (4 ) Now call READ_GPROD_APROD to read GPROD & APROD from disk. 
+!        (tmf, havala, bmy, 2/6/07)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : ALLOC_ERR, ERROR_STOP
       USE GRID_MOD,    ONLY : GET_BOUNDING_BOX
-      USE LOGICAL_MOD, ONLY : LSOA
+      USE LOGICAL_MOD, ONLY : LCHEM,     LSOA 
+      USE TIME_MOD,    ONLY : GET_NYMDb, GET_NHMSb, GET_TAUb
 
 #     include "CMN_SIZE"  ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE :: IS_INIT = .FALSE.
-      INTEGER       :: AS, INDICES(4)
-      REAL*8        :: COORDS(4)
+      INTEGER       :: AS, INDICES(4), YYYYMMDD, HHMMSS
+      REAL*8        :: COORDS(4), TAU
 
       !=================================================================
       ! INIT_CARBON begins here!
@@ -4649,6 +4862,21 @@ c
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'APROD' )
          APROD = 0D0
 
+         !--------------------------------------------------------------
+         ! Read GPROD and APROD from disk from the last simulation
+         ! NOTE: do this here after GPROD, APROD are allocated!
+         !--------------------------------------------------------------
+
+         IF ( LCHEM ) THEN 
+
+            ! Get time values at start of the run
+            YYYYMMDD = GET_NYMDb()
+            HHMMSS   = GET_NHMSb()
+            TAU      = GET_TAUb()
+
+            ! Read GPROD, APROD from restart file
+            CALL READ_GPROD_APROD( YYYYMMDD, HHMMSS, TAU )
+         ENDIF
       ENDIF
 
       !=================================================================

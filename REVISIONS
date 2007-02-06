@@ -1,5 +1,5 @@
 REVISIONS (v7-04-11)  
-24 Jan 2006
+02 Feb 2007
 Philippe Le Sager (phs@io.as.harvard.edu) and
 Bob Yantosca      (bmy@io.as.harvard.edu)
 
@@ -28,10 +28,26 @@ get_flash_scale_precon	   -- Function GET_FLASH_SCALE_CTH returns a met-field
 get_ic_cg_ratio		   -- Split off from FLASHES_CTH, FLASHES_MFLUX, 
 ("lightning_nox_nl_mod.f")    FLASHES_PRECON into this separate function
 
+its_time_for_bpch	   -- Moved to "time_mod.f" from "main.f"
+("time_mod.f")
+
+read_gprod_aprod	   -- Reads GPROD & APROD restart file for the 
+("carbon_mod.f")              SOA chemistry simulation.  Called from routine
+	                      INIT_CARBON.
+
+src_func_get		   -- Now returns GOCART source function
+("dust_dead_mod.f")
+
+write_gprod_aprod	   -- Writes GPROD & APROD restart file for the 
+("carbon_mod.f")              SOA chemistry simulation.  Called from MAIN.
+
 
 
 Removed in v7-04-11:
 -------------------------------------------------------------------------------
+
+get_otd_lis_redist	   -- This is now obsolete
+("lightning_nox_nl_mod.f")
 
 
 
@@ -62,8 +78,8 @@ cleanup_diag50		   -- Now deallocate COUNT_CHEM3D
 cleanup_diag51		   -- Also deallocate COUNT_CHEM3D
 ("diag51_mod.f")
 
-cleanup_lightning_nox_nl   -- Rename OTDSCALE to OTD_REDIST
-("lightning_nox_nl_mod.f")
+cleanup_lightning_nox_nl   -- Rename OTDSCALE to OTD_REG_REDIST
+("lightning_nox_nl_mod.f") -- Now deallocate OTD_LOC_REDIST
 
 CMN_SIZE		   -- Bug fix: set LLTROP_FIX = LLPAR for GCAP
 
@@ -72,6 +88,9 @@ convtran		   -- Bug fix: avoid div by zero in formula for CHAT
 
 convtran		   -- Bug fix: avoid div by zero in formula for CHAT
 ("fvdas_convect_mod.f")
+
+create_tinfo		   -- Now write out GPROD & APROD info
+("gamap_mod.f")
 
 diag1.f			   -- Now only archive pure O3 in ND45 and ND47 at 
 			      chemistry timesteps
@@ -91,6 +110,9 @@ diag3.f			   -- Now use new time counters for ND43 & ND45
 diag_mod.f		   -- Added CTO3 counter
                            -- Convert ND43 counter arrays from 2D to 3D, for
                               the variable tropopause
+
+dst_mbl			   -- Now get GOCART source function
+("dust_dead_mod.f")        
 
 do_global_transport	   -- Bug fix: now index STT_I1, STT_J1, STT_I2, 
 ("transport_mod.f")           STT_J2 correctly
@@ -131,14 +153,14 @@ get_global_o3		   -- Modified to include stratospheric O3; requires
 get_lwc			   -- Now also add a case for T > 293 to the IF 
 ("mercury_mod.f")             statement
 
-get_otd_lis_scale	   -- Renamed function name to GET_OTD_LIS_REDIST 
-("lightning_nox_nl_mod.f") -- Renamed variable OTDSCALE to OTD_REDIST
-
 get_regional_pox	   -- Resize the PP array from LLTROP to LLTROP_FIX 
 ("tagged_ox_mod.f")
 
 get_time_ahead		   -- leap year fix for gcap
 ("time_mod.f")
+
+init_carbon		   -- Now call READ_GPROD_APROD to read GPROD & 
+("carbon_mod.f")              APROD from disk.
 
 init_diag49		   -- Now allow ND49_IMIN to be equal to ND49_IMAX and
 ("diag49_mod.f")              ND49_JMIN to be equal to ND49_JMAX.  This will 
@@ -154,13 +176,22 @@ init_diag51		   -- Now allow ND51_IMIN to be equal to ND51_IMAX and
 			      allow us to save out lon or lat transects. 
 			   -- Allocate COUNT_CHEM3D
 
+init_diaginfo		   -- Now add IJ-GPROD & IJ-APROD w/ offset of 
+("gamap_mod.f")               SPACING*6, for SOA GPROD & APROD restart file.
+
 init_global_o3		   -- Now dimension O3 with LLPAR
 ("global_o3_mod.f")
 
-initialize.f		   -- Now also zero CTO3 array
+init_input		   -- Now initialize LOTDREG, LOTDLOC, LCTH, 
+("input_mod.f")               LMFLUX, LPRECON
 
-init_lightning_nox_nl	   -- Rename OTDSCALE to OTD_REDIST
-("lightning_nox_nl_mod.f") -- Now call GET_FLASH_SCALE_CTH,
+initialize.f		   -- Now also zero CTO3 array
+			   -- Bug fix: ZERO_DIAG42 is now called when ND42 
+                              is turned on.
+
+init_lightning_nox_nl	   -- Rename OTDSCALE to OTD_REG_REDIST
+("lightning_nox_nl_mod.f") -- Also add similar array OTD_LOC_REDIST
+			   -- Now call GET_FLASH_SCALE_CTH,
 	                      GET_FLASH_SCALE_MFLUX, GET_FLASH_SCALE_PRECON 
 			      depending on the type of lightning param used
 			   -- Updated comments
@@ -170,26 +201,36 @@ lightdist		   -- Added extra safety check for pathological boxes
 
 lightning_nl		   -- Now recompute the cold cloud thickness according
 ("lightning_nox_nl_mod.f")    to updated formula from Lee Murray
-			   -- Rearranged argument lists to routines 
-			      FLASHES_CTH, FLASHES_MFLUX, FLASHES_PRECON. 
-			   -- Now call READ_OTD_LIS_REDIST.
+                           -- Rearranged argument lists to routines 
+                              FLASHES_CTH, FLASHES_MFLUX, FLASHES_PRECON
+			   -- Now call READ_REGIONAL_REDIST and 
+                              READ_LOCAL_REDIST
 			   -- Now apply FLASH_SCALE to scale the total 
-			      lightning NOx to 6 Tg N/yr.
-			   -- Now apply OTD/LIS or other lightning 
-			      redistribution to the ND56 diagnostic
-			   -- Updated comments accordingly
+                              lightning NOx to 6 Tg N/yr
+			   -- Now apply OTD/LIS regional or local 
+                              redistribution (cf. B. Sauvage) to ND56 diag.
+			   -- Renamed REGSCALE variable to REDIST.
+ 			   -- Updated comments accordingly
 			   
 lightning_nox_nl_mod.f	   -- Now move computation of IC/CG flash ratio out of
 		              routines FLASHES_CTH, FLASHES_MFLUX, 
 	                      FLASHES_PRECON, and into routine GET_IC_CG_RATIO
 			      Set module variable E_IC_CG = 1 according to 
 	                      Allen & Pickering [2002].
-			   -- Rename OTDSCALE to OTD_REDIST to reflect that 
-	                      this is a redistribution
-			   -- Now scale lightning to 6 Tg N/yr for both 
-			      2x25 and 4x5
+                           -- Rename OTDSCALE array to OTD_REG_REDIST, and 
+                              also add OTD_LOC_REDIST array
+			   -- Now scale lightning to 6 Tg N/yr for both 2x25 
+                              and 4x5
+			   -- Rename routine GET_OTD_LIS_REDIST to 
+		              GET_REGIONAL_REDIST
+			   -- Add similar routine GET_LOCAL_REDIST
+			   -- Removed routine GET_OTD_LOCAL_REDIST.  
+
+logical_mod.f		   -- Added LOTDREG, LOTDLOC for regional or local 
+                              OTD-LIS redistribution of lightning flashes
 
 main.f			   -- Fixed typos for GCAP
+			   -- Move routine ITS_TIME_FOR_BPCH to "time_mod.f"
 
 ndxx_setup.f               -- Now allocate ND43 and ND45 counter arrays as 3-D
 
@@ -209,16 +250,27 @@ read_biomass_so2	   -- Now prevent seg fault if BIOMASS emissions are
 read_emissions_menu	   -- Kludge: Reset LMFLUX or LPRECON to LCTH, as the 
 ("input_mod.f")               MFLUX and PRECON lightning schemes have not yet
 			      been implemented
-
-read_otd_lis_redist	   -- Change CTH scale filename from "v0" to "v1"
-("lightning_NOx_nl_mod.f") -- Renamed from "read_otd_lis_scale"
+			   -- Rename LOTDLIS to LOTDREG
+			   -- Also read LOTDLOC for the OTD-LIS local 
+			      redistribution of lightning flashes 
+			      (cf B. Sauvage)
+			   -- Make sure LOTDREG and LOTDLOC are not both 
+			      turned on at the same time.
 
 read_pox_lox		   -- Use LLTROP_FIX to limit array size to case of
 ("tagged_ox_mod.f")           non-variable tropopause
                            -- Also zero ARRAY to avoid numerical problems
+read_regional_redist	   -- Change CTH scale filename from "v0" to "v1"
+("lightning_NOx_nl_mod.f") -- Renamed from "read_otd_lis_scale"
 
 seasalt_chem		   -- Fixed typo in FALK_A_SO2 equation: C_FLUX_C  
 ("sulfate_mod.f")             should be C_FLUX_A.
+
+soa_chemistry		   -- Corrected typos in SOA_LUMP
+("carbon_mod.f")	   
+
+soa_lump		   -- Bug fix: For SOA4, GPROD and APROD should have 
+("carbon_mod.f")              default values of 0.5, instead of 1.0
 
 src_dust_dead		   -- Updated output statement
 ("dust_mod.f")
@@ -231,4 +283,7 @@ write_diag51		   -- DIVISOR is now a 3-D array
 ("diag51_mod.f")	   -- Now zero COUNT_CHEM3D
 			   -- Now use CASE statement instead of IF statements
 			   -- Now zero counter arrays with array assignments
+
+write_separator		   -- Added new header for GPROD & APROD info
+("gamap_mod.f")
 	

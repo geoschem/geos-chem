@@ -1,10 +1,10 @@
-! $Id: gamap_mod.f,v 1.20 2006/11/07 19:02:00 bmy Exp $
+! $Id: gamap_mod.f,v 1.21 2007/02/06 17:40:05 bmy Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
 !  Module GAMAP_MOD contains routines to create GAMAP "tracerinfo.dat" and
 !  "diaginfo.dat" files which are customized to each particular GEOS-Chem
-!  simulation. (bmy, 5/3/05, 10/17/06)
+!  simulation. (bmy, 5/3/05, 2/6/07)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -77,6 +77,8 @@
 !  (11) Add routines INIT_DIAGINFO, INIT_TRACERINFO for clarity.  Added new
 !        entries for biomass burning (ND28) and time in tropopshere (ND54)
 !        in INIT_DIAGINFO and INIT_TRACERINFO. (phs, bmy, 10/17/06)
+!  (12) Now write GPROD & APROD info to diaginfo.dat, tracerinfo.dat files,
+!        for the SOA restart files (tmf, havala, bmy, 2/6/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -262,22 +264,25 @@
 !
 !******************************************************************************
 !  Subroutine CREATE_TINFO writes information about tracers to a customized
-!  "tracerinfo.dat" file. (bmy, 4/21/05, 5/22/06)
+!  "tracerinfo.dat" file. (bmy, 4/21/05, 2/6/07)
 !
 !  NOTES:
 !  (1 ) Now write out tracers in ug/m3 (dkh, bmy, 5/22/06)
+!  (2 ) Now write out GPROD & APROD info (tmf, havala, bmy, 2/6/07)
 !******************************************************************************
 !      
       ! References to F90 modules
-      USE FILE_MOD,   ONLY : IOERROR, IU_FILE
+      USE FILE_MOD,    ONLY : IOERROR, IU_FILE
+      USE LOGICAL_MOD, ONLY : LSOA
 
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_DIAG"   ! NDxx flags
+#     include "CMN_SIZE"    ! Size parameters
+#     include "CMN_DIAG"    ! NDxx flags
 
       ! Local variables
-      INTEGER             :: D, IOS, N, T
-      REAL*4              :: SCALE_NEW
-      CHARACTER(LEN=40)   :: UNIT_NEW
+      INTEGER              :: D, IOS, N, T
+      REAL*4               :: SCALE_NEW
+      CHARACTER(LEN=2)     :: C
+      CHARACTER(LEN=40)    :: UNIT_NEW, NAME_NEW
 
       !=================================================================
       ! CREATE_TINFO begins here!
@@ -323,9 +328,9 @@
      &        ' to unit given below'                                   )
  155  FORMAT( '# UNIT     (A40  )  Unit string',                 /,'#' )
 
-      !------------------------------
+      !-----------------------------------
       ! 0: Tracers [ppbv]
-      !------------------------------
+      !-----------------------------------
 
       ! Write separator line
       CALL WRITE_SEPARATOR( 0 )
@@ -341,9 +346,9 @@
      &                     MOLC(T,45), SCALE(T,45), UNIT(T,45), N )
       ENDDO
 
-      !------------------------------
-      ! 100: Tracers [molec/cm2/s]
-      !------------------------------
+      !-----------------------------------
+      ! SPACING*1: Tracers [molec/cm2/s]
+      !-----------------------------------
 
       ! Write separator line
       CALL WRITE_SEPARATOR( 100 )
@@ -369,9 +374,9 @@
      &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
       ENDDO
 
-      !------------------------------
-      ! 200: Tracers [molec/cm2]
-      !------------------------------
+      !-----------------------------------
+      ! SPACING*2: Tracers [molec/cm2]
+      !-----------------------------------
 
       ! Write separator line
       CALL WRITE_SEPARATOR( 200 )
@@ -397,9 +402,9 @@
      &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
       ENDDO
 
-      !------------------------------
-      ! 300: Tracers [kg/s]
-      !------------------------------
+      !-----------------------------------
+      ! SPACING*3: Tracers [kg/s]
+      !-----------------------------------
 
       ! Write separator line
       CALL WRITE_SEPARATOR( 300 )
@@ -425,9 +430,9 @@
      &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
       ENDDO
 
-      !------------------------------
-      ! 400: Tracers [kg]
-      !------------------------------
+      !-----------------------------------
+      ! SPACING*4: Tracers [kg]
+      !-----------------------------------
 
       ! Write separator line
       CALL WRITE_SEPARATOR( 400 )
@@ -454,9 +459,9 @@
       ENDDO
 
 ! Add this later on (bmy, 5/22/06)
-!      !------------------------------
-!      ! 500: Tracers [ug/m3]
-!      !------------------------------
+!      !-----------------------------------
+!      ! SPACING*5: Tracers [ug/m3]
+!      !-----------------------------------
 !
 !      ! Write separator line
 !      CALL WRITE_SEPARATOR( 500 )
@@ -481,6 +486,32 @@
 !         CALL WRITE_TINFO( NAME(T,45), FNAME(T,45), MWT(T,45), 
 !     &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
 !      ENDDO
+
+      !-----------------------------------
+      ! SPACING*6: GPROD & APROD [kg/kg]
+      !-----------------------------------
+      IF ( LSOA ) THEN
+
+         ! Write separator line
+         CALL WRITE_SEPARATOR( 600 )
+
+         ! Loop over tracers
+         DO T = 1, 18
+            
+            ! GAMAP tracer number
+            N = ( SPACING * 6 ) + T
+            
+            ! Make a character 
+            WRITE( C, '(i2.2)' ) T
+
+            ! Tracer name
+            NAME_NEW = 'PROD' // C
+            
+            ! Write tracers [kg] to "tracerinfo.dat"
+            CALL WRITE_TINFO( NAME_NEW, NAME_NEW,  1e0, 
+     &                        1,        1e0,      'kg/kg', N )
+         ENDDO
+      ENDIF
 
       !------------------------------
       ! All other diagnostics 
@@ -564,13 +595,14 @@
 !
 !******************************************************************************
 !  Subroutine WRITE_SEPARATOR writes a separator block to the customized
-!  "tracerinfo.dat" file. (bmy, 5/3/05)
+!  "tracerinfo.dat" file. (bmy, 5/3/05, 2/6/07)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) DIAG (INTEGER) : GEOS-CHEM diagnostic number 
 !
 !  NOTES:
+!  (1 ) Added new header for GPROD & APROD info (bmy, 2/6/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -608,8 +640,10 @@
             WRITE( IU_FILE, 140, IOSTAT=IOS )
          CASE( 500 ) 
             WRITE( IU_FILE, 150, IOSTAT=IOS )
+         CASE( 600 ) 
+            WRITE( IU_FILE, 160, IOSTAT=IOS )
          CASE DEFAULT
-            WRITE( IU_FILE, 160, IOSTAT=IOS ) DIAG
+            WRITE( IU_FILE, 170, IOSTAT=IOS ) DIAG
       END SELECT
 
       ! Error check
@@ -626,7 +660,8 @@
  130  FORMAT( '# GEOS-CHEM tracers [kg/s]'           )
  140  FORMAT( '# GEOS-CHEM tracers [kg]'             )
  150  FORMAT( '# GEOS-CHEM tracers [ug/m3]'          )
- 160  FORMAT( '# ND', i2.2, ' diagnostic quantities' )
+ 160  FORMAT( '# SOA GPROD & APROD [kg/kg]'          )
+ 170  FORMAT( '# ND', i2.2, ' diagnostic quantities' )
       
       ! Return to calling program
       END SUBROUTINE WRITE_SEPARATOR
@@ -637,12 +672,15 @@
 !
 !******************************************************************************
 !  Subroutine INIT_DIAGINFO initializes the CATEGORY, DESCRIPT, and OFFSET
-!  variables, which are used to define the "diaginfo.dat" file (bmy, 10/17/06)
+!  variables, which are used to define the "diaginfo.dat" file for GAMAP.
+!  (bmy, 10/17/06, 2/6/07)
 !
 !  NOTES:
 !  (1 ) Split this code off from INIT_GAMAP, for clarity.  Now declare biomass
 !        burning emissions w/ offset of 45000.  Now declare time in the 
 !        troposphere diagnostic with offset of 46000. (phs, bmy, 10/17/06)
+!  (2 ) Now add IJ-GPROD & IJ-APROD w/ offset of SPACING*6, for the SOA
+!        GPROD & APROD restart file. (tmf, havala, bmy, 2/6/07)
 !******************************************************************************
 !
       ! Local variables 
@@ -891,6 +929,16 @@
       CATEGORY(N) = 'UP-FLX-$'
       DESCRIPT(N) = 'Up/down transport flux'
       OFFSET(N)   = SPACING * 4
+
+      N           = N + 1
+      CATEGORY(N) = 'IJ-GPROD'
+      DESCRIPT(N) = 'SOA GPROD restart'
+      OFFSET(N)   = SPACING * 6
+
+      N           = N + 1
+      CATEGORY(N) = 'IJ-APROD'
+      DESCRIPT(N) = 'SOA APROD restart'
+      OFFSET(N)   = SPACING * 6
 
       N           = N + 1
       CATEGORY(N) = 'PS-PTOP'

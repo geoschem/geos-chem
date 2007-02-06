@@ -1,4 +1,4 @@
-! $Id: diag3.f,v 1.42 2007/01/24 18:22:21 bmy Exp $
+! $Id: diag3.f,v 1.43 2007/02/06 17:40:03 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
@@ -2220,7 +2220,7 @@
                ! Prior to 1/24/07:
                !ARRAY(:,:,L) = AD43(:,:,L,N) / SCALE_TMP(:,:)
                !----------------------------------------------------
-               ARRAY(:,:,L) = AD43(:,:,L,N) / SCALE_TMP3D(:,:)
+               ARRAY(:,:,L) = AD43(:,:,L,N) / SCALE_TMP3D(:,:,L)
             ENDDO
             
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,

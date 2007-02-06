@@ -1,8 +1,8 @@
-! $Id: initialize.f,v 1.23 2007/01/22 17:32:25 bmy Exp $
+! $Id: initialize.f,v 1.24 2007/02/06 17:40:05 bmy Exp $
       SUBROUTINE INITIALIZE( IFLAG )
 !
 !******************************************************************************
-!  Subroutine INITIALIZE (bmy, 6/15/98, 1/19/07) does the following:
+!  Subroutine INITIALIZE (bmy, 6/15/98, 1/30/07) does the following:
 !     (1) Zeroes globally defined GEOS-CHEM variables.
 !     (2) Zeroes accumulating diagnostic arrays.
 !     (3) Resets certain year/month/day and counter variables used 
@@ -163,7 +163,8 @@
 !  (36) Now references ND56, ZERO_DIAG56 from "diag56_mod.f" (ltm, bmy, 5/5/06)
 !  (37) Now references ND42, ZERO_DIAG42 from "diag42_mod.f" (dkh, bmy,5/22/06)
 !  (38) take care of AD54 (time in the troposphere diagnostic) (phs, 10/17/06)
-!  (39) Now also zero CTO3 array (phs, 1/19/07)
+!  (39) Now also zero CTO3 array.  Bug fix: ZERO_DIAG42 is now called when
+!        ND42 is turned on. (phs, bmy, 1/30/07)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -336,7 +337,12 @@
          ENDIF
 
          ! For ND42 - SOA concentrations (dkh, bmy, 5/22/06)
-         IF ( ND41 > 0 ) THEN
+         !------------------------------------------
+         ! Prior to 1/30/07:
+         ! Bug fix: should be ND42 (bmy, 1/30/07)
+         !IF ( ND41 > 0 ) THEN
+         !------------------------------------------
+         IF ( ND42 > 0 ) THEN
             CALL ZERO_DIAG42
          ENDIF
 
