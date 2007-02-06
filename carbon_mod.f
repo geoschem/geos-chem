@@ -1,4 +1,4 @@
-! $Id: carbon_mod.f,v 1.26 2007/02/06 17:40:02 bmy Exp $
+! $Id: carbon_mod.f,v 1.27 2007/02/06 19:04:33 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
@@ -4561,10 +4561,9 @@ c
       ! Local variables
       INTEGER             :: HALFPOLAR
       INTEGER, PARAMETER  :: CENTER180 = 1
-      INTEGER             :: YYYYMMDD, HHMMSS, I0, IPR, J0, JHC, N
+      INTEGER             :: I0, IPR, J0, JHC, N
       REAL*4              :: LONRES,   LATRES
       REAL*4              :: ARRAY(IIPAR,JJPAR,LLPAR)
-      REAL*8              :: TAU
       CHARACTER(LEN=20)   :: MODELNAME
       CHARACTER(LEN=40)   :: CATEGORY
       CHARACTER(LEN=40)   :: UNIT     
