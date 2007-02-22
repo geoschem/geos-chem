@@ -106,6 +106,7 @@ diag_2pm.f		   -- Now account for the time spent in the
 diag3.f			   -- Now use new time counters for ND43 & ND45
 			   -- Now averages ND47 between 0 and 24 UT.  
 			   -- Replace SCALEDYN with CTOH and CTO3 for ND47
+			   -- Comment out N = IDEMS(M) in ND36 diagnostic
 
 diag_mod.f		   -- Added CTO3 counter
                            -- Convert ND43 counter arrays from 2D to 3D, for

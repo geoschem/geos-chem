@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.43 2007/02/06 17:40:03 bmy Exp $
+! $Id: diag3.f,v 1.44 2007/02/22 19:55:26 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out diagnostics to the BINARY format punch file 
-!  (bmy, bey, mgs, rvm, 5/27/99, 1/24/07)
+!  (bmy, bey, mgs, rvm, 5/27/99, 2/22/07)
 !
 !  NOTES: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
@@ -78,7 +78,7 @@
 !        (bmy, 9/5/06)
 !  (70) Now write diag 54 (time in the troposphere) if asked for (phs, 9/22/06)
 !  (71) Now use new time counters for ND43 & ND45,  Also now average between
-!        0 and 24 UT for ND47. (phs, 1/24/07)
+!        0 and 24 UT for ND47.  Bug fix in ND36. (phs, bmy, 2/22/07)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -1995,8 +1995,12 @@
             ELSE 
                CATEGORY = 'ANTHSRCE'
                UNIT     = ''
-               IF ( .not. ANY( IDEMS == N ) ) CYCLE               
-               N        = IDEMS(M)
+               IF ( .not. ANY( IDEMS == N ) ) CYCLE              
+               !----------------------------------------------
+               ! Prior to 2/22/07:
+               ! This line is no longer needed (bmy, 2/22/07)
+               !N        = IDEMS(M)
+               !----------------------------------------------
             ENDIF
 
             ! Tracer number
