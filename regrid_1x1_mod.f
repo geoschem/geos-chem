@@ -1,9 +1,9 @@
-! $Id: regrid_1x1_mod.f,v 1.9 2006/09/08 19:21:03 bmy Exp $
+! $Id: regrid_1x1_mod.f,v 1.10 2007/02/22 18:26:29 bmy Exp $
       MODULE REGRID_1x1_MOD
 !
 !******************************************************************************
 !  Module REGRID_1x1_MOD does online regridding of data on the GEOS-Chem 1x1 
-!  grid to 1x1, 2x25, or 4x5 GEOS/GCAP grids. (bdf, bmy, 10/24/05, 8/9/06)
+!  grid to 1x1, 2x25, or 4x5 GEOS/GCAP grids. (bdf, bmy, 10/24/05, 2/20/07)
 !
 !  Module Variables:
 !  ============================================================================
@@ -41,6 +41,7 @@
 !  (2 ) Added routines REGRID_CONC_TO_1x125 and REGRID_MASS_TO_1x125 to regrid
 !        1x1 data to the GEOS-Chem 1x1.25 grid. (bdf, bmy, 8/2/06)
 !  (3 ) DO_REGRID_G2G_1x1 now takes UNIT via the arg list (bmy, 8/9/06)
+!  (4 ) Bug fix in REGRID_MASS_TO_4x5 (tw, bmy, 2/20/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1064,7 +1065,7 @@
 !
 !******************************************************************************
 !  Subroutine REGRID_MASS_TO_4x5 regrids mass data from the GEOS-Chem 1x1 
-!  grid to the GEOS_CHEM 4x5 grid. (bdf, bmy, 10/24/05)
+!  grid to the GEOS_CHEM 4x5 grid. (bdf, bmy, 10/24/05, 2/20/07)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1080,6 +1081,8 @@
 !  (7 ) OUT (REAL*8 ) : Array containing output data on GEOS-Chem 4x5 grid
 !
 !  NOTES:
+!  (1 ) Bug fix: the lat index should be N, not S in the last 2 lines of the
+!        non-polar latitude regridding.  (tw, bmy, 2/20/07)
 !******************************************************************************
 !
       ! Arguments
@@ -1092,7 +1095,7 @@
       REAL*8               :: M_TOT
 
       !=================================================================
-      ! REGRID_1x1_TO_4x5_MASS begins here!
+      ! REGRID_MASS_TO_4x5 begins here!
       !=================================================================
 
       ! Loop over levels
@@ -1149,8 +1152,15 @@
      &                   0.5d0*SUM( IN( E-2:E,   S,       L ) ) + 
      &                         SUM( IN( W  :W+1, S+1:N-1, L ) ) + 
      &                         SUM( IN( E-2:E,   S+1:N-1, L ) ) + 
-     &                   0.5d0*SUM( IN( W  :W+1, S,       L ) ) +
-     &                   0.5d0*SUM( IN( E-2:E,   S,       L ) )
+!-----------------------------------------------------------------------------
+! Prior to 2/20/07:
+! Bug fix: the lat-index should be N, not S in the last 2 lines.
+! (mb, bmy, 2/20/07)
+!     &                   0.5d0*SUM( IN( W  :W+1, S,       L ) ) +
+!     &                   0.5d0*SUM( IN( E-2:E,   S,       L ) )
+!-----------------------------------------------------------------------------
+     &                   0.5d0*SUM( IN( W  :W+1, N,       L ) ) +
+     &                   0.5d0*SUM( IN( E-2:E,   N,       L ) )
 
          ENDDO
          ENDDO

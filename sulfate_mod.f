@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.34 2006/12/11 19:37:53 bmy Exp $
+! $Id: sulfate_mod.f,v 1.35 2007/02/22 18:26:29 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -530,6 +530,7 @@
 
       ! Convert all tracers in STT from [kg] -> [v/v] 
       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT )
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CONVERT UNITS' )
 
       ! For offline runs only ...
       IF ( ITS_AN_AEROSOL_SIM() ) THEN
@@ -546,6 +547,7 @@
 
       ! SO2 
       CALL GET_VCLDF
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a get VCLDF' )
       CALL CHEM_SO2
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO2' )
 
@@ -1440,20 +1442,25 @@
       Ki     = 1.5d-12
 
       ! Zero ND44_TMP array
-      IF ( ND44 > 0 ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLTROP
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            ND44_TMP(I,J,L) = 0d0
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
-
+!---------------------------------------------------------------------------
+! Prior to 2/12/07:
+! F90 array statement is more efficient (bmy, 2/12/07)
+!      IF ( ND44 > 0 ) THEN
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!         DO L = 1, LLTROP
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!            ND44_TMP(I,J,L) = 0d0
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!!$OMP END PARALLEL DO
+!      ENDIF
+!---------------------------------------------------------------------------
+      ND44_TMP = 0d0
+      
       ! Loop over tropospheric grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1539,7 +1546,7 @@
          !==============================================================
 
          ! Get alkalinity of accum (ALK1) and coarse (ALK2) [kg]
-	 CALL GET_ALK( I, J, L, ALK1, ALK2, Kt1, Kt2, Kt1N, Kt2N )
+         CALL GET_ALK( I, J, L, ALK1, ALK2, Kt1, Kt2, Kt1N, Kt2N )
 
          ! Total alkalinity [kg]
          ALK = ALK1 + ALK2
@@ -1556,7 +1563,7 @@
      &                         SO2_cd, Kt1,   Kt2, Kt1N, Kt2N,
      &                         SO2_ss, PSO4E, PSO4F ) 
 
-	 ELSE
+         ELSE
 
             ! Otherwise set equal to zero
             SO2_ss       = SO2_cd
@@ -1564,7 +1571,7 @@
             PSO4F        = 0.d0
             PNITS(I,J,L) = 0.d0
 
-	 ENDIF
+         ENDIF
 
          !==============================================================
          ! Update SO2 concentration after cloud chemistry          

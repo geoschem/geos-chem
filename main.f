@@ -1,6 +1,6 @@
-! $Id: main.f,v 1.47 2007/02/06 19:04:39 bmy Exp $
+! $Id: main.f,v 1.48 2007/02/22 18:26:28 bmy Exp $
 ! $Log: main.f,v $
-! Revision 1.47  2007/02/06 19:04:39  bmy
+! Revision 1.48  2007/02/22 18:26:28  bmy
 ! GEOS-Chem v7-04-11, includes the following modifications:
 ! - Fixed near-land lightning; now scale 2x25, 4x5 to 6 Tg N/yr (ltm,bmy)
 ! - Now allow ND49, ND50, ND51 to save transects of a single lon or lat (bmy)
@@ -9,13 +9,15 @@
 ! - Bug fix: correct typo in SEASALT_CHEM routine in "sulfate_mod.f" (bmy)
 ! - Now prevent seg fault errors when LBIOMASS=F (bmy)
 ! - Now fixed minor bug that inverted TROPP1 and TROPP2 (phs)
-! - CMN_SIZE: now define LLTROP_FIX for GCAP. (phs)
-! - a3_read_mod.f : added SNOW and GETWETTOP fields for GCAP (phs)
+! - Bug fix: now define LLTROP_FIX for GCAP in CMN_SIZE (phs)
+! - a3_read_mod.f: added SNOW and GETWETTOP fields for GCAP (phs)
 ! - main.f: remove duplicate call for unzip in GCAP case (phs)
 ! - time_mod.f: fix leap year problem in get_time_ahead for GCAP (phs)
 ! - extra fixes for the variable tropopause (phs)
 ! - minor diagnostic updates (phs)
 ! - now save SOA quantities GPROD & APROD to restart files (tmf, havala, bmy)
+! - Updated TOMS/SBUV O3 columns for FAST-J photolysis (symeon, bmy)
+! - Bug fix in regridding 1x1 mass quantities to 4x5 GEOS grid (tw,bmy)
 !
 ! Revision 1.42  2006/10/17 17:51:14  bmy
 ! GEOS-Chem v7-04-10, includes the following modifications:

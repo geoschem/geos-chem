@@ -1,4 +1,4 @@
-! $Id: lightning_nox_nl_mod.f,v 1.4 2007/02/06 17:40:07 bmy Exp $
+! $Id: lightning_nox_nl_mod.f,v 1.5 2007/02/22 18:26:27 bmy Exp $
       MODULE LIGHTNING_NOX_NL_MOD
 !
 !******************************************************************************
@@ -7,7 +7,7 @@
 !  GISS-II CTM's of Yuhang Wang, Gerry Gardner, & Larry Horowitz.  Overhauled 
 !  for updated parameterization schemes: CTH, MFLUX and PRECON.  Now also
 !  uses the near-land formulation (i.e. offshore boxes also get treated as
-!  if they were land boxes).  (ltm, rch, bmy, 4/14/04, 1/31/07)  
+!  if they were land boxes).  (ltm, rch, bmy, 4/14/04, 2/22/07)  
 !
 !  NOTE: The OTD/LIS regional redistribution for MFLUX and PRECON lightning
 !  parameterizations have not yet been implemented.  These parameterizations
@@ -79,8 +79,8 @@
 !        OTD_REG_REDIST, and also add OTD_LOC_REDIST array.  Now scale 
 !        lightning to 6 Tg N/yr for both 2x25 and 4x5.  Rename routine
 !        GET_OTD_LIS_REDIST to GET_REGIONAL_REDIST.  Add similar routine
-!        GET_LOCAL_REDIST.  Removed GET_OTD_LOCAL_REDIST.  
-!        (rch, ltm, bmy, 1/31/07)
+!        GET_LOCAL_REDIST.  Removed GET_OTD_LOCAL_REDIST.  Bug fix: divide 
+!        A_M2 by 1d6 to get A_KM2. (rch, ltm, bmy, 2/22/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -148,7 +148,8 @@
 !        FLASH_SCALE to scale the total lightning NOx to 6 Tg N/yr.  Now apply
 !        OTD/LIS regional or local redistribution (cf. B. Sauvage) to the ND56 
 !        diagnostic. lightning redistribution to the ND56 diag.  Renamed
-!        REGSCALE variable to REDIST. (rch, ltm, bmy, 1/31/07)
+!        REGSCALE variable to REDIST.  Bug fix: divide A_M2 by 1d6 to get
+!        A_KM2. (rch, ltm, bmy, 2/14/07)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -240,7 +241,12 @@
 
          ! Grid box surface areas in [m2] and [km2]
          A_M2  = GET_AREA_M2( J )
-         A_KM2 = A_M2 * 1d6
+         !--------------------------------------------------------------------
+         ! Prior to 2/14/07:
+         ! We should divide by 1d6 instead of multiplying (ltm, bmy, 2/14/07)
+         !A_KM2 = A_M2 * 1d6
+         !--------------------------------------------------------------------
+         A_KM2 = A_M2 / 1d6
 
          ! Grid box latitude [degrees]
          YMID  = GET_YMID( J )
@@ -1340,15 +1346,15 @@
 !******************************************************************************
 !  Subroutine READ_REGIONAL_REDIST reads in monthly factors in order to 
 !  redistribute GEOS-Chem flash rates according the OTD-LIS climatological 
-!  regional redistribution method. (ltm, bmy, 5/10/06, 1/31/07)
+!  regional redistribution method. (ltm, bmy, 5/10/06, 2/22/07)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) MONTH (INTEGER) : Current month (1-12)
 !
 !  NOTES:
-!  (1 ) Change CTH filename from "v0" to "v1". Renamed to READ_REGIONAL_REDIST.
-!        (lth, bmy, 1/31/07)
+!  (1 ) Change CTH filename from "v0" to "v2". Renamed to READ_REGIONAL_REDIST.
+!        (lth, bmy, 2/22/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1376,7 +1382,7 @@
       IF ( LCTH ) THEN
 
          ! OTD-LIS regional file for CTH parameterization
-         FILENAME = 'OTD-LIS-Regional-Redist.CTH.v1.'   // 
+         FILENAME = 'OTD-LIS-Regional-Redist.CTH.v2.'   // 
      &               GET_NAME_EXT() // '.' // GET_RES_EXT()
 
       ELSE IF ( LMFLUX ) THEN
@@ -1568,7 +1574,7 @@
       FUNCTION GET_FLASH_SCALE_CTH() RESULT( SCALE )
 !
 !******************************************************************************
-!  Function GET_FLASH_SCALE_CTH (ltm, bmy, 12/11/06) returns a met-field 
+!  Function GET_FLASH_SCALE_CTH (ltm, bmy, 2/22/07) returns a met-field 
 !  dependent scale factor (for the CTH parameterization) which is to be 
 !  applied to the lightning NOx emissions in order to bring the total to a 
 !  specified value of 6 Tg N/yr.  
@@ -1593,18 +1599,18 @@
 #elif defined( GEOS_4 ) && defined( GRID4x5 ) 
 
       !%%% NOTE: This SCALE was computed for OTD-LIS regional redist %%%
-      ! GEOS-4 2x2.5 2003-2005 produces a total of 19.1802 Tg N without
-      ! any further scaling.  This results in an average of 6.3934 Tg N/yr.
-      ! Scale the average down to 6 Tg N/yr. (ltm, bmy, 12/07/06)
-      SCALE = 6.0d0 / 6.3934d0
+      ! GEOS-4 4x5 1995-2005 produces a total of 73.3724 Tg N without
+      ! any further scaling.  This results in an average of 6.67022 Tg N/yr.
+      ! Scale the average down to 6 Tg N/yr. (ltm, bmy, 2/22/07)
+      SCALE = 6.0d0 / 6.67022d0
 
 #elif defined( GEOS_4 ) && defined( GRID2x25 )
 
       !%%% NOTE: This SCALE was computed for OTD-LIS regional redist %%%
-      ! GEOS-4 2x2.5 2003-2005 produces a total of 46.3124 Tg N without
-      ! any further scaling.  This results in an average of 15.4375 Tg N/yr.
-      ! Scale the average down to 6 Tg N/yr. (ltm, bmy, 12/07/06)
-      SCALE = 6.0d0 / 15.4375d0
+      ! GEOS-4 2x2.5 1995-2005 produces a total of 179.224 Tg N without
+      ! any further scaling.  This results in an average of 16.2931 Tg N/yr.
+      ! Scale the average down to 6 Tg N/yr. (ltm, bmy, 2/22/07)
+      SCALE = 6.0d0 / 16.2931d0
 	  
 #elif defined( GEOS_4 ) && defined( GRID1x125 )
 

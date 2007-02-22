@@ -1,5 +1,5 @@
 #=============================================================================
-# $Id: Makefile.ifort,v 1.19 2006/11/07 19:01:53 bmy Exp $
+# $Id: Makefile.ifort,v 1.20 2007/02/22 18:26:27 bmy Exp $
 #
 # GEOS-Chem Makefile for LINUX/IFORT compiler (bmy, Thu Aug 17 12:30:28 2006)
 #=============================================================================
@@ -15,7 +15,7 @@ F90 = ifort $(FFLAGS) -openmp -Dmultitask
 #F90 = ifort $(FFLAGS)
 
 # C compiler
-CC  = gcc -mbig-endian
+CC  = gcc
 
 OBJSe =                   \
 linux_err.o               \

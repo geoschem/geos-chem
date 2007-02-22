@@ -1,7 +1,7 @@
 REVISIONS (v7-04-11)  
-02 Feb 2007
-Philippe Le Sager (phs@io.as.harvard.edu) and
-Bob Yantosca      (bmy@io.as.harvard.edu)
+22 Feb 2007
+Bob Yantosca          and Philippe Le Sager
+bmy@io.as.harvard.edu     phs@io.as.harvard.edu
 
 
 New in v7-04-11:
@@ -28,7 +28,7 @@ get_flash_scale_precon	   -- Function GET_FLASH_SCALE_CTH returns a met-field
 get_ic_cg_ratio		   -- Split off from FLASHES_CTH, FLASHES_MFLUX, 
 ("lightning_nox_nl_mod.f")    FLASHES_PRECON into this separate function
 
-its_time_for_bpch	   -- Moved to "time_mod.f" from "main.f"
+its_time_for_bpch  	   -- Moved to "time_mod.f" from "main.f"
 ("time_mod.f")
 
 read_gprod_aprod	   -- Reads GPROD & APROD restart file for the 
@@ -211,6 +211,7 @@ lightning_nl		   -- Now recompute the cold cloud thickness according
                               redistribution (cf. B. Sauvage) to ND56 diag.
 			   -- Renamed REGSCALE variable to REDIST.
  			   -- Updated comments accordingly
+			   -- Bug fix: divide A_M2 by 1d6 to get A_KM2.
 			   
 lightning_nox_nl_mod.f	   -- Now move computation of IC/CG flash ratio out of
 		              routines FLASHES_CTH, FLASHES_MFLUX, 
@@ -260,8 +261,11 @@ read_emissions_menu	   -- Kludge: Reset LMFLUX or LPRECON to LCTH, as the
 read_pox_lox		   -- Use LLTROP_FIX to limit array size to case of
 ("tagged_ox_mod.f")           non-variable tropopause
                            -- Also zero ARRAY to avoid numerical problems
-read_regional_redist	   -- Change CTH scale filename from "v0" to "v1"
+read_regional_redist	   -- Change CTH scale filename from "v0" to "v2"
 ("lightning_NOx_nl_mod.f") -- Renamed from "read_otd_lis_scale"
+
+regrid_mass_to_4x5	   -- Bug fix: the lat index should be N, not S in the 
+("regrid_1x1_mod.f")          last 2 lines of the non-polar lat regridding
 
 seasalt_chem		   -- Fixed typo in FALK_A_SO2 equation: C_FLUX_C  
 ("sulfate_mod.f")             should be C_FLUX_A.
