@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.44 2007/02/22 19:55:26 bmy Exp $
+! $Id: diag3.f,v 1.45 2007/03/05 17:13:41 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out diagnostics to the BINARY format punch file 
-!  (bmy, bey, mgs, rvm, 5/27/99, 2/22/07)
+!  (bmy, bey, mgs, rvm, 5/27/99, 3/5/07)
 !
 !  NOTES: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
@@ -78,7 +78,7 @@
 !        (bmy, 9/5/06)
 !  (70) Now write diag 54 (time in the troposphere) if asked for (phs, 9/22/06)
 !  (71) Now use new time counters for ND43 & ND45,  Also now average between
-!        0 and 24 UT for ND47.  Bug fix in ND36. (phs, bmy, 2/22/07)
+!        0 and 24 UT for ND47.  Bug fix in ND36. (phs, bmy, 3/5/07)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -1977,6 +1977,7 @@
 !       than NTRACE (bmy, 4/9/99) 
 !  (5) ND36 now uses the AD36 array instead of AIJ. (bmy, 3/16/00)
 !  (6) Rewritten for clarity; also fixed for CH3I (bmy, 7/25/06)
+!  (7) Bug fix: now search for tra
 !******************************************************************************
 !                     
       IF ( ND36 > 0 ) THEN
@@ -1984,30 +1985,73 @@
          ! Loop over # of tracers
          DO M = 1, TMAX(36)
             
-            ! Get the tracer #
+            ! Get the tracer # from input.geos
             N  = TINDEX(36,M)
 
-            ! Define quantities for CH3I or fullchem
             IF ( ITS_A_CH3I_SIM() ) THEN
+
+               !--------------------------------------------------------
+               ! For CH3I simulation only 
+               !--------------------------------------------------------
                CATEGORY = 'CH3ISRCE'
                UNIT     = 'ng/m2/s'
                IF ( N > NEMANTHRO ) CYCLE 
+               
+               ! Tracer number
+               NN = N
+               
+               ! Index for AD36 array
+               MM = M
+
             ELSE 
+
+               !--------------------------------------------------------
+               ! For full-chemistry.  Note, due to historical baggage,
+               ! the order of the tracers in AD36 array corresponds to
+               ! the order as given in IDEMS.  Therefore, for the given
+               ! tracer number N, we must find the corresponding entry
+               ! in IDEMS. (bmy, 3/5/07)
+               !--------------------------------------------------------
                CATEGORY = 'ANTHSRCE'
                UNIT     = ''
-               IF ( .not. ANY( IDEMS == N ) ) CYCLE              
-               !----------------------------------------------
-               ! Prior to 2/22/07:
-               ! This line is no longer needed (bmy, 2/22/07)
-               !N        = IDEMS(M)
-               !----------------------------------------------
+               !----------------------------------------
+               ! Prior to 3/5/07
+               !IF ( .not. ANY( IDEMS == N ) ) CYCLE    
+               !----------------------------------------          
+
+               ! reset these
+               MM = 0
+               NN = 0
+
+               ! Given the tracer number N, find the proper entry in the 
+               ! IDEMS array and select that for output (bmy, 3/5/07)
+               DO NMAX = 1, NEMANTHRO
+                  IF ( N == IDEMS(NMAX) ) THEN
+                     MM = NMAX
+                     NN = N
+                     EXIT
+                  ENDIF
+               ENDDO
+
+               ! We haven't found a match, skip to next tracer
+               IF ( MM == 0 ) CYCLE
+                  
             ENDIF
 
-            ! Tracer number
-            NN = N
+            !-------------------------------------------------
+            ! Prior to 3/5/07:
+            ! Replace M with MM and move definition of NN
+            ! above. (bmy, 3/5/07)
+            !! Tracer number
+            !NN = N
+            !
+            ! Divide by seconds
+            ! Prior to 3/5/07:
+            !ARRAY(:,:,1) = AD36(:,:,M) / SECONDS
+            !-------------------------------------------------
 
             ! Divide by seconds
-            ARRAY(:,:,1) = AD36(:,:,M) / SECONDS
+            ARRAY(:,:,1) = AD36(:,:,MM) / SECONDS
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
@@ -2172,46 +2216,26 @@
 
                ! OH
                CASE ( 1 )
-                  !--------------------------------------------------------
-                  ! Prior to 1/24/07:
-                  !SCALE_TMP(:,:) = FLOAT( CTOH ) + 1d-20
-                  !--------------------------------------------------------
                   SCALE_TMP3D(:,:,1:LD43) = FLOAT( CTOH ) + 1d-20
                   UNIT                    = 'molec/cm3'
                   
                ! NO
                CASE ( 2 ) 
-                  !--------------------------------------------------------
-                  ! Prior to 1/24/07:
-                  !SCALE_TMP(:,:) = FLOAT( CTNO ) + 1d-20
-                  !--------------------------------------------------------
                   SCALE_TMP3D(:,:,1:LD43) = FLOAT( CTNO ) + 1d-20
                   UNIT                    = 'v/v'
 
                ! HO2 (rvm, bmy, 2/27/02)
                CASE ( 3 ) 
-                  !--------------------------------------------------------
-                  ! Prior to 1/24/07:
-                  !SCALE_TMP(:,:) = FLOAT( CTHO2 ) + 1d-20
-                  !--------------------------------------------------------
                   SCALE_TMP3D(:,:,1:LD43) = FLOAT( CTHO2 ) + 1d-20
                   UNIT                    = 'v/v'
 
                ! NO2 (rvm, bmy, 2/27/02)
                CASE ( 4 ) 
-                  !--------------------------------------------------------
-                  ! Prior to 1/24/07:
-                  !SCALE_TMP(:,:) = FLOAT( CTNO2 ) + 1d-20
-                  !--------------------------------------------------------
                   SCALE_TMP3D(:,:,1:LD43) = FLOAT( CTNO2 ) + 1d-20
                   UNIT                    = 'v/v'
 
                ! NO3 (rjp, bmy, 1/16/03)
                CASE ( 5 )
-                  !--------------------------------------------------------
-                  ! Prior to 1/24/07:
-                  !SCALE_TMP(:,:) = FLOAT( CTNO3 ) + 1d-20
-                  !--------------------------------------------------------
                   SCALE_TMP3D(:,:,1:LD43) = FLOAT( CTNO3 ) + 1d-20
                   UNIT                    = 'v/v'
 
@@ -2220,10 +2244,6 @@
             END SELECT
 
             DO L = 1, LD43 
-               !----------------------------------------------------
-               ! Prior to 1/24/07:
-               !ARRAY(:,:,L) = AD43(:,:,L,N) / SCALE_TMP(:,:)
-               !----------------------------------------------------
                ARRAY(:,:,L) = AD43(:,:,L,N) / SCALE_TMP3D(:,:,L)
             ENDDO
             
@@ -2388,11 +2408,6 @@
             IF ( ITS_A_FULLCHEM_SIM() .and. NN == IDTOX ) THEN 
                DO L = 1, LD45
                   ARRAY(:,:,L) =
-!----------------------------------------------------------------------
-! Prior to 1/24/07:
-! Now use SCALE_TMP3D for pure O3 (phs, 1/24/07)
-!     &                 AD45(:,:,L,N_TRACERS+1) / SCALE_TMP(:,:)
-!----------------------------------------------------------------------
      &                 AD45(:,:,L,N_TRACERS+1) / SCALE_TMP3D(:,:,L)
                ENDDO
                   
@@ -2489,10 +2504,6 @@
             NN = N
             
             DO L = 1, LD47
-               !------------------------------------------------------
-               ! Prior to 1/24/07:
-               !ARRAY(:,:,L) = AD47(:,:,L,N) / SCALEDYN
-               !------------------------------------------------------
                ARRAY(:,:,L) = AD47(:,:,L,N) / SCALE_TMP(:,:)
             ENDDO
 
@@ -2505,10 +2516,6 @@
             ! Store pure O3 as NNPAR+1 (bmy, 1/10/03)
             IF ( ITS_A_FULLCHEM_SIM() .and. NN == IDTOX ) THEN 
                DO L = 1, LD47
-                  !-------------------------------------------------------
-                  ! Prior to 1/24/07:
-                  !ARRAY(:,:,L) = AD47(:,:,L,N_TRACERS+1) / SCALEDYN
-                  !-------------------------------------------------------
                   ARRAY(:,:,L) = AD47(:,:,L,N_TRACERS+1) / 
      &                           SCALE_TMP3D(:,:,L) 
                ENDDO
