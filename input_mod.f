@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.38 2007/02/06 17:40:06 bmy Exp $
+! $Id: input_mod.f,v 1.39 2007/03/29 20:31:19 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -1419,14 +1419,6 @@
 
       ! Error check lightning switches
       IF ( LLIGHTNOX ) THEN
-
-         !-----------------------------------------------------------------
-         ! Prior to 1/26/07:
-         ! Remove this hardwire (bmy, 1/26/07) 
-         !! Kludge: for now set LOTDLIS=T.  We have not yet implemented
-         !! the alternative option. (ltm, bmy, 5/10/06)
-         !LOTDLIS = .TRUE.
-         !-----------------------------------------------------------------
 
          ! Make sure people don't set both LOTDLIS=T and LLOCRED=T
          IF ( LOTDREG .and. LOTDLOC ) THEN

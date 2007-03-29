@@ -1,4 +1,4 @@
-! $Id: diag51_mod.f,v 1.23 2007/01/24 18:22:22 bmy Exp $
+! $Id: diag51_mod.f,v 1.24 2007/03/29 20:31:13 bmy Exp $
       MODULE DIAG51_MOD
 !
 !******************************************************************************
@@ -890,10 +890,6 @@
       REAL*8, INTENT(IN) :: TAU_W
 
       ! Local variables
-      !-----------------------------------
-      ! Prior to 1/24/07:
-      !LOGICAL            :: IS_CHEM
-      !-----------------------------------
       INTEGER            :: I,   J,  L,  W, N, GMNL, GMTRC
       INTEGER            :: IOS, X, Y, K
       CHARACTER(LEN=16)  :: STAMP
@@ -930,58 +926,14 @@
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
-!--------------------------------------------
-! Prior to 1/24/07:
-!!$OMP+PRIVATE( X, Y, K, W, IS_CHEM )
-!--------------------------------------------
 !$OMP+PRIVATE( X, Y, K, W )
 
       DO W = 1, ND51_N_TRACERS
  
-!------------------------------------------------------------------------------
-! Prior to 1/24/07:        
-!         ! Set a flag to denote tracers which are only
-!         ! accumulated on every chemistry timestep
-!         IS_CHEM = ( ND51_TRACERS(W) == 71 .or. 
-!     &               ND51_TRACERS(W) == 72 .or. 
-!     &               ND51_TRACERS(W) == 74 .or.
-!     &               ND51_TRACERS(W) == 75 .or.
-!     &               ND51_TRACERS(W) == 82 .or. 
-!     &               ND51_TRACERS(W) == 83 .or.
-!     &               ND51_TRACERS(W) == 84 .or.
-!     &               ND51_TRACERS(W) == 85 .or.
-!     &               ND51_TRACERS(W) == 86 .or.
-!     &               ND51_TRACERS(W) == 87 )
-!------------------------------------------------------------------------------
-
          ! Loop over grid boxes
          DO K = 1, ND51_NL
          DO Y = 1, ND51_NJ
          DO X = 1, ND51_NI
-
-!------------------------------------------------------------------------------
-! Prior to 1/24/07:
-!            IF ( IS_CHEM ) THEN 
-!
-!               ! Avoid division by zero for tracers
-!               ! which are archived each chem timestep
-!               IF ( GOOD_CT_CHEM(X) > 0 ) THEN
-!                  Q(X,Y,K,W) = Q(X,Y,K,W) / GOOD_CT_CHEM(X) 
-!               ELSE
-!                  Q(X,Y,K,W) = 0d0
-!               ENDIF
-!
-!            ELSE
-!
-!               ! Avoid division by zero for all other tracers
-!               IF ( GOOD_CT(X) > 0 ) THEN
-!                  Q(X,Y,K,W) = Q(X,Y,K,W) / GOOD_CT(X) 
-!               ELSE
-!                  Q(X,Y,K,W) = 0d0
-!               ENDIF
-!
-!            ENDIF
-!------------------------------------------------------------------------------
 
          SELECT CASE( ND51_TRACERS(W) )
 
@@ -1335,32 +1287,6 @@
       ! Set STARTING TAU for the next bpch write
       TAU0 = TAU_W
 
-!----------------------------------------------------------------------
-! Prior to 1/24/07:
-! Now zero arrays with broadcast assignment statements (bmy, 1/24/07)
-!!$OMP PARALLEL DO 
-!!$OMP+DEFAULT( SHARED ) 
-!!$OMP+PRIVATE( X, Y, K, W )
-!      DO W = 1, ND51_N_TRACERS
-!      DO K = 1, ND51_NL
-!      DO Y = 1, ND51_NJ
-!      DO X = 1, ND51_NI
-!
-!         ! Zero accumulating array for tracer
-!         Q(X,Y,K,W) = 0d0
-!
-!         ! Zero counters
-!         IF ( W == 1 .and. K == 1 ) THEN
-!            GOOD_CT(X)      = 0
-!            GOOD_CT_CHEM(X) = 0
-!         ENDIF
-!      ENDDO
-!      ENDDO
-!      ENDDO
-!      ENDDO
-!!$OMP END PARALLEL DO
-!------------------------------------------------------------------------
-
       ! Zero accumulating array for tracer
       Q            = 0d0
 
@@ -1528,12 +1454,6 @@
 
       ! Compute longitude limits to write to disk
       ! Also handle wrapping around the date line
-      !-----------------------------------------------------------------
-      ! Prior to 11/30/06:
-      ! This allows us to set ND51_IMIN=ND51_IMAX, so that we can save 
-      ! out a single longitude transect (cdh, bmy, 11/30/06)
-      !IF ( ND51_IMAX > ND51_IMIN ) THEN
-      !-----------------------------------------------------------------
       IF ( ND51_IMAX >= ND51_IMIN ) THEN
          ND51_NI = ( ND51_IMAX - ND51_IMIN ) + 1
       ELSE 
@@ -1561,12 +1481,6 @@
       ENDIF
 
       ! Compute latitude limits to write to disk (bey, bmy, 3/16/99)
-      !------------------------------------------------------------------
-      ! Prior to 11/30/06:
-      ! This allows us to set ND51_JMIN=ND51_JMAX, so that we can save 
-      ! out a single latitude transect (cdh, bmy, 11/30/06)
-      !IF ( ND51_JMAX > ND51_JMIN ) THEN
-      !------------------------------------------------------------------
       IF ( ND51_JMAX >= ND51_JMIN ) THEN
          ND51_NJ = ( ND51_JMAX - ND51_JMIN ) + 1
       ELSE

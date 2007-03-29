@@ -1,4 +1,4 @@
-! $Id: diag49_mod.f,v 1.15 2006/12/11 19:37:49 bmy Exp $
+! $Id: diag49_mod.f,v 1.16 2007/03/29 20:31:13 bmy Exp $
       MODULE DIAG49_MOD
 !
 !******************************************************************************
@@ -1233,12 +1233,6 @@
 
       ! Compute longitude limits to write to disk 
       ! Also handle wrapping around the date line
-      !-----------------------------------------------------------------
-      ! Prior to 11/30/06:
-      ! This allows us to set ND49_IMIN=ND49_IMAX, so that we can save 
-      ! out a single longitude transect (cdh, bmy, 11/30/06)
-      !IF ( ND49_IMAX > ND49_IMIN ) THEN
-      !-----------------------------------------------------------------
       IF ( ND49_IMAX >= ND49_IMIN ) THEN
          ND49_NI = ( ND49_IMAX - ND49_IMIN ) + 1
       ELSE 
@@ -1266,12 +1260,6 @@
       ENDIF
 
       ! Compute latitude limits to write to disk (bey, bmy, 3/16/99)
-      !------------------------------------------------------------------
-      ! Prior to 11/30/06:
-      ! This allows us to set ND49_JMIN=ND49_JMAX, so that we can save 
-      ! out a single latitude transect (cdh, bmy, 11/30/06)
-      !IF ( ND49_JMAX > ND49_JMIN ) THEN
-      !------------------------------------------------------------------
       IF ( ND49_JMAX >= ND49_JMIN ) THEN      
          ND49_NJ = ( ND49_JMAX - ND49_JMIN ) + 1
       ELSE

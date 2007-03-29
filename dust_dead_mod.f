@@ -1,4 +1,4 @@
-! $Id: dust_dead_mod.f,v 1.10 2007/02/06 17:40:03 bmy Exp $
+! $Id: dust_dead_mod.f,v 1.11 2007/03/29 20:31:15 bmy Exp $
       MODULE DUST_DEAD_MOD
 !
 !******************************************************************************
@@ -4640,11 +4640,6 @@ c Fix up for negative argument, erf, etc.
 
       ! Filename
       FILENAME = TRIM( DATA_DIR )         //
-!------------------------------------------------------------------------
-! Prior to 1/25/07:
-! Now read from dust_200605 directory (tdf, bmy, 1/25/07)
-!     &           'dust_200203/dst_tibds.' // GET_NAME_EXT_2D() //
-!------------------------------------------------------------------------
      &           'dust_200605/dst_tibds.' // GET_NAME_EXT_2D() //
      &           '.'                      // GET_RES_EXT()
 
@@ -4819,11 +4814,6 @@ c Fix up for negative argument, erf, etc.
 
       ! Filename and time
       FILENAME  = TRIM( DATA_DIR )         //
-!-----------------------------------------------------------------------
-! Prior to 1/25/07:
-! Now read from dust_200605 directory (tdf, bmy, 1/25/07)
-!     &            'dust_200203/dst_tvbds.' // GET_NAME_EXT_2D() //
-!-----------------------------------------------------------------------
      &            'dust_200605/dst_tvbds.' // GET_NAME_EXT_2D() //
      &            '.'                      // GET_RES_EXT()
 

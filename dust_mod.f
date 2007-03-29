@@ -1,4 +1,4 @@
-! $Id: dust_mod.f,v 1.15 2007/01/24 18:22:23 bmy Exp $
+! $Id: dust_mod.f,v 1.16 2007/03/29 20:31:16 bmy Exp $
       MODULE DUST_MOD
 !
 !******************************************************************************
@@ -674,11 +674,6 @@
  100     FORMAT( 'D E A D   D U S T   M O B I L I Z A T I O N'         )
  110     FORMAT( 'Routines from DEAD model by Charlie Zender et al'    )
  120     FORMAT( 'Modified for GEOS-CHEM by D. Fairlie and R. Yantosca')
-!----------------------------------------------------------------------------
-! Prior to 1/23/07:
-! Update output statement (bmy, 1/23/07)
-! 130     FORMAT( 'Last Modification Date: 4/6/04'                      )
-!----------------------------------------------------------------------------
  130     FORMAT( 'Last Modification Date: 1/23/07'                     )
 
          ! Read fields for DEAD that are time-invariant

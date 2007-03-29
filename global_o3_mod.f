@@ -1,4 +1,4 @@
-! $Id: global_o3_mod.f,v 1.9 2007/01/22 17:32:25 bmy Exp $
+! $Id: global_o3_mod.f,v 1.10 2007/03/29 20:31:18 bmy Exp $
       MODULE GLOBAL_O3_MOD
 !
 !******************************************************************************
@@ -83,10 +83,6 @@
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      !-------------------------------------------
-      ! Prior to 1/19/07:
-      !USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
-      !-------------------------------------------
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
 
       IMPLICIT NONE
@@ -97,10 +93,6 @@
       INTEGER, INTENT(IN)  :: THISMONTH
 
       ! Local variables
-      !----------------------------------------------------
-      ! Prior to 1/19/07:
-      !REAL*4               :: ARRAY(IGLOB,JGLOB,LLTROP)
-      !----------------------------------------------------
       REAL*4               :: ARRAY(IGLOB,JGLOB,LGLOB)
       REAL*8               :: XTAU
       CHARACTER(LEN=255)   :: FILENAME
@@ -117,14 +109,6 @@
          CALL INIT_GLOBAL_O3
          FIRST = .FALSE.
       ENDIF
-
-!----------------------------------------------------------------------------
-! Prior to 1/19/07:
-!      ! File name
-!      FILENAME = TRIM( DATA_DIR ) // 
-!     &           'sulfate_sim_200508/offline/O3.' // GET_NAME_EXT() // 
-!     &           '.'                              // GET_RES_EXT()
-!----------------------------------------------------------------------------
 
 #if   defined( GRID30LEV )
 
@@ -148,22 +132,6 @@
       ! Get the TAU0 value for the start of the given month
       ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
       XTAU = GET_TAU0( THISMONTH, 1, 1985 )
- 
-!-----------------------------------------------------------------------------
-! Prior to 1/19/07:
-!      ! Read O3 data (v/v) from the binary punch file (tracer #51)
-!      ! Limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
-!      ! tropopause. This is backward compatibility with 
-!      ! offline data set.
-!      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 51,     
-!     &     XTAU,        IGLOB,                    JGLOB,      
-!     &     LLTROP_FIX,  ARRAY(:,:,1:LLTROP_FIX),  QUIET=.TRUE. )
-!!     &                 XTAU,      IGLOB,     JGLOB,     
-!!     &                 LLTROP,    ARRAY,     QUIET=.TRUE. )
-!      
-!      ! Assign data from ARRAY to the module variable O3
-!      CALL TRANSFER_3D_TROP( ARRAY, O3 )
-!------------------------------------------------------------------------------
  
       ! Read O3 data (v/v) from the binary punch file (tracer #51)
       CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 51,     
@@ -201,10 +169,6 @@
       !=================================================================
       ! INIT_GLOBAL_O3 begins here!
       !=================================================================
-      !-----------------------------------------------------
-      ! Prior to 1/19/07:
-      !ALLOCATE( O3( IIPAR, JJPAR, LLTROP ), STAT=AS )
-      !-----------------------------------------------------
       ALLOCATE( O3( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'O3' )
       O3 = 0d0

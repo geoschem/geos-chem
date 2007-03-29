@@ -1,4 +1,4 @@
-! $Id: tropopause_mod.f,v 1.10 2007/01/19 15:07:48 bmy Exp $
+! $Id: tropopause_mod.f,v 1.11 2007/03/29 20:31:25 bmy Exp $
       MODULE TROPOPAUSE_MOD
 !
 !******************************************************************************
@@ -242,10 +242,6 @@
       LMAX = MAXVAL( TPAUSE_LEV )
 
       !### For backwards compatibility during transition (still needed??)
-      !-----------------------------------
-      ! Prior to 1/19/07:
-      !LPAUSE = TPAUSE_LEV
-      !-----------------------------------
       !### LPAUSE is still used by CH4 chemistry and ND27 (phs, 1/19/07)
       LPAUSE = TPAUSE_LEV - 1
 

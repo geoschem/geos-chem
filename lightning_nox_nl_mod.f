@@ -1,4 +1,4 @@
-! $Id: lightning_nox_nl_mod.f,v 1.5 2007/02/22 18:26:27 bmy Exp $
+! $Id: lightning_nox_nl_mod.f,v 1.6 2007/03/29 20:31:20 bmy Exp $
       MODULE LIGHTNING_NOX_NL_MOD
 !
 !******************************************************************************
@@ -7,12 +7,12 @@
 !  GISS-II CTM's of Yuhang Wang, Gerry Gardner, & Larry Horowitz.  Overhauled 
 !  for updated parameterization schemes: CTH, MFLUX and PRECON.  Now also
 !  uses the near-land formulation (i.e. offshore boxes also get treated as
-!  if they were land boxes).  (ltm, rch, bmy, 4/14/04, 2/22/07)  
+!  if they were land boxes).  (ltm, rch, bmy, 4/14/04, 3/27/07)  
 !
 !  NOTE: The OTD/LIS regional redistribution for MFLUX and PRECON lightning
 !  parameterizations have not yet been implemented.  These parameterizations
 !  do not yield realistic results with the GEOS-4 meteorology.  We will try
-!  to implement them for GEOS-5 at a later time. (rch, ltm, bmy, 1/31/07)
+!  to implement them for GEOS-5 at a later time. (rch, ltm, bmy, 3/27/07)
 !
 !  Module Variables:
 !  ============================================================================
@@ -24,13 +24,16 @@
 !  (6 ) SLBASE         (REAL*8 ) : Array to hold NOx lightning emissions
 !  (7 ) OTD_LOC_REDIST (REAL*8 ) : Array to hold OTD/LIS local redist values
 !  (8 ) OTD_LOC_REDIST (REAL*8 ) : Array to hold OTD/LIS regional redist values
-!  (9 ) RFLASH         (REAL*8 ) : NOx molec/flash/meter (based on 4 Tg N/y)
-!  (10) E_IC_CG        (REAL*8 ) : Inter-Cloud/Cloud-Ground frequency ratio
-!  (11) T_NEG_BOT      (REAL*8 ) : Temp at bottom of neg. charge layer = 273 K
-!  (12) T_NEG_CTR      (REAL*8 ) : Temp at center of neg. charge layer = 258 K
-!  (13) T_NEG_TOP      (REAL*8 ) : Temp at top    of neg. charge layer = 233 K
-!  (14) AREA_30N       (REAL*8 ) : Grid box surface area at 30 N [m2]
-!  (15) FLASH_SCALE    (REAL*8 ) : Scaling factor for lightning to 6 Tg N/yr
+!  (9 ) RFLASH_MIDLAT  (REAL*8 ) : NOx molec/flash/meter (500 mol/flash Tg N/y)
+!  (10) RFLASH_TROPIC  (REAL*8 ) : NOx molec/flash/meter (previous definition)
+!  (11) EAST_WEST_DIV  (REAL*8 ) : Longitude between "AMERICAS" & "EURASIA"
+!  (12) WEST_NS_DIV    (REAL*8 ) : Latitude boundary of AMERICAN TROPICS
+!  (13) EAST_NS_DIV    (REAL*8 ) : Latitude boundary of EURASIAN TROPICS
+!  (14) T_NEG_BOT      (REAL*8 ) : Temp at bottom of neg. charge layer = 273 K
+!  (15) T_NEG_CTR      (REAL*8 ) : Temp at center of neg. charge layer = 258 K
+!  (16) T_NEG_TOP      (REAL*8 ) : Temp at top    of neg. charge layer = 233 K
+!  (17) AREA_30N       (REAL*8 ) : Grid box surface area at 30 N [m2]
+!  (18) FLASH_SCALE    (REAL*8 ) : Global scaling factor for LNOx to 6 Tg N/yr
 !
 !  Module Routines:
 !  ============================================================================
@@ -68,6 +71,7 @@
 !  (2 ) Price & Rind (1994), M. Weather Rev, vol. 122, 1930-1939.
 !  (3 ) Allen & Pickering (2002), JGR, vol. 107, NO. D23, 4711, 
 !        doi:10.1029/2002JD002066
+!  (4 ) Hudman et al (2007), JGR, in press (as of 3/27/07)
 !
 !  NOTES:
 !  (1 ) Based on "lightning_nox_mod.f", but updated for near-land formulation
@@ -79,8 +83,11 @@
 !        OTD_REG_REDIST, and also add OTD_LOC_REDIST array.  Now scale 
 !        lightning to 6 Tg N/yr for both 2x25 and 4x5.  Rename routine
 !        GET_OTD_LIS_REDIST to GET_REGIONAL_REDIST.  Add similar routine
-!        GET_LOCAL_REDIST.  Removed GET_OTD_LOCAL_REDIST.  Bug fix: divide 
+!        GET_LOCAL_REDIST.  Removed GET_OTD_LOCp AL_REDIST.  Bug fix: divide 
 !        A_M2 by 1d6 to get A_KM2. (rch, ltm, bmy, 2/22/07)
+!  (3 ) Rewritten for separate treatment of LNOx emissions at tropics & 
+!        midlatitudes, based on Hudman et al 2007.  Removed obsolete
+!        variable E_IC_CG. (rch, ltm, bmy, 3/27/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -110,12 +117,20 @@
       REAL*8               :: FLASH_SCALE
 
       ! Parameters
-      INTEGER, PARAMETER   :: NLTYPE    = 3
-      REAL*8,  PARAMETER   :: E_IC_CG   = 1d0
-      REAL*8,  PARAMETER   :: RFLASH    = 2.073d22
-      REAL*8,  PARAMETER   :: T_NEG_BOT = 273.0d0    !   0 C 
-      REAL*8,  PARAMETER   :: T_NEG_CTR = 258.0d0    ! -15 C
-      REAL*8,  PARAMETER   :: T_NEG_TOP = 233.0d0    ! -40 C
+      INTEGER, PARAMETER   :: NLTYPE        = 3
+      !--------------------------------------------------------------------
+      ! Prior to 3/27/07:
+      !REAL*8,  PARAMETER   :: E_IC_CG       = 1d0
+      !REAL*8,  PARAMETER   :: RFLASH        = 2.073d22
+      !--------------------------------------------------------------------
+      REAL*8,  PARAMETER   :: RFLASH_MIDLAT = 3.011d26   ! 500 mol/flash
+      REAL*8,  PARAMETER   :: RFLASH_TROPIC = 2.073d22   ! same as old RFLASH
+      REAL*8,  PARAMETER   :: EAST_WEST_DIV = -30d0
+      REAL*8,  PARAMETER   :: WEST_NS_DIV   =  23d0
+      REAL*8,  PARAMETER   :: EAST_NS_DIV   =  35d0
+      REAL*8,  PARAMETER   :: T_NEG_BOT     = 273.0d0    !   0 C 
+      REAL*8,  PARAMETER   :: T_NEG_CTR     = 258.0d0    ! -15 C
+      REAL*8,  PARAMETER   :: T_NEG_TOP     = 233.0d0    ! -40 C
 
       ! Arrays
       REAL*8,  ALLOCATABLE :: PROFILE(:,:)
@@ -150,12 +165,18 @@
 !        diagnostic. lightning redistribution to the ND56 diag.  Renamed
 !        REGSCALE variable to REDIST.  Bug fix: divide A_M2 by 1d6 to get
 !        A_KM2. (rch, ltm, bmy, 2/14/07)
+!  (3 ) Rewritten for separate treatment of LNOx emissions at tropics & 
+!        midlatitudes (rch, ltm, bmy, 3/27/07)
 !******************************************************************************
 !      
       ! References to F90 modules
       USE DAO_MOD,      ONLY : BXHEIGHT,  CLDTOPS,    PRECON,   T, ZMMU
       USE DIAG56_MOD,   ONLY : AD56,      ND56
-      USE GRID_MOD,     ONLY : GET_YMID,  GET_AREA_M2
+      !---------------------------------------------------------------------
+      ! Prior to 3/27/07:
+      !USE GRID_MOD,     ONLY : GET_YMID,  GET_AREA_M2
+      !---------------------------------------------------------------------
+      USE GRID_MOD,     ONLY : GET_YMID,  GET_XMID,   GET_AREA_M2
       USE LOGICAL_MOD,  ONLY : LCTH,      LMFLUX,     LOTDLOC
       USE LOGICAL_MOD,  ONLY : LOTDREG,   LPRECON
       USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
@@ -178,7 +199,16 @@
       REAL*8                :: RATE_SAVE, REDIST,      T1,       T2
       REAL*8                :: TOTAL,     TOTAL_CG,    TOTAL_IC, X       
       REAL*8                :: YMID,      Z_IC,        Z_CG,     ZUP
+      REAL*8                :: XMID
       REAL*8                :: VERTPROF(LLPAR)
+
+      ! Mid-latitude top-down scaling factor (see Sec. 6 for documentation)
+      ! (ltm, rch, bmy, 3/27/07)
+#if   defined( GRID4x5 )
+      REAL*8, PARAMETER     :: MID_LAT_SCALE = 0.6731d0 
+#elif defined( GRID2x25 )
+      REAL*8, PARAMETER     :: MID_LAT_SCALE = 0.2693d0 
+#endif
 
       !=================================================================
       ! LIGHTNING_NL begins here!
@@ -226,14 +256,14 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,        J,        L,     A_M2,      A_KM2       )
-!$OMP+PRIVATE( YMID,     LCHARGE,  P1,    P2,        T1          )
-!$OMP+PRIVATE( T2,       DLNP,     DZ,    P3,        ZUP         )
-!$OMP+PRIVATE( HCHARGE,  LTOP,     H0,    Z_CG,      Z_IC        )
-!$OMP+PRIVATE( LBOTTOM,  HBOTTOM,  CC,    FLASHRATE, IC_CG_RATIO )
-!$OMP+PRIVATE( L_MFLUX,  MFLUX,    RAIN,  RATE,      X           ) 
-!$OMP+PRIVATE( TOTAL_IC, TOTAL_CG, TOTAL, REDIST,    RATE_SAVE   )
-!$OMP+PRIVATE( VERTPROF                                          )
+!$OMP+PRIVATE( I,           J,        L,        A_M2,   A_KM2     )
+!$OMP+PRIVATE( YMID,        XMID,     LCHARGE,  P1,     P2        )
+!$OMP+PRIVATE( T1,          T2,       DLNP,     DZ,     P3        )
+!$OMP+PRIVATE( ZUP,         HCHARGE,  LTOP,     H0,     Z_CG      )
+!$OMP+PRIVATE( Z_IC,        LBOTTOM,  HBOTTOM,  CC,     FLASHRATE )
+!$OMP+PRIVATE( IC_CG_RATIO, L_MFLUX,  MFLUX,    RAIN,   RATE      )
+!$OMP+PRIVATE( X,           TOTAL_IC, TOTAL_CG, TOTAL,  REDIST    )
+!$OMP+PRIVATE( RATE_SAVE,   VERTPROF                              )
 !$OMP+SCHEDULE( DYNAMIC )
 
       ! Loop over latitudes
@@ -241,11 +271,6 @@
 
          ! Grid box surface areas in [m2] and [km2]
          A_M2  = GET_AREA_M2( J )
-         !--------------------------------------------------------------------
-         ! Prior to 2/14/07:
-         ! We should divide by 1d6 instead of multiplying (ltm, bmy, 2/14/07)
-         !A_KM2 = A_M2 * 1d6
-         !--------------------------------------------------------------------
          A_KM2 = A_M2 / 1d6
 
          ! Grid box latitude [degrees]
@@ -253,6 +278,9 @@
 
          ! Loop over longitudes
          DO I = 1, IIPAR
+
+            ! Grid box longitude [degrees]
+            XMID     = GET_XMID( I )
 
             ! Initialize
             LBOTTOM  = 0
@@ -563,78 +591,123 @@
             ENDIF
 
             !===========================================================
-            ! (6) COMPUTE TOTAL NOx AND PARTITION INTO VERTICAL LAYERS
+            ! (6) COMPUTE TOTAL LNOx AND PARTITION INTO VERTICAL LAYERS
             ! 
-            ! Compute the total NOx produced from lightning in the 
-            ! (I,J) column.  This is computed by:
-            !  
-            !    RFLASH * [ flashes/path length/6h ] * [ path length ]
+            ! (6a) We convert FLASHRATE (computed above) to units of
+            ! [flashes/6h] and store in the RATE variable.
+            !
+            ! We then multiply RATE by a scale factor based on 
+            ! OTD/LIS observations.  This is necessary in order to make 
+            ! sure that the lightning flashes happen in the correct 
+            ! locations as diagnosed by OTD/LIS satellite observations.  
+            ! There are two redistribution options:
+            !
+            !   (1) Apply regional scale factors based on OTD/LIS
+            !        observations (method of L. Jourdain et al)
+            !
+            !   (2) Apply box-by-box scale scale factors based on
+            !        OTD/LIS observations (method of B. Sauvage)
+            !
+            ! NOTE: As of 3/27/07, only method (1) is implemented.
             ! 
-            ! where:
+            ! (6b) We then compute X, which is the ratio
+            !   [cloud-ground flashes / total flashes].
             !
-            !    (a) RFLASH is the # of NOx molecules released 
-            !        per flash per meter
+            ! The amount of lightning released will depend whether we
+            ! are in the tropics or in mid-latitudes.
             !
-            !    (b) [flashes/path/6h] is the # of flashes in 6h
-            !        for the intra-cloud and cloud-ground pathways
             !
-            !    (c) [path length] is the length of the intra-cloud
-            !        and cloud-ground pathways in meters.  These are
-            !        represented by variables Z_IC and Z_CG.
+            ! (6c) LIGHTNING NOx EMISSIONS IN THE TROPICS:
+            ! ----------------------------------------------------------
+            ! N. American / S. American     tropics: lat <= 23 N 
+            ! African / Oceanian / Eurasian tropics: lat <= 35 N
             !
-            ! For the cloud-ground pathway, [flashes/path/6h] is:
-            !    
-            !    RATE * X 
+            ! The lightning NOx released in the inter-cloud (IC) and 
+            ! cloud-ground (CG) paths are given by:
             !
-            ! where:
-            !
-            !    (a) RATE is the total # of lighting flashes per 6h
-            !    (b) X is the ratio of [cloud-ground/total] flashes
-            !
-            ! and for the intra-cloud pathway, [flashes/path/6h] is:
-            !
-            !    RATE * ( 1-X )
+            !   TOTAL_IC = RFLASH_TROPIC * RATE * (1-X) * Z_IC
+            !   TOTAL_CG = RFLASH_TROPIC * RATE * (  X) * Z_CG
             !
             ! where:
+            !   RFLASH_TROPIC = # of NOx molecules released per flash 
+            !                    per meter (same as in previous code)
+            !   RATE          = lightning flashes / 6h computed above
+            !   Z_IC          = IC pathway in meters (from the negative    
+            !                    cloud layer to the cloud top)
+            !   Z_CG          = CG pathway in meters (from the negative
+            !                    cloud layer to the ground surface)
+            !   
+            ! We also apply a top-down final global scaling factor, 
+            ! calculated by previously bringing total global LNOx to 
+            ! 6 Tg N/yr  (2x2.5: 0.3683, 4x5: 0.8996).  In 2004, the 
+            ! tropics-only contribution to LNOx was 4.5379 Tg N.
             !
-            !    (a) RATE is the total # of [flashes/6h]
-            !    (b) (1-X) is the ratio of [intra-cloud/total] flashes
+            ! 
+            ! (6d) LIGHTING NOx EMISSIONS AT MIDLATITUDES:
+            ! ----------------------------------------------------------
+            ! N. American midlatitudes : lat > 23N
+            ! Eurasian    midlatitudes : lat > 35N
             !
-            ! Therefore, the lightning NOx emitted into each path is:
+            ! The lightning NOx released at midlatitudes is independent
+            ! of path length.  Thus:
             !
-            !    IC    = RFLASH * RATE * ( 1-X ) * Z_IC * E_IC_CG 
-            !    CG    = RFLASH * RATE *           Z_CG
-            !    Total = IC + CG
+            !   TOTAL_IC = RFLASH_MIDLAT * RATE * (1-X) * MID_LAT_SCALE
+            !   TOTAL_CG = RFLASH_MIDLAT * RATE *    X  * MID_LAT_SCALE
             !
-            ! We have assumed that the intra-cloud lightning flashes
-            ! produce the same amount of NOx as the cloud-ground 
-            ! flashes (cf. Allen and Pickering, 2002).  Therefore we 
-            ! have multiplied the IC formula by the IC/CG energy ratio, 
-            ! E_IC_CG = 1.0.
+            ! where 
+            !   RFLASH_MIDLAT = # of NOx molecules released per flash 
+            !                    per meter (based on 500 mol/flash)
+            !   RATE          = lightning flashes / 6h computed above
+            !   Z_IC          = IC pathway in meters (from the negative    
+            !                    cloud layer to the cloud top)
+            !   Z_CG          = CG pathway in meters (from the negative
+            !                    cloud layer to the ground surface)
             !
-            ! After we compute the total lighting released in the
-            ! column, we also do the following operations:
+            ! We now emit at the Northern Mid-latitudes using an RFLASH
+            ! value of 500 mol/flash.  This is independent of path 
+            ! length.  The overall final top-down scaling factor is not 
+            ! applied here.  Since we over-predict the total global 
+            ! flash rate slightly
             !
-            ! (1) We apply regional scaling based on OTD/LIS 
-            ! observations according to Line Jourdain et al.
+            !   OTD-LIS         :  45.9 flashes/sec; 
+            !   GEOS-CHEM 4x5   :  68.2 flashes/sec; 
+            !   GEOS-Chem 2x2.5 : 170.4 flashes/sec
             !
-            ! (2) We partition the NOx into each of the vertical grid 
-            ! boxes within the column with a Ken Pickering probability 
-            ! distribution function (see comments below).
+            ! an appropriate scaling factor is applied to the mid-
+            ! latitudes boxes ( 45.9/68.2 or 45.9/170.4 ) so that we
+            ! don't over-predict the amount of NOx released.  In 2004, 
+            ! using just 500 mol/flash and no additional scaling, this 
+            ! creates a MidLat LNOx contribution of 5.46 Tg N, and with 
+            ! scaling (as in the implemented version), 3.68 Tg N.
             !
-            ! (ltm, bmy, 5/10/06, 12/11/06)
+            !
+            ! (6e) The total lightning is the sum of IC+CG paths:
+            !   TOTAL = TOTAL_IC + TOTAL_CG
+            !
+            ! (6g) We then partition the NOx into each of the vertical 
+            ! grid boxes within the column with a Ken Pickering PDF
+            ! (see comments below).
+            !
+            ! (ltm, rch, bmy, 5/10/06, 3/27/07)
             !===========================================================
+
+            !-----------------------------------------------------------
+            ! (6a) Compute flash rate and apply OTD/LIS redistribution
+            !-----------------------------------------------------------
 
             ! Convert [flashes/min] to [flashes/6h]
             RATE     = FLASHRATE * 360.0d0
 
-            ! Ratio of cloud-ground flashes to total # of flashes
-            X        = 1d0 / ( 1d0 + IC_CG_RATIO )
-
-            ! NOx [molec/6h] released in the IC, CG, and total pathways 
-            TOTAL_IC = RFLASH   * RATE * ( 1d0 - X ) * Z_IC * E_IC_CG
-            TOTAL_CG = RFLASH   * RATE *         X   * Z_CG
-            TOTAL    = TOTAL_IC + TOTAL_CG 
+!------------------------------------------------------------------------------
+! Prior to 3/27/07:
+!            ! Ratio of cloud-ground flashes to total # of flashes
+!            X        = 1d0 / ( 1d0 + IC_CG_RATIO )
+!
+!            ! NOx [molec/6h] released in the IC, CG, and total pathways 
+!            TOTAL_IC = RFLASH   * RATE * ( 1d0 - X ) * Z_IC * E_IC_CG
+!            TOTAL_CG = RFLASH   * RATE *         X   * Z_CG
+!            TOTAL    = TOTAL_IC + TOTAL_CG 
+!------------------------------------------------------------------------------
 
             ! Get factors for OTD-LIS regional redistribution, OTD-LIS local
             ! redistribution, or no redistribution.  Redistribution makes sure 
@@ -649,22 +722,99 @@
             ENDIF
 
             ! Apply regional or local OTD-LIS redistribution so that the 
-            ! flashes occur in the right place. TOTAL = total NOx [molec/6h]
-            TOTAL    = TOTAL * REDIST
-
-            !%%% NOTE: THIS FLASH_SCALE HAS BEEN DEVELOPED     %%%
-            !%%%       FOR THE OTD-LIS REGIONAL REDISTRIBUTION %%%
-            !%%%       YOU SHOULD COMMENT IT OUT FOR LOTDLOC   %%% 
-            !%%%       UNTIL WE HAVE A CHANCE TO DO MORE TESTS %%%
-            !%%%       (bmy, 2/1/07)                           %%%
-            ! Scale total lightning NOx to 6 Tg N/yr, accounting for
-            ! differences from met fields & resolution (ltm, bmy, 12/11/06)
-            IF ( LOTDREG ) THEN  !%%% BMY TEMP MODIFICATION
-            TOTAL    = TOTAL * FLASH_SCALE
-            ENDIF                !%%% BMY TEMP MODIFICATION
+            ! flashes occur in the right place. 
+            RATE = RATE * REDIST
 
             !-----------------------------------------------------------
-            ! (6a) ND56 diagnostic: store flash rates [flashes/min/km2]
+            ! (6b) Compute cloud-ground/total flash ratio
+            !-----------------------------------------------------------
+
+            ! Ratio of cloud-to-ground flashes to total # of flashes
+            X    = 1d0 / ( 1d0 + IC_CG_RATIO )
+
+            ! Compute LNOx emissions for tropics or midlats 
+
+            IF ( XMID > EAST_WEST_DIV ) THEN 
+               
+               !--------------------------------------------------------
+               ! (6c,6d) We are in EURASIA
+               !--------------------------------------------------------
+               IF ( YMID > EAST_NS_DIV ) THEN 
+
+                  ! 6d: Eurasian Mid-Latitudes
+                  TOTAL_IC = RFLASH_MIDLAT * RATE          * ( 1d0 - X )
+                  TOTAL_IC = TOTAL_IC      * MID_LAT_SCALE
+
+                  TOTAL_CG = RFLASH_MIDLAT * RATE          * X
+                  TOTAL_CG = TOTAL_CG      * MID_LAT_SCALE
+
+               ELSE                           
+
+                  ! 6c: Eurasian Tropics
+                  TOTAL_IC = RFLASH_TROPIC * RATE * ( 1d0 - X ) * Z_IC
+                  TOTAL_CG = RFLASH_TROPIC * RATE * (       X ) * Z_CG
+
+                  ! Apply top-down final global scale factor
+                  IF ( LOTDREG ) THEN
+                     TOTAL_IC = TOTAL_IC * FLASH_SCALE
+                     TOTAL_CG = TOTAL_CG * FLASH_SCALE
+                  ENDIF
+               ENDIF
+
+
+            ELSE   
+               
+               !--------------------------------------------------------
+               ! (6c,6d) We are in the AMERICAS
+               !--------------------------------------------------------
+               IF ( YMID > WEST_NS_DIV ) THEN 
+
+                  ! 6d: American Mid-Latitudes
+                  TOTAL_IC = RFLASH_MIDLAT * RATE          * ( 1d0 - X )
+                  TOTAL_IC = TOTAL_IC      * MID_LAT_SCALE
+
+                  TOTAL_CG = RFLASH_MIDLAT * RATE          * X
+                  TOTAL_CG = TOTAL_CG      * MID_LAT_SCALE
+
+               ELSE                           
+
+                  ! 6c: American Tropics
+                  TOTAL_IC = RFLASH_TROPIC * RATE * ( 1d0 - X ) * Z_IC
+                  TOTAL_CG = RFLASH_TROPIC * RATE * (       X ) * Z_CG
+
+                  ! Apply top-down final global scale factor
+                  IF ( LOTDREG ) THEN
+                     TOTAL_IC = TOTAL_IC * FLASH_SCALE
+                     TOTAL_CG = TOTAL_CG * FLASH_SCALE
+                  ENDIF
+               ENDIF
+            ENDIF
+
+            !-----------------------------------------------------------
+            ! (6e) Compute total lightning
+            !-----------------------------------------------------------
+
+            ! Sum of IC + CG [molec/6h]
+            TOTAL = TOTAL_IC + TOTAL_CG
+
+!-----------------------------------------------------------------------------
+! Prior to 3/27/07:            
+!            TOTAL    = TOTAL * REDIST
+!
+!            !%%% NOTE: THIS FLASH_SCALE HAS BEEN DEVELOPED     %%%
+!            !%%%       FOR THE OTD-LIS REGIONAL REDISTRIBUTION %%%
+!            !%%%       YOU SHOULD COMMENT IT OUT FOR LOTDLOC   %%% 
+!            !%%%       UNTIL WE HAVE A CHANCE TO DO MORE TESTS %%%
+!            !%%%       (bmy, 2/1/07)                           %%%
+!            ! Scale total lightning NOx to 6 Tg N/yr, accounting for
+!            ! differences from met fields & resolution (ltm, bmy, 12/11/06)
+!            IF ( LOTDREG ) THEN  !%%% BMY TEMP MODIFICATION
+!            TOTAL    = TOTAL * FLASH_SCALE
+!            ENDIF                !%%% BMY TEMP MODIFICATION
+!------------------------------------------------------------------------------
+
+            !-----------------------------------------------------------
+            ! (6f) ND56 diagnostic: store flash rates [flashes/min/km2]
             !-----------------------------------------------------------
             IF ( ND56 > 0 .and. RATE > 0d0 ) THEN
 
@@ -679,7 +829,7 @@
             ENDIF
 
             !-----------------------------------------------------------
-            ! (6b) LIGHTDIST computes the lightning distribution from 
+            ! (6g) LIGHTDIST computes the lightning distribution from 
             ! the ground to the convective cloud top using cumulative
             ! distribution functions for ocean flashes, tropical land
             ! flashes, and non-tropical land flashes, as specified by

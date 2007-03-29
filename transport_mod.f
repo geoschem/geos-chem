@@ -1,4 +1,4 @@
-! $Id: transport_mod.f,v 1.15 2006/12/11 19:37:55 bmy Exp $
+! $Id: transport_mod.f,v 1.16 2007/03/29 20:31:25 bmy Exp $
       MODULE TRANSPORT_MOD
 !
 !******************************************************************************
@@ -251,20 +251,10 @@
             !-------------------------
             DO J = 1, JJPAR
                IF ( IEBD1 > 1 ) THEN
-                  !-------------------------------------------------------
-                  ! Prior to 11/29/06:
-                  ! Bug fix: should be STT_J1 (dkh, phs, bmy, 11/29/06)
-                  !STT_I1(J,L,N) = STT(IEBD1-1,J,L,N)
-                  !-------------------------------------------------------
                   STT_J1(J,L,N) = STT(IEBD1-1,J,L,N)
                ENDIF
          
                IF ( IEBD2 < IIPAR ) THEN
-                  !-------------------------------------------------------
-                  ! Prior to 11/29/06:
-                  ! Bug fix: should be STT_J2 (dkh, phs, bmy, 11/29/06)
-                  !STT_I2(J,L,N) = STT(IEBD2+1,J,L,N)
-                  !-------------------------------------------------------
                   STT_J2(J,L,N) = STT(IEBD2+1,J,L,N)
                ENDIF
             ENDDO
@@ -274,20 +264,10 @@
             !-------------------------
             DO I = 1, IIPAR              
                IF ( JEBD1 > 1  ) THEN
-                  !-------------------------------------------------------
-                  ! Prior to 11/29/06:
-                  ! Bug fix: should be STT_I1 (dkh, phs, bmy, 11/29/06)
-                  !STT_J1(I,L,N) = STT(I,JEBD1-1,L,N)
-                  !-------------------------------------------------------
                   STT_I1(I,L,N) = STT(I,JEBD1-1,L,N)
                ENDIF
          
                IF ( JEBD2 < JJPAR ) THEN
-                  !-------------------------------------------------------
-                  ! Prior to 11/29/06:
-                  ! Bug fix: should be STT_I2 (dkh, phs, bmy, 11/29/06)
-                  !STT_J2(I,L,N) = STT(I,JEBD2+1,L,N)
-                  !-------------------------------------------------------
                   STT_I2(I,L,N) = STT(I,JEBD2+1,L,N)
                ENDIF
             ENDDO
@@ -568,20 +548,10 @@
             !-------------------------
             DO J = 1, JJPAR
                IF ( IEBD1 > 1  ) THEN
-                  !-------------------------------------------------------
-                  ! Prior to 11/29/06:
-                  ! Bug fix: should be STT_J1 (dkh, phs, bmy, 11/29/06)
-                  !STT(IEBD1-1,J,L,N) = STT_I1(J,L,N)
-                  !-------------------------------------------------------
                   STT(IEBD1-1,J,L,N) = STT_J1(J,L,N)
                ENDIF
          
                IF ( IEBD2 < IIPAR ) THEN
-                  !-------------------------------------------------------
-                  ! Prior to 11/29/06:
-                  ! Bug fix: should be STT_J2 (dkh, phs, bmy, 11/29/06)
-                  !STT(IEBD2+1,J,L,N) = STT_I2(J,L,N)
-                  !-------------------------------------------------------
                   STT(IEBD2+1,J,L,N) = STT_J2(J,L,N)
                ENDIF
             ENDDO
@@ -591,20 +561,10 @@
             !-------------------------
             DO I = 1, IIPAR
                IF ( JEBD1 > 1  ) THEN
-                  !-------------------------------------------------------
-                  ! Prior to 11/29/06:
-                  ! Bug fix: should be STT_J2 (dkh, phs, bmy, 11/29/06)
-                  !STT(I,JEBD1-1,L,N) = STT_J1(I,L,N)
-                  !-------------------------------------------------------
                   STT(I,JEBD1-1,L,N) = STT_I1(I,L,N)
                ENDIF
                
                IF ( JEBD2 < JJPAR ) THEN
-                  !-------------------------------------------------------
-                  ! Prior to 11/29/06:
-                  ! Bug fix: should be STT_J2 (dkh, phs, bmy, 11/29/06)
-                  !STT(I,JEBD2+1,L,N) = STT_J2(I,L,N)
-                  !-------------------------------------------------------
                   STT(I,JEBD2+1,L,N) = STT_I2(I,L,N)
                ENDIF
             ENDDO

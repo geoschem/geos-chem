@@ -1,4 +1,4 @@
-! $Id: diag_2pm.f,v 1.5 2007/01/24 18:22:23 bmy Exp $
+! $Id: diag_2pm.f,v 1.6 2007/03/29 20:31:14 bmy Exp $
       SUBROUTINE DIAG_2PM
 !
 !*****************************************************************************
@@ -114,15 +114,7 @@
             ! Now set LTNO2, CTNO2 based on the NO times (rvm, bmy, 2/27/02)
             IF ( LT(I) >= HR1_NO .and. LT(I) <= HR2_NO ) THEN 
                LTNO(I,J)  = 1
-               !---------------------------------
-               ! Prior to 1/24/07:
-               !CTNO(I,J)  = CTNO(I,J) + 1
-               !---------------------------------
                LTNO2(I,J) = 1
-               !--------------------------------- 
-               ! Prior to 1/24/07:
-               !CTNO2(I,J) = CTNO2(I,J) + 1
-               !--------------------------------- 
                
                ! Counters for # of NO, NO2 boxes in the trop (phs, 1/24/07)
                DO L = 1, LD43
@@ -142,20 +134,8 @@
             ! Now set LTHO2, CTHO2 based on the OH times (rvm, bmy, 2/27/02)
             IF ( LT(I) >= HR1_OH .and. LT(I) <= HR2_OH ) THEN  
                LTOH(I,J)  = 1
-               !------------------------------------------
-               ! Prior to 1/24/07:
-               !CTOH(I,J)  = CTOH(I,J) + 1
-               !------------------------------------------
                LTHO2(I,J) = 1
-               !------------------------------------------
-               ! Prior to 1/24/07:
-               !CTHO2(I,J) = CTHO2(I,J) + 1
-               !------------------------------------------
                LTNO3(I,J) = 1
-               !------------------------------------------
-               ! Prior to 1/24/07:
-               !CTNO3(I,J) = CTNO3(I,J) + 1
-               !------------------------------------------
 
                ! Counters for # of OH,HO2,NO3 boxes in the trop (phs, 1/24/07)
                DO L = 1, LD43 

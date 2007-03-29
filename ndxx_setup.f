@@ -1,9 +1,9 @@
-! $Id: ndxx_setup.f,v 1.28 2007/01/22 17:32:26 bmy Exp $
+! $Id: ndxx_setup.f,v 1.29 2007/03/29 20:31:21 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
 !  NDXX_SETUP dynamically allocates memory for certain diagnostic arrays that 
-!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 1/19/07)
+!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 3/6/07)
 !
 !  This allows us to reduce the amount of memory that needs to be declared 
 !  globally.  We only allocate memory for arrays if the corresponding 
@@ -122,6 +122,8 @@
 !  (59) Now remove TRCOFFSET; it's obsolete (bmy, 5/16/06)
 !  (60) Added the ND54 for time spend in the troposphere (phs, 10/17/06)
 !  (61) Now allocate ND43 and ND45 counter arrays as 3-D (phs, 1/19/07)
+!  (62) For ND20 diagnostic, reset ND65 diagnostic with LLTROP_FIX instead of 
+!        LLTROP (phs, bmy, 3/6/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -449,7 +451,12 @@
       !       rates are computed by ND65.  
       !=================================================================
       IF ( ND20 > 0 ) THEN 
-         IF ( ND65 == 0 ) ND65 = LLTROP
+         !--------------------------------------------------------------------
+         ! Prior to 3/6/07:
+         ! Assume we only need to go as high as ann mean trop (phs, 3/6/07)
+         !IF ( ND65 == 0 ) ND65 = LLTROP
+         !--------------------------------------------------------------------
+         IF ( ND65 == 0 ) ND65 = LLTROP_FIX
       ENDIF
 
       !=================================================================
@@ -739,10 +746,6 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTNO' )
          
          ! Number of times LT was between HR1_NO and HR2_NO
-         !----------------------------------------------------------------
-         ! Prior to 1/19/07:
-         !ALLOCATE( CTNO( IIPAR, JJPAR ), STAT=AS )
-         !----------------------------------------------------------------
          ALLOCATE( CTNO( IIPAR, JJPAR, LD43 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTNO' )
 
@@ -751,10 +754,6 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTOH' )
 
          ! Locations where LT is between HR1_OH and HR2_OH
-         !----------------------------------------------------------------
-         ! Prior to 1/19/07:
-         !ALLOCATE( CTOH( IIPAR, JJPAR ), STAT=AS )
-         !----------------------------------------------------------------
          ALLOCATE( CTOH( IIPAR, JJPAR, LD43 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTOH' )
 
@@ -763,10 +762,6 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTHO2' )
 
          ! Locations where LT is between HR1_OH and HR2_OH
-         !----------------------------------------------------------------
-         ! Prior to 1/19/07:
-         !ALLOCATE( CTHO2( IIPAR, JJPAR ), STAT=AS )
-         !----------------------------------------------------------------
          ALLOCATE( CTHO2( IIPAR, JJPAR, LD43 ), STAT=AS )
 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTHO2' )
@@ -776,10 +771,6 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTHO2' )
 
          ! Locations where LT is between HR1_OH and HR2_OH
-         !----------------------------------------------------------------
-         ! Prior to 1/19/07:
-         !ALLOCATE( CTNO2( IIPAR, JJPAR ), STAT=AS )
-         !----------------------------------------------------------------
          ALLOCATE( CTNO2( IIPAR, JJPAR, LD43 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTHO2' )
 
@@ -788,10 +779,6 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTHO2' )
 
          ! Locations where LT is between HR1_OH and HR2_OH
-         !----------------------------------------------------------------
-         ! Prior to 1/19/07:
-         !ALLOCATE( CTNO3( IIPAR, JJPAR ), STAT=AS )
-         !----------------------------------------------------------------
          ALLOCATE( CTNO3( IIPAR, JJPAR, LD43 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTHO2' )
       ENDIF

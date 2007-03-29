@@ -1,9 +1,9 @@
-! $Id: diag56_mod.f,v 1.4 2006/11/07 19:01:59 bmy Exp $
+! $Id: diag56_mod.f,v 1.5 2007/03/29 20:31:14 bmy Exp $
       MODULE DIAG56_MOD
 !
 !******************************************************************************
 !  Module DIAG56_MOD contains arrays and routines for archiving the ND56
-!  diagnostic -- lightning flash rates. (bmy, 5/11/06, 9/5/06) 
+!  diagnostic -- lightning flash rates. (bmy, 5/11/06, 3/7/07) 
 !
 !  Module Variables:
 !  ============================================================================
@@ -27,6 +27,7 @@
 !  NOTES:
 !  (1 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
 !        (bmy, 9/5/06)
+!  (2 ) Now divide AD56 by the # of A-6 timesteps (ltm, bmy, 3/7/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -84,8 +85,8 @@
       SUBROUTINE WRITE_DIAG56
 !
 !******************************************************************************
-!  Subroutine WRITE_DIAG03 writes the ND03 diagnostic arrays to the binary
-!  punch file at the proper time. (bmy, 5/11/06, 9/5/06)
+!  Subroutine WRITE_DIAG56 writes the ND03 diagnostic arrays to the binary
+!  punch file at the proper time. (bmy, 5/11/06, 3/7/06)
 !
 !   # : Field    : Description              : Units          : Scale factor
 !  --------------------------------------------------------------------------
@@ -96,13 +97,18 @@
 !  NOTES:
 !  (1 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
 !        (bmy, 9/5/06)
+!  (2 ) Now scale AD56 by the # of A-6 timesteps (ltm, bmy, 3/7/07)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,    ONLY : BPCH2, GET_MODELNAME, GET_HALFPOLAR
       USE FILE_MOD,     ONLY : IU_BPCH
       USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
-      USE TIME_MOD,     ONLY : GET_CT_EMIS, GET_DIAGb,  GET_DIAGe
+      !--------------------------------------------------------------------
+      ! Prior to 3/7/07:
+      !USE TIME_MOD,     ONLY : GET_CT_EMIS, GET_DIAGb,  GET_DIAGe
+      !--------------------------------------------------------------------
+      USE TIME_MOD,     ONLY : GET_CT_A6,   GET_DIAGb,  GET_DIAGe
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! TINDEX
@@ -135,8 +141,12 @@
       LONRES    = DISIZE
       MODELNAME = GET_MODELNAME()
       RESERVED  = ''
-      SCALE     = DBLE( GET_CT_EMIS() ) + 1d-32
-         
+      !------------------------------------------------
+      ! Prior to 3/7/07
+      !SCALE     = DBLE( GET_CT_EMIS() ) + 1d-32
+      !------------------------------------------------
+      SCALE     = DBLE( GET_CT_A6() ) + 1d-32
+        
       !=================================================================
       ! Write data to the bpch file
       !=================================================================
@@ -148,7 +158,11 @@
          N            = TINDEX(56,M)
          CATEGORY     = 'LFLASH-$'
          UNIT         = 'flashes/min/km2'
-         ARRAY(:,:,1) = AD56(:,:,N)
+         !---------------------------------------------
+         ! Prior to 3/7/07:
+         !ARRAY(:,:,1) = AD56(:,:,N)
+         !---------------------------------------------
+         ARRAY(:,:,1) = AD56(:,:,N) / SCALE
 
          ! Write data to disk
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,

@@ -1,4 +1,4 @@
-! $Id: gcap_convect_mod.f,v 1.8 2006/12/19 21:28:38 bmy Exp $
+! $Id: gcap_convect_mod.f,v 1.9 2007/03/29 20:31:18 bmy Exp $
       MODULE GCAP_CONVECT_MOD
 !
 !******************************************************************************
@@ -51,11 +51,6 @@
 
       ! Constants
       REAL*8,  PARAMETER :: GRAV     = 9.8d0
-      !----------------------------------------------
-      ! Prior to 12/19/06:
-      ! Make SMALLEST smaller (bmy, 12/19/06)
-      !REAL*8,  PARAMETER :: SMALLEST = 1d-32
-      !----------------------------------------------
       REAL*8,  PARAMETER :: SMALLEST = 1d-60
       REAL*8,  PARAMETER :: TINYNUM  = 2*SMALLEST
 
@@ -526,14 +521,6 @@
                   ! use a geometric averaging procedure
                   CABV = MAX( CMIX(I,KM1), MAXC*TINYNUM, SMALLEST )
                   CBEL = MAX( CMIX(I,K),   MAXC*TINYNUM, SMALLEST )
-
-!---------------------------------------------------------------------------
-! Prior to 12/19/06:
-! We need to prevent division by zero, if CABV-CBEL=0 (bmy, 12/19/06)
-!                  CHAT(I,K) = LOG( CABV / CBEL)
-!     &                       /   ( CABV - CBEL)
-!     &                       *     CABV * CBEL
-!----------------------------------------------------------------------------
 
                   ! If CABV-CBEL is zero then set CHAT=SMALLEST
                   ! so that we avoid div by zero (bmy, 12/19/06) 

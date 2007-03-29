@@ -1,4 +1,4 @@
-! $Id: initialize.f,v 1.24 2007/02/06 17:40:05 bmy Exp $
+! $Id: initialize.f,v 1.25 2007/03/29 20:31:19 bmy Exp $
       SUBROUTINE INITIALIZE( IFLAG )
 !
 !******************************************************************************
@@ -337,11 +337,6 @@
          ENDIF
 
          ! For ND42 - SOA concentrations (dkh, bmy, 5/22/06)
-         !------------------------------------------
-         ! Prior to 1/30/07:
-         ! Bug fix: should be ND42 (bmy, 1/30/07)
-         !IF ( ND41 > 0 ) THEN
-         !------------------------------------------
          IF ( ND42 > 0 ) THEN
             CALL ZERO_DIAG42
          ENDIF

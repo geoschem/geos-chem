@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.35 2007/02/22 18:26:29 bmy Exp $
+! $Id: sulfate_mod.f,v 1.36 2007/03/29 20:31:23 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -1442,23 +1442,6 @@
       Ki     = 1.5d-12
 
       ! Zero ND44_TMP array
-!---------------------------------------------------------------------------
-! Prior to 2/12/07:
-! F90 array statement is more efficient (bmy, 2/12/07)
-!      IF ( ND44 > 0 ) THEN
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
-!         DO L = 1, LLTROP
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!            ND44_TMP(I,J,L) = 0d0
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO
-!      ENDIF
-!---------------------------------------------------------------------------
       ND44_TMP = 0d0
       
       ! Loop over tropospheric grid boxes
@@ -1995,11 +1978,6 @@
       IF ( TOT_FLUX_A > EQ1 ) THEN
 
 	 ! Fraction of alkalinity available for each acid
-         !-------------------------------------------------------------------
-         ! Prior to 12/8/06:
-         ! Fix typo: C_FLUX_C should be C_FLUX_A (havala, bec, bmy, 12/8/06)
-         !FALK_A_SO2  = C_FLUX_C / TOT_FLUX_A
-         !-------------------------------------------------------------------
          FALK_A_SO2  = C_FLUX_A / TOT_FLUX_A
 	 FALK_A_HNO3 = N_FLUX_A / TOT_FLUX_A
          FALK_A_SO2  = MAX( FALK_A_SO2, MINDAT )
@@ -6152,16 +6130,6 @@
          IF ( IOS > 0 ) THEN
             CALL IOERROR( IOS, IU_FILE, 'read_aircraft_so2:3' )
          ENDIF
-
-         !----------------------------------------------------------
-         ! Prior to 12/11/06:
-         ! NOTE: This should not be used, as we now have new files
-         ! for aircraft SOx made especially for GCAP
-         ! (phs, bmy, 12/8/06)
-         ! fix for GCAP (11/17/06, phs)
-         ! because for GCAP, JGLOB is 45
-         !if ( J == 46 ) CYCLE
-         !----------------------------------------------------------
 
          ! Unit conversion: [kg Fuel/box/day] -> [kg SO2/box/s]
          ! Assuming an emission index of 1.0, 

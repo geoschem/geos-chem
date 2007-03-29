@@ -1,4 +1,4 @@
-! $Id: carbon_mod.f,v 1.27 2007/02/06 19:04:33 bmy Exp $
+! $Id: carbon_mod.f,v 1.28 2007/03/29 20:31:10 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
@@ -2462,12 +2462,6 @@ c
          ENDDO
       ELSE
          DO IPR = 1, NPROD
-            !----------------------------------------------------
-            ! Prior to 2/6/07:
-            ! Daven Henze says that the default value for GPROD 
-            ! should be 0.5, not 1.0 (dkh, bmy, 2/6/07)
-            !GPROD(I,J,L,IPR,JHC) = 1.d0   ! only one product
-            !----------------------------------------------------
             GPROD(I,J,L,IPR,JHC) = 0.5d0   ! only one product
          ENDDO
       ENDIF
@@ -2478,12 +2472,6 @@ c
          ENDDO
       ELSE
          DO IPR = 1, NPROD
-            !----------------------------------------------------
-            ! Prior to 2/6/07:
-            ! Daven Henze says that the default value for GPROD 
-            ! should be 0.5, not 1.0 (dkh, bmy, 2/6/07)
-            !APROD(I,J,L,IPR,JHC) = 1.d0
-            !----------------------------------------------------
             APROD(I,J,L,IPR,JHC) = 0.5d0
          ENDDO
       ENDIF
@@ -3808,12 +3796,6 @@ c
          DO I = 1, IIPAR
 
             ! Convert [molec/cm2/s] --> [kg C/timestep]
-            !-----------------------------------------------------------
-            ! Prior to 11/3/06:
-            ! Prevent seg fault error if LBIOMASS=F (bmy, 11/3/06)
-            !BIOBC            = BIOMASS(I,J,IDBBC) * A_CM2 * CONV_BC
-            !BIOOC            = BIOMASS(I,J,IDBOC) * A_CM2 * CONV_OC
-            !-----------------------------------------------------------
             IF ( LBIOMASS ) THEN
                BIOBC         = BIOMASS(I,J,IDBBC) * A_CM2 * CONV_BC
                BIOOC         = BIOMASS(I,J,IDBOC) * A_CM2 * CONV_OC

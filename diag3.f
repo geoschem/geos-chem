@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.45 2007/03/05 17:13:41 bmy Exp $
+! $Id: diag3.f,v 1.46 2007/03/29 20:31:11 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out diagnostics to the BINARY format punch file 
-!  (bmy, bey, mgs, rvm, 5/27/99, 3/5/07)
+!  (bmy, bey, mgs, rvm, 5/27/99, 3/20/07)
 !
 !  NOTES: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
@@ -79,6 +79,8 @@
 !  (70) Now write diag 54 (time in the troposphere) if asked for (phs, 9/22/06)
 !  (71) Now use new time counters for ND43 & ND45,  Also now average between
 !        0 and 24 UT for ND47.  Bug fix in ND36. (phs, bmy, 3/5/07)
+!  (72) Bug fix in ND65: use 3-D counter array (phs, bmy, 3/6/07)
+!  (73) Bug fix in ND07: now save out IDTSOA4 tracer (tmf, bmy, 3/20/07)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -144,7 +146,7 @@
       USE TRACERID_MOD, ONLY : IDTSO2,      IDTSO4,      IDTNH3 
       USE TRACERID_MOD, ONLY : IDTOX,       IDTNOX,      IDTHNO3 
       USE TRACERID_MOD, ONLY : IDTISOP,     IDTACET,     IDTPRPE 
-      USE TRACERID_MOD, ONLY : NEMANTHRO 
+      USE TRACERID_MOD, ONLY : NEMANTHRO ,  IDTSOA4
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_NSOL
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD  
 
@@ -580,11 +582,16 @@
             !-----------------------------------------------
             CATEGORY = 'PL-OC=$'
 
-            DO N = 1, 3
+            !------------------------
+            ! Prior to 3/20/07:
+            !DO N = 1, 3
+            !------------------------
+            DO N = 1, 4
 
                IF ( N == 1 ) NN = IDTSOA1
                IF ( N == 2 ) NN = IDTSOA2
                IF ( N == 3 ) NN = IDTSOA3
+               IF ( N == 4 ) NN = IDTSOA4  ! (tmf, bmy, 3/20/07)
 
                DO L = 1, LD07
                   ARRAY(:,:,L) = AD07_HC(:,:,L,N)
@@ -1977,7 +1984,8 @@
 !       than NTRACE (bmy, 4/9/99) 
 !  (5) ND36 now uses the AD36 array instead of AIJ. (bmy, 3/16/00)
 !  (6) Rewritten for clarity; also fixed for CH3I (bmy, 7/25/06)
-!  (7) Bug fix: now search for tra
+!  (7) Bug fix: given the tracer number, now search for entry in IDEMS
+!       to jive with historical baggage (bmy, 3/6/07)
 !******************************************************************************
 !                     
       IF ( ND36 > 0 ) THEN
@@ -2662,10 +2670,16 @@
 !  (3 ) Add L(CH3I) to the ND65 diagnostic -- do not take the average 
 !        but instead compute the total sum of L(CH3I) (nad, bmy, 3/20/01)
 !  (4 ) Add updates for multi-tracer Ox run from amf (bmy, 7/3/01)
+!  (5 ) Now account for time in troposphere for full chemistry. It is
+!        assumed that LD45 >= LD65 in using CTO3 (phs, 3/6/07)
 !******************************************************************************
 !
       IF ( ND65 > 0 ) THEN     
          CATEGORY = 'PORL-L=$'
+
+         ! Note: P/L are defined at first time step, since
+         ! they are computed after chemistry (phs, 3/6/07)
+         SCALE_TMP3D = FLOAT( CTO3 ) + 1d-20
 
          ! Loop over ND65 families
          DO N = 1, NFAMILIES
@@ -2673,29 +2687,52 @@
             ! Don't add TRCOFFSET for single tracer Ox
             ! Also select proper unit string
             IF ( ITS_A_CH3I_SIM() ) THEN
-               NN     = N
-               UNIT   = 'kg/s'
-               SCALEX = 1d0
+               NN          = N
+               UNIT        = 'kg/s'
+               !-------------------------------------
+               ! Prior to 3/6/07:
+               ! Use 3-D scale array (phs, 3/6/07)
+               !SCALEX = 1d0
+               !-------------------------------------
+               SCALE_TMP3D = 1d0
 
             ELSE IF ( ITS_A_TAGOX_SIM() ) THEN
-               NN     = N
-               UNIT   = 'kg/s'
-               SCALEX = SCALECHEM
+               NN          = N
+               UNIT        = 'kg/s'
+               !-------------------------------------
+               ! Prior to 3/6/07:
+               ! Use 3-D scale array (phs, 3/6/07)
+               !SCALEX = SCALECHEM
+               !-------------------------------------
+               SCALE_TMP3D = SCALECHEM
                
             ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
-               NN     = N
-               UNIT   = 'mol/cm3/s'
-               SCALEX = SCALECHEM
-               
+               NN          = N
+               UNIT        = 'mol/cm3/s'
+               !-------------------------------------
+               ! Prior to 3/6/07:
+               ! Use 3-D scale array (phs, 3/6/07)
+               !SCALEX = SCALECHEM
+               !-------------------------------------
+               SCALE_TMP3D = SCALECHEM
+
             ELSE
                NN     = N
                UNIT   = 'mol/cm3/s'
-               SCALEX = SCALECHEM
+               !-------------------------------------
+               ! Prior to 3/6/07:
+               ! Comment out (phs, 3/6/07)
+               !SCALEX = SCALECHEM
+               !-------------------------------------
                
             ENDIF
 
             DO L = 1, LD65
-               ARRAY(:,:,L) = AD65(:,:,L,N) / SCALEX
+               !-----------------------------------------------------------
+               ! Prior to 3/6/07:
+               !ARRAY(:,:,L) = AD65(:,:,L,N) / SCALEX
+               !-----------------------------------------------------------
+               ARRAY(:,:,L) = AD65(:,:,L,N) / SCALE_TMP3D(:,:,L)
             ENDDO
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,

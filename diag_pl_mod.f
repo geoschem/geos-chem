@@ -1,4 +1,4 @@
-! $Id: diag_pl_mod.f,v 1.10 2007/01/22 17:32:24 bmy Exp $
+! $Id: diag_pl_mod.f,v 1.11 2007/03/29 20:31:15 bmy Exp $
       MODULE DIAG_PL_MOD
 !
 !******************************************************************************
@@ -697,10 +697,6 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, P_Ox, L_Ox )
-      !----------------------------------
-      ! Prior to 1/22/07:
-      !DO L = 1, LLTROP
-      !----------------------------------
       DO L = 1, LLTROP_FIX
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -747,10 +743,6 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
          DO N = 1, 2
-         !------------------------------------
-         ! Prior to 1/22/07:
-         !DO L = 1, LLTROP
-         !------------------------------------
          DO L = 1, LLTROP_FIX
          DO J = 1, JJPAR
          DO I = 1, IIPAR

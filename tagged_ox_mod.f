@@ -1,4 +1,4 @@
-! $Id: tagged_ox_mod.f,v 1.20 2007/01/19 14:53:31 bmy Exp $
+! $Id: tagged_ox_mod.f,v 1.21 2007/03/29 20:31:24 bmy Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
@@ -235,11 +235,6 @@
 
       ! Arguments
       INTEGER, INTENT(IN)     :: I, J, L
-      !-------------------------------------------------------------------
-      ! Prior to 1/19/07:
-      ! Change LLTROP to LLTROP_FIX (phs, 1/19/07)
-      !REAL*8,  INTENT(OUT)    :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
-      !-------------------------------------------------------------------
       REAL*8,  INTENT(OUT)    :: PP(IIPAR,JJPAR,LLTROP_FIX,N_TAGGED)
 
       ! Local variables
@@ -433,12 +428,6 @@
       LOGICAL, SAVE     :: FIRST   = .TRUE.
       INTEGER, SAVE     :: LASTDAY = -1
       INTEGER           :: I, J, L, N
-      !-----------------------------------------------------------
-      ! Prior to 1/19/07:
-      ! Resize arrays from LLTROP to LLTROP_FIX (phs, 1/19/07)
-      !REAL*8            :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
-      !REAL*8            :: ND44_TMP(IIPAR,JJPAR,LLTROP)
-      !-----------------------------------------------------------
       REAL*8            :: PP(IIPAR,JJPAR,LLTROP_FIX,N_TAGGED)
       REAL*8            :: ND44_TMP(IIPAR,JJPAR,LLTROP_FIX)
       REAL*8            :: DTCHEM,  FREQ,    FLUX
@@ -510,11 +499,6 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, LL, PL, FREQ, Ox_0, Ox_LOST, FLUX, F_UNDER_TOP )  
 !$OMP+SCHEDULE( DYNAMIC )
-         !-----------------------------------------------
-         ! Prior to 1/1907:
-         ! Now only loop up to LLTROP_FIX (phs, 1/19/07)
-         !DO L = 1, LLTROP
-         !-----------------------------------------------
          DO L = 1, LLTROP_FIX
          DO J = 1, JJPAR
          DO I = 1, IIPAR

@@ -1,4 +1,4 @@
-! $Id: diag_mod.f,v 1.18 2007/01/22 17:32:24 bmy Exp $
+! $Id: diag_mod.f,v 1.19 2007/03/29 20:31:14 bmy Exp $
       MODULE DIAG_MOD 
 !
 !******************************************************************************
@@ -196,20 +196,6 @@
 
       ! For ND43 -- OH, NO, NO2, HO2 chemical diagnostics
       REAL*4,  ALLOCATABLE :: AD43(:,:,:,:)      
-      !----------------------------------------------------------------------
-      ! Prior to 1/19/07:
-      ! Make the CT* counter arrays 3-D, for variable trop (phs, 1/19/07)
-      !INTEGER, ALLOCATABLE :: LTNO(:,:)
-      !INTEGER, ALLOCATABLE :: CTNO(:,:)
-      !INTEGER, ALLOCATABLE :: LTOH(:,:)
-      !INTEGER, ALLOCATABLE :: CTOH(:,:)
-      !INTEGER, ALLOCATABLE :: LTNO2(:,:)
-      !INTEGER, ALLOCATABLE :: CTNO2(:,:)
-      !INTEGER, ALLOCATABLE :: LTHO2(:,:)
-      !INTEGER, ALLOCATABLE :: CTHO2(:,:)
-      !INTEGER, ALLOCATABLE :: LTNO3(:,:)
-      !INTEGER, ALLOCATABLE :: CTNO3(:,:)
-      !----------------------------------------------------------------------
       INTEGER, ALLOCATABLE :: LTNO(:,:)
       INTEGER, ALLOCATABLE :: CTNO(:,:,:)
       INTEGER, ALLOCATABLE :: LTOH(:,:)

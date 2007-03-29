@@ -1,294 +1,33 @@
-REVISIONS (v7-04-11)  
-22 Feb 2007
+REVISIONS (v7-04-12)  
+29 Mar 2007
 Bob Yantosca          and Philippe Le Sager
 bmy@io.as.harvard.edu     phs@io.as.harvard.edu
 
 
-New in v7-04-11:
+New in v7-04-12:
 -------------------------------------------------------------------------------
 
-get_flash_scale_cth	   -- Function GET_FLASH_SCALE_CTH returns a met-field 
-("lightning_nox_nl_mod.f")    dependent scale factor (for the CTH 
-	                      parameterization) which is to be applied to the 
-		              lightning NOx emissions in order to bring the 
-		              total to a specified value of 6 Tg N/yr.
-
-get_flash_scale_mflux	   -- Function GET_FLASH_SCALE_CTH returns a met-field 
-("lightning_nox_nl_mod.f")    dependent scale factor (for the CTH 
-	                      parameterization) which is to be applied to the 
-		              lightning NOx emissions in order to bring the 
-		              total to a specified value of 6 Tg N/yr.
-
-get_flash_scale_precon	   -- Function GET_FLASH_SCALE_CTH returns a met-field 
-("lightning_nox_nl_mod.f")    dependent scale factor (for the CTH 
-	                      parameterization) which is to be applied to the 
-		              lightning NOx emissions in order to bring the 
-		              total to a specified value of 6 Tg N/yr.
-
-get_ic_cg_ratio		   -- Split off from FLASHES_CTH, FLASHES_MFLUX, 
-("lightning_nox_nl_mod.f")    FLASHES_PRECON into this separate function
-
-its_time_for_bpch  	   -- Moved to "time_mod.f" from "main.f"
-("time_mod.f")
-
-read_gprod_aprod	   -- Reads GPROD & APROD restart file for the 
-("carbon_mod.f")              SOA chemistry simulation.  Called from routine
-	                      INIT_CARBON.
-
-src_func_get		   -- Now returns GOCART source function
-("dust_dead_mod.f")
-
-write_gprod_aprod	   -- Writes GPROD & APROD restart file for the 
-("carbon_mod.f")              SOA chemistry simulation.  Called from MAIN.
 
 
-
-Removed in v7-04-11:
+Removed in v7-04-12:
 -------------------------------------------------------------------------------
 
-get_otd_lis_redist	   -- This is now obsolete
-("lightning_nox_nl_mod.f")
 
 
-
-Changed in v7-04-11:
+Changed in v7-04-12:
 -------------------------------------------------------------------------------
 
-accumulate_diag50	   -- Now account for time spent in the trop for 
-("diag50_mod.f")              non-tracers (COUNT_CHEM3D)
+diag3.f			-- Bug fix in ND07: now save out IDTSOA4 tracer
 
-accumulate_diag51	   -- Now account for time spent in the trop for 
-("diag51_mod.f")              non-tracers (COUNT_CHEM3D)
+diag42_mod.f		-- Now use ratio of 2.1 instead of 1.4 for SOA4
+                           when computing the ND42 diagnostic
 
-biomass_carb_geos   	   -- Prevent seg fault error when LBIOMASS=F
-("carbon_mod.f")
+lightning_nl		-- Rewritten for separate treatment of LNOx emissions 
+("lightning_nox_nl_mod.f") at tropics & midlatitudes, based on Hudman et al '07
+			-- Removed E_IC_CG, it's obsolete.
 
-check_var_trop		   -- Fix LPAUSE for CH4 chemistry
-("tropopause_mod.f")
+ndxx_setup.f		-- For ND20 diagnostic, reset ND65 diagnostic with
+	                   LLTROP_FIX instead of LLTROP
 
-chem_tagged_ox		   -- Resize PP, ND44_TMP from LLTROP to LLTROP_FIX 
-("tagged_ox_mod.f")        -- Now only loop up to LLTROP_FIX   
-
-cleanup_diag		   -- Now deallocate CTO3 array
-("diag_mod.f")
-
-cleanup_diag50		   -- Now deallocate COUNT_CHEM3D
-("diag50_mod.f")
-
-cleanup_diag51		   -- Also deallocate COUNT_CHEM3D
-("diag51_mod.f")
-
-cleanup_lightning_nox_nl   -- Rename OTDSCALE to OTD_REG_REDIST
-("lightning_nox_nl_mod.f") -- Now deallocate OTD_LOC_REDIST
-
-CMN_SIZE		   -- Bug fix: set LLTROP_FIX = LLPAR for GCAP
-
-convtran		   -- Bug fix: avoid div by zero in formula for CHAT
-("gcap_convect_mod.f")
-
-convtran		   -- Bug fix: avoid div by zero in formula for CHAT
-("fvdas_convect_mod.f")
-
-create_tinfo		   -- Now write out GPROD & APROD info
-("gamap_mod.f")
-
-diag1.f			   -- Now only archive pure O3 in ND45 and ND47 at 
-			      chemistry timesteps
-
-diag20 			   -- Now use LLTROP_FIX instead of LLTROP
-
-
-diag_2pm.f		   -- Now account for the time spent in the 
-                              troposphere for ND43 and ND45 pure O3
-			   -- Now only accumulate counter for 3D pure O3 in 
-			      ND45 if it's a chemistry timestep.
-
-diag3.f			   -- Now use new time counters for ND43 & ND45
-			   -- Now averages ND47 between 0 and 24 UT.  
-			   -- Replace SCALEDYN with CTOH and CTO3 for ND47
-			   -- Comment out N = IDEMS(M) in ND36 diagnostic
-
-diag_mod.f		   -- Added CTO3 counter
-                           -- Convert ND43 counter arrays from 2D to 3D, for
-                              the variable tropopause
-
-dst_mbl			   -- Now get GOCART source function
-("dust_dead_mod.f")        
-
-do_global_transport	   -- Bug fix: now index STT_I1, STT_J1, STT_I2, 
-("transport_mod.f")           STT_J2 correctly
-
-flashes_cth		   -- Remove CCTHICK, IC_CG_RATIO as arguments
-("lightning_nox_nl_mod.f") -- Remove computation of IC_CG_RATIO and move that 
-			      to GET_IC_CG_RATIO
-
-flashes_mflux		   -- Remove CCTHICK as an argument
-("lightning_nox_nl_mod.f") -- Change IC_CG_RATIO to an input argument
-		           -- Remove computation of IC_CG_RATIO and move that 
-			      to GET_IC_CG_RATIO
-
-flashes_precon		   -- Remove CCTHICK as an argument
-("lightning_nox_nl_mod.f") -- Change IC_CG_RATIO to an input argument
-		           -- Remove computation of IC_CG_RATIO and move that 
-			      to GET_IC_CG_RATIO.
-
-fvdas_convect_mod.f        -- Make SMALLEST = 1d-60 to avoid problems
-
-get_o3			   -- Now also read stratospheric O3
-("mercury_mod.f")
-
-gcap_convect		   -- Now don't call CONVTRAN if LENGATH=0
-("gcap_convect_mod.f")
-
-gcap_convect_mod.f         -- Make SMALLEST = 1d-60 to avoid problems
-
-get_a3_fields		   -- Now read SNOW and GWETTOP for GCAP met fields
-("a3_read_mod.f")
-
-get_global_no3		   -- Now zero local variable ARRAY
-("global_no3_mod.f")
-
-get_global_o3		   -- Modified to include stratospheric O3; requires 
-("global_o3_mod.f")           access to new MERGE.O3* files
-
-get_lwc			   -- Now also add a case for T > 293 to the IF 
-("mercury_mod.f")             statement
-
-get_regional_pox	   -- Resize the PP array from LLTROP to LLTROP_FIX 
-("tagged_ox_mod.f")
-
-get_time_ahead		   -- leap year fix for gcap
-("time_mod.f")
-
-init_carbon		   -- Now call READ_GPROD_APROD to read GPROD & 
-("carbon_mod.f")              APROD from disk.
-
-init_diag49		   -- Now allow ND49_IMIN to be equal to ND49_IMAX and
-("diag49_mod.f")              ND49_JMIN to be equal to ND49_JMAX.  This will 
-			      allow us to save out lon or lat transects. 
-
-init_diag50		   -- Now allow ND50_IMIN to be equal to ND50_IMAX and
-("diag50_mod.f")              ND50_JMIN to be equal to ND50_JMAX.  This will 
-			      allow us to save out lon or lat transects. 
-			   -- Now allocate COUNT_CHEM3D array
-
-init_diag51		   -- Now allow ND51_IMIN to be equal to ND51_IMAX and
-("diag51_mod.f")              ND51_JMIN to be equal to ND51_JMAX.  This will 
-			      allow us to save out lon or lat transects. 
-			   -- Allocate COUNT_CHEM3D
-
-init_diaginfo		   -- Now add IJ-GPROD & IJ-APROD w/ offset of 
-("gamap_mod.f")               SPACING*6, for SOA GPROD & APROD restart file.
-
-init_global_o3		   -- Now dimension O3 with LLPAR
-("global_o3_mod.f")
-
-init_input		   -- Now initialize LOTDREG, LOTDLOC, LCTH, 
-("input_mod.f")               LMFLUX, LPRECON
-
-initialize.f		   -- Now also zero CTO3 array
-			   -- Bug fix: ZERO_DIAG42 is now called when ND42 
-                              is turned on.
-
-init_lightning_nox_nl	   -- Rename OTDSCALE to OTD_REG_REDIST
-("lightning_nox_nl_mod.f") -- Also add similar array OTD_LOC_REDIST
-			   -- Now call GET_FLASH_SCALE_CTH,
-	                      GET_FLASH_SCALE_MFLUX, GET_FLASH_SCALE_PRECON 
-			      depending on the type of lightning param used
-			   -- Updated comments
-
-lightdist		   -- Added extra safety check for pathological boxes
-("lightning_nox_nl_mod.f")
-
-lightning_nl		   -- Now recompute the cold cloud thickness according
-("lightning_nox_nl_mod.f")    to updated formula from Lee Murray
-                           -- Rearranged argument lists to routines 
-                              FLASHES_CTH, FLASHES_MFLUX, FLASHES_PRECON
-			   -- Now call READ_REGIONAL_REDIST and 
-                              READ_LOCAL_REDIST
-			   -- Now apply FLASH_SCALE to scale the total 
-                              lightning NOx to 6 Tg N/yr
-			   -- Now apply OTD/LIS regional or local 
-                              redistribution (cf. B. Sauvage) to ND56 diag.
-			   -- Renamed REGSCALE variable to REDIST.
- 			   -- Updated comments accordingly
-			   -- Bug fix: divide A_M2 by 1d6 to get A_KM2.
-			   
-lightning_nox_nl_mod.f	   -- Now move computation of IC/CG flash ratio out of
-		              routines FLASHES_CTH, FLASHES_MFLUX, 
-	                      FLASHES_PRECON, and into routine GET_IC_CG_RATIO
-			      Set module variable E_IC_CG = 1 according to 
-	                      Allen & Pickering [2002].
-                           -- Rename OTDSCALE array to OTD_REG_REDIST, and 
-                              also add OTD_LOC_REDIST array
-			   -- Now scale lightning to 6 Tg N/yr for both 2x25 
-                              and 4x5
-			   -- Rename routine GET_OTD_LIS_REDIST to 
-		              GET_REGIONAL_REDIST
-			   -- Add similar routine GET_LOCAL_REDIST
-			   -- Removed routine GET_OTD_LOCAL_REDIST.  
-
-logical_mod.f		   -- Added LOTDREG, LOTDLOC for regional or local 
-                              OTD-LIS redistribution of lightning flashes
-
-main.f			   -- Fixed typos for GCAP
-			   -- Move routine ITS_TIME_FOR_BPCH to "time_mod.f"
-
-ndxx_setup.f               -- Now allocate ND43 and ND45 counter arrays as 3-D
-
-nfcldmx			   -- Bug fix: now only call ADD_Hg2_WD if LDYNOCEAN=T
-("convection_mod.f")
-
-ohsave.f	  	   -- Reset FRAC* and SAVE* arrays, so that we don't 
-                              carry dubious data over from boxes that used to 
-                              be in the tropopause but aren't anymore.
-
-read_biomass_nh3	   -- Prevent seg fault error when LBIOMASS=F
-("sulfate_mod.f")
-
-read_biomass_so2	   -- Now prevent seg fault if BIOMASS emissions are 
-("sulfate_mod.f")	      turned off
-
-read_emissions_menu	   -- Kludge: Reset LMFLUX or LPRECON to LCTH, as the 
-("input_mod.f")               MFLUX and PRECON lightning schemes have not yet
-			      been implemented
-			   -- Rename LOTDLIS to LOTDREG
-			   -- Also read LOTDLOC for the OTD-LIS local 
-			      redistribution of lightning flashes 
-			      (cf B. Sauvage)
-			   -- Make sure LOTDREG and LOTDLOC are not both 
-			      turned on at the same time.
-
-read_pox_lox		   -- Use LLTROP_FIX to limit array size to case of
-("tagged_ox_mod.f")           non-variable tropopause
-                           -- Also zero ARRAY to avoid numerical problems
-read_regional_redist	   -- Change CTH scale filename from "v0" to "v2"
-("lightning_NOx_nl_mod.f") -- Renamed from "read_otd_lis_scale"
-
-regrid_mass_to_4x5	   -- Bug fix: the lat index should be N, not S in the 
-("regrid_1x1_mod.f")          last 2 lines of the non-polar lat regridding
-
-seasalt_chem		   -- Fixed typo in FALK_A_SO2 equation: C_FLUX_C  
-("sulfate_mod.f")             should be C_FLUX_A.
-
-soa_chemistry		   -- Corrected typos in SOA_LUMP
-("carbon_mod.f")	   
-
-soa_lump		   -- Bug fix: For SOA4, GPROD and APROD should have 
-("carbon_mod.f")              default values of 0.5, instead of 1.0
-
-src_dust_dead		   -- Updated output statement
-("dust_mod.f")
-
-write_diag50		   -- DIVISOR is now a 3-D array
-("diag50_mod.f")	   -- Now zero COUNT_CHEM3D
-			   -- Now zero Q array with array assignment statement
-
-write_diag51		   -- DIVISOR is now a 3-D array
-("diag51_mod.f")	   -- Now zero COUNT_CHEM3D
-			   -- Now use CASE statement instead of IF statements
-			   -- Now zero counter arrays with array assignments
-
-write_separator		   -- Added new header for GPROD & APROD info
-("gamap_mod.f")
-	
+write_diag56		-- Now scale AD56 by the # of A-6 timesteps
+("diag56_mod.f")        -- Bug fix in ND07: now save out IDTSOA4 tracer

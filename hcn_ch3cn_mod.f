@@ -1,4 +1,4 @@
-! $Id: hcn_ch3cn_mod.f,v 1.14 2006/10/17 17:51:12 bmy Exp $
+! $Id: hcn_ch3cn_mod.f,v 1.15 2007/03/29 20:31:18 bmy Exp $
       MODULE HCN_CH3CN_MOD
 !
 !******************************************************************************
@@ -358,12 +358,6 @@
          ! (1) Process biomass burning HCN/CH3CN emissions
          !-----------------------------------------------------------------
 
-         !---------------------------------------------------------
-         ! Prior to 9/27/06:
-         !! Convert [molec CO/cm3/s] to [molec CO/cm2/s]
-         !E_CObb = BIOMASS(I,J,IDBCO) * BOXVL(I,J,1) / ACM2
-         !---------------------------------------------------------
-         
          ! Get CO biomass burning [molec CO/cm2/s]
          E_CObb = BIOMASS(I,J,IDBCO)
 

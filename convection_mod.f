@@ -1,4 +1,4 @@
-! $Id: convection_mod.f,v 1.14 2007/01/22 17:32:21 bmy Exp $
+! $Id: convection_mod.f,v 1.15 2007/03/29 20:31:11 bmy Exp $
       MODULE CONVECTION_MOD
 !
 !******************************************************************************
@@ -658,11 +658,6 @@
          ENDDO
 
          ! Flag to denote if this is a mercury simulation (sas, bmy, 1/19/05)
-         !------------------------------------------------------------
-         ! Prior to 1/19/07:
-         ! Add LDYNOCEAN=T to the criteria for IS_Hg (phs, 1/19/07)
-         !IS_Hg = ITS_A_MERCURY_SIM()
-         !------------------------------------------------------------
          IS_Hg = ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN )
 
          ! Reset first time flag

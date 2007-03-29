@@ -1,4 +1,4 @@
-! $Id: toms_mod.f,v 1.6 2007/02/22 18:26:31 bmy Exp $
+! $Id: toms_mod.f,v 1.7 2007/03/29 20:31:25 bmy Exp $
       MODULE TOMS_MOD
 !
 !******************************************************************************
@@ -183,35 +183,6 @@
       YEAR = THISYEAR
 #endif
 
-!-----------------------------------------------------------------------------
-! Prior to 2/12/07:
-! Make sure to always use 1979 data prior to 1979, or 2005 data after 2005,
-! so that we don't revert to the "default" O3 climatology of FAST-J.
-! (bmy, 2/12/07)
-!      !=================================================================
-!      ! TOMS O3 column data currently exists between 1997 and 2002.  
-!      ! For other years, set data arrays to -999 (missing data flag)
-!      ! and then return to the calling program.
-!      !=================================================================
-!
-!      ! Test if data exists
-!      IF ( YEAR < 1997 .or. YEAR > 2002 ) THEN
-!
-!         ! Set to "missing data" value
-!         TOMS   = -999
-!         DTOMS1 = -999
-!         DTOMS2 = -999
-!
-!         ! Echo info
-!         WRITE( 6, 100 ) YEAR
-! 100     FORMAT( '     - READ_TOMS: TOMS data for the year ', i4, 
-!     &           ' does not exist!' )
-!
-!         ! Return to calling program
-!         RETURN
-!      ENDIF
-!-----------------------------------------------------------------------------
-
       ! Use 1979 data prior to 1979
       IF ( YEAR < 1979 ) THEN
          WRITE( 6, 100 ) YEAR
@@ -240,11 +211,6 @@
      
       ! Define filename
       FILENAME = TRIM( DATA_DIR )               // 
-!----------------------------------------------------------------------------
-! Prior to 2/1/07:
-! Now read from TOMS_200701 directory (bmy, 2/1/07)
-!     &           'TOMS_200307/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
-!----------------------------------------------------------------------------
      &           'TOMS_200701/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
      &           '.'                            // GET_RES_EXT()
 

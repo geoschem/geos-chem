@@ -1,4 +1,4 @@
-! $Id: planeflight_mod.f,v 1.22 2006/12/12 15:07:51 bmy Exp $
+! $Id: planeflight_mod.f,v 1.23 2007/03/29 20:31:22 bmy Exp $
       MODULE PLANEFLIGHT_MOD
 !
 !******************************************************************************
@@ -843,12 +843,6 @@
          !==============================================================
          ! We have already found all of the plane points...
          !==============================================================
-         !--------------------------------------------------------------
-         ! Prior to 12/12/06:
-         ! Bug fix: exit if PTAU(M) == PTAUE, so that we write out on
-         ! the next planeflight timestep (cdh, bmy, 12/12/06)
-         !ELSE IF ( PTAU(M) > PTAUE ) THEN
-         !--------------------------------------------------------------
          ELSE IF ( PTAU(M) >= PTAUE ) THEN
 
             ! Exit this loop and the subroutine

@@ -1,4 +1,4 @@
-! $Id: fvdas_convect_mod.f,v 1.19 2006/12/19 21:28:33 bmy Exp $
+! $Id: fvdas_convect_mod.f,v 1.20 2007/03/29 20:31:17 bmy Exp $
       MODULE FVDAS_CONVECT_MOD
 !
 !******************************************************************************
@@ -77,11 +77,6 @@
       REAL*8,  PARAMETER :: CMFTAU   = 3600.d0
       REAL*8,  PARAMETER :: EPS      = 1.0d-13   
       REAL*8,  PARAMETER :: GRAV     = 9.8d0
-      !-------------------------------------------------------
-      ! Prior to 12/19/06:
-      ! Make SMALLEST smaller (bmy, 12/19/06)
-      !REAL*8,  PARAMETER :: SMALLEST = 1.0d-32
-      !-------------------------------------------------------
       REAL*8,  PARAMETER :: SMALLEST = 1.0d-60
       REAL*8,  PARAMETER :: TINYALT  = 1.0d-36       
       REAL*8,  PARAMETER :: TINYNUM  = 2*SMALLEST
@@ -875,14 +870,6 @@
                   ! use a geometric averaging procedure
                   CABV = MAX( CMIX(I,KM1), MAXC*TINYNUM, SMALLEST )
                   CBEL = MAX( CMIX(I,K),   MAXC*TINYNUM, SMALLEST )
-
-!-----------------------------------------------------------------
-! Prior to 12/19/06:
-! Avoid division by zero (bmy, 12/19/06)
-!                  CHAT(I,K) = LOG( CABV / CBEL)
-!     &                       /   ( CABV - CBEL)
-!     &                       *     CABV * CBEL
-!-----------------------------------------------------------------
 
                   ! If CABV-CBEL is zero then set CHAT=SMALLEST
                   ! so that we avoid div by zero (bmy, 12/19/06) 

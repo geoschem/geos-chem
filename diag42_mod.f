@@ -1,9 +1,9 @@
-! $Id: diag42_mod.f,v 1.2 2006/09/08 19:20:54 bmy Exp $
+! $Id: diag42_mod.f,v 1.3 2007/03/29 20:31:12 bmy Exp $
       MODULE DIAG42_MOD
 !
 !******************************************************************************
 !  Module DIAG42_MOD contains arrays and routines for archiving the ND42
-!  diagnostic -- secondary organic aerosols [ug/m3]. (dkh,bmy,5/22/06,9/5/06) 
+!  diagnostic -- secondary organic aerosols [ug/m3]. (dkh,bmy,5/22/06,3/29/07)
 !
 !  Module Variables:
 !  ============================================================================
@@ -29,6 +29,7 @@
 !  NOTES:
 !  (1 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
 !        (bmy, 9/5/06)
+!  (2 ) Now use ratio of 2.1 instead of 1.4 for SOA4 (dkh, bmy, 3/29/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -65,8 +66,10 @@
 !
 !******************************************************************************
 !  Subroutine DIAG42 archives SOA concentrations [ug/m3] for the ND42
-!  diagnostic. (dkh, bmy, 5/22/06)
+!  diagnostic. (dkh, bmy, 5/22/06, 3/29/07)
 !
+!  NOTES:
+!  (1 ) Now use ratio of 2.1 instead of 1.4 for SOA4 (dkh, bmy, 3/29/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -144,12 +147,22 @@
      &                     STT(I,J,L,IDTSOA4) ) * FACTOR
 
          ! Sum of all OC [ug C/m3] 
-         ! Assume SOA is 1/1.4 carbon. 
+!------------------------------------------------------------------------
+! Prior to 3/29/07:
+!         ! Assume SOA is 1/1.4 carbon. 
+!------------------------------------------------------------------------
+         ! Use higher ratio (2.1) of molecular weight of
+         ! organic mass per carbon mass accounting for non-carbon
+         ! components attached to OC [Turpin and Lim, 2001] 
          AD42(I,J,L,7) = AD42(I,J,L,7)          +
      &                   ( ( STT(I,J,L,IDTSOA1) + 
      &                       STT(I,J,L,IDTSOA2) + 
      &                       STT(I,J,L,IDTSOA3) + 
-     &                       STT(I,J,L,IDTSOA4) )   / 1.4d0
+!------------------------------------------------------------------------
+! Prior to 3/29/07:
+!     &                       STT(I,J,L,IDTSOA4) )   / 1.4d0
+!------------------------------------------------------------------------
+     &                       STT(I,J,L,IDTSOA4) )   / 2.1d0
      &                   + ( STT(I,J,L,IDTOCPO) + 
      &                       STT(I,J,L,IDTOCPI) ) ) * FACTOR
 

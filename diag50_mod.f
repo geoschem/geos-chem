@@ -1,4 +1,4 @@
-! $Id: diag50_mod.f,v 1.15 2007/01/24 18:22:22 bmy Exp $
+! $Id: diag50_mod.f,v 1.16 2007/03/29 20:31:13 bmy Exp $
       MODULE DIAG50_MOD
 !
 !******************************************************************************
@@ -729,10 +729,6 @@
 #     include "CMN_SIZE"  ! Size Parameters
 
       ! Local variables
-      !-------------------------------------------------------------------
-      ! Prior to 1/24/07:
-      !INTEGER            :: DIVISOR
-      !-------------------------------------------------------------------
       INTEGER            :: DIVISOR(ND50_NI,ND50_NJ,ND50_NL)
       INTEGER            :: I,    J,     L,   W, N  
       INTEGER            :: GMNL, GMTRC, IOS, X, Y, K
@@ -775,18 +771,6 @@
 
          ! Pick the proper divisor, depending on whether or not the
          ! species in question is archived only each chem timestep
-!--------------------------------------------------------------------------
-! Prior to 1/24/07:
-!         IF ( ND50_TRACERS(W) == 71 .or. ND50_TRACERS(W) == 72  .or. 
-!     &        ND50_TRACERS(W) == 74 .or. ND50_TRACERS(W) == 75  .or.
-!     &        ND50_TRACERS(W) == 82 .or. ND50_TRACERS(W) == 83  .or.
-!     &        ND50_TRACERS(W) == 84 .or. ND50_TRACERS(W) == 85  .or.
-!     &        ND50_TRACERS(W) == 86 .or. ND50_TRACERS(W) == 87 ) THEN
-!            DIVISOR = COUNT_CHEM
-!         ELSE
-!            DIVISOR = COUNT
-!         ENDIF
-!--------------------------------------------------------------------------
          SELECT CASE ( ND50_TRACERS(W) )
             CASE( 71, 72, 74, 75 )
                DIVISOR = COUNT_CHEM3D
@@ -802,12 +786,6 @@
          DO X = 1, ND50_NI
 
             ! Avoid division by zero
-            !------------------------------------------------
-            ! Prior to 1/24/07:
-            ! DIVISOR is now a 3-D array (phs, 1/24/07)
-            !IF ( DIVISOR > 0 ) THEN
-            !   Q(X,Y,K,W) = Q(X,Y,K,W) / DIVISOR
-            !------------------------------------------------
             IF ( DIVISOR(X,Y,K) > 0 ) THEN
                Q(X,Y,K,W) = Q(X,Y,K,W) / DBLE( DIVISOR(X,Y,K) )
             ELSE
@@ -1132,24 +1110,6 @@
       
       ! Zero accumulating array
       Q            = 0d0
-!-----------------------------------------------------------------
-! Prior to 1/24/07:
-! Now zero Q array with array assignment statement (bmy, 1/24/07)
-!!$OMP PARALLEL DO 
-!!$OMP+DEFAULT( SHARED ) 
-!!$OMP+PRIVATE( X, Y, K, W )
-!      DO W = 1, ND50_N_TRACERS
-!      DO K = 1, ND50_NL
-!      DO Y = 1, ND50_NJ
-!      DO X = 1, ND50_NI
-!         Q(X,Y,K,W) = 0d0
-!      ENDDO
-!      ENDDO
-!      ENDDO
-!      ENDDO
-!!$OMP END PARALLEL DO
-!-----------------------------------------------------------------
-      
       
       ! Return to calling program
       END SUBROUTINE WRITE_DIAG50
@@ -1296,12 +1256,6 @@
 
       ! Compute longitude limits to write to disk 
       ! Also handle wrapping around the date line
-      !-----------------------------------------------------------------
-      ! Prior to 11/30/06:
-      ! This allows us to set ND50_IMIN=ND50_IMAX, so that we can save 
-      ! out a single longitude transect (cdh, bmy, 11/30/06)
-      !IF ( ND50_IMAX > ND50_IMIN ) THEN
-      !-----------------------------------------------------------------
       IF ( ND50_IMAX >= ND50_IMIN ) THEN
          ND50_NI = ( ND50_IMAX - ND50_IMIN ) + 1
       ELSE 
@@ -1329,12 +1283,6 @@
       ENDIF
 
       ! Compute latitude limits to write to disk (bey, bmy, 3/16/99)
-      !------------------------------------------------------------------
-      ! Prior to 11/30/06:
-      ! This allows us to set ND50_JMIN=ND50_JMAX, so that we can save 
-      ! out a single latitude transect (cdh, bmy, 11/30/06)
-      !IF ( ND50_JMAX > ND50_JMIN ) THEN
-      !------------------------------------------------------------------
       IF ( ND50_JMAX >= ND50_JMIN ) THEN
          ND50_NJ = ( ND50_JMAX - ND50_JMIN ) + 1
       ELSE
