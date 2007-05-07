@@ -1,9 +1,9 @@
-! $Id: tropopause_mod.f,v 1.11 2007/03/29 20:31:25 bmy Exp $
+! $Id: tropopause_mod.f,v 1.12 2007/05/07 17:48:13 bmy Exp $
       MODULE TROPOPAUSE_MOD
 !
 !******************************************************************************
 !  Module TROPOPAUSE_MOD contains routines and variables for reading and
-!  returning the value of the annual mean tropopause. (bmy, 8/15/05, 1/19/07)
+!  returning the value of the annual mean tropopause. (bmy, 8/15/05, 4/25/07)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -45,6 +45,7 @@
 !        The tropopause is part of the troposphere in the case of a  variable 
 !        troposphere. LMAX, LMIN are the min and max extend of the troposphere
 !        in that case.  (bdf, phs, 1/19/07)
+!  (4 ) Bug fix: set NCS=NCSURBAN for safety's sake (bmy, 4/25/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -92,7 +93,7 @@
 !******************************************************************************
 !  Subroutine COPY_FULL_TROP takes the saved full troposphere and copies 
 !  chemical species into the current troposphere that will be used in SMVGEAR 
-!  for this timestep. (phs, bmy, 9/14/06)
+!  for this timestep. (phs, bmy, 9/14/06, 4/25/07)
 !
 !  ROUTINE NEEDED BECAUSE WITH VARIABLE TROPOPAUSE 
 !  JLOOP WILL NOT ALWAYS REFER TO THE SAME (I,J,L) BOX
@@ -100,6 +101,7 @@
 !  NOTES:
 !  (1 ) Very similar to a get_properties of an object. Should probably
 !        be in COMODE_MOD.F, and called GET_SPECIES_CONCENTRATION (phs)
+!  (2 ) Bug fix: set NCS=NCSURBAN for safety's sake (bmy, 4/25/07)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -118,6 +120,9 @@
       !=================================================================
       ! COPY_FULL_TROP begins here!
       !=================================================================
+
+      ! Reset NCS to NCSURBAN for safety's sake (bmy, 4/25/07)
+      NCS = NCSURBAN
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -159,6 +164,7 @@
 !  NOTES:
 !  (1 ) Very similar to a set_properties of an object. Should probably
 !        be in COMODE_MOD.F, and called SAVE_SPECIES_CONCENTRATION (phs)
+!  (2 ) Bug fix: set NCS=NCSURBAN for safety's sake! (bmy, 4/25/07)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -176,6 +182,9 @@
       !=================================================================
       ! SAVE_FULL_TROP begins here!
       !=================================================================
+
+      ! Reset NCS to NCSURBAN for safety's sake (bmy, 4/25/07)
+      NCS = NCSURBAN
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )

@@ -1,11 +1,11 @@
-! $Id: planeflight_mod.f,v 1.23 2007/03/29 20:31:22 bmy Exp $
+! $Id: planeflight_mod.f,v 1.24 2007/05/07 17:48:12 bmy Exp $
       MODULE PLANEFLIGHT_MOD
 !
 !******************************************************************************
 !  Module PLANEFLIGHT_MOD contains variables and routines which are used to
 !  "fly" a plane through the GEOS-Chem model simulation.  This is useful for
 !  comparing model results with aircraft observations. 
-!  (mje, bmy, 7/30/02, 12/12/06)
+!  (mje, bmy, 7/30/02, 4/23/07)
 !
 !  Module Variables:
 !  ============================================================================
@@ -81,6 +81,7 @@
 !        AOD's to 400nm. (bmy, 10/25/05)
 !  (16) Bug fixes in READ_VARIABLES (bmy, 10/16/06)
 !  (17) Bug fix in PLANEFLIGHT (cdh, bmy, 12/12/06)
+!  (18) Bug fix in RO2_SETUP (tmf, bmy, 4/23/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -688,13 +689,14 @@
 !******************************************************************************
 !  Subroutine RO2_SETUP saves the SMVGEAR species indices of RO2 
 !  constituents in the PRO2 array.  Also computes the count NPRO2. 
-!  (mje, bmy, 8/1/03, 7/20/04)
+!  (mje, bmy, 8/1/03, 4/23/07)
 !
 !  NOTES:
 !  (1 ) Now references GEOS_CHEM_STOP from "error_mod.f", which frees all
 !        allocated memory before stopping the run. (bmy, 10/15/02)
 !  (2 ) Now replace NAMESPEC w/ NAMEGAS for SMVGEAR II (bmy, 8/1/03)
 !  (3 ) Now references ITS_A_FULLCHEM_SIM from "tracer_mod.f" (bmy, 7/20/04)
+!  (4 ) Bug fix: PO3 should be PO2 (tmf, bmy, 4/23/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -728,6 +730,11 @@
 
             CASE ( 'HO2',  'MO2',  'A3O2', 'ATO2', 'B3O2', 
      &             'ETO2', 'GCO3', 'IAO2', 'KO2',  'MAO3', 
+!------------------------------------------------------------------------
+! Prior to 4/23/07:
+! Bug fix: PO3 should be PO2 (tmf, bmy, 4/23/07)
+!     &             'MCO3', 'MRO2', 'PO3',  'RIO2', 'VRO2' ) 
+!------------------------------------------------------------------------
      &             'MCO3', 'MRO2', 'PO3',  'RIO2', 'VRO2' ) 
                NPRO2       = NPRO2 + 1
                PRO2(NPRO2) = M

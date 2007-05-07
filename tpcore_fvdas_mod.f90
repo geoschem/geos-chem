@@ -1,4 +1,4 @@
-! $Id: tpcore_fvdas_mod.f90,v 1.6 2005/02/10 19:53:28 bmy Exp $
+! $Id: tpcore_fvdas_mod.f90,v 1.7 2007/05/07 17:48:12 bmy Exp $
 module tpcore_fvdas_mod
 !
 !******************************************************************************
@@ -941,7 +941,7 @@ CONTAINS
  DO J = 1, JM
  DO I = 1, IM
     DELPM(I,J,K) = ( AK(K+1) - AK(K) ) + &
-                   ( BK(K+1) - BK(K) ) * &
+                   ( BK(K+1) - BK(K) ) * &                 
                    ( 0.5d0 * ( PSG(I,J,1) + PSG(I,J,2 ) + 2d0 * AK(1) ) )
  ENDDO
  ENDDO

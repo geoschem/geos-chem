@@ -1,5 +1,5 @@
 REVISIONS (v7-04-12)  
-29 Mar 2007
+25 Apr 2007
 Bob Yantosca          and Philippe Le Sager
 bmy@io.as.harvard.edu     phs@io.as.harvard.edu
 
@@ -17,10 +17,18 @@ Removed in v7-04-12:
 Changed in v7-04-12:
 -------------------------------------------------------------------------------
 
+copy_full_trop		-- Bug fix: set NCS=NCSURBAN for safety's sake
+("tropopause_mod.f")
+
+diag1.f			-- Bug fix: Update ND30 for both GEOS-3 and otherwise
+
 diag3.f			-- Bug fix in ND07: now save out IDTSOA4 tracer
 
 diag42_mod.f		-- Now use ratio of 2.1 instead of 1.4 for SOA4
                            when computing the ND42 diagnostic
+
+diag49			-- Bug fix: accumulate into Q(X,Y,K) for dust OD
+("diag49_mod.f")
 
 lightning_nl		-- Rewritten for separate treatment of LNOx emissions 
 ("lightning_nox_nl_mod.f") at tropics & midlatitudes, based on Hudman et al '07
@@ -28,6 +36,12 @@ lightning_nl		-- Rewritten for separate treatment of LNOx emissions
 
 ndxx_setup.f		-- For ND20 diagnostic, reset ND65 diagnostic with
 	                   LLTROP_FIX instead of LLTROP
+
+ro2_setup		-- Bug fix: PO3 should be PO2 
+("planeflight_mod.f")
+
+save_full_trop		-- Bug fix: set NCS=NCSURBAN for safety's sake
+("tropopause_mod.f")
 
 write_diag56		-- Now scale AD56 by the # of A-6 timesteps
 ("diag56_mod.f")        -- Bug fix in ND07: now save out IDTSOA4 tracer

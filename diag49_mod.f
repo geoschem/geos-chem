@@ -1,9 +1,9 @@
-! $Id: diag49_mod.f,v 1.16 2007/03/29 20:31:13 bmy Exp $
+! $Id: diag49_mod.f,v 1.17 2007/05/07 17:48:11 bmy Exp $
       MODULE DIAG49_MOD
 !
 !******************************************************************************
 !  Module DIAG49_MOD contains variables and routines to save out 3-D 
-!  timeseries output to disk (bmy, 7/20/04, 11/30/06)
+!  timeseries output to disk (bmy, 7/20/04, 4/30/07)
 !
 !  Module Variables:
 !  ============================================================================
@@ -91,6 +91,7 @@
 !  (6 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (7 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !  (8 ) Modified INIT_DIAG49 to save out transects (cdh, bmy, 11/30/06)
+!  (9 ) Bug fix: accumulate into Q(X,Y,K) for dust OD (qli, bmy, 4/30/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -143,7 +144,7 @@
 !******************************************************************************
 !  Subroutine DIAG49 produces time series (instantaneous fields) for a 
 !  geographical domain from the information read in timeseries.dat.  Output 
-!  will be in binary punch (BPCH) format. (bey, bmy, rvm, 4/9/99, 11/1/05)
+!  will be in binary punch (BPCH) format. (bey, bmy, rvm, 4/9/99, 4/30/07)
 !
 !  NOTES:
 !  (1 ) Now bundled into "diag49_mod.f".  Now reference STT from 
@@ -161,6 +162,7 @@
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (8 ) Now references XNUMOLAIR from "tracer_mod.f".  Bug fix: now must sum
 !        aerosol OD's over all RH bins.  Also zero Q array. (bmy, 11/1/05)
+!  (9 ) Bug fix: accumulate into Q(X,Y,K) for dust OD (qli, bmy, 4/30/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -785,7 +787,11 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = ODMDUST(I,J,L,R) * SCALE400nm
+                  !---------------------------------------------------------
+                  ! Prior to 4/30/07:
+                  !Q(X,Y,K) = ODMDUST(I,J,L,R) * SCALE400nm
+                  !---------------------------------------------------------
+                  Q(X,Y,K) = Q(X,Y,K) + ODMDUST(I,J,L,R) * SCALE400nm
                ENDDO
                ENDDO
                ENDDO
