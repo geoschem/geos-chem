@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.40 2007/11/05 16:16:19 bmy Exp $
+! $Id: input_mod.f,v 1.41 2007/11/05 20:44:07 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS-Chem input file at the start of the run
 !  and passes the information to several other GEOS-Chem F90 modules.
-!  (bmy, 7/20/04, 9/24/07)
+!  (bmy, 7/20/04, 11/5/07)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -117,7 +117,8 @@
 !  (16) Modified for variable tropopause.  Also set dimension of ND28 diag
 !        for GFED2 or default biomass burning.  Now read if Time Spent in 
 !        Troposphere is wanted (phs, bmy, 10/17/06)
-!  (17) Now modified for OTD-LIS local redistribution (bmy, 1/31/07)
+!  (17) Now modified for OTD-LIS local redistribution.  Remove references
+!        to GEOS-1 and GEOS-STRAT run dirs. (bmy, 11/5/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -490,7 +491,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_SIMULATION_MENU reads the SIMULATION MENU section of 
-!  the GEOS-CHEM input file (bmy, 7/20/04, 9/14/06)
+!  the GEOS-CHEM input file (bmy, 7/20/04, 11/5/07)
 !
 !  NOTES:
 !  (1 ) Bug fix: Read LSVGLB w/ the * format and not w/ '(a)'. (bmy, 2/23/05)
@@ -498,12 +499,18 @@
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Now references DATA_DIR_1x1 for 1x1 emissions files (bmy, 10/24/05)
 !  (5 ) Now read switch for using variable tropopause or not (phs, 9/14/06)
+!  (6 ) Remove references to GEOS-1 and GEOS-STRAT run dirs. (bmy, 11/5/07) 
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : DATA_DIR,    DATA_DIR_1x1, GCAP_DIR
-      USE DIRECTORY_MOD, ONLY : GEOS_1_DIR,  GEOS_S_DIR,   GEOS_3_DIR
-      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR,  GEOS_5_DIR,   RUN_DIR
+      !--------------------------------------------------------------------
+      ! Prior to 11/5/07:
+      !USE DIRECTORY_MOD, ONLY : GEOS_1_DIR,  GEOS_S_DIR,   GEOS_3_DIR
+      !USE DIRECTORY_MOD, ONLY : GEOS_4_DIR,  GEOS_5_DIR,   RUN_DIR
+      !--------------------------------------------------------------------
+      USE DIRECTORY_MOD, ONLY : GEOS_3_DIR,  GEOS_4_DIR,   GEOS_5_DIR
+      USE DIRECTORY_MOD, ONLY : RUN_DIR
       USE DIRECTORY_MOD, ONLY : TEMP_DIR   
       USE GRID_MOD,      ONLY : SET_XOFFSET, SET_YOFFSET,  COMPUTE_GRID
       USE LOGICAL_MOD,   ONLY : LSVGLB,      LUNZIP,       LWAIT
@@ -558,52 +565,56 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:8' )
       READ( SUBSTRS(1:N), '(a)' ) GCAP_DIR
 
-      ! GEOS-1 subdir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:9' )
-      READ( SUBSTRS(1:N), '(a)' ) GEOS_1_DIR
-
-      ! GEOS-STRAT subdir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:10' )
-      READ( SUBSTRS(1:N), '(a)' ) GEOS_S_DIR
+      !---------------------------------------------------------------------
+      ! Prior to 11/5/07:
+      ! Remove references to GEOS-1 and GEOS-STRAT run dirs (bmy, 11/1/07)
+      !! GEOS-1 subdir
+      !CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:9' )
+      !READ( SUBSTRS(1:N), '(a)' ) GEOS_1_DIR
+      !
+      !! GEOS-STRAT subdir
+      !CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:10' )
+      !READ( SUBSTRS(1:N), '(a)' ) GEOS_S_DIR
+      !---------------------------------------------------------------------
 
       ! GEOS-3 subdir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:11' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:9' )
       READ( SUBSTRS(1:N), '(a)' ) GEOS_3_DIR
 
       ! GEOS-4 subdir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:12' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:10' )
       READ( SUBSTRS(1:N), '(a)' ) GEOS_4_DIR
 
       ! GEOS-5 subdir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:13' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:11' )
       READ( SUBSTRS(1:N), '(a)' ) GEOS_5_DIR
 
       ! Temp dir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:14' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:12' )
       READ( SUBSTRS(1:N), '(a)' ) DATA_DIR_1x1
 
       ! Temp dir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:15' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:13' )
       READ( SUBSTRS(1:N), '(a)' ) TEMP_DIR
 
       ! Unzip met fields
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:16' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:14' )
       READ( SUBSTRS(1:N), *     ) LUNZIP
 
       ! Wait for met fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:17' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:15' )
       READ( SUBSTRS(1:N), *     ) LWAIT
 
       ! Variable Tropopause
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:18' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:16' )
       READ( SUBSTRS(1:N), *     ) LVARTROP
 
       ! I0, J0
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:19' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:17' )
       READ( SUBSTRS(1:N), *     ) I0, J0
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:20' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:18' )
 
       !=================================================================
       ! Print to screen
@@ -618,10 +629,14 @@
      &                     TRIM( DATA_DIR )
       WRITE( 6, 110     ) 'GCAP       sub-directory    : ', 
      &                     TRIM( GCAP_DIR )
-      WRITE( 6, 110     ) 'GEOS-1     sub-directory    : ', 
-     &                     TRIM( GEOS_1_DIR )
-      WRITE( 6, 110     ) 'GEOS-STRAT sub-directory    : ', 
-     &                     TRIM( GEOS_S_DIR )
+!----------------------------------------------------------------------------
+! Prior to 11/5/07:
+! Remove references to GEOS-1 and GEOS-STRAT run dirs (bmy, 11/5/07)
+!      WRITE( 6, 110     ) 'GEOS-1     sub-directory    : ', 
+!     &                     TRIM( GEOS_1_DIR )
+!      WRITE( 6, 110     ) 'GEOS-STRAT sub-directory    : ', 
+!     &                     TRIM( GEOS_S_DIR )
+!----------------------------------------------------------------------------
       WRITE( 6, 110     ) 'GEOS-3     sub-directory    : ', 
      &                     TRIM( GEOS_3_DIR )
       WRITE( 6, 110     ) 'GEOS-4     sub-directory    : ', 
