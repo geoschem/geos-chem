@@ -181,6 +181,9 @@ ndxx_setup.f		-- Added ND10 diagnostic setup
 read_emissions_menu	-- Add LOTDSCALE to the list of LNOx options
 ("input_mod.f")
 
+read_simulation_menu	-- Remove references to GEOS-1 and GEOS-STRAT run dirs
+("input_mod.f")
+
 setemis.f		-- Now replace GEMISNOX array (from CMN_NOX) with 
 			   module arrays EMIS_LI_NOx and EMIS_AC_NOx
 
