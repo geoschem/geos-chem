@@ -1,4 +1,4 @@
-! $Id: diag42_mod.f,v 1.3 2007/03/29 20:31:12 bmy Exp $
+! $Id: diag42_mod.f,v 1.4 2007/11/05 16:16:15 bmy Exp $
       MODULE DIAG42_MOD
 !
 !******************************************************************************
@@ -147,10 +147,6 @@
      &                     STT(I,J,L,IDTSOA4) ) * FACTOR
 
          ! Sum of all OC [ug C/m3] 
-!------------------------------------------------------------------------
-! Prior to 3/29/07:
-!         ! Assume SOA is 1/1.4 carbon. 
-!------------------------------------------------------------------------
          ! Use higher ratio (2.1) of molecular weight of
          ! organic mass per carbon mass accounting for non-carbon
          ! components attached to OC [Turpin and Lim, 2001] 
@@ -158,10 +154,6 @@
      &                   ( ( STT(I,J,L,IDTSOA1) + 
      &                       STT(I,J,L,IDTSOA2) + 
      &                       STT(I,J,L,IDTSOA3) + 
-!------------------------------------------------------------------------
-! Prior to 3/29/07:
-!     &                       STT(I,J,L,IDTSOA4) )   / 1.4d0
-!------------------------------------------------------------------------
      &                       STT(I,J,L,IDTSOA4) )   / 2.1d0
      &                   + ( STT(I,J,L,IDTOCPO) + 
      &                       STT(I,J,L,IDTOCPI) ) ) * FACTOR

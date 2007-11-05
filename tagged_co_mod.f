@@ -1,9 +1,9 @@
-! $Id: tagged_co_mod.f,v 1.17 2006/11/07 19:02:06 bmy Exp $
+! $Id: tagged_co_mod.f,v 1.18 2007/11/05 16:16:25 bmy Exp $
       MODULE TAGGED_CO_MOD
 !
 !******************************************************************************
 !  Module TAGGED_CO_MOD contains variables and routines used for the 
-!  geographically tagged CO simulation. (bmy, 7/28/00, 9/27/06)
+!  geographically tagged CO simulation. (bmy, 7/28/00, 9/18/07)
 !
 !  Module Variables:
 !  ============================================================================
@@ -121,6 +121,9 @@
 !  (27) Now modified for new "biomass_mod.f" (bmy, 4/5/06)
 !  (28) BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of 
 !        [molec CO/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
+!  (29) Routines GET_ALPHA_ISOP, GET_PCO_LCO_STRAT, READ_PCO_LCO_STRAT,
+!        READ_ACETONE and INIT_TAGGED_CO are public now. Variable
+!        EMACET is public now.  (phs, 9/18/07)
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -132,15 +135,20 @@
 
       ! PRIVATE module variables
       PRIVATE BB_REGION, FF_REGION,   SUMCH3OHCO
-      PRIVATE SUMISOPCO, SUMMONOCO,   SUMACETCO, EMACET
+      PRIVATE SUMISOPCO, SUMMONOCO,   SUMACETCO
       PRIVATE CO_PRODS,  CO_LOSSS,    FMOL_CO,   XNUMOL_CO
       PRIVATE FMOL_ISOP, XNUMOL_ISOP, FMOL_MONO, XNUMOL_MONO      
       
       ! PRIVATE module routines
       PRIVATE DEFINE_FF_CO_REGIONS, DEFINE_BB_CO_REGIONS 
-      PRIVATE GET_ALPHA_ISOP,       READ_PCO_LCO_STRAT
-      PRIVATE GET_PCO_LCO_STRAT,    READ_ACETONE
-      PRIVATE INIT_TAGGED_CO 
+
+!------------------------------------------------------------------------
+! Prior to 9/18/07:
+! Make these public (phs, 9/18/07)
+!      PRIVATE GET_ALPHA_ISOP,       READ_PCO_LCO_STRAT
+!      PRIVATE GET_PCO_LCO_STRAT,    READ_ACETONE
+!      PRIVATE INIT_TAGGED_CO 
+!------------------------------------------------------------------------
 
       !=================================================================
       ! MODULE VARIABLES
@@ -1640,7 +1648,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_TAGGED_CO allocates memory to module arrays.
-!  (bmy, 7/19/00, 7/20/04)
+!  (bmy, 7/19/00, 9/18/07)
 !
 !  NOTES:
 !  (1 ) Added ISOP96, MONO96, CH3OH96 for GEOS-3 (bnd, bmy, 6/14/01)
@@ -1650,10 +1658,13 @@
 !  (4 ) Removed obsolete code from 9/28/01 (bmy, 10/22/01)
 !  (5 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
 !  (6 ) Now remove IJLOOP_CO (bmy, 7/20/04)
+!  (7 ) Now public. Now references ITS_A_H2HD_SIM from "tracer_mod.f". 
+!        Allocate needed variables if H2/HD simulation (phs, 9/18/07)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD, ONLY : ALLOC_ERR
+      USE ERROR_MOD,  ONLY : ALLOC_ERR
+      USE TRACER_MOD, ONLY : ITS_A_H2HD_SIM
 
 #     include "CMN_SIZE"
 
@@ -1663,6 +1674,24 @@
       !=================================================================
       ! INIT_TAGGED_CO begins here!
       !=================================================================
+
+      ! Allocate SUMACETCO -- array for CO from isoprene
+      ALLOCATE( EMACET( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMACET' )         
+      EMACET = 0d0 
+
+      ! Allocate and initialize IJLOOP_CO -- 1-D array index
+      ALLOCATE( CO_PRODS( JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO_PRODS' )    
+      CO_PRODS = 0d0
+
+      ! Allocate and initialize IJLOOP_CO -- 1-D array index
+      ALLOCATE( CO_LOSSS( JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO_LOSSS' )    
+      CO_LOSSS = 0d0
+
+      ! Allocate only what is needed
+      IF ( ITS_A_H2HD_SIM() ) RETURN
 
       ! Allocate BB_REGION -- array for biomass burning regions
       ALLOCATE( BB_REGION( IIPAR, JJPAR ), STAT=AS )
@@ -1694,21 +1723,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMACETCO' )         
       SUMACETCO = 0d0 
 
-      ! Allocate SUMACETCO -- array for CO from isoprene
-      ALLOCATE( EMACET( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMACET' )         
-      EMACET = 0d0 
-
-      ! Allocate and initialize IJLOOP_CO -- 1-D array index
-      ALLOCATE( CO_PRODS( JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO_PRODS' )    
-      CO_PRODS = 0d0
-
-      ! Allocate and initialize IJLOOP_CO -- 1-D array index
-      ALLOCATE( CO_LOSSS( JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO_LOSSS' )    
-      CO_LOSSS = 0d0
-
       ! Return to calling program
       END SUBROUTINE INIT_TAGGED_CO
 
@@ -1718,7 +1732,7 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_TAGGED_CO deallocates memory from previously
-!  allocated module arrays (bmy, 7/19/00)
+!  allocated module arrays (bmy, 7/19/00, 7/20/04)
 !
 !  NOTES:
 !  (1 ) Added ISOP96, MONO96, CH3OH96 for GEOS-3 (bnd, bmy, 6/14/01)
@@ -1742,4 +1756,5 @@
 
 !------------------------------------------------------------------------------
 
+      ! End of module
       END MODULE TAGGED_CO_MOD

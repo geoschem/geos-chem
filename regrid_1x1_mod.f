@@ -1,9 +1,9 @@
-! $Id: regrid_1x1_mod.f,v 1.11 2007/03/29 20:31:22 bmy Exp $
+! $Id: regrid_1x1_mod.f,v 1.12 2007/11/05 16:16:24 bmy Exp $
       MODULE REGRID_1x1_MOD
 !
 !******************************************************************************
 !  Module REGRID_1x1_MOD does online regridding of data on the GEOS-Chem 1x1 
-!  grid to 1x1, 2x25, or 4x5 GEOS/GCAP grids. (bdf, bmy, 10/24/05, 2/20/07)
+!  grid to 1x1, 2x25, or 4x5 GEOS/GCAP grids. (bdf, bmy, 10/24/05, 10/17/07)
 !
 !  Module Variables:
 !  ============================================================================
@@ -42,6 +42,7 @@
 !        1x1 data to the GEOS-Chem 1x1.25 grid. (bdf, bmy, 8/2/06)
 !  (3 ) DO_REGRID_G2G_1x1 now takes UNIT via the arg list (bmy, 8/9/06)
 !  (4 ) Bug fix in REGRID_MASS_TO_4x5 (tw, bmy, 2/20/07)
+!  (5 ) Bug fix in REGRID_MASS_TO_2x25 (barkley, bmy, 10/17/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1365,7 +1366,7 @@
 !
 !******************************************************************************
 !  Subroutine REGRID_CONC_TO_2x25 regrids mass data from the GEOS-Chem 1x1 
-!  grid to the GEOS_CHEM 2x25 grid. (bdf, bmy, 10/24/05)
+!  grid to the GEOS_CHEM 2x25 grid. (bdf, bmy, 10/24/05, 10/17/07)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1383,6 +1384,8 @@
 !  NOTES:
 !  (1 ) Fixed typo: J should be J1 in "4 contrib boxes at poles" section.
 !        (bmy, 4/18/06)
+!  (2 ) Fixed typo: J1 should be I2 in "Non-polar boxes" section
+!        (barkley, bmy, 10/17/07)
 !******************************************************************************
 !
       ! Arguments
@@ -1475,7 +1478,12 @@
             ! 1x1 lat index at N edge of 2x25 box
             N = 2 * J
 
-         DO I = 1, J1
+         !--------------------------------------------------------
+         ! Prior to 10/17/07:
+         ! BUG FIX!  J1 should be I2 here (barkley, bmy, 10/17/07)
+         !DO I = 1, J1
+         !--------------------------------------------------------
+         DO I = 1, I2
 
             ! 1x1 lon index at W edge of 2x25 box
             W = FLOOR( 2.5d0 * ( I - 1 ) )

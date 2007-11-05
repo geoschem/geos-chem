@@ -1,10 +1,10 @@
-! $Id: biofuel_mod.f,v 1.12 2006/06/28 17:26:47 bmy Exp $
+! $Id: biofuel_mod.f,v 1.13 2007/11/05 16:16:13 bmy Exp $
       MODULE BIOFUEL_MOD
 !
 !******************************************************************************
 !  Module BIOFUEL_MOD contains arrays and routines to compute yearly
 !  biofuel emissions for NOx, CO, ALK4, ACET, MEK, ALD2, PRPE, C3H8, 
-!  CH2O, and C2H6. (bmy, 9/12/00, 5/30/06)
+!  CH2O, and C2H6. (bmy, 9/12/00, 9/18/07)
 !
 !  Module Variables:
 !  ============================================================================
@@ -72,6 +72,7 @@
 !        off (bmy, 2/1/06)
 !  (18) Modified for IPCC future emissions scale factors.  Added private
 !        routine SCALE_FUTURE. (swu, bmy, 5/30/06)
+!  (19) Modified for VOC-scaling of CO emissions for H2/HD sim (phs, 5/16/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -171,6 +172,8 @@
 !  (20) Rewrite IF statements to avoid seg fault errors when LNEI99 is turned 
 !        off (bmy, 2/1/06)
 !  (21) Now references LFUTURE from "logical_mod.f".  
+!  (22) Now reference ITS_A_H2HD_SIM from "tracer_mod.f" for ND29.
+!        (phs, 9/18/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -182,6 +185,7 @@
       USE EPA_NEI_MOD,          ONLY : GET_EPA_BIOFUEL,  GET_USA_MASK
       USE LOGICAL_MOD,          ONLY : LFUTURE, LNEI99
       USE TIME_MOD,             ONLY : GET_DAY_OF_WEEK
+      USE TRACER_MOD,           ONLY : ITS_A_H2HD_SIM
       USE TRACERID_MOD,         ONLY : IDBFCO,  IDBFNOX, IDTACET
       USE TRACERID_MOD,         ONLY : IDTALD2, IDTALK4, IDTC2H6
       USE TRACERID_MOD,         ONLY : IDTC3H8, IDTCH2O, IDTCO
@@ -614,8 +618,20 @@
 
          ! ND29 -- CO source diagnostics [molec/cm2/s]
          IF ( DO_ND29 ) THEN
-            AD29(I,J,3) = AD29(I,J,3) + ( BIOFUEL(IDBFCO,I,J) * 
-     &                                    BXHEIGHT_CM )
+!-----------------------------------------------------------------------------
+! Prior to 9/18/07:
+! Modified for H2/HD simulation (phs, 9/18/07)
+!            AD29(I,J,3) = AD29(I,J,3) + ( BIOFUEL(IDBFCO,I,J) * 
+!     &                                    BXHEIGHT_CM )
+!-----------------------------------------------------------------------------
+            IF ( ITS_A_H2HD_SIM() ) THEN
+               AD29(I,J,3) = AD29(I,J,3) + ( BIOFUEL(IDBFCO,I,J) * 
+     &                                       BXHEIGHT_CM ) * 1.189d0
+            ELSE
+               AD29(I,J,3) = AD29(I,J,3) + ( BIOFUEL(IDBFCO,I,J) * 
+     &                                       BXHEIGHT_CM )
+            ENDIF
+
          ENDIF
 
          ! ND32 -- NOx source diagnostics [molec/cm2/s]

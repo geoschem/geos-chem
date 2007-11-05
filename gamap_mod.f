@@ -1,10 +1,10 @@
-! $Id: gamap_mod.f,v 1.21 2007/02/06 17:40:05 bmy Exp $
+! $Id: gamap_mod.f,v 1.22 2007/11/05 16:16:18 bmy Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
 !  Module GAMAP_MOD contains routines to create GAMAP "tracerinfo.dat" and
 !  "diaginfo.dat" files which are customized to each particular GEOS-Chem
-!  simulation. (bmy, 5/3/05, 2/6/07)
+!  simulation. (bmy, 5/3/05, 9/18/07)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -79,6 +79,7 @@
 !        in INIT_DIAGINFO and INIT_TRACERINFO. (phs, bmy, 10/17/06)
 !  (12) Now write GPROD & APROD info to diaginfo.dat, tracerinfo.dat files,
 !        for the SOA restart files (tmf, havala, bmy, 2/6/07)
+!  (13) Added ND10 diagnostic for H2/HD simulation. (phs, 9/18/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -673,7 +674,7 @@
 !******************************************************************************
 !  Subroutine INIT_DIAGINFO initializes the CATEGORY, DESCRIPT, and OFFSET
 !  variables, which are used to define the "diaginfo.dat" file for GAMAP.
-!  (bmy, 10/17/06, 2/6/07)
+!  (bmy, 10/17/06, 9/18/07)
 !
 !  NOTES:
 !  (1 ) Split this code off from INIT_GAMAP, for clarity.  Now declare biomass
@@ -681,6 +682,8 @@
 !        troposphere diagnostic with offset of 46000. (phs, bmy, 10/17/06)
 !  (2 ) Now add IJ-GPROD & IJ-APROD w/ offset of SPACING*6, for the SOA
 !        GPROD & APROD restart file. (tmf, havala, bmy, 2/6/07)
+!  (3 ) Now declare H2-HD sources w/ offset of 48000. Now declare H2-HD
+!        production/loss w/ offset of 47000. (phs, 9/18/07)
 !******************************************************************************
 !
       ! Local variables 
@@ -1220,6 +1223,16 @@
       DESCRIPT(N) = 'Fraction of time in troposphere'
       OFFSET(N)   = SPACING * 46
 
+      N           = N + 1
+      CATEGORY(N) = 'PL-H2HD-'
+      DESCRIPT(N) = 'Prod / loss of H2-HD'
+      OFFSET(N)   = SPACING * 47
+
+      N           = N + 1
+      CATEGORY(N) = 'H2HD-SRC'
+      DESCRIPT(N) = 'H2 HD emissions'
+      OFFSET(N)   = SPACING * 48
+
       ! Number of categories
       NCATS = N
       
@@ -1233,13 +1246,14 @@
 !******************************************************************************
 !  Subroutine INIT_TRACERINFO initializes the NAME, FNAME, MWT, MOLC, INDEX,
 !  MOLC, UNIT arrays which are used to define the "tracerinfo.dat" file.
-!  (bmy, 10/17/06)
+!  (bmy, phs, 10/17/06, 9/18/07)
 !
 !  NOTES:
 !  (1 ) Split this code off from INIT_GAMAP, for clarity.  Also now declare
 !        biomass burning emissions w/ offset of 45000.  Bug fix: write out
 !        26 tracers for ND48, ND49, ND50, ND51 timeseries.  Also define
 !        ND54 diagnostic with offset of 46000. (bmy, 10/17/06)
+!  (2 ) Modifications for H2/HD in ND10, ND44 diagnostics (phs, 9/18/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1256,7 +1270,7 @@
       USE DIAG_PL_MOD,  ONLY : GET_FAM_MWT, GET_FAM_NAME
       USE DRYDEP_MOD,   ONLY : DEPNAME,     NUMDEP,    NTRAIND
       USE LOGICAL_MOD,  ONLY : LSOA
-      USE TRACER_MOD,   ONLY : ITS_A_CO2_SIM
+      USE TRACER_MOD,   ONLY : ITS_A_CO2_SIM,    ITS_A_H2HD_SIM
       USE TRACER_MOD,   ONLY : ITS_A_CH3I_SIM,   ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,   ONLY : ITS_A_HCN_SIM,    ITS_A_MERCURY_SIM
       USE TRACER_MOD,   ONLY : ITS_A_RnPbBe_SIM, ITS_A_TAGOX_SIM
@@ -1696,6 +1710,139 @@
          ENDDO
       ENDIF
     
+      !-------------------------------------      
+      ! H2-HD source, production & loss (ND10)
+      !-------------------------------------      
+      IF ( ND10 > 0 ) THEN
+         
+         ! Number of tracers
+         NTRAC(10) = 20
+
+         ! Loop over tracers 
+         DO T = 1, NTRAC(10)
+
+            ! Define quantities
+            UNIT (T,10) = 'molec/cm3/s' ! overwrite below when needed
+            MOLC (T,10) = 1   
+            SCALE(T,10) = 1e0
+
+            ! Get name, long-name, index, and new units
+            SELECT CASE( T )
+               CASE( 1  )
+                  NAME (T,10) = 'H2oh'
+                  FNAME(T,10) = 'Loss of H2 by OH'
+                  MWT  (T,10) = 2e-3
+                  INDEX(T,10) = T + ( SPACING * 47 )
+               CASE( 2  )
+                  NAME (T,10) = 'H2iso'
+                  FNAME(T,10) = 'Prod of H2 from Isoprene'
+                  MWT  (T,10) = 2e-3
+                  INDEX(T,10) = T + ( SPACING * 47 )
+               CASE( 3  )
+                  NAME (T,10) = 'H2ch4'
+                  FNAME(T,10) = 'Prod of H2 from CH4'
+                  MWT  (T,10) = 2e-3
+                  INDEX(T,10) = T + ( SPACING * 47 )
+               CASE( 4  )
+                  NAME (T,10) = 'H2ch3oh'
+                  FNAME(T,10) = 'Prod of H2 from CH3OH'
+                  MWT  (T,10) = 2e-3
+                  INDEX(T,10) = T + ( SPACING * 47 )
+               CASE( 5  )
+                  NAME (T,10) = 'H2mono'
+                  FNAME(T,10) = 'Prod of H2 from MONO'
+                  MWT  (T,10) = 2e-3
+                  INDEX(T,10) = T + ( SPACING * 47 )
+               CASE( 6  )
+                  NAME (T,10) = 'H2acet'
+                  FNAME(T,10) = 'Prod of H2 from ACET'
+                  MWT  (T,10) = 2e-3
+                  INDEX(T,10) = T + ( SPACING * 47 )
+               CASE( 7  )
+                  NAME (T,10) = 'H2o1d'
+                  FNAME(T,10) = 'Loss of H2 by strat O1D'
+                  MWT  (T,10) = 2e-3
+                  INDEX(T,10) = T + ( SPACING * 47 )
+               CASE( 8  )
+                  NAME (T,10) = 'HDoh'
+                  FNAME(T,10) = 'Loss of HD by OH'
+                  UNIT (T,10) = 's-1'
+                  MWT  (T,10) = 3e-3
+                  INDEX(T,10) = T + ( SPACING * 47 )
+               CASE( 9  )
+                  NAME (T,10) = 'HDiso'
+                  FNAME(T,10) = 'Prod of HD from Isoprene'
+                  MWT  (T,10) = 3e-3
+                  INDEX(T,10) = T + ( SPACING * 47 )
+               CASE( 10 )
+                  NAME (T,10) = 'HDch4'
+                  FNAME(T,10) = 'Prod of HD from CH4'
+                  MWT  (T,10) = 3e-3
+                  INDEX(T,10) = T + ( SPACING * 47 )
+               CASE( 11 )
+                  NAME (T,10) = 'HDch3oh'
+                  FNAME(T,10) = 'Prod of HD from CH3OH'
+                  MWT  (T,10) = 3e-3
+                  INDEX(T,10) = T + ( SPACING * 47 )
+               CASE( 12 )
+                  NAME (T,10) = 'HDmono'
+                  FNAME(T,10) = 'Prod of HD from MONO'
+                  MWT  (T,10) = 3e-3
+                  INDEX(T,10) = T + ( SPACING * 47 )
+               CASE( 13 )
+                  NAME (T,10) = 'HDacet'
+                  FNAME(T,10) = 'Prod of HD from ACET'
+                  MWT  (T,10) = 3e-3
+                  INDEX(T,10) = T + ( SPACING * 47 )
+               CASE( 14 )
+                  NAME (T,10) = 'HDo1d'
+                  FNAME(T,10) = 'Loss of HD by strat O1D'
+                  MWT  (T,10) = 3e-3
+                  INDEX(T,10) = T + ( SPACING * 47 )
+               CASE( 15 )
+                  NAME (T,10) = 'Alpha'
+                  FNAME(T,10) = 'Ratio of OH k rates kHD/kH2'
+                  UNIT (T,10) = 'unitless'
+                  INDEX(T,10) = T + ( SPACING * 47 )
+               CASE( 16 )
+                  NAME (T,10) = 'H2anth'
+                  FNAME(T,10) = 'Fossil Fuel H2 (anthropogenic)'
+                  UNIT (T,10) = 'molec/cm2/s'
+                  MWT  (T,10) = 2e-3
+                  INDEX(T,10) = ( T - 15 ) + ( SPACING * 48 )
+               CASE( 17 )
+                  NAME (T,10) = 'H2bb'
+                  FNAME(T,10) = 'Biomass Burning of H2'
+                  UNIT (T,10) = 'molec/cm2/s'
+                  MWT  (T,10) = 2e-3
+                  INDEX(T,10) = ( T - 15 ) + ( SPACING * 48 )
+
+               CASE( 18 )
+                  NAME (T,10) = 'H2bf'
+                  FNAME(T,10) = 'Biofuel Burning of H2'
+                  UNIT (T,10) = 'molec/cm2/s'
+                  MWT  (T,10) = 2e-3
+                  INDEX(T,10) = ( T - 15 ) + ( SPACING * 48 )
+
+               CASE( 19 )
+                  NAME (T,10) = 'H2ocean'
+                  FNAME(T,10) = 'Ocean emissions of H2'
+                  UNIT (T,10) = 'molec/cm2/s'
+                  MWT  (T,10) = 2e-3
+                  INDEX(T,10) = ( T - 15 ) + ( SPACING * 48 )
+               CASE( 20 )
+                  NAME (T,10) = 'HDocean'
+                  FNAME(T,10) = 'Ocean emissions of HD'
+                  UNIT (T,10) = 'molec/cm2/s'
+                  MWT  (T,10) = 3e-3
+                  INDEX(T,10) = ( T - 15 ) + ( SPACING * 48 )
+
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT
+         ENDDO
+      ENDIF
+
       !-------------------------------------
       ! Acetone sources & sinks (ND11)
       !-------------------------------------
@@ -2367,7 +2514,12 @@
       IF ( ND44 > 0 ) THEN
 
          ! Special handling for tagged simulations
-         IF ( ITS_A_TAGOX_SIM() .or. ITS_A_MERCURY_SIM() ) THEN
+         !---------------------------------------------------------------
+         ! Prior to 9/18/07:
+         !IF ( ITS_A_TAGOX_SIM() .or. ITS_A_MERCURY_SIM() ) THEN
+         !---------------------------------------------------------------
+         IF ( ITS_A_TAGOX_SIM()   .or. 
+     &        ITS_A_MERCURY_SIM() .or. ITS_A_H2HD_SIM() ) THEN
 
             !----------------------------------------------------
             ! Tagged runs: Save drydep flux for all tracers
@@ -2741,7 +2893,7 @@
       IF ( ND66 > 0 ) THEN 
 
          ! Number of tracers
-         NTRAC(66) = 5
+         NTRAC(66) = 6
 
          ! Loop over tracers
          DO T = 1, NTRAC(66)
@@ -2762,6 +2914,9 @@
                   UNIT(T,66) = 'g/kg'
                CASE( 5 )
                   NAME(T,66) = 'CLDMAS'
+                  UNIT(T,66) = 'kg/m2/s'
+               CASE( 6 )
+                  NAME(T,66) = 'DTRAIN'
                   UNIT(T,66) = 'kg/m2/s'
                CASE DEFAULT
                   ! Nothing

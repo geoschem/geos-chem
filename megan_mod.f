@@ -1,10 +1,10 @@
-! $Id: megan_mod.f,v 1.5 2006/09/08 19:21:01 bmy Exp $
+! $Id: megan_mod.f,v 1.6 2007/11/05 16:16:22 bmy Exp $
       MODULE MEGAN_MOD
 !
 !******************************************************************************
 !  Module MEGAN_MOD contains variables and routines specifying the 
 !  algorithms that control the MEGAN inventory of biogenic emissions.
-!  (dsa, tmf, bmy, 11/17/04, 8/4/06)
+!  (dsa, tmf, bmy, 11/17/04, 9/18/07)
 !
 !  Module Variables:
 !  ============================================================================
@@ -103,6 +103,7 @@
 !        'a3_read_mod.f'. 
 !  (4 ) Bug fix: change #if block to also cover GCAP met fields (bmy, 12/6/05)
 !  (5 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (6 ) Bug fix: Skip Feb 29th if GCAP in INIT_MEGAN (phs, 9/18/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1534,10 +1535,11 @@
 !
 !******************************************************************************
 !  Subroutine INIT_MEGAN allocates and initializes the T_DAY, T_15,  
-!  T_15_AVG, and AEF_* arrays. (dsa, tmf, bmy, 10/24/05, 12/6/05)
+!  T_15_AVG, and AEF_* arrays. (dsa, tmf, bmy, 10/24/05, 9/18/07)
 !
 !  NOTES:
 !  (1 ) Change the logic in the #if block for G4AHEAD. (bmy, 12/6/05)
+!  (2 ) Bug fix: skip Feb 29th if GCAP (phs, 9/18/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1548,14 +1550,17 @@
       USE LAI_MOD,     ONLY : INIT_LAI
       USE LOGICAL_MOD, ONLY : LUNZIP
       USE TIME_MOD,    ONLY : GET_FIRST_A3_TIME, GET_JD
+      USE TIME_MOD,    ONLY : ITS_A_LEAPYEAR,    YMD_EXTRACT
       
 #     include "CMN_SIZE"    ! Size parameters
 
       ! Local Variables
+      LOGICAL              :: GCAP_LEAP
       INTEGER              :: AS
       INTEGER              :: DATE_T15b(2)
       INTEGER              :: NYMD_T15b, NHMS_T15b, NYMD_T15, NHMS_T15
       INTEGER              :: I,         J,         G4AHEAD
+      INTEGER              :: THISYEAR,  THISMONTH, THISDAY, BACK_ONE
       REAL*8               :: JD_T15b,   JD_T15
       
       !=================================================================
@@ -1626,6 +1631,30 @@
       G4AHEAD   = 13000
 
 #endif
+      
+      !------------------------------------------------------
+      ! GCAP: Need to test if it's leap year (phs, 9/18/07)
+      !------------------------------------------------------
+
+      ! Initialize
+      THISDAY   = 0
+      GCAP_LEAP = .FALSE.
+      BACK_ONE  = 0
+
+#if   defined( GCAP )
+
+      ! Extract year, month, day from NYMD_T15b
+      CALL YMD_EXTRACT( NYMD_T15b, THISYEAR, THISMONTH, THISDAY )
+
+      ! If it's a leap year then set appropriate variables
+      IF ( ITS_A_LEAPYEAR( THISYEAR, FORCE=.TRUE. )  .AND.
+     &     THISMONTH == 3                            .AND.
+     &     THISDAY   <  16  ) THEN 
+         GCAP_LEAP = .TRUE.
+         BACK_ONE  = 1
+      ENDIF
+
+#endif
 
       ! Remove any leftover A-3 files in temp dir (if necessary)
       IF ( LUNZIP ) THEN
@@ -1633,7 +1662,15 @@
       ENDIF
 
       ! Loop over 15 days
-      DO I = 15, 1, -1
+      !---------------------------------
+      ! Prior to 9/18/07:
+      ! Modified for GCAP (phs, 9/18/07)
+      !DO I = 15, 1, -1
+      !---------------------------------
+      DO I = 15+BACK_ONE, 1, -1
+
+         ! Skip February 29th for GCAP (phs, 9/18/07)
+         IF ( GCAP_LEAP .AND. I == THISDAY ) CYCLE
 
          ! Julian day at start of each of the 15 days 
          JD_T15 = JD_T15b - DBLE( I ) * 1.d0

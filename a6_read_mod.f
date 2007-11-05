@@ -1,4 +1,4 @@
-! $Id: a6_read_mod.f,v 1.19 2006/10/18 15:49:39 bmy Exp $
+! $Id: a6_read_mod.f,v 1.20 2007/11/05 16:16:12 bmy Exp $
       MODULE A6_READ_MOD
 !
 !******************************************************************************
@@ -1320,6 +1320,11 @@
          IF ( PRESENT( UPDN ) ) THEN
             AD66(:,:,1:LD66,5) = AD66(:,:,1:LD66,5) +UPDN(:,:,1:LD66)/g0
          ENDIF
+
+         ! GEOS-3 & GEOS-5 detrainment
+         IF ( PRESENT( DTRAIN ) ) THEN 
+            AD66(:,:,1:LD66,6) = AD66(:,:,1:LD66,6) + DTRAIN(:,:,1:LD66)
+         ENDIF  
       ENDIF
 
       !=================================================================

@@ -1,9 +1,9 @@
-! $Id: aircraft_nox_mod.f,v 1.3 2004/12/02 21:48:32 bmy Exp $
+! $Id: aircraft_nox_mod.f,v 1.4 2007/11/05 16:16:13 bmy Exp $
       MODULE AIRCRAFT_NOX_MOD
 !
 !******************************************************************************
 !  Module AIRCRAFT_NOX_MOD contains variables and routines for emission
-!  of aircraft NOx fields into arrays for SMVGEAR. (bmy, 2/15/02, 7/19/04)
+!  of aircraft NOx fields into arrays for SMVGEAR. (bmy, 2/15/02, 10/3/07)
 !
 !  The aircraft NOx fields are stored on grid with 1-km vertical resolution.
 !  These fields will be interpolated onto the GEOS-CHEM vertical grid.
@@ -15,6 +15,7 @@
 !  (3 ) AIR      (REAL*8 ) : Array for NOx emissions on the 1-km grid
 !  (4 ) AIREMIS  (REAL*8 ) : Array for NOx emissions on the GEOS-CHEM grid
 !  (5 ) AIRPRESS (REAL*8 ) : Approx. pressure edges of the 1-km native grid
+!  (6 ) EMIS_AC_NOx (REAL*8) : Array to pass aircraft NOx to SMVGEAR
 !
 !  Module Routines:
 !  ============================================================================
@@ -50,6 +51,7 @@
 !        Also deleted obsolete code from various routines (bmy, 10/15/02)
 !  (8 ) Now references "grid_mod.f" and "time_mod.f" (bmy, 2/11/03)
 !  (9 ) Now references "directory_mod.f" (bmy, 7/19/04)
+!  (10) Replace GEMISNOX (from CMN_NOX) with a module variable (bmy, 10/3/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -82,7 +84,7 @@
       ! AIR    aft NOx emissions on native 1-km grid 
       REAL*8,  ALLOCATABLE :: AIR(:,:,:)
                
-      ! AIREMISaft NOx emissions on GEOS-CHEM grid
+      ! Aircraft NOx emissions on GEOS-CHEM grid
       REAL*8,  ALLOCATABLE :: AIREMIS(:,:,:)
 
       ! AIRPRESS - Approx. pressure edges of the 1-km native aircraft NOx grid
@@ -90,6 +92,10 @@
      &   1013.25, 954.61, 845.56, 746.83, 657.64, 577.28, 505.07, 
      &    440.35, 382.52, 330.99, 285.24, 244.75, 209.04, 178.65, 
      &    152.59, 130.34, 111.33,  95.09,  81.22,  69.37,  59.26 /)
+
+      ! Array to pass aircraft NOx emissions to SMVGEAR
+      ! (replacement for GEMISNOX array)
+      REAL*8,  ALLOCATABLE :: EMIS_AC_NOx(:,:,:)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -218,7 +224,7 @@
 !
 !******************************************************************************
 !  Subroutine AIREMISS interpolates the aircraft NOx emissions from the 1-km
-!  native grid onto the given GEOS-CHEM grid. (bmy, 2/14/02, 2/11/03)
+!  native grid onto the given GEOS-CHEM grid. (bmy, 2/14/02, 10/3/07)
 !
 !  Original code from Yuhang Wang (1993).
 !
@@ -236,6 +242,8 @@
 !  (6 ) Now reference BXHEIGHT from "dao_mod.f". (bmy, 9/18/02)
 !  (7 ) I0 and J0 are now local variables.  Now use functions GET_XOFFSET
 !        and GET_YOFFSET from "grid_mod.f" (bmy, 2/11/03)
+!  (8 ) Replace GEMISNOX (from "CMN_NOX") with module variable EMIS_AC_NOx
+!        in order to avoid common block errors. (ltm, bmy, 10/3/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -247,7 +255,10 @@
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN"       ! PTOP, SIGE, AVP
 #     include "CMN_DIAG"  ! Diagnostic switches
-#     include "CMN_NOX"   ! GEMISNOX
+!---------------------------------------------------------
+! Prior to 10/3/07:
+!#     include "CMN_NOX"   ! GEMISNOX
+!---------------------------------------------------------
 
       INTEGER             :: I,    J,     IREF, JREF,  L,     K
       INTEGER             :: I0,   J0
@@ -263,6 +274,9 @@
       ! Read aircraft NOx emissions
       CALL READAIR
 
+      ! Zero accumulator array
+      EMIS_AC_NOx = 0d0
+
       ! Get nested-grid offsets
       I0 = GET_XOFFSET()
       J0 = GET_YOFFSET()
@@ -272,7 +286,7 @@
          JREF = J + J0
       DO I = 1, IIPAR
          IREF = I + I0
-
+         
          !==============================================================
          ! Loop over tropospheric GEOS-CHEM levels 
          !==============================================================
@@ -298,7 +312,7 @@
                ! PAIR2 is the pressure at the top    of 1-km grid layer K
                PAIR1 = AIRPRESS(K)
                PAIR2 = AIRPRESS(K+1)
-
+            
                ! Compute the fraction of each 1-km layer K that
                ! lies within the given GEOS-CHEM layer L
                IF ( PHIGH >= PAIR1 ) THEN
@@ -327,6 +341,8 @@
 
             ! Store XSUM into AIREMIS array
  10         CONTINUE
+
+
             AIREMIS(I,J,L) = XSUM
 
             !===========================================================
@@ -339,7 +355,11 @@
                TMP             = AIREMIS(I,J,L)  / BOXVL(I,J,L)
 
                ! Store in GEMISNOX in [molec/cm3/s]
-               GEMISNOX(I,J,L) = GEMISNOX(I,J,L) + TMP
+               !---------------------------------------------------------
+               ! Prior to 10/3/07:
+               !GEMISNOX(I,J,L) = GEMISNOX(I,J,L) + TMP
+               !---------------------------------------------------------
+               EMIS_AC_NOx(I,J,L) = TMP
 
                ! ND32 -- save NOx in [molec/cm2], will convert to
                ! [molec/cm2/s] in subroutine "diag3.f" (bmy, 3/16/00)
@@ -362,10 +382,11 @@
 !
 !******************************************************************************
 !  Subroutine INIT_AIRCRAFT_NOX allocates and initializes module variables.
-!  (bmy, 2/14/02, 10/15/02)
+!  (bmy, 2/14/02, 10/3/07)
 !
 !  NOTES:
 !  (1 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
+!  (2 ) Now allocate EMIS_AC_NOx array (bmy, 10/3/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -388,7 +409,12 @@
       ALLOCATE( AIREMIS( IIPAR, JJPAR, LAIREMS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIREMS' )
       AIREMIS = 0d0
-      
+
+      ! AIREMIS holds the aircraft NOx on the GEOS grid (LAIREMS levels)
+      ALLOCATE( EMIS_AC_NOx( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIREMS' )
+      EMIS_AC_NOx = 0d0
+
       ! Return to calling program
       END SUBROUTINE INIT_AIRCRAFT_NOX
 
@@ -400,14 +426,17 @@
 !  Subroutine CLEANUP_AIRCRAFT_NOX deallocates module variables. (bmy, 2/14/02)
 !
 !  NOTES:  
+!  (1 ) Now deallocate EMIS_AC_NOx array (bmy, 10/3/07)
 !******************************************************************************
 !
-      IF ( ALLOCATED( AIR     ) ) DEALLOCATE( AIR     )
-      IF ( ALLOCATED( AIREMIS ) ) DEALLOCATE( AIREMIS )
+      IF ( ALLOCATED( AIR         ) ) DEALLOCATE( AIR         )
+      IF ( ALLOCATED( AIREMIS     ) ) DEALLOCATE( AIREMIS     )
+      IF ( ALLOCATED( EMIS_AC_NOX ) ) DEALLOCATE( EMIS_AC_NOX ) 
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_AIRCRAFT_NOX
 
 !------------------------------------------------------------------------------
 
+      ! End of module
       END MODULE AIRCRAFT_NOX_MOD

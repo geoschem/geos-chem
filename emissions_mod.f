@@ -1,9 +1,9 @@
-! $Id: emissions_mod.f,v 1.19 2006/08/18 20:32:37 bmy Exp $
+! $Id: emissions_mod.f,v 1.20 2007/11/05 16:16:17 bmy Exp $
       MODULE EMISSIONS_MOD
 !
 !******************************************************************************
 !  Module EMISSIONS_MOD is used to call the proper emissions subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 2/11/03, 8/17/06)
+!  for the various GEOS-CHEM simulations. (bmy, 2/11/03, 9/18/07)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -21,16 +21,17 @@
 !  (8 ) epa_nei_mod.f    : Module w/ routines to read EPA/NEI99 (USA) emissions
 !  (9 ) error_mod.f      : Module w/ NaN and other error checks
 !  (10) global_ch4_mod.f : Module w/ routines for CH4 emissions
-!  (11) hcn_ch3cn_mod.f  : Module w/ routines for HCN and CH3CN emissions 
-!  (12) Kr85_mod.f       : Module w/ routines for Kr85 emissions
-!  (13) logical_mod.f    : Module w/ GEOS-CHEM logical switches
-!  (14) mercury_mod.f    : Module w/ routines for mercury chemistry
-!  (15) RnPbBe_mod.f     : Module w/ routines for Rn-Pb-Be emissions
-!  (16) tagged_co_mod.f  : Module w/ routines for Tagged CO emissions
-!  (17) time_mod.f       : Module w/ routines to compute date & time
-!  (18) tracer_mod.f     : Module w/ GEOS-CHEM tracer array STT etc.
-!  (19) seasalt_mod.f    : Module w/ routines for seasalt emissions
-!  (20) sulfate_mod.f    : Module w/ routines for sulfate emissions
+!  (11) h2_hd_mod.f      : Module w/ routines for H2 and HD chemistry
+!  (12) hcn_ch3cn_mod.f  : Module w/ routines for HCN and CH3CN emissions 
+!  (13) Kr85_mod.f       : Module w/ routines for Kr85 emissions
+!  (14) logical_mod.f    : Module w/ GEOS-CHEM logical switches
+!  (15) mercury_mod.f    : Module w/ routines for mercury chemistry
+!  (16) RnPbBe_mod.f     : Module w/ routines for Rn-Pb-Be emissions
+!  (17) tagged_co_mod.f  : Module w/ routines for Tagged CO emissions
+!  (18) time_mod.f       : Module w/ routines to compute date & time
+!  (19) tracer_mod.f     : Module w/ GEOS-CHEM tracer array STT etc.
+!  (20) seasalt_mod.f    : Module w/ routines for seasalt emissions
+!  (21) sulfate_mod.f    : Module w/ routines for sulfate emissions
 !
 !  NOTES:
 !  (1 ) Now references DEBUG_MSG from "error_mod.f"
@@ -49,6 +50,7 @@
 !  (13) Now references "bravo_mod.f" (rjp, kfb, bmy, 6/26/06)
 !  (14) Now references "edgar_mod.f" (avd, bmy, 7/6/06)
 !  (15) Now references "streets_anthro_mod.f" (yxw, bmy, 8/18/06)
+!  (16) Now references "h2_hd_mod.f" (lyj, phs, 9/18/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -108,6 +110,7 @@
       USE EPA_NEI_MOD,        ONLY : EMISS_EPA_NEI
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GLOBAL_CH4_MOD,     ONLY : EMISSCH4
+      USE H2_HD_MOD,          ONLY : EMISS_H2_HD
       USE HCN_CH3CN_MOD,      ONLY : EMISS_HCN_CH3CN
       USE Kr85_MOD,           ONLY : EMISSKr85
       USE LOGICAL_MOD            
@@ -300,6 +303,34 @@
 
          ! Emit CO2
          CALL EMISSCO2
+
+      ELSE IF ( ITS_A_H2HD_SIM() ) THEN
+
+         !--------------------
+         ! Offline H2/HD 
+         !--------------------
+
+         ! Read David Streets' emisisons over China / SE ASia
+         IF ( LSTREETS .and. ITS_A_NEW_YEAR() ) THEN
+            CALL EMISS_STREETS_ANTHRO
+         ENDIF
+
+         ! Read EDGAR emissions once per month
+         IF ( LEDGAR .and. ITS_A_NEW_MONTH() ) THEN
+            CALL EMISS_EDGAR( YEAR, MONTH )
+         ENDIF
+
+         ! Read EPA (USA) emissions once per month
+         IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
+
+         ! Read BRAVO (Mexico) emissions once per year
+         IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) CALL EMISS_BRAVO
+
+         ! Read EPA (Europe) emissions once per year
+         IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) CALL EMISS_EMEP
+
+         ! Emit H2/HD
+         CALL EMISS_H2_HD
 
       ENDIF
 

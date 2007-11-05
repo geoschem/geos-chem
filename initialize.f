@@ -1,8 +1,8 @@
-! $Id: initialize.f,v 1.25 2007/03/29 20:31:19 bmy Exp $
+! $Id: initialize.f,v 1.26 2007/11/05 16:16:19 bmy Exp $
       SUBROUTINE INITIALIZE( IFLAG )
 !
 !******************************************************************************
-!  Subroutine INITIALIZE (bmy, 6/15/98, 1/30/07) does the following:
+!  Subroutine INITIALIZE (bmy, 6/15/98, 9/18/07) does the following:
 !     (1) Zeroes globally defined GEOS-CHEM variables.
 !     (2) Zeroes accumulating diagnostic arrays.
 !     (3) Resets certain year/month/day and counter variables used 
@@ -165,6 +165,7 @@
 !  (38) take care of AD54 (time in the troposphere diagnostic) (phs, 10/17/06)
 !  (39) Now also zero CTO3 array.  Bug fix: ZERO_DIAG42 is now called when
 !        ND42 is turned on. (phs, bmy, 1/30/07)
+!  (40) Now zero AD10 and AD10em for H2HD simulation (phs, 9/18/07)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -198,6 +199,7 @@
       USE DIAG_MOD,    ONLY : AD54,        CTO3
       USE DIAG_MOD,    ONLY : AD55,        AD66,        AD67
       USE DIAG_MOD,    ONLY : AD68,        AD69
+      USE DIAG_MOD,    ONLY : AD10,        AD10em
       USE DIAG03_MOD,  ONLY : ND03,        ZERO_DIAG03
       USE DIAG04_MOD,  ONLY : ND04,        ZERO_DIAG04
       USE DIAG41_MOD,  ONLY : ND41,        ZERO_DIAG41
@@ -295,6 +297,12 @@
             AD09_em  = 0e0
          ENDIF
          
+         ! For ND10 -- H2 & HD simulation (phs, 9/18/07)
+         IF ( ND10 > 0 ) THEN 
+            AD10    = 0e0
+            AD10em  = 0e0
+         ENDIF
+
          ! For ND13 - sulfur emissions (bmy, 6/6/00, 5/20/04)
          IF ( ND13 > 0 ) THEN
             AD13_DMS    = 0e0  

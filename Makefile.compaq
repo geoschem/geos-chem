@@ -1,7 +1,7 @@
 #=============================================================================
-# $Id: Makefile.compaq,v 1.42 2006/09/14 14:22:09 phs Exp $
+# $Id: Makefile.compaq,v 1.43 2007/11/05 16:16:10 bmy Exp $
 #
-# GEOS-Chem Makefile for COMPAQ/Alpha (bmy, Thu Aug 17 12:29:48 2006)
+# GEOS-Chem Makefile for COMPAQ/Alpha (bmy, Thu Sep 20 10:47:10 2007)
 #
 # NOTE: For GEOS-CHEM v5-07-08, we must compile everything -fast except 
 #       "calcrate.f", which must be compiled -O2.  (hamid, bmy, 10/10/03)
@@ -115,6 +115,7 @@ fast_j.o                  \
 fjfunc.o                  \
 inphot.o                  \
 jv_index.o                \
+mmran_16.o                \
 photoj.o                  \
 rd_js.o                   \
 rd_prof.o                 \
@@ -169,6 +170,7 @@ global_hno3_mod.o         \
 global_no3_mod.o          \
 global_nox_mod.o          \
 global_oh_mod.o           \
+global_o1d_mod.o          \
 global_o3_mod.o           \
 uvalbedo_mod.o            \
 RnPbBe_mod.o              \
@@ -191,7 +193,6 @@ xtra_read_mod.o           \
 megan_mod.o               \
 carbon_mod.o              \
 lightning_nox_mod.o       \
-lightning_nox_nl_mod.o    \
 optdepth_mod.o            \
 planeflight_mod.o         \
 restart_mod.o             \
@@ -203,6 +204,7 @@ sulfate_mod.o             \
 hcn_ch3cn_mod.o           \
 tagged_co_mod.o           \
 tagged_ox_mod.o           \
+h2_hd_mod.o               \
 gcap_convect_mod.o        \
 fvdas_convect_mod.o       \
 convection_mod.o          \
@@ -257,7 +259,7 @@ a3_read_mod.o              : a3_read_mod.f              CMN_DIAG CMN_SIZE define
 a6_read_mod.o              : a6_read_mod.f              CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 acetone_mod.o              : acetone_mod.f              CMN_DEP CMN_DIAG CMN_MONOT CMN_SIZE define.h 
 aerosol_mod.o              : aerosol_mod.f              CMN_DIAG CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h comode.h jv_cmn.h 
-aircraft_nox_mod.o         : aircraft_nox_mod.f         CMN CMN_DIAG CMN_NOX CMN_SIZE define.h 
+aircraft_nox_mod.o         : aircraft_nox_mod.f         CMN CMN_DIAG CMN_SIZE define.h 
 airmas.o                   : airmas.f                   
 anthroems.o                : anthroems.f                CMN_O3 CMN_SIZE define.h comode.h 
 arsl1k.o                   : arsl1k.f                   
@@ -314,7 +316,7 @@ emissions_mod.o            : emissions_mod.f            CMN_SIZE define.h
 emmonot.o                  : emmonot.f                  CMN_MONOT CMN_SIZE define.h CMN_VEL 
 epa_nei_mod.o              : epa_nei_mod.f              CMN_SIZE define.h 
 error_mod.o                : error_mod.f                define.h 
-fast_j.o                   : fast_j.f                   cmn_fj.h CMN_SIZE define.h jv_cmn.h 
+fast_j.o                   : fast_j.f                   CMN cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 fertadd.o                  : fertadd.f                  CMN_SIZE define.h commsoil.h 
 file_mod.o                 : file_mod.f                 define.h 
 findmon.o                  : findmon.f                  
@@ -335,10 +337,12 @@ global_ch4_mod.o           : global_ch4_mod.f           CMN CMN_DIAG CMN_SIZE de
 global_hno3_mod.o          : global_hno3_mod.f          CMN_SIZE define.h 
 global_no3_mod.o           : global_no3_mod.f           CMN_SIZE define.h 
 global_nox_mod.o           : global_nox_mod.f           CMN_SIZE define.h 
+global_o1d_mod.o           : global_o1d_mod.f           CMN_SIZE define.h 
 global_o3_mod.o            : global_o3_mod.f            CMN_SIZE define.h 
 global_oh_mod.o            : global_oh_mod.f            CMN_SIZE define.h 
 grid_mod.o                 : grid_mod.f                 CMN_GCTM CMN_SIZE define.h 
 gwet_read_mod.o            : gwet_read_mod.f            CMN_DIAG CMN_SIZE define.h 
+h2_hd_mod.o                : h2_hd_mod.f                CMN_DEP CMN_DIAG CMN_O3 CMN_SIZE define.h 
 hcn_ch3cn_mod.o            : hcn_ch3cn_mod.f            CMN_DEP CMN_DIAG CMN_SIZE define.h 
 i6_read_mod.o              : i6_read_mod.f              CMN_DIAG CMN_SIZE define.h 
 ifort_errmsg.o             : ifort_errmsg.f             
@@ -351,13 +355,13 @@ julday_mod.o               : julday_mod.f
 jv_index.o                 : jv_index.f                 cmn_fj.h CMN_SIZE define.h comode.h 
 ksparse.o                  : ksparse.f                  CMN_SIZE define.h comode.h 
 lai_mod.o                  : lai_mod.f                  CMN_SIZE define.h 
-lightning_nox_mod.o        : lightning_nox_mod.f        CMN_DIAG CMN_GCTM CMN_NOX CMN_SIZE define.h define.h 
-lightning_nox_nl_mod.o     : lightning_nox_nl_mod.f     CMN_DIAG CMN_GCTM CMN_NOX CMN_SIZE define.h 
+lightning_nox_mod.o        : lightning_nox_mod.f        CMN_DIAG CMN_GCTM CMN_SIZE define.h
 logical_mod.o              : logical_mod.f              
 lump.o                     : lump.f                     CMN_SIZE define.h comode.h 
 main.o                     : main.f                     CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 megan_mod.o                : megan_mod.f                CMN_GCTM CMN_SIZE define.h 
 mercury_mod.o              : mercury_mod.f              CMN_DIAG CMN_GCTM CMN_SIZE define.h 
+mmran_16.o                 : mmran_16.f                 cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 ndxx_setup.o               : ndxx_setup.f               CMN_DIAG CMN_SIZE define.h 
 ocean_mercury_mod.o        : ocean_mercury_mod.f        CMN_DEP CMN_SIZE define.h 
 ohsave.o                   : ohsave.f                   CMN_SIZE define.h comode.h 
@@ -409,7 +413,7 @@ sunparam.o                 : sunparam.f
 tagged_co_mod.o            : tagged_co_mod.f            CMN_DIAG CMN_O3 CMN_SIZE define.h 
 tagged_ox_mod.o            : tagged_ox_mod.f            CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 tcorr.o                    : tcorr.f                    
-time_mod.o                 : time_mod.f                 define.h 
+time_mod.o                 : time_mod.f                 CMN_DIAG CMN_SIZE define.h define.h 
 toms_mod.o                 : toms_mod.f                 CMN_SIZE define.h 
 tpcore_bc_mod.o            : tpcore_bc_mod.f            CMN CMN_SIZE define.h 
 tpcore_fvdas_mod.o         : tpcore_fvdas_mod.f90         
@@ -423,7 +427,7 @@ tracerid_mod.o             : tracerid_mod.f             CMN_SIZE define.h comode
 transfer_mod.o             : transfer_mod.f             CMN_SIZE define.h 
 transport_mod.o            : transport_mod.f            CMN CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 tropopause.o               : tropopause.f               CMN CMN_DIAG CMN_SIZE define.h 
-tropopause_mod.o           : tropopause_mod.f           CMN CMN_SIZE define.h comode.h
+tropopause_mod.o           : tropopause_mod.f           CMN CMN_SIZE define.h comode.h 
 unix_cmds_mod.o            : unix_cmds_mod.f            
 upbdflx_mod.o              : upbdflx_mod.f              CMN_GCTM CMN_SIZE define.h 
 update.o                   : update.f                   CMN_SIZE define.h comode.h 

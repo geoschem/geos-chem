@@ -1,10 +1,10 @@
-! $Id: emissdr.f,v 1.13 2006/05/15 17:52:48 bmy Exp $
+! $Id: emissdr.f,v 1.14 2007/11/05 16:16:17 bmy Exp $
       SUBROUTINE EMISSDR
 !
 !******************************************************************************
 !  Subroutine EMISSDR computes emissions for the full chemistry simulation
-!  (NSRCX == 3).  Emissions are stored in GEMISNOX and EMISRR arrays, 
-!  which are then passed to the SMVGEAR subroutines (bmy, 10/8/98, 5/10/06)
+!  Emissions are stored in various arrays, which are then passed to the
+!  SMVGEAR solver via routine "setemis.f". (bmy, 10/8/98, 10/3/07)
 !
 !  NOTES:
 !  (1 ) Now accounts for seasonal NOx emissions, and multi-level NOx 
@@ -57,6 +57,10 @@
 !  (25) Now call EMLIGHTNING_NL from "lightning_nox_nl_mod.f" for GEOS-4 so
 !        that we can use the new near-land lightning formulation. 
 !        (ltm, bmy, 5/11/06)
+!  (26) Added switch for BIOGENIC emissions.  Now revert to single 
+!        lightning_nox_mod.f.  Remove reference to old GEMISNOX array; this
+!        has been replaced by module arrays EMIS_LI_NOx and EMIS_AC_NOx, in 
+!        order to avoid common block errors. (ltm, bmy, phs, 10/3/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -69,13 +73,17 @@
       USE GRID_MOD,          ONLY : GET_AREA_CM2
       USE GRID_MOD,          ONLY : GET_XOFFSET,   GET_YOFFSET
       USE LIGHTNING_NOX_MOD, ONLY : EMLIGHTNING
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%% Note: add this for GEOS-4 for the time being (ltm, bmy, 5/11/06)
-      USE LIGHTNING_NOX_NL_MOD, ONLY : EMLIGHTNING_NL
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !------------------------------------------------------------------------
+      ! Prior to 10/2/07:
+      ! Now revert to single lightning_nox_mod.f (ltm, bmy, 10/3/07)
+      !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !!%%% Note: add this for GEOS-4 for the time being (ltm, bmy, 5/11/06)
+      !USE LIGHTNING_NOX_NL_MOD, ONLY : EMLIGHTNING_NL
+      !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !------------------------------------------------------------------------
       USE LOGICAL_MOD,       ONLY : LANTHRO,       LLIGHTNOX, LSOILNOX  
       USE LOGICAL_MOD,       ONLY : LAIRNOX,       LBIONOX,   LWOODCO   
-      USE LOGICAL_MOD,       ONLY : LMEGAN
+      USE LOGICAL_MOD,       ONLY : LMEGAN,        LBIOGENIC
       USE MEGAN_MOD,         ONLY : GET_EMISOP_MEGAN
       USE MEGAN_MOD,         ONLY : GET_EMMBO_MEGAN
       USE MEGAN_MOD,         ONLY : GET_EMMONOT_MEGAN
@@ -90,7 +98,7 @@
 #     include "CMN"          ! IEBD1, IEBD2, JEBD1, JEBD2
 #     include "CMN_DIAG"     ! Diagnostic arrays and switches
 #     include "CMN_O3"       ! Emissions arrays
-#     include "CMN_NOX"      ! GEMISNOX, GEMISNOX2
+#     include "CMN_NOX"      ! GEMISNOX2
 #     include "CMN_MONOT"    ! Monoterpenes
 #     include "comode.h"     ! IVERT?
 
@@ -158,10 +166,15 @@
 !******************************************************************************
 !
       ! These need to be initialized on every call
-      EMISRRN   = 0d0
-      EMISRR    = 0d0
-      GEMISNOX  = 0d0
-      GEMISNOX2 = 0d0
+      EMISRRN     = 0d0
+      EMISRR      = 0d0
+      !-----------------------------------------------------------------------
+      ! Prior to 10/3/07:
+      ! Remove reference to GEMISNOX.  This is now replaced by separate
+      ! arrays for lightning NOx and aircraft NOx. (ltm, bmy, 10/3/07)
+      !GEMISNOX  = 0d0
+      !-----------------------------------------------------------------------
+      GEMISNOX2   = 0d0
       
       ! Loop over latitudes
       IJLOOP = 0
@@ -217,16 +230,22 @@
 !-----------------------------------------------------------------------------
 ! LIGHTNING EMISSIONS NOX [molecules/cm3/s]
 !
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE: Temporary kludge: For GEOS-4 we want to use the new near-land
-!%%% lightning formulation.  But for the time being, we must keep the 
-!%%% existing lightning for other met field types. (ltm, bmy, 5/10/06)
-#if   defined( GEOS_4 )
-            IF ( LLIGHTNOX ) CALL EMLIGHTNING_NL( I, J )
-#else
+!------------------------------------------------------------------------------
+! Prior to 9/24/07:
+! Now revert to single lightning_nox_mod.f (bmy, 9/24/07)
+!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!!%%% NOTE: Temporary kludge: For GEOS-4 we want to use the new near-land
+!!%%% lightning formulation.  But for the time being, we must keep the 
+!!%%% existing lightning for other met field types. (ltm, bmy, 5/10/06)
+!#if   defined( GEOS_4 )
+!            IF ( LLIGHTNOX ) CALL EMLIGHTNING_NL( I, J )
+!#else
+!------------------------------------------------------------------------------
             IF ( LLIGHTNOX ) CALL EMLIGHTNING( I, J )
-#endif
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!------------------------------------------------------------------------------
+! Prior to 9/24/07:
+!#endif
+!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !-----------------------------------------------------------------------------
 ! SOIL EMISSIONS NOX [molecules/cm3/s]
 ! Now have to pass SUNCOS to SOILNOXEMS and SOILCRF (bmy, 10/20/99)
@@ -244,88 +263,90 @@
 !----------------------------------------------------------------------------
 ! BIOGENIC EMISSIONS OF VARIOUS QUANTITIES [Atoms C/box/time step]
 !
-            ! Temperature
-            TMMP  = XLTMMP(I,J,IJLOOP)
+            IF ( LBIOGENIC ) THEN
+
+               ! Temperature
+               TMMP  = XLTMMP(I,J,IJLOOP)
             
-            IF ( LMEGAN ) THEN
+               IF ( LMEGAN ) THEN
 
-               !------------------
-               ! MEGAN biogenics
-               !------------------
+                  !------------------
+                  ! MEGAN biogenics
+                  !------------------
 
-               ! Cosine of solar zenith angle
-               SC   = SUNCOS(IJLOOP)
+                  ! Cosine of solar zenith angle
+                  SC   = SUNCOS(IJLOOP)
                
-               ! Diffuse and direct PAR
-               PDR  = PARDR(I,J)
-               PDF  = PARDF(I,J)
+                  ! Diffuse and direct PAR
+                  PDR  = PARDR(I,J)
+                  PDF  = PARDF(I,J)
 
-               ! Isoprene         
-               EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP, 
-     &                                   XNUMOL_C, PDR, PDF )
+                  ! Isoprene         
+                  EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP, 
+     &                                      XNUMOL_C, PDR, PDF )
 
-               ! Monoterpenes 
-               EMMO = GET_EMMONOT_MEGAN( I, J, TMMP, XNUMOL_C )
+                  ! Monoterpenes 
+                  EMMO = GET_EMMONOT_MEGAN( I, J, TMMP, XNUMOL_C )
 
-               ! Methyl butenol
-               EMMB = GET_EMMBO_MEGAN(   I, J,     SC, TMMP,
-     &                                   XNUMOL_C, PDR, PDF )
+                  ! Methyl butenol
+                  EMMB = GET_EMMBO_MEGAN(   I, J,     SC, TMMP,
+     &                                      XNUMOL_C, PDR, PDF )
 
-            ELSE  
+               ELSE  
 
-               !------------------
-               ! GEIA biogenics 
-               !------------------
+                  !------------------
+                  ! GEIA biogenics 
+                  !------------------
 
-               ! Isoprene
-               EMIS = EMISOP(     I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C )
+                  ! Isoprene
+                  EMIS = EMISOP(   I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C)
 
-               ! Monoterpenes
-               EMMO = EMMONOT(          IJLOOP,         TMMP, XNUMOL_C )
+                  ! Monoterpenes
+                  EMMO = EMMONOT(        IJLOOP,         TMMP, XNUMOL_C)
              
-               ! Methyl Butenol
-               EMMB = EMISOP_MB(  I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C )
+                  ! Methyl Butenol
+                  EMMB = EMISOP_MB(I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C)
 
-            ENDIF
+               ENDIF
 
-            ! Isoprene emissions from grasslands (use GEIA always)
-            GRASS = EMISOP_GRASS( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C ) 
+               ! Isoprene emissions from grasslands (use GEIA always)
+               GRASS = EMISOP_GRASS(I, J,IJLOOP, SUNCOS, TMMP, XNUMOL_C) 
 
 !-----------------------------------------------------------------------------
 ! BIOGENIC ACETONE EMISSIONS
 !
-            IF ( IDEACET /= 0 ) THEN
+               IF ( IDEACET /= 0 ) THEN
 
-               ! Read monthly mean JO1D and leaf respiration values
-               ! These will be stored internally in "acetone_mod.f"
-               IF ( I==1 .and. J==1 ) THEN
-                  IF ( GET_MONTH() /= LASTMONTH ) THEN
-                     CALL READ_JO1D( GET_MONTH() )
-                     CALL READ_RESP( GET_MONTH() )
-                     LASTMONTH = GET_MONTH()
+                  ! Read monthly mean JO1D and leaf respiration values
+                  ! These will be stored internally in "acetone_mod.f"
+                  IF ( I==1 .and. J==1 ) THEN
+                     IF ( GET_MONTH() /= LASTMONTH ) THEN
+                        CALL READ_JO1D( GET_MONTH() )
+                        CALL READ_RESP( GET_MONTH() )
+                        LASTMONTH = GET_MONTH()
+                     ENDIF
                   ENDIF
-               ENDIF
 
-               ! Compute biogenic acetone emissions [atoms C/box/s]
-               CALL EMISS_BIOACET( I,    J,    TMMP,  EMMO, 
-     &                             EMIS, EMMB, GRASS, BIO_ACET )
+                  ! Compute biogenic acetone emissions [atoms C/box/s]
+                  CALL EMISS_BIOACET( I,    J,    TMMP,  EMMO, 
+     &                                EMIS, EMMB, GRASS, BIO_ACET )
                
-               ! Also add ocean source of acetone [atoms C/box/s]
-               CALL OCEAN_SOURCE_ACET( I, J, BIO_ACET )
+                  ! Also add ocean source of acetone [atoms C/box/s]
+                  CALL OCEAN_SOURCE_ACET( I, J, BIO_ACET )
 
-               ! Add biogenic acetone to anthro source [atoms C/box/s]
-               EMISRR(I,J,IDEACET) = EMISRR(I,J,IDEACET) + BIO_ACET
-            ENDIF
+                  ! Add biogenic acetone to anthro source [atoms C/box/s]
+                  EMISRR(I,J,IDEACET) = EMISRR(I,J,IDEACET) + BIO_ACET
+               ENDIF
 !-----------------------------------------------------------------------------
 
-            !=================================================================
-            ! save biogenic isoprene emission for later use
-            ! EMISRR has units [atoms C/box/s] 
-            !=================================================================
-            IF ( IDTISOP /= 0 ) THEN
-               EMISRR(I,J,IDEISOP) = EMISRR(I,J,IDEISOP) + 
-     &                               ( EMIS / DTSRCE )
-            ENDIF
+               !==============================================================
+               ! save biogenic isoprene emission for later use
+               ! EMISRR has units [atoms C/box/s] 
+               !==============================================================
+               IF ( IDTISOP /= 0 ) THEN
+                  EMISRR(I,J,IDEISOP) = EMISRR(I,J,IDEISOP) + 
+     &                                  ( EMIS / DTSRCE )
+               ENDIF
 !------------------------------------------------------------------------------
 !
 !******************************************************************************
@@ -365,16 +386,16 @@
 !      "R(CO)=1.8+/-0.3" : 1.8/10 is about 20%.
 !******************************************************************************
 !
-            !========================================================
-            ! CO from MONOTERPENE oxidation [molec CO/box/s] 
-            !========================================================
-            TMPVAL            = ( EMMO / DTSRCE ) * 0.2d0
-            EMISRR(I,J,IDECO) = EMISRR(I,J,IDECO) + TMPVAL
+               !=====================================================
+               ! CO from MONOTERPENE oxidation [molec CO/box/s] 
+               !=====================================================
+               TMPVAL            = ( EMMO / DTSRCE ) * 0.2d0
+               EMISRR(I,J,IDECO) = EMISRR(I,J,IDECO) + TMPVAL
          
-            ! ND29: CO-source from monoterpenes [molec/cm2/s]
-            IF ( ND29 > 0 ) THEN
-               AD29(I,J,5) = AD29(I,J,5) + ( TMPVAL / AREA_CM2 )
-            ENDIF
+               ! ND29: CO-source from monoterpenes [molec/cm2/s]
+               IF ( ND29 > 0 ) THEN
+                  AD29(I,J,5) = AD29(I,J,5) + ( TMPVAL / AREA_CM2 )
+               ENDIF
 !
 !******************************************************************************
 !  Biogenic source of PRPE -- scaled to ISOPRENE
@@ -395,12 +416,12 @@
 ! Note that 3.3333 atoms C/molecule is the weighted average for this mix.
 !******************************************************************************
 !
-            BIOSCAL = 0.0286d0  ! new factor, (ljm, bey, 9/28/98)
+               BIOSCAL = 0.0286d0 ! new factor, (ljm, bey, 9/28/98)
 
-            IF ( IDEPRPE /= 0 ) THEN
-               EMISRR(I,J,IDEPRPE) = EMISRR(I,J,IDEPRPE) +
-     &                               ( EMIS / DTSRCE ) * BIOSCAL
-            ENDIF
+               IF ( IDEPRPE /= 0 ) THEN
+                  EMISRR(I,J,IDEPRPE) = EMISRR(I,J,IDEPRPE) +
+     &                                  ( EMIS / DTSRCE ) * BIOSCAL
+               ENDIF
 !
 !******************************************************************************
 !  ND46 diagnostic: Biogenic emissions 
@@ -417,25 +438,26 @@
 !  (3 ) Added MBO emission diagnostics [atoms C/cm2/s] (bmy, tmf, 10/20/05)
 !******************************************************************************
 !
-            IF ( ND46 > 0 ) THEN
+               IF ( ND46 > 0 ) THEN
 
-               ! ISOP emissions [atoms C/cm2/s] -- tracer #1
-               AD46(I,J,1) = AD46(I,J,1) + ( EMIS / AREA_CM2 / DTSRCE )
+                  ! ISOP emissions [atoms C/cm2/s] -- tracer #1
+                  AD46(I,J,1) = AD46(I,J,1) + ( EMIS / AREA_CM2 /DTSRCE)
 
-               ! ACET emissions [atoms C/cm2/s] -- tracer #2
-               AD46(I,J,2) = AD46(I,J,2) + ( BIO_ACET / AREA_CM2 )
+                  ! ACET emissions [atoms C/cm2/s] -- tracer #2
+                  AD46(I,J,2) = AD46(I,J,2) + ( BIO_ACET / AREA_CM2 )
 
-               ! PRPE emissions [atoms C/cm2/s] -- tracer #3
-               AD46(I,J,3) = AD46(I,J,3) + 
-     &                      ( EMIS * BIOSCAL / AREA_CM2 / DTSRCE )
+                  ! PRPE emissions [atoms C/cm2/s] -- tracer #3
+                  AD46(I,J,3) = AD46(I,J,3) + 
+     &                          ( EMIS * BIOSCAL / AREA_CM2 / DTSRCE )
 
-               ! Monoterpene emissions [atoms C/cm2/s] -- tracer #4
-               AD46(I,J,4) = AD46(I,J,4) + ( EMMO / AREA_CM2 / DTSRCE ) 
+                  ! Monoterpene emissions [atoms C/cm2/s] -- tracer #4
+                  AD46(I,J,4) = AD46(I,J,4) + ( EMMO / AREA_CM2 /DTSRCE) 
 
-               ! MBO emissions [atoms C/cm2/s] -- tracer #5
-               AD46(I,J,5) = AD46(I,J,5) + ( EMMB / AREA_CM2 / DTSRCE ) 
-
-            ENDIF           
+                  ! MBO emissions [atoms C/cm2/s] -- tracer #5
+                  AD46(I,J,5) = AD46(I,J,5) + ( EMMB / AREA_CM2 /DTSRCE) 
+               
+               ENDIF  
+            ENDIF
          ENDDO
       ENDDO
 

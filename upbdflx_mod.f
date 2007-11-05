@@ -1,9 +1,9 @@
-! $Id: upbdflx_mod.f,v 1.18 2006/09/08 19:21:07 bmy Exp $
+! $Id: upbdflx_mod.f,v 1.19 2007/11/05 16:16:27 bmy Exp $
       MODULE UPBDFLX_MOD
 !
 !******************************************************************************
 !  Module UPBDFLX_MOD contains subroutines which impose stratospheric boundary
-!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 8/4/06)
+!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 9/18/07)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -17,6 +17,7 @@
 !  (2 ) UPBDFLX_O3       : Computes flux of O3 from stratosphere, using Synoz
 !  (3 ) UPBDFLX_NOY      : Computes flux of NOy from stratosphere
 !  (4 ) INIT_UPBDFLX     : Gets IORD, JORD, KORD values from "input_mod.f"
+!  (5 ) UPBDFLX_HD       : Computes flux of HD from stratosphere
 !
 !  GEOS-CHEM modules referenced by upbdflx_mod.f
 !  ============================================================================
@@ -57,6 +58,7 @@
 !  (19) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (20) Now references "tropopause_mod.f" (bmy, 11/1/05)
 !  (21) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (22) Added UPBDFLX_HD from the strat-trop flux of HD (lyj, phs, 9/18/07)
 !******************************************************************************
 !      
       IMPLICIT NONE
@@ -73,6 +75,7 @@
       PUBLIC  :: DO_UPBDFLX
       PUBLIC  :: UPBDFLX_O3
       PUBLIC  :: UPBDFLX_NOY
+      PUBLIC  :: UPBDFLX_HD
       PUBLIC  :: INIT_UPBDFLX
 
       !=================================================================
@@ -91,18 +94,21 @@
 !
 !******************************************************************************
 !  Subroutine DO_UPBDFLX is the driver routine for the stratospheric (upper-
-!  boundary) routines for Ox and NOy. (bmy, 3/11/03, 7/20/04)
+!  boundary) routines for Ox and NOy. (bmy, 3/11/03, 9/18/07)
 !  
 !  NOTES:
 !  (1 ) Removed IORD, JORD, KORD from the arg list.  Now references LPRT
 !        from "logical_mod.f".  Now references ITS_A_FULLCHEM_SIM and
 !        ITS_A_TAGOX_SIM from "tracer_mod.f" (bmy, 7/20/04)
+!  (2 ) Now references ITS_A_H2HD_SIM from "tracer_mod.f".  Now call routine
+!        UPBDFLX_HD for H2/HD simulation. (lyj, phs, 9/18/07)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : DEBUG_MSG
       USE LOGICAL_MOD, ONLY : LPRT
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGOX_SIM
+      USE TRACER_MOD,  ONLY : ITS_A_H2HD_SIM
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -130,6 +136,15 @@
 
          ! Ox from strat
          CALL UPBDFLX_O3
+
+      ELSE IF ( ITS_A_H2HD_SIM() ) THEN
+
+         !---------------
+         ! H2/HD run
+         !---------------
+
+         ! HD form strat
+         CALL UPBDFLX_HD
 
       ENDIF
 
@@ -206,13 +221,15 @@
 !******************************************************************************
 !      
       ! References to F90 modules
-      USE DAO_MOD,       ONLY : AD, BXHEIGHT, T
+      USE DAO_MOD,       ONLY : AD, BXHEIGHT, T, TROPP
       USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE LOGICAL_MOD,   ONLY : LVARTROP !PHS
       USE PRESSURE_MOD,  ONLY : GET_PEDGE, GET_PCENTER
       USE TAGGED_OX_MOD, ONLY : ADD_STRAT_POX
       USE TIME_MOD,      ONLY : GET_TS_DYN
       USE TRACER_MOD,    ONLY : STT, ITS_A_TAGOX_SIM
       USE TRACERID_MOD,  ONLY : IDTOX
+      USE TROPOPAUSE_MOD,ONLY : GET_TPAUSE_LEVEL
       
 #     include "CMN_SIZE"   ! Size parameters
 #     include "CMN_GCTM"   ! Rdg0
@@ -251,7 +268,8 @@
 #endif
 
       ! Lower pressure bound for O3 release (unit: mb)
-      REAL*8,  PARAMETER   :: P70mb = 70d0
+      ! REAL*8,  PARAMETER   :: P70mb = 70d0 !PHS
+      REAL*8  :: P70mb, PTP
 
       !=================================================================
       ! UPBDFLX_O3 begins here!
@@ -262,6 +280,9 @@
 
       ! For O3 flux printout
       STFLUX = 0d0
+
+      ! lower pressure !PHS
+      P70mb = 70d0
 
       !=================================================================
       ! Compute the proper release rate of O3 coming down from the 
@@ -311,6 +332,10 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,  J,  L,  P2,  L70mb, P1, P3 )
 !$OMP+PRIVATE( T2, T1, DZ, ZUP, H70mb, PO3    )
+!-------------------------------------------------
+! Comment out for now (bmy, 10/2/07)
+!!$OMP+PRIVATE( PTP )
+!-------------------------------------------------
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = J30S, J30N 
       DO I = 1,    IIPAR
@@ -319,6 +344,23 @@
          ! L70mb is the 1st layer where pressure is equal to
          ! or smaller than 70 mb 
          !==============================================================
+         
+         !--------------------------------------------------------------
+         ! Comment out for now (bmy, 10/2/07)
+         ! replace L70mb with Tropopause pressure if the later is 
+         ! lower -PHS #### still Beta testing ####
+         !IF ( LVARTROP ) THEN
+         !   PTP = TROPP(I,J)
+         !   IF ( PTP < P70mb ) THEN
+         !      P70mb = PTP
+         !      !#### TESTING ####
+         !      write(6,*)'#### RAISED bottom of O3 release region'
+         !      write(6,*)'at ', i, j
+         !      first=.true.
+         !   ENDIF
+         !ENDIF
+         !--------------------------------------------------------------
+
          DO L = 1, LLPAR
 
             ! P2 = pressure [hPa] at the sigma center of level L70mb
@@ -737,6 +779,235 @@
 
       ! Return to calling program
       END SUBROUTINE UPBDFLX_NOY 
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE UPBDFLX_HD
+!
+!******************************************************************************
+!  Subroutine UPBDFLX_HD establishes the flux boundary condition for HD
+!  coming down from the stratosphere. This is adapted from the UPBDFLX_O3
+!  routine. (lyj, hup, phs, 9/18/07)
+!
+!  Instead of calculating the fractionation of H2 in the stratosphere
+!  (where we would have to take into account fractionation of CH4),
+!  we simply set the HD tracer concentrations in the stratosphere to
+!  reproduce observed profiles in the UT/LS.
+!
+!  References:
+!  ===========================================================================
+!  (1) "Global Budget of Molecular Hydrogen and its Deuterium Content: 
+!        Constraints from Ground Station, Cruise, and Aircraft Observations" 
+!        Price, H., L. Jaeglé, A. Rice, P. Quay, P.C. Novelli, R. Gammon, 
+!        submitted to J. Geophys. Res., 2007.
+!
+!  NOTES:
+!  (1 ) First adapted from UPBDFLX_O3 (G-C v5-05-03) then merged w/ v7-04-12.
+!        Added parallel DO loops. (phs, 9/18/07)
+!******************************************************************************
+!      
+      ! References to F90 modules
+      USE DAO_MOD,      ONLY : AD, BXHEIGHT, T
+      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
+      USE TIME_MOD,     ONLY : GET_TS_DYN
+      USE TRACER_MOD,   ONLY : STT
+      USE TRACERID_MOD, ONLY : IDTHD, IDTH2
+      
+#     include "CMN_SIZE"   ! Size parameters
+!#     include "CMN"        ! STT, NSRCX
+#     include "CMN_GCTM"   ! Rdg0
+!#     include "CMN_SETUP"  ! LSPLIT 
+
+      ! Local variables
+      INTEGER              :: I, J, L, L70mb
+      INTEGER              :: NTRACER!, NTRACE2
+      REAL*8               :: P1, P2, P3, T1, T2, DZ, ZUP
+      REAL*8               :: DTDYN, H70mb, PO3_vmr!,PO3
+      REAL*8               :: PHD, PHD_vmr, SCALE_HD!, HD_AVG
+
+      ! Select the grid boxes at the edges of the HD release region, 
+      ! for the proper model resolution 
+#if   defined( GRID4x5 ) && defined( GCAP )
+      ! GCAP has 45 latitudes, shift by 1/2 grid box (swu, bmy, 5/25/05)
+      INTEGER, PARAMETER   :: J30S = 16, J30N = 30 
+
+#elif defined( GRID4x5 )
+      INTEGER, PARAMETER   :: J30S = 16, J30N = 31 
+
+#elif defined( GRID2x25 ) 
+      INTEGER, PARAMETER   :: J30S = 31, J30N = 61
+
+#elif defined( GRID1x125 ) 
+      INTEGER, PARAMETER   :: J30S = 61, J30N = 121
+
+#elif defined( GRID1x1 ) 
+
+#if   defined( NESTED_CH ) || defined( NESTED_NA )
+      INTEGER, PARAMETER   :: J30S = 1,  J30N = JJPAR  ! 1x1 nested grids
+#else  
+      INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
+#endif
+
+#endif
+
+      ! Lower pressure bound for HD release (unit: mb)
+      REAL*8,  PARAMETER   :: P70mb = 70d0
+
+      !=================================================================
+      ! UPBDFLX_HD begins here!
+      !=================================================================
+
+      ! Dynamic timestep [s]
+      DTDYN = GET_TS_DYN() * 60d0
+
+      !=================================================================
+      ! For now the only HD release rates are for GEOS-3. This will
+      ! likely need to be scaled with other met fields (GEOS-4,
+      ! GEOS-5...) jaegle, 2/20/2007
+      ! PO3_vmr is the release rate for Ozone. This is then scaled by
+      ! SCALE_HD in order to obtain the HD profile, to obtain
+      ! PHD_vmr [v/v/s]
+      ! For now uses the GEOS-3 scale factor for all cases (phs)
+      !=================================================================
+
+#if   defined( GEOS_3 )
+
+! Lyatt Jaegle uses older value as of 2003/06/11:
+!      PO3_vmr = 4.2d-14                                  ! 3,3,7
+! However, O3 flux has been changed to 500 Tg/yr for GEOS-3 few months later
+!  (mje, bmy, 9/15/03), as follows:
+!   Impact on SCALE_HD (phs)? 
+      PO3_vmr = 5.14d-14                                 ! 3,3,7
+      IF ( IORD + JORD + KORD == 17 ) PO3_vmr = 4.07d-14 ! 5,5,7
+
+#elif defined( GEOS_4 )
+
+      PO3_vmr = 5.14d-14                                 ! 3,3,7
+
+#elif defined( GEOS_5 )
+
+      ! For now assume GEOS-5 has same PO3_vmr value 
+      ! as GEOS-4; we can redefine later (bmy, 5/25/05)
+      PO3_vmr = 5.14d-14   
+
+#elif defined( GCAP )
+
+      ! For GCAP, assuming 3,3,7 (swu, bmy, 5/25/05)
+      PO3_vmr = 5.0d-14 
+      
+#endif
+
+      ! Define scaling factor for HD and scale PO3_vmr
+      ! Standard:
+      SCALE_HD = 4.0d-5
+      PHD_vmr= PO3_vmr * SCALE_HD
+
+      !=================================================================
+      ! Select the proper tracer number to store HD into
+      !=================================================================
+      NTRACER = IDTHD
+
+      !=================================================================
+      ! Loop over latitude/longtitude locations (I,J)
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I,  J,  L,  P2,  L70mb, P1, P3 )
+!$OMP+PRIVATE( T2, T1, DZ, ZUP, H70mb, PHD    )
+!$OMP+SCHEDULE( DYNAMIC )
+       DO J = J30S, J30N 
+         DO I = 1, IIPAR
+
+            !===========================================================
+            ! L70mb is the 1st layer where pressure is equal to
+            ! or smaller than 70 mb 
+            !
+            ! P1 = pressure [ mb ] at the sigma center     of level L70mb - 1
+            ! P3 = pressure [ mb ] at the lower sigma edge of level L70mb
+            ! P2 = pressure [ mb ] at the sigma center     of level L70mb
+            !===========================================================
+            DO L = 1, LLPAR
+               P2 = GET_PCENTER(I,J,L) 
+               
+               IF ( P2 < P70mb ) THEN
+                  L70mb = L
+#if   defined( COMPAQ )
+                  ! Nothing
+#else
+                  EXIT
+#endif
+               ENDIF
+            ENDDO
+            
+            P1 = GET_PCENTER(I,J,L70mb-1) 
+            P3 = GET_PEDGE(I,J,L70mb) 
+ 
+            !===========================================================
+            ! T2 = temperature (K)  at the sigma center of level L70mb
+            ! T1 = temperature (K)  at the sigma center of level L70mb-1
+            !
+            ! DZ is the height from the sigma center of level L70mb-1 
+            ! to 70mb.  Therefore, DZ may be found in either the 
+            ! (L70mb)th sigma layer or the (L70mb-1)th sigma layer.  
+            !
+            ! ZUP is the height from the sigma center of the 
+            ! (L70mb-1)th layer
+            !=========================================================== 
+            T2   = T(I,J,L70mb  )
+            T1   = T(I,J,L70mb-1)        
+
+            DZ   = Rdg0 * ( (T1 + T2) / 2d0 ) * LOG( P1 / P70mb ) 
+            ZUP  = Rdg0 * T1 * LOG( P1 /P3 )
+
+            !===========================================================       
+            ! H70mb is height between 70mb and the upper edge of the 
+            ! level where DZ is.
+            !  
+            ! If DZ >= ZUP then DZ is already in level L70mb.
+            ! If DZ <  ZUP then DZ is in level L70mb-1.
+            !===========================================================       
+            IF ( DZ >= ZUP ) THEN
+               H70mb = BXHEIGHT(I,J,L70mb) - ( DZ - ZUP )
+            ELSE
+               L70mb = L70mb - 1
+               H70mb = ZUP - DZ
+            ENDIF
+
+            !=========================================================== 
+            ! Distribute HD into the region (30S-30N, 70mb-10mb)
+            !=========================================================== 
+            DO L = L70mb, LLPAR 
+
+               ! Convert HD in grid box (I,J,L) from v/v/s to kg/box
+               PHD = PHD_vmr * DTDYN 
+
+#if   !defined( GCAP ) 
+               ! For both 2 x 2.5 and 4 x 5 GEOS grids, 30S and 30 N are
+               ! grid box centers.  However, the O3 release region is 
+               ! edged by 30S and 30N.  Therefore, if we are at the 30S
+               ! or 30N grid boxes, divide the O3 flux by 2.
+               IF ( J == J30S .or. J == J30N ) THEN
+                  PHD = PHD / 2d0
+               ENDIF 
+#endif
+               ! If we are in the lower level, compute the fraction
+               ! of this level that lies above 70 mb, and scale 
+               ! the HD flux accordingly.
+               IF ( L == L70mb ) THEN
+                  PHD = PHD * H70mb / BXHEIGHT(I,J,L) 
+               ENDIF
+            
+               ! Store HD flux in the proper tracer number
+               STT(I,J,L,NTRACER) = STT(I,J,L,NTRACER) + PHD
+
+            ENDDO   
+         ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Return to calling program
+      END SUBROUTINE UPBDFLX_HD
 
 !------------------------------------------------------------------------------
 

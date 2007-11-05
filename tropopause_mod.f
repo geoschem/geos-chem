@@ -1,9 +1,9 @@
-! $Id: tropopause_mod.f,v 1.12 2007/05/07 17:48:13 bmy Exp $
+! $Id: tropopause_mod.f,v 1.13 2007/11/05 16:16:27 bmy Exp $
       MODULE TROPOPAUSE_MOD
 !
 !******************************************************************************
 !  Module TROPOPAUSE_MOD contains routines and variables for reading and
-!  returning the value of the annual mean tropopause. (bmy, 8/15/05, 4/25/07)
+!  returning the value of the annual mean tropopause. (bmy, 8/15/05, 9/18/07)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -41,11 +41,12 @@
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (2 ) Simplify counting of tropospheric boxes (bmy, 11/1/05)
 !  (3 ) Added case of variable tropopause.
-!        The definition of tropopause is different in the two cases.
-!        The tropopause is part of the troposphere in the case of a  variable 
-!        troposphere. LMAX, LMIN are the min and max extend of the troposphere
+!        The definition of the tropopause boxes is different in the two cases.
+!        They are part of the troposphere in the case of a variable 
+!        troposphere. LMAX, LMIN are the min and max extent of the troposphere
 !        in that case.  (bdf, phs, 1/19/07)
 !  (4 ) Bug fix: set NCS=NCSURBAN for safety's sake (bmy, 4/25/07)
+!  (5 ) Updated comments (bmy, 9/18/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -469,8 +470,8 @@
 !
 !  NOTES:
 !  (1 ) If logical LVARTROP is true (i.e., case of a variable tropopause),
-!       the tropopause box is considered to be a tropospheric box.
-!
+!       the tropopause box (i.e., the tropopause level) is the highest purely 
+!       tropospheric box.
 !******************************************************************************
 !
 
@@ -497,10 +498,9 @@
          DO
             !check to find the current tropopause
             PRESS_BEDGE = GET_PEDGE(I,J,L)
-!           write(6,*) l, 'val of press_bedge: ', press_bedge
+
             IF ( TROPP(I,J) .GE. PRESS_BEDGE ) THEN
                L_TP = L-1       ! get_pedge gets edge for BOTTOM of box
-!              write(6,*) '      tropopause is at level: ', l
                EXIT
             ENDIF
             L = L+1

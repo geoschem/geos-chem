@@ -1,11 +1,11 @@
-! $Id: tracer_mod.f,v 1.7 2005/10/27 14:00:07 bmy Exp $
+! $Id: tracer_mod.f,v 1.8 2007/11/05 16:16:26 bmy Exp $
       MODULE TRACER_MOD
 !
 !******************************************************************************
 !  Module TRACER_MOD contains the GEOS-CHEM tracer array STT plus various
 !  other related quantities.  TRACER_MOD also contains inquiry functions that
 !  can be used to determine the type of GEOS-CHEM simulation.
-!  (bmy, 7/20/04, 10/25/05)
+!  (bmy, 7/20/04, 9/18/07)
 !
 !  Module Variables:
 !  ============================================================================
@@ -40,11 +40,12 @@
 !  (9 ) ITS_AN_AEROSOL_SIM     : Returns TRUE if it's an aerosol   simulation
 !  (10) ITS_A_MERCURY_SIM      : Returns TRUE if it's a  mercury   simulation
 !  (11) ITS_A_CO2_SIM          : Returns TRUE if it's a  CO2       simulation
-!  (12) ITS_NOT_COPARAM_OR_CH4 : Returns TRUE if it's not CO param or CH4 
-!  (13) GET_SIM_NAME           : Returns the name of the current simulation
-!  (14) CHECK_STT              : Checks STT array for NaN, Inf, or negatives
-!  (15) INIT_TRACER            : Allocates and zeroes all module arrays
-!  (16) CLEANUP_TRACER         : Deallocates all module arrays
+!  (12) ITS_A_H2HD_SIM         : Returns TRUE if it's a  CO2       simulation
+!  (13) ITS_NOT_COPARAM_OR_CH4 : Returns TRUE if it's not CO param or CH4 
+!  (14) GET_SIM_NAME           : Returns the name of the current simulation
+!  (15) CHECK_STT              : Checks STT array for NaN, Inf, or negatives
+!  (16) INIT_TRACER            : Allocates and zeroes all module arrays
+!  (17) CLEANUP_TRACER         : Deallocates all module arrays
 !
 !  Module Routines:
 !  ============================================================================
@@ -56,6 +57,7 @@
 !  (3 ) Added ITS_A_CO2_SIM (pns, bmy, 7/25/05)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Now added XNUMOL, XNUMOLAIR as module variables (bmy, 10/25/05)
+!  (6 ) Added public routine ITS_A_H2HD_SIM (phs, 9/18/07)
 !******************************************************************************
 !
       !=================================================================
@@ -327,12 +329,34 @@
       LOGICAL :: VALUE
       
       !=================================================================
-      ! ITS_A_MERCURY_SIM begins here!
+      ! ITS_A_CO2_SIM begins here!
       !=================================================================
       VALUE = ( SIM_TYPE == 12 )
 
       ! Return to calling program
       END FUNCTION ITS_A_CO2_SIM
+
+!------------------------------------------------------------------------------
+
+      FUNCTION ITS_A_H2HD_SIM() RESULT( VALUE )
+!
+!******************************************************************************
+!  Function ITS_A_H2HD_SIM returns TRUE if we are doing a GEOS-CHEM
+!  CO2 offline simulation. (phs, 9/18/07)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Local variables
+      LOGICAL :: VALUE
+      
+      !=================================================================
+      ! ITS_A_H2HD_SIM begins here!
+      !=================================================================
+      VALUE = ( SIM_TYPE == 13 )
+
+      ! Return to calling program
+      END FUNCTION ITS_A_H2HD_SIM
 
 !------------------------------------------------------------------------------
 
@@ -364,10 +388,11 @@
 !
 !******************************************************************************
 !  Function GET_SIM_NAME returns the name (e.g. "NOx-Ox-Hydrocarbon-Aerosol", 
-!  "Tagged CO", etc.) of the GEOS-CHEM simulation. (bmy, 5/3/05, 6/24/05)
+!  "Tagged CO", etc.) of the GEOS-CHEM simulation. (bmy, 5/3/05, 9/18/07)
 !
 !  NOTES:
 !  (1 ) The CO-OH simulation has been removed (bmy, 6/24/05)
+!  (2 ) Added CASE blocks for CO2 and H2/HD simulations (bmy, 9/18/07)
 !******************************************************************************
 !
       ! Function value
@@ -401,6 +426,10 @@
             NAME = 'Offline Aerosol'
          CASE( 11 ) 
             NAME = 'Mercury'
+         CASE( 12 )
+            NAME = 'CO2'
+         CASE( 13 )
+            NAME = 'H2 and HD'
          CASE DEFAULT
             NAME = 'UNKNOWN'
        END SELECT

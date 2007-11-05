@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.46 2007/03/29 20:31:11 bmy Exp $
+! $Id: diag3.f,v 1.47 2007/11/05 16:16:15 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out diagnostics to the BINARY format punch file 
-!  (bmy, bey, mgs, rvm, 5/27/99, 3/20/07)
+!  (bmy, bey, mgs, rvm, 5/27/99, 9/18/07)
 !
 !  NOTES: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
@@ -80,7 +80,8 @@
 !  (71) Now use new time counters for ND43 & ND45,  Also now average between
 !        0 and 24 UT for ND47.  Bug fix in ND36. (phs, bmy, 3/5/07)
 !  (72) Bug fix in ND65: use 3-D counter array (phs, bmy, 3/6/07)
-!  (73) Bug fix in ND07: now save out IDTSOA4 tracer (tmf, bmy, 3/20/07)
+!  (73) Bug fix in ND07: now save out IDTSOA4 tracer.  Modifications for H2/HD
+!        diagnostics (ND10, ND27, ND44) (tmf, phs, bmy, 9/18/07)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -117,6 +118,7 @@
       USE DIAG_MOD,     ONLY : AD54,        CTO3
       USE DIAG_MOD,     ONLY : AD55,        AD66,        AD67
       USE DIAG_MOD,     ONLY : AD68,        AD69
+      USE DIAG_MOD,     ONLY : AD10,        AD10em
       USE DIAG03_MOD,   ONLY : ND03,        WRITE_DIAG03
       USE DIAG04_MOD,   ONLY : ND04,        WRITE_DIAG04
       USE DIAG41_MOD,   ONLY : ND41,        WRITE_DIAG41
@@ -135,6 +137,7 @@
       USE TRACER_MOD,   ONLY : ITS_AN_AEROSOL_SIM
       USE TRACER_MOD,   ONLY : ITS_A_CH3I_SIM
       USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,   ONLY : ITS_A_H2HD_SIM
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM
       USE TRACER_MOD,   ONLY : ITS_A_RnPbBe_SIM
       USE TRACER_MOD,   ONLY : ITS_A_TAGOX_SIM
@@ -582,10 +585,6 @@
             !-----------------------------------------------
             CATEGORY = 'PL-OC=$'
 
-            !------------------------
-            ! Prior to 3/20/07:
-            !DO N = 1, 3
-            !------------------------
             DO N = 1, 4
 
                IF ( N == 1 ) NN = IDTSOA1
@@ -701,6 +700,88 @@
 
                ! Scale data
                ARRAY(:,:,1) = AD09_em(:,:,NN) / SCALEX
+ 
+               ! Write to disk
+               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                     HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                     IIPAR,     JJPAR,     1,        IFIRST,
+     &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
+            ENDIF
+         ENDDO
+      ENDIF
+!
+!******************************************************************************
+!  ND10: H2/HD source diagnostics, prod and loss (phs, 9/18/07)
+!
+!   #  Field   : Description             : Units     : Scale factor
+!  --------------------------------------------------------------------------
+!  (1 ) H2oh   : H2 Loss by OH           : mol/cm3/s : SCALECHEM
+!  (2 ) H2iso  : H2 Prod from isoprene   : mol/cm3/s : SCALECHEM
+!  (3 ) H2ch4  : H2 Prod from CH4        : mol/cm3/s : SCALECHEM
+!  (4 ) H2ch3oh: H2 Prod from CH3OH      : mol/cm3/s : SCALECHEM
+!  (5 ) H2mono : H2 Prod from monoprene  : mol/cm3/s : SCALECHEM
+!  (6 ) H2acet : H2 Prod from acetone    : mol/cm3/s : SCALECHEM
+!  (7 ) H2o1d  : H2 Loss by strat O1D    : mol/cm3/s : SCALECHEM
+!
+!  (8 ) HDoh   : H2 Loss by OH           : mol/cm3/s : SCALECHEM
+!  (9 ) HDiso  : H2 Prod from isoprene   : mol/cm3/s : SCALECHEM
+!  (10) HDch4  : H2 Prod from CH4        : mol/cm3/s : SCALECHEM
+!  (11) HDch3oh: H2 Prod from CH3OH      : mol/cm3/s : SCALECHEM
+!  (12) HDmono : H2 Prod from monoprene  : mol/cm3/s : SCALECHEM
+!  (13) HDacet : H2 Prod from acetone    : mol/cm3/s : SCALECHEM
+!  (14) HDo1d  : H2 Loss by strat O1D    : mol/cm3/s : SCALECHEM
+!
+!  (15) ALPHA  : OH k rates kHD/kH2 ratio: unitless  : SCALECHEM
+!
+!  (16) H2anth : H2 from Anthro Sources  : mol/cm2/s : SCALESRCE
+!  (17) H2bb   : H2 from Biomass Burning : mol/cm2/s : SCALESRCE
+!  (18) H2bf   : H2 from Biofuel Burning : mol/cm2/s : SCALESRCE
+!  (19) H2ocean: H2 from Ocean           : mol/cm2/s : SCALESRCE
+!  (19) HDocean: HD from Ocean           : mol/cm2/s : SCALESRCE
+!
+!  NOTES:
+!  (1 ) Non zero only if ND10>0 and it is a H2/HD offline simulation
+!  (2 ) 
+!******************************************************************************
+!
+      IF ( ND10 > 0 ) THEN
+         DO M = 1, TMAX(10)
+            N = TINDEX(10,M)
+            IF ( N > PD10 ) CYCLE
+
+            ! Test tracer number (NEMISS=5, see "ndxx_setup.f" )
+            IF ( N <= ( PD10 - 5 ) ) THEN
+
+               !---------------------------
+               ! H2/HD Prod-Loss
+               !---------------------------              
+               CATEGORY  = 'PL-H2HD-'
+               UNIT      = 'molec/cm3/s'
+               NN        = N
+              
+               DO L = 1, LD10
+                  ARRAY(:,:,L) = AD10(:,:,L,N) / SCALECHEM
+               ENDDO
+
+               ! Save to disk
+               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                     HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                     IIPAR,     JJPAR,     LD10,     IFIRST,
+     &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD10) )
+
+            ELSE 
+
+               !---------------------------
+               ! H2/HD sources
+               !---------------------------
+               CATEGORY     = 'H2HD-SRC'
+               UNIT         = 'molec/cm2/s'
+               NN           = N - 15
+
+               ! Scale data
+               ARRAY(:,:,1) = AD10em(:,:,NN) / SCALESRCE
  
                ! Write to disk
                CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -1493,19 +1574,31 @@
 !  (4) NOTE: There is a problem with for ND27 with GEOS-4.  Djj says that 
 !       the downward flux at the 200 hPa level should be more or less the
 !       same as the ND27 diagnostic. (bmy, 10/15/04)
+!  (5) Now provides stratrospheric flux of H2/HD if it is a H2/HD simulation
+!       (lyj, phs, 9/18/07)
 !******************************************************************************
 !
 #if   !defined( GEOS_4 ) 
       IF ( ND27 > 0 .and. IDTOX > 0 ) then
-         IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_TAGOX_SIM() ) THEN
+         !----------------------------------------------------------------
+         ! Prior to 9/18/07:
+         !IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_TAGOX_SIM() ) THEN
+         !----------------------------------------------------------------
+         IF ( ( IDTOX > 0 .and. 
+     &        ( ITS_A_FULLCHEM_SIM() .or. ITS_A_TAGOX_SIM() ) ) .OR. 
+     &        ( ITS_A_H2HD_SIM()                              ) ) THEN
+
             CATEGORY = 'STRT-FLX'
             UNIT     = 'kg/s'
 
             ! Full chemistry   -- compute NOx, Ox, HNO3 fluxes
+            ! H2/HD            -- compute H2,  HD fluxes
             ! Single tracer Ox -- compute Ox flux only, hardwire
             !                     to tracer = 1 (bmy, 2/7/00)
             IF ( ITS_A_FULLCHEM_SIM() ) THEN
                ITEMP = (/ IDTNOX, IDTOX, IDTHNO3 /)
+            ELSE IF ( ITS_A_H2HD_SIM() ) THEN
+               ITEMP = (/ IDTH2, IDTHD, 0 /)
             ELSE
                ITEMP = (/ 1, 0, 0 /)
             ENDIF
@@ -2022,10 +2115,6 @@
                !--------------------------------------------------------
                CATEGORY = 'ANTHSRCE'
                UNIT     = ''
-               !----------------------------------------
-               ! Prior to 3/5/07
-               !IF ( .not. ANY( IDEMS == N ) ) CYCLE    
-               !----------------------------------------          
 
                ! reset these
                MM = 0
@@ -2045,18 +2134,6 @@
                IF ( MM == 0 ) CYCLE
                   
             ENDIF
-
-            !-------------------------------------------------
-            ! Prior to 3/5/07:
-            ! Replace M with MM and move definition of NN
-            ! above. (bmy, 3/5/07)
-            !! Tracer number
-            !NN = N
-            !
-            ! Divide by seconds
-            ! Prior to 3/5/07:
-            !ARRAY(:,:,1) = AD36(:,:,M) / SECONDS
-            !-------------------------------------------------
 
             ! Divide by seconds
             ARRAY(:,:,1) = AD36(:,:,MM) / SECONDS
@@ -2283,6 +2360,7 @@
 !  (7 ) Now print out NTRACE drydep fluxes for tagged Ox.  Also tagged Ox 
 !        now saves drydep in molec/cm2/s. (bmy, 8/19/03)
 !  (8 ) Rearrange ND44 code for clarity (bmy, 3/24/04)
+!  (9 ) Add code for H2/HD simulation (phs, 5/8/07)
 !******************************************************************************
 !
       IF ( ND44 > 0 ) THEN
@@ -2304,9 +2382,13 @@
          ! Loop over drydep tracers
          DO N = 1, M
 
-            IF ( ITS_A_RnPbBe_SIM()  ) THEN
+            !-------------------------------------------------------
+            ! Prior to 9/18/07:
+            !IF ( ITS_A_RnPbBe_SIM()  ) THEN
+            !-------------------------------------------------------
+            IF ( ITS_A_RnPbBe_SIM() .or. ITS_A_H2HD_SIM() ) THEN
 
-               ! Radon
+               ! Radon or H2/HD
                UNIT = 'kg/s'       
                NN   = NTRAIND(N)
  
@@ -2689,49 +2771,25 @@
             IF ( ITS_A_CH3I_SIM() ) THEN
                NN          = N
                UNIT        = 'kg/s'
-               !-------------------------------------
-               ! Prior to 3/6/07:
-               ! Use 3-D scale array (phs, 3/6/07)
-               !SCALEX = 1d0
-               !-------------------------------------
                SCALE_TMP3D = 1d0
 
             ELSE IF ( ITS_A_TAGOX_SIM() ) THEN
                NN          = N
                UNIT        = 'kg/s'
-               !-------------------------------------
-               ! Prior to 3/6/07:
-               ! Use 3-D scale array (phs, 3/6/07)
-               !SCALEX = SCALECHEM
-               !-------------------------------------
                SCALE_TMP3D = SCALECHEM
                
             ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
                NN          = N
                UNIT        = 'mol/cm3/s'
-               !-------------------------------------
-               ! Prior to 3/6/07:
-               ! Use 3-D scale array (phs, 3/6/07)
-               !SCALEX = SCALECHEM
-               !-------------------------------------
                SCALE_TMP3D = SCALECHEM
 
             ELSE
                NN     = N
                UNIT   = 'mol/cm3/s'
-               !-------------------------------------
-               ! Prior to 3/6/07:
-               ! Comment out (phs, 3/6/07)
-               !SCALEX = SCALECHEM
-               !-------------------------------------
                
             ENDIF
 
             DO L = 1, LD65
-               !-----------------------------------------------------------
-               ! Prior to 3/6/07:
-               !ARRAY(:,:,L) = AD65(:,:,L,N) / SCALEX
-               !-----------------------------------------------------------
                ARRAY(:,:,L) = AD65(:,:,L,N) / SCALE_TMP3D(:,:,L)
             ENDDO
 
@@ -2799,8 +2857,8 @@
 #endif
                   UNIT   = 'g/kg'
 
-               ! CLDMAS
-               CASE( 5 )
+               ! CLDMAS & DTRAIN
+               CASE( 5, 6 )
                   SCALEX = SCALE_A6
                   UNIT   = 'kg/m2/s'
 

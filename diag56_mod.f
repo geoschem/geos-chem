@@ -1,4 +1,4 @@
-! $Id: diag56_mod.f,v 1.5 2007/03/29 20:31:14 bmy Exp $
+! $Id: diag56_mod.f,v 1.6 2007/11/05 16:16:16 bmy Exp $
       MODULE DIAG56_MOD
 !
 !******************************************************************************
@@ -104,10 +104,6 @@
       USE BPCH2_MOD,    ONLY : BPCH2, GET_MODELNAME, GET_HALFPOLAR
       USE FILE_MOD,     ONLY : IU_BPCH
       USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
-      !--------------------------------------------------------------------
-      ! Prior to 3/7/07:
-      !USE TIME_MOD,     ONLY : GET_CT_EMIS, GET_DIAGb,  GET_DIAGe
-      !--------------------------------------------------------------------
       USE TIME_MOD,     ONLY : GET_CT_A6,   GET_DIAGb,  GET_DIAGe
 
 #     include "CMN_SIZE"     ! Size parameters
@@ -141,10 +137,6 @@
       LONRES    = DISIZE
       MODELNAME = GET_MODELNAME()
       RESERVED  = ''
-      !------------------------------------------------
-      ! Prior to 3/7/07
-      !SCALE     = DBLE( GET_CT_EMIS() ) + 1d-32
-      !------------------------------------------------
       SCALE     = DBLE( GET_CT_A6() ) + 1d-32
         
       !=================================================================
@@ -158,10 +150,6 @@
          N            = TINDEX(56,M)
          CATEGORY     = 'LFLASH-$'
          UNIT         = 'flashes/min/km2'
-         !---------------------------------------------
-         ! Prior to 3/7/07:
-         !ARRAY(:,:,1) = AD56(:,:,N)
-         !---------------------------------------------
          ARRAY(:,:,1) = AD56(:,:,N) / SCALE
 
          ! Write data to disk

@@ -1,9 +1,9 @@
-! $Id: drydep_mod.f,v 1.31 2006/08/14 17:58:04 bmy Exp $
+! $Id: drydep_mod.f,v 1.32 2007/11/05 16:16:16 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
 !  Module DRYDEP_MOD contains variables and routines for the GEOS-CHEM dry
-!  deposition scheme. (bmy, 1/27/03, 6/23/06)
+!  deposition scheme. (bmy, 1/27/03, 9/18/07)
 !
 !  Module Variables:
 !  ============================================================================
@@ -48,14 +48,15 @@
 !  (3 ) METERO             : Computes meterological fields for dry deposition
 !  (4 ) DRYFLX             : Applies drydep losses from SMVGEAR to tracer array
 !  (5 ) DRYFLXRnPbBe       : Applies drydep losses to 210Pb and 7Be 
-!  (6 ) DEPVEL             : Computes dry deposition velocities (by D. Jacob)
-!  (7 ) DIFFG              : Computes diffusion coefficient for a gas
-!  (8 ) MODIN              : Reads inputs for DEPVEL from "drydep.table"
-!  (9 ) RDDRYCF            : Reads drydep polynomial coeffs from "drydep.coef"
-!  (10) AERO_SFCRSI        : Computes dust sfc resistance ff Seinfeld et al 86
-!  (11) AERO_SFCRSII       : Conputes dust sfc resistance ff Zhang et al 2001
-!  (12) INIT_DRYDEP        : Initializes and allocates module arrays
-!  (13) CLEANUP_DRYDEP     : Deallocates module arrays
+!  (6 ) DRYFLXH2HD         : Applies drydep losses to H2 and HD
+!  (7 ) DEPVEL             : Computes dry deposition velocities (by D. Jacob)
+!  (8 ) DIFFG              : Computes diffusion coefficient for a gas
+!  (9 ) MODIN              : Reads inputs for DEPVEL from "drydep.table"
+!  (10) RDDRYCF            : Reads drydep polynomial coeffs from "drydep.coef"
+!  (11) AERO_SFCRSI        : Computes dust sfc resistance ff Seinfeld et al 86
+!  (12) AERO_SFCRSII       : Conputes dust sfc resistance ff Zhang et al 2001
+!  (13) INIT_DRYDEP        : Initializes and allocates module arrays
+!  (14) CLEANUP_DRYDEP     : Deallocates module arrays
 !
 !  GEOS-CHEM modules referenced by "drydep_mod.f":
 !  ============================================================================
@@ -106,7 +107,11 @@
 !  (14) Wesely, M. L., Parameterization of surface resistance to gaseous dry 
 !        deposition in regional-scale numerical models.  Atmos. Environ., 23
 !        1293-1304, 1989. 
-!
+!  (15) Price, H., L. Jaeglé, A. Rice, P. Quay, P.C. Novelli, R. Gammon, 
+!        Global Budget of Molecular Hydrogen and its Deuterium Content: 
+!        Constraints from Ground Station, Cruise, and Aircraft Observations,
+!        submitted to J. Geophys. Res., 2007.
+!!
 !  NOTES:
 !  (1 ) Bug fix: Do not assume NO2 is the 2nd drydep species.  This causes
 !        a mis-indexing for CANOPYNOX.  Now archive ND44 diagnostic in kg for
@@ -147,6 +152,8 @@
 !  (21) Now bundle function DIFFG into "drydep_mod.f".  Also updated for SOG4
 !        and SOA4 tracers.  Bug fix in INIT_DRYDEP. (dkh, bmy, 5/24/06)
 !  (22) Fix typo in INIT_DRYDEP (dkh, bmy, 6/23/06)
+!  (23) Add H2 and HD as drydep tracers. Added subroutine DRYFLXH2HD for H2HD
+!        offline sim (phs, 9/18/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -168,7 +175,8 @@
       ! ... and these routines
       PUBLIC :: CLEANUP_DRYDEP     
       PUBLIC :: DO_DRYDEP
-      PUBLIC :: DRYFLX             
+      PUBLIC :: DRYFLX   
+      PUBLIC :: DRYFLXH2HD
       PUBLIC :: DRYFLXRnPbBe       
       PUBLIC :: DVZ_MINVAL         
       PUBLIC :: INIT_DRYDEP        
@@ -875,6 +883,246 @@
 
       ! Return to calling program
       END SUBROUTINE DRYFLXRnPbBe
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE DRYFLXH2HD
+!
+!******************************************************************************
+!  Subroutine DRYFLXH2HD removes dry deposition losses from the tracer
+!  array and archives deposition fluxes AND VELOCITY to the ND44 diagnostic. 
+!  (adapted from DRYFLX v5-05, jaegle 11/02/2005). 
+!
+!  NOTES:
+!  (1) Now deposit through the PBL. Commented but kept code related to soil
+!       temperature (phs, 5/16/07)
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE DIAG_MOD,     ONLY : AD44
+      USE ERROR_MOD,    ONLY : ERROR_STOP, GEOS_CHEM_STOP
+      USE TIME_MOD,     ONLY : GET_TS_CHEM
+      USE GRID_MOD,     ONLY : GET_AREA_CM2, GET_XOFFSET, GET_YOFFSET
+      USE DAO_MOD,      ONLY : T, TS, ALBD
+      USE TRACER_MOD,   ONLY : STT
+      USE LOGICAL_MOD,  ONLY : LDRYD
+      USE DAO_MOD,      ONLY : BXHEIGHT
+      USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_m
+      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
+      
+#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_DIAG"  ! Diagnostic switches & arrays
+#     include "CMN_VEL"   ! IJLAND
+#     include "CMN_DEP"   ! Dry deposition variables
+#     include "commsoil.h" ! Soil pulsing & wetness variables
+
+      ! Local variables
+      INTEGER     :: I, J, L, N, NN, M, PBL_MAX
+      INTEGER     :: IJLOOP, I0, J0, IREF, JREF, K, STYP
+      INTEGER     :: JLOP(IIPAR,JJPAR,1), NTYP(IIPAR,JJPAR)
+      REAL*8      :: DTCHEM, FRACLOST, AMT_LOST
+      REAL*8      :: THIK, DRYF, SVEL, FSOIL, AREA_CM2
+      REAL*8      :: SOIL_H2, SOIL_HD, TMMP, STEMP(IIPAR,JJPAR)
+      REAL*8      :: MLD
+      REAL*8      :: F_UNDER_TOP
+
+      ! External functions, for calculating soil temperature
+      REAL*8, EXTERNAL   :: SOILTEMP, XLTMMP
+
+      !=================================================================
+      ! DRYFLXH2HD begins here!!
+      !=================================================================
+
+      ! Chemistry timestep in seconds
+      DTCHEM = GET_TS_CHEM() * 60d0
+
+      ! Call soiltype to determine whether soil is dry or
+      ! wet for all land grid-boxes
+      CALL SOILTYPE
+
+      ! Only do the following if DRYDEP is turned on
+      IF ( .not. LDRYD ) RETURN
+
+      ! Maximum extent of the PBL [model layers]
+      PBL_MAX = GET_PBL_MAX_L() 
+
+      ! Need nested-grid offsets for soiltemp code
+      I0 = GET_XOFFSET()
+      J0 = GET_YOFFSET()
+
+      ! Initalize
+      IJLOOP = 0
+      DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            IJLOOP        = IJLOOP + 1
+            JLOP(I,J,1)   = IJLOOP
+         ENDDO
+      ENDDO
+
+
+      ! Loop over drydep species
+      DO N = 1, NUMDEP
+
+         ! Tracer index in STT that corresponds to drydep species N
+         ! If invalid, then cycle
+         NN = NTRAIND(N)
+         IF ( NN == 0 ) CYCLE
+
+         ! Loop over layers (most efficient if moved below?)
+         DO L = 1, PBL_MAX
+
+           ! reset STEMP (could be a scalar -depends on future usage-)
+           ! STEMP = 0  ! Not use yet
+
+           ! Loop over each land grid-box
+            DO M      = 1, NLAND
+               IREF   = INDEXSOIL(1,M)
+               JREF   = INDEXSOIL(2,M)
+               I      = IREF - I0
+               J      = JREF - J0
+               IJLOOP = JLOP(I,J,1)
+
+               ! Fraction of grid box that is ocean
+               FSOIL = FRCLND(I,J)
+ 
+
+               ! Only apply dry deposition over land surfaces which
+                    ! are not covered with ice or desert (albedo < 0.4)
+               ! and if we are in the window simulation.
+               IF ( (I.GE.1)       .AND. (I.LE.IIPAR)  .AND.
+     &              (J.GE.1)       .AND. (J.LE.JJPAR)  .AND.
+     &              (FSOIL > 0.d0) .AND. (ALBD(I,J) < 0.4d0) ) THEN
+
+                  ! Grid box area in cm2
+                  AREA_CM2 = GET_AREA_CM2( J )
+
+!                 !===========================================================
+!                 ! Get SOIL TEMPerature from function SOILTEMP(I,J,M,NTYP)
+!                 ! Right now Surface Temp is used instead.
+!                 ! So commented for now (phs, 3/5/07)  
+!                 !===========================================================
+!                 TMMP = XLTMMP(I,J,IJLOOP) - 273.15
+!  
+!                 ! Loop over landtype
+!                 DO K = 1, IREG(IREF,JREF)
+!                      
+!                    ! NCONSOIL Converts from Olson type  -> soil type           
+!                    STYP = NCONSOIL(ILAND(IREF,JREF,K)+1)
+!                          
+!                    ! Temperature factor
+!                    ! STEMP(I,J) is the weighted soil temperature in
+!                    ! gridbox i,j for all the soil types
+!                    ! IUSE is the fraction ((per mil) of box covered by land types
+!                    STEMP(I,J) = STEMP(I,J) + 
+!     &                           SOILTEMP(I,J,M,STYP,TMMP)*
+!     &                           DBLE(IUSE(IREF,JREF,K))/1000.D0
+!    
+!                      !write(*,*)'TEst',TMMP, TS(I,J)-273.15, STEMP(I,J)
+!                 ENDDO
+!
+
+                  ! SVEL [cm/s] is the air-to-soil transfer velocity
+                  ! Use uniform value of 3.94d-2 cm/s over land
+                  ! not covered by snow or desert.
+                  SVEL = 3.94d-2
+		  
+            	
+                  ! if soil temperature is below freezing reduce dep vel
+                  ! by 1/2, and additional 1/2 below -15C(hup, 6/21/2005)
+                  ! for now use surface temperature (TS) instead of
+                  ! air temperature (T) jaegle, 12/12/2005
+		  IF (TS(I,J) <= 273.15d0) SVEL = SVEL / 2.0d0
+		  IF (TS(I,J) <= 258.15d0) SVEL =  SVEL / 2.0d0
+                  
+		  ! if desert, set deposition velocity to zero by multiplying
+		  ! dep vel by the fraction covered by desert(hup, 5/1/2006)
+		  ! IJLAND+1 is the Olson Land type index 
+            	  ! 51: desert	52: desert set SVEL = 0
+		  ! IJUSE is the fraction of the grid square occupied by surface K
+		  ! in units of per mil (IJUSE=500 -> 50% of the grid square). 
+		  DO K = 1, IREG(IREF,JREF)
+	          
+                     NTYP(I,J) = IJLAND(IJLOOP, K) + 1
+                     
+                     IF (NTYP(I,J) .eq. 52 .or. NTYP(I,J) .eq. 51) THEN 
+		  	SVEL = SVEL*(1-(IJUSE(IJLOOP,K)/1.d3)) 
+                     ENDIF
+                     
+		  ENDDO
+		  
+		  ! For HD add soil fractionation with 
+                  ! an alpha coefficient of 0.943 Gerst & Quay, 2001
+		  IF (N .eq. 2) SVEL = SVEL * 0.943
+
+
+                  ! Get THIK  (cannot use ZH variable, since
+                  ! DO_DRYDEP, METERO, and DEPVEL are not called in H2/HD sims)
+
+                  ! Fraction of box (I,J,L) under PBL top [unitless]
+                  F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
+      
+                  ! Mixed layer depth [m]
+                  MLD = GET_PBL_TOP_m( I, J )
+      
+                  ! THIK = thickness of surface layer [m]
+                  THIK    = BXHEIGHT(I,J,1)
+                  THIK    = MAX( MLD, THIK )
+
+                  
+                  ! Dry deposition frequency [1/s]
+                  DRYF    = ( SVEL / 100.d0 ) / THIK
+		  
+		  ! FRACLOST = Fraction of species lost to drydep [unitless]
+                  FRACLOST = DRYF * DTCHEM * F_UNDER_TOP
+
+                  !========================================================
+                  ! Proceed as follows:
+                  ! -------
+                  ! (a) If FRACLOST < 0, then stop the run.
+                  !
+                  ! (b) If FRACLOST > 1, use an exponential loss to 
+                  !     avoid negative tracer
+                  !
+                  ! (c) If FRACLOST is in the range (0-1), then use the 
+                  !     regular formula (STT * FRACLOST) to compute
+                  !     the loss from dry deposition.
+                  !========================================================
+
+                  ! Stop the run on negative FRACLOST!
+                  IF ( FRACLOST < 0 ) THEN
+                     CALL ERROR_STOP( 'FRACLOST < 0', 'dryflxH2HD' )
+                  ENDIF
+
+
+                  ! AMT_LOST = amount of tracer lost to drydep [kg]
+                  IF ( FRACLOST > 1 ) THEN
+                     AMT_LOST = STT(I,J,L,NN) * ( 1d0 - EXP(-FRACLOST) )
+     &                    * FSOIL
+                  ELSE
+                     AMT_LOST = STT(I,J,L,NN) * FRACLOST * FSOIL
+                  ENDIF
+
+
+                  ! ND44 diagnostic: drydep flux [kg/s]
+                  ! ND44 diagnostic: drydep velocity [cm/s]
+                  IF ( ND44 > 0 ) THEN
+                     AD44(I,J,N,1) = AD44(I,J,N,1) + ( AMT_LOST/DTCHEM ) 
+                     AD44(I,J,N,2) = AD44(I,J,N,2) + SVEL * FSOIL
+                  ENDIF
+
+
+                  ! Subtract AMT_LOST from the STT array [kg]
+                  STT(I,J,L,NN)  = STT(I,J,L,NN) - AMT_LOST
+		
+                    
+            ENDIF               ! I and J within bounds, ALBD<0.4 and FSOIL>0
+         ENDDO                  ! M = LAND GRID BOXES
+         ENDDO                  ! PBL layers
+      ENDDO                     ! NUMDEP = Number of species that drydep
+
+
+      ! Return to calling program
+      END SUBROUTINE DRYFLXH2HD
 
 !------------------------------------------------------------------------------
 
@@ -2692,6 +2940,7 @@ C** Load array DVEL
 !  (11) Now also initialize SOG4, SOA4 drydep species.  Bug fix: Remove 2nd
 !        "IF ( IS_Hg ) THEN" statement. (dkh, bmy, 5/24/06)
 !  (12) Bug fix: fix TYPO in IF block for IDTSOA4 (dkh, bmy, 6/23/06)
+!  (13) Included H2/HD tracers for offline H2-HD sim (phs, 9/18/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2716,6 +2965,7 @@ C** Load array DVEL
       USE TRACERID_MOD, ONLY : IDTDST2,   IDTDST3,       IDTDST4
       USE TRACERID_MOD, ONLY : IDTSALA,   IDTSALC,       Id_Hg2
       USE TRACERID_MOD, ONLY : ID_HgP,    ID_Hg_tot
+      USE TRACERID_MOD, ONLY : IDTH2,     IDTHD
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -3313,6 +3563,29 @@ C** Load array DVEL
      &                          SALC_REDGE_um(2) ) * 0.5d-6
             A_DEN(NUMDEP)   = 2200.d0         
             AIROSOL(NUMDEP) = .TRUE. 
+         !----------------------------------
+	 ! H2/HD tracers 
+         ! (hup, jaegle, phs, 9/17/08)
+         !----------------------------------
+	 ELSE IF ( N == IDTH2 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTH2
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'H2'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 0d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+	 ELSE IF ( N == IDTHD ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTHD
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'HD'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 0d-3
+            AIROSOL(NUMDEP) = .FALSE.
 
          !----------------------------------
          ! Mercury tracers

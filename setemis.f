@@ -1,10 +1,10 @@
-! $Id: setemis.f,v 1.13 2006/11/07 19:02:03 bmy Exp $
+! $Id: setemis.f,v 1.14 2007/11/05 16:16:24 bmy Exp $
       SUBROUTINE SETEMIS( EMISRR, EMISRRN )
 !
 !******************************************************************************
 !  Subroutine SETEMIS places emissions computed from GEOS-Chem
 !  subroutines into arrays for SMVGEAR II chemistry. 
-!  (lwh, jyl, gmg, djj, bdf, bmy, 6/8/98, 9/27/06)
+!  (lwh, jyl, gmg, djj, bdf, bmy, 6/8/98, 10/3/07)
 !
 !  SETEMIS converts from units of [molec tracer/box/s] to units of
 !  [molec chemical species/cm3/s], and stores in the REMIS array.  For
@@ -90,25 +90,29 @@
 !        now in units of [molec CO/cm2/s].  Adjust unit conversion accordingly.
 !        Also replace NBIOMAX with NBIOMAX_GAS, since aerosol biomass is
 !        handled elsewhere.  (bdf, phs, bmy, 9/27/06)
+!  (28) Now replace GEMISNOX array (from CMN_NOX) with module arrays
+!        EMIS_LI_NOx and EMIS_AC_NOx (ltm, bmy, 10/3/07)
 !******************************************************************************
 !
       ! References to F90 modules 
-      USE BIOFUEL_MOD,    ONLY : BIOFUEL,     BFTRACE, NBFTRACE
-      USE BIOMASS_MOD,    ONLY : BIOMASS,     BIOTRCE, NBIOMAX_GAS
-      USE COMODE_MOD,     ONLY : JLOP,        REMIS,   VOLUME
-      USE COMODE_MOD,     ONLY : IYSAVE
-      USE DIAG_MOD,       ONLY : AD12
-      USE GRID_MOD,       ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,    ONLY : LVARTROP
-      USE PBL_MIX_MOD,    ONLY : GET_PBL_TOP_L
-      USE PRESSURE_MOD,   ONLY : GET_PEDGE
-      USE TRACERID_MOD,   ONLY : CTRMB,       IDEMIS,  IDENOX
-      USE TROPOPAUSE_MOD, ONLY : GET_TPAUSE_LEVEL
+      USE AIRCRAFT_NOX_MOD,  ONLY : EMIS_AC_NOx
+      USE BIOFUEL_MOD,       ONLY : BIOFUEL,   BFTRACE, NBFTRACE
+      USE BIOMASS_MOD,       ONLY : BIOMASS,   BIOTRCE, NBIOMAX_GAS
+      USE COMODE_MOD,        ONLY : JLOP,      REMIS,   VOLUME
+      USE COMODE_MOD,        ONLY : IYSAVE
+      USE DIAG_MOD,          ONLY : AD12
+      USE GRID_MOD,          ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,       ONLY : LVARTROP
+      USE LIGHTNING_NOX_MOD, ONLY : EMIS_LI_NOx
+      USE PBL_MIX_MOD,       ONLY : GET_PBL_TOP_L
+      USE PRESSURE_MOD,      ONLY : GET_PEDGE
+      USE TRACERID_MOD,      ONLY : CTRMB,     IDEMIS,  IDENOX
+      USE TROPOPAUSE_MOD,    ONLY : GET_TPAUSE_LEVEL
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_NOX"   ! GEMISNOX, GEMISNOX2
+#     include "CMN_NOX"   ! GEMISNOX2
 #     include "CMN_DIAG"  ! Diagnostic flags
 #     include "comode.h"  ! IDEMS, NEMIS
 
@@ -117,6 +121,7 @@
       REAL*8,  INTENT(IN) :: EMISRRN(IIPAR,JJPAR,NOXEXTENT)  
 
       ! Local variables
+      LOGICAL             :: IS_LI_NOx, IS_AC_NOx
       INTEGER             :: I, J,  JLOOP, JLOOP1, LTROP
       INTEGER             :: L, LL, N, NN,  NBB, NBF, TOP
       REAL*8              :: COEF1,   TOTPRES, DELTPRES
@@ -125,6 +130,10 @@
       !=================================================================
       ! SETEMIS begins here!
       !=================================================================
+
+      ! Test if the EMIS_LI_NOx and EMIS_AC_NOx arrays are allocated
+      IS_LI_NOx = ALLOCATED( EMIS_LI_NOx )
+      IS_AC_NOX = ALLOCATED( EMIS_AC_NOX )
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
@@ -291,13 +300,42 @@
 
                   IF ( JLOOP /= 0 ) THEN
 
-                     ! Divide aircraft & lightning NOx by COEF1 to convert
-                     ! from [molec NOx/cm3/s] to [molec NO/cm3/s], since
-                     ! NO is the actual emission species for NOx.
-                     EMIS_BL        = GEMISNOX(I,J,L) / COEF1
+                     !-----------------
+                     ! Lightning NOx
+                     !-----------------
+                     IF ( IS_LI_NOx ) THEN
+ 
+                        ! Divide lightning NOx by COEF1 to convert
+                        ! from [molec NOx/cm3/s] to [molec NO/cm3/s], since
+                        ! NO is the actual emission species for NOx.
+                        !-----------------------------------------------------
+                        ! Prior to 10/3/07:
+                        ! Now use EMIS_LI_NOx and EMIS_AC_NOx to pass 
+                        ! lightning NOx and aircraft NOx from the individual
+                        ! modules.  This will avoid common block errors.
+                        ! (ltm, bmy, 10/3/07)
+                        !EMIS_BL        = GEMISNOX(I,J,L) / COEF1
+                        !-----------------------------------------------------
+                        EMIS_BL        = EMIS_LI_NOx(I,J,L) / COEF1 
 
-                     ! Save aircraft/lightning NOx [molec NO/cm3/s] in REMIS
-                     REMIS(JLOOP,N) = REMIS(JLOOP,N) + EMIS_BL
+                        ! Save lightning NOx [molec NO/cm3/s] in REMIS
+                        REMIS(JLOOP,N) = REMIS(JLOOP,N) + EMIS_BL
+                     ENDIF
+
+                     !-----------------
+                     ! Aircraft NOx
+                     !-----------------
+                     IF ( IS_AC_NOx ) THEN
+
+                        ! Divide aircraft NOx by COEF1 to convert
+                        ! from [molec NOx/cm3/s] to [molec NO/cm3/s], since
+                        ! NO is the actual emission species for NOx.
+                        EMIS_BL        = EMIS_AC_NOx(I,J,L) / COEF1 
+
+                        ! Save aircraft NOx [molec NO/cm3/s] in REMIS
+                        REMIS(JLOOP,N) = REMIS(JLOOP,N) + EMIS_BL
+                     ENDIF
+
                   ENDIF
                ENDDO
 

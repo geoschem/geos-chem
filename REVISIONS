@@ -1,47 +1,210 @@
-REVISIONS (v7-04-12)  
-25 Apr 2007
-Bob Yantosca          and Philippe Le Sager
-bmy@io.as.harvard.edu     phs@io.as.harvard.edu
+REVISIONS (v7-04-13)  
+05 Nov 2007
+Bob Yantosca              and Philippe Le Sager
+yantosca@seas.harvard.edu     plesager@seas.harvard.edu
 
 
-New in v7-04-12:
+New in v7-04-13:
 -------------------------------------------------------------------------------
 
+dryflxh2hd		-- Computes drydep flux of H2 and HD
+("drydep_mod.f")
+
+global_o1d_mod.f	-- Module to read offline O1D fields (for H2/HD sim)
+
+h2_hd_mod.f		-- Module for H2/HD simulation
+
+its_a_h2hd_sim          -- Routine to return TRUE if it's a H2/HD simulation
+("tracer_mod.f")
+
+mmran_16.f		-- Routine for maximum overlap for photolysis
+	                   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	                   %%% NOTE: For the time being we will still   %%%
+	                   %%% use Option #1 (Linear Overlap), which is %%%
+                           %%% used in all previous GEOS-Chem versions. %%%
+	                   %%%                                          %%%
+	                   %%% Eventually, we will make Option #2       %%%
+	                   %%% Random Overlap) the default, but we must %%%
+                           %%% first do a 1-year benchmark simulation   %%%
+                           %%% to test the impact of this change on the %%%
+	                   %%% full chemistry simulation (bmy, 9/21/07) %%%
+	                   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+upbdflx_hd		-- Establishes flux boundary condition for HD
+("upbdflx_mod.f")          coming down from the stratosphere
 
 
-Removed in v7-04-12:
+CMN_NOX			-- Removed GEMISNOX array so that we do not get 
+                           common-block errors 
+
+
+
+
+Removed in v7-04-13:
 -------------------------------------------------------------------------------
 
+lightning_nox_nl_mod.f	-- Replaced with updated "lightning_nox_mod.f",
+                           we no longer use the near-land formulation
 
 
-Changed in v7-04-12:
+
+
+Changed in v7-04-13:
 -------------------------------------------------------------------------------
 
-copy_full_trop		-- Bug fix: set NCS=NCSURBAN for safety's sake
-("tropopause_mod.f")
+aircraft_nox_mod.f	-- Added EMIS_AC_NOx array
 
-diag1.f			-- Bug fix: Update ND30 for both GEOS-3 and otherwise
+airemiss		-- Replace GEMISNOX (from "CMN_NOX") with module 
+("aircraft_nox_mod.f")     variable EMIS_AC_NOx in order to avoid common 
+                           block errors
 
-diag3.f			-- Bug fix in ND07: now save out IDTSOA4 tracer
+biofuel_burn		-- Now reference ITS_A_H2HD_SIM from "tracer_mod.f" 
+("biofuel_mod.f")
 
-diag42_mod.f		-- Now use ratio of 2.1 instead of 1.4 for SOA4
-                           when computing the ND42 diagnostic
+CMN_DIAG                -- Added multi level LD10 to common CDIAG1
+			-- Set PD10=20 and PD66=6
 
-diag49			-- Bug fix: accumulate into Q(X,Y,K) for dust OD
-("diag49_mod.f")
+cleanup.f		-- Calls CLEANUP_H2_HD from "h2_hd_mod.f"
+			-- Calls CLEANUP_GLOBAL_O1D from "global_o1d_mod.f"
+			-- Remove call to CLEANUP_LIGHTNING_NOx_NL from 
+			   "lightning_nox_nl_mod.f"
+	
+cleanup_diag		-- Now deallocate CTO3, AD10, AD10em arrays 
+("diag_mod.f")
 
-lightning_nl		-- Rewritten for separate treatment of LNOx emissions 
-("lightning_nox_nl_mod.f") at tropics & midlatitudes, based on Hudman et al '07
-			-- Removed E_IC_CG, it's obsolete.
+cleanup_aircraft_nox	-- Now deallocate EMIS_AC_NOx array
+("aircraft_nox_mod.f")
 
-ndxx_setup.f		-- For ND20 diagnostic, reset ND65 diagnostic with
-	                   LLTROP_FIX instead of LLTROP
+cleanup_lightning_nox	-- Now deallocate EMIS_NOX_LI array
+("lightning_nox_mod.f")
 
-ro2_setup		-- Bug fix: PO3 should be PO2 
-("planeflight_mod.f")
+compute_biomass_emissions -- Reference ITS_A_H2HD_SIM from "tracer_mod.f" 
+("biomass_mod.f")            to deal with ND29 diagnostics
 
-save_full_trop		-- Bug fix: set NCS=NCSURBAN for safety's sake
-("tropopause_mod.f")
+diag_mod.f		-- Added AD10, AD10em arrays for ND10 H2-HD-sim diag 
 
-write_diag56		-- Now scale AD56 by the # of A-6 timesteps
-("diag56_mod.f")        -- Bug fix in ND07: now save out IDTSOA4 tracer
+diag3.f			-- Modifications for H2/HD diagnostics (ND10/ND27/ND44)
+
+do_chemistry		-- Now use DRYFLXH2HD and CHEM_H2_HD for H2/HD sim
+("chemistry_mod.f")
+
+do_emissions		-- Now references "h2_hd_mod.f"
+("emissions_mod.f")
+
+do_upbdflx		-- Now references ITS_A_H2HD_SIM from "tracer_mod.f"
+("upbdflx_mod.f")       -- Now call routine UPBDFLX_HD for H2/HD simulation
+
+emissdr.f		-- Added switch for BIOGENIC emissions
+			-- Now revert to single lightning_nox_mod.f 
+		        -- Remove reference to old GEMISNOX array; this has 
+			   been replaced by module arrays EMIS_LI_NOx 
+			   and EMIS_AC_NOx, in order to avoid common block 
+			   errors 
+
+emlightning		-- Replace GEMISNOX (from CMN_NOX) with module 
+("lightning_nox_mod.f")    variable EMIS_LI_NOx in order to avoid common 
+                           block errors
+			-- Renamed from EMLIGHTNING_NL to EMLIGHTNING
+
+
+fast_j.f		-- Now account for cloud overlap (Maximum Overlap and 
+                           Random Overlap) in each column.  Give the user
+	                   3 options.
+	                   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	                   %%% NOTE: For the time being we will still   %%%
+	                   %%% use Option #1 (Linear Overlap), which is %%%
+                           %%% used in all previous GEOS-Chem versions. %%%
+	                   %%%                                          %%%
+	                   %%% Eventually, we will make Option #2       %%%
+	                   %%% Random Overlap) the default, but we must %%%
+                           %%% first do a 1-year benchmark simulation   %%%
+                           %%% to test the impact of this change on the %%%
+	                   %%% full chemistry simulation (bmy, 9/21/07) %%%
+	                   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+get_sim_name		-- Added CASE blocks for CO2 and H2/HD simulations
+("tracer_mod.f")
+
+init_aircraft_nox	-- Now allocate EMIS_AC_NOx array
+("aircraft_nox_mod.f")
+
+init_diaginfo		-- Declare H2-HD sources w/ offset of 48000 
+("gamap_mod.f")         -- Declare H2-HD production/loss w/ offset of 47000
+
+init_drydep		-- Included H2/HD tracers for offline H2-HD sim 
+("drydep_mod.f")
+
+init_input		-- Now initialize LOTDSCALE
+("input_mod.f")
+
+init_lightning_nox	-- Now allocate EMIS_LI_NOx
+("lightning_nox_mod.f")
+
+init_megan		-- Bug fix: skip Feb 29th if GCAP
+("megan_mod.f")
+
+init_tagged_co		-- This routine is now public
+("tagged_co_mod.f")     -- Now references ITS_A_H2HD_SIM from "tracer_mod.f"
+                        -- Allocate needed variables if H2/HD simulation
+
+init_tracerid		-- Now zero IDTH2, IDTHD
+("tracerid_mod.f")
+
+init_tracerinfo		-- Modifications for H2/HD in ND10, ND44 diagnostics
+("gamap_mod.f")
+
+interp			-- Now cap var trop at 200hPa near poles 
+("dao_mod.f")
+
+lightning_nox_mod.f	-- Revert to not classifying near-land as land
+			-- Eliminate NOx emisisons per path length entirely
+			-- Scale tropics to 260 mol/fl constraint from 
+                           Randall Martin's 4.4 Tg and OTD-LIS avg ann 
+                           flash rate
+			-- Remove top-down scaling (remove the three functions)
+			-- Allow option of mid-level scaling to match global 
+                           avg ann flash rate between G-C and OTD-LIS 11-year 
+			   climatology (new function)
+			-- Local Redist now a la Murray et al, 2007 in prep
+			-- Replace old "lightning_nox_mod.f" with this version
+			-- Added EMIS_LI_NOx array 
+
+logical_mod.f           -- Added LOTDSCALE (switch to scale lightning flash
+                           rates to OTD/LIS annual average rate)
+
+main.f			-- Modifications for H2 and HD simulation
+			-- Remove all references to LIGHTNING_NL
+
+ndxx_setup.f		-- Added ND10 diagnostic setup
+			-- Added modifications for H2-HD simulation
+
+read_emissions_menu	-- Add LOTDSCALE to the list of LNOx options
+("input_mod.f")
+
+setemis.f		-- Now replace GEMISNOX array (from CMN_NOX) with 
+			   module arrays EMIS_LI_NOx and EMIS_AC_NOx
+
+smvgear.f		-- Added trap for negative CNEW values if iteration 
+			   passes both local and global error tests.  
+			-- If negative values are found, go back to CNEW 
+			   values at the end of the previous successful march,
+			   and try again with smaller timestep.  
+			-- Now stop at the end of the code if negative values
+                           are encountered in CNEW.  
+                        -- Do not reset negative CNEW values to zero. 
+
+tagged_co_mod.f		-- Routines GET_ALPHA_ISOP, GET_PCO_LCO_STRAT, 
+			   READ_PCO_LCO_STRAT, READ_ACETONE and 
+			   INIT_TAGGED_CO are public now. 
+			-- Variable EMACET is public now. 
+
+tpcore_mod.f		-- Corrected mass flux diagnostics (ND24,ND25,ND26)
+
+tracerid		-- Now define IDTH2, IDTHD
+("tracerid_mod.f")
+
+tracer_mod.f		-- Added public routine ITS_A_H2HD_SIM
+
+tracerid_mod.f		-- Added IDTH2 and IDTHD
+
+tropopause_mod.f	-- Updated comments

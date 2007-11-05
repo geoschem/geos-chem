@@ -1,9 +1,9 @@
-! $Id: smvgear.f,v 1.6 2005/09/02 15:17:23 bmy Exp $ 
+! $Id: smvgear.f,v 1.7 2007/11/05 16:16:24 bmy Exp $
       SUBROUTINE SMVGEAR
 !
 !******************************************************************************
 !  Subroutine SMVGEAR solves ODE's for chemical reactions using a GEAR-type
-!  method.  (M. Jacobson 1997; bdf, bmy, 5/12/03, 9/15/03)
+!  method.  (M. Jacobson 1997; bdf, bmy, 5/12/03, 11/1/07)
 !
 !  NOTES:
 !  (1 ) For GEOS-CHEM we had to remove IXSAVE, IYSAVE, and IZSAVE from 
@@ -24,6 +24,12 @@
 !        used only w/in this routine and nowhere else --- also removed these
 !        from /DKBLOOP/ and /DKBLOOP5/ in "comode.h". (bmy, 7/28/03)
 !  (5 ) Increase max allowable iteration count to 99999 (mje, bmy, 9/15/03)
+!  (6 ) Added trap for negative CNEW values if iteration passes both local and
+!        global error tests.  If negative values are found, go back to CNEW 
+!        values at the end of the previous successful march, and try again 
+!        with smaller timestep.  Now stop at the end of the code if negative 
+!        values are encountered in CNEW.  Do not reset negative CNEW values
+!        to zero.  (tmf, 11/1/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -263,14 +269,18 @@ C
       REAL*8 CONC3J3,CONC4J4,CONC10J5,CONC5J5,DRATE,RMSERRP,DER2MAX
       REAL*8 RMSRAT,DCON,RDELTUP,ASNQQJ,DER3MAX,RDELTSM,DER1MAX,RDELTDN
       REAL*8 CONSMULT
+  
+      !====================================
+      ! Additional variable declarations
+      !====================================
 
       ! Add counter
       INTEGER            :: ICOUNT, NK
       
-      !=================================================================
+      !-----------------------------------------------------------------
       ! Added for the ND65 prod/loss diagnostic (ljm, bmy, 5/9/03)
       INTEGER            :: NNOFAM
-      !=================================================================
+      !-----------------------------------------------------------------
 
       ! ljm stop 700 trouble
       INTEGER            :: IJSAVE, JSPCSAVE(KTLOOP)
@@ -287,6 +297,16 @@ C
       INTEGER            :: KGRP(KBLOOP,5), IABOVK(KBLOOP)   
       REAL*8             :: DELY(KBLOOP),   ERRHOLD(KBLOOP)
       REAL*8             :: YABST(KBLOOP)
+
+      !-----------------------------------------------------------------------
+      ! %%%%% MODIFICATION TO PREVENT NEGATIVE CNEW (tmf, 11/1/07) %%%%%
+      ! INEG = flag for identifying negative values in CNEW
+      ! If IDTFORCE==1, then use DTFORCE as timestep instead of DELT
+      ! CPREVM stores CNEW at the end of the previous successful march
+      INTEGER            :: INEG, IDTFORCE 
+      REAL*8             :: DTFORCE  
+      REAL*8             :: CPREVM( KBLOOP, MXGSAER )
+      !-----------------------------------------------------------------------
 
       !=================================================================
       ! SMVGEAR begins here!
@@ -305,13 +325,18 @@ C
       ISCHAN    = ISCHANG( NCS)
       ISCHAN1   = ISCHAN - 1
 
-      !=================================================================
+      !-----------------------------------------------------------------------
+      ! %%%%% MODIFICATION TO PREVENT NEGATIVE CNEW (tmf, 11/1/07) %%%%%
+      ! Initialize 
+      IDTFORCE = 0
+      DTFORCE  = 0.d0
+      !-----------------------------------------------------------------------
       ! Added for the ND65 prod/loss diagnostic, in order to prevent
       ! ND65 prod/loss families from being counted towards the 
       ! SMVGEAR convergence criteria. (ljm, bmy, 5/9/03)
       NNOFAM    = ISCHAN - NFAMILIES
       ORDER     = REAL( NNOFAM )
-      !=================================================================
+      !-----------------------------------------------------------------------
 C
       IABOVE    = ORDER * 0.4d0
 C
@@ -328,6 +353,7 @@ C *********************************************************************
 C            START TIME INTERVAL OR RE-ENTER AFTER TOTAL FAILURE
 C *********************************************************************
 C
+      ! EXPLANATORY NOTE: Internal timestep loop begins here (tmf, 11/1/07)
  120  IDOUB     = 2
       NSLP      = MBETWEEN
       JRESTAR   = 0 
@@ -345,16 +371,22 @@ C
 C *********************************************************************
 C                  INITIALIZE CONCENTRATION ARRAY 
 C *********************************************************************
-C CORIG = ORIGINAL CONCENTRATIONS, WHICH DO NOT CHANGE IN SMVGEAR
-C CNEW  = FINAL CONCENTRATIONS, CALCULATED IN SMVGEAR
+C CORIG  = ORIGINAL CONCENTRATIONS, WHICH DO NOT CHANGE IN SMVGEAR
+C CNEW   = FINAL CONCENTRATIONS, CALCULATED IN SMVGEAR
+C CPREVM = VALUE OF CNEW AT END OF LAST SUCCESSFUL MARCH
 C
 
       DO 129 JNEW         = 1, ISCHAN
        DO 127 KLOOP       = 1, KTLOOP
         CNEW( KLOOP,JNEW) = CORIG(KLOOP,JNEW)
+        !---------------------------------------------------------------------
+        ! %%%%% MODIFICATION TO PREVENT NEGATIVE CNEW (tmf, 11/1/07) %%%%%
+        ! Initialize CPREVM with CORIG before 1st internal march
+        CPREVM( KLOOP,JNEW) = CORIG(KLOOP,JNEW)
+        !---------------------------------------------------------------------
  127   CONTINUE
  129  CONTINUE
-
+      
 C
 C *********************************************************************
 C  RE-ENTER HERE IF TOTAL FAILURE OR IF RESTARTING WITH NEW CELL BLOCK 
@@ -377,6 +409,8 @@ C               INITIALIZE FIRST DERIVATIVE FOR CHEMISTRY
 C *********************************************************************
 C
       CALL SUBFUN
+
+
 C
 C *********************************************************************
 C                DETERMINE INITIAL ABSOLUTE ERROR TOLERANCE 
@@ -393,6 +427,8 @@ C
        ERRHOLD(KLOOP) = 0.d0
  142  CONTINUE 
 C
+      ! EXPLANATORY NOTE: 
+      ! We don't reorder: IFREORD=0 in mglob.dat, (tmf, 11/1/07)
       IF (ISREORD.NE.1) THEN
 C
        DO 134 K              = 1, 5        
@@ -402,7 +438,7 @@ C
  134   CONTINUE
 C
        DO 136 JSPC           = 1, ISCHAN
-        !==============================================================
+        !---------------------------------------------------------------------
         ! Added for the ND65 prod/loss diagnostic.  This prevents ND65
         ! prod/loss species from being counted towards the convergence
         ! criteria for the SMVGEAR solver (ljm, bmy, 5/9/03)         
@@ -422,8 +458,9 @@ C
               ENDIF
  135       CONTINUE
         ENDIF
-        !==============================================================
+        !---------------------------------------------------------------------
  136   CONTINUE
+
 C
 
        DO 137 KLOOP         = 1, KTLOOP
@@ -448,7 +485,7 @@ C
  137   CONTINUE
 C
        DO 139 JSPC      = 1, ISCHAN
-         !=============================================================
+         !--------------------------------------------------------------------
          ! Added for the ND65 prod/loss diagnostic.  This prevents ND65
          ! prod/loss species from being counted towards the convergence
          ! criteria for the SMVGEAR solver (ljm, bmy, 5/9/03)
@@ -459,11 +496,13 @@ C
                ERRHOLD(KLOOP) = ERRHOLD(KLOOP) + ERRYMAX * ERRYMAX
  138        CONTINUE
          ENDIF
-         !=============================================================
+         !--------------------------------------------------------------------
  139   CONTINUE
 
 C
       ELSE
+
+! EXPLANATORY NOTE: This is not used (tmf, 11/1/07)
 C
 C *********************************************************************
 C          USE LOWEST ABSOLUTE ERROR TOLERANCE WHEN REORDERING 
@@ -472,7 +511,7 @@ C *********************************************************************
 C ABTOLER1 = YFAC * ABTOL(6,NCS) / MIN(ERRMAX,1.0E-03) 
 C 
        DO 144 JSPC      = 1, ISCHAN  
-         !=============================================================
+         !--------------------------------------------------------------------
          ! Added for the ND65 prod/loss diagnostic.  This prevents ND65
          ! prod/loss species from being counted towards the convergence
          ! criteria for the SMVGEAR solver (ljm, bmy, 5/9/03)
@@ -483,7 +522,7 @@ C
                ERRHOLD(KLOOP) = ERRHOLD(KLOOP) + ERRYMAX * ERRYMAX
  143        CONTINUE
          ENDIF
-         !==============================================================
+         !--------------------------------------------------------------------
  144   CONTINUE
 C
        IF (ISREORD.EQ.1) THEN 
@@ -494,6 +533,9 @@ C
         RETURN
        ENDIF
       ENDIF
+
+! EXPLANATORY NOTE (tmf, 11/1/07)
+! This is the end of the ISREORDER condition.
 
 C
 C *********************************************************************
@@ -508,8 +550,22 @@ C
        IF (ERRHOLD(KLOOP).GT.RMSTOP) RMSTOP = ERRHOLD(KLOOP)   
  151  CONTINUE
 C
-      DELT1        = SQRT(ERRINIT / (ABST2(NCS) + RMSTOP / ORDER)) 
-      DELT         = MAX(MIN(DELT1,TIMREMAIN,HMAX),HMIN) 
+      DELT1    = SQRT(ERRINIT / (ABST2(NCS) + RMSTOP / ORDER)) 
+
+      !-----------------------------------------------------------------------
+      ! %%%%% MODIFICATION TO PREVENT NEGATIVE CNEW (tmf, 11/1/07) %%%%%
+      !
+      ! If IDTFORCE==0 then compute DELT w/ the original method
+      ! If IDTFORCE==1 then manually set DELT to DTFORCE 
+      IF ( IDTFORCE == 0 ) THEN 
+         DELT  = MAX( MIN( DELT1, TIMREMAIN, HMAX ), HMIN ) 
+      ELSE
+         DELT  = DTFORCE   
+      ENDIF
+
+      ! Reset IDTFORCE for next internal timestep march
+      IDTFORCE = 0
+      !-----------------------------------------------------------------------
 C
 C *********************************************************************
 C                      SET INITIAL ORDER TO 1
@@ -519,6 +575,7 @@ C
       NQQ          = 1 
       JEVAL        = 1
       RDELT        = 1.0d0
+
 C
 C *********************************************************************
 C *   STORE INITIAL CONCENTRATION AND FIRST DERIVATIVES x TIME-STEP   * 
@@ -539,6 +596,7 @@ C ** PERTS2 ARE DEFINED IN SUBROUTINE KSPARSE. NOTE THAT PERTS2      **
 C ** IS THE ORIGINAL PERTST**2                                       **
 C *********************************************************************
 C
+
  170  IF (NQQ.NE.NQQOLD) THEN
        NQQOLD                = NQQ 
        KSTEP                 = NQQ + 1
@@ -553,6 +611,7 @@ C
        NQQISC                = NQQ * ISCHAN 
       ENDIF
       counter=counter+1
+
 C
 C *********************************************************************
 C   LIMIT SIZE OF RDELT, THEN RECALCULATE NEW TIME STEP AND UPDATE
@@ -564,6 +623,7 @@ C
       DELT          = DELT   * RDELT 
       HRATIO        = HRATIO * RDELT 
       XELAPS        = XELAPS + DELT  
+
 
 C
       IF (ABS(HRATIO-1.0).GT.HRMAX.OR.NSTEPS.GE.NSLP) JEVAL = 1
@@ -649,6 +709,11 @@ C KGRP    = COUNTS NUMBER OF CONCENTRATIONS ABOVE ABTOL(I), I = 1..
 C YABST   = ABSOLUTE ERROR TOLERANCE (MOLEC. CM-3 FOR GASES) 
 C ABTOL   = PRE-DEFINED ABSOLUTE ERROR TOLERANCES 
 C
+C EXPLANATORY NOTES (tmf, 11/1/07)
+C (1) If the previous step is successful, then redetermine
+C     the absolute error tolerance every on 3rd step. 
+C *********************************************************************
+C
        IF (MOD(NSTEPS,3).EQ.2) THEN
         DO 203 K              = 1, 5        
          DO 201 KLOOP         = 1, KTLOOP
@@ -657,7 +722,7 @@ C
  203    CONTINUE
 C
         DO 207 JSPC           = 1, ISCHAN
-         !==============================================================
+         !--------------------------------------------------------------------
          ! Added for the ND65 prod/loss diagnostic.  This prevents ND65
          ! prod/loss species from being counted towards the convergence
          ! criteria for the SMVGEAR solver (ljm, bmy, 5/9/03)
@@ -677,7 +742,7 @@ C
                ENDIF
  205        CONTINUE
          ENDIF
-         !==============================================================
+         !--------------------------------------------------------------------
  207    CONTINUE
 C
         DO 209 KLOOP         = 1, KTLOOP
@@ -702,8 +767,11 @@ C
  209    CONTINUE
        ENDIF
 C
+C EXPLANATORY NOTES: (tmf, 11/1/07)
+C (1) What is CHOLD?
+C     CHOLD = 1./( (Relative tolerance) * N + (Absolute tolerance * Yfac) )
        DO 213 JSPC         = 1, ISCHAN
-        !===============================================================
+        !---------------------------------------------------------------------
         ! Added for the ND65 prod/loss diagnostic.  This prevents ND65
         ! prod/loss species from being counted towards the convergence
         ! criteria for the SMVGEAR solver (ljm, bmy, 5/9/03)
@@ -713,7 +781,7 @@ C
      1                          + YABST(KLOOP) * RELTOL2)
  211      CONTINUE 
         ENDIF
-        !===============================================================
+        !---------------------------------------------------------------------
  213   CONTINUE 
 C
       ENDIF 
@@ -847,6 +915,7 @@ C
        HRATIO   = 1.0d0
        NSLP     = NSTEPS + MBETWEEN
        DRATE    = 0.7d0
+
       ENDIF
 
 C
@@ -855,10 +924,17 @@ C *   EVALUATE THE FIRST DERIVATIVE USING CORRECTED VALUES OF CNEW    *
 C *********************************************************************
 C     
  270  CALL SUBFUN
+
 C
 C *********************************************************************
 C * IN THE CASE OF THE CHORD METHOD, COMPUTE ERROR (GLOSS) FROM THE   * 
 C * CORRECTED CALCULATION OF THE FIRST DERIVATIVE                     * 
+C *                                                                   *
+C * EXPLANATORY NOTES (tmf, 11/1/07)                                  *
+C * (1) GLOSS now changes from 1st derivative to error here           *
+C * (2) GLOSS is now the B matrix in Px = B                           *
+C *      (Equation 3 in Jacobson & Turco 1994)                        *
+C * (3) DTLOS is the accumulation of deltaN (x array in Px = B)       *
 C *********************************************************************
 C
       DO 362 JSPC         = 1,  ISCHAN
@@ -868,10 +944,16 @@ C
      1                    - (CONC(KLOOP,J) + DTLOS(KLOOP,JSPC))
  360   CONTINUE
  362  CONTINUE
+
+
 C
 C *********************************************************************
 C * SOLVE THE LINEAR SYSTEM OF EQUATIONS WITH THE CORRECTOR ERROR.    *
 C * BACKSUB.F SOLVES BACKSUBSTITUTION OVER MATRIX OF PARTIAL DERIVS.  * 
+C *                                                                   *
+C * EXPLANATORY NOTES (tmf, 11/1/07)                                  *
+C * (1) BACKSUB solves Px = B.                                        *
+C * (2) GLOSS is now the solution B array.                            *
 C *********************************************************************
 C
       CALL BACKSUB
@@ -880,6 +962,12 @@ C *********************************************************************
 C * SUM-UP THE ACCUMULATED ERROR, CORRECT THE CONCENTRATION WITH THE  * 
 C * ERROR, AND BEGIN TO CALCULATE THE RMSNORM OF THE ERROR RELATIVE   *  
 C * TO CHOLD.                                                         *
+C *                                                                   *
+C * EXPLANATORY NOTES (tmf, 11/1/07)                                  *
+C * In loops 366..368 and 370..372 we do the following:               *
+C * (1) Calculate local error                                         * 
+C * (2) Update DTLOS = accumulation of delta N                        *
+C * (3) Update CNEW = concentration array                             *
 C *********************************************************************
 C
       DO 365 KLOOP     = 1, KTLOOP
@@ -892,7 +980,7 @@ C
            DO 366 KLOOP    = 1, KTLOOP
               DTLOS(KLOOP,I) = DTLOS(KLOOP,I)  + GLOSS(KLOOP,I)
               CNEW(KLOOP,I)  = CONC(KLOOP,I)   + DTLOS(KLOOP,I)
-              !=========================================================
+              !---------------------------------------------------------------
               ! Added for the ND65 prod/loss diagnostic.  This prevents 
               ! ND65 prod/loss species from being counted towards the 
               ! convergence criteria for SMVGEAR (ljm, bmy, 5/9/03)
@@ -900,7 +988,7 @@ C
                  ERRYMAX        = GLOSS(KLOOP,I)  * CHOLD(KLOOP,I)
                  DELY(KLOOP)    = DELY(KLOOP)     + ERRYMAX * ERRYMAX
               ENDIF
-              !=========================================================
+              !---------------------------------------------------------------
  366       CONTINUE
  368   CONTINUE
       ELSE
@@ -908,7 +996,7 @@ C
            DO 370 KLOOP    = 1, KTLOOP
               DTLOS(KLOOP,I) = DTLOS(KLOOP,I)  + GLOSS(KLOOP,I)
               CNEW(KLOOP,I)  = CONC(KLOOP,I)   + ASN1  *  DTLOS(KLOOP,I)
-              !=========================================================
+              !---------------------------------------------------------------
               ! Added for the ND65 prod/loss diagnostic.  This prevents 
               ! ND65 prod/loss species from being counted towards the 
               ! convergence criteria for SMVGEAR (ljm, bmy, 5/9/03)
@@ -916,10 +1004,11 @@ C
                  ERRYMAX        = GLOSS(KLOOP,I)  * CHOLD(KLOOP,I)
                  DELY(KLOOP)    = DELY(KLOOP)     + ERRYMAX * ERRYMAX
               ENDIF
-              !=========================================================
+              !---------------------------------------------------------------
  370       CONTINUE
  372   CONTINUE
       ENDIF
+
 
 C
 C *********************************************************************
@@ -927,6 +1016,10 @@ C * SET THE PREVIOUS RMS ERROR AND CALCULATE THE NEW RMS ERROR.       *
 C * IF DCON < 1, THEN SUFFICIENT CONVERGENCE HAS OCCURRED. OTHERWISE, *
 C * IF THE RATIO OF THE CURRENT TO PREVIOUS RMSERR IS DECREASING,     *
 C * ITERATE MORE. IF IT IS NOT, THEN THE CONVERGENCE TEST FAILED      *
+C *                                                                   *
+C * EXPLANATORY NOTES (tmf, 11/1/07)                                  *
+C * (1) ORDER is the # of species, excluding ND65 families            *
+C * (2) RMSRAT = (local error this march) / (local error last march)  *
 C *********************************************************************
 C
       RMSERRP           = RMSERR
@@ -934,9 +1027,16 @@ C
 C
       ksave=0d0
       DO 427 KLOOP      = 1, KTLOOP
-       IF (DELY(KLOOP).GT.DER2MAX) DER2MAX = DELY(KLOOP)   
-       ijsave=jlooplo+kloop
-       ksave=kloop
+       !-----------------------------------------------------------------------
+       ! %%%%% MODIFICATION TO PREVENT NEGATIVE CNEW (tmf, 11/1/07) %%%%%
+       ! Put STOP 700 debug variables into IF statement 
+       !IF (DELY(KLOOP).GT.DER2MAX) DER2MAX = DELY(KLOOP) 
+       !-----------------------------------------------------------------------
+       IF (DELY(KLOOP).GT.DER2MAX) THEN
+          DER2MAX = DELY(KLOOP)   
+          ijsave=jlooplo+kloop
+          ksave=kloop
+       ENDIF
  427  CONTINUE
 C
       RMSERR             = SQRT(DER2MAX / ORDER)
@@ -944,7 +1044,7 @@ C
       L3                 = L3 + 1
 C
       IF (L3.GT.1) THEN
-       RMSRAT            = RMSERR / RMSERRP
+       RMSRAT            = RMSERR / RMSERRP    
        DRATE             = MAX(0.2d0 * DRATE, RMSRAT)
       ENDIF
 C
@@ -954,7 +1054,14 @@ C *********************************************************************
 C       IF CONVERGENCE OCCURS, GO ON TO CHECK ACCUMULATED ERROR
 C *********************************************************************
 C
+
+
+      ! EXPLANATORY NOTE (tmf, 11/1/07)
+      ! This is where we check for local error convergence
       IF (DCON .LE. 1.0) THEN
+
+       ! EXPLANATORY NOTE (tmf, 11/1/07)
+       ! Go on to check global error
        GOTO 390 
 C
 C *********************************************************************
@@ -964,6 +1071,7 @@ C *********************************************************************
 C
 C     ELSEIF (L3.LT.MSTEP.AND.(L3.EQ.1.OR.RMSRAT.LE.0.9)) THEN
       ELSEIF (L3.EQ.1) THEN
+
        GOTO 270
 C
 C *********************************************************************
@@ -977,12 +1085,19 @@ C *********************************************************************
 C
 
       ELSEIF (JEVAL .EQ. 0) THEN
+
+       ! EXPLANATORY NOTE (tmf, 11/1/07)
+       ! If Jacobian is old, reevaluate Jacobian with 
+       !   CNEW = CNEW_old + dt*GLOSS(CNEW_old), 
+       ! and reset L3 = 0.
        IFAIL           = IFAIL + 1
        JEVAL           = 1
+
        GOTO 220
       ENDIF
+
 C
-      NFAIL            = NFAIL + 1
+ 399  NFAIL            = NFAIL + 1
       RDELMAX          = 2.0d0
       JEVAL            = 1
       IFSUCCESS        = 0
@@ -994,6 +1109,8 @@ C               SUBTRACT OFF DERIVATIVES PREVIOUSLY ADDED
 C *********************************************************************
 C THIS SET OF OPERATIONS IS EQUIVALENT TO LOOP 419.
 C
+      ! EXPLANATORY NOTE (tmf, 11/1/07)
+      ! The local error is still not converging
       IF (NQQ.EQ.1) THEN
        DO 376 I        = 1, ISCHAN
         J              = I + ISCHAN
@@ -1072,7 +1189,7 @@ C
  383    CONTINUE
  384   CONTINUE
       ENDIF
-C
+
       GOTO 170
 C
 C *********************************************************************
@@ -1090,7 +1207,7 @@ C
  395   CONTINUE
 C
        DO 402 JSPC   = 1, ISCHAN     
-        !===============================================================
+        !---------------------------------------------------------------------
         ! Added for the ND65 prod/loss diagnostic.  This prevents ND65
         ! prod/loss species from being counted towards the convergence
         ! criteria for the SMVGEAR solver (ljm, bmy, 5/9/03)
@@ -1100,7 +1217,7 @@ C
               DELY(KLOOP) = DELY(KLOOP) + ERRYMAX * ERRYMAX
  400       CONTINUE
         ENDIF
-        !===============================================================
+        !---------------------------------------------------------------------
  402   CONTINUE
 C
        DER2MAX       = 0.d0
@@ -1124,7 +1241,10 @@ C *        BEGINNING, AT ORDER = 1, BECAUSE ERRORS OF THE WRONG ORDER *
 C *        HAVE ACCUMULATED                                           *
 C *********************************************************************
 C 
+      ! EXPLANATORY NOTE (tmf, 11/1/07)
+      ! Check if global error is tolerable
       IF (DER2MAX.GT.ENQQ) THEN
+
        XELAPS           = TOLD
        LFAIL            = LFAIL + 1
        JFAIL            = JFAIL  + 1
@@ -1144,11 +1264,15 @@ C
        IF (JFAIL.LE.6) THEN
         IFSUCCESS       = 0 
         RDELTUP         = 0.0d0
+
         GOTO 540
+
        ELSEIF (JFAIL.LE.20) THEN
         IFSUCCESS       = 0 
         RDELT           = FRACDEC
+
         GOTO 170 
+
        ELSE
         DELT            = DELT * 0.1d0
         RDELT           = 1.
@@ -1170,9 +1294,10 @@ C
         ENDIF
 C
         GOTO 140
-       ENDIF
+       ENDIF    ! end of JFAIL condition
 C
       ELSE
+
 C
 C *********************************************************************
 C *             ALL SUCCESSFUL STEPS COME THROUGH HERE                * 
@@ -1182,6 +1307,54 @@ C * ATIVES, RESET TOLD, SET IFSUCCESS = 1, INCREMENT NSTEPS, AND      *
 C * RESET JFAIL = 0.                                                  *
 C *********************************************************************
 C
+!-----------------------------------------------------------------------------
+! %%%%% MODIFICATION TO PREVENT NEGATIVE CNEW (tmf, 11/1/07) %%%%%
+!
+! Even if both local and global error tests are passed, if any of the values 
+! in the CNEW array are less than zero, start over with a smaller time step, 
+! and re-evaluate the Jacobian (i.e. GOTO 140).
+!
+      ! Initialize counter
+ 820  INEG = 0
+
+      ! Count the # of negatives in CNEW
+      DO JSPC  = 1, ISCHAN
+      DO KLOOP = 1, KTLOOP
+         IF ( ITS_NOT_A_ND65_FAMILY(JSPC) ) THEN
+            IF ( CNEW(KLOOP,JSPC) < 0.d0 ) INEG = INEG + 1
+         ENDIF
+      ENDDO
+      ENDDO
+       
+      ! If there are negatives in CNEW then ...
+      IF ( INEG > 0 ) THEN
+
+         ! ... Set CNEW to CPREVM.  CPREVM stores the values that were in
+         ! in the CNEW array at the end of the previous successful march.
+         DO JSPC  = 1, ISCHAN
+         DO KLOOP = 1, KTLOOP
+            CNEW(KLOOP,JSPC) = CPREVM(KLOOP,JSPC)
+         ENDDO
+         ENDDO
+
+         ! ... Then reset the various time & tolerance variables 
+         XELAPS          = TOLD
+         JEVAL           = 1
+         IFSUCCESS       = 0
+         DTFORCE         = DELT * FRACDEC
+         IDTFORCE        = 1
+         RDELT           = 1.d0
+         JFAIL           = 0
+         JRESTAR         = JRESTAR + 1
+         IDOUB           = 5
+         L3 = 0
+
+         ! ... Then try another march
+         GOTO 140
+
+      ENDIF
+!------------------------------------------------------------------------------
+
        JFAIL            = 0
        IFSUCCESS        = 1
        NSTEPS           = NSTEPS + 1
@@ -1220,6 +1393,7 @@ C          EXIT SMVGEAR IF A TIME INTERVAL HAS BEEN COMPLETED
 C *********************************************************************
 C
        TIMREMAIN        = TINTERVAL - XELAPS
+
        IF (TIMREMAIN.LE.1.0d-06) GOTO 650
 
        ! Increment counter of internal timesteps
@@ -1294,6 +1468,20 @@ C
  527     CONTINUE
         ENDIF
         RDELT               = 1.0d0
+
+        !---------------------------------------------------------------------
+        ! %%%%% MODIFICATION TO PREVENT NEGATIVE CNEW (tmf, 11/1/07) %%%%%
+        !
+        ! Store successful CNEW in CPREVM.  CPREVM will be used in a future
+        ! march to re-initialize the CNEW array if negatives are found.
+        !
+        DO JSPC  = 1, ISCHAN 
+        DO KLOOP = 1, KTLOOP
+           CPREVM(KLOOP,JSPC) = CNEW(KLOOP,JSPC)
+        ENDDO
+        ENDDO
+        !---------------------------------------------------------------------
+
         GOTO 170
        ENDIF
 C
@@ -1323,7 +1511,7 @@ C
  542   CONTINUE
 C
        DO 545 JSPC   = 1, ISCHAN     
-        !===============================================================
+        !---------------------------------------------------------------------
         ! Added for the ND65 prod/loss diagnostic.  This prevents ND65
         ! prod/loss species from being counted towards the convergence
         ! criteria for the SMVGEAR solver (ljm, bmy, 5/9/03)
@@ -1338,7 +1526,7 @@ C
               endif
  544       CONTINUE
         ENDIF
-        !===============================================================
+        !---------------------------------------------------------------------
  545   CONTINUE
 C
        DER3MAX       = 0.d0
@@ -1371,7 +1559,7 @@ C
 C
        KSTEPISC      = (KSTEP - 1) * ISCHAN
        DO 555 JSPC   = 1, ISCHAN     
-        !===============================================================
+        !---------------------------------------------------------------------
         ! Added for the ND65 prod/loss diagnostic.  This prevents ND65
         ! prod/loss species from being counted towards the convergence
         ! criteria for the SMVGEAR solver (ljm, bmy, 5/9/03)
@@ -1382,7 +1570,7 @@ C
               DELY(KLOOP) = DELY(KLOOP)   + ERRYMAX * ERRYMAX
  554       CONTINUE
         ENDIF
-        !===============================================================
+        !---------------------------------------------------------------------
  555   CONTINUE
 C
        DER1MAX       = 0.d0
@@ -1421,6 +1609,7 @@ C *********************************************************************
 C
       ELSEIF (RDELT.EQ.RDELTDN) THEN
        NQQ              = NQQ - 1
+
 C
 C *********************************************************************
 C * IF THE MAXIMUM TIME-STEP RATIO IS THAT OF ONE ORDER HIGHER THAN   *  
@@ -1441,6 +1630,8 @@ C
          CONC(KLOOP,I2) = DTLOS(KLOOP,JG1)  * CONSMULT
  600    CONTINUE
  602   CONTINUE
+
+
       ENDIF
 C
 C *********************************************************************
@@ -1451,6 +1642,7 @@ C *********************************************************************
 C
       IDOUB             = NQQ + 1
 C
+
       GOTO 170  
 C
 C *********************************************************************
@@ -1491,10 +1683,49 @@ C
             CALL GEOS_CHEM_STOP
          ENDIF
 
-         ! Reset negatives to a very small positive number
-         CNEW(KLOOP,JSPC) = MAX(CNEW(KLOOP,JSPC),SMAL2)
+!------------------------------------------------------------------------------
+! %%%%% MODIFICATION TO PREVENT NEGATIVE CNEW (tmf, 11/1/07) %%%%%
+!
+! The previous code would reset negative CNEW to a small positive #.  We don't
+! want to do that anymore.  If any negative CNEW values exist at the end of
+! an internal march, we reset the timestep and re-evaluate the Jacobian.
+! (see at CONTINUE statement 820).
+!
+! However, if any negative values in CNEW still exist at this point, we will
+! stop the run and print out debug information.
+
+
+        IF ( ITS_NOT_A_ND65_FAMILY(JSPC) ) THEN
+
+         IF ( CNEW(KLOOP,JSPC) .LT. 0d0 ) THEN
+            DO NK = 1, NALLRAT(NCS)
+               WRITE( 6, 249 ) NK, RRATE(KSAVE,NK),TRATE(KSAVE,NK)
+ 250           FORMAT( 'Rxn #:', i5, ' RRATE = ', es13.6 ,
+     x              '  TRATE = ', es13.6 )
+            ENDDO
+            write(6,*) 'sum of rrate = ',sum(rrate)
+            PRINT*, 'SMVGEAR: CNEW is negative!'
+            PRINT*, 'Species index : ', JSPC, 'CNEW =', CNEW(KLOOP,JSPC)
+            PRINT*, 'Grid Box      : ', IXSAVE(KLOOP+JLOOPLO),
+     &           IYSAVE(KLOOP+JLOOPLO), IZSAVE(KLOOP+JLOOPLO)
+            PRINT*, 'STOP in smvgear.f!'
+
+            ! Stop the run and deallocate all arrays 
+            CALL GEOS_CHEM_STOP
+         ENDIF
+
+        ENDIF
+
+          ! Comment this line out, we don't want to reset CNEW anymore
+          !! Reset negatives to a very small positive number
+          !CNEW(KLOOP,JSPC) = MAX(CNEW(KLOOP,JSPC),SMAL2)
+
+!------------------------------------------------------------------------------
+
       ENDDO
       ENDDO
+
+
 C
 C
 C *********************************************************************

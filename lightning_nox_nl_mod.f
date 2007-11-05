@@ -1,4 +1,4 @@
-! $Id: lightning_nox_nl_mod.f,v 1.6 2007/03/29 20:31:20 bmy Exp $
+! $Id: lightning_nox_nl_mod.f,v 1.7 2007/11/05 16:16:21 bmy Exp $
       MODULE LIGHTNING_NOX_NL_MOD
 !
 !******************************************************************************
@@ -118,11 +118,6 @@
 
       ! Parameters
       INTEGER, PARAMETER   :: NLTYPE        = 3
-      !--------------------------------------------------------------------
-      ! Prior to 3/27/07:
-      !REAL*8,  PARAMETER   :: E_IC_CG       = 1d0
-      !REAL*8,  PARAMETER   :: RFLASH        = 2.073d22
-      !--------------------------------------------------------------------
       REAL*8,  PARAMETER   :: RFLASH_MIDLAT = 3.011d26   ! 500 mol/flash
       REAL*8,  PARAMETER   :: RFLASH_TROPIC = 2.073d22   ! same as old RFLASH
       REAL*8,  PARAMETER   :: EAST_WEST_DIV = -30d0
@@ -172,10 +167,6 @@
       ! References to F90 modules
       USE DAO_MOD,      ONLY : BXHEIGHT,  CLDTOPS,    PRECON,   T, ZMMU
       USE DIAG56_MOD,   ONLY : AD56,      ND56
-      !---------------------------------------------------------------------
-      ! Prior to 3/27/07:
-      !USE GRID_MOD,     ONLY : GET_YMID,  GET_AREA_M2
-      !---------------------------------------------------------------------
       USE GRID_MOD,     ONLY : GET_YMID,  GET_XMID,   GET_AREA_M2
       USE LOGICAL_MOD,  ONLY : LCTH,      LMFLUX,     LOTDLOC
       USE LOGICAL_MOD,  ONLY : LOTDREG,   LPRECON
@@ -698,17 +689,6 @@
             ! Convert [flashes/min] to [flashes/6h]
             RATE     = FLASHRATE * 360.0d0
 
-!------------------------------------------------------------------------------
-! Prior to 3/27/07:
-!            ! Ratio of cloud-ground flashes to total # of flashes
-!            X        = 1d0 / ( 1d0 + IC_CG_RATIO )
-!
-!            ! NOx [molec/6h] released in the IC, CG, and total pathways 
-!            TOTAL_IC = RFLASH   * RATE * ( 1d0 - X ) * Z_IC * E_IC_CG
-!            TOTAL_CG = RFLASH   * RATE *         X   * Z_CG
-!            TOTAL    = TOTAL_IC + TOTAL_CG 
-!------------------------------------------------------------------------------
-
             ! Get factors for OTD-LIS regional redistribution, OTD-LIS local
             ! redistribution, or no redistribution.  Redistribution makes sure 
             ! that the flashes appear in the proper place geographically.
@@ -796,22 +776,6 @@
 
             ! Sum of IC + CG [molec/6h]
             TOTAL = TOTAL_IC + TOTAL_CG
-
-!-----------------------------------------------------------------------------
-! Prior to 3/27/07:            
-!            TOTAL    = TOTAL * REDIST
-!
-!            !%%% NOTE: THIS FLASH_SCALE HAS BEEN DEVELOPED     %%%
-!            !%%%       FOR THE OTD-LIS REGIONAL REDISTRIBUTION %%%
-!            !%%%       YOU SHOULD COMMENT IT OUT FOR LOTDLOC   %%% 
-!            !%%%       UNTIL WE HAVE A CHANCE TO DO MORE TESTS %%%
-!            !%%%       (bmy, 2/1/07)                           %%%
-!            ! Scale total lightning NOx to 6 Tg N/yr, accounting for
-!            ! differences from met fields & resolution (ltm, bmy, 12/11/06)
-!            IF ( LOTDREG ) THEN  !%%% BMY TEMP MODIFICATION
-!            TOTAL    = TOTAL * FLASH_SCALE
-!            ENDIF                !%%% BMY TEMP MODIFICATION
-!------------------------------------------------------------------------------
 
             !-----------------------------------------------------------
             ! (6f) ND56 diagnostic: store flash rates [flashes/min/km2]

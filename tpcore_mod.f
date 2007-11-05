@@ -1,9 +1,9 @@
-! $Id: tpcore_mod.f,v 1.9 2006/09/08 19:21:05 bmy Exp $
+! $Id: tpcore_mod.f,v 1.10 2007/11/05 16:16:25 bmy Exp $
       MODULE TPCORE_MOD
 !
 !******************************************************************************
 !  Module TPCORE_MOD contains the TPCORE transport subroutine package by
-!  S-J Lin, version 7.1. (bmy, 7/16/01, 8/4/06)
+!  S-J Lin, version 7.1. (bmy, 7/16/01, 9/18/07)
 !
 !  Module Routines:
 !  ============================================================================
@@ -74,6 +74,7 @@
 !  (15) Bug fix in DIAG_FLUX: now dimension FX, FX properly (bmy, 7/21/05)
 !  (16) Now print output for IFORT compiler in "tpcore" (bmy, 10/18/05)
 !  (17) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
+!  (18) Corrected mass flux diagnostics (phs, 9/18/07)
 !******************************************************************************
 !
       !=================================================================
@@ -405,17 +406,18 @@ C****6***0*********0*********0*********0*********0*********0**********72
 C Initialization
 C****6***0*********0*********0*********0*********0*********0**********72
  
-      ! For mass flux diagnostics (bey, 6/20/00)
-      fx1_tp(:,:,:) = 0d0
-      fy1_tp(:,:,:) = 0d0
-      fz1_tp(:,:,:) = 0d0
-      
-      ! Also need to initialize these arrays, so that the flux diagnostics 
-      ! will be identical for single or multi processor (bmy, 9/29/00)
-      fx(:,:,:) = 0d0
-      fy(:,:,:) = 0d0
-      fz(:,:,:) = 0d0
-
+      ! Moved further down to be done for each tracer (phs, 30/8/07)
+!!      ! For mass flux diagnostics (bey, 6/20/00)
+!!      fx1_tp(:,:,:) = 0d0
+!!      fy1_tp(:,:,:) = 0d0
+!!      fz1_tp(:,:,:) = 0d0
+!!      
+!!      ! Also need to initialize these arrays, so that the flux diagnostics 
+!!      ! will be identical for single or multi processor (bmy, 9/29/00)
+!!      fx(:,:,:) = 0d0
+!!      fy(:,:,:) = 0d0
+!!      fz(:,:,:) = 0d0
+!!
       ! Need to initialize these arrays in order to avoid 
       ! floating-point exceptions on Alpha (lyj, bmy, 4/19/02)
       YMASS_PF(:,:,:) = 0d0
@@ -974,6 +976,19 @@ C Do transport one tracer at a time.
 C****6***0*********0*********0*********0*********0*********0**********72
  
       DO 5000 IC=1,NC
+
+      ! Moved initialization to 0 here (30/8/07, phs)
+      ! For mass flux diagnostics (bey, 6/20/00)
+      fx1_tp(:,:,:) = 0d0
+      fy1_tp(:,:,:) = 0d0
+      fz1_tp(:,:,:) = 0d0
+               
+      ! Also need to initialize these arrays, so that the flux diagnostics 
+      ! will be identical for single or multi processor (bmy, 9/29/00)
+      fx(:,:,:) = 0d0
+      fy(:,:,:) = 0d0
+      fz(:,:,:) = 0d0
+
 
 #if   defined( multitask  )
 #if   defined( CRAY       )
@@ -2040,6 +2055,8 @@ C Bottom 2 layers
       fz(i,j,NL+1) = 0.
       DQ(i,j, 1) = DQ(i,j, 1) - DC(i, 2)
       DQ(i,j,NL) = DQ(i,j,NL) + DC(i,NL)
+      fz1_tp(i,j,1)  = 0.        ! PHS
+      fz1_tp(i,j,NL) = DC(i,NL)  ! PHS - flux b/w 1st and second layer
 350   continue
  
 !-----------------------------------------------------------------------------

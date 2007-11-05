@@ -1,18 +1,33 @@
-! $Id: fast_j.f,v 1.6 2004/12/02 21:48:36 bmy Exp $
+! $Id: fast_j.f,v 1.7 2007/11/05 16:16:18 bmy Exp $
       SUBROUTINE FAST_J( SUNCOS, OD, ALBD )  
 !
 !******************************************************************************
 !  Subroutine FAST_J loops over longitude and latitude, and calls PHOTOJ 
 !  to compute J-Values for each column at every chemistry time-step.  
-!  (ppm, 4/98; bmy, rvm, 9/99, 2/6/04)
+!  (ppm, 4/98; bmy, rvm, 9/99, 2/6/04; hyl, 4/25/04; phs, bmy, 6/8/07 )
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) SUNCOS (REAL*8) : Cosine of solar zenith angle [unitless]
 !  (2 ) OD     (REAL*8) : Cloud optical depth          [unitless]
 !  (3 ) ALBD   (REAL*8) : UV albedo                    [unitless]
-!  
+!
+!  Parameter to choose cloud overlap algorithm:
+!  ============================================================================
+!  (1 ) OVERLAP (INTEGER) : 1 - Linear Approximation (used up to v7-04-12)
+!                           2 - Approximate Random Overlap (default)
+!                           3 - Maximum Random Overlap (computation intensive)  
+!  References:
+!  ============================================================================
+!  (1) H. Liu, J.H. Crawford, R.B. Pierce, P. Norris, S.E. Platnick, G. Chen,
+!       J.A. Logan, R.M. Yantosca, M.J. Evans, C. Kittaka, Y. Feng, and 
+!       X. Tie, "Radiative effect of clouds on tropospheric chemistry in a 
+!       global three-dimensional chemical transport model", J. Geophys. Res., 
+!       vol.111, D20303, doi:10.1029/2005JD006403, 2006. 
+!       http://research.nianet.org/~hyl/publications/liu2006_cloud1.abs.html
+!
 !  NOTES:
+!  ======
 !  (1 ) Call this routine EACH chemistry time-step, before solver.
 !  (2 ) This routine must know IMAX, JMAX, LMAX. 
 !  (3 ) Now use new !$OMP compiler directives for parallelization (bmy, 5/2/00)
@@ -48,33 +63,62 @@
 !        (bmy, 7/17/03)
 !  (15) Bug fix: PRES needs to be the true surface pressure for GEOS-4, but
 !        PS-PTOP for all prior GEOS models.  (bmy, 2/6/04)
+!  (16) Now account for cloud overlap (Maximum-Random Overlap and Random 
+!        Overlap) in each column (hyl, phs, bmy, 9/18/07)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : T
+      USE DAO_MOD,      ONLY : T, CLDF
+      USE ERROR_MOD,    ONLY : ERROR_STOP
       USE GRID_MOD,     ONLY : GET_YMID
       USE PRESSURE_MOD, ONLY : GET_PEDGE
       USE TIME_MOD,     ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR, 
      &                         GET_TAU,   GET_YEAR
       USE TOMS_MOD,     ONLY : READ_TOMS
-      
+
       IMPLICIT NONE
 
-#     include "cmn_fj.h" ! IPAR, JPAR, LPAR, CMN_SIZE
-#     include "jv_cmn.h" ! ODMDUST 
+#     include "cmn_fj.h"     ! IPAR, JPAR, LPAR, CMN_SIZE
+#     include "CMN"          ! P, T, YLMID            
+#     include "jv_cmn.h"     ! ODMDUST 
 
       ! Arguments
-      REAL*8, INTENT(IN) :: SUNCOS(MAXIJ)
-      REAL*8, INTENT(IN) :: OD(LLPAR,IIPAR,JJPAR) 
-      REAL*8, INTENT(IN) :: ALBD(IIPAR,JJPAR)     
+      REAL*8, INTENT(IN)    :: SUNCOS(MAXIJ)
+      REAL*8, INTENT(IN)    :: OD(LLPAR,IIPAR,JJPAR) 
+      REAL*8, INTENT(IN)    :: ALBD(IIPAR,JJPAR)     
       
       ! Local variables
-      INTEGER, SAVE      :: LASTMONTH = -1
-      INTEGER            :: NLON, NLAT, DAY,  MONTH, DAY_OF_YR
-      REAL*8             :: CSZA, PRES, SFCA, YLAT
-      REAL*8             :: TEMP(LLPAR), OPTD(LLPAR)
-      REAL*8             :: OPTDUST(LLPAR,NDUST)
-      REAL*8             :: OPTAER(LLPAR,NAER*NRH)
+      INTEGER, SAVE         :: LASTMONTH = -1
+      INTEGER               :: NLON, NLAT, DAY,  MONTH, DAY_OF_YR
+      REAL*8                :: CSZA, PRES, SFCA, YLAT
+      REAL*8                :: TEMP(LLPAR), OPTD(LLPAR)
+      REAL*8                :: OPTDUST(LLPAR,NDUST)
+      REAL*8                :: OPTAER(LLPAR,NAER*NRH)
+
+      ! Local variables for cloud overlap (hyl, phs)
+      INTEGER               :: NUMB, KK, I
+      INTEGER               :: INDIC(LLPAR+1)
+      INTEGER               :: INDGEN(LLPAR+1) = (/ (i,i=1,LLPAR+1) /)
+      INTEGER               :: KBOT(LLPAR)
+      INTEGER               :: KTOP(LLPAR)
+      INTEGER               :: INDICATOR(LLPAR+2)
+      REAL*8                :: FMAX(LLPAR)  ! maximum cloud fraction 
+                                            !  in a block, size can be to 
+                                            !  FIX(LLPAR)+1
+      REAL*8                :: CLDF1D(LLPAR)
+      REAL*8                :: ODNEW(LLPAR)
+
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% NOTE: We will eventually want to use OVERLAP=2 (approx ran overlap)
+      !%%% as the default for GEOS-Chem simulations.  However, before we can
+      !%%% commit to this change, we will have to perform a 1yr benchmark 
+      !%%% simulation with this option turned on.  Until this happens, select 
+      !%%% the linear approximation (OVERLAP=1) for compatibility with prior
+      !%%% GEOS-Chem versions. (bmy, 9/18/07)
+      !INTEGER, PARAMETER :: OVERLAP = 2
+      INTEGER, PARAMETER :: OVERLAP = 1
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      LOGICAL, SAVE      :: FIRST = .true.
 
       !=================================================================
       ! FAST_J begins here!
@@ -84,7 +128,7 @@
       DAY_OF_YR = GET_DAY_OF_YEAR()
 
       ! Get current month
-      MONTH     = GET_MONTH()
+      MONTH = GET_MONTH()
 
       ! Get day of month
       DAY       = GET_DAY()
@@ -105,6 +149,8 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( NLON, NLAT, YLAT, CSZA, OPTAER  )
 !$OMP+PRIVATE( PRES, TEMP, OPTD, SFCA, OPTDUST )
+!$OMP+PRIVATE( FMAX, CLDF1D, KK, NUMB  )
+!$OMP+PRIVATE( KBOT, KTOP, ODNEW, INDICATOR, INDIC )
 !$OMP+SCHEDULE( DYNAMIC )
       DO NLAT = 1, JJPAR
 
@@ -150,15 +196,144 @@
             !OPTD    = 0d0
             !-----------------------------------------------------------
 
-            ! Call FAST-J routines to compute J-values
-            CALL PHOTOJ( NLON, NLAT, YLAT, DAY_OF_YR,  MONTH,   DAY,
-     &                   CSZA, PRES, TEMP, SFCA, OPTD, OPTDUST, OPTAER )
+            !===========================================================
+            ! CLOUD OVERLAP : LINEAR ASSUMPTION 
+            ! Directly use OPTDEPTH = TAUCLD * CLDTOT
+            ! 
+            ! NOTE: Use this option if you want to compare to results
+            !       from GEOS-Chem v7-04-12 and prior versions.
+            !===========================================================
+            IF ( OVERLAP == 1 ) then
 
+               ! Call FAST-J routines to compute J-values
+               CALL PHOTOJ( NLON,    NLAT, YLAT, DAY_OF_YR,  
+     &                      MONTH,   DAY,  CSZA, PRES, 
+     &                      TEMP,    SFCA, OPTD, OPTDUST, OPTAER )
+
+            !===========================================================
+            ! CLOUD OVERLAP : APPROXIMATE RANDOM OVERLAP
+            ! Use OPTDEPTH = TAUCLD * CLDTOT**1.5
+            !===========================================================
+            ELSE IF ( OVERLAP == 2 ) THEN
+
+               ! Column cloud fraction (not less than zero)
+               CLDF1D = CLDF(1:LLPAR,NLON,NLAT)
+               WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
+               
+               ! Adjust optical depth
+               OPTD = OPTD * SQRT( CLDF1D )
+
+               ! Call FAST-J routines to compute J-values
+               CALL PHOTOJ( NLON,  NLAT, YLAT, DAY_OF_YR,  
+     &                      MONTH, DAY,  CSZA, PRES, 
+     &                      TEMP,  SFCA, OPTD, OPTDUST, OPTAER )
+
+            !===========================================================
+            ! CLOUD OVERLAP : MAXIMUM RANDOM OVERLAP
+            !
+            ! The Maximum-Random Overlap (MRAN) scheme assumes that 
+            ! clouds in adjacent layers are maximally overlapped to 
+            ! form a cloud block and that blocks of clouds separated by 
+            ! clear layers are randomly overlapped.  A vertical profile 
+            ! of fractional cloudiness is converted into a series of 
+            ! column configurations with corresponding fractions 
+            ! (see Liu et al., JGR 2006; hyl,3/3/04). 
+            !
+            ! For more details about cloud overlap assumptions and 
+            ! their effect on photolysis frequencies and key oxidants 
+            ! in the troposphere, refer to the following articles:
+            ! 
+            ! (1) Liu, H., et al., Radiative effect of clouds on 
+            !      tropospheric chemistry in a global three-dimensional 
+            !      chemical transport model, J. Geophys. Res., vol.111, 
+            !      D20303, doi:10.1029/2005JD006403, 2006.
+            ! (2) Tie, X., et al., Effect of clouds on photolysis and 
+            !      oxidants in the troposphere, J. Geophys. Res., 
+            !      108(D20), 4642, doi:10.1029/2003JD003659, 2003.
+            ! (3) Feng, Y., et al., Effects of cloud overlap in 
+            !      photochemical models, J. Geophys. Res., 109, 
+            !      D04310, doi:10.1029/2003JD004040, 2004.
+            ! (4) Stubenrauch, C.J., et al., Implementation of subgrid 
+            !      cloud vertical structure inside a GCM and its effect 
+            !      on the radiation budget, J. Clim., 10, 273-287, 1997.
+            !-----------------------------------------------------------
+            ! MMRAN needs IN-CLOUD optical depth (ODNEW) as input 
+            ! Use cloud fraction, instead of OPTD, to form cloud blocks
+            ! (hyl,06/19/04)
+            !===========================================================
+            ELSE IF ( OVERLAP == 3 ) THEN
+
+               ! Initialize
+               FMAX(:)   = 0d0  ! max cloud fraction in each cloud block
+               ODNEW(:)  = 0d0  ! in-cloud optical depth
+               CLDF1D    = CLDF(1:LLPAR,NLON,NLAT)
+               INDICATOR = 0
+
+               ! set small negative CLDF or OPTD to zero. 
+               ! Set indicator vector.
+               WHERE ( CLDF1D <= 0d0 ) 
+                  CLDF1D               = 0d0
+                  OPTD                 = 0D0
+               ELSEWHERE
+                  INDICATOR(2:LLPAR+1) = 1
+               ENDWHERE
+
+               ! Prevent negative opt depth
+               WHERE ( OPTD < 0D0 ) OPTD   = 0D0
+
+               !--------------------------------------------------------
+               ! Generate cloud blocks & get their Bottom and Top levels
+               !--------------------------------------------------------
+               INDICATOR = CSHIFT(INDICATOR, 1) - INDICATOR
+               INDIC     = INDICATOR(1:LLPAR+1)
+
+               ! Number of cloud block
+               NUMB      = COUNT( INDIC == 1 ) 
+               
+               ! Bottom layer of each block
+               KBOT(1:NUMB) = PACK(INDGEN, (INDIC == 1 ) ) 
+
+               ! Top layer of each block
+               KTOP(1:NUMB) = PACK(INDGEN, (INDIC == -1) ) - 1 
+             
+               !--------------------------------------------------------
+               ! For each cloud block, get Max Cloud Fractions, and 
+               ! in-cloud optical depth vertical distribution.
+               !--------------------------------------------------------
+               DO KK = 1, NUMB
+
+                  ! Max cloud fraction
+                  FMAX(KK) = MAXVAL( CLDF1D(KBOT(KK):KTOP(KK)) )
+
+                  ! ODNEW is adjusted in-cloud OD vertical distrib.
+                  ODNEW(KBOT(KK):KTOP(KK)) = OPTD(KBOT(KK):KTOP(KK)) / 
+     &                                       FMAX(KK)
+               ENDDO
+            
+               !--------------------------------------------------------
+               ! Apply Max RANdom if 1-6 clouds blocks, else use linear 
+               !--------------------------------------------------------
+               SELECT CASE( NUMB ) 
+           
+                  CASE( 0,7: )
+                     CALL PHOTOJ( NLON,  NLAT, YLAT, DAY_OF_YR, 
+     &                            MONTH, DAY,  CSZA, PRES,  
+     &                            TEMP,  SFCA, OPTD, OPTDUST, OPTAER )
+
+                  CASE( 1:6 ) 
+                     CALL MMRAN_16( NUMB,   NLON,  NLAT,      YLAT,   
+     &                              DAY,    MONTH, DAY_OF_YR, CSZA,    
+     &                              PRES,   TEMP,  SFCA,      OPTDUST, 
+     &                              OPTAER, LLPAR, FMAX,      ODNEW,     
+     &                              KBOT,   KTOP )
+
+               END SELECT
+            ENDIF 
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
- 
-      ! Return to calling program
-      END SUBROUTINE FAST_J
 
- 
+      !-----------------------------------------------------------
+      ! END OF SUBROUTINE FAST-J
+      !-----------------------------------------------------------
+      END SUBROUTINE FAST_J

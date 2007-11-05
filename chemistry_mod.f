@@ -1,4 +1,4 @@
-! $Id: chemistry_mod.f,v 1.27 2006/09/08 19:20:52 bmy Exp $
+! $Id: chemistry_mod.f,v 1.28 2007/11/05 16:16:14 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
@@ -68,7 +68,7 @@
 !******************************************************************************
 !  Subroutine DO_CHEMISTRY is the driver routine which calls the appropriate
 !  chemistry subroutine for the various GEOS-CHEM simulations. 
-!  (bmy, 2/11/03, 8/4/06)
+!  (bmy, 2/11/03, 9/18/07)
 !
 !  NOTES:
 !  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this
@@ -104,6 +104,7 @@
 !  (13) Now call MAKE_RH from "main.f" (bmy, 3/16/06)
 !  (14) Removed ISOP_PRIOR as a local variable (dkh, bmy, 6/1/06)
 !  (15) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (16) Now use DRYFLXH2HD and CHEM_H2_HD for H2/HD sim (lyj, phs, 9/18/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -115,10 +116,11 @@
       USE CH3I_MOD,        ONLY : CHEMCH3I
       USE DAO_MOD,         ONLY : CLDF,    DELP
       USE DAO_MOD,         ONLY : OPTDEP,  OPTD,   T
-      USE DRYDEP_MOD,      ONLY : DRYFLX, DRYFLXRnPbBe
+      USE DRYDEP_MOD,      ONLY : DRYFLX, DRYFLXRnPbBe, DRYFLXH2HD
       USE DUST_MOD,        ONLY : CHEMDUST, RDUST_ONLINE
       USE ERROR_MOD,       ONLY : DEBUG_MSG
       USE GLOBAL_CH4_MOD,  ONLY : CHEMCH4
+      USE H2_HD_MOD,       ONLY : CHEM_H2_HD
       USE HCN_CH3CN_MOD,   ONLY : CHEM_HCN_CH3CN
       USE ISOROPIA_MOD,    ONLY : DO_ISOROPIA
       USE Kr85_MOD,        ONLY : CHEMKr85
@@ -138,6 +140,7 @@
       USE TRACER_MOD,      ONLY : ITS_A_CH3I_SIM
       USE TRACER_MOD,      ONLY : ITS_A_CH4_SIM
       USE TRACER_MOD,      ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_H2HD_SIM
       USE TRACER_MOD,      ONLY : ITS_A_HCN_SIM
       USE TRACER_MOD,      ONLY : ITS_A_MERCURY_SIM
       USE TRACER_MOD,      ONLY : ITS_A_RnPbBe_SIM
@@ -345,7 +348,14 @@
 
             ! Do Hg chemistry
             CALL CHEMMERCURY
-               
+              
+         !---------------------------------
+         ! Offline H2/HD
+         !---------------------------------
+         ELSE IF ( ITS_A_H2HD_SIM() ) THEN
+            CALL CHEM_H2_HD
+            CALL DRYFLXH2HD
+ 
 !-----------------------------------------------------------------------------
 ! Prior to 7/19/04:
 ! Fully install Kr85 run later (bmy, 7/19/04)

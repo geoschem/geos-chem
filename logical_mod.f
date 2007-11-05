@@ -1,9 +1,9 @@
-! $Id: logical_mod.f,v 1.15 2007/02/06 17:40:07 bmy Exp $
+! $Id: logical_mod.f,v 1.16 2007/11/05 16:16:21 bmy Exp $
       MODULE LOGICAL_MOD
 !
 !******************************************************************************
 !  Module LOGICAL_MOD contains all of the logical switches used by GEOS-CHEM.
-!  (bmy, 7/9/04, 1/31/07)
+!  (bmy, 7/9/04, 9/24/07)
 !
 !  Module Variables:
 !  ============================================================================
@@ -65,6 +65,7 @@
 !  (56) LVARTROP  (LOGICAL) : ON/OFF switch for Variable Tropopause
 !  (57) LOTDREG   (LOGICAL) : ON/OFF switch for OTD-LIS regional redistribution
 !  (57) LOTDLOC   (LOGICAL) : ON/OFF switch for OTD-LIS local    redistribution
+!  (58) LOTDSCALE (LOGICAL) : ON/OFF switch for scaling to OTD-LIS climatology
 !
 !  NOTES:
 !  (1 ) Added LNEI99 switch to toggle EPA/NEI emissions (bmy, 11/5/04)
@@ -82,6 +83,7 @@
 !  (12) Added LVARTROP for variable tropopause (phs, 8/21/06)
 !  (13) Added LOTDREG, LOTDLOC for regional or local OTD-LIS redistribution
 !        of lightning flashes. (bmy, 1/31/07)
+!  (14) Added LOTDSCALE (ltm, bmy, 9/24/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -138,6 +140,7 @@
       LOGICAL :: LLIGHTNOX
       LOGICAL :: LOTDREG
       LOGICAL :: LOTDLOC
+      LOGICAL :: LOTDSCALE  ! (ltm, 9/24/07)
       LOGICAL :: LCTH
       LOGICAL :: LMFLUX
       LOGICAL :: LPRECON

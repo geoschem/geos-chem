@@ -1,9 +1,9 @@
-! $Id: diag_mod.f,v 1.19 2007/03/29 20:31:14 bmy Exp $
+! $Id: diag_mod.f,v 1.20 2007/11/05 16:16:16 bmy Exp $
       MODULE DIAG_MOD 
 !
 !******************************************************************************
 !  Module DIAG_MOD contains declarations for allocatable arrays for use with 
-!  GEOS-CHEM diagnostics. (amf, bdf, bmy, 11/30/99, 8/18/05)
+!  GEOS-CHEM diagnostics. (amf, bdf, bmy, 11/30/99, 9/18/07)
 !
 !  Module Routines:
 !  ============================================================================
@@ -54,6 +54,7 @@
 !  (25) Added AD54 array for time spend in the troposphere (phs, 9/22/06)
 !  (26) Added CTO3 counter. Convert ND43 counter arrays from 2D to 3D, for
 !        the variable tropopause. (phs, 1/19/07)
+!  (27) Added AD10 and AD10em arrays for ND10 H2-HD-sim diag (phs, 9/18/07)
 !******************************************************************************
 !     
       !=================================================================
@@ -89,6 +90,10 @@
       ! For ND09 -- HCN / CH3CN simulation
       REAL*4,  ALLOCATABLE :: AD09(:,:,:,:)
       REAL*4,  ALLOCATABLE :: AD09_em(:,:,:)
+
+      ! For ND10 -- H2/HD prod, loss, & emiss diagnostics
+      REAL*4,  ALLOCATABLE :: AD10(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD10em(:,:,:)
 
       ! For ND12 -- boundary layer multiplication factor
       REAL*4,  ALLOCATABLE :: AD11(:,:,:)
@@ -254,7 +259,7 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_DIAG deallocates all module arrays.
-!  (bmy, 12/13/02, 1/19/07)
+!  (bmy, 12/13/02, 9/18/07)
 !
 !  NOTES:
 !  (1 ) Now also deallocate AD13_NH3_an, AD13_NH3_bb, AD13_NH3_bf arrays
@@ -273,7 +278,7 @@
 !  (11) Removed AD41 and AFTTOT arrays; they're obsolete (bmy, 2/17/05)
 !  (12) Now also deallocate AD09 and AD09_em (bmy, 6/27/05)
 !  (13) Now deallocate AD30 (bmy, 8/18/05)
-!  (14) Now deallocate CTO3 array (phs, 1/19/07)
+!  (14) Now deallocate CTO3, AD10, AD10em arrays (phs, 9/18/07)
 !******************************************************************************
 !
       !=================================================================
@@ -289,6 +294,8 @@
       IF ( ALLOCATED( AD08        ) ) DEALLOCATE( AD08        )
       IF ( ALLOCATED( AD09        ) ) DEALLOCATE( AD09        )
       IF ( ALLOCATED( AD09_em     ) ) DEALLOCATE( AD09_em     )
+      IF ( ALLOCATED( AD10        ) ) DEALLOCATE( AD10        )
+      IF ( ALLOCATED( AD10em      ) ) DEALLOCATE( AD10em      )
       IF ( ALLOCATED( AD11        ) ) DEALLOCATE( AD11        )
       IF ( ALLOCATED( AD12        ) ) DEALLOCATE( AD12        )
       IF ( ALLOCATED( AD13_DMS    ) ) DEALLOCATE( AD13_DMS    )

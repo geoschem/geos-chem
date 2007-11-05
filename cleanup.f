@@ -1,9 +1,9 @@
-! $Id: cleanup.f,v 1.17 2006/07/14 18:36:45 bmy Exp $
+! $Id: cleanup.f,v 1.18 2007/11/05 16:16:14 bmy Exp $
       SUBROUTINE CLEANUP
 !
 !******************************************************************************
 !  Subroutine CLEANUP deallocates the memory assigned to dynamic allocatable 
-!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 7/6/06)
+!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 10/2/07)
 !
 !  NOTES:
 !  (1 ) CLEANUP is written in Fixed-Format F90.
@@ -73,6 +73,9 @@
 !        (ltm, bmy, 5/5/06)
 !  (36) Now references CLEANUP_BRAVO from "bravo_mod.f" and CLEANUP_EDGAR
 !        from "edgar_mod.f" (bmy, 7/6/06)
+!  (37) Now calls CLEANUP_H2_HD from "h2_hd_mod.f" and CLEANUP_GLOBAL_O1D
+!        from "global_o1d_mod.f".  Remove call to CLEANUP_LIGHTNING_NOx_NL 
+!        from "lightning_nox_nl_mod.f (hup, phs, bmy, 10/2/07)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -108,11 +111,16 @@
       USE GLOBAL_HNO3_MOD,      ONLY : CLEANUP_GLOBAL_HNO3
       USE GLOBAL_NO3_MOD,       ONLY : CLEANUP_GLOBAL_NO3
       USE GLOBAL_NOX_MOD,       ONLY : CLEANUP_GLOBAL_NOX
+      USE GLOBAL_O1D_MOD,       ONLY : CLEANUP_GLOBAL_O1D
       USE GLOBAL_OH_MOD,        ONLY : CLEANUP_GLOBAL_OH
+      USE H2_HD_MOD,            ONLY : CLEANUP_H2_HD
       USE HCN_CH3CN_MOD,        ONLY : CLEANUP_HCN_CH3CN
       USE LAI_MOD,              ONLY : CLEANUP_LAI
       USE LIGHTNING_NOX_MOD,    ONLY : CLEANUP_LIGHTNING_NOX
-      USE LIGHTNING_NOX_NL_MOD, ONLY : CLEANUP_LIGHTNING_NOX_NL
+      !-------------------------------------------------------------------
+      ! Prior to 10/2/07:
+      !USE LIGHTNING_NOX_NL_MOD, ONLY : CLEANUP_LIGHTNING_NOX_NL
+      !-------------------------------------------------------------------
       USE MEGAN_MOD,            ONLY : CLEANUP_MEGAN
       USE MERCURY_MOD,          ONLY : CLEANUP_MERCURY
       USE OCEAN_MERCURY_MOD,    ONLY : CLEANUP_OCEAN_MERCURY
@@ -175,11 +183,16 @@
       CALL CLEANUP_GLOBAL_NO3
       CALL CLEANUP_GLOBAL_NOX
       CALL CLEANUP_GLOBAL_NO3
+      CALL CLEANUP_GLOBAL_O1D
       CALL CLEANUP_GLOBAL_OH
+      CALL CLEANUP_H2_HD
       CALL CLEANUP_HCN_CH3CN
       CALL CLEANUP_LAI
       CALL CLEANUP_LIGHTNING_NOX
-      CALL CLEANUP_LIGHTNING_NOX_NL
+      !------------------------------------------
+      ! Prior to 10/2/07:
+      !CALL CLEANUP_LIGHTNING_NOX_NL
+      !------------------------------------------
       CALL CLEANUP_MEGAN
       CALL CLEANUP_MERCURY
       CALL CLEANUP_OCEAN_MERCURY

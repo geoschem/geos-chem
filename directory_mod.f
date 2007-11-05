@@ -1,9 +1,9 @@
-! $Id: directory_mod.f,v 1.3 2005/10/27 13:59:55 bmy Exp $
+! $Id: directory_mod.f,v 1.4 2007/11/05 16:16:16 bmy Exp $
       MODULE DIRECTORY_MOD
 !
 !******************************************************************************
 !  Module DIRECTORY_MOD contains the directory path variables used by 
-!  GEOS-CHEM. (bmy, 7/20/04, 5/25/05)
+!  GEOS-CHEM. (bmy, 7/20/04, 10/24/05)
 !     
 !  Module Variables:
 !  ============================================================================

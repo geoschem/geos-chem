@@ -1,10 +1,10 @@
-! $Id: tracerid_mod.f,v 1.19 2006/08/14 17:58:19 bmy Exp $
+! $Id: tracerid_mod.f,v 1.20 2007/11/05 16:16:26 bmy Exp $
       MODULE TRACERID_MOD
 !
 !******************************************************************************
 !  Module TRACERID_MOD contains variables which point to SMVGEAR species,
 !  CTM Tracers, Biomass species, and biofuel species located within various
-!  GEOS-CHEM arrays. (bmy, 11/12/02, 7/25/06)
+!  GEOS-CHEM arrays. (bmy, 11/12/02, 9/18/07)
 !
 !  Module Variables:
 !  ============================================================================
@@ -169,6 +169,7 @@
 !  (13) Remove IDBxxxx biomass flags; these aren't needed. (bmy, 4/5/06)
 !  (14) Add IDTSOG4 and IDTSOA4 (dkh, bmy, 5/18/06)
 !  (15) Minor fixes for CH3I simulation (bmy, 7/25/06)
+!  (16) Add IDTH2 and IDTHD for H2/HD simulation (hup, lyj, phs, 9/18/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -208,6 +209,9 @@
       INTEGER            :: IDTAHS,  IDTLET,   IDTNH4aq,IDTSO4aq,IDTSO4s
       INTEGER            :: IDTNITs
 
+      ! For H2/HD simulation
+      INTEGER            :: IDTH2, IDTHD ! (hup, phs, 9/18/07)
+
       ! For tagged Hg simulation
       INTEGER              :: N_Hg_CATS
       INTEGER, ALLOCATABLE :: ID_Hg0(:),  ID_Hg2(:), ID_HgP(:)
@@ -234,7 +238,7 @@
 !******************************************************************************
 !  Subroutine TRACERID reads the "tracer.dat" file and determines which
 !  tracers, emission species, biomass burning species, and biofuel burning
-!  species are turned on/off. (bmy, 3/16/01, 4/5/06)
+!  species are turned on/off. (bmy, 3/16/01, 9/18/07)
 !
 !  NOTES:
 !  (1 ) Original code from Loretta's version of the GISS-II model.  Now we
@@ -260,6 +264,7 @@
 !  (12) Now remove IDBxxx biomass flags (bmy, 4/5/06)
 !  (13) Now look for IDTSOG4 and IDTSOA4 (bmy, 5/18/06)
 !  (14) Minor fixes for CH3I simulation (bmy, 7/25/06)
+!  (15) Now define IDTH2, IDTHD (hup, lyj, phs, 9/18/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -267,6 +272,7 @@
       USE LOGICAL_MOD, ONLY : LSPLIT
       USE TRACER_MOD,  ONLY : ITS_A_C2H6_SIM,  ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,  ONLY : ITS_A_TAGCO_SIM, ITS_A_MERCURY_SIM
+      USE TRACER_MOD,  ONLY : ITS_A_H2HD_SIM
       USE TRACER_MOD,  ONLY : N_TRACERS,       TRACER_NAME
 
 #     include "CMN_SIZE"    ! Size parameters
@@ -332,6 +338,32 @@
                   IDTISOP   = 1
                   EXIT
                ENDIF
+
+            !-----------------------------------
+            ! FEW ASSUMPTIONS FOR H2HD SIM:
+            ! IDTH2=1, IDTHD=2, IDTCO=N('H2')
+            ! H2/HD simulation requires CO...
+            ! (hup, lyj, phs, 9/18/07)
+            !-----------------------------------
+            CASE ( 'H2' )
+               COUNT    = COUNT + 1
+               IDTCO    = N
+               IDBFCO   = COUNT
+
+               ! Special case: Tagged H2 (hup 4/28/2004)
+               ! Set some emissions flags then exit
+               IF ( ITS_A_H2HD_SIM() ) THEN
+                  NEMANTHRO = 1
+                  IDECO     = 2
+                  IDTISOP   = 1
+		  IDTH2     = 1 ! (hup 7/14/2004)
+
+               ENDIF
+
+            ! ... and HD
+            CASE ( 'HD' )
+               COUNT    = COUNT + 1
+               IDTHD    = N
 
             CASE ( 'ALK4' )
                COUNT    = COUNT + 1
@@ -1185,7 +1217,7 @@
       SUBROUTINE INIT_TRACERID
 !
 !******************************************************************************
-!  Subroutine INIT_TRACERID zeroes module variables. (bmy, 11/12/02, 12/15/05
+!  Subroutine INIT_TRACERID zeroes module variables. (bmy, 11/12/02, 9/18/07)
 !
 !  NOTES:
 !  (1 ) Now also zero IDDMS, IDSO2, IDSO4, IDMSA (rjp, bmy, 3/23/03)
@@ -1196,6 +1228,7 @@
 !  (6 ) Now zero IDTAS, IDTAHS, IDTLET, IDTNH4aq, IDTSO4aq (cas, bmy, 12/20/04)
 !  (7 ) Now allocate ID_Hg0, ID_Hg2, ID_HgP (bmy, 12/16/05)
 !  (8 ) Now zero IDTSOG4, IDTSOA4 (dkh, bmy, 5/18/06)
+!  (9 ) Now zero IDTH2, IDTHD (hup, lyj, phs, 9/18/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1255,6 +1288,8 @@
       IDTOX     = 0  
       IDTPAN    = 0
       IDTCO     = 0
+      IDTH2     = 0 ! (hup, 7/14/2004)
+      IDTHD     = 0 ! (jaegle, 11/07/2005)
       IDTALK4   = 0
       IDTISOP   = 0
       IDTHNO3   = 0

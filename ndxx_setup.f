@@ -1,9 +1,9 @@
-! $Id: ndxx_setup.f,v 1.29 2007/03/29 20:31:21 bmy Exp $
+! $Id: ndxx_setup.f,v 1.30 2007/11/05 16:16:23 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
 !  NDXX_SETUP dynamically allocates memory for certain diagnostic arrays that 
-!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 3/6/07)
+!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 9/18/07)
 !
 !  This allows us to reduce the amount of memory that needs to be declared 
 !  globally.  We only allocate memory for arrays if the corresponding 
@@ -123,7 +123,8 @@
 !  (60) Added the ND54 for time spend in the troposphere (phs, 10/17/06)
 !  (61) Now allocate ND43 and ND45 counter arrays as 3-D (phs, 1/19/07)
 !  (62) For ND20 diagnostic, reset ND65 diagnostic with LLTROP_FIX instead of 
-!        LLTROP (phs, bmy, 3/6/07)
+!        LLTROP.  Added ND10 diagnostic setup.  Added modifications for H2-HD 
+!        simulation. (phs, bmy, 9/18/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -159,6 +160,7 @@
       USE DIAG_MOD,        ONLY : AD54
       USE DIAG_MOD,        ONLY : AD55,        AD66,        AD67
       USE DIAG_MOD,        ONLY : AD68,        AD69,        CTO3
+      USE DIAG_MOD,        ONLY : AD10,        AD10em
       USE DIAG_OH_MOD,     ONLY : INIT_DIAG_OH
       USE DRYDEP_MOD,      ONLY : NUMDEP
       USE ERROR_MOD,       ONLY : ALLOC_ERR,   ERROR_STOP
@@ -168,6 +170,7 @@
       USE TRACER_MOD,      ONLY : ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,      ONLY : ITS_A_MERCURY_SIM
       USE TRACER_MOD,      ONLY : ITS_A_TAGOX_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_H2HD_SIM
       USE TRACER_MOD,      ONLY : N_TRACERS
       USE TRACERID_MOD,    ONLY : NEMANTHRO
       USE WETSCAV_MOD,     ONLY : GET_WETDEP_NMAX
@@ -178,7 +181,7 @@
 #     include "CMN_DIAG"   ! Diagnostic switches & arrays
 
       ! Local variables
-      INTEGER :: NMAX, AS
+      INTEGER :: NMAX, AS, NEMISS
 
       !=================================================================
       ! NDXX_SETUP begins here! 
@@ -189,6 +192,7 @@
       LD02 = 1
       LD05 = 1
       LD09 = 1
+      LD10 = 1
       LD07 = 1
       LD12 = 1
       LD13 = 1
@@ -295,8 +299,24 @@
       ENDIF
 
       !=================================================================
-      ! ND10: Free diagnostic
-      !
+      ! ND10: H2/HD prod, loss, sources
+      !=================================================================
+      IF ( ND10 > 0 ) THEN
+
+         ! number of emissions tracers
+         NEMISS = 5
+
+         ! Accumulating diagnostic array
+         ALLOCATE( AD10( IIPAR, JJPAR, LD10, (PD10-NEMISS) ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD10' )
+
+         ! Accumulating diagnostic array
+         ALLOCATE( AD10em( IIPAR, JJPAR, NEMISS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD10em' )
+
+      ENDIF
+
+      !=================================================================
       ! ND11: Acetone source diagnostics [atoms C/cm2/s]
       !       --> uses AD11 array (allocatable)
       !=================================================================

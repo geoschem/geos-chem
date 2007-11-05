@@ -1,10 +1,10 @@
-! $Id: dao_mod.f,v 1.24 2006/12/11 19:37:48 bmy Exp $
+! $Id: dao_mod.f,v 1.25 2007/11/05 16:16:14 bmy Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
 !  Module DAO_MOD contains both arrays that hold DAO met fields, as well as
 !  subroutines that compute, interpolate, or otherwise process DAO met field 
-!  data. (bmy, 6/27/00, 9/14/06)
+!  data. (bmy, 6/27/00, 9/18/07)
 !
 !  Module Variables:
 !  ============================================================================
@@ -168,7 +168,8 @@
 !  (24) Now also add TSKIN for GEOS-3 (tmf, bmy, 10/20/05)
 !  (25) Modifications for near-land formulation (ltm, bmy, 5/16/06)
 !  (26) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (26) Modified for variable tropopause (phs, bdf, 9/14/06)
+!  (27) Modified for variable tropopause (phs, bdf, 9/14/06)
+!  (28) Now cap var trop at 200hPa near poles in INTERP (phs, 9/18/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -503,7 +504,7 @@
 !******************************************************************************
 !  Subroutine INTERP linearly interpolates GEOS-CHEM I-6 fields (winds, 
 !  surface pressure, temperature, surface albedo, specific humidity) to the 
-!  current dynamic timestep. (bdf, bmy, 1/30/98, 9/14/06)
+!  current dynamic timestep. (bdf, bmy, 1/30/98, 9/18/07)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -542,11 +543,14 @@
 !        NTIME0.  Updated comments. (bmy, 6/19/03)
 !  (13) Now modified for GEOS-5 and GCAP met fields. (swu, bmy, 5/25/05)
 !  (14) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (15) Now interpolate TROPP, only if variable tropopause is used 
-!        (phs, 9/12/06)
+!  (15) Now interpolate TROPP, only if variable tropopause is used.  Also
+!        now reference "grid_mod.f". (phs, 9/18/07)
+!  (16) Now limit tropopause pressure to 200 mbar at latitudes above 60deg
+!        (phs, 9/18/07)
 !******************************************************************************
 !
       ! References to F90 modules
+      USE GRID_MOD,    ONLY : GET_YEDGE
       USE LOGICAL_MOD, ONLY : LVARTROP
      
 #     include "CMN_SIZE"    ! Size parameters
@@ -555,8 +559,10 @@
       INTEGER, INTENT(IN)  :: NTIME0, NTIME1, NTDT  
 
       ! Local variables
-      INTEGER              :: I,  J,  L
-      REAL*8               :: D_NTIME0, D_NTIME1, D_NDT, D_NTDT, TM, TC2
+      INTEGER              :: I,        J,        L
+      REAL*8               :: D_NTIME0, D_NTIME1, D_NDT 
+      REAL*8               :: D_NTDT,   TM,       TC2
+      REAL*8               :: YSOUTH,   YNORTH
 
       !=================================================================
       ! INTERP begins here!                                      
@@ -618,22 +624,44 @@
 
       !=================================================================
       ! For GEOS-4, GEOS-5, GCAP met fields:
-      ! Interpolate PSC2 only (pressure at end of dyn timestep)
-      ! and TROPP (10/11/06 phs)
+      !
+      ! (1) Interpolate PSC2 (pressure at end of dyn timestep)
+      ! (2) Interpolate TROPP (for GEOS-4, GCAP only)
+      ! (3) Cap TROPP at 200 hPa in polar regions
       !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, YSOUTH, YNORTH )
       DO J = 1, JJPAR
-      DO I = 1, IIPAR
 
-         PSC2(I,J)  = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
+         ! North & south edges of box
+         YSOUTH = GET_YEDGE( J   )
+         YNORTH = GET_YEDGE( J+1 )
 
-         ! Tropopause pressure at midpt
-         IF ( LVARTROP ) THEN
-            TROPP(I,J) = TROPP1(I,J) 
-     &                 + ( TROPP2(I,J) - TROPP1(I,J) ) * TM
-         ENDIF
+         DO I = 1, IIPAR
 
+            ! Surface pressure [hPa] at end of dynamic timestep
+            PSC2(I,J)  = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
+
+            ! If we are using the variable tropopause
+            IF ( LVARTROP ) THEN
+
+               ! Tropopause pressure at midpt
+               TROPP(I,J) = TROPP1(I,J) 
+     &                    + ( TROPP2(I,J) - TROPP1(I,J) ) * TM
+
+               ! However, we still need to make sure to cap TROPP in the 
+               ! polar regions (if the entire box is outside 60S-60N)
+               ! so that we don't do chemistry at an abnormally high
+               ! altitude.  Set TROPP in the polar regions to 200 hPa.
+               ! (jal, phs, bmy, 9/18/07)
+               IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
+                  TROPP(I,J) = MAX( TROPP(I,J), 200d0 )
+               ENDIF
+            ENDIF
+         ENDDO
       ENDDO
-      ENDDO
+!$OMP END PARALLEL DO
 
 #endif
 

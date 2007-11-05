@@ -1,10 +1,10 @@
-! $Id: biomass_mod.f,v 1.14 2006/11/07 19:01:54 bmy Exp $
+! $Id: biomass_mod.f,v 1.15 2007/11/05 16:16:13 bmy Exp $
       MODULE BIOMASS_MOD
 !
 !******************************************************************************
 !  Module BIOMASS_MOD is a "wrapper" module, which allows us to select either
 !  GFED2 biomass burning emissions, or the default GEOS-Chem biomass burning
-!  emissions (based on Bryan Duncan et al).  (psk, bmy, 4/5/06, 9/28/06)
+!  emissions (based on Bryan Duncan et al).  (psk, bmy, 4/5/06, 9/18/07)
 !
 !  GEOS-Chem has the following biomass burning gas-phase species:
 !
@@ -72,6 +72,7 @@
 !        et al 2001) are contained in the BIOMASS array.  Also removed the
 !        BIOMASS_SAVE array because we no longer need to convert the data
 !        to [molec/cm3/s] on each timestep (bmy, 9/28/06)
+!  (2 ) Modification for H2/HD simulation (phs, 9/18/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -134,7 +135,7 @@
 !******************************************************************************
 !  Subroutine COMPUTE_BIOMASS_EMISSIONS is a wrapper which allows us to select
 !  either the GFED2 biomass burning emissions, or the regular GEOS-Chem
-!  biomass burning emissions (Duncan et al 2001). (psk, bmy, 4/5/06, 9/28/06)
+!  biomass burning emissions (Duncan et al 2001). (psk, bmy, 4/5/06, 9/18/07)
 !
 !  This routine is called on each timestep.  At the start of a new month,
 !  new biomass burning emissions are read from disk.  The ND28, ND29, ND32
@@ -148,6 +149,8 @@
 !  NOTES:
 !  (1 ) Now store all biomass species in BIOMASS, from GFED2 or Duncan et al 
 !        2001.  Also remove obsolete BIOMASS_SAVE array. (bmy, 9/28/06)
+!  (2 ) Reference ITS_A_H2HD_SIM from "tracer_mod.f" to deal with ND29
+!        (phs, 9/18/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -161,6 +164,7 @@
       USE LOGICAL_MOD,       ONLY : LBIOMASS, LGFED2BB
       USE TIME_MOD,          ONLY : ITS_A_NEW_MONTH
       USE TRACER_MOD,        ONLY : ITS_A_CO2_SIM
+      USE TRACER_MOD,        ONLY : ITS_A_H2HD_SIM
       USE TRACERID_MOD,      ONLY : IDTBCPO, IDTNH3, IDTOCPO, IDTSO2
 
 #     include "CMN_SIZE"          ! Size parameters
@@ -278,7 +282,16 @@
             
             ! ND29: CO biomass emissions [molec/cm2/s]
             IF ( DO_ND29 .and. N == IDBCO ) THEN 
-               AD29(I,J,2)  = AD29(I,J,2)  + BIOMASS(I,J,IDBCO)
+               !-------------------------------------------------------------
+               ! Prior to 9/18/07:
+               !AD29(I,J,2)  = AD29(I,J,2)  + BIOMASS(I,J,IDBCO)
+               !-------------------------------------------------------------
+               IF ( ITS_A_H2HD_SIM() .and. (.not. LGFED2BB ) ) THEN
+                  AD29(I,J,2) = AD29(I,J,2) + 
+     &                          BIOMASS(I,J,IDBCO) * 1.11d0
+               ELSE
+                  AD29(I,J,2) = AD29(I,J,2) + BIOMASS(I,J,IDBCO)
+               ENDIF
             ENDIF
             
             ! ND32: NOx biomass emissions in [molec/cm2/s]

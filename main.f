@@ -1,5 +1,14 @@
-! $Id: main.f,v 1.48 2007/02/22 18:26:28 bmy Exp $
+! $Id: main.f,v 1.49 2007/11/05 16:16:22 bmy Exp $
 ! $Log: main.f,v $
+! Revision 1.49  2007/11/05 16:16:22  bmy
+!
+! Added H2/HD simulation
+! Added code for cloud overlap in FAST-J (but use same option as before)
+! Added 200hPa polar fix for variable tropopause
+! Added updated lightning scheme (non-near-land)
+! Fixed mass flux diagnostics in GEOS-3 TPCORE
+! Removed GEMISNOX array in CMN_NOX to prevent common block errors
+!
 ! Revision 1.48  2007/02/22 18:26:28  bmy
 ! GEOS-Chem v7-04-11, includes the following modifications:
 ! - Fixed near-land lightning; now scale 2x25, 4x5 to 6 Tg N/yr (ltm,bmy)
@@ -162,12 +171,16 @@
       USE INPUT_MOD,         ONLY : READ_INPUT_FILE
       USE LAI_MOD,           ONLY : RDISOLAI
       USE LIGHTNING_NOX_MOD, ONLY : LIGHTNING
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%% NOTE: Temporary kludge: For GEOS-4 we want to use the new near-land
-      !%%% lightning formulation.  But for the time being, we must keep the 
-      !%%% existing lightning for other met field types. (ltm, bmy, 5/10/06)
-      USE LIGHTNING_NOX_NL_MOD, ONLY : LIGHTNING_NL
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!------------------------------------------------------------------------------
+! Prior to 9/24/07:
+! Remove reference to LIGHTNING_NL (ltm, bmy, 9/24/07)
+!      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!      !%%% NOTE: Temporary kludge: For GEOS-4 we want to use the new near-land
+!      !%%% lightning formulation.  But for the time being, we must keep the 
+!      !%%% existing lightning for other met field types. (ltm, bmy, 5/10/06)
+!      USE LIGHTNING_NOX_NL_MOD, ONLY : LIGHTNING_NL
+!      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!------------------------------------------------------------------------------
       USE LOGICAL_MOD,       ONLY : LEMIS,     LCHEM, LUNZIP,  LDUST
       USE LOGICAL_MOD,       ONLY : LLIGHTNOX, LPRT,  LSTDRUN, LSVGLB
       USE LOGICAL_MOD,       ONLY : LWAIT,     LTRAN, LUPBD,   LCONV
@@ -211,6 +224,7 @@
       USE TRACER_MOD,        ONLY : ITS_AN_AEROSOL_SIM
       USE TRACER_MOD,        ONLY : ITS_A_CH4_SIM
       USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,        ONLY : ITS_A_H2HD_SIM
       USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
       USE TRANSPORT_MOD,     ONLY : DO_TRANSPORT
       USE TROPOPAUSE_MOD,    ONLY : READ_TROPOPAUSE, CHECK_VAR_TROP
@@ -429,17 +443,21 @@
 
       ! Compute lightning NOx emissions [molec/box/6h]
       IF ( LLIGHTNOX ) THEN
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE: Temporary kludge: For GEOS-4 we want to use the new near-land 
-!%%% lightning formulation.  But for the time being, we must keep the existing
-!%%% lightning for other met field types. (ltm, bmy, 5/10/06)
-#if   defined( GEOS_4 )
-         CALL LIGHTNING_NL
-#else
-         CALL LIGHTNING( T, CLDTOPS )
-#endif
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+!------------------------------------------------------------------------------
+! Prior to 9/24/07:
+! Remove reference to LIGHTNING_NL (ltm, bmy, 9/24/07)
+!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!!%%% NOTE: Temporary kludge: For GEOS-4 we want to use the new near-land 
+!!%%% lightning formulation.  But for the time being, we must keep the existing
+!!%%% lightning for other met field types. (ltm, bmy, 5/10/06)
+!#if   defined( GEOS_4 )
+!         CALL LIGHTNING_NL
+!#else
+!         CALL LIGHTNING( T, CLDTOPS )
+!#endif
+!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!------------------------------------------------------------------------------
+         CALL LIGHTNING
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a LIGHTNING' )
       ENDIF
 
@@ -662,18 +680,23 @@
 
             ! Since CLDTOPS is an A-6 field, update the
             ! lightning NOx emissions [molec/box/6h]
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE: Temporary kludge: For GEOS-4 we want to use the new near-land 
-!%%% lightning formulation.  But for the time being, we must keep the 
-!%%% existing lightning for other met field types. (ltm, bmy, 5/10/06)
-            IF ( LLIGHTNOX ) THEN
-#if   defined( GEOS_4 )
-               CALL LIGHTNING_NL
-#else 
-               CALL LIGHTNING( T, CLDTOPS )
-#endif
-            ENDIF
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!------------------------------------------------------------------------------
+! Prior to 9/24/07:
+! Remove reference to LIGHTNING_NL (ltm, bmy, 9/24/07)
+!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!!%%% NOTE: Temporary kludge: For GEOS-4 we want to use the new near-land 
+!!%%% lightning formulation.  But for the time being, we must keep the 
+!!%%% existing lightning for other met field types. (ltm, bmy, 5/10/06)
+!            IF ( LLIGHTNOX ) THEN
+!#if   defined( GEOS_4 )
+!               CALL LIGHTNING_NL
+!#else 
+!               CALL LIGHTNING( T, CLDTOPS )
+!#endif
+!            ENDIF
+!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!------------------------------------------------------------------------------
+            IF ( LLIGHTNOX ) CALL LIGHTNING
          ENDIF
 
          !==============================================================
@@ -727,7 +750,13 @@
             ENDIF
                
             ! Also read soil-type info for fullchem simulation
-            IF ( ITS_A_FULLCHEM_SIM() ) CALL RDSOIL 
+            !-------------------------------------------------------------
+            ! Prior to 9/18/07:
+            !IF ( ITS_A_FULLCHEM_SIM() ) CALL RDSOIL 
+            !-------------------------------------------------------------
+            IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_H2HD_SIM() ) THEN
+               CALL RDSOIL 
+            ENDIF
 
             !### Debug
             IF ( LPRT ) CALL DEBUG_MSG ( '### MAIN: a DAILY DATA' )
@@ -893,7 +922,11 @@
             !========================================================
             !         ***** D R Y   D E P O S I T I O N *****
             !========================================================
-            IF ( LDRYD ) CALL DO_DRYDEP
+            !--------------------------------------------------------
+            ! Prior to 9/18/07:
+            !IF ( LDRYD ) CALL DO_DRYDEP
+            !--------------------------------------------------------
+            IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM() ) ) CALL DO_DRYDEP
 
             !========================================================
             !             ***** E M I S S I O N S *****
@@ -1168,60 +1201,6 @@
       ! Return to MAIN program
       END SUBROUTINE DISPLAY_GRID_AND_MODEL
 
-!-----------------------------------------------------------------------------
-! Prior to 2/2/07:
-! Move this to "time_mod.f" (bmy, 2/2/07)
-!
-!      FUNCTION ITS_TIME_FOR_BPCH() RESULT( DO_BPCH )
-!
-!      !=================================================================
-!      ! Internal function ITS_TIME_FOR_BPCH returns TRUE if it is time
-!      ! to write to the binary punch file and FALSE otherwise.
-!      !=================================================================
-!
-!      ! Local variables
-!      INTEGER :: TODAY, THIS_NJDAY, NHMS, NDIAGTIME
-!      
-!      ! Function value
-!      LOGICAL :: DO_BPCH
-!
-!      !=================================================================
-!      ! ITS_TIME_FOR_BPCH begins here!
-!      !================================================================= 
-!      
-!      ! Return FALSE if it's the first timestep
-!      IF ( GET_TAU() == GET_TAUb() ) THEN
-!         DO_BPCH = .FALSE.
-!         RETURN
-!      ENDIF
-!
-!      ! Current day of year
-!      TODAY     = GET_DAY_OF_YEAR()
-!
-!      ! Current time of day
-!      NHMS      = GET_NHMS()
-!
-!      ! Time of day to write bpch files to disk
-!      NDIAGTIME = GET_NDIAGTIME()
-!
-!      ! Look up appropriate value of NJDAY array.  We may need to add a
-!      ! day to skip past the Feb 29 element of NJDAY for non-leap-years.
-!      IF ( .not. ITS_A_LEAPYEAR( FORCE=.TRUE. ) .and. TODAY > 59 ) THEN
-!         THIS_NJDAY = NJDAY( TODAY + 1 ) 
-!      ELSE
-!         THIS_NJDAY = NJDAY( TODAY )
-!      ENDIF
-!
-!      ! Test if this is the day & time to write to the BPCH file!
-!      IF ( ( THIS_NJDAY > 0 ) .and. NHMS == NDIAGTIME ) THEN
-!         DO_BPCH = .TRUE.
-!      ELSE
-!         DO_BPCH = .FALSE.
-!      ENDIF
-!
-!      ! Return to calling program
-!      END FUNCTION ITS_TIME_FOR_BPCH
-!
 !-----------------------------------------------------------------------------
 
       SUBROUTINE CTM_FLUSH
