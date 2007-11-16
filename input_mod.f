@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.41 2007/11/05 20:44:07 bmy Exp $
+! $Id: input_mod.f,v 1.42 2007/11/16 18:47:41 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -119,6 +119,7 @@
 !        Troposphere is wanted (phs, bmy, 10/17/06)
 !  (17) Now modified for OTD-LIS local redistribution.  Remove references
 !        to GEOS-1 and GEOS-STRAT run dirs. (bmy, 11/5/07)
+!  (18) Do not reset LMFLUX, LPRECON for GEOS-5 (ltm, bmy, 5/11/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -499,7 +500,8 @@
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Now references DATA_DIR_1x1 for 1x1 emissions files (bmy, 10/24/05)
 !  (5 ) Now read switch for using variable tropopause or not (phs, 9/14/06)
-!  (6 ) Remove references to GEOS-1 and GEOS-STRAT run dirs. (bmy, 11/5/07) 
+!  (6 ) Remove references to GEOS-1 and GEOS-STRAT run dirs.  Now calls 
+!        INIT_TRANSFER (bmy, 11/5/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -519,6 +521,7 @@
       USE TIME_MOD,      ONLY : SET_BEGIN_TIME,   SET_END_TIME 
       USE TIME_MOD,      ONLY : SET_CURRENT_TIME, SET_DIAGb
       USE TIME_MOD,      ONLY : SET_NDIAGTIME,    GET_TAU
+      USE TRANSFER_MOD,  ONLY : INIT_TRANSFER
 
       ! Local variables
       INTEGER            :: I0,    J0
@@ -692,6 +695,9 @@
 
       ! Compute lat/lon/surface area variables
       CALL COMPUTE_GRID
+
+      ! Initialze quantities for "transfer_mod.f"
+      CALL INIT_TRANSFER( I0, J0 )
 
       ! Set counter
       CT1 = CT1 + 1

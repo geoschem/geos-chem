@@ -1,29 +1,29 @@
-! $Id: define.h,v 1.53 2006/12/11 19:37:48 bmy Exp $
+ ! $Id: define.h,v 1.54 2007/11/16 18:47:36 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
 !  used to include or exclude certain sections of code.  
-!  (bmy, bdf, 1/30/98, 8/4/06)
+!  (bmy, bdf, 1/30/98, 2/7/07)
 !
 !  List of "Switches"
 !  ===========================================================================
-!  (1 ) GCAP       : Enables code for GCAP   met fields & chemistry
-!  (2 ) GEOS_3     : Enables code for GEOS-3 met fields & chemistry
-!  (3 ) GEOS_4     : Enables code for GEOS-4 met fields & chemistry
-!  (4 ) GEOS_5     : Enables code for GEOS-5 met fields & chemistry
-!  (5 ) GRID30LEV  : Enables code for 30-level GEOS-3 or GEOS-4 grid
-!  (6 ) GRID1x1    : Enables code for 1 x 1    GLOBAL        GRID
-!  (7 ) NESTED_CH  : Enables code for 1 x 1    CHINA  NESTED GRID
-!  (8 ) NESTED_NA  : Enables code for 1 x 1    N. AM. NESTED GRID
-!  (9 ) GRID1x125  : Enables code for 1 x 1.25 GLOBAL        GRID
-!  (10) GRID2x25   : Enables code for 2 x 2.5  GLOBAL        GRID
-!  (11) GRID4x5    : Enables code for 4 x 5    GLOBAL        GRID 
-!  (12) COMPAQ     : Enables code for Alpha w/ COMPAQ/HP Alpha compiler
-!  (13) IBM_AIX    : Enables code for IBM/AIX compiler
-!  (14) LINUX_PGI  : Enables code for Linux w/ PGI compiler
-!  (15) LINUX_IFORT: Enables code for Linux v8 or v9 "IFORT" compiler
-!  (16) SGI_MIPS   : Enables code for SGI Origin w/ MIPS compiler
-!  (17) SPARC      : Enables code for Sun w/ SPARC or Sun Studio compiler
+!  (1 ) GCAP        : Enables code for GCAP   met fields & chemistry
+!  (2 ) GEOS_3      : Enables code for GEOS-3 met fields & chemistry
+!  (3 ) GEOS_4      : Enables code for GEOS-4 met fields & chemistry
+!  (4 ) GEOS_5      : Enables code for GEOS-5 met fields & chemistry
+!  (5 ) GRIDREDUCED : Enables code for reduced stratosphere grids
+!  (6 ) GRID1x1     : Enables code for 1 x 1    GLOBAL        GRID
+!  (7 ) NESTED_CH   : Enables code for 1 x 1    CHINA  NESTED GRID
+!  (8 ) NESTED_NA   : Enables code for 1 x 1    N. AM. NESTED GRID
+!  (9 ) GRID1x125   : Enables code for 1 x 1.25 GLOBAL        GRID
+!  (10) GRID2x25    : Enables code for 2 x 2.5  GLOBAL        GRID
+!  (11) GRID4x5     : Enables code for 4 x 5    GLOBAL        GRID 
+!  (12) COMPAQ      : Enables code for Alpha w/ COMPAQ/HP Alpha compiler
+!  (13) IBM_AIX     : Enables code for IBM/AIX compiler
+!  (14) LINUX_PGI   : Enables code for Linux w/ PGI compiler
+!  (15) LINUX_IFORT : Enables code for Linux v8 or v9 "IFORT" compiler
+!  (16) SGI_MIPS    : Enables code for SGI Origin w/ MIPS compiler
+!  (17) SPARC       : Enables code for Sun w/ SPARC or Sun Studio compiler
 ! 
 !  NOTES:
 !  (1 ) "define.h" is #include'd at the top of CMN_SIZE.  All subroutines
@@ -66,6 +66,7 @@
 !  (21) Added LINUX_IFORT switch to delineate Intel compilers v8 or v9 
 !        from v7. (bmy, 10/18/05)
 !  (22) Removed GEOS_1, GEOS_STRAT, LINUX_IFC, LINUX_EFC (bmy, 8/4/06)
+!  (23) Renamed GRID30LEV to GRIDREDUCED (bmy, 2/7/07)
 !******************************************************************************
 !
 !==============================================================================
@@ -75,7 +76,11 @@
 #undef GEOS_3
 #undef GEOS_4
 #undef GEOS_5
-#undef GRID30LEV
+!------------------------
+! Prior to 
+!#undef GRID30LEV
+!------------------------
+#undef GRIDREDUCED
 #undef GRID4x5
 #undef GRID2x25  
 #undef GRID1x125
@@ -98,25 +103,30 @@
 !----- Model types -----
 !#define GCAP        'GCAP'
 !#define GEOS_3      'GEOS_3'
-#define GEOS_4      'GEOS_4'
-!#define GEOS_5      'GEOS_5'
+!#define GEOS_4      'GEOS_4'
+#define GEOS_5      'GEOS_5'
 
 !----- Grid sizes -----
 !#define GRID1x1     'GRID1x1'
 !#define NESTED_CH   'NESTED_CH'
 !#define NESTED_NA   'NESTED_NAd'
 !#define GRID1x125   'GRID1x125'
-!#define GRID2x25    'GRID2x25'
-#define GRID4x5     'GRID4x5'
-#define GRID30LEV   'GRID30LEV'
+#define GRID2x25    'GRID2x25'
+!#define GRID4x5     'GRID4x5'
+!------------------------------------------------------------------------------
+! Prior to 2/7/07:
+! Rename GRID30LEV to GRIDREDUCED, as GEOS-5 reduced grid is 47L (bmy, 2/2/07)
+!!#define GRID30LEV   'GRID30LEV'
+!------------------------------------------------------------------------------
+#define GRIDREDUCED  'GRIDREDUCED'
 
 !----- Compilers -----
 !#define COMPAQ      'COMPAQ'
 !#define IBM_AIX     'IBM_AIX'
 !#define LINUX_PGI   'LINUX_PGI'
-!#define LINUX_IFORT 'LINUX_IFORT'
+#define LINUX_IFORT 'LINUX_IFORT'
 !#define SGI_MIPS    'SGI_MIPS'
-#define SPARC       'SPARC'
+!#define SPARC       'SPARC'
 
 !==============================================================================
 ! Force a compile error if GEOS_1, GEOS_STRAT, GEOS_3, GEOS_4 are undefined 

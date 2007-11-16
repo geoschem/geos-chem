@@ -1,6 +1,6 @@
-! $Id: CMN_SIZE,v 1.25 2006/12/11 19:37:47 bmy Exp $
+! $Id: CMN_SIZE,v 1.26 2007/11/16 18:47:31 bmy Exp $
       !=======================================================================
-      ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 8/4/06)
+      ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 4/3/07)
       !
       ! NOTES:
       ! (1 ) Now set LLTROP = 20 for GEOS-3 (bmy, 4/12/01)
@@ -47,6 +47,8 @@
       ! (26) Set LLTROP to level of first box entirely above 20km for GEOS-3 
       !      and GEOS-4 (phS, 9/14/06)
       ! (27) Bug fix: set LLTROP_FIX = LLPAR for GCAP (bmy, 11/29/06)
+      ! (28) Reset vertical coordinates for GEOS-5.  Also renamed GRID30LEV
+      !       to GRIDREDUCED (bmy, 4/3/07)
       !=======================================================================
 
       ! C Preprocessor #define statements for conditional compilation
@@ -123,7 +125,11 @@
       INTEGER, PARAMETER :: IIPAR      = IGLOB
       INTEGER, PARAMETER :: JJPAR      = JGLOB
 
-#if   defined( GRID30LEV )
+!---------------------------------
+! Prior to 2/2/07:
+!#if   defined( GRID30LEV )
+!---------------------------------
+#if   defined( GRIDREDUCED )
       INTEGER, PARAMETER :: LLPAR      = 30     ! 30 levels
       INTEGER, PARAMETER :: LLTROP     = 24       
 #else
@@ -148,7 +154,11 @@
       INTEGER, PARAMETER :: IIPAR      = IGLOB
       INTEGER, PARAMETER :: JJPAR      = JGLOB
 
-#if   defined( GRID30LEV )
+!---------------------------------
+! Prior to 2/2/07:
+!#if   defined( GRID30LEV )
+!---------------------------------
+#if   defined( GRIDREDUCED )
       INTEGER, PARAMETER :: LLPAR      = 30     ! 30 levels
       INTEGER, PARAMETER :: LLTROP     = 24       
 #else
@@ -193,7 +203,11 @@
       INTEGER, PARAMETER :: IIPAR      = IGLOB
       INTEGER, PARAMETER :: JJPAR      = JGLOB
 
-#if   defined( GRID30LEV )
+!---------------------------------
+! Prior to 2/2/07:
+!#if   defined( GRID30LEV )
+!---------------------------------
+#if   defined( GRIDREDUCED )
       INTEGER, PARAMETER :: LLPAR      = 30     ! 30 levels
       INTEGER, PARAMETER :: LLTROP     = 24       
 #else
@@ -218,7 +232,11 @@
       INTEGER, PARAMETER :: IIPAR      = IGLOB
       INTEGER, PARAMETER :: JJPAR      = JGLOB
 
-#if   defined( GRID30LEV ) 
+!---------------------------------
+! Prior to 2/2/07:
+!#if   defined( GRID30LEV )
+!---------------------------------
+#if   defined( GRIDREDUCED ) 
       INTEGER, PARAMETER :: LLPAR      = 30     ! 30 levels
       INTEGER, PARAMETER :: LLTROP     = 22       
 #else
@@ -243,7 +261,11 @@
       INTEGER, PARAMETER :: IIPAR      = IGLOB
       INTEGER, PARAMETER :: JJPAR      = JGLOB
 
-#if   defined( GRID30LEV )
+!---------------------------------
+! Prior to 2/2/07:
+!#if   defined( GRID30LEV )
+!---------------------------------
+#if   defined( GRIDREDUCED )
       INTEGER, PARAMETER :: LLPAR      = 30     ! 30 levels
       INTEGER, PARAMETER :: LLTROP     = 22
 #else 
@@ -268,7 +290,11 @@
       INTEGER, PARAMETER :: IIPAR      = IGLOB
       INTEGER, PARAMETER :: JJPAR      = JGLOB
 
-#if   defined( GRID30LEV )
+!---------------------------------
+! Prior to 2/2/07:
+!#if   defined( GRID30LEV )
+!---------------------------------
+#if   defined( GRIDREDUCED )
       INTEGER, PARAMETER :: LLPAR      = 30     ! 30 levels
       INTEGER, PARAMETER :: LLTROP     = 22
 #else 
@@ -288,21 +314,24 @@
       !--------------------
       INTEGER, PARAMETER :: IGLOB      = 72
       INTEGER, PARAMETER :: JGLOB      = 46
-      INTEGER, PARAMETER :: LGLOB      = 55           
+      INTEGER, PARAMETER :: LGLOB      = 72         
 
       INTEGER, PARAMETER :: IIPAR      = IGLOB
       INTEGER, PARAMETER :: JJPAR      = JGLOB
 
-#if   defined( GRID30LEV ) 
-      INTEGER, PARAMETER :: LLPAR      = 30     ! 30 levels
+!---------------------------------
+! Prior to 2/2/07:
+!#if   defined( GRID30LEV )
+!---------------------------------
+#if   defined( GRIDREDUCED ) 
+      INTEGER, PARAMETER :: LLPAR      = 47     ! 47 levels
 #else
-      INTEGER, PARAMETER :: LLPAR      = LGLOB  ! 55 levels
+      INTEGER, PARAMETER :: LLPAR      = LGLOB  ! 72 levels
 #endif
 
       ! Set this so that we read data in correctly for offline sims
-      ! NEED TO CHECK THIS
-      INTEGER, PARAMETER :: LLTROP_FIX = 17 
-      INTEGER, PARAMETER :: LLTROP     = 23
+      INTEGER, PARAMETER :: LLTROP_FIX = 38  
+      INTEGER, PARAMETER :: LLTROP     = 38  
 
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
@@ -313,21 +342,24 @@
       !--------------------
       INTEGER, PARAMETER :: IGLOB      = 144
       INTEGER, PARAMETER :: JGLOB      = 91
-      INTEGER, PARAMETER :: LGLOB      = 55
+      INTEGER, PARAMETER :: LGLOB      = 72
 
       INTEGER, PARAMETER :: IIPAR      = IGLOB
       INTEGER, PARAMETER :: JJPAR      = JGLOB
 
-#if   defined( GRID30LEV )
-      INTEGER, PARAMETER :: LLPAR      = 30     ! 30 levels
+!---------------------------------
+! Prior to 2/2/07:
+!#if   defined( GRID30LEV )
+!---------------------------------
+#if   defined( GRIDREDUCED )
+      INTEGER, PARAMETER :: LLPAR      = 47     ! 30 levels
 #else 
-      INTEGER, PARAMETER :: LLPAR      = LGLOB  ! 55 levels
+      INTEGER, PARAMETER :: LLPAR      = LGLOB  ! 72 levels
 #endif
 
       ! Set this so that we read data in correctly for offline sims
-      ! NEED TO CHECK THIS
-      INTEGER, PARAMETER :: LLTROP_FIX = 17 
-      INTEGER, PARAMETER :: LLTROP     = 23     
+      INTEGER, PARAMETER :: LLTROP_FIX = 38  
+      INTEGER, PARAMETER :: LLTROP     = 38  
 
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
@@ -338,21 +370,24 @@
       !--------------------
       INTEGER, PARAMETER :: IGLOB      = 288
       INTEGER, PARAMETER :: JGLOB      = 181
-      INTEGER, PARAMETER :: LGLOB      = 55
+      INTEGER, PARAMETER :: LGLOB      = 72
 
       INTEGER, PARAMETER :: IIPAR      = IGLOB
       INTEGER, PARAMETER :: JJPAR      = JGLOB
 
-#if   defined( GRID30LEV )
-      INTEGER, PARAMETER :: LLPAR      = 30     ! 30 levels
+!---------------------------------
+! Prior to 2/2/07:
+!#if   defined( GRID30LEV )
+!---------------------------------
+#if   defined( GRIDREDUCED )
+      INTEGER, PARAMETER :: LLPAR      = 47     ! 47 levels
 #else 
-      INTEGER, PARAMETER :: LLPAR      = LGLOB  ! 55 levels
+      INTEGER, PARAMETER :: LLPAR      = LGLOB  ! 72 levels
 #endif
-      ! Set this so that we read data in correctly for offline sims
-      ! NEED TO CHECK THIS
 
-      INTEGER, PARAMETER :: LLTROP_FIX = 17 
-      INTEGER, PARAMETER :: LLTROP     = 23     
+      ! Set this so that we read data in correctly for offline sims
+      INTEGER, PARAMETER :: LLTROP_FIX = 38 
+      INTEGER, PARAMETER :: LLTROP     = 38
 
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 

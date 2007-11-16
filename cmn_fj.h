@@ -1,4 +1,4 @@
-! $Id: cmn_fj.h,v 1.1 2003/06/30 20:26:09 bmy Exp $
+! $Id: cmn_fj.h,v 1.2 2007/11/16 18:47:35 bmy Exp $
 !
 !******************************************************************************
 !  CMN_FJ.H -- Header file containing parameters and common
@@ -19,8 +19,10 @@
 !  (8 ) Replaced ESIG array with ETAA and ETAB arrays for the hybrid
 !        pressure formulation.  Also deleted PREST, since we don't need that
 !        anymore. (bmy, 8/23/02)
+!  (9 ) Removed ETAA and ETAB arrays.  We now compute PJ directly from the 
+!        GET_PEDGE routine. (bmy, 10/30/07)
 !
-!          - Bob Yantosca [bmy@io.harvard.edu], 23 Aug 2002
+!          - Bob Yantosca [bmy@io.as.harvard.edu], 30 Oct 2007
 !******************************************************************************
 !
 #     include "CMN_SIZE"
@@ -37,9 +39,14 @@
       INTEGER            :: JPNL, JPPJ       
       COMMON /FJ_INTEG/     JPNL, JPPJ
 
-      ! For hybrid eta coordinate:
-      REAL*8             :: ETAA(LPAR+1), ETAB(LPAR+1)
-      COMMON /FJ_ETA/       ETAA,         ETAB
+      !----------------------------------------------------------------------
+      ! Prior to 2/13/07:
+      ! Remove ETAA and ETAB arrays.  We now initialize the PJ array 
+      ! directly from the GET_PEDGE routine. (bmy, 10/30/07)
+      !! For hybrid eta coordinate:
+      !REAL*8             :: ETAA(LPAR+1), ETAB(LPAR+1)
+      !COMMON /FJ_ETA/       ETAA,         ETAB
+      !----------------------------------------------------------------------
 
       ! Branches for photolysis species
       INTEGER            :: BRANCH        

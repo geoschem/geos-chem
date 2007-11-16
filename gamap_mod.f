@@ -1,10 +1,10 @@
-! $Id: gamap_mod.f,v 1.22 2007/11/05 16:16:18 bmy Exp $
+! $Id: gamap_mod.f,v 1.23 2007/11/16 18:47:39 bmy Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
 !  Module GAMAP_MOD contains routines to create GAMAP "tracerinfo.dat" and
 !  "diaginfo.dat" files which are customized to each particular GEOS-Chem
-!  simulation. (bmy, 5/3/05, 9/18/07)
+!  simulation. (bmy, 5/3/05, 11/16/07)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -80,6 +80,7 @@
 !  (12) Now write GPROD & APROD info to diaginfo.dat, tracerinfo.dat files,
 !        for the SOA restart files (tmf, havala, bmy, 2/6/07)
 !  (13) Added ND10 diagnostic for H2/HD simulation. (phs, 9/18/07)
+!  (14) Change category name for ND31 diagnostic (bmy, 11/16/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -674,7 +675,7 @@
 !******************************************************************************
 !  Subroutine INIT_DIAGINFO initializes the CATEGORY, DESCRIPT, and OFFSET
 !  variables, which are used to define the "diaginfo.dat" file for GAMAP.
-!  (bmy, 10/17/06, 9/18/07)
+!  (bmy, 10/17/06, 11/16/07)
 !
 !  NOTES:
 !  (1 ) Split this code off from INIT_GAMAP, for clarity.  Now declare biomass
@@ -684,6 +685,8 @@
 !        GPROD & APROD restart file. (tmf, havala, bmy, 2/6/07)
 !  (3 ) Now declare H2-HD sources w/ offset of 48000. Now declare H2-HD
 !        production/loss w/ offset of 47000. (phs, 9/18/07)
+!  (4 ) Change diagnostic category for ND31 diagnostic from "PS-PTOP" 
+!        to "PEDGE-$" (bmy, 11/16/07)
 !******************************************************************************
 !
       ! Local variables 
@@ -944,8 +947,13 @@
       OFFSET(N)   = SPACING * 6
 
       N           = N + 1
-      CATEGORY(N) = 'PS-PTOP'
-      DESCRIPT(N) = 'GEOS PS - PTOP'
+      !---------------------------------------------
+      ! Prior to 11/16/07:
+      !CATEGORY(N) = 'PS-PTOP'
+      !DESCRIPT(N) = 'GEOS PS - PTOP'
+      !---------------------------------------------
+      CATEGORY(N) = 'PEDGE-$'
+      DESCRIPT(N) = 'Pressure at level edges'
       OFFSET(N)   = SPACING * 10 
 
       N           = N + 1

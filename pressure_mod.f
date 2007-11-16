@@ -1,31 +1,11 @@
-! $Id: pressure_mod.f,v 1.14 2006/09/08 19:21:02 bmy Exp $
+! $Id: pressure_mod.f,v 1.15 2007/11/16 18:47:45 bmy Exp $
       MODULE PRESSURE_MOD
 !
 !******************************************************************************
 !  Module PRESSURE_MOD contains variables and routines which specify the grid 
 !  box pressures for both hybrid or pure-sigma models.  This is necessary
 !  for running GEOS-CHEM with the new GEOS-4/fvDAS meteorological fields.
-!  (dsa, bmy, 8/27/02, 8/4/06)
-!
-!  The Hybrid ETA-coordinate (dsa, 8/27/02, 4/14/04)
-!  ============================================================================
-!  Pressure at layer edges are defined as follows:
-!  
-!     P(I,J,L) = AP(L) + ( BP(L) * PS(i,j) )
-!  
-!  where
-!     PS = Psfc - PTOP (GEOS-1, GEOS-STRAT, GEOS-3) or
-!     PS = Psfc        (GEOS-4) 
-!        here Psfc is the true surface pressure [hPa]
-!
-!     AP has the same units as PS [hPa]
-!     BP is a unitless constant given at layer edges.
-!     In all cases  BP(LLPAR+1) = 0., BP(1) = 1.
-!     The pressure at the model top is PTOP = AP(LLPAR+1)
-!  
-!  For a pure sigma system (GEOS-1, GEOS-STRAT, GEOS-3), this reduces to:
-!     AP(L) = PTOP for all L
-!     BP(L) = SIGE(L) (sigma at edges)
+!  (dsa, bmy, 8/27/02, 10/30/07)
 !
 !  Module Variables:
 !  ============================================================================
@@ -38,14 +18,56 @@
 !  (1 ) GET_AP                : Returns "A" term for hybrid ETA coordinate
 !  (2 ) GET_BP                : Returns "B" term for hybrid ETA coordinate
 !  (3 ) SET_FLOATING_PRESSURE : Initializes PFLT w/ Psurface from "main.f"
-!  (3 ) GET_PEDGE             : Returns pressure at bottom edge of box (I,J L)
-!  (4 ) GET_PCENTER           : Returns pressure at center of box (I,J,L)
-!  (5 ) INIT_PRESSURE         : Allocates and zeroes all module arrays
-!  (6 ) CLEANUP_PRESSURE      : Deallocates all module arrays
+!  (4 ) GET_PEDGE             : Returns pressure at bottom edge of box (I,J L)
+!  (5 ) GET_PCENTER           : Returns pressure at center of box (I,J,L)
+!  (6 ) INIT_PRESSURE         : Allocates and zeroes all module arrays
+!  (7 ) CLEANUP_PRESSURE      : Deallocates all module arrays
 !
 !  GEOS-CHEM modules referenced by pressure_mod.f
 !  ============================================================================
 !  (1 ) error_mod.f           : Module w/ I/O error and NaN check routines
+!
+!  Hybrid Grid Coordinate Definition: (dsa, bmy, 8/27/02, 10/30/07)
+!  ============================================================================
+!
+!  GEOS-4 and GEOS-5 (hybrid grids):
+!  ----------------------------------------------------------------------------
+!  For GEOS-4 and GEOS-5, the pressure at the bottom edge of grid box (I,J,L) 
+!  is defined as follows:
+!  
+!     Pedge(I,J,L) = Ap(L) + [ Bp(L) * Psurface(I,J) ]
+!  
+!  where
+!
+!     Psurface(I,J) is  the "true" surface pressure at lon,lat (I,J)
+!     Ap(L)         has the same units as surface pressure [hPa]
+!     Bp(L)         is  a unitless constant given at level edges
+!
+!  Ap(L) and Bp(L) are given to us by GMAO.
+!
+!
+!  GEOS-3 (pure-sigma) and GCAP (hybrid grid):
+!  ----------------------------------------------------------------------------
+!  GEOS-3 is a pure-sigma grid.  GCAP is a hybrid grid, but its grid is
+!  defined as if it were a pure sigma grid (i.e. PTOP=150 hPa, and negative
+!  sigma edges at higher levels).  For these grids, can stil use the same
+!  formula as for GEOS-4, with one modification:
+!  
+!     Pedge(I,J,L) = Ap(L) + [ Bp(L) * ( Psurface(I,J) - PTOP ) ]
+!
+!  where
+!
+!     Psurface(I,J) = the "true" surface pressure at lon,lat (I,J)
+!     Ap(L)         = PTOP    = model top pressure
+!     Bp(L)         = SIGE(L) = bottom sigma edge of level L
+!
+!
+!  The following are true for GCAP, GEOS-3, GEOS-4:
+!  ----------------------------------------------------------------------------
+!  (1) Bp(LLPAR+1) = 0.0          (L=LLPAR+1 is the atmosphere top)
+!  (2) Bp(1)       = 1.0          (L=1       is the surface       )
+!  (3) PTOP        = Ap(LLPAR+1)  (L=LLPAR+1 is the atmosphere top) 
+!
 !
 !  NOTES:
 !  (1 ) Be sure to check PFLT for NaN or Infinities (bmy, 8/27/02)
@@ -57,6 +79,7 @@
 !  (7 ) Modified for GCAP and GEOS-5 grids (swu, bmy, 5/24/05)
 !  (8 ) Removed obsolete reference to "CMN" (bmy, 4/25/06)
 !  (9 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (10) Added Ap and Bp for GEOS-5 met fields (bmy, 10/30/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -66,15 +89,23 @@
       ! and routines from being seen outside "pressure_mod.f"
       !=================================================================
 
-      ! Make everything PUBLIC ...
-      PUBLIC
-      
-      ! ... except these variables
-      PRIVATE :: AP, BP, PFLT
+      ! Make everything PRIVATE ...
+      PRIVATE
+
+      ! ... and these routines 
+      PUBLIC :: CLEANUP_PRESSURE           
+      PUBLIC :: GET_AP
+      PUBLIC :: GET_BP
+      PUBLIC :: GET_PCENTER           
+      PUBLIC :: GET_PEDGE             
+      PUBLIC :: INIT_PRESSURE         
+      PUBLIC :: SET_FLOATING_PRESSURE 
 
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
+
+      ! Arrays
       REAL*8, ALLOCATABLE :: AP(:)
       REAL*8, ALLOCATABLE :: BP(:)
       REAL*8, ALLOCATABLE :: PFLT(:,:)
@@ -165,7 +196,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : CHECK_VALUE
 
-#     include "CMN_SIZE"
+#     include "CMN_SIZE"  ! Size parameters
    
       ! Arguments
       REAL*8, INTENT(IN) :: PS(IIPAR,JJPAR)
@@ -201,18 +232,20 @@
 !
 !******************************************************************************
 !  Function GET_PEDGE returns the pressure at the bottom edge of level L.
-!  (dsa, bmy, 8/20/02, 10/24/03)
+!  L=1 is the surface, L=LLPAR+1 is the atm top. (dsa, bmy, 8/20/02, 10/30/07)
 ! 
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) P (REAL*8 ) : P_surface - P_top (PS-PTOP)
-!  (2 ) L (INTEGER) : Pressure will be returned at the bottom edge of level L
+!  (1 ) I (INTEGER) : GEOS-Chem longitude index 
+!  (2 ) J (INTEGER) : GEOS-Chem latitude index
+!  (3 ) L (INTEGER) : GEOS-Chem level index
 !
 !  NOTES:
 !  (1 ) Bug fix: use PFLT instead of PFLT-PTOP for GEOS-4 (bmy, 10/24/03)
+!  (2 ) Now treat GEOS-5 the same way as GEOS-4 (bmy, 10/30/07)
 !******************************************************************************
 !
-#     include "CMN_SIZE"  ! PTOP
+#     include "CMN_SIZE"   ! PTOP
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L 
@@ -223,18 +256,23 @@
       !=================================================================
       ! GET_PEDGE begins here!
       !=================================================================
-#if   defined( GEOS_4 )
 
-      ! Here Ap is in [hPa] and Bp is [unitless].  
-      ! For GEOS-4, we need to have PFLT as true surface pressure, 
-      ! since Ap(1)=0 and Bp(1)=1.0.  This ensures that the true
-      ! surface pressure will be returned for L=1. (bmy, 10/24/03)
+#if   defined( GEOS_4 ) || defined( GEOS_5 )
+
+      !-----------------------------
+      ! GEOS-4 & GEOS-5 met fields
+      !-----------------------------
+
+      ! Pressure [hPa] at bottom edge of level L (see documentation header)
       PEDGE = AP(L) + ( BP(L) * PFLT(I,J) )
 
 #else 
 
-      ! Here Ap is just PTOP in [hPa] and Bp are the sigma edges [unitless]  
-      ! PFLT is the true surface pressure, so subtract PTOP from it
+      !-----------------------------
+      ! GEOS-3 & GCAP met fields
+      !-----------------------------
+
+      ! Pressure [hPa] at bottom edge of level L (see documentation header)
       PEDGE = AP(L) + ( BP(L) * ( PFLT(I,J) - PTOP ) )
 
 #endif     
@@ -289,7 +327,7 @@
 !  which requires the hybrid pressure system specified by the listed values 
 !  of AP and BP, while earlier versions of GEOS use a pure sigma pressure
 !  system.  GCAP met fields (based on GISS) also use a hybrid system. 
-!  (dsa, swu, bmy, 8/20/02, 5/24/05)
+!  (dsa, swu, bmy, 8/20/02, 10/30/07)
 !
 !  NOTES:
 !  (1 ) Now reference ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
@@ -298,6 +336,7 @@
 !        obsolete.  Also now use C-preprocessor switch GRID30LEV instead of
 !        IF statements to define vertical coordinates. (bmy, 11/3/03)
 !  (4 ) Now modified for both GCAP & GEOS-5 vertical grids (swu, bmy, 5/24/05)
+!  (5 ) Renamed GRID30LEV to GRIDREDUCED (bmy, 10/30/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -319,25 +358,155 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFLT' )
       PFLT = 0d0
 
-      ALLOCATE( AP( LLPAR + 1 ), STAT=AS )
+      ALLOCATE( AP( LLPAR+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AP' )
       AP = 1d0
 
-      ALLOCATE( BP( LLPAR + 1 ), STAT=AS )
+      ALLOCATE( BP( LLPAR+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BP' )
       BP = 0d0
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 )
+#if   defined( GEOS_5 )
+
+      !=================================================================
+      ! GEOS-5 vertical coordinates (47 or 72 levels)
+      !=================================================================
+
+#if   defined( GRIDREDUCED )
+
+      !-----------------------------------
+      ! GEOS-5 47 level grid
+      !  
+      !  level  Edge     # L's
+      !  edge   Prs hPa  lumped
+      !  
+      !    48     0.0100 (4)
+      !    47     0.0660 (4)
+      !    46     0.2113 (4)
+      !    45     0.6168 (4)
+      !    44     1.6508 (4)
+      !    43     4.0766 (4)
+      !    42     9.2929 (4)
+      !    41    19.7916 (2)
+      !    40    28.3678 (2)
+      !    39    40.1754 (2)
+      !    38    56.3879 (2)
+      ! -- keep levels below this line --
+      !    37    78.5123 
+      !    36    92.3657
+      !-----------------------------------
+
+      ! Ap [hPa] for 47 levels (48 edges)
+      AP = (/ 0.000000d+00, 4.804826d-02, 6.593752d+00, 1.313480d+01,
+     &        1.961311d+01, 2.609201d+01, 3.257081d+01, 3.898201d+01,
+     &        4.533901d+01, 5.169611d+01, 5.805321d+01, 6.436264d+01,
+     &        7.062198d+01, 7.883422d+01, 8.909992d+01, 9.936521d+01,
+     &        1.091817d+02, 1.189586d+02, 1.286959d+02, 1.429100d+02,
+     &        1.562600d+02, 1.696090d+02, 1.816190d+02, 1.930970d+02,
+     &        2.032590d+02, 2.121500d+02, 2.187760d+02, 2.238980d+02,
+     &        2.243630d+02, 2.168650d+02, 2.011920d+02, 1.769300d+02,
+     &        1.503930d+02, 1.278370d+02, 1.086630d+02, 9.236572d+01,
+     &        7.851231d+01, 5.638791d+01, 4.017541d+01, 2.836781d+01, 
+     &        1.979160d+01, 9.292942d+00, 4.076571d+00, 1.650790d+00, 
+     &        6.167791d-01, 2.113490d-01, 6.600001d-02, 1.000000d-02 /)
+
+      ! Bp [unitless] for 47 levels (48 edges)
+      BP = (/ 1.000000d+00, 9.849520d-01, 9.634060d-01, 9.418650d-01,
+     &        9.203870d-01, 8.989080d-01, 8.774290d-01, 8.560180d-01,
+     &        8.346609d-01, 8.133039d-01, 7.919469d-01, 7.706375d-01,
+     &        7.493782d-01, 7.211660d-01, 6.858999d-01, 6.506349d-01,
+     &        6.158184d-01, 5.810415d-01, 5.463042d-01, 4.945902d-01,
+     &        4.437402d-01, 3.928911d-01, 3.433811d-01, 2.944031d-01,
+     &        2.467411d-01, 2.003501d-01, 1.562241d-01, 1.136021d-01,
+     &        6.372006d-02, 2.801004d-02, 6.960025d-03, 8.175413d-09,
+     &        0.000000d+00, 0.000000d+00, 0.000000d+00, 0.000000d+00,
+     &        0.000000d+00, 0.000000d+00, 0.000000d+00, 0.000000d+00,
+     &        0.000000d+00, 0.000000d+00, 0.000000d+00, 0.000000d+00,
+     &        0.000000d+00, 0.000000d+00, 0.000000d+00, 0.000000d+00 /)
+
+#else
+
+      !--------------------------------
+      ! GEOS-5 72 level grid
+      !--------------------------------
+
+      ! Ap [hPa] for 72 levels (73 edges)
+      AP = (/ 0.000000d+00, 4.804826d-02, 6.593752d+00, 1.313480d+01,
+     &        1.961311d+01, 2.609201d+01, 3.257081d+01, 3.898201d+01,
+     &        4.533901d+01, 5.169611d+01, 5.805321d+01, 6.436264d+01,
+     &        7.062198d+01, 7.883422d+01, 8.909992d+01, 9.936521d+01,
+     &        1.091817d+02, 1.189586d+02, 1.286959d+02, 1.429100d+02,
+     &        1.562600d+02, 1.696090d+02, 1.816190d+02, 1.930970d+02,
+     &        2.032590d+02, 2.121500d+02, 2.187760d+02, 2.238980d+02,
+     &        2.243630d+02, 2.168650d+02, 2.011920d+02, 1.769300d+02,
+     &        1.503930d+02, 1.278370d+02, 1.086630d+02, 9.236572d+01,
+     &        7.851231d+01, 6.660341d+01, 5.638791d+01, 4.764391d+01,
+     &        4.017541d+01, 3.381001d+01, 2.836781d+01, 2.373041d+01,
+     &        1.979160d+01, 1.645710d+01, 1.364340d+01, 1.127690d+01,
+     &        9.292942d+00, 7.619842d+00, 6.216801d+00, 5.046801d+00,
+     &        4.076571d+00, 3.276431d+00, 2.620211d+00, 2.084970d+00,
+     &        1.650790d+00, 1.300510d+00, 1.019440d+00, 7.951341d-01,
+     &        6.167791d-01, 4.758061d-01, 3.650411d-01, 2.785261d-01,
+     &        2.113490d-01, 1.594950d-01, 1.197030d-01, 8.934502d-02,
+     &        6.600001d-02, 4.758501d-02, 3.270000d-02, 2.000000d-02,
+     &        1.000000d-02 /)
+
+      ! Bp [unitless] for 72 levels (73 edges)
+      BP = (/ 1.000000d+00, 9.849520d-01, 9.634060d-01, 9.418650d-01,
+     &        9.203870d-01, 8.989080d-01, 8.774290d-01, 8.560180d-01,
+     &        8.346609d-01, 8.133039d-01, 7.919469d-01, 7.706375d-01,
+     &        7.493782d-01, 7.211660d-01, 6.858999d-01, 6.506349d-01,
+     &        6.158184d-01, 5.810415d-01, 5.463042d-01, 4.945902d-01,
+     &        4.437402d-01, 3.928911d-01, 3.433811d-01, 2.944031d-01,
+     &        2.467411d-01, 2.003501d-01, 1.562241d-01, 1.136021d-01,
+     &        6.372006d-02, 2.801004d-02, 6.960025d-03, 8.175413d-09,
+     &        0.000000d+00, 0.000000d+00, 0.000000d+00, 0.000000d+00,
+     &        0.000000d+00, 0.000000d+00, 0.000000d+00, 0.000000d+00,
+     &        0.000000d+00, 0.000000d+00, 0.000000d+00, 0.000000d+00,
+     &        0.000000d+00, 0.000000d+00, 0.000000d+00, 0.000000d+00,
+     &        0.000000d+00, 0.000000d+00, 0.000000d+00, 0.000000d+00,
+     &        0.000000d+00, 0.000000d+00, 0.000000d+00, 0.000000d+00,
+     &        0.000000d+00, 0.000000d+00, 0.000000d+00, 0.000000d+00,
+     &        0.000000d+00, 0.000000d+00, 0.000000d+00, 0.000000d+00,
+     &        0.000000d+00, 0.000000d+00, 0.000000d+00, 0.000000d+00,
+     &        0.000000d+00, 0.000000d+00, 0.000000d+00, 0.000000d+00,
+     &        0.000000d+00 /)
+      
+#endif
+
+#elif defined( GEOS_4 )
       
       !=================================================================
-      ! GEOS-4 or GEOS-5 vertical coordinates (30 or 55 levels)
+      ! GEOS-4 vertical coordinates (30 or 55 levels)
       !=================================================================
 
-#if   defined( GRID30LEV )
+!----------------------------------
+! Prior to 10/30/07:
+!#if   defined( GRID30LEV )
+!----------------------------------
+#if   defined( GRIDREDUCED )
 
-      !--------------------------------
-      ! GEOS-4 or GEOS-5 30 level grid
-      !--------------------------------
+      !-----------------------------------
+      ! GEOS-4 30 level grid
+      !  
+      !  level  Edge     # L's
+      !  edge   Prs hPa  lumped
+      !  
+      !    48     0.0100 (4)
+      !    47     0.0660 (4)
+      !    46     0.2113 (4)
+      !    45     0.6168 (4)
+      !    44     1.6508 (4)
+      !    43     4.0766 (4)
+      !    42     9.2929 (4)
+      !    41    19.7916 (2)
+      !    40    28.3678 (2)
+      !    39    40.1754 (2)
+      !    38    56.3879 (2)
+      ! -- keep levels below this line --
+      !    37    78.5123 
+      !    36    92.3657
+      !-----------------------------------
 
       ! Ap [hPa] for 30 levels (31 edges)
       AP = (/  0.000000d0,   0.000000d0,  12.704939d0,  35.465965d0, 
@@ -361,9 +530,9 @@
 
 #else
 
-      !--------------------------------
-      ! GEOS-4 or GEOS-5 55 level grid
-      !--------------------------------
+      !-----------------------------------
+      ! GEOS-4 55 level grid
+      !-----------------------------------
 
       ! AP [hPa] for 55 levels (56 edges)
       AP = (/ 0.000000d0,   0.000000d0,  12.704939d0,  35.465965d0, 
@@ -406,11 +575,15 @@
       ! GEOS-3 vertical coordinates (30 or 48 levels)
       !=================================================================
 
-#if   defined( GRID30LEV )
+!-----------------------------------
+! Prior to 10/30/07:
+!#if   defined( GRID30LEV )
+!-----------------------------------
+#if   defined( GRIDREDUCED )
 
-      !--------------------------------
+      !-----------------------------------
       ! GEOS-3 30 level grid
-      !--------------------------------
+      !-----------------------------------
 
       ! AP [hPa] is just PTOP for a pure-sigma grid
       AP = PTOP
@@ -427,9 +600,9 @@
 
 #else
 
-      !--------------------------------
+      !-----------------------------------
       ! GEOS-3 48 level grid
-      !--------------------------------
+      !-----------------------------------
 
       ! AP [hPa] is just PTOP for a pure-sigma grid
       AP = PTOP
@@ -515,4 +688,5 @@
 
 !------------------------------------------------------------------------------
 
+      ! End of module
       END MODULE PRESSURE_MOD

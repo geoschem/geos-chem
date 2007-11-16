@@ -1,9 +1,9 @@
-! $Id: bpch2_mod.f,v 1.10 2006/09/08 19:20:51 bmy Exp $
+! $Id: bpch2_mod.f,v 1.11 2007/11/16 18:47:34 bmy Exp $
       MODULE BPCH2_MOD
 !
 !******************************************************************************
 !  Module BPCH2_MOD contains the routines used to read data from and write
-!  data to binary punch (BPCH) file format (v. 2.0). (bmy, 6/28/00, 8/4/06)
+!  data to binary punch (BPCH) file format (v. 2.0). (bmy, 6/28/00, 2/16/07)
 !
 !  Module Routines:
 !  ============================================================================
@@ -64,6 +64,8 @@
 !  (30) Added GET_NAME_EXT_2D to get filename extension for files which do
 !        not contain any vertical information (bmy, 8/16/05)
 !  (31) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (32) Renamed GRID30LEV to GRIDREDUCED.  Also increase TEMPARRAY in
+!        READ_BPCH2 for GEOS-5 vertical levels. (bmy, 2/16/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -366,7 +368,7 @@
 !******************************************************************************
 !  Subroutine READ_BPCH2 reads a binary punch file (v. 2.0) and extracts
 !  a data block that matches the given category, tracer, and tau value.
-!  (bmy, 12/10/99, 12/1/04)
+!  (bmy, 12/10/99, 2/16/07)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -399,6 +401,8 @@
 !        reference "define.h".  Added OPTIONAL QUIET flag. (bmy, 3/14/03)
 !  (13) Now separate off nested grid code in an #ifdef block using
 !        NESTED_CH or NESTED_NA cpp switches (bmy, 12/1/04)
+!  (14) Make TEMPARRAY big enough for GEOS-5 72 levels (and 73 edges) 
+!        (bmy, 2/15/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -421,7 +425,13 @@
       CHARACTER(LEN=255) :: MSG
       
       ! Make TEMPARRAY big enough to for a 1x1 grid (bmy, 4/17/01)
-      REAL*4             :: TEMPARRAY(360,181,70)
+      !----------------------------------------------------------------
+      ! Prior to 2/16/07:
+      ! Make TEMPARRAY big enough for GEOS-5 72 levels (73 edges) 
+      ! (bmy, 2/15/07)
+      !REAL*4             :: TEMPARRAY(360,181,70)
+      !----------------------------------------------------------------
+      REAL*4             :: TEMPARRAY(360,181,73)
 
       ! For binary punch file, version 2.0
       INTEGER            :: NTRACER,   NSKIP
@@ -551,7 +561,7 @@
 !******************************************************************************
 !  Function GET_MODELNAME returns the proper value of MODELNAME for GEOS-1,
 !  GEOS-STRAT, GEOS-2, or GEOS-3 data.  MODELNAME is written to the binary
-!  punch file and is used by the GAMAP package. (bmy, 6/22/00, 8/4/06)
+!  punch file and is used by the GAMAP package. (bmy, 6/22/00, 2/7/07)
 !
 !  NOTES:
 !  (1 ) Now use special model name for GEOS-3 w/ 30 layers (bmy, 10/9/01)
@@ -561,6 +571,7 @@
 !  (4 ) Updated for GCAP and GEOS-5 met fields.  Rearranged coding for
 !        simplicity. (swu, bmy, 5/24/05)
 !  (5 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (6 ) Rename GRID30LEV to GRIDREDUCED (bmy, 2/7/07)
 !******************************************************************************
 !
 #     include "CMN_SIZE"
@@ -572,20 +583,31 @@
       ! GET_MODELNAME begins here!
       !=================================================================
 
-#if   defined( GEOS_3 ) && defined( GRID30LEV )
+!---------------------------------------------------------
+! Prior to 2/7/07:
+!#if   defined( GEOS_3 ) && defined( GRID30LEV )
+!---------------------------------------------------------
+#if   defined( GEOS_3 ) && defined( GRIDREDUCED )
       MODELNAME = 'GEOS3_30L'
 
 #elif defined( GEOS_3 )
       MODELNAME = 'GEOS3'
-
-#elif defined( GEOS_4 ) && defined( GRID30LEV )
+!---------------------------------------------------------
+! Prior to 2/7/07:
+!#elif defined( GEOS_4 ) && defined( GRID30LEV )
+!---------------------------------------------------------
+#elif defined( GEOS_4 ) && defined( GRIDREDUCED )
       MODELNAME = 'GEOS4_30L'
 
 #elif defined( GEOS_4 )
       MODELNAME = 'GEOS4'
 
-#elif defined( GEOS_5 ) && defined( GRID30LEV )
-      MODELNAME = 'GEOS5_30L'
+!---------------------------------------------------------
+! Prior to 2/7/07:
+!#elif defined( GEOS_5 ) && defined( GRID30LEV )
+!---------------------------------------------------------
+#elif defined( GEOS_5 ) && defined( GRIDREDUCED )
+      MODELNAME = 'GEOS5_47L'
       
 #elif defined( GEOS_5 ) 
       MODELNAME = 'GEOS5'

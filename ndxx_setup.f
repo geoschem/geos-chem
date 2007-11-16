@@ -1,9 +1,9 @@
-! $Id: ndxx_setup.f,v 1.30 2007/11/05 16:16:23 bmy Exp $
+! $Id: ndxx_setup.f,v 1.31 2007/11/16 18:47:43 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
 !  NDXX_SETUP dynamically allocates memory for certain diagnostic arrays that 
-!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 9/18/07)
+!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 11/16/07)
 !
 !  This allows us to reduce the amount of memory that needs to be declared 
 !  globally.  We only allocate memory for arrays if the corresponding 
@@ -125,6 +125,7 @@
 !  (62) For ND20 diagnostic, reset ND65 diagnostic with LLTROP_FIX instead of 
 !        LLTROP.  Added ND10 diagnostic setup.  Added modifications for H2-HD 
 !        simulation. (phs, bmy, 9/18/07)
+!  (63) Now save true pressure edges for ND31 diagnostic (bmy, 11/16/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -206,6 +207,7 @@
       LD24 = 1
       LD25 = 1
       LD26 = 1
+      LD31 = 1
       LD37 = 1
       LD38 = 1
       LD39 = 1
@@ -600,10 +602,17 @@
       ENDIF
 
       !=================================================================
-      ! ND31: PS - PTOP [mb] --> Uses AD31 array (allocatable)
+      ! ND31: 3-D pressure edges [hPa] --> Uses AD31 array (allocatable)
       !=================================================================
       IF ( ND31 > 0 ) THEN
-         ALLOCATE( AD31( IIPAR, JJPAR, PD31 ), STAT=AS )
+         LD31 = MIN( ND31, LLPAR+1 )
+
+         !-----------------------------------------------------------------
+         ! Prior to 5/8/07:
+         ! Now save true pressure edges for ND31 diagnostic (bmy, 5/8/07)
+         !ALLOCATE( AD31( IIPAR, JJPAR, PD31 ), STAT=AS )
+         !-----------------------------------------------------------------
+         ALLOCATE( AD31( IIPAR, JJPAR, LD31 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD31' )
       ENDIF
 

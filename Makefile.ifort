@@ -1,5 +1,5 @@
 #=============================================================================
-# $Id: Makefile.ifort,v 1.21 2007/11/05 16:16:11 bmy Exp $
+# $Id: Makefile.ifort,v 1.22 2007/11/16 18:47:31 bmy Exp $
 #
 # GEOS-Chem Makefile for LINUX/IFORT compiler (bmy, Thu Sep 20 10:47:37 2007)
 #=============================================================================
@@ -7,18 +7,14 @@ SHELL = /bin/sh
 
 # IFORT compilation options
 FFLAGS = -cpp -w -O2 -auto -noalign -convert big_endian
-
+ 
 # Compile command -- multiprocessor
 F90 = ifort $(FFLAGS) -openmp -Dmultitask
 
 # Compile command -- single processor
 #F90 = ifort $(FFLAGS)
 
-# C compiler
-CC  = gcc
-
 OBJSe =                   \
-linux_err.o               \
 ifort_errmsg.o
 
 OBJS =                    \
@@ -439,8 +435,6 @@ xtra_read_mod.o            : xtra_read_mod.f            CMN_DIAG CMN_SIZE define
 #  Other compilation commands
 #==============================================================================
 ifort_errmsg.o             : ifort_errmsg.f     
-linux_err.o                : linux_err.c     
-	$(CC) -c linux_err.c
 
 #=============================================================================
 #  Other Makefile Commands

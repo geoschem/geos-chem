@@ -1,9 +1,9 @@
-! $Id: global_hno3_mod.f,v 1.8 2006/02/03 17:00:26 bmy Exp $
+! $Id: global_hno3_mod.f,v 1.9 2007/11/16 18:47:40 bmy Exp $
       MODULE GLOBAL_HNO3_MOD
 !
 !******************************************************************************
 !  Module GLOBAL_HNO3_MOD contains variables and routines for reading the
-!  global monthly mean HNO3 fields from disk. (bmy, 10/15/02, 10/3/05)
+!  global monthly mean HNO3 fields from disk. (bmy, 10/15/02, 2/7/07)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -33,6 +33,7 @@
 !  (5 ) Now read total gas + aerosol HNO3 data (bec, bmy, 4/13/05)
 !  (6 ) Now read files from "sulfate_sim_200508/offline" dir (bmy, 8/1/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (8 ) 
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -110,7 +111,7 @@
 !******************************************************************************
 !  Subroutine GET_GLOBAL_HNO3 reads global OH from binary punch files stored
 !  in the data directory.  This is needed for the offline sulfate simulation.
-!  (bmy, 10/3/02, 10/3/05)
+!  (bmy, 10/3/02, 2/7/07)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -125,6 +126,7 @@
 !  (6 ) GEOS-3 and GEOS-4 data comes from model runs w/ 30 layers.  Also now
 !        read from "sulfate_sim_200508/offline" directory (bmy, 8/1/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (8 ) Renamed GRID30LEV to GRIDREDUCED (bmy, 2/7/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -180,7 +182,11 @@
       ! GEOS-3 / GEOS-4 data come from the 30 level model run
       !-------------------------------------------------------
 
-#if   defined( GRID30LEV )
+!--------------------------------
+! Prior to 2/7/07:
+!#if   defined( GRID30LEV )
+!--------------------------------
+#if   defined( GRIDREDUCED )
 
       ! Read HNO3 data from the binary punch file
       CALL READ_BPCH2( FILENAME, 'IJ-AVG-$',          7,     

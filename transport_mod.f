@@ -1,53 +1,51 @@
-! $Id: transport_mod.f,v 1.16 2007/03/29 20:31:25 bmy Exp $
+! $Id: transport_mod.f,v 1.17 2007/11/16 18:47:46 bmy Exp $
       MODULE TRANSPORT_MOD
 !
 !******************************************************************************
 !  Module TRANSPORT_MOD is used to call the proper version of TPCORE for
-!  GEOS-1, GEOS-STRAT, GEOS-3 or GEOS-4 nested-grid or global simulations.
-!  (yxw, bmy, 3/10/03, 11/29/06)
+!  GEOS-3, GEOS-4, GEOS-5, or GCAP nested-grid or global simulations.
+!  (yxw, bmy, 3/10/03, 10/30/07)
 ! 
 !  Module Variables:
 !  ============================================================================
-!  (1 ) Ap     (REAL*8 )     : Vertical coordinate array for TPCORE
-!  (2 ) A_M2   (REAL*8 )     : Grid box surface areas [m2]
-!  (3 ) Bp     (REAL*8 )     : Vertical coordinate array for TPCORE
-!  (4 ) IORD   (REAL*8 )     : TPCORE E/W option flag
-!  (5 ) JORD   (REAL*8 )     : TPCORE N/S option flag
-!  (6 ) KORD   (REAL*8 )     : TPCORE vertical option flag
-!  (7 ) STT_I1 (REAL*8 )     : Array for NH embedded chem boundary condition 
-!  (8 ) STT_I2 (REAL*8 )     : Array for NH embedded chem boundary condition
-!  (9 ) STT_J1 (REAL*8 )     : Array for NH embedded chem boundary condition
-!  (10) STT_J2 (REAL*8 )     : Array for NH embedded chem boundary condition
-!  (11) JLAST  (INTEGER)     : For GEOS-4 TPCORE
-!  (12) MG     (INTEGER)     : For GEOS-4 TPCORE
-!  (13) NG     (INTEGER)     : For GEOS-4 TPCORE
-!  (14) N_ADJ  (INTEGER)     : For GEOS-4 TPCORE
+!  (1 ) Ap     (REAL*8 )       : Vertical coordinate array for TPCORE
+!  (2 ) A_M2   (REAL*8 )       : Grid box surface areas [m2]
+!  (3 ) Bp     (REAL*8 )       : Vertical coordinate array for TPCORE
+!  (4 ) IORD   (REAL*8 )       : TPCORE E/W option flag
+!  (5 ) JORD   (REAL*8 )       : TPCORE N/S option flag
+!  (6 ) KORD   (REAL*8 )       : TPCORE vertical option flag
+!  (7 ) JLAST  (INTEGER)       : For fvDAS TPCORE
+!  (8 ) MG     (INTEGER)       : For fvDAS TPCORE
+!  (9 ) NG     (INTEGER)       : For fvDAS TPCORE
+!  (10) N_ADJ  (INTEGER)       : For fvDAS TPCORE
 !
 !  Module Routines:
 !  ============================================================================
-!  (1 ) DO_TRANSPORT         : Driver which calls global or window TPCORE
-!  (2 ) DO_GLOBAL_TRANSPORT  : Calls either GEOS-1/S/3 or fvDAS TPCORE (global)
-!  (3 ) DO_WINDOW_TRANSPORT  : Calls nested-grid window version of TPCORE
-!  (4 ) GET_AIR_MASS         : Computes air mass from TPCORE in/out pressures
-!  (5 ) SET_TRANSPORT        : Gets IORD, JORD, KORD values from "input_mod.f"
-!  (6 ) INIT_TRANSPORT       : Initializes module arrays
-!  (7 ) CLEANUP_TRANSPORT    : Deallocates module arrays
+!  (1 ) DO_TRANSPORT           : Driver which calls global or window TPCORE
+!  (2 ) GEOS4_GEOS5_GLOBAL_ADV : TPCORE driver routine for GEOS-4/GEOS-5 met
+!  (3 ) GEOS3_GLOBAL_ADV       : TPCORE driver routine for GEOS-3 met
+!  (4 ) GCAP_GLOBAL_ADV        : TPCORE driver routine for GCAP met
+!  (5 ) DO_WINDOW_TRANSPORT    : Calls nested-grid window version of TPCORE
+!  (6 ) GET_AIR_MASS           : Computes air mass from TPCORE in/out pressures
+!  (7 ) SET_TRANSPORT          : Gets IORD, JORD, KORD from "input_mod.f"
+!  (8 ) INIT_TRANSPORT         : Initializes module arrays
+!  (9 ) CLEANUP_TRANSPORT      : Deallocates module arrays
 !
-!  GEOS-CHEM modules referenced by transport_mod.f
+!  GEOS-Chem modules referenced by transport_mod.f
 !  ============================================================================
-!  (1 ) dao_mod.f            : Module containing arrays for DAO met fields
-!  (2 ) diag_mod.f           : Module containing GEOS-CHEM diagnostic arrays
-!  (3 ) error_mod.f          : Module containing I/O error/NaN check routines
-!  (4 ) grid_mod.f           : Module containing horizontal grid information
-!  (5 ) logical_mod.f        : Module containing GEOS-CHEM logical switches
-!  (6 ) pjc_pfix_mod.f       : Module containing Phil Cameron-Smith P-fixer
-!  (7 ) pressure_mod.f       : Module containing routines to compute P(I,J,L)
-!  (8 ) time_mod.f           : Module containing routines to compute date/time
-!  (9 ) tpcore_mod.f         : Module containing TPCORE for GEOS1,GEOSS,GEOS3
-!  (10) tpcore_bc_mod.f      : Module containing TPCORE boundary cond. routines
-!  (11) tpcore_window_mod.f  : Module containing TPCORE for nested-grid windows
-!  (12) tpcore_fvdas_mod.f90 : Module containing TPCORE for GEOS-4/fvDAS
-!  (13) tracer_mod.f         : Module containing GEOS-CHEM tracer array STT etc
+!  (1 ) dao_mod.f              : Module w/ arrays for DAO met fields
+!  (2 ) diag_mod.f             : Module w/ GEOS-CHEM diagnostic arrays
+!  (3 ) error_mod.f            : Module w/ I/O error/NaN check routines
+!  (4 ) grid_mod.f             : Module w/ horizontal grid information
+!  (5 ) logical_mod.f          : Module w/ GEOS-CHEM logical switches
+!  (6 ) pjc_pfix_mod.f         : Module w/ Phil Cameron-Smith P-fixer
+!  (7 ) pressure_mod.f         : Module w/ routines to compute P(I,J,L)
+!  (8 ) time_mod.f             : Module w/ routines to compute date/time
+!  (9 ) tpcore_mod.f           : Module w/ TPCORE for GEOS1,GEOSS,GEOS3
+!  (10) tpcore_bc_mod.f        : Module w/ TPCORE boundary cond. routines
+!  (11) tpcore_window_mod.f    : Module w/ TPCORE for nested-grid windows
+!  (12) tpcore_fvdas_mod.f90   : Module w/ TPCORE for GEOS-4/fvDAS
+!  (13) tracer_mod.f           : Module w/ GEOS-CHEM tracer array STT etc
 !
 !  NOTES:
 !  (1 ) Now can select transport scheme for GEOS-3 winds.  Added code for PJC 
@@ -66,6 +64,9 @@
 !  (10) Now flip arrays in call to TPCORE_FVDAS (bmy, 6/16/06)
 !  (11) Added modifications for SUN compiler (bmy, 7/12/06)
 !  (12) Bug fixes in DO_GLOBAL_TRANSPORT (bmy, 11/29/06)
+!  (13) Split off GCAP, GEOS-3, GEOS-4/GEOS-5 specific calling sequences
+!        into separate subroutines.  Also removed some obsolete module
+!        variables. (bmy, 10/30/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -87,17 +88,25 @@
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
-      LOGICAL             :: USE_GEOS_4_TRANSPORT
+      !---------------------------------------------------------
+      ! Prior to 10/30/07:
+      ! Remove USE_GEOS_4_TRANSPORT (bmy, 10/30/07)
+      !LOGICAL             :: USE_GEOS_4_TRANSPORT
+      !---------------------------------------------------------
       INTEGER             :: IORD,  JORD, KORD, JFIRST 
       INTEGER             :: JLAST, NG,   MG,   N_ADJ
       REAL*8, ALLOCATABLE :: Ap(:)
       REAL*8, ALLOCATABLE :: A_M2(:)
       REAL*8, ALLOCATABLE :: Bp(:)
-      REAL*8, ALLOCATABLE :: DSIG(:)
-      REAL*8, ALLOCATABLE :: STT_I1(:,:,:) 
-      REAL*8, ALLOCATABLE :: STT_I2(:,:,:) 
-      REAL*8, ALLOCATABLE :: STT_J1(:,:,:) 
-      REAL*8, ALLOCATABLE :: STT_J2(:,:,:) 
+      !---------------------------------------------------------
+      ! Prior to 10/30/07:
+      ! Remove embedded chemistry & DSIG arrays (bmy, 10/30/07)
+      !REAL*8, ALLOCATABLE :: DSIG(:)
+      !REAL*8, ALLOCATABLE :: STT_I1(:,:,:) 
+      !REAL*8, ALLOCATABLE :: STT_I2(:,:,:) 
+      !REAL*8, ALLOCATABLE :: STT_J1(:,:,:) 
+      !REAL*8, ALLOCATABLE :: STT_J2(:,:,:) 
+      !---------------------------------------------------------
       REAL*8, ALLOCATABLE :: STT_BC2(:,:,:)
 
       !=================================================================
@@ -111,18 +120,21 @@
 !
 !******************************************************************************
 !  Subroutine DO_TRANSPORT is the driver routine for the proper TPCORE program
-!  for GEOS-3, GEOS-4, or window simulations. (bmy, 3/10/03, 7/20/04)
+!  for GEOS-3, GEOS-4/GEOS-5, or window simulations. (bmy, 3/10/03, 10/30/07)
 ! 
 !  NOTES:
 !  (1 ) Removed IORD, JORD, KORD from the arg list.  Also now removed
 !        reference to CMN, it's not needed. (bmy, 7/20/04)
+!  (2 ) Now call separate routines for different met fields. (bmy, 10/30/07)
 !******************************************************************************
 !
       ! References to F90 modules
       USE GRID_MOD, ONLY : ITS_A_NESTED_GRID
 
+#     include "CMN_SIZE" ! Size parameters
+
       ! Local variables
-      LOGICAL, SAVE :: FIRST = .TRUE.
+      LOGICAL, SAVE     :: FIRST = .TRUE.
 
       !=================================================================
       ! DO_TRANSPORT begins here!
@@ -139,7 +151,23 @@
       IF ( ITS_A_NESTED_GRID() ) THEN
          CALL DO_WINDOW_TRANSPORT
       ELSE
-         CALL DO_GLOBAL_TRANSPORT
+
+#if defined( GEOS_4 ) || defined( GEOS_5 )
+
+         ! Call TPCORE w/ proper settings for GEOS-4/GEOS-5 met
+         CALL GEOS4_GEOS5_GLOBAL_ADV
+
+#elif defined( GEOS_3 )
+
+         ! Call TPCORE w/ proper settings for GEOS-3 met
+         CALL GEOS3_GLOBAL_ADV
+
+#elif defined( GCAP )
+
+         ! Call TPCORE w/ proper settings for GCAP met
+         CALL GCAP_GLOBAL_ADV
+
+#endif
       ENDIF
 
       ! Return to calling program
@@ -147,42 +175,15 @@
 
 !------------------------------------------------------------------------------
       
-      SUBROUTINE DO_GLOBAL_TRANSPORT
-!
+      SUBROUTINE GEOS4_GEOS5_GLOBAL_ADV
+!     
 !******************************************************************************
-!  Subroutine DO_TRANSPORT is the driver routine for the proper TPCORE 
-!  program for GEOS-1, GEOS-STRAT, GEOS-3 or GEOS-4 global simulations. 
-!  (bdf, bmy, 3/10/03, 11/29/06)
-! 
+!  Subroutine GEOS4_GEOS_5_GLOBAL_ADV is the driver routine for TPCORE with 
+!  the GMAO GEOS-4 or GEOS-5 met fields. (bmy, 10/30/07)
+!     
 !  NOTES:
-!  (1 ) Now references routine TPCORE_FVDAS from "tpcore_fvdas_mod.f90".
-!        Also now use logical flag USE_GEOS_4_TRANSPORT to decide which
-!        version of TPCORE is used.  Now call routine DO_PJC_PFIX from
-!        "pjc_pfix_mod.f" which calls the Phil Cameron-Smith pressure fixer
-!        for the GEOS-4/fvDAS transport scheme. (bdf, bmy, 5/8/03)
-!  (2 ) Now call GET_AIR_MASS to compute air masses based on the input/output
-!        pressures of the GEOS-4 version of TPCORE (bmy, 6/24/03)
-!  (3 ) Now references DEBUG_MSG from "error_mod.f". (bmy, 8/7/03)
-!  (4 ) Bug fix: rewrote first parallel DO-loop to avoid NaN's.  Now also make
-!        sure to pass surface pressures which are consistent with the Ap and
-!        Bp coordinates which define the vertical grid to both TPCORE and
-!        DO_PJC_PFIX. (bmy, 10/27/03)
-!  (5 ) Removed IORD, JORD, KORD from the arg list, since these are now
-!        module variables.  Now get LFILL, LMFCT, LPRT, LEMBED, LWINDO from 
-!        "logical_mod.f".  Now references STT, N_TRACERS, TCVV from 
-!        "tracer_mod.f".  Now parallelized embedded chemistry BC's.  
-!        (bmy, 7/20/04) 
-!  (6 ) Now references MASSFLEW, MASSFLNS, MASSFLUP from "diag_mod.f".
-!        Also references ND24, ND25, ND26 from "CMN_DIAG". (bmy, 9/28/04)
-!  (7 ) For GEOS-3 transport, we don't have to flip the STT array before & 
-!        after the call to TPCORE because we now call TPCORE with the array 
-!        mask statement STT(:,:,LLPAR:1:-1,:).  Also modified for GEOS-5 
-!        and GCAP met fields. (swu, bmy, 5/25/05)
-!  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (9 ) Now do flipping of arrays in call to TPCORE_FVDAS (bmy, 6/16/06)
-!  (10) Rewrote some parallel loops for the SUN compiler (bmy, 7/14/06)
-!  (11) Bug fix: now index STT_I1, STT_J1, STT_I2, STT_J2 correctly
-!        (dkh, phs, bmy, 11/29/06)
+!  (1 ) Split off the GEOS-4 & GEOS-5 relevant parts from the previous 
+!        routine DO_GLOBAL_TRANSPORT (bmy, 10/30/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -193,393 +194,528 @@
       USE PJC_PFIX_MOD,     ONLY : DO_PJC_PFIX
       USE PRESSURE_MOD,     ONLY : GET_PEDGE, SET_FLOATING_PRESSURE
       USE TIME_MOD,         ONLY : GET_TS_DYN
-      USE TPCORE_BC_MOD,    ONLY : SAVE_GLOBAL_TPCORE_BC
-      USE TPCORE_MOD,       ONLY : TPCORE
+      !----------------------------------------------------------
+      ! Comment out for now -- restore later
+      !USE TPCORE_BC_MOD,    ONLY : SAVE_GLOBAL_TPCORE_BC
+      !----------------------------------------------------------
       USE TPCORE_FVDAS_MOD, ONLY : TPCORE_FVDAS
       USE TRACER_MOD,       ONLY : N_TRACERS, STT, TCVV
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! IEBD1, IEBD2, JEBD1, JEBD2
-#     include "CMN_GCTM"  ! Re, G0_100
-#     include "CMN_DIAG"  ! ND24, ND25, ND26
+#     include "CMN_SIZE"         ! Size parameters        
+#     include "CMN_GCTM"         ! Physical constants
+#     include "CMN_DIAG"         ! NDxx flags
       
       ! Local variables
-      INTEGER             :: I, J, L, L2, N, N_DYN
-      REAL*8              :: A_DIFF, D_DYN, TR_DIFF
-      REAL*8              :: AD_A(IIPAR,JJPAR,LLPAR)
-      REAL*8              :: AD_B(IIPAR,JJPAR,LLPAR)
-      REAL*8              :: P_TP1(IIPAR,JJPAR)
-      REAL*8              :: P_TP2(IIPAR,JJPAR)
-      REAL*8              :: P_TEMP(IIPAR,JJPAR)
-      REAL*8              :: TR_A(IIPAR,JJPAR,LLPAR)
-      REAL*8              :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS)
-      REAL*8              :: UTMP(IIPAR,JJPAR,LLPAR)
-      REAL*8              :: VTMP(IIPAR,JJPAR,LLPAR)
-      REAL*8              :: WW(IIPAR,JJPAR,LLPAR) 
-      REAL*8              :: XMASS(IIPAR,JJPAR,LLPAR) 
-      REAL*8              :: YMASS(IIPAR,JJPAR,LLPAR) 
-
-      ! Parameters
-      INTEGER, PARAMETER  :: IGD=0, J1=3
-      REAL*8,  PARAMETER  :: Umax=200d0
+      INTEGER                   :: I, J, L, L2, N, N_DYN
+      REAL*8                    :: A_DIFF, D_DYN, TR_DIFF
+      REAL*8                    :: AD_A(IIPAR,JJPAR,LLPAR)
+      REAL*8                    :: AD_B(IIPAR,JJPAR,LLPAR)
+      REAL*8                    :: P_TP1(IIPAR,JJPAR)
+      REAL*8                    :: P_TP2(IIPAR,JJPAR)
+      REAL*8                    :: P_TEMP(IIPAR,JJPAR)
+      REAL*8                    :: TR_A(IIPAR,JJPAR,LLPAR)
+      REAL*8                    :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      REAL*8                    :: UTMP(IIPAR,JJPAR,LLPAR)
+      REAL*8                    :: VTMP(IIPAR,JJPAR,LLPAR)
+      REAL*8                    :: XMASS(IIPAR,JJPAR,LLPAR) 
+      REAL*8                    :: YMASS(IIPAR,JJPAR,LLPAR) 
 
       !=================================================================
-      ! DO_GLOBAL_TRANSPORT begins here!
+      ! GEOS4_GEOS5_GLOBAL_ADV begins here!
       !=================================================================
 
-      ! Save boundary conditions (global grid) for future nested run
-      IF ( LWINDO ) CALL SAVE_GLOBAL_TPCORE_BC
-
-      !=================================================================
-      ! Set boundary conditions for embedded chemistry.  For latitude 
-      ! boxes adjacent to the embedded box, chemistry is turned off, 
-      ! but we still need reasonable tracer concentrations, because 
-      ! transport is still turned on for the entire globe.  We keep 
-      ! the same initial conditions for these adjacent boxes for the 
-      ! duration of the run.
-      !=================================================================
-      IF ( LEMBED ) THEN
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TRACERS
-         DO L = 1, LLPAR
-
-            !-------------------------
-            ! E/W boundary conditions
-            !-------------------------
-            DO J = 1, JJPAR
-               IF ( IEBD1 > 1 ) THEN
-                  STT_J1(J,L,N) = STT(IEBD1-1,J,L,N)
-               ENDIF
-         
-               IF ( IEBD2 < IIPAR ) THEN
-                  STT_J2(J,L,N) = STT(IEBD2+1,J,L,N)
-               ENDIF
-            ENDDO
-
-            !-------------------------
-            ! N/S boundary conditions
-            !-------------------------
-            DO I = 1, IIPAR              
-               IF ( JEBD1 > 1  ) THEN
-                  STT_I1(I,L,N) = STT(I,JEBD1-1,L,N)
-               ENDIF
-         
-               IF ( JEBD2 < JJPAR ) THEN
-                  STT_I2(I,L,N) = STT(I,JEBD2+1,L,N)
-               ENDIF
-            ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-
-      ENDIF
-
-      !=================================================================
-      ! Prepare variables for calls to PJC P-fixer and TPCORE
-      !
-      ! For GEOS-4 (hybrid grid), the pressure at the bottom edge 
-      ! grid box (I,J,L) is given by:
-      !
-      !    P(I,J,L) = Ap(L) + Bp(L) * Psurf(I,J)
-      !
-      ! where:
-      !
-      !    Ap(L) and Bp(L) are defined in "pressure_mod.f"
-      !    Psurf(I,J) = "true" surface pressure at surface box (I,J)
-      !
-      ! However, for GEOS-1, GEOS-STRAT, and GEOS-3, these are pure
-      ! sigma grids, and the pressure at the bottom edge of level L
-      ! is given by:
-      !
-      !    P(I,J,L) = Ap(L) + Bp(L) * ( Psurf(I,J) - PTOP )
-      !
-      ! where:
-      !
-      !    Ap(L)      = PTOP for all L
-      !    Bp(L)      = bottom sigma edge of level L
-      !    Psurf(I,J) = "true" surface pressure at surface box (I,J)
-      !    PTOP       = model top pressure
-      !
-      ! When passing pressures to TPCORE, we must make sure that they
-      ! are consistent with the definition of the corresponding Ap and
-      ! Bp vertical coordinates.  This means:
-      !
-      !    GEOS-4    : pass Psurf(I,J)            to TPCORE
-      !    GEOS-3    : pass ( Psurf(I,J) - PTOP ) to TPCORE
-      !    GEOS-STRAT: pass ( Psurf(I,J) - PTOP ) to TPCORE
-      !    GEOS-1    : pass ( Psurf(I,J) - PTOP ) to TPCORE
-      !
-      ! where Psurf(I,J) is the true surface pressure at box (I,J) 
-      ! and PTOP the model top pressure.  
-      !
-      ! Also, the PJC P-fixer driver routine, DO_PJC_PFIX, now accepts 
-      ! the true surface pressure instead of Psurf-PTOP.  This means:
-      !
-      !    GEOS-4    : pass P_TP1,      P_TP2      to DO_PJC_PFIX
-      !    GEOS-3    : pass P_TP1+PTOP, P_TP2+PTOP to DO_PJC_PFIX
-      !=================================================================
+      !-----------------------------------------------------------------
+      ! Comment out for now -- restore later
+      !! Save boundary conditions (global grid) for future nested run
+      !IF ( LWINDO ) CALL SAVE_GLOBAL_TPCORE_BC
+      !-----------------------------------------------------------------
        
       ! Dynamic timestep [s]
       N_DYN = GET_TS_DYN() * 60
       D_DYN = DBLE( N_DYN )
 
-      ! P_TP1 = PS - PTOP at the middle of the dynamic timestep
-      ! P_TP2 = PS - PTOP at the end    of the dynamic timestep      
+      !=================================================================
+      ! Prepare variables for calls to PJC pressure-fixer and TPCORE
+      !
+      ! For GEOS-4 and GEOS-5 (hybrid grids), the pressure at the 
+      ! bottom edge of grid box (I,J,L) is given by:
+      !
+      !    P(I,J,L) = Ap(L) + [ Bp(L) * Psurface(I,J) ]
+      !
+      ! where Psurface is the true surface pressure (i.e. not PS-PTOP).
+      ! and Ap(L), Bp(L) define the vertical grid (see pressure_mod.f)
+      !=================================================================
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-#if defined( GEOS_4 ) || defined( GEOS_5 )
-
-         ! *** For GEOS-4, GEOS-5 winds ***
-         ! We need to have P_TP1 and P_TP2 as the true surface pressure, 
-         ! in order to be consistent with the Ap and Bp coordinates which 
-         ! define the GEOS-4 hybrid grid.
+         ! True surface pressure at midpoint of dynamic timestep [hPa]
          P_TP1(I,J) = GET_PEDGE(I,J,1)
-         P_TP2(I,J) = PSC2(I,J)       
 
-#else 
-
-         ! *** For GCAP, GEOS-3, GEOS-STRAT, GEOS-1 winds *** 
-         ! We need to have P_TP1 and P_TP2 to be ( true sfc pressure - PTOP )
-         ! in order to be consistent with the Ap and Bp coordinates which 
-         ! define the pure-sigma grid.  
-         P_TP1(I,J) = GET_PEDGE(I,J,1) - PTOP
-         P_TP2(I,J) = PSC2(I,J)        - PTOP
-
-#endif
+         ! True surface pressure at end of dynamic timestep [hPa]
+         P_TP2(I,J) = PSC2(I,J)    
+   
       ENDDO
       ENDDO
+!$OMP END PARALLEL DO
       
-      ! Select proper version of TPCORE
-      IF ( USE_GEOS_4_TRANSPORT ) THEN
+      !=================================================================
+      ! Get the air and tracer mass before advection
+      !=================================================================
 
-         !==============================================================
-         ! Use GEOS-4/fvDAS version of TPCORE
-         ! (compatible with GEOS-3, GEOS-4, or GCAP winds)
-         !==============================================================
+      ! Airmass [kg] before transport
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J) )
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
-         ! Airmass [kg] before transport
+      ! Tracer mass [kg] before transport
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N )
+      DO N = 1, N_TRACERS
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         TR_B(I,J,L,N) = STT(I,J,L,N) * AD_B(I,J,L) / TCVV(N)
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      !=================================================================
+      ! Call the PJC/LLNL pressure fixer to get the adjusted air 
+      ! masses XMASS and YMASS.  XMASS and YMASS need to be passed to 
+      ! TPCORE_FVDAS in order to ensure mass conservation.
+      !=================================================================
+
+      ! NOTE: P_TP1 and P_TP2 are the true surface pressures!
+      CALL DO_PJC_PFIX( D_DYN, P_TP1, P_TP2, 
+     &                  UWND,  VWND,  XMASS, YMASS )
+
+      !=================================================================
+      ! Call TPCORE_FVDAS to perform the advection
+      !=================================================================
+
+      ! Store winds in UTMP, VTMP to preserve UWND, VWND 
+      ! for diagnostics.  Flip in the vertial for TPCORE.
+      UTMP(:,:,1:LLPAR) = UWND(:,:,LLPAR:1:-1)
+      VTMP(:,:,1:LLPAR) = VWND(:,:,LLPAR:1:-1)
+
+      ! Do the advection
+      CALL TPCORE_FVDAS( D_DYN,    Re,        IIPAR,    JJPAR,
+     &                   LLPAR,    JFIRST,    JLAST,    NG,
+     &                   MG,       N_TRACERS, Ap,       Bp,
+     &                   UTMP,     VTMP,      P_TP1,    P_TP2,
+     &                   P_TEMP,   STT(:,:,LLPAR:1:-1,:),       
+     &                   IORD,     JORD,      KORD,     N_ADJ,     
+     &                   XMASS(:,:,LLPAR:1:-1),    
+     &                   YMASS(:,:,LLPAR:1:-1),
+     &                   MASSFLEW(:,:,LLPAR:1:-1,:), 
+     &                   MASSFLNS(:,:,LLPAR:1:-1,:),  
+     &                   MASSFLUP(:,:,LLPAR:1:-1,:),    A_M2,
+     &                   TCVV,     ND24,      ND25,     ND26 )
+
+      !=================================================================
+      ! Reset surface pressure and ensure mass conservation
+      !=================================================================
+
+      ! Reset the floating surface pressure with P_TP2, the "true"
+      ! surface pressure at the end of the dynamic timestep.
+      CALL SET_FLOATING_PRESSURE( P_TP2 )
+
+      ! Adjust tracer to correct residual non-conservation of mass
+      DO N = 1, N_TRACERS
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J) )
+
+            ! Air mass [kg] after transport
+            IF ( N == 1 ) THEN
+               AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J) )
+            ENDIF
+         
+            ! Tracer mass [kg] after transport
+            TR_A(I,J,L) = STT(I,J,L,N) * AD_A(I,J,L) / TCVV(N)
          ENDDO
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
 
-         ! Tracer mass [kg] before transport
+         ! Residual mass difference [kg]: before - after
+         TR_DIFF = SUM( TR_B(:,:,:,N) ) - SUM( TR_A )
+
+         ! Convert from [kg] to [v/v]
+         TR_DIFF = TR_DIFF / SUM( AD_A ) * TCVV(N)
+
+         ! Add mass difference [v/v] back to STT
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TRACERS
+!$OMP+PRIVATE( I, J, L )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            TR_B(I,J,L,N) = STT(I,J,L,N) * AD_B(I,J,L) / TCVV(N)
-         ENDDO
+            STT(I,J,L,N) = STT(I,J,L,N) + TR_DIFF               
+            STT(I,J,L,N) = MAX( STT(I,J,L,N), 0d0 )
          ENDDO
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
+      ENDDO
 
-         !----------------------------
-         ! Apply pressure fixer 
-         !----------------------------
-
-#if   defined( GEOS_4 ) || defined( GEOS_5 )
-
-         ! *** For GEOS-4 and GEOS-5 winds ***
-         ! Call PJC P-fixer to get adjusted air masses (XMASS, YMASS)
-         ! Pass "true" surface pressures P_TP1 and P_TP2 to DO_PJC_PFIX.
-         CALL DO_PJC_PFIX( D_DYN, P_TP1, P_TP2, 
-     &                     UWND,  VWND,  XMASS, YMASS )
-
-#else
-         ! *** For GCAP and GEOS-3 winds ***
-         ! Call PJC P-fixer to get adjusted air masses (XMASS, YMASS)
-         ! P_TP1 and P_TP2 are ( Psurface - PTOP ), so we must call 
-         ! DO_PJC_PFIX with ( P_TP1 + PTOP ) and ( P_TP2 + PTOP ). 
-         CALL DO_PJC_PFIX( D_DYN, P_TP1+PTOP, P_TP2+PTOP, 
-     &                     UWND,  VWND,       XMASS, YMASS )
-
-#endif
-
-         !----------------------------
-         ! Call transport code
-         !----------------------------
-
-         ! Flip arrays in vertical dimension for TPCORE
-         ! Store winds in UTMP, VTMP to preserve UWND, VWND for diagnostics
-         UTMP(:,:,1:LLPAR) = UWND(:,:,LLPAR:1:-1)
-         VTMP(:,:,1:LLPAR) = VWND(:,:,LLPAR:1:-1)
-
-         ! GEOS-4/fvDAS transport (the output pressure is P_TEMP)
-         ! NOTE: P_TP1 and P_TP2 must be consistent with the definition
-         ! of Ap and Bp.  For GEOS-4, P_TP1 and P_TP2 must be the "true"
-         ! surface pressure, but for GEOS-3, they must be ( Psurface -PTOP ).  
-         CALL TPCORE_FVDAS( D_DYN,    Re,        IIPAR,    JJPAR,
-     &                      LLPAR,    JFIRST,    JLAST,    NG,
-     &                      MG,       N_TRACERS, Ap,       Bp,
-     &                      UTMP,     VTMP,      P_TP1,    P_TP2,
-     &                      P_TEMP,   STT(:,:,LLPAR:1:-1,:),       
-     &                      IORD,     JORD,      KORD,     N_ADJ,     
-     &                      XMASS(:,:,LLPAR:1:-1),    
-     &                      YMASS(:,:,LLPAR:1:-1),
-     &                      MASSFLEW(:,:,LLPAR:1:-1,:), 
-     &                      MASSFLNS(:,:,LLPAR:1:-1,:),  
-     &                      MASSFLUP(:,:,LLPAR:1:-1,:),    A_M2,
-     &                      TCVV,     ND24,      ND25,     ND26 )
-
-         !----------------------------
-         ! Reset surface pressure
-         !----------------------------
-
-#if   defined( GEOS_4 ) || defined( GEOS_5 )
-
-         ! *** For GEOS-4 or GEOS-5 winds ***
-         ! P_TP2 is the "true" surface pressure at the end of the 
-         ! dynamic timestep.  Reset the pressure with P_TP2.  This will 
-         ! be the pressure at the start of the next dynamic timestep.
-         CALL SET_FLOATING_PRESSURE( P_TP2 )
-#else
-
-         ! *** For GCAP and GEOS-3 winds ***
-         ! P_TP2 is the "true" surface pressure at the end of the dynamic 
-         ! timestep - PTOP.  Reset the pressure with P_TP2+PTOP.  This 
-         ! will be the pressure at the start of the next dynamic timestep.
-         CALL SET_FLOATING_PRESSURE( P_TP2 + PTOP )
-
-#endif
-
-         ! Adjust tracer to correct residual non-conservation of mass
-         DO N = 1, N_TRACERS
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-
-               ! Air mass [kg] after transport
-               IF ( N == 1 ) THEN
-                  AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J) )
-               ENDIF
-         
-               ! Tracer mass [kg] after transport
-               TR_A(I,J,L) = STT(I,J,L,N) * AD_A(I,J,L) / TCVV(N)
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-            ! Residual mass difference [kg]: before - after
-            TR_DIFF = SUM( TR_B(:,:,:,N) ) - SUM( TR_A )
-
-            ! Convert from [kg] to [v/v]
-            TR_DIFF = TR_DIFF / SUM( AD_A ) * TCVV(N)
-
-            ! Add mass difference [v/v] back to STT
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               STT(I,J,L,N) = STT(I,J,L,N) + TR_DIFF               
-               STT(I,J,L,N) = MAX( STT(I,J,L,N), 0d0 )
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-         ENDDO
-
-      ELSE
-      
-         !==============================================================
-         ! Use TPCORE version 7.1.m
-         ! (compatible with GEOS-1, GEOS-STRAT, or GEOS-3)
-         !==============================================================
-
-         ! Flip arrays in vertical dimension
-         ! Store winds in UTMP, VTMP to preserve UWND, VWND for diagnostics
-         UTMP(:,:,1:LLPAR  ) = UWND(:,:,LLPAR:1:-1  )
-         VTMP(:,:,1:LLPAR  ) = VWND(:,:,LLPAR:1:-1  )
-
-         ! TPCORE v7.1.m transport scheme (output pressure is P_TP2)
-         ! The pressures P_TP1 and P_TP2 are PS-PTOP, in order to
-         ! be consistent with the definition of Ap and Bp for GEOS-3
-         ! GEOS-STRAT, and GEOS-1 winds. (bmy, 10/27/03)
-         CALL TPCORE( IGD,   STT(:,:,LLPAR:1:-1,:),
-     &                P_TP1, P_TP2, UTMP, VTMP,  WW,    
-     &                N_DYN, IORD,  JORD, KORD,  N_TRACERS, 
-     &                IIPAR, JJPAR, J1,   LLPAR, Ap,   
-     &                Bp,    PTOP,  Re,   LFILL, LMFCT, Umax )
-
-         ! Reset floating pressure w/ pressure adjusted by TPCORE.  Here
-         ! P_TP2 is PS-PTOP, so reset the pressure with P_TP2+PTOP. This
-         ! will be the pressure at the start of the next dynamic timestep.
-         CALL SET_FLOATING_PRESSURE( P_TP2 + PTOP )
-           
-      ENDIF
-
-      !=================================================================
-      ! Reset the boundary conditions at adjacent boxes for embedded 
-      ! chemistry, so transport in the non-chemistry southern hemisphere 
-      ! does not transport weird things into the northern hemisphere.
-      !=================================================================
-      IF ( LEMBED ) THEN
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TRACERS
-         DO L = 1, LLPAR
-
-            !-------------------------
-            ! E/W boundary conditions
-            !-------------------------
-            DO J = 1, JJPAR
-               IF ( IEBD1 > 1  ) THEN
-                  STT(IEBD1-1,J,L,N) = STT_J1(J,L,N)
-               ENDIF
-         
-               IF ( IEBD2 < IIPAR ) THEN
-                  STT(IEBD2+1,J,L,N) = STT_J2(J,L,N)
-               ENDIF
-            ENDDO
-
-            !-------------------------
-            ! E/W boundary conditions
-            !-------------------------
-            DO I = 1, IIPAR
-               IF ( JEBD1 > 1  ) THEN
-                  STT(I,JEBD1-1,L,N) = STT_I1(I,L,N)
-               ENDIF
-               
-               IF ( JEBD2 < JJPAR ) THEN
-                  STT(I,JEBD2+1,L,N) = STT_I2(I,L,N)
-               ENDIF
-            ENDDO
-
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-
-      ENDIF               
-                    
       !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### DO_GLOBAL_TRANSPORT: a TPCORE') 
+      IF ( LPRT ) CALL DEBUG_MSG( '### G4_G5_GLOB_ADV: a TPCORE' ) 
 
       ! Return to calling program
-      END SUBROUTINE DO_GLOBAL_TRANSPORT
+      END SUBROUTINE GEOS4_GEOS5_GLOBAL_ADV
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE GEOS3_GLOBAL_ADV
+!
+!******************************************************************************
+!  Subroutine GEOS3_GLOBAL_ADV is the driver routine for TPCORE with the 
+!  GMAO GEOS-3 met fields. (bmy, 10/30/07)
+!     
+!  NOTES:
+!  (1 ) Split off the GEOS-3 relevant parts from the previous routine
+!        DO_GLOBAL_TRANSPORT (bmy, 10/30/07)
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE DAO_MOD,          ONLY : PSC2, UWND, VWND
+      USE DIAG_MOD,         ONLY : MASSFLEW, MASSFLNS, MASSFLUP
+      USE ERROR_MOD,        ONLY : IT_IS_NAN, DEBUG_MSG
+      USE LOGICAL_MOD,      ONLY : LEMBED, LFILL, LMFCT, LPRT, LWINDO
+      USE PRESSURE_MOD,     ONLY : GET_PEDGE, SET_FLOATING_PRESSURE
+      USE TIME_MOD,         ONLY : GET_TS_DYN
+      USE TPCORE_BC_MOD,    ONLY : SAVE_GLOBAL_TPCORE_BC
+      USE TPCORE_MOD,       ONLY : TPCORE
+      USE TRACER_MOD,       ONLY : N_TRACERS, STT, TCVV
+
+#     include "CMN_SIZE"         ! Size parameters
+#     include "CMN_GCTM"         ! Physical constants
+#     include "CMN_DIAG"         ! NDxx flags
+
+      ! Local variables
+      INTEGER                   :: I, J, L, N_DYN
+      REAL*8                    :: A_DIFF, D_DYN, TR_DIFF
+      REAL*8                    :: P_TP1(IIPAR,JJPAR)
+      REAL*8                    :: P_TP2(IIPAR,JJPAR)
+      REAL*8                    :: UTMP(IIPAR,JJPAR,LLPAR)
+      REAL*8                    :: VTMP(IIPAR,JJPAR,LLPAR)
+      REAL*8                    :: WW(IIPAR,JJPAR,LLPAR) 
+
+      ! Parameters
+      INTEGER, PARAMETER        :: IGD=0, J1=3
+      REAL*8,  PARAMETER        :: Umax=200d0
+
+      !=================================================================
+      ! GEOS3_GLOBAL_ADV begins here!
+      !=================================================================
+
+      ! Save boundary conditions (global grid) for future nested run
+      IF ( LWINDO ) CALL SAVE_GLOBAL_TPCORE_BC
+
+      ! Dynamic timestep [s]
+      N_DYN = GET_TS_DYN() * 60
+      D_DYN = DBLE( N_DYN )
+
+      !=================================================================
+      ! Prepare variables for calls to TPCORE
+      !
+      ! For GEOS-3 (pure sigma grid), the pressure at the bottom edge 
+      ! of grid box (I,J,L) is given by:
+      !
+      !    P(I,J,L) = Ap(L) + [ Bp(L) * ( Psurface(I,J) - PTOP ) ]
+      !
+      ! where Psurface is the true surface pressure (i.e. not PS-PTOP).
+      ! and Ap(L), Bp(L) define the vertical grid (see pressure_mod.f)
+      !
+      ! Therefore, we construct the 2-D surface pressure arrays that
+      ! are required for TPCORE:
+      !
+      !    P_TP1(I,J) = ( Psurf(I,J) - PTOP ) at midpt of dyn timestep
+      !    P_TP2(I,J) = ( Psurf(I,J) - PTOP ) at end   of dyn timestep
+      !
+      ! Note that P_TP1 and P_TP2 need to be ( Psurface - PTOP ) in 
+      ! order to be consistent with the definition of Ap and Bp that
+      ! defines the GEOS-3 pure-sigma grid.
+      !
+      ! Also note that TPCORE will call the pressure fixer internally, 
+      ! which will ensure mass conservation.  However, we must reset 
+      ! the floating pressure with the output pressure after advection.
+      !=================================================================
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Psurface - PTOP at midpt of dynamic timestep [hPa]
+         P_TP1(I,J) = GET_PEDGE(I,J,1) - PTOP
+
+         ! Psurface - PTOP at end   of dynamic timestep [hPa]
+         P_TP2(I,J) = PSC2(I,J)        - PTOP
+
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+      
+      !==============================================================
+      ! Call TPCORE to perform the advection
+      !==============================================================
+
+      ! Store winds in UTMP, VTMP to preserve UWND, VWND 
+      ! for diagnostics.  Flip in the vertical for TPCORE.
+      UTMP(:,:,1:LLPAR) = UWND(:,:,LLPAR:1:-1)
+      VTMP(:,:,1:LLPAR) = VWND(:,:,LLPAR:1:-1)
+
+      ! TPCORE v7.1.m transport scheme.  Pass P_TP1 and P_TP2, as are
+      ! computed above.  P_TP2 will be overwritten with the new value
+      ! of (Psurface-PTOP) after transport.  NOTE: TPCORE assumes that 
+      ! L=1 is atm top, so flip in the vertical. (bmy, 10/30/07)
+      CALL TPCORE( IGD,   STT(:,:,LLPAR:1:-1,:),
+     &             P_TP1, P_TP2, UTMP, VTMP,  WW,    
+     &             N_DYN, IORD,  JORD, KORD,  N_TRACERS, 
+     &             IIPAR, JJPAR, J1,   LLPAR, Ap,   
+     &             Bp,    PTOP,  Re,   LFILL, LMFCT, Umax )
+
+      !=================================================================
+      ! Reset surface pressure in order to ensure mass conservation
+      !=================================================================
+
+      ! Reset floating pressure w/ pressure adjusted by TPCORE
+      ! P_TP2 is PS-PTOP, so reset the pressure with P_TP2+PTOP.
+      CALL SET_FLOATING_PRESSURE( P_TP2 + PTOP )
+           
+      !### Debug
+      IF ( LPRT ) CALL DEBUG_MSG( '### GEOS3_GLOB_ADV: a TPCORE' ) 
+
+      ! Return to calling program
+      END SUBROUTINE GEOS3_GLOBAL_ADV
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE GCAP_GLOBAL_ADV
+!
+!******************************************************************************
+!  Subroutine GCAP_GLOBAL_ADV is the driver routine for TPCORE with the 
+!  GCAP / GISS met fields. (bmy, 10/30/07)
+!     
+!  NOTES:
+!  (1 ) Split off the GCAP relevant parts from the previous routine
+!        DO_GLOBAL_TRANSPORT (bmy, 10/30/07)
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE DAO_MOD,          ONLY : PSC2, UWND, VWND
+      USE DIAG_MOD,         ONLY : MASSFLEW, MASSFLNS, MASSFLUP
+      USE ERROR_MOD,        ONLY : IT_IS_NAN, DEBUG_MSG
+      USE LOGICAL_MOD,      ONLY : LEMBED, LFILL, LMFCT, LPRT, LWINDO
+      USE PJC_PFIX_MOD,     ONLY : DO_PJC_PFIX
+      USE PRESSURE_MOD,     ONLY : GET_PEDGE, SET_FLOATING_PRESSURE
+      USE TIME_MOD,         ONLY : GET_TS_DYN
+      USE TPCORE_FVDAS_MOD, ONLY : TPCORE_FVDAS
+      USE TRACER_MOD,       ONLY : N_TRACERS, STT, TCVV
+
+#     include "CMN_SIZE"         ! Size parameters
+#     include "CMN_GCTM"         ! Physical constants
+#     include "CMN_DIAG"         ! NDxx flags
+
+      ! Local variables
+      INTEGER                   :: I, J, L, L2, N, N_DYN
+      REAL*8                    :: A_DIFF, D_DYN, TR_DIFF
+      REAL*8                    :: AD_A(IIPAR,JJPAR,LLPAR)
+      REAL*8                    :: AD_B(IIPAR,JJPAR,LLPAR)
+      REAL*8                    :: P_TP1(IIPAR,JJPAR)
+      REAL*8                    :: P_TP2(IIPAR,JJPAR)
+      REAL*8                    :: P_TEMP(IIPAR,JJPAR)
+      REAL*8                    :: TR_A(IIPAR,JJPAR,LLPAR)
+      REAL*8                    :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      REAL*8                    :: UTMP(IIPAR,JJPAR,LLPAR)
+      REAL*8                    :: VTMP(IIPAR,JJPAR,LLPAR)
+      REAL*8                    :: XMASS(IIPAR,JJPAR,LLPAR) 
+      REAL*8                    :: YMASS(IIPAR,JJPAR,LLPAR) 
+
+      !=================================================================
+      ! GCAP_GLOBAL_ADV begins here!
+      !=================================================================
+
+      ! Dynamic timestep [s]
+      N_DYN = GET_TS_DYN() * 60
+      D_DYN = DBLE( N_DYN )
+
+      !=================================================================
+      ! Prepare variables for calls to PJC presure-fixer and TPCORE
+      !
+      ! For GCAP (hybrid grid, but expressed as a pure-sigma grid), the 
+      ! pressure at the bottom edge grid box (I,J,L) is given by:
+      !
+      !    P(I,J,L) = Ap(L) + [ Bp(L) * ( Psurface(I,J) - PTOP ) ]
+      !
+      ! where Psurface is the true surface pressure (i.e. not PS-PTOP).
+      ! and Ap(L), Bp(L) define the vertical grid (see pressure_mod.f)
+      !
+      ! Therefore, we construct the 3-D pressure edge arrays PLE_TP1
+      ! and PLE_TP2 according to the above equation.  Note that PLE_TP1 
+      ! and PLE_TP2 are inverted (i.e. L=1 is atm top) for compatibility 
+      ! with TPCORE_FVDAS.
+      !=================================================================
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Psurface - PTOP at midpoint of dynamic timestep [hPa]
+         P_TP1(I,J) = GET_PEDGE(I,J,1) - PTOP
+
+         ! Psurface - PTOP at end of dynamic timestep [hPa]
+         P_TP2(I,J) = PSC2(I,J)        - PTOP
+
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+      
+      !==============================================================
+      ! Get the air & tracer mass before advection
+      !==============================================================
+
+      ! Airmass [kg] before transport
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J) )
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Tracer mass [kg] before transport
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N )
+      DO N = 1, N_TRACERS
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         TR_B(I,J,L,N) = STT(I,J,L,N) * AD_B(I,J,L) / TCVV(N)
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      !=================================================================
+      ! Call the PJC/LLNL pressure fixer to get the adjusted air 
+      ! masses XMASS and YMASS.  XMASS and YMASS need to be passed to 
+      ! TPCORE_FVDAS in order to ensure mass conservation.
+      !=================================================================
+
+      ! NOTE: P_TP1+PTOP & P_TP2+PTOP are the true surface pressures!
+      CALL DO_PJC_PFIX( D_DYN, P_TP1+PTOP, P_TP2+PTOP, 
+     &                  UWND,  VWND,       XMASS, YMASS )
+
+      !=================================================================
+      ! Call TPCORE_FVDAS to perform the advection
+      !=================================================================
+
+      ! Store winds in UTMP, VTMP to preserve UWND, VWND 
+      ! for diagnostics.  Flip in the vertical for TPCORE.
+      UTMP(:,:,1:LLPAR) = UWND(:,:,LLPAR:1:-1)
+      VTMP(:,:,1:LLPAR) = VWND(:,:,LLPAR:1:-1)
+
+      ! Do the advection
+      CALL TPCORE_FVDAS( D_DYN,    Re,        IIPAR,    JJPAR,
+     &                   LLPAR,    JFIRST,    JLAST,    NG,
+     &                   MG,       N_TRACERS, Ap,       Bp,
+     &                   UTMP,     VTMP,      P_TP1,    P_TP2,
+     &                   P_TEMP,   STT(:,:,LLPAR:1:-1,:),       
+     &                   IORD,     JORD,      KORD,     N_ADJ,     
+     &                   XMASS(:,:,LLPAR:1:-1),    
+     &                   YMASS(:,:,LLPAR:1:-1),
+     &                   MASSFLEW(:,:,LLPAR:1:-1,:), 
+     &                   MASSFLNS(:,:,LLPAR:1:-1,:),  
+     &                   MASSFLUP(:,:,LLPAR:1:-1,:),    A_M2,
+     &                   TCVV,     ND24,      ND25,     ND26 )
+
+      !=================================================================
+      ! Reset surface pressure and ensure mass conservation
+      !=================================================================
+
+      ! Reset the floating surface pressure with P_TP2+PTOP, the "true"
+      ! surface pressure at the end of the dynamic timestep.
+      CALL SET_FLOATING_PRESSURE( P_TP2 + PTOP )
+
+      ! Adjust tracer to correct residual non-conservation of mass
+      DO N = 1, N_TRACERS
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Air mass [kg] after transport
+            IF ( N == 1 ) THEN
+               AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J) )
+            ENDIF
+         
+            ! Tracer mass [kg] after transport
+            TR_A(I,J,L) = STT(I,J,L,N) * AD_A(I,J,L) / TCVV(N)
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+
+         ! Residual mass difference [kg]: before - after
+         TR_DIFF = SUM( TR_B(:,:,:,N) ) - SUM( TR_A )
+
+         ! Convert from [kg] to [v/v]
+         TR_DIFF = TR_DIFF / SUM( AD_A ) * TCVV(N)
+
+         ! Add mass difference [v/v] back to STT
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            STT(I,J,L,N) = STT(I,J,L,N) + TR_DIFF               
+            STT(I,J,L,N) = MAX( STT(I,J,L,N), 0d0 )
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+         ENDDO
+
+      !### Debug
+      IF ( LPRT ) CALL DEBUG_MSG( '### GCAP_GLOB_ADV: a TPCORE' ) 
+      
+      ! Return to calling program
+      END SUBROUTINE GCAP_GLOBAL_ADV
 
 !------------------------------------------------------------------------------
 
@@ -757,7 +893,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_TRANSPORT initializes all module variables and arrays. 
-!  (bmy, 3/10/03, 5/25/05)
+!  (bmy, 3/10/03, 10/30/07)
 !
 !  NOTES:
 !  (1 ) Now references GET_TS_DYN from "time_mod.f", INIT_TPCORE_FVDAS from
@@ -767,6 +903,8 @@
 !  (3 ) Now references LEMBED & LTPFV from "logical_mod.f".  Now references
 !        N_TRACERS from "tracer_mod.f". (bmy, 7/20/04)
 !  (4 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
+!  (5 ) Removed reference to USE_GEOS_4_TRANSPORT, STT_I1, STT_I2, STT_J1,
+!        STT_J2, variables (bmy, 10/30/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -786,58 +924,68 @@
       INTEGER             :: AS, J, K, L, N_DYN
       REAL*8              :: YMID_R(JJPAR)
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( GCAP )
-
-      ! For GEOS-4, GEOS-5, or GCAP winds, use the fvDAS transport routines
-      USE_GEOS_4_TRANSPORT = .TRUE.
-
-#elif defined( GEOS_3 ) 
-
-      ! For GEOS-3 winds, select either the GEOS-4/fvDAS transport
-      ! (if LTPFV=T) or the existing TPCORE 7.1m (if LTPFV=F)
-      USE_GEOS_4_TRANSPORT = LTPFV
-
-#else
-
-      ! We can't use the GEOS-4/fvDAS transport for GEOS-1/GEOS-STRAT
-      USE_GEOS_4_TRANSPORT = .FALSE.
-      
-#endif
-      
-      !=================================================================
-      ! Allocate arrays for embedded chemistry boundary conditions
-      !=================================================================
-      IF ( LEMBED ) THEN 
-         ALLOCATE( STT_I1( IIPAR, LLPAR, N_TRACERS ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'STT_I1' )
-         STT_I1 = 0d0
-
-         ALLOCATE( STT_I2( IIPAR, LLPAR, N_TRACERS ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'STT_I2' ) 
-         STT_I2 = 0d0
-
-         ALLOCATE( STT_J1( JJPAR, LLPAR, N_TRACERS ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'STT_J1' ) 
-         STT_J1 = 0d0
-
-         ALLOCATE( STT_J2( JJPAR, LLPAR, N_TRACERS ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'STT_J2' ) 
-         STT_J2 = 0d0
-      ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 10/30/07:
+! Remove USE_GEOS4_TRANSPORT (bmy, 10/30/07)
+!#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( GCAP )
+!
+!      ! For GEOS-4, GEOS-5, or GCAP winds, use the fvDAS transport routines
+!      USE_GEOS_4_TRANSPORT = .TRUE.
+!
+!#elif defined( GEOS_3 ) 
+!
+!      ! For GEOS-3 winds, select either the GEOS-4/fvDAS transport
+!      ! (if LTPFV=T) or the existing TPCORE 7.1m (if LTPFV=F)
+!      USE_GEOS_4_TRANSPORT = LTPFV
+!
+!#else
+!
+!      ! We can't use the GEOS-4/fvDAS transport for GEOS-1/GEOS-STRAT
+!      USE_GEOS_4_TRANSPORT = .FALSE.
+!      
+!#endif
+!-----------------------------------------------------------------------------
+! Prior to 10/30/07:
+! Remove embedded chemistry arrays (bmy, 10/30/07)      
+!      !=================================================================
+!      ! Allocate arrays for embedded chemistry boundary conditions
+!      !=================================================================
+!      IF ( LEMBED ) THEN 
+!         ALLOCATE( STT_I1( IIPAR, LLPAR, N_TRACERS ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'STT_I1' )
+!         STT_I1 = 0d0
+!
+!         ALLOCATE( STT_I2( IIPAR, LLPAR, N_TRACERS ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'STT_I2' ) 
+!         STT_I2 = 0d0
+!
+!         ALLOCATE( STT_J1( JJPAR, LLPAR, N_TRACERS ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'STT_J1' ) 
+!         STT_J1 = 0d0
+!
+!         ALLOCATE( STT_J2( JJPAR, LLPAR, N_TRACERS ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'STT_J2' ) 
+!         STT_J2 = 0d0
+!      ENDIF
+!-----------------------------------------------------------------------------
 
       !=================================================================
       ! Allocate arrays for TPCORE vertical coordinates 
       !
-      ! For TPCORE v7.1.m (for GEOS-1, GEOS-STRAT, GEOS-3 met fields):
+      ! For TPCORE v7.1.m (for GEOS-3 met fields):
       ! 
       !    P(I,J,L) = ( Ap(L) * PTOP ) + ( Bp(L) * ( Psurf(I,J)-PTOP ) )
       !
-      ! For GEOS-4/fvDAS TPCORE (for GEOS-3 or GEOS-4 only):
+      ! For fvDAS TPCORE with for GEOS-4 or GEOS-5 met fields:
       !
       !    P(I,J,L) = Ap(L) + ( Bp(L) * Psurf(I,J) )
       !
+      ! For fvDAS TPCORE with for GEOS-4 or GEOS-5 met fields:
+      ! 
+      !    P(I,J,L) = Ap(L) + ( Bp(L) * ( Psurf(I,J) - PTOP ) )
+      !
       ! Also here Ap, Bp will be flipped since both TPCORE versions
-      ! index levels from the atm. top downwards (bdf, bmy, 7/20/04)
+      ! index levels from the atm. top downwards (bdf, bmy, 10/30/07)
       !=================================================================
       ALLOCATE( Ap( LLPAR+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'Ap' )
@@ -852,11 +1000,21 @@
          ! K runs from the top down
          K = ( LLPAR + 1 ) - L + 1
 
-         IF ( USE_GEOS_4_TRANSPORT ) THEN
-            Ap(L) = GET_AP(K)        ! Ap(L) is in [hPa]
-         ELSE
-            Ap(L) = GET_AP(K) / PTOP ! Ap(L) = 1 for all levels L
-         ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 10/30/07:
+! Remove USE_GEOS_4_TRANSPORT variable (bmy, 10/30/07)
+!         IF ( USE_GEOS_4_TRANSPORT ) THEN
+!            Ap(L) = GET_AP(K)        ! Ap(L) is in [hPa]
+!         ELSE
+!            Ap(L) = GET_AP(K) / PTOP ! Ap(L) = 1 for all levels L
+!         ENDIF
+!-----------------------------------------------------------------------------
+
+#if   defined( GEOS_3 )
+         Ap(L) = GET_AP(K) / PTOP   ! Ap(L) = 1 for all levels L
+#else
+         Ap(L) = GET_AP(K)          ! Ap(L) is in [hPa] 
+#endif
 
          Bp(L) = GET_BP(K)
       ENDDO
@@ -875,24 +1033,32 @@
       !=================================================================
       ! Additional setup for the GEOS-4/fvDAS version of TPCORE
       !=================================================================
-      IF ( USE_GEOS_4_TRANSPORT ) THEN
+!----------------------------------------------
+! Prior to 10/30/07:
+!      IF ( USE_GEOS_4_TRANSPORT ) THEN
+!----------------------------------------------
+#if   !defined( GEOS_3 )
 
-         ! Initialize
-         N_DYN = GET_TS_DYN() * 60
-         N_ADJ = 0
-         NG    = 0
-         MG    = 0
+      ! Initialize
+      N_DYN = GET_TS_DYN() * 60
+      N_ADJ = 0
+      NG    = 0
+      MG    = 0
 
-         ! YMID_R is latitude of grid box center [radians]
-         DO J = 1,JJPAR
-            YMID_R(J) = GET_YMID_R(J)
-         ENDDO
+      ! YMID_R is latitude of grid box center [radians]
+      DO J = 1,JJPAR
+         YMID_R(J) = GET_YMID_R(J)
+      ENDDO
 
-         ! Call INIT routine from "tpcore_fvdas_mod.f" 
-         CALL INIT_TPCORE( IIPAR,  JJPAR, LLPAR,  JFIRST, JLAST, 
-     &                     NG, MG, DBLE( N_DYN ), Re,     YMID_R )
+      ! Call INIT routine from "tpcore_fvdas_mod.f" 
+      CALL INIT_TPCORE( IIPAR,  JJPAR, LLPAR,  JFIRST, JLAST, 
+     &                  NG, MG, DBLE( N_DYN ), Re,     YMID_R )
 
-      ENDIF
+!--------------------
+! Prior to 10/30/07:
+!      ENDIF
+!--------------------
+#endif
 
       ! Return to calling program
       END SUBROUTINE INIT_TRANSPORT
@@ -903,10 +1069,11 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_TRANSPORT deallocates all module arrays. 
-!  (bmy, 3/10/03, 6/24/03)
+!  (bmy, 3/10/03, 10/30/07)
 !
 !  NOTES:
 !  (1 ) Remove reference to DSIG, it's obsolete. (bmy, 6/24/03)
+!  (2 ) Remove obsolete embedded chemistry arrays (bmy, 10/30/07)
 !******************************************************************************
 !
       !=================================================================
@@ -915,10 +1082,13 @@
       IF ( ALLOCATED( Ap     ) ) DEALLOCATE( Ap     )
       IF ( ALLOCATED( A_M2   ) ) DEALLOCATE( A_M2   )
       IF ( ALLOCATED( Bp     ) ) DEALLOCATE( Bp     )
-      IF ( ALLOCATED( STT_I1 ) ) DEALLOCATE( STT_I1 )
-      IF ( ALLOCATED( STT_I2 ) ) DEALLOCATE( STT_I2 )
-      IF ( ALLOCATED( STT_J1 ) ) DEALLOCATE( STT_J1 )
-      IF ( ALLOCATED( STT_J2 ) ) DEALLOCATE( STT_J2 )
+      !------------------------------------------------------
+      ! Prior to 10/30/07:
+      !IF ( ALLOCATED( STT_I1 ) ) DEALLOCATE( STT_I1 )
+      !IF ( ALLOCATED( STT_I2 ) ) DEALLOCATE( STT_I2 )
+      !IF ( ALLOCATED( STT_J1 ) ) DEALLOCATE( STT_J1 )
+      !IF ( ALLOCATED( STT_J2 ) ) DEALLOCATE( STT_J2 )
+      !------------------------------------------------------
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_TRANSPORT

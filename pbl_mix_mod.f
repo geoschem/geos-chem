@@ -1,4 +1,4 @@
-! $Id: pbl_mix_mod.f,v 1.6 2006/09/08 19:21:01 bmy Exp $
+! $Id: pbl_mix_mod.f,v 1.7 2007/11/16 18:47:44 bmy Exp $
       MODULE PBL_MIX_MOD
 !
 !******************************************************************************
@@ -314,7 +314,7 @@
             ENDIF 
 
 !### Debug
-!            IF ( I==23 .and. J==34 .and. L < 5 ) THEN 
+!            IF ( I==23 .and. J==34 .and. L < 6 ) THEN 
 !               PRINT*, '###--------------------------------------'
 !               PRINT*, '### COMPUTE_PBL_HEIGHT'
 !               PRINT*, '### I, J, L     : ', I, J, L

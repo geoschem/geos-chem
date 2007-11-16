@@ -1,4 +1,4 @@
-! $Id: global_o3_mod.f,v 1.10 2007/03/29 20:31:18 bmy Exp $
+! $Id: global_o3_mod.f,v 1.11 2007/11/16 18:47:40 bmy Exp $
       MODULE GLOBAL_O3_MOD
 !
 !******************************************************************************
@@ -61,7 +61,7 @@
 !******************************************************************************
 !  Subroutine GET_GLOBAL_O3 reads monthly mean O3 data fields.  
 !  These are needed for simulations such as offline sulfate/aerosol. 
-!  (bmy, 3/23/03, 1/19/07)
+!  (bmy, 3/23/03, 2/7/07)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -77,6 +77,7 @@
 !        since the new O3 data file only goes up to LLTROP. (bmy, 11/18/05)
 !  (7 ) Modified to include stratospheric O3 -- Requires access to new
 !        MERGE.O3* files. (phs, 1/19/07)
+!  (8 ) Renamed GRID30LEV to GRIDREDUCED (bmy, 2/7/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -110,7 +111,11 @@
          FIRST = .FALSE.
       ENDIF
 
-#if   defined( GRID30LEV )
+!-----------------------------------
+! Prior to 2/2/07
+!#if   defined( GRID30LEV )
+!-----------------------------------
+#if   defined( GRIDREDUCED )
 
       ! Filename for 30-level model
       FILENAME = TRIM( DATA_DIR )                           // 

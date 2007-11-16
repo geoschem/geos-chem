@@ -1,31 +1,31 @@
-! $Id: convection_mod.f,v 1.15 2007/03/29 20:31:11 bmy Exp $
+! $Id: convection_mod.f,v 1.16 2007/11/16 18:47:35 bmy Exp $
       MODULE CONVECTION_MOD
 !
 !******************************************************************************
 !  Module CONVECTION_MOD contains routines which select the proper convection
-!  code for GEOS-1, GEOS-STRAT, GEOS-3, or GEOS-4 met field data sets. 
-!  (bmy, 6/28/03, 1/19/07)
+!  code for GEOS-3, GEOS-4, GEOS-5, or GCAP met field data sets. 
+!  (bmy, 6/28/03, 8/15/07)
 !
 !  Module Routines:
 !  ============================================================================
 !  (1 ) DO_CONVECTION       : Wrapper routine, chooses correct convection code
 !  (2 ) DO_GEOS4_CONVECT    : Calls GEOS-4 convection routines 
 !  (3 ) DO_GCAP_CONVECT     : Calls GCAP convection routines
-!  (2 ) NFCLDMX             : Convection routine for GEOS-1, GEOS-S, GEOS-3
+!  (4 ) NFCLDMX             : Convection routine for GEOS-3 and GEOS-5 met
 !
 !  GEOS-CHEM modules referenced by convection_mod.f
 !  ============================================================================
-!  (1 ) dao_mod.f           : Module containing arrays for DAO met fields    
-!  (2 ) diag_mod.f          : Module containing GEOS-CHEM diagnostic arrays
+!  (1 ) dao_mod.f           : Module w/ containing arrays for DAO met fields   
+!  (2 ) diag_mod.f          : Module w/ GEOS-Chem diagnostic arrays
 !  (3 ) fvdas_convect_mod.f : Module w/ convection code for fvDAS met fields
-!  (4 ) grid_mod.f          : Module containing horizontal grid information
-!  (5 ) logical-mod.f       : Module containing GEOS-CHEM logical switches
-!  (6 ) ocean_mercury_mod.f : Module containing routines for Hg(0) ocean flux
-!  (7 ) pressure_mod.f      : Module containing routines to compute P(I,J,L)
-!  (8 ) time_mod.f          : Module containing routines for computing time
-!  (9 ) tracer_mod.f        : Module containing GEOS-CHEM tracer array STT etc
-!  (10) tracerid_mod.f      : Module containing GEOS-CHEM tracer ID flags etc
-!  (11) wetscav_mod.f       : Module containing routines for wetdep/scavenging
+!  (4 ) grid_mod.f          : Module w/ horizontal grid information
+!  (5 ) logical_mod.f       : Module w/ GEOS-Chem logical switches
+!  (6 ) ocean_mercury_mod.f : Module w/ routines for Hg(0) ocean flux
+!  (7 ) pressure_mod.f      : Module w/ routines to compute P(I,J,L)
+!  (8 ) time_mod.f          : Module w/ routines for computing time
+!  (9 ) tracer_mod.f        : Module w/ GEOS-Chem tracer array STT etc
+!  (10) tracerid_mod.f      : Module w/ GEOS-Chem tracer ID flags etc
+!  (11) wetscav_mod.f       : Module w/ routines for wetdep/scavenging
 !
 !  NOTES:
 !  (1 ) Contains new updates for GEOS-4/fvDAS convection.  Also now references
@@ -42,7 +42,8 @@
 !  (6 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (7 ) Shut off scavenging in shallow convection for GCAP (swu, bmy, 11/1/05)
 !  (8 ) Modified for tagged Hg simulation (cdh, bmy, 1/6/06)
-!  (9 ) Bug fix: now only call ADD_Hg2_WD if LDYNOCEAN=T (phs, 1/19/07)
+!  (9 ) Bug fix: now only call ADD_Hg2_WD if LDYNOCEAN=T (phs, 2/8/07)
+!  (10) Fix for GEOS-5 met fields in routine NFCLDMX (swu, 8/15/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -69,15 +70,23 @@
 !
 !******************************************************************************
 !  Subroutine DO_CONVECTION calls the appropriate convection driver program
-!  for different met field data sets. (swu, bmy, 5/25/05)
+!  for different met field data sets. (swu, bmy, 5/25/05, 2/8/07)
 !
 !  NOTES:
+!  (1 ) Now reference "CMN_SIZE".  Now references CLDMAS, CMFMC, DTRAIN from
+!        "dao_mod.f" so that we can pass either GEOS-5 or GEOS-3 meteorology
+!        to NFCLDMX. (bmy, 2/8/07)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE TRACER_MOD, ONLY : N_TRACERS, TCVV, STT
+      USE DAO_MOD,    ONLY : CLDMAS,    CMFMC, DTRAIN
+      USE TRACER_MOD, ONLY : N_TRACERS, TCVV,  STT
 
-#     include "define.h"   ! C-preprocessor switches 
+!-------------------------------------------------------
+! Prior to 2/8/07:
+!#     include "define.h"   ! C-preprocessor switches 
+!-------------------------------------------------------
+#     include "CMN_SIZE"   ! Size parameters
 
 #if   defined( GCAP ) 
 
@@ -97,13 +106,23 @@
       ! Call GEOS-4 driver routine
       CALL DO_GEOS4_CONVECT
 
-#else
+#elif defined( GEOS_5 )
+
       !-------------------------
-      ! GEOS-1, GEOS-S, GEOS-3
+      ! GEOS-5 met fields
       !-------------------------
 
       ! Call the S-J Lin convection routine for GEOS-1, GEOS-S, GEOS-3
-      CALL NFCLDMX( N_TRACERS, TCVV, STT )
+      CALL NFCLDMX( N_TRACERS, TCVV, CMFMC(:,:,2:LLPAR+1), DTRAIN, STT )
+
+#elif defined( GEOS_3 )
+
+      !-------------------------
+      ! GEOS-3 met fields
+      !-------------------------
+
+      ! Call the S-J Lin convection routine for GEOS-1, GEOS-S, GEOS-3
+      CALL NFCLDMX( N_TRACERS, TCVV, CLDMAS, DTRAIN, STT )
 
 #endif
 
@@ -437,13 +456,13 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE NFCLDMX( NC, TCVV, Q )
+      SUBROUTINE NFCLDMX( NC, TCVV, CLDMAS, DTRN, Q )
 !
 !******************************************************************************
 !  Subroutine NFCLDMX is S-J Lin's cumulus transport module for 3D GSFC-CTM,
 !  modified for the GEOS-CHEM model.  The "NF" stands for "no flipping", and
 !  denotes that you don't have to flip the tracer array Q in the main
-!  program before passing it to NFCLDMX. (bmy, 2/12/97, 1/19/05)
+!  program before passing it to NFCLDMX. (bmy, 2/12/97, 2/8/07)
 !
 !  NOTE: NFCLDMX can be used with GEOS-1, GEOS-STRAT, and GEOS-3 met fields.
 !  For GEOS-4/fVDAS, you must use the routines in "fvdas_convect_mod.f"
@@ -451,12 +470,14 @@
 !
 !  Arguments as input:
 !  ==========================================================================
-!  (1 ) NC    : TOTAL number of tracers (soluble + insoluble) [unitless]
-!  (2 ) TCVV  : MW air (g/mol) / MW of tracer (g/mol)         [unitless]
+!  (1 ) NC     : TOTAL number of tracers (soluble + insoluble)  [unitless]
+!  (2 ) TCVV   : MW air (g/mol) / MW of tracer (g/mol)          [unitless]
+!  (3 ) CLDMAS : Cloud mass flux (at upper edges of each level) [kg/m2/s]
+!  (4 ) DTRN   : Detrainment mass flux                          [kg/m2/s]
 !
 !  Arguments as Input/Output:
 !  ============================================================================
-!  (3 )  Q    : Tracer concentration                          [v/v]
+!  (3 )  Q     : Tracer concentration                           [v/v]
 !
 !  Reference:
 !  ============================================================================
@@ -576,16 +597,18 @@
 !        lost by wet scavenging (sas, bmy, 1/19/05)
 !  (15) Now references IS_Hg2 from "tracerid_mod.f".  Now pass tracer # IC
 !        to ADD_Hg2_WD. (cdh, bmy, 1/6/06)
-!  (16) Bug fix: now only call ADD_Hg2_WD if LDYNOCEAN=T (phs, 1/19/07)
+!  (16) Bug fix: now only call ADD_Hg2_WD if LDYNOCEAN=T (phs, 2/8/07)
+!  (17) Now make CLDMAS, DTRN as arguments, so that we can pass either
+!        GEOS-3 or GEOS-3 met data (bmy, 2/8/07)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,           ONLY : AD,   CLDMAS, DTRN=>DTRAIN
+      USE DAO_MOD,           ONLY : AD  !,   CLDMAS, DTRN=>DTRAIN
       USE DIAG_MOD,          ONLY : AD37, AD38,   CONVFLUP
       USE GRID_MOD,          ONLY : GET_AREA_M2
       USE LOGICAL_MOD,       ONLY : LDYNOCEAN
       USE OCEAN_MERCURY_MOD, ONLY : ADD_Hg2_WD
-      USE PRESSURE_MOD,      ONLY : GET_BP
+      USE PRESSURE_MOD,      ONLY : GET_BP, GET_PEDGE
       USE TIME_MOD,          ONLY : GET_TS_CONV
       USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
       USE TRACERID_MOD,      ONLY : IS_Hg2
@@ -598,6 +621,8 @@
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NC 
+      REAL*8,  INTENT(IN)    :: CLDMAS(IIPAR,JJPAR,LLPAR)
+      REAL*8,  INTENT(IN)    :: DTRN(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NC)
       REAL*8,  INTENT(IN)    :: TCVV(NC)
 
@@ -651,11 +676,14 @@
          WRITE( 6, '(a)' ) 'Last Modification Date: 1/27/04'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
+#if   !defined( GEOS_5 ) 
+         ! NOTE: We don't need to do this for GEOS-5 (bmy, 6/27/07)
          ! DSIG is the sigma-level thickness (NOTE: this assumes that
          ! we are using a pure-sigma grid.  Use new routine for fvDAS.)
          DO L = 1, LLPAR        
             DSIG(L) = GET_BP(L) - GET_BP(L+1)
          ENDDO
+#endif
 
          ! Flag to denote if this is a mercury simulation (sas, bmy, 1/19/05)
          IS_Hg = ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN )
@@ -809,9 +837,22 @@
                !========================================================
 
                IF ( CLDMAS(I,J,2) .gt. TINY ) THEN 
+#if   defined( GEOS_5 )
+
+                  ! Need to replace DSIG w/ the difference 
+                  ! of pressure edges for GEOS-5 (bmy, 6/27/07)
+                  QB(I,J) = 
+     &       ( Q(I,J,1,IC) * ( GET_PEDGE(I,J,1) - GET_PEDGE(I,J,2) )   + 
+     &         Q(I,J,2,IC) * ( GET_PEDGE(I,J,2) - GET_PEDGE(I,J,3) ) ) / 
+     &                       ( GET_PEDGE(I,J,1) - GET_PEDGE(I,J,3) )
+
+#else
+                  ! for GEOS-3
                   QB(I,J) = 
      &               ( Q(I,J,1,IC) * DSIG(1)   + 
      &                 Q(I,J,2,IC) * DSIG(2) ) / ( DSIG(1) + DSIG(2) )
+
+#endif
 
                   MB(I,J) = BMASS(I,J,1) + BMASS(I,J,2)
 
@@ -1026,6 +1067,42 @@
                   !=====================================================
                   ELSE                     
                      QC(I,J) = Q(I,J,K,IC)
+
+#if   defined( GEOS_5 ) 
+                     !--------------------------------------------------
+                     ! FIX FOR GEOS-5 MET FIELDS!
+                     !
+                     ! Bug fix for the cloud base layer, which is not 
+                     ! necessarily in the boundary layer, and for 
+                     ! GEOS-5, there could be "secondary convection 
+                     ! plumes - one in the PBL and another one not.
+                     !
+                     ! NOTE: T2 and T3 are the same terms as described
+                     ! in the above section.
+                     !
+                     ! (swu, 08/13/2007)
+                     !--------------------------------------------------
+                     IF ( CLDMAS(I,J,K) > TINY ) THEN 
+
+                        ! Tracer convected from K -> K+1 
+                        T2   = -CLDMAS(I,J,K  ) * QC(I,J)
+
+                        ! Tracer subsiding from K+1 -> K 
+                        T3   =  CLDMAS(I,J,K  ) * Q (I,J,K+1,IC)
+
+                        ! Change in tracer concentration
+                        DELQ = ( SDT / BMASS(I,J,K) ) * (T2 + T3)
+
+                        ! If DELQ > Q then do not make Q negative!!!
+                        IF ( Q(I,J,K,IC) + DELQ < 0.0d0 ) THEN 
+                            DELQ = -Q(I,J,K,IC)
+                        ENDIF
+  
+                        ! Add change in tracer to Q array
+                        Q(I,J,K,IC) = Q(I,J,K,IC) + DELQ
+
+                     ENDIF
+#endif
                   ENDIF
                ENDDO  !I
             ENDDO     !J

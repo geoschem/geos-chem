@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.47 2007/11/05 16:16:15 bmy Exp $
+! $Id: diag3.f,v 1.48 2007/11/16 18:47:37 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out diagnostics to the BINARY format punch file 
-!  (bmy, bey, mgs, rvm, 5/27/99, 9/18/07)
+!  (bmy, bey, mgs, rvm, 5/27/99, 11/16/07)
 !
 !  NOTES: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
@@ -82,6 +82,8 @@
 !  (72) Bug fix in ND65: use 3-D counter array (phs, bmy, 3/6/07)
 !  (73) Bug fix in ND07: now save out IDTSOA4 tracer.  Modifications for H2/HD
 !        diagnostics (ND10, ND27, ND44) (tmf, phs, bmy, 9/18/07)
+!  (74) Now save out true pressure at 3-D level edges for ND31.  Change ND31
+!        diagnostic category name to "PEDGE-$". (bmy, 11/16/07)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -175,7 +177,11 @@
       
       ! For binary punch file, version 2.0
       CHARACTER (LEN=40) :: CATEGORY 
-      REAL*4             :: ARRAY(IIPAR,JJPAR,LLPAR)
+      !-----------------------------------------------------
+      ! Prior to 9/17/07:
+      !REAL*4             :: ARRAY(IIPAR,JJPAR,LLPAR)
+      !-----------------------------------------------------
+      REAL*4             :: ARRAY(IIPAR,JJPAR,LLPAR+1)
       REAL*4             :: LONRES, LATRES
       INTEGER            :: IFIRST, JFIRST, LFIRST
       INTEGER            :: HALFPOLAR
@@ -1780,9 +1786,9 @@
 !******************************************************************************
 !  ND31: Surface pressure diagnostic
 !
-!   #  Field : Description             : Units     : Scale factor
+!   #  Field : Description                      : Units     : Scale factor
 !  --------------------------------------------------------------------------
-!  (1) PS    : PS - PTOP               : mb        : SCALEDYN
+!  (1) Pedge : Pressure at bot edge of level L  : mb        : SCALEDYN
 !
 !  NOTES: 
 !  (1) The ASCII punch file was using SCALE2 instead of SCALE1.
@@ -1790,19 +1796,33 @@
 !  (2) Now use AD31 dynamically allocatable array (bmy, 2/17/00)
 !  (3) Bug fix: write out 1 level to the bpch file (bmy, 12/7/00)
 !  (4) Now remove SCALE1, replace with SCALEDYN (bmy, 2/24/03)
+!  (5) Now save out true pressure at level edges.  Now   (bmy, 5/8/07)
 !******************************************************************************
 !   
       IF ( ND31 > 0 ) THEN
-         CATEGORY     = 'PS-PTOP'
-         UNIT         = 'mb'
-         ARRAY(:,:,1) = AD31(:,:,1) / SCALEDYN
-         NN           = 1
+         !--------------------------------------------------------------
+         ! Prior to 5/8/07:
+         !CATEGORY          = 'PS-PTOP'
+         !--------------------------------------------------------------
+         CATEGORY          = 'PEDGE-$'
+         UNIT              = 'mb'
+         !--------------------------------------------------------------
+         ! Prior to 5/8/07:
+         !ARRAY(:,:,1) = AD31(:,:,1) / SCALEDYN
+         !--------------------------------------------------------------
+         ARRAY(:,:,1:LD31) = AD31(:,:,1:LD31) / SCALEDYN
+         NN                = 1
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, NN,    
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+!-------------------------------------------------------------------------
+! Prior to 5/8/07:
+!     &               IIPAR,     JJPAR,     1,        IFIRST,     
+!     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+!-------------------------------------------------------------------------
+     &               IIPAR,     JJPAR,     LD31,        IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD31) )
       ENDIF
 !
 !******************************************************************************
@@ -2811,6 +2831,7 @@
 !  (3)  TMPU   : GMAO Temperatures                 : K       : SCALE_I6 or _A6
 !  (4)  SPHU   : GMAO Specific Humidity            : g/kg    : SCALE_I6 or _A6
 !  (5)  CLDMAS : GMAO Cloud Mass Flux              : kg/m2/s : SCALE_A6 or _A6
+!  (6)  DTRAIN : GMAO Detrainment flux             : kg/m2/s : SCALE_A6
 !
 !  NOTES:
 !  (1) We don't need to add TRCOFFSET to N.  These are not CTM tracers.
@@ -2857,7 +2878,7 @@
 #endif
                   UNIT   = 'g/kg'
 
-               ! CLDMAS & DTRAIN
+               ! CLDMAS, DTRAIN
                CASE( 5, 6 )
                   SCALEX = SCALE_A6
                   UNIT   = 'kg/m2/s'

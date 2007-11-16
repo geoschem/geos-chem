@@ -1,6 +1,11 @@
-! $Id: set_prof.f,v 1.3 2007/02/22 18:26:29 bmy Exp $
-      SUBROUTINE SET_PROF( NLON, NLAT, YLAT, MONTH, DAY, 
-     &                     P,    T,    SA,   ODCOL, OPTDUST, OPTAER )
+! $Id: set_prof.f,v 1.4 2007/11/16 18:47:45 bmy Exp $
+!----------------------------------------------------------------------------
+! Prior to 2/13/07:
+!      SUBROUTINE SET_PROF( NLON, NLAT, YLAT, MONTH, DAY, 
+!     &                     P,    T,    SA,   ODCOL, OPTDUST, OPTAER )
+!----------------------------------------------------------------------------
+      SUBROUTINE SET_PROF( NLON, NLAT, YLAT,  MONTH,   DAY, 
+     &                     T,    SA,   ODCOL, OPTDUST, OPTAER )
 !
 !******************************************************************************
 !  Subroutine SET_PROF sets up atmospheric profiles required by Fast-J using a
@@ -8,7 +13,7 @@
 !  altitude are defined, then O3 and T are taken from the supplied climatology
 !  and integrated to the CTM levels (may be overwritten with values directly 
 !  from the CTM, if desired) and then black carbon and aerosol profiles are 
-!  constructed. (Oliver Wild, 4/7/99, mje, bmy, 2/12/07)
+!  constructed. (Oliver Wild, 4/7/99, mje, bmy, 7/14/03, 10/30/07)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -17,12 +22,11 @@
 !  (3 ) YLAT    (REAL*8)  : Grid box latitude                      [degrees]
 !  (4 ) MONTH   (INTEGER) : Current month number                   [1-12]
 !  (5 ) DAY     (INTEGER) : Current day of month                   [1-31]
-!  (6 ) P       (REAL*8)  : Surface Pressure - Model top pressure  [hPa]
-!  (7 ) T       (REAL*8)  : Vertical temperature profile           [K]
-!  (8 ) SA      (REAL*8)  : Surface albedo                         [unitless]
-!  (9 ) ODCOL   (REAL*8)  : Vertical optical depth profile         [unitless]
-!  (10) OPTDUST (REAL*8)  : Mineral dust opt. depths (1-D profile) [unitless]
-!  (11) OPTAER  (REAL*8)  : Aerosol optical depths (1-D profile)   [unitless]
+!  (6 ) T       (REAL*8)  : Vertical temperature profile           [K]
+!  (7 ) SA      (REAL*8)  : Surface albedo                         [unitless]
+!  (8 ) ODCOL   (REAL*8)  : Vertical optical depth profile         [unitless]
+!  (9 ) OPTDUST (REAL*8)  : Mineral dust opt. depths (1-D profile) [unitless]
+!  (10) OPTAER  (REAL*8)  : Aerosol optical depths (1-D profile)   [unitless]
 !
 !  Important varables passed via "cmn_fj.h" and "jv_cmn.h"
 !  ============================================================================
@@ -56,7 +60,8 @@
 !  (4 ) Added NLON, NLAT, DAY to the arg list.  Now weight the O3 column by 
 !        the observed monthly mean EP-TOMS data.  Also updated comments and 
 !        added standard GEOS-CHEM documentation header. (mje, bmy, 7/13/03)
-!  (5 ) Updated comments (bmy, 2/12/07)
+!  (5 ) We don't need to initialize the PJ array with ETAA and ETAB anymore.
+!        PJ is now defined in "fast_j.f".  Updated comments. (bmy, 10/30/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -65,11 +70,15 @@
       IMPLICIT NONE
 
 #     include "cmn_fj.h"  ! IPAR, JPAR, LPAR, JPPJ, JPNL
-#     include "jv_cmn.h"  ! NDUST, NAER
+#     include "jv_cmn.h"  ! NDUST, NAER, PJ
 
       ! Argument
-      INTEGER, INTENT(IN)    :: DAY, MONTH,   NLAT, NLON
-      REAL*8,  INTENT(IN)    :: P,   T(LPAR), SA,   YLAT
+      INTEGER, INTENT(IN)    :: DAY, MONTH,  NLAT, NLON
+      !-------------------------------------------------------------
+      ! Prior to 2/13/07:
+      !REAL*8,  INTENT(IN)    :: P,   T(LPAR), SA,   YLAT
+      !-------------------------------------------------------------
+      REAL*8,  INTENT(IN)    :: SA,   YLAT,  T(LPAR)
       REAL*8,  INTENT(INOUT) :: ODCOL(LPAR)
       REAL*8,  INTENT(IN)    :: OPTDUST(LPAR,NDUST)  
       REAL*8,  INTENT(IN)    :: OPTAER(LPAR,NAER*NRH)  
@@ -84,11 +93,17 @@
       ! SET_PROF begins here!
       !=================================================================
 
-      ! Now use the hybrid pressure formulation (bmy, 8/22/02)
-      DO I = 1, NB
-         PJ(I) = ETAA(I) + ( ETAB(I) * P )
-      ENDDO
-      PJ(NB+1) = 0.d0
+!-----------------------------------------------------------------------------
+! Prior to 2/13/07:
+! Now intialize PJ two levels up in "fast_j.f".  ETAA and ETAB are meaningless
+! for GEOS-5, so we need to set PJ directly from the GET_PEDGE function.
+! (bmy, 2/13/07)
+!      ! Use the hybrid pressure formulation (bmy, 8/22/02)
+!      DO I = 1, NB
+!         PJ(I) = ETAA(I) + ( ETAB(I) * P )
+!      ENDDO
+!      PJ(NB+1) = 0.d0
+!-----------------------------------------------------------------------------
 
       ! Set up cloud and surface properties
       CALL CLDSRF( ODCOL, SA )

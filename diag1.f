@@ -1,9 +1,9 @@
-! $Id: diag1.f,v 1.17 2007/05/07 17:48:11 bmy Exp $
+! $Id: diag1.f,v 1.18 2007/11/16 18:47:36 bmy Exp $
       SUBROUTINE DIAG1 
 !
 !******************************************************************************
 !  Subroutine DIAG1 accumulates diagnostic quantities every NDIAG minutes
-!  (bmy, bey, 6/16/98, 4/17/07)
+!  (bmy, bey, 6/16/98, 5/8/07)
 !
 !  NOTES:
 !  (1 ) This subroutine was reconstructed from gmg's version of (10/10/97)
@@ -38,7 +38,7 @@
 !        "pressure_mod.f"  Eliminated obsolete commented-out code from
 !        6/02. (dsa, bdf, bmy, 8/20/02)
 !  (19) Now reference AD, and BXHEIGHT from "dao_mod.f".  Removed obsolete 
-!        code.  Now reference IDTOX from "tracerid_mod.f". (bmy, 11/6/02)
+!        code.  Now refEerence IDTOX from "tracerid_mod.f". (bmy, 11/6/02)
 !  (20) Now replace DXYP(J) with routine GET_AREA_M2 from "grid_mod.f"
 !        (bmy, 2/4/03)
 !  (21) Now compute PBL top for ND67 for GEOS-4/fvDAS.  Also now include
@@ -51,7 +51,8 @@
 !  (26) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (27) Added count for time in the troposphere - array AD54 (phs, 9/22/06)
 !  (28) Now only archive O3 in ND45 and ND47 at chem timsteps (phs, 1/24/07)
-!  (29) Bug fix: Update ND30 for both GEOS-3 and otherwise (ltm, bmy, 4/17/07)
+!  (29) Bug fix: Update ND30 for both GEOS-3 and otherwise.  Also now save
+!        3-D pressure edges in ND31 instead of PS-PTOP. (ltm, bmy, 5/8/07)
 !******************************************************************************
 !  List of GEOS-CHEM Diagnostics (bmy, 10/25/05)
 !
@@ -416,11 +417,21 @@
       ! ND31: Surface pressure diagnostic (PS - PTOP) in hPa
       !=================================================================
       IF ( ND31 > 0 ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+         DO L = 1, LD31
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            AD31(I,J,1) = AD31(I,J,1) + ( GET_PEDGE(I,J,1) - PTOP )
+            !-----------------------------------------------------------
+            ! Prior to 5/8/07:
+            !AD31(I,J,1) = AD31(I,J,1) + ( GET_PEDGE(I,J,1) - PTOP )
+            !-----------------------------------------------------------
+            AD31(I,J,L) = AD31(I,J,L) + GET_PEDGE( I, J, L ) 
          ENDDO
          ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
       ENDIF
 
       !================================================================= 

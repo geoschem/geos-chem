@@ -1,4 +1,4 @@
-! $Id: dust_mod.f,v 1.16 2007/03/29 20:31:16 bmy Exp $
+! $Id: dust_mod.f,v 1.17 2007/11/16 18:47:38 bmy Exp $
       MODULE DUST_MOD
 !
 !******************************************************************************
@@ -55,6 +55,7 @@
 !  (6 ) Now only do drydep if LDRYD=T (bmy, 5/23/06)
 !  (7 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (8 ) Updated output print statement in SRC_DUST_DEAD (bmy, 1/23/07)
+!  (9 ) Modifications for GEOS-5 (bmy, 1/24/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -575,12 +576,14 @@
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Bug fix: It should be SNOW/1d3 not SNOW*1d3 (tdf, bmy, 11/18/05)
 !  (6 ) Updated output statement (bmy, 1/23/07)
+!  (7 ) Use SNOMAS (m H2O) for GEOS-5 (bmy, 1/24/07)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,       ONLY : BXHEIGHT,     GWETTOP,   LWI
       USE DAO_MOD,       ONLY : SNOW,         SPHU,      T    
       USE DAO_MOD,       ONLY : TS,           UWND,      VWND
+      USE DAO_MOD,       ONLY : SNOMAS
       USE DUST_DEAD_MOD, ONLY : GET_TIME_INVARIANT_DATA, GET_ORO
       USE DUST_DEAD_MOD, ONLY : GET_MONTHLY_DATA,        DST_MBL
       USE DIAG_MOD,      ONLY : AD06
@@ -738,8 +741,11 @@
             ORO(I)         = OROGRAPHY(I,J) 
 
             ! Snow height [m H2O]
+#if   defined( GEOS_5  )
+            SNW_HGT_LQD(I) = SNOMAS(I,J)
+#else
             SNW_HGT_LQD(I) = SNOW(I,J) / 1000d0
-
+#endif
             ! Dust tracer and increments
             DO N = 1, NDSTBIN
                DSRC(I,N)   = 0.0d0

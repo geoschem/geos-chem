@@ -1,4 +1,4 @@
-! $Id: RnPbBe_mod.f,v 1.10 2006/09/08 19:20:49 bmy Exp $
+! $Id: RnPbBe_mod.f,v 1.11 2007/11/16 18:47:33 bmy Exp $
       MODULE RnPbBe_MOD
 !
 !******************************************************************************
@@ -423,7 +423,7 @@
             ! 60S-60N
             !--------------------
             ELSE 
-
+               
                ! Consider 222Rn emissions equatorward of 60 deg for
                ! land (1.0 [atoms/cm2/s]) and water (0.005 [atoms/cm2/s])
                ADD_Rn = ( Rn_LAND * F_LAND ) + ( Rn_WATER * F_WATER )
@@ -436,7 +436,7 @@
 
          ! Save 222Rn into STT array [kg]
          STT(I,J,1,1) = STT(I,J,1,1) + ADD_Rn
-         
+
          ! ND01 diag: 222Rn emission [kg/s] 
          IF ( ND01 > 0 ) THEN
             AD01(I,J,1,1) = AD01(I,J,1,1) + ( ADD_Rn / DTSRCE )

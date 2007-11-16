@@ -1,4 +1,4 @@
-! $Id: pjc_pfix_mod.f,v 1.4 2004/03/24 20:52:31 bmy Exp $
+! $Id: pjc_pfix_mod.f,v 1.5 2007/11/16 18:47:44 bmy Exp $
       MODULE PJC_PFIX_MOD
 !
 !******************************************************************************
@@ -168,7 +168,7 @@
 !******************************************************************************
 !  Subroutine DO_PJC_PFIX is the driver routine for the Philip Cameron-Smith
 !  pressure fixer for the GEOS-4/fvDAS transport scheme. 
-!  (bdf, bmy, 5/8/03, 6/24/03)
+!  (bdf, bmy, 5/8/03, 3/5/07)
 !
 !  We assume that the winds are on the A-GRID, since this is the input that 
 !  the GEOS-4/fvDAS transport scheme takes. (bdf, bmy, 5/8/03)
@@ -190,12 +190,13 @@
 !  (1 ) Now P1 and P2 are "true" surface pressures, and not PS-PTOP.  If using
 !        this P-fixer w/ GEOS-3 winds, pass true surface pressure to this
 !        routine. (bmy, 10/27/03)
+!  (2 ) Now define P2_TMP array for passing to ADJUST_PRESS (yxw, bmy, 3/5/07)
 !******************************************************************************
 !
       IMPLICIT NONE
 
-#     include "CMN_SIZE"
-#     include "CMN_GCTM"
+#     include "CMN_SIZE"    ! Size parameters
+#     include "CMN_GCTM"    ! Physical constants
 
       ! Arguments
       REAL*8,  INTENT(IN)  :: D_DYN
@@ -209,7 +210,8 @@
       ! Local variables
       LOGICAL, SAVE        :: FIRST = .TRUE.
       INTEGER              :: I, J
-
+      REAL*8               :: P2_TMP(IIPAR,JJPAR)
+ 
       ! Parameters
       LOGICAL, PARAMETER   :: INTERP_WINDS     = .TRUE.  ! winds are interp'd 
       INTEGER, PARAMETER   :: MET_GRID_TYPE    = 0       ! A-GRID
@@ -234,6 +236,9 @@
          FIRST = .FALSE.
       ENDIF
 
+      ! Copy P2 into P2_TMP (yxw, bmy, 3/5/07)
+      P2_TMP = P2
+ 
       ! Call PJC pressure fixer w/ the proper arguments
       ! NOTE: P1 and P2 are now "true" surface pressure, not PS-PTOP!!!
       CALL ADJUST_PRESS( 'GEOS-CHEM',        INTERP_WINDS,  
@@ -244,7 +249,7 @@
      &                   COSE_FV,            COSP_FV, 
      &                   REL_AREA,           DAP, 
      &                   DBK,                P1, 
-     &                   P2,                 P2,            
+     &                   P2_TMP,             P2_TMP,            
      &                   UWND,               VWND, 
      &                   XMASS,              YMASS )
 
@@ -635,7 +640,7 @@
          !======================
      &      (geofac_pc, geofac, dbk, dps, dps_ctm, rel_area,
      &       xmass, ymass, xmass_fixed, ymass_fixed )
-
+          
           xmass(:,:,:) = xmass_fixed(:,:,:)
           ymass(:,:,:) = ymass_fixed(:,:,:)
 
@@ -655,11 +660,9 @@
         end if
 
 
-
       pctm2(i1_gl:i2_gl, ju1_gl:j2_gl) =
      &      pctm1(i1_gl:i2_gl, ju1_gl:j2_gl) + 
      &    dps_ctm(i1_gl:i2_gl, ju1_gl:j2_gl)
-
 
 
       if (DO_ADJUST_PRESS_DIAG) then
@@ -862,13 +865,12 @@
         !=========================
      &    (cose, delpm, uu, vv, xmass, ymass, tdt, cosp)
 
-
       !====================
       call Calc_Divergence
       !====================
      &  (.false., geofac_pc, geofac, dpi, xmass, ymass)
 
-
+        
       dps_ctm(i1:i2,ju1:j2) = Sum (dpi(i1:i2,ju1:j2,:), dim=3)
 
       ! Return to calling program

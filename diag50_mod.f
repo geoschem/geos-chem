@@ -1,4 +1,4 @@
-! $Id: diag50_mod.f,v 1.16 2007/03/29 20:31:13 bmy Exp $
+! $Id: diag50_mod.f,v 1.17 2007/11/16 18:47:37 bmy Exp $
       MODULE DIAG50_MOD
 !
 !******************************************************************************
@@ -1110,7 +1110,7 @@
       
       ! Zero accumulating array
       Q            = 0d0
-      
+
       ! Return to calling program
       END SUBROUTINE WRITE_DIAG50
 

@@ -1,4 +1,4 @@
-! $Id: lightning_nox_mod.f,v 1.14 2007/11/05 16:16:20 bmy Exp $
+! $Id: lightning_nox_mod.f,v 1.15 2007/11/16 18:47:42 bmy Exp $
       MODULE LIGHTNING_NOX_MOD
 !
 !******************************************************************************
@@ -153,7 +153,7 @@
 !  formulation (i.e. offshore boxes get treated as if they were land boxes).
 !  (ltm, bmy, 5/10/06, 9/24/07)
 !
-!  Output Lightning NOX [molec/cm3/s] is stored in the GEMISNOX array.
+!  Output Lightning NOX [molec/cm3/s] is stored in the EMIS_NOX_LI array.
 !
 !  NOTES:
 !  (1 ) Now recompute the cold cloud thickness according to updated formula 

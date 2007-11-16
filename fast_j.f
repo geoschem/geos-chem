@@ -1,10 +1,10 @@
-! $Id: fast_j.f,v 1.7 2007/11/05 16:16:18 bmy Exp $
+! $Id: fast_j.f,v 1.8 2007/11/16 18:47:39 bmy Exp $
       SUBROUTINE FAST_J( SUNCOS, OD, ALBD )  
 !
 !******************************************************************************
 !  Subroutine FAST_J loops over longitude and latitude, and calls PHOTOJ 
 !  to compute J-Values for each column at every chemistry time-step.  
-!  (ppm, 4/98; bmy, rvm, 9/99, 2/6/04; hyl, 4/25/04; phs, bmy, 6/8/07 )
+!  (ppm, 4/98; bmy, rvm, 9/99, 2/6/04; hyl, 4/25/04; phs, bmy, 11/16/07)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -16,7 +16,8 @@
 !  ============================================================================
 !  (1 ) OVERLAP (INTEGER) : 1 - Linear Approximation (used up to v7-04-12)
 !                           2 - Approximate Random Overlap (default)
-!                           3 - Maximum Random Overlap (computation intensive)  
+!                           3 - Maximum Random Overlap (computation intensive)
+!  
 !  References:
 !  ============================================================================
 !  (1) H. Liu, J.H. Crawford, R.B. Pierce, P. Norris, S.E. Platnick, G. Chen,
@@ -65,6 +66,8 @@
 !        PS-PTOP for all prior GEOS models.  (bmy, 2/6/04)
 !  (16) Now account for cloud overlap (Maximum-Random Overlap and Random 
 !        Overlap) in each column (hyl, phs, bmy, 9/18/07)
+!  (17) Now initialize the PJ array here, instead of two layers below in
+!        "set_prof.f".  Now no longer pass PRES to "photoj.f". (bmy, 11/16/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -72,15 +75,14 @@
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE GRID_MOD,     ONLY : GET_YMID
       USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE TIME_MOD,     ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR, 
-     &                         GET_TAU,   GET_YEAR
+      USE TIME_MOD,     ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
+      USE TIME_MOD,     ONLY : GET_TAU,   GET_YEAR
       USE TOMS_MOD,     ONLY : READ_TOMS
 
       IMPLICIT NONE
 
 #     include "cmn_fj.h"     ! IPAR, JPAR, LPAR, CMN_SIZE
-#     include "CMN"          ! P, T, YLMID            
-#     include "jv_cmn.h"     ! ODMDUST 
+#     include "jv_cmn.h"     ! ODMDUST, PJ
 
       ! Arguments
       REAL*8, INTENT(IN)    :: SUNCOS(MAXIJ)
@@ -152,26 +154,26 @@
 !$OMP+PRIVATE( FMAX, CLDF1D, KK, NUMB  )
 !$OMP+PRIVATE( KBOT, KTOP, ODNEW, INDICATOR, INDIC )
 !$OMP+SCHEDULE( DYNAMIC )
+
+      ! Loop over latitudes
       DO NLAT = 1, JJPAR
 
          ! Grid box latitude [degrees]
          YLAT = GET_YMID( NLAT )
 
+         ! Loop over longitudes
          DO NLON = 1, IIPAR
 
             ! Cosine of solar zenith angle [unitless] at (NLON,NLAT)
             CSZA         = SUNCOS( (NLAT-1)*IIPAR + NLON ) 
 
-#if   defined( GEOS_4 )
+            ! Define the PJ array here (bmy, 11/16/07)
+            DO L = 1, NB
+               PJ(L)     = GET_PEDGE( NLON, NLAT, L )
+            ENDDO
 
-            ! GEOS-4 needs true sfc pressure [hPa] at (NLON,NLAT)
-            PRES         = GET_PEDGE(NLON,NLAT,1)
-
-#else
-            ! Sigma grids need ( sfc Pressure - PTOP ) [hPa] at (NLON,NLAT)
-            PRES         = GET_PEDGE(NLON,NLAT,1) - PTOP
-
-#endif
+            ! Top edge of PJ is top of atmosphere (bmy, 2/13/07)
+            PJ(NB+1)     = 0d0
 
             ! Temperature profile [K] at (NLON,NLAT)
             TEMP         = T(NLON,NLAT,1:LLPAR)

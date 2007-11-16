@@ -1,48 +1,52 @@
-! $Id: transfer_mod.f,v 1.6 2006/09/08 19:21:06 bmy Exp $
+! $Id: transfer_mod.f,v 1.7 2007/11/16 18:47:46 bmy Exp $
       MODULE TRANSFER_MOD
 !
 !******************************************************************************
 !  Module TRANSFER_MOD contains routines used to copy data from REAL*4 to
-!  REAL*8 arrays after being read from disk.  Also, regridding of GEOS-3
-!  vertical levels from 48 levels to 30 levels will be done if necessary.
-!  (mje, bmy, 9/27/01, 8/4/06)
+!  REAL*8 arrays after being read from disk.  Also, vertical levels will be
+!  collapsed in the stratosphere if necessary.  This will help us to gain 
+!  computational advantage. (mje, bmy, 9/27/01, 10/30/07)
+!
+!  NOTE: The level above which we start collapsing layers is ~78 hPa.  
 !
 !  Module Variables:
 !  ============================================================================
-!  (1 ) EDGE_IN          : Input sigma edges (for pure sigma models)
+!  (1 ) EDGE_IN           : Input sigma edges (for pure sigma models)
+!  (2 ) I0                : Global longitude offset (%%% NOTE: usually=0 %%%)
+!  (3 ) J0                : Global latitude  offset (%%% NOTE: usually=0 %%%)
+!  (4 ) L_COPY            : # of levels to copy (before stratosphere lumping)
 !
 !  Module Routines:
 !  ============================================================================
-!  (1 ) GET_L_COPY       : Returns # of vertical levels to be copied
-!  (2 ) TRANSFER_A6      : Transfers GEOS-3 A-6   fields, regrids if necessary
-!  (3 ) TRANSFER_3D      : Transfers GEOS-3 3-D   fields, regrids if necessary
-!  (4 ) TRANSFER_3D_TROP : Transfers GEOS-3 3-D   fields up to tropopause level
-!  (5 ) TRANSFER_ZONAL_R4: Transfers GEOS-3 zonal fields, regrids (REAL*4)
-!  (6 ) TRANSFER_ZONAL_R8: Transfers GEOS-3 zonal fields, regrids (REAL*8) 
-!  (7 ) TRANSFER_ZONAL   : Transfers GEOS-3 zonal fields, regrids if necessary 
-!  (8 ) TRANSFER_2D_INT  : Transfers GEOS   2-D   fields (INTEGER argument)
-!  (9 ) TRANSFER_2D_R4   : Transfers GEOS   2-D   fields (REAL*4 argument)
-!  (10) TRANSFER_2D_R8   : Transfers GEOS   2-D   fields (REAL*8 argument)
-!  (11) TRANSFER_TO_1D   : Transfers GEOS   2-D   fields to a 1-D array
-!  (12) LUMP_2_R4        : Combines 2 sigma levels into 1 thick level (REAL*4) 
-!  (13) LUMP_2_R8        : Combines 2 sigma levels into 1 thick level (REAL*8) 
-!  (14) LUMP_4_R4        : Combines 4 sigma levels into 1 thick level (REAL*4)
-!  (15) LUMP_4_R8        : Combines 4 sigma levels into 1 thick level (REAL*8)
-!  (16) INIT_TRANSFER    : Allocates and initializes the EDGE_IN array
-!  (17) CLEANUP_TRANSFER : Deallocates the EDGE_IN array
+!  (1 ) TRANSFER_A6       : Transfers GEOS A-6   fields, regrids if necessary
+!  (2 ) TRANSFER_3D       : Transfers GEOS 3-D   fields, regrids if necessary
+!  (3 ) TRANSFER_3D_TROP  : Transfers GEOS 3-D   fields up to tropopause level
+!  (4 ) TRANSFER_G5_PLE   : Transfers GEOS-5 3-D pressure edges, regrids
+!  (5 ) TRANSFER_3D_Lp1   : Transfers GEOS-5 3-D fields defined on level edges
+!  (6 ) TRANSFER_ZONAL_R4 : Transfers GEOS zonal fields, regrids (REAL*4)
+!  (7 ) TRANSFER_ZONAL_R8 : Transfers GEOS zonal fields, regrids (REAL*8) 
+!  (8 ) TRANSFER_ZONAL    : Transfers GEOS zonal fields, regrids if necessary 
+!  (9 ) TRANSFER_2D_INT   : Transfers GEOS 2-D   fields (INTEGER argument)
+!  (10) TRANSFER_2D_R4    : Transfers GEOS 2-D   fields (REAL*4 argument)
+!  (11) TRANSFER_2D_R8    : Transfers GEOS 2-D   fields (REAL*8 argument)
+!  (12) TRANSFER_TO_1D    : Transfers GEOS 2-D   fields to a 1-D array
+!  (13) LUMP_2_R4         : Combines 2 levels into 1 thick level (REAL*4) 
+!  (14) LUMP_2_R8         : Combines 2 levels into 1 thick level (REAL*8) 
+!  (15) LUMP_4_R4         : Combines 4 levels into 1 thick level (REAL*4)
+!  (16) LUMP_4_R8         : Combines 4 levels into 1 thick level (REAL*8)
+!  (17) INIT_TRANSFER     : Allocates and initializes the EDGE_IN array
+!  (18) CLEANUP_TRANSFER  : Deallocates the EDGE_IN array
 !
 !  Module Interfaces:
 !  ============================================================================
-!  (1 ) LUMP_2           : Overloads routines LUMP_2_R4 and LUMP_2_R8
-!  (2 ) LUMP_4           : Overloads routines LUMP_4_R4 and LUMP_4_R8
-!  (3 ) TRANSFER_2D      : Overloads TRANSFER_2D_INT, TRANSFER_2D_R4
-!                           and TRANSFER_2D_R8
-!  (4 ) TRANSFER_ZONAL   : Overloads TRANSFER_ZONAL_R4 and TRANSFER_ZONAL_R8
+!  (1 ) LUMP_2            : Overloads LUMP_2_*         module routines
+!  (2 ) LUMP_4            : Overloads LUMP_4_*         module routines
+!  (3 ) TRANSFER_2D       : Overloads TRANSFER_2D_*    module routines
+!  (4 ) TRANSFER_ZONAL    : Overloads TRANSFER_ZONAL_* module routines
 !
-!  GEOS-CHEM modules referenced by regrid_mod.f
+!  GEOS-Chem modules referenced by "transfer_mod.f"
 !  ============================================================================
-!  (1 ) error_mod.f      : Module containing NaN and other error check routines
-!  (2 ) pressure_mod.f   : Module containing routines to compute P(I,J,L)
+!  (1 ) error_mod.f      : Module w/ NaN and other error check routines
 !
 !  NOTES:
 !  (1 ) GEOS-3 Output levels were determined by Mat Evans.  Groups of 2 levels
@@ -72,6 +76,7 @@
 !        variable SIGE_IN to EDGE_IN. (mje, bmy, 10/31/03)
 !  (14) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/24/05)
 !  (15) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (16) Modified for GEOS-5.  Rewritten for clarity. (bmy, 10/30/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -81,18 +86,31 @@
       ! and routines from being seen outside "transfer_mod.f"
       !=================================================================
 
-      ! PRIVATE module variables
-      PRIVATE EDGE_IN
+      ! Make everything PRIVATE ...
+      PRIVATE
 
-      ! PRIVATE module routines
-      PRIVATE LUMP_2_R4,         LUMP_2_R8
-      PRIVATE LUMP_4_R4,         LUMP_4_R8
-      PRIVATE TRANSFER_2D_INT,   TRANSFER_2D_R4,    TRANSFER_2D_R8
-      PRIVATE TRANSFER_ZONAL_R4, TRANSFER_ZONAL_R8, GET_L_COPY
+      ! ... except these routines
+      PUBLIC :: TRANSFER_A6
+      PUBLIC :: TRANSFER_2D
+      PUBLIC :: TRANSFER_3D
+      PUBLIC :: TRANSFER_3D_Lp1
+      PUBLIC :: TRANSFER_3D_TROP
+      PUBLIC :: TRANSFER_G5_PLE
+      PUBLIC :: TRANSFER_ZONAL
+      PUBLIC :: TRANSFER_TO_1D
+      PUBLIC :: INIT_TRANSFER
+      PUBLIC :: CLEANUP_TRANSFER
 
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
+
+      ! Scalars
+      INTEGER             :: I0
+      INTEGER             :: J0
+      INTEGER             :: L_COPY
+
+      ! Arrays
       REAL*8, ALLOCATABLE :: EDGE_IN(:)
 
       !=================================================================
@@ -100,27 +118,26 @@
       ! argument types or # of arguments under one unique name
       !================================================================= 
 
-      ! Interface for routines to lump 2 levels together (REAL*4 and REAL*8)
+      ! Interface for routines to lump 2 levels together
       INTERFACE LUMP_2
          MODULE PROCEDURE LUMP_2_R4
          MODULE PROCEDURE LUMP_2_R8
       END INTERFACE
 
-      ! Interface for routines to lump 2 levels together (REAL*4 and REAL*8)
+      ! Interface for routines to lump 4 levels together
       INTERFACE LUMP_4
          MODULE PROCEDURE LUMP_4_R4
          MODULE PROCEDURE LUMP_4_R8
       END INTERFACE
 
       ! Interface for routines which copy 2-D data 
-      ! (INTEGER, REAL*4, and REAL*8)
       INTERFACE TRANSFER_2D
          MODULE PROCEDURE TRANSFER_2D_INT
          MODULE PROCEDURE TRANSFER_2D_R4
          MODULE PROCEDURE TRANSFER_2D_R8
       END INTERFACE
 
-      ! Interface for routines which copy lat-alt data (REAL*4 and REAL*8)
+      ! Interface for routines which copy zonal data 
       INTERFACE TRANSFER_ZONAL
          MODULE PROCEDURE TRANSFER_ZONAL_R4
          MODULE PROCEDURE TRANSFER_ZONAL_R8
@@ -133,71 +150,12 @@
 
 !------------------------------------------------------------------------------
 
-      FUNCTION GET_L_COPY() RESULT( L_COPY )
-!
-!******************************************************************************
-!  Function GET_L_COPY returns the value L_COPY, which is the number
-!  of vertical levels to copy from a REAL*4 array to a REAL*8 array.  
-!  Levels above L_COPY will be vertically regridded, if necessary. 
-!  (bmy, 6/18/03, 8/4/06)
-!
-!               { LGLOB, for GCAP
-!               { LGLOB, for GEOS-1
-!               { LGLOB, for GEOS-STRAT
-!      L_INT =  { LGLOB, for GEOS-3            (if LLPAR == LGLOB)
-!               { 22   , for GEOS-3            (if LLPAR /= LGLOB)
-!               { LGLOB, for GEOS-4 or GEOS-5  (if LLPAR == LGLOB)
-!               { 19   , for GEOS-4 or GEOS-5  (if LLPAR /= LGLOB)
-!
-!  NOTES:
-!  (1 ) Add value of L_COPY for GEOS-4/fvDAS (6/18/03)
-!  (2 ) Add LCOPY = 19 for GEOS-4 if regridding (bmy, 10/31/03)
-!  (3 ) Now modified for GEOS-5 and GCAP met fields (bmy, 5/24/05)
-!  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!******************************************************************************
-!
-#     include "CMN_SIZE"
-
-      ! Function return variable
-      INTEGER :: L_COPY
-
-#if   defined( GEOS_3 )
-
-      ! For GEOS-3, only regrid if LLPAR does not equal LGLOB 
-      IF ( LLPAR == LGLOB ) THEN
-         L_COPY = LGLOB
-      ELSE
-         L_COPY = 22
-      ENDIF
-      
-#elif defined( GEOS_4 ) || defined( GEOS_5 )
-
-      ! For GEOS-4 & GEOS-5, only regrid if LLPAR does not equal LGLOB 
-      IF ( LLPAR == LGLOB ) THEN
-         L_COPY = LGLOB
-      ELSE
-         L_COPY = 19
-      ENDIF
-
-#elif defined( GCAP )
-
-      ! Copy all vertical levels for GCAP met fields (swu, bmy, 5/24/05)
-      L_COPY = LGLOB
-
-#endif
-
-      ! Return to calling program
-      END FUNCTION GET_L_COPY
-
-!------------------------------------------------------------------------------
-
       SUBROUTINE TRANSFER_A6( IN, OUT )
 !
 !******************************************************************************
-!  Subroutine TRANSFER_A6 transfers A-6 data from a REAL*4 array of dimension
-!  (IGLOB,JGLOB,LGLOB) to a REAL*8 array of dimension (LLPAR,IIPAR,JJPAR).
-!  Regrid GEOS-3 data from 48 --> 30 levels or GEOS-4 data from 55 --> 30 
-!  levels if necessary. (bmy, 9/21/01, 5/24/05)
+!  Subroutine TRANSFER_A6 transfers A-6 data from a REAL*4 array to a REAL*8
+!  array.  Vertical layers are collapsed (from LGLOB to LLPAR) if necessary.
+!  (mje, bmy, 9/21/01, 2/8/07)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -216,144 +174,120 @@
 !        Now I0, J0 are local variables. (bmy, 3/11/03)
 !  (4 ) Added code to regrid GEOS-4 from 55 --> 30 levels (mje, bmy, 10/31/03)
 !  (5 ) Now modified for GEOS-5 met fields (bmy, 5/24/05)
+!  (6 ) Rewritten for clarity (bmy, 2/8/07)
 !******************************************************************************
 !
-      ! References to F90 modules
-      USE GRID_MOD, ONLY : GET_XOFFSET, GET_YOFFSET
-
-#     include "CMN_SIZE"
+#     include "CMN_SIZE"    ! Size parameters
 
       ! Arguments
       REAL*4,  INTENT(IN)  :: IN(IGLOB,JGLOB,LGLOB)
       REAL*8,  INTENT(OUT) :: OUT(LLPAR,IIPAR,JJPAR)
 
       ! Local variables
-      LOGICAL, SAVE        :: FIRST = .TRUE.  
-      INTEGER              :: I, I0, IREF, J, J0, JREF, L, L_COPY
+      INTEGER              :: I, J, L
       REAL*4               :: INCOL(LGLOB)
       
       !================================================================
       ! TRANSFER_A6 begins here!
-      !
-      ! Also convert from global horizontal indices (IREF,JREF) to
-      ! window indices (I,J), for consistency with existing code
       !================================================================
 
-      ! Allocate EDGE_IN on the first call, if necessary
-      IF ( FIRST ) THEN
-         CALL INIT_TRANSFER
-         FIRST = .FALSE.
-      ENDIF
-
-      ! Get nested-grid offsets 
-      I0     = GET_XOFFSET()
-      J0     = GET_YOFFSET()
-
-      ! L_COPY is the # of levels to copy from REAL*4 to REAL*8
-      L_COPY = GET_L_COPY()
-
-      ! Copy levels up to L_COPY, for all model types
+      ! Copy the first L_COPY levels
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, IREF, J, JREF, L )
-!$OMP+SCHEDULE( DYNAMIC )
+!$OMP+PRIVATE( I, J, L )
       DO J = 1, JJPAR
-         JREF = J + J0
       DO I = 1, IIPAR
-         IREF = I + I0
       DO L = 1, L_COPY
-         OUT(L,I,J) = IN(IREF,JREF,L)
+         OUT(L,I,J) = IN(I+I0,J+J0,L)
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
-#if   defined( GEOS_3 )
-
-      !================================================================
-      ! For GEOS-3, when LLPAR /= LGLOB, then lump 48 levels into 
-      ! 30 levels, according to the formulation proposed by Mat Evans.  
-      ! Lump levels above L_COPY = 22 in groups of 2 or groups of 4.
-      !================================================================ 
-
-      ! Return if LLPAR = LGLOB
+      ! Exit if we are running at full vertical resolution
       IF ( LLPAR == LGLOB ) RETURN
 
+      !=================================================================
+      ! Collapse levels in the stratosphere 
+      !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, IREF, J, JREF, L, INCOL )
+!$OMP+PRIVATE( I, J, L, INCOL )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
-         JREF = J + J0
+      DO I = 1, IIPAR
 
-         DO I = 1, IIPAR
-            IREF = I + I0
+         ! Store vertical column at (IREF,JREF) in a 1-D vector
+         INCOL = IN( I+I0, J+J0, 1:LGLOB )
+            
+#if   defined( GEOS_3 ) 
 
-            ! Store vertical column at (IREF,JREF) in a 1-D vector
-            DO L = 1, LGLOB
-               INCOL(L) = IN(IREF,JREF,L)
-            ENDDO
+         !--------------------------------------------------------------
+         ! GEOS-3: Lump 48 levels into 30 levels, starting above L=22.  
+         ! Lump levels in groups of 2, then 4. (cf. Mat Evans)
+         !--------------------------------------------------------------
 
-            ! Lump 2 levels together at a time, starting at the given level
-            OUT(23,I,J) = LUMP_2( INCOL, LGLOB, 23 )
-            OUT(24,I,J) = LUMP_2( INCOL, LGLOB, 25 )
-            OUT(25,I,J) = LUMP_2( INCOL, LGLOB, 27 )
+         ! Lump 2 levels together at a time, starting at L=23
+         OUT(23,I,J) = LUMP_2( INCOL, LGLOB, 23 )
+         OUT(24,I,J) = LUMP_2( INCOL, LGLOB, 25 )
+         OUT(25,I,J) = LUMP_2( INCOL, LGLOB, 27 )
 
-            ! Lump 4 levels together at a time, starting at the given level
-            OUT(26,I,J) = LUMP_4( INCOL, LGLOB, 29 )
-            OUT(27,I,J) = LUMP_4( INCOL, LGLOB, 33 )
-            OUT(28,I,J) = LUMP_4( INCOL, LGLOB, 37 ) 
-            OUT(29,I,J) = LUMP_4( INCOL, LGLOB, 41 ) 
-            OUT(30,I,J) = LUMP_4( INCOL, LGLOB, 45 ) 
-         ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+         ! Lump 4 levels together at a time, starting at L=29
+         OUT(26,I,J) = LUMP_4( INCOL, LGLOB, 29 )
+         OUT(27,I,J) = LUMP_4( INCOL, LGLOB, 33 )
+         OUT(28,I,J) = LUMP_4( INCOL, LGLOB, 37 ) 
+         OUT(29,I,J) = LUMP_4( INCOL, LGLOB, 41 ) 
+         OUT(30,I,J) = LUMP_4( INCOL, LGLOB, 45 ) 
 
-#elif defined( GEOS_4 ) || defined( GEOS_5 )
+#elif defined( GEOS_4 )
 
-      !================================================================
-      ! GEOS-4/GEOS-5: When LLPAR /= LGLOB, then lump 55 levels into 
-      ! 30 levels, according to the formulation proposed by Mat Evans.  
-      ! Lump levels above L_COPY = 19 in groups of 2 or groups of 4.
-      !================================================================ 
+         !--------------------------------------------------------------
+         ! GEOS-4: Lump 55 levels into 30 levels, starting above L=20
+         ! Lump levels in groups of 2, then 4. (cf. Mat Evans)
+         !--------------------------------------------------------------
 
-      ! Return if LLPAR = LGLOB
-      IF ( LLPAR == LGLOB ) RETURN
+         ! Lump 2 levels together at a time
+         OUT(20,I,J) = LUMP_2( INCOL, LGLOB, 20 )
+         OUT(21,I,J) = LUMP_2( INCOL, LGLOB, 22 )
+         OUT(22,I,J) = LUMP_2( INCOL, LGLOB, 24 )
+         OUT(23,I,J) = LUMP_2( INCOL, LGLOB, 26 )
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, IREF, J, JREF, L, INCOL )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, JJPAR
-         JREF = J + J0
+         ! Lump 4 levels together at a time
+         OUT(24,I,J) = LUMP_4( INCOL, LGLOB, 28 )
+         OUT(25,I,J) = LUMP_4( INCOL, LGLOB, 32 )
+         OUT(26,I,J) = LUMP_4( INCOL, LGLOB, 36 ) 
+         OUT(27,I,J) = LUMP_4( INCOL, LGLOB, 40 ) 
+         OUT(28,I,J) = LUMP_4( INCOL, LGLOB, 44 ) 
+         OUT(29,I,J) = LUMP_4( INCOL, LGLOB, 48 ) 
+         OUT(30,I,J) = LUMP_4( INCOL, LGLOB, 52 ) 
 
-         DO I = 1, IIPAR
-            IREF = I + I0
+#elif defined( GEOS_5 )
 
-            ! Store vertical column at (IREF,JREF) in a 1-D vector
-            DO L = 1, LGLOB
-               INCOL(L) = IN(IREF,JREF,L)
-            ENDDO
+         !--------------------------------------------------------------
+         ! GEOS-5: Lump 72 levels into 47 levels, starting above L=36
+         ! Lump levels in groups of 2, then 4. (cf. Bob Yantosca)
+         !--------------------------------------------------------------
 
-            ! Lump 2 levels together at a time
-            OUT(20,I,J) = LUMP_2( INCOL, LGLOB, 20 )
-            OUT(21,I,J) = LUMP_2( INCOL, LGLOB, 22 )
-            OUT(22,I,J) = LUMP_2( INCOL, LGLOB, 24 )
-            OUT(23,I,J) = LUMP_2( INCOL, LGLOB, 26 )
+         ! Lump 2 levels together at a time
+         OUT(37,I,J) = LUMP_2( INCOL, LGLOB, 37 )
+         OUT(38,I,J) = LUMP_2( INCOL, LGLOB, 39 )
+         OUT(39,I,J) = LUMP_2( INCOL, LGLOB, 41 )
+         OUT(40,I,J) = LUMP_2( INCOL, LGLOB, 43 )
 
-            ! Lump 4 levels together at a time
-            OUT(24,I,J) = LUMP_4( INCOL, LGLOB, 28 )
-            OUT(25,I,J) = LUMP_4( INCOL, LGLOB, 32 )
-            OUT(26,I,J) = LUMP_4( INCOL, LGLOB, 36 ) 
-            OUT(27,I,J) = LUMP_4( INCOL, LGLOB, 40 ) 
-            OUT(28,I,J) = LUMP_4( INCOL, LGLOB, 44 ) 
-            OUT(29,I,J) = LUMP_4( INCOL, LGLOB, 48 ) 
-            OUT(30,I,J) = LUMP_4( INCOL, LGLOB, 52 ) 
-         ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+         ! Lump 4 levels together at a time
+         OUT(41,I,J) = LUMP_4( INCOL, LGLOB, 45 )
+         OUT(42,I,J) = LUMP_4( INCOL, LGLOB, 49 )
+         OUT(43,I,J) = LUMP_4( INCOL, LGLOB, 53 ) 
+         OUT(44,I,J) = LUMP_4( INCOL, LGLOB, 57 ) 
+         OUT(45,I,J) = LUMP_4( INCOL, LGLOB, 61 ) 
+         OUT(46,I,J) = LUMP_4( INCOL, LGLOB, 65 ) 
+         OUT(47,I,J) = LUMP_4( INCOL, LGLOB, 69 ) 
 
 #endif
+
+         ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
       ! Return to calling program
       END SUBROUTINE TRANSFER_A6
@@ -363,13 +297,9 @@
       SUBROUTINE TRANSFER_3D( IN, OUT )
 !
 !******************************************************************************
-!  Subroutine TRANSFER_3D transfers 3-D data from a REAL*4 array of dimension
-!  (IGLOB,JGLOB,LGLOB) to a REAL*8 array of dimension (IIPAR,JJPAR,LLPAR).
-!  Regrid GEOS-3 data from 48 --> 30 levels or GEOS-4 data from 55 --> 30 
-!  levels if necessary. (bmy, 9/21/01, 5/24/05)
-!
-!  NOTE: TRANSFER_3D can be used w/ I-6 met fields, since these are of
-!  dimensions (IIPAR,JJPAR,LLPAR).
+!  Subroutine TRANSFER_3D transfers A-6 data from a REAL*4 array to a REAL*8
+!  array.  Vertical layers are collapsed (from LGLOB to LLPAR) if necessary.
+!  (mje, bmy, 9/21/01, 2/8/07)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -387,154 +317,283 @@
 !        Now I0, J0 are local variables. (bmy, 3/11/03)
 !  (4 ) Added code to regrid GEOS-4 from 55 --> 30 levels (mje, bmy, 10/31/03)
 !  (5 ) Now modified for GEOS-5 met fields (bmy, 5/24/05)
+!  (6 ) Rewritten for clarity (bmy, 2/8/07)
 !******************************************************************************
 !
-      ! References to F90 modules
-      USE GRID_MOD, ONLY : GET_XOFFSET, GET_YOFFSET
-
-#     include "CMN_SIZE"
+#     include "CMN_SIZE"    ! Size parameters
 
       ! Arguments
       REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR,LGLOB)
       REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLPAR)
 
       ! Local variables
-      LOGICAL, SAVE        :: FIRST = .TRUE.  
-      INTEGER              :: I, I0, IREF, J, J0, JREF, L, L_COPY
+      INTEGER              :: I, J
       REAL*4               :: INCOL(LGLOB)
      
       !================================================================
       ! TRANSFER_3D begins here!
       !================================================================
 
-      ! Allocate EDGE_IN on the first call, if necessary
-      IF ( FIRST ) THEN
-         CALL INIT_TRANSFER
-         FIRST = .FALSE.
-      ENDIF
+      ! Copy the first L_COPY levels
+      OUT(:,:,1:L_COPY) = IN( 1+I0:IIPAR+I0, 1+J0:JJPAR+J0, 1:L_COPY )
 
-      ! Get nested-grid offsets
-      I0     = GET_XOFFSET()
-      J0     = GET_YOFFSET()
+      ! Exit if we are running at full vertical resolution
+      IF ( LLPAR == LGLOB ) RETURN
 
-      ! L_COPY is the # of levels to copy from REAL*4 to REAL*8
-      L_COPY = GET_L_COPY()
+      !================================================================
+      ! Collapse levels in the stratosphere
+      !================================================================
 
-      ! Copy levels up to L_COPY, for all model types
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, IREF, J, JREF, L )
+!$OMP+PRIVATE( I, J, INCOL )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, L_COPY
       DO J = 1, JJPAR
-         JREF = J + J0
       DO I = 1, IIPAR
-         IREF = I + I0
-         OUT(I,J,L) = IN(IREF,JREF,L)
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
 
-#if   defined( GEOS_3 )
+         ! Copy a vertical column into INCOL
+         INCOL = IN( I+I0, J+J0, 1:LGLOB )
 
-      !================================================================
-      ! For GEOS-3, when LLPAR /= LGLOB, then lump 48 levels into 
-      ! 30 levels, according to the formulation proposed by Mat Evans.  
-      ! Lump levels above L_INT = 22 in groups of 2 or groups of 4.
-      !================================================================    
+#if   defined( GEOS_3 ) 
 
-      ! Return if LLPAR = LGLOB
-      IF ( LLPAR == LGLOB ) RETURN
+         !--------------------------------------------------------------
+         ! GEOS-3: Lump 48 levels into 30 levels, starting above L=22.  
+         ! Lump levels in groups of 2, then 4. (cf. Mat Evans)
+         !--------------------------------------------------------------
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, IREF, J, JREF, L, INCOL )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, JJPAR
-         JREF = J + J0
+         ! Lump 2 levels together at a time, starting at L=23
+         OUT(I,J,23) = LUMP_2( INCOL, LGLOB, 23 )
+         OUT(I,J,24) = LUMP_2( INCOL, LGLOB, 25 )
+         OUT(I,J,25) = LUMP_2( INCOL, LGLOB, 27 )
 
-         DO I = 1, IIPAR
-            IREF = I + I0
+         ! Lump 4 levels together at a time, starting at L=29
+         OUT(I,J,26) = LUMP_4( INCOL, LGLOB, 29 )
+         OUT(I,J,27) = LUMP_4( INCOL, LGLOB, 33 )
+         OUT(I,J,28) = LUMP_4( INCOL, LGLOB, 37 ) 
+         OUT(I,J,29) = LUMP_4( INCOL, LGLOB, 41 ) 
+         OUT(I,J,30) = LUMP_4( INCOL, LGLOB, 45 ) 
 
-            ! Store vertical column at (I,J) in a 1-D vector
-            DO L = 1, LGLOB
-               INCOL(L) = IN(IREF,JREF,L)
-            ENDDO
+#elif defined( GEOS_4 )
 
-            ! Lump 2 levels together at a time, starting at the given level
-            OUT(I,J,23) = LUMP_2( INCOL, LGLOB, 23 )
-            OUT(I,J,24) = LUMP_2( INCOL, LGLOB, 25 )
-            OUT(I,J,25) = LUMP_2( INCOL, LGLOB, 27 )
+         !--------------------------------------------------------------
+         ! GEOS-4: Lump 55 levels into 30 levels, starting above L=20
+         ! Lump levels in groups of 2, then 4. (cf. Mat Evans)
+         !--------------------------------------------------------------
 
-            ! Lump 4 levels together at a time, starting at the given level
-            OUT(I,J,26) = LUMP_4( INCOL, LGLOB, 29 )
-            OUT(I,J,27) = LUMP_4( INCOL, LGLOB, 33 )
-            OUT(I,J,28) = LUMP_4( INCOL, LGLOB, 37 ) 
-            OUT(I,J,29) = LUMP_4( INCOL, LGLOB, 41 ) 
-            OUT(I,J,30) = LUMP_4( INCOL, LGLOB, 45 ) 
-         ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+         ! Lump 2 levels together at a time, starting at L=20
+         OUT(I,J,20) = LUMP_2( INCOL, LGLOB, 20 )
+         OUT(I,J,21) = LUMP_2( INCOL, LGLOB, 22 )
+         OUT(I,J,22) = LUMP_2( INCOL, LGLOB, 24 )
+         OUT(I,J,23) = LUMP_2( INCOL, LGLOB, 26 )
 
-#elif defined( GEOS_4 ) || defined( GEOS_5 )
+         ! Lump 4 levels together at a time, starting at L=28
+         OUT(I,J,24) = LUMP_4( INCOL, LGLOB, 28 )
+         OUT(I,J,25) = LUMP_4( INCOL, LGLOB, 32 )
+         OUT(I,J,26) = LUMP_4( INCOL, LGLOB, 36 ) 
+         OUT(I,J,27) = LUMP_4( INCOL, LGLOB, 40 ) 
+         OUT(I,J,28) = LUMP_4( INCOL, LGLOB, 44 ) 
+         OUT(I,J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
+         OUT(I,J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
 
-      !================================================================
-      ! GEOS-4/GEOS-5: When LLPAR /= LGLOB, then lump 55 levels into 
-      ! 30 levels, according to the formulation proposed by Mat Evans.  
-      ! Lump levels above L_COPY = 19 in groups of 2 or groups of 4.
-      !================================================================ 
+#elif defined( GEOS_5 )
 
-      ! Return if LLPAR = LGLOB
-      IF ( LLPAR == LGLOB ) RETURN
+         !--------------------------------------------------------------
+         ! GEOS-5: Lump 72 levels into 47 levels, starting above L=36
+         ! Lump levels in groups of 2, then 4. (cf. Bob Yantosca)
+         !--------------------------------------------------------------
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, IREF, J, JREF, L, INCOL )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, JJPAR
-         JREF = J + J0
+         ! Lump 2 levels together at a time
+         OUT(I,J,37) = LUMP_2( INCOL, LGLOB, 37 )
+         OUT(I,J,38) = LUMP_2( INCOL, LGLOB, 39 )
+         OUT(I,J,39) = LUMP_2( INCOL, LGLOB, 41 )
+         OUT(I,J,40) = LUMP_2( INCOL, LGLOB, 43 )
 
-         DO I = 1, IIPAR
-            IREF = I + I0
-
-            ! Store vertical column at (I,J) in a 1-D vector
-            DO L = 1, LGLOB
-               INCOL(L) = IN(IREF,JREF,L)
-            ENDDO
-
-            ! Lump 2 levels together at a time
-            OUT(I,J,20) = LUMP_2( INCOL, LGLOB, 20 )
-            OUT(I,J,21) = LUMP_2( INCOL, LGLOB, 22 )
-            OUT(I,J,22) = LUMP_2( INCOL, LGLOB, 24 )
-            OUT(I,J,23) = LUMP_2( INCOL, LGLOB, 26 )
-
-            ! Lump 4 levels together at a time
-            OUT(I,J,24) = LUMP_4( INCOL, LGLOB, 28 )
-            OUT(I,J,25) = LUMP_4( INCOL, LGLOB, 32 )
-            OUT(I,J,26) = LUMP_4( INCOL, LGLOB, 36 ) 
-            OUT(I,J,27) = LUMP_4( INCOL, LGLOB, 40 ) 
-            OUT(I,J,28) = LUMP_4( INCOL, LGLOB, 44 ) 
-            OUT(I,J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
-            OUT(I,J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
-         ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+         ! Lump 4 levels together at a time
+         OUT(I,J,41) = LUMP_4( INCOL, LGLOB, 45 )
+         OUT(I,J,42) = LUMP_4( INCOL, LGLOB, 49 )
+         OUT(I,J,43) = LUMP_4( INCOL, LGLOB, 53 ) 
+         OUT(I,J,44) = LUMP_4( INCOL, LGLOB, 57 ) 
+         OUT(I,J,45) = LUMP_4( INCOL, LGLOB, 61 ) 
+         OUT(I,J,46) = LUMP_4( INCOL, LGLOB, 65 ) 
+         OUT(I,J,47) = LUMP_4( INCOL, LGLOB, 69 ) 
 
 #endif
+
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
       ! Return to calling program
       END SUBROUTINE TRANSFER_3D
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE TRANSFER_G5_PLE( IN, OUT )
+!
+!******************************************************************************
+!  Subroutine TRANSFER_G5_PLE transfers GEOS-5 pressure edge data from the
+!  native 72-level grid to the reduced 47-level grid.  (bmy, 2/8/07)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) IN  (REAL*4) : Input field,  of dimension (IGLOB,JGLOB,LGLOB)
+!
+!  Arguments as Output:
+!  ============================================================================
+!  (2 ) OUT (REAL*8) : Output field, of dimension (IIPAR,JJPAR,LLPAR)
+!
+!  NOTES:
+!******************************************************************************
+!
+#     include "CMN_SIZE"    ! Size parameters
+
+      ! Arguments
+      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR,LGLOB+1)
+      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLPAR+1)
+
+      ! Local variables
+      INTEGER              :: I, J
+      REAL*4               :: INCOL(LGLOB)
+     
+      !================================================================
+      ! TRANSFER_PLE begins here!
+      !================================================================
+
+      ! Copy the first L_COPY+1 edges (which define L_COPY levels)
+      OUT(:,:,1:L_COPY+1) = IN( 1+I0:IIPAR+I0,1+J0:JJPAR+J0,1:L_COPY+1 )
+
+      ! Exit if we are running at full vertical resolution
+      IF ( LLPAR == LGLOB ) RETURN
+
+      !================================================================
+      ! Return GEOS-5 pressure edges for reduced grid
+      !================================================================
+
+#if   defined( GEOS_5 )
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, INCOL )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Top edges of levels lumped by 2's
+         OUT(I,J,38) = IN(I+I0,J+J0,39)
+         OUT(I,J,39) = IN(I+I0,J+J0,41)
+         OUT(I,J,40) = IN(I+I0,J+J0,43)
+         OUT(I,J,41) = IN(I+I0,J+J0,45)
+
+         ! Top edges of levels lumped by 4's
+         OUT(I,J,42) = IN(I+I0,J+J0,49)
+         OUT(I,J,43) = IN(I+I0,J+J0,53)
+         OUT(I,J,44) = IN(I+I0,J+J0,57)
+         OUT(I,J,45) = IN(I+I0,J+J0,61)
+         OUT(I,J,46) = IN(I+I0,J+J0,65)
+         OUT(I,J,47) = IN(I+I0,J+J0,69)
+         OUT(I,J,48) = IN(I+I0,J+J0,73)
+
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+#endif
+
+      ! Return to calling program
+      END SUBROUTINE TRANSFER_G5_PLE
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE TRANSFER_3D_Lp1( IN, OUT )
+!
+!******************************************************************************
+!  Subroutine TRANSFER_3D_Lp1 transfers 3-D data from a REAL*4 array of 
+!  dimension (IGLOB,JGLOB,LGLOB+1) to a REAL*8 array of dimension 
+!  (IIPAR,JJPAR,LLPAR+1).  Regrid in the vertical if needed.
+!  (bmy, 9/21/01, 2/8/07)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) IN  (REAL*4) : Input field,  of dimension (IGLOB,JGLOB,LGLOB+1)
+!
+!  Arguments as Output:
+!  ============================================================================
+!  (2 ) OUT (REAL*8) : Output field, of dimension (IIPAR,JJPAR,LLPAR+1)
+!
+!  NOTES:
+!******************************************************************************
+!
+#     include "CMN_SIZE"
+
+      ! Arguments
+      REAL*4,  INTENT(IN)  :: IN(IGLOB,JGLOB,LGLOB+1)
+      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLPAR+1)
+
+      ! Local variables
+      LOGICAL, SAVE        :: FIRST = .TRUE.  
+      INTEGER              :: I, J
+      REAL*4               :: INCOL(LGLOB)
+     
+      !=================================================================
+      ! TRANSFER_3D_Lp1 begins here!
+      !=================================================================
+
+      ! Copy the first L_COPY+1 levels
+      OUT(:,:,1:L_COPY+1) = IN( 1+I0:IIPAR+I0, 1+J0:JJPAR+J0,1:L_COPY+1)
+
+      ! Exit if we are running full vertical resolution
+      IF ( LLPAR == LGLOB ) RETURN
+
+      !=================================================================
+      ! Collapse levels in the stratosphere
+      !
+      ! %%% TEMPORARY KLUDGE!!!!
+      ! %%% NOTE: For now do the same thing as in TRANSFER_G5_PLE, i.e.
+      ! %%% return the values at the edges.  The only other field than 
+      ! %%% PLE defined on the edges is CMFMC and that is always zero 
+      ! %%% above about 120 hPa. (bmy, 2/8/07)
+      !=================================================================
+
+#if   defined( GEOS_5 )
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, INCOL )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Top edges of levels lumped by 2's
+         OUT(I,J,38) = IN(I+I0,J+J0,39)
+         OUT(I,J,39) = IN(I+I0,J+J0,41)
+         OUT(I,J,40) = IN(I+I0,J+J0,43)
+         OUT(I,J,41) = IN(I+I0,J+J0,45)
+
+         ! Top edges of levels lumped by 4's
+         OUT(I,J,42) = IN(I+I0,J+J0,49)
+         OUT(I,J,43) = IN(I+I0,J+J0,53)
+         OUT(I,J,44) = IN(I+I0,J+J0,57)
+         OUT(I,J,45) = IN(I+I0,J+J0,61)
+         OUT(I,J,46) = IN(I+I0,J+J0,65)
+         OUT(I,J,47) = IN(I+I0,J+J0,69)
+         OUT(I,J,48) = IN(I+I0,J+J0,73)
+
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+#endif
+
+      ! Return to calling program
+      END SUBROUTINE TRANSFER_3D_Lp1
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE TRANSFER_3D_TROP( IN, OUT )
 !
 !******************************************************************************
-!  Subroutine TRANSFER_3D_TROP transfers 3-D data from a REAL*4 array of 
-!  dimension (IGLOB,JGLOB,LLTROP) to a REAL*8 array of dimension 
-!  (IIPAR,JJPAR,LLTROP).  Use this routine to cast & resize data that are
-!  only defined up to the max tropopause level LLTROP. (bmy, 10/31/02, 3/11/03)
+!  Subroutine TRANSFER_3D_TROP transfers tropospheric 3-D data from a REAL*4 
+!  array to a REAL*8 array. (mje, bmy, 9/21/01, 2/8/07)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -545,13 +604,15 @@
 !  (2 ) OUT (REAL*8) : Output field, of dimension (IIPAR,LLPAR,LLTROP)
 !
 !  NOTES:
+!  (1 ) Now use LLTROP_FIX instead of LLTROP, since most of the offline
+!        simulations use the annual mean tropopause (bmy, 2/8/07)
 !******************************************************************************
 !
-#     include "CMN_SIZE"   ! Size parameters
+#     include "CMN_SIZE"    ! Size parameters
 
       ! Arguments
-      REAL*4,  INTENT(IN)  :: IN(IGLOB,JGLOB,LLTROP)
-      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLTROP)
+      REAL*4,  INTENT(IN)  :: IN(IGLOB,JGLOB,LLTROP_FIX)
+      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLTROP_FIX)
 
       ! Local variables
       INTEGER              :: L
@@ -561,7 +622,7 @@
       !=================================================================
 
       ! Cast to REAL*8 abd resize up to LLTROP
-      DO L = 1, LLTROP
+      DO L = 1, LLTROP_FIX
          CALL TRANSFER_2D( IN(:,:,L), OUT(:,:,L) )
       ENDDO
       
@@ -573,8 +634,139 @@
       SUBROUTINE TRANSFER_ZONAL_R4( IN, OUT )
 !
 !******************************************************************************
+!  Subroutine TRANSFER_ZOJAL_R4 transfers zonal-mean data from a REAL*4 array 
+!  to a REAL*8 array.  Vertical levels are collapsed (from LGLOB to LLPAR) if 
+!  necessary. (mje, bmy, 9/21/01, 2/8/07)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) IN  (REAL*4) : Input  field, of dimension (JGLOB,LGLOB)
+!
+!  Arguments as Output:
+!  ============================================================================
+!  (2 ) OUT (REAL*8) : Output field, of dimension (JJPAR,LLPAR)
+!
+!  NOTES:
+!  (1 ) Lump levels together in groups of 2 or 4, as dictated by Mat Evans.
+!        (bmy, 9/21/01)
+!  (2 ) Assumes that LLPAR == LGLOB for GEOS-1, GEOS-STRAT (bmy, 9/21/01)
+!  (3 ) Now use function GET_YOFFSET from "grid_mod.f".  Now I0 and J0 are 
+!        local variables (bmy, 3/11/03)
+!  (4 ) Added code to regrid GEOS-4 from 55 --> 30 levels (mje, bmy, 10/31/03)
+!  (5 ) Rewritten for clarity (bmy, 2/8/07)
+!******************************************************************************
+!
+#     include "CMN_SIZE"    ! Size parameters
+
+      ! Arguments
+      REAL*4,  INTENT(IN)  :: IN(JGLOB,LGLOB)
+      REAL*4,  INTENT(OUT) :: OUT(JJPAR,LLPAR)
+
+      ! Local variables
+      INTEGER              :: J
+      REAL*4               :: INCOL(LGLOB)
+     
+      !================================================================
+      ! TRANSFER_ZONAL_R4 begins here!
+      !================================================================
+
+      ! Copy the first L_COPY levels
+      OUT(:,1:L_COPY) = IN( 1+J0:JJPAR+J0, 1:L_COPY )
+
+      ! Exit if we are running at full vertical resolution
+      IF ( LLPAR == LGLOB ) RETURN
+
+      !================================================================
+      ! Collapse levels in the stratosphere
+      !================================================================    
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( J, INCOL )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO J = 1, JJPAR
+
+         ! Store vertical column at (I,J) in a 1-D vector
+         INCOL = IN( J+J0, 1:LGLOB )
+
+#if   defined( GEOS_3 )
+
+         !--------------------------------------------------------------
+         ! GEOS-3: Lump 48 levels into 30 levels, starting above L=22.  
+         ! Lump levels in groups of 2, then 4. (cf. Mat Evans)
+         !--------------------------------------------------------------
+
+         ! Lump 2 levels together at a time
+         OUT(J,23) = LUMP_2( INCOL, LGLOB, 23 )
+         OUT(J,24) = LUMP_2( INCOL, LGLOB, 25 )
+         OUT(J,25) = LUMP_2( INCOL, LGLOB, 27 )
+
+         ! Lump 4 levels together at a time
+         OUT(J,26) = LUMP_4( INCOL, LGLOB, 29 )
+         OUT(J,27) = LUMP_4( INCOL, LGLOB, 33 )
+         OUT(J,28) = LUMP_4( INCOL, LGLOB, 37 ) 
+         OUT(J,29) = LUMP_4( INCOL, LGLOB, 41 ) 
+         OUT(J,30) = LUMP_4( INCOL, LGLOB, 45 ) 
+
+#elif defined( GEOS_4 )
+      
+         !--------------------------------------------------------------
+         ! GEOS-4: Lump 55 levels into 30 levels, starting above L=20
+         ! Lump levels in groups of 2, then 4. (cf. Mat Evans)
+         !--------------------------------------------------------------
+
+         ! Lump 2 levels together at a time
+         OUT(J,20) = LUMP_2( INCOL, LGLOB, 20 )
+         OUT(J,21) = LUMP_2( INCOL, LGLOB, 22 )
+         OUT(J,22) = LUMP_2( INCOL, LGLOB, 24 )
+         OUT(J,23) = LUMP_2( INCOL, LGLOB, 26 )
+
+         ! Lump 4 levels together at a time
+         OUT(J,24) = LUMP_4( INCOL, LGLOB, 28 )
+         OUT(J,25) = LUMP_4( INCOL, LGLOB, 32 )
+         OUT(J,26) = LUMP_4( INCOL, LGLOB, 36 ) 
+         OUT(J,27) = LUMP_4( INCOL, LGLOB, 40 ) 
+         OUT(J,28) = LUMP_4( INCOL, LGLOB, 44 ) 
+         OUT(J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
+         OUT(J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
+
+#elif defined( GEOS_5 )
+
+         !--------------------------------------------------------------
+         ! GEOS-5: Lump 72 levels into 47 levels, starting above L=36
+         ! Lump levels in groups of 2, then 4.  
+         !--------------------------------------------------------------
+
+         ! Lump 2 levels together at a time
+         OUT(J,37) = LUMP_2( INCOL, LGLOB, 37 )
+         OUT(J,38) = LUMP_2( INCOL, LGLOB, 39 )
+         OUT(J,39) = LUMP_2( INCOL, LGLOB, 41 )
+         OUT(J,40) = LUMP_2( INCOL, LGLOB, 43 )
+
+         ! Lump 4 levels together at a time
+         OUT(J,41) = LUMP_4( INCOL, LGLOB, 45 )
+         OUT(J,42) = LUMP_4( INCOL, LGLOB, 49 )
+         OUT(J,43) = LUMP_4( INCOL, LGLOB, 53 ) 
+         OUT(J,44) = LUMP_4( INCOL, LGLOB, 57 ) 
+         OUT(J,45) = LUMP_4( INCOL, LGLOB, 61 ) 
+         OUT(J,46) = LUMP_4( INCOL, LGLOB, 65 ) 
+         OUT(J,47) = LUMP_4( INCOL, LGLOB, 69 ) 
+
+#endif
+
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Return to calling program
+      END SUBROUTINE TRANSFER_ZONAL_R4
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE TRANSFER_ZONAL_R8( IN, OUT )
+!
+!******************************************************************************
 !  Subroutine TRANSFER_ZONAL_R4 transfers zonal mean or lat-alt data from a 
-!  REAL*4 array of dimension (JGLOB,LGLOB) to a REAL*4 array of dimension 
+!  REAL*4 array of dimension (JGLOB,LGLOB) to a REAL*8 array of dimension 
 !  (JJPAR,LLPAR).   Regrid GEOS-3 data from 48 --> 30 levels or GEOS-4 data
 !  from 55 --> 30 levels if necessary. (bmy, 9/21/01, 5/24/05)
 !
@@ -596,221 +788,45 @@
 !  (5 ) Now modified for GEOS-5 met fields (bmy, 5/24/05)
 !******************************************************************************
 !
-      ! References to F90 modules
-      USE GRID_MOD, ONLY : GET_YOFFSET
-
-#     include "CMN_SIZE"
-
-      ! Arguments
-      REAL*4,  INTENT(IN)  :: IN(JGLOB,LGLOB)
-      REAL*4,  INTENT(OUT) :: OUT(JJPAR,LLPAR)
-
-      ! Local variables
-      LOGICAL, SAVE        :: FIRST = .TRUE.  
-      INTEGER              :: J, J0, JREF, L, L_COPY
-      REAL*4               :: INCOL(LGLOB)
-     
-      !================================================================
-      ! TRANSFER_ZONAL_R4 begins here!
-      !================================================================
-
-      ! Allocate EDGE_IN on the first call, if necessary
-      IF ( FIRST ) THEN
-         CALL INIT_TRANSFER
-         FIRST = .FALSE.
-      ENDIF
-
-      ! Get nested grid offsets
-      J0     = GET_YOFFSET()
-
-      ! L_COPY is the # of levels to copy from REAL*4 to REAL*8
-      L_COPY = GET_L_COPY()
-
-      ! Copy levels up to L_COPY, for all model types
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J, JREF, L )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, L_COPY
-      DO J = 1, JJPAR
-         JREF = J + J0
-         OUT(J,L) = IN(JREF,L)
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#if   defined( GEOS_3 )
-
-      !================================================================
-      ! For GEOS-3, when LLPAR /= LGLOB, then lump 48 levels into 
-      ! 30 levels, according to the formulation proposed by Mat Evans.  
-      ! Lump levels above L_INT = 22 in groups of 2 or groups of 4.
-      !================================================================    
-
-      ! Return if LLPAR = LGLOB
-      IF ( LLPAR == LGLOB ) RETURN
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J, JREF, L, INCOL )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, JJPAR
-         JREF = J + J0
-
-         ! Store vertical column at (I,J) in a 1-D vector
-         DO L = 1, LGLOB
-            INCOL(L) = IN(JREF,L)
-         ENDDO
-
-         ! Lump 2 levels together at a time
-         OUT(J,23) = LUMP_2( INCOL, LGLOB, 23 )
-         OUT(J,24) = LUMP_2( INCOL, LGLOB, 25 )
-         OUT(J,25) = LUMP_2( INCOL, LGLOB, 27 )
-
-         ! Lump 4 levels together at a time
-         OUT(J,26) = LUMP_4( INCOL, LGLOB, 29 )
-         OUT(J,27) = LUMP_4( INCOL, LGLOB, 33 )
-         OUT(J,28) = LUMP_4( INCOL, LGLOB, 37 ) 
-         OUT(J,29) = LUMP_4( INCOL, LGLOB, 41 ) 
-         OUT(J,30) = LUMP_4( INCOL, LGLOB, 45 ) 
-      ENDDO
-!$OMP END PARALLEL DO
-
-#elif defined( GEOS_4 ) || defined( GEOS_5 )
-      
-      !================================================================
-      ! GEOS-4/GEOS-5: When LLPAR /= LGLOB, then lump 55 levels into 
-      ! 30 levels, according to the formulation proposed by Mat Evans.  
-      ! Lump levels above L_COPY = 19 in groups of 2 or groups of 4.
-      !================================================================ 
-
-      ! Return if LLPAR = LGLOB
-      IF ( LLPAR == LGLOB ) RETURN
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J, JREF, L, INCOL )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, JJPAR
-         JREF = J + J0
-
-         ! Store vertical column at (I,J) in a 1-D vector
-         DO L = 1, LGLOB
-            INCOL(L) = IN(JREF,L)
-         ENDDO
-
-         ! Lump 2 levels together at a time
-         OUT(J,20) = LUMP_2( INCOL, LGLOB, 20 )
-         OUT(J,21) = LUMP_2( INCOL, LGLOB, 22 )
-         OUT(J,22) = LUMP_2( INCOL, LGLOB, 24 )
-         OUT(J,23) = LUMP_2( INCOL, LGLOB, 26 )
-
-         ! Lump 4 levels together at a time
-         OUT(J,24) = LUMP_4( INCOL, LGLOB, 28 )
-         OUT(J,25) = LUMP_4( INCOL, LGLOB, 32 )
-         OUT(J,26) = LUMP_4( INCOL, LGLOB, 36 ) 
-         OUT(J,27) = LUMP_4( INCOL, LGLOB, 40 ) 
-         OUT(J,28) = LUMP_4( INCOL, LGLOB, 44 ) 
-         OUT(J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
-         OUT(J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
-      ENDDO
-!$OMP END PARALLEL DO
-
-#endif
-
-      ! Return to calling program
-      END SUBROUTINE TRANSFER_ZONAL_R4
-
-!------------------------------------------------------------------------------
-
-      SUBROUTINE TRANSFER_ZONAL_R8( IN, OUT )
-!
-!******************************************************************************
-!  Subroutine TRANSFER_ZONAL_R8 transfers zonal mean or lat-alt data from a 
-!  REAL*4 array of dimension (JGLOB,LGLOB) to a REAL*8 array of dimension 
-!  (JJPAR,LLPAR).  Regrid GEOS-3 data from 48 --> 30 levels or GEOS-4 data
-!  from 55 --> 30 levels if necessary. (bmy, 9/21/01, 5/24/05)
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) IN  (REAL*4) : Input  field, of dimension (JGLOB,LGLOB)
-!  (2 ) OUT (REAL*8) : Output field, of dimension (JJPAR,LLPAR)
-!
-!  NOTES:
-!  (1 ) Lump levels together in groups of 2 or 4, as dictated by Mat Evans.
-!        (bmy, 9/21/01)
-!  (2 ) Assumes that LLPAR == LGLOB for GEOS-1, GEOS-STRAT (bmy, 9/21/01)
-!  (3 ) Now use functions GET_YOFFSET from "grid_mod.f".  Now J0 is a local 
-!        variable. (bmy, 3/11/03)
-!  (4 ) Added code to regrid GEOS-4 from 55 --> 30 levels (mje, bmy, 10/31/03)
-!  (5 ) Now modified for GEOS-5 met fields (bmy, 5/24/05)
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE GRID_MOD, ONLY : GET_YOFFSET
-
-#     include "CMN_SIZE"
+#     include "CMN_SIZE"    ! Size parameters
 
       ! Arguments
       REAL*4,  INTENT(IN)  :: IN(JGLOB,LGLOB)
       REAL*8,  INTENT(OUT) :: OUT(JJPAR,LLPAR)
 
       ! Local variables
-      LOGICAL, SAVE        :: FIRST = .TRUE.  
-      INTEGER              :: J, J0, JREF, L, L_COPY
+      INTEGER              :: J
       REAL*4               :: INCOL(LGLOB)
      
       !================================================================
-      ! TRANSFER_ZONAL begins here!
+      ! TRANSFER_ZONAL_R8 begins here!
       !================================================================
 
-      ! Allocate EDGE_IN on the first call, if necessary
-      IF ( FIRST ) THEN
-         CALL INIT_TRANSFER
-         FIRST = .FALSE.
-      ENDIF
+      ! Copy the first L_COPY levels
+      OUT(:,1:L_COPY) = IN( 1+J0:JJPAR+J0, 1:L_COPY )
 
-      ! Get nested-grid offset
-      J0     = GET_YOFFSET()
+      ! Exit if we are running at full vertical resolution
+      IF ( LLPAR == LGLOB ) RETURN
 
-      ! L_COPY is the # of levels to copy from REAL*4 to REAL*8
-      L_COPY = GET_L_COPY()
+      !================================================================
+      ! Collapse levels in the stratosphere
+      !================================================================    
 
-      ! Copy levels up to L_COPY, for all model types
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J, JREF, L )
+!$OMP+PRIVATE( J, INCOL )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, L_COPY
       DO J = 1, JJPAR
-         JREF = J + J0
-         OUT(J,L) = IN(JREF,L)
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+
+         ! Store vertical column at (I,J) in a 1-D vector
+         INCOL = IN( J+J0, 1:LGLOB )
 
 #if   defined( GEOS_3 )
 
-      !================================================================
-      ! For GEOS-3, when LLPAR /= LGLOB, then lump 48 levels into 
-      ! 30 levels, according to the formulation proposed by Mat Evans.  
-      ! Lump levels above L_COPY = 22 in groups of 2 or groups of 4.
-      !================================================================    
-
-      ! Return if LLPAR = LGLOB
-      IF ( LLPAR == LGLOB ) RETURN
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J, JREF, L, INCOL )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, JJPAR
-         JREF = J + J0
-
-         ! Store vertical column at (I,J) in a 1-D vector
-         DO L = 1, LGLOB
-            INCOL(L) = IN(JREF,L)
-         ENDDO
+         !--------------------------------------------------------------
+         ! GEOS-3: Lump 48 levels into 30 levels, starting above L=22.  
+         ! Lump levels in groups of 2, then 4. (cf. Mat Evans)
+         !--------------------------------------------------------------
 
          ! Lump 2 levels together at a time
          OUT(J,23) = LUMP_2( INCOL, LGLOB, 23 )
@@ -823,31 +839,13 @@
          OUT(J,28) = LUMP_4( INCOL, LGLOB, 37 ) 
          OUT(J,29) = LUMP_4( INCOL, LGLOB, 41 ) 
          OUT(J,30) = LUMP_4( INCOL, LGLOB, 45 ) 
-      ENDDO
-!$OMP END PARALLEL DO
 
-#elif defined( GEOS_4 ) || defined( GEOS_5 )
-      
-      !================================================================
-      ! GEOS-4/GEOS-5: When LLPAR /= LGLOB, then lump 55 levels into 
-      ! 30 levels, according to the formulation proposed by Mat Evans.  
-      ! Lump levels above L_COPY = 19 in groups of 2 or groups of 4.
-      !================================================================  
+#elif defined( GEOS_4 )
 
-      ! Return if LLPAR = LGLOB
-      IF ( LLPAR == LGLOB ) RETURN
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J, JREF, L, INCOL )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, JJPAR
-         JREF = J + J0
-
-         ! Store vertical column at (I,J) in a 1-D vector
-         DO L = 1, LGLOB
-            INCOL(L) = IN(JREF,L)
-         ENDDO
+         !--------------------------------------------------------------
+         ! GEOS-4: Lump 55 levels into 30 levels, starting above L=20
+         ! Lump levels in groups of 2, then 4. (cf. Mat Evans)
+         !--------------------------------------------------------------
 
          ! Lump 2 levels together at a time
          OUT(J,20) = LUMP_2( INCOL, LGLOB, 20 )
@@ -863,10 +861,32 @@
          OUT(J,28) = LUMP_4( INCOL, LGLOB, 44 ) 
          OUT(J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
          OUT(J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
+
+#elif defined( GEOS_5 )
+
+         !--------------------------------------------------------------
+         ! GEOS-5: Lump 72 levels into 47 levels, starting above L=36
+         ! Lump levels in groups of 2, then 4.  
+         !--------------------------------------------------------------
+
+         ! Lump 2 levels together at a time
+         OUT(J,37) = LUMP_2( INCOL, LGLOB, 37 )
+         OUT(J,38) = LUMP_2( INCOL, LGLOB, 39 )
+         OUT(J,39) = LUMP_2( INCOL, LGLOB, 41 )
+         OUT(J,40) = LUMP_2( INCOL, LGLOB, 43 )
+
+         ! Lump 4 levels together at a time
+         OUT(J,41) = LUMP_4( INCOL, LGLOB, 45 )
+         OUT(J,42) = LUMP_4( INCOL, LGLOB, 49 )
+         OUT(J,43) = LUMP_4( INCOL, LGLOB, 53 ) 
+         OUT(J,44) = LUMP_4( INCOL, LGLOB, 57 ) 
+         OUT(J,45) = LUMP_4( INCOL, LGLOB, 61 ) 
+         OUT(J,46) = LUMP_4( INCOL, LGLOB, 65 ) 
+         OUT(J,47) = LUMP_4( INCOL, LGLOB, 69 ) 
+#endif
+
       ENDDO
 !$OMP END PARALLEL DO
-
-#endif
 
       ! Return to calling program
       END SUBROUTINE TRANSFER_ZONAL_R8
@@ -894,38 +914,19 @@
 !        Now I0 and J0 are local variables. (bmy, 3/11/03)
 !******************************************************************************
 !
-      ! References to F90 modules
-      USE GRID_MOD, ONLY : GET_XOFFSET, GET_YOFFSET
-
 #     include "CMN_SIZE"
 
       ! Arguments
       REAL*4,  INTENT(IN)  :: IN(IGLOB,JGLOB)
       INTEGER, INTENT(OUT) :: OUT(IIPAR,JJPAR)
 
-      ! Local variables
-      INTEGER              :: I, I0, IREF, J, J0, JREF
-
       !=================================================================
       ! TRANSFER_2D_INT begins here!
       !=================================================================
 
-      ! Get nested-grid offsets
-      I0 = GET_XOFFSET()
-      J0 = GET_YOFFSET()
+      ! Copy and cast array
+      OUT = IN( 1+I0:IIPAR+I0, 1+J0:JJPAR+J0 )
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, IREF, J, JREF )
-      DO J = 1, JJPAR
-         JREF = J + J0
-      DO I = 1, IIPAR
-         IREF = I + I0
-         OUT(I,J) = IN(IREF,JREF)
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-      
       ! Return to calling program
       END SUBROUTINE TRANSFER_2D_INT
 
@@ -952,38 +953,19 @@
 !        Now I0 and J0 are local variables (bmy, 3/11/03)
 !******************************************************************************
 !
-      ! References to F90 modules
-      USE GRID_MOD, ONLY : GET_XOFFSET, GET_YOFFSET
-
 #     include "CMN_SIZE"
 
       ! Arguments
       REAL*4,  INTENT(IN)  :: IN(IGLOB,JGLOB)
       REAL*4,  INTENT(OUT) :: OUT(IIPAR,JJPAR)
 
-      ! Local variables
-      INTEGER              :: I, I0, IREF, J, J0, JREF
-
       !=================================================================
       ! TRANSFER_2D_R4 begins here!
       !=================================================================
       
-      ! Get nested-grid offsets
-      I0 = GET_XOFFSET()
-      J0 = GET_YOFFSET()
+      ! Copy and cast array
+      OUT = IN( 1+I0:IIPAR+I0, 1+J0:JJPAR+J0 )
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, IREF, J, JREF )
-      DO J = 1, JJPAR
-         JREF = J + J0
-      DO I = 1, IIPAR
-         IREF = I + I0
-         OUT(I,J) = IN(IREF,JREF)
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-      
       ! Return to calling program
       END SUBROUTINE TRANSFER_2D_R4
 
@@ -1010,37 +992,18 @@
 !        Now I0 and J0 are local variables. (bmy, 3/11/03)
 !******************************************************************************
 !
-      ! References to F90 modules
-      USE GRID_MOD, ONLY : GET_XOFFSET, GET_YOFFSET
-
 #     include "CMN_SIZE"
 
       ! Arguments
       REAL*4,  INTENT(IN)  :: IN(IGLOB,JGLOB)
       REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR)
 
-      ! Local variables
-      INTEGER              :: I, I0, IREF, J, J0, JREF
-
       !=================================================================
       ! TRANSFER_2D_R8 begins here!
       !=================================================================
 
-      ! Get nested-grid offsets
-      I0 = GET_XOFFSET()
-      J0 = GET_YOFFSET()
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, IREF, J, JREF )
-      DO J = 1, JJPAR
-         JREF = J + J0
-      DO I = 1, IIPAR
-         IREF = I + I0
-         OUT(I,J) = IN(IREF,JREF)
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+      ! Copy and cast array
+      OUT = IN( 1+I0:IIPAR+I0, 1+J0:JJPAR+J0 )
       
       ! Return to calling program
       END SUBROUTINE TRANSFER_2D_R8
@@ -1068,9 +1031,6 @@
 !        Now I0 and J0 are local variables. (bmy, 3/11/03)
 !******************************************************************************
 !
-      ! References to F90 modules
-      USE GRID_MOD, ONLY : GET_XOFFSET, GET_YOFFSET
-
 #     include "CMN_SIZE"
 
       ! Arguments
@@ -1078,18 +1038,16 @@
       REAL*8,  INTENT(OUT) :: OUT(MAXIJ)
 
       ! Local variables
-      INTEGER              :: I, I0, IREF, J, J0, JREF, IJLOOP
+      INTEGER              :: I, IREF, J, JREF, IJLOOP
 
       !=================================================================
       ! TRANSFER_TO_1D begins here!
       !=================================================================
 
-      ! Get nested-grid offsets
-      I0 = GET_XOFFSET()
-      J0 = GET_YOFFSET()
-
       ! 1-D counter
       IJLOOP = 0
+
+      ! IJLOOP = ( (J-1) * IIPAR ) + I
 
       DO J = 1, JJPAR
          JREF = J + J0
@@ -1521,11 +1479,11 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE INIT_TRANSFER
+      SUBROUTINE INIT_TRANSFER( THIS_I0, THIS_J0 )
 !
 !******************************************************************************
 !  Subroutine INIT_TRANSFER initializes and zeroes the EDGE_IN array.
-!  (bmy, 9/19/01, 5/24/05)
+!  (bmy, 9/19/01, 2/8/07)
 !
 !  NOTES:
 !  (1 ) Removed additional "," for GEOS-1 definition of EDGE_IN (bmy, 3/25/02)
@@ -1537,83 +1495,175 @@
 !        coordinate (as for GEOS-4).  Now assign original Ap coordinates from
 !        the GEOS-4 grid to the EDGE_IN array (bmy, 10/31/03)
 !  (5 ) Now modified for GEOS-5 met fields (bmy, 5/24/05)
+!  (6 ) Rewritten for clarity.  Remove references to "grid_mod.f" and 
+!        "pressure_mod.f".  Now pass I0, J0 from "grid_mod.f" via the arg list.
+!         (bmy, 2/8/07)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
-      USE PRESSURE_MOD, ONLY : GET_BP
+      USE ERROR_MOD,  ONLY : ALLOC_ERR
+      !----------------------------------------------------------------------
+      ! Prior to 2/8/07:
+      ! Remove references to "grid_mod.f" and "pressure_mod.f" (bmy, 2/8/07)
+      !USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
+      !USE PRESSURE_MOD, ONLY : GET_BP
+      !----------------------------------------------------------------------
 
-#     include "CMN_SIZE" 
+#     include "CMN_SIZE"   ! Size parameters
+
+      ! Arguments
+      INTEGER, INTENT(IN) :: THIS_I0, THIS_J0
 
       ! Local variables
-      INTEGER :: AS, L
-      
+      LOGICAL, SAVE       :: IS_INIT = .FALSE.
+      INTEGER             :: AS, L
+       
       !=================================================================
       ! INIT_TRANSFER begins here!
       !=================================================================
 
-      ! Test if EDGE_IN has already been allocated
-      IF ( .not. ALLOCATED( EDGE_IN ) ) THEN
+      ! Return if we have already initialized
+      IF ( IS_INIT ) RETURN
 
-         ! Allocate the EDGE_IN array
-         ALLOCATE( EDGE_IN( LGLOB + 1 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGE_IN' )
+      !-----------------------------------------------------------------
+      ! Get global X and Y offsets (usually =0, even for nested grid)
+      !-----------------------------------------------------------------
+      I0 = THIS_I0
+      J0 = THIS_J0
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 )
+      !-----------------------------------------------------------------
+      ! Get the # of levels to copy in the vertical 
+      !-----------------------------------------------------------------
+      IF ( LLPAR == LGLOB ) THEN
 
-         ! For GEOS-4, this is a hybrid grid.  Assign the original 56 
-         ! Ap values (which for stratospheric levels are pressures
-         ! at grid box edges in [hPa]) to the EDGE_IN array.
-         EDGE_IN = (/  0.000000d0,   0.000000d0,  12.704939d0,  
-     &                35.465965d0,  66.098427d0, 101.671654d0, 
-     &               138.744400d0, 173.403183d0, 198.737839d0, 
-     &               215.417526d0, 223.884689d0, 224.362869d0,
-     &               216.864929d0, 201.192093d0, 176.929993d0, 
-     &               150.393005d0, 127.837006d0, 108.663429d0,  
-     &                92.365662d0,  78.512299d0,  66.603378d0,  
-     &                56.387939d0,  47.643932d0,  40.175419d0, 
-     &                33.809956d0,  28.367815d0,  23.730362d0,  
-     &                19.791553d0,  16.457071d0,  13.643393d0,  
-     &                11.276889d0,   9.292943d0,   7.619839d0,   
-     &                 6.216800d0,   5.046805d0,   4.076567d0, 
-     &                 3.276433d0,   2.620212d0,   2.084972d0,   
-     &                 1.650792d0,   1.300508d0,   1.019442d0,   
-     &                 0.795134d0,   0.616779d0,   0.475806d0,   
-     &                 0.365041d0,   0.278526d0,   0.211349d0, 
-     &                 0.159495d0,   0.119703d0,   0.089345d0,   
-     &                 0.066000d0,   0.047585d0,   0.032700d0,   
-     &                 0.020000d0,   0.010000d0 /)
+         ! Full vertical resolution; copy all levels!
+         L_COPY = LGLOB 
 
-#elif defined( GEOS_3 ) 
+      ELSE
 
-         ! For GEOS-3, this is a pure-sigma grid.  Assign 
-         ! the original 49 sigma edges to the EDGE_IN array.
-         EDGE_IN = (/ 1.000000d0, 0.997095d0, 0.991200d0, 0.981500d0,    
-     &                0.967100d0, 0.946800d0, 0.919500d0, 0.884000d0,    
-     &                0.839000d0, 0.783000d0, 0.718200d0, 0.647600d0,    
-     &                0.574100d0, 0.500000d0, 0.427800d0, 0.359500d0,    
-     &                0.297050d0, 0.241950d0, 0.194640d0, 0.155000d0,    
-     &                0.122680d0, 0.096900d0, 0.076480d0, 0.060350d0,   
-     &                0.047610d0, 0.037540d0, 0.029600d0, 0.023330d0,   
-     &                0.018380d0, 0.014480d0, 0.011405d0, 0.008975d0,  
-     &                0.007040d0, 0.005500d0, 0.004280d0, 0.003300d0,  
-     &                0.002530d0, 0.001900d0, 0.001440d0, 0.001060d0,  
-     &                0.000765d0, 0.000540d0, 0.000370d0, 0.000245d0, 
-     &                0.000155d0, 9.20000d-5, 4.75000d-5, 1.76800d-5, 
-     &                0.000000d0 /)
-
-#else
-
-         ! We are not reducing the layers for GEOS-1 and GEOS-STRAT,
-         ! thus LGLOB = LLPAR.  Use GET_BP to initialize EDGE_IN,
-         ! since for a pure sigma grid, BP are just the sigma edges.
-         DO L = 1, LGLOB+1
-            EDGE_IN(L) = GET_BP(L)
-         ENDDO
-
+#if   defined( GEOS_3 )
+         L_COPY = 22       ! GEOS-3: Copy up to L=22
+#elif defined( GEOS_4 )
+         L_COPY = 19       ! GEOS-4: Copy up to L=19
+#elif defined( GEOS_5 )
+         L_COPY = 36       ! GEOS-5: Copy up to L=36
+#elif defined( GCAP   )
+         L_COPY = LGLOB    ! GCAP: Copy all levels
 #endif
 
       ENDIF
+
+      !=================================================================      
+      ! Define vertical edges for collapsing stratospheric levels
+      !=================================================================
+
+      ! Allocate the EDGE_IN array
+      ALLOCATE( EDGE_IN( LGLOB + 1 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGE_IN' )
+      EDGE_IN = 0d0
+
+#if   defined( GEOS_5 )
+
+      !-----------------------------------------------------------------
+      ! For GEOS-5, levels 1-31 are "terrain-following" coordinates
+      ! (i.e. vary with location), and levels 32-72 are fixed pressure 
+      ! levels.  The transition pressure is 176.93 hPa, which is the
+      ! edge between L=31 and L=32.
+      !
+      ! Initialize EDGE_IN with the original 73 Ap values for GEOS-5.
+      !-----------------------------------------------------------------
+      EDGE_IN = (/ 
+     &        0.000000d+00, 4.804826d-02, 6.593752d+00, 1.313480d+01,
+     &        1.961311d+01, 2.609201d+01, 3.257081d+01, 3.898201d+01,
+     &        4.533901d+01, 5.169611d+01, 5.805321d+01, 6.436264d+01,
+     &        7.062198d+01, 7.883422d+01, 8.909992d+01, 9.936521d+01,
+     &        1.091817d+02, 1.189586d+02, 1.286959d+02, 1.429100d+02,
+     &        1.562600d+02, 1.696090d+02, 1.816190d+02, 1.930970d+02,
+     &        2.032590d+02, 2.121500d+02, 2.187760d+02, 2.238980d+02,
+     &        2.243630d+02, 2.168650d+02, 2.011920d+02, 
+!------- EDGES OF GEOS-5 FIXED PRESSURE LEVELS OCCUR BELOW THIS LINE ------
+     &                                                  1.769300d+02,
+     &        1.503930d+02, 1.278370d+02, 1.086630d+02, 9.236572d+01,
+     &        7.851231d+01, 6.660341d+01, 5.638791d+01, 4.764391d+01,
+     &        4.017541d+01, 3.381001d+01, 2.836781d+01, 2.373041d+01,
+     &        1.979160d+01, 1.645710d+01, 1.364340d+01, 1.127690d+01,
+     &        9.292942d+00, 7.619842d+00, 6.216801d+00, 5.046801d+00,
+     &        4.076571d+00, 3.276431d+00, 2.620211d+00, 2.084970d+00,
+     &        1.650790d+00, 1.300510d+00, 1.019440d+00, 7.951341d-01,
+     &        6.167791d-01, 4.758061d-01, 3.650411d-01, 2.785261d-01,
+     &        2.113490d-01, 1.594950d-01, 1.197030d-01, 8.934502d-02,
+     &        6.600001d-02, 4.758501d-02, 3.270000d-02, 2.000000d-02,
+     &        1.000000d-02 /)
+
+#elif defined( GEOS_4 )
+
+      !-----------------------------------------------------------------
+      ! For GEOS-4, levels 1-14 are "terrain-following" coordinates
+      ! (i.e. vary with location), and levels 15-55 are fixed pressure 
+      ! levels.  The transition pressure is 176.93 hPa, which is the
+      ! edge between L=14 and L=15.
+      !
+      ! Initialize EDGE_IN with the original 56 Ap values for GEOS-4.
+      !-----------------------------------------------------------------
+      EDGE_IN = (/  0.000000d0,   0.000000d0,  12.704939d0,  
+     &             35.465965d0,  66.098427d0, 101.671654d0, 
+     &            138.744400d0, 173.403183d0, 198.737839d0, 
+     &            215.417526d0, 223.884689d0, 224.362869d0,
+     &            216.864929d0, 201.192093d0, 176.929993d0, 
+     &            150.393005d0, 127.837006d0, 108.663429d0,  
+     &             92.365662d0,  78.512299d0,  66.603378d0,  
+     &             56.387939d0,  47.643932d0,  40.175419d0, 
+     &             33.809956d0,  28.367815d0,  23.730362d0,  
+     &             19.791553d0,  16.457071d0,  13.643393d0,  
+     &             11.276889d0,   9.292943d0,   7.619839d0,   
+     &              6.216800d0,   5.046805d0,   4.076567d0, 
+     &              3.276433d0,   2.620212d0,   2.084972d0,   
+     &              1.650792d0,   1.300508d0,   1.019442d0,   
+     &              0.795134d0,   0.616779d0,   0.475806d0,   
+     &              0.365041d0,   0.278526d0,   0.211349d0, 
+     &              0.159495d0,   0.119703d0,   0.089345d0,   
+     &              0.066000d0,   0.047585d0,   0.032700d0,   
+     &              0.020000d0,   0.010000d0 /)
+
+#elif defined( GEOS_3 ) 
+
+      !-----------------------------------------------------------------
+      ! For GEOS-3, this is a pure-sigma grid.  
+      ! Initialize EDGE_IN with the original 49 sigma edges.
+      !-----------------------------------------------------------------
+      EDGE_IN = (/ 1.000000d0, 0.997095d0, 0.991200d0, 0.981500d0,    
+     &             0.967100d0, 0.946800d0, 0.919500d0, 0.884000d0,    
+     &             0.839000d0, 0.783000d0, 0.718200d0, 0.647600d0,    
+     &             0.574100d0, 0.500000d0, 0.427800d0, 0.359500d0,    
+     &             0.297050d0, 0.241950d0, 0.194640d0, 0.155000d0,    
+     &             0.122680d0, 0.096900d0, 0.076480d0, 0.060350d0,   
+     &             0.047610d0, 0.037540d0, 0.029600d0, 0.023330d0,   
+     &             0.018380d0, 0.014480d0, 0.011405d0, 0.008975d0,  
+     &             0.007040d0, 0.005500d0, 0.004280d0, 0.003300d0,  
+     &             0.002530d0, 0.001900d0, 0.001440d0, 0.001060d0,  
+     &             0.000765d0, 0.000540d0, 0.000370d0, 0.000245d0, 
+     &             0.000155d0, 9.20000d-5, 4.75000d-5, 1.76800d-5, 
+     &             0.000000d0 /)
+
+!-----------------------------------------------------------------------------
+! Prior to 2/8/07:
+! For GCAP we don't collapse levels so we don't really need to initialize
+! EDGE_IN with GET_BP.  Remove reference to pressure_mod.f. (bmy, 2/8/07)
+!#else
+!
+!      !-----------------------------------------------------------------
+!      ! We are not reducing the layers for other met fields, thus 
+!      ! LGLOB = LLPAR.  Initialize EDGE_IN with placeholder values.
+!      !-----------------------------------------------------------------
+!      DO L = 1, LGLOB+1
+!         EDGE_IN(L) = GET_BP(L)
+!      ENDDO
+!
+!-----------------------------------------------------------------------------
+#endif
+
+      ! We have now initialized everything
+      IS_INIT = .TRUE.
 
       ! Return to calling program
       END SUBROUTINE INIT_TRANSFER
@@ -1631,6 +1681,9 @@
 !        coordinate (as for GEOS-4). (bmy, 10/31/03)
 !******************************************************************************
 !
+      !=================================================================
+      ! CLEANUP_TRANSFER begins here!
+      !=================================================================
       IF ( ALLOCATED( EDGE_IN ) ) DEALLOCATE( EDGE_IN )
 
       ! Return to calling program
@@ -1638,4 +1691,5 @@
       
 !------------------------------------------------------------------------------
 
+      ! End of module
       END MODULE TRANSFER_MOD

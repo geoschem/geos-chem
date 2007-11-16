@@ -1,8 +1,8 @@
-! $Id: error_mod.f,v 1.14 2006/09/08 19:20:56 bmy Exp $
+! $Id: error_mod.f,v 1.15 2007/11/16 18:47:39 bmy Exp $
       MODULE ERROR_MOD
 !
 !******************************************************************************
-!  Module ERROR_MOD contains error checking routines. (bmy, 3/8/01, 8/4/06)
+!  Module ERROR_MOD contains error checking routines. (bmy, 3/8/01, 8/14/07)
 !
 !  Module Routines:
 !  ===========================================================================
@@ -55,6 +55,7 @@
 !  (16) Now print IFORT error messages for Intel v8/v9 compiler (bmy, 11/30/05)
 !  (17) Cosmetic change in DEBUG_MSG (bmy, 4/10/06)
 !  (18) Remove support for LINUX_IFC and LINUX_EFC compilers (bmy, 8/4/06)
+!  (19) Now use intrinsic functions for IFORT, remove C routines (bmy, 8/14/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -64,7 +65,10 @@
       ! and routines from being seen outside "error_mod.f"
       !=================================================================
 
-      ! PRIVATE module routines
+      ! Make everything PUBLIC ...
+      PUBLIC 
+
+      ! ... except these routines
       PRIVATE NAN_FLOAT,        NAN_DBLE
       PRIVATE FINITE_FLOAT,     FINITE_DBLE
       PRIVATE CHECK_REAL_VALUE, CHECK_DBLE_VALUE
@@ -100,7 +104,7 @@
 !
 !******************************************************************************
 !  Module NAN_FLOAT returns TRUE if a REAL*4 number is equal to the IEEE NaN 
-!  (Not-a-Number) flag.  Returns FALSE otherwise. (bmy, 3/8/01, 8/4/06)
+!  (Not-a-Number) flag.  Returns FALSE otherwise. (bmy, 3/8/01, 8/14/07)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -118,6 +122,7 @@
 !        and added LINUX_EFC. (bmy, 12/2/03)
 !  (7 ) Added LINUX_IFORT switch for Intel v8 and v9 compilers (bmy, 10/18/05)
 !  (8 ) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
+!  (9 ) Now use ISNAN for Linux/IFORT compiler (bmy, 8/14/07)
 !******************************************************************************
 !
 #     include "define.h" ! C-preprocessor switches
@@ -141,11 +146,27 @@
 #elif defined( COMPAQ )
       IT_IS_A_NAN = ISNAN( VALUE )         
 
-#elif defined( LINUX_IFORT ) || defined( LINUX_PGI )
+!------------------------------------------------------------------------------
+! Prior to 8/14/07:
+!#elif defined( LINUX_IFORT ) || defined( LINUX_PGI )
+!
+!      ! Declare IS_NAN as an external function
+!      INTEGER, EXTERNAL  :: IS_NAN
+!      
+!      ! For LINUX or INTEL_FC compilers, use C routine "is_nan" to test if 
+!      ! VALUE is NaN.   VALUE must be cast to DBLE since "is_nan" only
+!      ! takes doubles.
+!      IT_IS_A_NAN = ( IS_NAN( DBLE( VALUE ) ) /= 0 )
+!------------------------------------------------------------------------------
+
+#elif defined( LINUX_IFORT )
+      IT_IS_A_NAN = ISNAN( VALUE )    
+
+#elif defined( LINUX_PGI )
 
       ! Declare IS_NAN as an external function
       INTEGER, EXTERNAL  :: IS_NAN
-
+      
       ! For LINUX or INTEL_FC compilers, use C routine "is_nan" to test if 
       ! VALUE is NaN.   VALUE must be cast to DBLE since "is_nan" only
       ! takes doubles.
@@ -177,7 +198,7 @@
 !
 !******************************************************************************
 !  Module NAN_DBLE returns TRUE if a REAL*8 number is equal to the IEEE NaN 
-! (Not-a-Number) flag.  Returns FALSE otherwise. (bmy, 3/8/01, 8/4/06)
+! (Not-a-Number) flag.  Returns FALSE otherwise. (bmy, 3/8/01, 8/14/07)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -195,6 +216,7 @@
 !        and added LINUX_EFC. (bmy, 12/2/03)
 !  (7 ) Added LINUX_IFORT switch for Intel v8 and v9 compilers (bmy, 10/18/05)
 !  (8 ) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
+!  (9 ) Now use ISNAN for Linux/IFORT compiler (bmy, 8/14/07)
 !******************************************************************************
 !
 #     include "define.h" ! C-preprocessor switches
@@ -218,7 +240,22 @@
 #elif defined( COMPAQ )
       IT_IS_A_NAN = ISNAN( VALUE )         
 
-#elif defined( LINUX_IFORT ) || defined( LINUX_PGI )
+!-----------------------------------------------------------------------------
+! Prior to 8/14/07:
+!#elif defined( LINUX_IFORT ) || defined( LINUX_PGI )
+!
+!      ! Declare IS_NAN as an external function
+!      INTEGER, EXTERNAL  :: IS_NAN
+!
+!      ! For LINUX or INTEL_FC compilers, use C routine 
+!      ! "is_nan" to test if VALUE is NaN.  
+!      IT_IS_A_NAN = ( IS_NAN( VALUE ) /= 0 )
+!-----------------------------------------------------------------------------
+
+#elif defined( LINUX_IFORT )
+      IT_IS_A_NAN = ISNAN( VALUE )      
+
+#elif defined( LINUX_PGI )
 
       ! Declare IS_NAN as an external function
       INTEGER, EXTERNAL  :: IS_NAN
@@ -253,7 +290,7 @@
 !
 !******************************************************************************
 !  Module FINITE_FLOAT returns TRUE if a REAL*4 number is equal to the 
-!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 8/4/06)
+!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 8/14/07)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -272,6 +309,7 @@
 !        and added LINUX_EFC. (bmy, 12/2/03)
 !  (8 ) Added LINUX_IFORT switch for Intel v8 and v9 compilers (bmy, 10/18/05)
 !  (9 ) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
+!  (10) Now use FP_CLASS for IFORT compiler (bmy, 8/14/07)
 !******************************************************************************
 !
 #     include "define.h" ! C-preprocessor switches
@@ -288,7 +326,8 @@
 
       !=================================================================
       ! FINITE_FLOAT begins here!
-      !=================================================================       
+      !=================================================================  
+     
 #if   defined( SGI_MIPS )
       IT_IS_A_FINITE = IEEE_FINITE( VALUE )  
  
@@ -303,7 +342,34 @@
          IT_IS_A_FINITE = .TRUE.
       ENDIF
 
-#elif  defined( LINUX_IFORT ) || defined( LINUX_PGI ) 
+!-----------------------------------------------------------------------------
+! Prior to 8/14/07:
+!#elif defined( LINUX_IFORT ) || defined( LINUX_PGI ) 
+!
+!      ! Declare IS_FINITE as an external function
+!      INTEGER, EXTERNAL :: IS_FINITE
+!      
+!      ! For LINUX or INTEL_FC compilers use C routine "is_finite" to test 
+!      ! if VALUE is finite.  VALUE must be cast to DBLE since "is_inf" 
+!      ! only takes doubles. 
+!      IT_IS_A_FINITE = ( IS_FINITE( DBLE( VALUE ) ) /= 0 )
+!-----------------------------------------------------------------------------
+
+#elif defined( LINUX_IFORT )
+
+      ! Local variables (parameters copied from "fordef.for")
+      INTEGER, PARAMETER :: SNAN=0, QNAN=1, POS_INF=2, NEG_INF=3
+      INTEGER            :: FPC
+
+      ! Get the floating point type class for VALUE
+      FPC            = FP_CLASS( VALUE )
+
+      ! VALUE is infinite if it is either +Inf or -Inf
+      ! Also flag an error if VALUE is a signaling or quiet NaN
+      IT_IS_A_FINITE = ( FPC /= POS_INF .and. FPC /= NEG_INF .and. 
+     &                   FPC /= SNAN    .and. FPC /= QNAN          )
+
+#elif defined( LINUX_PGI ) 
 
       ! Declare IS_FINITE as an external function
       INTEGER, EXTERNAL :: IS_FINITE
@@ -323,7 +389,7 @@
 
 #elif defined( IBM_AIX )
 
-       ! For IBM/AIX platform
+      ! For IBM/AIX platform
       IF ( IEEE_SUPPORT_DATATYPE( VALUE ) ) THEN
          IT_IS_A_FINITE = IEEE_IS_FINITE( VALUE )
       ENDIF 
@@ -339,7 +405,7 @@
 !
 !*****************************************************************************
 !  Module FINITE_DBLE returns TRUE if a REAL*8 number is equal to the 
-!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 8/4/06)
+!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 8/14/07)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -358,6 +424,7 @@
 !        and added LINUX_EFC. (bmy, 12/2/03)
 !  (8 ) Added LINUX_IFORT switch for Intel v8 and v9 compilers (bmy, 10/18/05)
 !  (9 ) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
+!  (10) Now use FP_CLASS for IFORT compiler (bmy, 8/14/07)
 !******************************************************************************
 !
 #     include "define.h" ! C-preprocessor switches
@@ -388,7 +455,33 @@
          IT_IS_A_FINITE = .TRUE.
       ENDIF
 
-#elif defined( LINUX_IFORT ) || defined( LINUX_PGI )
+!-----------------------------------------------------------------------------
+! Prior to 8/14/07:
+!#elif defined( LINUX_IFORT ) || defined( LINUX_PGI )
+!
+!      ! Declare IS_FINITE as an external function
+!      INTEGER, EXTERNAL :: IS_FINITE
+!
+!      ! For LINUX or INTEL_FC compilers, use C routine 
+!      ! "is_finite" to test if VALUE is infinity
+!      IT_IS_A_FINITE = ( IS_FINITE( VALUE ) /= 0 )
+!-----------------------------------------------------------------------------
+
+#elif defined( LINUX_IFORT )
+
+      ! Local variables (parameters copied from "fordef.for")
+      INTEGER, PARAMETER :: SNAN=0, QNAN=1, POS_INF=2, NEG_INF=3
+      INTEGER            :: FPC
+
+      ! Get the floating point type class for VALUE
+      FPC            = FP_CLASS( VALUE )
+
+      ! VALUE is infinite if it is either +Inf or -Inf
+      ! Also flag an error if VALUE is a signaling or quiet NaN
+      IT_IS_A_FINITE = ( FPC /= POS_INF .and. FPC /= NEG_INF .and. 
+     &                   FPC /= SNAN    .and. FPC /= QNAN          )
+
+#elif defined( LINUX_PGI )
 
       ! Declare IS_FINITE as an external function
       INTEGER, EXTERNAL :: IS_FINITE

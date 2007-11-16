@@ -1,9 +1,9 @@
-! $Id: a3_read_mod.f,v 1.19 2006/11/22 18:30:43 phs Exp $
+! $Id: a3_read_mod.f,v 1.20 2007/11/16 18:47:33 bmy Exp $
       MODULE A3_READ_MOD
 !
 !******************************************************************************
 !  Module A3_READ_MOD contains routines that unzip, open, and read the
-!  GEOS-Chem A-3 (avg 3-hour) met fields from disk. (bmy, 6/23/03, 10/4/06)
+!  GEOS-Chem A-3 (avg 3-hour) met fields from disk. (bmy, 6/23/03, 1/17/07)
 ! 
 !  Module Routines:
 !  =========================================================================
@@ -42,6 +42,7 @@
 !  (8 ) Fixed typos for GCAP fields and ND67 diagnostics (bmy, 2/9/06)
 !  (9 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (10) Now read PARDF, PARDR for GCAP met fields (swu, bmy, 10/4/06)
+!  (11) Extra modifications for GEOS-5 met fields (bmy, 1/17/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -425,8 +426,8 @@
 !
 !******************************************************************************
 !  Subroutine GET_A3_FIELDS is a wrapper for routine READ_A3.  GET_A3_FIELDS
-!  calls READ_A3 properly for reading GEOS-1, GEOS-STRAT, GEOS-3, or GEOS-4
-!  met data sets. (bmy, 6/23/03, 8/4/06)
+!  calls READ_A3 properly for reading GEOS-3, GEOS-4, GEOS-5, or GCAP
+!  met data sets. (bmy, 6/23/03, 1/17/07)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -443,13 +444,16 @@
 !  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (5 ) Now read PARDF, PARDR for GCAP met fields (swu, bmy, 10/4/06)
 !  (6 ) Now read SNOW and GETWETTOP for GCAP met fields (swu, phs, 11/15/06)
+!  (7 ) Now read extra fields for GEOS-5 (bmy, 1/17/07)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD, ONLY : ALBD,   CLDFRC, GWETTOP, HFLUX,  MOLENGTH
-      USE DAO_MOD, ONLY : OICE,   PARDF,  PARDR,   PBL,    PREACC 
-      USE DAO_MOD, ONLY : PRECON, RADLWG, RADSWG,  SNICE,  SNOW  
-      USE DAO_MOD, ONLY : TS,     TSKIN,  U10M,    USTAR,  V10M,  Z0
+      USE DAO_MOD, ONLY : ALBD,    CLDFRC, EVAP,   GRN,      GWETROOT 
+      USE DAO_MOD, ONLY : GWETTOP, HFLUX,  LAI,    MOLENGTH, OICE    
+      USE DAO_MOD, ONLY : PARDF,   PARDR,  PBL,    PREACC,   PRECON
+      USE DAO_MOD, ONLY : PRECSNO, RADLWG, RADSWG, SNICE,    SNOMAS
+      USE DAO_MOD, ONLY : SNODP,   SNOW,   TROPP,  TS,       TSKIN
+      USE DAO_MOD, ONLY : U10M,    USTAR,  V10M,   Z0
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -484,10 +488,10 @@
      &              U10M=U10M,     USTAR=USTAR,   V10M=V10M, 
      &              Z0=Z0 )              
 
-#elif defined( GEOS_4 ) || defined( GEOS_5 )
+#elif defined( GEOS_4 )
 
       !================================================================
-      ! For GEOS-4 & GEOS-5, read the following fields:
+      ! For GEOS-4, read the following fields:
       !
       !    ALBEDO, CLDFRC, HFLUX,  GWETTOP, PARDF,  PARDR, 
       !    PBLH,   PREACC, PRECON, RADLWG,  RADSWG, SNOW,  
@@ -499,11 +503,32 @@
       !================================================================
       CALL READ_A3( NYMD=NYMD,       NHMS=NHMS,     
      &              ALBEDO=ALBD,     CLDFRC=CLDFRC, HFLUX=HFLUX,   
-     &              GWETTOP=GWETTOP, PARDF=PARDF,   PARDR=PARDR,
-     &              PBL=PBL,         PREACC=PREACC, PRECON=PRECON,   
+     &              GWETTOP=GWETTOP, PARDF=PARDF,   PARDR=PARDR,  
+     &              PBL=PBL,         PREACC=PREACC, PRECON=PRECON, 
      &              RADLWG=RADLWG,   RADSWG=RADSWG, SNOW=SNOW,  
      &              TS=TS,           TSKIN=TSKIN,   U10M=U10M,       
      &              USTAR=USTAR ,    V10M=V10M,     Z0=Z0 )
+
+#elif defined( GEOS_5 )
+
+      !=================================================================
+      ! For GEOS-5, read the following fields:
+      !
+      !    ALBEDO, CLDFRC, EVAP,   GRN,    GWETROOT, GWETTOP, HFLUX, 
+      !    LAI,    PARDF,  PARDR,  PBLH,   PREACC,   PRECON,  PRECSNO,
+      !    RADLWG, RADSWG, SNODP,  SNOMAS, T2M,      TROPP,   TSKIN,   
+      !    U10M,   USTAR,  V10M,   Z0 
+      !
+      !=================================================================
+      CALL READ_A3( NYMD=NYMD,         NHMS=NHMS,       ALBEDO=ALBD,   
+     &              CLDFRC=CLDFRC,     EVAP=EVAP,       GRN=GRN,       
+     &              GWETROOT=GWETROOT, GWETTOP=GWETTOP, HFLUX=HFLUX,   
+     &              LAI=LAI,           PARDF=PARDF,     PARDR=PARDR,       
+     &              PBL=PBL,           PREACC=PREACC,   PRECON=PRECON, 
+     &              PRECSNO=PRECSNO,   RADLWG=RADLWG,   RADSWG=RADSWG, 
+     &              SNODP=SNODP,       SNOMAS=SNOMAS,   TROPP=TROPP,   
+     &              TS=TS,             TSKIN=TSKIN,     U10M=U10M,     
+     &              USTAR=USTAR,       V10M=V10M,       Z0=Z0 )
 
 #elif defined( GCAP )
 
@@ -542,7 +567,7 @@
 !
 !******************************************************************************
 !  Function GET_N_A3 returns the number of A-3 fields per met data set
-!  (bmy, 6/23/03, 10/4/06) 
+!  (bmy, 6/23/03, 1/17/07) 
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -554,6 +579,7 @@
 !  (2 ) Now modified for GEOS-5 and GCAP met fields (bmy, 5/25/05)
 !  (3 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (4 ) Increase # of fields for GCAP from 12 to 16 (swu, bmy, 10/4/06)
+!  (5 ) Increase # of fields for GEOS-5 to 25 (bmy, 1/17/07)
 !******************************************************************************
 !
 #     include "CMN_SIZE"   ! Size parameters
@@ -580,10 +606,15 @@
       
       END SELECT
 
-#elif defined( GEOS_4 ) || defined( GEOS_5 )
+#elif defined( GEOS_4 )
 
-      ! GEOS-4 & GEOS-5 have 19 fields
+      ! GEOS-4 has 19 A-3 fields
       N_A3 = 19
+
+#elif defined( GEOS_5 )
+
+      ! GEOS-5 has 25 A-3 fields
+      N_A3 = 25
 
 #elif defined( GCAP )
       
@@ -637,46 +668,55 @@
 
 !-----------------------------------------------------------------------------
 
-      SUBROUTINE READ_A3( NYMD,   NHMS, 
-     &                    ALBEDO, CLDFRC, GWETTOP, HFLUX,  MOLENGTH,
-     &                    OICE,   PARDF,  PARDR,   PBL,    PREACC,  
-     &                    PRECON, RADLWG, RADSWG,  RADSWT, SNICE,
-     &                    SNOW,   TS,     TSKIN,   U10M,   USTAR,  
-     &                    V10M,   Z0 )
+      SUBROUTINE READ_A3( NYMD,    NHMS, 
+     &                    ALBEDO,  CLDFRC, EVAP,   GRN,      GWETROOT,
+     &                    GWETTOP, HFLUX,  LAI,    MOLENGTH, OICE,   
+     &                    PARDF,   PARDR,  PBL,    PREACC,   PRECON,  
+     &                    PRECSNO, RADLWG, RADSWG, RADSWT,   SNICE,    
+     &                    SNODP,   SNOMAS, SNOW,   TROPP,    TS,       
+     &                    TSKIN,   U10M,   USTAR,  V10M,     Z0 )
 !
 !******************************************************************************
 !  Subroutine READ_A3 reads GEOS A-3 (3-hr avg) fields from disk.
-!  (bmy, 5/8/98, 10/4/06)
+!  (bmy, 5/8/98, 1/17/07)
 ! 
 !  Arguments as input:
 !  ============================================================================
-!  (1 ) NYMD    : YYYYMMDD
-!  (2 ) NHMS    :  and HHMMSS of A-3 met fields to be accessed 
+!  (1 ) NYMD     : YYYYMMDD
+!  (2 ) NHMS     :  and HHMMSS of A-3 met fields to be accessed 
 !
 !  A-3 Met Fields as Output:
 !  ============================================================================
-!  (1 ) ALBEDO  : (2-D) GMAO surface albedo at 10 m            [unitless]
-!  (2 ) CLDFRC  : (2-D) GMAO column cloud fraction @ ground    [unitless]
-!  (3 ) GWETTOP : (2-D) GMAO topsoil wetness                   [unitless]
-!  (4 ) HFLUX   : (2-D) GMAO sensible heat flux                [W/m2] 
-!  (5 ) MOLENGTH: (2-D) GCAP Monin-Obhukov length              [m]
-!  (6 ) OICE    : (2-D) GCAP fraction of ocean ice             [unitless]
-!  (7 ) PARDF   : (2-D) GMAO photosyn active diffuse radiation [W/m2]
-!  (8 ) PARDR   : (2-D) GMAO photosyn active direct radiation  [W/m2]
-!  (9 ) PBL     : (2-D) GMAO planetary boundary layer depth    [mb] 
-!  (10) PREACC  : (2-D) GMAO accumulated precip @ ground       [mm H2O/day]
-!  (11) PRECON  : (2-D) GMAO convective  precip @ ground       [mm H2O/day]
-!  (12) RADLWG  : (2-D) GMAO upward LW flux @ ground           [W/m2]
-!  (13) RADSWG  : (2-D) GMAO downward SW flux @ ground         [W/m2]
-!  (14) RADSWT  : (2-D) GMAO downward SW flux @ atm top        [W/m2]
-!  (15) SNICE   : (2-D) GCAP fraction of snow/ice              [unitless]
-!  (16) SNOW    : (2-D) GMAO snow depth (H2O equivalent)       [mm H2O]
-!  (17) TS      : (2-D) GMAO surface air temperature           [K]
-!  (18) TSKIN   : (2-D) GMAO radiance temperature              [K]
-!  (19) USTAR   : (2-D) GMAO friction velocity                 [m/s]
-!  (20) U10M    : (2-D) GMAO U-wind at 10 m                    [m/s]
-!  (21) V10M    : (2-D) GMAO V-wind at 10 m                    [m/s]
-!  (22) Z0      : (2-D) GMAO roughness height                  [m] 
+!  (1 ) ALBEDO   : (2-D) GMAO surface albedo at 10 m            [unitless]
+!  (2 ) CLDFRC   : (2-D) GMAO column cloud fraction @ ground    [unitless]
+!  (3 ) EVAP     : (2-D) GMAO evapotranspiration flux 
+!  (4 ) GRN      : (2-D) GMAO greenness index
+!  (5 ) GWETROOT : (2-D) GMAO root soil wetness                 [unitless]
+!  (6 ) GWETTOP  : (2-D) GMAO topsoil wetness                   [unitless]
+!  (7 ) HFLUX    : (2-D) GMAO sensible heat flux                [W/m2] 
+!  (8 ) LAI      : (2-D) GMAO leaf area index                   [m2/m2]
+!  (9 ) MOLENGTH : (2-D) GCAP Monin-Obhukov length              [m]
+!  (10) OICE     : (2-D) GCAP fraction of ocean ice             [unitless]
+!  (11) PARDF    : (2-D) GMAO photosyn active diffuse radiation [W/m2]
+!  (12) PARDR    : (2-D) GMAO photosyn active direct radiation  [W/m2]
+!  (13) PBL      : (2-D) GMAO planetary boundary layer depth    [mb] 
+!  (14) PREACC   : (2-D) GMAO accumulated precip @ ground       [mm H2O/day]
+!  (15) PRECON   : (2-D) GMAO convective  precip @ ground       [mm H2O/day]
+!  (16) PRECSNO  : (2-D) GMAO "snow" precip @ ground            
+!  (17) RADLWG   : (2-D) GMAO upward LW flux @ ground           [W/m2]
+!  (18) RADSWG   : (2-D) GMAO downward SW flux @ ground         [W/m2]
+!  (19) RADSWT   : (2-D) GMAO downward SW flux @ atm top        [W/m2]
+!  (20) SNICE    : (2-D) GCAP fraction of snow/ice              [unitless]
+!  (21) SNODP    : (2-D) GMAO GEOS-5 geometric snow depth       [m]
+!  (22) SNOMAS   : (2-D) GMAO GEOS-5 H2O equiv snow depth       [m]
+!  (23) SNOW     : (2-D) GMAO snow depth (H2O equivalent)       [mm H2O]
+!  (24) TROPP    : (2-D) GMAO tropopause pressure               [hPa]
+!  (25) TS       : (2-D) GMAO surface air temperature           [K]
+!  (26) TSKIN    : (2-D) GMAO radiance temperature              [K]
+!  (27) USTAR    : (2-D) GMAO friction velocity                 [m/s]
+!  (28) U10M     : (2-D) GMAO U-wind at 10 m                    [m/s]
+!  (29) V10M     : (2-D) GMAO V-wind at 10 m                    [m/s]
+!  (30) Z0       : (2-D) GMAO roughness height                  [m] 
 !
 !  NOTES:
 !  (1 ) Now use function TIMESTAMP_STRING from "time_mod.f" for formatted 
@@ -688,6 +728,10 @@
 !  (4 ) Fixed typo in the ND67 diagnostic for RADSWG (swu, bmy, 2/9/06)
 !  (5 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (6 ) Add "PARDIF", "PARDIR" to case statement for GCAP (swu, bmy, 10/4/06)
+!  (7 ) Add EVAP, GRN, GWETROOT, LAI, PRECSNO, SNODP, SNOMAS, and TROPP as 
+!        optional arguments.  Also update the CASE statement accordingly for 
+!        GEOS-5 fields.  Convert GEOS-5 PRECTOT and PRECCON fields from
+!        [kg/m2/s] to [mm/day] for backwards compatibility. (bmy, 1/17/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -703,8 +747,12 @@
       INTEGER, INTENT(IN)            :: NYMD, NHMS
       REAL*8,  INTENT(OUT), OPTIONAL :: ALBEDO(IIPAR,JJPAR) 
       REAL*8,  INTENT(OUT), OPTIONAL :: CLDFRC(IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: EVAP(IIPAR,JJPAR) 
+      REAL*8,  INTENT(OUT), OPTIONAL :: GRN(IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: GWETROOT(IIPAR,JJPAR) 
       REAL*8,  INTENT(OUT), OPTIONAL :: GWETTOP(IIPAR,JJPAR) 
       REAL*8,  INTENT(OUT), OPTIONAL :: HFLUX(IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: LAI(IIPAR,JJPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: MOLENGTH(IIPAR,JJPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: OICE(IIPAR,JJPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: PARDF(IIPAR,JJPAR) 
@@ -712,11 +760,15 @@
       REAL*8,  INTENT(OUT), OPTIONAL :: PBL(IIPAR,JJPAR) 
       REAL*8,  INTENT(OUT), OPTIONAL :: PREACC(IIPAR,JJPAR) 
       REAL*8,  INTENT(OUT), OPTIONAL :: PRECON(IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: PRECSNO(IIPAR,JJPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: RADLWG(IIPAR,JJPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: RADSWG(IIPAR,JJPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: RADSWT(IIPAR,JJPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: SNICE(IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: SNODP(IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: SNOMAS(IIPAR,JJPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: SNOW(IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: TROPP(IIPAR,JJPAR) 
       REAL*8,  INTENT(OUT), OPTIONAL :: TS(IIPAR,JJPAR) 
       REAL*8,  INTENT(OUT), OPTIONAL :: TSKIN(IIPAR,JJPAR) 
       REAL*8,  INTENT(OUT), OPTIONAL :: U10M(IIPAR,JJPAR) 
@@ -775,8 +827,9 @@
 
             !---------------------------------
             ! CLDFRC: column cloud fraction
+            ! (aka CLDTOT in GEOS-5)
             !---------------------------------
-            CASE ( 'CLDFRC' )
+            CASE ( 'CLDFRC', 'CLDTOT' )
                READ ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:3' )
              
@@ -785,12 +838,50 @@
                   NFOUND = NFOUND + 1
                ENDIF
 
+            !---------------------------------
+            ! EVAP: evapotranspiration flux
+            !---------------------------------
+            CASE ( 'EVAP' )
+               READ ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:4' )
+             
+               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+                  IF ( PRESENT( EVAP ) ) CALL TRANSFER_2D( Q2, EVAP )
+                  NFOUND = NFOUND + 1
+               ENDIF
+
+            !---------------------------------
+            ! GRN: evapotranspiration flux
+            !---------------------------------
+            CASE ( 'GRN' )
+               READ ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:5' )
+             
+               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+                  IF ( PRESENT( GRN ) ) CALL TRANSFER_2D( Q2, GRN )
+                  NFOUND = NFOUND + 1
+               ENDIF
+
+            !--------------------------------
+            ! GWETROOT: root soil wetness
+            !--------------------------------
+            CASE ( 'GWETROOT' ) 
+               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:6' )
+
+               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+                  IF ( PRESENT( GWETROOT ) ) THEN
+                     CALL TRANSFER_2D( Q2,GWETROOT )
+                  ENDIF
+                  NFOUND = NFOUND + 1
+               ENDIF
+
             !--------------------------------
             ! GWETTOP: topsoil wetness 
             !--------------------------------
             CASE ( 'GWETTOP', 'SOIL' ) 
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:4' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:7' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( GWETTOP ) ) CALL TRANSFER_2D(Q2,GWETTOP)
@@ -802,10 +893,22 @@
             !--------------------------------
             CASE ( 'HFLUX' ) 
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:5' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:8' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( HFLUX ) ) CALL TRANSFER_2D( Q2, HFLUX )
+                  NFOUND = NFOUND + 1
+               ENDIF
+
+            !--------------------------------
+            ! LAI: GMAO leaf area index
+            !--------------------------------
+            CASE ( 'LAI' ) 
+               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:9' )
+
+               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+                  IF ( PRESENT( LAI ) ) CALL TRANSFER_2D( Q2, LAI )
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -814,7 +917,7 @@
             !--------------------------------
             CASE ( 'MOLENGTH' ) 
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:6' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:10' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( MOLENGTH ) ) THEN
@@ -828,7 +931,7 @@
             !--------------------------------
             CASE ( 'OICE' ) 
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:7' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:11' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( OICE ) ) CALL TRANSFER_2D( Q2, OICE )
@@ -840,7 +943,7 @@
             !--------------------------------
             CASE ( 'PARDF', 'PARDIF' )
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:8' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:12' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( PARDF ) ) CALL TRANSFER_2D( Q2, PARDF )
@@ -852,7 +955,7 @@
             !--------------------------------
             CASE ( 'PARDR', 'PARDIR' )
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:9' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:13' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( PARDR ) ) CALL TRANSFER_2D( Q2, PARDR )
@@ -864,7 +967,7 @@
             !--------------------------------
             CASE ( 'PBL', 'PBLH' )
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:10' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:14' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( PBL ) ) CALL TRANSFER_2D( Q2, PBL )
@@ -873,10 +976,11 @@
 
             !--------------------------------
             ! PREACC: total precip at ground
+            ! (aka PRECTOT in GEOS-5)
             !--------------------------------
-            CASE ( 'PREACC' )
+            CASE ( 'PREACC', 'PRECTOT' )
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:11' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:15' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( PREACC ) ) CALL TRANSFER_2D( Q2,PREACC )
@@ -885,10 +989,11 @@
 
             !--------------------------------
             ! PRECON: conv precip at ground
+            ! (aka PRECCON in GEOS-5)
             !--------------------------------
-            CASE ( 'PRECON' )
+            CASE ( 'PRECON', 'PRECCON' )
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:12' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:16' )
               
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( PRECON ) ) CALL TRANSFER_2D( Q2,PRECON )
@@ -896,11 +1001,24 @@
                ENDIF
 
             !--------------------------------
-            ! RADLWG: solar rad at ground 
+            ! PRECSNO: snow precip at ground
             !--------------------------------
-            CASE ( 'RADLWG' ) 
+            CASE ( 'PRECSNO' )
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:13' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:17' )
+              
+               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+                  IF ( PRESENT( PRECSNO ) ) CALL TRANSFER_2D(Q2,PRECSNO)
+                  NFOUND = NFOUND + 1
+               ENDIF
+
+            !--------------------------------
+            ! RADLWG: solar rad at ground 
+            ! (aka LWGNET in GEOS-5)
+            !--------------------------------
+            CASE ( 'RADLWG', 'LWGNET' ) 
+               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:18' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( RADLWG ) ) CALL TRANSFER_2D( Q2,RADLWG )
@@ -909,10 +1027,11 @@
 
             !--------------------------------
             ! RADSWG: solar rad at ground 
+            ! (aka SWGNET in GEOS-5)
             !--------------------------------
-            CASE ( 'RADSWG' ) 
+            CASE ( 'RADSWG', 'SWGNET' ) 
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:14' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:19' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( RADSWG ) ) CALL TRANSFER_2D( Q2,RADSWG )
@@ -924,7 +1043,7 @@
             !--------------------------------
             CASE ( 'RADSWT' )
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:15' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:20' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( RADSWT ) ) CALL TRANSFER_2D( Q2,RADSWT )
@@ -936,10 +1055,36 @@
             !--------------------------------
             CASE ( 'SNICE' ) 
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:16' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:21' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( SNICE ) ) CALL TRANSFER_2D( Q2, SNICE )
+                  NFOUND = NFOUND + 1
+               ENDIF
+
+            !--------------------------------
+            ! SNOMAS: GEOS-5 snow depth 
+            ! (H2O equivalent)
+            !--------------------------------
+            CASE ( 'SNOMAS' )
+               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:22' )
+             
+               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+                  IF ( PRESENT( SNOMAS ) ) CALL TRANSFER_2D( Q2,SNOMAS )
+                  NFOUND = NFOUND + 1
+               ENDIF
+
+            !--------------------------------
+            ! SNODP: GEOS-5 snow depth 
+            ! (geometric & snowpack)
+            !--------------------------------
+            CASE ( 'SNODP' )
+               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:23' )
+             
+               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+                  IF ( PRESENT( SNODP ) ) CALL TRANSFER_2D( Q2, SNODP )
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -948,10 +1093,22 @@
             !--------------------------------
             CASE ( 'SNOW', 'SNOWD' )
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:17' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:24' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( SNOW ) ) CALL TRANSFER_2D( Q2, SNOW )
+                  NFOUND = NFOUND + 1
+               ENDIF
+
+            !--------------------------------            
+            ! TROPP: tropopause pressure
+            !--------------------------------
+            CASE ( 'TROPP' )
+               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:25' )
+             
+               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+                  IF ( PRESENT( TROPP ) ) CALL TRANSFER_2D( Q2, TROPP )
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -960,7 +1117,7 @@
             !--------------------------------
             CASE ( 'TS', 'TGROUND', 'T2M' )
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:18' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:26' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( TS ) ) CALL TRANSFER_2D( Q2, TS )
@@ -972,7 +1129,7 @@
             !--------------------------------
             CASE ( 'TSKIN' )
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:19' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:27' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( TSKIN ) ) CALL TRANSFER_2D( Q2, TSKIN )
@@ -984,7 +1141,7 @@
             !--------------------------------            
             CASE ( 'U10M', 'USS' )
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:20' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:28' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( U10M ) ) CALL TRANSFER_2D( Q2, U10M )
@@ -996,7 +1153,7 @@
             !--------------------------------            
             CASE ( 'USTAR' )
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:21' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:29' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( USTAR ) ) CALL TRANSFER_2D( Q2, USTAR )
@@ -1008,7 +1165,7 @@
             !--------------------------------            
             CASE ( 'V10M', 'VSS' )
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:22' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:30' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( V10M ) ) CALL TRANSFER_2D( Q2, V10M )
@@ -1020,7 +1177,7 @@
             !--------------------------------            
             CASE ( 'Z0', 'Z0M' )
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:23' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:31' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( Z0 ) ) CALL TRANSFER_2D( Q2, Z0 ) 
@@ -1032,7 +1189,7 @@
             !--------------------------------
             CASE ( 'TPW' )
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:24' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:32' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   NFOUND = NFOUND + 1
@@ -1043,18 +1200,7 @@
             !--------------------------------
             CASE ( 'CLDTMP' )
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:25' )
-             
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  NFOUND = NFOUND + 1
-               ENDIF
-
-            !--------------------------------
-            ! LAI: just skip over this
-            !--------------------------------
-            CASE ( 'LAI' )
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:26' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:33' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   NFOUND = NFOUND + 1
@@ -1074,6 +1220,36 @@
             EXIT
          ENDIF
       ENDDO
+
+#if   defined( GEOS_5 )
+
+      !=================================================================
+      ! SPECIAL HANDLING FOR GEOS-5
+      ! ---------------------------
+      ! In GEOS-5, the PRECTOT (cf PREACC) and PRECCON (cf PRECON) met
+      ! fields have units of [kg/m2/s].  In all other GEOS versions, 
+      ! PREACC and PRECON have units of [mm/day].  
+      !
+      ! Therefore, for backwards compatibility with existing code, 
+      ! apply the following unit conversion to the GEOS-5 PRECTOT and
+      ! PRECCON fields:
+      !
+      !
+      !     kg  |    m3    | 86400 s | 1000 mm
+      !   ------+----------+---------+--------- = 86400 
+      !    m2 s |  1000 kg |  day    |   m
+      !              ^
+      !              |
+      !       1 / density of water 
+      !=================================================================
+      
+      ! Convert GEOS-5 PRECTOT from [kg/m2/s] to [mm/day]
+      IF ( PRESENT( PREACC ) ) PREACC = PREACC * 86400d0
+
+      ! Convert GEOS-5 PRECCON from [kg/m2/s] to [mm/day]
+      IF ( PRESENT( PRECON ) ) PRECON = PRECON * 86400d0
+
+#endif
 
       !=================================================================
       ! ND67 diagnostic: A-3 surface fields:
@@ -1115,6 +1291,7 @@
          IF ( PRESENT( U10M    ) ) AD67(:,:,11) = AD67(:,:,11) + U10M
          IF ( PRESENT( V10M    ) ) AD67(:,:,12) = AD67(:,:,12) + V10M
          IF ( PRESENT( ALBEDO  ) ) AD67(:,:,14) = AD67(:,:,14) + ALBEDO
+         IF ( PRESENT( TROPP   ) ) AD67(:,:,17) = AD67(:,:,17) + TROPP
          IF ( PRESENT( TSKIN   ) ) AD67(:,:,19) = AD67(:,:,19) + TSKIN
          IF ( PRESENT( PARDF   ) ) AD67(:,:,20) = AD67(:,:,20) + PARDF
          IF ( PRESENT( PARDR   ) ) AD67(:,:,21) = AD67(:,:,21) + PARDR

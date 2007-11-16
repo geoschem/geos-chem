@@ -1,4 +1,4 @@
-! $Id: tagged_ox_mod.f,v 1.21 2007/03/29 20:31:24 bmy Exp $
+! $Id: tagged_ox_mod.f,v 1.22 2007/11/16 18:47:45 bmy Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
@@ -70,10 +70,17 @@
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
-      INTEGER, PARAMETER   :: N_TAGGED = 13
-      INTEGER, PARAMETER   :: N_STRAT  = 11
-      INTEGER, PARAMETER   :: N_INIT   = 12
-      INTEGER, PARAMETER   :: N_USA    = 13
+      !------------------------------------------------------
+      !%%% Modification for quick Ox spinup (bmy, 5/31/07) 
+      !%%%INTEGER, PARAMETER   :: N_TAGGED = 13
+      !%%%INTEGER, PARAMETER   :: N_STRAT  = 11
+      !%%%INTEGER, PARAMETER   :: N_INIT   = 12
+      !%%%INTEGER, PARAMETER   :: N_USA    = 13
+      !------------------------------------------------------
+      INTEGER, PARAMETER   :: N_TAGGED = 3
+      INTEGER, PARAMETER   :: N_STRAT  = 2
+      INTEGER, PARAMETER   :: N_INIT   = 3
+      INTEGER, PARAMETER   :: N_USA    = -1
       REAL*8,  ALLOCATABLE :: P24H(:,:,:)
       REAL*8,  ALLOCATABLE :: L24H(:,:,:)
 
@@ -143,7 +150,7 @@
 #     include "CMN_SIZE" ! Size parameters
 
       ! Local variables
-      REAL*4             :: ARRAY(IGLOB,JGLOB,LLTROP)
+      REAL*4             :: ARRAY(IGLOB,JGLOB,LLTROP_FIX)
       REAL*8             :: XTAU
       CHARACTER(LEN=255) :: FILENAME
 
@@ -175,23 +182,39 @@
 
       ! Limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
       ! tropopause. This is backward compatibility with offline data set.
-      CALL READ_BPCH2( FILENAME, 'PORL-L=$', 1,      
-     &     XTAU,        IGLOB,                    JGLOB,      
-     &     LLTROP_FIX,  ARRAY(:,:,1:LLTROP_FIX),  QUIET=.TRUE. )
+      CALL READ_BPCH2( FILENAME,  'PORL-L=$', 1,      
+     &                 XTAU,       IGLOB,     JGLOB,      
+     &                 LLTROP_FIX, ARRAY,     QUIET=.TRUE. )
 
-      ! Cast from REAL*4 to REAL*8 
-      CALL TRANSFER_3D_TROP( ARRAY, P24H )
+      ! Cast from REAL*4 to REAL*8
+      !--------------------------------------------
+      ! Prior to 10/1/07:
+      !CALL TRANSFER_3D_TROP( ARRAY, P24H )
+      !--------------------------------------------
+      P24H                   = 0d0
+      P24H(:,:,1:LLTROP_FIX) = ARRAY
 
       !=================================================================
       ! Read L(O3) [1/cm3/s]
       !=================================================================
-      CALL READ_BPCH2( FILENAME, 'PORL-L=$', 2,      
-     &     XTAU,        IGLOB,                    JGLOB,      
-     &     LLTROP_FIX,  ARRAY(:,:,1:LLTROP_FIX),  QUIET=.TRUE. )
+
+      ! Avoid arithmetic problem with random data between LLTROP_FIX
+      ! and LLTROP.  Fill ARRAY to zero. (phs, 1/19/07)
+      ARRAY = 0e0
+
+      ! read data
+      CALL READ_BPCH2( FILENAME,  'PORL-L=$', 2,      
+     &                 XTAU,       IGLOB,     JGLOB,      
+     &                 LLTROP_FIX, ARRAY,     QUIET=.TRUE. )
 
       ! Cast from REAL*4 to REAL*8 
-      CALL TRANSFER_3D_TROP( ARRAY, L24H )
-      
+      !-----------------------------------------------
+      ! Prior to 
+      !CALL TRANSFER_3D_TROP( ARRAY, L24H )
+      !-----------------------------------------------
+      L24H                   = 0d0
+      L24H(:,:,1:LLTROP_FIX) = ARRAY
+
       ! Return to calling program
       END SUBROUTINE READ_POX_LOX
 
@@ -235,7 +258,8 @@
 
       ! Arguments
       INTEGER, INTENT(IN)     :: I, J, L
-      REAL*8,  INTENT(OUT)    :: PP(IIPAR,JJPAR,LLTROP_FIX,N_TAGGED)
+      !REAL*8,  INTENT(OUT)    :: PP(IIPAR,JJPAR,LLTROP_FIX,N_TAGGED)
+      REAL*8,  INTENT(OUT)    :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
 
       ! Local variables
       LOGICAL                 :: ITS_IN_TROP, ITS_IN_PBL, ITS_IN_MT
@@ -283,23 +307,23 @@
       MTTOP  = 10
 #endif
 
-      ! Define flags for various geographic & altitude regions
-      ITS_IN_PBL = ( L <= PBLTOP                                       )
-      ITS_IN_MT  = ( L >  PBLTOP .and. L <= MTTOP                      )
-      ITS_IN_UT  = ( L >  MTTOP  .and. ITS_IN_TROP                     )
-
-      ITS_IN_NH  = ( Y >=   0.0                                        )
-      ITS_IN_EUR = ( Y >=  36.0 .and. ( X >  -15.0 .and. X >=   55.0 ) )
-      ITS_IN_NAM = ( Y >=  15.0 .and. ( X > -127.5 .and. X <=  -65.0 ) )
-      ITS_IN_AS  = ( Y >= -10.0 .and. ( X >   55.0 .and. X <=  145.0 ) )
-      ITS_IN_ATL = ( ITS_IN_NH  .and. ( X >  -65.0 .and. X <=  -15.0 ) )
-      ITS_IN_PAC = ( ITS_IN_NH  .and. ( X >  145.0  .or. X <= -127.5 ) )
-
-      ITS_IN_NAF = ( ( X >= -15.0 .and. X <=  55.0 ) .and. 
-     &               ( Y >=   0.0 .and. Y <   36.0 ) )  
-
-      ITS_IN_USA = ( ( X > -127.5 .and. X <= -65.0 ) .and. 
-     &               ( Y >   22.0 .and. Y <=  50.0 ) )
+!      ! Define flags for various geographic & altitude regions
+!      ITS_IN_PBL = ( L <= PBLTOP                                       )
+!      ITS_IN_MT  = ( L >  PBLTOP .and. L <= MTTOP                      )
+!      ITS_IN_UT  = ( L >  MTTOP  .and. ITS_IN_TROP                     )
+!
+!      ITS_IN_NH  = ( Y >=   0.0                                        )
+!      ITS_IN_EUR = ( Y >=  36.0 .and. ( X >  -15.0 .and. X >=   55.0 ) )
+!      ITS_IN_NAM = ( Y >=  15.0 .and. ( X > -127.5 .and. X <=  -65.0 ) )
+!      ITS_IN_AS  = ( Y >= -10.0 .and. ( X >   55.0 .and. X <=  145.0 ) )
+!      ITS_IN_ATL = ( ITS_IN_NH  .and. ( X >  -65.0 .and. X <=  -15.0 ) )
+!      ITS_IN_PAC = ( ITS_IN_NH  .and. ( X >  145.0  .or. X <= -127.5 ) )
+!
+!      ITS_IN_NAF = ( ( X >= -15.0 .and. X <=  55.0 ) .and. 
+!     &               ( Y >=   0.0 .and. Y <   36.0 ) )  
+!
+!      ITS_IN_USA = ( ( X > -127.5 .and. X <= -65.0 ) .and. 
+!     &               ( Y >   22.0 .and. Y <=  50.0 ) )
 
       !=================================================================
       ! Assign P(Ox) to tagged tracers by geographic/altitude regions
@@ -313,68 +337,68 @@
       !-----------------------
       PP(I,J,L,1) = PPROD
 
-      !-----------------------
-      ! #2: P(Ox) in UT
-      !-----------------------
-      IF ( ITS_IN_UT ) THEN
-         PP(I,J,L,2) = PPROD
-         
-      !-----------------------
-      ! #3: P(Ox) in MT 
-      !-----------------------
-      ELSE IF ( ITS_IN_MT ) THEN
-         PP(I,J,L,3) = PPROD
-                                
-      !-----------------------
-      ! #5: P(Ox) in Pac BL
-      !-----------------------
-      ELSE IF ( ITS_IN_PAC .and. ITS_IN_PBL ) THEN
-         PP(I,J,L,5) = PPROD
-
-      !-----------------------
-      ! #6: P(Ox) in NAm BL
-      !-----------------------
-      ELSE IF ( ITS_IN_NAM .and. ITS_IN_PBL ) THEN     
-         PP(I,J,L,6) = PPROD
-                  
-      !-----------------------
-      ! #7: P(Ox) in Atl BL
-      !-----------------------
-      ELSE IF ( ITS_IN_ATL .and. ITS_IN_PBL ) THEN
-         PP(I,J,L,7) = PPROD  
-         
-      !-----------------------
-      ! #8: P(Ox) in Eur BL
-      !-----------------------
-      ELSE IF ( ITS_IN_EUR .and. ITS_IN_PBL ) THEN
-         PP(I,J,L,8) = PPROD
-                  
-      !-----------------------
-      ! #9: P(Ox) in NAfr BL
-      !-----------------------
-      ELSE IF ( ITS_IN_NAF .and. ITS_IN_PBL ) THEN
-         PP(I,J,L,9) = PPROD
- 
-      !-----------------------
-      ! #10: P(Ox) in Asia BL
-      !-----------------------          
-      ELSE IF ( ITS_IN_AS .and. ITS_IN_PBL ) THEN
-         PP(I,J,L,10) = PPROD                   
-
-      !-----------------------
-      ! #4: P(Ox) in R.O.W
-      !-----------------------
-      ELSE 
-         PP(I,J,L,4) = PPROD
-
-      ENDIF
-
-      !-------------------------
-      ! #13: P(Ox) in USA
-      !-------------------------
-      IF ( ITS_IN_USA ) THEN
-         PP(I,J,L,N_USA) = PPROD               
-      ENDIF
+!      !-----------------------
+!      ! #2: P(Ox) in UT
+!      !-----------------------
+!      IF ( ITS_IN_UT ) THEN
+!         PP(I,J,L,2) = PPROD
+!         
+!      !-----------------------
+!      ! #3: P(Ox) in MT 
+!      !-----------------------
+!      ELSE IF ( ITS_IN_MT ) THEN
+!         PP(I,J,L,3) = PPROD
+!                                
+!      !-----------------------
+!      ! #5: P(Ox) in Pac BL
+!      !-----------------------
+!      ELSE IF ( ITS_IN_PAC .and. ITS_IN_PBL ) THEN
+!         PP(I,J,L,5) = PPROD
+!
+!      !-----------------------
+!      ! #6: P(Ox) in NAm BL
+!      !-----------------------
+!      ELSE IF ( ITS_IN_NAM .and. ITS_IN_PBL ) THEN     
+!         PP(I,J,L,6) = PPROD
+!                  
+!      !-----------------------
+!      ! #7: P(Ox) in Atl BL
+!      !-----------------------
+!      ELSE IF ( ITS_IN_ATL .and. ITS_IN_PBL ) THEN
+!         PP(I,J,L,7) = PPROD  
+!         
+!      !-----------------------
+!      ! #8: P(Ox) in Eur BL
+!      !-----------------------
+!      ELSE IF ( ITS_IN_EUR .and. ITS_IN_PBL ) THEN
+!         PP(I,J,L,8) = PPROD
+!                  
+!      !-----------------------
+!      ! #9: P(Ox) in NAfr BL
+!      !-----------------------
+!      ELSE IF ( ITS_IN_NAF .and. ITS_IN_PBL ) THEN
+!         PP(I,J,L,9) = PPROD
+! 
+!      !-----------------------
+!      ! #10: P(Ox) in Asia BL
+!      !-----------------------          
+!      ELSE IF ( ITS_IN_AS .and. ITS_IN_PBL ) THEN
+!         PP(I,J,L,10) = PPROD                   
+!
+!      !-----------------------
+!      ! #4: P(Ox) in R.O.W
+!      !-----------------------
+!      ELSE 
+!         PP(I,J,L,4) = PPROD
+!
+!      ENDIF
+!
+!      !-------------------------
+!      ! #13: P(Ox) in USA
+!      !-------------------------
+!      IF ( ITS_IN_USA ) THEN
+!         PP(I,J,L,N_USA) = PPROD               
+!      ENDIF
 
       ! Return to calling program
       END SUBROUTINE GET_REGIONAL_POX
@@ -418,6 +442,7 @@
       USE TIME_MOD,     ONLY : TIMESTAMP_STRING
       USE TRACER_MOD,   ONLY : STT,                   N_TRACERS, XNUMOL
       USE TRACERID_MOD, ONLY : IDTOX
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
       IMPLICIT NONE
 
@@ -428,8 +453,10 @@
       LOGICAL, SAVE     :: FIRST   = .TRUE.
       INTEGER, SAVE     :: LASTDAY = -1
       INTEGER           :: I, J, L, N
-      REAL*8            :: PP(IIPAR,JJPAR,LLTROP_FIX,N_TAGGED)
-      REAL*8            :: ND44_TMP(IIPAR,JJPAR,LLTROP_FIX)
+      !REAL*8            :: PP(IIPAR,JJPAR,LLTROP_FIX,N_TAGGED)
+      !REAL*8            :: ND44_TMP(IIPAR,JJPAR,LLTROP_FIX)
+      REAL*8            :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
+      REAL*8            :: ND44_TMP(IIPAR,JJPAR,LLTROP)
       REAL*8            :: DTCHEM,  FREQ,    FLUX
       REAL*8            :: LL,      PL,      Ox_0
       REAL*8            :: Ox_LOST, PBL_MAX, F_UNDER_TOP
@@ -442,10 +469,12 @@
       ! CHEM_TAGGED_OX begins here!
       !=================================================================
 
-      ! Echo date
-      STAMP = TIMESTAMP_STRING()
-      WRITE( 6, 100 ) STAMP
- 100  FORMAT( '     - CHEM_TAGGED_OX: Tagged Ox chem at: ', a )
+! Prior to 10/2/07:
+! Comment out verbose output
+!      ! Echo date
+!      STAMP = TIMESTAMP_STRING()
+!      WRITE( 6, 100 ) STAMP
+! 100  FORMAT( '     - CHEM_TAGGED_OX: Tagged Ox chem at: ', a )
 
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
@@ -455,12 +484,12 @@
          CALL INIT_TAGGED_OX
          FIRST = .FALSE.
       ENDIF
-      
+
       ! Read P(Ox) and L(Ox) if it's a new day
       IF ( ITS_A_NEW_DAY() ) THEN
          CALL READ_POX_LOX
       ENDIF
-      
+
       ! Maximum extent of the PBL [model layers]
       PBL_MAX = GET_PBL_MAX_L()
 
@@ -476,19 +505,25 @@
       ! Tagged Ox tracers are defined by both geographic location and
       ! altitude, as listed below:
       !
+      !%%% Modification for quicker spinup
+      !%%% (1 ) Total Ox
+      !%%% (2 ) Ox produced in Upper Trop     (350 hPa    - tropopause) 
+      !%%% (3 ) Ox produced in Middle Trop    (PBL top    - 350 hPa   )
+      !%%% (4 ) Ox produced in Rest of World  (surface    - PBL top   )
+      !%%% (5 ) Ox produced in Pacific BL     (surface    - PBL top   )
+      !%%% (6 ) Ox produced in N. American BL (surface    - PBL top   )
+      !%%% (7 ) Ox produced in Atlantic BL    (surface    - PBL top   )
+      !%%% (8 ) Ox produced in European BL    (surface    - PBL top   )
+      !%%% (9 ) Ox produced in N. African BL  (surface    - PBL top   )
+      !%%% (10) Ox produced in Asian          (surface    - PBL top   )
+      !%%% (11) Ox from the Stratosphere      (tropopause - atm top   )
+      !%%% (12) Ox initial conditions         (all levels             )        
+      !%%% (13) Ox produced over the USA      (all levels             )
+      !
+      ! NOTE: MODIFIED FOR QUICKER SPINUP:
       ! (1 ) Total Ox
-      ! (2 ) Ox produced in Upper Trop     (350 hPa    - tropopause) 
-      ! (3 ) Ox produced in Middle Trop    (PBL top    - 350 hPa   )
-      ! (4 ) Ox produced in Rest of World  (surface    - PBL top   )
-      ! (5 ) Ox produced in Pacific BL     (surface    - PBL top   )
-      ! (6 ) Ox produced in N. American BL (surface    - PBL top   )
-      ! (7 ) Ox produced in Atlantic BL    (surface    - PBL top   )
-      ! (8 ) Ox produced in European BL    (surface    - PBL top   )
-      ! (9 ) Ox produced in N. African BL  (surface    - PBL top   )
-      ! (10) Ox produced in Asian          (surface    - PBL top   )
-      ! (11) Ox from the Stratosphere      (tropopause - atm top   )
-      ! (12) Ox initial conditions         (all levels             )        
-      ! (13) Ox produced over the USA      (all levels             )
+      ! (2 ) Ox from the Stratosphere      (tropopause - atm top   )
+      ! (3 ) Ox initial conditions         (all levels             )        
       !=================================================================
       DO N = 1, N_TRACERS
 
@@ -499,7 +534,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, LL, PL, FREQ, Ox_0, Ox_LOST, FLUX, F_UNDER_TOP )  
 !$OMP+SCHEDULE( DYNAMIC )
-         DO L = 1, LLTROP_FIX
+         DO L = 1, LLTROP !_FIX
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
@@ -640,11 +675,13 @@
       ENDIF
 
       ! Allocate P24H
+      !ALLOCATE( P24H( IIPAR, JJPAR, LLTROP_FIX ), STAT=AS )
       ALLOCATE( P24H( IIPAR, JJPAR, LLTROP ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'P24H' )
       P24H = 0d0
 
       ! Allocate L24H
+      !ALLOCATE( L24H( IIPAR, JJPAR, LLTROP_FIX ), STAT=AS )
       ALLOCATE( L24H( IIPAR, JJPAR, LLTROP ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'L24H' ) 
       L24H = 0d0

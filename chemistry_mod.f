@@ -1,4 +1,4 @@
-! $Id: chemistry_mod.f,v 1.28 2007/11/05 16:16:14 bmy Exp $
+! $Id: chemistry_mod.f,v 1.29 2007/11/16 18:47:35 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
@@ -297,7 +297,6 @@
          ! Rn-Pb-Be
          !---------------------------------                 
          ELSE IF ( ITS_A_RnPbBe_SIM() ) THEN
-
             CALL CHEMRnPbBe 
             CALL DRYFLXRnPbBe
                   

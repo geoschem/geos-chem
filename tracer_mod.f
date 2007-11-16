@@ -1,4 +1,4 @@
-! $Id: tracer_mod.f,v 1.8 2007/11/05 16:16:26 bmy Exp $
+! $Id: tracer_mod.f,v 1.9 2007/11/16 18:47:45 bmy Exp $
       MODULE TRACER_MOD
 !
 !******************************************************************************
@@ -501,6 +501,7 @@
 !$OMP CRITICAL
             LNEG = .TRUE.
             WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
+            PRINT*, STT(I,J,L,N)
 !$OMP END CRITICAL
 
          !---------------------------
@@ -532,7 +533,7 @@
       ! Stop the run if any of LNEG, LNAN, LINF is true
       !=================================================================
       IF ( LNEG .or. LNAN .or. LINF ) THEN
-         WRITE( 6, 120 ) TRIM( LOCATION )
+         WRITE( 6, 120 ) TRIM( LOCATION ), LNEG, LNAN, LINF
          CALL GEOS_CHEM_STOP
       ENDIF
 
@@ -540,7 +541,7 @@
       ! FORMAT statements
       !=================================================================
  100  FORMAT( 'CHECK_STT: STT(',i3,',',i3,',',i3,',',i3,') = ', f13.6 )
- 120  FORMAT( 'CHECK_STT: STOP at ', a )
+ 120  FORMAT( 'CHECK_STT: STOP at ', a , 3L2 )
 
       ! Return to calling program
       END SUBROUTINE CHECK_STT

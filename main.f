@@ -1,5 +1,10 @@
-! $Id: main.f,v 1.49 2007/11/05 16:16:22 bmy Exp $
+! $Id: main.f,v 1.50 2007/11/16 18:47:43 bmy Exp $
 ! $Log: main.f,v $
+! Revision 1.50  2007/11/16 18:47:43  bmy
+!
+! Bringing in GEOS-5 modifications to the mainline GEOS-Chem std code
+! (bmy, 11/16/07)
+!
 ! Revision 1.49  2007/11/05 16:16:22  bmy
 !
 ! Added H2/HD simulation
@@ -195,7 +200,7 @@
       USE PLANEFLIGHT_MOD,   ONLY : PLANEFLIGHT
       USE PLANEFLIGHT_MOD,   ONLY : SETUP_PLANEFLIGHT 
       USE PRESSURE_MOD,      ONLY : INIT_PRESSURE
-      USE PRESSURE_MOD,      ONLY : SET_FLOATING_PRESSURE
+      USE PRESSURE_MOD,      ONLY : SET_FLOATING_PRESSURE, get_pedge
       USE TIME_MOD,          ONLY : GET_NYMDb,        GET_NHMSb
       USE TIME_MOD,          ONLY : GET_NYMD,         GET_NHMS
       USE TIME_MOD,          ONLY : GET_A3_TIME,      GET_FIRST_A3_TIME
@@ -438,6 +443,8 @@
 
       ! Call AIRQNT to compute air mass quantities from PS1
       CALL SET_FLOATING_PRESSURE( PS1 )
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a SET_FLT_PRS' )
+
       CALL AIRQNT
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a AIRQNT' )
 
@@ -786,16 +793,23 @@
 
          ! Compute airmass quantities at each grid box 
          CALL AIRQNT
-         
-         ! Compute the cosine of the solar zenith angle at each grid box
-         CALL COSSZA( DAY_OF_YEAR, NHMSb, ELAPSED_SEC, SUNCOS )
-         
-         ! For SMVGEAR II, we also need to compute SUNCOS at
-         ! the end of this chemistry timestep (bdf, bmy, 4/1/03)
-         IF ( LCHEM .and. ITS_A_FULLCHEM_SIM() ) THEN
-            CALL COSSZA( DAY_OF_YEAR,                  NHMSb, 
-     &                   ELAPSED_SEC+GET_TS_CHEM()*60, SUNCOSB )
-         ENDIF
+
+!---------------------------------------------------------------------------
+! Prior to 2/13/07:         
+!         ! Compute the cosine of the solar zenith angle at each grid box
+!         !CALL COSSZA( DAY_OF_YEAR, NHMSb, ELAPSED_SEC, SUNCOS )
+! 
+!         ! For SMVGEAR II, we also need to compute SUNCOS at
+!         ! the end of this chemistry timestep (bdf, bmy, 4/1/03)
+!         IF ( LCHEM .and. ITS_A_FULLCHEM_SIM() ) THEN
+!            CALL COSSZA( DAY_OF_YEAR,                  NHMSb, 
+!     &                   ELAPSED_SEC+GET_TS_CHEM()*60, SUNCOSB )
+!         ENDIF
+!---------------------------------------------------------------------------
+
+         ! Compute the cosine of the solar zenith angle array SUNCOS
+         ! NOTE: SUNCOSB is not really used in PHYSPROC (bmy, 2/13/07)
+         CALL COSSZA( DAY_OF_YEAR, SUNCOS )
 
          ! Compute tropopause height for ND55 diagnostic
          IF ( ND55 > 0 ) CALL TROPOPAUSE
@@ -844,11 +858,13 @@
             ! Repartition [NOy] species after transport
             IF ( LUPBD .and. ITS_A_FULLCHEM_SIM() ) THEN
                CALL UPBDFLX_NOY( 2 )
-            ENDIF
+            ENDIF   
 
+#if   !defined( GEOS_5 )
             ! Get relative humidity 
             ! (after recomputing pressure quantities)
             CALL MAKE_RH
+#endif
 
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport

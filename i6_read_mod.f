@@ -1,10 +1,10 @@
-! $Id: i6_read_mod.f,v 1.19 2006/10/26 16:09:47 bmy Exp $
+! $Id: i6_read_mod.f,v 1.20 2007/11/16 18:47:40 bmy Exp $
       MODULE I6_READ_MOD
 !
 !******************************************************************************
 !  Module I6_READ_MOD contains subroutines that unzip, open, and read
 !  GEOS-CHEM I-6 (instantaneous 6-hr) met fields from disk. 
-!  (bmy, 6/23/03, 9/14/06)
+!  (bmy, 6/23/03, 1/16/07)
 ! 
 !  Module Routines:
 !  =========================================================================
@@ -345,7 +345,7 @@
          ! Set the proper first-time-flag false
          FIRST = .FALSE.
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( GCAP )
+#if   !defined( GEOS_3 )
 
          ! Skip past the ident string
          READ( IU_I6, IOSTAT=IOS ) IDENT
@@ -421,9 +421,9 @@
 !
 !******************************************************************************
 !  Subroutine GET_I6_FIELDS_1 is a wrapper for routine READ_I6.  This routine
-!  calls READ_I6 properly for reading I-6 fields from GEOS-1, GEOS-STRAT, 
-!  GEOS-3, or GEOS-4 met data sets at the START of a GEOS-CHEM run. 
-!  (bmy, 6/23/03, 8/4/06)
+!  calls READ_I6 properly for reading I-6 fields from GEOS-3, GEOS-4, GEOS-5,
+!  or GCAP met data sets at the START of a GEOS-CHEM run. 
+!  (bmy, 6/23/03, 1/16/07)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -433,11 +433,12 @@
 !  NOTES:
 !  (1 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (3 ) Now also read TO3 and TTO3 for GEOS-5 (bmy, 1/16/07)
 !******************************************************************************
 !      
       ! References to F90 modules
-      USE DAO_MOD, ONLY : ALBD1, LWI,   PS1,    SLP,   SPHU1, 
-     &                    T,     TMPU1, TROPP1, UWND1, VWND1
+      USE DAO_MOD, ONLY : ALBD1, LWI,  PS1,   SLP,    SPHU1, T
+      USE DAO_MOD, ONLY : TO3,   TTO3, TMPU1, TROPP1, UWND1, VWND1
 
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS 
@@ -445,8 +446,8 @@
 #if   defined( GEOS_3 )
 
       !=================================================================
-      ! GEOS-3:
-      ! read PS1, ALBD1, LWI, SLP, TROPP, UWND1, VWND1, TMPU1, SPHU1     
+      ! GEOS-3: read PS1,   ALBD1, LWI,   SLP,  TROPP, 
+      !              UWND1, VWND1, TMPU1, SPHU1    
       !=================================================================
       CALL READ_I6( NYMD=NYMD,    NHMS=NHMS,   
      &              PS=PS1,       ALBD=ALBD1,    LWI=LWI,    
@@ -456,13 +457,21 @@
       ! Initialize T with TMPU1
       T = TMPU1
 
-#elif defined( GEOS_4 ) || defined( GEOS_5 )
+#elif defined( GEOS_4 )
 
       !=================================================================
-      ! GEOS-4 & GEOS-5 read LWI, PS1, SLP
+      ! GEOS-4: read LWI, PS1, SLP      
       !=================================================================
-      CALL READ_I6( NYMD=NYMD, NHMS=NHMS, LWI=LWI, PS=PS1, SLP=SLP,
-     &              TROPP=TROPP1)
+      CALL READ_I6( NYMD=NYMD, NHMS=NHMS, 
+     &              LWI=LWI,   PS=PS1,  SLP=SLP, TROPP=TROPP1 )
+
+#elif defined( GEOS_5 )
+
+      !=================================================================
+      ! GEOS-5: read LWI, PS1, SLP, TO3, TTO3
+      !=================================================================
+      CALL READ_I6( NYMD=NYMD, NHMS=NHMS, 
+     &              LWI=LWI,   PS=PS1,  SLP=SLP, TO3=TO3, TTO3=TTO3 )
 
 #elif defined( GCAP )
 
@@ -482,9 +491,9 @@
 !
 !******************************************************************************
 !  Subroutine GET_I6_FIELDS_2 is a wrapper for routine READ_I6.  This routine
-!  calls READ_I6 properly for reading I-6 fields from GEOS-1, GEOS-STRAT, 
-!  GEOS-3, or GEOS-4 met data sets every 6 hours during a GEOS-CHEM run. 
-!  (bmy, 6/23/03, 8/4/06)
+!  calls READ_I6 properly for reading I-6 fields from GEOS-3, GEOS-4, GEOS_5,
+!  or GCAP met data sets every 6 hours during a GEOS-CHEM run. 
+!  (bmy, 6/23/03, 1/16/07)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -494,11 +503,13 @@
 !  NOTES:
 !  (1 ) Now modified for GEOS-5 and GCAP met fields
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (3 ) Now read TO3 and TTO3 for GEOS-5 (bmy, 1/16/07)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD, ONLY : ALBD2, LWI,   PS2,    SLP, 
-     &                    SPHU2, TMPU2, TROPP2, UWND2, VWND2
+      USE DAO_MOD, ONLY : ALBD2,  LWI,   PS2,   SLP,    SPHU2
+      USE DAO_MOD, ONLY : T,      TO3,   TTO3,  TMPU1,  TMPU2
+      USE DAO_MOD, ONLY : TROPP2, UWND2, VWND2
 
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS 
@@ -506,21 +517,30 @@
 #if   defined( GEOS_3 )
 
       !=================================================================
-      ! GEOS-3:
-      ! read PS2, ALBD2, LWI, SLP, TROPP, UWND2, VWND2, TMPU2, SPHU2     
+      ! GEOS-3: read PS2,   ALBD2, LWI,   SLP, TROPP, 
+      !              UWND2, VWND2, TMPU2, SPHU2     
       !=================================================================
       CALL READ_I6( NYMD=NYMD,    NHMS=NHMS,   
      &              PS=PS2,       ALBD=ALBD2,    LWI=LWI,    
      &              SLP=SLP,      TROPP=TROPP2,  UWND=UWND2,  
      &              VWND=VWND2,   TMPU=TMPU2,    SPHU=SPHU2 ) 
 
-#elif defined( GEOS_4 ) || defined( GEOS_5 )
+#elif defined( GEOS_4 )
 
       !=================================================================
       ! GEOS-4: read LWI, PS2, SLP
       !=================================================================
-      CALL READ_I6( NYMD=NYMD, NHMS=NHMS, LWI=LWI, PS=PS2, SLP=SLP,
-     &              TROPP=TROPP2)
+      CALL READ_I6( NYMD=NYMD, NHMS=NHMS, 
+     &              LWI=LWI,   PS=PS2, SLP=SLP, TROPP=TROPP2 )
+
+#elif defined( GEOS_5 )
+
+      !=================================================================
+      ! GEOS-5: read LWI, PS2, SLP, TO3, TTO3
+      !=================================================================
+      CALL READ_I6( NYMD=NYMD, NHMS=NHMS, 
+     &              LWI=LWI,   PS=PS2,   SLP=SLP, TO3=TO3, TTO3=TTO3 )
+
 
 #elif defined( GCAP )
 
@@ -528,6 +548,7 @@
       ! GCAP: read PS1, SLP
       !=================================================================
       CALL READ_I6( NYMD=NYMD, NHMS=NHMS, PS=PS2, SLP=SLP )
+
 #endif
 
       ! Return to calling program
@@ -539,7 +560,7 @@
 !
 !******************************************************************************
 !  Function GET_N_I6 returns the number of I-6 fields per met data set
-!  (GEOS-1, GEOS-STRAT, GEOS-3, GEOS-4). (bmy, 6/23/03, 8/4/06) 
+!  (GEOS-3, GEOS-4, GEOS-5, or GCAP). (bmy, 6/23/03, 1/17/06) 
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -548,6 +569,7 @@
 !  NOTES:
 !  (1 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/25/05)
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (3 ) Increase # of I-6 fields to 5 for GEOS-5 (bmy, 1/17/06)
 !******************************************************************************
 !
 #     include "CMN_SIZE" 
@@ -574,10 +596,15 @@
             
       END SELECT
 
-#elif defined( GEOS_4 ) || defined( GEOS_5 )
+#elif defined( GEOS_4 )
 
-      ! GEOS-4 & GEOS-5 have 3 I-6 fields
+      ! GEOS-4 has 3 I-6 fields
       N_I6 = 3 
+
+#elif defined( GEOS_5 )
+
+      ! GEOS-5 has 5 I-6 fields
+      N_I6 = 5
 
 #elif defined( GCAP )
 
@@ -632,12 +659,12 @@
 !-----------------------------------------------------------------------------
 
       SUBROUTINE READ_I6( NYMD, NHMS, 
-     &                    ALBD, LWI,   PS,   SLP, SPHU,
-     &                    TMPU, TROPP, UWND, VWND )
+     &                    ALBD, LWI,   PS,   SLP,  SPHU, TMPU, 
+     &                    TO3,  TROPP, TTO3, UWND, VWND         )
 !
 !******************************************************************************
 !  Subroutine READ_I6 reads GEOS-CHEM I-6 (inst. 6-hr) met fields from disk.
-!  (bmy, 5/8/98, 8/4/06)
+!  (bmy, 5/8/98, 1/16/07)
 ! 
 !  Arguments as Input:
 !  ===========================================================================
@@ -646,15 +673,17 @@
 !
 !  Arguments as Output:
 !  ============================================================================
-!  (3 ) ALBD  : (2-D) DAO Surface albedo            [unitless]
-!  (4 ) LWI   : (2-D) DAO Land-water indices        [unitless]
-!  (5 ) PS    : (2-D) DAO Surface pressure          [mb]
-!  (6 ) SLP   : (2-D) DAO Sea-level pressures       [mb]
-!  (7 ) SPHU  : (3-D) DAO Specific humidity field   [g H2O/kg air]
-!  (8 ) TMPU  : (3-D) DAO Temperature field         [K]
-!  (9 ) TROPP : (2-D) DAO Troposphere pressures     [mb]
-!  (10) UWND  : (3-D) DAO U-wind (zonal wind)       [m/s]
-!  (11) VWND  : (3-D) DAO V-wind (meridional wind)  [m/s]
+!  (3 ) ALBD  : (2-D) GMAO Surface albedo            [unitless]
+!  (4 ) LWI   : (2-D) GMAO Land-water indices        [unitless]
+!  (5 ) PS    : (2-D) GMAO Surface pressure          [hPa]
+!  (6 ) SLP   : (2-D) GMAO Sea-level pressures       [hPa]
+!  (7 ) SPHU  : (3-D) GMAO Specific humidity field   [g H2O/kg air]
+!  (8 ) TMPU  : (3-D) GMAO Temperature field         [K]
+!  (9 ) TO3   : (2-D) GMAO GEOS-5 column ozone       [DU]
+!  (10) TROPP : (2-D) GMAO tropopause pressure pressures     [hPa]
+!  (11) TTO3  : (2-D) GMAO GEOS-5 trop column ozone  [DU]
+!  (12) UWND  : (3-D) GMAO U-wind (zonal wind)       [m/s]
+!  (13) VWND  : (3-D) GMAO V-wind (meridional wind)  [m/s]
 !
 !  NOTES:
 !  (1 ) Adapted from "READ_I6" of "dao_read_mod.f" (bmy, 6/23/03)
@@ -667,6 +696,7 @@
 !  (6 ) Now set negative SPHU to a small positive number (1d-32) instead of 
 !        zero, so as not to blow up logarithms (bmy, 9/8/06)
 !  (7 ) Now read TROPP files for GEOS-4 (phs, bmy, bdf, 9/12/06)
+!  (8 ) Now read TO3 and TTO3 for GEOS-5 (bmy, 1/16/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -675,7 +705,10 @@
       USE LOGICAL_MOD,    ONLY : LVARTROP
       USE TIME_MOD,       ONLY : SET_CT_I6,       TIMESTAMP_STRING
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D,     TRANSFER_3D
-      USE TROPOPAUSE_MOD, ONLY : CHECK_VAR_TROP
+      !----------------------------------------------------------
+      ! Prior to 2/9/07:
+      !USE TROPOPAUSE_MOD, ONLY : CHECK_VAR_TROP
+      !----------------------------------------------------------
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! NDxx flags
@@ -688,7 +721,9 @@
       REAL*8,  INTENT(OUT), OPTIONAL :: SLP  (IIPAR,JJPAR      )      
       REAL*8,  INTENT(OUT), OPTIONAL :: SPHU (IIPAR,JJPAR,LLPAR) 
       REAL*8,  INTENT(OUT), OPTIONAL :: TMPU (IIPAR,JJPAR,LLPAR)  
+      REAL*8,  INTENT(OUT), OPTIONAL :: TO3  (IIPAR,JJPAR      )  
       REAL*8,  INTENT(OUT), OPTIONAL :: TROPP(IIPAR,JJPAR      )  
+      REAL*8,  INTENT(OUT), OPTIONAL :: TTO3 (IIPAR,JJPAR      )  
       REAL*8,  INTENT(OUT), OPTIONAL :: UWND (IIPAR,JJPAR,LLPAR)   
       REAL*8,  INTENT(OUT), OPTIONAL :: VWND (IIPAR,JJPAR,LLPAR)    
 
@@ -732,10 +767,9 @@
          ! CASE statement for met fields
          SELECT CASE ( TRIM( NAME ) )
 
-            !--------------------------------
-            ! ALBD: surface albedo
-            ! (GEOS-1, GEOS-STRAT, GEOS-3)
-            !--------------------------------
+            !------------------------------------
+            ! ALBD: GEOS-3 surface albedo
+            !------------------------------------
             CASE ( 'ALBD', 'ALBEDO', 'ALBVISDF' ) 
                READ( IU_I6, IOSTAT=IOS ) XYMD, XHMS, Q2
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:2' )
@@ -745,9 +779,9 @@
                   NFOUND = NFOUND + 1
                ENDIF
          
-            !--------------------------------
-            ! LWI -- land-water flags
-            !--------------------------------
+            !------------------------------------
+            ! LWI: land-water flags
+            !------------------------------------
             CASE ( 'LWI', 'SURFTYPE' ) 
                READ( IU_I6, IOSTAT=IOS ) XYMD, XHMS, Q2
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:3' )
@@ -757,9 +791,9 @@
                   NFOUND = NFOUND + 1
                ENDIF
 
-            !--------------------------------
+            !------------------------------------
             ! PS: surface pressure
-            !--------------------------------
+            !------------------------------------
             CASE ( 'PS' ) 
                READ( IU_I6, IOSTAT=IOS ) XYMD, XHMS, Q2
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:4' )
@@ -769,11 +803,9 @@
                   NFOUND = NFOUND + 1
                ENDIF
 
-
-            !--------------------------------
+            !------------------------------------
             ! SLP: sea-level pressure 
-            ! (GEOS-3 and GEOS-4 only) 
-            !--------------------------------
+            !------------------------------------
             CASE ( 'SLP' ) 
                READ( IU_I6, IOSTAT=IOS ) XYMD, XHMS, Q2
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:5' )
@@ -783,10 +815,9 @@
                   NFOUND = NFOUND + 1
                ENDIF
 
-            !---------------------------------
-            ! SPHU: specific humidity
-            ! (GEOS-1, GEOS-STRAT, GEOS-3)
-            !---------------------------------
+            !------------------------------------
+            ! SPHU: GEOS-3 specific humidity
+            !------------------------------------
             CASE ( 'SPHU' ) 
                READ( IU_I6, IOSTAT=IOS ) XYMD, XHMS, Q3
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:6' )
@@ -803,8 +834,7 @@
                ENDIF
 
             !---------------------------------
-            ! TMPU: temperature
-            ! (GEOS-1, GEOS-STRAT, GEOS-3)
+            ! TMPU: GEOS-3 temperature
             !---------------------------------
             CASE ( 'TMPU' ) 
                READ( IU_I6, IOSTAT=IOS ) XYMD, XHMS, Q3
@@ -815,51 +845,72 @@
                   NFOUND = NFOUND + 1
                ENDIF
 
-            !--------------------------------
-            ! TROPP: tropopause pressure 
-            ! (GEOS-3 and GEOS-4)
-            !--------------------------------
-            CASE ( 'TROPP' ) 
+            !------------------------------------            
+            ! TO3: GEOS-5 column ozone
+            !------------------------------------
+            CASE ( 'TO3' ) 
                READ( IU_I6, IOSTAT=IOS ) XYMD, XHMS, Q2
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:8' )
+             
+               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+                  IF ( PRESENT( TO3 ) ) CALL TRANSFER_2D( Q2, TO3 )
+                  NFOUND = NFOUND + 1
+               ENDIF
+
+            !------------------------------------
+            ! TROPP: GEOS-3 tropopause pressure
+            !------------------------------------
+            CASE ( 'TROPP' ) 
+               READ( IU_I6, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:9' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( TROPP ) ) CALL TRANSFER_2D( Q2, TROPP )
                   NFOUND = NFOUND + 1
                ENDIF
 
-            !--------------------------------
-            ! UWND: zonal wind field
-            ! (GEOS-1, GEOS-STRAT, GEOS-3)
-            !--------------------------------
+            !------------------------------------            
+            ! TTO3: GEOS-5 trop column ozone
+            !------------------------------------
+            CASE ( 'TTO3' ) 
+               READ( IU_I6, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:10' )
+             
+               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+                  IF ( PRESENT( TTO3 ) ) CALL TRANSFER_2D( Q2, TTO3 )
+                  NFOUND = NFOUND + 1
+               ENDIF
+
+            !------------------------------------
+            ! UWND: GEOS-3 zonal wind field
+            !------------------------------------
             CASE ( 'UWND' ) 
                READ( IU_I6, IOSTAT=IOS ) XYMD, XHMS, Q3
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:9' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:11' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( UWND ) ) CALL TRANSFER_3D( Q3, UWND )
                   NFOUND = NFOUND + 1
                ENDIF
 
-            !--------------------------------               
-            ! VWND: meridional wind field
-            ! (GEOS-1, GEOS-STRAT, GEOS-3)
-            !--------------------------------
+            !------------------------------------            
+            ! VWND: GEOS-3 meridional wind field
+            !------------------------------------
             CASE ( 'VWND' ) 
                READ( IU_I6, IOSTAT=IOS ) XYMD, XHMS, Q3
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:10' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:12' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( VWND ) ) CALL TRANSFER_3D( Q3, VWND )
                   NFOUND = NFOUND + 1
                ENDIF
                
-            !--------------------------------  
+            !------------------------------------
             ! TKE: Just skip over this
-            !--------------------------------  
+            !------------------------------------
             CASE ( 'TKE' ) 
                READ( IU_I6, IOSTAT=IOS ) XYMD, XHMS, Q3
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:11' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:13' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   NFOUND = NFOUND + 1
@@ -870,7 +921,7 @@
             !--------------------------------  
             CASE ( 'RH' ) 
                READ( IU_I6, IOSTAT=IOS ) XYMD, XHMS, Q3
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:12' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:14' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   NFOUND = NFOUND + 1
@@ -899,9 +950,9 @@
       ENDDO
 
 
-      !======== CASE OF VARIABLE TROPOPAUSE ======================
+      !======== CASE OF VARIABLE TROPOPAUSE ============================
       ! We need to read TROPP from offline files in case of GEOS-4.
-      !===========================================================
+      !=================================================================
       IF ( LVARTROP ) THEN
 
 #if   defined( GEOS_4 )
@@ -920,17 +971,17 @@
             ENDIF
 
             ! IOS > 0: True I/O error, stop w/ error msg
-            IF ( IOS > 0 ) CALL IOERROR( IOS, IU_TP, 'read_i6:13' )
+            IF ( IOS > 0 ) CALL IOERROR( IOS, IU_TP, 'read_i6:15' )
 
             ! CASE statement for met fields
             SELECT CASE ( TRIM( NAME ) )
 
-            !--------------------------------
-            ! TROPP: tropopause pressure (GEOS-4)
-            !--------------------------------
+            !------------------------------------
+            ! TROPP: GEOS-4 tropopause pressure
+            !------------------------------------
             CASE ( 'TROPP' ) 
                READ( IU_TP, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_TP, 'read_i6:14')
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_TP, 'read_i6:16' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( TROPP ) ) CALL TRANSFER_2D( Q2, TROPP )
