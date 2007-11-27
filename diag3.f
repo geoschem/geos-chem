@@ -1,4 +1,4 @@
-! $Id: diag3.f,v 1.48 2007/11/16 18:47:37 bmy Exp $
+! $Id: diag3.f,v 1.49 2007/11/27 18:46:26 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
@@ -151,6 +151,7 @@
       USE TRACERID_MOD, ONLY : IDTSO2,      IDTSO4,      IDTNH3 
       USE TRACERID_MOD, ONLY : IDTOX,       IDTNOX,      IDTHNO3 
       USE TRACERID_MOD, ONLY : IDTISOP,     IDTACET,     IDTPRPE 
+      USE TRACERID_MOD, ONLY : IDTH2,       IDTHD
       USE TRACERID_MOD, ONLY : NEMANTHRO ,  IDTSOA4
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_NSOL
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD  
