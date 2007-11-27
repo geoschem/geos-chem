@@ -1,4 +1,4 @@
-! $Id: fast_j.f,v 1.8 2007/11/16 18:47:39 bmy Exp $
+! $Id: fast_j.f,v 1.9 2007/11/27 19:59:36 bmy Exp $
       SUBROUTINE FAST_J( SUNCOS, OD, ALBD )  
 !
 !******************************************************************************
@@ -92,7 +92,7 @@
       ! Local variables
       INTEGER, SAVE         :: LASTMONTH = -1
       INTEGER               :: NLON, NLAT, DAY,  MONTH, DAY_OF_YR
-      REAL*8                :: CSZA, PRES, SFCA, YLAT
+      REAL*8                :: CSZA, PRES, SFCA, YLAT,  L
       REAL*8                :: TEMP(LLPAR), OPTD(LLPAR)
       REAL*8                :: OPTDUST(LLPAR,NDUST)
       REAL*8                :: OPTAER(LLPAR,NAER*NRH)
@@ -149,10 +149,10 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( NLON, NLAT, YLAT, CSZA, OPTAER  )
-!$OMP+PRIVATE( PRES, TEMP, OPTD, SFCA, OPTDUST )
-!$OMP+PRIVATE( FMAX, CLDF1D, KK, NUMB  )
-!$OMP+PRIVATE( KBOT, KTOP, ODNEW, INDICATOR, INDIC )
+!$OMP+PRIVATE( NLON, NLAT,   YLAT,  CSZA,      OPTAER  )
+!$OMP+PRIVATE( PRES, TEMP,   OPTD,  SFCA,      OPTDUST )
+!$OMP+PRIVATE( FMAX, CLDF1D, KK,    NUMB,      L       )
+!$OMP+PRIVATE( KBOT, KTOP,   ODNEW, INDICATOR, INDIC   )
 !$OMP+SCHEDULE( DYNAMIC )
 
       ! Loop over latitudes
