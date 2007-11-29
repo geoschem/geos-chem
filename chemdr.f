@@ -1,4 +1,4 @@
-! $Id: chemdr.f,v 1.24 2006/10/17 17:51:09 bmy Exp $
+! $Id: chemdr.f,v 1.25 2007/11/29 21:46:18 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
@@ -386,6 +386,9 @@
       ! Call photolysis routine to compute J-Values
       !=================================================================
       CALL FAST_J( SUNCOS, OPTD, UVALBEDO )              
+
+      !### Debug
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after FAST-J' )
 
       !================================================================
       ! Call chemistry routines

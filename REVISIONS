@@ -168,6 +168,9 @@ interp			-- Don't interpolate TROPP for GEOS-5
 
 main.f			-- Now call LIGHTNING_NL for GEOS-5
 
+mmran_16.f		-- Remove PRES as an argument, since we no longer 
+                           need to pass that to PHOTOJ
+
 nan_dble		-- Now use ISNAN function for IFORT compiler
 ("error_mod.f")
 

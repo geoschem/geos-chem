@@ -1,10 +1,10 @@
-! $Id: fast_j.f,v 1.10 2007/11/29 17:12:50 bmy Exp $
+! $Id: fast_j.f,v 1.11 2007/11/29 21:46:18 bmy Exp $
       SUBROUTINE FAST_J( SUNCOS, OD, ALBD )  
 !
 !******************************************************************************
 !  Subroutine FAST_J loops over longitude and latitude, and calls PHOTOJ 
 !  to compute J-Values for each column at every chemistry time-step.  
-!  (ppm, 4/98; bmy, rvm, 9/99, 2/6/04; hyl, 4/25/04; phs, bmy, 11/16/07)
+!  (ppm, 4/98; bmy, rvm, 9/99, 2/6/04; hyl, 4/25/04; phs, bmy, 11/29/07)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -67,7 +67,7 @@
 !  (16) Now account for cloud overlap (Maximum-Random Overlap and Random 
 !        Overlap) in each column (hyl, phs, bmy, 9/18/07)
 !  (17) Now initialize the PJ array here, instead of two layers below in
-!        "set_prof.f".  Now no longer pass PRES to "photoj.f". (bmy, 11/16/07)
+!        "set_prof.f".  Now no longer pass PRES to "photoj.f". (bmy, 11/29/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -208,9 +208,9 @@
             IF ( OVERLAP == 1 ) then
 
                ! Call FAST-J routines to compute J-values
-               CALL PHOTOJ( NLON,    NLAT, YLAT, DAY_OF_YR,  
-     &                      MONTH,   DAY,  CSZA, PRES, 
-     &                      TEMP,    SFCA, OPTD, OPTDUST, OPTAER )
+               CALL PHOTOJ( NLON,  NLAT, YLAT,    DAY_OF_YR,  
+     &                      MONTH, DAY,  CSZA,    TEMP,    
+     &                      SFCA,  OPTD, OPTDUST, OPTAER )
 
             !===========================================================
             ! CLOUD OVERLAP : APPROXIMATE RANDOM OVERLAP
@@ -226,9 +226,9 @@
                OPTD = OPTD * SQRT( CLDF1D )
 
                ! Call FAST-J routines to compute J-values
-               CALL PHOTOJ( NLON,  NLAT, YLAT, DAY_OF_YR,  
-     &                      MONTH, DAY,  CSZA, PRES, 
-     &                      TEMP,  SFCA, OPTD, OPTDUST, OPTAER )
+               CALL PHOTOJ( NLON,  NLAT, YLAT,    DAY_OF_YR,  
+     &                      MONTH, DAY,  CSZA,    TEMP,  
+     &                      SFCA,  OPTD, OPTDUST, OPTAER )
 
             !===========================================================
             ! CLOUD OVERLAP : MAXIMUM RANDOM OVERLAP
@@ -318,16 +318,16 @@
                SELECT CASE( NUMB ) 
            
                   CASE( 0,7: )
-                     CALL PHOTOJ( NLON,  NLAT, YLAT, DAY_OF_YR, 
-     &                            MONTH, DAY,  CSZA, PRES,  
-     &                            TEMP,  SFCA, OPTD, OPTDUST, OPTAER )
+                     CALL PHOTOJ( NLON,  NLAT, YLAT,    DAY_OF_YR, 
+     &                            MONTH, DAY,  CSZA,    TEMP,  
+     &                            SFCA,  OPTD, OPTDUST, OPTAER )
 
                   CASE( 1:6 ) 
-                     CALL MMRAN_16( NUMB,   NLON,  NLAT,      YLAT,   
-     &                              DAY,    MONTH, DAY_OF_YR, CSZA,    
-     &                              PRES,   TEMP,  SFCA,      OPTDUST, 
-     &                              OPTAER, LLPAR, FMAX,      ODNEW,     
-     &                              KBOT,   KTOP )
+                     CALL MMRAN_16( NUMB,  NLON,  NLAT,      YLAT,   
+     &                              DAY,   MONTH, DAY_OF_YR, CSZA,    
+     &                              TEMP,  SFCA,  OPTDUST,   OPTAER, 
+     &                              LLPAR, FMAX,  ODNEW,     KBOT,   
+     &                              KTOP )
 
                END SELECT
             ENDIF 

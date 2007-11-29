@@ -1,13 +1,13 @@
-! $Id: mmran_16.f,v 1.1 2007/11/05 16:16:23 bmy Exp $
-      SUBROUTINE MMRAN_16( NCB,    NLON,  NLAT,
-     &                     YLAT,   DAY,   MONTH,   DAY_OF_YR, CSZA,   
-     &                     PRES,   TEMP,  SFCA,    OPTDUST,   OPTAER,
-     &                     MAXBLK, FMAX,  ODNEW,   KBOT,      KTOP    )
+! $Id: mmran_16.f,v 1.2 2007/11/29 21:46:18 bmy Exp $
+      SUBROUTINE MMRAN_16( NCB,     NLON,      NLAT,   YLAT, DAY,  
+     &                     MONTH,   DAY_OF_YR, CSZA,   TEMP, SFCA, 
+     &                     OPTDUST, OPTAER,    MAXBLK, FMAX, ODNEW,   
+     &                     KBOT,    KTOP )
 !
 !******************************************************************************
 !  Subroutine MMRAN_16 does the maximum random cloud overlap for 1 to 6 cloud
 !  blocks at a time,  and calls PHOTOJ to compute J-Values for one column.
-!  (hyl, phs, bmy, 9/18/07)
+!  (hyl, phs, bmy, 9/18/07, 11/29/07)
 !
 !  Arguments as Input: 
 !  ============================================================================
@@ -44,6 +44,10 @@
 !  OPTD     DBLE    [LPAR]        -    Layer optical depths at nlon, nlat
 !  JSUM     DBLE  [LPAR,JPMAX]    -    accumulate the J-values for the column
 !  
+!
+!  NOTES:
+!  (1 ) Remove PRES as an argument, since we no longer need to pass that
+!        to PHOTOJ. (bmy, 11/29/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -54,7 +58,7 @@
       ! Local variables
       INTEGER, INTENT(IN)    :: NCB ! Number of Cloud Blocks
       INTEGER, INTENT(IN)    :: NLON, NLAT
-      REAL*8,  INTENT(IN)    :: CSZA, PRES, SFCA, YLAT
+      REAL*8,  INTENT(IN)    :: CSZA, SFCA, YLAT
       INTEGER, INTENT(IN)    :: DAY, MONTH, DAY_OF_YR
       REAL*8,  INTENT(IN)    :: TEMP(LPAR)
       REAL*8,  INTENT(IN)    :: OPTDUST(LPAR,NDUST)
@@ -185,8 +189,8 @@
 
          ! Call the photolysis routine with the OPTD as
          ! computed from the cloud overlaps
-         CALL PHOTOJ( NLON, NLAT, YLAT, DAY_OF_YR,  MONTH,   DAY,
-     &                CSZA, PRES, TEMP, SFCA, OPTD, OPTDUST, OPTAER )
+         CALL PHOTOJ( NLON, NLAT, YLAT, DAY_OF_YR, MONTH,   DAY,
+     &                CSZA, TEMP, SFCA, OPTD,      OPTDUST, OPTAER )
 
          ! Store the J values into JSUM array
          JSUM(:,:) = JSUM(:,:) +
