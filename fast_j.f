@@ -1,4 +1,4 @@
-! $Id: fast_j.f,v 1.9 2007/11/27 19:59:36 bmy Exp $
+! $Id: fast_j.f,v 1.10 2007/11/29 17:12:50 bmy Exp $
       SUBROUTINE FAST_J( SUNCOS, OD, ALBD )  
 !
 !******************************************************************************
@@ -91,8 +91,8 @@
       
       ! Local variables
       INTEGER, SAVE         :: LASTMONTH = -1
-      INTEGER               :: NLON, NLAT, DAY,  MONTH, DAY_OF_YR
-      REAL*8                :: CSZA, PRES, SFCA, YLAT,  L
+      INTEGER               :: NLON, NLAT, DAY,  MONTH, DAY_OF_YR, L
+      REAL*8                :: CSZA, PRES, SFCA, YLAT
       REAL*8                :: TEMP(LLPAR), OPTD(LLPAR)
       REAL*8                :: OPTDUST(LLPAR,NDUST)
       REAL*8                :: OPTAER(LLPAR,NAER*NRH)
