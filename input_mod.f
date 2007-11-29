@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.42 2007/11/16 18:47:41 bmy Exp $
+! $Id: input_mod.f,v 1.43 2007/11/29 15:54:48 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS-Chem input file at the start of the run
 !  and passes the information to several other GEOS-Chem F90 modules.
-!  (bmy, 7/20/04, 11/5/07)
+!  (bmy, 7/20/04, 11/29/07)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -119,7 +119,8 @@
 !        Troposphere is wanted (phs, bmy, 10/17/06)
 !  (17) Now modified for OTD-LIS local redistribution.  Remove references
 !        to GEOS-1 and GEOS-STRAT run dirs. (bmy, 11/5/07)
-!  (18) Do not reset LMFLUX, LPRECON for GEOS-5 (ltm, bmy, 5/11/07)
+!  (18) New error traps for OTD-LIS scaling, dependent on met field type.
+!         (ltm, bmy, 11/29/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1248,7 +1249,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_EMISSIONS_MENU reads the EMISSIONS MENU section of 
-!  the GEOS-Chem input file. (bmy, 7/20/04, 9/24/07)
+!  the GEOS-Chem input file. (bmy, 7/20/04, 11/29/07)
 !
 !  NOTES:
 !  (1 ) Now read LNEI99 -- switch for EPA/NEI99 emissions (bmy, 11/5/04)
@@ -1268,6 +1269,8 @@
 !        of lightning flashes (cf B. Sauvage).  Make sure LOTDREG and 
 !        LOTDLOC are not both turned on at the same time. (bmy, 1/31/07)
 !  (12) Add LOTDSCALE to the list of LNOx options (ltm, bmy, 9/24/07)
+!  (13) Add new error traps for OTD-LIS options, dependent on met field type
+!        (ltm, bmy, 11/29/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1447,7 +1450,7 @@
       ! Error check lightning switches
       IF ( LLIGHTNOX ) THEN
 
-         ! Make sure people don't set both LOTDLIS=T and LLOCRED=T
+         ! Make sure people don't set both LOTDREG=T and LOTDLOC=T
          IF ( LOTDREG .and. LOTDLOC ) THEN
             CALL ERROR_STOP( 
      &         'LOTDREG, LOTDLOC cannot both be turned on!', 
@@ -1460,21 +1463,58 @@
      &         'available for OTD-LIS. Use local redist or none.' )
          ENDIF
 
-         ! Kludge: for now, reset LMFLUX to LCTH, as the MFLUX
-         ! lightning schemes has not been implemented (bmy, 11/27/06)
-         IF ( LMFLUX ) THEN
-            LMFLUX  = .FALSE.
-            LCTH    = .TRUE.
-            WRITE( 6, '(a)' ) 'KLUDGE: Selecting CTH lightning param!'
+#if   defined( GEOS_5   )
+         
+         !--------------------------------
+         ! GEOS-5 warnings & error traps
+         !--------------------------------
+
+         ! Display warning
+         IF ( LOTDLOC .or. LOTDREG .or. LOTDSCALE ) THEN
+            WRITE( 6, 150 )
+ 150        FORMAT( 
+               '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%',/
+     &         '% Warning: GEOS-5 redistribution calculated from %',/
+     &         '% one year (2005) of model simulation versus     %',/
+     &         '% the 11-year satellite climatology (1995-2005)  %',/
+     &         '% because of GEOS-5 availability.                %',/
+     &         '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%' )
          ENDIF
 
-         ! Kludge: for now, reset LPRECON to LCTH, as the MFLUX
-         ! lightning schemes has not been implemented (bmy, 11/27/06)
-         IF ( LPRECON ) THEN
-            LPRECON = .FALSE.
-            LCTH    = .TRUE.
-            WRITE( 6, '(a)' ) 'KLUDGE: Selecting CTH lightning param!'
+         ! Error trap if wrong options selected
+         IF ( LMFLUX .or. LPRECON ) THEN
+            CALL ERROR_STOP(
+     &         'MFLUX or PRECON not available for GEOS5 yet.',
+     &         'Select CTH.' )
          ENDIF
+
+#elif defined( GEOS_3   )
+
+         !--------------------------------
+         ! GEOS-3 error trap
+         !--------------------------------
+
+         IF ( LOTDLOC .or. LOTDREG .or. LOTDSCALE ) THEN
+            CALL ERROR_STOP(
+     &         'Lightning rescaling not available for GEOS3.',
+     &         'Use one of the parameterizations without redist/scale.',
+     &         'CTH performs best on GEOS4 and GEOS5, though MFLUX',
+     &         'and PRECON were developed w/ GEOS-STRAT met fields.' )
+         ENDIF
+
+#elif defined( GCAP     )
+
+         !--------------------------------
+         ! GCAP error message 
+         !--------------------------------
+
+         IF ( LOTDLOC .or. LOTDREG .or. LOTDSCALE ) THEN
+            CALL ERROR_STOP(
+     &         'Lightning rescaling not available nor very appropriate',
+     &         'for GCAP sim because of window of OTD/LIS satellite',
+     &         'observations. Select one of the raw params without',
+     &         'redist/rescaling.' )
+#endif
 
          ! Make sure one of LCTH, LMFLUX, LPRECON is selected
          IF ( .not. LCTH .and. .not. LMFLUX .and. .not. LPRECON ) THEN

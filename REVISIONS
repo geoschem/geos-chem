@@ -1,5 +1,5 @@
 REVISIONS (v8-01-01)  
-16 Nov 2007
+29 Nov 2007
 Bob Yantosca              and Philippe Le Sager
 yantosca@seas.harvard.edu     plesager@seas.harvard.edu
 
@@ -135,6 +135,10 @@ get_n_a6		-- Increase # of fields for GEOS-5 to 21
 get_n_i6		-- Increase # of fields for GEOS-5 to 5
 ("i6_read_mod.f")
 
+get_otd_lis_scale       -- Added MFLUX, PRECON scaling for GEOS-4.  
+("lightning_nox_mod.f") -- Also write messages for met field types/grids 
+                           where scaling is not defined.
+
 get_pedge		-- Now treat GEOS-5 the same way as GEOS-4 
 ("pressure_mod.f")         
 
@@ -199,8 +203,8 @@ read_a6			-- Add CMFMC, DQIDTMST, DQLDTMST, DQRCON, DQRLSC,
 read_bpch2		-- Make TEMPARRAY big enough for GEOS-5 72 levels 
 ("bpch2_mod.f")            (and 73 edges) 
 
-read_emissions_menu	-- Only reset LMFLUX and LPRECON for GEOS-4
-("input_mod.f")
+read_emissions_menu	-- Add new error traps for OTD-LIS options, 
+("input_mod.f")	           dependent on met field type
 
 read_i6			-- Add EVAP, GRN, GWETROOT, LAI, SNODP, SNOMAS, and
 ("i6_read_mod")            TROPP as optional arguments

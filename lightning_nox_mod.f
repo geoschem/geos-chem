@@ -1,4 +1,4 @@
-! $Id: lightning_nox_mod.f,v 1.15 2007/11/16 18:47:42 bmy Exp $
+! $Id: lightning_nox_mod.f,v 1.16 2007/11/29 15:54:49 bmy Exp $
       MODULE LIGHTNING_NOX_MOD
 !
 !******************************************************************************
@@ -7,7 +7,7 @@
 !  GISS-II CTM's of Yuhang Wang, Gerry Gardner, & Larry Horowitz.  Overhauled 
 !  for updated parameterization schemes: CTH, MFLUX and PRECON.  Now also
 !  uses the near-land formulation (i.e. offshore boxes also get treated as
-!  if they were land boxes).  (ltm, rch, bmy, 4/14/04, 10/3/07)  
+!  if they were land boxes).  (ltm, rch, bmy, 4/14/04, 11/29/07)  
 !
 !  NOTE: The OTD/LIS regional redistribution for MFLUX and PRECON lightning
 !  parameterizations have not yet been implemented.  These parameterizations
@@ -93,6 +93,7 @@
 !           rate between G-C and OTD-LIS 11-year climatology (new function)
 !        * Local Redist now a la Murray et al, 2007 in preparation (monthly)
 !        * Replace GEMISNOX (from CMN_NOX) with module variable EMIS_LI_NOx
+!  (5 ) Added MFLUX, PRECON redistribution options (ltm, bmy, 11/29/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1627,10 +1628,6 @@
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN_DIAG"  ! ND32
-!------------------------------------------------------
-! Prior to 10/3/07:
-!#     include "CMN_NOX"   ! GEMISNOX
-!------------------------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J
@@ -1650,10 +1647,6 @@
           ! SLBASE(I,J,L) has units [molec NOx/6h/box], convert units:
           ! [molec/6h/box] * [6h/21600s] * [box/BOXVL cm3] = [molec/cm3/s]
           TMP             = SLBASE(I,J,L) / ( 21600.d0 * BOXVL(I,J,L) )
-          !-----------------------------------------------------------------
-          ! Prior to 10/3/07:
-          !GEMISNOX(I,J,L) = GEMISNOX(I,J,L) + TMP
-          !-----------------------------------------------------------------
           EMIS_LI_NOx(I,J,L) = TMP
 
           ! ND32 Diagnostic: Lightning NOx [molec NOx/cm2/s]
@@ -1675,9 +1668,11 @@
 !  is to be applied to the lightning flash rate to bring the annual average 
 !  flash rate to match that of the OTD-LIS climatology ( ~ 45.9 flashes/sec ).
 !  Computed by running the model over the 11-year OTD-LIS campaign window and 
-!  comparing the average flash rates. (ltm, 9/24/07)
+!  comparing the average flash rates. (ltm, 9/24/07, 11/29/07)
 !
 !  NOTES:
+!  (1 ) Added MFLUX, PRECON scaling for GEOS-4.  Also write messages for met
+!        field types/grids where scaling is not defined. (ltm, bmy, 11/29/07)
 !******************************************************************************
 !
 #     include "define.h"
@@ -1705,62 +1700,81 @@
 
 #if   defined( GCAP )
 
-      ! Needs defining
+      !-----------------------
+      ! GCAP 4 x 5 
+      !-----------------------
       WRITE( 6, * ) 'Warning: OTD-LIS Scaling not defined for GCAP'
       SCALE = 1.0d0
 
-#elif   defined( GEOS_5 ) 
+#elif   defined( GEOS_5 ) && defined( GRID4x5 )
 
-      ! Needs defining
-      WRITE( 6, * ) 'Warning: OTD-LIS Scaling not defined for GEOS-5'
-      WRITE( 6, * ) 'Will become available in newer version.'
-      SCALE = 1.0d0
+      !-----------------------
+      ! GEOS-5 4 x 5 
+      !------------------------
+      IF ( LCTH ) THEN
+         SCALE = ANN_AVG_FLASHRATE / 13.9779d0
+      ELSE
+         WRITE( 6, '(a)' ) 'Warning: OTD-LIS GEOS5 scaling only for CTH'   
+         SCALE = 1.0d0
+      ENDIF
+
+#elif   defined( GEOS_5 ) && defined( GRID2x25 )
+
+      !----------------------
+      ! GEOS-5 2 x 2.5 
+      !----------------------
+      IF ( LCTH ) THEN
+         SCALE = ANN_AVG_FLASHRATE / 36.2878d0
+      ELSE
+         WRITE( 6, '(a)' ) 'Warning: OTD-LIS GEOS5 scaling only for CTH'
+         SCALE = 1.0d0
+      ENDIF
 
 #elif defined( GEOS_4 ) && defined( GRID4x5 )
 
+      !---------------------
+      ! GEOS-4 4 x 5
+      !---------------------
       IF ( LCTH ) THEN
          SCALE = ANN_AVG_FLASHRATE / 29.3173d0
-      ENDIF
 
-      ! These will be calculated before the v7.4.13 release
-      IF ( LMFLUX ) THEN
-         WRITE(6,*) 'Warning: OTD-LIS Scaling not defined for MFLUX'
-         SCALE = 1.0d0
-      ENDIF
-      
-      ! These will be calculated before the v7.4.13 release
-      IF ( LPRECON ) THEN
-         WRITE(6,*) 'Warning: OTD-LIS Scaling not defined for PRECON'
-         SCALE = 1.0d0
+      ELSE IF ( LMFLUX ) THEN
+         SCALE = ANN_AVG_FLASHRATE / 1.93753d0
+
+      ELSE IF ( LPRECON ) THEN
+         SCALE = ANN_AVG_FLASHRATE / 30.4879d0
+
       ENDIF
 
 #elif defined( GEOS_4 ) && defined( GRID2x25 )
       
+      !---------------------
+      ! GEOS-4 2 x 2.5
+      !---------------------
       IF ( LCTH ) THEN
          SCALE = ANN_AVG_FLASHRATE / 83.3208d0
+
+      ELSE IF ( LMFLUX ) THEN
+         SCALE = ANN_AVG_FLASHRATE / 9.24531d0
+
+      ELSE IF ( LPRECON ) THEN
+         SCALE = ANN_AVG_FLASHRATE / 135.305d0
+
       ENDIF
 
-      ! These will be calculated before the v7.4.13 release
-      IF ( LMFLUX ) THEN
-         WRITE(6,*) 'Warning: OTD-LIS Scaling not defined for MFLUX'
-         SCALE = 1.0d0
-      ENDIF
-
-      ! These will be calculated before the v7.4.13 release
-      IF ( LPRECON ) THEN
-         WRITE(6,*) 'Warning:OTD-LIS Scaling not defined for PRECON'
-         SCALE = 1.0d0
-      ENDIF
-	  
 #elif defined( GEOS_4 ) && defined( GRID1x125 )
 
-      ! Needs defining
+      !---------------------
+      ! GEOS-4 1 x 1.25
+      !---------------------
       WRITE(6,*) 'Warning: OTD-LIS Scaling not defined for 1x125'
       SCALE = 1.0d0
 	  
 #elif defined( GEOS_3 ) 
 
-      ! Needs defining
+      !---------------------
+      ! GEOS-3, all grids
+      !---------------------
       WRITE( 6, * ) 'Warning: OTD-LIS Scaling not defined for GEOS3'
       SCALE = 1.0d0
 
