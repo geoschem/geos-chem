@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.43 2007/11/29 15:54:48 bmy Exp $
+! $Id: input_mod.f,v 1.44 2007/11/29 16:08:57 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -1473,7 +1473,7 @@
          IF ( LOTDLOC .or. LOTDREG .or. LOTDSCALE ) THEN
             WRITE( 6, 150 )
  150        FORMAT( 
-               '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%',/
+     &         '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%',/
      &         '% Warning: GEOS-5 redistribution calculated from %',/
      &         '% one year (2005) of model simulation versus     %',/
      &         '% the 11-year satellite climatology (1995-2005)  %',/
