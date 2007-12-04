@@ -1,10 +1,10 @@
-! $Id: tagged_ox_mod.f,v 1.22 2007/11/16 18:47:45 bmy Exp $
+! $Id: tagged_ox_mod.f,v 1.23 2007/12/04 16:23:59 bmy Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
 !  Module TAGGED_OX_MOD contains variables and routines to perform a tagged Ox
 !  simulation.  P(Ox) and L(Ox) rates need to be archived from a full chemistry
-!  simulation before you can run w/ Tagged Ox. (amf,rch,bmy, 8/20/03, 1/19/07)
+!  simulation before you can run w/ Tagged Ox. (amf,rch,bmy, 8/20/03, 12/4/07)
 !
 !  Module Variables:
 !  ============================================================================
@@ -49,6 +49,7 @@
 !  (8 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (9 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (10) Modified for variable tropopause (phs, bmy, 1/19/07)
+!  (11) Now use LLTROP instead of LLTROP_FIX everywhere (bmy, 12/4/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -131,7 +132,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_POX_LOX reads previously-archived Ox production & loss 
-!  rates from binary punch file format. (bmy, 8/20/03, 1/19/07)
+!  rates from binary punch file format. (bmy, 8/20/03, 12/4/07)
 ! 
 !  NOTES:
 !  (1 ) Updated from the old routine "chemo3_split.f" (rch, bmy, 8/20/03)
@@ -139,6 +140,7 @@
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Use LLTROP_FIX to limit array size to case of non-variable tropopause.
 !        Also zero ARRAY to avoid numerical problems (phs, 1/19/07)
+!  (5 ) Now use LLTROP instead of LLTROP_FIX (phs, bmy, 12/4/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -148,9 +150,10 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
            
 #     include "CMN_SIZE" ! Size parameters
+#     include "CMN_DIAG" ! LD65
 
       ! Local variables
-      REAL*4             :: ARRAY(IGLOB,JGLOB,LLTROP_FIX)
+      REAL*4             :: ARRAY(IGLOB,JGLOB,LLTROP)
       REAL*8             :: XTAU
       CHARACTER(LEN=255) :: FILENAME
 
@@ -176,44 +179,32 @@
       ! Read P(O3) [kg/cm3/s]
       !=================================================================
 
-      ! Avoid arithmetic problem with random data between LLTROP_FIX
-      ! and LLTROP.  Fill ARRAY to zero. (phs, 1/19/07)
+      ! Initialize
       ARRAY = 0e0
 
       ! Limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
       ! tropopause. This is backward compatibility with offline data set.
-      CALL READ_BPCH2( FILENAME,  'PORL-L=$', 1,      
-     &                 XTAU,       IGLOB,     JGLOB,      
-     &                 LLTROP_FIX, ARRAY,     QUIET=.TRUE. )
+      CALL READ_BPCH2( FILENAME, 'PORL-L=$', 1,      
+     &                 XTAU,      IGLOB,     JGLOB,      
+     &                 LLTROP,    ARRAY,     QUIET=.TRUE. )
 
       ! Cast from REAL*4 to REAL*8
-      !--------------------------------------------
-      ! Prior to 10/1/07:
-      !CALL TRANSFER_3D_TROP( ARRAY, P24H )
-      !--------------------------------------------
-      P24H                   = 0d0
-      P24H(:,:,1:LLTROP_FIX) = ARRAY
+      CALL TRANSFER_3D_TROP( ARRAY, P24H )
 
       !=================================================================
       ! Read L(O3) [1/cm3/s]
       !=================================================================
 
-      ! Avoid arithmetic problem with random data between LLTROP_FIX
-      ! and LLTROP.  Fill ARRAY to zero. (phs, 1/19/07)
+      ! Initialize
       ARRAY = 0e0
 
       ! read data
-      CALL READ_BPCH2( FILENAME,  'PORL-L=$', 2,      
-     &                 XTAU,       IGLOB,     JGLOB,      
-     &                 LLTROP_FIX, ARRAY,     QUIET=.TRUE. )
+      CALL READ_BPCH2( FILENAME, 'PORL-L=$', 2,      
+     &                 XTAU,      IGLOB,     JGLOB,      
+     &                 LLTROP,    ARRAY,     QUIET=.TRUE. )
 
       ! Cast from REAL*4 to REAL*8 
-      !-----------------------------------------------
-      ! Prior to 
-      !CALL TRANSFER_3D_TROP( ARRAY, L24H )
-      !-----------------------------------------------
-      L24H                   = 0d0
-      L24H(:,:,1:LLTROP_FIX) = ARRAY
+      CALL TRANSFER_3D_TROP( ARRAY, L24H )
 
       ! Return to calling program
       END SUBROUTINE READ_POX_LOX
@@ -225,7 +216,7 @@
 !******************************************************************************
 !  Subroutine GET_REGIONAL_POX returns the P(Ox) for each of the tagged Ox 
 !  tracers. Tagged Ox tracers are defined by both geographic location and 
-!  altitude. (amf, rch, bmy, 8/19/03, 1/19/07)
+!  altitude. (amf, rch, bmy, 8/19/03, 12/4/07)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -245,6 +236,7 @@
 !        reference to "CMN", it's obsolete. (bmy, 8/22/05)
 !  (5 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (6 ) Resize the PP array from LLTROP to LLTROP_FIX (phs, 1/19/07)
+!  (7 ) Now use LLTROP instead of LLTROP_FIX (bmy, 12/4/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -258,7 +250,6 @@
 
       ! Arguments
       INTEGER, INTENT(IN)     :: I, J, L
-      !REAL*8,  INTENT(OUT)    :: PP(IIPAR,JJPAR,LLTROP_FIX,N_TAGGED)
       REAL*8,  INTENT(OUT)    :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
 
       ! Local variables
@@ -409,7 +400,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_TAGGED_OX performs chemistry for several Ox tracers which
-!  are tagged by geographic and altitude regions. (rch, bmy, 8/20/03, 1/19/07)
+!  are tagged by geographic and altitude regions. (rch, bmy, 8/20/03, 12/4/07)
 ! 
 !  NOTES:
 !  (1 ) Updated from the old routine "chemo3_split.f" (rch, bmy, 8/20/03)
@@ -426,8 +417,9 @@
 !  (6 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP
 !        from "pbl_mix_mod.f".  Now only sum ND44 diagnostic up to the
 !        maximum tropopsheric level. (bmy, 2/17/05)
-!  (7 ) Resize PP, ND44_TMP arrays from LLTROP to LLTROP_FIX.  Now only loop 
+!  (7 ) Resize PP, N D44_TMP arrays from LLTROP to LLTROP_FIX.  Now only loop 
 !        up to LLTROP_FIX (phs, 1/19/07) 
+!  (8 ) Now use LLTROP instead of LLTROP_FIX (bmy, 12/4/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -447,14 +439,12 @@
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! ND44, ND65
+#     include "CMN_DIAG"  ! ND44, ND65, LD65
 
       ! Local variables
       LOGICAL, SAVE     :: FIRST   = .TRUE.
       INTEGER, SAVE     :: LASTDAY = -1
       INTEGER           :: I, J, L, N
-      !REAL*8            :: PP(IIPAR,JJPAR,LLTROP_FIX,N_TAGGED)
-      !REAL*8            :: ND44_TMP(IIPAR,JJPAR,LLTROP_FIX)
       REAL*8            :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
       REAL*8            :: ND44_TMP(IIPAR,JJPAR,LLTROP)
       REAL*8            :: DTCHEM,  FREQ,    FLUX
@@ -468,13 +458,6 @@
       !=================================================================
       ! CHEM_TAGGED_OX begins here!
       !=================================================================
-
-! Prior to 10/2/07:
-! Comment out verbose output
-!      ! Echo date
-!      STAMP = TIMESTAMP_STRING()
-!      WRITE( 6, 100 ) STAMP
-! 100  FORMAT( '     - CHEM_TAGGED_OX: Tagged Ox chem at: ', a )
 
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
@@ -675,13 +658,11 @@
       ENDIF
 
       ! Allocate P24H
-      !ALLOCATE( P24H( IIPAR, JJPAR, LLTROP_FIX ), STAT=AS )
       ALLOCATE( P24H( IIPAR, JJPAR, LLTROP ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'P24H' )
       P24H = 0d0
 
       ! Allocate L24H
-      !ALLOCATE( L24H( IIPAR, JJPAR, LLTROP_FIX ), STAT=AS )
       ALLOCATE( L24H( IIPAR, JJPAR, LLTROP ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'L24H' ) 
       L24H = 0d0

@@ -1,4 +1,4 @@
-! $Id: ndxx_setup.f,v 1.31 2007/11/16 18:47:43 bmy Exp $
+! $Id: ndxx_setup.f,v 1.32 2007/12/04 16:23:59 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
@@ -126,6 +126,7 @@
 !        LLTROP.  Added ND10 diagnostic setup.  Added modifications for H2-HD 
 !        simulation. (phs, bmy, 9/18/07)
 !  (63) Now save true pressure edges for ND31 diagnostic (bmy, 11/16/07)
+!  (64) Now stop the run if ND20 is defined but ND65 isn't (bmy, 12/4/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -478,7 +479,15 @@
          ! Assume we only need to go as high as ann mean trop (phs, 3/6/07)
          !IF ( ND65 == 0 ) ND65 = LLTROP
          !--------------------------------------------------------------------
-         IF ( ND65 == 0 ) ND65 = LLTROP_FIX
+         ! Prior to 12/4/07:
+         ! Now now stop the run if ND20 is defined but ND65 isn't 
+         ! (phs, bmy, 12/4/07)
+         !IF ( ND65 == 0 ) ND65 = LLTROP_FIX
+         !--------------------------------------------------------------------
+         IF ( ND65 == 0 ) THEN
+            CALL ERROR_STOP( 'ND65 must be turned on for ND20 output!',
+     &                       'ndxx_setup.f'  )
+         ENDIF
       ENDIF
 
       !=================================================================

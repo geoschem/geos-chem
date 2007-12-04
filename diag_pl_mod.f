@@ -1,10 +1,10 @@
-! $Id: diag_pl_mod.f,v 1.11 2007/03/29 20:31:15 bmy Exp $
+! $Id: diag_pl_mod.f,v 1.12 2007/12/04 16:23:58 bmy Exp $
       MODULE DIAG_PL_MOD
 !
 !******************************************************************************
 !  Module DIAG_PL_MOD contains variables and routines which are used to 
 !  compute the production and loss of chemical families in SMVGEAR chemistry.
-!  (bmy, 7/20/04, 1/22/07)
+!  (bmy, 7/20/04, 12/4/07)
 !
 !  Module Variables:
 !  ============================================================================
@@ -64,6 +64,8 @@
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (6 ) Bug fix in DIAG20 (phs, 1/22/07)
+!  (7 ) Now use LD65 as the vertical dimension instead of LLTROP or LLTROP_FIX
+!        in DO_DIAG_PL, DIAG20, and WRITE20 (phs, bmy, 12/4/07)
 !******************************************************************************
 !      
       IMPLICIT NONE
@@ -545,16 +547,18 @@
 !
 !*****************************************************************************
 !  Subroutine DO_DIAG_PL saves info on production and loss of families 
-!  into the FAM_PL diagnostic array. (bey, bmy, 3/16/00, 7/20/04)
+!  into the FAM_PL diagnostic array. (bey, bmy, 3/16/00, 12/4/07)
 !
 !  NOTES:
 !  (1 ) Now bundled into "prod_loss_diag_mod.f" (bmy, 7/20/04)
+!  (2 ) Now only loop up thru LD65 levels (bmy, 12/4/07)
 !*****************************************************************************
 !
       ! References to F90 modules
       USE COMODE_MOD, ONLY : CSPEC, JLOP
 
 #     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_DIAG"  ! LD65
 #     include "comode.h"  ! SMVGEAR II arrays
 
       ! Local variables 
@@ -578,7 +582,12 @@
 !$OMP+PRIVATE( I, J, L, N, JLOOP )
 !$OMP+SCHEDULE( DYNAMIC ) 
       DO N = 1, NFAMILIES
-      DO L = 1, NVERT
+      !---------------------------------------------------------
+      ! Prior to 12/4/07:
+      ! Use ND65 to prevent out of bounds error (bmy, 12/4/07)
+      !DO L = 1, NVERT
+      !---------------------------------------------------------
+      DO L = 1, LD65
       DO J = 1, NLAT
       DO I = 1, NLONG
          
@@ -609,6 +618,7 @@
       ! Also call DIAG20, which will save out the P(Ox) and L(Ox)
       ! from the fullchem simulation for a future tagged Ox run
       !=================================================================
+
       IF ( DO_SAVE_O3 ) CALL DIAG20
 
       ! Return to calling program
@@ -621,7 +631,7 @@
 !******************************************************************************
 !  Subroutine DIAG20 computes production and loss rates of O3, and 
 !  then calls subroutine WRITE20 to save the these rates to disk. 
-!  (bey, bmy, 6/9/99, 1/22/07)
+!  (bey, bmy, 6/9/99, 12/4/07)
 !
 !  By saving, the production and loss rates from a full-chemistry run,
 !  a user can use these archived rates to perform a quick O3 chemistry
@@ -639,6 +649,7 @@
 !        and then test if we have to save the file to disk. (bmy, 3/3/05)
 !  (4 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (5 ) Now use LLTROP_FIX instead of LLTROP (phs, 1/22/07)
+!  (6 ) Now use LD65 instead of LLTROP_FIX (phs, bmy, 12/4/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -651,6 +662,7 @@
       USE TRACERID_MOD,  ONLY : IDTOX
 
 #     include "CMN_SIZE"      ! Size parameters
+#     include "CMN_DIAG"      ! LD65
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
@@ -697,7 +709,11 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, P_Ox, L_Ox )
-      DO L = 1, LLTROP_FIX
+      !----------------------------------
+      ! Prior to 12/4/07:
+      !DO L = 1, LLTROP_FIX
+      !----------------------------------
+      DO L = 1, LD65
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -743,7 +759,11 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
          DO N = 1, 2
-         DO L = 1, LLTROP_FIX
+         !-----------------------------
+         ! Prior to 
+         !DO L = 1, LLTROP_FIX
+         !-----------------------------
+         DO L = 1, LD65
          DO J = 1, JJPAR
          DO I = 1, IIPAR
             PL24H(I,J,L,N) = PL24H(I,J,L,N) / COUNT
@@ -778,7 +798,11 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
          DO N = 1, 2
-         DO L = 1, LLTROP
+         !------------------------
+         ! Prior to 12/4/07:
+         !DO L = 1, LLTROP
+         !------------------------
+         DO L = 1, LD65
          DO J = 1, JJPAR
          DO I = 1, IIPAR
             PL24H(I,J,L,N) = 0d0
@@ -801,22 +825,24 @@
 !
 !******************************************************************************
 !  Subroutine WRITE20 saves production and loss rates to disk, where they 
-!  will be later read by subroutine CHEMO3. (bey, bmy, 6/9/99, 10/3/05)
+!  will be later read by subroutine CHEMO3. (bey, bmy, 6/9/99, 12/4/07)
 !
 !  NOTES:
 !  (1 ) Now bundled into "diag20_mod.f" (bmy, 7/20/04)
 !  (2 ) Bug fix: remove declaration of FILENAME which masked the global
 !        declaration (bmy, 11/15/04)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (4 ) Now only write up to LD65 levels (phs, bmy, 12/4/07)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD, ONLY : BPCH2,         GET_HALFPOLAR
-      USE BPCH2_MOD, ONLY : GET_MODELNAME, OPEN_BPCH2_FOR_WRITE
-      USE FILE_MOD,  ONLY : IU_ND20
-      USE GRID_MOD,  ONLY : GET_XOFFSET,   GET_YOFFSET
+      USE BPCH2_MOD,  ONLY : BPCH2,         GET_HALFPOLAR
+      USE BPCH2_MOD,  ONLY : GET_MODELNAME, OPEN_BPCH2_FOR_WRITE
+      USE FILE_MOD,   ONLY : IU_ND20
+      USE GRID_MOD,   ONLY : GET_XOFFSET,   GET_YOFFSET
 
 #     include "CMN_SIZE"   ! Size parameters
+#     include "CMN_DIAG"   ! LD65
 
       ! Local variables
       INTEGER             :: I, J, L, N, IOS
@@ -858,7 +884,11 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLTROP_FIX   ! replace LLTROP for offline simulation
+      !---------------------------------------------------------------------
+      ! Prior to 12/4/07:
+      !DO L = 1, LLTROP_FIX   ! replace LLTROP for offline simulation
+      !---------------------------------------------------------------------
+      DO L = 1, LD65
       DO J = 1, JJPAR
       DO I = 1, IIPAR
          ARRAY(I,J,L) = PL24H(I,J,L,1)
@@ -874,10 +904,13 @@
       CALL BPCH2( IU_ND20,   MODELNAME, LONRES,    LATRES,    
      &            HALFPOLAR, CENTER180, CATEGORY,  1,           
      &            UNIT,      TAU0,      TAU1,      RESERVED,  
-     &            IIPAR,     JJPAR,     LLTROP_FIX,    IFIRST,
-     &            JFIRST,    LFIRST,    ARRAY(:,:,1:LLTROP_FIX)  )
-!     &            IIPAR,     JJPAR,     LLTROP,    IFIRST,
-!     &            JFIRST,    LFIRST,    ARRAY  )
+!---------------------------------------------------------------------------
+! Prior to 12/4/07:
+!     &            IIPAR,     JJPAR,     LLTROP_FIX,    IFIRST,
+!     &            JFIRST,    LFIRST,    ARRAY(:,:,1:LLTROP_FIX)  )
+!---------------------------------------------------------------------------
+     &            IIPAR,     JJPAR,     LD65 ,     IFIRST,
+     &            JFIRST,    LFIRST,    ARRAY(:,:,1:LD65)  )
 
       !=================================================================
       ! Save L(O3) to disk
@@ -887,7 +920,11 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLTROP_FIX   ! replace LLTROP for offline simulation
+      !---------------------------------------------------------------------
+      ! Prior to 12/4/07:
+      !DO L = 1, LLTROP_FIX   ! replace LLTROP for offline simulation
+      !---------------------------------------------------------------------
+      DO L = 1, LD65
       DO J = 1, JJPAR
       DO I = 1, IIPAR
          ARRAY(I,J,L) = PL24H(I,J,L,2)
@@ -903,10 +940,13 @@
       CALL BPCH2( IU_ND20,   MODELNAME, LONRES,    LATRES,    
      &            HALFPOLAR, CENTER180, CATEGORY,  2,           
      &            UNIT,      TAU0,      TAU1,      RESERVED,  
-     &            IIPAR,     JJPAR,     LLTROP_FIX,    IFIRST,
-     &            JFIRST,    LFIRST,    ARRAY(:,:,1:LLTROP_FIX)  )
-!     &            IIPAR,     JJPAR,     LLTROP,    IFIRST,
-!     &            JFIRST,    LFIRST,    ARRAY  )
+!----------------------------------------------------------------------------
+! Prior to 12/4/07:
+!     &            IIPAR,     JJPAR,     LLTROP_FIX,    IFIRST,
+!     &            JFIRST,    LFIRST,    ARRAY(:,:,1:LLTROP_FIX) )
+!----------------------------------------------------------------------------
+     &            IIPAR,     JJPAR,     LD65,      IFIRST,
+     &            JFIRST,    LFIRST,    ARRAY(:,:,1:LD65)  )
 
       ! Close BPCH file
       CLOSE( IU_ND20 )
@@ -1119,7 +1159,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_DIAG_PL takes values read from the GEOS-CHEM input file
-!  and saves to module variables w/in "diag65_mod.f" (bmy, 7/20/04)
+!  and saves to module variables w/in "diag65_mod.f" (bmy, 7/20/04, 12/4/07)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1131,6 +1171,7 @@
 !  (5 ) COEF  (REAL*8   ) : Coefficients for each prod/loss family member
 !
 !  NOTES:
+!  (1 ) Now allocate arrays up to LD65 levels (phs, bmy, 12/4/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1218,14 +1259,22 @@
 
       ! Only allocate FAM_PL for a fullchem simulation
       IF ( ITS_A_FULLCHEM_SIM() ) THEN
-         ALLOCATE( FAM_PL( IIPAR, JJPAR, LLTROP, NFAM ), STAT=AS )
+         !---------------------------------------------------------------
+         ! Prior to 12/4/07:
+         !ALLOCATE( FAM_PL( IIPAR, JJPAR, LLTROP, NFAM ), STAT=AS )
+         !---------------------------------------------------------------
+         ALLOCATE( FAM_PL( IIPAR, JJPAR, LD65, NFAM ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'FAM_PL' )
       ENDIF
 
       ! Allocate PL24H if we are also saving out the P(Ox)
       ! and L(Ox) 
       IF ( DO_SAVE_O3 ) THEN
-         ALLOCATE( PL24H( IIPAR, JJPAR, LLTROP, 2 ), STAT=AS )
+         !---------------------------------------------------------------
+         ! Prior to 12/4/07:
+         !ALLOCATE( PL24H( IIPAR, JJPAR, LLTROP, 2 ), STAT=AS )
+         !---------------------------------------------------------------
+         ALLOCATE( PL24H( IIPAR, JJPAR, LD65, 2 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PL24H' )
          PL24H = 0d0
       ENDIF

@@ -46,6 +46,9 @@ Removed in v8-01-01:
 Changed in v8-01-01:
 -------------------------------------------------------------------------------
 
+chem_tagged_ox	        -- Now use LLTROP instead of LLTROP_FIX
+("tagged_ox_mod.f")
+
 CMN_DIAG		-- Changed PD66 from 5 to 6
 	                -- Added LD31 for 3-D pressure edge diagnostic
 
@@ -72,6 +75,9 @@ define.h	 	-- Rename GRID30LEV to GRIDREDUCED, since GEOS-5
 diag1.f			-- Also now save 3-D pressure edges in ND31 instead 
                            of PS-PTOP
 
+diag20			-- Now use LD65 instead of LLTROP_FIX 
+("diag_pl_mod.f")
+
 diag3.f			-- Now save out true pressure at 3-D level edges
 	                   for ND31 diagnostic
 			-- Now change category name for ND31 diagnostic 
@@ -80,6 +86,9 @@ diag3.f			-- Now save out true pressure at 3-D level edges
 do_convection		-- Now reference "CMN_SIZE".  Now references CLDMAS, 
 ("convection_mod.f")       CMFMC, DTRAIN from "dao_mod.f" so that we can pass 
                            either GEOS-5 or GEOS-3 meteorology to NFCLDMX
+
+do_diag_pl		-- Now only loop up thru LD65 levels
+("diag_pl_mod.f")
 
 emissdr.f		-- Now also use EMLIGHTNING_NL for GEOS-5
 
@@ -142,11 +151,17 @@ get_otd_lis_scale       -- Added MFLUX, PRECON scaling for GEOS-4.
 get_pedge		-- Now treat GEOS-5 the same way as GEOS-4 
 ("pressure_mod.f")         
 
+get_regional_pox        -- Now use LLTROP instead of LLTROP_FIX
+("tagged_ox_mod.f")
+
 init_dao		-- Add extra fields for GEOS-5
 ("dao_mod.f")
 
 init_diaginfo		-- Change diagnostic category for ND31 diagnostic 
 ("gamap_mod.f")            from "PS-PTOP" to "PEDGE-$"
+
+init_diag_pl		-- Now only allocate arrays up to LD65 
+("diag_pl_mod.f")
 
 init_pressure		-- Renamed GRID30LEV to GRIDREDUCED
 
@@ -178,6 +193,7 @@ nan_float               -- Now use ISNAN function for IFORT compiler
 ("error_mod.f")
 
 ndxx_setup.f		-- Now save true pressure edges for ND31 diagnostic
+			-- Now stop the run if ND20 is defined but ND65 isn't
 
 nfcldmx			-- Now make CLDMAS, DTRN as arguments, so that we 
 ("convection_mod.f")       can pass either GEOS-3 or GEOS-3 met data
@@ -214,6 +230,9 @@ read_i6			-- Add EVAP, GRN, GWETROOT, LAI, SNODP, SNOMAS, and
 			-- Also update the CASE statement accordingly 
 			   for GEOS-5 fields
 
+read_pox_lox		-- Now use LLTROP instead of LLTROP_FIX
+("tagged_ox_mod.f")
+
 set_prof.f		-- We don't need to initialize the PJ array with ETAA 
 			   and ETAB anymore.  PJ is now defined in "fast_j.f".
 			-- Updated comments. (bmy, 10/30/07) 
@@ -232,3 +251,6 @@ transport_mod.f		-- Split off GCAP, GEOS-3, GEOS-4/GEOS-5
                         -- Also removed some obsolete module variables
                            (STT_I1, STT_I2, STT_J1, STT_J2, DSIG,
                             USE_GEOS_4_TRANSPORT)
+
+write20			-- Now only write up to LD65 levels
+("diag_pl_mod.f")

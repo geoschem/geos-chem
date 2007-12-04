@@ -1,4 +1,4 @@
-! $Id: chemdr.f,v 1.25 2007/11/29 21:46:18 bmy Exp $
+! $Id: chemdr.f,v 1.26 2007/12/04 16:23:58 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
@@ -445,6 +445,9 @@
       !=================================================================
       CALL DO_DIAG_OH
       
+      !### Debug
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after DO_DIAG_OH' )
+
       !=================================================================
       ! Save production and loss for chemical families.  Also save
       ! P(Ox) and L(Ox) for a future tagged Ox run (if necessary).
