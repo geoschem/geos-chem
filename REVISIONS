@@ -233,6 +233,9 @@ read_i6			-- Add EVAP, GRN, GWETROOT, LAI, SNODP, SNOMAS, and
 read_pox_lox		-- Now use LLTROP instead of LLTROP_FIX
 ("tagged_ox_mod.f")
 
+read_toms		-- Bug fix: don't include DATA_DIR in filename, just 
+("toms_mod.f")             in case someone's file path has replaceable tokens
+
 set_prof.f		-- We don't need to initialize the PJ array with ETAA 
 			   and ETAB anymore.  PJ is now defined in "fast_j.f".
 			-- Updated comments. (bmy, 10/30/07) 

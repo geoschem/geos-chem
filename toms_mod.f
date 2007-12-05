@@ -1,10 +1,10 @@
-! $Id: toms_mod.f,v 1.7 2007/03/29 20:31:25 bmy Exp $
+! $Id: toms_mod.f,v 1.8 2007/12/05 16:10:11 bmy Exp $
       MODULE TOMS_MOD
 !
 !******************************************************************************
 !  Module TOMS_MOD contains variables and routines for reading the TOMS/SBUV
 !  O3 column data from disk (for use w/ the FAST-J photolysis routines).
-!  (mje, bmy, 7/14/03, 2/12/07)
+!  (mje, bmy, 7/14/03, 12/5/07)
 !
 !  Module Variables:
 !  ============================================================================
@@ -42,6 +42,7 @@
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Now always use 2002 TOMS O3 data for GCAP (swu, bmy, 10/3/06)
 !  (5 ) Now reads from TOMS_200701 directory, w/ updated data (bmy, 2/1/07)
+!  (6 ) Now don't replace any tokens in the DATA_DIR variable (bmy, 12/5/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -98,6 +99,8 @@
 !  (5 ) Now always use 2002 TOMS O3 data for GCAP (swu, bmy, 10/3/06)
 !  (6 ) Now reads from TOMS_200701 directory, w/ updated data.  Also always
 !        use 1979 data prior to 1979 or 2005 data after 2005. (bmy, 2/12/07)
+!  (7 ) Bug fix: don't include DATA_DIR in filename, just in case someone's 
+!        file path has replaceable tokens (e.g. hh, mm, MM etc.) (bmy, 12/5/07)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -209,13 +212,25 @@
       ! Create YYYYMMDD value
       YYYYMMDD = ( YEAR * 10000 ) + ( THISMONTH * 100 ) + 01
      
-      ! Define filename
-      FILENAME = TRIM( DATA_DIR )               // 
-     &           'TOMS_200701/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
+!-----------------------------------------------------------------------------
+! Prior to 12/5/07:
+! Bug fix: don't include DATA_DIR in filename, just in case someone's file
+! path contains replaceable tokens (e.g. hh, mm, MM etc.) (bmy, 12/5/07)
+!      ! Define filename
+!      FILENAME = TRIM( DATA_DIR )               // 
+!     &           'TOMS_200701/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
+!     &           '.'                            // GET_RES_EXT()
+!-----------------------------------------------------------------------------
+
+      ! Define filename (with replaceable tokens)
+      FILENAME = 'TOMS_200701/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
      &           '.'                            // GET_RES_EXT()
 
       ! Replace YYYY token with current year
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
+
+      ! Now prefix the data directory
+      FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME )
 
       ! Echo filename
       WRITE( 6, 110 ) TRIM( FILENAME )
