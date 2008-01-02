@@ -1,5 +1,5 @@
 #=============================================================================
-# $Id: Makefile.sparc,v 1.47 2007/11/16 18:47:32 bmy Exp $
+# $Id: Makefile.sparc,v 1.48 2008/01/02 21:49:23 bmy Exp $
 #
 # GEOS-Chem Makefile for Sun Studio and Sun/SPARC compilers, including
 # compilation options for both SPARC v9 and AMD/Opteron chipsets
@@ -10,6 +10,10 @@ SHELL  = /bin/sh
 # Sun X4100/AMD Opteron options (use this for terra.as.harvard.edu)
 FFLAGS = -fpp -fast -stackvar -xfilebyteorder=big16:%all\
 -xtarget=opteron -xchip=opteron -xarch=sse2 
+
+# Sun Studio 12 (use this for Tethys.as.harvard.edu)
+#FFLAGS = -fpp -fast -stackvar -xfilebyteorder=big16:%all\
+#-xtarget=opteron -xchip=opteron -xarch=sse3a
 
 # Sun SPARC v9 compilation options
 #FFLAGS = f90 -fpp -O4 -xarch=v9 
@@ -439,7 +443,7 @@ xtra_read_mod.o            : xtra_read_mod.f            CMN_DIAG CMN_SIZE define
 #  Other Makefile Commands
 #=============================================================================
 clean:
-	rm -rf *.o *.mod ifc* geos rii_files
+	rm -rf *.o *.mod geos rii_files
 
 .SUFFIXES: .f .F .f90 .F90
 .f.o:                   ; $(F90) -c $*.f

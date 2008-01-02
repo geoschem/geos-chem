@@ -1,9 +1,9 @@
-! $Id: gfed2_biomass_mod.f,v 1.6 2006/11/07 19:02:01 bmy Exp $
+! $Id: gfed2_biomass_mod.f,v 1.7 2008/01/02 21:49:23 bmy Exp $
       MODULE GFED2_BIOMASS_MOD
 !
 !******************************************************************************
 !  Module GFED2_BIOMASS_MOD contains variables and routines to compute the
-!  GFED2 biomass burning emissions. (psk, bmy, 4/20/06, 10/16/06)
+!  GFED2 biomass burning emissions. (psk, bmy, 4/20/06, 1/2/08)
 !
 !  Monthly emissions of C are read from disk and then multiplied by the 
 !  appropriate emission factors to produce biomass burning emissions on a 
@@ -85,6 +85,7 @@
 !  (2 ) Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
 !  (3 ) Added BC, OC, SO2, NH3, CO2 species.  Also now can read 2005 GFED2
 !        C emissions from disk. (rjp, yxw, bmy, 9/25/06)
+!  (4 ) 2006 is now the last year of GFED2 emissions (bmy, 1/2/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -135,7 +136,7 @@
 !
 !******************************************************************************
 !  Subroutine GFED2_COMPUTE_BIOMASS computes the monthly GFED2 biomass burning
-!  emissions for a given year and month. (psk, bmy, 4/20/06, 10/16/06)
+!  emissions for a given year and month. (psk, bmy, 4/20/06, 1/2/08)
 !
 !  This routine only has to be called on the first day of each month.
 !
@@ -150,6 +151,7 @@
 !        (swu, bmy, 5/30/06)
 !  (2 ) Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
 !  (3 ) 2005 is now the last year of available data (bmy, 10/16/06)
+!  (4 ) 2006 is now the last year of available data (bmy, 1/2/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -205,11 +207,22 @@
  110     FORMAT( 'YEAR < 1997; Using GFED2 biomass for 1997!' )
       ENDIF
 
-      ! 2005 is currently the last year of available data
-      IF ( YYYY > 2005 ) THEN
-         YYYY = 2005
+!-----------------------------------------------------------------------------
+! Prior to 1/2/08:
+! We now have GFED2 data for 2006, extend data range (bmy, 1/2/08)
+!      ! 2005 is currently the last year of available data
+!      IF ( YYYY > 2005 ) THEN
+!         YYYY = 2005
+!         WRITE( 6, 120 ) 
+! 120     FORMAT( 'YEAR > 2005; Using GFED2 biomass for 2005!' )
+!      ENDIF
+!-----------------------------------------------------------------------------
+
+      ! 2006 is currently the last year of available data
+      IF ( YYYY > 2006 ) THEN
+         YYYY = 2006
          WRITE( 6, 120 ) 
- 120     FORMAT( 'YEAR > 2005; Using GFED2 biomass for 2005!' )
+ 120     FORMAT( 'YEAR > 2006; Using GFED2 biomass for 2006!' )
       ENDIF
 
       !=================================================================

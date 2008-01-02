@@ -1,5 +1,5 @@
 REVISIONS (v8-01-01)  
-29 Nov 2007
+02 Jan 2008
 Bob Yantosca              and Philippe Le Sager
 yantosca@seas.harvard.edu     plesager@seas.harvard.edu
 
@@ -153,6 +153,9 @@ get_pedge		-- Now treat GEOS-5 the same way as GEOS-4
 
 get_regional_pox        -- Now use LLTROP instead of LLTROP_FIX
 ("tagged_ox_mod.f")
+
+gfed2_compute_biomass   -- 2006 is now the last year of available data
+("biomass_mod.f")
 
 init_dao		-- Add extra fields for GEOS-5
 ("dao_mod.f")

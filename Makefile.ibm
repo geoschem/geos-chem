@@ -1,5 +1,5 @@
 #=============================================================================
-# $Id: Makefile.ibm,v 1.41 2007/11/05 16:16:11 bmy Exp $
+# $Id: Makefile.ibm,v 1.42 2008/01/02 21:49:22 bmy Exp $
 #
 # Makefile for GEOS-Chem on IBM AIX: (gcc, Mon Feb 03 11:56:55 2003)
 #=============================================================================
@@ -448,3 +448,6 @@ modclean:
 .F.o:                   ; $(F90) -c $*.F
 .f90.o:                 ; $(F90) -c -freeform $*.f90 
 .F90.o:                 ; $(F90) -c -freeform $*.F90 
+# NOTE: for XLF compiler
+#.f90.o:                 ; $(F90) -c -qsuffix=f=f90:cpp=f90 $*.f90 
+#.F90.o:                 ; $(F90) -c -qsuffix=f=f90:cpp=f90 $*.F90 
