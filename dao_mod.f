@@ -1,4 +1,4 @@
-! $Id: dao_mod.f,v 1.26 2007/11/16 18:47:35 bmy Exp $
+! $Id: dao_mod.f,v 1.27 2008/01/10 21:47:53 bmy Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
@@ -2199,6 +2199,11 @@
       ALLOCATE( DQRCON( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRCON' )
       DQRCON = 0d0
+
+      ! GEOS-5 convective rain production
+      ALLOCATE( DQRLSC( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRLSC' )
+      DQRLSC = 0d0
 
       ! GEOS-5 tendency of ice in moist processes
       ALLOCATE( DQVDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
