@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.44 2007/11/29 16:08:57 bmy Exp $
+! $Id: input_mod.f,v 1.45 2008/01/24 19:58:01 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -120,7 +120,7 @@
 !  (17) Now modified for OTD-LIS local redistribution.  Remove references
 !        to GEOS-1 and GEOS-STRAT run dirs. (bmy, 11/5/07)
 !  (18) New error traps for OTD-LIS scaling, dependent on met field type.
-!         (ltm, bmy, 11/29/07)
+!        Bug fix, create string variables for ERROR_STOP. (ltm, bmy, 1/24/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1249,7 +1249,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_EMISSIONS_MENU reads the EMISSIONS MENU section of 
-!  the GEOS-Chem input file. (bmy, 7/20/04, 11/29/07)
+!  the GEOS-Chem input file. (bmy, 7/20/04, 1/24/08)
 !
 !  NOTES:
 !  (1 ) Now read LNEI99 -- switch for EPA/NEI99 emissions (bmy, 11/5/04)
@@ -1271,6 +1271,7 @@
 !  (12) Add LOTDSCALE to the list of LNOx options (ltm, bmy, 9/24/07)
 !  (13) Add new error traps for OTD-LIS options, dependent on met field type
 !        (ltm, bmy, 11/29/07)
+!  (14) Bug fix, create string variables for ERROR_STOP (bmy, 1/24/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1291,16 +1292,19 @@
 
       ! Local variables
       INTEGER              :: N
-      CHARACTER(LEN=255)   :: SUBSTRS(MAXDIM), MSG
+      CHARACTER(LEN=255)   :: SUBSTRS(MAXDIM), MSG, LOC
 
       !=================================================================
       ! READ_EMISSIONS_MENU begins here!
       !=================================================================
 
+      ! Location for error messages
+      LOC = 'READ_EMISSIONS_MENU ("input_mod.f")'
+
       ! Error check
       IF ( CT1 /= 2 ) THEN 
          MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
-         CALL ERROR_STOP( MSG, 'READ_EMISSIONS_MENU ("input_mod.f")' )
+         CALL ERROR_STOP( MSG, LOC )
       ENDIF
 
       ! Turn on emissions?
@@ -1452,15 +1456,14 @@
 
          ! Make sure people don't set both LOTDREG=T and LOTDLOC=T
          IF ( LOTDREG .and. LOTDLOC ) THEN
-            CALL ERROR_STOP( 
-     &         'LOTDREG, LOTDLOC cannot both be turned on!', 
-     &         'READ_EMISSIONS_MENU ("input_mod.f")' )
+            MSG = 'LOTDREG, LOTDLOC cannot both be turned on!'
+            CALL ERROR_STOP( MSG, LOC )
          ENDIF
 
          IF ( LOTDREG ) THEN
-            CALL ERROR_STOP(
-     &         'Regional redistribution of lightning not yet',
-     &         'available for OTD-LIS. Use local redist or none.' )
+            MSG = 'Regional redistribution of lightning not yet '  //
+     &            'available for OTD-LIS. Use local redist or none.'
+            CALL ERROR_STOP( MSG, LOC )
          ENDIF
 
 #if   defined( GEOS_5   )
@@ -1483,9 +1486,9 @@
 
          ! Error trap if wrong options selected
          IF ( LMFLUX .or. LPRECON ) THEN
-            CALL ERROR_STOP(
-     &         'MFLUX or PRECON not available for GEOS5 yet.',
-     &         'Select CTH.' )
+            MSG =  'MFLUX or PRECON not available for GEOS-5 yet. ' //
+     &             'Select CTH instead.'
+            CALL ERROR_STOP( MSG, LOC )
          ENDIF
 
 #elif defined( GEOS_3   )
@@ -1495,11 +1498,12 @@
          !--------------------------------
 
          IF ( LOTDLOC .or. LOTDREG .or. LOTDSCALE ) THEN
-            CALL ERROR_STOP(
-     &         'Lightning rescaling not available for GEOS3.',
-     &         'Use one of the parameterizations without redist/scale.',
-     &         'CTH performs best on GEOS4 and GEOS5, though MFLUX',
-     &         'and PRECON were developed w/ GEOS-STRAT met fields.' )
+            MSG = 'Lightning rescaling not available for GEOS-3.  ' //
+     &            'Use one of the parameterizations without '       //
+     &            'redist/scale.  CTH performs best on GEOS-4 and ' //
+     &            'GEOS-5, though MFLUX and PRECON were developed ' //
+     &            ' w/ GEOS-STRAT met fields.' )
+            CALL ERROR_STOP( MSG, LOC )
          ENDIF
 
 #elif defined( GCAP     )
@@ -1509,17 +1513,19 @@
          !--------------------------------
 
          IF ( LOTDLOC .or. LOTDREG .or. LOTDSCALE ) THEN
-            CALL ERROR_STOP(
-     &         'Lightning rescaling not available nor very appropriate',
-     &         'for GCAP sim because of window of OTD/LIS satellite',
-     &         'observations. Select one of the raw params without',
-     &         'redist/rescaling.' )
+            MSG = 'Lightning rescaling not available nor very ' //
+     &            'appropriate for GCAP sim because of window ' // 
+     &            'of OTD/LIS satellite observations.  Select ' //
+     &            'one of the raw params without redist/rescaling.'
+            CALL ERROR_STOP( MSG, LOC )
+         ENDIF
+
 #endif
 
          ! Make sure one of LCTH, LMFLUX, LPRECON is selected
          IF ( .not. LCTH .and. .not. LMFLUX .and. .not. LPRECON ) THEN
-            CALL ERROR_STOP( 'One of LCTH, LMFLUX, LPRECON must be T!',
-     &                       'READ_EMISSIONS_MENU ("input_mod.f")' )
+            MSG = 'One of LCTH, LMFLUX, LPRECON must be T!'
+            CALL ERROR_STOP( MSG, LOC )
          ENDIF
       ENDIF
 

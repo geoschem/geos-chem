@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.49 2007/11/27 18:46:26 bmy Exp $
+! $Id: diag3.f,v 1.50 2008/01/24 19:58:01 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out diagnostics to the BINARY format punch file 
-!  (bmy, bey, mgs, rvm, 5/27/99, 11/16/07)
+!  (bmy, bey, mgs, rvm, 5/27/99, 1/24/08)
 !
 !  NOTES: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
@@ -83,12 +83,14 @@
 !  (73) Bug fix in ND07: now save out IDTSOA4 tracer.  Modifications for H2/HD
 !        diagnostics (ND10, ND27, ND44) (tmf, phs, bmy, 9/18/07)
 !  (74) Now save out true pressure at 3-D level edges for ND31.  Change ND31
-!        diagnostic category name to "PEDGE-$". (bmy, 11/16/07)
+!        diagnostic category name to "PEDGE-$". Bug fix in ND28 diagnostic to 
+!        allow you to print out individual biomass tracers w/o having to print 
+!        all of them. (bmy, dkh, 1/24/08)
 !******************************************************************************
 ! 
       ! References to F90 modules
       USE BPCH2_MOD
-      USE BIOMASS_MOD,  ONLY : BIOTRCE
+      USE BIOMASS_MOD,  ONLY : BIOTRCE,     NBIOMAX
       USE BIOFUEL_MOD,  ONLY : NBFTRACE,    BFTRACE
       USE DIAG_MOD,     ONLY : AD01,        AD02,        AD05    
       USE DIAG_MOD,     ONLY : AD06,        AD07,        AD07_BC
@@ -165,7 +167,7 @@
 #     include "comode.h"   ! IDEMS
 
       ! Local variables
-      INTEGER            :: I, IREF, J, JREF, L, M, MM, LMAX
+      INTEGER            :: I, IREF, J, JREF, L, M, MM, MMB, LMAX
       INTEGER            :: N, NN, NMAX, NTEST
       INTEGER            :: IE, IN, IS, IW, ITEMP(3)
       REAL*8             :: SCALE_TMP(IIPAR,JJPAR)
@@ -1713,7 +1715,20 @@
             IF ( .not. ANY( BIOTRCE == N ) ) CYCLE
             NN = N
             
-            ARRAY(:,:,1) = AD28(:,:,M) / SCALESRCE
+            !---------------------------------------------------------------
+            ! Prior to 1/24/08:
+            ! This is necessary if emissions selected for saving
+            ! are not in the same order as listed in BIOTRCE,
+            ! or if the selected emissions skip some of the possible
+            ! choices (say you want to save only CO and BENZ). 
+            ! (dkh, 1/24/08)
+            !ARRAY(:,:,1) = AD28(:,:,M) / SCALESRCE
+            !---------------------------------------------------------------
+            DO MM = 1, NBIOMAX
+               IF ( BIOTRCE(MM) == NN ) MMB = MM
+               EXIT
+            ENDDO
+            ARRAY(:,:,1) = AD28(:,:,MMB) / SCALESRCE 
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    

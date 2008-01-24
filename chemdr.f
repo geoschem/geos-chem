@@ -1,4 +1,4 @@
-! $Id: chemdr.f,v 1.26 2007/12/04 16:23:58 bmy Exp $
+! $Id: chemdr.f,v 1.27 2008/01/24 19:58:01 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
@@ -143,27 +143,31 @@
 !  (28) Remove reference to "global_ch4_mod.f".  Add error check for LISOPOH
 !        when using the online SOA tracers. (dkh, bmy, 6/1/06)
 !  (29) Now support variable tropopause (bdf, phs, bmy, 10/3/06)
+!  (30) Now get CH4 concentrations for FUTURE_YEAR when using the future
+!        emissions scale factors (swu, havala, bmy, 1/28/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE AEROSOL_MOD,     ONLY : AEROSOL_CONC, RDAER, SOILDUST
-      USE COMODE_MOD,      ONLY : ABSHUM,   CSPEC,     ERADIUS, TAREA
-      USE DAO_MOD,         ONLY : AD,       AIRVOL,    ALBD,    AVGW   
-      USE DAO_MOD,         ONLY : BXHEIGHT, MAKE_AVGW, OPTD,    SUNCOS  
-      USE DAO_MOD,         ONLY : SUNCOSB,  T
-      USE DIAG_OH_MOD,     ONLY : DO_DIAG_OH
-      USE DIAG_PL_MOD,     ONLY : DO_DIAG_PL
-      USE DUST_MOD,        ONLY : RDUST_ONLINE, RDUST_OFFLINE
-      USE ERROR_MOD,       ONLY : DEBUG_MSG,    ERROR_STOP
-      USE LOGICAL_MOD,     ONLY : LCARB,        LDUST,     LEMBED
-      USE LOGICAL_MOD,     ONLY : LPRT,         LSSALT,    LSULF  
-      USE LOGICAL_MOD,     ONLY : LSOA,         LVARTROP
-      USE PLANEFLIGHT_MOD, ONLY : SETUP_PLANEFLIGHT
-      USE TIME_MOD,        ONLY : GET_MONTH,    GET_YEAR,  ITS_A_NEW_DAY
-      USE TRACER_MOD,      ONLY : STT,          N_TRACERS, XNUMOL
-      USE TRACERID_MOD,    ONLY : IDTNOX,       IDTOX,     SETTRACE
-      USE TROPOPAUSE_MOD,  ONLY : SAVE_FULL_TROP
-      USE UVALBEDO_MOD,    ONLY : UVALBEDO
+      USE AEROSOL_MOD,          ONLY : AEROSOL_CONC, RDAER, SOILDUST
+      USE COMODE_MOD,           ONLY : ABSHUM, CSPEC, ERADIUS, TAREA
+      USE DAO_MOD,              ONLY : AD,       AIRVOL,    ALBD, AVGW   
+      USE DAO_MOD,              ONLY : BXHEIGHT, MAKE_AVGW, OPTD, SUNCOS  
+      USE DAO_MOD,              ONLY : SUNCOSB,  T
+      USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
+      USE DIAG_PL_MOD,          ONLY : DO_DIAG_PL
+      USE DUST_MOD,             ONLY : RDUST_ONLINE, RDUST_OFFLINE
+      USE ERROR_MOD,            ONLY : DEBUG_MSG,    ERROR_STOP
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
+      USE LOGICAL_MOD,          ONLY : LCARB,        LDUST,     LEMBED
+      USE LOGICAL_MOD,          ONLY : LPRT,         LSSALT,    LSULF  
+      USE LOGICAL_MOD,          ONLY : LSOA,         LVARTROP,  LFUTURE
+      USE PLANEFLIGHT_MOD,      ONLY : SETUP_PLANEFLIGHT
+      USE TIME_MOD,             ONLY : GET_MONTH,    GET_YEAR
+      USE TIME_MOD,             ONLY : ITS_A_NEW_DAY
+      USE TRACER_MOD,           ONLY : STT,          N_TRACERS, XNUMOL
+      USE TRACERID_MOD,         ONLY : IDTNOX,       IDTOX,     SETTRACE
+      USE TROPOPAUSE_MOD,       ONLY : SAVE_FULL_TROP
+      USE UVALBEDO_MOD,         ONLY : UVALBEDO
 
       IMPLICIT NONE
 
@@ -278,12 +282,31 @@
             ! year and latitude bin.  (ICH4 is defined in READCHEM.)
             ! (bnd, bmy, 7/1/03)
 
+!-----------------------------------------------------------------------------
+! Prior to 1/24/08:
+! We also need to make sure that we pass the proper year for future 
+! emissions to routine GET_GLOBAL_CH4 (swu, havala, bmy, 1/24/08)
+!            ! Get CH4 [ppbv] in 4 latitude bins for each year
+!            CALL GET_GLOBAL_CH4( GET_YEAR(), .TRUE., C3090S, 
+!     &                           C0030S,     C0030N, C3090N )
+!            
+!            ! Save year for CH4 emissions
+!            CH4_YEAR = GET_YEAR()
+!-----------------------------------------------------------------------------
+
+            ! If we are using the future emissions, then get the CH4
+            ! concentrations for FUTURE_YEAR.  Otherwise get the CH4
+            ! concentrations for the current met field year. 
+            ! (swu, havala, bmy, 1/24/08)
+            IF ( LFUTURE ) THEN
+               CH4_YEAR = GET_FUTURE_YEAR()
+            ELSE
+               CH4_YEAR = GET_YEAR()
+            ENDIF
+
             ! Get CH4 [ppbv] in 4 latitude bins for each year
-            CALL GET_GLOBAL_CH4( GET_YEAR(), .TRUE., C3090S, 
-     &                           C0030S,     C0030N, C3090N )
-            
-            ! Save year for CH4 emissions
-            CH4_YEAR = GET_YEAR()
+            CALL GET_GLOBAL_CH4( CH4_YEAR, .TRUE., C3090S,
+     &                           C0030S,   C0030N, C3090N )
          ENDIF
 
          !-------------------------------

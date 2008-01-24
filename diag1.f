@@ -1,9 +1,9 @@
-! $Id: diag1.f,v 1.18 2007/11/16 18:47:36 bmy Exp $
+! $Id: diag1.f,v 1.19 2008/01/24 19:58:01 bmy Exp $
       SUBROUTINE DIAG1 
 !
 !******************************************************************************
 !  Subroutine DIAG1 accumulates diagnostic quantities every NDIAG minutes
-!  (bmy, bey, 6/16/98, 5/8/07)
+!  (bmy, bey, 6/16/98, 1/28/04)
 !
 !  NOTES:
 !  (1 ) This subroutine was reconstructed from gmg's version of (10/10/97)
@@ -52,7 +52,8 @@
 !  (27) Added count for time in the troposphere - array AD54 (phs, 9/22/06)
 !  (28) Now only archive O3 in ND45 and ND47 at chem timsteps (phs, 1/24/07)
 !  (29) Bug fix: Update ND30 for both GEOS-3 and otherwise.  Also now save
-!        3-D pressure edges in ND31 instead of PS-PTOP. (ltm, bmy, 5/8/07)
+!        3-D pressure edges in ND31 instead of PS-PTOP.  Revert to the !
+!        pre-near-land ND30 diagnostic algorithm. (bmy, 1/28/04)
 !******************************************************************************
 !  List of GEOS-CHEM Diagnostics (bmy, 10/25/05)
 !
@@ -384,30 +385,36 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-#if   defined( GEOS_3 )
-
-            ! Same logic as in FLASHES
-            IF ( IS_NEAR( I, J, 80d0,1 ) ) THEN
-               AD30(I,J) = AD30(I,J) + 1e0
-            ELSE IF (       IS_WATER( I, J          )  .and. 
-     &                .not. IS_NEAR(  I, J, 80d0, 1 ) ) THEN
-               AD30(I,J) = AD30(I,J) + 0d0
-            ELSE IF ( IS_ICE(I,J) ) THEN
-               AD30(I,J) = AD30(I,J) + 2e0
-            ENDIF
-
-#else
-            ! Same logic as in FLASHES
-            IF ( IS_NEAR( I, J, 0.2d0, 1 ) ) THEN
-               AD30(I,J) = AD30(I,J) + 1e0
-            ELSE IF (       IS_WATER( I, J          )  .and. 
-     &                .not. IS_NEAR(  I, J, 0.2d0, 1 ) ) THEN
-               AD30(I,J) = AD30(I,J) + 0d0
-            ELSE IF ( IS_ICE(I,J) ) THEN
-               AD30(I,J) = AD30(I,J) + 2e0
-            ENDIF
-#endif
-
+!-----------------------------------------------------------------------------
+! Prior to 1/28/04:
+! Revert to the pre-near-land diagnostic for land flags (bmy, 1/28/04)
+!#if   defined( GEOS_3 )
+!
+!            ! Same logic as in FLASHES
+!            IF ( IS_NEAR( I, J, 80d0,1 ) ) THEN
+!               AD30(I,J) = AD30(I,J) + 1e0
+!            ELSE IF (       IS_WATER( I, J          )  .and. 
+!     &                .not. IS_NEAR(  I, J, 80d0, 1 ) ) THEN
+!               AD30(I,J) = AD30(I,J) + 0d0
+!            ELSE IF ( IS_ICE(I,J) ) THEN
+!               AD30(I,J) = AD30(I,J) + 2e0
+!            ENDIF
+!
+!#else
+!            ! Same logic as in FLASHES
+!            IF ( IS_NEAR( I, J, 0.2d0, 1 ) ) THEN
+!               AD30(I,J) = AD30(I,J) + 1e0
+!            ELSE IF (       IS_WATER( I, J          )  .and. 
+!     &                .not. IS_NEAR(  I, J, 0.2d0, 1 ) ) THEN
+!               AD30(I,J) = AD30(I,J) + 0d0
+!            ELSE IF ( IS_ICE(I,J) ) THEN
+!               AD30(I,J) = AD30(I,J) + 2e0
+!            ENDIF
+!#endif
+!-----------------------------------------------------------------------------
+            IF ( IS_WATER( I, J ) ) AD30(I,J) = AD30(I,J) + 0e0
+            IF ( IS_LAND ( I, J ) ) AD30(I,J) = AD30(I,J) + 1e0
+            IF ( IS_ICE  ( I, J ) ) AD30(I,J) = AD30(I,J) + 2e0
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO

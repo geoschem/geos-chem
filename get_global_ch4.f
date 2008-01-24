@@ -1,10 +1,10 @@
-! $Id: get_global_ch4.f,v 1.1 2006/06/06 14:26:04 bmy Exp $
+! $Id: get_global_ch4.f,v 1.2 2008/01/24 19:58:01 bmy Exp $
       SUBROUTINE GET_GLOBAL_CH4( THISYEAR, VARIABLE_CH4, 
      &                           A3090S, A0030S, A0030N, A3090N )
 !
 !******************************************************************************
 !  Subroutine GET_GLOBAL_CH4 computes the latitudinal gradient in CH4
-!  corresponding to year (jsw, bnd, bmy, 1/3/01, 5/30/06)
+!  corresponding to year (jsw, bnd, bmy, 1/3/01, 1/24/08)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -32,7 +32,8 @@
 !        years past 2001, since data for those years has not been reported
 !        yet. (mje, bmy, 7/7/03)
 !  (5 ) Split off from module "global_ch4_mod.f".  Updated for IPCC future
-!        emissions scenarios. (swu, bmy, 5/30/06)
+!        emissions scenarios. (swu, bmy, 5/30/06)     
+!  (6 ) Add the preindustrial CH4 scenarios. (swu, havala, bmy, 1/24/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -66,6 +67,9 @@
       ! 
       ! Bob Yantosca (bmy@io.harvard.edu) maintains the archive 
       ! of the IDL code needed to process the methane data.
+      !
+      ! Also add future emission scenarios for GCAP, as well as
+      ! the preindustrial CH4 levels (swu, havala, bmy, 1/24/08)
       !=================================================================
       IF ( VARIABLE_CH4 ) THEN
 
@@ -77,6 +81,14 @@
          ! Select latitudinal CH4 gradient by year...
          SELECT CASE ( THISYEAR )
 
+            ! Preindustrial years
+            CASE ( :1750 )
+               A3090S = 700.0d0
+               A0030S = 700.0d0
+               A0030N = 700.0d0
+               A3090N = 700.0d0
+               
+            ! Modern-day years ...
             CASE( 1983 )
                A3090S = 1559.89d0
                A0030S = 1575.68d0

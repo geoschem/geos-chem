@@ -1,4 +1,4 @@
-! $Id: tagged_co_mod.f,v 1.18 2007/11/05 16:16:25 bmy Exp $
+! $Id: tagged_co_mod.f,v 1.19 2008/01/24 19:58:02 bmy Exp $
       MODULE TAGGED_CO_MOD
 !
 !******************************************************************************
@@ -894,6 +894,11 @@
       !=================================================================
       ! Get the yearly and latitudinal gradients for CH4
       ! This only needs to be called once per year
+      !
+      ! NOTE: If you are going to run w/ future emissions you must 
+      !       pass the future emissions year to GET_GLOBAL_CH4.  
+      !       See the modification that was made in "chemdr.f" 
+      !       (bmy, 1/24/08)
       !=================================================================
       IF ( ITS_A_NEW_YEAR() ) THEN 
          CALL GET_GLOBAL_CH4( GET_YEAR(), .TRUE., 

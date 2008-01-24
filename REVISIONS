@@ -1,5 +1,5 @@
 REVISIONS (v8-01-01)  
-02 Jan 2008
+24 Jan 2008
 Bob Yantosca              and Philippe Le Sager
 yantosca@seas.harvard.edu     plesager@seas.harvard.edu
 
@@ -46,6 +46,12 @@ Removed in v8-01-01:
 Changed in v8-01-01:
 -------------------------------------------------------------------------------
 
+biogenic_oc		-- Bug fix: add MEGAN emissions to TERP_ORGC when SOA 
+("carbon_mod.f")           emissions are turned on
+
+chemdr.f		-- Now get CH4 concentrations for FUTURE_YEAR when 
+                           using the future emissions scale factors
+
 chem_tagged_ox	        -- Now use LLTROP instead of LLTROP_FIX
 ("tagged_ox_mod.f")
 
@@ -74,6 +80,8 @@ define.h	 	-- Rename GRID30LEV to GRIDREDUCED, since GEOS-5
 
 diag1.f			-- Also now save 3-D pressure edges in ND31 instead 
                            of PS-PTOP
+			-- Revert to the pre-near-land ND30 diagnostic 
+                           algorithm
 
 diag20			-- Now use LD65 instead of LLTROP_FIX 
 ("diag_pl_mod.f")
@@ -82,6 +90,7 @@ diag3.f			-- Now save out true pressure at 3-D level edges
 	                   for ND31 diagnostic
 			-- Now change category name for ND31 diagnostic 
 			   from "PS-PTOP" to "PEDGE-$"
+			-- 
 
 do_convection		-- Now reference "CMN_SIZE".  Now references CLDMAS, 
 ("convection_mod.f")       CMFMC, DTRAIN from "dao_mod.f" so that we can pass 
@@ -117,6 +126,8 @@ get_flash_scale_mflux	-- Add #if blocks for GEOS_5
 
 get_flash_scale_precon	-- Add #if blocks for GEOS_5
 ("lightning_nox_nl_mod.f")
+
+get_global_ch4.f	-- Add the preindustrial CH4 scenarios
 
 get_global_hno3		-- Renamed GRID30LEV to GRIDREDUCED
 ("global_hno3_mod.f")
@@ -165,6 +176,9 @@ init_diaginfo		-- Change diagnostic category for ND31 diagnostic
 
 init_diag_pl		-- Now only allocate arrays up to LD65 
 ("diag_pl_mod.f")
+
+init_lightning_nox	-- Also update location of PDF file to 
+("lightning_nox_mod.f")    lightning_NOx_200709 directory
 
 init_pressure		-- Renamed GRID30LEV to GRIDREDUCED
 
@@ -227,6 +241,7 @@ read_bpch2		-- Make TEMPARRAY big enough for GEOS-5 72 levels
 
 read_emissions_menu	-- Add new error traps for OTD-LIS options, 
 ("input_mod.f")	           dependent on met field type
+			-- Also define error msg strings for ERROR_STOP
 
 read_i6			-- Add EVAP, GRN, GWETROOT, LAI, SNODP, SNOMAS, and
 ("i6_read_mod")            TROPP as optional arguments

@@ -1,4 +1,4 @@
-! $Id: carbon_mod.f,v 1.28 2007/03/29 20:31:10 bmy Exp $
+! $Id: carbon_mod.f,v 1.29 2008/01/24 19:58:01 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
@@ -2895,7 +2895,7 @@ c
 !
 !******************************************************************************
 !  Subroutine BIOGENIC_OC emits secondary organic carbon aerosols.
-!  Also modified for SOA tracers. (rjp, bmy, 4/1/04, 4/11/06)
+!  Also modified for SOA tracers. (rjp, bmy, 4/1/04, 1/24/08)
 !
 !  Terpene emissions as a source of OC:  TERP.GEIA90.a1.2x2.5.*
 !  Assuming 10% yield of OC(hydrophilic) from terpene emission.
@@ -2907,6 +2907,8 @@ c
 !  (3 ) Now reads data from "carbon_200411" subdir of DATA_DIR (bmy, 11/15/04)
 !  (4 ) Now can use MEGAN biogenic emissions (tmf, bmy, 10/20/05)
 !  (5 ) For GCAP, need to use GET_NAME_EXT_2D in NVOC file name (bmy, 4/11/06)
+!  (6 ) Bug fix: add MEGAN emissions to TERP_ORGC when SOA emissions are
+!        turned on (dkh, bmy, 1/24/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3046,7 +3048,18 @@ c
             TMMP           = XLTMMP(I,J,IJLOOP)
 
             ! Monoterpene emission [kg C/box/timestep]
-            TERP_ORGC(I,J) = EMMONOT( IJLOOP, TMMP, 1.d0 )
+            !---------------------------------------------------------------
+            ! Prior to 1/24/08:
+            ! This code below never assigned MEGAN emissions to TERP_ORGC
+            ! when SOA were turned on.  Add the appropriate code for MEGAN.
+            ! (dkh, 1/24/08)
+            !TERP_ORGC(I,J) = EMMONOT( IJLOOP, TMMP, 1.d0 )
+            !---------------------------------------------------------------
+            IF ( LMEGAN ) THEN
+               TERP_ORGC(I,J) = GET_EMMONOT_MEGAN( I, J, TMMP, 1d0 )
+            ELSE
+               TERP_ORGC(I,J) = EMMONOT( IJLOOP, TMMP, 1d0 )
+            ENDIF
 
             !---------------------------------------------------
             ! Impose a diurnal variation on NVOC during the day

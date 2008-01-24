@@ -1,4 +1,4 @@
-! $Id: lightning_nox_mod.f,v 1.16 2007/11/29 15:54:49 bmy Exp $
+! $Id: lightning_nox_mod.f,v 1.17 2008/01/24 19:58:01 bmy Exp $
       MODULE LIGHTNING_NOX_MOD
 !
 !******************************************************************************
@@ -1790,7 +1790,7 @@
 !******************************************************************************
 !  Subroutine INIT_LIGHTNING_NOX allocates all module arrays.  It also 
 !  reads the lightning CDF data from disk before the first lightning timestep. 
-!  (bmy, 4/14/04, 10/3/07)
+!  (bmy, 4/14/04, 1/24/08)
 !
 !  NOTES:
 !  (1 ) Now reference DATA_DIR from "directory_mod.f"
@@ -1803,7 +1803,9 @@
 !        GET_FLASH_SCALE_PRECON depending on the type of lightning param used.
 !        Updated comments.  (ltm, bmy, 1/31/07)
 !  (6 ) Removed near-land stuff.  Renamed from INIT_LIGHTNING_NOX_NL to
-!        INIT_LIGHTNING_NOX.  Now allocate EMIS_LI_NOx (ltm, bmy, 10/3/07)
+!        INIT_LIGHTNING_NOX.  Now allocate EMIS_LI_NOx. (ltm, bmy, 10/3/07)
+!  (7 ) Also update location of PDF file to lightning_NOx_200709 directory. 
+!        (bmy, 1/24/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1908,7 +1910,12 @@
 
       ! Define filename for GEOS-3 CDF file
       FILENAME = TRIM( DATA_DIR ) // 
-     &           'lightning_NOx_200605/light_dist.dat.geos345.gcap'        
+!--------------------------------------------------------------------------
+! Prior to 1/24/08:
+! Update location of PDF file (bmy, 1/24/08)
+!     &           'lightning_NOx_200605/light_dist.dat.geos345.gcap'       
+!-------------------------------------------------------------------------- 
+     &           'lightning_NOx_200709/light_dist.dat.geos345.gcap'        
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
