@@ -90,7 +90,9 @@ diag3.f			-- Now save out true pressure at 3-D level edges
 	                   for ND31 diagnostic
 			-- Now change category name for ND31 diagnostic 
 			   from "PS-PTOP" to "PEDGE-$"
-			-- 
+			-- Bug fix in ND28 diagnostic to allow you to print 
+                           out individual biomass tracers w/o having to print 
+                           all of them.
 
 do_convection		-- Now reference "CMN_SIZE".  Now references CLDMAS, 
 ("convection_mod.f")       CMFMC, DTRAIN from "dao_mod.f" so that we can pass 
@@ -128,6 +130,8 @@ get_flash_scale_precon	-- Add #if blocks for GEOS_5
 ("lightning_nox_nl_mod.f")
 
 get_global_ch4.f	-- Add the preindustrial CH4 scenarios
+                        -- Also set 2001 as the default in case we are 
+                           running 2030 or 2050 met but present-day emissions.
 
 get_global_hno3		-- Renamed GRID30LEV to GRIDREDUCED
 ("global_hno3_mod.f")

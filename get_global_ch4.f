@@ -1,10 +1,10 @@
-! $Id: get_global_ch4.f,v 1.2 2008/01/24 19:58:01 bmy Exp $
+! $Id: get_global_ch4.f,v 1.3 2008/01/25 19:48:16 bmy Exp $
       SUBROUTINE GET_GLOBAL_CH4( THISYEAR, VARIABLE_CH4, 
      &                           A3090S, A0030S, A0030N, A3090N )
 !
 !******************************************************************************
 !  Subroutine GET_GLOBAL_CH4 computes the latitudinal gradient in CH4
-!  corresponding to year (jsw, bnd, bmy, 1/3/01, 1/24/08)
+!  corresponding to year (jsw, bnd, bmy, 1/3/01, 1/25/08)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -33,7 +33,9 @@
 !        yet. (mje, bmy, 7/7/03)
 !  (5 ) Split off from module "global_ch4_mod.f".  Updated for IPCC future
 !        emissions scenarios. (swu, bmy, 5/30/06)     
-!  (6 ) Add the preindustrial CH4 scenarios. (swu, havala, bmy, 1/24/08)
+!  (6 ) Add the preindustrial CH4 scenarios.  Also set 2001 as the default
+!        in case we are running 2030 or 2050 met but present-day emissions.
+!        (swu, havala, bmy, 1/25/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -69,7 +71,7 @@
       ! of the IDL code needed to process the methane data.
       !
       ! Also add future emission scenarios for GCAP, as well as
-      ! the preindustrial CH4 levels (swu, havala, bmy, 1/24/08)
+      ! the preindustrial CH4 levels (swu, havala, bmy, 1/25/08)
       !=================================================================
       IF ( VARIABLE_CH4 ) THEN
 
@@ -206,7 +208,10 @@
             ! Future year 2030
             CASE( 2025:2035 )
             
-               ! Pick the IPCC scenario
+               ! Pick the IPCC scenario.  If LFUTURE=F and FUTURE_SCENARIO
+               ! are undefined, then we are running 2030 meteorology with 
+               ! present-day emissions.  In this case, default to 2001 CH4 
+               ! concentrations. (havala, 1/25/08)
                SELECT CASE( FUTURE_SCENARIO )
                   CASE( 'A1' )
                      A3090S = 2202.0d0 
@@ -219,13 +224,24 @@
                      A0030N = 1927.0d0
                      A3090N = 1927.0d0 
                   CASE( 'A2' )
+                     ! Not defined yet
                   CASE( 'B2' )
+                     ! Not defined yet
+                  CASE DEFAULT
+                     ! 2001 is the default
+                     A3090S = 1705.68d0  
+                     A0030S = 1709.52d0  
+                     A0030N = 1767.51d0  
+                     A3090N = 1822.53d0
                END SELECT
 
             ! Future year 2050
             CASE( 2045:2055 )
 
-               ! Pick IPCC future scenario
+               ! Pick the IPCC scenario.  If LFUTURE=F and FUTURE_SCENARIO
+               ! is undefined, then we are running 2050 meteorology with 
+               ! present-day emissions.  In this case, default to 2001 CH4 
+               ! concentrations. (havala, 1/25/08)
                SELECT CASE ( FUTURE_SCENARIO )
                   CASE ( 'A1' )
                      A3090S = 2400.0d0 
@@ -247,7 +263,13 @@
                      A0030S = 2363.0d0
                      A0030N = 2363.0d0
                      A3090N = 2363.0d0
-                  END SELECT
+                  CASE DEFAULT
+                     ! 2001 is the default
+                     A3090S = 1705.68d0  
+                     A0030S = 1709.52d0  
+                     A0030N = 1767.51d0  
+                     A3090N = 1822.53d0
+               END SELECT
 
             ! Default is to use 2001 data for other years
             ! for which we do not yet have data (bmy, 5/30/06)
