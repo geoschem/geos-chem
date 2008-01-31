@@ -1,10 +1,10 @@
-! $Id: convection_mod.f,v 1.16 2007/11/16 18:47:35 bmy Exp $
+! $Id: convection_mod.f,v 1.17 2008/01/31 15:41:58 bmy Exp $
       MODULE CONVECTION_MOD
 !
 !******************************************************************************
 !  Module CONVECTION_MOD contains routines which select the proper convection
 !  code for GEOS-3, GEOS-4, GEOS-5, or GCAP met field data sets. 
-!  (bmy, 6/28/03, 8/15/07)
+!  (bmy, 6/28/03, 1/31/08)
 !
 !  Module Routines:
 !  ============================================================================
@@ -44,6 +44,7 @@
 !  (8 ) Modified for tagged Hg simulation (cdh, bmy, 1/6/06)
 !  (9 ) Bug fix: now only call ADD_Hg2_WD if LDYNOCEAN=T (phs, 2/8/07)
 !  (10) Fix for GEOS-5 met fields in routine NFCLDMX (swu, 8/15/07)
+!  (11) Resize DTCSUM array in NFCLDMX to save memory (bmy, 1/31/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -462,7 +463,7 @@
 !  Subroutine NFCLDMX is S-J Lin's cumulus transport module for 3D GSFC-CTM,
 !  modified for the GEOS-CHEM model.  The "NF" stands for "no flipping", and
 !  denotes that you don't have to flip the tracer array Q in the main
-!  program before passing it to NFCLDMX. (bmy, 2/12/97, 2/8/07)
+!  program before passing it to NFCLDMX. (bmy, 2/12/97, 1/31/08)
 !
 !  NOTE: NFCLDMX can be used with GEOS-1, GEOS-STRAT, and GEOS-3 met fields.
 !  For GEOS-4/fVDAS, you must use the routines in "fvdas_convect_mod.f"
@@ -599,7 +600,10 @@
 !        to ADD_Hg2_WD. (cdh, bmy, 1/6/06)
 !  (16) Bug fix: now only call ADD_Hg2_WD if LDYNOCEAN=T (phs, 2/8/07)
 !  (17) Now make CLDMAS, DTRN as arguments, so that we can pass either
-!        GEOS-3 or GEOS-3 met data (bmy, 2/8/07)
+!        GEOS-3 or GEOS-3 met data.  Redimension DTCSUM with NC instead of 
+!        NNPAR.  In many cases, NC is less than NNPAR and this will help to 
+!        save memory especially when running at 2x25 or greater resolution 
+!        (bmy, 1/31/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -635,7 +639,14 @@
       REAL*8,  SAVE          :: DSIG(LLPAR)
       REAL*8                 :: SDT, CMOUT, ENTRN, DQ, AREA_M2
       REAL*8                 :: T0, T1, T2, T3, T4, TSUM, DELQ
-      REAL*8                 :: DTCSUM(IIPAR,JJPAR,LLPAR,NNPAR)
+      !------------------------------------------------------------------------
+      ! Prior to 1/31/08:
+      ! Replace NNPAR with NC.  In many instances NC is less than the max
+      ! value of NNPAR and so will save memory, especially at 2x25 resolution
+      ! (bmy, 1/31/08)
+      !REAL*8                 :: DTCSUM(IIPAR,JJPAR,LLPAR,NNPAR)
+      !------------------------------------------------------------------------
+      REAL*8                 :: DTCSUM(IIPAR,JJPAR,LLPAR,NC)
 
       ! F is the fraction of tracer lost to wet scavenging in updrafts
       REAL*8                 :: F(IIPAR,JJPAR,LLPAR,NC)

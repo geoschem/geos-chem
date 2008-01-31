@@ -1,4 +1,4 @@
-! $Id: error_mod.f,v 1.15 2007/11/16 18:47:39 bmy Exp $
+! $Id: error_mod.f,v 1.16 2008/01/31 15:41:58 bmy Exp $
       MODULE ERROR_MOD
 !
 !******************************************************************************
@@ -173,12 +173,18 @@
       IT_IS_A_NAN = ( IS_NAN( DBLE( VALUE ) ) /= 0 )
 
 #elif defined( SPARC )
-
-      ! Declare IR_ISNAN as an external function
-      INTEGER, EXTERNAL :: IR_ISNAN
-
-      ! Test if VALUE is a NaN
-      IT_IS_A_NAN = ( IR_ISNAN( VALUE ) /= 0 )
+!-----------------------------------------------------------------------------
+! NOTE: If you compile with SunStudio11/12 with the -fast optimization, this 
+! will turn on -ftrap=common, which checks for NaN, invalid, division, and 
+! inexact IEEE math errors. (bmy, 12/18/07)
+!
+!      ! Declare IR_ISNAN as an external function
+!      INTEGER, EXTERNAL :: IR_ISNAN
+!
+!      ! Test if VALUE is a NaN
+!      IT_IS_A_NAN = ( IR_ISNAN( VALUE ) /= 0 )
+!-----------------------------------------------------------------------------
+      IT_IS_A_NAN = .FALSE.
 
 #elif defined( IBM_AIX )
 
@@ -265,12 +271,18 @@
       IT_IS_A_NAN = ( IS_NAN( VALUE ) /= 0 )
 
 #elif defined( SPARC )
-
-      ! Declare ID_ISNAN as an external function
-      INTEGER, EXTERNAL  :: ID_ISNAN
-
-      ! Test if VALUE is NaN
-      IT_IS_A_NAN = ( ID_ISNAN( VALUE ) /= 0 )
+!-----------------------------------------------------------------------------
+! NOTE: If you compile with SunStudio11/12 with the -fast optimization, this 
+! will turn on -ftrap=common, which checks for NaN, invalid, division, and 
+! inexact IEEE math errors. (bmy, 12/18/07)
+!
+!      ! Declare ID_ISNAN as an external function
+!      INTEGER, EXTERNAL  :: ID_ISNAN
+!
+!      ! Test if VALUE is NaN
+!      IT_IS_A_NAN = ( ID_ISNAN( VALUE ) /= 0 )
+!-----------------------------------------------------------------------------
+      IT_IS_A_NAN = .FALSE.
 
 #elif defined( IBM_AIX )
 
@@ -354,6 +366,7 @@
 !      ! only takes doubles. 
 !      IT_IS_A_FINITE = ( IS_FINITE( DBLE( VALUE ) ) /= 0 )
 !-----------------------------------------------------------------------------
+      IT_IS_A_NAN = .FALSE.
 
 #elif defined( LINUX_IFORT )
 
@@ -380,12 +393,17 @@
       IT_IS_A_FINITE = ( IS_FINITE( DBLE( VALUE ) ) /= 0 )
 
 #elif defined( SPARC )
-
-      ! Declare IR_FINITE as an external function
-      INTEGER, EXTERNAL :: IR_FINITE
-
-      ! Test if VALUE is a finite number
-      IT_IS_A_FINITE = ( IR_FINITE( VALUE ) /= 0 )
+!-----------------------------------------------------------------------------
+! NOTE: If you compile with SunStudio11/12 with the -fast optimization, this 
+! will turn on -ftrap=common, which checks for NaN, invalid, division, and 
+! inexact IEEE math errors. (bmy, 12/18/07)
+!      ! Declare IR_FINITE as an external function
+!      INTEGER, EXTERNAL :: IR_FINITE
+!
+!      ! Test if VALUE is a finite number
+!      IT_IS_A_FINITE = ( IR_FINITE( VALUE ) /= 0 )
+!-----------------------------------------------------------------------------
+      IT_IS_A_FINITE = .TRUE.
 
 #elif defined( IBM_AIX )
 
@@ -491,12 +509,18 @@
       IT_IS_A_FINITE = ( IS_FINITE( VALUE ) /= 0 )
 
 #elif defined( SPARC )
- 
-      ! Declare ID_FINITE as an external function
-      INTEGER, EXTERNAL :: ID_FINITE
-
-      ! Test if VALUE is a finite number
-      IT_IS_A_FINITE = ( ID_FINITE( VALUE ) /= 0 )
+!-----------------------------------------------------------------------------
+! NOTE: If you compile with SunStudio11/12 with the -fast optimization, this 
+! will turn on -ftrap=common, which checks for NaN, invalid, division, and 
+! inexact IEEE math errors. (bmy, 12/18/07)
+! 
+!      ! Declare ID_FINITE as an external function
+!      INTEGER, EXTERNAL :: ID_FINITE
+!
+!      ! Test if VALUE is a finite number
+!      IT_IS_A_FINITE = ( ID_FINITE( VALUE ) /= 0 )
+!-----------------------------------------------------------------------------
+      IT_IS_A_FINITE = .TRUE.
 
 #elif defined( IBM_AIX )
 

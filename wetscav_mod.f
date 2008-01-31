@@ -1,9 +1,9 @@
-! $Id: wetscav_mod.f,v 1.27 2007/11/16 18:47:47 bmy Exp $
+! $Id: wetscav_mod.f,v 1.28 2008/01/31 15:41:58 bmy Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
 !  Module WETSCAV_MOD contains arrays for used in the wet scavenging of
-!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 7/26/06)
+!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 1/31/08)
 !
 !  Module Variables:
 !  ============================================================================
@@ -119,6 +119,7 @@
 !  (22) Now wet deposit SOG4, SOA4. Remove unnecessary variables in WETDEP.
 !        (dkh, bmy, 5/18/06)
 !  (23) Bug fixes in COMPUTE_F (bmy, 7/26/06)
+!  (24) Resize DSTT array in WETDEP to save memory (bmy, 1/31/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -2537,6 +2538,9 @@
 !        using the dynamic ocean model. (eck, sas, cdh, bmy, 2/27/06)
 !  (21) Eliminate unnecessary variables XDSTT, L_PLUS_W.  Also zero all 
 !        unused variables for each grid box. (bmy, 5/24/06)
+!  (22) Redimension DSTT with NSOL instead of NSOLMAX. In many cases, NSOL is
+!        less than NSOLMAX and this will help to save memory especially when
+!        running at 2x25 or greater resolution. (bmy, 1/31/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2573,7 +2577,14 @@
 
       ! DSTT is the accumulator array of rained-out 
       ! soluble tracer for a given (I,J) column
-      REAL*8              :: DSTT(NSOLMAX,LLPAR,IIPAR,JJPAR)
+      !------------------------------------------------------------------
+      ! Prior to 1/30/08:
+      ! Redimension DSTT with NSOL instead of NSOLMAX.  In many cases,
+      ! NSOL is less than NSOLMAX.  This can help to save memory at 2x25 
+      ! resolution. (bmy, 1/31/08)
+      !REAL*8              :: DSTT(NSOLMAX,LLPAR,IIPAR,JJPAR)
+      !------------------------------------------------------------------
+      REAL*8              :: DSTT(NSOL,LLPAR,IIPAR,JJPAR)
  
       !=================================================================
       ! WETDEP begins here!
@@ -2619,7 +2630,14 @@
 
          ! Zero accumulator array
          DO L  = 1, LLPAR
-         DO NN = 1, NSOLMAX
+         !--------------------------------------------------------------
+         ! Prior to 1/31/08:
+         ! Redimension DSTT with NSOL instead of NSOLMAX.  In many 
+         ! cases, NSOL is less than NSOLMAX.  This can help to save 
+         ! memory at 2x25 resolution. (bmy, 1/31/08)
+         !DO NN = 1, NSOLMAX
+         !--------------------------------------------------------------
+         DO NN = 1, NSOL
             DSTT(NN,L,I,J) = 0d0
          ENDDO
          ENDDO

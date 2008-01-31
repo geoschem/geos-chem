@@ -1,5 +1,5 @@
 REVISIONS (v8-01-01)  
-24 Jan 2008
+31 Jan 2008
 Bob Yantosca              and Philippe Le Sager
 yantosca@seas.harvard.edu     plesager@seas.harvard.edu
 
@@ -108,10 +108,10 @@ fast_j.f		-- Now initialize the PJ array here, instead of two
 			-- Now no longer pass PRES to "photoj.f"
 
 finite_dble		-- Now use FP_CLASS function for IFORT compiler
-("error_mod.f")
+("error_mod.f")		-- Also comment out test for NaN on Sun for now
 
 finite_float            -- Now use FP_CLASS function for IFORT compiler
-("error_mod.f")
+("error_mod.f")		-- Also comment out test for NaN on Sun for now
 
 get_a3_fields		-- Now read extra fields for GEOS-5
 ("a3_read_mod.f")
@@ -208,16 +208,17 @@ mmran_16.f		-- Remove PRES as an argument, since we no longer
                            need to pass that to PHOTOJ
 
 nan_dble		-- Now use ISNAN function for IFORT compiler
-("error_mod.f")
+("error_mod.f")	 	-- Also comment out test for NaN on Sun for now
 
 nan_float               -- Now use ISNAN function for IFORT compiler
-("error_mod.f")
+("error_mod.f")         -- Also comment out test for NaN on Sun for now
 
 ndxx_setup.f		-- Now save true pressure edges for ND31 diagnostic
 			-- Now stop the run if ND20 is defined but ND65 isn't
 
 nfcldmx			-- Now make CLDMAS, DTRN as arguments, so that we 
 ("convection_mod.f")       can pass either GEOS-3 or GEOS-3 met data
+			-- 
 
 photoj.f		-- We don't need to pass "P" via the arg list
 
@@ -276,6 +277,11 @@ transport_mod.f		-- Split off GCAP, GEOS-3, GEOS-4/GEOS-5
                         -- Also removed some obsolete module variables
                            (STT_I1, STT_I2, STT_J1, STT_J2, DSIG,
                             USE_GEOS_4_TRANSPORT)
+
+wetdep			-- Redimension DSTT with NSOL instead of NSOLMAX. 
+("wetscav_mod.f")          In many cases, NSOL is less than NSOLMAX and 
+                           this will help to save memory especially when
+                           running at 2x25 or greater resolution
 
 write20			-- Now only write up to LD65 levels
 ("diag_pl_mod.f")
