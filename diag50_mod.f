@@ -1,9 +1,9 @@
-! $Id: diag50_mod.f,v 1.17 2007/11/16 18:47:37 bmy Exp $
+! $Id: diag50_mod.f,v 1.18 2008/02/11 20:09:33 bmy Exp $
       MODULE DIAG50_MOD
 !
 !******************************************************************************
 !  Module DIAG50_MOD contains variables and routines to generate 24-hour 
-!  average timeseries data. (amf, bey, bdf, pip, bmy, 11/30/00, 1/24/07)
+!  average timeseries data. (amf, bey, bdf, pip, bmy, 11/30/00, 2/11/08)
 !
 !  Module Variables:
 !  ============================================================================
@@ -105,6 +105,7 @@
 !  (9 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !  (10) Modified INIT_DIAG49 to save out transects (cdh, bmy, 11/30/06)
 !  (11) Now use 3D timestep counter for full chem in the trop (phs, 1/24/07)
+!  (12) Renumber RH diagnostic in WRITE_DIAG50 (bmy, 2/11/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -714,6 +715,7 @@
 !  (6 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (7 ) DIVISOR is now a 3-D array.  Now zero COUNT_CHEM3D.  Now zero Q
 !        array with array assignment statement. (phs, 1/24/07)
+!  (8 ) RH should be tracer #17 under "TIME-SER" category (bmy, 2/11/08)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -1011,10 +1013,17 @@
             !---------------------
             ! Relative humidity
             !---------------------            
-            CATEGORY = 'DAO-3D-$'
+            !-----------------------
+            ! Prior to 2/11/08:
+            !CATEGORY = 'DAO-3D-$'
+            !UNIT     = '%'
+            !GMNL     = ND50_NL
+            !GMTRC    = 11
+            !-----------------------
+            CATEGORY = 'TIME-SER'
             UNIT     = '%'
             GMNL     = ND50_NL
-            GMTRC    = 11
+            GMTRC    = 17
 
          ELSE IF ( N == 95 ) THEN
 

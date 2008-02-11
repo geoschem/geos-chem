@@ -1,4 +1,4 @@
-! $Id: diag49_mod.f,v 1.19 2008/02/11 16:18:14 bmy Exp $
+! $Id: diag49_mod.f,v 1.20 2008/02/11 20:09:33 bmy Exp $
       MODULE DIAG49_MOD
 !
 !******************************************************************************
@@ -92,7 +92,7 @@
 !  (7 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !  (8 ) Modified INIT_DIAG49 to save out transects (cdh, bmy, 11/30/06)
 !  (9 ) Bug fix: accumulate into Q(X,Y,K) for dust OD (qli, bmy, 4/30/07)
-!  (10) Bug fix in unit string for PBL diagnostic in DIAG49 (cdh, bmy, 2/11/08)
+!  (10) Minor bug fixes in DIAG49 (cdh, bmy, 2/11/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -164,7 +164,8 @@
 !  (8 ) Now references XNUMOLAIR from "tracer_mod.f".  Bug fix: now must sum
 !        aerosol OD's over all RH bins.  Also zero Q array. (bmy, 11/1/05)
 !  (9 ) Bug fix: accumulate into Q(X,Y,K) for dust OD (qli, bmy, 4/30/07)
-!  (10) Bug fix: UNIT should be "levels" for tracer 77 (cdh, bmy, 2/11/08)
+!  (10) Bug fix: UNIT should be "levels" for tracer 77.  Also RH should be
+!        tracer #17 under "TIME-SER" category. (cdh, bmy, 2/11/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -857,10 +858,18 @@
             !-----------------------------------
             ! RELATIVE HUMIDITY [%]
             !----------------------------------- 
-            CATEGORY = 'DAO-3D-$'
+            !------------------------
+            ! Prior to 2/11/08:
+            !CATEGORY = 'DAO-3D-$'
+            !------------------------
+            CATEGORY = 'TIME-SER'
             UNIT     = '%'
             GMNL     = ND49_NL
-            GMTRC    = 11
+            !------------------------
+            ! Prior to 2/11/08:
+            !GMTRC    = 11
+            !------------------------            
+            GMTRC    = 17
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )

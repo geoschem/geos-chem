@@ -1,4 +1,4 @@
-! $Id: diag48_mod.f,v 1.11 2008/02/11 16:18:14 bmy Exp $
+! $Id: diag48_mod.f,v 1.12 2008/02/11 20:09:33 bmy Exp $
       MODULE DIAG48_MOD
 !
 !******************************************************************************
@@ -64,7 +64,7 @@
 !        to get the value for GEOS or GCAP grids. (bmy, 6/28/05)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
-!  (5 ) Bug fix in unit string for PBL height in layers (cdh, bmy, 2/11/08)
+!  (5 ) Minor bug fixes in DIAG48 (cdh, bmy, 2/11/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -137,7 +137,8 @@
 !  (4 ) Now do not save SLP data if it is not allocated (bmy, 8/2/05)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
-!  (7 ) Bug fix: unit for tracer #77 should be "layers" (cdh, bmy, 2/11/08)
+!  (7 ) Bug fix: unit for tracer #77 should be "layers".  Also RH should be 
+!        tracer #17 under "TIME-SER" category. (cdh, bmy, 2/11/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -371,6 +372,7 @@
             !-------------------------------------    
             CATEGORY = 'PBLDEPTH'
             !---------------------------------------------------------------
+            ! Prior to 2/11/08:
             ! Bug fix: unit should be "levels" here (cdh, bmy, 2/11/08)
             !UNIT     = 'm'  
             !---------------------------------------------------------------
@@ -577,9 +579,15 @@
             !-----------------------------------
             ! RELATIVE HUMIDITY [%]
             !----------------------------------- 
-            CATEGORY = 'DAO-3D-$'
+            !--------------------------
+            ! Prior to 2/11/08:
+            !CATEGORY = 'DAO-3D-$'
+            !UNIT     = '%'
+            !GMTRC    = 11
+            !--------------------------
+            CATEGORY = 'TIME-SER'
             UNIT     = '%'
-            GMTRC    = 11
+            GMTRC    = 17
 
             DO L = 1, K
                Q(L) = RH(I,J,L)

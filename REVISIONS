@@ -95,10 +95,10 @@ diag3.f			-- Now save out true pressure at 3-D level edges
                            all of them.
 
 diag48			-- Bug fix: unit for tracer #77 should be "levels"
-("diag48_mod.f")
+("diag48_mod.f")        -- RH should be tracer #17 under "TIME-SER" category
 
 diag49		        -- Bug fix: unit for tracer #77 should be "levels"
-("diag49_mod.f")
+("diag49_mod.f")        -- RH should be tracer #17 under "TIME-SER" category
 
 do_convection		-- Now reference "CMN_SIZE".  Now references CLDMAS, 
 ("convection_mod.f")       CMFMC, DTRAIN from "dao_mod.f" so that we can pass 
@@ -300,3 +300,9 @@ wetdep			-- Redimension DSTT with NSOL instead of NSOLMAX.
 
 write20			-- Now only write up to LD65 levels
 ("diag_pl_mod.f")
+
+write_diag50		--  RH should be tracer #17 under "TIME-SER" category
+("diag50_mod.f")
+
+write_diag51		--  RH should be tracer #17 under "TIME-SER" category
+("diag50_mod.f")

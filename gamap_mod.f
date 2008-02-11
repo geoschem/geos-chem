@@ -1,4 +1,4 @@
-! $Id: gamap_mod.f,v 1.24 2008/02/11 16:18:14 bmy Exp $
+! $Id: gamap_mod.f,v 1.25 2008/02/11 20:09:34 bmy Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
@@ -1295,10 +1295,15 @@
 
       ! Local variables
       INTEGER               :: N, NN, NYMDb, NHMSb, T
+      LOGICAL               :: DO_TIMESERIES
 
       !=================================================================
       ! INIT_TRACERINFO begins here!
       !=================================================================
+
+      ! Set a flag if any timeseries diagnostics are turned on
+      DO_TIMESERIES = ( DO_SAVE_DIAG48 .or. DO_SAVE_DIAG49 .or.
+     &                  DO_SAVE_DIAG50 .or. DO_SAVE_DIAG51 )
 
       !----------------------------------
       ! General tracer information
@@ -1977,7 +1982,13 @@
       !-------------------------------------      
       ! Optical depths (ND21)
       !-------------------------------------
-      IF ( ND21 > 0 ) THEN
+      !--------------------------------------------------------------------
+      ! Prior to 2/11/08:
+      ! Write to tracerinfo.dat if ND21 or any of the timeseries
+      ! diagnostics (ND48, ND49, ND50, ND51) are turned on (bmy, 2/11/08)
+      !IF ( ND21 > 0 ) THEN
+      !--------------------------------------------------------------------
+      IF ( ND21 > 0 .or. DO_TIMESERIES ) THEN
 
          ! Number of tracers
          NTRAC(21) = 20
@@ -2385,8 +2396,7 @@
       ! timeseries diags are turned on (cdh, bmy, 2/11/08)
       !IF ( ND41 > 0 ) THEN
       !-----------------------------------------------------
-      IF ( ND41 > 0 .or. ND48 > 0 .or. 
-     &     ND49 > 0 .or. ND50 > 0 .or. ND51 > 0 ) THEN
+      IF ( ND41 > 0 .or. DO_TIMESERIES ) THEN
 
          ! Number of tracers
          NTRAC(41) = 2
@@ -2649,8 +2659,13 @@
       !-------------------------------------      
       ! Time series diags (ND{48,49,50,51})
       !-------------------------------------      
-      IF ( DO_SAVE_DIAG48 .or. DO_SAVE_DIAG49  .or. 
-     &     DO_SAVE_DIAG50 .or. DO_SAVE_DIAG51 ) THEN 
+!-------------------------------------------------------------------
+! Prior to 2/11/08:
+! Now use the DO_TIMESERIES flag instead of 4 flags (bmy, 2/11/08)
+!      IF ( DO_SAVE_DIAG48 .or. DO_SAVE_DIAG49  .or. 
+!     &     DO_SAVE_DIAG50 .or. DO_SAVE_DIAG51 ) THEN 
+!-------------------------------------------------------------------
+      IF ( DO_TIMESERIES ) THEN 
 
          ! Number of tracers
          NTRAC(48) = 26
@@ -2906,8 +2921,15 @@
 
       !-------------------------------------      
       ! 3-D GMAO met fields (ND66)
+      ! also for timeseries diagnostics
       !-------------------------------------      
-      IF ( ND66 > 0 ) THEN 
+      !-----------------------------------------------------------------------
+      ! Prior to 2/11/08:
+      ! Also need to write this to tracerinfo.dat for timeseries 
+      ! diagnostics (bmy, 2/11/08)
+      !IF ( ND66 > 0 ) THEN 
+      !-----------------------------------------------------------------------
+      IF ( ND66 > 0 .or. DO_TIMESERIES ) THEN
 
          ! Number of tracers
          NTRAC(66) = 6
@@ -2951,7 +2973,13 @@
       !-------------------------------------      
       ! 2-D GMAO met fields (ND67)
       !-------------------------------------      
-      IF ( ND67 > 0 ) THEN 
+      !------------------------------------------------------------------
+      ! Prior to 2/11/08:
+      ! Also need to write this to tracerinfo.dat for timeseries
+      ! diagnostics (bmy, 2/11/08)
+      !IF ( ND67 > 0 ) THEN
+      !------------------------------------------------------------------
+      IF ( ND67 > 0 .or. DO_TIMESERIES ) THEN 
 
          ! Number of tracers
          NTRAC(67) = 22
@@ -3045,10 +3073,16 @@
       ENDIF
 
       !-------------------------------------      
-      ! Grid box heights and 
-      ! related quantities (ND68)
+      ! Grid box heights and related 
+      ! quantities (ND68) + timeseries
       !-------------------------------------      
-      IF ( ND68 > 0 ) THEN 
+      !---------------------------------------------------------------------
+      ! Prior to 2/11/08:
+      ! Also need to write out to tracerinfo.dat for 
+      ! timeseries diagnostics (bmy, 2/11/08)
+      !IF ( ND68 > 0 ) THEN 
+      !---------------------------------------------------------------------
+      IF ( ND68 > 0 .or. DO_TIMESERIES ) THEN
 
          ! Number of tracers
          NTRAC(68) = 4
