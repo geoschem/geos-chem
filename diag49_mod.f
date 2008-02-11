@@ -1,9 +1,9 @@
-! $Id: diag49_mod.f,v 1.18 2007/11/05 16:16:15 bmy Exp $
+! $Id: diag49_mod.f,v 1.19 2008/02/11 16:18:14 bmy Exp $
       MODULE DIAG49_MOD
 !
 !******************************************************************************
 !  Module DIAG49_MOD contains variables and routines to save out 3-D 
-!  timeseries output to disk (bmy, 7/20/04, 4/30/07)
+!  timeseries output to disk (bmy, 7/20/04, 2/11/08)
 !
 !  Module Variables:
 !  ============================================================================
@@ -92,6 +92,7 @@
 !  (7 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !  (8 ) Modified INIT_DIAG49 to save out transects (cdh, bmy, 11/30/06)
 !  (9 ) Bug fix: accumulate into Q(X,Y,K) for dust OD (qli, bmy, 4/30/07)
+!  (10) Bug fix in unit string for PBL diagnostic in DIAG49 (cdh, bmy, 2/11/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -144,7 +145,7 @@
 !******************************************************************************
 !  Subroutine DIAG49 produces time series (instantaneous fields) for a 
 !  geographical domain from the information read in timeseries.dat.  Output 
-!  will be in binary punch (BPCH) format. (bey, bmy, rvm, 4/9/99, 4/30/07)
+!  will be in binary punch (BPCH) format. (bey, bmy, rvm, 4/9/99, 2/11/08)
 !
 !  NOTES:
 !  (1 ) Now bundled into "diag49_mod.f".  Now reference STT from 
@@ -163,6 +164,7 @@
 !  (8 ) Now references XNUMOLAIR from "tracer_mod.f".  Bug fix: now must sum
 !        aerosol OD's over all RH bins.  Also zero Q array. (bmy, 11/1/05)
 !  (9 ) Bug fix: accumulate into Q(X,Y,K) for dust OD (qli, bmy, 4/30/07)
+!  (10) Bug fix: UNIT should be "levels" for tracer 77 (cdh, bmy, 2/11/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -480,10 +482,15 @@
          ELSE IF ( N == 77 ) THEN
 
             !--------------------------------------
-            ! PBL HEIGHTS [layers] 
+            ! PBL HEIGHTS [levels] 
             !--------------------------------------
             CATEGORY = 'PBLDEPTH'
-            UNIT     = 'm'  
+            !--------------------------------------------------------------
+            ! Prior to 2/11/08:
+            ! UNIT should be "levels" here and not "m". (bmy, 2/11/08)
+            !UNIT     = 'm'  
+            !--------------------------------------------------------------
+            UNIT     = 'levels'  
             GMNL     = 1
             GMTRC    = 2
 

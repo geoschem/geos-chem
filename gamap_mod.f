@@ -1,10 +1,10 @@
-! $Id: gamap_mod.f,v 1.23 2007/11/16 18:47:39 bmy Exp $
+! $Id: gamap_mod.f,v 1.24 2008/02/11 16:18:14 bmy Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
 !  Module GAMAP_MOD contains routines to create GAMAP "tracerinfo.dat" and
 !  "diaginfo.dat" files which are customized to each particular GEOS-Chem
-!  simulation. (bmy, 5/3/05, 11/16/07)
+!  simulation. (bmy, 5/3/05, 2/11/08)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -1254,7 +1254,7 @@
 !******************************************************************************
 !  Subroutine INIT_TRACERINFO initializes the NAME, FNAME, MWT, MOLC, INDEX,
 !  MOLC, UNIT arrays which are used to define the "tracerinfo.dat" file.
-!  (bmy, phs, 10/17/06, 9/18/07)
+!  (bmy, phs, 10/17/06, 2/11/08)
 !
 !  NOTES:
 !  (1 ) Split this code off from INIT_GAMAP, for clarity.  Also now declare
@@ -1262,6 +1262,8 @@
 !        26 tracers for ND48, ND49, ND50, ND51 timeseries.  Also define
 !        ND54 diagnostic with offset of 46000. (bmy, 10/17/06)
 !  (2 ) Modifications for H2/HD in ND10, ND44 diagnostics (phs, 9/18/07)
+!  (3 ) Now write out PBLDEPTH diagnostic information to "tracerinfo.dat" if 
+!        any of ND41, ND48, ND49, ND50, ND51 are turned on (cdh, bmy, 2/11/08) 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2375,9 +2377,16 @@
 
       !-------------------------------------      
       ! Afternoon-average boundary 
-      ! layer heights (ND41)
+      ! layer heights (ND41) + timeseries
       !-------------------------------------      
-      IF ( ND41 > 0 ) THEN
+      !-----------------------------------------------------
+      ! Prior to 2/11/08:
+      ! Also write this to tracerinfo.dat if any of the 
+      ! timeseries diags are turned on (cdh, bmy, 2/11/08)
+      !IF ( ND41 > 0 ) THEN
+      !-----------------------------------------------------
+      IF ( ND41 > 0 .or. ND48 > 0 .or. 
+     &     ND49 > 0 .or. ND50 > 0 .or. ND51 > 0 ) THEN
 
          ! Number of tracers
          NTRAC(41) = 2
@@ -2392,7 +2401,7 @@
                   UNIT(T,41) = 'm'
                CASE( 2 )
                   NAME(T,41) = 'PBL-L'
-                  UNIT(T,41) = 'layers'
+                  UNIT(T,41) = 'levels'
                CASE DEFAULT
                   ! Nothing
             END SELECT

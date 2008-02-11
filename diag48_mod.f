@@ -1,9 +1,9 @@
-! $Id: diag48_mod.f,v 1.10 2005/10/27 13:59:53 bmy Exp $
+! $Id: diag48_mod.f,v 1.11 2008/02/11 16:18:14 bmy Exp $
       MODULE DIAG48_MOD
 !
 !******************************************************************************
 !  Module DIAG48_MOD contains variables and routines to save out 3-D 
-!  timeseries output to disk (bmy, 7/20/04, 10/25/05)
+!  timeseries output to disk (bmy, 7/20/04, 2/11/08)
 !
 !  Module Variables:
 !  ============================================================================
@@ -64,6 +64,7 @@
 !        to get the value for GEOS or GCAP grids. (bmy, 6/28/05)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
+!  (5 ) Bug fix in unit string for PBL height in layers (cdh, bmy, 2/11/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -121,7 +122,7 @@
 !
 !******************************************************************************
 !  Subroutine DIAG48 saves station time series diagnostics to disk.
-!  (bmy, bey, amf, 6/1/99, 10/25/05)
+!  (bmy, bey, amf, 6/1/99, 2/11/08)
 !
 !  NOTES:
 !  (1 ) Remove reference to "CMN".  Also now get PBL heights in meters and
@@ -136,6 +137,7 @@
 !  (4 ) Now do not save SLP data if it is not allocated (bmy, 8/2/05)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
+!  (7 ) Bug fix: unit for tracer #77 should be "layers" (cdh, bmy, 2/11/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -368,7 +370,11 @@
             ! PBL HEIGHTS [layers] 
             !-------------------------------------    
             CATEGORY = 'PBLDEPTH'
-            UNIT     = 'm'  
+            !---------------------------------------------------------------
+            ! Bug fix: unit should be "levels" here (cdh, bmy, 2/11/08)
+            !UNIT     = 'm'  
+            !---------------------------------------------------------------
+            UNIT     = 'levels'
             GMTRC    = 2
 
             IF ( K == 1 ) THEN

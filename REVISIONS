@@ -1,5 +1,5 @@
 REVISIONS (v8-01-01)  
-31 Jan 2008
+11 Feb 2008
 Bob Yantosca              and Philippe Le Sager
 yantosca@seas.harvard.edu     plesager@seas.harvard.edu
 
@@ -93,6 +93,12 @@ diag3.f			-- Now save out true pressure at 3-D level edges
 			-- Bug fix in ND28 diagnostic to allow you to print 
                            out individual biomass tracers w/o having to print 
                            all of them.
+
+diag48			-- Bug fix: unit for tracer #77 should be "levels"
+("diag48_mod.f")
+
+diag49		        -- Bug fix: unit for tracer #77 should be "levels"
+("diag49_mod.f")
 
 do_convection		-- Now reference "CMN_SIZE".  Now references CLDMAS, 
 ("convection_mod.f")       CMFMC, DTRAIN from "dao_mod.f" so that we can pass 
@@ -191,6 +197,10 @@ init_transfer		-- Rewritten for clarity.
                            "pressure_mod.f"
                         -- Now pass I0, J0 from "grid_mod.f" via the arg list
 
+init_tracerinfo		-- Now write out PBLDEPTH diagnostic information to 
+("gamap_mod.f")            "tracerinfo.dat" if any of ND41, ND48, ND49, ND50, 
+                           ND51 are turned on
+
 init_transport		-- Removed reference to USE_GEOS_4_TRANSPORT, 
 ("transport_mod.f")        STT_I1, STT_I2, STT_J1, STT_J2, variables
 
@@ -243,6 +253,11 @@ read_a6			-- Add CMFMC, DQIDTMST, DQLDTMST, DQRCON, DQRLSC,
 
 read_bpch2		-- Make TEMPARRAY big enough for GEOS-5 72 levels 
 ("bpch2_mod.f")            (and 73 edges) 
+
+read_diagnostic_menu	-- Bug fix: Should use ND52 in call to SET_TINDEX 
+("input_mod.f")         -- New error traps for OTD-LIS scaling, dependent on 
+                           met field type.
+                        -- Bug fix, create string variables for ERROR_STOP.
 
 read_emissions_menu	-- Add new error traps for OTD-LIS options, 
 ("input_mod.f")	           dependent on met field type

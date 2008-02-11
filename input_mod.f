@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.45 2008/01/24 19:58:01 bmy Exp $
+! $Id: input_mod.f,v 1.46 2008/02/11 16:18:15 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS-Chem input file at the start of the run
 !  and passes the information to several other GEOS-Chem F90 modules.
-!  (bmy, 7/20/04, 11/29/07)
+!  (bmy, 7/20/04, 2/11/08)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -120,7 +120,8 @@
 !  (17) Now modified for OTD-LIS local redistribution.  Remove references
 !        to GEOS-1 and GEOS-STRAT run dirs. (bmy, 11/5/07)
 !  (18) New error traps for OTD-LIS scaling, dependent on met field type.
-!        Bug fix, create string variables for ERROR_STOP. (ltm, bmy, 1/24/08)
+!        Bug fix, create string variables for ERROR_STOP.  Bug fix: use ND52
+!        in call to SET_TINDEX in READ_DIAGNOSTIC_MENU. (ltm, bmy, 2/11/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -2113,7 +2114,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_DIAGNOSTIC_MENU reads the DIAGNOSTIC MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 5/22/06)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 2/11/08)
 !
 !  NOTES:
 !  (1 ) Now reference IU_BPCH from "file_mod.f" and OPEN_BPCH2_FOR_WRITE
@@ -2133,6 +2134,7 @@
 !  (8 ) Now reference ND42, PD42, INIT_DIAG42 from "diag42_mod.f"
 !        (dkh, bmy, 5/22/06)
 !  (9 ) Now set max dimension for GFED2 or default biomass (bmy, 9/22/06)
+!  (10) Bug fix: Should use ND52 in call to SET_TINDEX (cdh, bmy, 2/11/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2554,7 +2556,11 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:51' )
       READ( SUBSTRS(1), * ) ND52
-      CALL SET_TINDEX( 52, ND48, SUBSTRS(2:N), N-1, PD52 )
+      !----------------------------------------------------------
+      ! Bug fix: ND48 should be ND52 here (cdh, bmy, 2/11/08)
+      !CALL SET_TINDEX( 52, ND48, SUBSTRS(2:N), N-1, PD52 )
+      !----------------------------------------------------------
+      CALL SET_TINDEX( 52, ND52, SUBSTRS(2:N), N-1, PD52 )
 
       !--------------------------
       ! ND53: Free
