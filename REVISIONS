@@ -107,7 +107,27 @@ do_convection		-- Now reference "CMN_SIZE".  Now references CLDMAS,
 do_diag_pl		-- Now only loop up thru LD65 levels
 ("diag_pl_mod.f")
 
+do_emissions		-- Now call EMISSDR for Tagged CO fossil fuel 
+("emissions_mod.f")        emissions, so that we get the same emissions for 
+                           Tagged CO as we do for the full-chemistry
+
+emfossil.f		-- Now references ITS_A_TAGCO_SIM from "tracer_mod.f"
+			-- Enhance CO prod by 18.5% for tagged CO sim here 
+			   instead of in "tagged_co_mod.f"
+
 emissdr.f		-- Now also use EMLIGHTNING_NL for GEOS-5
+			-- Now reference ITS_A_TAGCO_SIM from "tracer_mod.f"
+			-- Now do not save biogenic ACET, ISOP, and CO
+                           into EMISRR array for the tagged CO simulation
+			-- Also do not archive CO from monoterpenes into
+ 			   the ND29 diagnostic for the Tagged CO simulation.
+
+emiss_tagged_co		-- Now take CO emissions from the EMISRR array, 
+("tagged_co_mod.f")        which is archived by calling EMISSDR
+			-- Remove duplicate scaling and other operations 
+                           which are now done in EMISSDR. 	
+			-- Remove references to BIOFUEL_BURN, GEIA_MOD,
+		           and GET_AREA_CM2.
 
 fast_j.f		-- Now initialize the PJ array here, instead of two 
 	                   layers below in "set_prof.f"
@@ -213,6 +233,9 @@ interp			-- Don't interpolate TROPP for GEOS-5
 ("dao_mod.f")
 
 main.f			-- Now call LIGHTNING_NL for GEOS-5
+			-- added tagged CO use statement
+			-- added IF statement so that tagged CO 
+                           simulation calls ANTHROEMS
 
 mmran_16.f		-- Remove PRES as an argument, since we no longer 
                            need to pass that to PHOTOJ
@@ -280,6 +303,9 @@ set_prof.f		-- We don't need to initialize the PJ array with ETAA
 
 src_dust_dead		-- Use SNOMAS (m H2O) for GEOS-5
 ("dust_mod.f")
+
+tracerid		-- To satisfy IF statement in EMISSDR for using 
+("tracerid_mod.f")         EMFOSSIL, we need to set IDECO=1 instead of IDECO=2
 
 transfer_a6		-- Now break GEOS-5 into a separate #ifdef block 
 ("transfer_mod.f")

@@ -1,4 +1,4 @@
-! $Id: emissdr.f,v 1.14 2007/11/05 16:16:17 bmy Exp $
+! $Id: emissdr.f,v 1.15 2008/02/14 18:23:49 bmy Exp $
       SUBROUTINE EMISSDR
 !
 !******************************************************************************
@@ -89,6 +89,7 @@
       USE MEGAN_MOD,         ONLY : GET_EMMONOT_MEGAN
       USE TIME_MOD,          ONLY : GET_MONTH,     GET_TAU
       USE TIME_MOD,          ONLY : GET_TS_EMIS,   GET_LOCALTIME
+      USE TRACER_MOD,        ONLY : ITS_A_TAGCO_SIM
       USE TRACERID_MOD,      ONLY : IDEACET,       IDTISOP,   IDEISOP   
       USE TRACERID_MOD,      ONLY : IDECO,         IDEPRPE,   NEMANTHRO 
 
@@ -104,6 +105,7 @@
 
       ! Local variables
       LOGICAL, SAVE          :: FIRSTEMISS = .TRUE. 
+      LOGICAL                :: NO_TAGCO
       INTEGER                :: I, J, L, N, IJLOOP 
       INTEGER                :: I0, J0, IOFF, JOFF, IREF, JREF
       INTEGER                :: NDAY,JSCEN,NN
@@ -129,6 +131,9 @@
 !  Call subroutines to set up ISOP and monoterpene emission (first time only!)
 !******************************************************************************
 !
+      ! This is not a tagged CO simulation
+      NO_TAGCO = ( .not. ITS_A_TAGCO_SIM() )
+
       ! Emission timestep [s]
       DTSRCE = GET_TS_EMIS() * 60d0
 
@@ -335,7 +340,11 @@
                   CALL OCEAN_SOURCE_ACET( I, J, BIO_ACET )
 
                   ! Add biogenic acetone to anthro source [atoms C/box/s]
-                  EMISRR(I,J,IDEACET) = EMISRR(I,J,IDEACET) + BIO_ACET
+                  ! NOTE: Don't save into EMISRR for the tagged CO 
+                  ! simulation (jaf, mak, bmy, 2/14/08)
+                  IF ( NO_TAGCO ) THEN
+                    EMISRR(I,J,IDEACET) = EMISRR(I,J,IDEACET) + BIO_ACET
+                  ENDIF
                ENDIF
 !-----------------------------------------------------------------------------
 
@@ -344,8 +353,13 @@
                ! EMISRR has units [atoms C/box/s] 
                !==============================================================
                IF ( IDTISOP /= 0 ) THEN
-                  EMISRR(I,J,IDEISOP) = EMISRR(I,J,IDEISOP) + 
-     &                                  ( EMIS / DTSRCE )
+
+                  ! NOTE: Don't save into EMISRR for the tagged CO 
+                  ! simulation (jaf, mak, bmy, 2/14/08)
+                  IF ( NO_TAGCO ) THEN
+                     EMISRR(I,J,IDEISOP) = EMISRR(I,J,IDEISOP) + 
+     &                                     ( EMIS / DTSRCE )
+                  ENDIF
                ENDIF
 !------------------------------------------------------------------------------
 !
@@ -388,13 +402,19 @@
 !
                !=====================================================
                ! CO from MONOTERPENE oxidation [molec CO/box/s] 
-               !=====================================================
-               TMPVAL            = ( EMMO / DTSRCE ) * 0.2d0
-               EMISRR(I,J,IDECO) = EMISRR(I,J,IDECO) + TMPVAL
-         
-               ! ND29: CO-source from monoterpenes [molec/cm2/s]
-               IF ( ND29 > 0 ) THEN
-                  AD29(I,J,5) = AD29(I,J,5) + ( TMPVAL / AREA_CM2 )
+               !====================================================
+ 
+               ! NOTE: Don't save into EMISRR for the tagged CO simulation.  
+               ! Also for tagged CO we don't use monoterpenes  ??????
+               ! (jaf, mak, bmy, 2/14/08)
+               IF ( NO_TAGCO ) THEN
+                  TMPVAL            = ( EMMO / DTSRCE ) * 0.2d0
+                  EMISRR(I,J,IDECO) = EMISRR(I,J,IDECO) + TMPVAL
+
+                  ! ND29: CO-source from monoterpenes [molec/cm2/s]
+                  IF ( ND29 > 0 ) THEN
+                     AD29(I,J,5) = AD29(I,J,5) + ( TMPVAL / AREA_CM2 )
+                  ENDIF
                ENDIF
 !
 !******************************************************************************
@@ -419,8 +439,13 @@
                BIOSCAL = 0.0286d0 ! new factor, (ljm, bey, 9/28/98)
 
                IF ( IDEPRPE /= 0 ) THEN
-                  EMISRR(I,J,IDEPRPE) = EMISRR(I,J,IDEPRPE) +
-     &                                  ( EMIS / DTSRCE ) * BIOSCAL
+
+                  ! NOTE: Don't save into EMISRR for the tagged 
+                  ! CO simulation. (jaf, mak, bmy, 2/14/08)
+                  IF ( NO_TAGCO ) THEN 
+                     EMISRR(I,J,IDEPRPE) = EMISRR(I,J,IDEPRPE) +
+     &                                     ( EMIS / DTSRCE ) * BIOSCAL
+                  ENDIF
                ENDIF
 !
 !******************************************************************************

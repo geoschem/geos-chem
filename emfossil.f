@@ -1,9 +1,9 @@
-! $Id: emfossil.f,v 1.18 2006/11/07 19:01:59 bmy Exp $
+! $Id: emfossil.f,v 1.19 2008/02/14 18:23:49 bmy Exp $
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
 !******************************************************************************
 !  Subroutine EMFOSSIL emits fossil fuels into the EMISRR and EMISRRN 
-!  arrays, which are then passed to SMVGEAR. (bmy, 4/19/99, 9/8/06)
+!  arrays, which are then passed to SMVGEAR. (bmy, 4/19/99, 2/14/08)
 !
 !  Arguments as input:
 !  ============================================================================
@@ -53,6 +53,9 @@
 !        NOx over SE Asia and CO over just China (yxw, bmy, 8/17/06)
 !  (25) Bug fix: Now only execute EDGAR CO block if the tracer is CO.
 !        Also, David Streets' CO is now applied over SE ASIA. (bmy, 9/8/06)
+!  (26) Now references ITS_A_TAGCO_SIM from "tracer_mod.f".  Enhance CO prod
+!        by 18.5% for tagged CO sim here instead of in "tagged_co_mod.f".
+!        (bmy, 2/14/08)
 !******************************************************************************
 !          
       ! References to F90 modules
@@ -70,6 +73,7 @@
       USE STREETS_ANTHRO_MOD, ONLY : GET_STREETS_ANTHRO
       USE TIME_MOD,           ONLY : GET_TS_EMIS,      GET_DAY_OF_WEEK
       USE TIME_MOD,           ONLY : GET_HOUR
+      USE TRACER_MOD,         ONLY : ITS_A_TAGCO_SIM
       USE TRACER_MOD,         ONLY : XNUMOL
       USE TRACERID_MOD,       ONLY : IDENOX, IDEOX,    IDTCO
   
@@ -329,10 +333,23 @@
 
          EMX(1) = TODX * EMISR(IREF,JREF,N) 
 
-         ! Enhance CO production by 2%, to account for CO
-         ! production from anthropogenic VOC's (bnd, bmy, 4/26/01)
-         IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.02d0
+         !------------------------------------------------------------
+         ! Prior to 2/14/08:
+         !! Enhance CO production by 2%, to account for CO
+         !! production from anthropogenic VOC's (bnd, bmy, 4/26/01)
+         !IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.02d0
+         !------------------------------------------------------------
 
+         ! Account for CO production from anthropogenic VOC's
+         ! -> For Tagged CO, enhance CO production by 18.5%
+         ! -> For full-chem, enhance CO production by 2%
+         ! (bnd, bmy, 4/26/01; jaf, mak, bmy, 2/14/08)
+         IF ( ITS_A_TAGCO_SIM() ) THEN
+            IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.185d0
+         ELSE
+            IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.02d0
+         ENDIF
+         
          !--------------------------------------------------------------
          ! Get CO emissions from the EDGAR inventory (global)
          !--------------------------------------------------------------

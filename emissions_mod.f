@@ -1,9 +1,9 @@
-! $Id: emissions_mod.f,v 1.20 2007/11/05 16:16:17 bmy Exp $
+! $Id: emissions_mod.f,v 1.21 2008/02/14 18:23:49 bmy Exp $
       MODULE EMISSIONS_MOD
 !
 !******************************************************************************
 !  Module EMISSIONS_MOD is used to call the proper emissions subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 2/11/03, 9/18/07)
+!  for the various GEOS-CHEM simulations. (bmy, 2/11/03, 2/14/08)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -51,6 +51,7 @@
 !  (14) Now references "edgar_mod.f" (avd, bmy, 7/6/06)
 !  (15) Now references "streets_anthro_mod.f" (yxw, bmy, 8/18/06)
 !  (16) Now references "h2_hd_mod.f" (lyj, phs, 9/18/07)
+!  (17) Now calls EMISSDR for tagged CO simulation (jaf, mak, bmy, 2/14/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -67,7 +68,7 @@
 !******************************************************************************
 !  Subroutine DO_EMISSIONS is the driver routine which calls the appropriate
 !  emissions subroutine for the various GEOS-CHEM simulations. 
-!  (bmy, 2/11/03, 8/17/06)
+!  (bmy, 2/11/03, 2/14/08)
 !
 !  NOTES:
 !  (1 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
@@ -94,6 +95,7 @@
 !  (15) Now references EMISS_EDGAR from "edgar_mod.f" (avd, bmy, 7/6/06)
 !  (16) Now references EMISS_STREETS_ANTHRO from "streets_anthro_mod.f"
 !        (yxw, bmy, 8/17/06)
+!  (17) Now calls EMISSDR for tagged CO simulation (jaf, mak, bmy, 2/18/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -257,6 +259,11 @@
          ! Read EPA (Europe) emissions once per year
          IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) CALL EMISS_EMEP
 
+         ! Now call EMISSDR for Tagged CO fossil fuel emissions, 
+         ! so that we get the same emissions for Tagged CO as 
+         ! we do for the full-chemistry (jaf, mak, bmy, 2/14/08)
+         CALL EMISSDR 
+         
          ! Emit tagged CO
          CALL EMISS_TAGGED_CO
 

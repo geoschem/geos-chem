@@ -1,10 +1,10 @@
-! $Id: tracerid_mod.f,v 1.20 2007/11/05 16:16:26 bmy Exp $
+! $Id: tracerid_mod.f,v 1.21 2008/02/14 18:23:49 bmy Exp $
       MODULE TRACERID_MOD
 !
 !******************************************************************************
 !  Module TRACERID_MOD contains variables which point to SMVGEAR species,
 !  CTM Tracers, Biomass species, and biofuel species located within various
-!  GEOS-CHEM arrays. (bmy, 11/12/02, 9/18/07)
+!  GEOS-CHEM arrays. (bmy, 11/12/02, 2/14/08)
 !
 !  Module Variables:
 !  ============================================================================
@@ -170,6 +170,7 @@
 !  (14) Add IDTSOG4 and IDTSOA4 (dkh, bmy, 5/18/06)
 !  (15) Minor fixes for CH3I simulation (bmy, 7/25/06)
 !  (16) Add IDTH2 and IDTHD for H2/HD simulation (hup, lyj, phs, 9/18/07)
+!  (17) Set IDECO=1 for Tagged CO simulation (jaf, mak, bmy, 2/14/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -265,6 +266,8 @@
 !  (13) Now look for IDTSOG4 and IDTSOA4 (bmy, 5/18/06)
 !  (14) Minor fixes for CH3I simulation (bmy, 7/25/06)
 !  (15) Now define IDTH2, IDTHD (hup, lyj, phs, 9/18/07)
+!  (16) To satisfy IF statement in EMISSDR for using EMFOSSIL, we need 
+!        to set IDECO=1 instead of IDECO=2. (jaf, mak, bmy, 2/14/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -332,9 +335,16 @@
 
                ! Special case: Tagged CO
                ! Set some emission flags and then exit
+               ! NOTE: To satisfy IF statement in EMISSDR for using 
+               ! EMFOSSIL, we need to set IDECO=1 instead of IDECO=2.
+               ! (jaf, mak, bmy, 2/14/08)
                IF ( ITS_A_TAGCO_SIM() ) THEN 
                   NEMANTHRO = 1
-                  IDECO     = 2
+                  !--------------------
+                  ! Prior to 2/14/08:
+                  !IDECO     = 2
+                  !--------------------
+                  IDECO     = 1
                   IDTISOP   = 1
                   EXIT
                ENDIF

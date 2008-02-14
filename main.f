@@ -1,18 +1,21 @@
-! $Id: main.f,v 1.50 2007/11/16 18:47:43 bmy Exp $
+! $Id: main.f,v 1.51 2008/02/14 18:23:49 bmy Exp $
 ! $Log: main.f,v $
+! Revision 1.51  2008/02/14 18:23:49  bmy
+! Added fixes to make sure tagged CO has same emissions
+! as the full-chemistry CO (jaf, mak, bmy, 2/14/08)
+!
 ! Revision 1.50  2007/11/16 18:47:43  bmy
 !
 ! Bringing in GEOS-5 modifications to the mainline GEOS-Chem std code
 ! (bmy, 11/16/07)
 !
 ! Revision 1.49  2007/11/05 16:16:22  bmy
-!
-! Added H2/HD simulation
-! Added code for cloud overlap in FAST-J (but use same option as before)
-! Added 200hPa polar fix for variable tropopause
-! Added updated lightning scheme (non-near-land)
-! Fixed mass flux diagnostics in GEOS-3 TPCORE
-! Removed GEMISNOX array in CMN_NOX to prevent common block errors
+! - Added H2/HD simulation
+! - Added code for cloud overlap in FAST-J (but use same option as before)
+! - Added 200hPa polar fix for variable tropopause
+! - Added updated lightning scheme (non-near-land)
+! - Fixed mass flux diagnostics in GEOS-3 TPCORE
+! - Removed GEMISNOX array in CMN_NOX to prevent common block errors
 !
 ! Revision 1.48  2007/02/22 18:26:28  bmy
 ! GEOS-Chem v7-04-11, includes the following modifications:
@@ -231,6 +234,7 @@
       USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,        ONLY : ITS_A_H2HD_SIM
       USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
+      USE TRACER_MOD,        ONLY : ITS_A_TAGCO_SIM
       USE TRANSPORT_MOD,     ONLY : DO_TRANSPORT
       USE TROPOPAUSE_MOD,    ONLY : READ_TROPOPAUSE, CHECK_VAR_TROP
       USE RESTART_MOD,       ONLY : MAKE_RESTART_FILE, READ_RESTART_FILE
@@ -732,7 +736,12 @@
          ENDIF
 
          ! Fossil fuel emissions (SMVGEAR)
-         IF ( ITS_A_FULLCHEM_SIM() ) THEN
+         !------------------------------------------------------------
+         ! Prior to 2/14/08:
+         ! Also call ANTHROEMS for Tagged CO (jaf, mak, bmy, 2/14/08)
+         !IF ( ITS_A_FULLCHEM_SIM() ) THEN
+         !------------------------------------------------------------
+         IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_TAGCO_SIM() ) THEN
             IF ( LEMIS .and. ITS_A_NEW_SEASON() ) THEN
                CALL ANTHROEMS( SEASON )
             ENDIF
