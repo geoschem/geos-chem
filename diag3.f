@@ -1,4 +1,4 @@
-! $Id: diag3.f,v 1.50 2008/01/24 19:58:01 bmy Exp $
+! $Id: diag3.f,v 1.51 2008/02/15 20:16:02 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
@@ -1725,9 +1725,12 @@
             !ARRAY(:,:,1) = AD28(:,:,M) / SCALESRCE
             !---------------------------------------------------------------
             DO MM = 1, NBIOMAX
-               IF ( BIOTRCE(MM) == NN ) MMB = MM
-               EXIT
+               IF ( BIOTRCE(MM) == NN ) THEN
+                  MMB = MM
+                  EXIT
+               ENDIF
             ENDDO
+
             ARRAY(:,:,1) = AD28(:,:,MMB) / SCALESRCE 
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -1735,6 +1738,7 @@
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                  IIPAR,     JJPAR,     1,        IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
          ENDDO
       ENDIF
 !
