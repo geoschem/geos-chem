@@ -1,4 +1,4 @@
-! $Id: lightning_nox_mod.f,v 1.17 2008/01/24 19:58:01 bmy Exp $
+! $Id: lightning_nox_mod.f,v 1.18 2008/02/21 21:29:20 bmy Exp $
       MODULE LIGHTNING_NOX_MOD
 !
 !******************************************************************************
@@ -7,7 +7,7 @@
 !  GISS-II CTM's of Yuhang Wang, Gerry Gardner, & Larry Horowitz.  Overhauled 
 !  for updated parameterization schemes: CTH, MFLUX and PRECON.  Now also
 !  uses the near-land formulation (i.e. offshore boxes also get treated as
-!  if they were land boxes).  (ltm, rch, bmy, 4/14/04, 11/29/07)  
+!  if they were land boxes).  (ltm, rch, bmy, 4/14/04, 2/20/08)  
 !
 !  NOTE: The OTD/LIS regional redistribution for MFLUX and PRECON lightning
 !  parameterizations have not yet been implemented.  These parameterizations
@@ -94,6 +94,8 @@
 !        * Local Redist now a la Murray et al, 2007 in preparation (monthly)
 !        * Replace GEMISNOX (from CMN_NOX) with module variable EMIS_LI_NOx
 !  (5 ) Added MFLUX, PRECON redistribution options (ltm, bmy, 11/29/07)
+!  (6 ) Updated OTD/LIS scaling for GEOS-5 to get more realistic totals
+!        (ltm, bmy, 2/20/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -404,7 +406,29 @@
             ! Error check LTOP as described above
             IF ( LTOP        >  LMAX      ) LTOP = LMAX
             IF ( LTOP        <  LCHARGE   ) CYCLE
-            IF ( T(I,J,LTOP) >= T_NEG_TOP ) CYCLE 
+
+#if   defined( GEOS_5 )
+
+            !--------------------------
+            ! GEOS-5 only!
+            !--------------------------
+
+            ! Eliminate the shallow-cloud inhibition trap for 
+            ! GEOS-5 and local-redistribution (ltm, bmy, 2/20/08)
+            IF ( .not. LOTDLOC ) THEN
+               IF ( T(I,J,LTOP) >= T_NEG_TOP ) CYCLE
+            ENDIF
+
+#else
+            !--------------------------
+            ! All other met fields
+            !--------------------------
+
+            ! Leave the shallow-cloud inhibition trap intact for
+            ! all other met fields than GEOS-5 (ltm, bmy, 2/20/08)
+            IF ( T(I,J,LTOP) >= T_NEG_TOP ) CYCLE
+
+#endif
 
             ! H0 is the convective cloud top height [m].  This is the
             ! distance from the surface to the top edge of box (I,J,LTOP).
@@ -1668,16 +1692,18 @@
 !  is to be applied to the lightning flash rate to bring the annual average 
 !  flash rate to match that of the OTD-LIS climatology ( ~ 45.9 flashes/sec ).
 !  Computed by running the model over the 11-year OTD-LIS campaign window and 
-!  comparing the average flash rates. (ltm, 9/24/07, 11/29/07)
+!  comparing the average flash rates. (ltm, 9/24/07, 2/20/08)
 !
 !  NOTES:
 !  (1 ) Added MFLUX, PRECON scaling for GEOS-4.  Also write messages for met
 !        field types/grids where scaling is not defined. (ltm, bmy, 11/29/07)
+!  (2 ) Now use different divisor for local redist (ltm, bmy, 2/20/08)
 !******************************************************************************
 !
 #     include "define.h"
 
       USE LOGICAL_MOD,   ONLY : LCTH, LMFLUX, LPRECON
+      USE LOGICAL_MOD,   ONLY : LOTDLOC
 
       ! Local variables
       REAL*8 :: SCALE
@@ -1711,8 +1737,22 @@
       !-----------------------
       ! GEOS-5 4 x 5 
       !------------------------
+!------------------------------------------------------------------------------
+! Prior to 2/20/08:
+! Now divide by 17 instead of 13 for the local redist (ltm, bmy, 2/20/08)
+!      IF ( LCTH ) THEN
+!         SCALE = ANN_AVG_FLASHRATE / 13.9779d0
+!      ELSE
+!         WRITE( 6, '(a)' ) 'Warning: OTD-LIS GEOS5 scaling only for CTH'   
+!         SCALE = 1.0d0
+!      ENDIF
+!------------------------------------------------------------------------------
       IF ( LCTH ) THEN
-         SCALE = ANN_AVG_FLASHRATE / 13.9779d0
+         IF ( LOTDLOC ) THEN
+            SCALE = ANN_AVG_FLASHRATE / 17.5892d0
+         ELSE
+            SCALE = ANN_AVG_FLASHRATE / 13.9779d0
+         ENDIF
       ELSE
          WRITE( 6, '(a)' ) 'Warning: OTD-LIS GEOS5 scaling only for CTH'   
          SCALE = 1.0d0
@@ -1723,8 +1763,22 @@
       !----------------------
       ! GEOS-5 2 x 2.5 
       !----------------------
+!------------------------------------------------------------------------------
+! Prior to 2/20/08:
+! Now divide by 47 instead of 36 for the local redist (ltm, bmy, 2/20/08)
+!      IF ( LCTH ) THEN
+!         SCALE = ANN_AVG_FLASHRATE / 36.2878d0
+!      ELSE
+!         WRITE( 6, '(a)' ) 'Warning: OTD-LIS GEOS5 scaling only for CTH'
+!         SCALE = 1.0d0
+!      ENDIF
+!------------------------------------------------------------------------------
       IF ( LCTH ) THEN
-         SCALE = ANN_AVG_FLASHRATE / 36.2878d0
+         IF ( LOTDLOC ) THEN
+            SCALE = ANN_AVG_FLASHRATE / 47.7117d0
+         ELSE
+            SCALE = ANN_AVG_FLASHRATE / 36.2878d0
+         ENDIF
       ELSE
          WRITE( 6, '(a)' ) 'Warning: OTD-LIS GEOS5 scaling only for CTH'
          SCALE = 1.0d0
