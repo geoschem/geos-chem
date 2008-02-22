@@ -1,10 +1,10 @@
-! $Id: gamap_mod.f,v 1.25 2008/02/11 20:09:34 bmy Exp $
+! $Id: gamap_mod.f,v 1.26 2008/02/22 15:00:20 bmy Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
 !  Module GAMAP_MOD contains routines to create GAMAP "tracerinfo.dat" and
 !  "diaginfo.dat" files which are customized to each particular GEOS-Chem
-!  simulation. (bmy, 5/3/05, 2/11/08)
+!  simulation. (bmy, 5/3/05, 2/22/08)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -81,6 +81,7 @@
 !        for the SOA restart files (tmf, havala, bmy, 2/6/07)
 !  (13) Added ND10 diagnostic for H2/HD simulation. (phs, 9/18/07)
 !  (14) Change category name for ND31 diagnostic (bmy, 11/16/07)
+!  (15) Add to tracerinfo.dat file for timeseries and Rn-Pb-Be (bmy, 2/22/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1254,7 +1255,7 @@
 !******************************************************************************
 !  Subroutine INIT_TRACERINFO initializes the NAME, FNAME, MWT, MOLC, INDEX,
 !  MOLC, UNIT arrays which are used to define the "tracerinfo.dat" file.
-!  (bmy, phs, 10/17/06, 2/11/08)
+!  (bmy, phs, 10/17/06, 2/22/08)
 !
 !  NOTES:
 !  (1 ) Split this code off from INIT_GAMAP, for clarity.  Also now declare
@@ -1263,7 +1264,8 @@
 !        ND54 diagnostic with offset of 46000. (bmy, 10/17/06)
 !  (2 ) Modifications for H2/HD in ND10, ND44 diagnostics (phs, 9/18/07)
 !  (3 ) Now write out PBLDEPTH diagnostic information to "tracerinfo.dat" if 
-!        any of ND41, ND48, ND49, ND50, ND51 are turned on (cdh, bmy, 2/11/08) 
+!        any of ND41, ND48, ND49, ND50, ND51 are turned on.  Also set the
+!        unit to "kg/s" for the Rn-Pb-Be ND44 drydep diag. (cdh, bmy, 2/22/08) 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2545,8 +2547,8 @@
          ! Prior to 9/18/07:
          !IF ( ITS_A_TAGOX_SIM() .or. ITS_A_MERCURY_SIM() ) THEN
          !---------------------------------------------------------------
-         IF ( ITS_A_TAGOX_SIM()   .or. 
-     &        ITS_A_MERCURY_SIM() .or. ITS_A_H2HD_SIM() ) THEN
+         IF ( ITS_A_TAGOX_SIM()  .or. ITS_A_RnPbBe_SIM()  .or.
+     &       ITS_A_MERCURY_SIM() .or. ITS_A_H2HD_SIM()  ) THEN
 
             !----------------------------------------------------
             ! Tagged runs: Save drydep flux for all tracers
@@ -2557,12 +2559,22 @@
             DO T = 1, N_TRACERS
                NAME (T,44)  = TRIM( TRACER_NAME(T) ) // 'df'        
                FNAME(T,44)  = TRIM( TRACER_NAME(T) ) // ' drydep flux'
-               UNIT (T,44)  = 'molec/cm2/s'
+               !------------------------------------------------------------
+               ! Prior to 2/22/08:
+               !UNIT (T,44)  = 'molec/cm2/s'
+               !------------------------------------------------------------
                MWT  (T,44)  = TRACER_MW_KG(T) 
                MOLC (T,44)  = INT( TRACER_COEFF(T,1) )
                SCALE(T,44)  = 1.0e0
                INDEX(T,44)  = T + ( SPACING * 36 )
                NTRAC(44)    = NTRAC(44) + 1
+
+               ! For the Rn simulation, unit is kg/s (bmy, 2/22/08)
+               IF ( ITS_A_RnPbBe_SIM() ) THEN
+                  UNIT(T,44) = 'kg/s'
+               ELSE
+                  UNIT(T,44) = 'molec/cm2/s'
+               ENDIF
             ENDDO
 
             ! Drydep velocity (only deposited species)

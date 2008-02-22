@@ -1,5 +1,5 @@
 #=============================================================================
-# $Id: Makefile.sparc,v 1.50 2008/02/19 21:03:09 bmy Exp $
+# $Id: Makefile.sparc,v 1.51 2008/02/22 15:00:19 bmy Exp $
 #
 # GEOS-Chem Makefile for Sun Studio and Sun/SPARC compilers, including
 # compilation options for both SPARC v9 and AMD/Opteron chipsets
@@ -11,7 +11,7 @@ SHELL  = /bin/sh
 FFLAGS = -fpp -fast -stackvar -xfilebyteorder=big16:%all
 
 # Flags specific to TERRA
-FARCH  = -xtarget=opteron -xchip=opteron -xarch=sse2
+FARCH  = -xtarget=opteron -xchip=opteron -xarch=generic64
 
 # Flags specific to TETHYS or CERES
 #FARCH  = -xtarget=opteron -xchip=opteron -xarch=sse3a
@@ -328,7 +328,7 @@ future_emissions_mod.o     : future_emissions_mod.f     CMN_SIZE define.h
 fvdas_convect_mod.o        : fvdas_convect_mod.f        CMN_DIAG CMN_SIZE define.h 
 fyrno3.o                   : fyrno3.f                   
 gamap_mod.o                : gamap_mod.f                CMN_DIAG CMN_SIZE define.h
-	f90 -fpp -O0 -c -stackvar -xfilebyteorder=big16:%all $(FARCH) $*.f
+	f90 -fpp -O0 -stackvar -xfilebyteorder=big16:%all $(FARCH) -c $*.f
 gasconc.o                  : gasconc.f                  CMN_SIZE define.h comode.h 
 gc_biomass_mod.o           : gc_biomass_mod.f           CMN_SIZE define.h 
 gcap_convect_mod.o         : gcap_convect_mod.f         CMN_DIAG CMN_SIZE define.h 
