@@ -1,4 +1,4 @@
-! $Id: gamap_mod.f,v 1.26 2008/02/22 15:00:20 bmy Exp $
+! $Id: gamap_mod.f,v 1.27 2008/02/22 17:11:43 bmy Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
@@ -2547,8 +2547,8 @@
          ! Prior to 9/18/07:
          !IF ( ITS_A_TAGOX_SIM() .or. ITS_A_MERCURY_SIM() ) THEN
          !---------------------------------------------------------------
-         IF ( ITS_A_TAGOX_SIM()  .or. ITS_A_RnPbBe_SIM()  .or.
-     &       ITS_A_MERCURY_SIM() .or. ITS_A_H2HD_SIM()  ) THEN
+         IF ( ITS_A_TAGOX_SIM()   .or. 
+     &        ITS_A_MERCURY_SIM() .or. ITS_A_H2HD_SIM()  ) THEN
 
             !----------------------------------------------------
             ! Tagged runs: Save drydep flux for all tracers
@@ -2559,22 +2559,12 @@
             DO T = 1, N_TRACERS
                NAME (T,44)  = TRIM( TRACER_NAME(T) ) // 'df'        
                FNAME(T,44)  = TRIM( TRACER_NAME(T) ) // ' drydep flux'
-               !------------------------------------------------------------
-               ! Prior to 2/22/08:
-               !UNIT (T,44)  = 'molec/cm2/s'
-               !------------------------------------------------------------
+               UNIT (T,44)  = 'molec/cm2/s'
                MWT  (T,44)  = TRACER_MW_KG(T) 
                MOLC (T,44)  = INT( TRACER_COEFF(T,1) )
                SCALE(T,44)  = 1.0e0
                INDEX(T,44)  = T + ( SPACING * 36 )
                NTRAC(44)    = NTRAC(44) + 1
-
-               ! For the Rn simulation, unit is kg/s (bmy, 2/22/08)
-               IF ( ITS_A_RnPbBe_SIM() ) THEN
-                  UNIT(T,44) = 'kg/s'
-               ELSE
-                  UNIT(T,44) = 'molec/cm2/s'
-               ENDIF
             ENDDO
 
             ! Drydep velocity (only deposited species)
@@ -2612,6 +2602,9 @@
                SCALE(N,44)  = 1.0e0
                INDEX(N,44)  = T + ( SPACING * 36 )
                NTRAC(44)    = NTRAC(44) + 1
+
+               ! For the Rn simulation, unit is kg/s (bmy, 2/22/08)
+               IF ( ITS_A_RnPbBe_SIM() ) UNIT(N,44) = 'kg/s'
 
                ! Drydep velocity (deposited species only)
                NN           = N + NUMDEP
