@@ -1,5 +1,5 @@
 REVISIONS (v8-01-01)  
-11 Feb 2008
+26 Feb 2008
 Bob Yantosca              and Philippe Le Sager
 yantosca@seas.harvard.edu     plesager@seas.harvard.edu
 
@@ -36,6 +36,10 @@ upbdflx_hd		-- Establishes flux boundary condition for HD
 
 CMN_NOX			-- Removed GEMISNOX array so that we do not get 
                            common-block errors 
+
+safe_div		-- Performs a safe floating point division.  If the
+("error_mod.f")            division can't be done, then return a user-defined
+	 		   alternate value.
 
 
 Removed in v8-01-01:
@@ -252,6 +256,8 @@ ndxx_setup.f		-- Now save true pressure edges for ND31 diagnostic
 nfcldmx			-- Now make CLDMAS, DTRN as arguments, so that we 
 ("convection_mod.f")       can pass either GEOS-3 or GEOS-3 met data
 			-- 
+
+partition.f		-- Now do safe division to eliminate FP errors
 
 photoj.f		-- We don't need to pass "P" via the arg list
 

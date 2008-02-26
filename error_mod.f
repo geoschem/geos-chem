@@ -1,8 +1,8 @@
-! $Id: error_mod.f,v 1.16 2008/01/31 15:41:58 bmy Exp $
+! $Id: error_mod.f,v 1.17 2008/02/26 20:17:12 bmy Exp $
       MODULE ERROR_MOD
 !
 !******************************************************************************
-!  Module ERROR_MOD contains error checking routines. (bmy, 3/8/01, 8/14/07)
+!  Module ERROR_MOD contains error checking routines. (bmy, 3/8/01, 2/26/08)
 !
 !  Module Routines:
 !  ===========================================================================
@@ -16,6 +16,7 @@
 !  (8 ) GEOS_CHEM_STOP   : Deallocates all module arrays and stops the run
 !  (9 ) ALLOC_ERR        : Prints error msg for memory allocation errors
 !  (10) DEBUG_MSG        : Prints a debug message and flushes stdout buffer
+!  (11) SAFE_DIV         : Performs a "safe division" (no FP errors)
 !
 !  Module Interfaces:
 !  ===========================================================================
@@ -56,6 +57,7 @@
 !  (17) Cosmetic change in DEBUG_MSG (bmy, 4/10/06)
 !  (18) Remove support for LINUX_IFC and LINUX_EFC compilers (bmy, 8/4/06)
 !  (19) Now use intrinsic functions for IFORT, remove C routines (bmy, 8/14/07)
+!  (20) Added routine SAFE_DIV (phs, bmy, 2/26/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -836,6 +838,44 @@
 
       ! Return to calling program
       END SUBROUTINE DEBUG_MSG
+
+!------------------------------------------------------------------------------
+
+      FUNCTION SAFE_DIV( N, D, ALTV ) RESULT( Q )
+!
+!******************************************************************************
+!  Subroutine SAFE_DIV performs "safe division", that is to prevent overflow,
+!  underflow, NaN, or infinity errors.  An alternate value is returned if the 
+!  division cannot be performed. (bmy, 2/26/08)
+!
+!  For more information, see the discussion on: http://groups.google.com/group/comp.lang.fortran/browse_thread/thread/8b367f44c419fa1d/
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) N    : Numerator for the division 
+!  (2 ) D    : Divisor for the division
+!  (3 ) ALTV : Alternate value to be returned if the division can't be done
+!
+!  NOTES: 
+!******************************************************************************
+!
+      ! Arguments
+      REAL*8, INTENT(IN) :: N, D, ALTV
+      
+      ! Function value
+      REAL*8             :: Q
+
+      !==================================================================
+      ! SAFE_DIV begins here!
+      !==================================================================
+      IF ( EXPONENT(N) - EXPONENT(D) >= MAXEXPONENT(N) .or. D==0 ) THEN
+         Q = ALTV
+      ELSE
+         Q = N / D
+      ENDIF
+
+      ! Return to calling program
+      END FUNCTION SAFE_DIV
 
 !------------------------------------------------------------------------------
 
