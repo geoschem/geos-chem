@@ -1,10 +1,10 @@
-! $Id: tpcore_fvdas_mod.f90,v 1.7 2007/05/07 17:48:12 bmy Exp $
+! $Id: tpcore_fvdas_mod.f90,v 1.8 2008/03/04 20:23:35 bmy Exp $
 module tpcore_fvdas_mod
 !
 !******************************************************************************
 !  Module TPCORE_FVDAS_MOD contains routines for the GEOS-4/fvDAS 
 !  transport scheme.  Original code from S-J Lin and Kevin Yeh. 
-!  (bdf, bmy, 5/7/03, 10/29/04)
+!  (bdf, bmy, 5/7/03, 3/4/08)
 !
 !  The Harvard Atmospheric Chemistry Modeling Group has modified the original
 !  code in order to implement the Philip-Cameron Smith pressure fixer for mass 
@@ -57,6 +57,14 @@ module tpcore_fvdas_mod
 !        modified by Harvard more clear to discern. (bdf, bmy, 9/28/04)
 !  (5 ) Bug fix: Need to multiply ND25 N/S transport fluxes by the array 
 !        RGW_25 which accounts for the latitude factor (bdf, bmy, 10/29/04)
+!  (6 ) Bug fix: get the flux at the bottom of the box at the top of the 
+!        atmosphere.  Unlike "tpcore_mod.f" for GEOS3, here the MASSFLUP is 
+!        defined as the flux into the bottom of the box. It is not necessarily 
+!        zero at the bottom of the atmosphere by design.  This is just a 
+!        representation, the flux differences that really matter are 
+!        correct.  Also note that N/S flux are not 100% accurate, because of 
+!        the RGW_25 factor: N flux out is not exactly equal to S flux into
+!        next box. (phs, 3/4/08)
 !
 !******************************************************************************
 !
@@ -774,6 +782,10 @@ CONTAINS
  !%%% Break up diagnostic into up & down fluxes using the surface boundary 
  !%%% conditions.  Start from top down (really surface up for flipped TPCORE)
  !%%%
+ !%%% By construction, MASSFLUP is flux into the bottom of the box. The 
+ !%%% flux at the bottom of KM (the surface box) is not zero by design. 
+ !%%% (phs, 3/4/08)
+ !%%%
  IF ( ND26 > 0 ) THEN
 
     !-----------------
@@ -794,14 +806,17 @@ CONTAINS
        ! top layer should have no residual.  the small residual is from 
        ! a non-pressure fixed flux diag.  The z direction may be off by 
        ! a few percent.
-       !MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K,IQ)/dt
+       !
+       ! Uncomment now, since this is upflow into the box from its
+       ! bottom (phs, 3/4/08)
+       MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K,IQ)/dt
     ENDDO
     ENDDO
     ENDDO
 !$OMP END PARALLEL DO
 
     !----------------------------------------------------
-    ! get the other fluxes using a mass balance equation
+    ! Get the other fluxes using a mass balance equation
     !----------------------------------------------------
     DO K  = 2, KM
 !$OMP PARALLEL DO                      &

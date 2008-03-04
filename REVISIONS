@@ -1,5 +1,5 @@
 REVISIONS (v8-01-01)  
-26 Feb 2008
+04 Mar 2008
 Bob Yantosca              and Philippe Le Sager
 yantosca@seas.harvard.edu     plesager@seas.harvard.edu
 
@@ -309,6 +309,17 @@ set_prof.f		-- We don't need to initialize the PJ array with ETAA
 
 src_dust_dead		-- Use SNOMAS (m H2O) for GEOS-5
 ("dust_mod.f")
+
+tpcore_fvdas		-- Bug fix: get the flux at the bottom of the box at 
+("tpcore_fvdas_mod.f")     the top of the atmosphere.  Unlike "tpcore_mod.f" 
+                           for GEOS3, here the MASSFLUP is defined as the flux
+                           into the bottom of the box.  It is not necessarily 
+                           zero at the bottom of the atmosphere by design.  
+                           This is just a representation, the flux differences 
+	                   that really matter are correct.  
+                        -- Also note that N/S flux are not 100% accurate, 
+                           because of the RGW_25 factor: N flux out is not 
+                           exactly equal to S flux into next box. 
 
 tracerid		-- To satisfy IF statement in EMISSDR for using 
 ("tracerid_mod.f")         EMFOSSIL, we need to set IDECO=1 instead of IDECO=2
