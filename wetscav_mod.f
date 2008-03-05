@@ -1,9 +1,9 @@
-! $Id: wetscav_mod.f,v 1.28 2008/01/31 15:41:58 bmy Exp $
+! $Id: wetscav_mod.f,v 1.29 2008/03/05 18:47:05 bmy Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
 !  Module WETSCAV_MOD contains arrays for used in the wet scavenging of
-!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 1/31/08)
+!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 3/5/08)
 !
 !  Module Variables:
 !  ============================================================================
@@ -119,7 +119,8 @@
 !  (22) Now wet deposit SOG4, SOA4. Remove unnecessary variables in WETDEP.
 !        (dkh, bmy, 5/18/06)
 !  (23) Bug fixes in COMPUTE_F (bmy, 7/26/06)
-!  (24) Resize DSTT array in WETDEP to save memory (bmy, 1/31/08)
+!  (24) Resize DSTT array in WETDEP to save memory.  Added fixes for GEOS-5
+!        wet deposition per Hongyu Liu's suggestions. (bmy, 3/5/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -178,10 +179,11 @@
 !
 !******************************************************************************
 !  Subroutine DO_WETDEP is a driver for the wet deposition code, called
-!  from the MAIN program. (bmy, 3/27/03, 7/20/04)
+!  from the MAIN program. (bmy, 3/27/03, 3/5/08)
 !
 !  NOTES:
 !  (1 ) Now references LPRT from "logical_mod.f" (bmy, 7/20/04)
+!  (2 ) Don't do rainout/washout for conv precip for GEOS-5 (hyl, bmy, 3/5/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -190,9 +192,9 @@
 
 #     include "CMN_SIZE"  ! Size parameters
 
-      !=================================================================
+      !==================================================================
       ! DO_WETDEP begins here!
-      !=================================================================
+      !==================================================================
 
       ! Wetdep by large-scale (stratiform) precip
       CALL MAKE_QQ( .TRUE. )
@@ -200,11 +202,29 @@
       CALL WETDEP(  .TRUE. )
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
 
+#if   !defined( GEOS_5 )
+
+      !------------------------------------------------------------------
+      ! NOTE FROM HONGYU LIU (hyl@nianet.org) -- 3/5/08
+      !
+      ! Rainout and washout from convective precipitation for previous
+      ! GEOS archives were intended to represent precipitation from 
+      ! cloud anvils [Liu et al., 2001]. For GEOS-5 (as archived at 
+      ! Harvard), the cloud anvil precipitation was already included 
+      ! in the large-scale precipitation. 
+      !
+      ! Therefore, we insert a #if block to ensure that call MAKE_QQ
+      ! and WETDEP are not called for convective precip in GEOS-5.
+      ! (hyl, bmy, 3/5/08)
+      !------------------------------------------------------------------
+
       ! Wetdep by convective precip
       CALL MAKE_QQ( .FALSE. )
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before conv wetdep' )
       CALL WETDEP(  .FALSE. )
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after conv wetdep' )
+
+#endif
 
       ! Return to calling program
       END SUBROUTINE DO_WETDEP
@@ -1428,7 +1448,7 @@
 !
 !******************************************************************************
 !  Subroutine RAINOUT computes RAINFRAC, the fraction of soluble tracer
-!  lost to rainout events in precipitation. (djj, bmy, 2/28/00, 5/18/06)
+!  lost to rainout events in precipitation. (djj, bmy, 2/28/00, 3/5/08)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1475,6 +1495,7 @@
 !        IS_Hg2 and IS_HgP to determine if the tracer is a tagged Hg0 or
 !        HgP tracer. (eck, cdh, bmy, 1/6/06)
 !  (15) Updated for SOG4 and SOA4 (dkh, bmy, 5/18/06)
+!  (16) For GEOS-5, suppress rainout when T < 258K (hyl, bmy, 3/5/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1507,15 +1528,34 @@
       ! CONV = 0.6 * SQRT( 1.9 ), used for the ice to gas ratio for H2O2
       REAL*8, PARAMETER    :: CONV = 8.27042925126d-1
 
-      !=================================================================
+      !==================================================================
       ! RAINOUT begins here!
       !
       ! For aerosols, set K = K_RAIN and compute RAINFRAC according
       ! to Eq. 10 of Jacob et al 2000.  Call function GET_RAINFRAC.
-      !=================================================================
+      !==================================================================
 
       ! Save the local temperature in TK for convenience
       TK = T(I,J,L)
+
+#if   defined( GEOS_5 )
+      !------------------------------------------------------------------
+      ! NOTE FROM HONGYU LIU (hyl@nianet.org) -- 3/5/08
+      !
+      ! Lead-210 (210Pb) and Beryllium-7 (7Be) simulations indicate 
+      ! that we can improve the GEOS-5 simulation by (1) turning off
+      ! rainout/washout for convective precip (see DO_WETDEP) 
+      ! and (2) suppressing rainout for large-scale precip at  
+      ! temperatures below 258K.
+      !
+      ! Place an #if block here to set RAINFRAC=0 when T < 258K for 
+      ! GEOS-5 met.  This will suppress rainout. (hyl, bmy, 3/5/08)
+      !-------------------------------------------------------------------   
+      IF ( TK < 258d0 ) THEN
+         RAINFRAC = 0d0
+         RETURN
+      ENDIF
+#endif
 
       !------------------------------
       ! 210Pb and 7Be (aerosol)

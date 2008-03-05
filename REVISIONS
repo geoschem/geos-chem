@@ -1,5 +1,5 @@
 REVISIONS (v8-01-01)  
-04 Mar 2008
+05 Mar 2008
 Bob Yantosca              and Philippe Le Sager
 yantosca@seas.harvard.edu     plesager@seas.harvard.edu
 
@@ -114,6 +114,10 @@ do_diag_pl		-- Now only loop up thru LD65 levels
 do_emissions		-- Now call EMISSDR for Tagged CO fossil fuel 
 ("emissions_mod.f")        emissions, so that we get the same emissions for 
                            Tagged CO as we do for the full-chemistry
+
+do_wetdep		-- Don't do rainout/washout for convective precip
+("wetscav_mod.f")          when using GEOS-5 met.  This is a recommendation
+                           by Hongyu Liu. 
 
 emfossil.f		-- Now references ITS_A_TAGCO_SIM from "tracer_mod.f"
 			-- Enhance CO prod by 18.5% for tagged CO sim here 
@@ -263,6 +267,9 @@ photoj.f		-- We don't need to pass "P" via the arg list
 
 pressure_mod.f		-- Added Ap and Bp for GEOS-5 met fields
 			-- Updated comments
+
+rainout			-- For GEOS-5, suppress rainout when T < 258K
+("wetscav_mod.f")
 
 read_a3			-- Add EVAP, GRN, GWETROOT, LAI, PRECSNO, SNODP
 ("a3_read_mod.f")          SNOMAS, and TROPP as optional arguments
