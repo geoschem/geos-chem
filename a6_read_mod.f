@@ -1,9 +1,9 @@
-! $Id: a6_read_mod.f,v 1.21 2007/11/16 18:47:34 bmy Exp $
+! $Id: a6_read_mod.f,v 1.22 2008/03/28 17:27:19 bmy Exp $
       MODULE A6_READ_MOD
 !
 !******************************************************************************
 !  Module A6_READ_MOD contains subroutines that unzip, open, and read
-!  GEOS-CHEM A-6 (avg 6-hour) met fields from disk. (bmy, 6/19/03, 10/30/07)
+!  GEOS-CHEM A-6 (avg 6-hour) met fields from disk. (bmy, 6/19/03, 3/28/08)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -48,7 +48,9 @@
 !  (11) Bug fix in ND66 diagnostic for ZMMU (bmy, 2/1/06)
 !  (12) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (13) Now set negative Q (i.e. SPHU)to a small positive # (bmy, 9/8/06)
-!  (14) Now read extra fields for GEOS-5. (bmy, 10/30/07)
+!  (14) Now read extra fields for GEOS-5.  Bug fix: we must convert RH from 
+!        unitless to % to be compatible w/ present drydep etc. algorithms. 
+!        (phs, bmy, 3/28/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -737,7 +739,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_A6 reads A-6 (avg 6-hr) met fields from disk. 
-!  (bmy, 6/5/98, 10/30/07)
+!  (bmy, 6/5/98, 3/28/08)
 ! 
 !  Arguments as input:
 !  ===========================================================================
@@ -800,7 +802,8 @@
 !        Now reference TRANSFER_3D_Lp1 from "transfer_mod.f".  Now convert
 !        GEOS-5 specific humidity from [kg/kg] to [g/kg] for compatibility
 !        with existing routines.  Also recognize EPV, which is an alternate 
-!        name for PV. (bmy, 10/30/07)
+!        name for PV.  Bug fix: convert GEOS-5 RH from unitless to %.
+!        (phs, bmy, 3/28/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1506,6 +1509,10 @@
       !------------------------------
       ! Special handling for GEOS-5
       !------------------------------
+
+      ! Convert RH from unitless to percent (phs, bmy, 3/28/08)
+      ! %%% NOTE: GEOS-5 file spec says units of RH are % but that's wrong!
+      IF ( PRESENT( RH ) ) RH = RH * 100d0
 
       ! Convert GEOS-5 specific humidity from [kg/kg] to [g/kg]
       IF ( PRESENT( Q ) ) Q = Q * 1000d0

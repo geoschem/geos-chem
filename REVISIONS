@@ -1,5 +1,5 @@
 REVISIONS (v8-01-01)  
-05 Mar 2008
+28 Mar 2008
 Bob Yantosca              and Philippe Le Sager
 yantosca@seas.harvard.edu     plesager@seas.harvard.edu
 
@@ -286,6 +286,7 @@ read_a6			-- Add CMFMC, DQIDTMST, DQLDTMST, DQRCON, DQRLSC,
 			-- Now reference TRANSFER_3D_Lp1 from "transfer_mod.f"
 			-- Now convert GEOS-5 specific humidity from [kg/kg] 
 			   to [g/kg] for compatibility with existing routines 
+			-- Bug fix: convert GEOS-5 RH from unitless to %.
 
 read_bpch2		-- Make TEMPARRAY big enough for GEOS-5 72 levels 
 ("bpch2_mod.f")            (and 73 edges) 

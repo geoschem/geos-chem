@@ -1,5 +1,5 @@
 #=============================================================================
-# $Id: Makefile.sparc,v 1.51 2008/02/22 15:00:19 bmy Exp $
+# $Id: Makefile.sparc,v 1.52 2008/03/28 17:27:19 bmy Exp $
 #
 # GEOS-Chem Makefile for Sun Studio and Sun/SPARC compilers, including
 # compilation options for both SPARC v9 and AMD/Opteron chipsets
@@ -17,13 +17,13 @@ FARCH  = -xtarget=opteron -xchip=opteron -xarch=generic64
 #FARCH  = -xtarget=opteron -xchip=opteron -xarch=sse3a
 
 # Flags specific to the older SPARC machines
-#FARCH  = -fpp -O4 -xarch=v9 
+#FARCH  = -fpp -O4 -xarch=v9
 
 # Compile command -- multiprocessor
 F90    = f90 $(FFLAGS) $(FARCH) -openmp=parallel -Dmultitask
 
 # Compile command -- single processor
-#F90   = f90 $(FFLAGS) $(FARCH) 
+#F90   = f90 $(FFLAGS) $(FARCH)
 
 OBJS =                    \
 CO_strat_pl.o             \
