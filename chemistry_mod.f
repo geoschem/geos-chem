@@ -1,9 +1,9 @@
-! $Id: chemistry_mod.f,v 1.29 2007/11/16 18:47:35 bmy Exp $
+! $Id: chemistry_mod.f,v 1.30 2008/04/02 17:03:14 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
 !  Module CHEMISTRY_MOD is used to call the proper chemistry subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 8/4/06)
+!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 4/2/08)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -52,6 +52,7 @@
 !  (13) Now call MAKE_RH from "main.f" (bmy, 3/16/06)
 !  (14) Updated for SOA from isoprene (dkh, bmy, 6/1/06)
 !  (15) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (16) For now, replace use RPMARES instead of ISORROPIA. (bmy, 4/2/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -105,6 +106,8 @@
 !  (14) Removed ISOP_PRIOR as a local variable (dkh, bmy, 6/1/06)
 !  (15) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (16) Now use DRYFLXH2HD and CHEM_H2_HD for H2/HD sim (lyj, phs, 9/18/07)
+!  (17) Bug fix: now hardwired to use RPMARES since ISORROPIA can return very
+!        unphysical values at low RH.  Wait for ISORROPIA II. (bmy, 4/2/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -190,17 +193,24 @@
                CALL CHEMSULFATE
 
                ! Do aerosol thermodynamic equilibrium
-               IF ( LSSALT ) THEN
-
-                  ! ISOROPIA takes Na+, Cl- into account
-                  CALL DO_ISOROPIA
-
-               ELSE
+               !------------------------------------------------------------
+               ! Prior to 4/2/08:
+               ! Bug fix: ISORROPIA can return very unphysical values when
+               ! RH is very low.  We will replace the current version of
+               ! ISORROPIA with ISORROPIA II.  In the meantime, we shall
+               ! use RPMARES to do the ATE computations. (bmy, 4/2/08)
+               !IF ( LSSALT ) THEN
+               !
+               !   ! ISOROPIA takes Na+, Cl- into account
+               !   CALL DO_ISOROPIA
+               !
+               !ELSE
 
                   ! RPMARES does not take Na+, Cl- into account
                   CALL DO_RPMARES
 
-               ENDIF
+               !ENDIF
+               !------------------------------------------------------------
                
             ENDIF
 
@@ -256,18 +266,25 @@
             CALL RDAER
 
             !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
-            IF ( LSSALT ) THEN
-
-               ! ISOROPIA takes Na+, Cl- into account
-               CALL DO_ISOROPIA
-
-            ELSE
+            !-------------------------------------------------------------
+            ! Prior to 4/2/08:
+            ! Bug fix: ISORROPIA can return very unphysical values when
+            ! RH is very low.  We will replace the current version of
+            ! ISORROPIA with ISORROPIA II.  In the meantime, we shall
+            ! use RPMARES to do the ATE computations. (bmy, 4/2/08)
+            !IF ( LSSALT ) THEN
+            !
+            !   ! ISOROPIA takes Na+, Cl- into account
+            !   CALL DO_ISOROPIA
+            !
+            !ELSE
 
                ! RPMARES does not take Na+, Cl- into account
                ! (skip for crystalline & aqueous offline run)
                IF ( .not. LCRYST ) CALL DO_RPMARES
 
-            ENDIF
+            !ENDIF
+            !-------------------------------------------------------------
 
             !*** SEASALT AEROSOLS ***
             IF ( LSSALT ) CALL CHEMSEASALT
