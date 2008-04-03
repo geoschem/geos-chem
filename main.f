@@ -1,5 +1,8 @@
-! $Id: main.f,v 1.51 2008/02/14 18:23:49 bmy Exp $
+! $Id: main.f,v 1.52 2008/04/03 14:19:44 bmy Exp $
 ! $Log: main.f,v $
+! Revision 1.52  2008/04/03 14:19:44  bmy
+! Now use RPMARES for ATE.  Only compute ATE w/in tropopause. (bmy, 4/3/08)
+!
 ! Revision 1.51  2008/02/14 18:23:49  bmy
 ! Added fixes to make sure tagged CO has same emissions
 ! as the full-chemistry CO (jaf, mak, bmy, 2/14/08)
@@ -870,8 +873,8 @@
             ENDIF   
 
 #if   !defined( GEOS_5 )
-            ! Get relative humidity 
-            ! (after recomputing pressure quantities)
+            ! Get relative humidity (after recomputing pressures)
+            ! NOTE: for GEOS-5 we'll read this from disk instead
             CALL MAKE_RH
 #endif
 

@@ -121,6 +121,9 @@ do_chemistry		-- Bug fix: ISORROPIA can return very unphysical
 			   In the meantime, we shall use RPMARES to do the 
 			   aerosol therymodyn equilib computations.
 
+do_rpmares		-- Now limit RPMARES to the tropopause 
+("rpmares_mod.f")
+
 do_wetdep		-- Don't do rainout/washout for convective precip
 ("wetscav_mod.f")          when using GEOS-5 met.  This is a recommendation
                            by Hongyu Liu. 

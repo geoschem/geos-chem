@@ -1,9 +1,9 @@
-! $Id: rpmares_mod.f,v 1.7 2006/04/21 15:40:06 bmy Exp $
+! $Id: rpmares_mod.f,v 1.8 2008/04/03 14:19:45 bmy Exp $
       MODULE RPMARES_MOD
 !
 !******************************************************************************
 !  Module RPMARES_MOD contains the RPMARES routines, which compute the aerosol
-!  thermodynamical equilibrium. (rjp, bdf, bmy, 11/6/02, 10/3/05)
+!  thermodynamical equilibrium. (rjp, bdf, bmy, 11/6/02, 4/3/08)
 !
 !  Module Variables:
 !  ============================================================================
@@ -11,25 +11,26 @@
 !
 !  Module Routines:
 !  ============================================================================
-!  (1 ) DO_RPMARES      : Bridge between GEOS-CHEM and RPMARES
-!  (2 ) GET_HNO3        : Gets evolving HNO3; relaxes to monthly mean every 3h
-!  (3 ) SET_HNO3        : Saves HNO3 in an array for the next timestep
-!  (4 ) RPMARES         : Driver for RPMARES code
-!  (5 ) AWATER          : Computes thermodynamical equilibrium (?)
-!  (6 ) POLY4           : Evaluates a 4th order polynomial expression
-!  (7 ) POLY6           : Evaluates a 6th order polynomial expression
-!  (8 ) CUBIC           : Solver to find cubic roots
-!  (9 ) ACTCOF          : Computes activity coefficients
-!  (10) INIT_RPMARES    : Initializes and allocates all module arrays
-!  (11) CLEANUP_RPMARES : Deallocates all module arrays
+!  (1 ) DO_RPMARES       : Bridge between GEOS-CHEM and RPMARES
+!  (2 ) GET_HNO3         : Gets evolving HNO3; relaxes to monthly mean every 3h
+!  (3 ) SET_HNO3         : Saves HNO3 in an array for the next timestep
+!  (4 ) RPMARES          : Driver for RPMARES code
+!  (5 ) AWATER           : Computes thermodynamical equilibrium (?)
+!  (6 ) POLY4            : Evaluates a 4th order polynomial expression
+!  (7 ) POLY6            : Evaluates a 6th order polynomial expression
+!  (8 ) CUBIC            : Solver to find cubic roots
+!  (9 ) ACTCOF           : Computes activity coefficients
+!  (10) INIT_RPMARES     : Initializes and allocates all module arrays
+!  (11) CLEANUP_RPMARES  : Deallocates all module arrays
 !
 !  GEOS-CHEM modules referenced by rpmares_mod.f
 !  ============================================================================
-!  (1 ) dao_mod.f       : Module containing arrays for DAO met fields
-!  (2 ) error_mod.f     : Module containing NaN and other error check routines
-!  (3 ) time_mod.f      : Module containing routines to compute date & time
-!  (4 ) tracer_mod.f    : Module containing GEOS-CHEM tracer array STT etc.
-!  (5 ) tracerid_mod.f  : Module containing pointers to tracers & emissions
+!  (1 ) dao_mod.f        : Module w/ arrays for DAO met fields
+!  (2 ) error_mod.f      : Module w/ NaN and other error check routines
+!  (3 ) time_mod.f       : Module w/ routines to compute date & time
+!  (4 ) tracer_mod.f     : Module w/ GEOS-CHEM tracer array STT etc.
+!  (5 ) tracerid_mod.f   : Module w/ pointers to tracers & emissions
+!  (6 ) tropopause_mod.f : Module
 !
 !  NOTES:
 !  (1 ) Added module variables ELAPSED_SEC and HNO3_sav.  Added module routines
@@ -40,6 +41,7 @@
 !        since we can get this info from "time_mod.f".  (bmy, 3/24/03)
 !  (4 ) Now references "tracer_mod.f" (bmy, 7/20/04)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (6 ) Now only apply RPMARES to boxes in the troposphere. (bmy, 4/3/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -49,10 +51,13 @@
       ! and routines from being seen outside "rpmares_mod.f"
       !=================================================================
 
-      ! Module variables
+      ! Make everything PUBLIC
+      PUBLIC 
+
+      ! ... except these variables ...
       PRIVATE :: HNO3_sav
 
-      ! Module Routines
+      ! ... and these routines 
       PRIVATE :: GET_HNO3, SET_HNO3, RPMARES, AWATER 
       PRIVATE :: POLY4,    POLY6,    CUBIC,   ACTCOF  
       PRIVATE :: INIT_RPMARES
@@ -74,7 +79,7 @@
 !******************************************************************************
 !  Subroutine DO_RPMARES is the interface between the GEOS-CHEM model
 !  and the aerosol thermodynamical equilibrium routine in "rpmares.f"
-!  (rjp, bdf, bmy, 12/17/01, 10/3/05)
+!  (rjp, bdf, bmy, 12/17/01, 4/3/08)
 !
 !  NOTES
 !  (1 ) Bundled into "rpmares_mod.f" (bmy, 11/15/02)
@@ -87,6 +92,7 @@
 !        from "tracer_mod.f".  Now references ITS_A_NEW_MONTH from
 !        "time_mod.f" (bmy, 7/20/04)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (6 ) Now limit RPMARES to the tropopause (bmy, 4/3/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -99,7 +105,8 @@
       USE TRACER_MOD,      ONLY : ITS_AN_AEROSOL_SIM, STT
       USE TRACERID_MOD,    ONLY : IDTSO4,             IDTNH3, IDTNH4 
       USE TRACERID_MOD,    ONLY : IDTNIT,             IDTHNO3 
-      
+      USE TROPOPAUSE_MOD,  ONLY : ITS_IN_THE_STRAT
+
 #     include "CMN_SIZE"     ! Size parameters
 
       ! Local variables
@@ -160,10 +167,18 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,    J,    L,    ATEMP, ARH,  AVOL,  SO4  )
 !$OMP+PRIVATE( ANH4, ANO3, GNH3, GNO3,  ASO4, AHSO4, AH2O )
-      DO L = 1, LLPAR
+      !----------------------------------------------------------
+      ! Prior to 4/3/08:
+      ! Only loop up to the max tropopause level (bmy, 4/3/08)
+      !DO L = 1, LLPAR
+      !----------------------------------------------------------
+      DO L = 1, LLTROP
       DO J = 1, JJPAR
       DO I = 1, IIPAR
          
+         ! Skip if we are in the stratosphere (bmy, 4/3/08)
+         IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+
          ! Temperature [K], RH [unitless], and volume [m3]
          ATEMP = T(I,J,L)
          ARH   = RH(I,J,L) * 1.d-2
@@ -1448,7 +1463,7 @@
       REAL*8, PARAMETER :: ONE    = 1.0d0
       REAL*8, PARAMETER :: SQRT3  = 1.732050808d0
       REAL*8, PARAMETER :: ONE3RD = 0.333333333d0
-      
+
       !=================================================================
       ! CUBIC begins here!
       !=================================================================
@@ -1473,7 +1488,7 @@
             NR        = 0
             CALL ERROR_STOP( 'PHI < 1d-20', 'CUBIC (rpmares_mod.f)' )
          ENDIF
-
+         
          THETA = ACOS( RR / PHI ) / 3.0d0
          COSTH = COS( THETA )
          SINTH = SIN( THETA )
