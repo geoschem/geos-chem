@@ -1,5 +1,5 @@
 REVISIONS (v8-01-01)  
-02 Apr 2008
+28 Apr 2008
 Bob Yantosca              and Philippe Le Sager
 yantosca@seas.harvard.edu     plesager@seas.harvard.edu
 
@@ -248,6 +248,10 @@ inphot.f		-- Removed ETAA and ETAB arrays.  We now compute PJ
 
 interp			-- Don't interpolate TROPP for GEOS-5
 ("dao_mod.f")
+
+Makefile.ifort		-- Added options in FFLAGS for debugging
+
+Makefile.sparc		-- Added options in FFLAGS for debugging
 
 main.f			-- Now call LIGHTNING_NL for GEOS-5
 			-- added tagged CO use statement

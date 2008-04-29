@@ -1,14 +1,17 @@
 #=============================================================================
-# $Id: Makefile.sparc,v 1.52 2008/03/28 17:27:19 bmy Exp $
+# $Id: Makefile.sparc,v 1.53 2008/04/29 14:03:03 bmy Exp $
 #
 # GEOS-Chem Makefile for Sun Studio and Sun/SPARC compilers, including
 # compilation options for both SPARC v9 and AMD/Opteron chipsets
-# (bmy, Thu Jan 31 10:38:00 2008)
+# (bmy, Tue Apr 29, 09:51 EDT 2008)
 #=============================================================================
 SHELL  = /bin/sh
 
 # Generic flags for all machines
 FFLAGS = -fpp -fast -stackvar -xfilebyteorder=big16:%all
+
+# Generic flags for debugging (no optimisation)
+#FFLAGS = -fpp  -xfilebyteorder=big16:%all -g
 
 # Flags specific to TERRA
 FARCH  = -xtarget=opteron -xchip=opteron -xarch=generic64

@@ -1,5 +1,5 @@
 #=============================================================================
-# $Id: Makefile.ifort,v 1.24 2008/01/28 18:34:30 bmy Exp $
+# $Id: Makefile.ifort,v 1.25 2008/04/29 14:03:03 bmy Exp $
 #
 # GEOS-Chem Makefile for LINUX/IFORT compiler (bmy, Thu Sep 20 10:47:37 2007)
 #=============================================================================
@@ -8,6 +8,9 @@ SHELL = /bin/sh
 # IFORT compilation options
 FFLAGS = -cpp -w -O2 -auto -noalign -convert big_endian
  
+# IFORT compilation options (for debugging: no optimization)
+#FFLAGS = -cpp -w -noalign -convert big_endian -g -traceback
+
 # Compile command -- multiprocessor
 F90 = ifort $(FFLAGS) -openmp -Dmultitask
 

@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# $Id: build,v 1.9 2006/03/24 20:22:40 bmy Exp $
+# $Id: build,v 1.10 2008/04/29 14:03:03 bmy Exp $
 
 =head1 NAME
 
@@ -135,10 +135,11 @@ sub main() {
     print "Compiling $target in $makeFile\n";
 
     # Need to set system variables for Intel IFORT compiler (bmy, 11/3/05)
-    if ( $makeFile =~ "ifort" and !( $target =~ "clean" ) ) 
-       { qx( source /usr/local/bin/ifortvars.sh; make $target -f $makeFile ); }
-    else
-       { qx( make $target -f $makeFile ); }  
+    #if ( $makeFile =~ "ifort" and !( $target =~ "clean" ) ) 
+    #   { qx( source /usr/local/bin/ifortvars.sh; make $target -f $makeFile ); }
+    #else
+    #   { qx( make $target -f $makeFile ); }  
+    qx( make $target -f $makeFile );
 
   } else { die "Could not find makefile name!\n" }
 }
