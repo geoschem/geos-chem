@@ -1,4 +1,4 @@
-! $Id: cmn_fj.h,v 1.2 2007/11/16 18:47:35 bmy Exp $
+! $Id: cmn_fj.h,v 1.3 2008/08/08 17:20:33 bmy Exp $
 !
 !******************************************************************************
 !  CMN_FJ.H -- Header file containing parameters and common
@@ -38,15 +38,6 @@
       ! Variables for number of layers and number of photolysis rxns
       INTEGER            :: JPNL, JPPJ       
       COMMON /FJ_INTEG/     JPNL, JPPJ
-
-      !----------------------------------------------------------------------
-      ! Prior to 2/13/07:
-      ! Remove ETAA and ETAB arrays.  We now initialize the PJ array 
-      ! directly from the GET_PEDGE routine. (bmy, 10/30/07)
-      !! For hybrid eta coordinate:
-      !REAL*8             :: ETAA(LPAR+1), ETAB(LPAR+1)
-      !COMMON /FJ_ETA/       ETAA,         ETAB
-      !----------------------------------------------------------------------
 
       ! Branches for photolysis species
       INTEGER            :: BRANCH        

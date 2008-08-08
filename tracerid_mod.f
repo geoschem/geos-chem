@@ -1,4 +1,4 @@
-! $Id: tracerid_mod.f,v 1.21 2008/02/14 18:23:49 bmy Exp $
+! $Id: tracerid_mod.f,v 1.22 2008/08/08 17:20:37 bmy Exp $
       MODULE TRACERID_MOD
 !
 !******************************************************************************
@@ -340,10 +340,6 @@
                ! (jaf, mak, bmy, 2/14/08)
                IF ( ITS_A_TAGCO_SIM() ) THEN 
                   NEMANTHRO = 1
-                  !--------------------
-                  ! Prior to 2/14/08:
-                  !IDECO     = 2
-                  !--------------------
                   IDECO     = 1
                   IDTISOP   = 1
                   EXIT

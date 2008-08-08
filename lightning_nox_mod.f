@@ -1,4 +1,4 @@
-! $Id: lightning_nox_mod.f,v 1.18 2008/02/21 21:29:20 bmy Exp $
+! $Id: lightning_nox_mod.f,v 1.19 2008/08/08 17:20:36 bmy Exp $
       MODULE LIGHTNING_NOX_MOD
 !
 !******************************************************************************
@@ -67,6 +67,8 @@
 !  (2 ) Price & Rind (1994), M. Weather Rev, vol. 122, 1930-1939.
 !  (3 ) Allen & Pickering (2002), JGR, 107, D23, 4711, doi:10.1029/2002JD002066
 !  (4 ) Hudman et al (2007), JGR, 112, D12S05, doi:10.1029/2006JD007912
+!  (5 ) Sauvage et al, 2007, ACP, 
+!        http://www.atmos-chem-phys.net/7/815/2007/acp-7-815-2007.pdf
 !
 !  NOTES:
 !  (1 ) Based on "lightning_nox_mod.f", but updated for near-land formulation
@@ -702,6 +704,9 @@
             ! creates a MidLat LNOx contribution of 5.46 Tg N, and with 
             ! scaling (as in the implemented version), 3.68 Tg N.
             !
+            ! NOTE: The OTD-LIS local redistribution method was expanded
+            ! upon from Sauvage et al, 2007, ACP.
+            ! http://www.atmos-chem-phys.net/7/815/2007/acp-7-815-2007.pdf
             !
             ! (6e) The total lightning is the sum of IC+CG paths:
             !   TOTAL = TOTAL_IC + TOTAL_CG
@@ -1737,16 +1742,6 @@
       !-----------------------
       ! GEOS-5 4 x 5 
       !------------------------
-!------------------------------------------------------------------------------
-! Prior to 2/20/08:
-! Now divide by 17 instead of 13 for the local redist (ltm, bmy, 2/20/08)
-!      IF ( LCTH ) THEN
-!         SCALE = ANN_AVG_FLASHRATE / 13.9779d0
-!      ELSE
-!         WRITE( 6, '(a)' ) 'Warning: OTD-LIS GEOS5 scaling only for CTH'   
-!         SCALE = 1.0d0
-!      ENDIF
-!------------------------------------------------------------------------------
       IF ( LCTH ) THEN
          IF ( LOTDLOC ) THEN
             SCALE = ANN_AVG_FLASHRATE / 17.5892d0
@@ -1763,16 +1758,6 @@
       !----------------------
       ! GEOS-5 2 x 2.5 
       !----------------------
-!------------------------------------------------------------------------------
-! Prior to 2/20/08:
-! Now divide by 47 instead of 36 for the local redist (ltm, bmy, 2/20/08)
-!      IF ( LCTH ) THEN
-!         SCALE = ANN_AVG_FLASHRATE / 36.2878d0
-!      ELSE
-!         WRITE( 6, '(a)' ) 'Warning: OTD-LIS GEOS5 scaling only for CTH'
-!         SCALE = 1.0d0
-!      ENDIF
-!------------------------------------------------------------------------------
       IF ( LCTH ) THEN
          IF ( LOTDLOC ) THEN
             SCALE = ANN_AVG_FLASHRATE / 47.7117d0
@@ -1964,11 +1949,6 @@
 
       ! Define filename for GEOS-3 CDF file
       FILENAME = TRIM( DATA_DIR ) // 
-!--------------------------------------------------------------------------
-! Prior to 1/24/08:
-! Update location of PDF file (bmy, 1/24/08)
-!     &           'lightning_NOx_200605/light_dist.dat.geos345.gcap'       
-!-------------------------------------------------------------------------- 
      &           'lightning_NOx_200709/light_dist.dat.geos345.gcap'        
 
       ! Echo info

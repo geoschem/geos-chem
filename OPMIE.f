@@ -1,4 +1,4 @@
-C $Id: OPMIE.f,v 1.1 2003/06/30 20:26:08 bmy Exp $
+C $Id: OPMIE.f,v 1.2 2008/08/08 17:20:30 bmy Exp $
       SUBROUTINE OPMIE(KW,WAVEL,XQO2,XQO3,FMEAN)
 C-----------------------------------------------------------------------
 C  NEW Mie code for J's, only uses 8-term expansion, 4-Gauss pts
@@ -55,6 +55,9 @@ C-----------------------------------------------------------------------
       real*8 DTAUX(NB),PIRAY(NB),PIAER(MX,NB),TTAU(NC+1),FTAU(NC+1)
       real*8 ftaulog,dttau,dpomega(2*M__)
       real*8 ftaulog2,dttau2,dpomega2(2*M__)
+
+      ! For KLUDGE to fix the # of added levels (phs, 7/1/08)
+      INTEGER :: loc(1)
 c
 C---Pick nearest Mie wavelength, no interpolation--------------
                               KM=1
@@ -152,8 +155,9 @@ c  Calculate column optical depths above each level, TTAU
         TTAU(J)=TTAU(J+1) + 0.5d0*DTAUX(I)
         jaddlv(j)=int(0.5d0*DTAUX(I)/dtaumax)
 c  Subdivide cloud-top levels if required
+! NOTE: Don't add more than DTAUSUB-1 (=9) sublevels (phs)
         if(jadsub(j).gt.0) then
-          jadsub(j)=min(jaddlv(j)+1,nint(dtausub))*(nint(dsubdiv)-1)
+          jadsub(j)=min(jaddlv(j)+1,nint(dtausub))*(nint(dsubdiv)-1) 
           jaddlv(j)=jaddlv(j)+jadsub(j)
         endif
       enddo
@@ -208,21 +212,60 @@ c
       do j=J1+1,nc
         jaddto(j)=jaddto(j-1)+jaddlv(j)
       enddo
-      if((jaddto(nc)+nc).gt.nl) then
+
+!==============================================================================
+! KLUDGE TO LIMIT THE NUMBER OF ADDED LEVELS (phs, 7/1/08)
+!
+! PART 1: We need to replace the .gt. with .ge in this IF test
+!
+      !---------------------------------
+      ! Prior to 7/1/08: 
+      ! Replace GT with GE
+      !if((jaddto(nc)+nc).gt.nl) then
+      !---------------------------------
+      if((jaddto(nc)+nc).GE.nl) then
          write(6,1500)  jaddto(nc)+nc, 'NL',NL
-         stop
+!
+! PART 2: We just trim the largest JADDLV until the condition is satisfied 
+!         instead of simply stopping.  Remove the STOP statement.
+!
+         !-------------------
+         ! Prior to 7/1/08:
+         !stop
+         !-------------------
+
+         ! trim
+         do while( (SUM( jaddlv(J1:nc) ) + NC) >= NL )
+            loc=maxloc(jaddlv)
+            jaddlv(loc(1))=jaddlv(loc(1))-1
+         enddo
+
+         ! then refill JADDTO
+         jaddto(J1)=jaddlv(J1)
+         do j=J1+1,nc
+            jaddto(j)=jaddto(j-1)+jaddlv(j)
+         enddo
+         
+!        ! Debug: double check
+!        write(6,*) jaddto(nc)+nc
+!        if((jaddto(nc)+nc).gt.nl) 
+!     &      write(6,*)'OPMIE kludge: trap not working'
+!==============================================================================
       endif
-c      write(6,1300) jndlev
-c      write(6,1300) jaddto
+
+c     write(6,1300) jndlev
+c     write(6,1300) jaddto
       do i=1,lpar
-        jndlev(i)=jndlev(i)+jaddto(jndlev(i)-1)
+         jndlev(i)=jndlev(i)+jaddto(jndlev(i)-1)
       enddo
+
+      ! this is just a transposition of the jaddto vector (phs)
       jaddto(nc)=jaddlv(nc)
       do j=nc-1,J1,-1
-        jaddto(j)=jaddto(j+1)+jaddlv(j)
+         jaddto(j)=jaddto(j+1)+jaddlv(j)
       enddo
-c      write(6,1300) jndlev
-c      write(6,1300) jaddto
+c     write(6,1300) jndlev
+c     write(6,1300) jaddto
 c
 C---------------------SET UP FOR MIE CODE-------------------------------
 c
@@ -343,10 +386,21 @@ c
 c
 C---Update total number of levels and check doesn't exceed N__
       ND = 2*(NC+jaddto(J1)-J1)  + 3
+
+!==============================================================================
+! KLUDGE TO LIMIT THE NUMBER OF ADDED LEVELS (phs, 7/1/08)
+!
+! PART 3: Test to make sure that we haven't added more levels than the
+!         dimension of the common block (i.e. ND <= N__).
+!         
+!         NOTE: this test should always be passed now that .ge. is 
+!         used instead of .gt. in PART 1.
+!
       if(nd.gt.N__) then
-        write(6,1500) ND, 'N__',N__
-        stop
+         write(6,1500) ND, 'N__',N__
+         stop
       endif
+!==============================================================================
 c
 C---Add boundary/ground layer to ensure no negative J's caused by
 C---too large a TTAU-step in the 2nd-order lower b.c.

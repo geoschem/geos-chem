@@ -1,4 +1,4 @@
-! $Id: ndxx_setup.f,v 1.32 2007/12/04 16:23:59 bmy Exp $
+! $Id: ndxx_setup.f,v 1.33 2008/08/08 17:20:36 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
@@ -474,16 +474,6 @@
       !       rates are computed by ND65.  
       !=================================================================
       IF ( ND20 > 0 ) THEN 
-         !--------------------------------------------------------------------
-         ! Prior to 3/6/07:
-         ! Assume we only need to go as high as ann mean trop (phs, 3/6/07)
-         !IF ( ND65 == 0 ) ND65 = LLTROP
-         !--------------------------------------------------------------------
-         ! Prior to 12/4/07:
-         ! Now now stop the run if ND20 is defined but ND65 isn't 
-         ! (phs, bmy, 12/4/07)
-         !IF ( ND65 == 0 ) ND65 = LLTROP_FIX
-         !--------------------------------------------------------------------
          IF ( ND65 == 0 ) THEN
             CALL ERROR_STOP( 'ND65 must be turned on for ND20 output!',
      &                       'ndxx_setup.f'  )
@@ -616,11 +606,6 @@
       IF ( ND31 > 0 ) THEN
          LD31 = MIN( ND31, LLPAR+1 )
 
-         !-----------------------------------------------------------------
-         ! Prior to 5/8/07:
-         ! Now save true pressure edges for ND31 diagnostic (bmy, 5/8/07)
-         !ALLOCATE( AD31( IIPAR, JJPAR, PD31 ), STAT=AS )
-         !-----------------------------------------------------------------
          ALLOCATE( AD31( IIPAR, JJPAR, LD31 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD31' )
       ENDIF

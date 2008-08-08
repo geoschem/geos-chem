@@ -1,9 +1,4 @@
-! $Id: set_prof.f,v 1.4 2007/11/16 18:47:45 bmy Exp $
-!----------------------------------------------------------------------------
-! Prior to 2/13/07:
-!      SUBROUTINE SET_PROF( NLON, NLAT, YLAT, MONTH, DAY, 
-!     &                     P,    T,    SA,   ODCOL, OPTDUST, OPTAER )
-!----------------------------------------------------------------------------
+! $Id: set_prof.f,v 1.5 2008/08/08 17:20:36 bmy Exp $
       SUBROUTINE SET_PROF( NLON, NLAT, YLAT,  MONTH,   DAY, 
      &                     T,    SA,   ODCOL, OPTDUST, OPTAER )
 !
@@ -74,10 +69,6 @@
 
       ! Argument
       INTEGER, INTENT(IN)    :: DAY, MONTH,  NLAT, NLON
-      !-------------------------------------------------------------
-      ! Prior to 2/13/07:
-      !REAL*8,  INTENT(IN)    :: P,   T(LPAR), SA,   YLAT
-      !-------------------------------------------------------------
       REAL*8,  INTENT(IN)    :: SA,   YLAT,  T(LPAR)
       REAL*8,  INTENT(INOUT) :: ODCOL(LPAR)
       REAL*8,  INTENT(IN)    :: OPTDUST(LPAR,NDUST)  
@@ -92,18 +83,6 @@
       !=================================================================
       ! SET_PROF begins here!
       !=================================================================
-
-!-----------------------------------------------------------------------------
-! Prior to 2/13/07:
-! Now intialize PJ two levels up in "fast_j.f".  ETAA and ETAB are meaningless
-! for GEOS-5, so we need to set PJ directly from the GET_PEDGE function.
-! (bmy, 2/13/07)
-!      ! Use the hybrid pressure formulation (bmy, 8/22/02)
-!      DO I = 1, NB
-!         PJ(I) = ETAA(I) + ( ETAB(I) * P )
-!      ENDDO
-!      PJ(NB+1) = 0.d0
-!-----------------------------------------------------------------------------
 
       ! Set up cloud and surface properties
       CALL CLDSRF( ODCOL, SA )

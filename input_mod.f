@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.46 2008/02/11 16:18:15 bmy Exp $
+! $Id: input_mod.f,v 1.47 2008/08/08 17:20:36 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS-Chem input file at the start of the run
 !  and passes the information to several other GEOS-Chem F90 modules.
-!  (bmy, 7/20/04, 2/11/08)
+!  (bmy, 7/20/04, 7/7/08)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -122,6 +122,7 @@
 !  (18) New error traps for OTD-LIS scaling, dependent on met field type.
 !        Bug fix, create string variables for ERROR_STOP.  Bug fix: use ND52
 !        in call to SET_TINDEX in READ_DIAGNOSTIC_MENU. (ltm, bmy, 2/11/08)
+!  (19) Minor fix in READ_TRANSPORT_MENU (cdh, bmy, 7/7/08) 
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -508,11 +509,6 @@
 !
       ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : DATA_DIR,    DATA_DIR_1x1, GCAP_DIR
-      !--------------------------------------------------------------------
-      ! Prior to 11/5/07:
-      !USE DIRECTORY_MOD, ONLY : GEOS_1_DIR,  GEOS_S_DIR,   GEOS_3_DIR
-      !USE DIRECTORY_MOD, ONLY : GEOS_4_DIR,  GEOS_5_DIR,   RUN_DIR
-      !--------------------------------------------------------------------
       USE DIRECTORY_MOD, ONLY : GEOS_3_DIR,  GEOS_4_DIR,   GEOS_5_DIR
       USE DIRECTORY_MOD, ONLY : RUN_DIR
       USE DIRECTORY_MOD, ONLY : TEMP_DIR   
@@ -570,18 +566,6 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:8' )
       READ( SUBSTRS(1:N), '(a)' ) GCAP_DIR
 
-      !---------------------------------------------------------------------
-      ! Prior to 11/5/07:
-      ! Remove references to GEOS-1 and GEOS-STRAT run dirs (bmy, 11/1/07)
-      !! GEOS-1 subdir
-      !CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:9' )
-      !READ( SUBSTRS(1:N), '(a)' ) GEOS_1_DIR
-      !
-      !! GEOS-STRAT subdir
-      !CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:10' )
-      !READ( SUBSTRS(1:N), '(a)' ) GEOS_S_DIR
-      !---------------------------------------------------------------------
-
       ! GEOS-3 subdir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:9' )
       READ( SUBSTRS(1:N), '(a)' ) GEOS_3_DIR
@@ -634,14 +618,6 @@
      &                     TRIM( DATA_DIR )
       WRITE( 6, 110     ) 'GCAP       sub-directory    : ', 
      &                     TRIM( GCAP_DIR )
-!----------------------------------------------------------------------------
-! Prior to 11/5/07:
-! Remove references to GEOS-1 and GEOS-STRAT run dirs (bmy, 11/5/07)
-!      WRITE( 6, 110     ) 'GEOS-1     sub-directory    : ', 
-!     &                     TRIM( GEOS_1_DIR )
-!      WRITE( 6, 110     ) 'GEOS-STRAT sub-directory    : ', 
-!     &                     TRIM( GEOS_S_DIR )
-!----------------------------------------------------------------------------
       WRITE( 6, 110     ) 'GEOS-3     sub-directory    : ', 
      &                     TRIM( GEOS_3_DIR )
       WRITE( 6, 110     ) 'GEOS-4     sub-directory    : ', 
@@ -1728,6 +1704,8 @@
 !  (1 ) Now define MAX_DYN for 1 x 1.25 grid (bmy, 12/1/04)
 !  (2 ) Update text in error message (bmy, 2/23/05)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (4 ) Don't stop run if TS_DYN > MAX_DYN but transport is turned off
+!        (cdh, bmy, 7/7/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1802,7 +1780,12 @@
 #endif
 
       ! If TS_DYN is greater than MAX_DYN, then stop w/ error
-      IF ( TS_DYN > MAX_DYN ) THEN
+      !----------------------------------------------------------
+      ! Prior to 7/7/08:
+      ! Don't stop run if LTRAN=F (cdh, bmy, 7/7/08)
+      !IF ( TS_DYN > MAX_DYN ) THEN
+      !----------------------------------------------------------
+      IF ( TS_DYN > MAX_DYN .and. LTRAN ) THEN
          MSG = 'Transport timestep is too big!'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF

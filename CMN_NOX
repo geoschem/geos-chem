@@ -1,4 +1,4 @@
-! $Id: CMN_NOX,v 1.4 2007/11/05 16:16:10 bmy Exp $
+! $Id: CMN_NOX,v 1.5 2008/08/08 17:20:28 bmy Exp $
       !=================================================================    
       ! CMN_NOX is the header file for containing NOx from aircraft,
       ! lightning, and soils.  CMN_NOX also contains variables for the
@@ -13,16 +13,6 @@
       !       "lightning_mod.f" (bmy, 4/14/04)
       ! (4 ) Remove GEMISNOX from common block (ltm, bmy, 10/2/07)
       !=================================================================
-
-      !-----------------------------------------------------------------
-      ! Prior to 10/2/07:
-      ! BXHEIGHT  = Grid box heights [m]
-      ! GEMISNOX  = Aircraft & Lightning NOx [molec NOx/cm3/s]
-      ! GEMISNOX2 = Soil Nox [molec NOx/cm3/s]
-      !REAL*8            :: GEMISNOX(IIPAR,JJPAR,LLPAR)
-      !REAL*8            :: GEMISNOX2(IIPAR,JJPAR)
-      !COMMON /BOXH/        GEMISNOX, GEMISNOX2
-      !----------------------------------------------------------------
 
       ! NOTE: Keep this for backwards compatibility for now (bmy, 10/2/07)
       ! GEMISNOX2 = Soil Nox [molec NOx/cm3/s]

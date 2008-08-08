@@ -1,9 +1,9 @@
-! $Id: upbdflx_mod.f,v 1.19 2007/11/05 16:16:27 bmy Exp $
+! $Id: upbdflx_mod.f,v 1.20 2008/08/08 17:20:37 bmy Exp $
       MODULE UPBDFLX_MOD
 !
 !******************************************************************************
 !  Module UPBDFLX_MOD contains subroutines which impose stratospheric boundary
-!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 9/18/07)
+!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 6/30/08)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -59,6 +59,7 @@
 !  (20) Now references "tropopause_mod.f" (bmy, 11/1/05)
 !  (21) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (22) Added UPBDFLX_HD from the strat-trop flux of HD (lyj, phs, 9/18/07)
+!  (23) Cap 1-XRATIO in UPBDFLX_NOY to prevent underflow (phs, 6/30/08)
 !******************************************************************************
 !      
       IMPLICIT NONE
@@ -475,7 +476,7 @@
 !  Subroutine UPBDFLX_NOY imposes NOy (NOx + HNO3) upper boundary condition
 !  in the stratosphere. The production rates for NOy are provided by Dylan
 !  Jones, along with NOx and HNO3 concentrations. 
-!  (qli, rvm, mje, bmy, 12/22/99, 8/4/06)
+!  (qli, rvm, mje, bmy, 12/22/99, 6/30/08)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -528,6 +529,7 @@
 !        GET_MIN_TPAUSE_LEVEL from "tropopause_mod.f".  Now replace reference 
 !        to LPAUSE with ITS_IN_THE_STRAT from "tropopause_mod.f" (bmy, 11/1/05)
 !  (21) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (22) Cap 1-XRATIO to avoid numerical problems later (bmy, 6/30/08)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -720,7 +722,14 @@
                STT(I,J,L,IDTNOX)  = PNOY * XRATIO(J,L) 
 
                ! Partition total [NOy] to [HNO3], units are [v/v]
-               STT(I,J,L,IDTHNO3) = PNOY * ( 1d0 - XRATIO(J,L) ) 
+!------------------------------------------------------------------------------
+! Prior to 6/30/08:
+! Cap 1-XRATIO to avoid numerical problems later (phs, 6/30/08)
+!               STT(I,J,L,IDTHNO3) = PNOY * ( 1d0 - XRATIO(J,L) ) 
+!------------------------------------------------------------------------------
+               STT(I,J,L,IDTHNO3) = PNOY *
+     &                              MAX( ( 1d0 -  XRATIO(J,L) ), 1d-20 )
+
             ENDIF
          ENDDO   
          ENDDO
@@ -762,7 +771,14 @@
                STT(I,J,L,IDTNOX)  = PNOY * XRATIO(J,L) 
 
                ! Partition total [NOy] to [HNO3], units are [v/v]
-               STT(I,J,L,IDTHNO3) = PNOY * ( 1d0 - XRATIO(J,L) ) 
+!------------------------------------------------------------------------------
+! Prior to 6/30/08:
+! Cap the value of 1d0-XRATIO to avoid numerical problems (phs, 6/30/08)
+!               STT(I,J,L,IDTHNO3) = PNOY * ( 1d0 - XRATIO(J,L) ) 
+!------------------------------------------------------------------------------
+               STT(I,J,L,IDTHNO3) = PNOY *
+     &                              MAX( ( 1d0 -  XRATIO(J,L) ), 1d-20 )
+
             ENDIF
          ENDDO   
          ENDDO

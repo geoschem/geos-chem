@@ -1,4 +1,4 @@
-! $Id: bpch2_mod.f,v 1.11 2007/11/16 18:47:34 bmy Exp $
+! $Id: bpch2_mod.f,v 1.12 2008/08/08 17:20:31 bmy Exp $
       MODULE BPCH2_MOD
 !
 !******************************************************************************
@@ -425,12 +425,6 @@
       CHARACTER(LEN=255) :: MSG
       
       ! Make TEMPARRAY big enough to for a 1x1 grid (bmy, 4/17/01)
-      !----------------------------------------------------------------
-      ! Prior to 2/16/07:
-      ! Make TEMPARRAY big enough for GEOS-5 72 levels (73 edges) 
-      ! (bmy, 2/15/07)
-      !REAL*4             :: TEMPARRAY(360,181,70)
-      !----------------------------------------------------------------
       REAL*4             :: TEMPARRAY(360,181,73)
 
       ! For binary punch file, version 2.0
@@ -583,29 +577,18 @@
       ! GET_MODELNAME begins here!
       !=================================================================
 
-!---------------------------------------------------------
-! Prior to 2/7/07:
-!#if   defined( GEOS_3 ) && defined( GRID30LEV )
-!---------------------------------------------------------
 #if   defined( GEOS_3 ) && defined( GRIDREDUCED )
       MODELNAME = 'GEOS3_30L'
 
 #elif defined( GEOS_3 )
       MODELNAME = 'GEOS3'
-!---------------------------------------------------------
-! Prior to 2/7/07:
-!#elif defined( GEOS_4 ) && defined( GRID30LEV )
-!---------------------------------------------------------
+
 #elif defined( GEOS_4 ) && defined( GRIDREDUCED )
       MODELNAME = 'GEOS4_30L'
 
 #elif defined( GEOS_4 )
       MODELNAME = 'GEOS4'
 
-!---------------------------------------------------------
-! Prior to 2/7/07:
-!#elif defined( GEOS_5 ) && defined( GRID30LEV )
-!---------------------------------------------------------
 #elif defined( GEOS_5 ) && defined( GRIDREDUCED )
       MODELNAME = 'GEOS5_47L'
       

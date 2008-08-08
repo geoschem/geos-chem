@@ -1,4 +1,4 @@
-! $Id: emfossil.f,v 1.19 2008/02/14 18:23:49 bmy Exp $
+! $Id: emfossil.f,v 1.20 2008/08/08 17:20:35 bmy Exp $
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
 !******************************************************************************
@@ -332,13 +332,6 @@
          ENDIF
 
          EMX(1) = TODX * EMISR(IREF,JREF,N) 
-
-         !------------------------------------------------------------
-         ! Prior to 2/14/08:
-         !! Enhance CO production by 2%, to account for CO
-         !! production from anthropogenic VOC's (bnd, bmy, 4/26/01)
-         !IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.02d0
-         !------------------------------------------------------------
 
          ! Account for CO production from anthropogenic VOC's
          ! -> For Tagged CO, enhance CO production by 18.5%

@@ -1,4 +1,4 @@
-! $Id: wetscav_mod.f,v 1.29 2008/03/05 18:47:05 bmy Exp $
+! $Id: wetscav_mod.f,v 1.30 2008/08/08 17:20:37 bmy Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
@@ -2617,13 +2617,6 @@
 
       ! DSTT is the accumulator array of rained-out 
       ! soluble tracer for a given (I,J) column
-      !------------------------------------------------------------------
-      ! Prior to 1/30/08:
-      ! Redimension DSTT with NSOL instead of NSOLMAX.  In many cases,
-      ! NSOL is less than NSOLMAX.  This can help to save memory at 2x25 
-      ! resolution. (bmy, 1/31/08)
-      !REAL*8              :: DSTT(NSOLMAX,LLPAR,IIPAR,JJPAR)
-      !------------------------------------------------------------------
       REAL*8              :: DSTT(NSOL,LLPAR,IIPAR,JJPAR)
  
       !=================================================================
@@ -2670,13 +2663,6 @@
 
          ! Zero accumulator array
          DO L  = 1, LLPAR
-         !--------------------------------------------------------------
-         ! Prior to 1/31/08:
-         ! Redimension DSTT with NSOL instead of NSOLMAX.  In many 
-         ! cases, NSOL is less than NSOLMAX.  This can help to save 
-         ! memory at 2x25 resolution. (bmy, 1/31/08)
-         !DO NN = 1, NSOLMAX
-         !--------------------------------------------------------------
          DO NN = 1, NSOL
             DSTT(NN,L,I,J) = 0d0
          ENDDO

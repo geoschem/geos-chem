@@ -1,4 +1,4 @@
-! $Id: diag1.f,v 1.19 2008/01/24 19:58:01 bmy Exp $
+! $Id: diag1.f,v 1.20 2008/08/08 17:20:34 bmy Exp $
       SUBROUTINE DIAG1 
 !
 !******************************************************************************
@@ -384,34 +384,6 @@
 !$OMP+PRIVATE( I, J )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-
-!-----------------------------------------------------------------------------
-! Prior to 1/28/04:
-! Revert to the pre-near-land diagnostic for land flags (bmy, 1/28/04)
-!#if   defined( GEOS_3 )
-!
-!            ! Same logic as in FLASHES
-!            IF ( IS_NEAR( I, J, 80d0,1 ) ) THEN
-!               AD30(I,J) = AD30(I,J) + 1e0
-!            ELSE IF (       IS_WATER( I, J          )  .and. 
-!     &                .not. IS_NEAR(  I, J, 80d0, 1 ) ) THEN
-!               AD30(I,J) = AD30(I,J) + 0d0
-!            ELSE IF ( IS_ICE(I,J) ) THEN
-!               AD30(I,J) = AD30(I,J) + 2e0
-!            ENDIF
-!
-!#else
-!            ! Same logic as in FLASHES
-!            IF ( IS_NEAR( I, J, 0.2d0, 1 ) ) THEN
-!               AD30(I,J) = AD30(I,J) + 1e0
-!            ELSE IF (       IS_WATER( I, J          )  .and. 
-!     &                .not. IS_NEAR(  I, J, 0.2d0, 1 ) ) THEN
-!               AD30(I,J) = AD30(I,J) + 0d0
-!            ELSE IF ( IS_ICE(I,J) ) THEN
-!               AD30(I,J) = AD30(I,J) + 2e0
-!            ENDIF
-!#endif
-!-----------------------------------------------------------------------------
             IF ( IS_WATER( I, J ) ) AD30(I,J) = AD30(I,J) + 0e0
             IF ( IS_LAND ( I, J ) ) AD30(I,J) = AD30(I,J) + 1e0
             IF ( IS_ICE  ( I, J ) ) AD30(I,J) = AD30(I,J) + 2e0
@@ -430,10 +402,6 @@
          DO L = 1, LD31
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            !-----------------------------------------------------------
-            ! Prior to 5/8/07:
-            !AD31(I,J,1) = AD31(I,J,1) + ( GET_PEDGE(I,J,1) - PTOP )
-            !-----------------------------------------------------------
             AD31(I,J,L) = AD31(I,J,L) + GET_PEDGE( I, J, L ) 
          ENDDO
          ENDDO

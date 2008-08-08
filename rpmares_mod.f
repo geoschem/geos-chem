@@ -1,9 +1,9 @@
-! $Id: rpmares_mod.f,v 1.9 2008/04/10 19:46:14 bmy Exp $
+! $Id: rpmares_mod.f,v 1.10 2008/08/08 17:20:36 bmy Exp $
       MODULE RPMARES_MOD
 !
 !******************************************************************************
 !  Module RPMARES_MOD contains the RPMARES routines, which compute the aerosol
-!  thermodynamical equilibrium. (rjp, bdf, bmy, 11/6/02, 4/10/08)
+!  thermodynamical equilibrium. (rjp, bdf, bmy, 11/6/02, 6/11/08)
 !
 !  Module Variables:
 !  ============================================================================
@@ -168,11 +168,6 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,    J,    L,    ATEMP, ARH,  AVOL,  SO4  )
 !$OMP+PRIVATE( ANH4, ANO3, GNH3, GNO3,  ASO4, AHSO4, AH2O )
-      !---------------------------------------------------------------
-      ! Prior to 4/3/08:
-      ! Only loop up to the max tropopause level (phs, bmy, 4/10/08)
-      !DO L = 1, LLPAR
-      !----------------------------------------------------------------
       DO L = 1, LLTROP
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -455,11 +450,12 @@
 !                          as REAL*8's.  Cleaned up comments.  Also now force
 !                          double precision explicitly with "D" exponents.
 !  P. Le Sager and        Bug fix for low ammonia case -- prevent floating
-!  R. Yantosca 04/10/2008  point underflow and NaN's. 
+!  R. Yantosca 04/10/2008  point underflow and NaN's.
+!  P. Le Sager 06/10/2008 Better catch of over/underflow for low ammonia case
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
+      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP, IS_SAFE_DIV
 
       !=================================================================
       ! ARGUMENTS and their descriptions
@@ -511,8 +507,12 @@
       REAL*8, PARAMETER :: TOLER1 = 0.00001d0       
       REAL*8, PARAMETER :: TOLER2 = 0.001d0       
 
-      ! Limit to test for zero ionic activity (phs, bmy, 4/10/08)
-      REAL*8, PARAMETER :: EPS    = 1.0d-30
+      !-----------------------------------------------------------------
+      ! Prior to 6/10/08:
+      ! Now uses IS_SAFE_DIV from error_mod.f (phs, 6/10/08)
+      !! Limit to test for zero ionic activity (phs, bmy, 4/10/08)
+      !REAL*8, PARAMETER :: EPS    = 1.0d-30
+      !-----------------------------------------------------------------
 
       !=================================================================
       ! SCRATCH LOCAL VARIABLES and their descriptions:
@@ -527,7 +527,12 @@
       REAL*8  :: A0               ! Coefficients and roots of
       REAL*8  :: A1               ! Coefficients and roots of
       REAL*8  :: A2               ! Coefficients and roots of
-      REAL    :: AA               ! Coefficients and discriminant for
+      !------------------------------------------------------------------------
+      ! Prior to 6/10/08:
+      ! Need to make this REAL*8 (phs, 6/10/08)
+      !REAL    :: AA               ! Coefficients and discriminant for
+      !------------------------------------------------------------------------
+      REAL*8  :: AA               ! Coefficients and discriminant for
                                   ! quadratic equation for ammonium nitrate
       REAL*8  :: BAL              ! internal variables ( high ammonia case)
       REAL*8  :: BB               ! Coefficients and discriminant for
@@ -613,12 +618,6 @@
       REAL*8  :: TNH4             ! Total ammonia and ammonium in
                                   !   micromoles / meter ** 3
       REAL*8  :: TNO3             ! Total nitrate in micromoles / meter ** 3
-      !-----------------------------------------------------------------------
-      ! Prior to 4/10/08:
-      ! Now make these PARAMETERS instead of variables (bmy, 4/10/08)
-      !REAL*8  :: TOLER1           ! Tolerances for convergence test
-      !REAL*8  :: TOLER2           ! Tolerances for convergence test
-      !-----------------------------------------------------------------------
       REAL*8  :: TSO4             ! Total sulfate in micromoles / meter ** 3
       REAL*8  :: TWOSO4           ! 2.0 * TSO4  (high ammonia case) (moles
                                   !   / kg water)
@@ -742,13 +741,6 @@
       MAS    = 0.0d0
       MAN    = 0.0d0
       HPLUS  = 0.0d0
-      !--------------------------------------------------------------
-      ! Prior to 4/10/08:
-      ! Now make these parameters so that they won't lose their
-      ! values. (phs, bmy, 4/10/08)
-      !TOLER1 = 0.00001d0
-      !TOLER2 = 0.001d0
-      !--------------------------------------------------------------
       NITR   = 0
       NR     = 0
       GAMAAN = 1.0d0
@@ -1041,6 +1033,27 @@
          DO NNN = 1, 50    ! loop count reduced 04/09/2001 by FSB
             NITR = NNN
 
+            !------------------------------------------------------------
+            ! Add robustness: now check if GAMANA or GAMAS1 is too small
+            ! for the division in RKNA and RK2SA. If they are, return w/ 
+            ! original values: basically replicate the procedure used 
+            ! after the current DO-loop in case of no-convergence
+            ! (phs, bmy, rjp, 4/10/08)
+            ! Now uses IS_SAFE_DIV to avoid compiler/machine dependency 
+            ! and to check for both underlow and overflow. Also 
+            ! use REAL4 flag to avoid under/overflow when computing A0 
+            ! and A1 from RKNA and RK2SA (phs, 5/28/08)
+            !------------------------------------------------------------
+            IF ( .NOT. (
+     &           IS_SAFE_DIV( GAMAS2, GAMAS1*GAMAS1*GAMAS1, R4=.TRUE. )
+     &           .AND. IS_SAFE_DIV( KNA, GAMANA*GAMANA, R4=.TRUE. ) 
+     &           ) ) THEN
+               
+               WRITE(6,*), 'RPMARES: not safe to divide...exit'
+               CALL flush(6)
+               GOTO 100
+            ENDIF
+            
             ! set up equilibrium constants including activities
             ! solve the system for hplus first then sulfate & nitrate
             RK2SA  = K2SA * GAMAS2 * GAMAS2 / (GAMAS1 * GAMAS1 * GAMAS1)
@@ -1059,7 +1072,11 @@
             CALL CUBIC ( A2, A1, A0, NR, CRUTES )
 
             ! Code assumes the smallest positive root is in CRUTES(1)
+            ! But, it can be negative (see CUBIC, case of one real root, 
+            ! but can also be propagated by over/underflown)... if it is
+            ! the case then return with original values (phs, 5/27/08)
             HPLUS = CRUTES( 1 )
+            IF (HPLUS <= 0d0) GOTO 100
             BAL   = HPLUS **3 + A2 * HPLUS**2 + A1 * HPLUS + A0
 
             ! molality of sulfate ion
@@ -1101,30 +1118,33 @@
             GAMAS2 = GAMS( 1, 3 )
             GAMAAN = GAMS( 2, 2 )
 
-            !------------------------------------------------------------
-            ! Add robustness: now check if GAMANA or GAMAS1 is too small
-            ! for the division in RKNA and RK2SA. If they are, return w/ 
-            ! original values: basically replicate the procedure used 
-            ! after the current DO-loop in case of no-convergence
-            ! (phs, bmy, rjp, 4/10/08)
-            !--------------------------------------------------------------
-            IF ( ( ABS( GAMANA ) < EPS ) .OR. 
-     &           ( ABS( GAMAS1 ) < EPS ) ) THEN
-               
-               ! Reset to original values
-               ANH4  = TNH4 * MWNH4
-               GNH3  = FLOOR
-               GNO3  = GNO3_IN
-               ANO3  = ANO3_IN
-               ASO4  = TSO4 * MWSO4
-               AHSO4 = FLOOR
 
-               ! Update water
-               CALL AWATER ( IRH, TSO4, TNH4, TNO3, AH2O )
-               
-               ! Exit this subroutine
-               RETURN
-            ENDIF
+! --- prior to 5/28/08 - Improved and moved above.
+!            !------------------------------------------------------------
+!            ! Add robustness: now check if GAMANA or GAMAS1 is too small
+!            ! for the division in RKNA and RK2SA. If they are, return w/ 
+!            ! original values: basically replicate the procedure used 
+!            ! after the current DO-loop in case of no-convergence
+!            ! (phs, bmy, rjp, 4/10/08)
+!            !--------------------------------------------------------------
+!            IF ( ( ABS( GAMANA ) < EPS ) .OR. 
+!     &           ( ABS( GAMAS1 ) < EPS ) ) THEN
+!               
+!               ! Reset to original values
+!               ANH4  = TNH4 * MWNH4
+!               GNH3  = FLOOR
+!               GNO3  = GNO3_IN
+!               ANO3  = ANO3_IN
+!               ASO4  = TSO4 * MWSO4
+!               AHSO4 = FLOOR
+!
+!               ! Update water
+!               CALL AWATER ( IRH, TSO4, TNH4, TNO3, AH2O )
+!               
+!               ! Exit this subroutine
+!               RETURN
+!            ENDIF
+!----------------------
 
             GAMAHAT = ( GAMAS2 * GAMAS2 / ( GAMAAB * GAMAAB ) )
             BHAT = KHAT * GAMAHAT
@@ -1143,7 +1163,7 @@
          ! after NITR iterations, failure to solve the system
          ! convert all ammonia to aerosol ammonium and return input
          ! values of NO3 and HNO3
-         ANH4 = TNH4 * MWNH4
+ 100     ANH4 = TNH4 * MWNH4
          GNH3 = FLOOR
          GNO3 = GNO3_IN
          ANO3 = ANO3_IN
@@ -1772,6 +1792,8 @@
 
       ELSE IF ( I .LT. 0.0d0 ) THEN
          XMSG = 'Ionic strength below zero...negative concentrations'
+         write(6,*)xmsg
+         call flush(6)
          !CALL M3EXIT ( PNAME, 0, 0, XMSG, XSTAT1 )
       ENDIF
 

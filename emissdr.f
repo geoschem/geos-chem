@@ -1,4 +1,4 @@
-! $Id: emissdr.f,v 1.15 2008/02/14 18:23:49 bmy Exp $
+! $Id: emissdr.f,v 1.16 2008/08/08 17:20:35 bmy Exp $
       SUBROUTINE EMISSDR
 !
 !******************************************************************************
@@ -73,14 +73,6 @@
       USE GRID_MOD,          ONLY : GET_AREA_CM2
       USE GRID_MOD,          ONLY : GET_XOFFSET,   GET_YOFFSET
       USE LIGHTNING_NOX_MOD, ONLY : EMLIGHTNING
-      !------------------------------------------------------------------------
-      ! Prior to 10/2/07:
-      ! Now revert to single lightning_nox_mod.f (ltm, bmy, 10/3/07)
-      !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !!%%% Note: add this for GEOS-4 for the time being (ltm, bmy, 5/11/06)
-      !USE LIGHTNING_NOX_NL_MOD, ONLY : EMLIGHTNING_NL
-      !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !------------------------------------------------------------------------
       USE LOGICAL_MOD,       ONLY : LANTHRO,       LLIGHTNOX, LSOILNOX  
       USE LOGICAL_MOD,       ONLY : LAIRNOX,       LBIONOX,   LWOODCO   
       USE LOGICAL_MOD,       ONLY : LMEGAN,        LBIOGENIC

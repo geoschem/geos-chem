@@ -1,4 +1,4 @@
-! $Id: global_hno3_mod.f,v 1.9 2007/11/16 18:47:40 bmy Exp $
+! $Id: global_hno3_mod.f,v 1.10 2008/08/08 17:20:35 bmy Exp $
       MODULE GLOBAL_HNO3_MOD
 !
 !******************************************************************************
@@ -182,10 +182,6 @@
       ! GEOS-3 / GEOS-4 data come from the 30 level model run
       !-------------------------------------------------------
 
-!--------------------------------
-! Prior to 2/7/07:
-!#if   defined( GRID30LEV )
-!--------------------------------
 #if   defined( GRIDREDUCED )
 
       ! Read HNO3 data from the binary punch file

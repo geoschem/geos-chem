@@ -1,4 +1,4 @@
-! $Id: transport_mod.f,v 1.17 2007/11/16 18:47:46 bmy Exp $
+! $Id: transport_mod.f,v 1.18 2008/08/08 17:20:37 bmy Exp $
       MODULE TRANSPORT_MOD
 !
 !******************************************************************************
@@ -88,25 +88,11 @@
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
-      !---------------------------------------------------------
-      ! Prior to 10/30/07:
-      ! Remove USE_GEOS_4_TRANSPORT (bmy, 10/30/07)
-      !LOGICAL             :: USE_GEOS_4_TRANSPORT
-      !---------------------------------------------------------
       INTEGER             :: IORD,  JORD, KORD, JFIRST 
       INTEGER             :: JLAST, NG,   MG,   N_ADJ
       REAL*8, ALLOCATABLE :: Ap(:)
       REAL*8, ALLOCATABLE :: A_M2(:)
       REAL*8, ALLOCATABLE :: Bp(:)
-      !---------------------------------------------------------
-      ! Prior to 10/30/07:
-      ! Remove embedded chemistry & DSIG arrays (bmy, 10/30/07)
-      !REAL*8, ALLOCATABLE :: DSIG(:)
-      !REAL*8, ALLOCATABLE :: STT_I1(:,:,:) 
-      !REAL*8, ALLOCATABLE :: STT_I2(:,:,:) 
-      !REAL*8, ALLOCATABLE :: STT_J1(:,:,:) 
-      !REAL*8, ALLOCATABLE :: STT_J2(:,:,:) 
-      !---------------------------------------------------------
       REAL*8, ALLOCATABLE :: STT_BC2(:,:,:)
 
       !=================================================================
@@ -924,51 +910,6 @@
       INTEGER             :: AS, J, K, L, N_DYN
       REAL*8              :: YMID_R(JJPAR)
 
-!-----------------------------------------------------------------------------
-! Prior to 10/30/07:
-! Remove USE_GEOS4_TRANSPORT (bmy, 10/30/07)
-!#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( GCAP )
-!
-!      ! For GEOS-4, GEOS-5, or GCAP winds, use the fvDAS transport routines
-!      USE_GEOS_4_TRANSPORT = .TRUE.
-!
-!#elif defined( GEOS_3 ) 
-!
-!      ! For GEOS-3 winds, select either the GEOS-4/fvDAS transport
-!      ! (if LTPFV=T) or the existing TPCORE 7.1m (if LTPFV=F)
-!      USE_GEOS_4_TRANSPORT = LTPFV
-!
-!#else
-!
-!      ! We can't use the GEOS-4/fvDAS transport for GEOS-1/GEOS-STRAT
-!      USE_GEOS_4_TRANSPORT = .FALSE.
-!      
-!#endif
-!-----------------------------------------------------------------------------
-! Prior to 10/30/07:
-! Remove embedded chemistry arrays (bmy, 10/30/07)      
-!      !=================================================================
-!      ! Allocate arrays for embedded chemistry boundary conditions
-!      !=================================================================
-!      IF ( LEMBED ) THEN 
-!         ALLOCATE( STT_I1( IIPAR, LLPAR, N_TRACERS ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'STT_I1' )
-!         STT_I1 = 0d0
-!
-!         ALLOCATE( STT_I2( IIPAR, LLPAR, N_TRACERS ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'STT_I2' ) 
-!         STT_I2 = 0d0
-!
-!         ALLOCATE( STT_J1( JJPAR, LLPAR, N_TRACERS ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'STT_J1' ) 
-!         STT_J1 = 0d0
-!
-!         ALLOCATE( STT_J2( JJPAR, LLPAR, N_TRACERS ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'STT_J2' ) 
-!         STT_J2 = 0d0
-!      ENDIF
-!-----------------------------------------------------------------------------
-
       !=================================================================
       ! Allocate arrays for TPCORE vertical coordinates 
       !
@@ -1000,16 +941,6 @@
          ! K runs from the top down
          K = ( LLPAR + 1 ) - L + 1
 
-!-----------------------------------------------------------------------------
-! Prior to 10/30/07:
-! Remove USE_GEOS_4_TRANSPORT variable (bmy, 10/30/07)
-!         IF ( USE_GEOS_4_TRANSPORT ) THEN
-!            Ap(L) = GET_AP(K)        ! Ap(L) is in [hPa]
-!         ELSE
-!            Ap(L) = GET_AP(K) / PTOP ! Ap(L) = 1 for all levels L
-!         ENDIF
-!-----------------------------------------------------------------------------
-
 #if   defined( GEOS_3 )
          Ap(L) = GET_AP(K) / PTOP   ! Ap(L) = 1 for all levels L
 #else
@@ -1033,10 +964,6 @@
       !=================================================================
       ! Additional setup for the GEOS-4/fvDAS version of TPCORE
       !=================================================================
-!----------------------------------------------
-! Prior to 10/30/07:
-!      IF ( USE_GEOS_4_TRANSPORT ) THEN
-!----------------------------------------------
 #if   !defined( GEOS_3 )
 
       ! Initialize
@@ -1054,10 +981,6 @@
       CALL INIT_TPCORE( IIPAR,  JJPAR, LLPAR,  JFIRST, JLAST, 
      &                  NG, MG, DBLE( N_DYN ), Re,     YMID_R )
 
-!--------------------
-! Prior to 10/30/07:
-!      ENDIF
-!--------------------
 #endif
 
       ! Return to calling program
@@ -1082,13 +1005,6 @@
       IF ( ALLOCATED( Ap     ) ) DEALLOCATE( Ap     )
       IF ( ALLOCATED( A_M2   ) ) DEALLOCATE( A_M2   )
       IF ( ALLOCATED( Bp     ) ) DEALLOCATE( Bp     )
-      !------------------------------------------------------
-      ! Prior to 10/30/07:
-      !IF ( ALLOCATED( STT_I1 ) ) DEALLOCATE( STT_I1 )
-      !IF ( ALLOCATED( STT_I2 ) ) DEALLOCATE( STT_I2 )
-      !IF ( ALLOCATED( STT_J1 ) ) DEALLOCATE( STT_J1 )
-      !IF ( ALLOCATED( STT_J2 ) ) DEALLOCATE( STT_J2 )
-      !------------------------------------------------------
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_TRANSPORT

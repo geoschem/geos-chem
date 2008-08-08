@@ -1,4 +1,4 @@
-! $Id: inphot.f,v 1.3 2007/11/16 18:47:41 bmy Exp $
+! $Id: inphot.f,v 1.4 2008/08/08 17:20:35 bmy Exp $
       SUBROUTINE INPHOT( NLAYER, NREACS )
 !
 !******************************************************************************
@@ -29,10 +29,6 @@
       ! References to F90 modules (bmy, 6/27/02)
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE FILE_MOD,     ONLY : IU_FASTJ
-      !--------------------------------------------------
-      ! Prior to 10/30/07:
-      !USE PRESSURE_MOD, ONLY : GET_AP, GET_BP
-      !--------------------------------------------------
 
       IMPLICIT NONE
 
@@ -42,26 +38,9 @@
       ! Arguments
       INTEGER, INTENT(IN) :: NLAYER, NREACS
       
-      !--------------------------------------------------
-      ! Prior to 10/30/07:
-      !! Local variables
-      !INTEGER             :: L
-      !--------------------------------------------------
-
       !=================================================================
       ! INPHOT begins here!
       !=================================================================
-
-      !----------------------------------------------------------------------
-      ! Prior to 10/30/07:
-      ! Removed ETAA and ETAB arrays.  Use function GET_PEDGE in routine
-      ! "fast_j.f" to supply the pressure edges. (bmy, 10/30/07)
-      !! Define A and B coordinates for hybrid grid (bmy, 8/22/02)
-      !DO L = 1, LPAR + 1
-      !   ETAA(L) = GET_AP(L)
-      !   ETAB(L) = GET_BP(L)
-      !ENDDO
-      !----------------------------------------------------------------------
 
       ! # of layers to do chemistry
       JPNL  = NLAYER             

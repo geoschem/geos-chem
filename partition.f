@@ -1,4 +1,4 @@
-! $Id: partition.f,v 1.9 2008/02/26 20:17:12 bmy Exp $
+! $Id: partition.f,v 1.10 2008/08/08 17:20:36 bmy Exp $
       SUBROUTINE PARTITION( NTRACER, STT, XNUMOL ) 
 !
 !******************************************************************************
@@ -200,11 +200,6 @@
 
                   ! Index of member species for CSPEC
                   JJ = IDTRMB(N, KK)
-!-----------------------------------------------------------------------------
-! Prior to 2/26/08:
-!                  CSPEC(JLOOP,JJ) = ( CSAVE(JLOOP,CSAVEID(JJ)) / SUM ) *
-!     &                              CONCTMP
-!-----------------------------------------------------------------------------
 
                   ! QTEMP is the fraction of the given member species KK
                   ! in the tracer N.  The value QTEMP*CONCTMP is the 
@@ -246,11 +241,6 @@
 
                   ! Index of member species for CSPEC array
                   JJ = IDTRMB(N, KK)
-!-----------------------------------------------------------------------------
-! Prior to 2/26/08:
-!                  CSPEC(JLOOP,JJ) = 
-!     &                 ( CSAVE(JLOOP,CSAVEID(JJ)) / SUM ) * CONCTMP
-!-----------------------------------------------------------------------------
 
                   ! QTEMP is the fraction of the given member species in the
                   ! Ox tracer.  The value QTEMP*CONCTMP is the concentration 
@@ -308,11 +298,6 @@
 
                   ! For species NO and NO2 ...
                   IF ( JJ == IDNO .OR. JJ == IDHNO2 ) THEN
-!-----------------------------------------------------------------------------
-! Prior to 2/26/08:
-!                     CSPEC(JLOOP,JJ) = 
-!     &               ( CSAVE(JLOOP,CSAVEID(JJ)) / SUM ) * (CONCNOX-SUM1)
-!-----------------------------------------------------------------------------
 
                      ! QTEMP is the fraction of the given member species in 
                      ! the Ox tracer.  The value QTEMP*CONCTMP is the 

@@ -1,4 +1,4 @@
-! $Id: megan_mod.f,v 1.6 2007/11/05 16:16:22 bmy Exp $
+! $Id: megan_mod.f,v 1.7 2008/08/08 17:20:36 bmy Exp $
       MODULE MEGAN_MOD
 !
 !******************************************************************************
@@ -1662,11 +1662,6 @@
       ENDIF
 
       ! Loop over 15 days
-      !---------------------------------
-      ! Prior to 9/18/07:
-      ! Modified for GCAP (phs, 9/18/07)
-      !DO I = 15, 1, -1
-      !---------------------------------
       DO I = 15+BACK_ONE, 1, -1
 
          ! Skip February 29th for GCAP (phs, 9/18/07)

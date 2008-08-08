@@ -1,9 +1,4 @@
-! $Id: photoj.f,v 1.4 2007/11/16 18:47:44 bmy Exp $
-!---------------------------------------------------------------------------
-! Prior to 2/13/07:
-!      SUBROUTINE PHOTOJ( NLON, NLAT, YLAT, DAY_OF_YR, MONTH,   DAY,  
-!     &                   CSZA, P,    T,    SA,  OD,   OPTDUST, OPTAER )
-!---------------------------------------------------------------------------
+! $Id: photoj.f,v 1.5 2008/08/08 17:20:36 bmy Exp $
       SUBROUTINE PHOTOJ( NLON, NLAT, YLAT, DAY_OF_YR, MONTH,   DAY,  
      &                   CSZA, T,    SA,   OD,        OPTDUST, OPTAER )
 !
@@ -56,10 +51,6 @@
       INTEGER, INTENT(IN)    :: DAY,   DAY_OF_YR, MONTH
       INTEGER, INTENT(IN)    :: NLAT,  NLON
       REAL*8,  INTENT(IN)    :: YLAT,  T(LPAR),   OD(LPAR) 
-      !------------------------------------------------------------
-      ! Prior to 2/13/07:
-      !REAL*8,  INTENT(IN)    :: CSZA,  P,         SA
-      !------------------------------------------------------------
       REAL*8,  INTENT(IN)    :: CSZA,  SA
       REAL*8,  INTENT(INOUT) :: OPTDUST(LPAR,NDUST)   !(rvm, bmy, 9/30/00)
       REAL*8,  INTENT(INOUT) :: OPTAER(LPAR,NAER*NRH) !(rvm, bmy, 2/27/02)
@@ -95,13 +86,6 @@
       IF ( SZA > SZAMAX ) RETURN
 
       ! Set up Air, O3, BC profiles on GEOS-CHEM vertical levels
-!---------------------------------------------------------------------------
-! Prior to 2/13/07:
-! We no longer need to pass P to SET_PROF, as we have initialized
-! the PJ array in "fast_j.f" (bmy, 2/13/07)
-!      CALL SET_PROF( NLON, NLAT, YLAT, MONTH, DAY, 
-!     &               P,    T,    SA,   OD,    OPTDUST, OPTAER )
-!---------------------------------------------------------------------------
       CALL SET_PROF( NLON, NLAT, YLAT, MONTH,   DAY, 
      &               T,    SA,   OD,   OPTDUST, OPTAER )
 

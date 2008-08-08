@@ -1,4 +1,4 @@
-! $Id: toms_mod.f,v 1.8 2007/12/05 16:10:11 bmy Exp $
+! $Id: toms_mod.f,v 1.9 2008/08/08 17:20:37 bmy Exp $
       MODULE TOMS_MOD
 !
 !******************************************************************************
@@ -212,16 +212,6 @@
       ! Create YYYYMMDD value
       YYYYMMDD = ( YEAR * 10000 ) + ( THISMONTH * 100 ) + 01
      
-!-----------------------------------------------------------------------------
-! Prior to 12/5/07:
-! Bug fix: don't include DATA_DIR in filename, just in case someone's file
-! path contains replaceable tokens (e.g. hh, mm, MM etc.) (bmy, 12/5/07)
-!      ! Define filename
-!      FILENAME = TRIM( DATA_DIR )               // 
-!     &           'TOMS_200701/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
-!     &           '.'                            // GET_RES_EXT()
-!-----------------------------------------------------------------------------
-
       ! Define filename (with replaceable tokens)
       FILENAME = 'TOMS_200701/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
      &           '.'                            // GET_RES_EXT()

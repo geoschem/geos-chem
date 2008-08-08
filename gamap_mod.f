@@ -1,4 +1,4 @@
-! $Id: gamap_mod.f,v 1.27 2008/02/22 17:11:43 bmy Exp $
+! $Id: gamap_mod.f,v 1.28 2008/08/08 17:20:35 bmy Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
@@ -948,11 +948,6 @@
       OFFSET(N)   = SPACING * 6
 
       N           = N + 1
-      !---------------------------------------------
-      ! Prior to 11/16/07:
-      !CATEGORY(N) = 'PS-PTOP'
-      !DESCRIPT(N) = 'GEOS PS - PTOP'
-      !---------------------------------------------
       CATEGORY(N) = 'PEDGE-$'
       DESCRIPT(N) = 'Pressure at level edges'
       OFFSET(N)   = SPACING * 10 
@@ -1984,12 +1979,6 @@
       !-------------------------------------      
       ! Optical depths (ND21)
       !-------------------------------------
-      !--------------------------------------------------------------------
-      ! Prior to 2/11/08:
-      ! Write to tracerinfo.dat if ND21 or any of the timeseries
-      ! diagnostics (ND48, ND49, ND50, ND51) are turned on (bmy, 2/11/08)
-      !IF ( ND21 > 0 ) THEN
-      !--------------------------------------------------------------------
       IF ( ND21 > 0 .or. DO_TIMESERIES ) THEN
 
          ! Number of tracers
@@ -2392,12 +2381,6 @@
       ! Afternoon-average boundary 
       ! layer heights (ND41) + timeseries
       !-------------------------------------      
-      !-----------------------------------------------------
-      ! Prior to 2/11/08:
-      ! Also write this to tracerinfo.dat if any of the 
-      ! timeseries diags are turned on (cdh, bmy, 2/11/08)
-      !IF ( ND41 > 0 ) THEN
-      !-----------------------------------------------------
       IF ( ND41 > 0 .or. DO_TIMESERIES ) THEN
 
          ! Number of tracers
@@ -2543,10 +2526,6 @@
       IF ( ND44 > 0 ) THEN
 
          ! Special handling for tagged simulations
-         !---------------------------------------------------------------
-         ! Prior to 9/18/07:
-         !IF ( ITS_A_TAGOX_SIM() .or. ITS_A_MERCURY_SIM() ) THEN
-         !---------------------------------------------------------------
          IF ( ITS_A_TAGOX_SIM()   .or. 
      &        ITS_A_MERCURY_SIM() .or. ITS_A_H2HD_SIM()  ) THEN
 
@@ -2664,12 +2643,6 @@
       !-------------------------------------      
       ! Time series diags (ND{48,49,50,51})
       !-------------------------------------      
-!-------------------------------------------------------------------
-! Prior to 2/11/08:
-! Now use the DO_TIMESERIES flag instead of 4 flags (bmy, 2/11/08)
-!      IF ( DO_SAVE_DIAG48 .or. DO_SAVE_DIAG49  .or. 
-!     &     DO_SAVE_DIAG50 .or. DO_SAVE_DIAG51 ) THEN 
-!-------------------------------------------------------------------
       IF ( DO_TIMESERIES ) THEN 
 
          ! Number of tracers
@@ -2928,12 +2901,6 @@
       ! 3-D GMAO met fields (ND66)
       ! also for timeseries diagnostics
       !-------------------------------------      
-      !-----------------------------------------------------------------------
-      ! Prior to 2/11/08:
-      ! Also need to write this to tracerinfo.dat for timeseries 
-      ! diagnostics (bmy, 2/11/08)
-      !IF ( ND66 > 0 ) THEN 
-      !-----------------------------------------------------------------------
       IF ( ND66 > 0 .or. DO_TIMESERIES ) THEN
 
          ! Number of tracers
@@ -2978,12 +2945,6 @@
       !-------------------------------------      
       ! 2-D GMAO met fields (ND67)
       !-------------------------------------      
-      !------------------------------------------------------------------
-      ! Prior to 2/11/08:
-      ! Also need to write this to tracerinfo.dat for timeseries
-      ! diagnostics (bmy, 2/11/08)
-      !IF ( ND67 > 0 ) THEN
-      !------------------------------------------------------------------
       IF ( ND67 > 0 .or. DO_TIMESERIES ) THEN 
 
          ! Number of tracers
@@ -3081,12 +3042,6 @@
       ! Grid box heights and related 
       ! quantities (ND68) + timeseries
       !-------------------------------------      
-      !---------------------------------------------------------------------
-      ! Prior to 2/11/08:
-      ! Also need to write out to tracerinfo.dat for 
-      ! timeseries diagnostics (bmy, 2/11/08)
-      !IF ( ND68 > 0 ) THEN 
-      !---------------------------------------------------------------------
       IF ( ND68 > 0 .or. DO_TIMESERIES ) THEN
 
          ! Number of tracers

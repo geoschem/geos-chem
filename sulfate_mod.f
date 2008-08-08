@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.36 2007/03/29 20:31:23 bmy Exp $
+! $Id: sulfate_mod.f,v 1.37 2008/08/08 17:20:37 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 12/8/06)
+!  (rjp, bdf, bmy, 6/22/00, 6/11/08)
 !
 !  Module Variables:
 !  ============================================================================
@@ -209,6 +209,7 @@
 !  (37) Now references "biomass_mod.f" (bmy, 9/27/06)
 !  (38) Now prevent seg fault error in READ_BIOMASS_SO2 (bmy, 11/3/06)
 !  (39) Bug fix in SEASALT_CHEM (havala, bec, bmy, 12/8/06)
+!  (40) Extra error check for low RH in GRAV_SETTLING (phs, 6/11/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -628,6 +629,8 @@
 !  (1 ) Now references SALA_REDGE_um and SALC_REDGE_um from "tracer_mod.f"
 !        (bmy, 7/20/04)
 !  (2 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  (3 ) Now limit relative humidity to [tiny(real*8),0.99] range for DLOG
+!         argument (phs, 5/1/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -726,6 +729,9 @@
 
             ! Cap RH at 0.99 
             RHB     = MIN( 0.99d0, RH(I,J,L) * 1d-2 )
+
+            ! Safety check (phs, 5/1/08)
+            RHB     = MAX( TINY(RHB), RHB           )
 
             ! Aerosol growth with relative humidity in radius [m] 
             ! (Gerber, 1985)

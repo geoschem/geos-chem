@@ -1,4 +1,4 @@
-! $Id: tagged_co_mod.f,v 1.20 2008/02/14 18:23:49 bmy Exp $
+! $Id: tagged_co_mod.f,v 1.21 2008/08/08 17:20:37 bmy Exp $
       MODULE TAGGED_CO_MOD
 !
 !******************************************************************************
@@ -141,14 +141,6 @@
       
       ! PRIVATE module routines
       PRIVATE DEFINE_FF_CO_REGIONS, DEFINE_BB_CO_REGIONS 
-
-!------------------------------------------------------------------------
-! Prior to 9/18/07:
-! Make these public (phs, 9/18/07)
-!      PRIVATE GET_ALPHA_ISOP,       READ_PCO_LCO_STRAT
-!      PRIVATE GET_PCO_LCO_STRAT,    READ_ACETONE
-!      PRIVATE INIT_TAGGED_CO 
-!------------------------------------------------------------------------
 
       !=================================================================
       ! MODULE VARIABLES
@@ -363,7 +355,7 @@
 !
 !******************************************************************************
 !  Subroutine EMISS_TAGGED_CO reads in CO emissions for the Tagged CO run
-!  (bey, bdf, bnd, bmy, 7/21/00, 10/3/05)
+!  (bey, bdf, bnd, bmy, 7/21/00, 6/30/08)
 !
 !  NOTES:
 !  (1 ) Adapted from "emiss_co.f" (bmy, 7/2100)
@@ -415,32 +407,21 @@
 !        calling EMISSDR.  Remove duplicate scaling and other operations which
 !        are now done in EMISSDR. Remove references to BIOFUEL_BURN and
 !        all routines from GEIA_MOD. (jaf, mak, bmy, 2/14/08)
+!  (22) Bug fix: Now use IDECO to be consistent (phs, bmy, 6/30/08)
 !******************************************************************************
 !
       ! References to F90 modules
-      !----------------------------------------------------------------------
-      ! Prior to 2/14/08:
-      ! Remove reference to BIOFUEL_BURN, that is now called from
-      ! routine EMISSDR. (jaf, mak, bmy, 2/14/08)
-      !USE BIOFUEL_MOD,  ONLY : BIOFUEL,     BIOFUEL_BURN
-      !----------------------------------------------------------------------
       USE BIOFUEL_MOD,  ONLY : BIOFUEL
       USE BIOMASS_MOD,  ONLY : BIOMASS,     IDBCO
       USE DAO_MOD,      ONLY : SUNCOS
       USE DIAG_MOD,     ONLY : AD29,        AD46
-      !----------------------------------------------------------------------
-      ! Prior to 2/14/08:
-      ! We don't need anything from GEIA_MOD (jaf, mak, bmy, 2/14/08)
-      !USE GEIA_MOD,     ONLY : GET_IHOUR,   GET_DAY_INDEX, READ_GEIA
-      !USE GEIA_MOD,     ONLY : READ_LIQCO2, READ_TOTCO2,   READ_TODX
-      !----------------------------------------------------------------------
       USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET, GET_AREA_CM2
       USE LOGICAL_MOD,  ONLY : LSPLIT,      LANTHRO
       USE LOGICAL_MOD,  ONLY : LBIOMASS,    LBIOFUEL
       USE TIME_MOD,     ONLY : GET_MONTH,   GET_TAU 
       USE TIME_MOD,     ONLY : GET_YEAR,    GET_TS_EMIS  
       USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDBFCO
+      USE TRACERID_MOD, ONLY : IDBFCO,      IDECO
       
       IMPLICIT NONE
 
@@ -452,26 +433,12 @@
       LOGICAL, SAVE          :: FIRSTEMISS = .TRUE.
       INTEGER                :: I, J, L, N, I0, J0
       INTEGER                :: AS, IREF, JREF, IJLOOP
-      !-------------------------------------------------------------------
-      ! Prior to 2/14/08:
-      ! Remove unnecessary variables (jaf, mak, bmy, 2/14/08)
-      !INTEGER                :: SCALEYEAR, IHOUR, NTAU
-      !INTEGER, SAVE          :: LASTYEAR = -999, LASTMONTH = -999
-      !-------------------------------------------------------------------
       INTEGER, SAVE          :: LASTMONTH = -999
 
       ! For now these are defined in CMN_O3
       !REAL*4                 :: EMISTCO(IGLOB,JGLOB)
       !REAL*4                 :: FLIQCO2(IGLOB,JGLOB)
 
-      !----------------------------------------------------------------------
-      ! Prior to 2/14/08:
-      ! Remove unnecessary variables (jaf, mak, bmy, 2/14/08)
-      !REAL*8                 :: TMMP, EMXX,   EMX,  EMMO,   EMME   
-      !REAL*8                 :: EMAC, SFAC89, E_CO, DTSRCE, AREA_CM2
-      !REAL*8                 :: CONVERT(NVEGTYPE) 
-      !REAL*8                 :: GMONOT(NVEGTYPE)
-      !----------------------------------------------------------------------
       REAL*8                 :: TMMP, EMXX, EMX,    EMMO 
       REAL*8                 :: EMAC, E_CO, DTSRCE, AREA_CM2
       
@@ -485,29 +452,6 @@
       ! Do the following only on the first call to EMISS_TAGGED_CO...
       !=================================================================
       IF ( FIRSTEMISS ) THEN 
-
-         !--------------------------------------------------------------------
-         ! Prior to 2/14/08:
-         ! NOTE: All of these calls are already made in EMISSDR, so we
-         ! don't need to replicate these here. (jaf, mak, bmy, 2/14/08)
-         !
-         !! Read polynomial coeffs' for isoprene emissions
-         !CALL RDLIGHT
-         !
-         !! Read conversion tables for isoprene & monoterpene emissions
-         !! Also read acetone emissions (bnd, bmy, 6/8/01)
-         !CALL RDISOPT( CONVERT )
-         !CALL RDMONOT( GMONOT  ) 
-         !
-         !! Set the base level of isoprene & monoterpene emissions
-         !CALL SETBASE( CONVERT, GMONOT )
-         !
-         !! Read time-of-day and day-of-week scale factors for GEIA emissions
-         !CALL READ_TODX( TODN, TODH, TODB, SCNR89 )
-         !
-         !! Read anthropogenic CO emissions from GEIA
-         !CALL READ_GEIA( E_CO=EMISTCO )
-         !--------------------------------------------------------------------
 
          ! Allocate all module arrays
          CALL INIT_TAGGED_CO
@@ -533,30 +477,6 @@
          LASTMONTH = GET_MONTH()
       ENDIF
       
-      !-----------------------------------------------------------------------
-      ! Prior to 2/14/08:
-      ! NOTE: This is already done in "emfossil.f" so we don't
-      ! need to replicate it here. (jaf, mak, bmy, 2/14/08)
-      !!=================================================================
-      !! If FSCALYR < 0 then use this year (JYEAR) for scaling the
-      !! fossil fuel emissions.  Otherwise, use the value of FSCALYR 
-      !! as specified in 'input.ctm'.
-      !!=================================================================
-      !IF ( FSCALYR < 0 ) THEN
-      !   SCALEYEAR = GET_YEAR()
-      !
-      !   ! Cap SCALEYEAR at 1998 for now (bmy, 1/13/03) 
-      !   IF ( SCALEYEAR > 1998 ) SCALEYEAR = 1998
-      !ELSE
-      !   SCALEYEAR = FSCALYR
-      !ENDIF
-      !
-      !IF ( SCALEYEAR /= LASTYEAR ) THEN
-      !   CALL READ_LIQCO2( SCALEYEAR, FLIQCO2 )
-      !   LASTYEAR = SCALEYEAR
-      !ENDIF
-      !-----------------------------------------------------------------------
-
       ! DTSRCE is the number of seconds per emission timestep
       DTSRCE = GET_TS_EMIS() * 60d0
 
@@ -582,80 +502,23 @@
       !=================================================================
       IF ( LANTHRO ) THEN
 
-         !-------------------------------------------------------------------
-         ! Prior to 2/14/08:
-         ! NOTE: This is already done in "emfossil", so we don't need
-         ! to replicate it here. (jaf, mak, bmy, 2/14/08)
-         !
-         !! NTAU is just the integral value of TAU (ave, bmy, 6/10/03)
-         !NTAU = GET_TAU()
-         !
-         !! SFAC89 is the Weekday/Saturday/Sunday scale factor
-         !SFAC89 = SCNR89( 2, GET_DAY_INDEX( NTAU ) ) 
-         !-------------------------------------------------------------------
-
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
-!-----------------------------------------------------------------------------
-! Prior to 2/14/08:
-! Remove IHOUR, AREA_CM2 from the PRIVATE list (jaf, mak, bmy, 2/14/08)
-!!$OMP+PRIVATE( E_CO, I, IHOUR, IREF, J, JREF, N, AREA_CM2 )
-!-----------------------------------------------------------------------------
 !$OMP+PRIVATE( E_CO, I, IREF, J, JREF, N )
          DO J = 1, JJPAR
             JREF = J + J0
 
-            !------------------------------------------------------
-            ! Prior to 2/14/08:
-            ! We no longer need AREA_CM2 (jaf, mak, bmy, 2/14/08)
-            !! Grid box surface areas [cm2]
-            !AREA_CM2 = GET_AREA_CM2( J )
-            !------------------------------------------------------
-
             DO I = 1, IIPAR
                IREF = I + I0
 
-               !--------------------------------------------------------------
-               ! Prior to 2/14/08:
-               ! Now use EMISRR which is archived in "emfossil.f".  This will
-               ! ensure that we have the same emissions for both 
-               ! (jaf, mak, bmy, 2/14/08)
-               !! E_CO is FF CO emissions in [molec CO/cm^2/s]
-               !! Scale E_CO by the day-of-week scale factor SFAC89
-               !E_CO = EMISTCO(IREF,JREF) * SFAC89
-               !--------------------------------------------------------------
-
                ! E_CO = Fossil Fuel CO emissions in [molec CO/s]
                ! EMISRR is archived in "emissdr.f" (jaf, mak, bmy, 2/14/08)
-               E_CO = EMISRR(IREF,JREF,1)
-               
-               !--------------------------------------------------------------
-               ! Prior to 2/14/08:
-               ! NOTE: All of the following scalings etc. are done in
-               ! "emissdr.f".  We don't need to replicate them here.
-               ! (jaf, mak, bmy, 2/14/08)
-               !
-               !! Scale E_CO by the time-of-day scale factor TODH
-               !! IHOUR is the index for the time-of-day scale factor TODH
-               !IHOUR = GET_IHOUR( I )
-               !E_CO  = E_CO * TODH(IHOUR)
-               !
-               !! Scale E_CO by FLIQCO2, which reflects the yearly 
-               !! increase in FF CO emissions for each country
-               !E_CO = E_CO * FLIQCO2(IREF,JREF)
-               !
-               !! Enhance CO by 18.5% to account for oxidation 
-               !! from Anthropogenic VOC's (bnd, bmy, 6/8/01)
-               !E_CO = E_CO * 1.185d0
-               !
-               !! ND29 diagnostic -- store Fossil Fuel CO [molec/cm2/s] 
-               !IF ( ND29 > 0 ) THEN
-               !   AD29(I,J,1) = AD29(I,J,1) + E_CO
-               !ENDIF
-               !
-               ! Convert E_CO from [molec CO/cm2/s] to [kg CO]
-               !E_CO = E_CO * ( AREA_CM2 * DTSRCE / XNUMOL_CO )  
-               !--------------------------------------------------------------
+               !-------------------------------------------------------------
+               ! Prior to 6/30/08:
+               ! Now use IDECO to be consistent (bmy, 6/30/08)
+               !E_CO = EMISRR(IREF,JREF,1)
+               !-------------------------------------------------------------
+               E_CO = EMISRR(IREF,JREF,IDECO)
 
                ! Convert from [molec CO/s] to [kg CO] 
                ! (jaf, mak, bmy, 2/14/08)
@@ -746,13 +609,6 @@
       ! (3 ) Now add biofuel burning to tagged tracer #13 (bmy, 6/14/01)
       !=================================================================
       IF ( LBIOFUEL ) THEN
-         !--------------------------------------------------------------
-         ! Prior to 2/14/08:
-         ! BIOFUEL_BURN is now called in "emissdr.f", so we don't need
-         ! to call it from here any more. (jaf, mak, bmy, 2/14/08) 
-         !CALL BIOFUEL_BURN
-         !--------------------------------------------------------------
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( E_CO, I, J, N )
@@ -767,6 +623,11 @@
             STT(I,J,1,1) = STT(I,J,1,1) + E_CO
 
             ! Add biofuel CO burning [kg CO] as Tracer #13 (bmy, 6/14/01)
+            !
+            ! %%% NOTE: If you are modifying the tagged CO simulation, 
+            ! %%% and your simulation has less than 13 tracers, then 
+            ! %%% then comment out this IF block.  If you don't you can
+            ! %%% get an array-out-of-bounds error (bmy, 6/11/08)
             IF ( LSPLIT ) THEN
                STT(I,J,1,13) = STT(I,J,1,13) + E_CO
             ENDIF
@@ -1245,6 +1106,11 @@
          ! (c) Tracer #15: CO produced from MONOTERPENES
          ! (d) Tracer #16: CO produced from METHANOL (CH3OH)
          ! (e) Tracer #17: CO produced from ACETONE
+         !
+         ! %%% NOTE: If you are modifying the tagged CO simulation, 
+         ! %%% and your simulation has less than 12 tracers, then 
+         ! %%% then comment out this section.  If you don't you can
+         ! %%% get an array-out-of-bounds error (bmy, 6/11/08)
          !==============================================================
          IF ( LSPLIT ) THEN
             STT(I,J,L,12) = STT(I,J,L,12) + CO_CH4   / STTCO

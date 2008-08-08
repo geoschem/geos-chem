@@ -1,4 +1,4 @@
- ! $Id: define.h,v 1.59 2008/04/02 17:03:14 bmy Exp $
+ ! $Id: define.h,v 1.60 2008/08/08 17:20:34 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
@@ -76,10 +76,6 @@
 #undef GEOS_3
 #undef GEOS_4
 #undef GEOS_5
-!------------------------
-! Prior to 
-!#undef GRID30LEV
-!------------------------
 #undef GRIDREDUCED
 #undef GRID4x5
 #undef GRID2x25  
@@ -113,11 +109,6 @@
 !#define GRID1x125   'GRID1x125'
 !#define GRID2x25    'GRID2x25'
 #define GRID4x5     'GRID4x5'
-!------------------------------------------------------------------------------
-! Prior to 2/7/07:
-! Rename GRID30LEV to GRIDREDUCED, as GEOS-5 reduced grid is 47L (bmy, 2/2/07)
-!!#define GRID30LEV   'GRID30LEV'
-!------------------------------------------------------------------------------
 #define GRIDREDUCED  'GRIDREDUCED'
 
 !----- Compilers -----

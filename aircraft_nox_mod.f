@@ -1,4 +1,4 @@
-! $Id: aircraft_nox_mod.f,v 1.4 2007/11/05 16:16:13 bmy Exp $
+! $Id: aircraft_nox_mod.f,v 1.5 2008/08/08 17:20:31 bmy Exp $
       MODULE AIRCRAFT_NOX_MOD
 !
 !******************************************************************************
@@ -255,10 +255,6 @@
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN"       ! PTOP, SIGE, AVP
 #     include "CMN_DIAG"  ! Diagnostic switches
-!---------------------------------------------------------
-! Prior to 10/3/07:
-!#     include "CMN_NOX"   ! GEMISNOX
-!---------------------------------------------------------
 
       INTEGER             :: I,    J,     IREF, JREF,  L,     K
       INTEGER             :: I0,   J0

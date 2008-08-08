@@ -1,4 +1,4 @@
-! $Id: global_o3_mod.f,v 1.11 2007/11/16 18:47:40 bmy Exp $
+! $Id: global_o3_mod.f,v 1.12 2008/08/08 17:20:35 bmy Exp $
       MODULE GLOBAL_O3_MOD
 !
 !******************************************************************************
@@ -111,10 +111,6 @@
          FIRST = .FALSE.
       ENDIF
 
-!-----------------------------------
-! Prior to 2/2/07
-!#if   defined( GRID30LEV )
-!-----------------------------------
 #if   defined( GRIDREDUCED )
 
       ! Filename for 30-level model

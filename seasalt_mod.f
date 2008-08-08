@@ -1,11 +1,11 @@
-! $Id: seasalt_mod.f,v 1.12 2006/11/07 19:02:03 bmy Exp $
+! $Id: seasalt_mod.f,v 1.13 2008/08/08 17:20:36 bmy Exp $
       MODULE SEASALT_MOD
 !
 !******************************************************************************
 !  Module SEASALT_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline seasalt aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (bec, rjp, bmy, 6/22/00, 9/7/06)
+!  (bec, rjp, bmy, 6/22/00, 6/11/08)
 !
 !  Seasalt aerosol species: (1) Accumulation mode (usually 0.1 -  0.5 um)
 !                           (2) Coarse mode       (usually 0.5 - 10.0 um)
@@ -73,6 +73,7 @@
 !  (6 ) Now only call dry deposition routine if LDRYD=T (bec, bmy, 5/23/06)
 !  (7 ) Remove unused variables from GET_ALK.  Also fixed variable declaration
 !        bug in WET_SETTLING. (bec, bmy, 9/5/06)
+!  (8 ) Extra error check for low RH in WET_SETTLING (phs, 6/11/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -209,7 +210,7 @@
 !
 !******************************************************************************
 !  Subroutine WET_SETTLING performs wet settling of sea salt.
-!  (bec, rjp, bmy, 4/20/04, 9/7/06)
+!  (bec, rjp, bmy, 4/20/04, 6/11/08)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -225,6 +226,8 @@
 !        (bmy, 7/20/04)
 !  (2 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (3 ) Bug fix: DTCHEM has to be REAL*8, not integer. (bmy, 9/7/06)
+!  (4 ) Now limit relative humidity to [tiny(real*8),0.99] range for DLOG
+!         argument (phs, 5/1/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -317,6 +320,9 @@
 
             ! Cap RH at 0.99 
             RHB     = MIN( 0.99d0, RH(I,J,L) * 1d-2 )
+
+            ! Safety check (phs, 5/1/08)
+            RHB     = MAX( TINY(RHB), RHB           )
 
             ! Aerosol growth with relative humidity in radius [m] 
             ! (Gerber, 1985)

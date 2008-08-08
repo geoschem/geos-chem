@@ -1,10 +1,10 @@
-! $Id: dao_mod.f,v 1.27 2008/01/10 21:47:53 bmy Exp $
+! $Id: dao_mod.f,v 1.28 2008/08/08 17:20:34 bmy Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
 !  Module DAO_MOD contains both arrays that hold DAO met fields, as well as
 !  subroutines that compute, interpolate, or otherwise process DAO met field 
-!  data. (bmy, 6/27/00, 9/18/07)
+!  data. (bmy, 6/27/00, 6/11/08)
 !
 !  Module Variables:
 !  ============================================================================
@@ -156,6 +156,7 @@
 !  (27) Modified for variable tropopause (phs, bdf, 9/14/06)
 !  (28) Add in extra fields for GEOS-5.  Updated COSSZA.  Now cap var trop 
 !        at 200hPa near poles in INTERP (bmy, phs, 9/18/07)
+!  (29) Bug fix in INIT_DAO for CMFMC array (bmy, jaf, 6/11/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1266,154 +1267,6 @@
       END FUNCTION GET_OBK
       
 !------------------------------------------------------------------------------
-! Prior to 2/13/07:
-! Use modified subroutine below (bmy, 2/13/07)
-!
-!      SUBROUTINE COSSZA( JDAY, NHMSb, NSEC, SUNCOS )
-!!
-!!*****************************************************************************
-!!  COSSZA computes the cosine of the zenith angle of the sun.  
-!!  (bmy, 1/21/98, 2/3/03)
-!!
-!!  Arguments as input:
-!!  ===========================================================================
-!!  (1 ) JDAY   (INTEGER) : The current day of the year (0-365 or 0-366)
-!!  (2 ) NHMSb  (INTEGER) : HH/MM/SS at the start of the model run (e.g. 000000)
-!!  (3 ) NSEC   (INTEGER) : Time in seconds since the start of the model run
-!!
-!!  Arguments as output:
-!!  ===========================================================================
-!!  (1 ) SUNCOS (REAL*8 ) : 1D Array of cos(SZA) for each grid box (in radians)
-!!
-!!  NOTES:
-!!  (1 ) COSSZA is written in Fixed-Form Fortran 90.
-!!  (2 ) Use IMPLICIT NONE to declare all variables explicitly.                
-!!  (3 ) Use C-preprocessor #include statement to include CMN_SIZE, which 
-!!        has IIPAR, JJPAR, LLPAR, IGLOB, JGLOB, LGLOB. 
-!!  (4 ) Use IM and JM (in CMN_SIZE) as loop limits.
-!!  (5 ) Include Harvard CTM common blocks and rename variables where needed.  
-!!  (6 ) Use SUNCOS(MAXIJ) instead of a 2D array, in order for compatibility
-!!        with the Harvard CTM subroutines.  SUNCOS loops over J, then I.
-!!  (7 ) Added DO WHILE loops to reduce TIMLOC into the range 0h - 24h.
-!!  (8 ) Cosmetic changes.  Also use F90 declaration statements (bmy, 6/5/00)
-!!  (9 ) Added to "dao_mod.f".  Also updated comments. (bmy, 9/27/01)
-!!  (10) Replaced all instances of IM with IIPAR and JM with JJPAR, in order
-!!        to prevent namespace confusion for the new TPCORE (bmy, 6/25/02)
-!!  (11) Deleted obsolete code from 6/02 (bmy, 8/21/02)
-!!  (12) Removed RLAT and XLON from the arg list.  Now compute these using 
-!!        functions from "grid_mod.f" (bmy, 2/3/03)
-!!*****************************************************************************
-!!
-!      ! References to F90 modules
-!      USE GRID_MOD, ONLY : GET_XMID, GET_YMID_R
-!
-!#     include "CMN_SIZE"
-!#     include "CMN_GCTM"
-!
-!      ! Arguments
-!      INTEGER, INTENT(IN)  :: JDAY, NHMSb, NSEC
-!      REAL*8,  INTENT(OUT) :: SUNCOS(MAXIJ)
-!
-!      ! Local variables
-!      INTEGER              :: I, IJLOOP, J, LHR0
-!
-!      REAL*8               :: A0, A1, A2, A3, B1, B2, B3
-!      REAL*8               :: R, AHR, DEC, TIMLOC, XLON, YMID_R 
-!
-!      !=================================================================
-!      ! COSSZA begins here!   
-!      !=================================================================
-!
-!      !  Solar declination angle (low precision formula, good enough for us):
-!      A0 = 0.006918
-!      A1 = 0.399912
-!      A2 = 0.006758
-!      A3 = 0.002697
-!      B1 = 0.070257
-!      B2 = 0.000907
-!      B3 = 0.000148
-!      R  = 2.* PI * float(JDAY-1) / 365.
-!
-!      DEC = A0 - A1*cos(  R) + B1*sin(  R)
-!     &         - A2*cos(2*R) + B2*sin(2*R)
-!     &         - A3*cos(3*R) + B3*sin(3*R)
-!
-!      LHR0 = int(float(NHMSb)/10000.)
-!
-!      !=================================================================
-!      ! Loop over J first, then I, for compatibility w/ Harvard code
-!      !=================================================================
-!      IJLOOP = 0
-!
-!      ! Loop over latitude
-!      DO J = 1, JJPAR
-!
-!         ! Latitude of grid box [radians]
-!         YMID_R = GET_YMID_R( J )
-!
-!         ! Loop over longitude
-!         DO I = 1, IIPAR
-!
-!            ! 1-D grid box index for SUNCOS
-!            IJLOOP = IJLOOP + 1
-!
-!            !===========================================================
-!            ! TIMLOC = Local Time in Hours                   
-!            !
-!            ! Hour angle (AHR) is a function of longitude.  AHR is 
-!            ! zero at solar noon, and increases by 15 deg for every 
-!            ! hour before or after solar noon.  
-!            !
-!            ! Hour angle can be thought of as the time in hours since 
-!            ! the sun last passed the meridian (i.e. the time since the
-!            ! last local noon).
-!            !
-!            ! If TIMLOC is greater then 24 hours, reduce it to the 
-!            ! range of 0 - 24h.
-!            !
-!            ! The DO WHILE loops are legal in both F90 and in most 
-!            ! versions of F77.            
-!            !===========================================================
-!            
-!            ! Grid box longitude [degrees]
-!            XLON   = GET_XMID( I )
-!            
-!            ! Local time [hours]
-!            TIMLOC = float(LHR0) + float(NSEC)/3600.0 + XLON/15.0
-!            
-!            DO WHILE (TIMLOC .lt. 0)
-!               TIMLOC = TIMLOC + 24.0
-!            ENDDO
-!            
-!            DO WHILE (TIMLOC .gt. 24.0)
-!               TIMLOC = TIMLOC - 24.0
-!            ENDDO
-!            
-!            AHR = abs(TIMLOC - 12.) * 15.0 * PI_180
-!            
-!            !===========================================================
-!            ! The cosine of the solar zenith angle (SZA) is given by:
-!            !     
-!            !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR) 
-!            !                   
-!            ! where LAT = the latitude angle, 
-!            !       DEC = the solar declination angle,  
-!            !       AHR = the hour angle, all in radians. 
-!            !
-!            ! If SUNCOS < 0, then the sun is below the horizon, and 
-!            ! therefore does not contribute to any solar heating.  
-!            !===========================================================
-!               
-!            ! Compute Cos(SZA)
-!            SUNCOS(IJLOOP) = sin(YMID_R) * sin(DEC) +
-!     &                       cos(YMID_R) * cos(DEC) * cos(AHR)
-!         ENDDO ! I
-!      ENDDO    ! J
-!
-!      ! Return to calling program 
-!      END SUBROUTINE COSSZA
-!
-!------------------------------------------------------------------------------
 
       SUBROUTINE COSSZA( JDAY, SUNCOS )
 !
@@ -1770,7 +1623,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_DAO allocates memory for all allocatable module arrays. 
-!  (bmy, 6/26/00, 1/17/07)
+!  (bmy, 6/26/00, 6/11/08)
 !
 !  NOTES:
 !  (1 ) Now allocate AVGW for either NSRCX == 3 or NSRCX == 5 (bmy, 9/24/01)
@@ -1803,6 +1656,7 @@
 !  (15) Now also add TSKIN for GEOS-3 (bmy, 10/20/05)
 !  (16) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (17) Reorganized for GEOS-5 met fields (bmy, 1/17/07)
+!  (18) Bug fix: should be CMFMC=0 after allocating CMFMC (jaf, bmy, 6/11/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2183,7 +2037,12 @@
       ! GEOS-5 cloud mass flux 
       ALLOCATE( CMFMC( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CMFMC' )
-      CLDMAS = 0d0
+      !--------------------------------------------------------------------
+      ! Prior to 6/11/08:
+      ! Bug fix: should be CMFMC=0 (jaf, bmy, 6/11/08)
+      !CLDMAS = 0d0
+      !--------------------------------------------------------------------
+      CMFMC = 0d0
 
       ! GEOS-5 tendency of ice in moist processes
       ALLOCATE( DQIDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )

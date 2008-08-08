@@ -1,4 +1,4 @@
-! $Id: carbon_mod.f,v 1.29 2008/01/24 19:58:01 bmy Exp $
+! $Id: carbon_mod.f,v 1.30 2008/08/08 17:20:32 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
@@ -1717,7 +1717,7 @@ c
 !  volatile products from the oxidation of hydrocarbons.  It calculates 
 !  secondary organic aerosol yield parameters.  Temperature effects are
 !  included.  Original code from the CALTECH group and modified for inclusion
-!  to GEOS-CHEM. (rjp, bmy, 7/8/04)
+!  to GEOS-CHEM. (rjp, bmy, 7/8/04, 6/30/08)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1762,6 +1762,7 @@ c
 !        Now use ITS_IN_THE_TROP to determine if we are in a tropospheric
 !        grid box.  Now pass II, JJ, LL via the argument list.
 !        (dkh, bmy, 5/22/06)
+!  (3 ) Corrected confusing documentation. (clh, bmy, 6/30/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1874,33 +1875,23 @@ c
 
       ! Average of ALPHA-PINENE, BETA-PINENE, SABINENE, D3-CARENE
       RALPHA(1,1) = 0.067d0            
-      RALPHA(1,2) = 0.239d0
-
-      ! Average of TERPINENES and TERPINOLENE
-      RALPHA(1,3) = 0.0685d0
-
-      ! Average of MYRCENE, LINALOOL, TERPINENE-4-OL, OCIMENE      
-      RALPHA(1,4) = 0.06675d0
-
-      ! Average of BETA-CARYOPHYLLENE and ALPHA-HUMULENE      
-      RALPHA(1,5) = 1.0d0
-
-      ! Average of ALPHA-PINENE, BETA-PINENE, SABINENE, D3-CARENE      
       RALPHA(2,1) = 0.35425d0
+
+      ! LIMONENE
+      RALPHA(1,2) = 0.239d0
       RALPHA(2,2) = 0.363d0
 
       ! Average of TERPINENES and TERPINOLENE
+      RALPHA(1,3) = 0.0685d0
       RALPHA(2,3) = 0.2005d0
 
       ! Average of MYRCENE, LINALOOL, TERPINENE-4-OL, OCIMENE
+      RALPHA(1,4) = 0.06675d0
       RALPHA(2,4) = 0.135d0
 
-      ! Not applicable
+      ! Average of BETA-CARYOPHYLLENE and and ALPHA-HUMULENE
+      RALPHA(1,5) = 1.0d0
       RALPHA(2,5) = 0.0d0
-
-      ! Using BETA-PINENE for all species for NO3 oxidation
-      ! Data from Table 4 of Griffin, et al., JGR 104 (D3): 3555-3567 (1999)
-      RALPHA(3,:) = 1.d0           
 
       ! Using BETA-PINENE for all species for NO3 oxidation
       ! Data from Table 4 of Griffin, et al., JGR 104 (D3): 3555-3567 (1999)
@@ -1922,29 +1913,25 @@ c
       ! Equilibrium gas-particle partition coefficients of 
       ! semi-volatile compounds [ug-1 m**3]
       !=================================================================
-      KOM(1,1) = 0.1835d0
 
       ! Average of ALPHA-PINENE, BETA-PINENE, SABINENE, D3-CARENE
-      KOM(1,2) = 0.055d0
-      KOM(1,3) = 0.133d0
-
-      ! Average of TERPINENES and TERPINOLENE
-      KOM(1,4) = 0.22375d0
-
-      ! Average of MYRCENE, LINALOOL, TERPINENE-4-OL, OCIMENE
-      KOM(1,5) = ( 0.04160d0 + 0.0501d0 ) / 2.d0
-
-      ! Average of BETA-CARYOPHYLLENE and and ALPHA-HUMULENE
+      KOM(1,1) = 0.1835d0
       KOM(2,1) = 0.004275d0
 
-      ! Average of ALPHA-PINENE, BETA-PINENE, SABINENE, D3-CARENE
+      ! LIMONENE
+      KOM(1,2) = 0.055d0
       KOM(2,2) = 0.0053d0
-      KOM(2,3) = 0.0035d0
 
       ! Average of TERPINENES and TERPINOLENE
-      KOM(2,4) = 0.0082d0
+      KOM(1,3) = 0.133d0
+      KOM(2,3) = 0.0035d0
 
       ! Average of MYRCENE, LINALOOL, TERPINENE-4-OL, OCIMENE
+      KOM(1,4) = 0.22375d0
+      KOM(2,4) = 0.0082d0
+
+      ! Average of BETA-CARYOPHYLLENE and and ALPHA-HUMULENE
+      KOM(1,5) = ( 0.04160d0 + 0.0501d0 ) / 2.d0
       KOM(2,5) = 0.0d0
 
       ! NOT APPLICABLE -- using BETA-PINENE for all species
@@ -3048,13 +3035,6 @@ c
             TMMP           = XLTMMP(I,J,IJLOOP)
 
             ! Monoterpene emission [kg C/box/timestep]
-            !---------------------------------------------------------------
-            ! Prior to 1/24/08:
-            ! This code below never assigned MEGAN emissions to TERP_ORGC
-            ! when SOA were turned on.  Add the appropriate code for MEGAN.
-            ! (dkh, 1/24/08)
-            !TERP_ORGC(I,J) = EMMONOT( IJLOOP, TMMP, 1.d0 )
-            !---------------------------------------------------------------
             IF ( LMEGAN ) THEN
                TERP_ORGC(I,J) = GET_EMMONOT_MEGAN( I, J, TMMP, 1d0 )
             ELSE

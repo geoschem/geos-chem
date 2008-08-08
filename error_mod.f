@@ -1,8 +1,8 @@
-! $Id: error_mod.f,v 1.17 2008/02/26 20:17:12 bmy Exp $
+! $Id: error_mod.f,v 1.18 2008/08/08 17:20:35 bmy Exp $
       MODULE ERROR_MOD
 !
 !******************************************************************************
-!  Module ERROR_MOD contains error checking routines. (bmy, 3/8/01, 2/26/08)
+!  Module ERROR_MOD contains error checking routines. (bmy, 3/8/01, 6/11/08)
 !
 !  Module Routines:
 !  ===========================================================================
@@ -17,6 +17,7 @@
 !  (9 ) ALLOC_ERR        : Prints error msg for memory allocation errors
 !  (10) DEBUG_MSG        : Prints a debug message and flushes stdout buffer
 !  (11) SAFE_DIV         : Performs a "safe division" (no FP errors)
+!  (12) IS_SAFE_DIV      : Tests if it is a "safe division" condition
 !
 !  Module Interfaces:
 !  ===========================================================================
@@ -58,6 +59,7 @@
 !  (18) Remove support for LINUX_IFC and LINUX_EFC compilers (bmy, 8/4/06)
 !  (19) Now use intrinsic functions for IFORT, remove C routines (bmy, 8/14/07)
 !  (20) Added routine SAFE_DIV (phs, bmy, 2/26/08)
+!  (21) Added routine IS_SAFE_DIV (phs, bmy, 6/11/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -148,19 +150,6 @@
 #elif defined( COMPAQ )
       IT_IS_A_NAN = ISNAN( VALUE )         
 
-!------------------------------------------------------------------------------
-! Prior to 8/14/07:
-!#elif defined( LINUX_IFORT ) || defined( LINUX_PGI )
-!
-!      ! Declare IS_NAN as an external function
-!      INTEGER, EXTERNAL  :: IS_NAN
-!      
-!      ! For LINUX or INTEL_FC compilers, use C routine "is_nan" to test if 
-!      ! VALUE is NaN.   VALUE must be cast to DBLE since "is_nan" only
-!      ! takes doubles.
-!      IT_IS_A_NAN = ( IS_NAN( DBLE( VALUE ) ) /= 0 )
-!------------------------------------------------------------------------------
-
 #elif defined( LINUX_IFORT )
       IT_IS_A_NAN = ISNAN( VALUE )    
 
@@ -247,18 +236,6 @@
 
 #elif defined( COMPAQ )
       IT_IS_A_NAN = ISNAN( VALUE )         
-
-!-----------------------------------------------------------------------------
-! Prior to 8/14/07:
-!#elif defined( LINUX_IFORT ) || defined( LINUX_PGI )
-!
-!      ! Declare IS_NAN as an external function
-!      INTEGER, EXTERNAL  :: IS_NAN
-!
-!      ! For LINUX or INTEL_FC compilers, use C routine 
-!      ! "is_nan" to test if VALUE is NaN.  
-!      IT_IS_A_NAN = ( IS_NAN( VALUE ) /= 0 )
-!-----------------------------------------------------------------------------
 
 #elif defined( LINUX_IFORT )
       IT_IS_A_NAN = ISNAN( VALUE )      
@@ -355,20 +332,6 @@
       ELSE
          IT_IS_A_FINITE = .TRUE.
       ENDIF
-
-!-----------------------------------------------------------------------------
-! Prior to 8/14/07:
-!#elif defined( LINUX_IFORT ) || defined( LINUX_PGI ) 
-!
-!      ! Declare IS_FINITE as an external function
-!      INTEGER, EXTERNAL :: IS_FINITE
-!      
-!      ! For LINUX or INTEL_FC compilers use C routine "is_finite" to test 
-!      ! if VALUE is finite.  VALUE must be cast to DBLE since "is_inf" 
-!      ! only takes doubles. 
-!      IT_IS_A_FINITE = ( IS_FINITE( DBLE( VALUE ) ) /= 0 )
-!-----------------------------------------------------------------------------
-      IT_IS_A_NAN = .FALSE.
 
 #elif defined( LINUX_IFORT )
 
@@ -474,18 +437,6 @@
       ELSE
          IT_IS_A_FINITE = .TRUE.
       ENDIF
-
-!-----------------------------------------------------------------------------
-! Prior to 8/14/07:
-!#elif defined( LINUX_IFORT ) || defined( LINUX_PGI )
-!
-!      ! Declare IS_FINITE as an external function
-!      INTEGER, EXTERNAL :: IS_FINITE
-!
-!      ! For LINUX or INTEL_FC compilers, use C routine 
-!      ! "is_finite" to test if VALUE is infinity
-!      IT_IS_A_FINITE = ( IS_FINITE( VALUE ) /= 0 )
-!-----------------------------------------------------------------------------
 
 #elif defined( LINUX_IFORT )
 
@@ -876,6 +827,60 @@
 
       ! Return to calling program
       END FUNCTION SAFE_DIV
+
+!------------------------------------------------------------------------------
+
+      FUNCTION IS_SAFE_DIV( N, D, R4 ) RESULT( F )
+!
+!******************************************************************************
+!  Subroutine IS_SAFE_DIV tests for "safe division", that is check if the 
+!  division will overflow/underflow or hold NaN.  .FALSE. is returned if the 
+!  division cannot be performed. (phs, 6/11/08)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) N              : Numerator for the division 
+!  (2 ) D              : Divisor for the division
+!  (3 ) R4 (optional)  : logical flag to use the limits of REAL*4 to define 
+!                        under/overflow
+!
+!  NOTES: 
+!******************************************************************************
+!
+      ! Arguments
+      REAL*8,  INTENT(IN)           :: N, D
+      LOGICAL, INTENT(IN), OPTIONAL :: R4
+
+      ! local variables
+      INTEGER MaxExp, MinExp
+      REAL*4  RR
+
+      ! Function value
+      LOGICAL            :: F
+
+      !==================================================================
+      ! IS_SAFE_DIV begins here!
+      !==================================================================
+
+      MaxExp = MAXEXPONENT( N )
+      MinExp = MINEXPONENT( N )
+
+      IF ( PRESENT( R4 ) ) THEN
+         IF ( R4 ) THEN
+            MaxExp = MAXEXPONENT( RR )
+            MinExp = MINEXPONENT( RR )
+         ENDIF
+      ENDIF  
+
+      IF ( EXPONENT(N) - EXPONENT(D) >= MaxExp .or. D==0 .or.
+     &     EXPONENT(N) - EXPONENT(D) <= MinExp  ) THEN
+         F = .FALSE.
+      ELSE
+         F = .TRUE.
+      ENDIF
+
+      ! Return to calling program
+      END FUNCTION IS_SAFE_DIV
 
 !------------------------------------------------------------------------------
 

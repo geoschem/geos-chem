@@ -1,4 +1,4 @@
-! $Id: convection_mod.f,v 1.17 2008/01/31 15:41:58 bmy Exp $
+! $Id: convection_mod.f,v 1.18 2008/08/08 17:20:33 bmy Exp $
       MODULE CONVECTION_MOD
 !
 !******************************************************************************
@@ -83,10 +83,6 @@
       USE DAO_MOD,    ONLY : CLDMAS,    CMFMC, DTRAIN
       USE TRACER_MOD, ONLY : N_TRACERS, TCVV,  STT
 
-!-------------------------------------------------------
-! Prior to 2/8/07:
-!#     include "define.h"   ! C-preprocessor switches 
-!-------------------------------------------------------
 #     include "CMN_SIZE"   ! Size parameters
 
 #if   defined( GCAP ) 
@@ -639,13 +635,6 @@
       REAL*8,  SAVE          :: DSIG(LLPAR)
       REAL*8                 :: SDT, CMOUT, ENTRN, DQ, AREA_M2
       REAL*8                 :: T0, T1, T2, T3, T4, TSUM, DELQ
-      !------------------------------------------------------------------------
-      ! Prior to 1/31/08:
-      ! Replace NNPAR with NC.  In many instances NC is less than the max
-      ! value of NNPAR and so will save memory, especially at 2x25 resolution
-      ! (bmy, 1/31/08)
-      !REAL*8                 :: DTCSUM(IIPAR,JJPAR,LLPAR,NNPAR)
-      !------------------------------------------------------------------------
       REAL*8                 :: DTCSUM(IIPAR,JJPAR,LLPAR,NC)
 
       ! F is the fraction of tracer lost to wet scavenging in updrafts

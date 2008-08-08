@@ -1,9 +1,9 @@
-! $Id: chemdr.f,v 1.27 2008/01/24 19:58:01 bmy Exp $
+! $Id: chemdr.f,v 1.28 2008/08/08 17:20:32 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
 !  Subroutine CHEMDR is the driver subroutine for full chemistry w/ SMVGEAR.
-!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 10/3/06)
+!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 6/3/08)
 !
 !  Important input variables from "dao_mod.f" and "uvalbedo_mod.f":
 !  ============================================================================
@@ -145,6 +145,8 @@
 !  (29) Now support variable tropopause (bdf, phs, bmy, 10/3/06)
 !  (30) Now get CH4 concentrations for FUTURE_YEAR when using the future
 !        emissions scale factors (swu, havala, bmy, 1/28/04)
+!  (31) Now call "save_full_trop" at the end to account for "do_diag_pl" 
+!        resetting some of CSPEC elements (phs, 6/3/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -281,19 +283,7 @@
             ! to return the globally-varying CH4 conc. as a function of
             ! year and latitude bin.  (ICH4 is defined in READCHEM.)
             ! (bnd, bmy, 7/1/03)
-
-!-----------------------------------------------------------------------------
-! Prior to 1/24/08:
-! We also need to make sure that we pass the proper year for future 
-! emissions to routine GET_GLOBAL_CH4 (swu, havala, bmy, 1/24/08)
-!            ! Get CH4 [ppbv] in 4 latitude bins for each year
-!            CALL GET_GLOBAL_CH4( GET_YEAR(), .TRUE., C3090S, 
-!     &                           C0030S,     C0030N, C3090N )
-!            
-!            ! Save year for CH4 emissions
-!            CH4_YEAR = GET_YEAR()
-!-----------------------------------------------------------------------------
-
+            !
             ! If we are using the future emissions, then get the CH4
             ! concentrations for FUTURE_YEAR.  Otherwise get the CH4
             ! concentrations for the current met field year. 
@@ -439,19 +429,23 @@
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after LUMP' )
 
-      !=================================================================
-      ! Copy the chemical species from CSPEC (actual troposphere) to
-      ! CSPEC_FULL (potential troposphere) array.  We only need to do 
-      ! this if the variable troposphere is turned on. 
-      ! (bdf, phs, bmy, 10/3/06)
-      !=================================================================
-      IF ( LVARTROP ) THEN
-         CALL SAVE_FULL_TROP
-
-         !### Debug
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SAVE_FULL_TROP')
-      ENDIF
-
+!------------------------------------------------------------------------------
+! Prior to 6/3/08:
+! Move this to the end of CHEMDR to avoid errors w/ vartrop (phs, 6/3/08)
+!      !=================================================================
+!      ! Copy the chemical species from CSPEC (actual troposphere) to
+!      ! CSPEC_FULL (potential troposphere) array.  We only need to do 
+!      ! this if the variable troposphere is turned on. 
+!      ! (bdf, phs, bmy, 10/3/06)
+!      !=================================================================
+!      IF ( LVARTROP ) THEN
+!         CALL SAVE_FULL_TROP
+!
+!         !### Debug
+!         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SAVE_FULL_TROP')
+!      ENDIF
+!
+!------------------------------------------------------------------------------
       !=================================================================
       ! Call OHSAVE which saves info on OZONE, OH, AND NO concentrations 
       !=================================================================
@@ -482,6 +476,22 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after DO_DIAG_PL' )
       ENDIF
       
+      !=================================================================
+      ! Copy the chemical species from CSPEC (actual troposphere) to
+      ! CSPEC_FULL (potential troposphere) array.  We only need to do 
+      ! this if the variable troposphere is turned on. 
+      ! (bdf, phs, bmy, 10/3/06)
+      !
+      ! NOTE: This has to be placed at the end of CHEMDR, after the
+      ! call to the ND65 diagnostic DO_DIAG_PL. (phs, 6/3/08)
+      !=================================================================
+      IF ( LVARTROP ) THEN
+         CALL SAVE_FULL_TROP
+
+         !### Debug
+         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SAVE_FULL_TROP')
+      ENDIF
+
       !=================================================================
       ! Set FIRSTCHEM = .FALSE. -- we have gone thru one chem step
       !=================================================================

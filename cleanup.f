@@ -1,4 +1,4 @@
-! $Id: cleanup.f,v 1.18 2007/11/05 16:16:14 bmy Exp $
+! $Id: cleanup.f,v 1.19 2008/08/08 17:20:33 bmy Exp $
       SUBROUTINE CLEANUP
 !
 !******************************************************************************
@@ -117,10 +117,6 @@
       USE HCN_CH3CN_MOD,        ONLY : CLEANUP_HCN_CH3CN
       USE LAI_MOD,              ONLY : CLEANUP_LAI
       USE LIGHTNING_NOX_MOD,    ONLY : CLEANUP_LIGHTNING_NOX
-      !-------------------------------------------------------------------
-      ! Prior to 10/2/07:
-      !USE LIGHTNING_NOX_NL_MOD, ONLY : CLEANUP_LIGHTNING_NOX_NL
-      !-------------------------------------------------------------------
       USE MEGAN_MOD,            ONLY : CLEANUP_MEGAN
       USE MERCURY_MOD,          ONLY : CLEANUP_MERCURY
       USE OCEAN_MERCURY_MOD,    ONLY : CLEANUP_OCEAN_MERCURY
@@ -189,10 +185,6 @@
       CALL CLEANUP_HCN_CH3CN
       CALL CLEANUP_LAI
       CALL CLEANUP_LIGHTNING_NOX
-      !------------------------------------------
-      ! Prior to 10/2/07:
-      !CALL CLEANUP_LIGHTNING_NOX_NL
-      !------------------------------------------
       CALL CLEANUP_MEGAN
       CALL CLEANUP_MERCURY
       CALL CLEANUP_OCEAN_MERCURY

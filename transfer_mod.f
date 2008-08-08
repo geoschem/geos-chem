@@ -1,4 +1,4 @@
-! $Id: transfer_mod.f,v 1.7 2007/11/16 18:47:46 bmy Exp $
+! $Id: transfer_mod.f,v 1.8 2008/08/08 17:20:37 bmy Exp $
       MODULE TRANSFER_MOD
 !
 !******************************************************************************
@@ -1502,12 +1502,6 @@
 !
       ! References to F90 modules
       USE ERROR_MOD,  ONLY : ALLOC_ERR
-      !----------------------------------------------------------------------
-      ! Prior to 2/8/07:
-      ! Remove references to "grid_mod.f" and "pressure_mod.f" (bmy, 2/8/07)
-      !USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
-      !USE PRESSURE_MOD, ONLY : GET_BP
-      !----------------------------------------------------------------------
 
 #     include "CMN_SIZE"   ! Size parameters
 
@@ -1645,21 +1639,6 @@
      &             0.000155d0, 9.20000d-5, 4.75000d-5, 1.76800d-5, 
      &             0.000000d0 /)
 
-!-----------------------------------------------------------------------------
-! Prior to 2/8/07:
-! For GCAP we don't collapse levels so we don't really need to initialize
-! EDGE_IN with GET_BP.  Remove reference to pressure_mod.f. (bmy, 2/8/07)
-!#else
-!
-!      !-----------------------------------------------------------------
-!      ! We are not reducing the layers for other met fields, thus 
-!      ! LGLOB = LLPAR.  Initialize EDGE_IN with placeholder values.
-!      !-----------------------------------------------------------------
-!      DO L = 1, LGLOB+1
-!         EDGE_IN(L) = GET_BP(L)
-!      ENDDO
-!
-!-----------------------------------------------------------------------------
 #endif
 
       ! We have now initialized everything

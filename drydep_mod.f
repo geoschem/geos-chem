@@ -1,4 +1,4 @@
-! $Id: drydep_mod.f,v 1.33 2007/11/16 18:47:38 bmy Exp $
+! $Id: drydep_mod.f,v 1.34 2008/08/08 17:20:35 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
@@ -154,6 +154,7 @@
 !  (22) Fix typo in INIT_DRYDEP (dkh, bmy, 6/23/06)
 !  (23) Add H2 and HD as drydep tracers. Added subroutine DRYFLXH2HD for H2HD
 !        offline sim (phs, 9/18/07)
+!  (24) Extra error check for small RH in AERO_SFCRII (phs, 6/11/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -2186,7 +2187,7 @@ C** Load array DVEL
 !******************************************************************************
 !  Function AERO_SFCRSII computes the aerodynamic resistance of seasalt aerosol
 !  tracers according to Zhang et al 2001.  We account for hygroscopic growth
-!  of the seasalt aerosol particles (rjp, tdf, bec, bmy, 4/1/04, 4/15/05)
+!  of the seasalt aerosol particles (rjp, tdf, bec, bmy, 4/1/04, 6/11/08)
 !
 !  Arguments as Input: 
 !  ============================================================================
@@ -2204,6 +2205,8 @@ C** Load array DVEL
 !  NOTES
 !  (1 ) Updated comments.  Also now force double precision w/ "D" exponents.
 !        (bmy, 4/1/04)
+!  (2 ) Now limit relative humidity to [tiny(real*8),0.99] range for DLOG
+!         argument (phs, 6/11/08)
 !******************************************************************************
 !
       ! Arguments
@@ -2234,6 +2237,7 @@ C** Load array DVEL
       REAL*8  :: VISC        ! Viscosity of air (Pa s)
       REAL*8  :: DIFF        ! Brownian Diffusion constant for particles (m2/s)
       REAL*8  :: SC, ST      ! Schmidt and Stokes number (nondim)
+      REAL*8  :: RHBL        ! Relative humidity local
 
       REAL*8  :: DIAM, DEN, RATIO_R, RWET, RCM
       REAL*8  :: FAC1, FAC2
@@ -2385,7 +2389,9 @@ C** Load array DVEL
 
       ! Aerosol growth with relative humidity in radius [m] 
       ! (Gerber, 1985) (bec, 12/8/04)
-      RWET    = 0.01d0*(FAC1/(FAC2-DLOG(RHB))+RCM**3.d0)**0.33d0
+      ! Added safety check for LOG (phs, 6/11/08)
+      RHBL    = MAX( TINY(RHB), RHB )
+      RWET    = 0.01d0*(FAC1/(FAC2-DLOG(RHBL))+RCM**3.d0)**0.33d0
 
       ! Ratio dry over wet radii at the cubic power
       RATIO_R = ( A_RADI(K) / RWET )**3.d0

@@ -1,4 +1,4 @@
-! $Id: diag3.f,v 1.51 2008/02/15 20:16:02 bmy Exp $
+! $Id: diag3.f,v 1.52 2008/08/08 17:20:34 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
@@ -180,10 +180,6 @@
       
       ! For binary punch file, version 2.0
       CHARACTER (LEN=40) :: CATEGORY 
-      !-----------------------------------------------------
-      ! Prior to 9/17/07:
-      !REAL*4             :: ARRAY(IIPAR,JJPAR,LLPAR)
-      !-----------------------------------------------------
       REAL*4             :: ARRAY(IIPAR,JJPAR,LLPAR+1)
       REAL*4             :: LONRES, LATRES
       INTEGER            :: IFIRST, JFIRST, LFIRST
@@ -1589,10 +1585,6 @@
 !
 #if   !defined( GEOS_4 ) 
       IF ( ND27 > 0 .and. IDTOX > 0 ) then
-         !----------------------------------------------------------------
-         ! Prior to 9/18/07:
-         !IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_TAGOX_SIM() ) THEN
-         !----------------------------------------------------------------
          IF ( ( IDTOX > 0 .and. 
      &        ( ITS_A_FULLCHEM_SIM() .or. ITS_A_TAGOX_SIM() ) ) .OR. 
      &        ( ITS_A_H2HD_SIM()                              ) ) THEN
@@ -1715,15 +1707,6 @@
             IF ( .not. ANY( BIOTRCE == N ) ) CYCLE
             NN = N
             
-            !---------------------------------------------------------------
-            ! Prior to 1/24/08:
-            ! This is necessary if emissions selected for saving
-            ! are not in the same order as listed in BIOTRCE,
-            ! or if the selected emissions skip some of the possible
-            ! choices (say you want to save only CO and BENZ). 
-            ! (dkh, 1/24/08)
-            !ARRAY(:,:,1) = AD28(:,:,M) / SCALESRCE
-            !---------------------------------------------------------------
             DO MM = 1, NBIOMAX
                IF ( BIOTRCE(MM) == NN ) THEN
                   MMB = MM
@@ -1820,27 +1803,14 @@
 !******************************************************************************
 !   
       IF ( ND31 > 0 ) THEN
-         !--------------------------------------------------------------
-         ! Prior to 5/8/07:
-         !CATEGORY          = 'PS-PTOP'
-         !--------------------------------------------------------------
          CATEGORY          = 'PEDGE-$'
          UNIT              = 'mb'
-         !--------------------------------------------------------------
-         ! Prior to 5/8/07:
-         !ARRAY(:,:,1) = AD31(:,:,1) / SCALEDYN
-         !--------------------------------------------------------------
          ARRAY(:,:,1:LD31) = AD31(:,:,1:LD31) / SCALEDYN
          NN                = 1
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, NN,    
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-!-------------------------------------------------------------------------
-! Prior to 5/8/07:
-!     &               IIPAR,     JJPAR,     1,        IFIRST,     
-!     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
-!-------------------------------------------------------------------------
      &               IIPAR,     JJPAR,     LD31,        IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD31) )
       ENDIF
@@ -2422,10 +2392,6 @@
          ! Loop over drydep tracers
          DO N = 1, M
 
-            !-------------------------------------------------------
-            ! Prior to 9/18/07:
-            !IF ( ITS_A_RnPbBe_SIM()  ) THEN
-            !-------------------------------------------------------
             IF ( ITS_A_RnPbBe_SIM() .or. ITS_A_H2HD_SIM() ) THEN
 
                ! Radon or H2/HD

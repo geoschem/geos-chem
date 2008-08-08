@@ -1,4 +1,4 @@
-! $Id: diag_pl_mod.f,v 1.12 2007/12/04 16:23:58 bmy Exp $
+! $Id: diag_pl_mod.f,v 1.13 2008/08/08 17:20:34 bmy Exp $
       MODULE DIAG_PL_MOD
 !
 !******************************************************************************
@@ -582,11 +582,6 @@
 !$OMP+PRIVATE( I, J, L, N, JLOOP )
 !$OMP+SCHEDULE( DYNAMIC ) 
       DO N = 1, NFAMILIES
-      !---------------------------------------------------------
-      ! Prior to 12/4/07:
-      ! Use ND65 to prevent out of bounds error (bmy, 12/4/07)
-      !DO L = 1, NVERT
-      !---------------------------------------------------------
       DO L = 1, LD65
       DO J = 1, NLAT
       DO I = 1, NLONG
@@ -709,10 +704,6 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, P_Ox, L_Ox )
-      !----------------------------------
-      ! Prior to 12/4/07:
-      !DO L = 1, LLTROP_FIX
-      !----------------------------------
       DO L = 1, LD65
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -759,10 +750,6 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
          DO N = 1, 2
-         !-----------------------------
-         ! Prior to 
-         !DO L = 1, LLTROP_FIX
-         !-----------------------------
          DO L = 1, LD65
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -798,10 +785,6 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
          DO N = 1, 2
-         !------------------------
-         ! Prior to 12/4/07:
-         !DO L = 1, LLTROP
-         !------------------------
          DO L = 1, LD65
          DO J = 1, JJPAR
          DO I = 1, IIPAR

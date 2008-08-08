@@ -1,10 +1,10 @@
-! $Id: setemis.f,v 1.14 2007/11/05 16:16:24 bmy Exp $
+! $Id: setemis.f,v 1.15 2008/08/08 17:20:37 bmy Exp $
       SUBROUTINE SETEMIS( EMISRR, EMISRRN )
 !
 !******************************************************************************
 !  Subroutine SETEMIS places emissions computed from GEOS-Chem
 !  subroutines into arrays for SMVGEAR II chemistry. 
-!  (lwh, jyl, gmg, djj, bdf, bmy, 6/8/98, 10/3/07)
+!  (lwh, jyl, gmg, djj, bdf, bmy, 6/8/98, 6/11/08)
 !
 !  SETEMIS converts from units of [molec tracer/box/s] to units of
 !  [molec chemical species/cm3/s], and stores in the REMIS array.  For
@@ -92,6 +92,7 @@
 !        handled elsewhere.  (bdf, phs, bmy, 9/27/06)
 !  (28) Now replace GEMISNOX array (from CMN_NOX) with module arrays
 !        EMIS_LI_NOx and EMIS_AC_NOx (ltm, bmy, 10/3/07)
+!  (29) Bug fix: resize EMISRR to be consistent w/ CMN_O3 (bmy, jaf, 6/11/08) 
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -117,7 +118,12 @@
 #     include "comode.h"  ! IDEMS, NEMIS
 
       ! Arguments
-      REAL*8,  INTENT(IN) :: EMISRR(IIPAR,JJPAR,2:NEMPARA+NEMPARB)
+      !-----------------------------------------------------------------
+      ! Prior to 6/11/08:
+      ! Resize to be consistent w/ CMN_O3 (bmy, jaf, 6/11/08)
+      !REAL*8,  INTENT(IN) :: EMISRR(IIPAR,JJPAR,2:NEMPARA+NEMPARB)
+      !-----------------------------------------------------------------
+      REAL*8,  INTENT(IN) :: EMISRR(IIPAR,JJPAR,NEMPARA+NEMPARB)
       REAL*8,  INTENT(IN) :: EMISRRN(IIPAR,JJPAR,NOXEXTENT)  
 
       ! Local variables
@@ -308,14 +314,6 @@
                         ! Divide lightning NOx by COEF1 to convert
                         ! from [molec NOx/cm3/s] to [molec NO/cm3/s], since
                         ! NO is the actual emission species for NOx.
-                        !-----------------------------------------------------
-                        ! Prior to 10/3/07:
-                        ! Now use EMIS_LI_NOx and EMIS_AC_NOx to pass 
-                        ! lightning NOx and aircraft NOx from the individual
-                        ! modules.  This will avoid common block errors.
-                        ! (ltm, bmy, 10/3/07)
-                        !EMIS_BL        = GEMISNOX(I,J,L) / COEF1
-                        !-----------------------------------------------------
                         EMIS_BL        = EMIS_LI_NOx(I,J,L) / COEF1 
 
                         ! Save lightning NOx [molec NO/cm3/s] in REMIS

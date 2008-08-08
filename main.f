@@ -1,5 +1,8 @@
-! $Id: main.f,v 1.52 2008/04/03 14:19:44 bmy Exp $
+! $Id: main.f,v 1.53 2008/08/08 17:20:36 bmy Exp $
 ! $Log: main.f,v $
+! Revision 1.53  2008/08/08 17:20:36  bmy
+! Updated before Bob Y. goes on vacation (bmy, 8/8/08)
+!
 ! Revision 1.52  2008/04/03 14:19:44  bmy
 ! Now use RPMARES for ATE.  Only compute ATE w/in tropopause. (bmy, 4/3/08)
 !
@@ -182,16 +185,6 @@
       USE INPUT_MOD,         ONLY : READ_INPUT_FILE
       USE LAI_MOD,           ONLY : RDISOLAI
       USE LIGHTNING_NOX_MOD, ONLY : LIGHTNING
-!------------------------------------------------------------------------------
-! Prior to 9/24/07:
-! Remove reference to LIGHTNING_NL (ltm, bmy, 9/24/07)
-!      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!      !%%% NOTE: Temporary kludge: For GEOS-4 we want to use the new near-land
-!      !%%% lightning formulation.  But for the time being, we must keep the 
-!      !%%% existing lightning for other met field types. (ltm, bmy, 5/10/06)
-!      USE LIGHTNING_NOX_NL_MOD, ONLY : LIGHTNING_NL
-!      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!------------------------------------------------------------------------------
       USE LOGICAL_MOD,       ONLY : LEMIS,     LCHEM, LUNZIP,  LDUST
       USE LOGICAL_MOD,       ONLY : LLIGHTNOX, LPRT,  LSTDRUN, LSVGLB
       USE LOGICAL_MOD,       ONLY : LWAIT,     LTRAN, LUPBD,   LCONV
@@ -457,20 +450,6 @@
 
       ! Compute lightning NOx emissions [molec/box/6h]
       IF ( LLIGHTNOX ) THEN
-!------------------------------------------------------------------------------
-! Prior to 9/24/07:
-! Remove reference to LIGHTNING_NL (ltm, bmy, 9/24/07)
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!!%%% NOTE: Temporary kludge: For GEOS-4 we want to use the new near-land 
-!!%%% lightning formulation.  But for the time being, we must keep the existing
-!!%%% lightning for other met field types. (ltm, bmy, 5/10/06)
-!#if   defined( GEOS_4 )
-!         CALL LIGHTNING_NL
-!#else
-!         CALL LIGHTNING( T, CLDTOPS )
-!#endif
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!------------------------------------------------------------------------------
          CALL LIGHTNING
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a LIGHTNING' )
       ENDIF
@@ -694,22 +673,6 @@
 
             ! Since CLDTOPS is an A-6 field, update the
             ! lightning NOx emissions [molec/box/6h]
-!------------------------------------------------------------------------------
-! Prior to 9/24/07:
-! Remove reference to LIGHTNING_NL (ltm, bmy, 9/24/07)
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!!%%% NOTE: Temporary kludge: For GEOS-4 we want to use the new near-land 
-!!%%% lightning formulation.  But for the time being, we must keep the 
-!!%%% existing lightning for other met field types. (ltm, bmy, 5/10/06)
-!            IF ( LLIGHTNOX ) THEN
-!#if   defined( GEOS_4 )
-!               CALL LIGHTNING_NL
-!#else 
-!               CALL LIGHTNING( T, CLDTOPS )
-!#endif
-!            ENDIF
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!------------------------------------------------------------------------------
             IF ( LLIGHTNOX ) CALL LIGHTNING
          ENDIF
 
@@ -739,11 +702,6 @@
          ENDIF
 
          ! Fossil fuel emissions (SMVGEAR)
-         !------------------------------------------------------------
-         ! Prior to 2/14/08:
-         ! Also call ANTHROEMS for Tagged CO (jaf, mak, bmy, 2/14/08)
-         !IF ( ITS_A_FULLCHEM_SIM() ) THEN
-         !------------------------------------------------------------
          IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_TAGCO_SIM() ) THEN
             IF ( LEMIS .and. ITS_A_NEW_SEASON() ) THEN
                CALL ANTHROEMS( SEASON )
@@ -769,10 +727,6 @@
             ENDIF
                
             ! Also read soil-type info for fullchem simulation
-            !-------------------------------------------------------------
-            ! Prior to 9/18/07:
-            !IF ( ITS_A_FULLCHEM_SIM() ) CALL RDSOIL 
-            !-------------------------------------------------------------
             IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_H2HD_SIM() ) THEN
                CALL RDSOIL 
             ENDIF
@@ -805,19 +759,6 @@
 
          ! Compute airmass quantities at each grid box 
          CALL AIRQNT
-
-!---------------------------------------------------------------------------
-! Prior to 2/13/07:         
-!         ! Compute the cosine of the solar zenith angle at each grid box
-!         !CALL COSSZA( DAY_OF_YEAR, NHMSb, ELAPSED_SEC, SUNCOS )
-! 
-!         ! For SMVGEAR II, we also need to compute SUNCOS at
-!         ! the end of this chemistry timestep (bdf, bmy, 4/1/03)
-!         IF ( LCHEM .and. ITS_A_FULLCHEM_SIM() ) THEN
-!            CALL COSSZA( DAY_OF_YEAR,                  NHMSb, 
-!     &                   ELAPSED_SEC+GET_TS_CHEM()*60, SUNCOSB )
-!         ENDIF
-!---------------------------------------------------------------------------
 
          ! Compute the cosine of the solar zenith angle array SUNCOS
          ! NOTE: SUNCOSB is not really used in PHYSPROC (bmy, 2/13/07)
