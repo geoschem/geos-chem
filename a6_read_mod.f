@@ -1,9 +1,9 @@
-! $Id: a6_read_mod.f,v 1.22 2008/03/28 17:27:19 bmy Exp $
+! $Id: a6_read_mod.f,v 1.23 2008/10/08 18:30:33 bmy Exp $
       MODULE A6_READ_MOD
 !
 !******************************************************************************
 !  Module A6_READ_MOD contains subroutines that unzip, open, and read
-!  GEOS-CHEM A-6 (avg 6-hour) met fields from disk. (bmy, 6/19/03, 3/28/08)
+!  GEOS-CHEM A-6 (avg 6-hour) met fields from disk. (bmy, 6/19/03, 10/1/08)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -51,6 +51,7 @@
 !  (14) Now read extra fields for GEOS-5.  Bug fix: we must convert RH from 
 !        unitless to % to be compatible w/ present drydep etc. algorithms. 
 !        (phs, bmy, 3/28/08)
+!  (15) Now get the # of A-6 fields from the file ident string (bmy, 10/7/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -67,6 +68,13 @@
       PUBLIC :: GET_A6_FIELDS   
       PUBLIC :: OPEN_A6_FIELDS  
       PUBLIC :: UNZIP_A6_FIELDS
+
+      !=================================================================
+      ! MODULE VARIABLES
+      !=================================================================
+
+      ! Number of A6 fields in the file
+      INTEGER :: N_A6_FIELDS
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -303,7 +311,7 @@
 !
 !******************************************************************************
 !  Subroutine OPEN_A6_FIELDS opens the A-6 met fields file for date NYMD and 
-!  time NHMS. (bmy, bdf, 6/15/98, 8/4/06)
+!  time NHMS. (bmy, bdf, 6/15/98, 10/7/08)
 !  
 !  Arguments as input:
 !  ===========================================================================
@@ -322,6 +330,7 @@
 !  (6 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (8 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (9 ) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -424,6 +433,10 @@
             CALL IOERROR( IOS, IU_A6, 'open_a6_fields:2' )
          ENDIF
 
+         ! The last 2 digits of the ident string
+         ! is the # of fields contained in the file
+         READ( IDENT(7:8), '(i2.2)' ) N_A6_FIELDS    
+
 #endif
 
       ENDIF
@@ -467,10 +480,6 @@
       USE DAO_MOD,      ONLY : T,       TAUCLI,   TAUCLW,   UPDE
       USE DAO_MOD,      ONLY : UPDN,    UWND,     VWND,     ZMEU
       USE DAO_MOD,      ONLY : ZMMD,    ZMMU
-      !----------------------------------------------
-      ! Undoing GEOS-5 modification
-      !USE PRESSURE_MOD, ONLY : PLE
-      !----------------------------------------------
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -532,11 +541,6 @@
 !     &              MFYC=MFYC,          MFZ=MFZ       later (bmy, 1/17/07)
 !----------------------------------------------------------------------------
      &              MOISTQ=MOISTQ,     OPTDEPTH=OPTDEP, 
-!-----------------------------------------------------------------
-! Undoing GEOS-5 modification
-! Remove PLE as an argument
-!     &              PLE=PLE,           PV=PV,            
-!-----------------------------------------------------------------
      &              PV=PV,             RH=RH,             
      &              Q=SPHU,            QL=QL,             
      &              QI=QI,             T=T,               
@@ -804,6 +808,7 @@
 !        with existing routines.  Also recognize EPV, which is an alternate 
 !        name for PV.  Bug fix: convert GEOS-5 RH from unitless to %.
 !        (phs, bmy, 3/28/08)
+!  (8 ) Now get the # of A-6 fields from the file ident string (bmy, 10/7/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -875,7 +880,11 @@
       !=================================================================
 
       ! Get number of A-6 fields
-      N_A6   = GET_N_A6()
+#if   defined( GEOS_5 ) 
+      N_A6 = N_A6_FIELDS
+#else
+      N_A6 = GET_N_A6()
+#endif
 
       ! Zero number of fields that we have found
       NFOUND = 0
@@ -1396,6 +1405,18 @@
                   NFOUND = NFOUND + 1 
                ENDIF
 
+            !--------------------------------------
+            ! Extra GEOS-5 fields
+            ! Skip over these now; add later
+            !--------------------------------------
+            CASE ( 'OMEGA' ) 
+               READ( IU_A6, IOSTAT=IOS ) XYMD, XHMS, D
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:40' )
+
+               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+                  NFOUND = NFOUND + 1 
+               ENDIF
+
             ! Field not found -- skip over
             CASE DEFAULT
                WRITE ( 6, '(a)' ) 'Searching for next A-6 field!'
@@ -1512,7 +1533,11 @@
 
       ! Convert RH from unitless to percent (phs, bmy, 3/28/08)
       ! %%% NOTE: GEOS-5 file spec says units of RH are % but that's wrong!
-      IF ( PRESENT( RH ) ) RH = RH * 100d0
+      ! Temporary fix: force RH to be positive (phs, 5/1/08)
+      IF ( PRESENT( RH ) ) THEN
+         RH = RH * 100d0
+         RH = MAX(RH, 0D0)
+      ENDIF
 
       ! Convert GEOS-5 specific humidity from [kg/kg] to [g/kg]
       IF ( PRESENT( Q ) ) Q = Q * 1000d0

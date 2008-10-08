@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.47 2008/08/08 17:20:36 bmy Exp $
+! $Id: input_mod.f,v 1.48 2008/10/08 18:30:31 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -122,7 +122,8 @@
 !  (18) New error traps for OTD-LIS scaling, dependent on met field type.
 !        Bug fix, create string variables for ERROR_STOP.  Bug fix: use ND52
 !        in call to SET_TINDEX in READ_DIAGNOSTIC_MENU. (ltm, bmy, 2/11/08)
-!  (19) Minor fix in READ_TRANSPORT_MENU (cdh, bmy, 7/7/08) 
+!  (19) Bug fix: use (0,0) in call to INIT_TRANSFER (phs, 6/17/08)
+!  (20) Minor fix in READ_TRANSPORT_MENU (cdh, bmy, 7/7/08) 
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -495,7 +496,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_SIMULATION_MENU reads the SIMULATION MENU section of 
-!  the GEOS-CHEM input file (bmy, 7/20/04, 11/5/07)
+!  the GEOS-CHEM input file (bmy, 7/20/04, 6/17/08)
 !
 !  NOTES:
 !  (1 ) Bug fix: Read LSVGLB w/ the * format and not w/ '(a)'. (bmy, 2/23/05)
@@ -505,6 +506,7 @@
 !  (5 ) Now read switch for using variable tropopause or not (phs, 9/14/06)
 !  (6 ) Remove references to GEOS-1 and GEOS-STRAT run dirs.  Now calls 
 !        INIT_TRANSFER (bmy, 11/5/07)
+!  (7 ) Call INIT_TRANSFER w/ (0,0) instead of (I0,J0) (phs, 6/17/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -623,7 +625,7 @@
       WRITE( 6, 110     ) 'GEOS-4     sub-directory    : ', 
      &                     TRIM( GEOS_4_DIR )
       WRITE( 6, 110     ) 'GEOS-5     sub-directory    : ', 
-     &                     TRIM( GEOS_4_DIR )
+     &                     TRIM( GEOS_5_DIR )
       WRITE( 6, 110     ) '1x1 Emissions etc Data Dir  : ',
      &                     TRIM( DATA_DIR_1x1 )
       WRITE( 6, 110     ) 'Temporary Directory         : ', 
@@ -675,7 +677,9 @@
       CALL COMPUTE_GRID
 
       ! Initialze quantities for "transfer_mod.f"
-      CALL INIT_TRANSFER( I0, J0 )
+!--- prior to 6/17/08
+!      CALL INIT_TRANSFER( I0, J0 )
+      CALL INIT_TRANSFER( 0, 0 )
 
       ! Set counter
       CT1 = CT1 + 1

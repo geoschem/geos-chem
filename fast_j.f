@@ -1,10 +1,10 @@
-! $Id: fast_j.f,v 1.11 2007/11/29 21:46:18 bmy Exp $
+! $Id: fast_j.f,v 1.12 2008/10/08 18:30:32 bmy Exp $
       SUBROUTINE FAST_J( SUNCOS, OD, ALBD )  
 !
 !******************************************************************************
 !  Subroutine FAST_J loops over longitude and latitude, and calls PHOTOJ 
 !  to compute J-Values for each column at every chemistry time-step.  
-!  (ppm, 4/98; bmy, rvm, 9/99, 2/6/04; hyl, 4/25/04; phs, bmy, 11/29/07)
+!  (ppm, 4/98; bmy, rvm, 9/99, 2/6/04; hyl, 4/25/04; phs, bmy, 10/7/08)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -68,6 +68,7 @@
 !        Overlap) in each column (hyl, phs, bmy, 9/18/07)
 !  (17) Now initialize the PJ array here, instead of two layers below in
 !        "set_prof.f".  Now no longer pass PRES to "photoj.f". (bmy, 11/29/07)
+!  (18) Now switch to approx. random overlap option (hyl, phs, bmy, 10/7/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -110,16 +111,13 @@
       REAL*8                :: CLDF1D(LLPAR)
       REAL*8                :: ODNEW(LLPAR)
 
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%% NOTE: We will eventually want to use OVERLAP=2 (approx ran overlap)
-      !%%% as the default for GEOS-Chem simulations.  However, before we can
-      !%%% commit to this change, we will have to perform a 1yr benchmark 
-      !%%% simulation with this option turned on.  Until this happens, select 
-      !%%% the linear approximation (OVERLAP=1) for compatibility with prior
-      !%%% GEOS-Chem versions. (bmy, 9/18/07)
-      !INTEGER, PARAMETER :: OVERLAP = 2
-      INTEGER, PARAMETER :: OVERLAP = 1
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! NOTE: Switch from linear approximation (OVERLAP=1) to approximate
+      ! random overlap (OVERLAP=2) because we have re-processed the GEOS-5
+      ! met data such that OPTDEPTH, TAUCLI, and TAUCLW are now the in-cloud
+      ! optical depths rather than the grid-box optical depths. 
+      ! (hyl, phs, bmy, 10/7/08)
+      INTEGER, PARAMETER :: OVERLAP = 2
+      
       LOGICAL, SAVE      :: FIRST = .true.
 
       !=================================================================

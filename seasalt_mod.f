@@ -1,11 +1,11 @@
-! $Id: seasalt_mod.f,v 1.13 2008/08/08 17:20:36 bmy Exp $
+! $Id: seasalt_mod.f,v 1.14 2008/10/08 18:30:31 bmy Exp $
       MODULE SEASALT_MOD
 !
 !******************************************************************************
 !  Module SEASALT_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline seasalt aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (bec, rjp, bmy, 6/22/00, 6/11/08)
+!  (bec, rjp, bmy, 6/22/00, 7/18/08)
 !
 !  Seasalt aerosol species: (1) Accumulation mode (usually 0.1 -  0.5 um)
 !                           (2) Coarse mode       (usually 0.5 - 10.0 um)
@@ -74,6 +74,7 @@
 !  (7 ) Remove unused variables from GET_ALK.  Also fixed variable declaration
 !        bug in WET_SETTLING. (bec, bmy, 9/5/06)
 !  (8 ) Extra error check for low RH in WET_SETTLING (phs, 6/11/08)
+!  (9 ) Bug fix to remove a double-substitution in GET_ALK (bec, bmy, 7/18/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -859,6 +860,8 @@
 !
 !  NOTES:
 !  (1 ) Becky Alexander says we can remove AREA1, AREA2 (bec, bmy, 9/5/06)
+!  (2 ) Bug fix to remove a double-substitution.  Replace code lines for 
+!        TERM{123}A, TERM{123}B, TERM{123}AN, TERM{123}BN. (bec, bmy, 7/18/08)
 !******************************************************************************
 !
       USE DAO_MOD,      ONLY : AD, RH
@@ -958,12 +961,20 @@
          CONST1 = 4.D0/(V*GAMMA_SO2)
          A1     = (RAD1/DG)+CONST1
          B1     = (RAD2/DG)+CONST1
-         TERM1A = (((B1/DG)**2)+(2.0D0*CONST1*B1/DG)+(CONST1**2)) -
-     &            (((A1/DG)**2)+(2.0D0*CONST1*A1/DG)+(CONST1**2))
-         TERM2A = 2.D0*CONST1*(((B1/DG)+CONST1)-((A1/DG)+CONST1))
-         TERM3A = (CONST1**2)*(LOG((B1/DG)+CONST1) -
-     &            LOG((A1/DG)+CONST1))
-         KT1    = 4.D0*PI*N1*(DG**2)*(TERM1A - TERM2A + TERM3A)
+!-----------------------------------------------------------------------------
+! Prior to 7/18/08:
+! Becky Alexander's fix to remove double-substitution (bec, bmy, 7/18/08)
+!         TERM1A = (((B1/DG)**2)+(2.0D0*CONST1*B1/DG)+(CONST1**2)) -
+!     &            (((A1/DG)**2)+(2.0D0*CONST1*A1/DG)+(CONST1**2))
+!         TERM2A = 2.D0*CONST1*(((B1/DG)+CONST1)-((A1/DG)+CONST1))
+!         TERM3A = (CONST1**2)*(LOG((B1/DG)+CONST1) -
+!     &            LOG((A1/DG)+CONST1))
+!         KT1    = 4.D0*PI*N1*(DG**2)*(TERM1A - TERM2A + TERM3A)
+!-----------------------------------------------------------------------------
+         TERM1A = ((B1**2)/2.0d0) - ((A1**2)/2.0d0)
+         TERM2A = 2.D0*CONST1*(B1-A1)
+         TERM3A = (CONST1**2)*LOG(B1/A1)
+         KT1    = 4.D0*PI*N1*(DG**3)*(TERM1A - TERM2A + TERM3A)
 
          !----------------------------------
          ! SO2 uptake onto coarse particles 
@@ -974,12 +985,21 @@
          CONST2 = 4.D0/(V*GAMMA_SO2)
          A2     = (RAD2/DG)+CONST2
          B2     = (RAD3/DG)+CONST2
-         TERM1B = (((B2/DG)**2)+(2.0D0*CONST2*B2/DG)+(CONST2**2)) -
-     &            (((A2/DG)**2)+(2.0D0*CONST2*A2/DG)+(CONST2**2))
-         TERM2B = 2.D0*CONST2*(((B2/DG)+CONST2)-((A2/DG)+CONST2))
-         TERM3B = (CONST2**2)*(LOG((B2/DG)+CONST2) -
-     &             LOG((A2/DG)+CONST2))
-         KT2    = 4.D0*PI*N2*(DG**2)*(TERM1B - TERM2B + TERM3B)
+!------------------------------------------------------------------------------
+! Prior to 7/18/08:
+! Becky Alexander's fix to remove double-substitution (bec, bmy, 7/18/08)
+! Remove these lines:
+!         TERM1B = (((B2/DG)**2)+(2.0D0*CONST2*B2/DG)+(CONST2**2)) -
+!     &            (((A2/DG)**2)+(2.0D0*CONST2*A2/DG)+(CONST2**2))
+!         TERM2B = 2.D0*CONST2*(((B2/DG)+CONST2)-((A2/DG)+CONST2))
+!         TERM3B = (CONST2**2)*(LOG((B2/DG)+CONST2) -
+!     &             LOG((A2/DG)+CONST2))
+!         KT2    = 4.D0*PI*N2*(DG**2)*(TERM1B - TERM2B + TERM3B)
+!------------------------------------------------------------------------------
+         TERM1B = ((B2**2)/2.0d0) - ((A2**2)/2.0d0)
+         TERM2B = 2.D0*CONST2*(B2-A2)
+         TERM3B = (CONST2**2)*LOG(B2/A2)
+         KT2    = 4.D0*PI*N2*(DG**3)*(TERM1B - TERM2B + TERM3B)
          KT     = KT1 + KT2
 
          !----------------------------------
@@ -991,12 +1011,21 @@
          CONST1N = 4.D0/(V*GAMMA_HNO3)
          A1N     = (RAD1/DG)+CONST1N
          B1N     = (RAD2/DG)+CONST1N
-         TERM1AN = (((B1N/DG)**2)+(2.0D0*CONST1N*B1N/DG)+(CONST1N**2)) -
-     &             (((A1N/DG)**2)+(2.0D0*CONST1N*A1N/DG)+(CONST1N**2))
-         TERM2AN = 2.D0*CONST1N*(((B1N/DG)+CONST1N)-((A1N/DG)+CONST1N))
-         TERM3AN = (CONST1N**2)*(LOG((B1N/DG)+CONST1N) -
-     &             LOG((A1N/DG)+CONST1N))
-         KT1N    = 4.D0*PI*N1*(DG**2)*(TERM1AN - TERM2AN + TERM3AN)
+!-----------------------------------------------------------------------------
+! Prior to 7/18/08:
+! Becky Alexander's fix to remove double-substitution (bec, bmy, 7/18/08)
+! Remove these lines:
+!         TERM1AN = (((B1N/DG)**2)+(2.0D0*CONST1N*B1N/DG)+(CONST1N**2)) -
+!     &             (((A1N/DG)**2)+(2.0D0*CONST1N*A1N/DG)+(CONST1N**2))
+!         TERM2AN = 2.D0*CONST1N*(((B1N/DG)+CONST1N)-((A1N/DG)+CONST1N))
+!         TERM3AN = (CONST1N**2)*(LOG((B1N/DG)+CONST1N) -
+!     &             LOG((A1N/DG)+CONST1N))
+!         KT1N    = 4.D0*PI*N1*(DG**2)*(TERM1AN - TERM2AN + TERM3AN)
+!-----------------------------------------------------------------------------
+         TERM1AN = ((B1N**2)/2.0d0) - ((A1N**2)/2.0d0)
+         TERM2AN = 2.D0*CONST1N*(B1N-A1N)
+         TERM3AN = (CONST1N**2)*LOG(B1N/A1N)
+         KT1N    = 4.D0*PI*N1*(DG**3)*(TERM1AN - TERM2AN + TERM3AN)
 
          !----------------------------------
          ! HNO3 uptake onto coarse particles 
@@ -1007,13 +1036,23 @@
          CONST2N = 4.D0/(V*GAMMA_HNO3)
          A2N     = (RAD2/DG)+CONST2N
          B2N     = (RAD3/DG)+CONST2N
-         TERM1BN = (((B2N/DG)**2)+(2.0D0*CONST2N*B2N/DG)+(CONST2N**2)) -
-     &             (((A2N/DG)**2)+(2.0D0*CONST2N*A2N/DG)+(CONST2N**2))
-         TERM2BN = 2.D0*CONST2N*(((B2N/DG)+CONST2N)-((A2N/DG)+CONST2N))
-         TERM3BN = (CONST2N**2)*(LOG((B2N/DG)+CONST2N) -
-     &             LOG((A2N/DG)+CONST2N))
-         KT2N    = 4.D0*PI*N2*(DG**2)*(TERM1BN - TERM2BN + TERM3BN)
-         
+!-----------------------------------------------------------------------------
+! Prior to 7/18/08:
+! Becky Alexander's fix to remove double-substitution (bec, bmy, 7/18/08)
+! Remove these lines:
+!         TERM1BN = (((B2N/DG)**2)+(2.0D0*CONST2N*B2N/DG)+(CONST2N**2)) -
+!     &             (((A2N/DG)**2)+(2.0D0*CONST2N*A2N/DG)+(CONST2N**2))
+!         TERM2BN = 2.D0*CONST2N*(((B2N/DG)+CONST2N)-((A2N/DG)+CONST2N))
+!         TERM3BN = (CONST2N**2)*(LOG((B2N/DG)+CONST2N) -
+!     &             LOG((A2N/DG)+CONST2N))
+!         KT2N    = 4.D0*PI*N2*(DG**2)*(TERM1BN - TERM2BN + TERM3BN)
+!-----------------------------------------------------------------------------
+         TERM1BN = ((B2N**2)/2.0d0) - ((A2N**2)/2.0d0)
+         TERM2BN = 2.D0*CONST2N*(B2N-A2N)
+         TERM3BN = (CONST2N**2)*LOG(B2N/A2N)
+         KT2N    = 4.D0*PI*N2*(DG**3)*(TERM1BN - TERM2BN + TERM3BN)
+
+
       ELSE
 
          ! If no alkalinity, set everything to zero

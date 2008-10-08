@@ -1,9 +1,9 @@
-! $Id: a3_read_mod.f,v 1.20 2007/11/16 18:47:33 bmy Exp $
+! $Id: a3_read_mod.f,v 1.21 2008/10/08 18:30:33 bmy Exp $
       MODULE A3_READ_MOD
 !
 !******************************************************************************
 !  Module A3_READ_MOD contains routines that unzip, open, and read the
-!  GEOS-Chem A-3 (avg 3-hour) met fields from disk. (bmy, 6/23/03, 1/17/07)
+!  GEOS-Chem A-3 (avg 3-hour) met fields from disk. (bmy, 6/23/03, 10/7/08)
 ! 
 !  Module Routines:
 !  =========================================================================
@@ -43,6 +43,7 @@
 !  (9 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (10) Now read PARDF, PARDR for GCAP met fields (swu, bmy, 10/4/06)
 !  (11) Extra modifications for GEOS-5 met fields (bmy, 1/17/07)
+!  (12) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -60,6 +61,13 @@
       PUBLIC :: GET_A3_FIELDS
       PUBLIC :: OPEN_A3_FIELDS
       PUBLIC :: UNZIP_A3_FIELDS
+
+      !=================================================================
+      ! MODULE VARIABLES
+      !=================================================================
+
+      ! Number of A3 fields in the file
+      INTEGER :: N_A3_FIELDS
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -293,7 +301,7 @@
 !
 !******************************************************************************
 !  Subroutine OPEN_A3_FIELDS opens the A-3 met fields file for date NYMD and 
-!  time NHMS. (bmy, bdf, 6/15/98, 8/4/06)
+!  time NHMS. (bmy, bdf, 6/15/98, 10/7/08)
 !  
 !  Arguments as input:
 !  ===========================================================================
@@ -312,6 +320,7 @@
 !  (6 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)  
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (8 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (9 ) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -331,6 +340,7 @@
       ! Local variables
       LOGICAL                :: IT_EXISTS
       INTEGER                :: IOS
+      CHARACTER(LEN=2)       :: DUM
       CHARACTER(LEN=8)       :: IDENT
       CHARACTER(LEN=255)     :: A3_FILE
       CHARACTER(LEN=255)     :: GEOS_DIR
@@ -406,13 +416,17 @@
          
 #if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( GCAP )
 
-         ! Skip past the GEOS-4 ident string
+         ! Skip past the ident string
          READ( IU_A3, IOSTAT=IOS ) IDENT
 
          IF ( IOS /= 0 ) THEN
             CALL IOERROR( IOS, IU_A3, 'open_a3_fields:2' )
          ENDIF
 
+         ! The last 2 digits of the ident string
+         ! is the # of fields contained in the file
+         READ( IDENT(7:8), '(i2.2)' ) N_A3_FIELDS        
+        
 #endif
 
       ENDIF
@@ -678,7 +692,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_A3 reads GEOS A-3 (3-hr avg) fields from disk.
-!  (bmy, 5/8/98, 1/17/07)
+!  (bmy, 5/8/98, 10/7/08)
 ! 
 !  Arguments as input:
 !  ============================================================================
@@ -732,6 +746,7 @@
 !        optional arguments.  Also update the CASE statement accordingly for 
 !        GEOS-5 fields.  Convert GEOS-5 PRECTOT and PRECCON fields from
 !        [kg/m2/s] to [mm/day] for backwards compatibility. (bmy, 1/17/07)
+!  (8 ) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -788,7 +803,11 @@
       !=================================================================
 
       ! Get the number of A-3 fields stored in this data set
+#if   defined( GEOS_5 ) 
+      N_A3 = N_A3_FIELDS
+#else
       N_A3 = GET_N_A3( NYMD )
+#endif
 
       ! Zero the number of A-3 fields that we have found
       NFOUND = 0
@@ -1199,6 +1218,20 @@
             ! CLDTMP: just skip over this
             !--------------------------------
             CASE ( 'CLDTMP' )
+               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:33' )
+             
+               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+                  NFOUND = NFOUND + 1
+               ENDIF
+
+            !--------------------------------
+            ! Extra GEOS-5 fields
+            ! Skip over for now, add later
+            ! (bmy, 10/7/08)
+            !--------------------------------
+            CASE ( 'EFLUX',   'FRLAKE',  'FRLAND', 'FRLANDIC',
+     &             'FROCEAN', 'PRECANV', 'LWTUP'  )
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:33' )
              

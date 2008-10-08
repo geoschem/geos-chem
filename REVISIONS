@@ -1,5 +1,5 @@
 REVISIONS (v8-01-02)  
-07 Jul 2008
+07 Oct 2008
 Bob Yantosca              and Philippe Le Sager
 yantosca@seas.harvard.edu     plesager@seas.harvard.edu
 
@@ -17,6 +17,10 @@ Removed in v8-01-02:
 Changed in v8-01-02:
 -------------------------------------------------------------------------------
 
+a3_read_mod.f		-- Added N_A3_FIELDS variable
+
+a6_read_mod.f		-- Added N_A6_FIELDS variable
+
 aero_sfcrii		-- Now limit relative humidity to [tiny(real*8),0.99] 
 ("drydep_mod.f")	   range for DLOG argument
 
@@ -26,11 +30,34 @@ chemdr.f		-- Now call "save_full_trop" at the end to account
 CMN_O3			-- Redimension EMISR, EMIST, EMISRR to avoid errors 
 			   in tagged CO
 
+diag3.f			-- Bug fix: Now divide ALBEDO in ND67 by SCALE_I6 
+			   for GEOS-3 met, but by SCALE_A3 for all other 
+		           met types
+
+diag48			-- Bug fix: replace "PS-PTOP" with "PEDGE-$"
+("diag48_mod.f")
+
+diag49			-- Bug fix: replace "PS-PTOP" with "PEDGE-$"
+("diag49_mod.f")
+
 emiss_tagged_co		-- Bug fix: Now use IDECO to be consistent 
 ("tagged_co_mod.f")
 
+fast_j.f		--  Switch from linear approximation (OVERLAP=1) to 
+                            approximate random overlap (OVERLAP=2) because we 
+			    have re-processed the GEOS-5 met data such that 
+			    OPTDEPTH, TAUCLI, and TAUCLW are now the in-cloud
+			    optical depths rather than the grid-box optical 
+		            depths.
+
+get_alk			-- Bug fix to remove a double-substitution.  Replace 
+("seasalt_mod.f")          code lines for TERM{123}A, TERM{123}B, TERM{123}AN, 
+	                   and TERM{123}BN.
+
 grav_settling		-- Now limit relative humidity to [tiny(real*8),0.99] 
 ("sulfate_mod.f")          range for DLOG argument
+
+i6_read_mod.f		-- Added N_I6_FIELDS variable
 
 init_dao		-- Bug fix: should be CMFMC=0 after allocating CMFMC
 ("dao_mod.f")		   instead of CLDMAS=0
@@ -39,11 +66,29 @@ OPMIE.f			-- Bug fix: do not let the number of added levels
                            for the Gaussian Quadrature (in JADDLV array)
                            exceed the maximum dimension of common-block arrays
 
+read_a3			-- Now get the # of A-3 fields from the file 
+("a3_read_mod.f")	   identification string
+
+read_a6			-- Now get the # of A-6 fields from the file 
+("a3_read_mod.f")	   identification string
+
+read_i6			-- Now get the # of I-6 fields from the file 
+("i6_read_mod.f")	   identification string
+
 read_transport_menu	-- Don't stop run if TS_DYN > MAX_DYN but
-                           transport is turned off
+("input_mod.f")            transport is turned off
+
+read_simulation_menu	-- Call INIT_TRANSFER w/ (0,0) instead of (I0,J0)
+("input_mod.f")
 
 rpmares			-- Better catch of over/underflow for low ammonia case
 ("rpmares_mod.f")
+
+seasalt_chem		-- Bug fix for mass balance, replace TITR_HNO3 w/ 
+("sulfate_mod.f")          HNO3_SSC in the expression for HNO3_ss
+			-- Bug fix: now do equivalent computation for GET_GNO3,
+			   which is now no longer called because it's in 
+			   "isoropia_mod.f"
 
 soa_para		-- Corrected confusing documentation
 ("carbon_mod.f")
@@ -55,3 +100,9 @@ upbdflx_noy		-- Cap 1-XRATIO to avoid numerical problems later
 
 wet_settling		-- Now limit relative humidity to [tiny(real*8),0.99] 
 ("seasalt_mod.f")          range for DLOG argument
+
+write_diag50		-- Bug fix: replace "PS-PTOP" with "PEDGE-$"
+("diag50_mod.f")
+
+write_diag51		-- Bug fix: replace "PS-PTOP" with "PEDGE-$"
+("diag51_mod.f")

@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.37 2008/08/08 17:20:37 bmy Exp $
+! $Id: sulfate_mod.f,v 1.38 2008/10/08 18:30:31 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -1772,7 +1772,7 @@
 !
 !******************************************************************************
 !  Function SEASALT_CHEM computes SO4 formed from S(IV) + O3 on seasalt 
-!  aerosols as a function of seasalt alkalinity. (bec, bmy, 4/13/05, 12/8/06)
+!  aerosols as a function of seasalt alkalinity. (bec, bmy, 4/13/05, 10/7/08)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1809,6 +1809,10 @@
 !        be for an offline aerosol simulation. (bmy, 3/29/06)
 !  (3 ) Fixed typo in FALK_A_SO2 equation: C_FLUX_C should be C_FLUX_A.
 !        (havala, bec, bmy, 12/8/06)
+!  (4 ) Bug fix for mass balance, replace TITR_HNO3 w/ HNO3_SSC in the
+!        expression for HNO3_ss.  Bug fix: now do equivalent computation 
+!        for GET_GNO3, which is now no longer called because it's in 
+!        "isoropia_mod.f". (bec, bmy, 7/30/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1828,6 +1832,10 @@
       USE TIME_MOD,        ONLY : GET_ELAPSED_SEC,    GET_MONTH 
       USE TIME_MOD,        ONLY : ITS_A_NEW_MONTH
       USE ISOROPIA_MOD,    ONLY : GET_GNO3
+ 
+      ! Add these for GET_GNO3 fix (lyj, bmy, 10/7/08)
+      USE GLOBAL_HNO3_MOD, ONLY : GET_HNO3_UGM3
+      USE DAO_MOD,         ONLY : AIRVOL
 
 #     include "CMN_SIZE"  ! Size parameters
 !---------------------------------------------------------------
@@ -1885,10 +1893,25 @@
          HNO3_eq = HNO3_vv * AD(I,J,L) / ( 28.97d0 / 63d0 ) / 63.d-3
 
       ELSE
-
-         ! Get gas-phase HNO3 from ISORROPIA code
-         CALL GET_GNO3( I, J, L, HNO3_kg )
          
+         !--------------------------------------------------------------------
+         ! Prior to 10/7/08:
+         ! Now that we have switched from ISORROPIA to RPMARES, GET_GNO3
+         ! is no longer defined.  We therefore need to do the equivalent
+         ! computation.  NOTE: This is only an issue for the offline
+         ! aerosol simulation. (lyj, bmy, 10/7/08)
+         ! 
+         ! For more information, please see this Wiki post:
+         ! http://wiki.seas.harvard.edu/geos-chem/index.php/Aerosol_thermodynamical_equilibrium#Bug_in_sulfate_mod.f_caused_by_switch_to_RPMARES
+         ! 
+         !! Get gas-phase HNO3 from ISORROPIA code
+         !CALL GET_GNO3( I, J, L, HNO3_kg )         
+         !--------------------------------------------------------------------
+         
+         ! Get HNO3 in ug/m3, then multiply by volume in m3
+         ! and 1e-6 kg/ug to get HNO3 in kg
+         HNO3_kg = GET_HNO3_UGM3( I, J, L ) * AIRVOL(I,J,L) * 1e-6
+
 	 ! Convert HNO3 [kg] first to [v/v] 
          HNO3_vv = HNO3_kg * ( 28.97d0 / 63d0 )   / AD(I,J,L)
  
@@ -2089,7 +2112,16 @@
       IF ( IDTHNO3 > 0 ) THEN
 
          ! Coupled sim: IDTHNO3 is defined, so use it
-         HNO3_ss = TITR_HNO3 * 0.063 * TCVV(IDTHNO3) / AD(I,J,L)
+         !---------------------------------------------------------------------
+         ! Prior to 10/7/08:
+         ! We need to  Replace TITR_HNO3 w/ HNO3_SSC in this line of code:
+         !   HNO3_ss = TITR_HNO3 * 0.063 * TCVV(IDTHNO3) / AD(I,J,L)
+         !
+         ! For a more complete description, see:
+         ! http://wiki.seas.harvard.edu/geos-chem/index.php/
+         !   Sulfate_aerosols#Fix_for_mass_balance_of_HNO3_and_NIT
+         !---------------------------------------------------------------------
+         HNO3_ss = HNO3_SSC * 0.063 * TCVV(IDTHNO3)/AD(I,J,L)
          STT(I,J,L,IDTHNO3) = MAX( HNO3_vv - HNO3_ss, MINDAT )
 
       ELSE

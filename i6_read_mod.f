@@ -1,10 +1,10 @@
-! $Id: i6_read_mod.f,v 1.20 2007/11/16 18:47:40 bmy Exp $
+! $Id: i6_read_mod.f,v 1.21 2008/10/08 18:30:32 bmy Exp $
       MODULE I6_READ_MOD
 !
 !******************************************************************************
 !  Module I6_READ_MOD contains subroutines that unzip, open, and read
 !  GEOS-CHEM I-6 (instantaneous 6-hr) met fields from disk. 
-!  (bmy, 6/23/03, 1/16/07)
+!  (bmy, 6/23/03, 10/7/08)
 ! 
 !  Module Routines:
 !  =========================================================================
@@ -47,6 +47,7 @@
 !  (12) Now set negative SPHU to a very small positive # (bmy, 9/8/06)
 !  (13) Now read TROPP files for GEOS-4, and check tropopause level 
 !       in case of a variable tropopause (phs, bmy, bdf, 9/14/06)
+!  (14) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -64,6 +65,13 @@
       PUBLIC :: GET_I6_FIELDS_2
       PUBLIC :: OPEN_I6_FIELDS 
       PUBLIC :: UNZIP_I6_FIELDS 
+
+      !=================================================================
+      ! MODULE VARIABLES
+      !=================================================================
+
+      ! Number of I6 fields in the file
+      INTEGER :: N_I6_FIELDS
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -228,7 +236,7 @@
 !
 !******************************************************************************
 !  Subroutine OPEN_I6_FIELDS opens the I-6 met fields file for date NYMD and 
-!  time NHMS. (bmy, bdf, 6/15/98, 9/14/06)
+!  time NHMS. (bmy, bdf, 6/15/98, 10/7/08)
 !  
 !  Arguments as input:
 !  ===========================================================================
@@ -248,6 +256,7 @@
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (8 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (9 ) Updated for variable tropopause (phs, bmy, 9/14/06)
+!  (10) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -353,6 +362,10 @@
          IF ( IOS /= 0 ) THEN
             CALL IOERROR( IOS, IU_I6, 'open_i6_fields:2' )
          ENDIF
+         
+         ! The last 2 digits of the ident string
+         ! is the # of fields contained in the file
+         READ( IDENT(7:8), '(i2.2)' ) N_I6_FIELDS    
 
 #endif
 
@@ -664,7 +677,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_I6 reads GEOS-CHEM I-6 (inst. 6-hr) met fields from disk.
-!  (bmy, 5/8/98, 1/16/07)
+!  (bmy, 5/8/98, 10/7/08)
 ! 
 !  Arguments as Input:
 !  ===========================================================================
@@ -697,6 +710,7 @@
 !        zero, so as not to blow up logarithms (bmy, 9/8/06)
 !  (7 ) Now read TROPP files for GEOS-4 (phs, bmy, bdf, 9/12/06)
 !  (8 ) Now read TO3 and TTO3 for GEOS-5 (bmy, 1/16/07)
+!  (9 ) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -705,10 +719,6 @@
       USE LOGICAL_MOD,    ONLY : LVARTROP
       USE TIME_MOD,       ONLY : SET_CT_I6,       TIMESTAMP_STRING
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D,     TRANSFER_3D
-      !----------------------------------------------------------
-      ! Prior to 2/9/07:
-      !USE TROPOPAUSE_MOD, ONLY : CHECK_VAR_TROP
-      !----------------------------------------------------------
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! NDxx flags
@@ -741,7 +751,11 @@
       !=================================================================
 
       ! Get the number of I-6 fields
-      N_I6   = GET_N_I6( NYMD )
+#if   defined( GEOS_5 ) 
+      N_I6 = N_I6_FIELDS
+#else
+      N_I6 = GET_N_I6( NYMD )
+#endif
 
       ! Zero the number of I-6 fields we have already found
       NFOUND = 0

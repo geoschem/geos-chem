@@ -1,4 +1,4 @@
-! $Id: diag3.f,v 1.52 2008/08/08 17:20:34 bmy Exp $
+! $Id: diag3.f,v 1.53 2008/10/08 18:30:32 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
@@ -86,6 +86,8 @@
 !        diagnostic category name to "PEDGE-$". Bug fix in ND28 diagnostic to 
 !        allow you to print out individual biomass tracers w/o having to print 
 !        all of them. (bmy, dkh, 1/24/08)
+!  (75) Bug fix: Now divide ALBEDO in ND67 by SCALE_I6 for GEOS-3 met, but
+!        by SCALE_A3 for all other met types (phs, bmy, 10/7/08)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -2960,7 +2962,14 @@
                   SCALEX = SCALEDYN
                   UNIT   = 'hPa'
                CASE ( 14 ) 
+                  ! Bug fix: For GEOS-3, ALBEDO is an I-6 field, but
+                  ! for GEOS-4, GEOS-5, GCAP, it is an A-3 field.
+                  ! (lyj, phs, bmy, 10/7/08)
+#if   defined( GEOS_3 )
                   SCALEX = SCALE_I6 
+#else
+                  SCALEX = SCALE_A3
+#endif
                   UNIT   = 'unitless'
                CASE ( 15 )
                   SCALEX = SCALED
@@ -2974,7 +2983,7 @@
                CASE ( 18 ) 
                   SCALEX = SCALE_I6
                   UNIT   = 'hPa'
-               CASE ( 19 ) 
+               CASE ( 19 )
                   SCALEX = SCALE_A3
                   UNIT   = 'K'
                CASE ( 20 ) 

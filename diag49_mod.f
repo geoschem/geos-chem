@@ -1,9 +1,9 @@
-! $Id: diag49_mod.f,v 1.21 2008/08/08 17:20:34 bmy Exp $
+! $Id: diag49_mod.f,v 1.22 2008/10/08 18:30:32 bmy Exp $
       MODULE DIAG49_MOD
 !
 !******************************************************************************
 !  Module DIAG49_MOD contains variables and routines to save out 3-D 
-!  timeseries output to disk (bmy, 7/20/04, 2/11/08)
+!  timeseries output to disk (bmy, 7/20/04, 10/7/08)
 !
 !  Module Variables:
 !  ============================================================================
@@ -93,6 +93,7 @@
 !  (8 ) Modified INIT_DIAG49 to save out transects (cdh, bmy, 11/30/06)
 !  (9 ) Bug fix: accumulate into Q(X,Y,K) for dust OD (qli, bmy, 4/30/07)
 !  (10) Minor bug fixes in DIAG49 (cdh, bmy, 2/11/08)
+!  (11) Bug fix: replace "PS-PTOP" with "PEDGE-$"
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -145,7 +146,7 @@
 !******************************************************************************
 !  Subroutine DIAG49 produces time series (instantaneous fields) for a 
 !  geographical domain from the information read in timeseries.dat.  Output 
-!  will be in binary punch (BPCH) format. (bey, bmy, rvm, 4/9/99, 2/11/08)
+!  will be in binary punch (BPCH) format. (bey, bmy, rvm, 4/9/99, 10/7/08)
 !
 !  NOTES:
 !  (1 ) Now bundled into "diag49_mod.f".  Now reference STT from 
@@ -166,6 +167,7 @@
 !  (9 ) Bug fix: accumulate into Q(X,Y,K) for dust OD (qli, bmy, 4/30/07)
 !  (10) Bug fix: UNIT should be "levels" for tracer 77.  Also RH should be
 !        tracer #17 under "TIME-SER" category. (cdh, bmy, 2/11/08)
+!  (11) Bug fix: replace "PS-PTOP" with "PEDGE-$" (bmy, phs, 10/7/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -950,7 +952,11 @@
             !-----------------------------------
             ! PSURFACE - PTOP [hPa]
             !----------------------------------- 
-            CATEGORY = 'PS-PTOP'
+            !-------------------------
+            ! Prior to 10/7/08:
+            !CATEGORY = 'PS-PTOP'
+            !-------------------------
+            CATEGORY = 'PEDGE-$'
             UNIT     = 'hPa'
             GMNL     = 1
             GMTRC    = 1

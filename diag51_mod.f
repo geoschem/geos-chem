@@ -1,11 +1,11 @@
-! $Id: diag51_mod.f,v 1.26 2008/08/08 17:20:34 bmy Exp $
+! $Id: diag51_mod.f,v 1.27 2008/10/08 18:30:32 bmy Exp $
       MODULE DIAG51_MOD
 !
 !******************************************************************************
 !  Module DIAG51_MOD contains variables and routines to generate save 
 !  timeseries data where the local time is between two user-defined limits. 
 !  This facilitates comparisons with morning or afternoon-passing satellites
-!  such as GOME. (amf, bey, bdf, pip, bmy, 11/30/00, 2/11/08)
+!  such as GOME. (amf, bey, bdf, pip, bmy, 11/30/00, 10/7/08)
 !
 !  Module Variables:
 !  ============================================================================
@@ -112,6 +112,7 @@
 !  (11) Modified INIT_DIAG51 to save out transects (cdh, bmy, 11/30/06)
 !  (12) Now use 3D timestep counter for full chem in the trop (phs, 1/24/07)
 !  (13) Renumber RH in WRITE_DIAG50 (bmy, 2/11/08)
+!  (14) Bug fix: replace "PS-PTOP" with "PEDGE-$" (bmy, phs, 10/7/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -851,7 +852,7 @@
 !  Subroutine WRITE_DIAG51 computes the time-average of quantities between
 !  local time limits ND51_HR1 and ND51_HR2 and writes them to a bpch file.
 !  Arrays and counters are also zeroed for the next diagnostic interval.
-!  (bmy, 12/1/00, 2/11/08)  
+!  (bmy, 12/1/00, 10/7/08)  
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -875,6 +876,7 @@
 !        statement instead of IF statements.  Now zero counter arrays with
 !        array broadcast assignments. (phs, 1/24/07)
 !  (8 ) RH should be tracer #17 under "TIME-SER" category (bmy, 2/11/08)
+!  (9 ) Bug fix: replace "PS-PTOP" with "PEDGE-$" (bmy, phs, 10/7/08)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -1236,7 +1238,11 @@
             !---------------------
             ! Psurface - PTOP 
             !---------------------
-            CATEGORY = 'PS-PTOP'
+            !--------------------------
+            ! Prior to 10/7/08:
+            !CATEGORY = 'PS-PTOP'
+            !--------------------------
+            CATEGORY = 'PEDGE-$'
             UNIT     = 'hPa'
             GMNL     = 1
             GMTRC    = 1

@@ -1,9 +1,9 @@
-! $Id: diag48_mod.f,v 1.13 2008/08/08 17:20:34 bmy Exp $
+! $Id: diag48_mod.f,v 1.14 2008/10/08 18:30:32 bmy Exp $
       MODULE DIAG48_MOD
 !
 !******************************************************************************
 !  Module DIAG48_MOD contains variables and routines to save out 3-D 
-!  timeseries output to disk (bmy, 7/20/04, 2/11/08)
+!  timeseries output to disk (bmy, 7/20/04, 10/7/08)
 !
 !  Module Variables:
 !  ============================================================================
@@ -65,6 +65,7 @@
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !  (5 ) Minor bug fixes in DIAG48 (cdh, bmy, 2/11/08)
+!  (6 ) Bug fix: replace "PS-PTOP" with "PEDGE-$" (phs, bmy, 10/7/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -122,7 +123,7 @@
 !
 !******************************************************************************
 !  Subroutine DIAG48 saves station time series diagnostics to disk.
-!  (bmy, bey, amf, 6/1/99, 2/11/08)
+!  (bmy, bey, amf, 6/1/99, 10/7/08)
 !
 !  NOTES:
 !  (1 ) Remove reference to "CMN".  Also now get PBL heights in meters and
@@ -139,6 +140,7 @@
 !  (6 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !  (7 ) Bug fix: unit for tracer #77 should be "layers".  Also RH should be 
 !        tracer #17 under "TIME-SER" category. (cdh, bmy, 2/11/08)
+!  (8 ) Bug fix: replace "PS-PTOP" with "PEDGE-$" (phs, bmy, 10/7/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -626,7 +628,11 @@
             !-----------------------------------
             ! PSURFACE - PTOP [hPa]
             !----------------------------------- 
-            CATEGORY = 'PS-PTOP'
+            !------------------------
+            ! Prior to 10/7/08:
+            !CATEGORY = 'PS-PTOP'
+            !------------------------
+            CATEGORY = 'PEDGE-$'
             UNIT     = 'hPa'
             GMTRC    = 1            
             
