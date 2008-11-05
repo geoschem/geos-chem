@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.38 2008/10/08 18:30:31 bmy Exp $
+! $Id: sulfate_mod.f,v 1.39 2008/11/05 19:45:44 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 6/11/08)
+!  (rjp, bdf, bmy, 6/22/00, 10/31/08)
 !
 !  Module Variables:
 !  ============================================================================
@@ -210,6 +210,8 @@
 !  (38) Now prevent seg fault error in READ_BIOMASS_SO2 (bmy, 11/3/06)
 !  (39) Bug fix in SEASALT_CHEM (havala, bec, bmy, 12/8/06)
 !  (40) Extra error check for low RH in GRAV_SETTLING (phs, 6/11/08)
+!  (41) Bug fixes in reading EDGAR data w/ the right tracer number, 
+!        when we are doing offline or nonstd simulations (dkh, 10/31/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -5485,7 +5487,7 @@
 !******************************************************************************
 !  Suborutine READ_ANTHRO_SOx reads the anthropogenic SOx from disk, 
 !  and partitions it into anthropogenic SO2 and SO4. 
-!  (rjp, bdf, bmy, 9/20/02, 8/17/06)
+!  (rjp, bdf, bmy, 9/20/02, 10/31/08)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -5506,6 +5508,9 @@
 !  (6 ) Now computes future SOx emissions (swu, bmy, 5/30/06)
 !  (7 ) Now can read either EDGAR or GEIA emissions (avd, bmy, 7/14/06)
 !  (8 ) Now overwrite David Streets' SO2, if necessary (yxw, bmy, 8/14/06)
+!  (9 ) Bug fix: Using tracer #30 in the call to GET_STREETS_ANTHRO can cause
+!        problems when adding or removing species.  Replace w/ IDTNH3.
+!        (dkh, 10/31/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -5590,8 +5595,16 @@
                   IF ( GET_SE_ASIA_MASK( I, J ) > 0d0 ) THEN
 
                      ! Overwrite EDGAR SO2 w/ David Streets' [kg SO2/s]
-                     EDG_SO2 = GET_STREETS_ANTHRO( I,  J, 
-     &                                             26, KG_S=.TRUE. )
+!-----------------------------------------------------------------------------
+! Prior to 10/31/08:
+! BUG FIX: Using tracer #26 in the call to GET_STREETS_ANTHRO can cause 
+! problems when adding or removing species.  Replace w/ IDTSO2. 
+! (dkh, 10/31/08) 
+!                     EDG_SO2 = GET_STREETS_ANTHRO( I,  J, 
+!     &                                             26, KG_S=.TRUE. )
+!-----------------------------------------------------------------------------
+                     EDG_SO2 = GET_STREETS_ANTHRO( I,      J, 
+     &                                             IDTSO2, KG_S=.TRUE. )
                   ENDIF
                ENDIF
 
@@ -5752,7 +5765,15 @@
                   IF ( GET_SE_ASIA_MASK( I, J ) > 0d0 ) THEN
 
                      ! Overwrite GEIA SO2 w/ David Streets' SO2 [kg SO2/s]
-                     ESO2_an(I,J,1) = GET_STREETS_ANTHRO( I, J, 26, 
+!------------------------------------------------------------------------------
+! Prior to 10/31/08:
+! BUG FIX: Using tracer #26 in the call to GET_STREETS_ANTHRO can cause 
+! problems when adding or removing species.  Replace w/ IDTSO2. 
+! (dkh, 10/31/08) 
+!                     ESO2_an(I,J,1) = GET_STREETS_ANTHRO( I, J, 26, 
+!     &                                                    KG_S=.TRUE. )
+!------------------------------------------------------------------------------
+                     ESO2_an(I,J,1) = GET_STREETS_ANTHRO( I, J, IDTSO2, 
      &                                                    KG_S=.TRUE. )
 
                      ! Zero 2nd level of emissions
@@ -6348,7 +6369,7 @@
 !******************************************************************************
 !  Subroutine READ_ANTHRO_NH3 reads the monthly mean anthropogenic 
 !  NH3 emissions from disk and converts to [kg NH3/box/s]. 
-!  (rjp, bdf, bmy, 9/20/02, 8/17/06)
+!  (rjp, bdf, bmy, 9/20/02, 10/31/08)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -6367,6 +6388,9 @@
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Now compute future emissions, if necessary (swu, bmy, 5/30/06)
 !  (7 ) Now overwrite w/ David Streets' NH3, if necessary (yxw, bmy, 8/17/06)
+!  (8 ) Bug fix: Using tracer #30 in the call to GET_STREETS_ANTHRO can cause
+!        problems when adding or removing species.  Replace w/ IDTNH3.
+!        (dkh, 10/31/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -6377,6 +6401,7 @@
       USE LOGICAL_MOD,          ONLY : LFUTURE,         LSTREETS
       USE STREETS_ANTHRO_MOD,   ONLY : GET_SE_ASIA_MASK
       USE STREETS_ANTHRO_MOD,   ONLY : GET_STREETS_ANTHRO
+      USE TRACERID_MOD,         ONLY : IDTNH3
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"             ! Size parameters
@@ -6435,7 +6460,15 @@
             IF ( GET_SE_ASIA_MASK( I, J ) > 0d0  ) THEN
 
                ! Overwrite with David Streets emissions [kg NH3/s]
-               ENH3_an(I,J) = GET_STREETS_ANTHRO( I, J, 30, KG_S=.TRUE.)
+!------------------------------------------------------------------------------
+! Prior to 10/31/08:
+! BUG FIX: Using tracer #30 in the call to GET_STREETS_ANTHRO can cause 
+! problems when adding or removing species.  Replace w/ IDTNH3.
+! (dkh, 10/31/08)
+!               ENH3_an(I,J) = GET_STREETS_ANTHRO( I, J, 30, KG_S=.TRUE.)
+!------------------------------------------------------------------------------
+               ENH3_an(I,J) = GET_STREETS_ANTHRO( I,      J, 
+     &                                            IDTNH3, KG_S=.TRUE.)
             ENDIF
          ENDIF
 

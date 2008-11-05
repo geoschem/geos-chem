@@ -1,9 +1,9 @@
- ! $Id: define.h,v 1.60 2008/08/08 17:20:34 bmy Exp $
+ ! $Id: define.h,v 1.61 2008/11/05 19:45:45 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
 !  used to include or exclude certain sections of code.  
-!  (bmy, bdf, 1/30/98, 2/7/07)
+!  (bmy, bdf, 1/30/98, 10/24/08)
 !
 !  List of "Switches"
 !  ===========================================================================
@@ -67,6 +67,7 @@
 !        from v7. (bmy, 10/18/05)
 !  (22) Removed GEOS_1, GEOS_STRAT, LINUX_IFC, LINUX_EFC (bmy, 8/4/06)
 !  (23) Renamed GRID30LEV to GRIDREDUCED (bmy, 2/7/07)
+!  (24) Added NEW_OD flag for reprocessed GEOS-5 met (bmy, hyl, 10/24/08)
 !******************************************************************************
 !
 !==============================================================================
@@ -89,6 +90,7 @@
 #undef LINUX_IFORT
 #undef SGI_MIPS
 #undef SPARC
+#undef IN_CLOUD_OD
 
 !==============================================================================
 ! Define the necessary "switches" for GEOS-CHEM. 
@@ -98,17 +100,17 @@
 
 !----- Model types -----
 !#define GCAP        'GCAP'
-!#define GEOS_3      'GEOS_3'
+#define GEOS_3      'GEOS_3'
 !#define GEOS_4      'GEOS_4'
-#define GEOS_5      'GEOS_5'
+!#define GEOS_5      'GEOS_5'
 
 !----- Grid sizes -----
-!#define GRID1x1     'GRID1x1'
+#define GRID1x1     'GRID1x1'
 !#define NESTED_CH   'NESTED_CH'
-!#define NESTED_NA   'NESTED_NAd'
+#define NESTED_NA   'NESTED_NAd'
 !#define GRID1x125   'GRID1x125'
 !#define GRID2x25    'GRID2x25'
-#define GRID4x5     'GRID4x5'
+!#define GRID4x5     'GRID4x5'
 #define GRIDREDUCED  'GRIDREDUCED'
 
 !----- Compilers -----
@@ -118,6 +120,13 @@
 #define LINUX_IFORT 'LINUX_IFORT'
 !#define SGI_MIPS    'SGI_MIPS'
 !#define SPARC       'SPARC'
+
+!----- FOR GEOS-5 MET FIELDS ONLY -----
+! NOTE: If you are using GEOS-5 met fields that were reprocessed to 
+! correctly regrid the in-cloud optical depth and cloud fraction fields, 
+! then be sure to uncomment the following line of code.  This will cause 
+! FAST-J to interpret the optical depth correctly. (bmy, hyl, 10/24/08)
+!#define IN_CLOUD_OD  'IN_CLOUD_OD'
 
 !==============================================================================
 ! Force a compile error if GEOS_1, GEOS_STRAT, GEOS_3, GEOS_4 are undefined 

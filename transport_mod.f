@@ -1,4 +1,4 @@
-! $Id: transport_mod.f,v 1.18 2008/08/08 17:20:37 bmy Exp $
+! $Id: transport_mod.f,v 1.19 2008/11/05 19:45:44 bmy Exp $
       MODULE TRANSPORT_MOD
 !
 !******************************************************************************
@@ -730,7 +730,7 @@
       USE TPCORE_BC_MOD,     ONLY : I2_W, J2_W, IM_W, JM_W, IGZD 
       USE TPCORE_BC_MOD,     ONLY : DO_WINDOW_TPCORE_BC
       USE TPCORE_WINDOW_MOD, ONLY : TPCORE_WINDOW
-      USE TRACER_MOD,        ONLY : STT, N_TRACERS
+      USE TRACER_MOD,        ONLY : STT, N_TRACERS, check_stt
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN_GCTM"  ! Re
@@ -775,6 +775,8 @@
       ENDDO
       ENDDO
 
+      CALL CHECK_STT( 'before tpcore_window' )
+
       ! Call the nested-grid window version of TPCORE (v.7.1)
       ! Use the pressures at the middle and the end of the 
       ! dynamic timestep (P = PS-PTOP; P_TEMP = PSC2-PTOP).
@@ -785,6 +787,8 @@
      &                    J1_W,  I2_W,      J2_W,  IM_W,   JM_W,  
      &                    IGZD,  LLPAR,     AP,    BP,     PTOP,  
      &                    Re,    LFILL,     LMFCT, Umax )
+
+      CALL CHECK_STT( 'after tpcore_window' )
 
       ! Reset floating pressure w/ output of TPCORE
       CALL SET_FLOATING_PRESSURE( P_TP2 + PTOP )

@@ -1,4 +1,4 @@
-! $Id: a3_read_mod.f,v 1.21 2008/10/08 18:30:33 bmy Exp $
+! $Id: a3_read_mod.f,v 1.22 2008/11/05 19:45:45 bmy Exp $
       MODULE A3_READ_MOD
 !
 !******************************************************************************
@@ -803,7 +803,7 @@
       !=================================================================
 
       ! Get the number of A-3 fields stored in this data set
-#if   defined( GEOS_5 ) 
+#if   defined( GEOS_5 ) && defined( IN_CLOUD_OD )
       N_A3 = N_A3_FIELDS
 #else
       N_A3 = GET_N_A3( NYMD )
@@ -1231,7 +1231,7 @@
             ! (bmy, 10/7/08)
             !--------------------------------
             CASE ( 'EFLUX',   'FRLAKE',  'FRLAND', 'FRLANDIC',
-     &             'FROCEAN', 'PRECANV', 'LWTUP'  )
+     &             'FROCEAN', 'PRECANV', 'LWTUP',  'QV2M'  )
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:33' )
              

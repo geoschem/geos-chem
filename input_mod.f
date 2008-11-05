@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.48 2008/10/08 18:30:31 bmy Exp $
+! $Id: input_mod.f,v 1.49 2008/11/05 19:45:44 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -123,7 +123,8 @@
 !        Bug fix, create string variables for ERROR_STOP.  Bug fix: use ND52
 !        in call to SET_TINDEX in READ_DIAGNOSTIC_MENU. (ltm, bmy, 2/11/08)
 !  (19) Bug fix: use (0,0) in call to INIT_TRANSFER (phs, 6/17/08)
-!  (20) Minor fix in READ_TRANSPORT_MENU (cdh, bmy, 7/7/08) 
+!  (20) Minor fix in READ_TRANSPORT_MENU (cdh, bmy, 7/7/08)
+!  (21) Fixed typo READ_EMISSIONS_MENU for GEOS-3 (bmy, 10/30/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -701,7 +702,8 @@
 !  (3 ) Now set LSPLIT correctly for Tagged HCN/CH3CN sim (xyp, bmy, 6/30/05)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Now reference XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
-!  (6 ) Now move call to INIT_OCEAN_MERCURY to READ_MERCURY_MENU (bmy, 2/24/06)!  (7 ) Now do not call SET_BIOTRCE anymore; it's obsolete (bmy, 4/5/06)
+!  (6 ) Now move call to INIT_OCEAN_MERCURY to READ_MERCURY_MENU (bmy, 2/24/06)
+!  (7 ) Now do not call SET_BIOTRCE anymore; it's obsolete (bmy, 4/5/06)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1230,7 +1232,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_EMISSIONS_MENU reads the EMISSIONS MENU section of 
-!  the GEOS-Chem input file. (bmy, 7/20/04, 1/24/08)
+!  the GEOS-Chem input file. (bmy, 7/20/04, 10/30/08)
 !
 !  NOTES:
 !  (1 ) Now read LNEI99 -- switch for EPA/NEI99 emissions (bmy, 11/5/04)
@@ -1253,6 +1255,7 @@
 !  (13) Add new error traps for OTD-LIS options, dependent on met field type
 !        (ltm, bmy, 11/29/07)
 !  (14) Bug fix, create string variables for ERROR_STOP (bmy, 1/24/08)
+!  (15) Fixed typo in message for GEOS-3 (bmy, 10/30/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1483,7 +1486,7 @@
      &            'Use one of the parameterizations without '       //
      &            'redist/scale.  CTH performs best on GEOS-4 and ' //
      &            'GEOS-5, though MFLUX and PRECON were developed ' //
-     &            ' w/ GEOS-STRAT met fields.' )
+     &            ' w/ GEOS-STRAT met fields.'
             CALL ERROR_STOP( MSG, LOC )
          ENDIF
 

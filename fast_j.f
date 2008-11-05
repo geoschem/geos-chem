@@ -1,4 +1,4 @@
-! $Id: fast_j.f,v 1.12 2008/10/08 18:30:32 bmy Exp $
+! $Id: fast_j.f,v 1.13 2008/11/05 19:45:45 bmy Exp $
       SUBROUTINE FAST_J( SUNCOS, OD, ALBD )  
 !
 !******************************************************************************
@@ -69,6 +69,8 @@
 !  (17) Now initialize the PJ array here, instead of two layers below in
 !        "set_prof.f".  Now no longer pass PRES to "photoj.f". (bmy, 11/29/07)
 !  (18) Now switch to approx. random overlap option (hyl, phs, bmy, 10/7/08)
+!  (19) Now can handle GEOS-5 reprocessed met data with OPTDEPTH being
+!        in-cloud optical depths. (bmy, hyl, 10/24/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -205,6 +207,21 @@
             !===========================================================
             IF ( OVERLAP == 1 ) then
 
+#if   defined( GEOS_5 ) && defined( IN_CLOUD_OD )
+
+               ! Column cloud fraction (not less than zero)
+               CLDF1D = CLDF(1:LLPAR,NLON,NLAT)
+               WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
+               
+               ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
+               ! optical depth & cloud fractions regridded with RegridTau)
+               ! OPTD is the in-cloud optical depth.  At this point it has
+               ! NOT been multiplied by cloud fraction yet.  Therefore,
+               ! we can just apply the linear overlap formula as written 
+               ! above (i.e. multiply by cloud fraction). (hyl, bmy, 10/24/08)
+               OPTD = OPTD * CLDF1D
+#endif
+
                ! Call FAST-J routines to compute J-values
                CALL PHOTOJ( NLON,  NLAT, YLAT,    DAY_OF_YR,  
      &                      MONTH, DAY,  CSZA,    TEMP,    
@@ -220,8 +237,26 @@
                CLDF1D = CLDF(1:LLPAR,NLON,NLAT)
                WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
                
-               ! Adjust optical depth
+#if   defined( GEOS_5 ) && defined( IN_CLOUD_OD )
+
+               ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
+               ! optical depth & cloud fractions regridded with RegridTau)
+               ! OPTD is the in-cloud optical depth.  At this point it has
+               ! NOT been multiplied by cloud fraction yet.  Therefore,
+               ! we can just apply the approximate random overlap formula
+               ! as written above (i.e. multiply by cloud fraction^1.5).
+               ! (hyl, bmy, 10/24/08)
+               OPTD = OPTD * ( CLDF1D )**1.5d0
+               
+#else
+               ! Otherwise, OPTD is the grid-box optical depth and has 
+               ! already been multiplied by  the cloud fraction.  Therefore 
+               ! we only need to multiply by the square root of the cloud 
+               ! fraction here for the approximate random overlap option. 
+               ! (hyl, bmy, 10/24/08)
                OPTD = OPTD * SQRT( CLDF1D )
+
+#endif
 
                ! Call FAST-J routines to compute J-values
                CALL PHOTOJ( NLON,  NLAT, YLAT,    DAY_OF_YR,  
@@ -305,9 +340,28 @@
                   ! Max cloud fraction
                   FMAX(KK) = MAXVAL( CLDF1D(KBOT(KK):KTOP(KK)) )
 
+#if   defined( GEOS_5 ) && defined( IN_CLOUD_OD )
+
+                  ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
+                  ! optical depth & cloud fractions regridded with RegridTau)
+                  ! OPTD is the in-cloud optical depth.  At this point it has
+                  ! NOT been multiplied by cloud fraction yet.  Therefore,
+                  ! we can just set ODNEW = OPTD. (bmy, hyl, 10/24/08)
+
+                  ! ODNEW is adjusted in-cloud OD vertical distrib.
+                  ODNEW(KBOT(KK):KTOP(KK)) = OPTD(KBOT(KK):KTOP(KK))
+
+#else
+
+                  ! Otherwise, OPTD is the grid-box optical depth.  
+                  ! Therefore, we must divide out by the cloud fraction
+                  ! and thus set ODNEW = OPTD / FMAX. (bmy, hyl, 10/24/08)
+
                   ! ODNEW is adjusted in-cloud OD vertical distrib.
                   ODNEW(KBOT(KK):KTOP(KK)) = OPTD(KBOT(KK):KTOP(KK)) / 
      &                                       FMAX(KK)
+
+#endif
                ENDDO
             
                !--------------------------------------------------------

@@ -1,9 +1,9 @@
-! $Id: tpcore_window_mod.f,v 1.11 2006/09/08 19:21:06 bmy Exp $
+! $Id: tpcore_window_mod.f,v 1.12 2008/11/05 19:45:44 bmy Exp $
       MODULE TPCORE_WINDOW_MOD
 !
 !******************************************************************************
 !  Module TPCORE_MOD contains the TPCORE transport subroutine package by
-!  S-J Lin, version 7.1. (yxw, bmy, 12/2/03, 8/4/06)
+!  S-J Lin, version 7.1. (yxw, bmy, 12/2/03, 11/5/08)
 !  
 !  Module routines:
 !  ============================================================================
@@ -117,6 +117,10 @@
 !        preventing the nested grid run from working on Altix (bmy, 11/9/04)
 !  (5 ) Remove obsolete CO-OH code (bmy, 6/24/05)
 !  (6 ) Now print output for IFORT compiler in "tpcore_window" (bmy, 10/18/05)
+!  (7 ) Now do not parallelize DO loop 2500 in TPCORE_WINDOW.  For some reason 
+!        this results in NaN's.  All other parallel loops may be left 
+!        activated.  Also, now place all parallel loops in all routines w/in 
+!        an #if defined block. (bmy, 11/5/08)
 !******************************************************************************
 !
       !=================================================================
@@ -399,7 +403,7 @@ C This does not necessarily imply the integration is unstable.
 C These negatives are typically very small. A filling algorithm is
 C activated if the user set "fill" to be true.
 C Alternatively, one can use the MFCT option to enforce monotonicity.
- 
+
       ! Added to pass C-preprocessor switches (bmy, 3/9/01)
 #     include "define.h"
 
@@ -671,7 +675,7 @@ c15    write (6,*) 'cosp(',j+j0_w+j0,')=',cosp_w(j)
 C****6***0*********0*********0*********0*********0*********0**********72
 C Compute Courant number
 C****6***0*********0*********0*********0*********0*********0**********72
- 
+
       if(IGD.eq.0) then
  
 C Convert winds on A-Grid to Courant # on C-Grid.
@@ -913,7 +917,8 @@ CMIC$* private(I,J,K,D5)
       !=================================================================
       ! End of TPCORE PRESSURE FIXER -- continue as usual
       !=================================================================
- 
+
+
 C**********************************************************************
 C Check whether CRY_w is larger than one  (yxw, eulerian)
 C********************************************************************** 
@@ -1138,9 +1143,9 @@ C****6***0*********0*********0*********0*********0*********0**********72
 !%%% 139   V(i+IMH,JM,k) = -V(i,JM,k)
 !%%%
 1000  continue
-C****6***0*********0*********0*********0*********0*********0**********72
-C Compute vertical mass flux (same dimensional unit as PS)
-C****6***0*********0*********0*********0*********0*********0**********72
+!C****6***0*********0*********0*********0*********0*********0**********72
+!C Compute vertical mass flux (same dimensional unit as PS)
+!C****6***0*********0*********0*********0*********0*********0**********72
  
 C compute total column mass CONVERGENCE.
 
@@ -1234,17 +1239,24 @@ C****6***0*********0*********0*********0*********0*********0**********72
  
       DO 5000 IC=1,NC
 
-#if   defined( multitask  )
-#if   defined( CRAY       )
-CMIC$ do all autoscope
-CMIC$* shared(q,DQ_w,delp1_w,U_w,V_w,j1,JS_w,JN_w,im,jm,IML,IC,IORD,JORD,jm_w,im_w)
-CMIC$* shared(CRX_w,CRY_w,PU_w,xmass_w,ymass_w,fx_w,fy_w,acosp_w,qz_w)
-CMIC$* shared(fx1_tp_w, fy1_tp_w)
-CMIC$* private(i,j,k,jt,wk_w,DG2_w)
-#else
-!$OMP PARALLEL DO PRIVATE( I, J, K, JT, WK_w, DG2_w )
-#endif
-#endif
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% MODIFICATIONS FOR NESTED GRID (bmy, 11/5/08)
+!%%% Comment out the parallel loop statements for DO loop 2500, because
+!%%% for some reason this causes NaN's.  We can leave all the other parallel
+!%%% loops activated. (bmy, 11/5/08)
+!%%%
+!%%%#if   defined( multitask  )
+!%%%#if   defined( CRAY       )
+!%%%!CMIC$ do all autoscope
+!%%%!CMIC$* shared(q,DQ_w,delp1_w,U_w,V_w,j1,JS_w,JN_w,im,jm,IML,IC,IORD,JORD,jm_w,im_w)
+!%%%!CMIC$* shared(CRX_w,CRY_w,PU_w,xmass_w,ymass_w,fx_w,fy_w,acosp_w,qz_w)
+!%%%!CMIC$* shared(fx1_tp_w, fy1_tp_w)
+!%%%!CMIC$* private(i,j,k,jt,wk_w,DG2_w)
+!%%%#else 
+!%%%!$OMP PARALLEL DO PRIVATE( I, J, K, JT, WK_w, DG2_w )
+!%%%#endif
+!%%%#endif
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       do 2500 k=1,NL
 !%%%
@@ -1263,6 +1275,7 @@ C Initialize DQ
 !%%% MODIFICATIONS FOR NESTED GRID (yxw, bmy, 3/10/03)
 !%%% use offsetted tracer concentration Q, and save into DQ_W
 !%%%
+         !print *, "IC, K:", IC, K
       DO J = 1, JM_W
       DO I = 1, IM_W
          DQ_W(I,J,K) = Q(I+I0_W,J+J0_W,K,IC)*DELP1_W(I,J,K)
@@ -1332,8 +1345,7 @@ C Return flux contribution from TPCORE in FY1_TP array (bey, 9/28/00)
       call ytp(IM_w,JM_w,acosp_w(:),DQ_w(:,:,k),wk_w(:,:,1),
      &         CRY_w(:,:,k),ymass_w(:,:,k),fy_w(:,:,k),JORD,
      &         fy1_tp_w(:,:,k),igzd, Jmax)
-
-C****6***0*********0*********0*********0*********0*********0**********72
+!C****6***0*********0*********0*********0*********0*********0**********72
 
       if(ZCROSS) then
 
@@ -1368,7 +1380,7 @@ C Return flux contribution from FZPPM in FZ1_TP for ND26 (bey, 9/28/00)
       call FZPPM(qz_w,fz_w,IM_w,JM_w,NL,DQ_w,
      &               W_w,delp_w,KORD,fz1_tp_w)
 
-C****6***0*********0*********0*********0*********0*********0**********72
+!C****6***0*********0*********0*********0*********0*********0**********72
 
 C Final update
 
@@ -1389,7 +1401,6 @@ CMIC$* private(i,j,k,sum1,sum2)
      &               +   FX_W(I,J,K) - FX_W(I+1,J,K)
      &               + ( FY_W(I,J,K) - FY_W(I,J+1,K) ) * ACOSP_W(J)
      &               +   FZ_W(I,J,K) - FZ_W(I,J,K+1)
-
       ENDDO
       ENDDO
 
@@ -1430,7 +1441,7 @@ C****6***0*********0*********0*********0*********0*********0**********72
      &                FZ_w, FZ1_TP_w, NDT,      ACOSP_w, Jmax,
      &                I0_W, J0_W,     IM_W,     JM_W,    IGZD )
 
-C****6***0*********0*********0*********0*********0*********0**********72
+!C****6***0*********0*********0*********0*********0*********0**********72
 
 #if   defined( multitask  )
 #if   defined( CRAY       )
@@ -3344,9 +3355,11 @@ C
       ! ------+--------+----------+-------+--------+---------- = -------
       !  step |   mb   | Pa m s^2 | 9.8 m | DTDYN s|    s           s
       !=================================================================
+#if   defined( multitask )
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, K, K2, DTC )
+#endif
       DO K = 1, LLPAR
          K2 = LLPAR - K + 1
 
@@ -3394,7 +3407,6 @@ C
 !%%%         ENDDO
 !%%%
       ENDDO
-!$OMP END PARALLEL DO
 !%%%
 !%%% MODIFICATIONS FOR NESTED GRID (yxw, bmy, 3/10/03)
 !%%% Polar cap stuff, useless for nested grid
@@ -3451,9 +3463,11 @@ C
       ! --------+----------+-------+----------+---------+------- = ----
       !    s    | 1 kg air |  s^2  | DXYP m^2 |  step   | 100 Pa   step
       !=================================================================
+#if   defined( multitask )
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, K, K2 )
+#endif
       DO K = 1, LLPAR
          K2 = LLPAR - K + 1
 !%%%
@@ -3492,7 +3506,6 @@ C
 !%%%         ENDDO
 !%%%
       ENDDO
-!$OMP END PARALLEL DO
 
       ! Return to calling program
       END SUBROUTINE PRESS_FIX
@@ -3737,9 +3750,11 @@ C
       !
       ! SPHU_KG is the water vapor [kg H2O/kg air]
       !=================================================================
+#if   defined( multitask )
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
+#endif
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -3749,20 +3764,20 @@ C
       ENDDO
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
 
       !=================================================================
       ! XYB is the factor needed to get mass in kg of column
       !=================================================================
+#if   defined( multitask )
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J )
+#endif
       DO J = 1, JJPAR
       DO I = 1, IIPAR
          XYB(I,J) = SUM( XYZB(I,J,1:LLPAR) )
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
 
       !=================================================================
       ! Define other variables
@@ -3779,9 +3794,11 @@ C
       !=================================================================
       ! Initialize ALFA with UMFLX and BETA with VMFLX
       !=================================================================
+#if   defined( multitask )
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
+#endif
       DO L = 1, LLPAR
          DO J = 1-IGZD, IGZD+JM_W
             DO I = 1-IGZD,IM_W+IGZD+1
@@ -3813,7 +3830,6 @@ C
 !%%%
          ENDDO
       ENDDO
-!$OMP END PARALLEL DO
 
       !=================================================================
       ! SUMAQ(I,J): column integral of water (kg)
@@ -3849,9 +3865,11 @@ C
       ! Compute AIRNEW, the new dry-air mass in each CTM box after
       ! horizontal divergence (ALFA+BETA) over time step DTWIND (sec)
       !=================================================================
+#if   defined( multitask )
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, K )
+#endif
       DO K =  1, LLPAR
 !%%%
 !%%% MODIFICATIONS FOR NESTED GRID (yxw, bmy, 3/10/03)
@@ -3868,7 +3886,6 @@ C
       ENDDO
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
 !%%%
 !%%% MODIFICATIONS FOR NESTED GRID (yxw, bmy, 3/11/03)
 !%%% Polar-cap stuff, useless for nested grid
@@ -3950,9 +3967,11 @@ C
       ! PERR(I,J) = pressure-error between CTM-GCM at new time
       !             (before filter)
       !================================================================
+#if   defined( multitask )
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J )
+#endif
       DO J = 1-IGZD, JM_W+IGZD
       DO I = 1-IGZD, IGZD+IM_W
          PCTM(I,J) = SUM( AIRNEW(I,J,:) ) / XYB(I+I0_w,J+J0_w)
@@ -3968,7 +3987,6 @@ C
          MERR(I,J) = PERR(I,J) * DXYP(J+J0_w) * G100
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
       
       !### Debug
       !write(6,*) 'before PFILTR'
@@ -3989,9 +4007,11 @@ C
       !=================================================================
       ! Calculate corrections to ALFA from the filtered AX
       !=================================================================
+#if   defined( multitask )
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, IIX, J, K, UFILT )
+#endif
       DO J = 1-IGZD, JM_W+IGZD
       DO I = 1-IGZD, IM_W+1+IGZD
 !%%%
@@ -4007,14 +4027,15 @@ C
          ENDDO
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
 
       !=================================================================
       ! Calculate corrections to BETA from the filtered BX
       !=================================================================
+#if   defined( multitask )
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, JJX, K, VFILT )
+#endif
       DO J = 1-IGZD, JM_W+IGZD+1
          JJX = J+J0_W
          IF ( J+J+79+79 .GT. 181 )  JJX =J+J0_W- 1         !(YXW_1X1)
@@ -4027,15 +4048,16 @@ C
             ENDDO
          ENDDO
       ENDDO
-!$OMP END PARALLEL DO
 
       !=================================================================
       ! Calculate the corrected AIRNEW's & PCTM after P-filter:
       ! has changed ALFA+BETAs and ctm surface pressure (PCTM)
       !=================================================================
+#if   defined( multitask )
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, K )
+#endif
       DO K = 1, LLPAR
       DO J = 1-IGZD, JM_W+IGZD
       DO I = 1-IGZD, IM_W+IGZD
@@ -4045,7 +4067,6 @@ C
       ENDDO
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
 !%%%
 !%%% MODIFICATIONS FOR NESTED GRID (yxw, bmy, 3/11/03)
 !%%% Polar-cap stuff, useless for nested grid
@@ -4102,9 +4123,11 @@ C
       ! AIRX(I,J,K) = dry-air mass expected, based on PCTM
       !               PCTM(I,J) & PERR(I,J)
       !=================================================================
+#if   defined( multitask )
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, K, PCTM8, AIRQKG )
+#endif
       DO J = 1-IGZD, JM_W+IGZD
       DO I = 1-IGZD, IM_W+IGZD
          PCTM8     = ( SUM( AIRNEW(I,J,:) ) + SUMAQ(I,J) ) /
@@ -4119,14 +4142,15 @@ C
          ENDDO
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
 
       !=================================================================
       ! GAMA from top down to be consistent with AIRX, AIRNEW not reset!
       !=================================================================
+#if   defined( multitask )
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, K )
+#endif
       DO J = 1-IGZD, JM_W+IGZD
       DO I = 1-IGZD, IM_W+IGZD
          GAMA(I,J,LLPAR+1) = 0.D0
@@ -4143,7 +4167,6 @@ C
          ENDDO
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
 
       ! Return to calling program
       END SUBROUTINE DYN0
@@ -4345,9 +4368,11 @@ C
 !%%%         IF ( LNP ) J2 = JM - 1
 
          ! Loop over non-polar latitudes
+#if   defined( multitask )
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, FNAZ8 )
+#endif
          DO J = J1, J2
 
             ! Calculate pressure-filter E-W wind between boxes [I-1] & [I].
@@ -4376,14 +4401,15 @@ C
 !%%%            ENDIF
 !%%%
          ENDDO
-!$OMP END PARALLEL DO
 
          !==============================================================
          ! calculate BX = N-S filter, N-S wind between boxes [J-1] & [J]
          !==============================================================
+#if   defined( multitask )
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, FNAZ8 )
+#endif
          DO J = 2-IGZD, JM+IGZD
             FNAZ8 = 0.25D0 * AXY(J+J0_W) / ( AXY(J+J0_W-1)
      &                                     + AXY(J+J0_W) )
@@ -4392,7 +4418,6 @@ C
                BX(I,J) = BX(I,J) + FNAZ8 * ( XERR(I,J-1) - XERR(I,J) )
             ENDDO
          ENDDO
-!$OMP END PARALLEL DO
 
          ! enhance the filtering by factor of 2 ONLY into/out-of polar caps
          FNAZ8 = 0.5D0 * AXY(1-IGZD+J0_W) / ( AXY(IGZD+J0_W) +
@@ -4661,9 +4686,11 @@ C
       !=================================================================
       IF ( ND24 > 0 ) THEN
 
+#if   defined( multitask )
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, JREF, K, K2, DTC )
+#endif
          DO K = 1, LLPAR
 
             ! K  is the vertical index down from the atmosphere top downwards
@@ -4685,8 +4712,6 @@ C
                ENDDO
             ENDDO
          ENDDO
-!$OMP END PARALLEL DO
-
       ENDIF
 
       !=================================================================
@@ -4694,9 +4719,11 @@ C
       !=================================================================
       IF ( ND25 > 0 ) THEN
 
+#if   defined( multitask ) 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, JREF, K, K2, DTC )
+#endif
          DO K = 1, LLPAR
 
             ! K  is the vertical index down from the atmosphere top downwards
@@ -4724,8 +4751,6 @@ C
                ENDDO
             ENDDO
          ENDDO
-!$OMP END PARALLEL DO
-
       ENDIF
 
       !=================================================================
@@ -4733,9 +4758,11 @@ C
       !=================================================================
       IF ( ND26 > 0 ) THEN
 
+#if   defined( multitask )
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, JREF, K, K2, DTC )
+#endif
          DO K = 1, LLPAR
 
             ! K  is the vertical index down from the atmosphere top downwards
@@ -4769,8 +4796,6 @@ C
                ENDDO
             ENDDO
          ENDDO
-!$OMP END PARALLEL DO
-
       ENDIF
 
       ! Return to calling program

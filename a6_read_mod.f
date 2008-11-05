@@ -1,4 +1,4 @@
-! $Id: a6_read_mod.f,v 1.23 2008/10/08 18:30:33 bmy Exp $
+! $Id: a6_read_mod.f,v 1.24 2008/11/05 19:45:45 bmy Exp $
       MODULE A6_READ_MOD
 !
 !******************************************************************************
@@ -880,7 +880,7 @@
       !=================================================================
 
       ! Get number of A-6 fields
-#if   defined( GEOS_5 ) 
+#if   defined( GEOS_5 ) && defined( IN_CLOUD_OD )
       N_A6 = N_A6_FIELDS
 #else
       N_A6 = GET_N_A6()
@@ -1530,6 +1530,14 @@
       !------------------------------
       ! Special handling for GEOS-5
       !------------------------------
+
+#if   !defined( IN_CLOUD_OD )
+      !%%%%% KLUDGE FOR GEOS-5: If we are not using GEOS-5 met fields
+      !%%%%% that have been reprocessed to fix the bug in optical depth,
+      !%%%%% then multiply optical depth by the cloud fraction for a
+      !%%%%% quick fix. (bmy, phs, 10/10/08)
+      IF ( PRESENT( OPTDEPTH ) ) OPTDEPTH = OPTDEPTH * CLDTOT
+#endif
 
       ! Convert RH from unitless to percent (phs, bmy, 3/28/08)
       ! %%% NOTE: GEOS-5 file spec says units of RH are % but that's wrong!

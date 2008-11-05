@@ -1,4 +1,4 @@
-! $Id: i6_read_mod.f,v 1.21 2008/10/08 18:30:32 bmy Exp $
+! $Id: i6_read_mod.f,v 1.22 2008/11/05 19:45:45 bmy Exp $
       MODULE I6_READ_MOD
 !
 !******************************************************************************
@@ -751,7 +751,7 @@
       !=================================================================
 
       ! Get the number of I-6 fields
-#if   defined( GEOS_5 ) 
+#if   defined( GEOS_5 ) && defined( IN_CLOUD_OD )
       N_I6 = N_I6_FIELDS
 #else
       N_I6 = GET_N_I6( NYMD )

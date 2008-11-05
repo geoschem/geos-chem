@@ -1,4 +1,4 @@
-! $Id: lightning_nox_mod.f,v 1.19 2008/08/08 17:20:36 bmy Exp $
+! $Id: lightning_nox_mod.f,v 1.20 2008/11/05 19:45:44 bmy Exp $
       MODULE LIGHTNING_NOX_MOD
 !
 !******************************************************************************
@@ -1815,7 +1815,16 @@
       ! GEOS-3, all grids
       !---------------------
       WRITE( 6, * ) 'Warning: OTD-LIS Scaling not defined for GEOS3'
+
+#if   defined( NESTED_NA ) 
+      !%%%%% NOTE: This is for the GEOS-3 nested grid 2001, which we needed 
+      !%%%%% to use for the MIT/FAA ULS sulfur project (bmy, phs, 10/31/08)
+      !%%%%% 
+
       SCALE = 1.0d0
+#else
+      SCALE = 1.0d0
+#endif
 
 #endif
 

@@ -1,7 +1,7 @@
 REVISIONS (v8-01-02)  
-07 Oct 2008
-Bob Yantosca              and Philippe Le Sager
-yantosca@seas.harvard.edu     plesager@seas.harvard.edu
+05 Nov 2008
+Bob Yantosca, Philippe Le Sager, and Claire Carouge
+geos-chem-support@as.harvard.edu
 
 
 New in v8-01-02:
@@ -29,6 +29,8 @@ chemdr.f		-- Now call "save_full_trop" at the end to account
 
 CMN_O3			-- Redimension EMISR, EMIST, EMISRR to avoid errors 
 			   in tagged CO
+
+define.h		-- Added IN_CLOUD_OD flag for reprocessed GEOS-5 met
 
 diag3.f			-- Bug fix: Now divide ALBEDO in ND67 by SCALE_I6 
 			   for GEOS-3 met, but by SCALE_A3 for all other 
@@ -72,8 +74,19 @@ read_a3			-- Now get the # of A-3 fields from the file
 read_a6			-- Now get the # of A-6 fields from the file 
 ("a3_read_mod.f")	   identification string
 
+read_anthro_nh3		-- Bug fix: Using tracer #26 in the call to 
+("sulfate_mod.f")          GET_STREETS_ANTHRO can cause problems when 
+                           adding or removing species.  Replace w/ IDTSO2.
+
+read_anthro_sox		-- Bug fix: Using tracer #30 in the call to 
+("sulfate_mod.f")          GET_STREETS_ANTHRO can cause problems when 
+                           adding or removing species.  Replace w/ IDTNH3.
+
 read_i6			-- Now get the # of I-6 fields from the file 
 ("i6_read_mod.f")	   identification string
+
+read_emissions_menu	-- Fixed typo in message for GEOS-3
+("input_mod.f")
 
 read_transport_menu	-- Don't stop run if TS_DYN > MAX_DYN but
 ("input_mod.f")            transport is turned off
@@ -94,6 +107,13 @@ soa_para		-- Corrected confusing documentation
 ("carbon_mod.f")
 
 setemis.f		-- Bug fix: resize EMISRR to be consistent w/ CMN_O3
+
+tpcore_window_mod.f     -- Now do not parallelize DO loop 2500 in 
+                           TPCORE_WINDOW.  For some reason this results in 
+                           NaN's.  All other parallel loops may be left 
+                           activated.  
+			-- Also, now place all parallel loops in all 
+			   routines w/in #if defined block.
 
 upbdflx_noy		-- Cap 1-XRATIO to avoid numerical problems later
 ("upbdflx_mod.f")
