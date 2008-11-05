@@ -45,12 +45,12 @@ diag49			-- Bug fix: replace "PS-PTOP" with "PEDGE-$"
 emiss_tagged_co		-- Bug fix: Now use IDECO to be consistent 
 ("tagged_co_mod.f")
 
-fast_j.f		--  Switch from linear approximation (OVERLAP=1) to 
-                            approximate random overlap (OVERLAP=2) because we 
-			    have re-processed the GEOS-5 met data such that 
-			    OPTDEPTH, TAUCLI, and TAUCLW are now the in-cloud
-			    optical depths rather than the grid-box optical 
-		            depths.
+fast_j.f		-- Switch from linear approximation (OVERLAP=1) to 
+                           approximate random overlap (OVERLAP=2) because we 
+			   have re-processed the GEOS-5 met data such that 
+			   OPTDEPTH, TAUCLI, and TAUCLW are now the in-cloud
+			   optical depths rather than the grid-box optical 
+		           depths.
 
 get_alk			-- Bug fix to remove a double-substitution.  Replace 
 ("seasalt_mod.f")          code lines for TERM{123}A, TERM{123}B, TERM{123}AN, 
