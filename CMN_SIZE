@@ -1,4 +1,4 @@
-! $Id: CMN_SIZE,v 1.27 2008/08/08 17:20:29 bmy Exp $
+! $Id: CMN_SIZE,v 1.28 2008/11/07 19:30:36 bmy Exp $
       !=======================================================================
       ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 4/3/07)
       !
@@ -49,6 +49,7 @@
       ! (27) Bug fix: set LLTROP_FIX = LLPAR for GCAP (bmy, 11/29/06)
       ! (28) Reset vertical coordinates for GEOS-5.  Also renamed GRID30LEV
       !       to GRIDREDUCED (bmy, 4/3/07)
+      ! (29) New parameters for GEOS-5 nested grid (yxw, dan, bmy, 11/6/08)
       !=======================================================================
 
       ! C Preprocessor #define statements for conditional compilation
@@ -73,6 +74,11 @@
 #elif defined( GRID1x1   )
       REAL*8, PARAMETER :: DISIZE = 1.0d0 
       REAL*8, PARAMETER :: DJSIZE = 1.0d0
+
+#elif defined( GRID05x0666  )
+      REAL*8, PARAMETER :: DISIZE = 2d0/3d0
+      REAL*8, PARAMETER :: DJSIZE = 0.5d0
+
 
 #endif
 
@@ -355,6 +361,45 @@
 
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
+#elif defined( GEOS_5 ) && defined( GRID05x0666 )
+
+      !--------------------
+      ! GEOS-5 0.5 x 0.666
+      !--------------------
+#if   defined( NESTED_CH )
+      ! Parameters for the 0.5x0.667 CHINA NESTED GRID
+      INTEGER, PARAMETER :: IGLOB      = 121
+      INTEGER, PARAMETER :: JGLOB      = 133
+      INTEGER, PARAMETER :: LGLOB      = 72
+
+
+#elif defined( NESTED_NA )
+
+      ! Parameters for the 0.5x0.667 NORTH AMERICA NESTED GRIDi
+      ! (need to figure out)  (dan,09/21/07)
+      INTEGER, PARAMETER :: IGLOB      = ??
+      INTEGER, PARAMETER :: JGLOB      = ??
+      INTEGER, PARAMETER :: LGLOB      = 72
+
+#endif
+
+
+      INTEGER, PARAMETER :: IIPAR      = IGLOB
+      INTEGER, PARAMETER :: JJPAR      = JGLOB
+
+#if   defined( GRIDREDUCED )
+      INTEGER, PARAMETER :: LLPAR      = 47    
+
+#else
+      INTEGER, PARAMETER :: LLPAR      = LGLOB  ! 72 levels
+#endif
+
+      ! Set this so that we read data in correctly for offline sims
+      INTEGER, PARAMETER :: LLTROP_FIX = 38
+      INTEGER, PARAMETER :: LLTROP     = 38
+
+      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+
 #endif
 
       !--------------------
@@ -362,6 +407,13 @@
       !--------------------
       INTEGER, PARAMETER :: I1x1    = 360
       INTEGER, PARAMETER :: J1x1    = 181
+
+      !--------------------
+      ! For GEOS 05x0666 files
+      !--------------------
+      INTEGER, PARAMETER :: I05x0666    = 540 
+      INTEGER, PARAMETER :: J05x0666    = 361
+
 
       !=================================================================
       ! TRACER & EMISSION SPECIES PARAMETERS

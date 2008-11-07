@@ -1,10 +1,10 @@
-! $Id: streets_anthro_mod.f,v 1.4 2006/11/07 19:02:04 bmy Exp $
+! $Id: streets_anthro_mod.f,v 1.5 2008/11/07 19:30:33 bmy Exp $
       MODULE STREETS_ANTHRO_MOD
 !
 !******************************************************************************
 !  Module STREETS_ANTHRO_MOD contains variables and routines to read the 
 !  David Streets et al Asian anthropogenic emissions for NOx and CO. 
-!  (yxw, bmy, 8/16/06, 9/5/06)
+!  (yxw, bmy, 8/16/06, 11/6/08)
 !
 !  Module Variables:
 !  ============================================================================
@@ -58,6 +58,7 @@
 !  NOTES: 
 !  (1 ) Modification: Now use 2001 CO over China, and 2000 CO over countries
 !        other than China in the larger SE Asia region. (yxw, bmy, 9/5/06)
+!  (2 ) Modifications for 0.5 x 0.667 nested grids (yxw, dan, bmy, 11/6/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -73,6 +74,7 @@
       ! ... except these routines
       PUBLIC :: CLEANUP_STREETS_ANTHRO
       PUBLIC :: EMISS_STREETS_ANTHRO
+      PUBLIC :: EMISS_STREETS_ANTHRO_05x0666
       PUBLIC :: GET_CHINA_MASK
       PUBLIC :: GET_SE_ASIA_MASK
       PUBLIC :: GET_STREETS_ANTHRO
@@ -83,6 +85,7 @@
 
       ! Arrays
       INTEGER, ALLOCATABLE :: MASK_CHINA_1x1(:,:)
+      INTEGER, ALLOCATABLE :: MASK_CHINA_05x0666(:,:)
       REAL*8,  ALLOCATABLE :: A_CM2(:)
       REAL*8,  ALLOCATABLE :: MASK_CHINA(:,:)
       REAL*8,  ALLOCATABLE :: MASK_SE_ASIA(:,:)
@@ -542,6 +545,273 @@
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE EMISS_STREETS_ANTHRO_05x0666
+!
+!******************************************************************************
+!  Subroutine EMISS_STREETS_ANTHRO_05x0666 reads the David Streets et al 
+!  emission fields at 0.5 x 0.666 resolution and regrids them to the current 
+!  nested-grid model resolution. (yxw, dan, bmy, 11/6/08)
+!
+!  NOTE: For now, disable the monthly CO emissions and just read the same 
+!        emissions as we do for the global simulations.  Update emissions in 
+!        a future release. (bmy, 11/6/08)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE BPCH2_MOD,      ONLY : GET_TAU0,         READ_BPCH2
+      USE LOGICAL_MOD,    ONLY : LFUTURE
+      USE REGRID_1x1_MOD, ONLY : DO_REGRID_05x0666
+      USE TRACER_MOD,     ONLY : ITS_A_CO2_SIM,    ITS_A_CH4_SIM
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR              
+      !----------------------------------------------------------
+      ! Activate the monthly emissions later (bmy, 11/6/08)
+      !USE TIME_MOD,       ONLY : GET_MONTH, GET_YEAR  
+      !----------------------------------------------------------
+      USE TRACER_MOD,     ONLY : XNUMOL
+      USE ERROR_MOD,      ONLY : ERROR_STOP
+
+#     include "CMN_SIZE"       ! Size parameters
+
+      ! Local variables
+      LOGICAL, SAVE           :: FIRST = .TRUE.
+      INTEGER                 :: I, J
+      REAL*4                  :: ARRAY(I05x0666,J05x0666,1)
+      REAL*8                  :: GEOS_05x0666(I05x0666,J05x0666,1)
+      REAL*8                  :: TMP(I05x0666,J05x0666,1)
+      REAL*8                  :: TAU2000, TAU2001   
+      CHARACTER(LEN=255)      :: FILENAME
+      !----------------------------------------------------------
+      ! Activate the monthly emissions later (bmy, 11/6/08)
+      !INTEGER                 :: MONTH               
+      !REAL*8                  :: TAU2006, TAUMONTH                  
+      !----------------------------------------------------------
+
+      !=================================================================
+      ! EMISS_STREETS_ANTHRO begins here!
+      !=================================================================
+
+      ! Zero arrays
+      ARRAY        = 0d0
+      GEOS_05x0666 = 0d0
+      TMP          = 0d0
+
+      ! First-time initialization
+      IF ( FIRST ) THEN
+         CALL INIT_STREETS_ANTHRO
+         FIRST = .FALSE.
+      ENDIF
+
+      ! TAU0 values 
+      TAU2000  = GET_TAU0( 1,    1, 2000 )
+      TAU2001  = GET_TAU0( 1,    1, 2001 )
+      !----------------------------------------------------------
+      ! Activate the monthly emissions later (bmy, 11/6/08)
+      !MONTH    = GET_MONTH()
+      !TAU2006  = GET_TAU0( 1,     1, 2006 )
+      !TAUMONTH = GET_TAU0( MONTH, 1, 2001 )   !(dan.month)
+      !----------------------------------------------------------
+
+      ! Test for simulation type 
+      IF ( ITS_A_CH4_SIM() ) THEN
+
+         !--------------------------
+         ! Read CH4 and regrid
+         ! (CH4 simulations only)
+         !--------------------------
+
+         ! File name for 2000 CO over SE Asia
+         FILENAME  = TRIM( DATA_DIR ) //
+     &             'Streets_200607/Streets_CH4_FF_2000.geos5.05x0666'
+
+         ! Echo info
+         WRITE( 6, 100 ) TRIM( FILENAME )
+ 100     FORMAT( '     - EMISS_STREETS_ANTHRO: Reading ', a )
+
+         ! Read data [unitless]
+         CALL READ_BPCH2( FILENAME, 'CH4-EMIS', 1,
+     &                    TAU2000,   I05x0666,      J05x0666,
+     &                    1,         ARRAY,     QUIET=.TRUE. )
+
+         ! Cast to REAL*8 before regridding
+         GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+
+
+         ! Regrid from GEOS 1x1 GRID to current model resolution
+         CALL DO_REGRID_05x0666( 1,'kg/yr', GEOS_05x0666, CH4 )
+
+
+      ELSE IF ( ITS_A_CO2_SIM() ) THEN
+
+         !--------------------------
+         ! Read CO2 and regrid
+         ! (CH2 simulations only)
+         !--------------------------
+
+         ! File name for 2000 CO over SE Asia
+         FILENAME  = TRIM( DATA_DIR ) //
+     &             'Streets_200607/Streets_CO2_FF_2000.geos5.05x0666'
+
+         ! Echo info
+         WRITE( 6, 100 ) TRIM( FILENAME )
+
+         ! Read data [unitless]
+         CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 1,
+     &                    TAU2000,   I05x0666,      J05x0666,
+     &                    1,         ARRAY,     QUIET=.TRUE. )
+
+         ! Cast to REAL*8 before regridding
+         GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+
+
+         ! Regrid from GEOS 1x1 GRID to current model resolution
+         CALL DO_REGRID_05x0666( 1, 'kg/yr', GEOS_05x0666, CO2 )
+
+      ELSE
+
+         !--------------------------
+         ! Read NOx and regrid
+         !--------------------------
+
+         ! File name for 2000 CO over SE Asia
+         FILENAME  = TRIM( DATA_DIR ) //
+     &             'Streets_200607/Streets_NOx_FF_2000.geos5.05x0666'
+
+         ! Echo info
+         WRITE( 6, 100 ) TRIM( FILENAME )
+
+         ! Read data [unitless]
+         CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 1,
+     &                    TAU2000,   I05x0666,      J05x0666,
+     &                    1,         ARRAY,     QUIET=.TRUE. )
+
+         ! Cast to REAL*8 before regridding
+         GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+
+
+         ! Regrid from GEOS 1x1 GRID to current model resolution
+         CALL DO_REGRID_05x0666( 1,'kg/yr', GEOS_05x0666, NOx )
+
+         !--------------------------
+         ! Read 2000 CO (SE Asia)
+         !--------------------------
+
+         ! File name for 2000 CO over SE Asia
+         FILENAME  = TRIM( DATA_DIR ) //
+     &             'Streets_200607/Streets_CO_FF_2000.geos5.05x0666'
+
+         ! Echo info
+         WRITE( 6, 100 ) TRIM( FILENAME )
+
+         ! Read data [unitless]
+         CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 4,
+     &                    TAU2000,   I05x0666,      J05x0666,
+     &                    1,         ARRAY,     QUIET=.TRUE. )
+
+         ! Cast to REAL*8 before regridding
+         GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+          
+         !--------------------------
+         ! Read 2001 CO (China)
+         !--------------------------
+
+         ! File name for 2001 CO over China only dan.month
+         FILENAME  = TRIM( DATA_DIR ) //
+!------------------------------------------------------------------------------
+! Activate the monthly emissions later (bmy, 11/6/08)
+!     &       'Streets_200607/Streets_2001CO_monthly_total.geos5.05x0666'
+!------------------------------------------------------------------------------
+     &       'Streets_200607/Streets_CO_FF_2001.geos5.05x0666'
+
+
+         ! Echo info
+         WRITE( 6, 100 ) TRIM( FILENAME )
+
+         ! Read data [unitless]
+         CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 4,
+!------------------------------------------------------------------------------
+! Activate the monthly emissions later (bmy, 11/6/08)
+!    &                    TAUMONTH,  I05x0666,  J05x0666,  
+!------------------------------------------------------------------------------
+     &                    TAU2001,   I05x0666,  J05x0666,  
+     &                    1,         ARRAY,     QUIET=.TRUE. )
+
+         ! Cast to REAL*8 before regridding
+         TMP(:,:,1) = ARRAY(:,:,1)
+
+         !--------------------------
+         ! Overwrite China & regrid
+         !--------------------------
+
+         ! Replace SE Asia CO for 2000 with China CO for 2001
+         DO J = 1, J05x0666
+         DO I = 1, I05x0666
+            IF ( MASK_CHINA_05x0666(I,J) > 0 ) THEN
+               GEOS_05x0666(I,J,1) = TMP(I,J,1)
+            ENDIF
+         ENDDO
+         ENDDO
+
+         ! Regrid from GEOS 1x1 GRID to current model resolution
+         CALL DO_REGRID_05x0666( 1,'kg/yr', GEOS_05x0666, CO )
+
+         !--------------------------
+         ! Read SO2 and regrid
+         !--------------------------
+
+         ! File name for 2000 CO over SE Asia
+         FILENAME  = TRIM( DATA_DIR ) //
+     &             'Streets_200607/Streets_SO2_FF_2000.geos5.05x0666'
+
+         ! Echo info
+         WRITE( 6, 100 ) TRIM( FILENAME )
+
+         ! Read data [unitless]
+         CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 26,
+     &                    TAU2000,   I05x0666,      J05x0666,
+     &                    1,         ARRAY,     QUIET=.TRUE. )
+
+         ! Cast to REAL*8 before regridding
+         GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+
+
+         ! Regrid from GEOS 1x1 GRID to current model resolution
+         CALL DO_REGRID_05x0666( 1, 'kg/yr', GEOS_05x0666, SO2 )
+
+         !--------------------------
+         ! Read NH3 and regrid
+         !--------------------------
+
+         ! File name for 2000 CO over SE Asia
+         FILENAME  = TRIM( DATA_DIR ) //
+     &             'Streets_200607/Streets_NH3_FF_2000.geos5.05x0666'
+
+         ! Echo info
+         WRITE( 6, 100 ) TRIM( FILENAME )
+
+         ! Read data [unitless]
+         CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 30,
+     &                    TAU2000,   I05x0666,      J05x0666,
+     &                    1,         ARRAY,     QUIET=.TRUE. )
+
+         ! Cast to REAL*8 before regridding
+         GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+
+         ! Regrid from GEOS 1x1 GRID to current model resolution
+         CALL DO_REGRID_05x0666( 1, 'kg/yr', GEOS_05x0666, NH3 )
+         
+      ENDIF
+
+      !--------------------------
+      ! Print emission totals
+      !--------------------------
+      CALL TOTAL_ANTHRO_Tg
+
+      END SUBROUTINE EMISS_STREETS_ANTHRO_05x0666
+
+!-----------------------------------------------------------------------------
+
       SUBROUTINE STREETS_SCALE_FUTURE
 !
 !******************************************************************************
@@ -771,14 +1041,102 @@
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE READ_STREETS_MASKS_05x0666
+!
+!******************************************************************************
+!  Subroutine READ_STREETS_MASKS reads and regrids the China and SE Asia
+!  masks that define the David Streets' emission regions.  Specially modified
+!  for the GEOS-5 0.5 x 0.666 nested grid simulations.
+!  (yxw, dan, bmy, 11/6/08)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE BPCH2_MOD,      ONLY : READ_BPCH2
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR
+      USE REGRID_1x1_MOD, ONLY : DO_REGRID_05x0666
+
+#     include "CMN_SIZE"       ! Size parameters
+
+      ! Local variables
+      REAL*4                  :: ARRAY(I05x0666,J05x0666,1)
+      REAL*8                  :: GEOS_05x0666(I05x0666,J05x0666,1)
+      CHARACTER(LEN=255)      :: FILENAME
+
+      !=================================================================
+      ! READ_STREETS_MASKS begins here!
+      !=================================================================
+
+      ! Zero arrays
+      ARRAY        = 0d0
+      GEOS_05x0666 = 0d0
+
+      !------------------------------------
+      ! China Mask (for 2001 CO emisisons)
+      !------------------------------------
+
+      ! File name
+      FILENAME  = TRIM( DATA_DIR ) //
+     &            'Streets_200607/China_mask.geos5.05x0666'
+
+      ! Echo info
+      WRITE( 6, 100 ) TRIM( FILENAME )
+ 100  FORMAT( '     - READ_STREETS_MASKS: Reading ', a )
+
+      ! Read data [unitless]
+      CALL READ_BPCH2( FILENAME, 'LANDMAP', 2,
+     &                 0d0,       I05x0666, J05x0666,
+     &                 1,         ARRAY,    QUIET=.TRUE. )
+
+      ! Cast to REAL*8 before regridding
+
+
+      GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+
+      ! Save the 1x1 China mask for future use
+      MASK_CHINA_05x0666(:,:) = GEOS_05x0666(:,:,1)
+
+      ! Regrid from GENERIC 1x1 GRID to GEOS 1x1 GRID
+      CALL DO_REGRID_05x0666( 1, 'unitless', GEOS_05x0666,  MASK_CHINA )
+
+      !------------------------------------
+      ! SE Asia Mask (for 2000 emissions)
+      !------------------------------------
+
+      ! File name
+      FILENAME  = TRIM( DATA_DIR ) //
+     &            'Streets_200607/SE_Asia_mask.geos5.05x0666'
+
+      ! Echo info
+      WRITE( 6, 100 ) TRIM( FILENAME )
+
+      ! Read data [unitless]
+      CALL READ_BPCH2( FILENAME, 'LANDMAP', 2,
+     &                 0d0,       I05x0666, J05x0666,
+     &                 1,         ARRAY,    QUIET=.TRUE. )
+
+      ! Cast to REAL*8 before regridding
+      GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+ 
+      ! Regrid from GENERIC 1x1 GRID to GEOS 1x1 GRID
+      CALL DO_REGRID_05x0666( 1, 'unitless', GEOS_05x0666, MASK_SE_ASIA)
+
+      ! Return to calling program
+      END SUBROUTINE READ_STREETS_MASKS_05x0666
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE INIT_STREETS_ANTHRO
 !
 !******************************************************************************
 !  Subroutine INIT_STREETS_ANTHRO allocates and zeroes all module arrays.
-!  (bmy, 8/16/06, 9/5/06) 
+!  (bmy, 8/16/06, 11/6/08)
 !
 !  NOTES:
 !  (1 ) Now allocate MASK_CHINA_1x1 (bmy, 9/5/06)
+!  (2 ) Now calls READ_STREETS_MASKS_05x0666 for the GEOS-5 0.5 x 0.666 
+!        nested-grid simulations (yxw, dan, bmy, 11/6/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -847,6 +1205,10 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASK_CHINA_1x1' )
       MASK_CHINA_1x1 = 0
 
+      ALLOCATE( MASK_CHINA_05x0666( I05x0666, J05x0666 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASK_CHINA_05x0666' )
+      MASK_CHINA_05x0666 = 0
+
       ALLOCATE( MASK_CHINA( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASK_CHINA' )
       MASK_CHINA = 0d0
@@ -856,7 +1218,11 @@
       MASK_SE_ASIA = 0d0
 
       ! Read China & SE Asia masks from disk
-      CALL READ_STREETS_MASKS
+#if   defined( GRID05x0666 )
+      CALL READ_STREETS_MASKS_05x0666    ! GEOS-5 nested grids
+#else
+      CALL READ_STREETS_MASKS            ! Global simulations
+#endif
 
       ! Return to calling program
       END SUBROUTINE INIT_STREETS_ANTHRO
@@ -877,7 +1243,9 @@
       ! CLEANUP_STREETS begins here!
       !=================================================================
       IF ( ALLOCATED( A_CM2          ) ) DEALLOCATE( A_CM2          )
-      IF ( ALLOCATED( MASK_CHINA_1x1 ) ) DEALLOCATE( MASK_CHINA_1x1 ) 
+      IF ( ALLOCATED( MASK_CHINA_1x1 ) ) DEALLOCATE( MASK_CHINA_1x1 )
+      IF ( ALLOCATED( MASK_CHINA_05x0666 ) ) 
+     &  DEALLOCATE( MASK_CHINA_05x0666 )                   !(dan) 
       IF ( ALLOCATED( MASK_CHINA     ) ) DEALLOCATE( MASK_CHINA     ) 
       IF ( ALLOCATED( MASK_SE_ASIA   ) ) DEALLOCATE( MASK_SE_ASIA   )
       IF ( ALLOCATED( NOx            ) ) DEALLOCATE( NOx            )

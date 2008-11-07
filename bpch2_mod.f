@@ -1,9 +1,9 @@
-! $Id: bpch2_mod.f,v 1.12 2008/08/08 17:20:31 bmy Exp $
+! $Id: bpch2_mod.f,v 1.13 2008/11/07 19:30:35 bmy Exp $
       MODULE BPCH2_MOD
 !
 !******************************************************************************
 !  Module BPCH2_MOD contains the routines used to read data from and write
-!  data to binary punch (BPCH) file format (v. 2.0). (bmy, 6/28/00, 2/16/07)
+!  data to binary punch (BPCH) file format (v. 2.0). (bmy, 6/28/00, 11/6/08)
 !
 !  Module Routines:
 !  ============================================================================
@@ -66,6 +66,7 @@
 !  (31) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (32) Renamed GRID30LEV to GRIDREDUCED.  Also increase TEMPARRAY in
 !        READ_BPCH2 for GEOS-5 vertical levels. (bmy, 2/16/07)
+!  (33) Modifications for GEOS-5 nested grids (bmy, 11/6/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -403,6 +404,8 @@
 !        NESTED_CH or NESTED_NA cpp switches (bmy, 12/1/04)
 !  (14) Make TEMPARRAY big enough for GEOS-5 72 levels (and 73 edges) 
 !        (bmy, 2/15/07)
+!  (15) Make TEMPARRAY large enough for 0.5 x 0.666 arrays -- but only if we
+!        are doing a 0.5 x 0.666 nested simulation. (yxw, dan, bmy, 11/6/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -424,8 +427,17 @@
       INTEGER            :: I1, I2, J1, J2, L1,  L2
       CHARACTER(LEN=255) :: MSG
       
-      ! Make TEMPARRAY big enough to for a 1x1 grid (bmy, 4/17/01)
-      REAL*4             :: TEMPARRAY(360,181,73)
+      ! Make TEMPARRAY big enough for a global grid.  For 0.5 x 0.666 nested
+      ! grid simulations we need to define this as 540x361x73.  However, this
+      ! may cause memory problems on some Linux boxes for people who want to
+      ! run only the global simulations.  Therefore increase the size of 
+      ! TEMPARRAY only if we are doing a 0.5 x 0.666 nested simulation.
+      ! (yxw, bmy, dan, 11/6/08)
+#if   defined( GRID05x0666 ) 
+      REAL*4             :: TEMPARRAY(540,361,73)   
+#else
+      REAL*4             :: TEMPARRAY(360,181,73)   
+#endif
 
       ! For binary punch file, version 2.0
       INTEGER            :: NTRACER,   NSKIP
@@ -502,7 +514,7 @@
       !=================================================================
       IF ( FOUND ) THEN 
 
-#if   defined( GRID1x1 )
+#if   defined( GRID1x1 )   || defined( GRID05x0666 )
 
 #if   defined( NESTED_CH ) || defined( NESTED_NA )
          ! *** NOTE: now use NESTED_CH or NESTED_NA cpp switches ***
@@ -676,11 +688,12 @@
       FUNCTION GET_RES_EXT() RESULT( RES_EXT )
 !
 !******************************************************************************
-!  Function GET_RES_EXT returns the proper filename extension for
-!  CTM grid resolution (i.e. "1x1", "2x25", "4x5").  (bmy, 6/28/00, 12/1/04)
+!  Function GET_RES_EXT returns the proper filename extension for CTM grid 
+!  resolution (i.e. "1x1", "2x25", "4x5").  (bmy, 6/28/00, 11/6/08)
 ! 
 !  NOTES:
 !  (1 ) Added extension for 1 x 1.25 grid (bmy, 12/1/04)
+!  (2 ) Added extension for 0.5 x 0.666 grid (yxw, dan, bmy, 11/6/08)
 !******************************************************************************
 !
 #     include "define.h"
@@ -700,6 +713,10 @@
 #elif defined( GRID1x1 ) 
       CHARACTER(LEN=3) :: RES_EXT
       RES_EXT = '1x1'
+
+#elif defined( GRID05x0666 )
+      CHARACTER(LEN=7) :: RES_EXT
+      RES_EXT = '05x0666'
 
 #endif
 

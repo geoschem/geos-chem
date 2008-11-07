@@ -1,4 +1,4 @@
-! $Id: cleanup.f,v 1.19 2008/08/08 17:20:33 bmy Exp $
+! $Id: cleanup.f,v 1.20 2008/11/07 19:30:35 bmy Exp $
       SUBROUTINE CLEANUP
 !
 !******************************************************************************
@@ -76,67 +76,72 @@
 !  (37) Now calls CLEANUP_H2_HD from "h2_hd_mod.f" and CLEANUP_GLOBAL_O1D
 !        from "global_o1d_mod.f".  Remove call to CLEANUP_LIGHTNING_NOx_NL 
 !        from "lightning_nox_nl_mod.f (hup, phs, bmy, 10/2/07)
+!  (38) Now calls GEOS5_EXIT_TPCORE_WINDOW to finalize the TPCORE for
+!        GEOS-5 nested window simulations (yxw, dan, bmy, 11/6/08)
 !******************************************************************************
 !
       ! References to F90 modules 
-      USE ACETONE_MOD,          ONLY : CLEANUP_ACETONE
-      USE AEROSOL_MOD,          ONLY : CLEANUP_AEROSOL
-      USE AIRCRAFT_NOX_MOD,     ONLY : CLEANUP_AIRCRAFT_NOX
-      USE BIOMASS_MOD,          ONLY : CLEANUP_BIOMASS
-      USE BIOFUEL_MOD,          ONLY : CLEANUP_BIOFUEL
-      USE BRAVO_MOD,            ONLY : CLEANUP_BRAVO
-      USE C2H6_MOD,             ONLY : CLEANUP_C2H6
-      USE CARBON_MOD,           ONLY : CLEANUP_CARBON
-      USE CO2_MOD,              ONLY : CLEANUP_CO2
-      USE COMODE_MOD,           ONLY : CLEANUP_COMODE
-      USE DAO_MOD,              ONLY : CLEANUP_DAO
-      USE DIAG_MOD,             ONLY : CLEANUP_DIAG
-      USE DIAG03_MOD,           ONLY : CLEANUP_DIAG03
-      USE DIAG04_MOD,           ONLY : CLEANUP_DIAG04
-      USE DIAG41_MOD,           ONLY : CLEANUP_DIAG41
-      USE DIAG50_MOD,           ONLY : CLEANUP_DIAG50
-      USE DIAG51_MOD,           ONLY : CLEANUP_DIAG51
-      USE DIAG_OH_MOD,          ONLY : CLEANUP_DIAG_OH
-      USE DIAG_PL_MOD,          ONLY : CLEANUP_DIAG_PL
-      USE DRYDEP_MOD,           ONLY : CLEANUP_DRYDEP
-      USE DUST_MOD,             ONLY : CLEANUP_DUST
-      USE DUST_DEAD_MOD,        ONLY : CLEANUP_DUST_DEAD
-      USE EDGAR_MOD,            ONLY : CLEANUP_EDGAR
-      USE EMEP_MOD,             ONLY : CLEANUP_EMEP
-      USE EPA_NEI_MOD,          ONLY : CLEANUP_EPA_NEI
-      USE ERROR_MOD,            ONLY : DEBUG_MSG
-      USE GC_BIOMASS_MOD,       ONLY : CLEANUP_GC_BIOMASS
-      USE GFED2_BIOMASS_MOD,    ONLY : CLEANUP_GFED2_BIOMASS
-      USE GLOBAL_CH4_MOD,       ONLY : CLEANUP_GLOBAL_CH4
-      USE GLOBAL_HNO3_MOD,      ONLY : CLEANUP_GLOBAL_HNO3
-      USE GLOBAL_NO3_MOD,       ONLY : CLEANUP_GLOBAL_NO3
-      USE GLOBAL_NOX_MOD,       ONLY : CLEANUP_GLOBAL_NOX
-      USE GLOBAL_O1D_MOD,       ONLY : CLEANUP_GLOBAL_O1D
-      USE GLOBAL_OH_MOD,        ONLY : CLEANUP_GLOBAL_OH
-      USE H2_HD_MOD,            ONLY : CLEANUP_H2_HD
-      USE HCN_CH3CN_MOD,        ONLY : CLEANUP_HCN_CH3CN
-      USE LAI_MOD,              ONLY : CLEANUP_LAI
-      USE LIGHTNING_NOX_MOD,    ONLY : CLEANUP_LIGHTNING_NOX
-      USE MEGAN_MOD,            ONLY : CLEANUP_MEGAN
-      USE MERCURY_MOD,          ONLY : CLEANUP_MERCURY
-      USE OCEAN_MERCURY_MOD,    ONLY : CLEANUP_OCEAN_MERCURY
-      USE PBL_MIX_MOD,          ONLY : CLEANUP_PBL_MIX
-      USE PJC_PFIX_MOD,         ONLY : CLEANUP_PJC_PFIX
-      USE PLANEFLIGHT_MOD,      ONLY : CLEANUP_PLANEFLIGHT
-      USE PRESSURE_MOD,         ONLY : CLEANUP_PRESSURE
-      USE REGRID_1x1_MOD,       ONLY : CLEANUP_REGRID_1x1
-      USE SEASALT_MOD,          ONLY : CLEANUP_SEASALT
-      USE SULFATE_MOD,          ONLY : CLEANUP_SULFATE
-      USE TAGGED_CO_MOD,        ONLY : CLEANUP_TAGGED_CO
-      USE TOMS_MOD,             ONLY : CLEANUP_TOMS
-      USE TPCORE_FVDAS_MOD,     ONLY : EXIT_TPCORE
-      USE TRACER_MOD,           ONLY : CLEANUP_TRACER
-      USE TRANSPORT_MOD,        ONLY : CLEANUP_TRANSPORT
-      USE TROPOPAUSE_MOD,       ONLY : CLEANUP_TROPOPAUSE
-      USE UVALBEDO_MOD,         ONLY : CLEANUP_UVALBEDO
-      USE WETSCAV_MOD,          ONLY : CLEANUP_WETSCAV
+      USE ACETONE_MOD,             ONLY : CLEANUP_ACETONE
+      USE AEROSOL_MOD,             ONLY : CLEANUP_AEROSOL
+      USE AIRCRAFT_NOX_MOD,        ONLY : CLEANUP_AIRCRAFT_NOX
+      USE BIOMASS_MOD,             ONLY : CLEANUP_BIOMASS
+      USE BIOFUEL_MOD,             ONLY : CLEANUP_BIOFUEL
+      USE BRAVO_MOD,               ONLY : CLEANUP_BRAVO
+      USE C2H6_MOD,                ONLY : CLEANUP_C2H6
+      USE CARBON_MOD,              ONLY : CLEANUP_CARBON
+      USE CO2_MOD,                 ONLY : CLEANUP_CO2
+      USE COMODE_MOD,              ONLY : CLEANUP_COMODE
+      USE DAO_MOD,                 ONLY : CLEANUP_DAO
+      USE DIAG_MOD,                ONLY : CLEANUP_DIAG
+      USE DIAG03_MOD,              ONLY : CLEANUP_DIAG03
+      USE DIAG04_MOD,              ONLY : CLEANUP_DIAG04
+      USE DIAG41_MOD,              ONLY : CLEANUP_DIAG41
+      USE DIAG50_MOD,              ONLY : CLEANUP_DIAG50
+      USE DIAG51_MOD,              ONLY : CLEANUP_DIAG51
+      USE DIAG_OH_MOD,             ONLY : CLEANUP_DIAG_OH
+      USE DIAG_PL_MOD,             ONLY : CLEANUP_DIAG_PL
+      USE DRYDEP_MOD,              ONLY : CLEANUP_DRYDEP
+      USE DUST_MOD,                ONLY : CLEANUP_DUST
+      USE DUST_DEAD_MOD,           ONLY : CLEANUP_DUST_DEAD
+      USE EDGAR_MOD,               ONLY : CLEANUP_EDGAR
+      USE EMEP_MOD,                ONLY : CLEANUP_EMEP
+      USE EPA_NEI_MOD,             ONLY : CLEANUP_EPA_NEI
+      USE ERROR_MOD,               ONLY : DEBUG_MSG
+      USE GC_BIOMASS_MOD,          ONLY : CLEANUP_GC_BIOMASS
+      USE GFED2_BIOMASS_MOD,       ONLY : CLEANUP_GFED2_BIOMASS
+      USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
+      USE GLOBAL_HNO3_MOD,         ONLY : CLEANUP_GLOBAL_HNO3
+      USE GLOBAL_NO3_MOD,          ONLY : CLEANUP_GLOBAL_NO3
+      USE GLOBAL_NOX_MOD,          ONLY : CLEANUP_GLOBAL_NOX
+      USE GLOBAL_O1D_MOD,          ONLY : CLEANUP_GLOBAL_O1D
+      USE GLOBAL_OH_MOD,           ONLY : CLEANUP_GLOBAL_OH
+      USE H2_HD_MOD,               ONLY : CLEANUP_H2_HD
+      USE HCN_CH3CN_MOD,           ONLY : CLEANUP_HCN_CH3CN
+      USE LAI_MOD,                 ONLY : CLEANUP_LAI
+      USE LIGHTNING_NOX_MOD,       ONLY : CLEANUP_LIGHTNING_NOX
+      USE MEGAN_MOD,               ONLY : CLEANUP_MEGAN
+      USE MERCURY_MOD,             ONLY : CLEANUP_MERCURY
+      USE OCEAN_MERCURY_MOD,       ONLY : CLEANUP_OCEAN_MERCURY
+      USE PBL_MIX_MOD,             ONLY : CLEANUP_PBL_MIX
+      USE PJC_PFIX_MOD,            ONLY : CLEANUP_PJC_PFIX
+      USE PLANEFLIGHT_MOD,         ONLY : CLEANUP_PLANEFLIGHT
+      USE PRESSURE_MOD,            ONLY : CLEANUP_PRESSURE
+      USE REGRID_1x1_MOD,          ONLY : CLEANUP_REGRID_1x1
+      USE SEASALT_MOD,             ONLY : CLEANUP_SEASALT
+      USE SULFATE_MOD,             ONLY : CLEANUP_SULFATE
+      USE TAGGED_CO_MOD,           ONLY : CLEANUP_TAGGED_CO
+      USE TOMS_MOD,                ONLY : CLEANUP_TOMS
+      USE TPCORE_FVDAS_MOD,        ONLY : EXIT_TPCORE
+      USE TPCORE_GEOS5_WINDOW_MOD, ONLY : EXIT_GEOS5_TPCORE_WINDOW
+      USE TRACER_MOD,              ONLY : CLEANUP_TRACER
+      USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
+      USE TROPOPAUSE_MOD,          ONLY : CLEANUP_TROPOPAUSE
+      USE UVALBEDO_MOD,            ONLY : CLEANUP_UVALBEDO
+      USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
 
       IMPLICIT NONE
+
+#     include "define.h"
 
       !=================================================================
       ! CLEANUP begins here!
@@ -202,7 +207,12 @@
       CALL CLEANUP_TROPOPAUSE
       CALL CLEANUP_UVALBEDO
       CALL CLEANUP_WETSCAV
+
+#if   defined( GEOS_5 ) && defined( GRID05x0666 )
+      CALL EXIT_GEOS5_TPCORE_WINDOW 
+#else
       CALL EXIT_TPCORE
+#endif
 
       ! Return to calling program
       END SUBROUTINE CLEANUP

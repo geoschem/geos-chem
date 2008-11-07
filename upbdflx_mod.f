@@ -1,9 +1,9 @@
-! $Id: upbdflx_mod.f,v 1.20 2008/08/08 17:20:37 bmy Exp $
+! $Id: upbdflx_mod.f,v 1.21 2008/11/07 19:30:32 bmy Exp $
       MODULE UPBDFLX_MOD
 !
 !******************************************************************************
 !  Module UPBDFLX_MOD contains subroutines which impose stratospheric boundary
-!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 6/30/08)
+!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 11/6/08)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -60,6 +60,7 @@
 !  (21) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (22) Added UPBDFLX_HD from the strat-trop flux of HD (lyj, phs, 9/18/07)
 !  (23) Cap 1-XRATIO in UPBDFLX_NOY to prevent underflow (phs, 6/30/08)
+!  (24) Modifications for GEOS-5 nested grid (yxw, dan, bmy, 11/6/08)
 !******************************************************************************
 !      
       IMPLICIT NONE
@@ -162,7 +163,7 @@
 !******************************************************************************
 !  Subroutine UPBDFLX_O3 establishes the flux boundary condition for Ozone
 !  coming down from the stratosphere, using the Synoz algorithm of
-!  McLinden et al, 2000. (qli, bmy, 12/13/99, 8/4/06)
+!  McLinden et al, 2000. (qli, bmy, 12/13/99, 11/6/08)
 !
 !  Reference:
 !  ===========================================================================
@@ -219,29 +220,30 @@
 !        problems with this.  Now supports 1x125 grid. (auvray, bmy, 12/1/04)
 !  (24) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !  (25) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (26) Now set J30S and J30N for GEOS-5 nested grid (yxw, dan, bmy, 11/6/08)
 !******************************************************************************
 !      
       ! References to F90 modules
-      USE DAO_MOD,       ONLY : AD, BXHEIGHT, T, TROPP
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE LOGICAL_MOD,   ONLY : LVARTROP !PHS
-      USE PRESSURE_MOD,  ONLY : GET_PEDGE, GET_PCENTER
-      USE TAGGED_OX_MOD, ONLY : ADD_STRAT_POX
-      USE TIME_MOD,      ONLY : GET_TS_DYN
-      USE TRACER_MOD,    ONLY : STT, ITS_A_TAGOX_SIM
-      USE TRACERID_MOD,  ONLY : IDTOX
-      USE TROPOPAUSE_MOD,ONLY : GET_TPAUSE_LEVEL
+      USE DAO_MOD,        ONLY : AD, BXHEIGHT, T, TROPP
+      USE ERROR_MOD,      ONLY : ERROR_STOP
+      USE LOGICAL_MOD,    ONLY : LVARTROP 
+      USE PRESSURE_MOD,   ONLY : GET_PEDGE, GET_PCENTER
+      USE TAGGED_OX_MOD,  ONLY : ADD_STRAT_POX
+      USE TIME_MOD,       ONLY : GET_TS_DYN
+      USE TRACER_MOD,     ONLY : STT, ITS_A_TAGOX_SIM
+      USE TRACERID_MOD,   ONLY : IDTOX
+      USE TROPOPAUSE_MOD, ONLY : GET_TPAUSE_LEVEL
       
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_GCTM"   ! Rdg0
+#     include "CMN_SIZE"       ! Size parameters
+#     include "CMN_GCTM"       ! Rdg0
 
       ! Local variables
-      LOGICAL, SAVE        :: FIRST = .TRUE.
-      INTEGER              :: I, J, L, L70mb
-      INTEGER              :: NTRACER, NTRACE2
-      REAL*8               :: P1, P2, P3, T1, T2, DZ, ZUP
-      REAL*8               :: DTDYN, H70mb, PO3, PO3_vmr
-      REAL*8               :: STFLUX(IIPAR,JJPAR,LLPAR)
+      LOGICAL, SAVE           :: FIRST = .TRUE.
+      INTEGER                 :: I, J, L, L70mb
+      INTEGER                 :: NTRACER, NTRACE2
+      REAL*8                  :: P1, P2, P3, T1, T2, DZ, ZUP
+      REAL*8                  :: DTDYN, H70mb, PO3, PO3_vmr
+      REAL*8                  :: STFLUX(IIPAR,JJPAR,LLPAR)
 
       ! Select the grid boxes at the edges of the O3 release region, 
       ! for the proper model resolution (qli, bmy, 12/1/04)
@@ -257,6 +259,9 @@
 
 #elif defined( GRID1x125 ) 
       INTEGER, PARAMETER   :: J30S = 61, J30N = 121
+
+#elif defined( GRID05x0666 )
+      INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
 
 #elif defined( GRID1x1 ) 
 
@@ -476,7 +481,7 @@
 !  Subroutine UPBDFLX_NOY imposes NOy (NOx + HNO3) upper boundary condition
 !  in the stratosphere. The production rates for NOy are provided by Dylan
 !  Jones, along with NOx and HNO3 concentrations. 
-!  (qli, rvm, mje, bmy, 12/22/99, 6/30/08)
+!  (qli, rvm, mje, bmy, 12/22/99, 8/4/06)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -803,7 +808,7 @@
 !******************************************************************************
 !  Subroutine UPBDFLX_HD establishes the flux boundary condition for HD
 !  coming down from the stratosphere. This is adapted from the UPBDFLX_O3
-!  routine. (lyj, hup, phs, 9/18/07)
+!  routine. (lyj, hup, phs, 9/18/07, 11/6/08)
 !
 !  Instead of calculating the fractionation of H2 in the stratosphere
 !  (where we would have to take into account fractionation of CH4),
@@ -820,6 +825,7 @@
 !  NOTES:
 !  (1 ) First adapted from UPBDFLX_O3 (G-C v5-05-03) then merged w/ v7-04-12.
 !        Added parallel DO loops. (phs, 9/18/07)
+!  (26) Now set J30S and J30N for GEOS-5 nested grid (yxw, dan, bmy, 11/6/08)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -830,17 +836,15 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTHD, IDTH2
       
-#     include "CMN_SIZE"   ! Size parameters
-!#     include "CMN"        ! STT, NSRCX
-#     include "CMN_GCTM"   ! Rdg0
-!#     include "CMN_SETUP"  ! LSPLIT 
+#     include "CMN_SIZE"     ! Size parameters
+#     include "CMN_GCTM"     ! Rdg0
 
       ! Local variables
-      INTEGER              :: I, J, L, L70mb
-      INTEGER              :: NTRACER!, NTRACE2
-      REAL*8               :: P1, P2, P3, T1, T2, DZ, ZUP
-      REAL*8               :: DTDYN, H70mb, PO3_vmr!,PO3
-      REAL*8               :: PHD, PHD_vmr, SCALE_HD!, HD_AVG
+      INTEGER               :: I, J, L, L70mb
+      INTEGER               :: NTRACER
+      REAL*8                :: P1, P2, P3, T1, T2, DZ, ZUP
+      REAL*8                :: DTDYN, H70mb, PO3_vmr!,PO3
+      REAL*8                :: PHD, PHD_vmr, SCALE_HD!, HD_AVG
 
       ! Select the grid boxes at the edges of the HD release region, 
       ! for the proper model resolution 
@@ -856,6 +860,9 @@
 
 #elif defined( GRID1x125 ) 
       INTEGER, PARAMETER   :: J30S = 61, J30N = 121
+
+#elif defined( GRID05x0666 )
+      INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
 
 #elif defined( GRID1x1 ) 
 

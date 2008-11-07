@@ -1,5 +1,10 @@
-! $Id: main.f,v 1.53 2008/08/08 17:20:36 bmy Exp $
+! $Id: main.f,v 1.54 2008/11/07 19:30:33 bmy Exp $
 ! $Log: main.f,v $
+! Revision 1.54  2008/11/07 19:30:33  bmy
+! Modifications for GEOS-5 0.5 x 0.666 nested grid simulation
+! Also removed obsolete lightning_nox_nl_mod.f
+! (bmy, 11/7/08)
+!
 ! Revision 1.53  2008/08/08 17:20:36  bmy
 ! Updated before Bob Y. goes on vacation (bmy, 8/8/08)
 !
@@ -239,6 +244,7 @@
       USE WETSCAV_MOD,       ONLY : INIT_WETSCAV,      DO_WETDEP
       USE XTRA_READ_MOD,     ONLY : GET_XTRA_FIELDS,   OPEN_XTRA_FIELDS
       USE XTRA_READ_MOD,     ONLY : UNZIP_XTRA_FIELDS
+      USE ERROR_MOD,         ONLY : IT_IS_NAN, IT_IS_FINITE   !yxw
 
       ! Force all variables to be declared explicitly
       IMPLICIT NONE
@@ -704,7 +710,7 @@
          ! Fossil fuel emissions (SMVGEAR)
          IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_TAGCO_SIM() ) THEN
             IF ( LEMIS .and. ITS_A_NEW_SEASON() ) THEN
-               CALL ANTHROEMS( SEASON )
+               CALL ANTHROEMS( SEASON )              
             ENDIF
          ENDIF
 
@@ -919,7 +925,61 @@
             ! Call the appropriate chemistry routine
             CALL DO_CHEMISTRY
          ENDIF 
-          
+!           
+!         ! check STT (yxw)
+!#if   defined( GEOS_5 ) && defined( GRID05x0666 )
+!            ! Loop over grid boxes
+!!$OMP PARALLEL DO 
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, N )
+!            DO N = 1, N_TRACERS
+!            DO L = 1, LLPAR
+!            DO J = 1, JJPAR
+!            DO I = 1, IIPAR
+!
+!              !---------------------------
+!              ! Check for Negatives
+!              !---------------------------
+!              IF ( STT(I,J,L,N) < 0d0 ) THEN
+!!$OMP CRITICAL
+!                  WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
+!                  PRINT*, 'Neg STT after chemistry ' // 
+!     &                   'SET STT TO BE ZERO'
+!p                  STT(I,J,L,N) = 0d0
+!!$OMP END CRITICAL
+!
+!              !---------------------------
+!              ! Check for NaN's
+!              !---------------------------
+!              ELSE IF ( IT_IS_NAN( STT(I,J,L,N) ) ) THEN
+!!$OMP CRITICAL
+!                  WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
+!                  PRINT*, 'NaN STT after chemistry ' // 
+!     &                  'SET STT TO BE LOWER LEVEL'
+!                  STT(I,J,L,N) = STT(I,J,L-1,N)
+!!$OMP END CRITICAL
+!
+!              !----------------------------
+!              ! Check STT's for Infinities
+!              !----------------------------
+!              ELSE IF ( .not. IT_IS_FINITE( STT(I,J,L,N) ) ) THEN
+!!$OMP CRITICAL
+!                  WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
+!                  PRINT*, 'Inf STT after chemistry ' //
+!     &                  'SET STT TO BE LOWER LEVEL'
+!                  STT(I,J,L,N) =  STT(I,J,L-1,N)
+!!$OMP END CRITICAL            
+!
+!              ENDIF
+!
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
+!
+!#endif
+ 
          !==============================================================
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
          !==============================================================

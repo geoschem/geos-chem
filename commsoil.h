@@ -1,4 +1,4 @@
-! $Id: commsoil.h,v 1.5 2006/11/07 19:01:57 bmy Exp $
+! $Id: commsoil.h,v 1.6 2008/11/07 19:30:34 bmy Exp $
 !
 !**********************************************************************
 !                                                                     *
@@ -20,42 +20,60 @@
 ! (3 ) Now use cpp switches to define 1x1 parameters.  Also added
 !       space in the #ifdef block for the 1x125 grid (bmy, 12/1/04)
 ! (4 ) Bug fix: 2681 should be 2861 in NLAND (bmy, 9/22/06)
+! (5 ) Set # of land boxes for GEOS-5 nested grids (yxw, dan, bmy, 11/6/08)
 !**********************************************************************
 !
 ! header file for soil NOx emissions
       
-      INTEGER NLAND, NPULSE, NSOIL
+      ! The defined soil types
+      INTEGER, PARAMETER :: NSOIL = 11
 
-! GEOS-CHEM 4 x 5   grid has  1118 grid boxes on land (bmy, 1/23/98)
-! GEOS-CHEM 2 x 2.5 grid has  3920 grid boxes on land (bmy, 1/23/98)
-! GEOS-CHEM 1 x 1   grid has 17174 grid boxes on land (bmy, 8/7/00)
-! GEOS-CHEM 1 x 1   nested China Grid has 2681 land boxes (bmy, 3/11/03)
+      ! Number of soil pulsing types
+      INTEGER, PARAMETER :: NPULSE = 3  
+
 #if   defined( GRID4x5  )
-      PARAMETER( NLAND=1118, NPULSE=3 ) 
+
+      ! There are 1118 land boxes for the 4 x 5 GLOBAL GRID
+      INTEGER, PARAMETER :: NLAND = 1118
 
 #elif defined( GRID2x25 )
-      PARAMETER( NLAND=3920, NPULSE=3 ) 
+
+      ! There are 3920 land boxes for the 2 x 2.5 GLOBAL GRID
+      INTEGER, PARAMETER :: NLAND = 3920 
 
 #elif defined( GRID1x125 )
-      ! NOTE: NEED TO DEFINE THESE!!!
-      PARAMETER( NLAND=????, NPULSE=3 )       
+
+      !%%% NOTE: still to be determined
+      INTEGER, PARAMETER :: NLAND = 9999 
+
+#elif defined( GRID1x1 ) && defined( NESTED_CH )
+
+      ! There are 2861 land points for the 1x1 CHINA nested grid
+      INTEGER, PARAMETER :: NLAND = 2861
+
+#elif defined( GRID1x1 ) && defined( NESTED_NA )
+
+      ! There are 2118  land points for the 1x1 N. AMERICA nested grid
+      INTEGER, PARAMETER :: NLAND = 2118
 
 #elif defined( GRID1x1 )
 
-      ! There are 2861  land points for the CHINA nested grid
-      ! There are 2118  land points for the N. AMERICA nested grid
-      ! There are 17174 land points for the global grid
-#if   defined( NESTED_CH )
-      PARAMETER( NLAND=2861, NPULSE=3 ) 
-#elif defined( NESTED_NA )
-      PARAMETER( NLAND=2118, NPULSE=3 )
-#else   
-      PARAMETER( NLAND=17174, NPULSE=3 )
-#endif
+      ! There are 17174 land points for the 1x1 GLOBAL grid
+      INTEGER, PARAMETER :: NLAND=17174
+
+#elif defined( GRID05x0666 ) && defined( NESTED_CH )
+
+      ! There are 8261 land points for the 0.5 x 0.666 CHINA nested grid
+      INTEGER, PARAMETER :: NLAND = 8261
+      
+#elif defined( GRID05x0666 ) && defined( NESTED_NA )
+
+      !%%% NOTE: still to be determined
+      INTEGER, PARAMETER :: NLAND = 9999   
 
 #endif
 
-      PARAMETER (NSOIL=11)      !the defined soil types
+
 ! water/desert/ice//Trop. Rain. Forst.//conifers//dry deciduous//
 ! other deciduous//woodland//grassland//agriculture (other than rice)
 ! rice paddies//wetland/tundra
@@ -109,5 +127,9 @@
      &              2.D0,  1.D0,   2.D0,   2.D0,   0.5D0,               &
      &              0.1D0/
 
-      INTEGER ISOILDIAG, JSOILDIAG
-      DATA ISOILDIAG, JSOILDIAG /18,33/ !68% ag
+      !-------------------------------------------------
+      ! Prior to 11/7/08:
+      ! NOTE: this is obsolete now (bmy, 11/7/08)
+      !INTEGER ISOILDIAG, JSOILDIAG
+      !DATA ISOILDIAG, JSOILDIAG /18,33/ !68% ag
+      !-------------------------------------------------

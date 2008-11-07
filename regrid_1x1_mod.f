@@ -1,9 +1,9 @@
-! $Id: regrid_1x1_mod.f,v 1.13 2008/08/08 17:20:36 bmy Exp $
+! $Id: regrid_1x1_mod.f,v 1.14 2008/11/07 19:30:33 bmy Exp $
       MODULE REGRID_1x1_MOD
 !
 !******************************************************************************
 !  Module REGRID_1x1_MOD does online regridding of data on the GEOS-Chem 1x1 
-!  grid to 1x1, 2x25, or 4x5 GEOS/GCAP grids. (bdf, bmy, 10/24/05, 10/17/07)
+!  grid to 1x1, 2x25, or 4x5 GEOS/GCAP grids. (bdf, bmy, 10/24/05, 11/6/08)
 !
 !  Module Variables:
 !  ============================================================================
@@ -12,23 +12,25 @@
 !
 !  Module Routines:
 !  ============================================================================
-!  (1 ) DO_REGRID_G2G_1x1       : Regrids GENERIC 1x1 to GEOS-Chem 1x1 GRID
-!  (2 ) DO_REGRID_1x1_R4        : Passes 3D, REAL*4 array to DO_THE_REGRIDDING
-!  (3 ) DO_REGRID_1x1_R4_2D     : Passes 2D, REAL*4 array to DO_THE_REGRIDDING
-!  (4 ) DO_REGRID_1x1_R8        : Passes 3D, REAL*8 array to DO_THE_REGRIDDING
-!  (5 ) DO_REGRID_1x1_R8_2D     : Passes 2D, REAL*8 input to DO_THE_REGRIDDING
-!  (6 ) DO_THE_REGRIDDING       : Driver routine for regridding from 1x1
-!  (7 ) ITS_CONCENTRATION_DATA  : Returns TRUE if it's concentration data
-!  (8 ) REGRID_CONC_TO_4x5_GCAP : Regrids conc data from GEOS 1x1 -> GCAP 4x5
-!  (9 ) REGRID_MASS_TO_4x5_GCAP : Regrids mass data from GEOS 1x1 -> GCAP 4x5
-!  (10) REGRID_CONC_TO_4x5      : Regrids conc data from GEOS 1x1 -> GEOS 4x5
-!  (11) REGRID_MASS_TO_4x5      : Regrids mass data from GEOS 1x1 -> GEOS 4x5
-!  (12) REGRID_CONC_TO_2x25     : Regrids conc data from GEOS 1x1 -> GEOS 2x25
-!  (13) REGRID_MASS_TO_2x25     : Regrids mass data from GEOS 1x1 -> GEOS 2x25
-!  (14) REGRID_CONC_TO_1x125    : Regrids conc data from GEOS 1x1 -> GEOS 1x125
-!  (15) REGRID_MASS_TO_1x125    : Regrids mass data from GEOS 1x1 -> GEOS 1x125
-!  (16) INIT_REGRID_1x1         : Initializes all module variables
-!  (17) CLEANUP_REGRID_1x1      : Deallocates all module variables
+!  (1 ) DO_REGRID_G2G_1x1           : Regrids GENERIC 1x1 to GEOS-Chem 1x1 GRID
+!  (2 ) DO_REGRID_1x1_R4            : Passes 3D, REAL*4 to DO_THE_REGRIDDING
+!  (3 ) DO_REGRID_1x1_R4_2D         : Passes 2D, REAL*4 to DO_THE_REGRIDDING
+!  (4 ) DO_REGRID_1x1_R8            : Passes 3D, REAL*8 to DO_THE_REGRIDDING
+!  (5 ) DO_REGRID_1x1_R8_2D         : Passes 2D, REAL*8 to DO_THE_REGRIDDING
+!  (6 ) DO_THE_REGRIDDING           : Driver routine for regridding from 1x1
+!  (7 ) DO_THE_REGRIDDING_05x0666   : Driver routines for regridding from
+!  (8 ) DO_THE_REGRIDDING_05x0666_2 :  to 0.5 x 0.667 GEOS-5 nested grid
+!  (9 ) ITS_CONCENTRATION_DATA      : Returns TRUE if it's concentration data
+!  (10) REGRID_CONC_TO_4x5_GCAP     : Regrids conc from GEOS 1x1 -> GCAP 4x5
+!  (11) REGRID_MASS_TO_4x5_GCAP     : Regrids mass from GEOS 1x1 -> GCAP 4x5
+!  (12) REGRID_CONC_TO_4x5          : Regrids conc from GEOS 1x1 -> GEOS 4x5
+!  (13) REGRID_MASS_TO_4x5          : Regrids mass from GEOS 1x1 -> GEOS 4x5
+!  (14) REGRID_CONC_TO_2x25         : Regrids conc from GEOS 1x1 -> GEOS 2x25
+!  (15) REGRID_MASS_TO_2x25         : Regrids mass from GEOS 1x1 -> GEOS 2x25
+!  (16) REGRID_CONC_TO_1x125        : Regrids conc from GEOS 1x1 -> GEOS 1x125
+!  (17) REGRID_MASS_TO_1x125        : Regrids mass from GEOS 1x1 -> GEOS 1x125
+!  (18) INIT_REGRID_1x1             : Initializes all module variables
+!  (19) CLEANUP_REGRID_1x1          : Deallocates all module variables
 ! 
 !  GEOS-Chem modules referenced by "regrid_1x1_mod.f"
 !  ============================================================================
@@ -43,6 +45,8 @@
 !  (3 ) DO_REGRID_G2G_1x1 now takes UNIT via the arg list (bmy, 8/9/06)
 !  (4 ) Bug fix in REGRID_MASS_TO_4x5 (tw, bmy, 2/20/07)
 !  (5 ) Bug fix in REGRID_MASS_TO_2x25 (barkley, bmy, 10/17/07)
+!  (6 ) Added routines for regridding to 0.5 x 0.666 GEOS-5 nested grid
+!        (yxw, dan, bmy, 11/6/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -59,6 +63,7 @@
       PUBLIC :: CLEANUP_REGRID_1x1
       PUBLIC :: DO_REGRID_1x1
       PUBLIC :: DO_REGRID_G2G_1x1
+      PUBLIC :: DO_REGRID_05x0666
 
       !=================================================================
       ! MODULE VARIABLES 
@@ -77,6 +82,11 @@
          MODULE PROCEDURE DO_REGRID_1x1_R4_2D
          MODULE PROCEDURE DO_REGRID_1x1_R8
          MODULE PROCEDURE DO_REGRID_1x1_R8_2D
+      END INTERFACE
+
+      INTERFACE DO_REGRID_05x0666
+         MODULE PROCEDURE DO_THE_REGRIDDING_05x0666_2D
+         MODULE PROCEDURE DO_THE_REGRIDDING_05x0666_3D
       END INTERFACE
 
       !=================================================================
@@ -496,7 +506,7 @@
      &                             IIPAR, JJPAR,      OUTDATA )
 
       ELSE
-
+ (yxw, dan, bmy, 11/6/08)
          ! Regrid mass field to 4x5
          CALL REGRID_MASS_TO_2x25( I1x1,  J1x1, L1x1, INDATA,
      &                             IIPAR, JJPAR,      OUTDATA )
@@ -556,6 +566,120 @@
 
       ! Return to calling program
       END SUBROUTINE DO_THE_REGRIDDING
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE DO_THE_REGRIDDING_05x0666_3D( L05x0666, UNIT, 
+     &                                         INDATA,   OUTDATA )
+!
+!******************************************************************************
+!  Subroutine DO_THE_REGRIDDING_05x0666_3D is the driver routine for the 
+!  regridding global 3-D GEOS-5 0.5 x 0.667 data to the GEOS-5 nested grids.
+!  (bmy, 11/6/05)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) L1x1    (INTEGER ) : Level dimension for INDATA and OUTDATA
+!  (2 ) UNIT    (CHAR*(*)) : String containing the units of INDATA & OUTDATA
+!  (3 ) INDATA  (REAL*8  ) : Input data array on 1x1 grid
+!  
+!  Arguments as Output:
+!  ============================================================================
+!  (4 ) OUTDATA (REAL*8  ) : Output data array 
+!
+!  NOTES:
+!******************************************************************************
+!
+#     include "CMN_SIZE"             ! Size parameters
+
+      ! Arguments
+      INTEGER,          INTENT(IN) :: L05x0666
+      REAL*8,           INTENT(IN) :: INDATA(I05x0666,J05x0666,L05x0666)
+      REAL*8,           INTENT(OUT):: OUTDATA(IIPAR,JJPAR,L05x0666)
+      CHARACTER(LEN=*), INTENT(IN) :: UNIT
+
+      ! Local variables
+      LOGICAL, SAVE                :: FIRST = .TRUE.
+      LOGICAL                      :: IS_CONC
+
+      !=================================================================
+      ! DO_THE_REGRIDDING_05x0666_3D begins here!
+      !=================================================================
+
+      ! Is this concentration data?
+      IS_CONC = ITS_CONCENTRATION_DATA( UNIT )
+
+#if   defined( GRID05x0666 ) && defined( NESTED_CH )
+
+      !------------------------------------------------
+      ! Regrid GEOS 05x0666 grid to nested China grid
+      !------------------------------------------------
+
+      ! China nested grid has corners (70E,11S) and (150E,55N)
+      ! which corresponds to 05x0666 indices (376,159) and (496,291)
+      OUTDATA(1:IIPAR,1:JJPAR,1) = INDATA( 376:496, 159:291,1)
+
+#endif
+
+      ! Return to calling program
+      END SUBROUTINE DO_THE_REGRIDDING_05x0666_3D
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE DO_THE_REGRIDDING_05x0666_2D( L05x0666, UNIT, 
+     &                                         INDATA,   OUTDATA )
+!
+!******************************************************************************
+!  Subroutine DO_THE_REGRIDDING_05x0666_2D is the driver routine for the 
+!  regridding global 3-D GEOS-5 0.5 x 0.667 data to the GEOS-5 nested grids.
+!  (bmy, 11/6/05)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) L1x1    (INTEGER ) : Level dimension for INDATA and OUTDATA
+!  (2 ) UNIT    (CHAR*(*)) : String containing the units of INDATA & OUTDATA
+!  (3 ) INDATA  (REAL*8  ) : Input data array on 1x1 grid
+!  
+!  Arguments as Output:
+!  ============================================================================
+!  (4 ) OUTDATA (REAL*8  ) : Output data array 
+!
+!  NOTES:
+!******************************************************************************
+!
+#     include "CMN_SIZE"             ! Size parameters
+
+      ! Arguments
+      INTEGER,          INTENT(IN) :: L05x0666
+      REAL*8,           INTENT(IN) :: INDATA(I05x0666,J05x0666,L05x0666)
+      REAL*8,           INTENT(OUT):: OUTDATA(IIPAR,JJPAR)
+      CHARACTER(LEN=*), INTENT(IN) :: UNIT
+
+      ! Local variables
+      LOGICAL, SAVE                :: FIRST = .TRUE.
+      LOGICAL                      :: IS_CONC
+
+      !=================================================================
+      ! DO_THE_REGRIDDING_05x0666_2D begins here!
+      !=================================================================
+
+      ! Is this concentration data?
+      IS_CONC = ITS_CONCENTRATION_DATA( UNIT )
+
+#if defined( GRID05x0666 ) && defined( NESTED_CH )
+
+      !-----------------------------------------------
+      ! Regrid GEOS 05x0666 grid to nested China grid
+      !-----------------------------------------------
+
+      ! China nested grid has corners (70E,11S) and (150E,55N)
+      ! which corresponds to 05x0666 indices (376,159) and (496,291)
+      OUTDATA(1:IIPAR,1:JJPAR) = INDATA( 376:496, 159:291, 1)
+
+#endif
+
+      ! Return to calling program
+      END SUBROUTINE DO_THE_REGRIDDING_05x0666_2D
 
 !------------------------------------------------------------------------------
 

@@ -1,4 +1,4 @@
-! $Id: acetone_mod.f,v 1.8 2006/09/08 19:20:50 bmy Exp $
+! $Id: acetone_mod.f,v 1.9 2008/11/07 19:30:35 bmy Exp $
       MODULE ACETONE_MOD
 !
 !******************************************************************************
@@ -290,7 +290,7 @@
 !
 !******************************************************************************
 !  Subroutine OCEAN_SOURCE_ACET specifies the ocean source of acetone.
-!  (bdf, bmy, 9/12/01, 8/4/06)
+!  (bdf, bmy, 9/12/01, 11/6/08)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -330,6 +330,7 @@
 !  (12) Now use Nightingale et al 2000b formulation for piston velocity KL.
 !        (swu, bmy, 8/16/05)
 !  (13) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (14) Adjust SCALE_FACTOR for 0.5 x 0.667 grid (dan, bmy, 11/6/08)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -415,6 +416,11 @@
 
       ! GEOS-3 1 x 1 (accounts for 1x1 surface area)
       REAL*8, PARAMETER :: SCALE_FACTOR = 0.05d0
+
+ #elif defined( GEOS_5 ) && defined( GRID05x0666 )
+
+      ! GEOS-5 0.5 x 0.667, scaled to 4x5 (dan, 11/6/08)
+      REAL*8, PARAMETER :: SCALE_FACTOR = 0.0008d0
 
 #else
       

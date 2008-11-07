@@ -1,9 +1,9 @@
-! $Id: Kr85_mod.f,v 1.4 2004/12/16 16:52:42 bmy Exp $
+! $Id: Kr85_mod.f,v 1.5 2008/11/07 19:30:36 bmy Exp $
       MODULE Kr85_MOD
 !
 !******************************************************************************
 !  Module Kr85_MOD contains routines and variables for the Kr85 radionuclide
-!  simulation. (jsw, bmy, 8/21/03, 7/20/04)
+!  simulation. (jsw, bmy, 8/21/03, 11/6/08)
 !
 !  Module Variables:
 !  ============================================================================
@@ -33,6 +33,7 @@
 !
 !  NOTES:
 !  (1 ) Now references "tracer_mod.f" (bmy, 7/20/04)
+!  (2 ) Modifications for GEOS-5 nested grids (yxw, dan, bmy, 11/6/08)
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -69,7 +70,7 @@
 !  Subroutine GET_SOURCE_IJ returns the (I,J) grid box indices for each
 !  Kr85 point source.  For now we have hardwired this, since there are only
 !  a few stations.  Worry about making this more general at some future time.
-!  (bmy, 8/21/03) 
+!  (bmy, 8/21/03, 11/6/08) 
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -80,6 +81,7 @@
 !  (1-2) I, J     (INTEGER) : Lon & lat indices for the N_SOURCEth Kr85 source
 !
 !  NOTES:
+!  (1 ) Updated for 0.5 x 0.666 nested grids (yxw, dan, bmy, 11/6/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -130,6 +132,8 @@
       GRID = 2 
 #elif defined( GRID1x1  )
       GRID = 3
+#elif defined( GRID05x0666 )
+      GRID = 3   !(dan )
 #endif
 
       ! Select proper (I,J) for each station

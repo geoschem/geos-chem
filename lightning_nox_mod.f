@@ -1,4 +1,4 @@
-! $Id: lightning_nox_mod.f,v 1.20 2008/11/05 19:45:44 bmy Exp $
+! $Id: lightning_nox_mod.f,v 1.21 2008/11/07 19:30:33 bmy Exp $
       MODULE LIGHTNING_NOX_MOD
 !
 !******************************************************************************
@@ -7,7 +7,7 @@
 !  GISS-II CTM's of Yuhang Wang, Gerry Gardner, & Larry Horowitz.  Overhauled 
 !  for updated parameterization schemes: CTH, MFLUX and PRECON.  Now also
 !  uses the near-land formulation (i.e. offshore boxes also get treated as
-!  if they were land boxes).  (ltm, rch, bmy, 4/14/04, 2/20/08)  
+!  if they were land boxes).  (ltm, rch, bmy, 4/14/04, 11/6/08)  
 !
 !  NOTE: The OTD/LIS regional redistribution for MFLUX and PRECON lightning
 !  parameterizations have not yet been implemented.  These parameterizations
@@ -98,6 +98,8 @@
 !  (5 ) Added MFLUX, PRECON redistribution options (ltm, bmy, 11/29/07)
 !  (6 ) Updated OTD/LIS scaling for GEOS-5 to get more realistic totals
 !        (ltm, bmy, 2/20/08)
+!  (7 ) Now add the proper scale factor for the GEOS-5 0.5 x 0.666 grid
+!        in routine GET_OTD_LIS_SCALE. (yxw, dan, bmy, 11/6/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1697,12 +1699,14 @@
 !  is to be applied to the lightning flash rate to bring the annual average 
 !  flash rate to match that of the OTD-LIS climatology ( ~ 45.9 flashes/sec ).
 !  Computed by running the model over the 11-year OTD-LIS campaign window and 
-!  comparing the average flash rates. (ltm, 9/24/07, 2/20/08)
+!  comparing the average flash rates. (ltm, 9/24/07, 11/6/08)
 !
 !  NOTES:
 !  (1 ) Added MFLUX, PRECON scaling for GEOS-4.  Also write messages for met
 !        field types/grids where scaling is not defined. (ltm, bmy, 11/29/07)
 !  (2 ) Now use different divisor for local redist (ltm, bmy, 2/20/08)
+!  (3 ) Now compute the proper scale factor for GEOS-5 0.5 x 0.666 grids
+!        (yxw, bmy, dan, bmy, 11/6/08)
 !******************************************************************************
 !
 #     include "define.h"
@@ -1722,6 +1726,8 @@
 #if   defined( GRID2x25 ) 
       REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 45.8650d0
 #elif defined( GRID4x5  )
+      REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 45.8658d0
+#elif defined( GRID05x0666 )
       REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 45.8658d0
 #endif
 
@@ -1763,6 +1769,22 @@
             SCALE = ANN_AVG_FLASHRATE / 47.7117d0
          ELSE
             SCALE = ANN_AVG_FLASHRATE / 36.2878d0
+         ENDIF
+      ELSE
+         WRITE( 6, '(a)' ) 'Warning: OTD-LIS GEOS5 scaling only for CTH'
+         SCALE = 1.0d0
+      ENDIF
+
+#elif defined( GEOS_5 ) && defined( GRID05x0666 )
+
+      !----------------------
+      ! GEOS-5 05x0666
+      !----------------------
+      IF ( LCTH ) THEN
+         IF ( LOTDLOC ) THEN
+            SCALE = ANN_AVG_FLASHRATE/17.5892d0 * 0.0638d0
+         ELSE
+            SCALE = ANN_AVG_FLASHRATE/13.9779d0 * 0.0638d0
          ENDIF
       ELSE
          WRITE( 6, '(a)' ) 'Warning: OTD-LIS GEOS5 scaling only for CTH'

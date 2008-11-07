@@ -1,4 +1,4 @@
-! $Id: grid_mod.f,v 1.7 2006/04/21 15:40:00 bmy Exp $
+! $Id: grid_mod.f,v 1.8 2008/11/07 19:30:34 bmy Exp $
       MODULE GRID_MOD
 !
 !******************************************************************************
@@ -58,6 +58,7 @@
 !  (2 ) Added routine GET_BOUNDING_BOX.  Now define 1x125 grid. (bmy, 12/1/04)
 !  (3 ) Modified for GCAP 4x5 horizontal grid (swu, bmy, 5/24/05)
 !  (4 ) Added comments re: surface area derivation (bmy, 4/20/06)
+!  (5 ) Modifications for GEOS-5 nested grids (yxw, dan, bmy, 11/6/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -66,12 +67,28 @@
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
       ! and routines from being seen outside "grid_mod.f"
       !=================================================================
-      PRIVATE :: I0,       J0,        IIGLOB,    JJGLOB
-      PRIVATE :: XMID_G,   XEDGE_G,   YMID_G,    YEDGE_G 
-      PRIVATE :: YMID_R_G, YEDGE_R_G, AREA_M2_G, AREA_CM2_G
-      PRIVATE :: XMID,     XEDGE,     YMID,      YEDGE 
-      PRIVATE :: YMID_R,   YEDGE_R,   AREA_M2,   AREA_CM2
-      PRIVATE :: IS_NESTED
+
+      ! Make everything PRIVATE ...
+      PRIVATE
+
+      ! ... except these routines
+      PUBLIC ::  COMPUTE_GRID
+      PUBLIC ::  SET_XOFFSET
+      PUBLIC ::  SET_YOFFSET
+      PUBLIC ::  GET_XOFFSET
+      PUBLIC ::  GET_YOFFSET
+      PUBLIC ::  GET_XMID
+      PUBLIC ::  GET_XEDGE
+      PUBLIC ::  GET_YMID
+      PUBLIC ::  GET_YEDGE
+      PUBLIC ::  GET_YMID_R
+      PUBLIC ::  GET_YMID_R_W
+      PUBLIC ::  GET_YEDGE_R
+      PUBLIC ::  GET_AREA_M2
+      PUBLIC ::  GET_AREA_CM2
+      PUBLIC ::  GET_BOUNDING_BOX
+      PUBLIC ::  ITS_A_NESTED_GRID
+      PUBLIC ::  CLEANUP_GRID
 
       !==================================================================
       ! MODULE VARIABLES
@@ -86,6 +103,7 @@
       REAL*8,  ALLOCATABLE :: XMID(:),      XEDGE(:)
       REAL*8,  ALLOCATABLE :: YMID(:),      YEDGE(:)
       REAL*8,  ALLOCATABLE :: YMID_R(:),    YEDGE_R(:)
+      REAL*8,  ALLOCATABLE :: YMID_R_W(:),  YEDGE_R_W(:)
       REAL*8,  ALLOCATABLE :: AREA_M2(:),   AREA_CM2(:)
 
       !=================================================================
@@ -107,6 +125,7 @@
 !  (3 ) Now also support 1 x 1.25 grid (bmy, 12/1/04)
 !  (4 ) Now modified for GCAP 4x5 horizontal grid (swu, bmy, 5/24/05)
 !  (5 ) Added comments re: surface area derivation (bmy, 4/20/06)
+!  (6 ) Compute YMID, YEDGE for 0.5x0.666 nested grids (yxw, dan, bmy, 11/6/08)
 !******************************************************************************
 !
 #     include "CMN_SIZE"  ! Size parameters
@@ -157,6 +176,11 @@
       ! Overwrite YMID at poles for 1 x 1 and 1 x 1.25 grids
       YMID_G(1)      = -89.75d0
       YMID_G(JJGLOB) = +89.75d0
+
+#elif defined ( GRID05x0666 )
+      ! Overwrite YMID at poles for 0.5 x 0.666 grids
+      YMID_G(1)      = -89.875d0
+      YMID_G(JJGLOB) = +89.875d0
 
 #endif
 
@@ -287,6 +311,12 @@
          AREA_M2(J)  = AREA_M2_G(J+J0)
          AREA_CM2(J) = AREA_CM2_G(J+J0)
       ENDDO
+
+       ! dan for tpcore_fvdas_window
+      DO J = 0, JJPAR+1
+         YMID_R_W(J)   = YMID_R_G(J+J0)
+      ENDDO
+
 
       ! YEDGE, YEDGE_R
       DO J = 1, JJPAR+1
@@ -600,6 +630,35 @@
 
 !------------------------------------------------------------------------------
 
+      FUNCTION GET_YMID_R_W( J ) RESULT( Y )
+!
+!******************************************************************************
+!  Function GET_YMID_R_W returns the latitude in radians at the center of 
+!  a GEOS-CHEM grid box for the GEOS-5 nested grid. (dan, bmy, 11/6/08)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1) J (INTEGER) : GEOS-CHEM grid-box index for latitude
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Arguments
+      INTEGER, INTENT(IN) :: J
+
+      ! Function value
+      REAL*8              :: Y
+
+      !=================================================================
+      ! dan for tpcore window GET_YMID_R_W begins here!
+      !=================================================================
+      Y = YMID_R_W( J )
+
+      ! Return to calling program
+      END FUNCTION GET_YMID_R_W
+
+!------------------------------------------------------------------------------
+
       FUNCTION GET_YEDGE_R( J ) RESULT( Y )
 !
 !******************************************************************************
@@ -813,13 +872,14 @@
 !
 !******************************************************************************
 !  Subroutine INIT_GRID initializes variables and allocates module arrays.
-!  (bmy, 3/11/03, 5/24/05)
+!  (bmy, 3/11/03, 11/6/08)
 !
 !  NOTES:
 !  (1 ) Fixed typos that caused AREA_CM2_G and AREA_CM2 to be initialized 
 !        before they were allocated. (bmy, 4/28/03)
 !  (2 ) Now define IIGLOB & JJGLOB for 1 x 1.25 grid (bmy, 12/1/04)
 !  (3 ) Modified for GCAP 4x5 horizontal grid (swu, bmy, 5/24/05)
+!  (4 ) Modifications for 0.5 x 0.666 nested grids (dan, bmy, 11/6/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -839,6 +899,9 @@
 #if   defined( GRID1x1 )
       IIGLOB = 360
       JJGLOB = 181
+#elif defined( GRID05x0666 )
+      IIGLOB = 540
+      JJGLOB = 361
 #elif defined( GRID1x125 )
       IIGLOB = 288
       JJGLOB = 181
@@ -907,9 +970,13 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'YEDGE' )
       YEDGE = 0d0
 
-      ALLOCATE( YMID_R( JJPAR ), STAT=AS )
+      ALLOCATE( YMID_R( 1:JJPAR ), STAT=AS )               
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'YMID_R' )
       YMID_R = 0d0
+
+      ALLOCATE( YMID_R_W( 0:JJPAR+1 ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'YMID_R_W' )
+      YMID_R_W = 0d0
 
       ALLOCATE( YEDGE_R( JJPAR+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'YEDGE_R' )
@@ -940,9 +1007,11 @@
       SUBROUTINE CLEANUP_GRID
 !
 !******************************************************************************
-!  Subroutine CLEANUP_GRID deallocates all module arrays (bmy, 3/11/03)
+!  Subroutine CLEANUP_GRID deallocates all module arrays 
+!  (bmy, 3/11/03, 11/6/08)
 !
 !  NOTES:
+!  (1 ) Now also deallocate YMID_R_W (dan, bmy, 11/6/08)
 !******************************************************************************
 !
       !=================================================================
@@ -955,6 +1024,7 @@
       IF ( ALLOCATED( YMID       ) ) DEALLOCATE( YMID       )
       IF ( ALLOCATED( YEDGE      ) ) DEALLOCATE( YEDGE      )
       IF ( ALLOCATED( YMID_R     ) ) DEALLOCATE( YMID_R     )
+      IF ( ALLOCATED( YMID_R_W   ) ) DEALLOCATE( YMID_R_W   )  
       IF ( ALLOCATED( YEDGE_R    ) ) DEALLOCATE( YEDGE_R    )
       IF ( ALLOCATED( AREA_M2    ) ) DEALLOCATE( AREA_M2    )
       IF ( ALLOCATED( AREA_CM2   ) ) DEALLOCATE( AREA_CM2   )

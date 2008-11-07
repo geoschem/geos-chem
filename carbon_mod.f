@@ -1,10 +1,10 @@
-! $Id: carbon_mod.f,v 1.30 2008/08/08 17:20:32 bmy Exp $
+! $Id: carbon_mod.f,v 1.31 2008/11/07 19:30:35 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
 !  Module CARBON_MOD contains arrays and routines for performing a 
 !  carbonaceous aerosol simulation.  Original code taken from Mian Chin's 
-!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 2/6/07)
+!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 11/6/08)
 !
 !  4 Aerosol species : Organic and Black carbon 
 !                    : hydrophilic (soluble) and hydrophobic of each
@@ -147,6 +147,7 @@
 !  (15) Prevent seg fault error in BIOMASS_CARB_GEOS (bmy, 11/3/06)
 !  (16) Corrected typos in SOA_LUMP.  Now also save GPROD and APROD to disk
 !        for each new diagnostic interval. (dkh, tmv, havala, bmy, 2/6/07)
+!  (17) Modifications for 0.5 x 0.666 nested grids (yxw, dan, bmy, 11/6/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -4699,7 +4700,7 @@ c
 !
 !******************************************************************************
 !  Subroutine INIT_CARBON initializes all module arrays. 
-!  (rjp, bmy, 4/1/04, 2/6/07)
+!  (rjp, bmy, 4/1/04, 11/6/08)
 !
 !  NOTES:
 !  (1 ) Also added arrays for secondary organic aerosols (rjp, bmy, 7/8/04)
@@ -4709,6 +4710,8 @@ c
 !        I2_NA, J1_NA, J2_NA which define the N. America region. (bmy, 12/1/04)
 !  (4 ) Now call READ_GPROD_APROD to read GPROD & APROD from disk. 
 !        (tmf, havala, bmy, 2/6/07)
+!  (5 ) Now set I1_NA, I2_NA, J1_NA, J2_NA appropriately for both 1 x 1 and
+!        0.5 x 0.666 nested grids (yxw, dan, bmy, 11/6/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4858,16 +4861,14 @@ c
       ! can overwrite T. Bond emissions w/ Cooke/RJP emissions 
       !=================================================================
 
-#if   defined( GRID1x1 ) && defined( NESTED_NA )
-
+#if   defined( NESTED_NA )
       ! For 1x1 N. America nested grid: set indices to grid extent
       I1_NA = 1
       J1_NA = 1
       I2_NA = IIPAR
       J2_NA = JJPAR
 
-#elif defined( GRID1x1 ) && defined( NESTED_CH )
-
+#elif defined( NESTED_CH )
       ! For 1x1 China nested grid: we don't cover N. America region
       ! Setting these to zero will turn off Cooke/RJP emissions
       I1_NA = 0

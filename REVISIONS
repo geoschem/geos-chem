@@ -1,5 +1,5 @@
 REVISIONS (v8-01-02)  
-05 Nov 2008
+06 Nov 2008
 Bob Yantosca, Philippe Le Sager, and Claire Carouge
 geos-chem-support@as.harvard.edu
 
@@ -7,11 +7,60 @@ geos-chem-support@as.harvard.edu
 New in v8-01-02:
 -------------------------------------------------------------------------------
 
-error_mod.f		-- Added routine IS_SAFE_DIV
+error_mod.f		     -- Added routine IS_SAFE_DIV
+
+pjc_pfix_geos5_window_mod.f  -- New LLNL pressure-fixer routine for use with
+			        the GEOS-5 nested grid simulation
+
+tpcore_geos5_window_mod.f90  -- New advection module for GEOS-5 nested grid
+                                simulation.
+
+do_geos5_window_transport    -- New driver routine for GEOS-5 nested grid
+("transport_mod.f")             advection
+
+init_geos5_window_transport  -- New initialize routine for GEOS-5 nested
+("transport_mod.f")             grid advection                               
+
+do_regrid_05x0666            -- Interface which overloads routines 
+("regrid_1x1_mod.f")            DO_THE_REGRIDDING_05X0666_2D and
+                                DO_THE_REGRIDDING_05X0666_3D
+
+do_the_regridding_05x0666_2d -- New routine for regridding GEOS-5 nested
+("regrid_1x1_mod.f")            grid data (2-D data)
+
+do_the_regridding_05x0666_3d -- New routine for regridding GEOS-5 nested
+("regrid_1x1_mod.f")            grid data (2-D data)
+
+
+emiss_streets_anthro_05x0666 -- Subroutine EMISS_STREETS_ANTHRO_05x0666 reads 
+("streets_anthro_mod.f")        the David Streets et al emission fields at 
+			        0.5 x 0.666 resolution and regrids them to 
+				the current nested-grid model resolution.
+
+get_aef_05x0666		     -- Reads Annual Emission Factor for all biogenic 
+("megan_mod.f")                 VOC species from disk.  Function GET_AEF is 
+                                called from "main.f".  Specially constructed 
+			        to read 0.5 x 0.666 nested grid data for the 
+			        GEOS-5 nested grid simulations.
+
+get_ymid_r_w                 -- Returns the grid box center in Radians
+("grid_mod.f")                  for the GEOS-5 nested grid 
+
+readisolai_05x0666 	     -- Reads AVHRR LAI data from bpch file for 
+("lai_mod.f")                   the current month, the previous month, and 
+                                the next month.  Specially constructed to
+	                        finer-resolution data for the GEOS-5 
+	                        0.5 x 0.666 nested grid simulations.
+
+read_streets_masks           -- Reads and regrids the China and SE Asia
+("streets_anthro_mod.f")	masks that define the David Streets' emission
+				regions.  Specially modified for the GEOS-5 
+				0.5 x 0.666 nested grid simulations.
 
 
 Removed in v8-01-02:
 -------------------------------------------------------------------------------
+
 
 
 Changed in v8-01-02:
@@ -27,10 +76,22 @@ aero_sfcrii		-- Now limit relative humidity to [tiny(real*8),0.99]
 chemdr.f		-- Now call "save_full_trop" at the end to account 
 			   for "do_diag_pl" resetting some of CSPEC elements
 
+cleanup.f		-- Now calls GEOS5_EXIT_TPCORE_WINDOW to finalize the 
+			   TPCORE for GEOS-5 nested window simulations
+
 CMN_O3			-- Redimension EMISR, EMIST, EMISRR to avoid errors 
 			   in tagged CO
 
+CMN_SIZE		-- New parameters for GEOS-5 nested grid
+
+commsoil.h		-- Set # of land boxes for GEOS-5 nested grids
+			-- Cosmetic changes
+
+compute_grid		-- Compute YMID, YEDGE for 0.5x0.666 nested grids
+("grid_mod.f")
+
 define.h		-- Added IN_CLOUD_OD flag for reprocessed GEOS-5 met
+			-- Added GRID05x0666 flag for GEOS-5 nested grids
 
 diag3.f			-- Bug fix: Now divide ALBEDO in ND67 by SCALE_I6 
 			   for GEOS-3 met, but by SCALE_A3 for all other 
@@ -42,6 +103,14 @@ diag48			-- Bug fix: replace "PS-PTOP" with "PEDGE-$"
 diag49			-- Bug fix: replace "PS-PTOP" with "PEDGE-$"
 ("diag49_mod.f")
 
+do_transport		-- Now references subroutine INIT_TPCORE_BC from 
+("transport_mod.f")        "tpcore_bc_mod.f"
+			-- Now references DO_GEOS5_FVDAS_WINDOW_TRANSPORT 
+			   from "tpcore_geos5_fvdas_window_mod.f90"
+ 
+dst_mbl			-- Tune nested-domain emissions dust to the same 
+("dust_dead_mod.f")        as the 2x2.5 simulation
+
 emiss_tagged_co		-- Bug fix: Now use IDECO to be consistent 
 ("tagged_co_mod.f")
 
@@ -52,27 +121,66 @@ fast_j.f		-- Switch from linear approximation (OVERLAP=1) to
 			   optical depths rather than the grid-box optical 
 		           depths.
 
+geos4_geos5_global_adv  -- Activate the call to SAVE_GLOBAL_TPCORE_BC
+("transport_mod.f")
+
 get_alk			-- Bug fix to remove a double-substitution.  Replace 
 ("seasalt_mod.f")          code lines for TERM{123}A, TERM{123}B, TERM{123}AN, 
 	                   and TERM{123}BN.
+
+get_otd_lis_scale	-- Now compute the proper scale factor for 
+("lightning_nox_mod.f")	   GEOS-5 0.5 x 0.666 grids
+
+
+get_res_ext		-- Added extension for 0.5 x 0.666 grid
+("bpch2_mod.f")
+
+get_source_ij		-- Updated for 0.5 x 0.666 nested grids
+("Kr85_mod.f")
 
 grav_settling		-- Now limit relative humidity to [tiny(real*8),0.99] 
 ("sulfate_mod.f")          range for DLOG argument
 
 i6_read_mod.f		-- Added N_I6_FIELDS variable
 
+init_carbon		-- Now set I1_NA, I2_NA, J1_NA, J2_NA appropriately
+("carbon_mod.f")           for both 1 x 1 and 0.5 x 0.666 nested grids 
+
 init_dao		-- Bug fix: should be CMFMC=0 after allocating CMFMC
 ("dao_mod.f")		   instead of CLDMAS=0
+
+init_grid		-- Modifications for 0.5 x 0.666 nested grids 
+("grid_mod.f")
+
+init_megan		-- Now call GET_AEF_05x0666 for GEOS-5 nested grids 
+("megan_mod.f")
+
+init_streets_anthro	-- Now calls READ_STREETS_MASKS_05x0666 for the 
+("streets_anthro_mod.f")   GEOS-5 0.5 x 0.666 nested-grid simulations 
+
+init_transport		-- Deleted reference to CMN, it's not needed anymore 
+("transport_mod.f")
+
+ocean_source_acet	-- Adjust SCALE_FACTOR for 0.5 x 0.667 grid
+("acetone_mod.f")
 
 OPMIE.f			-- Bug fix: do not let the number of added levels
                            for the Gaussian Quadrature (in JADDLV array)
                            exceed the maximum dimension of common-block arrays
+
+rdisolai		-- Now call READISOLAI_05x0666 to read hi-res LAI data 
+("lai_mod.f")              if we are doing a GEOS-5 0.5 x 0.666 nested grid 
+                           simulation.
 
 read_a3			-- Now get the # of A-3 fields from the file 
 ("a3_read_mod.f")	   identification string
 
 read_a6			-- Now get the # of A-6 fields from the file 
 ("a3_read_mod.f")	   identification string
+
+read_bpch2		-- Make TEMPARRAY large enough for 0.5 x 0.666 arrays;
+("bpch2_mod.f")            but only if we are doing a 0.5 x 0.666 nested 
+                           simulation.
 
 read_anthro_nh3		-- Bug fix: Using tracer #26 in the call to 
 ("sulfate_mod.f")          GET_STREETS_ANTHRO can cause problems when 
@@ -88,11 +196,15 @@ read_i6			-- Now get the # of I-6 fields from the file
 read_emissions_menu	-- Fixed typo in message for GEOS-3
 ("input_mod.f")
 
-read_transport_menu	-- Don't stop run if TS_DYN > MAX_DYN but
-("input_mod.f")            transport is turned off
-
 read_simulation_menu	-- Call INIT_TRANSFER w/ (0,0) instead of (I0,J0)
 ("input_mod.f")
+
+read_transport_menu	-- Don't stop run if TS_DYN > MAX_DYN but
+("input_mod.f")            transport is turned off
+			-- Also set MAX_DYN for the 0.5 x 0.666 nested grid
+
+read_todx		-- Now reads appropriate file for 0.5 x 0.666 
+("geia_mod.f")             nested grid simulations
 
 rpmares			-- Better catch of over/underflow for low ammonia case
 ("rpmares_mod.f")
@@ -103,10 +215,13 @@ seasalt_chem		-- Bug fix for mass balance, replace TITR_HNO3 w/
 			   which is now no longer called because it's in 
 			   "isoropia_mod.f"
 
+setemis.f		-- Bug fix: resize EMISRR to be consistent w/ CMN_O3
+
 soa_para		-- Corrected confusing documentation
 ("carbon_mod.f")
 
-setemis.f		-- Bug fix: resize EMISRR to be consistent w/ CMN_O3
+streets_anthro_mod.f    -- 
+
 
 tpcore_window_mod.f     -- Now do not parallelize DO loop 2500 in 
                            TPCORE_WINDOW.  For some reason this results in 
@@ -114,6 +229,16 @@ tpcore_window_mod.f     -- Now do not parallelize DO loop 2500 in
                            activated.  
 			-- Also, now place all parallel loops in all 
 			   routines w/in #if defined block.
+
+
+transport_mod.f		-- Added new routine INIT_GEOS5_WINDOW_TRANSPORT
+                           for GEOS-5 nested grid
+
+upbdflx_hd		-- Now set J30S and J30N for GEOS-5 nested grid 
+("upbdflx_mod.f")
+
+upbdflx_o3		-- Now set J30S and J30N for GEOS-5 nested grid 
+("upbdflx_mod.f")
 
 upbdflx_noy		-- Cap 1-XRATIO to avoid numerical problems later
 ("upbdflx_mod.f")

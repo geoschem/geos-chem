@@ -1,10 +1,10 @@
-! $Id: megan_mod.f,v 1.7 2008/08/08 17:20:36 bmy Exp $
+! $Id: megan_mod.f,v 1.8 2008/11/07 19:30:33 bmy Exp $
       MODULE MEGAN_MOD
 !
 !******************************************************************************
 !  Module MEGAN_MOD contains variables and routines specifying the 
 !  algorithms that control the MEGAN inventory of biogenic emissions.
-!  (dsa, tmf, bmy, 11/17/04, 9/18/07)
+!  (dsa, tmf, bmy, 11/17/04, 11/6/08)
 !
 !  Module Variables:
 !  ============================================================================
@@ -104,6 +104,8 @@
 !  (4 ) Bug fix: change #if block to also cover GCAP met fields (bmy, 12/6/05)
 !  (5 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (6 ) Bug fix: Skip Feb 29th if GCAP in INIT_MEGAN (phs, 9/18/07)
+!  (7 ) Added routine GET_AEF_05x0666 to read hi-res AEF data for the GEOS-5
+!        0.5 x 0.666 nested grid simulations (yxw, dan, bmy, 11/6/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1531,15 +1533,243 @@
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE GET_AEF_05x0666
+!
+!******************************************************************************
+!  Subroutine GET_AEF reads Annual Emission Factor for all biogenic VOC 
+!  species from disk.  Function GET_AEF is called from "main.f".  Specially
+!  constructed to read 0.5 x 0.666 nested grid data for the GEOS-5 nested
+!  grid simulations. (yxw, dan, bmy, 11/6/08)
+!
+!  Reference
+!  ============================================================================
+!  (5 ) Guenther et al, 2004 
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE BPCH2_MOD,      ONLY : GET_RES_EXT, READ_BPCH2
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
+      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
+      USE REGRID_1x1_MOD, ONLY : DO_REGRID_05x0666
+      USE TIME_MOD,       ONLY : GET_TS_EMIS
+      USE GRID_MOD,       ONLY : GET_AREA_M2
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR
+
+#     include "CMN_SIZE"       ! Size parameters
+
+      ! Local Variables
+      INTEGER                 :: I, J, IJLOOP
+      REAL*4                  :: ARRAY(I05x0666,J05x0666,1)
+      REAL*8                  :: GEOS_05x0666(I05x0666,J05x0666,1)  !(dan)
+      REAL*8                  :: DTSRCE, AREA_M2, FACTOR
+      CHARACTER(LEN=255)      :: FILENAME
+
+      !=================================================================
+      ! GET_AEF begins here!
+      !=================================================================
+
+      ! Emission timestep [min]
+      DTSRCE = GET_TS_EMIS()
+
+      !---------------------------------------------
+      ! Read in ISOPRENE Annual Emission Factors
+      !---------------------------------------------
+
+      ! 1x1 file name
+      FILENAME = TRIM( DATA_DIR ) //
+     &           'MEGAN_200510/MEGAN_AEF_ISOP.geos.05x0666'
+
+      ! Echo info
+      WRITE( 6, 100 ) TRIM( FILENAME )
+100   FORMAT( '     - GET_AEF: Reading ', a )
+
+      ! Read data at 1x1 resolution [ug C/m2/hr] 
+      CALL READ_BPCH2( FILENAME, 'BIOGSRCE', 99,
+     &                 0d0,       I05x0666,      J05x0666,
+     &                 1,         ARRAY,     QUIET=.TRUE. )
+
+         ! Cast to REAL*8 before regridding
+         GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+
+      ! Regrid from 1x1 to the current grid (also cast to REAL*8)
+!---------------------------------------------------------------------------
+! Prior to 11/6/08:
+!      CALL DO_THE_REGRIDDING_05x0666_2( 1, 'ug C/m2/hr', GEOS_05x0666,
+!     &  AEF_ISOP )
+!---------------------------------------------------------------------------
+      CALL DO_REGRID_05x0666( 1, 'ug C/m2/hr', GEOS_05x0666, AEF_ISOP )
+
+      ! Loop over longitudes
+      DO J = 1, JJPAR
+
+         ! Grid box surface area [m2]
+         AREA_M2 = GET_AREA_M2( J )
+
+         ! Conversion factor from [ug C/m2/hr] to [kg C/box]
+         FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+
+         ! Loop over latitudes
+         DO I = 1, IIPAR
+
+            ! Convert AEF_ISOP To [kg C/box]
+            AEF_ISOP(I,J) = AEF_ISOP(I,J) * FACTOR
+
+         ENDDO
+      ENDDO
+
+      !---------------------------------------------
+      ! Read in MONOTERPENE Annual Emission Factors
+      !---------------------------------------------
+
+      ! 1x1 file name
+      FILENAME = TRIM( DATA_DIR ) //
+     &           'MEGAN_200510/MEGAN_AEF_MTP.geos.05x0666'
+
+      ! Echo info
+      WRITE( 6, 100 ) TRIM( FILENAME )
+
+      ! Read data at 1x1 resolution [ug C/m2/hr]
+      CALL READ_BPCH2( FILENAME, 'BIOGSRCE', 99,
+     &                 0d0,       I05x0666,      J05x0666,
+     &                 1,         ARRAY,     QUIET=.TRUE. )
+
+         ! Cast to REAL*8 before regridding
+         GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+
+      ! Regrid from 1x1 to the current grid (also cast to REAL*8)
+!------------------------------------------------------------------------------
+! Prior to 11/6/08:
+!      CALL DO_THE_REGRIDDING_05x0666_2( 1,'ug C/m2/hr', GEOS_05x0666, 
+!     & AEF_MONOT )
+!------------------------------------------------------------------------------
+      CALL DO_REGRID_05x0666( 1,'ug C/m2/hr', GEOS_05x0666, AEF_MONOT )
+
+      ! Loop over longitudes
+      DO J = 1, JJPAR
+
+         ! Surface area 
+         AREA_M2 = GET_AREA_M2( J )
+
+         ! Conversion factor from [ug C/m2/hr] to [kg C/box]
+         FACTOR  = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+
+         ! Loop over latitudes
+         DO I = 1, IIPAR
+
+            ! Convert AEF_MONOT to [kg C/box]
+            AEF_MONOT(I,J) = AEF_MONOT(I,J) * FACTOR
+
+         ENDDO
+      ENDDO
+
+      !---------------------------------------------
+      ! Read in MBO Annual Emission Factors
+      !---------------------------------------------
+
+      ! 1x1 file name
+      FILENAME = TRIM( DATA_DIR ) //
+     &           'MEGAN_200510/MEGAN_AEF_MBO.geos.05x0666'
+
+      ! Echo info
+      WRITE( 6, 100 ) TRIM( FILENAME )
+
+      ! Read data at 1x1 resolution [ug C/m2/hr]
+      CALL READ_BPCH2( FILENAME, 'BIOGSRCE', 99,
+     &                 0d0,       I05x0666,      J05x0666,
+     &                 1,         ARRAY,     QUIET=.TRUE. )
+
+        ! Cast to REAL*8 before regridding
+         GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+
+
+      ! Regrid from 1x1 to the current grid (also cast to REAL*8)
+!------------------------------------------------------------------------------
+! Prior to 11/6/08:
+!       CALL DO_THE_REGRIDDING_05x0666_2(1,'ug C/m2/hr',GEOS_05x0666, 
+!     & AEF_MBO )
+!------------------------------------------------------------------------------
+       CALL DO_REGRID_05x0666( 1,'ug C/m2/hr',GEOS_05x0666, AEF_MBO )
+
+      ! Loop over latitudes
+      DO J = 1, JJPAR
+
+         ! Grid box surface area
+         AREA_M2 = GET_AREA_M2( J )
+
+         ! Conversion factor from [ug C/m2/hr] to [kg C/box]
+         FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+
+         ! Loop over longitudes
+         DO I = 1, IIPAR
+
+            ! Convert AEF to [kg C/box/step]
+            AEF_MBO(I,J) = AEF_MBO(I,J) * FACTOR
+
+         ENDDO
+      ENDDO
+
+      !---------------------------------------------
+      ! Read in other VOC Annual Emission Factors
+      !---------------------------------------------
+
+      ! 1x1 file name
+      FILENAME = TRIM( DATA_DIR ) //
+     &           'MEGAN_200510/MEGAN_AEF_MTP.geos.05x0666'
+
+      ! Echo info
+      WRITE( 6, 100 ) TRIM( FILENAME )
+
+      ! Read data at 1x1 resolution [ug C/m2/hr]
+      CALL READ_BPCH2( FILENAME, 'BIOGSRCE', 99,
+     &                 0d0,       I05x0666,      J05x0666,
+     &                 1,         ARRAY,     QUIET=.TRUE. )
+
+         ! Cast to REAL*8 before regridding
+         GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+
+      ! Regrid from 1x1 to the current grid (also cast to REAL*8)
+!------------------------------------------------------------------------------
+! Prior to 11/6/08:
+!      CALL DO_THE_REGRIDDING_05x0666_2( 1,'ug C/m2/hr', GEOS_05x0666,
+!     & AEF_OVOC )
+!------------------------------------------------------------------------------
+      CALL DO_REGRID_05x0666( 1,'ug C/m2/hr', GEOS_05x0666, AEF_OVOC )
+
+      ! Loop over latitudes
+      DO J = 1, JJPAR
+
+         ! Grid box surface area
+         AREA_M2 = GET_AREA_M2( J )
+
+         ! Conversion factor from [ug C/m2/hr] to [kg C/box]
+         FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+
+         ! Loop over longitudes
+         DO I = 1, IIPAR
+
+            ! Convert AEF to [kg C/box/step]
+            AEF_OVOC(I,J) = AEF_OVOC(I,J) * FACTOR
+
+         ENDDO
+      ENDDO
+
+      ! Return to calling program
+      END SUBROUTINE GET_AEF_05x0666
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE INIT_MEGAN
 !
 !******************************************************************************
 !  Subroutine INIT_MEGAN allocates and initializes the T_DAY, T_15,  
-!  T_15_AVG, and AEF_* arrays. (dsa, tmf, bmy, 10/24/05, 9/18/07)
+!  T_15_AVG, and AEF_* arrays. (dsa, tmf, bmy, 10/24/05, 11/6/08)
 !
 !  NOTES:
 !  (1 ) Change the logic in the #if block for G4AHEAD. (bmy, 12/6/05)
 !  (2 ) Bug fix: skip Feb 29th if GCAP (phs, 9/18/07)
+!  (3 ) Now call GET_AEF_05x0666 for GEOS-5 nested grids (yxw,dan,bmy, 11/6/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1597,7 +1827,11 @@
       AEF_OVOC = 0d0
 
       ! Get annual emission factors for MEGAN inventory
-      CALL GET_AEF
+#if   defined( GRID05x0666 )
+      CALL GET_AEF_05x0666     ! GEOS-5 nested grids only
+#else
+      CALL GET_AEF             ! Global simulations
+#endif 
 
       ! Initialize LAI arrays
       CALL INIT_LAI

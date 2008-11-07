@@ -1,9 +1,9 @@
-! $Id: geia_mod.f,v 1.6 2005/10/20 14:03:27 bmy Exp $
+! $Id: geia_mod.f,v 1.7 2008/11/07 19:30:34 bmy Exp $
       MODULE GEIA_MOD
 !
 !******************************************************************************
 !  Module GEIA_MOD contains routines used to read and scale the GEIA fossil 
-!  fuel emissions for NOx, CO, and hydrocarbons (bmy, 7/28/00, 10/3/05)
+!  fuel emissions for NOx, CO, and hydrocarbons (bmy, 7/28/00, 11/6/08)
 !
 !  Module Routines:
 !  ============================================================================
@@ -46,6 +46,7 @@
 !  (12) Now references "directory_mod.f" (bmy, 7/20/04)
 !  (13) Now can read data from both GEOS and GCAP grids (bmy, 8/16/05)
 !  (14) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (15) Modifications for 0.5 x 0.666 nested grids (yxw, dan, bmy, 11/6/08)
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -170,6 +171,9 @@
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+
+
 
 #     include "CMN_SIZE"   ! Size parameters
 
@@ -235,7 +239,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_TODX reads the time-of-day emission scale factors and 
-!  weekday/weekend scale factors for GEIA emissions. (bmy, 7/18/00, 12/1/04)
+!  weekday/weekend scale factors for GEIA emissions. (bmy, 7/18/00, 11/6/08)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -255,6 +259,8 @@
 !        obsolete code from April 2002 (bmy, 6/27/02)
 !  (6 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (7 ) Added space in the #ifdef block for 1 x 1.25 grid (bmy, 12/1/04)
+!  (8 ) Now reads appropriate file for 0.5 x 0.666 nested grid simulations
+!        (yxw, dan, bmy, 11/6/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -365,6 +371,33 @@
 
       ! Close the file
       CLOSE( IUNIT )
+
+#elif defined( GRID05x0666 )
+
+      ! Define the file name
+      FILENAME = TRIM( DATA_DIR ) // 'fossil_200104/MELD05x0666'
+
+      WRITE( 6, 100 ) TRIM( FILENAME )
+ 100  FORMAT( 'READ_TODX: Reading: ', a )
+
+      ! Open the 05x0666 file
+      OPEN( IUNIT, FILE=TRIM( FILENAME ), STATUS='OLD',
+     &             FORM='FORMATTED',      IOSTAT=IOS )
+      IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'read_todx:5' )
+
+      ! Read time-of-day scale factors
+      READ( IUNIT, '(6E12.4)', IOSTAT=IOS ) TODN, TODH, TODB
+      IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'read_todx:6' )
+
+
+      ! Read Weekday/Saturday/Sunday emission scale factors
+      READ( IUNIT, '(3F7.4)', IOSTAT=IOS )
+     &     ( ( SCNR89(I,J), J=1,3 ), I=1,3 )
+      IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'read_todx:7' )
+
+      ! Close the file
+      CLOSE( IUNIT )
+
 
 #endif      
 

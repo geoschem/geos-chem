@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.49 2008/11/05 19:45:44 bmy Exp $
+! $Id: input_mod.f,v 1.50 2008/11/07 19:30:34 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS-Chem input file at the start of the run
 !  and passes the information to several other GEOS-Chem F90 modules.
-!  (bmy, 7/20/04, 7/7/08)
+!  (bmy, 7/20/04, 11/6/08)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -125,6 +125,8 @@
 !  (19) Bug fix: use (0,0) in call to INIT_TRANSFER (phs, 6/17/08)
 !  (20) Minor fix in READ_TRANSPORT_MENU (cdh, bmy, 7/7/08)
 !  (21) Fixed typo READ_EMISSIONS_MENU for GEOS-3 (bmy, 10/30/08)
+!  (22) Set upper limit on dynamic timestep for 0.5 x 0.666 nested
+!        grids (yxw, bmy, dan, 11/6/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1705,7 +1707,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_TRANSPORT_MENU reads the TRANSPORT MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 10/3/05)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 11/6/08)
 !
 !  NOTES:
 !  (1 ) Now define MAX_DYN for 1 x 1.25 grid (bmy, 12/1/04)
@@ -1713,6 +1715,7 @@
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Don't stop run if TS_DYN > MAX_DYN but transport is turned off
 !        (cdh, bmy, 7/7/08)
+!  (5 ) Set MAX_DYN for the 0.5 x 0.666 nested grid (yxw, dan, bmy, 11/6/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1784,14 +1787,11 @@
       MAX_DYN = 10
 #elif defined( GRID1x1   ) 
       MAX_DYN = 10
+#elif defined( GRID05x0666   )
+      MAX_DYN = 10 
 #endif
 
       ! If TS_DYN is greater than MAX_DYN, then stop w/ error
-      !----------------------------------------------------------
-      ! Prior to 7/7/08:
-      ! Don't stop run if LTRAN=F (cdh, bmy, 7/7/08)
-      !IF ( TS_DYN > MAX_DYN ) THEN
-      !----------------------------------------------------------
       IF ( TS_DYN > MAX_DYN .and. LTRAN ) THEN
          MSG = 'Transport timestep is too big!'
          CALL ERROR_STOP( MSG, LOCATION )

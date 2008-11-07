@@ -1,9 +1,9 @@
- ! $Id: define.h,v 1.61 2008/11/05 19:45:45 bmy Exp $
+ ! $Id: define.h,v 1.62 2008/11/07 19:30:34 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
 !  used to include or exclude certain sections of code.  
-!  (bmy, bdf, 1/30/98, 10/24/08)
+!  (bmy, bdf, 1/30/98, 11/6/08)
 !
 !  List of "Switches"
 !  ===========================================================================
@@ -67,7 +67,8 @@
 !        from v7. (bmy, 10/18/05)
 !  (22) Removed GEOS_1, GEOS_STRAT, LINUX_IFC, LINUX_EFC (bmy, 8/4/06)
 !  (23) Renamed GRID30LEV to GRIDREDUCED (bmy, 2/7/07)
-!  (24) Added NEW_OD flag for reprocessed GEOS-5 met (bmy, hyl, 10/24/08)
+!  (24) Added IN_CLOUD_OD flag for reprocessed GEOS-5 met.  Added GRID05x0666 
+!        flag for GEOS-5 nested grids (yxw, dan, bmy, hyl, 11/6/08)
 !******************************************************************************
 !
 !==============================================================================
@@ -82,6 +83,7 @@
 #undef GRID2x25  
 #undef GRID1x125
 #undef GRID1x1
+#undef GRID05x0666
 #undef NESTED_NA
 #undef NESTED_CH
 #undef COMPAQ
@@ -100,17 +102,18 @@
 
 !----- Model types -----
 !#define GCAP        'GCAP'
-#define GEOS_3      'GEOS_3'
+!#define GEOS_3      'GEOS_3'
 !#define GEOS_4      'GEOS_4'
-!#define GEOS_5      'GEOS_5'
+#define GEOS_5      'GEOS_5'
 
 !----- Grid sizes -----
-#define GRID1x1     'GRID1x1'
 !#define NESTED_CH   'NESTED_CH'
-#define NESTED_NA   'NESTED_NAd'
+!#define NESTED_NA   'NESTED_NA'
+!#define GRID05x0666 'GRID05x0666'
+!#define GRID1x1     'GRID1x1'
 !#define GRID1x125   'GRID1x125'
 !#define GRID2x25    'GRID2x25'
-!#define GRID4x5     'GRID4x5'
+#define GRID4x5     'GRID4x5'
 #define GRIDREDUCED  'GRIDREDUCED'
 
 !----- Compilers -----
@@ -139,8 +142,8 @@
 !==============================================================================
 ! Force a compile error if GRID1x1, GRID2x25, and GRID4x5 are all undefined 
 !==============================================================================
-#if !defined(GRID2x25) && !defined(GRID4x5) && !defined(GRID1x125) && !defined(GRID1x1)
-#error "ERROR: GRID4x5, GRID2x25, GRID1x125, and GRID1x1"
+#if !defined(GRID2x25) && !defined(GRID4x5) && !defined(GRID1x125) && !defined(GRID1x1) && !defined(GRID05x0666)
+#error "ERROR: GRID4x5, GRID2x25, GRID1x125, GRID05x0666 and GRID1x1"
 #error "are ALL undefined in header file define.h"
 #endif
 

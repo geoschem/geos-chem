@@ -1,11 +1,11 @@
-! $Id: dust_dead_mod.f,v 1.11 2007/03/29 20:31:15 bmy Exp $
+! $Id: dust_dead_mod.f,v 1.12 2008/11/07 19:30:34 bmy Exp $
       MODULE DUST_DEAD_MOD
 !
 !******************************************************************************
 !  Module DUST_DEAD_MOD contains routines and variables from Charlie Zender's
 !  DEAD dust mobilization model.  Most routines are from Charlie Zender, but
 !  have been modified and/or cleaned up for inclusion into GEOS-Chem.
-!  (tdf, rjp, bmy, 4/6/04, 1/25/07)
+!  (tdf, rjp, bmy, 4/6/04, 11/6/08)
 !
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !  %%% NOTE: The current [dust] code was validated at 2 x 2.5 resolution.  %%%
@@ -142,6 +142,7 @@
 !  (4 ) Modified for GEOS-5 and GCAP met fields (swu, bmy, 8/16/05)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Now uses GOCART source function (tdf, bmy, 1/25/07)
+!  (7 ) Modifications for 0.5 x 0.667 grid (yxw, dan, bmy, 11/6/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -254,7 +255,8 @@
 !  Subroutine DST_MBL is the driver for aerosol mobilization (DEAD model).
 !  It is designed to require only single layer surface fields, allowing for
 !  easier implementation.  DST_MBL is called once per latitude.  Modified
-!  for GEOS-CHEM by Duncan Fairlie and Bob Yantosca (tdf, bmy, 1/25/07)
+!  for GEOS-CHEM by Duncan Fairlie and Bob Yantosca.
+!  (tdf, bmy, 1/25/07, 11/6/08)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -282,7 +284,9 @@
 !  NOTES:
 !  (1 ) Cleaned up and added comments.  Also force double precision with
 !        "D" exponents. (bmy, 3/30/04)
-!  (2 ) Now get GOCART source function. (tdf, bmy, 1/25/07)
+!  (2 ) Now get GOCART source function. (tdf, bmy, 1/25/07)      
+!  (3 ) Tune nested-domain emissions dust to the same as 2x2.5 simulation
+!        (yxw, bmy, dan, 11/6/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -316,7 +320,13 @@
       !--------------
 
       ! Global mass flux tuning factor (a posteriori) [frc]
+#if defined( GEOS_5 ) && defined( GRID05x0666 )  
+      ! We need to tune the global dust emissions to the same 
+      ! as the 2 x 2.5 simulation (yxw, dan, bmy, 11/6/08)
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 * 0.69
+#else
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4
+#endif
 
       ! Reference height for mobilization processes [m]
       REAL*8,  PARAMETER     :: HGT_RFR         = 10.0d0

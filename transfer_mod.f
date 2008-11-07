@@ -1,11 +1,11 @@
-! $Id: transfer_mod.f,v 1.8 2008/08/08 17:20:37 bmy Exp $
+! $Id: transfer_mod.f,v 1.9 2008/11/07 19:30:32 bmy Exp $
       MODULE TRANSFER_MOD
 !
 !******************************************************************************
 !  Module TRANSFER_MOD contains routines used to copy data from REAL*4 to
 !  REAL*8 arrays after being read from disk.  Also, vertical levels will be
 !  collapsed in the stratosphere if necessary.  This will help us to gain 
-!  computational advantage. (mje, bmy, 9/27/01, 10/30/07)
+!  computational advantage. (mje, bmy, 9/27/01, 10/3/07)
 !
 !  NOTE: The level above which we start collapsing layers is ~78 hPa.  
 !
@@ -155,7 +155,7 @@
 !******************************************************************************
 !  Subroutine TRANSFER_A6 transfers A-6 data from a REAL*4 array to a REAL*8
 !  array.  Vertical layers are collapsed (from LGLOB to LLPAR) if necessary.
-!  (mje, bmy, 9/21/01, 2/8/07)
+!  (mje, bmy, 9/21/01, 11/6/08)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -175,6 +175,7 @@
 !  (4 ) Added code to regrid GEOS-4 from 55 --> 30 levels (mje, bmy, 10/31/03)
 !  (5 ) Now modified for GEOS-5 met fields (bmy, 5/24/05)
 !  (6 ) Rewritten for clarity (bmy, 2/8/07)
+!  (7 ) Now get nested-grid offsets (dan, bmy, 11/6/08)
 !******************************************************************************
 !
 #     include "CMN_SIZE"    ! Size parameters
@@ -453,7 +454,6 @@
 
       ! Local variables
       INTEGER              :: I, J
-      REAL*4               :: INCOL(LGLOB)
      
       !================================================================
       ! TRANSFER_PLE begins here!
@@ -473,7 +473,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, INCOL )
+!$OMP+PRIVATE( I, J)
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -616,7 +616,7 @@
 
       ! Local variables
       INTEGER              :: L
-      
+     
       !=================================================================
       ! TRANSFER_3D_TROP
       !=================================================================

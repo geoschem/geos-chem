@@ -1,9 +1,9 @@
-! $Id: lai_mod.f,v 1.2 2005/10/31 18:19:24 bmy Exp $
+! $Id: lai_mod.f,v 1.3 2008/11/07 19:30:34 bmy Exp $
       MODULE LAI_MOD
 !
 !******************************************************************************
 !  Module LAI_MOD reads and stores AVHRR LAI for calculating MEGAN biogenic 
-!  VOC emissions. (dsa, tmf, bmy, 10/20/05)
+!  VOC emissions. (dsa, tmf, bmy, 10/20/05, 11/6/08)
 !
 !  Module Variables:
 !  ============================================================================
@@ -35,6 +35,9 @@
 !  (2 ) MEGAN is currently locked to use AVHRR LAI data.  
 !        The LAVHRRLAI logical switch controls whether the AVHRR LAI data 
 !        is used for the GEIA inventory and dry deposition.
+!  (3 ) Modifications for 0.5 x 0.667 nested grid.  Added routine 
+!        READISOLAI_05x0666 to read finer-resolution data for GEOS-5 nested
+!        grids. (yxw, dan, bmy, 11/6/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -170,12 +173,122 @@
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE READISOLAI_05x0666( MM )
+!
+!******************************************************************************
+!  Subroutine READISOLAI reads AVHRR LAI data from bpch file for the current 
+!  month, the previous month, and the next month.  Specially constructed to
+!  read hi-res data for the GEOS-5 0.5 x 0.666 nested grid simulations.
+!  (yxw, bmy, dan, 11/6/08)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) MM (INTEGER) : Current month number (1-12)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Modules
+      USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2, GET_RES_EXT
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
+      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR
+
+      IMPLICIT NONE
+
+#     include "CMN_SIZE"       ! Size parameters
+
+      ! Arguments
+      INTEGER, INTENT(IN)     :: MM
+
+      ! Local variables
+      INTEGER                 :: I, J, K, INDEX, MMM, PMM, IJLOOP
+      REAL*4                  :: ARRAY(IGLOB,JGLOB,1)
+      REAL*8                  :: TAU0
+      CHARACTER(LEN=255)      :: FILENAME
+
+      !=================================================================
+      ! READISOLAI begins here!
+      !=================================================================     
+
+      ! Zero arrays
+      MISOLAI  = 0.d0
+      NMISOLAI = 0.d0
+      ARRAY    = 0.d0
+
+      !------------------------------------
+      ! Read current month's lai at (I,J) 
+      !------------------------------------
+
+      ! Filename
+      FILENAME = TRIM( DATA_DIR ) //
+     &      'leaf_area_index_200412/avhrrlai.global.geos.05x0666.2000'
+
+      ! Echo info
+      WRITE( 6, 100 ) TRIM( FILENAME )
+100   FORMAT( '     - READISOLAI: Reading ', a )
+
+      ! Get TAU0 value
+      TAU0 = GET_TAU0( MM, 1, 2000 )
+
+      ! Read 1x1 LAI data [cm2/cm2]
+      CALL READ_BPCH2( FILENAME, 'AVHRR', 1,
+     &                 TAU0,      IGLOB,   JGLOB,
+     &                 1,         ARRAY,  QUIET=.TRUE. )
+
+
+      CALL TRANSFER_2D( ARRAY(:,:,1), MISOLAI )
+
+
+      !------------------------------------
+      ! Read next month's lai at (I,J) 
+      !------------------------------------
+
+      ! MMM is next month
+      MMM = MM + 1
+      IF ( MMM == 13 ) MMM = 1
+
+      ! TAU0 for 1st day of next month
+      TAU0 = GET_TAU0( MMM, 1, 2000 )
+
+      ! Read data
+      CALL READ_BPCH2( FILENAME, 'AVHRR', 1,
+     &                 TAU0,      IGLOB,   JGLOB,
+     &                 1,         ARRAY,  QUIET=.TRUE. )
+
+      CALL TRANSFER_2D( ARRAY(:,:,1), NMISOLAI )
+
+
+      !------------------------------------
+      ! Read previous month's lai at (I,J) 
+      !------------------------------------
+
+      ! PMM is previous month
+      PMM = MM - 1
+      IF ( PMM == 0 ) PMM = 12
+
+      ! TAU0 for 1st day of previous month
+      TAU0 = GET_TAU0( PMM, 1, 2000 )
+
+      ! Read data
+      CALL READ_BPCH2( FILENAME, 'AVHRR', 1,
+     &                 TAU0,      IGLOB,   JGLOB,
+     &                 1,         ARRAY,  QUIET=.TRUE. )
+
+      CALL TRANSFER_2D( ARRAY(:,:,1), PMISOLAI )
+
+
+      ! Return to calling program
+      END SUBROUTINE READISOLAI_05x0666
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE RDISOLAI( JDAY, MONTH )
 !
 !******************************************************************************
 !  Subroutine RDISOLAI sets ISOLAI daily.  The stored monthly LAI are used for
 !  the middle day in the month and LAIs are interpolated for other days.
-!  (dsa, tmf, bmy, 10/20/05)
+!  (dsa, tmf, bmy, 10/20/05, 11/6/08)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -185,6 +298,8 @@
 !  NOTES:
 !  (1 ) Original code (biogen_em_mod.f) by Dorian Abbot (7/8/03).  Updated  
 !        and modified for the standard code by May Fu (11/2004).
+!  (2 ) Now call READISOLAI_05x0666 to read hi-res LAI data if we are doing a 
+!        GEOS-5 0.5 x 0.666 nested grid simulation. (yxw, dan, bmy, 11/6/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -214,7 +329,14 @@
 
       ! Read new data if it's a new LAI month
       IF ( MM /= LAST_MM ) THEN
-         CALL READISOLAI( MM )
+
+#if   defined( GRID05x0666 )
+         CALL READISOLAI_05x0666( MM )   ! GEOS-5 nested grid simulation
+#else 
+         CALL READISOLAI( MM )           ! Global simulations
+#endif
+
+         ! Save for next month
          LAST_MM = MM
       ENDIF
       
