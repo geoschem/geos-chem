@@ -1,4 +1,4 @@
-! $Id: grid_mod.f,v 1.8 2008/11/07 19:30:34 bmy Exp $
+! $Id: grid_mod.f,v 1.9 2008/11/18 21:55:53 bmy Exp $
       MODULE GRID_MOD
 !
 !******************************************************************************
@@ -312,11 +312,12 @@
          AREA_CM2(J) = AREA_CM2_G(J+J0)
       ENDDO
 
-       ! dan for tpcore_fvdas_window
+#if   defined( GRID05x0666 )
+      ! This only needs to be done for GEOS-5 nested grid (dan, bmy, 11/18/08)
       DO J = 0, JJPAR+1
-         YMID_R_W(J)   = YMID_R_G(J+J0)
+         YMID_R_W(J) = YMID_R_G(J+J0)
       ENDDO
-
+#endif
 
       ! YEDGE, YEDGE_R
       DO J = 1, JJPAR+1

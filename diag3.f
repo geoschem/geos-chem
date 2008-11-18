@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.53 2008/10/08 18:30:32 bmy Exp $
+! $Id: diag3.f,v 1.54 2008/11/18 21:55:54 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out diagnostics to the BINARY format punch file 
-!  (bmy, bey, mgs, rvm, 5/27/99, 1/24/08)
+!  (bmy, bey, mgs, rvm, 5/27/99, 11/18/08)
 !
 !  NOTES: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
@@ -88,6 +88,8 @@
 !        all of them. (bmy, dkh, 1/24/08)
 !  (75) Bug fix: Now divide ALBEDO in ND67 by SCALE_I6 for GEOS-3 met, but
 !        by SCALE_A3 for all other met types (phs, bmy, 10/7/08)
+!  (76) Fix ND65, ND47, and ozone case in ND45. Now only ND45 depends
+!        on LD45 (phs, 11/17/08)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -121,7 +123,7 @@
       USE DIAG_MOD,     ONLY : CTNO2,       LTNO3,       CTNO3
       USE DIAG_MOD,     ONLY : AD44,        AD45,        LTOTH
       USE DIAG_MOD,     ONLY : CTOTH,       AD46,        AD47
-      USE DIAG_MOD,     ONLY : AD54,        CTO3
+      USE DIAG_MOD,     ONLY : AD54,        CTO3,        CTO3_24h
       USE DIAG_MOD,     ONLY : AD55,        AD66,        AD67
       USE DIAG_MOD,     ONLY : AD68,        AD69
       USE DIAG_MOD,     ONLY : AD10,        AD10em
@@ -173,12 +175,14 @@
       INTEGER            :: N, NN, NMAX, NTEST
       INTEGER            :: IE, IN, IS, IW, ITEMP(3)
       REAL*8             :: SCALE_TMP(IIPAR,JJPAR)
-      REAL*8             :: SCALE_TMP3D(IIPAR,JJPAR,LD45)
+!-- prior to 11/17/08
+!      REAL*8             :: SCALE_TMP3D(IIPAR,JJPAR,LD45)
       REAL*8             :: SCALE_I6,  SCALE_A6,  SCALE_A3,  SCALED    
       REAL*8             :: SCALEDYN,  SCALECONV, SCALESRCE, SCALECHEM 
       REAL*8             :: SCALEX,    SECONDS,   PMASS,     PRESSX
       REAL*8             :: FDTT,      AREA_M2,   DIAGb,     DIAGe
-      LOGICAL, SAVE      :: FIRST = .TRUE.
+!-- prior to 11/17/08
+!      LOGICAL, SAVE      :: FIRST = .TRUE.
       
       ! For binary punch file, version 2.0
       CHARACTER (LEN=40) :: CATEGORY 
@@ -2299,6 +2303,7 @@
 !  (4) Added NO3 to ND43 (bmy, 1/16/03)
 !  (5) Now uses 3D counters (phs, 1/24/07)
 !  (6) Now assume that LD43 can't be higher than LD45 (phs, 1/24/07)
+!  (7) Check that CTxx are not zero, instead of adding 1e-20 (phs, 11/13/07)
 !******************************************************************************
 !
       IF ( ND43 > 0 .and. ITS_A_FULLCHEM_SIM() ) THEN
@@ -2309,41 +2314,106 @@
             N  = TINDEX(43,M)
             NN = N 
 
+! prior to 11/13/08
+!            SELECT CASE ( N )
+!
+!               ! OH
+!               CASE ( 1 )
+!                  SCALE_TMP3D(:,:,1:LD43) = FLOAT( CTOH ) + 1d-20
+!                  UNIT                    = 'molec/cm3'
+!                  
+!               ! NO
+!               CASE ( 2 ) 
+!                  SCALE_TMP3D(:,:,1:LD43) = FLOAT( CTNO ) + 1d-20
+!                  UNIT                    = 'v/v'
+!
+!               ! HO2 (rvm, bmy, 2/27/02)
+!               CASE ( 3 ) 
+!                  SCALE_TMP3D(:,:,1:LD43) = FLOAT( CTHO2 ) + 1d-20
+!                  UNIT                    = 'v/v'
+!
+!               ! NO2 (rvm, bmy, 2/27/02)
+!               CASE ( 4 ) 
+!                  SCALE_TMP3D(:,:,1:LD43) = FLOAT( CTNO2 ) + 1d-20
+!                  UNIT                    = 'v/v'
+!
+!               ! NO3 (rjp, bmy, 1/16/03)
+!               CASE ( 5 )
+!                  SCALE_TMP3D(:,:,1:LD43) = FLOAT( CTNO3 ) + 1d-20
+!                  UNIT                    = 'v/v'
+!
+!               CASE DEFAULT
+!                  CYCLE
+!            END SELECT
+!
+!            DO L = 1, LD43 
+!               ARRAY(:,:,L) = AD43(:,:,L,N) / SCALE_TMP3D(:,:,L)
+!            ENDDO
+!            
+
+            ! default units
+            UNIT = 'v/v'
+
+
             SELECT CASE ( N )
 
                ! OH
                CASE ( 1 )
-                  SCALE_TMP3D(:,:,1:LD43) = FLOAT( CTOH ) + 1d-20
-                  UNIT                    = 'molec/cm3'
+                  WHERE( CTOH /= 0 )
+                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
+     $                    FLOAT( CTOH )
+                  ELSEWHERE
+                     ARRAY(:,:,1:LD43) = 0.
+                  ENDWHERE
+
+                  UNIT = 'molec/cm3'
                   
                ! NO
                CASE ( 2 ) 
-                  SCALE_TMP3D(:,:,1:LD43) = FLOAT( CTNO ) + 1d-20
-                  UNIT                    = 'v/v'
+                  WHERE( CTNO /= 0 )
+                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
+     $                    FLOAT( CTNO )
+                  ELSEWHERE
+                     ARRAY(:,:,1:LD43) = 0.
+                  ENDWHERE
+                  
 
                ! HO2 (rvm, bmy, 2/27/02)
-               CASE ( 3 ) 
-                  SCALE_TMP3D(:,:,1:LD43) = FLOAT( CTHO2 ) + 1d-20
-                  UNIT                    = 'v/v'
+               CASE ( 3 )
+                  WHERE( CTHO2 /= 0 )
+                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
+     $                    FLOAT( CTHO2 )
+                  ELSEWHERE
+                     ARRAY(:,:,1:LD43) = 0.
+                  ENDWHERE
+
 
                ! NO2 (rvm, bmy, 2/27/02)
                CASE ( 4 ) 
-                  SCALE_TMP3D(:,:,1:LD43) = FLOAT( CTNO2 ) + 1d-20
-                  UNIT                    = 'v/v'
+                  WHERE( CTNO2 /= 0 )
+                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
+     $                    FLOAT( CTNO2 )
+                  ELSEWHERE
+                     ARRAY(:,:,1:LD43) = 0.
+                  ENDWHERE
+                  
 
                ! NO3 (rjp, bmy, 1/16/03)
                CASE ( 5 )
-                  SCALE_TMP3D(:,:,1:LD43) = FLOAT( CTNO3 ) + 1d-20
-                  UNIT                    = 'v/v'
+                  WHERE( CTNO3 /= 0 )
+                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
+     $                    FLOAT( CTNO3 )
+                  ELSEWHERE
+                     ARRAY(:,:,1:LD43) = 0.
+                  ENDWHERE
+
 
                CASE DEFAULT
                   CYCLE
+
             END SELECT
 
-            DO L = 1, LD43 
-               ARRAY(:,:,L) = AD43(:,:,L,N) / SCALE_TMP3D(:,:,L)
-            ENDDO
-            
+
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
@@ -2472,6 +2542,7 @@
 !  (1) For NSRCX == 3 (NOx-Ox-HC run), store pure O3 with index NTRACE+1.
 !  (2) Now store pure O3 as NNPAR+1 (now tracer #32). (bmy, 1/10/03)
 !  (3) Now uses CTO3 instead of CTOH for pure O3 (phs, 1/24/07)
+!  (4) Better handling of O3 case (phs, 11/17/08)
 !******************************************************************************
 !
       IF ( ND45 > 0 ) THEN
@@ -2479,13 +2550,14 @@
          SCALE_TMP   = FLOAT( CTOTH ) + 1d-20
          UNIT        = ''   
 
-         ! Now account for undefined O3 concentration
-         ! at first timestep (phs, 1/24/07)
-         IF ( FIRST ) THEN
-            SCALE_TMP3D = MAX( FLOAT( CTO3 )-1d0, 1d-20 )
-         ELSE
-            SCALE_TMP3D = FLOAT( CTO3 ) + 1d-20
-         ENDIF
+!-- prior to 11/17/08
+!         ! Now account for undefined O3 concentration
+!         ! at first timestep (phs, 1/24/07)
+!         IF ( FIRST ) THEN
+!            SCALE_TMP3D = MAX( FLOAT( CTO3 )-1d0, 1d-20 )
+!         ELSE
+!            SCALE_TMP3D = FLOAT( CTO3 ) + 1d-20
+!         ENDIF
 
          DO M = 1, TMAX(45)
             N  = TINDEX(45,M)
@@ -2504,10 +2576,18 @@
 
             ! Store pure O3 as NNPAR+1 (bmy, 1/10/03)
             IF ( ITS_A_FULLCHEM_SIM() .and. NN == IDTOX ) THEN 
-               DO L = 1, LD45
-                  ARRAY(:,:,L) =
-     &                 AD45(:,:,L,N_TRACERS+1) / SCALE_TMP3D(:,:,L)
-               ENDDO
+!-- prior to 11/17/08
+!               DO L = 1, LD45
+!                  ARRAY(:,:,L) =
+!     &                 AD45(:,:,L,N_TRACERS+1) / SCALE_TMP3D(:,:,L)
+!               ENDDO
+
+                  WHERE( CTO3 /= 0 )
+                     ARRAY(:,:,1:LD45) = AD45(:,:,1:LD45,N) /
+     $                    FLOAT( CTO3 )
+                  ELSEWHERE
+                     ARRAY(:,:,1:LD45) = 0.
+                  ENDWHERE
                   
                NN = N_TRACERS + 1
 
@@ -2579,22 +2659,25 @@
 !  (3) Now replace SCALE1 with SCALEDYN
 !  (4) Now averaged between 0 and 24 UT.  Replace SCALEDYN with CTOH and
 !       CTO3 (phs, 1/24/07)
+!  (5) Revert to SCALEDYN for all species, except O3, which uses new 
+!       CTO3_24h counter (phs, 11/17/08)
 !******************************************************************************
 !
       IF ( ND47 > 0 ) THEN
          CATEGORY = 'IJ-24H-$'
          UNIT     = ''   
 
-         ! Now use SCALE_TMP instead of SCALEDYN
-         SCALE_TMP = FLOAT( CTOTH ) + 1d-20 
-
-         ! Now account for undefined O3 concentration
-         ! at first timestep (phs, 1/24/07)
-         IF ( FIRST ) THEN
-            SCALE_TMP3D = MAX( FLOAT( CTO3 )-1d0, 1d-20 )
-         ELSE
-            SCALE_TMP3D = FLOAT( CTO3 ) + 1d-20
-         ENDIF
+!-- prior to 11/17/08
+!         ! Now use SCALE_TMP instead of SCALEDYN
+!         SCALE_TMP = FLOAT( CTOTH ) + 1d-20 
+!
+!         ! Now account for undefined O3 concentration
+!         ! at first timestep (phs, 1/24/07)
+!         IF ( FIRST ) THEN
+!            SCALE_TMP3D = MAX( FLOAT( CTO3 )-1d0, 1d-20 )
+!         ELSE
+!            SCALE_TMP3D = FLOAT( CTO3 ) + 1d-20
+!         ENDIF
 
          DO M = 1, TMAX(47)
             N  = TINDEX(47,M)
@@ -2602,7 +2685,9 @@
             NN = N
             
             DO L = 1, LD47
-               ARRAY(:,:,L) = AD47(:,:,L,N) / SCALE_TMP(:,:)
+!-- prior to 11/17/08
+!               ARRAY(:,:,L) = AD47(:,:,L,N) / SCALE_TMP(:,:)
+               ARRAY(:,:,L) = AD47(:,:,L,N) / SCALEDYN
             ENDDO
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -2613,10 +2698,18 @@
 
             ! Store pure O3 as NNPAR+1 (bmy, 1/10/03)
             IF ( ITS_A_FULLCHEM_SIM() .and. NN == IDTOX ) THEN 
-               DO L = 1, LD47
-                  ARRAY(:,:,L) = AD47(:,:,L,N_TRACERS+1) / 
-     &                           SCALE_TMP3D(:,:,L) 
-               ENDDO
+!-- prior to 11/17/08
+!               DO L = 1, LD47
+!                  ARRAY(:,:,L) = AD47(:,:,L,N_TRACERS+1) / 
+!     &                           SCALE_TMP3D(:,:,L) 
+!               ENDDO
+
+               WHERE( CTO3_24h(:,:,1:LD47) /= 0 )
+                  ARRAY(:,:,1:LD47) = AD47(:,:,1:LD47,N_TRACERS+1) /
+     $                                FLOAT( CTO3_24h(:,:,1:LD47) )
+               ELSEWHERE
+                  ARRAY(:,:,1:LD47) = 0.
+               ENDWHERE
                
                NN = N_TRACERS + 1
 
@@ -2762,14 +2855,18 @@
 !  (4 ) Add updates for multi-tracer Ox run from amf (bmy, 7/3/01)
 !  (5 ) Now account for time in troposphere for full chemistry. It is
 !        assumed that LD45 >= LD65 in using CTO3 (phs, 3/6/07)
+!  (6 ) Do not use CTO3 anymore, but the new CTO3_24h, which is the 3D
+!        tropospheric chemistry counter (phs, 11/17/08)
 !******************************************************************************
 !
       IF ( ND65 > 0 ) THEN     
          CATEGORY = 'PORL-L=$'
 
-         ! Note: P/L are defined at first time step, since
-         ! they are computed after chemistry (phs, 3/6/07)
-         SCALE_TMP3D = FLOAT( CTO3 ) + 1d-20
+!-- prior to 11/17/08
+!         ! Note: P/L are defined at first time step, since
+!         ! they are computed after chemistry (phs, 3/6/07)
+!         SCALE_TMP3D = FLOAT( CTO3 ) + 1d-20
+!         SCALE_TMP3D = SCALECHEM
 
          ! Loop over ND65 families
          DO N = 1, NFAMILIES
@@ -2779,27 +2876,53 @@
             IF ( ITS_A_CH3I_SIM() ) THEN
                NN          = N
                UNIT        = 'kg/s'
-               SCALE_TMP3D = 1d0
+!-- prior to 11/17/08
+!               SCALE_TMP3D = 1d0
+
+               DO L = 1, LD65
+                  ARRAY(:,:,L) = AD65(:,:,L,N)
+               ENDDO
 
             ELSE IF ( ITS_A_TAGOX_SIM() ) THEN
                NN          = N
                UNIT        = 'kg/s'
-               SCALE_TMP3D = SCALECHEM
+!-- prior to 11/17/08
+!               SCALE_TMP3D = SCALECHEM
                
+               WHERE( CTO3_24h(:,:,1:LD65) /= 0 )
+                  ARRAY(:,:,1:LD65) = AD65(:,:,1:LD65,N) /
+     $                                FLOAT( CTO3_24h(:,:,1:LD65) )
+               ELSEWHERE
+                  ARRAY(:,:,1:LD65) = 0.
+               ENDWHERE
+
             ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
                NN          = N
                UNIT        = 'mol/cm3/s'
-               SCALE_TMP3D = SCALECHEM
+!-- prior to 11/17/08
+!               SCALE_TMP3D = SCALECHEM
+
+               DO L = 1, LD65
+                  ARRAY(:,:,L) = AD65(:,:,L,N) / SCALECHEM
+               ENDDO
 
             ELSE
                NN     = N
                UNIT   = 'mol/cm3/s'
+
+               WHERE( CTO3_24h(:,:,1:LD65) /= 0 )
+                  ARRAY(:,:,1:LD65) = AD65(:,:,1:LD65,N) /
+     $                                FLOAT( CTO3_24h(:,:,1:LD65) )
+               ELSEWHERE
+                  ARRAY(:,:,1:LD65) = 0.
+               ENDWHERE
                
             ENDIF
 
-            DO L = 1, LD65
-               ARRAY(:,:,L) = AD65(:,:,L,N) / SCALE_TMP3D(:,:,L)
-            ENDDO
+!-- prior to 11/17/08
+!            DO L = 1, LD65
+!               ARRAY(:,:,L) = AD65(:,:,L,N) / SCALE_TMP3D(:,:,L)
+!            ENDDO
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
@@ -2919,6 +3042,8 @@
 !  (3 ) Add TROPP as tracer #17 and SLP as tracer #18 (bmy, 10/11/00)
 !  (4 ) Now replace SCALE1 with SCALEDYN (bmy, 3/27/03)
 !  (5 ) Added TSKIN, PARDF, PARDR, GWET for GEOS-4 (bmy, 6/23/03)
+!  (6 ) Fix SCALEX for ALBEDO: use I6 for GEOS-3 only, and A3 for other
+!     models (phs, 9/3/08)
 !******************************************************************************
 !
       IF ( ND67 > 0 ) THEN
@@ -3073,8 +3198,9 @@
          ND69 = 0
       ENDIF
 
-      ! Reset FIRST flag
-      FIRST = .FALSE.
+!-- prior to 11/17/08
+!      ! Reset FIRST flag
+!      FIRST = .FALSE.
 
       ! Echo output
       WRITE( 6, '(a)' ) '     - DIAG3: Diagnostics written to bpch!'

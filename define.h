@@ -1,4 +1,4 @@
- ! $Id: define.h,v 1.62 2008/11/07 19:30:34 bmy Exp $
+ ! $Id: define.h,v 1.63 2008/11/18 21:55:54 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
@@ -107,13 +107,13 @@
 #define GEOS_5      'GEOS_5'
 
 !----- Grid sizes -----
-!#define NESTED_CH   'NESTED_CH'
+#define NESTED_CH   'NESTED_CH'
 !#define NESTED_NA   'NESTED_NA'
-!#define GRID05x0666 'GRID05x0666'
+#define GRID05x0666 'GRID05x0666'
 !#define GRID1x1     'GRID1x1'
 !#define GRID1x125   'GRID1x125'
 !#define GRID2x25    'GRID2x25'
-#define GRID4x5     'GRID4x5'
+!#define GRID4x5     'GRID4x5'
 #define GRIDREDUCED  'GRIDREDUCED'
 
 !----- Compilers -----
@@ -128,7 +128,10 @@
 ! NOTE: If you are using GEOS-5 met fields that were reprocessed to 
 ! correctly regrid the in-cloud optical depth and cloud fraction fields, 
 ! then be sure to uncomment the following line of code.  This will cause 
-! FAST-J to interpret the optical depth correctly. (bmy, hyl, 10/24/08)
+! FAST-J to interpret the optical depth correctly.  Leaving this option
+! commented will cause a "quick fix" (i.e. multiplying the optical depth
+! by the cloud fracton) to be applied, which should be a good enough fix
+! in the meantime. (bmy, hyl, 10/24/08)
 !#define IN_CLOUD_OD  'IN_CLOUD_OD'
 
 !==============================================================================

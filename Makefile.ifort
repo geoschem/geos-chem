@@ -1,5 +1,5 @@
 #=============================================================================
-# $Id: Makefile.ifort,v 1.26 2008/11/07 19:30:36 bmy Exp $
+# $Id: Makefile.ifort,v 1.27 2008/11/18 21:55:55 bmy Exp $
 #
 # GEOS-Chem Makefile for LINUX/IFORT compiler (bmy, Thu Nov  6 16:59:20 2008)
 #=============================================================================
@@ -395,7 +395,6 @@ rpmares_mod.o                  : rpmares_mod.f                  CMN_SIZE define.
 ruralbox.o                     : ruralbox.f                     CMN_SIZE define.h comode.h 
 schem.o                        : schem.f                        CMN_SIZE define.h 
 seasalt_mod.o                  : seasalt_mod.f                  CMN_DIAG CMN_GCTM CMN_SIZE define.h 
-seasalt_mod.o                  : seasalt_mod.f_fix                  CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 set_aer.o                      : set_aer.f                      cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 set_prof.o                     : set_prof.f                     cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 setbase.o                      : setbase.f                      CMN CMN_ISOP CMN_MONOT CMN_SIZE define.h CMN_VEL 

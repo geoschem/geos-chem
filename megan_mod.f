@@ -1,4 +1,4 @@
-! $Id: megan_mod.f,v 1.8 2008/11/07 19:30:33 bmy Exp $
+! $Id: megan_mod.f,v 1.9 2008/11/18 21:55:52 bmy Exp $
       MODULE MEGAN_MOD
 !
 !******************************************************************************
@@ -1594,11 +1594,6 @@
          GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-!---------------------------------------------------------------------------
-! Prior to 11/6/08:
-!      CALL DO_THE_REGRIDDING_05x0666_2( 1, 'ug C/m2/hr', GEOS_05x0666,
-!     &  AEF_ISOP )
-!---------------------------------------------------------------------------
       CALL DO_REGRID_05x0666( 1, 'ug C/m2/hr', GEOS_05x0666, AEF_ISOP )
 
       ! Loop over longitudes
@@ -1639,11 +1634,6 @@
          GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-!------------------------------------------------------------------------------
-! Prior to 11/6/08:
-!      CALL DO_THE_REGRIDDING_05x0666_2( 1,'ug C/m2/hr', GEOS_05x0666, 
-!     & AEF_MONOT )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_05x0666( 1,'ug C/m2/hr', GEOS_05x0666, AEF_MONOT )
 
       ! Loop over longitudes
@@ -1680,17 +1670,12 @@
      &                 0d0,       I05x0666,      J05x0666,
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
-        ! Cast to REAL*8 before regridding
-         GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+      ! Cast to REAL*8 before regridding
+      GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
 
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-!------------------------------------------------------------------------------
-! Prior to 11/6/08:
-!       CALL DO_THE_REGRIDDING_05x0666_2(1,'ug C/m2/hr',GEOS_05x0666, 
-!     & AEF_MBO )
-!------------------------------------------------------------------------------
-       CALL DO_REGRID_05x0666( 1,'ug C/m2/hr',GEOS_05x0666, AEF_MBO )
+      CALL DO_REGRID_05x0666( 1,'ug C/m2/hr',GEOS_05x0666, AEF_MBO )
 
       ! Loop over latitudes
       DO J = 1, JJPAR
@@ -1726,15 +1711,10 @@
      &                 0d0,       I05x0666,      J05x0666,
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
-         ! Cast to REAL*8 before regridding
-         GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+      ! Cast to REAL*8 before regridding
+      GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-!------------------------------------------------------------------------------
-! Prior to 11/6/08:
-!      CALL DO_THE_REGRIDDING_05x0666_2( 1,'ug C/m2/hr', GEOS_05x0666,
-!     & AEF_OVOC )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_05x0666( 1,'ug C/m2/hr', GEOS_05x0666, AEF_OVOC )
 
       ! Loop over latitudes

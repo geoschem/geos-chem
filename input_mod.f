@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.50 2008/11/07 19:30:34 bmy Exp $
+! $Id: input_mod.f,v 1.51 2008/11/18 21:55:52 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS-Chem input file at the start of the run
 !  and passes the information to several other GEOS-Chem F90 modules.
-!  (bmy, 7/20/04, 11/6/08)
+!  (bmy, 7/20/04, 11/18/08)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -127,6 +127,7 @@
 !  (21) Fixed typo READ_EMISSIONS_MENU for GEOS-3 (bmy, 10/30/08)
 !  (22) Set upper limit on dynamic timestep for 0.5 x 0.666 nested
 !        grids (yxw, bmy, dan, 11/6/08)
+!  (24) Move the call to NDXX_SETUP (phs, 11/18/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -175,7 +176,8 @@
 !
 !  NOTES:
 !  (1 ) Now call DO_GAMAP from "gamap_mod.f" to create "diaginfo.dat" and
-!        "tracerinfo.dat" files after all diagnostic menus have been read in  
+!        "tracerinfo.dat" files after all diagnostic menus have been read in
+!  (2 ) Now call NDXX_setup from this routine (phs, 11/18/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -319,6 +321,9 @@
 
       ! Close input file
       CLOSE( IU_GEOS )
+
+      ! Allocate diagnostic arrays (phs, 11/18/08)
+      CALL NDXX_SETUP
 
       !=================================================================
       ! Further error-checking and initialization
@@ -2125,6 +2130,8 @@
 !        (dkh, bmy, 5/22/06)
 !  (9 ) Now set max dimension for GFED2 or default biomass (bmy, 9/22/06)
 !  (10) Bug fix: Should use ND52 in call to SET_TINDEX (cdh, bmy, 2/11/08)
+!  (11) Remove call to NDXX_SETUP; this is now called in READ_INPUT_FILE.
+!        (phs, 11/18/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2546,10 +2553,6 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:51' )
       READ( SUBSTRS(1), * ) ND52
-      !----------------------------------------------------------
-      ! Bug fix: ND48 should be ND52 here (cdh, bmy, 2/11/08)
-      !CALL SET_TINDEX( 52, ND48, SUBSTRS(2:N), N-1, PD52 )
-      !----------------------------------------------------------
       CALL SET_TINDEX( 52, ND52, SUBSTRS(2:N), N-1, PD52 )
 
       !--------------------------
@@ -2685,7 +2688,11 @@
       CALL INIT_DIAG41
       CALL INIT_DIAG42
       CALL INIT_DIAG56
-      CALL NDXX_SETUP
+      !------------------------------------------------
+      ! Prior to 11/18/08:
+      ! Now call from READ_INPUT_FILE (bmy, 11/18/08)
+      !CALL NDXX_SETUP
+      !------------------------------------------------
 
       ! Enable Mean OH (or CH3CCl3) diag for runs which need it
       CALL INIT_DIAG_OH 

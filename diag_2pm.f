@@ -1,8 +1,8 @@
-! $Id: diag_2pm.f,v 1.6 2007/03/29 20:31:14 bmy Exp $
+! $Id: diag_2pm.f,v 1.7 2008/11/18 21:55:54 bmy Exp $
       SUBROUTINE DIAG_2PM
 !
 !*****************************************************************************
-!  Subroutine DIAG_2PM (bmy, 3/26/99, 1/24/07) constructs the diagnostic 
+!  Subroutine DIAG_2PM (bmy, 3/26/99, 11/18/08) constructs the diagnostic 
 !  flag arrays : 
 !      LTJV  : J-values           (ND22)
 !      LTOH  : OH concentrations  (ND43)
@@ -27,12 +27,14 @@
 !  (5 ) Now account for the time spent in the troposphere for ND43 and ND45
 !        pure O3.  Now only accumulate counter for 3D pure O3 in ND45 if
 !        it's a chemistry timestep. (phs, 1/24/07)
+!  (6 ) Added 3D counter for ND65 and 03 in ND47 (phs, 11/17/08)
 !*****************************************************************************
 !     
       ! References to F90 modules
       USE DIAG_MOD,       ONLY : LTJV,  CTJV,  LTNO,  CTNO,  CTO3
       USE DIAG_MOD,       ONLY : LTOH,  CTOH,  LTOTH, CTOTH, LTNO2
       USE DIAG_MOD,       ONLY : CTNO2, LTHO2, CTHO2, LTNO3, CTNO3
+      USE DIAG_MOD,       ONLY : CTO3_24h
       USE TIME_MOD,       ONLY : GET_LOCALTIME
       USE TIME_MOD,       ONLY : ITS_TIME_FOR_DYN, ITS_TIME_FOR_CHEM
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
@@ -44,6 +46,7 @@
 
       ! Local variables
       LOGICAL             :: IS_ND22, IS_ND43, IS_ND45, IS_ND45_O3
+      LOGICAL             :: IS_ND47, IS_ND65
       INTEGER             :: I,       J,       L
       REAL*8              :: LT(IIPAR)
 
@@ -56,6 +59,8 @@
       IS_ND45_O3 = (                ITS_TIME_FOR_CHEM() )
       IS_ND45    = ( ND45 > 0 .and. ITS_TIME_FOR_DYN()  )
       IS_ND43    = ( ND43 > 0 .and. ITS_TIME_FOR_CHEM() )
+      IS_ND47    = ( ND47 > 0                           )
+      IS_ND65    = ( ND65 > 0                           )
 
       ! Pre-compute local time 
       DO I = 1, IIPAR
@@ -88,6 +93,20 @@
             ELSE
                LTOTH(I,J) = 0
             ENDIF
+         ENDIF
+
+         !-----------------------------
+         ! ND47_O3 / ND65 -- "chemistry all day long" counter
+         !-----------------------------
+         IF ( IS_ND47 .OR. IS_ND65 ) THEN
+
+               ! Counter for # of O3 boxes in the troposphere (phs, 11/17/08)
+               DO L = 1, MAX( LD47, LD65 )
+                  IF ( IS_ND45_O3 .and. ITS_IN_THE_TROP( I, J, L )) THEN
+                     CTO3_24h(I,J,L) = CTO3_24h(I,J,L) + 1
+                  ENDIF
+               ENDDO
+
          ENDIF
 
          !-----------------------------

@@ -1,4 +1,4 @@
-! $Id: emissdr.f,v 1.16 2008/08/08 17:20:35 bmy Exp $
+! $Id: emissdr.f,v 1.17 2008/11/18 21:55:53 bmy Exp $
       SUBROUTINE EMISSDR
 !
 !******************************************************************************
@@ -165,12 +165,6 @@
       ! These need to be initialized on every call
       EMISRRN     = 0d0
       EMISRR      = 0d0
-      !-----------------------------------------------------------------------
-      ! Prior to 10/3/07:
-      ! Remove reference to GEMISNOX.  This is now replaced by separate
-      ! arrays for lightning NOx and aircraft NOx. (ltm, bmy, 10/3/07)
-      !GEMISNOX  = 0d0
-      !-----------------------------------------------------------------------
       GEMISNOX2   = 0d0
       
       ! Loop over latitudes
@@ -227,22 +221,7 @@
 !-----------------------------------------------------------------------------
 ! LIGHTNING EMISSIONS NOX [molecules/cm3/s]
 !
-!------------------------------------------------------------------------------
-! Prior to 9/24/07:
-! Now revert to single lightning_nox_mod.f (bmy, 9/24/07)
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!!%%% NOTE: Temporary kludge: For GEOS-4 we want to use the new near-land
-!!%%% lightning formulation.  But for the time being, we must keep the 
-!!%%% existing lightning for other met field types. (ltm, bmy, 5/10/06)
-!#if   defined( GEOS_4 )
-!            IF ( LLIGHTNOX ) CALL EMLIGHTNING_NL( I, J )
-!#else
-!------------------------------------------------------------------------------
             IF ( LLIGHTNOX ) CALL EMLIGHTNING( I, J )
-!------------------------------------------------------------------------------
-! Prior to 9/24/07:
-!#endif
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !-----------------------------------------------------------------------------
 ! SOIL EMISSIONS NOX [molecules/cm3/s]
 ! Now have to pass SUNCOS to SOILNOXEMS and SOILCRF (bmy, 10/20/99)

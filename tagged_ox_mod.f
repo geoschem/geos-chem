@@ -1,4 +1,4 @@
-! $Id: tagged_ox_mod.f,v 1.23 2007/12/04 16:23:59 bmy Exp $
+! $Id: tagged_ox_mod.f,v 1.24 2008/11/18 21:55:52 bmy Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
@@ -50,6 +50,7 @@
 !  (9 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (10) Modified for variable tropopause (phs, bmy, 1/19/07)
 !  (11) Now use LLTROP instead of LLTROP_FIX everywhere (bmy, 12/4/07)
+!  (12) Now use LD65 instead of LLTROP everywhere (phs, 11/17/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -141,6 +142,8 @@
 !  (4 ) Use LLTROP_FIX to limit array size to case of non-variable tropopause.
 !        Also zero ARRAY to avoid numerical problems (phs, 1/19/07)
 !  (5 ) Now use LLTROP instead of LLTROP_FIX (phs, bmy, 12/4/07)
+!  (6 ) Now use LD65, since this is the number of levels use to 
+!        save diag20 (phs, 11/17/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -153,7 +156,11 @@
 #     include "CMN_DIAG" ! LD65
 
       ! Local variables
-      REAL*4             :: ARRAY(IGLOB,JGLOB,LLTROP)
+!-----------------------------------------------------------
+!-- prior to 11/17/08
+!      REAL*4             :: ARRAY(IGLOB,JGLOB,LLTROP)
+!-----------------------------------------------------------
+      REAL*4             :: ARRAY(IGLOB,JGLOB,LD65)
       REAL*8             :: XTAU
       CHARACTER(LEN=255) :: FILENAME
 
@@ -237,6 +244,7 @@
 !  (5 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (6 ) Resize the PP array from LLTROP to LLTROP_FIX (phs, 1/19/07)
 !  (7 ) Now use LLTROP instead of LLTROP_FIX (bmy, 12/4/07)
+!  (8 ) Now use LD65 instead of LLTROP (phs, 11/17/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -247,10 +255,15 @@
 
 #     include "CMN_SIZE"       ! Size parameters
 #     include "CMN_GCTM"       ! SCALE_HEIGHT
+#     include "CMN_DIAG"       ! ND44, ND65, LD65
 
       ! Arguments
       INTEGER, INTENT(IN)     :: I, J, L
-      REAL*8,  INTENT(OUT)    :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
+!--------------------------------------------------------------------
+!-- prior to 11/17/08
+!      REAL*8,  INTENT(OUT)    :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
+!--------------------------------------------------------------------
+      REAL*8,  INTENT(OUT)    :: PP(IIPAR,JJPAR,LD65,N_TAGGED)
 
       ! Local variables
       LOGICAL                 :: ITS_IN_TROP, ITS_IN_PBL, ITS_IN_MT
@@ -420,6 +433,7 @@
 !  (7 ) Resize PP, N D44_TMP arrays from LLTROP to LLTROP_FIX.  Now only loop 
 !        up to LLTROP_FIX (phs, 1/19/07) 
 !  (8 ) Now use LLTROP instead of LLTROP_FIX (bmy, 12/4/07)
+!  (9 ) Now use LD65 instead of LLTROP (phs, 11/17/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -445,8 +459,13 @@
       LOGICAL, SAVE     :: FIRST   = .TRUE.
       INTEGER, SAVE     :: LASTDAY = -1
       INTEGER           :: I, J, L, N
-      REAL*8            :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
-      REAL*8            :: ND44_TMP(IIPAR,JJPAR,LLTROP)
+!-------------------------------------------------------------------
+!-- prior to 11/17/08
+!      REAL*8            :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
+!      REAL*8            :: ND44_TMP(IIPAR,JJPAR,LLTROP)
+!-------------------------------------------------------------------
+      REAL*8            :: PP(IIPAR,JJPAR,LD65,N_TAGGED)
+      REAL*8            :: ND44_TMP(IIPAR,JJPAR,LD65)
       REAL*8            :: DTCHEM,  FREQ,    FLUX
       REAL*8            :: LL,      PL,      Ox_0
       REAL*8            :: Ox_LOST, PBL_MAX, F_UNDER_TOP
@@ -517,7 +536,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, LL, PL, FREQ, Ox_0, Ox_LOST, FLUX, F_UNDER_TOP )  
 !$OMP+SCHEDULE( DYNAMIC )
-         DO L = 1, LLTROP !_FIX
+         DO L = 1, LD65 ! LLTROP !_FIX
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
@@ -632,10 +651,11 @@
 !
 !******************************************************************************
 !  Subroutine INIT_TAGGED_OX allocates and zeroes all module arrays.
-!  (bmy, 8/20/03) 
+!  (bmy, 8/20/03, 11/18/08) 
 !
 !  NOTES:
 !  (1 ) Now reference N_TRACERS from "tracer_mod.f" (bmy, 7/20/04)
+!  (2 ) Now use LD65 instead of LLTROP to dimension P24H, L24H (phs, 11/18/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -643,6 +663,7 @@
       USE TRACER_MOD, ONLY : N_TRACERS
 
 #     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_DIAG"  ! ND44, ND65, LD65
 
       ! Local variables
       INTEGER :: AS
@@ -658,12 +679,20 @@
       ENDIF
 
       ! Allocate P24H
-      ALLOCATE( P24H( IIPAR, JJPAR, LLTROP ), STAT=AS )
+!-------------------------------------------------------------
+!-- prior to 11/17/08
+!      ALLOCATE( P24H( IIPAR, JJPAR, LLTROP ), STAT=AS )
+!-------------------------------------------------------------
+      ALLOCATE( P24H( IIPAR, JJPAR, LD65 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'P24H' )
       P24H = 0d0
 
       ! Allocate L24H
-      ALLOCATE( L24H( IIPAR, JJPAR, LLTROP ), STAT=AS )
+!-------------------------------------------------------------
+!--prior to 11/17/08
+!      ALLOCATE( L24H( IIPAR, JJPAR, LLTROP ), STAT=AS )
+!-------------------------------------------------------------
+      ALLOCATE( L24H( IIPAR, JJPAR, LD65 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'L24H' ) 
       L24H = 0d0
 

@@ -1,4 +1,4 @@
-! $Id: dust_dead_mod.f,v 1.12 2008/11/07 19:30:34 bmy Exp $
+! $Id: dust_dead_mod.f,v 1.13 2008/11/18 21:55:53 bmy Exp $
       MODULE DUST_DEAD_MOD
 !
 !******************************************************************************
@@ -286,6 +286,8 @@
 !        "D" exponents. (bmy, 3/30/04)
 !  (2 ) Now get GOCART source function. (tdf, bmy, 1/25/07)      
 !  (3 ) Tune nested-domain emissions dust to the same as 2x2.5 simulation
+!        Also tune GEOS-3 1x1 N. America nested-grid dust emissions to
+!        the 4x5 totals from the GEOS-5 4x5 v8-01-01-Run0 benchmark. 
 !        (yxw, bmy, dan, 11/6/08)
 !******************************************************************************
 !
@@ -320,12 +322,24 @@
       !--------------
 
       ! Global mass flux tuning factor (a posteriori) [frc]
-#if defined( GEOS_5 ) && defined( GRID05x0666 )  
+#if   defined( GEOS_5 ) && defined( GRID05x0666 )  
+
       ! We need to tune the global dust emissions to the same 
       ! as the 2 x 2.5 simulation (yxw, dan, bmy, 11/6/08)
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 * 0.69
+
+#elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_NA )
+
+      ! For the GEOS-3 1x1 N. America Nested grid (as used by the MIT/FAA-ULS
+      ! project), we'll tune the global dust emissions to the same totals as 
+      ! the GEOS-5 4x5 1-year benchmark v8-01-01-Run0. (bmy, 11/10/08)
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 / 9.57d0
+
 #else
+
+      ! Default value
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4
+
 #endif
 
       ! Reference height for mobilization processes [m]

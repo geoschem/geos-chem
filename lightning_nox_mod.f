@@ -1,4 +1,4 @@
-! $Id: lightning_nox_mod.f,v 1.21 2008/11/07 19:30:33 bmy Exp $
+! $Id: lightning_nox_mod.f,v 1.22 2008/11/18 21:55:52 bmy Exp $
       MODULE LIGHTNING_NOX_MOD
 !
 !******************************************************************************
@@ -7,7 +7,7 @@
 !  GISS-II CTM's of Yuhang Wang, Gerry Gardner, & Larry Horowitz.  Overhauled 
 !  for updated parameterization schemes: CTH, MFLUX and PRECON.  Now also
 !  uses the near-land formulation (i.e. offshore boxes also get treated as
-!  if they were land boxes).  (ltm, rch, bmy, 4/14/04, 11/6/08)  
+!  if they were land boxes).  (ltm, rch, bmy, 4/14/04, 11/14/08)  
 !
 !  NOTE: The OTD/LIS regional redistribution for MFLUX and PRECON lightning
 !  parameterizations have not yet been implemented.  These parameterizations
@@ -98,8 +98,9 @@
 !  (5 ) Added MFLUX, PRECON redistribution options (ltm, bmy, 11/29/07)
 !  (6 ) Updated OTD/LIS scaling for GEOS-5 to get more realistic totals
 !        (ltm, bmy, 2/20/08)
-!  (7 ) Now add the proper scale factor for the GEOS-5 0.5 x 0.666 grid
-!        in routine GET_OTD_LIS_SCALE. (yxw, dan, bmy, 11/6/08)
+!  (7 ) Now add the proper scale factors for the GEOS-5 0.5 x 0.666 grid
+!        and the GEOS-3 1x1 nested N. America grid in routine 
+!        GET_OTD_LIS_SCALE. (yxw, dan, ltm, bmy, 11/14/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1614,6 +1615,14 @@
       FILENAME = TRIM( DATA_DIR )        // 
      &           'lightning_NOx_200709/' // TRIM( FILENAME ) 
 
+      ! For GEOS-5 nested grids, append the a suffix to denote either 
+      ! CHINA or NORTH AMERICA nested regions (ltm, bmy, 11/14/08)
+#if   defined( NESTED_CH ) 
+      FILENAME = TRIM( FILENAME ) // '.CH'
+#elif defined( NESTED_NA ) 
+      FILENAME = TRIM( FILENAME ) // '.NA'
+#endif
+
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - READ_LOCAL_REDIST: Reading ', a )
@@ -1699,14 +1708,14 @@
 !  is to be applied to the lightning flash rate to bring the annual average 
 !  flash rate to match that of the OTD-LIS climatology ( ~ 45.9 flashes/sec ).
 !  Computed by running the model over the 11-year OTD-LIS campaign window and 
-!  comparing the average flash rates. (ltm, 9/24/07, 11/6/08)
+!  comparing the average flash rates. (ltm, 9/24/07, 11/14/08)
 !
 !  NOTES:
 !  (1 ) Added MFLUX, PRECON scaling for GEOS-4.  Also write messages for met
 !        field types/grids where scaling is not defined. (ltm, bmy, 11/29/07)
 !  (2 ) Now use different divisor for local redist (ltm, bmy, 2/20/08)
 !  (3 ) Now compute the proper scale factor for GEOS-5 0.5 x 0.666 grids
-!        (yxw, bmy, dan, bmy, 11/6/08)
+!        and the GEOS-3 1x1 nested NA grid (yxw, dan, ltm, bmy, 11/14/08)
 !******************************************************************************
 !
 #     include "define.h"
@@ -1721,14 +1730,14 @@
       ! Define the average annual flash rate (flashes per second), as
       ! calculated from the OTD-LIS HR Monthly Climatology observations
       ! from May 1995 through Dec 2005.  Slight difference when
-      ! averaging over different resolutions. (ltm, 09/24/07)
+      ! averaging over different resolutions. (ltm, 09/24/07, 11/14/08)
       !=================================================================
 #if   defined( GRID2x25 ) 
       REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 45.8650d0
 #elif defined( GRID4x5  )
       REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 45.8658d0
-#elif defined( GRID05x0666 )
-      REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 45.8658d0
+#elif defined( GRID05x0666 ) && defined( NESTED_CH )
+      REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 8.75523d0
 #endif
 
       !=================================================================
@@ -1737,17 +1746,17 @@
 
 #if   defined( GCAP )
 
-      !-----------------------
-      ! GCAP 4 x 5 
-      !-----------------------
+      !-------------------------------------
+      ! GCAP: 4 x 5 global simulation
+      !-------------------------------------
       WRITE( 6, * ) 'Warning: OTD-LIS Scaling not defined for GCAP'
       SCALE = 1.0d0
 
-#elif   defined( GEOS_5 ) && defined( GRID4x5 )
+#elif defined( GEOS_5 ) && defined( GRID4x5 )
 
-      !-----------------------
-      ! GEOS-5 4 x 5 
-      !------------------------
+      !-------------------------------------
+      ! GEOS-5: 4 x 5 global simulation
+      !-------------------------------------
       IF ( LCTH ) THEN
          IF ( LOTDLOC ) THEN
             SCALE = ANN_AVG_FLASHRATE / 17.5892d0
@@ -1759,11 +1768,11 @@
          SCALE = 1.0d0
       ENDIF
 
-#elif   defined( GEOS_5 ) && defined( GRID2x25 )
+#elif defined( GEOS_5 ) && defined( GRID2x25 )
 
-      !----------------------
-      ! GEOS-5 2 x 2.5 
-      !----------------------
+      !-------------------------------------
+      ! GEOS-5: 2 x 2.5 global simulation
+      !-------------------------------------
       IF ( LCTH ) THEN
          IF ( LOTDLOC ) THEN
             SCALE = ANN_AVG_FLASHRATE / 47.7117d0
@@ -1775,27 +1784,37 @@
          SCALE = 1.0d0
       ENDIF
 
-#elif defined( GEOS_5 ) && defined( GRID05x0666 )
+#elif defined( GEOS_5 ) && defined( GRID05x0666 ) & defined( NESTED_CH )
 
-      !----------------------
-      ! GEOS-5 05x0666
-      !----------------------
+      !-------------------------------------
+      ! GEOS-5: 0.5 x 0.666
+      ! Nested grid simulation: CHINA
+      !-------------------------------------
       IF ( LCTH ) THEN
          IF ( LOTDLOC ) THEN
-            SCALE = ANN_AVG_FLASHRATE/17.5892d0 * 0.0638d0
+            SCALE = ANN_AVG_FLASHRATE / 100.082d0
          ELSE
-            SCALE = ANN_AVG_FLASHRATE/13.9779d0 * 0.0638d0
+            SCALE = ANN_AVG_FLASHRATE / 75.0679d0
          ENDIF
       ELSE
          WRITE( 6, '(a)' ) 'Warning: OTD-LIS GEOS5 scaling only for CTH'
          SCALE = 1.0d0
       ENDIF
 
+#elif defined( GEOS_5 ) && defined( GRID05x0666 ) & defined( NESTED_NA )
+
+      !-------------------------------------
+      ! GEOS-5: 0.5 x 0.666
+      ! Nested grid simulation: N. AMERICA
+      !-------------------------------------
+
+      ! %%%%% Still need to do this -- worry about it later!!! %%%%%
+
 #elif defined( GEOS_4 ) && defined( GRID4x5 )
 
-      !---------------------
-      ! GEOS-4 4 x 5
-      !---------------------
+      !-------------------------------------
+      ! GEOS-4: 4 x 5 global simulation
+      !-------------------------------------
       IF ( LCTH ) THEN
          SCALE = ANN_AVG_FLASHRATE / 29.3173d0
 
@@ -1809,9 +1828,9 @@
 
 #elif defined( GEOS_4 ) && defined( GRID2x25 )
       
-      !---------------------
-      ! GEOS-4 2 x 2.5
-      !---------------------
+      !-------------------------------------
+      ! GEOS-4: 2 x 2.5 global simulation
+      !-------------------------------------
       IF ( LCTH ) THEN
          SCALE = ANN_AVG_FLASHRATE / 83.3208d0
 
@@ -1825,28 +1844,42 @@
 
 #elif defined( GEOS_4 ) && defined( GRID1x125 )
 
-      !---------------------
-      ! GEOS-4 1 x 1.25
-      !---------------------
+      !-------------------------------------
+      ! GEOS-4: 1 x 1.25 global simulation
+      !-------------------------------------
       WRITE(6,*) 'Warning: OTD-LIS Scaling not defined for 1x125'
       SCALE = 1.0d0
 	  
-#elif defined( GEOS_3 ) 
 
-      !---------------------
-      ! GEOS-3, all grids
-      !---------------------
+#elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_CH ) 
+
+      !-------------------------------------
+      ! GEOS-3: 1 x 1
+      ! Nested grid simulation: CHINA
+      !-------------------------------------
+      WRITE(6,*) 'Warning: OTD-LIS Scaling not defined for NESTED CH'
+      SCALE = 1.0d0
+
+
+#elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_NA ) 
+
+      !-------------------------------------
+      ! GEOS-3: 1 x 1
+      ! Nested grid simulation: N. AMERICA
+      !-------------------------------------
+
+      ! NOTE: This was determined for the GEOS-3 nested grid 2001, 
+      ! which we needed to use for the MIT/FAA ULS sulfur project 
+      ! (ltm, bmy, phs, 11/12/08)
+      SCALE = 6.98353d0 / 44.9307d0
+
+#elif defined( GEOS_3 )
+
+      !-------------------------------------
+      ! GEOS-3: global simulation
+      !-------------------------------------
       WRITE( 6, * ) 'Warning: OTD-LIS Scaling not defined for GEOS3'
-
-#if   defined( NESTED_NA ) 
-      !%%%%% NOTE: This is for the GEOS-3 nested grid 2001, which we needed 
-      !%%%%% to use for the MIT/FAA ULS sulfur project (bmy, phs, 10/31/08)
-      !%%%%% 
-
       SCALE = 1.0d0
-#else
-      SCALE = 1.0d0
-#endif
 
 #endif
 

@@ -1,10 +1,10 @@
-! $Id: diag_pl_mod.f,v 1.13 2008/08/08 17:20:34 bmy Exp $
+! $Id: diag_pl_mod.f,v 1.14 2008/11/18 21:55:54 bmy Exp $
       MODULE DIAG_PL_MOD
 !
 !******************************************************************************
 !  Module DIAG_PL_MOD contains variables and routines which are used to 
 !  compute the production and loss of chemical families in SMVGEAR chemistry.
-!  (bmy, 7/20/04, 12/4/07)
+!  (bmy, 7/20/04, 11/18/08)
 !
 !  Module Variables:
 !  ============================================================================
@@ -66,6 +66,7 @@
 !  (6 ) Bug fix in DIAG20 (phs, 1/22/07)
 !  (7 ) Now use LD65 as the vertical dimension instead of LLTROP or LLTROP_FIX
 !        in DO_DIAG_PL, DIAG20, and WRITE20 (phs, bmy, 12/4/07)
+!  (8 ) Now make COUNT a 3-D array (phs, 11/18/08)
 !******************************************************************************
 !      
       IMPLICIT NONE
@@ -103,12 +104,16 @@
       INTEGER, PARAMETER             :: MAXMEM  = 10
       INTEGER, PARAMETER             :: MMAXFAM = 40  ! MAXFAM=40 in "CMN_SIZE"
       INTEGER                        :: NFAM
-      INTEGER                        :: YYYYMMDD, COUNT
+      !--------------------------------------------------------
+      ! Prior to 11/18/08:
+      !INTEGER                        :: YYYYMMDD, COUNT
+      !--------------------------------------------------------
+      INTEGER                        :: YYYYMMDD
       REAL*8                         :: TAUb, TAUe, TAU0, TAU1
       CHARACTER(LEN=255)             :: FILENAME
 
       ! Arrays
-      INTEGER,           ALLOCATABLE :: FAM_NMEM(:)
+      INTEGER,           ALLOCATABLE :: FAM_NMEM(:), COUNT(:,:,:)
       REAL*4,            ALLOCATABLE :: AD65(:,:,:,:)
       REAL*8,            ALLOCATABLE :: FAM_PL(:,:,:,:)
       REAL*8,            ALLOCATABLE :: FAM_COEF(:,:)
@@ -552,6 +557,7 @@
 !  NOTES:
 !  (1 ) Now bundled into "prod_loss_diag_mod.f" (bmy, 7/20/04)
 !  (2 ) Now only loop up thru LD65 levels (bmy, 12/4/07)
+!  (3 ) Set FAM_PL to zero in the stratosphere (phs, 11/17/08)
 !*****************************************************************************
 !
       ! References to F90 modules
@@ -602,7 +608,14 @@
 
             ! Also save into the AD65 diagnostic array
             AD65(I,J,L,N)        = AD65(I,J,L,N) + FAM_PL(I,J,L,N)
+         
+         ELSE
+            
+            ! avoid surprises in DIAG20, which uses all FAM_PL boxes
+            FAM_PL(I,J,L,N)      = 0.0d0
+
          ENDIF
+
       ENDDO
       ENDDO
       ENDDO
@@ -645,9 +658,12 @@
 !  (4 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (5 ) Now use LLTROP_FIX instead of LLTROP (phs, 1/22/07)
 !  (6 ) Now use LD65 instead of LLTROP_FIX (phs, bmy, 12/4/07)
+!  (7 ) Now take care of boxes that switch b/w stratospheric and tropospheric
+!        regimes (phs, 11/17/08)
 !******************************************************************************
 !
       ! References to F90 modules
+      USE COMODE_MOD,    ONLY : JLOP
       USE DIRECTORY_MOD, ONLY : O3PL_DIR
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE TIME_MOD,      ONLY : EXPAND_DATE,   GET_NYMD
@@ -662,7 +678,7 @@
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
       LOGICAL                :: DO_WRITE
-      INTEGER                :: I, J, L, N
+      INTEGER                :: I, J, L, N, JLOOP
       REAL*8                 :: P_Ox, L_Ox
       CHARACTER(LEN=16)      :: STAMP 
 
@@ -698,15 +714,28 @@
       WRITE( 6, 120 ) STAMP
  120  FORMAT( '     - DIAG20: Archiving P(Ox) & L(Ox) at ', a )
 
-      ! Increment counter
-      COUNT = COUNT + 1
+!--------------------------------
+!-- prior to 11/17/08
+!      ! Increment counter
+!      COUNT = COUNT + 1
+!--------------------------------
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, P_Ox, L_Ox )
+!$OMP+PRIVATE( I, J, L, P_Ox, L_Ox, JLOOP )
       DO L = 1, LD65
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+
+         !-------------
+         ! Counter
+         !-------------
+
+         ! JLOOP is the 1-D grid box index for SMVGEAR arrays
+         JLOOP = JLOP(I,J,L)
+
+         ! If this is a valid grid box, increment counter
+         IF ( JLOOP > 0 ) COUNT(I,J,L) = COUNT(I,J,L) + 1
 
          !-------------
          ! Production
@@ -753,7 +782,12 @@
          DO L = 1, LD65
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            PL24H(I,J,L,N) = PL24H(I,J,L,N) / COUNT
+!---------------------------------------------------------
+!-- prior to 11/17/08
+!            PL24H(I,J,L,N) = PL24H(I,J,L,N) / COUNT
+!---------------------------------------------------------
+            IF ( COUNT(I,J,L) /= 0 )
+     $           PL24H(I,J,L,N) = PL24H(I,J,L,N) / COUNT(I,J,L)
          ENDDO
          ENDDO
          ENDDO
@@ -778,7 +812,7 @@
          CALL WRITE20
 
          ! Zero counter
-         COUNT = 0
+         COUNT(I,J,L) = 0
 
          ! Zero PL24H array
 !$OMP PARALLEL DO
@@ -867,10 +901,6 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-      !---------------------------------------------------------------------
-      ! Prior to 12/4/07:
-      !DO L = 1, LLTROP_FIX   ! replace LLTROP for offline simulation
-      !---------------------------------------------------------------------
       DO L = 1, LD65
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -887,11 +917,6 @@
       CALL BPCH2( IU_ND20,   MODELNAME, LONRES,    LATRES,    
      &            HALFPOLAR, CENTER180, CATEGORY,  1,           
      &            UNIT,      TAU0,      TAU1,      RESERVED,  
-!---------------------------------------------------------------------------
-! Prior to 12/4/07:
-!     &            IIPAR,     JJPAR,     LLTROP_FIX,    IFIRST,
-!     &            JFIRST,    LFIRST,    ARRAY(:,:,1:LLTROP_FIX)  )
-!---------------------------------------------------------------------------
      &            IIPAR,     JJPAR,     LD65 ,     IFIRST,
      &            JFIRST,    LFIRST,    ARRAY(:,:,1:LD65)  )
 
@@ -903,10 +928,6 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-      !---------------------------------------------------------------------
-      ! Prior to 12/4/07:
-      !DO L = 1, LLTROP_FIX   ! replace LLTROP for offline simulation
-      !---------------------------------------------------------------------
       DO L = 1, LD65
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -923,11 +944,6 @@
       CALL BPCH2( IU_ND20,   MODELNAME, LONRES,    LATRES,    
      &            HALFPOLAR, CENTER180, CATEGORY,  2,           
      &            UNIT,      TAU0,      TAU1,      RESERVED,  
-!----------------------------------------------------------------------------
-! Prior to 12/4/07:
-!     &            IIPAR,     JJPAR,     LLTROP_FIX,    IFIRST,
-!     &            JFIRST,    LFIRST,    ARRAY(:,:,1:LLTROP_FIX) )
-!----------------------------------------------------------------------------
      &            IIPAR,     JJPAR,     LD65,      IFIRST,
      &            JFIRST,    LFIRST,    ARRAY(:,:,1:LD65)  )
 
@@ -1240,12 +1256,12 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'FAM_COEF' )
       FAM_MEMB = ''
 
+      ALLOCATE( COUNT( IIPAR, JJPAR, LD65 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'COUNT' )
+      COUNT = 0
+
       ! Only allocate FAM_PL for a fullchem simulation
       IF ( ITS_A_FULLCHEM_SIM() ) THEN
-         !---------------------------------------------------------------
-         ! Prior to 12/4/07:
-         !ALLOCATE( FAM_PL( IIPAR, JJPAR, LLTROP, NFAM ), STAT=AS )
-         !---------------------------------------------------------------
          ALLOCATE( FAM_PL( IIPAR, JJPAR, LD65, NFAM ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'FAM_PL' )
       ENDIF
@@ -1253,10 +1269,6 @@
       ! Allocate PL24H if we are also saving out the P(Ox)
       ! and L(Ox) 
       IF ( DO_SAVE_O3 ) THEN
-         !---------------------------------------------------------------
-         ! Prior to 12/4/07:
-         !ALLOCATE( PL24H( IIPAR, JJPAR, LLTROP, 2 ), STAT=AS )
-         !---------------------------------------------------------------
          ALLOCATE( PL24H( IIPAR, JJPAR, LD65, 2 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PL24H' )
          PL24H = 0d0

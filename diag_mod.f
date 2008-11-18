@@ -1,9 +1,9 @@
-! $Id: diag_mod.f,v 1.20 2007/11/05 16:16:16 bmy Exp $
+! $Id: diag_mod.f,v 1.21 2008/11/18 21:55:54 bmy Exp $
       MODULE DIAG_MOD 
 !
 !******************************************************************************
 !  Module DIAG_MOD contains declarations for allocatable arrays for use with 
-!  GEOS-CHEM diagnostics. (amf, bdf, bmy, 11/30/99, 9/18/07)
+!  GEOS-CHEM diagnostics. (amf, bdf, bmy, 11/30/99, 11/18/08)
 !
 !  Module Routines:
 !  ============================================================================
@@ -55,6 +55,8 @@
 !  (26) Added CTO3 counter. Convert ND43 counter arrays from 2D to 3D, for
 !        the variable tropopause. (phs, 1/19/07)
 !  (27) Added AD10 and AD10em arrays for ND10 H2-HD-sim diag (phs, 9/18/07)
+!  (28) Added CTO3_24h to account for time in the troposphere for O3 in
+!        ND47 (phs, 11/17/08)
 !******************************************************************************
 !     
       !=================================================================
@@ -227,6 +229,9 @@
       ! For ND47 -- 24-h tracer concentration diagnostic
       REAL*4,  ALLOCATABLE :: AD47(:,:,:,:)      
 
+      ! For ND47(O3) / ND65 -- 24-h tracer diagnostic
+      INTEGER, ALLOCATABLE :: CTO3_24h(:,:,:)
+
       ! Dynamically allocatable array -- local only to DIAG50.F
       REAL*8,  ALLOCATABLE :: STT_TEMPO2(:,:,:,:)
 
@@ -354,6 +359,7 @@
       IF ( ALLOCATED( CTJV        ) ) DEALLOCATE( CTJV        )
       IF ( ALLOCATED( CTNO        ) ) DEALLOCATE( CTNO        )
       IF ( ALLOCATED( CTO3        ) ) DEALLOCATE( CTO3        )
+      IF ( ALLOCATED( CTO3_24h    ) ) DEALLOCATE( CTO3_24h    )
       IF ( ALLOCATED( CTOH        ) ) DEALLOCATE( CTOH        )
       IF ( ALLOCATED( CTNO2       ) ) DEALLOCATE( CTNO2       )
       IF ( ALLOCATED( CTNO3       ) ) DEALLOCATE( CTNO3       )

@@ -1,8 +1,8 @@
-! $Id: initialize.f,v 1.26 2007/11/05 16:16:19 bmy Exp $
+! $Id: initialize.f,v 1.27 2008/11/18 21:55:53 bmy Exp $
       SUBROUTINE INITIALIZE( IFLAG )
 !
 !******************************************************************************
-!  Subroutine INITIALIZE (bmy, 6/15/98, 9/18/07) does the following:
+!  Subroutine INITIALIZE (bmy, 6/15/98, 11/18/08) does the following:
 !     (1) Zeroes globally defined GEOS-CHEM variables.
 !     (2) Zeroes accumulating diagnostic arrays.
 !     (3) Resets certain year/month/day and counter variables used 
@@ -64,20 +64,22 @@
 !  (34) AD37        : ND37 array -- wet scavenging fraction
 !  (35) AD38        : ND38 array -- rainout in wet conv
 !  (36) AD39        : ND39 array -- washout in aerosol deposition
-!  (37) AD41        : ND41 array -- afternoon PBL depths
-!  (38) AD43        : ND43 array -- OH, NO concentrations
-!  (39) AD45        : ND45 array -- tracer concentrations
-!  (40) AD47        : ND47 array -- 24-h avg'd tracer conc.
-!  (41) TCOBOX      : ND48 array -- station time series
-!  (42) AD54        : ND54 array -- time in the troposphere (fraction)
-!  (43) AD55        : ND55 array -- tropopause quantities
-!  (44) AD65        : ND65 array -- chemical prod & loss
-!  (45) FAMPL       : ND65 array -- accumulator for chemical prod & loss
-!  (46) AD66        : ND66 array -- DAO 3-D fields
-!  (47) AD67        : ND67 array -- DAO surface fields
-!  (48) AD68        : ND68 array -- boxheights, air mass, water vapor, 
+!  (37) AD40        : ND40 array -- prod/loss H2/HD
+!  (38) AD40em      : ND40 array -- H2/HD emissions
+!  (38) AD41        : ND41 array -- afternoon PBL depths
+!  (39) AD43        : ND43 array -- OH, NO concentrations
+!  (40) AD45        : ND45 array -- tracer concentrations
+!  (41) AD47        : ND47 array -- 24-h avg'd tracer conc.
+!  (42) TCOBOX      : ND48 array -- station time series
+!  (43) AD54        : ND54 array -- time in the troposphere (fraction)
+!  (44) AD55        : ND55 array -- tropopause quantities
+!  (45) AD65        : ND65 array -- chemical prod & loss
+!  (46) FAMPL       : ND65 array -- accumulator for chemical prod & loss
+!  (47) AD66        : ND66 array -- DAO 3-D fields
+!  (48) AD67        : ND67 array -- DAO surface fields
+!  (49) AD68        : ND68 array -- boxheights, air mass, water vapor, 
 !                                   Air number density 
-!  (49) AD69        : ND69 array -- surface areas
+!  (50) AD69        : ND69 array -- surface areas
 !
 !  Scalars & Counter variables passed via COMMON blocks
 !  ============================================================================
@@ -166,6 +168,7 @@
 !  (39) Now also zero CTO3 array.  Bug fix: ZERO_DIAG42 is now called when
 !        ND42 is turned on. (phs, bmy, 1/30/07)
 !  (40) Now zero AD10 and AD10em for H2HD simulation (phs, 9/18/07)
+!  (41) Now zero CTO3_24h (phs, 11/17/08)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -196,7 +199,7 @@
       USE DIAG_MOD,    ONLY : CTNO2,       LTNO3,       CTNO3
       USE DIAG_MOD,    ONLY : AD44,        AD45,        LTOTH
       USE DIAG_MOD,    ONLY : CTOTH,       AD46,        AD47
-      USE DIAG_MOD,    ONLY : AD54,        CTO3
+      USE DIAG_MOD,    ONLY : AD54,        CTO3,        CTO3_24h
       USE DIAG_MOD,    ONLY : AD55,        AD66,        AD67
       USE DIAG_MOD,    ONLY : AD68,        AD69
       USE DIAG_MOD,    ONLY : AD10,        AD10em
@@ -383,17 +386,18 @@
          KDA48     = 0
 
          ! Allocatable counter arrays
-         IF ( ND16 > 0 ) CT16   = 0
-         IF ( ND17 > 0 ) CT17   = 0
-         IF ( ND18 > 0 ) CT18   = 0
-         IF ( ND22 > 0 ) CTJV   = 0
-         IF ( ND43 > 0 ) CTNO   = 0
-         IF ( ND43 > 0 ) CTOH   = 0
-         IF ( ND45 > 0 ) CTOTH  = 0
-         IF ( ND45 > 0 ) CTO3   = 0
-         IF ( ND43 > 0 ) CTNO2  = 0
-         IF ( ND43 > 0 ) CTHO2  = 0
-         IF ( ND43 > 0 ) CTNO3  = 0
+         IF ( ND16 >               0 ) CT16       = 0
+         IF ( ND17 >               0 ) CT17       = 0
+         IF ( ND18 >               0 ) CT18       = 0
+         IF ( ND22 >               0 ) CTJV       = 0
+         IF ( ND43 >               0 ) CTNO       = 0
+         IF ( ND43 >               0 ) CTOH       = 0
+         IF ( ND45 >               0 ) CTOTH      = 0
+         IF ( ND45 >               0 ) CTO3       = 0
+         IF ( ND47 > 0 .OR. ND65 > 0 ) CTO3_24h   = 0
+         IF ( ND43 >               0 ) CTNO2      = 0
+         IF ( ND43 >               0 ) CTHO2      = 0
+         IF ( ND43 >               0 ) CTNO3      = 0
 
          ! Echo output
          WRITE( 6, '(a)' ) '     - INITIALIZE: Diag counters zeroed!'

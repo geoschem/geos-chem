@@ -1,9 +1,9 @@
-! $Id: ndxx_setup.f,v 1.33 2008/08/08 17:20:36 bmy Exp $
+! $Id: ndxx_setup.f,v 1.34 2008/11/18 21:55:52 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
 !  NDXX_SETUP dynamically allocates memory for certain diagnostic arrays that 
-!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 11/16/07)
+!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 11/18/08)
 !
 !  This allows us to reduce the amount of memory that needs to be declared 
 !  globally.  We only allocate memory for arrays if the corresponding 
@@ -127,6 +127,7 @@
 !        simulation. (phs, bmy, 9/18/07)
 !  (63) Now save true pressure edges for ND31 diagnostic (bmy, 11/16/07)
 !  (64) Now stop the run if ND20 is defined but ND65 isn't (bmy, 12/4/07)
+!  (65) Allocate CTO3_24h (phs, 11/18/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -162,7 +163,7 @@
       USE DIAG_MOD,        ONLY : AD54
       USE DIAG_MOD,        ONLY : AD55,        AD66,        AD67
       USE DIAG_MOD,        ONLY : AD68,        AD69,        CTO3
-      USE DIAG_MOD,        ONLY : AD10,        AD10em
+      USE DIAG_MOD,        ONLY : AD10,        AD10em,      CTO3_24h
       USE DIAG_OH_MOD,     ONLY : INIT_DIAG_OH
       USE DRYDEP_MOD,      ONLY : NUMDEP
       USE ERROR_MOD,       ONLY : ALLOC_ERR,   ERROR_STOP
@@ -183,7 +184,7 @@
 #     include "CMN_DIAG"   ! Diagnostic switches & arrays
 
       ! Local variables
-      INTEGER :: NMAX, AS, NEMISS
+      INTEGER :: NMAX, AS, NEMISS, LMAX
 
       !=================================================================
       ! NDXX_SETUP begins here! 
@@ -880,6 +881,21 @@
          ! Resize to NMAX to save memory (bmy, 10/18/00)
          ALLOCATE( AD47( IIPAR, JJPAR, LD47, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD47' )
+      ENDIF
+
+
+      !=================================================================
+      ! ND47(O3) or ND65 : 24-h averaged tropospheric diagnostic 
+      !=================================================================
+      IF ( ND47 > 0 .OR. ND65 > 0 ) THEN
+
+         ! NOTE: we assume that INIT_DIAG_PL has already been called
+         LMAX = MAX( LD47, LD65 )
+
+         ! Number of times in the troposphere 
+         ALLOCATE( CTO3_24h( IIPAR, JJPAR, LMAX ), STAT=AS )
+         IF ( AS > 0 ) CALL ALLOC_ERR( 'CTO3_24h' )
+
       ENDIF
 
       !=================================================================

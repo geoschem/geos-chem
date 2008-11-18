@@ -1,9 +1,9 @@
-! $Id: tropopause_mod.f,v 1.13 2007/11/05 16:16:27 bmy Exp $
+! $Id: tropopause_mod.f,v 1.14 2008/11/18 21:55:52 bmy Exp $
       MODULE TROPOPAUSE_MOD
 !
 !******************************************************************************
 !  Module TROPOPAUSE_MOD contains routines and variables for reading and
-!  returning the value of the annual mean tropopause. (bmy, 8/15/05, 9/18/07)
+!  returning the value of the annual mean tropopause. (bmy, 8/15/05, 11/14/08)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -47,6 +47,7 @@
 !        in that case.  (bdf, phs, 1/19/07)
 !  (4 ) Bug fix: set NCS=NCSURBAN for safety's sake (bmy, 4/25/07)
 !  (5 ) Updated comments (bmy, 9/18/07)
+!  (6 ) Bug fix: make ITS_IN_THE_STRAT more robust. (phs, 11/14/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -594,7 +595,7 @@
 !
 !******************************************************************************
 !  Function ITS_IN_THE_STRAT returns TRUE if grid box (I,J,L) lies within
-!  the stratosphere, or FALSE otherwise. (phs, bmy, 2/10/05, 9/14/06)
+!  the stratosphere, or FALSE otherwise. (phs, bmy, 2/10/05, 11/14/08)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -604,6 +605,8 @@
 !
 !  NOTES:
 !  (1 ) Modified for variable tropopause (phs, 9/14/06)
+!  (2 ) Now return the opposite value of ITS_IN_THE_TROP.  This should help
+!        to avoid numerical issues. (phs, 11/14/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -623,20 +626,28 @@
       !=================================================================
       ! ITS_IN_THE_STRAT begins here
       !=================================================================
-      IF ( LVARTROP ) THEN
+!------------------------------------------------------------------------------
+! Prior to 11/14/08:
+!      IF ( LVARTROP ) THEN
+!
+!         ! Get bottom pressure edge
+!         PRESS_BEDGE = GET_PEDGE(I,J,L)
+!         
+!         ! Test against actual tropopause pressure
+!         IS_STRAT    = ( PRESS_BEDGE <= TROPP(I,J) )
+!
+!      ELSE
+!
+!         ! Test against annual mean tropopause
+!         IS_STRAT    = ( L >= TROPOPAUSE(I,J) )
+!
+!      ENDIF
+!------------------------------------------------------------------------------
 
-         ! Get bottom pressure edge
-         PRESS_BEDGE = GET_PEDGE(I,J,L)
-         
-         ! Test against actual tropopause pressure
-         IS_STRAT    = ( PRESS_BEDGE <= TROPP(I,J) )
-
-      ELSE
-
-         ! Test against annual mean tropopause
-         IS_STRAT    = ( L >= TROPOPAUSE(I,J) )
-
-      ENDIF
+      ! Make the algorithm more robust by making ITS_IN_THE_STRAT be the 
+      ! exact opposite of function ITS_IN_THE_TROP.  This should avoid
+      ! numerical issues. (phs, 11/14/08)
+      IS_STRAT = ( .not. ITS_IN_THE_TROP( I, J, L ) )
 
       ! Return to calling program
       END FUNCTION ITS_IN_THE_STRAT
