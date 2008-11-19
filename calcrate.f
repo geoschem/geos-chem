@@ -1,9 +1,9 @@
-! $Id: calcrate.f,v 1.12 2005/09/02 15:16:58 bmy Exp $
+! $Id: calcrate.f,v 1.13 2008/11/19 19:57:19 bmy Exp $
       SUBROUTINE CALCRATE( SUNCOS )
 !
 !******************************************************************************
 !  Subroutine CALCRATE computes reaction rates before passing them to the
-!  SMVGEAR solver.  (M. Jacobson 1997; gcc, bdf, bmy, 4/1/03, 6/23/05)
+!  SMVGEAR solver.  (M. Jacobson 1997; gcc, bdf, bmy, 4/1/03, 11/19/08)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -44,6 +44,10 @@
 !  (7 ) Now use GET_FRAC_UNDER_PBLTOP from "pbl_mix_mod.f" instead of
 !        PBLFRAC from "drydep_mod.f" (bmy, 2/17/05)
 !  (8 ) SLOW-J is now obsolete; remove LSLOWJ #ifdef blocks (bmy, 6/23/05)
+!  (9 ) Now use NUMDEP instead of NDRYDEP(NCS) for the loop limit over drydep
+!        species.  NDRYDEP is the # of rxns in "globchem.dat", and NUMDEP is
+!        the # of drydep species in GEOS-Chem.  The two values may not be the 
+!        same. (dbm, phs, 11/19/08)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -51,7 +55,7 @@
      &                            IYSAVE, IZSAVE,  JLOP,    PRESS3,  
      &                            REMIS,  T3,      TAREA
       USE DIAG_MOD,        ONLY : AD22,   LTJV
-      USE DRYDEP_MOD,      ONLY : DEPSAV
+      USE DRYDEP_MOD,      ONLY : DEPSAV, NUMDEP
       USE ERROR_MOD,       ONLY : ERROR_STOP, GEOS_CHEM_STOP
       USE GRID_MOD,        ONLY : GET_YMID
       USE PBL_MIX_MOD,     ONLY : GET_FRAC_UNDER_PBLTOP
@@ -307,7 +311,14 @@ C ******   such as HNO3 from being depleted in the shallow       ******
 C ******   surface layer. (rjp, bmy, 7/30/03)                    ******   
 C *********************************************************************
 C
-      DO I = 1,NDRYDEP(NCS)
+!----------------------------------------------------------------------------
+!--prior 19/11/08
+! Now use NUMDEP instead of NDRYDEP(NCS) for the loop limit.  NDRYDEP is the
+! # of rxns in "globchem.dat", and NUMDEP are the # of drydep species in 
+! GEOS-Chem.  The two values may not be the same. (dbm, phs, 11/19/08)
+!      DO I = 1,NDRYDEP(NCS)
+!----------------------------------------------------------------------------
+      DO I = 1,NUMDEP
          NK = NTDEP(I)
          IF (NK.NE.0) THEN
             DO KLOOP = 1,KTLOOP

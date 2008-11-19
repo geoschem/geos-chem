@@ -1,4 +1,4 @@
-! $Id: emfossil.f,v 1.20 2008/08/08 17:20:35 bmy Exp $
+! $Id: emfossil.f,v 1.21 2008/11/19 19:57:19 bmy Exp $
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
 !******************************************************************************
@@ -56,6 +56,8 @@
 !  (26) Now references ITS_A_TAGCO_SIM from "tracer_mod.f".  Enhance CO prod
 !        by 18.5% for tagged CO sim here instead of in "tagged_co_mod.f".
 !        (bmy, 2/14/08)
+!  (27) Use more robust test to only screen out "missing" values in EMEP,
+!        BRAVO, and David Streets emissions. (avd, phs, bmy, 11/19/08)   
 !******************************************************************************
 !          
       ! References to F90 modules
@@ -376,7 +378,14 @@
                EMEP = GET_EMEP_ANTHRO( I, J, NN )
          
                ! -1 indicates tracer NN does not have EMEP emissions
-               IF ( EMEP > 0d0 ) THEN
+               !-----------------------------------------------------------
+               ! Prior to 11/19/08:
+               ! Use more robust test to only screen out -1 values
+               ! and not zero values (which could be valid emissions)
+               ! (avd, phs, bmy, 11/19/08)
+               !IF ( EMEP > 0d0 ) THEN
+               !-----------------------------------------------------------
+               IF ( .not. ( EMEP < 0d0 ) ) THEN
 
                   ! Apply time-of-day factor
                   EMEP   = EMEP * TODX
@@ -403,7 +412,14 @@
                BRAVO = GET_BRAVO_ANTHRO( I, J, NN )
          
                ! -1 indicates tracer NN does not have BRAVO emissions
-               IF ( BRAVO > 0d0 ) THEN
+               !-----------------------------------------------------------
+               ! Prior to 11/19/08:
+               ! Use more robust test to only screen out -1 values
+               ! and not zero values (which could be valid emissions)
+               ! (avd, phs, bmy, 11/19/08)               
+               !IF ( BRAVO > 0d0 ) THEN
+               !-----------------------------------------------------------
+               IF ( .not. ( BRAVO < 0d0 ) ) THEN
 
                   ! Apply time-of-day factor
                   BRAVO  = BRAVO * TODX
@@ -452,7 +468,14 @@
      &                                       MOLEC_CM2_S=.TRUE. )
          
                ! -1 indicates tracer NN does not have BRAVO emissions
-               IF ( STREETS > 0d0 ) THEN
+               !-----------------------------------------------------------
+               ! Prior to 11/19/08:
+               ! Use more robust test to only screen out -1 values
+               ! and not zero values (which could be valid emissions)
+               ! (avd, phs, bmy, 11/19/08)               
+               !IF ( STREETS > 0d0 ) THEN
+               !-----------------------------------------------------------
+               IF ( .not. ( STREETS < 0d0 ) ) THEN
 
                   ! Apply time-of-day factor
                   STREETS = STREETS * TODX

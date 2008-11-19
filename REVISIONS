@@ -76,6 +76,12 @@ a6_read_mod.f		-- Added N_A6_FIELDS variable
 aero_sfcrii		-- Now limit relative humidity to [tiny(real*8),0.99] 
 ("drydep_mod.f")	   range for DLOG argument
 
+calcrate.f		-- Now use NUMDEP instead of NDRYDEP(NCS) for the loop
+                           limit over drydep species.  NDRYDEP is the # of rxns
+                           in "globchem.dat", and NUMDEP is the # of drydep 
+                           species in GEOS-Chem.  The two values may not be the
+                           same. 
+
 chemdr.f		-- Now call "save_full_trop" at the end to account 
 			   for "do_diag_pl" resetting some of CSPEC elements
 
@@ -135,6 +141,9 @@ dst_mbl			-- Tune nested-domain emissions dust to the same
                            emissions to the 4x5 totals from the GEOS-5 4x5 
                            v8-01-01-Run0 benchmark.
 
+emfossil.f		-- Use more robust test to only screen out "missing" 
+                           values in EMEP, BRAVO, and David Streets emissions
+
 emiss_tagged_co		-- Bug fix: Now use IDECO to be consistent 
 ("tagged_co_mod.f")
 
@@ -144,6 +153,12 @@ fast_j.f		-- Switch from linear approximation (OVERLAP=1) to
 			   OPTDEPTH, TAUCLI, and TAUCLW are now the in-cloud
 			   optical depths rather than the grid-box optical 
 		           depths.
+
+gasconc.f		-- Now use NUMDEP instead of NDRYDEP(NCS) for the loop
+                           limit over drydep species.  NDRYDEP is the # of rxns
+                           in "globchem.dat", and NUMDEP is the # of drydep 
+                           species in GEOS-Chem.  The two values may not be the
+                           same. 
 
 geos4_geos5_global_adv  -- Activate the call to SAVE_GLOBAL_TPCORE_BC
 ("transport_mod.f")

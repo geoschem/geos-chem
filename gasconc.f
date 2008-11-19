@@ -1,9 +1,9 @@
-! $Id: gasconc.f,v 1.14 2006/11/07 19:02:01 bmy Exp $
+! $Id: gasconc.f,v 1.15 2008/11/19 19:57:19 bmy Exp $
       SUBROUTINE GASCONC( FIRSTCHEM, NTRACER, STT, XNUMOL, FRCLND )
 !
 !******************************************************************************
 !  Subroutine GASCONC initializes gas concentrations for SMVGEAR II.
-!  (M. Jacobson 1997; bdf, bmy, 4/18/03, 10/16/06)
+!  (M. Jacobson 1997; bdf, bmy, 4/18/03, 11/19/08)
 !
 !  NOTES:
 !  (1 ) Now reference ABSHUM, AIRDENS, CSPEC, IXSAVE, IYSAVE, IZSAVE,  
@@ -21,12 +21,17 @@
 !  (6 ) Now zero out the isoprene oxidation counter species (dkh, bmy, 6/1/06)
 !  (7 ) Now take care of variable tropopause case.  Also set NCS=NCSURBAN
 !        (=1) instead of hardwiring it. (bdf, phs, 10/16/06)
+!  (8 ) Now use NUMDEP instead of NDRYDEP(NCS) for the loop limit over drydep 
+!        species.  NDRYDEP is the # of rxns in "globchem.dat", and NUMDEP is 
+!        the # of drydep species in GEOS-Chem.  The two values may not be the 
+!        same. (dbm, phs, 11/19/08)
 !******************************************************************************
 !
       ! References to F90 modules 
       USE COMODE_MOD,     ONLY : ABSHUM, AIRDENS, CSPEC,  IXSAVE
       USE COMODE_MOD,     ONLY : IYSAVE, IZSAVE,  PRESS3, T3
       USE COMODE_MOD,     ONLY : CSPEC_FULL
+      USE DRYDEP_MOD,     ONLY : NUMDEP
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP, COPY_FULL_TROP
       USE TROPOPAUSE_MOD, ONLY : SAVE_FULL_TROP
       USE LOGICAL_MOD,    ONLY : LVARTROP
@@ -244,7 +249,15 @@ C *********************************************************************
       ! chemistry mechanism in the urban slot of SMVGEAR II
       NCS = NCSURBAN
 
-      DO 130 N = 1,NDRYDEP(NCS)
+!------------------------------------------------------------------------------
+!--prior 19/11/08
+! Now use NUMDEP instead of NDRYDEP(NCS) for the loop limit over drydep 
+! species.  NDRYDEP is the # of rxns in "globchem.dat", and NUMDEP is the # 
+! of drydep species in GEOS-Chem.  The two values may not be the same. 
+! (dbm, phs, 11/19/08)
+!      DO 130 N = 1,NDRYDEP(NCS)
+!------------------------------------------------------------------------------
+      DO 130 N = 1,NUMDEP
          NK = NTDEP(N)
          IF (NK.EQ.0) GOTO 130
          JJ = IRM(NPRODLO+1,NK,NCS)
