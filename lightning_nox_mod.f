@@ -1,4 +1,4 @@
-! $Id: lightning_nox_mod.f,v 1.22 2008/11/18 21:55:52 bmy Exp $
+! $Id: lightning_nox_mod.f,v 1.23 2008/11/19 20:16:40 bmy Exp $
       MODULE LIGHTNING_NOX_MOD
 !
 !******************************************************************************
@@ -1849,7 +1849,6 @@
       !-------------------------------------
       WRITE(6,*) 'Warning: OTD-LIS Scaling not defined for 1x125'
       SCALE = 1.0d0
-	  
 
 #elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_CH ) 
 
@@ -1859,7 +1858,6 @@
       !-------------------------------------
       WRITE(6,*) 'Warning: OTD-LIS Scaling not defined for NESTED CH'
       SCALE = 1.0d0
-
 
 #elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_NA ) 
 
