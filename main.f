@@ -1,5 +1,8 @@
-! $Id: main.f,v 1.55 2008/12/15 15:55:15 bmy Exp $
+! $Id: main.f,v 1.56 2008/12/15 21:21:12 bmy Exp $
 ! $Log: main.f,v $
+! Revision 1.56  2008/12/15 21:21:12  bmy
+! Added various updates of diagnostics. (bmy, 12/15/08)
+!
 ! Revision 1.55  2008/12/15 15:55:15  bmy
 ! Replaced TPCORE by S-J Lin and Kevin Yeh with the version
 ! from GMI (ccarouge, bmy, 12/15/08)
@@ -755,10 +758,6 @@
             IF ( LPRT ) CALL DEBUG_MSG ( '### MAIN: a DAILY DATA' )
          ENDIF
 
-         ! Get averaging intervals for local-time diagnostics
-         ! (NOTE: maybe improve this later on)
-         CALL DIAG_2PM
-     
          !==============================================================
          !   ***** I N T E R P O L A T E   Q U A N T I T I E S *****   
          !==============================================================
@@ -801,6 +800,12 @@
 
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INTERP, etc' )
+
+         ! Get averaging intervals for local-time diagnostics
+         ! (NOTE: maybe improve this later on)
+         ! Placed after interpolation to get correct value of TROPP. 
+         ! (ccc, 12/9/08)
+         CALL DIAG_2PM
 
          !==============================================================
          !   ***** U N I T   C O N V E R S I O N  ( kg -> v/v ) *****
@@ -881,25 +886,6 @@
             IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:2' )
          ENDIF
 
-         !==============================================================
-         !       ***** A R C H I V E   D I A G N O S T I C S *****
-         !==============================================================
-         IF ( ITS_TIME_FOR_DYN() ) THEN
-
-            ! Accumulate several diagnostic quantities
-            CALL DIAG1
-
-            ! ND41: save PBL height in 1200-1600 LT (amf)
-            ! (for comparison w/ Holzworth, 1967)
-            IF ( ND41 > 0 ) CALL DIAG41
-
-            ! ND42: SOA concentrations [ug/m3]
-            IF ( ND42 > 0 ) CALL DIAG42
-
-            !### Debug
-            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a DIAGNOSTICS' )
-         ENDIF
-
          !-------------------------------
          ! Test for emission timestep
          !-------------------------------
@@ -941,22 +927,24 @@
          !==============================================================
          IF ( LWETD .and. ITS_TIME_FOR_DYN() ) CALL DO_WETDEP
 
-         ! Activate this here someday (bmy, 7/20/04)
-         !!==============================================================
-         !!       ***** A R C H I V E   D I A G N O S T I C S *****
-         !!==============================================================
-         !IF ( ITS_TIME_FOR_DYN() ) THEN
-         !
-         !   ! Accumulate several diagnostic quantities
-         !   CALL DIAG1
-         !
-         !   ! ND41: save PBL height in 1200-1600 LT (amf)
-         !   ! (for comparison w/ Holzworth, 1967
-         !   IF ( ND41 > 0 ) CALL DIAG41
-         !
-         !   !### Debug
-         !   IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a DIAGNOSTICS' )
-         !ENDIF
+         !==============================================================
+         !       ***** A R C H I V E   D I A G N O S T I C S *****
+         !==============================================================
+         IF ( ITS_TIME_FOR_DYN() ) THEN
+         
+            ! Accumulate several diagnostic quantities
+            CALL DIAG1
+         
+            ! ND41: save PBL height in 1200-1600 LT (amf)
+            ! (for comparison w/ Holzworth, 1967
+            IF ( ND41 > 0 ) CALL DIAG41
+         
+            ! ND42: SOA concentrations [ug/m3]
+            IF ( ND42 > 0 ) CALL DIAG42
+
+            !### Debug
+            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a DIAGNOSTICS' )
+         ENDIF
 
          !==============================================================
          !   ***** T I M E S E R I E S   D I A G N O S T I C S  *****

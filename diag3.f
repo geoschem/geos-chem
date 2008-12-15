@@ -1,9 +1,9 @@
-! $Id: diag3.f,v 1.55 2008/12/15 15:55:16 bmy Exp $
+! $Id: diag3.f,v 1.56 2008/12/15 21:21:12 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
 !  Subroutine DIAG3 prints out diagnostics to the BINARY format punch file 
-!  (bmy, bey, mgs, rvm, 5/27/99, 11/18/08)
+!  (bmy, bey, mgs, rvm, 5/27/99, 12/15/08)
 !
 !  NOTES: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
@@ -90,6 +90,9 @@
 !        by SCALE_A3 for all other met types (phs, bmy, 10/7/08)
 !  (76) Fix ND65, ND47, and ozone case in ND45. Now only ND45 depends
 !        on LD45 (phs, 11/17/08)
+!  (77) Bug fix: Select the right index of AD34 to write.  Pick the right 
+!         tracer field from AD22 if only a subset of tracers are requested 
+!         to be printed out. (ccc, 12/15/08)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -142,6 +145,7 @@
       USE TIME_MOD,     ONLY : GET_CT_A6,   GET_CT_CHEM, GET_CT_CONV 
       USE TIME_MOD,     ONLY : GET_CT_DYN,  GET_CT_EMIS, GET_CT_I6   
       USE TRACER_MOD,   ONLY : N_TRACERS,   STT,         TRACER_MW_G
+      USE TRACER_MOD,   ONLY : TRACER_NAME
       USE TRACER_MOD,   ONLY : ITS_AN_AEROSOL_SIM
       USE TRACER_MOD,   ONLY : ITS_A_CH3I_SIM
       USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM
@@ -1444,6 +1448,8 @@
 !  (1) We must add TRCOFFSET for CH3I and HCN runs, so that GAMAP can
 !       recognize those photo rates as distinct from the NO2, HNO3,
 !       H2O2, CH2O, O3, and POH photo rates.
+!  (2) Pick the right tracer field from AD22 if only a subset of tracers
+!       are requested to be printed out. (ccc, 12/15/08)
 !******************************************************************************
 !
       IF ( ND22 > 0 ) THEN
@@ -1453,11 +1459,52 @@
 
          DO M = 1, TMAX(22)
             N  = TINDEX(22,M)
-            IF ( N > PD22 ) CYCLE
+            !-----------------------------------------------------------------
+            ! Prior to 12/15/08:
+            !IF ( N > PD22 ) CYCLE
+            !-----------------------------------------------------------------
             NN = N
 
+            !-----------------------------------------------------------------
+            ! NOTE: We can no longer select "all" in "input.geos", but we
+            ! must specify the tracer #'s for ND22 explicitly:
+            !
+            ! Fullchem:                CH3I         HCN
+            ! 1           = NOx        1 = CH3I     1 = HCN
+            ! 7           = HNO3
+            ! 8           = H2O2
+            ! 20          = CH2O
+            ! N_TRACERS+1 = O3 & OH
+            !
+            ! (ccc, bmy, 12/15/08)
+            !-----------------------------------------------------------------
+            IF ( NN >= N_TRACERS+1 ) THEN
+               MM = 5    ! Write 'O3' and 'OH'
+            ELSE
+               SELECT CASE ( TRIM( TRACER_NAME(NN) ) )
+                  CASE ( 'NOx', 'HCN', 'CH3I' )
+                     MM = 1
+                  CASE ( 'HNO3' )
+                     MM = 2
+                  CASE ( 'H2O2' )
+                     MM = 3
+                  CASE ( 'CH2O' )
+                     MM = 4
+                  CASE DEFAULT
+                     MM = 0
+               END SELECT
+            ENDIF
+
+            ! Skip if not a valid index
+            IF ( MM == 0 ) CYCLE
+
+
             DO L = 1, LD22
-               ARRAY(:,:,L) = AD22(:,:,L,N) / SCALE_TMP(:,:)
+               !---------------------------------------------------------------
+               ! Prior to 12/15/08:
+               !ARRAY(:,:,L) = AD22(:,:,L,N) / SCALE_TMP(:,:)
+               !---------------------------------------------------------------
+               ARRAY(:,:,L) = AD22(:,:,L,MM) / SCALE_TMP(:,:)
             ENDDO
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -1465,6 +1512,21 @@
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                  IIPAR,     JJPAR,     LD22,     IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD22) )
+
+            ! If we have just written out O3, then write out OH
+            ! (ccc, bmy, 12/15/08)
+            IF ( MM == 5 ) THEN
+               MMB = 6
+               DO L = 1, LD22
+                  ARRAY(:,:,L) = AD22(:,:,L,MMB) / SCALE_TMP(:,:)
+               ENDDO
+
+               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                     HALFPOLAR, CENTER180, CATEGORY, NN,    
+     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                     IIPAR,     JJPAR,     LD22,     IFIRST,     
+     &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD22) )
+            ENDIF
          ENDDO    
       ENDIF     
 !
@@ -2005,6 +2067,8 @@
 !       corresponds to actual biofuel burning tracers (bmy, 3/15/01)
 !  (3) Now write biofuel burning tracers to the punch file in the same order 
 !       as they are listed in "diag.dat". (bmy, 4/17/01)
+!  (4) Use BFTRACE and NBFTRACE to get the right index for AD34. 
+!      (ccc, 12/8/2008)
 !******************************************************************************
 !
       IF ( ND34 > 0 ) THEN
@@ -2016,7 +2080,14 @@
             IF ( .not. ANY( BFTRACE == N ) ) CYCLE
             NN = N
 
-            ARRAY(:,:,1) = AD34(:,:,M) / SCALESRCE
+            DO MM = 1, NBFTRACE
+               IF ( BFTRACE(MM) == NN ) THEN
+                  MMB = MM
+                  EXIT
+               ENDIF
+            ENDDO
+
+            ARRAY(:,:,1) = AD34(:,:,MMB) / SCALESRCE
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    

@@ -1,5 +1,5 @@
 REVISIONS (v8-01-03)  
-10 Dec 2008
+15 Dec 2008
 Bob Yantosca, Philippe Le Sager, and Claire Carouge
 geos-chem-support@as.harvard.edu
 
@@ -25,6 +25,10 @@ tpcore_fvdas_mod.f90	-- Old TPCORE routines from S-J Lin & Kevin Yeh.
 Changed in v8-01-03:
 -------------------------------------------------------------------------------
 
+diag3.f			-- Bug fix: Select the right index of AD34 to write.  
+	                -- Pick the right tracer field from AD22 if only a 
+	                   subset of tracers are requested to be printed out.
+
 pjc_pfix_mod.f		-- Modified for the new tpcore_fvdas_mod.f90 
                            (based on GMI)
 			-- Added ProTeX documentation headers
@@ -32,3 +36,9 @@ pjc_pfix_mod.f		-- Modified for the new tpcore_fvdas_mod.f90
 
 get_local_time		-- Bug fix: LT should be REAL*8 and not INTEGER
 ("diag51_mod.f")
+
+main.f			-- Moved call for DIAG_2PM to after interpolate
+                           quantities to get the correct value of TROPP
+                           (for GEOS-4). 
+			-- Moved calls for DIAG1, DIAG41, DIAG42
+                           to end of dynamic loop for better consistency.
